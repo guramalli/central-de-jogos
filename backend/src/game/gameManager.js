@@ -1,0 +1,46 @@
+import { prisma } from "../db.js";
+import { StopRoom } from "./StopRoom.js";
+import { ROOM_CONFIGS, DEFAULT_ROOM_ID } from "./roomConfigs.js";
+
+const rooms = new Map(); // roomId -> StopRoom
+const pendingCreation = new Map(); // roomId -> Promise<StopRoom> (evita criar a sala em duplicidade)
+
+// Importante: essa função pode ser chamada quase ao mesmo tempo por duas conexões
+// diferentes antes da sala existir. Sem o cache de "criação pendente" abaixo, as
+// duas chamadas veriam "a sala ainda não existe" (já que a consulta ao banco é
+// assíncrona) e cada uma criaria sua PRÓPRIA StopRoom — resultando em dois loops
+// de rodada rodando ao mesmo tempo e brigando pelos mesmos eventos (causa da tela
+// piscando / cronômetro perdido). Por isso reaproveitamos a mesma Promise entre
+// chamadas concorrentes para o mesmo roomId.
+export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
+  if (rooms.has(roomId)) return rooms.get(roomId);
+  if (pendingCreation.has(roomId)) return pendingCreation.get(roomId);
+
+  const creation = (async () => {
+    const themes = await prisma.theme.findMany();
+    const config = ROOM_CONFIGS[roomId] || ROOM_CONFIGS[DEFAULT_ROOM_ID];
+    const room = new StopRoom(roomId, io, themes, config);
+    rooms.set(roomId, room);
+    pendingCreation.delete(roomId);
+    return room;
+  })();
+
+  pendingCreation.set(roomId, creation);
+  return creation;
+}
+
+// Lista todas as salas configuradas com a ocupação atual — usado pelo Lobby
+// para mostrar "vazia", "lotada" ou "X/Y jogadores online" em cada card.
+// Salas que ainda não foram criadas (ninguém entrou ainda) contam como 0.
+export function getAllRoomsStatus() {
+  return Object.entries(ROOM_CONFIGS).map(([roomId, config]) => {
+    const room = rooms.get(roomId);
+    return {
+      roomId,
+      label: config.label,
+      maxPlayers: config.maxPlayers ?? 10,
+      onlineCount: room ? room.countUniquePlayers() : 0,
+      minLifetimePoints: config.minLifetimePoints ?? 0,
+    };
+  });
+}

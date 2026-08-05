@@ -1,0 +1,46 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import { createServer } from "http";
+import { Server } from "socket.io";
+
+import authRoutes from "./routes/auth.js";
+import userRoutes from "./routes/users.js";
+import rankingRoutes from "./routes/ranking.js";
+import glossaryRoutes from "./routes/glossary.js";
+import adminRoutes from "./routes/admin.js";
+import roomsRoutes from "./routes/rooms.js";
+import { setupSocket } from "./socket/index.js";
+
+const app = express();
+const server = createServer(app);
+
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+
+app.use(cors({ origin: CORS_ORIGIN }));
+app.use(express.json());
+
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/ranking", rankingRoutes);
+app.use("/api/glossary", glossaryRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/rooms", roomsRoutes);
+
+const io = new Server(server, {
+  cors: { origin: CORS_ORIGIN },
+});
+setupSocket(io);
+
+// Rede de segurança: um erro assíncrono não tratado em algum lugar não
+// esperado não deve derrubar o servidor inteiro — só registra no log.
+process.on("unhandledRejection", (reason) => {
+  console.error("Erro não tratado (unhandledRejection):", reason);
+});
+
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+  console.log(`Educação Gamer backend rodando em http://localhost:${PORT}`);
+});

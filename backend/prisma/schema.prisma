@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// "role" é validado na aplicação como texto simples (veja backend/src/middleware/auth.js),
+// em vez de um enum do Prisma — mantém compatibilidade caso o banco troque de novo no futuro.
+// Valores usados: "PLAYER" | "MODERATOR" | "ADMIN"
+model User {
+  id               String   @id @default(cuid())
+  nickname         String   @unique
+  email            String   @unique
+  password         String
+  role             String   @default("PLAYER")
+  playtimeMinutes  Int      @default(0)
+  clanId           String?
+  clan             Clan?    @relation(fields: [clanId], references: [id])
+  createdAt        DateTime @default(now())
+
+  monthlyScores    MonthlyScore[]
+  lifetimeScores   LifetimeScore[]
+  blockScores      BlockScore[]
+  wordSuggestions  WordEntry[]
+  friendshipsA     Friendship[] @relation("UserA")
+  friendshipsB     Friendship[] @relation("UserB")
+  chatMessages     ChatMessage[]
+}
+
+model Clan {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  tag       String
+  createdAt DateTime @default(now())
+  members   User[]
+}
+
+model MonthlyScore {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  gameKey  String
+  monthKey String
+  points   Int    @default(0)
+
+  @@unique([userId, gameKey, monthKey])
+}
+
+model LifetimeScore {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  gameKey String
+  points  Int    @default(0)
+
+  @@unique([userId, gameKey])
+}
+
+// Pontuação do bloco atual de 10 rodadas (a "Pts Sala"), persistida para não se
+// perder se o jogador sair e voltar, ou se o servidor reiniciar.
+model BlockScore {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  gameKey String
+  roomId  String
+  points  Int    @default(0)
+
+  @@unique([userId, gameKey, roomId])
+}
+
+model Theme {
+  id    String      @id @default(cuid())
+  key   String      @unique
+  name  String
+  words WordEntry[]
+}
+
+model WordEntry {
+  id            String   @id @default(cuid())
+  themeId       String
+  theme         Theme    @relation(fields: [themeId], references: [id])
+  letter        String
+  word          String
+  status        String   @default("approved") // approved | pending | rejected
+  suggestedById String?
+  suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@unique([themeId, letter, word])
+}
+
+model Friendship {
+  id       String @id @default(cuid())
+  userAId  String
+  userA    User   @relation("UserA", fields: [userAId], references: [id])
+  userBId  String
+  userB    User   @relation("UserB", fields: [userBId], references: [id])
+  status   String @default("pending") // pending | accepted
+
+  @@unique([userAId, userBId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  createdAt DateTime @default(now())
+}
