@@ -35,7 +35,10 @@ export default function Chat({ messages, onSend }) {
       <div className="chat-messages">
         {messages.map((m, i) =>
           m.system ? (
-            <div key={i} className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""}`}>
+            <div
+              key={i}
+              className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""} ${m.success ? "chat-system-msg-success" : ""}`}
+            >
               — {m.message} —
             </div>
           ) : (

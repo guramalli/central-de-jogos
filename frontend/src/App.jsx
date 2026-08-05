@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, Link, NavLink } from "react-router-dom";
+import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
@@ -9,6 +9,7 @@ import Ranking from "./pages/Ranking.jsx";
 import Clan from "./pages/Clan.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
+import Profile from "./pages/Profile.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function Private({ children }) {
@@ -23,6 +24,10 @@ function navLinkClass({ isActive }) {
 
 export default function App() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
+  // atrapalhar o espaço da tela do jogo.
+  const isInsideGameRoom = /^\/jogos\/(stop|quiz)\/[^/]+/.test(location.pathname);
 
   return (
     <>
@@ -38,6 +43,7 @@ export default function App() {
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
+                <NavLink to="/perfil" className={navLinkClass}>Perfil</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
@@ -110,6 +116,14 @@ export default function App() {
             }
           />
           <Route
+            path="/perfil"
+            element={
+              <Private>
+                <Profile />
+              </Private>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <Private>
@@ -120,7 +134,7 @@ export default function App() {
         </Routes>
       </div>
 
-      <Footer />
+      {!isInsideGameRoom && <Footer />}
     </>
   );
 }
