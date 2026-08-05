@@ -18,7 +18,9 @@ model User {
   role             String   @default("PLAYER")
   playtimeMinutes  Int      @default(0)
   clanId           String?
-  clan             Clan?    @relation(fields: [clanId], references: [id])
+  clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
+  ownedClan        Clan?    @relation("ClanOwner")
+  clanInvites      ClanInvite[]
   createdAt        DateTime @default(now())
 
   monthlyScores    MonthlyScore[]
@@ -34,8 +36,25 @@ model Clan {
   id        String   @id @default(cuid())
   name      String   @unique
   tag       String
+  ownerId   String   @unique
+  owner     User     @relation("ClanOwner", fields: [ownerId], references: [id])
   createdAt DateTime @default(now())
-  members   User[]
+  members   User[]   @relation("ClanMembers")
+  invites   ClanInvite[]
+}
+
+// Convite pendente de um clã para um jogador. O dono do clã cria o convite;
+// o jogador convidado aceita ou recusa pela própria tela dele.
+model ClanInvite {
+  id        String   @id @default(cuid())
+  clanId    String
+  clan      Clan     @relation(fields: [clanId], references: [id])
+  invitedId String
+  invited   User     @relation(fields: [invitedId], references: [id])
+  status    String   @default("pending") // pending | accepted | declined
+  createdAt DateTime @default(now())
+
+  @@unique([clanId, invitedId])
 }
 
 model MonthlyScore {
@@ -110,5 +129,15 @@ model ChatMessage {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   message   String
+  createdAt DateTime @default(now())
+}
+
+// Banco de perguntas do Quiz, organizado por tema (ex.: "esportes", "cinema").
+// Sem fila de aprovação por enquanto — populado direto pelo seed/admin.
+model QuizQuestion {
+  id        String   @id @default(cuid())
+  themeKey  String
+  question  String
+  answer    String
   createdAt DateTime @default(now())
 }

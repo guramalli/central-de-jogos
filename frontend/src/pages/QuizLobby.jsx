@@ -1,0 +1,63 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api/client.js";
+
+const THEME_ICONS = {
+  esportes: "⚽",
+  ciencias: "🧪",
+  historia: "🏛️",
+  cinema: "🎬",
+  letras: "📚",
+};
+
+function occupancyInfo(status) {
+  if (!status) return { text: "carregando...", full: false, empty: false };
+  if (status.onlineCount === 0) return { text: "Vazia", full: false, empty: true };
+  if (status.onlineCount >= status.maxPlayers) return { text: "Lotada", full: true, empty: false };
+  return { text: `${status.onlineCount}/${status.maxPlayers} jogadores online`, full: false, empty: false };
+}
+
+export default function QuizLobby() {
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    api.get("/quiz-rooms").then(({ data }) => setRooms(data)).catch(() => {});
+  }, []);
+
+  return (
+    <div>
+      <div className="hero-banner" style={{ marginBottom: 24 }}>
+        <div>
+          <div className="hero-eyebrow">quiz</div>
+          <h1 className="hero-title">Escolha um tema</h1>
+          <p className="hero-subtitle">
+            Cada sala tem perguntas de um tema só. Quem acertar primeiro leva os pontos — as letras
+            da resposta vão aparecendo aos poucos, mas nunca mais da metade delas.
+          </p>
+        </div>
+      </div>
+
+      <div className="lobby-game-grid">
+        {rooms.map((r) => {
+          const occ = occupancyInfo(r);
+          return (
+            <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="glossy-panel lobby-game-card">
+              <div className="quiz-theme-icon">{THEME_ICONS[r.themeKey] || "❓"}</div>
+              <div>
+                <h3 className="lobby-game-title">{r.label}</h3>
+                <p className="lobby-game-desc">Nível iniciante — perguntas de {r.label.toLowerCase()}.</p>
+                <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
+                  <span className="material-symbols-outlined">group</span> {occ.text}
+                </div>
+                <span className="lobby-game-cta">
+                  Entrar <span className="material-symbols-outlined">arrow_forward</span>
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+        {rooms.length === 0 && <p style={{ color: "var(--text-dim)" }}>Carregando salas...</p>}
+      </div>
+    </div>
+  );
+}

@@ -90,15 +90,20 @@ export default function Lobby() {
         </Link>
       </div>
 
-      {/* Card do Quiz (em breve) */}
-      <div className="glossy-panel lobby-quiz-card">
-        <div className="lobby-quiz-icon">?</div>
+      {/* Card do Quiz */}
+      <Link to="/jogos/quiz" className="glossy-panel lobby-quiz-card lobby-quiz-card-active">
+        <div className="lobby-quiz-icon">❓</div>
         <div>
           <h3 className="lobby-game-title">Quiz</h3>
-          <p className="lobby-game-desc">Perguntas de múltipla escolha por categoria e dificuldade.</p>
-          <span className="lobby-quiz-soon">Em breve</span>
+          <p className="lobby-game-desc">
+            Perguntas por tema — Esportes, Ciências, História, Cinema e Letras. Quem acerta primeiro
+            leva os pontos!
+          </p>
+          <span className="lobby-game-cta">
+            Ver salas <span className="material-symbols-outlined">arrow_forward</span>
+          </span>
         </div>
-      </div>
+      </Link>
 
       {/* Links rápidos */}
       <div className="lobby-quick-grid">

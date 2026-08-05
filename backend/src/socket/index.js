@@ -1,5 +1,6 @@
 import { verifyToken } from "../utils/jwt.js";
 import { getOrCreateStopRoom } from "../game/gameManager.js";
+import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { prisma } from "../db.js";
 
 export function setupSocket(io) {
@@ -50,8 +51,25 @@ export function setupSocket(io) {
       socket.currentRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
     });
 
+    // ===== Quiz =====
+    socket.on("join-quiz-room", async ({ roomId } = {}) => {
+      const room = await getOrCreateQuizRoom(io, roomId);
+      const joined = await room.addPlayer(socket, userId, nickname);
+      if (joined) socket.currentQuizRoom = room;
+    });
+
+    socket.on("quiz-submit-guess", ({ guess }) => {
+      socket.currentQuizRoom?.submitGuess(socket, userId, nickname, guess || "");
+    });
+
+    socket.on("quiz-chat-message", ({ message }) => {
+      if (!message?.trim()) return;
+      socket.currentQuizRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
+    });
+
     socket.on("disconnect", () => {
       socket.currentRoom?.removePlayer(socket.id);
+      socket.currentQuizRoom?.removePlayer(socket.id);
     });
   });
 }

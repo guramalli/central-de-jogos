@@ -6,6 +6,9 @@ import Register from "./pages/Register.jsx";
 import Lobby from "./pages/Lobby.jsx";
 import StopGame from "./pages/StopGame.jsx";
 import Ranking from "./pages/Ranking.jsx";
+import Clan from "./pages/Clan.jsx";
+import QuizLobby from "./pages/QuizLobby.jsx";
+import QuizGame from "./pages/QuizGame.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function Private({ children }) {
@@ -32,7 +35,9 @@ export default function App() {
             {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
+                <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
+                <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
@@ -77,6 +82,30 @@ export default function App() {
             element={
               <Private>
                 <Ranking />
+              </Private>
+            }
+          />
+          <Route
+            path="/cla"
+            element={
+              <Private>
+                <Clan />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/quiz"
+            element={
+              <Private>
+                <QuizLobby />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/quiz/:roomId"
+            element={
+              <Private>
+                <QuizGame />
               </Private>
             }
           />

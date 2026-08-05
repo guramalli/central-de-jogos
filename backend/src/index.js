@@ -10,6 +10,8 @@ import rankingRoutes from "./routes/ranking.js";
 import glossaryRoutes from "./routes/glossary.js";
 import adminRoutes from "./routes/admin.js";
 import roomsRoutes from "./routes/rooms.js";
+import clansRoutes from "./routes/clans.js";
+import quizRoomsRoutes from "./routes/quizRooms.js";
 import { setupSocket } from "./socket/index.js";
 
 const app = express();
@@ -28,6 +30,8 @@ app.use("/api/ranking", rankingRoutes);
 app.use("/api/glossary", glossaryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/rooms", roomsRoutes);
+app.use("/api/clans", clansRoutes);
+app.use("/api/quiz-rooms", quizRoomsRoutes);
 
 const io = new Server(server, {
   cors: { origin: CORS_ORIGIN },
