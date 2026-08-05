@@ -2,10 +2,20 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import AdminGlossary from "../components/AdminGlossary.jsx";
+import AdminQuizGlossary from "../components/AdminQuizGlossary.jsx";
+
+const QUIZ_THEME_NAMES = {
+  esportes: "Esportes",
+  ciencias: "Ciências",
+  historia: "História",
+  cinema: "Cinema",
+  letras: "Letras",
+};
 
 export default function Admin() {
   const { user } = useAuth();
   const [pending, setPending] = useState([]);
+  const [quizPending, setQuizPending] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
@@ -15,6 +25,15 @@ export default function Admin() {
       setPending(data);
     } catch (e) {
       setError(e.response?.data?.error || "Erro ao carregar pendências.");
+    }
+  }
+
+  async function loadQuizPending() {
+    try {
+      const { data } = await api.get("/admin/quiz-questions/pending");
+      setQuizPending(data);
+    } catch (e) {
+      setError(e.response?.data?.error || "Erro ao carregar pendências do quiz.");
     }
   }
 
@@ -30,6 +49,7 @@ export default function Admin() {
 
   useEffect(() => {
     loadPending();
+    loadQuizPending();
     loadUsers();
   }, []);
 
@@ -41,6 +61,16 @@ export default function Admin() {
     await api.post(`/admin/glossary/${id}/reject`);
     loadPending();
   }
+
+  async function approveQuiz(id) {
+    await api.post(`/admin/quiz-questions/${id}/approve`);
+    loadQuizPending();
+  }
+  async function rejectQuiz(id) {
+    await api.post(`/admin/quiz-questions/${id}/reject`);
+    loadQuizPending();
+  }
+
   async function changeRole(id, role) {
     await api.post(`/admin/users/${id}/role`, { role });
     loadUsers();
@@ -56,7 +86,7 @@ export default function Admin() {
       {error && <div className="error-msg">{error}</div>}
 
       <div className="card">
-        <h2>Palavras pendentes de aprovação</h2>
+        <h2>Palavras pendentes de aprovação (Stop)</h2>
         <table className="player-table">
           <thead>
             <tr>
@@ -90,6 +120,42 @@ export default function Admin() {
       </div>
 
       <AdminGlossary />
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h2>Perguntas pendentes de aprovação (Quiz)</h2>
+        <table className="player-table">
+          <thead>
+            <tr>
+              <th>Tema</th>
+              <th>Pergunta</th>
+              <th>Resposta</th>
+              <th>Sugerida por</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quizPending.map((q) => (
+              <tr key={q.id}>
+                <td>{QUIZ_THEME_NAMES[q.themeKey] || q.themeKey}</td>
+                <td>{q.question}</td>
+                <td>{q.answer}</td>
+                <td>{q.suggestedBy?.nickname || "—"}</td>
+                <td>
+                  <button className="btn success" onClick={() => approveQuiz(q.id)}>Aprovar</button>{" "}
+                  <button className="btn secondary" onClick={() => rejectQuiz(q.id)}>Rejeitar</button>
+                </td>
+              </tr>
+            ))}
+            {quizPending.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhuma pendência.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <AdminQuizGlossary />
 
       {user.role === "ADMIN" && (
         <div className="card" style={{ marginTop: 16 }}>

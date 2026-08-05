@@ -5,6 +5,7 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Lobby from "./pages/Lobby.jsx";
 import StopGame from "./pages/StopGame.jsx";
+import StopLobby from "./pages/StopLobby.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Clan from "./pages/Clan.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
@@ -40,6 +41,7 @@ export default function App() {
             {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
+                <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
@@ -72,6 +74,14 @@ export default function App() {
             element={
               <Private>
                 <Lobby />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/stop"
+            element={
+              <Private>
+                <StopLobby />
               </Private>
             }
           />

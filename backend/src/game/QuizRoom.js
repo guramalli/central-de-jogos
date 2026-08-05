@@ -163,7 +163,8 @@ export class QuizRoom {
   }
 
   async pickQuestion() {
-    const total = await prisma.quizQuestion.count({ where: { themeKey: this.themeKey } });
+    const where = { themeKey: this.themeKey, status: "approved" };
+    const total = await prisma.quizQuestion.count({ where });
     if (total === 0) return null;
 
     // Evita repetir enquanto ainda houver perguntas não usadas nessa "volta".
@@ -173,7 +174,7 @@ export class QuizRoom {
     for (let tries = 0; tries < 20 && !question; tries++) {
       const skip = Math.floor(Math.random() * total);
       const [candidate] = await prisma.quizQuestion.findMany({
-        where: { themeKey: this.themeKey },
+        where,
         skip,
         take: 1,
       });

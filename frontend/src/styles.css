@@ -423,7 +423,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 
 /* ===== Logo ===== */
-.sc-topbar-logo { display: flex; align-items: center; }
+.sc-topbar-logo { display: flex; align-items: center; gap: 14px; }
 .sc-logo-img { height: 56px; width: auto; object-fit: contain; }
 
 .sc-round-info { font-size: 12px; color: #9a9a9a; margin: 8px 0; font-family: var(--sc-mono); }
@@ -780,7 +780,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 
 /* ===== Logo Educação Gamer (imagem) ===== */
-.header-logo-img { height: 42px; width: auto; object-fit: contain; }
+.header-logo-img { height: 62px; width: auto; object-fit: contain; }
 .hero-logo-img { height: 60px; width: auto; object-fit: contain; margin-bottom: 12px; }
 .auth-logo-img { width: 100%; max-width: 260px; height: auto; object-fit: contain; }
 .game-card-logo-img { width: 170px; height: auto; object-fit: contain; }
@@ -850,7 +850,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 24px;
+  padding: 8px 24px;
 }
 .app-header-left { display: flex; align-items: center; gap: 32px; }
 .app-header-right { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); }
@@ -1051,13 +1051,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   text-align: center;
   margin-top: 40px;
 }
-.site-footer-wordmark {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--accent-2);
-  opacity: 0.85;
-}
+.site-footer-logo-img { height: 44px; width: auto; object-fit: contain; opacity: 0.9; }
 .site-footer-copy { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin: 0; }
 .site-footer-links { display: flex; gap: 16px; font-family: var(--font-mono); font-size: 11px; }
 .site-footer-links a { color: var(--text-dim); text-decoration: underline; }
@@ -1374,3 +1368,55 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .quiz-mute-btn:hover { border-color: var(--accent-2); }
 .quiz-mute-btn:active { transform: scale(0.92); }
+
+/* ===== Botão "Sair da sala" (usado no Stop e no Quiz) ===== */
+.room-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.room-exit-btn:hover { background: var(--accent); color: #fff; }
+
+/* ===== Sugestão de pergunta (dentro da sala do Quiz) ===== */
+.quiz-suggest-toggle {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.quiz-suggest-toggle:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+.quiz-suggest-panel { padding: 14px 16px; }
+.quiz-suggest-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.quiz-suggest-form textarea {
+  width: 100%;
+  background: #0e0e0e;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.quiz-suggest-form input { margin-bottom: 0; }
+.quiz-suggest-actions { display: flex; gap: 8px; }
+.quiz-suggest-msg { font-size: 12px; margin-top: 4px; }
+.quiz-suggest-ok { color: #06d6a0; }
+.quiz-suggest-error { color: var(--accent); }

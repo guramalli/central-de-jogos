@@ -74,6 +74,61 @@ router.delete("/glossary/words/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// ===== Glossário de perguntas do Quiz =====
+
+router.get("/quiz-questions/pending", async (req, res) => {
+  const pending = await prisma.quizQuestion.findMany({
+    where: { status: "pending" },
+    include: { suggestedBy: true },
+    orderBy: { createdAt: "asc" },
+  });
+  res.json(pending);
+});
+
+router.post("/quiz-questions/:id/approve", async (req, res) => {
+  const entry = await prisma.quizQuestion.update({
+    where: { id: req.params.id },
+    data: { status: "approved" },
+  });
+  res.json(entry);
+});
+
+router.post("/quiz-questions/:id/reject", async (req, res) => {
+  const entry = await prisma.quizQuestion.update({
+    where: { id: req.params.id },
+    data: { status: "rejected" },
+  });
+  res.json(entry);
+});
+
+// Índice completo de perguntas de um tema (para o painel de gerenciamento)
+router.get("/quiz-questions", async (req, res) => {
+  const { themeKey } = req.query;
+  if (!themeKey) return res.status(400).json({ error: "themeKey é obrigatório." });
+  const questions = await prisma.quizQuestion.findMany({
+    where: { themeKey },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(questions);
+});
+
+// Admin/moderador insere uma pergunta direto, já aprovada (sem fila)
+router.post("/quiz-questions", async (req, res) => {
+  const { themeKey, question, answer } = req.body;
+  if (!themeKey || !question?.trim() || !answer?.trim()) {
+    return res.status(400).json({ error: "themeKey, question e answer são obrigatórios." });
+  }
+  const entry = await prisma.quizQuestion.create({
+    data: { themeKey, question: question.trim(), answer: answer.trim(), status: "approved" },
+  });
+  res.json(entry);
+});
+
+router.delete("/quiz-questions/:id", async (req, res) => {
+  await prisma.quizQuestion.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
 router.get("/users", requireRole("ADMIN"), async (req, res) => {
   const users = await prisma.user.findMany({
     select: { id: true, nickname: true, email: true, role: true, createdAt: true },

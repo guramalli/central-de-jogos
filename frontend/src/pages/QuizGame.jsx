@@ -6,6 +6,7 @@ import Chat from "../components/Chat.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMuted } from "../utils/sounds.js";
+import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -176,6 +177,9 @@ export default function QuizGame() {
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
         <div className="quiz-timer-group">
+          <Link to="/jogos/quiz" className="room-exit-btn" title="Sair da sala">
+            🚪 Sair da sala
+          </Link>
           <button
             className="quiz-mute-btn"
             onClick={handleToggleMute}
@@ -247,6 +251,8 @@ export default function QuizGame() {
           </div>
         </div>
       </div>
+
+      <SuggestQuestionForm themeKey={themeKey} />
     </div>
   );
 }

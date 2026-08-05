@@ -28,6 +28,7 @@ model User {
   lifetimeScores   LifetimeScore[]
   blockScores      BlockScore[]
   wordSuggestions  WordEntry[]
+  quizSuggestions  QuizQuestion[]
   friendshipsA     Friendship[] @relation("UserA")
   friendshipsB     Friendship[] @relation("UserB")
   chatMessages     ChatMessage[]
@@ -136,9 +137,12 @@ model ChatMessage {
 // Banco de perguntas do Quiz, organizado por tema (ex.: "esportes", "cinema").
 // Sem fila de aprovação por enquanto — populado direto pelo seed/admin.
 model QuizQuestion {
-  id        String   @id @default(cuid())
-  themeKey  String
-  question  String
-  answer    String
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  themeKey      String
+  question      String
+  answer        String
+  status        String   @default("approved") // approved | pending | rejected
+  suggestedById String?
+  suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
+  createdAt     DateTime @default(now())
 }
