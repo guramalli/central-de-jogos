@@ -1061,3 +1061,5 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-occupancy .material-symbols-outlined { font-size: 14px; }
 .lobby-occupancy-empty { color: var(--text-dim); background: rgba(255,255,255,0.03); border-color: var(--border); }
 .lobby-occupancy-full { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.35); }
+
+.chat-user-msg { padding: 2px 0; word-break: break-word; }
