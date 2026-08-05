@@ -44,7 +44,26 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
 
 router.get("/me", requireAuth, async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  res.json({ id: user.id, nickname: user.nickname, email: user.email, role: user.role });
+  res.json({
+    id: user.id,
+    nickname: user.nickname,
+    email: user.email,
+    role: user.role,
+    celebration: user.celebration || "",
+  });
+});
+
+// Atualiza dados do próprio perfil (por enquanto, só a frase de comemoração do Quiz).
+router.patch("/me", requireAuth, async (req, res) => {
+  const { celebration } = req.body;
+  if (celebration && celebration.length > 20) {
+    return res.status(400).json({ error: "A comemoração pode ter no máximo 20 caracteres." });
+  }
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { celebration: celebration?.trim() || null },
+  });
+  res.json({ celebration: user.celebration || "" });
 });
 
 export default router;

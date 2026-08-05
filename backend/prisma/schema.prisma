@@ -17,6 +17,7 @@ model User {
   password         String
   role             String   @default("PLAYER")
   playtimeMinutes  Int      @default(0)
+  celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")

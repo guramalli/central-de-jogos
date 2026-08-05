@@ -140,8 +140,8 @@ export class QuizRoom {
     this.revealTimer = null;
   }
 
-  systemMessage(message, bold = false) {
-    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, at: Date.now() });
+  systemMessage(message, bold = false, success = false) {
+    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, at: Date.now() });
   }
 
   chatMessage(userId, nickname, message) {
@@ -220,6 +220,7 @@ export class QuizRoom {
     this.currentQuestion = question;
     this.revealedIndices = new Set();
     this.timeLeft = this.questionSeconds;
+    this.questionStartedAt = Date.now();
 
     this.broadcast("quiz-question-start", {
       question: question.question,
@@ -265,6 +266,21 @@ export class QuizRoom {
     try {
       if (winner) {
         const pts = this.pointsPerCorrect;
+        const elapsedSeconds = this.questionStartedAt
+          ? Math.max(0, Math.round((Date.now() - this.questionStartedAt) / 1000))
+          : null;
+
+        let celebration = "";
+        try {
+          const winnerUser = await prisma.user.findUnique({
+            where: { id: winner.userId },
+            select: { celebration: true },
+          });
+          celebration = winnerUser?.celebration || "";
+        } catch {
+          // sem comemoração cadastrada, segue sem ela
+        }
+
         try {
           await prisma.monthlyScore.upsert({
             where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
@@ -292,8 +308,17 @@ export class QuizRoom {
           winner: winner.nickname,
           answer: question.answer,
           points: pts,
+          elapsedSeconds,
+          celebration,
         });
-        this.systemMessage(`✅ ${winner.nickname} acertou! A resposta era "${question.answer}" (+${pts} pts)`, true);
+
+        const celebrationText = celebration ? ` "${celebration}"` : "";
+        const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
+        this.systemMessage(
+          `✅ ${winner.nickname} acertou${timeText}!${celebrationText} A resposta era "${question.answer}" (+${pts} pts)`,
+          true,
+          true // success = true -> aparece em verde no chat
+        );
         await this.broadcastOnlinePlayers();
       } else {
         this.broadcast("quiz-question-result", { winner: null, answer: null });
