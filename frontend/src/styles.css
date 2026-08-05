@@ -841,7 +841,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    Cabeçalho global (novo design retrô)
    ====================================================================== */
 .app-header {
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent-2);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%), var(--bg-panel);
 }
 .app-header-inner {
@@ -1375,8 +1375,8 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   align-items: center;
   gap: 6px;
   background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  border: 1px solid var(--accent-2);
+  color: var(--accent-2);
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 12px;
@@ -1386,7 +1386,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.room-exit-btn:hover { background: var(--accent); color: #fff; }
+.room-exit-btn:hover { background: var(--accent-2); color: #241a00; }
 
 /* ===== Sugestão de pergunta (dentro da sala do Quiz) ===== */
 .quiz-suggest-toggle {
@@ -1420,3 +1420,6 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-suggest-msg { font-size: 12px; margin-top: 4px; }
 .quiz-suggest-ok { color: #06d6a0; }
 .quiz-suggest-error { color: var(--accent); }
+
+.quiz-lobby-logo { height: 60px; width: auto; object-fit: contain; margin-bottom: 8px; }
+.quiz-room-logo { height: 48px; width: auto; object-fit: contain; margin-right: 4px; }

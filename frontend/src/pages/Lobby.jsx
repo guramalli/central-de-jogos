@@ -48,7 +48,7 @@ export default function Lobby() {
         </Link>
 
         <Link to="/jogos/quiz" className="glossy-panel lobby-game-card">
-          <div className="quiz-theme-icon">❓</div>
+          <img src="/quiz-logo.png" alt="Quiz!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Quiz</h3>
             <p className="lobby-game-desc">

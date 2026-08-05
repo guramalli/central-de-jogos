@@ -165,6 +165,7 @@ export default function QuizGame() {
     <div className="quiz-root">
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
+          <img src="/quiz-logo.png" alt="Quiz!" className="quiz-room-logo" />
           <div className="quiz-gloss-badge">
             <span className="quiz-badge-label">Pts Sala:</span> {me?.roomLifetimePoints ?? 0}
           </div>
