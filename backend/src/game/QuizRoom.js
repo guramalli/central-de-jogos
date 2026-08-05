@@ -108,14 +108,16 @@ export class QuizRoom {
       if (seen.has(p.userId)) continue;
       seen.add(p.userId);
       const lifetimePoints = this.lifetimeCache.get(p.userId) || 0;
+      const roomLifetimePoints = this.roomLifetimeCache.get(p.userId) || 0;
       list.push({
         userId: p.userId,
         nickname: p.nickname,
         lifetimePoints,
+        roomLifetimePoints,
         rank: getRankForPoints(lifetimePoints),
       });
     }
-    list.sort((a, b) => b.lifetimePoints - a.lifetimePoints);
+    list.sort((a, b) => b.roomLifetimePoints - a.roomLifetimePoints);
     this.broadcast("quiz-players-online", { players: list });
   }
 
@@ -247,7 +249,7 @@ export class QuizRoom {
     if (this.state !== "active" || !this.currentQuestion) return;
     if (normalize(guess) !== normalize(this.currentQuestion.answer)) {
       socket.emit("quiz-guess-wrong", {});
-      this.broadcast("quiz-wrong-log", { nickname, at: Date.now() });
+      this.broadcast("quiz-wrong-log", { guess: guess.trim(), at: Date.now() });
       return;
     }
     await this.endQuestion({ userId, nickname });

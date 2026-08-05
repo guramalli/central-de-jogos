@@ -4,20 +4,26 @@ import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Chat from "../components/Chat.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
+import ProfileTooltip from "../components/ProfileTooltip.jsx";
 
 export default function QuizGame() {
   const { user } = useAuth();
   const { roomId } = useParams();
   const socketRef = useRef(null);
   const inputRef = useRef(null);
+  const wrongLogEndRef = useRef(null);
 
   const [roomLabel, setRoomLabel] = useState("");
   const [phase, setPhase] = useState("intermission"); // intermission | active
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(40);
-  const [question, setQuestion] = useState(null);
-  const [masked, setMasked] = useState("");
-  const [lastResult, setLastResult] = useState(null); // { winner, answer } | null
+
+  // A "pergunta" e a "dica" (linha de letras) são as ÚNICAS coisas que mudam
+  // entre preenchendo e aguardando — o resto da tabela (formulário, tamanho)
+  // fica sempre igual, pra não dar aquele "pulo" visual entre os estados.
+  const [questionText, setQuestionText] = useState("Aguardando a primeira pergunta...");
+  const [answerLine, setAnswerLine] = useState("");
+
   const [guess, setGuess] = useState("");
   const [wrongFlash, setWrongFlash] = useState(false);
   const [wrongLog, setWrongLog] = useState([]);
@@ -37,27 +43,27 @@ export default function QuizGame() {
       setRoomLabel(state.label || "");
       setPhase(state.state);
       setTimeLeft(state.timeLeft);
-      setQuestion(state.question);
-      setMasked(state.masked || "");
+      if (state.question) {
+        setQuestionText(state.question);
+        setAnswerLine(state.masked || "");
+      }
     });
 
     socket.on("quiz-intermission", () => {
       setPhase("intermission");
-      setQuestion(null);
       setGuess("");
     });
 
     socket.on("quiz-question-start", (data) => {
       setPhase("active");
-      setQuestion(data.question);
-      setMasked(data.masked);
-      setLastResult(null);
+      setQuestionText(data.question);
+      setAnswerLine(data.masked);
       setGuess("");
       setWrongLog([]);
       setTotalSeconds(data.seconds || 40);
     });
 
-    socket.on("quiz-reveal-update", (data) => setMasked(data.masked));
+    socket.on("quiz-reveal-update", (data) => setAnswerLine(data.masked));
 
     socket.on("quiz-tick", (data) => {
       setPhase(data.state);
@@ -65,8 +71,10 @@ export default function QuizGame() {
     });
 
     socket.on("quiz-question-result", (data) => {
-      setLastResult(data);
       setPhase("intermission");
+      // Se alguém ganhou, revela a resposta certa na mesma "linha de dica".
+      // Se ninguém acertou, mantém como estava (nunca revela a resposta).
+      if (data.winner) setAnswerLine(data.answer);
     });
 
     socket.on("quiz-guess-wrong", () => {
@@ -99,7 +107,11 @@ export default function QuizGame() {
 
   useEffect(() => {
     if (phase === "active") inputRef.current?.focus();
-  }, [phase, question]);
+  }, [phase, questionText]);
+
+  useEffect(() => {
+    wrongLogEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [wrongLog]);
 
   function handleGuessSubmit(e) {
     e.preventDefault();
@@ -134,43 +146,27 @@ export default function QuizGame() {
       </div>
 
       <div className="quiz-main-row">
+        {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="card quiz-question-card">
-          {phase === "active" && question ? (
-            <>
-              <div className="quiz-question-text">{question}</div>
-              <div className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""}`}>
-                {masked.split("").map((ch, i) => (
-                  <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
-                ))}
-              </div>
-              <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
-                <input
-                  ref={inputRef}
-                  value={guess}
-                  onChange={(e) => setGuess(e.target.value)}
-                  placeholder="Digite sua resposta..."
-                  autoComplete="off"
-                />
-                <button className="btn success" type="submit">Responder</button>
-              </form>
-            </>
-          ) : (
-            <div className="quiz-waiting">
-              {lastResult ? (
-                lastResult.winner ? (
-                  <>
-                    <div className="quiz-result-winner">✅ {lastResult.winner} acertou!</div>
-                    <div className="quiz-result-answer">Resposta: <strong>{lastResult.answer}</strong></div>
-                  </>
-                ) : (
-                  <div className="quiz-result-nobody">⏰ Ninguém acertou dessa vez.</div>
-                )
-              ) : (
-                <div>Aguardando a próxima pergunta...</div>
-              )}
-              <div className="quiz-next-timer">Próxima pergunta em {timeLeft}s</div>
-            </div>
-          )}
+          <div className="quiz-question-text">{questionText}</div>
+          <div className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""}`}>
+            {answerLine.split("").map((ch, i) => (
+              <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
+            ))}
+          </div>
+          <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
+            <input
+              ref={inputRef}
+              value={guess}
+              onChange={(e) => setGuess(e.target.value)}
+              placeholder={phase === "active" ? "Digite sua resposta..." : "Aguarde a próxima pergunta..."}
+              autoComplete="off"
+              disabled={phase !== "active"}
+            />
+            <button className="btn success" type="submit" disabled={phase !== "active"}>
+              Responder
+            </button>
+          </form>
         </div>
 
         {/* Log de respostas erradas — visível por todo mundo na sala */}
@@ -178,12 +174,10 @@ export default function QuizGame() {
           <h4 style={{ marginTop: 0 }}>❌ Errando</h4>
           <div className="quiz-wrong-log-list">
             {wrongLog.length === 0 && <div className="quiz-wrong-log-empty">Ninguém errou ainda nessa pergunta.</div>}
-            {wrongLog
-              .slice()
-              .reverse()
-              .map((w, i) => (
-                <div key={i} className="quiz-wrong-log-item">{w.nickname}</div>
-              ))}
+            {wrongLog.map((w, i) => (
+              <div key={i} className="quiz-wrong-log-item">{w.guess}</div>
+            ))}
+            <div ref={wrongLogEndRef} />
           </div>
         </div>
       </div>
@@ -202,8 +196,10 @@ export default function QuizGame() {
                   <td style={{ width: 30 }}>
                     {p.rank?.icon && <img src={p.rank.icon} alt={p.rank.name} style={{ width: 20, height: 20 }} />}
                   </td>
-                  <td>{p.nickname}</td>
-                  <td style={{ textAlign: "right", fontWeight: 700 }}>{p.lifetimePoints}</td>
+                  <td>
+                    <ProfileTooltip userId={p.userId} nickname={p.nickname} />
+                  </td>
+                  <td style={{ textAlign: "right", fontWeight: 700 }}>{p.roomLifetimePoints}</td>
                 </tr>
               ))}
               {onlinePlayers.length === 0 && (
