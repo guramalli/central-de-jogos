@@ -22,6 +22,7 @@ model User {
   city             String?
   state            String?
   birthDate        DateTime?
+  termsAcceptedAt  DateTime?
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")

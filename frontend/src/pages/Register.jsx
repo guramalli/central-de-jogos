@@ -16,13 +16,18 @@ export default function Register() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    if (!termsAccepted) {
+      setError("Você precisa aceitar os Termos de Uso para se cadastrar.");
+      return;
+    }
     try {
-      await register(nickname, email, password, { city, state, birthDate });
+      await register(nickname, email, password, { city, state, birthDate, termsAccepted });
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao cadastrar.");
@@ -57,6 +62,20 @@ export default function Register() {
 
             <label className="register-label">Data de nascimento</label>
             <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+
+            <label className="register-terms">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+              />
+              <span>
+                Li e aceito os{" "}
+                <Link to="/termos-de-uso" target="_blank" rel="noopener noreferrer">
+                  Termos de Uso
+                </Link>
+              </span>
+            </label>
 
             <button className="btn" type="submit" style={{ width: "100%", marginTop: 10 }}>Cadastrar</button>
           </form>

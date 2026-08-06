@@ -1909,3 +1909,34 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin: 4px 0 8px 0;
   font-family: var(--font-mono);
 }
+
+/* ===== Páginas legais (Termos de Uso, Privacidade) ===== */
+.legal-page { max-width: 760px; margin: 0 auto; }
+.legal-card { margin-top: 16px; line-height: 1.7; }
+.legal-card h2 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin: 24px 0 8px 0;
+  color: var(--accent-2);
+}
+.legal-card h2:first-child { margin-top: 0; }
+.legal-card p { margin: 0 0 12px 0; color: var(--text); }
+.legal-card ul { margin: 0 0 12px 0; padding-left: 22px; }
+.legal-card li { margin-bottom: 6px; color: var(--text); }
+
+.register-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 4px 0 12px 0;
+  cursor: pointer;
+}
+.register-terms input[type="checkbox"] {
+  width: auto;
+  margin: 2px 0 0 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.register-terms a { color: var(--accent-2); }

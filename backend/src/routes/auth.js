@@ -6,12 +6,15 @@ import { signToken } from "../utils/jwt.js";
 const router = Router();
 
 router.post("/register", async (req, res) => {
-  const { nickname, email, password, city, state, birthDate } = req.body;
+  const { nickname, email, password, city, state, birthDate, termsAccepted } = req.body;
   if (!nickname || !email || !password) {
     return res.status(400).json({ error: "Preencha nickname, email e senha." });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: "Senha deve ter ao menos 6 caracteres." });
+  }
+  if (!termsAccepted) {
+    return res.status(400).json({ error: "É preciso aceitar os Termos de Uso para se cadastrar." });
   }
   const existing = await prisma.user.findFirst({
     where: { OR: [{ email }, { nickname }] },
@@ -28,6 +31,7 @@ router.post("/register", async (req, res) => {
       city: city?.trim() || null,
       state: state?.trim() || null,
       birthDate: birthDate ? new Date(birthDate) : null,
+      termsAcceptedAt: new Date(),
     },
   });
   const token = signToken(user);

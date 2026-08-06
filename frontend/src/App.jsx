@@ -13,6 +13,7 @@ import QuizGame from "./pages/QuizGame.jsx";
 import Profile from "./pages/Profile.jsx";
 import RanksInfo from "./pages/RanksInfo.jsx";
 import RanksInfoQuiz from "./pages/RanksInfoQuiz.jsx";
+import TermosDeUso from "./pages/TermosDeUso.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function Private({ children }) {
@@ -70,6 +71,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/registrar" element={<Register />} />
+          <Route path="/termos-de-uso" element={<TermosDeUso />} />
           <Route
             path="/"
             element={

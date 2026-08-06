@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 
 // Rodapé com a logo oficial da Educação Gamer, e um cantinho discreto com
@@ -15,7 +16,7 @@ export default function Footer() {
       <img src="/educacao-gamer-logo.png" alt="Educação Gamer" className="site-footer-logo-img" />
       <p className="site-footer-copy">© {new Date().getFullYear()} EDUCAÇÃO GAMER — CENTRAL DE JOGOS</p>
       <div className="site-footer-links">
-        <a href="#">Termos de Uso</a>
+        <Link to="/termos-de-uso">Termos de Uso</Link>
         <a href="#">Privacidade</a>
         <a href="#">Suporte</a>
       </div>
