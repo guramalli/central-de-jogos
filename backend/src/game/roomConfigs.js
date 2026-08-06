@@ -11,6 +11,17 @@ export const ROOM_CONFIGS = {
     minLifetimePoints: 0,
     maxPlayers: 10,
   },
+  "stop-sala-intermediaria": {
+    label: "Sala Intermediária",
+    description: "Resposta em 30s, intervalo de 10s. Exige experiência mínima.",
+    answerSeconds: 30,
+    intermissionSeconds: 10,
+    // Requer pelo menos 3000 pts vitalícios no Stop para entrar.
+    minLifetimePoints: 3000,
+    // Só pode pedir STOP com pelo menos 4 das 6 palavras já corretas.
+    minCorrectToStop: 4,
+    maxPlayers: 10,
+  },
   "stop-sala-avancada": {
     label: "Sala Avançada",
     description: "Só para jogadores experientes — resposta rápida, intervalo curto.",

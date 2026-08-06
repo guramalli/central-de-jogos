@@ -9,6 +9,12 @@ function occupancyInfo(status) {
   return { text: `${status.onlineCount}/${status.maxPlayers} jogadores online`, full: false, empty: false };
 }
 
+function difficultyInfo(minPoints) {
+  if (minPoints >= 6000) return { label: "Difícil", tier: "hard", icon: "local_fire_department" };
+  if (minPoints > 0) return { label: "Intermediária", tier: "mid", icon: "bolt" };
+  return { label: "Iniciante", tier: "basic", icon: "eco" };
+}
+
 export default function StopLobby() {
   const [rooms, setRooms] = useState([]);
 
@@ -32,26 +38,25 @@ export default function StopLobby() {
       <div className="lobby-game-grid">
         {rooms.map((r) => {
           const occ = occupancyInfo(r);
-          const advanced = r.minLifetimePoints > 0;
+          const diff = difficultyInfo(r.minLifetimePoints);
+          const restricted = r.minLifetimePoints > 0;
           return (
             <Link
               key={r.roomId}
               to={`/jogos/stop/${r.roomId}`}
-              className={`glossy-panel lobby-game-card ${advanced ? "lobby-game-card-advanced" : ""}`}
+              className={`glossy-panel lobby-game-card ${restricted ? "lobby-game-card-advanced" : ""}`}
             >
-              <div className={`lobby-difficulty-icon ${advanced ? "lobby-difficulty-advanced" : "lobby-difficulty-basic"}`}>
-                <span className="material-symbols-outlined">{advanced ? "local_fire_department" : "eco"}</span>
+              <div className={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}>
+                <span className="material-symbols-outlined">{diff.icon}</span>
               </div>
               <div>
                 <h3 className="lobby-game-title">
                   {r.label}
-                  {advanced && <span className="material-symbols-outlined lobby-lock-icon">lock</span>}
+                  {restricted && <span className="material-symbols-outlined lobby-lock-icon">lock</span>}
                 </h3>
-                <p className={`lobby-difficulty-badge ${advanced ? "lobby-difficulty-badge-advanced" : "lobby-difficulty-badge-basic"}`}>
-                  {advanced ? "Difícil" : "Iniciante"}
-                </p>
+                <p className={`lobby-difficulty-badge lobby-difficulty-badge-${diff.tier}`}>{diff.label}</p>
                 <p className="lobby-game-desc">
-                  {advanced
+                  {restricted
                     ? `Só pra jogador experiente — exige ${r.minLifetimePoints} pontos vitalícios.`
                     : "Sala livre para todos os jogadores."}
                 </p>
