@@ -14,7 +14,7 @@ export default function RanksInfo() {
 
   return (
     <div>
-      <h1>Patentes</h1>
+      <h1>Patentes Stop</h1>
       <p style={{ color: "var(--text-dim)" }}>
         Sua patente é calculada pela pontuação vitalícia acumulada em cada jogo — quanto mais você
         joga, mais sobe. Confira quanto falta pra próxima:

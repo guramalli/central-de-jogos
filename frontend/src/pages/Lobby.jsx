@@ -93,6 +93,18 @@ export default function Lobby() {
           </Link>
         )}
       </div>
+
+      {/* Sobre o projeto */}
+      <section className="glossy-panel about-project">
+        <h4>Sobre o projeto</h4>
+        <p>
+          A Educação Gamer nasceu do carinho de um ex-jogador da antiga <strong>Central de Jogos</strong>,
+          que queria reviver os momentos incríveis vividos na adolescência jogando com os amigos.
+          Foi por causa dessa vontade de recuperar aquela época boa que essa plataforma começou a
+          ser recriada — com bastante carinho, e ainda em construção. Obrigado por fazer parte
+          dessa jornada! 🎮
+        </p>
+      </section>
     </div>
   );
 }

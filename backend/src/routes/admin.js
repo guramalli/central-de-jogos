@@ -82,6 +82,11 @@ router.get("/feedback", async (req, res) => {
   res.json(feedbacks);
 });
 
+router.delete("/feedback/:id", async (req, res) => {
+  await prisma.feedback.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
 // ===== Glossário de perguntas do Quiz =====
 
 router.get("/quiz-questions/pending", async (req, res) => {

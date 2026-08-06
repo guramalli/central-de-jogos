@@ -45,7 +45,7 @@ export default function App() {
                 <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
-                <NavLink to="/patentes" className={navLinkClass}>Patentes</NavLink>
+                <NavLink to="/patentes" className={navLinkClass}>Patentes Stop</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 <NavLink to="/perfil" className={navLinkClass}>Perfil</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (

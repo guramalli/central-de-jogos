@@ -64,6 +64,11 @@ export default function Admin() {
     loadFeedbacks();
   }, []);
 
+  async function deleteFeedback(id) {
+    await api.delete(`/admin/feedback/${id}`);
+    loadFeedbacks();
+  }
+
   async function approve(id) {
     await api.post(`/admin/glossary/${id}/approve`);
     loadPending();
@@ -105,6 +110,7 @@ export default function Admin() {
               <th>Jogador</th>
               <th>Mensagem</th>
               <th>Quando</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -116,11 +122,16 @@ export default function Admin() {
                 <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
                   {new Date(f.createdAt).toLocaleDateString("pt-BR")}
                 </td>
+                <td>
+                  <button className="btn secondary admin-word-del" onClick={() => deleteFeedback(f.id)} title="Apagar">
+                    ✕
+                  </button>
+                </td>
               </tr>
             ))}
             {feedbacks.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ color: "var(--text-dim)" }}>Nenhum feedback enviado ainda.</td>
+                <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhum feedback enviado ainda.</td>
               </tr>
             )}
           </tbody>
