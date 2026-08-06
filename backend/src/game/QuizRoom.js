@@ -235,10 +235,23 @@ export class QuizRoom {
 
   async startQuestion() {
     this.clearTimers();
-    const question = await this.pickQuestion();
+
+    // Timeout de segurança: se o banco demorar demais pra responder (ex.:
+    // "acordando" depois de ficar inativo), desiste depois de 8s em vez de
+    // travar o timer da sala pra sempre — tenta de novo no próximo intervalo.
+    let question = null;
+    try {
+      question = await Promise.race([
+        this.pickQuestion(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao buscar pergunta")), 8000)),
+      ]);
+    } catch (err) {
+      console.error(`Falha ao buscar pergunta na sala ${this.roomId}:`, err.message);
+    }
 
     if (!question) {
-      // Sem perguntas cadastradas pro tema — avisa e tenta de novo mais tarde.
+      // Sem perguntas cadastradas pro tema (ou o banco demorou demais) —
+      // avisa e tenta de novo mais tarde.
       this.systemMessage("⚠️ Nenhuma pergunta cadastrada pra esse tema ainda.");
       this.startIntermission();
       return;

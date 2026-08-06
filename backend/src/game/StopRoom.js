@@ -299,13 +299,12 @@ export class StopRoom {
     this.readyCache = new Map();
     this.timeLeft = this.answerSeconds;
     this.roundStartedAt = Date.now();
+    this.validWordsCache = new Map(); // vazio até a busca abaixo terminar
 
-    // Busca TODAS as palavras válidas dessa rodada (todos os temas + a letra
-    // sorteada) de uma vez só, e guarda em memória — assim, conferir se uma
-    // palavra está certa não precisa mais ir ao banco a cada tecla digitada,
-    // deixando a checagem de STOP praticamente instantânea.
-    await this.loadValidWordsCache();
-
+    // O relógio começa a contar JÁ — não espera o banco responder antes de
+    // ligar o timer. Antes, se o banco demorasse (ex.: "acordando" depois de
+    // ficar inativo), a sala inteira travava esperando essa resposta. Agora
+    // o glossário carrega em paralelo, em segundo plano.
     this.broadcast("round-start", {
       roundNumber: this.roundNumber,
       roundInBlock: ((this.roundNumber - 1) % ROUNDS_PER_BLOCK) + 1,
@@ -320,15 +319,27 @@ export class StopRoom {
       this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) this.endRound(false);
     }, 1000);
+
+    // Busca as palavras válidas dessa rodada (todos os temas + a letra
+    // sorteada) em segundo plano — guarda em memória pra conferir STOP sem
+    // precisar ir ao banco a cada tecla digitada.
+    this.loadValidWordsCache();
   }
 
   async loadValidWordsCache() {
     this.validWordsCache = new Map();
     try {
       const themeIds = this.currentThemes.map((t) => t.id);
-      const words = await prisma.wordEntry.findMany({
-        where: { themeId: { in: themeIds }, letter: this.currentLetter, status: "approved" },
-      });
+      // Timeout de segurança: se o banco demorar demais pra responder (ex.:
+      // "acordando" depois de ficar inativo), desiste depois de 8s em vez de
+      // ficar pendurado pra sempre — as respostas ficam "erradas" só até a
+      // próxima tentativa conseguir carregar.
+      const words = await Promise.race([
+        prisma.wordEntry.findMany({
+          where: { themeId: { in: themeIds }, letter: this.currentLetter, status: "approved" },
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao buscar glossário")), 8000)),
+      ]);
       for (const w of words) {
         if (!this.validWordsCache.has(w.themeId)) this.validWordsCache.set(w.themeId, new Set());
         this.validWordsCache.get(w.themeId).add(normalize(w.word));
