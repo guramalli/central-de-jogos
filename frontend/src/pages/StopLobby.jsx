@@ -26,6 +26,7 @@ export default function StopLobby() {
             Rodadas automáticas em blocos de 10, com 6 temas e 1 letra sorteados por vez.
           </p>
         </div>
+        <Link to="/patentes" className="retro-btn">🏆 Ver patentes</Link>
       </section>
 
       <div className="lobby-game-grid">

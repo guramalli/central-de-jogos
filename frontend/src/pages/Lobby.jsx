@@ -56,8 +56,8 @@ export default function Lobby() {
           <div>
             <h3 className="lobby-game-title">Stop</h3>
             <p className="lobby-game-desc">
-              Rodadas automáticas em blocos de 10, com 6 temas e 1 letra sorteados por vez. Sala
-              padrão livre pra todos, ou sala avançada pra quem já tem experiência.
+              Teste sua velocidade de digitação e seus conhecimentos gerais contra o relógio — 6
+              temas, 1 letra sorteada, e quem escreve mais rápido (e certo) sai na frente.
             </p>
             <span className="lobby-game-cta">
               Ver salas <span className="material-symbols-outlined">arrow_forward</span>
