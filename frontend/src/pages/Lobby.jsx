@@ -81,10 +81,20 @@ export default function Lobby() {
       </div>
 
       {/* Links rápidos */}
-      <div className="lobby-quick-grid">
-        <Link to="/ranking" className="glossy-panel lobby-quick-card">
-          <h4>Ver ranking</h4>
-          <p>Mensal e vitalício</p>
+      <div className={`lobby-quick-grid ${!(user?.role === "ADMIN" || user?.role === "MODERATOR") ? "lobby-quick-grid-single" : ""}`}>
+        <Link to="/ranking" className="glossy-panel lobby-quick-card lobby-ranking-card">
+          <svg className="lobby-podium-svg" viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg">
+            <text x="30" y="14" textAnchor="middle" fontSize="20">🥈</text>
+            <rect x="14" y="34" width="32" height="30" rx="4" fill="#c0c0c0" />
+            <text x="60" y="2" textAnchor="middle" fontSize="22">🥇</text>
+            <rect x="44" y="22" width="32" height="42" rx="4" fill="#ffd700" />
+            <text x="90" y="22" textAnchor="middle" fontSize="18">🥉</text>
+            <rect x="74" y="42" width="32" height="22" rx="4" fill="#cd7f32" />
+          </svg>
+          <div>
+            <h4>Ranking</h4>
+            <p>Mensal e vitalício</p>
+          </div>
         </Link>
         {(user?.role === "ADMIN" || user?.role === "MODERATOR") && (
           <Link to="/admin" className="glossy-panel lobby-quick-card">

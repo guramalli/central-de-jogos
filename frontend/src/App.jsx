@@ -46,7 +46,6 @@ export default function App() {
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
-                <NavLink to="/perfil" className={navLinkClass}>Perfil</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
@@ -56,7 +55,7 @@ export default function App() {
           <div className="app-header-right">
             {user ? (
               <>
-                <span className="app-header-username">{user.nickname}</span>
+                <Link to="/perfil" className="app-header-username" title="Meu perfil">{user.nickname}</Link>
                 <button className="retro-btn" onClick={logout}>Deslogar</button>
               </>
             ) : (

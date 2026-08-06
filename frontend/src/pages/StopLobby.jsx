@@ -18,16 +18,16 @@ export default function StopLobby() {
 
   return (
     <div>
-      <section className="glossy-panel lobby-hero" style={{ marginBottom: 24 }}>
+      <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
-          <div className="lobby-hero-eyebrow">STOP!</div>
-          <h1 className="lobby-hero-title">Escolha uma sala</h1>
-          <p className="lobby-hero-subtitle">
+          <img src="/stop-logo.png" alt="Stop!" className="lobby-page-logo" />
+          <h1 className="hero-title">Escolha uma sala</h1>
+          <p className="hero-subtitle">
             Rodadas automáticas em blocos de 10, com 6 temas e 1 letra sorteados por vez.
           </p>
         </div>
         <Link to="/patentes" className="retro-btn">🏆 Ver patentes</Link>
-      </section>
+      </div>
 
       <div className="lobby-game-grid">
         {rooms.map((r) => {
@@ -39,12 +39,17 @@ export default function StopLobby() {
               to={`/jogos/stop/${r.roomId}`}
               className={`glossy-panel lobby-game-card ${advanced ? "lobby-game-card-advanced" : ""}`}
             >
-              <img src="/stop-logo.png" alt="Stop!" className={`lobby-game-logo ${advanced ? "lobby-game-logo-dim" : ""}`} />
+              <div className={`lobby-difficulty-icon ${advanced ? "lobby-difficulty-advanced" : "lobby-difficulty-basic"}`}>
+                <span className="material-symbols-outlined">{advanced ? "local_fire_department" : "eco"}</span>
+              </div>
               <div>
                 <h3 className="lobby-game-title">
                   {r.label}
                   {advanced && <span className="material-symbols-outlined lobby-lock-icon">lock</span>}
                 </h3>
+                <p className={`lobby-difficulty-badge ${advanced ? "lobby-difficulty-badge-advanced" : "lobby-difficulty-badge-basic"}`}>
+                  {advanced ? "Difícil" : "Iniciante"}
+                </p>
                 <p className="lobby-game-desc">
                   {advanced
                     ? `Só pra jogador experiente — exige ${r.minLifetimePoints} pontos vitalícios.`

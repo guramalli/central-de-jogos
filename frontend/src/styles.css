@@ -855,7 +855,13 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .app-header-left { display: flex; align-items: center; gap: 32px; }
 .app-header-right { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); }
-.app-header-username { color: var(--text); }
+.app-header-username {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.app-header-username:hover { color: var(--accent-2); border-bottom-color: var(--accent-2); }
 
 .nav-links { display: flex; gap: 20px; font-family: var(--font-mono); font-size: 14px; }
 .nav-link {
@@ -1033,10 +1039,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 .lobby-quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
 @media (max-width: 700px) { .lobby-quick-grid { grid-template-columns: 1fr; } }
+.lobby-quick-grid-single { grid-template-columns: 1fr; }
 .lobby-quick-card { padding: 16px 18px; text-decoration: none; color: inherit; display: block; }
 .lobby-quick-card:hover { background: var(--bg-panel-2); }
 .lobby-quick-card h4 { margin: 0 0 4px 0; font-family: var(--font-display); font-size: 15px; }
 .lobby-quick-card p { margin: 0; font-size: 12px; color: var(--text-dim); }
+
+.lobby-ranking-card { display: flex !important; align-items: center; gap: 18px; }
+.lobby-podium-svg { width: 70px; height: 42px; flex-shrink: 0; }
 
 /* ======================================================================
    Rodapé
@@ -1422,7 +1432,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-suggest-ok { color: #06d6a0; }
 .quiz-suggest-error { color: var(--accent); }
 
-.quiz-lobby-logo { height: 60px; width: auto; object-fit: contain; margin-bottom: 8px; }
+.lobby-page-logo { height: 60px; width: auto; object-fit: contain; margin-bottom: 8px; }
 .quiz-room-logo { height: 48px; width: auto; object-fit: contain; margin-right: 4px; }
 
 .register-row { display: flex; gap: 8px; }
@@ -1540,3 +1550,92 @@ table.player-table.player-table-compact td {
   font-family: var(--font-mono);
   margin-top: 4px;
 }
+
+/* ======================================================================
+   RESPONSIVO — celular e tablet. O layout já usava flex-wrap em bastante
+   coisa, então aqui é principalmente: cabeçalho, textos grandes, tabelas
+   (viram rolagem horizontal em vez de espremer) e empilhamento de cards.
+   ====================================================================== */
+@media (max-width: 768px) {
+  .container { padding: 14px; }
+
+  /* Cabeçalho: quebra em duas linhas em vez de espremer tudo numa só */
+  .app-header-inner { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+  .app-header-left { flex-wrap: wrap; gap: 10px; width: 100%; }
+  .nav-links { flex-wrap: wrap; gap: 8px 14px; font-size: 13px; }
+  .app-header-right { width: 100%; justify-content: space-between; }
+  .header-logo-img { height: 42px; }
+
+  /* Textos grandes */
+  .hero-title, .lobby-hero-title { font-size: 24px; }
+  .lobby-hero-eyebrow { font-size: 16px; }
+
+  /* Lobby: empilha em vez de lado a lado */
+  .lobby-hero { flex-direction: column; align-items: flex-start; padding: 20px; }
+  .lobby-hero-benefits { width: 100%; }
+  .beta-banner { flex-direction: column; align-items: flex-start; }
+  .beta-feedback-btn { margin-left: 0; width: 100%; }
+
+  /* Tabelas: em vez de espremer as colunas, deixa rolar de lado */
+  .card { overflow-x: auto; }
+  table.player-table { min-width: 460px; }
+
+  /* Formulários */
+  .register-row { flex-direction: column; }
+  .quiz-guess-form { flex-direction: column; }
+  .quiz-guess-form button { width: 100%; }
+
+  /* Modal de feedback */
+  .modal-card { padding: 18px; }
+
+  /* ===== Stop ===== */
+  .sc-root { padding: 8px; }
+  .sc-topbar { padding: 10px 12px; }
+  .sc-topbar-left { gap: 10px; }
+  .sc-timerletter, .sc-topbar-badges { gap: 6px; }
+  .sc-letter-chip { width: 48px; height: 48px; font-size: 26px; }
+  .sc-timer-chip { font-size: 15px; padding: 6px 10px; min-width: 50px; }
+  .scoresheet { min-width: 560px; }
+  .sc-bottom-grid { gap: 8px; }
+
+  /* ===== Quiz ===== */
+  .quiz-stats-bar { padding: 10px 12px; flex-direction: column; align-items: flex-start; }
+  .quiz-topbar-title { order: -1; }
+  .quiz-theme-name { font-size: 16px; }
+  .quiz-question-text { font-size: 17px; }
+  .quiz-letter-box { min-width: 18px; height: 26px; font-size: 14px; }
+  .quiz-question-card { padding: 20px 14px; min-height: 220px; }
+}
+
+@media (max-width: 480px) {
+  .lobby-game-card, .lobby-ranking-card { flex-direction: column; text-align: center; }
+  .lobby-quick-card { text-align: center; }
+}
+
+/* ===== Indicador de dificuldade (lobby do Stop) ===== */
+.lobby-difficulty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid;
+}
+.lobby-difficulty-basic { background: rgba(6, 214, 160, 0.1); border-color: #06d6a0; color: #06d6a0; }
+.lobby-difficulty-advanced { background: rgba(230, 0, 0, 0.1); border-color: var(--accent); color: var(--accent); }
+
+.lobby-difficulty-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin: 0 0 6px 0;
+}
+.lobby-difficulty-badge-basic { background: rgba(6, 214, 160, 0.12); color: #06d6a0; }
+.lobby-difficulty-badge-advanced { background: rgba(230, 0, 0, 0.12); color: var(--accent); }

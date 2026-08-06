@@ -28,7 +28,7 @@ export default function QuizLobby() {
     <div>
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
-          <img src="/quiz-logo.png" alt="Quiz!" className="quiz-lobby-logo" />
+          <img src="/quiz-logo.png" alt="Quiz!" className="lobby-page-logo" />
           <h1 className="hero-title">Escolha um tema</h1>
           <p className="hero-subtitle">
             Cada sala tem perguntas de um tema só. Quem acertar primeiro leva os pontos — as letras
