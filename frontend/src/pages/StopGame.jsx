@@ -4,6 +4,7 @@ import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ScoreTable from "../components/ScoreTable.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
+import InviteButton from "../components/InviteButton.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
 
@@ -458,6 +459,11 @@ export default function StopGame() {
         </div>
 
         <div className="sc-topbar-logo">
+          <InviteButton
+            label="Convidar"
+            url={`${window.location.origin}/jogos/stop/${roomId}`}
+            message={`Vem jogar Stop comigo agora, tô na ${roomLabel || "sala"}! 🎮`}
+          />
           <Link to="/" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>

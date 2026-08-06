@@ -15,7 +15,7 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
   const { gameKey } = req.params;
   const monthKey = currentMonthKey();
   const scores = await prisma.monthlyScore.findMany({
-    where: { gameKey, monthKey },
+    where: { gameKey, monthKey, user: { role: { not: "ADMIN" } } },
     orderBy: { points: "desc" },
     take: 100,
     include: { user: true },
@@ -32,7 +32,7 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
 router.get("/lifetime/:gameKey", requireAuth, async (req, res) => {
   const { gameKey } = req.params;
   const scores = await prisma.lifetimeScore.findMany({
-    where: { gameKey },
+    where: { gameKey, user: { role: { not: "ADMIN" } } },
     orderBy: { points: "desc" },
     take: 100,
     include: { user: true },

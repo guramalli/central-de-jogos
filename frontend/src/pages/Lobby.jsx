@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
+import InviteButton from "../components/InviteButton.jsx";
 
 export default function Lobby() {
   const { user } = useAuth();
@@ -32,6 +33,9 @@ export default function Lobby() {
           <p className="lobby-hero-subtitle">
             Escolha um jogo, suba de patente e dispute a premiação mensal.
           </p>
+          <div style={{ marginTop: 14 }}>
+            <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
+          </div>
         </div>
         <div className="lobby-hero-benefits">
           <div className="lobby-benefit">

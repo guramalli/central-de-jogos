@@ -212,12 +212,13 @@ router.delete("/members/:userId", requireAuth, async (req, res) => {
 router.get("/ranking/mensal", requireAuth, async (req, res) => {
   const monthKey = currentMonthKey();
   const clans = await prisma.clan.findMany({
-    include: { members: { select: { id: true, nickname: true } } },
+    include: { members: { select: { id: true, nickname: true, role: true } } },
   });
 
   const results = [];
   for (const clan of clans) {
-    const memberIds = clan.members.map((m) => m.id);
+    // Admins não contam pontos pro ranking do clã, mesmo que sejam membros.
+    const memberIds = clan.members.filter((m) => m.role !== "ADMIN").map((m) => m.id);
     if (memberIds.length === 0) continue;
     const scores = await prisma.monthlyScore.findMany({
       where: { userId: { in: memberIds }, gameKey: GAME_KEY, monthKey },

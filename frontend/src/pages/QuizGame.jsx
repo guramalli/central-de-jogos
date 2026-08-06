@@ -7,6 +7,7 @@ import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMuted } from "../utils/sounds.js";
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
+import InviteButton from "../components/InviteButton.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -183,6 +184,11 @@ export default function QuizGame() {
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
         <div className="quiz-timer-group">
+          <InviteButton
+            label="Convidar"
+            url={`${window.location.origin}/jogos/quiz/${roomId}`}
+            message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
+          />
           <Link to="/jogos/quiz" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>
