@@ -31,6 +31,10 @@ export default function StopGame() {
   const roomId = roomIdParam || "stop-sala-1";
   const socketRef = useRef(null);
   const inputRefs = useRef([]);
+  const awaitingResultRef = useRef(false); // evita "closure velha" dentro dos handlers do socket
+  const pendingResultRef = useRef(null); // guarda o resultado se ele chegar durante o atraso
+  const stopDelayTimerRef = useRef(null);
+  const stoppedThisRoundRef = useRef(false); // alguém pediu STOP nesta rodada?
 
   const [accessDenied, setAccessDenied] = useState(null); // { roomLabel, required, current } | null
   const [roomLabel, setRoomLabel] = useState("");
@@ -38,6 +42,8 @@ export default function StopGame() {
   const [stopReady, setStopReady] = useState(false);
   const [stopDenied, setStopDenied] = useState(null); // { correctCount, required } | null
   const [stopOverlay, setStopOverlay] = useState(null); // nickname de quem apertou STOP, ou null
+  const [awaitingResult, setAwaitingResult] = useState(false); // mostra "enviando..." durante o atraso proposital
+  const [endedByTimeout, setEndedByTimeout] = useState(false); // true quando ninguém pediu STOP na rodada
 
   const [phase, setPhase] = useState("intermission"); // intermission | active | grading
   const [timeLeft, setTimeLeft] = useState(0);
@@ -54,15 +60,12 @@ export default function StopGame() {
   const [skipVote, setSkipVote] = useState({ votes: 0, needed: 0, minPlayers: 3 });
   const [iVotedSkip, setIVotedSkip] = useState(false);
 
-  // Precisa ser calculado aqui em cima (antes dos useEffect abaixo), já que o
-  // atalho de teclado do STOP depende de "canStop" no array de dependências.
-  // Nas salas normais, precisa preencher todas as lacunas para poder pedir STOP.
-  // Nas salas com exigência de acertos mínimos (ex.: Sala Avançada), o botão só
-  // fica verde quando o SERVIDOR confirmar que as palavras certas já bateram o
-  // mínimo — o cliente não sabe quais estão certas, só recebe esse "sim/não".
-  const filledCount = themes.filter((t) => (answers[t.key] || "").trim().length > 0).length;
-  const allFilled = themes.length > 0 && filledCount === themes.length;
-  const canStop = phase === "active" && (minCorrectToStop > 0 ? stopReady : allFilled);
+  // O botão de STOP agora fica sempre clicável durante a rodada ativa — quem
+  // decide se pode mesmo parar é o SERVIDOR (regras de tempo mínimo e de
+  // acertos mínimos). Se não puder, o servidor manda "stop-denied" e a
+  // bolinha de status fica vermelha com o motivo, em vez de desabilitar o
+  // botão no cliente.
+  const canAttemptStop = phase === "active";
 
   useEffect(() => {
     setAccessDenied(null);
@@ -119,10 +122,34 @@ export default function StopGame() {
       setStopOverlay(null);
       setStopDenied(null);
       setStopReady(false);
+      awaitingResultRef.current = false;
+      setAwaitingResult(false);
+      pendingResultRef.current = null;
+      if (stopDelayTimerRef.current) clearTimeout(stopDelayTimerRef.current);
+      stoppedThisRoundRef.current = false;
+      setEndedByTimeout(false);
     });
 
     socket.on("player-stopped", (data) => {
       setStopOverlay(data.nickname || "Alguém");
+      stoppedThisRoundRef.current = true;
+
+      // Atraso proposital: segura a exibição do resultado por uns 5 segundos,
+      // pra dar tempo da pessoa ver o aviso de "pediu stop" e a mensagem de
+      // "enviando..." — sem isso, quando o servidor corrige rápido demais,
+      // esses avisos quase nem aparecem na tela.
+      awaitingResultRef.current = true;
+      setAwaitingResult(true);
+      pendingResultRef.current = null;
+      if (stopDelayTimerRef.current) clearTimeout(stopDelayTimerRef.current);
+      stopDelayTimerRef.current = setTimeout(() => {
+        awaitingResultRef.current = false;
+        setAwaitingResult(false);
+        if (pendingResultRef.current) {
+          applyRoundResult(pendingResultRef.current);
+          pendingResultRef.current = null;
+        }
+      }, 5000);
     });
 
     socket.on("skip-vote-update", (data) => {
@@ -134,9 +161,21 @@ export default function StopGame() {
       setTimeLeft(data.timeLeft);
     });
 
-    socket.on("round-result", (data) => {
+    function applyRoundResult(data) {
+      setEndedByTimeout(!stoppedThisRoundRef.current);
       setPhase("grading");
       setLastResult(data);
+      setStopOverlay(null);
+    }
+
+    socket.on("round-result", (data) => {
+      // Se ainda estamos dentro da janela de atraso (alguém pediu stop há
+      // pouco), guarda o resultado e só aplica quando o temporizador acabar.
+      if (awaitingResultRef.current) {
+        pendingResultRef.current = data;
+      } else {
+        applyRoundResult(data);
+      }
     });
 
     socket.on("block-bonus", (data) => {
@@ -152,6 +191,7 @@ export default function StopGame() {
     });
 
     return () => {
+      if (stopDelayTimerRef.current) clearTimeout(stopDelayTimerRef.current);
       socket.off("connect_error");
       socket.off("room-access-denied");
       socket.off("stop-denied");
@@ -178,10 +218,12 @@ export default function StopGame() {
     }
   }, [phase, roundNumber]);
 
-  // Some sozinho depois de alguns segundos, mesmo se algo atrasar a correção.
+  // Rede de segurança: normalmente some quando o resultado da rodada chega
+  // (round-result), mas por precaução some sozinho depois de um tempo maior
+  // também, caso algo atrase a correção.
   useEffect(() => {
     if (!stopOverlay) return;
-    const t = setTimeout(() => setStopOverlay(null), 3000);
+    const t = setTimeout(() => setStopOverlay(null), 15000);
     return () => clearTimeout(t);
   }, [stopOverlay]);
 
@@ -198,14 +240,14 @@ export default function StopGame() {
     function handleKeyDown(e) {
       if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey)) return;
       if (e.target?.closest?.(".chat-input")) return;
-      if (canStop) {
+      if (canAttemptStop) {
         e.preventDefault();
         handleStop();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canStop]);
+  }, [canAttemptStop]);
 
   function updateAnswer(themeKey, value) {
     const next = { ...answers, [themeKey]: value };
@@ -314,6 +356,12 @@ export default function StopGame() {
     ];
   }
 
+  // Durante o atraso proposital (depois de alguém pedir STOP), o status
+  // mostra "enviando" no lugar do texto normal, não importa a fase.
+  if (awaitingResult) {
+    statusText = "Enviando palavras ao servidor...";
+  }
+
   if (accessDenied) {
     return (
       <div className="sc-root">
@@ -345,14 +393,6 @@ export default function StopGame() {
 
   return (
     <div className="sc-root">
-      {stopOverlay && (
-        <div className="sc-stop-toast">
-          <div className="sc-stop-toast-icon">🛑</div>
-          <div className="sc-stop-toast-title">STOP!</div>
-          <div className="sc-stop-toast-name">{stopOverlay}</div>
-        </div>
-      )}
-
       <header className="sc-topbar">
         <div className="sc-topbar-left">
           <div className="sc-topbar-badges">
@@ -422,20 +462,14 @@ export default function StopGame() {
           </div>
         )}
 
-        {stopDenied && (
-          <div className="sc-stop-denied-hint">
-            ❌ Você ainda não tem palavras corretas suficientes para pedir STOP nesta sala.
-          </div>
-        )}
-
         <div className="sc-table-scroll">
           <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />
         </div>
 
         <div className="sc-stop-bar">
           <button
-            className={`sc-stop-btn ${canStop ? "sc-stop-btn-ready" : "sc-stop-btn-waiting"}`}
-            disabled={!canStop}
+            className={`sc-stop-btn ${canAttemptStop ? "sc-stop-btn-ready" : "sc-stop-btn-waiting"}`}
+            disabled={!canAttemptStop}
             onClick={handleStop}
           >
             STOP! <span className="sc-stop-shortcut-inline">(CTRL+ENTER)</span>
@@ -450,14 +484,39 @@ export default function StopGame() {
         </div>
 
         <div className="sc-retro-panel sc-tab-panel sc-legend-panel">
-          <div className="sc-retro-tab">pontuação</div>
-          <ul className="sc-legend-list">
-            <li><span className="sc-swatch sc-swatch-wrong" /> 0 pontos — errada ou em branco</li>
-            <li><span className="sc-swatch sc-swatch-duplicate" /> 5 pontos — repetida</li>
-            <li><span className="sc-swatch sc-swatch-correct" /> 10 pontos — única</li>
-            <li><span className="sc-swatch sc-swatch-solo" /> 15 pontos — só você acertou o tema</li>
-          </ul>
-          <div className="sc-legend-bonus">Bônus a cada 10 rodadas: 🥇+150 🥈+100 🥉+50</div>
+          {stopOverlay ? (
+            <div className="sc-legend-stopped">
+              <div className="sc-legend-stopped-name">{stopOverlay}</div>
+              <div className="sc-legend-stopped-label">pediu stop</div>
+            </div>
+          ) : phase === "active" ? (
+            <div className="sc-legend-status-only">
+              <span className={`sc-status-ball sc-status-ball-big ${stopDenied ? "sc-status-ball-red" : "sc-status-ball-green"}`} />
+              {stopDenied && (
+                <span className="sc-status-text">
+                  {stopDenied.reason === "too-early"
+                    ? `Você pediu stop antes do tempo estipulado da sala. Você só pode pedir stop após ${stopDenied.minSeconds} segundos.`
+                    : "Você ainda não tem palavras corretas suficientes para pedir STOP nesta sala."}
+                </span>
+              )}
+            </div>
+          ) : endedByTimeout && lastResult ? (
+            <div className="sc-legend-status-only">
+              <span className="sc-status-ball sc-status-ball-big sc-status-ball-neutral" />
+              <span className="sc-status-text sc-status-text-timeout">Stop por tempo</span>
+            </div>
+          ) : (
+            <>
+              <div className="sc-retro-tab">pontuação</div>
+              <ul className="sc-legend-list">
+                <li><span className="sc-swatch sc-swatch-wrong" /> 0 pontos — errada ou em branco</li>
+                <li><span className="sc-swatch sc-swatch-duplicate" /> 5 pontos — repetida</li>
+                <li><span className="sc-swatch sc-swatch-correct" /> 10 pontos — única</li>
+                <li><span className="sc-swatch sc-swatch-solo" /> 15 pontos — só você acertou o tema</li>
+              </ul>
+              <div className="sc-legend-bonus">Bônus a cada 10 rodadas: 🥇+150 🥈+100 🥉+50</div>
+            </>
+          )}
         </div>
 
         <div className="sc-retro-panel sc-tab-panel sc-players-panel">

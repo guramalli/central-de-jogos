@@ -42,6 +42,7 @@ export class StopRoom {
     // quantidade de palavras CORRETAS (não basta só preencher todas as lacunas).
     // Se 0/indefinido, mantém a regra padrão: precisa preencher todas as lacunas.
     this.minCorrectToStop = config.minCorrectToStop ?? 0;
+    this.minSecondsBeforeStop = config.minSecondsBeforeStop ?? 0;
     this.maxPlayers = config.maxPlayers ?? 10;
     // Reaproveita a tabela LifetimeScore com uma "gameKey" própria por sala
     // (ex.: "stop:stop-sala-1"), assim cada sala tem sua pontuação histórica
@@ -295,6 +296,7 @@ export class StopRoom {
     this.answers = new Map();
     this.readyCache = new Map();
     this.timeLeft = this.answerSeconds;
+    this.roundStartedAt = Date.now();
 
     // Busca TODAS as palavras válidas dessa rodada (todos os temas + a letra
     // sorteada) de uma vez só, e guarda em memória — assim, conferir se uma
@@ -348,17 +350,25 @@ export class StopRoom {
     if (now - last < 400) return;
     this.lastStopAttempt.set(userId, now);
 
+    // Ninguém pode pedir STOP antes do tempo mínimo da sala, mesmo já com
+    // tudo preenchido/correto — evita respostas "bots" ou tempo suspeito.
+    const elapsedSeconds = (now - this.roundStartedAt) / 1000;
+    if (elapsedSeconds < this.minSecondsBeforeStop) {
+      socket.emit("stop-denied", { reason: "too-early", minSeconds: this.minSecondsBeforeStop });
+      return;
+    }
+
     if (this.minCorrectToStop > 0) {
       let ready = false;
       try {
         ready = await this.hasEnoughCorrect(userId);
       } catch (err) {
         console.error("Falha ao validar STOP para", userId, err.message);
-        socket.emit("stop-denied", {});
+        socket.emit("stop-denied", { reason: "not-ready" });
         return;
       }
       if (!ready) {
-        socket.emit("stop-denied", {});
+        socket.emit("stop-denied", { reason: "not-ready" });
         return;
       }
     } else {

@@ -1681,3 +1681,99 @@ table.player-table.player-table-compact td {
 .mini-podium-name { flex: 1; font-weight: 600; }
 .mini-podium-points { font-family: var(--font-mono); color: var(--accent-2); font-weight: 700; }
 .mini-podium-empty { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+/* ===== Indicador de status dentro da legenda (bolinha animada) ===== */
+.sc-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #ddd;
+}
+.sc-status-ball {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease;
+}
+.sc-status-ball-green {
+  background: radial-gradient(circle at 35% 28%, #a8ffc4 0%, #3fc76a 40%, #1c6b32 100%);
+  animation: sc-ball-pulse-green 1.6s infinite;
+}
+.sc-status-ball-red {
+  background: radial-gradient(circle at 35% 28%, #ffb3b3 0%, #ee1c1c 40%, #8a0000 100%);
+  animation: sc-ball-pulse-red 0.8s infinite;
+}
+@keyframes sc-ball-pulse-green {
+  0% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 0 rgba(47, 168, 79, 0.55); }
+  70% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 7px rgba(47, 168, 79, 0); }
+  100% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 0 rgba(47, 168, 79, 0); }
+}
+@keyframes sc-ball-pulse-red {
+  0% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 0 rgba(230, 0, 0, 0.6); }
+  70% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 8px rgba(230, 0, 0, 0); }
+  100% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 0 rgba(230, 0, 0, 0); }
+}
+.sc-status-text { line-height: 1.4; }
+
+/* ===== Modo "só bolinha" — substitui a legenda inteira durante a rodada
+   ativa, e também no aviso de "stop por tempo" ===== */
+.sc-legend-status-only {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 0 10px;
+}
+.sc-status-ball-big { width: 26px; height: 26px; }
+.sc-status-ball-neutral {
+  background: #888;
+  box-shadow: none;
+  animation: none;
+}
+.sc-status-text-timeout {
+  font-family: var(--sc-mono, monospace);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ccc;
+}
+
+/* ===== Legenda em modo "alguém pediu stop" (substitui o conteúdo normal) ===== */
+.sc-legend-stopped {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--sc-red, #b8302f);
+  border-radius: 4px;
+  animation: sc-stopped-flash 0.3s ease;
+}
+.sc-legend-stopped-name {
+  font-family: var(--sc-display, sans-serif);
+  font-weight: 900;
+  font-size: 20px;
+  color: #fff;
+  text-align: center;
+  word-break: break-word;
+}
+.sc-legend-stopped-label {
+  font-family: var(--sc-mono, monospace);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ffd400;
+}
+@keyframes sc-stopped-flash {
+  from { background: #ff5b5b; }
+  to { background: var(--sc-red, #b8302f); }
+}
