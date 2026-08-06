@@ -10,7 +10,7 @@ function occupancyInfo(status) {
 }
 
 function difficultyInfo(minPoints) {
-  if (minPoints >= 6000) return { label: "Difícil", tier: "hard", icon: "local_fire_department" };
+  if (minPoints >= 6000) return { label: "Difícil", tier: "advanced", icon: "local_fire_department" };
   if (minPoints > 0) return { label: "Intermediária", tier: "mid", icon: "bolt" };
   return { label: "Iniciante", tier: "basic", icon: "eco" };
 }
