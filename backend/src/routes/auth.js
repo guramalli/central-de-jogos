@@ -40,6 +40,7 @@ router.post("/login", async (req, res) => {
   if (!user) return res.status(401).json({ error: "Credenciais inválidas." });
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(401).json({ error: "Credenciais inválidas." });
+  if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
   const token = signToken(user);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });

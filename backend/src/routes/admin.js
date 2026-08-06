@@ -144,7 +144,7 @@ router.delete("/quiz-questions/:id", async (req, res) => {
 
 router.get("/users", requireRole("ADMIN"), async (req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, nickname: true, email: true, role: true, createdAt: true },
+    select: { id: true, nickname: true, email: true, role: true, banned: true, createdAt: true },
   });
   res.json(users);
 });
@@ -156,6 +156,66 @@ router.post("/users/:id/role", requireRole("ADMIN"), async (req, res) => {
     data: { role },
   });
   res.json({ id: user.id, role: user.role });
+});
+
+// Banir/desbanir: reversível — bloqueia login e desconecta sessões ativas,
+// mas não apaga nada. É a opção mais segura pro dia a dia.
+router.post("/users/:id/ban", requireRole("ADMIN"), async (req, res) => {
+  if (req.user.id === req.params.id) {
+    return res.status(400).json({ error: "Você não pode banir sua própria conta." });
+  }
+  const { banned } = req.body;
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (target.role === "ADMIN") {
+    return res.status(400).json({ error: "Não é possível banir uma conta de administrador." });
+  }
+  const user = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { banned: !!banned },
+  });
+  res.json({ id: user.id, banned: user.banned });
+});
+
+// Apagar de vez: remove a conta e todo o histórico associado (pontuações,
+// mensagens salvas, sugestões, amizades, feedback). Se a pessoa for dona de
+// um clã, o clã também é desfeito (os outros membros só perdem o clã, não
+// são apagados). Ação PERMANENTE — não tem como desfazer.
+router.delete("/users/:id", requireRole("ADMIN"), async (req, res) => {
+  const userId = req.params.id;
+  if (req.user.id === userId) {
+    return res.status(400).json({ error: "Você não pode apagar sua própria conta por aqui." });
+  }
+  const target = await prisma.user.findUnique({ where: { id: userId }, include: { ownedClan: true } });
+  if (!target) return res.status(404).json({ error: "Usuário não encontrado." });
+  if (target.role === "ADMIN") {
+    return res.status(400).json({ error: "Não é possível apagar uma conta de administrador por aqui." });
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (target.ownedClan) {
+        const clanId = target.ownedClan.id;
+        await tx.user.updateMany({ where: { clanId }, data: { clanId: null } });
+        await tx.clanInvite.deleteMany({ where: { clanId } });
+        await tx.clan.delete({ where: { id: clanId } });
+      }
+      await tx.clanInvite.deleteMany({ where: { invitedId: userId } });
+      await tx.feedback.deleteMany({ where: { userId } });
+      await tx.chatMessage.deleteMany({ where: { userId } });
+      await tx.friendship.deleteMany({ where: { OR: [{ userAId: userId }, { userBId: userId }] } });
+      await tx.monthlyScore.deleteMany({ where: { userId } });
+      await tx.lifetimeScore.deleteMany({ where: { userId } });
+      await tx.blockScore.deleteMany({ where: { userId } });
+      await tx.wordEntry.updateMany({ where: { suggestedById: userId }, data: { suggestedById: null } });
+      await tx.quizQuestion.updateMany({ where: { suggestedById: userId }, data: { suggestedById: null } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Falha ao apagar usuário", userId, err.message);
+    res.status(500).json({ error: "Erro ao apagar usuário. Tenta de novo?" });
+  }
 });
 
 export default router;

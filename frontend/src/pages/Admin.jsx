@@ -101,6 +101,33 @@ export default function Admin() {
     loadUsers();
   }
 
+  async function toggleBan(u) {
+    const action = u.banned ? "desbanir" : "banir";
+    if (!window.confirm(`Tem certeza que quer ${action} "${u.nickname}"?`)) return;
+    try {
+      await api.post(`/admin/users/${u.id}/ban`, { banned: !u.banned });
+      loadUsers();
+    } catch (e) {
+      setError(e.response?.data?.error || "Erro ao alterar banimento.");
+    }
+  }
+
+  async function deleteUser(u) {
+    const confirmText = window.prompt(
+      `Isso vai apagar PERMANENTEMENTE a conta "${u.nickname}" e todo o histórico dela (pontos, mensagens, sugestões). Não tem como desfazer.\n\nDigite o nickname "${u.nickname}" pra confirmar:`
+    );
+    if (confirmText !== u.nickname) {
+      if (confirmText !== null) alert("Nickname não confere — nada foi apagado.");
+      return;
+    }
+    try {
+      await api.delete(`/admin/users/${u.id}`);
+      loadUsers();
+    } catch (e) {
+      setError(e.response?.data?.error || "Erro ao apagar usuário.");
+    }
+  }
+
   if (user.role !== "ADMIN" && user.role !== "MODERATOR") {
     return <p>Acesso restrito a moderadores e administradores.</p>;
   }
@@ -228,6 +255,7 @@ export default function Admin() {
                 <th>Nickname</th>
                 <th>E-mail</th>
                 <th>Role</th>
+                <th>Status</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -238,11 +266,24 @@ export default function Admin() {
                   <td>{u.email}</td>
                   <td>{u.role}</td>
                   <td>
+                    {u.banned ? <span style={{ color: "var(--accent)" }}>🚫 Banido</span> : <span style={{ color: "#06d6a0" }}>✓ Ativo</span>}
+                  </td>
+                  <td style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <select value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}>
                       <option value="PLAYER">PLAYER</option>
                       <option value="MODERATOR">MODERATOR</option>
                       <option value="ADMIN">ADMIN</option>
                     </select>
+                    {u.role !== "ADMIN" && (
+                      <>
+                        <button className="btn secondary" onClick={() => toggleBan(u)}>
+                          {u.banned ? "Desbanir" : "Banir"}
+                        </button>
+                        <button className="btn secondary admin-word-del" onClick={() => deleteUser(u)} title="Apagar permanentemente">
+                          ✕
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

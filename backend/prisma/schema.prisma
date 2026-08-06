@@ -16,6 +16,7 @@ model User {
   email            String   @unique
   password         String
   role             String   @default("PLAYER")
+  banned           Boolean  @default(false)
   playtimeMinutes  Int      @default(0)
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?

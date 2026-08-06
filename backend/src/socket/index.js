@@ -13,9 +13,10 @@ export function setupSocket(io) {
       // Confere se o usuário do token ainda existe de verdade no banco —
       // evita "fantasmas" (tokens antigos de antes de um reset de banco, por
       // exemplo) entrarem na sala e derrubarem o servidor ao tentar salvar
-      // pontuação para um userId que não existe mais.
-      const user = await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true } });
-      if (!user) {
+      // pontuação para um userId que não existe mais. Também bloqueia quem
+      // foi banido depois de já ter feito login (o token continuaria válido).
+      const user = await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, banned: true } });
+      if (!user || user.banned) {
         return next(new Error("SESSAO_INVALIDA"));
       }
 
