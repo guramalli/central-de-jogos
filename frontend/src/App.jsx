@@ -12,6 +12,7 @@ import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
 import Profile from "./pages/Profile.jsx";
 import RanksInfo from "./pages/RanksInfo.jsx";
+import RanksInfoQuiz from "./pages/RanksInfoQuiz.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function Private({ children }) {
@@ -138,6 +139,14 @@ export default function App() {
             element={
               <Private>
                 <RanksInfo />
+              </Private>
+            }
+          />
+          <Route
+            path="/patentes-quiz"
+            element={
+              <Private>
+                <RanksInfoQuiz />
               </Private>
             }
           />

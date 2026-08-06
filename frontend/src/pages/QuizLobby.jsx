@@ -35,6 +35,7 @@ export default function QuizLobby() {
             da resposta vão aparecendo aos poucos, mas nunca mais da metade delas.
           </p>
         </div>
+        <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
       </div>
 
       <div className="lobby-game-grid">

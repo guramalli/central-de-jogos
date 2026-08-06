@@ -1,5 +1,5 @@
 import { prisma } from "../db.js";
-import { getRankForPoints } from "../utils/rank.js";
+import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 
 const GAME_KEY = "quiz";
@@ -126,7 +126,7 @@ export class QuizRoom {
         nickname: p.nickname,
         lifetimePoints,
         roomLifetimePoints,
-        rank: getRankForPoints(lifetimePoints),
+        rank: getQuizRankForPoints(lifetimePoints),
       });
     }
     list.sort((a, b) => b.roomLifetimePoints - a.roomLifetimePoints);
