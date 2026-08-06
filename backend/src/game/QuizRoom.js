@@ -1,5 +1,6 @@
 import { prisma } from "../db.js";
 import { getRankForPoints } from "../utils/rank.js";
+import { isBirthdayToday } from "../utils/birthday.js";
 
 const GAME_KEY = "quiz";
 
@@ -87,6 +88,17 @@ export class QuizRoom {
     socket.join(this.roomId);
     socket.emit("quiz-room-state", this.publicState());
     this.systemMessage(`👋 ${nickname} entrou na sala.`);
+
+    // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
+    try {
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
+      if (isBirthdayToday(me?.birthDate)) {
+        this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
+      }
+    } catch {
+      // não deixa uma falha aqui atrapalhar a entrada na sala
+    }
+
     await this.broadcastOnlinePlayers();
     return true;
   }

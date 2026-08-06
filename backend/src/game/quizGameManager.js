@@ -20,6 +20,14 @@ export async function getOrCreateQuizRoom(io, roomId = DEFAULT_QUIZ_ROOM_ID) {
   return creation;
 }
 
+export function getAllOnlineUserIds() {
+  const ids = new Set();
+  for (const room of rooms.values()) {
+    for (const p of room.players.values()) ids.add(p.userId);
+  }
+  return ids;
+}
+
 export function getAllQuizRoomsStatus() {
   return Object.entries(QUIZ_ROOM_CONFIGS).map(([roomId, config]) => {
     const room = rooms.get(roomId);

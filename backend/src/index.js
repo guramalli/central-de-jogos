@@ -15,6 +15,7 @@ import quizRoomsRoutes from "./routes/quizRooms.js";
 import quizQuestionsRoutes from "./routes/quizQuestions.js";
 import feedbackRoutes from "./routes/feedback.js";
 import ranksRoutes from "./routes/ranks.js";
+import platformStatsRoutes from "./routes/platformStats.js";
 import { setupSocket } from "./socket/index.js";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/quiz-rooms", quizRoomsRoutes);
 app.use("/api/quiz-questions", quizQuestionsRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/ranks", ranksRoutes);
+app.use("/api/platform-stats", platformStatsRoutes);
 
 const io = new Server(server, {
   cors: { origin: CORS_ORIGIN },

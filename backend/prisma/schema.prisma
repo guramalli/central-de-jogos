@@ -138,6 +138,14 @@ model ChatMessage {
   createdAt DateTime @default(now())
 }
 
+// Estatísticas simples da plataforma como um todo (ex.: recorde de jogadores
+// simultâneos). Guardado como pares chave/valor pra não precisar criar uma
+// tabela nova cada vez que surgir uma estatística nova.
+model PlatformStat {
+  key   String @id
+  value Int
+}
+
 // Feedback enviado pelos jogadores (ideias, bugs, sugestões) — visível no
 // Painel Admin, e opcionalmente também enviado por e-mail se configurado.
 model Feedback {

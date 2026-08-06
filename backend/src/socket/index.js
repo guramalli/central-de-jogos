@@ -1,6 +1,7 @@
 import { verifyToken } from "../utils/jwt.js";
 import { getOrCreateStopRoom } from "../game/gameManager.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
+import { recheckPeak } from "../game/platformStats.js";
 import { prisma } from "../db.js";
 
 export function setupSocket(io) {
@@ -31,7 +32,10 @@ export function setupSocket(io) {
     socket.on("join-stop-room", async ({ roomId } = {}) => {
       const room = await getOrCreateStopRoom(io, roomId);
       const joined = await room.addPlayer(socket, userId, nickname);
-      if (joined) socket.currentRoom = room;
+      if (joined) {
+        socket.currentRoom = room;
+        recheckPeak().catch(() => {});
+      }
     });
 
     socket.on("submit-answers", ({ answers }) => {
@@ -55,7 +59,10 @@ export function setupSocket(io) {
     socket.on("join-quiz-room", async ({ roomId } = {}) => {
       const room = await getOrCreateQuizRoom(io, roomId);
       const joined = await room.addPlayer(socket, userId, nickname);
-      if (joined) socket.currentQuizRoom = room;
+      if (joined) {
+        socket.currentQuizRoom = room;
+        recheckPeak().catch(() => {});
+      }
     });
 
     socket.on("quiz-submit-guess", ({ guess }) => {

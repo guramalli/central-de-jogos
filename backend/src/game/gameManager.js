@@ -32,6 +32,16 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
 // Lista todas as salas configuradas com a ocupação atual — usado pelo Lobby
 // para mostrar "vazia", "lotada" ou "X/Y jogadores online" em cada card.
 // Salas que ainda não foram criadas (ninguém entrou ainda) contam como 0.
+// Todos os userIds únicos online em QUALQUER sala do Stop agora — usado pra
+// calcular o total de jogadores simultâneos na plataforma (Stop + Quiz juntos).
+export function getAllOnlineUserIds() {
+  const ids = new Set();
+  for (const room of rooms.values()) {
+    for (const p of room.players.values()) ids.add(p.userId);
+  }
+  return ids;
+}
+
 export function getAllRoomsStatus() {
   return Object.entries(ROOM_CONFIGS).map(([roomId, config]) => {
     const room = rooms.get(roomId);

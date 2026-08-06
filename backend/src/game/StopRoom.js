@@ -1,5 +1,6 @@
 import { prisma } from "../db.js";
 import { getRankForPoints } from "../utils/rank.js";
+import { isBirthdayToday } from "../utils/birthday.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -141,6 +142,17 @@ export class StopRoom {
       minPlayers: SKIP_VOTE_MIN_PLAYERS,
     });
     this.systemMessage(`👋 ${nickname} entrou na sala.`);
+
+    // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
+    try {
+      const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
+      if (isBirthdayToday(me?.birthDate)) {
+        this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
+      }
+    } catch {
+      // não deixa uma falha aqui atrapalhar a entrada na sala
+    }
+
     await this.broadcastOnlinePlayers();
     return true;
   }
@@ -612,7 +624,8 @@ export class StopRoom {
   // Avisos automáticos do jogo, mostrados no chat como se fosse um histórico
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
-  systemMessage(message, bold = false) {
-    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, at: Date.now() });
+  // success=true deixa em verde (ex.: aniversário).
+  systemMessage(message, bold = false, success = false) {
+    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, at: Date.now() });
   }
 }
