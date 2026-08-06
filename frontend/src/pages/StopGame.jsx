@@ -475,18 +475,6 @@ export default function StopGame() {
         Rodada {roundNumber} • {roundInBlock}/10 do bloco atual
       </div>
 
-      {blockBonus && (
-        <div className="sc-bonus-banner">
-          🏆 Bônus do bloco:{" "}
-          {blockBonus.map((b, i) => (
-            <span key={b.userId}>
-              {i > 0 && " · "}
-              {nicknameFor(b.userId) || b.userId} +{b.bonus}
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="sc-retro-panel sc-table-panel">
         <div className="sc-panel-title-row">
           <div className="sc-timerletter">
