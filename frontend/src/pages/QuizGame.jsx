@@ -14,6 +14,11 @@ const THEME_ICONS = {
   historia: "🏛️",
   cinema: "🎬",
   letras: "📚",
+  geral: "🧠",
+  musica: "🎵",
+  series: "📺",
+  novelas: "🎭",
+  geografia: "🌍",
 };
 
 export default function QuizGame() {

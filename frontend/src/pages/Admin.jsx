@@ -13,6 +13,11 @@ const QUIZ_THEME_NAMES = {
   historia: "História",
   cinema: "Cinema",
   letras: "Letras",
+  geral: "Conhecimentos Gerais",
+  musica: "Música",
+  series: "Séries e TV",
+  novelas: "Novelas",
+  geografia: "Geografia",
 };
 
 export default function Admin() {

@@ -4,7 +4,10 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-const VALID_THEMES = ["esportes", "ciencias", "historia", "cinema", "letras"];
+const VALID_THEMES = [
+  "esportes", "ciencias", "historia", "cinema", "letras",
+  "geral", "musica", "series", "novelas", "geografia",
+];
 
 // Qualquer jogador logado pode sugerir uma pergunta — entra como "pending"
 // até um admin/moderador aprovar pelo painel.

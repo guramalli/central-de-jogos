@@ -8,6 +8,11 @@ const THEMES = [
   { key: "historia", name: "História" },
   { key: "cinema", name: "Cinema" },
   { key: "letras", name: "Letras" },
+  { key: "geral", name: "Conhecimentos Gerais" },
+  { key: "musica", name: "Música" },
+  { key: "series", name: "Séries e TV" },
+  { key: "novelas", name: "Novelas" },
+  { key: "geografia", name: "Geografia" },
 ];
 
 const STATUS_LABELS = { approved: "Aprovada", pending: "Pendente", rejected: "Rejeitada" };

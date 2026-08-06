@@ -8,6 +8,11 @@ const THEME_ICONS = {
   historia: "🏛️",
   cinema: "🎬",
   letras: "📚",
+  geral: "🧠",
+  musica: "🎵",
+  series: "📺",
+  novelas: "🎭",
+  geografia: "🌍",
 };
 
 function occupancyInfo(status) {
