@@ -247,6 +247,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .auth-card { width: 100%; }
 
 /* ===== Ranking: pódio ===== */
+.ranking-game-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
 .ranking-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
 
 .podium {
@@ -1641,3 +1642,42 @@ table.player-table.player-table-compact td {
 .lobby-difficulty-badge-basic { background: rgba(6, 214, 160, 0.12); color: #06d6a0; }
 .lobby-difficulty-badge-mid { background: rgba(255, 184, 111, 0.15); color: var(--accent-2); }
 .lobby-difficulty-badge-advanced { background: rgba(230, 0, 0, 0.12); color: var(--accent); }
+
+/* ===== Mini-pódio (lobbies do Stop e do Quiz) ===== */
+.mini-podium { padding: 16px 20px; margin-bottom: 24px; }
+.mini-podium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.mini-podium-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-2);
+  text-decoration: none;
+}
+.mini-podium-link:hover { text-decoration: underline; }
+.mini-podium-link .material-symbols-outlined { font-size: 14px; }
+
+.mini-podium-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.mini-podium-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--bg-panel-2);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.mini-podium-medal { font-size: 16px; }
+.mini-podium-name { flex: 1; font-weight: 600; }
+.mini-podium-points { font-family: var(--font-mono); color: var(--accent-2); font-weight: 700; }
+.mini-podium-empty { color: var(--text-dim); font-size: 13px; margin: 0; }

@@ -9,26 +9,29 @@ export const ROOM_CONFIGS = {
     answerSeconds: 50,
     intermissionSeconds: 20,
     minLifetimePoints: 0,
+    difficulty: "basic",
     maxPlayers: 10,
   },
   "stop-sala-intermediaria": {
     label: "Sala Intermediária",
-    description: "Resposta em 30s, intervalo de 10s. Exige experiência mínima.",
+    description: "Resposta em 30s, intervalo de 10s.",
     answerSeconds: 30,
     intermissionSeconds: 10,
-    // Requer pelo menos 3000 pts vitalícios no Stop para entrar.
-    minLifetimePoints: 3000,
+    // Limite de pontuação removido por enquanto — qualquer um pode entrar.
+    minLifetimePoints: 0,
+    difficulty: "mid",
     // Só pode pedir STOP com pelo menos 4 das 6 palavras já corretas.
     minCorrectToStop: 4,
     maxPlayers: 10,
   },
   "stop-sala-avancada": {
     label: "Sala Avançada",
-    description: "Só para jogadores experientes — resposta rápida, intervalo curto.",
+    description: "Resposta rápida, intervalo curto.",
     answerSeconds: 20,
     intermissionSeconds: 5,
-    // Requer pelo menos 6000 pts vitalícios no Stop (por volta da patente "Troféu de Prata") para entrar.
-    minLifetimePoints: 6000,
+    // Limite de pontuação removido por enquanto — qualquer um pode entrar.
+    minLifetimePoints: 0,
+    difficulty: "advanced",
     // Só pode pedir STOP com pelo menos 5 das 6 palavras já corretas.
     minCorrectToStop: 5,
     maxPlayers: 10,

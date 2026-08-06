@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import MiniPodium from "../components/MiniPodium.jsx";
 
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
@@ -9,11 +10,11 @@ function occupancyInfo(status) {
   return { text: `${status.onlineCount}/${status.maxPlayers} jogadores online`, full: false, empty: false };
 }
 
-function difficultyInfo(minPoints) {
-  if (minPoints >= 6000) return { label: "Difícil", tier: "advanced", icon: "local_fire_department" };
-  if (minPoints > 0) return { label: "Intermediária", tier: "mid", icon: "bolt" };
-  return { label: "Iniciante", tier: "basic", icon: "eco" };
-}
+const DIFFICULTY_INFO = {
+  basic: { label: "Iniciante", tier: "basic", icon: "eco" },
+  mid: { label: "Intermediária", tier: "mid", icon: "bolt" },
+  advanced: { label: "Difícil", tier: "advanced", icon: "local_fire_department" },
+};
 
 export default function StopLobby() {
   const [rooms, setRooms] = useState([]);
@@ -35,16 +36,18 @@ export default function StopLobby() {
         <Link to="/patentes" className="retro-btn">🏆 Ver patentes</Link>
       </div>
 
+      <MiniPodium gameKey="stop" />
+
       <div className="lobby-game-grid">
         {rooms.map((r) => {
           const occ = occupancyInfo(r);
-          const diff = difficultyInfo(r.minLifetimePoints);
+          const diff = DIFFICULTY_INFO[r.difficulty] || DIFFICULTY_INFO.basic;
           const restricted = r.minLifetimePoints > 0;
           return (
             <Link
               key={r.roomId}
               to={`/jogos/stop/${r.roomId}`}
-              className={`glossy-panel lobby-game-card ${restricted ? "lobby-game-card-advanced" : ""}`}
+              className={`glossy-panel lobby-game-card ${diff.tier !== "basic" ? "lobby-game-card-advanced" : ""}`}
             >
               <div className={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}>
                 <span className="material-symbols-outlined">{diff.icon}</span>

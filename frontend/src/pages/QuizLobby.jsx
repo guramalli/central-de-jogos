@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import MiniPodium from "../components/MiniPodium.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -42,6 +43,8 @@ export default function QuizLobby() {
         </div>
         <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
       </div>
+
+      <MiniPodium gameKey="quiz" />
 
       <div className="lobby-game-grid">
         {rooms.map((r) => {

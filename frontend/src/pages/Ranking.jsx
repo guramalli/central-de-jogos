@@ -5,21 +5,38 @@ import RankBadge from "../components/RankBadge.jsx";
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function Ranking() {
+  const [game, setGame] = useState("stop"); // stop | quiz — só vale pra mensal/vitalício
   const [tab, setTab] = useState("monthly"); // monthly | lifetime | clans
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
     const path =
-      tab === "monthly" ? "/ranking/monthly/stop" : tab === "lifetime" ? "/ranking/lifetime/stop" : "/clans/ranking/mensal";
+      tab === "monthly"
+        ? `/ranking/monthly/${game}`
+        : tab === "lifetime"
+        ? `/ranking/lifetime/${game}`
+        : "/clans/ranking/mensal";
     api.get(path).then(({ data }) => setRows(data));
-  }, [tab]);
+  }, [tab, game]);
 
   const isClans = tab === "clans";
   const nameOf = (r) => (isClans ? `[${r.tag}] ${r.name}` : r.nickname);
 
   return (
     <div>
-      <h1>Ranking — Stop</h1>
+      <h1>Ranking</h1>
+
+      {!isClans && (
+        <div className="ranking-game-tabs">
+          <button className={`btn ${game === "stop" ? "" : "secondary"}`} onClick={() => setGame("stop")}>
+            🅾️ Stop
+          </button>
+          <button className={`btn ${game === "quiz" ? "" : "secondary"}`} onClick={() => setGame("quiz")}>
+            ❓ Quiz
+          </button>
+        </div>
+      )}
+
       <div className="ranking-tabs">
         <button className={`btn ${tab === "monthly" ? "" : "secondary"}`} onClick={() => setTab("monthly")}>
           Mensal (premiação)

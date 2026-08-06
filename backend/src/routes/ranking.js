@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints } from "../utils/rank.js";
+import { getQuizRankForPoints } from "../utils/quizRank.js";
 
 const router = Router();
 
@@ -41,7 +42,7 @@ router.get("/lifetime/:gameKey", requireAuth, async (req, res) => {
       position: idx + 1,
       nickname: s.user.nickname,
       points: s.points,
-      rank: getRankForPoints(s.points),
+      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
     }))
   );
 });
