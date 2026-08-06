@@ -1,11 +1,29 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import FeedbackModal from "../components/FeedbackModal.jsx";
 
 export default function Lobby() {
   const { user } = useAuth();
+  const [showFeedback, setShowFeedback] = useState(false);
 
   return (
     <div className="lobby-page">
+      {/* Aviso de Beta */}
+      <div className="beta-banner">
+        <span className="beta-badge">BETA</span>
+        <span>
+          O portal está em fase de <strong>testes (Beta)</strong> — pode encontrar bugs ou
+          lentidão de vez em quando. Obrigado pela paciência! Encontrou algo estranho? Manda pra
+          gente:
+        </span>
+        <button className="beta-feedback-btn" onClick={() => setShowFeedback(true)}>
+          💬 Enviar feedback
+        </button>
+      </div>
+
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
+
       {/* Painel de boas-vindas */}
       <section className="glossy-panel lobby-hero">
         <div>

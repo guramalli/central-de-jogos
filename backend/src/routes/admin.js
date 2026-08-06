@@ -74,6 +74,14 @@ router.delete("/glossary/words/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+router.get("/feedback", async (req, res) => {
+  const feedbacks = await prisma.feedback.findMany({
+    include: { user: { select: { nickname: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(feedbacks);
+});
+
 // ===== Glossário de perguntas do Quiz =====
 
 router.get("/quiz-questions/pending", async (req, res) => {

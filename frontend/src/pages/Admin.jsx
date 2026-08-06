@@ -17,6 +17,7 @@ export default function Admin() {
   const [pending, setPending] = useState([]);
   const [quizPending, setQuizPending] = useState([]);
   const [users, setUsers] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [error, setError] = useState("");
 
   async function loadPending() {
@@ -47,10 +48,20 @@ export default function Admin() {
     }
   }
 
+  async function loadFeedbacks() {
+    try {
+      const { data } = await api.get("/admin/feedback");
+      setFeedbacks(data);
+    } catch (e) {
+      // silencioso — não é crítico
+    }
+  }
+
   useEffect(() => {
     loadPending();
     loadQuizPending();
     loadUsers();
+    loadFeedbacks();
   }, []);
 
   async function approve(id) {
@@ -86,6 +97,37 @@ export default function Admin() {
       {error && <div className="error-msg">{error}</div>}
 
       <div className="card">
+        <h2>💬 Feedback dos jogadores ({feedbacks.length})</h2>
+        <table className="player-table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Jogador</th>
+              <th>Mensagem</th>
+              <th>Quando</th>
+            </tr>
+          </thead>
+          <tbody>
+            {feedbacks.map((f) => (
+              <tr key={f.id}>
+                <td>{f.type === "bug" ? "🐛 Bug" : f.type === "ideia" ? "💡 Ideia" : "✉️ Outro"}</td>
+                <td>{f.user?.nickname} <span style={{ color: "var(--text-dim)", fontSize: 11 }}>({f.user?.email})</span></td>
+                <td>{f.message}</td>
+                <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                  {new Date(f.createdAt).toLocaleDateString("pt-BR")}
+                </td>
+              </tr>
+            ))}
+            {feedbacks.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ color: "var(--text-dim)" }}>Nenhum feedback enviado ainda.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
         <h2>Palavras pendentes de aprovação (Stop)</h2>
         <table className="player-table">
           <thead>

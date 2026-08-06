@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { getRankForPoints } from "../utils/rank.js";
+import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
 
 const router = Router();
 
@@ -38,6 +38,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
       gameKey: l.gameKey,
       points: l.points,
       rank: getRankForPoints(l.points),
+      nextRank: getNextRankInfo(l.points),
     })),
   });
 });

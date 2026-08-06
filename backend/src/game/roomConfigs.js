@@ -16,7 +16,7 @@ export const ROOM_CONFIGS = {
     description: "Só para jogadores experientes — resposta rápida, intervalo curto.",
     answerSeconds: 20,
     intermissionSeconds: 5,
-    // Requer pelo menos a patente "Mestre" (6000 pts vitalícios no Stop) para entrar.
+    // Requer pelo menos 6000 pts vitalícios no Stop (por volta da patente "Troféu de Prata") para entrar.
     minLifetimePoints: 6000,
     // Só pode pedir STOP com pelo menos 5 das 6 palavras já corretas.
     minCorrectToStop: 5,

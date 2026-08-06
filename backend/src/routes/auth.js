@@ -6,7 +6,7 @@ import { signToken } from "../utils/jwt.js";
 const router = Router();
 
 router.post("/register", async (req, res) => {
-  const { nickname, email, password } = req.body;
+  const { nickname, email, password, city, state, birthDate } = req.body;
   if (!nickname || !email || !password) {
     return res.status(400).json({ error: "Preencha nickname, email e senha." });
   }
@@ -21,7 +21,14 @@ router.post("/register", async (req, res) => {
   }
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { nickname, email, password: hashed },
+    data: {
+      nickname,
+      email,
+      password: hashed,
+      city: city?.trim() || null,
+      state: state?.trim() || null,
+      birthDate: birthDate ? new Date(birthDate) : null,
+    },
   });
   const token = signToken(user);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });

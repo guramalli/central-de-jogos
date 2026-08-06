@@ -45,7 +45,14 @@ export default function ProfileTooltip({ userId, nickname, rankIcon }) {
             <div style={{ marginTop: 6 }}><strong>Pontuação vitalícia:</strong></div>
             {profile.lifetime.length === 0 && <div>—</div>}
             {profile.lifetime.map((l) => (
-              <div key={l.gameKey}>{l.gameKey}: {l.points} pts</div>
+              <div key={l.gameKey}>
+                {l.gameKey}: {l.points} pts
+                {l.nextRank ? (
+                  <span style={{ opacity: 0.75 }}> (faltam {l.nextRank.pointsNeeded} pra {l.nextRank.name})</span>
+                ) : (
+                  <span style={{ opacity: 0.75 }}> (patente máxima!)</span>
+                )}
+              </div>
             ))}
 
             <div style={{ marginTop: 6 }}>

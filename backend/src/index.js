@@ -13,6 +13,8 @@ import roomsRoutes from "./routes/rooms.js";
 import clansRoutes from "./routes/clans.js";
 import quizRoomsRoutes from "./routes/quizRooms.js";
 import quizQuestionsRoutes from "./routes/quizQuestions.js";
+import feedbackRoutes from "./routes/feedback.js";
+import ranksRoutes from "./routes/ranks.js";
 import { setupSocket } from "./socket/index.js";
 
 const app = express();
@@ -34,6 +36,8 @@ app.use("/api/rooms", roomsRoutes);
 app.use("/api/clans", clansRoutes);
 app.use("/api/quiz-rooms", quizRoomsRoutes);
 app.use("/api/quiz-questions", quizQuestionsRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/ranks", ranksRoutes);
 
 const io = new Server(server, {
   cors: { origin: CORS_ORIGIN },

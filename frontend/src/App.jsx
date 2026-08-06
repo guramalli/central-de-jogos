@@ -11,6 +11,7 @@ import Clan from "./pages/Clan.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
 import Profile from "./pages/Profile.jsx";
+import RanksInfo from "./pages/RanksInfo.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function Private({ children }) {
@@ -44,6 +45,7 @@ export default function App() {
                 <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
+                <NavLink to="/patentes" className={navLinkClass}>Patentes</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 <NavLink to="/perfil" className={navLinkClass}>Perfil</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
@@ -130,6 +132,14 @@ export default function App() {
             element={
               <Private>
                 <Profile />
+              </Private>
+            }
+          />
+          <Route
+            path="/patentes"
+            element={
+              <Private>
+                <RanksInfo />
               </Private>
             }
           />

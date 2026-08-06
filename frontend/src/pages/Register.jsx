@@ -2,19 +2,27 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
+const ESTADOS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+];
+
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     try {
-      await register(nickname, email, password);
+      await register(nickname, email, password, { city, state, birthDate });
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao cadastrar.");
@@ -36,7 +44,21 @@ export default function Register() {
             <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} required />
             <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <input placeholder="Senha (mín. 6 caracteres)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <button className="btn" type="submit" style={{ width: "100%" }}>Cadastrar</button>
+
+            <div className="register-row">
+              <input placeholder="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />
+              <select value={state} onChange={(e) => setState(e.target.value)}>
+                <option value="">Estado</option>
+                {ESTADOS.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+            </div>
+
+            <label className="register-label">Data de nascimento</label>
+            <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+
+            <button className="btn" type="submit" style={{ width: "100%", marginTop: 10 }}>Cadastrar</button>
           </form>
           <p style={{ marginTop: 14, fontSize: 13 }}>
             Já tem conta? <Link to="/login">Entrar</Link>

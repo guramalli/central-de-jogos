@@ -18,6 +18,9 @@ model User {
   role             String   @default("PLAYER")
   playtimeMinutes  Int      @default(0)
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
+  city             String?
+  state            String?
+  birthDate        DateTime?
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")
@@ -29,6 +32,7 @@ model User {
   blockScores      BlockScore[]
   wordSuggestions  WordEntry[]
   quizSuggestions  QuizQuestion[]
+  feedbacks        Feedback[]
   friendshipsA     Friendship[] @relation("UserA")
   friendshipsB     Friendship[] @relation("UserB")
   chatMessages     ChatMessage[]
@@ -130,6 +134,17 @@ model ChatMessage {
   roomId    String
   userId    String
   user      User     @relation(fields: [userId], references: [id])
+  message   String
+  createdAt DateTime @default(now())
+}
+
+// Feedback enviado pelos jogadores (ideias, bugs, sugestões) — visível no
+// Painel Admin, e opcionalmente também enviado por e-mail se configurado.
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // ideia | bug | outro
   message   String
   createdAt DateTime @default(now())
 }
