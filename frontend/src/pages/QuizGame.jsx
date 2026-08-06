@@ -47,6 +47,7 @@ export default function QuizGame() {
   const [messages, setMessages] = useState([]);
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [roomFull, setRoomFull] = useState(null);
+  const [streakRecord, setStreakRecord] = useState(null);
   const [muted, setMuted] = useState(isSoundMuted());
 
   useEffect(() => {
@@ -66,6 +67,11 @@ export default function QuizGame() {
         setQuestionText(state.question);
         setAnswerLine(state.masked || "");
       }
+      if (state.streakRecord) setStreakRecord(state.streakRecord);
+    });
+
+    socket.on("quiz-streak-record-update", (data) => {
+      setStreakRecord(data.record);
     });
 
     socket.on("quiz-intermission", () => {
@@ -115,6 +121,7 @@ export default function QuizGame() {
     return () => {
       socket.off("quiz-room-full");
       socket.off("quiz-room-state");
+      socket.off("quiz-streak-record-update");
       socket.off("quiz-intermission");
       socket.off("quiz-question-start");
       socket.off("quiz-reveal-update");
@@ -178,6 +185,11 @@ export default function QuizGame() {
           <div className="quiz-gloss-badge">
             <span className="quiz-badge-label">Pts Total:</span> {me?.lifetimePoints ?? 0}
           </div>
+          {streakRecord?.count > 0 && (
+            <div className="quiz-streak-badge" title="Recorde de respostas seguidas nesta sala">
+              🔥 Recorde: <strong>{streakRecord.nickname}</strong> ({streakRecord.count})
+            </div>
+          )}
         </div>
         <div className="quiz-topbar-title">
           <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>

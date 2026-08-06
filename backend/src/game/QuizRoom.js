@@ -9,6 +9,11 @@ function currentMonthKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// Ordinal feminino em português (concorda com "resposta"): 1ª, 2ª, 3ª...
+function ordinalFem(n) {
+  return `${n}ª`;
+}
+
 function normalize(str) {
   return str
     .normalize("NFD")
@@ -46,6 +51,12 @@ export class QuizRoom {
     this.timer = null;
     this.revealTimer = null;
     this.usedQuestionIds = new Set(); // evita repetir pergunta enquanto o banco tiver opções
+
+    // Sequência de respostas certas seguidas (streak) — quebra se outra
+    // pessoa acertar no meio, ou se ninguém acertar uma pergunta.
+    this.streakUserId = null;
+    this.streakCount = 0;
+    this.roomRecord = null; // { userId, nickname, count } | null — carregado sob demanda
 
     this.startIntermission();
   }
@@ -86,6 +97,7 @@ export class QuizRoom {
     }
 
     socket.join(this.roomId);
+    await this.loadRoomRecord();
     socket.emit("quiz-room-state", this.publicState());
     if (!alreadyInRoom) {
       this.systemMessage(`👋 ${nickname} entrou na sala.`);
@@ -144,6 +156,7 @@ export class QuizRoom {
       timeLeft: this.timeLeft,
       question: this.currentQuestion ? this.currentQuestion.question : null,
       masked: this.currentQuestion ? this.getMaskedAnswer() : null,
+      streakRecord: this.roomRecord,
     };
   }
 
@@ -272,6 +285,31 @@ export class QuizRoom {
   }
 
   // winner = { userId, nickname } | null (null = ninguém acertou, tempo esgotou)
+  async loadRoomRecord() {
+    if (this.roomRecord !== null) return this.roomRecord;
+    try {
+      const saved = await prisma.quizStreakRecord.findUnique({ where: { roomId: this.roomId } });
+      this.roomRecord = saved || { userId: null, nickname: null, count: 0 };
+    } catch (err) {
+      console.error("Falha ao carregar recorde de sequência da sala", this.roomId, err.message);
+      this.roomRecord = { userId: null, nickname: null, count: 0 };
+    }
+    return this.roomRecord;
+  }
+
+  async saveRoomRecord(userId, nickname, count) {
+    this.roomRecord = { userId, nickname, count };
+    try {
+      await prisma.quizStreakRecord.upsert({
+        where: { roomId: this.roomId },
+        update: { userId, nickname, count },
+        create: { roomId: this.roomId, userId, nickname, count },
+      });
+    } catch (err) {
+      console.error("Falha ao salvar recorde de sequência da sala", this.roomId, err.message);
+    }
+  }
+
   async endQuestion(winner) {
     if (this.state !== "active") return;
     this.clearTimers();
@@ -334,10 +372,38 @@ export class QuizRoom {
           true,
           true // success = true -> aparece em verde no chat
         );
+
+        // Sequência de respostas certas seguidas (streak) — só anuncia a
+        // partir da 2ª seguida (a 1ª sozinha não é bem uma "sequência" ainda).
+        if (this.streakUserId === winner.userId) {
+          this.streakCount += 1;
+        } else {
+          this.streakUserId = winner.userId;
+          this.streakCount = 1;
+        }
+        if (this.streakCount >= 2) {
+          const record = await this.loadRoomRecord();
+          const brokeRecord = this.streakCount > (record.count || 0);
+          if (brokeRecord) {
+            await this.saveRoomRecord(winner.userId, winner.nickname, this.streakCount);
+            this.broadcast("quiz-streak-record-update", { record: this.roomRecord });
+          }
+          this.systemMessage(
+            `🔥 ${winner.nickname} acertou a ${ordinalFem(this.streakCount)} resposta consecutiva!${
+              brokeRecord ? " 🏆 NOVO RECORDE da sala!" : ""
+            }`,
+            true,
+            true
+          );
+        }
+
         await this.broadcastOnlinePlayers();
       } else {
         this.broadcast("quiz-question-result", { winner: null, answer: null });
         this.systemMessage("⏰ Ninguém acertou dessa vez. Próxima pergunta!");
+        // Ninguém acertou — quebra qualquer sequência em andamento.
+        this.streakUserId = null;
+        this.streakCount = 0;
       }
     } catch (err) {
       console.error(`Erro ao encerrar pergunta na sala ${this.roomId}:`, err);

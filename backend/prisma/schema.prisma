@@ -138,6 +138,15 @@ model ChatMessage {
   createdAt DateTime @default(now())
 }
 
+// Recorde de respostas corretas seguidas (sequência) em cada sala do Quiz.
+// Uma linha por sala — guarda só o maior streak já feito ali.
+model QuizStreakRecord {
+  roomId   String @id
+  userId   String
+  nickname String
+  count    Int
+}
+
 // Estatísticas simples da plataforma como um todo (ex.: recorde de jogadores
 // simultâneos). Guardado como pares chave/valor pra não precisar criar uma
 // tabela nova cada vez que surgir uma estatística nova.

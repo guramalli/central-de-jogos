@@ -36,25 +36,14 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
         {!profile && <div>Carregando...</div>}
         {profile && (
           <>
-            <div><strong>Tempo de jogo:</strong> {profile.playtimeMinutes} min</div>
-            <div><strong>Membro desde:</strong> {formatMemberSince(profile.memberSince)}</div>
-
-            <div style={{ marginTop: 6 }}>
-              <strong>Pontuação mensal ({gameKey}):</strong> {monthly ? `${monthly.points} pts` : "0 pts"}
+            <div>⏱ {profile.playtimeMinutes} min de jogo</div>
+            <div>📅 Desde {formatMemberSince(profile.memberSince)}</div>
+            <div>Mensal: <strong>{monthly ? `${monthly.points} pts` : "0 pts"}</strong></div>
+            <div>Vitalícia: <strong>{lifetime ? lifetime.points : 0} pts</strong></div>
+            <div style={{ opacity: 0.75 }}>
+              {lifetime?.nextRank ? `Faltam ${lifetime.nextRank.pointsNeeded} pra ${lifetime.nextRank.name}` : "Patente máxima!"}
             </div>
-
-            <div style={{ marginTop: 6 }}>
-              <strong>Pontuação vitalícia ({gameKey}):</strong> {lifetime ? lifetime.points : 0} pts
-            </div>
-            {lifetime?.nextRank ? (
-              <div style={{ opacity: 0.75 }}>Faltam {lifetime.nextRank.pointsNeeded} pra {lifetime.nextRank.name}</div>
-            ) : (
-              <div style={{ opacity: 0.75 }}>Patente máxima!</div>
-            )}
-
-            <div style={{ marginTop: 6 }}>
-              <strong>Clã:</strong> {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "—"}
-            </div>
+            <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
           </>
         )}
       </div>

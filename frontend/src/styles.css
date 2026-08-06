@@ -106,16 +106,22 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   display: none;
   position: absolute;
   top: 120%;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   background: #1a1918;
   color: var(--text);
   border: 1px solid var(--accent-2);
   border-radius: 10px;
-  padding: 10px 14px;
-  min-width: 200px;
-  z-index: 20;
-  font-size: 13px;
+  padding: 8px 12px;
+  width: 190px;
+  max-width: 190px;
+  box-sizing: border-box;
+  z-index: 200;
+  font-size: 11px;
+  line-height: 1.45;
 }
+.nick-tooltip > div { margin-top: 4px; }
+.nick-tooltip > div:first-child { margin-top: 0; }
 .nick-hover:hover .nick-tooltip { display: block; }
 
 .chat-box {
@@ -1840,3 +1846,16 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   text-decoration: none;
 }
 .invite-option:hover { background: var(--bg-panel); }
+
+.quiz-streak-badge {
+  background: linear-gradient(to bottom, #ff8a3d 0%, #e64d00 100%);
+  border: 1px solid #ffb066;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #2b0f00;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
