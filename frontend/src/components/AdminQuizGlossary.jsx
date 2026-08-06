@@ -14,13 +14,15 @@ const THEMES = [
   { key: "novelas", name: "Novelas" },
   { key: "geografia", name: "Geografia" },
 ];
+const THEME_NAME_BY_KEY = Object.fromEntries(THEMES.map((t) => [t.key, t.name]));
 
 const STATUS_LABELS = { approved: "Aprovada", pending: "Pendente", rejected: "Rejeitada" };
 const PAGE_SIZE = 20;
 
 // Índice de perguntas do Quiz por tema, no mesmo espírito do índice de
 // palavras do Stop: escolhe um tema, adiciona pergunta+resposta direto (já
-// aprovada), e vê/apaga as que já existem logo abaixo.
+// aprovada), vê/edita/apaga as que já existem — ou busca por qualquer
+// pergunta/resposta em TODOS os temas de uma vez, sem precisar navegar.
 export default function AdminQuizGlossary() {
   const [themeKey, setThemeKey] = useState(THEMES[0].key);
   const [questions, setQuestions] = useState([]);
@@ -29,6 +31,16 @@ export default function AdminQuizGlossary() {
   const [newAnswer, setNewAnswer] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null); // null = busca não feita ainda
+  const [searching, setSearching] = useState(false);
+
+  // Edição inline — compartilhada entre a busca e a lista por tema (só uma
+  // pergunta pode estar sendo editada por vez).
+  const [editingId, setEditingId] = useState(null);
+  const [editQuestion, setEditQuestion] = useState("");
+  const [editAnswer, setEditAnswer] = useState("");
 
   useEffect(() => {
     loadQuestions();
@@ -58,8 +70,94 @@ export default function AdminQuizGlossary() {
   }
 
   async function handleDelete(id) {
+    if (!window.confirm("Apagar essa pergunta de vez?")) return;
     await api.delete(`/admin/quiz-questions/${id}`);
     loadQuestions();
+    if (searchResults) handleSearch();
+  }
+
+  async function handleSearch(e) {
+    e?.preventDefault();
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearching(true);
+    try {
+      const { data } = await api.get("/admin/quiz-questions/search", { params: { q: searchQuery.trim() } });
+      setSearchResults(data);
+    } catch {
+      setError("Erro ao buscar perguntas.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function startEdit(q) {
+    setEditingId(q.id);
+    setEditQuestion(q.question);
+    setEditAnswer(q.answer);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(id) {
+    if (!editQuestion.trim() || !editAnswer.trim()) return;
+    try {
+      await api.patch(`/admin/quiz-questions/${id}`, { question: editQuestion, answer: editAnswer });
+      setEditingId(null);
+      await loadQuestions();
+      if (searchResults) handleSearch();
+    } catch (e) {
+      setError(e.response?.data?.error || "Erro ao salvar edição.");
+    }
+  }
+
+  function renderRow(q, showTheme) {
+    const isEditing = editingId === q.id;
+    return (
+      <tr key={q.id}>
+        {showTheme && <td>{THEME_NAME_BY_KEY[q.themeKey] || q.themeKey}</td>}
+        {isEditing ? (
+          <>
+            <td>
+              <textarea
+                value={editQuestion}
+                onChange={(e) => setEditQuestion(e.target.value)}
+                maxLength={300}
+                rows={2}
+                style={{ width: "100%", marginBottom: 0 }}
+              />
+            </td>
+            <td>
+              <input value={editAnswer} onChange={(e) => setEditAnswer(e.target.value)} maxLength={60} style={{ marginBottom: 0 }} />
+            </td>
+            <td colSpan={showTheme ? 1 : 2}>
+              <button className="btn success" onClick={() => saveEdit(q.id)}>Salvar</button>{" "}
+              <button className="btn secondary" onClick={cancelEdit}>Cancelar</button>
+            </td>
+          </>
+        ) : (
+          <>
+            <td>{q.question}</td>
+            <td>{q.answer}</td>
+            {!showTheme && (
+              <td className={q.status !== "approved" ? "word-text-blank" : ""}>
+                {STATUS_LABELS[q.status] || q.status}
+              </td>
+            )}
+            <td>
+              <button className="btn secondary" onClick={() => startEdit(q)}>Editar</button>{" "}
+              <button className="btn secondary admin-word-del" onClick={() => handleDelete(q.id)} title="Remover">
+                ✕
+              </button>
+            </td>
+          </>
+        )}
+      </tr>
+    );
   }
 
   const totalPages = Math.max(1, Math.ceil(questions.length / PAGE_SIZE));
@@ -69,6 +167,42 @@ export default function AdminQuizGlossary() {
     <div className="card" style={{ marginTop: 16 }}>
       <h2>Índice de perguntas do Quiz</h2>
       {error && <div className="error-msg">{error}</div>}
+
+      <h3>Buscar pergunta (em todos os temas)</h3>
+      <form onSubmit={handleSearch} style={{ display: "flex", gap: 8 }}>
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Digite parte da pergunta ou resposta..."
+          style={{ marginBottom: 0 }}
+        />
+        <button className="btn" type="submit" disabled={searching}>Buscar</button>
+      </form>
+
+      {searchResults !== null && (
+        <div style={{ marginTop: 12 }}>
+          <table className="player-table player-table-compact">
+            <thead>
+              <tr>
+                <th>Tema</th>
+                <th>Pergunta</th>
+                <th>Resposta</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {searchResults.map((q) => renderRow(q, true))}
+              {searchResults.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta encontrada com esse termo.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <hr style={{ margin: "20px 0", borderColor: "var(--border)" }} />
 
       <label style={{ fontSize: 13, color: "var(--text-dim)" }}>Tema</label>
       <select value={themeKey} onChange={(e) => setThemeKey(e.target.value)}>
@@ -107,20 +241,7 @@ export default function AdminQuizGlossary() {
           </tr>
         </thead>
         <tbody>
-          {pageItems.map((q) => (
-            <tr key={q.id}>
-              <td>{q.question}</td>
-              <td>{q.answer}</td>
-              <td className={q.status !== "approved" ? "word-text-blank" : ""}>
-                {STATUS_LABELS[q.status] || q.status}
-              </td>
-              <td>
-                <button className="btn secondary admin-word-del" onClick={() => handleDelete(q.id)} title="Remover">
-                  ✕
-                </button>
-              </td>
-            </tr>
-          ))}
+          {pageItems.map((q) => renderRow(q, false))}
           {questions.length === 0 && (
             <tr>
               <td colSpan={4} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta cadastrada ainda neste tema.</td>

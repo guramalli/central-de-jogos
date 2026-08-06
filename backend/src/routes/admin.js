@@ -142,6 +142,40 @@ router.delete("/quiz-questions/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Busca por pergunta/resposta em TODOS os temas de uma vez — usado pra achar
+// e corrigir/apagar uma pergunta específica sem precisar navegar tema por tema.
+router.get("/quiz-questions/search", async (req, res) => {
+  const q = (req.query.q || "").trim();
+  if (!q) return res.json([]);
+  const results = await prisma.quizQuestion.findMany({
+    where: {
+      OR: [
+        { question: { contains: q, mode: "insensitive" } },
+        { answer: { contains: q, mode: "insensitive" } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  res.json(results);
+});
+
+router.patch("/quiz-questions/:id", async (req, res) => {
+  const { question, answer, themeKey } = req.body;
+  const data = {};
+  if (question !== undefined) {
+    if (!question.trim()) return res.status(400).json({ error: "A pergunta não pode ficar vazia." });
+    data.question = question.trim();
+  }
+  if (answer !== undefined) {
+    if (!answer.trim()) return res.status(400).json({ error: "A resposta não pode ficar vazia." });
+    data.answer = answer.trim();
+  }
+  if (themeKey !== undefined) data.themeKey = themeKey;
+  const updated = await prisma.quizQuestion.update({ where: { id: req.params.id }, data });
+  res.json(updated);
+});
+
 router.get("/users", requireRole("ADMIN"), async (req, res) => {
   const users = await prisma.user.findMany({
     select: { id: true, nickname: true, email: true, role: true, banned: true, createdAt: true },
