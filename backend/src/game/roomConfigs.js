@@ -34,7 +34,7 @@ export const ROOM_CONFIGS = {
     label: "Sala Avançada",
     description: "Resposta rápida, intervalo curto.",
     answerSeconds: 20,
-    intermissionSeconds: 5,
+    intermissionSeconds: 10,
     // Limite de pontuação removido por enquanto — qualquer um pode entrar.
     minLifetimePoints: 0,
     difficulty: "advanced",
