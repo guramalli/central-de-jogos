@@ -1531,9 +1531,12 @@ table.player-table.player-table-compact td {
 }
 
 /* ===== Estatísticas da plataforma (Lobby) ===== */
-.platform-stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
-@media (max-width: 700px) { .platform-stats-row { grid-template-columns: 1fr; } }
-.platform-stat-card { display: flex; align-items: center; gap: 14px; padding: 16px 20px; }
-.platform-stat-icon { font-size: 32px; color: var(--accent-2); }
-.platform-stat-value { font-family: var(--font-display); font-size: 24px; font-weight: 700; }
-.platform-stat-label { font-size: 12px; color: var(--text-dim); }
+.site-footer-stats {
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}

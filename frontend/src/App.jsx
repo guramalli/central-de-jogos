@@ -57,7 +57,7 @@ export default function App() {
             {user ? (
               <>
                 <span className="app-header-username">{user.nickname}</span>
-                <button className="retro-btn" onClick={logout}>Sair</button>
+                <button className="retro-btn" onClick={logout}>Deslogar</button>
               </>
             ) : (
               <Link to="/login" className="retro-btn">Entrar</Link>

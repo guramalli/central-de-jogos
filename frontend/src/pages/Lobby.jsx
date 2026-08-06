@@ -1,17 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
-import { api } from "../api/client.js";
 
 export default function Lobby() {
   const { user } = useAuth();
   const [showFeedback, setShowFeedback] = useState(false);
-  const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    api.get("/platform-stats").then(({ data }) => setStats(data)).catch(() => {});
-  }, []);
 
   return (
     <div className="lobby-page">
@@ -54,26 +48,6 @@ export default function Lobby() {
           </div>
         </div>
       </section>
-
-      {/* Estatísticas da plataforma */}
-      {stats && (
-        <div className="platform-stats-row">
-          <div className="glossy-panel platform-stat-card">
-            <span className="material-symbols-outlined platform-stat-icon">group</span>
-            <div>
-              <div className="platform-stat-value">{stats.totalUsers.toLocaleString("pt-BR")}</div>
-              <div className="platform-stat-label">Jogadores cadastrados</div>
-            </div>
-          </div>
-          <div className="glossy-panel platform-stat-card">
-            <span className="material-symbols-outlined platform-stat-icon">trending_up</span>
-            <div>
-              <div className="platform-stat-value">{stats.peakConcurrentPlayers.toLocaleString("pt-BR")}</div>
-              <div className="platform-stat-label">Recorde de jogadores simultâneos</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Cards dos jogos */}
       <div className="lobby-game-grid">
