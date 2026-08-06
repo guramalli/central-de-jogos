@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
+import Pagination from "./Pagination.jsx";
 
 const THEMES = [
   { key: "esportes", name: "Esportes" },
@@ -9,12 +10,16 @@ const THEMES = [
   { key: "letras", name: "Letras" },
 ];
 
+const STATUS_LABELS = { approved: "Aprovada", pending: "Pendente", rejected: "Rejeitada" };
+const PAGE_SIZE = 20;
+
 // Índice de perguntas do Quiz por tema, no mesmo espírito do índice de
 // palavras do Stop: escolhe um tema, adiciona pergunta+resposta direto (já
 // aprovada), e vê/apaga as que já existem logo abaixo.
 export default function AdminQuizGlossary() {
   const [themeKey, setThemeKey] = useState(THEMES[0].key);
   const [questions, setQuestions] = useState([]);
+  const [page, setPage] = useState(1);
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
   const [saving, setSaving] = useState(false);
@@ -22,6 +27,7 @@ export default function AdminQuizGlossary() {
 
   useEffect(() => {
     loadQuestions();
+    setPage(1);
   }, [themeKey]);
 
   async function loadQuestions() {
@@ -50,6 +56,9 @@ export default function AdminQuizGlossary() {
     await api.delete(`/admin/quiz-questions/${id}`);
     loadQuestions();
   }
+
+  const totalPages = Math.max(1, Math.ceil(questions.length / PAGE_SIZE));
+  const pageItems = questions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
@@ -83,7 +92,7 @@ export default function AdminQuizGlossary() {
       </form>
 
       <h3 style={{ marginTop: 20 }}>Perguntas cadastradas neste tema ({questions.length})</h3>
-      <table className="player-table">
+      <table className="player-table player-table-compact">
         <thead>
           <tr>
             <th>Pergunta</th>
@@ -93,11 +102,13 @@ export default function AdminQuizGlossary() {
           </tr>
         </thead>
         <tbody>
-          {questions.map((q) => (
+          {pageItems.map((q) => (
             <tr key={q.id}>
               <td>{q.question}</td>
               <td>{q.answer}</td>
-              <td className={q.status !== "approved" ? "word-text-blank" : ""}>{q.status}</td>
+              <td className={q.status !== "approved" ? "word-text-blank" : ""}>
+                {STATUS_LABELS[q.status] || q.status}
+              </td>
               <td>
                 <button className="btn secondary admin-word-del" onClick={() => handleDelete(q.id)} title="Remover">
                   ✕
@@ -112,6 +123,7 @@ export default function AdminQuizGlossary() {
           )}
         </tbody>
       </table>
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

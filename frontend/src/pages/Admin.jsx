@@ -3,6 +3,9 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import AdminGlossary from "../components/AdminGlossary.jsx";
 import AdminQuizGlossary from "../components/AdminQuizGlossary.jsx";
+import Pagination from "../components/Pagination.jsx";
+
+const PAGE_SIZE = 20;
 
 const QUIZ_THEME_NAMES = {
   esportes: "Esportes",
@@ -17,6 +20,7 @@ export default function Admin() {
   const [pending, setPending] = useState([]);
   const [quizPending, setQuizPending] = useState([]);
   const [users, setUsers] = useState([]);
+  const [usersPage, setUsersPage] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
   const [error, setError] = useState("");
 
@@ -212,8 +216,8 @@ export default function Admin() {
 
       {user.role === "ADMIN" && (
         <div className="card" style={{ marginTop: 16 }}>
-          <h2>Usuários</h2>
-          <table className="player-table">
+          <h2>Usuários ({users.length})</h2>
+          <table className="player-table player-table-compact">
             <thead>
               <tr>
                 <th>Nickname</th>
@@ -223,7 +227,7 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {users.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE).map((u) => (
                 <tr key={u.id}>
                   <td>{u.nickname}</td>
                   <td>{u.email}</td>
@@ -239,6 +243,11 @@ export default function Admin() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={usersPage}
+            totalPages={Math.max(1, Math.ceil(users.length / PAGE_SIZE))}
+            onChange={setUsersPage}
+          />
         </div>
       )}
     </div>

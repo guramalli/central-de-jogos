@@ -113,7 +113,7 @@ export default function AdminGlossary() {
               {wordsByLetter[letter].map((w) => (
                 <li key={w.id}>
                   <span className={w.status !== "approved" ? "word-text-blank" : ""}>
-                    {w.word} {w.status !== "approved" && `(${w.status})`}
+                    {w.word} {w.status !== "approved" && `(${w.status === "pending" ? "pendente" : "rejeitada"})`}
                   </span>
                   <button className="btn secondary admin-word-del" onClick={() => handleDelete(w.id)} title="Remover">
                     ✕
