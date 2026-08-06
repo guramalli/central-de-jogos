@@ -4,8 +4,8 @@ import { getAllQuizRoomsStatus } from "../game/quizGameManager.js";
 
 const router = Router();
 
-router.get("/", requireAuth, (req, res) => {
-  res.json(getAllQuizRoomsStatus());
+router.get("/", requireAuth, async (req, res) => {
+  res.json(await getAllQuizRoomsStatus());
 });
 
 export default router;

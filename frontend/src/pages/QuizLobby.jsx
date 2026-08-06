@@ -55,6 +55,11 @@ export default function QuizLobby() {
               <div>
                 <h3 className="lobby-game-title">{r.label}</h3>
                 <p className="lobby-game-desc">Nível iniciante — perguntas de {r.label.toLowerCase()}.</p>
+                {r.streakRecord?.count > 0 && (
+                  <p className="lobby-streak-desc">
+                    🔥 Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}
+                  </p>
+                )}
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                   <span className="material-symbols-outlined">group</span> {occ.text}
                 </div>

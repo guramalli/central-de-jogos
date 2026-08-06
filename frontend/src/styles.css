@@ -1165,14 +1165,19 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 /* ===== Barra de status (pontos + tema + timer) ===== */
 .quiz-stats-bar {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+}
+.quiz-stats-row {
+  display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 14px 20px;
 }
 
-.quiz-topbar-badges { display: flex; gap: 8px; }
+.quiz-topbar-badges { display: flex; gap: 8px; flex-wrap: wrap; }
 .quiz-gloss-badge {
   background: #0e0e0e;
   border: 1px solid var(--accent-2);
@@ -1189,7 +1194,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .quiz-badge-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; font-weight: 500; }
 
-.quiz-topbar-title { display: flex; align-items: center; gap: 12px; }
+.quiz-topbar-title { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .quiz-theme-badge {
   width: 40px;
   height: 40px;
@@ -1847,15 +1852,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .invite-option:hover { background: var(--bg-panel); }
 
-.quiz-streak-badge {
-  background: linear-gradient(to bottom, #ff8a3d 0%, #e64d00 100%);
-  border: 1px solid #ffb066;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  color: #2b0f00;
-  font-family: var(--font-mono);
-  font-weight: 700;
+.lobby-streak-desc {
+  color: var(--accent-2);
   font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  white-space: nowrap;
+  margin: 4px 0 8px 0;
+  font-family: var(--font-mono);
 }

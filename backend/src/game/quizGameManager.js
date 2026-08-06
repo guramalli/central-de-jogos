@@ -1,5 +1,6 @@
 import { QuizRoom } from "./QuizRoom.js";
 import { QUIZ_ROOM_CONFIGS, DEFAULT_QUIZ_ROOM_ID } from "./quizRoomConfigs.js";
+import { prisma } from "../db.js";
 
 const rooms = new Map();
 const pendingCreation = new Map();
@@ -28,7 +29,9 @@ export function getAllOnlineUserIds() {
   return ids;
 }
 
-export function getAllQuizRoomsStatus() {
+export async function getAllQuizRoomsStatus() {
+  const records = await prisma.quizStreakRecord.findMany();
+  const recordByRoom = Object.fromEntries(records.map((r) => [r.roomId, r]));
   return Object.entries(QUIZ_ROOM_CONFIGS).map(([roomId, config]) => {
     const room = rooms.get(roomId);
     return {
@@ -37,6 +40,7 @@ export function getAllQuizRoomsStatus() {
       themeKey: config.themeKey,
       maxPlayers: config.maxPlayers ?? 10,
       onlineCount: room ? room.countUniquePlayers() : 0,
+      streakRecord: recordByRoom[roomId] || null,
     };
   });
 }
