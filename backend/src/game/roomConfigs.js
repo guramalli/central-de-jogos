@@ -18,7 +18,7 @@ export const ROOM_CONFIGS = {
     minSecondsBeforeStop: 40,
   },
   "stop-sala-intermediaria": {
-    label: "Sala Intermediária",
+    label: "Intermediário",
     description: "Resposta em 30s, intervalo de 10s.",
     answerSeconds: 30,
     intermissionSeconds: 10,

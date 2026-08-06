@@ -170,45 +170,46 @@ export default function QuizGame() {
   return (
     <div className="quiz-root">
       <div className="quiz-stats-bar">
-        <div className="quiz-stats-row">
-          <div className="quiz-topbar-badges">
-            <img src="/quiz-logo.png" alt="Quiz!" className="quiz-room-logo" />
-            <div className="quiz-gloss-badge">
-              <span className="quiz-badge-label">Pts Sala:</span> {me?.roomLifetimePoints ?? 0}
-            </div>
-            <div className="quiz-gloss-badge">
-              <span className="quiz-badge-label">Pts Total:</span> {me?.lifetimePoints ?? 0}
-            </div>
+        <div className="quiz-topbar-badges">
+          <img src="/quiz-logo.png" alt="Quiz!" className="quiz-room-logo" />
+          <div className="quiz-gloss-badge">
+            <span className="quiz-badge-label">Pts Sala:</span> {me?.roomLifetimePoints ?? 0}
           </div>
-          <div className="quiz-timer-group">
-            <InviteButton
-              label="Convidar"
-              url={`${window.location.origin}/jogos/quiz/${roomId}`}
-              message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
-            />
-            <Link to="/jogos/quiz" className="room-exit-btn" title="Sair da sala">
-              🚪 Sair da sala
-            </Link>
-            <button
-              className="quiz-mute-btn"
-              onClick={handleToggleMute}
-              title={muted ? "Ativar som" : "Desativar som"}
-            >
-              {muted ? "🔇" : "🔊"}
-            </button>
-            <QuizTimerRing timeLeft={timeLeft} totalSeconds={phase === "active" ? totalSeconds : 8} />
+          <div className="quiz-gloss-badge">
+            <span className="quiz-badge-label">Pts Total:</span> {me?.lifetimePoints ?? 0}
           </div>
         </div>
         <div className="quiz-topbar-title">
           <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
+        <div className="quiz-timer-group">
+          <InviteButton
+            label="Convidar"
+            url={`${window.location.origin}/jogos/quiz/${roomId}`}
+            message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
+          />
+          <Link to="/jogos/quiz" className="room-exit-btn" title="Sair da sala">
+            🚪 Sair da sala
+          </Link>
+          <button
+            className="quiz-mute-btn"
+            onClick={handleToggleMute}
+            title={muted ? "Ativar som" : "Desativar som"}
+          >
+            {muted ? "🔇" : "🔊"}
+          </button>
+          <QuizTimerRing timeLeft={timeLeft} totalSeconds={phase === "active" ? totalSeconds : 8} />
+        </div>
       </div>
 
       <div className="quiz-game-grid">
         {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="quiz-panel quiz-question-card">
-          <div className="quiz-question-text">{questionText}</div>
+          <div className="quiz-retro-tab">pergunta</div>
+          <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
+            {questionText}
+          </div>
           <div className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""}`}>
             {answerLine.split("").map((ch, i) => (
               <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
@@ -231,8 +232,8 @@ export default function QuizGame() {
 
         {/* Log de respostas erradas — visível por todo mundo na sala */}
         <div className="quiz-panel quiz-wrong-log-panel">
-          <h4 className="quiz-panel-title"><span>✕</span> Errando</h4>
-          <div className="quiz-wrong-log-list">
+          <div className="quiz-retro-tab">✕ errando</div>
+          <div className="quiz-wrong-log-list" style={{ marginTop: 10 }}>
             {wrongLog.length === 0 && <div className="quiz-wrong-log-empty">Ninguém errou ainda nessa pergunta.</div>}
             {wrongLog.map((w, i) => (
               <div key={i} className="quiz-wrong-log-item">{w.guess}</div>
@@ -244,12 +245,12 @@ export default function QuizGame() {
 
       <div className="quiz-bottom-grid">
         <div className="quiz-panel quiz-chat-panel">
-          <h3 className="quiz-panel-title">Chat</h3>
+          <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} />
         </div>
         <div className="quiz-panel quiz-players-panel">
-          <h3 className="quiz-panel-title">Jogadores ({onlinePlayers.length})</h3>
-          <div className="quiz-players-list">
+          <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>
+          <div className="quiz-players-list" style={{ marginTop: 10 }}>
             {onlinePlayers.map((p) => (
               <div key={p.userId} className="quiz-player-row">
                 <div className="quiz-player-name">
