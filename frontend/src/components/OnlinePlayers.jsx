@@ -19,7 +19,7 @@ export default function OnlinePlayers({ players }) {
           </span>
           <span className="sc-player-name">
             <ClanInviteMenu userId={p.userId} nickname={p.nickname} currentUserId={user?.id}>
-              <ProfileTooltip userId={p.userId} nickname={p.nickname} />
+              <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="stop" />
             </ClanInviteMenu>
           </span>
           <span className="sc-player-points">{p.lifetimePoints}</span>
