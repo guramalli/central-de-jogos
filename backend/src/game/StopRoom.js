@@ -142,16 +142,18 @@ export class StopRoom {
       needed: this.countUniquePlayers(),
       minPlayers: SKIP_VOTE_MIN_PLAYERS,
     });
-    this.systemMessage(`👋 ${nickname} entrou na sala.`);
+    if (!alreadyInRoom) {
+      this.systemMessage(`👋 ${nickname} entrou na sala.`);
 
-    // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
-    try {
-      const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
-      if (isBirthdayToday(me?.birthDate)) {
-        this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
+      // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
+      try {
+        const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
+        if (isBirthdayToday(me?.birthDate)) {
+          this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
+        }
+      } catch {
+        // não deixa uma falha aqui atrapalhar a entrada na sala
       }
-    } catch {
-      // não deixa uma falha aqui atrapalhar a entrada na sala
     }
 
     await this.broadcastOnlinePlayers();
@@ -340,8 +342,10 @@ export class StopRoom {
 
   async playerStop(socket, userId) {
     if (this.state !== "active") return;
-    const ans = this.answers.get(userId);
-    if (!ans) return;
+    // Se a pessoa não digitou nada ainda, trata como um objeto vazio (em vez
+    // de sair calado) — assim o resto da função avisa o motivo certo (mínimo
+    // de palavras ou campos por preencher), em vez do clique não fazer nada.
+    const ans = this.answers.get(userId) || {};
 
     // Evita que cliques repetidos no botão (ou Ctrl+Enter espetado) disparem
     // várias tentativas em sequência — ignora tentativas muito próximas.
@@ -374,7 +378,10 @@ export class StopRoom {
     } else {
       // Regra padrão: precisa preencher todas as lacunas (não precisam estar certas).
       const filled = this.currentThemes.every((t) => (ans[t.key] || "").trim().length > 0);
-      if (!filled) return;
+      if (!filled) {
+        socket.emit("stop-denied", { reason: "not-filled" });
+        return;
+      }
     }
 
     const player = [...this.players.values()].find((p) => p.userId === userId);

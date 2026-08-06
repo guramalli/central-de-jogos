@@ -1698,6 +1698,15 @@ table.player-table.player-table-compact td {
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.35);
   transition: background 0.2s ease;
+  /* reset de estilo padrão do navegador, já que agora pode ser um <button> */
+  padding: 0;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sc-display, sans-serif);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .sc-status-ball-green {
   background: radial-gradient(circle at 35% 28%, #a8ffc4 0%, #3fc76a 40%, #1c6b32 100%);
@@ -1717,7 +1726,12 @@ table.player-table.player-table-compact td {
   70% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 8px rgba(230, 0, 0, 0); }
   100% { box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -3px 4px rgba(0,0,0,0.35), 0 0 0 0 rgba(230, 0, 0, 0); }
 }
-.sc-status-text { line-height: 1.4; }
+.sc-status-text {
+  line-height: 1.35;
+  font-size: 11px;
+  word-break: break-word;
+  max-width: 100%;
+}
 
 /* ===== Modo "só bolinha" — substitui a legenda inteira durante a rodada
    ativa, e também no aviso de "stop por tempo" ===== */
@@ -1726,12 +1740,21 @@ table.player-table.player-table-compact td {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   text-align: center;
-  padding: 0 10px;
+  padding: 26px 10px 10px 10px;
 }
-.sc-status-ball-big { width: 26px; height: 26px; }
+.sc-status-ball-big {
+  width: 64px;
+  height: 64px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+button.sc-status-ball-big { cursor: pointer; }
+button.sc-status-ball-big:hover { filter: brightness(1.15); }
+button.sc-status-ball-big:active { transform: scale(0.95); }
 .sc-status-ball-neutral {
   background: #888;
   box-shadow: none;
@@ -1776,4 +1799,14 @@ table.player-table.player-table-compact td {
 @keyframes sc-stopped-flash {
   from { background: #ff5b5b; }
   to { background: var(--sc-red, #b8302f); }
+}
+
+.sc-stop-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--sc-orange-pale, #ffc082);
+  background: var(--sc-surface-high, #2a2a2a);
+  border-top: 1px solid var(--sc-outline, #555);
+  padding: 10px 14px;
+  border-radius: 0 0 4px 4px;
 }

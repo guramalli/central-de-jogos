@@ -11,8 +11,11 @@ export const ROOM_CONFIGS = {
     minLifetimePoints: 0,
     difficulty: "basic",
     maxPlayers: 10,
-    // Ninguém pode pedir STOP antes desses segundos, mesmo já preenchido tudo.
-    minSecondsBeforeStop: 5,
+    // Só pode pedir STOP com pelo menos 3 das 6 palavras já corretas
+    // (não precisa preencher todos os campos).
+    minCorrectToStop: 3,
+    // Ninguém pode pedir STOP antes desses segundos, mesmo já com 3+ certas.
+    minSecondsBeforeStop: 40,
   },
   "stop-sala-intermediaria": {
     label: "Sala Intermediária",

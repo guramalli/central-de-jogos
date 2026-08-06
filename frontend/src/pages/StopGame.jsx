@@ -105,6 +105,11 @@ export default function StopGame() {
     });
 
     socket.on("round-intermission", () => {
+      // Se ainda estamos segurando o resultado (atraso proposital depois de
+      // um STOP), não muda de fase agora — senão os campos preenchidos
+      // somem da tela antes da hora, mesmo o resultado ainda não aparecendo.
+      // A troca de fase acontece junto quando o atraso terminar.
+      if (awaitingResultRef.current) return;
       setPhase("intermission");
       setIVotedSkip(false);
     });
@@ -157,15 +162,28 @@ export default function StopGame() {
     });
 
     socket.on("tick", (data) => {
-      setPhase(data.state);
+      // Mesma proteção do "round-intermission": não deixa o tick trocar a
+      // fase enquanto ainda estamos segurando o resultado do STOP.
+      if (!awaitingResultRef.current) {
+        setPhase(data.state);
+      }
       setTimeLeft(data.timeLeft);
     });
 
     function applyRoundResult(data) {
-      setEndedByTimeout(!stoppedThisRoundRef.current);
+      const wasTimeout = !stoppedThisRoundRef.current;
+      setEndedByTimeout(wasTimeout);
       setPhase("grading");
       setLastResult(data);
       setStopOverlay(null);
+
+      // Igual acontece com o aviso de "pediu stop", o aviso de "stop por
+      // tempo" fica visível por alguns segundos e depois volta pra legenda
+      // normal (com as cores dos pontos) — a tabela de resultado em si já
+      // aparece na hora, só esse quadradinho pequeno que segura um pouco.
+      if (wasTimeout) {
+        setTimeout(() => setEndedByTimeout(false), 5000);
+      }
     }
 
     socket.on("round-result", (data) => {
@@ -304,9 +322,27 @@ export default function StopGame() {
               autoComplete="off"
               onChange={(e) => updateAnswer(t.key, e.target.value)}
               onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  // Ctrl+Enter é o atalho de STOP — deixa passar pro atalho
+                  // global em vez de tratar como "ir pro próximo campo".
+                  return;
+                }
                 if (e.key === "Enter") {
                   e.preventDefault();
                   inputRefs.current[idx + 1]?.focus();
+                  return;
+                }
+                if (e.key === "Tab" && !e.shiftKey && idx === themes.length - 1) {
+                  // Último campo + Tab -> volta pro primeiro, em vez de sair
+                  // do grupo de campos (que é o padrão do navegador).
+                  e.preventDefault();
+                  inputRefs.current[0]?.focus();
+                  return;
+                }
+                if (e.key === "Tab" && e.shiftKey && idx === 0) {
+                  // Primeiro campo + Shift+Tab -> vai pro último (simétrico).
+                  e.preventDefault();
+                  inputRefs.current[themes.length - 1]?.focus();
                   return;
                 }
                 if (e.key === "Backspace" && !(answers[t.key] || "")) {
@@ -466,14 +502,9 @@ export default function StopGame() {
           <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />
         </div>
 
-        <div className="sc-stop-bar">
-          <button
-            className={`sc-stop-btn ${canAttemptStop ? "sc-stop-btn-ready" : "sc-stop-btn-waiting"}`}
-            disabled={!canAttemptStop}
-            onClick={handleStop}
-          >
-            STOP! <span className="sc-stop-shortcut-inline">(CTRL+ENTER)</span>
-          </button>
+        <div className="sc-stop-hint">
+          💡 Peça <strong>stop</strong> clicando no botão da pontuação abaixo, ou apertando{" "}
+          <strong>Ctrl+Enter</strong>.
         </div>
       </div>
 
@@ -491,18 +522,26 @@ export default function StopGame() {
             </div>
           ) : phase === "active" ? (
             <div className="sc-legend-status-only">
-              <span className={`sc-status-ball sc-status-ball-big ${stopDenied ? "sc-status-ball-red" : "sc-status-ball-green"}`} />
+              <button
+                className={`sc-status-ball sc-status-ball-big ${stopDenied ? "sc-status-ball-red" : "sc-status-ball-green"}`}
+                onClick={handleStop}
+                title="Pedir STOP"
+              >
+                STOP
+              </button>
               {stopDenied && (
                 <span className="sc-status-text">
                   {stopDenied.reason === "too-early"
                     ? `Você pediu stop antes do tempo estipulado da sala. Você só pode pedir stop após ${stopDenied.minSeconds} segundos.`
-                    : "Você ainda não tem palavras corretas suficientes para pedir STOP nesta sala."}
+                    : stopDenied.reason === "not-filled"
+                    ? "Preencha todas as lacunas para pedir stop."
+                    : `Mínimo de ${minCorrectToStop} palavras para pedir stop.`}
                 </span>
               )}
             </div>
           ) : endedByTimeout && lastResult ? (
             <div className="sc-legend-status-only">
-              <span className="sc-status-ball sc-status-ball-big sc-status-ball-neutral" />
+              <span className="sc-status-ball sc-status-ball-big sc-status-ball-neutral">STOP</span>
               <span className="sc-status-text sc-status-text-timeout">Stop por tempo</span>
             </div>
           ) : (
