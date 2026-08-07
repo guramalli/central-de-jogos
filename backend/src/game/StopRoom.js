@@ -136,7 +136,7 @@ export class StopRoom {
     }
 
     socket.join(this.roomId);
-    socket.emit("room-state", this.publicState());
+    socket.emit("room-state", { ...this.publicState(), myAnswers: this.answers.get(userId) || {} });
     socket.emit("skip-vote-update", {
       votes: this.skipVotes.size,
       needed: this.countUniquePlayers(),
@@ -561,6 +561,7 @@ export class StopRoom {
 
       this.broadcast("round-result", {
         roundNumber: this.roundNumber,
+        roundInBlock: ((this.roundNumber - 1) % ROUNDS_PER_BLOCK) + 1,
         letter: this.currentLetter,
         themes: this.currentThemes.map((t) => ({ key: t.key, name: t.name })),
         players: activePlayers.map((p) => ({

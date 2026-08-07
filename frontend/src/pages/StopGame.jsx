@@ -103,6 +103,7 @@ export default function StopGame() {
       setRoundInBlock(state.roundInBlock);
       setRoomLabel(state.label || "");
       setMinCorrectToStop(state.minCorrectToStop || 0);
+      if (state.myAnswers) setAnswers(state.myAnswers);
     });
 
     socket.on("round-intermission", () => {
@@ -357,7 +358,7 @@ export default function StopGame() {
       },
     ];
   } else if (lastResult) {
-    statusText = `Resultado da rodada ${lastResult.roundNumber}`;
+    statusText = `Resultado da rodada ${lastResult.roundInBlock ?? lastResult.roundNumber} de 10`;
     roundLabel = "PTS";
     tableThemes = lastResult.themes;
     tableRows = lastResult.players.map((p) => ({
@@ -472,7 +473,7 @@ export default function StopGame() {
       </header>
 
       <div className="sc-round-info">
-        Rodada {roundNumber} • {roundInBlock}/10 do bloco atual
+        Rodada {roundInBlock} de 10
       </div>
 
       <div className="sc-retro-panel sc-table-panel">
