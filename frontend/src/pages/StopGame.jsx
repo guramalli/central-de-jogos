@@ -49,6 +49,7 @@ export default function StopGame() {
   const [minCorrectToStop, setMinCorrectToStop] = useState(0);
   const [stopReady, setStopReady] = useState(false);
   const [stopDenied, setStopDenied] = useState(null); // { correctCount, required } | null
+  const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
   const [stopOverlay, setStopOverlay] = useState(null); // nickname de quem apertou STOP, ou null
   const [awaitingResult, setAwaitingResult] = useState(false); // mostra "enviando..." durante o atraso proposital
   const [endedByTimeout, setEndedByTimeout] = useState(false); // true quando ninguém pediu STOP na rodada
@@ -269,6 +270,12 @@ export default function StopGame() {
     return () => clearTimeout(t);
   }, [stopDenied]);
 
+  useEffect(() => {
+    if (!pasteBlockedMsg) return;
+    const t = setTimeout(() => setPasteBlockedMsg(false), 3000);
+    return () => clearTimeout(t);
+  }, [pasteBlockedMsg]);
+
   // Atalho de teclado: Ctrl+Enter (ou Cmd+Enter no Mac) dá STOP (quando permitido).
   // O Enter sozinho fica livre para navegar entre as lacunas (e para o chat),
   // sem risco de disparar STOP sem querer no meio da digitação.
@@ -329,8 +336,10 @@ export default function StopGame() {
         maxLength={40}
         autoComplete="off"
         onChange={(e) => updateAnswer(t.key, e.target.value)}
-        onPaste={() => {
+        onPaste={(e) => {
+          e.preventDefault();
           pastedRef.current = true;
+          setPasteBlockedMsg(true);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -523,6 +532,12 @@ export default function StopGame() {
           <div className="sc-min-correct-hint">
             ⚡ Nesta sala é preciso ter pelo menos <strong>{minCorrectToStop}</strong> palavras
             certas para pedir STOP.
+          </div>
+        )}
+
+        {pasteBlockedMsg && (
+          <div className="sc-min-correct-hint sc-paste-blocked-hint">
+            🚫 Colar texto não é permitido nas lacunas — precisa digitar a resposta.
           </div>
         )}
 

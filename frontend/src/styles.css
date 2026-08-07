@@ -531,6 +531,11 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   font-size: 12px;
   font-family: var(--sc-mono);
 }
+.sc-paste-blocked-hint {
+  background: #3a1414;
+  color: #ff8a8a;
+  border-bottom: 1px solid #d94f30;
+}
 .sc-stop-denied-hint {
   background: #3a0808;
   color: #ff9c9c;
