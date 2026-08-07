@@ -174,8 +174,21 @@ export function setupSocket(io) {
     socket.on("dm-message", async ({ message } = {}) => {
       if (!socket.currentDmRoom || !socket.currentDmFriendId || !message?.trim()) return;
       const clean = message.trim().slice(0, 500);
+
+      // Se o destinatário já estiver com essa conversa aberta agora (tem
+      // outro socket na mesma sala de DM), a mensagem já nasce "lida" —
+      // evita o avisinho ficar marcado por engano enquanto os dois já
+      // estão conversando ao vivo.
+      const roomSockets = io.sockets.adapter.rooms.get(socket.currentDmRoom);
+      const receiverPresent = roomSockets && [...roomSockets].some((id) => id !== socket.id);
+
       const saved = await prisma.privateMessage.create({
-        data: { senderId: userId, receiverId: socket.currentDmFriendId, message: clean },
+        data: {
+          senderId: userId,
+          receiverId: socket.currentDmFriendId,
+          message: clean,
+          read: !!receiverPresent,
+        },
       });
       io.to(socket.currentDmRoom).emit("dm-message", {
         id: saved.id,

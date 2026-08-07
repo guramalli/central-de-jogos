@@ -15,7 +15,13 @@ export default function DmModal({ friend, onClose }) {
     socket.connect();
     socket.emit("join-dm", { friendUserId: friend.userId });
 
-    socket.on("dm-history", (data) => setMessages(data.messages || []));
+    socket.on("dm-history", (data) => {
+      setMessages(data.messages || []);
+      // O servidor já marcou as mensagens como lidas nesse exato momento —
+      // avisa o resto do site (o avisinho no menu) pra atualizar na hora,
+      // sem esperar o próximo ciclo automático de 30s.
+      window.dispatchEvent(new Event("unread-counts-changed"));
+    });
     socket.on("dm-message", (msg) => setMessages((prev) => [...prev, msg]));
     socket.on("dm-error", (data) => setError(data.error || "Erro ao abrir a conversa."));
 

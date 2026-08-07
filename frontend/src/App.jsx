@@ -45,7 +45,10 @@ export default function App() {
 
   // Confere de tempos em tempos se chegou pedido de amizade ou mensagem
   // privada nova — assim, mesmo quem não está na página de Amigos vê o
-  // avisinho no menu.
+  // avisinho no menu. Também escuta o evento "unread-counts-changed", que
+  // outras partes do site disparam pra forçar uma atualização imediata
+  // (ex.: assim que você abre uma conversa e as mensagens são marcadas como
+  // lidas), sem precisar esperar os 30s do próximo ciclo automático.
   useEffect(() => {
     if (!user) return;
     function check() {
@@ -54,7 +57,11 @@ export default function App() {
     }
     check();
     const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
+    window.addEventListener("unread-counts-changed", check);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("unread-counts-changed", check);
+    };
   }, [user]);
 
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
