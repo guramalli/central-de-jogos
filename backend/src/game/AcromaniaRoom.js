@@ -2,13 +2,9 @@ import { prisma } from "../db.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
 import { trackPlaytime } from "./playtimeTracker.js";
+import { currentMonthKey } from "../utils/monthKey.js";
 
 const GAME_KEY = "acromania";
-
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 // Embaralha um array (Fisher-Yates) sem alterar o original.
 function shuffle(arr) {

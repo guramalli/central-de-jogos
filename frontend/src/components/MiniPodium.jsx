@@ -31,7 +31,7 @@ export default function MiniPodium({ gameKey }) {
           {rows.map((r) => (
             <li key={r.position}>
               <span className="mini-podium-medal">{MEDALS[r.position - 1]}</span>
-              <span className="mini-podium-name">{r.nickname}</span>
+              <Link to={`/jogador/${r.userId}`} className="mini-podium-name">{r.nickname}</Link>
               <span className="mini-podium-points">{r.points} pts</span>
             </li>
           ))}

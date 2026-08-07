@@ -29,3 +29,19 @@ export async function sendFeedbackEmail({ nickname, email, type, message }) {
     return false;
   }
 }
+
+export async function sendPasswordResetEmail({ nickname, email, resetUrl }) {
+  if (!transporter) return false;
+  try {
+    await transporter.sendMail({
+      from: `"Educação Gamer" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Redefinir sua senha — Educação Gamer",
+      text: `Oi, ${nickname}!\n\nRecebemos um pedido pra redefinir a senha da sua conta na Educação Gamer.\n\nClica no link abaixo pra escolher uma senha nova (válido por 1 hora):\n${resetUrl}\n\nSe você não pediu isso, pode ignorar esse e-mail — sua senha continua a mesma.`,
+    });
+    return true;
+  } catch (err) {
+    console.error("Falha ao enviar e-mail de redefinição de senha:", err.message);
+    return false;
+  }
+}

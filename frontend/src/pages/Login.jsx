@@ -43,6 +43,9 @@ export default function Login() {
           <p style={{ marginTop: 14, fontSize: 13 }}>
             Não tem conta? <Link to="/registrar">Cadastre-se</Link>
           </p>
+          <p style={{ marginTop: 6, fontSize: 13 }}>
+            <Link to="/esqueci-senha">Esqueci minha senha</Link>
+          </p>
         </div>
       </div>
     </div>

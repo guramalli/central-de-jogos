@@ -2,17 +2,13 @@ import { prisma } from "../db.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
+import { currentMonthKey } from "../utils/monthKey.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
 const LETTERS = "ABCDEFGHIJLMNOPQRSTUVXZ".split(""); // agora inclui X e Z também
 const GAME_KEY = "stop";
 const SKIP_VOTE_MIN_PLAYERS = 3;
-
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 // Remove acentuação e normaliza para comparação — assim "cha" bate com "chá",
 // "sao paulo" bate com "São Paulo", etc. O jogador não é obrigado a acentuar.

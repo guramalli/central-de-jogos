@@ -3,6 +3,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
 import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js";
+import { currentMonthKey } from "../utils/monthKey.js";
 
 const router = Router();
 
@@ -11,26 +12,23 @@ const router = Router();
 // de alguém tentando mandar uma imagem gigante sem passar pelo redimensionamento.
 const MAX_AVATAR_LENGTH = 300_000;
 
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-// Monta a lista de "conquistas" a partir de dados que já existem (patentes,
-// recordes de sequência) — sem precisar de um sistema novo de conquistas
-// do zero, só reaproveitando o que o site já calcula.
-async function buildAchievements(userId, nickname, lifetimeByGame) {
+// Monta a lista de "conquistas" a partir de dados que já existem (patente
+// atual do MÊS, recordes de sequência) — sem precisar de um sistema novo de
+// conquistas do zero, só reaproveitando o que o site já calcula. Como
+// patente agora é conceito mensal, a conquista mostra a patente do mês
+// vigente (se a pessoa ainda não pontuou esse mês, não mostra patente).
+async function buildAchievements(nickname, monthlyByGame) {
   const achievements = [];
 
-  const stopPoints = lifetimeByGame.get("stop") || 0;
+  const stopPoints = monthlyByGame.get("stop") || 0;
   if (stopPoints > 0) {
     const rank = getRankForPoints(stopPoints);
-    achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Stop` });
+    achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Stop (este mês)` });
   }
-  const quizPoints = lifetimeByGame.get("quiz") || 0;
+  const quizPoints = monthlyByGame.get("quiz") || 0;
   if (quizPoints > 0) {
     const rank = getQuizRankForPoints(quizPoints);
-    achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Quiz` });
+    achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Quiz (este mês)` });
   }
 
   const streakRecords = await prisma.quizStreakRecord.findMany({ where: { nickname } });
@@ -52,8 +50,9 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
 
   const monthKey = currentMonthKey();
   const monthly = await prisma.monthlyScore.findMany({ where: { userId: id, monthKey } });
-  // Pra cada jogo em que a pessoa pontuou esse mês, calcula em qual posição
-  // ela está no ranking mensal daquele jogo específico (mostrado no hover).
+  // Pra cada jogo em que a pessoa pontuou esse mês, calcula a patente (que
+  // agora é conceito exclusivo do ranking mensal) e a posição no ranking
+  // mensal daquele jogo específico.
   const monthlyWithPosition = await Promise.all(
     monthly.map(async (m) => {
       const allInGame = await prisma.monthlyScore.findMany({
@@ -62,17 +61,25 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
         select: { userId: true },
       });
       const idx = allInGame.findIndex((s) => s.userId === id);
-      return { gameKey: m.gameKey, points: m.points, position: idx >= 0 ? idx + 1 : null };
+      return {
+        gameKey: m.gameKey,
+        points: m.points,
+        position: idx >= 0 ? idx + 1 : null,
+        rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
+        nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+      };
     })
   );
+  const monthlyByGame = new Map(monthly.map((m) => [m.gameKey, m.points]));
   // Exclui as pontuações vitalícias "por sala" (gameKey tipo "stop:stop-sala-1") —
   // aqui no tooltip de perfil só mostramos o total geral, pra não poluir com
   // muita informação. O placar por sala continua existindo, só não aparece aqui.
+  // O vitalício agora é só um título de maior pontuador histórico — sem
+  // patente vinculada (patente é conceito exclusivo do ranking mensal).
   const lifetime = await prisma.lifetimeScore.findMany({
     where: { userId: id, NOT: { gameKey: { contains: ":" } } },
   });
-  const lifetimeByGame = new Map(lifetime.map((l) => [l.gameKey, l.points]));
-  const achievements = await buildAchievements(id, user.nickname, lifetimeByGame);
+  const achievements = await buildAchievements(user.nickname, monthlyByGame);
 
   res.json({
     id: user.id,
@@ -82,12 +89,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     playtimeMinutes: user.playtimeMinutes,
     memberSince: user.createdAt,
     monthly: monthlyWithPosition,
-    lifetime: lifetime.map((l) => ({
-      gameKey: l.gameKey,
-      points: l.points,
-      rank: l.gameKey === "quiz" ? getQuizRankForPoints(l.points) : getRankForPoints(l.points),
-      nextRank: l.gameKey === "quiz" ? getQuizNextRankInfo(l.points) : getNextRankInfo(l.points),
-    })),
+    lifetime: lifetime.map((l) => ({ gameKey: l.gameKey, points: l.points })),
     achievements,
   });
 });

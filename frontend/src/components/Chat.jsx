@@ -15,7 +15,15 @@ function colorForUser(id) {
   return NICK_COLORS[Math.abs(hash) % NICK_COLORS.length];
 }
 
-export default function Chat({ messages, onSend }) {
+function formatTime(at) {
+  if (!at) return "";
+  return new Date(at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// showTimestamp é opcional — só o Chat Geral (praça) usa isso por enquanto;
+// os chats de dentro das salas de jogo continuam sem horário, do jeito que
+// já estavam, pra não mudar nada ali sem ter sido pedido.
+export default function Chat({ messages, onSend, showTimestamp = false }) {
   const [text, setText] = useState("");
   const endRef = useRef(null);
 
@@ -43,6 +51,7 @@ export default function Chat({ messages, onSend }) {
             </div>
           ) : (
             <div key={i} className="chat-user-msg">
+              {showTimestamp && <span className="chat-msg-time">{formatTime(m.at)}</span>}
               <strong style={{ color: colorForUser(m.userId || m.nickname) }}>{m.nickname}:</strong>{" "}
               {m.message}
             </div>

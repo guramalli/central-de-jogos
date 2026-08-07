@@ -5,11 +5,14 @@ import { useTheme } from "./context/ThemeContext.jsx";
 import { api } from "./api/client.js";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import Register from "./pages/Register.jsx";
 import Lobby from "./pages/Lobby.jsx";
 import StopGame from "./pages/StopGame.jsx";
 import StopLobby from "./pages/StopLobby.jsx";
 import Ranking from "./pages/Ranking.jsx";
+import RankingHistory from "./pages/RankingHistory.jsx";
 import Clan from "./pages/Clan.jsx";
 import Friends from "./pages/Friends.jsx";
 import PublicProfile from "./pages/PublicProfile.jsx";
@@ -97,6 +100,8 @@ export default function App() {
       <div className="container">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<ForgotPassword />} />
+          <Route path="/redefinir-senha" element={<ResetPassword />} />
           <Route path="/registrar" element={<Register />} />
           <Route path="/termos-de-uso" element={<TermosDeUso />} />
           <Route
@@ -128,6 +133,14 @@ export default function App() {
             element={
               <Private>
                 <Ranking />
+              </Private>
+            }
+          />
+          <Route
+            path="/ranking/historico"
+            element={
+              <Private>
+                <RankingHistory />
               </Private>
             }
           />

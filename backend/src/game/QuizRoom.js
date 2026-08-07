@@ -2,13 +2,9 @@ import { prisma } from "../db.js";
 import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
+import { currentMonthKey } from "../utils/monthKey.js";
 
 const GAME_KEY = "quiz";
-
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 // Ordinal feminino em português (concorda com "resposta"): 1ª, 2ª, 3ª...
 function ordinalFem(n) {

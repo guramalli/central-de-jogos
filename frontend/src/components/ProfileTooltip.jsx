@@ -88,15 +88,22 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     <div className="avatar-placeholder avatar-placeholder-small">🎮</div>
                   )}
                 </div>
+                {monthly?.position && (
+                  <div className="nick-tooltip-rank-position">
+                    {monthly.position <= 3 ? ["🥇", "🥈", "🥉"][monthly.position - 1] : "📊"}{" "}
+                    {monthly.position}º no ranking mensal
+                  </div>
+                )}
                 <div>
                   Mensal: <strong>{monthly ? `${monthly.points} pts` : "0 pts"}</strong>
-                  {monthly?.position && <span style={{ opacity: 0.75 }}> (#{monthly.position} no ranking)</span>}
                 </div>
                 <div>Vitalícia: <strong>{lifetime ? lifetime.points : 0} pts</strong></div>
                 <div style={{ opacity: 0.75 }}>
-                  {lifetime?.nextRank
-                    ? `Faltam ${lifetime.nextRank.pointsNeeded} pra ${lifetime.nextRank.name}`
-                    : "Patente máxima!"}
+                  {monthly?.nextRank
+                    ? `Faltam ${monthly.nextRank.pointsNeeded} pra ${monthly.nextRank.name}`
+                    : monthly
+                    ? "Patente máxima!"
+                    : "Ainda não pontuou este mês"}
                 </div>
                 <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
                 {!isMe && (

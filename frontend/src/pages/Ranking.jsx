@@ -28,6 +28,9 @@ export default function Ranking() {
     <div>
       <Seo title="Ranking" description="Veja o ranking mensal e vitalício de Stop, Quiz e Acromania." />
       <h1>Ranking</h1>
+      <p style={{ marginTop: -8 }}>
+        <Link to="/ranking/historico">🏛️ Ver campeões dos meses anteriores →</Link>
+      </p>
 
       {!isClans && (
         <div className="ranking-game-tabs">
@@ -76,7 +79,7 @@ export default function Ranking() {
               <th>#</th>
               <th>{isClans ? "Clã" : "Jogador"}</th>
               <th>Pontos</th>
-              {tab === "lifetime" && <th>Patente</th>}
+              {tab === "monthly" && <th>Patente</th>}
               {isClans && <th>Membros</th>}
             </tr>
           </thead>
@@ -86,7 +89,7 @@ export default function Ranking() {
                 <td>{r.position}</td>
                 <td>{isClans ? nameOf(r) : <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>}</td>
                 <td>{r.points}</td>
-                {tab === "lifetime" && (
+                {tab === "monthly" && (
                   <td>
                     <RankBadge rank={r.rank} />
                   </td>

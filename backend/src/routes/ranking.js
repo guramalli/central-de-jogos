@@ -3,17 +3,15 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { getQuizRankForPoints } from "../utils/quizRank.js";
+import { currentMonthKey, formatMonthKey } from "../utils/monthKey.js";
 
 const router = Router();
 
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
+// Patente agora é um conceito só do ranking MENSAL — reflete o desempenho
+// desse mês específico, não a soma histórica de tudo.
 router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
   const { gameKey } = req.params;
-  const monthKey = currentMonthKey();
+  const monthKey = req.query.month || currentMonthKey();
   const scores = await prisma.monthlyScore.findMany({
     where: { gameKey, monthKey, user: { role: { not: "ADMIN" } } },
     orderBy: { points: "desc" },
@@ -26,10 +24,13 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
       userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
+      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
     }))
   );
 });
 
+// Ranking vitalício é só um "título" de quem pontuou mais desde o início —
+// sem patente vinculada (patente é conceito exclusivo do ranking mensal).
 router.get("/lifetime/:gameKey", requireAuth, async (req, res) => {
   const { gameKey } = req.params;
   const scores = await prisma.lifetimeScore.findMany({
@@ -44,9 +45,46 @@ router.get("/lifetime/:gameKey", requireAuth, async (req, res) => {
       userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
-      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
     }))
   );
+});
+
+// Lista os meses passados que têm alguma pontuação registrada — usado pra
+// montar a página de histórico ("Hall da Fama").
+router.get("/history", requireAuth, async (req, res) => {
+  const currentMonth = currentMonthKey();
+  const rows = await prisma.monthlyScore.findMany({
+    where: { monthKey: { not: currentMonth } },
+    select: { monthKey: true },
+    distinct: ["monthKey"],
+    orderBy: { monthKey: "desc" },
+  });
+  res.json(rows.map((r) => ({ monthKey: r.monthKey, label: formatMonthKey(r.monthKey) })));
+});
+
+// Vencedores (top 3) de um mês já encerrado, num jogo específico — a "prova"
+// de quem foi campeão naquele mês, guardada pra sempre (os dados nunca são
+// apagados, então isso funciona pra qualquer mês passado, sem precisar de
+// nenhum processo especial de "arquivar" quando o mês vira).
+router.get("/history/:monthKey/:gameKey", requireAuth, async (req, res) => {
+  const { monthKey, gameKey } = req.params;
+  const scores = await prisma.monthlyScore.findMany({
+    where: { gameKey, monthKey, user: { role: { not: "ADMIN" } } },
+    orderBy: { points: "desc" },
+    take: 10,
+    include: { user: true },
+  });
+  res.json({
+    monthKey,
+    label: formatMonthKey(monthKey),
+    winners: scores.map((s, idx) => ({
+      position: idx + 1,
+      userId: s.user.id,
+      nickname: s.user.nickname,
+      points: s.points,
+      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
+    })),
+  });
 });
 
 export default router;

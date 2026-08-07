@@ -39,6 +39,8 @@ model User {
   birthDate        DateTime?
   termsAcceptedAt  DateTime?
   suspiciousActivities SuspiciousActivity[]
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")

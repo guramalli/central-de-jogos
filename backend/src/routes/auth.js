@@ -1,10 +1,17 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { prisma } from "../db.js";
 import { signToken } from "../utils/jwt.js";
+import { sendPasswordResetEmail } from "../utils/mailer.js";
 
 const router = Router();
+
+// Reaproveita a mesma origem configurada pro CORS — é o endereço público do
+// site (frontend), usado pra montar o link que vai no e-mail de redefinição.
+const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:5173";
+const RESET_TOKEN_VALID_MS = 60 * 60 * 1000; // 1 hora
 
 // Limite de tentativas — protege contra alguém tentando adivinhar senha por
 // força bruta (tentativa e erro em sequência, sem limite de velocidade).
@@ -61,6 +68,54 @@ router.post("/login", authLimiter, async (req, res) => {
   if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
   const token = signToken(user);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
+});
+
+// Pede a redefinição de senha por e-mail. SEMPRE responde com a mesma
+// mensagem genérica, exista ou não aquele e-mail no banco — assim ninguém
+// consegue "escanear" quais e-mails têm conta cadastrada testando aqui.
+router.post("/forgot-password", authLimiter, async (req, res) => {
+  const { email } = req.body;
+  const genericMessage = { message: "Se esse e-mail estiver cadastrado, mandamos um link de redefinição pra ele." };
+
+  if (!email) return res.status(400).json({ error: "Informe o e-mail." });
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    const token = crypto.randomBytes(32).toString("hex");
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken: token, resetTokenExpiry: new Date(Date.now() + RESET_TOKEN_VALID_MS) },
+    });
+    const resetUrl = `${FRONTEND_URL}/redefinir-senha?token=${token}`;
+    sendPasswordResetEmail({ nickname: user.nickname, email: user.email, resetUrl }).catch(() => {});
+  }
+
+  res.json(genericMessage);
+});
+
+// Confirma a redefinição — precisa do token válido (mandado por e-mail) e
+// não vencido (1 hora).
+router.post("/reset-password", authLimiter, async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return res.status(400).json({ error: "Token e nova senha são obrigatórios." });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: "Senha deve ter ao menos 8 caracteres." });
+  }
+
+  const user = await prisma.user.findUnique({ where: { resetToken: token } });
+  if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+    return res.status(400).json({ error: "Link inválido ou expirado. Pede um novo." });
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashed, resetToken: null, resetTokenExpiry: null },
+  });
+
+  res.json({ message: "Senha redefinida com sucesso! Já pode entrar com a senha nova." });
 });
 
 export default router;

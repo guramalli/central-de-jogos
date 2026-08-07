@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { getSocket } from "../socket.js";
 import Chat from "./Chat.jsx";
 
@@ -41,7 +42,23 @@ export default function GeneralChatWidget() {
           🟢 {online.length} {online.length === 1 ? "pessoa" : "pessoas"} aqui agora
         </span>
       </div>
-      <Chat messages={messages} onSend={sendChat} />
+      <div className="general-chat-body">
+        <Chat messages={messages} onSend={sendChat} showTimestamp />
+        <div className="general-chat-online-list">
+          <h4>Quem está na praça</h4>
+          {online.length === 0 && <p className="general-chat-online-empty">Ninguém por aqui ainda...</p>}
+          <ul>
+            {online.map((p) => (
+              <li key={p.userId}>
+                <Link to={`/jogador/${p.userId}`}>
+                  <span className="friend-status-dot friend-status-online" />
+                  {p.nickname}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

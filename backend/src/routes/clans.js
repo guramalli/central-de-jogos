@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { currentMonthKey } from "../utils/monthKey.js";
 
 const router = Router();
 
@@ -10,11 +11,6 @@ const MAX_MEMBERS = 10;
 // clã — corresponde aproximadamente à patente "Avançado". Só criar é restrito;
 // entrar num clã (por convite) não exige pontuação nenhuma.
 const CREATE_MIN_POINTS = 1000;
-
-function currentMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 async function getMyLifetimePoints(userId) {
   const score = await prisma.lifetimeScore.findUnique({
