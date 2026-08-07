@@ -20,7 +20,7 @@ export default function AcromaniaLobby() {
     <div>
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
-          <div className="hero-eyebrow">🔤 acromania</div>
+          <img src="/acromania-logo.png" alt="Acromania" className="lobby-page-logo" />
           <h1 className="hero-title">Escolha uma sala</h1>
           <p className="hero-subtitle">
             Um tema, algumas letras, e o tempo correndo — crie a frase mais criativa e vote na

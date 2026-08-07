@@ -233,6 +233,21 @@ export class AcromaniaRoom {
     if (!clean) return;
     this.submissions.set(userId, clean);
     socket.emit("acromania-phrase-submitted", { ok: true });
+    this.broadcastSubmittedList();
+
+    // Se todo mundo que está na sala agora já mandou a frase, não tem por
+    // que esperar o tempo acabar — já pula direto pra votação.
+    const totalPlayers = this.countUniquePlayers();
+    if (totalPlayers > 0 && this.submissions.size >= totalPlayers) {
+      this.startVoting();
+    }
+  }
+
+  // Avisa a sala inteira QUEM já mandou a frase (só o nick, nunca o
+  // conteúdo) — mostrado como uma lista de espera, tipo "aguardando".
+  broadcastSubmittedList() {
+    const nicknames = [...this.submissions.keys()].map((userId) => this.getNickname(userId));
+    this.broadcast("acromania-submissions-update", { nicknames });
   }
 
   async startVoting() {

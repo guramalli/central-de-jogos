@@ -5,6 +5,7 @@ import { getSocket } from "../socket.js";
 import Chat from "../components/Chat.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import InviteButton from "../components/InviteButton.jsx";
+import QuizTimerRing from "../components/QuizTimerRing.jsx";
 
 export default function AcromaniaGame() {
   const { roomId } = useParams();
@@ -20,6 +21,7 @@ export default function AcromaniaGame() {
 
   const [phraseInput, setPhraseInput] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [waitingNicknames, setWaitingNicknames] = useState([]);
 
   const [votingEntries, setVotingEntries] = useState([]);
   const [myVote, setMyVote] = useState(null);
@@ -58,6 +60,7 @@ export default function AcromaniaGame() {
       setPhraseInput("");
       setVotingEntries([]);
       setMyVote(null);
+      setWaitingNicknames([]);
     });
 
     socket.on("acromania-tick", (data) => {
@@ -74,9 +77,12 @@ export default function AcromaniaGame() {
       setSubmitted(false);
       setPhraseInput("");
       setLastResult(null);
+      setWaitingNicknames([]);
     });
 
     socket.on("acromania-phrase-submitted", () => setSubmitted(true));
+
+    socket.on("acromania-submissions-update", (data) => setWaitingNicknames(data.nicknames || []));
 
     socket.on("acromania-voting-start", (data) => {
       setPhase("voting");
@@ -103,6 +109,7 @@ export default function AcromaniaGame() {
       socket.off("acromania-tick");
       socket.off("acromania-round-start");
       socket.off("acromania-phrase-submitted");
+      socket.off("acromania-submissions-update");
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
       socket.off("acromania-round-result");
@@ -142,6 +149,7 @@ export default function AcromaniaGame() {
     <div className="quiz-root">
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
+          <img src="/acromania-logo.png" alt="Acromania" className="quiz-room-logo" />
           <div className="quiz-gloss-badge">
             <span className="quiz-badge-label">Pts Sala:</span> {me?.roomLifetimePoints ?? 0}
           </div>
@@ -150,7 +158,6 @@ export default function AcromaniaGame() {
           </div>
         </div>
         <div className="quiz-topbar-title">
-          <span className="quiz-theme-badge">🔤</span>
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
         <div className="quiz-timer-group">
@@ -162,6 +169,9 @@ export default function AcromaniaGame() {
           <Link to="/jogos/acromania" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>
+          {(phase === "writing" || phase === "voting") && (
+            <QuizTimerRing timeLeft={timeLeft} totalSeconds={totalSeconds} />
+          )}
         </div>
       </div>
 
@@ -245,6 +255,23 @@ export default function AcromaniaGame() {
               )}
             </div>
           )}
+        </div>
+
+        <div className="quiz-panel quiz-wrong-log-panel">
+          <div className="quiz-retro-tab">✓ aguardando</div>
+          <div className="quiz-wrong-log-list" style={{ marginTop: 10 }}>
+            {phase === "writing" ? (
+              waitingNicknames.length === 0 ? (
+                <p className="quiz-wrong-log-empty">Ninguém enviou ainda...</p>
+              ) : (
+                waitingNicknames.map((nick, i) => (
+                  <div key={i} className="acro-waiting-row">✓ {nick}</div>
+                ))
+              )
+            ) : (
+              <p className="quiz-wrong-log-empty">Só aparece durante a escrita.</p>
+            )}
+          </div>
         </div>
       </div>
 

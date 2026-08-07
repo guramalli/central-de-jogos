@@ -84,7 +84,7 @@ export default function Lobby() {
         </Link>
 
         <Link to="/jogos/acromania" className="glossy-panel lobby-game-card">
-          <div className="lobby-difficulty-icon lobby-difficulty-mid" style={{ fontSize: 28 }}>🔤</div>
+          <img src="/acromania-logo.png" alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
             <p className="lobby-game-desc">
