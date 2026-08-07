@@ -28,8 +28,9 @@ function buildDifficultyRooms(themeKey, themeName) {
       maxPlayers: 10,
       questionSeconds: 40,
       revealIntervalSeconds: 6,
+      maxRevealPercent: 0.5, // revela até metade da resposta
       intermissionSeconds: 8,
-      pointsPerCorrect: 8,
+      pointsPerCorrect: 10,
     },
     [`quiz-${themeKey}-dificil`]: {
       label: `${themeName} — Avançado`,
@@ -40,8 +41,9 @@ function buildDifficultyRooms(themeKey, themeName) {
       maxPlayers: 10,
       questionSeconds: 35,
       revealIntervalSeconds: 4,
+      maxRevealPercent: 0.3, // revela bem menos — mais difícil de adivinhar
       intermissionSeconds: 8,
-      pointsPerCorrect: 15,
+      pointsPerCorrect: 15, // vale mais, já que é bem mais difícil
     },
   };
 }

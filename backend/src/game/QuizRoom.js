@@ -37,6 +37,7 @@ export class QuizRoom {
     this.maxPlayers = config.maxPlayers ?? 10;
     this.questionSeconds = config.questionSeconds ?? 30;
     this.revealIntervalSeconds = config.revealIntervalSeconds ?? 5;
+    this.maxRevealPercent = config.maxRevealPercent ?? 0.5;
     this.intermissionSeconds = config.intermissionSeconds ?? 8;
     this.pointsPerCorrect = config.pointsPerCorrect ?? 10;
     this.roomGameKey = `${GAME_KEY}:${roomId}`;
@@ -282,10 +283,12 @@ export class QuizRoom {
       if (this.timeLeft <= 0) this.endQuestion(null);
     }, 1000);
 
-    // Revela mais uma letra a cada X segundos, nunca passando de 50% do total.
+    // Revela mais uma letra a cada X segundos, nunca passando do limite
+    // configurado pra essa sala (salas avançadas revelam menos, pra ficar
+    // mais difícil de verdade).
     this.revealTimer = setInterval(() => {
       const indices = this.letterIndices();
-      const maxReveal = Math.floor(indices.length * 0.5);
+      const maxReveal = Math.floor(indices.length * this.maxRevealPercent);
       const hidden = indices.filter((i) => !this.revealedIndices.has(i));
       if (this.revealedIndices.size >= maxReveal || hidden.length === 0) return;
       const pick = hidden[Math.floor(Math.random() * hidden.length)];
