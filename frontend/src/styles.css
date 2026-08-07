@@ -2539,32 +2539,49 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   justify-content: center;
   box-shadow: 0 0 0 2px var(--bg);
 }
-.friends-quick-popover.friends-quick-popover-floating {
+.friends-quick-overlay {
   position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2100;
+  padding: 20px;
 }
-
 .friends-quick-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 2100;
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  padding: 8px;
-  min-width: 200px;
-  max-height: 280px;
+  padding: 12px;
+  width: 100%;
+  max-width: 300px;
+  max-height: 60vh;
   overflow-y: auto;
 }
-.friends-quick-popover h4 {
-  margin: 0 0 6px 0;
+.friends-quick-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.friends-quick-popover-header h4 {
+  margin: 0;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-dim);
 }
+.friends-quick-popover-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+.friends-quick-popover-close:hover { color: var(--text); }
 .friends-quick-empty { color: var(--text-dim); font-size: 12px; margin: 0; }
 .friends-quick-item {
   display: flex;

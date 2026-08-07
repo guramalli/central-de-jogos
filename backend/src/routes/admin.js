@@ -188,6 +188,7 @@ router.patch("/quiz-questions/:id", async (req, res) => {
 router.get("/users", requireRole("ADMIN"), async (req, res) => {
   const users = await prisma.user.findMany({
     select: { id: true, nickname: true, email: true, role: true, banned: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
   });
   res.json(users);
 });

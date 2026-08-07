@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
 import DmModal from "./DmModal.jsx";
@@ -7,13 +7,16 @@ import DmModal from "./DmModal.jsx";
 // jogo, pra dar pra falar no privado com alguém sem sair da partida. Usa o
 // mesmo socket já conectado da sala (Socket.IO permite ficar em várias
 // "salas" ao mesmo tempo numa única conexão, sem conflito).
+//
+// A lista de amigos abre num fundo clicável cobrindo a tela toda (mesma
+// técnica usada no modal de mensagem privada) — evita qualquer bug de
+// "clique fora fecha sozinho", já que não depende de nenhum ouvinte de
+// evento global nem cálculo de posição via JavaScript.
 export default function FriendsQuickChat() {
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState(null);
   const [chatWith, setChatWith] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [coords, setCoords] = useState({ bottom: 0, right: 0 });
-  const btnRef = useRef(null);
 
   // Confere de tempos em tempos se chegou mensagem nova, e também escuta o
   // evento disparado assim que uma conversa é aberta (marca como lida na
@@ -31,73 +34,48 @@ export default function FriendsQuickChat() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
+  function handleOpen() {
+    setOpen(true);
     api.get("/friends").then(({ data }) => setFriends(data.friends || [])).catch(() => setFriends([]));
-
-    function close() {
-      setOpen(false);
-    }
-    // Adia um instante antes de "escutar" cliques fora — sem isso, o
-    // MESMO clique que abriu o balão (o toque no botão) podia ser
-    // capturado de novo aqui e fechar tudo na mesma hora, principalmente
-    // em celular, dando a impressão de que "não acontece nada".
-    const timer = setTimeout(() => window.addEventListener("click", close), 0);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("click", close);
-    };
-  }, [open]);
-
-  function handleToggle(e) {
-    e.stopPropagation();
-    const rect = btnRef.current?.getBoundingClientRect();
-    if (rect) {
-      // Calcula a partir da borda direita/inferior da JANELA (não do botão
-      // em si), pra abrir sempre "pra cima" do botão flutuante, ficando
-      // visível não importa em que canto da tela o botão esteja.
-      setCoords({
-        bottom: window.innerHeight - rect.top + 10,
-        right: window.innerWidth - rect.right,
-      });
-    }
-    setOpen((o) => !o);
   }
 
   return (
     <div className="friends-quick-chat friends-quick-chat-floating">
-      <button ref={btnRef} className="friends-quick-fab" onClick={handleToggle} title="Conversar com amigos">
+      <button className="friends-quick-fab" onClick={handleOpen} title="Conversar com amigos">
         💬
         {unreadCount > 0 && <span className="friends-quick-fab-badge">{unreadCount}</span>}
       </button>
+
       {open &&
         createPortal(
-          <div
-            className="friends-quick-popover friends-quick-popover-floating"
-            style={{ bottom: coords.bottom, right: coords.right }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4>Seus amigos</h4>
-            {friends === null && <p className="friends-quick-empty">Carregando...</p>}
-            {friends?.length === 0 && (
-              <p className="friends-quick-empty">Você ainda não tem amigos adicionados.</p>
-            )}
-            {friends?.map((f) => (
-              <button
-                key={f.userId}
-                className="friends-quick-item"
-                onClick={() => {
-                  setChatWith(f);
-                  setOpen(false);
-                }}
-              >
-                <span className={`friend-status-dot ${f.online ? "friend-status-online" : "friend-status-offline"}`} />
-                {f.nickname}
-              </button>
-            ))}
+          <div className="friends-quick-overlay" onClick={() => setOpen(false)}>
+            <div className="friends-quick-popover" onClick={(e) => e.stopPropagation()}>
+              <div className="friends-quick-popover-header">
+                <h4>Seus amigos</h4>
+                <button className="friends-quick-popover-close" onClick={() => setOpen(false)}>✕</button>
+              </div>
+              {friends === null && <p className="friends-quick-empty">Carregando...</p>}
+              {friends?.length === 0 && (
+                <p className="friends-quick-empty">Você ainda não tem amigos adicionados.</p>
+              )}
+              {friends?.map((f) => (
+                <button
+                  key={f.userId}
+                  className="friends-quick-item"
+                  onClick={() => {
+                    setChatWith(f);
+                    setOpen(false);
+                  }}
+                >
+                  <span className={`friend-status-dot ${f.online ? "friend-status-online" : "friend-status-offline"}`} />
+                  {f.nickname}
+                </button>
+              ))}
+            </div>
           </div>,
           document.body
         )}
+
       {chatWith && <DmModal friend={chatWith} onClose={() => setChatWith(null)} />}
     </div>
   );
