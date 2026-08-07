@@ -308,14 +308,15 @@ export class StopRoom {
     // ligar o timer. Antes, se o banco demorasse (ex.: "acordando" depois de
     // ficar inativo), a sala inteira travava esperando essa resposta. Agora
     // o glossário carrega em paralelo, em segundo plano.
+    const roundInBlock = ((this.roundNumber - 1) % ROUNDS_PER_BLOCK) + 1;
     this.broadcast("round-start", {
       roundNumber: this.roundNumber,
-      roundInBlock: ((this.roundNumber - 1) % ROUNDS_PER_BLOCK) + 1,
+      roundInBlock,
       themes: this.currentThemes.map((t) => ({ key: t.key, name: t.name })),
       letter: this.currentLetter,
       seconds: this.answerSeconds,
     });
-    this.systemMessage(`🎲 Rodada ${this.roundNumber} começou — letra sorteada: ${this.currentLetter}`);
+    this.systemMessage(`🎲 Rodada ${roundInBlock} de ${ROUNDS_PER_BLOCK} começou — letra sorteada: ${this.currentLetter}`);
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
@@ -605,9 +606,10 @@ export class StopRoom {
         }
       }
 
+      const roundInBlock = ((this.roundNumber - 1) % ROUNDS_PER_BLOCK) + 1;
       this.broadcast("round-result", {
         roundNumber: this.roundNumber,
-        roundInBlock: ((this.roundNumber - 1) % ROUNDS_PER_BLOCK) + 1,
+        roundInBlock,
         letter: this.currentLetter,
         themes: this.currentThemes.map((t) => ({ key: t.key, name: t.name })),
         players: activePlayers.map((p) => ({
@@ -618,7 +620,7 @@ export class StopRoom {
           blockTotal: this.blockTotals.get(p.userId) || 0,
         })),
       });
-      this.systemMessage(`🏁 Rodada ${this.roundNumber} encerrada!`);
+      this.systemMessage(`🏁 Rodada ${roundInBlock} de ${ROUNDS_PER_BLOCK} encerrada!`);
 
       await this.broadcastOnlinePlayers();
 
