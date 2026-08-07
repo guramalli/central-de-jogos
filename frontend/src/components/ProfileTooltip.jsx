@@ -4,13 +4,6 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
-function formatMemberSince(dateStr) {
-  if (!dateStr) return "—";
-  const date = new Date(dateStr);
-  const formatted = date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
 // Renderiza o conteúdo do hover num portal, direto no <body> — assim ele
 // nunca fica "cortado" por containers com rolagem (tipo a lista de
 // jogadores online), que sempre recortam qualquer coisa que vaze pra fora
@@ -95,9 +88,10 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     <div className="avatar-placeholder avatar-placeholder-small">🎮</div>
                   )}
                 </div>
-                <div>⏱ {profile.playtimeMinutes} min de jogo</div>
-                <div>📅 Desde {formatMemberSince(profile.memberSince)}</div>
-                <div>Mensal: <strong>{monthly ? `${monthly.points} pts` : "0 pts"}</strong></div>
+                <div>
+                  Mensal: <strong>{monthly ? `${monthly.points} pts` : "0 pts"}</strong>
+                  {monthly?.position && <span style={{ opacity: 0.75 }}> (#{monthly.position} no ranking)</span>}
+                </div>
                 <div>Vitalícia: <strong>{lifetime ? lifetime.points : 0} pts</strong></div>
                 <div style={{ opacity: 0.75 }}>
                   {lifetime?.nextRank

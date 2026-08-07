@@ -123,10 +123,10 @@ export default function Friends() {
         )}
         {friends.map((f) => (
           <div key={f.friendshipId} className="friend-row">
-            <span className="friend-name">
+            <Link to={`/jogador/${f.userId}`} className="friend-name">
               <span className={`friend-status-dot ${f.online ? "friend-status-online" : ""}`} />
               {f.nickname}
-            </span>
+            </Link>
             <button className="btn secondary" onClick={() => handleRemove(f.friendshipId)}>Remover</button>
           </div>
         ))}

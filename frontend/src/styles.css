@@ -315,6 +315,16 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .podium-medal { font-size: 30px; }
 .podium-name { font-weight: 700; margin-top: 6px; }
+.podium-name a,
+.player-table a {
+  color: var(--text);
+  text-decoration: none;
+}
+.podium-name a:hover,
+.player-table a:hover {
+  color: var(--accent-2);
+  text-decoration: underline;
+}
 .podium-points { color: var(--accent-2); font-size: 13px; margin-top: 2px; }
 .podium-1 { order: 2; padding-top: 26px; border-color: var(--accent-2); }
 .podium-2 { order: 1; }
@@ -2285,7 +2295,8 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   border-bottom: 1px solid var(--border);
 }
 .friend-row:last-child { border-bottom: none; }
-.friend-name { display: flex; align-items: center; gap: 8px; }
+.friend-name { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; }
+.friend-name:hover { color: var(--accent-2); text-decoration: underline; }
 .friend-status-dot {
   width: 8px;
   height: 8px;
@@ -2375,3 +2386,4 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 .achievement-icon { font-size: 20px; }
+.achievement-icon-img { width: 24px; height: 24px; object-fit: contain; }

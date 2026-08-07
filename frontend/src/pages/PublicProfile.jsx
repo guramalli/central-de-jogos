@@ -95,7 +95,11 @@ export default function PublicProfile() {
           <div className="achievements-grid">
             {profile.achievements.map((a, i) => (
               <div key={i} className="achievement-badge">
-                <span className="achievement-icon">{a.icon}</span>
+                {a.iconUrl ? (
+                  <img src={a.iconUrl} alt="" className="achievement-icon-img" />
+                ) : (
+                  <span className="achievement-icon">{a.icon}</span>
+                )}
                 <span>{a.label}</span>
               </div>
             ))}

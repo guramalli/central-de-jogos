@@ -25,12 +25,12 @@ async function buildAchievements(userId, nickname, lifetimeByGame) {
   const stopPoints = lifetimeByGame.get("stop") || 0;
   if (stopPoints > 0) {
     const rank = getRankForPoints(stopPoints);
-    achievements.push({ icon: "🅾️", label: `${rank.name} no Stop` });
+    achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Stop` });
   }
   const quizPoints = lifetimeByGame.get("quiz") || 0;
   if (quizPoints > 0) {
     const rank = getQuizRankForPoints(quizPoints);
-    achievements.push({ icon: "❓", label: `${rank.name} no Quiz` });
+    achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Quiz` });
   }
 
   const streakRecords = await prisma.quizStreakRecord.findMany({ where: { nickname } });
@@ -52,6 +52,19 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
 
   const monthKey = currentMonthKey();
   const monthly = await prisma.monthlyScore.findMany({ where: { userId: id, monthKey } });
+  // Pra cada jogo em que a pessoa pontuou esse mês, calcula em qual posição
+  // ela está no ranking mensal daquele jogo específico (mostrado no hover).
+  const monthlyWithPosition = await Promise.all(
+    monthly.map(async (m) => {
+      const allInGame = await prisma.monthlyScore.findMany({
+        where: { gameKey: m.gameKey, monthKey, user: { role: { not: "ADMIN" } } },
+        orderBy: { points: "desc" },
+        select: { userId: true },
+      });
+      const idx = allInGame.findIndex((s) => s.userId === id);
+      return { gameKey: m.gameKey, points: m.points, position: idx >= 0 ? idx + 1 : null };
+    })
+  );
   // Exclui as pontuações vitalícias "por sala" (gameKey tipo "stop:stop-sala-1") —
   // aqui no tooltip de perfil só mostramos o total geral, pra não poluir com
   // muita informação. O placar por sala continua existindo, só não aparece aqui.
@@ -68,7 +81,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     clan: user.clan ? { name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
     memberSince: user.createdAt,
-    monthly: monthly.map((m) => ({ gameKey: m.gameKey, points: m.points })),
+    monthly: monthlyWithPosition,
     lifetime: lifetime.map((l) => ({
       gameKey: l.gameKey,
       points: l.points,
