@@ -8,6 +8,7 @@ import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMuted } from "../utils/sounds.js";
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
 import InviteButton from "../components/InviteButton.jsx";
+import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
@@ -199,6 +200,7 @@ export default function QuizGame() {
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
         <div className="quiz-timer-group">
+          <FriendsQuickChat />
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/quiz/${roomId}`}

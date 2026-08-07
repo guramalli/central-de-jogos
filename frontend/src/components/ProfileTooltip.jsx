@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import DmModal from "./DmModal.jsx";
 
 // Renderiza o conteúdo do hover num portal, direto no <body> — assim ele
 // nunca fica "cortado" por containers com rolagem (tipo a lista de
@@ -15,6 +16,7 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
   const [visible, setVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const [friendStatus, setFriendStatus] = useState(null); // null | "sending" | "sent" | "error"
+  const [dmOpen, setDmOpen] = useState(false);
   const anchorRef = useRef(null);
   const hideTimerRef = useRef(null);
 
@@ -113,7 +115,15 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     ) : friendStatus === "error" ? (
                       <span style={{ color: "#ff8a8a" }}>Não foi possível enviar.</span>
                     ) : profile.friendshipStatus === "friends" ? (
-                      <span style={{ color: "#06d6a0" }}>✓ Já são amigos</span>
+                      <button
+                        className="nick-tooltip-friend-btn"
+                        onClick={() => {
+                          setDmOpen(true);
+                          setVisible(false);
+                        }}
+                      >
+                        💬 Mandar mensagem
+                      </button>
                     ) : profile.friendshipStatus === "pending_received" ? (
                       <span style={{ color: "var(--accent-2)" }}>Te mandou um pedido — vê em Amigos</span>
                     ) : (
@@ -135,6 +145,7 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
           </div>,
           document.body
         )}
+      {dmOpen && <DmModal friend={{ userId, nickname }} onClose={() => setDmOpen(false)} />}
     </span>
   );
 }

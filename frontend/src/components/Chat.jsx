@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import EmojiPicker from "./EmojiPicker.jsx";
 
 // Paleta de cores pra diferenciar cada jogador no chat — sempre a mesma cor
 // pra mesma pessoa (calculada a partir do id dela), separando visualmente
@@ -60,6 +61,7 @@ export default function Chat({ messages, onSend, showTimestamp = false }) {
         <div ref={endRef} />
       </div>
       <form className="chat-input" onSubmit={handleSubmit}>
+        <EmojiPicker onSelect={(emoji) => setText((t) => t + emoji)} />
         <input placeholder="Digite uma mensagem..." value={text} onChange={(e) => setText(e.target.value)} />
         <button className="btn" type="submit">Enviar</button>
       </form>
