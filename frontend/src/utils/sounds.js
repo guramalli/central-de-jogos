@@ -76,3 +76,24 @@ export function playCorrectSound() {
     // navegador pode bloquear autoplay antes de qualquer interação — sem problema, ignora
   });
 }
+
+// Som de mensagem privada — mute próprio, separado do mute do Quiz (alguém
+// pode querer silenciar só as mensagens sem silenciar o jogo, ou vice-versa).
+const DM_MUTE_KEY = "dm-sound-muted";
+let dmMuted = localStorage.getItem(DM_MUTE_KEY) === "true";
+
+export function isDmSoundMuted() {
+  return dmMuted;
+}
+
+export function toggleDmSoundMuted() {
+  dmMuted = !dmMuted;
+  localStorage.setItem(DM_MUTE_KEY, dmMuted ? "true" : "false");
+  return dmMuted;
+}
+
+export function playMessageSound() {
+  if (dmMuted) return;
+  beep(880, 0.08, 0, "sine", 0.12);
+  beep(1180, 0.1, 0.08, "sine", 0.12);
+}

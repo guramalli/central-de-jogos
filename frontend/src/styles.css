@@ -2483,10 +2483,69 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   line-height: 1;
 }
 .dm-modal-close:hover { color: var(--text); }
+.dm-modal-header-actions { display: flex; align-items: center; gap: 10px; }
+.dm-modal-mute {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.85;
+}
+.dm-modal-mute:hover { opacity: 1; }
 .dm-modal .chat-box { height: 320px; margin-top: 10px; }
 
 /* ===== Conversa rápida com amigos (dentro das salas de jogo) ===== */
 .friends-quick-chat { position: relative; display: inline-block; }
+
+/* Versão flutuante — fixa no canto da tela, fora do cabeçalho, pra não
+   disputar espaço com os outros botões (Convidar, Sair da sala, etc). */
+.friends-quick-chat-floating {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1500;
+}
+.friends-quick-fab {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.friends-quick-fab:hover { transform: scale(1.06); }
+.friends-quick-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.friends-quick-popover-floating {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  top: auto;
+}
+
 .friends-quick-popover {
   position: absolute;
   top: calc(100% + 6px);

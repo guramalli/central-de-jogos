@@ -10,6 +10,23 @@ export default function FriendsQuickChat() {
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState(null);
   const [chatWith, setChatWith] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Confere de tempos em tempos se chegou mensagem nova, e também escuta o
+  // evento disparado assim que uma conversa é aberta (marca como lida na
+  // hora, sem esperar o próximo ciclo automático).
+  useEffect(() => {
+    function checkUnread() {
+      api.get("/friends/messages/unread-count").then(({ data }) => setUnreadCount(data.count)).catch(() => {});
+    }
+    checkUnread();
+    const interval = setInterval(checkUnread, 30000);
+    window.addEventListener("unread-counts-changed", checkUnread);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("unread-counts-changed", checkUnread);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -23,9 +40,9 @@ export default function FriendsQuickChat() {
   }, [open]);
 
   return (
-    <div className="friends-quick-chat">
+    <div className="friends-quick-chat friends-quick-chat-floating">
       <button
-        className="quiz-mute-btn"
+        className="friends-quick-fab"
         onClick={(e) => {
           e.stopPropagation();
           setOpen((o) => !o);
@@ -33,9 +50,10 @@ export default function FriendsQuickChat() {
         title="Conversar com amigos"
       >
         💬
+        {unreadCount > 0 && <span className="friends-quick-fab-badge">{unreadCount}</span>}
       </button>
       {open && (
-        <div className="friends-quick-popover" onClick={(e) => e.stopPropagation()}>
+        <div className="friends-quick-popover friends-quick-popover-floating" onClick={(e) => e.stopPropagation()}>
           <h4>Seus amigos</h4>
           {friends === null && <p className="friends-quick-empty">Carregando...</p>}
           {friends?.length === 0 && (

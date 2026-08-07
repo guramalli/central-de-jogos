@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "../socket.js";
 import Chat from "./Chat.jsx";
+import { playMessageSound, isDmSoundMuted, toggleDmSoundMuted } from "../utils/sounds.js";
 
 // Modal de conversa privada com um amigo — abre por cima da tela atual,
 // usa o mesmo socket já conectado (não abre uma conexão nova).
@@ -8,6 +9,7 @@ export default function DmModal({ friend, onClose }) {
   const socketRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
+  const [muted, setMuted] = useState(isDmSoundMuted());
 
   useEffect(() => {
     const socket = getSocket();
@@ -22,7 +24,12 @@ export default function DmModal({ friend, onClose }) {
       // sem esperar o próximo ciclo automático de 30s.
       window.dispatchEvent(new Event("unread-counts-changed"));
     });
-    socket.on("dm-message", (msg) => setMessages((prev) => [...prev, msg]));
+    socket.on("dm-message", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+      // Só toca o som pra mensagem que CHEGOU do amigo — não quando é eco
+      // da mensagem que eu mesmo acabei de mandar.
+      if (msg.senderId === friend.userId) playMessageSound();
+    });
     socket.on("dm-error", (data) => setError(data.error || "Erro ao abrir a conversa."));
 
     return () => {
@@ -36,6 +43,10 @@ export default function DmModal({ friend, onClose }) {
 
   function sendMessage(text) {
     socketRef.current?.emit("dm-message", { message: text });
+  }
+
+  function handleToggleMute() {
+    setMuted(toggleDmSoundMuted());
   }
 
   // Adapta as mensagens do formato do banco (senderId) pro formato que o
@@ -52,7 +63,16 @@ export default function DmModal({ friend, onClose }) {
       <div className="dm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="dm-modal-header">
           <h3>💬 {friend.nickname}</h3>
-          <button className="dm-modal-close" onClick={onClose}>✕</button>
+          <div className="dm-modal-header-actions">
+            <button
+              className="dm-modal-mute"
+              onClick={handleToggleMute}
+              title={muted ? "Ativar som de mensagens" : "Silenciar som de mensagens"}
+            >
+              {muted ? "🔇" : "🔊"}
+            </button>
+            <button className="dm-modal-close" onClick={onClose}>✕</button>
+          </div>
         </div>
         {error && <div className="error-msg">{error}</div>}
         {!error && <Chat messages={adaptedMessages} onSend={sendMessage} showTimestamp />}
