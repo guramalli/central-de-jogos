@@ -59,6 +59,14 @@ router.get("/pending-count", async (req, res) => {
   res.json({ count });
 });
 
+// Mesma ideia, mas pra mensagens privadas não lidas.
+router.get("/messages/unread-count", async (req, res) => {
+  const count = await prisma.privateMessage.count({
+    where: { receiverId: req.user.id, read: false },
+  });
+  res.json({ count });
+});
+
 // Envia um pedido de amizade (por nickname, pra ser fácil de usar numa
 // busca simples) ou por ID direto (usado pelo botão no hover de perfil).
 router.post("/request", async (req, res) => {

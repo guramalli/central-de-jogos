@@ -2302,10 +2302,11 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #555;
+  background: #e63946;
   flex-shrink: 0;
 }
 .friend-status-online { background: #06d6a0; box-shadow: 0 0 6px #06d6a0; }
+.friend-status-offline { background: #e63946; }
 
 /* ===== Widget de Chat Geral (página inicial) ===== */
 .general-chat-widget { padding: 20px; margin-bottom: 24px; }
@@ -2446,3 +2447,40 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .achievement-icon { font-size: 20px; }
 .achievement-icon-img { width: 24px; height: 24px; object-fit: contain; }
+
+/* ===== Modal de mensagem privada ===== */
+.dm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+.dm-modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 16px;
+}
+.dm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.dm-modal-header h3 { margin: 0; font-size: 16px; }
+.dm-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+}
+.dm-modal-close:hover { color: var(--text); }
+.dm-modal .chat-box { height: 320px; margin-top: 10px; }

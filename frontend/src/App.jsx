@@ -41,13 +41,16 @@ export default function App() {
   const { theme } = useTheme();
   const location = useLocation();
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
+  const [unreadDmCount, setUnreadDmCount] = useState(0);
 
-  // Confere de tempos em tempos se chegou pedido de amizade novo — assim,
-  // mesmo quem não está na página de Amigos vê o avisinho no menu.
+  // Confere de tempos em tempos se chegou pedido de amizade ou mensagem
+  // privada nova — assim, mesmo quem não está na página de Amigos vê o
+  // avisinho no menu.
   useEffect(() => {
     if (!user) return;
     function check() {
       api.get("/friends/pending-count").then(({ data }) => setPendingFriendCount(data.count)).catch(() => {});
+      api.get("/friends/messages/unread-count").then(({ data }) => setUnreadDmCount(data.count)).catch(() => {});
     }
     check();
     const interval = setInterval(check, 30000);
@@ -76,7 +79,9 @@ export default function App() {
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 <NavLink to="/amigos" className={navLinkClass}>
-                  Amigos{pendingFriendCount > 0 && <span className="nav-badge">{pendingFriendCount}</span>}
+                  Amigos{(pendingFriendCount + unreadDmCount) > 0 && (
+                    <span className="nav-badge">{pendingFriendCount + unreadDmCount}</span>
+                  )}
                 </NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>

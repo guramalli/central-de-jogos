@@ -122,6 +122,69 @@ export function setupSocket(io) {
       });
     });
 
+    // ===== Mensagem privada (só entre amigos) =====
+    socket.on("join-dm", async ({ friendUserId } = {}) => {
+      if (!friendUserId) return;
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          status: "accepted",
+          OR: [
+            { userAId: userId, userBId: friendUserId },
+            { userAId: friendUserId, userBId: userId },
+          ],
+        },
+      });
+      if (!friendship) {
+        socket.emit("dm-error", { error: "Vocês precisam ser amigos pra conversar." });
+        return;
+      }
+
+      const roomId = ["dm", ...[userId, friendUserId].sort()].join(":");
+      socket.join(roomId);
+      socket.currentDmRoom = roomId;
+      socket.currentDmFriendId = friendUserId;
+
+      const history = await prisma.privateMessage.findMany({
+        where: {
+          OR: [
+            { senderId: userId, receiverId: friendUserId },
+            { senderId: friendUserId, receiverId: userId },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+
+      // Marca como lidas as mensagens que o amigo mandou pra mim.
+      await prisma.privateMessage.updateMany({
+        where: { senderId: friendUserId, receiverId: userId, read: false },
+        data: { read: true },
+      });
+
+      socket.emit("dm-history", {
+        messages: history.reverse().map((m) => ({
+          id: m.id,
+          senderId: m.senderId,
+          message: m.message,
+          at: m.createdAt.getTime(),
+        })),
+      });
+    });
+
+    socket.on("dm-message", async ({ message } = {}) => {
+      if (!socket.currentDmRoom || !socket.currentDmFriendId || !message?.trim()) return;
+      const clean = message.trim().slice(0, 500);
+      const saved = await prisma.privateMessage.create({
+        data: { senderId: userId, receiverId: socket.currentDmFriendId, message: clean },
+      });
+      io.to(socket.currentDmRoom).emit("dm-message", {
+        id: saved.id,
+        senderId: userId,
+        message: clean,
+        at: saved.createdAt.getTime(),
+      });
+    });
+
     socket.on("disconnect", () => {
       socket.currentRoom?.removePlayer(socket.id);
       socket.currentQuizRoom?.removePlayer(socket.id);

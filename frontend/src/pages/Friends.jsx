@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
+import DmModal from "../components/DmModal.jsx";
 
 export default function Friends() {
   const [data, setData] = useState({ friends: [], receivedPending: [], sentPending: [] });
@@ -9,6 +10,7 @@ export default function Friends() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
+  const [chatWith, setChatWith] = useState(null); // { userId, nickname } | null
 
   useEffect(() => {
     load();
@@ -124,13 +126,20 @@ export default function Friends() {
         {friends.map((f) => (
           <div key={f.friendshipId} className="friend-row">
             <Link to={`/jogador/${f.userId}`} className="friend-name">
-              <span className={`friend-status-dot ${f.online ? "friend-status-online" : ""}`} />
+              <span className={`friend-status-dot ${f.online ? "friend-status-online" : "friend-status-offline"}`} />
               {f.nickname}
             </Link>
-            <button className="btn secondary" onClick={() => handleRemove(f.friendshipId)}>Remover</button>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button className="btn secondary" onClick={() => setChatWith({ userId: f.userId, nickname: f.nickname })}>
+                💬 Mensagem
+              </button>
+              <button className="btn secondary" onClick={() => handleRemove(f.friendshipId)}>Remover</button>
+            </div>
           </div>
         ))}
       </div>
+
+      {chatWith && <DmModal friend={chatWith} onClose={() => setChatWith(null)} />}
     </div>
   );
 }

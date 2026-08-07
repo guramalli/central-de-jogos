@@ -41,6 +41,8 @@ model User {
   suspiciousActivities SuspiciousActivity[]
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
+  sentPrivateMessages     PrivateMessage[] @relation("SentMessages")
+  receivedPrivateMessages PrivateMessage[] @relation("ReceivedMessages")
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")
@@ -147,6 +149,19 @@ model Friendship {
   status   String @default("pending") // pending | accepted
 
   @@unique([userAId, userBId])
+}
+
+// Mensagem privada entre dois amigos — só pode existir entre quem já tem
+// amizade aceita (checado no momento de entrar na conversa, não aqui).
+model PrivateMessage {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  message    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
 
 model ChatMessage {
