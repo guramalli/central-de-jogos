@@ -2183,3 +2183,39 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   transition: border-color 0.15s ease, transform 0.1s ease;
 }
 .theme-toggle-btn:hover { border-color: var(--accent-2); transform: scale(1.08); }
+
+/* ===== Banner de premiação mensal ===== */
+.prize-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: linear-gradient(120deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 153, 0, 0.08) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.prize-badge {
+  background: linear-gradient(160deg, #ffe066 0%, #ffb300 100%);
+  color: #3a2600;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.prize-banner strong { color: var(--text); }
+.prize-banner-link {
+  margin-left: auto;
+  color: var(--accent-2);
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.prize-banner-link:hover { text-decoration: underline; }

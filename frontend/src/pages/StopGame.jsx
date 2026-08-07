@@ -71,6 +71,13 @@ export default function StopGame() {
   const canAttemptStop = phase === "active";
 
   useEffect(() => {
+    // Ao entrar na sala, garante que a tela começa mostrando o topo — sem
+    // isso, a rolagem podia vir "herdada" de onde a pessoa estava antes
+    // (tipo se tinha rolado a lista de salas), abrindo o jogo no meio da tela.
+    window.scrollTo(0, 0);
+  }, [roomId]);
+
+  useEffect(() => {
     setAccessDenied(null);
     const socket = getSocket();
     socketRef.current = socket;

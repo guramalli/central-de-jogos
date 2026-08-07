@@ -27,6 +27,17 @@ export default function Lobby() {
 
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
+      {/* Premiação do mês */}
+      <div className="prize-banner">
+        <span className="prize-badge">🏆 PREMIAÇÃO</span>
+        <span>
+          Neste mês de testes, o <strong>ranking mensal do Stop</strong> vai premiar de verdade:{" "}
+          <strong>1º lugar leva R$ 200</strong>, <strong>2º leva R$ 100</strong> e{" "}
+          <strong>3º leva R$ 50</strong> — tudo via Pix!
+        </span>
+        <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
+      </div>
+
       {/* Painel de boas-vindas */}
       <section className="glossy-panel lobby-hero">
         <div>
