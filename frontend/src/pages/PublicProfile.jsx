@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
@@ -72,10 +72,16 @@ export default function PublicProfile() {
           )}
           {!isMe && (
             <div style={{ marginTop: 10 }}>
-              {friendStatus === "sent" ? (
+              {friendStatus === "sent" || profile.friendshipStatus === "pending_sent" ? (
                 <span style={{ color: "#06d6a0" }}>✓ Pedido de amizade enviado!</span>
               ) : friendStatus === "sending" ? (
                 <span style={{ color: "var(--text-dim)" }}>Enviando...</span>
+              ) : profile.friendshipStatus === "friends" ? (
+                <span style={{ color: "#06d6a0" }}>✓ Já são amigos</span>
+              ) : profile.friendshipStatus === "pending_received" ? (
+                <span style={{ color: "var(--accent-2)" }}>
+                  Te mandou um pedido de amizade — <Link to="/amigos">confere aqui</Link>
+                </span>
               ) : (
                 <>
                   <button className="btn" onClick={handleAddFriend}>+ Adicionar amigo</button>

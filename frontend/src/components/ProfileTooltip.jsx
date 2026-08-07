@@ -108,10 +108,14 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                 <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
                 {!isMe && (
                   <div style={{ marginTop: 6 }}>
-                    {friendStatus === "sent" ? (
+                    {friendStatus === "sent" || profile.friendshipStatus === "pending_sent" ? (
                       <span style={{ color: "#06d6a0" }}>✓ Pedido enviado!</span>
                     ) : friendStatus === "error" ? (
                       <span style={{ color: "#ff8a8a" }}>Não foi possível enviar.</span>
+                    ) : profile.friendshipStatus === "friends" ? (
+                      <span style={{ color: "#06d6a0" }}>✓ Já são amigos</span>
+                    ) : profile.friendshipStatus === "pending_received" ? (
+                      <span style={{ color: "var(--accent-2)" }}>Te mandou um pedido — vê em Amigos</span>
                     ) : (
                       <button
                         className="nick-tooltip-friend-btn"

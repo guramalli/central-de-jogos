@@ -81,6 +81,25 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   });
   const achievements = await buildAchievements(user.nickname, monthlyByGame);
 
+  // Status de amizade em relação a quem está VENDO o perfil (não em
+  // relação ao dono do perfil) — usado pra decidir se mostra o botão de
+  // adicionar amigo, ou "Já são amigos", ou "Pedido já enviado".
+  let friendshipStatus = null; // null | "friends" | "pending_sent" | "pending_received"
+  if (req.user.id !== id) {
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { userAId: req.user.id, userBId: id },
+          { userAId: id, userBId: req.user.id },
+        ],
+      },
+    });
+    if (friendship) {
+      if (friendship.status === "accepted") friendshipStatus = "friends";
+      else friendshipStatus = friendship.userAId === req.user.id ? "pending_sent" : "pending_received";
+    }
+  }
+
   res.json({
     id: user.id,
     nickname: user.nickname,
@@ -91,6 +110,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     monthly: monthlyWithPosition,
     lifetime: lifetime.map((l) => ({ gameKey: l.gameKey, points: l.points })),
     achievements,
+    friendshipStatus,
   });
 });
 
