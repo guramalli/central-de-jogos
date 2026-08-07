@@ -7,6 +7,7 @@ import SuggestWordButton from "../components/SuggestWordButton.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
+import { useIsMobile } from "../utils/useIsMobile.js";
 
 const STATUS_TEXT_CLASS = {
   correct: "word-text-correct",
@@ -32,6 +33,7 @@ export default function StopGame() {
   const roomId = roomIdParam || "stop-sala-1";
   const socketRef = useRef(null);
   const inputRefs = useRef([]);
+  const isMobile = useIsMobile();
   const awaitingResultRef = useRef(false); // evita "closure velha" dentro dos handlers do socket
   const pendingResultRef = useRef(null); // guarda o resultado se ele chegar durante o atraso
   const stopDelayTimerRef = useRef(null);
@@ -295,6 +297,54 @@ export default function StopGame() {
 
   const me = onlinePlayers.find((p) => p.userId === user?.id);
 
+  // Um único campo de resposta, com toda a navegação por teclado (Enter,
+  // Tab, Backspace pra campo anterior) — usado tanto na tabela normal
+  // (desktop) quanto na grade de 2 colunas (mobile), pra não duplicar essa
+  // lógica em dois lugares diferentes.
+  function renderFillInput(t, idx) {
+    return (
+      <input
+        key={t.key}
+        ref={(el) => (inputRefs.current[idx] = el)}
+        className="sheet-fill-input"
+        value={answers[t.key] || ""}
+        placeholder={letter || ""}
+        maxLength={40}
+        autoComplete="off"
+        onChange={(e) => updateAnswer(t.key, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            // Ctrl+Enter é o atalho de STOP — deixa passar pro atalho
+            // global em vez de tratar como "ir pro próximo campo".
+            return;
+          }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            inputRefs.current[idx + 1]?.focus();
+            return;
+          }
+          if (e.key === "Tab" && !e.shiftKey && idx === themes.length - 1) {
+            // Último campo + Tab -> volta pro primeiro, em vez de sair
+            // do grupo de campos (que é o padrão do navegador).
+            e.preventDefault();
+            inputRefs.current[0]?.focus();
+            return;
+          }
+          if (e.key === "Tab" && e.shiftKey && idx === 0) {
+            // Primeiro campo + Shift+Tab -> vai pro último (simétrico).
+            e.preventDefault();
+            inputRefs.current[themes.length - 1]?.focus();
+            return;
+          }
+          if (e.key === "Backspace" && !(answers[t.key] || "")) {
+            e.preventDefault();
+            inputRefs.current[idx - 1]?.focus();
+          }
+        }}
+      />
+    );
+  }
+
   // Monta as linhas da tabela conforme a fase do jogo — mas o componente que
   // efetivamente desenha a tabela (ScoreTable) é sempre o mesmo, então a
   // estrutura visual nunca diverge entre "preenchendo" e "resultado".
@@ -311,50 +361,7 @@ export default function StopGame() {
         nickname: user?.nickname,
         points: "—",
         blockTotal: "—",
-        cells: Object.fromEntries(
-          themes.map((t, idx) => [
-            t.key,
-            <input
-              key={t.key}
-              ref={(el) => (inputRefs.current[idx] = el)}
-              className="sheet-fill-input"
-              value={answers[t.key] || ""}
-              placeholder={letter || ""}
-              maxLength={40}
-              autoComplete="off"
-              onChange={(e) => updateAnswer(t.key, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                  // Ctrl+Enter é o atalho de STOP — deixa passar pro atalho
-                  // global em vez de tratar como "ir pro próximo campo".
-                  return;
-                }
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  inputRefs.current[idx + 1]?.focus();
-                  return;
-                }
-                if (e.key === "Tab" && !e.shiftKey && idx === themes.length - 1) {
-                  // Último campo + Tab -> volta pro primeiro, em vez de sair
-                  // do grupo de campos (que é o padrão do navegador).
-                  e.preventDefault();
-                  inputRefs.current[0]?.focus();
-                  return;
-                }
-                if (e.key === "Tab" && e.shiftKey && idx === 0) {
-                  // Primeiro campo + Shift+Tab -> vai pro último (simétrico).
-                  e.preventDefault();
-                  inputRefs.current[themes.length - 1]?.focus();
-                  return;
-                }
-                if (e.key === "Backspace" && !(answers[t.key] || "")) {
-                  e.preventDefault();
-                  inputRefs.current[idx - 1]?.focus();
-                }
-              }}
-            />,
-          ])
-        ),
+        cells: Object.fromEntries(themes.map((t, idx) => [t.key, renderFillInput(t, idx)])),
       },
     ];
   } else if (lastResult) {
@@ -493,9 +500,20 @@ export default function StopGame() {
           </div>
         )}
 
-        <div className="sc-table-scroll">
-          <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />
-        </div>
+        {isMobile && phase === "active" ? (
+          <div className="sc-fill-grid">
+            {themes.map((t, idx) => (
+              <div key={t.key} className="sc-fill-grid-cell">
+                <label className="sc-fill-grid-label">{t.name}</label>
+                {renderFillInput(t, idx)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="sc-table-scroll">
+            <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />
+          </div>
+        )}
 
         <div className="sc-stop-hint">
           💡 Peça <strong>stop</strong> clicando no botão da pontuação abaixo, ou apertando{" "}

@@ -13,6 +13,7 @@ export default function AcromaniaGame() {
   const { user } = useAuth();
   const { theme: uiTheme } = useTheme();
   const socketRef = useRef(null);
+  const phraseInputRef = useRef(null);
 
   const [roomLabel, setRoomLabel] = useState("");
   const [phase, setPhase] = useState("intermission");
@@ -129,6 +130,13 @@ export default function AcromaniaGame() {
     };
   }, [roomId]);
 
+  useEffect(() => {
+    // Em celular, focar automaticamente abre o teclado sozinho e empurra a
+    // tela — só faz isso em desktop, onde é conveniente sem esse efeito colateral.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (phase === "writing" && !submitted && !isMobile) phraseInputRef.current?.focus();
+  }, [phase, submitted]);
+
   function submitPhrase(e) {
     e.preventDefault();
     if (!phraseInput.trim() || submitted) return;
@@ -230,11 +238,11 @@ export default function AcromaniaGame() {
               ) : (
                 <>
                   <input
+                    ref={phraseInputRef}
                     value={phraseInput}
                     onChange={(e) => setPhraseInput(e.target.value)}
                     maxLength={200}
                     placeholder={`Frase começando com ${letters.join(", ")}...`}
-                    autoFocus
                   />
                   <button className="quiz-answer-btn" type="submit">Enviar frase</button>
                 </>

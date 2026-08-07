@@ -132,11 +132,14 @@ export default function QuizGame() {
   }, [roomId]);
 
   useEffect(() => {
-    if (phase === "active") inputRef.current?.focus();
+    // Em celular, focar automaticamente abre o teclado sozinho e empurra a
+    // tela — só faz isso em desktop, onde é conveniente sem esse efeito colateral.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (phase === "active" && !isMobile) inputRef.current?.focus();
   }, [phase, questionText]);
 
   useEffect(() => {
-    wrongLogEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    wrongLogEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [wrongLog]);
 
   function handleGuessSubmit(e) {
