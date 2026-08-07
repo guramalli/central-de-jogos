@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import MiniPodium from "../components/MiniPodium.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -26,6 +27,7 @@ function occupancyInfo(status) {
 
 export default function QuizLobby() {
   const [rooms, setRooms] = useState([]);
+  const { theme } = useTheme();
 
   useEffect(() => {
     api.get("/quiz-rooms").then(({ data }) => {
@@ -45,7 +47,7 @@ export default function QuizLobby() {
     <div>
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
-          <img src="/quiz-logo.png" alt="Quiz!" className="lobby-page-logo" />
+          <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-page-logo" />
           <h1 className="hero-title">Escolha um tema</h1>
           <p className="hero-subtitle">
             Cada sala tem perguntas de um tema só. Quem acertar primeiro leva os pontos — as letras

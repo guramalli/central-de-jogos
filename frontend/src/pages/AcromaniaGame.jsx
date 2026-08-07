@@ -6,10 +6,12 @@ import Chat from "../components/Chat.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 export default function AcromaniaGame() {
   const { roomId } = useParams();
   const { user } = useAuth();
+  const { theme: uiTheme } = useTheme();
   const socketRef = useRef(null);
 
   const [roomLabel, setRoomLabel] = useState("");
@@ -159,7 +161,7 @@ export default function AcromaniaGame() {
     <div className="quiz-root">
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
-          <img src="/acromania-logo.png" alt="Acromania" className="quiz-room-logo" />
+          <img src={uiTheme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="quiz-room-logo" />
           <div className="quiz-gloss-badge">
             <span className="quiz-badge-label">Pts Sala:</span> {me?.roomLifetimePoints ?? 0}
           </div>

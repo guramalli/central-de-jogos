@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 export default function Lobby() {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [showFeedback, setShowFeedback] = useState(false);
 
   return (
@@ -70,7 +72,7 @@ export default function Lobby() {
         </Link>
 
         <Link to="/jogos/quiz" className="glossy-panel lobby-game-card">
-          <img src="/quiz-logo.png" alt="Quiz!" className="lobby-game-logo" />
+          <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Quiz</h3>
             <p className="lobby-game-desc">
@@ -84,7 +86,7 @@ export default function Lobby() {
         </Link>
 
         <Link to="/jogos/acromania" className="glossy-panel lobby-game-card">
-          <img src="/acromania-logo.png" alt="Acromania" className="lobby-game-logo" />
+          <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
             <p className="lobby-game-desc">

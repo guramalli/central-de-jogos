@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 const ESTADOS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -9,6 +10,7 @@ const ESTADOS = [
 
 export default function Register() {
   const { register } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
@@ -37,7 +39,7 @@ export default function Register() {
   return (
     <div className="auth-split">
       <div className="auth-brand-panel">
-        <img src="/educacao-gamer-logo.png" alt="Educação Gamer" className="auth-logo-img" />
+        <img src={theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png"} alt="Educação Gamer" className="auth-logo-img" />
         <h2>Educação Gamer</h2>
         <p>Crie sua conta e comece a acumular pontos vitalícios hoje mesmo.</p>
       </div>

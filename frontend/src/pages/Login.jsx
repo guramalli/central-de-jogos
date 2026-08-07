@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 export default function Login() {
   const { login } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +25,7 @@ export default function Login() {
   return (
     <div className="auth-split">
       <div className="auth-brand-panel">
-        <img src="/educacao-gamer-logo.png" alt="Educação Gamer" className="auth-logo-img" />
+        <img src={theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png"} alt="Educação Gamer" className="auth-logo-img" />
         <h2>Educação Gamer</h2>
         <p>Jogue, pontue e suba de patente. Cadastro grátis, premiação mensal de verdade.</p>
       </div>

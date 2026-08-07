@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
+import { useTheme } from "./context/ThemeContext.jsx";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -30,10 +31,12 @@ function navLinkClass({ isActive }) {
 
 export default function App() {
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
   // atrapalhar o espaço da tela do jogo.
   const isInsideGameRoom = /^\/jogos\/(stop|quiz)\/[^/]+/.test(location.pathname);
+  const logoSrc = theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png";
 
   return (
     <>
@@ -41,7 +44,7 @@ export default function App() {
         <div className="app-header-inner">
           <div className="app-header-left">
             <Link to="/" className="logo">
-              <img src="/educacao-gamer-logo.png" alt="Educação Gamer" className="header-logo-img" />
+              <img src={logoSrc} alt="Educação Gamer" className="header-logo-img" />
             </Link>
             {user && (
               <nav className="nav-links">

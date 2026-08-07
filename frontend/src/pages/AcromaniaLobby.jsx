@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
@@ -11,6 +12,7 @@ function occupancyInfo(status) {
 
 export default function AcromaniaLobby() {
   const [rooms, setRooms] = useState([]);
+  const { theme } = useTheme();
 
   useEffect(() => {
     api.get("/acromania-rooms").then(({ data }) => setRooms(data)).catch(() => {});
@@ -20,7 +22,7 @@ export default function AcromaniaLobby() {
     <div>
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
-          <img src="/acromania-logo.png" alt="Acromania" className="lobby-page-logo" />
+          <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-page-logo" />
           <h1 className="hero-title">Escolha uma sala</h1>
           <p className="hero-subtitle">
             Um tema, algumas letras, e o tempo correndo — crie a frase mais criativa e vote na

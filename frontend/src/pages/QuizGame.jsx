@@ -8,6 +8,7 @@ import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMuted } from "../utils/sounds.js";
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
 import InviteButton from "../components/InviteButton.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -25,6 +26,7 @@ const THEME_ICONS = {
 
 export default function QuizGame() {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const { roomId } = useParams();
   const socketRef = useRef(null);
   const inputRef = useRef(null);
@@ -172,7 +174,7 @@ export default function QuizGame() {
     <div className="quiz-root">
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
-          <img src="/quiz-logo.png" alt="Quiz!" className="quiz-room-logo" />
+          <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="quiz-room-logo" />
           <div className="quiz-gloss-badge">
             <span className="quiz-badge-label">Pts Sala:</span> {me?.roomLifetimePoints ?? 0}
           </div>
