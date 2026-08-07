@@ -28,7 +28,17 @@ export default function QuizLobby() {
   const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
-    api.get("/quiz-rooms").then(({ data }) => setRooms(data)).catch(() => {});
+    api.get("/quiz-rooms").then(({ data }) => {
+      const TIER_ORDER = { padrao: 0, avancado: 1 };
+      const sorted = [...data].sort((a, b) => {
+        const themeA = a.label.split(" — ")[0];
+        const themeB = b.label.split(" — ")[0];
+        const themeCompare = themeA.localeCompare(themeB, "pt-BR");
+        if (themeCompare !== 0) return themeCompare;
+        return (TIER_ORDER[a.tier] ?? 0) - (TIER_ORDER[b.tier] ?? 0);
+      });
+      setRooms(sorted);
+    }).catch(() => {});
   }, []);
 
   return (
