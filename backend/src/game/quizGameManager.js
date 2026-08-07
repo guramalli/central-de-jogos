@@ -38,7 +38,11 @@ export async function getAllQuizRoomsStatus() {
       const room = rooms.get(roomId);
       const where = { status: "approved" };
       if (config.themeKey) where.themeKey = config.themeKey;
-      if (config.difficultyFilter) where.difficulty = config.difficultyFilter;
+      if (config.difficultyFilter) {
+        where.difficulty = Array.isArray(config.difficultyFilter)
+          ? { in: config.difficultyFilter }
+          : config.difficultyFilter;
+      }
       const questionCount = await prisma.quizQuestion.count({ where });
 
       return {
@@ -46,7 +50,7 @@ export async function getAllQuizRoomsStatus() {
         label: config.label,
         themeKey: config.themeKey,
         description: config.description,
-        difficulty: config.difficultyFilter || null,
+        tier: config.tier || null,
         maxPlayers: config.maxPlayers ?? 10,
         onlineCount: room ? room.countUniquePlayers() : 0,
         streakRecord: recordByRoom[roomId] || null,

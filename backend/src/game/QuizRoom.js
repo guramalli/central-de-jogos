@@ -193,7 +193,11 @@ export class QuizRoom {
   async pickQuestion() {
     const where = { status: "approved" };
     if (this.themeKey) where.themeKey = this.themeKey;
-    if (this.difficultyFilter) where.difficulty = this.difficultyFilter;
+    if (this.difficultyFilter) {
+      where.difficulty = Array.isArray(this.difficultyFilter)
+        ? { in: this.difficultyFilter }
+        : this.difficultyFilter;
+    }
     const total = await prisma.quizQuestion.count({ where });
     if (total === 0) return null;
 

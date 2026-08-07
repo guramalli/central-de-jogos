@@ -55,9 +55,9 @@ export default function QuizLobby() {
               <div className="quiz-theme-icon">{THEME_ICONS[r.themeKey] || "❓"}</div>
               <div>
                 <h3 className="lobby-game-title">{r.label}</h3>
-                {r.difficulty && (
-                  <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.difficulty === "facil" ? "basic" : "advanced"}`}>
-                    {r.difficulty === "facil" ? "🟢 Fácil" : "🔴 Difícil"}
+                {r.tier && (
+                  <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.tier === "padrao" ? "basic" : "advanced"}`}>
+                    {r.tier === "padrao" ? "🟢 Padrão" : "🔴 Avançado"}
                   </p>
                 )}
                 <p className="lobby-game-desc">{r.description || `Perguntas de ${r.label.toLowerCase()}.`}</p>

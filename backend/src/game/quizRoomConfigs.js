@@ -18,10 +18,13 @@ const THEMES = [
 function buildDifficultyRooms(themeKey, themeName) {
   return {
     [`quiz-${themeKey}-facil`]: {
-      label: `${themeName} — Fácil`,
+      label: `${themeName} — Padrão`,
       themeKey,
-      difficultyFilter: "facil",
-      description: `Perguntas mais tranquilas de ${themeName.toLowerCase()}.`,
+      tier: "padrao",
+      // Médio fica só aqui (não se repete na avançada) — sala mais cheia,
+      // boa pra maioria dos jogadores.
+      difficultyFilter: ["facil", "medio"],
+      description: `Perguntas de ${themeName.toLowerCase()} pra todo mundo.`,
       maxPlayers: 10,
       questionSeconds: 40,
       revealIntervalSeconds: 6,
@@ -29,10 +32,11 @@ function buildDifficultyRooms(themeKey, themeName) {
       pointsPerCorrect: 8,
     },
     [`quiz-${themeKey}-dificil`]: {
-      label: `${themeName} — Difícil`,
+      label: `${themeName} — Avançado`,
       themeKey,
-      difficultyFilter: "dificil",
-      description: `Perguntas mais puxadas de ${themeName.toLowerCase()}.`,
+      tier: "avancado",
+      difficultyFilter: ["dificil"],
+      description: `Só as perguntas mais puxadas de ${themeName.toLowerCase()}.`,
       maxPlayers: 10,
       questionSeconds: 35,
       revealIntervalSeconds: 4,
