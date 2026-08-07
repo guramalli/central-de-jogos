@@ -19,17 +19,22 @@ export default function InviteButton({ url, message, label = "Convidar amigos" }
   const fullText = `${shareText} ${shareUrl}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullText)}`;
 
+  // O compartilhamento nativo do sistema (navigator.share) só é confiável em
+  // celular — em vários Chrome de desktop ele existe mas falha com um erro
+  // do próprio navegador ("não foi possível mostrar todas as maneiras de
+  // compartilhar"). Por isso, no desktop sempre usamos nosso próprio
+  // menuzinho (mais previsível), e só tentamos o nativo em celular.
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   async function handleClick(e) {
     e.stopPropagation();
-    if (navigator.share) {
+    if (isMobile && navigator.share) {
       try {
         await navigator.share({ title: "Educação Gamer", text: shareText, url: shareUrl });
         return; // compartilhou com sucesso, não precisa do menu manual
       } catch (err) {
         if (err?.name === "AbortError") return; // usuário cancelou de propósito, não faz nada
-        // qualquer outro erro (ex.: navegador de desktop que "finge" suportar
-        // mas não completa) -> cai pro menu manual abaixo, em vez de não
-        // fazer nada visível.
+        // qualquer outro erro -> cai pro menu manual abaixo
       }
     }
     setOpen((o) => !o);
