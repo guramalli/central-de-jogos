@@ -103,6 +103,36 @@ export const QUIZ_ROOM_CONFIGS = {
     intermissionSeconds: 8,
     pointsPerCorrect: 10,
   },
+  "quiz-direito": {
+    label: "Direito",
+    themeKey: "direito",
+    description: "Código Civil, Penal, Tributário e mais — pra quem manja de leis.",
+    maxPlayers: 10,
+    questionSeconds: 45,
+    revealIntervalSeconds: 5,
+    intermissionSeconds: 8,
+    pointsPerCorrect: 15,
+  },
+  "quiz-facil": {
+    label: "Nível Fácil",
+    description: "Perguntas mais tranquilas, de qualquer tema — ótimo pra começar.",
+    maxPlayers: 10,
+    questionSeconds: 40,
+    revealIntervalSeconds: 6,
+    intermissionSeconds: 8,
+    pointsPerCorrect: 8,
+    difficultyFilter: "facil",
+  },
+  "quiz-dificil": {
+    label: "Nível Difícil",
+    description: "Perguntas mais puxadas, de qualquer tema — só pra quem se acha.",
+    maxPlayers: 10,
+    questionSeconds: 35,
+    revealIntervalSeconds: 4,
+    intermissionSeconds: 8,
+    pointsPerCorrect: 20,
+    difficultyFilter: "dificil",
+  },
 };
 
 export const DEFAULT_QUIZ_ROOM_ID = "quiz-esportes";

@@ -127,12 +127,18 @@ router.get("/quiz-questions", async (req, res) => {
 
 // Admin/moderador insere uma pergunta direto, já aprovada (sem fila)
 router.post("/quiz-questions", async (req, res) => {
-  const { themeKey, question, answer } = req.body;
+  const { themeKey, question, answer, difficulty } = req.body;
   if (!themeKey || !question?.trim() || !answer?.trim()) {
     return res.status(400).json({ error: "themeKey, question e answer são obrigatórios." });
   }
   const entry = await prisma.quizQuestion.create({
-    data: { themeKey, question: question.trim(), answer: answer.trim(), status: "approved" },
+    data: {
+      themeKey,
+      question: question.trim(),
+      answer: answer.trim(),
+      status: "approved",
+      difficulty: ["facil", "medio", "dificil"].includes(difficulty) ? difficulty : "medio",
+    },
   });
   res.json(entry);
 });
@@ -161,7 +167,7 @@ router.get("/quiz-questions/search", async (req, res) => {
 });
 
 router.patch("/quiz-questions/:id", async (req, res) => {
-  const { question, answer, themeKey } = req.body;
+  const { question, answer, themeKey, difficulty } = req.body;
   const data = {};
   if (question !== undefined) {
     if (!question.trim()) return res.status(400).json({ error: "A pergunta não pode ficar vazia." });
@@ -172,6 +178,9 @@ router.patch("/quiz-questions/:id", async (req, res) => {
     data.answer = answer.trim();
   }
   if (themeKey !== undefined) data.themeKey = themeKey;
+  if (difficulty !== undefined && ["facil", "medio", "dificil"].includes(difficulty)) {
+    data.difficulty = difficulty;
+  }
   const updated = await prisma.quizQuestion.update({ where: { id: req.params.id }, data });
   res.json(updated);
 });

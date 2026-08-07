@@ -18,6 +18,7 @@ const QUIZ_THEME_NAMES = {
   series: "Séries e TV",
   novelas: "Novelas",
   geografia: "Geografia",
+  direito: "Direito",
 };
 
 export default function Admin() {

@@ -176,6 +176,7 @@ model QuizQuestion {
   question      String
   answer        String
   status        String   @default("approved") // approved | pending | rejected
+  difficulty    String   @default("medio") // facil | medio | dificil
   suggestedById String?
   suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
   createdAt     DateTime @default(now())

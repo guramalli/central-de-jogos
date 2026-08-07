@@ -13,6 +13,7 @@ const THEMES = [
   { key: "series", name: "Séries e TV" },
   { key: "novelas", name: "Novelas" },
   { key: "geografia", name: "Geografia" },
+  { key: "direito", name: "Direito" },
 ];
 const THEME_NAME_BY_KEY = Object.fromEntries(THEMES.map((t) => [t.key, t.name]));
 
@@ -29,6 +30,7 @@ export default function AdminQuizGlossary() {
   const [page, setPage] = useState(1);
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
+  const [newDifficulty, setNewDifficulty] = useState("medio");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -41,6 +43,7 @@ export default function AdminQuizGlossary() {
   const [editingId, setEditingId] = useState(null);
   const [editQuestion, setEditQuestion] = useState("");
   const [editAnswer, setEditAnswer] = useState("");
+  const [editDifficulty, setEditDifficulty] = useState("medio");
 
   useEffect(() => {
     loadQuestions();
@@ -58,7 +61,7 @@ export default function AdminQuizGlossary() {
     setSaving(true);
     setError("");
     try {
-      await api.post("/admin/quiz-questions", { themeKey, question: newQuestion, answer: newAnswer });
+      await api.post("/admin/quiz-questions", { themeKey, question: newQuestion, answer: newAnswer, difficulty: newDifficulty });
       setNewQuestion("");
       setNewAnswer("");
       await loadQuestions();
@@ -97,6 +100,7 @@ export default function AdminQuizGlossary() {
     setEditingId(q.id);
     setEditQuestion(q.question);
     setEditAnswer(q.answer);
+    setEditDifficulty(q.difficulty || "medio");
   }
 
   function cancelEdit() {
@@ -106,7 +110,11 @@ export default function AdminQuizGlossary() {
   async function saveEdit(id) {
     if (!editQuestion.trim() || !editAnswer.trim()) return;
     try {
-      await api.patch(`/admin/quiz-questions/${id}`, { question: editQuestion, answer: editAnswer });
+      await api.patch(`/admin/quiz-questions/${id}`, {
+        question: editQuestion,
+        answer: editAnswer,
+        difficulty: editDifficulty,
+      });
       setEditingId(null);
       await loadQuestions();
       if (searchResults) handleSearch();
@@ -114,6 +122,8 @@ export default function AdminQuizGlossary() {
       setError(e.response?.data?.error || "Erro ao salvar edição.");
     }
   }
+
+  const DIFFICULTY_LABELS = { facil: "🟢 Fácil", medio: "🟡 Médio", dificil: "🔴 Difícil" };
 
   function renderRow(q, showTheme) {
     const isEditing = editingId === q.id;
@@ -134,7 +144,14 @@ export default function AdminQuizGlossary() {
             <td>
               <input value={editAnswer} onChange={(e) => setEditAnswer(e.target.value)} maxLength={60} style={{ marginBottom: 0 }} />
             </td>
-            <td colSpan={showTheme ? 1 : 2}>
+            <td>
+              <select value={editDifficulty} onChange={(e) => setEditDifficulty(e.target.value)} style={{ marginBottom: 0 }}>
+                <option value="facil">🟢 Fácil</option>
+                <option value="medio">🟡 Médio</option>
+                <option value="dificil">🔴 Difícil</option>
+              </select>
+            </td>
+            <td>
               <button className="btn success" onClick={() => saveEdit(q.id)}>Salvar</button>{" "}
               <button className="btn secondary" onClick={cancelEdit}>Cancelar</button>
             </td>
@@ -143,6 +160,7 @@ export default function AdminQuizGlossary() {
           <>
             <td>{q.question}</td>
             <td>{q.answer}</td>
+            <td>{DIFFICULTY_LABELS[q.difficulty] || q.difficulty}</td>
             {!showTheme && (
               <td className={q.status !== "approved" ? "word-text-blank" : ""}>
                 {STATUS_LABELS[q.status] || q.status}
@@ -187,6 +205,7 @@ export default function AdminQuizGlossary() {
                 <th>Tema</th>
                 <th>Pergunta</th>
                 <th>Resposta</th>
+                <th>Dificuldade</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -194,7 +213,7 @@ export default function AdminQuizGlossary() {
               {searchResults.map((q) => renderRow(q, true))}
               {searchResults.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta encontrada com esse termo.</td>
+                  <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta encontrada com esse termo.</td>
                 </tr>
               )}
             </tbody>
@@ -227,6 +246,12 @@ export default function AdminQuizGlossary() {
           maxLength={60}
           placeholder="Resposta certa"
         />
+        <label style={{ fontSize: 13, color: "var(--text-dim)" }}>Dificuldade</label>
+        <select value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)}>
+          <option value="facil">🟢 Fácil</option>
+          <option value="medio">🟡 Médio</option>
+          <option value="dificil">🔴 Difícil</option>
+        </select>
         <button className="btn" type="submit" disabled={saving}>Adicionar (já aprovada)</button>
       </form>
 
@@ -236,6 +261,7 @@ export default function AdminQuizGlossary() {
           <tr>
             <th>Pergunta</th>
             <th>Resposta</th>
+            <th>Dificuldade</th>
             <th>Status</th>
             <th>Ações</th>
           </tr>
@@ -244,7 +270,7 @@ export default function AdminQuizGlossary() {
           {pageItems.map((q) => renderRow(q, false))}
           {questions.length === 0 && (
             <tr>
-              <td colSpan={4} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta cadastrada ainda neste tema.</td>
+              <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta cadastrada ainda neste tema.</td>
             </tr>
           )}
         </tbody>

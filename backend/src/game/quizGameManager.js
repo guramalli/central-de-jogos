@@ -38,6 +38,7 @@ export async function getAllQuizRoomsStatus() {
       roomId,
       label: config.label,
       themeKey: config.themeKey,
+      description: config.description,
       maxPlayers: config.maxPlayers ?? 10,
       onlineCount: room ? room.countUniquePlayers() : 0,
       streakRecord: recordByRoom[roomId] || null,

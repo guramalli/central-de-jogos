@@ -32,7 +32,8 @@ export class QuizRoom {
     this.roomId = roomId;
     this.io = io;
     this.label = config.label || roomId;
-    this.themeKey = config.themeKey;
+    this.themeKey = config.themeKey; // se definido, filtra por tema específico
+    this.difficultyFilter = config.difficultyFilter; // se definido, filtra por dificuldade (qualquer tema)
     this.maxPlayers = config.maxPlayers ?? 10;
     this.questionSeconds = config.questionSeconds ?? 30;
     this.revealIntervalSeconds = config.revealIntervalSeconds ?? 5;
@@ -190,7 +191,9 @@ export class QuizRoom {
   }
 
   async pickQuestion() {
-    const where = { themeKey: this.themeKey, status: "approved" };
+    const where = { status: "approved" };
+    if (this.themeKey) where.themeKey = this.themeKey;
+    if (this.difficultyFilter) where.difficulty = this.difficultyFilter;
     const total = await prisma.quizQuestion.count({ where });
     if (total === 0) return null;
 

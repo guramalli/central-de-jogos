@@ -20,6 +20,7 @@ const THEME_ICONS = {
   series: "📺",
   novelas: "🎭",
   geografia: "🌍",
+  direito: "⚖️",
 };
 
 export default function QuizGame() {

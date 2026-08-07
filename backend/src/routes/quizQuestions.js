@@ -6,7 +6,7 @@ const router = Router();
 
 const VALID_THEMES = [
   "esportes", "ciencias", "historia", "cinema", "letras",
-  "geral", "musica", "series", "novelas", "geografia",
+  "geral", "musica", "series", "novelas", "geografia", "direito",
 ];
 
 // Qualquer jogador logado pode sugerir uma pergunta — entra como "pending"
