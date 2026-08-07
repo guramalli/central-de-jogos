@@ -1,6 +1,9 @@
+import Seo from "../components/Seo.jsx";
+
 export default function TermosDeUso() {
   return (
     <div className="legal-page">
+      <Seo title="Termos de Uso" description="Termos de uso da plataforma Educação Gamer — regras, conduta e informações sobre sua conta." />
       <h1>Termos de Uso</h1>
       <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
         Última atualização: {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}

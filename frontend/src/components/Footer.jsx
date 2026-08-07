@@ -19,7 +19,7 @@ export default function Footer() {
   return (
     <footer className="site-footer">
       <img src={logoSrc} alt="Educação Gamer" className="site-footer-logo-img" />
-      <p className="site-footer-copy">© {new Date().getFullYear()} EDUCAÇÃO GAMER — CENTRAL DE JOGOS</p>
+      <p className="site-footer-copy">© {new Date().getFullYear()} EDUCAÇÃO GAMER</p>
       <div className="site-footer-links">
         <Link to="/termos-de-uso">Termos de Uso</Link>
         <a href="#">Privacidade</a>

@@ -120,6 +120,7 @@ export default function Admin() {
     try {
       await api.post(`/admin/users/${u.id}/ban`, { banned: !u.banned });
       loadUsers();
+      loadSuspicious();
     } catch (e) {
       setError(e.response?.data?.error || "Erro ao alterar banimento.");
     }

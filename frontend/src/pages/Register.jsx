@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 const ESTADOS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -38,6 +39,7 @@ export default function Register() {
 
   return (
     <div className="auth-split">
+      <Seo title="Criar conta" description="Cadastre-se grátis na Educação Gamer e jogue Stop, Quiz e Acromania — a nostalgia da Central de Jogos, de volta." />
       <div className="auth-brand-panel">
         <img src={theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png"} alt="Educação Gamer" className="auth-logo-img" />
         <h2>Educação Gamer</h2>
@@ -50,7 +52,7 @@ export default function Register() {
           <form onSubmit={handleSubmit}>
             <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={15} required />
             <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha (mín. 6 caracteres)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input placeholder="Senha (mín. 8 caracteres)" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
 
             <div className="register-row">
               <input placeholder="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />

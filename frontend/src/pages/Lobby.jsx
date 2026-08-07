@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 export default function Lobby() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function Lobby() {
 
   return (
     <div className="lobby-page">
+      <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
       {/* Aviso de Beta */}
       <div className="beta-banner">
         <span className="beta-badge">BETA</span>

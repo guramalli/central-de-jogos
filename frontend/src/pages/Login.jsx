@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 export default function Login() {
   const { login } = useAuth();
@@ -24,6 +25,7 @@ export default function Login() {
 
   return (
     <div className="auth-split">
+      <Seo title="Entrar" description="Entre na sua conta da Educação Gamer e volte a jogar Stop, Quiz e Acromania com a galera." />
       <div className="auth-brand-panel">
         <img src={theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png"} alt="Educação Gamer" className="auth-logo-img" />
         <h2>Educação Gamer</h2>

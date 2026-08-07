@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
@@ -23,6 +24,18 @@ import { setupSocket } from "./socket/index.js";
 const app = express();
 const server = createServer(app);
 
+// Cabeçalhos de segurança padrão de mercado (esconde tecnologia usada,
+// evita que o site seja carregado dentro de um iframe malicioso em outro
+// site, entre outras proteções). CSP desligado porque esse servidor só
+// serve API (JSON), não páginas HTML — CSP é mais relevante pra quem serve
+// HTML/scripts direto pro navegador.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
 app.use(cors({ origin: CORS_ORIGIN }));
@@ -44,6 +57,14 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/ranks", ranksRoutes);
 app.use("/api/platform-stats", platformStatsRoutes);
 app.use("/api/quiz-ranks", quizRanksRoutes);
+
+// Rede de segurança: qualquer erro não tratado numa rota (que ninguém
+// prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno
+// (nome de arquivo, linha do código) pra resposta que o navegador recebe.
+app.use((err, req, res, next) => {
+  console.error("Erro não tratado numa rota:", err);
+  res.status(500).json({ error: "Algo deu errado no servidor. Tenta de novo?" });
+});
 
 const io = new Server(server, {
   cors: { origin: CORS_ORIGIN },
