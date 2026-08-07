@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
 import DmModal from "./DmModal.jsx";
 
@@ -11,6 +12,8 @@ export default function FriendsQuickChat() {
   const [friends, setFriends] = useState(null);
   const [chatWith, setChatWith] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [coords, setCoords] = useState({ bottom: 0, right: 0 });
+  const btnRef = useRef(null);
 
   // Confere de tempos em tempos se chegou mensagem nova, e também escuta o
   // evento disparado assim que uma conversa é aberta (marca como lida na
@@ -39,41 +42,55 @@ export default function FriendsQuickChat() {
     return () => window.removeEventListener("click", close);
   }, [open]);
 
+  function handleToggle(e) {
+    e.stopPropagation();
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (rect) {
+      // Calcula a partir da borda direita/inferior da JANELA (não do botão
+      // em si), pra abrir sempre "pra cima" do botão flutuante, ficando
+      // visível não importa em que canto da tela o botão esteja.
+      setCoords({
+        bottom: window.innerHeight - rect.top + 10,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen((o) => !o);
+  }
+
   return (
     <div className="friends-quick-chat friends-quick-chat-floating">
-      <button
-        className="friends-quick-fab"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((o) => !o);
-        }}
-        title="Conversar com amigos"
-      >
+      <button ref={btnRef} className="friends-quick-fab" onClick={handleToggle} title="Conversar com amigos">
         💬
         {unreadCount > 0 && <span className="friends-quick-fab-badge">{unreadCount}</span>}
       </button>
-      {open && (
-        <div className="friends-quick-popover friends-quick-popover-floating" onClick={(e) => e.stopPropagation()}>
-          <h4>Seus amigos</h4>
-          {friends === null && <p className="friends-quick-empty">Carregando...</p>}
-          {friends?.length === 0 && (
-            <p className="friends-quick-empty">Você ainda não tem amigos adicionados.</p>
-          )}
-          {friends?.map((f) => (
-            <button
-              key={f.userId}
-              className="friends-quick-item"
-              onClick={() => {
-                setChatWith(f);
-                setOpen(false);
-              }}
-            >
-              <span className={`friend-status-dot ${f.online ? "friend-status-online" : "friend-status-offline"}`} />
-              {f.nickname}
-            </button>
-          ))}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            className="friends-quick-popover friends-quick-popover-floating"
+            style={{ bottom: coords.bottom, right: coords.right }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4>Seus amigos</h4>
+            {friends === null && <p className="friends-quick-empty">Carregando...</p>}
+            {friends?.length === 0 && (
+              <p className="friends-quick-empty">Você ainda não tem amigos adicionados.</p>
+            )}
+            {friends?.map((f) => (
+              <button
+                key={f.userId}
+                className="friends-quick-item"
+                onClick={() => {
+                  setChatWith(f);
+                  setOpen(false);
+                }}
+              >
+                <span className={`friend-status-dot ${f.online ? "friend-status-online" : "friend-status-offline"}`} />
+                {f.nickname}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
       {chatWith && <DmModal friend={chatWith} onClose={() => setChatWith(null)} />}
     </div>
   );

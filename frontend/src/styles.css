@@ -2539,11 +2539,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   justify-content: center;
   box-shadow: 0 0 0 2px var(--bg);
 }
-.friends-quick-popover-floating {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
-  top: auto;
+.friends-quick-popover.friends-quick-popover-floating {
+  position: fixed;
+  z-index: 2100;
 }
 
 .friends-quick-popover {
