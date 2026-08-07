@@ -16,6 +16,18 @@ export const ROOM_CONFIGS = {
     minCorrectToStop: 3,
     // Ninguém pode pedir STOP antes desses segundos, mesmo já com 3+ certas.
     minSecondsBeforeStop: 40,
+    // Sala iniciante: só sorteia temas dessa lista fixa (mais fáceis),
+    // em vez de qualquer tema cadastrado no site. Ajustável por enquanto —
+    // dá pra adicionar/remover temas dessa lista quando quiser.
+    fixedThemeKeys: [
+      "nomes_pessoas",
+      "cor",
+      "cep",
+      "profissao",
+      "idiomas",
+      "novelas_series",
+      "bandas_musicais",
+    ],
   },
   "stop-sala-intermediaria": {
     label: "Intermediário",

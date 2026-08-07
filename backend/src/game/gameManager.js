@@ -17,8 +17,13 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
   if (pendingCreation.has(roomId)) return pendingCreation.get(roomId);
 
   const creation = (async () => {
-    const themes = await prisma.theme.findMany();
+    const allThemes = await prisma.theme.findMany();
     const config = ROOM_CONFIGS[roomId] || ROOM_CONFIGS[DEFAULT_ROOM_ID];
+    // Sala com lista fixa de temas (ex.: sala iniciante) só sorteia entre
+    // esses — o resto do site continua com todos os temas disponíveis.
+    const themes = config.fixedThemeKeys
+      ? allThemes.filter((t) => config.fixedThemeKeys.includes(t.key))
+      : allThemes;
     const room = new StopRoom(roomId, io, themes, config);
     rooms.set(roomId, room);
     pendingCreation.delete(roomId);
