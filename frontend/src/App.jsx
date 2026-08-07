@@ -9,6 +9,7 @@ import StopGame from "./pages/StopGame.jsx";
 import StopLobby from "./pages/StopLobby.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Clan from "./pages/Clan.jsx";
+import Friends from "./pages/Friends.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
 import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
@@ -54,6 +55,7 @@ export default function App() {
                 <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
+                <NavLink to="/amigos" className={navLinkClass}>Amigos</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
@@ -115,6 +117,14 @@ export default function App() {
             element={
               <Private>
                 <Clan />
+              </Private>
+            }
+          />
+          <Route
+            path="/amigos"
+            element={
+              <Private>
+                <Friends />
               </Private>
             }
           />

@@ -142,10 +142,22 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   font-size: 11px;
   line-height: 1.45;
   word-break: break-word;
-  pointer-events: none;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 .nick-tooltip-portal > div { margin-top: 4px; }
+.nick-tooltip-friend-btn {
+  background: var(--accent-2);
+  color: #241a00;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+.nick-tooltip-friend-btn:hover { opacity: 0.9; }
+.nick-tooltip-friend-btn:disabled { opacity: 0.6; cursor: default; }
 .nick-tooltip-portal > div:first-child { margin-top: 0; }
 
 .chat-box {
@@ -2263,3 +2275,22 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   text-decoration: none;
 }
 .prize-banner-link:hover { text-decoration: underline; }
+
+/* ===== Página de Amigos ===== */
+.friend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.friend-row:last-child { border-bottom: none; }
+.friend-name { display: flex; align-items: center; gap: 8px; }
+.friend-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+.friend-status-online { background: #06d6a0; box-shadow: 0 0 6px #06d6a0; }
