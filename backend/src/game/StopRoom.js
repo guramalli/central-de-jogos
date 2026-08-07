@@ -1,6 +1,7 @@
 import { prisma } from "../db.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
+import { trackPlaytime } from "./playtimeTracker.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -114,7 +115,7 @@ export class StopRoom {
       }
     }
 
-    this.players.set(socket.id, { userId, nickname, socket });
+    this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
 
     if (!this.blockTotals.has(userId)) {
       // Recupera a pontuação do bloco atual salva no banco (se o jogador já
@@ -168,6 +169,7 @@ export class StopRoom {
     const leaving = this.players.get(socketId);
     this.players.delete(socketId);
     if (leaving) {
+      trackPlaytime(leaving.userId, leaving.joinedAt);
       const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
       if (!stillConnected) {
         if (this.skipVotes.has(leaving.userId)) {

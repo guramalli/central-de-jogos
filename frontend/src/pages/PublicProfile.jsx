@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
+import RankBadge from "../components/RankBadge.jsx";
 
 const GAME_NAMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 
@@ -112,7 +113,7 @@ export default function PublicProfile() {
             <span>{GAME_NAMES[l.gameKey] || l.gameKey}</span>
             <span>
               <strong>{l.points} pts</strong>
-              {l.rank && <span style={{ marginLeft: 8, color: "var(--accent-2)" }}>{l.rank.name}</span>}
+              {l.rank && <RankBadge rank={l.rank} />}
             </span>
           </div>
         ))}

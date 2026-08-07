@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import RankBadge from "../components/RankBadge.jsx";
 import Seo from "../components/Seo.jsx";
@@ -59,7 +60,9 @@ export default function Ranking() {
           {rows.slice(0, 3).map((r) => (
             <div key={r.position} className={`podium-item podium-${r.position}`}>
               <div className="podium-medal">{MEDALS[r.position - 1]}</div>
-              <div className="podium-name">{nameOf(r)}</div>
+              <div className="podium-name">
+                {isClans ? nameOf(r) : <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>}
+              </div>
               <div className="podium-points">{r.points} pts</div>
             </div>
           ))}
@@ -81,7 +84,7 @@ export default function Ranking() {
             {rows.map((r) => (
               <tr key={r.position} className={r.position <= 3 ? "row-podium" : ""}>
                 <td>{r.position}</td>
-                <td>{nameOf(r)}</td>
+                <td>{isClans ? nameOf(r) : <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>}</td>
                 <td>{r.points}</td>
                 {tab === "lifetime" && (
                   <td>

@@ -23,6 +23,7 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
   res.json(
     scores.map((s, idx) => ({
       position: idx + 1,
+      userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
     }))
@@ -40,6 +41,7 @@ router.get("/lifetime/:gameKey", requireAuth, async (req, res) => {
   res.json(
     scores.map((s, idx) => ({
       position: idx + 1,
+      userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
       rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),

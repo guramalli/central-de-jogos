@@ -1,6 +1,7 @@
 import { prisma } from "../db.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
+import { trackPlaytime } from "./playtimeTracker.js";
 
 const GAME_KEY = "acromania";
 
@@ -70,7 +71,7 @@ export class AcromaniaRoom {
         this.players.delete(oldSocketId);
       }
     }
-    this.players.set(socket.id, { userId, nickname, socket });
+    this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
 
     if (!this.lifetimeCache.has(userId)) {
       const existing = await prisma.lifetimeScore.findUnique({
@@ -114,6 +115,7 @@ export class AcromaniaRoom {
     const leaving = this.players.get(socketId);
     this.players.delete(socketId);
     if (leaving) {
+      trackPlaytime(leaving.userId, leaving.joinedAt);
       const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
       if (!stillConnected) {
         this.systemMessage(`🚪 ${leaving.nickname} saiu da sala.`);
