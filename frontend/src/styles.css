@@ -2107,6 +2107,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .acro-phrase-form input { margin-bottom: 0; text-align: center; }
 .acro-submitted-msg { color: #06d6a0; font-family: var(--qz-mono, monospace); font-size: 13px; text-align: center; margin: 0; }
 
+.quiz-paste-blocked-hint {
+  color: #ff8a8a;
+  font-family: var(--qz-mono, monospace);
+  font-size: 12px;
+  text-align: center;
+  margin: 0 0 10px 0;
+}
+
 .acro-voting-list {
   display: flex;
   flex-direction: column;

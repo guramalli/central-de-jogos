@@ -23,6 +23,7 @@ export default function AcromaniaGame() {
   const [totalSeconds, setTotalSeconds] = useState(60);
 
   const [phraseInput, setPhraseInput] = useState("");
+  const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [waitingNicknames, setWaitingNicknames] = useState([]);
 
@@ -137,6 +138,12 @@ export default function AcromaniaGame() {
     if (phase === "writing" && !submitted && !isMobile) phraseInputRef.current?.focus();
   }, [phase, submitted]);
 
+  useEffect(() => {
+    if (!pasteBlockedMsg) return;
+    const t = setTimeout(() => setPasteBlockedMsg(false), 3000);
+    return () => clearTimeout(t);
+  }, [pasteBlockedMsg]);
+
   function submitPhrase(e) {
     e.preventDefault();
     if (!phraseInput.trim() || submitted) return;
@@ -237,10 +244,17 @@ export default function AcromaniaGame() {
                 <p className="acro-submitted-msg">✓ Frase enviada! Espera o tempo acabar...</p>
               ) : (
                 <>
+                  {pasteBlockedMsg && (
+                    <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar sua própria frase.</p>
+                  )}
                   <input
                     ref={phraseInputRef}
                     value={phraseInput}
                     onChange={(e) => setPhraseInput(e.target.value)}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      setPasteBlockedMsg(true);
+                    }}
                     maxLength={200}
                     placeholder={`Frase começando com ${letters.join(", ")}...`}
                   />

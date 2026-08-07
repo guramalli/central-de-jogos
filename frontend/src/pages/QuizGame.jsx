@@ -45,6 +45,7 @@ export default function QuizGame() {
   const [answerLine, setAnswerLine] = useState("");
 
   const [guess, setGuess] = useState("");
+  const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
   const [wrongLog, setWrongLog] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -142,6 +143,12 @@ export default function QuizGame() {
     wrongLogEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [wrongLog]);
 
+  useEffect(() => {
+    if (!pasteBlockedMsg) return;
+    const t = setTimeout(() => setPasteBlockedMsg(false), 3000);
+    return () => clearTimeout(t);
+  }, [pasteBlockedMsg]);
+
   function handleGuessSubmit(e) {
     e.preventDefault();
     if (!guess.trim() || phase !== "active") return;
@@ -221,11 +228,18 @@ export default function QuizGame() {
               <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
             ))}
           </div>
+          {pasteBlockedMsg && (
+            <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar a resposta.</p>
+          )}
           <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
             <input
               ref={inputRef}
               value={guess}
               onChange={(e) => setGuess(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                setPasteBlockedMsg(true);
+              }}
               placeholder={phase === "active" ? "Digite sua resposta..." : "Aguarde a próxima pergunta..."}
               autoComplete="off"
               disabled={phase !== "active"}
