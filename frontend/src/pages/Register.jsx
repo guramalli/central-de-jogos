@@ -46,7 +46,7 @@ export default function Register() {
           <h2>Criar conta</h2>
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
-            <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} required />
+            <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={15} required />
             <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <input placeholder="Senha (mín. 6 caracteres)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 

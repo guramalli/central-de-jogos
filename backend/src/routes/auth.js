@@ -13,6 +13,9 @@ router.post("/register", async (req, res) => {
   if (password.length < 6) {
     return res.status(400).json({ error: "Senha deve ter ao menos 6 caracteres." });
   }
+  if (nickname.trim().length > 15) {
+    return res.status(400).json({ error: "Nickname deve ter no máximo 15 caracteres." });
+  }
   if (!termsAccepted) {
     return res.status(400).json({ error: "É preciso aceitar os Termos de Uso para se cadastrar." });
   }
