@@ -2186,17 +2186,18 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* ===== Banner de premiação mensal ===== */
 .prize-banner {
+  background: linear-gradient(120deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 153, 0, 0.08) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.prize-banner-header {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  background: linear-gradient(120deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 153, 0, 0.08) 100%);
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--text-dim);
+  margin-bottom: 14px;
 }
 .prize-badge {
   background: linear-gradient(160deg, #ffe066 0%, #ffb300 100%);
@@ -2209,13 +2210,43 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   border-radius: 20px;
   white-space: nowrap;
 }
-.prize-banner strong { color: var(--text); }
+.prize-banner-intro { font-size: 13px; color: var(--text-dim); }
+.prize-banner-intro strong { color: var(--text); }
+
+.prize-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.prize-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.prize-medal { font-size: 28px; line-height: 1; }
+.prize-place {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+.prize-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffb300;
+}
+
+.prize-banner-note { font-size: 11px; color: var(--text-dim); margin: 0 0 8px 0; }
 .prize-banner-link {
-  margin-left: auto;
   color: var(--accent-2);
   font-weight: 700;
   font-size: 13px;
   text-decoration: none;
-  white-space: nowrap;
 }
 .prize-banner-link:hover { text-decoration: underline; }
