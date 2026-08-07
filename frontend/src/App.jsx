@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import { useTheme } from "./context/ThemeContext.jsx";
+import { api } from "./api/client.js";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -10,6 +12,7 @@ import StopLobby from "./pages/StopLobby.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import Clan from "./pages/Clan.jsx";
 import Friends from "./pages/Friends.jsx";
+import PublicProfile from "./pages/PublicProfile.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
 import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
@@ -34,6 +37,20 @@ export default function App() {
   const { user, logout } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
+  const [pendingFriendCount, setPendingFriendCount] = useState(0);
+
+  // Confere de tempos em tempos se chegou pedido de amizade novo — assim,
+  // mesmo quem não está na página de Amigos vê o avisinho no menu.
+  useEffect(() => {
+    if (!user) return;
+    function check() {
+      api.get("/friends/pending-count").then(({ data }) => setPendingFriendCount(data.count)).catch(() => {});
+    }
+    check();
+    const interval = setInterval(check, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
   // atrapalhar o espaço da tela do jogo.
   const isInsideGameRoom = /^\/jogos\/(stop|quiz|acromania)\/[^/]+/.test(location.pathname);
@@ -55,7 +72,9 @@ export default function App() {
                 <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
-                <NavLink to="/amigos" className={navLinkClass}>Amigos</NavLink>
+                <NavLink to="/amigos" className={navLinkClass}>
+                  Amigos{pendingFriendCount > 0 && <span className="nav-badge">{pendingFriendCount}</span>}
+                </NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
@@ -125,6 +144,14 @@ export default function App() {
             element={
               <Private>
                 <Friends />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogador/:userId"
+            element={
+              <Private>
+                <PublicProfile />
               </Private>
             }
           />

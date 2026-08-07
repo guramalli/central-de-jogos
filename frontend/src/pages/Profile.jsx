@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
+import AvatarUpload from "../components/AvatarUpload.jsx";
 
 export default function Profile() {
+  const { user } = useAuth();
   const [celebration, setCelebration] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -11,7 +16,10 @@ export default function Profile() {
   useEffect(() => {
     api
       .get("/users/me")
-      .then(({ data }) => setCelebration(data.celebration || ""))
+      .then(({ data }) => {
+        setCelebration(data.celebration || "");
+        setAvatarUrl(data.avatarUrl || null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -34,6 +42,17 @@ export default function Profile() {
     <div>
       <Seo title="Meu Perfil" />
       <h1>Meu Perfil</h1>
+
+      <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
+        <h2>Sua foto</h2>
+        <AvatarUpload currentAvatar={avatarUrl} onUpdated={setAvatarUrl} />
+        {user && (
+          <Link to={`/jogador/${user.id}`} className="btn secondary" style={{ marginTop: 14, display: "inline-block" }}>
+            Ver como os outros veem seu perfil →
+          </Link>
+        )}
+      </div>
+
       <div className="card" style={{ maxWidth: 480 }}>
         <h2>Comemoração do Quiz</h2>
         <p style={{ color: "var(--text-dim)", fontSize: 13 }}>

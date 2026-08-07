@@ -5,6 +5,7 @@ import FeedbackModal from "../components/FeedbackModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
   const { user } = useAuth();
@@ -130,6 +131,8 @@ export default function Lobby() {
           </div>
         </Link>
       </div>
+
+      <GeneralChatWidget />
 
       {/* Links rápidos */}
       <div className={`lobby-quick-grid ${!(user?.role === "ADMIN" || user?.role === "MODERATOR") ? "lobby-quick-grid-single" : ""}`}>

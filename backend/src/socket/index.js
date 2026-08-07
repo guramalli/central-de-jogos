@@ -2,6 +2,7 @@ import { verifyToken } from "../utils/jwt.js";
 import { getOrCreateStopRoom } from "../game/gameManager.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
+import * as generalChat from "../game/generalChat.js";
 import { recheckPeak } from "../game/platformStats.js";
 import { prisma } from "../db.js";
 
@@ -99,10 +100,36 @@ export function setupSocket(io) {
       socket.currentAcromaniaRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
     });
 
+    // ===== Chat Geral (fora das salas, sempre disponível) =====
+    socket.on("join-general-chat", async () => {
+      socket.join("general-chat-room");
+      generalChat.addConnection(socket, userId, nickname);
+      const history = await generalChat.loadHistory();
+      socket.emit("general-chat-history", { messages: history });
+      io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });
+      socket.inGeneralChat = true;
+    });
+
+    socket.on("general-chat-message", async ({ message }) => {
+      if (!socket.inGeneralChat || !message?.trim()) return;
+      const clean = message.trim().slice(0, 300);
+      await generalChat.saveMessage(userId, clean);
+      io.to("general-chat-room").emit("general-chat-message", {
+        userId,
+        nickname,
+        message: clean,
+        at: Date.now(),
+      });
+    });
+
     socket.on("disconnect", () => {
       socket.currentRoom?.removePlayer(socket.id);
       socket.currentQuizRoom?.removePlayer(socket.id);
       socket.currentAcromaniaRoom?.removePlayer(socket.id);
+      if (socket.inGeneralChat) {
+        generalChat.removeConnection(socket.id);
+        io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });
+      }
     });
   });
 }

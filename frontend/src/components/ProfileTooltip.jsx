@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -87,6 +88,13 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
             {!profile && <div>Carregando...</div>}
             {profile && (
               <>
+                <div className="nick-tooltip-avatar-row">
+                  {profile.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt={nickname} className="avatar-img avatar-img-small" />
+                  ) : (
+                    <div className="avatar-placeholder avatar-placeholder-small">🎮</div>
+                  )}
+                </div>
                 <div>⏱ {profile.playtimeMinutes} min de jogo</div>
                 <div>📅 Desde {formatMemberSince(profile.memberSince)}</div>
                 <div>Mensal: <strong>{monthly ? `${monthly.points} pts` : "0 pts"}</strong></div>
@@ -114,6 +122,9 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     )}
                   </div>
                 )}
+                <Link to={`/jogador/${userId}`} className="nick-tooltip-profile-link">
+                  Ver perfil completo →
+                </Link>
               </>
             )}
           </div>,

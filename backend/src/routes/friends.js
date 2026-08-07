@@ -50,6 +50,15 @@ router.get("/", async (req, res) => {
   res.json({ friends: accepted, receivedPending, sentPending });
 });
 
+// Rota bem leve, só pra mostrar o avisinho no menu — não busca a lista
+// inteira de amigos, só a contagem de pedidos recebidos.
+router.get("/pending-count", async (req, res) => {
+  const count = await prisma.friendship.count({
+    where: { userBId: req.user.id, status: "pending" },
+  });
+  res.json({ count });
+});
+
 // Envia um pedido de amizade (por nickname, pra ser fácil de usar numa
 // busca simples) ou por ID direto (usado pelo botão no hover de perfil).
 router.post("/request", async (req, res) => {
