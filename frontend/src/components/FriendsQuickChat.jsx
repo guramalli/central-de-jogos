@@ -38,8 +38,15 @@ export default function FriendsQuickChat() {
     function close() {
       setOpen(false);
     }
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
+    // Adia um instante antes de "escutar" cliques fora — sem isso, o
+    // MESMO clique que abriu o balão (o toque no botão) podia ser
+    // capturado de novo aqui e fechar tudo na mesma hora, principalmente
+    // em celular, dando a impressão de que "não acontece nada".
+    const timer = setTimeout(() => window.addEventListener("click", close), 0);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("click", close);
+    };
   }, [open]);
 
   function handleToggle(e) {
