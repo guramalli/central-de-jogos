@@ -509,6 +509,31 @@ export default function StopGame() {
               </div>
             ))}
           </div>
+        ) : isMobile && lastResult ? (
+          <div className="sc-result-cards">
+            {lastResult.players.map((p) => (
+              <div key={p.userId} className="sc-result-card">
+                <div className="sc-result-card-header">
+                  <span className="sc-result-card-name">{p.nickname}</span>
+                  <span className="sc-result-card-points">+{p.points ?? 0} pts • {p.blockTotal ?? 0} no bloco</span>
+                </div>
+                <div className="sc-fill-grid">
+                  {lastResult.themes.map((t) => {
+                    const g = p.graded?.[t.key];
+                    const isMine = user?.id && p.userId === user.id;
+                    const canSuggest = isMine && g?.status === "wrong" && g?.word;
+                    return (
+                      <div key={t.key} className="sc-fill-grid-cell">
+                        <label className="sc-fill-grid-label">{t.name}</label>
+                        <div className={STATUS_TEXT_CLASS[g?.status || "blank"]}>{g?.word || "—"}</div>
+                        {canSuggest && <SuggestWordButton themeKey={t.key} letter={lastResult.letter} word={g.word} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="sc-table-scroll">
             <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />

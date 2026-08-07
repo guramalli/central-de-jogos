@@ -100,6 +100,9 @@ input, select, textarea {
   color: var(--text);
   margin-bottom: 12px;
   font-family: inherit;
+  /* 16px é o mínimo pra evitar que o Safari no iOS dê zoom automático ao
+     focar o campo — abaixo disso, ele "ajuda" fazendo esse zoom sozinho. */
+  font-size: 16px;
 }
 
 table.player-table {
@@ -209,6 +212,13 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   margin-bottom: 24px;
 }
 @media (max-width: 700px) { .game-grid { grid-template-columns: 1fr; } }
+
+/* Dentro de qualquer sala de jogo, no celular, o cabeçalho some — ganha
+   espaço de tela pro que importa (o jogo em si). No desktop continua
+   visível normalmente, mesmo dentro da sala. */
+@media (max-width: 700px) {
+  .app-header-in-room { display: none; }
+}
 
 .game-card {
   display: flex;
@@ -566,7 +576,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   grid-template-columns: 1.5fr 0.55fr 1fr;
   gap: 10px;
 }
-@media (max-width: 900px) { .sc-bottom-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .sc-bottom-grid { grid-template-columns: 1fr; }
+  .sc-legend-panel { order: -1; }
+}
 
 .sc-tab-panel { padding: 14px 10px 10px 10px; height: 230px; display: flex; flex-direction: column; }
 
@@ -747,7 +760,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   border-bottom: 1px dashed #c7cad3;
   background: transparent;
   color: #14161c;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   text-align: center;
   border-radius: 0;
@@ -784,6 +797,26 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   margin-bottom: 2px;
 }
 .sc-fill-grid-cell .sheet-fill-input { text-align: left; font-size: 16px; }
+
+/* Cards de resultado (mobile) — um card por jogador, cada um com sua
+   grade de 2 colunas, no mesmo estilo visual do preenchimento. */
+.sc-result-cards { display: flex; flex-direction: column; gap: 12px; }
+.sc-result-card {
+  background: var(--sc-surface-low);
+  border: 1px solid var(--sc-outline);
+  border-radius: 8px;
+  padding: 10px;
+}
+.sc-result-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--sc-outline);
+}
+.sc-result-card-name { font-weight: 700; color: var(--sc-text); font-size: 14px; }
+.sc-result-card-points { font-family: var(--sc-mono); font-size: 11px; color: var(--sc-orange-pale); }
 
 /* ===== Tela de acesso negado ===== */
 .sc-denied-panel {

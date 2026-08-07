@@ -35,12 +35,12 @@ export default function App() {
   const location = useLocation();
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
   // atrapalhar o espaço da tela do jogo.
-  const isInsideGameRoom = /^\/jogos\/(stop|quiz)\/[^/]+/.test(location.pathname);
+  const isInsideGameRoom = /^\/jogos\/(stop|quiz|acromania)\/[^/]+/.test(location.pathname);
   const logoSrc = theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png";
 
   return (
     <>
-      <header className="app-header">
+      <header className={`app-header ${isInsideGameRoom ? "app-header-in-room" : ""}`}>
         <div className="app-header-inner">
           <div className="app-header-left">
             <Link to="/" className="logo">
