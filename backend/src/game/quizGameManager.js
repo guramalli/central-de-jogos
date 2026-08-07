@@ -32,17 +32,26 @@ export function getAllOnlineUserIds() {
 export async function getAllQuizRoomsStatus() {
   const records = await prisma.quizStreakRecord.findMany();
   const recordByRoom = Object.fromEntries(records.map((r) => [r.roomId, r]));
-  return Object.entries(QUIZ_ROOM_CONFIGS).map(([roomId, config]) => {
-    const room = rooms.get(roomId);
-    return {
-      roomId,
-      label: config.label,
-      themeKey: config.themeKey,
-      description: config.description,
-      difficulty: config.difficultyFilter || null,
-      maxPlayers: config.maxPlayers ?? 10,
-      onlineCount: room ? room.countUniquePlayers() : 0,
-      streakRecord: recordByRoom[roomId] || null,
-    };
-  });
+
+  return Promise.all(
+    Object.entries(QUIZ_ROOM_CONFIGS).map(async ([roomId, config]) => {
+      const room = rooms.get(roomId);
+      const where = { status: "approved" };
+      if (config.themeKey) where.themeKey = config.themeKey;
+      if (config.difficultyFilter) where.difficulty = config.difficultyFilter;
+      const questionCount = await prisma.quizQuestion.count({ where });
+
+      return {
+        roomId,
+        label: config.label,
+        themeKey: config.themeKey,
+        description: config.description,
+        difficulty: config.difficultyFilter || null,
+        maxPlayers: config.maxPlayers ?? 10,
+        onlineCount: room ? room.countUniquePlayers() : 0,
+        streakRecord: recordByRoom[roomId] || null,
+        questionCount,
+      };
+    })
+  );
 }

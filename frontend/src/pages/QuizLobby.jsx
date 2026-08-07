@@ -61,6 +61,7 @@ export default function QuizLobby() {
                   </p>
                 )}
                 <p className="lobby-game-desc">{r.description || `Perguntas de ${r.label.toLowerCase()}.`}</p>
+                <p className="quiz-room-question-count">📋 {r.questionCount} perguntas cadastradas</p>
                 {r.streakRecord?.count > 0 && (
                   <p className="lobby-streak-desc">
                     🔥 Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}

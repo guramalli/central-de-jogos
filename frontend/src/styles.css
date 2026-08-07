@@ -2037,3 +2037,11 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin: 0 auto;
   line-height: 1.5;
 }
+
+.quiz-room-question-count {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.7;
+  margin: 2px 0 8px 0;
+  font-family: var(--font-mono);
+}
