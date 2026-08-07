@@ -219,7 +219,7 @@ export default function Admin() {
               <th>Tema</th>
               <th>Pergunta</th>
               <th>Resposta</th>
-              <th>Sugerida por</th>
+              <th>Origem / Motivo</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -229,7 +229,13 @@ export default function Admin() {
                 <td>{QUIZ_THEME_NAMES[q.themeKey] || q.themeKey}</td>
                 <td>{q.question}</td>
                 <td>{q.answer}</td>
-                <td>{q.suggestedBy?.nickname || "—"}</td>
+                <td>
+                  {q.validationNote ? (
+                    <span style={{ color: "var(--accent)" }}>🤖 {q.validationNote}</span>
+                  ) : (
+                    q.suggestedBy?.nickname || "—"
+                  )}
+                </td>
                 <td>
                   <button className="btn success" onClick={() => approveQuiz(q.id)}>Aprovar</button>{" "}
                   <button className="btn secondary" onClick={() => rejectQuiz(q.id)}>Rejeitar</button>

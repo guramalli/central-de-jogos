@@ -101,7 +101,7 @@ router.get("/quiz-questions/pending", async (req, res) => {
 router.post("/quiz-questions/:id/approve", async (req, res) => {
   const entry = await prisma.quizQuestion.update({
     where: { id: req.params.id },
-    data: { status: "approved" },
+    data: { status: "approved", validationNote: null },
   });
   res.json(entry);
 });

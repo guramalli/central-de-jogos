@@ -11,6 +11,8 @@
     "prisma:seed:quiz": "node prisma/seedQuiz.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",
+    "validate-quiznet-offline": "node prisma/validateQuiznetOffline.js",
+    "reimport-validated": "node prisma/reimportValidatedQuiznet.js",
     "prisma:studio": "prisma studio",
     "bot": "node bot/stopBot.js",
     "set-score": "node scripts/setTestScore.js",

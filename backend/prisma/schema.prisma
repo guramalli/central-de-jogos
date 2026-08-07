@@ -177,6 +177,8 @@ model QuizQuestion {
   answer        String
   status        String   @default("approved") // approved | pending | rejected
   difficulty    String   @default("medio") // facil | medio | dificil
+  validated     Boolean  @default(false) // true depois de passar pelo validador por IA
+  validationNote String? // observação da IA quando marca como suspeita/incorreta
   suggestedById String?
   suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
   createdAt     DateTime @default(now())
