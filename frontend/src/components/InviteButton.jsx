@@ -24,19 +24,26 @@ export default function InviteButton({ url, message, label = "Convidar amigos" }
     if (navigator.share) {
       try {
         await navigator.share({ title: "Educação Gamer", text: shareText, url: shareUrl });
-      } catch {
-        // usuário cancelou o compartilhamento — sem problema, não faz nada
+        return; // compartilhou com sucesso, não precisa do menu manual
+      } catch (err) {
+        if (err?.name === "AbortError") return; // usuário cancelou de propósito, não faz nada
+        // qualquer outro erro (ex.: navegador de desktop que "finge" suportar
+        // mas não completa) -> cai pro menu manual abaixo, em vez de não
+        // fazer nada visível.
       }
-    } else {
-      setOpen((o) => !o);
     }
+    setOpen((o) => !o);
   }
 
   async function handleCopy(e) {
     e.stopPropagation();
-    await navigator.clipboard.writeText(fullText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(fullText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard bloqueado nesse navegador/contexto — sem crash, só não marca como copiado
+    }
   }
 
   return (

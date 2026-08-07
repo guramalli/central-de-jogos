@@ -69,7 +69,7 @@ export function playCorrectSound() {
   if (muted) return;
   if (!correctAudio) {
     correctAudio = new Audio("/sounds/comemoracao.mp3");
-    correctAudio.volume = 0.5;
+    correctAudio.volume = 0.3;
   }
   correctAudio.currentTime = 0;
   correctAudio.play().catch(() => {
