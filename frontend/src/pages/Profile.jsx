@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
+import Seo from "../components/Seo.jsx";
 
 export default function Profile() {
   const [celebration, setCelebration] = useState("");
@@ -31,6 +32,7 @@ export default function Profile() {
 
   return (
     <div>
+      <Seo title="Meu Perfil" />
       <h1>Meu Perfil</h1>
       <div className="card" style={{ maxWidth: 480 }}>
         <h2>Comemoração do Quiz</h2>

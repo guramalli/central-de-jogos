@@ -7,6 +7,7 @@ import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 export default function AcromaniaGame() {
   const { roomId } = useParams();
@@ -174,6 +175,7 @@ export default function AcromaniaGame() {
 
   return (
     <div className="quiz-root">
+      <Seo title={roomLabel ? `Acromania — ${roomLabel}` : "Acromania"} description="Jogando Acromania com a galera na Educação Gamer." />
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
           <img src={uiTheme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="quiz-room-logo" />

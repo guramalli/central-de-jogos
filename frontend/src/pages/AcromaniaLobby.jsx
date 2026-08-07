@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
@@ -20,6 +21,7 @@ export default function AcromaniaLobby() {
 
   return (
     <div>
+      <Seo title="Acromania" description="Escolha uma sala de Acromania e crie a frase mais criativa com os amigos." />
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-page-logo" />

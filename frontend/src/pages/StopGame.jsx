@@ -8,6 +8,7 @@ import InviteButton from "../components/InviteButton.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
 import { useIsMobile } from "../utils/useIsMobile.js";
+import Seo from "../components/Seo.jsx";
 
 const STATUS_TEXT_CLASS = {
   correct: "word-text-correct",
@@ -473,6 +474,7 @@ export default function StopGame() {
 
   return (
     <div className="sc-root">
+      <Seo title={roomLabel ? `Stop — ${roomLabel}` : "Stop"} description="Jogando Stop com a galera na Educação Gamer." />
       <header className="sc-topbar">
         <div className="sc-topbar-left">
           <div className="sc-topbar-badges">

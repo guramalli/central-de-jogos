@@ -9,6 +9,7 @@ import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMute
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -182,6 +183,7 @@ export default function QuizGame() {
 
   return (
     <div className="quiz-root">
+      <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="quiz-room-logo" />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 export default function Clan() {
   const { user } = useAuth();
@@ -86,6 +87,7 @@ export default function Clan() {
 
   return (
     <div>
+      <Seo title="Meu Clã" />
       <h1>Meu Clã</h1>
       {error && <div className="error-msg">{error}</div>}
 

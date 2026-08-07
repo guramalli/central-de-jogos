@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
+import Seo from "../components/Seo.jsx";
 
 function formatPoints(n) {
   return n.toLocaleString("pt-BR");
@@ -14,6 +15,7 @@ export default function RanksInfoQuiz() {
 
   return (
     <div>
+      <Seo title="Patentes do Quiz" description="Veja todas as patentes do Quiz e quanto falta pra você subir de nível." />
       <h1>Patentes Quiz</h1>
       <p style={{ color: "var(--text-dim)" }}>
         Sua patente no Quiz é calculada pela pontuação vitalícia acumulada nesse jogo — quanto

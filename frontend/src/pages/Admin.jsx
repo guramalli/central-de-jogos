@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import AdminGlossary from "../components/AdminGlossary.jsx";
 import AdminQuizGlossary from "../components/AdminQuizGlossary.jsx";
 import Pagination from "../components/Pagination.jsx";
+import Seo from "../components/Seo.jsx";
 
 const PAGE_SIZE = 20;
 
@@ -148,6 +149,7 @@ export default function Admin() {
 
   return (
     <div>
+      <Seo title="Painel Admin" />
       <h1>Painel Admin — Educação Gamer</h1>
       {error && <div className="error-msg">{error}</div>}
 

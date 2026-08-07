@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import MiniPodium from "../components/MiniPodium.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Seo from "../components/Seo.jsx";
 
 const THEME_ICONS = {
   esportes: "⚽",
@@ -45,6 +46,7 @@ export default function QuizLobby() {
 
   return (
     <div>
+      <Seo title="Quiz" description="Escolha uma sala de Quiz — mais de 8 mil perguntas de vários temas, com dificuldade fácil ou avançada." />
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-page-logo" />

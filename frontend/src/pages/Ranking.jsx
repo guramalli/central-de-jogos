@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import RankBadge from "../components/RankBadge.jsx";
+import Seo from "../components/Seo.jsx";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -24,6 +25,7 @@ export default function Ranking() {
 
   return (
     <div>
+      <Seo title="Ranking" description="Veja o ranking mensal e vitalício de Stop, Quiz e Acromania." />
       <h1>Ranking</h1>
 
       {!isClans && (

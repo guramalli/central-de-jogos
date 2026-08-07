@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import MiniPodium from "../components/MiniPodium.jsx";
+import Seo from "../components/Seo.jsx";
 
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
@@ -25,6 +26,7 @@ export default function StopLobby() {
 
   return (
     <div>
+      <Seo title="Stop" description="Escolha uma sala de Stop — velocidade de digitação e conhecimentos gerais, com salas de dificuldade diferente." />
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
           <img src="/stop-logo.png" alt="Stop!" className="lobby-page-logo" />
