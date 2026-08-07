@@ -58,6 +58,10 @@ export class StopRoom {
     this.usedLettersInBlock = new Set(); // letras já sorteadas no bloco atual (não repetem)
     this.currentLetter = null;
     this.answers = new Map(); // userId -> { [themeKey]: word }
+    // Sinais comportamentais reportados pelo cliente pra essa rodada (colar
+    // texto, nunca corrigir nada) — usados só pra SINALIZAR possível uso de
+    // IA/automação, nunca pra bloquear ninguém automaticamente.
+    this.behaviorFlags = new Map(); // userId -> { pasted, corrected }
     this.skipVotes = new Set(); // userIds que votaram para pular o intervalo atual
     this.readyCache = new Map(); // userId -> já tem palavras corretas suficientes para pedir STOP?
     this.lastStopAttempt = new Map(); // userId -> timestamp da última tentativa de STOP (evita spam)
@@ -296,6 +300,7 @@ export class StopRoom {
     }
     this.currentLetter = this.pickLetter();
     this.answers = new Map();
+    this.behaviorFlags = new Map();
     this.readyCache = new Map();
     this.timeLeft = this.answerSeconds;
     this.roundStartedAt = Date.now();
@@ -403,9 +408,16 @@ export class StopRoom {
     this.endRound(true);
   }
 
-  submitAnswers(socket, userId, answers) {
+  submitAnswers(socket, userId, answers, behavior) {
     if (this.state !== "active") return;
     this.answers.set(userId, answers);
+    if (behavior) {
+      const prev = this.behaviorFlags.get(userId) || { pasted: false, corrected: false };
+      this.behaviorFlags.set(userId, {
+        pasted: prev.pasted || !!behavior.pasted,
+        corrected: prev.corrected || !!behavior.corrected,
+      });
+    }
 
     // Sala com exigência de acertos: reavalia se o jogador já atingiu o mínimo.
     // Como as palavras válidas da rodada já estão em memória (carregadas no
@@ -449,6 +461,16 @@ export class StopRoom {
     const set = this.validWordsCache.get(themeId);
     if (!set) return false;
     return set.has(normalize(word));
+  }
+
+  async logSuspiciousActivity(userId, reason, detail) {
+    try {
+      await prisma.suspiciousActivity.create({
+        data: { userId, gameKey: GAME_KEY, roomId: this.roomId, reason, detail },
+      });
+    } catch (err) {
+      console.error("Falha ao registrar atividade suspeita:", err.message);
+    }
   }
 
   async endRound(stoppedByPlayer = false) {
@@ -518,6 +540,32 @@ export class StopRoom {
       for (const [userId, themeResults] of graded.entries()) {
         const total = Object.values(themeResults).reduce((sum, r) => sum + r.points, 0);
         roundScores.set(userId, total);
+      }
+
+      // Sinalização de possíveis ferramentas externas — nunca bloqueia
+      // ninguém, só registra pra revisão manual depois. Dois sinais:
+      //  1) colou texto em algum campo nessa rodada;
+      //  2) acertou tudo, sem NENHUMA correção (nunca apagou nada), e ainda
+      //     sobrava bastante tempo quando a rodada terminou — padrão raro
+      //     em digitação humana ao vivo (a gente hesita, erra, corrige).
+      for (const [userId, themeResults] of graded.entries()) {
+        const flags = this.behaviorFlags.get(userId) || { pasted: false, corrected: false };
+        const results = Object.values(themeResults);
+        const allFilled = results.length > 0 && results.every((r) => r.status !== "blank");
+        const allCorrectish = results.every(
+          (r) => r.status === "correct" || r.status === "duplicate" || r.status === "solo"
+        );
+        const fastFinish = this.timeLeft > this.answerSeconds * 0.6;
+
+        if (flags.pasted) {
+          this.logSuspiciousActivity(userId, "paste", `Rodada ${this.roundNumber}`);
+        } else if (allFilled && allCorrectish && !flags.corrected && fastFinish) {
+          this.logSuspiciousActivity(
+            userId,
+            "too_perfect",
+            `Rodada ${this.roundNumber} — acertou tudo sem nenhuma correção, ${this.timeLeft}s ainda restantes`
+          );
+        }
       }
 
       for (const [userId, pts] of roundScores.entries()) {

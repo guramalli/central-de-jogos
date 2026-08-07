@@ -33,6 +33,11 @@ export default function StopGame() {
   const roomId = roomIdParam || "stop-sala-1";
   const socketRef = useRef(null);
   const inputRefs = useRef([]);
+  // Sinais comportamentais dessa rodada — usados só pra sinalizar possível
+  // uso de ferramentas externas pro admin revisar depois, nunca pra
+  // bloquear ninguém automaticamente. Resetados a cada rodada nova.
+  const pastedRef = useRef(false);
+  const correctedRef = useRef(false);
   const isMobile = useIsMobile();
   const awaitingResultRef = useRef(false); // evita "closure velha" dentro dos handlers do socket
   const pendingResultRef = useRef(null); // guarda o resultado se ele chegar durante o atraso
@@ -132,6 +137,8 @@ export default function StopGame() {
       setRoundNumber(data.roundNumber);
       setRoundInBlock(data.roundInBlock);
       setAnswers({});
+      pastedRef.current = false;
+      correctedRef.current = false;
       setLastResult(null);
       setBlockBonus(null);
       setIVotedSkip(false);
@@ -281,7 +288,10 @@ export default function StopGame() {
   function updateAnswer(themeKey, value) {
     const next = { ...answers, [themeKey]: value };
     setAnswers(next);
-    socketRef.current?.emit("submit-answers", { answers: next });
+    socketRef.current?.emit("submit-answers", {
+      answers: next,
+      behavior: { pasted: pastedRef.current, corrected: correctedRef.current },
+    });
   }
 
   function handleStop() {
@@ -319,6 +329,9 @@ export default function StopGame() {
         maxLength={40}
         autoComplete="off"
         onChange={(e) => updateAnswer(t.key, e.target.value)}
+        onPaste={() => {
+          pastedRef.current = true;
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
             // Ctrl+Enter é o atalho de STOP — deixa passar pro atalho
@@ -342,6 +355,12 @@ export default function StopGame() {
             e.preventDefault();
             inputRefs.current[themes.length - 1]?.focus();
             return;
+          }
+          if ((e.key === "Backspace" || e.key === "Delete") && (answers[t.key] || "")) {
+            // Apagando um caractere de verdade (não só navegando entre
+            // campos vazios) — sinal natural de que é digitação humana ao
+            // vivo, com hesitação/correção.
+            correctedRef.current = true;
           }
           if (e.key === "Backspace" && !(answers[t.key] || "")) {
             e.preventDefault();

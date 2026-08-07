@@ -10,6 +10,20 @@ datasource db {
 // "role" é validado na aplicação como texto simples (veja backend/src/middleware/auth.js),
 // em vez de um enum do Prisma — mantém compatibilidade caso o banco troque de novo no futuro.
 // Valores usados: "PLAYER" | "MODERATOR" | "ADMIN"
+// Sinais de possível uso de ferramentas externas (colar resposta, padrão
+// "bom demais pra ser real") — nunca bloqueia ninguém automaticamente, só
+// registra pra um admin revisar depois e decidir (banir, ignorar, etc.).
+model SuspiciousActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  gameKey   String
+  roomId    String
+  reason    String   // "paste" | "too_perfect"
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
 model User {
   id               String   @id @default(cuid())
   nickname         String   @unique
@@ -23,6 +37,7 @@ model User {
   state            String?
   birthDate        DateTime?
   termsAcceptedAt  DateTime?
+  suspiciousActivities SuspiciousActivity[]
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")

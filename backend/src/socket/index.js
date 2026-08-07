@@ -40,8 +40,8 @@ export function setupSocket(io) {
       }
     });
 
-    socket.on("submit-answers", ({ answers }) => {
-      socket.currentRoom?.submitAnswers(socket, userId, answers);
+    socket.on("submit-answers", ({ answers, behavior }) => {
+      socket.currentRoom?.submitAnswers(socket, userId, answers, behavior);
     });
 
     socket.on("stop", () => {

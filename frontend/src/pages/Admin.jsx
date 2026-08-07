@@ -28,6 +28,7 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [usersPage, setUsersPage] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [suspicious, setSuspicious] = useState([]);
   const [error, setError] = useState("");
 
   async function loadPending() {
@@ -67,11 +68,22 @@ export default function Admin() {
     }
   }
 
+  async function loadSuspicious() {
+    if (user.role !== "ADMIN") return;
+    try {
+      const { data } = await api.get("/admin/suspicious-activity");
+      setSuspicious(data);
+    } catch {
+      // silencioso — não é crítico
+    }
+  }
+
   useEffect(() => {
     loadPending();
     loadQuizPending();
     loadUsers();
     loadFeedbacks();
+    loadSuspicious();
   }, []);
 
   async function deleteFeedback(id) {
@@ -301,6 +313,52 @@ export default function Admin() {
             totalPages={Math.max(1, Math.ceil(users.length / PAGE_SIZE))}
             onChange={setUsersPage}
           />
+        </div>
+      )}
+
+      {user.role === "ADMIN" && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <h2>🕵️ Atividade suspeita (Stop)</h2>
+          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+            Sinais de possível uso de ferramentas externas (colar resposta, ou acertar tudo sem
+            nenhuma correção com tempo sobrando). <strong>Nada aqui é bloqueado automaticamente</strong> —
+            é só pra você revisar e decidir.
+          </p>
+          <table className="player-table">
+            <thead>
+              <tr>
+                <th>Jogador</th>
+                <th>Colou texto</th>
+                <th>"Bom demais"</th>
+                <th>Total</th>
+                <th>Última vez</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suspicious.map((g) => (
+                <tr key={g.user.id}>
+                  <td>{g.user.nickname} {g.user.banned && <span style={{ color: "var(--accent)" }}>(banido)</span>}</td>
+                  <td>{g.pasteCount}</td>
+                  <td>{g.tooPerfectCount}</td>
+                  <td><strong>{g.count}</strong></td>
+                  <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                    {new Date(g.latest).toLocaleString("pt-BR")}
+                  </td>
+                  <td>
+                    <button className="btn secondary" onClick={() => toggleBan(g.user)}>
+                      {g.user.banned ? "Desbanir" : "Banir"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {suspicious.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ color: "var(--text-dim)" }}>Nenhum sinal registrado ainda.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

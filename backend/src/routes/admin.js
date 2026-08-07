@@ -261,4 +261,31 @@ router.delete("/users/:id", requireRole("ADMIN"), async (req, res) => {
   }
 });
 
+// Lista os sinais suspeitos agrupados por jogador, do mais sinalizado pro
+// menos — só pra revisão manual, nunca aplica nenhuma ação sozinho.
+router.get("/suspicious-activity", async (req, res) => {
+  const entries = await prisma.suspiciousActivity.findMany({
+    include: { user: { select: { id: true, nickname: true, email: true, banned: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+
+  const byUser = new Map();
+  for (const e of entries) {
+    if (!byUser.has(e.userId)) {
+      byUser.set(e.userId, { user: e.user, count: 0, pasteCount: 0, tooPerfectCount: 0, latest: e.createdAt, items: [] });
+    }
+    const group = byUser.get(e.userId);
+    group.count++;
+    if (e.reason === "paste") group.pasteCount++;
+    if (e.reason === "too_perfect") group.tooPerfectCount++;
+    if (group.items.length < 10) {
+      group.items.push({ reason: e.reason, detail: e.detail, roomId: e.roomId, createdAt: e.createdAt });
+    }
+  }
+
+  const grouped = [...byUser.values()].sort((a, b) => b.count - a.count);
+  res.json(grouped);
+});
+
 export default router;
