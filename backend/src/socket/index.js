@@ -1,6 +1,7 @@
 import { verifyToken } from "../utils/jwt.js";
 import { getOrCreateStopRoom } from "../game/gameManager.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
+import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
 import { recheckPeak } from "../game/platformStats.js";
 import { prisma } from "../db.js";
 
@@ -75,9 +76,33 @@ export function setupSocket(io) {
       socket.currentQuizRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
     });
 
+    // ===== Acromania =====
+    socket.on("join-acromania-room", async ({ roomId } = {}) => {
+      const room = await getOrCreateAcromaniaRoom(io, roomId);
+      const joined = await room.addPlayer(socket, userId, nickname);
+      if (joined) {
+        socket.currentAcromaniaRoom = room;
+        recheckPeak().catch(() => {});
+      }
+    });
+
+    socket.on("acromania-submit-phrase", ({ phrase }) => {
+      socket.currentAcromaniaRoom?.submitPhrase(socket, userId, phrase || "");
+    });
+
+    socket.on("acromania-vote", ({ entryId }) => {
+      socket.currentAcromaniaRoom?.vote(socket, userId, entryId);
+    });
+
+    socket.on("acromania-chat-message", ({ message }) => {
+      if (!message?.trim()) return;
+      socket.currentAcromaniaRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
+    });
+
     socket.on("disconnect", () => {
       socket.currentRoom?.removePlayer(socket.id);
       socket.currentQuizRoom?.removePlayer(socket.id);
+      socket.currentAcromaniaRoom?.removePlayer(socket.id);
     });
   });
 }

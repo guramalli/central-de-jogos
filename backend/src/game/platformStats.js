@@ -1,6 +1,7 @@
 import { prisma } from "../db.js";
 import { getAllOnlineUserIds as getStopOnlineIds } from "./gameManager.js";
 import { getAllOnlineUserIds as getQuizOnlineIds } from "./quizGameManager.js";
+import { getAllOnlineUserIds as getAcromaniaOnlineIds } from "./acromaniaGameManager.js";
 
 const PEAK_KEY = "max_concurrent_players";
 let peakCache = null;
@@ -14,7 +15,7 @@ async function loadPeak() {
 }
 
 function currentOnlineCount() {
-  const ids = new Set([...getStopOnlineIds(), ...getQuizOnlineIds()]);
+  const ids = new Set([...getStopOnlineIds(), ...getQuizOnlineIds(), ...getAcromaniaOnlineIds()]);
   return ids.size;
 }
 

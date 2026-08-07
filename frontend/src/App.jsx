@@ -10,6 +10,8 @@ import Ranking from "./pages/Ranking.jsx";
 import Clan from "./pages/Clan.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
+import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
+import AcromaniaGame from "./pages/AcromaniaGame.jsx";
 import Profile from "./pages/Profile.jsx";
 import RanksInfo from "./pages/RanksInfo.jsx";
 import RanksInfoQuiz from "./pages/RanksInfoQuiz.jsx";
@@ -46,6 +48,7 @@ export default function App() {
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
                 <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
+                <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 {(user.role === "ADMIN" || user.role === "MODERATOR") && (
@@ -125,6 +128,22 @@ export default function App() {
             element={
               <Private>
                 <QuizGame />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/acromania"
+            element={
+              <Private>
+                <AcromaniaLobby />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/acromania/:roomId"
+            element={
+              <Private>
+                <AcromaniaGame />
               </Private>
             }
           />

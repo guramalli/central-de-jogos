@@ -34,6 +34,9 @@ export default function Ranking() {
           <button className={`btn ${game === "quiz" ? "" : "secondary"}`} onClick={() => setGame("quiz")}>
             ❓ Quiz
           </button>
+          <button className={`btn ${game === "acromania" ? "" : "secondary"}`} onClick={() => setGame("acromania")}>
+            🔤 Acromania
+          </button>
         </div>
       )}
 

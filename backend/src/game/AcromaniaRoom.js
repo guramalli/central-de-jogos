@@ -1,0 +1,362 @@
+import { prisma } from "../db.js";
+import { isBirthdayToday } from "../utils/birthday.js";
+import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
+
+const GAME_KEY = "acromania";
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// Embaralha um array (Fisher-Yates) sem alterar o original.
+function shuffle(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// Sala do Acromania: sorteia tema+letras, todo mundo escreve uma frase, todo
+// mundo vota secretamente na melhor (sem saber de quem é cada uma), e quem
+// tiver mais votos leva os pontos da rodada. Ciclo eterno: escrever -> votar
+// -> resultado -> intervalo -> escrever de novo.
+export class AcromaniaRoom {
+  constructor(roomId, io, config = {}) {
+    this.roomId = roomId;
+    this.io = io;
+    this.label = config.label || "Acromania";
+    this.writingSeconds = config.writingSeconds ?? 60;
+    this.votingSeconds = config.votingSeconds ?? 20;
+    this.intermissionSeconds = config.intermissionSeconds ?? 10;
+    this.lettersCount = config.lettersCount ?? 3;
+    this.pointsForWin = config.pointsForWin ?? 50;
+    this.minPlayersToStart = config.minPlayersToStart ?? 1;
+    this.maxPlayers = config.maxPlayers ?? 10;
+
+    this.players = new Map(); // socketId -> {userId, nickname, socket}
+    this.state = "intermission"; // intermission | writing | voting | grading
+    this.timeLeft = 0;
+    this.timer = null;
+    this.roundNumber = 0;
+
+    this.currentTheme = "";
+    this.currentLetters = [];
+    this.submissions = new Map(); // userId -> phrase
+    this.votes = new Map(); // voterId -> targetUserId
+    this.lastResult = null;
+
+    this.lifetimeCache = new Map(); // userId -> pts vitalícios (geral, Acromania)
+    this.roomLifetimeCache = new Map(); // userId -> pts vitalícios (só nesta sala)
+
+    this.startedLoop = false;
+  }
+
+  countUniquePlayers() {
+    return new Set([...this.players.values()].map((p) => p.userId)).size;
+  }
+
+  async addPlayer(socket, userId, nickname) {
+    const alreadyInRoom = [...this.players.values()].some((p) => p.userId === userId);
+    if (!alreadyInRoom && this.countUniquePlayers() >= this.maxPlayers) {
+      socket.emit("acromania-room-full", { roomId: this.roomId });
+      return false;
+    }
+
+    for (const [oldSocketId, p] of this.players.entries()) {
+      if (p.userId === userId && oldSocketId !== socket.id) {
+        this.players.delete(oldSocketId);
+      }
+    }
+    this.players.set(socket.id, { userId, nickname, socket });
+
+    if (!this.lifetimeCache.has(userId)) {
+      const existing = await prisma.lifetimeScore.findUnique({
+        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+      });
+      this.lifetimeCache.set(userId, existing?.points || 0);
+    }
+    if (!this.roomLifetimeCache.has(userId)) {
+      const existingRoom = await prisma.lifetimeScore.findUnique({
+        where: { userId_gameKey: { userId, gameKey: `${GAME_KEY}:${this.roomId}` } },
+      });
+      this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
+    }
+
+    socket.join(this.roomId);
+    socket.emit("acromania-room-state", this.publicState());
+
+    if (!alreadyInRoom) {
+      this.systemMessage(`👋 ${nickname} entrou na sala.`);
+      try {
+        const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
+        if (isBirthdayToday(me?.birthDate)) {
+          this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
+        }
+      } catch {
+        // não deixa uma falha aqui atrapalhar a entrada na sala
+      }
+    }
+
+    await this.broadcastOnlinePlayers();
+
+    if (!this.startedLoop) {
+      this.startedLoop = true;
+      this.startIntermission();
+    }
+
+    return true;
+  }
+
+  async removePlayer(socketId) {
+    const leaving = this.players.get(socketId);
+    this.players.delete(socketId);
+    if (leaving) {
+      const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
+      if (!stillConnected) {
+        this.systemMessage(`🚪 ${leaving.nickname} saiu da sala.`);
+      }
+    }
+    await this.broadcastOnlinePlayers();
+  }
+
+  async broadcastOnlinePlayers() {
+    const monthKey = currentMonthKey();
+    const seen = new Set();
+    const list = [];
+    for (const p of this.players.values()) {
+      if (seen.has(p.userId)) continue;
+      seen.add(p.userId);
+      const monthly = await prisma.monthlyScore.findUnique({
+        where: { userId_gameKey_monthKey: { userId: p.userId, gameKey: GAME_KEY, monthKey } },
+      });
+      list.push({
+        userId: p.userId,
+        nickname: p.nickname,
+        lifetimePoints: this.lifetimeCache.get(p.userId) || 0,
+        roomLifetimePoints: this.roomLifetimeCache.get(p.userId) || 0,
+        monthlyPoints: monthly?.points || 0,
+      });
+    }
+    list.sort((a, b) => b.lifetimePoints - a.lifetimePoints);
+    this.broadcast("acromania-online-players", { players: list });
+  }
+
+  broadcast(event, data) {
+    this.io.to(this.roomId).emit(event, data);
+  }
+
+  systemMessage(message, bold = false, success = false) {
+    this.broadcast("acromania-chat-message", {
+      userId: null,
+      nickname: "Sistema",
+      message,
+      system: true,
+      bold,
+      success,
+      at: Date.now(),
+    });
+  }
+
+  chatMessage(userId, nickname, message) {
+    this.broadcast("acromania-chat-message", { userId, nickname, message, system: false, at: Date.now() });
+  }
+
+  publicState() {
+    return {
+      roomId: this.roomId,
+      label: this.label,
+      state: this.state,
+      timeLeft: this.timeLeft,
+      theme: this.currentTheme,
+      letters: this.currentLetters,
+      writingSeconds: this.writingSeconds,
+      votingSeconds: this.votingSeconds,
+    };
+  }
+
+  clearTimer() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  async startIntermission() {
+    this.clearTimer();
+    this.state = "intermission";
+    this.timeLeft = this.intermissionSeconds;
+    this.broadcast("acromania-intermission", {});
+
+    this.timer = setInterval(() => {
+      this.timeLeft -= 1;
+      this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
+      if (this.timeLeft <= 0) this.startWriting();
+    }, 1000);
+  }
+
+  async startWriting() {
+    this.clearTimer();
+
+    if (this.countUniquePlayers() < this.minPlayersToStart) {
+      // Ninguém suficiente pra jogar agora — espera mais um pouco e checa de novo.
+      this.startIntermission();
+      return;
+    }
+
+    this.roundNumber += 1;
+    this.state = "writing";
+    this.currentTheme = pickRandomTheme();
+    this.currentLetters = pickRandomLetters(this.lettersCount);
+    this.submissions = new Map();
+    this.votes = new Map();
+    this.timeLeft = this.writingSeconds;
+
+    this.broadcast("acromania-round-start", {
+      roundNumber: this.roundNumber,
+      theme: this.currentTheme,
+      letters: this.currentLetters,
+      seconds: this.writingSeconds,
+    });
+    this.systemMessage(`✍️ Nova rodada! Tema: "${this.currentTheme}" — letras: ${this.currentLetters.join(" ")}`);
+
+    this.timer = setInterval(() => {
+      this.timeLeft -= 1;
+      this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
+      if (this.timeLeft <= 0) this.startVoting();
+    }, 1000);
+  }
+
+  submitPhrase(socket, userId, phrase) {
+    if (this.state !== "writing") return;
+    const clean = (phrase || "").trim().slice(0, 200);
+    if (!clean) return;
+    this.submissions.set(userId, clean);
+    socket.emit("acromania-phrase-submitted", { ok: true });
+  }
+
+  async startVoting() {
+    this.clearTimer();
+    this.state = "voting";
+    this.timeLeft = this.votingSeconds;
+
+    // Embaralha as frases e dá um ID anônimo (não é o userId) pra cada uma —
+    // assim ninguém sabe de quem é qual frase na hora de votar.
+    const entries = shuffle([...this.submissions.entries()]).map(([userId, phrase], i) => ({
+      entryId: `e${i}`,
+      userId,
+      phrase,
+    }));
+    this.voteEntries = entries;
+
+    if (entries.length === 0) {
+      this.systemMessage("😶 Ninguém escreveu uma frase nessa rodada.");
+      this.lastResult = { theme: this.currentTheme, letters: this.currentLetters, entries: [], noOneWrote: true };
+      this.broadcast("acromania-round-result", this.lastResult);
+      this.startIntermission();
+      return;
+    }
+
+    if (entries.length === 1) {
+      // Só uma frase — não tem quem votar contra, já ganha os pontos direto.
+      await this.finishRound(entries, new Map());
+      return;
+    }
+
+    this.broadcast("acromania-voting-start", {
+      entries: entries.map((e) => ({ entryId: e.entryId, phrase: e.phrase })),
+      seconds: this.votingSeconds,
+    });
+    this.systemMessage("🗳️ Hora de votar na melhor frase!");
+
+    this.timer = setInterval(() => {
+      this.timeLeft -= 1;
+      this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
+      if (this.timeLeft <= 0) this.endVoting();
+    }, 1000);
+  }
+
+  vote(socket, userId, entryId) {
+    if (this.state !== "voting") return;
+    const entry = (this.voteEntries || []).find((e) => e.entryId === entryId);
+    if (!entry) return;
+    if (entry.userId === userId) return; // não pode votar na própria frase
+    this.votes.set(userId, entryId);
+    socket.emit("acromania-vote-registered", { ok: true });
+  }
+
+  async endVoting() {
+    this.clearTimer();
+    await this.finishRound(this.voteEntries || [], this.votes);
+  }
+
+  async finishRound(entries, votes) {
+    this.state = "grading";
+    this.clearTimer();
+
+    // Conta os votos por frase
+    const voteCounts = new Map(entries.map((e) => [e.entryId, 0]));
+    for (const targetEntryId of votes.values()) {
+      voteCounts.set(targetEntryId, (voteCounts.get(targetEntryId) || 0) + 1);
+    }
+
+    const maxVotes = Math.max(0, ...voteCounts.values());
+    const winners = maxVotes > 0 ? entries.filter((e) => voteCounts.get(e.entryId) === maxVotes) : [];
+
+    const monthKey = currentMonthKey();
+    for (const winner of winners) {
+      try {
+        await prisma.monthlyScore.upsert({
+          where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
+          update: { points: { increment: this.pointsForWin } },
+          create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: this.pointsForWin },
+        });
+        await prisma.lifetimeScore.upsert({
+          where: { userId_gameKey: { userId: winner.userId, gameKey: GAME_KEY } },
+          update: { points: { increment: this.pointsForWin } },
+          create: { userId: winner.userId, gameKey: GAME_KEY, points: this.pointsForWin },
+        });
+        this.lifetimeCache.set(winner.userId, (this.lifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+
+        const roomGameKey = `${GAME_KEY}:${this.roomId}`;
+        await prisma.lifetimeScore.upsert({
+          where: { userId_gameKey: { userId: winner.userId, gameKey: roomGameKey } },
+          update: { points: { increment: this.pointsForWin } },
+          create: { userId: winner.userId, gameKey: roomGameKey, points: this.pointsForWin },
+        });
+        this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+      } catch (err) {
+        console.error("Falha ao salvar pontuação do Acromania para", winner.userId, err.message);
+      }
+    }
+
+    this.lastResult = {
+      theme: this.currentTheme,
+      letters: this.currentLetters,
+      entries: entries.map((e) => ({
+        entryId: e.entryId,
+        userId: e.userId,
+        nickname: this.getNickname(e.userId),
+        phrase: e.phrase,
+        votes: voteCounts.get(e.entryId) || 0,
+        won: winners.some((w) => w.entryId === e.entryId),
+      })),
+    };
+    this.broadcast("acromania-round-result", this.lastResult);
+
+    if (winners.length > 0) {
+      const names = winners.map((w) => this.getNickname(w.userId)).join(" e ");
+      this.systemMessage(`🏆 ${names} venceu a rodada com a frase mais votada! (+${this.pointsForWin} pts)`, true, true);
+    } else {
+      this.systemMessage("🤷 Ninguém votou nessa rodada — sem pontos dessa vez.");
+    }
+
+    await this.broadcastOnlinePlayers();
+    this.startIntermission();
+  }
+
+  getNickname(userId) {
+    const found = [...this.players.values()].find((p) => p.userId === userId);
+    return found?.nickname || "Jogador";
+  }
+}

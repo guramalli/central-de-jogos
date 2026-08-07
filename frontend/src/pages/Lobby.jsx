@@ -82,6 +82,20 @@ export default function Lobby() {
             </span>
           </div>
         </Link>
+
+        <Link to="/jogos/acromania" className="glossy-panel lobby-game-card">
+          <div className="lobby-difficulty-icon lobby-difficulty-mid" style={{ fontSize: 28 }}>🔤</div>
+          <div>
+            <h3 className="lobby-game-title">Acromania</h3>
+            <p className="lobby-game-desc">
+              Um tema, algumas letras, e você cria a frase mais criativa possível. No final, a
+              galera vota secretamente na melhor — quem ganhar leva os pontos.
+            </p>
+            <span className="lobby-game-cta">
+              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
+          </div>
+        </Link>
       </div>
 
       {/* Links rápidos */}
