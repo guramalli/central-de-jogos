@@ -2,10 +2,11 @@
 // Faz duas coisas:
 //   1) Encontra perguntas de Direito (que hoje estão misturadas, principalmente
 //      dentro de "geral") e move elas pro tema "direito".
-//   2) Calcula uma dificuldade (fácil/médio/difícil) pra TODAS as perguntas,
-//      usando uma heurística baseada no tamanho da pergunta/resposta e
-//      presença de jargão técnico — não é perfeito, mas dá uma boa triagem
-//      inicial. Dá pra ajustar manualmente depois pelo painel admin.
+//   2) Calcula a dificuldade (fácil/difícil) de cada pergunta, comparando ela
+//      só com as outras perguntas DO MESMO TEMA (não com a base toda) — assim
+//      cada tema fica com uma divisão equilibrada de metade fácil, metade
+//      difícil, mesmo que um tema seja "naturalmente" mais difícil que outro.
+//      Não é perfeito, mas dá uma boa triagem inicial pra separar as salas.
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -43,32 +44,49 @@ async function main() {
   });
   console.log(`${all.length} perguntas encontradas.`);
 
-  // Calcula os limites (P33/P66) em cima da base inteira, pra dividir em 3 faixas parecidas.
-  const scores = all.map((q) => difficultyScore(q.question, q.answer)).sort((a, b) => a - b);
-  const p33 = scores[Math.floor(scores.length / 3)];
-  const p66 = scores[Math.floor((2 * scores.length) / 3)];
-  console.log(`Limites calculados — fácil até ${p33.toFixed(1)}, difícil acima de ${p66.toFixed(1)}`);
+  // Primeiro passo: decide o tema final de cada pergunta (move Direito).
+  const withFinalTheme = all.map((q) => ({
+    ...q,
+    finalTheme: isLawQuestion(q.question) ? "direito" : q.themeKey,
+    score: difficultyScore(q.question, q.answer),
+  }));
+
+  // Agrupa por tema FINAL, pra calcular a mediana de cada tema separadamente.
+  const byTheme = new Map();
+  for (const q of withFinalTheme) {
+    if (!byTheme.has(q.finalTheme)) byTheme.set(q.finalTheme, []);
+    byTheme.get(q.finalTheme).push(q.score);
+  }
+  const medianByTheme = new Map();
+  for (const [theme, scores] of byTheme.entries()) {
+    const sorted = [...scores].sort((a, b) => a - b);
+    medianByTheme.set(theme, sorted[Math.floor(sorted.length / 2)]);
+  }
+
+  console.log("Medianas por tema:");
+  for (const [theme, median] of medianByTheme.entries()) {
+    console.log(`  ${theme}: ${median.toFixed(1)} (${byTheme.get(theme).length} perguntas)`);
+  }
 
   let movedToLaw = 0;
   let updated = 0;
 
-  for (let i = 0; i < all.length; i += BATCH_SIZE) {
-    const batch = all.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < withFinalTheme.length; i += BATCH_SIZE) {
+    const batch = withFinalTheme.slice(i, i + BATCH_SIZE);
     await Promise.all(
       batch.map(async (q) => {
-        const score = difficultyScore(q.question, q.answer);
-        const difficulty = score <= p33 ? "facil" : score >= p66 ? "dificil" : "medio";
-        const newThemeKey = isLawQuestion(q.question) ? "direito" : q.themeKey;
-        if (newThemeKey !== q.themeKey) movedToLaw++;
+        const median = medianByTheme.get(q.finalTheme);
+        const difficulty = q.score <= median ? "facil" : "dificil";
+        if (q.finalTheme !== q.themeKey) movedToLaw++;
 
         await prisma.quizQuestion.update({
           where: { id: q.id },
-          data: { difficulty, themeKey: newThemeKey },
+          data: { difficulty, themeKey: q.finalTheme },
         });
         updated++;
       })
     );
-    process.stdout.write(`\r  ${Math.min(i + BATCH_SIZE, all.length)}/${all.length}`);
+    process.stdout.write(`\r  ${Math.min(i + BATCH_SIZE, withFinalTheme.length)}/${withFinalTheme.length}`);
   }
 
   console.log(`\n\nConcluído! ${updated} perguntas atualizadas, ${movedToLaw} movidas pro tema "direito".`);

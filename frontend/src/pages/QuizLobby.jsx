@@ -17,13 +17,6 @@ const THEME_ICONS = {
   direito: "⚖️",
 };
 
-// Salas por dificuldade não têm tema (misturam qualquer assunto) — usam
-// ícone próprio baseado no roomId em vez do themeKey.
-const ROOM_ICON_OVERRIDE = {
-  "quiz-facil": "🟢",
-  "quiz-dificil": "🔴",
-};
-
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
   if (status.onlineCount === 0) return { text: "Vazia", full: false, empty: true };
@@ -59,9 +52,14 @@ export default function QuizLobby() {
           const occ = occupancyInfo(r);
           return (
             <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="glossy-panel lobby-game-card">
-              <div className="quiz-theme-icon">{ROOM_ICON_OVERRIDE[r.roomId] || THEME_ICONS[r.themeKey] || "❓"}</div>
+              <div className="quiz-theme-icon">{THEME_ICONS[r.themeKey] || "❓"}</div>
               <div>
                 <h3 className="lobby-game-title">{r.label}</h3>
+                {r.difficulty && (
+                  <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.difficulty === "facil" ? "basic" : "advanced"}`}>
+                    {r.difficulty === "facil" ? "🟢 Fácil" : "🔴 Difícil"}
+                  </p>
+                )}
                 <p className="lobby-game-desc">{r.description || `Perguntas de ${r.label.toLowerCase()}.`}</p>
                 {r.streakRecord?.count > 0 && (
                   <p className="lobby-streak-desc">

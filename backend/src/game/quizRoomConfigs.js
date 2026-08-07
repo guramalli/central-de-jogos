@@ -1,108 +1,50 @@
-// Configuração de cada sala do Quiz. Igual ao Stop, adicionar uma sala nova
-// (ex.: níveis de dificuldade maiores no futuro) é só acrescentar uma entrada
-// aqui — a mecânica (revelação de letras, pontuação) continua a mesma,
-// só os tempos/pontos por pergunta podem mudar por sala.
+// Configuração de cada sala do Quiz. Cada tema vira DUAS salas — fácil e
+// difícil — geradas automaticamente aqui embaixo, pra não repetir bloco por
+// bloco. Direito é exceção: fica só uma sala (o assunto já é nichado o
+// suficiente sem precisar dividir mais ainda).
+const THEMES = [
+  { key: "esportes", name: "Esportes" },
+  { key: "ciencias", name: "Ciências" },
+  { key: "historia", name: "História" },
+  { key: "cinema", name: "Cinema" },
+  { key: "letras", name: "Letras" },
+  { key: "geral", name: "Conhecimentos Gerais" },
+  { key: "musica", name: "Música" },
+  { key: "series", name: "Séries e TV" },
+  { key: "novelas", name: "Novelas" },
+  { key: "geografia", name: "Geografia" },
+];
+
+function buildDifficultyRooms(themeKey, themeName) {
+  return {
+    [`quiz-${themeKey}-facil`]: {
+      label: `${themeName} — Fácil`,
+      themeKey,
+      difficultyFilter: "facil",
+      description: `Perguntas mais tranquilas de ${themeName.toLowerCase()}.`,
+      maxPlayers: 10,
+      questionSeconds: 40,
+      revealIntervalSeconds: 6,
+      intermissionSeconds: 8,
+      pointsPerCorrect: 8,
+    },
+    [`quiz-${themeKey}-dificil`]: {
+      label: `${themeName} — Difícil`,
+      themeKey,
+      difficultyFilter: "dificil",
+      description: `Perguntas mais puxadas de ${themeName.toLowerCase()}.`,
+      maxPlayers: 10,
+      questionSeconds: 35,
+      revealIntervalSeconds: 4,
+      intermissionSeconds: 8,
+      pointsPerCorrect: 15,
+    },
+  };
+}
+
 export const QUIZ_ROOM_CONFIGS = {
-  "quiz-esportes": {
-    label: "Esportes",
-    themeKey: "esportes",
-    description: "Perguntas de esportes — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-ciencias": {
-    label: "Ciências",
-    themeKey: "ciencias",
-    description: "Perguntas de ciências — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-historia": {
-    label: "História",
-    themeKey: "historia",
-    description: "Perguntas de história — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-cinema": {
-    label: "Cinema",
-    themeKey: "cinema",
-    description: "Perguntas de cinema — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-letras": {
-    label: "Letras",
-    themeKey: "letras",
-    description: "Perguntas de literatura — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-geral": {
-    label: "Conhecimentos Gerais",
-    themeKey: "geral",
-    description: "Um pouco de tudo — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-musica": {
-    label: "Música",
-    themeKey: "musica",
-    description: "Bandas, cantores e álbuns — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-series": {
-    label: "Séries e TV",
-    themeKey: "series",
-    description: "Seriados e programas de TV — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-novelas": {
-    label: "Novelas",
-    themeKey: "novelas",
-    description: "Novelas brasileiras — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
-  "quiz-geografia": {
-    label: "Geografia",
-    themeKey: "geografia",
-    description: "Países, capitais e lugares — nível iniciante.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 5,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 10,
-  },
+  ...THEMES.reduce((acc, t) => ({ ...acc, ...buildDifficultyRooms(t.key, t.name) }), {}),
+
   "quiz-direito": {
     label: "Direito",
     themeKey: "direito",
@@ -113,26 +55,6 @@ export const QUIZ_ROOM_CONFIGS = {
     intermissionSeconds: 8,
     pointsPerCorrect: 15,
   },
-  "quiz-facil": {
-    label: "Nível Fácil",
-    description: "Perguntas mais tranquilas, de qualquer tema — ótimo pra começar.",
-    maxPlayers: 10,
-    questionSeconds: 40,
-    revealIntervalSeconds: 6,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 8,
-    difficultyFilter: "facil",
-  },
-  "quiz-dificil": {
-    label: "Nível Difícil",
-    description: "Perguntas mais puxadas, de qualquer tema — só pra quem se acha.",
-    maxPlayers: 10,
-    questionSeconds: 35,
-    revealIntervalSeconds: 4,
-    intermissionSeconds: 8,
-    pointsPerCorrect: 20,
-    difficultyFilter: "dificil",
-  },
 };
 
-export const DEFAULT_QUIZ_ROOM_ID = "quiz-esportes";
+export const DEFAULT_QUIZ_ROOM_ID = "quiz-esportes-facil";
