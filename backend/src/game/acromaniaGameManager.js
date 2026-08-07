@@ -36,6 +36,7 @@ export function getAllAcromaniaRoomsStatus() {
       label: config.label,
       description: config.description,
       maxPlayers: config.maxPlayers ?? 10,
+      minPlayersToStart: config.minPlayersToStart ?? 1,
       onlineCount: room ? room.countUniquePlayers() : 0,
     };
   });

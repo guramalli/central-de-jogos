@@ -174,6 +174,8 @@ export class AcromaniaRoom {
       letters: this.currentLetters,
       writingSeconds: this.writingSeconds,
       votingSeconds: this.votingSeconds,
+      minPlayersToStart: this.minPlayersToStart,
+      onlineCount: this.countUniquePlayers(),
     };
   }
 
@@ -182,11 +184,15 @@ export class AcromaniaRoom {
     this.timer = null;
   }
 
-  async startIntermission() {
+  async startIntermission(waitingForPlayers = false) {
     this.clearTimer();
     this.state = "intermission";
     this.timeLeft = this.intermissionSeconds;
-    this.broadcast("acromania-intermission", {});
+    this.broadcast("acromania-intermission", {
+      waitingForPlayers,
+      minPlayersToStart: this.minPlayersToStart,
+      onlineCount: this.countUniquePlayers(),
+    });
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
@@ -200,7 +206,10 @@ export class AcromaniaRoom {
 
     if (this.countUniquePlayers() < this.minPlayersToStart) {
       // Ninguém suficiente pra jogar agora — espera mais um pouco e checa de novo.
-      this.startIntermission();
+      this.systemMessage(
+        `⏳ Aguardando mais jogadores (mínimo de ${this.minPlayersToStart} pra começar — agora tem ${this.countUniquePlayers()}).`
+      );
+      this.startIntermission(true);
       return;
     }
 

@@ -40,6 +40,7 @@ export default function AcromaniaLobby() {
               <div>
                 <h3 className="lobby-game-title">{r.label}</h3>
                 <p className="lobby-game-desc">{r.description}</p>
+                <p className="lobby-streak-desc">⚠️ Só roda com {r.minPlayersToStart}+ jogadores na sala</p>
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                   <span className="material-symbols-outlined">group</span> {occ.text}
                 </div>

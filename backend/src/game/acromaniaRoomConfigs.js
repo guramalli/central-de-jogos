@@ -10,10 +10,8 @@ export const ACROMANIA_ROOM_CONFIGS = {
     intermissionSeconds: 10, // intervalo entre rodadas
     lettersCount: 3,
     pointsForWin: 50,
-    // Ideal ter 3+ jogadores pra votação fazer sentido de verdade, mas como o
-    // site ainda tem pouco público, deixamos sem essa trava por enquanto —
-    // dá pra reativar isso facilmente aumentando esse número depois.
-    minPlayersToStart: 1,
+    // Precisa de pelo menos 3 jogadores pra votação fazer sentido de verdade.
+    minPlayersToStart: 3,
   },
 };
 

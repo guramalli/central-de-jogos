@@ -27,6 +27,7 @@ export default function AcromaniaGame() {
   const [myVote, setMyVote] = useState(null);
 
   const [lastResult, setLastResult] = useState(null);
+  const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
 
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -47,13 +48,16 @@ export default function AcromaniaGame() {
       setTheme(state.theme || "");
       setLetters(state.letters || []);
       if (state.writingSeconds) setTotalSeconds(state.writingSeconds);
+      if (state.onlineCount < state.minPlayersToStart) {
+        setWaitingInfo({ minPlayersToStart: state.minPlayersToStart, onlineCount: state.onlineCount });
+      }
     });
 
     socket.on("acromania-online-players", (data) => setOnlinePlayers(data.players || []));
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
 
-    socket.on("acromania-intermission", () => {
+    socket.on("acromania-intermission", (data) => {
       setPhase("intermission");
       setLastResult(null);
       setSubmitted(false);
@@ -61,6 +65,11 @@ export default function AcromaniaGame() {
       setVotingEntries([]);
       setMyVote(null);
       setWaitingNicknames([]);
+      setWaitingInfo(
+        data?.waitingForPlayers
+          ? { minPlayersToStart: data.minPlayersToStart, onlineCount: data.onlineCount }
+          : null
+      );
     });
 
     socket.on("acromania-tick", (data) => {
@@ -78,6 +87,7 @@ export default function AcromaniaGame() {
       setPhraseInput("");
       setLastResult(null);
       setWaitingNicknames([]);
+      setWaitingInfo(null);
     });
 
     socket.on("acromania-phrase-submitted", () => setSubmitted(true));
@@ -183,8 +193,20 @@ export default function AcromaniaGame() {
 
           {phase === "intermission" && (
             <>
-              <div className="quiz-question-text">Próxima rodada em {timeLeft}s...</div>
-              <p style={{ color: "var(--qz-text)", opacity: 0.7 }}>Se prepara! Vem tema e letras novas.</p>
+              {waitingInfo ? (
+                <>
+                  <div className="quiz-question-text">⏳ Aguardando mais jogadores...</div>
+                  <p className="acro-waiting-notice">
+                    O Acromania só roda com pelo menos <strong>{waitingInfo.minPlayersToStart}</strong> pessoas
+                    na sala — agora tem <strong>{waitingInfo.onlineCount}</strong>. Chama mais gente!
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="quiz-question-text">Próxima rodada em {timeLeft}s...</div>
+                  <p style={{ color: "var(--qz-text)", opacity: 0.7 }}>Se prepara! Vem tema e letras novas.</p>
+                </>
+              )}
             </>
           )}
 

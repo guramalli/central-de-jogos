@@ -2028,3 +2028,12 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   padding: 6px 4px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+
+.acro-waiting-notice {
+  text-align: center;
+  color: var(--qz-orange-pale, #ffc082);
+  font-size: 13px;
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
