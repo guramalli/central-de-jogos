@@ -587,7 +587,13 @@ export class StopRoom {
   }
 
   async awardBlockBonus(monthKey) {
-    const ranked = [...this.blockTotals.entries()].sort((a, b) => b[1] - a[1]);
+    // Só entra no pódio quem realmente pontuou alguma coisa NESSE bloco — uma
+    // entrada zerada (de quem não jogou nada nesse bloco, mesmo que tenha
+    // pontuado em blocos anteriores) não deve "preencher vaga" só porque
+    // sobrou posição no pódio.
+    const ranked = [...this.blockTotals.entries()]
+      .filter(([, points]) => points > 0)
+      .sort((a, b) => b[1] - a[1]);
     const bonusResults = [];
 
     this.systemMessage("🔄 Fim do bloco de 10 rodadas! Um novo sorteio de temas vai começar no próximo bloco.");

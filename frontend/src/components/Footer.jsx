@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import FeedbackModal from "./FeedbackModal.jsx";
 
 // Rodapé com a logo oficial da Educação Gamer, e um cantinho discreto com
 // estatísticas da plataforma (total de cadastrados + recorde simultâneo).
 export default function Footer() {
   const [stats, setStats] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     api.get("/platform-stats").then(({ data }) => setStats(data)).catch(() => {});
@@ -18,7 +20,7 @@ export default function Footer() {
       <div className="site-footer-links">
         <Link to="/termos-de-uso">Termos de Uso</Link>
         <a href="#">Privacidade</a>
-        <a href="#">Suporte</a>
+        <button className="site-footer-link-btn" onClick={() => setShowFeedback(true)}>Suporte</button>
       </div>
       {stats && (
         <div className="site-footer-stats">
@@ -26,6 +28,7 @@ export default function Footer() {
           {stats.peakConcurrentPlayers.toLocaleString("pt-BR")} simultâneos
         </div>
       )}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
     </footer>
   );
 }
