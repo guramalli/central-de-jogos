@@ -100,6 +100,17 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     }
   }
 
+  // Se quem está vendo o perfil é líder (dono) de algum clã, manda essa
+  // info junto — usada pra mostrar o botão "Convidar pro clã" no hover,
+  // quando a pessoa do perfil ainda não tem clã nenhum.
+  let viewerClan = null;
+  if (req.user.id !== id) {
+    viewerClan = await prisma.clan.findUnique({
+      where: { ownerId: req.user.id },
+      select: { id: true, name: true, tag: true },
+    });
+  }
+
   res.json({
     id: user.id,
     nickname: user.nickname,
@@ -111,6 +122,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     lifetime: lifetime.map((l) => ({ gameKey: l.gameKey, points: l.points })),
     achievements,
     friendshipStatus,
+    viewerClan,
   });
 });
 

@@ -17,6 +17,7 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const [friendStatus, setFriendStatus] = useState(null); // null | "sending" | "sent" | "error"
   const [dmOpen, setDmOpen] = useState(false);
+  const [clanInviteStatus, setClanInviteStatus] = useState(null); // null | "sending" | "sent" | "error"
   const anchorRef = useRef(null);
   const hideTimerRef = useRef(null);
 
@@ -56,6 +57,16 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
       setFriendStatus("sent");
     } catch {
       setFriendStatus("error");
+    }
+  }
+
+  async function handleInviteToClan() {
+    setClanInviteStatus("sending");
+    try {
+      await api.post("/clans/invite", { userId });
+      setClanInviteStatus("sent");
+    } catch {
+      setClanInviteStatus("error");
     }
   }
 
@@ -108,6 +119,23 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     : "Ainda não pontuou este mês"}
                 </div>
                 <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
+                {!isMe && !profile.clan && profile.viewerClan && (
+                  <div style={{ marginTop: 4 }}>
+                    {clanInviteStatus === "sent" ? (
+                      <span style={{ color: "#06d6a0" }}>✓ Convite enviado!</span>
+                    ) : clanInviteStatus === "error" ? (
+                      <span style={{ color: "#ff8a8a" }}>Não foi possível convidar.</span>
+                    ) : (
+                      <button
+                        className="nick-tooltip-friend-btn"
+                        onClick={handleInviteToClan}
+                        disabled={clanInviteStatus === "sending"}
+                      >
+                        🚩 Convidar pro [{profile.viewerClan.tag}]
+                      </button>
+                    )}
+                  </div>
+                )}
                 {!isMe && (
                   <div style={{ marginTop: 6 }}>
                     {friendStatus === "sent" || profile.friendshipStatus === "pending_sent" ? (
