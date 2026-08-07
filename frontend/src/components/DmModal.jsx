@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getSocket } from "../socket.js";
 import Chat from "./Chat.jsx";
 import { playMessageSound, isDmSoundMuted, toggleDmSoundMuted } from "../utils/sounds.js";
@@ -58,7 +59,7 @@ export default function DmModal({ friend, onClose }) {
     at: m.at,
   }));
 
-  return (
+  return createPortal(
     <div className="dm-modal-overlay" onClick={onClose}>
       <div className="dm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="dm-modal-header">
@@ -77,6 +78,7 @@ export default function DmModal({ friend, onClose }) {
         {error && <div className="error-msg">{error}</div>}
         {!error && <Chat messages={adaptedMessages} onSend={sendMessage} showTimestamp />}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
