@@ -52,19 +52,25 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   const monthly = await prisma.monthlyScore.findMany({ where: { userId: id, monthKey } });
   // Pra cada jogo em que a pessoa pontuou esse mês, calcula a patente (que
   // agora é conceito exclusivo do ranking mensal) e a posição no ranking
-  // mensal daquele jogo específico.
+  // mensal daquele jogo específico — usando CONTAGEM (quantos têm pontuação
+  // maior que a dela), não buscando a lista inteira de todo mundo. Isso
+  // importa de verdade com muita gente online ao mesmo tempo: essa rota
+  // roda toda vez que alguém passa o mouse num nick, em qualquer lugar do
+  // site, então precisa ser bem mais leve pro banco.
   const monthlyWithPosition = await Promise.all(
     monthly.map(async (m) => {
-      const allInGame = await prisma.monthlyScore.findMany({
-        where: { gameKey: m.gameKey, monthKey, user: { role: { not: "ADMIN" } } },
-        orderBy: { points: "desc" },
-        select: { userId: true },
+      const betterCount = await prisma.monthlyScore.count({
+        where: {
+          gameKey: m.gameKey,
+          monthKey,
+          user: { role: { not: "ADMIN" } },
+          points: { gt: m.points },
+        },
       });
-      const idx = allInGame.findIndex((s) => s.userId === id);
       return {
         gameKey: m.gameKey,
         points: m.points,
-        position: idx >= 0 ? idx + 1 : null,
+        position: betterCount + 1,
         rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
         nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
       };
