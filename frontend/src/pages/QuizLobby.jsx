@@ -105,7 +105,12 @@ export default function QuizLobby() {
         {themeRooms.map((r) => {
           const occ = occupancyInfo(r);
           return (
-            <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="glossy-panel lobby-game-card">
+            <Link
+              key={r.roomId}
+              to={`/jogos/quiz/${r.roomId}`}
+              className="glossy-panel lobby-game-card quiz-themed-card"
+              data-quiz-theme={r.themeKey || undefined}
+            >
               <div className="quiz-theme-icon">{THEME_ICONS[r.themeKey] || "❓"}</div>
               <div>
                 <h3 className="lobby-game-title">{r.label}</h3>

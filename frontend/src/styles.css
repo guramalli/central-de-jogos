@@ -3078,3 +3078,99 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-family: var(--qz-mono, monospace);
   margin: 0;
 }
+
+/* ===== Cores temáticas por sala do Quiz =====
+   Cada tema tem sua identidade de cor, aplicada nos detalhes da sala
+   (bordas, selos, letras reveladas, timer). Só sobrescreve as variáveis
+   de destaque — todo o resto do layout continua igual, então nada quebra
+   e a mudança vale automaticamente pra qualquer elemento que já usa essas
+   variáveis. Sala sem tema definido (ex.: arenas) mantém o laranja padrão. */
+
+/* Esportes — verde campo */
+.quiz-root[data-quiz-theme="esportes"] {
+  --qz-orange: #2ecc71;
+  --qz-orange-light: #7ee2a8;
+  --qz-orange-pale: #a8f0c6;
+}
+/* Ciências — ciano laboratório */
+.quiz-root[data-quiz-theme="ciencias"] {
+  --qz-orange: #00c2d1;
+  --qz-orange-light: #5fdde8;
+  --qz-orange-pale: #9beef5;
+}
+/* História — âmbar pergaminho */
+.quiz-root[data-quiz-theme="historia"] {
+  --qz-orange: #d4a017;
+  --qz-orange-light: #e8c45c;
+  --qz-orange-pale: #f2dc9a;
+}
+/* Cinema — vermelho tapete */
+.quiz-root[data-quiz-theme="cinema"] {
+  --qz-orange: #e74c3c;
+  --qz-orange-light: #f0837a;
+  --qz-orange-pale: #f7b3ad;
+}
+/* Letras — roxo literário */
+.quiz-root[data-quiz-theme="letras"] {
+  --qz-orange: #9b59b6;
+  --qz-orange-light: #c08fd4;
+  --qz-orange-pale: #dcbde8;
+}
+/* Conhecimentos Gerais — laranja padrão da casa */
+.quiz-root[data-quiz-theme="geral"] {
+  --qz-orange: #ff9900;
+  --qz-orange-light: #ffb86f;
+  --qz-orange-pale: #ffc082;
+}
+/* Música — rosa palco */
+.quiz-root[data-quiz-theme="musica"] {
+  --qz-orange: #ff4f9a;
+  --qz-orange-light: #ff8ec0;
+  --qz-orange-pale: #ffb8d8;
+}
+/* Séries e TV — azul tela */
+.quiz-root[data-quiz-theme="series"] {
+  --qz-orange: #3498db;
+  --qz-orange-light: #7fc0ea;
+  --qz-orange-pale: #b0d9f2;
+}
+/* Novelas — coral dramático */
+.quiz-root[data-quiz-theme="novelas"] {
+  --qz-orange: #ff7f50;
+  --qz-orange-light: #ffa985;
+  --qz-orange-pale: #ffc9b3;
+}
+/* Geografia — verde-azulado mapa */
+.quiz-root[data-quiz-theme="geografia"] {
+  --qz-orange: #16a085;
+  --qz-orange-light: #5cc9b3;
+  --qz-orange-pale: #96e0d1;
+}
+/* Direito — azul-marinho institucional */
+.quiz-root[data-quiz-theme="direito"] {
+  --qz-orange: #5d7ce0;
+  --qz-orange-light: #93a9ec;
+  --qz-orange-pale: #bccbf4;
+}
+
+/* ===== Cards temáticos na lobby do Quiz =====
+   Reaproveita as mesmas cores da sala, aplicadas numa borda lateral e no
+   ícone — assim a pessoa já reconhece o tema antes mesmo de entrar. */
+.quiz-themed-card {
+  border-left: 4px solid var(--card-accent, var(--accent-2));
+  transition: border-color 0.15s ease;
+}
+.quiz-themed-card .quiz-theme-icon {
+  filter: drop-shadow(0 0 6px var(--card-accent, var(--accent-2)));
+}
+.quiz-themed-card[data-quiz-theme="esportes"]  { --card-accent: #2ecc71; }
+.quiz-themed-card[data-quiz-theme="ciencias"]  { --card-accent: #00c2d1; }
+.quiz-themed-card[data-quiz-theme="historia"]  { --card-accent: #d4a017; }
+.quiz-themed-card[data-quiz-theme="cinema"]    { --card-accent: #e74c3c; }
+.quiz-themed-card[data-quiz-theme="letras"]    { --card-accent: #9b59b6; }
+.quiz-themed-card[data-quiz-theme="geral"]     { --card-accent: #ff9900; }
+.quiz-themed-card[data-quiz-theme="musica"]    { --card-accent: #ff4f9a; }
+.quiz-themed-card[data-quiz-theme="series"]    { --card-accent: #3498db; }
+.quiz-themed-card[data-quiz-theme="novelas"]   { --card-accent: #ff7f50; }
+.quiz-themed-card[data-quiz-theme="geografia"] { --card-accent: #16a085; }
+.quiz-themed-card[data-quiz-theme="direito"]   { --card-accent: #5d7ce0; }

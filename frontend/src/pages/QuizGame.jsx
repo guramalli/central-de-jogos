@@ -218,7 +218,7 @@ export default function QuizGame() {
   const isArenaBreak = !!turnInfo && phase === "intermission";
 
   return (
-    <div className="quiz-root">
+    <div className="quiz-root" data-quiz-theme={themeKey || undefined}>
       <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
       <div className="quiz-stats-bar">
         <div className="quiz-topbar-badges">
