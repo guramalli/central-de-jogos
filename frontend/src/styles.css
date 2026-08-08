@@ -3293,3 +3293,27 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 /* Garante que o conteúdo fique acima do brilho decorativo */
 .quiz-root[data-quiz-theme] > * { position: relative; z-index: 1; }
+
+/* ===== Log de respostas do Quiz =====
+   Formato "[8s 342ms] ‹Nick›: resposta" — mostra todas as tentativas da
+   sala, com destaque em verde pra quem acertou. */
+.quiz-log-item {
+  font-family: var(--qz-mono, monospace);
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  word-break: break-word;
+  line-height: 1.5;
+}
+.quiz-log-item:nth-child(even) { background: rgba(255, 255, 255, 0.03); }
+.quiz-log-time { color: #7d7268; }
+.quiz-log-nick { color: var(--qz-orange, #ff8c3d); font-weight: 700; }
+.quiz-log-guess { color: #c9c2bb; }
+
+/* Acerto fica destacado em verde, pra saltar aos olhos no meio das erradas */
+.quiz-log-item-correct {
+  background: rgba(6, 214, 160, 0.12) !important;
+  border-left: 2px solid #06d6a0;
+}
+.quiz-log-item-correct .quiz-log-guess { color: #06d6a0; font-weight: 700; }
+.quiz-log-item-correct .quiz-log-nick { color: #06d6a0; }

@@ -13,6 +13,15 @@ import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
+// Formata o tempo de resposta no padrão "8s 342ms" — o mesmo formato que a
+// Central de Jogos usava, que deixa clara a disputa por décimo de segundo.
+function formatElapsed(ms) {
+  if (ms === undefined || ms === null) return "0s 000ms";
+  const seconds = Math.floor(ms / 1000);
+  const millis = ms % 1000;
+  return `${seconds}s ${String(millis).padStart(3, "0")}ms`;
+}
+
 const THEME_ICONS = {
   esportes: "⚽",
   ciencias: "🧪",
@@ -142,8 +151,8 @@ export default function QuizGame() {
       setTimeout(() => setWrongFlash(false), 500);
     });
 
-    socket.on("quiz-wrong-log", (data) => {
-      setWrongLog((prev) => [...prev, data].slice(-30));
+    socket.on("quiz-answer-log", (data) => {
+      setWrongLog((prev) => [...prev, data].slice(-40));
     });
 
     socket.on("quiz-players-online", (data) => setOnlinePlayers(data.players || []));
@@ -160,7 +169,7 @@ export default function QuizGame() {
       socket.off("quiz-turn-finished");
       socket.off("quiz-guess-correct-multi");
       socket.off("quiz-guess-wrong");
-      socket.off("quiz-wrong-log");
+      socket.off("quiz-answer-log");
       socket.off("quiz-players-online");
       socket.off("quiz-chat-message");
       socket.disconnect();
@@ -353,13 +362,19 @@ export default function QuizGame() {
           )}
         </div>
 
-        {/* Log de respostas erradas — visível por todo mundo na sala */}
+        {/* Log de respostas — todas as tentativas da sala, certas e erradas */}
         <div className="quiz-panel quiz-wrong-log-panel">
-          <div className="quiz-retro-tab">✕ errando</div>
+          <div className="quiz-retro-tab">log</div>
           <div className="quiz-wrong-log-list" style={{ marginTop: 10 }}>
-            {wrongLog.length === 0 && <div className="quiz-wrong-log-empty">Ninguém errou ainda nessa pergunta.</div>}
+            {wrongLog.length === 0 && (
+              <div className="quiz-wrong-log-empty">Nenhuma resposta enviada ainda.</div>
+            )}
             {wrongLog.map((w, i) => (
-              <div key={i} className="quiz-wrong-log-item">{w.guess}</div>
+              <div key={i} className={`quiz-log-item ${w.correct ? "quiz-log-item-correct" : ""}`}>
+                <span className="quiz-log-time">[{formatElapsed(w.elapsedMs)}]</span>{" "}
+                <span className="quiz-log-nick">‹{w.nickname}›</span>{" "}
+                <span className="quiz-log-guess">{w.guess}</span>
+              </div>
             ))}
             <div ref={wrongLogEndRef} />
           </div>

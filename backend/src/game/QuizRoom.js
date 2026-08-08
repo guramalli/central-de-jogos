@@ -372,9 +372,33 @@ export class QuizRoom {
 
     const acertou = normalize(guess) === normalize(this.currentQuestion.answer);
 
+    // Tempo decorrido desde que a pergunta começou, em milissegundos —
+    // mostrado no log como "8s 342ms", pra dar aquela sensação de disputa
+    // por décimo de segundo.
+    const elapsedMs = this.questionStartedAt ? Date.now() - this.questionStartedAt : 0;
+
+    const logEntry = {
+      userId,
+      nickname,
+      guess: guess.trim(),
+      correct: acertou,
+      elapsedMs,
+      at: Date.now(),
+    };
+
+    if (this.multiAnswer) {
+      // Nas arenas todo mundo pode acertar a mesma pergunta — então o log
+      // é PRIVADO: cada pessoa só vê o que ela mesma digitou. Se fosse
+      // compartilhado, o acerto de um entregaria a resposta pros outros.
+      socket.emit("quiz-answer-log", logEntry);
+    } else {
+      // Nas salas normais o log é compartilhado: só o primeiro acerto vale,
+      // e ver as tentativas dos outros faz parte da graça.
+      this.broadcast("quiz-answer-log", logEntry);
+    }
+
     if (!acertou) {
       socket.emit("quiz-guess-wrong", {});
-      this.broadcast("quiz-wrong-log", { guess: guess.trim(), at: Date.now() });
       return;
     }
 
