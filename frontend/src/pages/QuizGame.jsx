@@ -122,7 +122,8 @@ export default function QuizGame() {
         setTurnRanking(data.turnRanking);
         // Na arena a resposta nunca é revelada — o painel vira o placar
         // do turno, e a mesma pergunta pode voltar em turnos futuros.
-        if (data.arenaScorers?.some((s) => s.userId === user?.id)) playCorrectSound();
+        // O som de acerto já tocou no momento em que a pessoa acertou
+        // (evento quiz-guess-correct-multi), então não repete aqui.
       }
     });
 

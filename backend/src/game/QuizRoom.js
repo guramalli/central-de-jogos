@@ -472,6 +472,19 @@ export class QuizRoom {
               create: { userId, gameKey: GAME_KEY, points: this.pointsPerCorrect },
             });
             this.lifetimeCache.set(userId, (this.lifetimeCache.get(userId) || 0) + this.pointsPerCorrect);
+
+            // Pontuação específica DESSA sala — é ela que aparece no
+            // "Pts Sala" e na lista de jogadores online. Estava faltando,
+            // por isso o placar da arena ficava sempre zerado.
+            await prisma.lifetimeScore.upsert({
+              where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
+              update: { points: { increment: this.pointsPerCorrect } },
+              create: { userId, gameKey: this.roomGameKey, points: this.pointsPerCorrect },
+            });
+            this.roomLifetimeCache.set(
+              userId,
+              (this.roomLifetimeCache.get(userId) || 0) + this.pointsPerCorrect
+            );
           } catch (err) {
             console.error("Falha ao pontuar na arena:", err.message);
           }
