@@ -2672,3 +2672,64 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   text-align: center;
   margin: 8px 0 0 0;
 }
+
+/* ===== Cartões de patente mensal (perfil público) ===== */
+.monthly-rank-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+.monthly-rank-card {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+.monthly-rank-card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.monthly-rank-game-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+}
+.monthly-rank-position {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-2);
+  background: rgba(255, 140, 61, 0.12);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* A patente fica isolada num bloco próprio — ícone grande em cima, nome
+   embaixo — bem separada visualmente da pontuação abaixo dela. */
+.monthly-rank-patent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+}
+.monthly-rank-patent-icon { width: 56px; height: 56px; object-fit: contain; }
+.monthly-rank-patent-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.monthly-rank-points { display: flex; flex-direction: column; align-items: center; }
+.monthly-rank-points strong { font-size: 22px; font-family: var(--font-mono); color: var(--accent-2); line-height: 1; }
+.monthly-rank-points span { font-size: 11px; color: var(--text-dim); margin-top: 2px; }

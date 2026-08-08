@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
-import RankBadge from "../components/RankBadge.jsx";
 
 const GAME_NAMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 
@@ -115,19 +114,29 @@ export default function PublicProfile() {
 
       {profile.monthly.length > 0 && (
         <div className="card" style={{ marginTop: 16 }}>
-          <h2>Ranking mensal (patente atual)</h2>
-          {profile.monthly.map((m) => (
-            <div key={m.gameKey} className="friend-row">
-              <span>
-                {GAME_NAMES[m.gameKey] || m.gameKey}
-                {m.position && <span style={{ color: "var(--text-dim)", marginLeft: 6 }}>({m.position}º no mês)</span>}
-              </span>
-              <span>
-                <strong>{m.points} pts</strong>
-                {m.rank && <RankBadge rank={m.rank} />}
-              </span>
-            </div>
-          ))}
+          <h2>Ranking mensal</h2>
+          <div className="monthly-rank-cards">
+            {profile.monthly.map((m) => (
+              <div key={m.gameKey} className="monthly-rank-card">
+                <div className="monthly-rank-card-top">
+                  <span className="monthly-rank-game-name">{GAME_NAMES[m.gameKey] || m.gameKey}</span>
+                  {m.position && <span className="monthly-rank-position">{m.position}º no mês</span>}
+                </div>
+
+                {m.rank && (
+                  <div className="monthly-rank-patent">
+                    <img src={m.rank.icon} alt={m.rank.name} className="monthly-rank-patent-icon" />
+                    <span className="monthly-rank-patent-name">{m.rank.name}</span>
+                  </div>
+                )}
+
+                <div className="monthly-rank-points">
+                  <strong>{m.points}</strong>
+                  <span>pontos este mês</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
