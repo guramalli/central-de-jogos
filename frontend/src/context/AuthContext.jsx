@@ -39,8 +39,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Entrada rápida como visitante — sem cadastro, só um apelido. A pessoa
+  // pode jogar e conhecer o site, mas não concorre a ranking nenhum.
+  async function loginAsGuest(nickname) {
+    const { data } = await api.post("/auth/guest", { nickname });
+    localStorage.setItem("eg_token", data.token);
+    localStorage.setItem("eg_user", JSON.stringify(data.user));
+    setUser(data.user);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, register, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithGoogle, loginAsGuest, logout }}>
       {children}
     </AuthContext.Provider>
   );

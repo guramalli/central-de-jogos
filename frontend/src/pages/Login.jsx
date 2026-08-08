@@ -6,12 +6,25 @@ import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
 export default function Login() {
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, loginAsGuest } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [guestNick, setGuestNick] = useState("");
+  const [guestOpen, setGuestOpen] = useState(false);
+
+  async function handleGuest(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      await loginAsGuest(guestNick);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.error || "Erro ao entrar como visitante.");
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -70,6 +83,32 @@ export default function Login() {
           <p style={{ marginTop: 6, fontSize: 13 }}>
             <Link to="/esqueci-senha">Esqueci minha senha</Link>
           </p>
+
+          <div className="auth-divider"><span>só quer experimentar?</span></div>
+
+          {!guestOpen ? (
+            <button className="btn secondary" style={{ width: "100%" }} onClick={() => setGuestOpen(true)}>
+              👤 Entrar como visitante
+            </button>
+          ) : (
+            <form onSubmit={handleGuest}>
+              <input
+                placeholder="Escolha um apelido"
+                value={guestNick}
+                onChange={(e) => setGuestNick(e.target.value)}
+                maxLength={15}
+                autoFocus
+                required
+              />
+              <button className="btn" type="submit" style={{ width: "100%" }}>
+                Jogar agora
+              </button>
+              <p className="guest-warning-note">
+                Visitantes podem jogar e conhecer o site, mas <strong>não pontuam no ranking</strong> nem
+                concorrem à premiação mensal. Dá pra criar uma conta a qualquer momento.
+              </p>
+            </form>
+          )}
         </div>
       </div>
     </div>

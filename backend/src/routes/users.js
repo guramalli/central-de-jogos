@@ -79,7 +79,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
         where: {
           gameKey: m.gameKey,
           monthKey,
-          user: { role: { not: "ADMIN" } },
+          user: { role: { not: "ADMIN" }, isGuest: false },
           points: { gt: m.points },
         },
       });

@@ -29,6 +29,9 @@ model User {
   nickname         String   @unique
   email            String   @unique
   password         String?  // opcional — contas criadas via login com Google não têm senha
+  // Conta de visitante: criada na hora, sem cadastro, só pra experimentar o
+  // jogo. Não concorre a ranking nenhum e é limpa periodicamente.
+  isGuest          Boolean  @default(false)
   role             String   @default("PLAYER")
   avatarUrl        String?  // foto pequena (base64), opcional
   banned           Boolean  @default(false)

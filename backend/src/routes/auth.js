@@ -189,4 +189,49 @@ router.post("/google", authLimiter, async (req, res) => {
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });
 
+// Entrada rápida como visitante: cria uma conta temporária só com nickname,
+// sem e-mail nem senha, pra pessoa experimentar o jogo antes de decidir se
+// quer se cadastrar. Visitante NÃO concorre a ranking nenhum — a conta
+// existe só pra o jogo funcionar (chat, salas, placar da partida).
+router.post("/guest", authLimiter, async (req, res) => {
+  const { nickname } = req.body;
+
+  const nick = (nickname || "").trim();
+  if (nick.length < 3 || nick.length > 15) {
+    return res.status(400).json({ error: "O apelido precisa ter entre 3 e 15 caracteres." });
+  }
+  if (!/^[\p{L}\p{N}_ ]+$/u.test(nick)) {
+    return res.status(400).json({ error: "Use apenas letras, números, espaço e underline." });
+  }
+
+  // Visitante ganha um sufixo pra deixar claro que não é conta registrada e
+  // pra nunca colidir com o nickname de alguém cadastrado.
+  let nickname_final = `${nick} (visitante)`;
+  if (nickname_final.length > 30) nickname_final = `${nick.slice(0, 18)} (visitante)`;
+
+  const existe = await prisma.user.findUnique({ where: { nickname: nickname_final } });
+  if (existe) {
+    // Já tem alguém usando esse apelido de visitante agora — sugere variar.
+    return res.status(409).json({ error: "Esse apelido já está em uso agora. Tenta outro?" });
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      nickname: nickname_final,
+      // E-mail sintético só pra satisfazer a restrição de unicidade — não é
+      // usado pra nada e não recebe mensagem nenhuma.
+      email: `guest_${crypto.randomUUID()}@visitante.local`,
+      password: null,
+      isGuest: true,
+      termsAcceptedAt: new Date(),
+    },
+  });
+
+  const token = signToken(user);
+  res.json({
+    token,
+    user: { id: user.id, nickname: user.nickname, role: user.role, isGuest: true },
+  });
+});
+
 export default router;

@@ -3353,3 +3353,39 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .quiz-themed-card[data-quiz-theme="futebol"]       { --card-accent: #4ade80; }
 .quiz-themed-card[data-quiz-theme="automobilismo"] { --card-accent: #ff3d3d; }
 .quiz-themed-card[data-quiz-theme="anime"]         { --card-accent: #c084fc; }
+
+/* ===== Faixa de aviso para visitantes ===== */
+.guest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(90deg, rgba(255, 140, 61, 0.18), rgba(255, 184, 111, 0.12));
+  border-bottom: 1px solid rgba(255, 140, 61, 0.4);
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
+}
+.guest-banner-icon { font-size: 16px; }
+.guest-banner-text { flex-shrink: 1; }
+.guest-banner-cta {
+  background: var(--accent-2);
+  color: #1a1200;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.1s ease;
+}
+.guest-banner-cta:hover { transform: scale(1.04); color: #1a1200; }
+
+.guest-warning-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 10px 0 0 0;
+}

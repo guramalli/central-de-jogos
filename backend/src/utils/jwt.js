@@ -14,7 +14,7 @@ if (!SECRET) {
 
 export function signToken(user) {
   return jwt.sign(
-    { id: user.id, nickname: user.nickname, role: user.role },
+    { id: user.id, nickname: user.nickname, role: user.role, isGuest: !!user.isGuest },
     SECRET,
     { expiresIn: "7d" }
   );

@@ -727,7 +727,7 @@ export class QuizRoom {
         where: {
           gameKey: GAME_KEY,
           monthKey,
-          user: { role: { not: "ADMIN" } },
+          user: { role: { not: "ADMIN" }, isGuest: false },
           points: { gt: myScore.points },
         },
       });

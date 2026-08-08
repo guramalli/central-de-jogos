@@ -691,11 +691,16 @@ export class StopRoom {
     // Contas ADMIN não competem pelo pódio nem pelo bônus — mesma regra já
     // aplicada no ranking mensal/vitalício da página de Ranking, só que
     // essa parte roda direto na sala, então precisa da mesma exclusão aqui.
-    const admins = await prisma.user.findMany({
-      where: { id: { in: candidates.map(([userId]) => userId) }, role: "ADMIN" },
+    // Contas ADMIN e de visitante não competem pelo pódio nem pelo bônus —
+    // mesma regra já aplicada no ranking mensal/vitalício.
+    const foraDoRanking = await prisma.user.findMany({
+      where: {
+        id: { in: candidates.map(([userId]) => userId) },
+        OR: [{ role: "ADMIN" }, { isGuest: true }],
+      },
       select: { id: true },
     });
-    const adminIds = new Set(admins.map((a) => a.id));
+    const adminIds = new Set(foraDoRanking.map((a) => a.id));
 
     const ranked = candidates.filter(([userId]) => !adminIds.has(userId)).sort((a, b) => b[1] - a[1]);
     const bonusResults = [];
