@@ -1,4 +1,5 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
@@ -155,6 +156,7 @@ router.get("/me", requireAuth, async (req, res) => {
     role: user.role,
     celebration: user.celebration || "",
     avatarUrl: user.avatarUrl || null,
+    hasPassword: !!user.password,
   });
 });
 
@@ -195,6 +197,34 @@ router.post("/me/avatar", requireAuth, async (req, res) => {
 router.delete("/me/avatar", requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: null } });
   res.json({ ok: true });
+});
+
+// Troca (ou define, se a conta nunca teve uma — caso de quem entrou só pelo
+// Google) a senha da própria conta. Se já existe senha, exige a atual pra
+// confirmar antes de trocar.
+router.patch("/me/password", requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: "A nova senha deve ter ao menos 8 caracteres." });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+  if (user.password) {
+    if (!currentPassword) {
+      return res.status(400).json({ error: "Informe sua senha atual." });
+    }
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Senha atual incorreta." });
+    }
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: req.user.id }, data: { password: hashed } });
+
+  res.json({ ok: true, message: user.password ? "Senha alterada com sucesso!" : "Senha definida com sucesso!" });
 });
 
 export default router;

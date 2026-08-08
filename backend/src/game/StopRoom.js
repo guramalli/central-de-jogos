@@ -346,7 +346,6 @@ export class StopRoom {
       letter: this.currentLetter,
       seconds: this.answerSeconds,
     });
-    this.systemMessage(`🎲 Rodada ${roundInBlock} de ${ROUNDS_PER_BLOCK} começou — letra sorteada: ${this.currentLetter}`);
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
@@ -613,11 +612,29 @@ export class StopRoom {
       for (const [userId, pts] of roundScores.entries()) {
         if (pts <= 0) continue;
         try {
+          // Busca os pontos mensais ANTES de somar, pra comparar a patente
+          // de antes com a de depois — patente é conceito mensal, então é
+          // essa pontuação que decide se a pessoa subiu de nível agora.
+          const existingMonthly = await prisma.monthlyScore.findUnique({
+            where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
+          });
+          const oldMonthlyPoints = existingMonthly?.points || 0;
+          const newMonthlyPoints = oldMonthlyPoints + pts;
+
           await prisma.monthlyScore.upsert({
             where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
             update: { points: { increment: pts } },
             create: { userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
+
+          const oldRank = getRankForPoints(oldMonthlyPoints);
+          const newRank = getRankForPoints(newMonthlyPoints);
+          if (oldRank.key !== newRank.key) {
+            const player = [...this.players.values()].find((p) => p.userId === userId);
+            const nickname = player?.nickname || "Jogador";
+            this.systemMessage(`"${nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+          }
+
           await prisma.lifetimeScore.upsert({
             where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
             update: { points: { increment: pts } },
@@ -650,7 +667,6 @@ export class StopRoom {
           blockTotal: this.blockTotals.get(p.userId) || 0,
         })),
       });
-      this.systemMessage(`🏁 Rodada ${roundInBlock} de ${ROUNDS_PER_BLOCK} encerrada!`);
 
       await this.broadcastOnlinePlayers();
 
@@ -747,7 +763,7 @@ export class StopRoom {
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
-  systemMessage(message, bold = false, success = false) {
-    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, at: Date.now() });
+  systemMessage(message, bold = false, success = false, promotion = false) {
+    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
 }

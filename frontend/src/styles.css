@@ -1583,6 +1583,11 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-player-points { font-weight: 700; font-family: var(--qz-mono); color: var(--qz-orange-pale); }
 
 .chat-system-msg-success { color: #06d6a0 !important; }
+.chat-system-msg-promotion {
+  color: #ccff00 !important;
+  font-weight: 800;
+  font-size: 14px;
+}
 
 .quiz-timer-group { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .quiz-mute-btn {
