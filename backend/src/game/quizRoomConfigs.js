@@ -4,6 +4,9 @@
 // suficiente sem precisar dividir mais ainda).
 const THEMES = [
   { key: "esportes", name: "Esportes" },
+  { key: "futebol", name: "Futebol" },
+  { key: "automobilismo", name: "Automobilismo" },
+  { key: "anime", name: "Anime e HQ" },
   { key: "ciencias", name: "Ciências" },
   { key: "historia", name: "História" },
   { key: "cinema", name: "Cinema" },

@@ -23,7 +23,10 @@ function formatElapsed(ms) {
 }
 
 const THEME_ICONS = {
-  esportes: "⚽",
+  esportes: "🏅",
+  futebol: "⚽",
+  automobilismo: "🏎️",
+  anime: "🎌",
   ciencias: "🧪",
   historia: "🏛️",
   cinema: "🎬",

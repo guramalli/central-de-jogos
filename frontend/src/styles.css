@@ -3317,3 +3317,39 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .quiz-log-item-correct .quiz-log-guess { color: #06d6a0; font-weight: 700; }
 .quiz-log-item-correct .quiz-log-nick { color: #06d6a0; }
+
+/* Temas novos: Futebol (verde gramado), Automobilismo (vermelho corrida),
+   Anime e HQ (roxo vibrante) */
+[data-theme="dark"] .quiz-root[data-quiz-theme="futebol"] {
+  --qz-orange: #4ade80;
+  --qz-orange-light: #86efac;
+  --qz-orange-pale: #bbf7d0;
+  --qz-bg: #08140d;
+  --qz-surface-low: #0d1f14;
+  --qz-surface: #102518;
+  --qz-surface-high: #163220;
+  --qz-outline: #2a5638;
+}
+[data-theme="dark"] .quiz-root[data-quiz-theme="automobilismo"] {
+  --qz-orange: #ff3d3d;
+  --qz-orange-light: #ff7a7a;
+  --qz-orange-pale: #ffabab;
+  --qz-bg: #1a0808;
+  --qz-surface-low: #260d0d;
+  --qz-surface: #2c1010;
+  --qz-surface-high: #3a1616;
+  --qz-outline: #612727;
+}
+[data-theme="dark"] .quiz-root[data-quiz-theme="anime"] {
+  --qz-orange: #c084fc;
+  --qz-orange-light: #d8b4fe;
+  --qz-orange-pale: #e9d5ff;
+  --qz-bg: #14091c;
+  --qz-surface-low: #1d0e28;
+  --qz-surface: #22112e;
+  --qz-surface-high: #2d173d;
+  --qz-outline: #4c2866;
+}
+.quiz-themed-card[data-quiz-theme="futebol"]       { --card-accent: #4ade80; }
+.quiz-themed-card[data-quiz-theme="automobilismo"] { --card-accent: #ff3d3d; }
+.quiz-themed-card[data-quiz-theme="anime"]         { --card-accent: #c084fc; }

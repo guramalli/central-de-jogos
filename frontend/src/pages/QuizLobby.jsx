@@ -6,7 +6,10 @@ import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
 const THEME_ICONS = {
-  esportes: "⚽",
+  esportes: "🏅",
+  futebol: "⚽",
+  automobilismo: "🏎️",
+  anime: "🎌",
   ciencias: "🧪",
   historia: "🏛️",
   cinema: "🎬",
