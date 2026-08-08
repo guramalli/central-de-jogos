@@ -21,7 +21,8 @@
     "set-role": "node scripts/setRole.js",
     "import-quiz-novas": "node prisma/importQuizNovas.js",
     "mover-anime": "node prisma/moverAnime.js",
-    "import-quiz-temas-novos": "node prisma/importTemasNovos.js"
+    "import-quiz-temas-novos": "node prisma/importTemasNovos.js",
+    "limpar-visitantes": "node prisma/limparVisitantes.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
