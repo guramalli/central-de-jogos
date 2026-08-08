@@ -600,13 +600,23 @@ export class QuizRoom {
           celebration,
         });
 
-        const celebrationText = celebration ? ` "${celebration}"` : "";
         const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
         this.systemMessage(
-          `✅ ${winner.nickname} acertou${timeText}!${celebrationText} A resposta era "${question.answer}" (+${pts} pts)`,
+          `✅ ${winner.nickname} acertou${timeText}! A resposta era "${question.answer}" (+${pts} pts)`,
           true,
           true // success = true -> aparece em verde no chat
         );
+
+        // A pessoa "comemora" no chat automaticamente, no nome dela — com a
+        // frase que escolheu no perfil, ou um "Ponto!" padrão se ainda não
+        // configurou nenhuma. Mesmo comportamento das arenas.
+        this.broadcast("quiz-chat-message", {
+          userId: winner.userId,
+          nickname: winner.nickname,
+          message: celebration || "Ponto!",
+          system: false,
+          at: Date.now(),
+        });
 
         // Placar do turno (modo arena) — 1 ponto por acerto, independente
         // da pontuação normal da sala.

@@ -27,9 +27,14 @@ function formatTime(at) {
 export default function Chat({ messages, onSend, showTimestamp = false }) {
   const [text, setText] = useState("");
   const endRef = useRef(null);
+  const listRef = useRef(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // Rola SÓ a caixa de mensagens, mexendo direto na posição dela — o
+    // scrollIntoView (usado antes) podia arrastar a página inteira junto,
+    // o que jogava a página inicial pra baixo assim que o chat carregava.
+    const list = listRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
   }, [messages]);
 
   function handleSubmit(e) {
@@ -41,7 +46,7 @@ export default function Chat({ messages, onSend, showTimestamp = false }) {
 
   return (
     <div className="chat-box">
-      <div className="chat-messages">
+      <div className="chat-messages" ref={listRef}>
         {messages.map((m, i) =>
           m.system ? (
             <div

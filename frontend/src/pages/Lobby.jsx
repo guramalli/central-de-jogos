@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
@@ -11,6 +11,12 @@ export default function Lobby() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [showFeedback, setShowFeedback] = useState(false);
+
+  // Garante que a página inicial sempre abre no topo — sem isso, o
+  // navegador podia manter a rolagem de onde a pessoa estava antes.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="lobby-page">
