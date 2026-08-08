@@ -18,7 +18,8 @@
     "prisma:studio": "prisma studio",
     "bot": "node bot/stopBot.js",
     "set-score": "node scripts/setTestScore.js",
-    "set-role": "node scripts/setRole.js"
+    "set-role": "node scripts/setRole.js",
+    "import-quiz-novas": "node prisma/importQuizNovas.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
