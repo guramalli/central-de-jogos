@@ -28,7 +28,7 @@ model User {
   id               String   @id @default(cuid())
   nickname         String   @unique
   email            String   @unique
-  password         String
+  password         String?  // opcional — contas criadas via login com Google não têm senha
   role             String   @default("PLAYER")
   avatarUrl        String?  // foto pequena (base64), opcional
   banned           Boolean  @default(false)

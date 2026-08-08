@@ -23,6 +23,16 @@ export function AuthProvider({ children }) {
     setUser(data.user);
   }
 
+  // Recebe o token de identidade que o botão do Google gera no navegador —
+  // o servidor confirma com o Google e devolve nosso próprio token, do
+  // mesmo jeito que login por senha ou cadastro.
+  async function loginWithGoogle(credential) {
+    const { data } = await api.post("/auth/google", { credential });
+    localStorage.setItem("eg_token", data.token);
+    localStorage.setItem("eg_user", JSON.stringify(data.user));
+    setUser(data.user);
+  }
+
   function logout() {
     localStorage.removeItem("eg_token");
     localStorage.removeItem("eg_user");
@@ -30,7 +40,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

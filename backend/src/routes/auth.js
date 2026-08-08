@@ -2,11 +2,13 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import rateLimit from "express-rate-limit";
+import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../db.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetEmail } from "../utils/mailer.js";
 
 const router = Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Reaproveita a mesma origem configurada pro CORS — é o endereço público do
 // site (frontend), usado pra montar o link que vai no e-mail de redefinição.
@@ -63,6 +65,9 @@ router.post("/login", authLimiter, async (req, res) => {
   const { email, password } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return res.status(401).json({ error: "Credenciais inválidas." });
+  if (!user.password) {
+    return res.status(400).json({ error: "Essa conta usa login com Google. Entra pelo botão do Google, não pela senha." });
+  }
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(401).json({ error: "Credenciais inválidas." });
   if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
@@ -116,6 +121,72 @@ router.post("/reset-password", authLimiter, async (req, res) => {
   });
 
   res.json({ message: "Senha redefinida com sucesso! Já pode entrar com a senha nova." });
+});
+
+// Gera um nickname único a partir do nome que veio do Google — sanitiza
+// (remove acentos e símbolos), corta em 15 caracteres, e se já existir
+// alguém com esse nickname, vai testando com um número no final até achar
+// um livre.
+async function generateNicknameFromName(name) {
+  const base = (name || "Jogador")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(0, 12) || "Jogador";
+
+  let candidate = base;
+  let suffix = 0;
+  while (await prisma.user.findUnique({ where: { nickname: candidate } })) {
+    suffix++;
+    candidate = `${base}${suffix}`.slice(0, 15);
+  }
+  return candidate;
+}
+
+// Login (ou cadastro automático, se for a primeira vez) via Google — recebe
+// o token de identidade que o botão do Google gera no navegador, confirma
+// com o próprio Google que ele é válido e de verdade, e só então libera acesso.
+router.post("/google", authLimiter, async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: "Token do Google ausente." });
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(500).json({ error: "Login com Google não está configurado no servidor ainda." });
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (err) {
+    return res.status(401).json({ error: "Token do Google inválido." });
+  }
+
+  if (!payload?.email_verified) {
+    return res.status(401).json({ error: "E-mail do Google não verificado." });
+  }
+
+  let user = await prisma.user.findUnique({ where: { email: payload.email } });
+
+  if (!user) {
+    const nickname = await generateNicknameFromName(payload.name);
+    user = await prisma.user.create({
+      data: {
+        nickname,
+        email: payload.email,
+        password: null,
+        avatarUrl: payload.picture || null,
+        termsAcceptedAt: new Date(),
+      },
+    });
+  }
+
+  if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
+
+  const token = signToken(user);
+  res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });
 
 export default router;

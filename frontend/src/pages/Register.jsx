@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
@@ -10,7 +11,7 @@ const ESTADOS = [
 ];
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
@@ -37,6 +38,16 @@ export default function Register() {
     }
   }
 
+  async function handleGoogleSuccess(credentialResponse) {
+    setError("");
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.error || "Erro ao cadastrar com Google.");
+    }
+  }
+
   return (
     <div className="auth-split">
       <Seo title="Criar conta" description="Cadastre-se grátis na Educação Gamer e jogue Stop, Quiz e Acromania — a nostalgia da Central de Jogos, de volta." />
@@ -49,6 +60,23 @@ export default function Register() {
         <div className="card auth-card">
           <h2>Criar conta</h2>
           {error && <div className="error-msg">{error}</div>}
+
+          <div className="auth-google-btn-wrap">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Erro ao cadastrar com Google.")}
+              text="signup_with"
+              locale="pt-BR"
+              width="100%"
+            />
+          </div>
+          <p className="auth-google-terms-note">
+            Ao continuar com o Google, você concorda com nossos{" "}
+            <Link to="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</Link>.
+          </p>
+
+          <div className="auth-divider"><span>ou cadastre com e-mail</span></div>
+
           <form onSubmit={handleSubmit}>
             <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={15} required />
             <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
