@@ -10,6 +10,12 @@ const LETTERS = "ABCDEFGHIJLMNOPQRSTUVXZ".split(""); // agora inclui X e Z tamb�
 const GAME_KEY = "stop";
 const SKIP_VOTE_MIN_PLAYERS = 3;
 
+// Pares de temas parecidos demais pra sair juntos na mesma rodada — dá pra
+// adicionar mais pares aqui no futuro, sem mexer na lógica do sorteio.
+const CONFLICTING_THEME_PAIRS = [
+  ["idiomas", "gentilico_paises"],
+];
+
 // Remove acentuação e normaliza para comparação — assim "cha" bate com "chá",
 // "sao paulo" bate com "São Paulo", etc. O jogador não é obrigado a acentuar.
 function normalize(str) {
@@ -272,7 +278,31 @@ export class StopRoom {
 
   pickThemes() {
     const shuffled = [...this.allThemes].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 6);
+    const selected = shuffled.slice(0, 6);
+    const rest = shuffled.slice(6);
+
+    // Alguns pares de tema são parecidos demais (as respostas quase sempre
+    // coincidem entre os dois) — nunca deixa os dois saírem juntos no
+    // mesmo bloco. Ex.: "Alemão" serve tanto pra Idiomas quanto pra
+    // Gentílico de Países, o que confunde e gera discussão sem necessidade.
+    for (const [keyA, keyB] of CONFLICTING_THEME_PAIRS) {
+      const hasA = selected.some((t) => t.key === keyA);
+      const hasB = selected.some((t) => t.key === keyB);
+      if (!hasA || !hasB) continue;
+
+      // Troca o segundo dos dois por outro tema do restante do sorteio,
+      // que ainda não esteja selecionado.
+      const idxToRemove = selected.findIndex((t) => t.key === keyB);
+      const replacementIdx = rest.findIndex((t) => !selected.includes(t));
+      if (replacementIdx >= 0) {
+        selected[idxToRemove] = rest[replacementIdx];
+        rest.splice(replacementIdx, 1);
+      }
+      // Se não sobrar substituto (banco de temas muito pequeno), deixa os
+      // dois juntos mesmo — é melhor que ter menos de 6 temas na rodada.
+    }
+
+    return selected;
   }
 
   pickLetter() {
@@ -316,7 +346,6 @@ export class StopRoom {
       letter: this.currentLetter,
       seconds: this.answerSeconds,
     });
-    this.systemMessage(`🎲 Rodada ${roundInBlock} de ${ROUNDS_PER_BLOCK} começou — letra sorteada: ${this.currentLetter}`);
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
@@ -583,11 +612,29 @@ export class StopRoom {
       for (const [userId, pts] of roundScores.entries()) {
         if (pts <= 0) continue;
         try {
+          // Busca os pontos mensais ANTES de somar, pra comparar a patente
+          // de antes com a de depois — patente é conceito mensal, então é
+          // essa pontuação que decide se a pessoa subiu de nível agora.
+          const existingMonthly = await prisma.monthlyScore.findUnique({
+            where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
+          });
+          const oldMonthlyPoints = existingMonthly?.points || 0;
+          const newMonthlyPoints = oldMonthlyPoints + pts;
+
           await prisma.monthlyScore.upsert({
             where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
             update: { points: { increment: pts } },
             create: { userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
+
+          const oldRank = getRankForPoints(oldMonthlyPoints);
+          const newRank = getRankForPoints(newMonthlyPoints);
+          if (oldRank.key !== newRank.key) {
+            const player = [...this.players.values()].find((p) => p.userId === userId);
+            const nickname = player?.nickname || "Jogador";
+            this.systemMessage(`"${nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+          }
+
           await prisma.lifetimeScore.upsert({
             where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
             update: { points: { increment: pts } },
@@ -620,7 +667,6 @@ export class StopRoom {
           blockTotal: this.blockTotals.get(p.userId) || 0,
         })),
       });
-      this.systemMessage(`🏁 Rodada ${roundInBlock} de ${ROUNDS_PER_BLOCK} encerrada!`);
 
       await this.broadcastOnlinePlayers();
 
@@ -640,9 +686,18 @@ export class StopRoom {
     // entrada zerada (de quem não jogou nada nesse bloco, mesmo que tenha
     // pontuado em blocos anteriores) não deve "preencher vaga" só porque
     // sobrou posição no pódio.
-    const ranked = [...this.blockTotals.entries()]
-      .filter(([, points]) => points > 0)
-      .sort((a, b) => b[1] - a[1]);
+    const candidates = [...this.blockTotals.entries()].filter(([, points]) => points > 0);
+
+    // Contas ADMIN não competem pelo pódio nem pelo bônus — mesma regra já
+    // aplicada no ranking mensal/vitalício da página de Ranking, só que
+    // essa parte roda direto na sala, então precisa da mesma exclusão aqui.
+    const admins = await prisma.user.findMany({
+      where: { id: { in: candidates.map(([userId]) => userId) }, role: "ADMIN" },
+      select: { id: true },
+    });
+    const adminIds = new Set(admins.map((a) => a.id));
+
+    const ranked = candidates.filter(([userId]) => !adminIds.has(userId)).sort((a, b) => b[1] - a[1]);
     const bonusResults = [];
 
     this.systemMessage("🔄 Fim do bloco de 10 rodadas! Um novo sorteio de temas vai começar no próximo bloco.");
@@ -708,7 +763,7 @@ export class StopRoom {
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
-  systemMessage(message, bold = false, success = false) {
-    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, at: Date.now() });
+  systemMessage(message, bold = false, success = false, promotion = false) {
+    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
 }

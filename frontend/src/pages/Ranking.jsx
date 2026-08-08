@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client.js";
 import RankBadge from "../components/RankBadge.jsx";
 import Seo from "../components/Seo.jsx";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
+const VALID_GAMES = ["stop", "quiz", "acromania"];
 
 export default function Ranking() {
-  const [game, setGame] = useState("stop"); // stop | quiz — só vale pra mensal/vitalício
+  const [searchParams] = useSearchParams();
+  const initialGame = VALID_GAMES.includes(searchParams.get("game")) ? searchParams.get("game") : "stop";
+  const [game, setGame] = useState(initialGame); // stop | quiz | acromania — só vale pra mensal/vitalício
   const [tab, setTab] = useState("monthly"); // monthly | lifetime | clans
   const [rows, setRows] = useState([]);
 

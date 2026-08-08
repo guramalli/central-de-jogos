@@ -9,9 +9,16 @@ export default function Profile() {
   const { user } = useAuth();
   const [celebration, setCelebration] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [hasPassword, setHasPassword] = useState(true);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
 
   useEffect(() => {
     api
@@ -19,6 +26,7 @@ export default function Profile() {
       .then(({ data }) => {
         setCelebration(data.celebration || "");
         setAvatarUrl(data.avatarUrl || null);
+        setHasPassword(data.hasPassword);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -33,6 +41,27 @@ export default function Profile() {
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       setError(e.response?.data?.error || "Erro ao salvar.");
+    }
+  }
+
+  async function handlePasswordSave(e) {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSaved(false);
+    if (newPassword !== confirmPassword) {
+      setPasswordError("As senhas novas não são iguais.");
+      return;
+    }
+    try {
+      const { data } = await api.patch("/users/me/password", { currentPassword, newPassword });
+      setPasswordSaved(true);
+      setHasPassword(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSaved(false), 3000);
+    } catch (e) {
+      setPasswordError(e.response?.data?.error || "Erro ao trocar senha.");
     }
   }
 
@@ -51,6 +80,45 @@ export default function Profile() {
             Ver como os outros veem seu perfil →
           </Link>
         )}
+      </div>
+
+      <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
+        <h2>{hasPassword ? "Trocar senha" : "Definir senha"}</h2>
+        <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+          {hasPassword
+            ? "Escolha uma senha nova pra sua conta."
+            : "Sua conta entrou pelo Google e ainda não tem senha própria. Defina uma se quiser poder entrar também pelo formulário normal (e-mail + senha), sem depender do Google."}
+        </p>
+        {passwordError && <div className="error-msg">{passwordError}</div>}
+        <form onSubmit={handlePasswordSave}>
+          {hasPassword && (
+            <input
+              type="password"
+              placeholder="Senha atual"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          )}
+          <input
+            type="password"
+            placeholder="Senha nova (mín. 8 caracteres)"
+            minLength={8}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Confirme a senha nova"
+            minLength={8}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          <button className="btn" type="submit">{hasPassword ? "Trocar senha" : "Definir senha"}</button>
+          {passwordSaved && <span style={{ marginLeft: 12, color: "#06d6a0", fontSize: 13 }}>✓ Salvo!</span>}
+        </form>
       </div>
 
       <div className="card" style={{ maxWidth: 480 }}>

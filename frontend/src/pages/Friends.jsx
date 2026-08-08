@@ -133,7 +133,7 @@ export default function Friends() {
               <button className="btn secondary" onClick={() => setChatWith({ userId: f.userId, nickname: f.nickname })}>
                 💬 Mensagem
               </button>
-              <button className="btn secondary" onClick={() => handleRemove(f.friendshipId)}>Remover</button>
+              <button className="btn secondary" onClick={() => handleRemove(f.friendshipId)}>Remover amigo</button>
             </div>
           </div>
         ))}

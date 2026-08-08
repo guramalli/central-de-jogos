@@ -28,7 +28,7 @@ model User {
   id               String   @id @default(cuid())
   nickname         String   @unique
   email            String   @unique
-  password         String
+  password         String?  // opcional — contas criadas via login com Google não têm senha
   role             String   @default("PLAYER")
   avatarUrl        String?  // foto pequena (base64), opcional
   banned           Boolean  @default(false)
@@ -43,6 +43,7 @@ model User {
   resetTokenExpiry DateTime?
   sentPrivateMessages     PrivateMessage[] @relation("SentMessages")
   receivedPrivateMessages PrivateMessage[] @relation("ReceivedMessages")
+  quizRoomStats           QuizRoomStat[]
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")
@@ -138,6 +139,21 @@ model WordEntry {
   createdAt     DateTime @default(now())
 
   @@unique([themeId, letter, word])
+}
+
+// Aproveitamento de cada jogador em cada sala do Quiz — quantas perguntas
+// tentou responder e quantas acertou. Alimenta o "% de acerto" mostrado no
+// hover de perfil (ex.: alguém muito bom em esportes tem 90% na sala de
+// esportes).
+model QuizRoomStat {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  roomId   String
+  attempts Int    @default(0)
+  correct  Int    @default(0)
+
+  @@unique([userId, roomId])
 }
 
 model Friendship {

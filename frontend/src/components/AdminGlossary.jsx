@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client.js";
 
-// Mesmo conjunto de letras sorteáveis no jogo (sem K, W, X, Y, Z).
-const LETTERS = "ABCDEFGHIJLMNOPQRSTUV".split("");
+// Mesmo conjunto de letras sorteáveis no jogo (sem K, W, Y — inclui X e Z).
+const LETTERS = "ABCDEFGHIJLMNOPQRSTUVXZ".split("");
 
 // Índice de palavras e temas do painel admin: escolhe um tema, preenche uma
 // palavra por letra numa grade (Enter salva e já pula pro campo da letra

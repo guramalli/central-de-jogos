@@ -3,6 +3,7 @@ import { isBirthdayToday } from "../utils/birthday.js";
 import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { getRankForPoints } from "../utils/rank.js";
 
 const GAME_KEY = "acromania";
 
@@ -146,7 +147,7 @@ export class AcromaniaRoom {
     this.io.to(this.roomId).emit(event, data);
   }
 
-  systemMessage(message, bold = false, success = false) {
+  systemMessage(message, bold = false, success = false, promotion = false) {
     this.broadcast("acromania-chat-message", {
       userId: null,
       nickname: "Sistema",
@@ -154,6 +155,7 @@ export class AcromaniaRoom {
       system: true,
       bold,
       success,
+      promotion,
       at: Date.now(),
     });
   }
@@ -328,11 +330,28 @@ export class AcromaniaRoom {
     const monthKey = currentMonthKey();
     for (const winner of winners) {
       try {
+        // Busca os pontos mensais ANTES de somar, pra comparar a patente
+        // de antes com a de depois. O Acromania ainda não tem sistema de
+        // patente próprio, então usa as mesmas do Stop como provisório —
+        // mesmo padrão já usado no Ranking e no perfil público.
+        const existingMonthly = await prisma.monthlyScore.findUnique({
+          where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
+        });
+        const oldMonthlyPoints = existingMonthly?.points || 0;
+        const newMonthlyPoints = oldMonthlyPoints + this.pointsForWin;
+
         await prisma.monthlyScore.upsert({
           where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
           update: { points: { increment: this.pointsForWin } },
           create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: this.pointsForWin },
         });
+
+        const oldRank = getRankForPoints(oldMonthlyPoints);
+        const newRank = getRankForPoints(newMonthlyPoints);
+        if (oldRank.key !== newRank.key) {
+          this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+        }
+
         await prisma.lifetimeScore.upsert({
           where: { userId_gameKey: { userId: winner.userId, gameKey: GAME_KEY } },
           update: { points: { increment: this.pointsForWin } },

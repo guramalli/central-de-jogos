@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -20,6 +21,16 @@ export default function Login() {
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao entrar.");
+    }
+  }
+
+  async function handleGoogleSuccess(credentialResponse) {
+    setError("");
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.error || "Erro ao entrar com Google.");
     }
   }
 
@@ -40,6 +51,19 @@ export default function Login() {
             <input placeholder="Senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             <button className="btn" type="submit" style={{ width: "100%" }}>Entrar</button>
           </form>
+
+          <div className="auth-divider"><span>ou</span></div>
+
+          <div className="auth-google-btn-wrap">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Erro ao entrar com Google.")}
+              text="continue_with"
+              locale="pt-BR"
+              width="100%"
+            />
+          </div>
+
           <p style={{ marginTop: 14, fontSize: 13 }}>
             Não tem conta? <Link to="/registrar">Cadastre-se</Link>
           </p>

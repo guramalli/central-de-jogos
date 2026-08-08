@@ -44,6 +44,11 @@ export default function QuizLobby() {
     }).catch(() => {});
   }, []);
 
+  // Arenas ficam separadas e sempre no topo, com card próprio — são o
+  // destaque da página, não mais uma sala de tema no meio da lista.
+  const arenaRooms = rooms.filter((r) => r.arena);
+  const themeRooms = rooms.filter((r) => !r.arena);
+
   return (
     <div>
       <Seo title="Quiz" description="Escolha uma sala de Quiz — mais de 8 mil perguntas de vários temas, com dificuldade fácil ou avançada." />
@@ -61,8 +66,43 @@ export default function QuizLobby() {
 
       <MiniPodium gameKey="quiz" />
 
+      {arenaRooms.length > 0 && (
+        <div className="arena-section">
+          <h2 className="arena-section-title">⚡ Arenas Relâmpago</h2>
+          <p className="arena-section-sub">
+            50 rodadas rápidas, 20 segundos por pergunta. Cada acerto vale 1 ponto no placar do
+            turno — e o pódio no fim leva bônus de pontuação.
+          </p>
+          <div className="arena-grid">
+            {arenaRooms.map((r) => {
+              const occ = occupancyInfo(r);
+              return (
+                <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="arena-card">
+                  <div className="arena-card-bolt">⚡</div>
+                  <div className="arena-card-body">
+                    <h3 className="arena-card-title">{r.label.replace("⚡ ", "")}</h3>
+                    <p className="arena-card-desc">{r.description}</p>
+                    <div className="arena-card-meta">
+                      <span>⏱️ 20s por pergunta</span>
+                      <span>🔁 50 rodadas</span>
+                      <span>🏆 Bônus no pódio</span>
+                    </div>
+                    <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
+                      <span className="material-symbols-outlined">group</span> {occ.text}
+                    </div>
+                    <span className="arena-card-cta">
+                      Entrar na arena <span className="material-symbols-outlined">arrow_forward</span>
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="lobby-game-grid">
-        {rooms.map((r) => {
+        {themeRooms.map((r) => {
           const occ = occupancyInfo(r);
           return (
             <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="glossy-panel lobby-game-card">

@@ -1,9 +1,11 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
 import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
 
 const router = Router();
 
@@ -52,19 +54,39 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   const monthly = await prisma.monthlyScore.findMany({ where: { userId: id, monthKey } });
   // Pra cada jogo em que a pessoa pontuou esse mês, calcula a patente (que
   // agora é conceito exclusivo do ranking mensal) e a posição no ranking
-  // mensal daquele jogo específico.
+  // mensal daquele jogo específico — usando CONTAGEM (quantos têm pontuação
+  // maior que a dela), não buscando a lista inteira de todo mundo. Isso
+  // importa de verdade com muita gente online ao mesmo tempo: essa rota
+  // roda toda vez que alguém passa o mouse num nick, em qualquer lugar do
+  // site, então precisa ser bem mais leve pro banco.
   const monthlyWithPosition = await Promise.all(
     monthly.map(async (m) => {
-      const allInGame = await prisma.monthlyScore.findMany({
-        where: { gameKey: m.gameKey, monthKey, user: { role: { not: "ADMIN" } } },
-        orderBy: { points: "desc" },
-        select: { userId: true },
+      // Contas ADMIN não competem no ranking — nem contam como concorrente
+      // pra calcular a posição de outra pessoa (já filtrado abaixo), nem
+      // aparecem com posição nenhuma quando o próprio perfil é de admin
+      // (senão, se ninguém "de verdade" tiver mais pontos, o admin aparece
+      // como 1º por padrão, mesmo estando fora do ranking).
+      if (user.role === "ADMIN") {
+        return {
+          gameKey: m.gameKey,
+          points: m.points,
+          position: null,
+          rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
+          nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+        };
+      }
+      const betterCount = await prisma.monthlyScore.count({
+        where: {
+          gameKey: m.gameKey,
+          monthKey,
+          user: { role: { not: "ADMIN" } },
+          points: { gt: m.points },
+        },
       });
-      const idx = allInGame.findIndex((s) => s.userId === id);
       return {
         gameKey: m.gameKey,
         points: m.points,
-        position: idx >= 0 ? idx + 1 : null,
+        position: betterCount + 1,
         rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
         nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
       };
@@ -80,6 +102,22 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     where: { userId: id, NOT: { gameKey: { contains: ":" } } },
   });
   const achievements = await buildAchievements(user.nickname, monthlyByGame);
+
+  // Aproveitamento por sala do Quiz — só das salas onde a pessoa já tentou
+  // um número mínimo de perguntas (senão "1 de 1 = 100%" viraria destaque
+  // sem significar nada).
+  const quizStats = await prisma.quizRoomStat.findMany({
+    where: { userId: id, attempts: { gte: 5 } },
+    orderBy: { attempts: "desc" },
+    take: 5,
+  });
+  const quizAccuracy = quizStats.map((s) => ({
+    roomId: s.roomId,
+    roomLabel: QUIZ_ROOM_CONFIGS[s.roomId]?.label || s.roomId,
+    attempts: s.attempts,
+    correct: s.correct,
+    percent: Math.round((s.correct / s.attempts) * 100),
+  }));
 
   // Status de amizade em relação a quem está VENDO o perfil (não em
   // relação ao dono do perfil) — usado pra decidir se mostra o botão de
@@ -121,6 +159,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     monthly: monthlyWithPosition,
     lifetime: lifetime.map((l) => ({ gameKey: l.gameKey, points: l.points })),
     achievements,
+    quizAccuracy,
     friendshipStatus,
     viewerClan,
   });
@@ -135,6 +174,7 @@ router.get("/me", requireAuth, async (req, res) => {
     role: user.role,
     celebration: user.celebration || "",
     avatarUrl: user.avatarUrl || null,
+    hasPassword: !!user.password,
   });
 });
 
@@ -175,6 +215,34 @@ router.post("/me/avatar", requireAuth, async (req, res) => {
 router.delete("/me/avatar", requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: null } });
   res.json({ ok: true });
+});
+
+// Troca (ou define, se a conta nunca teve uma — caso de quem entrou só pelo
+// Google) a senha da própria conta. Se já existe senha, exige a atual pra
+// confirmar antes de trocar.
+router.patch("/me/password", requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: "A nova senha deve ter ao menos 8 caracteres." });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+  if (user.password) {
+    if (!currentPassword) {
+      return res.status(400).json({ error: "Informe sua senha atual." });
+    }
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Senha atual incorreta." });
+    }
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: req.user.id }, data: { password: hashed } });
+
+  res.json({ ok: true, message: user.password ? "Senha alterada com sucesso!" : "Senha definida com sucesso!" });
 });
 
 export default router;

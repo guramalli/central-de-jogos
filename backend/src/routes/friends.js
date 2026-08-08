@@ -77,7 +77,9 @@ router.post("/request", async (req, res) => {
   if (targetUserId) {
     target = await prisma.user.findUnique({ where: { id: targetUserId } });
   } else if (nickname) {
-    target = await prisma.user.findUnique({ where: { nickname: nickname.trim() } });
+    target = await prisma.user.findFirst({
+      where: { nickname: { equals: nickname.trim(), mode: "insensitive" } },
+    });
   }
   if (!target) return res.status(404).json({ error: "Jogador não encontrado." });
   if (target.id === userId) return res.status(400).json({ error: "Você não pode adicionar a si mesmo." });

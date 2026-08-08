@@ -418,7 +418,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   color: #241a00;
   font-family: var(--sc-mono);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
   padding: 6px 12px;
   border-radius: 4px;
   white-space: nowrap;
@@ -1380,7 +1380,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   color: var(--qz-orange-pale);
   font-family: var(--qz-mono);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
   padding: 6px 12px;
   border-radius: 6px;
   white-space: nowrap;
@@ -1583,6 +1583,11 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-player-points { font-weight: 700; font-family: var(--qz-mono); color: var(--qz-orange-pale); }
 
 .chat-system-msg-success { color: #06d6a0 !important; }
+.chat-system-msg-promotion {
+  color: #ccff00 !important;
+  font-weight: 800;
+  font-size: 14px;
+}
 
 .quiz-timer-group { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .quiz-mute-btn {
@@ -2539,34 +2544,49 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   justify-content: center;
   box-shadow: 0 0 0 2px var(--bg);
 }
-.friends-quick-popover-floating {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
-  top: auto;
-}
-
-.friends-quick-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+.friends-quick-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2100;
+  padding: 20px;
+}
+.friends-quick-popover {
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  padding: 8px;
-  min-width: 200px;
-  max-height: 280px;
+  padding: 12px;
+  width: 100%;
+  max-width: 300px;
+  max-height: 60vh;
   overflow-y: auto;
 }
-.friends-quick-popover h4 {
-  margin: 0 0 6px 0;
+.friends-quick-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.friends-quick-popover-header h4 {
+  margin: 0;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-dim);
 }
+.friends-quick-popover-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+.friends-quick-popover-close:hover { color: var(--text); }
 .friends-quick-empty { color: var(--text-dim); font-size: 12px; margin: 0; }
 .friends-quick-item {
   display: flex;
@@ -2634,3 +2654,178 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   line-height: 1;
 }
 .emoji-picker-item:hover { background: var(--bg-panel); }
+
+/* ===== Login com Google (Login/Cadastro) ===== */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.auth-google-btn-wrap { display: flex; justify-content: center; }
+.auth-google-terms-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  margin: 8px 0 0 0;
+}
+
+/* ===== Cartões de patente mensal (perfil público) ===== */
+.monthly-rank-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+.monthly-rank-card {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+.monthly-rank-card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.monthly-rank-game-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+}
+.monthly-rank-position {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-2);
+  background: rgba(255, 140, 61, 0.12);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* A patente fica isolada num bloco próprio — ícone grande em cima, nome
+   embaixo — bem separada visualmente da pontuação abaixo dela. */
+.monthly-rank-patent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+}
+.monthly-rank-patent-icon { width: 56px; height: 56px; object-fit: contain; }
+.monthly-rank-patent-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.monthly-rank-points { display: flex; flex-direction: column; align-items: center; }
+.monthly-rank-points strong { font-size: 22px; font-family: var(--font-mono); color: var(--accent-2); line-height: 1; }
+.monthly-rank-points span { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ===== Aproveitamento no Quiz (hover de perfil) ===== */
+.nick-tooltip-accuracy {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.nick-tooltip-accuracy-title {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.nick-tooltip-accuracy-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  margin-top: 2px;
+}
+.nick-tooltip-accuracy-row strong { color: var(--accent-2); }
+
+/* ===== Arenas Relâmpago (lobby do Quiz) ===== */
+.arena-section { margin-bottom: 28px; }
+.arena-section-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin: 0 0 4px 0;
+}
+.arena-section-sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 14px 0;
+}
+.arena-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.arena-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, rgba(255, 140, 61, 0.14) 0%, rgba(255, 215, 0, 0.06) 100%);
+  border: 1px solid rgba(255, 184, 111, 0.5);
+  border-radius: 14px;
+  padding: 18px;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.arena-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-2);
+}
+.arena-card-bolt {
+  font-size: 34px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.arena-card-body { flex: 1; min-width: 0; }
+.arena-card-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin: 0 0 6px 0;
+}
+.arena-card-desc {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 10px 0;
+}
+.arena-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-2);
+  margin-bottom: 10px;
+}
+.arena-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-2);
+  font-weight: 700;
+  font-size: 13px;
+  margin-top: 8px;
+}

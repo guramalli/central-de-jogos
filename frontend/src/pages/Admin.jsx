@@ -276,6 +276,7 @@ export default function Admin() {
               <tr>
                 <th>Nickname</th>
                 <th>E-mail</th>
+                <th>Cadastrado em</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Ações</th>
@@ -286,6 +287,7 @@ export default function Admin() {
                 <tr key={u.id}>
                   <td>{u.nickname}</td>
                   <td>{u.email}</td>
+                  <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                   <td>{u.role}</td>
                   <td>
                     {u.banned ? <span style={{ color: "var(--accent)" }}>🚫 Banido</span> : <span style={{ color: "#06d6a0" }}>✓ Ativo</span>}

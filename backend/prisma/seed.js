@@ -19,6 +19,9 @@ const THEMES = [
   { key: "animais", name: "Animais" },
   { key: "idiomas", name: "Idiomas" },
   { key: "gentilico_paises", name: "Gentílico de Países" },
+  { key: "ensino_superior", name: "Ensino Superior" },
+  { key: "ossos_corpo_humano", name: "Ossos do Corpo Humano" },
+  { key: "verbos", name: "Verbos" },
 ];
 
 const SEED_WORDS = {

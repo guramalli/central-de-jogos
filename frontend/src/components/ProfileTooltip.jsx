@@ -119,6 +119,17 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     : "Ainda não pontuou este mês"}
                 </div>
                 <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
+                {profile.quizAccuracy?.length > 0 && (
+                  <div className="nick-tooltip-accuracy">
+                    <span className="nick-tooltip-accuracy-title">Aproveitamento no Quiz</span>
+                    {profile.quizAccuracy.slice(0, 3).map((a) => (
+                      <div key={a.roomId} className="nick-tooltip-accuracy-row">
+                        <span>{a.roomLabel}</span>
+                        <strong>{a.percent}%</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {!isMe && !profile.clan && profile.viewerClan && (
                   <div style={{ marginTop: 4 }}>
                     {clanInviteStatus === "sent" ? (

@@ -27,6 +27,7 @@ export const ROOM_CONFIGS = {
       "idiomas",
       "novelas_series",
       "bandas_musicais",
+      "verbos",
     ],
   },
   "stop-sala-1b": {
@@ -47,6 +48,7 @@ export const ROOM_CONFIGS = {
       "idiomas",
       "novelas_series",
       "bandas_musicais",
+      "verbos",
     ],
   },
   "stop-sala-intermediaria": {
