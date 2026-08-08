@@ -167,8 +167,8 @@ export class QuizRoom {
     this.revealTimer = null;
   }
 
-  systemMessage(message, bold = false, success = false) {
-    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, at: Date.now() });
+  systemMessage(message, bold = false, success = false, promotion = false) {
+    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
 
   chatMessage(userId, nickname, message) {
@@ -356,11 +356,27 @@ export class QuizRoom {
         }
 
         try {
+          // Busca os pontos mensais ANTES de somar, pra comparar a patente
+          // de antes com a de depois — patente é conceito mensal, então é
+          // essa pontuação que decide se a pessoa subiu de nível agora.
+          const existingMonthly = await prisma.monthlyScore.findUnique({
+            where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
+          });
+          const oldMonthlyPoints = existingMonthly?.points || 0;
+          const newMonthlyPoints = oldMonthlyPoints + pts;
+
           await prisma.monthlyScore.upsert({
             where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
             update: { points: { increment: pts } },
             create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
+
+          const oldRank = getQuizRankForPoints(oldMonthlyPoints);
+          const newRank = getQuizRankForPoints(newMonthlyPoints);
+          if (oldRank.key !== newRank.key) {
+            this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+          }
+
           await prisma.lifetimeScore.upsert({
             where: { userId_gameKey: { userId: winner.userId, gameKey: GAME_KEY } },
             update: { points: { increment: pts } },
