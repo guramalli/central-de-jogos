@@ -8,6 +8,13 @@ import Seo from "../components/Seo.jsx";
 
 const PAGE_SIZE = 20;
 
+const REPORT_REASON_LABELS = {
+  tema_errado: "Não é desse tema",
+  resposta_errada: "Resposta errada",
+  escrita: "Erro de escrita",
+  outro: "Outro problema",
+};
+
 const QUIZ_THEME_NAMES = {
   esportes: "Esportes",
   ciencias: "Ciências",
@@ -30,6 +37,7 @@ export default function Admin() {
   const [usersPage, setUsersPage] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
   const [suspicious, setSuspicious] = useState([]);
+  const [questionReports, setQuestionReports] = useState([]);
   const [error, setError] = useState("");
 
   async function loadPending() {
@@ -79,12 +87,31 @@ export default function Admin() {
     }
   }
 
+  async function loadQuestionReports() {
+    try {
+      const { data } = await api.get("/admin/question-reports");
+      setQuestionReports(data);
+    } catch {
+      // silencioso — não é crítico
+    }
+  }
+
+  async function resolveQuestionReport(questionId) {
+    try {
+      await api.post(`/admin/question-reports/${questionId}/resolve`);
+      loadQuestionReports();
+    } catch (e) {
+      setError(e.response?.data?.error || "Erro ao marcar como resolvido.");
+    }
+  }
+
   useEffect(() => {
     loadPending();
     loadQuizPending();
     loadUsers();
     loadFeedbacks();
     loadSuspicious();
+    loadQuestionReports();
   }, []);
 
   async function deleteFeedback(id) {
@@ -320,6 +347,41 @@ export default function Admin() {
           />
         </div>
       )}
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h2>🚩 Perguntas reportadas ({questionReports.length})</h2>
+        <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+          Perguntas que jogadores sinalizaram com problema. A com mais denúncias aparece primeiro.
+          Corrija pelo índice de perguntas acima e depois marque como resolvida aqui.
+        </p>
+        {questionReports.length === 0 && (
+          <p style={{ color: "var(--text-dim)" }}>Nenhuma pergunta reportada no momento. 🎉</p>
+        )}
+        {questionReports.map((g) => (
+          <div key={g.questionId} className="report-group">
+            <div className="report-group-head">
+              <div>
+                <strong>{g.question.question}</strong>
+                <div style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 2 }}>
+                  Resposta: <strong>{g.question.answer}</strong> · Tema: {g.question.themeKey} ·{" "}
+                  <span style={{ color: "var(--accent)" }}>{g.count} denúncia(s)</span>
+                </div>
+              </div>
+              <button className="btn secondary" onClick={() => resolveQuestionReport(g.questionId)}>
+                Marcar resolvida
+              </button>
+            </div>
+            <ul className="report-group-list">
+              {g.reports.map((r) => (
+                <li key={r.id}>
+                  <strong>{r.nickname}</strong>: {REPORT_REASON_LABELS[r.reason] || r.reason}
+                  {r.comment && <span style={{ color: "var(--text-dim)" }}> — "{r.comment}"</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
 
       {user.role === "ADMIN" && (
         <div className="card" style={{ marginTop: 16 }}>

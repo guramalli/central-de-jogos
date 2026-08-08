@@ -2844,3 +2844,69 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* ===== Reportar problema na pergunta (Quiz) ===== */
+.quiz-question-card { position: relative; }
+.quiz-report-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+  padding: 4px;
+}
+.quiz-report-btn:hover { opacity: 1; transform: scale(1.15); }
+
+.report-question-preview {
+  color: var(--text-dim);
+  font-size: 13px;
+  font-style: italic;
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+  margin: 10px 0 14px 0;
+}
+.report-reason-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.report-reason-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.report-reason-item input {
+  width: auto;
+  margin: 0;
+}
+
+/* ===== Perguntas reportadas (painel admin) ===== */
+.report-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--bg-panel-2);
+}
+.report-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.report-group-list {
+  margin: 10px 0 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text);
+}
+.report-group-list li { margin-top: 4px; }

@@ -191,6 +191,7 @@ export class QuizRoom {
       state: this.state,
       timeLeft: this.timeLeft,
       question: this.currentQuestion ? this.currentQuestion.question : null,
+      questionId: this.currentQuestion ? this.currentQuestion.id : null,
       masked: this.currentQuestion ? this.getMaskedAnswer() : null,
       streakRecord: this.roomRecord,
       turnRound: this.roundsPerTurn ? this.turnRound : null,
@@ -322,6 +323,7 @@ export class QuizRoom {
     for (let i = 0; i < initialCount; i++) this.revealedIndices.add(shuffled[i]);
 
     this.broadcast("quiz-question-start", {
+      questionId: question.id,
       question: question.question,
       masked: this.getMaskedAnswer(),
       seconds: this.questionSeconds,
@@ -462,7 +464,7 @@ export class QuizRoom {
         const celebrationText = celebration ? ` "${celebration}"` : "";
         const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
         this.systemMessage(
-          `✅ ${winner.nickname} acertou${timeText}!${celebrationText} (+${pts} pts)`,
+          `✅ ${winner.nickname} acertou${timeText}!${celebrationText} A resposta era "${question.answer}" (+${pts} pts)`,
           true,
           true // success = true -> aparece em verde no chat
         );

@@ -7,6 +7,7 @@ import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMuted } from "../utils/sounds.js";
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
+import ReportQuestionModal from "../components/ReportQuestionModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
@@ -36,6 +37,8 @@ export default function QuizGame() {
 
   const [roomLabel, setRoomLabel] = useState("");
   const [turnInfo, setTurnInfo] = useState(null); // { round, total } | null — só nas arenas
+  const [questionId, setQuestionId] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [themeKey, setThemeKey] = useState("");
   const [phase, setPhase] = useState("intermission"); // intermission | active
   const [timeLeft, setTimeLeft] = useState(0);
@@ -72,6 +75,7 @@ export default function QuizGame() {
       setTurnInfo(state.roundsPerTurn ? { round: state.turnRound, total: state.roundsPerTurn } : null);
       if (state.question) {
         setQuestionText(state.question);
+        setQuestionId(state.questionId || null);
         setAnswerLine(state.masked || "");
       }
     });
@@ -84,6 +88,7 @@ export default function QuizGame() {
     socket.on("quiz-question-start", (data) => {
       setPhase("active");
       setQuestionText(data.question);
+      setQuestionId(data.questionId || null);
       setAnswerLine(data.masked);
       setGuess("");
       setWrongLog([]);
@@ -232,6 +237,15 @@ export default function QuizGame() {
         {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="quiz-panel quiz-question-card">
           <div className="quiz-retro-tab">pergunta</div>
+          {questionId && phase === "active" && (
+            <button
+              className="quiz-report-btn"
+              onClick={() => setReportOpen(true)}
+              title="Reportar problema nessa pergunta"
+            >
+              🚩
+            </button>
+          )}
           <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
             {questionText}
           </div>
@@ -300,6 +314,14 @@ export default function QuizGame() {
       </div>
 
       <SuggestQuestionForm themeKey={themeKey} />
+
+      {reportOpen && questionId && (
+        <ReportQuestionModal
+          questionId={questionId}
+          questionText={questionText}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   );
 }

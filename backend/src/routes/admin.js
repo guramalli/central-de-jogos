@@ -289,4 +289,51 @@ router.get("/suspicious-activity", async (req, res) => {
   res.json(grouped);
 });
 
+// Perguntas denunciadas por jogadores, agrupadas — a com mais denúncias
+// primeiro, já que é a mais provável de ter problema real.
+router.get("/question-reports", async (req, res) => {
+  const reports = await prisma.quizQuestionReport.findMany({
+    where: { resolved: false },
+    include: {
+      question: true,
+      user: { select: { nickname: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  const byQuestion = new Map();
+  for (const r of reports) {
+    if (!byQuestion.has(r.questionId)) {
+      byQuestion.set(r.questionId, {
+        questionId: r.questionId,
+        question: r.question,
+        count: 0,
+        reports: [],
+      });
+    }
+    const g = byQuestion.get(r.questionId);
+    g.count++;
+    g.reports.push({
+      id: r.id,
+      nickname: r.user.nickname,
+      reason: r.reason,
+      comment: r.comment,
+      createdAt: r.createdAt,
+    });
+  }
+
+  res.json([...byQuestion.values()].sort((a, b) => b.count - a.count));
+});
+
+// Marca todas as denúncias de uma pergunta como resolvidas (depois que o
+// admin corrigiu ou decidiu que estava tudo certo).
+router.post("/question-reports/:questionId/resolve", async (req, res) => {
+  await prisma.quizQuestionReport.updateMany({
+    where: { questionId: req.params.questionId },
+    data: { resolved: true },
+  });
+  res.json({ ok: true });
+});
+
 export default router;

@@ -44,6 +44,7 @@ model User {
   sentPrivateMessages     PrivateMessage[] @relation("SentMessages")
   receivedPrivateMessages PrivateMessage[] @relation("ReceivedMessages")
   quizRoomStats           QuizRoomStat[]
+  quizQuestionReports     QuizQuestionReport[]
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
   ownedClan        Clan?    @relation("ClanOwner")
@@ -219,6 +220,23 @@ model Feedback {
 
 // Banco de perguntas do Quiz, organizado por tema (ex.: "esportes", "cinema").
 // Sem fila de aprovação por enquanto — populado direto pelo seed/admin.
+// Denúncia de pergunta feita por jogador dentro da sala — quando alguém
+// percebe erro na pergunta, resposta errada, ou pergunta fora do tema.
+// Um admin revisa depois no painel e corrige ou remove a pergunta.
+model QuizQuestionReport {
+  id         String   @id @default(cuid())
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  reason     String   // "tema_errado" | "resposta_errada" | "escrita" | "outro"
+  comment    String?
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([questionId, userId])
+}
+
 model QuizQuestion {
   id            String   @id @default(cuid())
   themeKey      String
@@ -230,5 +248,6 @@ model QuizQuestion {
   validationNote String? // observação da IA quando marca como suspeita/incorreta
   suggestedById String?
   suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
+  reports       QuizQuestionReport[]
   createdAt     DateTime @default(now())
 }
