@@ -20,7 +20,7 @@ export default function MiniPodium({ gameKey }) {
     <div className="glossy-panel mini-podium">
       <div className="mini-podium-header">
         <span>🏆 Top 3 do mês</span>
-        <Link to="/ranking" className="mini-podium-link">
+        <Link to={`/ranking?game=${gameKey}`} className="mini-podium-link">
           Ver ranking completo <span className="material-symbols-outlined">arrow_forward</span>
         </Link>
       </div>

@@ -640,9 +640,18 @@ export class StopRoom {
     // entrada zerada (de quem não jogou nada nesse bloco, mesmo que tenha
     // pontuado em blocos anteriores) não deve "preencher vaga" só porque
     // sobrou posição no pódio.
-    const ranked = [...this.blockTotals.entries()]
-      .filter(([, points]) => points > 0)
-      .sort((a, b) => b[1] - a[1]);
+    const candidates = [...this.blockTotals.entries()].filter(([, points]) => points > 0);
+
+    // Contas ADMIN não competem pelo pódio nem pelo bônus — mesma regra já
+    // aplicada no ranking mensal/vitalício da página de Ranking, só que
+    // essa parte roda direto na sala, então precisa da mesma exclusão aqui.
+    const admins = await prisma.user.findMany({
+      where: { id: { in: candidates.map(([userId]) => userId) }, role: "ADMIN" },
+      select: { id: true },
+    });
+    const adminIds = new Set(admins.map((a) => a.id));
+
+    const ranked = candidates.filter(([userId]) => !adminIds.has(userId)).sort((a, b) => b[1] - a[1]);
     const bonusResults = [];
 
     this.systemMessage("🔄 Fim do bloco de 10 rodadas! Um novo sorteio de temas vai começar no próximo bloco.");
