@@ -193,6 +193,8 @@ export class QuizRoom {
       question: this.currentQuestion ? this.currentQuestion.question : null,
       masked: this.currentQuestion ? this.getMaskedAnswer() : null,
       streakRecord: this.roomRecord,
+      turnRound: this.roundsPerTurn ? this.turnRound : null,
+      roundsPerTurn: this.roundsPerTurn,
     };
   }
 
@@ -460,7 +462,7 @@ export class QuizRoom {
         const celebrationText = celebration ? ` "${celebration}"` : "";
         const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
         this.systemMessage(
-          `✅ ${winner.nickname} acertou${timeText}!${celebrationText} A resposta era "${question.answer}" (+${pts} pts)`,
+          `✅ ${winner.nickname} acertou${timeText}!${celebrationText} (+${pts} pts)`,
           true,
           true // success = true -> aparece em verde no chat
         );
@@ -498,7 +500,8 @@ export class QuizRoom {
         await this.broadcastOnlinePlayers();
       } else {
         this.broadcast("quiz-question-result", { winner: null, answer: question.answer });
-        this.systemMessage(`⏰ Ninguém acertou. A resposta era "${question.answer}".`);
+        // Não anuncia "ninguém acertou" — a pergunta sozinha, registrada
+        // logo abaixo, já mostra o que rolou sem poluir o chat.
         // Ninguém acertou — quebra qualquer sequência em andamento.
         this.streakUserId = null;
         this.streakCount = 0;
@@ -562,10 +565,10 @@ export class QuizRoom {
       this.systemMessage("Ninguém pontuou nesse turno.");
     } else {
       const monthKey = currentMonthKey();
-      const medals = ["🥇", "🥈", "🥉"];
+      const medals = ["🥇", "🥈", "🥉", "4º", "5º"];
       const summaryParts = [];
 
-      for (let i = 0; i < Math.min(3, ranked.length); i++) {
+      for (let i = 0; i < Math.min(this.turnBonus.length, ranked.length); i++) {
         const [userId, acertos] = ranked[i];
         const bonus = this.turnBonus[i] || 0;
         const player = [...this.players.values()].find((p) => p.userId === userId);

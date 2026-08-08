@@ -58,7 +58,7 @@ export const QUIZ_ROOM_CONFIGS = {
     tier: "arena",
     arena: true,
     difficultyFilter: ["facil", "medio"],
-    description: "50 rodadas relâmpago de todos os temas. Cada acerto vale 1 ponto — o pódio do turno leva bônus!",
+    description: "50 rodadas relâmpago de todos os temas. Cada acerto vale 1 ponto — os 5 primeiros do turno levam bônus!",
     maxPlayers: 20,
     questionSeconds: 20,
     revealIntervalSeconds: 3,
@@ -67,7 +67,7 @@ export const QUIZ_ROOM_CONFIGS = {
     intermissionSeconds: 4,
     pointsPerCorrect: 5,
     roundsPerTurn: 50,
-    turnBonus: [100, 60, 30],
+    turnBonus: [100, 60, 40, 20, 10],
   },
   "quiz-arena-relampago-avancada": {
     label: "⚡ Arena Boca Livre Relâmpago — Avançada",
@@ -83,7 +83,7 @@ export const QUIZ_ROOM_CONFIGS = {
     intermissionSeconds: 4,
     pointsPerCorrect: 8,
     roundsPerTurn: 50,
-    turnBonus: [150, 90, 45],
+    turnBonus: [100, 60, 40, 20, 10],
   },
 
   ...THEMES.reduce((acc, t) => ({ ...acc, ...buildDifficultyRooms(t.key, t.name) }), {}),

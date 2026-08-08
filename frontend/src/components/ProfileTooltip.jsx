@@ -121,7 +121,7 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                 <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
                 {profile.quizAccuracy?.length > 0 && (
                   <div className="nick-tooltip-accuracy">
-                    <span className="nick-tooltip-accuracy-title">Aproveitamento no Quiz</span>
+                    <span className="nick-tooltip-accuracy-title">Aproveitamento na sala</span>
                     {profile.quizAccuracy.slice(0, 3).map((a) => (
                       <div key={a.roomId} className="nick-tooltip-accuracy-row">
                         <span>{a.roomLabel}</span>

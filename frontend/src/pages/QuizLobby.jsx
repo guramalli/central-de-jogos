@@ -71,7 +71,7 @@ export default function QuizLobby() {
           <h2 className="arena-section-title">⚡ Arenas Relâmpago</h2>
           <p className="arena-section-sub">
             50 rodadas rápidas, 20 segundos por pergunta. Cada acerto vale 1 ponto no placar do
-            turno — e o pódio no fim leva bônus de pontuação.
+            turno — e os 5 primeiros no fim levam bônus (100 / 60 / 40 / 20 / 10 pts).
           </p>
           <div className="arena-grid">
             {arenaRooms.map((r) => {
@@ -85,7 +85,7 @@ export default function QuizLobby() {
                     <div className="arena-card-meta">
                       <span>⏱️ 20s por pergunta</span>
                       <span>🔁 50 rodadas</span>
-                      <span>🏆 Bônus no pódio</span>
+                      <span>🏆 Top 5 leva bônus</span>
                     </div>
                     <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                       <span className="material-symbols-outlined">group</span> {occ.text}

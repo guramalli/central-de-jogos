@@ -2829,3 +2829,18 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
   margin-top: 8px;
 }
+
+/* Contador de rodadas do turno (salas de arena) */
+.quiz-turn-counter {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255, 140, 61, 0.15);
+  border: 1px solid rgba(255, 140, 61, 0.4);
+  color: var(--accent-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}

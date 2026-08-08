@@ -35,6 +35,7 @@ export default function QuizGame() {
   const wrongLogEndRef = useRef(null);
 
   const [roomLabel, setRoomLabel] = useState("");
+  const [turnInfo, setTurnInfo] = useState(null); // { round, total } | null — só nas arenas
   const [themeKey, setThemeKey] = useState("");
   const [phase, setPhase] = useState("intermission"); // intermission | active
   const [timeLeft, setTimeLeft] = useState(0);
@@ -68,6 +69,7 @@ export default function QuizGame() {
       setThemeKey(state.themeKey || "");
       setPhase(state.state);
       setTimeLeft(state.timeLeft);
+      setTurnInfo(state.roundsPerTurn ? { round: state.turnRound, total: state.roundsPerTurn } : null);
       if (state.question) {
         setQuestionText(state.question);
         setAnswerLine(state.masked || "");
@@ -86,6 +88,7 @@ export default function QuizGame() {
       setGuess("");
       setWrongLog([]);
       setTotalSeconds(data.seconds || 40);
+      if (data.roundsPerTurn) setTurnInfo({ round: data.turnRound, total: data.roundsPerTurn });
       playQuestionStartSound();
     });
 
@@ -198,6 +201,11 @@ export default function QuizGame() {
         <div className="quiz-topbar-title">
           <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>
           <span className="quiz-theme-name">{roomLabel}</span>
+          {turnInfo && (
+            <span className="quiz-turn-counter">
+              Rodada {turnInfo.round} de {turnInfo.total}
+            </span>
+          )}
         </div>
         <div className="quiz-timer-group">
           <FriendsQuickChat />
