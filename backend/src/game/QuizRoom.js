@@ -46,6 +46,9 @@ export class QuizRoom {
     // um ranking do turno e premia os melhores — igual ao bloco do Stop.
     this.roundsPerTurn = config.roundsPerTurn ?? null;
     this.turnBonus = config.turnBonus ?? [50, 30, 15];
+    // Modo arena: todo mundo que acertar pontua na mesma pergunta (em vez de
+    // só o primeiro). A pergunta segue até o tempo acabar.
+    this.multiAnswer = !!config.multiAnswer;
     this.roomGameKey = `${GAME_KEY}:${roomId}`;
 
     this.players = new Map(); // socketId -> { userId, nickname, socket }
@@ -65,6 +68,8 @@ export class QuizRoom {
     this.turnRound = 0;
     // Quem tentou responder a pergunta atual — zerado a cada pergunta nova.
     this.attemptedThisQuestion = new Set();
+    // Quem já acertou a pergunta atual (modo arena) — userId -> { nickname, at }
+    this.correctThisQuestion = new Map();
 
     // Sequência de respostas certas seguidas (streak) — quebra se outra
     // pessoa acertar no meio, ou se ninguém acertar uma pergunta.
@@ -306,6 +311,7 @@ export class QuizRoom {
     this.currentQuestion = question;
     this.revealedIndices = new Set();
     this.attemptedThisQuestion = new Set();
+    this.correctThisQuestion = new Map();
     this.timeLeft = this.questionSeconds;
     this.questionStartedAt = Date.now();
     if (this.roundsPerTurn) this.turnRound += 1;
@@ -356,12 +362,57 @@ export class QuizRoom {
     // Marca que essa pessoa tentou responder — usado no fim da pergunta pra
     // calcular o aproveitamento (% de acerto) dela nessa sala.
     this.attemptedThisQuestion.add(userId);
-    if (normalize(guess) !== normalize(this.currentQuestion.answer)) {
+
+    const acertou = normalize(guess) === normalize(this.currentQuestion.answer);
+
+    if (!acertou) {
       socket.emit("quiz-guess-wrong", {});
       this.broadcast("quiz-wrong-log", { guess: guess.trim(), at: Date.now() });
       return;
     }
+
+    // ===== Modo arena: todo mundo que acertar pontua =====
+    // A pergunta NÃO termina no primeiro acerto — segue até o tempo acabar,
+    // pra dar chance de todos marcarem ponto na mesma rodada.
+    if (this.multiAnswer) {
+      if (this.correctThisQuestion.has(userId)) return; // já acertou essa
+
+      this.correctThisQuestion.set(userId, { nickname, at: Date.now() });
+      this.turnScores.set(userId, (this.turnScores.get(userId) || 0) + 1);
+
+      // A pessoa "comemora" no chat automaticamente — com a frase que ela
+      // escolheu no perfil, ou um "Ponto!" padrão se não tiver escolhido.
+      const celebration = await this.getCelebration(userId);
+      this.broadcast("quiz-chat-message", {
+        userId,
+        nickname,
+        message: celebration || "Ponto!",
+        system: false,
+        at: Date.now(),
+      });
+
+      socket.emit("quiz-guess-correct-multi", { total: this.turnScores.get(userId) });
+      this.broadcast("quiz-multi-correct-update", {
+        scored: [...this.correctThisQuestion.entries()].map(([id, v]) => ({ userId: id, nickname: v.nickname })),
+      });
+      return;
+    }
+
+    // Modo normal: o primeiro que acerta encerra a pergunta.
     await this.endQuestion({ userId, nickname });
+  }
+
+  // Busca a frase de comemoração que a pessoa configurou no perfil.
+  async getCelebration(userId) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { celebration: true },
+      });
+      return user?.celebration || null;
+    } catch {
+      return null;
+    }
   }
 
   // winner = { userId, nickname } | null (null = ninguém acertou, tempo esgotou)
@@ -395,6 +446,51 @@ export class QuizRoom {
     this.clearTimers();
     const question = this.currentQuestion;
     const monthKey = currentMonthKey();
+
+    // ===== Modo arena: fecha a pergunta premiando todos que acertaram =====
+    if (this.multiAnswer) {
+      try {
+        const scorers = [...this.correctThisQuestion.entries()];
+
+        for (const [userId] of scorers) {
+          try {
+            await prisma.monthlyScore.upsert({
+              where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
+              update: { points: { increment: this.pointsPerCorrect } },
+              create: { userId, gameKey: GAME_KEY, monthKey, points: this.pointsPerCorrect },
+            });
+            await prisma.lifetimeScore.upsert({
+              where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+              update: { points: { increment: this.pointsPerCorrect } },
+              create: { userId, gameKey: GAME_KEY, points: this.pointsPerCorrect },
+            });
+            this.lifetimeCache.set(userId, (this.lifetimeCache.get(userId) || 0) + this.pointsPerCorrect);
+          } catch (err) {
+            console.error("Falha ao pontuar na arena:", err.message);
+          }
+        }
+
+        // Manda o ranking acumulado do turno pro painel da pergunta.
+        this.broadcast("quiz-question-result", {
+          winner: null,
+          answer: question.answer,
+          arenaScorers: scorers.map(([id, v]) => ({ userId: id, nickname: v.nickname })),
+          turnRanking: this.buildTurnRanking(),
+        });
+
+        this.systemMessage(`❓ ${question.question}`);
+        await this.recordArenaStats();
+        await this.broadcastOnlinePlayers();
+      } catch (err) {
+        console.error(`Erro ao encerrar pergunta na arena ${this.roomId}:`, err);
+      } finally {
+        if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
+          await this.finishTurn();
+        }
+        this.startIntermission();
+      }
+      return;
+    }
 
     try {
       if (winner) {
@@ -530,6 +626,56 @@ export class QuizRoom {
     }
   }
 
+  // Monta o ranking acumulado do turno atual, já com as posições resolvidas
+  // considerando empate: quem tem a mesma pontuação divide a MESMA posição
+  // (e mais pra frente, o mesmo prêmio — sem dividir entre eles).
+  buildTurnRanking() {
+    const sorted = [...this.turnScores.entries()]
+      .filter(([, pts]) => pts > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    const ranking = [];
+    let lastPoints = null;
+    let lastPosition = 0;
+
+    sorted.forEach(([userId, points], idx) => {
+      // Mesma pontuação = mesma posição do anterior (empate real).
+      const position = points === lastPoints ? lastPosition : idx + 1;
+      lastPoints = points;
+      lastPosition = position;
+
+      const player = [...this.players.values()].find((p) => p.userId === userId);
+      ranking.push({
+        userId,
+        nickname: player?.nickname || "Jogador",
+        points,
+        position,
+      });
+    });
+
+    return ranking;
+  }
+
+  // Registra as estatísticas de acerto na arena (quem tentou e quem acertou).
+  async recordArenaStats() {
+    for (const userId of this.attemptedThisQuestion) {
+      const acertou = this.correctThisQuestion.has(userId);
+      try {
+        await prisma.quizRoomStat.upsert({
+          where: { userId_roomId: { userId, roomId: this.roomId } },
+          update: {
+            attempts: { increment: 1 },
+            correct: acertou ? { increment: 1 } : undefined,
+          },
+          create: { userId, roomId: this.roomId, attempts: 1, correct: acertou ? 1 : 0 },
+        });
+      } catch (err) {
+        console.error("Falha ao registrar estatística da arena:", err.message);
+      }
+    }
+    this.attemptedThisQuestion = new Set();
+  }
+
   // Guarda quem tentou responder essa pergunta e se acertou — base do
   // cálculo de aproveitamento por sala.
   async recordQuestionStats(winner) {
@@ -557,44 +703,50 @@ export class QuizRoom {
   // Fecha o turno da arena: monta o ranking das rodadas, premia o top 3 e
   // zera pro próximo turno.
   async finishTurn() {
-    const ranked = [...this.turnScores.entries()]
-      .filter(([, pts]) => pts > 0)
-      .sort((a, b) => b[1] - a[1]);
+    // Usa o ranking já com empates resolvidos: quem empatou tem a MESMA
+    // posição, e por consequência recebe o MESMO prêmio — sem dividir o
+    // valor entre os empatados.
+    const ranking = this.buildTurnRanking();
 
     this.systemMessage(`🏁 Fim do turno de ${this.roundsPerTurn} rodadas!`, true);
 
-    if (ranked.length === 0) {
+    if (ranking.length === 0) {
       this.systemMessage("Ninguém pontuou nesse turno.");
     } else {
       const monthKey = currentMonthKey();
       const medals = ["🥇", "🥈", "🥉", "4º", "5º"];
       const summaryParts = [];
 
-      for (let i = 0; i < Math.min(this.turnBonus.length, ranked.length); i++) {
-        const [userId, acertos] = ranked[i];
-        const bonus = this.turnBonus[i] || 0;
-        const player = [...this.players.values()].find((p) => p.userId === userId);
-        const nickname = player?.nickname || "Jogador";
-        summaryParts.push(`${medals[i]} ${nickname} (${acertos} acertos, +${bonus} pts)`);
+      for (const entry of ranking) {
+        // Só premia até onde a tabela de bônus alcança (top 5 por padrão).
+        // Empatados na mesma posição recebem o mesmo valor cheio.
+        const bonus = this.turnBonus[entry.position - 1];
+        if (bonus === undefined) continue;
+
+        const medal = medals[entry.position - 1] || `${entry.position}º`;
+        summaryParts.push(`${medal} ${entry.nickname} (${entry.points} acertos, +${bonus} pts)`);
 
         try {
           await prisma.monthlyScore.upsert({
-            where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
+            where: { userId_gameKey_monthKey: { userId: entry.userId, gameKey: GAME_KEY, monthKey } },
             update: { points: { increment: bonus } },
-            create: { userId, gameKey: GAME_KEY, monthKey, points: bonus },
+            create: { userId: entry.userId, gameKey: GAME_KEY, monthKey, points: bonus },
           });
           await prisma.lifetimeScore.upsert({
-            where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+            where: { userId_gameKey: { userId: entry.userId, gameKey: GAME_KEY } },
             update: { points: { increment: bonus } },
-            create: { userId, gameKey: GAME_KEY, points: bonus },
+            create: { userId: entry.userId, gameKey: GAME_KEY, points: bonus },
           });
-          this.lifetimeCache.set(userId, (this.lifetimeCache.get(userId) || 0) + bonus);
+          this.lifetimeCache.set(entry.userId, (this.lifetimeCache.get(entry.userId) || 0) + bonus);
         } catch (err) {
           console.error("Falha ao premiar turno da arena:", err.message);
         }
       }
 
-      this.systemMessage(`🏆 Pódio do turno: ${summaryParts.join(" · ")}`, true, true);
+      if (summaryParts.length > 0) {
+        this.systemMessage(`🏆 Pódio do turno: ${summaryParts.join(" · ")}`, true, true);
+      }
+      this.broadcast("quiz-turn-finished", { ranking });
     }
 
     this.turnScores = new Map();

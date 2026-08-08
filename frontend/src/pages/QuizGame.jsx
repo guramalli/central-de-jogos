@@ -38,6 +38,7 @@ export default function QuizGame() {
   const [roomLabel, setRoomLabel] = useState("");
   const [turnInfo, setTurnInfo] = useState(null); // { round, total } | null — só nas arenas
   const [questionId, setQuestionId] = useState(null);
+  const [turnRanking, setTurnRanking] = useState([]);
   const [reportOpen, setReportOpen] = useState(false);
   const [themeKey, setThemeKey] = useState("");
   const [phase, setPhase] = useState("intermission"); // intermission | active
@@ -112,6 +113,16 @@ export default function QuizGame() {
         setAnswerLine(data.answer);
         playCorrectSound();
       }
+      // Modo arena: mostra o ranking acumulado do turno no painel da pergunta.
+      if (data.turnRanking) {
+        setTurnRanking(data.turnRanking);
+        setAnswerLine(data.answer);
+        if (data.arenaScorers?.some((s) => s.userId === user?.id)) playCorrectSound();
+      }
+    });
+
+    socket.on("quiz-turn-finished", (data) => {
+      setTurnRanking(data.ranking || []);
     });
 
     socket.on("quiz-guess-wrong", () => {
@@ -134,6 +145,7 @@ export default function QuizGame() {
       socket.off("quiz-reveal-update");
       socket.off("quiz-tick");
       socket.off("quiz-question-result");
+      socket.off("quiz-turn-finished");
       socket.off("quiz-guess-wrong");
       socket.off("quiz-wrong-log");
       socket.off("quiz-players-online");
@@ -189,6 +201,9 @@ export default function QuizGame() {
   }
 
   const me = onlinePlayers.find((p) => p.userId === user?.id);
+  // Nas arenas, o intervalo entre perguntas é longo (10s) de propósito —
+  // esse tempo é usado pra mostrar o placar do turno no lugar da pergunta.
+  const isArenaBreak = !!turnInfo && phase === "intermission";
 
   return (
     <div className="quiz-root">
@@ -236,44 +251,89 @@ export default function QuizGame() {
       <div className="quiz-game-grid">
         {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="quiz-panel quiz-question-card">
-          <div className="quiz-retro-tab">pergunta</div>
-          {questionId && phase === "active" && (
-            <button
-              className="quiz-report-btn"
-              onClick={() => setReportOpen(true)}
-              title="Reportar problema nessa pergunta"
-            >
-              🚩 <span className="quiz-report-btn-text">reportar erro</span>
-            </button>
+          {isArenaBreak ? (
+            <>
+              <div className="quiz-retro-tab">placar do turno</div>
+              <div className="arena-break-panel">
+                <div className="arena-break-header">
+                  <span className="arena-break-round">
+                    Rodada {turnInfo.round} de {turnInfo.total}
+                  </span>
+                  {answerLine && (
+                    <span className="arena-break-answer">
+                      Resposta: <strong>{answerLine}</strong>
+                    </span>
+                  )}
+                </div>
+
+                {turnRanking.length === 0 ? (
+                  <p className="arena-break-empty">Ninguém pontuou ainda nesse turno.</p>
+                ) : (
+                  <div className="arena-break-list">
+                    {turnRanking.slice(0, 10).map((r) => (
+                      <div
+                        key={r.userId}
+                        className={`arena-break-row ${r.userId === user?.id ? "arena-break-me" : ""} ${
+                          r.position <= 3 ? "arena-break-podium" : ""
+                        }`}
+                      >
+                        <span className="arena-break-pos">
+                          {r.position <= 3 ? ["🥇", "🥈", "🥉"][r.position - 1] : `${r.position}º`}
+                        </span>
+                        <span className="arena-break-nick">{r.nickname}</span>
+                        <span className="arena-break-pts">{r.points}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="arena-break-next">Próxima pergunta em instantes...</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="quiz-retro-tab">pergunta</div>
+              {questionId && phase === "active" && (
+                <button
+                  className="quiz-report-btn"
+                  onClick={() => setReportOpen(true)}
+                  title="Reportar problema nessa pergunta"
+                >
+                  🚩 <span className="quiz-report-btn-text">reportar erro</span>
+                </button>
+              )}
+              <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
+                {questionText}
+              </div>
+              <div className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""}`}>
+                {answerLine.split("").map((ch, i) => (
+                  <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
+                ))}
+              </div>
+              {pasteBlockedMsg && (
+                <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar a resposta.</p>
+              )}
+            </>
           )}
-          <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
-            {questionText}
-          </div>
-          <div className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""}`}>
-            {answerLine.split("").map((ch, i) => (
-              <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
-            ))}
-          </div>
-          {pasteBlockedMsg && (
-            <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar a resposta.</p>
+          {!isArenaBreak && (
+            <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
+              <input
+                ref={inputRef}
+                value={guess}
+                onChange={(e) => setGuess(e.target.value)}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  setPasteBlockedMsg(true);
+                }}
+                placeholder={phase === "active" ? "Digite sua resposta..." : "Aguarde a próxima pergunta..."}
+                autoComplete="off"
+                disabled={phase !== "active"}
+              />
+              <button className="quiz-answer-btn" type="submit" disabled={phase !== "active"}>
+                Responder
+              </button>
+            </form>
           )}
-          <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
-            <input
-              ref={inputRef}
-              value={guess}
-              onChange={(e) => setGuess(e.target.value)}
-              onPaste={(e) => {
-                e.preventDefault();
-                setPasteBlockedMsg(true);
-              }}
-              placeholder={phase === "active" ? "Digite sua resposta..." : "Aguarde a próxima pergunta..."}
-              autoComplete="off"
-              disabled={phase !== "active"}
-            />
-            <button className="quiz-answer-btn" type="submit" disabled={phase !== "active"}>
-              Responder
-            </button>
-          </form>
         </div>
 
         {/* Log de respostas erradas — visível por todo mundo na sala */}
