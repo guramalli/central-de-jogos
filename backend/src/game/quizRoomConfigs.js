@@ -13,7 +13,7 @@ const THEMES = [
   { key: "letras", name: "Letras" },
   { key: "geral", name: "Conhecimentos Gerais" },
   { key: "musica", name: "Música" },
-  { key: "series", name: "Séries e TV" },
+  { key: "series", name: "Séries e Streaming" },
   { key: "novelas", name: "Novelas" },
   { key: "geografia", name: "Geografia" },
 ];

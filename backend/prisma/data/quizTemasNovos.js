@@ -5180,6 +5180,581 @@ export const TEMAS_NOVOS = {
       "question": "Quais gêmeos brasileiros são premiados quadrinistas internacionais?",
       "answer": "Fabio Moon e Gabriel Ba",
       "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Attack on Titan' nas primeiras temporadas?",
+      "answer": "Wit Studio",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio assumiu 'Attack on Titan' na temporada final?",
+      "answer": "MAPPA",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Demon Slayer'?",
+      "answer": "Ufotable",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Jujutsu Kaisen'?",
+      "answer": "MAPPA",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Naruto'?",
+      "answer": "Pierrot",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'One Piece'?",
+      "answer": "Toei Animation",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Dragon Ball Z'?",
+      "answer": "Toei Animation",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual estúdio animou 'Fullmetal Alchemist Brotherhood'?",
+      "answer": "Bones",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'My Hero Academia'?",
+      "answer": "Bones",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Death Note'?",
+      "answer": "Madhouse",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Hunter x Hunter' de 2011?",
+      "answer": "Madhouse",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual estúdio animou 'Evangelion'?",
+      "answer": "Gainax",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do criador de Evangelion?",
+      "answer": "Hideaki Anno",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Attack on Titan?",
+      "answer": "Hajime Isayama",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Demon Slayer?",
+      "answer": "Koyoharu Gotouge",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Jujutsu Kaisen?",
+      "answer": "Gege Akutami",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Death Note?",
+      "answer": "Tsugumi Ohba",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do desenhista de Death Note?",
+      "answer": "Takeshi Obata",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Hunter x Hunter?",
+      "answer": "Yoshihiro Togashi",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual outro mangá famoso Togashi escreveu além de Hunter x Hunter?",
+      "answer": "Yu Yu Hakusho",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Bleach?",
+      "answer": "Tite Kubo",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Fullmetal Alchemist?",
+      "answer": "Hiromu Arakawa",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de My Hero Academia?",
+      "answer": "Kohei Horikoshi",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Berserk?",
+      "answer": "Kentaro Miura",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Chainsaw Man?",
+      "answer": "Tatsuki Fujimoto",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Vagabond?",
+      "answer": "Takehiko Inoue",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual mangá de basquete Takehiko Inoue criou?",
+      "answer": "Slam Dunk",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do autor de Monster e 20th Century Boys?",
+      "answer": "Naoki Urasawa",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Cavaleiros do Zodíaco?",
+      "answer": "Masami Kurumada",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do autor de Sailor Moon?",
+      "answer": "Naoko Takeuchi",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome real do Titã Fundador em Attack on Titan?",
+      "answer": "Ymir",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Quantos titãs mudantes existem em Attack on Titan?",
+      "answer": "Nove",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da ilha onde vivem os personagens de Attack on Titan?",
+      "answer": "Paradis",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do país inimigo em Attack on Titan?",
+      "answer": "Marley",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Quais são os nomes das três muralhas de Attack on Titan?",
+      "answer": "Maria Rose e Sina",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da técnica de domínio expandido de Gojo?",
+      "answer": "Vazio Infinito",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da técnica amaldiçoada herdada por Gojo?",
+      "answer": "Ilimitado",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do feiticeiro de cabelo branco em Jujutsu Kaisen? (Gojo)",
+      "answer": "Gojo",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Quantos dedos de Sukuna existem em Jujutsu Kaisen?",
+      "answer": "20",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da escola de feiticeiros de Tóquio em Jujutsu Kaisen?",
+      "answer": "Colegio Tecnico de Jujutsu",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do pilar do fogo em Demon Slayer?",
+      "answer": "Rengoku",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do pilar da água em Demon Slayer?",
+      "answer": "Giyu",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Quantas luas superiores existem em Demon Slayer?",
+      "answer": "Seis",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da lua superior número um em Demon Slayer?",
+      "answer": "Kokushibo",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é a fraqueza dos demônios em Demon Slayer, além do sol?",
+      "answer": "Espada Nichirin",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da flor usada para criar remédio contra demônios?",
+      "answer": "Flor de Aranha Azul",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do irmão mais velho de Itachi? (na verdade, o mais novo é Sasuke)",
+      "answer": "Sasuke",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do clã massacrado por Itachi?",
+      "answer": "Uchiha",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome da técnica ocular suprema de Sasuke?",
+      "answer": "Rinnegan",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do jutsu de Kakashi que copia técnicas?",
+      "answer": "Sharingan",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do quarto Hokage, pai de Naruto?",
+      "answer": "Minato",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome da mãe de Naruto?",
+      "answer": "Kushina",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do vilão final de Naruto Shippuden?",
+      "answer": "Kaguya",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da técnica de Madara que prende todos numa ilusão?",
+      "answer": "Tsukuyomi Infinito",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da fruta que dá poderes em Naruto? (fruto sagrado)",
+      "answer": "Fruto Chakra",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do arquipélago onde Luffy vai antes do Novo Mundo?",
+      "answer": "Sabaody",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da prisão submarina em One Piece?",
+      "answer": "Impel Down",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da base da Marinha em One Piece?",
+      "answer": "Marineford",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do terceiro irmão de Luffy e Ace?",
+      "answer": "Sabo",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da organização revolucionária de One Piece?",
+      "answer": "Exercito Revolucionario",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da técnica final de Luffy revelada em Wano?",
+      "answer": "Gear 5",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o verdadeiro nome da fruta de Luffy revelado no mangá?",
+      "answer": "Hito Hito no Mi",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do país isolado que Luffy liberta antes do arco final?",
+      "answer": "Wano",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do vilão dragão de Wano em One Piece?",
+      "answer": "Kaido",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome da imperatriz pirata apaixonada por Luffy?",
+      "answer": "Boa Hancock",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual mangá de Kentaro Miura conta a história de Guts e a Marca do Sacrifício?",
+      "answer": "Berserk",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome da espada gigante de Guts em Berserk?",
+      "answer": "Matadora de Dragoes",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do grupo de mercenários em Berserk?",
+      "answer": "Bando do Falcao",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do antagonista de Berserk?",
+      "answer": "Griffith",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um detetive investigando um cirurgião e um assassino?",
+      "answer": "Monster",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um mundo onde a psicologia determina crimes?",
+      "answer": "Psycho-Pass",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um jogo mortal com apostas numa escola de elite?",
+      "answer": "Kakegurui",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra estudantes numa ilha lutando até a morte? (Battle Royale)",
+      "answer": "Battle Royale",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um cientista que inventa uma máquina do tempo com micro-ondas?",
+      "answer": "Steins Gate",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um garoto que revive momentos para evitar mortes?",
+      "answer": "Erased",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra o mundo pós-apocalíptico com o protagonista Ken?",
+      "answer": "Hokuto no Ken",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime dos anos 90 mostra uma cidade cyberpunk e uma moto vermelha?",
+      "answer": "Akira",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do protagonista de Akira que ganha poderes?",
+      "answer": "Tetsuo",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual filme de animação japonesa de 1995 inspirou Matrix?",
+      "answer": "Ghost in the Shell",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra alquimia de sangue e caçadores de vampiros? (Hellsing)",
+      "answer": "Hellsing",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um garoto que come almas com uma foice? (Soul Eater)",
+      "answer": "Soul Eater",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra jogadores de vôlei do colégio Karasuno?",
+      "answer": "Haikyuu",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual anime mostra corredores de rua com carros? (Initial D)",
+      "answer": "Initial D",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra um garoto com um caderno que prevê o futuro? (Mirai Nikki)",
+      "answer": "Mirai Nikki",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual anime mostra a vida de músicos de jazz? (Kids on the Slope)",
+      "answer": "Kids on the Slope",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome verdadeiro do Coringa nos quadrinhos?",
+      "answer": "Desconhecido",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinho de Alan Moore reconta a origem do Coringa?",
+      "answer": "A Piada Mortal",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinho mostra a morte do segundo Robin?",
+      "answer": "Uma Morte em Familia",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do segundo Robin, morto pelo Coringa?",
+      "answer": "Jason Todd",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual identidade Jason Todd assume ao voltar?",
+      "answer": "Capuz Vermelho",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da graphic novel de Frank Miller sobre a origem do Batman?",
+      "answer": "Ano Um",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do arco em que o Superman morre nos quadrinhos?",
+      "answer": "A Morte do Superman",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual vilão mata o Superman nos quadrinhos?",
+      "answer": "Doomsday",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do evento da Marvel em que heróis se dividem por uma lei?",
+      "answer": "Guerra Civil",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do evento da Marvel em que Thanos usa as joias?",
+      "answer": "Desafio Infinito",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Quantas joias do infinito existem nos quadrinhos?",
+      "answer": "Seis",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome da entidade que devora planetas na Marvel?",
+      "answer": "Galactus",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do arauto de Galactus?",
+      "answer": "Surfista Prateado",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do multiverso oficial da DC após a Crise?",
+      "answer": "Crise nas Infinitas Terras",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do quadrinho em que o Homem-Aranha veste o traje preto?",
+      "answer": "Saga do Simbionte",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome da namorada do Homem-Aranha que morre nos quadrinhos?",
+      "answer": "Gwen Stacy",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual vilão mata Gwen Stacy nos quadrinhos?",
+      "answer": "Duende Verde",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome verdadeiro do Duende Verde?",
+      "answer": "Norman Osborn",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do quadrinho de Neil Gaiman sobre os Perpétuos?",
+      "answer": "Sandman",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Quantos Perpétuos existem em Sandman?",
+      "answer": "Sete",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do protagonista de Sandman?",
+      "answer": "Morpheus",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinho de Mark Millar inspirou um filme com Angelina Jolie?",
+      "answer": "Wanted",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinho de Garth Ennis mostra super-heróis corruptos?",
+      "answer": "The Boys",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual quadrinho de Robert Kirkman inspirou uma série de zumbis?",
+      "answer": "The Walking Dead",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual quadrinho de Robert Kirkman mostra um super-herói adolescente e seu pai?",
+      "answer": "Invencivel",
+      "difficulty": "medio"
+    },
+    {
+      "question": "Qual é o nome do prêmio mais importante dos quadrinhos americanos?",
+      "answer": "Eisner",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinhista americano dá nome ao prêmio Eisner?",
+      "answer": "Will Eisner",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual é o nome do personagem mais famoso de Will Eisner?",
+      "answer": "The Spirit",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinho brasileiro de Fábio Moon e Gabriel Bá ganhou o Eisner?",
+      "answer": "Daytripper",
+      "difficulty": "dificil"
+    },
+    {
+      "question": "Qual quadrinho de Gabriel Bá foi adaptado em série pela Netflix?",
+      "answer": "Umbrella Academy",
+      "difficulty": "medio"
     }
   ]
 };

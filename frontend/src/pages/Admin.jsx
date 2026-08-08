@@ -23,10 +23,13 @@ const QUIZ_THEME_NAMES = {
   letras: "Letras",
   geral: "Conhecimentos Gerais",
   musica: "Música",
-  series: "Séries e TV",
+  series: "Séries e Streaming",
   novelas: "Novelas",
   geografia: "Geografia",
   direito: "Direito",
+  futebol: "Futebol",
+  automobilismo: "Automobilismo",
+  anime: "Anime e HQ",
 };
 
 export default function Admin() {

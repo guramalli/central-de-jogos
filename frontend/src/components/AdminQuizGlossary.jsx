@@ -10,10 +10,13 @@ const THEMES = [
   { key: "letras", name: "Letras" },
   { key: "geral", name: "Conhecimentos Gerais" },
   { key: "musica", name: "Música" },
-  { key: "series", name: "Séries e TV" },
+  { key: "series", name: "Séries e Streaming" },
   { key: "novelas", name: "Novelas" },
   { key: "geografia", name: "Geografia" },
   { key: "direito", name: "Direito" },
+  { key: "futebol", name: "Futebol" },
+  { key: "automobilismo", name: "Automobilismo" },
+  { key: "anime", name: "Anime e HQ" },
 ];
 const THEME_NAME_BY_KEY = Object.fromEntries(THEMES.map((t) => [t.key, t.name]));
 
