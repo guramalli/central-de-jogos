@@ -736,10 +736,15 @@ export class StopRoom {
 
     if (bonusResults.length > 0) {
       const medals = ["🥇", "🥈", "🥉"];
-      const summary = bonusResults
-        .map((b) => `${medals[b.position - 1]} ${b.nickname} (+${b.bonus} pts)`)
-        .join("  ·  ");
-      this.systemMessage(`🏆 Top 3 do bloco: ${summary}`);
+      // Uma linha por colocado — bem mais legível que tudo espremido numa
+      // linha só, do jeito que a Central de Jogos fazia.
+      for (const b of bonusResults) {
+        this.systemMessage(
+          `${medals[b.position - 1]} Parabéns ${b.nickname}, você ficou em ${b.position}º nesse bloco e ganhou ${b.bonus} pontos.`,
+          false,
+          true
+        );
+      }
     }
 
     await this.broadcastOnlinePlayers();

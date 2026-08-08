@@ -39,6 +39,9 @@ export default function QuizGame() {
   const [turnInfo, setTurnInfo] = useState(null); // { round, total } | null — só nas arenas
   const [questionId, setQuestionId] = useState(null);
   const [turnRanking, setTurnRanking] = useState([]);
+  // Na arena, quem já acertou a pergunta atual para de ver ela — não tem
+  // mais o que fazer nessa rodada, e evita ficar olhando à toa.
+  const [alreadyScored, setAlreadyScored] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [themeKey, setThemeKey] = useState("");
   const [phase, setPhase] = useState("intermission"); // intermission | active
@@ -93,6 +96,7 @@ export default function QuizGame() {
       setAnswerLine(data.masked);
       setGuess("");
       setWrongLog([]);
+      setAlreadyScored(false);
       setTotalSeconds(data.seconds || 40);
       if (data.roundsPerTurn) setTurnInfo({ round: data.turnRound, total: data.roundsPerTurn });
       playQuestionStartSound();
@@ -116,13 +120,20 @@ export default function QuizGame() {
       // Modo arena: mostra o ranking acumulado do turno no painel da pergunta.
       if (data.turnRanking) {
         setTurnRanking(data.turnRanking);
-        setAnswerLine(data.answer);
+        // Na arena a resposta nunca é revelada — o painel vira o placar
+        // do turno, e a mesma pergunta pode voltar em turnos futuros.
         if (data.arenaScorers?.some((s) => s.userId === user?.id)) playCorrectSound();
       }
     });
 
     socket.on("quiz-turn-finished", (data) => {
       setTurnRanking(data.ranking || []);
+    });
+
+    socket.on("quiz-guess-correct-multi", () => {
+      setAlreadyScored(true);
+      setGuess("");
+      playCorrectSound();
     });
 
     socket.on("quiz-guess-wrong", () => {
@@ -146,6 +157,7 @@ export default function QuizGame() {
       socket.off("quiz-tick");
       socket.off("quiz-question-result");
       socket.off("quiz-turn-finished");
+      socket.off("quiz-guess-correct-multi");
       socket.off("quiz-guess-wrong");
       socket.off("quiz-wrong-log");
       socket.off("quiz-players-online");
@@ -259,11 +271,6 @@ export default function QuizGame() {
                   <span className="arena-break-round">
                     Rodada {turnInfo.round} de {turnInfo.total}
                   </span>
-                  {answerLine && (
-                    <span className="arena-break-answer">
-                      Resposta: <strong>{answerLine}</strong>
-                    </span>
-                  )}
                 </div>
 
                 {turnRanking.length === 0 ? (
@@ -288,6 +295,15 @@ export default function QuizGame() {
                 )}
 
                 <p className="arena-break-next">Próxima pergunta em instantes...</p>
+              </div>
+            </>
+          ) : alreadyScored ? (
+            <>
+              <div className="quiz-retro-tab">✓ ponto marcado</div>
+              <div className="arena-scored-panel">
+                <div className="arena-scored-check">✅</div>
+                <p className="arena-scored-title">Você acertou!</p>
+                <p className="arena-scored-sub">Aguarde a próxima pergunta...</p>
               </div>
             </>
           ) : (
@@ -315,7 +331,7 @@ export default function QuizGame() {
               )}
             </>
           )}
-          {!isArenaBreak && (
+          {!isArenaBreak && !alreadyScored && (
             <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
               <input
                 ref={inputRef}

@@ -66,6 +66,13 @@ export class QuizRoom {
     // Placar do turno atual (só usado quando roundsPerTurn está definido).
     this.turnScores = new Map(); // userId -> pontos no turno
     this.turnRound = 0;
+    // Quantas rodadas seguidas ninguém acertou — usado pra narrar no chat
+    // ("esta é a 2ª rodada sem acertador"), do jeito que a Central fazia.
+    this.roundsWithoutWinner = 0;
+    // Última posição no ranking mensal que anunciamos pra cada pessoa —
+    // evita repetir o mesmo aviso toda hora.
+    this.lastAnnouncedPosition = new Map(); // userId -> posição
+
     // Quem tentou responder a pergunta atual — zerado a cada pergunta nova.
     this.attemptedThisQuestion = new Set();
     // Quem já acertou a pergunta atual (modo arena) — userId -> { nickname, at }
@@ -479,6 +486,26 @@ export class QuizRoom {
         });
 
         this.systemMessage(`❓ ${question.question}`);
+
+        // Narra a "seca" quando ninguém acerta várias seguidas.
+        if (scorers.length === 0) {
+          this.roundsWithoutWinner += 1;
+          if (this.roundsWithoutWinner >= 2) {
+            this.systemMessage(
+              `😶 Essa é a ${this.roundsWithoutWinner}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
+            );
+          }
+        } else {
+          this.roundsWithoutWinner = 0;
+          // Anuncia a posição no ranking mensal de quem pontuou (a cada 10
+          // rodadas, pra não poluir demais numa sala tão rápida).
+          if (this.turnRound % 10 === 0) {
+            for (const [userId, v] of scorers) {
+              await this.announceRankingPosition(userId, v.nickname);
+            }
+          }
+        }
+
         await this.recordArenaStats();
         await this.broadcastOnlinePlayers();
       } catch (err) {
@@ -549,6 +576,9 @@ export class QuizRoom {
           console.error("Falha ao salvar pontuação do Quiz para", winner.userId, err.message);
         }
 
+        // Teve acertador — zera a contagem de rodadas "secas".
+        this.roundsWithoutWinner = 0;
+
         this.broadcast("quiz-question-result", {
           winner: winner.nickname,
           answer: question.answer,
@@ -595,14 +625,23 @@ export class QuizRoom {
           );
         }
 
+        await this.announceRankingPosition(winner.userId, winner.nickname);
         await this.broadcastOnlinePlayers();
       } else {
         this.broadcast("quiz-question-result", { winner: null, answer: question.answer });
-        // Não anuncia "ninguém acertou" — a pergunta sozinha, registrada
-        // logo abaixo, já mostra o que rolou sem poluir o chat.
         // Ninguém acertou — quebra qualquer sequência em andamento.
         this.streakUserId = null;
         this.streakCount = 0;
+        this.roundsWithoutWinner += 1;
+
+        // Narra a "seca" quando ela começa a ficar relevante — a partir da
+        // 2ª rodada seguida sem ninguém acertar, cria aquele clima de
+        // desafio que a Central de Jogos tinha.
+        if (this.roundsWithoutWinner >= 2) {
+          this.systemMessage(
+            `😶 Essa é a ${this.roundsWithoutWinner}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
+          );
+        }
       }
 
       // Registra o aproveitamento de quem tentou responder essa pergunta —
@@ -623,6 +662,46 @@ export class QuizRoom {
         await this.finishTurn();
       }
       this.startIntermission();
+    }
+  }
+
+  // Avisa no chat quando a posição da pessoa no ranking mensal muda — dá
+  // aquela sensação de progresso constante, sem ela precisar sair da sala
+  // pra conferir. Só anuncia quando MUDA (não repete a mesma posição).
+  async announceRankingPosition(userId, nickname) {
+    try {
+      const monthKey = currentMonthKey();
+      const myScore = await prisma.monthlyScore.findUnique({
+        where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
+      });
+      if (!myScore) return;
+
+      const ahead = await prisma.monthlyScore.count({
+        where: {
+          gameKey: GAME_KEY,
+          monthKey,
+          user: { role: { not: "ADMIN" } },
+          points: { gt: myScore.points },
+        },
+      });
+      const position = ahead + 1;
+
+      const previous = this.lastAnnouncedPosition.get(userId);
+      if (previous === position) return; // nada mudou, não repete
+
+      this.lastAnnouncedPosition.set(userId, position);
+
+      // Só vale a pena narrar se ela SUBIU (ou é a primeira vez que vemos).
+      if (previous === undefined || position < previous) {
+        const emoji = position === 1 ? "👑" : position <= 3 ? "🔥" : "📈";
+        this.systemMessage(
+          `${emoji} ${nickname}, você está na ${position}ª posição do ranking mensal do Quiz!`,
+          false,
+          true
+        );
+      }
+    } catch (err) {
+      console.error("Falha ao anunciar posição no ranking:", err.message);
     }
   }
 
@@ -715,7 +794,6 @@ export class QuizRoom {
     } else {
       const monthKey = currentMonthKey();
       const medals = ["🥇", "🥈", "🥉", "4º", "5º"];
-      const summaryParts = [];
 
       for (const entry of ranking) {
         // Só premia até onde a tabela de bônus alcança (top 5 por padrão).
@@ -724,7 +802,13 @@ export class QuizRoom {
         if (bonus === undefined) continue;
 
         const medal = medals[entry.position - 1] || `${entry.position}º`;
-        summaryParts.push(`${medal} ${entry.nickname} (${entry.points} acertos, +${bonus} pts)`);
+        // Uma linha por colocado — bem mais legível que tudo espremido numa
+        // linha só, do jeito que a Central de Jogos fazia.
+        this.systemMessage(
+          `${medal} Parabéns ${entry.nickname}, você ficou em ${entry.position}º nesse turno e ganhou ${bonus} pontos.`,
+          false,
+          true
+        );
 
         try {
           await prisma.monthlyScore.upsert({
@@ -743,9 +827,6 @@ export class QuizRoom {
         }
       }
 
-      if (summaryParts.length > 0) {
-        this.systemMessage(`🏆 Pódio do turno: ${summaryParts.join(" · ")}`, true, true);
-      }
       this.broadcast("quiz-turn-finished", { ranking });
     }
 
