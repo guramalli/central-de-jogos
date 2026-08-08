@@ -59,6 +59,20 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   // site, então precisa ser bem mais leve pro banco.
   const monthlyWithPosition = await Promise.all(
     monthly.map(async (m) => {
+      // Contas ADMIN não competem no ranking — nem contam como concorrente
+      // pra calcular a posição de outra pessoa (já filtrado abaixo), nem
+      // aparecem com posição nenhuma quando o próprio perfil é de admin
+      // (senão, se ninguém "de verdade" tiver mais pontos, o admin aparece
+      // como 1º por padrão, mesmo estando fora do ranking).
+      if (user.role === "ADMIN") {
+        return {
+          gameKey: m.gameKey,
+          points: m.points,
+          position: null,
+          rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
+          nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+        };
+      }
       const betterCount = await prisma.monthlyScore.count({
         where: {
           gameKey: m.gameKey,
