@@ -2851,16 +2851,26 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   position: absolute;
   top: 8px;
   right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   opacity: 0.45;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease;
   line-height: 1;
-  padding: 4px;
+  padding: 4px 6px;
 }
-.quiz-report-btn:hover { opacity: 1; transform: scale(1.15); }
+.quiz-report-btn:hover { opacity: 1; }
+.quiz-report-btn-text {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--qz-mono, monospace);
+  white-space: nowrap;
+}
+.quiz-report-btn:hover .quiz-report-btn-text { color: var(--accent-2); }
 
 .report-question-preview {
   color: var(--text-dim);

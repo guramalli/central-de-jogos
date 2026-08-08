@@ -243,7 +243,7 @@ export default function QuizGame() {
               onClick={() => setReportOpen(true)}
               title="Reportar problema nessa pergunta"
             >
-              🚩
+              🚩 <span className="quiz-report-btn-text">reportar erro</span>
             </button>
           )}
           <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
@@ -301,7 +301,7 @@ export default function QuizGame() {
               <div key={p.userId} className="quiz-player-row">
                 <div className="quiz-player-name">
                   {p.rank?.icon && <img src={p.rank.icon} alt={p.rank.name} className="quiz-player-rank-icon" />}
-                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="quiz" />
+                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="quiz" roomId={roomId} />
                 </div>
                 <span className="quiz-player-points">{p.roomLifetimePoints}</span>
               </div>

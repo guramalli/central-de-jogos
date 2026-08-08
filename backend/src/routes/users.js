@@ -105,11 +105,11 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
 
   // Aproveitamento por sala do Quiz — só das salas onde a pessoa já tentou
   // um número mínimo de perguntas (senão "1 de 1 = 100%" viraria destaque
-  // sem significar nada).
+  // sem significar nada). Sem limite de quantidade: o hover filtra pela
+  // sala em que está, e essa pode não estar entre as mais jogadas.
   const quizStats = await prisma.quizRoomStat.findMany({
     where: { userId: id, attempts: { gte: 5 } },
     orderBy: { attempts: "desc" },
-    take: 5,
   });
   const quizAccuracy = quizStats.map((s) => ({
     roomId: s.roomId,

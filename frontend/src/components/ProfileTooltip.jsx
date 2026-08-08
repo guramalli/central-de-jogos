@@ -9,7 +9,7 @@ import DmModal from "./DmModal.jsx";
 // nunca fica "cortado" por containers com rolagem (tipo a lista de
 // jogadores online), que sempre recortam qualquer coisa que vaze pra fora
 // deles, mesmo elementos posicionados por cima.
-export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "stop" }) {
+export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "stop", roomId = null }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,6 +72,9 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
 
   const monthly = profile?.monthly.find((m) => m.gameKey === gameKey);
   const lifetime = profile?.lifetime.find((l) => l.gameKey === gameKey);
+  // Aproveitamento só da sala em que estamos agora — ver o desempenho da
+  // pessoa em outros temas não ajuda em nada aqui dentro.
+  const roomAccuracy = roomId ? profile?.quizAccuracy?.find((a) => a.roomId === roomId) : null;
   const isMe = user?.id === userId;
 
   return (
@@ -119,15 +122,12 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     : "Ainda não pontuou este mês"}
                 </div>
                 <div>🚩 {profile.clan ? `${profile.clan.name} [${profile.clan.tag}]` : "Sem clã"}</div>
-                {profile.quizAccuracy?.length > 0 && (
+                {roomAccuracy && (
                   <div className="nick-tooltip-accuracy">
-                    <span className="nick-tooltip-accuracy-title">Aproveitamento na sala</span>
-                    {profile.quizAccuracy.slice(0, 3).map((a) => (
-                      <div key={a.roomId} className="nick-tooltip-accuracy-row">
-                        <span>{a.roomLabel}</span>
-                        <strong>{a.percent}%</strong>
-                      </div>
-                    ))}
+                    <div className="nick-tooltip-accuracy-row">
+                      <span>Aproveitamento na sala</span>
+                      <strong>{roomAccuracy.percent}%</strong>
+                    </div>
                   </div>
                 )}
                 {!isMe && !profile.clan && profile.viewerClan && (
