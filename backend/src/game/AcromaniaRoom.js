@@ -3,6 +3,7 @@ import { isBirthdayToday } from "../utils/birthday.js";
 import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { getRankForPoints } from "../utils/rank.js";
 
 const GAME_KEY = "acromania";
@@ -348,7 +349,8 @@ export class AcromaniaRoom {
 
         const oldRank = getRankForPoints(oldMonthlyPoints);
         const newRank = getRankForPoints(newMonthlyPoints);
-        if (oldRank.key !== newRank.key) {
+        // Só anuncia promoção pra quem concorre ao ranking.
+        if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
           this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
         }
 

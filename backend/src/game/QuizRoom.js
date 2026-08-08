@@ -3,6 +3,7 @@ import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { concorreAoRanking } from "../utils/rankingElegivel.js";
 
 const GAME_KEY = "quiz";
 
@@ -592,7 +593,8 @@ export class QuizRoom {
 
           const oldRank = getQuizRankForPoints(oldMonthlyPoints);
           const newRank = getQuizRankForPoints(newMonthlyPoints);
-          if (oldRank.key !== newRank.key) {
+          // Só anuncia promoção pra quem concorre ao ranking.
+          if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
             this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
           }
 
@@ -717,6 +719,10 @@ export class QuizRoom {
   // pra conferir. Só anuncia quando MUDA (não repete a mesma posição).
   async announceRankingPosition(userId, nickname) {
     try {
+      // Quem não concorre ao ranking (visitante ou ADMIN) não recebe aviso
+      // de posição — seria confuso anunciar uma colocação que não vale.
+      if (!(await concorreAoRanking(userId))) return;
+
       const monthKey = currentMonthKey();
       const myScore = await prisma.monthlyScore.findUnique({
         where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },

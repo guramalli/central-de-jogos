@@ -3,6 +3,7 @@ import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { concorreAoRanking } from "../utils/rankingElegivel.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -629,7 +630,10 @@ export class StopRoom {
 
           const oldRank = getRankForPoints(oldMonthlyPoints);
           const newRank = getRankForPoints(newMonthlyPoints);
-          if (oldRank.key !== newRank.key) {
+          // Só anuncia promoção pra quem concorre ao ranking — visitante
+          // e ADMIN ficam de fora, senão viraria aviso de conquista que
+          // na prática não vale nada.
+          if (oldRank.key !== newRank.key && (await concorreAoRanking(userId))) {
             const player = [...this.players.values()].find((p) => p.userId === userId);
             const nickname = player?.nickname || "Jogador";
             this.systemMessage(`"${nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
