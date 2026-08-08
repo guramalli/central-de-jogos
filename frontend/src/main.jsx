@@ -12,6 +12,7 @@ import "./styles.css";
 // botão do Google simplesmente não aparece funcional até isso ser
 // configurado (não trava o resto do site).
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+console.log("DIAGNÓSTICO — VITE_GOOGLE_CLIENT_ID:", JSON.stringify(GOOGLE_CLIENT_ID));
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
