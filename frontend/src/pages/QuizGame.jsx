@@ -64,6 +64,10 @@ export default function QuizGame() {
   const [answerLine, setAnswerLine] = useState("");
 
   const [guess, setGuess] = useState("");
+  // Histórico das respostas que a pessoa enviou nessa pergunta, navegável
+  // com as setas ↑ e ↓ (igual no terminal).
+  const [guessHistory, setGuessHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(null);
   const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
   const [wrongLog, setWrongLog] = useState([]);
@@ -104,6 +108,8 @@ export default function QuizGame() {
       setQuestionId(data.questionId || null);
       setAnswerLine(data.masked);
       setGuess("");
+      setGuessHistory([]);
+      setHistoryIndex(null);
       setWrongLog([]);
       setAlreadyScored(false);
       setTotalSeconds(data.seconds || 40);
@@ -196,8 +202,45 @@ export default function QuizGame() {
   function handleGuessSubmit(e) {
     e.preventDefault();
     if (!guess.trim() || phase !== "active") return;
-    socketRef.current?.emit("quiz-submit-guess", { guess: guess.trim() });
+    const sent = guess.trim();
+    socketRef.current?.emit("quiz-submit-guess", { guess: sent });
+    // Guarda no histórico pra dar pra recuperar com as setas do teclado —
+    // útil quando erra por uma letra e quer corrigir sem redigitar tudo.
+    setGuessHistory((prev) => [...prev, sent].slice(-20));
+    setHistoryIndex(null);
     setGuess("");
+  }
+
+  // Navega pelo histórico de respostas com as setas ↑ e ↓, igual funciona
+  // no terminal: ↑ volta pras anteriores, ↓ avança de volta pro campo vazio.
+  function handleGuessKeyDown(e) {
+    if (guessHistory.length === 0) return;
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const nextIdx = historyIndex === null ? guessHistory.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIdx);
+      setGuess(guessHistory[nextIdx]);
+      // Joga o cursor pro fim do texto, pra já poder editar direto
+      requestAnimationFrame(() => {
+        const el = inputRef.current;
+        if (el) el.setSelectionRange(el.value.length, el.value.length);
+      });
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex === null) return;
+      const nextIdx = historyIndex + 1;
+      if (nextIdx >= guessHistory.length) {
+        // Passou do último: volta pro campo vazio, pronto pra digitar novo
+        setHistoryIndex(null);
+        setGuess("");
+      } else {
+        setHistoryIndex(nextIdx);
+        setGuess(guessHistory[nextIdx]);
+      }
+    }
   }
 
   function sendChat(message) {
@@ -346,7 +389,11 @@ export default function QuizGame() {
               <input
                 ref={inputRef}
                 value={guess}
-                onChange={(e) => setGuess(e.target.value)}
+                onChange={(e) => {
+                  setGuess(e.target.value);
+                  setHistoryIndex(null);
+                }}
+                onKeyDown={handleGuessKeyDown}
                 onPaste={(e) => {
                   e.preventDefault();
                   setPasteBlockedMsg(true);
