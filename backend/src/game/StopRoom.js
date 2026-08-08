@@ -10,6 +10,12 @@ const LETTERS = "ABCDEFGHIJLMNOPQRSTUVXZ".split(""); // agora inclui X e Z tamb�
 const GAME_KEY = "stop";
 const SKIP_VOTE_MIN_PLAYERS = 3;
 
+// Pares de temas parecidos demais pra sair juntos na mesma rodada — dá pra
+// adicionar mais pares aqui no futuro, sem mexer na lógica do sorteio.
+const CONFLICTING_THEME_PAIRS = [
+  ["idiomas", "gentilico_paises"],
+];
+
 // Remove acentuação e normaliza para comparação — assim "cha" bate com "chá",
 // "sao paulo" bate com "São Paulo", etc. O jogador não é obrigado a acentuar.
 function normalize(str) {
@@ -272,7 +278,31 @@ export class StopRoom {
 
   pickThemes() {
     const shuffled = [...this.allThemes].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 6);
+    const selected = shuffled.slice(0, 6);
+    const rest = shuffled.slice(6);
+
+    // Alguns pares de tema são parecidos demais (as respostas quase sempre
+    // coincidem entre os dois) — nunca deixa os dois saírem juntos no
+    // mesmo bloco. Ex.: "Alemão" serve tanto pra Idiomas quanto pra
+    // Gentílico de Países, o que confunde e gera discussão sem necessidade.
+    for (const [keyA, keyB] of CONFLICTING_THEME_PAIRS) {
+      const hasA = selected.some((t) => t.key === keyA);
+      const hasB = selected.some((t) => t.key === keyB);
+      if (!hasA || !hasB) continue;
+
+      // Troca o segundo dos dois por outro tema do restante do sorteio,
+      // que ainda não esteja selecionado.
+      const idxToRemove = selected.findIndex((t) => t.key === keyB);
+      const replacementIdx = rest.findIndex((t) => !selected.includes(t));
+      if (replacementIdx >= 0) {
+        selected[idxToRemove] = rest[replacementIdx];
+        rest.splice(replacementIdx, 1);
+      }
+      // Se não sobrar substituto (banco de temas muito pequeno), deixa os
+      // dois juntos mesmo — é melhor que ter menos de 6 temas na rodada.
+    }
+
+    return selected;
   }
 
   pickLetter() {
