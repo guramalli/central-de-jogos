@@ -168,10 +168,13 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   border-radius: 10px;
   overflow: hidden;
   margin-top: 16px;
+  /* Fundo preto fixo em todos os chats — não acompanha a cor do tema da
+     sala, pra manter a leitura das mensagens sempre com o mesmo contraste. */
+  background: #0d0d0d;
 }
-.chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
-.chat-input { display: flex; border-top: 1px solid var(--border); }
-.chat-input input { margin: 0; border-radius: 0; border: none; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; background: #0d0d0d; }
+.chat-input { display: flex; border-top: 1px solid var(--border); background: #0d0d0d; }
+.chat-input input { margin: 0; border-radius: 0; border: none; background: #0d0d0d; color: var(--text); }
 .chat-input button { border-radius: 0; }
 
 .error-msg { color: var(--accent); font-size: 13px; margin-bottom: 10px; }
@@ -633,22 +636,22 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   flex: 1;
   border-color: var(--sc-outline);
   margin-top: 0;
-  background: var(--sc-surface);
+  background: #0d0d0d;
   border-top: 2px solid var(--sc-outline);
   border-left: 2px solid var(--sc-outline);
   border-bottom: 2px solid var(--sc-outline);
   border-right: 2px solid var(--sc-outline);
 }
 .sc-chat-panel .chat-messages {
-  background: var(--sc-surface);
-  color: var(--sc-text);
+  background: #0d0d0d;
+  color: #e5e2e1;
   font-family: var(--sc-mono);
   font-size: 12px;
 }
 .sc-chat-panel .chat-input input {
-  background: #fff;
-  color: #000;
-  border-top: 1px solid #000;
+  background: #0d0d0d;
+  color: #e5e2e1;
+  border-top: 1px solid var(--sc-outline);
   font-family: var(--sc-body);
 }
 
@@ -1496,10 +1499,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-guess-form { display: flex; gap: 10px; max-width: 420px; margin: 0 auto; width: 100%; }
 .quiz-guess-form input { margin-bottom: 0; }
 .quiz-answer-btn {
-  background: linear-gradient(to bottom, var(--qz-orange-light) 0%, var(--qz-orange) 50%, #e68a00 51%, #cc7a00 100%);
-  color: #241a00;
+  background: var(--qz-orange);
+  color: #1a1200;
   border: none;
-  border-bottom: 3px solid #7a4a00;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.35);
   font-family: var(--qz-display);
   font-weight: 700;
   font-size: 14px;
@@ -3087,70 +3090,125 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
    variáveis. Sala sem tema definido (ex.: arenas) mantém o laranja padrão. */
 
 /* Esportes — verde campo */
-.quiz-root[data-quiz-theme="esportes"] {
+[data-theme="dark"] .quiz-root[data-quiz-theme="esportes"] {
   --qz-orange: #2ecc71;
   --qz-orange-light: #7ee2a8;
   --qz-orange-pale: #a8f0c6;
+  --qz-bg: #0d1a12;
+  --qz-surface-low: #12241a;
+  --qz-surface: #152a1e;
+  --qz-surface-high: #1c3827;
+  --qz-outline: #2d5c3f;
 }
-/* Ciências — ciano laboratório */
-.quiz-root[data-quiz-theme="ciencias"] {
+/* Ciencias — ciano laboratório */
+[data-theme="dark"] .quiz-root[data-quiz-theme="ciencias"] {
   --qz-orange: #00c2d1;
   --qz-orange-light: #5fdde8;
   --qz-orange-pale: #9beef5;
+  --qz-bg: #0a1a1d;
+  --qz-surface-low: #0f2428;
+  --qz-surface: #12292e;
+  --qz-surface-high: #17363c;
+  --qz-outline: #245c66;
 }
-/* História — âmbar pergaminho */
-.quiz-root[data-quiz-theme="historia"] {
+/* Historia — âmbar pergaminho */
+[data-theme="dark"] .quiz-root[data-quiz-theme="historia"] {
   --qz-orange: #d4a017;
   --qz-orange-light: #e8c45c;
   --qz-orange-pale: #f2dc9a;
+  --qz-bg: #1a1509;
+  --qz-surface-low: #241d0d;
+  --qz-surface: #2a2210;
+  --qz-surface-high: #382d15;
+  --qz-outline: #5c4a1f;
 }
 /* Cinema — vermelho tapete */
-.quiz-root[data-quiz-theme="cinema"] {
+[data-theme="dark"] .quiz-root[data-quiz-theme="cinema"] {
   --qz-orange: #e74c3c;
   --qz-orange-light: #f0837a;
   --qz-orange-pale: #f7b3ad;
+  --qz-bg: #1c0e0c;
+  --qz-surface-low: #281410;
+  --qz-surface: #2e1713;
+  --qz-surface-high: #3c1e19;
+  --qz-outline: #63332b;
 }
 /* Letras — roxo literário */
-.quiz-root[data-quiz-theme="letras"] {
+[data-theme="dark"] .quiz-root[data-quiz-theme="letras"] {
   --qz-orange: #9b59b6;
   --qz-orange-light: #c08fd4;
   --qz-orange-pale: #dcbde8;
+  --qz-bg: #160d1a;
+  --qz-surface-low: #1f1224;
+  --qz-surface: #25162a;
+  --qz-surface-high: #301d37;
+  --qz-outline: #4f325c;
 }
-/* Conhecimentos Gerais — laranja padrão da casa */
-.quiz-root[data-quiz-theme="geral"] {
+/* Geral — laranja da casa */
+[data-theme="dark"] .quiz-root[data-quiz-theme="geral"] {
   --qz-orange: #ff9900;
   --qz-orange-light: #ffb86f;
   --qz-orange-pale: #ffc082;
+  --qz-bg: #131313;
+  --qz-surface-low: #1c1b1b;
+  --qz-surface: #201f1f;
+  --qz-surface-high: #2a2a2a;
+  --qz-outline: #555555;
 }
-/* Música — rosa palco */
-.quiz-root[data-quiz-theme="musica"] {
+/* Musica — rosa palco */
+[data-theme="dark"] .quiz-root[data-quiz-theme="musica"] {
   --qz-orange: #ff4f9a;
   --qz-orange-light: #ff8ec0;
   --qz-orange-pale: #ffb8d8;
+  --qz-bg: #1c0a14;
+  --qz-surface-low: #28101d;
+  --qz-surface: #2e1322;
+  --qz-surface-high: #3c192c;
+  --qz-outline: #632a4a;
 }
-/* Séries e TV — azul tela */
-.quiz-root[data-quiz-theme="series"] {
+/* Series — azul tela */
+[data-theme="dark"] .quiz-root[data-quiz-theme="series"] {
   --qz-orange: #3498db;
   --qz-orange-light: #7fc0ea;
   --qz-orange-pale: #b0d9f2;
+  --qz-bg: #0b141c;
+  --qz-surface-low: #101d28;
+  --qz-surface: #13222e;
+  --qz-surface-high: #192d3c;
+  --qz-outline: #2a4b63;
 }
 /* Novelas — coral dramático */
-.quiz-root[data-quiz-theme="novelas"] {
+[data-theme="dark"] .quiz-root[data-quiz-theme="novelas"] {
   --qz-orange: #ff7f50;
   --qz-orange-light: #ffa985;
   --qz-orange-pale: #ffc9b3;
+  --qz-bg: #1c1009;
+  --qz-surface-low: #28180e;
+  --qz-surface: #2e1c11;
+  --qz-surface-high: #3c2516;
+  --qz-outline: #633d24;
 }
 /* Geografia — verde-azulado mapa */
-.quiz-root[data-quiz-theme="geografia"] {
+[data-theme="dark"] .quiz-root[data-quiz-theme="geografia"] {
   --qz-orange: #16a085;
   --qz-orange-light: #5cc9b3;
   --qz-orange-pale: #96e0d1;
+  --qz-bg: #091a17;
+  --qz-surface-low: #0e2420;
+  --qz-surface: #112a25;
+  --qz-surface-high: #163830;
+  --qz-outline: #245c50;
 }
-/* Direito — azul-marinho institucional */
-.quiz-root[data-quiz-theme="direito"] {
+/* Direito — azul-marinho */
+[data-theme="dark"] .quiz-root[data-quiz-theme="direito"] {
   --qz-orange: #5d7ce0;
   --qz-orange-light: #93a9ec;
   --qz-orange-pale: #bccbf4;
+  --qz-bg: #0d101c;
+  --qz-surface-low: #131828;
+  --qz-surface: #161b2e;
+  --qz-surface-high: #1d243c;
+  --qz-outline: #313d63;
 }
 
 /* ===== Cards temáticos na lobby do Quiz =====
@@ -3174,3 +3232,40 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .quiz-themed-card[data-quiz-theme="novelas"]   { --card-accent: #ff7f50; }
 .quiz-themed-card[data-quiz-theme="geografia"] { --card-accent: #16a085; }
 .quiz-themed-card[data-quiz-theme="direito"]   { --card-accent: #5d7ce0; }
+
+/* Brilho colorido no fundo da sala temática — usa a própria cor de destaque
+   do tema, então funciona pra qualquer um deles sem precisar repetir regra. */
+.quiz-root[data-quiz-theme] {
+  position: relative;
+  overflow: hidden;
+}
+.quiz-root[data-quiz-theme]::before {
+  content: "";
+  position: absolute;
+  top: -180px;
+  right: -180px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: var(--qz-orange);
+  opacity: 0.09;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.quiz-root[data-quiz-theme]::after {
+  content: "";
+  position: absolute;
+  bottom: -200px;
+  left: -160px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: var(--qz-orange);
+  opacity: 0.06;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Garante que o conteúdo fique acima do brilho decorativo */
+.quiz-root[data-quiz-theme] > * { position: relative; z-index: 1; }
