@@ -1240,7 +1240,20 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-occupancy-empty { color: var(--text-dim); background: rgba(255,255,255,0.03); border-color: var(--border); }
 .lobby-occupancy-full { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); border-color: rgba(255, 107, 107, 0.35); }
 
-.chat-user-msg { padding: 2px 0; word-break: break-word; }
+/* Cores explícitas do texto do chat — como o fundo é preto fixo em todos os
+   chats, o texto precisa de cor clara garantida, sem depender de herdar de
+   quem estiver por volta (o que variava conforme o tema da sala). */
+.chat-user-msg {
+  padding: 2px 0;
+  word-break: break-word;
+  color: #e5e2e1;
+}
+.chat-system-msg {
+  color: #a89a8c;
+  font-style: italic;
+  padding: 2px 0;
+  word-break: break-word;
+}
 
 /* ===== Clãs ===== */
 .clan-invite-row {
@@ -2374,7 +2387,7 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 
 .chat-msg-time {
-  color: var(--text-dim);
+  color: #7d7268;
   font-family: var(--font-mono);
   font-size: 10px;
   margin-right: 6px;
