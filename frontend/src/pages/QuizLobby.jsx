@@ -55,14 +55,27 @@ export default function QuizLobby() {
   const arenaRooms = rooms.filter((r) => r.arena);
   const themeRooms = rooms.filter((r) => !r.arena);
 
+  // Números reais do banco, somados a partir das próprias salas — assim o
+  // texto nunca fica desatualizado quando adicionamos perguntas ou temas.
+  // Só conta as salas de tema (as arenas sorteiam das mesmas perguntas, e
+  // contá-las duplicaria o total).
+  const totalPerguntas = themeRooms.reduce((soma, r) => soma + (r.questionCount || 0), 0);
+  const totalTemas = new Set(themeRooms.map((r) => r.themeKey).filter(Boolean)).size;
+
   return (
     <div>
-      <Seo title="Quiz" description="Escolha uma sala de Quiz — mais de 8 mil perguntas de vários temas, com dificuldade fácil ou avançada." />
+      <Seo title="Quiz" description="Escolha uma sala de Quiz — milhares de perguntas de vários temas, com dificuldade padrão ou avançada." />
       <div className="hero-banner" style={{ marginBottom: 24 }}>
         <div>
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-page-logo" />
           <h1 className="hero-title">Escolha um tema</h1>
           <p className="hero-subtitle">
+            {totalPerguntas > 0 && (
+              <>
+                <strong>{totalPerguntas.toLocaleString("pt-BR")} perguntas</strong> em{" "}
+                <strong>{totalTemas} temas</strong> diferentes.{" "}
+              </>
+            )}
             Cada sala tem perguntas de um tema só. Quem acertar primeiro leva os pontos — as letras
             da resposta vão aparecendo aos poucos, mas nunca mais da metade delas.
           </p>
