@@ -414,7 +414,9 @@ export default function StopGame() {
         lastResult.themes.map((t) => {
           const g = p.graded?.[t.key];
           const isMine = user?.id && p.userId === user.id;
-          const canSuggest = isMine && g?.status === "wrong" && g?.word;
+          // Sala da Zoeira não tem glossário — os temas são subjetivos, então não
+                    // faz sentido sugerir palavra pra cadastrar.
+                    const canSuggest = isMine && g?.status === "wrong" && g?.word && !me?.semPontuacao;
           return [
             t.key,
             <>
@@ -572,7 +574,9 @@ export default function StopGame() {
                   {lastResult.themes.map((t) => {
                     const g = p.graded?.[t.key];
                     const isMine = user?.id && p.userId === user.id;
-                    const canSuggest = isMine && g?.status === "wrong" && g?.word;
+                    // Sala da Zoeira não tem glossário — os temas são subjetivos, então não
+                    // faz sentido sugerir palavra pra cadastrar.
+                    const canSuggest = isMine && g?.status === "wrong" && g?.word && !me?.semPontuacao;
                     return (
                       <div key={t.key} className="sc-fill-grid-cell">
                         <label className="sc-fill-grid-label">{t.name}</label>

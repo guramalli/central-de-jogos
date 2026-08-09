@@ -1,8 +1,18 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { ROOM_CONFIGS } from "../game/roomConfigs.js";
 
 const router = Router();
+
+// Temas usados só na Sala da Zoeira. São subjetivos ("motivo de término",
+// "coisa que a sogra fala") e por isso não têm glossário — não faz sentido
+// sugerir palavra pra eles, já que não existe resposta "certa" a cadastrar.
+const TEMAS_SEM_GLOSSARIO = new Set(
+  Object.values(ROOM_CONFIGS)
+    .filter((c) => c.semPontuacao && Array.isArray(c.fixedThemeKeys))
+    .flatMap((c) => c.fixedThemeKeys)
+);
 
 router.get("/themes", requireAuth, async (req, res) => {
   const themes = await prisma.theme.findMany();
@@ -14,6 +24,15 @@ router.post("/suggest", requireAuth, async (req, res) => {
   if (!themeKey || !letter || !word) {
     return res.status(400).json({ error: "themeKey, letter e word são obrigatórios." });
   }
+
+  // Temas da Sala da Zoeira não têm glossário — quem julga a resposta é a
+  // galera na hora, não uma lista de palavras aceitas.
+  if (TEMAS_SEM_GLOSSARIO.has(themeKey)) {
+    return res.status(400).json({
+      error: "Os temas da Sala da Zoeira não têm lista de palavras — vale o que a galera aceitar!",
+    });
+  }
+
   const theme = await prisma.theme.findUnique({ where: { key: themeKey } });
   if (!theme) return res.status(404).json({ error: "Tema não encontrado." });
 
