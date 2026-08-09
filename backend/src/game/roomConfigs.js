@@ -3,6 +3,35 @@
 // usar tempos fixos, e a checagem de pontuação mínima já é aplicada
 // automaticamente na entrada (join) de cada sala.
 export const ROOM_CONFIGS = {
+  // ===== Sala da Zoeira =====
+  // Sala pra rir, não pra competir. Usa temas escrachados que não caem nas
+  // outras salas, e NÃO pontua em ranking nenhum — a ideia é justamente
+  // tirar a pressão e deixar a galera brincar sem se preocupar com nota.
+  "stop-sala-zoeira": {
+    label: "🤣 Sala da Zoeira",
+    description: "Temas escrachados só pra rir. Não vale ponto nenhum — é resenha pura!",
+    answerSeconds: 60,
+    intermissionSeconds: 25,
+    minLifetimePoints: 0,
+    difficulty: "basic",
+    maxPlayers: 12,
+    minCorrectToStop: 3,
+    minSecondsBeforeStop: 45,
+    // Nada aqui conta pra ranking, patente ou premiação.
+    semPontuacao: true,
+    fixedThemeKeys: [
+      "coisa_da_sogra",
+      "coisas_todo_mundo_odeia",
+      "motivo_termino",
+      "coisas_pegam_fogo",
+      "bebida",
+      "comida_estranha",
+      "apelido",
+      "meme_internet",
+      "grito_de_torcida",
+    ],
+  },
+
   "stop-sala-1": {
     label: "Sala Padrão",
     description: "Sala livre para todos os jogadores.",

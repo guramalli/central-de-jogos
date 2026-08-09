@@ -78,6 +78,8 @@ export function getAllRoomsStatus() {
       onlineCount: room ? room.countUniquePlayers() : 0,
       minLifetimePoints: config.minLifetimePoints ?? 0,
       difficulty: config.difficulty ?? "basic",
+      description: config.description || null,
+      semPontuacao: !!config.semPontuacao,
     };
   });
 }

@@ -52,6 +52,8 @@ export class StopRoom {
     // (ex.: "stop:stop-sala-1"), assim cada sala tem sua pontuação histórica
     // separada, sem precisar de uma tabela nova nem migration.
     this.roomGameKey = `${GAME_KEY}:${roomId}`;
+    // Sala de brincadeira: nada aqui vai pra ranking, patente ou premiação.
+    this.semPontuacao = !!config.semPontuacao;
     this.players = new Map(); // socketId -> { userId, nickname, socket }
     this.roundNumber = 0;
     this.blockTotals = new Map(); // userId -> pontos acumulados no bloco atual de 10 rodadas
@@ -362,6 +364,9 @@ export class StopRoom {
 
   async loadValidWordsCache() {
     this.validWordsCache = new Map();
+    // Sala da Zoeira não confere resposta contra glossário, então nem
+    // precisa buscar nada no banco.
+    if (this.semPontuacao) return;
     try {
       const themeIds = this.currentThemes.map((t) => t.id);
       // Timeout de segurança: se o banco demorar demais pra responder (ex.:
@@ -486,6 +491,16 @@ export class StopRoom {
   // rodada — agora é uma checagem em memória (o cache foi carregado no
   // início da rodada por loadValidWordsCache), não vai mais ao banco.
   isValidWord(themeId, letter, word) {
+    // Sala da Zoeira: os temas são subjetivos ("motivo de término", "minha
+    // sogra é...") — não existe resposta "certa" pra conferir num glossário.
+    // Aqui basta a palavra começar com a letra sorteada; o julgamento de se
+    // é boa ou não fica com a galera, que é justamente a graça.
+    if (this.semPontuacao) {
+      const limpa = normalize(word).trim();
+      if (!limpa) return false;
+      return limpa[0] === normalize(this.currentLetter);
+    }
+
     if (letter !== this.currentLetter) return false; // segurança: cache é só da letra atual
     const set = this.validWordsCache.get(themeId);
     if (!set) return false;
@@ -597,7 +612,10 @@ export class StopRoom {
         }
       }
 
-      for (const [userId, pts] of roundScores.entries()) {
+      // Sala sem pontuação: mostra o placar da rodada normalmente (a
+      // disputa dentro da partida continua valendo), mas não grava nada no
+      // banco — nem mensal, nem vitalício, nem bloco.
+      for (const [userId, pts] of (this.semPontuacao ? [] : roundScores.entries())) {
         this.blockTotals.set(userId, (this.blockTotals.get(userId) || 0) + pts);
         try {
           await prisma.blockScore.upsert({
@@ -686,6 +704,11 @@ export class StopRoom {
   }
 
   async awardBlockBonus(monthKey) {
+    // Sala de brincadeira não tem bônus de bloco — não pontua nada.
+    if (this.semPontuacao) {
+      this.systemMessage("🔄 Fim do bloco de 10 rodadas! Bora pro próximo — aqui é só zoeira mesmo. 😄");
+      return;
+    }
     // Só entra no pódio quem realmente pontuou alguma coisa NESSE bloco — uma
     // entrada zerada (de quem não jogou nada nesse bloco, mesmo que tenha
     // pontuado em blocos anteriores) não deve "preencher vaga" só porque

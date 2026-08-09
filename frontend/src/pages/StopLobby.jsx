@@ -49,7 +49,7 @@ export default function StopLobby() {
             <Link
               key={r.roomId}
               to={`/jogos/stop/${r.roomId}`}
-              className={`glossy-panel lobby-game-card ${diff.tier !== "basic" ? "lobby-game-card-advanced" : ""}`}
+              className={`glossy-panel lobby-game-card ${diff.tier !== "basic" ? "lobby-game-card-advanced" : ""} ${r.semPontuacao ? "lobby-game-card-zoeira" : ""}`}
             >
               <div className={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}>
                 <span className="material-symbols-outlined">{diff.icon}</span>
@@ -59,9 +59,15 @@ export default function StopLobby() {
                   {r.label}
                   {restricted && <span className="material-symbols-outlined lobby-lock-icon">lock</span>}
                 </h3>
-                <p className={`lobby-difficulty-badge lobby-difficulty-badge-${diff.tier}`}>{diff.label}</p>
+                {r.semPontuacao ? (
+                  <p className="lobby-zoeira-badge">😄 Sem pontuação</p>
+                ) : (
+                  <p className={`lobby-difficulty-badge lobby-difficulty-badge-${diff.tier}`}>{diff.label}</p>
+                )}
                 <p className="lobby-game-desc">
-                  {restricted
+                  {r.description
+                    ? r.description
+                    : restricted
                     ? `Só pra jogador experiente — exige ${r.minLifetimePoints} pontos vitalícios.`
                     : "Sala livre para todos os jogadores."}
                 </p>

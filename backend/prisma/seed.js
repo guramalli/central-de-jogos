@@ -22,6 +22,18 @@ const THEMES = [
   { key: "ensino_superior", name: "Ensino Superior" },
   { key: "ossos_corpo_humano", name: "Ossos do Corpo Humano" },
   { key: "verbos", name: "Verbos" },
+
+  // ===== Temas da sala descontraída =====
+  // Não entram no sorteio das salas normais (só a Zoeira usa esses).
+  { key: "coisa_da_sogra", name: "Minha Sogra é..." },
+  { key: "coisas_todo_mundo_odeia", name: "Coisas que Todo Mundo Odeia" },
+  { key: "motivo_termino", name: "Motivo de Término" },
+  { key: "coisas_pegam_fogo", name: "Coisas que Pegam Fogo" },
+  { key: "bebida", name: "Bebida" },
+  { key: "comida_estranha", name: "Comida Estranha" },
+  { key: "apelido", name: "Apelido de Amigo" },
+  { key: "meme_internet", name: "Meme da Internet" },
+  { key: "grito_de_torcida", name: "Grito de Torcida" },
 ];
 
 const SEED_WORDS = {
