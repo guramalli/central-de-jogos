@@ -20,6 +20,27 @@ export async function getOrCreateAcromaniaRoom(io, roomId = DEFAULT_ACROMANIA_RO
   return creation;
 }
 
+// Igual ao anterior, mas traz nickname e em qual sala a pessoa está —
+// usado no painel admin pra acompanhar o movimento do site.
+export function getOnlinePlayersDetailed() {
+  const lista = [];
+  const vistos = new Set();
+  for (const [roomId, room] of rooms.entries()) {
+    for (const p of room.players.values()) {
+      const chave = `${p.userId}:${roomId}`;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      lista.push({
+        userId: p.userId,
+        nickname: p.nickname,
+        roomId,
+        roomLabel: room.label || roomId,
+      });
+    }
+  }
+  return lista;
+}
+
 export function getAllOnlineUserIds() {
   const ids = new Set();
   for (const room of rooms.values()) {

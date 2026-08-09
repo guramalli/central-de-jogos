@@ -40,6 +40,7 @@ export default function Admin() {
   const [usersPage, setUsersPage] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
   const [suspicious, setSuspicious] = useState([]);
+  const [online, setOnline] = useState(null);
   const [questionReports, setQuestionReports] = useState([]);
   const [error, setError] = useState("");
 
@@ -90,6 +91,15 @@ export default function Admin() {
     }
   }
 
+  async function loadOnline() {
+    try {
+      const { data } = await api.get("/admin/online");
+      setOnline(data);
+    } catch {
+      // silencioso — não é crítico
+    }
+  }
+
   async function loadQuestionReports() {
     try {
       const { data } = await api.get("/admin/question-reports");
@@ -115,6 +125,11 @@ export default function Admin() {
     loadFeedbacks();
     loadSuspicious();
     loadQuestionReports();
+    loadOnline();
+    // Atualiza sozinho, pra dar pra acompanhar o movimento em tempo real
+    // durante uma divulgação ou live sem precisar recarregar a página.
+    const timer = setInterval(loadOnline, 15000);
+    return () => clearInterval(timer);
   }, []);
 
   async function deleteFeedback(id) {
@@ -181,6 +196,59 @@ export default function Admin() {
     <div>
       <Seo title="Painel Admin" />
       <h1>Painel Admin — Educação Gamer</h1>
+
+      <div className="card admin-online-card">
+        <div className="admin-online-head">
+          <h2>🟢 Online agora</h2>
+          <button className="btn secondary admin-online-refresh" onClick={loadOnline}>
+            Atualizar
+          </button>
+        </div>
+
+        {!online ? (
+          <p style={{ color: "var(--text-dim)" }}>Carregando...</p>
+        ) : (
+          <>
+            <div className="admin-online-numbers">
+              <div className="admin-online-stat">
+                <strong>{online.total}</strong>
+                <span>no site</span>
+              </div>
+              <div className="admin-online-stat">
+                <strong>{online.jogando}</strong>
+                <span>em partida</span>
+              </div>
+              <div className="admin-online-stat">
+                <strong>{online.registrados}</strong>
+                <span>com conta</span>
+              </div>
+              <div className="admin-online-stat">
+                <strong>{online.visitantes}</strong>
+                <span>visitantes</span>
+              </div>
+            </div>
+
+            {online.jogadores.length === 0 ? (
+              <p style={{ color: "var(--text-dim)", marginTop: 12 }}>
+                Ninguém online no momento.
+              </p>
+            ) : (
+              <div className="admin-online-list">
+                {online.jogadores.map((p) => (
+                  <div key={p.userId} className="admin-online-row">
+                    <span className="admin-online-nick">
+                      {p.nickname}
+                      {p.isGuest && <span className="admin-online-guest">visitante</span>}
+                    </span>
+                    <span className="admin-online-where">{p.local}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="admin-online-note">Atualiza sozinho a cada 15 segundos.</p>
+          </>
+        )}
+      </div>
       {error && <div className="error-msg">{error}</div>}
 
       <div className="card">

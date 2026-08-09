@@ -1,5 +1,9 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
+import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameManager.js";
+import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
+import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
+import { getOnlineList as getGeneralChatOnline } from "../game/generalChat.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -334,6 +338,72 @@ router.post("/question-reports/:questionId/resolve", async (req, res) => {
     data: { resolved: true },
   });
   res.json({ ok: true });
+});
+
+// Quem está online agora, e onde. Junta as quatro fontes possíveis: as três
+// de salas de jogo e o chat geral (quem está só na página inicial).
+router.get("/online", async (req, res) => {
+  const porJogo = [
+    ["Stop", getStopOnlineDetailed()],
+    ["Quiz", getQuizOnlineDetailed()],
+    ["Acromania", getAcromaniaOnlineDetailed()],
+  ];
+
+  // userId -> { nickname, locais: [] }
+  const pessoas = new Map();
+
+  for (const [jogo, lista] of porJogo) {
+    for (const p of lista) {
+      if (!pessoas.has(p.userId)) {
+        pessoas.set(p.userId, { userId: p.userId, nickname: p.nickname, locais: [] });
+      }
+      pessoas.get(p.userId).locais.push({ jogo, sala: p.roomLabel });
+    }
+  }
+
+  // Quem está no chat geral (página inicial) e não apareceu em sala nenhuma.
+  for (const p of getGeneralChatOnline()) {
+    if (!pessoas.has(p.userId)) {
+      pessoas.set(p.userId, { userId: p.userId, nickname: p.nickname, locais: [] });
+    }
+  }
+
+  const lista = [...pessoas.values()];
+
+  // Marca quem é visitante, pra dar contexto ao número total.
+  const ids = lista.map((p) => p.userId);
+  let visitantes = new Set();
+  if (ids.length > 0) {
+    try {
+      const guests = await prisma.user.findMany({
+        where: { id: { in: ids }, isGuest: true },
+        select: { id: true },
+      });
+      visitantes = new Set(guests.map((g) => g.id));
+    } catch {
+      // se falhar, segue sem a marcação — não vale derrubar a rota por isso
+    }
+  }
+
+  const resultado = lista.map((p) => ({
+    ...p,
+    isGuest: visitantes.has(p.userId),
+    local: p.locais.length > 0 ? p.locais.map((l) => `${l.jogo}: ${l.sala}`).join(" · ") : "Página inicial",
+  }));
+
+  // Quem está jogando aparece primeiro; depois ordem alfabética.
+  resultado.sort(
+    (a, b) =>
+      b.locais.length - a.locais.length || a.nickname.localeCompare(b.nickname, "pt-BR")
+  );
+
+  res.json({
+    total: resultado.length,
+    registrados: resultado.filter((p) => !p.isGuest).length,
+    visitantes: resultado.filter((p) => p.isGuest).length,
+    jogando: resultado.filter((p) => p.locais.length > 0).length,
+    jogadores: resultado,
+  });
 });
 
 export default router;
