@@ -31,11 +31,16 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
     );
 
     // Sala com lista fixa de temas (iniciante, Zoeira) sorteia só entre os
-    // dela. As demais (intermediária, avançada) pegam todos os temas —
-    // menos os da Zoeira, pelo motivo acima.
-    const themes = config.fixedThemeKeys
+    // dela. As demais (intermediária, avançada) pegam todos os temas.
+    //
+    // Em ambos os casos, os temas da Zoeira ficam de fora de qualquer sala
+    // que não seja a própria Zoeira — inclusive se um deles for parar numa
+    // lista fixa por engano no futuro.
+    const ehSalaZoeira = !!config.semPontuacao;
+    const themes = (config.fixedThemeKeys
       ? allThemes.filter((t) => config.fixedThemeKeys.includes(t.key))
-      : allThemes.filter((t) => !temasExclusivosDaZoeira.has(t.key));
+      : allThemes
+    ).filter((t) => ehSalaZoeira || !temasExclusivosDaZoeira.has(t.key));
 
     const room = new StopRoom(roomId, io, themes, config);
     rooms.set(roomId, room);
