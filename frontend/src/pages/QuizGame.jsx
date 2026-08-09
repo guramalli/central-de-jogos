@@ -186,10 +186,19 @@ export default function QuizGame() {
   }, [roomId]);
 
   useEffect(() => {
-    // Em celular, focar automaticamente abre o teclado sozinho e empurra a
-    // tela — só faz isso em desktop, onde é conveniente sem esse efeito colateral.
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (phase === "active" && !isMobile) inputRef.current?.focus();
+    if (phase !== "active") return;
+    // O campo fica desabilitado durante o intervalo, e navegador nenhum
+    // deixa focar um campo desabilitado. Por isso o foco espera o próximo
+    // quadro de renderização (quando o campo já voltou a ficar ativo) — e
+    // tenta de novo logo depois, como rede de segurança pra celular, que
+    // às vezes demora um pouco mais pra liberar o campo.
+    const focar = () => inputRef.current?.focus();
+    const raf = requestAnimationFrame(focar);
+    const retry = setTimeout(focar, 120);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(retry);
+    };
   }, [phase, questionText]);
 
   useEffect(() => {

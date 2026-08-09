@@ -134,10 +134,17 @@ export default function AcromaniaGame() {
   }, [roomId]);
 
   useEffect(() => {
-    // Em celular, focar automaticamente abre o teclado sozinho e empurra a
-    // tela — só faz isso em desktop, onde é conveniente sem esse efeito colateral.
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (phase === "writing" && !submitted && !isMobile) phraseInputRef.current?.focus();
+    if (phase !== "writing" || submitted) return;
+    // Espera o próximo quadro de renderização pra garantir que o campo já
+    // existe na tela antes de focar, com uma segunda tentativa como rede
+    // de segurança pro celular.
+    const focar = () => phraseInputRef.current?.focus();
+    const raf = requestAnimationFrame(focar);
+    const retry = setTimeout(focar, 120);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(retry);
+    };
   }, [phase, submitted]);
 
   useEffect(() => {
