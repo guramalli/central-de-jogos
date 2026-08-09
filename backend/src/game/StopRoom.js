@@ -278,7 +278,17 @@ export class StopRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.startRound();
+      if (this.timeLeft <= 0) {
+        // startRound é assíncrono e desliga o timer atual logo na primeira
+        // linha. Se ele falhar no meio (banco instável, por exemplo), a sala
+        // ficaria SEM timer nenhum — travada pra sempre. O catch abaixo
+        // devolve a sala pro intervalo, que tenta a rodada de novo.
+        Promise.resolve(this.startRound()).catch((err) => {
+          console.error(`Falha ao iniciar rodada na sala ${this.roomId}:`, err);
+          this.systemMessage("⚠️ Tivemos um problema técnico. Reiniciando a rodada...");
+          setTimeout(() => this.startIntermission(), 3000);
+        });
+      }
     }, 1000);
   }
 
@@ -310,6 +320,14 @@ export class StopRoom {
   }
 
   pickThemes() {
+    // Sala sem tema nenhum não tem como jogar. Isso não deveria acontecer,
+    // mas se acontecer (banco sem os temas cadastrados, por exemplo), é
+    // melhor avisar do que deixar a rodada rodar vazia e travar tudo.
+    if (!this.allThemes || this.allThemes.length === 0) {
+      console.error(`Sala ${this.roomId} está sem temas cadastrados no banco.`);
+      return [];
+    }
+
     const shuffled = [...this.allThemes].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, 6);
     const rest = shuffled.slice(6);
@@ -393,7 +411,15 @@ export class StopRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.endRound(false);
+      if (this.timeLeft <= 0) {
+        // Mesma proteção do intervalo: endRound é assíncrono e desliga o
+        // timer, então uma falha ali deixaria a sala parada.
+        Promise.resolve(this.endRound(false)).catch((err) => {
+          console.error(`Falha ao encerrar rodada na sala ${this.roomId}:`, err);
+          this.systemMessage("⚠️ Tivemos um problema ao apurar a rodada. Seguindo pra próxima...");
+          this.startIntermission();
+        });
+      }
     }, 1000);
 
     // Busca as palavras válidas dessa rodada (todos os temas + a letra

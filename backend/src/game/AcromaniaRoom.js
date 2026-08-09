@@ -198,7 +198,14 @@ export class AcromaniaRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.startWriting();
+      if (this.timeLeft <= 0) {
+        // Protegido: função assíncrona que desliga o timer. Sem o catch,
+        // uma falha deixaria a sala travada sem timer.
+        Promise.resolve(this.startWriting()).catch((err) => {
+          console.error(`Falha em startWriting na sala ${this.roomId}:`, err);
+          setTimeout(() => this.startIntermission(), 3000);
+        });
+      }
     }, 1000);
   }
 
@@ -233,7 +240,14 @@ export class AcromaniaRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.startVoting();
+      if (this.timeLeft <= 0) {
+        // Protegido: função assíncrona que desliga o timer. Sem o catch,
+        // uma falha deixaria a sala travada sem timer.
+        Promise.resolve(this.startVoting()).catch((err) => {
+          console.error(`Falha em startVoting na sala ${this.roomId}:`, err);
+          setTimeout(() => this.startIntermission(), 3000);
+        });
+      }
     }, 1000);
   }
 
@@ -297,7 +311,14 @@ export class AcromaniaRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.endVoting();
+      if (this.timeLeft <= 0) {
+        // Protegido: função assíncrona que desliga o timer. Sem o catch,
+        // uma falha deixaria a sala travada sem timer.
+        Promise.resolve(this.endVoting()).catch((err) => {
+          console.error(`Falha em endVoting na sala ${this.roomId}:`, err);
+          setTimeout(() => this.startIntermission(), 3000);
+        });
+      }
     }, 1000);
   }
 

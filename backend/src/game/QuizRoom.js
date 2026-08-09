@@ -242,7 +242,16 @@ export class QuizRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("quiz-tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.startQuestion();
+      if (this.timeLeft <= 0) {
+        // Protegido: essas funções são assíncronas e desligam o timer logo
+        // no início. Sem o catch, uma falha no meio deixaria a sala parada
+        // pra sempre, sem timer nenhum.
+        Promise.resolve(this.startQuestion()).catch((err) => {
+          console.error(`Falha ao iniciar pergunta na sala ${this.roomId}:`, err);
+          this.systemMessage("⚠️ Problema técnico. Reiniciando...");
+          setTimeout(() => this.startIntermission(), 3000);
+        });
+      }
     }, 1000);
   }
 
@@ -387,7 +396,12 @@ export class QuizRoom {
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("quiz-tick", { state: this.state, timeLeft: this.timeLeft });
-      if (this.timeLeft <= 0) this.endQuestion(null);
+      if (this.timeLeft <= 0) {
+        Promise.resolve(this.endQuestion(null)).catch((err) => {
+          console.error(`Falha ao encerrar pergunta na sala ${this.roomId}:`, err);
+          this.startIntermission();
+        });
+      }
     }, 1000);
 
     // Revela mais uma letra a cada X segundos, nunca passando do limite
