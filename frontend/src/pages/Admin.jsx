@@ -32,6 +32,7 @@ const QUIZ_THEME_NAMES = {
   anime: "Anime e HQ",
   terceirao: "Terceirão",
   games: "Games",
+  mitologia: "Mitologia e Religião",
 };
 
 export default function Admin() {

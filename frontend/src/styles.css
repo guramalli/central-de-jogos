@@ -3525,3 +3525,16 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-outline: #245c2b;
 }
 .quiz-themed-card[data-quiz-theme="games"] { --card-accent: #39ff6a; }
+
+/* Mitologia e Religião — dourado de templo antigo */
+[data-theme="dark"] .quiz-root[data-quiz-theme="mitologia"] {
+  --qz-orange: #e8c76b;
+  --qz-orange-light: #f2dda0;
+  --qz-orange-pale: #f7ebc7;
+  --qz-bg: #17130a;
+  --qz-surface-low: #221b0f;
+  --qz-surface: #281f12;
+  --qz-surface-high: #352918;
+  --qz-outline: #5c4826;
+}
+.quiz-themed-card[data-quiz-theme="mitologia"] { --card-accent: #e8c76b; }
