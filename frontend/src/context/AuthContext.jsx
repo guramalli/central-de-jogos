@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { api } from "../api/client.js";
+import { registrarConversaoCadastro } from "../utils/analytics.js";
 
 const AuthContext = createContext(null);
 
@@ -21,6 +22,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem("eg_token", data.token);
     localStorage.setItem("eg_user", JSON.stringify(data.user));
     setUser(data.user);
+    // Conta nova criada: avisa o Google Ads pra medir a campanha.
+    registrarConversaoCadastro();
   }
 
   // Recebe o token de identidade que o botão do Google gera no navegador —
@@ -31,6 +34,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem("eg_token", data.token);
     localStorage.setItem("eg_user", JSON.stringify(data.user));
     setUser(data.user);
+    // Só conta como conversão se a conta foi criada agora. Quem já tinha
+    // conta e só está entrando de novo não é cadastro novo.
+    if (data.contaNova) registrarConversaoCadastro();
   }
 
   function logout() {

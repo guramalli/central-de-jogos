@@ -191,6 +191,11 @@ router.post("/google", entradaLimiter, async (req, res) => {
 
   let user = await prisma.user.findUnique({ where: { email: payload.email } });
 
+  // Marca se a conta foi criada AGORA. O frontend usa isso pra contar a
+  // conversão de cadastro no Google Ads só quando é gente nova de verdade —
+  // sem isso, todo login com Google seria contado como cadastro.
+  let contaNova = false;
+
   if (!user) {
     const nickname = await generateNicknameFromName(payload.name);
     user = await prisma.user.create({
@@ -202,12 +207,17 @@ router.post("/google", entradaLimiter, async (req, res) => {
         termsAcceptedAt: new Date(),
       },
     });
+    contaNova = true;
   }
 
   if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
 
   const token = signToken(user);
-  res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
+  res.json({
+    token,
+    contaNova,
+    user: { id: user.id, nickname: user.nickname, role: user.role },
+  });
 });
 
 // Entrada rápida como visitante: cria uma conta temporária só com nickname,
