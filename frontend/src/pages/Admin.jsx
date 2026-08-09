@@ -30,6 +30,7 @@ const QUIZ_THEME_NAMES = {
   futebol: "Futebol",
   automobilismo: "Automobilismo",
   anime: "Anime e HQ",
+  terceirao: "Terceirão",
 };
 
 export default function Admin() {

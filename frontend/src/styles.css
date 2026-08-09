@@ -3499,3 +3499,16 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   padding: 2px 10px;
   margin: 4px 0;
 }
+
+/* Terceirão — azul acadêmico */
+[data-theme="dark"] .quiz-root[data-quiz-theme="terceirao"] {
+  --qz-orange: #4d94ff;
+  --qz-orange-light: #85b6ff;
+  --qz-orange-pale: #b3d1ff;
+  --qz-bg: #080d18;
+  --qz-surface-low: #0d1424;
+  --qz-surface: #10182a;
+  --qz-surface-high: #162138;
+  --qz-outline: #29405f;
+}
+.quiz-themed-card[data-quiz-theme="terceirao"] { --card-accent: #4d94ff; }

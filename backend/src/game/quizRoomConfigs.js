@@ -3,6 +3,7 @@
 // bloco. Direito é exceção: fica só uma sala (o assunto já é nichado o
 // suficiente sem precisar dividir mais ainda).
 const THEMES = [
+  { key: "terceirao", name: "Terceirão" },
   { key: "esportes", name: "Esportes" },
   { key: "futebol", name: "Futebol" },
   { key: "automobilismo", name: "Automobilismo" },
