@@ -12,8 +12,13 @@ async function main() {
   for (const [themeKey, perguntas] of Object.entries(AVANCADAS)) {
     let doTema = 0;
     for (const q of perguntas) {
+      // Busca SÓ pelo texto da pergunta, sem filtrar por tema. Isso é
+      // essencial: os scripts de migração (mover-anime, mover-mitologia,
+      // mover-games) mudam o themeKey de perguntas já importadas. Se a
+      // busca considerasse o tema, o script não encontraria a pergunta no
+      // tema original e criaria uma duplicata.
       const existe = await prisma.quizQuestion.findFirst({
-        where: { themeKey, question: q.question },
+        where: { question: q.question },
       });
       if (existe) {
         puladas++;

@@ -31,7 +31,10 @@
     "mover-games": "node prisma/moverGames.js",
     "revisar-desatualizadas": "node prisma/revisarDesatualizadas.js",
     "import-mitologia": "node prisma/importMitologia.js",
-    "mover-mitologia": "node prisma/moverMitologia.js"
+    "mover-mitologia": "node prisma/moverMitologia.js",
+    "diagnostico-salas": "node prisma/diagnosticoSalas.js",
+    "limpar-duplicadas": "node prisma/limparDuplicadas.js",
+    "import-avancadas2": "node prisma/importAvancadas2.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

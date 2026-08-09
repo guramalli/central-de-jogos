@@ -1,7 +1,7 @@
 // Importa as perguntas novas do Quiz — soma ao que já existe no banco,
 // sem duplicar (compara tema + texto da pergunta).
 import { PrismaClient } from "@prisma/client";
-import { TERCEIRAO } from "./data/quizTerceirao.js";
+import { AVANCADAS2 } from "./data/quizAvancadas2.js";
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,7 @@ async function main() {
   let inseridas = 0;
   let puladas = 0;
 
-  for (const [themeKey, perguntas] of Object.entries(TERCEIRAO)) {
+  for (const [themeKey, perguntas] of Object.entries(AVANCADAS2)) {
     let doTema = 0;
     for (const q of perguntas) {
       // Busca SÓ pelo texto da pergunta, sem filtrar por tema. Isso é
