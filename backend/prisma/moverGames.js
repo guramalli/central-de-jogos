@@ -16,18 +16,18 @@ const prisma = new PrismaClient();
 // expressões maiores como "super mario" e "mario kart".
 const TERMOS_GAMES = [
   // Plataformas e empresas
-  "videogame", "video game", "video-game", "console de videogame",
+  "videogame", "video game", "video-game", "console de videogame", "jogo de videogame", "consoles de videogame",
   "playstation", "ps1", "ps2", "ps3", "ps4", "ps5",
   "xbox", "nintendo", "game boy", "gameboy", "nintendo switch",
   "super nintendo", "mega drive", "master system", "dreamcast",
   "sega", "atari", "fliperama", "arcade", "neo geo",
-  "steam", "epic games", "activision", "ubisoft", "rockstar games",
+  "epic games", "activision", "ubisoft", "rockstar games",
   "electronic arts", "konami", "capcom", "square enix", "bandai namco",
   "blizzard", "valve", "bethesda", "naughty dog", "riot games",
   // Franquias
   "super mario", "mario kart", "mario bros", "luigi", "bowser",
-  "the legend of zelda", "zelda", "link", "ganondorf",
-  "sonic the hedgehog", "sonic", "donkey kong", "kirby", "metroid",
+  "the legend of zelda", "zelda", "ganondorf",
+  "sonic the hedgehog", "donkey kong", "kirby", "metroid",
   "pac-man", "pacman", "space invaders", "tetris", "pong",
   "street fighter", "mortal kombat", "tekken", "super smash",
   "final fantasy", "resident evil", "silent hill", "metal gear",
@@ -38,11 +38,11 @@ const TERMOS_GAMES = [
   "the witcher", "cyberpunk 2077", "elden ring", "dark souls",
   "bloodborne", "sekiro", "skyrim", "fallout", "the elder scrolls",
   "minecraft", "roblox", "fortnite", "among us", "fall guys",
-  "league of legends", "dota", "valorant", "overwatch", "apex legends",
+  "league of legends", "valorant", "overwatch", "apex legends",
   "world of warcraft", "diablo", "starcraft", "hearthstone",
   "animal crossing", "stardew valley", "terraria", "hollow knight",
   "assassins creed", "assassin's creed", "far cry", "watch dogs",
-  "need for speed", "gran turismo", "forza", "fifa", "pes",
+  "need for speed", "gran turismo", "forza", "pes",
   "the sims", "sim city", "age of empires", "civilization",
   "free fire", "pubg", "clash royale", "candy crush", "angry birds",
   // Termos do universo gamer
