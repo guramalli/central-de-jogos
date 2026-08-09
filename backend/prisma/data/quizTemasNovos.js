@@ -268,7 +268,7 @@ export const TEMAS_NOVOS = {
       "difficulty": "dificil"
     },
     {
-      "question": "Em que ano o Brasil venceu a Copa América mais recente?",
+      "question": "Em que ano o Brasil venceu a Copa América sediada em casa, na final contra o Peru?",
       "answer": "2019",
       "difficulty": "medio"
     },
@@ -1678,7 +1678,7 @@ export const TEMAS_NOVOS = {
       "difficulty": "medio"
     },
     {
-      "question": "Qual é a capacidade aproximada do Maracanã atualmente?",
+      "question": "Qual é a capacidade aproximada do Maracanã após a reforma para a Copa de 2014?",
       "answer": "78000",
       "difficulty": "dificil"
     },
