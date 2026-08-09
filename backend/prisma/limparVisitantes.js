@@ -17,15 +17,20 @@ function lerDias() {
   const arg = process.argv.find((a) => a.startsWith("--dias="));
   if (!arg) return 7;
   const n = parseInt(arg.split("=")[1], 10);
-  return Number.isFinite(n) && n > 0 ? n : 7;
+  // Aceita 0, que significa "todas as contas de visitante, sem importar a
+  // idade" — útil pra limpar contas de teste logo depois de criá-las.
+  return Number.isFinite(n) && n >= 0 ? n : 7;
 }
 
 async function main() {
   const executar = process.argv.includes("--go");
   const dias = lerDias();
 
+  // dias = 0 significa "todas", então o corte vira o futuro imediato pra
+  // incluir até as contas criadas segundos atrás.
   const limite = new Date();
-  limite.setDate(limite.getDate() - dias);
+  if (dias === 0) limite.setSeconds(limite.getSeconds() + 10);
+  else limite.setDate(limite.getDate() - dias);
 
   const visitantes = await prisma.user.findMany({
     where: { isGuest: true, createdAt: { lt: limite } },
@@ -33,11 +38,19 @@ async function main() {
   });
 
   if (visitantes.length === 0) {
-    console.log(`Nenhuma conta de visitante com mais de ${dias} dia(s). Nada a limpar. ✨`);
+    console.log(
+      dias === 0
+        ? "Nenhuma conta de visitante encontrada. Nada a limpar. ✨"
+        : `Nenhuma conta de visitante com mais de ${dias} dia(s). Nada a limpar. ✨`
+    );
     return;
   }
 
-  console.log(`Encontradas ${visitantes.length} conta(s) de visitante com mais de ${dias} dia(s):\n`);
+  console.log(
+    dias === 0
+      ? `Encontradas ${visitantes.length} conta(s) de visitante (todas):\n`
+      : `Encontradas ${visitantes.length} conta(s) de visitante com mais de ${dias} dia(s):\n`
+  );
   visitantes.slice(0, 10).forEach((v) => {
     const idade = Math.floor((Date.now() - v.createdAt.getTime()) / 86400000);
     console.log(`  ${v.nickname.padEnd(28)} criada há ${idade} dia(s)`);

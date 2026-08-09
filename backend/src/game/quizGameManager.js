@@ -1,6 +1,7 @@
 import { QuizRoom } from "./QuizRoom.js";
 import { QUIZ_ROOM_CONFIGS, DEFAULT_QUIZ_ROOM_ID } from "./quizRoomConfigs.js";
 import { prisma } from "../db.js";
+import { cacheOuBuscar } from "../utils/cache.js";
 
 const rooms = new Map();
 const pendingCreation = new Map();
@@ -30,20 +31,37 @@ export function getAllOnlineUserIds() {
 }
 
 export async function getAllQuizRoomsStatus() {
+  // A contagem de perguntas de cada sala é a parte cara desta rota: são 29
+  // salas, ou seja, 29 consultas por carregamento da lobby. Esse número
+  // praticamente não muda (só quando perguntas são importadas ou removidas),
+  // então guardar por 5 minutos elimina quase todas essas consultas.
+  //
+  // A ocupação das salas (quantas pessoas estão jogando) NÃO entra no cache —
+  // essa parte vem da memória e continua sempre atualizada.
+  const contagens = await cacheOuBuscar("quiz:contagem-perguntas", 300, async () => {
+    const resultado = {};
+    await Promise.all(
+      Object.entries(QUIZ_ROOM_CONFIGS).map(async ([roomId, config]) => {
+        const where = { status: "approved" };
+        if (config.themeKey) where.themeKey = config.themeKey;
+        if (config.difficultyFilter) {
+          where.difficulty = Array.isArray(config.difficultyFilter)
+            ? { in: config.difficultyFilter }
+            : config.difficultyFilter;
+        }
+        resultado[roomId] = await prisma.quizQuestion.count({ where });
+      })
+    );
+    return resultado;
+  });
+
   const records = await prisma.quizStreakRecord.findMany();
   const recordByRoom = Object.fromEntries(records.map((r) => [r.roomId, r]));
 
   return Promise.all(
     Object.entries(QUIZ_ROOM_CONFIGS).map(async ([roomId, config]) => {
       const room = rooms.get(roomId);
-      const where = { status: "approved" };
-      if (config.themeKey) where.themeKey = config.themeKey;
-      if (config.difficultyFilter) {
-        where.difficulty = Array.isArray(config.difficultyFilter)
-          ? { in: config.difficultyFilter }
-          : config.difficultyFilter;
-      }
-      const questionCount = await prisma.quizQuestion.count({ where });
+      const questionCount = contagens[roomId] ?? 0;
 
       return {
         roomId,

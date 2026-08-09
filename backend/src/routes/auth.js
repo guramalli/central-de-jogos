@@ -17,6 +17,8 @@ const RESET_TOKEN_VALID_MS = 60 * 60 * 1000; // 1 hora
 
 // Limite de tentativas — protege contra alguém tentando adivinhar senha por
 // força bruta (tentativa e erro em sequência, sem limite de velocidade).
+// Vale só pras rotas que envolvem SENHA, onde tentativa repetida é sinal
+// de ataque.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 10, // no máximo 10 tentativas por IP nesse período
@@ -25,7 +27,26 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post("/register", authLimiter, async (req, res) => {
+// Limite bem mais folgado para entrada como visitante e login pelo Google.
+//
+// Essas rotas NÃO têm senha pra adivinhar, então o risco de força bruta não
+// existe — o único abuso possível seria criar contas em massa, que o número
+// abaixo já contém.
+//
+// O ponto crítico: muita gente compartilha o mesmo IP. Redes de escola,
+// empresa e principalmente operadoras de celular (que usam CGNAT) colocam
+// dezenas ou centenas de pessoas atrás de um único endereço. Com o limite
+// apertado, uma divulgação bem-sucedida faria jogadores legítimos serem
+// bloqueados justamente na hora de maior movimento.
+const entradaLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutos
+  max: 60, // 60 entradas por IP nesse período
+  message: { error: "Muitas entradas seguidas desse endereço. Aguarda um pouquinho." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post("/register", entradaLimiter, async (req, res) => {
   const { nickname, email, password, city, state, birthDate, termsAccepted } = req.body;
   if (!nickname || !email || !password) {
     return res.status(400).json({ error: "Preencha nickname, email e senha." });
@@ -146,7 +167,7 @@ async function generateNicknameFromName(name) {
 // Login (ou cadastro automático, se for a primeira vez) via Google — recebe
 // o token de identidade que o botão do Google gera no navegador, confirma
 // com o próprio Google que ele é válido e de verdade, e só então libera acesso.
-router.post("/google", authLimiter, async (req, res) => {
+router.post("/google", entradaLimiter, async (req, res) => {
   const { credential } = req.body;
   if (!credential) return res.status(400).json({ error: "Token do Google ausente." });
   if (!process.env.GOOGLE_CLIENT_ID) {
@@ -193,7 +214,7 @@ router.post("/google", authLimiter, async (req, res) => {
 // sem e-mail nem senha, pra pessoa experimentar o jogo antes de decidir se
 // quer se cadastrar. Visitante NÃO concorre a ranking nenhum — a conta
 // existe só pra o jogo funcionar (chat, salas, placar da partida).
-router.post("/guest", authLimiter, async (req, res) => {
+router.post("/guest", entradaLimiter, async (req, res) => {
   const { nickname } = req.body;
 
   const nick = (nickname || "").trim();
@@ -209,29 +230,36 @@ router.post("/guest", authLimiter, async (req, res) => {
   let nickname_final = `${nick} (visitante)`;
   if (nickname_final.length > 30) nickname_final = `${nick.slice(0, 18)} (visitante)`;
 
-  const existe = await prisma.user.findUnique({ where: { nickname: nickname_final } });
-  if (existe) {
-    // Já tem alguém usando esse apelido de visitante agora — sugere variar.
-    return res.status(409).json({ error: "Esse apelido já está em uso agora. Tenta outro?" });
+  // Cria direto e deixa o próprio banco recusar se o nickname já existir
+  // (o campo é único). Antes havia uma consulta extra só pra checar antes —
+  // o dobro de idas ao banco por pessoa, o que pesa quando muita gente entra
+  // ao mesmo tempo, exatamente o cenário de uma divulgação bem-sucedida.
+  try {
+    const user = await prisma.user.create({
+      data: {
+        nickname: nickname_final,
+        // E-mail sintético só pra satisfazer a restrição de unicidade — não é
+        // usado pra nada e não recebe mensagem nenhuma.
+        email: `guest_${crypto.randomUUID()}@visitante.local`,
+        password: null,
+        isGuest: true,
+        termsAcceptedAt: new Date(),
+      },
+    });
+
+    const token = signToken(user);
+    res.json({
+      token,
+      user: { id: user.id, nickname: user.nickname, role: user.role, isGuest: true },
+    });
+  } catch (err) {
+    // P2002 = violação de campo único, ou seja, apelido já em uso agora.
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "Esse apelido já está em uso agora. Tenta outro?" });
+    }
+    console.error("Falha ao criar visitante:", err.message);
+    res.status(500).json({ error: "Não foi possível entrar agora. Tenta de novo?" });
   }
-
-  const user = await prisma.user.create({
-    data: {
-      nickname: nickname_final,
-      // E-mail sintético só pra satisfazer a restrição de unicidade — não é
-      // usado pra nada e não recebe mensagem nenhuma.
-      email: `guest_${crypto.randomUUID()}@visitante.local`,
-      password: null,
-      isGuest: true,
-      termsAcceptedAt: new Date(),
-    },
-  });
-
-  const token = signToken(user);
-  res.json({
-    token,
-    user: { id: user.id, nickname: user.nickname, role: user.role, isGuest: true },
-  });
 });
 
 export default router;

@@ -43,10 +43,32 @@ export function cacheInvalidar(prefixo) {
 }
 
 // Atalho: devolve do cache se tiver, senão executa a função e guarda.
+//
+// Protege contra "debandada de cache": quando o cache está vazio e chegam
+// muitas requisições no mesmo instante, sem essa proteção TODAS executariam
+// a consulta pesada ao mesmo tempo — justamente no pior momento, que é o
+// pico de acesso. Aqui, a primeira requisição calcula e as demais esperam
+// o mesmo resultado.
+const emAndamento = new Map(); // chave -> Promise
+
 export async function cacheOuBuscar(chave, segundos, buscar) {
   const emCache = cacheGet(chave);
   if (emCache !== null) return emCache;
-  const valor = await buscar();
-  cacheSet(chave, valor, segundos);
-  return valor;
+
+  // Já tem alguém calculando essa mesma chave? Espera o resultado dele.
+  const jaRodando = emAndamento.get(chave);
+  if (jaRodando) return jaRodando;
+
+  const promessa = (async () => {
+    try {
+      const valor = await buscar();
+      cacheSet(chave, valor, segundos);
+      return valor;
+    } finally {
+      emAndamento.delete(chave);
+    }
+  })();
+
+  emAndamento.set(chave, promessa);
+  return promessa;
 }

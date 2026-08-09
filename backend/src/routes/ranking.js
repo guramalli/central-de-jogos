@@ -3,7 +3,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { getQuizRankForPoints } from "../utils/quizRank.js";
-import { cacheGet, cacheSet } from "../utils/cache.js";
+import { cacheOuBuscar } from "../utils/cache.js";
 import { currentMonthKey, formatMonthKey } from "../utils/monthKey.js";
 
 const router = Router();
@@ -18,23 +18,21 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
   // 20 segundos evita que dezenas de pessoas disparem a mesma consulta
   // pesada ao mesmo tempo, sem que ninguém perceba atraso na prática.
   const cacheKey = `ranking:monthly:${gameKey}:${monthKey}`;
-  const emCache = cacheGet(cacheKey);
-  if (emCache) return res.json(emCache);
-
-  const scores = await prisma.monthlyScore.findMany({
-    where: { gameKey, monthKey, user: { role: { not: "ADMIN" }, isGuest: false } },
-    orderBy: { points: "desc" },
-    take: 100,
-    include: { user: true },
+  const resposta = await cacheOuBuscar(cacheKey, 20, async () => {
+    const scores = await prisma.monthlyScore.findMany({
+      where: { gameKey, monthKey, user: { role: { not: "ADMIN" }, isGuest: false } },
+      orderBy: { points: "desc" },
+      take: 100,
+      include: { user: true },
+    });
+    return scores.map((s, idx) => ({
+      position: idx + 1,
+      userId: s.user.id,
+      nickname: s.user.nickname,
+      points: s.points,
+      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
+    }));
   });
-  const resposta = scores.map((s, idx) => ({
-    position: idx + 1,
-    userId: s.user.id,
-    nickname: s.user.nickname,
-    points: s.points,
-    rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
-  }));
-  cacheSet(cacheKey, resposta, 20);
   res.json(resposta);
 });
 

@@ -23,7 +23,8 @@
     "mover-anime": "node prisma/moverAnime.js",
     "import-quiz-temas-novos": "node prisma/importTemasNovos.js",
     "limpar-visitantes": "node prisma/limparVisitantes.js",
-    "import-quiz-avancadas": "node prisma/importAvancadas.js"
+    "import-quiz-avancadas": "node prisma/importAvancadas.js",
+    "teste-carga": "node prisma/testeCarga.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
