@@ -78,6 +78,9 @@ export class QuizRoom {
     this.attemptedThisQuestion = new Set();
     // Quem já acertou a pergunta atual (modo arena) — userId -> { nickname, at }
     this.correctThisQuestion = new Map();
+    // Quem estava na sala quando a pergunta atual começou — base do cálculo
+    // de aproveitamento.
+    this.playersAtQuestionStart = new Set();
 
     // Sequência de respostas certas seguidas (streak) — quebra se outra
     // pessoa acertar no meio, ou se ninguém acertar uma pergunta.
@@ -320,6 +323,11 @@ export class QuizRoom {
     this.revealedIndices = new Set();
     this.attemptedThisQuestion = new Set();
     this.correctThisQuestion = new Map();
+    // Guarda quem já estava na sala quando a pergunta COMEÇOU. É esse o
+    // conjunto usado pra calcular aproveitamento: quem viu a pergunta
+    // inteira e não respondeu conta como erro, mas quem entrou no meio
+    // (ou saiu antes do fim) não é penalizado por algo que não viu.
+    this.playersAtQuestionStart = new Set([...this.players.values()].map((p) => p.userId));
     this.timeLeft = this.questionSeconds;
     this.questionStartedAt = Date.now();
     if (this.roundsPerTurn) this.turnRound += 1;
@@ -790,7 +798,14 @@ export class QuizRoom {
 
   // Registra as estatísticas de acerto na arena (quem tentou e quem acertou).
   async recordArenaStats() {
-    for (const userId of this.attemptedThisQuestion) {
+    // Mesma regra do modo normal: conta todo mundo que viu a pergunta
+    // inteira, não só quem arriscou responder.
+    const aindaPresentes = new Set([...this.players.values()].map((p) => p.userId));
+    const viramAPergunta = [...(this.playersAtQuestionStart || [])].filter((id) =>
+      aindaPresentes.has(id)
+    );
+
+    for (const userId of viramAPergunta) {
       const acertou = this.correctThisQuestion.has(userId);
       try {
         await prisma.quizRoomStat.upsert({
@@ -811,10 +826,22 @@ export class QuizRoom {
   // Guarda quem tentou responder essa pergunta e se acertou — base do
   // cálculo de aproveitamento por sala.
   async recordQuestionStats(winner) {
-    const attempted = [...this.attemptedThisQuestion];
-    if (attempted.length === 0 && !winner) return;
+    // Conta TODO MUNDO que viu a pergunta do início ao fim — não só quem
+    // arriscou uma resposta. Sem isso, quem só responde quando tem certeza
+    // absoluta ficava com 100% de aproveitamento, o que media "precisão ao
+    // arriscar" em vez de conhecimento do tema.
+    //
+    // Quem entrou no meio da pergunta fica de fora (não viu tudo), e quem
+    // saiu antes do fim também — só conta quem estava presente nos dois
+    // momentos.
+    const aindaPresentes = new Set([...this.players.values()].map((p) => p.userId));
+    const viramAPergunta = [...(this.playersAtQuestionStart || [])].filter((id) =>
+      aindaPresentes.has(id)
+    );
 
-    for (const userId of attempted) {
+    if (viramAPergunta.length === 0) return;
+
+    for (const userId of viramAPergunta) {
       const correct = winner?.userId === userId;
       try {
         await prisma.quizRoomStat.upsert({

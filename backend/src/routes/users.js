@@ -103,12 +103,12 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   });
   const achievements = await buildAchievements(user.nickname, monthlyByGame);
 
-  // Aproveitamento por sala do Quiz — só das salas onde a pessoa já tentou
-  // um número mínimo de perguntas (senão "1 de 1 = 100%" viraria destaque
-  // sem significar nada). Sem limite de quantidade: o hover filtra pela
-  // sala em que está, e essa pode não estar entre as mais jogadas.
+  // Aproveitamento por sala do Quiz — só das salas com um mínimo de
+  // perguntas vistas, senão o número não significaria nada. O denominador
+  // conta todas as perguntas que a pessoa acompanhou (não só as que ela
+  // arriscou responder), então 10 é um piso baixo e rápido de atingir.
   const quizStats = await prisma.quizRoomStat.findMany({
-    where: { userId: id, attempts: { gte: 5 } },
+    where: { userId: id, attempts: { gte: 10 } },
     orderBy: { attempts: "desc" },
   });
   const quizAccuracy = quizStats.map((s) => ({
