@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import cors from "cors";
 import helmet from "helmet";
 import { createServer } from "http";
@@ -43,6 +44,20 @@ app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 
 app.get("/health", (req, res) => res.json({ ok: true }));
+
+// Teto global de requisições por IP. É generoso de propósito: jogador
+// normal nem chega perto (o jogo em si roda por socket, não por essas
+// rotas). Serve pra impedir que um script maluco ou um bug de front
+// derrube o servidor inteiro pedindo dados em laço — importante quando
+// muita gente chega de uma vez.
+const limiteGlobal = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 300, // 300 requisições por minuto por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Muitas requisições. Aguarde um instante e tente de novo." },
+});
+app.use("/api", limiteGlobal);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

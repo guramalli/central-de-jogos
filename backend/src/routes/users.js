@@ -4,6 +4,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
 import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js";
+import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
 
@@ -44,14 +45,37 @@ async function buildAchievements(nickname, monthlyByGame) {
 
 router.get("/:id/profile", requireAuth, async (req, res) => {
   const { id } = req.params;
-  const user = await prisma.user.findUnique({
-    where: { id },
-    include: { clan: true },
-  });
+  const monthKey = currentMonthKey();
+
+  // O hover de perfil dispara muito (toda vez que alguém passa o mouse num
+  // nick). Guardar por 15 segundos corta a maior parte das consultas
+  // repetidas sem que o dado fique visivelmente desatualizado. A chave
+  // inclui quem está vendo, porque a resposta muda conforme o observador
+  // (status de amizade, se pode convidar pro clã).
+  const cacheKey = `perfil:${id}:${req.user.id}:${monthKey}`;
+  const emCache = cacheGet(cacheKey);
+  if (emCache) return res.json(emCache);
+
+  // Essas consultas não dependem umas das outras, então rodam em paralelo.
+  // Antes elas eram sequenciais (cada uma esperando a anterior terminar), o
+  // que somava o tempo de todas — e essa rota dispara toda vez que alguém
+  // passa o mouse num nick, em qualquer tela do site.
+  const [user, monthly, lifetime, quizStats] = await Promise.all([
+    prisma.user.findUnique({ where: { id }, include: { clan: true } }),
+    prisma.monthlyScore.findMany({ where: { userId: id, monthKey } }),
+    // Exclui as pontuações "por sala" (gameKey tipo "stop:stop-sala-1") —
+    // no perfil só mostramos o total geral de cada jogo.
+    prisma.lifetimeScore.findMany({
+      where: { userId: id, NOT: { gameKey: { contains: ":" } } },
+    }),
+    prisma.quizRoomStat.findMany({
+      where: { userId: id, attempts: { gte: 10 } },
+      orderBy: { attempts: "desc" },
+    }),
+  ]);
+
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
 
-  const monthKey = currentMonthKey();
-  const monthly = await prisma.monthlyScore.findMany({ where: { userId: id, monthKey } });
   // Pra cada jogo em que a pessoa pontuou esse mês, calcula a patente (que
   // agora é conceito exclusivo do ranking mensal) e a posição no ranking
   // mensal daquele jogo específico — usando CONTAGEM (quantos têm pontuação
@@ -93,24 +117,10 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     })
   );
   const monthlyByGame = new Map(monthly.map((m) => [m.gameKey, m.points]));
-  // Exclui as pontuações vitalícias "por sala" (gameKey tipo "stop:stop-sala-1") —
-  // aqui no tooltip de perfil só mostramos o total geral, pra não poluir com
-  // muita informação. O placar por sala continua existindo, só não aparece aqui.
-  // O vitalício agora é só um título de maior pontuador histórico — sem
-  // patente vinculada (patente é conceito exclusivo do ranking mensal).
-  const lifetime = await prisma.lifetimeScore.findMany({
-    where: { userId: id, NOT: { gameKey: { contains: ":" } } },
-  });
   const achievements = await buildAchievements(user.nickname, monthlyByGame);
 
-  // Aproveitamento por sala do Quiz — só das salas com um mínimo de
-  // perguntas vistas, senão o número não significaria nada. O denominador
-  // conta todas as perguntas que a pessoa acompanhou (não só as que ela
-  // arriscou responder), então 10 é um piso baixo e rápido de atingir.
-  const quizStats = await prisma.quizRoomStat.findMany({
-    where: { userId: id, attempts: { gte: 10 } },
-    orderBy: { attempts: "desc" },
-  });
+  // Aproveitamento por sala do Quiz — só das salas com pelo menos 10
+  // perguntas vistas, senão o número não significaria nada.
   const quizAccuracy = quizStats.map((s) => ({
     roomId: s.roomId,
     roomLabel: QUIZ_ROOM_CONFIGS[s.roomId]?.label || s.roomId,
@@ -149,7 +159,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     });
   }
 
-  res.json({
+  const resposta = {
     id: user.id,
     nickname: user.nickname,
     avatarUrl: user.avatarUrl || null,
@@ -162,7 +172,9 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     quizAccuracy,
     friendshipStatus,
     viewerClan,
-  });
+  };
+  cacheSet(cacheKey, resposta, 15);
+  res.json(resposta);
 });
 
 router.get("/me", requireAuth, async (req, res) => {
@@ -209,11 +221,14 @@ router.post("/me/avatar", requireAuth, async (req, res) => {
     where: { id: req.user.id },
     data: { avatarUrl },
   });
+  // Descarta o cache do perfil pra foto nova aparecer na hora.
+  cacheInvalidar(`perfil:${req.user.id}:`);
   res.json({ avatarUrl: user.avatarUrl });
 });
 
 router.delete("/me/avatar", requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: null } });
+  cacheInvalidar(`perfil:${req.user.id}:`);
   res.json({ ok: true });
 });
 
