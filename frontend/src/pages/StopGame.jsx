@@ -479,8 +479,14 @@ export default function StopGame() {
       <header className="sc-topbar">
         <div className="sc-topbar-left">
           <div className="sc-topbar-badges">
-            <div className="sc-gloss-badge">Pts Sala: {me?.roomLifetimePoints ?? 0}</div>
-            <div className="sc-gloss-badge">Pts Total: {me?.lifetimePoints ?? 0}</div>
+            {me?.semPontuacao ? (
+              <div className="sc-gloss-badge">Placar da partida: {me?.blockPoints ?? 0}</div>
+            ) : (
+              <>
+                <div className="sc-gloss-badge">Pts Sala: {me?.roomLifetimePoints ?? 0}</div>
+                <div className="sc-gloss-badge">Pts Total: {me?.lifetimePoints ?? 0}</div>
+              </>
+            )}
           </div>
 
           <div className="sc-topbar-status">

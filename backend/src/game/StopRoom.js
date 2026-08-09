@@ -122,27 +122,34 @@ export class StopRoom {
 
     this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
 
-    if (!this.blockTotals.has(userId)) {
-      // Recupera a pontuação do bloco atual salva no banco (se o jogador já
-      // tinha pontuado nessa sala antes de sair, ou se o servidor reiniciou).
-      const saved = await prisma.blockScore.findUnique({
-        where: { userId_gameKey_roomId: { userId, gameKey: GAME_KEY, roomId: this.roomId } },
-      });
-      this.blockTotals.set(userId, saved?.points || 0);
-    }
+    // Sala sem pontuação começa do zero pra quem entra: não carrega nada do
+    // banco. O placar dali é só da partida em andamento, e ninguém deve
+    // chegar já com pontos de outras salas no marcador.
+    if (this.semPontuacao) {
+      if (!this.blockTotals.has(userId)) this.blockTotals.set(userId, 0);
+    } else {
+      if (!this.blockTotals.has(userId)) {
+        // Recupera a pontuação do bloco atual salva no banco (se o jogador já
+        // tinha pontuado nessa sala antes de sair, ou se o servidor reiniciou).
+        const saved = await prisma.blockScore.findUnique({
+          where: { userId_gameKey_roomId: { userId, gameKey: GAME_KEY, roomId: this.roomId } },
+        });
+        this.blockTotals.set(userId, saved?.points || 0);
+      }
 
-    if (!this.lifetimeCache.has(userId)) {
-      const existing = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-      });
-      this.lifetimeCache.set(userId, existing?.points || 0);
-    }
+      if (!this.lifetimeCache.has(userId)) {
+        const existing = await prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+        });
+        this.lifetimeCache.set(userId, existing?.points || 0);
+      }
 
-    if (!this.roomLifetimeCache.has(userId)) {
-      const existingRoom = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
-      });
-      this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
+      if (!this.roomLifetimeCache.has(userId)) {
+        const existingRoom = await prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
+        });
+        this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
+      }
     }
 
     socket.join(this.roomId);
@@ -197,6 +204,24 @@ export class StopRoom {
     for (const p of this.players.values()) {
       if (seen.has(p.userId)) continue;
       seen.add(p.userId);
+
+      // Sala sem pontuação: mostra só o placar da partida em andamento.
+      // Exibir o vitalício e o mensal aqui daria a impressão de que os
+      // pontos da brincadeira estão contando pro ranking — e não estão.
+      if (this.semPontuacao) {
+        list.push({
+          userId: p.userId,
+          nickname: p.nickname,
+          lifetimePoints: 0,
+          roomLifetimePoints: 0,
+          monthlyPoints: 0,
+          blockPoints: this.blockTotals.get(p.userId) || 0,
+          rank: null,
+          semPontuacao: true,
+        });
+        continue;
+      }
+
       const lifetimePoints = this.lifetimeCache.get(p.userId) || 0;
       const roomLifetimePoints = this.roomLifetimeCache.get(p.userId) || 0;
       const monthly = await prisma.monthlyScore.findUnique({
@@ -212,7 +237,11 @@ export class StopRoom {
         rank: getRankForPoints(lifetimePoints),
       });
     }
-    list.sort((a, b) => b.lifetimePoints - a.lifetimePoints);
+
+    // Na sala de brincadeira, ordena pelo placar da partida — é o único
+    // número que importa ali.
+    if (this.semPontuacao) list.sort((a, b) => b.blockPoints - a.blockPoints);
+    else list.sort((a, b) => b.lifetimePoints - a.lifetimePoints);
     this.broadcast("players-online", { players: list });
   }
 
@@ -612,9 +641,15 @@ export class StopRoom {
         }
       }
 
-      // Sala sem pontuação: mostra o placar da rodada normalmente (a
-      // disputa dentro da partida continua valendo), mas não grava nada no
-      // banco — nem mensal, nem vitalício, nem bloco.
+      // Sala sem pontuação: o placar da partida continua rolando (a disputa
+      // entre os amigos é a graça), mas fica só na memória — nada é gravado
+      // no banco, nem soma no que a pessoa já tem de outras salas.
+      if (this.semPontuacao) {
+        for (const [userId, pts] of roundScores.entries()) {
+          this.blockTotals.set(userId, (this.blockTotals.get(userId) || 0) + pts);
+        }
+      }
+
       for (const [userId, pts] of (this.semPontuacao ? [] : roundScores.entries())) {
         this.blockTotals.set(userId, (this.blockTotals.get(userId) || 0) + pts);
         try {
@@ -706,7 +741,10 @@ export class StopRoom {
   async awardBlockBonus(monthKey) {
     // Sala de brincadeira não tem bônus de bloco — não pontua nada.
     if (this.semPontuacao) {
-      this.systemMessage("🔄 Fim do bloco de 10 rodadas! Bora pro próximo — aqui é só zoeira mesmo. 😄");
+      this.systemMessage("🔄 Fim do bloco de 10 rodadas! Placar zerado — bora começar de novo. 😄");
+      // Zera só na memória (não há nada gravado pra limpar no banco).
+      for (const userId of this.blockTotals.keys()) this.blockTotals.set(userId, 0);
+      await this.broadcastOnlinePlayers();
       return;
     }
     // Só entra no pódio quem realmente pontuou alguma coisa NESSE bloco — uma
