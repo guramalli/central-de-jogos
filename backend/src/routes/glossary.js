@@ -16,7 +16,12 @@ const TEMAS_SEM_GLOSSARIO = new Set(
 
 router.get("/themes", requireAuth, async (req, res) => {
   const themes = await prisma.theme.findMany();
-  res.json(themes);
+  // Marca os temas da Sala da Zoeira: eles aparecem na lista do admin, mas
+  // não têm glossário (são subjetivos), então não faz sentido cadastrar
+  // palavras neles. O painel usa essa marca pra avisar quem for tentar.
+  res.json(
+    themes.map((t) => ({ ...t, semGlossario: TEMAS_SEM_GLOSSARIO.has(t.key) }))
+  );
 });
 
 router.post("/suggest", requireAuth, async (req, res) => {

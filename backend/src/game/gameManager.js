@@ -19,11 +19,24 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
   const creation = (async () => {
     const allThemes = await prisma.theme.findMany();
     const config = ROOM_CONFIGS[roomId] || ROOM_CONFIGS[DEFAULT_ROOM_ID];
-    // Sala com lista fixa de temas (ex.: sala iniciante) só sorteia entre
-    // esses — o resto do site continua com todos os temas disponíveis.
+
+    // Temas que só existem na Sala da Zoeira ("coisa da sogra", "motivo de
+    // término"...). São subjetivos e não têm glossário, então NÃO podem
+    // aparecer nas salas normais: lá tudo seria marcado como errado, já que
+    // não existe lista de palavras válidas pra conferir.
+    const temasExclusivosDaZoeira = new Set(
+      Object.values(ROOM_CONFIGS)
+        .filter((c) => c.semPontuacao && Array.isArray(c.fixedThemeKeys))
+        .flatMap((c) => c.fixedThemeKeys)
+    );
+
+    // Sala com lista fixa de temas (iniciante, Zoeira) sorteia só entre os
+    // dela. As demais (intermediária, avançada) pegam todos os temas —
+    // menos os da Zoeira, pelo motivo acima.
     const themes = config.fixedThemeKeys
       ? allThemes.filter((t) => config.fixedThemeKeys.includes(t.key))
-      : allThemes;
+      : allThemes.filter((t) => !temasExclusivosDaZoeira.has(t.key));
+
     const room = new StopRoom(roomId, io, themes, config);
     rooms.set(roomId, room);
     pendingCreation.delete(roomId);
