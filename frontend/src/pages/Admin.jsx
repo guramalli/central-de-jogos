@@ -91,6 +91,23 @@ export default function Admin() {
     }
   }
 
+  // Descarta os registros de atividade suspeita de um jogador — usado
+  // quando o admin revisa e conclui que foi alarme falso.
+  async function ignorarSuspeita(user) {
+    const ok = window.confirm(
+      `Descartar os alertas de atividade suspeita de "${user.nickname}"?\n\n` +
+        "Os registros serão apagados e a pessoa some desta lista. " +
+        "A conta dela NÃO é afetada."
+    );
+    if (!ok) return;
+    try {
+      await api.delete(`/admin/suspicious-activity/${user.id}`);
+      loadSuspicious();
+    } catch (e) {
+      setError(e.response?.data?.error || "Erro ao descartar os alertas.");
+    }
+  }
+
   async function loadOnline() {
     try {
       const { data } = await api.get("/admin/online");
@@ -244,6 +261,11 @@ export default function Admin() {
                   </div>
                 ))}
               </div>
+            )}
+            {online.ocultos > 0 && (
+              <p className="admin-online-note">
+                Mostrando os {online.jogadores.length} primeiros · mais {online.ocultos} online
+              </p>
             )}
             <p className="admin-online-note">Atualiza sozinho a cada 15 segundos.</p>
           </>
@@ -483,9 +505,16 @@ export default function Admin() {
                   <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
                     {new Date(g.latest).toLocaleString("pt-BR")}
                   </td>
-                  <td>
+                  <td style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button className="btn secondary" onClick={() => toggleBan(g.user)}>
                       {g.user.banned ? "Desbanir" : "Banir"}
+                    </button>
+                    <button
+                      className="btn secondary"
+                      onClick={() => ignorarSuspeita(g.user)}
+                      title="Descartar os registros — a conta não é afetada"
+                    >
+                      Ignorar
                     </button>
                   </td>
                 </tr>

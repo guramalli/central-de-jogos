@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
+import { cacheGet, cacheSet } from "../utils/cache.js";
 import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameManager.js";
 import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
@@ -293,6 +294,16 @@ router.get("/suspicious-activity", async (req, res) => {
   res.json(grouped);
 });
 
+// Descarta os registros de atividade suspeita de um jogador — pra quando o
+// admin revisa e conclui que foi alarme falso (a detecção é por sinais
+// indiretos, então erra de vez em quando). Só apaga o registro; a conta
+// da pessoa não é afetada de forma nenhuma.
+router.delete("/suspicious-activity/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const r = await prisma.suspiciousActivity.deleteMany({ where: { userId } });
+  res.json({ ok: true, removidos: r.count });
+});
+
 // Perguntas denunciadas por jogadores, agrupadas — a com mais denúncias
 // primeiro, já que é a mais provável de ter problema real.
 router.get("/question-reports", async (req, res) => {
@@ -343,6 +354,13 @@ router.post("/question-reports/:questionId/resolve", async (req, res) => {
 // Quem está online agora, e onde. Junta as quatro fontes possíveis: as três
 // de salas de jogo e o chat geral (quem está só na página inicial).
 router.get("/online", async (req, res) => {
+  // Cache de 5 segundos: o painel se atualiza sozinho a cada 15s e pode ter
+  // mais de um admin com a página aberta. Sem isso, cada um dispararia a
+  // consulta de forma independente — sem ganho nenhum, já que o dado é o
+  // mesmo pra todos.
+  const emCache = cacheGet("admin:online");
+  if (emCache) return res.json(emCache);
+
   const porJogo = [
     ["Stop", getStopOnlineDetailed()],
     ["Quiz", getQuizOnlineDetailed()],
@@ -397,13 +415,22 @@ router.get("/online", async (req, res) => {
       b.locais.length - a.locais.length || a.nickname.localeCompare(b.nickname, "pt-BR")
   );
 
-  res.json({
+  // Manda no máximo 150 nomes. Os CONTADORES continuam completos — só a
+  // lista é cortada, pra resposta não crescer sem limite se o site bombar.
+  // Quem está jogando vem primeiro na ordenação, então os cortados são os
+  // que estão parados na página inicial.
+  const LIMITE_LISTA = 150;
+  const resposta = {
     total: resultado.length,
     registrados: resultado.filter((p) => !p.isGuest).length,
     visitantes: resultado.filter((p) => p.isGuest).length,
     jogando: resultado.filter((p) => p.locais.length > 0).length,
-    jogadores: resultado,
-  });
+    jogadores: resultado.slice(0, LIMITE_LISTA),
+    ocultos: Math.max(0, resultado.length - LIMITE_LISTA),
+  };
+
+  cacheSet("admin:online", resposta, 5);
+  res.json(resposta);
 });
 
 export default router;
