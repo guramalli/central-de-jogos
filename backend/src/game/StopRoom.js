@@ -379,6 +379,16 @@ export class StopRoom {
       seconds: this.answerSeconds,
     });
 
+    // Sala da Zoeira: lembra de tempos em tempos que ali é só diversão, pra
+    // ninguém achar que está perdendo tempo achando que soma ranking. A cada
+    // 5 rodadas é o suficiente pra quem chegou depois ver, sem virar spam.
+    if (this.semPontuacao && this.roundNumber % 5 === 1) {
+      this.systemMessage(
+        "🤣 Lembrando: aqui é só resenha! Nada nesta sala conta pro ranking mensal, vitalício ou pra premiação — jogue à vontade.",
+        true
+      );
+    }
+
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });

@@ -24,7 +24,8 @@
     "import-quiz-temas-novos": "node prisma/importTemasNovos.js",
     "limpar-visitantes": "node prisma/limparVisitantes.js",
     "import-quiz-avancadas": "node prisma/importAvancadas.js",
-    "teste-carga": "node prisma/testeCarga.js"
+    "teste-carga": "node prisma/testeCarga.js",
+    "limpar-sugestoes-zoeira": "node prisma/limparSugestoesZoeira.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
