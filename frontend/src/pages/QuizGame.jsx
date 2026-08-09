@@ -23,6 +23,7 @@ function formatElapsed(ms) {
 }
 
 const THEME_ICONS = {
+  games: "🎮",
   terceirao: "🎓",
   esportes: "🏅",
   futebol: "⚽",

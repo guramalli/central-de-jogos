@@ -3512,3 +3512,16 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-outline: #29405f;
 }
 .quiz-themed-card[data-quiz-theme="terceirao"] { --card-accent: #4d94ff; }
+
+/* Games — verde neon */
+[data-theme="dark"] .quiz-root[data-quiz-theme="games"] {
+  --qz-orange: #39ff6a;
+  --qz-orange-light: #7dffa0;
+  --qz-orange-pale: #b0ffc6;
+  --qz-bg: #071006;
+  --qz-surface-low: #0b1a0b;
+  --qz-surface: #0e1f0e;
+  --qz-surface-high: #142a14;
+  --qz-outline: #245c2b;
+}
+.quiz-themed-card[data-quiz-theme="games"] { --card-accent: #39ff6a; }

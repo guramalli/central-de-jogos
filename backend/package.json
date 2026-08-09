@@ -26,7 +26,9 @@
     "import-quiz-avancadas": "node prisma/importAvancadas.js",
     "teste-carga": "node prisma/testeCarga.js",
     "limpar-sugestoes-zoeira": "node prisma/limparSugestoesZoeira.js",
-    "import-terceirao": "node prisma/importTerceirao.js"
+    "import-terceirao": "node prisma/importTerceirao.js",
+    "import-games": "node prisma/importGames.js",
+    "mover-games": "node prisma/moverGames.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

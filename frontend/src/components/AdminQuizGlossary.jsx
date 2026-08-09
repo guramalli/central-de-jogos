@@ -18,6 +18,7 @@ const THEMES = [
   { key: "automobilismo", name: "Automobilismo" },
   { key: "anime", name: "Anime e HQ" },
   { key: "terceirao", name: "Terceirão" },
+  { key: "games", name: "Games" },
 ];
 const THEME_NAME_BY_KEY = Object.fromEntries(THEMES.map((t) => [t.key, t.name]));
 
