@@ -62,7 +62,9 @@ export class QuizRoom {
     this.timeLeft = 0;
     this.timer = null;
     this.revealTimer = null;
-    this.usedQuestionIds = new Set(); // evita repetir pergunta enquanto o banco tiver opções
+    // Fila de perguntas embaralhada da volta atual. Vai sendo consumida a
+    // cada rodada; quando esvazia, uma nova volta é montada e reembaralhada.
+    this.filaPerguntas = [];
 
     // Placar do turno atual (só usado quando roundsPerTurn está definido).
     this.turnScores = new Map(); // userId -> pontos no turno
@@ -244,7 +246,16 @@ export class QuizRoom {
     }, 1000);
   }
 
-  async pickQuestion() {
+  // Monta a "fila da rodada": pega todos os IDs disponíveis pra essa sala,
+  // embaralha uma vez e guarda. As perguntas são servidas nessa ordem até
+  // acabar, e só então a fila é remontada (com embaralhamento novo).
+  //
+  // Isso troca o sorteio aleatório antigo, que tentava até 20 vezes achar
+  // uma pergunta ainda não usada — quanto mais perto de esgotar a lista,
+  // mais ele falhava (com 195 de 200 usadas, falhava 61% das vezes). Além
+  // de nunca falhar, agora é 1 consulta por volta inteira em vez de até 20
+  // por pergunta, o que alivia bastante o banco.
+  async montarFilaDePerguntas() {
     const where = { status: "approved" };
     if (this.themeKey) where.themeKey = this.themeKey;
     if (this.difficultyFilter) {
@@ -252,24 +263,44 @@ export class QuizRoom {
         ? { in: this.difficultyFilter }
         : this.difficultyFilter;
     }
-    const total = await prisma.quizQuestion.count({ where });
-    if (total === 0) return null;
 
-    // Evita repetir enquanto ainda houver perguntas não usadas nessa "volta".
-    if (this.usedQuestionIds.size >= total) this.usedQuestionIds = new Set();
+    const ids = await prisma.quizQuestion.findMany({ where, select: { id: true } });
 
-    let question = null;
-    for (let tries = 0; tries < 20 && !question; tries++) {
-      const skip = Math.floor(Math.random() * total);
-      const [candidate] = await prisma.quizQuestion.findMany({
-        where,
-        skip,
-        take: 1,
-      });
-      if (candidate && !this.usedQuestionIds.has(candidate.id)) question = candidate;
+    // Embaralhamento Fisher-Yates: cada ordem possível tem a mesma chance.
+    const fila = ids.map((q) => q.id);
+    for (let i = fila.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [fila[i], fila[j]] = [fila[j], fila[i]];
     }
-    if (question) this.usedQuestionIds.add(question.id);
-    return question;
+
+    this.filaPerguntas = fila;
+    return fila.length;
+  }
+
+  async pickQuestion() {
+    // Fila vazia (primeira pergunta da sala, ou a volta anterior acabou):
+    // monta uma nova, já embaralhada.
+    if (!this.filaPerguntas || this.filaPerguntas.length === 0) {
+      const total = await this.montarFilaDePerguntas();
+      if (total === 0) return null;
+    }
+
+    // Serve a próxima da fila. O laço cobre o caso raro de uma pergunta ter
+    // sido apagada ou reprovada depois que a fila foi montada.
+    while (this.filaPerguntas.length > 0) {
+      const id = this.filaPerguntas.shift();
+      const question = await prisma.quizQuestion.findFirst({
+        where: { id, status: "approved" },
+      });
+      if (question) return question;
+    }
+
+    // A fila inteira ficou inválida — remonta e tenta de novo, uma vez só
+    // (evita laço infinito se a sala tiver ficado sem perguntas).
+    const total = await this.montarFilaDePerguntas();
+    if (total === 0) return null;
+    const id = this.filaPerguntas.shift();
+    return prisma.quizQuestion.findFirst({ where: { id, status: "approved" } });
   }
 
   // Índices (posições) da resposta que contam como "letra" — espaços e
