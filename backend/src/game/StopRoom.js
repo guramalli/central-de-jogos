@@ -4,6 +4,7 @@ import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
+import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -532,12 +533,15 @@ export class StopRoom {
   isValidWord(themeId, letter, word) {
     // Sala da Zoeira: os temas são subjetivos ("motivo de término", "minha
     // sogra é...") — não existe resposta "certa" pra conferir num glossário.
-    // Aqui basta a palavra começar com a letra sorteada; o julgamento de se
-    // é boa ou não fica com a galera, que é justamente a graça.
+    // Mas isso não pode virar vale-tudo: sem nenhuma checagem, dava pra
+    // pontuar digitando só a letra sorteada ou teclado batido ("mhudueieh").
+    // Aqui a resposta precisa pelo menos PARECER uma palavra de verdade; o
+    // julgamento de se é boa ou engraçada continua sendo da galera.
     if (this.semPontuacao) {
       const limpa = normalize(word).trim();
       if (!limpa) return false;
-      return limpa[0] === normalize(this.currentLetter);
+      if (limpa[0] !== normalize(this.currentLetter)) return false;
+      return pareceePalavraReal(limpa);
     }
 
     if (letter !== this.currentLetter) return false; // segurança: cache é só da letra atual
