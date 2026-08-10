@@ -821,6 +821,24 @@ export class StopRoom {
   async gradeRound(activePlayers, monthKey, reprovadasPorVoto) {
     this.state = "grading";
 
+    // Vigia: o "finally" lá embaixo só roda se o try TERMINAR. Se alguma
+    // consulta ao banco ficar pendurada pra sempre (Neon instável, conexão
+    // caindo), o finally nunca executa e a sala congela — foi exatamente
+    // isso que travava a sala no meio da correção. Este timer garante que,
+    // dê o que der, em 25 segundos o jogo continua.
+    let jaSeguiu = false;
+    const seguirJogo = () => {
+      if (jaSeguiu) return;
+      jaSeguiu = true;
+      this.startIntermission();
+    };
+    const vigia = setTimeout(() => {
+      if (jaSeguiu) return;
+      console.error(`Correção travou na sala ${this.roomId} — seguindo o jogo à força.`);
+      this.systemMessage("⚠️ A apuração demorou demais. Seguindo pra próxima rodada.");
+      seguirJogo();
+    }, 25000);
+
     // Tudo daqui pra baixo fica protegido: se QUALQUER coisa falhar no meio da
     // correção (ex.: uma instabilidade momentânea no banco de dados), o "finally"
     // garante que a sala nunca fica travada — sempre volta pro intervalo e segue
@@ -964,9 +982,13 @@ export class StopRoom {
 
           // Avisa quando a pessoa sobe de posição no ranking mensal — dá a
           // sensação de progresso sem precisar sair da sala pra conferir.
+          //
+          // Sem await de propósito: é um aviso cosmético e faz uma consulta
+          // a mais no banco. Se ele travasse aqui, seguraria a correção da
+          // rodada inteira — e a sala junto.
           const jogador = [...this.players.values()].find((p) => p.userId === userId);
           if (jogador) {
-            await this.announceRankingPosition(userId, jogador.nickname, newMonthlyPoints);
+            this.announceRankingPosition(userId, jogador.nickname, newMonthlyPoints).catch(() => {});
           }
 
           await prisma.lifetimeScore.upsert({
@@ -1011,7 +1033,9 @@ export class StopRoom {
       console.error(`Erro inesperado ao corrigir a rodada ${this.roundNumber} da sala ${this.roomId}:`, err);
       this.systemMessage("⚠️ Tivemos um probleminha para corrigir essa rodada, mas o jogo continua!");
     } finally {
-      this.startIntermission();
+      // Correção terminou (com ou sem erro): desliga o vigia e segue.
+      clearTimeout(vigia);
+      seguirJogo();
     }
   }
 
