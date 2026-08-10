@@ -1,5 +1,5 @@
 import { verifyToken } from "../utils/jwt.js";
-import { getOrCreateStopRoom } from "../game/gameManager.js";
+import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, cancelarDescarteSala } from "../game/gameManager.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
@@ -33,9 +33,20 @@ export function setupSocket(io) {
     const { id: userId, nickname } = socket.user;
 
     socket.on("join-stop-room", async ({ roomId } = {}) => {
+      // Sala privada com senha só aceita quem passou pela conferência na
+      // tela de entrada. Sem isso, bastaria ter o link pra furar a senha.
+      if (String(roomId || "").startsWith("stop-privada-") && !jogadoresLiberados.has(`${userId}:${roomId}`)) {
+        socket.emit("stop-sala-bloqueada", {
+          error: "Entre pela lista de salas — essa sala pede senha.",
+        });
+        return;
+      }
       const room = await getOrCreateStopRoom(io, roomId);
       const joined = await room.addPlayer(socket, userId, nickname);
       if (joined) {
+        // Entrou: se a sala estava marcada pra ser descartada por estar
+        // vazia, cancela o descarte.
+        if (room.privada) cancelarDescarteSala(roomId);
         socket.currentRoom = room;
         recheckPeak().catch(() => {});
       }
@@ -51,6 +62,13 @@ export function setupSocket(io) {
 
     socket.on("vote-skip-intermission", () => {
       socket.currentRoom?.voteSkip(userId);
+    });
+
+    // Voto numa palavra de outro jogador (só nas salas privadas, onde a
+    // validação é feita pela mesa em vez do glossário).
+    socket.on("vote-word", ({ targetUserId, themeKey, valido } = {}) => {
+      if (!targetUserId || !themeKey) return;
+      socket.currentRoom?.submitWordVote?.(userId, targetUserId, themeKey, valido);
     });
 
     socket.on("chat-message", ({ message }) => {
@@ -199,7 +217,11 @@ export function setupSocket(io) {
     });
 
     socket.on("disconnect", () => {
+      const salaQueSaiu = socket.currentRoom;
       socket.currentRoom?.removePlayer(socket.id);
+      // Sala privada vazia é descartada: o código deixa de valer e a sala
+      // some da memória, em vez de ficar rodando timer pra ninguém.
+      if (salaQueSaiu?.privada) limparSalaPrivadaSeVazia(salaQueSaiu.roomId);
       socket.currentQuizRoom?.removePlayer(socket.id);
       socket.currentAcromaniaRoom?.removePlayer(socket.id);
       if (socket.inGeneralChat) {

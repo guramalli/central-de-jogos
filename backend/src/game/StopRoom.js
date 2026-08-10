@@ -55,6 +55,14 @@ export class StopRoom {
     this.roomGameKey = `${GAME_KEY}:${roomId}`;
     // Sala de brincadeira: nada aqui vai pra ranking, patente ou premiação.
     this.semPontuacao = !!config.semPontuacao;
+    // Sala privada: criada por um jogador, com código de convite. A
+    // validação das palavras é feita pelos próprios participantes.
+    this.privada = !!config.privada;
+    this.codigo = config.codigo || null;
+    this.validacaoPorVoto = !!config.validacaoPorVoto;
+    this.votingSeconds = config.votingSeconds ?? 20;
+    this.wordVotes = new Map();
+    this.votingItems = [];
     this.players = new Map(); // socketId -> { userId, nickname, socket }
     this.roundNumber = 0;
     this.blockTotals = new Map(); // userId -> pontos acumulados no bloco atual de 10 rodadas
@@ -430,9 +438,9 @@ export class StopRoom {
 
   async loadValidWordsCache() {
     this.validWordsCache = new Map();
-    // Sala da Zoeira não confere resposta contra glossário, então nem
-    // precisa buscar nada no banco.
-    if (this.semPontuacao) return;
+    // Salas que não conferem contra o glossário (Zoeira e privadas com
+    // validação por voto) nem precisam buscar nada no banco.
+    if (this.semPontuacao || this.validacaoPorVoto) return;
     try {
       const themeIds = this.currentThemes.map((t) => t.id);
       // Timeout de segurança: se o banco demorar demais pra responder (ex.:
@@ -536,8 +544,8 @@ export class StopRoom {
     }
   }
 
-  // Quantas respostas ATUAIS do jogador já são palavras corretas (validadas
-  // contra o glossário) é suficiente para atingir minCorrectToStop desta sala.
+  // Quantas respostas ATUAIS do jogador já contam para atingir o
+  // minCorrectToStop desta sala.
   hasEnoughCorrect(userId) {
     const ans = this.answers.get(userId);
     if (!ans) return false;
@@ -547,8 +555,18 @@ export class StopRoom {
       if (!raw) continue;
       const normRaw = normalize(raw);
       if (normRaw[0]?.toUpperCase() !== this.currentLetter) continue;
-      const valid = this.isValidWord(theme.id, this.currentLetter, raw);
-      if (valid) correctCount++;
+
+      // Sala com validação por voto: quem decide o que vale é a mesa, DEPOIS
+      // da rodada. Aqui não dá pra pré-julgar — basta a palavra começar com
+      // a letra sorteada pra contar como preenchida. Se pré-julgássemos, o
+      // jogador ficaria impedido de pedir STOP por causa de uma palavra que
+      // a mesa aceitaria numa boa.
+      if (this.validacaoPorVoto) {
+        correctCount++;
+        continue;
+      }
+
+      if (this.isValidWord(theme.id, this.currentLetter, raw)) correctCount++;
     }
     return correctCount >= this.minCorrectToStop;
   }
@@ -557,6 +575,15 @@ export class StopRoom {
   // rodada — agora é uma checagem em memória (o cache foi carregado no
   // início da rodada por loadValidWordsCache), não vai mais ao banco.
   isValidWord(themeId, letter, word) {
+    // Sala com validação por voto (privadas): quem julga é a mesa, depois
+    // da rodada. Aqui só conferimos o básico — que a palavra existe e
+    // começa com a letra sorteada. O glossário não entra na conta.
+    if (this.validacaoPorVoto) {
+      const limpa = normalize(word).trim();
+      if (!limpa) return false;
+      return limpa[0] === normalize(this.currentLetter);
+    }
+
     // Sala da Zoeira: os temas são subjetivos ("motivo de término", "minha
     // sogra é...") — não existe resposta "certa" pra conferir num glossário.
     // Mas isso não pode virar vale-tudo: sem nenhuma checagem, dava pra
@@ -597,6 +624,114 @@ export class StopRoom {
       this.systemMessage("⏰ Tempo esgotado! Ninguém pediu STOP.");
     }
 
+    // Sala privada: antes de corrigir, os jogadores votam nas palavras uns
+    // dos outros. Como os temas são livres, não existe glossário pra
+    // conferir — quem decide o que vale é a mesa.
+    if (this.validacaoPorVoto) {
+      return this.startVotingPhase(activePlayers);
+    }
+
+    return this.gradeRound(activePlayers, monthKey, null);
+  }
+
+  // ===== Fase de votação (só em sala privada) =====
+  //
+  // Monta a lista de palavras enviadas e abre um tempo pra cada jogador
+  // marcar as dos outros como válidas ou não. Passado o tempo, apura: a
+  // palavra cai se a MAIORIA dos que votaram nela marcou como inválida.
+  // Quem não votar não atrapalha — o que não foi votado vale.
+  startVotingPhase(activePlayers) {
+    this.state = "voting";
+    this.clearTimer();
+    this.wordVotes = new Map(); // "voterId:targetId:themeKey" -> boolean
+
+    const paraVotar = [];
+    for (const theme of this.currentThemes) {
+      for (const p of activePlayers) {
+        const raw = (this.answers.get(p.userId)?.[theme.key] || "").trim();
+        if (!raw) continue;
+        // Palavra que nem começa com a letra sorteada já cai sem votação —
+        // não faz sentido gastar o tempo da mesa com isso.
+        if (normalize(raw)[0]?.toUpperCase() !== this.currentLetter) continue;
+        paraVotar.push({
+          userId: p.userId,
+          nickname: p.nickname,
+          themeKey: theme.key,
+          themeName: theme.name,
+          word: raw,
+        });
+      }
+    }
+
+    // Ninguém escreveu nada aproveitável: pula direto pra apuração.
+    if (paraVotar.length === 0) {
+      return this.gradeRound(activePlayers, currentMonthKey(), new Map());
+    }
+
+    this.votingItems = paraVotar;
+    this.timeLeft = this.votingSeconds;
+    this.broadcast("voting-start", {
+      items: paraVotar,
+      seconds: this.votingSeconds,
+      letter: this.currentLetter,
+    });
+    this.systemMessage(`🗳️ Hora de validar as palavras! ${this.votingSeconds}s pra votar.`);
+
+    this.timer = setInterval(() => {
+      this.timeLeft -= 1;
+      this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });
+      if (this.timeLeft <= 0) {
+        Promise.resolve(this.finishVoting(activePlayers)).catch((err) => {
+          console.error(`Falha ao apurar votação na sala ${this.roomId}:`, err);
+          this.startIntermission();
+        });
+      }
+    }, 1000);
+  }
+
+  // Registra o voto de um jogador numa palavra específica.
+  submitWordVote(userId, targetUserId, themeKey, valido) {
+    if (this.state !== "voting") return;
+    // Ninguém vota na própria palavra.
+    if (userId === targetUserId) return;
+    this.wordVotes.set(`${userId}:${targetUserId}:${themeKey}`, !!valido);
+  }
+
+  async finishVoting(activePlayers) {
+    if (this.state !== "voting") return;
+    this.clearTimer();
+
+    // Apura: monta o conjunto de palavras REPROVADAS pela maioria.
+    const reprovadas = new Set(); // "targetId:themeKey"
+    for (const item of this.votingItems || []) {
+      let sim = 0;
+      let nao = 0;
+      for (const [chave, valido] of this.wordVotes.entries()) {
+        const [, alvo, tema] = chave.split(":");
+        if (alvo === item.userId && tema === item.themeKey) {
+          valido ? sim++ : nao++;
+        }
+      }
+      // Maioria simples entre quem votou. Empate mantém a palavra —
+      // na dúvida, o benefício vai pra quem escreveu.
+      if (nao > sim) reprovadas.add(`${item.userId}:${item.themeKey}`);
+    }
+
+    if (reprovadas.size > 0) {
+      this.systemMessage(`🗳️ Votação encerrada: ${reprovadas.size} palavra(s) reprovada(s) pela mesa.`);
+    } else {
+      this.systemMessage("🗳️ Votação encerrada: todas as palavras foram aceitas!");
+    }
+
+    return this.gradeRound(activePlayers, currentMonthKey(), reprovadas);
+  }
+
+  // ===== Correção da rodada =====
+  // `reprovadasPorVoto` só vem preenchido em sala privada; nas salas normais
+  // é null e a validação segue pelo glossário, como sempre.
+  async gradeRound(activePlayers, monthKey, reprovadasPorVoto) {
+    this.state = "grading";
+
     // Tudo daqui pra baixo fica protegido: se QUALQUER coisa falhar no meio da
     // correção (ex.: uma instabilidade momentânea no banco de dados), o "finally"
     // garante que a sala nunca fica travada — sempre volta pro intervalo e segue
@@ -615,7 +750,11 @@ export class StopRoom {
           if (!raw) continue;
           const normRaw = normalize(raw);
           if (normRaw[0]?.toUpperCase() !== this.currentLetter) continue;
-          const valid = await this.isValidWord(theme.id, this.currentLetter, raw);
+          // Em sala privada, quem valida é a mesa: se a maioria reprovou,
+          // a palavra cai; senão, vale. O glossário nem entra na conta.
+          const valid = reprovadasPorVoto
+            ? !reprovadasPorVoto.has(`${p.userId}:${theme.key}`)
+            : await this.isValidWord(theme.id, this.currentLetter, raw);
           if (!valid) continue;
           playerNorm.set(p.userId, normRaw);
           wordCount.set(normRaw, (wordCount.get(normRaw) || 0) + 1);
@@ -703,7 +842,9 @@ export class StopRoom {
         }
       }
 
-      for (const [userId, pts] of roundScores.entries()) {
+      // Sala sem pontuação (Zoeira e salas privadas) não grava nada em
+      // ranking nenhum — o placar dali existe só durante a partida.
+      for (const [userId, pts] of (this.semPontuacao ? [] : roundScores.entries())) {
         if (pts <= 0) continue;
         try {
           // Busca os pontos mensais ANTES de somar, pra comparar a patente

@@ -3651,3 +3651,234 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   opacity: 0.85;
   margin-right: 4px;
 }
+
+/* ===== Salas privadas ===== */
+
+.privada-abas { display: flex; gap: 8px; }
+.privada-aba {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.privada-aba-ativa {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+  background: rgba(255, 153, 0, 0.1);
+}
+
+.privada-temas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.privada-tema {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.privada-tema:hover { border-color: var(--accent-2); }
+.privada-tema-on {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: #1a1200;
+  font-weight: 700;
+}
+.privada-tema-zoeira { border-style: dashed; }
+
+.privada-label { display: block; font-size: 14px; margin-bottom: 8px; color: var(--text); }
+.privada-range { width: 100%; accent-color: var(--accent-2); }
+
+
+/* ===== Votação de palavras ===== */
+.votacao { padding: 4px 2px 8px; }
+.votacao-topo { display: flex; align-items: center; justify-content: space-between; }
+.votacao-titulo { margin: 0; font-size: 20px; }
+.votacao-timer {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--accent-2);
+}
+.votacao-sub { color: var(--text-dim); font-size: 13px; margin: 4px 0 14px; }
+.votacao-vazio { color: var(--text-dim); text-align: center; padding: 20px; }
+
+.votacao-grupo { margin-bottom: 14px; }
+.votacao-tema {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--accent-2);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.votacao-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 5px;
+}
+.votacao-nick { font-size: 12px; color: var(--text-dim); min-width: 96px; }
+.votacao-palavra { flex: 1; font-weight: 600; word-break: break-word; }
+.votacao-botoes { display: flex; gap: 6px; }
+.votacao-btn {
+  width: 38px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.votacao-sim:hover, .votacao-sim.votacao-btn-on { background: #06d6a0; border-color: #06d6a0; color: #06281f; }
+.votacao-nao:hover, .votacao-nao.votacao-btn-on { background: #ff4f6b; border-color: #ff4f6b; color: #2b0710; }
+
+.votacao-minhas {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.votacao-minhas-titulo { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+.votacao-minha { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 4px 0; }
+.votacao-tema-mini { font-size: 11px; color: var(--text-dim); min-width: 120px; }
+
+@media (max-width: 640px) {
+  .votacao-nick { min-width: 70px; font-size: 11px; }
+  .votacao-tema-mini { min-width: 90px; }
+}
+
+/* Lista de salas privadas abertas */
+.privada-lista { display: flex; flex-direction: column; gap: 10px; }
+
+.privada-sala {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.privada-sala:hover { border-color: #7891eb; transform: translateY(-1px); }
+
+.privada-sala-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.privada-sala-nome {
+  font-size: 16px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.privada-sala-vagas {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+.privada-sala-info { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.privada-sala-temas {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Escolha entre sala livre e com senha */
+.privada-tipo { display: flex; gap: 10px; margin-top: 12px; }
+.privada-tipo-opcao {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.privada-tipo-opcao:hover { border-color: #7891eb; }
+.privada-tipo-on {
+  border-color: var(--accent-2);
+  background: rgba(255, 153, 0, 0.1);
+}
+.privada-tipo-icone { font-size: 26px; }
+.privada-tipo-nome { font-size: 15px; font-weight: 700; }
+.privada-tipo-desc { font-size: 11px; color: var(--text-dim); text-align: center; }
+
+/* Seção de salas dos jogadores, abaixo das salas oficiais na lobby */
+.privadas-secao {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.privadas-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.privadas-titulo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin: 0 0 4px 0;
+}
+.privadas-sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0;
+  max-width: 620px;
+}
+.privadas-vazio {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 28px 0;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.privadas-vazio a { color: var(--accent-2); }
+/* Sala privada ainda sem ninguém — o criador saiu pra chamar a galera */
+.privada-sala-vazia { color: var(--text-dim); font-weight: 400; font-style: italic; }
+
+/* Faixa de aviso nas salas que não valem pontos */
+.sc-sem-pontuacao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: rgba(255, 79, 154, 0.12);
+  border: 1px solid rgba(255, 79, 154, 0.4);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+}
+.sc-sem-pontuacao-icone { font-size: 20px; flex-shrink: 0; }

@@ -19,9 +19,32 @@ const DIFFICULTY_INFO = {
 
 export default function StopLobby() {
   const [rooms, setRooms] = useState([]);
+  const [salasPrivadas, setSalasPrivadas] = useState([]);
+  const [erroPrivadas, setErroPrivadas] = useState("");
 
   useEffect(() => {
     api.get("/rooms").then(({ data }) => setRooms(data)).catch(() => {});
+
+    // As salas dos jogadores mudam o tempo todo (são criadas e somem quando
+    // esvaziam), então recarregam de tempos em tempos.
+    const carregarPrivadas = () =>
+      api.get("/salas-privadas")
+        .then(({ data }) => {
+          setSalasPrivadas(data);
+          setErroPrivadas("");
+        })
+        .catch((e) => {
+          // Falha aqui costuma ser backend desatualizado (sem a rota nova).
+          // Mostrar é melhor que sumir com a seção sem explicação.
+          setErroPrivadas(
+            e.response?.status === 404
+              ? "Backend desatualizado — reinicie o servidor pra carregar as salas dos jogadores."
+              : "Não foi possível carregar as salas dos jogadores."
+          );
+        });
+    carregarPrivadas();
+    const t = setInterval(carregarPrivadas, 10000);
+    return () => clearInterval(t);
   }, []);
 
   return (
@@ -82,6 +105,59 @@ export default function StopLobby() {
           );
         })}
         {rooms.length === 0 && <p style={{ color: "var(--text-dim)" }}>Carregando salas...</p>}
+      </div>
+
+      {/* Salas criadas pelos jogadores, abaixo das oficiais. Ficam aqui pra
+          quem chega já ver que tem gente jogando — e poder entrar direto,
+          sem passar por outra página. */}
+      <div className="privadas-secao">
+        <div className="privadas-cabecalho">
+          <div>
+            <h2 className="privadas-titulo">🔒 Salas dos jogadores</h2>
+            <p className="privadas-sub">
+              Criadas pela galera, com temas escolhidos a dedo. Aqui quem valida as palavras
+              são os próprios jogadores — e nada disso conta pro ranking.
+            </p>
+          </div>
+          <Link to="/jogos/stop/privada" className="retro-btn">+ Criar sala</Link>
+        </div>
+
+        {erroPrivadas && <div className="error-msg">{erroPrivadas}</div>}
+
+        {salasPrivadas.length === 0 ? (
+          <p className="privadas-vazio">
+            Nenhuma sala aberta agora. <Link to="/jogos/stop/privada">Crie a primeira!</Link>
+          </p>
+        ) : (
+          <div className="privada-lista">
+            {salasPrivadas.map((s) => (
+              <Link
+                key={s.roomId}
+                to={`/jogos/stop/privada?sala=${s.roomId}`}
+                className="privada-sala"
+              >
+                <div className="privada-sala-topo">
+                  <span className="privada-sala-nome">
+                    <span title={s.temSenha ? "Precisa de senha" : "Sala livre"}>
+                      {s.temSenha ? "🔒 " : "🔓 "}
+                    </span>
+                    {s.nome}
+                  </span>
+                  <span className={`privada-sala-vagas ${s.jogadores === 0 ? "privada-sala-vazia" : ""}`}>
+                    {s.jogadores === 0 ? "esperando" : `${s.jogadores}/${s.maxPlayers}`}
+                  </span>
+                </div>
+                <div className="privada-sala-info">
+                  por {s.criador} · {s.answerSeconds}s por rodada · {s.temas.length} temas
+                </div>
+                <div className="privada-sala-temas">
+                  {s.temas.slice(0, 5).join(" · ")}
+                  {s.temas.length > 5 && ` +${s.temas.length - 5}`}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

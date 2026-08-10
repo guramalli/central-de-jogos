@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { prisma } from "../db.js";
 import { StopRoom } from "./StopRoom.js";
 import { ROOM_CONFIGS, DEFAULT_ROOM_ID } from "./roomConfigs.js";
@@ -59,6 +60,157 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
 // calcular o total de jogadores simultâneos na plataforma (Stop + Quiz juntos).
 // Igual ao anterior, mas traz nickname e em qual sala a pessoa está —
 // usado no painel admin pra acompanhar o movimento do site.
+// ===== Salas privadas =====
+// Criadas por um jogador, com nome, temas e tempo à escolha dele. A senha
+// é opcional: sem senha, qualquer um entra pela lista; com senha, só quem
+// souber. A sala existe enquanto tiver gente — quando esvazia, é descartada.
+const salasPrivadas = new Map(); // roomId -> { nome, senha, criador, config, criadaEm }
+
+export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSeconds, maxPlayers, criadorId, criadorNickname }) {
+  const nomeLimpo = String(nome || "").trim();
+
+  // Nome repetido confundiria na lista — melhor avisar do que deixar duas
+  // "Sala do João" sem distinção.
+  for (const info of salasPrivadas.values()) {
+    if (info.nome.toLowerCase() === nomeLimpo.toLowerCase()) {
+      throw new Error("Já existe uma sala com esse nome. Escolha outro.");
+    }
+  }
+
+  const allThemes = await prisma.theme.findMany();
+  const escolhidos = allThemes.filter((t) => themeKeys.includes(t.key));
+  if (escolhidos.length < 3) {
+    throw new Error("Escolha pelo menos 3 temas para a sala.");
+  }
+
+  const roomId = `stop-privada-${crypto.randomUUID().slice(0, 8)}`;
+  const senhaLimpa = String(senha || "").trim();
+  const config = {
+    // Cadeado fechado só quando a sala pede senha. Sala aberta leva o
+    // cadeado destrancado — passa a mensagem certa pra quem chega.
+    label: `${senhaLimpa ? "🔒" : "🔓"} ${nomeLimpo}`,
+    nome: nomeLimpo,
+    privada: true,
+    // Sala privada não vale ranking: os temas são escolhidos a dedo e a
+    // validação é feita pelos próprios jogadores.
+    semPontuacao: true,
+    // Quem valida as palavras é a mesa, não o glossário — é isso que
+    // permite temas livres e respostas criativas.
+    validacaoPorVoto: true,
+    answerSeconds: answerSeconds || 40,
+    intermissionSeconds: 15,
+    votingSeconds: 20,
+    minLifetimePoints: 0,
+    difficulty: "basic",
+    maxPlayers: maxPlayers || 10,
+    minCorrectToStop: 3,
+    minSecondsBeforeStop: Math.min(20, (answerSeconds || 40) - 10),
+  };
+
+  const room = new StopRoom(roomId, io, escolhidos, config);
+  rooms.set(roomId, room);
+  salasPrivadas.set(roomId, {
+    roomId,
+    nome: nomeLimpo,
+    // Senha vazia significa sala aberta.
+    senha: senhaLimpa,
+    criadorId,
+    criadorNickname,
+    temas: escolhidos.map((t) => t.name),
+    answerSeconds: config.answerSeconds,
+    maxPlayers: config.maxPlayers,
+    criadaEm: Date.now(),
+  });
+
+  // Quem criou já entra direto, sem passar pela senha.
+  if (criadorId) jogadoresLiberados.add(`${criadorId}:${roomId}`);
+
+  return { roomId, nome: nomeLimpo };
+}
+
+// Lista as salas privadas ativas, sem expor a senha.
+export function listarSalasPrivadas() {
+  const lista = [];
+  for (const [roomId, info] of salasPrivadas.entries()) {
+    const room = rooms.get(roomId);
+    if (!room) {
+      salasPrivadas.delete(roomId);
+      continue;
+    }
+    lista.push({
+      roomId,
+      nome: info.nome,
+      temSenha: !!info.senha,
+      criador: info.criadorNickname,
+      temas: info.temas,
+      answerSeconds: info.answerSeconds,
+      maxPlayers: info.maxPlayers,
+      jogadores: room.countUniquePlayers ? room.countUniquePlayers() : room.players.size,
+      criadaEm: info.criadaEm,
+    });
+  }
+  return lista.sort((a, b) => b.jogadores - a.jogadores || b.criadaEm - a.criadaEm);
+}
+
+// Quem já passou pela conferência de senha. Sem isso, bastaria ter o link
+// da sala pra entrar sem saber a senha.
+export const jogadoresLiberados = new Set(); // "userId:roomId"
+
+// Confere se a senha bate. Sala sem senha aceita qualquer um.
+export function validarEntradaSalaPrivada(roomId, senha, userId) {
+  const info = salasPrivadas.get(roomId);
+  if (!info || !rooms.has(roomId)) return { ok: false, motivo: "inexistente" };
+
+  if (info.senha && String(senha || "").trim() !== info.senha) {
+    return { ok: false, motivo: "senha" };
+  }
+
+  if (userId) jogadoresLiberados.add(`${userId}:${roomId}`);
+  return { ok: true };
+}
+
+// Quanto tempo uma sala privada sobrevive vazia antes de ser descartada.
+// Precisa ser generoso: o caso mais comum é a pessoa criar a sala, sair
+// pra chamar os amigos no zap, e voltar. Sem essa carência, a sala sumiria
+// no instante em que o criador saísse.
+const CARENCIA_SALA_VAZIA_MS = 10 * 60 * 1000; // 10 minutos
+
+const descartesAgendados = new Map(); // roomId -> timeout
+
+// Agenda o descarte de uma sala privada que ficou vazia. Se alguém entrar
+// antes do prazo, o descarte é cancelado.
+export function limparSalaPrivadaSeVazia(roomId) {
+  const room = rooms.get(roomId);
+  if (!room || !room.privada) return;
+  if (room.players.size > 0) return;
+  if (descartesAgendados.has(roomId)) return;
+
+  const timeout = setTimeout(() => {
+    descartesAgendados.delete(roomId);
+    const atual = rooms.get(roomId);
+    // Alguém pode ter entrado nesse meio-tempo.
+    if (!atual || atual.players.size > 0) return;
+
+    atual.clearTimer?.();
+    rooms.delete(roomId);
+    salasPrivadas.delete(roomId);
+    for (const chave of jogadoresLiberados) {
+      if (chave.endsWith(`:${roomId}`)) jogadoresLiberados.delete(chave);
+    }
+  }, CARENCIA_SALA_VAZIA_MS);
+
+  descartesAgendados.set(roomId, timeout);
+}
+
+// Cancela o descarte agendado — chamado quando alguém entra na sala.
+export function cancelarDescarteSala(roomId) {
+  const t = descartesAgendados.get(roomId);
+  if (t) {
+    clearTimeout(t);
+    descartesAgendados.delete(roomId);
+  }
+}
+
 export function getOnlinePlayersDetailed() {
   const lista = [];
   const vistos = new Set();

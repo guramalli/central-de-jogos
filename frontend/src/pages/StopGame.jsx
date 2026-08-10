@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ScoreTable from "../components/ScoreTable.jsx";
+import VotacaoPalavras from "../components/VotacaoPalavras.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
@@ -43,6 +44,7 @@ export default function StopGame() {
   const isMobile = useIsMobile();
   const awaitingResultRef = useRef(false); // evita "closure velha" dentro dos handlers do socket
   const pendingResultRef = useRef(null); // guarda o resultado se ele chegar durante o atraso
+  const pendingVotingRef = useRef(null); // idem, pra abertura da votação nas salas privadas
   const stopDelayTimerRef = useRef(null);
   const stoppedThisRoundRef = useRef(false); // alguém pediu STOP nesta rodada?
 
@@ -56,7 +58,10 @@ export default function StopGame() {
   const [awaitingResult, setAwaitingResult] = useState(false); // mostra "enviando..." durante o atraso proposital
   const [endedByTimeout, setEndedByTimeout] = useState(false); // true quando ninguém pediu STOP na rodada
 
-  const [phase, setPhase] = useState("intermission"); // intermission | active | grading
+  const [phase, setPhase] = useState("intermission"); // intermission | active | voting | grading
+  // Fase de votação (só nas salas privadas): a lista de palavras que a mesa
+  // precisa validar antes da apuração.
+  const [votingItems, setVotingItems] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [themes, setThemes] = useState([]);
   const [letter, setLetter] = useState(null);
@@ -135,6 +140,8 @@ export default function StopGame() {
 
     socket.on("round-start", (data) => {
       setPhase("active");
+      setVotingItems(null);
+      pendingVotingRef.current = null;
       setThemes(data.themes);
       setLetter(data.letter);
       setRoundNumber(data.roundNumber);
@@ -175,6 +182,11 @@ export default function StopGame() {
           applyRoundResult(pendingResultRef.current);
           pendingResultRef.current = null;
         }
+        // Sala privada: a votação foi segurada pelo atraso, abre agora.
+        if (pendingVotingRef.current) {
+          pendingVotingRef.current();
+          pendingVotingRef.current = null;
+        }
       }, 5000);
     });
 
@@ -206,6 +218,25 @@ export default function StopGame() {
         setTimeout(() => setEndedByTimeout(false), 5000);
       }
     }
+
+    socket.on("voting-start", (data) => {
+      // Mesma proteção do resultado: se ainda estamos no atraso proposital
+      // do STOP (mostrando "pediu stop" e "enviando..."), guarda a votação
+      // e só abre quando o aviso terminar. Sem isso, a tela pulava direto
+      // pra votação e o aviso de STOP nem aparecia.
+      const abrirVotacao = () => {
+        setPhase("voting");
+        setVotingItems(data.items || []);
+        setTimeLeft(data.seconds);
+        setStopOverlay(null);
+      };
+
+      if (awaitingResultRef.current) {
+        pendingVotingRef.current = abrirVotacao;
+      } else {
+        abrirVotacao();
+      }
+    });
 
     socket.on("round-result", (data) => {
       // Se ainda estamos dentro da janela de atraso (alguém pediu stop há
@@ -241,6 +272,7 @@ export default function StopGame() {
       socket.off("player-stopped");
       socket.off("tick");
       socket.off("round-result");
+      socket.off("voting-start");
       socket.off("block-bonus");
       socket.off("skip-vote-update");
       socket.off("players-online");
@@ -469,7 +501,7 @@ export default function StopGame() {
               </p>
             </>
           )}
-          <Link to="/" className="btn">Voltar ao Lobby</Link>
+          <Link to="/jogos/stop" className="btn">Voltar pro Stop</Link>
         </div>
       </div>
     );
@@ -478,6 +510,19 @@ export default function StopGame() {
   return (
     <div className="sc-root">
       <Seo title={roomLabel ? `Stop — ${roomLabel}` : "Stop"} description="Jogando Stop com a galera na Educação Gamer." />
+
+      {/* Faixa fixa nas salas que não pontuam (Zoeira e privadas). Fica
+          sempre visível pra ninguém achar que está subindo no ranking. */}
+      {me?.semPontuacao && (
+        <div className="sc-sem-pontuacao">
+          <span className="sc-sem-pontuacao-icone">🎲</span>
+          <span>
+            Esta sala <strong>não conta pontos</strong> para o ranking mensal, vitalício ou para a
+            premiação. O placar aqui é só da partida.
+          </span>
+        </div>
+      )}
+
       <header className="sc-topbar">
         <div className="sc-topbar-left">
           <div className="sc-topbar-badges">
@@ -519,7 +564,7 @@ export default function StopGame() {
             url={`${window.location.origin}/jogos/stop/${roomId}`}
             message={`Vem jogar Stop comigo agora, tô na ${roomLabel || "sala"}! 🎮`}
           />
-          <Link to="/" className="room-exit-btn" title="Sair da sala">
+          <Link to="/jogos/stop" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>
           <img src="/stop-logo.png" alt="Stop!" className="sc-logo-img" />
@@ -589,6 +634,15 @@ export default function StopGame() {
               </div>
             ))}
           </div>
+        ) : phase === "voting" && votingItems ? (
+          <VotacaoPalavras
+            items={votingItems}
+            meuUserId={user?.id}
+            segundos={timeLeft}
+            onVotar={(targetUserId, themeKey, valido) =>
+              socketRef.current?.emit("vote-word", { targetUserId, themeKey, valido })
+            }
+          />
         ) : (
           <div className="sc-table-scroll">
             <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />

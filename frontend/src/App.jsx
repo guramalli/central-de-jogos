@@ -12,6 +12,7 @@ import Register from "./pages/Register.jsx";
 import Lobby from "./pages/Lobby.jsx";
 import StopGame from "./pages/StopGame.jsx";
 import StopLobby from "./pages/StopLobby.jsx";
+import SalaPrivada from "./pages/SalaPrivada.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import RankingHistory from "./pages/RankingHistory.jsx";
 import Clan from "./pages/Clan.jsx";
@@ -131,6 +132,14 @@ export default function App() {
             element={
               <Private>
                 <StopLobby />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/stop/privada"
+            element={
+              <Private>
+                <SalaPrivada />
               </Private>
             }
           />
