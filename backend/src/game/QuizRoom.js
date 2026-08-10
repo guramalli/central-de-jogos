@@ -116,7 +116,20 @@ export class QuizRoom {
         this.players.delete(oldSocketId);
       }
     }
-    this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
+    // Busca a tag do clã uma vez, na entrada — assim ela pode ser usada em
+    // toda mensagem da pessoa sem consultar o banco de novo a cada acerto.
+    let clanTag = null;
+    try {
+      const u = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { clan: { select: { tag: true } } },
+      });
+      clanTag = u?.clan?.tag || null;
+    } catch {
+      // Sem clã ou falha momentânea: segue sem a tag, não atrapalha o jogo.
+    }
+
+    this.players.set(socket.id, { userId, nickname, socket, clanTag, joinedAt: Date.now() });
 
     if (!this.lifetimeCache.has(userId)) {
       const existing = await prisma.lifetimeScore.findUnique({
@@ -228,8 +241,21 @@ export class QuizRoom {
     this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
 
+  // Tag do clã de quem está na sala. Vem do cache carregado na entrada, pra
+  // não consultar o banco a cada mensagem.
+  clanTagDe(userId) {
+    const p = [...this.players.values()].find((x) => x.userId === userId);
+    return p?.clanTag || null;
+  }
+
   chatMessage(userId, nickname, message) {
-    this.broadcast("quiz-chat-message", { userId, nickname, message, at: Date.now() });
+    this.broadcast("quiz-chat-message", {
+      userId,
+      nickname,
+      clanTag: this.clanTagDe(userId),
+      message,
+      at: Date.now(),
+    });
   }
 
   startIntermission() {
@@ -471,6 +497,7 @@ export class QuizRoom {
       this.broadcast("quiz-chat-message", {
         userId,
         nickname,
+        clanTag: this.clanTagDe(userId),
         message: celebration || "Ponto!",
         system: false,
         at: Date.now(),
@@ -680,8 +707,10 @@ export class QuizRoom {
         });
 
         const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
+        const tag = this.clanTagDe(winner.userId);
+        const tagText = tag ? `[${tag}] ` : "";
         this.systemMessage(
-          `✅ ${winner.nickname} acertou${timeText}! A resposta era "${question.answer}" (+${pts} pts)`,
+          `✅ ${tagText}${winner.nickname} acertou${timeText}! A resposta era "${question.answer}" (+${pts} pts)`,
           true,
           true // success = true -> aparece em verde no chat
         );
@@ -692,6 +721,7 @@ export class QuizRoom {
         this.broadcast("quiz-chat-message", {
           userId: winner.userId,
           nickname: winner.nickname,
+          clanTag: this.clanTagDe(winner.userId),
           message: celebration || "Ponto!",
           system: false,
           at: Date.now(),

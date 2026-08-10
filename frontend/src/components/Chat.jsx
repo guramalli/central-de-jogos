@@ -58,6 +58,13 @@ export default function Chat({ messages, onSend, showTimestamp = false }) {
           ) : (
             <div key={i} className="chat-user-msg">
               {showTimestamp && <span className="chat-msg-time">{formatTime(m.at)}</span>}
+              {/* Tag do clã herda a cor do nickname: identifica o grupo sem
+                  poluir o chat com mais uma cor disputando atenção. */}
+              {m.clanTag && (
+                <span className="chat-clan-tag" style={{ color: colorForUser(m.userId || m.nickname) }}>
+                  [{m.clanTag}]
+                </span>
+              )}
               <strong style={{ color: colorForUser(m.userId || m.nickname) }}>{m.nickname}:</strong>{" "}
               {m.message}
             </div>

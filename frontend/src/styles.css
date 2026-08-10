@@ -3641,3 +3641,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   .clan-list-meta { display: none; }
   .clan-list-head { gap: 8px; font-size: 13px; }
 }
+
+/* Tag do clã no chat — herda a cor do nickname da pessoa, pra identificar
+   o grupo sem acrescentar mais uma cor competindo no chat. */
+.chat-clan-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-right: 4px;
+}
