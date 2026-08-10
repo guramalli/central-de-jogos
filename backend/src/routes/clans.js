@@ -63,6 +63,54 @@ router.get("/mine", requireAuth, async (req, res) => {
 });
 
 // Perfil público de um clã (visível por qualquer jogador, ex.: a partir do ranking)
+// Lista todos os clãs do site, com seus membros e a pontuação somada do
+// mês. É o "diretório de clãs": serve pra quem quer conhecer os grupos
+// existentes antes de pedir pra entrar num.
+router.get("/todos", requireAuth, async (req, res) => {
+  const clans = await prisma.clan.findMany({
+    include: {
+      owner: { select: { id: true, nickname: true } },
+      members: { select: { id: true, nickname: true, avatarUrl: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (clans.length === 0) return res.json([]);
+
+  // Soma a pontuação mensal de cada clã numa consulta só, em vez de uma por
+  // clã — com muitos clãs isso faria muita diferença.
+  const monthKey = currentMonthKey();
+  const todosIds = clans.flatMap((c) => c.members.map((m) => m.id));
+
+  const pontos = todosIds.length
+    ? await prisma.monthlyScore.groupBy({
+        by: ["userId"],
+        where: { userId: { in: todosIds }, monthKey },
+        _sum: { points: true },
+      })
+    : [];
+  const pontosPorUsuario = Object.fromEntries(
+    pontos.map((p) => [p.userId, p._sum.points || 0])
+  );
+
+  const lista = clans.map((c) => ({
+    id: c.id,
+    name: c.name,
+    tag: c.tag,
+    createdAt: c.createdAt,
+    owner: c.owner,
+    memberCount: c.members.length,
+    members: c.members,
+    monthlyPoints: c.members.reduce((s, m) => s + (pontosPorUsuario[m.id] || 0), 0),
+  }));
+
+  // Ordena pelo desempenho do mês — dá um ar de disputa e destaca quem
+  // está jogando de verdade.
+  lista.sort((a, b) => b.monthlyPoints - a.monthlyPoints || b.memberCount - a.memberCount);
+
+  res.json(lista);
+});
+
 router.get("/:id", requireAuth, async (req, res) => {
   const clan = await prisma.clan.findUnique({
     where: { id: req.params.id },

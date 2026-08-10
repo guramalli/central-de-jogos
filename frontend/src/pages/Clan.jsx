@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
@@ -7,6 +8,10 @@ export default function Clan() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [myInvites, setMyInvites] = useState([]);
+  // Diretório de clãs: todos os clãs do site, e qual deles está expandido
+  // mostrando os membros.
+  const [todosClans, setTodosClans] = useState([]);
+  const [clanAberto, setClanAberto] = useState(null);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
@@ -15,12 +20,14 @@ export default function Clan() {
   async function load() {
     setLoading(true);
     try {
-      const [{ data: mine }, { data: invites }] = await Promise.all([
+      const [{ data: mine }, { data: invites }, { data: todos }] = await Promise.all([
         api.get("/clans/mine"),
         api.get("/clans/invites/mine"),
+        api.get("/clans/todos"),
       ]);
       setData(mine);
       setMyInvites(invites);
+      setTodosClans(todos);
     } catch (e) {
       setError(e.response?.data?.error || "Erro ao carregar clã.");
     } finally {
@@ -200,6 +207,74 @@ export default function Clan() {
           )}
         </div>
       )}
+
+      {/* Diretório de clãs — todos os grupos do site, com os membros de
+          cada um. Ajuda quem ainda não tem clã a encontrar um pra pedir
+          convite, e cria aquele clima de disputa entre os grupos. */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <h2>🚩 Clãs do portal ({todosClans.length})</h2>
+        <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: -4 }}>
+          Ordenados pela pontuação somada dos membros neste mês. Clique num clã pra ver quem
+          faz parte.
+        </p>
+
+        {todosClans.length === 0 && (
+          <p style={{ color: "var(--text-dim)" }}>
+            Nenhum clã criado ainda. Que tal ser o primeiro?
+          </p>
+        )}
+
+        <div className="clan-list">
+          {todosClans.map((c, i) => {
+            const aberto = clanAberto === c.id;
+            const meu = data?.clan?.id === c.id;
+            return (
+              <div key={c.id} className={`clan-list-item ${meu ? "clan-list-item-meu" : ""}`}>
+                <button
+                  className="clan-list-head"
+                  onClick={() => setClanAberto(aberto ? null : c.id)}
+                >
+                  <span className="clan-list-pos">{i + 1}º</span>
+                  <span className="clan-list-tag">[{c.tag}]</span>
+                  <span className="clan-list-name">
+                    {c.name}
+                    {meu && <span className="clan-list-badge">seu clã</span>}
+                  </span>
+                  <span className="clan-list-meta">
+                    {c.memberCount} {c.memberCount === 1 ? "membro" : "membros"}
+                  </span>
+                  <span className="clan-list-pts">
+                    {c.monthlyPoints.toLocaleString("pt-BR")} pts
+                  </span>
+                  <span className="material-symbols-outlined clan-list-seta">
+                    {aberto ? "expand_less" : "expand_more"}
+                  </span>
+                </button>
+
+                {aberto && (
+                  <div className="clan-list-membros">
+                    <div className="clan-list-membros-titulo">
+                      Líder: <strong>{c.owner.nickname}</strong>
+                    </div>
+                    <div className="clan-list-membros-grid">
+                      {c.members.map((m) => (
+                        <Link
+                          key={m.id}
+                          to={`/jogador/${m.id}`}
+                          className={`clan-membro ${m.id === c.owner.id ? "clan-membro-lider" : ""}`}
+                        >
+                          {m.id === c.owner.id ? "👑 " : ""}
+                          {m.nickname}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
