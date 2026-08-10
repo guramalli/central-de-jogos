@@ -3771,7 +3771,15 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   background: var(--bg-panel-2);
   color: var(--text);
   cursor: pointer;
+  /* O card virou um link, e link sublinha por padrão — o que deixava o
+     texto inteiro riscado e difícil de ler. */
+  text-decoration: none;
   transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.privada-sala,
+.privada-sala:hover,
+.privada-sala * {
+  text-decoration: none;
 }
 .privada-sala:hover { border-color: #7891eb; transform: translateY(-1px); }
 
@@ -3795,12 +3803,20 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   color: var(--accent-2);
   white-space: nowrap;
 }
-.privada-sala-info { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.privada-sala-info {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 5px;
+}
+/* Os temas ficam num bloco separado e recuado, pra não competir com o
+   nome da sala na leitura. */
 .privada-sala-temas {
   font-size: 11px;
   color: var(--text-dim);
-  margin-top: 6px;
-  opacity: 0.75;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  opacity: 0.8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3929,3 +3945,21 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .espera-btn { font-size: 16px; padding: 13px 34px; }
 .espera-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .espera-dica { color: var(--text-dim); font-size: 12px; margin-top: 14px; }
+
+/* Cards que são links inteiros nunca devem sublinhar — o sublinhado do
+   navegador rasga o texto todo e atrapalha bastante a leitura. */
+a.glossy-panel,
+a.lobby-ranking-card,
+a.quiz-themed-card,
+a.privada-sala,
+a.lobby-game-card,
+a.clan-membro {
+  text-decoration: none;
+}
+a.glossy-panel:hover,
+a.lobby-ranking-card:hover,
+a.quiz-themed-card:hover,
+a.privada-sala:hover,
+a.lobby-game-card:hover {
+  text-decoration: none;
+}
