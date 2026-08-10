@@ -74,8 +74,12 @@ export function periodoAtual(tipo) {
 // Registra progresso num evento. Chamado dos jogos quando algo acontece.
 // Não trava nada: falha em silêncio e nunca é esperado com await no meio
 // de uma rodada.
+// Mesmo mecanismo do premium: se a tabela de missões ainda não existe no
+// banco, o sistema se desliga sozinho em vez de logar erro a cada rodada.
+let tabelaIndisponivel = false;
+
 export async function registrarEvento(userId, evento, quantidade = 1) {
-  if (!MISSOES_ATIVAS || !userId) return;
+  if (!MISSOES_ATIVAS || !userId || tabelaIndisponivel) return;
 
   try {
     for (const tipo of ["diarias", "semanais"]) {
@@ -113,6 +117,11 @@ export async function registrarEvento(userId, evento, quantidade = 1) {
       }
     }
   } catch (err) {
+    if (/does not exist|relation|Unknown arg|column/i.test(err.message || "")) {
+      tabelaIndisponivel = true;
+      console.warn("Tabela de missões ausente — rode `npx prisma db push`. Missões desativadas por ora.");
+      return;
+    }
     console.error("Falha ao registrar missão:", err.message);
   }
 }
@@ -207,7 +216,7 @@ export async function resgatarMissao(userId, missaoKey, periodo) {
 //   - ontem       -> sequência continua
 //   - antes disso -> sequência zera e recomeça em 1
 export async function registrarDiaJogado(userId) {
-  if (!MISSOES_ATIVAS || !userId) return null;
+  if (!MISSOES_ATIVAS || !userId || tabelaIndisponivel) return null;
 
   try {
     const hoje = new Date().toISOString().slice(0, 10);
@@ -250,6 +259,11 @@ export async function registrarDiaJogado(userId) {
       marco: marco?.marco || null,
     };
   } catch (err) {
+    if (/does not exist|relation|Unknown arg|column/i.test(err.message || "")) {
+      tabelaIndisponivel = true;
+      console.warn("Colunas de sequência ausentes — rode `npx prisma db push`.");
+      return null;
+    }
     console.error("Falha ao registrar dia jogado:", err.message);
     return null;
   }
@@ -267,7 +281,7 @@ export async function registrarDiaJogado(userId) {
 const distintosVistos = new Map(); // "userId:evento:periodo" -> Set de valores
 
 export async function registrarDistinto(userId, evento, valor) {
-  if (!MISSOES_ATIVAS || !userId || !valor) return;
+  if (!MISSOES_ATIVAS || !userId || !valor || tabelaIndisponivel) return;
 
   for (const tipo of ["diarias", "semanais"]) {
     const missoes = MISSOES[tipo].filter((m) => m.evento === evento);

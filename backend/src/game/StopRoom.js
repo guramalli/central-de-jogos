@@ -243,11 +243,7 @@ export class StopRoom {
       try {
         const me = await prisma.user.findUnique({
           where: { id: userId },
-          select: {
-            birthDate: true,
-            premiumAte: true, premiumVitalicio: true,
-            saudacaoEntrada: true, saudacaoSaida: true,
-          },
+          select: { birthDate: true },
         });
         if (isBirthdayToday(me?.birthDate)) {
           this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);

@@ -130,8 +130,13 @@ export function validarEscolhas({ moldura, corNickname, titulo, saudacaoEntrada,
 
 // Busca no banco os dados de saudação de alguém. Falha em silêncio: uma
 // saudação nunca pode impedir a pessoa de entrar numa sala.
+// Fica true se o banco ainda não tiver as colunas de premium (falta rodar
+// `npx prisma db push`). Nesse caso, o recurso se desliga sozinho em vez de
+// derrubar o fluxo do jogo a cada entrada de jogador.
+let colunasIndisponiveis = false;
+
 export async function carregarSaudacoes(userId) {
-  if (!PREMIUM_ATIVO || !userId) return null;
+  if (!PREMIUM_ATIVO || !userId || colunasIndisponiveis) return null;
   try {
     const u = await prisma.user.findUnique({
       where: { id: userId },
@@ -145,7 +150,13 @@ export async function carregarSaudacoes(userId) {
       entrada: u.saudacaoEntrada || null,
       saida: u.saudacaoSaida || null,
     };
-  } catch {
+  } catch (err) {
+    // Coluna inexistente: avisa uma vez e desliga o recurso até o próximo
+    // restart, pra não repetir o erro a cada jogador que entra.
+    if (/column|does not exist|Unknown arg/i.test(err.message || "")) {
+      colunasIndisponiveis = true;
+      console.warn("Colunas de premium ausentes no banco — rode `npx prisma db push`. Recurso desativado por ora.");
+    }
     return null;
   }
 }
