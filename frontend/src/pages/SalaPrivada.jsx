@@ -31,7 +31,7 @@ export default function SalaPrivada() {
     carregarSalas();
     // Atualiza a lista de tempos em tempos: sala nova pode ter aberto, e
     // sala vazia some sozinha.
-    const t = setInterval(carregarSalas, 8000);
+    const t = setInterval(carregarSalas, 15000);
     return () => clearInterval(t);
   }, []);
 

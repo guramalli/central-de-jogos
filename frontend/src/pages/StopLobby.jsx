@@ -43,7 +43,7 @@ export default function StopLobby() {
           );
         });
     carregarPrivadas();
-    const t = setInterval(carregarPrivadas, 10000);
+    const t = setInterval(carregarPrivadas, 20000);
     return () => clearInterval(t);
   }, []);
 

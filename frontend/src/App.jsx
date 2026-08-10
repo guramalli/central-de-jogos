@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import GuestBanner from "./components/GuestBanner.jsx";
 import { useTheme } from "./context/ThemeContext.jsx";
 import { api } from "./api/client.js";
+import { usePollingVisivel } from "./utils/usePollingVisivel.js";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
@@ -54,21 +55,29 @@ export default function App() {
   // outras partes do site disparam pra forçar uma atualização imediata
   // (ex.: assim que você abre uma conversa e as mensagens são marcadas como
   // lidas), sem precisar esperar os 30s do próximo ciclo automático.
-  useEffect(() => {
+  // Busca os três avisinhos numa requisição só (antes eram três) e só
+  // enquanto a aba está visível — o banco cobra por tempo acordado, e uma
+  // aba esquecida aberta mantinha o medidor rodando a noite inteira.
+  const buscarAvisos = useCallback(() => {
     if (!user) return;
-    function check() {
-      api.get("/friends/pending-count").then(({ data }) => setPendingFriendCount(data.count)).catch(() => {});
-      api.get("/friends/messages/unread-count").then(({ data }) => setUnreadDmCount(data.count)).catch(() => {});
-      api.get("/missoes/pendentes").then(({ data }) => setMissoesPendentes(data.count)).catch(() => {});
-    }
-    check();
-    const interval = setInterval(check, 30000);
-    window.addEventListener("unread-counts-changed", check);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("unread-counts-changed", check);
-    };
+    api.get("/avisos")
+      .then(({ data }) => {
+        setPendingFriendCount(data.amigos || 0);
+        setUnreadDmCount(data.mensagens || 0);
+        setMissoesPendentes(data.missoes || 0);
+      })
+      .catch(() => {});
   }, [user]);
+
+  usePollingVisivel(buscarAvisos, 120000);
+
+  // Outras partes do site disparam esse evento pra forçar atualização
+  // imediata (ex.: ao abrir uma conversa, ao resgatar uma missão), sem
+  // esperar o próximo ciclo.
+  useEffect(() => {
+    window.addEventListener("unread-counts-changed", buscarAvisos);
+    return () => window.removeEventListener("unread-counts-changed", buscarAvisos);
+  }, [buscarAvisos]);
 
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
   // atrapalhar o espaço da tela do jogo.

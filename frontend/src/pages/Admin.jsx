@@ -151,7 +151,8 @@ export default function Admin() {
     loadOnline();
     // Atualiza sozinho, pra dar pra acompanhar o movimento em tempo real
     // durante uma divulgação ou live sem precisar recarregar a página.
-    const timer = setInterval(loadOnline, 15000);
+    // 15s -> 60s: o painel costuma ficar aberto por muito tempo.
+    const timer = setInterval(loadOnline, 60000);
     return () => clearInterval(timer);
   }, []);
 

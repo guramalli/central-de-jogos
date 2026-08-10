@@ -23,10 +23,14 @@ export default function FriendsQuickChat() {
   // hora, sem esperar o próximo ciclo automático).
   useEffect(() => {
     function checkUnread() {
-      api.get("/friends/messages/unread-count").then(({ data }) => setUnreadCount(data.count)).catch(() => {});
+      // Usa a rota unificada de avisos — a mesma do menu. Assim a contagem
+      // sai do cache já preenchido em vez de gerar consulta nova.
+      api.get("/avisos").then(({ data }) => setUnreadCount(data.mensagens || 0)).catch(() => {});
     }
     checkUnread();
-    const interval = setInterval(checkUnread, 30000);
+    // Espaçado de 30s pra 2 min: aviso de mensagem não precisa ser
+    // instantâneo, e o banco cobra por tempo acordado.
+    const interval = setInterval(checkUnread, 120000);
     window.addEventListener("unread-counts-changed", checkUnread);
     return () => {
       clearInterval(interval);

@@ -16,7 +16,8 @@ export default function Friends() {
     load();
     // Atualiza sozinho a cada 20s, pra mostrar quem ficou online/offline
     // sem precisar recarregar a página manualmente.
-    const interval = setInterval(load, 20000);
+    // 20s -> 60s: a lista de amigos muda devagar.
+    const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
   }, []);
 
