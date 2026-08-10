@@ -9,6 +9,28 @@ import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
 const LETTERS = "ABCDEFGHIJLMNOPQRSTUVXZ".split(""); // agora inclui X e Z também
+
+// Peso de cada letra no sorteio. Letras com poucas palavras em português
+// (Q, X, Z) aparecem bem menos: quando caem, a rodada vira um sufoco nos
+// seis temas ao mesmo tempo — "profissão com X" ou "fruta com Q" trava até
+// quem joga há anos, e a rodada acaba 0 a 0.
+//
+// Peso 1 = frequência normal. As difíceis ficam ~5x mais raras, mas
+// continuam existindo: quando saem, viram um evento na sala.
+const PESO_LETRAS = {
+  Q: 0.2,
+  X: 0.2,
+  Z: 0.25,
+  // Não são raras como Q/X/Z, mas também limitam bastante os temas.
+  H: 0.6,
+  N: 0.7,
+  U: 0.7,
+  I: 0.8,
+};
+
+function pesoDaLetra(letra) {
+  return PESO_LETRAS[letra] ?? 1;
+}
 const GAME_KEY = "stop";
 const SKIP_VOTE_MIN_PLAYERS = 3;
 
@@ -418,7 +440,22 @@ export class StopRoom {
     // Nunca repete uma letra já sorteada dentro do bloco atual de 10 rodadas.
     const available = LETTERS.filter((l) => !this.usedLettersInBlock.has(l));
     const pool = available.length > 0 ? available : LETTERS; // segurança: nunca deveria esvaziar
-    const letter = pool[Math.floor(Math.random() * pool.length)];
+
+    // Sorteio ponderado: cada letra ocupa uma fatia proporcional ao seu peso
+    // numa "roleta". Assim Q, X e Z continuam podendo sair, mas com uma
+    // fração da chance das letras comuns.
+    const pesoTotal = pool.reduce((soma, l) => soma + pesoDaLetra(l), 0);
+    let sorteio = Math.random() * pesoTotal;
+
+    let letter = pool[pool.length - 1]; // fallback por segurança de arredondamento
+    for (const l of pool) {
+      sorteio -= pesoDaLetra(l);
+      if (sorteio <= 0) {
+        letter = l;
+        break;
+      }
+    }
+
     this.usedLettersInBlock.add(letter);
     return letter;
   }
