@@ -2,11 +2,11 @@ import ProfileTooltip from "./ProfileTooltip.jsx";
 import ClanInviteMenu from "./ClanInviteMenu.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-// Painel "jogadores" no estilo lista retrô: ícone de patente + nick + pontos,
-// linhas em zebra sobre fundo creme. O tooltip com clã/tempo de jogo/pontuação
-// detalhada aparece ao passar o mouse; o clique com o botão DIREITO no nick
-// abre a opção de convidar pro clã (só funciona de verdade se você for dono
-// de um clã — o servidor confere isso).
+// Painel "jogadores" no estilo lista retrô: ícone de patente + nick + pontos
+// DA SALA, linhas em zebra sobre fundo creme. O tooltip com clã/tempo de
+// jogo/pontuação geral aparece ao passar o mouse; o clique com o botão
+// DIREITO no nick abre a opção de convidar pro clã (só funciona de verdade
+// se você for dono de um clã — o servidor confere isso).
 export default function OnlinePlayers({ players }) {
   const { user } = useAuth();
 
@@ -22,7 +22,12 @@ export default function OnlinePlayers({ players }) {
               <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="stop" />
             </ClanInviteMenu>
           </span>
-          <span className="sc-player-points">{p.lifetimePoints}</span>
+          {/* Pontuação DA SALA, não a geral do jogador no Stop. Quem está
+              jogando quer comparar o desempenho ali, com quem está do lado
+              — o total geral aparece no hover do perfil e no ranking. */}
+          <span className="sc-player-points" title="Pontos nesta sala">
+            {p.semPontuacao ? p.blockPoints ?? 0 : p.roomLifetimePoints ?? 0}
+          </span>
         </li>
       ))}
       {players.length === 0 && <li className="sc-empty">Ninguém mais na sala ainda.</li>}

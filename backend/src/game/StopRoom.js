@@ -81,6 +81,9 @@ export class StopRoom {
     this.readyCache = new Map(); // userId -> já tem palavras corretas suficientes para pedir STOP?
     this.lastStopAttempt = new Map(); // userId -> timestamp da última tentativa de STOP (evita spam)
     this.validWordsCache = new Map(); // themeId -> Set de palavras aprovadas (normalizadas) para a letra atual
+    // Última posição no ranking mensal anunciada pra cada pessoa — evita
+    // repetir o mesmo aviso rodada após rodada.
+    this.lastAnnouncedPosition = new Map(); // userId -> posição
     this.timer = null;
     this.timeLeft = 0;
 
@@ -650,6 +653,45 @@ export class StopRoom {
     return set.has(normalize(word));
   }
 
+// Avisa no chat quando a pessoa SOBE de posição no ranking mensal do Stop.
+  // Recebe a pontuação nova já calculada, pra não consultar o banco de novo.
+  // Só anuncia quando a posição melhora — repetir a mesma posição ou avisar
+  // que caiu só faria barulho.
+  async announceRankingPosition(userId, nickname, monthlyPoints) {
+    try {
+      // Visitante e ADMIN não concorrem, então anunciar posição pra eles
+      // seria confuso: mostraria uma colocação que não vale nada.
+      if (!(await concorreAoRanking(userId))) return;
+
+      const monthKey = currentMonthKey();
+      const ahead = await prisma.monthlyScore.count({
+        where: {
+          gameKey: GAME_KEY,
+          monthKey,
+          user: { role: { not: "ADMIN" }, isGuest: false },
+          points: { gt: monthlyPoints },
+        },
+      });
+      const position = ahead + 1;
+
+      const previous = this.lastAnnouncedPosition.get(userId);
+      if (previous === position) return;
+
+      this.lastAnnouncedPosition.set(userId, position);
+
+      if (previous === undefined || position < previous) {
+        const emoji = position === 1 ? "👑" : position <= 3 ? "🔥" : "📈";
+        this.systemMessage(
+          `${emoji} ${nickname}, você está na ${position}ª posição do ranking mensal do Stop!`,
+          false,
+          true
+        );
+      }
+    } catch (err) {
+      console.error("Falha ao anunciar posição no ranking:", err.message);
+    }
+  }
+
   async logSuspiciousActivity(userId, reason, detail) {
     try {
       await prisma.suspiciousActivity.create({
@@ -918,6 +960,13 @@ export class StopRoom {
             const player = [...this.players.values()].find((p) => p.userId === userId);
             const nickname = player?.nickname || "Jogador";
             this.systemMessage(`"${nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+          }
+
+          // Avisa quando a pessoa sobe de posição no ranking mensal — dá a
+          // sensação de progresso sem precisar sair da sala pra conferir.
+          const jogador = [...this.players.values()].find((p) => p.userId === userId);
+          if (jogador) {
+            await this.announceRankingPosition(userId, jogador.nickname, newMonthlyPoints);
           }
 
           await prisma.lifetimeScore.upsert({
