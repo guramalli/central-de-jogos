@@ -85,42 +85,6 @@ export default function QuizLobby() {
 
       <MiniPodium gameKey="quiz" />
 
-      {arenaRooms.length > 0 && (
-        <div className="arena-section">
-          <h2 className="arena-section-title">⚡ Arenas Relâmpago</h2>
-          <p className="arena-section-sub">
-            50 rodadas relâmpago, 10 segundos por pergunta. Todo mundo que acertar pontua — no
-            ranking mensal E no placar do turno. Os 5 primeiros do turno ainda levam bônus
-            (100 / 60 / 40 / 20 / 10 pts).
-          </p>
-          <div className="arena-grid">
-            {arenaRooms.map((r) => {
-              const occ = occupancyInfo(r);
-              return (
-                <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="arena-card">
-                  <div className="arena-card-bolt">⚡</div>
-                  <div className="arena-card-body">
-                    <h3 className="arena-card-title">{r.label.replace("⚡ ", "")}</h3>
-                    <p className="arena-card-desc">{r.description}</p>
-                    <div className="arena-card-meta">
-                      <span>⏱️ 10s por pergunta</span>
-                      <span>🔁 50 rodadas</span>
-                      <span>🏆 Top 5 leva bônus</span>
-                    </div>
-                    <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
-                      <span className="material-symbols-outlined">group</span> {occ.text}
-                    </div>
-                    <span className="arena-card-cta">
-                      Entrar na arena <span className="material-symbols-outlined">arrow_forward</span>
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="lobby-game-grid">
         {themeRooms.map((r) => {
           const occ = occupancyInfo(r);
@@ -158,6 +122,42 @@ export default function QuizLobby() {
         })}
         {rooms.length === 0 && <p style={{ color: "var(--text-dim)" }}>Carregando salas...</p>}
       </div>
+
+      {arenaRooms.length > 0 && (
+        <div className="arena-section">
+          <h2 className="arena-section-title">⚡ Arenas Relâmpago</h2>
+          <p className="arena-section-sub">
+            50 rodadas relâmpago, 10 segundos por pergunta. Todo mundo que acertar pontua — no
+            ranking mensal E no placar do turno. Os 5 primeiros do turno ainda levam bônus
+            (100 / 60 / 40 / 20 / 10 pts).
+          </p>
+          <div className="arena-grid">
+            {arenaRooms.map((r) => {
+              const occ = occupancyInfo(r);
+              return (
+                <Link key={r.roomId} to={`/jogos/quiz/${r.roomId}`} className="arena-card">
+                  <div className="arena-card-bolt">⚡</div>
+                  <div className="arena-card-body">
+                    <h3 className="arena-card-title">{r.label.replace("⚡ ", "")}</h3>
+                    <p className="arena-card-desc">{r.description}</p>
+                    <div className="arena-card-meta">
+                      <span>⏱️ 10s por pergunta</span>
+                      <span>🔁 50 rodadas</span>
+                      <span>🏆 Top 5 leva bônus</span>
+                    </div>
+                    <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
+                      <span className="material-symbols-outlined">group</span> {occ.text}
+                    </div>
+                    <span className="arena-card-cta">
+                      Entrar na arena <span className="material-symbols-outlined">arrow_forward</span>
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

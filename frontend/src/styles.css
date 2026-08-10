@@ -2801,7 +2801,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .nick-tooltip-accuracy-row strong { color: var(--accent-2); }
 
 /* ===== Arenas Relâmpago (lobby do Quiz) ===== */
-.arena-section { margin-bottom: 28px; }
+/* As arenas ficam depois das salas de tema, separadas por uma linha —
+   são um modo diferente de jogar, não mais uma sala da lista. */
+.arena-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  margin-bottom: 28px;
+}
 .arena-section-title {
   font-family: var(--font-display);
   font-size: 22px;
@@ -3983,3 +3990,113 @@ a.lobby-game-card:hover {
 .plataformas-icone { font-size: 22px; }
 .plataformas-card-dim { opacity: 0.65; }
 .plataformas-card-dim strong { color: var(--text-dim); }
+
+/* ============================================================
+   AJUSTES MOBILE — componentes recentes
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Cards de sala privada: o nome longo empurrava as vagas pra fora */
+  .privada-sala-topo { flex-wrap: wrap; gap: 4px; }
+  .privada-sala-nome { font-size: 15px; max-width: 100%; }
+  .privada-sala-info,
+  .privada-sala-temas { font-size: 11px; white-space: normal; }
+
+  /* Cabeçalho da seção: botão "Criar sala" ia pro lado e apertava o texto */
+  .privadas-cabecalho { flex-direction: column; align-items: stretch; gap: 12px; }
+  .privadas-cabecalho .retro-btn { width: 100%; text-align: center; }
+  .privadas-sub { font-size: 12px; }
+
+  /* Escolha livre/com senha empilhada — dois cards lado a lado ficavam
+     estreitos demais pra ler a descrição */
+  .privada-tipo { flex-direction: column; }
+  .privada-tipo-opcao { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 12px 16px; }
+  .privada-tipo-desc { text-align: left; }
+
+  /* Botões de tema: alvo de toque maior e fonte legível */
+  .privada-tema { padding: 10px 14px; font-size: 13px; }
+
+  /* Abas ocupam a largura toda */
+  .privada-abas { flex-direction: column; }
+
+  /* Votação: em tela estreita, a palavra ganha a linha inteira e os
+     botões ✓/✕ ficam maiores, com espaço pra dedo */
+  .votacao-linha { flex-wrap: wrap; padding: 10px 12px; }
+  .votacao-nick { min-width: auto; width: 100%; margin-bottom: 2px; }
+  .votacao-palavra { flex: 1 1 auto; font-size: 15px; }
+  .votacao-btn { width: 46px; height: 42px; font-size: 18px; }
+  .votacao-titulo { font-size: 17px; }
+
+  /* Sala de espera */
+  .espera-jogadores { gap: 6px; }
+  .espera-jogador { padding: 8px 13px; font-size: 13px; }
+  .espera-btn { width: 100%; }
+  .espera-titulo { font-size: 20px; }
+
+  /* Resumo de plataformas no admin */
+  .plataformas-resumo { gap: 8px; }
+  .plataformas-card { flex: 1 1 calc(50% - 8px); min-width: 0; padding: 12px 10px; }
+  .plataformas-card strong { font-size: 22px; }
+
+  /* Diretório de clãs: os membros viram uma coluna só */
+  .clan-list-membros-grid { gap: 6px; }
+  .clan-membro { font-size: 12px; padding: 6px 11px; }
+
+  /* Faixa de aviso de sala sem pontuação */
+  .sc-sem-pontuacao { font-size: 12px; padding: 9px 13px; }
+}
+
+/* Telas bem estreitas (iPhone SE e afins) */
+@media (max-width: 380px) {
+  .privada-tema { padding: 9px 12px; font-size: 12px; }
+  .espera-jogador { font-size: 12px; padding: 7px 11px; }
+  .plataformas-card { flex: 1 1 100%; }
+  .votacao-palavra { font-size: 14px; }
+}
+
+/* Alvos de toque: no celular, botão pequeno demais causa erro de clique.
+   A recomendação de acessibilidade é ~44px de altura mínima. */
+@media (max-width: 700px) {
+  .btn,
+  .retro-btn,
+  .quiz-mute-btn,
+  .privada-aba {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Botões pequenos dentro de listas e cards: aumenta a área clicável sem
+     mudar o tamanho visual, usando padding extra. */
+  .quiz-report-btn,
+  .nick-tooltip-friend-btn,
+  .beta-feedback-btn {
+    min-height: 36px;
+    padding-inline: 12px;
+  }
+
+  /* Abas do jogo (chat, jogadores, log) precisam ser fáceis de acertar */
+  .quiz-retro-tab,
+  .sc-retro-tab {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* Acromania no mobile */
+@media (max-width: 640px) {
+  /* Com 5 letras de 42px + gaps, a fila estourava telas estreitas.
+     Agora as letras encolhem e podem quebrar linha. */
+  .acro-letters-row { gap: 6px; flex-wrap: wrap; }
+  .acro-letter-chip { width: 36px; height: 36px; font-size: 18px; }
+
+  .acro-voting-list { gap: 8px; }
+  .acro-result-phrase { font-size: 14px; }
+  .acro-result-meta { font-size: 11px; }
+  .acro-theme-label { font-size: 13px; }
+}
+
+@media (max-width: 380px) {
+  .acro-letter-chip { width: 31px; height: 31px; font-size: 16px; }
+}
