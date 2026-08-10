@@ -5,7 +5,7 @@ import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
-import { registrarEvento } from "./missoes.js";
+import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 
 const ROUNDS_PER_BLOCK = 10;
@@ -255,6 +255,7 @@ export class StopRoom {
 
         // Saudação personalizada (premium). Sem nada configurado, não
         // acontece nada.
+        registrarDistinto(userId, "jogo_distinto", "stop").catch(() => {});
         const saudacoes = await carregarSaudacoes(userId);
         const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
         if (msgEntrada) this.systemMessage(msgEntrada, false, true);

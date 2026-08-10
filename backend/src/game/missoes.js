@@ -19,20 +19,20 @@ export const MISSOES_ATIVAS = true;
 // menos que uma sessão boa de partidas.
 export const MISSOES = {
   diarias: [
-    { key: "jogar_3_rodadas", nome: "Aquecimento", descricao: "Jogue 3 rodadas em qualquer jogo", meta: 3, evento: "rodada_jogada", pontos: 30 },
-    { key: "acertar_10_quiz", nome: "Sabe-tudo", descricao: "Acerte 10 perguntas no Quiz", meta: 10, evento: "quiz_acerto", pontos: 40 },
-    { key: "pedir_stop_1", nome: "Dedo rápido", descricao: "Peça STOP uma vez", meta: 1, evento: "stop_pedido", pontos: 25 },
-    { key: "jogar_2_jogos", nome: "Versátil", descricao: "Jogue 2 jogos diferentes hoje", meta: 2, evento: "jogo_distinto", pontos: 35 },
+    { key: "jogar_3_rodadas", nome: "Aquecimento", descricao: "Jogue 10 rodadas em qualquer jogo", meta: 10, evento: "rodada_jogada", pontos: 100 },
+    { key: "acertar_10_quiz", nome: "Sabe-tudo", descricao: "Acerte 10 perguntas no Quiz", meta: 10, evento: "quiz_acerto", pontos: 120 },
+    { key: "pedir_stop_1", nome: "Dedo rápido", descricao: "Peça STOP 10 vezes", meta: 10, evento: "stop_pedido", pontos: 100 },
+    { key: "jogar_2_jogos", nome: "Versátil", descricao: "Jogue 2 jogos diferentes hoje", meta: 2, evento: "jogo_distinto", pontos: 50 },
     // Extras de premium
-    { key: "premium_acertar_25", nome: "Maratonista", descricao: "Acerte 25 perguntas no Quiz", meta: 25, evento: "quiz_acerto", pontos: 60, premium: true },
-    { key: "premium_vencer_bloco", nome: "Dominante", descricao: "Termine um bloco em 1º lugar", meta: 1, evento: "bloco_vencido", pontos: 70, premium: true },
+    { key: "premium_acertar_25", nome: "Maratonista", descricao: "Acerte 25 perguntas no Quiz", meta: 25, evento: "quiz_acerto", pontos: 250, premium: true },
+    { key: "premium_vencer_bloco", nome: "Dominante", descricao: "Termine um bloco em 1º lugar", meta: 1, evento: "bloco_vencido", pontos: 200, premium: true },
   ],
   semanais: [
-    { key: "sem_jogar_30", nome: "Frequente", descricao: "Jogue 30 rodadas na semana", meta: 30, evento: "rodada_jogada", pontos: 150 },
-    { key: "sem_acertar_100", nome: "Enciclopédia", descricao: "Acerte 100 perguntas no Quiz", meta: 100, evento: "quiz_acerto", pontos: 200 },
-    { key: "sem_5_temas", nome: "Curioso", descricao: "Jogue em 5 temas diferentes do Quiz", meta: 5, evento: "tema_distinto", pontos: 120 },
+    { key: "sem_jogar_30", nome: "Frequente", descricao: "Jogue 30 rodadas na semana", meta: 30, evento: "rodada_jogada", pontos: 300 },
+    { key: "sem_acertar_100", nome: "Enciclopédia", descricao: "Acerte 100 perguntas no Quiz", meta: 100, evento: "quiz_acerto", pontos: 500 },
+    { key: "sem_5_temas", nome: "Curioso", descricao: "Acerte perguntas em 5 temas diferentes", meta: 5, evento: "tema_distinto", pontos: 200 },
     // Extras de premium
-    { key: "premium_sem_podio", nome: "Pódio", descricao: "Termine 3 blocos no pódio", meta: 3, evento: "bloco_podio", pontos: 250, premium: true },
+    { key: "premium_sem_podio", nome: "Pódio", descricao: "Termine 3 blocos no pódio", meta: 3, evento: "bloco_podio", pontos: 600, premium: true },
   ],
 };
 
@@ -254,3 +254,70 @@ export async function registrarDiaJogado(userId) {
     return null;
   }
 }
+
+// ===== Eventos "distintos" =====
+//
+// Algumas missões pedem VARIEDADE ("2 jogos diferentes", "5 temas
+// diferentes"), não repetição. Para essas, incrementar a cada acerto
+// estaria errado: acertar 5 vezes no mesmo tema não é 5 temas.
+//
+// A solução é guardar o que já foi contado no próprio progresso, numa
+// tabela auxiliar em memória por período. Como o progresso é pequeno e
+// reseta todo dia/semana, isso não pesa.
+const distintosVistos = new Map(); // "userId:evento:periodo" -> Set de valores
+
+export async function registrarDistinto(userId, evento, valor) {
+  if (!MISSOES_ATIVAS || !userId || !valor) return;
+
+  for (const tipo of ["diarias", "semanais"]) {
+    const missoes = MISSOES[tipo].filter((m) => m.evento === evento);
+    if (missoes.length === 0) continue;
+
+    const periodo = periodoAtual(tipo);
+    const chave = `${userId}:${evento}:${periodo}`;
+
+    if (!distintosVistos.has(chave)) distintosVistos.set(chave, new Set());
+    const jaVistos = distintosVistos.get(chave);
+
+    // Já contou esse valor nesse período: não incrementa de novo.
+    if (jaVistos.has(valor)) continue;
+    jaVistos.add(valor);
+
+    // Registra +1 só nas missões desse tipo de período.
+    for (const m of missoes) {
+      try {
+        const atual = await prisma.missaoProgresso.findUnique({
+          where: { userId_missaoKey_periodo: { userId, missaoKey: m.key, periodo } },
+        });
+        if (atual?.concluida) continue;
+
+        const novo = (atual?.progresso || 0) + 1;
+        const concluiu = novo >= m.meta;
+
+        await prisma.missaoProgresso.upsert({
+          where: { userId_missaoKey_periodo: { userId, missaoKey: m.key, periodo } },
+          update: { progresso: novo, concluida: concluiu, concluidaEm: concluiu ? new Date() : null },
+          create: {
+            userId, missaoKey: m.key, periodo, progresso: novo, meta: m.meta,
+            concluida: concluiu, concluidaEm: concluiu ? new Date() : null,
+          },
+        });
+      } catch (err) {
+        console.error("Falha ao registrar missão distinta:", err.message);
+      }
+    }
+  }
+}
+
+// Limpa o cache de valores distintos de períodos antigos. Roda de hora em
+// hora pra memória não crescer sem fim com o site rodando por semanas.
+setInterval(() => {
+  const diaAtual = periodoAtual("diarias");
+  const semanaAtual = periodoAtual("semanais");
+  for (const chave of distintosVistos.keys()) {
+    const periodo = chave.split(":").pop();
+    if (periodo !== diaAtual && periodo !== semanaAtual) {
+      distintosVistos.delete(chave);
+    }
+  }
+}, 60 * 60 * 1000);

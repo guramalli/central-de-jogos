@@ -4,7 +4,7 @@ import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
-import { registrarEvento } from "./missoes.js";
+import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 
 const GAME_KEY = "quiz";
@@ -152,6 +152,7 @@ export class QuizRoom {
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
+      registrarDistinto(userId, "jogo_distinto", "quiz").catch(() => {});
       const saudacoes = await carregarSaudacoes(userId);
       const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
       this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
@@ -633,6 +634,9 @@ export class QuizRoom {
           // registram o acerto.
           for (const [userId] of scorers) {
             registrarEvento(userId, "quiz_acerto").catch(() => {});
+            if (this.themeKey) {
+              registrarDistinto(userId, "tema_distinto", this.themeKey).catch(() => {});
+            }
           }
 
           // Anuncia a posição no ranking mensal de quem pontuou (a cada 10
@@ -726,8 +730,11 @@ export class QuizRoom {
           celebration,
         });
 
-        // Missões: acerto no Quiz e tema visitado.
+        // Missões: acerto no Quiz e variedade de temas.
         registrarEvento(winner.userId, "quiz_acerto").catch(() => {});
+        if (this.themeKey) {
+          registrarDistinto(winner.userId, "tema_distinto", this.themeKey).catch(() => {});
+        }
 
         const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
         const tag = this.clanTagDe(winner.userId);

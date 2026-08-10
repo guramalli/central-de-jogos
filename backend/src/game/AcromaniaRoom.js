@@ -6,6 +6,7 @@ import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
+import { registrarDistinto } from "./missoes.js";
 
 const GAME_KEY = "acromania";
 
@@ -90,6 +91,7 @@ export class AcromaniaRoom {
 
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) no lugar do texto padrão.
+      registrarDistinto(userId, "jogo_distinto", "acromania").catch(() => {});
       const saudacoes = await carregarSaudacoes(userId);
       const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
       this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
