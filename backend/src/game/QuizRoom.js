@@ -4,6 +4,8 @@ import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
+import { registrarEvento } from "./missoes.js";
+import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 
 const GAME_KEY = "quiz";
 
@@ -148,7 +150,15 @@ export class QuizRoom {
     await this.loadRoomRecord();
     socket.emit("quiz-room-state", this.publicState());
     if (!alreadyInRoom) {
-      this.systemMessage(`👋 ${nickname} entrou na sala.`);
+      // Saudação personalizada (premium) substitui o "entrou na sala"
+      // padrão; sem nada configurado, segue o texto de sempre.
+      const saudacoes = await carregarSaudacoes(userId);
+      const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
+      this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
+      // Guarda a saudação de saída: na hora de sair, o socket pode já ter
+      // caído e não daria pra consultar o banco.
+      const eu = this.players.get(socket.id);
+      if (eu && saudacoes?.saida) eu.saudacaoSaida = saudacoes.saida;
 
       // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
       try {
@@ -178,7 +188,10 @@ export class QuizRoom {
     if (leaving) {
       trackPlaytime(leaving.userId, leaving.joinedAt);
       const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
-      if (!stillConnected) this.systemMessage(`🚪 ${leaving.nickname} saiu da sala.`);
+      if (!stillConnected) {
+        const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
+        this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
+      }
     }
 
     // Sala vazia: para o ciclo e volta pro estado de espera, pra não ficar
@@ -615,6 +628,13 @@ export class QuizRoom {
           }
         } else {
           this.roundsWithoutWinner = 0;
+
+          // Missões: na arena todo mundo que acerta pontua, então todos
+          // registram o acerto.
+          for (const [userId] of scorers) {
+            registrarEvento(userId, "quiz_acerto").catch(() => {});
+          }
+
           // Anuncia a posição no ranking mensal de quem pontuou (a cada 10
           // rodadas, pra não poluir demais numa sala tão rápida).
           if (this.turnRound % 10 === 0) {
@@ -705,6 +725,9 @@ export class QuizRoom {
           elapsedSeconds,
           celebration,
         });
+
+        // Missões: acerto no Quiz e tema visitado.
+        registrarEvento(winner.userId, "quiz_acerto").catch(() => {});
 
         const timeText = elapsedSeconds !== null ? ` em ${elapsedSeconds}s` : "";
         const tag = this.clanTagDe(winner.userId);

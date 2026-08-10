@@ -13,6 +13,7 @@ import Lobby from "./pages/Lobby.jsx";
 import StopGame from "./pages/StopGame.jsx";
 import StopLobby from "./pages/StopLobby.jsx";
 import SalaPrivada from "./pages/SalaPrivada.jsx";
+import Missoes from "./pages/Missoes.jsx";
 import Ranking from "./pages/Ranking.jsx";
 import RankingHistory from "./pages/RankingHistory.jsx";
 import Clan from "./pages/Clan.jsx";
@@ -87,6 +88,7 @@ export default function App() {
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
+                <NavLink to="/missoes" className={navLinkClass}>Missões</NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 <NavLink to="/amigos" className={navLinkClass}>
                   Amigos{(pendingFriendCount + unreadDmCount) > 0 && (
@@ -172,6 +174,14 @@ export default function App() {
             element={
               <Private>
                 <Clan />
+              </Private>
+            }
+          />
+          <Route
+            path="/missoes"
+            element={
+              <Private>
+                <Missoes />
               </Private>
             }
           />

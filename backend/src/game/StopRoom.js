@@ -4,6 +4,8 @@ import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
+import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
+import { registrarEvento } from "./missoes.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 
 const ROUNDS_PER_BLOCK = 10;
@@ -239,10 +241,27 @@ export class StopRoom {
 
       // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
       try {
-        const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
+        const me = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            birthDate: true,
+            premiumAte: true, premiumVitalicio: true,
+            saudacaoEntrada: true, saudacaoSaida: true,
+          },
+        });
         if (isBirthdayToday(me?.birthDate)) {
           this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
         }
+
+        // Saudação personalizada (premium). Sem nada configurado, não
+        // acontece nada.
+        const saudacoes = await carregarSaudacoes(userId);
+        const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
+        if (msgEntrada) this.systemMessage(msgEntrada, false, true);
+        // Guarda a de saída agora: quando a pessoa sair, o socket já pode
+        // ter caído e não daria pra consultar o banco.
+        const p = this.players.get(socket.id);
+        if (p && saudacoes?.saida) p.saudacaoSaida = saudacoes.saida;
       } catch {
         // não deixa uma falha aqui atrapalhar a entrada na sala
       }
@@ -266,7 +285,8 @@ export class StopRoom {
           this.skipVotes.delete(leaving.userId);
           this.broadcastSkipVoteUpdate();
         }
-        this.systemMessage(`🚪 ${leaving.nickname} saiu da sala.`);
+        const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
+        this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
       }
     }
     await this.broadcastOnlinePlayers();
@@ -600,6 +620,7 @@ export class StopRoom {
 
     this.broadcast("player-stopped", { userId, nickname });
     this.systemMessage(`🛑 ${nickname} apertou STOP!`, true);
+    if (!this.semPontuacao) registrarEvento(userId, "stop_pedido").catch(() => {});
     this.endRound(true);
   }
 
@@ -857,6 +878,14 @@ export class StopRoom {
   // é null e a validação segue pelo glossário, como sempre.
   async gradeRound(activePlayers, monthKey, reprovadasPorVoto) {
     this.state = "grading";
+
+    // Progresso de missões. Sem await: é registro paralelo e não pode
+    // segurar a apuração da rodada.
+    if (!this.semPontuacao) {
+      for (const p of activePlayers) {
+        registrarEvento(p.userId, "rodada_jogada").catch(() => {});
+      }
+    }
 
     // Vigia: o "finally" lá embaixo só roda se o try TERMINAR. Se alguma
     // consulta ao banco ficar pendurada pra sempre (Neon instável, conexão

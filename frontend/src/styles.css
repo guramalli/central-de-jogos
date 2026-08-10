@@ -4100,3 +4100,138 @@ a.lobby-game-card:hover {
 @media (max-width: 380px) {
   .acro-letter-chip { width: 31px; height: 31px; font-size: 16px; }
 }
+
+/* ===== Missões ===== */
+.missoes-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.missoes-sub { color: var(--text-dim); font-size: 12px; margin: 2px 0 0; }
+.missoes-contador {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+.missoes-lista { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+.missao {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.missao-ok {
+  border-color: rgba(6, 214, 160, 0.5);
+  background: rgba(6, 214, 160, 0.07);
+}
+.missao-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.missao-nome { font-weight: 700; font-size: 15px; }
+.missao-progresso {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.missao-desc { color: var(--text-dim); font-size: 12px; margin: 4px 0 10px; }
+
+.missao-barra {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.missao-barra-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent-2), #ffc46b);
+  transition: width 0.4s ease;
+}
+.missao-ok .missao-barra-fill { background: linear-gradient(90deg, #06d6a0, #7ce8c8); }
+
+@media (max-width: 640px) {
+  .missao-nome { font-size: 14px; }
+  .missao-desc { font-size: 11px; }
+}
+
+/* ===== Sequência de dias (streak) ===== */
+.streak-card {
+  margin-top: 16px;
+  background: linear-gradient(135deg, rgba(255, 153, 0, 0.1), rgba(255, 79, 107, 0.06));
+  border-color: rgba(255, 153, 0, 0.35);
+}
+.streak-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.streak-numero { font-family: var(--font-display); font-size: 40px; line-height: 1; }
+.streak-label { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.streak-recorde { text-align: right; }
+.streak-recorde span { display: block; font-size: 11px; color: var(--text-dim); }
+.streak-recorde strong { font-family: var(--font-mono); font-size: 22px; color: var(--accent-2); }
+
+.streak-proximo { font-size: 13px; color: var(--text-dim); margin: 14px 0 10px; }
+.streak-proximo strong { color: var(--accent-2); }
+
+.streak-marcos { display: flex; flex-wrap: wrap; gap: 6px; }
+.streak-marco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  opacity: 0.55;
+}
+.streak-marco-ok {
+  border-style: solid;
+  border-color: rgba(6, 214, 160, 0.6);
+  background: rgba(6, 214, 160, 0.1);
+  opacity: 1;
+}
+.streak-marco-dias { font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+.streak-marco-pts { font-size: 10px; color: var(--text-dim); }
+.streak-aviso { font-size: 11px; color: var(--text-dim); margin: 12px 0 0; opacity: 0.8; }
+
+/* Rodapé das missões: pontos e botão de resgate */
+.missao-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+.missao-pontos {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-2);
+}
+.missao-resgatar {
+  padding: 6px 16px;
+  border-radius: 18px;
+  border: none;
+  background: #06d6a0;
+  color: #06281f;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.missao-resgatar:hover { background: #05f0b3; }
+.missao-resgatada { font-size: 12px; color: #06d6a0; }
+
+.missoes-aviso {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(6, 214, 160, 0.12);
+  border: 1px solid rgba(6, 214, 160, 0.4);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .streak-numero { font-size: 32px; }
+  .streak-marco { min-width: 46px; padding: 6px 4px; }
+  .missao-resgatar { padding: 8px 18px; }
+}

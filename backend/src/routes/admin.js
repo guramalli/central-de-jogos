@@ -195,6 +195,7 @@ router.get("/users", requireRole("ADMIN"), async (req, res) => {
     select: {
       id: true, nickname: true, email: true, role: true, banned: true, createdAt: true,
       ultimaPlataforma: true, ultimoAcesso: true,
+      premiumAte: true, premiumVitalicio: true,
     },
     orderBy: { createdAt: "asc" },
   });
@@ -232,6 +233,46 @@ router.get("/plataformas", requireRole("ADMIN"), async (req, res) => {
   }
 
   res.json({ total: resumo, ultimos30 });
+});
+
+// Concede ou remove premium na mão. Enquanto não há pagamento integrado,
+// é assim que damos cortesia pra fundadores, parceiros e testes.
+router.post("/users/:id/premium", requireRole("ADMIN"), async (req, res) => {
+  const { dias, vitalicio, remover } = req.body;
+
+  if (remover) {
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { premiumAte: null, premiumVitalicio: false },
+    });
+    return res.json({ ok: true, premium: false });
+  }
+
+  if (vitalicio) {
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { premiumVitalicio: true },
+    });
+    return res.json({ ok: true, vitalicio: true });
+  }
+
+  const n = Number(dias);
+  if (!Number.isFinite(n) || n < 1 || n > 3650) {
+    return res.status(400).json({ error: "Informe de 1 a 3650 dias." });
+  }
+
+  // Se já tem premium válido, soma ao prazo em vez de substituir.
+  const atual = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    select: { premiumAte: true },
+  });
+  const base = atual?.premiumAte && new Date(atual.premiumAte) > new Date()
+    ? new Date(atual.premiumAte)
+    : new Date();
+  base.setDate(base.getDate() + n);
+
+  await prisma.user.update({ where: { id: req.params.id }, data: { premiumAte: base } });
+  res.json({ ok: true, premiumAte: base });
 });
 
 router.post("/users/:id/role", requireRole("ADMIN"), async (req, res) => {

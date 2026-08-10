@@ -14,6 +14,7 @@ import adminRoutes from "./routes/admin.js";
 import roomsRoutes from "./routes/rooms.js";
 import clansRoutes from "./routes/clans.js";
 import salasPrivadasRoutes from "./routes/salasPrivadas.js";
+import premiumRoutes from "./routes/premium.js";
 import friendsRoutes from "./routes/friends.js";
 import quizRoomsRoutes from "./routes/quizRooms.js";
 import acromaniaRoomsRoutes from "./routes/acromaniaRooms.js";
@@ -68,6 +69,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/rooms", roomsRoutes);
 app.use("/api/clans", clansRoutes);
 app.use("/api/salas-privadas", salasPrivadasRoutes);
+app.use("/api/premium", premiumRoutes);
+// Alias neutro: as missões são pra todo mundo, então a URL não deve
+// sugerir que fazem parte de um recurso pago.
+app.use("/api/missoes", premiumRoutes);
 app.use("/api/friends", friendsRoutes);
 app.use("/api/quiz-rooms", quizRoomsRoutes);
 app.use("/api/acromania-rooms", acromaniaRoomsRoutes);

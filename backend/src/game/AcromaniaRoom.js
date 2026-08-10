@@ -5,6 +5,7 @@ import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { getRankForPoints } from "../utils/rank.js";
+import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 
 const GAME_KEY = "acromania";
 
@@ -88,7 +89,13 @@ export class AcromaniaRoom {
     socket.emit("acromania-room-state", this.publicState());
 
     if (!alreadyInRoom) {
-      this.systemMessage(`👋 ${nickname} entrou na sala.`);
+      // Saudação personalizada (premium) no lugar do texto padrão.
+      const saudacoes = await carregarSaudacoes(userId);
+      const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
+      this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
+      // Guarda a de saída: na hora de sair o socket já pode ter caído.
+      const eu = this.players.get(socket.id);
+      if (eu && saudacoes?.saida) eu.saudacaoSaida = saudacoes.saida;
       try {
         const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
         if (isBirthdayToday(me?.birthDate)) {
@@ -116,7 +123,8 @@ export class AcromaniaRoom {
       trackPlaytime(leaving.userId, leaving.joinedAt);
       const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
       if (!stillConnected) {
-        this.systemMessage(`🚪 ${leaving.nickname} saiu da sala.`);
+        const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
+        this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
       }
     }
     await this.broadcastOnlinePlayers();

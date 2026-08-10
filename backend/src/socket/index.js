@@ -1,5 +1,6 @@
 import { verifyToken } from "../utils/jwt.js";
 import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, cancelarDescarteSala } from "../game/gameManager.js";
+import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
@@ -24,6 +25,9 @@ export function setupSocket(io) {
 
       // Registra em qual plataforma a pessoa está jogando. Não bloqueia a
       // conexão: se falhar, o jogo segue normalmente — é só métrica.
+      // Sequência de dias: conta uma vez por dia, na primeira conexão.
+      registrarDiaJogado(user.id).catch(() => {});
+
       const plataforma = socket.handshake.auth?.plataforma;
       if (plataforma === "mobile" || plataforma === "desktop") {
         prisma.user

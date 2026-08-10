@@ -40,6 +40,24 @@ model User {
   // entender o público e decidir onde investir em melhorias de interface.
   ultimaPlataforma String?
   ultimoAcesso     DateTime?
+
+  // ===== Conta premium =====
+  // Tudo aqui é ESTÉTICO e de conveniência de propósito: o ranking tem
+  // premiação em dinheiro, então dar vantagem de jogo a quem paga tiraria
+  // a legitimidade da disputa e afastaria quem não paga.
+  premiumAte       DateTime?  // null ou data passada = conta comum
+  premiumVitalicio Boolean   @default(false) // cortesia (fundadores, parceiros)
+  molduraAvatar    String?   // id da moldura escolhida
+  corNickname      String?   // cor personalizada do nick (hex)
+  tituloPerfil     String?   // frase curta abaixo do nick
+  saudacaoEntrada  String?   // mensagem ao entrar numa sala
+  saudacaoSaida    String?   // mensagem ao sair
+  missoes          MissaoProgresso[]
+
+  // ===== Sequência de dias jogados =====
+  streakAtual      Int      @default(0)
+  streakRecorde    Int      @default(0)
+  streakUltimoDia  String?  // "2026-08-11" — evita contar duas vezes no mesmo dia
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?
   state            String?
@@ -257,4 +275,25 @@ model QuizQuestion {
   suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
   reports       QuizQuestionReport[]
   createdAt     DateTime @default(now())
+}
+
+// ===== Missões diárias e semanais =====
+// A definição de cada missão fica no código (src/game/missoes.js), não no
+// banco: assim dá pra ajustar objetivos e recompensas sem migration. Aqui
+// guardamos só o PROGRESSO de cada pessoa.
+model MissaoProgresso {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  missaoKey  String   // qual missão (ex: "acertar_10_quiz")
+  periodo    String   // "2026-08-11" (diária) ou "2026-W33" (semanal)
+  progresso  Int      @default(0)
+  meta       Int      // guardado junto: se a missão mudar, o histórico não quebra
+  concluida  Boolean  @default(false)
+  resgatada  Boolean  @default(false)
+  concluidaEm DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, missaoKey, periodo])
+  @@index([userId, periodo])
 }
