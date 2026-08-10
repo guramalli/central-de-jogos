@@ -103,6 +103,8 @@ export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSecon
     minLifetimePoints: 0,
     difficulty: "basic",
     maxPlayers: maxPlayers || 10,
+    // Quem criou é quem dá o start na partida.
+    donoId: criadorId,
     minCorrectToStop: 3,
     minSecondsBeforeStop: Math.min(20, (answerSeconds || 40) - 10),
   };

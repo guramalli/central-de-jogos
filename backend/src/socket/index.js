@@ -66,6 +66,11 @@ export function setupSocket(io) {
 
     // Voto numa palavra de outro jogador (só nas salas privadas, onde a
     // validação é feita pela mesa em vez do glossário).
+    // Dono da sala privada dá o start na partida.
+    socket.on("iniciar-partida", () => {
+      socket.currentRoom?.iniciarPartida?.(userId);
+    });
+
     socket.on("vote-word", ({ targetUserId, themeKey, valido } = {}) => {
       if (!targetUserId || !themeKey) return;
       socket.currentRoom?.submitWordVote?.(userId, targetUserId, themeKey, valido);

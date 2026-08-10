@@ -3882,3 +3882,50 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   line-height: 1.45;
 }
 .sc-sem-pontuacao-icone { font-size: 20px; flex-shrink: 0; }
+
+/* ===== Sala de espera (privadas) ===== */
+.espera { text-align: center; padding: 24px 16px 8px; }
+.espera-icone { font-size: 46px; margin-bottom: 6px; }
+.espera-titulo { font-family: var(--font-display); font-size: 24px; margin: 0 0 6px; }
+.espera-sub { color: var(--text-dim); font-size: 14px; margin: 0 0 20px; }
+
+.espera-jogadores {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.espera-jogador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+}
+.espera-jogador-bolinha {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #06d6a0;
+  box-shadow: 0 0 8px rgba(6, 214, 160, 0.7);
+}
+.espera-jogador-vazio {
+  border-style: dashed;
+  color: var(--text-dim);
+  font-weight: 400;
+  font-style: italic;
+}
+.espera-jogador-vazio .espera-jogador-bolinha {
+  background: var(--text-dim);
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+.espera-btn { font-size: 16px; padding: 13px 34px; }
+.espera-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.espera-dica { color: var(--text-dim); font-size: 12px; margin-top: 14px; }

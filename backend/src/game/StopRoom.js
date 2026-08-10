@@ -84,6 +84,47 @@ export class StopRoom {
     this.timer = null;
     this.timeLeft = 0;
 
+    // Sala privada começa parada, esperando o dono dar o start. Sem isso,
+    // as rodadas rodariam sozinhas enquanto o criador ainda está chamando
+    // a galera no zap — e ele voltaria pra sala já no meio do jogo.
+    if (this.privada) {
+      this.state = "aguardando";
+      this.donoId = config.donoId || null;
+    } else {
+      this.startIntermission();
+    }
+  }
+
+  // Estado da sala de espera, enviado pra quem está dentro.
+  estadoDaEspera() {
+    const jogadores = [...this.players.values()];
+    const unicos = new Set(jogadores.map((p) => p.userId));
+    return {
+      aguardando: true,
+      donoId: this.donoId,
+      jogadores: [...unicos].map((id) => {
+        const p = jogadores.find((x) => x.userId === id);
+        return { userId: id, nickname: p?.nickname || "?" };
+      }),
+      minimoParaComecar: 2,
+      podeComecar: unicos.size >= 2,
+    };
+  }
+
+  broadcastEspera() {
+    if (this.state !== "aguardando") return;
+    this.broadcast("sala-aguardando", this.estadoDaEspera());
+  }
+
+  // Só o dono da sala inicia, e só com gente suficiente.
+  iniciarPartida(userId) {
+    if (this.state !== "aguardando") return;
+    if (this.donoId && userId !== this.donoId) return;
+
+    const unicos = new Set([...this.players.values()].map((p) => p.userId));
+    if (unicos.size < 2) return;
+
+    this.systemMessage("🎲 A partida vai começar! Boa sorte.");
     this.startIntermission();
   }
 
@@ -183,6 +224,9 @@ export class StopRoom {
     }
 
     await this.broadcastOnlinePlayers();
+    // Sala privada em espera: manda o estado pra quem acabou de entrar (e
+    // atualiza os demais, que agora veem mais um na lista).
+    this.broadcastEspera();
     return true;
   }
 
@@ -201,6 +245,9 @@ export class StopRoom {
       }
     }
     await this.broadcastOnlinePlayers();
+    // Sala privada ainda esperando: atualiza a lista de quem está lá e se
+    // já dá pra começar.
+    this.broadcastEspera();
   }
 
   // Lista de jogadores online na sala com pontuação vitalícia (do jogo Stop) e patente —

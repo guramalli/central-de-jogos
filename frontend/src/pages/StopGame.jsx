@@ -4,6 +4,7 @@ import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ScoreTable from "../components/ScoreTable.jsx";
 import VotacaoPalavras from "../components/VotacaoPalavras.jsx";
+import SalaEspera from "../components/SalaEspera.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
@@ -62,6 +63,8 @@ export default function StopGame() {
   // Fase de votação (só nas salas privadas): a lista de palavras que a mesa
   // precisa validar antes da apuração.
   const [votingItems, setVotingItems] = useState(null);
+  // Sala privada aguardando o dono dar o start.
+  const [espera, setEspera] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [themes, setThemes] = useState([]);
   const [letter, setLetter] = useState(null);
@@ -142,6 +145,7 @@ export default function StopGame() {
       setPhase("active");
       setVotingItems(null);
       pendingVotingRef.current = null;
+      setEspera(null);
       setThemes(data.themes);
       setLetter(data.letter);
       setRoundNumber(data.roundNumber);
@@ -219,6 +223,11 @@ export default function StopGame() {
       }
     }
 
+    socket.on("sala-aguardando", (data) => {
+      setEspera(data);
+      setPhase("aguardando");
+    });
+
     socket.on("voting-start", (data) => {
       // Mesma proteção do resultado: se ainda estamos no atraso proposital
       // do STOP (mostrando "pediu stop" e "enviando..."), guarda a votação
@@ -273,6 +282,7 @@ export default function StopGame() {
       socket.off("tick");
       socket.off("round-result");
       socket.off("voting-start");
+      socket.off("sala-aguardando");
       socket.off("block-bonus");
       socket.off("skip-vote-update");
       socket.off("players-online");
@@ -634,6 +644,12 @@ export default function StopGame() {
               </div>
             ))}
           </div>
+        ) : phase === "aguardando" && espera ? (
+          <SalaEspera
+            estado={espera}
+            souDono={espera.donoId === user?.id}
+            onIniciar={() => socketRef.current?.emit("iniciar-partida")}
+          />
         ) : phase === "voting" && votingItems ? (
           <VotacaoPalavras
             items={votingItems}
