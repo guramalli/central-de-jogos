@@ -70,7 +70,9 @@ router.get("/todos", requireAuth, async (req, res) => {
   const clans = await prisma.clan.findMany({
     include: {
       owner: { select: { id: true, nickname: true } },
-      members: { select: { id: true, nickname: true, avatarUrl: true } },
+      members: {
+        select: { id: true, nickname: true, avatarUrl: true, role: true, isGuest: true },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -79,8 +81,13 @@ router.get("/todos", requireAuth, async (req, res) => {
 
   // Soma a pontuação mensal de cada clã numa consulta só, em vez de uma por
   // clã — com muitos clãs isso faria muita diferença.
+  //
+  // Contas ADMIN e de visitante não entram na soma: elas já ficam de fora
+  // de todos os outros rankings do site, então incluí-las aqui daria uma
+  // vantagem artificial ao clã que tivesse uma.
   const monthKey = currentMonthKey();
-  const todosIds = clans.flatMap((c) => c.members.map((m) => m.id));
+  const contaNoRanking = (m) => m.role !== "ADMIN" && !m.isGuest;
+  const todosIds = clans.flatMap((c) => c.members.filter(contaNoRanking).map((m) => m.id));
 
   const pontos = todosIds.length
     ? await prisma.monthlyScore.groupBy({
@@ -100,8 +107,10 @@ router.get("/todos", requireAuth, async (req, res) => {
     createdAt: c.createdAt,
     owner: c.owner,
     memberCount: c.members.length,
-    members: c.members,
-    monthlyPoints: c.members.reduce((s, m) => s + (pontosPorUsuario[m.id] || 0), 0),
+    members: c.members.map(({ id, nickname, avatarUrl }) => ({ id, nickname, avatarUrl })),
+    monthlyPoints: c.members
+      .filter(contaNoRanking)
+      .reduce((s, m) => s + (pontosPorUsuario[m.id] || 0), 0),
   }));
 
   // Ordena pelo desempenho do mês — dá um ar de disputa e destaca quem
@@ -256,13 +265,16 @@ router.delete("/members/:userId", requireAuth, async (req, res) => {
 router.get("/ranking/mensal", requireAuth, async (req, res) => {
   const monthKey = currentMonthKey();
   const clans = await prisma.clan.findMany({
-    include: { members: { select: { id: true, nickname: true, role: true } } },
+    include: { members: { select: { id: true, nickname: true, role: true, isGuest: true } } },
   });
 
   const results = [];
   for (const clan of clans) {
-    // Admins não contam pontos pro ranking do clã, mesmo que sejam membros.
-    const memberIds = clan.members.filter((m) => m.role !== "ADMIN").map((m) => m.id);
+    // Admins e visitantes não contam pontos pro ranking do clã, mesmo que
+    // sejam membros — a mesma regra vale nos rankings individuais.
+    const memberIds = clan.members
+      .filter((m) => m.role !== "ADMIN" && !m.isGuest)
+      .map((m) => m.id);
     if (memberIds.length === 0) continue;
     const scores = await prisma.monthlyScore.findMany({
       where: { userId: { in: memberIds }, gameKey: GAME_KEY, monthKey },
