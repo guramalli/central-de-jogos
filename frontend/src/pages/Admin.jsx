@@ -40,6 +40,8 @@ export default function Admin() {
   const [pending, setPending] = useState([]);
   const [quizPending, setQuizPending] = useState([]);
   const [users, setUsers] = useState([]);
+  // Resumo de quantos jogam no celular x computador.
+  const [plataformas, setPlataformas] = useState(null);
   const [usersPage, setUsersPage] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
   const [suspicious, setSuspicious] = useState([]);
@@ -69,6 +71,7 @@ export default function Admin() {
     if (user.role !== "ADMIN") return;
     try {
       const { data } = await api.get("/admin/users");
+      api.get("/admin/plataformas").then(({ data: p }) => setPlataformas(p)).catch(() => {});
       setUsers(data);
     } catch {
       // moderadores não têm acesso a essa lista; ignore
@@ -394,12 +397,40 @@ export default function Admin() {
       {user.role === "ADMIN" && (
         <div className="card" style={{ marginTop: 16 }}>
           <h2>Usuários ({users.length})</h2>
+
+          {plataformas && (
+            <div className="plataformas-resumo">
+              <div className="plataformas-card">
+                <span className="plataformas-icone">📱</span>
+                <strong>{plataformas.total.mobile}</strong>
+                <span>celular</span>
+                {plataformas.ultimos30.mobile > 0 && (
+                  <em>{plataformas.ultimos30.mobile} nos últimos 30 dias</em>
+                )}
+              </div>
+              <div className="plataformas-card">
+                <span className="plataformas-icone">💻</span>
+                <strong>{plataformas.total.desktop}</strong>
+                <span>computador</span>
+                {plataformas.ultimos30.desktop > 0 && (
+                  <em>{plataformas.ultimos30.desktop} nos últimos 30 dias</em>
+                )}
+              </div>
+              <div className="plataformas-card plataformas-card-dim">
+                <span className="plataformas-icone">❔</span>
+                <strong>{plataformas.total.desconhecido}</strong>
+                <span>sem registro</span>
+                <em>nunca entraram num jogo</em>
+              </div>
+            </div>
+          )}
           <table className="player-table player-table-compact">
             <thead>
               <tr>
                 <th>Nickname</th>
                 <th>E-mail</th>
                 <th>Cadastrado em</th>
+                <th>Onde joga</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Ações</th>
@@ -411,6 +442,11 @@ export default function Admin() {
                   <td>{u.nickname}</td>
                   <td>{u.email}</td>
                   <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
+                  <td title={u.ultimoAcesso ? `Último acesso: ${new Date(u.ultimoAcesso).toLocaleString("pt-BR")}` : "Nunca conectou pelo jogo"}>
+                    {u.ultimaPlataforma === "mobile" ? "📱 Celular"
+                      : u.ultimaPlataforma === "desktop" ? "💻 Computador"
+                      : <span style={{ color: "var(--text-dim)" }}>—</span>}
+                  </td>
                   <td>{u.role}</td>
                   <td>
                     {u.banned ? <span style={{ color: "var(--accent)" }}>🚫 Banido</span> : <span style={{ color: "#06d6a0" }}>✓ Ativo</span>}

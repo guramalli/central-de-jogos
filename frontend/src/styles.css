@@ -3963,3 +3963,23 @@ a.privada-sala:hover,
 a.lobby-game-card:hover {
   text-decoration: none;
 }
+
+/* Resumo de plataformas no painel admin */
+.plataformas-resumo { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0 18px; }
+.plataformas-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 150px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.plataformas-card strong { font-size: 28px; font-family: var(--font-mono); color: var(--accent-2); }
+.plataformas-card span { font-size: 13px; color: var(--text-dim); }
+.plataformas-card em { font-size: 11px; color: var(--text-dim); opacity: 0.7; font-style: normal; margin-top: 4px; }
+.plataformas-icone { font-size: 22px; }
+.plataformas-card-dim { opacity: 0.65; }
+.plataformas-card-dim strong { color: var(--text-dim); }

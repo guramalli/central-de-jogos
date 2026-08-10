@@ -192,10 +192,46 @@ router.patch("/quiz-questions/:id", async (req, res) => {
 
 router.get("/users", requireRole("ADMIN"), async (req, res) => {
   const users = await prisma.user.findMany({
-    select: { id: true, nickname: true, email: true, role: true, banned: true, createdAt: true },
+    select: {
+      id: true, nickname: true, email: true, role: true, banned: true, createdAt: true,
+      ultimaPlataforma: true, ultimoAcesso: true,
+    },
     orderBy: { createdAt: "asc" },
   });
   res.json(users);
+});
+
+// Resumo de quantos jogam no celular e quantos no computador. Útil pra
+// decidir onde vale investir esforço de interface.
+router.get("/plataformas", requireRole("ADMIN"), async (req, res) => {
+  const grupos = await prisma.user.groupBy({
+    by: ["ultimaPlataforma"],
+    _count: { _all: true },
+    where: { isGuest: false },
+  });
+
+  const resumo = { mobile: 0, desktop: 0, desconhecido: 0 };
+  for (const g of grupos) {
+    if (g.ultimaPlataforma === "mobile") resumo.mobile = g._count._all;
+    else if (g.ultimaPlataforma === "desktop") resumo.desktop = g._count._all;
+    else resumo.desconhecido += g._count._all;
+  }
+
+  // Últimos 30 dias — mostra a tendência atual, não o histórico todo.
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 30);
+  const recentes = await prisma.user.groupBy({
+    by: ["ultimaPlataforma"],
+    _count: { _all: true },
+    where: { isGuest: false, ultimoAcesso: { gte: desde } },
+  });
+  const ultimos30 = { mobile: 0, desktop: 0 };
+  for (const g of recentes) {
+    if (g.ultimaPlataforma === "mobile") ultimos30.mobile = g._count._all;
+    else if (g.ultimaPlataforma === "desktop") ultimos30.desktop = g._count._all;
+  }
+
+  res.json({ total: resumo, ultimos30 });
 });
 
 router.post("/users/:id/role", requireRole("ADMIN"), async (req, res) => {

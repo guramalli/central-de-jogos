@@ -16,3 +16,17 @@ export function useIsMobile(breakpoint = 700) {
 
   return isMobile;
 }
+
+// Detecta a plataforma pra registrar no perfil. Combina o tamanho da tela
+// com o user agent: tela pequena OU dispositivo de toque conta como mobile,
+// porque nem todo celular tem tela estreita (tablets, celular deitado).
+export function detectarPlataforma() {
+  try {
+    const telaPequena = window.matchMedia("(max-width: 820px)").matches;
+    const temToque = navigator.maxTouchPoints > 0;
+    const ua = /Android|iPhone|iPad|iPod|Mobile|Opera Mini/i.test(navigator.userAgent || "");
+    return telaPequena || (temToque && ua) ? "mobile" : "desktop";
+  } catch {
+    return "desktop";
+  }
+}

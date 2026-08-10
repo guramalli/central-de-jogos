@@ -36,6 +36,10 @@ model User {
   avatarUrl        String?  // foto pequena (base64), opcional
   banned           Boolean  @default(false)
   playtimeMinutes  Int      @default(0)
+  // Última plataforma usada pra jogar: "mobile" ou "desktop". Serve pra
+  // entender o público e decidir onde investir em melhorias de interface.
+  ultimaPlataforma String?
+  ultimoAcesso     DateTime?
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?
   state            String?

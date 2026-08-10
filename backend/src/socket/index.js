@@ -22,6 +22,18 @@ export function setupSocket(io) {
         return next(new Error("SESSAO_INVALIDA"));
       }
 
+      // Registra em qual plataforma a pessoa está jogando. Não bloqueia a
+      // conexão: se falhar, o jogo segue normalmente — é só métrica.
+      const plataforma = socket.handshake.auth?.plataforma;
+      if (plataforma === "mobile" || plataforma === "desktop") {
+        prisma.user
+          .update({
+            where: { id: user.id },
+            data: { ultimaPlataforma: plataforma, ultimoAcesso: new Date() },
+          })
+          .catch(() => {});
+      }
+
       socket.user = payload;
       next();
     } catch {
