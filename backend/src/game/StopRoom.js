@@ -251,7 +251,6 @@ export class StopRoom {
 
         // Saudação personalizada (premium). Sem nada configurado, não
         // acontece nada.
-        registrarDistinto(userId, "jogo_distinto", "stop").catch(() => {});
         const saudacoes = await carregarSaudacoes(userId);
         const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
         if (msgEntrada) this.systemMessage(msgEntrada, false, true);
@@ -880,7 +879,7 @@ export class StopRoom {
     // segurar a apuração da rodada.
     if (!this.semPontuacao) {
       for (const p of activePlayers) {
-        registrarEvento(p.userId, "rodada_jogada").catch(() => {});
+        registrarEvento(p.userId, "rodada_stop").catch(() => {});
       }
     }
 

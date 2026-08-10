@@ -6,7 +6,7 @@ import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
-import { registrarDistinto } from "./missoes.js";
+import { registrarEvento } from "./missoes.js";
 
 const GAME_KEY = "acromania";
 
@@ -91,7 +91,6 @@ export class AcromaniaRoom {
 
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) no lugar do texto padrão.
-      registrarDistinto(userId, "jogo_distinto", "acromania").catch(() => {});
       const saudacoes = await carregarSaudacoes(userId);
       const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
       this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
@@ -266,6 +265,7 @@ export class AcromaniaRoom {
     const clean = (phrase || "").trim().slice(0, 200);
     if (!clean) return;
     this.submissions.set(userId, clean);
+    registrarEvento(userId, "acro_frase").catch(() => {});
     socket.emit("acromania-phrase-submitted", { ok: true });
     this.broadcastSubmittedList();
 
@@ -354,6 +354,14 @@ export class AcromaniaRoom {
     const voteCounts = new Map(entries.map((e) => [e.entryId, 0]));
     for (const targetEntryId of votes.values()) {
       voteCounts.set(targetEntryId, (voteCounts.get(targetEntryId) || 0) + 1);
+    }
+
+    // Missões: cada voto recebido conta pra quem escreveu a frase.
+    for (const e of entries) {
+      const recebidos = voteCounts.get(e.entryId) || 0;
+      if (recebidos > 0) {
+        registrarEvento(e.userId, "acro_voto_recebido", recebidos).catch(() => {});
+      }
     }
 
     const maxVotes = Math.max(0, ...voteCounts.values());

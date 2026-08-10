@@ -23,7 +23,7 @@ export default function Missoes() {
     setAviso("");
     try {
       const { data } = await api.post("/missoes/resgatar", { missaoKey, tipo });
-      setAviso(`🎉 +${data.pontos} pontos creditados!`);
+      setAviso(`🎉 +${data.pontos} pontos creditados no ranking de ${dados.jogos?.[data.jogo]?.nome || data.jogo}!`);
       carregar();
     } catch (e) {
       setAviso(e.response?.data?.error || "Não foi possível resgatar.");
@@ -41,8 +41,13 @@ export default function Missoes() {
     );
   }
 
+  // Agrupa as missões por jogo. Assim fica claro em qual ranking cada
+  // recompensa vai cair — uma missão de Quiz não credita no Stop.
   const bloco = (titulo, subtitulo, lista, tipo) => {
     const concluidas = lista.filter((m) => m.concluida).length;
+    const porJogo = {};
+    for (const m of lista) (porJogo[m.jogo] ||= []).push(m);
+
     return (
       <div className="card" style={{ marginTop: 16 }}>
         <div className="missoes-cabecalho">
@@ -55,38 +60,53 @@ export default function Missoes() {
           </span>
         </div>
 
-        <div className="missoes-lista">
-          {lista.map((m) => {
-            const pct = Math.min(100, Math.round((m.progresso / m.meta) * 100));
-            return (
-              <div key={m.key} className={`missao ${m.concluida ? "missao-ok" : ""}`}>
-                <div className="missao-topo">
-                  <span className="missao-nome">
-                    {m.concluida ? "✅ " : ""}
-                    {m.nome}
-                  </span>
-                  <span className="missao-progresso">
-                    {Math.min(m.progresso, m.meta)}/{m.meta}
-                  </span>
-                </div>
-                <p className="missao-desc">{m.descricao}</p>
-                <div className="missao-barra">
-                  <div className="missao-barra-fill" style={{ width: `${pct}%` }} />
-                </div>
-
-                <div className="missao-rodape">
-                  <span className="missao-pontos">+{m.pontos} pts</span>
-                  {m.concluida && !m.resgatada && (
-                    <button className="missao-resgatar" onClick={() => resgatar(m.key, tipo)}>
-                      Resgatar
-                    </button>
-                  )}
-                  {m.resgatada && <span className="missao-resgatada">✓ resgatada</span>}
-                </div>
+        {Object.entries(porJogo).map(([jogo, missoes]) => {
+          const info = dados.jogos?.[jogo] || { nome: jogo, icone: "🎮" };
+          return (
+            <div key={jogo} className="missoes-grupo">
+              <div className="missoes-grupo-titulo">
+                {info.icone} Missões de {info.nome}
+                <span className="missoes-grupo-nota">
+                  os pontos vão pro ranking de {info.nome}
+                </span>
               </div>
-            );
-          })}
-        </div>
+
+              <div className="missoes-lista">
+                {missoes.map((m) => {
+                  const pct = Math.min(100, Math.round((m.progresso / m.meta) * 100));
+                  return (
+                    <div key={m.key} className={`missao ${m.concluida ? "missao-ok" : ""}`}>
+                      <div className="missao-topo">
+                        <span className="missao-nome">
+                          {m.concluida ? "✅ " : ""}
+                          {m.nome}
+                        </span>
+                        <span className="missao-progresso">
+                          {Math.min(m.progresso, m.meta)}/{m.meta}
+                        </span>
+                      </div>
+                      <p className="missao-desc">{m.descricao}</p>
+                      <div className="missao-barra">
+                        <div className="missao-barra-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="missao-rodape">
+                        <span className="missao-pontos">
+                          +{m.pontos} pts em {info.nome}
+                        </span>
+                        {m.concluida && !m.resgatada && (
+                          <button className="missao-resgatar" onClick={() => resgatar(m.key, tipo)}>
+                            Resgatar
+                          </button>
+                        )}
+                        {m.resgatada && <span className="missao-resgatada">✓ resgatada</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -145,7 +165,8 @@ export default function Missoes() {
             ))}
           </div>
           <p className="streak-aviso">
-            A sequência zera se você passar um dia inteiro sem jogar.
+            A sequência zera se você passar um dia inteiro sem jogar. Os pontos vão pro ranking
+            do jogo em que você mais pontuou no mês.
           </p>
         </div>
       )}

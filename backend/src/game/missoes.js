@@ -19,21 +19,36 @@ export const MISSOES_ATIVAS = true;
 // menos que uma sessão boa de partidas.
 export const MISSOES = {
   diarias: [
-    { key: "jogar_3_rodadas", nome: "Aquecimento", descricao: "Jogue 10 rodadas em qualquer jogo", meta: 10, evento: "rodada_jogada", pontos: 100 },
-    { key: "acertar_10_quiz", nome: "Sabe-tudo", descricao: "Acerte 10 perguntas no Quiz", meta: 10, evento: "quiz_acerto", pontos: 120 },
-    { key: "pedir_stop_1", nome: "Dedo rápido", descricao: "Peça STOP 10 vezes", meta: 10, evento: "stop_pedido", pontos: 100 },
-    { key: "jogar_2_jogos", nome: "Versátil", descricao: "Jogue 2 jogos diferentes hoje", meta: 2, evento: "jogo_distinto", pontos: 50 },
-    // Extras de premium
-    { key: "premium_acertar_25", nome: "Maratonista", descricao: "Acerte 25 perguntas no Quiz", meta: 25, evento: "quiz_acerto", pontos: 250, premium: true },
-    { key: "premium_vencer_bloco", nome: "Dominante", descricao: "Termine um bloco em 1º lugar", meta: 1, evento: "bloco_vencido", pontos: 200, premium: true },
+    // --- Stop ---
+    { key: "stop_10_rodadas", jogo: "stop", nome: "Aquecimento", descricao: "Jogue 10 rodadas de Stop", meta: 10, evento: "rodada_stop", pontos: 100 },
+    { key: "stop_10_stops", jogo: "stop", nome: "Dedo rápido", descricao: "Peça STOP 10 vezes", meta: 10, evento: "stop_pedido", pontos: 100 },
+    // --- Quiz ---
+    { key: "quiz_10_acertos", jogo: "quiz", nome: "Sabe-tudo", descricao: "Acerte 10 perguntas no Quiz", meta: 10, evento: "quiz_acerto", pontos: 120 },
+    { key: "quiz_3_temas", jogo: "quiz", nome: "Passeio", descricao: "Acerte perguntas em 3 temas diferentes", meta: 3, evento: "tema_distinto", pontos: 80 },
+    // --- Acromania ---
+    { key: "acro_3_frases", jogo: "acromania", nome: "Criativo", descricao: "Envie 3 frases na Acromania", meta: 3, evento: "acro_frase", pontos: 80 },
+    // --- Premium (escondidas enquanto o recurso está desligado) ---
+    { key: "premium_quiz_25", jogo: "quiz", nome: "Maratonista", descricao: "Acerte 25 perguntas no Quiz", meta: 25, evento: "quiz_acerto", pontos: 250, premium: true },
+    { key: "premium_stop_bloco", jogo: "stop", nome: "Dominante", descricao: "Termine um bloco em 1º lugar", meta: 1, evento: "bloco_vencido", pontos: 200, premium: true },
   ],
   semanais: [
-    { key: "sem_jogar_30", nome: "Frequente", descricao: "Jogue 30 rodadas na semana", meta: 30, evento: "rodada_jogada", pontos: 300 },
-    { key: "sem_acertar_100", nome: "Enciclopédia", descricao: "Acerte 100 perguntas no Quiz", meta: 100, evento: "quiz_acerto", pontos: 500 },
-    { key: "sem_5_temas", nome: "Curioso", descricao: "Acerte perguntas em 5 temas diferentes", meta: 5, evento: "tema_distinto", pontos: 200 },
-    // Extras de premium
-    { key: "premium_sem_podio", nome: "Pódio", descricao: "Termine 3 blocos no pódio", meta: 3, evento: "bloco_podio", pontos: 600, premium: true },
+    // --- Stop ---
+    { key: "stop_sem_30", jogo: "stop", nome: "Frequente", descricao: "Jogue 30 rodadas de Stop na semana", meta: 30, evento: "rodada_stop", pontos: 300 },
+    // --- Quiz ---
+    { key: "quiz_sem_100", jogo: "quiz", nome: "Enciclopédia", descricao: "Acerte 100 perguntas no Quiz", meta: 100, evento: "quiz_acerto", pontos: 500 },
+    { key: "quiz_sem_5_temas", jogo: "quiz", nome: "Curioso", descricao: "Acerte perguntas em 5 temas diferentes", meta: 5, evento: "tema_distinto", pontos: 200 },
+    // --- Acromania ---
+    { key: "acro_sem_votos", jogo: "acromania", nome: "Popular", descricao: "Receba 10 votos nas suas frases", meta: 10, evento: "acro_voto_recebido", pontos: 250 },
+    // --- Premium ---
+    { key: "premium_stop_podio", jogo: "stop", nome: "Pódio", descricao: "Termine 3 blocos no pódio", meta: 3, evento: "bloco_podio", pontos: 600, premium: true },
   ],
+};
+
+// Nome de cada jogo, pra exibir na tela agrupada.
+export const NOMES_JOGOS = {
+  stop: { nome: "Stop", icone: "✏️" },
+  quiz: { nome: "Quiz", icone: "🧠" },
+  acromania: { nome: "Acromania", icone: "💬" },
 };
 
 // ===== Sequência de dias (streak) =====
@@ -144,7 +159,12 @@ export async function missoesDe(userId, ehPremium) {
     const porChave = Object.fromEntries(progressos.map((p) => [p.missaoKey, p]));
 
     resultado[tipo] = disponiveis.map((m) => ({
-      ...m,
+      key: m.key,
+      jogo: m.jogo,
+      nome: m.nome,
+      descricao: m.descricao,
+      meta: m.meta,
+      pontos: m.pontos,
       progresso: porChave[m.key]?.progresso || 0,
       concluida: porChave[m.key]?.concluida || false,
       resgatada: porChave[m.key]?.resgatada || false,
@@ -157,26 +177,26 @@ export async function missoesDe(userId, ehPremium) {
 // ===== Crédito de pontos =====
 //
 // Missões e streak somam no ranking mensal E vitalício, como os pontos de
-// jogo. Usa o Stop como gameKey por ser o jogo principal do ranking geral.
-const GAME_KEY_RECOMPENSA = "stop";
-
-async function creditarPontos(userId, pontos, motivo) {
+// jogo. Cada missão credita no ranking do SEU jogo: uma missão de Quiz não
+// pode fazer alguém subir no ranking do Stop sem ter jogado Stop.
+async function creditarPontos(userId, pontos, motivo, gameKey) {
   if (!pontos || pontos <= 0) return false;
 
   // Visitante e ADMIN não entram em ranking nenhum — creditar pra eles
   // seria inconsistente com o resto do site.
   if (!(await concorreAoRanking(userId))) return false;
 
+  const jogo = gameKey || "stop";
   const monthKey = currentMonthKey();
   await prisma.monthlyScore.upsert({
-    where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY_RECOMPENSA, monthKey } },
+    where: { userId_gameKey_monthKey: { userId, gameKey: jogo, monthKey } },
     update: { points: { increment: pontos } },
-    create: { userId, gameKey: GAME_KEY_RECOMPENSA, monthKey, points: pontos },
+    create: { userId, gameKey: jogo, monthKey, points: pontos },
   });
   await prisma.lifetimeScore.upsert({
-    where: { userId_gameKey: { userId, gameKey: GAME_KEY_RECOMPENSA } },
+    where: { userId_gameKey: { userId, gameKey: jogo } },
     update: { points: { increment: pontos } },
-    create: { userId, gameKey: GAME_KEY_RECOMPENSA, points: pontos },
+    create: { userId, gameKey: jogo, points: pontos },
   });
 
   console.log(`+${pontos} pts para ${userId} (${motivo})`);
@@ -204,8 +224,23 @@ export async function resgatarMissao(userId, missaoKey, periodo) {
     data: { resgatada: true },
   });
 
-  const creditou = await creditarPontos(userId, missao.pontos, `missão ${missaoKey}`);
-  return { ok: true, pontos: creditou ? missao.pontos : 0, creditou };
+  const creditou = await creditarPontos(userId, missao.pontos, `missão ${missaoKey}`, missao.jogo);
+  return { ok: true, pontos: creditou ? missao.pontos : 0, creditou, jogo: missao.jogo };
+}
+
+// Descobre em qual jogo a pessoa mais pontuou no mês. Usado pra decidir
+// onde creditar recompensas que não pertencem a um jogo específico.
+async function jogoMaisJogadoNoMes(userId) {
+  try {
+    const scores = await prisma.monthlyScore.findMany({
+      where: { userId, monthKey: currentMonthKey() },
+      orderBy: { points: "desc" },
+      take: 1,
+    });
+    return scores[0]?.gameKey || "stop";
+  } catch {
+    return "stop";
+  }
 }
 
 // ===== Sequência de dias =====
@@ -248,7 +283,10 @@ export async function registrarDiaJogado(userId) {
     else if (novoStreak > ultimoMarco.dias) pontos = PONTOS_STREAK_APOS_MARCOS;
 
     if (pontos > 0) {
-      await creditarPontos(userId, pontos, `sequência de ${novoStreak} dias`);
+      // A sequência não é de nenhum jogo específico, então credita no que a
+      // pessoa mais jogou no mês — é onde o ponto faz mais sentido pra ela.
+      const jogoPreferido = await jogoMaisJogadoNoMes(userId);
+      await creditarPontos(userId, pontos, `sequência de ${novoStreak} dias`, jogoPreferido);
     }
 
     return {

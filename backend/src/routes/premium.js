@@ -5,7 +5,7 @@ import {
   PREMIUM_ATIVO, MOLDURAS, CORES_NICK, EMOJIS_PREMIUM,
   ehPremium, validarEscolhas,
 } from "../utils/premium.js";
-import { MISSOES_ATIVAS, missoesDe, resgatarMissao, periodoAtual, RECOMPENSAS_STREAK } from "../game/missoes.js";
+import { MISSOES_ATIVAS, missoesDe, resgatarMissao, periodoAtual, RECOMPENSAS_STREAK, NOMES_JOGOS } from "../game/missoes.js";
 
 const router = Router();
 
@@ -63,7 +63,8 @@ router.get(["/missoes", "/lista"], requireAuth, async (req, res) => {
     where: { id: req.user.id },
     select: { premiumAte: true, premiumVitalicio: true },
   });
-  res.json(await missoesDe(req.user.id, ehPremium(user)));
+  const dados = await missoesDe(req.user.id, ehPremium(user));
+  res.json({ ...dados, jogos: NOMES_JOGOS });
 });
 
 // Resgata a recompensa de uma missão concluída.

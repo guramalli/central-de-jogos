@@ -152,7 +152,6 @@ export class QuizRoom {
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
-      registrarDistinto(userId, "jogo_distinto", "quiz").catch(() => {});
       const saudacoes = await carregarSaudacoes(userId);
       const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
       this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
