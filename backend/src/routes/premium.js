@@ -67,6 +67,27 @@ router.get(["/missoes", "/lista"], requireAuth, async (req, res) => {
   res.json({ ...dados, jogos: NOMES_JOGOS });
 });
 
+// Quantas missões estão concluídas e ainda não foram resgatadas. Usado
+// pelo avisinho no menu, no mesmo esquema das mensagens privadas.
+router.get("/pendentes", requireAuth, async (req, res) => {
+  if (!MISSOES_ATIVAS) return res.json({ count: 0 });
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { premiumAte: true, premiumVitalicio: true },
+    });
+    const dados = await missoesDe(req.user.id, ehPremium(user));
+    const count = [...dados.diarias, ...dados.semanais].filter(
+      (m) => m.concluida && !m.resgatada
+    ).length;
+    res.json({ count });
+  } catch {
+    // Falha aqui não pode quebrar o menu: devolve zero e segue.
+    res.json({ count: 0 });
+  }
+});
+
 // Resgata a recompensa de uma missão concluída.
 router.post("/resgatar", requireAuth, async (req, res) => {
   if (!MISSOES_ATIVAS) return res.status(400).json({ error: "Missões indisponíveis." });

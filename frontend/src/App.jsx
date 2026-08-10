@@ -45,6 +45,8 @@ export default function App() {
   const location = useLocation();
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
   const [unreadDmCount, setUnreadDmCount] = useState(0);
+  // Missões concluídas esperando resgate — mesmo esquema do aviso de DM.
+  const [missoesPendentes, setMissoesPendentes] = useState(0);
 
   // Confere de tempos em tempos se chegou pedido de amizade ou mensagem
   // privada nova — assim, mesmo quem não está na página de Amigos vê o
@@ -57,6 +59,7 @@ export default function App() {
     function check() {
       api.get("/friends/pending-count").then(({ data }) => setPendingFriendCount(data.count)).catch(() => {});
       api.get("/friends/messages/unread-count").then(({ data }) => setUnreadDmCount(data.count)).catch(() => {});
+      api.get("/missoes/pendentes").then(({ data }) => setMissoesPendentes(data.count)).catch(() => {});
     }
     check();
     const interval = setInterval(check, 30000);
@@ -88,7 +91,11 @@ export default function App() {
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
-                <NavLink to="/missoes" className={navLinkClass}>Missões</NavLink>
+                <NavLink to="/missoes" className={navLinkClass}>
+                  Missões{missoesPendentes > 0 && (
+                    <span className="nav-badge">{missoesPendentes}</span>
+                  )}
+                </NavLink>
                 <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
                 <NavLink to="/amigos" className={navLinkClass}>
                   Amigos{(pendingFriendCount + unreadDmCount) > 0 && (

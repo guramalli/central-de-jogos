@@ -23,8 +23,12 @@ export default function Missoes() {
     setAviso("");
     try {
       const { data } = await api.post("/missoes/resgatar", { missaoKey, tipo });
-      setAviso(`🎉 +${data.pontos} pontos creditados no ranking de ${dados.jogos?.[data.jogo]?.nome || data.jogo}!`);
+      const nomeJogo = dados?.jogos?.[data.jogo]?.nome;
+      setAviso(`🎉 +${data.pontos} pontos creditados${nomeJogo ? ` no ranking de ${nomeJogo}` : ""}!`);
       carregar();
+      // Avisa o menu pra atualizar o contador na hora, sem esperar o
+      // ciclo automático de 30 segundos.
+      window.dispatchEvent(new Event("unread-counts-changed"));
     } catch (e) {
       setAviso(e.response?.data?.error || "Não foi possível resgatar.");
     }
@@ -45,8 +49,10 @@ export default function Missoes() {
   // recompensa vai cair — uma missão de Quiz não credita no Stop.
   const bloco = (titulo, subtitulo, lista, tipo) => {
     const concluidas = lista.filter((m) => m.concluida).length;
+    // Se o backend ainda não mandar o campo `jogo` (versão antiga rodando),
+    // agrupa tudo junto em vez de mostrar "undefined" na tela.
     const porJogo = {};
-    for (const m of lista) (porJogo[m.jogo] ||= []).push(m);
+    for (const m of lista) (porJogo[m.jogo || "geral"] ||= []).push(m);
 
     return (
       <div className="card" style={{ marginTop: 16 }}>
@@ -61,15 +67,17 @@ export default function Missoes() {
         </div>
 
         {Object.entries(porJogo).map(([jogo, missoes]) => {
-          const info = dados.jogos?.[jogo] || { nome: jogo, icone: "🎮" };
+          const info = dados.jogos?.[jogo] || null;
           return (
             <div key={jogo} className="missoes-grupo">
-              <div className="missoes-grupo-titulo">
-                {info.icone} Missões de {info.nome}
-                <span className="missoes-grupo-nota">
-                  os pontos vão pro ranking de {info.nome}
-                </span>
-              </div>
+              {info && (
+                <div className="missoes-grupo-titulo">
+                  {info.icone} Missões de {info.nome}
+                  <span className="missoes-grupo-nota">
+                    os pontos vão pro ranking de {info.nome}
+                  </span>
+                </div>
+              )}
 
               <div className="missoes-lista">
                 {missoes.map((m) => {
@@ -91,7 +99,7 @@ export default function Missoes() {
                       </div>
                       <div className="missao-rodape">
                         <span className="missao-pontos">
-                          +{m.pontos} pts em {info.nome}
+                          +{m.pontos} pts{info ? ` em ${info.nome}` : ""}
                         </span>
                         {m.concluida && !m.resgatada && (
                           <button className="missao-resgatar" onClick={() => resgatar(m.key, tipo)}>
