@@ -1556,11 +1556,24 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 
 /* ===== Painel de erros ===== */
-.quiz-wrong-log-panel { display: flex; flex-direction: column; }
+/* O log precisa de ALTURA MÁXIMA. Sem isso, cada chute empurrava o painel
+   pra baixo e a página inteira crescia — numa rodada com muita gente
+   chutando, a tela virava um rolo sem fim.
+   Com o teto, o painel fica do tamanho do card da pergunta e o excesso
+   vira scroll interno. */
+.quiz-wrong-log-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  min-height: 0;
+}
 .quiz-wrong-log-list {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
+  /* min-height:0 é o que faz o overflow funcionar dentro de um flex —
+     sem isso o filho cresce em vez de rolar. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
