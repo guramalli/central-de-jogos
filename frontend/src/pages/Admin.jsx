@@ -39,6 +39,11 @@ export default function Admin() {
   const { user } = useAuth();
   const [pending, setPending] = useState([]);
   const [quizPending, setQuizPending] = useState([]);
+  // Edição direta na fila de pendentes: a maioria das perguntas que caem
+  // aqui só precisa de um ajuste no texto, não de rejeição. Sem isso, o
+  // caminho era rejeitar e recadastrar do zero.
+  const [editandoQuiz, setEditandoQuiz] = useState(null); // id em edição
+  const [rascunho, setRascunho] = useState({ question: "", answer: "" });
   const [users, setUsers] = useState([]);
   // Resumo de quantos jogam no celular x computador.
   const [plataformas, setPlataformas] = useState(null);
@@ -168,6 +173,31 @@ export default function Admin() {
   async function reject(id) {
     await api.post(`/admin/glossary/${id}/reject`);
     loadPending();
+  }
+
+  function iniciarEdicao(q) {
+    setEditandoQuiz(q.id);
+    setRascunho({ question: q.question, answer: q.answer });
+  }
+
+  async function salvarEdicao(id, aprovarDepois) {
+    if (!rascunho.question.trim() || !rascunho.answer.trim()) {
+      alert("Pergunta e resposta não podem ficar vazias.");
+      return;
+    }
+    try {
+      await api.patch(`/admin/quiz-questions/${id}`, {
+        question: rascunho.question.trim(),
+        answer: rascunho.answer.trim(),
+      });
+      // Salvar e aprovar de uma vez é o fluxo mais comum: a pessoa corrige
+      // o texto justamente pra pergunta voltar ao ar.
+      if (aprovarDepois) await api.post(`/admin/quiz-questions/${id}/approve`);
+      setEditandoQuiz(null);
+      loadQuizPending();
+    } catch (e) {
+      alert(e.response?.data?.error || "Erro ao salvar.");
+    }
   }
 
   async function approveQuiz(id) {
@@ -366,24 +396,66 @@ export default function Admin() {
             </tr>
           </thead>
           <tbody>
-            {quizPending.map((q) => (
-              <tr key={q.id}>
-                <td>{QUIZ_THEME_NAMES[q.themeKey] || q.themeKey}</td>
-                <td>{q.question}</td>
-                <td>{q.answer}</td>
-                <td>
-                  {q.validationNote ? (
-                    <span style={{ color: "var(--accent)" }}>🤖 {q.validationNote}</span>
-                  ) : (
-                    q.suggestedBy?.nickname || "—"
-                  )}
-                </td>
-                <td>
-                  <button className="btn success" onClick={() => approveQuiz(q.id)}>Aprovar</button>{" "}
-                  <button className="btn secondary" onClick={() => rejectQuiz(q.id)}>Rejeitar</button>
-                </td>
-              </tr>
-            ))}
+            {quizPending.map((q) => {
+              const emEdicao = editandoQuiz === q.id;
+              return (
+                <tr key={q.id} className={emEdicao ? "admin-linha-editando" : ""}>
+                  <td>{QUIZ_THEME_NAMES[q.themeKey] || q.themeKey}</td>
+                  <td>
+                    {emEdicao ? (
+                      <textarea
+                        className="admin-edit-campo"
+                        value={rascunho.question}
+                        onChange={(e) => setRascunho((r) => ({ ...r, question: e.target.value }))}
+                        rows={2}
+                        autoFocus
+                      />
+                    ) : (
+                      q.question
+                    )}
+                  </td>
+                  <td>
+                    {emEdicao ? (
+                      <input
+                        className="admin-edit-campo"
+                        value={rascunho.answer}
+                        onChange={(e) => setRascunho((r) => ({ ...r, answer: e.target.value }))}
+                      />
+                    ) : (
+                      q.answer
+                    )}
+                  </td>
+                  <td>
+                    {q.validationNote ? (
+                      <span style={{ color: "var(--accent)" }}>🤖 {q.validationNote}</span>
+                    ) : (
+                      q.suggestedBy?.nickname || "—"
+                    )}
+                  </td>
+                  <td className="admin-acoes">
+                    {emEdicao ? (
+                      <>
+                        <button className="btn success" onClick={() => salvarEdicao(q.id, true)}>
+                          Salvar e aprovar
+                        </button>{" "}
+                        <button className="btn" onClick={() => salvarEdicao(q.id, false)}>
+                          Só salvar
+                        </button>{" "}
+                        <button className="btn secondary" onClick={() => setEditandoQuiz(null)}>
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn success" onClick={() => approveQuiz(q.id)}>Aprovar</button>{" "}
+                        <button className="btn" onClick={() => iniciarEdicao(q)}>✏️ Editar</button>{" "}
+                        <button className="btn secondary" onClick={() => rejectQuiz(q.id)}>Rejeitar</button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {quizPending.length === 0 && (
               <tr>
                 <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhuma pendência.</td>

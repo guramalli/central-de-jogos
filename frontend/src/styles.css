@@ -4677,3 +4677,20 @@ span.votacao-trilha-item {
   color: var(--text-dim);
   font-size: 14px;
 }
+
+/* Edição direta na fila de perguntas pendentes */
+.admin-linha-editando { background: rgba(255, 153, 0, 0.07); }
+.admin-edit-campo {
+  width: 100%;
+  margin: 0;
+  font-size: 13px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+.admin-acoes { white-space: nowrap; }
+.admin-acoes .btn { padding: 5px 10px; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .admin-acoes { white-space: normal; }
+  .admin-acoes .btn { margin-bottom: 4px; }
+}
