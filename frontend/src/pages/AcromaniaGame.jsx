@@ -267,6 +267,8 @@ export default function AcromaniaGame() {
                       setPasteBlockedMsg(true);
                     }}
                     maxLength={200}
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder={`Frase começando com ${letters.join(", ")}...`}
                   />
                   <button className="quiz-answer-btn" type="submit">Enviar frase</button>

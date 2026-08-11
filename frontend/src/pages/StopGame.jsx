@@ -379,6 +379,9 @@ export default function StopGame() {
         placeholder={letter || ""}
         maxLength={40}
         autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
         onChange={(e) => updateAnswer(t.key, e.target.value)}
         onPaste={(e) => {
           e.preventDefault();

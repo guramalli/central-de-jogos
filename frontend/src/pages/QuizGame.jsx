@@ -415,6 +415,9 @@ export default function QuizGame() {
                 }}
                 placeholder={phase === "active" ? "Digite sua resposta..." : "Aguarde a próxima pergunta..."}
                 autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 disabled={phase !== "active"}
               />
               <button className="quiz-answer-btn" type="submit" disabled={phase !== "active"}>

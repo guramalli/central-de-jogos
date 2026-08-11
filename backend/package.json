@@ -34,7 +34,9 @@
     "mover-mitologia": "node prisma/moverMitologia.js",
     "diagnostico-salas": "node prisma/diagnosticoSalas.js",
     "limpar-duplicadas": "node prisma/limparDuplicadas.js",
-    "import-avancadas2": "node prisma/importAvancadas2.js"
+    "import-avancadas2": "node prisma/importAvancadas2.js",
+    "backup": "node prisma/backup.js",
+    "restaurar": "node prisma/restaurar.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
