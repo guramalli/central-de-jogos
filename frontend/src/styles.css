@@ -4497,3 +4497,27 @@ a.lobby-game-card:hover {
      quando ele aparece. */
   .sc-bottom-grid.sc-mobile-aba-jogo { padding-bottom: 12px; }
 }
+
+/* Progresso da votação */
+.votacao-topo-dir { display: flex; align-items: center; gap: 10px; }
+.votacao-prontos {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.votacao-pronto {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(6, 214, 160, 0.12);
+  border: 1px solid rgba(6, 214, 160, 0.35);
+  font-size: 13px;
+  text-align: center;
+}
+/* Explicação abaixo dos controles de criação de sala */
+.privada-dica {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 6px 0 0;
+  line-height: 1.5;
+}

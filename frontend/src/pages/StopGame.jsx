@@ -64,6 +64,9 @@ export default function StopGame() {
   // Fase de votação (só nas salas privadas): a lista de palavras que a mesa
   // precisa validar antes da apuração.
   const [votingItems, setVotingItems] = useState(null);
+  // Quantos jogadores já terminaram de votar — mostra que a sala está
+  // esperando os outros, não travada.
+  const [progressoVoto, setProgressoVoto] = useState(null);
   // Sala privada aguardando o dono dar o start.
   const [espera, setEspera] = useState(null);
   // No celular os três painéis não cabem empilhados — viram abas. No
@@ -150,6 +153,7 @@ export default function StopGame() {
       setVotingItems(null);
       pendingVotingRef.current = null;
       setEspera(null);
+      setProgressoVoto(null);
       setThemes(data.themes);
       setLetter(data.letter);
       setRoundNumber(data.roundNumber);
@@ -227,11 +231,15 @@ export default function StopGame() {
       }
     }
 
+    socket.on("voting-progress", (data) => setProgressoVoto(data));
+
     socket.on("sala-aguardando", (data) => {
       setEspera(data);
       setPhase("aguardando");
     });
 
+    // Andamento da votação: mostra "3 de 5 já votaram" pra ninguém achar
+    // que a sala travou enquanto espera os outros.
     socket.on("voting-start", (data) => {
       // Mesma proteção do resultado: se ainda estamos no atraso proposital
       // do STOP (mostrando "pediu stop" e "enviando..."), guarda a votação
@@ -286,6 +294,7 @@ export default function StopGame() {
       socket.off("tick");
       socket.off("round-result");
       socket.off("voting-start");
+      socket.off("voting-progress");
       socket.off("sala-aguardando");
       socket.off("block-bonus");
       socket.off("skip-vote-update");
@@ -671,6 +680,7 @@ export default function StopGame() {
             items={votingItems}
             meuUserId={user?.id}
             segundos={timeLeft}
+            progresso={progressoVoto}
             onVotar={(targetUserId, themeKey, valido) =>
               socketRef.current?.emit("vote-word", { targetUserId, themeKey, valido })
             }

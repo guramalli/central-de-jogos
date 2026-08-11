@@ -37,7 +37,7 @@ router.get("/", requireAuth, (req, res) => {
 });
 
 router.post("/criar", requireAuth, async (req, res) => {
-  const { nome, senha, themeKeys, answerSeconds, maxPlayers } = req.body;
+  const { nome, senha, themeKeys, answerSeconds, maxPlayers, votingSeconds, minSecondsBeforeStop } = req.body;
 
   const nomeLimpo = String(nome || "").trim();
   if (nomeLimpo.length < 3 || nomeLimpo.length > 30) {
@@ -68,6 +68,22 @@ router.post("/criar", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "A sala aceita de 2 a 16 jogadores." });
   }
 
+  const votacao = Number(votingSeconds);
+  if (!Number.isFinite(votacao) || votacao < 15 || votacao > 90) {
+    return res.status(400).json({ error: "O tempo de votação deve ficar entre 15 e 90 segundos." });
+  }
+
+  const travaStop = Number(minSecondsBeforeStop);
+  if (!Number.isFinite(travaStop) || travaStop < 0 || travaStop > 60) {
+    return res.status(400).json({ error: "A trava do STOP deve ficar entre 0 e 60 segundos." });
+  }
+  // Trava maior que a rodada deixaria o STOP impossível.
+  if (travaStop >= seg) {
+    return res.status(400).json({
+      error: "A trava do STOP precisa ser menor que o tempo da rodada.",
+    });
+  }
+
   try {
     const io = req.app.get("io");
     const { roomId, nome: nomeCriado } = await criarSalaPrivada(io, {
@@ -76,6 +92,8 @@ router.post("/criar", requireAuth, async (req, res) => {
       themeKeys,
       answerSeconds: seg,
       maxPlayers: max,
+      votingSeconds: votacao,
+      minSecondsBeforeStop: travaStop,
       criadorId: req.user.id,
       criadorNickname: req.user.nickname,
     });

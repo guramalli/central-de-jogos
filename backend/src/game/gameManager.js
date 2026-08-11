@@ -66,7 +66,7 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
 // souber. A sala existe enquanto tiver gente — quando esvazia, é descartada.
 const salasPrivadas = new Map(); // roomId -> { nome, senha, criador, config, criadaEm }
 
-export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSeconds, maxPlayers, criadorId, criadorNickname }) {
+export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSeconds, maxPlayers, votingSeconds, minSecondsBeforeStop, criadorId, criadorNickname }) {
   const nomeLimpo = String(nome || "").trim();
 
   // Nome repetido confundiria na lista — melhor avisar do que deixar duas
@@ -99,14 +99,22 @@ export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSecon
     validacaoPorVoto: true,
     answerSeconds: answerSeconds || 40,
     intermissionSeconds: 15,
-    votingSeconds: 20,
+    // Tempo de votação escolhido pelo dono. O padrão subiu de 20 pra 40
+    // segundos: com 6 temas e várias pessoas, 20s não davam pra ler e
+    // julgar as palavras dos outros com calma.
+    votingSeconds: votingSeconds || 40,
     minLifetimePoints: 0,
     difficulty: "basic",
     maxPlayers: maxPlayers || 10,
     // Quem criou é quem dá o start na partida.
     donoId: criadorId,
     minCorrectToStop: 3,
-    minSecondsBeforeStop: Math.min(20, (answerSeconds || 40) - 10),
+    // Trava contra STOP relâmpago. O dono escolhe, mas nunca pode passar
+    // do tempo total da rodada — senão ninguém conseguiria pedir stop.
+    minSecondsBeforeStop: Math.min(
+      minSecondsBeforeStop ?? 15,
+      Math.max(5, (answerSeconds || 40) - 5)
+    ),
   };
 
   const room = new StopRoom(roomId, io, escolhidos, config);
@@ -120,6 +128,7 @@ export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSecon
     criadorNickname,
     temas: escolhidos.map((t) => t.name),
     answerSeconds: config.answerSeconds,
+    votingSeconds: config.votingSeconds,
     maxPlayers: config.maxPlayers,
     criadaEm: Date.now(),
   });

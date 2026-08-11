@@ -3,7 +3,7 @@ import { useState } from "react";
 // Tela de votação das salas privadas: cada jogador marca as palavras dos
 // outros como válidas ou não. Quem não votar não trava nada — passado o
 // tempo, o que ficou sem voto é considerado válido.
-export default function VotacaoPalavras({ items, meuUserId, segundos, onVotar }) {
+export default function VotacaoPalavras({ items, meuUserId, segundos, progresso, onVotar }) {
   const [votos, setVotos] = useState({}); // "userId:themeKey" -> boolean
 
   // Só vota nas palavras dos outros.
@@ -28,7 +28,16 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, onVotar })
     <div className="votacao">
       <div className="votacao-topo">
         <h3 className="votacao-titulo">🗳️ Vale ou não vale?</h3>
-        <span className="votacao-timer">{segundos}s</span>
+        <div className="votacao-topo-dir">
+          {/* Quem já votou em tudo vê quantos faltam, em vez de olhar pra
+              uma tela parada achando que travou. */}
+          {progresso && (
+            <span className="votacao-prontos">
+              {progresso.prontos}/{progresso.total} votaram
+            </span>
+          )}
+          <span className="votacao-timer">{segundos}s</span>
+        </div>
       </div>
       <p className="votacao-sub">
         Marque as palavras dos outros. O que a maioria reprovar não pontua — o que ninguém
@@ -70,6 +79,12 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, onVotar })
             })}
           </div>
         ))
+      )}
+
+      {dosOutros.length > 0 && votados >= dosOutros.length && (
+        <div className="votacao-pronto">
+          ✅ Você votou em tudo! Esperando o resto da mesa...
+        </div>
       )}
 
       {minhas.length > 0 && (

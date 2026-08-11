@@ -19,6 +19,11 @@ export default function SalaPrivada() {
   const [comSenha, setComSenha] = useState(false);
   const [segundos, setSegundos] = useState(40);
   const [maxJogadores, setMaxJogadores] = useState(8);
+  // Tempo pra mesa julgar as palavras. 40s é o padrão: com 20s a galera
+  // reclamou que mal dava pra ler as respostas dos outros.
+  const [segVotacao, setSegVotacao] = useState(40);
+  // Quantos segundos precisam passar antes que alguém possa pedir STOP.
+  const [travaStop, setTravaStop] = useState(15);
   const [erro, setErro] = useState("");
   const [criando, setCriando] = useState(false);
   const [aba, setAba] = useState("entrar");
@@ -74,6 +79,8 @@ export default function SalaPrivada() {
         themeKeys: escolhidos,
         answerSeconds: segundos,
         maxPlayers: maxJogadores,
+        votingSeconds: segVotacao,
+        minSecondsBeforeStop: travaStop,
       });
       navigate(`/jogos/stop/${data.roomId}`);
     } catch (e) {
@@ -276,6 +283,34 @@ export default function SalaPrivada() {
               onChange={(e) => setMaxJogadores(Number(e.target.value))}
               className="privada-range"
             />
+
+            <label className="privada-label" style={{ marginTop: 18 }}>
+              Tempo pra votar as palavras: <strong>{segVotacao} segundos</strong>
+            </label>
+            <input
+              type="range" min={15} max={90} step={5}
+              value={segVotacao}
+              onChange={(e) => setSegVotacao(Number(e.target.value))}
+              className="privada-range"
+            />
+            <p className="privada-dica">
+              Depois de cada rodada, todo mundo julga as palavras dos outros. Com muitos temas ou
+              muita gente, vale dar mais tempo. A votação encerra antes se todos já tiverem votado.
+            </p>
+
+            <label className="privada-label" style={{ marginTop: 18 }}>
+              Trava do STOP: <strong>{travaStop === 0 ? "sem trava" : `${travaStop} segundos`}</strong>
+            </label>
+            <input
+              type="range" min={0} max={Math.max(5, segundos - 5)} step={5}
+              value={Math.min(travaStop, Math.max(5, segundos - 5))}
+              onChange={(e) => setTravaStop(Number(e.target.value))}
+              className="privada-range"
+            />
+            <p className="privada-dica">
+              Tempo mínimo antes que alguém possa pedir STOP. Evita que a rodada acabe em 3
+              segundos e ninguém consiga preencher nada.
+            </p>
           </div>
 
           <button

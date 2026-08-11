@@ -834,7 +834,13 @@ export class StopRoom {
     }
 
     this.votingItems = paraVotar;
-    this.timeLeft = this.votingSeconds;
+
+    // O tempo de votação cresce com a quantidade de palavras a julgar:
+    // votar em 4 palavras é bem diferente de votar em 30. O dono define o
+    // tempo base, e cada palavra além das 6 primeiras rende 1 segundo a
+    // mais, até um teto — assim uma sala cheia não trava por 3 minutos.
+    const extras = Math.max(0, paraVotar.length - 6);
+    this.timeLeft = Math.min(this.votingSeconds + extras, this.votingSeconds * 2, 120);
     this.broadcast("voting-start", {
       items: paraVotar,
       seconds: this.votingSeconds,
@@ -860,6 +866,44 @@ export class StopRoom {
     // Ninguém vota na própria palavra.
     if (userId === targetUserId) return;
     this.wordVotes.set(`${userId}:${targetUserId}:${themeKey}`, !!valido);
+
+    // Avisa a sala do andamento — quem já votou vê que está esperando os
+    // outros, em vez de achar que o jogo travou.
+    this.broadcast("voting-progress", this.progressoVotacao());
+
+    // Todo mundo já votou em tudo: não faz sentido segurar a sala até o
+    // relógio zerar. Encerra na hora.
+    if (this.todosVotaram()) {
+      this.clearTimer();
+      const ativos = [...this.players.values()];
+      Promise.resolve(this.finishVoting(ativos)).catch((err) => {
+        console.error(`Falha ao apurar votação na sala ${this.roomId}:`, err);
+        this.startIntermission();
+      });
+    }
+  }
+
+  // Quantos jogadores já terminaram de votar em tudo que lhes cabe.
+  progressoVotacao() {
+    const jogadores = [...new Set([...this.players.values()].map((p) => p.userId))];
+    let prontos = 0;
+    for (const userId of jogadores) {
+      const cabem = (this.votingItems || []).filter((i) => i.userId !== userId);
+      if (cabem.length === 0) {
+        prontos++;
+        continue;
+      }
+      const votou = cabem.every((i) =>
+        this.wordVotes.has(`${userId}:${i.userId}:${i.themeKey}`)
+      );
+      if (votou) prontos++;
+    }
+    return { prontos, total: jogadores.length };
+  }
+
+  todosVotaram() {
+    const { prontos, total } = this.progressoVotacao();
+    return total > 0 && prontos >= total;
   }
 
   async finishVoting(activePlayers) {
