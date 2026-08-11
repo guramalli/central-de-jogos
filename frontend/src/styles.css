@@ -129,7 +129,8 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .nick-hover { position: relative; cursor: default; display: inline-block; }
 .nick-tooltip-portal {
   position: fixed;
-  transform: translateX(-50%);
+  /* O transform vem inline do componente: ele decide se o balão abre pra
+     baixo (padrão) ou pra cima, quando não há espaço na tela. */
   background: var(--bg-panel);
   color: var(--text);
   border: 1px solid var(--accent-2);
@@ -137,6 +138,8 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   padding: 8px 12px;
   width: 200px;
   max-width: 90vw;
+  max-height: 70vh;
+  overflow-y: auto;
   box-sizing: border-box;
   z-index: 9999;
   font-size: 11px;
@@ -4277,7 +4280,9 @@ a.lobby-game-card:hover {
     margin: 10px 0;
     position: sticky;
     top: 0;
-    z-index: 20;
+    /* Baixo de propósito: as abas precisam ficar sobre o conteúdo que
+       rola, mas NUNCA sobre modais, popovers ou o chat flutuante. */
+    z-index: 5;
     background: var(--bg);
     padding: 6px 0;
   }
@@ -4355,7 +4360,8 @@ a.lobby-game-card:hover {
     margin: 10px 0;
     position: sticky;
     top: 0;
-    z-index: 20;
+    /* Mesmo motivo do Stop: não pode cobrir modais nem o chat flutuante. */
+    z-index: 5;
     background: var(--bg);
     padding: 6px 0;
   }
@@ -4459,4 +4465,16 @@ a.lobby-game-card:hover {
   }
   .faixa-patente-simples .faixa-patente-nick { font-size: 13px; color: var(--text); }
   .faixa-patente-simples .faixa-patente-pts { font-size: 14px; }
+}
+
+/* Posição no ranking dentro da faixa de patente (mobile) */
+@media (max-width: 700px) {
+  .faixa-patente-pos {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--accent-2);
+    line-height: 1;
+  }
 }

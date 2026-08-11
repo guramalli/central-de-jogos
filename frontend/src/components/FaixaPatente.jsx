@@ -34,8 +34,19 @@ export default function FaixaPatente({ me, semPontuacao }) {
         <span className="faixa-patente-nick">{me.nickname}</span>
       </div>
       <div className="faixa-patente-numeros">
-        <span className="faixa-patente-pts">{(me.monthlyPoints ?? 0).toLocaleString("pt-BR")}</span>
-        <small>pts no mês</small>
+        {/* A posição motiva mais que o número absoluto: "12º" dá vontade
+            de chegar ao 11º. Os pontos ficam embaixo, menores. */}
+        {me.position ? (
+          <>
+            <span className="faixa-patente-pos">{me.position}º</span>
+            <small>{(me.monthlyPoints ?? 0).toLocaleString("pt-BR")} pts</small>
+          </>
+        ) : (
+          <>
+            <span className="faixa-patente-pts">{(me.monthlyPoints ?? 0).toLocaleString("pt-BR")}</span>
+            <small>pts no mês</small>
+          </>
+        )}
       </div>
     </div>
   );

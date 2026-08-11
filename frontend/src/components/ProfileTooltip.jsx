@@ -38,7 +38,27 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     const rect = anchorRef.current?.getBoundingClientRect();
     if (rect) {
-      setCoords({ top: rect.bottom + 6, left: rect.left + rect.width / 2 });
+      // O balão abre pra baixo por padrão. Mas se o nome está perto do fim
+      // da tela (comum na lista de jogadores no celular), não caberia — aí
+      // ele vira pra cima. Sem isso, o conteúdo ficava cortado.
+      const alturaEstimada = 210;
+      const espacoAbaixo = window.innerHeight - rect.bottom;
+      const abrirParaCima = espacoAbaixo < alturaEstimada && rect.top > alturaEstimada;
+
+      // O mesmo vale pras laterais: um nome na borda direita empurraria o
+      // balão pra fora, já que ele é centralizado no elemento.
+      const meiaLargura = 100; // metade da largura fixa do balão
+      const centro = rect.left + rect.width / 2;
+      const left = Math.min(
+        Math.max(centro, meiaLargura + 8),
+        window.innerWidth - meiaLargura - 8
+      );
+
+      setCoords({
+        top: abrirParaCima ? rect.top - 6 : rect.bottom + 6,
+        left,
+        paraCima: abrirParaCima,
+      });
     }
     setVisible(true);
     loadProfile();
@@ -90,7 +110,13 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
         createPortal(
           <div
             className="nick-tooltip-portal"
-            style={{ top: coords.top, left: coords.left }}
+            style={{
+              top: coords.top,
+              left: coords.left,
+              transform: coords.paraCima
+                ? "translate(-50%, -100%)"
+                : "translateX(-50%)",
+            }}
             onMouseEnter={showTooltip}
             onMouseLeave={scheduleHide}
           >

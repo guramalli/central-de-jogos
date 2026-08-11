@@ -324,14 +324,36 @@ export class StopRoom {
       const monthly = await prisma.monthlyScore.findUnique({
         where: { userId_gameKey_monthKey: { userId: p.userId, gameKey: GAME_KEY, monthKey } },
       });
+      // Posição no ranking mensal — só pra quem tem pontos. É uma consulta
+      // leve (COUNT com índice) e a lista de jogadores já é enviada com
+      // pouca frequência, então não pesa.
+      let position = null;
+      const pontosMes = monthly?.points || 0;
+      if (pontosMes > 0) {
+        try {
+          const acima = await prisma.monthlyScore.count({
+            where: {
+              gameKey: GAME_KEY,
+              monthKey,
+              points: { gt: pontosMes },
+              user: { role: { not: "ADMIN" }, isGuest: false },
+            },
+          });
+          position = acima + 1;
+        } catch {
+          // Sem posição é melhor que travar a lista de jogadores.
+        }
+      }
+
       list.push({
         userId: p.userId,
         nickname: p.nickname,
         lifetimePoints,
         roomLifetimePoints,
-        monthlyPoints: monthly?.points || 0,
+        monthlyPoints: pontosMes,
         blockPoints: this.blockTotals.get(p.userId) || 0,
         rank: getRankForPoints(lifetimePoints),
+        position,
       });
     }
 
