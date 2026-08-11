@@ -400,6 +400,15 @@ export default function StopGame() {
           }
           if (e.key === "Enter") {
             e.preventDefault();
+            // No último campo, o Enter pede STOP. No celular não existe
+            // Ctrl+Enter, e o botão fica longe do teclado aberto — sem
+            // isso, quem joga no telefone perdia a corrida do STOP.
+            const ehUltimo = idx === themes.length - 1;
+            if (ehUltimo && canAttemptStop) {
+              e.currentTarget.blur(); // fecha o teclado antes de encerrar
+              handleStop();
+              return;
+            }
             inputRefs.current[idx + 1]?.focus();
             return;
           }
@@ -673,8 +682,17 @@ export default function StopGame() {
         )}
 
         <div className="sc-stop-hint">
-          💡 Peça <strong>stop</strong> clicando no botão da pontuação abaixo, ou apertando{" "}
-          <strong>Ctrl+Enter</strong>.
+          {/* A dica muda por plataforma: no celular não existe Ctrl+Enter,
+              e mandar procurar um botão "abaixo" com o teclado aberto não
+              ajuda ninguém. */}
+          {isMobile ? (
+            <>💡 Preencheu tudo? Aperte <strong>Enter</strong> na última lacuna pra pedir stop.</>
+          ) : (
+            <>
+              💡 Peça <strong>stop</strong> clicando no botão da pontuação abaixo, ou apertando{" "}
+              <strong>Ctrl+Enter</strong>.
+            </>
+          )}
         </div>
       </div>
 

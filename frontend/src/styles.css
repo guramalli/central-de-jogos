@@ -4306,7 +4306,9 @@ a.lobby-game-card:hover {
 
 /* Mostra só o painel da aba escolhida */
 @media (max-width: 700px) {
-  .sc-bottom-grid.sc-mobile-aba-jogo,
+  /* Na aba "Rodada" o grid CONTINUA visível — é nele que fica o botão de
+     STOP. Escondemos só o chat e a lista de jogadores. Esconder o grid
+     inteiro tirava o botão da tela, deixando o jogo injogável no celular. */
   .sc-bottom-grid.sc-mobile-aba-jogo .sc-chat-panel,
   .sc-bottom-grid.sc-mobile-aba-jogo .sc-players-panel { display: none; }
 
@@ -4477,4 +4479,21 @@ a.lobby-game-card:hover {
     color: var(--accent-2);
     line-height: 1;
   }
+}
+
+/* Botão de STOP no celular: precisa ser óbvio e fácil de acertar com o
+   dedo. Ele fica no painel do meio, que na aba "Rodada" é o único visível
+   além da tabela. */
+@media (max-width: 700px) {
+  .sc-legend-panel { order: -1; }
+
+  .sc-status-ball-big {
+    min-width: 96px;
+    min-height: 96px;
+    font-size: 20px;
+  }
+
+  /* Espaço extra embaixo, pra o teclado do celular não cobrir o botão
+     quando ele aparece. */
+  .sc-bottom-grid.sc-mobile-aba-jogo { padding-bottom: 12px; }
 }
