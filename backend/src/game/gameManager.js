@@ -66,7 +66,7 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
 // souber. A sala existe enquanto tiver gente — quando esvazia, é descartada.
 const salasPrivadas = new Map(); // roomId -> { nome, senha, criador, config, criadaEm }
 
-export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSeconds, maxPlayers, votingSeconds, minSecondsBeforeStop, criadorId, criadorNickname }) {
+export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSeconds, maxPlayers, votingSeconds, minSecondsBeforeStop, usarGlossario, criadorId, criadorNickname }) {
   const nomeLimpo = String(nome || "").trim();
 
   // Nome repetido confundiria na lista — melhor avisar do que deixar duas
@@ -94,9 +94,12 @@ export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSecon
     // Sala privada não vale ranking: os temas são escolhidos a dedo e a
     // validação é feita pelos próprios jogadores.
     semPontuacao: true,
-    // Quem valida as palavras é a mesa, não o glossário — é isso que
-    // permite temas livres e respostas criativas.
-    validacaoPorVoto: true,
+    // Duas formas de validar, à escolha de quem cria:
+    //   - por voto: a mesa julga. Aceita temas livres e respostas
+    //     criativas, e é o que permite os temas da Zoeira aqui.
+    //   - pelo glossário: o site confere as palavras sozinho, igual às
+    //     salas oficiais. Partida mais rápida, sem fase de votação.
+    validacaoPorVoto: !usarGlossario,
     answerSeconds: answerSeconds || 40,
     intermissionSeconds: 15,
     // Tempo de votação escolhido pelo dono. O padrão subiu de 20 pra 40
@@ -108,13 +111,17 @@ export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSecon
     maxPlayers: maxPlayers || 10,
     // Quem criou é quem dá o start na partida.
     donoId: criadorId,
-    minCorrectToStop: 3,
     // Trava contra STOP relâmpago. O dono escolhe, mas nunca pode passar
     // do tempo total da rodada — senão ninguém conseguiria pedir stop.
     minSecondsBeforeStop: Math.min(
       minSecondsBeforeStop ?? 15,
       Math.max(5, (answerSeconds || 40) - 5)
     ),
+    // Exigir N palavras CERTAS pra pedir STOP só faz sentido quando existe
+    // glossário pra dizer o que está certo. Na validação por voto, quem
+    // julga é a mesa DEPOIS da rodada — não dá pra saber antes, então a
+    // regra vira "preencheu tudo".
+    minCorrectToStop: usarGlossario ? 3 : 0,
   };
 
   const room = new StopRoom(roomId, io, escolhidos, config);
@@ -129,6 +136,7 @@ export async function criarSalaPrivada(io, { nome, senha, themeKeys, answerSecon
     temas: escolhidos.map((t) => t.name),
     answerSeconds: config.answerSeconds,
     votingSeconds: config.votingSeconds,
+    validacaoPorVoto: config.validacaoPorVoto,
     maxPlayers: config.maxPlayers,
     criadaEm: Date.now(),
   });

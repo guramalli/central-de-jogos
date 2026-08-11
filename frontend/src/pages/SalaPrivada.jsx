@@ -24,6 +24,9 @@ export default function SalaPrivada() {
   const [segVotacao, setSegVotacao] = useState(40);
   // Quantos segundos precisam passar antes que alguém possa pedir STOP.
   const [travaStop, setTravaStop] = useState(15);
+  // Como as palavras são julgadas: pela mesa (voto) ou pelo glossário do
+  // site (automático).
+  const [usarGlossario, setUsarGlossario] = useState(false);
   const [erro, setErro] = useState("");
   const [criando, setCriando] = useState(false);
   const [aba, setAba] = useState("entrar");
@@ -58,6 +61,17 @@ export default function SalaPrivada() {
     }).catch(() => {});
   }
 
+  // Trocar de modo pode invalidar temas já escolhidos: no automático, só
+  // valem os que têm lista de palavras.
+  function trocarModo(automatico) {
+    setUsarGlossario(automatico);
+    setErro("");
+    if (automatico) {
+      const validos = temas.filter((t) => t.temGlossario).map((t) => t.key);
+      setEscolhidos((atual) => atual.filter((k) => validos.includes(k)));
+    }
+  }
+
   function alternarTema(key) {
     setEscolhidos((atual) =>
       atual.includes(key) ? atual.filter((k) => k !== key) : [...atual, key]
@@ -81,6 +95,7 @@ export default function SalaPrivada() {
         maxPlayers: maxJogadores,
         votingSeconds: segVotacao,
         minSecondsBeforeStop: travaStop,
+        usarGlossario,
       });
       navigate(`/jogos/stop/${data.roomId}`);
     } catch (e) {
@@ -114,8 +129,12 @@ export default function SalaPrivada() {
     }
   }
 
-  const normais = temas.filter((t) => !t.zoeira);
-  const zoeira = temas.filter((t) => t.zoeira);
+  // No modo automático, só entram os temas com lista de palavras — os
+  // outros marcariam tudo como errado.
+  const disponiveis = usarGlossario ? temas.filter((t) => t.temGlossario) : temas;
+  const normais = disponiveis.filter((t) => !t.zoeira);
+  const zoeira = disponiveis.filter((t) => t.zoeira);
+  const ocultos = temas.length - disponiveis.length;
 
   return (
     <div>
@@ -170,7 +189,8 @@ export default function SalaPrivada() {
                     </span>
                   </div>
                   <div className="privada-sala-info">
-                    por {s.criador} · {s.answerSeconds}s por rodada · {s.temas.length} temas
+                    por {s.criador} · {s.answerSeconds}s por rodada · {s.temas.length} temas ·{" "}
+                    {s.validacaoPorVoto ? "🗳️ mesa decide" : "⚡ automática"}
                   </div>
                   <div className="privada-sala-temas">{s.temas.slice(0, 5).join(" · ")}
                     {s.temas.length > 5 && ` +${s.temas.length - 5}`}
@@ -224,9 +244,44 @@ export default function SalaPrivada() {
           </div>
 
           <div className="card" style={{ marginTop: 16 }}>
-            <h2>2. Escolha os temas ({escolhidos.length})</h2>
+            <h2>2. Como as palavras são validadas</h2>
+            <div className="privada-tipo">
+              <button
+                type="button"
+                className={`privada-tipo-opcao ${!usarGlossario ? "privada-tipo-on" : ""}`}
+                onClick={() => trocarModo(false)}
+              >
+                <span className="privada-tipo-icone">🗳️</span>
+                <span className="privada-tipo-nome">A mesa decide</span>
+                <span className="privada-tipo-desc">
+                  Depois de cada rodada, vocês votam no que vale. Aceita qualquer tema.
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`privada-tipo-opcao ${usarGlossario ? "privada-tipo-on" : ""}`}
+                onClick={() => trocarModo(true)}
+              >
+                <span className="privada-tipo-icone">⚡</span>
+                <span className="privada-tipo-nome">Automática</span>
+                <span className="privada-tipo-desc">
+                  O site confere sozinho. Mais rápido, só com temas que têm lista.
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 16 }}>
+            <h2>3. Escolha os temas ({escolhidos.length})</h2>
             <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
               De 3 a 12 temas. A cada rodada, 6 deles são sorteados.
+              {usarGlossario && ocultos > 0 && (
+                <>
+                  {" "}
+                  <strong>{ocultos}</strong> tema(s) não aparecem porque ainda não têm lista de
+                  palavras — troque pra "A mesa decide" pra usar todos.
+                </>
+              )}
             </p>
             <div className="privada-temas">
               {normais.map((t) => (
@@ -235,6 +290,7 @@ export default function SalaPrivada() {
                   className={`privada-tema ${escolhidos.includes(t.key) ? "privada-tema-on" : ""}`}
                   onClick={() => alternarTema(t.key)}
                   type="button"
+                  title={t.temGlossario ? `${t.palavras} palavras cadastradas` : "Sem lista de palavras"}
                 >
                   {t.name}
                 </button>
@@ -264,7 +320,7 @@ export default function SalaPrivada() {
           </div>
 
           <div className="card" style={{ marginTop: 16 }}>
-            <h2>3. Ajuste a partida</h2>
+            <h2>4. Ajuste a partida</h2>
             <label className="privada-label">
               Tempo por rodada: <strong>{segundos} segundos</strong>
             </label>
@@ -284,19 +340,26 @@ export default function SalaPrivada() {
               className="privada-range"
             />
 
-            <label className="privada-label" style={{ marginTop: 18 }}>
-              Tempo pra votar as palavras: <strong>{segVotacao} segundos</strong>
-            </label>
-            <input
-              type="range" min={15} max={90} step={5}
-              value={segVotacao}
-              onChange={(e) => setSegVotacao(Number(e.target.value))}
-              className="privada-range"
-            />
-            <p className="privada-dica">
-              Depois de cada rodada, todo mundo julga as palavras dos outros. Com muitos temas ou
-              muita gente, vale dar mais tempo. A votação encerra antes se todos já tiverem votado.
-            </p>
+            {/* Só faz sentido no modo por voto: no automático não existe
+                fase de votação. */}
+            {!usarGlossario && (
+              <>
+                <label className="privada-label" style={{ marginTop: 18 }}>
+                  Tempo pra votar as palavras: <strong>{segVotacao} segundos</strong>
+                </label>
+                <input
+                  type="range" min={15} max={90} step={5}
+                  value={segVotacao}
+                  onChange={(e) => setSegVotacao(Number(e.target.value))}
+                  className="privada-range"
+                />
+                <p className="privada-dica">
+                  Depois de cada rodada, todo mundo julga as palavras dos outros. Com muitos temas
+                  ou muita gente, vale dar mais tempo. A votação encerra antes se todos já tiverem
+                  votado.
+                </p>
+              </>
+            )}
 
             <label className="privada-label" style={{ marginTop: 18 }}>
               Trava do STOP: <strong>{travaStop === 0 ? "sem trava" : `${travaStop} segundos`}</strong>

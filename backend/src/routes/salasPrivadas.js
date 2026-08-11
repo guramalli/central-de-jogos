@@ -21,13 +21,34 @@ const TEMAS_DA_ZOEIRA = new Set(
 // Temas disponíveis para montar a sala.
 router.get("/temas", requireAuth, async (req, res) => {
   const temas = await prisma.theme.findMany({
-    select: { key: true, name: true },
+    select: { key: true, name: true, id: true },
     orderBy: { name: "asc" },
   });
+
+  // Conta quantas palavras aprovadas cada tema tem. Um tema sem glossário
+  // (ou com pouquíssimas palavras) não pode ser usado no modo automático:
+  // tudo que a pessoa escrevesse seria marcado como errado.
+  const contagens = await prisma.wordEntry.groupBy({
+    by: ["themeId"],
+    where: { status: "approved" },
+    _count: { _all: true },
+  });
+  const porTema = Object.fromEntries(contagens.map((c) => [c.themeId, c._count._all]));
+
+  // Piso arbitrário mas útil: menos que isso e o tema ainda está incompleto
+  // demais pra validar sozinho sem frustrar quem joga.
+  const MINIMO_PALAVRAS = 50;
+
   res.json(
     temas
       .filter((t) => t.key !== "adminEG")
-      .map((t) => ({ ...t, zoeira: TEMAS_DA_ZOEIRA.has(t.key) }))
+      .map((t) => ({
+        key: t.key,
+        name: t.name,
+        zoeira: TEMAS_DA_ZOEIRA.has(t.key),
+        palavras: porTema[t.id] || 0,
+        temGlossario: (porTema[t.id] || 0) >= MINIMO_PALAVRAS,
+      }))
   );
 });
 
@@ -37,7 +58,7 @@ router.get("/", requireAuth, (req, res) => {
 });
 
 router.post("/criar", requireAuth, async (req, res) => {
-  const { nome, senha, themeKeys, answerSeconds, maxPlayers, votingSeconds, minSecondsBeforeStop } = req.body;
+  const { nome, senha, themeKeys, answerSeconds, maxPlayers, votingSeconds, minSecondsBeforeStop, usarGlossario } = req.body;
 
   const nomeLimpo = String(nome || "").trim();
   if (nomeLimpo.length < 3 || nomeLimpo.length > 30) {
@@ -84,6 +105,30 @@ router.post("/criar", requireAuth, async (req, res) => {
     });
   }
 
+  // Modo automático só aceita temas que realmente têm glossário: sem isso,
+  // a sala marcaria tudo como errado e a partida seria impossível.
+  if (usarGlossario) {
+    const escolhidos = await prisma.theme.findMany({
+      where: { key: { in: themeKeys } },
+      select: { id: true, name: true },
+    });
+    const contagens = await prisma.wordEntry.groupBy({
+      by: ["themeId"],
+      where: { status: "approved", themeId: { in: escolhidos.map((t) => t.id) } },
+      _count: { _all: true },
+    });
+    const porTema = Object.fromEntries(contagens.map((c) => [c.themeId, c._count._all]));
+    const semGlossario = escolhidos.filter((t) => (porTema[t.id] || 0) < 50);
+
+    if (semGlossario.length > 0) {
+      return res.status(400).json({
+        error: `No modo automático, só dá pra usar temas com lista de palavras. Remova: ${semGlossario
+          .map((t) => t.name)
+          .join(", ")}`,
+      });
+    }
+  }
+
   try {
     const io = req.app.get("io");
     const { roomId, nome: nomeCriado } = await criarSalaPrivada(io, {
@@ -94,6 +139,7 @@ router.post("/criar", requireAuth, async (req, res) => {
       maxPlayers: max,
       votingSeconds: votacao,
       minSecondsBeforeStop: travaStop,
+      usarGlossario: !!usarGlossario,
       criadorId: req.user.id,
       criadorNickname: req.user.nickname,
     });

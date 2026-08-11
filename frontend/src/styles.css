@@ -3719,15 +3719,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .votacao-sub { color: var(--text-dim); font-size: 13px; margin: 4px 0 14px; }
 .votacao-vazio { color: var(--text-dim); text-align: center; padding: 20px; }
 
-.votacao-grupo { margin-bottom: 14px; }
-.votacao-tema {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--accent-2);
-  font-weight: 700;
-  margin-bottom: 6px;
-}
 .votacao-linha {
   display: flex;
   align-items: center;
@@ -4520,4 +4511,113 @@ a.lobby-game-card:hover {
   color: var(--text-dim);
   margin: 6px 0 0;
   line-height: 1.5;
+}
+
+/* ===== Votação tema a tema ===== */
+.votacao-trilha {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 12px 0 14px;
+  flex-wrap: wrap;
+}
+.votacao-trilha-item {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.votacao-trilha-atual {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+  transform: scale(1.12);
+}
+.votacao-trilha-ok {
+  background: rgba(6, 214, 160, 0.18);
+  border-color: rgba(6, 214, 160, 0.5);
+  color: #06d6a0;
+}
+
+.votacao-tema-atual {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.votacao-tema-nome {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--accent-2);
+}
+.votacao-tema-contador { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+.votacao-aprovar-todas {
+  width: 100%;
+  padding: 9px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px dashed rgba(6, 214, 160, 0.5);
+  background: rgba(6, 214, 160, 0.07);
+  color: #06d6a0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.votacao-aprovar-todas:hover { background: rgba(6, 214, 160, 0.15); }
+
+.votacao-lista-tema { display: flex; flex-direction: column; gap: 7px; }
+/* Sem o nick, a palavra ganha a linha inteira e pode ficar maior — é o
+   único conteúdo que importa na hora de julgar. */
+.votacao-linha-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.votacao-linha-texto .votacao-palavra { font-size: 16px; }
+.votacao-linha-sim { background: rgba(6, 214, 160, 0.1); }
+.votacao-linha-nao { background: rgba(255, 79, 107, 0.1); }
+
+.votacao-navegacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.votacao-nav-btn {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.votacao-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.votacao-nav-principal:not(:disabled) {
+  border-color: var(--accent-2);
+  background: rgba(255, 153, 0, 0.14);
+  color: var(--accent-2);
+}
+.votacao-nav-status { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .votacao-tema-nome { font-size: 17px; }
+  .votacao-palavra { font-size: 16px; }
+  .votacao-nick { font-size: 11px; }
+  .votacao-nav-btn { padding: 0 14px; font-size: 13px; }
+  .votacao-trilha-item { width: 34px; height: 34px; }
 }

@@ -563,9 +563,12 @@ export class StopRoom {
 
   async loadValidWordsCache() {
     this.validWordsCache = new Map();
-    // Salas que não conferem contra o glossário (Zoeira e privadas com
-    // validação por voto) nem precisam buscar nada no banco.
-    if (this.semPontuacao || this.validacaoPorVoto) return;
+    // Só busca o glossário quem realmente vai conferir contra ele. Uma
+    // sala privada no modo automático não pontua no ranking, mas usa o
+    // glossário — por isso a checagem é pelo modo de validação, não pela
+    // pontuação.
+    if (this.validacaoPorVoto) return;
+    if (this.semPontuacao && !this.privada) return;
     try {
       const themeIds = this.currentThemes.map((t) => t.id);
       // Timeout de segurança: se o banco demorar demais pra responder (ex.:
@@ -714,9 +717,11 @@ export class StopRoom {
     // sogra é...") — não existe resposta "certa" pra conferir num glossário.
     // Mas isso não pode virar vale-tudo: sem nenhuma checagem, dava pra
     // pontuar digitando só a letra sorteada ou teclado batido ("mhudueieh").
-    // Aqui a resposta precisa pelo menos PARECER uma palavra de verdade; o
-    // julgamento de se é boa ou engraçada continua sendo da galera.
-    if (this.semPontuacao) {
+    // Aqui a resposta precisa pelo menos PARECER uma palavra de verdade.
+    //
+    // Sala privada no modo automático NÃO cai aqui: ela usa o glossário
+    // normalmente, mesmo não valendo pontos pro ranking.
+    if (this.semPontuacao && !this.privada) {
       const limpa = normalize(word).trim();
       if (!limpa) return false;
       if (limpa[0] !== normalize(this.currentLetter)) return false;
@@ -818,9 +823,12 @@ export class StopRoom {
         // Palavra que nem começa com a letra sorteada já cai sem votação —
         // não faz sentido gastar o tempo da mesa com isso.
         if (normalize(raw)[0]?.toUpperCase() !== this.currentLetter) continue;
+        // O nickname NÃO vai junto: a votação é anônima, e mandá-lo
+        // permitiria descobrir de quem é cada palavra pelo inspetor do
+        // navegador. O userId é necessário pra apurar, mas sozinho não
+        // identifica ninguém na tela.
         paraVotar.push({
           userId: p.userId,
-          nickname: p.nickname,
           themeKey: theme.key,
           themeName: theme.name,
           word: raw,
