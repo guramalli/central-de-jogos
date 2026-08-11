@@ -31,3 +31,39 @@ export function formatMonthKey(monthKey) {
   const formatted = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
+
+// Data de hoje ("2026-08-10") no horário de BRASÍLIA, não no fuso do
+// servidor. Mesma armadilha do monthKey: o servidor roda em UTC, então
+// `new Date().toISOString()` já virou o dia às 21h de Brasília — e as
+// missões diárias e a sequência de dias virariam 3 horas mais cedo.
+export function hojeBrasilia(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year").value;
+  const m = parts.find((p) => p.type === "month").value;
+  const d = parts.find((p) => p.type === "day").value;
+  return `${y}-${m}-${d}`;
+}
+
+// Data de ontem em Brasília — usada pra saber se a sequência continua.
+export function ontemBrasilia() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return hojeBrasilia(d);
+}
+
+// Semana ISO em Brasília ("2026-W33"). O cálculo precisa partir da data
+// local, senão a semana também vira cedo demais na noite de domingo.
+export function semanaBrasilia(date = new Date()) {
+  const [ano, mes, dia] = hojeBrasilia(date).split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  const diaSemana = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - diaSemana);
+  const inicioAno = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const semana = Math.ceil(((d - inicioAno) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(semana).padStart(2, "0")}`;
+}

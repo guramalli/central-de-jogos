@@ -1,6 +1,6 @@
 import { prisma } from "../db.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
-import { currentMonthKey } from "../utils/monthKey.js";
+import { currentMonthKey, hojeBrasilia, ontemBrasilia, semanaBrasilia } from "../utils/monthKey.js";
 
 // ===== Missões diárias e semanais =====
 //
@@ -74,16 +74,9 @@ export const PONTOS_STREAK_APOS_MARCOS = 50;
 // Chave do período atual. Diária usa a data; semanal usa ano + número da
 // semana (ISO), pra virar toda segunda.
 export function periodoAtual(tipo) {
-  const agora = new Date();
-  if (tipo === "diarias") {
-    return agora.toISOString().slice(0, 10); // "2026-08-11"
-  }
-  const d = new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
-  const diaSemana = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - diaSemana);
-  const inicioAno = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const semana = Math.ceil(((d - inicioAno) / 86400000 + 1) / 7);
-  return `${d.getUTCFullYear()}-W${String(semana).padStart(2, "0")}`;
+  // Sempre no horário de Brasília: o servidor roda em UTC, e usar o fuso
+  // dele faria as missões virarem às 21h em vez da meia-noite.
+  return tipo === "diarias" ? hojeBrasilia() : semanaBrasilia();
 }
 
 // Registra progresso num evento. Chamado dos jogos quando algo acontece.
@@ -254,7 +247,7 @@ export async function registrarDiaJogado(userId) {
   if (!MISSOES_ATIVAS || !userId || tabelaIndisponivel) return null;
 
   try {
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = hojeBrasilia();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { streakAtual: true, streakRecorde: true, streakUltimoDia: true },
@@ -262,9 +255,7 @@ export async function registrarDiaJogado(userId) {
     if (!user) return null;
     if (user.streakUltimoDia === hoje) return null; // já contou hoje
 
-    const ontem = new Date();
-    ontem.setDate(ontem.getDate() - 1);
-    const ontemStr = ontem.toISOString().slice(0, 10);
+    const ontemStr = ontemBrasilia();
 
     const continua = user.streakUltimoDia === ontemStr;
     const novoStreak = continua ? user.streakAtual + 1 : 1;

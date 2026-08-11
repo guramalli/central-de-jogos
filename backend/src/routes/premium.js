@@ -6,6 +6,8 @@ import {
   ehPremium, validarEscolhas,
 } from "../utils/premium.js";
 import { MISSOES_ATIVAS, missoesDe, resgatarMissao, periodoAtual, RECOMPENSAS_STREAK, NOMES_JOGOS } from "../game/missoes.js";
+import { hojeBrasilia } from "../utils/monthKey.js";
+import { cacheInvalidar } from "../utils/cache.js";
 
 const router = Router();
 
@@ -99,6 +101,11 @@ router.post("/resgatar", requireAuth, async (req, res) => {
 
   const r = await resgatarMissao(req.user.id, missaoKey, periodoAtual(tipo));
   if (!r.ok) return res.status(400).json({ error: r.erro });
+
+  // A contagem de avisos fica em cache por alguns segundos. Sem limpar
+  // aqui, o avisinho do menu continuaria mostrando a missão que a pessoa
+  // acabou de resgatar.
+  cacheInvalidar(`avisos:${req.user.id}`);
   res.json(r);
 });
 
@@ -115,7 +122,7 @@ router.get("/streak", requireAuth, async (req, res) => {
   res.json({
     atual,
     recorde: u?.streakRecorde || 0,
-    contouHoje: u?.streakUltimoDia === new Date().toISOString().slice(0, 10),
+    contouHoje: u?.streakUltimoDia === hojeBrasilia(),
     proximoMarco: proximo,
     marcos: RECOMPENSAS_STREAK,
   });

@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { getAllOnlineUserIds as getStopOnline } from "../game/gameManager.js";
 import { getAllOnlineUserIds as getQuizOnline } from "../game/quizGameManager.js";
 import { getAllOnlineUserIds as getAcromaniaOnline } from "../game/acromaniaGameManager.js";
+import { cacheInvalidar } from "../utils/cache.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -97,9 +98,11 @@ router.post("/request", async (req, res) => {
     return res.status(409).json({ error: "Já existe um pedido de amizade pendente entre vocês." });
   }
 
+  // Novo pedido: o avisinho de quem recebeu precisa atualizar.
   const friendship = await prisma.friendship.create({
     data: { userAId: userId, userBId: target.id, status: "pending" },
   });
+  cacheInvalidar(`avisos:${target.id}`);
   res.json({ ok: true, friendshipId: friendship.id, nickname: target.nickname });
 });
 
@@ -111,6 +114,8 @@ router.post("/:friendshipId/accept", async (req, res) => {
     return res.status(404).json({ error: "Pedido de amizade não encontrado." });
   }
   await prisma.friendship.update({ where: { id: friendship.id }, data: { status: "accepted" } });
+  // Pedido respondido: some do contador de quem aceitou.
+  cacheInvalidar(`avisos:${req.user.id}`);
   res.json({ ok: true });
 });
 

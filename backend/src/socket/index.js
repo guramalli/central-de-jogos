@@ -1,4 +1,5 @@
 import { verifyToken } from "../utils/jwt.js";
+import { cacheInvalidar } from "../utils/cache.js";
 import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, cancelarDescarteSala } from "../game/gameManager.js";
 import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
@@ -195,6 +196,9 @@ export function setupSocket(io) {
       });
 
       // Marca como lidas as mensagens que o amigo mandou pra mim.
+      // Zera o cache de avisos: as mensagens acabaram de virar "lidas",
+      // e sem isso o avisinho do menu continuaria com o número velho.
+      cacheInvalidar(`avisos:${userId}`);
       await prisma.privateMessage.updateMany({
         where: { senderId: friendUserId, receiverId: userId, read: false },
         data: { read: true },
@@ -229,6 +233,9 @@ export function setupSocket(io) {
           read: !!receiverPresent,
         },
       });
+      // Quem recebeu tem uma mensagem nova: limpa o cache dele pra o
+      // avisinho aparecer no próximo ciclo, e não só quando o cache expirar.
+      cacheInvalidar(`avisos:${socket.currentDmFriendId}`);
       io.to(socket.currentDmRoom).emit("dm-message", {
         id: saved.id,
         senderId: userId,
