@@ -4621,3 +4621,38 @@ a.lobby-game-card:hover {
   .votacao-nav-btn { padding: 0 14px; font-size: 13px; }
   .votacao-trilha-item { width: 34px; height: 34px; }
 }
+
+/* Votação sincronizada: rodapé e timer urgente */
+.votacao-rodape {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  min-height: 34px;
+}
+.votacao-esperando {
+  display: inline-block;
+  padding: 7px 16px;
+  border-radius: 20px;
+  background: rgba(6, 214, 160, 0.14);
+  border: 1px solid rgba(6, 214, 160, 0.4);
+  font-size: 13px;
+  color: #06d6a0;
+}
+.votacao-aviso-tempo { font-size: 12px; color: var(--text-dim); }
+.votacao-timer-urgente {
+  color: #ff4f6b;
+  animation: votacaoPulso 0.6s ease-in-out infinite;
+}
+@keyframes votacaoPulso {
+  50% { opacity: 0.45; }
+}
+/* Na votação sincronizada a trilha é só informativa — não dá pra pular
+   de tema, então ela não é clicável. */
+span.votacao-trilha-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+.privada-label-extra { font-weight: 400; color: var(--text-dim); font-size: 12px; }

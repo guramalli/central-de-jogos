@@ -345,7 +345,10 @@ export default function SalaPrivada() {
             {!usarGlossario && (
               <>
                 <label className="privada-label" style={{ marginTop: 18 }}>
-                  Tempo pra votar as palavras: <strong>{segVotacao} segundos</strong>
+                  Tempo total de votação: <strong>{segVotacao} segundos</strong>
+                  <span className="privada-label-extra">
+                    {" "}(~{Math.max(8, Math.round(segVotacao / 6))}s por tema)
+                  </span>
                 </label>
                 <input
                   type="range" min={15} max={90} step={5}
@@ -354,9 +357,9 @@ export default function SalaPrivada() {
                   className="privada-range"
                 />
                 <p className="privada-dica">
-                  Depois de cada rodada, todo mundo julga as palavras dos outros. Com muitos temas
-                  ou muita gente, vale dar mais tempo. A votação encerra antes se todos já tiverem
-                  votado.
+                  Depois de cada rodada, a mesa julga as palavras <strong>tema por tema</strong>,
+                  todo mundo junto. Cada tema avança assim que todos votarem — ou quando o tempo
+                  dele acabar. Palavra sem voto é <strong>aceita</strong>.
                 </p>
               </>
             )}

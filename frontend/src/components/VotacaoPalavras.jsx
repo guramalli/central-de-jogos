@@ -1,76 +1,45 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 // Votação das palavras nas salas privadas.
 //
-// Um TEMA POR VEZ, não a lista inteira de uma vez. É como se faz no jogo
-// de papel: "vamos conferir Frutas... agora Cor...". Ver 30 palavras de 6
-// temas misturadas numa tela só é confuso e faz a pessoa desistir de votar
-// com cuidado — principalmente no celular.
-export default function VotacaoPalavras({ items, meuUserId, segundos, progresso, onVotar }) {
-  const [votos, setVotos] = useState({}); // "userId:themeKey" -> boolean
-  const [indiceTema, setIndiceTema] = useState(0);
+// SINCRONIZADA: todo mundo julga o mesmo tema ao mesmo tempo, e o jogo só
+// avança quando todos votaram OU o tempo do tema acaba. Quem não votar
+// numa palavra está aceitando ela — o silêncio conta como "vale".
+//
+// Isso é diferente de deixar cada um navegar no próprio ritmo: aqui a mesa
+// inteira acompanha junto, como na conferência do jogo de papel.
+export default function VotacaoPalavras({ tema, meuUserId, segundos, progresso, onVotar }) {
+  const [votos, setVotos] = useState({});
 
-  // Agrupa por tema, preservando a ordem em que vieram do servidor (que é
-  // a mesma ordem das colunas na tabela do jogo).
-  const temas = useMemo(() => {
-    const mapa = new Map();
-    for (const i of items) {
-      if (!mapa.has(i.themeKey)) {
-        mapa.set(i.themeKey, { key: i.themeKey, nome: i.themeName, itens: [] });
-      }
-      mapa.get(i.themeKey).itens.push(i);
-    }
-    return [...mapa.values()];
-  }, [items]);
+  // Cada tema novo zera os votos locais: os do tema anterior já foram
+  // enviados e não voltam mais.
+  useEffect(() => {
+    setVotos({});
+  }, [tema?.indice]);
 
-  if (temas.length === 0) {
-    return (
-      <div className="votacao">
-        <p className="votacao-vazio">Ninguém escreveu nada nessa rodada.</p>
-      </div>
-    );
-  }
+  if (!tema) return null;
 
-  const temaAtual = temas[Math.min(indiceTema, temas.length - 1)];
-  // Ordem embaralhada: se as palavras aparecessem sempre na mesma ordem
-  // dos jogadores, daria pra deduzir de quem é cada uma e o anonimato
-  // perderia o sentido. O embaralhamento é fixo por rodada (usa o índice
-  // do tema como semente) pra a lista não dançar a cada clique.
-  const dosOutros = useMemo(() => {
-    const lista = temaAtual.itens.filter((i) => i.userId !== meuUserId);
-    return [...lista].sort((a, b) =>
-      (a.word + temaAtual.key).localeCompare(b.word + temaAtual.key)
-    );
-  }, [temaAtual, meuUserId]);
-  const minhas = temaAtual.itens.filter((i) => i.userId === meuUserId);
+  const dosOutros = (tema.itens || []).filter((i) => i.userId !== meuUserId);
+  const minhas = (tema.itens || []).filter((i) => i.userId === meuUserId);
 
   function votar(item, valido) {
     const chave = `${item.userId}:${item.themeKey}`;
+    if (votos[chave] !== undefined) return; // já votou nessa
     setVotos((v) => ({ ...v, [chave]: valido }));
     onVotar(item.userId, item.themeKey, valido);
   }
 
-  // Marca todas do tema de uma vez — atalho pra quando está tudo certo,
-  // que é o caso mais comum.
-  function aprovarTodasDoTema() {
+  function aceitarTodas() {
     for (const item of dosOutros) {
       const chave = `${item.userId}:${item.themeKey}`;
       if (votos[chave] === undefined) votar(item, true);
     }
   }
 
-  // Quantos temas já foram totalmente votados por mim.
-  const temasVotados = temas.filter((t) =>
-    t.itens
-      .filter((i) => i.userId !== meuUserId)
-      .every((i) => votos[`${i.userId}:${i.themeKey}`] !== undefined)
-  ).length;
-
-  const faltaNoTema = dosOutros.filter(
+  const faltam = dosOutros.filter(
     (i) => votos[`${i.userId}:${i.themeKey}`] === undefined
   ).length;
-
-  const ehUltimo = indiceTema >= temas.length - 1;
+  const terminei = faltam === 0;
 
   return (
     <div className="votacao">
@@ -82,36 +51,31 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, progresso,
               {progresso.prontos}/{progresso.total} votaram
             </span>
           )}
-          <span className="votacao-timer">{segundos}s</span>
+          <span className={`votacao-timer ${segundos <= 3 ? "votacao-timer-urgente" : ""}`}>
+            {segundos}s
+          </span>
         </div>
       </div>
 
-      {/* Trilha de temas: mostra onde a pessoa está e permite pular direto
-          pra um tema específico. */}
+      {/* Trilha só informativa: quem manda no ritmo é o servidor, então
+          ela mostra onde a mesa está, sem permitir pular. */}
       <div className="votacao-trilha">
-        {temas.map((t, i) => {
-          const votado = t.itens
-            .filter((x) => x.userId !== meuUserId)
-            .every((x) => votos[`${x.userId}:${x.themeKey}`] !== undefined);
-          return (
-            <button
-              key={t.key}
-              className={`votacao-trilha-item ${i === indiceTema ? "votacao-trilha-atual" : ""} ${
-                votado ? "votacao-trilha-ok" : ""
-              }`}
-              onClick={() => setIndiceTema(i)}
-              title={t.nome}
-            >
-              {votado ? "✓" : i + 1}
-            </button>
-          );
-        })}
+        {Array.from({ length: tema.total }).map((_, i) => (
+          <span
+            key={i}
+            className={`votacao-trilha-item ${i === tema.indice ? "votacao-trilha-atual" : ""} ${
+              i < tema.indice ? "votacao-trilha-ok" : ""
+            }`}
+          >
+            {i < tema.indice ? "✓" : i + 1}
+          </span>
+        ))}
       </div>
 
       <div className="votacao-tema-atual">
-        <span className="votacao-tema-nome">{temaAtual.nome}</span>
+        <span className="votacao-tema-nome">{tema.themeName}</span>
         <span className="votacao-tema-contador">
-          tema {indiceTema + 1} de {temas.length}
+          tema {tema.indice + 1} de {tema.total}
         </span>
       </div>
 
@@ -119,8 +83,8 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, progresso,
         <p className="votacao-vazio">Ninguém mais escreveu nesse tema.</p>
       ) : (
         <>
-          {dosOutros.length > 1 && faltaNoTema > 0 && (
-            <button className="votacao-aprovar-todas" onClick={aprovarTodasDoTema}>
+          {dosOutros.length > 1 && !terminei && (
+            <button className="votacao-aprovar-todas" onClick={aceitarTodas}>
               ✓ Aceitar todas deste tema
             </button>
           )}
@@ -136,10 +100,6 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, progresso,
                     voto === false ? "votacao-linha-nao" : ""
                   }`}
                 >
-                  {/* Sem o nome de quem escreveu, de propósito: votar
-                      sabendo de quem é a palavra vira constrangimento
-                      ("vou recusar a do meu amigo?") e abre espaço pra
-                      favoritismo. Anônimo, a mesa julga a palavra. */}
                   <div className="votacao-linha-texto">
                     <span className="votacao-palavra">{item.word}</span>
                   </div>
@@ -147,6 +107,7 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, progresso,
                     <button
                       className={`votacao-btn votacao-sim ${voto === true ? "votacao-btn-on" : ""}`}
                       onClick={() => votar(item, true)}
+                      disabled={voto !== undefined}
                       title="Vale"
                     >
                       ✓
@@ -154,6 +115,7 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, progresso,
                     <button
                       className={`votacao-btn votacao-nao ${voto === false ? "votacao-btn-on" : ""}`}
                       onClick={() => votar(item, false)}
+                      disabled={voto !== undefined}
                       title="Não vale"
                     >
                       ✕
@@ -173,24 +135,16 @@ export default function VotacaoPalavras({ items, meuUserId, segundos, progresso,
         </div>
       )}
 
-      <div className="votacao-navegacao">
-        <button
-          className="votacao-nav-btn"
-          onClick={() => setIndiceTema((i) => Math.max(0, i - 1))}
-          disabled={indiceTema === 0}
-        >
-          ← Anterior
-        </button>
-        <span className="votacao-nav-status">
-          {temasVotados}/{temas.length} temas
-        </span>
-        <button
-          className="votacao-nav-btn votacao-nav-principal"
-          onClick={() => setIndiceTema((i) => Math.min(temas.length - 1, i + 1))}
-          disabled={ehUltimo}
-        >
-          {ehUltimo ? "Fim" : "Próximo →"}
-        </button>
+      <div className="votacao-rodape">
+        {terminei ? (
+          <span className="votacao-esperando">
+            ✅ Pronto! Esperando os outros...
+          </span>
+        ) : (
+          <span className="votacao-aviso-tempo">
+            Palavra sem voto até o tempo acabar é <strong>aceita</strong>.
+          </span>
+        )}
       </div>
     </div>
   );

@@ -87,6 +87,9 @@ export class StopRoom {
     this.votingSeconds = config.votingSeconds ?? 20;
     this.wordVotes = new Map();
     this.votingItems = [];
+    // Votação sincronizada: todos julgam o mesmo tema ao mesmo tempo.
+    this.votingTemas = [];
+    this.temaAtualIndex = -1;
     this.players = new Map(); // socketId -> { userId, nickname, socket }
     this.roundNumber = 0;
     this.blockTotals = new Map(); // userId -> pontos acumulados no bloco atual de 10 rodadas
@@ -843,29 +846,95 @@ export class StopRoom {
 
     this.votingItems = paraVotar;
 
-    // O tempo de votação cresce com a quantidade de palavras a julgar:
-    // votar em 4 palavras é bem diferente de votar em 30. O dono define o
-    // tempo base, e cada palavra além das 6 primeiras rende 1 segundo a
-    // mais, até um teto — assim uma sala cheia não trava por 3 minutos.
-    const extras = Math.max(0, paraVotar.length - 6);
-    this.timeLeft = Math.min(this.votingSeconds + extras, this.votingSeconds * 2, 120);
-    this.broadcast("voting-start", {
-      items: paraVotar,
-      seconds: this.votingSeconds,
+    // Agrupa por tema, na mesma ordem das colunas da tabela. A votação
+    // acontece um tema por vez, TODOS juntos: é como se confere no jogo de
+    // papel, e evita que quem lê rápido fique olhando tela parada enquanto
+    // os outros ainda estão no primeiro tema.
+    this.votingTemas = [];
+    for (const theme of this.currentThemes) {
+      const itens = paraVotar.filter((i) => i.themeKey === theme.key);
+      if (itens.length > 0) {
+        this.votingTemas.push({ key: theme.key, name: theme.name, itens });
+      }
+    }
+
+    this.temaAtualIndex = -1;
+    this.avancarTemaVotacao(activePlayers);
+  }
+
+  // Segundos de votação por tema. O tempo escolhido na criação é o TOTAL
+  // da rodada; aqui ele é dividido entre os temas, com um piso pra nunca
+  // ficar curto demais pra ler.
+  segundosPorTema() {
+    const total = this.votingTemas?.length || 1;
+    return Math.max(8, Math.round(this.votingSeconds / total));
+  }
+
+  // Passa pro próximo tema — ou encerra a votação se já foi o último.
+  avancarTemaVotacao(activePlayers) {
+    this.clearTimer();
+    this.temaAtualIndex += 1;
+
+    if (this.temaAtualIndex >= this.votingTemas.length) {
+      return this.finishVoting(activePlayers);
+    }
+
+    const tema = this.votingTemas[this.temaAtualIndex];
+    this.timeLeft = this.segundosPorTema();
+
+    this.broadcast("voting-tema", {
+      indice: this.temaAtualIndex,
+      total: this.votingTemas.length,
+      themeKey: tema.key,
+      themeName: tema.name,
+      // As palavras vão sem o nickname: a votação é anônima.
+      itens: tema.itens.map((i) => ({
+        userId: i.userId,
+        themeKey: i.themeKey,
+        word: i.word,
+      })),
+      seconds: this.timeLeft,
       letter: this.currentLetter,
     });
-    this.systemMessage(`🗳️ Hora de validar as palavras! ${this.votingSeconds}s pra votar.`);
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
       this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
-        Promise.resolve(this.finishVoting(activePlayers)).catch((err) => {
-          console.error(`Falha ao apurar votação na sala ${this.roomId}:`, err);
+        // Tempo esgotado: quem não votou aceitou. Segue pro próximo tema.
+        Promise.resolve(this.avancarTemaVotacao(activePlayers)).catch((err) => {
+          console.error(`Falha ao avançar votação na sala ${this.roomId}:`, err);
           this.startIntermission();
         });
       }
     }, 1000);
+  }
+
+  // Todo mundo já votou em tudo do tema atual?
+  temaAtualCompleto() {
+    const tema = this.votingTemas?.[this.temaAtualIndex];
+    if (!tema) return false;
+
+    const jogadores = [...new Set([...this.players.values()].map((p) => p.userId))];
+    return jogadores.every((userId) => {
+      const cabem = tema.itens.filter((i) => i.userId !== userId);
+      return cabem.every((i) => this.wordVotes.has(`${userId}:${i.userId}:${i.themeKey}`));
+    });
+  }
+
+  // Quantos jogadores já concluíram o tema atual (pro contador na tela).
+  progressoVotacao() {
+    const tema = this.votingTemas?.[this.temaAtualIndex];
+    const jogadores = [...new Set([...this.players.values()].map((p) => p.userId))];
+    if (!tema) return { prontos: 0, total: jogadores.length };
+
+    let prontos = 0;
+    for (const userId of jogadores) {
+      const cabem = tema.itens.filter((i) => i.userId !== userId);
+      const ok = cabem.every((i) => this.wordVotes.has(`${userId}:${i.userId}:${i.themeKey}`));
+      if (ok) prontos++;
+    }
+    return { prontos, total: jogadores.length };
   }
 
   // Registra o voto de um jogador numa palavra específica.
@@ -873,45 +942,21 @@ export class StopRoom {
     if (this.state !== "voting") return;
     // Ninguém vota na própria palavra.
     if (userId === targetUserId) return;
-    this.wordVotes.set(`${userId}:${targetUserId}:${themeKey}`, !!valido);
+    // Voto só vale pro tema que está em julgamento agora.
+    const tema = this.votingTemas?.[this.temaAtualIndex];
+    if (!tema || tema.key !== themeKey) return;
 
-    // Avisa a sala do andamento — quem já votou vê que está esperando os
-    // outros, em vez de achar que o jogo travou.
+    this.wordVotes.set(`${userId}:${targetUserId}:${themeKey}`, !!valido);
     this.broadcast("voting-progress", this.progressoVotacao());
 
-    // Todo mundo já votou em tudo: não faz sentido segurar a sala até o
-    // relógio zerar. Encerra na hora.
-    if (this.todosVotaram()) {
-      this.clearTimer();
+    // Todo mundo votou nesse tema: não faz sentido esperar o relógio.
+    if (this.temaAtualCompleto()) {
       const ativos = [...this.players.values()];
-      Promise.resolve(this.finishVoting(ativos)).catch((err) => {
-        console.error(`Falha ao apurar votação na sala ${this.roomId}:`, err);
+      Promise.resolve(this.avancarTemaVotacao(ativos)).catch((err) => {
+        console.error(`Falha ao avançar votação na sala ${this.roomId}:`, err);
         this.startIntermission();
       });
     }
-  }
-
-  // Quantos jogadores já terminaram de votar em tudo que lhes cabe.
-  progressoVotacao() {
-    const jogadores = [...new Set([...this.players.values()].map((p) => p.userId))];
-    let prontos = 0;
-    for (const userId of jogadores) {
-      const cabem = (this.votingItems || []).filter((i) => i.userId !== userId);
-      if (cabem.length === 0) {
-        prontos++;
-        continue;
-      }
-      const votou = cabem.every((i) =>
-        this.wordVotes.has(`${userId}:${i.userId}:${i.themeKey}`)
-      );
-      if (votou) prontos++;
-    }
-    return { prontos, total: jogadores.length };
-  }
-
-  todosVotaram() {
-    const { prontos, total } = this.progressoVotacao();
-    return total > 0 && prontos >= total;
   }
 
   async finishVoting(activePlayers) {

@@ -63,7 +63,8 @@ export default function StopGame() {
   const [phase, setPhase] = useState("intermission"); // intermission | active | voting | grading
   // Fase de votação (só nas salas privadas): a lista de palavras que a mesa
   // precisa validar antes da apuração.
-  const [votingItems, setVotingItems] = useState(null);
+  // Tema em julgamento agora — o servidor controla o ritmo.
+  const [temaVotacao, setTemaVotacao] = useState(null);
   // Quantos jogadores já terminaram de votar — mostra que a sala está
   // esperando os outros, não travada.
   const [progressoVoto, setProgressoVoto] = useState(null);
@@ -150,7 +151,7 @@ export default function StopGame() {
 
     socket.on("round-start", (data) => {
       setPhase("active");
-      setVotingItems(null);
+      setTemaVotacao(null);
       pendingVotingRef.current = null;
       setEspera(null);
       setProgressoVoto(null);
@@ -240,23 +241,18 @@ export default function StopGame() {
 
     // Andamento da votação: mostra "3 de 5 já votaram" pra ninguém achar
     // que a sala travou enquanto espera os outros.
-    socket.on("voting-start", (data) => {
-      // Mesma proteção do resultado: se ainda estamos no atraso proposital
-      // do STOP (mostrando "pediu stop" e "enviando..."), guarda a votação
-      // e só abre quando o aviso terminar. Sem isso, a tela pulava direto
-      // pra votação e o aviso de STOP nem aparecia.
-      const abrirVotacao = () => {
+    socket.on("voting-tema", (data) => {
+      // Mesma proteção do resultado: se ainda estamos no atraso do STOP,
+      // segura a votação pra o aviso não ser atropelado.
+      const abrir = () => {
         setPhase("voting");
-        setVotingItems(data.items || []);
+        setTemaVotacao(data);
         setTimeLeft(data.seconds);
         setStopOverlay(null);
+        setProgressoVoto(null);
       };
-
-      if (awaitingResultRef.current) {
-        pendingVotingRef.current = abrirVotacao;
-      } else {
-        abrirVotacao();
-      }
+      if (awaitingResultRef.current) pendingVotingRef.current = abrir;
+      else abrir();
     });
 
     socket.on("round-result", (data) => {
@@ -293,7 +289,7 @@ export default function StopGame() {
       socket.off("player-stopped");
       socket.off("tick");
       socket.off("round-result");
-      socket.off("voting-start");
+      socket.off("voting-tema");
       socket.off("voting-progress");
       socket.off("sala-aguardando");
       socket.off("block-bonus");
@@ -675,9 +671,9 @@ export default function StopGame() {
             souDono={espera.donoId === user?.id}
             onIniciar={() => socketRef.current?.emit("iniciar-partida")}
           />
-        ) : phase === "voting" && votingItems ? (
+        ) : phase === "voting" && temaVotacao ? (
           <VotacaoPalavras
-            items={votingItems}
+            tema={temaVotacao}
             meuUserId={user?.id}
             segundos={timeLeft}
             progresso={progressoVoto}
