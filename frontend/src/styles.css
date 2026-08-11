@@ -4262,3 +4262,79 @@ a.lobby-game-card:hover {
   .missoes-grupo-titulo { font-size: 15px; }
   .missoes-grupo-nota { font-size: 10px; }
 }
+
+/* ===== Abas no celular (Stop) =====
+   No desktop, tabela + chat + jogadores aparecem juntos. No celular não
+   cabe: empilhados, a pessoa precisa rolar muito pra ver quem está na sala
+   ou ler o chat — e acaba não usando nada disso. Em abas, cada coisa ocupa
+   a tela inteira e fica a um toque de distância. */
+.sc-abas-mobile {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  padding: 6px 0;
+}
+.sc-aba {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sc-aba-ativa {
+  border-color: var(--accent-2);
+  background: rgba(255, 153, 0, 0.12);
+  color: var(--accent-2);
+}
+
+/* Mostra só o painel da aba escolhida */
+@media (max-width: 700px) {
+  .sc-bottom-grid.sc-mobile-aba-jogo,
+  .sc-bottom-grid.sc-mobile-aba-jogo .sc-chat-panel,
+  .sc-bottom-grid.sc-mobile-aba-jogo .sc-players-panel { display: none; }
+
+  .sc-bottom-grid.sc-mobile-aba-chat .sc-players-panel,
+  .sc-bottom-grid.sc-mobile-aba-chat .sc-legend-panel { display: none; }
+
+  .sc-bottom-grid.sc-mobile-aba-jogadores .sc-chat-panel,
+  .sc-bottom-grid.sc-mobile-aba-jogadores .sc-legend-panel { display: none; }
+
+  .sc-table-panel.sc-mobile-aba-chat,
+  .sc-table-panel.sc-mobile-aba-jogadores { display: none; }
+
+  /* Chat e jogadores ganham altura de tela cheia quando é a aba ativa */
+  .sc-mobile-aba-chat .sc-chat-panel,
+  .sc-mobile-aba-jogadores .sc-players-panel { min-height: 62vh; }
+}
+
+/* Barra de status e patentes no celular */
+@media (max-width: 700px) {
+  /* Os selos de pontuação quebravam a linha e empurravam o resto */
+  .sc-topbar-badges { flex-wrap: wrap; gap: 6px; }
+  .sc-gloss-badge,
+  .quiz-gloss-badge { font-size: 11px; padding: 4px 9px; }
+
+  /* Ícone de patente menor, pra sobrar espaço pro nick na lista */
+  .sc-player-rank-icon { width: 16px; height: 16px; }
+  .sc-player-name { font-size: 13px; }
+  .sc-player-points { font-size: 12px; }
+
+  /* Pódio do ranking: três colunas ficavam apertadas demais */
+  .podium { gap: 8px; }
+  .podium-name { font-size: 13px; }
+  .podium-points { font-size: 11px; }
+  .podium-medal { font-size: 24px; }
+}
+
+@media (max-width: 380px) {
+  .sc-aba { font-size: 12px; }
+  .podium-name { font-size: 12px; }
+}

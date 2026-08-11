@@ -65,6 +65,9 @@ export default function StopGame() {
   const [votingItems, setVotingItems] = useState(null);
   // Sala privada aguardando o dono dar o start.
   const [espera, setEspera] = useState(null);
+  // No celular os três painéis não cabem empilhados — viram abas. No
+  // desktop os três aparecem lado a lado e esse estado é ignorado.
+  const [abaMobile, setAbaMobile] = useState("jogo");
   const [timeLeft, setTimeLeft] = useState(0);
   const [themes, setThemes] = useState([]);
   const [letter, setLetter] = useState(null);
@@ -588,7 +591,7 @@ export default function StopGame() {
         Rodada {roundInBlock} de 10
       </div>
 
-      <div className="sc-retro-panel sc-table-panel">
+      <div className={`sc-retro-panel sc-table-panel ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-panel-title-row">
           <div className="sc-timerletter">
             <div className="sc-timer-chip">{timeLeft}s</div>
@@ -674,7 +677,30 @@ export default function StopGame() {
         </div>
       </div>
 
-      <div className="sc-bottom-grid">
+      {isMobile && (
+        <div className="sc-abas-mobile">
+          <button
+            className={`sc-aba ${abaMobile === "jogo" ? "sc-aba-ativa" : ""}`}
+            onClick={() => setAbaMobile("jogo")}
+          >
+            🎯 Rodada
+          </button>
+          <button
+            className={`sc-aba ${abaMobile === "chat" ? "sc-aba-ativa" : ""}`}
+            onClick={() => setAbaMobile("chat")}
+          >
+            💬 Chat
+          </button>
+          <button
+            className={`sc-aba ${abaMobile === "jogadores" ? "sc-aba-ativa" : ""}`}
+            onClick={() => setAbaMobile("jogadores")}
+          >
+            👥 {onlinePlayers.length}
+          </button>
+        </div>
+      )}
+
+      <div className={`sc-bottom-grid ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-retro-panel sc-tab-panel sc-chat-panel">
           <div className="sc-retro-tab sc-retro-tab-right">chat</div>
           <Chat messages={messages} onSend={sendChat} />
