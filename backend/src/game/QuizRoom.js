@@ -223,7 +223,13 @@ export class QuizRoom {
         rank: getQuizRankForPoints(lifetimePoints),
       });
     }
-    list.sort((a, b) => b.roomLifetimePoints - a.roomLifetimePoints);
+    // Desempate por nome: sem isso, jogadores com a mesma pontuação trocam
+    // de posição a cada atualização da lista, o que fica visualmente ruim.
+    list.sort(
+      (a, b) =>
+        b.roomLifetimePoints - a.roomLifetimePoints ||
+        a.nickname.localeCompare(b.nickname)
+    );
     this.broadcast("quiz-players-online", { players: list });
   }
 

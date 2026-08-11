@@ -379,10 +379,20 @@ export class StopRoom {
       });
     }
 
-    // Na sala de brincadeira, ordena pelo placar da partida — é o único
-    // número que importa ali.
-    if (this.semPontuacao) list.sort((a, b) => b.blockPoints - a.blockPoints);
-    else list.sort((a, b) => b.lifetimePoints - a.lifetimePoints);
+    // Ordena pelo MESMO número que aparece na coluna da lista: quem lidera
+    // fica no topo. Antes ordenava pelo total vitalício enquanto a coluna
+    // mostrava os pontos da sala — o que fazia a lista parecer desordenada.
+    if (this.semPontuacao) {
+      // Sala de brincadeira: o placar da partida é o único número que existe.
+      list.sort((a, b) => b.blockPoints - a.blockPoints || a.nickname.localeCompare(b.nickname));
+    } else {
+      list.sort(
+        (a, b) =>
+          b.roomLifetimePoints - a.roomLifetimePoints ||
+          b.lifetimePoints - a.lifetimePoints ||
+          a.nickname.localeCompare(b.nickname)
+      );
+    }
     this.broadcast("players-online", { players: list });
   }
 
@@ -1215,13 +1225,24 @@ export class StopRoom {
         roundInBlock,
         letter: this.currentLetter,
         themes: this.currentThemes.map((t) => ({ key: t.key, name: t.name })),
-        players: activePlayers.map((p) => ({
-          userId: p.userId,
-          nickname: p.nickname,
-          graded: graded.get(p.userId) || {},
-          points: roundScores.get(p.userId) || 0,
-          blockTotal: this.blockTotals.get(p.userId) || 0,
-        })),
+        // Ordenado pelo placar do bloco: quem lidera aparece no topo da
+        // tabela. Antes vinha na ordem de entrada na sala, o que fazia a
+        // tabela parecer aleatória justamente no momento em que todo mundo
+        // olha pra ela — a apuração da rodada.
+        players: activePlayers
+          .map((p) => ({
+            userId: p.userId,
+            nickname: p.nickname,
+            graded: graded.get(p.userId) || {},
+            points: roundScores.get(p.userId) || 0,
+            blockTotal: this.blockTotals.get(p.userId) || 0,
+          }))
+          .sort(
+            (a, b) =>
+              b.blockTotal - a.blockTotal ||
+              b.points - a.points ||
+              a.nickname.localeCompare(b.nickname)
+          ),
       });
 
       await this.broadcastOnlinePlayers();

@@ -158,7 +158,14 @@ export class AcromaniaRoom {
         monthlyPoints: monthly?.points || 0,
       });
     }
-    list.sort((a, b) => b.lifetimePoints - a.lifetimePoints);
+    // Ordena pelo mesmo número exibido na lista (pontos da sala), não pelo
+    // total vitalício — senão a lista parece fora de ordem pra quem olha.
+    list.sort(
+      (a, b) =>
+        b.roomLifetimePoints - a.roomLifetimePoints ||
+        b.lifetimePoints - a.lifetimePoints ||
+        a.nickname.localeCompare(b.nickname)
+    );
     this.broadcast("acromania-online-players", { players: list });
   }
 

@@ -38,7 +38,8 @@
     "backup": "node prisma/backup.js",
     "restaurar": "node prisma/restaurar.js",
     "recorde": "node prisma/recorde.js",
-    "auditar-vazadas": "node prisma/auditarVazadas.js"
+    "auditar-vazadas": "node prisma/auditarVazadas.js",
+    "import-novelas": "node prisma/importNovelas.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
