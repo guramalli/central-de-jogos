@@ -60,6 +60,41 @@ async function main() {
   const executar = process.argv.includes("--go");
   const incluirLeves = process.argv.includes("--leves");
 
+  // Resgate: a primeira versão deste script marcava como "rejected", e
+  // perguntas nesse status não aparecem em lugar nenhum do painel. Este
+  // modo traz de volta o que ficou preso lá.
+  if (process.argv.includes("--resgatar")) {
+    const presas = await prisma.quizQuestion.findMany({
+      where: {
+        status: "rejected",
+        validationNote: { contains: "Resposta aparece no enunciado" },
+      },
+      select: { id: true },
+    });
+
+    if (presas.length === 0) {
+      console.log("Nenhuma pergunta presa como rejeitada por essa auditoria.");
+      return;
+    }
+
+    const r = await prisma.quizQuestion.updateMany({
+      where: { id: { in: presas.map((p) => p.id) } },
+      data: { status: "pending" },
+    });
+    console.log(`✅ ${r.count} pergunta(s) movida(s) de "rejeitada" para o painel de moderação.`);
+    return;
+  }
+
+  // Panorama antes de tudo: ajuda a entender se uma execução anterior já
+  // mexeu em alguma coisa.
+  const porStatus = await prisma.quizQuestion.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+  console.log("Situação atual do banco:");
+  porStatus.forEach((s) => console.log(`  ${s.status.padEnd(12)} ${s._count._all}`));
+  console.log("");
+
   const perguntas = await prisma.quizQuestion.findMany({
     where: { status: "approved" },
     select: { id: true, question: true, answer: true, themeKey: true },
@@ -108,18 +143,20 @@ async function main() {
     return;
   }
 
-  // Marca como rejeitada em vez de apagar: assim dá pra revisar depois no
-  // painel e reaproveitar as que valem a pena reescrever.
+  // Marca como PENDENTE, não como rejeitada: "pendente" é o status que o
+  // painel de moderação lista. Rejeitada some do ar e do painel, e aí não
+  // haveria como revisar nem reaproveitar as que valem reescrever.
   const r = await prisma.quizQuestion.updateMany({
     where: { id: { in: alvos.map((a) => a.id) } },
     data: {
-      status: "rejected",
+      status: "pending",
       validationNote: "Resposta aparece no enunciado — precisa ser reescrita.",
     },
   });
 
   console.log(`\n✅ ${r.count} pergunta(s) tirada(s) do ar.`);
-  console.log("   Elas não foram apagadas: ficam no painel pra revisão.");
+  console.log("   Elas foram pro painel de moderação (Perguntas pendentes),");
+  console.log("   onde dá pra reescrever, aprovar de novo ou rejeitar.");
 }
 
 main()
