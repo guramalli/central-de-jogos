@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import ScoreTable from "../components/ScoreTable.jsx";
 import VotacaoPalavras from "../components/VotacaoPalavras.jsx";
 import SalaEspera from "../components/SalaEspera.jsx";
+import FaixaPatente from "../components/FaixaPatente.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
@@ -676,6 +677,8 @@ export default function StopGame() {
           <strong>Ctrl+Enter</strong>.
         </div>
       </div>
+
+      {isMobile && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
 
       {isMobile && (
         <div className="sc-abas-mobile">

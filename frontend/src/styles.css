@@ -4267,32 +4267,36 @@ a.lobby-game-card:hover {
    No desktop, tabela + chat + jogadores aparecem juntos. No celular não
    cabe: empilhados, a pessoa precisa rolar muito pra ver quem está na sala
    ou ler o chat — e acaba não usando nada disso. Em abas, cada coisa ocupa
-   a tela inteira e fica a um toque de distância. */
-.sc-abas-mobile {
-  display: flex;
-  gap: 6px;
-  margin: 10px 0;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--bg);
-  padding: 6px 0;
-}
-.sc-aba {
-  flex: 1;
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg-panel-2);
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.sc-aba-ativa {
-  border-color: var(--accent-2);
-  background: rgba(255, 153, 0, 0.12);
-  color: var(--accent-2);
+   a tela inteira e fica a um toque de distância.
+
+   TUDO daqui fica dentro de media query: o desktop não deve mudar em nada. */
+@media (max-width: 700px) {
+  .sc-abas-mobile {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    padding: 6px 0;
+  }
+  .sc-aba {
+    flex: 1;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel-2);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .sc-aba-ativa {
+    border-color: var(--accent-2);
+    background: rgba(255, 153, 0, 0.12);
+    color: var(--accent-2);
+  }
 }
 
 /* Mostra só o painel da aba escolhida */
@@ -4337,4 +4341,122 @@ a.lobby-game-card:hover {
 @media (max-width: 380px) {
   .sc-aba { font-size: 12px; }
   .podium-name { font-size: 12px; }
+}
+
+/* ===== Abas no celular (Quiz e Acromania) =====
+   Mesmo padrão do Stop, pra o site ter um comportamento só. As classes
+   usam prefixo qz- porque os dois jogos compartilham o mesmo layout base.
+
+   TUDO dentro de media query: o desktop não muda em nada. */
+@media (max-width: 700px) {
+  .qz-abas-mobile {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    padding: 6px 0;
+  }
+  .qz-aba {
+    flex: 1;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel-2);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .qz-aba-ativa {
+    border-color: var(--qz-orange, var(--accent-2));
+    background: rgba(255, 153, 0, 0.12);
+    color: var(--qz-orange, var(--accent-2));
+  }
+
+  /* Aba "Rodada": mostra o jogo, esconde chat e jogadores */
+  .quiz-bottom-grid.qz-mobile-aba-jogo { display: none; }
+
+  /* Aba "Chat": esconde o jogo e a lista de jogadores */
+  .quiz-game-grid.qz-mobile-aba-chat { display: none; }
+  .quiz-bottom-grid.qz-mobile-aba-chat .quiz-players-panel { display: none; }
+
+  /* Aba "Jogadores": esconde o jogo e o chat */
+  .quiz-game-grid.qz-mobile-aba-jogadores { display: none; }
+  .quiz-bottom-grid.qz-mobile-aba-jogadores .quiz-chat-panel { display: none; }
+
+  /* Painel da aba ativa ocupa a tela */
+  .qz-mobile-aba-chat .quiz-chat-panel,
+  .qz-mobile-aba-jogadores .quiz-players-panel { height: 62vh; }
+}
+
+@media (max-width: 380px) {
+  .qz-aba { font-size: 12px; }
+}
+
+/* ===== Faixa de patente (só no celular) =====
+   No desktop essa informação já vive na lista lateral de jogadores. No
+   celular a lista virou aba, então a pessoa perderia de vista a própria
+   patente e pontuação — justamente o que dá sensação de progresso.
+
+   TUDO dentro de media query: o desktop não muda. */
+@media (max-width: 700px) {
+  .faixa-patente {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(255, 153, 0, 0.13), rgba(255, 153, 0, 0.04));
+    border: 1px solid rgba(255, 153, 0, 0.32);
+  }
+  .faixa-patente-icone { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
+  .faixa-patente-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+  }
+  .faixa-patente-nome {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .faixa-patente-nick {
+    font-size: 11px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .faixa-patente-numeros {
+    text-align: right;
+    line-height: 1.15;
+    flex-shrink: 0;
+  }
+  .faixa-patente-pts {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-2);
+  }
+  .faixa-patente-numeros small,
+  .faixa-patente-pts small { font-size: 9px; color: var(--text-dim); }
+
+  /* Sala sem pontuação: versão simples, sem patente */
+  .faixa-patente-simples {
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border);
+  }
+  .faixa-patente-simples .faixa-patente-nick { font-size: 13px; color: var(--text); }
+  .faixa-patente-simples .faixa-patente-pts { font-size: 14px; }
 }

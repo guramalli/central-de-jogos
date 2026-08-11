@@ -9,6 +9,8 @@ import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import FaixaPatente from "../components/FaixaPatente.jsx";
+import { useIsMobile } from "../utils/useIsMobile.js";
 
 export default function AcromaniaGame() {
   const { roomId } = useParams();
@@ -18,6 +20,10 @@ export default function AcromaniaGame() {
   const phraseInputRef = useRef(null);
 
   const [roomLabel, setRoomLabel] = useState("");
+  const isMobile = useIsMobile();
+  // Mesmo padrão do Stop: no celular os painéis viram abas, senão a pessoa
+  // precisa rolar demais pra ver chat e jogadores — e acaba não usando.
+  const [abaMobile, setAbaMobile] = useState("jogo");
   const [phase, setPhase] = useState("intermission");
   const [timeLeft, setTimeLeft] = useState(0);
   const [theme, setTheme] = useState("");
@@ -213,7 +219,7 @@ export default function AcromaniaGame() {
         </div>
       </div>
 
-      <div className="quiz-game-grid">
+      <div className={`quiz-game-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         <div className="quiz-panel quiz-question-card">
           <div className="quiz-retro-tab">
             {phase === "writing" ? "escreva sua frase" : phase === "voting" ? "vote na melhor" : phase === "grading" ? "resultado" : "aguardando"}
@@ -334,7 +340,32 @@ export default function AcromaniaGame() {
         </div>
       </div>
 
-      <div className="quiz-bottom-grid">
+      {isMobile && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
+
+      {isMobile && (
+        <div className="qz-abas-mobile">
+          <button
+            className={`qz-aba ${abaMobile === "jogo" ? "qz-aba-ativa" : ""}`}
+            onClick={() => setAbaMobile("jogo")}
+          >
+            🎯 Rodada
+          </button>
+          <button
+            className={`qz-aba ${abaMobile === "chat" ? "qz-aba-ativa" : ""}`}
+            onClick={() => setAbaMobile("chat")}
+          >
+            💬 Chat
+          </button>
+          <button
+            className={`qz-aba ${abaMobile === "jogadores" ? "qz-aba-ativa" : ""}`}
+            onClick={() => setAbaMobile("jogadores")}
+          >
+            👥 {onlinePlayers.length}
+          </button>
+        </div>
+      )}
+
+      <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} />
