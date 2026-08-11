@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import GuestBanner from "./components/GuestBanner.jsx";
@@ -7,28 +7,32 @@ import { api } from "./api/client.js";
 import { usePollingVisivel } from "./utils/usePollingVisivel.js";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
-import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
 import Register from "./pages/Register.jsx";
 import Lobby from "./pages/Lobby.jsx";
 import StopGame from "./pages/StopGame.jsx";
 import StopLobby from "./pages/StopLobby.jsx";
-import SalaPrivada from "./pages/SalaPrivada.jsx";
-import Missoes from "./pages/Missoes.jsx";
 import Ranking from "./pages/Ranking.jsx";
-import RankingHistory from "./pages/RankingHistory.jsx";
 import Clan from "./pages/Clan.jsx";
 import Friends from "./pages/Friends.jsx";
-import PublicProfile from "./pages/PublicProfile.jsx";
 import QuizLobby from "./pages/QuizLobby.jsx";
 import QuizGame from "./pages/QuizGame.jsx";
 import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
 import AcromaniaGame from "./pages/AcromaniaGame.jsx";
 import Profile from "./pages/Profile.jsx";
-import RanksInfo from "./pages/RanksInfo.jsx";
-import RanksInfoQuiz from "./pages/RanksInfoQuiz.jsx";
-import TermosDeUso from "./pages/TermosDeUso.jsx";
-import Admin from "./pages/Admin.jsx";
+
+// Páginas que não fazem parte do fluxo principal de jogar carregam sob
+// demanda: quem entra pra jogar não precisa baixar o painel admin, os
+// termos de uso ou a página de patentes junto.
+const Admin = lazy(() => import("./pages/Admin.jsx"));
+const RankingHistory = lazy(() => import("./pages/RankingHistory.jsx"));
+const RanksInfo = lazy(() => import("./pages/RanksInfo.jsx"));
+const RanksInfoQuiz = lazy(() => import("./pages/RanksInfoQuiz.jsx"));
+const TermosDeUso = lazy(() => import("./pages/TermosDeUso.jsx"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile.jsx"));
+const SalaPrivada = lazy(() => import("./pages/SalaPrivada.jsx"));
+const Missoes = lazy(() => import("./pages/Missoes.jsx"));
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -131,6 +135,7 @@ export default function App() {
       </header>
 
       <div className="container">
+        <Suspense fallback={<div className="carregando-pagina">Carregando...</div>}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/esqueci-senha" element={<ForgotPassword />} />
@@ -282,6 +287,7 @@ export default function App() {
             }
           />
         </Routes>
+        </Suspense>
       </div>
 
       {!isInsideGameRoom && <Footer />}

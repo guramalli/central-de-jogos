@@ -135,12 +135,21 @@ export class AcromaniaRoom {
     const monthKey = currentMonthKey();
     const seen = new Set();
     const list = [];
+
+    // Uma consulta pra todos, em vez de uma por jogador — antes, cada
+    // entrada ou saída gerava N consultas ao banco.
+    const idsNaSala = [...new Set([...this.players.values()].map((p) => p.userId))];
+    const mensais = idsNaSala.length
+      ? await prisma.monthlyScore.findMany({
+          where: { userId: { in: idsNaSala }, gameKey: GAME_KEY, monthKey },
+        })
+      : [];
+    const mensalPorUsuario = Object.fromEntries(mensais.map((m) => [m.userId, m.points]));
+
     for (const p of this.players.values()) {
       if (seen.has(p.userId)) continue;
       seen.add(p.userId);
-      const monthly = await prisma.monthlyScore.findUnique({
-        where: { userId_gameKey_monthKey: { userId: p.userId, gameKey: GAME_KEY, monthKey } },
-      });
+      const monthly = { points: mensalPorUsuario[p.userId] || 0 };
       list.push({
         userId: p.userId,
         nickname: p.nickname,

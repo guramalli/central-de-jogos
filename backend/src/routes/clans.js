@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 
 const router = Router();
 
@@ -67,6 +68,7 @@ router.get("/mine", requireAuth, async (req, res) => {
 // mês. É o "diretório de clãs": serve pra quem quer conhecer os grupos
 // existentes antes de pedir pra entrar num.
 router.get("/todos", requireAuth, async (req, res) => {
+  const lista = await cacheOuBuscar("clans:todos", 90, async () => {
   const clans = await prisma.clan.findMany({
     include: {
       owner: { select: { id: true, nickname: true } },
@@ -77,7 +79,7 @@ router.get("/todos", requireAuth, async (req, res) => {
     orderBy: { createdAt: "asc" },
   });
 
-  if (clans.length === 0) return res.json([]);
+  if (clans.length === 0) return [];
 
   // Soma a pontuação mensal de cada clã numa consulta só, em vez de uma por
   // clã — com muitos clãs isso faria muita diferença.
@@ -115,7 +117,9 @@ router.get("/todos", requireAuth, async (req, res) => {
 
   // Ordena pelo desempenho do mês — dá um ar de disputa e destaca quem
   // está jogando de verdade.
-  lista.sort((a, b) => b.monthlyPoints - a.monthlyPoints || b.memberCount - a.memberCount);
+    lista.sort((a, b) => b.monthlyPoints - a.monthlyPoints || b.memberCount - a.memberCount);
+    return lista;
+  });
 
   res.json(lista);
 });
@@ -135,6 +139,8 @@ router.get("/:id", requireAuth, async (req, res) => {
 // Cria um clã novo — só quem tem pontuação suficiente, e só quem ainda não
 // está em nenhum clã.
 router.post("/", requireAuth, async (req, res) => {
+  // Cria/altera clã: o cache das listagens precisa cair.
+  cacheInvalidar("clans:");
   const { name, tag } = req.body;
   if (!name?.trim() || !tag?.trim()) {
     return res.status(400).json({ error: "Nome e tag do clã são obrigatórios." });
@@ -222,6 +228,7 @@ router.post("/invites/:id/accept", requireAuth, async (req, res) => {
   }
 
   await prisma.user.update({ where: { id: req.user.id }, data: { clanId: invite.clanId } });
+  cacheInvalidar("clans:");
   await prisma.clanInvite.update({ where: { id: invite.id }, data: { status: "accepted" } });
   // Limpa outros convites pendentes que essa pessoa tinha de outros clãs.
   await prisma.clanInvite.deleteMany({
@@ -243,6 +250,7 @@ router.post("/invites/:id/decline", requireAuth, async (req, res) => {
 // Remove um membro do clã — o dono pode remover qualquer um; um membro comum
 // só pode "remover" a si mesmo (ou seja, sair do clã).
 router.delete("/members/:userId", requireAuth, async (req, res) => {
+  cacheInvalidar("clans:");
   const targetId = req.params.userId;
   const target = await prisma.user.findUnique({ where: { id: targetId } });
   if (!target?.clanId) return res.status(404).json({ error: "Jogador não está em um clã." });
@@ -263,28 +271,51 @@ router.delete("/members/:userId", requireAuth, async (req, res) => {
 
 // Ranking mensal de clãs: soma os pontos mensais (Stop) de todos os membros.
 router.get("/ranking/mensal", requireAuth, async (req, res) => {
-  const monthKey = currentMonthKey();
-  const clans = await prisma.clan.findMany({
-    include: { members: { select: { id: true, nickname: true, role: true, isGuest: true } } },
-  });
+  // Ranking muda devagar (só quando alguém pontua) e é consultado por
+  // todo mundo. Cache de 2 minutos corta praticamente todas as consultas
+  // sem que ninguém perceba diferença.
+  const dados = await cacheOuBuscar("clans:ranking-mensal", 120, async () => {
+    const monthKey = currentMonthKey();
+    const clans = await prisma.clan.findMany({
+      include: { members: { select: { id: true, nickname: true, role: true, isGuest: true } } },
+    });
+    if (clans.length === 0) return [];
 
-  const results = [];
-  for (const clan of clans) {
     // Admins e visitantes não contam pontos pro ranking do clã, mesmo que
     // sejam membros — a mesma regra vale nos rankings individuais.
-    const memberIds = clan.members
-      .filter((m) => m.role !== "ADMIN" && !m.isGuest)
-      .map((m) => m.id);
-    if (memberIds.length === 0) continue;
-    const scores = await prisma.monthlyScore.findMany({
-      where: { userId: { in: memberIds }, gameKey: GAME_KEY, monthKey },
-    });
-    const total = scores.reduce((sum, s) => sum + s.points, 0);
-    results.push({ id: clan.id, name: clan.name, tag: clan.tag, memberCount: memberIds.length, points: total });
-  }
+    const contaNoRanking = (m) => m.role !== "ADMIN" && !m.isGuest;
+    const todosIds = clans.flatMap((c) => c.members.filter(contaNoRanking).map((m) => m.id));
 
-  results.sort((a, b) => b.points - a.points);
-  res.json(results.map((r, i) => ({ position: i + 1, ...r })));
+    // UMA consulta pra todos os clãs, em vez de uma por clã: com 20 clãs
+    // isso era 21 idas ao banco a cada carregamento da página.
+    const scores = todosIds.length
+      ? await prisma.monthlyScore.groupBy({
+          by: ["userId"],
+          where: { userId: { in: todosIds }, gameKey: GAME_KEY, monthKey },
+          _sum: { points: true },
+        })
+      : [];
+    const porUsuario = Object.fromEntries(scores.map((s) => [s.userId, s._sum.points || 0]));
+
+    const results = [];
+    for (const clan of clans) {
+      const membros = clan.members.filter(contaNoRanking);
+      if (membros.length === 0) continue;
+      const total = membros.reduce((soma, m) => soma + (porUsuario[m.id] || 0), 0);
+      results.push({
+        id: clan.id,
+        name: clan.name,
+        tag: clan.tag,
+        memberCount: membros.length,
+        points: total,
+      });
+    }
+
+    results.sort((a, b) => b.points - a.points);
+    return results.map((r, i) => ({ position: i + 1, ...r }));
+  });
+
+  res.json(dados);
 });
 
 export default router;

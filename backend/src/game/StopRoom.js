@@ -301,6 +301,48 @@ export class StopRoom {
     const monthKey = currentMonthKey();
     const seen = new Set();
     const list = [];
+
+    // Busca a pontuação mensal de TODOS de uma vez. Antes era uma consulta
+    // por jogador (mais outra pra posição no ranking) toda vez que alguém
+    // entrava ou saía — numa sala de 10 pessoas isso eram 20 idas ao banco
+    // a cada movimento. Agora são 2, independente de quantos estão na sala.
+    const idsNaSala = [...new Set([...this.players.values()].map((p) => p.userId))];
+    const mensais = idsNaSala.length
+      ? await prisma.monthlyScore.findMany({
+          where: { userId: { in: idsNaSala }, gameKey: GAME_KEY, monthKey },
+        })
+      : [];
+    const mensalPorUsuario = Object.fromEntries(mensais.map((m) => [m.userId, m.points]));
+
+    // As posições no ranking também vêm juntas: uma consulta traz todo
+    // mundo que pontuou mais que o menor pontuador da sala, e a posição
+    // de cada um sai daí por contagem em memória.
+    const posicaoPorUsuario = {};
+    const pontuadores = idsNaSala.map((id) => mensalPorUsuario[id] || 0).filter((v) => v > 0);
+    if (pontuadores.length > 0 && !this.semPontuacao) {
+      try {
+        const menor = Math.min(...pontuadores);
+        const acima = await prisma.monthlyScore.findMany({
+          where: {
+            gameKey: GAME_KEY,
+            monthKey,
+            points: { gte: menor },
+            user: { role: { not: "ADMIN" }, isGuest: false },
+          },
+          select: { points: true },
+        });
+        const todosPontos = acima.map((a) => a.points);
+        for (const id of idsNaSala) {
+          const meus = mensalPorUsuario[id] || 0;
+          if (meus > 0) {
+            posicaoPorUsuario[id] = todosPontos.filter((p) => p > meus).length + 1;
+          }
+        }
+      } catch {
+        // Sem posição é melhor que travar a lista de jogadores.
+      }
+    }
+
     for (const p of this.players.values()) {
       if (seen.has(p.userId)) continue;
       seen.add(p.userId);
@@ -324,30 +366,7 @@ export class StopRoom {
 
       const lifetimePoints = this.lifetimeCache.get(p.userId) || 0;
       const roomLifetimePoints = this.roomLifetimeCache.get(p.userId) || 0;
-      const monthly = await prisma.monthlyScore.findUnique({
-        where: { userId_gameKey_monthKey: { userId: p.userId, gameKey: GAME_KEY, monthKey } },
-      });
-      // Posição no ranking mensal — só pra quem tem pontos. É uma consulta
-      // leve (COUNT com índice) e a lista de jogadores já é enviada com
-      // pouca frequência, então não pesa.
-      let position = null;
-      const pontosMes = monthly?.points || 0;
-      if (pontosMes > 0) {
-        try {
-          const acima = await prisma.monthlyScore.count({
-            where: {
-              gameKey: GAME_KEY,
-              monthKey,
-              points: { gt: pontosMes },
-              user: { role: { not: "ADMIN" }, isGuest: false },
-            },
-          });
-          position = acima + 1;
-        } catch {
-          // Sem posição é melhor que travar a lista de jogadores.
-        }
-      }
-
+      const pontosMes = mensalPorUsuario[p.userId] || 0;
       list.push({
         userId: p.userId,
         nickname: p.nickname,
@@ -356,7 +375,7 @@ export class StopRoom {
         monthlyPoints: pontosMes,
         blockPoints: this.blockTotals.get(p.userId) || 0,
         rank: getRankForPoints(lifetimePoints),
-        position,
+        position: posicaoPorUsuario[p.userId] || null,
       });
     }
 
