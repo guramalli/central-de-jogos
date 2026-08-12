@@ -1,3 +1,5 @@
+import { agendarApuracao, ehDetentor } from "./topRank.js";
+
 // Sistema de patentes do Quiz — independente do sistema de patentes do Stop
 // (rank.js). Hierarquia crescente, do anel mais simples até o mais chique.
 export const QUIZ_RANKS = [
@@ -16,14 +18,21 @@ export const QUIZ_RANKS = [
   { min: 220000, key: "guru",          name: "Guru",           icon: "/ranks-quiz/guru.png?v=2" },
   // Patente máxima do Quiz — recebe brilho animado no frontend, igual à
   // Coroa Imperial de Ouro faz no Stop.
-  { min: 500000, key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png?v=2", brilha: true },
+  { min: 500000, key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png?v=2", brilha: true, exclusiva: true },
 ];
 
-export function getQuizRankForPoints(points) {
+export function getQuizRankForPoints(points, opts = {}) {
   let current = QUIZ_RANKS[0];
   for (const r of QUIZ_RANKS) {
     if (points >= r.min) current = r;
     else break;
+  }
+  // Enciclopédia é exclusiva: só o primeiro colocado em pontos do MÊS
+  // no Quiz fica com ela (mesma regra da Coroa Imperial de Ouro no Stop).
+  const topo = QUIZ_RANKS[QUIZ_RANKS.length - 1];
+  if (current === topo && opts.userId) {
+    agendarApuracao([{ gameKey: "quiz", min: topo.min }]);
+    if (!ehDetentor("quiz", opts.userId)) return QUIZ_RANKS[QUIZ_RANKS.length - 2];
   }
   return current;
 }

@@ -389,7 +389,10 @@ export class StopRoom {
         roomLifetimePoints,
         monthlyPoints: pontosMes,
         blockPoints: this.blockTotals.get(p.userId) || 0,
-        rank: getRankForPoints(lifetimePoints),
+        // Patente é conceito MENSAL: usa os pontos do mês, não os vitalícios.
+        // Os pontos vitalícios continuam sendo enviados (a interface mostra
+        // os dois números), mas quem define a patente é o desempenho do mês.
+        rank: getRankForPoints(pontosMes, { userId: p.userId, gameKey: GAME_KEY }),
         position: posicaoPorUsuario[p.userId] || null,
       });
     }

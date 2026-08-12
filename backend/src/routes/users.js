@@ -20,17 +20,17 @@ const MAX_AVATAR_LENGTH = 300_000;
 // conquistas do zero, só reaproveitando o que o site já calcula. Como
 // patente agora é conceito mensal, a conquista mostra a patente do mês
 // vigente (se a pessoa ainda não pontuou esse mês, não mostra patente).
-async function buildAchievements(nickname, monthlyByGame) {
+async function buildAchievements(nickname, monthlyByGame, userId) {
   const achievements = [];
 
   const stopPoints = monthlyByGame.get("stop") || 0;
   if (stopPoints > 0) {
-    const rank = getRankForPoints(stopPoints);
+    const rank = getRankForPoints(stopPoints, { userId, gameKey: "stop" });
     achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Stop (este mês)` });
   }
   const quizPoints = monthlyByGame.get("quiz") || 0;
   if (quizPoints > 0) {
-    const rank = getQuizRankForPoints(quizPoints);
+    const rank = getQuizRankForPoints(quizPoints, { userId });
     achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Quiz (este mês)` });
   }
 
@@ -95,7 +95,10 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
           gameKey: m.gameKey,
           points: m.points,
           position: null,
-          rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
+          rank:
+          m.gameKey === "quiz"
+            ? getQuizRankForPoints(m.points, { userId: user.id })
+            : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
           nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
         };
       }
@@ -111,13 +114,16 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
         gameKey: m.gameKey,
         points: m.points,
         position: betterCount + 1,
-        rank: m.gameKey === "quiz" ? getQuizRankForPoints(m.points) : getRankForPoints(m.points),
+        rank:
+          m.gameKey === "quiz"
+            ? getQuizRankForPoints(m.points, { userId: user.id })
+            : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
         nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
       };
     })
   );
   const monthlyByGame = new Map(monthly.map((m) => [m.gameKey, m.points]));
-  const achievements = await buildAchievements(user.nickname, monthlyByGame);
+  const achievements = await buildAchievements(user.nickname, monthlyByGame, user.id);
 
   // Aproveitamento por sala do Quiz — só das salas com pelo menos 10
   // perguntas vistas, senão o número não significaria nada.

@@ -30,7 +30,10 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
       userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
-      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
+      rank:
+        gameKey === "quiz"
+          ? getQuizRankForPoints(s.points, { userId: s.user.id })
+          : getRankForPoints(s.points, { userId: s.user.id, gameKey }),
     }));
   });
   res.json(resposta);
@@ -89,7 +92,10 @@ router.get("/history/:monthKey/:gameKey", requireAuth, async (req, res) => {
       userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
-      rank: gameKey === "quiz" ? getQuizRankForPoints(s.points) : getRankForPoints(s.points),
+      rank:
+        gameKey === "quiz"
+          ? getQuizRankForPoints(s.points, { userId: s.user.id })
+          : getRankForPoints(s.points, { userId: s.user.id, gameKey }),
     })),
   });
 });

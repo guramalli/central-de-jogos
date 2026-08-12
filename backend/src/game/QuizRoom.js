@@ -65,6 +65,11 @@ export class QuizRoom {
 
     this.players = new Map(); // socketId -> { userId, nickname, socket }
     this.lifetimeCache = new Map();
+    // Pontos do MÊS por jogador — é o que define a patente (patente é
+    // conceito mensal). Fica em cache igual ao vitalício: uma leitura na
+    // entrada e incremento em memória a cada acerto, sem consultar o banco
+    // a cada atualização da lista.
+    this.mensalCache = new Map();
     this.roomLifetimeCache = new Map();
 
     this.state = "waiting"; // waiting | intermission | active
@@ -147,6 +152,12 @@ export class QuizRoom {
         where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
       });
       this.lifetimeCache.set(userId, existing?.points || 0);
+    }
+    if (!this.mensalCache.has(userId)) {
+      const mes = await prisma.monthlyScore.findUnique({
+        where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey: currentMonthKey() } },
+      });
+      this.mensalCache.set(userId, mes?.points || 0);
     }
     if (!this.roomLifetimeCache.has(userId)) {
       const existingRoom = await prisma.lifetimeScore.findUnique({
@@ -240,7 +251,8 @@ export class QuizRoom {
         nickname: p.nickname,
         lifetimePoints,
         roomLifetimePoints,
-        rank: getQuizRankForPoints(lifetimePoints),
+        // Patente é conceito MENSAL: quem define é o desempenho do mês.
+        rank: getQuizRankForPoints(this.mensalCache.get(p.userId) || 0, { userId: p.userId }),
       });
     }
     // Desempate por nome: sem isso, jogadores com a mesma pontuação trocam
@@ -646,6 +658,7 @@ export class QuizRoom {
               create: { userId, gameKey: GAME_KEY, points: this.pointsPerCorrect },
             });
             this.lifetimeCache.set(userId, (this.lifetimeCache.get(userId) || 0) + this.pointsPerCorrect);
+            this.mensalCache.set(userId, (this.mensalCache.get(userId) || 0) + this.pointsPerCorrect);
 
             // Pontuação específica DESSA sala — é ela que aparece no
             // "Pts Sala" e na lista de jogadores online. Estava faltando,
@@ -763,6 +776,7 @@ export class QuizRoom {
             create: { userId: winner.userId, gameKey: GAME_KEY, points: pts },
           });
           this.lifetimeCache.set(winner.userId, (this.lifetimeCache.get(winner.userId) || 0) + pts);
+          this.mensalCache.set(winner.userId, (this.mensalCache.get(winner.userId) || 0) + pts);
 
           await prisma.lifetimeScore.upsert({
             where: { userId_gameKey: { userId: winner.userId, gameKey: this.roomGameKey } },
@@ -1062,6 +1076,7 @@ export class QuizRoom {
             create: { userId: entry.userId, gameKey: GAME_KEY, points: bonus },
           });
           this.lifetimeCache.set(entry.userId, (this.lifetimeCache.get(entry.userId) || 0) + bonus);
+          this.mensalCache.set(entry.userId, (this.mensalCache.get(entry.userId) || 0) + bonus);
         } catch (err) {
           console.error("Falha ao premiar turno da arena:", err.message);
         }

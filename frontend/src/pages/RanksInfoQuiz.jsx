@@ -35,7 +35,12 @@ export default function RanksInfoQuiz() {
             {[...ranks].reverse().map((r) => (
               <tr key={r.key}>
                 <td><img src={r.icon} alt={r.name} className={`ranks-info-icon${r.brilha ? " rank-badge-icon-brilha" : ""}`} /></td>
-                <td>{r.name}</td>
+                <td>
+                  {r.name}
+                  {/* Só uma pessoa por vez ostenta a patente máxima: quem tem
+                      mais pontos vitalícios no jogo. */}
+                  {r.exclusiva && <span className="rank-exclusiva-tag">só 1 jogador</span>}
+                </td>
                 <td>{formatPoints(r.min)} pts</td>
               </tr>
             ))}
