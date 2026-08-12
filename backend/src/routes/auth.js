@@ -54,37 +54,63 @@ router.post("/register", entradaLimiter, async (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ error: "Senha deve ter ao menos 8 caracteres." });
   }
-  if (nickname.trim().length > 15) {
-    return res.status(400).json({ error: "Nickname deve ter no máximo 15 caracteres." });
+  // Mesmas regras de apelido que a entrada de visitante já aplica — antes o
+  // cadastro aceitava qualquer coisa (só espaços, símbolos estranhos, sem
+  // tamanho mínimo), o que gerava apelidos quebrados no ranking e no chat.
+  const nick = String(nickname).trim();
+  if (nick.length < 3 || nick.length > 15) {
+    return res.status(400).json({ error: "Nickname deve ter entre 3 e 15 caracteres." });
+  }
+  if (!/^[\p{L}\p{N}_ ]+$/u.test(nick)) {
+    return res.status(400).json({ error: "Nickname pode ter apenas letras, números, espaço e underline." });
+  }
+  const mail = String(email).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+    return res.status(400).json({ error: "Informe um e-mail válido." });
   }
   if (!termsAccepted) {
     return res.status(400).json({ error: "É preciso aceitar os Termos de Uso para se cadastrar." });
   }
   const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { nickname }] },
+    where: { OR: [{ email: mail }, { nickname: nick }] },
   });
   if (existing) {
     return res.status(409).json({ error: "Email ou nickname já cadastrado." });
   }
   const hashed = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: {
-      nickname,
-      email,
-      password: hashed,
-      city: city?.trim() || null,
-      state: state?.trim() || null,
-      birthDate: birthDate ? new Date(birthDate) : null,
-      termsAcceptedAt: new Date(),
-    },
-  });
+  // O try/catch cobre a corrida rara de duas pessoas cadastrando o mesmo
+  // apelido/e-mail no MESMO instante: a checagem lá em cima passa pras
+  // duas, mas o banco (campo único) recusa a segunda — vira erro amigável
+  // em vez de erro 500.
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        nickname: nick,
+        email: mail,
+        password: hashed,
+        city: city?.trim() || null,
+        state: state?.trim() || null,
+        birthDate: birthDate ? new Date(birthDate) : null,
+        termsAcceptedAt: new Date(),
+      },
+    });
+  } catch (err) {
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "Email ou nickname já cadastrado." });
+    }
+    throw err;
+  }
   const token = signToken(user);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });
 
 router.post("/login", authLimiter, async (req, res) => {
   const { email, password } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
+  if (!email || !password) {
+    return res.status(400).json({ error: "Informe e-mail e senha." });
+  }
+  const user = await prisma.user.findUnique({ where: { email: String(email).trim().toLowerCase() } });
   if (!user) return res.status(401).json({ error: "Credenciais inválidas." });
   if (!user.password) {
     return res.status(400).json({ error: "Essa conta usa login com Google. Entra pelo botão do Google, não pela senha." });

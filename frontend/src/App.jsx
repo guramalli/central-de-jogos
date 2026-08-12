@@ -20,6 +20,7 @@ import QuizGame from "./pages/QuizGame.jsx";
 import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
 import AcromaniaGame from "./pages/AcromaniaGame.jsx";
 import Profile from "./pages/Profile.jsx";
+import Home from "./pages/Home.jsx";
 
 // Páginas que não fazem parte do fluxo principal de jogar carregam sob
 // demanda: quem entra pra jogar não precisa baixar o painel admin, os
@@ -146,11 +147,7 @@ export default function App() {
           <Route path="/termos-de-uso" element={<TermosDeUso />} />
           <Route
             path="/"
-            element={
-              <Private>
-                <Lobby />
-              </Private>
-            }
+            element={user ? <Lobby /> : <Home />}
           />
           <Route
             path="/jogos/stop"
