@@ -11,7 +11,7 @@
 //
 // Trocar a versão abaixo força a limpeza dos caches antigos na próxima
 // visita. Precisa ser alterada quando o comportamento do SW mudar.
-const VERSAO = "eg-v1";
+const VERSAO = "eg-v2";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
