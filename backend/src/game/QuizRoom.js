@@ -46,6 +46,13 @@ export class QuizRoom {
     // pingavam de uma em uma, e uma palavra de 15 letras demorava demais pra
     // ficar legível). Agora começa com uma fatia já visível.
     this.initialRevealPercent = config.initialRevealPercent ?? 0.2;
+    // Nível da sala ("padrao", "avancado", "arena"). Usado pra decidir se
+    // a resposta recebe dicas.
+    this.tier = config.tier || "padrao";
+    // Respostas com poucas letras não recebem dica nenhuma nas salas
+    // avançadas: revelar 2 de 4 letras praticamente entrega a resposta, e
+    // o objetivo da sala avançada é justamente exigir conhecimento.
+    this.minLetrasParaDica = config.minLetrasParaDica ?? (config.tier === "avancado" ? 5 : 0);
     // Modo turno (arena): em vez de rodar pra sempre, joga N rodadas, monta
     // um ranking do turno e premia os melhores — igual ao bloco do Stop.
     this.roundsPerTurn = config.roundsPerTurn ?? null;
@@ -371,11 +378,16 @@ export class QuizRoom {
 
   // Índices (posições) da resposta que contam como "letra" — espaços e
   // pontuação não são escondidos nem contam pro limite de 50%.
-  letterIndices() {
+  // Índices que PODEM ser revelados como dica. Na sala avançada, só letras
+  // entram na dica — números nunca são revelados (mostrar o dígito de um ano
+  // ou o "1" de "Fórmula 1" praticamente entrega a resposta). Nas outras
+  // salas, letras e números continuam valendo.
+  revealableIndices() {
     const answer = this.currentQuestion.answer;
+    const regex = this.tier === "avancado" ? /[a-zA-ZÀ-ÿ]/ : /[a-zA-ZÀ-ÿ0-9]/;
     const indices = [];
     for (let i = 0; i < answer.length; i++) {
-      if (/[a-zA-ZÀ-ÿ0-9]/.test(answer[i])) indices.push(i);
+      if (regex.test(answer[i])) indices.push(i);
     }
     return indices;
   }
@@ -389,6 +401,15 @@ export class QuizRoom {
         return this.revealedIndices.has(i) ? ch : "*";
       })
       .join("");
+  }
+
+  // A resposta é curta demais pra receber dicas nesta sala?
+  respostaCurtaDemais() {
+    if (!this.minLetrasParaDica) return false;
+    // Conta só o que pode virar dica: na sala avançada, números ficam de
+    // fora — "Fórmula 1" tem 7 letras de dica, não 8. A resposta precisa
+    // ter MAIS de 4 letras (>= 5) pra receber qualquer revelação.
+    return this.revealableIndices().length < this.minLetrasParaDica;
   }
 
   async startQuestion() {
@@ -433,13 +454,15 @@ export class QuizRoom {
     // ficavam praticamente ilegíveis no começo (as letras pingavam de uma em
     // uma, e uma palavra de 15 letras levava tempo demais pra dar qualquer
     // pista útil). Quanto maior a resposta, mais letras aparecem de início.
-    const allIndices = this.letterIndices();
-    const initialCount = Math.min(
-      Math.floor(allIndices.length * this.initialRevealPercent),
-      Math.floor(allIndices.length * this.maxRevealPercent)
-    );
-    const shuffled = [...allIndices].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < initialCount; i++) this.revealedIndices.add(shuffled[i]);
+    const allIndices = this.revealableIndices();
+    if (!this.respostaCurtaDemais()) {
+      const initialCount = Math.min(
+        Math.floor(allIndices.length * this.initialRevealPercent),
+        Math.floor(allIndices.length * this.maxRevealPercent)
+      );
+      const shuffled = [...allIndices].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < initialCount; i++) this.revealedIndices.add(shuffled[i]);
+    }
 
     this.broadcast("quiz-question-start", {
       questionId: question.id,
@@ -461,12 +484,20 @@ export class QuizRoom {
       }
     }, 1000);
 
+    // Resposta curta em sala avançada não recebe dica nenhuma: nem a
+    // revelação inicial, nem as letras que pingam durante a rodada. Numa
+    // palavra de 4 letras, revelar uma já entrega quase tudo.
+    if (this.respostaCurtaDemais()) return;
+
     // Revela mais uma letra a cada X segundos, nunca passando do limite
     // configurado pra essa sala (salas avançadas revelam menos, pra ficar
-    // mais difícil de verdade).
+    // mais difícil de verdade). Se a resposta passou do filtro de tamanho
+    // mínimo, garante pelo menos 1 letra de dica — sem isso, 10% de uma
+    // resposta de 5 a 9 letras arredondaria pra zero e a sala ficaria sem
+    // dica nenhuma mesmo em respostas longas o bastante pra merecer uma.
     this.revealTimer = setInterval(() => {
-      const indices = this.letterIndices();
-      const maxReveal = Math.floor(indices.length * this.maxRevealPercent);
+      const indices = this.revealableIndices();
+      const maxReveal = Math.max(1, Math.floor(indices.length * this.maxRevealPercent));
       const hidden = indices.filter((i) => !this.revealedIndices.has(i));
       if (this.revealedIndices.size >= maxReveal || hidden.length === 0) return;
       const pick = hidden[Math.floor(Math.random() * hidden.length)];

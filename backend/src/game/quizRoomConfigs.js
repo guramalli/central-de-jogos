@@ -47,7 +47,12 @@ function buildDifficultyRooms(themeKey, themeName) {
       maxPlayers: 10,
       questionSeconds: 35,
       revealIntervalSeconds: 4,
-      maxRevealPercent: 0.3, // revela bem menos — mais difícil de adivinhar
+      // Começa sem nenhuma letra revelada: com o teto de 10%, se a fatia
+      // inicial padrão (20%) fosse aplicada, o pouquíssimo de dica que
+      // existe apareceria todo de uma vez e o gotejamento não faria nada.
+      // Assim as letras pingam aos poucos até o limite de 10%.
+      initialRevealPercent: 0,
+      maxRevealPercent: 0.1, // revela só 10% da resposta — quase sem ajuda
       intermissionSeconds: 8,
       pointsPerCorrect: 15, // vale mais, já que é bem mais difícil
     },
