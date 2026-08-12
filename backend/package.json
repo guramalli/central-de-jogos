@@ -42,7 +42,8 @@
     "auditar-vazadas": "node prisma/auditarVazadas.js",
     "import-novelas": "node prisma/importNovelas.js",
     "renomear-tema": "node scripts/renomearTema.js",
-    "set-patente": "node scripts/setPatente.js"
+    "set-patente": "node scripts/setPatente.js",
+    "listar-contas": "node scripts/listarContas.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

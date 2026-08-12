@@ -56,12 +56,35 @@ async function main() {
     }
   }
 
+  // Busca sem diferenciar maiúsculas/minúsculas: o banco é sensível a caixa,
+  // então "admineg" não encontraria uma conta salva como "AdminEG".
   const user = await prisma.user.findFirst({
-    where: { OR: [{ nickname: identificador }, { email: identificador }] },
+    where: {
+      OR: [
+        { nickname: { equals: identificador, mode: "insensitive" } },
+        { email: { equals: identificador, mode: "insensitive" } },
+      ],
+    },
     select: { id: true, nickname: true },
   });
   if (!user) {
     console.log(`Conta não encontrada: ${identificador}`);
+    // Ajuda a achar o nome certo, em vez de deixar você adivinhando.
+    const parecidas = await prisma.user.findMany({
+      where: {
+        OR: [
+          { nickname: { contains: identificador, mode: "insensitive" } },
+          { role: { in: ["ADMIN", "MODERATOR"] } },
+        ],
+      },
+      select: { nickname: true, role: true },
+      take: 15,
+      orderBy: { nickname: "asc" },
+    });
+    if (parecidas.length) {
+      console.log("\nTalvez seja uma destas:");
+      for (const p of parecidas) console.log(`  ${p.nickname}  (${p.role})`);
+    }
     process.exit(1);
   }
 

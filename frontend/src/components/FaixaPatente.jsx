@@ -27,7 +27,11 @@ export default function FaixaPatente({ me, semPontuacao }) {
   return (
     <div className="faixa-patente">
       {me.rank?.icon && (
-        <img src={me.rank.icon} alt={me.rank.name} className="faixa-patente-icone" />
+        <img
+          src={me.rank.icon}
+          alt={me.rank.name}
+          className={`faixa-patente-icone${me.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
+        />
       )}
       <div className="faixa-patente-info">
         <span className="faixa-patente-nome">{me.rank?.name || "Sem patente"}</span>
