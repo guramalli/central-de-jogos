@@ -13,7 +13,7 @@ const THEMES = [
   { key: "elementos_quimicos", name: "Elementos Químicos" },
   { key: "nomes_pessoas", name: "Nomes de Pessoas" },
   { key: "times_futebol", name: "Times de Futebol" },
-  { key: "bandas_musicais", name: "Bandas Musicais" },
+  { key: "bandas_musicais", name: "Cantor ou Banda" },
   { key: "instrumentos_musicais", name: "Instrumentos Musicais" },
   { key: "profissao", name: "Profissão" },
   { key: "animais", name: "Animais" },
@@ -350,7 +350,11 @@ async function main() {
   for (const t of THEMES) {
     const theme = await prisma.theme.upsert({
       where: { key: t.key },
-      update: {},
+      // Mantém o nome visível em dia: renomear um tema aqui na lista passa
+      // a valer no banco também. Antes o update era vazio, então um tema
+      // que já existia ficava com o nome antigo pra sempre. A chave (key)
+      // nunca muda, então as palavras do glossário continuam no lugar.
+      update: { name: t.name },
       create: t,
     });
 
