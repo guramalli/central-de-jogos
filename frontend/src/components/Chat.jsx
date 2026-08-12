@@ -51,7 +51,7 @@ export default function Chat({ messages, onSend, showTimestamp = false }) {
           m.system ? (
             <div
               key={i}
-              className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""} ${m.success ? "chat-system-msg-success" : ""} ${m.promotion ? "chat-system-msg-promotion" : ""}`}
+              className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""} ${m.success ? "chat-system-msg-success" : ""} ${m.promotion ? "chat-system-msg-promotion" : ""} ${m.atividade ? "chat-msg-atividade" : ""}`}
             >
               — {m.message} —
             </div>

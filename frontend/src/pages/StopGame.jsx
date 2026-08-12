@@ -115,6 +115,16 @@ export default function StopGame() {
       }
     });
 
+    // Movimento em outra sala: aparece no chat como mensagem do sistema,
+    // pra quem está sozinho saber onde tem gente em vez de desistir.
+    socket.on("aviso-atividade", (data) => {
+      if (data.roomId === roomId) return; // já estou nessa sala
+      setMessages((prev) => [
+        ...prev,
+        { system: true, atividade: true, message: data.mensagem, at: data.at },
+      ].slice(-200));
+    });
+
     socket.on("room-access-denied", (data) => {
       setAccessDenied(data);
     });
@@ -296,6 +306,7 @@ export default function StopGame() {
       socket.off("skip-vote-update");
       socket.off("players-online");
       socket.off("chat-message");
+      socket.off("aviso-atividade");
       socket.disconnect();
     };
   }, [roomId]);

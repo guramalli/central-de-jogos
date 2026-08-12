@@ -6,6 +6,7 @@ import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
+import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 
 const ROUNDS_PER_BLOCK = 10;
@@ -270,6 +271,19 @@ export class StopRoom {
     // Sala privada em espera: manda o estado pra quem acabou de entrar (e
     // atualiza os demais, que agora veem mais um na lista).
     this.broadcastEspera();
+
+    // Avisa quem está em outras salas que apareceu movimento aqui. Salas
+    // privadas ficam de fora: elas são pra grupos fechados, e anunciar
+    // seria convidar estranhos pra uma partida entre amigos.
+    if (!alreadyInRoom && !this.privada) {
+      criarAvisoDeAtividade(this.io, {
+        roomId: this.roomId,
+        roomLabel: this.label,
+        jogo: "stop",
+        nickname,
+        totalNaSala: this.countUniquePlayers(),
+      });
+    }
     return true;
   }
 

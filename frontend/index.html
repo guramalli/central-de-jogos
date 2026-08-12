@@ -16,6 +16,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- PWA: permite instalar o site como app na tela inicial -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#131313" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Educação Gamer" />
     <title>Jogar Stop Online Grátis — Adedonha, Quiz e Acromania | Educação Gamer</title>
     <meta name="description" content="Jogue Stop (adedonha) online grátis com outros jogadores em tempo real. Também tem Quiz com 10 mil perguntas e Acromania. Ranking mensal, patentes e premiação em dinheiro. Sem download." />
     <meta name="keywords" content="jogar stop online, adedonha online, stop gratis, jogo de stop, adedanha online, quiz online, stop com premio, jogos online gratis" />
@@ -137,5 +145,17 @@
       </p>
     </noscript>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Registra o service worker depois que a página carrega, pra não
+      // competir por banda com o que a pessoa veio ver.
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {
+            // Falhar aqui não pode atrapalhar nada: o site funciona igual
+            // sem service worker.
+          });
+        });
+      }
+    </script>
   </body>
 </html>

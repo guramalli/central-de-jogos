@@ -51,6 +51,16 @@ export default function AcromaniaGame() {
     socket.connect();
     socket.emit("join-acromania-room", { roomId });
 
+    // Movimento em outra sala: aparece no chat como mensagem do sistema,
+    // pra quem está sozinho saber onde tem gente em vez de desistir.
+    socket.on("aviso-atividade", (data) => {
+      if (data.roomId === roomId) return; // já estou nessa sala
+      setMessages((prev) => [
+        ...prev,
+        { system: true, atividade: true, message: data.mensagem, at: data.at },
+      ].slice(-200));
+    });
+
     socket.on("acromania-room-full", () => setRoomFull(true));
 
     socket.on("acromania-room-state", (state) => {

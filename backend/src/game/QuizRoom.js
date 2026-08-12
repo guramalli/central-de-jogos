@@ -5,6 +5,7 @@ import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
+import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 
 const GAME_KEY = "quiz";
@@ -172,6 +173,17 @@ export class QuizRoom {
     }
 
     await this.broadcastOnlinePlayers();
+
+    // Avisa as outras salas que apareceu movimento aqui.
+    if (!alreadyInRoom) {
+      criarAvisoDeAtividade(this.io, {
+        roomId: this.roomId,
+        roomLabel: this.label,
+        jogo: "quiz",
+        nickname,
+        totalNaSala: this.countUniquePlayers(),
+      });
+    }
 
     // Sala só roda perguntas quando tem gente — assim ninguém entra e cai
     // no meio de uma pergunta que já está acabando.

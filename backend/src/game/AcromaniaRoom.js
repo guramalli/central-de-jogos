@@ -7,6 +7,7 @@ import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento } from "./missoes.js";
+import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 
 const GAME_KEY = "acromania";
 
@@ -108,6 +109,16 @@ export class AcromaniaRoom {
     }
 
     await this.broadcastOnlinePlayers();
+
+    if (!alreadyInRoom) {
+      criarAvisoDeAtividade(this.io, {
+        roomId: this.roomId,
+        roomLabel: this.label,
+        jogo: "acromania",
+        nickname,
+        totalNaSala: new Set([...this.players.values()].map((p) => p.userId)).size,
+      });
+    }
 
     if (!this.startedLoop) {
       this.startedLoop = true;

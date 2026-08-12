@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import GuestBanner from "./components/GuestBanner.jsx";
+import InstalarApp from "./components/InstalarApp.jsx";
 import { useTheme } from "./context/ThemeContext.jsx";
 import { api } from "./api/client.js";
 import { usePollingVisivel } from "./utils/usePollingVisivel.js";
@@ -91,6 +92,7 @@ export default function App() {
   return (
     <>
       <GuestBanner />
+      <InstalarApp />
       <header className={`app-header ${isInsideGameRoom ? "app-header-in-room" : ""}`}>
         <div className="app-header-inner">
           <div className="app-header-left">
