@@ -1,4 +1,5 @@
 import { agendarApuracao, ehDetentor } from "./topRank.js";
+import { agendarRecarga, patenteFixaDe } from "./patenteFixa.js";
 
 // Sistema de patentes baseado na pontuação vitalícia de cada jogo.
 // O "icon" é o caminho da imagem servida pelo frontend (pasta frontend/public/ranks/).
@@ -24,6 +25,16 @@ export const RANKS = [
 ];
 
 export function getRankForPoints(points, opts = {}) {
+  // Patente fixada manualmente vence a pontuação: é o caso das contas
+  // institucionais, que exibem uma patente por decisão nossa.
+  if (opts.userId) {
+    agendarRecarga();
+    const fixa = patenteFixaDe(opts.gameKey || "stop", opts.userId);
+    if (fixa) {
+      const achada = RANKS.find((r) => r.key === fixa);
+      if (achada) return achada;
+    }
+  }
   let current = RANKS[0];
   for (const r of RANKS) {
     if (points >= r.min) current = r;
