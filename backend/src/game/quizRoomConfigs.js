@@ -52,7 +52,7 @@ function buildDifficultyRooms(themeKey, themeName) {
       // existe apareceria todo de uma vez e o gotejamento não faria nada.
       // Assim as letras pingam aos poucos até o limite de 10%.
       initialRevealPercent: 0,
-      maxRevealPercent: 0.1, // revela só 10% da resposta — quase sem ajuda
+      maxRevealPercent: 0.2, // revela até 20% da resposta — ajuda pouca, mas ajuda
       intermissionSeconds: 8,
       pointsPerCorrect: 15, // vale mais, já que é bem mais difícil
     },
