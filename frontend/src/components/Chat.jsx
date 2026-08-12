@@ -24,7 +24,9 @@ function formatTime(at) {
 // showTimestamp é opcional — só o Chat Geral (praça) usa isso por enquanto;
 // os chats de dentro das salas de jogo continuam sem horário, do jeito que
 // já estavam, pra não mudar nada ali sem ter sido pedido.
-export default function Chat({ messages, onSend, showTimestamp = false }) {
+// canModerate + onDelete são opcionais: quando quem está vendo é moderador
+// ou admin, aparece um "x" ao lado de cada mensagem de jogador pra apagar.
+export default function Chat({ messages, onSend, showTimestamp = false, canModerate = false, onDelete }) {
   const [text, setText] = useState("");
   const endRef = useRef(null);
   const listRef = useRef(null);
@@ -50,13 +52,25 @@ export default function Chat({ messages, onSend, showTimestamp = false }) {
         {messages.map((m, i) =>
           m.system ? (
             <div
-              key={i}
+              key={m.id || i}
               className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""} ${m.success ? "chat-system-msg-success" : ""} ${m.promotion ? "chat-system-msg-promotion" : ""} ${m.atividade ? "chat-msg-atividade" : ""}`}
             >
               — {m.message} —
             </div>
           ) : (
-            <div key={i} className="chat-user-msg">
+            <div key={m.id || i} className="chat-user-msg">
+              {canModerate && m.id && onDelete && (
+                <button
+                  type="button"
+                  className="chat-delete-btn"
+                  title="Apagar mensagem"
+                  onClick={() => {
+                    if (window.confirm(`Apagar a mensagem de ${m.nickname}?`)) onDelete(m.id);
+                  }}
+                >
+                  ×
+                </button>
+              )}
               {showTimestamp && <span className="chat-msg-time">{formatTime(m.at)}</span>}
               {/* Tag do clã herda a cor do nickname: identifica o grupo sem
                   poluir o chat com mais uma cor disputando atenção. */}

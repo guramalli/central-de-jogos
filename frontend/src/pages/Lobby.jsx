@@ -100,8 +100,8 @@ export default function Lobby() {
           <div>
             <h3 className="lobby-game-title">Stop</h3>
             <p className="lobby-game-desc">
-              Teste sua velocidade de digitação e seus conhecimentos gerais contra o relógio — 6
-              temas, 1 letra sorteada, e quem escreve mais rápido (e certo) sai na frente.
+              Aqui não adianta saber todos os temas: tem que ser rápido de verdade. 6 temas, 1 letra
+              sorteada, e quem hesita perde a rodada pro dedo mais veloz da sala.
             </p>
             <span className="lobby-game-cta">
               Ver salas <span className="material-symbols-outlined">arrow_forward</span>

@@ -194,13 +194,42 @@ export function setupSocket(io) {
     socket.on("general-chat-message", async ({ message }) => {
       if (!socket.inGeneralChat || !message?.trim()) return;
       const clean = message.trim().slice(0, 300);
-      await generalChat.saveMessage(userId, clean);
+      const salva = await generalChat.saveMessage(userId, clean);
       io.to("general-chat-room").emit("general-chat-message", {
+        id: salva.id,
         userId,
         nickname,
         message: clean,
         at: Date.now(),
       });
+    });
+
+    // ===== Moderação de chat (MODERATOR e ADMIN) =====
+    // Apaga uma mensagem de qualquer chat: praça (geral), Stop, Quiz ou
+    // Acromania. O cargo vem do banco na hora, e não do token, porque o
+    // token dura 7 dias — alguém rebaixado hoje não pode continuar
+    // moderando com um token emitido antes.
+    socket.on("delete-chat-message", async ({ escopo, id } = {}) => {
+      if (!id || !escopo) return;
+      const quem = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!quem || (quem.role !== "ADMIN" && quem.role !== "MODERATOR")) {
+        socket.emit("chat-moderation-error", { error: "Você não tem permissão pra apagar mensagens." });
+        return;
+      }
+
+      if (escopo === "geral") {
+        await generalChat.deleteMessage(id);
+        io.to("general-chat-room").emit("chat-message-deleted", { id });
+      } else if (escopo === "stop") {
+        socket.currentRoom?.apagarMensagem(id);
+      } else if (escopo === "quiz") {
+        socket.currentQuizRoom?.apagarMensagem(id);
+      } else if (escopo === "acromania") {
+        socket.currentAcromaniaRoom?.apagarMensagem(id);
+      }
     });
 
     // ===== Mensagem privada (só entre amigos) =====

@@ -7,6 +7,7 @@ import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
+import { novoIdMensagem } from "../utils/chatIds.js";
 
 const GAME_KEY = "quiz";
 
@@ -288,12 +289,18 @@ export class QuizRoom {
 
   chatMessage(userId, nickname, message) {
     this.broadcast("quiz-chat-message", {
+      id: novoIdMensagem(),
       userId,
       nickname,
       clanTag: this.clanTagDe(userId),
       message,
       at: Date.now(),
     });
+  }
+
+  apagarMensagem(id) {
+    if (!id) return;
+    this.broadcast("chat-message-deleted", { id });
   }
 
   startIntermission() {

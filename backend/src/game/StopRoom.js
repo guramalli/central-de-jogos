@@ -8,6 +8,7 @@ import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
+import { novoIdMensagem } from "../utils/chatIds.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -1367,7 +1368,16 @@ export class StopRoom {
   }
 
   chatMessage(userId, nickname, message) {
-    this.broadcast("chat-message", { userId, nickname, message, at: Date.now() });
+    // O id permite que moderadores apaguem uma mensagem específica depois.
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId, nickname, message, at: Date.now() });
+  }
+
+  // Apaga uma mensagem do chat pra todo mundo da sala. O chat de sala é
+  // passageiro (vive só na memória de quem está com a tela aberta), então
+  // "apagar" aqui é avisar todos os clientes pra removerem a linha.
+  apagarMensagem(id) {
+    if (!id) return;
+    this.broadcast("chat-message-deleted", { id });
   }
 
   // Avisos automáticos do jogo, mostrados no chat como se fosse um histórico
@@ -1375,6 +1385,6 @@ export class StopRoom {
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
   systemMessage(message, bold = false, success = false, promotion = false) {
-    this.broadcast("chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
 }

@@ -33,6 +33,14 @@ const EMPTY_THEME_SLOTS = Array.from({ length: THEMES_PER_ROUND }, (_, i) => ({
 
 export default function StopGame() {
   const { user, logout } = useAuth();
+
+  // Moderação de chat: moderadores e admins podem apagar mensagens.
+  // O servidor confere o cargo de novo antes de apagar — isto aqui só
+  // decide se o botão aparece.
+  const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
+  function apagarMensagem(id) {
+    socketRef.current?.emit("delete-chat-message", { escopo: "stop", id });
+  }
   const navigate = useNavigate();
   const { roomId: roomIdParam } = useParams();
   const roomId = roomIdParam || "stop-sala-1";
@@ -287,6 +295,11 @@ export default function StopGame() {
       setMessages((prev) => [...prev, msg].slice(-100));
     });
 
+    // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
+    socket.on("chat-message-deleted", ({ id }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    });
+
     return () => {
       if (stopDelayTimerRef.current) clearTimeout(stopDelayTimerRef.current);
       socket.off("connect_error");
@@ -305,6 +318,7 @@ export default function StopGame() {
       socket.off("block-bonus");
       socket.off("skip-vote-update");
       socket.off("players-online");
+      socket.off("chat-message-deleted");
       socket.off("chat-message");
       socket.off("aviso-atividade");
       socket.disconnect();
@@ -741,7 +755,7 @@ export default function StopGame() {
       <div className={`sc-bottom-grid ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-retro-panel sc-tab-panel sc-chat-panel">
           <div className="sc-retro-tab sc-retro-tab-right">chat</div>
-          <Chat messages={messages} onSend={sendChat} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
         </div>
 
         <div className="sc-retro-panel sc-tab-panel sc-legend-panel">

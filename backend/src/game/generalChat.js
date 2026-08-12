@@ -34,6 +34,7 @@ export async function loadHistory() {
   // Volta pra ordem cronológica (mais antiga primeiro), já que buscamos as
   // mais recentes primeiro pra respeitar o limite.
   return messages.reverse().map((m) => ({
+    id: m.id,
     userId: m.userId,
     nickname: m.user.nickname,
     message: m.message,
@@ -42,5 +43,14 @@ export async function loadHistory() {
 }
 
 export async function saveMessage(userId, message) {
-  await prisma.chatMessage.create({ data: { roomId: ROOM_ID, userId, message } });
+  // Devolve a mensagem criada pra quem chamou poder mandar o id junto no
+  // broadcast — é esse id que um moderador usa depois pra apagar a linha.
+  return prisma.chatMessage.create({ data: { roomId: ROOM_ID, userId, message } });
+}
+
+// Apaga de verdade do banco: o chat geral é o único que fica gravado, então
+// aqui "apagar" precisa sumir também do histórico que carrega pra quem
+// entrar depois — não basta avisar quem está com a tela aberta.
+export async function deleteMessage(id) {
+  await prisma.chatMessage.deleteMany({ where: { id, roomId: ROOM_ID } });
 }

@@ -15,6 +15,14 @@ import { useIsMobile } from "../utils/useIsMobile.js";
 export default function AcromaniaGame() {
   const { roomId } = useParams();
   const { user } = useAuth();
+
+  // Moderação de chat: moderadores e admins podem apagar mensagens.
+  // O servidor confere o cargo de novo antes de apagar — isto aqui só
+  // decide se o botão aparece.
+  const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
+  function apagarMensagem(id) {
+    socketRef.current?.emit("delete-chat-message", { escopo: "acromania", id });
+  }
   const { theme: uiTheme } = useTheme();
   const socketRef = useRef(null);
   const phraseInputRef = useRef(null);
@@ -78,6 +86,10 @@ export default function AcromaniaGame() {
     socket.on("acromania-online-players", (data) => setOnlinePlayers(data.players || []));
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
+    // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
+    socket.on("chat-message-deleted", ({ id }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    });
 
     socket.on("acromania-intermission", (data) => {
       setPhase("intermission");
@@ -136,6 +148,7 @@ export default function AcromaniaGame() {
       socket.off("acromania-room-full");
       socket.off("acromania-room-state");
       socket.off("acromania-online-players");
+      socket.off("chat-message-deleted");
       socket.off("acromania-chat-message");
       socket.off("acromania-intermission");
       socket.off("acromania-tick");
@@ -378,7 +391,7 @@ export default function AcromaniaGame() {
       <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
-          <Chat messages={messages} onSend={sendChat} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
         </div>
         <div className="quiz-panel quiz-players-panel">
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>

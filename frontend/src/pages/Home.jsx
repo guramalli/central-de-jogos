@@ -124,8 +124,8 @@ export default function Home() {
           <div>
             <h3 className="lobby-game-title">Stop</h3>
             <p className="lobby-game-desc">
-              A adedonha de verdade, online: 6 temas, 1 letra sorteada, e quem escreve mais rápido
-              (e certo) sai na frente. Salas com voto da galera pra validar as palavras.
+              A adedonha de verdade, online. Aqui não adianta saber todos os temas: tem que ser
+              rápido de verdade — 6 temas, 1 letra sorteada, e quem hesita perde a rodada.
             </p>
             <span className="lobby-game-cta">
               Jogar grátis <span className="material-symbols-outlined">arrow_forward</span>

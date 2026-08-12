@@ -4785,3 +4785,17 @@ span.votacao-trilha-item {
 /* Cards de jogo da home são <button> (levam ao campo de apelido), mas
    devem parecer idênticos aos cards do Lobby, que são links. */
 .home-game-card { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+
+/* Botão de apagar mensagem (só aparece pra moderadores/admins) */
+.chat-delete-btn {
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 5px 0 0;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.chat-delete-btn:hover { opacity: 1; }

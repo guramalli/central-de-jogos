@@ -46,6 +46,14 @@ const THEME_ICONS = {
 
 export default function QuizGame() {
   const { user } = useAuth();
+
+  // Moderação de chat: moderadores e admins podem apagar mensagens.
+  // O servidor confere o cargo de novo antes de apagar — isto aqui só
+  // decide se o botão aparece.
+  const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
+  function apagarMensagem(id) {
+    socketRef.current?.emit("delete-chat-message", { escopo: "quiz", id });
+  }
   const { theme } = useTheme();
   const { roomId } = useParams();
   const socketRef = useRef(null);
@@ -185,6 +193,10 @@ export default function QuizGame() {
 
     socket.on("quiz-players-online", (data) => setOnlinePlayers(data.players || []));
     socket.on("quiz-chat-message", (msg) => setMessages((prev) => [...prev, msg].slice(-100)));
+    // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
+    socket.on("chat-message-deleted", ({ id }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    });
 
     return () => {
       socket.off("quiz-room-full");
@@ -199,6 +211,7 @@ export default function QuizGame() {
       socket.off("quiz-guess-wrong");
       socket.off("quiz-answer-log");
       socket.off("quiz-players-online");
+      socket.off("chat-message-deleted");
       socket.off("quiz-chat-message");
       socket.disconnect();
     };
@@ -490,7 +503,7 @@ export default function QuizGame() {
       <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
-          <Chat messages={messages} onSend={sendChat} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
         </div>
         <div className="quiz-panel quiz-players-panel">
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>

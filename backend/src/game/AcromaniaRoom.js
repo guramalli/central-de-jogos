@@ -8,6 +8,7 @@ import { getRankForPoints } from "../utils/rank.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
+import { novoIdMensagem } from "../utils/chatIds.js";
 
 const GAME_KEY = "acromania";
 
@@ -198,7 +199,12 @@ export class AcromaniaRoom {
   }
 
   chatMessage(userId, nickname, message) {
-    this.broadcast("acromania-chat-message", { userId, nickname, message, system: false, at: Date.now() });
+    this.broadcast("acromania-chat-message", { id: novoIdMensagem(), userId, nickname, message, system: false, at: Date.now() });
+  }
+
+  apagarMensagem(id) {
+    if (!id) return;
+    this.broadcast("chat-message-deleted", { id });
   }
 
   publicState() {
