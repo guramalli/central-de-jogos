@@ -9,6 +9,9 @@ export const QUIZ_RANKS = [
   { min: 12000,  key: "pos_graduado",  name: "Pós-graduado",   icon: "/ranks-quiz/pos-graduado.png" },
   { min: 25000,  key: "mestre_quiz",   name: "Mestre",         icon: "/ranks-quiz/mestre.png" },
   { min: 50000,  key: "doutor",        name: "Doutor",         icon: "/ranks-quiz/doutor.png" },
+  // Sábio fecha o ciclo dos anéis (o anel-coruja) antes da virada pros
+  // bustos, que são os três títulos mais altos do Quiz.
+  { min: 70000,  key: "sabio",         name: "Sábio",          icon: "/ranks-quiz/sabio.png" },
   { min: 100000, key: "filosofo",      name: "Filósofo",       icon: "/ranks-quiz/filosofo.png" },
   { min: 220000, key: "guru",          name: "Guru",           icon: "/ranks-quiz/guru.png" },
   { min: 500000, key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png" },
