@@ -5,39 +5,76 @@ import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
+import * as presence from "../game/presence.js";
 import { recheckPeak } from "../game/platformStats.js";
 import { prisma } from "../db.js";
 
 export function setupSocket(io) {
+  // ===== Amortecedor de consultas por conexão =====
+  // Com a presença global, o socket reconecta a cada navegação entre
+  // páginas. Sem amortecedor, CADA reconexão faria 2 leituras + 1 escrita
+  // no banco (conferir usuário/banimento, streak do dia, plataforma) — e o
+  // Neon cobra por tempo de banco acordado. Este Map em memória lembra o
+  // que já foi conferido/gravado há pouco e pula as idas repetidas.
+  const conexoesRecentes = new Map(); // userId -> { authOkAte, plataformaEm, diaJogadoEm }
+  const AUTH_CACHE_MS = 60 * 1000; // reconferir usuário/banimento a cada 1 min no máximo
+  const PLATAFORMA_CADA_MS = 30 * 60 * 1000; // regravar plataforma a cada 30 min no máximo
+  const DIA_JOGADO_CADA_MS = 6 * 60 * 60 * 1000; // streak: conferir no máximo a cada 6h (a função já é diária)
+
+  // Limpeza horária pra o Map não crescer pra sempre.
+  setInterval(() => {
+    const agora = Date.now();
+    for (const [id, info] of conexoesRecentes.entries()) {
+      if ((info.plataformaEm || 0) < agora - 24 * 60 * 60 * 1000 && (info.authOkAte || 0) < agora) {
+        conexoesRecentes.delete(id);
+      }
+    }
+  }, 60 * 60 * 1000).unref?.();
+
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
       const payload = verifyToken(token);
+
+      const agora = Date.now();
+      const recente = conexoesRecentes.get(payload.id) || {};
 
       // Confere se o usuário do token ainda existe de verdade no banco —
       // evita "fantasmas" (tokens antigos de antes de um reset de banco, por
       // exemplo) entrarem na sala e derrubarem o servidor ao tentar salvar
       // pontuação para um userId que não existe mais. Também bloqueia quem
       // foi banido depois de já ter feito login (o token continuaria válido).
-      const user = await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, banned: true } });
-      if (!user || user.banned) {
-        return next(new Error("SESSAO_INVALIDA"));
+      // Só o resultado POSITIVO fica em cache (1 min): reconexões de
+      // navegação não repetem a consulta, e um banimento passa a valer em
+      // novas conexões em no máximo 1 minuto.
+      if (!(recente.authOkAte > agora)) {
+        const user = await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, banned: true } });
+        if (!user || user.banned) {
+          return next(new Error("SESSAO_INVALIDA"));
+        }
+        recente.authOkAte = agora + AUTH_CACHE_MS;
       }
 
       // Registra em qual plataforma a pessoa está jogando. Não bloqueia a
       // conexão: se falhar, o jogo segue normalmente — é só métrica.
       // Sequência de dias: conta uma vez por dia, na primeira conexão.
-      registrarDiaJogado(user.id).catch(() => {});
+      if (!(recente.diaJogadoEm > agora - DIA_JOGADO_CADA_MS)) {
+        recente.diaJogadoEm = agora;
+        registrarDiaJogado(payload.id).catch(() => {});
+      }
 
       const plataforma = socket.handshake.auth?.plataforma;
-      if (plataforma === "mobile" || plataforma === "desktop") {
+      if ((plataforma === "mobile" || plataforma === "desktop") && !(recente.plataformaEm > agora - PLATAFORMA_CADA_MS)) {
+        recente.plataformaEm = agora;
         prisma.user
           .update({
-            where: { id: user.id },
+            where: { id: payload.id },
             data: { ultimaPlataforma: plataforma, ultimoAcesso: new Date() },
           })
           .catch(() => {});
       }
+
+      conexoesRecentes.set(payload.id, recente);
 
       socket.user = payload;
       next();
@@ -48,6 +85,10 @@ export function setupSocket(io) {
 
   io.on("connection", async (socket) => {
     const { id: userId, nickname } = socket.user;
+
+    // Toda conexão autenticada conta como "no site" — independente da
+    // página. É daqui que o painel admin tira quem está online.
+    presence.addConnection(socket, userId, nickname);
 
     socket.on("join-stop-room", async ({ roomId } = {}) => {
       // Sala privada com senha só aceita quem passou pela conferência na
@@ -245,6 +286,7 @@ export function setupSocket(io) {
     });
 
     socket.on("disconnect", () => {
+      presence.removeConnection(socket.id);
       const salaQueSaiu = socket.currentRoom;
       socket.currentRoom?.removePlayer(socket.id);
       // Sala privada vazia é descartada: o código deixa de valer e a sala

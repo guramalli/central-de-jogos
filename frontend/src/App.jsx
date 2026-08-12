@@ -5,6 +5,7 @@ import GuestBanner from "./components/GuestBanner.jsx";
 import InstalarApp from "./components/InstalarApp.jsx";
 import { useTheme } from "./context/ThemeContext.jsx";
 import { api } from "./api/client.js";
+import { getSocket } from "./socket.js";
 import { usePollingVisivel } from "./utils/usePollingVisivel.js";
 import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
@@ -76,6 +77,36 @@ export default function App() {
   }, [user]);
 
   usePollingVisivel(buscarAvisos, 120000);
+
+  // Presença global: mantém o socket conectado em QUALQUER página enquanto
+  // a pessoa estiver logada — é essa conexão que faz ela aparecer como
+  // "online" no site (painel admin, lista de amigos etc.). Antes, só quem
+  // estava na página inicial (widget da praça) ou dentro de uma sala de
+  // jogo conectava o socket; navegando em outra página, a pessoa sumia.
+  //
+  // Detalhe: as páginas de jogo desconectam o socket ao desmontar (parte da
+  // limpeza delas). Este efeito escuta o "disconnect" e reconecta logo em
+  // seguida se a pessoa continuar logada — assim a presença sobrevive à
+  // navegação sem mexer na lógica de nenhuma sala.
+  useEffect(() => {
+    if (!user) return;
+    let ativo = true;
+    const socket = getSocket();
+    socket.connect();
+
+    const reconectar = () => {
+      setTimeout(() => {
+        if (ativo && socket.disconnected) socket.connect();
+      }, 1200);
+    };
+    socket.on("disconnect", reconectar);
+
+    return () => {
+      ativo = false;
+      socket.off("disconnect", reconectar);
+      socket.disconnect();
+    };
+  }, [user]);
 
   // Outras partes do site disparam esse evento pra forçar atualização
   // imediata (ex.: ao abrir uma conversa, ao resgatar uma missão), sem
