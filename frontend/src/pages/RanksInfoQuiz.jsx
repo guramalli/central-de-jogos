@@ -34,7 +34,7 @@ export default function RanksInfoQuiz() {
           <tbody>
             {[...ranks].reverse().map((r) => (
               <tr key={r.key}>
-                <td><img src={r.icon} alt={r.name} className="ranks-info-icon" /></td>
+                <td><img src={r.icon} alt={r.name} className={`ranks-info-icon${r.brilha ? " rank-badge-icon-brilha" : ""}`} /></td>
                 <td>{r.name}</td>
                 <td>{formatPoints(r.min)} pts</td>
               </tr>

@@ -14,7 +14,9 @@ export const QUIZ_RANKS = [
   { min: 70000,  key: "sabio",         name: "Sábio",          icon: "/ranks-quiz/sabio.png?v=2" },
   { min: 100000, key: "filosofo",      name: "Filósofo",       icon: "/ranks-quiz/filosofo.png?v=2" },
   { min: 220000, key: "guru",          name: "Guru",           icon: "/ranks-quiz/guru.png?v=2" },
-  { min: 500000, key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png?v=2" },
+  // Patente máxima do Quiz — recebe brilho animado no frontend, igual à
+  // Coroa Imperial de Ouro faz no Stop.
+  { min: 500000, key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png?v=2", brilha: true },
 ];
 
 export function getQuizRankForPoints(points) {
