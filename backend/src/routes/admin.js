@@ -5,6 +5,7 @@ import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameM
 import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
 import { getOnlineList as getGeneralChatOnline } from "../game/generalChat.js";
+import { getOnlineList as getPresenceOnline } from "../game/presence.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -456,7 +457,17 @@ router.get("/online", async (req, res) => {
     }
   }
 
-  // Quem está no chat geral (página inicial) e não apareceu em sala nenhuma.
+  // Quem está conectado em QUALQUER página do site (presença global) e não
+  // apareceu em sala nenhuma — inclui painel admin, ranking, perfil etc.
+  // Antes essa fonte era só o chat geral da página inicial, e quem estava
+  // navegando em outras páginas ficava invisível.
+  for (const p of getPresenceOnline()) {
+    if (!pessoas.has(p.userId)) {
+      pessoas.set(p.userId, { userId: p.userId, nickname: p.nickname, locais: [] });
+    }
+  }
+  // Mantém o chat geral como fonte extra por segurança (é subconjunto da
+  // presença global, mas não custa nada e cobre qualquer aresta).
   for (const p of getGeneralChatOnline()) {
     if (!pessoas.has(p.userId)) {
       pessoas.set(p.userId, { userId: p.userId, nickname: p.nickname, locais: [] });
@@ -483,7 +494,7 @@ router.get("/online", async (req, res) => {
   const resultado = lista.map((p) => ({
     ...p,
     isGuest: visitantes.has(p.userId),
-    local: p.locais.length > 0 ? p.locais.map((l) => `${l.jogo}: ${l.sala}`).join(" · ") : "Página inicial",
+    local: p.locais.length > 0 ? p.locais.map((l) => `${l.jogo}: ${l.sala}`).join(" · ") : "Navegando no site",
   }));
 
   // Quem está jogando aparece primeiro; depois ordem alfabética.

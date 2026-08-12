@@ -1,5 +1,10 @@
 import "dotenv/config";
 import express from "express";
+// Faz erros dentro de rotas async caírem no tratador de erro global lá do
+// fim deste arquivo. Sem isso (Express 4), um erro de banco numa rota sem
+// try/catch deixaria a requisição PENDURADA pra sempre — o navegador da
+// pessoa ficaria carregando até estourar o próprio timeout, sem resposta.
+import "express-async-errors";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 import helmet from "helmet";

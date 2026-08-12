@@ -45,9 +45,14 @@ function buildDifficultyRooms(themeKey, themeName) {
       difficultyFilter: ["dificil"],
       description: `Só as perguntas mais puxadas de ${themeName.toLowerCase()}.`,
       maxPlayers: 10,
-      questionSeconds: 35,
+      questionSeconds: 20, // tempo curto: na avançada tem que saber de cabeça
       revealIntervalSeconds: 4,
-      maxRevealPercent: 0.3, // revela bem menos — mais difícil de adivinhar
+      // Começa sem nenhuma letra revelada: com o teto de 10%, se a fatia
+      // inicial padrão (20%) fosse aplicada, o pouquíssimo de dica que
+      // existe apareceria todo de uma vez e o gotejamento não faria nada.
+      // Assim as letras pingam aos poucos até o limite de 10%.
+      initialRevealPercent: 0,
+      maxRevealPercent: 0.2, // revela até 20% da resposta — ajuda pouca, mas ajuda
       intermissionSeconds: 8,
       pointsPerCorrect: 15, // vale mais, já que é bem mais difícil
     },

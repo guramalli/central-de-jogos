@@ -66,7 +66,9 @@ export const ROOM_CONFIGS = {
     // Só pode pedir STOP com pelo menos 4 das 6 palavras já corretas.
     minCorrectToStop: 4,
     maxPlayers: 10,
-    minSecondsBeforeStop: 5,
+    // Trava de tempo com degrau real entre as salas: na intermediária
+    // ninguém corta a rodada antes dos 15s (na avançada continua 5s).
+    minSecondsBeforeStop: 15,
   },
   "stop-sala-intermediaria-2": {
     label: "Intermediário 2",
@@ -77,7 +79,9 @@ export const ROOM_CONFIGS = {
     difficulty: "mid",
     minCorrectToStop: 4,
     maxPlayers: 10,
-    minSecondsBeforeStop: 5,
+    // Trava de tempo com degrau real entre as salas: na intermediária
+    // ninguém corta a rodada antes dos 15s (na avançada continua 5s).
+    minSecondsBeforeStop: 15,
   },
   "stop-sala-avancada": {
     label: "Sala Avançada",
