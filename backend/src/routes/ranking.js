@@ -20,7 +20,7 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
   const cacheKey = `ranking:monthly:${gameKey}:${monthKey}`;
   const resposta = await cacheOuBuscar(cacheKey, 20, async () => {
     const scores = await prisma.monthlyScore.findMany({
-      where: { gameKey, monthKey, user: { role: { not: "ADMIN" }, isGuest: false } },
+      where: { gameKey, monthKey, user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false } },
       orderBy: { points: "desc" },
       take: 100,
       include: { user: true },
@@ -41,7 +41,7 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
 router.get("/lifetime/:gameKey", requireAuth, async (req, res) => {
   const { gameKey } = req.params;
   const scores = await prisma.lifetimeScore.findMany({
-    where: { gameKey, user: { role: { not: "ADMIN" }, isGuest: false } },
+    where: { gameKey, user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false } },
     orderBy: { points: "desc" },
     take: 100,
     include: { user: true },
@@ -76,7 +76,7 @@ router.get("/history", requireAuth, async (req, res) => {
 router.get("/history/:monthKey/:gameKey", requireAuth, async (req, res) => {
   const { monthKey, gameKey } = req.params;
   const scores = await prisma.monthlyScore.findMany({
-    where: { gameKey, monthKey, user: { role: { not: "ADMIN" }, isGuest: false } },
+    where: { gameKey, monthKey, user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false } },
     orderBy: { points: "desc" },
     take: 10,
     include: { user: true },

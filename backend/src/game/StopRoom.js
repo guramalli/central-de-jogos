@@ -341,7 +341,7 @@ export class StopRoom {
             gameKey: GAME_KEY,
             monthKey,
             points: { gte: menor },
-            user: { role: { not: "ADMIN" }, isGuest: false },
+            user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false },
           },
           select: { points: true },
         });
@@ -795,7 +795,7 @@ export class StopRoom {
         where: {
           gameKey: GAME_KEY,
           monthKey,
-          user: { role: { not: "ADMIN" }, isGuest: false },
+          user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false },
           points: { gt: monthlyPoints },
         },
       });

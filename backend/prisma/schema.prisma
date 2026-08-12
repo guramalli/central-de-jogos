@@ -35,6 +35,10 @@ model User {
   role             String   @default("PLAYER")
   avatarUrl        String?  // foto pequena (base64), opcional
   banned           Boolean  @default(false)
+  // Conta que joga normalmente, mas NÃO aparece em ranking nenhum. Serve
+  // pra contas de teste do próprio time (que jogam o tempo todo validando
+  // features) não distorcerem a disputa nem a premiação.
+  ocultoNoRanking  Boolean  @default(false)
   playtimeMinutes  Int      @default(0)
   // Última plataforma usada pra jogar: "mobile" ou "desktop". Serve pra
   // entender o público e decidir onde investir em melhorias de interface.
