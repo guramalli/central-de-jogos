@@ -4840,3 +4840,16 @@ span.votacao-trilha-item {
   background: linear-gradient(180deg, #ffd98a, #f0aa38);
   vertical-align: middle;
 }
+
+/* Explicação da patente exclusiva, logo abaixo do nome dela na tabela */
+.rank-exclusiva-nota {
+  margin-top: 5px;
+  max-width: 460px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--text-dim);
+  border-left: 3px solid #f0aa38;
+  padding-left: 9px;
+}
+.rank-exclusiva-nota strong { color: var(--text); }

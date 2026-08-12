@@ -18,8 +18,8 @@ export default function RanksInfoQuiz() {
       <Seo title="Patentes do Quiz" description="Veja todas as patentes do Quiz e quanto falta pra você subir de nível." />
       <h1>Patentes Quiz</h1>
       <p style={{ color: "var(--text-dim)" }}>
-        Sua patente no Quiz é calculada pela pontuação vitalícia acumulada nesse jogo — quanto
-        mais você acerta, mais sobe. Confira quanto falta pra próxima:
+        Sua patente no Quiz é calculada pela sua pontuação <strong>do mês</strong> nesse jogo — todo
+        mês ela é recalculada do zero. Confira quanto falta pra próxima:
       </p>
 
       <div className="card">
@@ -37,9 +37,18 @@ export default function RanksInfoQuiz() {
                 <td><img src={r.icon} alt={r.name} className={`ranks-info-icon${r.brilha ? " rank-badge-icon-brilha" : ""}`} /></td>
                 <td>
                   {r.name}
-                  {/* Só uma pessoa por vez ostenta a patente máxima: quem tem
-                      mais pontos vitalícios no jogo. */}
-                  {r.exclusiva && <span className="rank-exclusiva-tag">só 1 jogador</span>}
+                  {/* A patente máxima é de uma pessoa só: quem lidera o
+                      ranking do mês E já passou dos pontos mínimos. */}
+                  {r.exclusiva && (
+                    <>
+                      <span className="rank-exclusiva-tag">só 1 jogador</span>
+                      <div className="rank-exclusiva-nota">
+                        Exclusiva: fica com quem estiver em <strong>1º lugar no ranking do mês</strong> e
+                        tiver batido os pontos mínimos. Quem também passar da marca, mas não liderar,
+                        fica com a patente logo abaixo. Todo mês a disputa recomeça.
+                      </div>
+                    </>
+                  )}
                 </td>
                 <td>{formatPoints(r.min)} pts</td>
               </tr>
