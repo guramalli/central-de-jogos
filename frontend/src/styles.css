@@ -4799,3 +4799,29 @@ span.votacao-trilha-item {
   transition: opacity 0.15s;
 }
 .chat-delete-btn:hover { opacity: 1; }
+
+/* ===== Brilho da patente máxima (Coroa Imperial de Ouro) =====
+   Duas camadas: um halo dourado que pulsa e um leve realce no próprio
+   ícone. Respeita quem pediu menos animação no sistema (prefers-reduced-
+   motion) — nesse caso o halo fica fixo, sem pulsar. */
+.rank-badge-icon-brilha {
+  filter: drop-shadow(0 0 6px rgba(255, 205, 90, 0.95))
+          drop-shadow(0 0 14px rgba(255, 170, 40, 0.6));
+  animation: patente-brilho 2.4s ease-in-out infinite;
+}
+
+@keyframes patente-brilho {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(255, 205, 90, 0.8))
+            drop-shadow(0 0 12px rgba(255, 170, 40, 0.45));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 225, 140, 1))
+            drop-shadow(0 0 26px rgba(255, 180, 50, 0.85))
+            brightness(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-badge-icon-brilha { animation: none; }
+}
