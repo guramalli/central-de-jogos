@@ -45,7 +45,7 @@ function buildDifficultyRooms(themeKey, themeName) {
       difficultyFilter: ["dificil"],
       description: `Só as perguntas mais puxadas de ${themeName.toLowerCase()}.`,
       maxPlayers: 10,
-      questionSeconds: 35,
+      questionSeconds: 20, // tempo curto: na avançada tem que saber de cabeça
       revealIntervalSeconds: 4,
       // Começa sem nenhuma letra revelada: com o teto de 10%, se a fatia
       // inicial padrão (20%) fosse aplicada, o pouquíssimo de dica que
