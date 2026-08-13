@@ -792,6 +792,20 @@ export class QuizRoom {
     try {
       if (winner) {
         const pts = this.pointsPerCorrect;
+
+        // A sequência de acertos é calculada AGORA, antes de qualquer escrita
+        // no banco. O acerto já é fato consumado no momento em que a pessoa
+        // acerta — se uma gravação de pontos falhar mais adiante e cair no
+        // catch, a streak NÃO pode ser perdida junto. Antes, o incremento
+        // ficava lá embaixo e uma exceção anterior o deixava órfão: o
+        // jogador acertava e mesmo assim perdia a sequência.
+        if (this.streakUserId === winner.userId) {
+          this.streakCount += 1;
+        } else {
+          this.streakUserId = winner.userId;
+          this.streakCount = 1;
+        }
+
         const elapsedSeconds = this.questionStartedAt
           ? Math.max(0, Math.round((Date.now() - this.questionStartedAt) / 1000))
           : null;
@@ -892,28 +906,30 @@ export class QuizRoom {
           this.turnScores.set(winner.userId, (this.turnScores.get(winner.userId) || 0) + 1);
         }
 
-        // Sequência de respostas certas seguidas (streak) — só anuncia a
-        // partir da 2ª seguida (a 1ª sozinha não é bem uma "sequência" ainda).
-        if (this.streakUserId === winner.userId) {
-          this.streakCount += 1;
-        } else {
-          this.streakUserId = winner.userId;
-          this.streakCount = 1;
-        }
+        // Sequência de respostas certas seguidas (streak) — o cálculo já foi
+        // feito lá no início do bloco, à prova de falhas nas gravações. Aqui
+        // só anunciamos, a partir da 2ª seguida (a 1ª sozinha ainda não é
+        // uma "sequência"). Todo o anúncio fica isolado num try próprio: se
+        // salvar o recorde falhar, a sequência do jogador na memória segue
+        // intacta e o jogo continua.
         if (this.streakCount >= 2) {
-          const record = await this.loadRoomRecord();
-          const brokeRecord = this.streakCount > (record.count || 0);
-          if (brokeRecord) {
-            await this.saveRoomRecord(winner.userId, winner.nickname, this.streakCount);
-            this.broadcast("quiz-streak-record-update", { record: this.roomRecord });
+          try {
+            const record = await this.loadRoomRecord();
+            const brokeRecord = this.streakCount > (record.count || 0);
+            if (brokeRecord) {
+              await this.saveRoomRecord(winner.userId, winner.nickname, this.streakCount);
+              this.broadcast("quiz-streak-record-update", { record: this.roomRecord });
+            }
+            this.systemMessage(
+              `🔥 ${winner.nickname} acertou a ${ordinalFem(this.streakCount)} resposta consecutiva!${
+                brokeRecord ? " 🏆 NOVO RECORDE da sala!" : ""
+              }`,
+              true,
+              true
+            );
+          } catch (err) {
+            console.error(`Falha ao anunciar sequência na sala ${this.roomId}:`, err.message);
           }
-          this.systemMessage(
-            `🔥 ${winner.nickname} acertou a ${ordinalFem(this.streakCount)} resposta consecutiva!${
-              brokeRecord ? " 🏆 NOVO RECORDE da sala!" : ""
-            }`,
-            true,
-            true
-          );
         }
 
         await this.announceRankingPosition(winner.userId, winner.nickname);
