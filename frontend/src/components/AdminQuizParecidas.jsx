@@ -43,6 +43,17 @@ export default function AdminQuizParecidas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limite]);
 
+  async function marcarDiferentes(par) {
+    // Persiste no banco pra não reaparecer após novas importações, e some
+    // da tela na hora.
+    try {
+      await api.post("/admin/quiz-parecidas/aprovar", { idA: par.a.id, idB: par.b.id });
+      setResolvidos((prev) => new Set(prev).add(par.a.id));
+    } catch (e) {
+      alert(e.response?.data?.error || "Erro ao salvar.");
+    }
+  }
+
   async function apagar(id, texto) {
     if (!window.confirm(`Apagar esta pergunta?\n\n"${texto}"`)) return;
     try {
@@ -165,8 +176,8 @@ export default function AdminQuizParecidas() {
             <span className="parecidas-percent">{p.semelhanca}% parecidas</span>
             <button
               className="btn btn-sm btn-ghost"
-              title="Marcar como revisado — só esconde o par desta lista"
-              onClick={() => setResolvidos((prev) => new Set(prev).add(p.a.id))}
+              title="Marcar como revisado — não volta a aparecer, mesmo após novas importações"
+              onClick={() => marcarDiferentes(p)}
             >
               ✓ São diferentes
             </button>

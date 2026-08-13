@@ -287,6 +287,20 @@ model QuizQuestion {
   createdAt     DateTime @default(now())
 }
 
+// Pares de perguntas que o admin já revisou na tela de "parecidas" e marcou
+// como legítimos (ex.: "Copa de 1974" e "Copa de 1990"). Sem isso, todo lote
+// novo de perguntas recalculava a lista e trazia de volta o que já tinha sido
+// aprovado. A chave é o par de ids em ordem alfabética, pra não depender de
+// qual veio primeiro.
+model QuizParDiferente {
+  id        String   @id @default(cuid())
+  idA       String   // id da primeira pergunta (sempre o menor alfabeticamente)
+  idB       String   // id da segunda
+  createdAt DateTime @default(now())
+
+  @@unique([idA, idB])
+}
+
 // ===== Missões diárias e semanais =====
 // A definição de cada missão fica no código (src/game/missoes.js), não no
 // banco: assim dá pra ajustar objetivos e recompensas sem migration. Aqui

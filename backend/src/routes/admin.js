@@ -219,11 +219,37 @@ router.get("/quiz-parecidas", requireRole("ADMIN"), async (req, res) => {
     return achados;
   });
 
-  res.json({ total: pares.length, pares });
+  // Remove os pares que o admin já revisou e marcou como legítimos. Isso é
+  // feito fora do cache de propósito: assim, aprovar um par tem efeito
+  // imediato sem precisar esperar o cache expirar.
+  const aprovados = await prisma.quizParDiferente.findMany({ select: { idA: true, idB: true } });
+  const jaAprovado = new Set(aprovados.map((p) => `${p.idA}|${p.idB}`));
+  const chaveDe = (a, b) => [a, b].sort().join("|");
+  const filtrados = pares.filter((p) => !jaAprovado.has(chaveDe(p.a.id, p.b.id)));
+
+  res.json({ total: filtrados.length, pares: filtrados });
+});
+
+// Marca um par como "são diferentes" — decisão do admin persistida no banco,
+// pra não reaparecer quando a lista for recalculada após novas importações.
+router.post("/quiz-parecidas/aprovar", requireRole("ADMIN"), async (req, res) => {
+  const { idA, idB } = req.body;
+  if (!idA || !idB) return res.status(400).json({ error: "Informe os dois ids do par." });
+  // Ordena pra que o par (X, Y) e (Y, X) virem a mesma linha.
+  const [menor, maior] = [idA, idB].sort();
+  await prisma.quizParDiferente.upsert({
+    where: { idA_idB: { idA: menor, idB: maior } },
+    create: { idA: menor, idB: maior },
+    update: {},
+  });
+  res.json({ ok: true });
 });
 
 router.delete("/quiz-questions/:id", async (req, res) => {
-  await prisma.quizQuestion.delete({ where: { id: req.params.id } });
+  const id = req.params.id;
+  await prisma.quizQuestion.delete({ where: { id } });
+  // Limpa pares aprovados que citavam essa pergunta — viraram lixo agora.
+  await prisma.quizParDiferente.deleteMany({ where: { OR: [{ idA: id }, { idB: id }] } });
   // A lista de parecidas é calculada em cima do banco: apagar uma pergunta
   // invalida o cache, senão o par apagado continuaria aparecendo na tela.
   cacheInvalidar("quiz:parecidas");
@@ -264,6 +290,11 @@ router.patch("/quiz-questions/:id", async (req, res) => {
     data.difficulty = difficulty;
   }
   const updated = await prisma.quizQuestion.update({ where: { id: req.params.id }, data });
+  // Se o texto mudou, aprovações antigas desse par podem não fazer mais
+  // sentido — remove pra que a pergunta seja reavaliada na próxima listagem.
+  if (data.question !== undefined) {
+    await prisma.quizParDiferente.deleteMany({ where: { OR: [{ idA: req.params.id }, { idB: req.params.id }] } });
+  }
   cacheInvalidar("quiz:parecidas");
   res.json(updated);
 });
