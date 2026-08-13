@@ -20,7 +20,21 @@ export default function AdminQuizParecidas() {
     api
       .get(`/admin/quiz-parecidas?limite=${lim}`)
       .then(({ data }) => setDados(data))
-      .catch((e) => setErro(e.response?.data?.error || "Erro ao carregar."))
+      .catch((e) => {
+        // Mostra o motivo real em vez de "erro" genérico: sem isso, um 403
+        // (cargo desatualizado no token) e um 500 (falha no servidor) ficam
+        // indistinguíveis, e não dá pra saber o que corrigir.
+        const status = e.response?.status;
+        const msg = e.response?.data?.error || e.message || "falha desconhecida";
+        if (status === 403) {
+          setErro("Acesso negado (403). Saia e entre de novo no site — o cargo guardado no navegador pode estar desatualizado.");
+        } else if (status === 404) {
+          setErro("Rota não encontrada (404). O deploy do backend provavelmente ainda não subiu esta versão.");
+        } else {
+          setErro(`Erro ao carregar${status ? ` (${status})` : ""}: ${msg}`);
+        }
+        console.error("quiz-parecidas:", e);
+      })
       .finally(() => setCarregando(false));
   }
 

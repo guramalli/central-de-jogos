@@ -47,7 +47,9 @@
     "import-quiz-dificeis": "node prisma/importDificeis.js",
     "checar-vazamento": "node scripts/checarVazamento.js",
     "checar-duplicadas": "node scripts/checarDuplicadas.js",
-    "contar-perguntas": "node scripts/contarPerguntas.js"
+    "contar-perguntas": "node scripts/contarPerguntas.js",
+    "import-futebol-torcedor": "node prisma/importFutebolTorcedor.js",
+    "import-futebol-campeoes": "node prisma/importFutebolCampeoes.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
