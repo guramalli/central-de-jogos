@@ -15,7 +15,15 @@ export default function OnlinePlayers({ players }) {
       {players.map((p, i) => (
         <li key={p.userId} className={i % 2 === 0 ? "sc-row-a" : "sc-row-b"}>
           <span className="sc-player-rank" title={p.rank?.name}>
-            {p.rank?.icon && <img src={p.rank.icon} alt={p.rank.name} className="sc-player-rank-icon" />}
+            {p.rank?.icon && (
+              <img
+                src={p.rank.icon}
+                alt={p.rank.name}
+                /* Patente máxima brilha aqui também: é na lista da sala que
+                   as pessoas mais se comparam. */
+                className={`sc-player-rank-icon${p.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
+              />
+            )}
           </span>
           <span className="sc-player-name">
             <ClanInviteMenu userId={p.userId} nickname={p.nickname} currentUserId={user?.id}>

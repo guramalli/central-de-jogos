@@ -39,6 +39,12 @@ model User {
   // pra contas de teste do próprio time (que jogam o tempo todo validando
   // features) não distorcerem a disputa nem a premiação.
   ocultoNoRanking  Boolean  @default(false)
+  // Patente fixada manualmente (guarda a "key" da patente). Serve pra contas
+  // institucionais — como a do próprio site — ostentarem uma patente sem
+  // precisar de pontuação. É só exibição: não altera pontos, não entra no
+  // ranking e NÃO tira a patente exclusiva de quem a conquistou jogando.
+  patenteStopFixa  String?
+  patenteQuizFixa  String?
   playtimeMinutes  Int      @default(0)
   // Última plataforma usada pra jogar: "mobile" ou "desktop". Serve pra
   // entender o público e decidir onde investir em melhorias de interface.

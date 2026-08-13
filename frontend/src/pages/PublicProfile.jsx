@@ -125,7 +125,11 @@ export default function PublicProfile() {
 
                 {m.rank && (
                   <div className="monthly-rank-patent">
-                    <img src={m.rank.icon} alt={m.rank.name} className="monthly-rank-patent-icon" />
+                    <img
+                      src={m.rank.icon}
+                      alt={m.rank.name}
+                      className={`monthly-rank-patent-icon${m.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
+                    />
                     <span className="monthly-rank-patent-name">{m.rank.name}</span>
                   </div>
                 )}

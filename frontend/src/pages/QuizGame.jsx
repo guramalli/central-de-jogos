@@ -511,7 +511,13 @@ export default function QuizGame() {
             {onlinePlayers.map((p) => (
               <div key={p.userId} className="quiz-player-row">
                 <div className="quiz-player-name">
-                  {p.rank?.icon && <img src={p.rank.icon} alt={p.rank.name} className="quiz-player-rank-icon" />}
+                  {p.rank?.icon && (
+                    <img
+                      src={p.rank.icon}
+                      alt={p.rank.name}
+                      className={`quiz-player-rank-icon${p.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
+                    />
+                  )}
                   <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="quiz" roomId={roomId} />
                 </div>
                 <span className="quiz-player-points">{p.roomLifetimePoints}</span>

@@ -69,7 +69,7 @@ export default function Profile() {
 
   return (
     <div>
-      <Seo title="Meu Perfil" />
+      <Seo title="Meu Perfil" noindex />
       <h1>Meu Perfil</h1>
 
       <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
