@@ -46,7 +46,15 @@ app.use(
   })
 );
 
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+// Aceita uma OU várias origens, separadas por vírgula na variável de
+// ambiente. Isso permite hospedar o jogo em outro lugar além do site — o
+// itch.io, por exemplo, serve o conteúdo embutido a partir de um domínio
+// próprio, e sem essa lista o navegador bloquearia todas as chamadas.
+// Exemplo: CORS_ORIGIN="https://www.educacaogamer.com.br,https://html.itch.zone"
+const CORS_ORIGIN = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());

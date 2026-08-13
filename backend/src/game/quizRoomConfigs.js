@@ -109,7 +109,9 @@ export const QUIZ_ROOM_CONFIGS = {
     questionSeconds: 45,
     revealIntervalSeconds: 5,
     intermissionSeconds: 8,
-    pointsPerCorrect: 15,
+    // 10 pontos, igual às salas padrão: a dica aqui é generosa (revela até
+    // metade da resposta), então não faz sentido pagar como sala avançada.
+    pointsPerCorrect: 10,
   },
 };
 

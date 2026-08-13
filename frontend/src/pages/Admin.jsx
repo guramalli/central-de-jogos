@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import AdminGlossary from "../components/AdminGlossary.jsx";
 import AdminQuizGlossary from "../components/AdminQuizGlossary.jsx";
 import AdminCadastrosPorDia from "../components/AdminCadastrosPorDia.jsx";
+import AdminQuizParecidas from "../components/AdminQuizParecidas.jsx";
 import Pagination from "../components/Pagination.jsx";
 import Seo from "../components/Seo.jsx";
 
@@ -467,6 +468,8 @@ export default function Admin() {
       </div>
 
       <AdminQuizGlossary />
+
+      {user.role === "ADMIN" && <AdminQuizParecidas />}
 
       {user.role === "ADMIN" && <AdminCadastrosPorDia />}
 

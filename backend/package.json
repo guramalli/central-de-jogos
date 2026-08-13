@@ -43,7 +43,11 @@
     "import-novelas": "node prisma/importNovelas.js",
     "renomear-tema": "node scripts/renomearTema.js",
     "set-patente": "node scripts/setPatente.js",
-    "listar-contas": "node scripts/listarContas.js"
+    "listar-contas": "node scripts/listarContas.js",
+    "import-quiz-dificeis": "node prisma/importDificeis.js",
+    "checar-vazamento": "node scripts/checarVazamento.js",
+    "checar-duplicadas": "node scripts/checarDuplicadas.js",
+    "contar-perguntas": "node scripts/contarPerguntas.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

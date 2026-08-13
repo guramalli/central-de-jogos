@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { cacheGet, cacheSet } from "../utils/cache.js";
+import { cacheGet, cacheSet, cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameManager.js";
 import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
@@ -149,8 +149,84 @@ router.post("/quiz-questions", async (req, res) => {
   res.json(entry);
 });
 
+// Pares de perguntas PARECIDAS dentro da mesma sala — pra revisão manual.
+//
+// Repetição entre salas diferentes é legítima (a mesma pergunta pode caber
+// em Futebol e em Esportes), então o agrupamento é por sala: tema + faixa de
+// dificuldade, já que "Padrão" (fácil/médio) e "Avançado" (difícil) nunca se
+// cruzam pro mesmo jogador.
+//
+// O cálculo é pesado o bastante pra não valer rodar a cada abertura da tela:
+// fica em cache por 10 minutos.
+router.get("/quiz-parecidas", requireRole("ADMIN"), async (req, res) => {
+  const limite = Math.min(Math.max(Number(req.query.limite) || 60, 10), 95) / 100;
+
+  const pares = await cacheOuBuscar(`quiz:parecidas:${limite}`, 600, async () => {
+    const perguntas = await prisma.quizQuestion.findMany({
+      where: { status: "approved" },
+      select: { id: true, themeKey: true, question: true, answer: true, difficulty: true },
+    });
+
+    const normalizar = (t) =>
+      t
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const semelhanca = (a, b) => {
+      const A = new Set(a);
+      const B = new Set(b);
+      let comuns = 0;
+      for (const p of A) if (B.has(p)) comuns++;
+      return comuns / (A.size + B.size - comuns);
+    };
+
+    // Agrupa por sala + resposta. Comparar todas contra todas seriam milhões
+    // de combinações; duplicata de verdade quase sempre tem a mesma resposta.
+    const grupos = new Map();
+    for (const q of perguntas) {
+      const faixa = q.difficulty === "dificil" ? "Avançado" : "Padrão";
+      const chave = `${q.themeKey}|${faixa}|${normalizar(q.answer)}`;
+      if (!grupos.has(chave)) grupos.set(chave, []);
+      grupos.get(chave).push(q);
+    }
+
+    const achados = [];
+    for (const [chave, grupo] of grupos) {
+      if (grupo.length < 2) continue;
+      const [themeKey, faixa] = chave.split("|");
+      for (let i = 0; i < grupo.length; i++) {
+        for (let j = i + 1; j < grupo.length; j++) {
+          const ta = normalizar(grupo[i].question);
+          const tb = normalizar(grupo[j].question);
+          const s = ta === tb ? 1 : semelhanca(ta.split(" "), tb.split(" "));
+          if (s >= limite) {
+            achados.push({
+              sala: `${themeKey} — ${faixa}`,
+              themeKey,
+              semelhanca: Math.round(s * 100),
+              a: grupo[i],
+              b: grupo[j],
+            });
+          }
+        }
+      }
+    }
+    achados.sort((x, y) => y.semelhanca - x.semelhanca);
+    return achados;
+  });
+
+  res.json({ total: pares.length, pares });
+});
+
 router.delete("/quiz-questions/:id", async (req, res) => {
   await prisma.quizQuestion.delete({ where: { id: req.params.id } });
+  // A lista de parecidas é calculada em cima do banco: apagar uma pergunta
+  // invalida o cache, senão o par apagado continuaria aparecendo na tela.
+  cacheInvalidar("quiz:parecidas");
   res.json({ ok: true });
 });
 
@@ -188,6 +264,7 @@ router.patch("/quiz-questions/:id", async (req, res) => {
     data.difficulty = difficulty;
   }
   const updated = await prisma.quizQuestion.update({ where: { id: req.params.id }, data });
+  cacheInvalidar("quiz:parecidas");
   res.json(updated);
 });
 

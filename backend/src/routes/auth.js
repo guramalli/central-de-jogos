@@ -12,7 +12,10 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Reaproveita a mesma origem configurada pro CORS — é o endereço público do
 // site (frontend), usado pra montar o link que vai no e-mail de redefinição.
-const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:5173";
+// Se houver várias origens separadas por vírgula, usa a PRIMEIRA: o e-mail
+// precisa de um destino único, e sem esse corte o link sairia quebrado (com
+// as duas URLs coladas) assim que uma segunda origem fosse adicionada.
+const FRONTEND_URL = (process.env.CORS_ORIGIN || "http://localhost:5173").split(",")[0].trim();
 const RESET_TOKEN_VALID_MS = 60 * 60 * 1000; // 1 hora
 
 // Limite de tentativas — protege contra alguém tentando adivinhar senha por
