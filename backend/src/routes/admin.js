@@ -191,6 +191,66 @@ router.patch("/quiz-questions/:id", async (req, res) => {
   res.json(updated);
 });
 
+// Histórico de cadastros por dia. Serve pra enxergar o efeito de anúncios,
+// posts e divulgações: um pico no gráfico indica que algo daquele dia
+// funcionou. Visitantes não contam — só contas de verdade.
+router.get("/cadastros-por-dia", requireRole("ADMIN"), async (req, res) => {
+  const dias = Math.min(Number(req.query.dias) || 90, 365);
+  const desde = new Date();
+  desde.setDate(desde.getDate() - dias);
+  desde.setHours(0, 0, 0, 0);
+
+  const contas = await prisma.user.findMany({
+    where: { isGuest: false, createdAt: { gte: desde } },
+    select: { createdAt: true, ultimaPlataforma: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // Agrupa por data local (America/Sao_Paulo). Fazer isso na aplicação, e
+  // não no banco, evita depender do fuso configurado no Postgres — que no
+  // Neon é UTC e jogaria os cadastros da madrugada pro dia seguinte.
+  const porDia = new Map();
+  for (const c of contas) {
+    const chave = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(c.createdAt);
+    const reg = porDia.get(chave) || { data: chave, total: 0, mobile: 0, desktop: 0 };
+    reg.total += 1;
+    if (c.ultimaPlataforma === "mobile") reg.mobile += 1;
+    else if (c.ultimaPlataforma === "desktop") reg.desktop += 1;
+    porDia.set(chave, reg);
+  }
+
+  // Preenche os dias sem nenhum cadastro com zero, senão o gráfico "pula"
+  // datas e dá a impressão de movimento contínuo onde não houve.
+  const serie = [];
+  const cursor = new Date(desde);
+  const hoje = new Date();
+  while (cursor <= hoje) {
+    const chave = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(cursor);
+    serie.push(porDia.get(chave) || { data: chave, total: 0, mobile: 0, desktop: 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const total = serie.reduce((s, d) => s + d.total, 0);
+  const melhor = serie.reduce((a, b) => (b.total > a.total ? b : a), serie[0] || null);
+  res.json({
+    dias,
+    total,
+    mediaPorDia: serie.length ? Number((total / serie.length).toFixed(1)) : 0,
+    melhorDia: melhor,
+    serie,
+  });
+});
+
 router.get("/users", requireRole("ADMIN"), async (req, res) => {
   const users = await prisma.user.findMany({
     select: {
