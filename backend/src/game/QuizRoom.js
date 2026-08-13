@@ -774,8 +774,15 @@ export class QuizRoom {
       } catch (err) {
         console.error(`Erro ao encerrar pergunta na arena ${this.roomId}:`, err);
       } finally {
-        if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
-          await this.finishTurn();
+        // finishTurn protegido: se ele falhar, a sala AINDA precisa reagendar
+        // a próxima pergunta. Sem esse try, uma exceção aqui pulava o
+        // startIntermission e a sala congelava justamente ao fechar o turno.
+        try {
+          if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
+            await this.finishTurn();
+          }
+        } catch (err) {
+          console.error(`Falha ao fechar turno na arena ${this.roomId}:`, err);
         }
         this.startIntermission();
       }
@@ -942,8 +949,15 @@ export class QuizRoom {
       console.error(`Erro ao encerrar pergunta na sala ${this.roomId}:`, err);
     } finally {
       // Modo arena: quando o turno completa as rodadas, premia e recomeça.
-      if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
-        await this.finishTurn();
+      // finishTurn protegido: se ele lançar, o startIntermission abaixo ainda
+      // roda. Sem isso, uma falha ao fechar o turno (a cada X rodadas)
+      // deixava a sala parada pra sempre — o freeze "depois de acertar".
+      try {
+        if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
+          await this.finishTurn();
+        }
+      } catch (err) {
+        console.error(`Falha ao fechar turno na sala ${this.roomId}:`, err);
       }
       this.startIntermission();
     }
