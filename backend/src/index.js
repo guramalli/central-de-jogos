@@ -34,6 +34,15 @@ import { setupSocket } from "./socket/index.js";
 const app = express();
 const server = createServer(app);
 
+// O Render (e qualquer plataforma parecida) coloca um proxy na frente do
+// servidor. Esse proxy manda o IP real do visitante no header
+// X-Forwarded-For. Sem avisar o Express pra confiar nesse header, o
+// express-rate-limit não consegue identificar cada usuário e fica lançando
+// ValidationError a cada requisição. "1" confia só no primeiro proxy (o do
+// Render), que é o comportamento seguro — confiar em todos deixaria o IP
+// ser falsificado.
+app.set("trust proxy", 1);
+
 // Cabeçalhos de segurança padrão de mercado (esconde tecnologia usada,
 // evita que o site seja carregado dentro de um iframe malicioso em outro
 // site, entre outras proteções). CSP desligado porque esse servidor só

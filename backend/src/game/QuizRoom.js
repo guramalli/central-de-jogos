@@ -78,6 +78,14 @@ export class QuizRoom {
     this.timeLeft = 0;
     this.timer = null;
     this.revealTimer = null;
+    // Watchdog: guarda o instante do último "sinal de vida" da sala (um tick,
+    // uma pergunta nova, um intervalo iniciado). Um vigia independente checa
+    // periodicamente se esse instante ficou velho demais — se ficou, a sala
+    // congelou e precisa ser reiniciada. É a mesma proteção que resolveu o
+    // freeze do Stop; o Quiz não tinha, e por isso uma falha rara no
+    // agendamento do intervalo deixava a rodada parada pra sempre.
+    this.ultimoSinalDeVida = Date.now();
+    this.watchdogTimer = null;
     // Fila de perguntas embaralhada da volta atual. Vai sendo consumida a
     // cada rodada; quando esvazia, uma nova volta é montada e reembaralhada.
     this.filaPerguntas = [];
@@ -207,6 +215,7 @@ export class QuizRoom {
     // Sala só roda perguntas quando tem gente — assim ninguém entra e cai
     // no meio de uma pergunta que já está acabando.
     if (this.state === "waiting" && this.players.size > 0) {
+      this.iniciarWatchdog();
       this.startIntermission();
     }
 
@@ -229,6 +238,7 @@ export class QuizRoom {
     // consumindo perguntas e rodando timer à toa.
     if (this.players.size === 0) {
       this.clearTimers();
+      this.pararWatchdog();
       this.state = "waiting";
       this.currentQuestion = null;
       this.turnScores = new Map();
@@ -288,6 +298,47 @@ export class QuizRoom {
     this.revealTimer = null;
   }
 
+  // Registra que a sala deu sinal de vida agora. Chamado a cada tick e a cada
+  // transição de estado. O watchdog usa isso pra saber se a sala travou.
+  marcarVida() {
+    this.ultimoSinalDeVida = Date.now();
+  }
+
+  // Liga o vigia independente. Ele roda num timer próprio, separado do timer
+  // do jogo — de propósito: se o timer do jogo morrer (o bug que causava o
+  // freeze), o do watchdog continua vivo e percebe a parada.
+  iniciarWatchdog() {
+    if (this.watchdogTimer) return; // já ligado
+    this.marcarVida();
+    this.watchdogTimer = setInterval(() => {
+      // Sala sem gente não precisa de vigia — ela fica em "waiting" de
+      // propósito, sem timer, e isso não é um travamento.
+      if (this.players.size === 0 || this.state === "waiting") return;
+
+      const paradaHa = Date.now() - this.ultimoSinalDeVida;
+      // Um ciclo normal (pergunta + intervalo) leva no máximo ~60s numa sala
+      // lenta. 45s sem NENHUM sinal de vida só acontece se o timer do jogo
+      // morreu. Aí forçamos um recomeço limpo.
+      if (paradaHa > 45000) {
+        console.error(
+          `[watchdog] Sala ${this.roomId} parada há ${Math.round(paradaHa / 1000)}s no estado "${this.state}". Reiniciando.`
+        );
+        this.marcarVida(); // evita disparar de novo antes do restart assentar
+        this.systemMessage("⚠️ A sala travou e foi reiniciada automaticamente.");
+        try {
+          this.startIntermission();
+        } catch (err) {
+          console.error(`[watchdog] Falha ao reiniciar a sala ${this.roomId}:`, err);
+        }
+      }
+    }, 15000);
+  }
+
+  pararWatchdog() {
+    if (this.watchdogTimer) clearInterval(this.watchdogTimer);
+    this.watchdogTimer = null;
+  }
+
   systemMessage(message, bold = false, success = false, promotion = false) {
     this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
@@ -324,6 +375,7 @@ export class QuizRoom {
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("quiz-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         // Protegido: essas funções são assíncronas e desligam o timer logo
@@ -494,6 +546,7 @@ export class QuizRoom {
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("quiz-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         Promise.resolve(this.endQuestion(null)).catch((err) => {
