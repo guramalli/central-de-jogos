@@ -49,7 +49,9 @@
     "checar-duplicadas": "node scripts/checarDuplicadas.js",
     "contar-perguntas": "node scripts/contarPerguntas.js",
     "import-futebol-torcedor": "node prisma/importFutebolTorcedor.js",
-    "import-futebol-campeoes": "node prisma/importFutebolCampeoes.js"
+    "import-futebol-campeoes": "node prisma/importFutebolCampeoes.js",
+    "import-games-padrao": "node prisma/importGamesPadrao.js",
+    "import-games-avancado": "node prisma/importGamesAvancado.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
