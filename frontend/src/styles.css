@@ -934,7 +934,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 /* ===== Ícones de patente (imagem) ===== */
 .rank-badge-icon { width: 20px; height: 20px; object-fit: contain; }
-.sc-player-rank-icon { width: 22px; height: 22px; object-fit: contain; }
+.sc-player-rank-icon { width: 24px; height: 24px; object-fit: contain; }
 
 /* ===== Painel Admin: índice de palavras ===== */
 .admin-glossary-grid {
