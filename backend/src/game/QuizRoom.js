@@ -787,12 +787,15 @@ export class QuizRoom {
 
         this.systemMessage(`❓ ${question.question}`);
 
-        // Narra a "seca" quando ninguém acerta várias seguidas.
+        // Narra a "seca" quando ninguém acerta várias seguidas — espaçada:
+        // fala da 2ª à 5ª, depois só nos marcos de 10 em 10, pra não virar
+        // parede de mensagens em madrugadas sem movimento.
         if (scorers.length === 0) {
           this.roundsWithoutWinner += 1;
-          if (this.roundsWithoutWinner >= 2) {
+          const n = this.roundsWithoutWinner;
+          if ((n >= 2 && n <= 5) || (n >= 10 && n % 10 === 0)) {
             this.systemMessage(
-              `😶 Essa é a ${this.roundsWithoutWinner}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
+              `😶 Essa é a ${n}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
             );
           }
         } else {
@@ -988,12 +991,14 @@ export class QuizRoom {
         this.streakCount = 0;
         this.roundsWithoutWinner += 1;
 
-        // Narra a "seca" quando ela começa a ficar relevante — a partir da
-        // 2ª rodada seguida sem ninguém acertar, cria aquele clima de
-        // desafio que a Central de Jogos tinha.
-        if (this.roundsWithoutWinner >= 2) {
+        // Narra a "seca" quando ela começa a ficar relevante — mas espaçando:
+        // da 2ª à 5ª rodada fala sempre (clima de desafio), depois só nos
+        // marcos de 10 em 10. Sem isso, uma sala com jogador ausente virava
+        // uma parede de centenas de mensagens iguais durante a madrugada.
+        const n = this.roundsWithoutWinner;
+        if ((n >= 2 && n <= 5) || (n >= 10 && n % 10 === 0)) {
           this.systemMessage(
-            `😶 Essa é a ${this.roundsWithoutWinner}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
+            `😶 Essa é a ${n}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
           );
         }
       }
