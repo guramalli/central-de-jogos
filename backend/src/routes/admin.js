@@ -233,16 +233,41 @@ router.get("/quiz-parecidas", requireRole("ADMIN"), async (req, res) => {
 // Marca um par como "são diferentes" — decisão do admin persistida no banco,
 // pra não reaparecer quando a lista for recalculada após novas importações.
 router.post("/quiz-parecidas/aprovar", requireRole("ADMIN"), async (req, res) => {
-  const { idA, idB } = req.body;
-  if (!idA || !idB) return res.status(400).json({ error: "Informe os dois ids do par." });
-  // Ordena pra que o par (X, Y) e (Y, X) virem a mesma linha.
-  const [menor, maior] = [idA, idB].sort();
-  await prisma.quizParDiferente.upsert({
-    where: { idA_idB: { idA: menor, idB: maior } },
-    create: { idA: menor, idB: maior },
-    update: {},
-  });
-  res.json({ ok: true });
+  // Aceita um par único ({ idA, idB }) ou vários de uma vez ({ pares: [...] }).
+  // O lote existe porque perguntas parecidas costumam vir em "cachos": 4
+  // variantes da mesma resposta geram 6 combinações de pares, e aprovar uma
+  // por uma dava a impressão de que os pares "voltavam" — eram os irmãos do
+  // mesmo cacho aparecendo um a um.
+  const lote = Array.isArray(req.body.pares)
+    ? req.body.pares
+    : req.body.idA && req.body.idB
+      ? [{ idA: req.body.idA, idB: req.body.idB }]
+      : [];
+  if (lote.length === 0) return res.status(400).json({ error: "Informe os ids do par (ou a lista em pares)." });
+
+  try {
+    for (const { idA, idB } of lote) {
+      if (!idA || !idB) continue;
+      // Ordena pra que o par (X, Y) e (Y, X) virem a mesma linha.
+      const [menor, maior] = [idA, idB].sort();
+      await prisma.quizParDiferente.upsert({
+        where: { idA_idB: { idA: menor, idB: maior } },
+        create: { idA: menor, idB: maior },
+        update: {},
+      });
+    }
+  } catch (err) {
+    // O caso clássico é a tabela ainda não existir no banco (o deploy do
+    // código não cria tabela — isso exige rodar "npx prisma db push" uma
+    // vez). Sem esta mensagem, o painel só dizia "erro ao salvar" e ficava
+    // impossível saber o motivo de os pares voltarem.
+    console.error("Falha ao salvar par aprovado:", err.message);
+    return res.status(500).json({
+      error:
+        "Não consegui gravar no banco. Se for a primeira vez usando este recurso, rode `npx prisma db push` na pasta backend (cria a tabela QuizParDiferente) e tente de novo.",
+    });
+  }
+  res.json({ ok: true, aprovados: lote.length });
 });
 
 router.delete("/quiz-questions/:id", async (req, res) => {
