@@ -203,7 +203,15 @@ export default function Admin() {
   }
 
   async function approveQuiz(id) {
-    await api.post(`/admin/quiz-questions/${id}/approve`);
+    try {
+      const { data } = await api.post(`/admin/quiz-questions/${id}/approve`);
+      // Aprovada, mas com alguma parecida no acervo: mostra o aviso pra
+      // conferência posterior no painel de parecidas.
+      if (data?.aviso) alert(data.aviso);
+    } catch (e) {
+      // Idêntica a uma já aprovada: o backend bloqueia e explica qual é.
+      alert(e.response?.data?.error || "Erro ao aprovar.");
+    }
     loadQuizPending();
   }
   async function rejectQuiz(id) {

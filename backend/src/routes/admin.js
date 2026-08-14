@@ -105,11 +105,60 @@ router.get("/quiz-questions/pending", async (req, res) => {
 });
 
 router.post("/quiz-questions/:id/approve", async (req, res) => {
+  const pendente = await prisma.quizQuestion.findUnique({ where: { id: req.params.id } });
+  if (!pendente) return res.status(404).json({ error: "Pergunta não encontrada." });
+
+  // Antes de aprovar, confere se já não existe igual ou muito parecida no
+  // acervo. Sem isso, uma sugestão idêntica a uma pergunta antiga entrava
+  // duplicada e ia parar na mesma fila da sala.
+  const normalizar = (t) =>
+    t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  const semelhanca = (a, b) => {
+    const A = new Set(a); const B = new Set(b);
+    let c = 0; for (const p of A) if (B.has(p)) c++;
+    return c / (A.size + B.size - c);
+  };
+
+  const doTema = await prisma.quizQuestion.findMany({
+    where: { status: "approved", themeKey: pendente.themeKey },
+    select: { id: true, question: true, answer: true, difficulty: true },
+  });
+  const nq = normalizar(pendente.question);
+  const faixaDe = (d) => (d === "dificil" ? "Avançado" : "Padrão");
+
+  let parecida = null;
+  for (const e of doTema) {
+    if (normalizar(e.question) === nq) {
+      // Idêntica: bloqueia a aprovação e mostra qual já existe.
+      return res.status(409).json({
+        error: `Já existe uma pergunta idêntica aprovada neste tema: "${e.question}" (resposta: ${e.answer}). Rejeite a sugestão ou edite-a antes de aprovar.`,
+      });
+    }
+    // Parecida: mesma sala (faixa) e mesma resposta, enunciado 60%+ igual.
+    if (
+      !parecida &&
+      faixaDe(e.difficulty) === faixaDe(pendente.difficulty) &&
+      normalizar(e.answer) === normalizar(pendente.answer) &&
+      semelhanca(nq.split(" "), normalizar(e.question).split(" ")) >= 0.6
+    ) {
+      parecida = e;
+    }
+  }
+
   const entry = await prisma.quizQuestion.update({
     where: { id: req.params.id },
     data: { status: "approved", validationNote: null },
   });
-  res.json(entry);
+  cacheInvalidar("quiz:parecidas");
+  res.json({
+    ...entry,
+    // Aprovada, mas com aviso: existe uma parecida na mesma sala. Ela também
+    // vai aparecer no painel de parecidas pra revisão com calma.
+    aviso: parecida
+      ? `Aprovada, mas atenção: existe uma parecida na mesma sala — "${parecida.question}" (resposta: ${parecida.answer}). Confira depois no painel de parecidas.`
+      : undefined,
+  });
 });
 
 router.post("/quiz-questions/:id/reject", async (req, res) => {
