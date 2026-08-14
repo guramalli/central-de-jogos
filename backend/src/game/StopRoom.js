@@ -308,6 +308,7 @@ export class StopRoom {
     if (!alreadyInRoom && !this.privada) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
+        userId,
         roomLabel: this.label,
         jogo: "stop",
         nickname,

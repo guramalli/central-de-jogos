@@ -134,6 +134,7 @@ export default function StopGame() {
     // pra quem está sozinho saber onde tem gente em vez de desistir.
     socket.on("aviso-atividade", (data) => {
       if (data.roomId === roomId) return; // já estou nessa sala
+      if (data.userId && data.userId === user?.id) return; // o aviso é sobre mim mesmo (outra aba)
       setMessages((prev) => [
         ...prev,
         { system: true, atividade: true, message: data.mensagem, at: data.at },

@@ -114,6 +114,7 @@ export class AcromaniaRoom {
     if (!alreadyInRoom) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
+        userId,
         roomLabel: this.label,
         jogo: "acromania",
         nickname,

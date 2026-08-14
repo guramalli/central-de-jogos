@@ -4920,3 +4920,10 @@ span.votacao-trilha-item {
   border: 1px solid var(--border); background: var(--bg-panel-2); color: var(--text);
   font-size: 13px; font-family: inherit;
 }
+
+/* Patente na lista de jogadores do Quiz: no desktop, um pouco maior pra dar
+   destaque (o hover mostra o nome da patente). No mobile mantém 18px pra não
+   apertar a linha. */
+@media (min-width: 721px) {
+  .quiz-player-rank-icon { width: 24px; height: 24px; }
+}

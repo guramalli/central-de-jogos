@@ -228,6 +228,7 @@ export class QuizRoom {
     if (!alreadyInRoom) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
+        userId,
         roomLabel: this.label,
         jogo: "quiz",
         nickname,
