@@ -9,8 +9,13 @@ export default function AdminQuizParecidas() {
   const [limite, setLimite] = useState(60);
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
-  // ids já resolvidos nesta sessão (apagados ou marcados como ok)
-  const [resolvidos, setResolvidos] = useState(() => new Set());
+  // Pares já resolvidos nesta sessão (chave "idMenor|idMaior") e perguntas
+  // apagadas. Esconder por par exato — e não por pergunta — é essencial:
+  // esconder tudo que continha a pergunta dava a impressão de que o cacho
+  // inteiro foi aprovado, quando só um par tinha sido gravado no banco.
+  const [paresResolvidos, setParesResolvidos] = useState(() => new Set());
+  const [perguntasApagadas, setPerguntasApagadas] = useState(() => new Set());
+  const chaveDoPar = (p) => [p.a.id, p.b.id].sort().join("|");
   const [editando, setEditando] = useState(null); // { id, question, answer }
   const [salvando, setSalvando] = useState(false);
 
@@ -45,10 +50,28 @@ export default function AdminQuizParecidas() {
 
   async function marcarDiferentes(par) {
     // Persiste no banco pra não reaparecer após novas importações, e some
-    // da tela na hora.
+    // da tela na hora — só este par; os irmãos do mesmo cacho continuam
+    // visíveis até serem revisados (ou aprovados juntos pelo botão de grupo).
     try {
       await api.post("/admin/quiz-parecidas/aprovar", { idA: par.a.id, idB: par.b.id });
-      setResolvidos((prev) => new Set(prev).add(par.a.id));
+      setParesResolvidos((prev) => new Set(prev).add(chaveDoPar(par)));
+    } catch (e) {
+      alert(e.response?.data?.error || "Erro ao salvar.");
+    }
+  }
+
+  async function aprovarGrupo(par, grupo) {
+    // Aprova de uma vez todos os pares do mesmo cacho (mesma sala + mesma
+    // resposta). Um cacho de 4 perguntas gera 6 pares; sem isso, era preciso
+    // clicar um por um e os "restantes" pareciam pares voltando.
+    const pares = grupo.map((g) => ({ idA: g.a.id, idB: g.b.id }));
+    try {
+      await api.post("/admin/quiz-parecidas/aprovar", { pares });
+      setParesResolvidos((prev) => {
+        const novo = new Set(prev);
+        for (const g of grupo) novo.add(chaveDoPar(g));
+        return novo;
+      });
     } catch (e) {
       alert(e.response?.data?.error || "Erro ao salvar.");
     }
@@ -58,7 +81,7 @@ export default function AdminQuizParecidas() {
     if (!window.confirm(`Apagar esta pergunta?\n\n"${texto}"`)) return;
     try {
       await api.delete(`/admin/quiz-questions/${id}`);
-      setResolvidos((prev) => new Set(prev).add(id));
+      setPerguntasApagadas((prev) => new Set(prev).add(id));
     } catch (e) {
       alert(e.response?.data?.error || "Erro ao apagar.");
     }
@@ -88,8 +111,23 @@ export default function AdminQuizParecidas() {
   if (erro) return <div className="card" style={{ marginTop: 16 }}>{erro}</div>;
   if (!dados) return null;
 
-  // Esconde pares em que alguma das duas já foi resolvida nesta sessão.
-  const pares = dados.pares.filter((p) => !resolvidos.has(p.a.id) && !resolvidos.has(p.b.id));
+  // Esconde o par exato já resolvido, e qualquer par com pergunta apagada.
+  const pares = dados.pares.filter(
+    (p) =>
+      !paresResolvidos.has(chaveDoPar(p)) &&
+      !perguntasApagadas.has(p.a.id) &&
+      !perguntasApagadas.has(p.b.id)
+  );
+
+  // Cachos: pares da mesma sala com a mesma resposta. Serve pro botão de
+  // aprovar o grupo inteiro quando há 2+ pares do mesmo conjunto.
+  const cachos = new Map();
+  for (const p of pares) {
+    const k = `${p.sala}|${(p.a.answer || "").toLowerCase().trim()}`;
+    if (!cachos.has(k)) cachos.set(k, []);
+    cachos.get(k).push(p);
+  }
+  const cachoDe = (p) => cachos.get(`${p.sala}|${(p.a.answer || "").toLowerCase().trim()}`) || [p];
 
   function cartao(q, par) {
     const emEdicao = editando?.id === q.id;
@@ -181,6 +219,15 @@ export default function AdminQuizParecidas() {
             >
               ✓ São diferentes
             </button>
+            {cachoDe(p).length >= 2 && (
+              <button
+                className="btn btn-sm btn-ghost"
+                title="Aprovar de uma vez todos os pares desta mesma resposta nesta sala"
+                onClick={() => aprovarGrupo(p, cachoDe(p))}
+              >
+                ✓✓ Grupo todo ({cachoDe(p).length} pares)
+              </button>
+            )}
           </div>
           <div className="parecidas-grade">
             {cartao(p.a, p)}

@@ -116,6 +116,13 @@ export default function StopGame() {
     socket.connect();
     socket.emit("join-stop-room", { roomId });
 
+    // Reconexão após reinício do servidor (deploy) ou queda de rede: reentra
+    // na sala automaticamente, senão a tela ficaria presa na última rodada.
+    const reentrarNaSala = () => {
+      socket.emit("join-stop-room", { roomId });
+    };
+    socket.on("connect", reentrarNaSala);
+
     socket.on("connect_error", (err) => {
       if (err.message === "SESSAO_INVALIDA") {
         logout();
@@ -127,6 +134,7 @@ export default function StopGame() {
     // pra quem está sozinho saber onde tem gente em vez de desistir.
     socket.on("aviso-atividade", (data) => {
       if (data.roomId === roomId) return; // já estou nessa sala
+      if (data.userId && data.userId === user?.id) return; // o aviso é sobre mim mesmo (outra aba)
       setMessages((prev) => [
         ...prev,
         { system: true, atividade: true, message: data.mensagem, at: data.at },
@@ -302,6 +310,7 @@ export default function StopGame() {
 
     return () => {
       if (stopDelayTimerRef.current) clearTimeout(stopDelayTimerRef.current);
+      socket.off("connect", reentrarNaSala);
       socket.off("connect_error");
       socket.off("room-access-denied");
       socket.off("stop-denied");

@@ -934,7 +934,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 /* ===== Ícones de patente (imagem) ===== */
 .rank-badge-icon { width: 20px; height: 20px; object-fit: contain; }
-.sc-player-rank-icon { width: 22px; height: 22px; object-fit: contain; }
+.sc-player-rank-icon { width: 24px; height: 24px; object-fit: contain; }
 
 /* ===== Painel Admin: índice de palavras ===== */
 .admin-glossary-grid {
@@ -4919,4 +4919,11 @@ span.votacao-trilha-item {
   width: 100%; padding: 6px 8px; border-radius: 6px;
   border: 1px solid var(--border); background: var(--bg-panel-2); color: var(--text);
   font-size: 13px; font-family: inherit;
+}
+
+/* Patente na lista de jogadores do Quiz: no desktop, um pouco maior pra dar
+   destaque (o hover mostra o nome da patente). No mobile mantém 18px pra não
+   apertar a linha. */
+@media (min-width: 721px) {
+  .quiz-player-rank-icon { width: 24px; height: 24px; }
 }

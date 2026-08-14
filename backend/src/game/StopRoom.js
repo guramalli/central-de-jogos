@@ -165,6 +165,23 @@ export class StopRoom {
   }
 
   async addPlayer(socket, userId, nickname) {
+    // NENHUMA consulta ao banco pode segurar a entrada na sala. Se o banco
+    // der um soluço aqui, o jogador ficaria olhando uma tela morta sem nunca
+    // receber o estado da sala — foi exatamente um travamento assim que
+    // aconteceu na entrada da Sala Avançada. Toda query deste caminho passa
+    // por este helper: 3s de limite e, se falhar, usa o valor padrão e segue
+    // (os pontos reais se ajustam nas próximas jogadas).
+    const querySegura = async (promessa, padrao) => {
+      try {
+        return await Promise.race([
+          promessa,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+        ]);
+      } catch {
+        return padrao;
+      }
+    };
+
     // Sala lotada: bloqueia só quem ainda NÃO está na sala (reconexão de quem
     // já estava sempre é permitida, mesmo com a sala cheia).
     const alreadyInRoom = [...this.players.values()].some((p) => p.userId === userId);
@@ -180,9 +197,12 @@ export class StopRoom {
     // Salas com exigência de pontuação (ex.: sala avançada) barram quem não
     // tem pontos vitalícios suficientes, ANTES de adicionar à sala.
     if (this.minLifetimePoints > 0) {
-      const existing = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-      });
+      const existing = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+        }),
+        null
+      );
       const current = existing?.points || 0;
       if (current < this.minLifetimePoints) {
         socket.emit("room-access-denied", {
@@ -213,23 +233,32 @@ export class StopRoom {
       if (!this.blockTotals.has(userId)) {
         // Recupera a pontuação do bloco atual salva no banco (se o jogador já
         // tinha pontuado nessa sala antes de sair, ou se o servidor reiniciou).
-        const saved = await prisma.blockScore.findUnique({
-          where: { userId_gameKey_roomId: { userId, gameKey: GAME_KEY, roomId: this.roomId } },
-        });
+        const saved = await querySegura(
+          prisma.blockScore.findUnique({
+            where: { userId_gameKey_roomId: { userId, gameKey: GAME_KEY, roomId: this.roomId } },
+          }),
+          null
+        );
         this.blockTotals.set(userId, saved?.points || 0);
       }
 
       if (!this.lifetimeCache.has(userId)) {
-        const existing = await prisma.lifetimeScore.findUnique({
-          where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-        });
+        const existing = await querySegura(
+          prisma.lifetimeScore.findUnique({
+            where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+          }),
+          null
+        );
         this.lifetimeCache.set(userId, existing?.points || 0);
       }
 
       if (!this.roomLifetimeCache.has(userId)) {
-        const existingRoom = await prisma.lifetimeScore.findUnique({
-          where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
-        });
+        const existingRoom = await querySegura(
+          prisma.lifetimeScore.findUnique({
+            where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
+          }),
+          null
+        );
         this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
       }
     }
@@ -279,6 +308,7 @@ export class StopRoom {
     if (!alreadyInRoom && !this.privada) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
+        userId,
         roomLabel: this.label,
         jogo: "stop",
         nickname,
@@ -1197,8 +1227,10 @@ export class StopRoom {
             create: { userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
 
-          const oldRank = getRankForPoints(oldMonthlyPoints);
-          const newRank = getRankForPoints(newMonthlyPoints);
+          // Mesmo ajuste do Quiz: considera patente fixa/exclusiva na
+          // promoção, pra mensagem e ícone nunca discordarem.
+          const oldRank = getRankForPoints(oldMonthlyPoints, { userId });
+          const newRank = getRankForPoints(newMonthlyPoints, { userId });
           // Só anuncia promoção pra quem concorre ao ranking — visitante
           // e ADMIN ficam de fora, senão viraria aviso de conquista que
           // na prática não vale nada.

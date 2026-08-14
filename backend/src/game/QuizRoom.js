@@ -155,22 +155,45 @@ export class QuizRoom {
 
     this.players.set(socket.id, { userId, nickname, socket, clanTag, joinedAt: Date.now() });
 
+    // Nenhuma consulta ao banco pode segurar a entrada na sala: se o banco
+    // soluçar aqui, o jogador ficaria numa tela morta sem nunca receber o
+    // estado. Cada query tem 3s de limite e, se falhar, usa o padrão e segue.
+    const querySegura = async (promessa, padrao) => {
+      try {
+        return await Promise.race([
+          promessa,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+        ]);
+      } catch {
+        return padrao;
+      }
+    };
+
     if (!this.lifetimeCache.has(userId)) {
-      const existing = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-      });
+      const existing = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+        }),
+        null
+      );
       this.lifetimeCache.set(userId, existing?.points || 0);
     }
     if (!this.mensalCache.has(userId)) {
-      const mes = await prisma.monthlyScore.findUnique({
-        where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey: currentMonthKey() } },
-      });
+      const mes = await querySegura(
+        prisma.monthlyScore.findUnique({
+          where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey: currentMonthKey() } },
+        }),
+        null
+      );
       this.mensalCache.set(userId, mes?.points || 0);
     }
     if (!this.roomLifetimeCache.has(userId)) {
-      const existingRoom = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
-      });
+      const existingRoom = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
+        }),
+        null
+      );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
 
@@ -180,7 +203,7 @@ export class QuizRoom {
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
-      const saudacoes = await carregarSaudacoes(userId);
+      const saudacoes = await querySegura(carregarSaudacoes(userId), null);
       const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
       this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
       // Guarda a saudação de saída: na hora de sair, o socket pode já ter
@@ -205,6 +228,7 @@ export class QuizRoom {
     if (!alreadyInRoom) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
+        userId,
         roomLabel: this.label,
         jogo: "quiz",
         nickname,
@@ -368,9 +392,16 @@ export class QuizRoom {
 
   startIntermission() {
     this.clearTimers();
+    // Garante o vigia ligado sempre que a sala dá um passo. Antes, o watchdog
+    // só ligava quando a primeira pessoa entrava numa sala em "waiting" — se a
+    // sala já estava rodando por outro caminho (ex.: servidor reiniciou no
+    // meio de uma partida), ela ficava sem vigia e um travamento não era
+    // resgatado. Como iniciarWatchdog é idempotente, chamar aqui é seguro.
+    if (this.players.size > 0) this.iniciarWatchdog();
     this.state = "intermission";
     this.currentQuestion = null;
     this.timeLeft = this.intermissionSeconds;
+    this.marcarVida();
     this.broadcast("quiz-intermission", { seconds: this.intermissionSeconds });
 
     this.timer = setInterval(() => {
@@ -408,7 +439,10 @@ export class QuizRoom {
         : this.difficultyFilter;
     }
 
-    const ids = await prisma.quizQuestion.findMany({ where, select: { id: true } });
+    const ids = await Promise.race([
+      prisma.quizQuestion.findMany({ where, select: { id: true } }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao montar fila")), 8000)),
+    ]);
 
     // Embaralhamento Fisher-Yates: cada ordem possível tem a mesma chance.
     const fila = ids.map((q) => q.id);
@@ -422,6 +456,17 @@ export class QuizRoom {
   }
 
   async pickQuestion() {
+    // Toda ida ao banco aqui passa por este helper com timeout. Sem ele, a
+    // query da VIRADA DE FILA (quando as perguntas da volta acabam e a fila é
+    // remontada) ficava sem proteção: se o banco travasse nesse instante, o
+    // await nunca resolvia e a sala congelava pra sempre — exatamente na
+    // pergunta em que a volta fecha (ex.: a 66ª numa sala de 66 perguntas).
+    const comTimeout = (promessa) =>
+      Promise.race([
+        promessa,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout no banco")), 8000)),
+      ]);
+
     // Fila vazia (primeira pergunta da sala, ou a volta anterior acabou):
     // monta uma nova, já embaralhada.
     if (!this.filaPerguntas || this.filaPerguntas.length === 0) {
@@ -433,9 +478,9 @@ export class QuizRoom {
     // sido apagada ou reprovada depois que a fila foi montada.
     while (this.filaPerguntas.length > 0) {
       const id = this.filaPerguntas.shift();
-      const question = await prisma.quizQuestion.findFirst({
-        where: { id, status: "approved" },
-      });
+      const question = await comTimeout(
+        prisma.quizQuestion.findFirst({ where: { id, status: "approved" } })
+      );
       if (question) return question;
     }
 
@@ -444,7 +489,9 @@ export class QuizRoom {
     const total = await this.montarFilaDePerguntas();
     if (total === 0) return null;
     const id = this.filaPerguntas.shift();
-    return prisma.quizQuestion.findFirst({ where: { id, status: "approved" } });
+    return comTimeout(
+      prisma.quizQuestion.findFirst({ where: { id, status: "approved" } })
+    );
   }
 
   // Índices (posições) da resposta que contam como "letra" — espaços e
@@ -740,12 +787,15 @@ export class QuizRoom {
 
         this.systemMessage(`❓ ${question.question}`);
 
-        // Narra a "seca" quando ninguém acerta várias seguidas.
+        // Narra a "seca" quando ninguém acerta várias seguidas — espaçada:
+        // fala da 2ª à 5ª, depois só nos marcos de 10 em 10, pra não virar
+        // parede de mensagens em madrugadas sem movimento.
         if (scorers.length === 0) {
           this.roundsWithoutWinner += 1;
-          if (this.roundsWithoutWinner >= 2) {
+          const n = this.roundsWithoutWinner;
+          if ((n >= 2 && n <= 5) || (n >= 10 && n % 10 === 0)) {
             this.systemMessage(
-              `😶 Essa é a ${this.roundsWithoutWinner}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
+              `😶 Essa é a ${n}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
             );
           }
         } else {
@@ -837,8 +887,11 @@ export class QuizRoom {
             create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
 
-          const oldRank = getQuizRankForPoints(oldMonthlyPoints);
-          const newRank = getQuizRankForPoints(newMonthlyPoints);
+          // O userId entra no cálculo pra respeitar patente fixa e exclusiva:
+          // sem ele, a mensagem de promoção saía mesmo quando o ícone exibido
+          // (que considera essas regras) não ia mudar — parecia bug na sala.
+          const oldRank = getQuizRankForPoints(oldMonthlyPoints, { userId: winner.userId });
+          const newRank = getQuizRankForPoints(newMonthlyPoints, { userId: winner.userId });
           // Só anuncia promoção pra quem concorre ao ranking.
           if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
             this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
@@ -941,12 +994,14 @@ export class QuizRoom {
         this.streakCount = 0;
         this.roundsWithoutWinner += 1;
 
-        // Narra a "seca" quando ela começa a ficar relevante — a partir da
-        // 2ª rodada seguida sem ninguém acertar, cria aquele clima de
-        // desafio que a Central de Jogos tinha.
-        if (this.roundsWithoutWinner >= 2) {
+        // Narra a "seca" quando ela começa a ficar relevante — mas espaçando:
+        // da 2ª à 5ª rodada fala sempre (clima de desafio), depois só nos
+        // marcos de 10 em 10. Sem isso, uma sala com jogador ausente virava
+        // uma parede de centenas de mensagens iguais durante a madrugada.
+        const n = this.roundsWithoutWinner;
+        if ((n >= 2 && n <= 5) || (n >= 10 && n % 10 === 0)) {
           this.systemMessage(
-            `😶 Essa é a ${this.roundsWithoutWinner}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
+            `😶 Essa é a ${n}ª rodada seguida sem ninguém acertar. Quem quebra a seca?`
           );
         }
       }

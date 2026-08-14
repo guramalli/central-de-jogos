@@ -30,6 +30,7 @@ export default function FaixaPatente({ me, semPontuacao }) {
         <img
           src={me.rank.icon}
           alt={me.rank.name}
+          title={me.rank.name}
           className={`faixa-patente-icone${me.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
         />
       )}

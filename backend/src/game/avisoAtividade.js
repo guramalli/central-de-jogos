@@ -19,7 +19,7 @@ const ultimoAviso = new Map(); // roomId -> timestamp
 // convidar pra outra sala vazia.
 const MINIMO_PARA_AVISAR = 1;
 
-export function criarAvisoDeAtividade(io, { roomId, roomLabel, jogo, nickname, totalNaSala }) {
+export function criarAvisoDeAtividade(io, { roomId, roomLabel, jogo, nickname, totalNaSala, userId }) {
   if (!io || !roomId || totalNaSala < MINIMO_PARA_AVISAR) return;
 
   const agora = Date.now();
@@ -33,6 +33,10 @@ export function criarAvisoDeAtividade(io, { roomId, roomLabel, jogo, nickname, t
   io.emit("aviso-atividade", {
     roomId,
     jogo,
+    // Quem entrou: o frontend usa isso pra NÃO mostrar o aviso pra própria
+    // pessoa (quem joga em duas abas via o próprio nome anunciado, o que é
+    // estranho e polui o chat).
+    userId,
     mensagem: `${icone} ${nickname} entrou em ${roomLabel} — ${pessoas} lá agora.`,
     at: agora,
   });
