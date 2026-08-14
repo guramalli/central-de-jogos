@@ -78,6 +78,18 @@ export class QuizRoom {
     this.timeLeft = 0;
     this.timer = null;
     this.revealTimer = null;
+    // Watchdog: guarda o instante do último "sinal de vida" da sala (um tick,
+    // uma pergunta nova, um intervalo iniciado). Um vigia independente checa
+    // periodicamente se esse instante ficou velho demais — se ficou, a sala
+    // congelou e precisa ser reiniciada. É a mesma proteção que resolveu o
+    // freeze do Stop; o Quiz não tinha, e por isso uma falha rara no
+    // agendamento do intervalo deixava a rodada parada pra sempre.
+    this.ultimoSinalDeVida = Date.now();
+    this.watchdogTimer = null;
+    // Conta quantas perguntas a sala já serviu desde que começou. Usado só
+    // pra diagnóstico: os logs abaixo carimbam esse número, pra a gente ver
+    // no log do Render em qual rodada exata algo travou.
+    this.rodadaNum = 0;
     // Fila de perguntas embaralhada da volta atual. Vai sendo consumida a
     // cada rodada; quando esvazia, uma nova volta é montada e reembaralhada.
     this.filaPerguntas = [];
@@ -207,6 +219,7 @@ export class QuizRoom {
     // Sala só roda perguntas quando tem gente — assim ninguém entra e cai
     // no meio de uma pergunta que já está acabando.
     if (this.state === "waiting" && this.players.size > 0) {
+      this.iniciarWatchdog();
       this.startIntermission();
     }
 
@@ -229,6 +242,7 @@ export class QuizRoom {
     // consumindo perguntas e rodando timer à toa.
     if (this.players.size === 0) {
       this.clearTimers();
+      this.pararWatchdog();
       this.state = "waiting";
       this.currentQuestion = null;
       this.turnScores = new Map();
@@ -288,6 +302,47 @@ export class QuizRoom {
     this.revealTimer = null;
   }
 
+  // Registra que a sala deu sinal de vida agora. Chamado a cada tick e a cada
+  // transição de estado. O watchdog usa isso pra saber se a sala travou.
+  marcarVida() {
+    this.ultimoSinalDeVida = Date.now();
+  }
+
+  // Liga o vigia independente. Ele roda num timer próprio, separado do timer
+  // do jogo — de propósito: se o timer do jogo morrer (o bug que causava o
+  // freeze), o do watchdog continua vivo e percebe a parada.
+  iniciarWatchdog() {
+    if (this.watchdogTimer) return; // já ligado
+    this.marcarVida();
+    this.watchdogTimer = setInterval(() => {
+      // Sala sem gente não precisa de vigia — ela fica em "waiting" de
+      // propósito, sem timer, e isso não é um travamento.
+      if (this.players.size === 0 || this.state === "waiting") return;
+
+      const paradaHa = Date.now() - this.ultimoSinalDeVida;
+      // Um ciclo normal (pergunta + intervalo) leva no máximo ~60s numa sala
+      // lenta. 45s sem NENHUM sinal de vida só acontece se o timer do jogo
+      // morreu. Aí forçamos um recomeço limpo.
+      if (paradaHa > 45000) {
+        console.error(
+          `[watchdog] Sala ${this.roomId} parada há ${Math.round(paradaHa / 1000)}s no estado "${this.state}". Reiniciando.`
+        );
+        this.marcarVida(); // evita disparar de novo antes do restart assentar
+        this.systemMessage("⚠️ A sala travou e foi reiniciada automaticamente.");
+        try {
+          this.startIntermission();
+        } catch (err) {
+          console.error(`[watchdog] Falha ao reiniciar a sala ${this.roomId}:`, err);
+        }
+      }
+    }, 15000);
+  }
+
+  pararWatchdog() {
+    if (this.watchdogTimer) clearInterval(this.watchdogTimer);
+    this.watchdogTimer = null;
+  }
+
   systemMessage(message, bold = false, success = false, promotion = false) {
     this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
   }
@@ -317,13 +372,22 @@ export class QuizRoom {
 
   startIntermission() {
     this.clearTimers();
+    console.log(`[quiz-diag] Sala ${this.roomId} entrando em INTERVALO após rodada ${this.rodadaNum}.`);
+    // Garante o vigia ligado sempre que a sala dá um passo. Antes, o watchdog
+    // só ligava quando a primeira pessoa entrava numa sala em "waiting" — se a
+    // sala já estava rodando por outro caminho (ex.: servidor reiniciou no
+    // meio de uma partida), ela ficava sem vigia e um travamento não era
+    // resgatado. Como iniciarWatchdog é idempotente, chamar aqui é seguro.
+    if (this.players.size > 0) this.iniciarWatchdog();
     this.state = "intermission";
     this.currentQuestion = null;
     this.timeLeft = this.intermissionSeconds;
+    this.marcarVida();
     this.broadcast("quiz-intermission", { seconds: this.intermissionSeconds });
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("quiz-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         // Protegido: essas funções são assíncronas e desligam o timer logo
@@ -356,7 +420,10 @@ export class QuizRoom {
         : this.difficultyFilter;
     }
 
-    const ids = await prisma.quizQuestion.findMany({ where, select: { id: true } });
+    const ids = await Promise.race([
+      prisma.quizQuestion.findMany({ where, select: { id: true } }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao montar fila")), 8000)),
+    ]);
 
     // Embaralhamento Fisher-Yates: cada ordem possível tem a mesma chance.
     const fila = ids.map((q) => q.id);
@@ -370,6 +437,17 @@ export class QuizRoom {
   }
 
   async pickQuestion() {
+    // Toda ida ao banco aqui passa por este helper com timeout. Sem ele, a
+    // query da VIRADA DE FILA (quando as perguntas da volta acabam e a fila é
+    // remontada) ficava sem proteção: se o banco travasse nesse instante, o
+    // await nunca resolvia e a sala congelava pra sempre — exatamente na
+    // pergunta em que a volta fecha (ex.: a 66ª numa sala de 66 perguntas).
+    const comTimeout = (promessa) =>
+      Promise.race([
+        promessa,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout no banco")), 8000)),
+      ]);
+
     // Fila vazia (primeira pergunta da sala, ou a volta anterior acabou):
     // monta uma nova, já embaralhada.
     if (!this.filaPerguntas || this.filaPerguntas.length === 0) {
@@ -381,9 +459,9 @@ export class QuizRoom {
     // sido apagada ou reprovada depois que a fila foi montada.
     while (this.filaPerguntas.length > 0) {
       const id = this.filaPerguntas.shift();
-      const question = await prisma.quizQuestion.findFirst({
-        where: { id, status: "approved" },
-      });
+      const question = await comTimeout(
+        prisma.quizQuestion.findFirst({ where: { id, status: "approved" } })
+      );
       if (question) return question;
     }
 
@@ -392,7 +470,9 @@ export class QuizRoom {
     const total = await this.montarFilaDePerguntas();
     if (total === 0) return null;
     const id = this.filaPerguntas.shift();
-    return prisma.quizQuestion.findFirst({ where: { id, status: "approved" } });
+    return comTimeout(
+      prisma.quizQuestion.findFirst({ where: { id, status: "approved" } })
+    );
   }
 
   // Índices (posições) da resposta que contam como "letra" — espaços e
@@ -438,13 +518,16 @@ export class QuizRoom {
     // "acordando" depois de ficar inativo), desiste depois de 8s em vez de
     // travar o timer da sala pra sempre — tenta de novo no próximo intervalo.
     let question = null;
+    this.rodadaNum += 1;
+    const rodadaAtual = this.rodadaNum;
+    console.log(`[quiz-diag] Sala ${this.roomId} INICIANDO rodada ${rodadaAtual} (fila com ${this.filaPerguntas?.length ?? 0} restantes).`);
     try {
       question = await Promise.race([
         this.pickQuestion(),
         new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao buscar pergunta")), 8000)),
       ]);
     } catch (err) {
-      console.error(`Falha ao buscar pergunta na sala ${this.roomId}:`, err.message);
+      console.error(`[quiz-diag] Sala ${this.roomId} FALHOU ao buscar pergunta na rodada ${rodadaAtual}:`, err.message);
     }
 
     if (!question) {
@@ -494,6 +577,7 @@ export class QuizRoom {
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("quiz-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         Promise.resolve(this.endQuestion(null)).catch((err) => {
@@ -639,6 +723,7 @@ export class QuizRoom {
     this.clearTimers();
     const question = this.currentQuestion;
     const monthKey = currentMonthKey();
+    console.log(`[quiz-diag] Sala ${this.roomId} ENCERRANDO rodada ${this.rodadaNum} (${winner ? "com acerto" : "tempo esgotado"}).`);
 
     // ===== Modo arena: fecha a pergunta premiando todos que acertaram =====
     if (this.multiAnswer) {
@@ -721,8 +806,15 @@ export class QuizRoom {
       } catch (err) {
         console.error(`Erro ao encerrar pergunta na arena ${this.roomId}:`, err);
       } finally {
-        if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
-          await this.finishTurn();
+        // finishTurn protegido: se ele falhar, a sala AINDA precisa reagendar
+        // a próxima pergunta. Sem esse try, uma exceção aqui pulava o
+        // startIntermission e a sala congelava justamente ao fechar o turno.
+        try {
+          if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
+            await this.finishTurn();
+          }
+        } catch (err) {
+          console.error(`Falha ao fechar turno na arena ${this.roomId}:`, err);
         }
         this.startIntermission();
       }
@@ -732,6 +824,20 @@ export class QuizRoom {
     try {
       if (winner) {
         const pts = this.pointsPerCorrect;
+
+        // A sequência de acertos é calculada AGORA, antes de qualquer escrita
+        // no banco. O acerto já é fato consumado no momento em que a pessoa
+        // acerta — se uma gravação de pontos falhar mais adiante e cair no
+        // catch, a streak NÃO pode ser perdida junto. Antes, o incremento
+        // ficava lá embaixo e uma exceção anterior o deixava órfão: o
+        // jogador acertava e mesmo assim perdia a sequência.
+        if (this.streakUserId === winner.userId) {
+          this.streakCount += 1;
+        } else {
+          this.streakUserId = winner.userId;
+          this.streakCount = 1;
+        }
+
         const elapsedSeconds = this.questionStartedAt
           ? Math.max(0, Math.round((Date.now() - this.questionStartedAt) / 1000))
           : null;
@@ -832,28 +938,30 @@ export class QuizRoom {
           this.turnScores.set(winner.userId, (this.turnScores.get(winner.userId) || 0) + 1);
         }
 
-        // Sequência de respostas certas seguidas (streak) — só anuncia a
-        // partir da 2ª seguida (a 1ª sozinha não é bem uma "sequência" ainda).
-        if (this.streakUserId === winner.userId) {
-          this.streakCount += 1;
-        } else {
-          this.streakUserId = winner.userId;
-          this.streakCount = 1;
-        }
+        // Sequência de respostas certas seguidas (streak) — o cálculo já foi
+        // feito lá no início do bloco, à prova de falhas nas gravações. Aqui
+        // só anunciamos, a partir da 2ª seguida (a 1ª sozinha ainda não é
+        // uma "sequência"). Todo o anúncio fica isolado num try próprio: se
+        // salvar o recorde falhar, a sequência do jogador na memória segue
+        // intacta e o jogo continua.
         if (this.streakCount >= 2) {
-          const record = await this.loadRoomRecord();
-          const brokeRecord = this.streakCount > (record.count || 0);
-          if (brokeRecord) {
-            await this.saveRoomRecord(winner.userId, winner.nickname, this.streakCount);
-            this.broadcast("quiz-streak-record-update", { record: this.roomRecord });
+          try {
+            const record = await this.loadRoomRecord();
+            const brokeRecord = this.streakCount > (record.count || 0);
+            if (brokeRecord) {
+              await this.saveRoomRecord(winner.userId, winner.nickname, this.streakCount);
+              this.broadcast("quiz-streak-record-update", { record: this.roomRecord });
+            }
+            this.systemMessage(
+              `🔥 ${winner.nickname} acertou a ${ordinalFem(this.streakCount)} resposta consecutiva!${
+                brokeRecord ? " 🏆 NOVO RECORDE da sala!" : ""
+              }`,
+              true,
+              true
+            );
+          } catch (err) {
+            console.error(`Falha ao anunciar sequência na sala ${this.roomId}:`, err.message);
           }
-          this.systemMessage(
-            `🔥 ${winner.nickname} acertou a ${ordinalFem(this.streakCount)} resposta consecutiva!${
-              brokeRecord ? " 🏆 NOVO RECORDE da sala!" : ""
-            }`,
-            true,
-            true
-          );
         }
 
         await this.announceRankingPosition(winner.userId, winner.nickname);
@@ -889,8 +997,15 @@ export class QuizRoom {
       console.error(`Erro ao encerrar pergunta na sala ${this.roomId}:`, err);
     } finally {
       // Modo arena: quando o turno completa as rodadas, premia e recomeça.
-      if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
-        await this.finishTurn();
+      // finishTurn protegido: se ele lançar, o startIntermission abaixo ainda
+      // roda. Sem isso, uma falha ao fechar o turno (a cada X rodadas)
+      // deixava a sala parada pra sempre — o freeze "depois de acertar".
+      try {
+        if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
+          await this.finishTurn();
+        }
+      } catch (err) {
+        console.error(`Falha ao fechar turno na sala ${this.roomId}:`, err);
       }
       this.startIntermission();
     }

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { cacheGet, cacheSet } from "../utils/cache.js";
+import { cacheGet, cacheSet, cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameManager.js";
 import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
@@ -149,8 +149,110 @@ router.post("/quiz-questions", async (req, res) => {
   res.json(entry);
 });
 
+// Pares de perguntas PARECIDAS dentro da mesma sala — pra revisão manual.
+//
+// Repetição entre salas diferentes é legítima (a mesma pergunta pode caber
+// em Futebol e em Esportes), então o agrupamento é por sala: tema + faixa de
+// dificuldade, já que "Padrão" (fácil/médio) e "Avançado" (difícil) nunca se
+// cruzam pro mesmo jogador.
+//
+// O cálculo é pesado o bastante pra não valer rodar a cada abertura da tela:
+// fica em cache por 10 minutos.
+router.get("/quiz-parecidas", requireRole("ADMIN"), async (req, res) => {
+  const limite = Math.min(Math.max(Number(req.query.limite) || 60, 10), 95) / 100;
+
+  const pares = await cacheOuBuscar(`quiz:parecidas:${limite}`, 600, async () => {
+    const perguntas = await prisma.quizQuestion.findMany({
+      where: { status: "approved" },
+      select: { id: true, themeKey: true, question: true, answer: true, difficulty: true },
+    });
+
+    const normalizar = (t) =>
+      t
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const semelhanca = (a, b) => {
+      const A = new Set(a);
+      const B = new Set(b);
+      let comuns = 0;
+      for (const p of A) if (B.has(p)) comuns++;
+      return comuns / (A.size + B.size - comuns);
+    };
+
+    // Agrupa por sala + resposta. Comparar todas contra todas seriam milhões
+    // de combinações; duplicata de verdade quase sempre tem a mesma resposta.
+    const grupos = new Map();
+    for (const q of perguntas) {
+      const faixa = q.difficulty === "dificil" ? "Avançado" : "Padrão";
+      const chave = `${q.themeKey}|${faixa}|${normalizar(q.answer)}`;
+      if (!grupos.has(chave)) grupos.set(chave, []);
+      grupos.get(chave).push(q);
+    }
+
+    const achados = [];
+    for (const [chave, grupo] of grupos) {
+      if (grupo.length < 2) continue;
+      const [themeKey, faixa] = chave.split("|");
+      for (let i = 0; i < grupo.length; i++) {
+        for (let j = i + 1; j < grupo.length; j++) {
+          const ta = normalizar(grupo[i].question);
+          const tb = normalizar(grupo[j].question);
+          const s = ta === tb ? 1 : semelhanca(ta.split(" "), tb.split(" "));
+          if (s >= limite) {
+            achados.push({
+              sala: `${themeKey} — ${faixa}`,
+              themeKey,
+              semelhanca: Math.round(s * 100),
+              a: grupo[i],
+              b: grupo[j],
+            });
+          }
+        }
+      }
+    }
+    achados.sort((x, y) => y.semelhanca - x.semelhanca);
+    return achados;
+  });
+
+  // Remove os pares que o admin já revisou e marcou como legítimos. Isso é
+  // feito fora do cache de propósito: assim, aprovar um par tem efeito
+  // imediato sem precisar esperar o cache expirar.
+  const aprovados = await prisma.quizParDiferente.findMany({ select: { idA: true, idB: true } });
+  const jaAprovado = new Set(aprovados.map((p) => `${p.idA}|${p.idB}`));
+  const chaveDe = (a, b) => [a, b].sort().join("|");
+  const filtrados = pares.filter((p) => !jaAprovado.has(chaveDe(p.a.id, p.b.id)));
+
+  res.json({ total: filtrados.length, pares: filtrados });
+});
+
+// Marca um par como "são diferentes" — decisão do admin persistida no banco,
+// pra não reaparecer quando a lista for recalculada após novas importações.
+router.post("/quiz-parecidas/aprovar", requireRole("ADMIN"), async (req, res) => {
+  const { idA, idB } = req.body;
+  if (!idA || !idB) return res.status(400).json({ error: "Informe os dois ids do par." });
+  // Ordena pra que o par (X, Y) e (Y, X) virem a mesma linha.
+  const [menor, maior] = [idA, idB].sort();
+  await prisma.quizParDiferente.upsert({
+    where: { idA_idB: { idA: menor, idB: maior } },
+    create: { idA: menor, idB: maior },
+    update: {},
+  });
+  res.json({ ok: true });
+});
+
 router.delete("/quiz-questions/:id", async (req, res) => {
-  await prisma.quizQuestion.delete({ where: { id: req.params.id } });
+  const id = req.params.id;
+  await prisma.quizQuestion.delete({ where: { id } });
+  // Limpa pares aprovados que citavam essa pergunta — viraram lixo agora.
+  await prisma.quizParDiferente.deleteMany({ where: { OR: [{ idA: id }, { idB: id }] } });
+  // A lista de parecidas é calculada em cima do banco: apagar uma pergunta
+  // invalida o cache, senão o par apagado continuaria aparecendo na tela.
+  cacheInvalidar("quiz:parecidas");
   res.json({ ok: true });
 });
 
@@ -188,7 +290,73 @@ router.patch("/quiz-questions/:id", async (req, res) => {
     data.difficulty = difficulty;
   }
   const updated = await prisma.quizQuestion.update({ where: { id: req.params.id }, data });
+  // Se o texto mudou, aprovações antigas desse par podem não fazer mais
+  // sentido — remove pra que a pergunta seja reavaliada na próxima listagem.
+  if (data.question !== undefined) {
+    await prisma.quizParDiferente.deleteMany({ where: { OR: [{ idA: req.params.id }, { idB: req.params.id }] } });
+  }
+  cacheInvalidar("quiz:parecidas");
   res.json(updated);
+});
+
+// Histórico de cadastros por dia. Serve pra enxergar o efeito de anúncios,
+// posts e divulgações: um pico no gráfico indica que algo daquele dia
+// funcionou. Visitantes não contam — só contas de verdade.
+router.get("/cadastros-por-dia", requireRole("ADMIN"), async (req, res) => {
+  const dias = Math.min(Number(req.query.dias) || 90, 365);
+  const desde = new Date();
+  desde.setDate(desde.getDate() - dias);
+  desde.setHours(0, 0, 0, 0);
+
+  const contas = await prisma.user.findMany({
+    where: { isGuest: false, createdAt: { gte: desde } },
+    select: { createdAt: true, ultimaPlataforma: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // Agrupa por data local (America/Sao_Paulo). Fazer isso na aplicação, e
+  // não no banco, evita depender do fuso configurado no Postgres — que no
+  // Neon é UTC e jogaria os cadastros da madrugada pro dia seguinte.
+  const porDia = new Map();
+  for (const c of contas) {
+    const chave = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(c.createdAt);
+    const reg = porDia.get(chave) || { data: chave, total: 0, mobile: 0, desktop: 0 };
+    reg.total += 1;
+    if (c.ultimaPlataforma === "mobile") reg.mobile += 1;
+    else if (c.ultimaPlataforma === "desktop") reg.desktop += 1;
+    porDia.set(chave, reg);
+  }
+
+  // Preenche os dias sem nenhum cadastro com zero, senão o gráfico "pula"
+  // datas e dá a impressão de movimento contínuo onde não houve.
+  const serie = [];
+  const cursor = new Date(desde);
+  const hoje = new Date();
+  while (cursor <= hoje) {
+    const chave = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(cursor);
+    serie.push(porDia.get(chave) || { data: chave, total: 0, mobile: 0, desktop: 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const total = serie.reduce((s, d) => s + d.total, 0);
+  const melhor = serie.reduce((a, b) => (b.total > a.total ? b : a), serie[0] || null);
+  res.json({
+    dias,
+    total,
+    mediaPorDia: serie.length ? Number((total / serie.length).toFixed(1)) : 0,
+    melhorDia: melhor,
+    serie,
+  });
 });
 
 router.get("/users", requireRole("ADMIN"), async (req, res) => {

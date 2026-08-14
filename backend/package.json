@@ -43,7 +43,17 @@
     "import-novelas": "node prisma/importNovelas.js",
     "renomear-tema": "node scripts/renomearTema.js",
     "set-patente": "node scripts/setPatente.js",
-    "listar-contas": "node scripts/listarContas.js"
+    "listar-contas": "node scripts/listarContas.js",
+    "import-quiz-dificeis": "node prisma/importDificeis.js",
+    "checar-vazamento": "node scripts/checarVazamento.js",
+    "checar-duplicadas": "node scripts/checarDuplicadas.js",
+    "contar-perguntas": "node scripts/contarPerguntas.js",
+    "import-futebol-torcedor": "node prisma/importFutebolTorcedor.js",
+    "import-futebol-campeoes": "node prisma/importFutebolCampeoes.js",
+    "import-games-padrao": "node prisma/importGamesPadrao.js",
+    "import-games-avancado": "node prisma/importGamesAvancado.js",
+    "import-series-padrao": "node prisma/importSeriesPadrao.js",
+    "import-series-avancado": "node prisma/importSeriesAvancado.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

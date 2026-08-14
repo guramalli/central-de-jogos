@@ -34,6 +34,15 @@ import { setupSocket } from "./socket/index.js";
 const app = express();
 const server = createServer(app);
 
+// O Render (e qualquer plataforma parecida) coloca um proxy na frente do
+// servidor. Esse proxy manda o IP real do visitante no header
+// X-Forwarded-For. Sem avisar o Express pra confiar nesse header, o
+// express-rate-limit não consegue identificar cada usuário e fica lançando
+// ValidationError a cada requisição. "1" confia só no primeiro proxy (o do
+// Render), que é o comportamento seguro — confiar em todos deixaria o IP
+// ser falsificado.
+app.set("trust proxy", 1);
+
 // Cabeçalhos de segurança padrão de mercado (esconde tecnologia usada,
 // evita que o site seja carregado dentro de um iframe malicioso em outro
 // site, entre outras proteções). CSP desligado porque esse servidor só
@@ -46,7 +55,15 @@ app.use(
   })
 );
 
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+// Aceita uma OU várias origens, separadas por vírgula na variável de
+// ambiente. Isso permite hospedar o jogo em outro lugar além do site — o
+// itch.io, por exemplo, serve o conteúdo embutido a partir de um domínio
+// próprio, e sem essa lista o navegador bloquearia todas as chamadas.
+// Exemplo: CORS_ORIGIN="https://www.educacaogamer.com.br,https://html.itch.zone"
+const CORS_ORIGIN = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());

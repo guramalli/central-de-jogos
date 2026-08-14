@@ -22,6 +22,7 @@ import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
 import AcromaniaGame from "./pages/AcromaniaGame.jsx";
 import Profile from "./pages/Profile.jsx";
 import Home from "./pages/Home.jsx";
+import Privacidade from "./pages/Privacidade.jsx";
 
 // Páginas que não fazem parte do fluxo principal de jogar carregam sob
 // demanda: quem entra pra jogar não precisa baixar o painel admin, os
@@ -176,6 +177,7 @@ export default function App() {
           <Route path="/redefinir-senha" element={<ResetPassword />} />
           <Route path="/registrar" element={<Register />} />
           <Route path="/termos-de-uso" element={<TermosDeUso />} />
+          <Route path="/privacidade" element={<Privacidade />} />
           <Route
             path="/"
             element={user ? <Lobby /> : <Home />}

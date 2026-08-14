@@ -383,6 +383,12 @@ export class AcromaniaRoom {
     this.state = "grading";
     this.clearTimer();
 
+    // Tudo daqui pra baixo fica protegido: se qualquer coisa falhar (um
+    // broadcast que consulta o banco, por exemplo), o "finally" garante que
+    // a sala volta pro intervalo e o jogo continua. Sem isso, uma exceção
+    // depois da apuração deixava a linha do startIntermission sem rodar e a
+    // sala do Acromania congelava pra sempre (ela não tem watchdog).
+    try {
     // Conta os votos por frase
     const voteCounts = new Map(entries.map((e) => [e.entryId, 0]));
     for (const targetEntryId of votes.values()) {
@@ -467,7 +473,12 @@ export class AcromaniaRoom {
     }
 
     await this.broadcastOnlinePlayers();
-    this.startIntermission();
+    } catch (err) {
+      console.error(`Erro ao finalizar rodada do Acromania na sala ${this.roomId}:`, err);
+    } finally {
+      // Aconteça o que acontecer acima, a sala sempre segue pro intervalo.
+      this.startIntermission();
+    }
   }
 
   getNickname(userId) {

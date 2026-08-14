@@ -4853,3 +4853,70 @@ span.votacao-trilha-item {
   padding-left: 9px;
 }
 .rank-exclusiva-nota strong { color: var(--text); }
+
+/* ===== Gráfico de cadastros por dia (painel Admin) ===== */
+.cadastros-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cadastros-periodos { display: flex; gap: 6px; }
+.cadastros-periodo {
+  background: var(--surface-2, #2a2a2a);
+  color: var(--text-dim);
+  border: 1px solid var(--border, #3a3a3a);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cadastros-periodo.ativo { background: #7c6bd8; color: #fff; border-color: #7c6bd8; }
+.cadastros-resumo { display: flex; gap: 24px; flex-wrap: wrap; margin: 14px 0 10px; }
+.cadastros-resumo div { display: flex; flex-direction: column; }
+.cadastros-resumo strong { font-size: 24px; line-height: 1.1; }
+.cadastros-resumo span { font-size: 12px; color: var(--text-dim); }
+.cadastros-grafico { width: 100%; height: 180px; display: block; }
+.cadastros-eixo { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.cadastros-nota { font-size: 12px; color: var(--text-dim); margin: 10px 0 0; }
+
+/* ===== Revisão de perguntas parecidas (painel Admin) ===== */
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-ghost { background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text); }
+.btn-danger { background: #b73a3a; color: #fff; }
+
+.parecidas-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.parecidas-filtro { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
+.parecidas-filtro select { padding: 4px 8px; border-radius: 6px; }
+.parecidas-nota { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 8px 0 16px; }
+
+.parecidas-par {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+  background: var(--bg-panel-2);
+}
+.parecidas-par-topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.parecidas-sala { font-size: 12px; font-weight: 700; color: var(--accent); }
+.parecidas-percent {
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  background: #7c6bd8; color: #fff;
+}
+.parecidas-par-topo .btn { margin-left: auto; }
+
+.parecidas-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 720px) { .parecidas-grade { grid-template-columns: 1fr; } }
+.parecidas-item {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.parecidas-pergunta { margin: 0; font-size: 14px; line-height: 1.45; }
+.parecidas-resposta { margin: 0; font-size: 13px; font-weight: 700; color: var(--accent-3, #5eead4); }
+.parecidas-acoes { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+.parecidas-input {
+  width: 100%; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg-panel-2); color: var(--text);
+  font-size: 13px; font-family: inherit;
+}
