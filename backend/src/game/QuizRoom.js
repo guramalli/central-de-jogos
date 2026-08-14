@@ -155,22 +155,45 @@ export class QuizRoom {
 
     this.players.set(socket.id, { userId, nickname, socket, clanTag, joinedAt: Date.now() });
 
+    // Nenhuma consulta ao banco pode segurar a entrada na sala: se o banco
+    // soluçar aqui, o jogador ficaria numa tela morta sem nunca receber o
+    // estado. Cada query tem 3s de limite e, se falhar, usa o padrão e segue.
+    const querySegura = async (promessa, padrao) => {
+      try {
+        return await Promise.race([
+          promessa,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+        ]);
+      } catch {
+        return padrao;
+      }
+    };
+
     if (!this.lifetimeCache.has(userId)) {
-      const existing = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-      });
+      const existing = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+        }),
+        null
+      );
       this.lifetimeCache.set(userId, existing?.points || 0);
     }
     if (!this.mensalCache.has(userId)) {
-      const mes = await prisma.monthlyScore.findUnique({
-        where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey: currentMonthKey() } },
-      });
+      const mes = await querySegura(
+        prisma.monthlyScore.findUnique({
+          where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey: currentMonthKey() } },
+        }),
+        null
+      );
       this.mensalCache.set(userId, mes?.points || 0);
     }
     if (!this.roomLifetimeCache.has(userId)) {
-      const existingRoom = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
-      });
+      const existingRoom = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
+        }),
+        null
+      );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
 
@@ -180,7 +203,7 @@ export class QuizRoom {
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
-      const saudacoes = await carregarSaudacoes(userId);
+      const saudacoes = await querySegura(carregarSaudacoes(userId), null);
       const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
       this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
       // Guarda a saudação de saída: na hora de sair, o socket pode já ter
