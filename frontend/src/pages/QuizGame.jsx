@@ -102,6 +102,16 @@ export default function QuizGame() {
     socket.connect();
     socket.emit("join-quiz-room", { roomId });
 
+    // Se o servidor reiniciar (ex.: um deploy) ou a conexão cair e voltar, o
+    // socket reconecta sozinho — mas o servidor novo não sabe que estávamos
+    // nesta sala. Sem reenviar o join, a tela ficaria congelada na última
+    // pergunta, dando impressão de travamento. Este listener refaz a entrada
+    // a cada reconexão, trazendo o estado atual da sala.
+    const reentrarNaSala = () => {
+      socket.emit("join-quiz-room", { roomId });
+    };
+    socket.on("connect", reentrarNaSala);
+
     // Movimento em outra sala: aparece no chat como mensagem do sistema,
     // pra quem está sozinho saber onde tem gente em vez de desistir.
     socket.on("aviso-atividade", (data) => {
@@ -199,6 +209,7 @@ export default function QuizGame() {
     });
 
     return () => {
+      socket.off("connect", reentrarNaSala);
       socket.off("quiz-room-full");
       socket.off("quiz-room-state");
       socket.off("quiz-intermission");

@@ -86,10 +86,6 @@ export class QuizRoom {
     // agendamento do intervalo deixava a rodada parada pra sempre.
     this.ultimoSinalDeVida = Date.now();
     this.watchdogTimer = null;
-    // Conta quantas perguntas a sala já serviu desde que começou. Usado só
-    // pra diagnóstico: os logs abaixo carimbam esse número, pra a gente ver
-    // no log do Render em qual rodada exata algo travou.
-    this.rodadaNum = 0;
     // Fila de perguntas embaralhada da volta atual. Vai sendo consumida a
     // cada rodada; quando esvazia, uma nova volta é montada e reembaralhada.
     this.filaPerguntas = [];
@@ -372,7 +368,6 @@ export class QuizRoom {
 
   startIntermission() {
     this.clearTimers();
-    console.log(`[quiz-diag] Sala ${this.roomId} entrando em INTERVALO após rodada ${this.rodadaNum}.`);
     // Garante o vigia ligado sempre que a sala dá um passo. Antes, o watchdog
     // só ligava quando a primeira pessoa entrava numa sala em "waiting" — se a
     // sala já estava rodando por outro caminho (ex.: servidor reiniciou no
@@ -518,16 +513,13 @@ export class QuizRoom {
     // "acordando" depois de ficar inativo), desiste depois de 8s em vez de
     // travar o timer da sala pra sempre — tenta de novo no próximo intervalo.
     let question = null;
-    this.rodadaNum += 1;
-    const rodadaAtual = this.rodadaNum;
-    console.log(`[quiz-diag] Sala ${this.roomId} INICIANDO rodada ${rodadaAtual} (fila com ${this.filaPerguntas?.length ?? 0} restantes).`);
     try {
       question = await Promise.race([
         this.pickQuestion(),
         new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao buscar pergunta")), 8000)),
       ]);
     } catch (err) {
-      console.error(`[quiz-diag] Sala ${this.roomId} FALHOU ao buscar pergunta na rodada ${rodadaAtual}:`, err.message);
+      console.error(`Falha ao buscar pergunta na sala ${this.roomId}:`, err.message);
     }
 
     if (!question) {
@@ -723,7 +715,6 @@ export class QuizRoom {
     this.clearTimers();
     const question = this.currentQuestion;
     const monthKey = currentMonthKey();
-    console.log(`[quiz-diag] Sala ${this.roomId} ENCERRANDO rodada ${this.rodadaNum} (${winner ? "com acerto" : "tempo esgotado"}).`);
 
     // ===== Modo arena: fecha a pergunta premiando todos que acertaram =====
     if (this.multiAnswer) {
