@@ -6,6 +6,7 @@ import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import NovidadeBanner from "../components/NovidadeBanner.jsx";
+import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
@@ -26,35 +27,6 @@ export default function Lobby() {
       <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
-      {/* Premiação do mês */}
-      <div className="prize-banner">
-        <div className="prize-banner-header">
-          <span className="prize-badge">🏆 PREMIAÇÃO</span>
-          <span className="prize-banner-intro">
-            Neste mês de testes, o <strong>ranking mensal do Stop</strong> vai premiar de verdade!
-          </span>
-        </div>
-        <div className="prize-list">
-          <div className="prize-row">
-            <span className="prize-medal">🥇</span>
-            <span className="prize-place">1º lugar</span>
-            <span className="prize-value">R$ 200</span>
-          </div>
-          <div className="prize-row">
-            <span className="prize-medal">🥈</span>
-            <span className="prize-place">2º lugar</span>
-            <span className="prize-value">R$ 100</span>
-          </div>
-          <div className="prize-row">
-            <span className="prize-medal">🥉</span>
-            <span className="prize-place">3º lugar</span>
-            <span className="prize-value">R$ 50</span>
-          </div>
-        </div>
-        <p className="prize-banner-note">Pagamento via Pix.</p>
-        <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
-      </div>
-
       {/* Painel de boas-vindas */}
       <section className="glossy-panel lobby-hero">
         <div>
@@ -67,20 +39,7 @@ export default function Lobby() {
             <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
           </div>
         </div>
-        <div className="lobby-hero-benefits">
-          <div className="lobby-benefit">
-            <span className="material-symbols-outlined lobby-benefit-icon">emoji_events</span>
-            <span>Ranking mensal com premiação</span>
-          </div>
-          <div className="lobby-benefit">
-            <span className="material-symbols-outlined lobby-benefit-icon">star</span>
-            <span>Patente vitalícia por jogo</span>
-          </div>
-          <div className="lobby-benefit lobby-benefit-muted">
-            <span className="material-symbols-outlined">group</span>
-            <span>Chat e jogadores online</span>
-          </div>
-        </div>
+        <PainelDoJogador userId={user?.id} />
       </section>
 
       {/* Cards dos jogos */}
@@ -126,6 +85,35 @@ export default function Lobby() {
             </span>
           </div>
         </Link>
+      </div>
+
+      {/* Premiação do mês */}
+      <div className="prize-banner">
+        <div className="prize-banner-header">
+          <span className="prize-badge">🏆 PREMIAÇÃO</span>
+          <span className="prize-banner-intro">
+            Neste mês de testes, o <strong>ranking mensal do Stop</strong> vai premiar de verdade!
+          </span>
+        </div>
+        <div className="prize-list">
+          <div className="prize-row">
+            <span className="prize-medal">🥇</span>
+            <span className="prize-place">1º lugar</span>
+            <span className="prize-value">R$ 200</span>
+          </div>
+          <div className="prize-row">
+            <span className="prize-medal">🥈</span>
+            <span className="prize-place">2º lugar</span>
+            <span className="prize-value">R$ 100</span>
+          </div>
+          <div className="prize-row">
+            <span className="prize-medal">🥉</span>
+            <span className="prize-place">3º lugar</span>
+            <span className="prize-value">R$ 50</span>
+          </div>
+        </div>
+        <p className="prize-banner-note">Pagamento via Pix.</p>
+        <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
       </div>
 
       <GeneralChatWidget />

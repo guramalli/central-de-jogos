@@ -5067,3 +5067,45 @@ span.votacao-trilha-item {
 @media (max-width: 900px) {
   .perfil-grid { grid-template-columns: 1fr; max-width: 520px; }
 }
+
+/* ===== Painel do jogador (hero do Lobby) ===== */
+.painel-jogador { display: flex; flex-direction: column; gap: 10px; min-width: 320px; }
+.painel-item {
+  display: block;
+  background: var(--bg-panel-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.painel-item:hover { border-color: var(--accent); transform: translateY(-2px); }
+.painel-item-topo { display: flex; align-items: center; gap: 10px; }
+.painel-patente-icone { width: 30px; height: 30px; object-fit: contain; }
+.painel-titulo-medalha { font-size: 24px; line-height: 1; }
+.painel-item-textos { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.painel-item-jogo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+.painel-item-principal { font-weight: 700; font-size: 14px; }
+.painel-item-pontos { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+.painel-barra {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.painel-barra-cheia {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.painel-item-meta { display: block; margin-top: 5px; font-size: 12px; color: var(--text-dim); }
+@media (max-width: 900px) {
+  .painel-jogador { min-width: 0; width: 100%; }
+}
