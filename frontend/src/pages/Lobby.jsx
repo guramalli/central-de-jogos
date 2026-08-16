@@ -21,19 +21,6 @@ export default function Lobby() {
   return (
     <div className="lobby-page">
       <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
-      {/* Aviso de Beta */}
-      <div className="beta-banner">
-        <span className="beta-badge">BETA</span>
-        <span>
-          O portal está em fase de <strong>testes (Beta)</strong> — pode encontrar bugs ou
-          lentidão de vez em quando. Obrigado pela paciência! Encontrou algo estranho? Manda pra
-          gente:
-        </span>
-        <button className="beta-feedback-btn" onClick={() => setShowFeedback(true)}>
-          💬 Enviar feedback
-        </button>
-      </div>
-
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
       {/* Premiação do mês */}
@@ -175,6 +162,20 @@ export default function Lobby() {
           dessa jornada! 🎮
         </p>
       </section>
+
+      {/* Aviso de Beta — no pé da página, acima do rodapé: informa sem
+          empurrar o conteúdo principal pra baixo logo na chegada. */}
+      <div className="beta-banner">
+        <span className="beta-badge">BETA</span>
+        <span>
+          O portal está em fase de <strong>testes (Beta)</strong> — pode encontrar bugs ou
+          lentidão de vez em quando. Obrigado pela paciência! Encontrou algo estranho? Manda pra
+          gente:
+        </span>
+        <button className="beta-feedback-btn" onClick={() => setShowFeedback(true)}>
+          💬 Enviar feedback
+        </button>
+      </div>
     </div>
   );
 }

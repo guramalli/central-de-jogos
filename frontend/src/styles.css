@@ -1095,6 +1095,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-benefit-muted { color: var(--text-dim); }
 
 .lobby-game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.home-page .lobby-game-grid, div:has(> .home-game-card) { gap: 18px; }
 @media (max-width: 1000px) { .lobby-game-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .lobby-game-grid { grid-template-columns: 1fr; } }
 
@@ -4787,7 +4788,52 @@ span.votacao-trilha-item {
 .home-entry-links { margin-top: 12px; font-size: 13px; text-align: center; }
 /* Cards de jogo da home são <button> (levam ao campo de apelido), mas
    devem parecer idênticos aos cards do Lobby, que são links. */
-.home-game-card { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+/* ===== Cards dos jogos na HOME: versão vitrine =====
+   No Lobby os cards são compactos (lista de trabalho); na home eles são o
+   CONVITE principal do site — precisam parecer grandes, clicáveis e
+   irresistíveis. Layout vertical, logo em destaque, e o CTA vira um botão
+   de verdade em vez de um link tímido. Só afeta a home (.home-game-card);
+   o Lobby continua como está. */
+.home-game-card {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 28px 24px;
+  border-width: 2px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.home-game-card .lobby-game-logo { height: 64px; }
+.home-game-card .lobby-game-title { font-size: 26px; margin-bottom: 8px; }
+.home-game-card .lobby-game-desc { font-size: 15px; line-height: 1.55; margin-bottom: 16px; }
+.home-game-card .lobby-game-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a1206;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  transition: transform 0.12s ease;
+}
+.home-game-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--accent);
+}
+.home-game-card:hover .lobby-game-cta { transform: scale(1.05); }
+.home-game-card:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+/* No celular, os cards empilham e o alvo de toque fica generoso */
+@media (max-width: 700px) {
+  .home-game-card { padding: 22px 18px; }
+  .home-game-card .lobby-game-cta { width: 100%; justify-content: center; }
+}
 
 /* Botão de apagar mensagem (só aparece pra moderadores/admins) */
 .chat-delete-btn {
