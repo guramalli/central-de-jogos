@@ -459,9 +459,18 @@ export default function QuizGame() {
                 autoCorrect="off"
                 autoCapitalize="none"
                 spellCheck={false}
-                disabled={phase !== "active"}
+                enterKeyHint="send"
               />
-              <button className="quiz-answer-btn" type="submit" disabled={phase !== "active"}>
+              {/* O campo e o botão ficam SEMPRE habilitados de propósito:
+                  no celular, o navegador só abre o teclado com toque do
+                  usuário — se o campo desabilita a cada intervalo, o foco
+                  cai e o teclado fecha, obrigando a pessoa a tocar de novo
+                  a cada pergunta. Habilitado direto, um toque no início da
+                  sessão basta: o cursor fica no campo e o Enter (tecla
+                  "enviar" do teclado) já manda a resposta. Palpite fora da
+                  pergunta é ignorado pelo handleGuessSubmit, que confere a
+                  fase antes de enviar. */}
+              <button className="quiz-answer-btn" type="submit">
                 Responder
               </button>
             </form>
