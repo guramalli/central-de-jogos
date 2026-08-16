@@ -5,8 +5,26 @@ import { api } from "../api/client.js";
 // Quiz: acertos por tema (Conhecedor → Mestre → título épico do tema).
 // Stop: STOPs pedidos por nível de sala, incluindo os relâmpagos da Avançada.
 // Mostra os desbloqueados como medalhas e o próximo com barra de progresso.
-export default function TitulosPerfil({ userId }) {
+export default function TitulosPerfil({ userId, podeEscolher = false }) {
   const [titulos, setTitulos] = useState(null);
+  // Título que a pessoa escolheu ostentar (aparece no hover do nick em
+  // qualquer sala). Só carrega/edita no PRÓPRIO perfil.
+  const [tituloExibido, setTituloExibido] = useState(null);
+
+  useEffect(() => {
+    if (!podeEscolher) return;
+    api.get("/users/me").then(({ data }) => setTituloExibido(data.tituloExibido || null)).catch(() => {});
+  }, [podeEscolher]);
+
+  async function escolher(nome) {
+    const novo = tituloExibido === nome ? null : nome; // clicar de novo desmarca
+    try {
+      await api.patch("/users/me/titulo-exibido", { titulo: novo });
+      setTituloExibido(novo);
+    } catch (e) {
+      alert(e.response?.data?.error || "Erro ao salvar o título.");
+    }
+  }
 
   useEffect(() => {
     if (!userId) return;
@@ -40,6 +58,8 @@ export default function TitulosPerfil({ userId }) {
               unidade="acertos"
               desbloqueados={t.desbloqueados}
               proximo={t.proximo}
+              tituloExibido={tituloExibido}
+              onEscolher={podeEscolher ? escolher : null}
             />
           ))}
         </div>
@@ -56,6 +76,8 @@ export default function TitulosPerfil({ userId }) {
               unidade="STOPs"
               desbloqueados={t.desbloqueados}
               proximo={t.proximo}
+              tituloExibido={tituloExibido}
+              onEscolher={podeEscolher ? escolher : null}
             />
           ))}
         </div>
@@ -64,7 +86,7 @@ export default function TitulosPerfil({ userId }) {
   );
 }
 
-function LinhaTitulo({ rotulo, valor, unidade, desbloqueados, proximo }) {
+function LinhaTitulo({ rotulo, valor, unidade, desbloqueados, proximo, tituloExibido, onEscolher }) {
   const pct = proximo ? Math.min(100, Math.round((valor / proximo.min) * 100)) : 100;
   return (
     <div className="titulos-linha">
@@ -76,11 +98,28 @@ function LinhaTitulo({ rotulo, valor, unidade, desbloqueados, proximo }) {
       </div>
       {desbloqueados.length > 0 && (
         <div className="titulos-medalhas">
-          {desbloqueados.map((d) => (
-            <span key={d.nome} className="titulo-medalha" title={`Desbloqueado com ${d.min} ${unidade}`}>
-              🏅 {d.nome}
-            </span>
-          ))}
+          {desbloqueados.map((d) =>
+            onEscolher ? (
+              <button
+                key={d.nome}
+                type="button"
+                className={`titulo-medalha titulo-medalha-btn${tituloExibido === d.nome ? " titulo-medalha-ativa" : ""}`}
+                title={
+                  tituloExibido === d.nome
+                    ? "Este é o título exibido no seu nick — clique pra deixar de exibir"
+                    : "Clique pra exibir este título junto do seu nick"
+                }
+                onClick={() => onEscolher(d.nome)}
+              >
+                🏅 {d.nome}
+                {tituloExibido === d.nome && <span className="titulo-medalha-check"> ✓ exibindo</span>}
+              </button>
+            ) : (
+              <span key={d.nome} className="titulo-medalha" title={`Desbloqueado com ${d.min} ${unidade}`}>
+                🏅 {d.nome}
+              </span>
+            )
+          )}
         </div>
       )}
       {proximo && (

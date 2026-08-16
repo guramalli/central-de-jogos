@@ -5168,3 +5168,16 @@ span.votacao-trilha-item {
   color: var(--text-dim) !important;
 }
 .home-game-card-dev:hover .lobby-game-cta { transform: none; }
+
+/* Título exibido no tooltip do nick */
+.nick-tooltip-titulo { color: #ffd60a; font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+
+/* Medalha clicável (escolher título exibido no próprio perfil) */
+.titulo-medalha-btn { cursor: pointer; font: inherit; }
+.titulo-medalha-btn:hover { border-color: #ffd60a; box-shadow: 0 0 0 1px rgba(255, 214, 10, 0.4); }
+.titulo-medalha-ativa {
+  background: #ffd60a;
+  color: #1a1206;
+  border-color: #ffd60a;
+}
+.titulo-medalha-check { font-weight: 800; }

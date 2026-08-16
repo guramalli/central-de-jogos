@@ -151,3 +151,31 @@ export function titulosDoStop(stopStats) {
   }
   return resultado;
 }
+
+// ===== Detecção de desbloqueio em tempo real (pro anúncio no chat) =====
+// Os contadores sobem de 1 em 1, então "desbloqueou agora" = o valor novo é
+// EXATAMENTE o mínimo de algum título. Retorna o nome do título ou null.
+
+export function tituloQuizDesbloqueado(tema, totalAcertosDoTema) {
+  const nomeTema = QUIZ_NOMES[tema];
+  if (!nomeTema) return null;
+  for (const n of QUIZ_NIVEIS) {
+    if (totalAcertosDoTema === n.min) {
+      return n.prefixo ? `${n.prefixo} ${nomeTema}` : (QUIZ_EPICOS[tema] || `Lenda de ${nomeTema}`);
+    }
+  }
+  return null;
+}
+
+export function tituloStopDesbloqueado(grupo, stops, rapidos) {
+  const nomes = [];
+  for (const t of STOP_TITULOS[grupo] || []) {
+    if (stops === t.min) nomes.push(t.nome);
+  }
+  if (grupo === "avancada") {
+    for (const t of RAPIDO_TITULOS) {
+      if (rapidos === t.min) nomes.push(t.nome);
+    }
+  }
+  return nomes;
+}

@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { tituloQuizDesbloqueado } from "./titulosConfig.js";
 import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
@@ -1176,6 +1177,27 @@ export class QuizRoom {
       }
     }
     this.attemptedThisQuestion = new Set();
+
+    // ===== Anúncio de título desbloqueado =====
+    // Depois de gravar o acerto do vencedor, soma os acertos DO TEMA (as
+    // duas salas dele) e, se o total cruzou exatamente o limiar de um
+    // título, anuncia na sala. Fire-and-forget: uma falha aqui não pode
+    // atrasar o ciclo da rodada — no máximo o anúncio não sai.
+    if (winner && this.themeKey) {
+      prisma.quizRoomStat
+        .findMany({
+          where: { userId: winner.userId, roomId: { startsWith: `quiz-${this.themeKey}-` } },
+          select: { correct: true },
+        })
+        .then((stats) => {
+          const total = stats.reduce((soma, s) => soma + s.correct, 0);
+          const nomeTitulo = tituloQuizDesbloqueado(this.themeKey, total);
+          if (nomeTitulo) {
+            this.systemMessage(`🏅 ${winner.nickname} desbloqueou o título ${nomeTitulo}!`, true, true);
+          }
+        })
+        .catch(() => {});
+    }
   }
 
   // Fecha o turno da arena: monta o ranking das rodadas, premia o top 3 e

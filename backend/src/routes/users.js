@@ -169,6 +169,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   const resposta = {
     id: user.id,
     nickname: user.nickname,
+    tituloExibido: user.tituloExibido || null,
     avatarUrl: user.avatarUrl || null,
     clan: user.clan ? { name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
@@ -192,9 +193,53 @@ router.get("/me", requireAuth, async (req, res) => {
     email: user.email,
     role: user.role,
     celebration: user.celebration || "",
+    tituloExibido: user.tituloExibido || null,
     avatarUrl: user.avatarUrl || null,
     hasPassword: !!user.password,
   });
+});
+
+// ===== Escolher o título exibido =====
+// Guarda qual título desbloqueado a pessoa quer ostentar (aparece no hover
+// de perfil em qualquer sala). Valida contra a lista REAL de desbloqueados —
+// recalculada das estatísticas — senão bastava um PATCH pra virar
+// "Enciclopédia" sem nunca ter jogado. null = não exibir nenhum.
+router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
+  const { titulo } = req.body;
+  if (titulo === null || titulo === undefined || titulo === "") {
+    await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: null } });
+    cacheInvalidar(`titulos:${req.user.id}`);
+    return res.json({ ok: true, tituloExibido: null });
+  }
+
+  // Recalcula os desbloqueados (mesma lógica do GET /titulos)
+  const statsQuiz = await prisma.quizRoomStat.findMany({
+    where: { userId: req.user.id, roomId: { startsWith: "quiz-" } },
+    select: { roomId: true, correct: true },
+  });
+  const porTema = {};
+  for (const s of statsQuiz) {
+    const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+    porTema[tema] = (porTema[tema] || 0) + s.correct;
+  }
+  let statsStop = [];
+  try {
+    statsStop = await prisma.stopStat.findMany({
+      where: { userId: req.user.id },
+      select: { grupo: true, stops: true, rapidos: true },
+    });
+  } catch {
+    // tabela ainda não criada (db push pendente) — segue só com o Quiz
+  }
+  const desbloqueados = new Set();
+  for (const t of titulosDoQuiz(porTema)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  for (const t of titulosDoStop(statsStop)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+
+  if (!desbloqueados.has(titulo)) {
+    return res.status(400).json({ error: "Esse título ainda não foi desbloqueado." });
+  }
+  await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: titulo } });
+  res.json({ ok: true, tituloExibido: titulo });
 });
 
 // Atualiza dados do próprio perfil (por enquanto, só a frase de comemoração do Quiz).

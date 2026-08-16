@@ -151,7 +151,7 @@ export default function Profile() {
         </div>
 
         <div className="perfil-col">
-          <TitulosPerfil userId={user?.id} />
+          <TitulosPerfil userId={user?.id} podeEscolher />
         </div>
       </div>
     </div>

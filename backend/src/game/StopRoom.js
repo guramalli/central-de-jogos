@@ -7,7 +7,7 @@ import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
-import { grupoDaSala, RAPIDO_SEGUNDOS } from "./titulosConfig.js";
+import { grupoDaSala, RAPIDO_SEGUNDOS, tituloStopDesbloqueado } from "./titulosConfig.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
 
@@ -737,6 +737,13 @@ export class StopRoom {
             where: { userId_grupo: { userId, grupo } },
             update: { stops: { increment: 1 }, rapidos: rapido ? { increment: 1 } : undefined },
             create: { userId, grupo, stops: 1, rapidos: rapido ? 1 : 0 },
+          })
+          .then((stat) => {
+            // Cruzou o limiar de algum título AGORA? Anuncia na sala — cada
+            // desbloqueio vira um evento público (e propaganda do sistema).
+            for (const nomeTitulo of tituloStopDesbloqueado(grupo, stat.stops, stat.rapidos)) {
+              this.systemMessage(`🏅 ${nickname} desbloqueou o título ${nomeTitulo}!`, true, true);
+            }
           })
           .catch((err) => console.error("Falha ao registrar STOP pra títulos:", err.message));
       }

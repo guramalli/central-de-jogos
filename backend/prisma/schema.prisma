@@ -68,6 +68,7 @@ model User {
   streakAtual      Int      @default(0)
   streakRecorde    Int      @default(0)
   streakUltimoDia  String?  // "2026-08-11" — evita contar duas vezes no mesmo dia
+  tituloExibido    String? // título de perfil que a pessoa escolheu ostentar (validado no PATCH)
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?
   state            String?

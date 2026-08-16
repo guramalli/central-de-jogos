@@ -130,6 +130,9 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     <div className="avatar-placeholder avatar-placeholder-small">🎮</div>
                   )}
                 </div>
+                {profile.tituloExibido && (
+                  <div className="nick-tooltip-titulo">🏅 {profile.tituloExibido}</div>
+                )}
                 {monthly?.position && (
                   <div className="nick-tooltip-rank-position">
                     {monthly.position <= 3 ? ["🥇", "🥈", "🥉"][monthly.position - 1] : "📊"}{" "}
