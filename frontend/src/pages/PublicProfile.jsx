@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
+import TitulosPerfil from "../components/TitulosPerfil.jsx";
 
 const GAME_NAMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 
@@ -143,6 +144,8 @@ export default function PublicProfile() {
           </div>
         </div>
       )}
+
+      <TitulosPerfil userId={userId} />
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Pontuação vitalícia</h2>

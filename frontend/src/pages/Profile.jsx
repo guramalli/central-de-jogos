@@ -4,6 +4,7 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
 import AvatarUpload from "../components/AvatarUpload.jsx";
+import TitulosPerfil from "../components/TitulosPerfil.jsx";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -119,6 +120,10 @@ export default function Profile() {
           <button className="btn" type="submit">{hasPassword ? "Trocar senha" : "Definir senha"}</button>
           {passwordSaved && <span style={{ marginLeft: 12, color: "#06d6a0", fontSize: 13 }}>✓ Salvo!</span>}
         </form>
+      </div>
+
+      <div style={{ maxWidth: 480 }}>
+        <TitulosPerfil userId={user?.id} />
       </div>
 
       <div className="card" style={{ maxWidth: 480 }}>

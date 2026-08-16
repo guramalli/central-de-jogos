@@ -7,6 +7,7 @@ import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js"
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
+import { titulosDoQuiz, titulosDoStop } from "../game/titulosConfig.js";
 
 const router = Router();
 
@@ -264,6 +265,60 @@ router.patch("/me/password", requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: req.user.id }, data: { password: hashed } });
 
   res.json({ ok: true, message: user.password ? "Senha alterada com sucesso!" : "Senha definida com sucesso!" });
+});
+
+// ===== Títulos de perfil =====
+// Conquistas de longo prazo calculadas na hora a partir das estatísticas que
+// o jogo já grava (QuizRoomStat) e dos contadores de STOP (StopStat).
+// Cache de 10 min: os números mudam devagar e o perfil é muito visitado.
+router.get("/:id/titulos", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const cacheKey = `titulos:${id}`;
+  const emCache = cacheGet(cacheKey);
+  if (emCache) return res.json(emCache);
+
+  try {
+    // Acertos do Quiz somados por tema (as salas têm id "quiz-<tema>-...").
+    const statsQuiz = await prisma.quizRoomStat.findMany({
+      where: { userId: id, roomId: { startsWith: "quiz-" } },
+      select: { roomId: true, correct: true },
+    });
+    const porTema = {};
+    for (const s of statsQuiz) {
+      const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+      porTema[tema] = (porTema[tema] || 0) + s.correct;
+    }
+
+    const statsStop = await prisma.stopStat.findMany({
+      where: { userId: id },
+      select: { grupo: true, stops: true, rapidos: true },
+    });
+
+    const payload = {
+      quiz: titulosDoQuiz(porTema),
+      stop: titulosDoStop(statsStop),
+    };
+    cacheSet(cacheKey, payload, 600);
+    res.json(payload);
+  } catch (err) {
+    // Antes do "prisma db push" a tabela StopStat não existe — devolve os
+    // títulos do Quiz mesmo assim, em vez de quebrar o perfil inteiro.
+    console.error("Falha ao montar títulos:", err.message);
+    try {
+      const statsQuiz = await prisma.quizRoomStat.findMany({
+        where: { userId: id, roomId: { startsWith: "quiz-" } },
+        select: { roomId: true, correct: true },
+      });
+      const porTema = {};
+      for (const s of statsQuiz) {
+        const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+        porTema[tema] = (porTema[tema] || 0) + s.correct;
+      }
+      res.json({ quiz: titulosDoQuiz(porTema), stop: [] });
+    } catch {
+      res.json({ quiz: [], stop: [] });
+    }
+  }
 });
 
 export default router;

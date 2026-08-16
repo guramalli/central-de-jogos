@@ -7,6 +7,7 @@ import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
+import { grupoDaSala, RAPIDO_SEGUNDOS } from "./titulosConfig.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
 
@@ -722,6 +723,25 @@ export class StopRoom {
     this.broadcast("player-stopped", { userId, nickname });
     this.systemMessage(`🛑 ${nickname} apertou STOP!`, true);
     if (!this.semPontuacao) registrarEvento(userId, "stop_pedido").catch(() => {});
+
+    // Contadores dos TÍTULOS de perfil: soma o STOP no grupo da sala e, na
+    // avançada, marca também se foi "relâmpago" (dentro da janela configurada).
+    // Fire-and-forget de propósito: uma falha aqui não pode atrasar nem
+    // travar o fechamento da rodada — no máximo o contador deixa de subir.
+    if (!this.semPontuacao) {
+      const grupo = grupoDaSala(this.minSecondsBeforeStop);
+      if (grupo) {
+        const rapido = grupo === "avancada" && elapsedSeconds <= RAPIDO_SEGUNDOS;
+        prisma.stopStat
+          .upsert({
+            where: { userId_grupo: { userId, grupo } },
+            update: { stops: { increment: 1 }, rapidos: rapido ? { increment: 1 } : undefined },
+            create: { userId, grupo, stops: 1, rapidos: rapido ? 1 : 0 },
+          })
+          .catch((err) => console.error("Falha ao registrar STOP pra títulos:", err.message));
+      }
+    }
+
     this.endRound(true);
   }
 
