@@ -5051,3 +5051,19 @@ span.votacao-trilha-item {
 @media (max-width: 700px) {
   .novidade-banner { flex-direction: column; align-items: flex-start; }
 }
+
+/* ===== Página Meu Perfil: duas colunas no desktop ===== */
+.perfil-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  max-width: 1060px;
+}
+.perfil-col { min-width: 0; }
+/* O card de títulos da coluna direita cola no topo (o marginTop: 16 do
+   componente era pro layout empilhado antigo) */
+.perfil-col > .card { margin-top: 0 !important; }
+@media (max-width: 900px) {
+  .perfil-grid { grid-template-columns: 1fr; max-width: 520px; }
+}

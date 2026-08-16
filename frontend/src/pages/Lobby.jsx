@@ -5,6 +5,7 @@ import FeedbackModal from "../components/FeedbackModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import NovidadeBanner from "../components/NovidadeBanner.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
@@ -20,6 +21,8 @@ export default function Lobby() {
 
   return (
     <div className="lobby-page">
+      <NovidadeBanner />
+
       <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
@@ -82,7 +85,7 @@ export default function Lobby() {
 
       {/* Cards dos jogos */}
       <div className="lobby-game-grid">
-        <Link to="/jogos/stop" className="glossy-panel lobby-game-card">
+        <Link to="/jogos/stop" className="glossy-panel lobby-game-card home-game-card">
           <img src="/stop-logo.png" alt="Stop!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Stop</h3>
@@ -96,7 +99,7 @@ export default function Lobby() {
           </div>
         </Link>
 
-        <Link to="/jogos/quiz" className="glossy-panel lobby-game-card">
+        <Link to="/jogos/quiz" className="glossy-panel lobby-game-card home-game-card">
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Quiz</h3>
@@ -110,7 +113,7 @@ export default function Lobby() {
           </div>
         </Link>
 
-        <Link to="/jogos/acromania" className="glossy-panel lobby-game-card">
+        <Link to="/jogos/acromania" className="glossy-panel lobby-game-card home-game-card">
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
