@@ -180,19 +180,18 @@ export default function Home() {
           </div>
         </button>
 
-        <button type="button" onClick={focarEntrada} className="glossy-panel lobby-game-card home-game-card">
+        <div className="glossy-panel lobby-game-card home-game-card home-game-card-dev">
+          <span className="home-game-dev-badge">EM DESENVOLVIMENTO</span>
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
             <p className="lobby-game-desc">
-              Um tema, algumas letras, e você cria a frase mais criativa possível. No final, a
-              galera vota secretamente na melhor.
+              Um tema, algumas letras, e você cria a frase mais criativa possível — a galera vota
+              na melhor. Chega quando a comunidade estiver maior!
             </p>
-            <span className="lobby-game-cta">
-              Jogar grátis <span className="material-symbols-outlined">arrow_forward</span>
-            </span>
+            <span className="lobby-game-cta lobby-game-cta-dev">Em breve</span>
           </div>
-        </button>
+        </div>
       </div>
     </div>
   );

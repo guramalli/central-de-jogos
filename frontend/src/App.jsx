@@ -137,7 +137,8 @@ export default function App() {
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
                 <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
-                <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
+                {/* Acromania oculto do menu enquanto está em desenvolvimento
+                    (as rotas continuam vivas pra reativar rápido depois). */}
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/missoes" className={navLinkClass}>
                   Missões{missoesPendentes > 0 && (

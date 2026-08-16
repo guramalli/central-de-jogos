@@ -2414,7 +2414,7 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   .general-chat-online-list { width: 100%; height: auto; max-height: 120px; margin-top: 0; }
   /* No celular o chat da home ficava espremido nos 300px fixos do desktop.
      Usa a altura da tela como referência: dá pra LER a conversa. */
-  .general-chat-widget .chat-box { height: 60vh; max-height: 520px; }
+  .general-chat-widget .chat-box { height: 60vh; height: 60dvh; max-height: 520px; }
 }
 
 .chat-msg-time {
@@ -5135,3 +5135,36 @@ span.votacao-trilha-item {
 }
 .home-entry-visitante-link:hover { color: var(--text); }
 .home-entry-visitante-form { text-align: left; }
+
+/* ===== Cards dos jogos: botões alinhados na base =====
+   As descrições têm tamanhos diferentes; sem isto, cada botão ficava numa
+   altura. O corpo do card vira coluna flexível e a descrição estica,
+   empurrando o CTA de todos pra mesma linha de base. */
+.home-game-card > div { display: flex; flex-direction: column; flex: 1; }
+.home-game-card .lobby-game-desc { flex: 1; }
+.home-game-card .lobby-game-cta { align-self: flex-start; margin-top: auto; }
+
+/* ===== Card "em desenvolvimento" (Acromania) ===== */
+.home-game-card-dev { cursor: default; position: relative; }
+.home-game-card-dev:hover { transform: none; border-color: var(--border); box-shadow: none; }
+.home-game-card-dev .lobby-game-logo { filter: grayscale(1); opacity: 0.55; }
+.home-game-card-dev .lobby-game-title,
+.home-game-card-dev .lobby-game-desc { color: var(--text-dim); }
+.home-game-dev-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.lobby-game-cta-dev {
+  background: none !important;
+  border: 1px dashed var(--border);
+  color: var(--text-dim) !important;
+}
+.home-game-card-dev:hover .lobby-game-cta { transform: none; }
