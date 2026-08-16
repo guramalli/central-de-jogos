@@ -4,6 +4,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import NovidadeBanner from "../components/NovidadeBanner.jsx";
 
 // Home pública — o que uma pessoa deslogada vê ao entrar no site.
 //
@@ -56,6 +57,8 @@ export default function Home() {
         title="Jogue Stop, Quiz e Acromania online grátis"
         description="A nostalgia da Central de Jogos, de volta: Stop (adedonha), Quiz e Acromania multiplayer, direto do navegador, sem download. Ranking mensal com premiação de verdade."
       />
+
+      <NovidadeBanner />
 
       {/* Herói: apresenta o site e já oferece o jeito mais rápido de jogar */}
       <section className="glossy-panel home-hero">

@@ -4968,3 +4968,40 @@ span.votacao-trilha-item {
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
 }
 .titulos-progresso-alvo { display: block; margin-top: 4px; font-size: 12px; color: var(--text-dim); }
+
+/* ===== Banner de novidade da home ===== */
+.novidade-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 10, 0.45);
+  background: linear-gradient(90deg, rgba(255, 214, 10, 0.12), rgba(255, 214, 10, 0.03));
+}
+.novidade-banner-texto { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.novidade-banner-tag {
+  background: #ffd60a;
+  color: #1a1a24;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.novidade-banner-acoes { display: flex; align-items: center; gap: 8px; }
+.novidade-banner-fechar {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.novidade-banner-fechar:hover { color: var(--text); }
+@media (max-width: 700px) {
+  .novidade-banner { flex-direction: column; align-items: flex-start; }
+}
