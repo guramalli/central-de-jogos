@@ -16,6 +16,21 @@
 // Pra ajustar um número ou um nome, é só editar aqui: o endpoint de títulos
 // e o perfil leem desta config.
 
+// Caminho da logo de um título. A imagem é opcional: se o arquivo não
+// existir em /public/titulos, o frontend cai na medalha 🏅. Convenção:
+// titulo-<chave>-<nivel>.png  (nivel: bronze | prata | ouro)
+const NIVEL_SLUG = ["bronze", "prata", "ouro"];
+export function logoQuiz(tema, indiceNivel) {
+  return `/titulos/titulo-${tema}-${NIVEL_SLUG[indiceNivel]}.png`;
+}
+export function logoStop(grupo, indiceNivel) {
+  return `/titulos/titulo-stop-${grupo}-${NIVEL_SLUG[indiceNivel]}.png`;
+}
+export function logoRapido(indiceNivel) {
+  // relâmpago começa em prata (500) e vai a ouro (2000)
+  return `/titulos/titulo-rapido-${NIVEL_SLUG[indiceNivel + 1]}.png`;
+}
+
 export const QUIZ_NIVEIS = [
   { min: 1000, prefixo: "Conhecedor de" },
   { min: 5000, prefixo: "Mestre de" },
@@ -105,9 +120,10 @@ export function titulosDoQuiz(quizPorTema) {
   const resultado = [];
   for (const [tema, nomeTema] of Object.entries(QUIZ_NOMES)) {
     const acertos = quizPorTema[tema] || 0;
-    const titulos = QUIZ_NIVEIS.map((n) => ({
+    const titulos = QUIZ_NIVEIS.map((n, i) => ({
       nome: n.prefixo ? `${n.prefixo} ${nomeTema}` : (QUIZ_EPICOS[tema] || `Lenda de ${nomeTema}`),
       min: n.min,
+      logo: logoQuiz(tema, i),
       desbloqueado: acertos >= n.min,
     }));
     const desbloqueados = titulos.filter((t) => t.desbloqueado);
@@ -128,7 +144,7 @@ export function titulosDoStop(stopStats) {
   for (const [grupo, tiers] of Object.entries(STOP_TITULOS)) {
     const stat = porGrupo.get(grupo);
     const stops = stat?.stops || 0;
-    const titulos = tiers.map((t) => ({ ...t, desbloqueado: stops >= t.min }));
+    const titulos = tiers.map((t, i) => ({ ...t, logo: logoStop(grupo, i), desbloqueado: stops >= t.min }));
     const desbloqueados = titulos.filter((t) => t.desbloqueado);
     const proximo = titulos.find((t) => !t.desbloqueado) || null;
     if (desbloqueados.length > 0 || stops > 0) {
@@ -137,7 +153,7 @@ export function titulosDoStop(stopStats) {
   }
   // Relâmpago (só avançada)
   const rapidos = porGrupo.get("avancada")?.rapidos || 0;
-  const titulosRapido = RAPIDO_TITULOS.map((t) => ({ ...t, desbloqueado: rapidos >= t.min }));
+  const titulosRapido = RAPIDO_TITULOS.map((t, i) => ({ ...t, logo: logoRapido(i), desbloqueado: rapidos >= t.min }));
   const desbloqueadosRapido = titulosRapido.filter((t) => t.desbloqueado);
   const proximoRapido = titulosRapido.find((t) => !t.desbloqueado) || null;
   if (desbloqueadosRapido.length > 0 || rapidos > 0) {

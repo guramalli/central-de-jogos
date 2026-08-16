@@ -1,4 +1,21 @@
 import { useEffect, useState } from "react";
+
+// Ícone do título: usa a logo (bronze/prata/ouro) se o PNG existir em
+// /public/titulos; enquanto o arquivo não estiver lá, cai na medalha 🏅.
+function IconeTitulo({ logo, tamanho = 18 }) {
+  const [erro, setErro] = useState(false);
+  if (!logo || erro) return <span style={{ fontSize: tamanho }}>🏅</span>;
+  return (
+    <img
+      src={logo}
+      alt=""
+      width={tamanho}
+      height={tamanho}
+      style={{ objectFit: "contain", verticalAlign: "middle" }}
+      onError={() => setErro(true)}
+    />
+  );
+}
 import { api } from "../api/client.js";
 
 // Seção "Títulos" do perfil: conquistas de longo prazo desbloqueadas jogando.
@@ -111,12 +128,12 @@ function LinhaTitulo({ rotulo, valor, unidade, desbloqueados, proximo, tituloExi
                 }
                 onClick={() => onEscolher(d.nome)}
               >
-                🏅 {d.nome}
+                <IconeTitulo logo={d.logo} /> {d.nome}
                 {tituloExibido === d.nome && <span className="titulo-medalha-check"> ✓ exibindo</span>}
               </button>
             ) : (
               <span key={d.nome} className="titulo-medalha" title={`Desbloqueado com ${d.min} ${unidade}`}>
-                🏅 {d.nome}
+                <IconeTitulo logo={d.logo} /> {d.nome}
               </span>
             )
           )}

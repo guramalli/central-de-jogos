@@ -1,0 +1,14 @@
+Coloque aqui as logos dos títulos (PNG, 512x512, fundo transparente).
+
+Convenção de nome:
+  Quiz:      titulo-<tema>-<nivel>.png     (ex.: titulo-futebol-ouro.png)
+  Stop:      titulo-stop-<grupo>-<nivel>.png (ex.: titulo-stop-avancada-prata.png)
+  Relâmpago: titulo-rapido-prata.png e titulo-rapido-ouro.png
+
+Níveis: bronze (nível 1), prata (nível 2), ouro (nível 3 / épico).
+Temas: futebol, mitologia, games, terceirao, esportes, automobilismo, anime,
+       ciencias, historia, cinema, letras, geral, musica, series, novelas, geografia
+Grupos Stop: padrao, intermediario, avancada
+
+Enquanto um arquivo não existir, a interface mostra a medalha 🏅 no lugar —
+nada quebra. Vá soltando as artes aos poucos.
