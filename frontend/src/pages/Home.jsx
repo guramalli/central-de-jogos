@@ -17,9 +17,15 @@ export default function Home() {
   const { loginAsGuest, loginWithGoogle } = useAuth();
   const { theme } = useTheme();
   const [guestNick, setGuestNick] = useState("");
+  // O modo visitante existe, mas recolhido: o caminho principal é criar
+  // conta (Google ou formulário) — visitante não pontua no ranking nem
+  // concorre à premiação, então empurrá-lo como ação primária só criava
+  // jogadores descartáveis.
+  const [mostrarVisitante, setMostrarVisitante] = useState(false);
   const [error, setError] = useState("");
   const [entrando, setEntrando] = useState(false);
   const nickRef = useRef(null);
+  const entradaRef = useRef(null);
 
   async function handleGuest(e) {
     e.preventDefault();
@@ -47,8 +53,10 @@ export default function Home() {
   // Os cards de jogo não exigem login pra "funcionar": clicar neles leva o
   // foco pro campo de apelido — o caminho mais curto pra jogar de verdade.
   function focarEntrada() {
-    nickRef.current?.focus();
-    nickRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Rola até o painel de entrada. Se o modo visitante estiver aberto,
+    // aproveita e foca o campo de apelido.
+    entradaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (mostrarVisitante) nickRef.current?.focus();
   }
 
   return (
@@ -81,24 +89,12 @@ export default function Home() {
           </ul>
         </div>
 
-        <div className="card home-entry-card">
+        <div className="card home-entry-card" ref={entradaRef}>
           <h2>Comece a jogar agora</h2>
-          <form onSubmit={handleGuest}>
-            <input
-              ref={nickRef}
-              placeholder="Escolha um apelido"
-              value={guestNick}
-              onChange={(e) => setGuestNick(e.target.value)}
-              maxLength={15}
-              required
-            />
-            <button className="btn" type="submit" style={{ width: "100%" }} disabled={entrando}>
-              {entrando ? "Entrando..." : "▶ Jogar agora — sem cadastro"}
-            </button>
-          </form>
-          {error && <div className="error-msg" style={{ marginTop: 10 }}>{error}</div>}
-
-          <div className="auth-divider"><span>ou</span></div>
+          <p className="home-entry-sub">
+            Crie sua conta em segundos e já entre valendo: ranking mensal, patentes, títulos e a
+            premiação via Pix.
+          </p>
 
           <div className="auth-google-btn-wrap">
             <GoogleLogin
@@ -110,13 +106,47 @@ export default function Home() {
             />
           </div>
 
+          <Link to="/registrar" className="btn home-entry-registrar">
+            Criar conta grátis
+          </Link>
           <p className="home-entry-links">
-            <Link to="/registrar">Criar conta grátis</Link> · <Link to="/login">Já tenho conta</Link>
+            <Link to="/login">Já tenho conta — entrar</Link>
           </p>
-          <p className="guest-warning-note">
-            Visitantes jogam à vontade, mas só contas cadastradas pontuam no ranking e concorrem à
-            premiação mensal.
-          </p>
+
+          {error && <div className="error-msg" style={{ marginTop: 10 }}>{error}</div>}
+
+          <div className="home-entry-visitante">
+            {!mostrarVisitante ? (
+              <button
+                type="button"
+                className="home-entry-visitante-link"
+                onClick={() => {
+                  setMostrarVisitante(true);
+                  requestAnimationFrame(() => nickRef.current?.focus());
+                }}
+              >
+                Só quero dar uma olhada primeiro →
+              </button>
+            ) : (
+              <form onSubmit={handleGuest} className="home-entry-visitante-form">
+                <input
+                  ref={nickRef}
+                  placeholder="Escolha um apelido de visitante"
+                  value={guestNick}
+                  onChange={(e) => setGuestNick(e.target.value)}
+                  maxLength={15}
+                  required
+                />
+                <button className="btn secondary" type="submit" style={{ width: "100%" }} disabled={entrando}>
+                  {entrando ? "Entrando..." : "Testar sem cadastro"}
+                </button>
+                <p className="guest-warning-note">
+                  Visitantes jogam à vontade, mas só contas cadastradas pontuam no ranking, ganham
+                  títulos e concorrem à premiação mensal.
+                </p>
+              </form>
+            )}
+          </div>
         </div>
       </section>
 

@@ -4809,7 +4809,16 @@ span.votacao-trilha-item {
 }
 .home-game-card .lobby-game-logo { height: 64px; }
 .home-game-card .lobby-game-title { font-size: 26px; margin-bottom: 8px; }
-.home-game-card .lobby-game-desc { font-size: 15px; line-height: 1.55; margin-bottom: 16px; }
+.home-game-card .lobby-game-desc {
+  font-size: 15px;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  /* Libera o corte de 2 linhas do estilo compacto do Lobby: na vitrine a
+     descrição completa é parte do convite. */
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
 .home-game-card .lobby-game-cta {
   display: inline-flex;
   align-items: center;
@@ -5109,3 +5118,20 @@ span.votacao-trilha-item {
 @media (max-width: 900px) {
   .painel-jogador { min-width: 0; width: 100%; }
 }
+
+/* ===== Painel de entrada da home pública: cadastro primeiro ===== */
+.home-entry-sub { color: var(--text-dim); font-size: 14px; margin: 4px 0 16px; }
+.home-entry-registrar { display: block; width: 100%; text-align: center; margin-top: 12px; }
+.home-entry-links { text-align: center; margin: 12px 0 0; font-size: 14px; }
+.home-entry-visitante { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border); text-align: center; }
+.home-entry-visitante-link {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-entry-visitante-link:hover { color: var(--text); }
+.home-entry-visitante-form { text-align: left; }
