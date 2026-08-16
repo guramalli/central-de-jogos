@@ -1227,8 +1227,10 @@ export class StopRoom {
             create: { userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
 
-          const oldRank = getRankForPoints(oldMonthlyPoints);
-          const newRank = getRankForPoints(newMonthlyPoints);
+          // Mesmo ajuste do Quiz: considera patente fixa/exclusiva na
+          // promoção, pra mensagem e ícone nunca discordarem.
+          const oldRank = getRankForPoints(oldMonthlyPoints, { userId });
+          const newRank = getRankForPoints(newMonthlyPoints, { userId });
           // Só anuncia promoção pra quem concorre ao ranking — visitante
           // e ADMIN ficam de fora, senão viraria aviso de conquista que
           // na prática não vale nada.

@@ -736,6 +736,13 @@ export class QuizRoom {
 
   async endQuestion(winner) {
     if (this.state !== "active") return;
+    // Tranca IMEDIATAMENTE, antes de qualquer await: o encerramento faz
+    // várias gravações no banco e, sem esta linha, um segundo palpite certo
+    // que chegasse nesse meio-tempo ainda via a sala "active" e processava
+    // outro encerramento — dois vencedores na mesma pergunta. Com a tranca
+    // síncrona, o segundo palpite é rejeitado no portão do submitGuess.
+    // ("grading" é o mesmo estado que Stop e Acromania usam na apuração.)
+    this.state = "grading";
     this.clearTimers();
     const question = this.currentQuestion;
     const monthKey = currentMonthKey();
@@ -887,8 +894,11 @@ export class QuizRoom {
             create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
 
-          const oldRank = getQuizRankForPoints(oldMonthlyPoints);
-          const newRank = getQuizRankForPoints(newMonthlyPoints);
+          // O userId entra no cálculo pra respeitar patente fixa e exclusiva:
+          // sem ele, a mensagem de promoção saía mesmo quando o ícone exibido
+          // (que considera essas regras) não ia mudar — parecia bug na sala.
+          const oldRank = getQuizRankForPoints(oldMonthlyPoints, { userId: winner.userId });
+          const newRank = getQuizRankForPoints(newMonthlyPoints, { userId: winner.userId });
           // Só anuncia promoção pra quem concorre ao ranking.
           if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
             this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);

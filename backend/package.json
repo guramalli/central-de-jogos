@@ -53,7 +53,9 @@
     "import-games-padrao": "node prisma/importGamesPadrao.js",
     "import-games-avancado": "node prisma/importGamesAvancado.js",
     "import-series-padrao": "node prisma/importSeriesPadrao.js",
-    "import-series-avancado": "node prisma/importSeriesAvancado.js"
+    "import-series-avancado": "node prisma/importSeriesAvancado.js",
+    "import-automobilismo-avancado": "node prisma/importAutomobilismoAvancado.js",
+    "revisar-dificuldade": "node scripts/revisarDificuldade.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
