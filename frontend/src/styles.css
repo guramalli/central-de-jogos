@@ -5181,3 +5181,46 @@ span.votacao-trilha-item {
   border-color: #ffd60a;
 }
 .titulo-medalha-check { font-weight: 800; }
+
+/* ===== Vitrine de títulos (medalhas grandes, três estágios) ===== */
+.titulos-vitrine {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.titulos-vitrine-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+.titulos-vitrine-item-btn { cursor: pointer; font: inherit; color: inherit; transition: border-color 0.15s, transform 0.15s; }
+.titulos-vitrine-item-btn:hover { border-color: #ffd60a; transform: translateY(-2px); }
+.titulos-vitrine-item-ativa { border-color: #ffd60a; background: rgba(255, 214, 10, 0.08); }
+.titulos-vitrine-item-bloqueada { opacity: 0.85; }
+.titulos-vitrine-nome { font-size: 13px; font-weight: 600; line-height: 1.2; }
+.titulos-vitrine-item-bloqueada .titulos-vitrine-nome { color: var(--text-dim); }
+.titulos-vitrine-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.titulos-vitrine-tag-ativa { color: #1a1206; background: #ffd60a; border-color: #ffd60a; }
+.titulos-vitrine-req {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 480px) {
+  .titulos-vitrine-nome { font-size: 12px; }
+}

@@ -128,9 +128,11 @@ export function titulosDoQuiz(quizPorTema) {
     }));
     const desbloqueados = titulos.filter((t) => t.desbloqueado);
     const proximo = titulos.find((t) => !t.desbloqueado) || null;
-    // Só entra na resposta se há algo a mostrar (desbloqueado ou progresso)
+    // Só entra na resposta se há algo a mostrar (desbloqueado ou progresso).
+    // "titulos" leva TODOS os níveis (com desbloqueado true/false) pra que o
+    // perfil mostre a jornada inteira desde o começo.
     if (desbloqueados.length > 0 || acertos > 0) {
-      resultado.push({ tema, nomeTema, acertos, desbloqueados, proximo });
+      resultado.push({ tema, nomeTema, acertos, titulos, desbloqueados, proximo });
     }
   }
   return resultado;
@@ -148,7 +150,7 @@ export function titulosDoStop(stopStats) {
     const desbloqueados = titulos.filter((t) => t.desbloqueado);
     const proximo = titulos.find((t) => !t.desbloqueado) || null;
     if (desbloqueados.length > 0 || stops > 0) {
-      resultado.push({ grupo, rotulo: rotulos[grupo], stops, desbloqueados, proximo });
+      resultado.push({ grupo, rotulo: rotulos[grupo], stops, titulos, desbloqueados, proximo });
     }
   }
   // Relâmpago (só avançada)
@@ -161,6 +163,7 @@ export function titulosDoStop(stopStats) {
       grupo: "rapido",
       rotulo: `STOPs em até ${RAPIDO_SEGUNDOS}s (Avançada)`,
       stops: rapidos,
+      titulos: titulosRapido,
       desbloqueados: desbloqueadosRapido,
       proximo: proximoRapido,
     });

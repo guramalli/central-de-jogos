@@ -1,31 +1,26 @@
 import { useEffect, useState } from "react";
-
-// Ícone do título: usa a logo (bronze/prata/ouro) se o PNG existir em
-// /public/titulos; enquanto o arquivo não estiver lá, cai na medalha 🏅.
-function IconeTitulo({ logo, tamanho = 18 }) {
-  const [erro, setErro] = useState(false);
-  if (!logo || erro) return <span style={{ fontSize: tamanho }}>🏅</span>;
-  return (
-    <img
-      src={logo}
-      alt=""
-      width={tamanho}
-      height={tamanho}
-      style={{ objectFit: "contain", verticalAlign: "middle" }}
-      onError={() => setErro(true)}
-    />
-  );
-}
 import { api } from "../api/client.js";
 
+// Ícone do título: usa a logo (bronze/prata/ouro). Se o PNG não existir
+// ainda, cai na medalha 🏅. Tamanho generoso pra valorizar a arte.
+function IconeTitulo({ logo, tamanho = 72, apagado = false }) {
+  const [erro, setErro] = useState(false);
+  const estilo = {
+    objectFit: "contain",
+    filter: apagado ? "grayscale(1)" : "none",
+    opacity: apagado ? 0.35 : 1,
+  };
+  if (!logo || erro) return <span style={{ fontSize: tamanho * 0.7, opacity: apagado ? 0.35 : 1 }}>🏅</span>;
+  return (
+    <img src={logo} alt="" width={tamanho} height={tamanho} style={estilo} onError={() => setErro(true)} />
+  );
+}
+
 // Seção "Títulos" do perfil: conquistas de longo prazo desbloqueadas jogando.
-// Quiz: acertos por tema (Conhecedor → Mestre → título épico do tema).
-// Stop: STOPs pedidos por nível de sala, incluindo os relâmpagos da Avançada.
-// Mostra os desbloqueados como medalhas e o próximo com barra de progresso.
+// Mostra os TRÊS estágios de cada tema desde o início — os desbloqueados em
+// cor, os que faltam esmaecidos — pra que a pessoa já veja o que a espera.
 export default function TitulosPerfil({ userId, podeEscolher = false }) {
   const [titulos, setTitulos] = useState(null);
-  // Título que a pessoa escolheu ostentar (aparece no hover do nick em
-  // qualquer sala). Só carrega/edita no PRÓPRIO perfil.
   const [tituloExibido, setTituloExibido] = useState(null);
 
   useEffect(() => {
@@ -58,7 +53,7 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
   if (!titulos) return null;
   const temQuiz = titulos.quiz?.length > 0;
   const temStop = titulos.stop?.length > 0;
-  if (!temQuiz && !temStop) return null; // nada a mostrar ainda: seção some
+  if (!temQuiz && !temStop) return null;
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
@@ -73,7 +68,7 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
               rotulo={t.nomeTema}
               valor={t.acertos}
               unidade="acertos"
-              desbloqueados={t.desbloqueados}
+              niveis={t.titulos}
               proximo={t.proximo}
               tituloExibido={tituloExibido}
               onEscolher={podeEscolher ? escolher : null}
@@ -91,7 +86,7 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
               rotulo={t.rotulo}
               valor={t.stops}
               unidade="STOPs"
-              desbloqueados={t.desbloqueados}
+              niveis={t.titulos}
               proximo={t.proximo}
               tituloExibido={tituloExibido}
               onEscolher={podeEscolher ? escolher : null}
@@ -103,7 +98,7 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
   );
 }
 
-function LinhaTitulo({ rotulo, valor, unidade, desbloqueados, proximo, tituloExibido, onEscolher }) {
+function LinhaTitulo({ rotulo, valor, unidade, niveis, proximo, tituloExibido, onEscolher }) {
   const pct = proximo ? Math.min(100, Math.round((valor / proximo.min) * 100)) : 100;
   return (
     <div className="titulos-linha">
@@ -113,39 +108,62 @@ function LinhaTitulo({ rotulo, valor, unidade, desbloqueados, proximo, tituloExi
           {valor} {unidade}
         </span>
       </div>
-      {desbloqueados.length > 0 && (
-        <div className="titulos-medalhas">
-          {desbloqueados.map((d) =>
-            onEscolher ? (
+
+      {/* Os três estágios, sempre visíveis. Desbloqueados em cor (e
+          clicáveis no próprio perfil); os que faltam ficam esmaecidos com
+          o requisito à mostra, pra criar a meta. */}
+      <div className="titulos-vitrine">
+        {niveis.map((n) => {
+          const ativo = tituloExibido === n.nome;
+          const clicavel = n.desbloqueado && onEscolher;
+          const conteudo = (
+            <>
+              <IconeTitulo logo={n.logo} apagado={!n.desbloqueado} />
+              <span className="titulos-vitrine-nome">{n.nome}</span>
+              {n.desbloqueado ? (
+                ativo ? (
+                  <span className="titulos-vitrine-tag titulos-vitrine-tag-ativa">✓ exibindo</span>
+                ) : (
+                  clicavel && <span className="titulos-vitrine-tag">exibir</span>
+                )
+              ) : (
+                <span className="titulos-vitrine-req">
+                  {n.min} {unidade}
+                </span>
+              )}
+            </>
+          );
+          if (clicavel) {
+            return (
               <button
-                key={d.nome}
+                key={n.nome}
                 type="button"
-                className={`titulo-medalha titulo-medalha-btn${tituloExibido === d.nome ? " titulo-medalha-ativa" : ""}`}
-                title={
-                  tituloExibido === d.nome
-                    ? "Este é o título exibido no seu nick — clique pra deixar de exibir"
-                    : "Clique pra exibir este título junto do seu nick"
-                }
-                onClick={() => onEscolher(d.nome)}
+                className={`titulos-vitrine-item titulos-vitrine-item-btn${ativo ? " titulos-vitrine-item-ativa" : ""}`}
+                onClick={() => onEscolher(n.nome)}
+                title={ativo ? "Clique pra deixar de exibir no seu nick" : "Clique pra exibir este título no seu nick"}
               >
-                <IconeTitulo logo={d.logo} /> {d.nome}
-                {tituloExibido === d.nome && <span className="titulo-medalha-check"> ✓ exibindo</span>}
+                {conteudo}
               </button>
-            ) : (
-              <span key={d.nome} className="titulo-medalha" title={`Desbloqueado com ${d.min} ${unidade}`}>
-                <IconeTitulo logo={d.logo} /> {d.nome}
-              </span>
-            )
-          )}
-        </div>
-      )}
+            );
+          }
+          return (
+            <div
+              key={n.nome}
+              className={`titulos-vitrine-item${n.desbloqueado ? "" : " titulos-vitrine-item-bloqueada"}`}
+            >
+              {conteudo}
+            </div>
+          );
+        })}
+      </div>
+
       {proximo && (
         <div className="titulos-progresso" title={`${valor} de ${proximo.min} ${unidade}`}>
           <div className="titulos-progresso-barra">
             <div className="titulos-progresso-preenchido" style={{ width: `${pct}%` }} />
           </div>
           <span className="titulos-progresso-alvo">
-            próximo: <strong>{proximo.nome}</strong> ({proximo.min})
+            faltam <strong>{proximo.min - valor}</strong> {unidade} para {proximo.nome}
           </span>
         </div>
       )}
