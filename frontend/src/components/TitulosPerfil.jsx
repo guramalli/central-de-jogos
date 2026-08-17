@@ -34,10 +34,17 @@ function IconeTitulo({ logo, tamanho = 72, apagado = false }) {
 export default function TitulosPerfil({ userId, podeEscolher = false }) {
   const [titulos, setTitulos] = useState(null);
   const [tituloExibido, setTituloExibido] = useState(null);
+  const [medalhaNoLugarDaFoto, setMedalhaNoLugarDaFoto] = useState(false);
 
   useEffect(() => {
     if (!podeEscolher) return;
-    api.get("/users/me").then(({ data }) => setTituloExibido(data.tituloExibido || null)).catch(() => {});
+    api
+      .get("/users/me")
+      .then(({ data }) => {
+        setTituloExibido(data.tituloExibido || null);
+        setMedalhaNoLugarDaFoto(data.medalhaNoLugarDaFoto === true);
+      })
+      .catch(() => {});
   }, [podeEscolher]);
 
   async function escolher(nome) {
@@ -45,8 +52,24 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
     try {
       await api.patch("/users/me/titulo-exibido", { titulo: novo });
       setTituloExibido(novo);
+      // Sem título escolhido não há medalha pra ostentar. O servidor já
+      // desliga a preferência nesse caso; isto só mantém a tela em sincronia.
+      if (!novo) setMedalhaNoLugarDaFoto(false);
     } catch (e) {
       alert(e.response?.data?.error || "Erro ao salvar o título.");
+    }
+  }
+
+  async function alternarMedalha() {
+    const novo = !medalhaNoLugarDaFoto;
+    // Otimista: o interruptor responde na hora e volta atrás se o servidor
+    // recusar — mexer nisso não pode dar sensação de travamento.
+    setMedalhaNoLugarDaFoto(novo);
+    try {
+      await api.patch("/users/me/medalha-no-lugar-da-foto", { ligado: novo });
+    } catch (e) {
+      setMedalhaNoLugarDaFoto(!novo);
+      alert(e.response?.data?.error || "Erro ao salvar a preferência.");
     }
   }
 
@@ -70,6 +93,26 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
   return (
     <div className="card" style={{ marginTop: 16 }}>
       <h3>🏅 Títulos</h3>
+
+      {/* Só aparece pra quem já escolheu um título — antes disso não há
+          medalha pra pôr no lugar da foto, e um interruptor desativado só
+          geraria dúvida. */}
+      {podeEscolher && tituloExibido && (
+        <label className="medalha-troca">
+          <input
+            type="checkbox"
+            checked={medalhaNoLugarDaFoto}
+            onChange={alternarMedalha}
+          />
+          <span>
+            Usar a medalha no lugar da minha foto
+            <small>
+              Quando alguém passar o mouse no seu nick, vê a medalha de{" "}
+              <strong>{tituloExibido}</strong> em vez da foto. Sua foto continua no perfil.
+            </small>
+          </span>
+        </label>
+      )}
 
       {temQuiz && (
         <div className="titulos-bloco">

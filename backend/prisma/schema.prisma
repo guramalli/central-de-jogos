@@ -69,6 +69,11 @@ model User {
   streakRecorde    Int      @default(0)
   streakUltimoDia  String?  // "2026-08-11" — evita contar duas vezes no mesmo dia
   tituloExibido    String? // título de perfil que a pessoa escolheu ostentar (validado no PATCH)
+  // Quando ligado, a medalha do título exibido aparece no lugar da foto no
+  // hover do nick. Fica no banco (e não no navegador) porque quem vê a troca
+  // são as OUTRAS pessoas, ao passar o mouse neste jogador.
+  // Só vale se tituloExibido não for nulo — a checagem é feita no servidor.
+  medalhaNoLugarDaFoto Boolean @default(false)
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?
   state            String?

@@ -171,6 +171,10 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     nickname: user.nickname,
     tituloExibido: user.tituloExibido || null,
     tituloExibidoLogo: logoPorNomeDeTitulo(user.tituloExibido),
+    // Só vale como "true" se REALMENTE existe um título escolhido. Assim o
+    // hover nunca fica sem imagem, mesmo se o banco tiver a preferência
+    // ligada de um estado antigo.
+    medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
     clan: user.clan ? { name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
@@ -195,6 +199,7 @@ router.get("/me", requireAuth, async (req, res) => {
     role: user.role,
     celebration: user.celebration || "",
     tituloExibido: user.tituloExibido || null,
+    medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
     hasPassword: !!user.password,
   });
@@ -208,9 +213,15 @@ router.get("/me", requireAuth, async (req, res) => {
 router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
   const { titulo } = req.body;
   if (titulo === null || titulo === undefined || titulo === "") {
-    await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: null } });
+    // Desliga a medalha-no-lugar-da-foto junto: sem título escolhido não há
+    // medalha pra mostrar, e deixar a preferência ligada faria o hover ficar
+    // sem imagem nenhuma.
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { tituloExibido: null, medalhaNoLugarDaFoto: false },
+    });
     cacheInvalidar(`titulos:${req.user.id}`);
-    return res.json({ ok: true, tituloExibido: null });
+    return res.json({ ok: true, tituloExibido: null, medalhaNoLugarDaFoto: false });
   }
 
   // Recalcula os desbloqueados (mesma lógica do GET /titulos)
@@ -241,6 +252,38 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
   }
   await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: titulo } });
   res.json({ ok: true, tituloExibido: titulo });
+});
+
+// Liga/desliga a medalha no lugar da foto no hover do nick.
+//
+// Endpoint separado do titulo-exibido de propósito: são duas escolhas
+// independentes (QUAL título ostentar × COMO ostentar), e juntar as duas num
+// PATCH só obrigaria a reenviar o título a cada vez que a pessoa mexe no
+// interruptor.
+//
+// Não precisa revalidar os títulos desbloqueados aqui: o que autoriza a troca
+// é ter um tituloExibido, e ESSE já foi validado quando foi escolhido.
+router.patch("/me/medalha-no-lugar-da-foto", requireAuth, async (req, res) => {
+  const ligado = req.body?.ligado === true;
+
+  const eu = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { tituloExibido: true },
+  });
+
+  // Trava: sem título escolhido não há medalha pra mostrar, e ligar a opção
+  // deixaria a pessoa sem imagem nenhuma no hover.
+  if (ligado && !eu?.tituloExibido) {
+    return res.status(400).json({
+      error: "Escolha primeiro um título pra exibir.",
+    });
+  }
+
+  await prisma.user.update({
+    where: { id: req.user.id },
+    data: { medalhaNoLugarDaFoto: ligado },
+  });
+  res.json({ ok: true, medalhaNoLugarDaFoto: ligado });
 });
 
 // Atualiza dados do próprio perfil (por enquanto, só a frase de comemoração do Quiz).
