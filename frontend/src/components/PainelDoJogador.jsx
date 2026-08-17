@@ -30,10 +30,10 @@ export default function PainelDoJogador({ userId }) {
   // é o que dá aquela coceira de "falta pouco".
   const candidatos = [];
   for (const t of titulos?.quiz || []) {
-    if (t.proximo) candidatos.push({ nome: t.proximo.nome, atual: t.acertos, alvo: t.proximo.min });
+    if (t.proximo) candidatos.push({ nome: t.proximo.nome, atual: t.acertos, alvo: t.proximo.min, logo: t.proximo.logo });
   }
   for (const t of titulos?.stop || []) {
-    if (t.proximo) candidatos.push({ nome: t.proximo.nome, atual: t.stops, alvo: t.proximo.min });
+    if (t.proximo) candidatos.push({ nome: t.proximo.nome, atual: t.stops, alvo: t.proximo.min, logo: t.proximo.logo });
   }
   const proximoTitulo = candidatos
     .filter((c) => c.atual > 0)
@@ -94,7 +94,16 @@ export default function PainelDoJogador({ userId }) {
       {proximoTitulo && (
         <Link to="/perfil" className="painel-item painel-item-titulo" title="Ver todos os seus títulos">
           <div className="painel-item-topo">
-            <span className="painel-titulo-medalha">🏅</span>
+            {proximoTitulo.logo ? (
+              <img
+                src={proximoTitulo.logo}
+                alt=""
+                className="painel-titulo-logo"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            ) : (
+              <span className="painel-titulo-medalha">🏅</span>
+            )}
             <div className="painel-item-textos">
               <span className="painel-item-jogo">Próximo título</span>
               <span className="painel-item-principal">{proximoTitulo.nome}</span>

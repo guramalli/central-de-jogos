@@ -5231,3 +5231,14 @@ span.votacao-trilha-item {
   .titulos-vitrine-nome { font-size: 11px; }
   .titulos-vitrine-tag, .titulos-vitrine-req { font-size: 10px; }
 }
+
+/* Logo do próximo título no painel do jogador (Lobby) — esmaecida por ser
+   uma meta ainda não conquistada, igual à vitrine do perfil. */
+.painel-titulo-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.55;
+  flex-shrink: 0;
+}
