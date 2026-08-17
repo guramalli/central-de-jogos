@@ -25,6 +25,34 @@ const THEME_ICONS = {
   direito: "⚖️",
 };
 
+// Ícone da sala: emblema de bronze do tema, com o emoji como reserva.
+//
+// Os emblemas são os mesmos do sistema de títulos, em versão pequena (68px
+// pra render nítido nos 34px de exibição em tela retina). Usamos o BRONZE
+// de propósito: além de ser o nível de entrada — não gasta o prestígio do
+// ouro, que é conquista de 10.000 acertos —, o tom escuro destaca melhor o
+// símbolo central no tamanho pequeno; o ouro brilha demais e o símbolo
+// some no fundo.
+//
+// Nem todo tema tem emblema (Direito, por exemplo, é mais novo que a
+// coleção), e um PNG pode faltar. Nos dois casos cai no emoji, que sempre
+// funciona e não custa download.
+function IconeTema({ themeKey }) {
+  const [falhou, setFalhou] = useState(false);
+  const emoji = THEME_ICONS[themeKey] || "❓";
+  if (!themeKey || falhou) return <span>{emoji}</span>;
+  return (
+    <img
+      src={`/temas-quiz/${themeKey}.png`}
+      alt=""
+      className="quiz-theme-emblema"
+      loading="lazy"
+      decoding="async"
+      onError={() => setFalhou(true)}
+    />
+  );
+}
+
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
   if (status.onlineCount === 0) return { text: "Vazia", full: false, empty: true };
@@ -95,9 +123,12 @@ export default function QuizLobby() {
               className="glossy-panel lobby-game-card quiz-themed-card"
               data-quiz-theme={r.themeKey || undefined}
             >
-              <div className="quiz-theme-icon">{THEME_ICONS[r.themeKey] || "❓"}</div>
+              <div className="quiz-theme-icon"><IconeTema themeKey={r.themeKey} /></div>
               <div>
-                <h3 className="lobby-game-title">{r.label}</h3>
+                <h3 className="lobby-game-title">
+                  <span className="quiz-titulo-emoji" aria-hidden="true">{THEME_ICONS[r.themeKey] || "❓"}</span>
+                  {r.label}
+                </h3>
                 {r.tier && (
                   <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.tier === "padrao" ? "basic" : "advanced"}`}>
                     {r.tier === "padrao" ? "🟢 Padrão" : "🔴 Avançado"}
