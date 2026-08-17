@@ -55,6 +55,7 @@ export const QUIZ_EPICOS = {
   series: "Maratonista Supremo",
   novelas: "Folhetinista Supremo",
   geografia: "Atlas Humano",
+  direito: "Jurista Supremo",
 };
 
 // Nome bonito de cada tema (pra montar "Conhecedor de Futebol" etc.)
@@ -75,6 +76,7 @@ export const QUIZ_NOMES = {
   series: "Séries",
   novelas: "Novelas",
   geografia: "Geografia",
+  direito: "Direito",
 };
 
 // STOP: títulos por grupo de sala e quantidade de STOPs pedidos.

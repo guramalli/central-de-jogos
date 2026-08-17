@@ -1171,9 +1171,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  /* Respiro do balão de jogadores: eram 4px, que colavam o "Entrar" no
-     "Vazia" e faziam os dois virarem uma linha só. */
-  margin-top: 12px;
+  /* Espaço do balão de jogadores. Precisa ser LATERAL, não superior: o
+     balão é inline-flex, então o "Entrar" flui na mesma linha, ao lado dele
+     — margem no topo não separava nada e os dois ficavam encostados. */
+  margin-left: 12px;
 }
 .lobby-game-cta .material-symbols-outlined { font-size: 15px; }
 
@@ -1226,14 +1227,6 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   display: block;
 }
 
-/* Emoji ao lado do nome da sala. O emblema é bonito mas, a 34px, os temas
-   ficam parecidos entre si — 70% da arte é moldura igual em todos. O emoji
-   devolve o reconhecimento imediato (⚽ é futebol, 🎮 é games) sem custar
-   download nenhum, já que é texto. */
-.quiz-titulo-emoji {
-  margin-right: 6px;
-  font-size: 0.95em;
-}
 .lobby-quiz-icon {
   width: 56px;
   height: 56px;
@@ -5267,7 +5260,10 @@ span.votacao-trilha-item {
    empurrando o CTA de todos pra mesma linha de base. */
 .home-game-card > div { display: flex; flex-direction: column; flex: 1; }
 .home-game-card .lobby-game-desc { flex: 1; }
-.home-game-card .lobby-game-cta { align-self: flex-start; margin-top: auto; }
+/* margin-left: 0 zera o espaço lateral herdado da classe base — ali ele
+   separa o botão do balão de jogadores, que ficam na mesma linha; aqui o
+   botão está sozinho numa coluna e o recuo só o desalinharia. */
+.home-game-card .lobby-game-cta { align-self: flex-start; margin-top: auto; margin-left: 0; }
 
 /* ===== Card "em desenvolvimento" (Acromania) ===== */
 .home-game-card-dev { cursor: default; position: relative; }

@@ -135,20 +135,17 @@ export default function QuizLobby() {
             >
               <IconeTema themeKey={r.themeKey} />
               <div>
-                <h3 className="lobby-game-title">
-                  <span className="quiz-titulo-emoji" aria-hidden="true">{THEME_ICONS[r.themeKey] || "❓"}</span>
-                  {r.label}
-                </h3>
+                <h3 className="lobby-game-title">{r.label}</h3>
                 {r.tier && (
                   <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.tier === "padrao" ? "basic" : "advanced"}`}>
-                    {r.tier === "padrao" ? "🟢 Padrão" : "🔴 Avançado"}
+                    {r.tier === "padrao" ? "Padrão" : "Avançado"}
                   </p>
                 )}
                 <p className="lobby-game-desc">{r.description || `Perguntas de ${r.label.toLowerCase()}.`}</p>
-                <p className="quiz-room-question-count">📋 {r.questionCount} perguntas cadastradas</p>
+                <p className="quiz-room-question-count">{r.questionCount} perguntas cadastradas</p>
                 {r.streakRecord?.count > 0 && (
                   <p className="lobby-streak-desc">
-                    🔥 Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}
+                    Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}
                   </p>
                 )}
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
@@ -166,7 +163,7 @@ export default function QuizLobby() {
 
       {arenaRooms.length > 0 && (
         <div className="arena-section">
-          <h2 className="arena-section-title">⚡ Arenas Relâmpago</h2>
+          <h2 className="arena-section-title">Arenas Relâmpago</h2>
           <p className="arena-section-sub">
             50 rodadas relâmpago, 10 segundos por pergunta. Todo mundo que acertar pontua — no
             ranking mensal E no placar do turno. Os 5 primeiros do turno ainda levam bônus
@@ -182,9 +179,9 @@ export default function QuizLobby() {
                     <h3 className="arena-card-title">{r.label.replace("⚡ ", "")}</h3>
                     <p className="arena-card-desc">{r.description}</p>
                     <div className="arena-card-meta">
-                      <span>⏱️ 10s por pergunta</span>
-                      <span>🔁 50 rodadas</span>
-                      <span>🏆 Top 5 leva bônus</span>
+                      <span>10s por pergunta</span>
+                      <span>50 rodadas</span>
+                      <span>Top 5 leva bônus</span>
                     </div>
                     <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                       <span className="material-symbols-outlined">group</span> {occ.text}
