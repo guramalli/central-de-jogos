@@ -9,6 +9,8 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:seed": "node prisma/seed.js",
     "prisma:seed:quiz": "node prisma/seedQuiz.js",
+    "import-carros": "node prisma/importCarros.js",
+    "ranking-oculto": "node scripts/rankingOculto.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",
     "validate-quiznet-offline": "node prisma/validateQuiznetOffline.js",

@@ -25,6 +25,56 @@ const THEME_ICONS = {
   direito: "⚖️",
 };
 
+// Ícone da sala: emblema de bronze do tema, com o emoji como reserva.
+//
+// Os emblemas são os mesmos do sistema de títulos, em versão pequena (68px
+// pra render nítido nos 34px de exibição em tela retina). Usamos o BRONZE
+// de propósito: além de ser o nível de entrada — não gasta o prestígio do
+// ouro, que é conquista de 10.000 acertos —, o tom escuro destaca melhor o
+// símbolo central no tamanho pequeno; o ouro brilha demais e o símbolo
+// some no fundo.
+//
+// Nem todo tema tem emblema (Direito, por exemplo, é mais novo que a
+// coleção), e um PNG pode faltar. Nos dois casos cai no emoji, que sempre
+// funciona e não custa download.
+function IconeTema({ themeKey }) {
+  const [falhou, setFalhou] = useState(false);
+  const emoji = THEME_ICONS[themeKey] || "❓";
+
+  // Sem emblema (tema novo ou PNG faltando): emoji dentro do círculo de
+  // sempre, que aí faz falta como moldura.
+  if (!themeKey || falhou) {
+    return <div className="quiz-theme-icon">{emoji}</div>;
+  }
+
+  // Com emblema: SEM o círculo. A arte já tem moldura circular própria, e o
+  // fundo mais a borda do CSS criavam um segundo anel em volta do primeiro.
+  return (
+    <div className="quiz-theme-icon quiz-theme-icon-emblema">
+      <img
+        src={`/temas-quiz/${themeKey}.png`}
+        alt=""
+        className="quiz-theme-emblema"
+        loading="lazy"
+        decoding="async"
+        onError={() => setFalhou(true)}
+      />
+    </div>
+  );
+}
+
+// Tira o "— Padrão" / "— Avançado" do fim do nome. A informação já está no
+// selo colorido logo abaixo e na cor do próprio nome, então repetir no
+// título só ocupava espaço e fazia o card parecer redundante.
+//
+// A limpeza é SÓ na exibição do card: o label completo continua vindo do
+// servidor e é usado dentro da sala, no aviso de atividade e na mensagem de
+// sala cheia, onde o nível é contexto necessário.
+function nomeSemNivel(label) {
+  if (!label) return "";
+  return label.replace(/\s*[—-]\s*(Padrão|Avançado|Avançada|Iniciante)\s*$/i, "");
+}
+
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
   if (status.onlineCount === 0) return { text: "Vazia", full: false, empty: true };
@@ -95,19 +145,21 @@ export default function QuizLobby() {
               className="glossy-panel lobby-game-card quiz-themed-card"
               data-quiz-theme={r.themeKey || undefined}
             >
-              <div className="quiz-theme-icon">{THEME_ICONS[r.themeKey] || "❓"}</div>
+              <IconeTema themeKey={r.themeKey} />
               <div>
-                <h3 className="lobby-game-title">{r.label}</h3>
+                <h3 className={`lobby-game-title quiz-titulo-${r.tier === "padrao" ? "padrao" : "avancado"}`}>
+                  {nomeSemNivel(r.label)}
+                </h3>
                 {r.tier && (
                   <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.tier === "padrao" ? "basic" : "advanced"}`}>
-                    {r.tier === "padrao" ? "🟢 Padrão" : "🔴 Avançado"}
+                    {r.tier === "padrao" ? "Padrão" : "Avançado"}
                   </p>
                 )}
                 <p className="lobby-game-desc">{r.description || `Perguntas de ${r.label.toLowerCase()}.`}</p>
-                <p className="quiz-room-question-count">📋 {r.questionCount} perguntas cadastradas</p>
+                <p className="quiz-room-question-count">{r.questionCount} perguntas cadastradas</p>
                 {r.streakRecord?.count > 0 && (
                   <p className="lobby-streak-desc">
-                    🔥 Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}
+                    Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}
                   </p>
                 )}
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
@@ -125,7 +177,7 @@ export default function QuizLobby() {
 
       {arenaRooms.length > 0 && (
         <div className="arena-section">
-          <h2 className="arena-section-title">⚡ Arenas Relâmpago</h2>
+          <h2 className="arena-section-title">Arenas Relâmpago</h2>
           <p className="arena-section-sub">
             50 rodadas relâmpago, 10 segundos por pergunta. Todo mundo que acertar pontua — no
             ranking mensal E no placar do turno. Os 5 primeiros do turno ainda levam bônus
@@ -141,9 +193,9 @@ export default function QuizLobby() {
                     <h3 className="arena-card-title">{r.label.replace("⚡ ", "")}</h3>
                     <p className="arena-card-desc">{r.description}</p>
                     <div className="arena-card-meta">
-                      <span>⏱️ 10s por pergunta</span>
-                      <span>🔁 50 rodadas</span>
-                      <span>🏆 Top 5 leva bônus</span>
+                      <span>10s por pergunta</span>
+                      <span>50 rodadas</span>
+                      <span>Top 5 leva bônus</span>
                     </div>
                     <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                       <span className="material-symbols-outlined">group</span> {occ.text}

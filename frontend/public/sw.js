@@ -11,11 +11,13 @@
 //
 // Trocar a versão abaixo força a limpeza dos caches antigos na próxima
 // visita. Precisa ser alterada quando o comportamento do SW mudar.
-// eg-v3: as logos de título foram reprocessadas (512px → 160px, 24,5 MB →
-// 3 MB). Sem subir esta versão, quem já tinha visitado o site continuaria
-// servindo as antigas do cache PRA SEMPRE — a otimização só valeria pra
-// visitante novo.
-const VERSAO = "eg-v3";
+// eg-v4: logotipo do portal refeito. As logos da RAIZ (educacao-gamer-*.png,
+// favicon, ícones do PWA) também têm nome fixo e caíam na regra de cache
+// eterno — quem já tinha visitado continuaria vendo a logo velha pra sempre.
+// Agora elas entraram no ARTE_TROCAVEL abaixo, então troca de logo passa a
+// chegar sozinha nas próximas vezes; esta subida de versão é pra alcançar
+// quem já tem a antiga guardada.
+const VERSAO = "eg-v4";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -24,7 +26,7 @@ const ESSENCIAIS = ["/", "/favicon.png", "/manifest.json"];
 // Pastas de arte com nome de arquivo FIXO (sem hash): quando uma imagem é
 // regerada, o nome continua o mesmo. Elas precisam ser revalidadas, senão
 // a versão antiga fica presa no cache do jogador pra sempre.
-const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz)\//;
+const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|temas-quiz)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*)\.png$/;
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
