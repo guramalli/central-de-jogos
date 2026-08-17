@@ -39,6 +39,13 @@ model User {
   // pra contas de teste do próprio time (que jogam o tempo todo validando
   // features) não distorcerem a disputa nem a premiação.
   ocultoNoRanking  Boolean  @default(false)
+  // Ocultação POR JOGO. O campo acima é o interruptor geral (some de todos os
+  // rankings); este permite sumir só de alguns, guardando as gameKeys — por
+  // exemplo ["stop"] esconde do ranking do Stop e mantém no do Quiz.
+  // Os dois convivem: a pessoa fica oculta se o geral estiver ligado OU se o
+  // jogo em questão estiver nesta lista. Manter os dois evita mexer em quem
+  // já está oculto hoje.
+  ocultoNosRankings String[] @default([])
   // Patente fixada manualmente (guarda a "key" da patente). Serve pra contas
   // institucionais — como a do próprio site — ostentarem uma patente sem
   // precisar de pontuação. É só exibição: não altera pontos, não entra no

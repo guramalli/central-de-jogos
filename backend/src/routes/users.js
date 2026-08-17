@@ -107,7 +107,13 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
         where: {
           gameKey: m.gameKey,
           monthKey,
-          user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false },
+          user: {
+            role: { not: "ADMIN" },
+            isGuest: false,
+            ocultoNoRanking: false,
+            // Ocultação só deste jogo (ver ocultoNosRankings no schema).
+            NOT: { ocultoNosRankings: { has: m.gameKey } },
+          },
           points: { gt: m.points },
         },
       });

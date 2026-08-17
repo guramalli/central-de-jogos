@@ -33,7 +33,13 @@ async function apurar(gameKey, pontosMinimos) {
       gameKey,
       monthKey: currentMonthKey(),
       points: { gte: pontosMinimos },
-      user: { role: { not: "ADMIN" }, isGuest: false, ocultoNoRanking: false },
+      user: {
+            role: { not: "ADMIN" },
+            isGuest: false,
+            ocultoNoRanking: false,
+            // Ocultação só deste jogo (ver ocultoNosRankings no schema).
+            NOT: { ocultoNosRankings: { has: gameKey } },
+          },
     },
     orderBy: { points: "desc" },
     select: { userId: true },
