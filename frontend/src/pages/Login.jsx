@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
@@ -9,6 +9,10 @@ export default function Login() {
   const { login, loginWithGoogle, loginAsGuest } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  // Quem cai aqui por sessão vencida chega com ?sessao=expirada. Sem esse
+  // aviso, a pessoa acha que foi expulsa do nada no meio do jogo.
+  const [params] = useSearchParams();
+  const sessaoExpirada = params.get("sessao") === "expirada";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -58,6 +62,12 @@ export default function Login() {
       <div className="auth-form-panel">
         <div className="card auth-card">
           <h2>Entrar</h2>
+          {sessaoExpirada && !error && (
+            <div className="aviso-sessao-expirada">
+              ⏳ Sua sessão expirou por inatividade. Entre de novo pra continuar jogando —
+              seus pontos, patentes e títulos estão todos salvos.
+            </div>
+          )}
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
             <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

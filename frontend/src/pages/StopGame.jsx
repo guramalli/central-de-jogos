@@ -12,6 +12,7 @@ import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
 import { useIsMobile } from "../utils/useIsMobile.js";
+import { ehFalhaDeAutenticacao, ROTA_SESSAO_EXPIRADA } from "../utils/sessaoSocket.js";
 import Seo from "../components/Seo.jsx";
 
 const STATUS_TEXT_CLASS = {
@@ -123,12 +124,16 @@ export default function StopGame() {
     };
     socket.on("connect", reentrarNaSala);
 
-    socket.on("connect_error", (err) => {
-      if (err.message === "SESSAO_INVALIDA") {
-        logout();
-        navigate("/login");
-      }
-    });
+    // Antes isto só cobria SESSAO_INVALIDA (banido/apagado). O caso mais
+    // comum — token de 7 dias VENCIDO — chega com outra mensagem e passava
+    // batido, deixando a tela presa em reconexão infinita. O helper cobre
+    // os dois casos e continua ignorando queda de rede e deploy.
+    const aoFalharConexao = (err) => {
+      if (!ehFalhaDeAutenticacao(err)) return;
+      logout();
+      navigate(ROTA_SESSAO_EXPIRADA);
+    };
+    socket.on("connect_error", aoFalharConexao);
 
     // Movimento em outra sala: aparece no chat como mensagem do sistema,
     // pra quem está sozinho saber onde tem gente em vez de desistir.
@@ -304,14 +309,15 @@ export default function StopGame() {
     });
 
     // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
-    socket.on("chat-message-deleted", ({ id }) => {
+    const aoApagarMensagem = ({ id }) => {
       setMessages((prev) => prev.filter((m) => m.id !== id));
-    });
+    };
+    socket.on("chat-message-deleted", aoApagarMensagem);
 
     return () => {
       if (stopDelayTimerRef.current) clearTimeout(stopDelayTimerRef.current);
       socket.off("connect", reentrarNaSala);
-      socket.off("connect_error");
+      socket.off("connect_error", aoFalharConexao);
       socket.off("room-access-denied");
       socket.off("stop-denied");
       socket.off("stop-readiness");
@@ -327,7 +333,7 @@ export default function StopGame() {
       socket.off("block-bonus");
       socket.off("skip-vote-update");
       socket.off("players-online");
-      socket.off("chat-message-deleted");
+      socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("chat-message");
       socket.off("aviso-atividade");
       socket.disconnect();

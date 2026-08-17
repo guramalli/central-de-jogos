@@ -14,6 +14,12 @@
   --text: #3a2e1f;
   --text-dim: #8a7a63;
   --border: #f0e0c4;
+  /* Cor do nome do título conforme o material da medalha. Tons ESCUROS aqui:
+     em fundo branco, o dourado #ffd60a dá só 1,41:1 de contraste — some.
+     Estes ficam todos acima de 4,5:1. */
+  --titulo-bronze: #8a4f14;
+  --titulo-prata: #6b7280;
+  --titulo-ouro: #8a6d00;
 }
 
 [data-theme="dark"] {
@@ -26,6 +32,11 @@
   --text: #e5e2e1;
   --text-dim: #a38d7a;
   --border: #554434;
+  /* Mesmas cores em versão clara, pra fundo escuro. O bronze é o tom
+     clássico (#cd7f32, 5,19:1) e o ouro segue o amarelo da marca. */
+  --titulo-bronze: #cd7f32;
+  --titulo-prata: #c0c0c0;
+  --titulo-ouro: #ffd60a;
 }
 
 * { box-sizing: border-box; }
@@ -181,6 +192,19 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .chat-input button { border-radius: 0; }
 
 .error-msg { color: var(--accent); font-size: 13px; margin-bottom: 10px; }
+
+/* Aviso de sessão vencida: tom informativo, não de erro — a pessoa não fez
+   nada errado, só ficou um tempo sem entrar. */
+.aviso-sessao-expirada {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 214, 10, 0.35);
+  background: rgba(255, 214, 10, 0.08);
+  color: var(--text);
+}
 
 /* ===== Header / logo ===== */
 .logo {
@@ -1095,6 +1119,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-benefit-muted { color: var(--text-dim); }
 
 .lobby-game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.home-page .lobby-game-grid, div:has(> .home-game-card) { gap: 18px; }
 @media (max-width: 1000px) { .lobby-game-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .lobby-game-grid { grid-template-columns: 1fr; } }
 
@@ -2411,6 +2436,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 @media (max-width: 700px) {
   .general-chat-body { flex-direction: column; }
   .general-chat-online-list { width: 100%; height: auto; max-height: 120px; margin-top: 0; }
+  /* No celular o chat da home ficava espremido nos 300px fixos do desktop.
+     Usa a altura da tela como referência: dá pra LER a conversa. */
+  .general-chat-widget .chat-box { height: 60vh; height: 60dvh; max-height: 520px; }
 }
 
 .chat-msg-time {
@@ -2439,7 +2467,54 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .avatar-upload-preview { flex-shrink: 0; }
 .avatar-upload-actions { display: flex; flex-direction: column; gap: 8px; }
 
+/* Interruptor "usar a medalha no lugar da foto", na vitrine de títulos. */
+.medalha-troca {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 214, 10, 0.25);
+  background: rgba(255, 214, 10, 0.06);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.medalha-troca input {
+  /* 18px: alvo de toque confortável no celular sem desalinhar do texto. */
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.medalha-troca span { display: block; }
+.medalha-troca small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  opacity: 0.7;
+  /* Nomes de título longos ("Conhecedor de Conhecimentos Gerais") quebram
+     em vez de estourar a caixa. */
+  overflow-wrap: anywhere;
+}
+
 .nick-tooltip-avatar-row { display: flex; justify-content: center; margin-bottom: 4px; }
+
+/* Medalhão no lugar da foto: 52px contra os 40px da foto. A arte é circular
+   com moldura e louros, então pede um pouco mais de espaço pra ler bem —
+   e o tooltip tem 200px de largura, então 52px cabe com folga sem empurrar
+   nada. Não leva border-radius nem fundo: o PNG já é transparente e
+   recortado, e qualquer moldura extra brigaria com a moldura da arte. */
+.nick-tooltip-medalhao {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  /* Brilho discreto pra medalha destacar do fundo escuro do balão. */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
 .nick-tooltip-profile-link {
   display: block;
   margin-top: 8px;
@@ -4784,7 +4859,61 @@ span.votacao-trilha-item {
 .home-entry-links { margin-top: 12px; font-size: 13px; text-align: center; }
 /* Cards de jogo da home são <button> (levam ao campo de apelido), mas
    devem parecer idênticos aos cards do Lobby, que são links. */
-.home-game-card { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+/* ===== Cards dos jogos na HOME: versão vitrine =====
+   No Lobby os cards são compactos (lista de trabalho); na home eles são o
+   CONVITE principal do site — precisam parecer grandes, clicáveis e
+   irresistíveis. Layout vertical, logo em destaque, e o CTA vira um botão
+   de verdade em vez de um link tímido. Só afeta a home (.home-game-card);
+   o Lobby continua como está. */
+.home-game-card {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 28px 24px;
+  border-width: 2px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.home-game-card .lobby-game-logo { height: 64px; }
+.home-game-card .lobby-game-title { font-size: 26px; margin-bottom: 8px; }
+.home-game-card .lobby-game-desc {
+  font-size: 15px;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  /* Libera o corte de 2 linhas do estilo compacto do Lobby: na vitrine a
+     descrição completa é parte do convite. */
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+.home-game-card .lobby-game-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a1206;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  transition: transform 0.12s ease;
+}
+.home-game-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--accent);
+}
+.home-game-card:hover .lobby-game-cta { transform: scale(1.05); }
+.home-game-card:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+/* No celular, os cards empilham e o alvo de toque fica generoso */
+@media (max-width: 700px) {
+  .home-game-card { padding: 22px 18px; }
+  .home-game-card .lobby-game-cta { width: 100%; justify-content: center; }
+}
 
 /* Botão de apagar mensagem (só aparece pra moderadores/admins) */
 .chat-delete-btn {
@@ -4926,4 +5055,312 @@ span.votacao-trilha-item {
    apertar a linha. */
 @media (min-width: 721px) {
   .quiz-player-rank-icon { width: 24px; height: 24px; }
+}
+
+/* ===== Títulos de perfil (conquistas de longo prazo) ===== */
+.titulos-bloco { margin-top: 14px; }
+.titulos-subtitulo {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.titulos-linha { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.titulos-linha:last-child { border-bottom: none; }
+.titulos-linha-topo { display: flex; justify-content: space-between; align-items: baseline; }
+.titulos-tema { font-weight: 600; }
+.titulos-contagem { font-size: 12px; color: var(--text-dim); }
+.titulos-medalhas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.titulo-medalha {
+  background: linear-gradient(180deg, rgba(255, 214, 10, 0.16), rgba(255, 214, 10, 0.05));
+  border: 1px solid rgba(255, 214, 10, 0.4);
+  color: #ffd60a;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.titulos-progresso { margin-top: 8px; }
+.titulos-progresso-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.titulos-progresso-preenchido {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.titulos-progresso-alvo { display: block; margin-top: 4px; font-size: 12px; color: var(--text-dim); }
+
+/* ===== Banner de novidade da home ===== */
+.novidade-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 10, 0.45);
+  background: linear-gradient(90deg, rgba(255, 214, 10, 0.12), rgba(255, 214, 10, 0.03));
+}
+.novidade-banner-texto { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.novidade-banner-tag {
+  background: #ffd60a;
+  color: #1a1a24;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.novidade-banner-acoes { display: flex; align-items: center; gap: 8px; }
+.novidade-banner-fechar {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.novidade-banner-fechar:hover { color: var(--text); }
+@media (max-width: 700px) {
+  .novidade-banner { flex-direction: column; align-items: flex-start; }
+}
+
+/* ===== Página Meu Perfil: duas colunas no desktop ===== */
+.perfil-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  max-width: 1060px;
+}
+.perfil-col { min-width: 0; }
+/* O card de títulos da coluna direita cola no topo (o marginTop: 16 do
+   componente era pro layout empilhado antigo) */
+.perfil-col > .card { margin-top: 0 !important; }
+@media (max-width: 900px) {
+  .perfil-grid { grid-template-columns: 1fr; max-width: 520px; }
+}
+
+/* ===== Painel do jogador (hero do Lobby) ===== */
+.painel-jogador { display: flex; flex-direction: column; gap: 10px; min-width: 320px; }
+.painel-item {
+  display: block;
+  background: var(--bg-panel-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.painel-item:hover { border-color: var(--accent); transform: translateY(-2px); }
+.painel-item-topo { display: flex; align-items: center; gap: 10px; }
+.painel-patente-icone { width: 30px; height: 30px; object-fit: contain; }
+.painel-titulo-medalha { font-size: 24px; line-height: 1; }
+.painel-item-textos { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.painel-item-jogo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+.painel-item-principal {
+  font-weight: 700;
+  font-size: 14px;
+  /* No card do painel (estreito) o nome longo do título é cortado em 2
+     linhas com reticências pra não empurrar os pontos pro lado. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25;
+}
+.painel-item-pontos { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+.painel-barra {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.painel-barra-cheia {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.painel-item-meta { display: block; margin-top: 5px; font-size: 12px; color: var(--text-dim); }
+@media (max-width: 900px) {
+  .painel-jogador { min-width: 0; width: 100%; }
+}
+
+/* ===== Painel de entrada da home pública: cadastro primeiro ===== */
+.home-entry-sub { color: var(--text-dim); font-size: 14px; margin: 4px 0 16px; }
+.home-entry-registrar { display: block; width: 100%; text-align: center; margin-top: 12px; }
+.home-entry-links { text-align: center; margin: 12px 0 0; font-size: 14px; }
+.home-entry-visitante { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border); text-align: center; }
+.home-entry-visitante-link {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-entry-visitante-link:hover { color: var(--text); }
+.home-entry-visitante-form { text-align: left; }
+
+/* ===== Cards dos jogos: botões alinhados na base =====
+   As descrições têm tamanhos diferentes; sem isto, cada botão ficava numa
+   altura. O corpo do card vira coluna flexível e a descrição estica,
+   empurrando o CTA de todos pra mesma linha de base. */
+.home-game-card > div { display: flex; flex-direction: column; flex: 1; }
+.home-game-card .lobby-game-desc { flex: 1; }
+.home-game-card .lobby-game-cta { align-self: flex-start; margin-top: auto; }
+
+/* ===== Card "em desenvolvimento" (Acromania) ===== */
+.home-game-card-dev { cursor: default; position: relative; }
+.home-game-card-dev:hover { transform: none; border-color: var(--border); box-shadow: none; }
+.home-game-card-dev .lobby-game-logo { filter: grayscale(1); opacity: 0.55; }
+.home-game-card-dev .lobby-game-title,
+.home-game-card-dev .lobby-game-desc { color: var(--text-dim); }
+.home-game-dev-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.lobby-game-cta-dev {
+  background: none !important;
+  border: 1px dashed var(--border);
+  color: var(--text-dim) !important;
+}
+.home-game-card-dev:hover .lobby-game-cta { transform: none; }
+
+/* Título exibido no tooltip do nick */
+.nick-tooltip-titulo {
+  /* Cor padrão = ouro. As classes .titulo-nivel-* abaixo sobrescrevem
+     conforme o material da medalha; se o nível não for detectado, fica esta. */
+  color: var(--titulo-ouro);
+  font-weight: 700;
+  font-size: 12px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Títulos longos (ex.: "Conhecedor de Conhecimentos Gerais") quebram em
+     mais de uma linha em vez de estourar os 200px do balão. */
+  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.nick-tooltip-titulo-logo { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+
+/* Título ao lado do nick na mensagem de entrada na sala. A cor vem da classe
+   .titulo-nivel-* (bronze/prata/ouro); aqui só o peso, pra destacar do resto
+   da frase de sistema sem precisar de mais uma cor. */
+.chat-titulo-entrada { font-weight: 700; }
+
+/* Cor do nome do título conforme o material da medalha: bronze, prata, ouro.
+   Os tons de cada tema estão nas variáveis no topo do arquivo (medidos pra
+   passar de 4,5:1 de contraste nos dois fundos).
+
+   O seletor combinado com .nick-tooltip-titulo é de propósito: sozinha, a
+   classe .titulo-nivel-* tem a MESMA especificidade da regra do tooltip
+   acima, e a última do arquivo venceria — a cor por nível simplesmente não
+   apareceria. Assim ela ganha independente da ordem em que alguém mexer no
+   arquivo depois.
+
+   A versão avulsa fica disponível pra reaproveitar em qualquer outro lugar
+   que mostre nome de título (ex.: a lista de jogadores das salas). */
+.titulo-nivel-bronze,
+.nick-tooltip-titulo.titulo-nivel-bronze { color: var(--titulo-bronze); }
+.titulo-nivel-prata,
+.nick-tooltip-titulo.titulo-nivel-prata { color: var(--titulo-prata); }
+.titulo-nivel-ouro,
+.nick-tooltip-titulo.titulo-nivel-ouro { color: var(--titulo-ouro); }
+
+/* Medalha clicável (escolher título exibido no próprio perfil) */
+.titulo-medalha-btn { cursor: pointer; font: inherit; }
+.titulo-medalha-btn:hover { border-color: #ffd60a; box-shadow: 0 0 0 1px rgba(255, 214, 10, 0.4); }
+.titulo-medalha-ativa {
+  background: #ffd60a;
+  color: #1a1206;
+  border-color: #ffd60a;
+}
+.titulo-medalha-check { font-weight: 800; }
+
+/* ===== Vitrine de títulos (medalhas grandes, três estágios) ===== */
+.titulos-vitrine {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.titulos-vitrine-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+.titulos-vitrine-item-btn { cursor: pointer; font: inherit; color: inherit; transition: border-color 0.15s, transform 0.15s; }
+.titulos-vitrine-item-btn:hover { border-color: #ffd60a; transform: translateY(-2px); }
+.titulos-vitrine-item-ativa { border-color: #ffd60a; background: rgba(255, 214, 10, 0.08); }
+.titulos-vitrine-item-bloqueada { opacity: 0.85; }
+.titulos-vitrine-nome { font-size: 13px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.titulos-vitrine-item-bloqueada .titulos-vitrine-nome { color: var(--text-dim); }
+.titulos-vitrine-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.titulos-vitrine-tag-ativa { color: #1a1206; background: #ffd60a; border-color: #ffd60a; }
+.titulos-vitrine-req {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+@media (max-width: 480px) {
+  /* No celular as 3 medalhas continuam lado a lado (é o "pódio" do tema),
+     mas com respiro menor e medalha um tico menor pra caber sem espremer
+     os nomes longos tipo "Enciclopédia Futebolística". */
+  .titulos-vitrine { gap: 6px; }
+  .titulos-vitrine-item { padding: 10px 4px; }
+  .titulos-vitrine-item img { width: 60px !important; height: 60px !important; }
+  .titulos-vitrine-nome { font-size: 11px; }
+  .titulos-vitrine-tag, .titulos-vitrine-req { font-size: 10px; }
+}
+
+/* Logo do próximo título no painel do jogador (Lobby) — esmaecida por ser
+   uma meta ainda não conquistada, igual à vitrine do perfil. */
+.painel-titulo-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.55;
+  flex-shrink: 0;
 }

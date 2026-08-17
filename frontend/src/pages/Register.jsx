@@ -5,11 +5,6 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
-const ESTADOS = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-];
-
 export default function Register() {
   const { register, loginWithGoogle } = useAuth();
   const { theme } = useTheme();
@@ -17,8 +12,6 @@ export default function Register() {
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
@@ -31,7 +24,7 @@ export default function Register() {
       return;
     }
     try {
-      await register(nickname, email, password, { city, state, birthDate, termsAccepted });
+      await register(nickname, email, password, { birthDate, termsAccepted });
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao cadastrar.");
@@ -81,16 +74,6 @@ export default function Register() {
             <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={15} required />
             <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <input placeholder="Senha (mín. 8 caracteres)" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
-
-            <div className="register-row">
-              <input placeholder="Cidade" value={city} onChange={(e) => setCity(e.target.value)} />
-              <select value={state} onChange={(e) => setState(e.target.value)}>
-                <option value="">Estado</option>
-                {ESTADOS.map((uf) => (
-                  <option key={uf} value={uf}>{uf}</option>
-                ))}
-              </select>
-            </div>
 
             <label className="register-label">Data de nascimento</label>
             <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />

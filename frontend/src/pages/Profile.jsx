@@ -4,6 +4,7 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
 import AvatarUpload from "../components/AvatarUpload.jsx";
+import TitulosPerfil from "../components/TitulosPerfil.jsx";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -72,7 +73,12 @@ export default function Profile() {
       <Seo title="Meu Perfil" noindex />
       <h1>Meu Perfil</h1>
 
-      <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
+      {/* Duas colunas no desktop: configurações à esquerda, títulos à
+          direita — sem o vazio que sobrava com tudo espremido em 480px.
+          No celular vira uma coluna só (ver .perfil-grid no CSS). */}
+      <div className="perfil-grid">
+        <div className="perfil-col">
+      <div className="card" style={{ marginBottom: 20 }}>
         <h2>Sua foto</h2>
         <AvatarUpload currentAvatar={avatarUrl} onUpdated={setAvatarUrl} />
         {user && (
@@ -82,7 +88,7 @@ export default function Profile() {
         )}
       </div>
 
-      <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
+      <div className="card" style={{ marginBottom: 20 }}>
         <h2>{hasPassword ? "Trocar senha" : "Definir senha"}</h2>
         <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
           {hasPassword
@@ -121,7 +127,7 @@ export default function Profile() {
         </form>
       </div>
 
-      <div className="card" style={{ maxWidth: 480 }}>
+      <div className="card">
         <h2>Comemoração do Quiz</h2>
         <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
           Essa frase aparece no chat toda vez que você acerta uma pergunta no Quiz. Máximo de 20
@@ -141,6 +147,12 @@ export default function Profile() {
           <button className="btn" type="submit">Salvar</button>
           {saved && <span style={{ marginLeft: 12, color: "#06d6a0", fontSize: 13 }}>✓ Salvo!</span>}
         </form>
+      </div>
+        </div>
+
+        <div className="perfil-col">
+          <TitulosPerfil userId={user?.id} podeEscolher />
+        </div>
       </div>
     </div>
   );

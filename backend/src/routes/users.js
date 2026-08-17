@@ -7,6 +7,7 @@ import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js"
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
+import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo } from "../game/titulosConfig.js";
 
 const router = Router();
 
@@ -168,6 +169,12 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   const resposta = {
     id: user.id,
     nickname: user.nickname,
+    tituloExibido: user.tituloExibido || null,
+    tituloExibidoLogo: logoPorNomeDeTitulo(user.tituloExibido),
+    // Só vale como "true" se REALMENTE existe um título escolhido. Assim o
+    // hover nunca fica sem imagem, mesmo se o banco tiver a preferência
+    // ligada de um estado antigo.
+    medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
     clan: user.clan ? { name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
@@ -191,9 +198,92 @@ router.get("/me", requireAuth, async (req, res) => {
     email: user.email,
     role: user.role,
     celebration: user.celebration || "",
+    tituloExibido: user.tituloExibido || null,
+    medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
     hasPassword: !!user.password,
   });
+});
+
+// ===== Escolher o título exibido =====
+// Guarda qual título desbloqueado a pessoa quer ostentar (aparece no hover
+// de perfil em qualquer sala). Valida contra a lista REAL de desbloqueados —
+// recalculada das estatísticas — senão bastava um PATCH pra virar
+// "Enciclopédia" sem nunca ter jogado. null = não exibir nenhum.
+router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
+  const { titulo } = req.body;
+  if (titulo === null || titulo === undefined || titulo === "") {
+    // Desliga a medalha-no-lugar-da-foto junto: sem título escolhido não há
+    // medalha pra mostrar, e deixar a preferência ligada faria o hover ficar
+    // sem imagem nenhuma.
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { tituloExibido: null, medalhaNoLugarDaFoto: false },
+    });
+    cacheInvalidar(`titulos:${req.user.id}`);
+    return res.json({ ok: true, tituloExibido: null, medalhaNoLugarDaFoto: false });
+  }
+
+  // Recalcula os desbloqueados (mesma lógica do GET /titulos)
+  const statsQuiz = await prisma.quizRoomStat.findMany({
+    where: { userId: req.user.id, roomId: { startsWith: "quiz-" } },
+    select: { roomId: true, correct: true },
+  });
+  const porTema = {};
+  for (const s of statsQuiz) {
+    const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+    porTema[tema] = (porTema[tema] || 0) + s.correct;
+  }
+  let statsStop = [];
+  try {
+    statsStop = await prisma.stopStat.findMany({
+      where: { userId: req.user.id },
+      select: { grupo: true, stops: true, rapidos: true },
+    });
+  } catch {
+    // tabela ainda não criada (db push pendente) — segue só com o Quiz
+  }
+  const desbloqueados = new Set();
+  for (const t of titulosDoQuiz(porTema)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  for (const t of titulosDoStop(statsStop)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+
+  if (!desbloqueados.has(titulo)) {
+    return res.status(400).json({ error: "Esse título ainda não foi desbloqueado." });
+  }
+  await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: titulo } });
+  res.json({ ok: true, tituloExibido: titulo });
+});
+
+// Liga/desliga a medalha no lugar da foto no hover do nick.
+//
+// Endpoint separado do titulo-exibido de propósito: são duas escolhas
+// independentes (QUAL título ostentar × COMO ostentar), e juntar as duas num
+// PATCH só obrigaria a reenviar o título a cada vez que a pessoa mexe no
+// interruptor.
+//
+// Não precisa revalidar os títulos desbloqueados aqui: o que autoriza a troca
+// é ter um tituloExibido, e ESSE já foi validado quando foi escolhido.
+router.patch("/me/medalha-no-lugar-da-foto", requireAuth, async (req, res) => {
+  const ligado = req.body?.ligado === true;
+
+  const eu = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { tituloExibido: true },
+  });
+
+  // Trava: sem título escolhido não há medalha pra mostrar, e ligar a opção
+  // deixaria a pessoa sem imagem nenhuma no hover.
+  if (ligado && !eu?.tituloExibido) {
+    return res.status(400).json({
+      error: "Escolha primeiro um título pra exibir.",
+    });
+  }
+
+  await prisma.user.update({
+    where: { id: req.user.id },
+    data: { medalhaNoLugarDaFoto: ligado },
+  });
+  res.json({ ok: true, medalhaNoLugarDaFoto: ligado });
 });
 
 // Atualiza dados do próprio perfil (por enquanto, só a frase de comemoração do Quiz).
@@ -264,6 +354,60 @@ router.patch("/me/password", requireAuth, async (req, res) => {
   await prisma.user.update({ where: { id: req.user.id }, data: { password: hashed } });
 
   res.json({ ok: true, message: user.password ? "Senha alterada com sucesso!" : "Senha definida com sucesso!" });
+});
+
+// ===== Títulos de perfil =====
+// Conquistas de longo prazo calculadas na hora a partir das estatísticas que
+// o jogo já grava (QuizRoomStat) e dos contadores de STOP (StopStat).
+// Cache de 10 min: os números mudam devagar e o perfil é muito visitado.
+router.get("/:id/titulos", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const cacheKey = `titulos:${id}`;
+  const emCache = cacheGet(cacheKey);
+  if (emCache) return res.json(emCache);
+
+  try {
+    // Acertos do Quiz somados por tema (as salas têm id "quiz-<tema>-...").
+    const statsQuiz = await prisma.quizRoomStat.findMany({
+      where: { userId: id, roomId: { startsWith: "quiz-" } },
+      select: { roomId: true, correct: true },
+    });
+    const porTema = {};
+    for (const s of statsQuiz) {
+      const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+      porTema[tema] = (porTema[tema] || 0) + s.correct;
+    }
+
+    const statsStop = await prisma.stopStat.findMany({
+      where: { userId: id },
+      select: { grupo: true, stops: true, rapidos: true },
+    });
+
+    const payload = {
+      quiz: titulosDoQuiz(porTema),
+      stop: titulosDoStop(statsStop),
+    };
+    cacheSet(cacheKey, payload, 600);
+    res.json(payload);
+  } catch (err) {
+    // Antes do "prisma db push" a tabela StopStat não existe — devolve os
+    // títulos do Quiz mesmo assim, em vez de quebrar o perfil inteiro.
+    console.error("Falha ao montar títulos:", err.message);
+    try {
+      const statsQuiz = await prisma.quizRoomStat.findMany({
+        where: { userId: id, roomId: { startsWith: "quiz-" } },
+        select: { roomId: true, correct: true },
+      });
+      const porTema = {};
+      for (const s of statsQuiz) {
+        const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+        porTema[tema] = (porTema[tema] || 0) + s.correct;
+      }
+      res.json({ quiz: titulosDoQuiz(porTema), stop: [] });
+    } catch {
+      res.json({ quiz: [], stop: [] });
+    }
+  }
 });
 
 export default router;

@@ -9,6 +9,7 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:seed": "node prisma/seed.js",
     "prisma:seed:quiz": "node prisma/seedQuiz.js",
+    "import-carros": "node prisma/importCarros.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",
     "validate-quiznet-offline": "node prisma/validateQuiznetOffline.js",
@@ -54,7 +55,9 @@
     "import-games-avancado": "node prisma/importGamesAvancado.js",
     "import-series-padrao": "node prisma/importSeriesPadrao.js",
     "import-series-avancado": "node prisma/importSeriesAvancado.js",
-    "import-automobilismo-avancado": "node prisma/importAutomobilismoAvancado.js"
+    "import-automobilismo-avancado": "node prisma/importAutomobilismoAvancado.js",
+    "revisar-dificuldade": "node scripts/revisarDificuldade.js",
+    "ver-stops": "node scripts/verStops.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

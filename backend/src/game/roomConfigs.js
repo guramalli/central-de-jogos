@@ -32,6 +32,7 @@ export const ROOM_CONFIGS = {
       "novelas_series",
       "bandas_musicais",
       "verbos",
+      "carros",
     ],
   },
   "stop-sala-1b": {
@@ -53,6 +54,7 @@ export const ROOM_CONFIGS = {
       "novelas_series",
       "bandas_musicais",
       "verbos",
+      "carros",
     ],
   },
   "stop-sala-intermediaria": {

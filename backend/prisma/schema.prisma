@@ -68,6 +68,12 @@ model User {
   streakAtual      Int      @default(0)
   streakRecorde    Int      @default(0)
   streakUltimoDia  String?  // "2026-08-11" — evita contar duas vezes no mesmo dia
+  tituloExibido    String? // título de perfil que a pessoa escolheu ostentar (validado no PATCH)
+  // Quando ligado, a medalha do título exibido aparece no lugar da foto no
+  // hover do nick. Fica no banco (e não no navegador) porque quem vê a troca
+  // são as OUTRAS pessoas, ao passar o mouse neste jogador.
+  // Só vale se tituloExibido não for nulo — a checagem é feita no servidor.
+  medalhaNoLugarDaFoto Boolean @default(false)
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?
   state            String?
@@ -79,6 +85,7 @@ model User {
   sentPrivateMessages     PrivateMessage[] @relation("SentMessages")
   receivedPrivateMessages PrivateMessage[] @relation("ReceivedMessages")
   quizRoomStats           QuizRoomStat[]
+  stopStats               StopStat[]
   quizQuestionReports     QuizQuestionReport[]
   clanId           String?
   clan             Clan?    @relation("ClanMembers", fields: [clanId], references: [id])
@@ -320,4 +327,20 @@ model MissaoProgresso {
 
   @@unique([userId, missaoKey, periodo])
   @@index([userId, periodo])
+}
+
+// Contadores de STOP pedidos por jogador, agrupados por nível de sala
+// (padrao | intermediario | avancada). Alimentam os TÍTULOS do perfil.
+// "rapidos" conta os STOPs pedidos em até N segundos do início da rodada
+// (janela configurada em titulosConfig) — só faz sentido na avançada, onde
+// o tempo mínimo de 5s deixa 1 segundo de margem: coisa de elite.
+model StopStat {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  grupo   String // padrao | intermediario | avancada
+  stops   Int    @default(0)
+  rapidos Int    @default(0)
+
+  @@unique([userId, grupo])
 }

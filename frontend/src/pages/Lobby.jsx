@@ -5,6 +5,8 @@ import FeedbackModal from "../components/FeedbackModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import NovidadeBanner from "../components/NovidadeBanner.jsx";
+import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
@@ -20,21 +22,72 @@ export default function Lobby() {
 
   return (
     <div className="lobby-page">
-      <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
-      {/* Aviso de Beta */}
-      <div className="beta-banner">
-        <span className="beta-badge">BETA</span>
-        <span>
-          O portal está em fase de <strong>testes (Beta)</strong> — pode encontrar bugs ou
-          lentidão de vez em quando. Obrigado pela paciência! Encontrou algo estranho? Manda pra
-          gente:
-        </span>
-        <button className="beta-feedback-btn" onClick={() => setShowFeedback(true)}>
-          💬 Enviar feedback
-        </button>
-      </div>
+      <NovidadeBanner />
 
+      <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
+
+      {/* Painel de boas-vindas */}
+      <section className="glossy-panel lobby-hero">
+        <div>
+          <p className="lobby-hero-tag">BEM-VINDO DE VOLTA</p>
+          <h1 className="lobby-hero-title">{user?.nickname}</h1>
+          <p className="lobby-hero-subtitle">
+            Escolha um jogo, suba de patente e dispute a premiação mensal.
+          </p>
+          <div style={{ marginTop: 14 }}>
+            <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
+          </div>
+        </div>
+        <PainelDoJogador userId={user?.id} />
+      </section>
+
+      {/* Cards dos jogos */}
+      <div className="lobby-game-grid">
+        <Link to="/jogos/stop" className="glossy-panel lobby-game-card home-game-card">
+          <img src="/stop-logo.png" alt="Stop!" className="lobby-game-logo" />
+          <div>
+            <h3 className="lobby-game-title">Stop</h3>
+            <p className="lobby-game-desc">
+              Aqui não adianta saber todos os temas: tem que ser rápido de verdade. 6 temas, 1 letra
+              sorteada, e quem hesita perde a rodada pro dedo mais veloz da sala.
+            </p>
+            <span className="lobby-game-cta">
+              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
+          </div>
+        </Link>
+
+        <Link to="/jogos/quiz" className="glossy-panel lobby-game-card home-game-card">
+          <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-game-logo" />
+          <div>
+            <h3 className="lobby-game-title">Quiz</h3>
+            <p className="lobby-game-desc">
+              Perguntas por tema — Esportes, Ciências, História, Cinema e Letras. Quem acerta
+              primeiro leva os pontos!
+            </p>
+            <span className="lobby-game-cta">
+              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
+          </div>
+        </Link>
+
+        {/* Acromania: em desenvolvimento — o jogo depende de várias pessoas
+            escrevendo e votando ao mesmo tempo, então fica guardado pra
+            quando a casa estiver mais cheia. Card sem cor e sem clique. */}
+        <div className="glossy-panel lobby-game-card home-game-card home-game-card-dev">
+          <span className="home-game-dev-badge">EM DESENVOLVIMENTO</span>
+          <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
+          <div>
+            <h3 className="lobby-game-title">Acromania</h3>
+            <p className="lobby-game-desc">
+              Um tema, algumas letras, e você cria a frase mais criativa possível — a galera vota
+              na melhor. Chega quando a comunidade estiver maior!
+            </p>
+            <span className="lobby-game-cta lobby-game-cta-dev">Em breve</span>
+          </div>
+        </div>
+      </div>
 
       {/* Premiação do mês */}
       <div className="prize-banner">
@@ -63,79 +116,6 @@ export default function Lobby() {
         </div>
         <p className="prize-banner-note">Pagamento via Pix.</p>
         <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
-      </div>
-
-      {/* Painel de boas-vindas */}
-      <section className="glossy-panel lobby-hero">
-        <div>
-          <p className="lobby-hero-tag">BEM-VINDO DE VOLTA</p>
-          <h1 className="lobby-hero-title">{user?.nickname}</h1>
-          <p className="lobby-hero-subtitle">
-            Escolha um jogo, suba de patente e dispute a premiação mensal.
-          </p>
-          <div style={{ marginTop: 14 }}>
-            <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
-          </div>
-        </div>
-        <div className="lobby-hero-benefits">
-          <div className="lobby-benefit">
-            <span className="material-symbols-outlined lobby-benefit-icon">emoji_events</span>
-            <span>Ranking mensal com premiação</span>
-          </div>
-          <div className="lobby-benefit">
-            <span className="material-symbols-outlined lobby-benefit-icon">star</span>
-            <span>Patente vitalícia por jogo</span>
-          </div>
-          <div className="lobby-benefit lobby-benefit-muted">
-            <span className="material-symbols-outlined">group</span>
-            <span>Chat e jogadores online</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Cards dos jogos */}
-      <div className="lobby-game-grid">
-        <Link to="/jogos/stop" className="glossy-panel lobby-game-card">
-          <img src="/stop-logo.png" alt="Stop!" className="lobby-game-logo" />
-          <div>
-            <h3 className="lobby-game-title">Stop</h3>
-            <p className="lobby-game-desc">
-              Aqui não adianta saber todos os temas: tem que ser rápido de verdade. 6 temas, 1 letra
-              sorteada, e quem hesita perde a rodada pro dedo mais veloz da sala.
-            </p>
-            <span className="lobby-game-cta">
-              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
-            </span>
-          </div>
-        </Link>
-
-        <Link to="/jogos/quiz" className="glossy-panel lobby-game-card">
-          <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-game-logo" />
-          <div>
-            <h3 className="lobby-game-title">Quiz</h3>
-            <p className="lobby-game-desc">
-              Perguntas por tema — Esportes, Ciências, História, Cinema e Letras. Quem acerta
-              primeiro leva os pontos!
-            </p>
-            <span className="lobby-game-cta">
-              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
-            </span>
-          </div>
-        </Link>
-
-        <Link to="/jogos/acromania" className="glossy-panel lobby-game-card">
-          <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
-          <div>
-            <h3 className="lobby-game-title">Acromania</h3>
-            <p className="lobby-game-desc">
-              Um tema, algumas letras, e você cria a frase mais criativa possível. No final, a
-              galera vota secretamente na melhor — quem ganhar leva os pontos.
-            </p>
-            <span className="lobby-game-cta">
-              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
-            </span>
-          </div>
-        </Link>
       </div>
 
       <GeneralChatWidget />
@@ -175,6 +155,20 @@ export default function Lobby() {
           dessa jornada! 🎮
         </p>
       </section>
+
+      {/* Aviso de Beta — no pé da página, acima do rodapé: informa sem
+          empurrar o conteúdo principal pra baixo logo na chegada. */}
+      <div className="beta-banner">
+        <span className="beta-badge">BETA</span>
+        <span>
+          O portal está em fase de <strong>testes (Beta)</strong> — pode encontrar bugs ou
+          lentidão de vez em quando. Obrigado pela paciência! Encontrou algo estranho? Manda pra
+          gente:
+        </span>
+        <button className="beta-feedback-btn" onClick={() => setShowFeedback(true)}>
+          💬 Enviar feedback
+        </button>
+      </div>
     </div>
   );
 }

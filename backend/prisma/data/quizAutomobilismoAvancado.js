@@ -80,5 +80,70 @@ export const AUTOMOBILISMO_AVANCADO = {
     { question: "Qual finlandês foi campeão de F1 em 1982 e é pai do campeão de 2016?", answer: "Keke Rosberg", difficulty: "dificil" },
     { question: "Qual paulista é o brasileiro com mais vitórias na história da motovelocidade?", answer: "Alex Barros", difficulty: "dificil" },
     { question: "Em que ano a asa móvel DRS foi introduzida na F1?", answer: "2011", difficulty: "dificil" },
+
+    // ===== Lote 2 =====
+    // Pioneiros e lendas dos primórdios
+    { question: "Qual italiano foi bicampeão mundial em 1952 e 1953 pela Ferrari?", answer: "Alberto Ascari", difficulty: "dificil" },
+    { question: "Qual foi o primeiro americano campeão mundial de F1?", answer: "Phil Hill", difficulty: "dificil" },
+    { question: "Qual australiano é o único campeão mundial correndo por uma equipe fundada por ele mesmo?", answer: "Jack Brabham", difficulty: "dificil" },
+    { question: "Qual italiana foi a primeira mulher a largar em um GP de F1, em 1958?", answer: "Maria Teresa de Filippis", difficulty: "dificil" },
+    { question: "Por qual equipe inglesa Emerson Fittipaldi conquistou o título mundial de 1972?", answer: "Lotus", difficulty: "dificil" },
+
+    // Bastidores, chefes e engenharia
+    { question: "Qual neurocirurgião foi o lendário chefe médico da F1 por três décadas?", answer: "Sid Watkins", difficulty: "dificil" },
+    { question: "Qual chefe seguiu comandando seu time por décadas mesmo tetraplégico após um acidente em 1986?", answer: "Frank Williams", difficulty: "dificil" },
+    { question: "Qual ex-dono da Brabham se tornou o todo-poderoso chefão comercial da F1?", answer: "Bernie Ecclestone", difficulty: "dificil" },
+    { question: "Qual neozelandês fundou uma equipe histórica com seu nome e morreu em testes, em 1970?", answer: "Bruce McLaren", difficulty: "dificil" },
+    { question: "Qual marca de bebidas energéticas comprou a equipe Jaguar em 2004?", answer: "Red Bull", difficulty: "dificil" },
+    { question: "Em que ano os motores turbo foram banidos da F1, encerrando a era clássica da pressão?", answer: "1989", difficulty: "dificil" },
+    { question: "O que indica a bandeira preta mostrada a um piloto durante a corrida?", answer: "Desclassificação", difficulty: "dificil" },
+
+    // Momentos e circuitos
+    { question: "Em qual circuito Niki Lauda sofreu o acidente de fogo de 1976?", answer: "Nürburgring", difficulty: "dificil" },
+    { question: "Qual GP de 2005 teve apenas seis carros na largada, após o problema nos pneus Michelin?", answer: "Indianápolis", difficulty: "dificil" },
+    { question: "Qual alemão cravou uma pole surpreendente na chuva de Interlagos, em 2010, pela Williams?", answer: "Nico Hülkenberg", difficulty: "dificil" },
+    { question: "Qual escocês estreou na Williams em 1994, promovido após a tragédia de Ímola?", answer: "David Coulthard", difficulty: "dificil" },
+    { question: "Qual japonês fez um pódio histórico diante da torcida da casa no GP do Japão de 1990?", answer: "Aguri Suzuki", difficulty: "dificil" },
+    { question: "Qual curva-grampo de Mônaco, batizada por um hotel, é a mais lenta da F1?", answer: "Loews", difficulty: "dificil" },
+    { question: "Qual GP retornou ao calendário em 2021, embalado pela torcida laranja?", answer: "Holanda", difficulty: "dificil" },
+    { question: "Qual GP noturno estreou em 2023 descendo uma avenida de cassinos?", answer: "Las Vegas", difficulty: "dificil" },
+
+    // Indy e América profunda
+    { question: "Qual brasileiro venceu a Indy 500 de 2003, no ano de sua despedida das pistas?", answer: "Gil de Ferran", difficulty: "dificil" },
+    { question: "Qual sul-americano venceu a Indy 500 do ano 2000 logo em sua primeira participação na prova?", answer: "Juan Pablo Montoya", difficulty: "dificil" },
+    { question: "Qual americano conquistou cinco títulos seguidos da NASCAR nos anos 2000?", answer: "Jimmie Johnson", difficulty: "dificil" },
+    { question: "Em qual estado americano fica o oval de Daytona?", answer: "Flórida", difficulty: "dificil" },
+    { question: "Qual subida de montanha lendária dos EUA termina acima dos 4 mil metros de altitude?", answer: "Pikes Peak", difficulty: "dificil" },
+
+    // Le Mans e resistência
+    { question: "Qual belga venceu Le Mans seis vezes entre os anos 1960 e 1980?", answer: "Jacky Ickx", difficulty: "dificil" },
+    { question: "Qual montadora japonesa venceu Le Mans em 1991 com um motor rotativo?", answer: "Mazda", difficulty: "dificil" },
+    { question: "Qual inglês desenvolveu o carro vencedor de Le Mans 1966 e perdeu a vitória por uma foto de chegada?", answer: "Ken Miles", difficulty: "dificil" },
+    { question: "Qual montadora alemã deu ao diesel sua primeira vitória em Le Mans, em 2006?", answer: "Audi", difficulty: "dificil" },
+    { question: "Qual montadora japonesa quebrou décadas de frustração ao vencer Le Mans em 2018?", answer: "Toyota", difficulty: "dificil" },
+
+    // Rali e aventura
+    { question: "Qual francês emendou seis títulos seguidos do Mundial de Rali a partir de 2013?", answer: "Sébastien Ogier", difficulty: "dificil" },
+    { question: "Qual escocês virou nome de videogame após o título mundial de rali de 1995?", answer: "Colin McRae", difficulty: "dificil" },
+    { question: "Qual francês idealizou o Paris-Dakar depois de se perder no deserto do Ténéré?", answer: "Thierry Sabine", difficulty: "dificil" },
+
+    // Motos, Stock e elétricos
+    { question: "Qual apelido em inglês consagrou Valentino Rossi nas pistas?", answer: "The Doctor", difficulty: "dificil" },
+    { question: "Qual maiorquino foi tricampeão da MotoGP pilotando pela Yamaha?", answer: "Jorge Lorenzo", difficulty: "dificil" },
+    { question: "Qual australiano deu à Ducati seu primeiro título da MotoGP, em 2007?", answer: "Casey Stoner", difficulty: "dificil" },
+    { question: "Qual etapa especial da Stock Car distribui premiação de sete dígitos ao vencedor?", answer: "Corrida do Milhão", difficulty: "dificil" },
+    { question: "Qual cidade brasileira estreou no calendário da Fórmula E em 2023?", answer: "São Paulo", difficulty: "dificil" },
+    { question: "Qual sigla nomeia o tradicional campeonato alemão de carros de turismo?", answer: "DTM", difficulty: "dificil" },
+    { question: "Qual título mundial Senna disputou em duas finais e nunca conquistou?", answer: "Kart", difficulty: "dificil" },
+    { question: "Qual modelo da Lancia se tornou o maior vencedor da história do Mundial de Rali?", answer: "Delta", difficulty: "dificil" },
+    { question: "Qual país do Leste Europeu recebeu a F1 ainda na era soviética, a partir de 1986?", answer: "Hungria", difficulty: "dificil" },
+    { question: "Qual território britânico no Mar da Irlanda sedia a corrida de rua mais mortal do motociclismo?", answer: "Ilha de Man", difficulty: "dificil" },
+    { question: "Qual fabricante italiano fornece todos os chassis da Fórmula Indy?", answer: "Dallara", difficulty: "dificil" },
+    { question: "Qual país africano recebia a F1 no circuito de Kyalami?", answer: "África do Sul", difficulty: "dificil" },
+    { question: "Qual sul-africano foi campeão mundial pela Ferrari em 1979?", answer: "Jody Scheckter", difficulty: "dificil" },
+    { question: "Qual cidade texana abriga o GP dos Estados Unidos desde 2012?", answer: "Austin", difficulty: "dificil" },
+    { question: "Qual GP à beira do Cáspio tem um trecho estreito contornando a muralha da cidade antiga?", answer: "Baku", difficulty: "dificil" },
+    { question: "Qual australiano deu à Williams seu primeiro título mundial de pilotos, em 1980?", answer: "Alan Jones", difficulty: "dificil" },
+    { question: "Qual cidade australiana costuma abrir a temporada da F1, no circuito de Albert Park?", answer: "Melbourne", difficulty: "dificil" },
   ],
 };

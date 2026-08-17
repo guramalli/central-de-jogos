@@ -7,8 +7,10 @@ import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
+import { grupoDaSala, RAPIDO_SEGUNDOS, tituloStopDesbloqueado } from "./titulosConfig.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
+import { nomeComTitulo, destaqueDeTitulo } from "../utils/tituloEntrada.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -271,7 +273,15 @@ export class StopRoom {
       minPlayers: SKIP_VOTE_MIN_PLAYERS,
     });
     if (!alreadyInRoom) {
-      this.systemMessage(`👋 ${nickname} entrou na sala.`);
+      // Título equipado ao lado do nick — vem do socket, sem consulta.
+      const tituloEntrada = socket.tituloExibido || null;
+      this.systemMessage(
+        `👋 ${nomeComTitulo(nickname, tituloEntrada)} entrou na sala.`,
+        false,
+        false,
+        false,
+        destaqueDeTitulo(tituloEntrada)
+      );
 
       // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
       try {
@@ -722,6 +732,32 @@ export class StopRoom {
     this.broadcast("player-stopped", { userId, nickname });
     this.systemMessage(`🛑 ${nickname} apertou STOP!`, true);
     if (!this.semPontuacao) registrarEvento(userId, "stop_pedido").catch(() => {});
+
+    // Contadores dos TÍTULOS de perfil: soma o STOP no grupo da sala e, na
+    // avançada, marca também se foi "relâmpago" (dentro da janela configurada).
+    // Fire-and-forget de propósito: uma falha aqui não pode atrasar nem
+    // travar o fechamento da rodada — no máximo o contador deixa de subir.
+    if (!this.semPontuacao) {
+      const grupo = grupoDaSala(this.minSecondsBeforeStop);
+      if (grupo) {
+        const rapido = grupo === "avancada" && elapsedSeconds <= RAPIDO_SEGUNDOS;
+        prisma.stopStat
+          .upsert({
+            where: { userId_grupo: { userId, grupo } },
+            update: { stops: { increment: 1 }, rapidos: rapido ? { increment: 1 } : undefined },
+            create: { userId, grupo, stops: 1, rapidos: rapido ? 1 : 0 },
+          })
+          .then((stat) => {
+            // Cruzou o limiar de algum título AGORA? Anuncia na sala — cada
+            // desbloqueio vira um evento público (e propaganda do sistema).
+            for (const nomeTitulo of tituloStopDesbloqueado(grupo, stat.stops, stat.rapidos)) {
+              this.systemMessage(`🏅 ${nickname} desbloqueou o título ${nomeTitulo}!`, true, true);
+            }
+          })
+          .catch((err) => console.error("Falha ao registrar STOP pra títulos:", err.message));
+      }
+    }
+
     this.endRound(true);
   }
 
@@ -1419,7 +1455,7 @@ export class StopRoom {
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
-  systemMessage(message, bold = false, success = false, promotion = false) {
-    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, at: Date.now() });
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSocket } from "../socket.js";
 import Chat from "../components/Chat.jsx";
@@ -11,10 +11,12 @@ import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import FaixaPatente from "../components/FaixaPatente.jsx";
 import { useIsMobile } from "../utils/useIsMobile.js";
+import { ehFalhaDeAutenticacao, ROTA_SESSAO_EXPIRADA } from "../utils/sessaoSocket.js";
 
 export default function AcromaniaGame() {
   const { roomId } = useParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Moderação de chat: moderadores e admins podem apagar mensagens.
   // O servidor confere o cargo de novo antes de apagar — isto aqui só
@@ -59,16 +61,27 @@ export default function AcromaniaGame() {
     socket.connect();
     socket.emit("join-acromania-room", { roomId });
 
+    // Sessão morta (token de 7 dias vencido, ou conta banida). Só falha de
+    // AUTENTICAÇÃO desloga — queda de rede e reinício do servidor durante um
+    // deploy seguem tratados pela reconexão automática do Socket.IO.
+    const aoFalharConexao = (err) => {
+      if (!ehFalhaDeAutenticacao(err)) return;
+      logout();
+      navigate(ROTA_SESSAO_EXPIRADA);
+    };
+    socket.on("connect_error", aoFalharConexao);
+
     // Movimento em outra sala: aparece no chat como mensagem do sistema,
     // pra quem está sozinho saber onde tem gente em vez de desistir.
-    socket.on("aviso-atividade", (data) => {
+    const aoAvisoAtividade = (data) => {
       if (data.roomId === roomId) return; // já estou nessa sala
       if (data.userId && data.userId === user?.id) return; // o aviso é sobre mim mesmo (outra aba)
       setMessages((prev) => [
         ...prev,
         { system: true, atividade: true, message: data.mensagem, at: data.at },
       ].slice(-200));
-    });
+    };
+    socket.on("aviso-atividade", aoAvisoAtividade);
 
     socket.on("acromania-room-full", () => setRoomFull(true));
 
@@ -88,9 +101,10 @@ export default function AcromaniaGame() {
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
     // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
-    socket.on("chat-message-deleted", ({ id }) => {
+    const aoApagarMensagem = ({ id }) => {
       setMessages((prev) => prev.filter((m) => m.id !== id));
-    });
+    };
+    socket.on("chat-message-deleted", aoApagarMensagem);
 
     socket.on("acromania-intermission", (data) => {
       setPhase("intermission");
@@ -146,10 +160,14 @@ export default function AcromaniaGame() {
     });
 
     return () => {
+      socket.off("connect_error", aoFalharConexao);
+      // Faltava remover: sem isto, cada entrada numa sala empilhava mais um
+      // handler preso ao roomId antigo (o socket é singleton).
+      socket.off("aviso-atividade", aoAvisoAtividade);
       socket.off("acromania-room-full");
       socket.off("acromania-room-state");
       socket.off("acromania-online-players");
-      socket.off("chat-message-deleted");
+      socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("acromania-chat-message");
       socket.off("acromania-intermission");
       socket.off("acromania-tick");

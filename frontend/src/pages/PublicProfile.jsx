@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Seo from "../components/Seo.jsx";
+import TitulosPerfil from "../components/TitulosPerfil.jsx";
+import { classeDoNivel } from "../utils/nivelTitulo.js";
 
 const GAME_NAMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 
@@ -21,6 +23,8 @@ export default function PublicProfile() {
   const [error, setError] = useState("");
   const [friendStatus, setFriendStatus] = useState(null); // null | "sending" | "sent"
   const [friendError, setFriendError] = useState("");
+  // Títulos já conquistados, pra aparecerem junto das outras conquistas.
+  const [titulosGanhos, setTitulosGanhos] = useState([]);
 
   useEffect(() => {
     setLoading(true);
@@ -30,6 +34,18 @@ export default function PublicProfile() {
       .catch(() => setError("Não foi possível carregar esse perfil."))
       .finally(() => setLoading(false));
     setFriendStatus(null);
+
+    // Reaproveita o endpoint que a vitrine de títulos já usa (com cache de 10
+    // min no servidor) em vez de engordar o /profile — este último é chamado
+    // a CADA passada de mouse num nick dentro das salas, e é o caminho mais
+    // movimentado do site. Aqui roda só quando alguém abre um perfil.
+    api
+      .get(`/users/${userId}/titulos`)
+      .then(({ data }) => {
+        const todos = [...(data.quiz || []), ...(data.stop || [])];
+        setTitulosGanhos(todos.flatMap((t) => t.desbloqueados || []));
+      })
+      .catch(() => setTitulosGanhos([])); // sem títulos não é erro, é começo de jornada
   }, [userId]);
 
   async function handleAddFriend() {
@@ -94,7 +110,7 @@ export default function PublicProfile() {
         </div>
       </div>
 
-      {profile.achievements.length > 0 && (
+      {(profile.achievements.length > 0 || titulosGanhos.length > 0) && (
         <div className="card" style={{ marginTop: 16 }}>
           <h2>Conquistas</h2>
           <div className="achievements-grid">
@@ -106,6 +122,28 @@ export default function PublicProfile() {
                   <span className="achievement-icon">{a.icon}</span>
                 )}
                 <span>{a.label}</span>
+              </div>
+            ))}
+
+            {/* Títulos conquistados entram como medalha aqui também. A vitrine
+                mais abaixo mostra a jornada completa (inclusive o que falta);
+                aqui ficam só os já ganhos, no resumo de conquistas.
+                O nome sai na cor do material da medalha, igual ao hover. */}
+            {titulosGanhos.map((t) => (
+              <div key={t.nome} className="achievement-badge">
+                {t.logo ? (
+                  <img
+                    src={t.logo}
+                    alt=""
+                    className="achievement-icon-img"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                ) : (
+                  <span className="achievement-icon">🏅</span>
+                )}
+                <span className={classeDoNivel(t.logo)}>{t.nome}</span>
               </div>
             ))}
           </div>
@@ -143,6 +181,8 @@ export default function PublicProfile() {
           </div>
         </div>
       )}
+
+      <TitulosPerfil userId={userId} />
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Pontuação vitalícia</h2>

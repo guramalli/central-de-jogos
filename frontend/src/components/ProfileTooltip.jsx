@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import DmModal from "./DmModal.jsx";
+import { classeDoNivel } from "../utils/nivelTitulo.js";
 
 // Renderiza o conteúdo do hover num portal, direto no <body> — assim ele
 // nunca fica "cortado" por containers com rolagem (tipo a lista de
@@ -124,12 +125,42 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
             {profile && (
               <>
                 <div className="nick-tooltip-avatar-row">
-                  {profile.avatarUrl ? (
+                  {profile.medalhaNoLugarDaFoto && profile.tituloExibidoLogo ? (
+                    // A pessoa escolheu ostentar a medalha em vez da foto. O
+                    // nome do título continua logo abaixo — medalha sem nome
+                    // ninguém identifica. Se o PNG falhar, cai pra foto (ou
+                    // pro placeholder) em vez de deixar um buraco.
+                    <img
+                      src={profile.tituloExibidoLogo}
+                      alt={profile.tituloExibido || ""}
+                      title={profile.tituloExibido || ""}
+                      className="nick-tooltip-medalhao"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : profile.avatarUrl ? (
                     <img src={profile.avatarUrl} alt={nickname} className="avatar-img avatar-img-small" />
                   ) : (
                     <div className="avatar-placeholder avatar-placeholder-small">🎮</div>
                   )}
                 </div>
+                {profile.tituloExibido && (
+                  <div className={`nick-tooltip-titulo ${classeDoNivel(profile.tituloExibidoLogo)}`}>
+                    {/* Quando a medalha já está no lugar da foto, aqui fica só
+                        o nome — senão a mesma arte apareceria duas vezes no
+                        mesmo cartão. */}
+                    {profile.tituloExibidoLogo && !profile.medalhaNoLugarDaFoto && (
+                      <img
+                        src={profile.tituloExibidoLogo}
+                        alt=""
+                        className="nick-tooltip-titulo-logo"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                    )}
+                    {profile.tituloExibido}
+                  </div>
+                )}
                 {monthly?.position && (
                   <div className="nick-tooltip-rank-position">
                     {monthly.position <= 3 ? ["🥇", "🥈", "🥉"][monthly.position - 1] : "📊"}{" "}
