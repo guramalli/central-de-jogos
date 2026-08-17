@@ -131,7 +131,17 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                   )}
                 </div>
                 {profile.tituloExibido && (
-                  <div className="nick-tooltip-titulo">🏅 {profile.tituloExibido}</div>
+                  <div className="nick-tooltip-titulo">
+                    {profile.tituloExibidoLogo && (
+                      <img
+                        src={profile.tituloExibidoLogo}
+                        alt=""
+                        className="nick-tooltip-titulo-logo"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                    )}
+                    {profile.tituloExibido}
+                  </div>
                 )}
                 {monthly?.position && (
                   <div className="nick-tooltip-rank-position">

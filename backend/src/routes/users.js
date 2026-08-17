@@ -7,7 +7,7 @@ import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js"
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
-import { titulosDoQuiz, titulosDoStop } from "../game/titulosConfig.js";
+import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo } from "../game/titulosConfig.js";
 
 const router = Router();
 
@@ -170,6 +170,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     id: user.id,
     nickname: user.nickname,
     tituloExibido: user.tituloExibido || null,
+    tituloExibidoLogo: logoPorNomeDeTitulo(user.tituloExibido),
     avatarUrl: user.avatarUrl || null,
     clan: user.clan ? { name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,

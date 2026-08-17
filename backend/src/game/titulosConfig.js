@@ -198,3 +198,29 @@ export function tituloStopDesbloqueado(grupo, stops, rapidos) {
   }
   return nomes;
 }
+
+// Dado o NOME de um título (o que fica salvo em user.tituloExibido), acha a
+// logo correspondente. Varre Quiz (todos os temas/níveis), Stop e relâmpago.
+// Retorna o caminho da logo ou null se não encontrar.
+export function logoPorNomeDeTitulo(nome) {
+  if (!nome) return null;
+  // Quiz: reconstrói os nomes de cada tema/nível
+  for (const [tema, nomeTema] of Object.entries(QUIZ_NOMES)) {
+    for (let i = 0; i < QUIZ_NIVEIS.length; i++) {
+      const n = QUIZ_NIVEIS[i];
+      const nomeTitulo = n.prefixo ? `${n.prefixo} ${nomeTema}` : (QUIZ_EPICOS[tema] || `Lenda de ${nomeTema}`);
+      if (nomeTitulo === nome) return logoQuiz(tema, i);
+    }
+  }
+  // Stop por grupo
+  for (const [grupo, tiers] of Object.entries(STOP_TITULOS)) {
+    for (let i = 0; i < tiers.length; i++) {
+      if (tiers[i].nome === nome) return logoStop(grupo, i);
+    }
+  }
+  // Relâmpago
+  for (let i = 0; i < RAPIDO_TITULOS.length; i++) {
+    if (RAPIDO_TITULOS[i].nome === nome) return logoRapido(i);
+  }
+  return null;
+}
