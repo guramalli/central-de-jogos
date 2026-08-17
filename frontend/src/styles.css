@@ -5222,5 +5222,12 @@ span.votacao-trilha-item {
   letter-spacing: 0.02em;
 }
 @media (max-width: 480px) {
-  .titulos-vitrine-nome { font-size: 12px; }
+  /* No celular as 3 medalhas continuam lado a lado (é o "pódio" do tema),
+     mas com respiro menor e medalha um tico menor pra caber sem espremer
+     os nomes longos tipo "Enciclopédia Futebolística". */
+  .titulos-vitrine { gap: 6px; }
+  .titulos-vitrine-item { padding: 10px 4px; }
+  .titulos-vitrine-item img { width: 60px !important; height: 60px !important; }
+  .titulos-vitrine-nome { font-size: 11px; }
+  .titulos-vitrine-tag, .titulos-vitrine-req { font-size: 10px; }
 }
