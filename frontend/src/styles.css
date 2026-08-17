@@ -14,6 +14,12 @@
   --text: #3a2e1f;
   --text-dim: #8a7a63;
   --border: #f0e0c4;
+  /* Cor do nome do título conforme o material da medalha. Tons ESCUROS aqui:
+     em fundo branco, o dourado #ffd60a dá só 1,41:1 de contraste — some.
+     Estes ficam todos acima de 4,5:1. */
+  --titulo-bronze: #8a4f14;
+  --titulo-prata: #6b7280;
+  --titulo-ouro: #8a6d00;
 }
 
 [data-theme="dark"] {
@@ -26,6 +32,11 @@
   --text: #e5e2e1;
   --text-dim: #a38d7a;
   --border: #554434;
+  /* Mesmas cores em versão clara, pra fundo escuro. O bronze é o tom
+     clássico (#cd7f32, 5,19:1) e o ouro segue o amarelo da marca. */
+  --titulo-bronze: #cd7f32;
+  --titulo-prata: #c0c0c0;
+  --titulo-ouro: #ffd60a;
 }
 
 * { box-sizing: border-box; }
@@ -5241,7 +5252,9 @@ span.votacao-trilha-item {
 
 /* Título exibido no tooltip do nick */
 .nick-tooltip-titulo {
-  color: #ffd60a;
+  /* Cor padrão = ouro. As classes .titulo-nivel-* abaixo sobrescrevem
+     conforme o material da medalha; se o nível não for detectado, fica esta. */
+  color: var(--titulo-ouro);
   font-weight: 700;
   font-size: 12px;
   margin-bottom: 4px;
@@ -5256,6 +5269,30 @@ span.votacao-trilha-item {
   overflow-wrap: anywhere;
 }
 .nick-tooltip-titulo-logo { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+
+/* Título ao lado do nick na mensagem de entrada na sala. A cor vem da classe
+   .titulo-nivel-* (bronze/prata/ouro); aqui só o peso, pra destacar do resto
+   da frase de sistema sem precisar de mais uma cor. */
+.chat-titulo-entrada { font-weight: 700; }
+
+/* Cor do nome do título conforme o material da medalha: bronze, prata, ouro.
+   Os tons de cada tema estão nas variáveis no topo do arquivo (medidos pra
+   passar de 4,5:1 de contraste nos dois fundos).
+
+   O seletor combinado com .nick-tooltip-titulo é de propósito: sozinha, a
+   classe .titulo-nivel-* tem a MESMA especificidade da regra do tooltip
+   acima, e a última do arquivo venceria — a cor por nível simplesmente não
+   apareceria. Assim ela ganha independente da ordem em que alguém mexer no
+   arquivo depois.
+
+   A versão avulsa fica disponível pra reaproveitar em qualquer outro lugar
+   que mostre nome de título (ex.: a lista de jogadores das salas). */
+.titulo-nivel-bronze,
+.nick-tooltip-titulo.titulo-nivel-bronze { color: var(--titulo-bronze); }
+.titulo-nivel-prata,
+.nick-tooltip-titulo.titulo-nivel-prata { color: var(--titulo-prata); }
+.titulo-nivel-ouro,
+.nick-tooltip-titulo.titulo-nivel-ouro { color: var(--titulo-ouro); }
 
 /* Medalha clicável (escolher título exibido no próprio perfil) */
 .titulo-medalha-btn { cursor: pointer; font: inherit; }

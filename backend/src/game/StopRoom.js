@@ -10,6 +10,7 @@ import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { grupoDaSala, RAPIDO_SEGUNDOS, tituloStopDesbloqueado } from "./titulosConfig.js";
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
+import { nomeComTitulo, destaqueDeTitulo } from "../utils/tituloEntrada.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -272,7 +273,15 @@ export class StopRoom {
       minPlayers: SKIP_VOTE_MIN_PLAYERS,
     });
     if (!alreadyInRoom) {
-      this.systemMessage(`👋 ${nickname} entrou na sala.`);
+      // Título equipado ao lado do nick — vem do socket, sem consulta.
+      const tituloEntrada = socket.tituloExibido || null;
+      this.systemMessage(
+        `👋 ${nomeComTitulo(nickname, tituloEntrada)} entrou na sala.`,
+        false,
+        false,
+        false,
+        destaqueDeTitulo(tituloEntrada)
+      );
 
       // Se for aniversário de quem acabou de entrar, todo mundo vê os parabéns.
       try {
@@ -1446,7 +1455,7 @@ export class StopRoom {
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
-  systemMessage(message, bold = false, success = false, promotion = false) {
-    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, at: Date.now() });
   }
 }

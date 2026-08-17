@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import DmModal from "./DmModal.jsx";
+import { classeDoNivel } from "../utils/nivelTitulo.js";
 
 // Renderiza o conteúdo do hover num portal, direto no <body> — assim ele
 // nunca fica "cortado" por containers com rolagem (tipo a lista de
@@ -145,7 +146,7 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                   )}
                 </div>
                 {profile.tituloExibido && (
-                  <div className="nick-tooltip-titulo">
+                  <div className={`nick-tooltip-titulo ${classeDoNivel(profile.tituloExibidoLogo)}`}>
                     {/* Quando a medalha já está no lugar da foto, aqui fica só
                         o nome — senão a mesma arte apareceria duas vezes no
                         mesmo cartão. */}

@@ -9,6 +9,7 @@ import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/
 import { registrarEvento } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
+import { nomeComTitulo, destaqueDeTitulo } from "../utils/tituloEntrada.js";
 
 const GAME_KEY = "acromania";
 
@@ -94,8 +95,17 @@ export class AcromaniaRoom {
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) no lugar do texto padrão.
       const saudacoes = await carregarSaudacoes(userId);
-      const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
-      this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
+      // Título equipado ao lado do nick — vem do socket, sem consulta.
+      const titulo = socket.tituloExibido || null;
+      const nomeExibido = nomeComTitulo(nickname, titulo);
+      const msgEntrada = mensagemDeEntrada(nomeExibido, saudacoes);
+      this.systemMessage(
+        msgEntrada || `👋 ${nomeExibido} entrou na sala.`,
+        false,
+        !!msgEntrada,
+        false,
+        destaqueDeTitulo(titulo)
+      );
       // Guarda a de saída: na hora de sair o socket já pode ter caído.
       const eu = this.players.get(socket.id);
       if (eu && saudacoes?.saida) eu.saudacaoSaida = saudacoes.saida;
@@ -186,7 +196,7 @@ export class AcromaniaRoom {
     this.io.to(this.roomId).emit(event, data);
   }
 
-  systemMessage(message, bold = false, success = false, promotion = false) {
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
     this.broadcast("acromania-chat-message", {
       userId: null,
       nickname: "Sistema",
@@ -195,6 +205,7 @@ export class AcromaniaRoom {
       bold,
       success,
       promotion,
+      tituloDestaque,
       at: Date.now(),
     });
   }

@@ -224,3 +224,16 @@ export function logoPorNomeDeTitulo(nome) {
   }
   return null;
 }
+
+// Nível (bronze/prata/ouro) de um título, a partir do nome salvo.
+//
+// Reaproveita a busca acima em vez de repetir os três laços: o caminho da
+// logo já termina no nível, pela convenção de nomes dos arquivos
+// (`titulo-<tema>-<nivel>.png`). Conferido nos 59 emblemas.
+// Devolve null pra título desconhecido — quem chama trata como "sem cor".
+export function nivelPorNomeDeTitulo(nome) {
+  const logo = logoPorNomeDeTitulo(nome);
+  if (!logo) return null;
+  const achado = logo.match(/-(bronze|prata|ouro)\.png$/i);
+  return achado ? achado[1].toLowerCase() : null;
+}

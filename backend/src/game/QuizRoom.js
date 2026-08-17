@@ -9,6 +9,7 @@ import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
+import { nomeComTitulo, destaqueDeTitulo } from "../utils/tituloEntrada.js";
 
 const GAME_KEY = "quiz";
 
@@ -205,8 +206,18 @@ export class QuizRoom {
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
       const saudacoes = await querySegura(carregarSaudacoes(userId), null);
-      const msgEntrada = mensagemDeEntrada(nickname, saudacoes);
-      this.systemMessage(msgEntrada || `👋 ${nickname} entrou na sala.`, false, !!msgEntrada);
+      // Título equipado ao lado do nick. Vem do socket (carregado junto da
+      // autenticação), então não custa consulta nenhuma aqui.
+      const titulo = socket.tituloExibido || null;
+      const nomeExibido = nomeComTitulo(nickname, titulo);
+      const msgEntrada = mensagemDeEntrada(nomeExibido, saudacoes);
+      this.systemMessage(
+        msgEntrada || `👋 ${nomeExibido} entrou na sala.`,
+        false,
+        !!msgEntrada,
+        false,
+        destaqueDeTitulo(titulo)
+      );
       // Guarda a saudação de saída: na hora de sair, o socket pode já ter
       // caído e não daria pra consultar o banco.
       const eu = this.players.get(socket.id);
@@ -364,8 +375,8 @@ export class QuizRoom {
     this.watchdogTimer = null;
   }
 
-  systemMessage(message, bold = false, success = false, promotion = false) {
-    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, at: Date.now() });
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
+    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, at: Date.now() });
   }
 
   // Tag do clã de quem está na sala. Vem do cache carregado na entrada, pra

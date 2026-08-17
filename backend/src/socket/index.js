@@ -48,10 +48,19 @@ export function setupSocket(io) {
       // navegação não repetem a consulta, e um banimento passa a valer em
       // novas conexões em no máximo 1 minuto.
       if (!(recente.authOkAte > agora)) {
-        const user = await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, banned: true } });
+        // `tituloExibido` entra de carona nesta consulta que já acontecia:
+        // é usado na mensagem de entrada na sala e, vindo junto do cache de
+        // autenticação, não custa NENHUMA query nova. O preço é que trocar
+        // de título leva até AUTH_CACHE_MS pra refletir na mensagem — a
+        // mesma janela que um banimento já tem.
+        const user = await prisma.user.findUnique({
+          where: { id: payload.id },
+          select: { id: true, banned: true, tituloExibido: true },
+        });
         if (!user || user.banned) {
           return next(new Error("SESSAO_INVALIDA"));
         }
+        recente.tituloExibido = user.tituloExibido || null;
         recente.authOkAte = agora + AUTH_CACHE_MS;
       }
 
@@ -77,6 +86,8 @@ export function setupSocket(io) {
       conexoesRecentes.set(payload.id, recente);
 
       socket.user = payload;
+      // Fica no socket pra as salas lerem sem consultar o banco na entrada.
+      socket.tituloExibido = recente.tituloExibido || null;
       next();
     } catch {
       next(new Error("Autenticação inválida."));

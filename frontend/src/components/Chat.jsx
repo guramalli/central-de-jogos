@@ -16,6 +16,31 @@ function colorForUser(id) {
   return NICK_COLORS[Math.abs(hash) % NICK_COLORS.length];
 }
 
+// Mensagem de sistema com o título do jogador pintado na cor do material da
+// medalha (bronze/prata/ouro).
+//
+// Em vez de remontar a frase aqui, procura o trecho "(título)" DENTRO do
+// texto que o servidor mandou e envolve só ele num span. Assim a frase
+// continua sendo responsabilidade do backend — o que faz isto funcionar
+// igual pro "entrou na sala" padrão e pra saudação premium, sem duplicar
+// nenhum texto no cliente.
+//
+// Qualquer imprevisto (sem título, nível desconhecido, trecho não
+// encontrado) cai no texto puro, que já vem completo e correto.
+function TextoDeSistema({ mensagem, destaque }) {
+  if (!destaque?.texto || !destaque?.nivel) return mensagem;
+  const marca = `(${destaque.texto})`;
+  const corte = mensagem.indexOf(marca);
+  if (corte === -1) return mensagem;
+  return (
+    <>
+      {mensagem.slice(0, corte)}
+      <span className={`chat-titulo-entrada titulo-nivel-${destaque.nivel}`}>{marca}</span>
+      {mensagem.slice(corte + marca.length)}
+    </>
+  );
+}
+
 function formatTime(at) {
   if (!at) return "";
   return new Date(at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -55,7 +80,7 @@ export default function Chat({ messages, onSend, showTimestamp = false, canModer
               key={m.id || i}
               className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""} ${m.success ? "chat-system-msg-success" : ""} ${m.promotion ? "chat-system-msg-promotion" : ""} ${m.atividade ? "chat-msg-atividade" : ""}`}
             >
-              — {m.message} —
+              — <TextoDeSistema mensagem={m.message} destaque={m.tituloDestaque} /> —
             </div>
           ) : (
             <div key={m.id || i} className="chat-user-msg">
