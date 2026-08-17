@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ehFalhaDeAutenticacao, ROTA_SESSAO_EXPIRADA } from "../utils/sessaoSocket.js";
 import Chat from "../components/Chat.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
@@ -45,7 +46,8 @@ const THEME_ICONS = {
 };
 
 export default function QuizGame() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Moderação de chat: moderadores e admins podem apagar mensagens.
   // O servidor confere o cargo de novo antes de apagar — isto aqui só
@@ -112,16 +114,30 @@ export default function QuizGame() {
     };
     socket.on("connect", reentrarNaSala);
 
+    // Sessão morta (token de 7 dias vencido, ou conta banida): sem isto, o
+    // socket ficaria tentando reconectar em silêncio pra sempre e a tela
+    // congelaria em "Aguardando a primeira pergunta..." — parecendo
+    // travamento, quando na verdade é só a sessão vencida. Só as falhas de
+    // AUTENTICAÇÃO deslogam; queda de rede e reinício do servidor durante
+    // um deploy continuam sendo resolvidos pela reconexão automática.
+    const aoFalharConexao = (err) => {
+      if (!ehFalhaDeAutenticacao(err)) return;
+      logout();
+      navigate(ROTA_SESSAO_EXPIRADA);
+    };
+    socket.on("connect_error", aoFalharConexao);
+
     // Movimento em outra sala: aparece no chat como mensagem do sistema,
     // pra quem está sozinho saber onde tem gente em vez de desistir.
-    socket.on("aviso-atividade", (data) => {
+    const aoAvisoAtividade = (data) => {
       if (data.roomId === roomId) return; // já estou nessa sala
       if (data.userId && data.userId === user?.id) return; // o aviso é sobre mim mesmo (outra aba)
       setMessages((prev) => [
         ...prev,
         { system: true, atividade: true, message: data.mensagem, at: data.at },
       ].slice(-200));
-    });
+    };
+    socket.on("aviso-atividade", aoAvisoAtividade);
 
     socket.on("quiz-room-full", (data) => setRoomFull(data));
 
@@ -205,12 +221,20 @@ export default function QuizGame() {
     socket.on("quiz-players-online", (data) => setOnlinePlayers(data.players || []));
     socket.on("quiz-chat-message", (msg) => setMessages((prev) => [...prev, msg].slice(-100)));
     // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
-    socket.on("chat-message-deleted", ({ id }) => {
+    const aoApagarMensagem = ({ id }) => {
       setMessages((prev) => prev.filter((m) => m.id !== id));
-    });
+    };
+    socket.on("chat-message-deleted", aoApagarMensagem);
 
     return () => {
       socket.off("connect", reentrarNaSala);
+      socket.off("connect_error", aoFalharConexao);
+      // Este faltava: o socket é um singleton que sobrevive à navegação, e
+      // sem remover o listener cada entrada numa sala empilhava mais um
+      // handler preso ao roomId antigo. Trocar de tema 8 vezes deixava 8
+      // handlers vivos. (O StopGame.jsx já fazia isso certo — aqui só
+      // estava faltando.)
+      socket.off("aviso-atividade", aoAvisoAtividade);
       socket.off("quiz-room-full");
       socket.off("quiz-room-state");
       socket.off("quiz-intermission");
@@ -223,7 +247,7 @@ export default function QuizGame() {
       socket.off("quiz-guess-wrong");
       socket.off("quiz-answer-log");
       socket.off("quiz-players-online");
-      socket.off("chat-message-deleted");
+      socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("quiz-chat-message");
       socket.disconnect();
     };
@@ -460,6 +484,7 @@ export default function QuizGame() {
                 autoCapitalize="none"
                 spellCheck={false}
                 enterKeyHint="send"
+                maxLength={100}
               />
               {/* O campo e o botão ficam SEMPRE habilitados de propósito:
                   no celular, o navegador só abre o teclado com toque do

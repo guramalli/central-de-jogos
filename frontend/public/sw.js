@@ -11,11 +11,20 @@
 //
 // Trocar a versão abaixo força a limpeza dos caches antigos na próxima
 // visita. Precisa ser alterada quando o comportamento do SW mudar.
-const VERSAO = "eg-v2";
+// eg-v3: as logos de título foram reprocessadas (512px → 160px, 24,5 MB →
+// 3 MB). Sem subir esta versão, quem já tinha visitado o site continuaria
+// servindo as antigas do cache PRA SEMPRE — a otimização só valeria pra
+// visitante novo.
+const VERSAO = "eg-v3";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
 const ESSENCIAIS = ["/", "/favicon.png", "/manifest.json"];
+
+// Pastas de arte com nome de arquivo FIXO (sem hash): quando uma imagem é
+// regerada, o nome continua o mesmo. Elas precisam ser revalidadas, senão
+// a versão antiga fica presa no cache do jogador pra sempre.
+const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz)\//;
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
@@ -69,6 +78,35 @@ self.addEventListener("fetch", (evento) => {
   if (req.mode === "navigate") {
     evento.respondWith(
       fetch(req).catch(() => caches.match("/").then((r) => r || Response.error()))
+    );
+    return;
+  }
+
+  // ===== Arte trocável: entrega do cache, mas confere por trás =====
+  // As pastas abaixo têm nomes FIXOS (titulo-futebol-bronze.png é sempre o
+  // mesmo nome), diferente dos arquivos do Vite, que carregam um hash. Com
+  // a regra de "cache primeiro" pura, regerar uma arte não adiantava nada:
+  // quem já tinha a versão antiga guardada nunca mais recebia a nova.
+  // (Foi o que aconteceu com a logo de futebol bronze.)
+  //
+  // Aqui a pessoa continua recebendo na hora o que está no cache — sem
+  // perder velocidade — e o navegador busca a versão nova em segundo plano
+  // pra próxima visita. Trocar uma arte passa a chegar sozinho.
+  if (ARTE_TROCAVEL.test(url.pathname)) {
+    evento.respondWith(
+      caches.match(req).then((cacheado) => {
+        const daRede = fetch(req)
+          .then((resposta) => {
+            if (resposta && resposta.status === 200 && resposta.type === "basic") {
+              const copia = resposta.clone();
+              caches.open(CACHE_ESTATICO).then((cache) => cache.put(req, copia));
+            }
+            return resposta;
+          })
+          // Sem internet: se tem cache, ele já foi entregue abaixo.
+          .catch(() => cacheado);
+        return cacheado || daRede;
+      })
     );
     return;
   }

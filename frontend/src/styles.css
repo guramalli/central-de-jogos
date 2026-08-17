@@ -182,6 +182,19 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 .error-msg { color: var(--accent); font-size: 13px; margin-bottom: 10px; }
 
+/* Aviso de sessão vencida: tom informativo, não de erro — a pessoa não fez
+   nada errado, só ficou um tempo sem entrar. */
+.aviso-sessao-expirada {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 214, 10, 0.35);
+  background: rgba(255, 214, 10, 0.08);
+  color: var(--text);
+}
+
 /* ===== Header / logo ===== */
 .logo {
   display: flex;

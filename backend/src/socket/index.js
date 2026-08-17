@@ -150,7 +150,13 @@ export function setupSocket(io) {
     });
 
     socket.on("quiz-submit-guess", ({ guess }) => {
-      socket.currentQuizRoom?.submitGuess(socket, userId, nickname, guess || "");
+      // Corta o palpite no portão, como já era feito com as mensagens de
+      // chat. O texto é retransmitido pra sala INTEIRA no log de respostas,
+      // então sem limite um cliente adulterado podia mandar uma string
+      // gigante e o servidor a multiplicava por todo mundo na sala.
+      // 100 caracteres passam longe de qualquer resposta legítima.
+      const limpo = typeof guess === "string" ? guess.slice(0, 100) : "";
+      socket.currentQuizRoom?.submitGuess(socket, userId, nickname, limpo);
     });
 
     socket.on("quiz-chat-message", ({ message }) => {
@@ -193,6 +199,21 @@ export function setupSocket(io) {
 
     socket.on("general-chat-message", async ({ message }) => {
       if (!socket.inGeneralChat || !message?.trim()) return;
+
+      // Intervalo mínimo entre mensagens da praça.
+      //
+      // Diferente dos chats de sala (que são só retransmissão), CADA
+      // mensagem daqui vira uma ESCRITA no Neon — e o Neon cobra por tempo
+      // de banco acordado. O limite de requisições do Express protege só as
+      // rotas /api; conexões de socket não passam por ele. Sem este freio,
+      // um cliente adulterado podia gravar milhares de linhas por minuto.
+      //
+      // 700ms é folgado pra conversa humana (ninguém digita mais rápido que
+      // isso) e ainda assim fecha a porta pra script.
+      const agora = Date.now();
+      if (socket.ultimaMsgGeral && agora - socket.ultimaMsgGeral < 700) return;
+      socket.ultimaMsgGeral = agora;
+
       const clean = message.trim().slice(0, 300);
       const salva = await generalChat.saveMessage(userId, clean);
       io.to("general-chat-room").emit("general-chat-message", {

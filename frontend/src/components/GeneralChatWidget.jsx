@@ -23,15 +23,19 @@ export default function GeneralChatWidget() {
     socket.on("general-chat-history", (data) => setMessages(data.messages || []));
     socket.on("general-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
     // Moderador apagou: some da praça pra todo mundo que está com ela aberta.
-    socket.on("chat-message-deleted", ({ id }) => {
+    const aoApagarMensagem = ({ id }) => {
       setMessages((prev) => prev.filter((m) => m.id !== id));
-    });
+    };
+    socket.on("chat-message-deleted", aoApagarMensagem);
     socket.on("general-chat-online", (data) => setOnline(data.players || []));
 
     return () => {
       socket.off("general-chat-history");
       socket.off("general-chat-message");
-      socket.off("chat-message-deleted");
+        // Com referência do handler: "chat-message-deleted" é escutado em
+      // vários componentes, e um off() sem referência apagaria os
+      // listeners dos outros junto com o seu.
+      socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("general-chat-online");
       socket.disconnect();
     };

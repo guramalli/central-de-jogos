@@ -11,8 +11,20 @@ function IconeTitulo({ logo, tamanho = 72, apagado = false }) {
     opacity: apagado ? 0.35 : 1,
   };
   if (!logo || erro) return <span style={{ fontSize: tamanho * 0.7, opacity: apagado ? 0.35 : 1 }}>🏅</span>;
+  // loading="lazy": a vitrine mostra os TRÊS níveis de TODOS os temas de uma
+  // vez (até 59 medalhas). Sem isto o navegador pede todas de uma vez ao
+  // abrir o perfil; com isto, só as que estão à vista.
   return (
-    <img src={logo} alt="" width={tamanho} height={tamanho} style={estilo} onError={() => setErro(true)} />
+    <img
+      src={logo}
+      alt=""
+      width={tamanho}
+      height={tamanho}
+      style={estilo}
+      loading="lazy"
+      decoding="async"
+      onError={() => setErro(true)}
+    />
   );
 }
 
