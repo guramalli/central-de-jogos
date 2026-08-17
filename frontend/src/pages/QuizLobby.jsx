@@ -63,6 +63,18 @@ function IconeTema({ themeKey }) {
   );
 }
 
+// Tira o "— Padrão" / "— Avançado" do fim do nome. A informação já está no
+// selo colorido logo abaixo e na cor do próprio nome, então repetir no
+// título só ocupava espaço e fazia o card parecer redundante.
+//
+// A limpeza é SÓ na exibição do card: o label completo continua vindo do
+// servidor e é usado dentro da sala, no aviso de atividade e na mensagem de
+// sala cheia, onde o nível é contexto necessário.
+function nomeSemNivel(label) {
+  if (!label) return "";
+  return label.replace(/\s*[—-]\s*(Padrão|Avançado|Avançada|Iniciante)\s*$/i, "");
+}
+
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
   if (status.onlineCount === 0) return { text: "Vazia", full: false, empty: true };
@@ -135,7 +147,9 @@ export default function QuizLobby() {
             >
               <IconeTema themeKey={r.themeKey} />
               <div>
-                <h3 className="lobby-game-title">{r.label}</h3>
+                <h3 className={`lobby-game-title quiz-titulo-${r.tier === "padrao" ? "padrao" : "avancado"}`}>
+                  {nomeSemNivel(r.label)}
+                </h3>
                 {r.tier && (
                   <p className={`lobby-difficulty-badge lobby-difficulty-badge-${r.tier === "padrao" ? "basic" : "advanced"}`}>
                     {r.tier === "padrao" ? "Padrão" : "Avançado"}

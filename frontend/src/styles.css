@@ -1145,6 +1145,21 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   gap: 6px;
   line-height: 1.25;
 }
+
+/* Cor do nome da sala conforme o nível — a mesma paleta dos selos logo
+   abaixo (verde no Padrão, vermelho no Avançado), pra que a dupla leia como
+   uma coisa só em vez de duas informações concorrendo.
+   O relevo é uma sombra escura de 1px embaixo: dá peso de letreiro sem
+   brilho nem contorno, que num card pequeno viraria borrão. */
+.quiz-titulo-padrao {
+  color: #06d6a0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+.quiz-titulo-avancado {
+  color: #ff5a4d;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+
 .lobby-lock-icon { color: #ff9900; font-size: 15px; }
 .lobby-game-desc {
   color: var(--text-dim);
