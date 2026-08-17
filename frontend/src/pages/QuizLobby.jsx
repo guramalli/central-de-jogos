@@ -144,10 +144,11 @@ export default function QuizLobby() {
               to={`/jogos/quiz/${r.roomId}`}
               className="glossy-panel lobby-game-card quiz-themed-card"
               data-quiz-theme={r.themeKey || undefined}
+              data-quiz-tier={r.tier === "avancado" ? "avancado" : "padrao"}
             >
               <IconeTema themeKey={r.themeKey} />
               <div>
-                <h3 className={`lobby-game-title quiz-titulo-${r.tier === "padrao" ? "padrao" : "avancado"}`}>
+                <h3 className={`lobby-game-title quiz-titulo-${r.tier === "avancado" ? "avancado" : "padrao"}`}>
                   {nomeSemNivel(r.label)}
                 </h3>
                 {r.tier && (

@@ -3389,15 +3389,22 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-outline: #313d63;
 }
 
-/* ===== Cards temáticos na lobby do Quiz =====
-   Reaproveita as mesmas cores da sala, aplicadas numa borda lateral e no
-   ícone — assim a pessoa já reconhece o tema antes mesmo de entrar. */
+/* ===== Cards na lobby do Quiz =====
+   A borda lateral indica a DIFICULDADE, não o tema: verde no Padrão,
+   vermelho no Avançado — as mesmas cores do selo e do nome da sala.
+   Antes cada tema tinha a própria cor (roxo em Letras, azul em Séries,
+   rosa em Música...), o que dava onze cores concorrendo na mesma tela e
+   nenhuma delas dizia o que importa na hora de escolher: se a sala é fácil
+   ou difícil. O tema já é identificado pelo emblema e pelo nome. */
 .quiz-themed-card {
-  border-left: 4px solid var(--card-accent, var(--accent-2));
+  border-left: 4px solid var(--accent-2);
   transition: border-color 0.15s ease;
 }
+.quiz-themed-card[data-quiz-tier="padrao"] { border-left-color: #06d6a0; }
+.quiz-themed-card[data-quiz-tier="avancado"] { border-left-color: #ff5a4d; }
+
 .quiz-themed-card .quiz-theme-icon {
-  filter: drop-shadow(0 0 6px var(--card-accent, var(--accent-2)));
+  filter: drop-shadow(0 0 6px var(--accent-2));
 }
 /* O brilho colorido por tema foi feito pro emoji, que é uma silhueta chapada
    e ganha destaque com ele. No emblema vira um halo colorido em volta da
@@ -3405,17 +3412,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .quiz-themed-card .quiz-theme-icon-emblema {
   filter: none;
 }
-.quiz-themed-card[data-quiz-theme="esportes"]  { --card-accent: #2ecc71; }
-.quiz-themed-card[data-quiz-theme="ciencias"]  { --card-accent: #00c2d1; }
-.quiz-themed-card[data-quiz-theme="historia"]  { --card-accent: #d4a017; }
-.quiz-themed-card[data-quiz-theme="cinema"]    { --card-accent: #e74c3c; }
-.quiz-themed-card[data-quiz-theme="letras"]    { --card-accent: #9b59b6; }
-.quiz-themed-card[data-quiz-theme="geral"]     { --card-accent: #ff9900; }
-.quiz-themed-card[data-quiz-theme="musica"]    { --card-accent: #ff4f9a; }
-.quiz-themed-card[data-quiz-theme="series"]    { --card-accent: #3498db; }
-.quiz-themed-card[data-quiz-theme="novelas"]   { --card-accent: #ff7f50; }
-.quiz-themed-card[data-quiz-theme="geografia"] { --card-accent: #16a085; }
-.quiz-themed-card[data-quiz-theme="direito"]   { --card-accent: #5d7ce0; }
 
 /* Brilho colorido no fundo da sala temática — usa a própria cor de destaque
    do tema, então funciona pra qualquer um deles sem precisar repetir regra. */
@@ -3510,9 +3506,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-surface-high: #2d173d;
   --qz-outline: #4c2866;
 }
-.quiz-themed-card[data-quiz-theme="futebol"]       { --card-accent: #4ade80; }
-.quiz-themed-card[data-quiz-theme="automobilismo"] { --card-accent: #ff3d3d; }
-.quiz-themed-card[data-quiz-theme="anime"]         { --card-accent: #c084fc; }
 
 /* ===== Faixa de aviso para visitantes ===== */
 .guest-banner {
@@ -3660,7 +3653,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-surface-high: #162138;
   --qz-outline: #29405f;
 }
-.quiz-themed-card[data-quiz-theme="terceirao"] { --card-accent: #4d94ff; }
 
 /* Games — verde neon */
 [data-theme="dark"] .quiz-root[data-quiz-theme="games"] {
@@ -3673,7 +3665,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-surface-high: #142a14;
   --qz-outline: #245c2b;
 }
-.quiz-themed-card[data-quiz-theme="games"] { --card-accent: #39ff6a; }
 
 /* Mitologia e Religião — dourado de templo antigo */
 [data-theme="dark"] .quiz-root[data-quiz-theme="mitologia"] {
@@ -3686,7 +3677,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   --qz-surface-high: #352918;
   --qz-outline: #5c4826;
 }
-.quiz-themed-card[data-quiz-theme="mitologia"] { --card-accent: #e8c76b; }
 
 /* ===== Diretório de clãs ===== */
 .clan-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
