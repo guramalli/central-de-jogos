@@ -55,7 +55,8 @@
     "import-series-padrao": "node prisma/importSeriesPadrao.js",
     "import-series-avancado": "node prisma/importSeriesAvancado.js",
     "import-automobilismo-avancado": "node prisma/importAutomobilismoAvancado.js",
-    "revisar-dificuldade": "node scripts/revisarDificuldade.js"
+    "revisar-dificuldade": "node scripts/revisarDificuldade.js",
+    "ver-stops": "node scripts/verStops.js"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
