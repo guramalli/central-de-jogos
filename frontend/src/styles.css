@@ -1132,12 +1132,6 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   color: inherit;
   transition: background 0.15s ease, transform 0.15s ease;
 }
-/* Sem isto o corte com reticências NÃO funciona. Filho de flex tem
-   min-width: auto por padrão, ou seja, se recusa a encolher abaixo do
-   tamanho do próprio conteúdo — então o texto estoura o card em vez de
-   cortar. O min-width: 0 libera o encolhimento e as reticências passam a
-   valer. É a armadilha clássica de flexbox com ellipsis. */
-.lobby-game-card > div { min-width: 0; flex: 1; }
 .lobby-game-card:hover { background: var(--bg-panel-2); transform: translateY(-2px); }
 .lobby-game-card-advanced { border-color: #ff9900; position: relative; overflow: hidden; }
 .lobby-game-logo { height: 32px; width: auto; object-fit: contain; flex-shrink: 0; }
@@ -1145,16 +1139,12 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-game-title {
   font-family: var(--font-display);
   font-size: 15px;
+  margin: 0 0 3px 0;
   display: flex;
   align-items: center;
   gap: 6px;
   line-height: 1.25;
-  margin: 0 0 6px 0;
-  /* Nome longo ("Mitologia e Religião") corta com reticências em vez de
-     pular pra segunda linha e empurrar o resto do card pra baixo. */
-  min-width: 0;
 }
-.lobby-game-title > * { min-width: 0; }
 
 /* Cor do nome da sala conforme o nível — a mesma paleta dos selos logo
    abaixo (verde no Padrão, vermelho no Avançado), pra que a dupla leia como
@@ -1174,16 +1164,12 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-game-desc {
   color: var(--text-dim);
   font-size: 11px;
-  /* Ritmo único de 6px entre as linhas de texto do card. Antes cada uma
-     tinha a sua margem (3px, 4px, 6px, "4px 0 8px"), o que fazia os cards
-     parecerem desalinhados mesmo com o mesmo conteúdo. */
   margin: 0 0 6px 0;
-  /* Uma linha só. Antes eram duas (line-clamp: 2), e como as descrições têm
-     tamanhos diferentes uns cards ficavam mais altos que os outros, quebrando
-     o alinhamento da grade. */
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 /* Botão "Entrar" das listas de salas (Stop, Quiz, Acromania).
    Era um texto de 11px quase invisível colado no balão de jogadores. Virou
@@ -1962,14 +1948,7 @@ table.player-table.player-table-compact td {
 }
 
 @media (max-width: 480px) {
-  /* Os cards de SALA continuam empilhando (ícone em cima, texto embaixo),
-     mas alinhados à ESQUERDA. Centralizar fazia cada linha começar num ponto
-     diferente — título curto, descrição longa, contagem média — e o card
-     perdia a leitura de coluna que tem no desktop.
-     O card de ranking segue centralizado: lá o conteúdo é number + nome
-     curto, que centraliza bem. */
-  .lobby-game-card { flex-direction: column; text-align: left; align-items: flex-start; }
-  .lobby-ranking-card { flex-direction: column; text-align: center; }
+  .lobby-game-card, .lobby-ranking-card { flex-direction: column; text-align: center; }
   .lobby-quick-card { text-align: center; }
 }
 
@@ -1998,7 +1977,7 @@ table.player-table.player-table-compact td {
   letter-spacing: 0.5px;
   padding: 1px 6px;
   border-radius: 4px;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 .lobby-difficulty-badge-basic { background: rgba(6, 214, 160, 0.12); color: #06d6a0; }
 .lobby-difficulty-badge-mid { background: rgba(255, 184, 111, 0.15); color: var(--accent-2); }
@@ -2205,14 +2184,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 .lobby-streak-desc {
   color: var(--accent-2);
-  /* Era 12px, maior que a própria descrição da sala — informação secundária
-     chamando mais atenção que a principal. Agora entra na mesma escala. */
-  font-size: 11px;
-  margin: 0 0 6px 0;
+  font-size: 12px;
+  margin: 4px 0 8px 0;
   font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ===== Páginas legais (Termos de Uso, Privacidade) ===== */
@@ -2341,15 +2315,11 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 
 .quiz-room-question-count {
-  /* Era 9px com opacidade 0.7 — ficava quase ilegível e fora da escala do
-     resto. Agora acompanha a descrição: mesma cor, mesmo tamanho. */
-  font-size: 11px;
+  font-size: 9px;
   color: var(--text-dim);
-  margin: 0 0 6px 0;
+  opacity: 0.7;
+  margin: 0 0 4px 0;
   font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .theme-toggle-btn {

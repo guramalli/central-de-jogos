@@ -155,16 +155,11 @@ export default function QuizLobby() {
                     {r.tier === "padrao" ? "Padrão" : "Avançado"}
                   </p>
                 )}
-                {/* Descrição removida: nos cards de Quiz ela era redundante
-                    ("Perguntas de anime e hq pra todo mundo" depois de um
-                    título "Anime e HQ" e de um selo "PADRÃO") e, por ser a
-                    linha mais longa, era ela que forçava o corte de todo o
-                    resto. O lobby do Stop mantém a dele, onde a descrição
-                    traz informação real (tempo de resposta, intervalo). */}
-                <p className="quiz-room-question-count">{r.questionCount} perguntas</p>
+                <p className="lobby-game-desc">{r.description || `Perguntas de ${r.label.toLowerCase()}.`}</p>
+                <p className="quiz-room-question-count">{r.questionCount} perguntas cadastradas</p>
                 {r.streakRecord?.count > 0 && (
                   <p className="lobby-streak-desc">
-                    Recorde {r.streakRecord.count} · <strong>{r.streakRecord.nickname}</strong>
+                    Recorde de seguidas: <strong>{r.streakRecord.nickname}</strong> — {r.streakRecord.count}
                   </p>
                 )}
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
