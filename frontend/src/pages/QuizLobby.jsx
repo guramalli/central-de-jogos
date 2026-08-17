@@ -40,16 +40,26 @@ const THEME_ICONS = {
 function IconeTema({ themeKey }) {
   const [falhou, setFalhou] = useState(false);
   const emoji = THEME_ICONS[themeKey] || "❓";
-  if (!themeKey || falhou) return <span>{emoji}</span>;
+
+  // Sem emblema (tema novo ou PNG faltando): emoji dentro do círculo de
+  // sempre, que aí faz falta como moldura.
+  if (!themeKey || falhou) {
+    return <div className="quiz-theme-icon">{emoji}</div>;
+  }
+
+  // Com emblema: SEM o círculo. A arte já tem moldura circular própria, e o
+  // fundo mais a borda do CSS criavam um segundo anel em volta do primeiro.
   return (
-    <img
-      src={`/temas-quiz/${themeKey}.png`}
-      alt=""
-      className="quiz-theme-emblema"
-      loading="lazy"
-      decoding="async"
-      onError={() => setFalhou(true)}
-    />
+    <div className="quiz-theme-icon quiz-theme-icon-emblema">
+      <img
+        src={`/temas-quiz/${themeKey}.png`}
+        alt=""
+        className="quiz-theme-emblema"
+        loading="lazy"
+        decoding="async"
+        onError={() => setFalhou(true)}
+      />
+    </div>
   );
 }
 
@@ -123,7 +133,7 @@ export default function QuizLobby() {
               className="glossy-panel lobby-game-card quiz-themed-card"
               data-quiz-theme={r.themeKey || undefined}
             >
-              <div className="quiz-theme-icon"><IconeTema themeKey={r.themeKey} /></div>
+              <IconeTema themeKey={r.themeKey} />
               <div>
                 <h3 className="lobby-game-title">
                   <span className="quiz-titulo-emoji" aria-hidden="true">{THEME_ICONS[r.themeKey] || "❓"}</span>

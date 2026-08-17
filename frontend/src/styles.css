@@ -1162,59 +1162,21 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    Os cards da Home e do Lobby NÃO usam isto: eles têm o próprio estilo mais
    abaixo (.home-game-card .lobby-game-cta). */
 .lobby-game-cta {
+  color: var(--accent-2);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  /* Era 11px. Único aumento mantido do teste anterior — o resto (pílula,
+     gradiente, animação) foi revertido por ficar pesado demais na lista. */
+  font-size: 13px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #1a1206;
-  font-weight: 800;
-  font-size: 14px;
-  padding: 10px 20px;
-  border-radius: 999px;
-  /* 14px de respiro do balão de jogadores, que antes eram 4px */
-  margin-top: 14px;
-  transition: transform 0.12s ease;
-  animation: lobby-cta-pulso 2.6s ease-out infinite;
+  gap: 3px;
+  /* Respiro do balão de jogadores: eram 4px, que colavam o "Entrar" no
+     "Vazia" e faziam os dois virarem uma linha só. */
+  margin-top: 12px;
 }
-.lobby-game-cta .material-symbols-outlined {
-  font-size: 17px;
-  animation: lobby-cta-cutuca 2.6s ease-in-out infinite;
-}
-.lobby-game-card:hover .lobby-game-cta { transform: scale(1.04); }
+.lobby-game-cta .material-symbols-outlined { font-size: 15px; }
 
-/* A seta cutuca pra direita e o botão pulsa. O ciclo tem pausa longa (só os
-   últimos 40% têm movimento) — numa lista com sete salas, animação contínua
-   viraria pisca-pisca. */
-@keyframes lobby-cta-cutuca {
-  0%, 60%, 100% { transform: translateX(0); }
-  70% { transform: translateX(5px); }
-  80% { transform: translateX(1px); }
-  90% { transform: translateX(4px); }
-}
-@keyframes lobby-cta-pulso {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 184, 111, 0.42); }
-  70% { box-shadow: 0 0 0 9px rgba(255, 184, 111, 0); }
-}
-
-/* Quem pediu menos animação no sistema vê o botão parado — o tamanho e o
-   respiro continuam, só o movimento sai. */
-@media (prefers-reduced-motion: reduce) {
-  .lobby-game-cta,
-  .lobby-game-cta .material-symbols-outlined { animation: none; }
-}
-
-/* No celular o botão ocupa a largura do card, como já fazem os cards da
-   Home. Dois motivos: o alvo de toque passa de 40px pra 46px de altura
-   (acima dos 44px recomendados), e num card estreito com texto centralizado
-   a pílula solta no meio parecia legenda, não botão. */
-@media (max-width: 700px) {
-  .lobby-game-cta {
-    width: 100%;
-    justify-content: center;
-    box-sizing: border-box;
-    padding: 13px 20px;
-  }
-}
 
 .lobby-quiz-card {
   padding: 22px;
@@ -1249,9 +1211,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   overflow: hidden;
 }
 
-/* Emblema do tema dentro do círculo. Ocupa toda a área porque a arte já traz
-   a própria moldura circular — deixar respiro criaria dois anéis
-   concêntricos, um do CSS e outro do desenho. */
+/* Com emblema, o círculo do CSS sai de cena: fundo e borda desenhavam um
+   segundo anel em volta da moldura que a própria arte já tem. Sobra só a
+   caixa de 34px posicionando a imagem. */
+.quiz-theme-icon-emblema {
+  background: none;
+  border: none;
+}
+
 .quiz-theme-emblema {
   width: 100%;
   height: 100%;
@@ -3424,6 +3391,12 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .quiz-themed-card .quiz-theme-icon {
   filter: drop-shadow(0 0 6px var(--card-accent, var(--accent-2)));
 }
+/* O brilho colorido por tema foi feito pro emoji, que é uma silhueta chapada
+   e ganha destaque com ele. No emblema vira um halo colorido em volta da
+   medalha, sujando a arte — que já tem brilho e relevo próprios. */
+.quiz-themed-card .quiz-theme-icon-emblema {
+  filter: none;
+}
 .quiz-themed-card[data-quiz-theme="esportes"]  { --card-accent: #2ecc71; }
 .quiz-themed-card[data-quiz-theme="ciencias"]  { --card-accent: #00c2d1; }
 .quiz-themed-card[data-quiz-theme="historia"]  { --card-accent: #d4a017; }
@@ -4971,15 +4944,8 @@ span.votacao-trilha-item {
   padding: 12px 22px;
   border-radius: 999px;
   transition: transform 0.12s ease;
-  /* Os cards vitrine da Home e do Lobby NÃO recebem a animação das listas de
-     sala: aqui são 3 cards grandes de destaque, não uma lista de 7 salas
-     disputando o olho. Sem este reset, a regra base faria eles pulsarem. */
-  animation: none;
 }
-.home-game-card .lobby-game-cta .material-symbols-outlined {
-  font-size: 15px;
-  animation: none;
-}
+
 .home-game-card:hover {
   transform: translateY(-5px);
   border-color: var(--accent);
@@ -5325,10 +5291,7 @@ span.votacao-trilha-item {
   background: none !important;
   border: 1px dashed var(--border);
   color: var(--text-dim) !important;
-  /* "Em breve" não pode ficar apontando pra entrar em algo que não abre. */
-  animation: none !important;
 }
-.lobby-game-cta-dev .material-symbols-outlined { animation: none !important; }
 .home-game-card-dev:hover .lobby-game-cta { transform: none; }
 
 /* Título exibido no tooltip do nick */
