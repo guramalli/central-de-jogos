@@ -11,7 +11,7 @@
 // STOP — por NÍVEL de sala (contadores da tabela StopStat):
 //   quantidade de STOPs pedidos em salas padrão / intermediárias / avançadas,
 //   mais o título relâmpago: STOP pedido em até RAPIDO_SEGUNDOS na avançada
-//   (o tempo mínimo lá é 5s — sobra 1 segundo de janela; coisa de elite).
+//   (a sala dá 20s; cravar em até 10s = metade do tempo = jogada rápida).
 //
 // Pra ajustar um número ou um nome, é só editar aqui: o endpoint de títulos
 // e o perfil leem desta config.
@@ -98,7 +98,7 @@ export const STOP_TITULOS = {
 
 // Título relâmpago: STOP pedido em até este tempo (segundos) desde o início
 // da rodada, contado só nas salas avançadas.
-export const RAPIDO_SEGUNDOS = 6;
+export const RAPIDO_SEGUNDOS = 10;
 export const RAPIDO_TITULOS = [
   { min: 500, nome: "Relâmpago da Avançada" },
   { min: 2000, nome: "STOP Supersônico" },
