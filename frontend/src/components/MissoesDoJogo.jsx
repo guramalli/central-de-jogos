@@ -13,6 +13,9 @@ import { api } from "../api/client.js";
 // missões DAQUELE jogo evita o ruído de listar objetivo de Stop pra quem
 // veio jogar Quiz.
 //
+// Fica na coluna da direita do cabeçalho, embaixo do "Ver patentes": é o
+// canto que o olho já procura pra saber "como eu vou nesse jogo".
+//
 // Usa o /missoes/lista, que já existe e já é chamado pelo avisinho do menu.
 // Nenhum endpoint novo.
 export default function MissoesDoJogo({ gameKey }) {
@@ -40,14 +43,16 @@ export default function MissoesDoJogo({ gameKey }) {
       if (a.concluida !== b.concluida) return a.concluida ? -1 : 1;
       return b.progresso / b.meta - a.progresso / a.meta;
     })
-    .slice(0, 3);
+    // Duas, não três: a coluna do cabeçalho é estreita e uma terceira
+    // esticaria o bloco pra baixo, desalinhando do texto de apresentação.
+    .slice(0, 2);
 
   if (lista.length === 0) return null;
 
   const prontas = lista.filter((m) => m.concluida).length;
 
   return (
-    <div className="card missoes-lobby">
+    <div className="missoes-lobby">
       <div className="missoes-lobby-topo">
         <h2 className="missoes-lobby-titulo">
           <span className="material-symbols-outlined">task_alt</span>

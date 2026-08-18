@@ -5288,31 +5288,52 @@ span.votacao-trilha-item {
 .painel-item-meta { display: block; margin-top: 5px; font-size: 12px; color: var(--text-dim); }
 
 
-/* ===== Missões do dia nas lobbies de Quiz e Stop =====
-   Card no mesmo formato dos outros da página, logo abaixo do mini-pódio.
+/* ===== Coluna da direita do cabeçalho das lobbies =====
+   O botão de patentes e as missões do dia empilhados. Largura fixa de 300px
+   pra não competir com o texto de apresentação; o flex-wrap do .hero-banner
+   joga a coluna pra baixo, em largura cheia, quando a tela aperta. */
+.hero-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 0 0 300px;
+  max-width: 100%;
+}
+.hero-lado .retro-btn { text-align: center; }
+
+@media (max-width: 900px) {
+  .hero-lado { flex: 1 1 100%; }
+}
+
+/* ===== Missões do dia (coluna do cabeçalho) =====
    Mostra só as missões DAQUELE jogo — listar objetivo de Stop pra quem veio
-   jogar Quiz seria ruído. Três no máximo: mais que isso e o card passa a
-   competir com a lista de salas, que é o motivo da pessoa estar ali. */
-.missoes-lobby { padding: 16px 20px; margin-bottom: 24px; }
+   jogar Quiz seria ruído. Duas no máximo, empilhadas: a coluna é estreita e
+   uma terceira esticaria o cabeçalho. */
+.missoes-lobby {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
 
 .missoes-lobby-topo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 .missoes-lobby-titulo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--accent-2);
 }
-.missoes-lobby-titulo .material-symbols-outlined { font-size: 19px; }
+.missoes-lobby-titulo .material-symbols-outlined { font-size: 16px; }
 .missoes-lobby-link {
-  font-size: 12px;
+  font-size: 11px;
   font-family: var(--font-mono);
   color: var(--accent-2);
   text-decoration: none;
@@ -5320,22 +5341,8 @@ span.votacao-trilha-item {
 }
 .missoes-lobby-link:hover { text-decoration: underline; }
 
-/* Lado a lado no desktop, empilhado no celular. */
-.missoes-lobby-lista {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-@media (max-width: 900px) {
-  .missoes-lobby-lista { grid-template-columns: 1fr; }
-}
+.missoes-lobby-lista { display: flex; flex-direction: column; gap: 10px; }
 
-.missao-lobby {
-  background: var(--bg-panel-2, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
 .missao-lobby-linha {
   display: flex;
   align-items: baseline;
@@ -5343,10 +5350,10 @@ span.votacao-trilha-item {
   gap: 8px;
 }
 .missao-lobby-nome {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--text);
-  /* Nome longo corta em vez de empurrar o contador pra fora da caixa. */
+  /* Nome longo corta em vez de empurrar o contador pra fora da coluna. */
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5354,7 +5361,7 @@ span.votacao-trilha-item {
 }
 .missao-lobby-contador {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
@@ -5362,26 +5369,24 @@ span.votacao-trilha-item {
    buscado — o que a gente mais quer que a pessoa note. */
 .missao-lobby-pronta {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #06d6a0;
   flex-shrink: 0;
 }
 .missao-lobby-desc {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-dim);
-  margin: 4px 0 8px;
-  line-height: 1.35;
-  /* Duas linhas no máximo: as descrições têm tamanhos diferentes e sem isto
-     um card ficaria mais alto que os vizinhos, quebrando o alinhamento. */
+  margin: 3px 0 6px;
+  line-height: 1.3;
+  /* Duas linhas no máximo, pra as duas missões terem a mesma altura. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 30px;
 }
 .missao-lobby-barra {
-  height: 5px;
+  height: 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;

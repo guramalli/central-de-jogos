@@ -150,12 +150,15 @@ export default function QuizLobby() {
             da resposta vão aparecendo aos poucos, mas nunca mais da metade delas.
           </p>
         </div>
-        <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
+        {/* Coluna da direita do cabeçalho: o botão de patentes e as missões
+            do dia dividem o mesmo espaço, empilhados. */}
+        <div className="hero-lado">
+          <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
+          <MissoesDoJogo gameKey="quiz" />
+        </div>
       </div>
 
       <MiniPodium gameKey="quiz" />
-
-      <MissoesDoJogo gameKey="quiz" />
 
       <div className="lobby-game-grid lobby-salas-grid">
         {themeRooms.map((r) => {
