@@ -1120,6 +1120,16 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 .lobby-game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .home-page .lobby-game-grid, div:has(> .home-game-card) { gap: 18px; }
+/* Listas de SALA em duas colunas fixas.
+   As salas vêm do servidor em pares — Padrão e Avançado do mesmo tema no
+   Quiz, e as duplas de cada nível no Stop. Com três colunas os pares se
+   partiam entre linhas (Anime-Padrão | Anime-Avançado | Automobilismo-Padrão,
+   e o Automobilismo-Avançado ia pra linha seguinte), o que fazia a leitura
+   perder o pareamento. Com duas, cada linha é exatamente uma dupla.
+   O modificador existe pra não afetar a Home nem o Lobby, que usam a mesma
+   classe base pros três cards de jogo — ali três colunas é o certo. */
+.lobby-salas-grid { grid-template-columns: repeat(2, 1fr); }
+
 @media (max-width: 1000px) { .lobby-game-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .lobby-game-grid { grid-template-columns: 1fr; } }
 

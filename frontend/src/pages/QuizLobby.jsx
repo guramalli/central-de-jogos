@@ -135,7 +135,7 @@ export default function QuizLobby() {
 
       <MiniPodium gameKey="quiz" />
 
-      <div className="lobby-game-grid">
+      <div className="lobby-game-grid lobby-salas-grid">
         {themeRooms.map((r) => {
           const occ = occupancyInfo(r);
           return (

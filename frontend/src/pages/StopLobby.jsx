@@ -63,7 +63,7 @@ export default function StopLobby() {
 
       <MiniPodium gameKey="stop" />
 
-      <div className="lobby-game-grid">
+      <div className="lobby-game-grid lobby-salas-grid">
         {rooms.map((r) => {
           const occ = occupancyInfo(r);
           const diff = DIFFICULTY_INFO[r.difficulty] || DIFFICULTY_INFO.basic;
