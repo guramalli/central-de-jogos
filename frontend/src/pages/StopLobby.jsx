@@ -73,6 +73,7 @@ export default function StopLobby() {
               key={r.roomId}
               to={`/jogos/stop/${r.roomId}`}
               className={`glossy-panel lobby-game-card ${diff.tier !== "basic" ? "lobby-game-card-advanced" : ""} ${r.semPontuacao ? "lobby-game-card-zoeira" : ""}`}
+              data-stop-tier={r.semPontuacao ? "zoeira" : diff.tier}
             >
               <div className={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}>
                 <span className="material-symbols-outlined">{diff.icon}</span>

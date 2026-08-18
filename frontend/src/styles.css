@@ -1143,7 +1143,23 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   transition: background 0.15s ease, transform 0.15s ease;
 }
 .lobby-game-card:hover { background: var(--bg-panel-2); transform: translateY(-2px); }
-.lobby-game-card-advanced { border-color: #ff9900; position: relative; overflow: hidden; }
+.lobby-game-card-advanced { position: relative; overflow: hidden; }
+
+/* Cor da dificuldade na borda do card, na lobby do Stop.
+   Mesma lógica dos cards do Quiz: a borda diz o NÍVEL, que é o que decide se
+   a pessoa entra ou não. As cores são as mesmas dos selos logo abaixo, pra
+   card e selo lerem como uma informação só.
+   Antes toda sala não-iniciante saía com a mesma borda laranja, então
+   Intermediária e Difícil eram indistinguíveis pela cor. */
+.lobby-game-card[data-stop-tier] { border-left-width: 4px; border-left-style: solid; }
+.lobby-game-card[data-stop-tier="basic"] { border-left-color: #06d6a0; }
+.lobby-game-card[data-stop-tier="mid"] { border-left-color: #ffb86f; }
+.lobby-game-card[data-stop-tier="advanced"] { border-left-color: #ff5a4d; }
+/* A Zoeira não entra aqui: ela não é nível de dificuldade, é sala sem
+   pontuação, e a regra .lobby-game-card-zoeira (mais abaixo no arquivo) já
+   pinta a borda dela de rosa com !important. Repetir a cor aqui criaria uma
+   regra morta, que nunca venceria aquele !important. Ela só herda a largura
+   de 4px da regra acima. */
 .lobby-game-logo { height: 32px; width: auto; object-fit: contain; flex-shrink: 0; }
 .lobby-game-logo-dim { opacity: 0.8; }
 .lobby-game-title {
