@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import MiniPodium from "../components/MiniPodium.jsx";
+import MissoesDoJogo from "../components/MissoesDoJogo.jsx";
 import Seo from "../components/Seo.jsx";
 
 function occupancyInfo(status) {
@@ -91,6 +92,8 @@ export default function StopLobby() {
       </div>
 
       <MiniPodium gameKey="stop" />
+
+      <MissoesDoJogo gameKey="stop" />
 
       <div className="lobby-game-grid lobby-salas-grid">
         {rooms.map((r) => {

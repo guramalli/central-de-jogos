@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import MiniPodium from "../components/MiniPodium.jsx";
+import MissoesDoJogo from "../components/MissoesDoJogo.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
@@ -153,6 +154,8 @@ export default function QuizLobby() {
       </div>
 
       <MiniPodium gameKey="quiz" />
+
+      <MissoesDoJogo gameKey="quiz" />
 
       <div className="lobby-game-grid lobby-salas-grid">
         {themeRooms.map((r) => {
