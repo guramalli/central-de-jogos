@@ -65,7 +65,12 @@ export default function MissoesDoJogo({ gameKey }) {
 
       <div className="missoes-lobby-lista">
         {lista.map((m) => {
-          const pct = Math.min(100, Math.round((m.progresso / m.meta) * 100));
+          // Concluída (ou resgatada) = barra cheia, independente da razão
+          // progresso/meta. Se a meta for endurecida depois, quem já fechou
+          // não passa a ver a barra retroceder.
+          const pct = m.concluida || m.resgatada
+            ? 100
+            : Math.min(100, Math.round((m.progresso / m.meta) * 100));
           return (
             <div key={m.key} className="missao-lobby">
               <div className="missao-lobby-linha">
@@ -76,7 +81,7 @@ export default function MissoesDoJogo({ gameKey }) {
                   <span className="missao-lobby-pronta">resgatar +{m.pontos}</span>
                 ) : (
                   <span className="missao-lobby-contador">
-                    {m.progresso}/{m.meta}
+                    {Math.min(m.progresso, m.meta)}/{m.meta}
                   </span>
                 )}
               </div>

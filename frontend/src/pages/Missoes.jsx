@@ -81,7 +81,19 @@ export default function Missoes() {
 
               <div className="missoes-lista">
                 {missoes.map((m) => {
-                  const pct = Math.min(100, Math.round((m.progresso / m.meta) * 100));
+                  // Missão concluída ou já resgatada mostra a barra CHEIA,
+                  // sem olhar a razão progresso/meta.
+                  //
+                  // Motivo: quando uma meta é endurecida (ex.: 100 → 120
+                  // acertos), quem já tinha concluído sob a regra antiga
+                  // continua marcado como concluído — e com razão, o prêmio
+                  // já foi pago. Mas a barra aparecia incompleta (100/120),
+                  // o que fazia a tela se contradizer: "resgatada" ao lado de
+                  // uma barra pela metade. Em missão semanal isso durava até
+                  // a virada da segunda-feira.
+                  const pct = m.concluida || m.resgatada
+                    ? 100
+                    : Math.min(100, Math.round((m.progresso / m.meta) * 100));
                   return (
                     <div key={m.key} className={`missao ${m.concluida ? "missao-ok" : ""}`}>
                       <div className="missao-topo">
@@ -90,7 +102,9 @@ export default function Missoes() {
                           {m.nome}
                         </span>
                         <span className="missao-progresso">
-                          {Math.min(m.progresso, m.meta)}/{m.meta}
+                          {m.concluida || m.resgatada
+                            ? `${m.meta}/${m.meta}`
+                            : `${Math.min(m.progresso, m.meta)}/${m.meta}`}
                         </span>
                       </div>
                       <p className="missao-desc">{m.descricao}</p>
