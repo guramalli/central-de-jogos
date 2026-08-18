@@ -11,6 +11,24 @@ function occupancyInfo(status) {
   return { text: `${status.onlineCount}/${status.maxPlayers} jogadores online`, full: false, empty: false };
 }
 
+// Ícone da sala: arte própria por dificuldade, com o símbolo da fonte como
+// reserva. Se o PNG faltar ou falhar ao carregar, cai no ícone do Material
+// Symbols que já era usado — assim a sala nunca fica com o círculo vazio.
+function IconeDificuldade({ arquivo, simbolo }) {
+  const [falhou, setFalhou] = useState(false);
+  if (falhou) return <span className="material-symbols-outlined">{simbolo}</span>;
+  return (
+    <img
+      src={`/dificuldades/${arquivo}.png`}
+      alt=""
+      className="lobby-difficulty-img"
+      loading="lazy"
+      decoding="async"
+      onError={() => setFalhou(true)}
+    />
+  );
+}
+
 const DIFFICULTY_INFO = {
   basic: { label: "Iniciante", tier: "basic", icon: "eco" },
   mid: { label: "Intermediária", tier: "mid", icon: "bolt" },
@@ -76,7 +94,18 @@ export default function StopLobby() {
               data-stop-tier={r.semPontuacao ? "zoeira" : diff.tier}
             >
               <div className={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}>
-                <span className="material-symbols-outlined">{diff.icon}</span>
+                <IconeDificuldade
+                  arquivo={
+                    r.semPontuacao
+                      ? "zoeira"
+                      : diff.tier === "advanced"
+                      ? "dificil"
+                      : diff.tier === "mid"
+                      ? "intermediaria"
+                      : "iniciante"
+                  }
+                  simbolo={diff.icon}
+                />
               </div>
               <div>
                 <h3 className="lobby-game-title">

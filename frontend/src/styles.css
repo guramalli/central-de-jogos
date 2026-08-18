@@ -1990,6 +1990,17 @@ table.player-table.player-table-compact td {
   border: 2px solid;
 }
 .lobby-difficulty-icon .material-symbols-outlined { font-size: 17px; }
+
+/* Arte da dificuldade dentro do círculo. 26px num círculo de 34px deixa um
+   respiro de 4px por lado — sem isso a imagem encostaria na borda e os
+   cantos seriam cortados pelo border-radius. O círculo colorido continua:
+   ele emoldura a arte e repete a cor do nível, igual à borda do card. */
+.lobby-difficulty-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: block;
+}
 .lobby-difficulty-basic { background: rgba(6, 214, 160, 0.1); border-color: #06d6a0; color: #06d6a0; }
 .lobby-difficulty-mid { background: rgba(255, 184, 111, 0.12); border-color: var(--accent-2); color: var(--accent-2); }
 .lobby-difficulty-advanced { background: rgba(230, 0, 0, 0.1); border-color: var(--accent); color: var(--accent); }
