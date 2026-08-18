@@ -17,7 +17,7 @@
 // Agora elas entraram no ARTE_TROCAVEL abaixo, então troca de logo passa a
 // chegar sozinha nas próximas vezes; esta subida de versão é pra alcançar
 // quem já tem a antiga guardada.
-const VERSAO = "eg-v4";
+const VERSAO = "eg-v5";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
