@@ -12,16 +12,32 @@ export const RANKS = [
   { min: 5000,    key: "trofeu_bronze",  name: "Troféu de Bronze", icon: "/ranks/trofeu-bronze.png?v=2" },
   { min: 15000,   key: "trofeu_prata",   name: "Troféu de Prata",  icon: "/ranks/trofeu-prata.png?v=2" },
   { min: 40000,   key: "trofeu_ouro",    name: "Troféu de Ouro",   icon: "/ranks/trofeu-ouro.png?v=2" },
-  { min: 100000,  key: "coroa_bronze",   name: "Coroa de Bronze",  icon: "/ranks/coroa-bronze.png?v=2" },
-  { min: 220000,  key: "coroa_prata",    name: "Coroa de Prata",   icon: "/ranks/coroa-prata.png?v=2" },
-  { min: 450000,  key: "coroa_ouro",     name: "Coroa de Ouro",    icon: "/ranks/coroa-ouro.png?v=2" },
+  // ===== TOPO RECALIBRADO =====
+  // Os seis últimos limiares eram 100k / 220k / 450k / 700k / 1M / 1,5M.
+  //
+  // MOTIVO: patente é MENSAL, não acúmulo de carreira — 1.500.000 tinha que
+  // sair dentro de um único mês. Medido com o ritmo real da sala Avançada
+  // (52 pts por rodada, ciclo de 30s), isso exigia 240 horas no mês, ou seja
+  // 8 HORAS POR DIA, 30 dias seguidos. E no melhor caso imaginável —
+  // gabaritando os 6 temas com resposta única e pedindo STOP em todas as
+  // 20 mil rodadas — ainda eram 5,6h/dia.
+  //
+  // Com 700.000 no topo, a patente máxima passa a pedir ~3,7h/dia na
+  // Avançada: continua sendo coisa de jogador obcecado, mas cabe na vida de
+  // alguém. Os degraus de baixo (até Troféu de Ouro) ficaram intactos, e a
+  // curva segue sempre crescente em horas por degrau.
+  //
+  // Baixar limiar de patente só PROMOVE — ninguém é rebaixado por isto.
+  { min: 80000,   key: "coroa_bronze",   name: "Coroa de Bronze",  icon: "/ranks/coroa-bronze.png?v=2" },
+  { min: 140000,  key: "coroa_prata",    name: "Coroa de Prata",   icon: "/ranks/coroa-prata.png?v=2" },
+  { min: 225000,  key: "coroa_ouro",     name: "Coroa de Ouro",    icon: "/ranks/coroa-ouro.png?v=2" },
   // ===== Elite: coroas imperiais (arcos fechados) =====
   // Coroa fechada é hierarquia de imperador, acima da coroa aberta de rei —
   // e a leitura visual acompanha: são bem mais elaboradas que as anteriores.
-  { min: 700000,  key: "coroa_imperial_bronze", name: "Coroa Imperial de Bronze", icon: "/ranks/coroa-imperial-bronze.png?v=2" },
-  { min: 1000000, key: "coroa_imperial_prata",  name: "Coroa Imperial de Prata",  icon: "/ranks/coroa-imperial-prata.png?v=2" },
+  { min: 345000,  key: "coroa_imperial_bronze", name: "Coroa Imperial de Bronze", icon: "/ranks/coroa-imperial-bronze.png?v=2" },
+  { min: 510000,  key: "coroa_imperial_prata",  name: "Coroa Imperial de Prata",  icon: "/ranks/coroa-imperial-prata.png?v=2" },
   // A patente máxima do Stop. O "brilha" no frontend usa esta chave.
-  { min: 1500000, key: "coroa_imperial_ouro",   name: "Coroa Imperial de Ouro",   icon: "/ranks/coroa-imperial-ouro.png?v=2", brilha: true, exclusiva: true },
+  { min: 700000,  key: "coroa_imperial_ouro",   name: "Coroa Imperial de Ouro",   icon: "/ranks/coroa-imperial-ouro.png?v=2", brilha: true, exclusiva: true },
 ];
 
 export function getRankForPoints(points, opts = {}) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import MiniPodium from "../components/MiniPodium.jsx";
+import MissoesDoJogo from "../components/MissoesDoJogo.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 
@@ -149,7 +150,12 @@ export default function QuizLobby() {
             da resposta vão aparecendo aos poucos, mas nunca mais da metade delas.
           </p>
         </div>
-        <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
+        {/* Coluna da direita do cabeçalho: o botão de patentes e as missões
+            do dia dividem o mesmo espaço, empilhados. */}
+        <div className="hero-lado">
+          <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
+          <MissoesDoJogo gameKey="quiz" />
+        </div>
       </div>
 
       <MiniPodium gameKey="quiz" />

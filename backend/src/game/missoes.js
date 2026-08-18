@@ -17,30 +17,55 @@ export const MISSOES_ATIVAS = true;
 // 10-15 e o 1º lugar de um bloco do Stop vale 150. As missões premiam a
 // CONSTÂNCIA, não substituem o jogo — completar todas as diárias rende
 // menos que uma sessão boa de partidas.
+// BALANCEAMENTO DAS RECOMPENSAS
+//
+// A régua usada não foi "quantos pontos parece bastante", e sim a recompensa
+// como BÔNUS sobre o que a pessoa já ganha cumprindo a missão. Isso importa
+// porque Stop e Quiz têm economias muito diferentes: uma hora de Stop rende
+// cerca de 6.240 pontos e uma hora de Quiz cerca de 580 — no Quiz só o
+// primeiro a acertar pontua.
+//
+// Pela régua antiga, as missões de Stop davam 19% de bônus e a "Sabe-tudo"
+// do Quiz dava 100%: a mesma quantia significava coisas opostas. Agora quase
+// todas ficam entre 37% e 45%, ou seja, cumprir a missão vale de verdade nos
+// dois jogos.
+//
+// As metas subiram junto (10 → 12 rodadas, 3 → 4 temas, 30 → 40 na semana):
+// prêmio maior sem exigir mais viraria pontuação de graça.
+//
+// EFEITO NO RANKING: estes pontos entram no monthlyScore, que é o ranking
+// premiado. No mês somam ~23 mil no Stop (3,3% da escada de patentes) e
+// ~14 mil no Quiz (6,7%). É bônus que ajuda, não caminho alternativo pra
+// ganhar o Pix sem jogar.
 export const MISSOES = {
   diarias: [
     // --- Stop ---
-    { key: "stop_10_rodadas", jogo: "stop", nome: "Aquecimento", descricao: "Jogue 10 rodadas de Stop", meta: 10, evento: "rodada_stop", pontos: 100 },
-    { key: "stop_10_stops", jogo: "stop", nome: "Dedo rápido", descricao: "Peça STOP 10 vezes", meta: 10, evento: "stop_pedido", pontos: 100 },
+    { key: "stop_10_rodadas", jogo: "stop", nome: "Aquecimento", descricao: "Jogue 12 rodadas de Stop", meta: 12, evento: "rodada_stop", pontos: 280 },
+    { key: "stop_10_stops", jogo: "stop", nome: "Dedo rápido", descricao: "Peça STOP 12 vezes", meta: 12, evento: "stop_pedido", pontos: 280 },
     // --- Quiz ---
-    { key: "quiz_10_acertos", jogo: "quiz", nome: "Sabe-tudo", descricao: "Acerte 10 perguntas no Quiz", meta: 10, evento: "quiz_acerto", pontos: 120 },
-    { key: "quiz_3_temas", jogo: "quiz", nome: "Passeio", descricao: "Acerte perguntas em 3 temas diferentes", meta: 3, evento: "tema_distinto", pontos: 80 },
+    { key: "quiz_10_acertos", jogo: "quiz", nome: "Sabe-tudo", descricao: "Acerte 14 perguntas no Quiz", meta: 14, evento: "quiz_acerto", pontos: 160 },
+    { key: "quiz_3_temas", jogo: "quiz", nome: "Passeio", descricao: "Acerte perguntas em 4 temas diferentes", meta: 4, evento: "tema_distinto", pontos: 180 },
     // --- Acromania ---
-    { key: "acro_3_frases", jogo: "acromania", nome: "Criativo", descricao: "Envie 3 frases na Acromania", meta: 3, evento: "acro_frase", pontos: 80 },
+    { key: "acro_3_frases", jogo: "acromania", nome: "Criativo", descricao: "Envie 4 frases na Acromania", meta: 4, evento: "acro_frase", pontos: 180 },
     // --- Premium (escondidas enquanto o recurso está desligado) ---
-    { key: "premium_quiz_25", jogo: "quiz", nome: "Maratonista", descricao: "Acerte 25 perguntas no Quiz", meta: 25, evento: "quiz_acerto", pontos: 250, premium: true },
-    { key: "premium_stop_bloco", jogo: "stop", nome: "Dominante", descricao: "Termine um bloco em 1º lugar", meta: 1, evento: "bloco_vencido", pontos: 200, premium: true },
+    { key: "premium_quiz_25", jogo: "quiz", nome: "Maratonista", descricao: "Acerte 30 perguntas no Quiz", meta: 30, evento: "quiz_acerto", pontos: 400, premium: true },
+    { key: "premium_stop_bloco", jogo: "stop", nome: "Dominante", descricao: "Termine um bloco em 1º lugar", meta: 1, evento: "bloco_vencido", pontos: 500, premium: true },
   ],
   semanais: [
     // --- Stop ---
-    { key: "stop_sem_30", jogo: "stop", nome: "Frequente", descricao: "Jogue 30 rodadas de Stop na semana", meta: 30, evento: "rodada_stop", pontos: 300 },
+    { key: "stop_sem_30", jogo: "stop", nome: "Frequente", descricao: "Jogue 40 rodadas de Stop na semana", meta: 40, evento: "rodada_stop", pontos: 800 },
+    // Semanal de STOPs pedidos: reaproveita o evento "stop_pedido", que já
+    // existe e já alimenta a "Dedo rápido" diária — nenhuma linha nova no
+    // código do jogo. Premia quem arrisca fechar a rodada, não só quem
+    // preenche os campos e espera.
+    { key: "stop_sem_40_stops", jogo: "stop", nome: "Mão firme", descricao: "Peça STOP 40 vezes na semana", meta: 40, evento: "stop_pedido", pontos: 800 },
     // --- Quiz ---
-    { key: "quiz_sem_100", jogo: "quiz", nome: "Enciclopédia", descricao: "Acerte 100 perguntas no Quiz", meta: 100, evento: "quiz_acerto", pontos: 500 },
-    { key: "quiz_sem_5_temas", jogo: "quiz", nome: "Curioso", descricao: "Acerte perguntas em 5 temas diferentes", meta: 5, evento: "tema_distinto", pontos: 200 },
+    { key: "quiz_sem_100", jogo: "quiz", nome: "Enciclopédia", descricao: "Acerte 120 perguntas no Quiz", meta: 120, evento: "quiz_acerto", pontos: 650 },
+    { key: "quiz_sem_5_temas", jogo: "quiz", nome: "Curioso", descricao: "Acerte perguntas em 6 temas diferentes", meta: 6, evento: "tema_distinto", pontos: 400 },
     // --- Acromania ---
-    { key: "acro_sem_votos", jogo: "acromania", nome: "Popular", descricao: "Receba 10 votos nas suas frases", meta: 10, evento: "acro_voto_recebido", pontos: 250 },
+    { key: "acro_sem_votos", jogo: "acromania", nome: "Popular", descricao: "Receba 12 votos nas suas frases", meta: 12, evento: "acro_voto_recebido", pontos: 450 },
     // --- Premium ---
-    { key: "premium_stop_podio", jogo: "stop", nome: "Pódio", descricao: "Termine 3 blocos no pódio", meta: 3, evento: "bloco_podio", pontos: 600, premium: true },
+    { key: "premium_stop_podio", jogo: "stop", nome: "Pódio", descricao: "Termine 3 blocos no pódio", meta: 3, evento: "bloco_podio", pontos: 900, premium: true },
   ],
 };
 
