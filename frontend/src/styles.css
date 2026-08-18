@@ -1238,8 +1238,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .lobby-quiz-card-active:hover { background: var(--bg-panel-2); transform: translateY(-2px); }
 .quiz-theme-icon {
-  width: 34px;
-  height: 34px;
+  /* 44px no desktop, igual à arte das salas do Stop — os dois lobbies usam
+     o mesmo formato de card e tamanhos diferentes saltariam à vista. */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--bg-panel-2);
   border: 2px solid var(--border);
@@ -1259,6 +1261,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-theme-icon-emblema {
   background: none;
   border: none;
+}
+@media (max-width: 700px) {
+  .quiz-theme-icon { width: 34px; height: 34px; }
 }
 
 .quiz-theme-emblema {
@@ -1991,15 +1996,21 @@ table.player-table.player-table-compact td {
 }
 .lobby-difficulty-icon .material-symbols-outlined { font-size: 17px; }
 
-/* Arte da dificuldade dentro do círculo. 26px num círculo de 34px deixa um
-   respiro de 4px por lado — sem isso a imagem encostaria na borda e os
-   cantos seriam cortados pelo border-radius. O círculo colorido continua:
-   ele emoldura a arte e repete a cor do nível, igual à borda do card. */
+/* Arte da dificuldade solta no card — sem círculo, sem fundo, sem borda.
+   A arte já tem contorno escuro próprio e se destaca sozinha no fundo
+   escuro; o círculo em volta só criava uma moldura concorrente.
+   A cor do nível continua sendo dita pela borda do card e pelo selo.
+   44px no desktop: o card tem espaço de sobra e a arte tem detalhe que
+   merece ser visto. No celular volta pra 34px, onde a largura é disputada. */
 .lobby-difficulty-img {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   display: block;
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .lobby-difficulty-img { width: 34px; height: 34px; }
 }
 .lobby-difficulty-basic { background: rgba(6, 214, 160, 0.1); border-color: #06d6a0; color: #06d6a0; }
 .lobby-difficulty-mid { background: rgba(255, 184, 111, 0.12); border-color: var(--accent-2); color: var(--accent-2); }

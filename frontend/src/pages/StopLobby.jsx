@@ -14,9 +14,20 @@ function occupancyInfo(status) {
 // Ícone da sala: arte própria por dificuldade, com o símbolo da fonte como
 // reserva. Se o PNG faltar ou falhar ao carregar, cai no ícone do Material
 // Symbols que já era usado — assim a sala nunca fica com o círculo vazio.
-function IconeDificuldade({ arquivo, simbolo }) {
+function IconeDificuldade({ arquivo, simbolo, classeCirculo }) {
   const [falhou, setFalhou] = useState(false);
-  if (falhou) return <span className="material-symbols-outlined">{simbolo}</span>;
+
+  // Reserva: sem a arte, volta o símbolo da fonte DENTRO do círculo — ali
+  // ele faz falta como moldura, senão ficaria um ícone solto e miúdo.
+  if (falhou) {
+    return (
+      <div className={classeCirculo}>
+        <span className="material-symbols-outlined">{simbolo}</span>
+      </div>
+    );
+  }
+
+  // Com arte: sem círculo, sem fundo, sem borda. A logo flutua no card.
   return (
     <img
       src={`/dificuldades/${arquivo}.png`}
@@ -93,20 +104,19 @@ export default function StopLobby() {
               className={`glossy-panel lobby-game-card ${diff.tier !== "basic" ? "lobby-game-card-advanced" : ""} ${r.semPontuacao ? "lobby-game-card-zoeira" : ""}`}
               data-stop-tier={r.semPontuacao ? "zoeira" : diff.tier}
             >
-              <div className={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}>
-                <IconeDificuldade
-                  arquivo={
-                    r.semPontuacao
-                      ? "zoeira"
-                      : diff.tier === "advanced"
-                      ? "dificil"
-                      : diff.tier === "mid"
-                      ? "intermediaria"
-                      : "iniciante"
-                  }
-                  simbolo={diff.icon}
-                />
-              </div>
+              <IconeDificuldade
+                arquivo={
+                  r.semPontuacao
+                    ? "zoeira"
+                    : diff.tier === "advanced"
+                    ? "dificil"
+                    : diff.tier === "mid"
+                    ? "intermediaria"
+                    : "iniciante"
+                }
+                simbolo={diff.icon}
+                classeCirculo={`lobby-difficulty-icon lobby-difficulty-${diff.tier}`}
+              />
               <div>
                 <h3 className="lobby-game-title">
                   {r.label}
