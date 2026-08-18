@@ -93,7 +93,7 @@ export const STOP_TITULOS = {
   ],
   avancada: [
     { min: 200, nome: "Elite do STOP" },
-    { min: 1000, nome: "Lenda da Avançada" },
+    { min: 2500, nome: "Lenda da Avançada" },
     { min: 5000, nome: "Imortal da Avançada" },
   ],
 };
