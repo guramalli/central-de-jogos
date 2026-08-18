@@ -5286,6 +5286,66 @@ span.votacao-trilha-item {
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
 }
 .painel-item-meta { display: block; margin-top: 5px; font-size: 12px; color: var(--text-dim); }
+
+/* ===== Missões de hoje no painel do Lobby =====
+   Reusa a caixa e a barra dos outros itens do painel pra ler como parte do
+   mesmo bloco, não como enxerto. Duas missões no máximo: mais que isso e o
+   painel deixa de ser resumo. */
+.painel-missoes {
+  display: block;
+  background: var(--bg-panel-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+.painel-missoes:hover { border-color: var(--accent-2); }
+
+.painel-missoes-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin-bottom: 10px;
+}
+.painel-missoes-titulo .material-symbols-outlined { font-size: 16px; }
+
+.painel-missao + .painel-missao { margin-top: 10px; }
+.painel-missao-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.painel-missao-nome {
+  font-size: 13px;
+  color: var(--text);
+  /* Nome longo corta em vez de empurrar o contador pra fora da caixa. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.painel-missao-contador {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+/* Missão fechada e não resgatada: verde, porque é ponto esperando ser
+   buscado — o que a gente mais quer que a pessoa note. */
+.painel-missao-pronta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #06d6a0;
+  flex-shrink: 0;
+}
+.painel-barra-pronta { background: #06d6a0 !important; }
 @media (max-width: 900px) {
   .painel-jogador { min-width: 0; width: 100%; }
 }
