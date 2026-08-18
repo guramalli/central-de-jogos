@@ -255,11 +255,14 @@ export default function QuizGame() {
 
   useEffect(() => {
     if (phase !== "active") return;
-    // O campo fica desabilitado durante o intervalo, e navegador nenhum
-    // deixa focar um campo desabilitado. Por isso o foco espera o próximo
-    // quadro de renderização (quando o campo já voltou a ficar ativo) — e
-    // tenta de novo logo depois, como rede de segurança pra celular, que
-    // às vezes demora um pouco mais pra liberar o campo.
+    // Foco no começo de cada pergunta. Espera o próximo quadro de
+    // renderização e tenta de novo logo depois, como rede de segurança.
+    //
+    // NO iOS ISTO NÃO ABRE O TECLADO — o Safari só permite abrir teclado a
+    // partir de um gesto do usuário, e um efeito do React não é gesto. Aqui
+    // serve pro desktop (onde funciona) e pra deixar o cursor no lugar certo.
+    // Quem mantém o teclado aberto no iPhone é o campo nunca sair do DOM,
+    // somado ao refoco feito dentro do handleGuessSubmit.
     const focar = () => inputRef.current?.focus();
     const raf = requestAnimationFrame(focar);
     const retry = setTimeout(focar, 120);
@@ -281,7 +284,7 @@ export default function QuizGame() {
 
   function handleGuessSubmit(e) {
     e.preventDefault();
-    if (!guess.trim() || phase !== "active") return;
+    if (!guess.trim() || phase !== "active" || alreadyScored) return;
     const sent = guess.trim();
     socketRef.current?.emit("quiz-submit-guess", { guess: sent });
     // Guarda no histórico pra dar pra recuperar com as setas do teclado —
@@ -289,6 +292,11 @@ export default function QuizGame() {
     setGuessHistory((prev) => [...prev, sent].slice(-20));
     setHistoryIndex(null);
     setGuess("");
+    // Refoco aqui dentro de propósito: este handler roda a partir de um
+    // gesto do usuário (Enter ou toque no botão), que é a única situação em
+    // que o iOS aceita focar por código e manter o teclado aberto. O mesmo
+    // focus() chamado de um timer ou efeito não reabriria o teclado.
+    inputRef.current?.focus();
   }
 
   // Navega pelo histórico de respostas com as setas ↑ e ↓, igual funciona
@@ -464,8 +472,14 @@ export default function QuizGame() {
               )}
             </>
           )}
-          {!isArenaBreak && !alreadyScored && (
-            <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
+          {/* O formulário fica SEMPRE montado, mesmo depois de acertar ou
+              durante o intervalo da arena. Antes ele desmontava nesses
+              momentos, e no iOS isso é fatal: quando o campo sai do DOM o
+              teclado fecha, e o Safari NÃO deixa reabrir por código — só com
+              toque. O jogador acertava e tinha que tocar de novo na pergunta
+              seguinte, toda vez. Mantendo o campo montado, o foco nunca se
+              perde e o teclado fica aberto a sessão inteira. */}
+          <form onSubmit={handleGuessSubmit} className="quiz-guess-form">
               <input
                 ref={inputRef}
                 value={guess}
@@ -478,7 +492,15 @@ export default function QuizGame() {
                   e.preventDefault();
                   setPasteBlockedMsg(true);
                 }}
-                placeholder={phase === "active" ? "Digite sua resposta..." : "Aguarde a próxima pergunta..."}
+                placeholder={
+                  alreadyScored
+                    ? "Você já pontuou nesta pergunta"
+                    : isArenaBreak
+                    ? "Intervalo — já já volta"
+                    : phase === "active"
+                    ? "Digite sua resposta..."
+                    : "Aguarde a próxima pergunta..."
+                }
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="none"
@@ -495,11 +517,10 @@ export default function QuizGame() {
                   "enviar" do teclado) já manda a resposta. Palpite fora da
                   pergunta é ignorado pelo handleGuessSubmit, que confere a
                   fase antes de enviar. */}
-              <button className="quiz-answer-btn" type="submit">
-                Responder
-              </button>
-            </form>
-          )}
+            <button className="quiz-answer-btn" type="submit">
+              Responder
+            </button>
+          </form>
         </div>
 
         {/* Log de respostas — todas as tentativas da sala, certas e erradas */}

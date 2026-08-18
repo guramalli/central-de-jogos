@@ -89,9 +89,28 @@ export default function QuizLobby() {
   useEffect(() => {
     api.get("/quiz-rooms").then(({ data }) => {
       const TIER_ORDER = { padrao: 0, avancado: 1 };
+
+      // Quantas salas cada tema tem. Temas com um par (Padrão + Avançado)
+      // ocupam uma linha inteira da grade de duas colunas; um tema com sala
+      // ÚNICA ocuparia meia linha e empurraria todos os pares seguintes pela
+      // metade, desalinhando a lista inteira a partir dali.
+      const salasPorTema = {};
+      for (const r of data) {
+        const tema = r.label.split(" — ")[0];
+        salasPorTema[tema] = (salasPorTema[tema] || 0) + 1;
+      }
+
       const sorted = [...data].sort((a, b) => {
         const themeA = a.label.split(" — ")[0];
         const themeB = b.label.split(" — ")[0];
+
+        // Salas sem par vão para o fim, onde ficar sozinha não atrapalha
+        // ninguém. Hoje é só o Direito, mas a regra vale pra qualquer tema
+        // futuro que entre com uma sala só.
+        const soA = salasPorTema[themeA] === 1 ? 1 : 0;
+        const soB = salasPorTema[themeB] === 1 ? 1 : 0;
+        if (soA !== soB) return soA - soB;
+
         const themeCompare = themeA.localeCompare(themeB, "pt-BR");
         if (themeCompare !== 0) return themeCompare;
         return (TIER_ORDER[a.tier] ?? 0) - (TIER_ORDER[b.tier] ?? 0);
@@ -135,7 +154,7 @@ export default function QuizLobby() {
 
       <MiniPodium gameKey="quiz" />
 
-      <div className="lobby-game-grid">
+      <div className="lobby-game-grid lobby-salas-grid">
         {themeRooms.map((r) => {
           const occ = occupancyInfo(r);
           return (
@@ -144,10 +163,11 @@ export default function QuizLobby() {
               to={`/jogos/quiz/${r.roomId}`}
               className="glossy-panel lobby-game-card quiz-themed-card"
               data-quiz-theme={r.themeKey || undefined}
+              data-quiz-tier={r.tier === "avancado" ? "avancado" : "padrao"}
             >
               <IconeTema themeKey={r.themeKey} />
               <div>
-                <h3 className={`lobby-game-title quiz-titulo-${r.tier === "padrao" ? "padrao" : "avancado"}`}>
+                <h3 className={`lobby-game-title quiz-titulo-${r.tier === "avancado" ? "avancado" : "padrao"}`}>
                   {nomeSemNivel(r.label)}
                 </h3>
                 {r.tier && (
