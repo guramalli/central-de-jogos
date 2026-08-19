@@ -3210,6 +3210,20 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 
 .report-edicao-acoes { display: flex; gap: 8px; margin-top: 4px; }
+.report-edicao-aviso {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--accent-2);
+}
+.report-aviso-ok {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(6, 214, 160, 0.1);
+  border: 1px solid rgba(6, 214, 160, 0.35);
+  color: #06d6a0;
+  font-size: 13px;
+}
 
 .report-group-list {
   margin: 10px 0 0 0;

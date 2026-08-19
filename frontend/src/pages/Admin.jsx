@@ -53,6 +53,7 @@ export default function Admin() {
   // Qual denúncia está aberta pra correção, e o rascunho dela.
   const [editandoReport, setEditandoReport] = useState(null);
   const [rascunhoReport, setRascunhoReport] = useState({ question: "", answer: "", themeKey: "", difficulty: "" });
+  const [avisoReport, setAvisoReport] = useState("");
   const [feedbacks, setFeedbacks] = useState([]);
   const [suspicious, setSuspicious] = useState([]);
   const [online, setOnline] = useState(null);
@@ -228,7 +229,11 @@ export default function Admin() {
       // faria a lista crescer com coisa já tratada.
       await api.post(`/admin/question-reports/${questionId}/resolve`);
       setEditandoReport(null);
-      loadQuestionReports();
+      await loadQuestionReports();
+      // A denúncia some da lista ao ser resolvida, então sem esta confirmação
+      // não sobra nenhum sinal de que a edição realmente foi gravada.
+      setAvisoReport("Pergunta corrigida e denúncia resolvida.");
+      setTimeout(() => setAvisoReport(""), 4000);
     } catch (e) {
       alert(e.response?.data?.error || "Erro ao salvar.");
     }
@@ -618,6 +623,7 @@ export default function Admin() {
           Perguntas que jogadores sinalizaram com problema. A com mais denúncias aparece primeiro.
           Dá pra corrigir, trocar de tema ou apagar aqui mesmo — corrigir já marca como resolvida.
         </p>
+        {avisoReport && <p className="report-aviso-ok">✓ {avisoReport}</p>}
         {questionReports.length === 0 && (
           <p style={{ color: "var(--text-dim)" }}>Nenhuma pergunta reportada no momento. 🎉</p>
         )}
@@ -631,6 +637,12 @@ export default function Admin() {
                   <span style={{ color: "var(--accent)" }}>{g.count} denúncia(s)</span>
                 </div>
               </div>
+              {/* Com o formulário aberto, os botões do topo SOMEM.
+                  Antes eles ficavam ativos, e clicar em "Resolvida" depois de
+                  já ter digitado a correção fechava a denúncia jogando o texto
+                  fora, sem aviso. Agora, com a edição aberta, os únicos
+                  caminhos são "Salvar e resolver" ou "Cancelar". */}
+              {editandoReport !== g.questionId && (
               <div className="report-acoes">
                 <button
                   className="btn secondary"
@@ -656,10 +668,15 @@ export default function Admin() {
                   Apagar
                 </button>
               </div>
+              )}
             </div>
 
             {editandoReport === g.questionId && (
               <div className="report-edicao">
+                <p className="report-edicao-aviso">
+                  Editando — as mudanças só valem ao clicar em{" "}
+                  <strong>Salvar e resolver</strong>.
+                </p>
                 <label className="report-campo">
                   <span>Pergunta</span>
                   <textarea
