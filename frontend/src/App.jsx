@@ -131,6 +131,10 @@ export default function App() {
           <div className="app-header-left">
             <Link to="/" className="logo">
               <img src={logoSrc} alt="Educação Gamer" className="header-logo-img" />
+              {/* Selo de beta em CSS, não desenhado na imagem: quando o beta
+                  acabar, some apagando este span — sem precisar refazer a
+                  logo nem invalidar o cache dela no service worker. */}
+              <span className="logo-beta">beta</span>
             </Link>
             {user && (
               <nav className="nav-links">
