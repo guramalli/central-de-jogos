@@ -208,6 +208,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 /* ===== Header / logo ===== */
 .logo {
+  /* Referência pro selo "beta", que é posicionado de forma absoluta pra
+     encostar no canto da arte. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -953,14 +956,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 /* ===== Logo Educação Gamer (imagem) ===== */
 .header-logo-img { height: 62px; width: auto; object-fit: contain; }
 
-/* Selo "beta" ao lado da logo do cabeçalho.
-   Alinhado ao TOPO da logo (align-self: flex-start) com um empurrãozinho
-   pra baixo: assim ele fica na altura do texto da marca, não centralizado
-   na imagem inteira — que deixaria o selo flutuando solto no meio. */
+/* Selo "beta" encostado no canto superior da logo, como marca de versão.
+   O posicionamento é absoluto pra ele poder ENCOSTAR na arte sem ser
+   empurrado pelo gap do flex do .logo — o gap de 10px é o que antes o
+   mantinha afastado. */
 .logo-beta {
-  align-self: flex-start;
-  margin-top: 14px;
-  margin-left: -4px;
+  position: absolute;
+  top: 8px;
+  left: calc(100% - 30px);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -1958,7 +1961,7 @@ table.player-table.player-table-compact td {
   .app-header-right { width: 100%; justify-content: space-between; }
   .header-logo-img { height: 42px; }
   /* Acompanha a logo menor do mobile. */
-  .logo-beta { font-size: 9px; margin-top: 8px; padding: 1px 5px; }
+  .logo-beta { font-size: 8px; top: 4px; left: calc(100% - 24px); padding: 1px 4px; }
 
   /* Textos grandes */
   .hero-title, .lobby-hero-title { font-size: 24px; }
