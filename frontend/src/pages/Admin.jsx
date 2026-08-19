@@ -50,6 +50,9 @@ export default function Admin() {
   // Resumo de quantos jogam no celular x computador.
   const [plataformas, setPlataformas] = useState(null);
   const [usersPage, setUsersPage] = useState(1);
+  // Qual denúncia está aberta pra correção, e o rascunho dela.
+  const [editandoReport, setEditandoReport] = useState(null);
+  const [rascunhoReport, setRascunhoReport] = useState({ question: "", answer: "", themeKey: "", difficulty: "" });
   const [feedbacks, setFeedbacks] = useState([]);
   const [suspicious, setSuspicious] = useState([]);
   const [online, setOnline] = useState(null);
@@ -199,6 +202,48 @@ export default function Admin() {
       loadQuizPending();
     } catch (e) {
       alert(e.response?.data?.error || "Erro ao salvar.");
+    }
+  }
+
+  // ===== Correção direto no card da denúncia =====
+  // Antes só dava pra "marcar resolvida": a correção tinha que ser feita
+  // rolando até o índice de perguntas, procurando o texto e editando lá.
+  // Aqui a pessoa corrige, troca tema/dificuldade ou apaga sem sair do lugar.
+  //
+  // Usa os endpoints que já existem: PATCH /quiz-questions/:id (que já aceita
+  // pergunta, resposta, tema e dificuldade) e DELETE /quiz-questions/:id.
+  async function salvarCorrecaoReport(questionId) {
+    if (!rascunhoReport.question.trim() || !rascunhoReport.answer.trim()) {
+      alert("Pergunta e resposta não podem ficar vazias.");
+      return;
+    }
+    try {
+      await api.patch(`/admin/quiz-questions/${questionId}`, {
+        question: rascunhoReport.question.trim(),
+        answer: rascunhoReport.answer.trim(),
+        themeKey: rascunhoReport.themeKey,
+        difficulty: rascunhoReport.difficulty,
+      });
+      // Corrigiu = resolveu. Deixar a denúncia aberta depois da correção só
+      // faria a lista crescer com coisa já tratada.
+      await api.post(`/admin/question-reports/${questionId}/resolve`);
+      setEditandoReport(null);
+      loadQuestionReports();
+    } catch (e) {
+      alert(e.response?.data?.error || "Erro ao salvar.");
+    }
+  }
+
+  async function apagarPerguntaReportada(questionId, texto) {
+    if (!confirm(`Apagar esta pergunta de vez?\n\n"${texto}"\n\nIsso não pode ser desfeito.`)) return;
+    try {
+      await api.delete(`/admin/quiz-questions/${questionId}`);
+      // A denúncia some junto: a pergunta não existe mais.
+      await api.post(`/admin/question-reports/${questionId}/resolve`).catch(() => {});
+      setEditandoReport(null);
+      loadQuestionReports();
+    } catch (e) {
+      alert(e.response?.data?.error || "Erro ao apagar.");
     }
   }
 
@@ -571,7 +616,7 @@ export default function Admin() {
         <h2>🚩 Perguntas reportadas ({questionReports.length})</h2>
         <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
           Perguntas que jogadores sinalizaram com problema. A com mais denúncias aparece primeiro.
-          Corrija pelo índice de perguntas acima e depois marque como resolvida aqui.
+          Dá pra corrigir, trocar de tema ou apagar aqui mesmo — corrigir já marca como resolvida.
         </p>
         {questionReports.length === 0 && (
           <p style={{ color: "var(--text-dim)" }}>Nenhuma pergunta reportada no momento. 🎉</p>
@@ -586,10 +631,88 @@ export default function Admin() {
                   <span style={{ color: "var(--accent)" }}>{g.count} denúncia(s)</span>
                 </div>
               </div>
-              <button className="btn secondary" onClick={() => resolveQuestionReport(g.questionId)}>
-                Marcar resolvida
-              </button>
+              <div className="report-acoes">
+                <button
+                  className="btn secondary"
+                  onClick={() => {
+                    setEditandoReport(g.questionId);
+                    setRascunhoReport({
+                      question: g.question.question,
+                      answer: g.question.answer,
+                      themeKey: g.question.themeKey || "",
+                      difficulty: g.question.difficulty || "medio",
+                    });
+                  }}
+                >
+                  Corrigir
+                </button>
+                <button className="btn secondary" onClick={() => resolveQuestionReport(g.questionId)}>
+                  Resolvida
+                </button>
+                <button
+                  className="btn secondary btn-perigo"
+                  onClick={() => apagarPerguntaReportada(g.questionId, g.question.question)}
+                >
+                  Apagar
+                </button>
+              </div>
             </div>
+
+            {editandoReport === g.questionId && (
+              <div className="report-edicao">
+                <label className="report-campo">
+                  <span>Pergunta</span>
+                  <textarea
+                    rows={2}
+                    value={rascunhoReport.question}
+                    onChange={(e) => setRascunhoReport({ ...rascunhoReport, question: e.target.value })}
+                  />
+                </label>
+
+                <label className="report-campo">
+                  <span>Resposta</span>
+                  <input
+                    value={rascunhoReport.answer}
+                    onChange={(e) => setRascunhoReport({ ...rascunhoReport, answer: e.target.value })}
+                  />
+                </label>
+
+                <div className="report-campo-dupla">
+                  <label className="report-campo">
+                    <span>Tema</span>
+                    <select
+                      value={rascunhoReport.themeKey}
+                      onChange={(e) => setRascunhoReport({ ...rascunhoReport, themeKey: e.target.value })}
+                    >
+                      {Object.entries(QUIZ_THEME_NAMES).map(([k, nome]) => (
+                        <option key={k} value={k}>{nome}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="report-campo">
+                    <span>Dificuldade</span>
+                    <select
+                      value={rascunhoReport.difficulty}
+                      onChange={(e) => setRascunhoReport({ ...rascunhoReport, difficulty: e.target.value })}
+                    >
+                      <option value="facil">Fácil (sala Padrão)</option>
+                      <option value="medio">Médio (sala Padrão)</option>
+                      <option value="dificil">Difícil (sala Avançada)</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="report-edicao-acoes">
+                  <button className="btn" onClick={() => salvarCorrecaoReport(g.questionId)}>
+                    Salvar e resolver
+                  </button>
+                  <button className="btn secondary" onClick={() => setEditandoReport(null)}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
             <ul className="report-group-list">
               {g.reports.map((r) => (
                 <li key={r.id}>

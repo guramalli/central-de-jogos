@@ -208,6 +208,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 /* ===== Header / logo ===== */
 .logo {
+  /* Referência pro selo "beta", que é posicionado de forma absoluta pra
+     encostar no canto da arte. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -952,6 +955,27 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 /* ===== Logo Educação Gamer (imagem) ===== */
 .header-logo-img { height: 62px; width: auto; object-fit: contain; }
+
+/* Selo "beta" encostado no canto superior da logo, como marca de versão.
+   O posicionamento é absoluto pra ele poder ENCOSTAR na arte sem ser
+   empurrado pelo gap do flex do .logo — o gap de 10px é o que antes o
+   mantinha afastado. */
+.logo-beta {
+  position: absolute;
+  top: 8px;
+  left: calc(100% - 30px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  background: rgba(255, 184, 111, 0.12);
+  border: 1px solid rgba(255, 184, 111, 0.4);
+  border-radius: 4px;
+  padding: 2px 6px;
+  line-height: 1;
+}
 .hero-logo-img { height: 60px; width: auto; object-fit: contain; margin-bottom: 12px; }
 .auth-logo-img { width: 100%; max-width: 260px; height: auto; object-fit: contain; }
 .game-card-logo-img { width: 170px; height: auto; object-fit: contain; }
@@ -1936,6 +1960,8 @@ table.player-table.player-table-compact td {
   .nav-links { flex-wrap: wrap; gap: 8px 14px; font-size: 13px; }
   .app-header-right { width: 100%; justify-content: space-between; }
   .header-logo-img { height: 42px; }
+  /* Acompanha a logo menor do mobile. */
+  .logo-beta { font-size: 8px; top: 4px; left: calc(100% - 24px); padding: 1px 4px; }
 
   /* Textos grandes */
   .hero-title, .lobby-hero-title { font-size: 24px; }
@@ -3142,6 +3168,49 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   gap: 12px;
   flex-wrap: wrap;
 }
+/* ===== Correção direto no card da denúncia ===== */
+.report-acoes { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.btn-perigo { border-color: rgba(255, 107, 107, 0.5) !important; color: #ff6b6b !important; }
+
+.report-edicao {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--accent-2);
+  border-radius: 8px;
+  background: rgba(255, 184, 111, 0.05);
+}
+.report-campo { display: block; margin-bottom: 10px; }
+.report-campo > span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.report-campo textarea,
+.report-campo input,
+.report-campo select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+.report-campo textarea { resize: vertical; }
+
+/* Tema e dificuldade lado a lado: os dois são curtos e mudam juntos. */
+.report-campo-dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) {
+  .report-campo-dupla { grid-template-columns: 1fr; }
+}
+
+.report-edicao-acoes { display: flex; gap: 8px; margin-top: 4px; }
+
 .report-group-list {
   margin: 10px 0 0 0;
   padding-left: 18px;
