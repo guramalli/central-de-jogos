@@ -265,6 +265,21 @@ export class QuizRoom {
       trackPlaytime(leaving.userId, leaving.joinedAt);
       const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
       if (!stillConnected) {
+        // Descarta a pontuação em cache de quem saiu de vez.
+        //
+        // O addPlayer só consulta o banco quando o userId NÃO está no cache
+        // (`if (!this.mensalCache.has(userId))`). Sem esta limpeza, o valor
+        // antigo ficava preso na memória da SALA: a pessoa saía, pontuava em
+        // outra sala do mesmo tema (ou ganhava pontos de missão), voltava — e
+        // a lista de jogadores continuava mostrando a pontuação e a PATENTE
+        // de antes, porque a sala nunca mais perguntava ao banco.
+        //
+        // Só limpa quando não sobrou nenhuma conexão daquele usuário aqui:
+        // quem tem duas abas abertas continua com o cache válido.
+        this.lifetimeCache.delete(leaving.userId);
+        this.mensalCache.delete(leaving.userId);
+        this.roomLifetimeCache.delete(leaving.userId);
+
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
       }
