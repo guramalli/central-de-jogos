@@ -34,6 +34,7 @@ export const ROOM_CONFIGS = {
       "verbos",
       "carros",
       "esportes",
+      "games",
     ],
   },
   "stop-sala-1b": {
@@ -57,6 +58,7 @@ export const ROOM_CONFIGS = {
       "verbos",
       "carros",
       "esportes",
+      "games",
     ],
   },
   "stop-sala-intermediaria": {

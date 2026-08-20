@@ -11,6 +11,7 @@
     "prisma:seed:quiz": "node prisma/seedQuiz.js",
     "import-carros": "node prisma/importCarros.js",
     "import-esportes": "node prisma/importEsportes.js",
+    "import-games": "node prisma/importGames.js",
     "ranking-oculto": "node scripts/rankingOculto.js",
     "recordes": "node scripts/recordes.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
