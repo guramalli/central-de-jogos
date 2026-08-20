@@ -21,15 +21,40 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
   const [clanInviteStatus, setClanInviteStatus] = useState(null); // null | "sending" | "sent" | "error"
   const anchorRef = useRef(null);
   const hideTimerRef = useRef(null);
+  // Quando os dados atuais foram buscados. Guardado em ref (e não em estado)
+  // porque mudá-lo não deve provocar renderização.
+  const buscadoEmRef = useRef(0);
+
+  // De quanto em quanto tempo vale a pena buscar de novo.
+  //
+  // O PERFIL PRÓPRIO é o caso que importa: você está pontuando naquele
+  // momento e quer ver os pontos que faltam pra próxima patente diminuírem.
+  // Antes o componente buscava UMA vez (`if (profile) return`) e nunca mais,
+  // então o número congelava enquanto você jogava.
+  //
+  // O dos OUTROS revalida bem mais devagar: a pontuação alheia não muda
+  // nada pra você em tempo real, e uma janela curta multiplicaria consultas
+  // numa sala cheia de gente passando o mouse.
+  //
+  // 20s no próprio: acima dos 15s de cache do servidor, pra a busca trazer
+  // dado realmente novo em vez de repetir o que já estava guardado lá.
+  const ehMeuPerfil = user?.id === userId;
+  const VALIDADE_MS = ehMeuPerfil ? 20000 : 120000;
 
   async function loadProfile() {
-    if (profile || loading) return;
+    if (loading) return;
+    // Já tem dado e ainda está fresco: não busca.
+    if (profile && Date.now() - buscadoEmRef.current < VALIDADE_MS) return;
+
     setLoading(true);
     try {
       const { data } = await api.get(`/users/${userId}/profile`);
       setProfile(data);
+      buscadoEmRef.current = Date.now();
     } catch {
-      // silencioso: tooltip só não mostra dados se falhar
+      // silencioso: o tooltip só não mostra dados se falhar. Mantém o
+      // `profile` anterior na tela — melhor um número um pouco velho que
+      // um balão vazio.
     } finally {
       setLoading(false);
     }

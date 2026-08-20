@@ -21,7 +21,7 @@ const MAX_AVATAR_LENGTH = 300_000;
 // conquistas do zero, só reaproveitando o que o site já calcula. Como
 // patente agora é conceito mensal, a conquista mostra a patente do mês
 // vigente (se a pessoa ainda não pontuou esse mês, não mostra patente).
-async function buildAchievements(nickname, monthlyByGame, userId) {
+async function buildAchievements(nickname, monthlyByGame, userId, quizStats = []) {
   const achievements = [];
 
   const stopPoints = monthlyByGame.get("stop") || 0;
@@ -39,6 +39,31 @@ async function buildAchievements(nickname, monthlyByGame, userId) {
   if (streakRecords.length > 0) {
     const best = streakRecords.reduce((a, b) => (b.count > a.count ? b : a));
     achievements.push({ icon: "🔥", label: `Recorde de ${best.count} seguidas no Quiz` });
+  }
+
+  // Melhor aproveitamento entre as salas do Quiz.
+  //
+  // `quizStats` já vem filtrado por attempts >= 10 lá na consulta — sem esse
+  // corte, quem viu uma pergunta e acertou apareceria com 100%, que não diz
+  // nada sobre domínio do tema.
+  //
+  // Em caso de empate na porcentagem, ganha quem tem MAIS tentativas: 90% em
+  // 300 perguntas vale mais que 90% em 12, e mostrar a segunda seria enganoso.
+  if (quizStats.length > 0) {
+    const melhor = quizStats.reduce((a, b) => {
+      const pa = a.correct / a.attempts;
+      const pb = b.correct / b.attempts;
+      if (pb !== pa) return pb > pa ? b : a;
+      return b.attempts > a.attempts ? b : a;
+    });
+    const pct = Math.round((melhor.correct / melhor.attempts) * 100);
+    const sala = QUIZ_ROOM_CONFIGS[melhor.roomId]?.label || melhor.roomId;
+    achievements.push({
+      icon: "🎯",
+      label: `Melhor aproveitamento: ${pct}% em ${sala}`,
+      // O total de tentativas dá contexto — sem ele, "90%" pode ser sorte.
+      detalhe: `${melhor.correct} de ${melhor.attempts} perguntas`,
+    });
   }
 
   return achievements;
@@ -130,7 +155,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     })
   );
   const monthlyByGame = new Map(monthly.map((m) => [m.gameKey, m.points]));
-  const achievements = await buildAchievements(user.nickname, monthlyByGame, user.id);
+  const achievements = await buildAchievements(user.nickname, monthlyByGame, user.id, quizStats);
 
   // Aproveitamento por sala do Quiz — só das salas com pelo menos 10
   // perguntas vistas, senão o número não significaria nada.

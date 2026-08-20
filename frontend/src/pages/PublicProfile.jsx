@@ -121,7 +121,12 @@ export default function PublicProfile() {
                 ) : (
                   <span className="achievement-icon">{a.icon}</span>
                 )}
-                <span>{a.label}</span>
+                <span>
+                  {a.label}
+                  {/* Contexto opcional (ex.: "270 de 300 perguntas"), pra a
+                      porcentagem não parecer sorte de poucas tentativas. */}
+                  {a.detalhe && <small className="achievement-detalhe">{a.detalhe}</small>}
+                </span>
               </div>
             ))}
 

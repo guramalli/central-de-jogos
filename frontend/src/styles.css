@@ -2689,6 +2689,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .achievement-icon { font-size: 20px; }
 .achievement-icon-img { width: 24px; height: 24px; object-fit: contain; }
+/* Linha de contexto abaixo do texto da conquista (ex.: quantas perguntas
+   sustentam a porcentagem). */
+.achievement-detalhe {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
 
 /* ===== Modal de mensagem privada ===== */
 .dm-modal-overlay {
@@ -3168,6 +3176,63 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   gap: 12px;
   flex-wrap: wrap;
 }
+/* ===== Correção direto no card da denúncia ===== */
+.report-acoes { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.btn-perigo { border-color: rgba(255, 107, 107, 0.5) !important; color: #ff6b6b !important; }
+
+.report-edicao {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--accent-2);
+  border-radius: 8px;
+  background: rgba(255, 184, 111, 0.05);
+}
+.report-campo { display: block; margin-bottom: 10px; }
+.report-campo > span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.report-campo textarea,
+.report-campo input,
+.report-campo select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+.report-campo textarea { resize: vertical; }
+
+/* Tema e dificuldade lado a lado: os dois são curtos e mudam juntos. */
+.report-campo-dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) {
+  .report-campo-dupla { grid-template-columns: 1fr; }
+}
+
+.report-edicao-acoes { display: flex; gap: 8px; margin-top: 4px; }
+.report-edicao-aviso {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--accent-2);
+}
+.report-aviso-ok {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(6, 214, 160, 0.1);
+  border: 1px solid rgba(6, 214, 160, 0.35);
+  color: #06d6a0;
+  font-size: 13px;
+}
+
 .report-group-list {
   margin: 10px 0 0 0;
   padding-left: 18px;

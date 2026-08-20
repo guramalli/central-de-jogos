@@ -147,6 +147,12 @@ export class AcromaniaRoom {
       trackPlaytime(leaving.userId, leaving.joinedAt);
       const stillConnected = [...this.players.values()].some((p) => p.userId === leaving.userId);
       if (!stillConnected) {
+        // Mesma correção do QuizRoom: o addPlayer só consulta o banco quando
+        // o userId não está no cache, então sem limpar aqui o valor antigo
+        // ficaria preso na memória da sala e a pessoa voltaria vendo a
+        // pontuação de antes.
+        this.lifetimeCache.delete(leaving.userId);
+
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
       }
