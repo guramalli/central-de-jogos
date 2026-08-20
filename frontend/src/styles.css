@@ -2586,6 +2586,50 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .avatar-upload-preview { flex-shrink: 0; }
 .avatar-upload-actions { display: flex; flex-direction: column; gap: 8px; }
 
+/* ===== Título lendário na vitrine ===== */
+.titulo-lendario {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+/* Conquistado ganha moldura dourada e brilho — é o único título do portal
+   que merece destaque permanente. */
+.titulo-lendario-ok {
+  border-color: rgba(255, 214, 10, 0.6);
+  background: rgba(255, 214, 10, 0.07);
+  box-shadow: 0 0 18px rgba(255, 214, 10, 0.12);
+}
+.titulo-lendario-texto { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.titulo-lendario-texto strong { font-size: 15px; color: var(--accent); }
+.titulo-lendario-ok .titulo-lendario-texto strong { color: var(--accent-2); }
+.titulo-lendario-texto small { font-size: 11.5px; color: var(--text-dim); }
+.titulo-lendario-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.titulo-lendario-cheia { height: 100%; border-radius: 999px; background: var(--accent-2); }
+.titulo-lendario-contador {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.titulo-lendario-ok-marca {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd60a;
+  margin-top: 4px;
+}
+
 /* Interruptor "usar a medalha no lugar da foto", na vitrine de títulos. */
 .medalha-troca {
   display: flex;

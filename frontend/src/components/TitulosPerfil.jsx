@@ -114,6 +114,39 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
         </label>
       )}
 
+      {/* Lendário no topo da vitrine: aparece SEMPRE, conquistado ou não.
+          Mostrar o quanto falta é o que dá sentido a perseguir uma conquista
+          tão longa — escondê-lo até o fim seria escondê-lo pra sempre. */}
+      {titulos.lendario && (
+        <div className={`titulo-lendario ${titulos.lendario.desbloqueado ? "titulo-lendario-ok" : ""}`}>
+          <IconeTitulo
+            logo={titulos.lendario.logo}
+            tamanho={64}
+            apagado={!titulos.lendario.desbloqueado}
+          />
+          <div className="titulo-lendario-texto">
+            <strong>{titulos.lendario.nome}</strong>
+            <small>{titulos.lendario.descricao}</small>
+            {titulos.lendario.desbloqueado ? (
+              <span className="titulo-lendario-ok-marca">✦ Conquistado</span>
+            ) : (
+              <>
+                <div className="titulo-lendario-barra">
+                  <div
+                    className="titulo-lendario-cheia"
+                    style={{ width: `${Math.round((titulos.lendario.conquistados / titulos.lendario.total) * 100)}%` }}
+                  />
+                </div>
+                <span className="titulo-lendario-contador">
+                  {titulos.lendario.conquistados} de {titulos.lendario.total} — faltam{" "}
+                  {titulos.lendario.faltam}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {temQuiz && (
         <div className="titulos-bloco">
           <h4 className="titulos-subtitulo">Quiz — acertos por tema</h4>

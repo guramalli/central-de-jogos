@@ -7,7 +7,7 @@ import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js"
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
-import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo } from "../game/titulosConfig.js";
+import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario } from "../game/titulosConfig.js";
 
 const router = Router();
 
@@ -275,8 +275,14 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
     // tabela ainda não criada (db push pendente) — segue só com o Quiz
   }
   const desbloqueados = new Set();
-  for (const t of titulosDoQuiz(porTema)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
-  for (const t of titulosDoStop(statsStop)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  const listaQuiz = titulosDoQuiz(porTema);
+  const listaStop = titulosDoStop(statsStop);
+  for (const t of listaQuiz) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  for (const t of listaStop) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  // Sem isto o lendário seria recusado na validação: quem conquistou não
+  // conseguiria escolhê-lo como título exibido, que é justamente a graça.
+  const lendario = tituloLendario(listaQuiz, listaStop);
+  if (lendario.desbloqueado) desbloqueados.add(lendario.nome);
 
   if (!desbloqueados.has(titulo)) {
     return res.status(400).json({ error: "Esse título ainda não foi desbloqueado." });
@@ -414,9 +420,15 @@ router.get("/:id/titulos", requireAuth, async (req, res) => {
       select: { grupo: true, stops: true, rapidos: true },
     });
 
+    const quiz = titulosDoQuiz(porTema);
+    const stop = titulosDoStop(statsStop);
     const payload = {
-      quiz: titulosDoQuiz(porTema),
-      stop: titulosDoStop(statsStop),
+      quiz,
+      stop,
+      // Estado do título lendário (todos os 62). Vem sempre, desbloqueado ou
+      // não: a vitrine mostra o quanto falta, que é o que dá sentido a
+      // perseguir uma conquista tão longa.
+      lendario: tituloLendario(quiz, stop),
     };
     cacheSet(cacheKey, payload, 600);
     res.json(payload);

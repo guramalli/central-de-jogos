@@ -204,8 +204,17 @@ export function tituloStopDesbloqueado(grupo, stops, rapidos) {
 // Dado o NOME de um título (o que fica salvo em user.tituloExibido), acha a
 // logo correspondente. Varre Quiz (todos os temas/níveis), Stop e relâmpago.
 // Retorna o caminho da logo ou null se não encontrar.
+// Nome do título lendário. Declarado aqui em cima porque
+// logoPorNomeDeTitulo precisa dele e roda antes da definição completa
+// lá embaixo.
+const TITULO_LENDARIO_NOME = "Lenda do Educação Gamer";
+
 export function logoPorNomeDeTitulo(nome) {
   if (!nome) return null;
+  // O lendário é definido fora das tabelas (não pertence a tema nem grupo),
+  // então precisa ser resolvido à parte — senão quem o equipasse ficaria
+  // sem logo nenhuma no hover e na vitrine.
+  if (nome === TITULO_LENDARIO_NOME) return "/titulos/titulo-lendario.png";
   // Quiz: reconstrói os nomes de cada tema/nível
   for (const [tema, nomeTema] of Object.entries(QUIZ_NOMES)) {
     for (let i = 0; i < QUIZ_NIVEIS.length; i++) {
@@ -238,4 +247,56 @@ export function nivelPorNomeDeTitulo(nome) {
   if (!logo) return null;
   const achado = logo.match(/-(bronze|prata|ouro)\.png$/i);
   return achado ? achado[1].toLowerCase() : null;
+}
+
+// ===== Título lendário: ter TODOS os outros =====
+//
+// Conquistado só depois de desbloquear os 62 títulos do portal: os três
+// níveis de cada um dos 17 temas do Quiz, os três de cada grupo do Stop e os
+// dois de relâmpago.
+//
+// O QUE ISSO EXIGE DE FATO:
+//   170.000 acertos no Quiz (10.000 em CADA tema)
+//    15.000 STOPs (5.000 em cada grupo de sala)
+//     2.000 STOPs relâmpago
+// No ritmo de um jogador dedicado, isso passa de 2.400 horas — mais de três
+// anos jogando duas horas por dia.
+//
+// Isso é intencional e só funciona porque título é VITALÍCIO: ao contrário
+// da patente, que zera todo mês, aqui o progresso nunca se perde. É um feito
+// de carreira, não de temporada.
+export const TITULO_LENDARIO = {
+  nome: TITULO_LENDARIO_NOME,
+  descricao: "Conquistou todos os 62 títulos do portal",
+  logo: "/titulos/titulo-lendario.png",
+};
+
+// Quantos títulos existem no total. Calculado a partir das próprias tabelas
+// em vez de escrito na mão: se um tema novo entrar no Quiz (como o Direito
+// entrou), o número se ajusta sozinho e ninguém precisa lembrar de mexer aqui.
+export function totalDeTitulos() {
+  const quiz = Object.keys(QUIZ_NOMES).length * QUIZ_NIVEIS.length;
+  const stop = Object.values(STOP_TITULOS).reduce((s, tiers) => s + tiers.length, 0);
+  return quiz + stop + RAPIDO_TITULOS.length;
+}
+
+// Recebe o resultado de titulosDoQuiz() e titulosDoStop() e devolve o estado
+// do lendário: se está desbloqueado e quanto falta.
+//
+// Conta os desbloqueados em vez de reconferir cada limiar — assim esta função
+// não precisa saber nada sobre acertos, STOPs ou grupos, e não sai do lugar
+// quando aquelas regras mudarem.
+export function tituloLendario(titulosQuiz, titulosStop) {
+  const conquistados =
+    titulosQuiz.reduce((s, t) => s + t.desbloqueados.length, 0) +
+    titulosStop.reduce((s, t) => s + t.desbloqueados.length, 0);
+
+  const total = totalDeTitulos();
+  return {
+    ...TITULO_LENDARIO,
+    conquistados,
+    total,
+    faltam: Math.max(0, total - conquistados),
+    desbloqueado: conquistados >= total,
+  };
 }
