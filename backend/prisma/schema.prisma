@@ -299,6 +299,17 @@ model QuizQuestion {
   suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
   reports       QuizQuestionReport[]
   createdAt     DateTime @default(now())
+
+  // Índice da consulta mais quente do jogo.
+  //
+  // O montarFilaDePerguntas filtra sempre por status e, conforme a sala, por
+  // themeKey e difficulty. Sem índice o Postgres varria as ~15 mil linhas a
+  // cada remontagem de fila — e isso acontece por sala, toda vez que as
+  // perguntas daquela sala esgotam.
+  //
+  // A ordem dos campos importa: `status` vem primeiro porque é o único filtro
+  // sempre presente; os outros dois entram conforme a sala.
+  @@index([status, themeKey, difficulty])
 }
 
 // Pares de perguntas que o admin já revisou na tela de "parecidas" e marcou
