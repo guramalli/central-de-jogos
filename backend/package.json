@@ -57,8 +57,6 @@
     "import-futebol-torcedor": "node prisma/importFutebolTorcedor.js",
     "import-futebol-campeoes": "node prisma/importFutebolCampeoes.js",
     "import-games-padrao": "node prisma/importGamesPadrao.js",
-    "import-games-retro": "node prisma/importGamesRetro.js",
-    "import-games-pc": "node prisma/importGamesPC.js",
     "importar-checado": "node prisma/importarComChecagem.js",
     "import-games-avancado": "node prisma/importGamesAvancado.js",
     "import-series-padrao": "node prisma/importSeriesPadrao.js",

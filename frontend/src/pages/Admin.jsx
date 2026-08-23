@@ -5,6 +5,7 @@ import AdminGlossary from "../components/AdminGlossary.jsx";
 import AdminQuizGlossary from "../components/AdminQuizGlossary.jsx";
 import AdminCadastrosPorDia from "../components/AdminCadastrosPorDia.jsx";
 import AdminQuizParecidas from "../components/AdminQuizParecidas.jsx";
+import AdminRespostasRepetidas from "../components/AdminRespostasRepetidas.jsx";
 import Pagination from "../components/Pagination.jsx";
 import Seo from "../components/Seo.jsx";
 
@@ -527,6 +528,19 @@ export default function Admin() {
 
       <AdminQuizGlossary />
 
+      {/* Respostas repetidas vem PRIMEIRO de propósito: é a checagem que pega
+          a redundância que mais incomoda quem joga. Quatro perguntas de textos
+          completamente diferentes que levam todas a "Cruzeiro" não são
+          agrupadas pelo painel de parecidas, mas para o jogador é digitar a
+          mesma coisa três vezes na mesma sessão. Além disso a comparação aqui
+          é exata (ou a resposta é a mesma, ou não é), enquanto a de parecidas
+          depende de um limiar de similaridade que sempre erra pros dois lados. */}
+      {user.role === "ADMIN" && <AdminRespostasRepetidas temas={QUIZ_THEME_NAMES} />}
+
+      {/* Mantido abaixo porque pega um caso que o de cima NÃO pega: perguntas
+          quase idênticas com respostas diferentes por um detalhe ("Copa de
+          1974" e "Copa de 1978"). Textos irmãos, respostas distintas — passa
+          direto pelo critério de resposta. */}
       {user.role === "ADMIN" && <AdminQuizParecidas />}
 
       {user.role === "ADMIN" && <AdminCadastrosPorDia />}
