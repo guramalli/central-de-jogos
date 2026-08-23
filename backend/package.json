@@ -59,6 +59,7 @@
     "import-games-padrao": "node prisma/importGamesPadrao.js",
     "import-games-retro": "node prisma/importGamesRetro.js",
     "import-games-pc": "node prisma/importGamesPC.js",
+    "importar-checado": "node prisma/importarComChecagem.js",
     "import-games-avancado": "node prisma/importGamesAvancado.js",
     "import-series-padrao": "node prisma/importSeriesPadrao.js",
     "import-series-avancado": "node prisma/importSeriesAvancado.js",
