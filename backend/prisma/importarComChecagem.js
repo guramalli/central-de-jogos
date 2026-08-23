@@ -1,38 +1,55 @@
-// Importador de perguntas do Quiz com CHECAGEM DE RESPOSTA CONTRA O BANCO.
+// Importador de perguntas do Quiz com checagem contra o BANCO.
 //
-// POR QUE ESTE IMPORTADOR EXISTE:
-// Os importadores anteriores evitavam duplicata comparando o TEXTO da
-// pergunta. Isso pega a mesma linha importada duas vezes, mas não pega o
-// caso que mais incomoda quem joga: duas perguntas escritas de formas
-// diferentes com a MESMA resposta.
+// A REGRA (corrigida):
+//   O que NÃO pode repetir é a PERGUNTA.
+//   Resposta repetida é NORMAL e permitida.
 //
-//   já no banco:  "Qual clube tem mais títulos da Copa do Brasil?"     -> Cruzeiro
-//   lote novo:    "De qual estado é o clube com mais Copas do Brasil?" -> Minas Gerais
+// Várias perguntas diferentes podem legitimamente levar à mesma resposta:
 //
-// A segunda passa pelo filtro de texto, mas para o jogador é o mesmo assunto
-// voltando. Numa sala de futebol, 21% das perguntas já compartilhavam
-// resposta com outra antes deste script existir.
+//   "Qual clube tem mais títulos da Copa do Brasil?"        -> Cruzeiro
+//   "Qual clube brasileiro venceu a Libertadores em 1997?"  -> Cruzeiro
 //
-// E há um motivo mais simples: quem escreve o lote (eu, o Claude) só enxerga
-// os arquivos de importação — boa parte das perguntas do banco veio de
-// migrações e do painel admin, e nunca esteve em arquivo nenhum. A checagem
-// precisa acontecer aqui, no único lugar que vê tudo.
+// São fatos distintos. Quem sabe um pode não saber o outro. Bloquear a
+// segunda seria jogar fora uma pergunta boa.
 //
-// O QUE ELE FAZ:
-//  1. Carrega todas as respostas já aprovadas do tema;
-//  2. Pula perguntas com texto idêntico (como antes);
-//  3. Pula perguntas cuja RESPOSTA já existe no tema, e diz quais;
+// POR QUE ISSO PRECISOU SER CORRIGIDO:
+// A versão anterior bloqueava por resposta repetida. Num lote de futebol,
+// barrou 41 de 94 perguntas — quase metade do trabalho, sem motivo. Pior:
+// induziu a contornar o bloqueio distorcendo respostas ("Marta Vieira" em
+// vez de "Marta", "Neymar ao PSG" em vez de "Neymar"), o que passava no
+// teste e estragava o jogo, porque ninguém digitaria aquilo.
+//
+// O QUE ELE FAZ AGORA:
+//  1. BLOQUEIA pergunta com texto idêntico;
+//  2. BLOQUEIA pergunta MUITO parecida com uma já existente (>= 70% de
+//     palavras em comum) — é aí que mora a repetição de verdade;
+//  3. AVISA sobre resposta repetida, mas INSERE mesmo assim;
 //  4. Insere o resto.
 //
-// A comparação ignora acento, caixa e pontuação: "Pokémon", "pokemon" e
-// "Pokemon!" são a mesma resposta.
+// O aviso do item 3 serve pra você olhar depois no painel de respostas
+// repetidas do admin e decidir — decisão sua, não do script.
 //
-// Uso:  node prisma/importarComChecagem.js <arquivo> <NOME_DA_CONSTANTE>
-// Ex.:  node prisma/importarComChecagem.js quizFutebolAvancado.js FUTEBOL_AVANCADO
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+// Conjunto de palavras relevantes de uma pergunta, pra medir semelhança.
+// Palavras curtas ("de", "qual", "o") entram em quase tudo e só atrapalham.
+function palavras(t) {
+  return new Set(
+    (t || "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .split(/\W+/).filter((w) => w.length > 3)
+  );
+}
+
+// Jaccard: quanto as duas perguntas compartilham do vocabulário somado.
+function semelhanca(a, b) {
+  const comuns = [...a].filter((w) => b.has(w)).length;
+  const total = a.size + b.size - comuns;
+  return total === 0 ? 0 : comuns / total;
+}
 
 function chave(s) {
   return (s || "")
@@ -60,16 +77,20 @@ async function main() {
 
   let inseridas = 0;
   const puladasTexto = [];
-  const puladasResposta = [];
+  const puladasParecidas = [];
+  const avisosResposta = [];
 
   for (const [themeKey, perguntas] of Object.entries(dados)) {
     // Todas as respostas que o tema já tem. Uma consulta só, no começo —
     // consultar por pergunta seria lento e desnecessário.
     const existentes = await prisma.quizQuestion.findMany({
       where: { themeKey, status: "approved" },
-      select: { answer: true },
+      select: { question: true, answer: true },
     });
     const respostasNoBanco = new Set(existentes.map((q) => chave(q.answer)));
+    // Guarda as perguntas já existentes em forma de conjunto de palavras,
+    // pra comparar semelhança sem refazer o trabalho a cada item do lote.
+    const perguntasNoBanco = existentes.map((q) => palavras(q.question));
 
     console.log(`\nTema "${themeKey}": ${existentes.length} perguntas já aprovadas, ` +
                 `${respostasNoBanco.size} respostas distintas.`);
@@ -81,8 +102,14 @@ async function main() {
       });
       if (jaTemTexto) { puladasTexto.push(q.question); continue; }
 
+      // A checagem que importa: pergunta MUITO parecida com uma existente.
+      const minha = palavras(q.question);
+      const parecida = perguntasNoBanco.find((outra) => semelhanca(minha, outra) >= 0.7);
+      if (parecida) { puladasParecidas.push(q); continue; }
+
+      // Resposta repetida NÃO bloqueia — só avisa.
       const c = chave(q.answer);
-      if (respostasNoBanco.has(c)) { puladasResposta.push(q); continue; }
+      if (respostasNoBanco.has(c)) avisosResposta.push(q);
 
       await prisma.quizQuestion.create({
         data: {
@@ -94,23 +121,32 @@ async function main() {
           validated: true,
         },
       });
-      // Registra na hora, pra o próprio lote não inserir duas com a mesma
-      // resposta uma atrás da outra.
       respostasNoBanco.add(c);
+      perguntasNoBanco.push(minha);
       inseridas++;
     }
   }
 
   console.log(`\n=== RESULTADO ===`);
-  console.log(`  inseridas                 : ${inseridas}`);
-  console.log(`  puladas (texto igual)     : ${puladasTexto.length}`);
-  console.log(`  puladas (resposta repetida): ${puladasResposta.length}`);
+  console.log(`  inseridas                    : ${inseridas}`);
+  console.log(`  bloqueadas (texto idêntico)  : ${puladasTexto.length}`);
+  console.log(`  bloqueadas (pergunta parecida): ${puladasParecidas.length}`);
+  console.log(`  inseridas com resposta repetida: ${avisosResposta.length}`);
 
-  if (puladasResposta.length) {
-    console.log(`\n--- perguntas puladas por resposta já existente ---`);
-    console.log(`(não são erro: só significam que o assunto já está coberto)`);
-    for (const q of puladasResposta) {
-      console.log(`  "${q.answer}" — ${q.question.slice(0, 70)}`);
+  if (puladasParecidas.length) {
+    console.log(`\n--- BLOQUEADAS: pergunta muito parecida com uma já existente ---`);
+    for (const q of puladasParecidas) {
+      console.log(`  ${q.question.slice(0, 78)}`);
+    }
+  }
+
+  if (avisosResposta.length) {
+    console.log(`\n--- inseridas, mas a resposta já existia no tema ---`);
+    console.log(`(não é erro — perguntas diferentes podem ter a mesma resposta.`);
+    console.log(` Se achar que ficou repetitivo, use o painel de respostas`);
+    console.log(` repetidas no admin pra decidir o que fica.)`);
+    for (const q of avisosResposta) {
+      console.log(`  "${q.answer}" — ${q.question.slice(0, 66)}`);
     }
   }
 }
