@@ -3306,7 +3306,8 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   border-bottom: 1px solid var(--border);
 }
 .repetidas-resposta { font-weight: 700; color: var(--accent-2); font-size: 14px; }
-.repetidas-contador { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+.repetidas-contador { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-left: auto; }
+.repetidas-aprovar { font-size: 11px !important; padding: 4px 10px !important; flex-shrink: 0; }
 
 .repetidas-item {
   display: flex;

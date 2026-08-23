@@ -317,6 +317,27 @@ model QuizQuestion {
 // novo de perguntas recalculava a lista e trazia de volta o que já tinha sido
 // aprovado. A chave é o par de ids em ordem alfabética, pra não depender de
 // qual veio primeiro.
+// Grupos de perguntas com a MESMA RESPOSTA que o admin já revisou e aprovou.
+//
+// Mesmo motivo do QuizParDiferente logo abaixo: sem isto, todo lote novo
+// recalcula a lista e traz de volta o que já foi analisado. Resposta repetida
+// é normal — várias perguntas diferentes podem levar ao mesmo lugar. Depois
+// que o admin olha e decide que está tudo certo, o grupo precisa sumir da
+// lista, senão o painel vira ruído e deixa de ser usado.
+//
+// A chave é tema + resposta normalizada (sem acento, caixa ou pontuação).
+// Se uma pergunta NOVA com a mesma resposta aparecer depois, o grupo volta a
+// aparecer: a contagem muda, e vale uma nova olhada.
+model QuizRespostaAprovada {
+  id         String   @id @default(cuid())
+  themeKey   String
+  chave      String   // resposta normalizada
+  quantidade Int      // quantas perguntas tinha quando foi aprovado
+  createdAt  DateTime @default(now())
+
+  @@unique([themeKey, chave])
+}
+
 model QuizParDiferente {
   id        String   @id @default(cuid())
   idA       String   // id da primeira pergunta (sempre o menor alfabeticamente)
