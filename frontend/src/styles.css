@@ -3326,6 +3326,23 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   width: 52px;
 }
 .repetidas-texto { flex: 1; font-size: 13px; min-width: 0; }
+
+/* Fundo por dificuldade, pra separar de relance o que é da sala Avançada do
+   que é da Padrão. Importa porque as duas salas têm bancos separados: apagar
+   uma pergunta difícil mexe numa sala; apagar uma fácil mexe na outra.
+   Os tons são fracos de propósito — o fundo do painel já é escuro, e cor
+   saturada aqui competiria com o texto em vez de ajudar a ler. */
+.repetidas-item-dificil {
+  background: rgba(255, 90, 77, 0.10);
+  border-left: 3px solid rgba(255, 90, 77, 0.55);
+}
+.repetidas-item-facil {
+  background: rgba(6, 214, 160, 0.09);
+  border-left: 3px solid rgba(6, 214, 160, 0.5);
+}
+/* O rótulo da dificuldade acompanha a cor da faixa. */
+.repetidas-item-dificil .repetidas-dif { color: #ff5a4d; }
+.repetidas-item-facil .repetidas-dif { color: #06d6a0; }
 .report-edicao-aviso {
   margin: 0 0 10px;
   font-size: 12px;

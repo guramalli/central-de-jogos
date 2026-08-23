@@ -141,7 +141,12 @@ export default function AdminRespostasRepetidas({ temas }) {
                 </button>
               </div>
               {g.perguntas.map((p) => (
-                <div key={p.id} className="repetidas-item">
+                <div
+                  key={p.id}
+                  className={`repetidas-item repetidas-item-${
+                    p.difficulty === "dificil" ? "dificil" : "facil"
+                  }`}
+                >
                   <span className="repetidas-dif">{p.difficulty}</span>
                   <span className="repetidas-texto">{p.question}</span>
                   <button
