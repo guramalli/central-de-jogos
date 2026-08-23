@@ -15,6 +15,7 @@
     "ranking-oculto": "node scripts/rankingOculto.js",
     "recordes": "node scripts/recordes.js",
     "respostas-repetidas": "node scripts/respostasRepetidas.js",
+    "listar-respostas": "node scripts/listarRespostas.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",
     "validate-quiznet-offline": "node prisma/validateQuiznetOffline.js",
