@@ -17,7 +17,7 @@
 // Agora elas entraram no ARTE_TROCAVEL abaixo, então troca de logo passa a
 // chegar sozinha nas próximas vezes; esta subida de versão é pra alcançar
 // quem já tem a antiga guardada.
-const VERSAO = "eg-v5";
+const VERSAO = "eg-v6";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -26,7 +26,7 @@ const ESSENCIAIS = ["/", "/favicon.png", "/manifest.json"];
 // Pastas de arte com nome de arquivo FIXO (sem hash): quando uma imagem é
 // regerada, o nome continua o mesmo. Elas precisam ser revalidadas, senão
 // a versão antiga fica presa no cache do jogador pra sempre.
-const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|temas-quiz|dificuldades)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*)\.png$/;
+const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|temas-quiz|dificuldades|sounds)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*)\.png$/;
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
