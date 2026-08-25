@@ -129,6 +129,24 @@ process.on("unhandledRejection", (reason) => {
   console.error("Erro não tratado (unhandledRejection):", reason);
 });
 
+// Rede de segurança para erros SÍNCRONOS não tratados — os que o
+// unhandledRejection acima NÃO pega.
+//
+// POR QUE ISSO IMPORTA AQUI: o ciclo dos três jogos é feito de callbacks de
+// setInterval. Uma exceção síncrona dentro de um desses callbacks derruba o
+// PROCESSO INTEIRO — e com ele todas as salas, o chat e as partidas em
+// andamento, não só a sala que falhou.
+//
+// A escolha aqui é deliberada: registrar e SEGUIR VIVO, em vez de encerrar.
+// O argumento clássico contra isso é que o processo pode ficar em estado
+// inconsistente. No caso deste servidor, o estado que importa (pontuação,
+// ranking) mora no banco, não na memória; o que fica em memória é o ciclo da
+// sala, e cada sala tem watchdog que a reinicia sozinha. Entre derrubar todas
+// as partidas e seguir com uma sala possivelmente confusa, seguir é melhor.
+process.on("uncaughtException", (err) => {
+  console.error("Erro não tratado (uncaughtException):", err);
+});
+
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Educação Gamer backend rodando em http://localhost:${PORT}`);

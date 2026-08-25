@@ -5653,6 +5653,26 @@ span.votacao-trilha-item {
 .home-game-card-dev .lobby-game-logo { filter: grayscale(1); opacity: 0.55; }
 .home-game-card-dev .lobby-game-title,
 .home-game-card-dev .lobby-game-desc { color: var(--text-dim); }
+/* ===== Selo "em testes" =====
+   Diferente do "em desenvolvimento": aquele era cinza e apagado porque o card
+   não clicava. Este é laranja e vivo — o jogo ESTÁ disponível, o selo só
+   ajusta a expectativa de quem entra. É a primeira vez que o Acromania roda
+   com gente real, e avisar evita que um problema seja lido como descaso. */
+.home-game-card-beta { position: relative; }
+.home-game-beta-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent-2);
+  background: rgba(255, 184, 111, 0.12);
+  border: 1px solid rgba(255, 184, 111, 0.5);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
 .home-game-dev-badge {
   position: absolute;
   top: 14px;

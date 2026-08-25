@@ -176,12 +176,20 @@ export function setupSocket(io) {
     });
 
     // ===== Acromania =====
+    // O try existe porque este handler é async: sem ele, uma falha ao criar a
+    // sala ou ao entrar viraria unhandledRejection — o servidor não cai, mas
+    // o jogador fica preso na tela de entrada sem nenhum aviso.
     socket.on("join-acromania-room", async ({ roomId } = {}) => {
-      const room = await getOrCreateAcromaniaRoom(io, roomId);
-      const joined = await room.addPlayer(socket, userId, nickname);
-      if (joined) {
-        socket.currentAcromaniaRoom = room;
-        recheckPeak().catch(() => {});
+      try {
+        const room = await getOrCreateAcromaniaRoom(io, roomId);
+        const joined = await room.addPlayer(socket, userId, nickname);
+        if (joined) {
+          socket.currentAcromaniaRoom = room;
+          recheckPeak().catch(() => {});
+        }
+      } catch (err) {
+        console.error("Falha ao entrar na sala de Acromania:", err);
+        socket.emit("acromania-erro", { mensagem: "Não foi possível entrar na sala. Tente de novo." });
       }
     });
 
