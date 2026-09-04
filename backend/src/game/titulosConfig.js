@@ -252,6 +252,14 @@ export function logoPorNomeDeTitulo(nome) {
 // (`titulo-<tema>-<nivel>.png`). Conferido nos 59 emblemas.
 // Devolve null pra título desconhecido — quem chama trata como "sem cor".
 export function nivelPorNomeDeTitulo(nome) {
+  // Troféu de campeão e título lendário não seguem o padrão
+  // "-bronze/prata/ouro.png" do nome do arquivo, então a regex abaixo
+  // devolvia null e eles apareciam SEM COR na saudação de entrada — logo os
+  // dois títulos mais raros do site, que são justamente os que merecem
+  // destaque. Tratados aqui, antes da regra geral.
+  if (/^Campeão (Stop|Quiz) /.test(nome)) return "campeao";
+  if (nome === TITULO_LENDARIO_NOME) return "lendario";
+
   const logo = logoPorNomeDeTitulo(nome);
   if (!logo) return null;
   const achado = logo.match(/-(bronze|prata|ouro)\.png$/i);
