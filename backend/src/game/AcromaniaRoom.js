@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
 import { trackPlaytime } from "./playtimeTracker.js";
@@ -35,6 +36,9 @@ export class AcromaniaRoom {
     this.writingSeconds = config.writingSeconds ?? 60;
     this.votingSeconds = config.votingSeconds ?? 20;
     this.intermissionSeconds = config.intermissionSeconds ?? 10;
+    // Quando a sala deu sinal de vida pela última vez, e o timer do vigia.
+    this.ultimoSinalDeVida = Date.now();
+    this.watchdogTimer = null;
     this.lettersCount = config.lettersCount ?? 3;
     this.pointsForWin = config.pointsForWin ?? 50;
     this.minPlayersToStart = config.minPlayersToStart ?? 1;
@@ -58,8 +62,82 @@ export class AcromaniaRoom {
     this.startedLoop = false;
   }
 
+  // ===== Watchdog =====
+  // Vigia independente, no mesmo modelo que já resolveu o freeze do Stop e
+  // do Quiz. Roda num timer PRÓPRIO, separado do timer do jogo — de
+  // propósito: se o timer do jogo morrer, o do vigia continua vivo e percebe
+  // a parada.
+  //
+  // O Acromania não tinha isso, e havia um comentário no finishRound
+  // dizendo literalmente que a sala "congelava pra sempre (ela não tem
+  // watchdog)". Agora tem.
+  marcarVida() {
+    this.ultimoSinalDeVida = Date.now();
+  }
+
+  iniciarWatchdog() {
+    if (this.watchdogTimer) return;
+    this.marcarVida();
+    this.watchdogTimer = setInterval(() => {
+      // Sala vazia ou esperando gente não é sala travada: ela fica sem timer
+      // de propósito.
+      if (this.players.size === 0) return;
+
+      const paradaHa = Date.now() - this.ultimoSinalDeVida;
+      // Ciclo completo mais longo: 60s escrevendo + 20s votando + 10s de
+      // intervalo = 90s. 120s sem NENHUM sinal só acontece se o timer morreu.
+      if (paradaHa > 120000) {
+        console.error(
+          `[watchdog] Sala ${this.roomId} parada há ${Math.round(paradaHa / 1000)}s no estado "${this.state}". Reiniciando.`
+        );
+        this.marcarVida();
+        this.systemMessage("⚠️ A sala travou e foi reiniciada automaticamente.");
+        try {
+          this.startIntermission();
+        } catch (err) {
+          console.error(`[watchdog] Falha ao reiniciar a sala ${this.roomId}:`, err);
+        }
+      }
+    }, 20000);
+  }
+
+  pararWatchdog() {
+    if (this.watchdogTimer) clearInterval(this.watchdogTimer);
+    this.watchdogTimer = null;
+  }
+
   countUniquePlayers() {
     return new Set([...this.players.values()].map((p) => p.userId)).size;
+  }
+
+  // Verifica inativos a cada minuto, em timer próprio.
+  iniciarVigiaInatividade() {
+    if (this.vigiaIdleTimer) return;
+    this.vigiaIdleTimer = setInterval(() => {
+      if (this.players.size === 0) return;
+      const { avisar, remover } = verificarInativos(this.players, "acromania");
+
+      for (const { player } of avisar) {
+        player.socket?.emit("aviso-inatividade", {
+          minutos: minutosRestantes(),
+          mensagem: `Você está parado há um tempo. Jogue ou converse em ${minutosRestantes()} min pra não sair da sala.`,
+        });
+      }
+
+      for (const { socketId, player } of remover) {
+        player.socket?.emit("removido-por-inatividade", {
+          mensagem: "Você saiu da sala por inatividade.",
+        });
+        this.systemMessage(`💤 ${player.nickname} saiu por inatividade.`);
+        this.removePlayer(socketId);
+        player.socket?.leave(this.roomId);
+      }
+    }, 60000);
+  }
+
+  pararVigiaInatividade() {
+    if (this.vigiaIdleTimer) clearInterval(this.vigiaIdleTimer);
+    this.vigiaIdleTimer = null;
   }
 
   async addPlayer(socket, userId, nickname) {
@@ -76,25 +154,48 @@ export class AcromaniaRoom {
     }
     this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
 
+    // Nenhuma consulta ao banco pode segurar a entrada na sala: se o banco
+    // soluçar aqui, o jogador ficaria numa tela morta sem nunca receber o
+    // estado. Cada query tem 3s de limite e, se falhar, usa o padrão e segue.
+    // Mesma proteção que o Quiz e o Stop já usam.
+    const querySegura = async (promessa, padrao) => {
+      try {
+        return await Promise.race([
+          promessa,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000)),
+        ]);
+      } catch {
+        return padrao;
+      }
+    };
+
     if (!this.lifetimeCache.has(userId)) {
-      const existing = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-      });
+      const existing = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+        }),
+        null
+      );
       this.lifetimeCache.set(userId, existing?.points || 0);
     }
     if (!this.roomLifetimeCache.has(userId)) {
-      const existingRoom = await prisma.lifetimeScore.findUnique({
-        where: { userId_gameKey: { userId, gameKey: `${GAME_KEY}:${this.roomId}` } },
-      });
+      const existingRoom = await querySegura(
+        prisma.lifetimeScore.findUnique({
+          where: { userId_gameKey: { userId, gameKey: `${GAME_KEY}:${this.roomId}` } },
+        }),
+        null
+      );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
 
     socket.join(this.roomId);
+    this.iniciarVigiaInatividade();
     socket.emit("acromania-room-state", this.publicState());
+    this.iniciarWatchdog();
 
     if (!alreadyInRoom) {
       // Saudação personalizada (premium) no lugar do texto padrão.
-      const saudacoes = await carregarSaudacoes(userId);
+      const saudacoes = await querySegura(carregarSaudacoes(userId), null);
       // Título equipado ao lado do nick — vem do socket, sem consulta.
       const titulo = socket.tituloExibido || null;
       const nomeExibido = nomeComTitulo(nickname, titulo);
@@ -110,7 +211,10 @@ export class AcromaniaRoom {
       const eu = this.players.get(socket.id);
       if (eu && saudacoes?.saida) eu.saudacaoSaida = saudacoes.saida;
       try {
-        const me = await prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } });
+        const me = await querySegura(
+          prisma.user.findUnique({ where: { id: userId }, select: { birthDate: true } }),
+          null
+        );
         if (isBirthdayToday(me?.birthDate)) {
           this.systemMessage(`🎉🎂 Hoje é aniversário de ${nickname}! Parabéns! 🎂🎉`, true, true);
         }
@@ -152,12 +256,19 @@ export class AcromaniaRoom {
         // ficaria preso na memória da sala e a pessoa voltaria vendo a
         // pontuação de antes.
         this.lifetimeCache.delete(leaving.userId);
+        this.roomLifetimeCache.delete(leaving.userId);
 
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
       }
     }
     await this.broadcastOnlinePlayers();
+
+    // Sala vazia: desliga o vigia. Um timer rodando pra sempre numa sala sem
+    // ninguém é vazamento de memória — e são 3 salas de Acromania.
+    if (this.players.size === 0) this.pararWatchdog();
+
+    if (this.players.size === 0) this.pararVigiaInatividade();
   }
 
   async broadcastOnlinePlayers() {
@@ -168,10 +279,16 @@ export class AcromaniaRoom {
     // Uma consulta pra todos, em vez de uma por jogador — antes, cada
     // entrada ou saída gerava N consultas ao banco.
     const idsNaSala = [...new Set([...this.players.values()].map((p) => p.userId))];
+    // Com timeout: esta consulta roda a cada entrada e saída de jogador. Se o
+    // banco soluçar, a lista sai sem os pontos do mês em vez de travar o
+    // broadcast inteiro.
     const mensais = idsNaSala.length
-      ? await prisma.monthlyScore.findMany({
-          where: { userId: { in: idsNaSala }, gameKey: GAME_KEY, monthKey },
-        })
+      ? await Promise.race([
+          prisma.monthlyScore.findMany({
+            where: { userId: { in: idsNaSala }, gameKey: GAME_KEY, monthKey },
+          }),
+          new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
+        ]).catch(() => [])
       : [];
     const mensalPorUsuario = Object.fromEntries(mensais.map((m) => [m.userId, m.points]));
 
@@ -217,6 +334,7 @@ export class AcromaniaRoom {
   }
 
   chatMessage(userId, nickname, message) {
+    for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     this.broadcast("acromania-chat-message", { id: novoIdMensagem(), userId, nickname, message, system: false, at: Date.now() });
   }
 
@@ -257,6 +375,7 @@ export class AcromaniaRoom {
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         // Protegido: função assíncrona que desliga o timer. Sem o catch,
@@ -299,6 +418,7 @@ export class AcromaniaRoom {
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         // Protegido: função assíncrona que desliga o timer. Sem o catch,
@@ -312,6 +432,7 @@ export class AcromaniaRoom {
   }
 
   submitPhrase(socket, userId, phrase) {
+    marcarAtividade(this.players.get(socket.id));
     if (this.state !== "writing") return;
     const clean = (phrase || "").trim().slice(0, 200);
     if (!clean) return;
@@ -371,6 +492,7 @@ export class AcromaniaRoom {
 
     this.timer = setInterval(() => {
       this.timeLeft -= 1;
+      this.marcarVida();
       this.broadcast("acromania-tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
         // Protegido: função assíncrona que desliga o timer. Sem o catch,
@@ -384,6 +506,7 @@ export class AcromaniaRoom {
   }
 
   vote(socket, userId, entryId) {
+    marcarAtividade(this.players.get(socket.id));
     if (this.state !== "voting") return;
     const entry = (this.voteEntries || []).find((e) => e.entryId === entryId);
     if (!entry) return;

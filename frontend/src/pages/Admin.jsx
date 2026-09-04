@@ -5,8 +5,10 @@ import AdminGlossary from "../components/AdminGlossary.jsx";
 import AdminQuizGlossary from "../components/AdminQuizGlossary.jsx";
 import AdminCadastrosPorDia from "../components/AdminCadastrosPorDia.jsx";
 import AdminQuizParecidas from "../components/AdminQuizParecidas.jsx";
+import AdminRespostasRepetidas from "../components/AdminRespostasRepetidas.jsx";
 import Pagination from "../components/Pagination.jsx";
 import Seo from "../components/Seo.jsx";
+import DmModal from "../components/DmModal.jsx";
 
 const PAGE_SIZE = 20;
 
@@ -50,6 +52,27 @@ export default function Admin() {
   // Resumo de quantos jogam no celular x computador.
   const [plataformas, setPlataformas] = useState(null);
   const [usersPage, setUsersPage] = useState(1);
+  // Aba atual. Fica guardada no navegador: voltar ao painel devolve onde a
+  // pessoa estava, em vez de sempre no começo — é o tipo de detalhe que
+  // aparece dez vezes por sessão de moderação.
+  // Conversa aberta a partir da lista de jogadores.
+  const [chatWith, setChatWith] = useState(null);
+  const [aba, setAba] = useState(() => {
+    try {
+      return window.sessionStorage.getItem("admin-aba") || "visao";
+    } catch {
+      return "visao";
+    }
+  });
+
+  function trocarAba(id) {
+    setAba(id);
+    try {
+      window.sessionStorage.setItem("admin-aba", id);
+    } catch {
+      // navegador com armazenamento bloqueado: só não lembra a aba
+    }
+  }
   // Qual denúncia está aberta pra correção, e o rascunho dela.
   const [editandoReport, setEditandoReport] = useState(null);
   const [rascunhoReport, setRascunhoReport] = useState({ question: "", answer: "", themeKey: "", difficulty: "" });
@@ -306,11 +329,48 @@ export default function Admin() {
     return <p>Acesso restrito a moderadores e administradores.</p>;
   }
 
+  // As abas trazem o contador do que exige ação: denúncia aberta, palavra ou
+  // pergunta esperando aprovação. Assim dá pra ver o que precisa de atenção
+  // sem entrar em cada aba.
+  // O `?.length ?? 0` não é preciosismo: se qualquer uma dessas listas ainda
+  // não carregou (ou o nome mudar numa refatoração futura), ler .length de
+  // undefined derruba o componente inteiro e a tela fica EM BRANCO — foi
+  // exatamente o que aconteceu aqui, com um nome de estado errado.
+  const ABAS = [
+    { id: "visao",      rotulo: "Visão geral", icone: "dashboard", contador: feedbacks?.length ?? 0 },
+    { id: "denuncias",  rotulo: "Denúncias",   icone: "flag",      contador: questionReports?.length ?? 0 },
+    { id: "quiz",       rotulo: "Quiz",        icone: "quiz",      contador: quizPending?.length ?? 0 },
+    { id: "stop",       rotulo: "Stop",        icone: "pan_tool",  contador: pending?.length ?? 0 },
+    { id: "jogadores",  rotulo: "Jogadores",   icone: "group",     contador: 0 },
+  ];
+
   return (
     <div>
       <Seo title="Painel Admin" />
       <h1>Painel Admin — Educação Gamer</h1>
 
+      {/* Navegação por abas.
+          A página tinha 7 seções empilhadas em mais de 800 linhas: pra chegar
+          na última era preciso rolar tudo. Agrupei por assunto, e a aba fica
+          guardada no navegador — voltar ao painel devolve onde você estava,
+          em vez de sempre no começo. */}
+      <div className="admin-abas">
+        {ABAS.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className={`admin-aba ${aba === a.id ? "admin-aba-ativa" : ""}`}
+            onClick={() => trocarAba(a.id)}
+          >
+            <span className="material-symbols-outlined">{a.icone}</span>
+            {a.rotulo}
+            {a.contador > 0 && <span className="admin-aba-badge">{a.contador}</span>}
+          </button>
+        ))}
+      </div>
+
+      {aba === "visao" && (
+        <>
       <div className="card admin-online-card">
         <div className="admin-online-head">
           <h2>🟢 Online agora</h2>
@@ -355,6 +415,22 @@ export default function Admin() {
                       {p.isGuest && <span className="admin-online-guest">visitante</span>}
                     </span>
                     <span className="admin-online-where">{p.local}</span>
+                    {/* Conversa direta com quem está online AGORA — é quem
+                        você consegue alcançar na hora. Sem isto era preciso
+                        ir até a aba Jogadores e achar a pessoa numa lista
+                        paginada, que nem tem busca por nick.
+                        Visitante não aparece: conta sem cadastro não recebe
+                        mensagem privada. */}
+                    {!p.isGuest && (
+                      <button
+                        type="button"
+                        className="admin-online-msg"
+                        onClick={() => setChatWith({ userId: p.userId, nickname: p.nickname })}
+                        title={`Conversar com ${p.nickname}`}
+                      >
+                        <span className="material-symbols-outlined">chat</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -369,7 +445,6 @@ export default function Admin() {
         )}
       </div>
       {error && <div className="error-msg">{error}</div>}
-
       <div className="card">
         <h2>💬 Feedback dos jogadores ({feedbacks.length})</h2>
         <table className="player-table">
@@ -406,7 +481,11 @@ export default function Admin() {
           </tbody>
         </table>
       </div>
+        </>
+      )}
 
+      {aba === "stop" && (
+        <>
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Palavras pendentes de aprovação (Stop)</h2>
         <table className="player-table">
@@ -442,7 +521,61 @@ export default function Admin() {
       </div>
 
       <AdminGlossary />
+        <div className="card" style={{ marginTop: 16 }}>
+          <h2>🕵️ Atividade suspeita (Stop)</h2>
+          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+            Sinais de possível uso de ferramentas externas (colar resposta, ou acertar tudo sem
+            nenhuma correção com tempo sobrando). <strong>Nada aqui é bloqueado automaticamente</strong> —
+            é só pra você revisar e decidir.
+          </p>
+          <table className="player-table">
+            <thead>
+              <tr>
+                <th>Jogador</th>
+                <th>Colou texto</th>
+                <th>"Bom demais"</th>
+                <th>Total</th>
+                <th>Última vez</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suspicious.map((g) => (
+                <tr key={g.user.id}>
+                  <td>{g.user.nickname} {g.user.banned && <span style={{ color: "var(--accent)" }}>(banido)</span>}</td>
+                  <td>{g.pasteCount}</td>
+                  <td>{g.tooPerfectCount}</td>
+                  <td><strong>{g.count}</strong></td>
+                  <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                    {new Date(g.latest).toLocaleString("pt-BR")}
+                  </td>
+                  <td style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button className="btn secondary" onClick={() => toggleBan(g.user)}>
+                      {g.user.banned ? "Desbanir" : "Banir"}
+                    </button>
+                    <button
+                      className="btn secondary"
+                      onClick={() => ignorarSuspeita(g.user)}
+                      title="Descartar os registros — a conta não é afetada"
+                    >
+                      Ignorar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {suspicious.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ color: "var(--text-dim)" }}>Nenhum sinal registrado ainda.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        </>
+      )}
 
+      {aba === "quiz" && (
+        <>
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Perguntas pendentes de aprovação (Quiz)</h2>
         <table className="player-table">
@@ -527,96 +660,27 @@ export default function Admin() {
 
       <AdminQuizGlossary />
 
+      {/* Respostas repetidas vem PRIMEIRO de propósito: é a checagem que pega
+          a redundância que mais incomoda quem joga. Quatro perguntas de textos
+          completamente diferentes que levam todas a "Cruzeiro" não são
+          agrupadas pelo painel de parecidas, mas para o jogador é digitar a
+          mesma coisa três vezes na mesma sessão. Além disso a comparação aqui
+          é exata (ou a resposta é a mesma, ou não é), enquanto a de parecidas
+          depende de um limiar de similaridade que sempre erra pros dois lados. */}
+      {user.role === "ADMIN" && <AdminRespostasRepetidas temas={QUIZ_THEME_NAMES} />}
+
+      {/* Mantido abaixo porque pega um caso que o de cima NÃO pega: perguntas
+          quase idênticas com respostas diferentes por um detalhe ("Copa de
+          1974" e "Copa de 1978"). Textos irmãos, respostas distintas — passa
+          direto pelo critério de resposta. */}
       {user.role === "ADMIN" && <AdminQuizParecidas />}
 
       {user.role === "ADMIN" && <AdminCadastrosPorDia />}
-
-      {user.role === "ADMIN" && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <h2>Usuários ({users.length})</h2>
-
-          {plataformas && (
-            <div className="plataformas-resumo">
-              <div className="plataformas-card">
-                <span className="plataformas-icone">📱</span>
-                <strong>{plataformas.total.mobile}</strong>
-                <span>celular</span>
-                {plataformas.ultimos30.mobile > 0 && (
-                  <em>{plataformas.ultimos30.mobile} nos últimos 30 dias</em>
-                )}
-              </div>
-              <div className="plataformas-card">
-                <span className="plataformas-icone">💻</span>
-                <strong>{plataformas.total.desktop}</strong>
-                <span>computador</span>
-                {plataformas.ultimos30.desktop > 0 && (
-                  <em>{plataformas.ultimos30.desktop} nos últimos 30 dias</em>
-                )}
-              </div>
-              <div className="plataformas-card plataformas-card-dim">
-                <span className="plataformas-icone">❔</span>
-                <strong>{plataformas.total.desconhecido}</strong>
-                <span>sem registro</span>
-                <em>nunca entraram num jogo</em>
-              </div>
-            </div>
-          )}
-          <table className="player-table player-table-compact">
-            <thead>
-              <tr>
-                <th>Nickname</th>
-                <th>E-mail</th>
-                <th>Cadastrado em</th>
-                <th>Onde joga</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE).map((u) => (
-                <tr key={u.id}>
-                  <td>{u.nickname}</td>
-                  <td>{u.email}</td>
-                  <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
-                  <td title={u.ultimoAcesso ? `Último acesso: ${new Date(u.ultimoAcesso).toLocaleString("pt-BR")}` : "Nunca conectou pelo jogo"}>
-                    {u.ultimaPlataforma === "mobile" ? "📱 Celular"
-                      : u.ultimaPlataforma === "desktop" ? "💻 Computador"
-                      : <span style={{ color: "var(--text-dim)" }}>—</span>}
-                  </td>
-                  <td>{u.role}</td>
-                  <td>
-                    {u.banned ? <span style={{ color: "var(--accent)" }}>🚫 Banido</span> : <span style={{ color: "#06d6a0" }}>✓ Ativo</span>}
-                  </td>
-                  <td style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <select value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}>
-                      <option value="PLAYER">PLAYER</option>
-                      <option value="MODERATOR">MODERATOR</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
-                    {u.role !== "ADMIN" && (
-                      <>
-                        <button className="btn secondary" onClick={() => toggleBan(u)}>
-                          {u.banned ? "Desbanir" : "Banir"}
-                        </button>
-                        <button className="btn secondary admin-word-del" onClick={() => deleteUser(u)} title="Apagar permanentemente">
-                          ✕
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination
-            page={usersPage}
-            totalPages={Math.max(1, Math.ceil(users.length / PAGE_SIZE))}
-            onChange={setUsersPage}
-          />
-        </div>
+        </>
       )}
 
+      {aba === "denuncias" && (
+        <>
       <div className="card" style={{ marginTop: 16 }}>
         <h2>🚩 Perguntas reportadas ({questionReports.length})</h2>
         <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
@@ -742,57 +806,108 @@ export default function Admin() {
         ))}
       </div>
 
-      {user.role === "ADMIN" && (
+        </>
+      )}
+
+      {chatWith && <DmModal friend={chatWith} onClose={() => setChatWith(null)} />}
+
+      {aba === "jogadores" && (
+        <>
         <div className="card" style={{ marginTop: 16 }}>
-          <h2>🕵️ Atividade suspeita (Stop)</h2>
-          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            Sinais de possível uso de ferramentas externas (colar resposta, ou acertar tudo sem
-            nenhuma correção com tempo sobrando). <strong>Nada aqui é bloqueado automaticamente</strong> —
-            é só pra você revisar e decidir.
-          </p>
-          <table className="player-table">
+          <h2>Usuários ({users.length})</h2>
+
+          {plataformas && (
+            <div className="plataformas-resumo">
+              <div className="plataformas-card">
+                <span className="plataformas-icone">📱</span>
+                <strong>{plataformas.total.mobile}</strong>
+                <span>celular</span>
+                {plataformas.ultimos30.mobile > 0 && (
+                  <em>{plataformas.ultimos30.mobile} nos últimos 30 dias</em>
+                )}
+              </div>
+              <div className="plataformas-card">
+                <span className="plataformas-icone">💻</span>
+                <strong>{plataformas.total.desktop}</strong>
+                <span>computador</span>
+                {plataformas.ultimos30.desktop > 0 && (
+                  <em>{plataformas.ultimos30.desktop} nos últimos 30 dias</em>
+                )}
+              </div>
+              <div className="plataformas-card plataformas-card-dim">
+                <span className="plataformas-icone">❔</span>
+                <strong>{plataformas.total.desconhecido}</strong>
+                <span>sem registro</span>
+                <em>nunca entraram num jogo</em>
+              </div>
+            </div>
+          )}
+          <table className="player-table player-table-compact">
             <thead>
               <tr>
-                <th>Jogador</th>
-                <th>Colou texto</th>
-                <th>"Bom demais"</th>
-                <th>Total</th>
-                <th>Última vez</th>
+                <th>Nickname</th>
+                <th>E-mail</th>
+                <th>Cadastrado em</th>
+                <th>Onde joga</th>
+                <th>Role</th>
+                <th>Status</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {suspicious.map((g) => (
-                <tr key={g.user.id}>
-                  <td>{g.user.nickname} {g.user.banned && <span style={{ color: "var(--accent)" }}>(banido)</span>}</td>
-                  <td>{g.pasteCount}</td>
-                  <td>{g.tooPerfectCount}</td>
-                  <td><strong>{g.count}</strong></td>
-                  <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
-                    {new Date(g.latest).toLocaleString("pt-BR")}
+              {users.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE).map((u) => (
+                <tr key={u.id}>
+                  <td>{u.nickname}</td>
+                  <td>{u.email}</td>
+                  <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
+                  <td title={u.ultimoAcesso ? `Último acesso: ${new Date(u.ultimoAcesso).toLocaleString("pt-BR")}` : "Nunca conectou pelo jogo"}>
+                    {u.ultimaPlataforma === "mobile" ? "📱 Celular"
+                      : u.ultimaPlataforma === "desktop" ? "💻 Computador"
+                      : <span style={{ color: "var(--text-dim)" }}>—</span>}
                   </td>
-                  <td style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button className="btn secondary" onClick={() => toggleBan(g.user)}>
-                      {g.user.banned ? "Desbanir" : "Banir"}
-                    </button>
+                  <td>{u.role}</td>
+                  <td>
+                    {u.banned ? <span style={{ color: "var(--accent)" }}>🚫 Banido</span> : <span style={{ color: "#06d6a0" }}>✓ Ativo</span>}
+                  </td>
+                  <td style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    {/* Conversa direta com o jogador. Não exige amizade: o
+                        socket libera admin e moderador, justamente pra dar um
+                        canal de contato sobre denúncia, pergunta corrigida ou
+                        premiação. */}
                     <button
-                      className="btn secondary"
-                      onClick={() => ignorarSuspeita(g.user)}
-                      title="Descartar os registros — a conta não é afetada"
+                      className="btn secondary admin-msg-btn"
+                      onClick={() => setChatWith({ userId: u.id, nickname: u.nickname })}
+                      title={`Conversar com ${u.nickname}`}
                     >
-                      Ignorar
+                      <span className="material-symbols-outlined">chat</span>
                     </button>
+                    <select value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}>
+                      <option value="PLAYER">PLAYER</option>
+                      <option value="MODERATOR">MODERATOR</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                    {u.role !== "ADMIN" && (
+                      <>
+                        <button className="btn secondary" onClick={() => toggleBan(u)}>
+                          {u.banned ? "Desbanir" : "Banir"}
+                        </button>
+                        <button className="btn secondary admin-word-del" onClick={() => deleteUser(u)} title="Apagar permanentemente">
+                          ✕
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
-              {suspicious.length === 0 && (
-                <tr>
-                  <td colSpan={6} style={{ color: "var(--text-dim)" }}>Nenhum sinal registrado ainda.</td>
-                </tr>
-              )}
             </tbody>
           </table>
+          <Pagination
+            page={usersPage}
+            totalPages={Math.max(1, Math.ceil(users.length / PAGE_SIZE))}
+            onChange={setUsersPage}
+          />
         </div>
+        </>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAcromaniaAtivo } from "../components/useAcromaniaAtivo.js";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
@@ -10,6 +11,7 @@ import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
+  const acromaniaAtivo = useAcromaniaAtivo();
   const { user } = useAuth();
   const { theme } = useTheme();
   const [showFeedback, setShowFeedback] = useState(false);
@@ -72,21 +74,25 @@ export default function Lobby() {
           </div>
         </Link>
 
-        {/* Acromania: em desenvolvimento — o jogo depende de várias pessoas
-            escrevendo e votando ao mesmo tempo, então fica guardado pra
-            quando a casa estiver mais cheia. Card sem cor e sem clique. */}
-        <div className="glossy-panel lobby-game-card home-game-card home-game-card-dev">
-          <span className="home-game-dev-badge">EM DESENVOLVIMENTO</span>
+        {/* Acromania: liberado em fase de testes. O selo é honesto e serve de
+            expectativa — é a primeira vez que o jogo roda com gente real, e
+            avisar evita que um problema seja lido como descaso. */}
+        {acromaniaAtivo && (
+        <Link to="/jogos/acromania" className="glossy-panel lobby-game-card home-game-card home-game-card-beta">
+          <span className="home-game-beta-badge">EM TESTES</span>
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
             <p className="lobby-game-desc">
               Um tema, algumas letras, e você cria a frase mais criativa possível — a galera vota
-              na melhor. Chega quando a comunidade estiver maior!
+              na melhor. Quanto mais gente na sala, melhor fica.
             </p>
-            <span className="lobby-game-cta lobby-game-cta-dev">Em breve</span>
+            <span className="lobby-game-cta">
+              Ver salas <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
           </div>
-        </div>
+        </Link>
+        )}
       </div>
 
       {/* Premiação do mês */}
@@ -94,7 +100,8 @@ export default function Lobby() {
         <div className="prize-banner-header">
           <span className="prize-badge">🏆 PREMIAÇÃO</span>
           <span className="prize-banner-intro">
-            Neste mês de testes, o <strong>ranking mensal do Stop</strong> vai premiar de verdade!
+            O <strong>Stop</strong> e o <strong>Quiz</strong> têm rankings mensais que premiam de
+            verdade — cada um com os valores abaixo.
           </span>
         </div>
         <div className="prize-list">
@@ -114,7 +121,10 @@ export default function Lobby() {
             <span className="prize-value">R$ 50</span>
           </div>
         </div>
-        <p className="prize-banner-note">Pagamento via Pix.</p>
+        <p className="prize-banner-note">
+          Os dois rankings são separados — dá para ganhar nos dois. Pagamento via Pix,
+          e tudo zera no dia 1º.
+        </p>
         <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
       </div>
 

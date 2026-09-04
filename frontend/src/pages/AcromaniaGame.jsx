@@ -5,7 +5,6 @@ import { getSocket } from "../socket.js";
 import Chat from "../components/Chat.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import InviteButton from "../components/InviteButton.jsx";
-import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
@@ -97,6 +96,21 @@ export default function AcromaniaGame() {
       }
     });
 
+    // Aviso de inatividade: entra como mensagem do sistema no chat, que é
+    // onde o olho já está durante a partida. Um alerta modal atrapalharia
+    // justamente quem está no meio de uma rodada.
+    socket.on("aviso-inatividade", (data) => {
+      setMessages((prev) => [
+        ...prev,
+        { system: true, atividade: true, message: `⏳ ${data.mensagem}`, at: Date.now() },
+      ].slice(-200));
+    });
+
+    socket.on("removido-por-inatividade", (data) => {
+      alert(data.mensagem || "Você saiu da sala por inatividade.");
+      navigate(-1);
+    });
+
     socket.on("acromania-online-players", (data) => setOnlinePlayers(data.players || []));
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
@@ -177,6 +191,8 @@ export default function AcromaniaGame() {
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
       socket.off("acromania-round-result");
+      socket.off("aviso-inatividade");
+      socket.off("removido-por-inatividade");
       socket.disconnect();
     };
   }, [roomId]);
@@ -246,7 +262,6 @@ export default function AcromaniaGame() {
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
         <div className="quiz-timer-group">
-          <FriendsQuickChat />
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/acromania/${roomId}`}

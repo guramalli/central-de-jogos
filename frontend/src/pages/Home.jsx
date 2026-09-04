@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useAcromaniaAtivo } from "../components/useAcromaniaAtivo.js";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -14,6 +15,7 @@ import NovidadeBanner from "../components/NovidadeBanner.jsx";
 // possível pra jogar: um apelido e pronto. Login e cadastro continuam a um
 // clique, mas não são mais a porta de entrada.
 export default function Home() {
+  const acromaniaAtivo = useAcromaniaAtivo();
   const { loginAsGuest, loginWithGoogle } = useAuth();
   const { theme } = useTheme();
   const [guestNick, setGuestNick] = useState("");
@@ -180,18 +182,22 @@ export default function Home() {
           </div>
         </button>
 
-        <div className="glossy-panel lobby-game-card home-game-card home-game-card-dev">
-          <span className="home-game-dev-badge">EM DESENVOLVIMENTO</span>
+        {acromaniaAtivo && (
+        <button type="button" onClick={focarEntrada} className="glossy-panel lobby-game-card home-game-card home-game-card-beta">
+          <span className="home-game-beta-badge">EM TESTES</span>
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
             <p className="lobby-game-desc">
               Um tema, algumas letras, e você cria a frase mais criativa possível — a galera vota
-              na melhor. Chega quando a comunidade estiver maior!
+              na melhor. Quanto mais gente na sala, melhor fica.
             </p>
-            <span className="lobby-game-cta lobby-game-cta-dev">Em breve</span>
+            <span className="lobby-game-cta">
+              Jogar grátis <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
           </div>
-        </div>
+        </button>
+        )}
       </div>
     </div>
   );

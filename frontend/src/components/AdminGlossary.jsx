@@ -73,7 +73,11 @@ export default function AdminGlossary() {
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
-      <h2>Índice de palavras e temas</h2>
+      {/* Recolhido por padrão: a grade de 23 letras com todas as palavras do
+          tema é a seção mais longa do painel, e na maior parte do tempo não
+          precisa estar aberta. Abre com um clique quando for usar. */}
+      <details className="admin-recolhivel">
+        <summary>Índice de palavras e temas</summary>
       {error && <div className="error-msg">{error}</div>}
 
       <label style={{ fontSize: 13, color: "var(--text-dim)" }}>Tema</label>
@@ -125,6 +129,7 @@ export default function AdminGlossary() {
         ))}
         {words.length === 0 && <p style={{ color: "var(--text-dim)" }}>Nenhuma palavra cadastrada ainda neste tema.</p>}
       </div>
+      </details>
     </div>
   );
 }

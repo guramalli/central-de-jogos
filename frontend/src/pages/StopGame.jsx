@@ -8,7 +8,6 @@ import SalaEspera from "../components/SalaEspera.jsx";
 import FaixaPatente from "../components/FaixaPatente.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
 import InviteButton from "../components/InviteButton.jsx";
-import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
 import { useIsMobile } from "../utils/useIsMobile.js";
@@ -144,6 +143,21 @@ export default function StopGame() {
         ...prev,
         { system: true, atividade: true, message: data.mensagem, at: data.at },
       ].slice(-200));
+    });
+
+    // Aviso de inatividade: entra como mensagem do sistema no chat, que é
+    // onde o olho já está durante a partida. Um alerta modal atrapalharia
+    // justamente quem está no meio de uma rodada.
+    socket.on("aviso-inatividade", (data) => {
+      setMessages((prev) => [
+        ...prev,
+        { system: true, atividade: true, message: `⏳ ${data.mensagem}`, at: Date.now() },
+      ].slice(-200));
+    });
+
+    socket.on("removido-por-inatividade", (data) => {
+      alert(data.mensagem || "Você saiu da sala por inatividade.");
+      navigate(-1);
     });
 
     socket.on("room-access-denied", (data) => {
@@ -336,6 +350,8 @@ export default function StopGame() {
       socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("chat-message");
       socket.off("aviso-atividade");
+      socket.off("aviso-inatividade");
+      socket.off("removido-por-inatividade");
       socket.disconnect();
     };
   }, [roomId]);
@@ -629,7 +645,6 @@ export default function StopGame() {
         </div>
 
         <div className="sc-topbar-logo">
-          <FriendsQuickChat />
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/stop/${roomId}`}

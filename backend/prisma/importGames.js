@@ -1,52 +1,67 @@
-// Importa as perguntas novas do Quiz — soma ao que já existe no banco,
-// sem duplicar (compara tema + texto da pergunta).
+// Importa (ou atualiza) o tema "Games" do Stop.
+//
+// POR QUE UM SCRIPT SÓ PRA ISSO, EM VEZ DE RODAR O SEED INTEIRO:
+// O seed completo passa por TODOS os temas e todas as ~1.300 palavras. Ele
+// é seguro (usa upsert), mas em produção é lento e mexe em muito mais coisa
+// do que o necessário — e quanto menor a superfície de um comando rodado no
+// banco de produção, melhor.
+//
+// É seguro rodar mais de uma vez: tudo é upsert. Rodar de novo depois de
+// acrescentar palavras novas ao arquivo só adiciona as que faltam, sem
+// duplicar nem apagar nada do que já existe.
+//
+// Uso:  npm run import-games
 import { PrismaClient } from "@prisma/client";
-import { GAMES } from "./data/quizGames.js";
+import { GAMES_WORDS } from "./data/stopWordsGames.js";
 
 const prisma = new PrismaClient();
 
-async function main() {
-  let inseridas = 0;
-  let puladas = 0;
+const CHAVE = "games";
+const NOME = "Games";
 
-  for (const [themeKey, perguntas] of Object.entries(GAMES)) {
-    let doTema = 0;
-    for (const q of perguntas) {
-      // Busca SÓ pelo texto da pergunta, sem filtrar por tema. Isso é
-      // essencial: os scripts de migração (mover-anime, mover-mitologia,
-      // mover-games) mudam o themeKey de perguntas já importadas. Se a
-      // busca considerasse o tema, o script não encontraria a pergunta no
-      // tema original e criaria uma duplicata.
-      const existe = await prisma.quizQuestion.findFirst({
-        where: { question: q.question },
+async function main() {
+  const tema = await prisma.theme.upsert({
+    where: { key: CHAVE },
+    update: { name: NOME },
+    create: { key: CHAVE, name: NOME },
+  });
+  console.log(`Tema "${NOME}" pronto (id ${tema.id}).`);
+
+  let novas = 0;
+  let jaExistiam = 0;
+
+  for (const [letra, palavras] of Object.entries(GAMES_WORDS)) {
+    for (const palavra of palavras) {
+      const antes = await prisma.wordEntry.findFirst({
+        where: { themeId: tema.id, letter: letra, word: palavra },
+        select: { id: true },
       });
-      if (existe) {
-        puladas++;
-        continue;
-      }
-      await prisma.quizQuestion.create({
-        data: {
-          themeKey,
-          question: q.question,
-          answer: q.answer,
-          difficulty: q.difficulty || "medio",
-          status: "approved",
-          validated: true, // escritas e revisadas manualmente
+
+      await prisma.wordEntry.upsert({
+        where: {
+          themeId_letter_word: { themeId: tema.id, letter: letra, word: palavra },
         },
+        update: { status: "approved" },
+        create: { themeId: tema.id, letter: letra, word: palavra, status: "approved" },
       });
-      inseridas++;
-      doTema++;
+
+      if (antes) jaExistiam++;
+      else novas++;
     }
-    console.log(`  ${themeKey.padEnd(12)} +${doTema}`);
   }
 
+  const total = await prisma.wordEntry.count({ where: { themeId: tema.id } });
+  console.log(`Palavras novas: ${novas} | já existiam: ${jaExistiam}`);
+  console.log(`Total no tema "${NOME}": ${total}`);
   console.log("");
-  console.log(`✅ Concluído! ${inseridas} pergunta(s) nova(s) inserida(s), ${puladas} já existiam.`);
+  console.log("As salas Intermediária e Avançada sorteiam de todos os temas,");
+  console.log("então já vão incluir Carros. As salas Padrão usam lista fixa —");
+  console.log("elas foram atualizadas em src/game/roomConfigs.js.");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("Falha ao importar o tema Carros:", e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

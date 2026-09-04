@@ -207,6 +207,102 @@ router.post("/quiz-questions", async (req, res) => {
 //
 // O cálculo é pesado o bastante pra não valer rodar a cada abertura da tela:
 // fica em cache por 10 minutos.
+// Perguntas do mesmo TEMA que compartilham a MESMA RESPOSTA.
+//
+// Diferente do painel de "parecidas", que compara o texto das perguntas, aqui
+// o critério é a resposta. Duas perguntas escritas de formas completamente
+// diferentes podem levar ao mesmo lugar:
+//
+//   "Qual clube tem mais títulos da Copa do Brasil?"        -> Cruzeiro
+//   "Qual clube brasileiro venceu a Libertadores em 1997?"  -> Cruzeiro
+//
+// Para quem joga, é o mesmo assunto voltando. Num tema com 604 perguntas e
+// 416 respostas distintas, quase um terço da sala soa repetida.
+//
+// A comparação ignora acento, caixa e pontuação: "Pokémon" e "pokemon" são a
+// mesma resposta.
+router.get("/quiz-respostas-repetidas", requireRole("ADMIN"), async (req, res) => {
+  const tema = req.query.tema || null;
+
+  const where = { status: "approved" };
+  if (tema) where.themeKey = tema;
+
+  const perguntas = await prisma.quizQuestion.findMany({
+    where,
+    select: { id: true, themeKey: true, question: true, answer: true, difficulty: true },
+  });
+
+  const chave = (t) =>
+    (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  // Agrupa por tema + resposta: a mesma resposta em temas diferentes é
+  // legítima (ex.: "Brasil" em Geografia e em Futebol).
+  const grupos = new Map();
+  for (const q of perguntas) {
+    const k = `${q.themeKey}::${chave(q.answer)}`;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(q);
+  }
+
+  // Grupos que o admin já revisou e aprovou. Guardamos também QUANTAS
+  // perguntas tinha na aprovação: se entrarem novas depois, a contagem muda
+  // e o grupo volta a aparecer — merece uma segunda olhada.
+  const aprovados = await prisma.quizRespostaAprovada.findMany({
+    where: tema ? { themeKey: tema } : {},
+    select: { themeKey: true, chave: true, quantidade: true },
+  });
+  const jaAprovado = new Map(aprovados.map((a) => [`${a.themeKey}::${a.chave}`, a.quantidade]));
+
+  const todosGrupos = [...grupos.entries()]
+    .filter(([, g]) => g.length > 1)
+    .map(([k, g]) => ({
+      chaveGrupo: k,
+      themeKey: g[0].themeKey,
+      answer: g[0].answer,
+      total: g.length,
+      perguntas: g,
+    }));
+
+  const repetidas = todosGrupos
+    .filter((g) => jaAprovado.get(g.chaveGrupo) !== g.total)
+    .sort((a, b) => b.total - a.total);
+
+  const ocultos = todosGrupos.length - repetidas.length;
+
+  res.json({
+    total: perguntas.length,
+    distintas: grupos.size,
+    grupos: repetidas,
+    // Quantas perguntas estão envolvidas em alguma repetição ainda pendente.
+    envolvidas: repetidas.reduce((s, g) => s + g.total, 0),
+    // Grupos escondidos por já terem sido aprovados — mostrar o número evita
+    // a impressão de que a lista está vazia por engano.
+    ocultos,
+  });
+});
+
+// Marca um grupo de mesma resposta como revisado e aprovado.
+//
+// Não apaga nada: só registra que o admin olhou e decidiu que as perguntas,
+// apesar da resposta igual, são diferentes o bastante para conviverem.
+router.post("/quiz-respostas-repetidas/aprovar", requireRole("ADMIN"), async (req, res) => {
+  const { themeKey, answer, quantidade } = req.body || {};
+  if (!themeKey || !answer) {
+    return res.status(400).json({ error: "Tema e resposta são obrigatórios." });
+  }
+
+  const chave = String(answer)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  await prisma.quizRespostaAprovada.upsert({
+    where: { themeKey_chave: { themeKey, chave } },
+    update: { quantidade: Number(quantidade) || 0 },
+    create: { themeKey, chave, quantidade: Number(quantidade) || 0 },
+  });
+
+  res.json({ ok: true });
+});
+
 router.get("/quiz-parecidas", requireRole("ADMIN"), async (req, res) => {
   const limite = Math.min(Math.max(Number(req.query.limite) || 60, 10), 95) / 100;
 

@@ -7,7 +7,7 @@ import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js"
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
-import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo } from "../game/titulosConfig.js";
+import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario, trofeusDeCampeao, logoDoTrofeu } from "../game/titulosConfig.js";
 
 const router = Router();
 
@@ -21,7 +21,7 @@ const MAX_AVATAR_LENGTH = 300_000;
 // conquistas do zero, só reaproveitando o que o site já calcula. Como
 // patente agora é conceito mensal, a conquista mostra a patente do mês
 // vigente (se a pessoa ainda não pontuou esse mês, não mostra patente).
-async function buildAchievements(nickname, monthlyByGame, userId) {
+async function buildAchievements(nickname, monthlyByGame, userId, quizStats = []) {
   const achievements = [];
 
   const stopPoints = monthlyByGame.get("stop") || 0;
@@ -39,6 +39,31 @@ async function buildAchievements(nickname, monthlyByGame, userId) {
   if (streakRecords.length > 0) {
     const best = streakRecords.reduce((a, b) => (b.count > a.count ? b : a));
     achievements.push({ icon: "🔥", label: `Recorde de ${best.count} seguidas no Quiz` });
+  }
+
+  // Melhor aproveitamento entre as salas do Quiz.
+  //
+  // `quizStats` já vem filtrado por attempts >= 10 lá na consulta — sem esse
+  // corte, quem viu uma pergunta e acertou apareceria com 100%, que não diz
+  // nada sobre domínio do tema.
+  //
+  // Em caso de empate na porcentagem, ganha quem tem MAIS tentativas: 90% em
+  // 300 perguntas vale mais que 90% em 12, e mostrar a segunda seria enganoso.
+  if (quizStats.length > 0) {
+    const melhor = quizStats.reduce((a, b) => {
+      const pa = a.correct / a.attempts;
+      const pb = b.correct / b.attempts;
+      if (pb !== pa) return pb > pa ? b : a;
+      return b.attempts > a.attempts ? b : a;
+    });
+    const pct = Math.round((melhor.correct / melhor.attempts) * 100);
+    const sala = QUIZ_ROOM_CONFIGS[melhor.roomId]?.label || melhor.roomId;
+    achievements.push({
+      icon: "🎯",
+      label: `Melhor aproveitamento: ${pct}% em ${sala}`,
+      // O total de tentativas dá contexto — sem ele, "90%" pode ser sorte.
+      detalhe: `${melhor.correct} de ${melhor.attempts} perguntas`,
+    });
   }
 
   return achievements;
@@ -130,7 +155,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     })
   );
   const monthlyByGame = new Map(monthly.map((m) => [m.gameKey, m.points]));
-  const achievements = await buildAchievements(user.nickname, monthlyByGame, user.id);
+  const achievements = await buildAchievements(user.nickname, monthlyByGame, user.id, quizStats);
 
   // Aproveitamento por sala do Quiz — só das salas com pelo menos 10
   // perguntas vistas, senão o número não significaria nada.
@@ -208,6 +233,9 @@ router.get("/me", requireAuth, async (req, res) => {
     medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
     hasPassword: !!user.password,
+    // Se a troca única de nick ainda está disponível. Quem entrou pelo Google
+    // recebeu um nick gerado do nome da conta e nunca pôde escolher.
+    podeTrocarNick: !user.nicknameTrocado && !user.isGuest,
   });
 });
 
@@ -250,14 +278,90 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
     // tabela ainda não criada (db push pendente) — segue só com o Quiz
   }
   const desbloqueados = new Set();
-  for (const t of titulosDoQuiz(porTema)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
-  for (const t of titulosDoStop(statsStop)) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  const listaQuiz = titulosDoQuiz(porTema);
+  const listaStop = titulosDoStop(statsStop);
+  for (const t of listaQuiz) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  for (const t of listaStop) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
+  // Sem isto o lendário seria recusado na validação: quem conquistou não
+  // conseguiria escolhê-lo como título exibido, que é justamente a graça.
+  const lendario = tituloLendario(listaQuiz, listaStop);
+  if (lendario.desbloqueado) desbloqueados.add(lendario.nome);
+
+  // Troféus de campeão também podem ser escolhidos como título exibido —
+  // sem isto seriam recusados aqui, e não adiantaria conquistá-los.
+  // Aceita tanto o nome puro quanto o rótulo com contagem ("(2x)"), porque
+  // é o rótulo que a vitrine mostra e envia.
+  const registrosCampeao = await prisma.campeaoMensal.findMany({
+    where: { userId: req.user.id },
+    select: { gameKey: true, monthKey: true, points: true },
+  });
+  const meusTrofeus = trofeusDeCampeao(registrosCampeao);
+  for (const t of meusTrofeus.todos) desbloqueados.add(t.nome);
+  for (const t of meusTrofeus.resumo) desbloqueados.add(t.rotulo);
 
   if (!desbloqueados.has(titulo)) {
     return res.status(400).json({ error: "Esse título ainda não foi desbloqueado." });
   }
   await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: titulo } });
   res.json({ ok: true, tituloExibido: titulo });
+});
+
+// Troca de nickname — UMA vez por conta.
+//
+// POR QUE EXISTE:
+// Quem entra pelo Google recebe um nick gerado do nome da conta ("JoaoSilva",
+// "JoaoSilva2"), sem escolher nada. Antes disso não havia como mudar, então a
+// pessoa ficava presa a um nome que não escolheu — e o nick aparece em toda
+// sala, no ranking e no chat.
+//
+// POR QUE SÓ UMA VEZ:
+// O nick é a identidade pública no site. Ele aparece no ranking mensal que
+// paga Pix, nos títulos vitalícios e no histórico de campeões. Troca livre
+// quebraria o reconhecimento entre jogadores e o rastro de quem conquistou o
+// quê. Uma troca resolve o problema real sem abrir essa porta.
+router.patch("/me/nickname", requireAuth, async (req, res) => {
+  const { nickname } = req.body || {};
+  const novo = String(nickname || "").trim();
+
+  if (novo.length < 3 || novo.length > 15) {
+    return res.status(400).json({ error: "O nick precisa ter entre 3 e 15 caracteres." });
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(novo)) {
+    return res.status(400).json({ error: "Use apenas letras, números e underline." });
+  }
+
+  const eu = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { nickname: true, nicknameTrocado: true, isGuest: true },
+  });
+
+  if (eu?.isGuest) {
+    return res.status(400).json({ error: "Crie uma conta pra escolher seu nick." });
+  }
+  if (eu?.nicknameTrocado) {
+    return res.status(400).json({ error: "Você já usou sua troca de nick." });
+  }
+  if (novo === eu?.nickname) {
+    return res.status(400).json({ error: "Esse já é o seu nick." });
+  }
+
+  // A checagem é sem diferenciar maiúsculas: "Guramalli" e "guramalli" seriam
+  // duas pessoas diferentes no banco, mas a mesma pessoa aos olhos de quem
+  // lê o chat.
+  const existe = await prisma.user.findFirst({
+    where: { nickname: { equals: novo, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (existe) {
+    return res.status(400).json({ error: "Esse nick já está em uso." });
+  }
+
+  await prisma.user.update({
+    where: { id: req.user.id },
+    data: { nickname: novo, nicknameTrocado: true },
+  });
+
+  res.json({ ok: true, nickname: novo });
 });
 
 // Liga/desliga a medalha no lugar da foto no hover do nick.
@@ -389,9 +493,26 @@ router.get("/:id/titulos", requireAuth, async (req, res) => {
       select: { grupo: true, stops: true, rapidos: true },
     });
 
+    const quiz = titulosDoQuiz(porTema);
+    const stop = titulosDoStop(statsStop);
+
+    // Troféus de campeão mensal: vêm da tabela CampeaoMensal, congelada no
+    // fechamento do mês. Não são calculados a partir do ranking — se fossem,
+    // mudariam sozinhos caso alguma conta antiga fosse banida ou ocultada.
+    const registrosCampeao = await prisma.campeaoMensal.findMany({
+      where: { userId: id },
+      select: { gameKey: true, monthKey: true, points: true },
+    });
+    const trofeus = trofeusDeCampeao(registrosCampeao);
+
     const payload = {
-      quiz: titulosDoQuiz(porTema),
-      stop: titulosDoStop(statsStop),
+      quiz,
+      stop,
+      trofeus,
+      // Estado do título lendário (todos os 62). Vem sempre, desbloqueado ou
+      // não: a vitrine mostra o quanto falta, que é o que dá sentido a
+      // perseguir uma conquista tão longa.
+      lendario: tituloLendario(quiz, stop),
     };
     cacheSet(cacheKey, payload, 600);
     res.json(payload);

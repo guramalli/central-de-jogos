@@ -109,6 +109,15 @@ model User {
   friendshipsA     Friendship[] @relation("UserA")
   friendshipsB     Friendship[] @relation("UserB")
   chatMessages     ChatMessage[]
+  // Quem entrou pelo Google recebeu um nickname gerado do nome da conta, sem
+  // escolher. Este campo permite UMA troca — depois disso o nick fica fixo,
+  // como o de quem se cadastrou normalmente.
+  //
+  // Troca livre e ilimitada seria ruim aqui: o nick aparece em ranking,
+  // títulos vitalícios e histórico de campeões. Trocar toda hora quebraria o
+  // reconhecimento entre jogadores e o rastro do que cada um conquistou.
+  nicknameTrocado   Boolean  @default(false)
+  campeonatos  CampeaoMensal[]
 }
 
 model Clan {
@@ -299,6 +308,17 @@ model QuizQuestion {
   suggestedBy   User?    @relation(fields: [suggestedById], references: [id])
   reports       QuizQuestionReport[]
   createdAt     DateTime @default(now())
+
+  // Índice da consulta mais quente do jogo.
+  //
+  // O montarFilaDePerguntas filtra sempre por status e, conforme a sala, por
+  // themeKey e difficulty. Sem índice o Postgres varria as ~15 mil linhas a
+  // cada remontagem de fila — e isso acontece por sala, toda vez que as
+  // perguntas daquela sala esgotam.
+  //
+  // A ordem dos campos importa: `status` vem primeiro porque é o único filtro
+  // sempre presente; os outros dois entram conforme a sala.
+  @@index([status, themeKey, difficulty])
 }
 
 // Pares de perguntas que o admin já revisou na tela de "parecidas" e marcou
@@ -306,6 +326,56 @@ model QuizQuestion {
 // novo de perguntas recalculava a lista e trazia de volta o que já tinha sido
 // aprovado. A chave é o par de ids em ordem alfabética, pra não depender de
 // qual veio primeiro.
+// Grupos de perguntas com a MESMA RESPOSTA que o admin já revisou e aprovou.
+//
+// Mesmo motivo do QuizParDiferente logo abaixo: sem isto, todo lote novo
+// recalcula a lista e traz de volta o que já foi analisado. Resposta repetida
+// é normal — várias perguntas diferentes podem levar ao mesmo lugar. Depois
+// que o admin olha e decide que está tudo certo, o grupo precisa sumir da
+// lista, senão o painel vira ruído e deixa de ser usado.
+//
+// A chave é tema + resposta normalizada (sem acento, caixa ou pontuação).
+// Se uma pergunta NOVA com a mesma resposta aparecer depois, o grupo volta a
+// aparecer: a contagem muda, e vale uma nova olhada.
+// Campeão de cada mês, por jogo. CONGELADO no fechamento.
+//
+// POR QUE GRAVAR EM VEZ DE CALCULAR NA HORA:
+// O ranking de um mês é uma consulta ordenada sobre monthlyScore. Se no
+// futuro uma conta for banida, ocultada do ranking ou apagada, essa consulta
+// passa a devolver OUTRO campeão para um mês que já foi pago. Alguém perderia
+// um troféu conquistado, sem entender por quê.
+//
+// Gravando uma vez, o troféu fica imune a qualquer mexida posterior nos
+// dados. Serve também de registro do que foi pago.
+//
+// PREENCHIDO PELO SCRIPT `npm run fechar-mes -- 2026-08`, nunca por rotina
+// automática: não existe fechamento agendado no projeto, e criar um seria um
+// ponto único de falha justamente com dinheiro envolvido.
+model CampeaoMensal {
+  id        String   @id @default(cuid())
+  monthKey  String   // "2026-08"
+  gameKey   String   // "stop" | "quiz"
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  nickname  String   // guardado junto: se o nick mudar, o troféu registra o da época
+  points    Int
+  createdAt DateTime @default(now())
+
+  // Um campeão por mês/jogo. Impede gravar dois por engano.
+  @@unique([monthKey, gameKey])
+  @@index([userId])
+}
+
+model QuizRespostaAprovada {
+  id         String   @id @default(cuid())
+  themeKey   String
+  chave      String   // resposta normalizada
+  quantidade Int      // quantas perguntas tinha quando foi aprovado
+  createdAt  DateTime @default(now())
+
+  @@unique([themeKey, chave])
+}
+
 model QuizParDiferente {
   id        String   @id @default(cuid())
   idA       String   // id da primeira pergunta (sempre o menor alfabeticamente)

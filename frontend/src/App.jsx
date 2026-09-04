@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import BarraMensagens from "./components/BarraMensagens.jsx";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import GuestBanner from "./components/GuestBanner.jsx";
@@ -56,6 +57,10 @@ export default function App() {
   const [unreadDmCount, setUnreadDmCount] = useState(0);
   // Missões concluídas esperando resgate — mesmo esquema do aviso de DM.
   const [missoesPendentes, setMissoesPendentes] = useState(0);
+  // Foto do próprio jogador pro cabeçalho. Não vem no `user` do login (que
+  // guarda só o essencial do token), então é buscada do perfil — que já tem
+  // cache no servidor. Se não houver foto, fica a inicial do nick.
+  const [meuAvatar, setMeuAvatar] = useState(null);
 
   // Confere de tempos em tempos se chegou pedido de amizade ou mensagem
   // privada nova — assim, mesmo quem não está na página de Amigos vê o
@@ -66,6 +71,23 @@ export default function App() {
   // Busca os três avisinhos numa requisição só (antes eram três) e só
   // enquanto a aba está visível — o banco cobra por tempo acordado, e uma
   // aba esquecida aberta mantinha o medidor rodando a noite inteira.
+  useEffect(() => {
+    if (!user) { setMeuAvatar(null); return; }
+    let vivo = true;
+    api.get(`/users/${user.id}/profile`)
+      .then(({ data }) => vivo && setMeuAvatar(data.avatarUrl || null))
+      .catch(() => {});
+    // Escuta a troca de foto feita na própria página de perfil, pra o
+    // cabeçalho atualizar sem recarregar o site.
+    const aoTrocar = () => {
+      api.get(`/users/${user.id}/profile`)
+        .then(({ data }) => vivo && setMeuAvatar(data.avatarUrl || null))
+        .catch(() => {});
+    };
+    window.addEventListener("avatar-changed", aoTrocar);
+    return () => { vivo = false; window.removeEventListener("avatar-changed", aoTrocar); };
+  }, [user?.id]);
+
   const buscarAvisos = useCallback(() => {
     if (!user) return;
     api.get("/avisos")
@@ -136,13 +158,18 @@ export default function App() {
                   logo nem invalidar o cache dela no service worker. */}
               <span className="logo-beta">beta</span>
             </Link>
-            {user && (
+          </div>
+
+          {/* O menu é IRMÃO da logo, não filho: só assim ele ocupa a coluna
+              do meio da grade e fica centralizado na página. Dentro do
+              .app-header-left ele era empurrado pra esquerda junto da logo. */}
+          {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
-                <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
-                <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
-                {/* Acromania oculto do menu enquanto está em desenvolvimento
-                    (as rotas continuam vivas pra reativar rápido depois). */}
+                {/* Stop e Quiz saíram do menu: os cards deles ficam no Lobby,
+                    que já é o primeiro link. Ter os dois aqui repetia o
+                    caminho e deixava a barra longa demais — no celular ela
+                    quebrava em duas linhas. */}
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/missoes" className={navLinkClass}>
                   Missões{missoesPendentes > 0 && (
@@ -159,13 +186,37 @@ export default function App() {
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
               </nav>
-            )}
-          </div>
+          )}
+          {/* Sem usuário logado a coluna do meio fica vazia, mas precisa
+              existir pra grade não colapsar de três pra duas colunas. */}
+          {!user && <div />}
+
           <div className="app-header-right">
             {user ? (
               <>
-                <Link to="/perfil" className="app-header-username" title="Meu perfil">{user.nickname}</Link>
-                <button className="retro-btn" onClick={logout}>Deslogar</button>
+                {/* O nick vira a porta de entrada do perfil.
+                    Antes ele era um link discreto ao lado de um botão vermelho
+                    grande escrito "Deslogar" — o olho ia no botão, e a página
+                    de perfil (onde ficam títulos, conquistas e a vitrine de
+                    emblemas) quase não recebia visita.
+                    Agora o nick tem avatar, chamada e destaque; sair virou um
+                    ícone discreto, que é a frequência com que se usa. */}
+                <Link to="/perfil" className="app-header-user" title="Meu perfil, títulos e conquistas">
+                  {meuAvatar ? (
+                    <img src={meuAvatar} alt="" className="app-header-avatar app-header-avatar-img" />
+                  ) : (
+                    <span className="app-header-avatar">
+                      {user.nickname.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="app-header-user-texto">
+                    <span className="app-header-nick">{user.nickname}</span>
+                    <span className="app-header-verperfil">ver perfil</span>
+                  </span>
+                </Link>
+                <button className="app-header-sair" onClick={logout} title="Sair da conta">
+                  <span className="material-symbols-outlined">logout</span>
+                </button>
               </>
             ) : (
               <Link to="/login" className="retro-btn">Entrar</Link>
@@ -328,6 +379,13 @@ export default function App() {
       </div>
 
       {!isInsideGameRoom && <Footer />}
+
+      {/* Barra de mensagens privadas no canto, em TODAS as páginas — inclusive
+          dentro das salas de jogo. Ela cabe ali porque a lista não mostra
+          prévia das mensagens: só o nick, o ponto de online e a contagem.
+          Só no desktop: o CSS esconde abaixo de 900px, onde a página de
+          Amigos já resolve. */}
+      {user && <BarraMensagens />}
     </>
   );
 }

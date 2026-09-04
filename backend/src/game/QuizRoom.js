@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { tituloQuizDesbloqueado } from "./titulosConfig.js";
 import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
@@ -130,6 +131,36 @@ export class QuizRoom {
     return new Set([...this.players.values()].map((p) => p.userId)).size;
   }
 
+  // Verifica inativos a cada minuto, em timer próprio.
+  iniciarVigiaInatividade() {
+    if (this.vigiaIdleTimer) return;
+    this.vigiaIdleTimer = setInterval(() => {
+      if (this.players.size === 0) return;
+      const { avisar, remover } = verificarInativos(this.players, "quiz");
+
+      for (const { player } of avisar) {
+        player.socket?.emit("aviso-inatividade", {
+          minutos: minutosRestantes(),
+          mensagem: `Você está parado há um tempo. Jogue ou converse em ${minutosRestantes()} min pra não sair da sala.`,
+        });
+      }
+
+      for (const { socketId, player } of remover) {
+        player.socket?.emit("removido-por-inatividade", {
+          mensagem: "Você saiu da sala por inatividade.",
+        });
+        this.systemMessage(`💤 ${player.nickname} saiu por inatividade.`);
+        this.removePlayer(socketId);
+        player.socket?.leave(this.roomId);
+      }
+    }, 60000);
+  }
+
+  pararVigiaInatividade() {
+    if (this.vigiaIdleTimer) clearInterval(this.vigiaIdleTimer);
+    this.vigiaIdleTimer = null;
+  }
+
   async addPlayer(socket, userId, nickname) {
     const alreadyInRoom = [...this.players.values()].some((p) => p.userId === userId);
     if (!alreadyInRoom && this.countUniquePlayers() >= this.maxPlayers) {
@@ -200,6 +231,7 @@ export class QuizRoom {
     }
 
     socket.join(this.roomId);
+    this.iniciarVigiaInatividade();
     await this.loadRoomRecord();
     socket.emit("quiz-room-state", this.publicState());
     if (!alreadyInRoom) {
@@ -297,6 +329,8 @@ export class QuizRoom {
     }
 
     await this.broadcastOnlinePlayers();
+
+    if (this.players.size === 0) this.pararVigiaInatividade();
   }
 
   async broadcastOnlinePlayers() {
@@ -402,6 +436,8 @@ export class QuizRoom {
   }
 
   chatMessage(userId, nickname, message) {
+    // Conversar conta como presença, mesmo sem acertar perguntas.
+    for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     this.broadcast("quiz-chat-message", {
       id: novoIdMensagem(),
       userId,
@@ -653,6 +689,7 @@ export class QuizRoom {
   }
 
   async submitGuess(socket, userId, nickname, guess) {
+    marcarAtividade(this.players.get(socket.id));
     if (this.state !== "active" || !this.currentQuestion) return;
     // Marca que essa pessoa tentou responder — usado no fim da pergunta pra
     // calcular o aproveitamento (% de acerto) dela nessa sala.
