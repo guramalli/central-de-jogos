@@ -1043,7 +1043,12 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%), var(--bg-panel);
 }
 .app-header-inner {
-  max-width: 1200px;
+  /* Mesma largura e mesmo respiro lateral do .container (1100px + 24px), pra
+     a logo começar exatamente onde começa o painel do corpo e o bloco do
+     perfil terminar onde ele termina. Antes eram 1200px aqui contra 1100px
+     lá — 50px de desalinhamento de cada lado, visível assim que a tela
+     passa de 1150px de largura. */
+  max-width: 1100px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -1138,9 +1143,6 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   .app-header-sair { width: 30px; height: 30px; }
   .app-header-sair .material-symbols-outlined { font-size: 17px; }
 
-  /* O bloco do jogador e o sair ficam JUNTOS, à esquerda, em vez de
-     empurrados pros extremos opostos da linha. */
-  .app-header-right { justify-content: flex-start; gap: 8px; }
 }
 
 .nav-links { display: flex; gap: 20px; font-family: var(--font-mono); font-size: 14px; }
@@ -2044,7 +2046,11 @@ table.player-table.player-table-compact td {
   .app-header-inner { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
   .app-header-left { flex-wrap: wrap; gap: 10px; width: 100%; }
   .nav-links { flex-wrap: wrap; gap: 8px 14px; font-size: 13px; }
-  .app-header-right { width: 100%; justify-content: space-between; }
+  /* Sem space-between: com o bloco do perfil e o botão de sair, ele jogava
+     um pra cada extremo e abria um vão enorme no meio. Especificidade igual
+     à regra de cima, e esta vem depois no arquivo — por isso é AQUI que o
+     alinhamento precisa ficar certo. */
+  .app-header-right { width: 100%; justify-content: flex-start; gap: 8px; }
   .header-logo-img { height: 42px; }
   /* Acompanha a logo menor do mobile. */
   .logo-beta { font-size: 8px; top: 4px; left: calc(100% - 24px); padding: 1px 4px; }
