@@ -186,7 +186,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
      sala, pra manter a leitura das mensagens sempre com o mesmo contraste. */
   background: #0d0d0d;
 }
-.chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; background: #0d0d0d; }
+/* min-height: 0 é o que permite a lista ENCOLHER dentro do flex e rolar.
+   Sem isso, um filho de flex se recusa a ficar menor que o próprio conteúdo,
+   a lista empurra o campo de digitação e as mensagens somem pra fora. */
+.chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; font-size: 13px; background: #0d0d0d; }
 .chat-input { display: flex; align-items: stretch; border-top: 1px solid var(--border); background: #0d0d0d; }
 .chat-input input { margin: 0; border-radius: 0; border: none; background: #0d0d0d; color: var(--text); }
 .chat-input button { border-radius: 0; }
@@ -1113,9 +1116,23 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .app-header-sair .material-symbols-outlined { font-size: 19px; }
 
 @media (max-width: 700px) {
-  /* Numa tela estreita o cabeçalho é disputado: fica o avatar, some o texto. */
-  .app-header-user { padding: 4px; gap: 0; }
-  .app-header-user-texto { display: none; }
+  /* MANTÉM o nick visível no celular.
+     A primeira versão escondia o texto e deixava só o avatar — mas como o
+     .app-header-right ocupa a largura toda com space-between, sobrava uma
+     bolinha solta num extremo e o botão de sair no outro, com um vão enorme
+     no meio. Pior: sem o "ver perfil", ninguém adivinha que a bolinha leva
+     a algum lugar, que era justamente o problema que queríamos resolver.
+     Aqui o bloco encolhe, mas continua legível e clicável. */
+  .app-header-user { padding: 4px 10px 4px 4px; gap: 7px; }
+  .app-header-avatar { width: 28px; height: 28px; font-size: 13px; }
+  .app-header-nick { font-size: 13px; }
+  .app-header-verperfil { font-size: 9px; }
+  .app-header-sair { width: 30px; height: 30px; }
+  .app-header-sair .material-symbols-outlined { font-size: 17px; }
+
+  /* O bloco do jogador e o sair ficam JUNTOS, à esquerda, em vez de
+     empurrados pros extremos opostos da linha. */
+  .app-header-right { justify-content: flex-start; gap: 8px; }
 }
 
 .nav-links { display: flex; gap: 20px; font-family: var(--font-mono); font-size: 14px; }
@@ -2616,9 +2633,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 @media (max-width: 700px) {
   .general-chat-body { flex-direction: column; }
   .general-chat-online-list { width: 100%; height: auto; max-height: 120px; margin-top: 0; }
-  /* No celular o chat da home ficava espremido nos 300px fixos do desktop.
-     Usa a altura da tela como referência: dá pra LER a conversa. */
-  .general-chat-widget .chat-box { height: 60vh; height: 60dvh; max-height: 520px; }
+  /* ALTURA FIXA, não relativa à tela.
+     A versão anterior usava 60dvh. No Safari do iPhone a altura visível muda
+     conforme a barra de endereço aparece e some, e a caixa acabava mais alta
+     que o espaço disponível — as mensagens ficavam acima da área visível e
+     só o campo de digitação aparecia.
+     380px cabe em qualquer celular e mostra uma conversa inteira. */
+  .general-chat-widget .chat-box { height: 380px; }
 }
 
 .chat-msg-time {
