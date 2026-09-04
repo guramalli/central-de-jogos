@@ -122,7 +122,11 @@ export default function AcromaniaGame() {
 
     socket.on("acromania-intermission", (data) => {
       setPhase("intermission");
-      setLastResult(null);
+      // NÃO limpa o resultado aqui. O backend manda "round-result" e, no
+      // mesmo instante, "intermission" — então limpar aqui fazia a tela de
+      // votos piscar e sumir antes de dar pra ler. O resultado agora fica
+      // visível durante toda a contagem do intervalo; quem limpa é o começo
+      // da rodada seguinte ("acromania-round-start").
       setSubmitted(false);
       setPhraseInput("");
       setVotingEntries([]);
@@ -356,7 +360,7 @@ export default function AcromaniaGame() {
             </div>
           )}
 
-          {phase === "grading" && lastResult && (
+          {(phase === "grading" || phase === "intermission") && lastResult && (
             <div className="acro-results-list">
               {lastResult.noOneWrote ? (
                 <p style={{ color: "var(--qz-text)", opacity: 0.75 }}>Ninguém escreveu uma frase nessa rodada.</p>

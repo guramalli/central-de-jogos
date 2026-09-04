@@ -39,7 +39,10 @@ export class AcromaniaRoom {
     // Quando a sala deu sinal de vida pela última vez, e o timer do vigia.
     this.ultimoSinalDeVida = Date.now();
     this.watchdogTimer = null;
-    this.lettersCount = config.lettersCount ?? 3;
+    // Faixa de letras por rodada. Mantém `lettersCount` como valor único
+    // caso alguma config antiga ainda use — assim nenhuma sala quebra.
+    this.lettersMin = config.lettersMin ?? config.lettersCount ?? 3;
+    this.lettersMax = config.lettersMax ?? config.lettersCount ?? 3;
     this.pointsForWin = config.pointsForWin ?? 50;
     this.minPlayersToStart = config.minPlayersToStart ?? 1;
     this.maxPlayers = config.maxPlayers ?? 10;
@@ -433,7 +436,9 @@ export class AcromaniaRoom {
     this.roundNumber += 1;
     this.state = "writing";
     this.currentTheme = pickRandomTheme();
-    this.currentLetters = pickRandomLetters(this.lettersCount);
+    const quantasLetras =
+      this.lettersMin + Math.floor(Math.random() * (this.lettersMax - this.lettersMin + 1));
+    this.currentLetters = pickRandomLetters(quantasLetras);
     this.submissions = new Map();
     this.votes = new Map();
     this.timeLeft = this.writingSeconds;
