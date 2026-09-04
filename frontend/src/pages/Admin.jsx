@@ -415,6 +415,22 @@ export default function Admin() {
                       {p.isGuest && <span className="admin-online-guest">visitante</span>}
                     </span>
                     <span className="admin-online-where">{p.local}</span>
+                    {/* Conversa direta com quem está online AGORA — é quem
+                        você consegue alcançar na hora. Sem isto era preciso
+                        ir até a aba Jogadores e achar a pessoa numa lista
+                        paginada, que nem tem busca por nick.
+                        Visitante não aparece: conta sem cadastro não recebe
+                        mensagem privada. */}
+                    {!p.isGuest && (
+                      <button
+                        type="button"
+                        className="admin-online-msg"
+                        onClick={() => setChatWith({ userId: p.userId, nickname: p.nickname })}
+                        title={`Conversar com ${p.nickname}`}
+                      >
+                        <span className="material-symbols-outlined">chat</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

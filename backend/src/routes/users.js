@@ -233,6 +233,9 @@ router.get("/me", requireAuth, async (req, res) => {
     medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
     hasPassword: !!user.password,
+    // Se a troca única de nick ainda está disponível. Quem entrou pelo Google
+    // recebeu um nick gerado do nome da conta e nunca pôde escolher.
+    podeTrocarNick: !user.nicknameTrocado && !user.isGuest,
   });
 });
 
@@ -301,6 +304,64 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
   }
   await prisma.user.update({ where: { id: req.user.id }, data: { tituloExibido: titulo } });
   res.json({ ok: true, tituloExibido: titulo });
+});
+
+// Troca de nickname — UMA vez por conta.
+//
+// POR QUE EXISTE:
+// Quem entra pelo Google recebe um nick gerado do nome da conta ("JoaoSilva",
+// "JoaoSilva2"), sem escolher nada. Antes disso não havia como mudar, então a
+// pessoa ficava presa a um nome que não escolheu — e o nick aparece em toda
+// sala, no ranking e no chat.
+//
+// POR QUE SÓ UMA VEZ:
+// O nick é a identidade pública no site. Ele aparece no ranking mensal que
+// paga Pix, nos títulos vitalícios e no histórico de campeões. Troca livre
+// quebraria o reconhecimento entre jogadores e o rastro de quem conquistou o
+// quê. Uma troca resolve o problema real sem abrir essa porta.
+router.patch("/me/nickname", requireAuth, async (req, res) => {
+  const { nickname } = req.body || {};
+  const novo = String(nickname || "").trim();
+
+  if (novo.length < 3 || novo.length > 15) {
+    return res.status(400).json({ error: "O nick precisa ter entre 3 e 15 caracteres." });
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(novo)) {
+    return res.status(400).json({ error: "Use apenas letras, números e underline." });
+  }
+
+  const eu = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { nickname: true, nicknameTrocado: true, isGuest: true },
+  });
+
+  if (eu?.isGuest) {
+    return res.status(400).json({ error: "Crie uma conta pra escolher seu nick." });
+  }
+  if (eu?.nicknameTrocado) {
+    return res.status(400).json({ error: "Você já usou sua troca de nick." });
+  }
+  if (novo === eu?.nickname) {
+    return res.status(400).json({ error: "Esse já é o seu nick." });
+  }
+
+  // A checagem é sem diferenciar maiúsculas: "Guramalli" e "guramalli" seriam
+  // duas pessoas diferentes no banco, mas a mesma pessoa aos olhos de quem
+  // lê o chat.
+  const existe = await prisma.user.findFirst({
+    where: { nickname: { equals: novo, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (existe) {
+    return res.status(400).json({ error: "Esse nick já está em uso." });
+  }
+
+  await prisma.user.update({
+    where: { id: req.user.id },
+    data: { nickname: novo, nicknameTrocado: true },
+  });
+
+  res.json({ ok: true, nickname: novo });
 });
 
 // Liga/desliga a medalha no lugar da foto no hover do nick.

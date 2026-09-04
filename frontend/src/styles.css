@@ -1085,6 +1085,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   flex-shrink: 0;
 }
 
+/* Quando há foto, ela substitui a inicial no mesmo espaço circular.
+   object-fit: cover evita que retrato ou paisagem saiam esticados. */
+.app-header-avatar-img {
+  object-fit: cover;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+
 .app-header-user-texto { display: flex; flex-direction: column; line-height: 1.15; }
 .app-header-nick { font-size: 14px; font-weight: 700; color: var(--text); }
 /* A chamada é o que transforma o nick em convite: sem ela, ninguém sabe que
@@ -3931,17 +3939,39 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   overflow-y: auto;
   margin-top: 8px;
 }
+/* Botão de conversa na lista de online. Aparece sempre, sem hover: numa
+   lista curta, esconder até passar o mouse só faz a pessoa não descobrir. */
+.admin-online-msg {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-online-msg:hover { color: var(--accent-2); border-color: var(--accent-2); }
+.admin-online-msg .material-symbols-outlined { font-size: 16px; }
+
 .admin-online-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* Era space-between com dois filhos. Com o botão de conversa virando um
+     terceiro, o "onde está" ficaria jogado no meio — o nick cresce e empurra
+     o resto pra direita, que é o comportamento certo aqui. */
   gap: 12px;
   padding: 7px 12px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
   font-size: 13px;
 }
-.admin-online-nick { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+/* flex: 1 empurra "onde está" e o botão pra direita, no lugar do
+   space-between que existia antes de haver um terceiro elemento. */
+.admin-online-nick { font-weight: 700; display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .admin-online-guest {
   font-size: 9px;
   font-weight: 400;

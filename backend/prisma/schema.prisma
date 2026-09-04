@@ -109,6 +109,14 @@ model User {
   friendshipsA     Friendship[] @relation("UserA")
   friendshipsB     Friendship[] @relation("UserB")
   chatMessages     ChatMessage[]
+  // Quem entrou pelo Google recebeu um nickname gerado do nome da conta, sem
+  // escolher. Este campo permite UMA troca — depois disso o nick fica fixo,
+  // como o de quem se cadastrou normalmente.
+  //
+  // Troca livre e ilimitada seria ruim aqui: o nick aparece em ranking,
+  // títulos vitalícios e histórico de campeões. Trocar toda hora quebraria o
+  // reconhecimento entre jogadores e o rastro do que cada um conquistou.
+  nicknameTrocado   Boolean  @default(false)
   campeonatos  CampeaoMensal[]
 }
 

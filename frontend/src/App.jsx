@@ -57,6 +57,10 @@ export default function App() {
   const [unreadDmCount, setUnreadDmCount] = useState(0);
   // Missões concluídas esperando resgate — mesmo esquema do aviso de DM.
   const [missoesPendentes, setMissoesPendentes] = useState(0);
+  // Foto do próprio jogador pro cabeçalho. Não vem no `user` do login (que
+  // guarda só o essencial do token), então é buscada do perfil — que já tem
+  // cache no servidor. Se não houver foto, fica a inicial do nick.
+  const [meuAvatar, setMeuAvatar] = useState(null);
 
   // Confere de tempos em tempos se chegou pedido de amizade ou mensagem
   // privada nova — assim, mesmo quem não está na página de Amigos vê o
@@ -67,6 +71,23 @@ export default function App() {
   // Busca os três avisinhos numa requisição só (antes eram três) e só
   // enquanto a aba está visível — o banco cobra por tempo acordado, e uma
   // aba esquecida aberta mantinha o medidor rodando a noite inteira.
+  useEffect(() => {
+    if (!user) { setMeuAvatar(null); return; }
+    let vivo = true;
+    api.get(`/users/${user.id}/profile`)
+      .then(({ data }) => vivo && setMeuAvatar(data.avatarUrl || null))
+      .catch(() => {});
+    // Escuta a troca de foto feita na própria página de perfil, pra o
+    // cabeçalho atualizar sem recarregar o site.
+    const aoTrocar = () => {
+      api.get(`/users/${user.id}/profile`)
+        .then(({ data }) => vivo && setMeuAvatar(data.avatarUrl || null))
+        .catch(() => {});
+    };
+    window.addEventListener("avatar-changed", aoTrocar);
+    return () => { vivo = false; window.removeEventListener("avatar-changed", aoTrocar); };
+  }, [user?.id]);
+
   const buscarAvisos = useCallback(() => {
     if (!user) return;
     api.get("/avisos")
@@ -140,10 +161,10 @@ export default function App() {
             {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
-                <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
-                <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
-                {/* Acromania oculto do menu enquanto está em desenvolvimento
-                    (as rotas continuam vivas pra reativar rápido depois). */}
+                {/* Stop e Quiz saíram do menu: os cards deles ficam no Lobby,
+                    que já é o primeiro link. Ter os dois aqui repetia o
+                    caminho e deixava a barra longa demais — no celular ela
+                    quebrava em duas linhas. */}
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/missoes" className={navLinkClass}>
                   Missões{missoesPendentes > 0 && (
@@ -173,9 +194,13 @@ export default function App() {
                     Agora o nick tem avatar, chamada e destaque; sair virou um
                     ícone discreto, que é a frequência com que se usa. */}
                 <Link to="/perfil" className="app-header-user" title="Meu perfil, títulos e conquistas">
-                  <span className="app-header-avatar">
-                    {user.nickname.charAt(0).toUpperCase()}
-                  </span>
+                  {meuAvatar ? (
+                    <img src={meuAvatar} alt="" className="app-header-avatar app-header-avatar-img" />
+                  ) : (
+                    <span className="app-header-avatar">
+                      {user.nickname.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   <span className="app-header-user-texto">
                     <span className="app-header-nick">{user.nickname}</span>
                     <span className="app-header-verperfil">ver perfil</span>
