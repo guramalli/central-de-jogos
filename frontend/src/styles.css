@@ -1049,13 +1049,74 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .app-header-left { display: flex; align-items: center; gap: 32px; }
 .app-header-right { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); }
-.app-header-username {
-  color: var(--text);
+/* Bloco do jogador no cabeçalho: avatar + nick + "ver perfil".
+   A página de perfil concentra títulos, conquistas e a vitrine de emblemas,
+   mas o único caminho até ela era um link discreto de texto. Dando peso ao
+   nick, a seção deixa de ficar escondida sem precisar de aviso nem de mais
+   um item no menu. */
+.app-header-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 12px 5px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
   text-decoration: none;
-  border-bottom: 1px dashed transparent;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.app-header-username:hover { color: var(--accent-2); border-bottom-color: var(--accent-2); }
+.app-header-user:hover { border-color: var(--accent-2); background: var(--bg-panel); }
+
+.app-header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a1206;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-header-user-texto { display: flex; flex-direction: column; line-height: 1.15; }
+.app-header-nick { font-size: 14px; font-weight: 700; color: var(--text); }
+/* A chamada é o que transforma o nick em convite: sem ela, ninguém sabe que
+   dá pra clicar. */
+.app-header-verperfil {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.app-header-user:hover .app-header-verperfil { color: var(--accent-2); }
+
+/* Sair vira ícone: é a ação menos frequente do cabeçalho, e ocupava o maior
+   destaque. */
+.app-header-sair {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.app-header-sair:hover { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
+.app-header-sair .material-symbols-outlined { font-size: 19px; }
+
+@media (max-width: 700px) {
+  /* Numa tela estreita o cabeçalho é disputado: fica o avatar, some o texto. */
+  .app-header-user { padding: 4px; gap: 0; }
+  .app-header-user-texto { display: none; }
+}
 
 .nav-links { display: flex; gap: 20px; font-family: var(--font-mono); font-size: 14px; }
 .nav-link {

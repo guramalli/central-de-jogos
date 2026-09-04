@@ -165,8 +165,25 @@ export default function App() {
           <div className="app-header-right">
             {user ? (
               <>
-                <Link to="/perfil" className="app-header-username" title="Meu perfil">{user.nickname}</Link>
-                <button className="retro-btn" onClick={logout}>Deslogar</button>
+                {/* O nick vira a porta de entrada do perfil.
+                    Antes ele era um link discreto ao lado de um botão vermelho
+                    grande escrito "Deslogar" — o olho ia no botão, e a página
+                    de perfil (onde ficam títulos, conquistas e a vitrine de
+                    emblemas) quase não recebia visita.
+                    Agora o nick tem avatar, chamada e destaque; sair virou um
+                    ícone discreto, que é a frequência com que se usa. */}
+                <Link to="/perfil" className="app-header-user" title="Meu perfil, títulos e conquistas">
+                  <span className="app-header-avatar">
+                    {user.nickname.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="app-header-user-texto">
+                    <span className="app-header-nick">{user.nickname}</span>
+                    <span className="app-header-verperfil">ver perfil</span>
+                  </span>
+                </Link>
+                <button className="app-header-sair" onClick={logout} title="Sair da conta">
+                  <span className="material-symbols-outlined">logout</span>
+                </button>
               </>
             ) : (
               <Link to="/login" className="retro-btn">Entrar</Link>
