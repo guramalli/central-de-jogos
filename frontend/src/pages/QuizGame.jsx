@@ -154,6 +154,21 @@ export default function QuizGame() {
       }
     });
 
+    // Aviso de inatividade: entra como mensagem do sistema no chat, que é
+    // onde o olho já está durante a partida. Um alerta modal atrapalharia
+    // justamente quem está no meio de uma rodada.
+    socket.on("aviso-inatividade", (data) => {
+      setMessages((prev) => [
+        ...prev,
+        { system: true, atividade: true, message: `⏳ ${data.mensagem}`, at: Date.now() },
+      ].slice(-200));
+    });
+
+    socket.on("removido-por-inatividade", (data) => {
+      alert(data.mensagem || "Você saiu da sala por inatividade.");
+      navigate(-1);
+    });
+
     socket.on("quiz-intermission", () => {
       setPhase("intermission");
       setGuess("");
@@ -249,6 +264,8 @@ export default function QuizGame() {
       socket.off("quiz-players-online");
       socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("quiz-chat-message");
+      socket.off("aviso-inatividade");
+      socket.off("removido-por-inatividade");
       socket.disconnect();
     };
   }, [roomId]);

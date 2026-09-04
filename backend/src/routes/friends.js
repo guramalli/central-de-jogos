@@ -68,6 +68,76 @@ router.get("/messages/unread-count", async (req, res) => {
   res.json({ count });
 });
 
+// Lista as CONVERSAS, não os amigos.
+//
+// POR QUE ISSO EXISTE:
+// Antes o aviso dizia "você tem 2 mensagens" e a página mostrava a lista de
+// amigos — sem indicar de QUEM eram. A pessoa precisava abrir conversa por
+// conversa até achar. Com dez amigos, isso é dez cliques pra ler uma
+// mensagem, e a função virava inútil.
+//
+// Aqui vem o que qualquer aplicativo de mensagem mostra: quem falou, o começo
+// da última mensagem, quando foi, e quantas estão por ler. Ordenado pela mais
+// recente, com as não lidas em primeiro.
+router.get("/conversas", async (req, res) => {
+  const eu = req.user.id;
+
+  // Todas as mensagens em que eu participo. Buscar tudo e agrupar em memória
+  // é mais simples e mais rápido do que uma consulta por amigo — o volume de
+  // DM por pessoa é baixo, e assim é UMA ida ao banco em vez de N.
+  const mensagens = await prisma.privateMessage.findMany({
+    where: { OR: [{ senderId: eu }, { receiverId: eu }] },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true, senderId: true, receiverId: true,
+      message: true, read: true, createdAt: true,
+    },
+  });
+
+  // Agrupa por interlocutor, guardando só a última mensagem de cada um.
+  const porPessoa = new Map();
+  for (const m of mensagens) {
+    const outro = m.senderId === eu ? m.receiverId : m.senderId;
+    if (!porPessoa.has(outro)) {
+      porPessoa.set(outro, {
+        userId: outro,
+        ultima: m.message,
+        // Saber quem falou por último muda o que a pessoa lê na lista:
+        // "você: ..." deixa claro que a bola está com o outro.
+        ultimaMinha: m.senderId === eu,
+        quando: m.createdAt,
+        naoLidas: 0,
+      });
+    }
+    // Só conta como não lida o que EU recebi e ainda não abri.
+    if (m.receiverId === eu && !m.read) porPessoa.get(outro).naoLidas++;
+  }
+
+  if (porPessoa.size === 0) return res.json([]);
+
+  const usuarios = await prisma.user.findMany({
+    where: { id: { in: [...porPessoa.keys()] } },
+    select: { id: true, nickname: true, avatarUrl: true, role: true },
+  });
+  const mapa = new Map(usuarios.map((u) => [u.id, u]));
+
+  const conversas = [...porPessoa.values()]
+    .map((c) => ({
+      ...c,
+      nickname: mapa.get(c.userId)?.nickname || "Jogador",
+      avatarUrl: mapa.get(c.userId)?.avatarUrl || null,
+      // Prévia curta: a lista precisa caber no celular.
+      ultima: c.ultima.length > 60 ? c.ultima.slice(0, 60) + "..." : c.ultima,
+    }))
+    // Não lidas primeiro; depois, mais recente primeiro.
+    .sort((a, b) => {
+      if ((a.naoLidas > 0) !== (b.naoLidas > 0)) return a.naoLidas > 0 ? -1 : 1;
+      return new Date(b.quando) - new Date(a.quando);
+    });
+
+  res.json(conversas);
+});
+
 // Envia um pedido de amizade (por nickname, pra ser fácil de usar numa
 // busca simples) ou por ID direto (usado pelo botão no hover de perfil).
 router.post("/request", async (req, res) => {

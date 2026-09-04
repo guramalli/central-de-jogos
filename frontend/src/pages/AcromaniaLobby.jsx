@@ -13,10 +13,26 @@ function occupancyInfo(status) {
 
 export default function AcromaniaLobby() {
   const [rooms, setRooms] = useState([]);
+  // null enquanto carrega; false quando o jogo está desligado no painel.
+  const [ativo, setAtivo] = useState(null);
   const { theme } = useTheme();
 
   useEffect(() => {
-    api.get("/acromania-rooms").then(({ data }) => setRooms(data)).catch(() => {});
+    api
+      .get("/acromania-rooms")
+      .then(({ data }) => {
+        // A rota passou a devolver { ativo, rooms }. O formato antigo era um
+        // array puro — o Array.isArray cobre o caso de o backend antigo ainda
+        // estar no ar durante o deploy.
+        if (Array.isArray(data)) {
+          setRooms(data);
+          setAtivo(true);
+        } else {
+          setRooms(data.rooms || []);
+          setAtivo(data.ativo !== false);
+        }
+      })
+      .catch(() => setAtivo(true));
   }, []);
 
   return (
@@ -55,7 +71,18 @@ export default function AcromaniaLobby() {
             </Link>
           );
         })}
-        {rooms.length === 0 && <p style={{ color: "var(--text-dim)" }}>Carregando salas...</p>}
+        {ativo === false && (
+          <div className="card" style={{ textAlign: "center", padding: 32 }}>
+            <h2 style={{ marginTop: 0 }}>🔧 Em manutenção</h2>
+            <p style={{ color: "var(--text-dim)", margin: 0 }}>
+              O Acromania está temporariamente fora do ar. O Stop e o Quiz seguem
+              funcionando normalmente.
+            </p>
+          </div>
+        )}
+        {ativo !== false && rooms.length === 0 && (
+          <p style={{ color: "var(--text-dim)" }}>Carregando salas...</p>
+        )}
       </div>
     </div>
   );

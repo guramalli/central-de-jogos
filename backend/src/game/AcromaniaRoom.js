@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
 import { trackPlaytime } from "./playtimeTracker.js";
@@ -109,6 +110,36 @@ export class AcromaniaRoom {
     return new Set([...this.players.values()].map((p) => p.userId)).size;
   }
 
+  // Verifica inativos a cada minuto, em timer próprio.
+  iniciarVigiaInatividade() {
+    if (this.vigiaIdleTimer) return;
+    this.vigiaIdleTimer = setInterval(() => {
+      if (this.players.size === 0) return;
+      const { avisar, remover } = verificarInativos(this.players, "acromania");
+
+      for (const { player } of avisar) {
+        player.socket?.emit("aviso-inatividade", {
+          minutos: minutosRestantes(),
+          mensagem: `Você está parado há um tempo. Jogue ou converse em ${minutosRestantes()} min pra não sair da sala.`,
+        });
+      }
+
+      for (const { socketId, player } of remover) {
+        player.socket?.emit("removido-por-inatividade", {
+          mensagem: "Você saiu da sala por inatividade.",
+        });
+        this.systemMessage(`💤 ${player.nickname} saiu por inatividade.`);
+        this.removePlayer(socketId);
+        player.socket?.leave(this.roomId);
+      }
+    }, 60000);
+  }
+
+  pararVigiaInatividade() {
+    if (this.vigiaIdleTimer) clearInterval(this.vigiaIdleTimer);
+    this.vigiaIdleTimer = null;
+  }
+
   async addPlayer(socket, userId, nickname) {
     const alreadyInRoom = [...this.players.values()].some((p) => p.userId === userId);
     if (!alreadyInRoom && this.countUniquePlayers() >= this.maxPlayers) {
@@ -158,6 +189,7 @@ export class AcromaniaRoom {
     }
 
     socket.join(this.roomId);
+    this.iniciarVigiaInatividade();
     socket.emit("acromania-room-state", this.publicState());
     this.iniciarWatchdog();
 
@@ -235,6 +267,8 @@ export class AcromaniaRoom {
     // Sala vazia: desliga o vigia. Um timer rodando pra sempre numa sala sem
     // ninguém é vazamento de memória — e são 3 salas de Acromania.
     if (this.players.size === 0) this.pararWatchdog();
+
+    if (this.players.size === 0) this.pararVigiaInatividade();
   }
 
   async broadcastOnlinePlayers() {
@@ -300,6 +334,7 @@ export class AcromaniaRoom {
   }
 
   chatMessage(userId, nickname, message) {
+    for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     this.broadcast("acromania-chat-message", { id: novoIdMensagem(), userId, nickname, message, system: false, at: Date.now() });
   }
 
@@ -397,6 +432,7 @@ export class AcromaniaRoom {
   }
 
   submitPhrase(socket, userId, phrase) {
+    marcarAtividade(this.players.get(socket.id));
     if (this.state !== "writing") return;
     const clean = (phrase || "").trim().slice(0, 200);
     if (!clean) return;
@@ -470,6 +506,7 @@ export class AcromaniaRoom {
   }
 
   vote(socket, userId, entryId) {
+    marcarAtividade(this.players.get(socket.id));
     if (this.state !== "voting") return;
     const entry = (this.voteEntries || []).find((e) => e.entryId === entryId);
     if (!entry) return;

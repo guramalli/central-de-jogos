@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import BarraMensagens from "./components/BarraMensagens.jsx";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import GuestBanner from "./components/GuestBanner.jsx";
@@ -328,6 +329,12 @@ export default function App() {
       </div>
 
       {!isInsideGameRoom && <Footer />}
+
+      {/* Barra de mensagens privadas no canto.
+          Só pra quem está logado, só fora das salas de jogo (numa rodada de
+          20s uma janela flutuante atrapalha) e só no desktop — o CSS esconde
+          abaixo de 900px, onde a página de Amigos já resolve. */}
+      {user && !isInsideGameRoom && <BarraMensagens />}
     </>
   );
 }

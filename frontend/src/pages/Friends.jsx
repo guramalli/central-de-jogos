@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
 import DmModal from "../components/DmModal.jsx";
+import CaixaDeMensagens from "../components/CaixaDeMensagens.jsx";
 
 export default function Friends() {
   const [data, setData] = useState({ friends: [], receivedPending: [], sentPending: [] });
@@ -11,6 +12,9 @@ export default function Friends() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
   const [chatWith, setChatWith] = useState(null); // { userId, nickname } | null
+  // Muda quando uma conversa fecha, pra caixa recarregar e as mensagens que
+  // acabaram de ser lidas saírem do contador.
+  const [recarregarCaixa, setRecarregarCaixa] = useState(0);
 
   useEffect(() => {
     load();
@@ -73,6 +77,13 @@ export default function Friends() {
     <div>
       <Seo title="Amigos" description="Veja seus amigos online e adicione novos jogadores na Educação Gamer." />
       <h1>Amigos</h1>
+
+      {/* Primeiro a caixa de mensagens: quem abre esta página com aviso de
+          mensagem nova quer LER, não adicionar amigo. */}
+      <CaixaDeMensagens
+        aoAbrirConversa={setChatWith}
+        recarregar={recarregarCaixa}
+      />
 
       <div className="card" style={{ maxWidth: 480, marginBottom: 20 }}>
         <h2>Adicionar amigo</h2>
@@ -140,7 +151,16 @@ export default function Friends() {
         ))}
       </div>
 
-      {chatWith && <DmModal friend={chatWith} onClose={() => setChatWith(null)} />}
+      {chatWith && (
+        <DmModal
+          friend={chatWith}
+          onClose={() => {
+            setChatWith(null);
+            // A conversa foi aberta, então as mensagens dela viraram lidas.
+            setRecarregarCaixa((n) => n + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

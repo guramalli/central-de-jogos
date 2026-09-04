@@ -1,4 +1,5 @@
 import { verifyToken } from "../utils/jwt.js";
+import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
 import { cacheInvalidar } from "../utils/cache.js";
 import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, cancelarDescarteSala } from "../game/gameManager.js";
 import { registrarDiaJogado } from "../game/missoes.js";
@@ -180,6 +181,14 @@ export function setupSocket(io) {
     // sala ou ao entrar viraria unhandledRejection — o servidor não cai, mas
     // o jogador fica preso na tela de entrada sem nenhum aviso.
     socket.on("join-acromania-room", async ({ roomId } = {}) => {
+      // Barreira de verdade: sem isto, quem já estivesse com a página aberta
+      // continuaria entrando mesmo com o jogo desligado no painel.
+      if (!acromaniaAtivo()) {
+        socket.emit("acromania-erro", {
+          mensagem: "O Acromania está temporariamente em manutenção. Volte mais tarde!",
+        });
+        return;
+      }
       try {
         const room = await getOrCreateAcromaniaRoom(io, roomId);
         const joined = await room.addPlayer(socket, userId, nickname);
@@ -284,9 +293,22 @@ export function setupSocket(io) {
           ],
         },
       });
+      // Admin e moderador conversam com QUALQUER jogador, sem precisar de
+      // amizade — é o canal pra avisar sobre pergunta corrigida, responder
+      // denúncia ou falar com o campeão do mês.
+      //
+      // A regra continua valendo pra todo mundo: sem isso, qualquer pessoa
+      // poderia abrir conversa com desconhecidos, que é porta pra incômodo.
       if (!friendship) {
-        socket.emit("dm-error", { error: "Vocês precisam ser amigos pra conversar." });
-        return;
+        const quem = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        });
+        const ehStaff = quem?.role === "ADMIN" || quem?.role === "MODERATOR";
+        if (!ehStaff) {
+          socket.emit("dm-error", { error: "Vocês precisam ser amigos pra conversar." });
+          return;
+        }
       }
 
       const roomId = ["dm", ...[userId, friendUserId].sort()].join(":");

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAcromaniaAtivo } from "../components/useAcromaniaAtivo.js";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import FeedbackModal from "../components/FeedbackModal.jsx";
@@ -10,6 +11,7 @@ import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
+  const acromaniaAtivo = useAcromaniaAtivo();
   const { user } = useAuth();
   const { theme } = useTheme();
   const [showFeedback, setShowFeedback] = useState(false);
@@ -75,6 +77,7 @@ export default function Lobby() {
         {/* Acromania: liberado em fase de testes. O selo é honesto e serve de
             expectativa — é a primeira vez que o jogo roda com gente real, e
             avisar evita que um problema seja lido como descaso. */}
+        {acromaniaAtivo && (
         <Link to="/jogos/acromania" className="glossy-panel lobby-game-card home-game-card home-game-card-beta">
           <span className="home-game-beta-badge">EM TESTES</span>
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
@@ -89,6 +92,7 @@ export default function Lobby() {
             </span>
           </div>
         </Link>
+        )}
       </div>
 
       {/* Premiação do mês */}

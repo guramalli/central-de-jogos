@@ -215,6 +215,15 @@ export function logoPorNomeDeTitulo(nome) {
   // então precisa ser resolvido à parte — senão quem o equipasse ficaria
   // sem logo nenhuma no hover e na vitrine.
   if (nome === TITULO_LENDARIO_NOME) return "/titulos/titulo-lendario.png";
+
+  // Troféu de campeão mensal: o nome tem formato próprio ("Campeão Stop
+  // Ago/2026", com "(2x)" opcional), então é resolvido por padrão em vez de
+  // busca em tabela. Sem isto, quem equipasse o troféu ficaria sem emblema
+  // nenhum no hover e na lista de jogadores.
+  const campeao = /^Campeão (Stop|Quiz) /.exec(nome);
+  if (campeao) {
+    return `/titulos/titulo-campeao-${campeao[1].toLowerCase()}.png`;
+  }
   // Quiz: reconstrói os nomes de cada tema/nível
   for (const [tema, nomeTema] of Object.entries(QUIZ_NOMES)) {
     for (let i = 0; i < QUIZ_NIVEIS.length; i++) {
@@ -298,5 +307,79 @@ export function tituloLendario(titulosQuiz, titulosStop) {
     total,
     faltam: Math.max(0, total - conquistados),
     desbloqueado: conquistados >= total,
+  };
+}
+
+// ===== Troféus de campeão mensal =====
+//
+// Diferente dos 62 títulos de conquista, que dependem de acumular acertos ou
+// STOPs, estes vêm de ter sido o PRIMEIRO do ranking mensal — e o ranking
+// paga Pix. São os únicos títulos que ninguém consegue por insistência: só
+// vencendo alguém.
+//
+// Ficam guardados na tabela CampeaoMensal, congelados no fechamento do mês.
+// Aqui só transformamos aquele registro em título exibível.
+
+const MESES_CURTOS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+// "2026-08" -> "Ago/2026"
+export function mesCurto(monthKey) {
+  const [ano, mes] = String(monthKey).split("-");
+  return `${MESES_CURTOS[Number(mes) - 1] || mes}/${ano}`;
+}
+
+export function nomeDoTrofeu(gameKey, monthKey) {
+  const jogo = gameKey === "quiz" ? "Quiz" : "Stop";
+  return `Campeão ${jogo} ${mesCurto(monthKey)}`;
+}
+
+export function logoDoTrofeu(gameKey) {
+  return `/titulos/titulo-campeao-${gameKey === "quiz" ? "quiz" : "stop"}.png`;
+}
+
+// Recebe as linhas de CampeaoMensal de uma pessoa e devolve os troféus
+// prontos pra exibição, do mais recente pro mais antigo.
+//
+// A CONTAGEM (2x, 3x) aparece por JOGO: quem venceu o Stop três vezes vê
+// "Campeão Stop Set/2026 (3x)" — o feito acumulado num rótulo só, em vez de
+// uma lista de três emblemas iguais ao lado do nick.
+export function trofeusDeCampeao(registros = []) {
+  const ordenados = [...registros].sort((a, b) => String(b.monthKey).localeCompare(String(a.monthKey)));
+
+  const totalPorJogo = {};
+  for (const r of ordenados) totalPorJogo[r.gameKey] = (totalPorJogo[r.gameKey] || 0) + 1;
+
+  // Para o hover/saudação: o mais recente de cada jogo, com a contagem.
+  const vistos = new Set();
+  const resumo = [];
+  for (const r of ordenados) {
+    if (vistos.has(r.gameKey)) continue;
+    vistos.add(r.gameKey);
+    const total = totalPorJogo[r.gameKey];
+    resumo.push({
+      gameKey: r.gameKey,
+      monthKey: r.monthKey,
+      nome: nomeDoTrofeu(r.gameKey, r.monthKey),
+      // O sufixo só aparece a partir do segundo: "(1x)" seria ruído.
+      rotulo: total > 1
+        ? `${nomeDoTrofeu(r.gameKey, r.monthKey)} (${total}x)`
+        : nomeDoTrofeu(r.gameKey, r.monthKey),
+      logo: logoDoTrofeu(r.gameKey),
+      total,
+      points: r.points,
+    });
+  }
+
+  return {
+    // Todos, pra vitrine do perfil.
+    todos: ordenados.map((r) => ({
+      gameKey: r.gameKey,
+      monthKey: r.monthKey,
+      nome: nomeDoTrofeu(r.gameKey, r.monthKey),
+      logo: logoDoTrofeu(r.gameKey),
+      points: r.points,
+    })),
+    // Um por jogo, com contagem — pro hover e pra saudação de entrada.
+    resumo,
   };
 }

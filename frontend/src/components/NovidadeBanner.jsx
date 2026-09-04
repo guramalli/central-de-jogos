@@ -7,7 +7,10 @@ import { useAuth } from "../context/AuthContext.jsx";
 // uma PRÓXIMA novidade com outro ID reaparece normalmente).
 //
 // Pra anunciar outra coisa no futuro: troca o NOVIDADE_ID, o texto e o link.
-const NOVIDADE_ID = "novidade-titulos-ago2026";
+// ID novo = banner reaparece pra todo mundo, inclusive pra quem fechou o
+// anterior. É o comportamento certo aqui: quem já joga Quiz não vai descobrir
+// sozinho que agora vale prêmio.
+const NOVIDADE_ID = "novidade-premiacao-quiz-set2026";
 
 export default function NovidadeBanner() {
   const { user } = useAuth();
@@ -35,14 +38,15 @@ export default function NovidadeBanner() {
       <div className="novidade-banner-texto">
         <span className="novidade-banner-tag">NOVIDADE</span>
         <span>
-          🏅 <strong>Títulos de perfil chegaram!</strong> Acertos no Quiz e STOPs pedidos agora
-          desbloqueiam conquistas — de <em>Conhecedor</em> a <em>Enciclopédia Futebolística</em> e{" "}
-          <em>STOP Supersônico</em>.
+          🏆 <strong>Agora o Quiz também paga!</strong> Premiação mensal com os mesmos valores do
+          Stop: <strong>1º R$ 200 · 2º R$ 100 · 3º R$ 50</strong>. Vale para setembro, e os pontos
+          que você já fez este mês <strong>já estão contando</strong>. São dois rankings separados —
+          dá para ganhar nos dois.
         </span>
       </div>
       <div className="novidade-banner-acoes">
-        <Link className="btn btn-sm" to={user ? "/perfil" : "/login"} onClick={fechar}>
-          {user ? "Ver meus títulos" : "Entrar e conferir"}
+        <Link className="btn btn-sm" to={user ? "/ranking" : "/login"} onClick={fechar}>
+          {user ? "Ver o ranking" : "Entrar e jogar"}
         </Link>
         <button className="novidade-banner-fechar" onClick={fechar} aria-label="Fechar aviso">
           ✕

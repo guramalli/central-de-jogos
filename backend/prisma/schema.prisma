@@ -109,6 +109,7 @@ model User {
   friendshipsA     Friendship[] @relation("UserA")
   friendshipsB     Friendship[] @relation("UserB")
   chatMessages     ChatMessage[]
+  campeonatos  CampeaoMensal[]
 }
 
 model Clan {
@@ -328,6 +329,35 @@ model QuizQuestion {
 // A chave é tema + resposta normalizada (sem acento, caixa ou pontuação).
 // Se uma pergunta NOVA com a mesma resposta aparecer depois, o grupo volta a
 // aparecer: a contagem muda, e vale uma nova olhada.
+// Campeão de cada mês, por jogo. CONGELADO no fechamento.
+//
+// POR QUE GRAVAR EM VEZ DE CALCULAR NA HORA:
+// O ranking de um mês é uma consulta ordenada sobre monthlyScore. Se no
+// futuro uma conta for banida, ocultada do ranking ou apagada, essa consulta
+// passa a devolver OUTRO campeão para um mês que já foi pago. Alguém perderia
+// um troféu conquistado, sem entender por quê.
+//
+// Gravando uma vez, o troféu fica imune a qualquer mexida posterior nos
+// dados. Serve também de registro do que foi pago.
+//
+// PREENCHIDO PELO SCRIPT `npm run fechar-mes -- 2026-08`, nunca por rotina
+// automática: não existe fechamento agendado no projeto, e criar um seria um
+// ponto único de falha justamente com dinheiro envolvido.
+model CampeaoMensal {
+  id        String   @id @default(cuid())
+  monthKey  String   // "2026-08"
+  gameKey   String   // "stop" | "quiz"
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  nickname  String   // guardado junto: se o nick mudar, o troféu registra o da época
+  points    Int
+  createdAt DateTime @default(now())
+
+  // Um campeão por mês/jogo. Impede gravar dois por engano.
+  @@unique([monthKey, gameKey])
+  @@index([userId])
+}
+
 model QuizRespostaAprovada {
   id         String   @id @default(cuid())
   themeKey   String

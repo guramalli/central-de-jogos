@@ -5806,3 +5806,404 @@ span.votacao-trilha-item {
   opacity: 0.55;
   flex-shrink: 0;
 }
+
+/* ===== Caixa de mensagens (página de Amigos) =====
+   Lista as CONVERSAS, não os amigos. Antes o aviso dizia "2 mensagens" e a
+   pessoa precisava abrir amigo por amigo pra descobrir de quem eram. */
+.caixa-mensagens { margin-bottom: 20px; padding: 16px 18px; }
+
+.caixa-mensagens-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.caixa-mensagens-topo h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+}
+.caixa-mensagens-topo .material-symbols-outlined { font-size: 20px; color: var(--accent-2); }
+.caixa-mensagens-contador {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #06d6a0;
+  background: rgba(6, 214, 160, 0.12);
+  border: 1px solid rgba(6, 214, 160, 0.4);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.conversas-lista { display: flex; flex-direction: column; gap: 6px; }
+
+.conversa-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--bg-panel-2);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.conversa-item:hover { border-color: var(--accent-2); }
+
+/* Não lida ganha destaque: é o motivo de a pessoa ter aberto a página. */
+.conversa-nao-lida {
+  background: rgba(6, 214, 160, 0.07);
+  border-color: rgba(6, 214, 160, 0.35);
+}
+
+.conversa-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.conversa-avatar-vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--accent-2);
+}
+
+/* min-width: 0 é o que permite o texto cortar em vez de estourar o card —
+   filho de flex se recusa a encolher abaixo do próprio conteúdo sem isto. */
+.conversa-texto { flex: 1; min-width: 0; }
+.conversa-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.conversa-nick { font-size: 14px; }
+.conversa-nao-lida .conversa-nick { color: #06d6a0; }
+.conversa-quando {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.conversa-previa {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conversa-eu { color: var(--text-dim); opacity: 0.7; }
+
+.conversa-badge {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #06d6a0;
+  color: #0b1a15;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Abas do painel admin =====
+   A página tinha 7 seções empilhadas em 800+ linhas — chegar na última exigia
+   rolar tudo. As abas cortam isso e ainda mostram, no próprio rótulo, o que
+   está esperando ação. */
+.admin-abas {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.admin-aba {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.admin-aba:hover { color: var(--text); border-color: var(--accent-2); }
+.admin-aba .material-symbols-outlined { font-size: 18px; }
+
+.admin-aba-ativa {
+  color: #1a1206;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
+
+/* Contador do que exige ação. Vermelho porque é pendência, não informação. */
+.admin-aba-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ff6b6b;
+  color: #2a0a0a;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-aba-ativa .admin-aba-badge { background: #1a1206; color: var(--accent-2); }
+
+@media (max-width: 700px) {
+  /* No celular as abas viram uma faixa rolável na horizontal, em vez de
+     quebrarem em três linhas e empurrarem o conteúdo pra baixo. */
+  .admin-abas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .admin-abas::-webkit-scrollbar { display: none; }
+  .admin-aba { flex-shrink: 0; padding: 7px 11px; font-size: 12px; }
+}
+
+/* ===== Blocos recolhíveis =====
+   Usados nas listas longas (sugestões do Stop, glossário). Elas eram as
+   seções que mais ocupavam espaço, e na maior parte do tempo não precisam
+   estar abertas. */
+.admin-recolhivel > summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-2);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-recolhivel > summary::-webkit-details-marker { display: none; }
+.admin-recolhivel > summary::before {
+  content: "▸";
+  transition: transform 0.15s ease;
+}
+.admin-recolhivel[open] > summary::before { transform: rotate(90deg); }
+.admin-recolhivel > summary:hover { filter: brightness(1.15); }
+
+/* ===== Barra de mensagens privadas (canto inferior direito) =====
+   Separada do chat das salas de propósito: misturar os dois faria a pessoa
+   mandar no lugar errado no meio de uma partida.
+
+   z-index alto, mas ABAIXO dos modais — o DmModal precisa abrir por cima. */
+.barra-msg {
+  position: fixed;
+  right: 20px;
+  bottom: 0;
+  width: 300px;
+  z-index: 900;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.barra-msg-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  background: var(--bg-panel-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+.barra-msg-topo:hover { filter: brightness(1.12); }
+.barra-msg-topo .material-symbols-outlined { font-size: 19px; color: var(--accent-2); }
+.barra-msg-titulo { flex: 1; text-align: left; }
+.barra-msg-seta { opacity: 0.6; }
+
+.barra-msg-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #06d6a0;
+  color: #0b1a15;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Altura limitada: a barra não pode crescer até cobrir a tela. */
+.barra-msg-corpo { max-height: 380px; overflow-y: auto; padding: 8px; }
+.barra-msg-secao + .barra-msg-secao { margin-top: 10px; }
+.barra-msg-secao h4 {
+  margin: 0 0 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.barra-msg-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.barra-msg-item:hover { background: var(--bg-panel-2); border-color: var(--border); }
+.barra-msg-item-novo { background: rgba(6, 214, 160, 0.08); border-color: rgba(6, 214, 160, 0.3); }
+
+.barra-msg-nick { font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.barra-msg-item-novo .barra-msg-nick { color: #06d6a0; }
+/* min-width: 0 é o que faz a prévia cortar em vez de estourar a barra. */
+.barra-msg-previa {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barra-msg-item-badge {
+  flex-shrink: 0;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #06d6a0;
+  color: #0b1a15;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.barra-msg-online {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #06d6a0;
+  flex-shrink: 0;
+}
+.barra-msg-vazio { margin: 4px 8px; font-size: 12px; color: var(--text-dim); }
+
+/* Recolhida: só a bolinha com o contador — "não me atrapalhe, mas me avise". */
+.barra-msg-bolinha {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 900;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--accent-2);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.barra-msg-bolinha:hover { border-color: var(--accent-2); }
+.barra-msg-bolinha .material-symbols-outlined { font-size: 24px; }
+.barra-msg-bolinha-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #06d6a0;
+  color: #0b1a15;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* SÓ DESKTOP. No celular uma janela flutuante compete com o conteúdo numa
+   tela que já é apertada — lá a página de Amigos resolve. */
+@media (max-width: 900px) {
+  .barra-msg, .barra-msg-bolinha { display: none; }
+}
+
+/* Botão de conversa na lista de jogadores do admin. */
+.admin-msg-btn { padding: 4px 8px !important; }
+.admin-msg-btn .material-symbols-outlined { font-size: 16px; }
+
+/* ===== Troféus de campeão mensal na vitrine =====
+   Vêm antes do lendário: são os únicos títulos que ninguém consegue por
+   insistência — só vencendo alguém no ranking que paga Pix. */
+.trofeus-bloco { margin-bottom: 18px; }
+.trofeus-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.trofeu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 10, 0.35);
+  background: rgba(255, 214, 10, 0.06);
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+.trofeu-item:disabled { cursor: default; }
+.trofeu-item:not(:disabled):hover { border-color: var(--accent-2); }
+/* Escolhido: moldura dourada cheia, igual ao destaque do lendário. */
+.trofeu-escolhido {
+  border-color: #ffd60a;
+  background: rgba(255, 214, 10, 0.14);
+  box-shadow: 0 0 16px rgba(255, 214, 10, 0.18);
+}
+.trofeu-nome { font-size: 12.5px; font-weight: 700; color: var(--accent-2); }
+.trofeu-pontos { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }

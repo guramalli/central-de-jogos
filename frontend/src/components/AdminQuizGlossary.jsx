@@ -189,7 +189,10 @@ export default function AdminQuizGlossary() {
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
-      <h2>Índice de perguntas do Quiz</h2>
+      {/* Recolhido por padrão, mesmo motivo do glossário do Stop: é uma
+          tabela longa que raramente precisa ficar aberta. */}
+      <details className="admin-recolhivel">
+        <summary>Índice de perguntas do Quiz</summary>
       {error && <div className="error-msg">{error}</div>}
 
       <h3>Buscar pergunta (em todos os temas)</h3>
@@ -282,6 +285,7 @@ export default function AdminQuizGlossary() {
         </tbody>
       </table>
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </details>
     </div>
   );
 }

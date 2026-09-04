@@ -7,7 +7,7 @@ import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js"
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
-import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario } from "../game/titulosConfig.js";
+import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario, trofeusDeCampeao, logoDoTrofeu } from "../game/titulosConfig.js";
 
 const router = Router();
 
@@ -284,6 +284,18 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
   const lendario = tituloLendario(listaQuiz, listaStop);
   if (lendario.desbloqueado) desbloqueados.add(lendario.nome);
 
+  // Troféus de campeão também podem ser escolhidos como título exibido —
+  // sem isto seriam recusados aqui, e não adiantaria conquistá-los.
+  // Aceita tanto o nome puro quanto o rótulo com contagem ("(2x)"), porque
+  // é o rótulo que a vitrine mostra e envia.
+  const registrosCampeao = await prisma.campeaoMensal.findMany({
+    where: { userId: req.user.id },
+    select: { gameKey: true, monthKey: true, points: true },
+  });
+  const meusTrofeus = trofeusDeCampeao(registrosCampeao);
+  for (const t of meusTrofeus.todos) desbloqueados.add(t.nome);
+  for (const t of meusTrofeus.resumo) desbloqueados.add(t.rotulo);
+
   if (!desbloqueados.has(titulo)) {
     return res.status(400).json({ error: "Esse título ainda não foi desbloqueado." });
   }
@@ -422,9 +434,20 @@ router.get("/:id/titulos", requireAuth, async (req, res) => {
 
     const quiz = titulosDoQuiz(porTema);
     const stop = titulosDoStop(statsStop);
+
+    // Troféus de campeão mensal: vêm da tabela CampeaoMensal, congelada no
+    // fechamento do mês. Não são calculados a partir do ranking — se fossem,
+    // mudariam sozinhos caso alguma conta antiga fosse banida ou ocultada.
+    const registrosCampeao = await prisma.campeaoMensal.findMany({
+      where: { userId: id },
+      select: { gameKey: true, monthKey: true, points: true },
+    });
+    const trofeus = trofeusDeCampeao(registrosCampeao);
+
     const payload = {
       quiz,
       stop,
+      trofeus,
       // Estado do título lendário (todos os 62). Vem sempre, desbloqueado ou
       // não: a vitrine mostra o quanto falta, que é o que dá sentido a
       // perseguir uma conquista tão longa.

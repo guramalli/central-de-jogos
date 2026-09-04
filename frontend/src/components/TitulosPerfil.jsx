@@ -117,6 +117,31 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
       {/* Lendário no topo da vitrine: aparece SEMPRE, conquistado ou não.
           Mostrar o quanto falta é o que dá sentido a perseguir uma conquista
           tão longa — escondê-lo até o fim seria escondê-lo pra sempre. */}
+      {/* Troféus de campeão mensal no topo da vitrine: são os únicos títulos
+          que não se conquista por insistência — só vencendo alguém no ranking
+          que paga Pix. Por isso vêm antes até do lendário. */}
+      {titulos.trofeus?.todos?.length > 0 && (
+        <div className="trofeus-bloco">
+          <h4 className="titulos-subtitulo">🏆 Campeão mensal</h4>
+          <div className="trofeus-grade">
+            {titulos.trofeus.todos.map((t) => (
+              <button
+                key={`${t.gameKey}-${t.monthKey}`}
+                type="button"
+                className={`trofeu-item ${tituloExibido === t.nome ? "trofeu-escolhido" : ""}`}
+                onClick={podeEscolher ? () => escolher(t.nome) : undefined}
+                disabled={!podeEscolher}
+                title={podeEscolher ? "Exibir este troféu ao lado do meu nick" : t.nome}
+              >
+                <IconeTitulo logo={t.logo} tamanho={44} />
+                <span className="trofeu-nome">{t.nome}</span>
+                <span className="trofeu-pontos">{t.points.toLocaleString("pt-BR")} pts</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {titulos.lendario && (
         <div className={`titulo-lendario ${titulos.lendario.desbloqueado ? "titulo-lendario-ok" : ""}`}>
           <IconeTitulo

@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
@@ -166,6 +167,37 @@ export class StopRoom {
     this.io.to(this.roomId).emit(event, payload);
   }
 
+  // Verifica inativos a cada minuto, em timer próprio — continua rodando
+  // mesmo com a sala parada esperando jogadores.
+  iniciarVigiaInatividade() {
+    if (this.vigiaIdleTimer) return;
+    this.vigiaIdleTimer = setInterval(() => {
+      if (this.players.size === 0) return;
+      const { avisar, remover } = verificarInativos(this.players, "stop");
+
+      for (const { player } of avisar) {
+        player.socket?.emit("aviso-inatividade", {
+          minutos: minutosRestantes(),
+          mensagem: `Você está parado há um tempo. Jogue ou converse em ${minutosRestantes()} min pra não sair da sala.`,
+        });
+      }
+
+      for (const { socketId, player } of remover) {
+        player.socket?.emit("removido-por-inatividade", {
+          mensagem: "Você saiu da sala por inatividade.",
+        });
+        this.systemMessage(`💤 ${player.nickname} saiu por inatividade.`);
+        this.removePlayer(socketId);
+        player.socket?.leave(this.roomId);
+      }
+    }, 60000);
+  }
+
+  pararVigiaInatividade() {
+    if (this.vigiaIdleTimer) clearInterval(this.vigiaIdleTimer);
+    this.vigiaIdleTimer = null;
+  }
+
   async addPlayer(socket, userId, nickname) {
     // NENHUMA consulta ao banco pode segurar a entrada na sala. Se o banco
     // der um soluço aqui, o jogador ficaria olhando uma tela morta sem nunca
@@ -266,6 +298,7 @@ export class StopRoom {
     }
 
     socket.join(this.roomId);
+    this.iniciarVigiaInatividade();
     socket.emit("room-state", { ...this.publicState(), myAnswers: this.answers.get(userId) || {} });
     socket.emit("skip-vote-update", {
       votes: this.skipVotes.size,
@@ -347,6 +380,9 @@ export class StopRoom {
     // Sala privada ainda esperando: atualiza a lista de quem está lá e se
     // já dá pra começar.
     this.broadcastEspera();
+
+    // Sala vazia: desliga o vigia pra não deixar timer órfão rodando.
+    if (this.players.size === 0) this.pararVigiaInatividade();
   }
 
   // Lista de jogadores online na sala com pontuação vitalícia (do jogo Stop) e patente —
@@ -737,6 +773,7 @@ export class StopRoom {
 
     this.broadcast("player-stopped", { userId, nickname });
     this.systemMessage(`🛑 ${nickname} apertou STOP!`, true);
+    for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     if (!this.semPontuacao) registrarEvento(userId, "stop_pedido").catch(() => {});
 
     // Contadores dos TÍTULOS de perfil: soma o STOP no grupo da sala e, na
@@ -768,6 +805,7 @@ export class StopRoom {
   }
 
   submitAnswers(socket, userId, answers, behavior) {
+    marcarAtividade(this.players.get(socket.id));
     if (this.state !== "active") return;
     this.answers.set(userId, answers);
     if (behavior) {
@@ -1451,6 +1489,8 @@ export class StopRoom {
   }
 
   chatMessage(userId, nickname, message) {
+    // Conversar conta como presença, mesmo sem responder a rodada.
+    for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     // O id permite que moderadores apaguem uma mensagem específica depois.
     this.broadcast("chat-message", { id: novoIdMensagem(), userId, nickname, message, at: Date.now() });
   }
