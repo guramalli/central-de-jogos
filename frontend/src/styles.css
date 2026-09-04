@@ -2515,6 +2515,20 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   line-height: 1.5;
 }
 
+/* Aviso de erro do servidor na sala (manutenção, reconexão). Vermelho
+   discreto: precisa ser visto sem roubar a tela do jogo. */
+.acro-erro-banner {
+  margin-top: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--danger, #e60000);
+  border-radius: 6px;
+  background: rgba(230, 0, 0, 0.12);
+  color: var(--qz-orange-pale, #ffc082);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .quiz-room-question-count {
   font-size: 9px;
   color: var(--text-dim);

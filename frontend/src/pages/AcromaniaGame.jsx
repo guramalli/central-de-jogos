@@ -53,12 +53,33 @@ export default function AcromaniaGame() {
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [roomFull, setRoomFull] = useState(false);
+  // Mensagem de erro vinda do servidor. Antes o backend emitia
+  // "acromania-erro" (manutenção, falha ao entrar) e NINGUÉM escutava —
+  // a pessoa ficava olhando uma tela parada sem saber o motivo.
+  const [erroServidor, setErroServidor] = useState("");
 
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
     socket.connect();
     socket.emit("join-acromania-room", { roomId });
+
+    // RECONEXÃO. O servidor guarda a sala numa propriedade do socket
+    // (`socket.currentAcromaniaRoom`). Quando a conexão cai e volta — troca
+    // de rede, Wi-Fi oscilando, aba em segundo plano no celular — o socket
+    // no servidor é OUTRO, sem essa propriedade. Sem reenviar o join, o
+    // envio da frase e o voto eram descartados EM SILÊNCIO: nenhum erro,
+    // nenhum aviso, o botão simplesmente não fazia nada, e só um refresh
+    // resolvia. Mesmo tratamento que o Stop e o Quiz já tinham.
+    const reentrarNaSala = () => {
+      socket.emit("join-acromania-room", { roomId });
+    };
+    socket.on("connect", reentrarNaSala);
+
+    const aoErro = (data) => setErroServidor(data?.mensagem || "Algo deu errado. Tente recarregar a página.");
+    socket.on("acromania-erro", aoErro);
+    // Entrou (ou reentrou) com sucesso: limpa qualquer erro antigo da tela.
+    socket.on("acromania-room-state", () => setErroServidor(""));
 
     // Sessão morta (token de 7 dias vencido, ou conta banida). Só falha de
     // AUTENTICAÇÃO desloga — queda de rede e reinício do servidor durante um
@@ -195,6 +216,8 @@ export default function AcromaniaGame() {
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
       socket.off("acromania-round-result");
+      socket.off("connect", reentrarNaSala);
+      socket.off("acromania-erro", aoErro);
       socket.off("aviso-inatividade");
       socket.off("removido-por-inatividade");
       socket.disconnect();
@@ -264,6 +287,7 @@ export default function AcromaniaGame() {
         </div>
         <div className="quiz-topbar-title">
           <span className="quiz-theme-name">{roomLabel}</span>
+          {erroServidor && <div className="acro-erro-banner">⚠️ {erroServidor}</div>}
         </div>
         <div className="quiz-timer-group">
           <InviteButton

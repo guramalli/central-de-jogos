@@ -207,12 +207,24 @@ export function setupSocket(io) {
       }
     });
 
+    // O `?.` aqui descartava frase e voto EM SILÊNCIO quando o socket tinha
+    // reconectado (o socket novo não tem `currentAcromaniaRoom`). O jogador
+    // clicava em enviar e não acontecia nada, sem erro nenhum — só o refresh
+    // resolvia. Agora a falha é dita em voz alta, e o frontend já refaz o
+    // join sozinho no evento "connect".
+    const semSala = () =>
+      socket.emit("acromania-erro", {
+        mensagem: "Conexão reiniciada. Reconectando à sala — tente de novo em instantes.",
+      });
+
     socket.on("acromania-submit-phrase", ({ phrase }) => {
-      socket.currentAcromaniaRoom?.submitPhrase(socket, userId, phrase || "");
+      if (!socket.currentAcromaniaRoom) return semSala();
+      socket.currentAcromaniaRoom.submitPhrase(socket, userId, phrase || "");
     });
 
     socket.on("acromania-vote", ({ entryId }) => {
-      socket.currentAcromaniaRoom?.vote(socket, userId, entryId);
+      if (!socket.currentAcromaniaRoom) return semSala();
+      socket.currentAcromaniaRoom.vote(socket, userId, entryId);
     });
 
     socket.on("acromania-chat-message", ({ message }) => {
