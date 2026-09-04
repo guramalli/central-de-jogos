@@ -166,10 +166,13 @@ export default function App() {
           {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
-                {/* Stop e Quiz saíram do menu: os cards deles ficam no Lobby,
-                    que já é o primeiro link. Ter os dois aqui repetia o
-                    caminho e deixava a barra longa demais — no celular ela
-                    quebrava em duas linhas. */}
+                {/* Stop e Quiz já estiveram fora daqui, por duplicarem o
+                    caminho do Lobby e alongarem a barra. Voltaram porque a
+                    falta se fez sentir: são os dois jogos principais e o
+                    atalho direto vale mais que a economia de espaço. Sem
+                    `end`, o link segue destacado dentro das salas do jogo. */}
+                <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
+                <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
                 <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
                 <NavLink to="/missoes" className={navLinkClass}>
                   Missões{missoesPendentes > 0 && (
