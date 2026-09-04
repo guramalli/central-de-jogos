@@ -1178,13 +1178,11 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .nav-link {
   color: var(--text-dim);
   text-decoration: none;
-  padding-bottom: 4px;
-  border-bottom: 2px solid transparent;
   white-space: nowrap;
   transition: color 0.15s ease;
 }
 .nav-link:hover { color: var(--text); }
-.nav-link-active { color: var(--accent-2); font-weight: 700; border-bottom-color: var(--accent-2); }
+.nav-link-active { color: var(--accent-2); font-weight: 700; }
 
 .retro-btn {
   background: linear-gradient(180deg, #ff9900 0%, #ffb86f 100%);
