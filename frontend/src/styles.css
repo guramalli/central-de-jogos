@@ -62,10 +62,14 @@ body {
 [data-theme="dark"] body { background: linear-gradient(160deg, #131313 0%, #1a1918 100%); }
 
 .app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 24px;
+  /* NÃO usar flex aqui.
+     O header tem UM filho só (.app-header-inner), que é quem centraliza o
+     conteúdo com max-width + margin auto. Com display:flex, o pai encolhia
+     esse filho ao tamanho do conteúdo em vez de deixá-lo ocupar a largura
+     toda — então o max-width nunca agia e o cabeçalho ficava centralizado
+     num bloco estreito, desalinhado do corpo do site.
+     O padding também saiu: o respiro lateral é do .app-header-inner, pra
+     bater exatamente com o do .container. */
   background: var(--bg-panel);
   border-bottom: 2px solid var(--accent);
 }
