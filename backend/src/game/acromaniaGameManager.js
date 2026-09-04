@@ -1,5 +1,6 @@
 import { AcromaniaRoom } from "./AcromaniaRoom.js";
 import { ACROMANIA_ROOM_CONFIGS, DEFAULT_ACROMANIA_ROOM_ID } from "./acromaniaRoomConfigs.js";
+import { ligarBotsNaSala } from "./acromaniaBots.js";
 
 const rooms = new Map();
 const pendingCreation = new Map();
@@ -13,6 +14,12 @@ export async function getOrCreateAcromaniaRoom(io, roomId = DEFAULT_ACROMANIA_RO
     const room = new AcromaniaRoom(roomId, io, config);
     rooms.set(roomId, room);
     pendingCreation.delete(roomId);
+    // Bots de teste. Desligados por padrão (só ligam com ACROMANIA_BOTS
+    // definido). Não usa await: se der ruim ao criar as contas, o jogador
+    // real entra na sala do mesmo jeito — bot nunca segura a sala.
+    ligarBotsNaSala(room).catch((err) =>
+      console.error("Acromania: falha ao ligar bots:", err.message)
+    );
     return room;
   })();
 

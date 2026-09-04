@@ -5,6 +5,7 @@ import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, canc
 import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
+import { ligarBotsNaSala } from "../game/acromaniaBots.js";
 import * as generalChat from "../game/generalChat.js";
 import * as presence from "../game/presence.js";
 import { recheckPeak } from "../game/platformStats.js";
@@ -195,6 +196,10 @@ export function setupSocket(io) {
         if (joined) {
           socket.currentAcromaniaRoom = room;
           recheckPeak().catch(() => {});
+          // Os bots se desligam sozinhos quando a sala fica sem gente, então
+          // precisam ser religados quando alguém volta. A função é idempotente
+          // e não faz nada se ACROMANIA_BOTS não estiver definido.
+          ligarBotsNaSala(room).catch(() => {});
         }
       } catch (err) {
         console.error("Falha ao entrar na sala de Acromania:", err);
