@@ -158,7 +158,12 @@ export default function App() {
                   logo nem invalidar o cache dela no service worker. */}
               <span className="logo-beta">beta</span>
             </Link>
-            {user && (
+          </div>
+
+          {/* O menu é IRMÃO da logo, não filho: só assim ele ocupa a coluna
+              do meio da grade e fica centralizado na página. Dentro do
+              .app-header-left ele era empurrado pra esquerda junto da logo. */}
+          {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
                 {/* Stop e Quiz saíram do menu: os cards deles ficam no Lobby,
@@ -181,8 +186,11 @@ export default function App() {
                   <NavLink to="/admin" className={navLinkClass}>Painel Admin</NavLink>
                 )}
               </nav>
-            )}
-          </div>
+          )}
+          {/* Sem usuário logado a coluna do meio fica vazia, mas precisa
+              existir pra grade não colapsar de três pra duas colunas. */}
+          {!user && <div />}
+
           <div className="app-header-right">
             {user ? (
               <>

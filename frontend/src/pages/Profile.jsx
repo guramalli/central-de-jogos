@@ -42,7 +42,11 @@ export default function Profile() {
     setNickErro("");
     setNickMsg("");
     if (!novoNick.trim()) return;
-    if (!window.confirm(`Trocar seu nick para "${novoNick.trim()}"?\n\nVocê só pode fazer isso uma vez.`)) return;
+    if (!window.confirm(
+      `Trocar seu nickname para "${novoNick.trim()}"?\n\n` +
+      `ATENÇÃO: esta é a ÚNICA troca permitida. Depois disso o nickname fica fixo para sempre.\n\n` +
+      `Confirma?`
+    )) return;
     try {
       const { data } = await api.patch("/users/me/nickname", { nickname: novoNick.trim() });
       setNickMsg(`Pronto! Agora você é ${data.nickname}.`);
@@ -124,16 +128,25 @@ export default function Profile() {
           disponível; depois de usada, some. */}
       {podeTrocarNick && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <h2>Escolher meu nick</h2>
-          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            Você pode trocar seu nick <strong>uma vez</strong>. Depois disso ele fica fixo —
-            é o nome que aparece no ranking, nos títulos e no histórico de campeões.
-          </p>
+          <h2>Trocar meu nickname</h2>
+          {/* O aviso de "uma vez" ganha um bloco próprio, com borda e cor de
+              alerta, em vez de ficar diluído no parágrafo: é uma decisão
+              irreversível e a pessoa precisa parar pra ler antes de digitar. */}
+          <div className="nick-aviso-unico">
+            <span className="material-symbols-outlined">warning</span>
+            <div>
+              <strong>Atenção: isso só pode ser feito UMA vez.</strong>
+              <span>
+                Depois da troca, o nickname fica fixo para sempre — não dá para mudar de novo.
+                É o nome que aparece no ranking, nos títulos e no histórico de campeões.
+              </span>
+            </div>
+          </div>
           <form onSubmit={trocarNick} style={{ display: "flex", gap: 8, maxWidth: 380 }}>
             <input
               value={novoNick}
               onChange={(e) => setNovoNick(e.target.value)}
-              placeholder="Novo nick"
+              placeholder="Novo nickname"
               maxLength={15}
               style={{ flex: 1, minWidth: 0 }}
             />

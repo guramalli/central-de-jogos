@@ -1054,12 +1054,21 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
      passa de 1150px de largura. */
   max-width: 1100px;
   margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
+  /* Três colunas em vez de flex com space-between: as laterais têm a MESMA
+     largura (1fr cada), então o menu do meio fica centralizado de verdade na
+     página — e não empurrado pro lado pela logo, que é mais larga que o bloco
+     do perfil. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 16px;
   padding: 8px 24px;
 }
-.app-header-left { display: flex; align-items: center; gap: 32px; }
+/* A logo sozinha na coluna da esquerda; o menu saiu daqui pra poder ficar
+   centralizado por conta própria. */
+.app-header-left { display: flex; align-items: center; }
+/* O bloco do perfil encosta na direita. */
+.app-header-right { justify-content: flex-end; }
 .app-header-right { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); }
 /* Bloco do jogador no cabeçalho: avatar + nick + "ver perfil".
    A página de perfil concentra títulos, conquistas e a vitrine de emblemas,
@@ -1149,7 +1158,23 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 }
 
-.nav-links { display: flex; gap: 20px; font-family: var(--font-mono); font-size: 14px; }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  justify-content: center;
+}
+/* Separador entre os links. Feito com ::before no irmão em vez de um elemento
+   no JSX: assim o primeiro nunca ganha barra à esquerda, sem precisar de
+   condicional na renderização. */
+.nav-links .nav-link + .nav-link::before {
+  content: "|";
+  color: var(--border);
+  margin-right: 18px;
+  font-weight: 400;
+}
 .nav-link {
   color: var(--text-dim);
   text-decoration: none;
@@ -2047,9 +2072,16 @@ table.player-table.player-table-compact td {
   .container { padding: 14px; }
 
   /* Cabeçalho: quebra em duas linhas em vez de espremer tudo numa só */
-  .app-header-inner { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+  /* No celular a grade de 3 colunas vira uma coluna só, empilhada: logo,
+     menu, perfil. Três colunas numa tela estreita espremeriam tudo. */
+  .app-header-inner { grid-template-columns: 1fr; gap: 10px; padding: 10px 14px; }
   .app-header-left { flex-wrap: wrap; gap: 10px; width: 100%; }
+  /* O menu volta a alinhar à esquerda, como o resto do conteúdo empilhado. */
+  .nav-links { justify-content: flex-start; }
   .nav-links { flex-wrap: wrap; gap: 8px 14px; font-size: 13px; }
+  /* Sem separador no celular: com os links quebrando em duas linhas, a barra
+     acabaria sobrando no começo de uma linha nova. */
+  .nav-links .nav-link + .nav-link::before { content: none; }
   /* Sem space-between: com o bloco do perfil e o botão de sair, ele jogava
      um pra cada extremo e abria um vão enorme no meio. Especificidade igual
      à regra de cima, e esta vem depois no arquivo — por isso é AQUI que o
@@ -6462,3 +6494,27 @@ span.votacao-trilha-item {
     cursor: pointer;
   }
 }
+
+/* ===== Aviso de troca única de nickname =====
+   Bloco próprio, com borda e ícone de alerta: a troca é irreversível e a
+   pessoa precisa parar pra ler antes de digitar. Diluído no parágrafo,
+   passava batido. */
+.nick-aviso-unico {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 10px 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 107, 107, 0.55);
+  background: rgba(255, 107, 107, 0.09);
+}
+.nick-aviso-unico .material-symbols-outlined {
+  color: #ff6b6b;
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.nick-aviso-unico div { display: flex; flex-direction: column; gap: 4px; }
+.nick-aviso-unico strong { color: #ff6b6b; font-size: 14px; }
+.nick-aviso-unico span { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
