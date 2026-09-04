@@ -6093,16 +6093,25 @@ span.votacao-trilha-item {
 
 .barra-msg-nick { font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .barra-msg-item-novo .barra-msg-nick { color: #06d6a0; }
-/* min-width: 0 é o que faz a prévia cortar em vez de estourar a barra. */
-.barra-msg-previa {
+/* Sem prévia, o nick ocupa a linha e corta se for longo. */
+.barra-msg-nick-largo {
   flex: 1;
   min-width: 0;
-  font-size: 11.5px;
-  color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Ponto de status. Cinza apagado = offline, verde = online. Substitui a
+   prévia da mensagem: informa sem expor o conteúdo da conversa na tela. */
+.barra-msg-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+.barra-msg-ponto-on { background: #06d6a0; box-shadow: 0 0 6px rgba(6, 214, 160, 0.6); }
 .barra-msg-item-badge {
   flex-shrink: 0;
   min-width: 17px;
@@ -6117,13 +6126,6 @@ span.votacao-trilha-item {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.barra-msg-online {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #06d6a0;
-  flex-shrink: 0;
 }
 .barra-msg-vazio { margin: 4px 8px; font-size: 12px; color: var(--text-dim); }
 
@@ -6164,6 +6166,11 @@ span.votacao-trilha-item {
   align-items: center;
   justify-content: center;
 }
+
+/* Dentro das salas de jogo a barra encolhe: ali a tela é disputada com o
+   tabuleiro e o chat da partida, e a lista compacta (sem prévia) cabe. */
+.game-page .barra-msg { width: 240px; }
+.game-page .barra-msg-corpo { max-height: 260px; }
 
 /* SÓ DESKTOP. No celular uma janela flutuante compete com o conteúdo numa
    tela que já é apertada — lá a página de Amigos resolve. */

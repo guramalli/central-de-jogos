@@ -332,12 +332,16 @@ export default function Admin() {
   // As abas trazem o contador do que exige ação: denúncia aberta, palavra ou
   // pergunta esperando aprovação. Assim dá pra ver o que precisa de atenção
   // sem entrar em cada aba.
+  // O `?.length ?? 0` não é preciosismo: se qualquer uma dessas listas ainda
+  // não carregou (ou o nome mudar numa refatoração futura), ler .length de
+  // undefined derruba o componente inteiro e a tela fica EM BRANCO — foi
+  // exatamente o que aconteceu aqui, com um nome de estado errado.
   const ABAS = [
-    { id: "visao",      rotulo: "Visão geral", icone: "dashboard",     contador: feedbacks.length },
-    { id: "denuncias",  rotulo: "Denúncias",   icone: "flag",          contador: questionReports.length },
-    { id: "quiz",       rotulo: "Quiz",        icone: "quiz",          contador: pendingQuiz.length },
-    { id: "stop",       rotulo: "Stop",        icone: "pan_tool",      contador: pending.length },
-    { id: "jogadores",  rotulo: "Jogadores",   icone: "group",         contador: 0 },
+    { id: "visao",      rotulo: "Visão geral", icone: "dashboard", contador: feedbacks?.length ?? 0 },
+    { id: "denuncias",  rotulo: "Denúncias",   icone: "flag",      contador: questionReports?.length ?? 0 },
+    { id: "quiz",       rotulo: "Quiz",        icone: "quiz",      contador: quizPending?.length ?? 0 },
+    { id: "stop",       rotulo: "Stop",        icone: "pan_tool",  contador: pending?.length ?? 0 },
+    { id: "jogadores",  rotulo: "Jogadores",   icone: "group",     contador: 0 },
   ];
 
   return (

@@ -16,9 +16,10 @@ import DmModal from "./DmModal.jsx";
 // competindo com o conteúdo. Lá a página de Amigos, com a caixa de mensagens
 // no topo, já resolve.
 //
-// NÃO APARECE DENTRO DAS SALAS DE JOGO: numa rodada de Stop com 20 segundos,
-// uma janela flutuante atrapalha. Ali continua valendo o FriendsQuickChat,
-// que é um botão discreto e some quando não usado.
+// SEM PRÉVIA DAS MENSAGENS: a lista mostra só o nick, um ponto de online e a
+// contagem de não lidas. Dois motivos — a barra fica compacta o bastante pra
+// caber dentro das salas de jogo, e o conteúdo da conversa não fica exposto
+// na tela durante uma partida.
 export default function BarraMensagens() {
   // "aberta" | "recolhida" — guardado no navegador pra não reabrir sozinha a
   // cada página. Recolhida ela vira só uma bolinha com o contador: a pessoa
@@ -44,8 +45,13 @@ export default function BarraMensagens() {
           api.get("/friends"),
         ]);
         if (!vivo) return;
-        setConversas(c.data || []);
-        setAmigos((f.data?.friends || []).filter((a) => a.online));
+        const amigosTodos = f.data?.friends || [];
+        // Cruza as conversas com a lista de amigos pra saber quem está online.
+        // Quem não é amigo (conversa iniciada por admin, por exemplo) não
+        // aparece na lista de amigos e fica como offline.
+        const onlineIds = new Set(amigosTodos.filter((a) => a.online).map((a) => a.userId));
+        setConversas((c.data || []).map((x) => ({ ...x, online: onlineIds.has(x.userId) })));
+        setAmigos(amigosTodos.filter((a) => a.online));
       } catch {
         // silencioso: sem dados a barra só não mostra nada
       }
@@ -98,11 +104,10 @@ export default function BarraMensagens() {
                   type="button"
                   className={`barra-msg-item ${c.naoLidas > 0 ? "barra-msg-item-novo" : ""}`}
                   onClick={() => setChatWith({ userId: c.userId, nickname: c.nickname })}
+                  title={c.online ? "Online agora" : "Offline"}
                 >
-                  <span className="barra-msg-nick">{c.nickname}</span>
-                  <span className="barra-msg-previa">
-                    {c.ultimaMinha && "Você: "}{c.ultima}
-                  </span>
+                  <span className={`barra-msg-ponto ${c.online ? "barra-msg-ponto-on" : ""}`} />
+                  <span className="barra-msg-nick barra-msg-nick-largo">{c.nickname}</span>
                   {c.naoLidas > 0 && <span className="barra-msg-item-badge">{c.naoLidas}</span>}
                 </button>
               ))}
@@ -121,8 +126,8 @@ export default function BarraMensagens() {
                 className="barra-msg-item"
                 onClick={() => setChatWith({ userId: a.userId, nickname: a.nickname })}
               >
-                <span className="barra-msg-online" />
-                <span className="barra-msg-nick">{a.nickname}</span>
+                <span className="barra-msg-ponto barra-msg-ponto-on" />
+                <span className="barra-msg-nick barra-msg-nick-largo">{a.nickname}</span>
               </button>
             ))}
           </div>

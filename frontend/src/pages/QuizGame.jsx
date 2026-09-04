@@ -10,7 +10,6 @@ import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMute
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
 import ReportQuestionModal from "../components/ReportQuestionModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
-import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import FaixaPatente from "../components/FaixaPatente.jsx";
@@ -398,7 +397,6 @@ export default function QuizGame() {
           )}
         </div>
         <div className="quiz-timer-group">
-          <FriendsQuickChat />
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/quiz/${roomId}`}

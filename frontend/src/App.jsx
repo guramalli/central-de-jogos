@@ -330,11 +330,12 @@ export default function App() {
 
       {!isInsideGameRoom && <Footer />}
 
-      {/* Barra de mensagens privadas no canto.
-          Só pra quem está logado, só fora das salas de jogo (numa rodada de
-          20s uma janela flutuante atrapalha) e só no desktop — o CSS esconde
-          abaixo de 900px, onde a página de Amigos já resolve. */}
-      {user && !isInsideGameRoom && <BarraMensagens />}
+      {/* Barra de mensagens privadas no canto, em TODAS as páginas — inclusive
+          dentro das salas de jogo. Ela cabe ali porque a lista não mostra
+          prévia das mensagens: só o nick, o ponto de online e a contagem.
+          Só no desktop: o CSS esconde abaixo de 900px, onde a página de
+          Amigos já resolve. */}
+      {user && <BarraMensagens />}
     </>
   );
 }

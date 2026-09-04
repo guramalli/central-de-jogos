@@ -5,7 +5,6 @@ import { getSocket } from "../socket.js";
 import Chat from "../components/Chat.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import InviteButton from "../components/InviteButton.jsx";
-import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
@@ -263,7 +262,6 @@ export default function AcromaniaGame() {
           <span className="quiz-theme-name">{roomLabel}</span>
         </div>
         <div className="quiz-timer-group">
-          <FriendsQuickChat />
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/acromania/${roomId}`}

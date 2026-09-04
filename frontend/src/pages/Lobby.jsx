@@ -100,7 +100,8 @@ export default function Lobby() {
         <div className="prize-banner-header">
           <span className="prize-badge">🏆 PREMIAÇÃO</span>
           <span className="prize-banner-intro">
-            Neste mês de testes, o <strong>ranking mensal do Stop</strong> vai premiar de verdade!
+            O <strong>Stop</strong> e o <strong>Quiz</strong> têm rankings mensais que premiam de
+            verdade — cada um com os valores abaixo.
           </span>
         </div>
         <div className="prize-list">
@@ -120,7 +121,10 @@ export default function Lobby() {
             <span className="prize-value">R$ 50</span>
           </div>
         </div>
-        <p className="prize-banner-note">Pagamento via Pix.</p>
+        <p className="prize-banner-note">
+          Os dois rankings são separados — dá para ganhar nos dois. Pagamento via Pix,
+          e tudo zera no dia 1º.
+        </p>
         <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
       </div>
 

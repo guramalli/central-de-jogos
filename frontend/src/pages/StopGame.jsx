@@ -8,7 +8,6 @@ import SalaEspera from "../components/SalaEspera.jsx";
 import FaixaPatente from "../components/FaixaPatente.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
 import InviteButton from "../components/InviteButton.jsx";
-import FriendsQuickChat from "../components/FriendsQuickChat.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
 import { useIsMobile } from "../utils/useIsMobile.js";
@@ -646,7 +645,6 @@ export default function StopGame() {
         </div>
 
         <div className="sc-topbar-logo">
-          <FriendsQuickChat />
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/stop/${roomId}`}
