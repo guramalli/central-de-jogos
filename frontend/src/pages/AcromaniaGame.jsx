@@ -433,7 +433,11 @@ export default function AcromaniaGame() {
             {onlinePlayers.map((p) => (
               <div key={p.userId} className="quiz-player-row">
                 <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
-                <span className="quiz-player-points">{p.lifetimePoints} pts</span>
+                {/* Padronizado com Stop e Quiz: pontos nesta sala no mês,
+                    não o total do jogador no Acromania inteiro. */}
+                <span className="quiz-player-points" title="Pontos nesta sala neste mês">
+                  {p.roomMonthlyPoints ?? 0} pts
+                </span>
               </div>
             ))}
           </div>

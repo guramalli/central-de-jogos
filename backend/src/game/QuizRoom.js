@@ -74,6 +74,11 @@ export class QuizRoom {
     // a cada atualização da lista.
     this.mensalCache = new Map();
     this.roomLifetimeCache = new Map();
+    // userId -> pontos feitos SÓ nesta sala e SÓ no mês corrente. É o número
+    // exibido na lista de jogadores. O mês fica guardado junto porque a sala
+    // pode atravessar a virada do dia 1º.
+    this.roomMonthlyCache = new Map();
+    this.roomMonthlyCacheMonth = null;
 
     this.state = "waiting"; // waiting | intermission | active
     this.currentQuestion = null; // { id, question, answer }
@@ -229,6 +234,22 @@ export class QuizRoom {
       );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
+    const mesAtual = currentMonthKey();
+    if (this.roomMonthlyCacheMonth !== mesAtual) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = mesAtual;
+    }
+    if (!this.roomMonthlyCache.has(userId)) {
+      const roomMes = await querySegura(
+        prisma.monthlyScore.findUnique({
+          where: {
+            userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey: mesAtual },
+          },
+        }),
+        null
+      );
+      this.roomMonthlyCache.set(userId, roomMes?.points || 0);
+    }
 
     socket.join(this.roomId);
     this.iniciarVigiaInatividade();
@@ -311,6 +332,7 @@ export class QuizRoom {
         this.lifetimeCache.delete(leaving.userId);
         this.mensalCache.delete(leaving.userId);
         this.roomLifetimeCache.delete(leaving.userId);
+        this.roomMonthlyCache.delete(leaving.userId);
 
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
@@ -341,11 +363,13 @@ export class QuizRoom {
       seen.add(p.userId);
       const lifetimePoints = this.lifetimeCache.get(p.userId) || 0;
       const roomLifetimePoints = this.roomLifetimeCache.get(p.userId) || 0;
+      const roomMonthlyPoints = this.roomMonthlyCache.get(p.userId) || 0;
       list.push({
         userId: p.userId,
         nickname: p.nickname,
         lifetimePoints,
         roomLifetimePoints,
+        roomMonthlyPoints,
         // Patente é conceito MENSAL: quem define é o desempenho do mês.
         rank: getQuizRankForPoints(this.mensalCache.get(p.userId) || 0, { userId: p.userId }),
       });
@@ -354,6 +378,7 @@ export class QuizRoom {
     // de posição a cada atualização da lista, o que fica visualmente ruim.
     list.sort(
       (a, b) =>
+        b.roomMonthlyPoints - a.roomMonthlyPoints ||
         b.roomLifetimePoints - a.roomLifetimePoints ||
         a.nickname.localeCompare(b.nickname)
     );
@@ -843,6 +868,20 @@ export class QuizRoom {
               userId,
               (this.roomLifetimeCache.get(userId) || 0) + this.pointsPerCorrect
             );
+
+            // Mesma pontuação recortada por mês. gameKey com ":" — o ranking
+            // só lê o gameKey global, então não interfere na premiação.
+            await prisma.monthlyScore.upsert({
+              where: {
+                userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey },
+              },
+              update: { points: { increment: this.pointsPerCorrect } },
+              create: { userId, gameKey: this.roomGameKey, monthKey, points: this.pointsPerCorrect },
+            });
+            this.roomMonthlyCache.set(
+              userId,
+              (this.roomMonthlyCache.get(userId) || 0) + this.pointsPerCorrect
+            );
           } catch (err) {
             console.error("Falha ao pontuar na arena:", err.message);
           }
@@ -982,6 +1021,22 @@ export class QuizRoom {
             create: { userId: winner.userId, gameKey: this.roomGameKey, points: pts },
           });
           this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + pts);
+
+          await prisma.monthlyScore.upsert({
+            where: {
+              userId_gameKey_monthKey: {
+                userId: winner.userId,
+                gameKey: this.roomGameKey,
+                monthKey,
+              },
+            },
+            update: { points: { increment: pts } },
+            create: { userId: winner.userId, gameKey: this.roomGameKey, monthKey, points: pts },
+          });
+          this.roomMonthlyCache.set(
+            winner.userId,
+            (this.roomMonthlyCache.get(winner.userId) || 0) + pts
+          );
         } catch (err) {
           console.error("Falha ao salvar pontuação do Quiz para", winner.userId, err.message);
         }

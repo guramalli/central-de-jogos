@@ -88,7 +88,11 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   // passa o mouse num nick, em qualquer tela do site.
   const [user, monthly, lifetime, quizStats] = await Promise.all([
     prisma.user.findUnique({ where: { id }, include: { clan: true } }),
-    prisma.monthlyScore.findMany({ where: { userId: id, monthKey } }),
+    // Mesmo filtro do lifetimeScore logo abaixo: as linhas "por sala"
+    // (gameKey com ":") não são jogos, não aparecem no perfil.
+    prisma.monthlyScore.findMany({
+      where: { userId: id, monthKey, NOT: { gameKey: { contains: ":" } } },
+    }),
     // Exclui as pontuações "por sala" (gameKey tipo "stop:stop-sala-1") —
     // no perfil só mostramos o total geral de cada jogo.
     prisma.lifetimeScore.findMany({

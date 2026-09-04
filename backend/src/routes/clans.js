@@ -94,7 +94,10 @@ router.get("/todos", requireAuth, async (req, res) => {
   const pontos = todosIds.length
     ? await prisma.monthlyScore.groupBy({
         by: ["userId"],
-        where: { userId: { in: todosIds }, monthKey },
+        // Exclui as linhas "por sala" (gameKey tipo "stop:stop-sala-1"), que
+        // existem só pra alimentar a lista de jogadores dentro da sala. Sem
+        // este filtro cada ponto seria contado DUAS vezes no total do clã.
+        where: { userId: { in: todosIds }, monthKey, NOT: { gameKey: { contains: ":" } } },
         _sum: { points: true },
       })
     : [];

@@ -58,6 +58,10 @@ export class AcromaniaRoom {
 
     this.lifetimeCache = new Map(); // userId -> pts vitalícios (geral, Acromania)
     this.roomLifetimeCache = new Map(); // userId -> pts vitalícios (só nesta sala)
+    // userId -> pts feitos SÓ nesta sala e SÓ no mês corrente. É o número
+    // exibido na lista de jogadores; o mês vai junto por causa da virada.
+    this.roomMonthlyCache = new Map();
+    this.roomMonthlyCacheMonth = null;
 
     this.startedLoop = false;
   }
@@ -187,6 +191,26 @@ export class AcromaniaRoom {
       );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
+    const mesAtual = currentMonthKey();
+    if (this.roomMonthlyCacheMonth !== mesAtual) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = mesAtual;
+    }
+    if (!this.roomMonthlyCache.has(userId)) {
+      const roomMes = await querySegura(
+        prisma.monthlyScore.findUnique({
+          where: {
+            userId_gameKey_monthKey: {
+              userId,
+              gameKey: `${GAME_KEY}:${this.roomId}`,
+              monthKey: mesAtual,
+            },
+          },
+        }),
+        null
+      );
+      this.roomMonthlyCache.set(userId, roomMes?.points || 0);
+    }
 
     socket.join(this.roomId);
     this.iniciarVigiaInatividade();
@@ -257,6 +281,7 @@ export class AcromaniaRoom {
         // pontuação de antes.
         this.lifetimeCache.delete(leaving.userId);
         this.roomLifetimeCache.delete(leaving.userId);
+        this.roomMonthlyCache.delete(leaving.userId);
 
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
@@ -273,6 +298,10 @@ export class AcromaniaRoom {
 
   async broadcastOnlinePlayers() {
     const monthKey = currentMonthKey();
+    if (this.roomMonthlyCacheMonth !== monthKey) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = monthKey;
+    }
     const seen = new Set();
     const list = [];
 
@@ -301,6 +330,7 @@ export class AcromaniaRoom {
         nickname: p.nickname,
         lifetimePoints: this.lifetimeCache.get(p.userId) || 0,
         roomLifetimePoints: this.roomLifetimeCache.get(p.userId) || 0,
+        roomMonthlyPoints: this.roomMonthlyCache.get(p.userId) || 0,
         monthlyPoints: monthly?.points || 0,
       });
     }
@@ -308,8 +338,8 @@ export class AcromaniaRoom {
     // total vitalício — senão a lista parece fora de ordem pra quem olha.
     list.sort(
       (a, b) =>
+        b.roomMonthlyPoints - a.roomMonthlyPoints ||
         b.roomLifetimePoints - a.roomLifetimePoints ||
-        b.lifetimePoints - a.lifetimePoints ||
         a.nickname.localeCompare(b.nickname)
     );
     this.broadcast("acromania-online-players", { players: list });
@@ -587,6 +617,19 @@ export class AcromaniaRoom {
           create: { userId: winner.userId, gameKey: roomGameKey, points: this.pointsForWin },
         });
         this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+
+        // Mesma pontuação recortada por mês (gameKey com ":" — fora do ranking).
+        await prisma.monthlyScore.upsert({
+          where: {
+            userId_gameKey_monthKey: { userId: winner.userId, gameKey: roomGameKey, monthKey },
+          },
+          update: { points: { increment: this.pointsForWin } },
+          create: { userId: winner.userId, gameKey: roomGameKey, monthKey, points: this.pointsForWin },
+        });
+        this.roomMonthlyCache.set(
+          winner.userId,
+          (this.roomMonthlyCache.get(winner.userId) || 0) + this.pointsForWin
+        );
       } catch (err) {
         console.error("Falha ao salvar pontuação do Acromania para", winner.userId, err.message);
       }

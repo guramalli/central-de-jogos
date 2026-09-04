@@ -603,7 +603,10 @@ export default function QuizGame() {
                   )}
                   <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="quiz" roomId={roomId} />
                 </div>
-                <span className="quiz-player-points">{p.roomLifetimePoints}</span>
+                {/* Pontos nesta sala no mês corrente (ver OnlinePlayers). */}
+                <span className="quiz-player-points" title="Pontos nesta sala neste mês">
+                  {p.roomMonthlyPoints ?? 0}
+                </span>
               </div>
             ))}
             {onlinePlayers.length === 0 && (

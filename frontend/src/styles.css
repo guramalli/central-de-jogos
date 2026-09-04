@@ -1161,9 +1161,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 0;
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 14px;
   justify-content: center;
 }
 /* Separador entre os links. Feito com ::before no irmão em vez de um elemento
@@ -1172,18 +1172,17 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .nav-links .nav-link + .nav-link::before {
   content: "|";
   color: var(--border);
-  margin-right: 18px;
+  margin: 0 14px;
   font-weight: 400;
 }
 .nav-link {
   color: var(--text-dim);
   text-decoration: none;
-  padding-bottom: 4px;
-  border-bottom: 2px solid transparent;
+  white-space: nowrap;
   transition: color 0.15s ease;
 }
 .nav-link:hover { color: var(--text); }
-.nav-link-active { color: var(--accent-2); font-weight: 700; border-bottom-color: var(--accent-2); }
+.nav-link-active { color: var(--accent-2); font-weight: 700; }
 
 .retro-btn {
   background: linear-gradient(180deg, #ff9900 0%, #ffb86f 100%);
