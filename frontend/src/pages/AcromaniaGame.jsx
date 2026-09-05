@@ -482,7 +482,17 @@ export default function AcromaniaGame() {
           <div className="quiz-players-list" style={{ marginTop: 10 }}>
             {onlinePlayers.map((p) => (
               <div key={p.userId} className="quiz-player-row">
-                <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
+                <div className="quiz-player-name">
+                  {p.rank?.icon && (
+                    <img
+                      src={p.rank.icon}
+                      alt={p.rank.name}
+                      title={p.rank.name}
+                      className={`quiz-player-rank-icon${p.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
+                    />
+                  )}
+                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
+                </div>
                 {/* Padronizado com Stop e Quiz: pontos nesta sala no mês,
                     não o total do jogador no Acromania inteiro. */}
                 <span className="quiz-player-points" title="Pontos nesta sala neste mês">

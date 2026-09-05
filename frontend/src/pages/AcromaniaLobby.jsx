@@ -47,6 +47,11 @@ export default function AcromaniaLobby() {
             melhor da rodada. Sem digitação, sem correção automática: aqui quem decide é a galera.
           </p>
         </div>
+        {/* Mesmo lugar do botão de patentes do Quiz, pra quem já conhece um
+            lobby achar no outro sem procurar. */}
+        <div className="hero-lado">
+          <Link to="/patentes-acromania" className="retro-btn">🏆 Ver patentes</Link>
+        </div>
       </div>
 
       <div className="lobby-game-grid">

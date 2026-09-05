@@ -347,6 +347,10 @@ export class AcromaniaRoom {
         roomLifetimePoints: this.roomLifetimeCache.get(p.userId) || 0,
         roomMonthlyPoints: this.roomMonthlyCache.get(p.userId) || 0,
         monthlyPoints: monthly?.points || 0,
+        // Patente é conceito MENSAL do jogo inteiro (não da sala), igual ao
+        // Stop e ao Quiz. Faltava aqui: a lista do Acromania era a única
+        // sem o emblema ao lado do nick.
+        rank: getAcromaniaRankForPoints(monthly?.points || 0),
       });
     }
     // Ordena pelo mesmo número exibido na lista (pontos da sala), não pelo

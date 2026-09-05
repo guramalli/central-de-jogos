@@ -32,6 +32,7 @@ const Admin = lazy(() => import("./pages/Admin.jsx"));
 const RankingHistory = lazy(() => import("./pages/RankingHistory.jsx"));
 const RanksInfo = lazy(() => import("./pages/RanksInfo.jsx"));
 const RanksInfoQuiz = lazy(() => import("./pages/RanksInfoQuiz.jsx"));
+const RanksInfoAcromania = lazy(() => import("./pages/RanksInfoAcromania.jsx"));
 const TermosDeUso = lazy(() => import("./pages/TermosDeUso.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
@@ -366,6 +367,14 @@ export default function App() {
             element={
               <Private>
                 <RanksInfoQuiz />
+              </Private>
+            }
+          />
+          <Route
+            path="/patentes-acromania"
+            element={
+              <Private>
+                <RanksInfoAcromania />
               </Private>
             }
           />
