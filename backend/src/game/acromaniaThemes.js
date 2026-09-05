@@ -2,57 +2,82 @@
 // Sem precisar de banco de dados: é tudo sorteado na hora, então o jogo
 // nunca fica "sem conteúdo" (diferente do Stop/Quiz, que dependem de
 // glossário/perguntas cadastradas).
+// O tema precisa ACENDER alguma coisa na cabeça de quem lê. A diferença não
+// está no formato ("nome de X" pode ser ótimo), está na especificidade e na
+// âncora cultural: "nome de aplicativo" não sugere nada, "nome de música de
+// axé" sugere um mundo inteiro. Genérico trava a rodada; específico e
+// brasileiro faz a pessoa rir antes de terminar de ler.
+//
+// Três formatos, de propósito misturados — o mesmo molde repetido o tempo
+// todo cansa:
+//   1. FRASE INACABADA  ("Fui ao mercado e...")   -> conta uma história
+//   2. PERGUNTA         ("Qual a razão da vida?") -> pede resposta
+//   3. COISA CONCRETA   ("Fantasia de carnaval")  -> pede invenção
 export const ACROMANIA_THEMES = [
+  // --- Frases inacabadas: a pessoa completa a história ---
+  "Fui ao mercado e...",
+  "Acordei atrasado porque...",
+  "A festa acabou quando...",
+  "O churrasco deu errado porque...",
+  "Cheguei em casa e encontrei...",
+  "Terminei o namoro por causa de...",
+  "Perdi o ônibus porque...",
+  "Fui demitido por...",
+  "O professor cancelou a aula porque...",
+  "A internet caiu bem na hora que...",
+  "Não fiz o trabalho porque...",
+  "O bolo desandou quando...",
+  "Sumiu da geladeira o...",
+  "A viagem virou pesadelo quando...",
+
+  // --- Perguntas: pedem uma resposta, não um rótulo ---
+  "Qual a razão da vida?",
+  "Por que segunda-feira existe?",
+  "O que os cachorros pensam da gente?",
+  "Por que o pão sempre cai com a manteiga pra baixo?",
+  "O que fazer quando acaba o dinheiro?",
+  "Como conquistar alguém?",
+  "Por que os gatos ignoram todo mundo?",
+  "O que tem no fundo do mar?",
+  "Como explicar isso pra minha mãe?",
+  "Por que ninguém me avisou?",
+
+  // --- Concretos e bem brasileiros ---
+  "Fantasia de carnaval",
+  "Nome de música de axé",
+  "Nome de bloco de carnaval",
+  "Nome de escola de samba",
+  "Nome de banda de forró",
+  "Nome de time de várzea",
+  "Nome de pizzaria de bairro",
+  "Nome de salão de beleza",
+  "Nome de borracharia",
+  "Prato do dia de restaurante duvidoso",
+  "Sabor de sorvete que não deveria existir",
+  "Nome de novela das nove",
+  "Nome de reality show",
+  "Apelido do vizinho",
+  "Conselho de avó",
+  "Promessa de ano novo",
+  "Frase de tatuagem arrependida",
+  "Recado colado na geladeira",
+  "Bilhete deixado no para-brisa",
+  "Placa escrita à mão em comércio",
+  "Última palavra antes de fazer besteira",
+  "Desculpa pra não ir na academia",
+  "Mensagem da tia no grupo da família",
+  "Nome de rede de Wi-Fi do vizinho",
+  "Título de vídeo clickbait",
+  "Nome de curso online duvidoso",
+  "Manchete de jornal de cidade pequena",
+  "Grito de torcida",
+
+  // --- Os que já funcionavam antes ---
   "Desculpa esfarrapada",
   "Frase de para-choque de caminhão",
-  "Nome de banda de rock",
-  "Motivo pra chegar atrasado",
-  "Título de filme nacional",
-  "Manchete de jornal",
-  "Nome de aplicativo",
-  "Grito de torcida",
-  "Lema de empresa falida",
-  "Post de rede social",
-  "Nome de time de futebol",
-  "Frase de casamenteiro",
-  "Slogan de propaganda",
-  "Título de novela",
-  "Nome de banda de pagode",
-  "Desculpa de político",
   "Frase de biscoito da sorte",
-
-  // --- Internet e vida online ---
-  // O jogo é de acrônimo: o tema precisa ser algo que a pessoa consiga
-  // INVENTAR na hora, não algo que ela precise lembrar. Por isso são todos
-  // "nome de", "título de", "frase de" — moldes vazios pra preencher.
-  "Nome de grupo do WhatsApp",
-  "Comentário de vídeo do YouTube",
-  "Título de vídeo clickbait",
-  "Bio do Instagram",
-  "Nome de canal do YouTube",
-  "Nome de rede de Wi-Fi do vizinho",
-  "Nome de playlist do Spotify",
-  "Título de live de streamer",
-  "Nome de servidor do Discord",
-  "Nome de clã de jogo online",
-  "Nick de jogador online",
-  "Nome de pasta secreta no computador",
-  "Mensagem de erro do computador",
-  "Resposta automática de suporte técnico",
-  "Frase de perfil do LinkedIn",
-  "Legenda de foto de perfil",
-  "Nome de aplicativo que ninguém baixaria",
-  "Nome de emoji que deveria existir",
-  "Título de tutorial da internet",
-  "Regra do grupo da família",
-  "Nome de trend de dança",
-  "Aviso de spoiler",
-  "Nome de meme brasileiro",
-  "Comentário de quem chegou atrasado na live",
-  "Nome de startup de tecnologia",
-  "Título de thread polêmica",
-  "Recado de status",
-  "Nome de filtro de rede social",
+  "Desculpa de político",
+  "Lema de empresa falida",
 ];
 
 // Mesmo alfabeto usado no Stop (sem K, W, Y — mais fácil de criar frase em português).
