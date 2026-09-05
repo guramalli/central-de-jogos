@@ -2591,6 +2591,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Botão de voltar da página de patentes. */
+.ranks-voltar {
+  display: inline-block;
+  margin-bottom: 16px;
+}
+.card + .ranks-voltar { margin-top: 16px; margin-bottom: 0; }
+
 /* Legenda e pódio lado a lado no topo do lobby. */
 .acro-topo-duplo {
   display: grid;

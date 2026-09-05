@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
 
@@ -19,6 +20,9 @@ export default function RanksInfoAcromania() {
         title="Patentes do Acromania"
         description="Veja todas as patentes do Acromania e quanto falta pra você subir de nível."
       />
+      <Link to="/jogos/acromania" className="btn secondary ranks-voltar">
+        ← Voltar pro Acromania
+      </Link>
       <h1>Patentes Acromania</h1>
       <p style={{ color: "var(--text-dim)" }}>
         Sua patente no Acromania é calculada pela sua pontuação <strong>do mês</strong> nesse jogo —
@@ -63,6 +67,12 @@ export default function RanksInfoAcromania() {
           </tbody>
         </table>
       </div>
+
+      {/* Repetido no rodapé: a tabela tem 12 linhas, e quem rolou até o fim
+          não deveria ter que voltar ao topo pra sair da página. */}
+      <Link to="/jogos/acromania" className="btn secondary ranks-voltar">
+        ← Voltar pro Acromania
+      </Link>
     </div>
   );
 }

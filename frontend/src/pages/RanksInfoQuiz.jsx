@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
 
@@ -16,6 +17,9 @@ export default function RanksInfoQuiz() {
   return (
     <div>
       <Seo title="Patentes do Quiz" description="Veja todas as patentes do Quiz e quanto falta pra você subir de nível." />
+            <Link to="/jogos/quiz" className="btn secondary ranks-voltar">
+        ← Voltar pro Quiz
+      </Link>
       <h1>Patentes Quiz</h1>
       <p style={{ color: "var(--text-dim)" }}>
         Sua patente no Quiz é calculada pela sua pontuação <strong>do mês</strong> nesse jogo — todo
@@ -61,6 +65,11 @@ export default function RanksInfoQuiz() {
           </tbody>
         </table>
       </div>
+
+      {/* Repetido no rodapé pra quem rolou a tabela inteira. */}
+      <Link to="/jogos/quiz" className="btn secondary ranks-voltar">
+        ← Voltar pro Quiz
+      </Link>
     </div>
   );
 }
