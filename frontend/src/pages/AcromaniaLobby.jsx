@@ -63,6 +63,7 @@ export default function AcromaniaLobby() {
           <li><strong>+15</strong> por cada voto que a sua frase receber</li>
           <li><strong>+50</strong> se a sua frase for a mais votada da rodada</li>
           <li><strong>+10</strong> se você votar na frase que vencer</li>
+          <li><strong>+5</strong> para o primeiro a enviar a frase na rodada</li>
           <li><strong>+100 / +60 / +30</strong> para o 1º, 2º e 3º ao fim da partida</li>
         </ul>
         <p className="acro-legenda-nota">

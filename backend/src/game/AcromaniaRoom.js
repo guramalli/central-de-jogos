@@ -60,6 +60,11 @@ export class AcromaniaRoom {
     // adivinhar o que a sala vai escolher — o que também torna o voto rápido
     // interessante, já que a rodada encerra quando todos votam.
     this.pointsForVotingWinner = config.pointsForVotingWinner ?? 10;
+    // Bônus pro PRIMEIRO a enviar a frase. Valor pequeno de propósito: ele
+    // premia agilidade, não qualidade, e não pode competir com escrever bem.
+    // Também tem efeito prático: a rodada encerra quando todos enviam, então
+    // recompensar quem não enrola acelera o jogo pra sala inteira.
+    this.pointsForFastest = config.pointsForFastest ?? 5;
     // PARTIDA COM FIM. Sem isso o Acromania era o único dos três jogos sem
     // linha de chegada: rodava pra sempre, e quem não tem hora de sair sai a
     // qualquer hora. Mesmo padrão que o Quiz já usa nas arenas
@@ -562,6 +567,12 @@ export class AcromaniaRoom {
     }));
     this.voteEntries = entries;
 
+    // Quem enviou primeiro. Exige pelo menos DOIS envios: ser o mais rápido
+    // sozinho não é corrida, e sem essa checagem quem escrevesse sozinho
+    // levaria o bônus toda rodada.
+    const idsPorChegada = [...this.submissions.keys()];
+    this.primeiroAEnviar = idsPorChegada.length >= 2 ? idsPorChegada[0] : null;
+
     if (entries.length === 0) {
       this.systemMessage("😶 Ninguém escreveu uma frase nessa rodada.");
       this.lastResult = { theme: this.currentTheme, letters: this.currentLetters, entries: [], noOneWrote: true };
@@ -682,7 +693,11 @@ export class AcromaniaRoom {
     for (const e of entries) {
       const recebidos = voteCounts.get(e.entryId) || 0;
       const venceu = winners.some((w) => w.entryId === e.entryId);
-      const total = recebidos * this.pointsPerVote + (venceu ? this.pointsForWin : 0);
+      const foiRapido = e.userId === this.primeiroAEnviar;
+      const total =
+        recebidos * this.pointsPerVote +
+        (venceu ? this.pointsForWin : 0) +
+        (foiRapido ? this.pointsForFastest : 0);
       pontosPorEntry.set(e.entryId, total);
       somar(e.userId, total);
     }
@@ -788,6 +803,7 @@ export class AcromaniaRoom {
         // Pontos REAIS daquela frase (votos recebidos + bônus de vitória).
         // Um valor fixo aqui mentiria: agora cada frase vale coisa diferente.
         pontos: pontosPorEntry.get(e.entryId) || 0,
+        maisRapido: e.userId === this.primeiroAEnviar,
       })),
     };
     this.broadcast("acromania-round-result", this.lastResult);

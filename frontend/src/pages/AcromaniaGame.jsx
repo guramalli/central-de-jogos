@@ -489,6 +489,7 @@ export default function AcromaniaGame() {
                       </div>
                       <div className="acro-result-meta">
                         {e.nickname} — {e.votes} {e.votes === 1 ? "voto" : "votos"}
+                        {e.maisRapido && <span className="acro-mais-rapido">⚡ + rápido</span>}
                         {e.pontos > 0 && <span className="acro-result-pts">+{e.pontos} pts</span>}
                       </div>
                     </div>
@@ -544,27 +545,40 @@ export default function AcromaniaGame() {
         </div>
       )}
 
-      <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
+      {/* Classe extra `acro-bottom-grid` só pra virar 3 colunas: chat |
+          placar | jogadores. A `quiz-bottom-grid` continua intacta porque é
+          compartilhada com a sala do Quiz, que está funcionando. */}
+      <div
+        className={`quiz-bottom-grid acro-bottom-grid ${
+          isMobile ? `qz-mobile-aba-${abaMobile}` : ""
+        }`}
+      >
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
         </div>
-        <div className="quiz-panel quiz-players-panel">
-          {/* Placar da partida em andamento. Sem ele, ter uma linha de
-              chegada não adianta: a pessoa não sabe se está perto dela. */}
-          {turnRanking.length > 0 && (
-            <div className="acro-turn-placar">
-              <div className="acro-turn-placar-titulo">placar da partida</div>
-              {turnRanking.slice(0, 5).map((r) => (
+        {/* Placar da partida em painel próprio, no meio da linha. Antes ele
+            ficava espremido dentro do painel de jogadores, na coluna mais
+            estreita da tela — justamente o dado que dá sentido à partida. */}
+        <div className="quiz-panel acro-placar-panel">
+          <div className="quiz-retro-tab">placar da partida</div>
+          <div className="acro-placar-lista">
+            {turnRanking.length === 0 ? (
+              <p className="quiz-wrong-log-empty">Ninguém pontuou ainda nesta partida.</p>
+            ) : (
+              turnRanking.slice(0, 8).map((r) => (
                 <div key={r.userId} className="acro-turn-podium-row">
                   <span>
-                    {r.position}º {r.nickname}
+                    {["🥇", "🥈", "🥉"][r.position - 1] || `${r.position}º`} {r.nickname}
                   </span>
-                  <span>{r.points}</span>
+                  <span className="acro-result-pts">{r.points}</span>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="quiz-panel quiz-players-panel">
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>
           <div className="quiz-players-list" style={{ marginTop: 10 }}>
             {onlinePlayers.map((p) => (

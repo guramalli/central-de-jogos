@@ -2548,20 +2548,26 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   padding: 3px 0;
 }
 
-/* Placar da partida em andamento, na coluna dos jogadores. */
-.acro-turn-placar {
-  margin-bottom: 12px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
+/* Linha de baixo da sala do Acromania: chat | placar | jogadores.
+   O chat continua sendo o mais largo, mas deixou de ocupar 2/3 da tela —
+   ele era o maior bloco da sala sem ser o mais importante. */
+.acro-bottom-grid { grid-template-columns: 2fr 1.1fr 1.1fr; }
+@media (max-width: 800px) { .acro-bottom-grid { grid-template-columns: 1fr; } }
+
+/* Mesma altura dos painéis vizinhos, senão a linha fica desalinhada. */
+.acro-placar-panel {
+  height: 320px;
+  display: flex;
+  flex-direction: column;
 }
-.acro-turn-placar-titulo {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.7;
-  margin-bottom: 6px;
+.acro-placar-lista {
+  flex: 1;
+  /* min-height:0 é obrigatório em filho flex que rola, senão ele empurra o
+     vizinho pra fora do painel (mesma lição do §8). */
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 12px 12px 12px;
+  font-size: 13px;
 }
 
 /* Legenda de pontuação no lobby do Acromania. */
@@ -2585,6 +2591,8 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* Marca de quem enviou a frase primeiro, na lista de espera. Vai à direita
    da linha (o flex está na regra .acro-waiting-row, mais acima). */
+/* Na lista de espera ela vai encostada à direita (margin-left:auto no flex);
+   no resultado ela é só mais um selo em linha, por isso o override abaixo. */
 .acro-mais-rapido {
   margin-left: auto;
   font-size: 11px;
@@ -2593,6 +2601,8 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   letter-spacing: 0.5px;
   color: var(--qz-green, #06d6a0);
 }
+
+.acro-result-meta .acro-mais-rapido { margin-left: 8px; }
 
 /* Aviso de acerto no voto, no resultado da rodada. */
 .acro-bonus-voto {
@@ -5053,9 +5063,19 @@ a.lobby-game-card:hover {
   .quiz-game-grid.qz-mobile-aba-jogadores { display: none; }
   .quiz-bottom-grid.qz-mobile-aba-jogadores .quiz-chat-panel { display: none; }
 
+  /* Placar da partida (só existe no Acromania): fica na aba Jogadores, que é
+     onde ele faz sentido, e some na aba Chat. Sem estas duas regras ele
+     apareceria nas duas. Altura menor que a dos outros porque divide a tela
+     com a lista de jogadores. */
+  .quiz-bottom-grid.qz-mobile-aba-chat .acro-placar-panel { display: none; }
+  .qz-mobile-aba-jogadores .acro-placar-panel { height: 30vh; }
+
   /* Painel da aba ativa ocupa a tela */
-  .qz-mobile-aba-chat .quiz-chat-panel,
+  .qz-mobile-aba-chat .quiz-chat-panel { height: 62vh; }
+  /* Na aba Jogadores o Acromania divide a tela com o placar, então a lista
+     não pode pedir 62vh. O Quiz não tem placar e segue com a tela toda. */
   .qz-mobile-aba-jogadores .quiz-players-panel { height: 62vh; }
+  .acro-bottom-grid.qz-mobile-aba-jogadores .quiz-players-panel { height: 32vh; }
 }
 
 @media (max-width: 380px) {

@@ -25,7 +25,8 @@ export default function RanksInfoAcromania() {
         todo mês ela é recalculada do zero. Você ganha <strong>15 pontos por cada voto recebido</strong>{" "}
         e mais <strong>50 de bônus</strong> se a sua frase for a mais votada da rodada. Além disso,
         quem <strong>votar na frase vencedora ganha 10 pontos</strong> — então vale prestar atenção no
-        que a sala está achando graça, não só na própria frase. Ao fim de cada partida, os três
+        que a sala está achando graça, não só na própria frase. O primeiro a enviar a frase da rodada
+        leva <strong>+5</strong>. Ao fim de cada partida, os três
         primeiros do placar levam <strong>100, 60 e 30</strong> pontos.
       </p>
 
