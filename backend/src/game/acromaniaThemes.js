@@ -2,82 +2,76 @@
 // Sem precisar de banco de dados: é tudo sorteado na hora, então o jogo
 // nunca fica "sem conteúdo" (diferente do Stop/Quiz, que dependem de
 // glossário/perguntas cadastradas).
-// O tema precisa ACENDER alguma coisa na cabeça de quem lê. A diferença não
-// está no formato ("nome de X" pode ser ótimo), está na especificidade e na
-// âncora cultural: "nome de aplicativo" não sugere nada, "nome de música de
-// axé" sugere um mundo inteiro. Genérico trava a rodada; específico e
-// brasileiro faz a pessoa rir antes de terminar de ler.
+// O tema dá o CAMPO, não o formato. Uma palavra ou duas, um assunto que
+// todo mundo reconhece, e liberdade total dentro dele.
 //
-// Três formatos, de propósito misturados — o mesmo molde repetido o tempo
-// todo cansa:
-//   1. FRASE INACABADA  ("Fui ao mercado e...")   -> conta uma história
-//   2. PERGUNTA         ("Qual a razão da vida?") -> pede resposta
-//   3. COISA CONCRETA   ("Fantasia de carnaval")  -> pede invenção
+// Por que não mais específico: o tema apertado briga com as letras. "Nome de
+// borracharia" com C F L I S H vira quebra-cabeça, não piada — e a rodada
+// tem 60 segundos. Quanto mais letras, mais o tema precisa afrouxar.
+//
+// Por que não mais genérico ainda ("Coisas", "Aleatório"): aí o tema deixa de
+// existir. Todo mundo escreve qualquer coisa e a votação perde o critério —
+// não dá pra julgar "a melhor" sem um terreno comum.
+//
+// O equilíbrio é ASSUNTO: guia sem segmentar.
 export const ACROMANIA_THEMES = [
-  // --- Frases inacabadas: a pessoa completa a história ---
-  "Fui ao mercado e...",
-  "Acordei atrasado porque...",
-  "A festa acabou quando...",
-  "O churrasco deu errado porque...",
-  "Cheguei em casa e encontrei...",
-  "Terminei o namoro por causa de...",
-  "Perdi o ônibus porque...",
-  "Fui demitido por...",
-  "O professor cancelou a aula porque...",
-  "A internet caiu bem na hora que...",
-  "Não fiz o trabalho porque...",
-  "O bolo desandou quando...",
-  "Sumiu da geladeira o...",
-  "A viagem virou pesadelo quando...",
+  // Dia a dia
+  "Comida",
+  "Trabalho",
+  "Escola",
+  "Dinheiro",
+  "Família",
+  "Vizinhos",
+  "Trânsito",
+  "Supermercado",
+  "Academia",
+  "Segunda-feira",
+  "Fim de semana",
+  "Feriado",
+  "Madrugada",
+  "Mudança de casa",
 
-  // --- Perguntas: pedem uma resposta, não um rótulo ---
-  "Qual a razão da vida?",
-  "Por que segunda-feira existe?",
-  "O que os cachorros pensam da gente?",
-  "Por que o pão sempre cai com a manteiga pra baixo?",
-  "O que fazer quando acaba o dinheiro?",
-  "Como conquistar alguém?",
-  "Por que os gatos ignoram todo mundo?",
-  "O que tem no fundo do mar?",
-  "Como explicar isso pra minha mãe?",
-  "Por que ninguém me avisou?",
+  // Sentimentos e situações
+  "Amor",
+  "Ciúme",
+  "Saudade",
+  "Medo",
+  "Vergonha",
+  "Preguiça",
+  "Pressa",
+  "Sorte",
+  "Azar",
+  "Mentira",
+  "Fofoca",
+  "Briga",
+  "Desculpa",
+  "Promessa",
 
-  // --- Concretos e bem brasileiros ---
-  "Fantasia de carnaval",
-  "Nome de música de axé",
-  "Nome de bloco de carnaval",
-  "Nome de escola de samba",
-  "Nome de banda de forró",
-  "Nome de time de várzea",
-  "Nome de pizzaria de bairro",
-  "Nome de salão de beleza",
-  "Nome de borracharia",
-  "Prato do dia de restaurante duvidoso",
-  "Sabor de sorvete que não deveria existir",
-  "Nome de novela das nove",
-  "Nome de reality show",
-  "Apelido do vizinho",
-  "Conselho de avó",
-  "Promessa de ano novo",
-  "Frase de tatuagem arrependida",
-  "Recado colado na geladeira",
-  "Bilhete deixado no para-brisa",
-  "Placa escrita à mão em comércio",
-  "Última palavra antes de fazer besteira",
-  "Desculpa pra não ir na academia",
-  "Mensagem da tia no grupo da família",
-  "Nome de rede de Wi-Fi do vizinho",
-  "Título de vídeo clickbait",
-  "Nome de curso online duvidoso",
-  "Manchete de jornal de cidade pequena",
-  "Grito de torcida",
+  // Lazer
+  "Futebol",
+  "Música",
+  "Cinema",
+  "Videogame",
+  "Festa",
+  "Carnaval",
+  "Praia",
+  "Viagem",
+  "Churrasco",
+  "Aniversário",
 
-  // --- Os que já funcionavam antes ---
-  "Desculpa esfarrapada",
-  "Frase de para-choque de caminhão",
-  "Frase de biscoito da sorte",
-  "Desculpa de político",
-  "Lema de empresa falida",
+  // Mundo
+  "Internet",
+  "Celular",
+  "Animais",
+  "Chuva",
+  "Calor",
+  "Escuro",
+  "Comida estragada",
+  "Hospital",
+  "Política",
+  "Ciência",
+  "Espaço",
+  "Futuro",
 ];
 
 // Mesmo alfabeto usado no Stop (sem K, W, Y — mais fácil de criar frase em português).
