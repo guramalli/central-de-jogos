@@ -1,11 +1,11 @@
 import { prisma } from "../db.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { isBirthdayToday } from "../utils/birthday.js";
-import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
+import { criarSorteadorDeTemas, pickRandomLetters } from "./acromaniaThemes.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
-import { getRankForPoints } from "../utils/rank.js";
+import { getAcromaniaRankForPoints } from "../utils/acromaniaRank.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
@@ -44,6 +44,16 @@ export class AcromaniaRoom {
     this.lettersMin = config.lettersMin ?? config.lettersCount ?? 3;
     this.lettersMax = config.lettersMax ?? config.lettersCount ?? 3;
     this.pointsForWin = config.pointsForWin ?? 50;
+    // Pontos por VOTO RECEBIDO. Antes só o vencedor pontuava: numa sala de 4
+    // pessoas, 3 saíam de cada rodada com zero depois de escrever e esperar
+    // 90 segundos — o pior desenho possível pra um jogo cujo problema é
+    // retenção. Agora quem escreve bem pontua mesmo sem vencer.
+    //
+    // Propriedade importante: cada rodada distribui um voto por jogador,
+    // então a média recebida é 1 seja qual for o tamanho da sala. Ao
+    // contrário do bônus de vitória (que dilui em 1/N), esta parte NÃO
+    // encolhe quando a sala enche.
+    this.pointsPerVote = config.pointsPerVote ?? 15;
     this.minPlayersToStart = config.minPlayersToStart ?? 1;
     this.maxPlayers = config.maxPlayers ?? 10;
 
@@ -54,6 +64,8 @@ export class AcromaniaRoom {
     this.roundNumber = 0;
 
     this.currentTheme = "";
+    // Baralho de temas próprio de cada sala (ver criarSorteadorDeTemas).
+    this.sortearTema = criarSorteadorDeTemas();
     this.currentLetters = [];
     this.submissions = new Map(); // userId -> phrase
     this.votes = new Map(); // voterId -> targetUserId
@@ -435,7 +447,7 @@ export class AcromaniaRoom {
 
     this.roundNumber += 1;
     this.state = "writing";
-    this.currentTheme = pickRandomTheme();
+    this.currentTheme = this.sortearTema();
     const quantasLetras =
       this.lettersMin + Math.floor(Math.random() * (this.lettersMax - this.lettersMin + 1));
     this.currentLetters = pickRandomLetters(quantasLetras);
@@ -606,26 +618,39 @@ export class AcromaniaRoom {
     const winners = maxVotes > 0 ? entries.filter((e) => voteCounts.get(e.entryId) === maxVotes) : [];
 
     const monthKey = currentMonthKey();
-    for (const winner of winners) {
+
+    // Quem pontua: todo mundo que recebeu ao menos um voto, mais o bônus de
+    // vitória pra quem teve mais votos. Quem não recebeu voto não gera
+    // escrita nenhuma no banco.
+    const pontosPorEntry = new Map();
+    const aPontuar = [];
+    for (const e of entries) {
+      const recebidos = voteCounts.get(e.entryId) || 0;
+      const venceu = winners.some((w) => w.entryId === e.entryId);
+      const total = recebidos * this.pointsPerVote + (venceu ? this.pointsForWin : 0);
+      pontosPorEntry.set(e.entryId, total);
+      if (total > 0) aPontuar.push({ userId: e.userId, pts: total });
+    }
+
+    for (const winner of aPontuar) {
+      const pts = winner.pts;
       try {
-        // Busca os pontos mensais ANTES de somar, pra comparar a patente
-        // de antes com a de depois. O Acromania ainda não tem sistema de
-        // patente próprio, então usa as mesmas do Stop como provisório —
-        // mesmo padrão já usado no Ranking e no perfil público.
+        // Busca os pontos mensais ANTES de somar, pra comparar a patente de
+        // antes com a de depois — é assim que a promoção é anunciada.
         const existingMonthly = await prisma.monthlyScore.findUnique({
           where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
         });
         const oldMonthlyPoints = existingMonthly?.points || 0;
-        const newMonthlyPoints = oldMonthlyPoints + this.pointsForWin;
+        const newMonthlyPoints = oldMonthlyPoints + pts;
 
         await prisma.monthlyScore.upsert({
           where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: pts },
         });
 
-        const oldRank = getRankForPoints(oldMonthlyPoints);
-        const newRank = getRankForPoints(newMonthlyPoints);
+        const oldRank = getAcromaniaRankForPoints(oldMonthlyPoints);
+        const newRank = getAcromaniaRankForPoints(newMonthlyPoints);
         // Só anuncia promoção pra quem concorre ao ranking.
         if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
           this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
@@ -633,30 +658,30 @@ export class AcromaniaRoom {
 
         await prisma.lifetimeScore.upsert({
           where: { userId_gameKey: { userId: winner.userId, gameKey: GAME_KEY } },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: GAME_KEY, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: GAME_KEY, points: pts },
         });
-        this.lifetimeCache.set(winner.userId, (this.lifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+        this.lifetimeCache.set(winner.userId, (this.lifetimeCache.get(winner.userId) || 0) + pts);
 
         const roomGameKey = `${GAME_KEY}:${this.roomId}`;
         await prisma.lifetimeScore.upsert({
           where: { userId_gameKey: { userId: winner.userId, gameKey: roomGameKey } },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: roomGameKey, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: roomGameKey, points: pts },
         });
-        this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+        this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + pts);
 
         // Mesma pontuação recortada por mês (gameKey com ":" — fora do ranking).
         await prisma.monthlyScore.upsert({
           where: {
             userId_gameKey_monthKey: { userId: winner.userId, gameKey: roomGameKey, monthKey },
           },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: roomGameKey, monthKey, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: roomGameKey, monthKey, points: pts },
         });
         this.roomMonthlyCache.set(
           winner.userId,
-          (this.roomMonthlyCache.get(winner.userId) || 0) + this.pointsForWin
+          (this.roomMonthlyCache.get(winner.userId) || 0) + pts
         );
       } catch (err) {
         console.error("Falha ao salvar pontuação do Acromania para", winner.userId, err.message);
@@ -666,6 +691,7 @@ export class AcromaniaRoom {
     this.lastResult = {
       theme: this.currentTheme,
       letters: this.currentLetters,
+
       entries: entries.map((e) => ({
         entryId: e.entryId,
         userId: e.userId,
@@ -673,13 +699,17 @@ export class AcromaniaRoom {
         phrase: e.phrase,
         votes: voteCounts.get(e.entryId) || 0,
         won: winners.some((w) => w.entryId === e.entryId),
+        // Pontos REAIS daquela frase (votos recebidos + bônus de vitória).
+        // Um valor fixo aqui mentiria: agora cada frase vale coisa diferente.
+        pontos: pontosPorEntry.get(e.entryId) || 0,
       })),
     };
     this.broadcast("acromania-round-result", this.lastResult);
 
     if (winners.length > 0) {
       const names = winners.map((w) => this.getNickname(w.userId)).join(" e ");
-      this.systemMessage(`🏆 ${names} venceu a rodada com a frase mais votada! (+${this.pointsForWin} pts)`, true, true);
+      const ptsDoVencedor = pontosPorEntry.get(winners[0].entryId) || this.pointsForWin;
+      this.systemMessage(`🏆 ${names} venceu a rodada com a frase mais votada! (+${ptsDoVencedor} pts)`, true, true);
     } else {
       this.systemMessage("🤷 Ninguém votou nessa rodada — sem pontos dessa vez.");
     }

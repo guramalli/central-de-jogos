@@ -4,6 +4,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
 import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js";
+import { getAcromaniaRankForPoints, getAcromaniaNextRankInfo } from "../utils/acromaniaRank.js";
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
@@ -128,8 +129,15 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
           rank:
           m.gameKey === "quiz"
             ? getQuizRankForPoints(m.points, { userId: user.id })
-            : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
-          nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+            : m.gameKey === "acromania"
+              ? getAcromaniaRankForPoints(m.points)
+              : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
+          nextRank:
+            m.gameKey === "quiz"
+              ? getQuizNextRankInfo(m.points)
+              : m.gameKey === "acromania"
+                ? getAcromaniaNextRankInfo(m.points)
+                : getNextRankInfo(m.points),
         };
       }
       const betterCount = await prisma.monthlyScore.count({
@@ -153,8 +161,15 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
         rank:
           m.gameKey === "quiz"
             ? getQuizRankForPoints(m.points, { userId: user.id })
-            : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
-        nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+            : m.gameKey === "acromania"
+              ? getAcromaniaRankForPoints(m.points)
+              : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
+        nextRank:
+          m.gameKey === "quiz"
+            ? getQuizNextRankInfo(m.points)
+            : m.gameKey === "acromania"
+              ? getAcromaniaNextRankInfo(m.points)
+              : getNextRankInfo(m.points),
       };
     })
   );

@@ -420,6 +420,7 @@ export default function AcromaniaGame() {
                       </div>
                       <div className="acro-result-meta">
                         {e.nickname} — {e.votes} {e.votes === 1 ? "voto" : "votos"}
+                        {e.pontos > 0 && <span className="acro-result-pts">+{e.pontos} pts</span>}
                       </div>
                     </div>
                   ))

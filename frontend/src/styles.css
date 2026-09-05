@@ -2515,6 +2515,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   line-height: 1.5;
 }
 
+/* Pontos ganhos, ao lado da frase vencedora no resultado. */
+.acro-result-pts {
+  margin-left: 8px;
+  color: var(--qz-green, #06d6a0);
+  font-weight: 700;
+}
+
 /* A própria frase na votação: visível, mas claramente fora de alcance. */
 .acro-vote-option-minha {
   opacity: 0.55;
