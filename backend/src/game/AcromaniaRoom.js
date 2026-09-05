@@ -758,7 +758,13 @@ export class AcromaniaRoom {
         const newRank = getAcromaniaRankForPoints(newMonthlyPoints);
         // Só anuncia promoção pra quem concorre ao ranking.
         if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
-          this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+          // Apelido buscado pelo userId, não lido de `winner`: a lista de quem
+          // pontua já foi remontada uma vez (quando entrou o bônus de voto na
+          // vencedora) e o campo `nickname` sumiu no caminho, fazendo a
+          // mensagem sair como "undefined". Assim ela não depende do formato
+          // do objeto.
+          const nomeDoPromovido = this.getNickname(winner.userId);
+          this.systemMessage(`"${nomeDoPromovido}" você foi promovido para ${newRank.name}.`, false, false, true);
         }
 
         await prisma.lifetimeScore.upsert({
