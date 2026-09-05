@@ -1,9 +1,28 @@
 import crypto from "crypto";
+import { aoPontuar } from "./eventosDePontuacao.js";
 import { prisma } from "../db.js";
 import { StopRoom } from "./StopRoom.js";
 import { ROOM_CONFIGS, DEFAULT_ROOM_ID } from "./roomConfigs.js";
 
 const rooms = new Map(); // roomId -> StopRoom
+
+// Alguém pontuou em alguma sala: as OUTRAS salas que têm esse jogador
+// precisam reconsultar a pontuação mensal, senão seguem exibindo a patente
+// de antes até a rodada de lá acabar. Uma atualização por sala, não por
+// jogador — por isso o evento vem com a lista inteira de uma vez.
+aoPontuar(({ gameKey, userIds, salaOrigem }) => {
+  if (gameKey !== "stop") return;
+  for (const [roomId, room] of rooms.entries()) {
+    if (roomId === salaOrigem) continue;
+    const temAlguem = [...room.players.values()].some((p) => userIds.includes(p.userId));
+    if (!temAlguem) continue;
+    // Sem await: isto roda fora do fluxo da rodada e uma falha aqui não
+    // pode derrubar a sala que pontuou.
+    Promise.resolve(room.broadcastOnlinePlayers()).catch((err) =>
+      console.error(`Falha ao atualizar patente na sala ${roomId}:`, err.message)
+    );
+  }
+});
 const pendingCreation = new Map(); // roomId -> Promise<StopRoom> (evita criar a sala em duplicidade)
 
 // Importante: essa função pode ser chamada quase ao mesmo tempo por duas conexões

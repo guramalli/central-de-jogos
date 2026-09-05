@@ -4,6 +4,7 @@ import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { avisarPontuacao } from "./eventosDePontuacao.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
@@ -1424,6 +1425,12 @@ export class StopRoom {
 
       await this.broadcastOnlinePlayers();
 
+      // Quem joga em DUAS salas de Stop tem um só monthlyScore, mas a outra
+      // sala só reconsulta o banco no fim da rodada dela — o que pode levar
+      // minutos. Um aviso aqui faz a patente atualizar na hora nas duas.
+      // Uma chamada com todo mundo, não uma por jogador (ver o módulo).
+      avisarPontuacao(GAME_KEY, [...roundScores.keys()], this.roomId);
+
       if (this.roundNumber % ROUNDS_PER_BLOCK === 0) {
         await this.awardBlockBonus(monthKey);
       }
@@ -1524,6 +1531,9 @@ export class StopRoom {
     }
 
     await this.broadcastOnlinePlayers();
+
+    // O bônus de bloco também mexe no mensal, então avisa as outras salas.
+    avisarPontuacao(GAME_KEY, [...this.blockTotals.keys()], this.roomId);
 
     // Reseta os totais do bloco (memória E banco) para o próximo ciclo de 10 rodadas
     for (const userId of this.blockTotals.keys()) {
