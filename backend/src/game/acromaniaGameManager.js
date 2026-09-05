@@ -1,4 +1,5 @@
 import { AcromaniaRoom } from "./AcromaniaRoom.js";
+import { ligarDicas } from "./dicasDoSistema.js";
 import { ACROMANIA_ROOM_CONFIGS, DEFAULT_ACROMANIA_ROOM_ID } from "./acromaniaRoomConfigs.js";
 import { ligarBotsNaSala } from "./acromaniaBots.js";
 
@@ -13,6 +14,7 @@ export async function getOrCreateAcromaniaRoom(io, roomId = DEFAULT_ACROMANIA_RO
     const config = ACROMANIA_ROOM_CONFIGS[roomId] || ACROMANIA_ROOM_CONFIGS[DEFAULT_ACROMANIA_ROOM_ID];
     const room = new AcromaniaRoom(roomId, io, config);
     rooms.set(roomId, room);
+    ligarDicas(room, "acromania");
     pendingCreation.delete(roomId);
     // Bots de teste. Desligados por padrão (só ligam com ACROMANIA_BOTS
     // definido). Não usa await: se der ruim ao criar as contas, o jogador
@@ -68,4 +70,26 @@ export function getAllAcromaniaRoomsStatus() {
       onlineCount: room ? room.countUniquePlayers() : 0,
     };
   });
+}
+
+// AVISO DA ADMINISTRAÇÃO
+//
+// Manda uma mensagem de sistema em todas as salas COM GENTE. Usado pra avisar
+// manutenção antes de um deploy — reiniciar o Render derruba as partidas em
+// andamento, e avisar dois minutos antes é a diferença entre "caiu" e "avisou".
+//
+// Só salas com jogador: mandar pra sala vazia não avisa ninguém e ainda
+// mentiria na contagem que volta pro painel.
+export function avisarSalas(mensagem) {
+  let alcancadas = 0;
+  for (const room of rooms.values()) {
+    if (!room.players || room.players.size === 0) continue;
+    try {
+      room.systemMessage(`📢 AVISO: ${mensagem}`, true);
+      alcancadas += 1;
+    } catch (err) {
+      console.error(`Falha ao avisar a sala ${room.roomId}:`, err.message);
+    }
+  }
+  return alcancadas;
 }

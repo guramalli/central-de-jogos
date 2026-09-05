@@ -57,6 +57,27 @@ export default function Admin() {
   // aparece dez vezes por sessão de moderação.
   // Conversa aberta a partir da lista de jogadores.
   const [chatWith, setChatWith] = useState(null);
+
+  // Nick clicável: abre a conversa direta ali mesmo, sem sair do painel.
+  // Serve pra responder quem mandou feedback, denúncia ou sugestão sem ter
+  // que ir procurar a pessoa na aba Jogadores.
+  //
+  // Sem userId (registro antigo, conta apagada) ou visitante, vira texto
+  // simples — clicar não levaria a lugar nenhum.
+  function Nick({ userId, nickname, isGuest }) {
+    if (!nickname) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    if (!userId || isGuest) return <span>{nickname}</span>;
+    return (
+      <button
+        type="button"
+        className="admin-nick-link"
+        title={`Conversar com ${nickname}`}
+        onClick={() => setChatWith({ userId, nickname })}
+      >
+        {nickname}
+      </button>
+    );
+  }
   const [aba, setAba] = useState(() => {
     try {
       return window.sessionStorage.getItem("admin-aba") || "visao";
@@ -81,6 +102,10 @@ export default function Admin() {
   const [suspicious, setSuspicious] = useState([]);
   const [online, setOnline] = useState(null);
   const [questionReports, setQuestionReports] = useState([]);
+  const [avisoTexto, setAvisoTexto] = useState("");
+  const [avisoJogo, setAvisoJogo] = useState("todos");
+  const [avisoEnviando, setAvisoEnviando] = useState(false);
+  const [avisoResultado, setAvisoResultado] = useState("");
   const [error, setError] = useState("");
 
   async function loadPending() {
@@ -154,6 +179,30 @@ export default function Admin() {
       setOnline(data);
     } catch {
       // silencioso — não é crítico
+    }
+  }
+
+  async function enviarAviso() {
+    const texto = avisoTexto.trim();
+    if (!texto) return;
+    // Confirmação obrigatória: aparece pra todo mundo que está jogando, na
+    // hora, e não tem como desfazer.
+    const onde = avisoJogo === "todos" ? "TODOS os jogos" : avisoJogo;
+    if (!window.confirm(`Enviar este aviso em ${onde}?\n\n"${texto}"`)) return;
+    setAvisoEnviando(true);
+    setAvisoResultado("");
+    try {
+      const { data } = await api.post("/admin/broadcast", { mensagem: texto, jogo: avisoJogo });
+      setAvisoResultado(
+        data.salas === 0
+          ? "Nenhuma sala com gente agora — ninguém recebeu."
+          : `Enviado em ${data.salas} sala(s) com jogadores.`
+      );
+      setAvisoTexto("");
+    } catch (e) {
+      setAvisoResultado(e.response?.data?.error || "Erro ao enviar o aviso.");
+    } finally {
+      setAvisoEnviando(false);
     }
   }
 
@@ -371,6 +420,39 @@ export default function Admin() {
 
       {aba === "visao" && (
         <>
+      <div className="card">
+        <h2>📢 Avisar quem está jogando</h2>
+        <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 0 }}>
+          Aparece no chat das salas <strong>com jogadores</strong>, na hora. Serve pra avisar
+          manutenção antes de um deploy — reiniciar o servidor derruba as partidas em andamento.
+        </p>
+        <textarea
+          className="input"
+          rows={2}
+          maxLength={300}
+          placeholder="Ex: manutenção rápida em 5 minutos, a sala vai reiniciar."
+          value={avisoTexto}
+          onChange={(e) => setAvisoTexto(e.target.value)}
+        />
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+          <select
+            className="input"
+            style={{ width: "auto" }}
+            value={avisoJogo}
+            onChange={(e) => setAvisoJogo(e.target.value)}
+          >
+            <option value="todos">Todos os jogos</option>
+            <option value="stop">Só Stop</option>
+            <option value="quiz">Só Quiz</option>
+            <option value="acromania">Só Acromania</option>
+          </select>
+          <button className="btn" onClick={enviarAviso} disabled={avisoEnviando || !avisoTexto.trim()}>
+            {avisoEnviando ? "Enviando..." : "Enviar aviso"}
+          </button>
+          <span style={{ color: "var(--text-dim)", fontSize: 13 }}>{avisoResultado}</span>
+        </div>
+      </div>
+
       <div className="card admin-online-card">
         <div className="admin-online-head">
           <h2>🟢 Online agora</h2>
@@ -461,7 +543,10 @@ export default function Admin() {
             {feedbacks.map((f) => (
               <tr key={f.id}>
                 <td>{f.type === "bug" ? "🐛 Bug" : f.type === "ideia" ? "💡 Ideia" : "✉️ Outro"}</td>
-                <td>{f.user?.nickname} <span style={{ color: "var(--text-dim)", fontSize: 11 }}>({f.user?.email})</span></td>
+                <td>
+                  <Nick userId={f.user?.id} nickname={f.user?.nickname} />{" "}
+                  <span style={{ color: "var(--text-dim)", fontSize: 11 }}>({f.user?.email})</span>
+                </td>
                 <td>{f.message}</td>
                 <td style={{ fontSize: 12, color: "var(--text-dim)" }}>
                   {new Date(f.createdAt).toLocaleDateString("pt-BR")}
@@ -504,7 +589,7 @@ export default function Admin() {
                 <td>{p.theme.name}</td>
                 <td>{p.letter}</td>
                 <td>{p.word}</td>
-                <td>{p.suggestedBy?.nickname || "—"}</td>
+                <td><Nick userId={p.suggestedBy?.id} nickname={p.suggestedBy?.nickname} /></td>
                 <td>
                   <button className="btn success" onClick={() => approve(p.id)}>Aprovar</button>{" "}
                   <button className="btn secondary" onClick={() => reject(p.id)}>Rejeitar</button>
@@ -542,7 +627,10 @@ export default function Admin() {
             <tbody>
               {suspicious.map((g) => (
                 <tr key={g.user.id}>
-                  <td>{g.user.nickname} {g.user.banned && <span style={{ color: "var(--accent)" }}>(banido)</span>}</td>
+                  <td>
+                    <Nick userId={g.user.id} nickname={g.user.nickname} />{" "}
+                    {g.user.banned && <span style={{ color: "var(--accent)" }}>(banido)</span>}
+                  </td>
                   <td>{g.pasteCount}</td>
                   <td>{g.tooPerfectCount}</td>
                   <td><strong>{g.count}</strong></td>
@@ -622,7 +710,7 @@ export default function Admin() {
                     {q.validationNote ? (
                       <span style={{ color: "var(--accent)" }}>🤖 {q.validationNote}</span>
                     ) : (
-                      q.suggestedBy?.nickname || "—"
+                      <Nick userId={q.suggestedBy?.id} nickname={q.suggestedBy?.nickname} />
                     )}
                   </td>
                   <td className="admin-acoes">
@@ -797,7 +885,7 @@ export default function Admin() {
             <ul className="report-group-list">
               {g.reports.map((r) => (
                 <li key={r.id}>
-                  <strong>{r.nickname}</strong>: {REPORT_REASON_LABELS[r.reason] || r.reason}
+                  <strong><Nick userId={r.userId} nickname={r.nickname} /></strong>: {REPORT_REASON_LABELS[r.reason] || r.reason}
                   {r.comment && <span style={{ color: "var(--text-dim)" }}> — "{r.comment}"</span>}
                 </li>
               ))}
@@ -857,7 +945,7 @@ export default function Admin() {
             <tbody>
               {users.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE).map((u) => (
                 <tr key={u.id}>
-                  <td>{u.nickname}</td>
+                  <td><Nick userId={u.id} nickname={u.nickname} isGuest={u.isGuest} /></td>
                   <td>{u.email}</td>
                   <td>{new Date(u.createdAt).toLocaleDateString("pt-BR")}</td>
                   <td title={u.ultimoAcesso ? `Último acesso: ${new Date(u.ultimoAcesso).toLocaleString("pt-BR")}` : "Nunca conectou pelo jogo"}>

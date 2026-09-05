@@ -1,4 +1,5 @@
 import { QuizRoom } from "./QuizRoom.js";
+import { ligarDicas } from "./dicasDoSistema.js";
 import { QUIZ_ROOM_CONFIGS, DEFAULT_QUIZ_ROOM_ID } from "./quizRoomConfigs.js";
 import { prisma } from "../db.js";
 import { cacheOuBuscar } from "../utils/cache.js";
@@ -14,6 +15,7 @@ export async function getOrCreateQuizRoom(io, roomId = DEFAULT_QUIZ_ROOM_ID) {
     const config = QUIZ_ROOM_CONFIGS[roomId] || QUIZ_ROOM_CONFIGS[DEFAULT_QUIZ_ROOM_ID];
     const room = new QuizRoom(roomId, io, config);
     rooms.set(roomId, room);
+    ligarDicas(room, "quiz");
     pendingCreation.delete(roomId);
     return room;
   })();
@@ -100,4 +102,26 @@ export async function getAllQuizRoomsStatus() {
       };
     })
   );
+}
+
+// AVISO DA ADMINISTRAÇÃO
+//
+// Manda uma mensagem de sistema em todas as salas COM GENTE. Usado pra avisar
+// manutenção antes de um deploy — reiniciar o Render derruba as partidas em
+// andamento, e avisar dois minutos antes é a diferença entre "caiu" e "avisou".
+//
+// Só salas com jogador: mandar pra sala vazia não avisa ninguém e ainda
+// mentiria na contagem que volta pro painel.
+export function avisarSalas(mensagem) {
+  let alcancadas = 0;
+  for (const room of rooms.values()) {
+    if (!room.players || room.players.size === 0) continue;
+    try {
+      room.systemMessage(`📢 AVISO: ${mensagem}`, true);
+      alcancadas += 1;
+    } catch (err) {
+      console.error(`Falha ao avisar a sala ${room.roomId}:`, err.message);
+    }
+  }
+  return alcancadas;
 }

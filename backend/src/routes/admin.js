@@ -4,6 +4,9 @@ import { cacheGet, cacheSet, cacheOuBuscar, cacheInvalidar } from "../utils/cach
 import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameManager.js";
 import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
+import { avisarSalas as avisarStop } from "../game/gameManager.js";
+import { avisarSalas as avisarQuiz } from "../game/quizGameManager.js";
+import { avisarSalas as avisarAcromania } from "../game/acromaniaGameManager.js";
 import { getOnlineList as getGeneralChatOnline } from "../game/generalChat.js";
 import { getOnlineList as getPresenceOnline } from "../game/presence.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
@@ -82,7 +85,7 @@ router.delete("/glossary/words/:id", async (req, res) => {
 
 router.get("/feedback", async (req, res) => {
   const feedbacks = await prisma.feedback.findMany({
-    include: { user: { select: { nickname: true, email: true } } },
+    include: { user: { select: { id: true, nickname: true, email: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json(feedbacks);
@@ -727,7 +730,7 @@ router.get("/question-reports", async (req, res) => {
     where: { resolved: false },
     include: {
       question: true,
-      user: { select: { nickname: true } },
+      user: { select: { id: true, nickname: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -747,6 +750,7 @@ router.get("/question-reports", async (req, res) => {
     g.count++;
     g.reports.push({
       id: r.id,
+      userId: r.user.id,
       nickname: r.user.nickname,
       reason: r.reason,
       comment: r.comment,
@@ -765,6 +769,32 @@ router.post("/question-reports/:questionId/resolve", async (req, res) => {
     data: { resolved: true },
   });
   res.json({ ok: true });
+});
+
+// Aviso da administração no chat de todas as salas com gente.
+//
+// Só ADMIN, não moderador: moderar conteúdo é uma coisa, falar com o site
+// inteiro ao mesmo tempo é outra.
+router.post("/broadcast", requireRole("ADMIN"), (req, res) => {
+  const mensagem = String(req.body?.mensagem || "").trim().slice(0, 300);
+  if (!mensagem) return res.status(400).json({ error: "Escreva a mensagem." });
+
+  // Um jogo específico ou todos. Manutenção do Quiz não precisa assustar
+  // quem está no Stop.
+  const jogo = req.body?.jogo || "todos";
+  const alvos = { stop: avisarStop, quiz: avisarQuiz, acromania: avisarAcromania };
+
+  let salas = 0;
+  if (jogo === "todos") {
+    for (const fn of Object.values(alvos)) salas += fn(mensagem);
+  } else if (alvos[jogo]) {
+    salas = alvos[jogo](mensagem);
+  } else {
+    return res.status(400).json({ error: "Jogo inválido." });
+  }
+
+  console.log(`[broadcast] ${req.user?.id} -> ${jogo} (${salas} salas): ${mensagem}`);
+  res.json({ ok: true, salas });
 });
 
 // Quem está online agora, e onde. Junta as quatro fontes possíveis: as três

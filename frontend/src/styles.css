@@ -2588,6 +2588,20 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Nick clicável no painel admin: abre a conversa direta. Parece link, mas é
+   button — a ação acontece na própria página, não navega. */
+.admin-nick-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.admin-nick-link:hover { color: var(--accent); }
+
 /* Tela de erro no lugar da tela preta (ver ErrorBoundary.jsx). */
 .erro-boundary {
   max-width: 460px;
