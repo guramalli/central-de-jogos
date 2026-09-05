@@ -2591,8 +2591,27 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Legenda e pódio lado a lado no topo do lobby. */
+.acro-topo-duplo {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+@media (max-width: 800px) { .acro-topo-duplo { grid-template-columns: 1fr; } }
+
+/* O .mini-podium traz margin-bottom: 24px de fábrica (ele é usado solto nas
+   outras lobbies). Dentro da grade isso desalinharia com a legenda ao lado.
+   Zerado só aqui — Stop e Quiz seguem como estão. */
+.acro-topo-duplo .mini-podium { margin-bottom: 0; }
+
+/* Sala única ocupando a largura toda, com mais respiro por dentro. */
+.acro-sala-grid { grid-template-columns: 1fr; }
+.acro-sala-grid .lobby-game-card { padding: 22px 24px; }
+
 /* Legenda de pontuação no lobby do Acromania. */
-.acro-legenda { margin-bottom: 20px; }
+.acro-legenda { margin-bottom: 0; }
 .acro-legenda-titulo {
   font-weight: 700;
   margin-bottom: 8px;

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import MiniPodium from "../components/MiniPodium.jsx";
 
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
@@ -57,6 +58,7 @@ export default function AcromaniaLobby() {
       {/* Legenda de pontuação. As regras estavam só na página de patentes,
           a um clique de distância — quem chega no lobby não sabia como se
           pontua antes de entrar na sala. */}
+      <div className="acro-topo-duplo">
       <div className="card acro-legenda">
         <div className="acro-legenda-titulo">Como pontuar</div>
         <ul className="acro-legenda-lista">
@@ -71,8 +73,13 @@ export default function AcromaniaLobby() {
           agradem.
         </p>
       </div>
+        <MiniPodium gameKey="acromania" />
+      </div>
 
-      <div className="lobby-game-grid">
+      {/* Grade própria: o Acromania tem UMA sala, e na grade de 3 colunas ela
+          ficava com um terço da largura, espremida no rodapé da página —
+          justamente o botão que a pessoa veio clicar. */}
+      <div className="lobby-game-grid acro-sala-grid">
         {rooms.map((r) => {
           const occ = occupancyInfo(r);
           return (
