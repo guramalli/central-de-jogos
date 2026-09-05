@@ -23,8 +23,10 @@ export default function RanksInfoAcromania() {
       <p style={{ color: "var(--text-dim)" }}>
         Sua patente no Acromania é calculada pela sua pontuação <strong>do mês</strong> nesse jogo —
         todo mês ela é recalculada do zero. Você ganha <strong>15 pontos por cada voto recebido</strong>{" "}
-        e mais <strong>50 de bônus</strong> se a sua frase for a mais votada da rodada. Ou seja: dá pra
-        pontuar bem sem vencer, desde que a frase agrade.
+        e mais <strong>50 de bônus</strong> se a sua frase for a mais votada da rodada. Além disso,
+        quem <strong>votar na frase vencedora ganha 10 pontos</strong> — então vale prestar atenção no
+        que a sala está achando graça, não só na própria frase. Ao fim de cada partida, os três
+        primeiros do placar levam <strong>100, 60 e 30</strong> pontos.
       </p>
 
       <div className="card">

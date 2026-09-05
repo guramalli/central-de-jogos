@@ -2515,6 +2515,59 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   line-height: 1.5;
 }
 
+/* Progresso da partida no topo da sala ("rodada 3 de 8"). */
+.acro-turn-progress {
+  margin-left: 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--qz-orange-pale, #ffc082);
+  opacity: 0.85;
+}
+
+/* Pódio da partida, mostrado quando o turno acaba. */
+.acro-turn-podium {
+  border: 1px solid var(--qz-orange-pale, #ffc082);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: rgba(255, 184, 111, 0.08);
+}
+.acro-turn-podium-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--qz-orange-pale, #ffc082);
+}
+.acro-turn-podium-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+/* Placar da partida em andamento, na coluna dos jogadores. */
+.acro-turn-placar {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.acro-turn-placar-titulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+/* Aviso de acerto no voto, no resultado da rodada. */
+.acro-bonus-voto {
+  color: var(--qz-green, #06d6a0);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
 /* Pontos ganhos, ao lado da frase vencedora no resultado. */
 .acro-result-pts {
   margin-left: 8px;

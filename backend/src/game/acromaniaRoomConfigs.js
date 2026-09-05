@@ -18,6 +18,10 @@ export const ACROMANIA_ROOM_CONFIGS = {
     lettersMin: 4,
     lettersMax: 6,
     pointsForWin: 50,
+    // Partida de 8 rodadas (~7 min no ritmo atual). Curta o bastante pra
+    // caber num intervalo de almoço e longa o bastante pra virar disputa.
+    roundsPerTurn: 8,
+    turnBonus: [100, 60, 30],
     // Precisa de pelo menos 3 jogadores pra votação fazer sentido de verdade.
     minPlayersToStart: 3,
   },

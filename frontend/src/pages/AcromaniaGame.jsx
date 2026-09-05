@@ -51,6 +51,13 @@ export default function AcromaniaGame() {
   const [myEntryId, setMyEntryId] = useState(null);
 
   const [lastResult, setLastResult] = useState(null);
+  // Progresso e placar da partida (turno de N rodadas).
+  const [turnInfo, setTurnInfo] = useState({ turnRound: null, roundsPerTurn: null });
+  const [turnRanking, setTurnRanking] = useState([]);
+  // Pódio da partida que acabou. Fica na tela durante o intervalo seguinte.
+  const [turnFinished, setTurnFinished] = useState(null);
+  // Bônus por ter votado na frase vencedora. Chega só pra quem acertou.
+  const [bonusVoto, setBonusVoto] = useState(0);
   const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
 
   const [onlinePlayers, setOnlinePlayers] = useState([]);
@@ -82,7 +89,17 @@ export default function AcromaniaGame() {
     const aoErro = (data) => setErroServidor(data?.mensagem || "Algo deu errado. Tente recarregar a página.");
     socket.on("acromania-erro", aoErro);
     // Entrou (ou reentrou) com sucesso: limpa qualquer erro antigo da tela.
-    socket.on("acromania-room-state", () => setErroServidor(""));
+    socket.on("acromania-room-state", (data) => {
+      setErroServidor("");
+      if (data?.roundsPerTurn) {
+        setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
+        setTurnRanking(data.turnRanking || []);
+      }
+    });
+
+    socket.on("acromania-turn-finished", (data) => setTurnFinished(data?.ranking || []));
+
+    socket.on("acromania-bonus-voto", (data) => setBonusVoto(data?.pontos || 0));
 
     // Sessão morta (token de 7 dias vencido, ou conta banida). Só falha de
     // AUTENTICAÇÃO desloga — queda de rede e reinício do servidor durante um
@@ -198,6 +215,12 @@ export default function AcromaniaGame() {
       setTimeLeft(data.seconds);
       setMyVote(null);
       setMyEntryId(null);
+      if (data?.roundsPerTurn) {
+        setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
+      }
+      // Partida nova começando: o pódio da anterior sai da tela.
+      setTurnFinished(null);
+      setBonusVoto(0);
     });
 
     socket.on("acromania-minha-frase", (data) => setMyEntryId(data?.entryId || null));
@@ -213,6 +236,10 @@ export default function AcromaniaGame() {
       setPhase("grading");
       setLastResult(data);
       setVotingEntries([]);
+      if (data?.roundsPerTurn) {
+        setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
+        setTurnRanking(data.turnRanking || []);
+      }
     });
 
     return () => {
@@ -233,6 +260,8 @@ export default function AcromaniaGame() {
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
       socket.off("acromania-minha-frase");
+      socket.off("acromania-turn-finished");
+      socket.off("acromania-bonus-voto");
       socket.off("acromania-round-result");
       socket.off("connect", reentrarNaSala);
       socket.off("acromania-erro", aoErro);
@@ -307,6 +336,12 @@ export default function AcromaniaGame() {
         </div>
         <div className="quiz-topbar-title">
           <span className="quiz-theme-name">{roomLabel}</span>
+          {turnInfo.roundsPerTurn > 0 && (
+            <span className="acro-turn-progress">
+              rodada {Math.min(turnInfo.turnRound || 1, turnInfo.roundsPerTurn)} de{" "}
+              {turnInfo.roundsPerTurn}
+            </span>
+          )}
           {erroServidor && <div className="acro-erro-banner">⚠️ {erroServidor}</div>}
         </div>
         <div className="quiz-timer-group">
@@ -410,8 +445,31 @@ export default function AcromaniaGame() {
             </div>
           )}
 
+          {turnFinished && (
+            <div className="acro-turn-podium">
+              <div className="acro-turn-podium-title">🏁 Fim da partida!</div>
+              {turnFinished.length === 0 ? (
+                <p style={{ color: "var(--qz-text)", opacity: 0.75 }}>Ninguém pontuou nessa partida.</p>
+              ) : (
+                turnFinished.slice(0, 5).map((r) => (
+                  <div key={r.userId} className="acro-turn-podium-row">
+                    <span>
+                      {["🥇", "🥈", "🥉"][r.position - 1] || `${r.position}º`} {r.nickname}
+                    </span>
+                    <span className="acro-result-pts">{r.points} pts</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
           {(phase === "grading" || phase === "intermission") && lastResult && (
             <div className="acro-results-list">
+              {bonusVoto > 0 && (
+                <p className="acro-bonus-voto">
+                  🎯 Você votou na frase vencedora! +{bonusVoto} pts
+                </p>
+              )}
               {lastResult.noOneWrote ? (
                 <p style={{ color: "var(--qz-text)", opacity: 0.75 }}>Ninguém escreveu uma frase nessa rodada.</p>
               ) : (
@@ -483,6 +541,21 @@ export default function AcromaniaGame() {
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
         </div>
         <div className="quiz-panel quiz-players-panel">
+          {/* Placar da partida em andamento. Sem ele, ter uma linha de
+              chegada não adianta: a pessoa não sabe se está perto dela. */}
+          {turnRanking.length > 0 && (
+            <div className="acro-turn-placar">
+              <div className="acro-turn-placar-titulo">placar da partida</div>
+              {turnRanking.slice(0, 5).map((r) => (
+                <div key={r.userId} className="acro-turn-podium-row">
+                  <span>
+                    {r.position}º {r.nickname}
+                  </span>
+                  <span>{r.points}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>
           <div className="quiz-players-list" style={{ marginTop: 10 }}>
             {onlinePlayers.map((p) => (
