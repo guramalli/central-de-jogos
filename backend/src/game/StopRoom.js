@@ -1565,7 +1565,9 @@ export class StopRoom {
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
-  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
-    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, at: Date.now() });
+  // `aviso` é o comunicado da administração: precisa saltar aos olhos no meio
+  // das outras mensagens de sistema, que são todas cinzas e parecidas.
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false) {
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, aviso, at: Date.now() });
   }
 }

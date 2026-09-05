@@ -2588,6 +2588,23 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Comunicado da administração no chat. Vermelho da marca, caixa própria e
+   barra na lateral: precisa se separar das outras mensagens de sistema, que
+   são todas cinzas, itálicas e parecidas entre si. */
+.chat-aviso-admin {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--danger, #e60000);
+  border-left: 4px solid var(--danger, #e60000);
+  border-radius: 6px;
+  background: rgba(230, 0, 0, 0.14);
+  color: #ffd8d8;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 /* Nick clicável no painel admin: abre a conversa direta. Parece link, mas é
    button — a ação acontece na própria página, não navega. */
 .admin-nick-link {

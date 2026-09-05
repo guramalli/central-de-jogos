@@ -76,12 +76,21 @@ export default function Chat({ messages, onSend, showTimestamp = false, canModer
       <div className="chat-messages" ref={listRef}>
         {messages.map((m, i) =>
           m.system ? (
+            m.aviso ? (
+              // Comunicado da administração. Sem os travessões e com caixa
+              // própria: os travessões servem pra "fulano entrou na sala",
+              // não pra um aviso que a pessoa precisa parar e ler.
+              <div key={m.id || i} className="chat-aviso-admin">
+                <TextoDeSistema mensagem={m.message} destaque={m.tituloDestaque} />
+              </div>
+            ) : (
             <div
               key={m.id || i}
               className={`chat-system-msg ${m.bold ? "chat-system-msg-bold" : ""} ${m.success ? "chat-system-msg-success" : ""} ${m.promotion ? "chat-system-msg-promotion" : ""} ${m.atividade ? "chat-msg-atividade" : ""}`}
             >
               — <TextoDeSistema mensagem={m.message} destaque={m.tituloDestaque} /> —
             </div>
+            )
           ) : (
             <div key={m.id || i} className="chat-user-msg">
               {canModerate && m.id && onDelete && (

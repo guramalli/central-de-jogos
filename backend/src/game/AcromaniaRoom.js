@@ -391,7 +391,9 @@ export class AcromaniaRoom {
     this.io.to(this.roomId).emit(event, data);
   }
 
-  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
+  // `aviso` é o comunicado da administração: precisa saltar aos olhos no meio
+  // das outras mensagens de sistema, que são todas cinzas e parecidas.
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false) {
     this.broadcast("acromania-chat-message", {
       userId: null,
       nickname: "Sistema",
@@ -401,6 +403,7 @@ export class AcromaniaRoom {
       success,
       promotion,
       tituloDestaque,
+      aviso,
       at: Date.now(),
     });
   }

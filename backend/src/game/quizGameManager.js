@@ -117,7 +117,7 @@ export function avisarSalas(mensagem) {
   for (const room of rooms.values()) {
     if (!room.players || room.players.size === 0) continue;
     try {
-      room.systemMessage(`📢 AVISO: ${mensagem}`, true);
+      room.systemMessage(`📢 AVISO: ${mensagem}`, true, false, false, null, true);
       alcancadas += 1;
     } catch (err) {
       console.error(`Falha ao avisar a sala ${room.roomId}:`, err.message);
