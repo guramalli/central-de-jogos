@@ -15,27 +15,37 @@
 // A escada segue a mesma curva do Stop (proporções idênticas), só que
 // reescalada — assim a sensação de progresso é a mesma nos três jogos.
 //
-// ARTE: por enquanto aponta pros PNGs do Stop, pra não deixar imagem
-// quebrada na tela. Quando as artes próprias existirem, é só trocar os
-// caminhos aqui pra /ranks-acromania/... e subir a VERSAO do service worker
-// (nomes novos não precisam de bump, mas a troca vale conferir).
+// ARTE: /ranks-acromania/. Hoje são CÓPIAS das artes do Stop, renomeadas —
+// pra não deixar imagem quebrada até a arte própria existir. Quando ela
+// ficar pronta, é só sobrescrever os arquivos com os mesmos nomes: nenhuma
+// linha de código muda. Nome de arquivo novo não exige subir a VERSAO do
+// service worker, mas SOBRESCREVER exige (ver §8: cache-first prende arquivo
+// de nome fixo).
+//
+// POR QUE ESTES OBJETOS, e não lápis/caneta/pena como antes:
+// a 34px — o tamanho real na lista de jogadores — os três viravam o mesmo
+// risco diagonal, indistinguíveis. É a mesma armadilha do "emblema a 34px
+// vira disco uniforme". O que separa emblema pequeno é a SILHUETA EXTERNA,
+// não o detalhe: balão (redondo com rabicho), megafone (cone), microfone
+// (vertical), coroa (pontas). Dá pra identificar sem enxergar detalhe.
+//
+// A progressão também faz mais sentido pro jogo: o Acromania não é sobre
+// escrever, é sobre a sala rir e votar. Vai da voz tímida à voz que a
+// plateia escuta.
 export const ACROMANIA_RANKS = [
-  { min: 0,     key: "lapis_bronze",     name: "Lápis de Bronze",     icon: "/ranks/anel-bronze.png?v=2" },
-  { min: 100,   key: "lapis_prata",      name: "Lápis de Prata",      icon: "/ranks/anel-prata.png?v=2" },
-  { min: 300,   key: "lapis_ouro",       name: "Lápis de Ouro",       icon: "/ranks/anel-ouro.png?v=2" },
-  { min: 1000,  key: "caneta_bronze",    name: "Caneta de Bronze",    icon: "/ranks/trofeu-bronze.png?v=2" },
-  { min: 3000,  key: "caneta_prata",     name: "Caneta de Prata",     icon: "/ranks/trofeu-prata.png?v=2" },
-  { min: 8000,  key: "caneta_ouro",      name: "Caneta de Ouro",      icon: "/ranks/trofeu-ouro.png?v=2" },
-  { min: 15000, key: "pena_bronze",      name: "Pena de Bronze",      icon: "/ranks/coroa-bronze.png?v=2" },
-  { min: 23000, key: "pena_prata",       name: "Pena de Prata",       icon: "/ranks/coroa-prata.png?v=2" },
-  { min: 34000, key: "pena_ouro",        name: "Pena de Ouro",        icon: "/ranks/coroa-ouro.png?v=2" },
-  { min: 46000, key: "pena_real_bronze", name: "Pena Real de Bronze", icon: "/ranks/coroa-imperial-bronze.png?v=2" },
-  { min: 62000, key: "pena_real_prata",  name: "Pena Real de Prata",  icon: "/ranks/coroa-imperial-prata.png?v=2" },
-  // Brilha, mas NÃO é exclusiva. A exclusividade (só o 1º colocado tem) traz
-  // junto o acoplamento com o histórico que custou os zips 195-197: no mês
-  // passado a patente precisa vir da POSIÇÃO daquele mês, não de quem lidera
-  // hoje. Não vale importar essa complexidade pra um jogo em testes.
-  { min: 80000, key: "pena_real_ouro",   name: "Pena Real de Ouro",   icon: "/ranks/coroa-imperial-ouro.png?v=2", brilha: true },
+  { min: 0,     key: "balao_bronze",     name: "Balão de Bronze",     icon: "/ranks-acromania/balao-bronze.png" },
+  { min: 100,   key: "balao_prata",      name: "Balão de Prata",      icon: "/ranks-acromania/balao-prata.png" },
+  { min: 300,   key: "balao_ouro",       name: "Balão de Ouro",       icon: "/ranks-acromania/balao-ouro.png" },
+  { min: 1000,  key: "megafone_bronze",  name: "Megafone de Bronze",  icon: "/ranks-acromania/megafone-bronze.png" },
+  { min: 3000,  key: "megafone_prata",   name: "Megafone de Prata",   icon: "/ranks-acromania/megafone-prata.png" },
+  { min: 8000,  key: "megafone_ouro",    name: "Megafone de Ouro",    icon: "/ranks-acromania/megafone-ouro.png" },
+  { min: 15000, key: "microfone_bronze", name: "Microfone de Bronze", icon: "/ranks-acromania/microfone-bronze.png" },
+  { min: 23000, key: "microfone_prata",  name: "Microfone de Prata",  icon: "/ranks-acromania/microfone-prata.png" },
+  { min: 34000, key: "microfone_ouro",   name: "Microfone de Ouro",   icon: "/ranks-acromania/microfone-ouro.png" },
+  { min: 46000, key: "coroa_bronze",     name: "Coroa de Bronze",     icon: "/ranks-acromania/coroa-bronze.png" },
+  { min: 62000, key: "coroa_prata",      name: "Coroa de Prata",      icon: "/ranks-acromania/coroa-prata.png" },
+  // Brilha, mas NÃO é exclusiva (ver comentário do zip 217).
+  { min: 80000, key: "coroa_ouro",       name: "Coroa de Ouro",       icon: "/ranks-acromania/coroa-ouro.png", brilha: true },
 ];
 
 export function getAcromaniaRankForPoints(points) {
