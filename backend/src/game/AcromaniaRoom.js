@@ -523,6 +523,16 @@ export class AcromaniaRoom {
       entries: entries.map((e) => ({ entryId: e.entryId, phrase: e.phrase })),
       seconds: this.votingSeconds,
     });
+
+    // Cada jogador recebe, SÓ PRA ELE, o id da própria frase — assim a tela
+    // consegue desabilitar o botão dela. A lista pública continua anônima
+    // (sem userId), que é o ponto do jogo: ninguém sabe de quem é o quê.
+    // Antes disso, o servidor recusava o voto na própria frase em silêncio e
+    // a tela marcava como registrado: a pessoa ficava sem voto sem saber.
+    for (const p of this.players.values()) {
+      const minha = entries.find((e) => e.userId === p.userId);
+      if (minha) p.socket?.emit("acromania-minha-frase", { entryId: minha.entryId });
+    }
     this.systemMessage("🗳️ Hora de votar na melhor frase!");
 
     this.timer = setInterval(() => {
@@ -547,7 +557,20 @@ export class AcromaniaRoom {
     if (!entry) return;
     if (entry.userId === userId) return; // não pode votar na própria frase
     this.votes.set(userId, entryId);
-    socket.emit("acromania-vote-registered", { ok: true });
+    socket.emit("acromania-vote-registered", { ok: true, entryId });
+
+    // Simétrico ao submitPhrase: se todo mundo que está na sala já votou,
+    // não faz sentido segurar a rodada até o cronômetro zerar. Com pouca
+    // gente, essa espera morta era o que mais fazia o jogo parecer lento.
+    const totalPlayers = this.countUniquePlayers();
+    if (totalPlayers > 0 && this.votes.size >= totalPlayers) {
+      // Protegido, como as outras transições assíncronas desta sala: uma
+      // falha aqui não pode deixar a rodada sem fim.
+      Promise.resolve(this.endVoting()).catch((err) => {
+        console.error(`Falha em endVoting (todos votaram) na sala ${this.roomId}:`, err);
+        setTimeout(() => this.startIntermission(), 3000);
+      });
+    }
   }
 
   async endVoting() {

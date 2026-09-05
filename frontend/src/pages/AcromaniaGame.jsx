@@ -46,6 +46,9 @@ export default function AcromaniaGame() {
 
   const [votingEntries, setVotingEntries] = useState([]);
   const [myVote, setMyVote] = useState(null);
+  // Id da MINHA frase nesta rodada, mandado só pra mim pelo servidor. Serve
+  // pra desabilitar o botão dela — a lista de votação em si continua anônima.
+  const [myEntryId, setMyEntryId] = useState(null);
 
   const [lastResult, setLastResult] = useState(null);
   const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
@@ -152,6 +155,7 @@ export default function AcromaniaGame() {
       setPhraseInput("");
       setVotingEntries([]);
       setMyVote(null);
+      setMyEntryId(null);
       setWaitingNicknames([]);
       setWaitingInfo(
         data?.waitingForPlayers
@@ -188,9 +192,17 @@ export default function AcromaniaGame() {
       setTotalSeconds(data.seconds);
       setTimeLeft(data.seconds);
       setMyVote(null);
+      setMyEntryId(null);
     });
 
-    socket.on("acromania-vote-registered", () => {});
+    socket.on("acromania-minha-frase", (data) => setMyEntryId(data?.entryId || null));
+
+    // Confirmação do servidor. Antes este handler era vazio e o voto era
+    // marcado na tela de forma otimista, então um voto RECUSADO (na própria
+    // frase) aparecia como registrado e a pessoa ficava sem votar sem saber.
+    socket.on("acromania-vote-registered", (data) => {
+      if (data?.entryId) setMyVote(data.entryId);
+    });
 
     socket.on("acromania-round-result", (data) => {
       setPhase("grading");
@@ -215,6 +227,7 @@ export default function AcromaniaGame() {
       socket.off("acromania-submissions-update");
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
+      socket.off("acromania-minha-frase");
       socket.off("acromania-round-result");
       socket.off("connect", reentrarNaSala);
       socket.off("acromania-erro", aoErro);
@@ -252,7 +265,9 @@ export default function AcromaniaGame() {
 
   function castVote(entryId) {
     if (myVote) return;
-    setMyVote(entryId);
+    if (entryId === myEntryId) return; // não pode votar na própria frase
+    // Sem marcação otimista: quem confirma é o servidor, no
+    // "acromania-vote-registered". Assim a tela nunca mente sobre o voto.
     socketRef.current?.emit("acromania-vote", { entryId });
   }
 
@@ -370,16 +385,22 @@ export default function AcromaniaGame() {
 
           {phase === "voting" && (
             <div className="acro-voting-list">
-              {votingEntries.map((e) => (
-                <button
-                  key={e.entryId}
-                  className={`acro-vote-option ${myVote === e.entryId ? "acro-vote-option-selected" : ""}`}
-                  disabled={!!myVote}
-                  onClick={() => castVote(e.entryId)}
-                >
-                  {e.phrase}
-                </button>
-              ))}
+              {votingEntries.map((e) => {
+                const ehMinha = e.entryId === myEntryId;
+                return (
+                  <button
+                    key={e.entryId}
+                    className={`acro-vote-option ${myVote === e.entryId ? "acro-vote-option-selected" : ""} ${
+                      ehMinha ? "acro-vote-option-minha" : ""
+                    }`}
+                    disabled={!!myVote || ehMinha}
+                    onClick={() => castVote(e.entryId)}
+                  >
+                    {e.phrase}
+                    {ehMinha && <span className="acro-vote-minha-tag">sua frase</span>}
+                  </button>
+                );
+              })}
               {myVote && <p className="acro-submitted-msg">✓ Voto registrado! Espera o resultado...</p>}
             </div>
           )}
