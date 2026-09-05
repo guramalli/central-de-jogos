@@ -5,6 +5,7 @@ import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { avisarPontuacao } from "./eventosDePontuacao.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
@@ -355,9 +356,73 @@ export class QuizRoom {
     if (this.players.size === 0) this.pararVigiaInatividade();
   }
 
+  // Relê o mensal destes jogadores do banco. Usado quando eles pontuaram em
+  // OUTRA sala de Quiz — o valor daqui ficou velho.
+  //
+  // Recarrega, não apaga: o `mensalCache` só é preenchido na entrada do
+  // jogador, então descartar a entrada faria a lista exibir ZERO até a
+  // pessoa sair e voltar.
+  async recarregarMensal(userIds) {
+    if (!userIds || userIds.length === 0) return;
+    try {
+      const linhas = await prisma.monthlyScore.findMany({
+        where: { userId: { in: userIds }, gameKey: GAME_KEY, monthKey: currentMonthKey() },
+      });
+      const porUsuario = Object.fromEntries(linhas.map((l) => [l.userId, l.points]));
+      for (const id of userIds) this.mensalCache.set(id, porUsuario[id] || 0);
+    } catch (err) {
+      console.error("Falha ao recarregar mensal do Quiz:", err.message);
+    }
+  }
+
   async broadcastOnlinePlayers() {
     const seen = new Set();
     const list = [];
+
+    // POSIÇÃO NO RANKING MENSAL.
+    //
+    // A faixa de patente do celular mostra "12º" quando tem posição e cai pro
+    // número de pontos quando não tem. O Quiz não mandava NEM `monthlyPoints`
+    // NEM `position` — a faixa lia `undefined`, o `?? 0` virava zero, e o
+    // número nunca mudava por mais que a pessoa acertasse. Não era cache
+    // velho: era campo que não existia.
+    //
+    // Uma consulta só pra sala inteira, no mesmo formato do StopRoom — e não
+    // uma por jogador, que seria N consultas a cada atualização da lista.
+    const idsDaSala = [...new Set([...this.players.values()].map((p) => p.userId))];
+    const posicaoPorUsuario = {};
+    if (idsDaSala.length > 0) {
+      try {
+        const monthKey = currentMonthKey();
+        // Mesmos filtros do announceRankingPosition: sem ADMIN, sem
+        // visitante, sem quem se ocultou (no geral ou só neste jogo).
+        const elegiveis = {
+          role: { not: "ADMIN" },
+          isGuest: false,
+          ocultoNoRanking: false,
+          NOT: { ocultoNosRankings: { has: GAME_KEY } },
+        };
+        const meus = await prisma.monthlyScore.findMany({
+          where: { userId: { in: idsDaSala }, gameKey: GAME_KEY, monthKey },
+        });
+        const menor = meus.length ? Math.min(...meus.map((m) => m.points)) : null;
+        if (menor !== null) {
+          // Quem está acima do MENOR da sala: dá pra derivar a posição de
+          // todo mundo a partir daí, sem uma consulta por pessoa.
+          const acima = await prisma.monthlyScore.findMany({
+            where: { gameKey: GAME_KEY, monthKey, points: { gt: menor }, user: elegiveis },
+            select: { points: true },
+          });
+          const pontosAcima = acima.map((a) => a.points);
+          for (const m of meus) {
+            posicaoPorUsuario[m.userId] = pontosAcima.filter((v) => v > m.points).length + 1;
+          }
+        }
+      } catch (err) {
+        console.error("Falha ao calcular posição no Quiz:", err.message);
+      }
+    }
+
     for (const p of this.players.values()) {
       if (seen.has(p.userId)) continue;
       seen.add(p.userId);
@@ -370,6 +435,10 @@ export class QuizRoom {
         lifetimePoints,
         roomLifetimePoints,
         roomMonthlyPoints,
+        // Pontos do MÊS no Quiz inteiro. É o que alimenta a faixa de patente
+        // no celular e o que faltava aqui.
+        monthlyPoints: this.mensalCache.get(p.userId) || 0,
+        position: posicaoPorUsuario[p.userId] || null,
         // Patente é conceito MENSAL: quem define é o desempenho do mês.
         rank: getQuizRankForPoints(this.mensalCache.get(p.userId) || 0, { userId: p.userId }),
       });
@@ -933,6 +1002,7 @@ export class QuizRoom {
 
         await this.recordArenaStats();
         await this.broadcastOnlinePlayers();
+        avisarPontuacao(GAME_KEY, [...this.mensalCache.keys()], this.roomId);
       } catch (err) {
         console.error(`Erro ao encerrar pergunta na arena ${this.roomId}:`, err);
       } finally {
@@ -1115,6 +1185,10 @@ export class QuizRoom {
 
         await this.announceRankingPosition(winner.userId, winner.nickname);
         await this.broadcastOnlinePlayers();
+        // Quem joga em duas salas de Quiz tem um mensal só, mas cada sala
+        // guarda o valor no próprio mensalCache. Sem este aviso, a outra
+        // sala seguiria mostrando a patente e os pontos de antes.
+        avisarPontuacao(GAME_KEY, [winner.userId], this.roomId);
       } else {
         this.broadcast("quiz-question-result", { winner: null, answer: question.answer });
         // Ninguém acertou — quebra qualquer sequência em andamento.

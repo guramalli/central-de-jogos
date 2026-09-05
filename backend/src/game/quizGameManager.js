@@ -1,10 +1,29 @@
 import { QuizRoom } from "./QuizRoom.js";
 import { ligarDicas } from "./dicasDoSistema.js";
+import { aoPontuar } from "./eventosDePontuacao.js";
 import { QUIZ_ROOM_CONFIGS, DEFAULT_QUIZ_ROOM_ID } from "./quizRoomConfigs.js";
 import { prisma } from "../db.js";
 import { cacheOuBuscar } from "../utils/cache.js";
 
 const rooms = new Map();
+
+// Pontuou numa sala de Quiz: as OUTRAS salas com esse jogador precisam
+// atualizar. Diferente do Stop, aqui não basta reenviar a lista — o mensal
+// do Quiz vive no `mensalCache` de cada sala, então o valor velho tem que
+// ser RECARREGADO do banco antes. Descartar não serve: o cache só é
+// preenchido na entrada do jogador, e a lista passaria a exibir zero.
+aoPontuar(({ gameKey, userIds, salaOrigem }) => {
+  if (gameKey !== "quiz") return;
+  for (const [roomId, room] of rooms.entries()) {
+    if (roomId === salaOrigem) continue;
+    const presentes = [...room.players.values()].filter((p) => userIds.includes(p.userId));
+    if (presentes.length === 0) continue;
+    const ids = presentes.map((p) => p.userId);
+    Promise.resolve(room.recarregarMensal(ids))
+      .then(() => room.broadcastOnlinePlayers())
+      .catch((err) => console.error(`Falha ao atualizar patente na sala ${roomId}:`, err.message));
+  }
+});
 const pendingCreation = new Map();
 
 export async function getOrCreateQuizRoom(io, roomId = DEFAULT_QUIZ_ROOM_ID) {
