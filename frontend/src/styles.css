@@ -2554,6 +2554,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .acro-bottom-grid { grid-template-columns: 2fr 1.1fr 1.1fr; }
 @media (max-width: 800px) { .acro-bottom-grid { grid-template-columns: 1fr; } }
 
+/* Número da rodada dentro da aba do placar. A .quiz-retro-tab é absoluta e
+   com largura do conteúdo, então nada de float aqui: é só mais um texto em
+   linha, separado por um traço. */
+.acro-placar-rodada {
+  margin-left: 8px;
+  opacity: 0.8;
+}
+.acro-placar-rodada::before {
+  content: "· ";
+}
+
 /* Mesma altura dos painéis vizinhos, senão a linha fica desalinhada. */
 .acro-placar-panel {
   height: 320px;

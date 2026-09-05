@@ -68,7 +68,7 @@ export default function AcromaniaLobby() {
         </ul>
         <p className="acro-legenda-nota">
           A partida tem 8 rodadas. Dá pra pontuar bem sem vencer nenhuma: basta escrever frases que
-          agradem. <Link to="/patentes-acromania">Ver patentes →</Link>
+          agradem.
         </p>
       </div>
 
