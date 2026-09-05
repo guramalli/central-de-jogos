@@ -7,10 +7,22 @@
 // o jogador ficava preso na primeira patente pra sempre.
 //
 // A RÉGUA É TEMPO (mesma dos outros jogos): patente máxima em ~2h/dia
-// durante o mês, ou seja ~60 horas. A 1.100 pts/hora isso dá ~66.000.
-// O topo ficou em 80.000, acima da conta, de propósito: a regra de ouro do
-// projeto diz que BAIXAR limiar só promove, SUBIR rebaixa. Errar pra cima é
-// reversível sem tirar patente de ninguém; errar pra baixo, não.
+// durante o mês, ou seja ~60 horas.
+//
+// HISTÓRICO: o topo nasceu em 80.000, calculado quando o ciclo era fixo em
+// 90s e só o vencedor pontuava (~1.100 pts/hora). Depois disso a escrita e a
+// votação passaram a encerrar assim que todos respondem (ciclo típico caiu
+// pra ~49s) e entraram três formas novas de pontuar: voto certeiro, primeiro
+// a enviar e bônus de fim de partida. O ganho real subiu pra ~2.800 pts/hora
+// com 4 jogadores, e o topo virava alcançável em 1h/dia — metade do alvo.
+//
+// Recalculado: 160.000 dá 2,0h/dia com 4 jogadores e 2,3h com 5. Todos os
+// degraus dobraram, então a curva de progresso é exatamente a mesma.
+//
+// SUBIR limiar REBAIXA (a regra de ouro só permite baixar sem avisar). Foi
+// feito no começo de setembro, com o jogo em testes e a patente zerando dia
+// 1º de qualquer forma — o momento mais barato possível. Refazer isso mais
+// tarde custa muito mais caro.
 //
 // A escada segue a mesma curva do Stop (proporções idênticas), só que
 // reescalada — assim a sensação de progresso é a mesma nos três jogos.
@@ -34,18 +46,18 @@
 // plateia escuta.
 export const ACROMANIA_RANKS = [
   { min: 0,     key: "balao_bronze",     name: "Balão de Bronze",     icon: "/ranks-acromania/balao-bronze.png" },
-  { min: 100,   key: "balao_prata",      name: "Balão de Prata",      icon: "/ranks-acromania/balao-prata.png" },
-  { min: 300,   key: "balao_ouro",       name: "Balão de Ouro",       icon: "/ranks-acromania/balao-ouro.png" },
-  { min: 1000,  key: "megafone_bronze",  name: "Megafone de Bronze",  icon: "/ranks-acromania/megafone-bronze.png" },
-  { min: 3000,  key: "megafone_prata",   name: "Megafone de Prata",   icon: "/ranks-acromania/megafone-prata.png" },
-  { min: 8000,  key: "megafone_ouro",    name: "Megafone de Ouro",    icon: "/ranks-acromania/megafone-ouro.png" },
-  { min: 15000, key: "microfone_bronze", name: "Microfone de Bronze", icon: "/ranks-acromania/microfone-bronze.png" },
-  { min: 23000, key: "microfone_prata",  name: "Microfone de Prata",  icon: "/ranks-acromania/microfone-prata.png" },
-  { min: 34000, key: "microfone_ouro",   name: "Microfone de Ouro",   icon: "/ranks-acromania/microfone-ouro.png" },
-  { min: 46000, key: "coroa_bronze",     name: "Coroa de Bronze",     icon: "/ranks-acromania/coroa-bronze.png" },
-  { min: 62000, key: "coroa_prata",      name: "Coroa de Prata",      icon: "/ranks-acromania/coroa-prata.png" },
+  { min: 200,   key: "balao_prata",      name: "Balão de Prata",      icon: "/ranks-acromania/balao-prata.png" },
+  { min: 600,   key: "balao_ouro",       name: "Balão de Ouro",       icon: "/ranks-acromania/balao-ouro.png" },
+  { min: 2000,  key: "megafone_bronze",  name: "Megafone de Bronze",  icon: "/ranks-acromania/megafone-bronze.png" },
+  { min: 6000,  key: "megafone_prata",   name: "Megafone de Prata",   icon: "/ranks-acromania/megafone-prata.png" },
+  { min: 16000,  key: "megafone_ouro",    name: "Megafone de Ouro",    icon: "/ranks-acromania/megafone-ouro.png" },
+  { min: 30000, key: "microfone_bronze", name: "Microfone de Bronze", icon: "/ranks-acromania/microfone-bronze.png" },
+  { min: 46000, key: "microfone_prata",  name: "Microfone de Prata",  icon: "/ranks-acromania/microfone-prata.png" },
+  { min: 68000, key: "microfone_ouro",   name: "Microfone de Ouro",   icon: "/ranks-acromania/microfone-ouro.png" },
+  { min: 92000, key: "coroa_bronze",     name: "Coroa de Bronze",     icon: "/ranks-acromania/coroa-bronze.png" },
+  { min: 124000, key: "coroa_prata",      name: "Coroa de Prata",      icon: "/ranks-acromania/coroa-prata.png" },
   // Brilha, mas NÃO é exclusiva (ver comentário do zip 217).
-  { min: 80000, key: "coroa_ouro",       name: "Coroa de Ouro",       icon: "/ranks-acromania/coroa-ouro.png", brilha: true },
+  { min: 160000, key: "coroa_ouro",       name: "Coroa de Ouro",       icon: "/ranks-acromania/coroa-ouro.png", brilha: true },
 ];
 
 export function getAcromaniaRankForPoints(points) {
