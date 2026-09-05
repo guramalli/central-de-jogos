@@ -2591,6 +2591,19 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Tela de erro no lugar da tela preta (ver ErrorBoundary.jsx). */
+.erro-boundary {
+  max-width: 460px;
+  margin: 60px auto;
+  padding: 28px 24px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface, #1a1a1a);
+}
+.erro-boundary h2 { margin: 0 0 10px; }
+.erro-boundary p { color: var(--text-dim); margin: 0 0 18px; line-height: 1.5; }
+
 /* Botão de voltar da página de patentes. */
 .ranks-voltar {
   display: inline-block;

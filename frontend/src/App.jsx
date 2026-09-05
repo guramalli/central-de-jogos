@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import BarraMensagens from "./components/BarraMensagens.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import GuestBanner from "./components/GuestBanner.jsx";
@@ -12,18 +13,7 @@ import Footer from "./components/Footer.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Lobby from "./pages/Lobby.jsx";
-import StopGame from "./pages/StopGame.jsx";
-import StopLobby from "./pages/StopLobby.jsx";
-import Ranking from "./pages/Ranking.jsx";
-import Clan from "./pages/Clan.jsx";
-import Friends from "./pages/Friends.jsx";
-import QuizLobby from "./pages/QuizLobby.jsx";
-import QuizGame from "./pages/QuizGame.jsx";
-import AcromaniaLobby from "./pages/AcromaniaLobby.jsx";
-import AcromaniaGame from "./pages/AcromaniaGame.jsx";
-import Profile from "./pages/Profile.jsx";
 import Home from "./pages/Home.jsx";
-import Privacidade from "./pages/Privacidade.jsx";
 
 // Páginas que não fazem parte do fluxo principal de jogar carregam sob
 // demanda: quem entra pra jogar não precisa baixar o painel admin, os
@@ -33,6 +23,21 @@ const RankingHistory = lazy(() => import("./pages/RankingHistory.jsx"));
 const RanksInfo = lazy(() => import("./pages/RanksInfo.jsx"));
 const RanksInfoQuiz = lazy(() => import("./pages/RanksInfoQuiz.jsx"));
 const RanksInfoAcromania = lazy(() => import("./pages/RanksInfoAcromania.jsx"));
+// Carregadas sob demanda. As salas de jogo são as maiores do projeto e
+// ninguém abre duas ao mesmo tempo; os lobbies e as páginas de perfil,
+// clã e amigos só são visitados por quem procura. Ficam no carregamento
+// inicial apenas as portas de entrada: Home, Login, Register e Lobby.
+const StopGame = lazy(() => import("./pages/StopGame.jsx"));
+const QuizGame = lazy(() => import("./pages/QuizGame.jsx"));
+const AcromaniaGame = lazy(() => import("./pages/AcromaniaGame.jsx"));
+const Clan = lazy(() => import("./pages/Clan.jsx"));
+const Friends = lazy(() => import("./pages/Friends.jsx"));
+const Profile = lazy(() => import("./pages/Profile.jsx"));
+const Privacidade = lazy(() => import("./pages/Privacidade.jsx"));
+const Ranking = lazy(() => import("./pages/Ranking.jsx"));
+const StopLobby = lazy(() => import("./pages/StopLobby.jsx"));
+const QuizLobby = lazy(() => import("./pages/QuizLobby.jsx"));
+const AcromaniaLobby = lazy(() => import("./pages/AcromaniaLobby.jsx"));
 const TermosDeUso = lazy(() => import("./pages/TermosDeUso.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
@@ -230,6 +235,12 @@ export default function App() {
       </header>
 
       <div className="container">
+        {/* O boundary fica FORA do Suspense de propósito: a falha ao baixar o
+            arquivo da página acontece durante o carregamento, e um boundary
+            por dentro não a capturaria. `key` no pathname reinicia o estado
+            de erro a cada navegação — sem isso, um erro numa página deixaria
+            a tela de erro presa em todas as seguintes. */}
+        <ErrorBoundary key={location.pathname}>
         <Suspense fallback={<div className="carregando-pagina">Carregando...</div>}>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -388,6 +399,7 @@ export default function App() {
           />
         </Routes>
         </Suspense>
+        </ErrorBoundary>
       </div>
 
       {!isInsideGameRoom && <Footer />}
