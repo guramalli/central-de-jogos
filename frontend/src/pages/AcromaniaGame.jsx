@@ -41,6 +41,8 @@ export default function AcromaniaGame() {
 
   const [phraseInput, setPhraseInput] = useState("");
   const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
+  // Motivo de a frase ter sido recusada pelo servidor (letras erradas).
+  const [erroFrase, setErroFrase] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [waitingNicknames, setWaitingNicknames] = useState([]);
 
@@ -204,7 +206,14 @@ export default function AcromaniaGame() {
       setWaitingInfo(null);
     });
 
-    socket.on("acromania-phrase-submitted", () => setSubmitted(true));
+    socket.on("acromania-phrase-submitted", () => {
+      setSubmitted(true);
+      setErroFrase("");
+    });
+
+    socket.on("acromania-frase-invalida", (data) =>
+      setErroFrase(data?.motivo || "Sua frase não respeita as letras da rodada.")
+    );
 
     socket.on("acromania-submissions-update", (data) =>
       // Aceita as duas formas: `jogadores` (com a marca de quem foi o
@@ -221,6 +230,7 @@ export default function AcromaniaGame() {
       setTimeLeft(data.seconds);
       setMyVote(null);
       setMyEntryId(null);
+      setErroFrase("");
       if (data?.roundsPerTurn) {
         setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
       }
@@ -262,6 +272,7 @@ export default function AcromaniaGame() {
       socket.off("acromania-tick");
       socket.off("acromania-round-start");
       socket.off("acromania-phrase-submitted");
+      socket.off("acromania-frase-invalida");
       socket.off("acromania-submissions-update");
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
@@ -410,10 +421,14 @@ export default function AcromaniaGame() {
                   {pasteBlockedMsg && (
                     <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar sua própria frase.</p>
                   )}
+                  {erroFrase && <p className="acro-erro-frase">⚠️ {erroFrase}</p>}
                   <input
                     ref={phraseInputRef}
                     value={phraseInput}
-                    onChange={(e) => setPhraseInput(e.target.value)}
+                    onChange={(e) => {
+                      setPhraseInput(e.target.value);
+                      if (erroFrase) setErroFrase("");
+                    }}
                     onPaste={(e) => {
                       e.preventDefault();
                       setPasteBlockedMsg(true);

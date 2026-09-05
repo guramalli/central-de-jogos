@@ -2,6 +2,7 @@ import { prisma } from "../db.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { criarSorteadorDeTemas, pickRandomLetters } from "./acromaniaThemes.js";
+import { validarFrase } from "./acromaniaValidacao.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
@@ -520,6 +521,16 @@ export class AcromaniaRoom {
     if (this.state !== "writing") return;
     const clean = (phrase || "").trim().slice(0, 200);
     if (!clean) return;
+
+    // A frase PRECISA respeitar as letras. Validação no servidor, não só na
+    // tela: bloqueio de frontend é contornável por quem mexer no cliente, e
+    // aqui está em jogo a lisura da rodada.
+    const check = validarFrase(clean, this.currentLetters);
+    if (!check.ok) {
+      socket.emit("acromania-frase-invalida", { motivo: check.motivo });
+      return;
+    }
+
     this.submissions.set(userId, clean);
     registrarEvento(userId, "acro_frase").catch(() => {});
     socket.emit("acromania-phrase-submitted", { ok: true });

@@ -2554,6 +2554,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .acro-bottom-grid { grid-template-columns: 2fr 1.1fr 1.1fr; }
 @media (max-width: 800px) { .acro-bottom-grid { grid-template-columns: 1fr; } }
 
+/* Frase recusada por não respeitar as letras da rodada. */
+.acro-erro-frase {
+  color: var(--qz-orange-pale, #ffc082);
+  background: rgba(230, 0, 0, 0.12);
+  border: 1px solid var(--danger, #e60000);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
 /* Rodada atual, em linha própria acima da lista do placar. Fora da aba: ela
    é estreita e quebrava o texto em cima do 1º colocado. */
 .acro-placar-rodada {
