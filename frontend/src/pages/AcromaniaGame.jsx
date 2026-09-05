@@ -206,7 +206,13 @@ export default function AcromaniaGame() {
 
     socket.on("acromania-phrase-submitted", () => setSubmitted(true));
 
-    socket.on("acromania-submissions-update", (data) => setWaitingNicknames(data.nicknames || []));
+    socket.on("acromania-submissions-update", (data) =>
+      // Aceita as duas formas: `jogadores` (com a marca de quem foi o
+      // primeiro) e, na falta dela, a lista antiga só de nomes.
+      setWaitingNicknames(
+        data.jogadores || (data.nicknames || []).map((nickname) => ({ nickname, primeiro: false }))
+      )
+    );
 
     socket.on("acromania-voting-start", (data) => {
       setPhase("voting");
@@ -499,8 +505,11 @@ export default function AcromaniaGame() {
               waitingNicknames.length === 0 ? (
                 <p className="quiz-wrong-log-empty">Ninguém enviou ainda...</p>
               ) : (
-                waitingNicknames.map((nick, i) => (
-                  <div key={i} className="acro-waiting-row">✓ {nick}</div>
+                waitingNicknames.map((j, i) => (
+                  <div key={i} className="acro-waiting-row">
+                    ✓ {j.nickname}
+                    {j.primeiro && <span className="acro-mais-rapido">+ rápido</span>}
+                  </div>
                 ))
               )
             ) : (

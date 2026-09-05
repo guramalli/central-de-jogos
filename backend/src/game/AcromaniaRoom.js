@@ -531,8 +531,21 @@ export class AcromaniaRoom {
   // Avisa a sala inteira QUEM já mandou a frase (só o nick, nunca o
   // conteúdo) — mostrado como uma lista de espera, tipo "aguardando".
   broadcastSubmittedList() {
-    const nicknames = [...this.submissions.keys()].map((userId) => this.getNickname(userId));
-    this.broadcast("acromania-submissions-update", { nicknames });
+    const ids = [...this.submissions.keys()];
+    // O Map preserva a ordem de inserção, então o primeiro id É o primeiro
+    // que enviou. Reenviar não muda a posição: quem chegou primeiro continua
+    // sendo o primeiro, que é o comportamento justo.
+    const jogadores = ids.map((userId, i) => ({
+      nickname: this.getNickname(userId),
+      primeiro: i === 0,
+    }));
+    // `nicknames` (só texto) continua indo junto de propósito: um jogador com
+    // a aba aberta desde antes do deploy ainda tem o bundle antigo, que faz
+    // map em cima de strings. Mandar só objetos quebraria a tela dele.
+    this.broadcast("acromania-submissions-update", {
+      nicknames: jogadores.map((j) => j.nickname),
+      jogadores,
+    });
   }
 
   async startVoting() {

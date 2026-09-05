@@ -54,6 +54,23 @@ export default function AcromaniaLobby() {
         </div>
       </div>
 
+      {/* Legenda de pontuação. As regras estavam só na página de patentes,
+          a um clique de distância — quem chega no lobby não sabia como se
+          pontua antes de entrar na sala. */}
+      <div className="card acro-legenda">
+        <div className="acro-legenda-titulo">Como pontuar</div>
+        <ul className="acro-legenda-lista">
+          <li><strong>+15</strong> por cada voto que a sua frase receber</li>
+          <li><strong>+50</strong> se a sua frase for a mais votada da rodada</li>
+          <li><strong>+10</strong> se você votar na frase que vencer</li>
+          <li><strong>+100 / +60 / +30</strong> para o 1º, 2º e 3º ao fim da partida</li>
+        </ul>
+        <p className="acro-legenda-nota">
+          A partida tem 8 rodadas. Dá pra pontuar bem sem vencer nenhuma: basta escrever frases que
+          agradem. <Link to="/patentes-acromania">Ver patentes →</Link>
+        </p>
+      </div>
+
       <div className="lobby-game-grid">
         {rooms.map((r) => {
           const occ = occupancyInfo(r);
