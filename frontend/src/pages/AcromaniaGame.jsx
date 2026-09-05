@@ -561,15 +561,16 @@ export default function AcromaniaGame() {
             ficava espremido dentro do painel de jogadores, na coluna mais
             estreita da tela — justamente o dado que dá sentido à partida. */}
         <div className="quiz-panel acro-placar-panel">
-          <div className="quiz-retro-tab">
-            placar da partida
-            {turnInfo.roundsPerTurn > 0 && (
-              <span className="acro-placar-rodada">
-                rodada {Math.min(turnInfo.turnRound || 1, turnInfo.roundsPerTurn)}/
-                {turnInfo.roundsPerTurn}
-              </span>
-            )}
-          </div>
+          <div className="quiz-retro-tab">placar da partida</div>
+          {/* A rodada ficava dentro da aba, mas ela é estreita e o texto
+              quebrava em duas linhas, cobrindo o 1º colocado. Aqui é só uma
+              linha de texto acima da lista. */}
+          {turnInfo.roundsPerTurn > 0 && (
+            <div className="acro-placar-rodada">
+              Rodada {Math.min(turnInfo.turnRound || 1, turnInfo.roundsPerTurn)} de{" "}
+              {turnInfo.roundsPerTurn}
+            </div>
+          )}
           <div className="acro-placar-lista">
             {turnRanking.length === 0 ? (
               <p className="quiz-wrong-log-empty">Ninguém pontuou ainda nesta partida.</p>

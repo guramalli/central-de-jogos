@@ -2554,15 +2554,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .acro-bottom-grid { grid-template-columns: 2fr 1.1fr 1.1fr; }
 @media (max-width: 800px) { .acro-bottom-grid { grid-template-columns: 1fr; } }
 
-/* Número da rodada dentro da aba do placar. A .quiz-retro-tab é absoluta e
-   com largura do conteúdo, então nada de float aqui: é só mais um texto em
-   linha, separado por um traço. */
+/* Rodada atual, em linha própria acima da lista do placar. Fora da aba: ela
+   é estreita e quebrava o texto em cima do 1º colocado. */
 .acro-placar-rodada {
-  margin-left: 8px;
-  opacity: 0.8;
-}
-.acro-placar-rodada::before {
-  content: "· ";
+  padding: 10px 12px 0 12px;
+  font-size: 12px;
+  color: var(--qz-orange-pale, #ffc082);
+  opacity: 0.85;
 }
 
 /* Mesma altura dos painéis vizinhos, senão a linha fica desalinhada. */
@@ -2573,11 +2571,12 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .acro-placar-lista {
   flex: 1;
+  /* padding-top menor porque a linha da rodada já vem logo acima. */
   /* min-height:0 é obrigatório em filho flex que rola, senão ele empurra o
      vizinho pra fora do painel (mesma lição do §8). */
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 12px 12px 12px;
+  padding: 6px 12px 12px 12px;
   font-size: 13px;
 }
 
