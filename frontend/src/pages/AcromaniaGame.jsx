@@ -146,6 +146,11 @@ export default function AcromaniaGame() {
 
     socket.on("acromania-intermission", (data) => {
       setPhase("intermission");
+      // Zera o relógio na hora, sem esperar o primeiro tick.
+      if (data?.seconds) {
+        setTotalSeconds(data.seconds);
+        setTimeLeft(data.seconds);
+      }
       // NÃO limpa o resultado aqui. O backend manda "round-result" e, no
       // mesmo instante, "intermission" — então limpar aqui fazia a tela de
       // votos piscar e sumir antes de dar pra ler. O resultado agora fica

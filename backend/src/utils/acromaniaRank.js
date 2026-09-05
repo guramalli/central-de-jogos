@@ -50,5 +50,8 @@ export function getAcromaniaRankForPoints(points) {
 export function getAcromaniaNextRankInfo(points) {
   const next = ACROMANIA_RANKS.find((r) => r.min > points);
   if (!next) return null;
-  return { name: next.name, icon: next.icon, min: next.min, faltam: next.min - points };
+  // O NOME dos campos importa: o tooltip do perfil lê `pointsNeeded`, igual
+  // faz com o Stop e o Quiz. Devolver `faltam` aqui fazia a tela escrever
+  // "Faltam undefined pra Caneta de Prata".
+  return { name: next.name, pointsNeeded: next.min - points };
 }

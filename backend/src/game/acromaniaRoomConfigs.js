@@ -7,7 +7,11 @@ export const ACROMANIA_ROOM_CONFIGS = {
     maxPlayers: 10,
     writingSeconds: 60,     // tempo pra escrever a frase
     votingSeconds: 20,      // tempo pra votar na melhor
-    intermissionSeconds: 10, // intervalo entre rodadas
+    // Intervalo entre rodadas. É também o tempo de LEITURA do resultado: as
+    // frases e os votos ficam na tela durante ele. 10s era pouco pra ler 4 ou
+    // 5 frases. Sobrou espaço no ciclo porque escrita e votação agora
+    // encerram assim que todos respondem.
+    intermissionSeconds: 16,
     // Quantidade de letras SORTEADA a cada rodada dentro desta faixa. Fixo
     // em 3 ficava curto e repetitivo; variar dá ritmo diferente entre uma
     // rodada e outra sem precisar de sala nova.

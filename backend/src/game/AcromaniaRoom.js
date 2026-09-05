@@ -420,6 +420,11 @@ export class AcromaniaRoom {
       waitingForPlayers,
       minPlayersToStart: this.minPlayersToStart,
       onlineCount: this.countUniquePlayers(),
+      // O tempo FALTAVA aqui, e o startWriting/startVoting mandam. Sem ele a
+      // tela seguia mostrando o resto do relógio da votação — que agora sobra
+      // sempre, porque a votação encerra assim que todos votam. O contador
+      // aparecia em 15 e pulava pra 9 no primeiro tick do intervalo.
+      seconds: this.intermissionSeconds,
     });
 
     this.timer = setInterval(() => {
