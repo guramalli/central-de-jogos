@@ -176,10 +176,27 @@ router.post("/quiz-questions/:id/reject", async (req, res) => {
 router.get("/quiz-questions", async (req, res) => {
   const { themeKey } = req.query;
   if (!themeKey) return res.status(400).json({ error: "themeKey é obrigatório." });
+  // Fora as REJEITADAS: elas não estão em jogo e só poluíam a lista, que já
+  // passa de 600 perguntas por tema. Quem quer ver rejeitada usa a fila de
+  // pendências, que é onde a decisão foi tomada.
+  //
+  // Ordenado por dificuldade e depois pelo texto: assim as difíceis ficam
+  // juntas, separadas das fáceis e médias. A ordem por data não ajudava —
+  // misturava tudo e obrigava a caçar visualmente.
   const questions = await prisma.quizQuestion.findMany({
-    where: { themeKey },
-    orderBy: { createdAt: "desc" },
+    where: { themeKey, status: { not: "rejected" } },
+    orderBy: [{ difficulty: "asc" }, { question: "asc" }],
   });
+
+  // "asc" no banco dá dificil, facil, medio (ordem alfabética). Reordena pra
+  // ordem que faz sentido pra quem lê: fácil, médio, difícil.
+  const ordem = { facil: 0, medio: 1, dificil: 2 };
+  questions.sort(
+    (a, b) =>
+      (ordem[a.difficulty] ?? 9) - (ordem[b.difficulty] ?? 9) ||
+      a.question.localeCompare(b.question, "pt-BR")
+  );
+
   res.json(questions);
 });
 
@@ -539,7 +556,10 @@ router.get("/users", requireRole("ADMIN"), async (req, res) => {
       ultimaPlataforma: true, ultimoAcesso: true,
       premiumAte: true, premiumVitalicio: true,
     },
-    orderBy: { createdAt: "asc" },
+    // Mais recentes primeiro: quem acabou de se cadastrar é justamente quem
+    // se quer conferir. Em ordem crescente, a conta nova ia parar na última
+    // página e era preciso navegar até lá toda vez.
+    orderBy: { createdAt: "desc" },
   });
   res.json(users);
 });

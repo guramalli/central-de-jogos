@@ -2588,6 +2588,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Faixa de nível no índice de perguntas do Quiz. */
+.glossario-grupo td {
+  background: var(--bg-panel-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-2);
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
 /* Marcação de alguém no chat (@nick). */
 .chat-mencao {
   color: var(--accent-2);
