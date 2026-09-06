@@ -247,6 +247,18 @@ model PrivateMessage {
   message    String
   read       Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  // Nenhum índice existia aqui, e esta tabela é consultada a cada 20s pela
+  // barra de mensagens — em todas as páginas, por cada pessoa conectada.
+  // Sem índice o banco varre a tabela inteira, e ela cresce pra sempre.
+  //
+  // Os dois cobrem tudo que o código pede hoje:
+  //   receiverId+read  -> contagem de não lidas (barra e avisos)
+  //   senderId         -> conversa entre duas pessoas e a prévia
+  // `createdAt` entra porque as buscas ordenam por ele.
+  @@index([receiverId, read])
+  @@index([receiverId, createdAt])
+  @@index([senderId, createdAt])
 }
 
 model ChatMessage {

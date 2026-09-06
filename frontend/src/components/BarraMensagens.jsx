@@ -57,8 +57,32 @@ export default function BarraMensagens() {
       }
     }
     carregar();
-    const t = setInterval(carregar, 20000);
-    return () => { vivo = false; clearInterval(t); };
+
+    // PAUSA COM A ABA ESCONDIDA.
+    //
+    // Esta barra aparece em TODAS as páginas e faz duas requisições a cada
+    // 20s — 6 por minuto, 360 por hora, por pessoa. Quem deixa a aba aberta
+    // em segundo plano (almoço, fim de expediente) seguia consultando o banco
+    // pra sempre, sem ninguém pra ver o resultado.
+    //
+    // `document.hidden` cobre aba em segundo plano, janela minimizada e
+    // celular com a tela apagada. Ao voltar, recarrega NA HORA em vez de
+    // esperar o próximo ciclo — senão a pessoa veria dados velhos ao retomar.
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      carregar();
+    }, 20000);
+
+    const aoVoltar = () => {
+      if (!document.hidden) carregar();
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+
+    return () => {
+      vivo = false;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
   }, [recarregar]);
 
   function alternar() {
