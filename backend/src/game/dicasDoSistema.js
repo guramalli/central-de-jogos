@@ -24,23 +24,28 @@ const DICAS_GERAIS = [
   "💡 Passe o mouse no nick de alguém pra ver a patente e a posição no ranking.",
   "💡 Sua patente é MENSAL e zera todo dia 1º. Já os títulos são pra sempre.",
   "💡 No seu perfil dá pra escolher qual título aparece do lado do seu nick nas salas.",
-  "💡 Os três primeiros do ranking de cada jogo levam prêmio em Pix no fim do mês.",
   "💡 As missões do dia ficam no topo do lobby de cada jogo.",
   "💡 Dá pra criar um clã ou entrar num: os pontos do mês de todo mundo somam pro time.",
   "💡 Na página de Amigos dá pra conversar por mensagem direta com quem você adicionou.",
+  "💡 Digite @ no chat pra marcar alguém que está na sala — aparece uma lista pra escolher.",
   "💡 Cada jogo tem a própria escada de patentes — o botão fica no lobby.",
   "💡 No celular, use as abas Jogo / Chat / Jogadores pra alternar entre as três telas.",
 ];
 
 // Uma por jogo, sobre a mecânica que a pessoa costuma descobrir tarde.
 const DICAS_POR_JOGO = {
+  // A premiação em Pix existe SÓ no Stop e no Quiz. Antes esta dica estava na
+  // lista geral dizendo "de cada jogo", e saía também no Acromania —
+  // prometendo dinheiro que aquele jogo não paga.
   stop: [
     "💡 No Stop dá pra criar sala privada e chamar só os seus amigos.",
     "💡 Pedir STOP rápido conta pros títulos de raio.",
+    "💡 Os três primeiros do ranking mensal do Stop levam prêmio em Pix.",
   ],
   quiz: [
     "💡 No Quiz só o PRIMEIRO a acertar pontua — vale arriscar antes de ter certeza.",
     "💡 Achou uma pergunta errada ou fora do tema? Dá pra denunciar na própria pergunta.",
+    "💡 Os três primeiros do ranking mensal do Quiz levam prêmio em Pix.",
   ],
   acromania: [
     "💡 No Acromania votar na frase vencedora também dá pontos: preste atenção no que a sala curte.",

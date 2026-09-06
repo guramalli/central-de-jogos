@@ -585,7 +585,8 @@ export default function QuizGame() {
       <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
-          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
+            participantes={onlinePlayers.map((p) => p.nickname)} meuNick={user?.nickname} />
         </div>
         <div className="quiz-panel quiz-players-panel">
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>

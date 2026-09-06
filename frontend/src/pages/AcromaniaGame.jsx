@@ -570,7 +570,8 @@ export default function AcromaniaGame() {
       >
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
-          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
+            participantes={onlinePlayers.map((p) => p.nickname)} meuNick={user?.nickname} />
         </div>
         {/* Placar da partida em painel próprio, no meio da linha. Antes ele
             ficava espremido dentro do painel de jogadores, na coluna mais

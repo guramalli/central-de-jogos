@@ -2588,6 +2588,59 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Marcação de alguém no chat (@nick). */
+.chat-mencao {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+/* Quando a marcação é EU: fundo, pra saltar no meio da conversa. */
+.chat-mencao-eu {
+  background: rgba(255, 184, 111, 0.22);
+  border-radius: 4px;
+  padding: 0 3px;
+}
+
+/* Lista de sugestões ao digitar @. Sobe por cima do campo em vez de empurrar
+   o layout — empurrar mudaria a altura do chat a cada tecla. */
+.chat-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.chat-input-wrap input { width: 100%; }
+.chat-sugestoes {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  background: var(--bg-panel, #20201f);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  z-index: 30;
+  padding: 4px;
+}
+.chat-sugestao {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 7px 10px;
+  border-radius: 5px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.chat-sugestao-ativa,
+.chat-sugestao:hover {
+  background: rgba(255, 184, 111, 0.18);
+  color: var(--accent-2);
+}
+
 /* Comunicado da administração no chat. Vermelho da marca, caixa própria e
    barra na lateral: precisa se separar das outras mensagens de sistema, que
    são todas cinzas, itálicas e parecidas entre si. */

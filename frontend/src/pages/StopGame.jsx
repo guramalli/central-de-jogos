@@ -785,7 +785,8 @@ export default function StopGame() {
       <div className={`sc-bottom-grid ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-retro-panel sc-tab-panel sc-chat-panel">
           <div className="sc-retro-tab sc-retro-tab-right">chat</div>
-          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
+            participantes={onlinePlayers.map((p) => p.nickname)} meuNick={user?.nickname} />
         </div>
 
         <div className="sc-retro-panel sc-tab-panel sc-legend-panel">
