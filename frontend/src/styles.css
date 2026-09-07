@@ -2588,6 +2588,31 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Filtro de nível no índice de perguntas do Quiz. */
+.glossario-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.glossario-filtro {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.glossario-filtro:hover { color: var(--text); }
+.glossario-filtro-ativo {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
 /* Faixa de nível no índice de perguntas do Quiz. */
 .glossario-grupo td {
   background: var(--bg-panel-2);
