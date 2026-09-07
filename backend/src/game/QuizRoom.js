@@ -62,6 +62,11 @@ export class QuizRoom {
     // um ranking do turno e premia os melhores — igual ao bloco do Stop.
     this.roundsPerTurn = config.roundsPerTurn ?? null;
     this.turnBonus = config.turnBonus ?? [50, 30, 15];
+    // Mínimo de gente pontuando pro turno pagar bônus. Sem isso, um jogador
+    // sozinho na arena vence todos os turnos sem disputa: ~45 mil pontos por
+    // dia numa sala, mais de 130 mil em três simultâneas — estouraria o teto
+    // mensal em dois dias.
+    this.minScorersForBonus = config.minScorersForBonus ?? 0;
     // Modo arena: todo mundo que acertar pontua na mesma pergunta (em vez de
     // só o primeiro). A pergunta segue até o tempo acabar.
     this.multiAnswer = !!config.multiAnswer;
@@ -1305,9 +1310,13 @@ export class QuizRoom {
       lastPosition = position;
 
       const player = [...this.players.values()].find((p) => p.userId === userId);
+      // Saiu antes do fim do turno, não leva bônus. Antes a linha entrava
+      // igual, só com o nome trocado por "Jogador" — dava pra pontuar as
+      // primeiras rodadas, sair, e ainda aparecer no pódio.
+      if (!player) return;
       ranking.push({
         userId,
-        nickname: player?.nickname || "Jogador",
+        nickname: player.nickname,
         points,
         position,
       });
@@ -1412,11 +1421,32 @@ export class QuizRoom {
 
     if (ranking.length === 0) {
       this.systemMessage("Ninguém pontuou nesse turno.");
+    } else if (ranking.length < this.minScorersForBonus) {
+      // Turno sem disputa: os pontos por acerto continuam valendo (já foram
+      // creditados rodada a rodada), só o bônus do pódio não sai. Dito em voz
+      // alta pra ninguém achar que o jogo esqueceu de pagar.
+      this.systemMessage(
+        `🏁 Fim do turno! O bônus do pódio precisa de pelo menos ${this.minScorersForBonus} jogadores pontuando — chame mais gente pra próxima!`,
+        true
+      );
     } else {
       const monthKey = currentMonthKey();
       const medals = ["🥇", "🥈", "🥉", "4º", "5º"];
 
+      // BÔNUS PROPORCIONAL À DISPUTA.
+      //
+      // Paga-se a posição N só se houver pelo menos N+1 pessoas pontuando.
+      // Com 2 jogadores só o 1º leva; com 3, o 1º e o 2º; e assim por diante.
+      //
+      // Sem isso, duas pessoas combinando de entrar juntas dividiriam o pódio
+      // inteiro sem disputa nenhuma — ~83 mil pontos em 8 horas cada uma, o
+      // teto mensal em quatro dias. Exigir mais gente pra liberar mais
+      // prêmios recompensa a sala cheia sem travar a sala vazia.
+      const posicoesPremiadas = Math.max(0, ranking.length - 1);
+
       for (const entry of ranking) {
+        if (entry.position > posicoesPremiadas) continue;
+
         // Só premia até onde a tabela de bônus alcança (top 5 por padrão).
         // Empatados na mesma posição recebem o mesmo valor cheio.
         const bonus = this.turnBonus[entry.position - 1];
@@ -1444,9 +1474,46 @@ export class QuizRoom {
           });
           this.lifetimeCache.set(entry.userId, (this.lifetimeCache.get(entry.userId) || 0) + bonus);
           this.mensalCache.set(entry.userId, (this.mensalCache.get(entry.userId) || 0) + bonus);
+
+          // A pontuação DESTA SALA (roomGameKey) estava faltando aqui — o
+          // bônus entrava no ranking mensal e no total do jogo, mas sumia do
+          // placar da sala onde foi conquistado. É o mesmo esquecimento que
+          // já tinha acontecido na pontuação por acerto (ver o comentário
+          // "Pontuação específica DESSA sala", mais acima).
+          await prisma.lifetimeScore.upsert({
+            where: { userId_gameKey: { userId: entry.userId, gameKey: this.roomGameKey } },
+            update: { points: { increment: bonus } },
+            create: { userId: entry.userId, gameKey: this.roomGameKey, points: bonus },
+          });
+          this.roomLifetimeCache.set(
+            entry.userId,
+            (this.roomLifetimeCache.get(entry.userId) || 0) + bonus
+          );
+
+          // E a fatia mensal por sala (zip 209), que alimenta a coluna de
+          // pontos na lista de jogadores.
+          await prisma.monthlyScore.upsert({
+            where: {
+              userId_gameKey_monthKey: { userId: entry.userId, gameKey: this.roomGameKey, monthKey },
+            },
+            update: { points: { increment: bonus } },
+            create: { userId: entry.userId, gameKey: this.roomGameKey, monthKey, points: bonus },
+          });
+          this.roomMonthlyCache.set(
+            entry.userId,
+            (this.roomMonthlyCache.get(entry.userId) || 0) + bonus
+          );
         } catch (err) {
           console.error("Falha ao premiar turno da arena:", err.message);
         }
+      }
+
+      // Dito em voz alta: senão a pessoa em 2º com 2 jogadores acha que o
+      // jogo esqueceu de pagar.
+      if (posicoesPremiadas < Math.min(ranking.length, this.turnBonus.length)) {
+        this.systemMessage(
+          `ℹ️ Com ${ranking.length} pontuando, o bônus vale até o ${posicoesPremiadas}º lugar. Mais gente na sala, mais posições premiadas!`
+        );
       }
 
       this.broadcast("quiz-turn-finished", { ranking });

@@ -21,6 +21,14 @@
 
 export const NOVIDADES = [
   {
+    id: "2026-09-discord",
+    data: "2026-09-07",
+    tipo: "novo",
+    titulo: "O Educação Gamer agora tem Discord",
+    texto:
+      "Criamos um servidor pra combinar partida, avisar da premiação e ouvir o que vocês têm a dizer. O canal de combinar partida é o mais útil: sala cheia é bem mais divertida que sala vazia. O link fica no rodapé do site.",
+  },
+  {
     id: "2026-09-patentes-recalibradas",
     data: "2026-09-07",
     tipo: "aviso",

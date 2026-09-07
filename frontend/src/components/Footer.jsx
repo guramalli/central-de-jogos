@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DISCORD_URL } from "../data/comunidade.js";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import FeedbackModal from "./FeedbackModal.jsx";
@@ -30,6 +31,11 @@ export default function Footer() {
         <a href="/central-de-jogos-quiznet.html">Central de Jogos</a>
         {/* No rodapé e não no menu do cabeçalho: ele já está perto do limite
             de largura com 8 itens. */}
+        {/* rel="noopener noreferrer" porque abre em aba nova: sem isso a
+            página de destino ganha referência à nossa via window.opener. */}
+        <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer">
+          Discord
+        </a>
         <Link to="/novidades">Novidades</Link>
         <Link to="/termos-de-uso">Termos de Uso</Link>
         <Link to="/privacidade">Privacidade</Link>
