@@ -61,7 +61,7 @@ function buildDifficultyRooms(themeKey, themeName) {
 
 export const QUIZ_ROOM_CONFIGS = {
   // ===== Arenas Boca Livre Relâmpago =====
-  // Modo turno (igual aos blocos do Stop): 50 rodadas rápidas, cada acerto
+  // Modo turno (igual aos blocos do Stop): rodadas rápidas, cada acerto
   // vale 1 ponto no placar do turno, e no fim o pódio leva bônus. Tempo
   // curto de propósito — a graça é ser relâmpago.
   "quiz-arena-relampago-iniciante": {
@@ -70,7 +70,7 @@ export const QUIZ_ROOM_CONFIGS = {
     arena: true,
     multiAnswer: true,
     difficultyFilter: ["facil", "medio"],
-    description: "50 rodadas relâmpago de todos os temas. Todo mundo que acertar pontua — e os 5 primeiros do turno ainda levam bônus!",
+    description: "Rodadas relâmpago de todos os temas. Todo mundo que acertar pontua, e o pódio do turno leva bônus — quanto mais gente na sala, mais posições premiadas.",
     maxPlayers: 20,
     questionSeconds: 14,
     revealIntervalSeconds: 2,
@@ -92,7 +92,7 @@ export const QUIZ_ROOM_CONFIGS = {
     arena: true,
     multiAnswer: true,
     difficultyFilter: ["dificil"],
-    description: "50 rodadas relâmpago só com as perguntas mais puxadas. Todo mundo que acertar pontua. Pra quem é rápido de verdade.",
+    description: "Só as perguntas mais puxadas, e menos letras reveladas. Cada acerto vale mais e o bônus do pódio também. Pra quem é rápido de verdade.",
     maxPlayers: 20,
     questionSeconds: 14,
     revealIntervalSeconds: 2,

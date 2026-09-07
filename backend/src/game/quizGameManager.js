@@ -114,6 +114,12 @@ export async function getAllQuizRoomsStatus() {
         arena: !!config.arena,
         roundsPerTurn: config.roundsPerTurn || null,
         questionSeconds: config.questionSeconds,
+        // Bônus e pontos por acerto vão pro lobby pra a tela PARAR de repetir
+        // números à mão. Estavam escritos direto no JSX e ficaram defasados
+        // assim que a arena foi recalibrada — dizia 50 rodadas, 10 segundos e
+        // bônus de 100, quando já eram 40, 14 e 1000.
+        turnBonus: config.turnBonus || null,
+        pointsPerCorrect: config.pointsPerCorrect ?? null,
         maxPlayers: config.maxPlayers ?? 10,
         onlineCount: room ? room.countUniquePlayers() : 0,
         streakRecord: recordByRoom[roomId] || null,
