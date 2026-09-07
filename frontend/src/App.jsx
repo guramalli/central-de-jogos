@@ -23,6 +23,7 @@ const RankingHistory = lazy(() => import("./pages/RankingHistory.jsx"));
 const RanksInfo = lazy(() => import("./pages/RanksInfo.jsx"));
 const RanksInfoQuiz = lazy(() => import("./pages/RanksInfoQuiz.jsx"));
 const RanksInfoAcromania = lazy(() => import("./pages/RanksInfoAcromania.jsx"));
+const Novidades = lazy(() => import("./pages/Novidades.jsx"));
 // Carregadas sob demanda. As salas de jogo são as maiores do projeto e
 // ninguém abre duas ao mesmo tempo; os lobbies e as páginas de perfil,
 // clã e amigos só são visitados por quem procura. Ficam no carregamento
@@ -248,6 +249,9 @@ export default function App() {
           <Route path="/redefinir-senha" element={<ResetPassword />} />
           <Route path="/registrar" element={<Register />} />
           <Route path="/termos-de-uso" element={<TermosDeUso />} />
+          {/* Fora do <Private>: quem ainda não tem conta também pode ver que
+              o site está sendo cuidado. */}
+          <Route path="/novidades" element={<Novidades />} />
           <Route path="/privacidade" element={<Privacidade />} />
           <Route
             path="/"

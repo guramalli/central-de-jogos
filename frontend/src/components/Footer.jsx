@@ -28,6 +28,9 @@ export default function Footer() {
         <a href="/palavras-stop-letras-dificeis.html">Palavras difíceis</a>
         <a href="/quiz-online.html">Sobre o Quiz</a>
         <a href="/central-de-jogos-quiznet.html">Central de Jogos</a>
+        {/* No rodapé e não no menu do cabeçalho: ele já está perto do limite
+            de largura com 8 itens. */}
+        <Link to="/novidades">Novidades</Link>
         <Link to="/termos-de-uso">Termos de Uso</Link>
         <Link to="/privacidade">Privacidade</Link>
         <button className="site-footer-link-btn" onClick={() => setShowFeedback(true)}>Suporte</button>
