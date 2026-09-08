@@ -140,8 +140,10 @@ export default function Clan() {
             </>
           ) : (
             <p style={{ color: "var(--text-dim)" }}>
-              Você precisa de pelo menos <strong>{data?.requiredPoints}</strong> pontos vitalícios no
-              Stop pra poder criar um clã (você tem <strong>{data?.myPoints}</strong> agora). Continue
+              Você precisa de pelo menos{" "}
+              <strong>{(data?.requiredPoints ?? 0).toLocaleString("pt-BR")}</strong> pontos
+              vitalícios somando <strong>Stop, Quiz e Acromania</strong> pra criar um clã (você tem{" "}
+              <strong>{(data?.myPoints ?? 0).toLocaleString("pt-BR")}</strong> agora). Continue
               jogando pra desbloquear, ou espere alguém te convidar pro clã dela.
             </p>
           )}

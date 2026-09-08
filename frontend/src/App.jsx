@@ -24,6 +24,8 @@ const RanksInfo = lazy(() => import("./pages/RanksInfo.jsx"));
 const RanksInfoQuiz = lazy(() => import("./pages/RanksInfoQuiz.jsx"));
 const RanksInfoAcromania = lazy(() => import("./pages/RanksInfoAcromania.jsx"));
 const Novidades = lazy(() => import("./pages/Novidades.jsx"));
+const Campeoes = lazy(() => import("./pages/Campeoes.jsx"));
+const ClanProfile = lazy(() => import("./pages/ClanProfile.jsx"));
 // Carregadas sob demanda. As salas de jogo são as maiores do projeto e
 // ninguém abre duas ao mesmo tempo; os lobbies e as páginas de perfil,
 // clã e amigos só são visitados por quem procura. Ficam no carregamento
@@ -252,6 +254,22 @@ export default function App() {
           {/* Fora do <Private>: quem ainda não tem conta também pode ver que
               o site está sendo cuidado. */}
           <Route path="/novidades" element={<Novidades />} />
+          <Route
+            path="/cla/:id"
+            element={
+              <Private>
+                <ClanProfile />
+              </Private>
+            }
+          />
+          <Route
+            path="/campeoes"
+            element={
+              <Private>
+                <Campeoes />
+              </Private>
+            }
+          />
           <Route path="/privacidade" element={<Privacidade />} />
           <Route
             path="/"

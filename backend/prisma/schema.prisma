@@ -129,6 +129,7 @@ model Clan {
   createdAt DateTime @default(now())
   members   User[]   @relation("ClanMembers")
   invites   ClanInvite[]
+  campeonatos CampeaoClaMensal[]
 }
 
 // Convite pendente de um clã para um jogador. O dono do clã cria o convite;
@@ -315,6 +316,33 @@ model QuizQuestionReport {
   createdAt  DateTime @default(now())
 
   @@unique([questionId, userId])
+}
+
+// Campeão de CLÃ do mês, congelado no fechamento.
+//
+// Congelado e não calculado na hora pelo mesmo motivo dos troféus
+// individuais: a composição do clã muda. Se um membro sair ou for banido em
+// outubro, recalcular reescreveria o pódio de setembro — e um troféu que
+// muda depois não é troféu.
+//
+// Por isso o nome e a tag ficam gravados aqui: se o clã se renomear, o
+// troféu registra como ele se chamava na época.
+model CampeaoClaMensal {
+  id          String   @id @default(cuid())
+  monthKey    String   // "2026-09"
+  // "stop" | "quiz" | "acromania" | "geral" (soma dos três)
+  gameKey     String
+  clanId      String
+  clan        Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  clanName    String
+  clanTag     String
+  points      Int
+  memberCount Int
+  createdAt   DateTime @default(now())
+
+  // Um campeão por mês/jogo, igual ao dos jogadores.
+  @@unique([monthKey, gameKey])
+  @@index([clanId])
 }
 
 model QuizQuestion {

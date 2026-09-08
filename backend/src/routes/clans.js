@@ -11,13 +11,25 @@ const MAX_MEMBERS = 10;
 // Pontuação vitalícia mínima (geral, no jogo Stop) exigida pra poder CRIAR um
 // clã — corresponde aproximadamente à patente "Avançado". Só criar é restrito;
 // entrar num clã (por convite) não exige pontuação nenhuma.
-const CREATE_MIN_POINTS = 1000;
+// Mínimo pra CRIAR um clã. Entrar num (por convite) não exige nada.
+//
+// Era 1.000 pontos vitalícios SÓ DO STOP — quem jogava apenas Quiz ou
+// Acromania não conseguia criar clã por mais que jogasse. Agora soma os três
+// jogos, e o valor subiu pra 50.000: criar clã deixou de ser algo das
+// primeiras horas e passou a exigir alguma estrada no site.
+const CREATE_MIN_POINTS = 50000;
 
+// Soma vitalícia de TODOS os jogos.
+//
+// O filtro de ":" exclui as linhas por sala (gameKey tipo "stop:sala-1"),
+// que existem só pra alimentar o placar dentro da sala — sem ele cada ponto
+// entraria duas vezes e o requisito valeria metade.
 async function getMyLifetimePoints(userId) {
-  const score = await prisma.lifetimeScore.findUnique({
-    where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+  const scores = await prisma.lifetimeScore.findMany({
+    where: { userId, NOT: { gameKey: { contains: ":" } } },
+    select: { points: true },
   });
-  return score?.points || 0;
+  return scores.reduce((soma, s) => soma + (s.points || 0), 0);
 }
 
 // Clã do usuário logado (se tiver), com membros e — se for o dono — convites
@@ -127,16 +139,38 @@ router.get("/todos", requireAuth, async (req, res) => {
   res.json(lista);
 });
 
+// Perfil público do clã: membros, troféus e pontuação do mês.
 router.get("/:id", requireAuth, async (req, res) => {
   const clan = await prisma.clan.findUnique({
     where: { id: req.params.id },
     include: {
       owner: { select: { id: true, nickname: true } },
-      members: { select: { id: true, nickname: true } },
+      members: { select: { id: true, nickname: true, avatarUrl: true, role: true, isGuest: true } },
+      // Troféus congelados no fechamento do mês, do mais recente pro mais
+      // antigo — a vitrine é o motivo principal desta página existir.
+      campeonatos: { orderBy: [{ monthKey: "desc" }, { gameKey: "asc" }] },
     },
   });
   if (!clan) return res.status(404).json({ error: "Clã não encontrado." });
-  res.json(clan);
+
+  // Pontuação do mês corrente, pra página não mostrar só passado.
+  const contaNoRanking = (m) => m.role !== "ADMIN" && !m.isGuest;
+  const ids = clan.members.filter(contaNoRanking).map((m) => m.id);
+  const scores = ids.length
+    ? await prisma.monthlyScore.groupBy({
+        by: ["userId"],
+        where: { userId: { in: ids }, monthKey: currentMonthKey(), NOT: { gameKey: { contains: ":" } } },
+        _sum: { points: true },
+      })
+    : [];
+
+  res.json({
+    ...clan,
+    // `role` e `isGuest` saem da resposta: são detalhe interno e não têm por
+    // que aparecer numa página pública.
+    members: clan.members.map(({ id, nickname, avatarUrl }) => ({ id, nickname, avatarUrl })),
+    monthlyPoints: scores.reduce((soma, x) => soma + (x._sum.points || 0), 0),
+  });
 });
 
 // Cria um clã novo — só quem tem pontuação suficiente, e só quem ainda não
@@ -158,7 +192,7 @@ router.post("/", requireAuth, async (req, res) => {
   const points = await getMyLifetimePoints(req.user.id);
   if (points < CREATE_MIN_POINTS) {
     return res.status(403).json({
-      error: `Você precisa de pelo menos ${CREATE_MIN_POINTS} pontos vitalícios no Stop para criar um clã.`,
+      error: `Você precisa de pelo menos ${CREATE_MIN_POINTS.toLocaleString("pt-BR")} pontos vitalícios (somando Stop, Quiz e Acromania) para criar um clã. Você tem ${points.toLocaleString("pt-BR")}.`,
     });
   }
 
@@ -273,11 +307,25 @@ router.delete("/members/:userId", requireAuth, async (req, res) => {
 });
 
 // Ranking mensal de clãs: soma os pontos mensais (Stop) de todos os membros.
+// Ranking mensal de clãs, por jogo ou geral.
+//
+// ?jogo=stop | quiz | acromania | geral   (padrão: geral)
+//
+// Antes esta rota somava SÓ o Stop, com o gameKey fixo no código, e a tela
+// não dizia isso em lugar nenhum — quem jogava Quiz achava que estava
+// somando pro clã e não estava. Pior: a rota /todos somava TODOS os jogos,
+// então o site tinha duas contas diferentes chamadas de "pontos do clã".
+const JOGOS_VALIDOS = ["stop", "quiz", "acromania"];
+
 router.get("/ranking/mensal", requireAuth, async (req, res) => {
-  // Ranking muda devagar (só quando alguém pontua) e é consultado por
-  // todo mundo. Cache de 2 minutos corta praticamente todas as consultas
-  // sem que ninguém perceba diferença.
-  const dados = await cacheOuBuscar("clans:ranking-mensal", 120, async () => {
+  const jogo = String(req.query.jogo || "geral").toLowerCase();
+  if (jogo !== "geral" && !JOGOS_VALIDOS.includes(jogo)) {
+    return res.status(400).json({ error: "Jogo inválido." });
+  }
+
+  // Cache por jogo: sem o sufixo, o primeiro a carregar guardaria o resultado
+  // e os outros jogos serviriam o dele por 2 minutos.
+  const dados = await cacheOuBuscar(`clans:ranking-mensal:${jogo}`, 120, async () => {
     const monthKey = currentMonthKey();
     const clans = await prisma.clan.findMany({
       include: { members: { select: { id: true, nickname: true, role: true, isGuest: true } } },
@@ -291,10 +339,16 @@ router.get("/ranking/mensal", requireAuth, async (req, res) => {
 
     // UMA consulta pra todos os clãs, em vez de uma por clã: com 20 clãs
     // isso era 21 idas ao banco a cada carregamento da página.
+    // No "geral", exclui as linhas por sala (gameKey com ":"), que existem
+    // só pra alimentar a lista dentro da sala — sem isso cada ponto entraria
+    // duas vezes. Num jogo específico, o gameKey exato já resolve.
+    const filtroJogo =
+      jogo === "geral" ? { NOT: { gameKey: { contains: ":" } } } : { gameKey: jogo };
+
     const scores = todosIds.length
       ? await prisma.monthlyScore.groupBy({
           by: ["userId"],
-          where: { userId: { in: todosIds }, gameKey: GAME_KEY, monthKey },
+          where: { userId: { in: todosIds }, monthKey, ...filtroJogo },
           _sum: { points: true },
         })
       : [];

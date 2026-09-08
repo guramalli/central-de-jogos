@@ -3,9 +3,25 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client.js";
 import RankBadge from "../components/RankBadge.jsx";
 import Seo from "../components/Seo.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
+
+// Premiação em Pix — só Stop e Quiz pagam. O Acromania entra no ranking mas
+// não distribui prêmio, e a tela precisa dizer isso em vez de deixar
+// subentendido.
+const PREMIOS = ["R$ 200", "R$ 100", "R$ 50"];
+const JOGOS_COM_PREMIO = ["stop", "quiz"];
+
+const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 const VALID_GAMES = ["stop", "quiz", "acromania"];
+
+const ROTULO_JOGO = {
+  geral: "🏆 Geral",
+  stop: "🅾️ Stop",
+  quiz: "❓ Quiz",
+  acromania: "🔤 Acromania",
+};
 
 export default function Ranking() {
   const [searchParams] = useSearchParams();
@@ -13,6 +29,7 @@ export default function Ranking() {
   const [game, setGame] = useState(initialGame); // stop | quiz | acromania — só vale pra mensal/vitalício
   const [tab, setTab] = useState("monthly"); // monthly | lifetime | clans
   const [rows, setRows] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     const path =
@@ -20,11 +37,27 @@ export default function Ranking() {
         ? `/ranking/monthly/${game}`
         : tab === "lifetime"
         ? `/ranking/lifetime/${game}`
-        : "/clans/ranking/mensal";
+        : `/clans/ranking/mensal?jogo=${game}`;
     api.get(path).then(({ data }) => setRows(data));
   }, [tab, game]);
 
+  // "geral" só existe no ranking de clãs. Sem este ajuste, trocar de aba com
+  // ele selecionado chamaria /ranking/monthly/geral, que não existe.
+  useEffect(() => {
+    if (tab !== "clans" && game === "geral") setGame("stop");
+  }, [tab, game]);
+
   const isClans = tab === "clans";
+  // Prêmio só aparece onde ele existe de verdade: mensal, individual, e nos
+  // dois jogos que pagam. No Acromania e no vitalício, mostrar valores seria
+  // prometer o que não existe.
+  const mostraPremio = tab === "monthly" && !isClans && JOGOS_COM_PREMIO.includes(game);
+  // O seletor de jogo agora vale TAMBÉM pra aba de clãs: antes ele era
+  // escondido ali e a soma era só do Stop, com o jogo fixo no servidor —
+  // quem jogava Quiz achava que estava somando pro clã e não estava.
+  const jogosDisponiveis = isClans
+    ? ["geral", "stop", "quiz", "acromania"]
+    : ["stop", "quiz", "acromania"];
   const nameOf = (r) => (isClans ? `[${r.tag}] ${r.name}` : r.nickname);
 
   return (
@@ -32,22 +65,22 @@ export default function Ranking() {
       <Seo title="Ranking" description="Veja o ranking mensal e vitalício de Stop, Quiz e Acromania." />
       <h1>Ranking</h1>
       <p style={{ marginTop: -8 }}>
-        <Link to="/ranking/historico">🏛️ Ver campeões dos meses anteriores →</Link>
+        <Link to="/campeoes">🏆 Campeões do mês passado</Link>
+        {" · "}
+        <Link to="/ranking/historico">🏛️ Todos os meses →</Link>
       </p>
 
-      {!isClans && (
-        <div className="ranking-game-tabs">
-          <button className={`btn ${game === "stop" ? "" : "secondary"}`} onClick={() => setGame("stop")}>
-            🅾️ Stop
+      <div className="ranking-game-tabs">
+        {jogosDisponiveis.map((j) => (
+          <button
+            key={j}
+            className={`btn ${game === j ? "" : "secondary"}`}
+            onClick={() => setGame(j)}
+          >
+            {ROTULO_JOGO[j]}
           </button>
-          <button className={`btn ${game === "quiz" ? "" : "secondary"}`} onClick={() => setGame("quiz")}>
-            ❓ Quiz
-          </button>
-          <button className={`btn ${game === "acromania" ? "" : "secondary"}`} onClick={() => setGame("acromania")}>
-            🔤 Acromania
-          </button>
-        </div>
-      )}
+        ))}
+      </div>
 
       <div className="ranking-tabs">
         <button className={`btn ${tab === "monthly" ? "" : "secondary"}`} onClick={() => setTab("monthly")}>
@@ -61,15 +94,34 @@ export default function Ranking() {
         </button>
       </div>
 
+      <p className="ranking-contexto">
+        {isClans
+          ? game === "geral"
+            ? "Soma dos pontos do mês de todos os membros, nos três jogos."
+            : `Soma dos pontos do mês dos membros no ${ROTULO_JOGO[game].split(" ")[1]}.`
+          : tab === "lifetime"
+          ? "Total acumulado desde sempre. Não zera e não vale prêmio."
+          : mostraPremio
+          ? "Zera todo dia 1º. Os três primeiros recebem por Pix no fim do mês."
+          : "Zera todo dia 1º. Este jogo ainda não tem premiação em dinheiro."}
+      </p>
+
       {rows.length > 0 && (
         <div className="podium">
           {rows.slice(0, 3).map((r) => (
             <div key={r.position} className={`podium-item podium-${r.position}`}>
               <div className="podium-medal">{MEDALS[r.position - 1]}</div>
               <div className="podium-name">
-                {isClans ? nameOf(r) : <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>}
+                {isClans ? (
+                  <Link to={`/cla/${r.id}`}>{nameOf(r)}</Link>
+                ) : (
+                  <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>
+                )}
               </div>
-              <div className="podium-points">{r.points} pts</div>
+              <div className="podium-points">{fmt(r.points)} pts</div>
+              {/* O prêmio ao lado da posição responde a pergunta que a pessoa
+                  tem na cabeça: quanto vale estar aqui. */}
+              {mostraPremio && <div className="podium-premio">{PREMIOS[r.position - 1]}</div>}
             </div>
           ))}
         </div>
@@ -88,10 +140,22 @@ export default function Ranking() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.position} className={r.position <= 3 ? "row-podium" : ""}>
+              <tr
+                key={r.position}
+                className={`${r.position <= 3 ? "row-podium" : ""} ${
+                  !isClans && r.userId === user?.id ? "row-eu" : ""
+                }`}
+              >
                 <td>{r.position}</td>
-                <td>{isClans ? nameOf(r) : <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>}</td>
-                <td>{r.points}</td>
+                <td>
+                  {isClans ? (
+                    <Link to={`/cla/${r.id}`}>{nameOf(r)}</Link>
+                  ) : (
+                    <Link to={`/jogador/${r.userId}`}>{nameOf(r)}</Link>
+                  )}
+                  {!isClans && r.userId === user?.id && <span className="row-eu-tag">você</span>}
+                </td>
+                <td className="ranking-pts">{fmt(r.points)}</td>
                 {tab === "monthly" && (
                   <td>
                     <RankBadge rank={r.rank} />
@@ -103,7 +167,9 @@ export default function Ranking() {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={4} style={{ color: "var(--text-dim)" }}>
-                  {isClans ? "Ainda não há clãs com pontuação este mês." : "Ainda não há pontuações registradas."}
+                  {isClans
+                    ? "Nenhum clã pontuou neste jogo ainda este mês. Jogue com o seu clã pra abrir o placar."
+                    : "Ninguém pontuou aqui este mês. Entre numa sala e o primeiro lugar é seu."}
                 </td>
               </tr>
             )}
