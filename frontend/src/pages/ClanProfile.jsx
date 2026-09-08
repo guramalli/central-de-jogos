@@ -114,13 +114,47 @@ export default function ClanProfile() {
 
       <div className="card">
         <h2>Membros</h2>
-        <div className="cla-membros">
-          {clan.members.map((m) => (
-            <Link key={m.id} to={`/jogador/${m.id}`} className="cla-membro">
-              {m.nickname}
-            </Link>
-          ))}
-        </div>
+        <table className="player-table">
+          <thead>
+            <tr>
+              <th>Jogador</th>
+              <th>Pontos no mês</th>
+              <th>Contribuição</th>
+            </tr>
+          </thead>
+          <tbody>
+            {clan.members.map((m) => (
+              <tr key={m.id}>
+                <td>
+                  <Link to={`/jogador/${m.id}`}>{m.nickname}</Link>
+                  {m.id === clan.owner.id && <span className="cla-dono-tag">líder</span>}
+                </td>
+                <td className="ranking-pts">
+                  {m.contaPontos ? (
+                    (m.points ?? 0).toLocaleString("pt-BR")
+                  ) : (
+                    <span className="cla-nao-conta" title="Contas de administrador e visitantes não somam pontos pro clã">
+                      não soma
+                    </span>
+                  )}
+                </td>
+                <td>
+                  {m.contaPontos && (
+                    /* A barra transforma o número em comparação visual: dá
+                       pra ver quem carrega o clã sem ler percentual por
+                       percentual. */
+                    <div className="cla-contrib">
+                      <div className="cla-contrib-barra">
+                        <div className="cla-contrib-preenchida" style={{ width: `${m.percent}%` }} />
+                      </div>
+                      <span className="cla-contrib-num">{m.percent}%</span>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

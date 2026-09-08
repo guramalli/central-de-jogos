@@ -11,7 +11,6 @@ export default function Clan() {
   // Diretório de clãs: todos os clãs do site, e qual deles está expandido
   // mostrando os membros.
   const [todosClans, setTodosClans] = useState([]);
-  const [clanAberto, setClanAberto] = useState(null);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
@@ -228,14 +227,15 @@ export default function Clan() {
 
         <div className="clan-list">
           {todosClans.map((c, i) => {
-            const aberto = clanAberto === c.id;
             const meu = data?.clan?.id === c.id;
             return (
               <div key={c.id} className={`clan-list-item ${meu ? "clan-list-item-meu" : ""}`}>
-                <button
-                  className="clan-list-head"
-                  onClick={() => setClanAberto(aberto ? null : c.id)}
-                >
+                {/* Vai direto pro perfil do clã, em vez de expandir aqui.
+                    O acordeão mostrava líder e membros; o perfil mostra isso
+                    e mais os pontos de cada um, a contribuição e os troféus —
+                    manter os dois seria a mesma informação em dois lugares,
+                    com um deles sempre pior. */}
+                <Link to={`/cla/${c.id}`} className="clan-list-head">
                   <span className="clan-list-pos">{i + 1}º</span>
                   <span className="clan-list-tag">[{c.tag}]</span>
                   <span className="clan-list-name">
@@ -249,29 +249,10 @@ export default function Clan() {
                     {c.monthlyPoints.toLocaleString("pt-BR")} pts
                   </span>
                   <span className="material-symbols-outlined clan-list-seta">
-                    {aberto ? "expand_less" : "expand_more"}
+                    chevron_right
                   </span>
-                </button>
+                </Link>
 
-                {aberto && (
-                  <div className="clan-list-membros">
-                    <div className="clan-list-membros-titulo">
-                      Líder: <strong>{c.owner.nickname}</strong>
-                    </div>
-                    <div className="clan-list-membros-grid">
-                      {c.members.map((m) => (
-                        <Link
-                          key={m.id}
-                          to={`/jogador/${m.id}`}
-                          className={`clan-membro ${m.id === c.owner.id ? "clan-membro-lider" : ""}`}
-                        >
-                          {m.id === c.owner.id ? "👑 " : ""}
-                          {m.nickname}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}

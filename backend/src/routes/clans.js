@@ -164,12 +164,36 @@ router.get("/:id", requireAuth, async (req, res) => {
       })
     : [];
 
+  const porUsuario = Object.fromEntries(scores.map((x) => [x.userId, x._sum.points || 0]));
+  const total = scores.reduce((soma, x) => soma + (x._sum.points || 0), 0);
+
+  // Pontos e contribuição de cada membro. Com o total do clã já calculado, a
+  // porcentagem sai de graça — e é ela que mostra quem está puxando o time.
+  //
+  // Ordenado do maior pro menor: numa lista alfabética, quem carrega o clã
+  // some no meio.
+  const membros = clan.members
+    .map(({ id, nickname, avatarUrl, role, isGuest }) => {
+      const pontos = porUsuario[id] || 0;
+      return {
+        id,
+        nickname,
+        avatarUrl,
+        points: pontos,
+        // Sem pontos no clã inteiro, 0% pra todo mundo em vez de divisão por
+        // zero (que daria NaN na tela).
+        percent: total > 0 ? Math.round((pontos / total) * 1000) / 10 : 0,
+        // Admin e visitante são membros, mas não somam pro clã. A tela mostra
+        // isso em vez de deixar parecer que a pessoa não jogou.
+        contaPontos: contaNoRanking({ role, isGuest }),
+      };
+    })
+    .sort((a, b) => b.points - a.points || a.nickname.localeCompare(b.nickname, "pt-BR"));
+
   res.json({
     ...clan,
-    // `role` e `isGuest` saem da resposta: são detalhe interno e não têm por
-    // que aparecer numa página pública.
-    members: clan.members.map(({ id, nickname, avatarUrl }) => ({ id, nickname, avatarUrl })),
-    monthlyPoints: scores.reduce((soma, x) => soma + (x._sum.points || 0), 0),
+    members: membros,
+    monthlyPoints: total,
   });
 });
 

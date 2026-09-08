@@ -17,10 +17,16 @@ const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 const VALID_GAMES = ["stop", "quiz", "acromania"];
 
 const ROTULO_JOGO = {
-  geral: "🏆 Geral",
-  stop: "🅾️ Stop",
-  quiz: "❓ Quiz",
-  acromania: "🔤 Acromania",
+  geral: "Geral",
+  stop: "Stop",
+  quiz: "Quiz",
+  acromania: "Acromania",
+};
+
+const LOGO_JOGO = {
+  stop: "/stop-logo.png",
+  quiz: "/quiz-logo.png",
+  acromania: "/acromania-logo.png",
 };
 
 export default function Ranking() {
@@ -30,6 +36,20 @@ export default function Ranking() {
   const [tab, setTab] = useState("monthly"); // monthly | lifetime | clans
   const [rows, setRows] = useState([]);
   const { user } = useAuth();
+  // Só pra saber se a pessoa já tem clã — muda o texto do botão entre
+  // "criar" e "administrar". Buscado uma vez, não a cada troca de aba.
+  const [meuCla, setMeuCla] = useState(null);
+
+  useEffect(() => {
+    let vivo = true;
+    api
+      .get("/clans/mine")
+      .then(({ data }) => vivo && setMeuCla(data?.clan || null))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   useEffect(() => {
     const path =
@@ -65,19 +85,31 @@ export default function Ranking() {
       <Seo title="Ranking" description="Veja o ranking mensal e vitalício de Stop, Quiz e Acromania." />
       <h1>Ranking</h1>
       <p style={{ marginTop: -8 }}>
-        <Link to="/campeoes">🏆 Campeões do mês passado</Link>
-        {" · "}
-        <Link to="/ranking/historico">🏛️ Todos os meses →</Link>
+        <Link to="/ranking/historico" className="ranking-hall">
+          🏛️ Hall da Fama
+        </Link>
       </p>
 
+      {/* A logo É o botão. Os três jogos já têm identidade visual forte e
+          reconhecível; escrever o nome ao lado de um emoji desperdiçava isso.
+          O "Geral" não tem logo própria, então usa texto — e a diferença de
+          tratamento marca que ele não é um jogo, é a soma dos três. */}
       <div className="ranking-game-tabs">
         {jogosDisponiveis.map((j) => (
           <button
             key={j}
-            className={`btn ${game === j ? "" : "secondary"}`}
+            type="button"
+            className={`jogo-tab${game === j ? " jogo-tab-ativo" : ""}${
+              j === "geral" ? " jogo-tab-geral" : ""
+            }`}
             onClick={() => setGame(j)}
+            aria-pressed={game === j}
           >
-            {ROTULO_JOGO[j]}
+            {j === "geral" ? (
+              <span className="jogo-tab-texto">Geral</span>
+            ) : (
+              <img src={LOGO_JOGO[j]} alt={ROTULO_JOGO[j]} className="jogo-tab-logo" />
+            )}
           </button>
         ))}
       </div>
@@ -94,11 +126,24 @@ export default function Ranking() {
         </button>
       </div>
 
+      {isClans && (
+        <div className="ranking-cla-acao">
+          <Link to="/clan" className="btn">
+            {meuCla ? `Administrar ${meuCla.name}` : "Criar um clã"}
+          </Link>
+          {meuCla && (
+            <Link to={`/cla/${meuCla.id}`} className="btn secondary">
+              Ver perfil do clã
+            </Link>
+          )}
+        </div>
+      )}
+
       <p className="ranking-contexto">
         {isClans
           ? game === "geral"
             ? "Soma dos pontos do mês de todos os membros, nos três jogos."
-            : `Soma dos pontos do mês dos membros no ${ROTULO_JOGO[game].split(" ")[1]}.`
+            : `Soma dos pontos do mês dos membros no ${ROTULO_JOGO[game]}.`
           : tab === "lifetime"
           ? "Total acumulado desde sempre. Não zera e não vale prêmio."
           : mostraPremio

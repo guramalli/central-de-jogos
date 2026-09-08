@@ -41,6 +41,15 @@
 
 * { box-sizing: border-box; }
 
+/* O site não tinha NENHUMA regra global pra links: onde não havia estilo
+   próprio, saía o azul padrão do navegador, gritando no fundo escuro.
+   O laranja da marca é o mesmo já usado nos links dos componentes. */
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
 /* Evita o gesto nativo de "puxar pra atualizar" do navegador em celular,
    que podia disparar sem querer durante o scroll normal dentro de uma sala. */
 html, body { overscroll-behavior-y: contain; }
@@ -2617,6 +2626,120 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   cursor: help;
 }
 
+/* Ações do clã na aba de clãs do ranking. */
+.ranking-cla-acao {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 12px;
+}
+
+/* Contribuição de cada membro no perfil do clã. */
+.cla-contrib { display: flex; align-items: center; gap: 8px; }
+.cla-contrib-barra {
+  flex: 1;
+  /* min-width evita a barra sumir quando a coluna aperta no celular. */
+  min-width: 60px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-panel-2);
+  overflow: hidden;
+}
+.cla-contrib-preenchida {
+  height: 100%;
+  background: var(--accent-2);
+  border-radius: 999px;
+}
+.cla-contrib-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 42px;
+  text-align: right;
+}
+.cla-nao-conta { color: var(--text-dim); font-size: 12px; cursor: help; }
+.cla-dono-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-2);
+  color: var(--accent-2);
+}
+
+/* ===== Seletor de jogo do ranking: a logo é o botão ===== */
+.ranking-hall {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+.ranking-game-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.jogo-tab {
+  background: var(--bg-panel);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  /* Inativo fica dessaturado e apagado: a cor volta ao selecionar, o que
+     torna a seleção legível sem depender de borda fina. */
+  filter: grayscale(0.7);
+  opacity: 0.6;
+  transition: opacity 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+.jogo-tab:hover { opacity: 0.85; filter: grayscale(0.25); }
+.jogo-tab-ativo {
+  border-color: var(--accent-2);
+  filter: none;
+  opacity: 1;
+  background: var(--bg-panel-2);
+}
+.jogo-tab:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* A logo do Acromania é bem mais larga que as outras (é a palavra mais
+   comprida). Sem um teto de largura, o botão dela ficava desproporcional
+   ao lado do Stop. O `max-width` iguala visualmente sem distorcer nenhuma:
+   as menores ficam na altura cheia, a maior encolhe um pouco. */
+.jogo-tab-logo {
+  height: 34px;
+  width: auto;
+  max-width: 118px;
+  object-fit: contain;
+  display: block;
+}
+.jogo-tab { min-width: 108px; }
+
+/* "Geral" não é um jogo: é a soma dos três. Sem logo, e com o texto em
+   caixa própria, a diferença fica explícita. */
+.jogo-tab-geral { min-width: 92px; }
+.jogo-tab-texto {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
+@media (max-width: 600px) {
+  .jogo-tab { padding: 8px 12px; min-height: 48px; }
+  .jogo-tab-logo { height: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jogo-tab { transition: none; }
+}
+
 /* ===== Perfil do clã ===== */
 .cla-cabecalho {
   display: flex;
@@ -4609,7 +4732,15 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   text-align: left;
   font-size: 14px;
 }
-.clan-list-head:hover { background: rgba(255, 255, 255, 0.03); }
+/* Virou <a> (leva ao perfil do clã). A regra global de link pintaria a
+   linha inteira de laranja e sublinharia no hover — aqui o destaque é o
+   fundo, e o texto segue na cor normal. */
+.clan-list-head:hover { background: rgba(255, 255, 255, 0.03); text-decoration: none; }
+.clan-list-head:hover .clan-list-name { color: var(--accent-2); }
+.clan-list-head:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: -2px;
+}
 
 .clan-list-pos {
   font-family: var(--font-mono);
@@ -4652,33 +4783,7 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .clan-list-seta { color: var(--text-dim); font-size: 20px; }
 
-.clan-list-membros {
-  padding: 12px 16px 16px;
-  border-top: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.15);
-}
-.clan-list-membros-titulo {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 10px;
-}
-.clan-list-membros-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.clan-membro {
-  font-size: 13px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--text);
-  text-decoration: none;
-  transition: border-color 0.15s ease;
-}
-.clan-membro:hover { border-color: var(--accent-2); color: var(--accent-2); }
-.clan-membro-lider {
-  background: rgba(255, 153, 0, 0.12);
-  border-color: rgba(255, 153, 0, 0.4);
-}
+/* (o acordeão da lista de clãs saiu: agora a linha leva ao perfil) */
 
 @media (max-width: 640px) {
   .clan-list-meta { display: none; }
