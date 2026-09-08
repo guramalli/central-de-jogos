@@ -219,6 +219,9 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   const resposta = {
     id: user.id,
     nickname: user.nickname,
+    // A tela usa isto pra saber se mostra o bloco "Administrador do Site" no
+    // lugar das estatísticas. Só o papel, nada sensível.
+    role: user.role,
     tituloExibido: user.tituloExibido || null,
     tituloExibidoLogo: logoPorNomeDeTitulo(user.tituloExibido),
     // Só vale como "true" se REALMENTE existe um título escolhido. Assim o
