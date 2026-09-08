@@ -2626,14 +2626,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   cursor: help;
 }
 
-/* Ações do clã na aba de clãs do ranking. */
-.ranking-cla-acao {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 4px 0 12px;
-}
-
 /* Contribuição de cada membro no perfil do clã. */
 .cla-contrib { display: flex; align-items: center; gap: 8px; }
 .cla-contrib-barra {

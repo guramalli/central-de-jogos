@@ -159,6 +159,16 @@ export default function Clan() {
             {data.clan.members.length}/{data.clan.maxMembers} membros
           </p>
 
+          {/* Esta página JÁ é a administração (membros, cargos, expulsar), então
+              um botão "administrar" aqui não levaria a lugar nenhum. O que
+              faltava era o caminho pro perfil PÚBLICO — o que os outros veem,
+              com troféus e contribuição de cada um. */}
+          <p>
+            <Link to={`/cla/${data.clan.id}`} className="btn secondary">
+              Ver perfil público do clã
+            </Link>
+          </p>
+
           <table className="player-table">
             <thead>
               <tr>

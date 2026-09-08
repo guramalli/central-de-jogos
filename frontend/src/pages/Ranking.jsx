@@ -36,20 +36,6 @@ export default function Ranking() {
   const [tab, setTab] = useState("monthly"); // monthly | lifetime | clans
   const [rows, setRows] = useState([]);
   const { user } = useAuth();
-  // Só pra saber se a pessoa já tem clã — muda o texto do botão entre
-  // "criar" e "administrar". Buscado uma vez, não a cada troca de aba.
-  const [meuCla, setMeuCla] = useState(null);
-
-  useEffect(() => {
-    let vivo = true;
-    api
-      .get("/clans/mine")
-      .then(({ data }) => vivo && setMeuCla(data?.clan || null))
-      .catch(() => {});
-    return () => {
-      vivo = false;
-    };
-  }, []);
 
   useEffect(() => {
     const path =
@@ -125,19 +111,6 @@ export default function Ranking() {
           Clãs (mensal)
         </button>
       </div>
-
-      {isClans && (
-        <div className="ranking-cla-acao">
-          <Link to="/clan" className="btn">
-            {meuCla ? `Administrar ${meuCla.name}` : "Criar um clã"}
-          </Link>
-          {meuCla && (
-            <Link to={`/cla/${meuCla.id}`} className="btn secondary">
-              Ver perfil do clã
-            </Link>
-          )}
-        </div>
-      )}
 
       <p className="ranking-contexto">
         {isClans
