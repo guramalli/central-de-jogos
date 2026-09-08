@@ -514,6 +514,14 @@ export default function AcromaniaGame() {
                         {e.nickname} — {e.votes} {e.votes === 1 ? "voto" : "votos"}
                         {e.maisRapido && <span className="acro-mais-rapido">⚡ + rápido</span>}
                         {e.pontos > 0 && <span className="acro-result-pts">+{e.pontos} pts</span>}
+                        {e.naoVotou && (
+                          <span
+                            className="acro-nao-votou"
+                            title="Quem não vota não pontua na rodada"
+                          >
+                            não votou · 0 pts
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))

@@ -49,6 +49,7 @@ const DICAS_POR_JOGO = {
   ],
   acromania: [
     "💡 No Acromania votar na frase vencedora também dá pontos: preste atenção no que a sala curte.",
+    "💡 No Acromania é obrigatório votar pra pontuar: quem não vota fica sem os pontos da rodada.",
     "💡 Você pontua por cada voto que recebe, então dá pra ir bem sem vencer nenhuma rodada.",
   ],
 };

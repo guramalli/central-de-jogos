@@ -723,7 +723,23 @@ export class AcromaniaRoom {
       if (pts > 0) pontosPorUsuario.set(userId, (pontosPorUsuario.get(userId) || 0) + pts);
     };
 
+    // QUEM NÃO VOTOU NÃO PONTUA.
+    //
+    // Antes dava pra escrever a frase, ignorar a votação e ainda levar tudo:
+    // 15 por voto recebido, 50 pela vitória, 5 pelo envio rápido. E como a
+    // votação só encerra cedo quando TODOS votam, essa pessoa ainda segurava
+    // a rodada dos outros até o cronômetro zerar.
+    //
+    // A exceção é a rodada de frase única: ali não existe fase de votação
+    // (o finishRound é chamado direto), então ninguém votou — aplicar a
+    // regra zeraria a rodada inteira sem que houvesse falta de ninguém.
+    const houveVotacao = entries.length > 1;
+
     for (const e of entries) {
+      if (houveVotacao && !votes.has(e.userId)) {
+        pontosPorEntry.set(e.entryId, 0);
+        continue;
+      }
       const recebidos = voteCounts.get(e.entryId) || 0;
       const venceu = winners.some((w) => w.entryId === e.entryId);
       const foiRapido = e.userId === this.primeiroAEnviar;
@@ -846,6 +862,9 @@ export class AcromaniaRoom {
         // Pontos REAIS daquela frase (votos recebidos + bônus de vitória).
         // Um valor fixo aqui mentiria: agora cada frase vale coisa diferente.
         pontos: pontosPorEntry.get(e.entryId) || 0,
+        // Perdeu os pontos por não ter votado. A tela avisa — senão a pessoa
+        // vê a frase mais votada valendo zero e acha que é bug.
+        naoVotou: houveVotacao && !votes.has(e.userId),
         maisRapido: e.userId === this.primeiroAEnviar,
       })),
     };

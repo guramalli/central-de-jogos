@@ -3092,6 +3092,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 .acro-result-meta .acro-mais-rapido { margin-left: 8px; }
 
+/* Quem escreveu mas não votou: perdeu os pontos da rodada. */
+.acro-nao-votou {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--danger, #e60000);
+  cursor: help;
+}
+
 /* Aviso de acerto no voto, no resultado da rodada. */
 .acro-bonus-voto {
   color: var(--qz-green, #06d6a0);
