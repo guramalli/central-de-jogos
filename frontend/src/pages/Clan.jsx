@@ -156,39 +156,6 @@ export default function Clan() {
         </div>
       )}
 
-      {!data?.clan && (
-        <div className="card">
-          <h2>Você ainda não tem um clã</h2>
-          {data?.canCreate ? (
-            <>
-              <p style={{ color: "var(--text-dim)" }}>
-                Crie o seu! Depois é só convidar outros jogadores clicando com o botão direito no
-                nick deles (na lista de jogadores online, dentro do jogo).
-              </p>
-              <form onSubmit={handleCreate}>
-                <input placeholder="Nome do clã" value={name} onChange={(e) => setName(e.target.value)} required />
-                <input
-                  placeholder="Tag (até 5 letras, ex: EDUG)"
-                  value={tag}
-                  maxLength={5}
-                  onChange={(e) => setTag(e.target.value)}
-                  required
-                />
-                <button className="btn" type="submit">Criar clã</button>
-              </form>
-            </>
-          ) : (
-            <p style={{ color: "var(--text-dim)" }}>
-              Você precisa de pelo menos{" "}
-              <strong>{(data?.requiredPoints ?? 0).toLocaleString("pt-BR")}</strong> pontos
-              vitalícios somando <strong>Stop, Quiz e Acromania</strong> pra criar um clã (você tem{" "}
-              <strong>{(data?.myPoints ?? 0).toLocaleString("pt-BR")}</strong> agora). Continue
-              jogando pra desbloquear, ou espere alguém te convidar pro clã dela.
-            </p>
-          )}
-        </div>
-      )}
-
       {data?.clan && (
         <div className="card">
           <h2>
@@ -345,6 +312,45 @@ export default function Clan() {
           })}
         </div>
       </div>
+
+      {/* Criar clã fica no FIM, depois da lista. Quem abre a página vendo o
+          formulário cria mais um clã; quem abre vendo os que já existem tende
+          a pedir pra entrar. A ideia não é lotar o site de clãs de uma pessoa
+          só — clã vazio não joga junto e não disputa ranking. */}
+      {!data?.clan && (
+        <div className="card">
+          <h2>Você ainda não tem um clã</h2>
+          {data?.canCreate ? (
+            <>
+              <p style={{ color: "var(--text-dim)" }}>
+                Não achou nenhum acima que combine com você? Crie o seu. Depois é só convidar
+                jogadores clicando com o botão direito no nick deles, na lista de jogadores online
+                dentro do jogo — ou esperar alguém pedir pra entrar.
+              </p>
+              <form onSubmit={handleCreate}>
+                <input placeholder="Nome do clã" value={name} onChange={(e) => setName(e.target.value)} required />
+                <input
+                  placeholder="Tag (até 5 letras, ex: EDUG)"
+                  value={tag}
+                  maxLength={5}
+                  onChange={(e) => setTag(e.target.value)}
+                  required
+                />
+                <button className="btn" type="submit">Criar clã</button>
+              </form>
+            </>
+          ) : (
+            <p style={{ color: "var(--text-dim)" }}>
+              Você precisa de pelo menos{" "}
+              <strong>{(data?.requiredPoints ?? 0).toLocaleString("pt-BR")}</strong> pontos
+              vitalícios somando <strong>Stop, Quiz e Acromania</strong> pra criar um clã (você tem{" "}
+              <strong>{(data?.myPoints ?? 0).toLocaleString("pt-BR")}</strong> agora). Continue
+              jogando pra desbloquear, ou espere alguém te convidar pro clã dela.
+            </p>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

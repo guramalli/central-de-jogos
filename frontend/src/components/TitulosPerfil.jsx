@@ -136,6 +136,15 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
                 <IconeTitulo logo={t.logo} tamanho={44} />
                 <span className="trofeu-nome">{t.nome}</span>
                 <span className="trofeu-pontos">{t.points.toLocaleString("pt-BR")} pts</span>
+                {/* Mesma etiqueta dos títulos comuns. O troféu sempre foi
+                    clicável, mas isso só aparecia no `title` do hover — no
+                    celular, onde não existe hover, era invisível. */}
+                {podeEscolher &&
+                  (tituloExibido === t.nome ? (
+                    <span className="titulos-vitrine-tag titulos-vitrine-tag-ativa">✓ exibindo</span>
+                  ) : (
+                    <span className="titulos-vitrine-tag">exibir</span>
+                  ))}
               </button>
             ))}
           </div>

@@ -6891,6 +6891,8 @@ span.votacao-trilha-item {
   cursor: pointer;
   text-align: center;
 }
+/* A etiqueta "exibir" ganha um respiro dos pontos logo acima. */
+.trofeu-item .titulos-vitrine-tag { margin-top: 4px; }
 .trofeu-item:disabled { cursor: default; }
 .trofeu-item:not(:disabled):hover { border-color: var(--accent-2); }
 /* Escolhido: moldura dourada cheia, igual ao destaque do lendário. */
