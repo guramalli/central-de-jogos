@@ -1,5 +1,5 @@
 import { agendarApuracao, ehDetentor } from "./topRank.js";
-import { agendarRecarga, patenteFixaDe } from "./patenteFixa.js";
+import { agendarRecarga, patenteFixaDe, ehAdmin, PATENTE_ADMIN } from "./patenteFixa.js";
 
 // Sistema de patentes baseado na pontuação vitalícia de cada jogo.
 // O "icon" é o caminho da imagem servida pelo frontend (pasta frontend/public/ranks/).
@@ -54,6 +54,9 @@ export function getRankForPoints(points, opts = {}) {
   // institucionais, que exibem uma patente por decisão nossa.
   if (opts.userId) {
     agendarRecarga();
+    // Admin não compete em ranking nenhum: exibe o emblema da administração
+    // no lugar da patente, nos três jogos.
+    if (ehAdmin(opts.userId)) return PATENTE_ADMIN;
     const fixa = patenteFixaDe(opts.gameKey || "stop", opts.userId);
     if (fixa) {
       const achada = RANKS.find((r) => r.key === fixa);

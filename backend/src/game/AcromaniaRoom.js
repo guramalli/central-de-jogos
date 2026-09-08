@@ -387,7 +387,7 @@ export class AcromaniaRoom {
         // Patente é conceito MENSAL do jogo inteiro (não da sala), igual ao
         // Stop e ao Quiz. Faltava aqui: a lista do Acromania era a única
         // sem o emblema ao lado do nick.
-        rank: getAcromaniaRankForPoints(monthly?.points || 0),
+        rank: getAcromaniaRankForPoints(monthly?.points || 0, { userId: p.userId }),
       });
     }
     // Ordena pelo mesmo número exibido na lista (pontos da sala), não pelo
@@ -776,6 +776,10 @@ export class AcromaniaRoom {
           create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: pts },
         });
 
+        // Sem userId de propósito: aqui a comparação é entre DEGRAUS da
+        // escada, pra saber se houve promoção. Com o emblema de admin os dois
+        // lados seriam iguais e o anúncio nunca sairia — mas admin também não
+        // deveria ser anunciado, então o efeito é o desejado nos dois casos.
         const oldRank = getAcromaniaRankForPoints(oldMonthlyPoints);
         const newRank = getAcromaniaRankForPoints(newMonthlyPoints);
         // Só anuncia promoção pra quem concorre ao ranking.

@@ -1,5 +1,5 @@
 import { agendarApuracao, ehDetentor } from "./topRank.js";
-import { agendarRecarga, patenteFixaDe } from "./patenteFixa.js";
+import { agendarRecarga, patenteFixaDe, ehAdmin, PATENTE_ADMIN } from "./patenteFixa.js";
 
 // Sistema de patentes do Quiz — independente do sistema de patentes do Stop
 // (rank.js). Hierarquia crescente, do anel mais simples até o mais chique.
@@ -87,6 +87,9 @@ export function getQuizRankForPoints(points, opts = {}) {
   // Patente fixada manualmente vence a pontuação (ver rank.js).
   if (opts.userId) {
     agendarRecarga();
+    // Admin não compete em ranking nenhum: exibe o emblema da administração
+    // no lugar da patente, nos três jogos.
+    if (ehAdmin(opts.userId)) return PATENTE_ADMIN;
     const fixa = patenteFixaDe("quiz", opts.userId);
     if (fixa) {
       const achada = QUIZ_RANKS.find((r) => r.key === fixa);

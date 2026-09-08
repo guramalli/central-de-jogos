@@ -1,3 +1,5 @@
+import { agendarRecarga, ehAdmin, PATENTE_ADMIN } from "./patenteFixa.js";
+
 // PATENTES DO ACROMANIA
 //
 // Antes o Acromania usava a escada do Stop como provisório, e isso estava
@@ -60,7 +62,13 @@ export const ACROMANIA_RANKS = [
   { min: 160000, key: "coroa_ouro",       name: "Coroa de Ouro",       icon: "/ranks-acromania/coroa-ouro.png", brilha: true },
 ];
 
-export function getAcromaniaRankForPoints(points) {
+// `opts.userId` é opcional: sem ele a função segue funcionando pela
+// pontuação, como antes. Ele existe só pra reconhecer conta de admin.
+export function getAcromaniaRankForPoints(points, opts = {}) {
+  if (opts.userId) {
+    agendarRecarga();
+    if (ehAdmin(opts.userId)) return PATENTE_ADMIN;
+  }
   let current = ACROMANIA_RANKS[0];
   for (const r of ACROMANIA_RANKS) {
     if (points >= r.min) current = r;

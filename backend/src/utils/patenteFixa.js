@@ -11,6 +11,25 @@ import { prisma } from "../db.js";
 // o tempo todo (lista de sala, chat, ranking, perfil) e uma consulta por
 // leitura acordaria o banco à toa.
 const fixadas = new Map(); // userId -> { stop, quiz }
+
+// Contas ADMIN. Elas não competem em ranking nenhum, então exibir a patente
+// que a pontuação daria (às vezes a máxima, sem ter jogado por ela) confunde
+// quem vê — parece que o dono do site está ganhando de todo mundo.
+//
+// Fica no mesmo cache das patentes fixas porque o problema é idêntico: a
+// patente é lida o tempo todo (lista de sala, chat, ranking, perfil) e uma
+// consulta por leitura acordaria o banco à toa.
+const admins = new Set();
+
+// Emblema exclusivo do administrador, no lugar da patente nos três jogos.
+export const PATENTE_ADMIN = {
+  min: 0,
+  key: "admin",
+  name: "Administração",
+  icon: "/ranks/admin.png",
+  brilha: true,
+  admin: true,
+};
 const RECARREGAR_A_CADA_MS = 5 * 60 * 1000;
 let carregadoEm = 0;
 let carregando = false;
@@ -18,13 +37,21 @@ let carregando = false;
 async function carregar() {
   const contas = await prisma.user.findMany({
     where: {
-      OR: [{ patenteStopFixa: { not: null } }, { patenteQuizFixa: { not: null } }],
+      OR: [
+        { patenteStopFixa: { not: null } },
+        { patenteQuizFixa: { not: null } },
+        { role: "ADMIN" },
+      ],
     },
-    select: { id: true, patenteStopFixa: true, patenteQuizFixa: true },
+    select: { id: true, patenteStopFixa: true, patenteQuizFixa: true, role: true },
   });
   fixadas.clear();
+  admins.clear();
   for (const c of contas) {
-    fixadas.set(c.id, { stop: c.patenteStopFixa, quiz: c.patenteQuizFixa });
+    if (c.role === "ADMIN") admins.add(c.id);
+    if (c.patenteStopFixa || c.patenteQuizFixa) {
+      fixadas.set(c.id, { stop: c.patenteStopFixa, quiz: c.patenteQuizFixa });
+    }
   }
 }
 
@@ -43,6 +70,10 @@ export function agendarRecarga() {
 }
 
 // Devolve a "key" da patente fixada pra esse jogo, ou null.
+export function ehAdmin(userId) {
+  return admins.has(userId);
+}
+
 export function patenteFixaDe(gameKey, userId) {
   const reg = fixadas.get(userId);
   if (!reg) return null;

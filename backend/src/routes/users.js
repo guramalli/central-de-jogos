@@ -130,7 +130,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
           m.gameKey === "quiz"
             ? getQuizRankForPoints(m.points, { userId: user.id })
             : m.gameKey === "acromania"
-              ? getAcromaniaRankForPoints(m.points)
+              ? getAcromaniaRankForPoints(m.points, { userId: user.id })
               : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
           nextRank:
             m.gameKey === "quiz"
@@ -162,7 +162,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
           m.gameKey === "quiz"
             ? getQuizRankForPoints(m.points, { userId: user.id })
             : m.gameKey === "acromania"
-              ? getAcromaniaRankForPoints(m.points)
+              ? getAcromaniaRankForPoints(m.points, { userId: user.id })
               : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
         nextRank:
           m.gameKey === "quiz"

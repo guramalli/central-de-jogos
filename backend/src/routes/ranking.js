@@ -75,7 +75,7 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
         ? (gameKey === "quiz"
             ? getQuizRankForPoints(s.points, { userId: s.user.id })
             : gameKey === "acromania"
-              ? getAcromaniaRankForPoints(s.points)
+              ? getAcromaniaRankForPoints(s.points, { userId: s.user.id })
               : getRankForPoints(s.points, { userId: s.user.id, gameKey }))
         : patenteDoHistorico(s.points, gameKey, idx === 0),
     }));
