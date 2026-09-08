@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { api } from "../api/client.js";
 import Pagination from "./Pagination.jsx";
 
@@ -30,10 +30,17 @@ const PAGE_SIZE = 20;
 // palavras do Stop: escolhe um tema, adiciona pergunta+resposta direto (já
 // aprovada), vê/edita/apaga as que já existem — ou busca por qualquer
 // pergunta/resposta em TODOS os temas de uma vez, sem precisar navegar.
+// Nome de cada nível na tela. O banco guarda "facil"/"medio"/"dificil".
+const ROTULO_NIVEL = { facil: "Fáceis", medio: "Médias", dificil: "Difíceis" };
+
 export default function AdminQuizGlossary() {
   const [themeKey, setThemeKey] = useState(THEMES[0].key);
   const [questions, setQuestions] = useState([]);
   const [page, setPage] = useState(1);
+  // Filtro de nível. Agrupar não bastava: com 600+ perguntas por tema, as
+  // difíceis ficam 30 páginas adiante e era preciso atravessar todas pra
+  // chegar nelas. Filtrando, a paginação percorre só o nível escolhido.
+  const [nivel, setNivel] = useState("todos");
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
   const [newDifficulty, setNewDifficulty] = useState("medio");
@@ -184,8 +191,9 @@ export default function AdminQuizGlossary() {
     );
   }
 
-  const totalPages = Math.max(1, Math.ceil(questions.length / PAGE_SIZE));
-  const pageItems = questions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const visiveis = nivel === "todos" ? questions : questions.filter((q) => q.difficulty === nivel);
+  const totalPages = Math.max(1, Math.ceil(visiveis.length / PAGE_SIZE));
+  const pageItems = visiveis.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="card" style={{ marginTop: 16 }}>
@@ -264,7 +272,42 @@ export default function AdminQuizGlossary() {
         <button className="btn" type="submit" disabled={saving}>Adicionar (já aprovada)</button>
       </form>
 
-      <h3 style={{ marginTop: 20 }}>Perguntas cadastradas neste tema ({questions.length})</h3>
+      {/* Contagem por nível: com 600+ perguntas por tema, saber que faltam
+          difíceis é mais útil que saber o total. */}
+      <h3 style={{ marginTop: 20 }}>
+        Perguntas cadastradas neste tema ({questions.length})
+        {questions.length > 0 && (
+          <span style={{ fontWeight: 400, fontSize: 13, color: "var(--text-dim)" }}>
+            {" — "}
+            {["facil", "medio", "dificil"]
+              .map((d) => `${questions.filter((q) => q.difficulty === d).length} ${ROTULO_NIVEL[d]}`)
+              .join(" · ")}
+          </span>
+        )}
+      </h3>
+
+      {/* Trocar de nível volta pra página 1: continuar na página 14 depois de
+          filtrar mostraria uma lista vazia. */}
+      <div className="glossario-filtros">
+        {[
+          ["todos", `Todas (${questions.length})`],
+          ["facil", `Fáceis (${questions.filter((q) => q.difficulty === "facil").length})`],
+          ["medio", `Médias (${questions.filter((q) => q.difficulty === "medio").length})`],
+          ["dificil", `Difíceis (${questions.filter((q) => q.difficulty === "dificil").length})`],
+        ].map(([chave, rotulo]) => (
+          <button
+            key={chave}
+            type="button"
+            className={`glossario-filtro${nivel === chave ? " glossario-filtro-ativo" : ""}`}
+            onClick={() => {
+              setNivel(chave);
+              setPage(1);
+            }}
+          >
+            {rotulo}
+          </button>
+        ))}
+      </div>
       <table className="player-table player-table-compact">
         <thead>
           <tr>
@@ -276,10 +319,34 @@ export default function AdminQuizGlossary() {
           </tr>
         </thead>
         <tbody>
-          {pageItems.map((q) => renderRow(q, false))}
-          {questions.length === 0 && (
+          {/* Linha de separação a cada troca de nível. A lista vem do servidor
+              já agrupada (fácil, médio, difícil); aqui só se marca onde um
+              grupo termina e outro começa. Como a lista é paginada, a
+              primeira linha da página também recebe o cabeçalho — senão a
+              pessoa não saberia em qual grupo caiu. */}
+          {pageItems.map((q, i) => {
+            // Com um nível filtrado, a faixa seria repetida em toda página
+            // dizendo o óbvio — só aparece na visão "Todas".
+            const novoGrupo =
+              nivel === "todos" && (i === 0 || pageItems[i - 1].difficulty !== q.difficulty);
+            return (
+              <Fragment key={q.id}>
+                {novoGrupo && (
+                  <tr className="glossario-grupo">
+                    <td colSpan={5}>{ROTULO_NIVEL[q.difficulty] || q.difficulty}</td>
+                  </tr>
+                )}
+                {renderRow(q, false)}
+              </Fragment>
+            );
+          })}
+          {visiveis.length === 0 && (
             <tr>
-              <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhuma pergunta cadastrada ainda neste tema.</td>
+              <td colSpan={5} style={{ color: "var(--text-dim)" }}>
+                {nivel === "todos"
+                  ? "Nenhuma pergunta cadastrada ainda neste tema."
+                  : `Nenhuma pergunta de nível ${ROTULO_NIVEL[nivel].toLowerCase()} neste tema — vale escrever algumas.`}
+              </td>
             </tr>
           )}
         </tbody>

@@ -204,10 +204,13 @@ export default function QuizLobby() {
       {arenaRooms.length > 0 && (
         <div className="arena-section">
           <h2 className="arena-section-title">Arenas Relâmpago</h2>
+          {/* Sem número escrito à mão: tudo vem da config do servidor. A
+              versão anterior dizia "50 rodadas, 10 segundos, bônus de 100" e
+              já estava errada em tudo depois da recalibragem. */}
           <p className="arena-section-sub">
-            50 rodadas relâmpago, 10 segundos por pergunta. Todo mundo que acertar pontua — no
-            ranking mensal E no placar do turno. Os 5 primeiros do turno ainda levam bônus
-            (100 / 60 / 40 / 20 / 10 pts).
+            Rodadas relâmpago e cronômetro curto. Todo mundo que acertar pontua — no ranking mensal
+            E no placar do turno. No fim do turno, o pódio leva bônus: <strong>quanto mais gente
+            pontuando, mais posições premiadas</strong>.
           </p>
           <div className="arena-grid">
             {arenaRooms.map((r) => {
@@ -219,9 +222,12 @@ export default function QuizLobby() {
                     <h3 className="arena-card-title">{r.label.replace("⚡ ", "")}</h3>
                     <p className="arena-card-desc">{r.description}</p>
                     <div className="arena-card-meta">
-                      <span>10s por pergunta</span>
-                      <span>50 rodadas</span>
-                      <span>Top 5 leva bônus</span>
+                      <span>{r.questionSeconds}s por pergunta</span>
+                      <span>{r.roundsPerTurn} rodadas</span>
+                      {r.pointsPerCorrect != null && <span>{r.pointsPerCorrect} pts por acerto</span>}
+                      {r.turnBonus?.length > 0 && (
+                        <span>Bônus até {r.turnBonus[0].toLocaleString("pt-BR")} pts</span>
+                      )}
                     </div>
                     <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                       <span className="material-symbols-outlined">group</span> {occ.text}

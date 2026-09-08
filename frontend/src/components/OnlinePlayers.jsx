@@ -30,11 +30,12 @@ export default function OnlinePlayers({ players }) {
               <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="stop" />
             </ClanInviteMenu>
           </span>
-          {/* Pontuação DA SALA, não a geral do jogador no Stop. Quem está
-              jogando quer comparar o desempenho ali, com quem está do lado
-              — o total geral aparece no hover do perfil e no ranking. */}
-          <span className="sc-player-points" title="Pontos nesta sala">
-            {p.semPontuacao ? p.blockPoints ?? 0 : p.roomLifetimePoints ?? 0}
+          {/* Pontuação DA SALA no MÊS corrente — não o acumulado de sempre.
+              Quem está jogando quer comparar o desempenho ali, com quem está
+              do lado, na mesma disputa mensal que vale o ranking. O total
+              geral aparece no hover do perfil e no ranking. */}
+          <span className="sc-player-points" title="Pontos nesta sala neste mês">
+            {p.semPontuacao ? p.blockPoints ?? 0 : p.roomMonthlyPoints ?? 0}
           </span>
         </li>
       ))}

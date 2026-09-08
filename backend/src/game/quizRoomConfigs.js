@@ -61,7 +61,7 @@ function buildDifficultyRooms(themeKey, themeName) {
 
 export const QUIZ_ROOM_CONFIGS = {
   // ===== Arenas Boca Livre Relâmpago =====
-  // Modo turno (igual aos blocos do Stop): 50 rodadas rápidas, cada acerto
+  // Modo turno (igual aos blocos do Stop): rodadas rápidas, cada acerto
   // vale 1 ponto no placar do turno, e no fim o pódio leva bônus. Tempo
   // curto de propósito — a graça é ser relâmpago.
   "quiz-arena-relampago-iniciante": {
@@ -70,16 +70,21 @@ export const QUIZ_ROOM_CONFIGS = {
     arena: true,
     multiAnswer: true,
     difficultyFilter: ["facil", "medio"],
-    description: "50 rodadas relâmpago de todos os temas. Todo mundo que acertar pontua — e os 5 primeiros do turno ainda levam bônus!",
+    description: "Rodadas relâmpago de todos os temas. Todo mundo que acertar pontua, e o pódio do turno leva bônus — quanto mais gente na sala, mais posições premiadas.",
     maxPlayers: 20,
-    questionSeconds: 10,
+    questionSeconds: 14,
     revealIntervalSeconds: 2,
     initialRevealPercent: 0.25,
     maxRevealPercent: 0.5,
-    intermissionSeconds: 10,
-    pointsPerCorrect: 1,
-    roundsPerTurn: 50,
-    turnBonus: [100, 60, 40, 20, 10],
+    intermissionSeconds: 5,
+    pointsPerCorrect: 5,
+    roundsPerTurn: 40,
+    turnBonus: [1000, 700, 350, 200, 100],
+    // Sem pelo menos 2 pessoas pontuando, o turno não paga bônus: sozinho o
+    // jogador venceria todos os turnos sem disputa e faria ~45 mil pontos
+    // por dia — estourando o teto mensal em dois dias. Começando em 2 pra
+    // não travar a sala enquanto ela tem pouca gente; sobe se virar combinação.
+    minScorersForBonus: 2,
   },
   "quiz-arena-relampago-avancada": {
     label: "⚡ Arena Boca Livre Relâmpago — Avançada",
@@ -87,16 +92,28 @@ export const QUIZ_ROOM_CONFIGS = {
     arena: true,
     multiAnswer: true,
     difficultyFilter: ["dificil"],
-    description: "50 rodadas relâmpago só com as perguntas mais puxadas. Todo mundo que acertar pontua. Pra quem é rápido de verdade.",
+    description: "Só as perguntas mais puxadas, e menos letras reveladas. Cada acerto vale mais e o bônus do pódio também. Pra quem é rápido de verdade.",
     maxPlayers: 20,
-    questionSeconds: 10,
+    questionSeconds: 14,
     revealIntervalSeconds: 2,
     initialRevealPercent: 0.2,
     maxRevealPercent: 0.35,
-    intermissionSeconds: 10,
-    pointsPerCorrect: 1,
-    roundsPerTurn: 50,
-    turnBonus: [100, 60, 40, 20, 10],
+    intermissionSeconds: 5,
+    // 8 e não 5: a Avançada só tem perguntas difíceis e revela menos letras
+    // (20% a 35%, contra 25% a 50% da Iniciante). Pagando igual, quem
+    // pontua racionalmente escolheria sempre a Iniciante e esta viraria sala
+    // vazia. Mesma proporção que separa a Futebol Padrão (10) da Avançada
+    // (15) nas salas normais.
+    pointsPerCorrect: 8,
+    roundsPerTurn: 40,
+    // Bônus escalado pelo mesmo fator (×1,6), pra manter a proporção entre
+    // acertar e vencer igual à da Iniciante.
+    turnBonus: [1600, 1120, 560, 320, 160],
+    // Sem pelo menos 2 pessoas pontuando, o turno não paga bônus: sozinho o
+    // jogador venceria todos os turnos sem disputa e faria ~45 mil pontos
+    // por dia — estourando o teto mensal em dois dias. Começando em 2 pra
+    // não travar a sala enquanto ela tem pouca gente; sobe se virar combinação.
+    minScorersForBonus: 2,
   },
 
   ...THEMES.reduce((acc, t) => ({ ...acc, ...buildDifficultyRooms(t.key, t.name) }), {}),

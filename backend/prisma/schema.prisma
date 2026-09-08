@@ -154,6 +154,16 @@ model MonthlyScore {
   points   Int    @default(0)
 
   @@unique([userId, gameKey, monthKey])
+  // O @@unique acima começa por userId, e índice composto só serve quando a
+  // consulta usa a PRIMEIRA coluna. Sete consultas filtram por gameKey +
+  // monthKey sem userId — ranking, posição no perfil (dispara a cada hover
+  // num nick) e a posição dos jogadores dentro da sala, que roda a cada
+  // rodada. Todas varriam a tabela inteira.
+  //
+  // `points` no fim porque essas consultas ordenam ou comparam por ele
+  // (orderBy desc no ranking, `gte` na posição): com a coluna no índice, o
+  // banco resolve sem ir buscar as linhas.
+  @@index([gameKey, monthKey, points])
 }
 
 model LifetimeScore {
@@ -237,6 +247,18 @@ model PrivateMessage {
   message    String
   read       Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  // Nenhum índice existia aqui, e esta tabela é consultada a cada 20s pela
+  // barra de mensagens — em todas as páginas, por cada pessoa conectada.
+  // Sem índice o banco varre a tabela inteira, e ela cresce pra sempre.
+  //
+  // Os dois cobrem tudo que o código pede hoje:
+  //   receiverId+read  -> contagem de não lidas (barra e avisos)
+  //   senderId         -> conversa entre duas pessoas e a prévia
+  // `createdAt` entra porque as buscas ordenam por ele.
+  @@index([receiverId, read])
+  @@index([receiverId, createdAt])
+  @@index([senderId, createdAt])
 }
 
 model ChatMessage {

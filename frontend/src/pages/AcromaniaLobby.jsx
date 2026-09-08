@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import MiniPodium from "../components/MiniPodium.jsx";
 
 function occupancyInfo(status) {
   if (!status) return { text: "carregando...", full: false, empty: false };
@@ -47,9 +48,38 @@ export default function AcromaniaLobby() {
             melhor da rodada. Sem digitação, sem correção automática: aqui quem decide é a galera.
           </p>
         </div>
+        {/* Mesmo lugar do botão de patentes do Quiz, pra quem já conhece um
+            lobby achar no outro sem procurar. */}
+        <div className="hero-lado">
+          <Link to="/patentes-acromania" className="retro-btn">🏆 Ver patentes</Link>
+        </div>
       </div>
 
-      <div className="lobby-game-grid">
+      {/* Legenda de pontuação. As regras estavam só na página de patentes,
+          a um clique de distância — quem chega no lobby não sabia como se
+          pontua antes de entrar na sala. */}
+      <div className="acro-topo-duplo">
+      <div className="card acro-legenda">
+        <div className="acro-legenda-titulo">Como pontuar</div>
+        <ul className="acro-legenda-lista">
+          <li><strong>+15</strong> por cada voto que a sua frase receber</li>
+          <li><strong>+50</strong> se a sua frase for a mais votada da rodada</li>
+          <li><strong>+10</strong> se você votar na frase que vencer</li>
+          <li><strong>+5</strong> para o primeiro a enviar a frase na rodada</li>
+          <li><strong>+100 / +60 / +30</strong> para o 1º, 2º e 3º ao fim da partida</li>
+        </ul>
+        <p className="acro-legenda-nota">
+          A partida tem 8 rodadas. Dá pra pontuar bem sem vencer nenhuma: basta escrever frases que
+          agradem.
+        </p>
+      </div>
+        <MiniPodium gameKey="acromania" />
+      </div>
+
+      {/* Grade própria: o Acromania tem UMA sala, e na grade de 3 colunas ela
+          ficava com um terço da largura, espremida no rodapé da página —
+          justamente o botão que a pessoa veio clicar. */}
+      <div className="lobby-game-grid acro-sala-grid">
         {rooms.map((r) => {
           const occ = occupancyInfo(r);
           return (

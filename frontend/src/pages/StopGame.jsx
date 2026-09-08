@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -38,9 +38,11 @@ export default function StopGame() {
   // O servidor confere o cargo de novo antes de apagar — isto aqui só
   // decide se o botão aparece.
   const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
-  function apagarMensagem(id) {
+  // useCallback pra manter a identidade entre renders — sem isso o
+  // memo do Chat nunca casa e ele redesenha a cada tick do relógio.
+  const apagarMensagem = useCallback((id) => {
     socketRef.current?.emit("delete-chat-message", { escopo: "stop", id });
-  }
+  }, []);
   const navigate = useNavigate();
   const { roomId: roomIdParam } = useParams();
   const roomId = roomIdParam || "stop-sala-1";
@@ -420,9 +422,15 @@ export default function StopGame() {
     socketRef.current?.emit("vote-skip-intermission");
   }
 
-  function sendChat(message) {
+  // Array novo a cada render invalidaria o memo do Chat.
+  const nicksNaSala = useMemo(
+    () => onlinePlayers.map((p) => p.nickname),
+    [onlinePlayers]
+  );
+
+  const sendChat = useCallback((message) => {
     socketRef.current?.emit("chat-message", { message });
-  }
+  }, []);
 
   function nicknameFor(userId) {
     return onlinePlayers.find((p) => p.userId === userId)?.nickname;
@@ -785,7 +793,8 @@ export default function StopGame() {
       <div className={`sc-bottom-grid ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-retro-panel sc-tab-panel sc-chat-panel">
           <div className="sc-retro-tab sc-retro-tab-right">chat</div>
-          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
+            participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
 
         <div className="sc-retro-panel sc-tab-panel sc-legend-panel">

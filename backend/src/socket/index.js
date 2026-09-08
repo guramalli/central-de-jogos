@@ -5,6 +5,7 @@ import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, canc
 import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
+import { ligarBotsNaSala } from "../game/acromaniaBots.js";
 import * as generalChat from "../game/generalChat.js";
 import * as presence from "../game/presence.js";
 import { recheckPeak } from "../game/platformStats.js";
@@ -195,6 +196,10 @@ export function setupSocket(io) {
         if (joined) {
           socket.currentAcromaniaRoom = room;
           recheckPeak().catch(() => {});
+          // Os bots se desligam sozinhos quando a sala fica sem gente, então
+          // precisam ser religados quando alguém volta. A função é idempotente
+          // e não faz nada se ACROMANIA_BOTS não estiver definido.
+          ligarBotsNaSala(room).catch(() => {});
         }
       } catch (err) {
         console.error("Falha ao entrar na sala de Acromania:", err);
@@ -202,12 +207,24 @@ export function setupSocket(io) {
       }
     });
 
+    // O `?.` aqui descartava frase e voto EM SILÊNCIO quando o socket tinha
+    // reconectado (o socket novo não tem `currentAcromaniaRoom`). O jogador
+    // clicava em enviar e não acontecia nada, sem erro nenhum — só o refresh
+    // resolvia. Agora a falha é dita em voz alta, e o frontend já refaz o
+    // join sozinho no evento "connect".
+    const semSala = () =>
+      socket.emit("acromania-erro", {
+        mensagem: "Conexão reiniciada. Reconectando à sala — tente de novo em instantes.",
+      });
+
     socket.on("acromania-submit-phrase", ({ phrase }) => {
-      socket.currentAcromaniaRoom?.submitPhrase(socket, userId, phrase || "");
+      if (!socket.currentAcromaniaRoom) return semSala();
+      socket.currentAcromaniaRoom.submitPhrase(socket, userId, phrase || "");
     });
 
     socket.on("acromania-vote", ({ entryId }) => {
-      socket.currentAcromaniaRoom?.vote(socket, userId, entryId);
+      if (!socket.currentAcromaniaRoom) return semSala();
+      socket.currentAcromaniaRoom.vote(socket, userId, entryId);
     });
 
     socket.on("acromania-chat-message", ({ message }) => {

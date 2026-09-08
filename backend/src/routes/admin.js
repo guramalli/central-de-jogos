@@ -4,6 +4,9 @@ import { cacheGet, cacheSet, cacheOuBuscar, cacheInvalidar } from "../utils/cach
 import { getOnlinePlayersDetailed as getStopOnlineDetailed } from "../game/gameManager.js";
 import { getOnlinePlayersDetailed as getQuizOnlineDetailed } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as getAcromaniaOnlineDetailed } from "../game/acromaniaGameManager.js";
+import { avisarSalas as avisarStop } from "../game/gameManager.js";
+import { avisarSalas as avisarQuiz } from "../game/quizGameManager.js";
+import { avisarSalas as avisarAcromania } from "../game/acromaniaGameManager.js";
 import { getOnlineList as getGeneralChatOnline } from "../game/generalChat.js";
 import { getOnlineList as getPresenceOnline } from "../game/presence.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
@@ -82,7 +85,7 @@ router.delete("/glossary/words/:id", async (req, res) => {
 
 router.get("/feedback", async (req, res) => {
   const feedbacks = await prisma.feedback.findMany({
-    include: { user: { select: { nickname: true, email: true } } },
+    include: { user: { select: { id: true, nickname: true, email: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json(feedbacks);
@@ -173,10 +176,27 @@ router.post("/quiz-questions/:id/reject", async (req, res) => {
 router.get("/quiz-questions", async (req, res) => {
   const { themeKey } = req.query;
   if (!themeKey) return res.status(400).json({ error: "themeKey é obrigatório." });
+  // Fora as REJEITADAS: elas não estão em jogo e só poluíam a lista, que já
+  // passa de 600 perguntas por tema. Quem quer ver rejeitada usa a fila de
+  // pendências, que é onde a decisão foi tomada.
+  //
+  // Ordenado por dificuldade e depois pelo texto: assim as difíceis ficam
+  // juntas, separadas das fáceis e médias. A ordem por data não ajudava —
+  // misturava tudo e obrigava a caçar visualmente.
   const questions = await prisma.quizQuestion.findMany({
-    where: { themeKey },
-    orderBy: { createdAt: "desc" },
+    where: { themeKey, status: { not: "rejected" } },
+    orderBy: [{ difficulty: "asc" }, { question: "asc" }],
   });
+
+  // "asc" no banco dá dificil, facil, medio (ordem alfabética). Reordena pra
+  // ordem que faz sentido pra quem lê: fácil, médio, difícil.
+  const ordem = { facil: 0, medio: 1, dificil: 2 };
+  questions.sort(
+    (a, b) =>
+      (ordem[a.difficulty] ?? 9) - (ordem[b.difficulty] ?? 9) ||
+      a.question.localeCompare(b.question, "pt-BR")
+  );
+
   res.json(questions);
 });
 
@@ -536,7 +556,10 @@ router.get("/users", requireRole("ADMIN"), async (req, res) => {
       ultimaPlataforma: true, ultimoAcesso: true,
       premiumAte: true, premiumVitalicio: true,
     },
-    orderBy: { createdAt: "asc" },
+    // Mais recentes primeiro: quem acabou de se cadastrar é justamente quem
+    // se quer conferir. Em ordem crescente, a conta nova ia parar na última
+    // página e era preciso navegar até lá toda vez.
+    orderBy: { createdAt: "desc" },
   });
   res.json(users);
 });
@@ -727,7 +750,7 @@ router.get("/question-reports", async (req, res) => {
     where: { resolved: false },
     include: {
       question: true,
-      user: { select: { nickname: true } },
+      user: { select: { id: true, nickname: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -747,6 +770,7 @@ router.get("/question-reports", async (req, res) => {
     g.count++;
     g.reports.push({
       id: r.id,
+      userId: r.user.id,
       nickname: r.user.nickname,
       reason: r.reason,
       comment: r.comment,
@@ -765,6 +789,32 @@ router.post("/question-reports/:questionId/resolve", async (req, res) => {
     data: { resolved: true },
   });
   res.json({ ok: true });
+});
+
+// Aviso da administração no chat de todas as salas com gente.
+//
+// Só ADMIN, não moderador: moderar conteúdo é uma coisa, falar com o site
+// inteiro ao mesmo tempo é outra.
+router.post("/broadcast", requireRole("ADMIN"), (req, res) => {
+  const mensagem = String(req.body?.mensagem || "").trim().slice(0, 300);
+  if (!mensagem) return res.status(400).json({ error: "Escreva a mensagem." });
+
+  // Um jogo específico ou todos. Manutenção do Quiz não precisa assustar
+  // quem está no Stop.
+  const jogo = req.body?.jogo || "todos";
+  const alvos = { stop: avisarStop, quiz: avisarQuiz, acromania: avisarAcromania };
+
+  let salas = 0;
+  if (jogo === "todos") {
+    for (const fn of Object.values(alvos)) salas += fn(mensagem);
+  } else if (alvos[jogo]) {
+    salas = alvos[jogo](mensagem);
+  } else {
+    return res.status(400).json({ error: "Jogo inválido." });
+  }
+
+  console.log(`[broadcast] ${req.user?.id} -> ${jogo} (${salas} salas): ${mensagem}`);
+  res.json({ ok: true, salas });
 });
 
 // Quem está online agora, e onde. Junta as quatro fontes possíveis: as três
@@ -814,16 +864,20 @@ router.get("/online", async (req, res) => {
 
   const lista = [...pessoas.values()];
 
-  // Marca quem é visitante, pra dar contexto ao número total.
+  // Marca quem é visitante e de onde está jogando. Uma consulta só pros dois:
+  // a de visitante já existia, então a plataforma vem de carona — o campo
+  // `ultimaPlataforma` é gravado na autenticação do socket.
   const ids = lista.map((p) => p.userId);
   let visitantes = new Set();
+  let plataformas = new Map();
   if (ids.length > 0) {
     try {
-      const guests = await prisma.user.findMany({
-        where: { id: { in: ids }, isGuest: true },
-        select: { id: true },
+      const contas = await prisma.user.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, isGuest: true, ultimaPlataforma: true },
       });
-      visitantes = new Set(guests.map((g) => g.id));
+      visitantes = new Set(contas.filter((c) => c.isGuest).map((c) => c.id));
+      plataformas = new Map(contas.map((c) => [c.id, c.ultimaPlataforma || null]));
     } catch {
       // se falhar, segue sem a marcação — não vale derrubar a rota por isso
     }
@@ -832,6 +886,7 @@ router.get("/online", async (req, res) => {
   const resultado = lista.map((p) => ({
     ...p,
     isGuest: visitantes.has(p.userId),
+    plataforma: plataformas.get(p.userId) || null,
     local: p.locais.length > 0 ? p.locais.map((l) => `${l.jogo}: ${l.sala}`).join(" · ") : "Navegando no site",
   }));
 

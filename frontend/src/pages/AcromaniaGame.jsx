@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSocket } from "../socket.js";
@@ -21,9 +21,11 @@ export default function AcromaniaGame() {
   // O servidor confere o cargo de novo antes de apagar — isto aqui só
   // decide se o botão aparece.
   const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
-  function apagarMensagem(id) {
+  // useCallback pra manter a identidade entre renders — sem isso o
+  // memo do Chat nunca casa e ele redesenha a cada tick do relógio.
+  const apagarMensagem = useCallback((id) => {
     socketRef.current?.emit("delete-chat-message", { escopo: "acromania", id });
-  }
+  }, []);
   const { theme: uiTheme } = useTheme();
   const socketRef = useRef(null);
   const phraseInputRef = useRef(null);
@@ -41,24 +43,67 @@ export default function AcromaniaGame() {
 
   const [phraseInput, setPhraseInput] = useState("");
   const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
+  // Motivo de a frase ter sido recusada pelo servidor (letras erradas).
+  const [erroFrase, setErroFrase] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [waitingNicknames, setWaitingNicknames] = useState([]);
 
   const [votingEntries, setVotingEntries] = useState([]);
   const [myVote, setMyVote] = useState(null);
+  // Id da MINHA frase nesta rodada, mandado só pra mim pelo servidor. Serve
+  // pra desabilitar o botão dela — a lista de votação em si continua anônima.
+  const [myEntryId, setMyEntryId] = useState(null);
 
   const [lastResult, setLastResult] = useState(null);
+  // Progresso e placar da partida (turno de N rodadas).
+  const [turnInfo, setTurnInfo] = useState({ turnRound: null, roundsPerTurn: null });
+  const [turnRanking, setTurnRanking] = useState([]);
+  // Pódio da partida que acabou. Fica na tela durante o intervalo seguinte.
+  const [turnFinished, setTurnFinished] = useState(null);
+  // Bônus por ter votado na frase vencedora. Chega só pra quem acertou.
+  const [bonusVoto, setBonusVoto] = useState(0);
   const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
 
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [roomFull, setRoomFull] = useState(false);
+  // Mensagem de erro vinda do servidor. Antes o backend emitia
+  // "acromania-erro" (manutenção, falha ao entrar) e NINGUÉM escutava —
+  // a pessoa ficava olhando uma tela parada sem saber o motivo.
+  const [erroServidor, setErroServidor] = useState("");
 
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
     socket.connect();
     socket.emit("join-acromania-room", { roomId });
+
+    // RECONEXÃO. O servidor guarda a sala numa propriedade do socket
+    // (`socket.currentAcromaniaRoom`). Quando a conexão cai e volta — troca
+    // de rede, Wi-Fi oscilando, aba em segundo plano no celular — o socket
+    // no servidor é OUTRO, sem essa propriedade. Sem reenviar o join, o
+    // envio da frase e o voto eram descartados EM SILÊNCIO: nenhum erro,
+    // nenhum aviso, o botão simplesmente não fazia nada, e só um refresh
+    // resolvia. Mesmo tratamento que o Stop e o Quiz já tinham.
+    const reentrarNaSala = () => {
+      socket.emit("join-acromania-room", { roomId });
+    };
+    socket.on("connect", reentrarNaSala);
+
+    const aoErro = (data) => setErroServidor(data?.mensagem || "Algo deu errado. Tente recarregar a página.");
+    socket.on("acromania-erro", aoErro);
+    // Entrou (ou reentrou) com sucesso: limpa qualquer erro antigo da tela.
+    socket.on("acromania-room-state", (data) => {
+      setErroServidor("");
+      if (data?.roundsPerTurn) {
+        setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
+        setTurnRanking(data.turnRanking || []);
+      }
+    });
+
+    socket.on("acromania-turn-finished", (data) => setTurnFinished(data?.ranking || []));
+
+    socket.on("acromania-bonus-voto", (data) => setBonusVoto(data?.pontos || 0));
 
     // Sessão morta (token de 7 dias vencido, ou conta banida). Só falha de
     // AUTENTICAÇÃO desloga — queda de rede e reinício do servidor durante um
@@ -122,11 +167,21 @@ export default function AcromaniaGame() {
 
     socket.on("acromania-intermission", (data) => {
       setPhase("intermission");
-      setLastResult(null);
+      // Zera o relógio na hora, sem esperar o primeiro tick.
+      if (data?.seconds) {
+        setTotalSeconds(data.seconds);
+        setTimeLeft(data.seconds);
+      }
+      // NÃO limpa o resultado aqui. O backend manda "round-result" e, no
+      // mesmo instante, "intermission" — então limpar aqui fazia a tela de
+      // votos piscar e sumir antes de dar pra ler. O resultado agora fica
+      // visível durante toda a contagem do intervalo; quem limpa é o começo
+      // da rodada seguinte ("acromania-round-start").
       setSubmitted(false);
       setPhraseInput("");
       setVotingEntries([]);
       setMyVote(null);
+      setMyEntryId(null);
       setWaitingNicknames([]);
       setWaitingInfo(
         data?.waitingForPlayers
@@ -153,9 +208,22 @@ export default function AcromaniaGame() {
       setWaitingInfo(null);
     });
 
-    socket.on("acromania-phrase-submitted", () => setSubmitted(true));
+    socket.on("acromania-phrase-submitted", () => {
+      setSubmitted(true);
+      setErroFrase("");
+    });
 
-    socket.on("acromania-submissions-update", (data) => setWaitingNicknames(data.nicknames || []));
+    socket.on("acromania-frase-invalida", (data) =>
+      setErroFrase(data?.motivo || "Sua frase não respeita as letras da rodada.")
+    );
+
+    socket.on("acromania-submissions-update", (data) =>
+      // Aceita as duas formas: `jogadores` (com a marca de quem foi o
+      // primeiro) e, na falta dela, a lista antiga só de nomes.
+      setWaitingNicknames(
+        data.jogadores || (data.nicknames || []).map((nickname) => ({ nickname, primeiro: false }))
+      )
+    );
 
     socket.on("acromania-voting-start", (data) => {
       setPhase("voting");
@@ -163,14 +231,33 @@ export default function AcromaniaGame() {
       setTotalSeconds(data.seconds);
       setTimeLeft(data.seconds);
       setMyVote(null);
+      setMyEntryId(null);
+      setErroFrase("");
+      if (data?.roundsPerTurn) {
+        setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
+      }
+      // Partida nova começando: o pódio da anterior sai da tela.
+      setTurnFinished(null);
+      setBonusVoto(0);
     });
 
-    socket.on("acromania-vote-registered", () => {});
+    socket.on("acromania-minha-frase", (data) => setMyEntryId(data?.entryId || null));
+
+    // Confirmação do servidor. Antes este handler era vazio e o voto era
+    // marcado na tela de forma otimista, então um voto RECUSADO (na própria
+    // frase) aparecia como registrado e a pessoa ficava sem votar sem saber.
+    socket.on("acromania-vote-registered", (data) => {
+      if (data?.entryId) setMyVote(data.entryId);
+    });
 
     socket.on("acromania-round-result", (data) => {
       setPhase("grading");
       setLastResult(data);
       setVotingEntries([]);
+      if (data?.roundsPerTurn) {
+        setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
+        setTurnRanking(data.turnRanking || []);
+      }
     });
 
     return () => {
@@ -187,10 +274,16 @@ export default function AcromaniaGame() {
       socket.off("acromania-tick");
       socket.off("acromania-round-start");
       socket.off("acromania-phrase-submitted");
+      socket.off("acromania-frase-invalida");
       socket.off("acromania-submissions-update");
       socket.off("acromania-voting-start");
       socket.off("acromania-vote-registered");
+      socket.off("acromania-minha-frase");
+      socket.off("acromania-turn-finished");
+      socket.off("acromania-bonus-voto");
       socket.off("acromania-round-result");
+      socket.off("connect", reentrarNaSala);
+      socket.off("acromania-erro", aoErro);
       socket.off("aviso-inatividade");
       socket.off("removido-por-inatividade");
       socket.disconnect();
@@ -225,13 +318,21 @@ export default function AcromaniaGame() {
 
   function castVote(entryId) {
     if (myVote) return;
-    setMyVote(entryId);
+    if (entryId === myEntryId) return; // não pode votar na própria frase
+    // Sem marcação otimista: quem confirma é o servidor, no
+    // "acromania-vote-registered". Assim a tela nunca mente sobre o voto.
     socketRef.current?.emit("acromania-vote", { entryId });
   }
 
-  function sendChat(text) {
+  // Array novo a cada render invalidaria o memo do Chat.
+  const nicksNaSala = useMemo(
+    () => onlinePlayers.map((p) => p.nickname),
+    [onlinePlayers]
+  );
+
+  const sendChat = useCallback((text) => {
     socketRef.current?.emit("acromania-chat-message", { message: text });
-  }
+  }, []);
 
   const me = onlinePlayers.find((p) => p.userId === user?.id);
 
@@ -260,6 +361,13 @@ export default function AcromaniaGame() {
         </div>
         <div className="quiz-topbar-title">
           <span className="quiz-theme-name">{roomLabel}</span>
+          {turnInfo.roundsPerTurn > 0 && (
+            <span className="acro-turn-progress">
+              rodada {Math.min(turnInfo.turnRound || 1, turnInfo.roundsPerTurn)} de{" "}
+              {turnInfo.roundsPerTurn}
+            </span>
+          )}
+          {erroServidor && <div className="acro-erro-banner">⚠️ {erroServidor}</div>}
         </div>
         <div className="quiz-timer-group">
           <InviteButton
@@ -321,10 +429,14 @@ export default function AcromaniaGame() {
                   {pasteBlockedMsg && (
                     <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar sua própria frase.</p>
                   )}
+                  {erroFrase && <p className="acro-erro-frase">⚠️ {erroFrase}</p>}
                   <input
                     ref={phraseInputRef}
                     value={phraseInput}
-                    onChange={(e) => setPhraseInput(e.target.value)}
+                    onChange={(e) => {
+                      setPhraseInput(e.target.value);
+                      if (erroFrase) setErroFrase("");
+                    }}
                     onPaste={(e) => {
                       e.preventDefault();
                       setPasteBlockedMsg(true);
@@ -342,22 +454,51 @@ export default function AcromaniaGame() {
 
           {phase === "voting" && (
             <div className="acro-voting-list">
-              {votingEntries.map((e) => (
-                <button
-                  key={e.entryId}
-                  className={`acro-vote-option ${myVote === e.entryId ? "acro-vote-option-selected" : ""}`}
-                  disabled={!!myVote}
-                  onClick={() => castVote(e.entryId)}
-                >
-                  {e.phrase}
-                </button>
-              ))}
+              {votingEntries.map((e) => {
+                const ehMinha = e.entryId === myEntryId;
+                return (
+                  <button
+                    key={e.entryId}
+                    className={`acro-vote-option ${myVote === e.entryId ? "acro-vote-option-selected" : ""} ${
+                      ehMinha ? "acro-vote-option-minha" : ""
+                    }`}
+                    disabled={!!myVote || ehMinha}
+                    onClick={() => castVote(e.entryId)}
+                  >
+                    {e.phrase}
+                    {ehMinha && <span className="acro-vote-minha-tag">sua frase</span>}
+                  </button>
+                );
+              })}
               {myVote && <p className="acro-submitted-msg">✓ Voto registrado! Espera o resultado...</p>}
             </div>
           )}
 
-          {phase === "grading" && lastResult && (
+          {turnFinished && (
+            <div className="acro-turn-podium">
+              <div className="acro-turn-podium-title">🏁 Fim da partida!</div>
+              {turnFinished.length === 0 ? (
+                <p style={{ color: "var(--qz-text)", opacity: 0.75 }}>Ninguém pontuou nessa partida.</p>
+              ) : (
+                turnFinished.slice(0, 5).map((r) => (
+                  <div key={r.userId} className="acro-turn-podium-row">
+                    <span>
+                      {["🥇", "🥈", "🥉"][r.position - 1] || `${r.position}º`} {r.nickname}
+                    </span>
+                    <span className="acro-result-pts">{r.points} pts</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {(phase === "grading" || phase === "intermission") && lastResult && (
             <div className="acro-results-list">
+              {bonusVoto > 0 && (
+                <p className="acro-bonus-voto">
+                  🎯 Você votou na frase vencedora! +{bonusVoto} pts
+                </p>
+              )}
               {lastResult.noOneWrote ? (
                 <p style={{ color: "var(--qz-text)", opacity: 0.75 }}>Ninguém escreveu uma frase nessa rodada.</p>
               ) : (
@@ -371,6 +512,8 @@ export default function AcromaniaGame() {
                       </div>
                       <div className="acro-result-meta">
                         {e.nickname} — {e.votes} {e.votes === 1 ? "voto" : "votos"}
+                        {e.maisRapido && <span className="acro-mais-rapido">⚡ + rápido</span>}
+                        {e.pontos > 0 && <span className="acro-result-pts">+{e.pontos} pts</span>}
                       </div>
                     </div>
                   ))
@@ -386,8 +529,11 @@ export default function AcromaniaGame() {
               waitingNicknames.length === 0 ? (
                 <p className="quiz-wrong-log-empty">Ninguém enviou ainda...</p>
               ) : (
-                waitingNicknames.map((nick, i) => (
-                  <div key={i} className="acro-waiting-row">✓ {nick}</div>
+                waitingNicknames.map((j, i) => (
+                  <div key={i} className="acro-waiting-row">
+                    ✓ {j.nickname}
+                    {j.primeiro && <span className="acro-mais-rapido">+ rápido</span>}
+                  </div>
                 ))
               )
             ) : (
@@ -422,18 +568,70 @@ export default function AcromaniaGame() {
         </div>
       )}
 
-      <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
+      {/* Classe extra `acro-bottom-grid` só pra virar 3 colunas: chat |
+          placar | jogadores. A `quiz-bottom-grid` continua intacta porque é
+          compartilhada com a sala do Quiz, que está funcionando. */}
+      <div
+        className={`quiz-bottom-grid acro-bottom-grid ${
+          isMobile ? `qz-mobile-aba-${abaMobile}` : ""
+        }`}
+      >
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
-          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem} />
+          <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
+            participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
+        {/* Placar da partida em painel próprio, no meio da linha. Antes ele
+            ficava espremido dentro do painel de jogadores, na coluna mais
+            estreita da tela — justamente o dado que dá sentido à partida. */}
+        <div className="quiz-panel acro-placar-panel">
+          <div className="quiz-retro-tab">placar da partida</div>
+          {/* A rodada ficava dentro da aba, mas ela é estreita e o texto
+              quebrava em duas linhas, cobrindo o 1º colocado. Aqui é só uma
+              linha de texto acima da lista. */}
+          {turnInfo.roundsPerTurn > 0 && (
+            <div className="acro-placar-rodada">
+              Rodada {Math.min(turnInfo.turnRound || 1, turnInfo.roundsPerTurn)} de{" "}
+              {turnInfo.roundsPerTurn}
+            </div>
+          )}
+          <div className="acro-placar-lista">
+            {turnRanking.length === 0 ? (
+              <p className="quiz-wrong-log-empty">Ninguém pontuou ainda nesta partida.</p>
+            ) : (
+              turnRanking.slice(0, 8).map((r) => (
+                <div key={r.userId} className="acro-turn-podium-row">
+                  <span>
+                    {["🥇", "🥈", "🥉"][r.position - 1] || `${r.position}º`} {r.nickname}
+                  </span>
+                  <span className="acro-result-pts">{r.points}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="quiz-panel quiz-players-panel">
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>
           <div className="quiz-players-list" style={{ marginTop: 10 }}>
             {onlinePlayers.map((p) => (
               <div key={p.userId} className="quiz-player-row">
-                <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
-                <span className="quiz-player-points">{p.lifetimePoints} pts</span>
+                <div className="quiz-player-name">
+                  {p.rank?.icon && (
+                    <img
+                      src={p.rank.icon}
+                      alt={p.rank.name}
+                      title={p.rank.name}
+                      className={`quiz-player-rank-icon${p.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
+                    />
+                  )}
+                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
+                </div>
+                {/* Padronizado com Stop e Quiz: pontos nesta sala no mês,
+                    não o total do jogador no Acromania inteiro. */}
+                <span className="quiz-player-points" title="Pontos nesta sala neste mês">
+                  {p.roomMonthlyPoints ?? 0} pts
+                </span>
               </div>
             ))}
           </div>

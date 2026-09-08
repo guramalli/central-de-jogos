@@ -5,6 +5,7 @@ import { getQuizRankForPoints } from "../utils/quizRank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { avisarPontuacao } from "./eventosDePontuacao.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
@@ -61,6 +62,11 @@ export class QuizRoom {
     // um ranking do turno e premia os melhores — igual ao bloco do Stop.
     this.roundsPerTurn = config.roundsPerTurn ?? null;
     this.turnBonus = config.turnBonus ?? [50, 30, 15];
+    // Mínimo de gente pontuando pro turno pagar bônus. Sem isso, um jogador
+    // sozinho na arena vence todos os turnos sem disputa: ~45 mil pontos por
+    // dia numa sala, mais de 130 mil em três simultâneas — estouraria o teto
+    // mensal em dois dias.
+    this.minScorersForBonus = config.minScorersForBonus ?? 0;
     // Modo arena: todo mundo que acertar pontua na mesma pergunta (em vez de
     // só o primeiro). A pergunta segue até o tempo acabar.
     this.multiAnswer = !!config.multiAnswer;
@@ -74,6 +80,11 @@ export class QuizRoom {
     // a cada atualização da lista.
     this.mensalCache = new Map();
     this.roomLifetimeCache = new Map();
+    // userId -> pontos feitos SÓ nesta sala e SÓ no mês corrente. É o número
+    // exibido na lista de jogadores. O mês fica guardado junto porque a sala
+    // pode atravessar a virada do dia 1º.
+    this.roomMonthlyCache = new Map();
+    this.roomMonthlyCacheMonth = null;
 
     this.state = "waiting"; // waiting | intermission | active
     this.currentQuestion = null; // { id, question, answer }
@@ -229,6 +240,22 @@ export class QuizRoom {
       );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
+    const mesAtual = currentMonthKey();
+    if (this.roomMonthlyCacheMonth !== mesAtual) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = mesAtual;
+    }
+    if (!this.roomMonthlyCache.has(userId)) {
+      const roomMes = await querySegura(
+        prisma.monthlyScore.findUnique({
+          where: {
+            userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey: mesAtual },
+          },
+        }),
+        null
+      );
+      this.roomMonthlyCache.set(userId, roomMes?.points || 0);
+    }
 
     socket.join(this.roomId);
     this.iniciarVigiaInatividade();
@@ -311,6 +338,7 @@ export class QuizRoom {
         this.lifetimeCache.delete(leaving.userId);
         this.mensalCache.delete(leaving.userId);
         this.roomLifetimeCache.delete(leaving.userId);
+        this.roomMonthlyCache.delete(leaving.userId);
 
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
@@ -333,19 +361,89 @@ export class QuizRoom {
     if (this.players.size === 0) this.pararVigiaInatividade();
   }
 
+  // Relê o mensal destes jogadores do banco. Usado quando eles pontuaram em
+  // OUTRA sala de Quiz — o valor daqui ficou velho.
+  //
+  // Recarrega, não apaga: o `mensalCache` só é preenchido na entrada do
+  // jogador, então descartar a entrada faria a lista exibir ZERO até a
+  // pessoa sair e voltar.
+  async recarregarMensal(userIds) {
+    if (!userIds || userIds.length === 0) return;
+    try {
+      const linhas = await prisma.monthlyScore.findMany({
+        where: { userId: { in: userIds }, gameKey: GAME_KEY, monthKey: currentMonthKey() },
+      });
+      const porUsuario = Object.fromEntries(linhas.map((l) => [l.userId, l.points]));
+      for (const id of userIds) this.mensalCache.set(id, porUsuario[id] || 0);
+    } catch (err) {
+      console.error("Falha ao recarregar mensal do Quiz:", err.message);
+    }
+  }
+
   async broadcastOnlinePlayers() {
     const seen = new Set();
     const list = [];
+
+    // POSIÇÃO NO RANKING MENSAL.
+    //
+    // A faixa de patente do celular mostra "12º" quando tem posição e cai pro
+    // número de pontos quando não tem. O Quiz não mandava NEM `monthlyPoints`
+    // NEM `position` — a faixa lia `undefined`, o `?? 0` virava zero, e o
+    // número nunca mudava por mais que a pessoa acertasse. Não era cache
+    // velho: era campo que não existia.
+    //
+    // Uma consulta só pra sala inteira, no mesmo formato do StopRoom — e não
+    // uma por jogador, que seria N consultas a cada atualização da lista.
+    const idsDaSala = [...new Set([...this.players.values()].map((p) => p.userId))];
+    const posicaoPorUsuario = {};
+    if (idsDaSala.length > 0) {
+      try {
+        const monthKey = currentMonthKey();
+        // Mesmos filtros do announceRankingPosition: sem ADMIN, sem
+        // visitante, sem quem se ocultou (no geral ou só neste jogo).
+        const elegiveis = {
+          role: { not: "ADMIN" },
+          isGuest: false,
+          ocultoNoRanking: false,
+          NOT: { ocultoNosRankings: { has: GAME_KEY } },
+        };
+        const meus = await prisma.monthlyScore.findMany({
+          where: { userId: { in: idsDaSala }, gameKey: GAME_KEY, monthKey },
+        });
+        const menor = meus.length ? Math.min(...meus.map((m) => m.points)) : null;
+        if (menor !== null) {
+          // Quem está acima do MENOR da sala: dá pra derivar a posição de
+          // todo mundo a partir daí, sem uma consulta por pessoa.
+          const acima = await prisma.monthlyScore.findMany({
+            where: { gameKey: GAME_KEY, monthKey, points: { gt: menor }, user: elegiveis },
+            select: { points: true },
+          });
+          const pontosAcima = acima.map((a) => a.points);
+          for (const m of meus) {
+            posicaoPorUsuario[m.userId] = pontosAcima.filter((v) => v > m.points).length + 1;
+          }
+        }
+      } catch (err) {
+        console.error("Falha ao calcular posição no Quiz:", err.message);
+      }
+    }
+
     for (const p of this.players.values()) {
       if (seen.has(p.userId)) continue;
       seen.add(p.userId);
       const lifetimePoints = this.lifetimeCache.get(p.userId) || 0;
       const roomLifetimePoints = this.roomLifetimeCache.get(p.userId) || 0;
+      const roomMonthlyPoints = this.roomMonthlyCache.get(p.userId) || 0;
       list.push({
         userId: p.userId,
         nickname: p.nickname,
         lifetimePoints,
         roomLifetimePoints,
+        roomMonthlyPoints,
+        // Pontos do MÊS no Quiz inteiro. É o que alimenta a faixa de patente
+        // no celular e o que faltava aqui.
+        monthlyPoints: this.mensalCache.get(p.userId) || 0,
+        position: posicaoPorUsuario[p.userId] || null,
         // Patente é conceito MENSAL: quem define é o desempenho do mês.
         rank: getQuizRankForPoints(this.mensalCache.get(p.userId) || 0, { userId: p.userId }),
       });
@@ -354,6 +452,7 @@ export class QuizRoom {
     // de posição a cada atualização da lista, o que fica visualmente ruim.
     list.sort(
       (a, b) =>
+        b.roomMonthlyPoints - a.roomMonthlyPoints ||
         b.roomLifetimePoints - a.roomLifetimePoints ||
         a.nickname.localeCompare(b.nickname)
     );
@@ -424,8 +523,10 @@ export class QuizRoom {
     this.watchdogTimer = null;
   }
 
-  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
-    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, at: Date.now() });
+  // `aviso` é o comunicado da administração: precisa saltar aos olhos no meio
+  // das outras mensagens de sistema, que são todas cinzas e parecidas.
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false) {
+    this.broadcast("quiz-chat-message", { userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, aviso, at: Date.now() });
   }
 
   // Tag do clã de quem está na sala. Vem do cache carregado na entrada, pra
@@ -843,6 +944,20 @@ export class QuizRoom {
               userId,
               (this.roomLifetimeCache.get(userId) || 0) + this.pointsPerCorrect
             );
+
+            // Mesma pontuação recortada por mês. gameKey com ":" — o ranking
+            // só lê o gameKey global, então não interfere na premiação.
+            await prisma.monthlyScore.upsert({
+              where: {
+                userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey },
+              },
+              update: { points: { increment: this.pointsPerCorrect } },
+              create: { userId, gameKey: this.roomGameKey, monthKey, points: this.pointsPerCorrect },
+            });
+            this.roomMonthlyCache.set(
+              userId,
+              (this.roomMonthlyCache.get(userId) || 0) + this.pointsPerCorrect
+            );
           } catch (err) {
             console.error("Falha ao pontuar na arena:", err.message);
           }
@@ -892,6 +1007,7 @@ export class QuizRoom {
 
         await this.recordArenaStats();
         await this.broadcastOnlinePlayers();
+        avisarPontuacao(GAME_KEY, [...this.mensalCache.keys()], this.roomId);
       } catch (err) {
         console.error(`Erro ao encerrar pergunta na arena ${this.roomId}:`, err);
       } finally {
@@ -982,6 +1098,22 @@ export class QuizRoom {
             create: { userId: winner.userId, gameKey: this.roomGameKey, points: pts },
           });
           this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + pts);
+
+          await prisma.monthlyScore.upsert({
+            where: {
+              userId_gameKey_monthKey: {
+                userId: winner.userId,
+                gameKey: this.roomGameKey,
+                monthKey,
+              },
+            },
+            update: { points: { increment: pts } },
+            create: { userId: winner.userId, gameKey: this.roomGameKey, monthKey, points: pts },
+          });
+          this.roomMonthlyCache.set(
+            winner.userId,
+            (this.roomMonthlyCache.get(winner.userId) || 0) + pts
+          );
         } catch (err) {
           console.error("Falha ao salvar pontuação do Quiz para", winner.userId, err.message);
         }
@@ -991,6 +1123,11 @@ export class QuizRoom {
 
         this.broadcast("quiz-question-result", {
           winner: winner.nickname,
+          // O id vai num campo à parte de propósito: `winner` é uma STRING
+          // usada direto no texto da tela ("Fulano acertou!"), e trocá-la por
+          // objeto quebraria a exibição. A tela usa o id pra saber se o
+          // acerto foi seu e piscar a caixa em verde.
+          winnerUserId: winner.userId,
           answer: question.answer,
           points: pts,
           elapsedSeconds,
@@ -1058,6 +1195,10 @@ export class QuizRoom {
 
         await this.announceRankingPosition(winner.userId, winner.nickname);
         await this.broadcastOnlinePlayers();
+        // Quem joga em duas salas de Quiz tem um mensal só, mas cada sala
+        // guarda o valor no próprio mensalCache. Sem este aviso, a outra
+        // sala seguiria mostrando a patente e os pontos de antes.
+        avisarPontuacao(GAME_KEY, [winner.userId], this.roomId);
       } else {
         this.broadcast("quiz-question-result", { winner: null, answer: question.answer });
         // Ninguém acertou — quebra qualquer sequência em andamento.
@@ -1174,9 +1315,13 @@ export class QuizRoom {
       lastPosition = position;
 
       const player = [...this.players.values()].find((p) => p.userId === userId);
+      // Saiu antes do fim do turno, não leva bônus. Antes a linha entrava
+      // igual, só com o nome trocado por "Jogador" — dava pra pontuar as
+      // primeiras rodadas, sair, e ainda aparecer no pódio.
+      if (!player) return;
       ranking.push({
         userId,
-        nickname: player?.nickname || "Jogador",
+        nickname: player.nickname,
         points,
         position,
       });
@@ -1281,11 +1426,32 @@ export class QuizRoom {
 
     if (ranking.length === 0) {
       this.systemMessage("Ninguém pontuou nesse turno.");
+    } else if (ranking.length < this.minScorersForBonus) {
+      // Turno sem disputa: os pontos por acerto continuam valendo (já foram
+      // creditados rodada a rodada), só o bônus do pódio não sai. Dito em voz
+      // alta pra ninguém achar que o jogo esqueceu de pagar.
+      this.systemMessage(
+        `🏁 Fim do turno! O bônus do pódio precisa de pelo menos ${this.minScorersForBonus} jogadores pontuando — chame mais gente pra próxima!`,
+        true
+      );
     } else {
       const monthKey = currentMonthKey();
       const medals = ["🥇", "🥈", "🥉", "4º", "5º"];
 
+      // BÔNUS PROPORCIONAL À DISPUTA.
+      //
+      // Paga-se a posição N só se houver pelo menos N+1 pessoas pontuando.
+      // Com 2 jogadores só o 1º leva; com 3, o 1º e o 2º; e assim por diante.
+      //
+      // Sem isso, duas pessoas combinando de entrar juntas dividiriam o pódio
+      // inteiro sem disputa nenhuma — ~83 mil pontos em 8 horas cada uma, o
+      // teto mensal em quatro dias. Exigir mais gente pra liberar mais
+      // prêmios recompensa a sala cheia sem travar a sala vazia.
+      const posicoesPremiadas = Math.max(0, ranking.length - 1);
+
       for (const entry of ranking) {
+        if (entry.position > posicoesPremiadas) continue;
+
         // Só premia até onde a tabela de bônus alcança (top 5 por padrão).
         // Empatados na mesma posição recebem o mesmo valor cheio.
         const bonus = this.turnBonus[entry.position - 1];
@@ -1313,9 +1479,46 @@ export class QuizRoom {
           });
           this.lifetimeCache.set(entry.userId, (this.lifetimeCache.get(entry.userId) || 0) + bonus);
           this.mensalCache.set(entry.userId, (this.mensalCache.get(entry.userId) || 0) + bonus);
+
+          // A pontuação DESTA SALA (roomGameKey) estava faltando aqui — o
+          // bônus entrava no ranking mensal e no total do jogo, mas sumia do
+          // placar da sala onde foi conquistado. É o mesmo esquecimento que
+          // já tinha acontecido na pontuação por acerto (ver o comentário
+          // "Pontuação específica DESSA sala", mais acima).
+          await prisma.lifetimeScore.upsert({
+            where: { userId_gameKey: { userId: entry.userId, gameKey: this.roomGameKey } },
+            update: { points: { increment: bonus } },
+            create: { userId: entry.userId, gameKey: this.roomGameKey, points: bonus },
+          });
+          this.roomLifetimeCache.set(
+            entry.userId,
+            (this.roomLifetimeCache.get(entry.userId) || 0) + bonus
+          );
+
+          // E a fatia mensal por sala (zip 209), que alimenta a coluna de
+          // pontos na lista de jogadores.
+          await prisma.monthlyScore.upsert({
+            where: {
+              userId_gameKey_monthKey: { userId: entry.userId, gameKey: this.roomGameKey, monthKey },
+            },
+            update: { points: { increment: bonus } },
+            create: { userId: entry.userId, gameKey: this.roomGameKey, monthKey, points: bonus },
+          });
+          this.roomMonthlyCache.set(
+            entry.userId,
+            (this.roomMonthlyCache.get(entry.userId) || 0) + bonus
+          );
         } catch (err) {
           console.error("Falha ao premiar turno da arena:", err.message);
         }
+      }
+
+      // Dito em voz alta: senão a pessoa em 2º com 2 jogadores acha que o
+      // jogo esqueceu de pagar.
+      if (posicoesPremiadas < Math.min(ranking.length, this.turnBonus.length)) {
+        this.systemMessage(
+          `ℹ️ Com ${ranking.length} pontuando, o bônus vale até o ${posicoesPremiadas}º lugar. Mais gente na sala, mais posições premiadas!`
+        );
       }
 
       this.broadcast("quiz-turn-finished", { ranking });

@@ -48,6 +48,12 @@ export default function NovidadeBanner() {
         <Link className="btn btn-sm" to={user ? "/ranking" : "/login"} onClick={fechar}>
           {user ? "Ver o ranking" : "Entrar e jogar"}
         </Link>
+        {/* O banner anuncia UM destaque; a página guarda o histórico. Quem
+            some por duas semanas e volta não descobre pelo banner o que
+            mudou nesse meio-tempo. */}
+        <Link className="btn btn-sm secondary" to="/novidades" onClick={fechar}>
+          Novidades
+        </Link>
         <button className="novidade-banner-fechar" onClick={fechar} aria-label="Fechar aviso">
           ✕
         </button>

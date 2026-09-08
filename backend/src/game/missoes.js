@@ -251,7 +251,9 @@ export async function resgatarMissao(userId, missaoKey, periodo) {
 async function jogoMaisJogadoNoMes(userId) {
   try {
     const scores = await prisma.monthlyScore.findMany({
-      where: { userId, monthKey: currentMonthKey() },
+      // Só jogos de verdade: as linhas "por sala" (gameKey com ":") não são
+      // destino válido de recompensa.
+      where: { userId, monthKey: currentMonthKey(), NOT: { gameKey: { contains: ":" } } },
       orderBy: { points: "desc" },
       take: 1,
     });

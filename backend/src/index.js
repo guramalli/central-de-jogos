@@ -27,6 +27,7 @@ import acromaniaRoomsRoutes from "./routes/acromaniaRooms.js";
 import quizQuestionsRoutes from "./routes/quizQuestions.js";
 import feedbackRoutes from "./routes/feedback.js";
 import ranksRoutes from "./routes/ranks.js";
+import acromaniaRanksRoutes from "./routes/acromaniaRanks.js";
 import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
 import { setupSocket } from "./socket/index.js";
@@ -105,6 +106,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/ranks", ranksRoutes);
 app.use("/api/platform-stats", platformStatsRoutes);
 app.use("/api/quiz-ranks", quizRanksRoutes);
+app.use("/api/acromania-ranks", acromaniaRanksRoutes);
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno

@@ -82,17 +82,41 @@ router.get("/messages/unread-count", async (req, res) => {
 router.get("/conversas", async (req, res) => {
   const eu = req.user.id;
 
-  // Todas as mensagens em que eu participo. Buscar tudo e agrupar em memória
-  // é mais simples e mais rápido do que uma consulta por amigo — o volume de
-  // DM por pessoa é baixo, e assim é UMA ida ao banco em vez de N.
-  const mensagens = await prisma.privateMessage.findMany({
-    where: { OR: [{ senderId: eu }, { receiverId: eu }] },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true, senderId: true, receiverId: true,
-      message: true, read: true, createdAt: true,
-    },
-  });
+  // Esta rota é consultada a cada 20s pela barra de mensagens, em TODAS as
+  // páginas. Antes ela buscava o histórico INTEIRO de mensagens da pessoa,
+  // sem limite, só pra extrair a última de cada conversa — uma consulta que
+  // fica mais cara a cada mensagem trocada, para sempre.
+  //
+  // Agora são duas consultas, cada uma fazendo bem o seu trabalho:
+  //
+  //   1. As mensagens recentes, com teto, pra montar a prévia da conversa.
+  //   2. A contagem de não lidas, agrupada no BANCO — exata e barata,
+  //      independente do tamanho do histórico.
+  //
+  // O teto vale só pra prévia: uma conversa parada há muito tempo pode não
+  // aparecer na lista, mas ela também não teria nada de novo pra mostrar.
+  const TETO_PREVIA = 400;
+
+  const [mensagens, naoLidasPorPessoa] = await Promise.all([
+    prisma.privateMessage.findMany({
+      where: { OR: [{ senderId: eu }, { receiverId: eu }] },
+      orderBy: { createdAt: "desc" },
+      take: TETO_PREVIA,
+      select: {
+        id: true, senderId: true, receiverId: true,
+        message: true, read: true, createdAt: true,
+      },
+    }),
+    prisma.privateMessage.groupBy({
+      by: ["senderId"],
+      where: { receiverId: eu, read: false },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const contagemNaoLidas = new Map(
+    naoLidasPorPessoa.map((g) => [g.senderId, g._count._all])
+  );
 
   // Agrupa por interlocutor, guardando só a última mensagem de cada um.
   const porPessoa = new Map();
@@ -106,11 +130,24 @@ router.get("/conversas", async (req, res) => {
         // "você: ..." deixa claro que a bola está com o outro.
         ultimaMinha: m.senderId === eu,
         quando: m.createdAt,
-        naoLidas: 0,
+        // Vem da contagem agrupada, não de somar as mensagens carregadas —
+        // com teto na busca, somar aqui daria um número menor que o real.
+        naoLidas: contagemNaoLidas.get(outro) || 0,
       });
     }
-    // Só conta como não lida o que EU recebi e ainda não abri.
-    if (m.receiverId === eu && !m.read) porPessoa.get(outro).naoLidas++;
+  }
+
+  // Conversa com mensagem não lida ANTIGA (fora do teto da prévia) ainda
+  // precisa aparecer: é justamente a que a pessoa não pode perder.
+  for (const [remetente, quantas] of contagemNaoLidas.entries()) {
+    if (porPessoa.has(remetente)) continue;
+    porPessoa.set(remetente, {
+      userId: remetente,
+      ultima: "",
+      ultimaMinha: false,
+      quando: null,
+      naoLidas: quantas,
+    });
   }
 
   if (porPessoa.size === 0) return res.json([]);

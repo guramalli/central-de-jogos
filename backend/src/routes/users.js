@@ -4,6 +4,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, getNextRankInfo } from "../utils/rank.js";
 import { getQuizRankForPoints, getQuizNextRankInfo } from "../utils/quizRank.js";
+import { getAcromaniaRankForPoints, getAcromaniaNextRankInfo } from "../utils/acromaniaRank.js";
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
@@ -88,7 +89,11 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
   // passa o mouse num nick, em qualquer tela do site.
   const [user, monthly, lifetime, quizStats] = await Promise.all([
     prisma.user.findUnique({ where: { id }, include: { clan: true } }),
-    prisma.monthlyScore.findMany({ where: { userId: id, monthKey } }),
+    // Mesmo filtro do lifetimeScore logo abaixo: as linhas "por sala"
+    // (gameKey com ":") não são jogos, não aparecem no perfil.
+    prisma.monthlyScore.findMany({
+      where: { userId: id, monthKey, NOT: { gameKey: { contains: ":" } } },
+    }),
     // Exclui as pontuações "por sala" (gameKey tipo "stop:stop-sala-1") —
     // no perfil só mostramos o total geral de cada jogo.
     prisma.lifetimeScore.findMany({
@@ -124,8 +129,15 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
           rank:
           m.gameKey === "quiz"
             ? getQuizRankForPoints(m.points, { userId: user.id })
-            : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
-          nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+            : m.gameKey === "acromania"
+              ? getAcromaniaRankForPoints(m.points)
+              : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
+          nextRank:
+            m.gameKey === "quiz"
+              ? getQuizNextRankInfo(m.points)
+              : m.gameKey === "acromania"
+                ? getAcromaniaNextRankInfo(m.points)
+                : getNextRankInfo(m.points),
         };
       }
       const betterCount = await prisma.monthlyScore.count({
@@ -149,8 +161,15 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
         rank:
           m.gameKey === "quiz"
             ? getQuizRankForPoints(m.points, { userId: user.id })
-            : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
-        nextRank: m.gameKey === "quiz" ? getQuizNextRankInfo(m.points) : getNextRankInfo(m.points),
+            : m.gameKey === "acromania"
+              ? getAcromaniaRankForPoints(m.points)
+              : getRankForPoints(m.points, { userId: user.id, gameKey: m.gameKey }),
+        nextRank:
+          m.gameKey === "quiz"
+            ? getQuizNextRankInfo(m.points)
+            : m.gameKey === "acromania"
+              ? getAcromaniaNextRankInfo(m.points)
+              : getNextRankInfo(m.points),
       };
     })
   );

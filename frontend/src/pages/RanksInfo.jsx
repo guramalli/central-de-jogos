@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
 
@@ -16,6 +17,9 @@ export default function RanksInfo() {
   return (
     <div>
       <Seo title="Patentes do Stop" description="Veja todas as patentes do Stop e quanto falta pra você subir de nível." />
+            <Link to="/jogos/stop" className="btn secondary ranks-voltar">
+        ← Voltar pro Stop
+      </Link>
       <h1>Patentes Stop</h1>
       <p style={{ color: "var(--text-dim)" }}>
         Sua patente é calculada pela sua pontuação <strong>do mês</strong> em cada jogo — todo mês ela é
@@ -61,6 +65,11 @@ export default function RanksInfo() {
           </tbody>
         </table>
       </div>
+
+      {/* Repetido no rodapé pra quem rolou a tabela inteira. */}
+      <Link to="/jogos/stop" className="btn secondary ranks-voltar">
+        ← Voltar pro Stop
+      </Link>
     </div>
   );
 }

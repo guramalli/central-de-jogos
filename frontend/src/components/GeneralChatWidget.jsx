@@ -59,7 +59,8 @@ export default function GeneralChatWidget() {
         </span>
       </div>
       <div className="general-chat-body">
-        <Chat messages={messages} onSend={sendChat} showTimestamp canModerate={podeModerar} onDelete={apagarMensagem} />
+        <Chat messages={messages} onSend={sendChat} showTimestamp canModerate={podeModerar}
+          onDelete={apagarMensagem} participantes={online.map((p) => p.nickname)} meuNick={user?.nickname} />
         <div className="general-chat-online-list">
           <h4>Quem está na praça</h4>
           {online.length === 0 && <p className="general-chat-online-empty">Ninguém por aqui ainda...</p>}

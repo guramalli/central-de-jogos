@@ -7,9 +7,21 @@ export const ACROMANIA_ROOM_CONFIGS = {
     maxPlayers: 10,
     writingSeconds: 60,     // tempo pra escrever a frase
     votingSeconds: 20,      // tempo pra votar na melhor
-    intermissionSeconds: 10, // intervalo entre rodadas
-    lettersCount: 3,
+    // Intervalo entre rodadas. É também o tempo de LEITURA do resultado: as
+    // frases e os votos ficam na tela durante ele. 10s era pouco pra ler 4 ou
+    // 5 frases. Sobrou espaço no ciclo porque escrita e votação agora
+    // encerram assim que todos respondem.
+    intermissionSeconds: 16,
+    // Quantidade de letras SORTEADA a cada rodada dentro desta faixa. Fixo
+    // em 3 ficava curto e repetitivo; variar dá ritmo diferente entre uma
+    // rodada e outra sem precisar de sala nova.
+    lettersMin: 4,
+    lettersMax: 6,
     pointsForWin: 50,
+    // Partida de 8 rodadas (~7 min no ritmo atual). Curta o bastante pra
+    // caber num intervalo de almoço e longa o bastante pra virar disputa.
+    roundsPerTurn: 8,
+    turnBonus: [100, 60, 30],
     // Precisa de pelo menos 3 jogadores pra votação fazer sentido de verdade.
     minPlayersToStart: 3,
   },

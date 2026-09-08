@@ -4,6 +4,7 @@ import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { avisarPontuacao } from "./eventosDePontuacao.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento, registrarDistinto } from "./missoes.js";
@@ -100,6 +101,12 @@ export class StopRoom {
     this.blockTotals = new Map(); // userId -> pontos acumulados no bloco atual de 10 rodadas
     this.lifetimeCache = new Map(); // userId -> pontos vitalícios do jogo Stop em TODAS as salas
     this.roomLifetimeCache = new Map(); // userId -> pontos vitalícios SÓ nesta sala (nunca reseta)
+    // userId -> pontos feitos SÓ nesta sala e SÓ no mês corrente. É este o
+    // número que aparece na lista de jogadores. Guardamos o mês junto porque
+    // a sala pode atravessar a virada do dia 1º: quando o mês muda, o cache
+    // inteiro é descartado, senão continuaria servindo o total do mês velho.
+    this.roomMonthlyCache = new Map();
+    this.roomMonthlyCacheMonth = null;
     this.state = "intermission"; // intermission | active | grading
     this.currentThemes = [];
     this.usedLettersInBlock = new Set(); // letras já sorteadas no bloco atual (não repetem)
@@ -295,6 +302,23 @@ export class StopRoom {
         );
         this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
       }
+
+      const mesAtual = currentMonthKey();
+      if (this.roomMonthlyCacheMonth !== mesAtual) {
+        this.roomMonthlyCache.clear();
+        this.roomMonthlyCacheMonth = mesAtual;
+      }
+      if (!this.roomMonthlyCache.has(userId)) {
+        const existingRoomMes = await querySegura(
+          prisma.monthlyScore.findUnique({
+            where: {
+              userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey: mesAtual },
+            },
+          }),
+          null
+        );
+        this.roomMonthlyCache.set(userId, existingRoomMes?.points || 0);
+      }
     }
 
     socket.join(this.roomId);
@@ -390,6 +414,12 @@ export class StopRoom {
   // e do mês corrente, usados na barra superior estilo "Pts Sala / Pts Mês".
   async broadcastOnlinePlayers() {
     const monthKey = currentMonthKey();
+    // Virada de mês com a sala cheia: sem isto a lista seguiria mostrando
+    // o acumulado do mês anterior até a sala esvaziar.
+    if (this.roomMonthlyCacheMonth !== monthKey) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = monthKey;
+    }
     const seen = new Set();
     const list = [];
 
@@ -453,6 +483,7 @@ export class StopRoom {
           nickname: p.nickname,
           lifetimePoints: 0,
           roomLifetimePoints: 0,
+          roomMonthlyPoints: 0,
           monthlyPoints: 0,
           blockPoints: this.blockTotals.get(p.userId) || 0,
           rank: null,
@@ -463,12 +494,14 @@ export class StopRoom {
 
       const lifetimePoints = this.lifetimeCache.get(p.userId) || 0;
       const roomLifetimePoints = this.roomLifetimeCache.get(p.userId) || 0;
+      const roomMonthlyPoints = this.roomMonthlyCache.get(p.userId) || 0;
       const pontosMes = mensalPorUsuario[p.userId] || 0;
       list.push({
         userId: p.userId,
         nickname: p.nickname,
         lifetimePoints,
         roomLifetimePoints,
+        roomMonthlyPoints,
         monthlyPoints: pontosMes,
         blockPoints: this.blockTotals.get(p.userId) || 0,
         // Patente é conceito MENSAL: usa os pontos do mês, não os vitalícios.
@@ -488,8 +521,8 @@ export class StopRoom {
     } else {
       list.sort(
         (a, b) =>
+          b.roomMonthlyPoints - a.roomMonthlyPoints ||
           b.roomLifetimePoints - a.roomLifetimePoints ||
-          b.lifetimePoints - a.lifetimePoints ||
           a.nickname.localeCompare(b.nickname)
       );
     }
@@ -1350,6 +1383,15 @@ export class StopRoom {
             create: { userId, gameKey: this.roomGameKey, points: pts },
           });
           this.roomLifetimeCache.set(userId, (this.roomLifetimeCache.get(userId) || 0) + pts);
+
+          // Mesma pontuação, recortada por mês. Linha separada (gameKey com
+          // ":") — não interfere no ranking, que só lê o gameKey global.
+          await prisma.monthlyScore.upsert({
+            where: { userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey } },
+            update: { points: { increment: pts } },
+            create: { userId, gameKey: this.roomGameKey, monthKey, points: pts },
+          });
+          this.roomMonthlyCache.set(userId, (this.roomMonthlyCache.get(userId) || 0) + pts);
         } catch (err) {
           console.error("Falha ao salvar pontuação para", userId, err.message);
         }
@@ -1382,6 +1424,12 @@ export class StopRoom {
       });
 
       await this.broadcastOnlinePlayers();
+
+      // Quem joga em DUAS salas de Stop tem um só monthlyScore, mas a outra
+      // sala só reconsulta o banco no fim da rodada dela — o que pode levar
+      // minutos. Um aviso aqui faz a patente atualizar na hora nas duas.
+      // Uma chamada com todo mundo, não uma por jogador (ver o módulo).
+      avisarPontuacao(GAME_KEY, [...roundScores.keys()], this.roomId);
 
       if (this.roundNumber % ROUNDS_PER_BLOCK === 0) {
         await this.awardBlockBonus(monthKey);
@@ -1452,6 +1500,13 @@ export class StopRoom {
           create: { userId, gameKey: this.roomGameKey, points: bonus },
         });
         this.roomLifetimeCache.set(userId, (this.roomLifetimeCache.get(userId) || 0) + bonus);
+
+        await prisma.monthlyScore.upsert({
+          where: { userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey } },
+          update: { points: { increment: bonus } },
+          create: { userId, gameKey: this.roomGameKey, monthKey, points: bonus },
+        });
+        this.roomMonthlyCache.set(userId, (this.roomMonthlyCache.get(userId) || 0) + bonus);
       } catch (err) {
         console.error("Falha ao salvar bônus de bloco para", userId, err.message);
       }
@@ -1476,6 +1531,9 @@ export class StopRoom {
     }
 
     await this.broadcastOnlinePlayers();
+
+    // O bônus de bloco também mexe no mensal, então avisa as outras salas.
+    avisarPontuacao(GAME_KEY, [...this.blockTotals.keys()], this.roomId);
 
     // Reseta os totais do bloco (memória E banco) para o próximo ciclo de 10 rodadas
     for (const userId of this.blockTotals.keys()) {
@@ -1507,7 +1565,9 @@ export class StopRoom {
   // (entradas/saídas, início/fim de rodada, fim de bloco, vencedores do top 3).
   // bold=true destaca a mensagem (ex.: quando alguém aperta STOP).
   // success=true deixa em verde (ex.: aniversário).
-  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
-    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, at: Date.now() });
+  // `aviso` é o comunicado da administração: precisa saltar aos olhos no meio
+  // das outras mensagens de sistema, que são todas cinzas e parecidas.
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false) {
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId: null, nickname: "Sistema", message, system: true, bold, success, promotion, tituloDestaque, aviso, at: Date.now() });
   }
 }

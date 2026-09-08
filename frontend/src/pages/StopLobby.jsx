@@ -73,8 +73,21 @@ export default function StopLobby() {
           );
         });
     carregarPrivadas();
-    const t = setInterval(carregarPrivadas, 20000);
-    return () => clearInterval(t);
+
+    // Mesma pausa da BarraMensagens: aba escondida não consulta, e voltar
+    // recarrega na hora em vez de esperar o próximo ciclo.
+    const t = setInterval(() => {
+      if (!document.hidden) carregarPrivadas();
+    }, 20000);
+    const aoVoltar = () => {
+      if (!document.hidden) carregarPrivadas();
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
   }, []);
 
   return (

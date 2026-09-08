@@ -3,6 +3,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, RANKS } from "../utils/rank.js";
 import { getQuizRankForPoints, QUIZ_RANKS } from "../utils/quizRank.js";
+import { getAcromaniaRankForPoints, ACROMANIA_RANKS } from "../utils/acromaniaRank.js";
 import { cacheOuBuscar } from "../utils/cache.js";
 import { currentMonthKey, formatMonthKey } from "../utils/monthKey.js";
 
@@ -13,15 +14,23 @@ const router = Router();
 // `ehPrimeiro` decide a exclusiva: naquele mês, quem estava em 1º é o dono do
 // topo. Quem passou da marca mas não era o primeiro fica um degrau abaixo.
 function patenteDoHistorico(points, gameKey, ehPrimeiro) {
-  const calcular = gameKey === "quiz" ? getQuizRankForPoints : getRankForPoints;
+  const calcular =
+    gameKey === "quiz"
+      ? getQuizRankForPoints
+      : gameKey === "acromania"
+        ? getAcromaniaRankForPoints
+        : getRankForPoints;
   // Sem userId: nenhuma checagem de detentor vigente é feita.
   const bruta = calcular(points);
 
-  const escada = gameKey === "quiz" ? QUIZ_RANKS : RANKS;
+  const escada =
+    gameKey === "quiz" ? QUIZ_RANKS : gameKey === "acromania" ? ACROMANIA_RANKS : RANKS;
   const topo = escada[escada.length - 1];
 
   // Alcançou o topo mas não era o primeiro daquele mês: um degrau abaixo.
-  if (bruta.key === topo.key && !ehPrimeiro) return escada[escada.length - 2];
+  // Só vale onde o topo é EXCLUSIVO (Stop e Quiz). O Acromania não tem
+  // patente exclusiva, então lá quem chegou no topo fica no topo.
+  if (topo.exclusiva && bruta.key === topo.key && !ehPrimeiro) return escada[escada.length - 2];
   return bruta;
 }
 
@@ -65,7 +74,9 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
       rank: ehMesCorrente
         ? (gameKey === "quiz"
             ? getQuizRankForPoints(s.points, { userId: s.user.id })
-            : getRankForPoints(s.points, { userId: s.user.id, gameKey }))
+            : gameKey === "acromania"
+              ? getAcromaniaRankForPoints(s.points)
+              : getRankForPoints(s.points, { userId: s.user.id, gameKey }))
         : patenteDoHistorico(s.points, gameKey, idx === 0),
     }));
   });

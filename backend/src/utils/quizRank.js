@@ -3,14 +3,34 @@ import { agendarRecarga, patenteFixaDe } from "./patenteFixa.js";
 
 // Sistema de patentes do Quiz — independente do sistema de patentes do Stop
 // (rank.js). Hierarquia crescente, do anel mais simples até o mais chique.
+//
+// TETO: 95.000 -> 300.000 (setembro/2026).
+//
+// A régua original era TEMPO: 95.000 correspondia a ~2,5h por dia num mês,
+// jogando numa sala. Só que jogar em VÁRIAS SALAS ao mesmo tempo é permitido
+// e multiplica o ganho — quem joga em três recebe três horas de pontos por
+// hora de relógio. Na prática um jogador fez 70.000 em 7 dias, projetando
+// ~300.000 no mês: a escada acabava no primeiro terço.
+//
+// O teto novo acompanha esse ritmo real. Todos os degraus foram reescalados
+// pelo mesmo fator, então a curva de progresso é idêntica — só a escala
+// mudou.
+//
+// CONSEQUÊNCIA ASSUMIDA: pra quem joga numa sala só, o topo passa a exigir
+// bem mais que 2,5h/dia. A patente máxima deixou de significar "joguei muito
+// tempo" e passou a significar "joguei muito, em várias salas". Foi uma
+// decisão de produto, não um efeito colateral.
+//
+// SUBIR limiar REBAIXA (a regra de ouro só permite baixar em silêncio). Foi
+// aplicado no dia 7, com aviso aos jogadores afetados.
 export const QUIZ_RANKS = [
   { min: 0,      key: "cata_milho",    name: "Cata-milho",     icon: "/ranks-quiz/cata-milho.png?v=2" },
-  { min: 250,    key: "digitador",     name: "Digitador",      icon: "/ranks-quiz/digitador.png?v=2" },
-  { min: 800,    key: "calouro",       name: "Calouro",        icon: "/ranks-quiz/calouro.png?v=2" },
-  { min: 2000,   key: "veterano",      name: "Veterano",       icon: "/ranks-quiz/veterano.png?v=2" },
-  { min: 5000,   key: "bacharel",      name: "Bacharel",       icon: "/ranks-quiz/bacharel.png?v=2" },
-  { min: 10000,  key: "pos_graduado",  name: "Pós-graduado",   icon: "/ranks-quiz/pos-graduado.png?v=2" },
-  { min: 18000,  key: "mestre_quiz",   name: "Mestre",         icon: "/ranks-quiz/mestre.png?v=2" },
+  { min: 800,    key: "digitador",     name: "Digitador",      icon: "/ranks-quiz/digitador.png?v=2" },
+  { min: 2500,    key: "calouro",       name: "Calouro",        icon: "/ranks-quiz/calouro.png?v=2" },
+  { min: 6300,   key: "veterano",      name: "Veterano",       icon: "/ranks-quiz/veterano.png?v=2" },
+  { min: 15800,   key: "bacharel",      name: "Bacharel",       icon: "/ranks-quiz/bacharel.png?v=2" },
+  { min: 31600,  key: "pos_graduado",  name: "Pós-graduado",   icon: "/ranks-quiz/pos-graduado.png?v=2" },
+  { min: 57000,  key: "mestre_quiz",   name: "Mestre",         icon: "/ranks-quiz/mestre.png?v=2" },
   // ===== METADE DE CIMA RECALIBRADA (3ª vez) =====
   // Enciclopédia: 500.000 -> 250.000 -> 215.000 -> 95.000.
   //
@@ -30,11 +50,11 @@ export const QUIZ_RANKS = [
   // tempo. É característica da mecânica, não da calibragem.
   //
   // Baixar limiar só PROMOVE; ninguém é rebaixado por isto.
-  { min: 28000,  key: "doutor",        name: "Doutor",         icon: "/ranks-quiz/doutor.png?v=2" },
+  { min: 88000,  key: "doutor",        name: "Doutor",         icon: "/ranks-quiz/doutor.png?v=2" },
   // Sábio fecha o ciclo dos anéis (o anel-coruja) antes da virada pros
   // bustos, que são os três títulos mais altos do Quiz.
-  { min: 40000,  key: "sabio",         name: "Sábio",          icon: "/ranks-quiz/sabio.png?v=2" },
-  { min: 55000,  key: "filosofo",      name: "Filósofo",       icon: "/ranks-quiz/filosofo.png?v=2" },
+  { min: 126000,  key: "sabio",         name: "Sábio",          icon: "/ranks-quiz/sabio.png?v=2" },
+  { min: 174000,  key: "filosofo",      name: "Filósofo",       icon: "/ranks-quiz/filosofo.png?v=2" },
   // Guru e Enciclopédia foram recalibrados (eram 220.000 e 500.000).
   //
   // MOTIVO: no Quiz só o PRIMEIRO a acertar pontua, então o teto real é bem
@@ -51,7 +71,7 @@ export const QUIZ_RANKS = [
   // 2,27x — era ali que a escada deixava de ser escada.
   //
   // Baixar limiar só PROMOVE quem já pontuou; ninguém perde patente com isso.
-  { min: 73000,  key: "guru",          name: "Guru",           icon: "/ranks-quiz/guru.png?v=2" },
+  { min: 231000,  key: "guru",          name: "Guru",           icon: "/ranks-quiz/guru.png?v=2" },
   // Patente máxima do Quiz — recebe brilho animado no frontend, igual à
   // Coroa Imperial de Ouro faz no Stop.
   // 220.000 (era 250.000 no ajuste anterior, e 500.000 no original). Medir em
@@ -60,7 +80,7 @@ export const QUIZ_RANKS = [
   // 86,4h do Guru. Continuava sendo um degrau isolado, o dobro de qualquer
   // outro. Com 220.000 cai pra ~121h: segue sendo de longe o mais caro da
   // escada, sem ser um mundo à parte.
-  { min: 95000,  key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png?v=2", brilha: true, exclusiva: true },
+  { min: 300000,  key: "enciclopedia",  name: "Enciclopédia",   icon: "/ranks-quiz/enciclopedia.png?v=2", brilha: true, exclusiva: true },
 ];
 
 export function getQuizRankForPoints(points, opts = {}) {

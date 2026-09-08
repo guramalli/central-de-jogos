@@ -1,11 +1,12 @@
 import { prisma } from "../db.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { isBirthdayToday } from "../utils/birthday.js";
-import { pickRandomTheme, pickRandomLetters } from "./acromaniaThemes.js";
+import { criarSorteadorDeTemas, pickRandomLetters } from "./acromaniaThemes.js";
+import { validarFrase } from "./acromaniaValidacao.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
-import { getRankForPoints } from "../utils/rank.js";
+import { getAcromaniaRankForPoints } from "../utils/acromaniaRank.js";
 import { carregarSaudacoes, mensagemDeEntrada, mensagemDeSaida } from "../utils/premium.js";
 import { registrarEvento } from "./missoes.js";
 import { criarAvisoDeAtividade } from "./avisoAtividade.js";
@@ -39,8 +40,39 @@ export class AcromaniaRoom {
     // Quando a sala deu sinal de vida pela última vez, e o timer do vigia.
     this.ultimoSinalDeVida = Date.now();
     this.watchdogTimer = null;
-    this.lettersCount = config.lettersCount ?? 3;
+    // Faixa de letras por rodada. Mantém `lettersCount` como valor único
+    // caso alguma config antiga ainda use — assim nenhuma sala quebra.
+    this.lettersMin = config.lettersMin ?? config.lettersCount ?? 3;
+    this.lettersMax = config.lettersMax ?? config.lettersCount ?? 3;
     this.pointsForWin = config.pointsForWin ?? 50;
+    // Pontos por VOTO RECEBIDO. Antes só o vencedor pontuava: numa sala de 4
+    // pessoas, 3 saíam de cada rodada com zero depois de escrever e esperar
+    // 90 segundos — o pior desenho possível pra um jogo cujo problema é
+    // retenção. Agora quem escreve bem pontua mesmo sem vencer.
+    //
+    // Propriedade importante: cada rodada distribui um voto por jogador,
+    // então a média recebida é 1 seja qual for o tamanho da sala. Ao
+    // contrário do bônus de vitória (que dilui em 1/N), esta parte NÃO
+    // encolhe quando a sala enche.
+    this.pointsPerVote = config.pointsPerVote ?? 15;
+    // Pontos pra quem VOTOU na frase vencedora. Regra emprestada do acro
+    // americano, e é a mais engenhosa da lista deles: transforma o voto numa
+    // aposta. A pessoa para de votar por educação e passa a votar tentando
+    // adivinhar o que a sala vai escolher — o que também torna o voto rápido
+    // interessante, já que a rodada encerra quando todos votam.
+    this.pointsForVotingWinner = config.pointsForVotingWinner ?? 10;
+    // Bônus pro PRIMEIRO a enviar a frase. Valor pequeno de propósito: ele
+    // premia agilidade, não qualidade, e não pode competir com escrever bem.
+    // Também tem efeito prático: a rodada encerra quando todos enviam, então
+    // recompensar quem não enrola acelera o jogo pra sala inteira.
+    this.pointsForFastest = config.pointsForFastest ?? 5;
+    // PARTIDA COM FIM. Sem isso o Acromania era o único dos três jogos sem
+    // linha de chegada: rodava pra sempre, e quem não tem hora de sair sai a
+    // qualquer hora. Mesmo padrão que o Quiz já usa nas arenas
+    // (roundsPerTurn/turnBonus) e que o Stop usa nos blocos de 10 rodadas.
+    // null desliga e o jogo volta a ser ciclo eterno.
+    this.roundsPerTurn = config.roundsPerTurn ?? null;
+    this.turnBonus = config.turnBonus ?? [100, 60, 30];
     this.minPlayersToStart = config.minPlayersToStart ?? 1;
     this.maxPlayers = config.maxPlayers ?? 10;
 
@@ -51,13 +83,23 @@ export class AcromaniaRoom {
     this.roundNumber = 0;
 
     this.currentTheme = "";
+    // Baralho de temas próprio de cada sala (ver criarSorteadorDeTemas).
+    this.sortearTema = criarSorteadorDeTemas();
     this.currentLetters = [];
     this.submissions = new Map(); // userId -> phrase
     this.votes = new Map(); // voterId -> targetUserId
     this.lastResult = null;
 
+    // Placar da partida atual (só usado quando roundsPerTurn está definido).
+    this.turnScores = new Map(); // userId -> pontos nesta partida
+    this.turnRound = 0;
+
     this.lifetimeCache = new Map(); // userId -> pts vitalícios (geral, Acromania)
     this.roomLifetimeCache = new Map(); // userId -> pts vitalícios (só nesta sala)
+    // userId -> pts feitos SÓ nesta sala e SÓ no mês corrente. É o número
+    // exibido na lista de jogadores; o mês vai junto por causa da virada.
+    this.roomMonthlyCache = new Map();
+    this.roomMonthlyCacheMonth = null;
 
     this.startedLoop = false;
   }
@@ -187,6 +229,26 @@ export class AcromaniaRoom {
       );
       this.roomLifetimeCache.set(userId, existingRoom?.points || 0);
     }
+    const mesAtual = currentMonthKey();
+    if (this.roomMonthlyCacheMonth !== mesAtual) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = mesAtual;
+    }
+    if (!this.roomMonthlyCache.has(userId)) {
+      const roomMes = await querySegura(
+        prisma.monthlyScore.findUnique({
+          where: {
+            userId_gameKey_monthKey: {
+              userId,
+              gameKey: `${GAME_KEY}:${this.roomId}`,
+              monthKey: mesAtual,
+            },
+          },
+        }),
+        null
+      );
+      this.roomMonthlyCache.set(userId, roomMes?.points || 0);
+    }
 
     socket.join(this.roomId);
     this.iniciarVigiaInatividade();
@@ -257,6 +319,7 @@ export class AcromaniaRoom {
         // pontuação de antes.
         this.lifetimeCache.delete(leaving.userId);
         this.roomLifetimeCache.delete(leaving.userId);
+        this.roomMonthlyCache.delete(leaving.userId);
 
         const msgSaida = mensagemDeSaida(leaving.nickname, leaving.saudacaoSaida);
         this.systemMessage(msgSaida || `🚪 ${leaving.nickname} saiu da sala.`, false, !!msgSaida);
@@ -273,6 +336,10 @@ export class AcromaniaRoom {
 
   async broadcastOnlinePlayers() {
     const monthKey = currentMonthKey();
+    if (this.roomMonthlyCacheMonth !== monthKey) {
+      this.roomMonthlyCache.clear();
+      this.roomMonthlyCacheMonth = monthKey;
+    }
     const seen = new Set();
     const list = [];
 
@@ -301,15 +368,20 @@ export class AcromaniaRoom {
         nickname: p.nickname,
         lifetimePoints: this.lifetimeCache.get(p.userId) || 0,
         roomLifetimePoints: this.roomLifetimeCache.get(p.userId) || 0,
+        roomMonthlyPoints: this.roomMonthlyCache.get(p.userId) || 0,
         monthlyPoints: monthly?.points || 0,
+        // Patente é conceito MENSAL do jogo inteiro (não da sala), igual ao
+        // Stop e ao Quiz. Faltava aqui: a lista do Acromania era a única
+        // sem o emblema ao lado do nick.
+        rank: getAcromaniaRankForPoints(monthly?.points || 0),
       });
     }
     // Ordena pelo mesmo número exibido na lista (pontos da sala), não pelo
     // total vitalício — senão a lista parece fora de ordem pra quem olha.
     list.sort(
       (a, b) =>
+        b.roomMonthlyPoints - a.roomMonthlyPoints ||
         b.roomLifetimePoints - a.roomLifetimePoints ||
-        b.lifetimePoints - a.lifetimePoints ||
         a.nickname.localeCompare(b.nickname)
     );
     this.broadcast("acromania-online-players", { players: list });
@@ -319,7 +391,9 @@ export class AcromaniaRoom {
     this.io.to(this.roomId).emit(event, data);
   }
 
-  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null) {
+  // `aviso` é o comunicado da administração: precisa saltar aos olhos no meio
+  // das outras mensagens de sistema, que são todas cinzas e parecidas.
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false) {
     this.broadcast("acromania-chat-message", {
       userId: null,
       nickname: "Sistema",
@@ -329,6 +403,7 @@ export class AcromaniaRoom {
       success,
       promotion,
       tituloDestaque,
+      aviso,
       at: Date.now(),
     });
   }
@@ -355,6 +430,10 @@ export class AcromaniaRoom {
       votingSeconds: this.votingSeconds,
       minPlayersToStart: this.minPlayersToStart,
       onlineCount: this.countUniquePlayers(),
+      // Quem entra no meio da partida já vê em que rodada ela está.
+      turnRound: this.roundsPerTurn ? this.turnRound : null,
+      roundsPerTurn: this.roundsPerTurn,
+      turnRanking: this.roundsPerTurn ? this.buildTurnRanking() : null,
     };
   }
 
@@ -371,6 +450,11 @@ export class AcromaniaRoom {
       waitingForPlayers,
       minPlayersToStart: this.minPlayersToStart,
       onlineCount: this.countUniquePlayers(),
+      // O tempo FALTAVA aqui, e o startWriting/startVoting mandam. Sem ele a
+      // tela seguia mostrando o resto do relógio da votação — que agora sobra
+      // sempre, porque a votação encerra assim que todos votam. O contador
+      // aparecia em 15 e pulava pra 9 no primeiro tick do intervalo.
+      seconds: this.intermissionSeconds,
     });
 
     this.timer = setInterval(() => {
@@ -402,14 +486,18 @@ export class AcromaniaRoom {
 
     this.roundNumber += 1;
     this.state = "writing";
-    this.currentTheme = pickRandomTheme();
-    this.currentLetters = pickRandomLetters(this.lettersCount);
+    this.currentTheme = this.sortearTema();
+    const quantasLetras =
+      this.lettersMin + Math.floor(Math.random() * (this.lettersMax - this.lettersMin + 1));
+    this.currentLetters = pickRandomLetters(quantasLetras);
     this.submissions = new Map();
     this.votes = new Map();
     this.timeLeft = this.writingSeconds;
 
     this.broadcast("acromania-round-start", {
       roundNumber: this.roundNumber,
+      turnRound: this.roundsPerTurn ? this.turnRound + 1 : null,
+      roundsPerTurn: this.roundsPerTurn,
       theme: this.currentTheme,
       letters: this.currentLetters,
       seconds: this.writingSeconds,
@@ -436,6 +524,16 @@ export class AcromaniaRoom {
     if (this.state !== "writing") return;
     const clean = (phrase || "").trim().slice(0, 200);
     if (!clean) return;
+
+    // A frase PRECISA respeitar as letras. Validação no servidor, não só na
+    // tela: bloqueio de frontend é contornável por quem mexer no cliente, e
+    // aqui está em jogo a lisura da rodada.
+    const check = validarFrase(clean, this.currentLetters);
+    if (!check.ok) {
+      socket.emit("acromania-frase-invalida", { motivo: check.motivo });
+      return;
+    }
+
     this.submissions.set(userId, clean);
     registrarEvento(userId, "acro_frase").catch(() => {});
     socket.emit("acromania-phrase-submitted", { ok: true });
@@ -452,8 +550,21 @@ export class AcromaniaRoom {
   // Avisa a sala inteira QUEM já mandou a frase (só o nick, nunca o
   // conteúdo) — mostrado como uma lista de espera, tipo "aguardando".
   broadcastSubmittedList() {
-    const nicknames = [...this.submissions.keys()].map((userId) => this.getNickname(userId));
-    this.broadcast("acromania-submissions-update", { nicknames });
+    const ids = [...this.submissions.keys()];
+    // O Map preserva a ordem de inserção, então o primeiro id É o primeiro
+    // que enviou. Reenviar não muda a posição: quem chegou primeiro continua
+    // sendo o primeiro, que é o comportamento justo.
+    const jogadores = ids.map((userId, i) => ({
+      nickname: this.getNickname(userId),
+      primeiro: i === 0,
+    }));
+    // `nicknames` (só texto) continua indo junto de propósito: um jogador com
+    // a aba aberta desde antes do deploy ainda tem o bundle antigo, que faz
+    // map em cima de strings. Mandar só objetos quebraria a tela dele.
+    this.broadcast("acromania-submissions-update", {
+      nicknames: jogadores.map((j) => j.nickname),
+      jogadores,
+    });
   }
 
   async startVoting() {
@@ -469,6 +580,12 @@ export class AcromaniaRoom {
       phrase,
     }));
     this.voteEntries = entries;
+
+    // Quem enviou primeiro. Exige pelo menos DOIS envios: ser o mais rápido
+    // sozinho não é corrida, e sem essa checagem quem escrevesse sozinho
+    // levaria o bônus toda rodada.
+    const idsPorChegada = [...this.submissions.keys()];
+    this.primeiroAEnviar = idsPorChegada.length >= 2 ? idsPorChegada[0] : null;
 
     if (entries.length === 0) {
       this.systemMessage("😶 Ninguém escreveu uma frase nessa rodada.");
@@ -488,6 +605,16 @@ export class AcromaniaRoom {
       entries: entries.map((e) => ({ entryId: e.entryId, phrase: e.phrase })),
       seconds: this.votingSeconds,
     });
+
+    // Cada jogador recebe, SÓ PRA ELE, o id da própria frase — assim a tela
+    // consegue desabilitar o botão dela. A lista pública continua anônima
+    // (sem userId), que é o ponto do jogo: ninguém sabe de quem é o quê.
+    // Antes disso, o servidor recusava o voto na própria frase em silêncio e
+    // a tela marcava como registrado: a pessoa ficava sem voto sem saber.
+    for (const p of this.players.values()) {
+      const minha = entries.find((e) => e.userId === p.userId);
+      if (minha) p.socket?.emit("acromania-minha-frase", { entryId: minha.entryId });
+    }
     this.systemMessage("🗳️ Hora de votar na melhor frase!");
 
     this.timer = setInterval(() => {
@@ -512,7 +639,20 @@ export class AcromaniaRoom {
     if (!entry) return;
     if (entry.userId === userId) return; // não pode votar na própria frase
     this.votes.set(userId, entryId);
-    socket.emit("acromania-vote-registered", { ok: true });
+    socket.emit("acromania-vote-registered", { ok: true, entryId });
+
+    // Simétrico ao submitPhrase: se todo mundo que está na sala já votou,
+    // não faz sentido segurar a rodada até o cronômetro zerar. Com pouca
+    // gente, essa espera morta era o que mais fazia o jogo parecer lento.
+    const totalPlayers = this.countUniquePlayers();
+    if (totalPlayers > 0 && this.votes.size >= totalPlayers) {
+      // Protegido, como as outras transições assíncronas desta sala: uma
+      // falha aqui não pode deixar a rodada sem fim.
+      Promise.resolve(this.endVoting()).catch((err) => {
+        console.error(`Falha em endVoting (todos votaram) na sala ${this.roomId}:`, err);
+        setTimeout(() => this.startIntermission(), 3000);
+      });
+    }
   }
 
   async endVoting() {
@@ -548,53 +688,131 @@ export class AcromaniaRoom {
     const winners = maxVotes > 0 ? entries.filter((e) => voteCounts.get(e.entryId) === maxVotes) : [];
 
     const monthKey = currentMonthKey();
-    for (const winner of winners) {
+
+    // Quem pontua, em três parcelas:
+    //   1. autor  -> 15 por voto recebido
+    //   2. autor  -> +50 se a frase venceu
+    //   3. votante-> +10 se acertou a vencedora
+    //
+    // Indexado por USUÁRIO, não por frase: a mesma pessoa pode pontuar como
+    // autora E como votante na mesma rodada, e antes disso o laço rodava
+    // sobre as frases — somar o bônus de voto ali geraria duas gravações
+    // separadas pro mesmo jogador.
+    const pontosPorEntry = new Map();
+    const pontosPorUsuario = new Map();
+    const somar = (userId, pts) => {
+      if (pts > 0) pontosPorUsuario.set(userId, (pontosPorUsuario.get(userId) || 0) + pts);
+    };
+
+    for (const e of entries) {
+      const recebidos = voteCounts.get(e.entryId) || 0;
+      const venceu = winners.some((w) => w.entryId === e.entryId);
+      const foiRapido = e.userId === this.primeiroAEnviar;
+      const total =
+        recebidos * this.pointsPerVote +
+        (venceu ? this.pointsForWin : 0) +
+        (foiRapido ? this.pointsForFastest : 0);
+      pontosPorEntry.set(e.entryId, total);
+      somar(e.userId, total);
+    }
+
+    // Quem votou na vencedora. Ninguém pode votar na própria frase, então
+    // não existe o caso de premiar a si mesmo por isso.
+    const acertaramOVoto = [];
+    for (const [voterId, entryId] of votes.entries()) {
+      if (!winners.some((w) => w.entryId === entryId)) continue;
+      acertaramOVoto.push(voterId);
+      somar(voterId, this.pointsForVotingWinner);
+    }
+
+    const aPontuar = [...pontosPorUsuario.entries()].map(([userId, pts]) => ({ userId, pts }));
+    if (this.roundsPerTurn) {
+      for (const { userId, pts } of aPontuar) {
+        this.turnScores.set(userId, (this.turnScores.get(userId) || 0) + pts);
+      }
+    }
+
+    // Avisa cada acertador, só pra ele — a lista pública de votos continua
+    // anônima, então isso não pode ir num broadcast.
+    for (const p of this.players.values()) {
+      if (acertaramOVoto.includes(p.userId)) {
+        p.socket?.emit("acromania-bonus-voto", { pontos: this.pointsForVotingWinner });
+      }
+    }
+
+    for (const winner of aPontuar) {
+      const pts = winner.pts;
       try {
-        // Busca os pontos mensais ANTES de somar, pra comparar a patente
-        // de antes com a de depois. O Acromania ainda não tem sistema de
-        // patente próprio, então usa as mesmas do Stop como provisório —
-        // mesmo padrão já usado no Ranking e no perfil público.
+        // Busca os pontos mensais ANTES de somar, pra comparar a patente de
+        // antes com a de depois — é assim que a promoção é anunciada.
         const existingMonthly = await prisma.monthlyScore.findUnique({
           where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
         });
         const oldMonthlyPoints = existingMonthly?.points || 0;
-        const newMonthlyPoints = oldMonthlyPoints + this.pointsForWin;
+        const newMonthlyPoints = oldMonthlyPoints + pts;
 
         await prisma.monthlyScore.upsert({
           where: { userId_gameKey_monthKey: { userId: winner.userId, gameKey: GAME_KEY, monthKey } },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: GAME_KEY, monthKey, points: pts },
         });
 
-        const oldRank = getRankForPoints(oldMonthlyPoints);
-        const newRank = getRankForPoints(newMonthlyPoints);
+        const oldRank = getAcromaniaRankForPoints(oldMonthlyPoints);
+        const newRank = getAcromaniaRankForPoints(newMonthlyPoints);
         // Só anuncia promoção pra quem concorre ao ranking.
         if (oldRank.key !== newRank.key && (await concorreAoRanking(winner.userId))) {
-          this.systemMessage(`"${winner.nickname}" você foi promovido para ${newRank.name}.`, false, false, true);
+          // Apelido buscado pelo userId, não lido de `winner`: a lista de quem
+          // pontua já foi remontada uma vez (quando entrou o bônus de voto na
+          // vencedora) e o campo `nickname` sumiu no caminho, fazendo a
+          // mensagem sair como "undefined". Assim ela não depende do formato
+          // do objeto.
+          const nomeDoPromovido = this.getNickname(winner.userId);
+          this.systemMessage(`"${nomeDoPromovido}" você foi promovido para ${newRank.name}.`, false, false, true);
         }
 
         await prisma.lifetimeScore.upsert({
           where: { userId_gameKey: { userId: winner.userId, gameKey: GAME_KEY } },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: GAME_KEY, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: GAME_KEY, points: pts },
         });
-        this.lifetimeCache.set(winner.userId, (this.lifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+        this.lifetimeCache.set(winner.userId, (this.lifetimeCache.get(winner.userId) || 0) + pts);
 
         const roomGameKey = `${GAME_KEY}:${this.roomId}`;
         await prisma.lifetimeScore.upsert({
           where: { userId_gameKey: { userId: winner.userId, gameKey: roomGameKey } },
-          update: { points: { increment: this.pointsForWin } },
-          create: { userId: winner.userId, gameKey: roomGameKey, points: this.pointsForWin },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: roomGameKey, points: pts },
         });
-        this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + this.pointsForWin);
+        this.roomLifetimeCache.set(winner.userId, (this.roomLifetimeCache.get(winner.userId) || 0) + pts);
+
+        // Mesma pontuação recortada por mês (gameKey com ":" — fora do ranking).
+        await prisma.monthlyScore.upsert({
+          where: {
+            userId_gameKey_monthKey: { userId: winner.userId, gameKey: roomGameKey, monthKey },
+          },
+          update: { points: { increment: pts } },
+          create: { userId: winner.userId, gameKey: roomGameKey, monthKey, points: pts },
+        });
+        this.roomMonthlyCache.set(
+          winner.userId,
+          (this.roomMonthlyCache.get(winner.userId) || 0) + pts
+        );
       } catch (err) {
         console.error("Falha ao salvar pontuação do Acromania para", winner.userId, err.message);
       }
     }
 
+    if (this.roundsPerTurn) this.turnRound += 1;
+
     this.lastResult = {
       theme: this.currentTheme,
       letters: this.currentLetters,
+      // Progresso da partida ("rodada 3 de 8"), pra pessoa ver a linha de
+      // chegada se aproximando em vez de jogar sem fim à vista.
+      turnRound: this.roundsPerTurn ? this.turnRound : null,
+      roundsPerTurn: this.roundsPerTurn,
+      turnRanking: this.roundsPerTurn ? this.buildTurnRanking() : null,
+
       entries: entries.map((e) => ({
         entryId: e.entryId,
         userId: e.userId,
@@ -602,24 +820,110 @@ export class AcromaniaRoom {
         phrase: e.phrase,
         votes: voteCounts.get(e.entryId) || 0,
         won: winners.some((w) => w.entryId === e.entryId),
+        // Pontos REAIS daquela frase (votos recebidos + bônus de vitória).
+        // Um valor fixo aqui mentiria: agora cada frase vale coisa diferente.
+        pontos: pontosPorEntry.get(e.entryId) || 0,
+        maisRapido: e.userId === this.primeiroAEnviar,
       })),
     };
     this.broadcast("acromania-round-result", this.lastResult);
 
     if (winners.length > 0) {
       const names = winners.map((w) => this.getNickname(w.userId)).join(" e ");
-      this.systemMessage(`🏆 ${names} venceu a rodada com a frase mais votada! (+${this.pointsForWin} pts)`, true, true);
+      const ptsDoVencedor = pontosPorEntry.get(winners[0].entryId) || this.pointsForWin;
+      this.systemMessage(`🏆 ${names} venceu a rodada com a frase mais votada! (+${ptsDoVencedor} pts)`, true, true);
     } else {
       this.systemMessage("🤷 Ninguém votou nessa rodada — sem pontos dessa vez.");
     }
 
     await this.broadcastOnlinePlayers();
+
+    // Fim de partida. Protegido à parte: se a premiação falhar, a sala ainda
+    // precisa voltar pro intervalo — por isso o finally continua embaixo.
+    if (this.roundsPerTurn && this.turnRound >= this.roundsPerTurn) {
+      try {
+        await this.finishTurn();
+      } catch (err) {
+        console.error(`Falha ao encerrar partida do Acromania na sala ${this.roomId}:`, err);
+        // Zera mesmo assim: partida travada em "já terminou" nunca mais
+        // premiaria ninguém.
+        this.turnScores = new Map();
+        this.turnRound = 0;
+      }
+    }
     } catch (err) {
       console.error(`Erro ao finalizar rodada do Acromania na sala ${this.roomId}:`, err);
     } finally {
       // Aconteça o que acontecer acima, a sala sempre segue pro intervalo.
       this.startIntermission();
     }
+  }
+
+  // Ranking da partida, com empate de verdade: mesma pontuação = mesma
+  // posição, e por consequência mesmo prêmio, sem dividir o valor.
+  // Mesma lógica do buildTurnRanking do QuizRoom.
+  buildTurnRanking() {
+    const sorted = [...this.turnScores.entries()]
+      .filter(([, pts]) => pts > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    const ranking = [];
+    let lastPoints = null;
+    let lastPosition = 0;
+
+    sorted.forEach(([userId, points], idx) => {
+      const position = points === lastPoints ? lastPosition : idx + 1;
+      lastPoints = points;
+      lastPosition = position;
+      ranking.push({ userId, nickname: this.getNickname(userId), points, position });
+    });
+
+    return ranking;
+  }
+
+  async finishTurn() {
+    const ranking = this.buildTurnRanking();
+    this.systemMessage(`🏁 Fim da partida de ${this.roundsPerTurn} rodadas!`, true);
+
+    if (ranking.length === 0) {
+      this.systemMessage("Ninguém pontuou nessa partida.");
+    } else {
+      const monthKey = currentMonthKey();
+      const medals = ["🥇", "🥈", "🥉", "4º", "5º"];
+
+      for (const entry of ranking) {
+        const bonus = this.turnBonus[entry.position - 1];
+        if (bonus === undefined) continue;
+
+        const medal = medals[entry.position - 1] || `${entry.position}º`;
+        this.systemMessage(
+          `${medal} Parabéns ${entry.nickname}, você ficou em ${entry.position}º na partida e ganhou ${bonus} pontos.`,
+          false,
+          true
+        );
+
+        try {
+          await prisma.monthlyScore.upsert({
+            where: { userId_gameKey_monthKey: { userId: entry.userId, gameKey: GAME_KEY, monthKey } },
+            update: { points: { increment: bonus } },
+            create: { userId: entry.userId, gameKey: GAME_KEY, monthKey, points: bonus },
+          });
+          await prisma.lifetimeScore.upsert({
+            where: { userId_gameKey: { userId: entry.userId, gameKey: GAME_KEY } },
+            update: { points: { increment: bonus } },
+            create: { userId: entry.userId, gameKey: GAME_KEY, points: bonus },
+          });
+          this.lifetimeCache.set(entry.userId, (this.lifetimeCache.get(entry.userId) || 0) + bonus);
+        } catch (err) {
+          console.error("Falha ao premiar partida do Acromania:", err.message);
+        }
+      }
+
+      this.broadcast("acromania-turn-finished", { ranking });
+    }
+
+    this.turnScores = new Map();
+    this.turnRound = 0;
   }
 
   getNickname(userId) {
