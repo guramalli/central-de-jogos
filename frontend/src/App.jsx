@@ -24,6 +24,7 @@ const RanksInfo = lazy(() => import("./pages/RanksInfo.jsx"));
 const RanksInfoQuiz = lazy(() => import("./pages/RanksInfoQuiz.jsx"));
 const RanksInfoAcromania = lazy(() => import("./pages/RanksInfoAcromania.jsx"));
 const Novidades = lazy(() => import("./pages/Novidades.jsx"));
+const ClanProfile = lazy(() => import("./pages/ClanProfile.jsx"));
 // Carregadas sob demanda. As salas de jogo são as maiores do projeto e
 // ninguém abre duas ao mesmo tempo; os lobbies e as páginas de perfil,
 // clã e amigos só são visitados por quem procura. Ficam no carregamento
@@ -64,6 +65,8 @@ export default function App() {
   const [unreadDmCount, setUnreadDmCount] = useState(0);
   // Missões concluídas esperando resgate — mesmo esquema do aviso de DM.
   const [missoesPendentes, setMissoesPendentes] = useState(0);
+  // Pedidos pra entrar no clã que a pessoa lidera.
+  const [pedidosCla, setPedidosCla] = useState(0);
   // Foto do próprio jogador pro cabeçalho. Não vem no `user` do login (que
   // guarda só o essencial do token), então é buscada do perfil — que já tem
   // cache no servidor. Se não houver foto, fica a inicial do nick.
@@ -102,6 +105,7 @@ export default function App() {
         setPendingFriendCount(data.amigos || 0);
         setUnreadDmCount(data.mensagens || 0);
         setMissoesPendentes(data.missoes || 0);
+        setPedidosCla(data.cla || 0);
       })
       .catch(() => {});
   }, [user]);
@@ -186,7 +190,9 @@ export default function App() {
                     <span className="nav-badge">{missoesPendentes}</span>
                   )}
                 </NavLink>
-                <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
+                <NavLink to="/cla" className={navLinkClass}>
+                  Clã{pedidosCla > 0 && <span className="nav-badge">{pedidosCla}</span>}
+                </NavLink>
                 <NavLink to="/amigos" className={navLinkClass}>
                   Amigos{(pendingFriendCount + unreadDmCount) > 0 && (
                     <span className="nav-badge">{pendingFriendCount + unreadDmCount}</span>
@@ -252,6 +258,14 @@ export default function App() {
           {/* Fora do <Private>: quem ainda não tem conta também pode ver que
               o site está sendo cuidado. */}
           <Route path="/novidades" element={<Novidades />} />
+          <Route
+            path="/cla/:id"
+            element={
+              <Private>
+                <ClanProfile />
+              </Private>
+            }
+          />
           <Route path="/privacidade" element={<Privacidade />} />
           <Route
             path="/"

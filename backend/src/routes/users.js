@@ -226,7 +226,9 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     // ligada de um estado antigo.
     medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
-    clan: user.clan ? { name: user.clan.name, tag: user.clan.tag } : null,
+    // O id vai junto: o perfil linka pro perfil do clã, e sem ele o link
+    // apontaria pra /cla/undefined.
+    clan: user.clan ? { id: user.clan.id, name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
     memberSince: user.createdAt,
     monthly: monthlyWithPosition,

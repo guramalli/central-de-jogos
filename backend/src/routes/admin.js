@@ -864,16 +864,20 @@ router.get("/online", async (req, res) => {
 
   const lista = [...pessoas.values()];
 
-  // Marca quem é visitante, pra dar contexto ao número total.
+  // Marca quem é visitante e de onde está jogando. Uma consulta só pros dois:
+  // a de visitante já existia, então a plataforma vem de carona — o campo
+  // `ultimaPlataforma` é gravado na autenticação do socket.
   const ids = lista.map((p) => p.userId);
   let visitantes = new Set();
+  let plataformas = new Map();
   if (ids.length > 0) {
     try {
-      const guests = await prisma.user.findMany({
-        where: { id: { in: ids }, isGuest: true },
-        select: { id: true },
+      const contas = await prisma.user.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, isGuest: true, ultimaPlataforma: true },
       });
-      visitantes = new Set(guests.map((g) => g.id));
+      visitantes = new Set(contas.filter((c) => c.isGuest).map((c) => c.id));
+      plataformas = new Map(contas.map((c) => [c.id, c.ultimaPlataforma || null]));
     } catch {
       // se falhar, segue sem a marcação — não vale derrubar a rota por isso
     }
@@ -882,6 +886,7 @@ router.get("/online", async (req, res) => {
   const resultado = lista.map((p) => ({
     ...p,
     isGuest: visitantes.has(p.userId),
+    plataforma: plataformas.get(p.userId) || null,
     local: p.locais.length > 0 ? p.locais.map((l) => `${l.jogo}: ${l.sala}`).join(" · ") : "Navegando no site",
   }));
 

@@ -263,7 +263,21 @@ export class StopRoom {
       }
     }
 
-    this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
+    // Tag do clã: buscada UMA vez na entrada e reaproveitada em toda mensagem
+    // da pessoa. Consultar a cada fala seria uma ida ao banco por linha de
+    // chat. Mesmo padrão já usado no QuizRoom.
+    let clanTag = null;
+    try {
+      const u = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { clan: { select: { tag: true } } },
+      });
+      clanTag = u?.clan?.tag || null;
+    } catch {
+      // Sem clã ou falha momentânea: segue sem a tag, não atrapalha o jogo.
+    }
+
+    this.players.set(socket.id, { userId, nickname, socket, clanTag, joinedAt: Date.now() });
 
     // Sala sem pontuação começa do zero pra quem entra: não carrega nada do
     // banco. O placar dali é só da partida em andamento, e ninguém deve
@@ -1546,11 +1560,16 @@ export class StopRoom {
     }
   }
 
+  clanTagDe(userId) {
+    const p = [...this.players.values()].find((x) => x.userId === userId);
+    return p?.clanTag || null;
+  }
+
   chatMessage(userId, nickname, message) {
     // Conversar conta como presença, mesmo sem responder a rodada.
     for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     // O id permite que moderadores apaguem uma mensagem específica depois.
-    this.broadcast("chat-message", { id: novoIdMensagem(), userId, nickname, message, at: Date.now() });
+    this.broadcast("chat-message", { id: novoIdMensagem(), userId, nickname, clanTag: this.clanTagDe(userId), message, at: Date.now() });
   }
 
   // Apaga uma mensagem do chat pra todo mundo da sala. O chat de sala é

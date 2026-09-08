@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSocket } from "../socket.js";
@@ -21,9 +21,11 @@ export default function AcromaniaGame() {
   // O servidor confere o cargo de novo antes de apagar — isto aqui só
   // decide se o botão aparece.
   const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
-  function apagarMensagem(id) {
+  // useCallback pra manter a identidade entre renders — sem isso o
+  // memo do Chat nunca casa e ele redesenha a cada tick do relógio.
+  const apagarMensagem = useCallback((id) => {
     socketRef.current?.emit("delete-chat-message", { escopo: "acromania", id });
-  }
+  }, []);
   const { theme: uiTheme } = useTheme();
   const socketRef = useRef(null);
   const phraseInputRef = useRef(null);
@@ -322,9 +324,15 @@ export default function AcromaniaGame() {
     socketRef.current?.emit("acromania-vote", { entryId });
   }
 
-  function sendChat(text) {
+  // Array novo a cada render invalidaria o memo do Chat.
+  const nicksNaSala = useMemo(
+    () => onlinePlayers.map((p) => p.nickname),
+    [onlinePlayers]
+  );
+
+  const sendChat = useCallback((text) => {
     socketRef.current?.emit("acromania-chat-message", { message: text });
-  }
+  }, []);
 
   const me = onlinePlayers.find((p) => p.userId === user?.id);
 
@@ -571,7 +579,7 @@ export default function AcromaniaGame() {
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
-            participantes={onlinePlayers.map((p) => p.nickname)} meuNick={user?.nickname} />
+            participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
         {/* Placar da partida em painel próprio, no meio da linha. Antes ele
             ficava espremido dentro do painel de jogadores, na coluna mais

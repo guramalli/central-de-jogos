@@ -236,6 +236,20 @@ export function setupSocket(io) {
     socket.on("join-general-chat", async () => {
       socket.join("general-chat-room");
       generalChat.addConnection(socket, userId, nickname);
+
+      // Tag do clã guardada no socket, buscada uma vez ao entrar no chat.
+      // Consultar a cada mensagem seria uma ida ao banco por linha digitada.
+      // Mesmo padrão das salas de jogo.
+      try {
+        const u = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { clan: { select: { tag: true } } },
+        });
+        socket.clanTag = u?.clan?.tag || null;
+      } catch {
+        socket.clanTag = null;
+      }
+
       const history = await generalChat.loadHistory();
       socket.emit("general-chat-history", { messages: history });
       io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });
@@ -265,6 +279,7 @@ export function setupSocket(io) {
         id: salva.id,
         userId,
         nickname,
+        clanTag: socket.clanTag || null,
         message: clean,
         at: Date.now(),
       });

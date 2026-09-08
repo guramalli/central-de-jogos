@@ -194,7 +194,21 @@ export class AcromaniaRoom {
         this.players.delete(oldSocketId);
       }
     }
-    this.players.set(socket.id, { userId, nickname, socket, joinedAt: Date.now() });
+    // Tag do clã: buscada UMA vez na entrada e reaproveitada em toda mensagem
+    // da pessoa. Consultar a cada fala seria uma ida ao banco por linha de
+    // chat. Mesmo padrão já usado no QuizRoom.
+    let clanTag = null;
+    try {
+      const u = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { clan: { select: { tag: true } } },
+      });
+      clanTag = u?.clan?.tag || null;
+    } catch {
+      // Sem clã ou falha momentânea: segue sem a tag, não atrapalha o jogo.
+    }
+
+    this.players.set(socket.id, { userId, nickname, socket, clanTag, joinedAt: Date.now() });
 
     // Nenhuma consulta ao banco pode segurar a entrada na sala: se o banco
     // soluçar aqui, o jogador ficaria numa tela morta sem nunca receber o
@@ -408,9 +422,14 @@ export class AcromaniaRoom {
     });
   }
 
+  clanTagDe(userId) {
+    const p = [...this.players.values()].find((x) => x.userId === userId);
+    return p?.clanTag || null;
+  }
+
   chatMessage(userId, nickname, message) {
     for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
-    this.broadcast("acromania-chat-message", { id: novoIdMensagem(), userId, nickname, message, system: false, at: Date.now() });
+    this.broadcast("acromania-chat-message", { id: novoIdMensagem(), userId, nickname, clanTag: this.clanTagDe(userId), message, system: false, at: Date.now() });
   }
 
   apagarMensagem(id) {

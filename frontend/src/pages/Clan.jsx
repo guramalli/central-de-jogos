@@ -11,7 +11,10 @@ export default function Clan() {
   // Diretório de clãs: todos os clãs do site, e qual deles está expandido
   // mostrando os membros.
   const [todosClans, setTodosClans] = useState([]);
-  const [clanAberto, setClanAberto] = useState(null);
+  // Pedidos que EU enviei (pra mostrar "enviado" no lugar do botão) e os que
+  // recebi como líder.
+  const [meusPedidos, setMeusPedidos] = useState([]);
+  const [pedidosRecebidos, setPedidosRecebidos] = useState([]);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +40,43 @@ export default function Clan() {
 
   useEffect(() => {
     load();
+    carregarPedidos();
   }, []);
+
+  async function carregarPedidos() {
+    try {
+      const [minhas, recebidas] = await Promise.all([
+        api.get("/clans/solicitacoes/minhas"),
+        api.get("/clans/solicitacoes/recebidas"),
+      ]);
+      setMeusPedidos(minhas.data || []);
+      setPedidosRecebidos(recebidas.data || []);
+    } catch {
+      // sem pedidos a tela só não mostra nada
+    }
+  }
+
+  async function pedirEntrada(clanId) {
+    setError("");
+    try {
+      await api.post(`/clans/${clanId}/solicitar`);
+      // Atualiza na hora: sem isso o botão continuaria oferecendo "pedir"
+      // e a pessoa clicaria de novo achando que falhou.
+      setMeusPedidos((atual) => [...atual, clanId]);
+    } catch (e) {
+      setError(e.response?.data?.error || "Não foi possível enviar o pedido.");
+    }
+  }
+
+  async function responderPedido(id, aceitar) {
+    setError("");
+    try {
+      await api.post(`/clans/solicitacoes/${id}/${aceitar ? "aceitar" : "recusar"}`);
+      await Promise.all([load(), carregarPedidos()]);
+    } catch (e) {
+      setError(e.response?.data?.error || "Não foi possível responder o pedido.");
+    }
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -140,8 +179,10 @@ export default function Clan() {
             </>
           ) : (
             <p style={{ color: "var(--text-dim)" }}>
-              Você precisa de pelo menos <strong>{data?.requiredPoints}</strong> pontos vitalícios no
-              Stop pra poder criar um clã (você tem <strong>{data?.myPoints}</strong> agora). Continue
+              Você precisa de pelo menos{" "}
+              <strong>{(data?.requiredPoints ?? 0).toLocaleString("pt-BR")}</strong> pontos
+              vitalícios somando <strong>Stop, Quiz e Acromania</strong> pra criar um clã (você tem{" "}
+              <strong>{(data?.myPoints ?? 0).toLocaleString("pt-BR")}</strong> agora). Continue
               jogando pra desbloquear, ou espere alguém te convidar pro clã dela.
             </p>
           )}
@@ -156,6 +197,16 @@ export default function Clan() {
           </h2>
           <p style={{ color: "var(--text-dim)" }}>
             {data.clan.members.length}/{data.clan.maxMembers} membros
+          </p>
+
+          {/* Esta página JÁ é a administração (membros, cargos, expulsar), então
+              um botão "administrar" aqui não levaria a lugar nenhum. O que
+              faltava era o caminho pro perfil PÚBLICO — o que os outros veem,
+              com troféus e contribuição de cada um. */}
+          <p>
+            <Link to={`/cla/${data.clan.id}`} className="btn secondary">
+              Ver perfil público do clã
+            </Link>
           </p>
 
           <table className="player-table">
@@ -187,6 +238,30 @@ export default function Clan() {
             <button className="btn secondary" style={{ marginTop: 14 }} onClick={handleLeave}>
               Sair do clã
             </button>
+          )}
+
+          {/* Pedidos de ingresso vêm ANTES dos convites enviados: são o que
+              exige ação sua, e o contador no menu aponta pra cá. */}
+          {data.clan.isOwner && pedidosRecebidos.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h3>Pedidos pra entrar ({pedidosRecebidos.length})</h3>
+              {pedidosRecebidos.map((p) => (
+                <div key={p.id} className="cla-pedido">
+                  <Link to={`/jogador/${p.user.id}`}>{p.user.nickname}</Link>
+                  <div className="cla-pedido-acoes">
+                    <button className="btn btn-sm" onClick={() => responderPedido(p.id, true)}>
+                      Aceitar
+                    </button>
+                    <button
+                      className="btn btn-sm secondary"
+                      onClick={() => responderPedido(p.id, false)}
+                    >
+                      Recusar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
 
           {data.clan.isOwner && (
@@ -226,14 +301,15 @@ export default function Clan() {
 
         <div className="clan-list">
           {todosClans.map((c, i) => {
-            const aberto = clanAberto === c.id;
             const meu = data?.clan?.id === c.id;
             return (
               <div key={c.id} className={`clan-list-item ${meu ? "clan-list-item-meu" : ""}`}>
-                <button
-                  className="clan-list-head"
-                  onClick={() => setClanAberto(aberto ? null : c.id)}
-                >
+                {/* Vai direto pro perfil do clã, em vez de expandir aqui.
+                    O acordeão mostrava líder e membros; o perfil mostra isso
+                    e mais os pontos de cada um, a contribuição e os troféus —
+                    manter os dois seria a mesma informação em dois lugares,
+                    com um deles sempre pior. */}
+                <Link to={`/cla/${c.id}`} className="clan-list-head">
                   <span className="clan-list-pos">{i + 1}º</span>
                   <span className="clan-list-tag">[{c.tag}]</span>
                   <span className="clan-list-name">
@@ -247,29 +323,23 @@ export default function Clan() {
                     {c.monthlyPoints.toLocaleString("pt-BR")} pts
                   </span>
                   <span className="material-symbols-outlined clan-list-seta">
-                    {aberto ? "expand_less" : "expand_more"}
+                    chevron_right
                   </span>
-                </button>
-
-                {aberto && (
-                  <div className="clan-list-membros">
-                    <div className="clan-list-membros-titulo">
-                      Líder: <strong>{c.owner.nickname}</strong>
-                    </div>
-                    <div className="clan-list-membros-grid">
-                      {c.members.map((m) => (
-                        <Link
-                          key={m.id}
-                          to={`/jogador/${m.id}`}
-                          className={`clan-membro ${m.id === c.owner.id ? "clan-membro-lider" : ""}`}
-                        >
-                          {m.id === c.owner.id ? "👑 " : ""}
-                          {m.nickname}
-                        </Link>
-                      ))}
-                    </div>
+                </Link>
+                {/* Só pra quem não tem clã: quem já tem precisaria sair antes,
+                    e oferecer o botão seria um convite a um erro. */}
+                {!data?.clan && (
+                  <div className="clan-list-pedir">
+                    {meusPedidos.includes(c.id) ? (
+                      <span className="clan-list-pedido-feito">Pedido enviado</span>
+                    ) : (
+                      <button className="btn btn-sm" onClick={() => pedirEntrada(c.id)}>
+                        Pedir pra entrar
+                      </button>
+                    )}
                   </div>
                 )}
+
               </div>
             );
           })}

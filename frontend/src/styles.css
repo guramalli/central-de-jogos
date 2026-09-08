@@ -41,6 +41,15 @@
 
 * { box-sizing: border-box; }
 
+/* O site não tinha NENHUMA regra global pra links: onde não havia estilo
+   próprio, saía o azul padrão do navegador, gritando no fundo escuro.
+   O laranja da marca é o mesmo já usado nos links dos componentes. */
+a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
 /* Evita o gesto nativo de "puxar pra atualizar" do navegador em celular,
    que podia disparar sem querer durante o scroll normal dentro de uma sala. */
 html, body { overscroll-behavior-y: contain; }
@@ -1742,6 +1751,27 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   transition: transform 0.1s ease;
 }
 .quiz-masked-wrong { animation: quiz-shake 0.4s ease; }
+
+/* Acerto SEU: fundo verde pulsando. O erro treme a caixa; o acerto pisca.
+   Sinais diferentes pra não depender do som, que no celular costuma estar
+   no mudo — e que de qualquer forma toca pra sala toda quando qualquer um
+   vence, então nunca disse "foi você". */
+.quiz-masked-correct {
+  animation: quiz-acerto 0.7s ease;
+  border-radius: 8px;
+}
+@keyframes quiz-acerto {
+  0%   { background: rgba(6, 214, 160, 0);   box-shadow: 0 0 0 0 rgba(6, 214, 160, 0); }
+  25%  { background: rgba(6, 214, 160, 0.35); box-shadow: 0 0 0 8px rgba(6, 214, 160, 0.18); }
+  100% { background: rgba(6, 214, 160, 0);   box-shadow: 0 0 0 0 rgba(6, 214, 160, 0); }
+}
+
+/* Quem preferir menos movimento na tela não recebe a animação — mas ainda
+   vê o verde, que é o sinal que importa. */
+@media (prefers-reduced-motion: reduce) {
+  .quiz-masked-correct { animation: none; background: rgba(6, 214, 160, 0.28); }
+  .quiz-masked-wrong { animation: none; }
+}
 @keyframes quiz-shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-6px); }
@@ -2587,6 +2617,244 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   padding: 6px 12px 12px 12px;
   font-size: 13px;
 }
+
+/* Ícone de plataforma na lista de online do admin. */
+.admin-online-plataforma {
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+  cursor: help;
+}
+
+/* Contribuição de cada membro no perfil do clã. */
+.cla-contrib { display: flex; align-items: center; gap: 8px; }
+.cla-contrib-barra {
+  flex: 1;
+  /* min-width evita a barra sumir quando a coluna aperta no celular. */
+  min-width: 60px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-panel-2);
+  overflow: hidden;
+}
+.cla-contrib-preenchida {
+  height: 100%;
+  background: var(--accent-2);
+  border-radius: 999px;
+}
+.cla-contrib-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 42px;
+  text-align: right;
+}
+.cla-nao-conta { color: var(--text-dim); font-size: 12px; cursor: help; }
+.cla-dono-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-2);
+  color: var(--accent-2);
+}
+
+/* ===== Seletor de jogo do ranking: a logo é o botão ===== */
+.ranking-hall {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+.ranking-game-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.jogo-tab {
+  background: var(--bg-panel);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  /* Inativo fica dessaturado e apagado: a cor volta ao selecionar, o que
+     torna a seleção legível sem depender de borda fina. */
+  filter: grayscale(0.7);
+  opacity: 0.6;
+  transition: opacity 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+.jogo-tab:hover { opacity: 0.85; filter: grayscale(0.25); }
+.jogo-tab-ativo {
+  border-color: var(--accent-2);
+  filter: none;
+  opacity: 1;
+  background: var(--bg-panel-2);
+}
+.jogo-tab:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* A logo do Acromania é bem mais larga que as outras (é a palavra mais
+   comprida). Sem um teto de largura, o botão dela ficava desproporcional
+   ao lado do Stop. O `max-width` iguala visualmente sem distorcer nenhuma:
+   as menores ficam na altura cheia, a maior encolhe um pouco. */
+.jogo-tab-logo {
+  height: 34px;
+  width: auto;
+  max-width: 118px;
+  object-fit: contain;
+  display: block;
+}
+.jogo-tab { min-width: 108px; }
+
+/* "Geral" não é um jogo: é a soma dos três. Sem logo, e com o texto em
+   caixa própria, a diferença fica explícita. */
+.jogo-tab-geral { min-width: 92px; }
+.jogo-tab-texto {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+
+@media (max-width: 600px) {
+  .jogo-tab { padding: 8px 12px; min-height: 48px; }
+  .jogo-tab-logo { height: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jogo-tab { transition: none; }
+}
+
+/* ===== Perfil do clã ===== */
+.cla-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cla-nome { margin: 0; font-size: 24px; }
+.cla-tag { color: var(--accent-2); }
+.cla-sub { margin: 4px 0 0; color: var(--text-dim); font-size: 14px; }
+.cla-pontos { text-align: right; }
+.cla-pontos strong {
+  display: block;
+  font-size: 26px;
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+}
+.cla-pontos small { color: var(--text-dim); font-size: 12px; }
+
+.cla-trofeus { display: flex; flex-wrap: wrap; gap: 10px; }
+.cla-trofeu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 130px;
+  cursor: help;
+}
+/* O troféu geral soma os três jogos: é o mais difícil, e a borda dourada
+   diz isso sem precisar de legenda. */
+.cla-trofeu-geral {
+  border-color: var(--titulo-ouro, #ffd60a);
+  box-shadow: 0 0 12px rgba(255, 214, 10, 0.18);
+}
+.cla-trofeu-icone { font-size: 26px; }
+.cla-trofeu-nome { font-weight: 700; font-size: 13px; text-align: center; }
+.cla-trofeu-mes { font-size: 11px; color: var(--text-dim); }
+
+.cla-membros { display: flex; flex-wrap: wrap; gap: 8px; }
+.cla-membro {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+/* ===== Ranking: legibilidade e orientação ===== */
+
+/* Linha que explica o que cada aba mostra. Sem ela, "mensal" e "vitalício"
+   eram só rótulos — ninguém sabia qual zera nem qual paga. */
+.ranking-contexto {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 10px 0 4px;
+}
+
+/* Valor do prêmio no pódio. Verde do acerto, já usado no site pra "isto é
+   bom pra você". */
+.podium-premio {
+  margin-top: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent-3, #06d6a0);
+}
+
+/* Sua própria linha na tabela. Numa lista de 100 nomes, achar o seu é a
+   primeira coisa que se tenta fazer. A barra à esquerda funciona sem
+   depender de cor, pra quem não distingue bem os tons. */
+.player-table tr.row-eu > td {
+  background: rgba(255, 184, 111, 0.12);
+}
+.player-table tr.row-eu > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent-2);
+}
+.row-eu-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-2);
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+/* Pontuação em fonte tabular: os dígitos ficam alinhados coluna a coluna,
+   o que deixa a comparação entre linhas imediata. */
+.ranking-pts {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* Página de campeões do mês passado: os três jogos lado a lado. */
+.campeoes-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+@media (max-width: 800px) { .campeoes-grade { grid-template-columns: 1fr; } }
+.campeoes-card { margin: 0; }
+.campeoes-jogo { margin: 0 0 10px; font-size: 16px; }
+.campeoes-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.campeoes-linha:last-child { border-bottom: none; }
+.campeoes-medalha { font-size: 18px; }
+.campeoes-nick {
+  flex: 1;
+  /* min-width:0 pra o nome longo cortar em vez de estourar o card. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.campeoes-pts { font-weight: 700; color: var(--accent-2); }
 
 /* Página de novidades. */
 .novidades-lista { list-style: none; padding: 0; margin: 18px 0 0; }
@@ -4456,7 +4724,15 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   text-align: left;
   font-size: 14px;
 }
-.clan-list-head:hover { background: rgba(255, 255, 255, 0.03); }
+/* Virou <a> (leva ao perfil do clã). A regra global de link pintaria a
+   linha inteira de laranja e sublinharia no hover — aqui o destaque é o
+   fundo, e o texto segue na cor normal. */
+.clan-list-head:hover { background: rgba(255, 255, 255, 0.03); text-decoration: none; }
+.clan-list-head:hover .clan-list-name { color: var(--accent-2); }
+.clan-list-head:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: -2px;
+}
 
 .clan-list-pos {
   font-family: var(--font-mono);
@@ -4499,33 +4775,32 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .clan-list-seta { color: var(--text-dim); font-size: 20px; }
 
-.clan-list-membros {
-  padding: 12px 16px 16px;
-  border-top: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.15);
-}
-.clan-list-membros-titulo {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 10px;
-}
-.clan-list-membros-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+/* (o acordeão da lista de clãs saiu: agora a linha leva ao perfil) */
 
-.clan-membro {
-  font-size: 13px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--text);
-  text-decoration: none;
-  transition: border-color 0.15s ease;
+/* Pedir pra entrar num clã, na lista. */
+.clan-list-pedir {
+  padding: 0 14px 12px;
+  display: flex;
+  justify-content: flex-end;
 }
-.clan-membro:hover { border-color: var(--accent-2); color: var(--accent-2); }
-.clan-membro-lider {
-  background: rgba(255, 153, 0, 0.12);
-  border-color: rgba(255, 153, 0, 0.4);
+.clan-list-pedido-feito {
+  font-size: 12px;
+  color: var(--accent-3, #06d6a0);
+  padding: 4px 0;
 }
+
+/* Pedido recebido, na área do líder. */
+.cla-pedido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cla-pedido:last-child { border-bottom: none; }
+.cla-pedido-acoes { display: flex; gap: 8px; }
 
 @media (max-width: 640px) {
   .clan-list-meta { display: none; }

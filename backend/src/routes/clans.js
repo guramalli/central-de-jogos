@@ -11,13 +11,25 @@ const MAX_MEMBERS = 10;
 // Pontuação vitalícia mínima (geral, no jogo Stop) exigida pra poder CRIAR um
 // clã — corresponde aproximadamente à patente "Avançado". Só criar é restrito;
 // entrar num clã (por convite) não exige pontuação nenhuma.
-const CREATE_MIN_POINTS = 1000;
+// Mínimo pra CRIAR um clã. Entrar num (por convite) não exige nada.
+//
+// Era 1.000 pontos vitalícios SÓ DO STOP — quem jogava apenas Quiz ou
+// Acromania não conseguia criar clã por mais que jogasse. Agora soma os três
+// jogos, e o valor subiu pra 50.000: criar clã deixou de ser algo das
+// primeiras horas e passou a exigir alguma estrada no site.
+const CREATE_MIN_POINTS = 50000;
 
+// Soma vitalícia de TODOS os jogos.
+//
+// O filtro de ":" exclui as linhas por sala (gameKey tipo "stop:sala-1"),
+// que existem só pra alimentar o placar dentro da sala — sem ele cada ponto
+// entraria duas vezes e o requisito valeria metade.
 async function getMyLifetimePoints(userId) {
-  const score = await prisma.lifetimeScore.findUnique({
-    where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+  const scores = await prisma.lifetimeScore.findMany({
+    where: { userId, NOT: { gameKey: { contains: ":" } } },
+    select: { points: true },
   });
-  return score?.points || 0;
+  return scores.reduce((soma, s) => soma + (s.points || 0), 0);
 }
 
 // Clã do usuário logado (se tiver), com membros e — se for o dono — convites
@@ -127,16 +139,87 @@ router.get("/todos", requireAuth, async (req, res) => {
   res.json(lista);
 });
 
+// IMPORTANTE: estas rotas ficam ANTES do GET /:id. O Express casa na ordem
+// de declaração — depois dele, "solicitacoes" seria lido como o id de um
+// clã e a resposta viraria 404.
+// Meus pedidos pendentes — a tela usa pra mostrar "pedido enviado" em vez
+// de oferecer o botão de novo.
+router.get("/solicitacoes/minhas", requireAuth, async (req, res) => {
+  const pedidos = await prisma.clanJoinRequest.findMany({
+    where: { userId: req.user.id, status: "pending" },
+    select: { clanId: true },
+  });
+  res.json(pedidos.map((p) => p.clanId));
+});
+
+// Pedidos recebidos pelo clã que EU lidero.
+router.get("/solicitacoes/recebidas", requireAuth, async (req, res) => {
+  const meu = await prisma.clan.findFirst({ where: { ownerId: req.user.id } });
+  if (!meu) return res.json([]);
+  const pedidos = await prisma.clanJoinRequest.findMany({
+    where: { clanId: meu.id, status: "pending" },
+    include: { user: { select: { id: true, nickname: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  res.json(pedidos);
+});
+
+// Perfil público do clã: membros, troféus e pontuação do mês.
 router.get("/:id", requireAuth, async (req, res) => {
   const clan = await prisma.clan.findUnique({
     where: { id: req.params.id },
     include: {
       owner: { select: { id: true, nickname: true } },
-      members: { select: { id: true, nickname: true } },
+      members: { select: { id: true, nickname: true, avatarUrl: true, role: true, isGuest: true } },
+      // Troféus congelados no fechamento do mês, do mais recente pro mais
+      // antigo — a vitrine é o motivo principal desta página existir.
+      campeonatos: { orderBy: [{ monthKey: "desc" }, { gameKey: "asc" }] },
     },
   });
   if (!clan) return res.status(404).json({ error: "Clã não encontrado." });
-  res.json(clan);
+
+  // Pontuação do mês corrente, pra página não mostrar só passado.
+  const contaNoRanking = (m) => m.role !== "ADMIN" && !m.isGuest;
+  const ids = clan.members.filter(contaNoRanking).map((m) => m.id);
+  const scores = ids.length
+    ? await prisma.monthlyScore.groupBy({
+        by: ["userId"],
+        where: { userId: { in: ids }, monthKey: currentMonthKey(), NOT: { gameKey: { contains: ":" } } },
+        _sum: { points: true },
+      })
+    : [];
+
+  const porUsuario = Object.fromEntries(scores.map((x) => [x.userId, x._sum.points || 0]));
+  const total = scores.reduce((soma, x) => soma + (x._sum.points || 0), 0);
+
+  // Pontos e contribuição de cada membro. Com o total do clã já calculado, a
+  // porcentagem sai de graça — e é ela que mostra quem está puxando o time.
+  //
+  // Ordenado do maior pro menor: numa lista alfabética, quem carrega o clã
+  // some no meio.
+  const membros = clan.members
+    .map(({ id, nickname, avatarUrl, role, isGuest }) => {
+      const pontos = porUsuario[id] || 0;
+      return {
+        id,
+        nickname,
+        avatarUrl,
+        points: pontos,
+        // Sem pontos no clã inteiro, 0% pra todo mundo em vez de divisão por
+        // zero (que daria NaN na tela).
+        percent: total > 0 ? Math.round((pontos / total) * 1000) / 10 : 0,
+        // Admin e visitante são membros, mas não somam pro clã. A tela mostra
+        // isso em vez de deixar parecer que a pessoa não jogou.
+        contaPontos: contaNoRanking({ role, isGuest }),
+      };
+    })
+    .sort((a, b) => b.points - a.points || a.nickname.localeCompare(b.nickname, "pt-BR"));
+
+  res.json({
+    ...clan,
+    members: membros,
+    monthlyPoints: total,
+  });
 });
 
 // Cria um clã novo — só quem tem pontuação suficiente, e só quem ainda não
@@ -158,7 +241,7 @@ router.post("/", requireAuth, async (req, res) => {
   const points = await getMyLifetimePoints(req.user.id);
   if (points < CREATE_MIN_POINTS) {
     return res.status(403).json({
-      error: `Você precisa de pelo menos ${CREATE_MIN_POINTS} pontos vitalícios no Stop para criar um clã.`,
+      error: `Você precisa de pelo menos ${CREATE_MIN_POINTS.toLocaleString("pt-BR")} pontos vitalícios (somando Stop, Quiz e Acromania) para criar um clã. Você tem ${points.toLocaleString("pt-BR")}.`,
     });
   }
 
@@ -203,6 +286,88 @@ router.post("/invite", requireAuth, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: "Erro ao criar convite." });
   }
+});
+
+// ===== PEDIDOS DE INGRESSO (o jogador bate na porta) =====
+
+// Pedir pra entrar num clã.
+router.post("/:id/solicitar", requireAuth, async (req, res) => {
+  const me = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (me.clanId) return res.status(409).json({ error: "Você já está em um clã." });
+
+  const clan = await prisma.clan.findUnique({
+    where: { id: req.params.id },
+    include: { members: { select: { id: true } } },
+  });
+  if (!clan) return res.status(404).json({ error: "Clã não encontrado." });
+  if (clan.members.length >= MAX_MEMBERS) {
+    return res.status(409).json({ error: `Esse clã já está no limite de ${MAX_MEMBERS} membros.` });
+  }
+
+  try {
+    // upsert e não create: quem já pediu e foi recusado pode pedir de novo,
+    // e quem clicar duas vezes não gera erro nem duplica.
+    const pedido = await prisma.clanJoinRequest.upsert({
+      where: { clanId_userId: { clanId: clan.id, userId: req.user.id } },
+      update: { status: "pending" },
+      create: { clanId: clan.id, userId: req.user.id, status: "pending" },
+    });
+    cacheInvalidar(`avisos:${clan.ownerId}`);
+    res.json(pedido);
+  } catch {
+    res.status(500).json({ error: "Não foi possível enviar o pedido." });
+  }
+});
+
+router.post("/solicitacoes/:id/aceitar", requireAuth, async (req, res) => {
+  const pedido = await prisma.clanJoinRequest.findUnique({
+    where: { id: req.params.id },
+    include: { clan: { include: { members: { select: { id: true } } } } },
+  });
+  if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (pedido.clan.ownerId !== req.user.id) {
+    return res.status(403).json({ error: "Só o dono do clã pode aceitar." });
+  }
+  if (pedido.clan.members.length >= MAX_MEMBERS) {
+    return res.status(409).json({ error: `O clã já está no limite de ${MAX_MEMBERS} membros.` });
+  }
+
+  // Entre o pedido e o aceite a pessoa pode ter entrado em outro clã.
+  const candidato = await prisma.user.findUnique({ where: { id: pedido.userId } });
+  if (!candidato) return res.status(404).json({ error: "Jogador não encontrado." });
+  if (candidato.clanId) {
+    await prisma.clanJoinRequest.delete({ where: { id: pedido.id } });
+    return res.status(409).json({ error: `${candidato.nickname} já entrou em outro clã.` });
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: pedido.userId }, data: { clanId: pedido.clanId } }),
+    prisma.clanJoinRequest.delete({ where: { id: pedido.id } }),
+  ]);
+  // NOTA: a tag do clã que aparece no chat é lida quando a pessoa ENTRA na
+  // sala (ou no chat geral). Quem acabou de ser aceito só vai vê-la depois
+  // de recarregar ou trocar de sala — trocar de clã no meio de uma partida
+  // é raro o bastante pra não valer manter uma consulta por mensagem.
+
+  cacheInvalidar("clans:");
+  cacheInvalidar(`avisos:${req.user.id}`);
+  res.json({ ok: true });
+});
+
+router.post("/solicitacoes/:id/recusar", requireAuth, async (req, res) => {
+  const pedido = await prisma.clanJoinRequest.findUnique({
+    where: { id: req.params.id },
+    include: { clan: { select: { ownerId: true } } },
+  });
+  if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (pedido.clan.ownerId !== req.user.id) {
+    return res.status(403).json({ error: "Só o dono do clã pode recusar." });
+  }
+  // Apaga em vez de marcar como recusado: assim a pessoa pode tentar de novo
+  // mais tarde sem esbarrar na restrição de um pedido por clã.
+  await prisma.clanJoinRequest.delete({ where: { id: pedido.id } });
+  cacheInvalidar(`avisos:${req.user.id}`);
+  res.json({ ok: true });
 });
 
 // Convites pendentes recebidos pelo usuário logado (pra ele aceitar/recusar)
@@ -273,11 +438,25 @@ router.delete("/members/:userId", requireAuth, async (req, res) => {
 });
 
 // Ranking mensal de clãs: soma os pontos mensais (Stop) de todos os membros.
+// Ranking mensal de clãs, por jogo ou geral.
+//
+// ?jogo=stop | quiz | acromania | geral   (padrão: geral)
+//
+// Antes esta rota somava SÓ o Stop, com o gameKey fixo no código, e a tela
+// não dizia isso em lugar nenhum — quem jogava Quiz achava que estava
+// somando pro clã e não estava. Pior: a rota /todos somava TODOS os jogos,
+// então o site tinha duas contas diferentes chamadas de "pontos do clã".
+const JOGOS_VALIDOS = ["stop", "quiz", "acromania"];
+
 router.get("/ranking/mensal", requireAuth, async (req, res) => {
-  // Ranking muda devagar (só quando alguém pontua) e é consultado por
-  // todo mundo. Cache de 2 minutos corta praticamente todas as consultas
-  // sem que ninguém perceba diferença.
-  const dados = await cacheOuBuscar("clans:ranking-mensal", 120, async () => {
+  const jogo = String(req.query.jogo || "geral").toLowerCase();
+  if (jogo !== "geral" && !JOGOS_VALIDOS.includes(jogo)) {
+    return res.status(400).json({ error: "Jogo inválido." });
+  }
+
+  // Cache por jogo: sem o sufixo, o primeiro a carregar guardaria o resultado
+  // e os outros jogos serviriam o dele por 2 minutos.
+  const dados = await cacheOuBuscar(`clans:ranking-mensal:${jogo}`, 120, async () => {
     const monthKey = currentMonthKey();
     const clans = await prisma.clan.findMany({
       include: { members: { select: { id: true, nickname: true, role: true, isGuest: true } } },
@@ -291,10 +470,16 @@ router.get("/ranking/mensal", requireAuth, async (req, res) => {
 
     // UMA consulta pra todos os clãs, em vez de uma por clã: com 20 clãs
     // isso era 21 idas ao banco a cada carregamento da página.
+    // No "geral", exclui as linhas por sala (gameKey com ":"), que existem
+    // só pra alimentar a lista dentro da sala — sem isso cada ponto entraria
+    // duas vezes. Num jogo específico, o gameKey exato já resolve.
+    const filtroJogo =
+      jogo === "geral" ? { NOT: { gameKey: { contains: ":" } } } : { gameKey: jogo };
+
     const scores = todosIds.length
       ? await prisma.monthlyScore.groupBy({
           by: ["userId"],
-          where: { userId: { in: todosIds }, gameKey: GAME_KEY, monthKey },
+          where: { userId: { in: todosIds }, monthKey, ...filtroJogo },
           _sum: { points: true },
         })
       : [];

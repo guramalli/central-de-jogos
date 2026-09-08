@@ -27,7 +27,10 @@ export function getOnlineList() {
 export async function loadHistory() {
   const messages = await prisma.chatMessage.findMany({
     where: { roomId: ROOM_ID },
-    include: { user: { select: { nickname: true } } },
+    // A tag do clã vem junto: o histórico já buscava o usuário, então isso
+    // não custa consulta nova. Ela é lida na HORA de carregar, e não gravada
+    // na mensagem — se a pessoa trocar de clã, o histórico acompanha.
+    include: { user: { select: { nickname: true, clan: { select: { tag: true } } } } },
     orderBy: { createdAt: "desc" },
     take: HISTORY_LIMIT,
   });
@@ -37,6 +40,7 @@ export async function loadHistory() {
     id: m.id,
     userId: m.userId,
     nickname: m.user.nickname,
+    clanTag: m.user.clan?.tag || null,
     message: m.message,
     at: m.createdAt.getTime(),
   }));

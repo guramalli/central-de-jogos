@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import AdminGlossary from "../components/AdminGlossary.jsx";
@@ -493,8 +494,31 @@ export default function Admin() {
                 {online.jogadores.map((p) => (
                   <div key={p.userId} className="admin-online-row">
                     <span className="admin-online-nick">
-                      {p.nickname}
+                      {/* Link pro perfil, não pra conversa: o botão de
+                          mensagem já está do lado direito da linha. Abre em
+                          aba nova pra não perder o painel — que atualiza
+                          sozinho e volta pro topo se você navegar. */}
+                      {p.isGuest ? (
+                        p.nickname
+                      ) : (
+                        <Link
+                          to={`/jogador/${p.userId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="admin-nick-link"
+                        >
+                          {p.nickname}
+                        </Link>
+                      )}
                       {p.isGuest && <span className="admin-online-guest">visitante</span>}
+                      {p.plataforma && (
+                        <span
+                          className="admin-online-plataforma"
+                          title={p.plataforma === "mobile" ? "Jogando no celular" : "Jogando no computador"}
+                        >
+                          {p.plataforma === "mobile" ? "📱" : "💻"}
+                        </span>
+                      )}
                     </span>
                     <span className="admin-online-where">{p.local}</span>
                     {/* Conversa direta com quem está online AGORA — é quem

@@ -40,6 +40,9 @@ export default function RankingHistory() {
   return (
     <div>
       <Seo title="Histórico" description="Confira os campeões dos meses anteriores na Educação Gamer." />
+      <Link to="/ranking" className="btn secondary ranks-voltar">
+        ← Voltar pro ranking
+      </Link>
       <h1>🏛️ Hall da Fama</h1>
       <p style={{ color: "var(--text-dim)" }}>Os campeões de cada mês já encerrado, mês a mês.</p>
 

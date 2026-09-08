@@ -1123,6 +1123,11 @@ export class QuizRoom {
 
         this.broadcast("quiz-question-result", {
           winner: winner.nickname,
+          // O id vai num campo à parte de propósito: `winner` é uma STRING
+          // usada direto no texto da tela ("Fulano acertou!"), e trocá-la por
+          // objeto quebraria a exibição. A tela usa o id pra saber se o
+          // acerto foi seu e piscar a caixa em verde.
+          winnerUserId: winner.userId,
           answer: question.answer,
           points: pts,
           elapsedSeconds,

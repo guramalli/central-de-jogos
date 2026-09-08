@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getSocket } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -52,9 +52,11 @@ export default function QuizGame() {
   // O servidor confere o cargo de novo antes de apagar — isto aqui só
   // decide se o botão aparece.
   const podeModerar = user?.role === "ADMIN" || user?.role === "MODERATOR";
-  function apagarMensagem(id) {
+  // useCallback pra manter a identidade entre renders — sem isso o
+  // memo do Chat nunca casa e ele redesenha a cada tick do relógio.
+  const apagarMensagem = useCallback((id) => {
     socketRef.current?.emit("delete-chat-message", { escopo: "quiz", id });
-  }
+  }, []);
   const { theme } = useTheme();
   const { roomId } = useParams();
   const socketRef = useRef(null);
@@ -91,6 +93,10 @@ export default function QuizGame() {
   const [historyIndex, setHistoryIndex] = useState(null);
   const [pasteBlockedMsg, setPasteBlockedMsg] = useState(false);
   const [wrongFlash, setWrongFlash] = useState(false);
+  // Piscar verde quando O SEU acerto entra. Diferente do som, que toca pra
+  // sala inteira quando qualquer um vence — no mudo, não sobrava nenhum
+  // sinal de que a resposta certa tinha sido a sua.
+  const [correctFlash, setCorrectFlash] = useState(false);
   const [wrongLog, setWrongLog] = useState([]);
   const [messages, setMessages] = useState([]);
   const [onlinePlayers, setOnlinePlayers] = useState([]);
@@ -202,6 +208,11 @@ export default function QuizGame() {
       if (data.winner) {
         setAnswerLine(data.answer);
         playCorrectSound();
+        // Só pisca se o vencedor for VOCÊ.
+        if (data.winnerUserId && data.winnerUserId === user?.id) {
+          setCorrectFlash(true);
+          setTimeout(() => setCorrectFlash(false), 700);
+        }
       }
       // Modo arena: mostra o ranking acumulado do turno no painel da pergunta.
       if (data.turnRanking) {
@@ -221,6 +232,9 @@ export default function QuizGame() {
       setAlreadyScored(true);
       setGuess("");
       playCorrectSound();
+      // Na arena todo mundo que acerta pontua, e este evento já é pessoal.
+      setCorrectFlash(true);
+      setTimeout(() => setCorrectFlash(false), 700);
     });
 
     socket.on("quiz-guess-wrong", () => {
@@ -347,9 +361,15 @@ export default function QuizGame() {
     }
   }
 
-  function sendChat(message) {
+  // Array novo a cada render invalidaria o memo do Chat.
+  const nicksNaSala = useMemo(
+    () => onlinePlayers.map((p) => p.nickname),
+    [onlinePlayers]
+  );
+
+  const sendChat = useCallback((message) => {
     socketRef.current?.emit("quiz-chat-message", { message });
-  }
+  }, []);
 
   function handleToggleMute() {
     setMuted(toggleSoundMuted());
@@ -477,7 +497,11 @@ export default function QuizGame() {
               <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
                 {questionText}
               </div>
-              <div className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""}`}>
+              <div
+                className={`quiz-masked-answer ${wrongFlash ? "quiz-masked-wrong" : ""} ${
+                  correctFlash ? "quiz-masked-correct" : ""
+                }`}
+              >
                 {answerLine.split("").map((ch, i) => (
                   <span key={i} className="quiz-letter-box">{ch === " " ? "\u00A0" : ch}</span>
                 ))}
@@ -586,7 +610,7 @@ export default function QuizGame() {
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
-            participantes={onlinePlayers.map((p) => p.nickname)} meuNick={user?.nickname} />
+            participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
         <div className="quiz-panel quiz-players-panel">
           <div className="quiz-retro-tab">jogadores ({onlinePlayers.length})</div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect , memo} from "react";
 import EmojiPicker from "./EmojiPicker.jsx";
 
 // Paleta de cores pra diferenciar cada jogador no chat — sempre a mesma cor
@@ -93,7 +93,7 @@ function formatTime(at) {
 // já estavam, pra não mudar nada ali sem ter sido pedido.
 // canModerate + onDelete são opcionais: quando quem está vendo é moderador
 // ou admin, aparece um "x" ao lado de cada mensagem de jogador pra apagar.
-export default function Chat({
+function Chat({
   messages,
   onSend,
   showTimestamp = false,
@@ -269,3 +269,16 @@ export default function Chat({
     </div>
   );
 }
+
+// MEMOIZADO DE PROPÓSITO.
+//
+// A sala manda um "tick" por segundo pra mover o cronômetro, e isso
+// redesenhava a página inteira — incluindo as 100 mensagens do chat, cada uma
+// passando pela marcação de @. Uma vez por segundo, pra nada: o que mudou foi
+// só o relógio.
+//
+// Isto só funciona se as props mantiverem a IDENTIDADE entre renders. Por
+// isso as páginas envolvem `participantes` em useMemo e os callbacks em
+// useCallback — sem isso, cada render cria um array e funções novos, o memo
+// nunca casa e o ganho é zero.
+export default memo(Chat);

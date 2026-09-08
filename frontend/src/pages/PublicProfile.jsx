@@ -22,6 +22,10 @@ export default function PublicProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [friendStatus, setFriendStatus] = useState(null); // null | "sending" | "sent"
+  // Só carregado se a pessoa não tiver clã: serve pra saber se EU lidero
+  // algum e posso convidá-la.
+  const [meuCla, setMeuCla] = useState(null);
+  const [conviteStatus, setConviteStatus] = useState("");
   const [friendError, setFriendError] = useState("");
   // Títulos já conquistados, pra aparecerem junto das outras conquistas.
   const [titulosGanhos, setTitulosGanhos] = useState([]);
@@ -65,6 +69,32 @@ export default function PublicProfile() {
 
   const isMe = me?.id === userId;
 
+  useEffect(() => {
+    let vivo = true;
+    // Só pergunta se faz diferença: perfil próprio ou de quem já tem clã não
+    // usa esta informação pra nada.
+    if (isMe || !profile || profile.clan) return;
+    api
+      .get("/clans/mine")
+      .then(({ data }) => vivo && setMeuCla(data?.clan?.isOwner ? data.clan : null))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [isMe, profile]);
+
+  async function convidarProCla() {
+    setConviteStatus("enviando");
+    try {
+      await api.post("/clans/invite", { userId: profile.id });
+      setConviteStatus("enviado");
+    } catch (e) {
+      setConviteStatus(e.response?.data?.error || "Não foi possível convidar.");
+    }
+  }
+
+
+
   return (
     <div>
       <Seo title={profile.nickname} description={`Veja o perfil de ${profile.nickname} na Educação Gamer.`} />
@@ -80,9 +110,37 @@ export default function PublicProfile() {
           <p style={{ color: "var(--text-dim)", margin: "4px 0" }}>
             📅 Membro desde {formatMemberSince(profile.memberSince)} · ⏱ {profile.playtimeMinutes} min jogados
           </p>
-          {profile.clan && (
+          {profile.clan ? (
             <p style={{ color: "var(--accent-2)", margin: "4px 0", fontWeight: 700 }}>
-              🚩 {profile.clan.name} [{profile.clan.tag}]
+              🚩 <Link to={`/cla/${profile.clan.id}`}>{profile.clan.name} [{profile.clan.tag}]</Link>
+            </p>
+          ) : (
+            <p style={{ color: "var(--text-dim)", margin: "4px 0" }}>
+              🚩 Sem clã
+              {/* O convite só aparece pra quem LIDERA um clã: membro comum não
+                  tem essa permissão, e mostrar o botão daria erro no clique. */}
+              {meuCla && (
+                <>
+                  {" · "}
+                  {conviteStatus === "enviado" ? (
+                    <span style={{ color: "#06d6a0" }}>✓ Convite enviado</span>
+                  ) : (
+                    <button
+                      className="btn btn-sm"
+                      style={{ marginLeft: 4 }}
+                      onClick={convidarProCla}
+                      disabled={conviteStatus === "enviando"}
+                    >
+                      {conviteStatus === "enviando" ? "Enviando..." : `Convidar pro ${meuCla.name}`}
+                    </button>
+                  )}
+                </>
+              )}
+            </p>
+          )}
+          {conviteStatus && conviteStatus !== "enviado" && conviteStatus !== "enviando" && (
+            <p style={{ color: "var(--danger, #e60000)", fontSize: 13, margin: "4px 0" }}>
+              {conviteStatus}
             </p>
           )}
           {!isMe && (

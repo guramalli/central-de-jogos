@@ -27,6 +27,11 @@ import { currentMonthKey } from "../src/utils/monthKey.js";
 
 const JOGOS = ["stop", "quiz"];
 
+// Clãs fecham TAMBÉM no Acromania. Os campeões individuais só existem onde
+// há premiação em Pix (Stop e Quiz); o troféu de clã é reconhecimento, não
+// dinheiro, então não há motivo pra deixar o Acromania de fora.
+const JOGOS_CLA = ["stop", "quiz", "acromania"];
+
 function nomeDoMes(monthKey) {
   const [ano, mes] = monthKey.split("-");
   const nomes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -111,7 +116,75 @@ async function main() {
     });
   }
 
-  if (resultados.length === 0) {
+  // ===== CLÃS =====
+  //
+  // Um campeão por jogo mais um "geral" (soma dos três). Mesma regra de
+  // elegibilidade dos jogadores: admin e visitante não somam pontos pro clã.
+  const resultadosClas = [];
+  const clas = await prisma.clan.findMany({
+    include: { members: { select: { id: true, role: true, isGuest: true } } },
+  });
+
+  if (clas.length > 0) {
+    const contaNoRanking = (m) => m.role !== "ADMIN" && !m.isGuest;
+    const todosIds = clas.flatMap((c) => c.members.filter(contaNoRanking).map((m) => m.id));
+
+    for (const gameKey of [...JOGOS_CLA, "geral"]) {
+      const jaTem = await prisma.campeaoClaMensal.findUnique({
+        where: { monthKey_gameKey: { monthKey, gameKey } },
+      });
+      if (jaTem) {
+        console.log(`  CLÃ ${gameKey.toUpperCase().padEnd(9)} já fechado: [${jaTem.clanTag}] ${jaTem.clanName}`);
+        continue;
+      }
+
+      // No "geral", exclui as linhas por sala (gameKey com ":") — senão cada
+      // ponto contaria duas vezes.
+      const filtro =
+        gameKey === "geral" ? { NOT: { gameKey: { contains: ":" } } } : { gameKey };
+
+      const scores = todosIds.length
+        ? await prisma.monthlyScore.groupBy({
+            by: ["userId"],
+            where: { userId: { in: todosIds }, monthKey, ...filtro },
+            _sum: { points: true },
+          })
+        : [];
+      const porUsuario = Object.fromEntries(scores.map((x) => [x.userId, x._sum.points || 0]));
+
+      const somados = clas
+        .map((c) => {
+          const membros = c.members.filter(contaNoRanking);
+          return {
+            clan: c,
+            memberCount: membros.length,
+            points: membros.reduce((soma, m) => soma + (porUsuario[m.id] || 0), 0),
+          };
+        })
+        .filter((x) => x.points > 0)
+        .sort((a, b) => b.points - a.points);
+
+      if (somados.length === 0) {
+        console.log(`  CLÃ ${gameKey.toUpperCase().padEnd(9)} nenhum clã pontuou.`);
+        continue;
+      }
+
+      const vencedor = somados[0];
+      console.log(
+        `  CLÃ ${gameKey.toUpperCase().padEnd(9)} 🏆 [${vencedor.clan.tag}] ${vencedor.clan.name} — ${vencedor.points.toLocaleString("pt-BR")} pts`
+      );
+      resultadosClas.push({
+        gameKey,
+        clanId: vencedor.clan.id,
+        clanName: vencedor.clan.name,
+        clanTag: vencedor.clan.tag,
+        points: vencedor.points,
+        memberCount: vencedor.memberCount,
+      });
+    }
+  }
+
+  if (resultados.length === 0 && resultadosClas.length === 0) {
     console.log("\nNada a fazer.");
     return;
   }
@@ -131,7 +204,12 @@ async function main() {
     console.log(`\n✅ ${r.gameKey.toUpperCase()}: ${r.nickname} congelado como campeão de ${nomeDoMes(monthKey)}.`);
   }
 
-  console.log(`\nOs troféus já aparecem no perfil dos campeões.`);
+  for (const r of resultadosClas) {
+    await prisma.campeaoClaMensal.create({ data: { monthKey, ...r } });
+    console.log(`\n🏆 CLÃ ${r.gameKey.toUpperCase()}: [${r.clanTag}] ${r.clanName} congelado.`);
+  }
+
+  console.log(`\nOs troféus já aparecem no perfil dos campeões e dos clãs.`);
 }
 
 main()
