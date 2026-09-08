@@ -4777,6 +4777,31 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* (o acordeão da lista de clãs saiu: agora a linha leva ao perfil) */
 
+/* Pedir pra entrar num clã, na lista. */
+.clan-list-pedir {
+  padding: 0 14px 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+.clan-list-pedido-feito {
+  font-size: 12px;
+  color: var(--accent-3, #06d6a0);
+  padding: 4px 0;
+}
+
+/* Pedido recebido, na área do líder. */
+.cla-pedido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cla-pedido:last-child { border-bottom: none; }
+.cla-pedido-acoes { display: flex; gap: 8px; }
+
 @media (max-width: 640px) {
   .clan-list-meta { display: none; }
   .clan-list-head { gap: 8px; font-size: 13px; }

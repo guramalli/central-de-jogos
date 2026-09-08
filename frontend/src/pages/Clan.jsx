@@ -11,6 +11,10 @@ export default function Clan() {
   // Diretório de clãs: todos os clãs do site, e qual deles está expandido
   // mostrando os membros.
   const [todosClans, setTodosClans] = useState([]);
+  // Pedidos que EU enviei (pra mostrar "enviado" no lugar do botão) e os que
+  // recebi como líder.
+  const [meusPedidos, setMeusPedidos] = useState([]);
+  const [pedidosRecebidos, setPedidosRecebidos] = useState([]);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
   const [error, setError] = useState("");
@@ -36,7 +40,43 @@ export default function Clan() {
 
   useEffect(() => {
     load();
+    carregarPedidos();
   }, []);
+
+  async function carregarPedidos() {
+    try {
+      const [minhas, recebidas] = await Promise.all([
+        api.get("/clans/solicitacoes/minhas"),
+        api.get("/clans/solicitacoes/recebidas"),
+      ]);
+      setMeusPedidos(minhas.data || []);
+      setPedidosRecebidos(recebidas.data || []);
+    } catch {
+      // sem pedidos a tela só não mostra nada
+    }
+  }
+
+  async function pedirEntrada(clanId) {
+    setError("");
+    try {
+      await api.post(`/clans/${clanId}/solicitar`);
+      // Atualiza na hora: sem isso o botão continuaria oferecendo "pedir"
+      // e a pessoa clicaria de novo achando que falhou.
+      setMeusPedidos((atual) => [...atual, clanId]);
+    } catch (e) {
+      setError(e.response?.data?.error || "Não foi possível enviar o pedido.");
+    }
+  }
+
+  async function responderPedido(id, aceitar) {
+    setError("");
+    try {
+      await api.post(`/clans/solicitacoes/${id}/${aceitar ? "aceitar" : "recusar"}`);
+      await Promise.all([load(), carregarPedidos()]);
+    } catch (e) {
+      setError(e.response?.data?.error || "Não foi possível responder o pedido.");
+    }
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -200,6 +240,30 @@ export default function Clan() {
             </button>
           )}
 
+          {/* Pedidos de ingresso vêm ANTES dos convites enviados: são o que
+              exige ação sua, e o contador no menu aponta pra cá. */}
+          {data.clan.isOwner && pedidosRecebidos.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h3>Pedidos pra entrar ({pedidosRecebidos.length})</h3>
+              {pedidosRecebidos.map((p) => (
+                <div key={p.id} className="cla-pedido">
+                  <Link to={`/jogador/${p.user.id}`}>{p.user.nickname}</Link>
+                  <div className="cla-pedido-acoes">
+                    <button className="btn btn-sm" onClick={() => responderPedido(p.id, true)}>
+                      Aceitar
+                    </button>
+                    <button
+                      className="btn btn-sm secondary"
+                      onClick={() => responderPedido(p.id, false)}
+                    >
+                      Recusar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {data.clan.isOwner && (
             <div style={{ marginTop: 20 }}>
               <h3>Convites enviados (pendentes)</h3>
@@ -262,6 +326,19 @@ export default function Clan() {
                     chevron_right
                   </span>
                 </Link>
+                {/* Só pra quem não tem clã: quem já tem precisaria sair antes,
+                    e oferecer o botão seria um convite a um erro. */}
+                {!data?.clan && (
+                  <div className="clan-list-pedir">
+                    {meusPedidos.includes(c.id) ? (
+                      <span className="clan-list-pedido-feito">Pedido enviado</span>
+                    ) : (
+                      <button className="btn btn-sm" onClick={() => pedirEntrada(c.id)}>
+                        Pedir pra entrar
+                      </button>
+                    )}
+                  </div>
+                )}
 
               </div>
             );

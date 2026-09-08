@@ -139,6 +139,31 @@ router.get("/todos", requireAuth, async (req, res) => {
   res.json(lista);
 });
 
+// IMPORTANTE: estas rotas ficam ANTES do GET /:id. O Express casa na ordem
+// de declaração — depois dele, "solicitacoes" seria lido como o id de um
+// clã e a resposta viraria 404.
+// Meus pedidos pendentes — a tela usa pra mostrar "pedido enviado" em vez
+// de oferecer o botão de novo.
+router.get("/solicitacoes/minhas", requireAuth, async (req, res) => {
+  const pedidos = await prisma.clanJoinRequest.findMany({
+    where: { userId: req.user.id, status: "pending" },
+    select: { clanId: true },
+  });
+  res.json(pedidos.map((p) => p.clanId));
+});
+
+// Pedidos recebidos pelo clã que EU lidero.
+router.get("/solicitacoes/recebidas", requireAuth, async (req, res) => {
+  const meu = await prisma.clan.findFirst({ where: { ownerId: req.user.id } });
+  if (!meu) return res.json([]);
+  const pedidos = await prisma.clanJoinRequest.findMany({
+    where: { clanId: meu.id, status: "pending" },
+    include: { user: { select: { id: true, nickname: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  res.json(pedidos);
+});
+
 // Perfil público do clã: membros, troféus e pontuação do mês.
 router.get("/:id", requireAuth, async (req, res) => {
   const clan = await prisma.clan.findUnique({
@@ -261,6 +286,83 @@ router.post("/invite", requireAuth, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: "Erro ao criar convite." });
   }
+});
+
+// ===== PEDIDOS DE INGRESSO (o jogador bate na porta) =====
+
+// Pedir pra entrar num clã.
+router.post("/:id/solicitar", requireAuth, async (req, res) => {
+  const me = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (me.clanId) return res.status(409).json({ error: "Você já está em um clã." });
+
+  const clan = await prisma.clan.findUnique({
+    where: { id: req.params.id },
+    include: { members: { select: { id: true } } },
+  });
+  if (!clan) return res.status(404).json({ error: "Clã não encontrado." });
+  if (clan.members.length >= MAX_MEMBERS) {
+    return res.status(409).json({ error: `Esse clã já está no limite de ${MAX_MEMBERS} membros.` });
+  }
+
+  try {
+    // upsert e não create: quem já pediu e foi recusado pode pedir de novo,
+    // e quem clicar duas vezes não gera erro nem duplica.
+    const pedido = await prisma.clanJoinRequest.upsert({
+      where: { clanId_userId: { clanId: clan.id, userId: req.user.id } },
+      update: { status: "pending" },
+      create: { clanId: clan.id, userId: req.user.id, status: "pending" },
+    });
+    cacheInvalidar(`avisos:${clan.ownerId}`);
+    res.json(pedido);
+  } catch {
+    res.status(500).json({ error: "Não foi possível enviar o pedido." });
+  }
+});
+
+router.post("/solicitacoes/:id/aceitar", requireAuth, async (req, res) => {
+  const pedido = await prisma.clanJoinRequest.findUnique({
+    where: { id: req.params.id },
+    include: { clan: { include: { members: { select: { id: true } } } } },
+  });
+  if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (pedido.clan.ownerId !== req.user.id) {
+    return res.status(403).json({ error: "Só o dono do clã pode aceitar." });
+  }
+  if (pedido.clan.members.length >= MAX_MEMBERS) {
+    return res.status(409).json({ error: `O clã já está no limite de ${MAX_MEMBERS} membros.` });
+  }
+
+  // Entre o pedido e o aceite a pessoa pode ter entrado em outro clã.
+  const candidato = await prisma.user.findUnique({ where: { id: pedido.userId } });
+  if (!candidato) return res.status(404).json({ error: "Jogador não encontrado." });
+  if (candidato.clanId) {
+    await prisma.clanJoinRequest.delete({ where: { id: pedido.id } });
+    return res.status(409).json({ error: `${candidato.nickname} já entrou em outro clã.` });
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: pedido.userId }, data: { clanId: pedido.clanId } }),
+    prisma.clanJoinRequest.delete({ where: { id: pedido.id } }),
+  ]);
+  cacheInvalidar("clans:");
+  cacheInvalidar(`avisos:${req.user.id}`);
+  res.json({ ok: true });
+});
+
+router.post("/solicitacoes/:id/recusar", requireAuth, async (req, res) => {
+  const pedido = await prisma.clanJoinRequest.findUnique({
+    where: { id: req.params.id },
+    include: { clan: { select: { ownerId: true } } },
+  });
+  if (!pedido) return res.status(404).json({ error: "Pedido não encontrado." });
+  if (pedido.clan.ownerId !== req.user.id) {
+    return res.status(403).json({ error: "Só o dono do clã pode recusar." });
+  }
+  // Apaga em vez de marcar como recusado: assim a pessoa pode tentar de novo
+  // mais tarde sem esbarrar na restrição de um pedido por clã.
+  await prisma.clanJoinRequest.delete({ where: { id: pedido.id } });
+  cacheInvalidar(`avisos:${req.user.id}`);
+  res.json({ ok: true });
 });
 
 // Convites pendentes recebidos pelo usuário logado (pra ele aceitar/recusar)

@@ -65,6 +65,8 @@ export default function App() {
   const [unreadDmCount, setUnreadDmCount] = useState(0);
   // Missões concluídas esperando resgate — mesmo esquema do aviso de DM.
   const [missoesPendentes, setMissoesPendentes] = useState(0);
+  // Pedidos pra entrar no clã que a pessoa lidera.
+  const [pedidosCla, setPedidosCla] = useState(0);
   // Foto do próprio jogador pro cabeçalho. Não vem no `user` do login (que
   // guarda só o essencial do token), então é buscada do perfil — que já tem
   // cache no servidor. Se não houver foto, fica a inicial do nick.
@@ -103,6 +105,7 @@ export default function App() {
         setPendingFriendCount(data.amigos || 0);
         setUnreadDmCount(data.mensagens || 0);
         setMissoesPendentes(data.missoes || 0);
+        setPedidosCla(data.cla || 0);
       })
       .catch(() => {});
   }, [user]);
@@ -187,7 +190,9 @@ export default function App() {
                     <span className="nav-badge">{missoesPendentes}</span>
                   )}
                 </NavLink>
-                <NavLink to="/cla" className={navLinkClass}>Clã</NavLink>
+                <NavLink to="/cla" className={navLinkClass}>
+                  Clã{pedidosCla > 0 && <span className="nav-badge">{pedidosCla}</span>}
+                </NavLink>
                 <NavLink to="/amigos" className={navLinkClass}>
                   Amigos{(pendingFriendCount + unreadDmCount) > 0 && (
                     <span className="nav-badge">{pendingFriendCount + unreadDmCount}</span>

@@ -118,6 +118,7 @@ model User {
   // reconhecimento entre jogadores e o rastro do que cada um conquistou.
   nicknameTrocado   Boolean  @default(false)
   campeonatos  CampeaoMensal[]
+  clanJoinRequests ClanJoinRequest[]
 }
 
 model Clan {
@@ -130,10 +131,35 @@ model Clan {
   members   User[]   @relation("ClanMembers")
   invites   ClanInvite[]
   campeonatos CampeaoClaMensal[]
+  joinRequests ClanJoinRequest[]
 }
 
 // Convite pendente de um clã para um jogador. O dono do clã cria o convite;
 // o jogador convidado aceita ou recusa pela própria tela dele.
+// Pedido de ingresso: o caminho INVERSO do ClanInvite.
+//
+// No convite, o líder chama alguém. Aqui é o jogador que bate na porta — o
+// que faz falta quando ninguém te conhece ainda e não há a quem pedir.
+//
+// Guardado numa tabela própria e não reaproveitando o ClanInvite porque os
+// dois convivem: alguém pode ter pedido pra entrar num clã E ter sido
+// convidado por outro, e misturar os dois na mesma linha faria o "quem
+// procurou quem" se perder.
+model ClanJoinRequest {
+  id        String   @id @default(cuid())
+  clanId    String
+  clan      Clan     @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("pending") // pending | accepted | declined
+  createdAt DateTime @default(now())
+
+  // Um pedido por pessoa/clã. Recusado, a linha é apagada — assim dá pra
+  // pedir de novo depois sem esbarrar nesta restrição.
+  @@unique([clanId, userId])
+  @@index([clanId, status])
+}
+
 model ClanInvite {
   id        String   @id @default(cuid())
   clanId    String

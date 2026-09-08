@@ -22,9 +22,15 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     const dados = await cacheOuBuscar(`avisos:${userId}`, 45, async () => {
       // As duas contagens simples vão juntas, em paralelo.
-      const [amigos, mensagens] = await Promise.all([
+      const [amigos, mensagens, cla] = await Promise.all([
         prisma.friendship.count({ where: { userBId: userId, status: "pending" } }),
         prisma.privateMessage.count({ where: { receiverId: userId, read: false } }),
+        // Pedidos pra entrar no clã que EU lidero. Quem não lidera nenhum
+        // recebe 0 sem consulta extra — o `clan: { ownerId }` resolve dentro
+        // da mesma contagem.
+        prisma.clanJoinRequest.count({
+          where: { status: "pending", clan: { ownerId: userId } },
+        }),
       ]);
 
       let missoes = 0;
@@ -43,13 +49,13 @@ router.get("/", requireAuth, async (req, res) => {
         }
       }
 
-      return { amigos, mensagens, missoes };
+      return { amigos, mensagens, missoes, cla };
     });
 
     res.json(dados);
   } catch {
     // Falha aqui não pode quebrar o menu do site: devolve tudo zerado.
-    res.json({ amigos: 0, mensagens: 0, missoes: 0 });
+    res.json({ amigos: 0, mensagens: 0, missoes: 0, cla: 0 });
   }
 });
 
