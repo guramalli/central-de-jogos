@@ -64,16 +64,17 @@ export default function PublicProfile() {
     }
   }
 
-  if (loading) return <p>Carregando...</p>;
-  if (error || !profile) return <p style={{ color: "var(--text-dim)" }}>{error || "Perfil não encontrado."}</p>;
-
-  const isMe = me?.id === userId;
-
+  // ATENÇÃO: este hook tem que ficar ANTES dos `return` antecipados abaixo
+  // ("Carregando..." e "Perfil não encontrado"). Hooks precisam rodar na
+  // MESMA ORDEM em todo render — colocado depois deles, ele não executava
+  // enquanto carregava e passava a executar quando os dados chegavam. O
+  // React percebe a mudança na contagem de hooks e derruba a página inteira.
+  //
+  // Por isso `me?.id === userId` é calculado aqui dentro em vez de usar a
+  // constante `isMe`, que só existe mais abaixo.
   useEffect(() => {
     let vivo = true;
-    // Só pergunta se faz diferença: perfil próprio ou de quem já tem clã não
-    // usa esta informação pra nada.
-    if (isMe || !profile || profile.clan) return;
+    if (!profile || profile.clan || me?.id === userId) return;
     api
       .get("/clans/mine")
       .then(({ data }) => vivo && setMeuCla(data?.clan?.isOwner ? data.clan : null))
@@ -81,7 +82,13 @@ export default function PublicProfile() {
     return () => {
       vivo = false;
     };
-  }, [isMe, profile]);
+  }, [profile, me?.id, userId]);
+
+  if (loading) return <p>Carregando...</p>;
+  if (error || !profile) return <p style={{ color: "var(--text-dim)" }}>{error || "Perfil não encontrado."}</p>;
+
+  const isMe = me?.id === userId;
+
 
   async function convidarProCla() {
     setConviteStatus("enviando");
