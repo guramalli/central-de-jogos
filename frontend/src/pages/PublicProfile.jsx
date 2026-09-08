@@ -88,6 +88,7 @@ export default function PublicProfile() {
   if (error || !profile) return <p style={{ color: "var(--text-dim)" }}>{error || "Perfil não encontrado."}</p>;
 
   const isMe = me?.id === userId;
+  const ehAdmin = profile.role === "ADMIN";
 
 
   async function convidarProCla() {
@@ -175,6 +176,22 @@ export default function PublicProfile() {
         </div>
       </div>
 
+      {/* Perfil de ADMIN não exibe estatística nenhuma.
+          Conta de administração não compete: mostrar conquistas, patente e
+          pontuação ao lado de quem joga de verdade sugere uma disputa que
+          não existe — e o site inteiro já exclui admin de todo ranking. */}
+      {ehAdmin ? (
+        <div className="card perfil-admin">
+          <img src="/ranks/admin.png" alt="" className="perfil-admin-emblema" />
+          <div>
+            <h2 className="perfil-admin-titulo">Administrador do Site</h2>
+            <p className="perfil-admin-sub">
+              Conta oficial do Educação Gamer. Não participa dos rankings nem da premiação.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
       {(profile.achievements.length > 0 || titulosGanhos.length > 0) && (
         <div className="card" style={{ marginTop: 16 }}>
           <h2>Conquistas</h2>
@@ -252,7 +269,7 @@ export default function PublicProfile() {
         </div>
       )}
 
-      <TitulosPerfil userId={userId} />
+      {!ehAdmin && <TitulosPerfil userId={userId} />}
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Pontuação vitalícia</h2>
@@ -269,6 +286,8 @@ export default function PublicProfile() {
           </div>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }

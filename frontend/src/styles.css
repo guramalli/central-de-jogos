@@ -2732,6 +2732,22 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   .jogo-tab { transition: none; }
 }
 
+/* Perfil de administrador: um bloco só, sem estatística. */
+.perfil-admin {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 16px;
+}
+.perfil-admin-emblema { width: 72px; height: 72px; flex-shrink: 0; }
+.perfil-admin-titulo { margin: 0; font-size: 20px; }
+.perfil-admin-sub {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ===== Perfil do clã ===== */
 .cla-cabecalho {
   display: flex;
