@@ -123,6 +123,72 @@ router.get("/history", requireAuth, async (req, res) => {
 });
 
 
+// Números do Hall da Fama: quem mais venceu, a maior pontuação já registrada
+// e quantos meses já fecharam.
+//
+// Sai da CampeaoMensal (troféus congelados no fechamento) e não do
+// monthlyScore: campeão é quem foi PAGO, e recalcular hoje poderia dar outro
+// resultado se uma conta tiver sido banida depois.
+router.get("/hall-stats", requireAuth, async (req, res) => {
+  const dados = await cacheOuBuscar("ranking:hall-stats", 300, async () => {
+    const [campeoes, mesesFechados] = await Promise.all([
+      prisma.campeaoMensal.findMany({
+        include: { user: { select: { id: true, nickname: true } } },
+        orderBy: { monthKey: "desc" },
+      }),
+      prisma.monthlyScore.findMany({
+        where: { monthKey: { not: currentMonthKey() } },
+        select: { monthKey: true },
+        distinct: ["monthKey"],
+      }),
+    ]);
+
+    // Quantos títulos cada pessoa tem, somando os jogos.
+    const porJogador = new Map();
+    for (const c of campeoes) {
+      const atual = porJogador.get(c.userId) || {
+        userId: c.userId,
+        // O nickname do registro é o da ÉPOCA; o do usuário é o de hoje.
+        // Mostrar o atual evita a lista parecer de gente que não existe mais.
+        nickname: c.user?.nickname || c.nickname,
+        titulos: 0,
+        jogos: new Set(),
+      };
+      atual.titulos += 1;
+      atual.jogos.add(c.gameKey);
+      porJogador.set(c.userId, atual);
+    }
+
+    const maisTitulos = [...porJogador.values()]
+      .map((j) => ({ ...j, jogos: [...j.jogos] }))
+      .sort((a, b) => b.titulos - a.titulos || a.nickname.localeCompare(b.nickname, "pt-BR"))
+      .slice(0, 5);
+
+    // Maior pontuação já feita num mês, por jogo.
+    const recordes = {};
+    for (const c of campeoes) {
+      if (!recordes[c.gameKey] || c.points > recordes[c.gameKey].points) {
+        recordes[c.gameKey] = {
+          nickname: c.user?.nickname || c.nickname,
+          userId: c.userId,
+          points: c.points,
+          monthKey: c.monthKey,
+          label: formatMonthKey(c.monthKey),
+        };
+      }
+    }
+
+    return {
+      mesesFechados: mesesFechados.length,
+      totalTitulos: campeoes.length,
+      maisTitulos,
+      recordes,
+    };
+  });
+
+  res.json(dados);
+});
+
 // Vencedores (top 10) de um mês já encerrado, num jogo específico — a "prova"
 // de quem foi campeão naquele mês, guardada pra sempre.
 router.get("/history/:monthKey/:gameKey", requireAuth, async (req, res) => {

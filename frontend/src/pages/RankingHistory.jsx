@@ -4,6 +4,8 @@ import { api } from "../api/client.js";
 import RankBadge from "../components/RankBadge.jsx";
 import Seo from "../components/Seo.jsx";
 
+const GAME_NAMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
+
 const MEDALS = ["🥇", "🥈", "🥉"];
 const GAMES = [
   { key: "stop", label: "🅾️ Stop" },
@@ -37,6 +39,19 @@ export default function RankingHistory() {
       .catch(() => setWinners({ winners: [] }));
   }, [selectedMonth, game]);
 
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    let vivo = true;
+    api
+      .get("/ranking/hall-stats")
+      .then(({ data }) => vivo && setStats(data))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
   return (
     <div>
       <Seo title="Histórico" description="Confira os campeões dos meses anteriores na Educação Gamer." />
@@ -45,6 +60,56 @@ export default function RankingHistory() {
       </Link>
       <h1>🏛️ Hall da Fama</h1>
       <p style={{ color: "var(--text-dim)" }}>Os campeões de cada mês já encerrado, mês a mês.</p>
+
+      {/* Números do hall: sem eles a página era só uma lista de meses. Quem
+          mais venceu e qual o recorde é o que dá peso a "hall da fama". */}
+      {stats && stats.totalTitulos > 0 && (
+        <>
+          <div className="hall-numeros">
+            <div className="hall-numero">
+              <strong>{stats.mesesFechados}</strong>
+              <small>{stats.mesesFechados === 1 ? "mês encerrado" : "meses encerrados"}</small>
+            </div>
+            <div className="hall-numero">
+              <strong>{stats.totalTitulos}</strong>
+              <small>{stats.totalTitulos === 1 ? "título entregue" : "títulos entregues"}</small>
+            </div>
+            <div className="hall-numero">
+              <strong>{stats.maisTitulos.length}</strong>
+              <small>{stats.maisTitulos.length === 1 ? "campeão diferente" : "campeões diferentes"}</small>
+            </div>
+          </div>
+
+          <div className="hall-blocos">
+            <div className="card">
+              <h2>👑 Quem mais venceu</h2>
+              {stats.maisTitulos.map((j, i) => (
+                <div key={j.userId} className="hall-linha">
+                  <span className="hall-pos">{i + 1}º</span>
+                  <Link to={`/jogador/${j.userId}`} className="hall-nick">{j.nickname}</Link>
+                  <span className="hall-valor">
+                    {j.titulos} {j.titulos === 1 ? "título" : "títulos"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="card">
+              <h2>🔥 Recordes de pontuação</h2>
+              {Object.entries(stats.recordes).map(([jogo, r]) => (
+                <div key={jogo} className="hall-linha">
+                  <span className="hall-pos">{GAME_NAMES[jogo] || jogo}</span>
+                  <Link to={`/jogador/${r.userId}`} className="hall-nick">{r.nickname}</Link>
+                  <span className="hall-valor">
+                    {r.points.toLocaleString("pt-BR")}
+                    <small> · {r.label}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {months === null && <p style={{ color: "var(--text-dim)" }}>Carregando...</p>}
       {months && months.length === 0 && (
