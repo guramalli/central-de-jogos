@@ -126,10 +126,6 @@ export default function Lobby() {
           e tudo zera no dia 1º.
         </p>
         <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
-        {" "}
-        {/* O Hall da Fama ficava a dois cliques (ranking -> hall) e ninguém
-            chegava lá. É a página que mostra que o site tem história. */}
-        <Link to="/ranking/historico" className="prize-banner-link">🏛️ Hall da Fama →</Link>
       </div>
 
       <GeneralChatWidget />

@@ -2660,11 +2660,28 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 
 /* ===== Seletor de jogo do ranking: a logo é o botão ===== */
+/* Hall da Fama: era um link de 14px solto sob o título e passava batido.
+   Com peso de botão contornado ele se anuncia sem competir com o pódio, que
+   continua sendo o conteúdo principal da página. */
 .ranking-hall {
-  display: inline-block;
-  margin-top: 2px;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  border: 1px solid var(--titulo-ouro, #ffd60a);
+  border-radius: 999px;
+  color: var(--titulo-ouro, #ffd60a);
+  background: rgba(255, 214, 10, 0.08);
+  transition: background 0.15s ease;
 }
+.ranking-hall:hover {
+  background: rgba(255, 214, 10, 0.18);
+  text-decoration: none;
+}
+@media (prefers-reduced-motion: reduce) { .ranking-hall { transition: none; } }
 
 .ranking-game-tabs {
   display: flex;
