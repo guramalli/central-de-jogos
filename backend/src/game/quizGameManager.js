@@ -98,7 +98,22 @@ export async function getAllQuizRoomsStatus() {
   });
 
   const records = await prisma.quizStreakRecord.findMany();
-  const recordByRoom = Object.fromEntries(records.map((r) => [r.roomId, r]));
+
+  // O apelido gravado no recorde é o da ÉPOCA. Quem trocou de nick aparecia
+  // no card da sala com o nome antigo — parecia recorde de outra pessoa, e
+  // quem o conquistou não se reconhecia ali. Resolve pelo userId, que não
+  // muda. Uma consulta só pra todos os donos de recorde.
+  const donos = records.length
+    ? await prisma.user.findMany({
+        where: { id: { in: [...new Set(records.map((r) => r.userId))] } },
+        select: { id: true, nickname: true },
+      })
+    : [];
+  const nickAtual = Object.fromEntries(donos.map((u) => [u.id, u.nickname]));
+
+  const recordByRoom = Object.fromEntries(
+    records.map((r) => [r.roomId, { ...r, nickname: nickAtual[r.userId] || r.nickname }])
+  );
 
   return Promise.all(
     Object.entries(QUIZ_ROOM_CONFIGS).map(async ([roomId, config]) => {
