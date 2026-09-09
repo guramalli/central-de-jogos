@@ -2815,6 +2815,16 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 
+/* Seletor de MÊS no Hall da Fama. Antes usava `ranking-game-tabs`, que é a
+   classe dos botões de jogo — os dois no mesmo arquivo, com nomes parecidos,
+   causavam justamente esse tipo de confusão. */
+.hall-meses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
 /* ===== Hall da Fama: números ===== */
 .hall-numeros {
   display: flex;

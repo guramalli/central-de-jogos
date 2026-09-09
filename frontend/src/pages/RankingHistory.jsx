@@ -8,9 +8,9 @@ const GAME_NAMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 const GAMES = [
-  { key: "stop", label: "🅾️ Stop" },
-  { key: "quiz", label: "❓ Quiz" },
-  { key: "acromania", label: "🔤 Acromania" },
+  { key: "stop", label: "Stop", logo: "/stop-logo.png" },
+  { key: "quiz", label: "Quiz", logo: "/quiz-logo.png" },
+  { key: "acromania", label: "Acromania", logo: "/acromania-logo.png" },
 ];
 
 // Histórico ("Hall da Fama") de meses já encerrados — não precisa de
@@ -120,7 +120,7 @@ export default function RankingHistory() {
 
       {months && months.length > 0 && (
         <>
-          <div className="ranking-game-tabs">
+          <div className="hall-meses">
             {months.map((m) => (
               <button
                 key={m.monthKey}
@@ -132,14 +132,20 @@ export default function RankingHistory() {
             ))}
           </div>
 
-          <div className="ranking-tabs">
+          {/* Mesmos botões de logo do ranking. A classe `ranking-game-tabs`
+              é a dos JOGOS; a de cima, com o mesmo nome, é dos meses — o
+              nome enganava e o seletor de jogo estava usando o estilo
+              genérico de botão. */}
+          <div className="ranking-game-tabs">
             {GAMES.map((g) => (
               <button
                 key={g.key}
-                className={`btn ${game === g.key ? "" : "secondary"}`}
+                type="button"
+                className={`jogo-tab${game === g.key ? " jogo-tab-ativo" : ""}`}
                 onClick={() => setGame(g.key)}
+                aria-pressed={game === g.key}
               >
-                {g.label}
+                <img src={g.logo} alt={g.label} className="jogo-tab-logo" />
               </button>
             ))}
           </div>
