@@ -29,6 +29,9 @@ export default function PublicProfile() {
   const [friendError, setFriendError] = useState("");
   // Títulos já conquistados, pra aparecerem junto das outras conquistas.
   const [titulosGanhos, setTitulosGanhos] = useState([]);
+  // Conquistas recolhidas por padrão quando são muitas — com 20 temas, a
+  // grade tomava a página inteira e empurrava o ranking pra fora da tela.
+  const [verTodasConquistas, setVerTodasConquistas] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -47,7 +50,18 @@ export default function PublicProfile() {
       .get(`/users/${userId}/titulos`)
       .then(({ data }) => {
         const todos = [...(data.quiz || []), ...(data.stop || [])];
-        setTitulosGanhos(todos.flatMap((t) => t.desbloqueados || []));
+        // Só o MAIOR título de cada tema.
+        //
+        // Os níveis vêm em ordem crescente (bronze, prata, ouro...), e antes
+        // isto era um flatMap que juntava todos os desbloqueados — quem
+        // evoluiu num tema aparecia três vezes ("Conhecedor de Futebol",
+        // "Mestre de Futebol"...), o que enche a lista repetindo a mesma
+        // conquista e esconde a variedade real de temas.
+        setTitulosGanhos(
+          todos
+            .map((t) => (t.desbloqueados || []).at(-1))
+            .filter(Boolean)
+        );
       })
       .catch(() => setTitulosGanhos([])); // sem títulos não é erro, é começo de jornada
   }, [userId]);
@@ -89,6 +103,14 @@ export default function PublicProfile() {
 
   const isMe = me?.id === userId;
   const ehAdmin = profile.role === "ADMIN";
+
+  // Teto de 8 medalhas de título. Acima disso, o resto fica atrás de um
+  // botão — a pessoa não perde nada e a página continua navegável.
+  const LIMITE_CONQUISTAS = 8;
+  const titulosVisiveis = verTodasConquistas
+    ? titulosGanhos
+    : titulosGanhos.slice(0, LIMITE_CONQUISTAS);
+  const conquistasOcultas = titulosGanhos.length - titulosVisiveis.length;
 
 
   async function convidarProCla() {
@@ -216,7 +238,7 @@ export default function PublicProfile() {
                 mais abaixo mostra a jornada completa (inclusive o que falta);
                 aqui ficam só os já ganhos, no resumo de conquistas.
                 O nome sai na cor do material da medalha, igual ao hover. */}
-            {titulosGanhos.map((t) => (
+            {titulosVisiveis.map((t) => (
               <div key={t.nome} className="achievement-badge">
                 {t.logo ? (
                   <img
@@ -234,6 +256,19 @@ export default function PublicProfile() {
               </div>
             ))}
           </div>
+
+          {(conquistasOcultas > 0 || verTodasConquistas) && (
+            <button
+              type="button"
+              className="btn secondary btn-sm"
+              style={{ marginTop: 10 }}
+              onClick={() => setVerTodasConquistas((v) => !v)}
+            >
+              {verTodasConquistas
+                ? "Mostrar menos"
+                : `Ver todas (+${conquistasOcultas})`}
+            </button>
+          )}
         </div>
       )}
 
