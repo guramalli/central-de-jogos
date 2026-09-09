@@ -22,7 +22,9 @@ const MAX_AVATAR_LENGTH = 300_000;
 // conquistas do zero, só reaproveitando o que o site já calcula. Como
 // patente agora é conceito mensal, a conquista mostra a patente do mês
 // vigente (se a pessoa ainda não pontuou esse mês, não mostra patente).
-async function buildAchievements(nickname, monthlyByGame, userId, quizStats = []) {
+// `nickname` saiu da assinatura: era usado só pra buscar o recorde de
+// sequência, que agora vai pelo userId. Parâmetro sem uso engana quem lê.
+async function buildAchievements(monthlyByGame, userId, quizStats = []) {
   const achievements = [];
 
   const stopPoints = monthlyByGame.get("stop") || 0;
@@ -36,7 +38,13 @@ async function buildAchievements(nickname, monthlyByGame, userId, quizStats = []
     achievements.push({ iconUrl: rank.icon, label: `${rank.name} no Quiz (este mês)` });
   }
 
-  const streakRecords = await prisma.quizStreakRecord.findMany({ where: { nickname } });
+  // Busca por userId, não por nickname.
+  //
+  // A tabela guarda os dois, mas o apelido MUDA (o site permite uma troca) e
+  // não é único no tempo: quem trocou de nick perdia o próprio recorde de
+  // vista, e um apelido reaproveitado por outra conta mostraria o recorde
+  // errado. O id não muda nunca.
+  const streakRecords = await prisma.quizStreakRecord.findMany({ where: { userId } });
   if (streakRecords.length > 0) {
     const best = streakRecords.reduce((a, b) => (b.count > a.count ? b : a));
     achievements.push({ icon: "🔥", label: `Recorde de ${best.count} seguidas no Quiz` });
@@ -174,7 +182,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     })
   );
   const monthlyByGame = new Map(monthly.map((m) => [m.gameKey, m.points]));
-  const achievements = await buildAchievements(user.nickname, monthlyByGame, user.id, quizStats);
+  const achievements = await buildAchievements(monthlyByGame, user.id, quizStats);
 
   // Aproveitamento por sala do Quiz — só das salas com pelo menos 10
   // perguntas vistas, senão o número não significaria nada.
