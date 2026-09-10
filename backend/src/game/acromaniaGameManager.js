@@ -1,7 +1,7 @@
 import { AcromaniaRoom } from "./AcromaniaRoom.js";
 import { ligarDicas } from "./dicasDoSistema.js";
 import { ACROMANIA_ROOM_CONFIGS, DEFAULT_ACROMANIA_ROOM_ID } from "./acromaniaRoomConfigs.js";
-import { ligarBotsNaSala } from "./acromaniaBots.js";
+import { ligarBotsNaSala, quantidadeDeBots } from "./acromaniaBots.js";
 
 const rooms = new Map();
 const pendingCreation = new Map();
@@ -68,6 +68,10 @@ export function getAllAcromaniaRoomsStatus() {
       maxPlayers: config.maxPlayers ?? 10,
       minPlayersToStart: config.minPlayersToStart ?? 1,
       onlineCount: room ? room.countUniquePlayers() : 0,
+      // Só avisa quando há bot DE VERDADE: a sala precisa aceitar (config) e
+      // a variável ACROMANIA_BOTS precisa estar ligada. Marcar a sala como
+      // "tem bots" com eles desligados seria avisar de algo que não acontece.
+      comBots: config.bots !== false && quantidadeDeBots() > 0,
     };
   });
 }

@@ -74,6 +74,9 @@ export class AcromaniaRoom {
     this.roundsPerTurn = config.roundsPerTurn ?? null;
     this.turnBonus = config.turnBonus ?? [100, 60, 30];
     this.minPlayersToStart = config.minPlayersToStart ?? 1;
+    // Se esta sala aceita bots de teste (ver acromaniaBots.js). Padrão: sim,
+    // pra sala nova não precisar declarar.
+    this.permiteBots = config.bots !== false;
     this.maxPlayers = config.maxPlayers ?? 10;
 
     this.players = new Map(); // socketId -> {userId, nickname, socket}

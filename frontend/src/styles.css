@@ -3139,6 +3139,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .acro-sala-grid { grid-template-columns: 1fr; }
 .acro-sala-grid .lobby-game-card { padding: 22px 24px; }
 
+/* Aviso de bots no card da sala. Discreto: é informação, não alerta. */
+.lobby-aviso-bots {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--accent-2);
+  opacity: 0.9;
+}
+
 /* Legenda de pontuação no lobby do Acromania. */
 .acro-legenda { margin-bottom: 0; }
 .acro-legenda-titulo {

@@ -92,6 +92,14 @@ export default function AcromaniaLobby() {
                 <h3 className="lobby-game-title">{r.label}</h3>
                 <p className="lobby-game-desc">{r.description}</p>
                 <p className="lobby-streak-desc">⚠️ Só roda com {r.minPlayersToStart}+ jogadores na sala</p>
+                {/* Só aparece quando há bot de verdade rodando — o servidor
+                    decide, considerando a config da sala E a variável de
+                    ambiente. */}
+                {r.comBots && (
+                  <p className="lobby-aviso-bots">
+                    🤖 Esta sala tem jogadores automáticos pra completar a partida
+                  </p>
+                )}
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                   <span className="material-symbols-outlined">group</span> {occ.text}
                 </div>
