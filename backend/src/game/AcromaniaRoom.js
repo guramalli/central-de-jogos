@@ -77,7 +77,7 @@ export class AcromaniaRoom {
     // Se esta sala aceita bots de teste (ver acromaniaBots.js). Padrão: sim,
     // pra sala nova não precisar declarar.
     this.permiteBots = config.bots !== false;
-    this.maxPlayers = config.maxPlayers ?? 10;
+    this.maxPlayers = config.maxPlayers ?? 15;
 
     this.players = new Map(); // socketId -> {userId, nickname, socket}
     this.state = "intermission"; // intermission | writing | voting | grading
@@ -467,7 +467,16 @@ export class AcromaniaRoom {
   async startIntermission(waitingForPlayers = false) {
     this.clearTimer();
     this.state = "intermission";
-    this.timeLeft = this.intermissionSeconds;
+
+    // O intervalo é também o tempo de LEITURA do resultado: as frases e os
+    // votos ficam na tela durante ele. Com sala cheia são 15 frases pra ler
+    // em 16 segundos, então o tempo acompanha a quantidade — mais modesto
+    // que na votação, porque aqui a pessoa só confere, não precisa julgar.
+    const quantas = this.lastResult?.entries?.length || 0;
+    this.timeLeft = Math.min(
+      34,
+      Math.max(this.intermissionSeconds, Math.ceil(quantas * 1.6 + 6))
+    );
     this.broadcast("acromania-intermission", {
       waitingForPlayers,
       minPlayersToStart: this.minPlayersToStart,
@@ -476,7 +485,7 @@ export class AcromaniaRoom {
       // tela seguia mostrando o resto do relógio da votação — que agora sobra
       // sempre, porque a votação encerra assim que todos votam. O contador
       // aparecia em 15 e pulava pra 9 no primeiro tick do intervalo.
-      seconds: this.intermissionSeconds,
+      seconds: this.timeLeft,
     });
 
     this.timer = setInterval(() => {
@@ -589,9 +598,26 @@ export class AcromaniaRoom {
     });
   }
 
+  // Quanto tempo a votação precisa, dado o número de frases.
+  //
+  // Fixo em 20s não escala: ler e julgar uma frase leva uns 2,5 segundos, e
+  // com 8 frases o tempo acabava exatamente na leitura, sem sobra pra
+  // decidir. Com 15 (a lotação da sala) faltavam 18 segundos — a pessoa
+  // votaria no que deu tempo de ler, que é o oposto do critério do jogo.
+  //
+  // Custa nada quando a sala é rápida: a votação encerra assim que todos
+  // votam, então o teto maior só existe pra quem precisa dele.
+  tempoDeVotacao(quantasFrases) {
+    const necessario = Math.ceil(quantasFrases * 3 + 6);
+    // Nunca menos que o configurado, nunca mais que 60s (acima disso a
+    // rodada arrasta pra quem já votou).
+    return Math.min(60, Math.max(this.votingSeconds, necessario));
+  }
+
   async startVoting() {
     this.clearTimer();
     this.state = "voting";
+    // Definido de verdade abaixo, quando souber quantas frases entraram.
     this.timeLeft = this.votingSeconds;
 
     // Embaralha as frases e dá um ID anônimo (não é o userId) pra cada uma —
@@ -623,9 +649,12 @@ export class AcromaniaRoom {
       return;
     }
 
+    const segundos = this.tempoDeVotacao(entries.length);
+    this.timeLeft = segundos;
+
     this.broadcast("acromania-voting-start", {
       entries: entries.map((e) => ({ entryId: e.entryId, phrase: e.phrase })),
-      seconds: this.votingSeconds,
+      seconds: segundos,
     });
 
     // Cada jogador recebe, SÓ PRA ELE, o id da própria frase — assim a tela

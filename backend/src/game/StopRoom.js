@@ -78,7 +78,7 @@ export class StopRoom {
     // Se 0/indefinido, mantém a regra padrão: precisa preencher todas as lacunas.
     this.minCorrectToStop = config.minCorrectToStop ?? 0;
     this.minSecondsBeforeStop = config.minSecondsBeforeStop ?? 0;
-    this.maxPlayers = config.maxPlayers ?? 10;
+    this.maxPlayers = config.maxPlayers ?? 15;
     // Reaproveita a tabela LifetimeScore com uma "gameKey" própria por sala
     // (ex.: "stop:stop-sala-1"), assim cada sala tem sua pontuação histórica
     // separada, sem precisar de uma tabela nova nem migration.

@@ -65,7 +65,7 @@ export function getAllAcromaniaRoomsStatus() {
       roomId,
       label: config.label,
       description: config.description,
-      maxPlayers: config.maxPlayers ?? 10,
+      maxPlayers: config.maxPlayers ?? 15,
       minPlayersToStart: config.minPlayersToStart ?? 1,
       onlineCount: room ? room.countUniquePlayers() : 0,
       // Só avisa quando há bot DE VERDADE: a sala precisa aceitar (config) e

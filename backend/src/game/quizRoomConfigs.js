@@ -31,7 +31,7 @@ function buildDifficultyRooms(themeKey, themeName) {
       // boa pra maioria dos jogadores.
       difficultyFilter: ["facil", "medio"],
       description: `Perguntas de ${themeName.toLowerCase()} pra todo mundo.`,
-      maxPlayers: 10,
+      maxPlayers: 15,
       questionSeconds: 40,
       revealIntervalSeconds: 6,
       maxRevealPercent: 0.5, // revela até metade da resposta
@@ -44,7 +44,7 @@ function buildDifficultyRooms(themeKey, themeName) {
       tier: "avancado",
       difficultyFilter: ["dificil"],
       description: `Só as perguntas mais puxadas de ${themeName.toLowerCase()}.`,
-      maxPlayers: 10,
+      maxPlayers: 15,
       questionSeconds: 20, // tempo curto: na avançada tem que saber de cabeça
       revealIntervalSeconds: 4,
       // Começa sem nenhuma letra revelada: com o teto de 10%, se a fatia
@@ -122,7 +122,7 @@ export const QUIZ_ROOM_CONFIGS = {
     label: "Direito",
     themeKey: "direito",
     description: "Código Civil, Penal, Tributário e mais — pra quem manja de leis.",
-    maxPlayers: 10,
+    maxPlayers: 15,
     questionSeconds: 45,
     revealIntervalSeconds: 5,
     intermissionSeconds: 8,

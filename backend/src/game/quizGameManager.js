@@ -135,7 +135,7 @@ export async function getAllQuizRoomsStatus() {
         // bônus de 100, quando já eram 40, 14 e 1000.
         turnBonus: config.turnBonus || null,
         pointsPerCorrect: config.pointsPerCorrect ?? null,
-        maxPlayers: config.maxPlayers ?? 10,
+        maxPlayers: config.maxPlayers ?? 15,
         onlineCount: room ? room.countUniquePlayers() : 0,
         streakRecord: recordByRoom[roomId] || null,
         questionCount,

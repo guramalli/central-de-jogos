@@ -2,7 +2,7 @@ export const ACROMANIA_ROOM_CONFIGS = {
   "acromania-sala-1": {
     label: "Sala Livre",
     description: "Crie a frase mais criativa e vote na melhor da rodada.",
-    maxPlayers: 10,
+    maxPlayers: 15,
     writingSeconds: 60,     // tempo pra escrever a frase
     votingSeconds: 20,      // tempo pra votar na melhor
     // Intervalo entre rodadas. É também o tempo de LEITURA do resultado: as
@@ -30,7 +30,7 @@ export const ACROMANIA_ROOM_CONFIGS = {
   "acromania-sala-2": {
     label: "Sala 2",
     description: "Mesma partida da Sala Livre, só com gente de verdade.",
-    maxPlayers: 10,
+    maxPlayers: 15,
     writingSeconds: 60,
     votingSeconds: 20,
     intermissionSeconds: 16,
