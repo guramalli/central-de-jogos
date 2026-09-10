@@ -80,18 +80,24 @@ router.post("/criar", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Escolha no máximo 12 temas." });
   }
 
+  // Teto de 90 -> 180s. Com 8 pessoas e 6 temas, 90 segundos ficaram curtos
+  // num teste real: quem organiza mesa grande precisa de mais fôlego, e quem
+  // quer partida rápida continua livre pra escolher 30.
   const seg = Number(answerSeconds);
-  if (!Number.isFinite(seg) || seg < 20 || seg > 90) {
-    return res.status(400).json({ error: "O tempo deve ficar entre 20 e 90 segundos." });
+  if (!Number.isFinite(seg) || seg < 20 || seg > 180) {
+    return res.status(400).json({ error: "O tempo deve ficar entre 20 e 180 segundos." });
   }
   const max = Number(maxPlayers);
   if (!Number.isFinite(max) || max < 2 || max > 16) {
     return res.status(400).json({ error: "A sala aceita de 2 a 16 jogadores." });
   }
 
+  // Idem pra validação das palavras. Este valor é o TOTAL da rodada, dividido
+  // entre os temas — e agora funciona como piso: se o tema tiver muitas
+  // palavras, o jogo estica sozinho (ver segundosPorTema no StopRoom).
   const votacao = Number(votingSeconds);
-  if (!Number.isFinite(votacao) || votacao < 15 || votacao > 90) {
-    return res.status(400).json({ error: "O tempo de votação deve ficar entre 15 e 90 segundos." });
+  if (!Number.isFinite(votacao) || votacao < 15 || votacao > 180) {
+    return res.status(400).json({ error: "O tempo de votação deve ficar entre 15 e 180 segundos." });
   }
 
   const travaStop = Number(minSecondsBeforeStop);

@@ -170,19 +170,14 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
                     <div className="avatar-placeholder avatar-placeholder-small">🎮</div>
                   )}
                 </div>
-                {profile.tituloExibido && (
+                {/* FOTO **OU** TÍTULO, nunca os dois.
+                    A pessoa escolhe no perfil o que quer mostrar aqui. Quem
+                    optou pela medalha vê a arte acima e o nome do título logo
+                    abaixo (medalha sem nome ninguém identifica). Quem optou
+                    pela foto vê só a foto — o título dela continua visível no
+                    perfil completo, a um clique daqui. */}
+                {profile.medalhaNoLugarDaFoto && profile.tituloExibido && (
                   <div className={`nick-tooltip-titulo ${classeDoNivel(profile.tituloExibidoLogo)}`}>
-                    {/* Quando a medalha já está no lugar da foto, aqui fica só
-                        o nome — senão a mesma arte apareceria duas vezes no
-                        mesmo cartão. */}
-                    {profile.tituloExibidoLogo && !profile.medalhaNoLugarDaFoto && (
-                      <img
-                        src={profile.tituloExibidoLogo}
-                        alt=""
-                        className="nick-tooltip-titulo-logo"
-                        onError={(e) => { e.currentTarget.style.display = "none"; }}
-                      />
-                    )}
                     {profile.tituloExibido}
                   </div>
                 )}

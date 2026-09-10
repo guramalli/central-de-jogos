@@ -78,7 +78,7 @@ export class StopRoom {
     // Se 0/indefinido, mantém a regra padrão: precisa preencher todas as lacunas.
     this.minCorrectToStop = config.minCorrectToStop ?? 0;
     this.minSecondsBeforeStop = config.minSecondsBeforeStop ?? 0;
-    this.maxPlayers = config.maxPlayers ?? 10;
+    this.maxPlayers = config.maxPlayers ?? 15;
     // Reaproveita a tabela LifetimeScore com uma "gameKey" própria por sala
     // (ex.: "stop:stop-sala-1"), assim cada sala tem sua pontuação histórica
     // separada, sem precisar de uma tabela nova nem migration.
@@ -1072,12 +1072,25 @@ export class StopRoom {
     this.avancarTemaVotacao(activePlayers);
   }
 
-  // Segundos de votação por tema. O tempo escolhido na criação é o TOTAL
-  // da rodada; aqui ele é dividido entre os temas, com um piso pra nunca
-  // ficar curto demais pra ler.
+  // Segundos de votação POR TEMA.
+  //
+  // Antes: o tempo escolhido na criação era dividido entre os temas, com piso
+  // de 8s. Com 6 temas e 20s, cada tema ficava nos 8s do piso — pra julgar
+  // até 8 palavras, uma por jogador. Não dava.
+  //
+  // Agora o tempo acompanha QUANTAS PALAVRAS há no tema: ler e decidir uma
+  // leva uns 2 segundos. O valor configurado vira PISO, não teto — quem quer
+  // mesa mais calma aumenta na criação da sala.
+  //
+  // Custa nada quando a mesa é rápida: o tema avança sozinho assim que todos
+  // votam (ver submitWordVote).
   segundosPorTema() {
-    const total = this.votingTemas?.length || 1;
-    return Math.max(8, Math.round(this.votingSeconds / total));
+    const totalTemas = this.votingTemas?.length || 1;
+    const palavras = this.votingTemas?.[this.temaAtualIndex]?.itens?.length || 0;
+    const base = Math.max(8, Math.round(this.votingSeconds / totalTemas));
+    const necessario = Math.ceil(palavras * 2 + 5);
+    // Teto de 45s por tema: acima disso a rodada arrasta pra quem já votou.
+    return Math.min(45, Math.max(base, necessario));
   }
 
   // Passa pro próximo tema — ou encerra a votação se já foi o último.

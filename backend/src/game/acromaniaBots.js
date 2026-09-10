@@ -135,6 +135,13 @@ function atraso(min, max) {
 export async function ligarBotsNaSala(room) {
   const quantos = quantidadeDeBots();
   if (quantos === 0) return;
+
+  // Sala marcada com `bots: false` na config nunca recebe bot, mesmo com a
+  // variável de ambiente ligada. A checagem fica AQUI e não em quem chama:
+  // hoje são dois pontos de chamada (criação da sala e entrada de jogador) e
+  // esquecer um deles colocaria bot onde não devia, em silêncio.
+  if (room.permiteBots === false) return;
+
   if (room._botsLigados) return;
   room._botsLigados = true;
 

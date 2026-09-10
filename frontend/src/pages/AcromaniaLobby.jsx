@@ -67,6 +67,7 @@ export default function AcromaniaLobby() {
           <li><strong>+10</strong> se você votar na frase que vencer</li>
           <li><strong>Votar é obrigatório:</strong> quem não vota não pontua na rodada</li>
           <li><strong>+5</strong> para o primeiro a enviar a frase na rodada</li>
+          <li>O tempo de votação <strong>cresce com o número de frases</strong> — sala cheia tem mais tempo pra ler</li>
           <li><strong>+100 / +60 / +30</strong> para o 1º, 2º e 3º ao fim da partida</li>
         </ul>
         <p className="acro-legenda-nota">
@@ -92,6 +93,14 @@ export default function AcromaniaLobby() {
                 <h3 className="lobby-game-title">{r.label}</h3>
                 <p className="lobby-game-desc">{r.description}</p>
                 <p className="lobby-streak-desc">⚠️ Só roda com {r.minPlayersToStart}+ jogadores na sala</p>
+                {/* Só aparece quando há bot de verdade rodando — o servidor
+                    decide, considerando a config da sala E a variável de
+                    ambiente. */}
+                {r.comBots && (
+                  <p className="lobby-aviso-bots">
+                    🤖 Esta sala tem jogadores automáticos pra completar a partida
+                  </p>
+                )}
                 <div className={`lobby-occupancy ${occ.full ? "lobby-occupancy-full" : ""} ${occ.empty ? "lobby-occupancy-empty" : ""}`}>
                   <span className="material-symbols-outlined">group</span> {occ.text}
                 </div>

@@ -14,7 +14,7 @@ export const ROOM_CONFIGS = {
     intermissionSeconds: 20,
     minLifetimePoints: 0,
     difficulty: "basic",
-    maxPlayers: 10,
+    maxPlayers: 15,
     // Só pode pedir STOP com pelo menos 3 das 6 palavras já corretas
     // (não precisa preencher todos os campos).
     minCorrectToStop: 3,
@@ -44,7 +44,7 @@ export const ROOM_CONFIGS = {
     intermissionSeconds: 20,
     minLifetimePoints: 0,
     difficulty: "basic",
-    maxPlayers: 10,
+    maxPlayers: 15,
     minCorrectToStop: 3,
     minSecondsBeforeStop: 40,
     fixedThemeKeys: [
@@ -71,7 +71,7 @@ export const ROOM_CONFIGS = {
     difficulty: "mid",
     // Só pode pedir STOP com pelo menos 4 das 6 palavras já corretas.
     minCorrectToStop: 4,
-    maxPlayers: 10,
+    maxPlayers: 15,
     // Trava de tempo com degrau real entre as salas: na intermediária
     // ninguém corta a rodada antes dos 15s (na avançada continua 5s).
     minSecondsBeforeStop: 15,
@@ -84,7 +84,7 @@ export const ROOM_CONFIGS = {
     minLifetimePoints: 0,
     difficulty: "mid",
     minCorrectToStop: 4,
-    maxPlayers: 10,
+    maxPlayers: 15,
     // Trava de tempo com degrau real entre as salas: na intermediária
     // ninguém corta a rodada antes dos 15s (na avançada continua 5s).
     minSecondsBeforeStop: 15,
@@ -99,7 +99,7 @@ export const ROOM_CONFIGS = {
     difficulty: "advanced",
     // Só pode pedir STOP com pelo menos 5 das 6 palavras já corretas.
     minCorrectToStop: 5,
-    maxPlayers: 10,
+    maxPlayers: 15,
     minSecondsBeforeStop: 5,
   },
   "stop-sala-avancada-2": {
@@ -110,7 +110,7 @@ export const ROOM_CONFIGS = {
     minLifetimePoints: 0,
     difficulty: "advanced",
     minCorrectToStop: 5,
-    maxPlayers: 10,
+    maxPlayers: 15,
     minSecondsBeforeStop: 5,
   },
 
@@ -121,7 +121,7 @@ export const ROOM_CONFIGS = {
     intermissionSeconds: 25,
     minLifetimePoints: 0,
     difficulty: "basic",
-    maxPlayers: 12,
+    maxPlayers: 15,
     minCorrectToStop: 3,
     minSecondsBeforeStop: 45,
     // Nada aqui conta pra ranking, patente ou premiação.

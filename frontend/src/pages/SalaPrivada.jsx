@@ -325,7 +325,7 @@ export default function SalaPrivada() {
               Tempo por rodada: <strong>{segundos} segundos</strong>
             </label>
             <input
-              type="range" min={20} max={90} step={5}
+              type="range" min={20} max={180} step={5}
               value={segundos}
               onChange={(e) => setSegundos(Number(e.target.value))}
               className="privada-range"
@@ -347,11 +347,14 @@ export default function SalaPrivada() {
                 <label className="privada-label" style={{ marginTop: 18 }}>
                   Tempo total de votação: <strong>{segVotacao} segundos</strong>
                   <span className="privada-label-extra">
-                    {" "}(~{Math.max(8, Math.round(segVotacao / 6))}s por tema)
+                    {/* O valor é o mínimo: se o tema tiver muitas palavras, o
+                        jogo estica sozinho (2s por palavra). Dizer só a divisão
+                        seria prometer um tempo menor que o real. */}
+                    {" "}(mínimo de ~{Math.max(8, Math.round(segVotacao / 6))}s por tema)
                   </span>
                 </label>
                 <input
-                  type="range" min={15} max={90} step={5}
+                  type="range" min={15} max={180} step={5}
                   value={segVotacao}
                   onChange={(e) => setSegVotacao(Number(e.target.value))}
                   className="privada-range"
@@ -359,7 +362,9 @@ export default function SalaPrivada() {
                 <p className="privada-dica">
                   Depois de cada rodada, a mesa julga as palavras <strong>tema por tema</strong>,
                   todo mundo junto. Cada tema avança assim que todos votarem — ou quando o tempo
-                  dele acabar. Palavra sem voto é <strong>aceita</strong>.
+                  dele acabar. Com mesa grande, o tempo de cada tema{" "}
+                  <strong>cresce sozinho</strong> conforme o número de palavras. Palavra sem voto é{" "}
+                  <strong>aceita</strong>.
                 </p>
               </>
             )}

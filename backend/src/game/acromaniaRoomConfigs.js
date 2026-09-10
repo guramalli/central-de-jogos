@@ -1,10 +1,8 @@
-// Por enquanto só uma sala — o Acromania está começando (v1). Depois dá pra
-// criar mais salas com dificuldades diferentes, igual fizemos no Stop/Quiz.
 export const ACROMANIA_ROOM_CONFIGS = {
   "acromania-sala-1": {
     label: "Sala Livre",
     description: "Crie a frase mais criativa e vote na melhor da rodada.",
-    maxPlayers: 10,
+    maxPlayers: 15,
     writingSeconds: 60,     // tempo pra escrever a frase
     votingSeconds: 20,      // tempo pra votar na melhor
     // Intervalo entre rodadas. É também o tempo de LEITURA do resultado: as
@@ -24,6 +22,28 @@ export const ACROMANIA_ROOM_CONFIGS = {
     turnBonus: [100, 60, 30],
     // Precisa de pelo menos 3 jogadores pra votação fazer sentido de verdade.
     minPlayersToStart: 3,
+    // Bots de teste podem entrar AQUI. Ligados pela variável ACROMANIA_BOTS
+    // no Render; sem ela, nenhuma sala recebe bot.
+    bots: true,
+  },
+
+  "acromania-sala-2": {
+    label: "Sala 2",
+    description: "Mesma partida da Sala Livre, só com gente de verdade.",
+    maxPlayers: 15,
+    writingSeconds: 60,
+    votingSeconds: 20,
+    intermissionSeconds: 16,
+    lettersMin: 4,
+    lettersMax: 6,
+    pointsForWin: 50,
+    roundsPerTurn: 8,
+    turnBonus: [100, 60, 30],
+    minPlayersToStart: 3,
+    // SEM bots, nem com a variável ligada. É a sala pra quando você quiser
+    // garantir que só há gente de verdade jogando — numa transmissão, por
+    // exemplo, onde bot na lista de jogadores confundiria quem assiste.
+    bots: false,
   },
 };
 

@@ -288,7 +288,7 @@ export function getAllRoomsStatus() {
     return {
       roomId,
       label: config.label,
-      maxPlayers: config.maxPlayers ?? 10,
+      maxPlayers: config.maxPlayers ?? 15,
       onlineCount: room ? room.countUniquePlayers() : 0,
       minLifetimePoints: config.minLifetimePoints ?? 0,
       difficulty: config.difficulty ?? "basic",

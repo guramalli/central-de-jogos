@@ -40,7 +40,7 @@ export class QuizRoom {
     this.label = config.label || roomId;
     this.themeKey = config.themeKey; // se definido, filtra por tema específico
     this.difficultyFilter = config.difficultyFilter; // se definido, filtra por dificuldade (qualquer tema)
-    this.maxPlayers = config.maxPlayers ?? 10;
+    this.maxPlayers = config.maxPlayers ?? 15;
     this.questionSeconds = config.questionSeconds ?? 30;
     this.revealIntervalSeconds = config.revealIntervalSeconds ?? 5;
     this.maxRevealPercent = config.maxRevealPercent ?? 0.5;
