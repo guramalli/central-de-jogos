@@ -107,8 +107,17 @@ export default function TitulosPerfil({ userId, podeEscolher = false }) {
           <span>
             Usar a medalha no lugar da minha foto
             <small>
-              Quando alguém passar o mouse no seu nick, vê a medalha de{" "}
-              <strong>{tituloExibido}</strong> em vez da foto. Sua foto continua no perfil.
+              {/* Agora é escolha de um OU outro, então o texto diz o que a
+                  pessoa deixa de mostrar — antes ela podia achar que ganhava
+                  as duas coisas. */}
+              No cartão que aparece quando passam o mouse no seu nick, você mostra{" "}
+              <strong>
+                {medalhaNoLugarDaFoto
+                  ? `a medalha de ${tituloExibido}`
+                  : "sua foto de perfil"}
+              </strong>
+              . Desmarcado, aparece a foto; marcado, a medalha e o nome do título — nunca os dois
+              juntos. Sua foto continua no perfil completo de qualquer forma.
             </small>
           </span>
         </label>

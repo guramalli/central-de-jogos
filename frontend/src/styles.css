@@ -332,7 +332,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .auth-card { width: 100%; }
 
 /* ===== Ranking: pódio ===== */
-.ranking-game-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
+/* (.ranking-game-tabs foi consolidada na seção do seletor de jogo) */
 .ranking-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
 
 .podium {
@@ -2691,6 +2691,7 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 
 .jogo-tab {
+  min-width: 108px;
   background: var(--bg-panel);
   border: 2px solid var(--border);
   border-radius: 12px;
@@ -2729,7 +2730,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   object-fit: contain;
   display: block;
 }
-.jogo-tab { min-width: 108px; }
 
 /* "Geral" não é um jogo: é a soma dos três. Sem logo, e com o texto em
    caixa própria, a diferença fica explícita. */
@@ -3479,17 +3479,27 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* Interruptor "usar a medalha no lugar da foto", na vitrine de títulos. */
 .medalha-troca {
+  /* Realce: era uma caixinha discreta no meio da vitrine e quase ninguém
+     descobria que dava pra trocar a foto pela medalha. */
   display: flex;
-  align-items: flex-start;
   gap: 10px;
-  margin: 0 0 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 214, 10, 0.25);
-  background: rgba(255, 214, 10, 0.06);
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--titulo-ouro, #ffd60a);
+  border-radius: 10px;
+  background: rgba(255, 214, 10, 0.07);
   cursor: pointer;
-  font-size: 13px;
-  line-height: 1.4;
+}
+.medalha-troca:hover { background: rgba(255, 214, 10, 0.13); }
+.medalha-troca input { margin-top: 3px; flex-shrink: 0; }
+.medalha-troca > span { font-weight: 700; }
+.medalha-troca small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  color: var(--text-dim);
+  line-height: 1.5;
 }
 .medalha-troca input {
   /* 18px: alvo de toque confortável no celular sem desalinhar do texto. */
@@ -6594,7 +6604,6 @@ span.votacao-trilha-item {
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
-.nick-tooltip-titulo-logo { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
 
 /* Título ao lado do nick na mensagem de entrada na sala. A cor vem da classe
    .titulo-nivel-* (bronze/prata/ouro); aqui só o peso, pra destacar do resto
