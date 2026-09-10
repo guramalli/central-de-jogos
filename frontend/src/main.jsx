@@ -28,3 +28,30 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </HelmetProvider>
   </React.StrictMode>
 );
+
+// FONTE DE ÍCONES
+//
+// Marca no <html> quando a Material Symbols estiver pronta. Até lá o CSS
+// esconde os ícones, em vez de deixar aparecer o nome da ligadura ("logout",
+// "dashboard") escrito por extenso — que era o que acontecia no celular.
+//
+// O tempo limite existe pra nunca deixar a interface sem ícone nenhum: se a
+// fonte não carregar em 3 segundos (rede ruim, Google bloqueado), libera
+// assim mesmo. Pior um nome cru que um botão invisível.
+function liberarIcones() {
+  document.documentElement.classList.add("fonte-icones-ok");
+}
+
+if (document.fonts?.load) {
+  document.fonts
+    .load('24px "Material Symbols Outlined"')
+    .then(liberarIcones)
+    .catch(liberarIcones);
+  // Rede muito ruim ou Google bloqueado: libera assim mesmo. Com
+  // display=block o navegador já segura o texto por ~3s por conta própria,
+  // então este limite é a última rede de proteção, não o mecanismo principal.
+  setTimeout(liberarIcones, 5000);
+} else {
+  // Navegador sem a API de fontes: não dá pra saber, então mostra logo.
+  liberarIcones();
+}
