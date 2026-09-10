@@ -47,7 +47,10 @@ if (document.fonts?.load) {
     .load('24px "Material Symbols Outlined"')
     .then(liberarIcones)
     .catch(liberarIcones);
-  setTimeout(liberarIcones, 3000);
+  // Rede muito ruim ou Google bloqueado: libera assim mesmo. Com
+  // display=block o navegador já segura o texto por ~3s por conta própria,
+  // então este limite é a última rede de proteção, não o mecanismo principal.
+  setTimeout(liberarIcones, 5000);
 } else {
   // Navegador sem a API de fontes: não dá pra saber, então mostra logo.
   liberarIcones();
