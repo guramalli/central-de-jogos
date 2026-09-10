@@ -15,6 +15,36 @@ function formatMemberSince(dateStr) {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
+// "Visto por último" em linguagem de gente. Data crua ("09/09/2026") obriga
+// a pessoa a fazer a conta de cabeça; "há 3 dias" já entrega o que importa.
+//
+// O dado é gravado a cada 24h, então nunca prometemos precisão de minuto:
+// quem se conectou hoje aparece como "hoje", não "há 2 minutos".
+function formatarUltimoAcesso(dateStr) {
+  if (!dateStr) return null;
+  const data = new Date(dateStr);
+  if (Number.isNaN(data.getTime())) return null;
+
+  // Compara por DIA, não por hora — senão 23h de diferença viraria "hoje"
+  // ou "ontem" dependendo da hora em que se olha.
+  const hoje = new Date();
+  const soData = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dias = Math.round((soData(hoje) - soData(data)) / 86400000);
+
+  if (dias <= 0) return "hoje";
+  if (dias === 1) return "ontem";
+  if (dias < 7) return `há ${dias} dias`;
+  if (dias < 30) {
+    const semanas = Math.floor(dias / 7);
+    return semanas === 1 ? "há 1 semana" : `há ${semanas} semanas`;
+  }
+  if (dias < 365) {
+    const meses = Math.floor(dias / 30);
+    return meses === 1 ? "há 1 mês" : `há ${meses} meses`;
+  }
+  return data.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
 export default function PublicProfile() {
   const { userId } = useParams();
   const { user: me } = useAuth();
@@ -138,7 +168,11 @@ export default function PublicProfile() {
         <div>
           <h1 style={{ margin: 0 }}>{profile.nickname}</h1>
           <p style={{ color: "var(--text-dim)", margin: "4px 0" }}>
-            📅 Membro desde {formatMemberSince(profile.memberSince)} · ⏱ {profile.playtimeMinutes} min jogados
+            📅 Membro desde {formatMemberSince(profile.memberSince)} · ⏱{" "}
+            {profile.playtimeMinutes} min jogados
+            {formatarUltimoAcesso(profile.ultimoAcesso) && (
+              <> · 👋 visto {formatarUltimoAcesso(profile.ultimoAcesso)}</>
+            )}
           </p>
           {profile.clan ? (
             <p style={{ color: "var(--accent-2)", margin: "4px 0", fontWeight: 700 }}>

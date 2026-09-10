@@ -206,6 +206,12 @@ export default function AcromaniaGame() {
       setLastResult(null);
       setWaitingNicknames([]);
       setWaitingInfo(null);
+      // Rodada nova: o pódio da partida anterior sai da tela.
+      //
+      // Isto estava no "voting-start" por engano — o pódio sobrevivia à
+      // escrita da primeira rodada nova e só sumia quando a votação dela
+      // começava, uma rodada depois do que devia.
+      setTurnFinished(null);
     });
 
     socket.on("acromania-phrase-submitted", () => {
@@ -236,8 +242,6 @@ export default function AcromaniaGame() {
       if (data?.roundsPerTurn) {
         setTurnInfo({ turnRound: data.turnRound, roundsPerTurn: data.roundsPerTurn });
       }
-      // Partida nova começando: o pódio da anterior sai da tela.
-      setTurnFinished(null);
       setBonusVoto(0);
     });
 
@@ -496,24 +500,78 @@ export default function AcromaniaGame() {
             <div className="acro-results-list">
               {bonusVoto > 0 && (
                 <p className="acro-bonus-voto">
-                  🎯 Você votou na frase vencedora! +{bonusVoto} pts
+                  🎯 Você votou na frase vencedora — <strong>+{bonusVoto} pts</strong> pra você,
+                  além do que a sua frase rendeu
                 </p>
               )}
               {lastResult.noOneWrote ? (
                 <p style={{ color: "var(--qz-text)", opacity: 0.75 }}>Ninguém escreveu uma frase nessa rodada.</p>
               ) : (
-                lastResult.entries
-                  .slice()
-                  .sort((a, b) => b.votes - a.votes)
-                  .map((e) => (
-                    <div key={e.entryId} className={`acro-result-row ${e.won ? "acro-result-row-won" : ""}`}>
+                (() => {
+                  // COLOCAÇÃO POR NÚMERO DE VOTOS.
+                  //
+                  // Empate é empate: duas frases com a mesma contagem ficam
+                  // na mesma posição e ganham o mesmo fundo. Por isso a
+                  // posição vem das contagens DISTINTAS, não do índice da
+                  // lista — ordenar e usar o índice daria 1º e 2º pra quem
+                  // empatou em primeiro.
+                  //
+                  // Frase sem voto nenhum não entra: com todos zerados,
+                  // ninguém deve aparecer como campeão.
+                  const contagens = [
+                    ...new Set(lastResult.entries.map((e) => e.votes).filter((v) => v > 0)),
+                  ].sort((a, b) => b - a);
+                  const posicaoDe = (votos) => contagens.indexOf(votos) + 1;
+
+                  // Quantas frases têm cada contagem de voto — é isso que
+                  // distingue "venceu" de "empatou". Empate ganha azul em vez
+                  // de ouro/prata: a mesma cor do vencedor solo sugeriria uma
+                  // vitória que não houve.
+                  const quantasCom = {};
+                  for (const e of lastResult.entries) {
+                    if (e.votes > 0) quantasCom[e.votes] = (quantasCom[e.votes] || 0) + 1;
+                  }
+
+                  return lastResult.entries
+                    .slice()
+                    .sort((a, b) => b.votes - a.votes)
+                    .map((e) => {
+                      const pos = posicaoDe(e.votes);
+                      const empatada = (quantasCom[e.votes] || 0) > 1;
+                      const classePos = empatada
+                        ? pos <= 2
+                          ? "acro-result-empate"
+                          : ""
+                        : pos === 1
+                        ? "acro-result-1"
+                        : pos === 2
+                        ? "acro-result-2"
+                        : "";
+                      return (
+                    <div
+                      key={e.entryId}
+                      className={`acro-result-row ${classePos} ${
+                        e.userId === user?.id ? "acro-result-minha" : ""
+                      }`}
+                    >
                       <div className="acro-result-phrase">
-                        {e.won && "🏆 "}"{e.phrase}"
+                        {pos === 1 && (empatada ? "🤝 " : "🏆 ")}"{e.phrase}"
+                        {e.userId === user?.id && (
+                          <span className="acro-etiqueta-minha">sua frase</span>
+                        )}
                       </div>
                       <div className="acro-result-meta">
                         {e.nickname} — {e.votes} {e.votes === 1 ? "voto" : "votos"}
                         {e.maisRapido && <span className="acro-mais-rapido">⚡ + rápido</span>}
                         {e.pontos > 0 && <span className="acro-result-pts">+{e.pontos} pts</span>}
+                      </div>
+                      {/* A CONTA, não só o total. Com cinco regras em jogo,
+                          "+95 pts" não diz nada — a composição mostra a regra
+                          funcionando e ensina o jogo sem tutorial. */}
+                      {e.detalhe?.length > 0 && (
+                        <div className="acro-result-conta">{e.detalhe.join("  ·  ")}</div>
+                      )}
+                      <div className="acro-result-meta">
                         {e.naoVotou && (
                           <span
                             className="acro-nao-votou"
@@ -524,7 +582,9 @@ export default function AcromaniaGame() {
                         )}
                       </div>
                     </div>
-                  ))
+                      );
+                    });
+                })()
               )}
             </div>
           )}
@@ -603,6 +663,22 @@ export default function AcromaniaGame() {
               {turnInfo.roundsPerTurn}
             </div>
           )}
+          {/* Como se pontua, sempre à vista. Estava só no lobby e na página de
+              patentes — quem já entrou na sala não tinha onde conferir, e
+              descobria a regra perdendo pontos. */}
+          <details className="acro-como-pontua">
+            <summary>como se pontua</summary>
+            <ul>
+              <li><b>+15</b> por voto que a sua frase receber</li>
+              <li><b>+50</b> se a sua frase for a mais votada</li>
+              <li><b>+10</b> se você votar na frase que vencer</li>
+              <li><b>+5</b> pro primeiro a enviar</li>
+              <li className="acro-como-pontua-aviso">
+                Não votou, não pontua na rodada
+              </li>
+            </ul>
+          </details>
+
           <div className="acro-placar-lista">
             {turnRanking.length === 0 ? (
               <p className="quiz-wrong-log-empty">Ninguém pontuou ainda nesta partida.</p>

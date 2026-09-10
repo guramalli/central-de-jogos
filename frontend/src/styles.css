@@ -2547,12 +2547,38 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin: 0 auto;
 }
 .acro-result-row {
+  /* relative por causa da barra da "sua frase", que é um ::before absoluto. */
+  position: relative;
   background: var(--qz-surface, #201f1f);
   border: 1px solid var(--qz-outline, #555);
   border-radius: 8px;
   padding: 10px 14px;
 }
-.acro-result-row-won { border-color: var(--qz-orange, #ff9900); background: rgba(255, 153, 0, 0.08); }
+/* PÓDIO DA RODADA — dourado no 1º, prata no 2º.
+   Empate compartilha a cor: a posição vem das contagens distintas de voto,
+   não da ordem na lista (ver o cálculo no AcromaniaGame).
+   A barra à esquerda funciona sem depender de cor, pra quem não distingue
+   bem os tons. */
+.acro-result-1 {
+  border-color: var(--titulo-ouro, #ffd60a);
+  background: rgba(255, 214, 10, 0.12);
+  box-shadow: inset 4px 0 0 var(--titulo-ouro, #ffd60a);
+}
+.acro-result-2 {
+  border-color: #c0c0c0;
+  background: rgba(192, 192, 192, 0.1);
+  box-shadow: inset 4px 0 0 #c0c0c0;
+}
+
+/* EMPATE — azul claro, no lugar de ouro ou prata.
+   Duas frases empatadas em primeiro dividem a vitória; pintá-las de dourado
+   sugeriria que cada uma venceu sozinha. O azul diz "houve empate aqui" sem
+   precisar de legenda, e não colide com o vermelho da "sua frase". */
+.acro-result-empate {
+  border-color: #7cc4ff;
+  background: rgba(124, 196, 255, 0.12);
+  box-shadow: inset 4px 0 0 #7cc4ff;
+}
 .acro-result-phrase { font-size: 14px; color: var(--qz-text, #e5e2e1); }
 .acro-result-meta { font-family: var(--qz-mono, monospace); font-size: 11px; color: var(--qz-orange-pale, #ffc082); margin-top: 4px; }
 
@@ -2621,6 +2647,72 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   padding: 6px 10px;
   font-size: 13px;
   margin-bottom: 8px;
+}
+
+/* A SUA frase no resultado. A barra vermelha à esquerda a acha de relance
+   numa lista de 15, sem precisar procurar o próprio nick. Convive com o
+   dourado do 1º lugar: aquele usa o fundo, este usa a lateral. */
+.acro-result-minha {
+  border-color: var(--danger, #e60000);
+}
+.acro-result-minha::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--danger, #e60000);
+  border-radius: 8px 0 0 8px;
+}
+.acro-etiqueta-minha {
+  margin-left: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--danger, #e60000);
+  color: #fff;
+  vertical-align: middle;
+}
+
+/* A conta dos pontos, abaixo da frase no resultado. */
+.acro-result-conta {
+  font-family: var(--qz-mono, monospace);
+  font-size: 11px;
+  /* Tom neutro de propósito: estava no MESMO verde do total logo acima
+     (.acro-result-pts) e as duas informações competiam. A conta é apoio, o
+     total é o destaque. */
+  color: var(--text-dim, #a38d7a);
+  margin-top: 3px;
+}
+
+/* Lembrete de pontuação na sala, recolhido por padrão pra não roubar espaço
+   de quem já sabe as regras. */
+.acro-como-pontua {
+  margin: 8px 12px 0;
+  font-size: 12px;
+}
+.acro-como-pontua summary {
+  cursor: pointer;
+  color: var(--qz-orange-pale, #ffc082);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+.acro-como-pontua ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  line-height: 1.6;
+  color: var(--qz-text, #e5e2e1);
+}
+.acro-como-pontua b { color: var(--accent-3, #06d6a0); }
+.acro-como-pontua-aviso {
+  color: var(--danger, #e60000);
+  list-style: none;
+  margin-left: -16px;
+  margin-top: 4px;
 }
 
 /* Rodada atual, em linha própria acima da lista do placar. Fora da aba: ela
@@ -3235,11 +3327,19 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 
 /* A própria frase na votação: visível, mas claramente fora de alcance. */
+/* A SUA frase na votação, em vermelho.
+   Antes ela ficava só apagada e tracejada, o que se confundia com "botão
+   desabilitado qualquer". O vermelho diz na hora: esta é a sua, e é por isso
+   que não dá pra clicar. */
 .acro-vote-option-minha {
-  opacity: 0.55;
   cursor: not-allowed;
+  border-color: var(--danger, #e60000);
   border-style: dashed;
+  background: rgba(230, 0, 0, 0.1);
+  color: var(--qz-text, #e5e2e1);
+  opacity: 0.85;
 }
+.acro-vote-option-minha:hover { background: rgba(230, 0, 0, 0.1); }
 .acro-vote-minha-tag {
   margin-left: 8px;
   font-size: 11px;

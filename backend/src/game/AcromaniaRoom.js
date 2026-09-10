@@ -750,6 +750,10 @@ export class AcromaniaRoom {
     // sobre as frases — somar o bônus de voto ali geraria duas gravações
     // separadas pro mesmo jogador.
     const pontosPorEntry = new Map();
+    // De ONDE vieram os pontos de cada frase. Um total seco ("+95 pts") não
+    // explica nada com cinco regras diferentes em jogo; a composição mostra
+    // a regra funcionando e ensina o jogo sem precisar de tutorial.
+    const detalhePorEntry = new Map();
     const pontosPorUsuario = new Map();
     const somar = (userId, pts) => {
       if (pts > 0) pontosPorUsuario.set(userId, (pontosPorUsuario.get(userId) || 0) + pts);
@@ -775,10 +779,20 @@ export class AcromaniaRoom {
       const recebidos = voteCounts.get(e.entryId) || 0;
       const venceu = winners.some((w) => w.entryId === e.entryId);
       const foiRapido = e.userId === this.primeiroAEnviar;
+      const porVotos = recebidos * this.pointsPerVote;
       const total =
-        recebidos * this.pointsPerVote +
+        porVotos +
         (venceu ? this.pointsForWin : 0) +
         (foiRapido ? this.pointsForFastest : 0);
+
+      const partes = [];
+      if (recebidos > 0) {
+        partes.push(`${recebidos} ${recebidos === 1 ? "voto" : "votos"} × ${this.pointsPerVote} = ${porVotos}`);
+      }
+      if (venceu) partes.push(`mais votada +${this.pointsForWin}`);
+      if (foiRapido) partes.push(`enviou primeiro +${this.pointsForFastest}`);
+      detalhePorEntry.set(e.entryId, partes);
+
       pontosPorEntry.set(e.entryId, total);
       somar(e.userId, total);
     }
@@ -894,6 +908,7 @@ export class AcromaniaRoom {
         // Pontos REAIS daquela frase (votos recebidos + bônus de vitória).
         // Um valor fixo aqui mentiria: agora cada frase vale coisa diferente.
         pontos: pontosPorEntry.get(e.entryId) || 0,
+        detalhe: detalhePorEntry.get(e.entryId) || [],
         // Perdeu os pontos por não ter votado. A tela avisa — senão a pessoa
         // vê a frase mais votada valendo zero e acha que é bug.
         naoVotou: houveVotacao && !votes.has(e.userId),

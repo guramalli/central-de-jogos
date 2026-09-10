@@ -242,6 +242,11 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     clan: user.clan ? { id: user.clan.id, name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
     memberSince: user.createdAt,
+    // Última vez que a conta se conectou. Gravado no socket, mas só uma vez
+    // a cada 24h pra não escrever no banco a cada conexão — então o dado tem
+    // precisão de DIA, não de minuto. Serve pra "visto por último", não pra
+    // dizer se a pessoa está online agora.
+    ultimoAcesso: user.ultimoAcesso,
     monthly: monthlyWithPosition,
     lifetime: lifetime.map((l) => ({ gameKey: l.gameKey, points: l.points })),
     achievements,
