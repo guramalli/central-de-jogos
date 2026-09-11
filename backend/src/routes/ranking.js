@@ -143,26 +143,37 @@ router.get("/hall-stats", requireAuth, async (req, res) => {
       }),
     ]);
 
-    // Quantos títulos cada pessoa tem, somando os jogos.
-    const porJogador = new Map();
-    for (const c of campeoes) {
-      const atual = porJogador.get(c.userId) || {
-        userId: c.userId,
-        // O nickname do registro é o da ÉPOCA; o do usuário é o de hoje.
-        // Mostrar o atual evita a lista parecer de gente que não existe mais.
-        nickname: c.user?.nickname || c.nickname,
-        titulos: 0,
-        jogos: new Set(),
-      };
-      atual.titulos += 1;
-      atual.jogos.add(c.gameKey);
-      porJogador.set(c.userId, atual);
-    }
+    // Quantos títulos cada pessoa tem — no total e POR JOGO.
+    //
+    // Um número só ("4 títulos") não diz onde a pessoa é forte: quem ganhou
+    // quatro vezes no Stop e quem ganhou duas em cada jogo apareciam iguais.
+    const contar = (filtro) => {
+      const porJogador = new Map();
+      for (const c of campeoes) {
+        if (filtro && c.gameKey !== filtro) continue;
+        const atual = porJogador.get(c.userId) || {
+          userId: c.userId,
+          // O nickname do registro é o da ÉPOCA; o do usuário é o de hoje.
+          // Mostrar o atual evita a lista parecer de gente que não existe mais.
+          nickname: c.user?.nickname || c.nickname,
+          titulos: 0,
+        };
+        atual.titulos += 1;
+        porJogador.set(c.userId, atual);
+      }
+      return [...porJogador.values()]
+        .sort((a, b) => b.titulos - a.titulos || a.nickname.localeCompare(b.nickname, "pt-BR"))
+        .slice(0, 5);
+    };
 
-    const maisTitulos = [...porJogador.values()]
-      .map((j) => ({ ...j, jogos: [...j.jogos] }))
-      .sort((a, b) => b.titulos - a.titulos || a.nickname.localeCompare(b.nickname, "pt-BR"))
-      .slice(0, 5);
+    const maisTitulos = contar(null);
+    // Só os jogos que REALMENTE têm campeão congelado. O Acromania não entra
+    // no fechamento individual (não paga Pix), então listar uma coluna vazia
+    // pra ele seria prometer o que não existe.
+    const porJogo = {};
+    for (const jogo of [...new Set(campeoes.map((c) => c.gameKey))]) {
+      porJogo[jogo] = contar(jogo);
+    }
 
     // Maior pontuação já feita num mês, por jogo.
     const recordes = {};
@@ -182,6 +193,7 @@ router.get("/hall-stats", requireAuth, async (req, res) => {
       mesesFechados: mesesFechados.length,
       totalTitulos: campeoes.length,
       maisTitulos,
+      maisTitulosPorJogo: porJogo,
       recordes,
     };
   });

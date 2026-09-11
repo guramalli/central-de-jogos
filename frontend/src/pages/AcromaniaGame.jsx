@@ -523,13 +523,30 @@ export default function AcromaniaGame() {
                   ].sort((a, b) => b - a);
                   const posicaoDe = (votos) => contagens.indexOf(votos) + 1;
 
+                  // Quantas frases têm cada contagem de voto — é isso que
+                  // distingue "venceu" de "empatou". Empate ganha azul em vez
+                  // de ouro/prata: a mesma cor do vencedor solo sugeriria uma
+                  // vitória que não houve.
+                  const quantasCom = {};
+                  for (const e of lastResult.entries) {
+                    if (e.votes > 0) quantasCom[e.votes] = (quantasCom[e.votes] || 0) + 1;
+                  }
+
                   return lastResult.entries
                     .slice()
                     .sort((a, b) => b.votes - a.votes)
                     .map((e) => {
                       const pos = posicaoDe(e.votes);
-                      const classePos =
-                        pos === 1 ? "acro-result-1" : pos === 2 ? "acro-result-2" : "";
+                      const empatada = (quantasCom[e.votes] || 0) > 1;
+                      const classePos = empatada
+                        ? pos <= 2
+                          ? "acro-result-empate"
+                          : ""
+                        : pos === 1
+                        ? "acro-result-1"
+                        : pos === 2
+                        ? "acro-result-2"
+                        : "";
                       return (
                     <div
                       key={e.entryId}
@@ -538,7 +555,7 @@ export default function AcromaniaGame() {
                       }`}
                     >
                       <div className="acro-result-phrase">
-                        {pos === 1 && "🏆 "}"{e.phrase}"
+                        {pos === 1 && (empatada ? "🤝 " : "🏆 ")}"{e.phrase}"
                         {e.userId === user?.id && (
                           <span className="acro-etiqueta-minha">sua frase</span>
                         )}

@@ -81,17 +81,42 @@ export default function RankingHistory() {
           </div>
 
           <div className="hall-blocos">
+            {/* Um bloco por jogo, mais o geral. "4 títulos" sozinho não dizia
+                ONDE a pessoa é forte: quem ganhou quatro vezes no Stop e quem
+                ganhou duas em cada jogo apareciam iguais. */}
             <div className="card">
               <h2>👑 Quem mais venceu</h2>
-              {stats.maisTitulos.map((j, i) => (
-                <div key={j.userId} className="hall-linha">
-                  <span className="hall-pos">{i + 1}º</span>
-                  <Link to={`/jogador/${j.userId}`} className="hall-nick">{j.nickname}</Link>
-                  <span className="hall-valor">
-                    {j.titulos} {j.titulos === 1 ? "título" : "títulos"}
-                  </span>
+              {Object.entries(stats.maisTitulosPorJogo || {}).map(([jogo, lista]) => (
+                <div key={jogo} className="hall-bloco-jogo">
+                  <h3 className="hall-jogo-titulo">{GAME_NAMES[jogo] || jogo}</h3>
+                  {lista.map((j, i) => (
+                    <div key={j.userId} className="hall-linha">
+                      <span className="hall-pos">{i + 1}º</span>
+                      <Link to={`/jogador/${j.userId}`} className="hall-nick">{j.nickname}</Link>
+                      <span className="hall-valor">
+                        {j.titulos} {j.titulos === 1 ? "título" : "títulos"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ))}
+
+              {/* O geral só faz sentido com mais de um jogo premiado — com um
+                  só, ele repetiria a lista acima palavra por palavra. */}
+              {Object.keys(stats.maisTitulosPorJogo || {}).length > 1 && (
+                <div className="hall-bloco-jogo">
+                  <h3 className="hall-jogo-titulo">Somando tudo</h3>
+                  {stats.maisTitulos.map((j, i) => (
+                    <div key={j.userId} className="hall-linha">
+                      <span className="hall-pos">{i + 1}º</span>
+                      <Link to={`/jogador/${j.userId}`} className="hall-nick">{j.nickname}</Link>
+                      <span className="hall-valor">
+                        {j.titulos} {j.titulos === 1 ? "título" : "títulos"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="card">
