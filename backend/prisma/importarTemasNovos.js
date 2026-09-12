@@ -21,6 +21,9 @@ import { ANIMAIS_NOVAS } from "./data/stopWordsAnimaisNovas.js";
 import { COR_NOVAS } from "./data/stopWordsCorNovas.js";
 import { IDIOMAS_NOVAS } from "./data/stopWordsIdiomasNovas.js";
 import { FRUTAS_NOVAS } from "./data/stopWordsFrutasNovas.js";
+import { ESPORTES_NOVAS } from "./data/stopWordsEsportesNovas.js";
+import { NOVELAS_SERIES_NOVAS } from "./data/stopWordsNovelasSeriesNovas.js";
+import { FILMES_NOVAS } from "./data/stopWordsFilmesNovas.js";
 
 const confirmar = process.argv.includes("--confirmar");
 
@@ -42,6 +45,9 @@ const LOTES = [
   // Idiomas também está nas duas Salas Padrão.
   { key: "idiomas", nome: "Idiomas (reforço)", palavras: IDIOMAS_NOVAS },
   { key: "frutas", nome: "Frutas (reforço)", palavras: FRUTAS_NOVAS },
+  { key: "esportes", nome: "Esportes (reforço)", palavras: ESPORTES_NOVAS },
+  { key: "novelas_series", nome: "Novelas e Séries (reforço)", palavras: NOVELAS_SERIES_NOVAS },
+  { key: "filmes", nome: "Filmes (reforço)", palavras: FILMES_NOVAS },
 ];
 
 async function main() {
