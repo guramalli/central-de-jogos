@@ -18,6 +18,7 @@
     "listar-respostas": "node scripts/listarRespostas.js",
     "achar-respostas-ruins": "node scripts/acharRespostasRuins.js",
     "fechar-mes": "node scripts/fecharMes.js",
+    "triar-palavras": "node scripts/triarPalavras.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",
     "validate-quiznet-offline": "node prisma/validateQuiznetOffline.js",

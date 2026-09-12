@@ -245,13 +245,31 @@ export default function Admin() {
     loadFeedbacks();
   }
 
+  // Tira a linha da tela sem recarregar a lista inteira.
+  //
+  // Antes cada clique buscava tudo de novo: a tabela piscava e os grupos se
+  // reorganizavam a cada palavra — justo quando o objetivo é decidir dez
+  // seguidas sem perder o fio. Se a chamada falhar, a lista volta pro estado
+  // do servidor e nada fica aprovado só na tela.
+  function tirarDaLista(id) {
+    setPending((atual) => atual.filter((p) => p.id !== id));
+  }
+
   async function approve(id) {
-    await api.post(`/admin/glossary/${id}/approve`);
-    loadPending();
+    tirarDaLista(id);
+    try {
+      await api.post(`/admin/glossary/${id}/approve`);
+    } catch {
+      loadPending();
+    }
   }
   async function reject(id) {
-    await api.post(`/admin/glossary/${id}/reject`);
-    loadPending();
+    tirarDaLista(id);
+    try {
+      await api.post(`/admin/glossary/${id}/reject`);
+    } catch {
+      loadPending();
+    }
   }
 
   function iniciarEdicao(q) {
@@ -608,18 +626,40 @@ export default function Admin() {
             </tr>
           </thead>
           <tbody>
-            {pending.map((p) => (
-              <tr key={p.id}>
-                <td>{p.theme.name}</td>
-                <td>{p.letter}</td>
-                <td>{p.word}</td>
-                <td><Nick userId={p.suggestedBy?.id} nickname={p.suggestedBy?.nickname} /></td>
-                <td>
-                  <button className="btn success" onClick={() => approve(p.id)}>Aprovar</button>{" "}
-                  <button className="btn secondary" onClick={() => reject(p.id)}>Rejeitar</button>
-                </td>
-              </tr>
-            ))}
+            {/* AGRUPADO POR TEMA, ordenado por letra dentro de cada um.
+                Numa lista por ordem de chegada, você pula de "Cidade" pra
+                "Fruta" pra "Cor" a cada linha — e julgar exige trocar de
+                assunto o tempo todo. Dez frutas seguidas você decide num
+                fôlego só. */}
+            {(() => {
+              const porTema = {};
+              for (const p of pending) (porTema[p.theme.name] ||= []).push(p);
+
+              // Tema com mais pendências primeiro: é onde está o ganho.
+              return Object.entries(porTema)
+                .sort((a, b) => b[1].length - a[1].length)
+                .flatMap(([tema, lista]) => [
+                  <tr key={`h-${tema}`} className="glossario-grupo">
+                    <td colSpan={5}>
+                      {tema} — {lista.length} {lista.length === 1 ? "pendência" : "pendências"}
+                    </td>
+                  </tr>,
+                  ...lista
+                    .sort((a, b) => a.letter.localeCompare(b.letter) || a.word.localeCompare(b.word, "pt-BR"))
+                    .map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.theme.name}</td>
+                        <td>{p.letter}</td>
+                        <td>{p.word}</td>
+                        <td><Nick userId={p.suggestedBy?.id} nickname={p.suggestedBy?.nickname} /></td>
+                        <td>
+                          <button className="btn success" onClick={() => approve(p.id)}>Aprovar</button>{" "}
+                          <button className="btn secondary" onClick={() => reject(p.id)}>Rejeitar</button>
+                        </td>
+                      </tr>
+                    )),
+                ]);
+            })()}
             {pending.length === 0 && (
               <tr>
                 <td colSpan={5} style={{ color: "var(--text-dim)" }}>Nenhuma pendência.</td>
