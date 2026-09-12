@@ -17,6 +17,17 @@
 // correspondência exata — palavra real que falte vira ponto perdido.
 export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
   "animeHq",
+  // Criados em setembro/2026, ainda SEM glossário. Sem esta trava eles
+  // cairiam direto nas salas Intermediária e Avançada (que sorteiam entre
+  // todos os temas) e TODA palavra seria marcada como errada, porque não há
+  // lista pra conferir.
+  "sistema_solar",
+  "flores",
+  "peixes",
+  "cobras",
+  "aves",
+  "insetos",
+  "repteis",
   // "estilosMusicais" saiu daqui: liberado nas salas Intermediária e
   // Avançada, que sorteiam entre TODOS os temas disponíveis. As salas Padrão
   // têm lista fixa própria (fixedThemeKeys), então ele não entra nelas —

@@ -1,4 +1,15 @@
-// PALAVRAS NOVAS PARA O TEMA "ANIMAIS"
+// PALAVRAS NOVAS PARA O TEMA "MAMÍFEROS" (antigo "Animais")
+//
+// ⚠️ ESTE ARQUIVO FOI LIMPO DEPOIS DE CAUSAR UM PROBLEMA.
+//
+// Ele foi escrito quando o tema se chamava "Animais" e aceitava qualquer
+// bicho — tinha 104 não-mamíferos (aves, peixes, insetos). Depois da
+// segmentação, rodar o importador RECRIOU todos eles no tema, desfazendo a
+// separação em silêncio.
+//
+// Lição: importador é um arquivo VIVO. Se o tema de destino mudar de escopo,
+// o arquivo precisa mudar junto — senão a próxima importação reverte o
+// trabalho.
 //
 // Escritas mirando os buracos reais do glossário (saída do listar-palavras):
 // X estava vazia, e 18 letras tinham menos de 8 palavras.
@@ -21,89 +32,66 @@
 // o caminho é reduzir o peso dela no sorteio — inventar animal seria pior.
 export const ANIMAIS_NOVAS = {
   A: [
-    "Arraia", "Avestruz", "Andorinha", "Ariranha", "Anaconda",
-    "Albatroz", "Araçari", "Anu", "Acará",
+    "Ariranha",
   ],
   B: [
-    "Bem-te-vi", "Besouro", "Bezerro", "Bicho-preguiça", "Barata",
-    "Bagre", "Baiacu", "Búfalo-d'água", "Bicho-da-seda", "Boto",
+    "Bezerro", "Bicho-preguiça", "Búfalo-d'água", "Boto",
   ],
   C: [
-    "Camaleão", "Caranguejo", "Carneiro", "Cotia", "Cupim",
-    "Cavalo-marinho", "Cágado", "Cobra-coral", "Codorna", "Cachalote",
-    "Caracol", "Carrapato",
+    "Carneiro", "Cotia", "Cachalote",
   ],
   D: [
-    "Dourado", "Damão", "Dugongo", "Dourada",
+    "Damão", "Dugongo",
   ],
   E: [
-    "Égua", "Elefante-marinho", "Estrela-do-mar", "Emu", "Equidna",
-    "Esturjão",
+    "Égua", "Elefante-marinho", "Equidna", 
   ],
   F: [
-    "Faisão", "Flamingo", "Fuinha", "Frango", "Formiga-cortadeira",
-    "Fragata",
+    "Fuinha",
   ],
   G: [
-    "Ganso", "Gafanhoto", "Gavião", "Gralha", "Grilo",
-    "Guará", "Garça", "Gambá", "Galinha", "Gazela",
+    "Gambá", "Gazela",
   ],
   H: [
-    "Hamster", "Harpia", "Hidra", "Hipocampo", "Hipopótamo-pigmeu",
+    "Hamster", "Hipopótamo-pigmeu",
   ],
   I: [
-    "Íbis", "Irara", "Inhambu",
+    "Irara",
   ],
   J: [
-    "João-de-barro", "Jibóia", "Jaguarundi", "Jararaca", "Jaburu",
-    "Juriti", "Joaninha",
+    "Jaguarundi",
   ],
   L: [
-    "Lagartixa", "Lagosta", "Lêmure", "Leopardo", "Libélula",
-    "Lula-gigante", "Lambari", "Lhama", "Louva-a-deus", "Lagarta",
+    "Lêmure", "Leopardo", "Lhama",
   ],
   M: [
-    "Mosca", "Mosquito", "Marreco", "Maritaca", "Mamute",
-    "Marimbondo", "Minhoca", "Mandril", "Mandi", "Mexilhão",
-    "Mabeco", "Muriqui",
+    "Mamute", "Mandril", "Mabeco", "Muriqui",
   ],
   N: [
-    "Nutria", "Narval", "Nhandu",
+    "Nutria", "Narval",
   ],
   O: [
-    "Ostra", "Ouriço", "Onça-pintada", "Osga", "Orangotango-de-bornéu",
-    "Oropêndola",
+    "Onça-pintada", "Orangotango-de-bornéu",
   ],
   P: [
-    "Pavão", "Perereca", "Piranha", "Pardal", "Percevejo",
-    "Pernilongo", "Pombo", "Pirarucu", "Pangolim", "Peru",
-    "Piolho", "Poraquê",
+    "Pangolim",
   ],
   Q: [
-    "Queixada", "Quatipuru", "Quiriquiri",
+    "Queixada", "Quatipuru", 
   ],
   R: [
-    "Raposa-do-ártico", "Rouxinol", "Robalo", "Rã-touro", "Rêmora",
+    "Raposa-do-ártico",
   ],
   S: [
-    "Salamandra", "Sardinha", "Serpente-cascavel", "Siri", "Sabiá",
-    "Seriema", "Salmão", "Sanguessuga", "Suçuarana", "Socó",
+    "Suçuarana",
   ],
   T: [
-    "Tamanduá-bandeira", "Tucunaré", "Tilápia", "Traíra", "Tuiuiú",
-    "Tainha", "Tigre-siberiano", "Toupeira",
+    "Tamanduá-bandeira", "Tigre-siberiano", "Toupeira",
   ],
   U: [
-    "Uirapuru", "Urutu", "Ubarana", "Urso-pardo", "Uacari",
+    "Urso-pardo", "Uacari",
   ],
   V: [
-    "Vespa", "Víbora", "Vison", "Veado-campeiro", "Vaga-lume",
-    "Verdelhão",
-  ],
-  X: [
-    "Xaréu", "Xexéu", "Xerelete",
-  ],
-  Z: [
-    "Zangão", "Zabelê",
+    "Vison", "Veado-campeiro",
   ],
 };

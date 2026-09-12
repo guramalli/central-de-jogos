@@ -22,6 +22,8 @@
     "limpar-letras": "node scripts/limparLetras.js",
     "listar-palavras": "node scripts/listarPalavras.js",
     "add-temas": "node scripts/addTemas.js",
+    "segmentar-animais": "node scripts/segmentarAnimais.js",
+    "mover-bichos": "node scripts/moverBichos.js",
     "importar-temas-novos": "node prisma/importarTemasNovos.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",

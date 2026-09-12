@@ -24,6 +24,15 @@ const confirmar = process.argv.includes("--confirmar");
 const NOVOS = [
   { key: "animeHq", name: "Anime e HQ" },
   { key: "estilosMusicais", name: "Estilos Musicais" },
+  { key: "sistema_solar", name: "Sistema Solar" },
+  { key: "flores", name: "Flores" },
+  { key: "peixes", name: "Peixes" },
+  { key: "cobras", name: "Cobras" },
+  // Criados pra aproveitar as 123 palavras que sobraram da segmentação de
+  // Animais — são quase todas aves, insetos e répteis já cadastrados.
+  { key: "aves", name: "Aves" },
+  { key: "insetos", name: "Insetos" },
+  { key: "repteis", name: "Répteis e Anfíbios" },
 ];
 
 async function main() {

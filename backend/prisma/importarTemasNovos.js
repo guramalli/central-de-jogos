@@ -26,6 +26,10 @@ import { NOVELAS_SERIES_NOVAS } from "./data/stopWordsNovelasSeriesNovas.js";
 import { FILMES_NOVAS } from "./data/stopWordsFilmesNovas.js";
 import { BANDAS_NOVAS } from "./data/stopWordsBandasNovas.js";
 import { NOMES_NOVAS } from "./data/stopWordsNomesNovas.js";
+import { SISTEMA_SOLAR_WORDS } from "./data/stopWordsSistemaSolar.js";
+import { FLORES_WORDS } from "./data/stopWordsFlores.js";
+import { PEIXES_WORDS } from "./data/stopWordsPeixes.js";
+import { COBRAS_WORDS } from "./data/stopWordsCobras.js";
 
 const confirmar = process.argv.includes("--confirmar");
 
@@ -52,6 +56,12 @@ const LOTES = [
   { key: "filmes", nome: "Filmes (reforço)", palavras: FILMES_NOVAS },
   { key: "bandas_musicais", nome: "Cantor ou Banda (reforço)", palavras: BANDAS_NOVAS },
   { key: "nomes_pessoas", nome: "Nomes de Pessoas (reforço)", palavras: NOMES_NOVAS },
+  // Temas novos de setembro. Peixes e Cobras recebem também as palavras que
+  // vêm da segmentação de Animais — estas aqui são o complemento.
+  { key: "sistema_solar", nome: "Sistema Solar", palavras: SISTEMA_SOLAR_WORDS },
+  { key: "flores", nome: "Flores", palavras: FLORES_WORDS },
+  { key: "peixes", nome: "Peixes", palavras: PEIXES_WORDS },
+  { key: "cobras", nome: "Cobras", palavras: COBRAS_WORDS },
 ];
 
 async function main() {
