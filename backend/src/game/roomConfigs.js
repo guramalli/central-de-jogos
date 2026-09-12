@@ -2,6 +2,24 @@
 // acrescentar uma entrada aqui — StopRoom.js lê esses valores no lugar de
 // usar tempos fixos, e a checagem de pontuação mínima já é aplicada
 // automaticamente na entrada (join) de cada sala.
+// TEMAS QUE **NÃO** ENTRAM NAS SALAS QUE PONTUAM.
+//
+// Lista explícita, editada à mão — de propósito. Já existiu aqui uma regra
+// automática ("tema com 50+ palavras entra sozinho") e ela foi removida:
+// a decisão de abrir um tema é de produto, não de contagem. Um tema pode ter
+// 300 palavras e ainda assim você não querer soltá-lo ainda.
+//
+// Enquanto a chave estiver aqui, o tema só aparece nas SALAS PRIVADAS com
+// validação por VOTO, onde quem julga é a mesa e o glossário não é usado.
+//
+// PRA LIBERAR um tema: apague a linha dele daqui e faça o deploy. Confira
+// antes se o glossário está redondo, porque em sala normal a validação é
+// correspondência exata — palavra real que falte vira ponto perdido.
+export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
+  "animeHq",
+  "estilosMusicais",
+]);
+
 export const ROOM_CONFIGS = {
   // ===== Sala da Zoeira =====
   // Sala pra rir, não pra competir. Usa temas escrachados que não caem nas

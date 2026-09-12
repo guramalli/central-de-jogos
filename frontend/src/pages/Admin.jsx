@@ -43,6 +43,8 @@ const QUIZ_THEME_NAMES = {
 export default function Admin() {
   const { user } = useAuth();
   const [pending, setPending] = useState([]);
+  // Ordem fixa dos temas na lista de sugestões (ver loadPending).
+  const [ordemTemas, setOrdemTemas] = useState([]);
   const [quizPending, setQuizPending] = useState([]);
   // Edição direta na fila de pendentes: a maioria das perguntas que caem
   // aqui só precisa de um ajuste no texto, não de rejeição. Sem isso, o
@@ -113,6 +115,23 @@ export default function Admin() {
     try {
       const { data } = await api.get("/admin/glossary/pending");
       setPending(data);
+
+      // ORDEM DOS TEMAS CONGELADA no carregamento.
+      //
+      // Ordenar por quantidade a cada render fazia os temas pularem de lugar
+      // conforme você aprovava: o tema de 10 caía pra 9, outro de 9 assumia o
+      // topo, e a lista se reorganizava embaixo do seu cursor. Impossível
+      // zerar um tema de cada vez.
+      //
+      // A ordem é decidida UMA vez (mais pendências primeiro) e vale até a
+      // próxima carga da página.
+      const contagem = {};
+      for (const p of data) contagem[p.theme.name] = (contagem[p.theme.name] || 0) + 1;
+      setOrdemTemas(
+        Object.keys(contagem).sort(
+          (a, b) => contagem[b] - contagem[a] || a.localeCompare(b, "pt-BR")
+        )
+      );
     } catch (e) {
       setError(e.response?.data?.error || "Erro ao carregar pendências.");
     }
@@ -635,9 +654,16 @@ export default function Admin() {
               const porTema = {};
               for (const p of pending) (porTema[p.theme.name] ||= []).push(p);
 
-              // Tema com mais pendências primeiro: é onde está o ganho.
-              return Object.entries(porTema)
-                .sort((a, b) => b[1].length - a[1].length)
+              // Segue a ordem congelada. Tema que só apareceu depois (carga
+              // nova, sugestão que chegou agora) entra no fim, sem empurrar
+              // o que você já estava resolvendo.
+              const ordenados = [
+                ...ordemTemas.filter((t) => porTema[t]),
+                ...Object.keys(porTema).filter((t) => !ordemTemas.includes(t)),
+              ];
+
+              return ordenados
+                .map((tema) => [tema, porTema[tema]])
                 .flatMap(([tema, lista]) => [
                   <tr key={`h-${tema}`} className="glossario-grupo">
                     <td colSpan={5}>

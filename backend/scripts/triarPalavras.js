@@ -30,7 +30,12 @@ function normalizar(p) {
     .trim();
 }
 
+// Letras que o Stop sorteia de fato (LETTERS no StopRoom.js). K, W e Y não
+// entram: palavra cadastrada nelas nunca sairia numa rodada.
+const LETRAS_DO_SORTEIO = new Set("ABCDEFGHIJLMNOPQRSTUVXZ".split(""));
+
 const MOTIVOS = {
+  foraDoSorteio: "letra que o Stop não sorteia (K, W, Y)",
   letra: "não começa com a letra do tema",
   curta: "curta demais (1 caractere)",
   longa: "longa demais (mais de 30 caracteres)",
@@ -43,6 +48,9 @@ function avaliar(entrada, aprovadasDoTema) {
   const palavra = String(entrada.word || "").trim();
   const norm = normalizar(palavra);
 
+  if (!LETRAS_DO_SORTEIO.has(String(entrada.letter || "").toUpperCase())) {
+    return "foraDoSorteio";
+  }
   if (norm.length < 2) return "curta";
   if (norm.length > 30) return "longa";
 
@@ -111,6 +119,14 @@ async function main() {
     const porMotivo = {};
     for (const r of rejeitar) (porMotivo[r.motivo] ||= []).push(r);
     for (const [motivo, lista] of Object.entries(porMotivo)) {
+      // Letra fora do sorteio: só a contagem. Listar as palavras uma a uma
+      // não ajuda em nada — não há decisão a tomar, elas simplesmente nunca
+      // sairiam numa rodada. Ver a lista inteira só empurra pra baixo o que
+      // realmente precisa da sua atenção.
+      if (motivo === "foraDoSorteio") {
+        console.log(`  ${MOTIVOS[motivo]}: ${lista.length}\n`);
+        continue;
+      }
       console.log(`  ${MOTIVOS[motivo]} (${lista.length}):`);
       for (const r of lista.slice(0, 10)) {
         console.log(`    ${r.letter} · ${r.theme.name} · "${r.word}"`);

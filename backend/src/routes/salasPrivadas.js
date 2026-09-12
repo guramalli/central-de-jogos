@@ -35,8 +35,17 @@ router.get("/temas", requireAuth, async (req, res) => {
   });
   const porTema = Object.fromEntries(contagens.map((c) => [c.themeId, c._count._all]));
 
-  // Piso arbitrário mas útil: menos que isso e o tema ainda está incompleto
-  // demais pra validar sozinho sem frustrar quem joga.
+  // DUAS REGRAS DIFERENTES, e elas não se misturam:
+  //
+  // 1) AQUI (sala privada, modo "banco de dados"): vale a CONTAGEM. Com 50+
+  //    palavras aprovadas o tema pode ser validado automaticamente; abaixo
+  //    disso não, porque tudo seria marcado como errado. É regra técnica.
+  //
+  // 2) NAS SALAS OFICIAIS que pontuam: vale a LISTA em roomConfigs.js, que
+  //    o Gustavinho edita à mão. É decisão de produto, não de contagem.
+  //
+  // Um tema pode ter glossário completo e ainda assim não estar liberado nas
+  // salas oficiais — e isso é proposital.
   const MINIMO_PALAVRAS = 50;
 
   res.json(
@@ -47,6 +56,10 @@ router.get("/temas", requireAuth, async (req, res) => {
         name: t.name,
         zoeira: TEMAS_DA_ZOEIRA.has(t.key),
         palavras: porTema[t.id] || 0,
+        // SÓ a contagem decide aqui. A lista de temas liberados pras salas
+        // oficiais (TEMAS_SO_EM_SALA_PRIVADA) não entra nesta conta: são duas
+        // regras independentes, e misturá-las impediria o dono da sala de
+        // usar no modo automático um tema que já tem glossário pronto.
         temGlossario: (porTema[t.id] || 0) >= MINIMO_PALAVRAS,
       }))
   );

@@ -3,7 +3,7 @@ import { aoPontuar } from "./eventosDePontuacao.js";
 import { ligarDicas, desligarDicas } from "./dicasDoSistema.js";
 import { prisma } from "../db.js";
 import { StopRoom } from "./StopRoom.js";
-import { ROOM_CONFIGS, DEFAULT_ROOM_ID } from "./roomConfigs.js";
+import { ROOM_CONFIGS, DEFAULT_ROOM_ID, TEMAS_SO_EM_SALA_PRIVADA } from "./roomConfigs.js";
 
 const rooms = new Map(); // roomId -> StopRoom
 
@@ -58,10 +58,16 @@ export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
     // que não seja a própria Zoeira — inclusive se um deles for parar numa
     // lista fixa por engano no futuro.
     const ehSalaZoeira = !!config.semPontuacao;
+
     const themes = (config.fixedThemeKeys
       ? allThemes.filter((t) => config.fixedThemeKeys.includes(t.key))
       : allThemes
-    ).filter((t) => ehSalaZoeira || !temasExclusivosDaZoeira.has(t.key));
+    )
+      .filter((t) => ehSalaZoeira || !temasExclusivosDaZoeira.has(t.key))
+      // Temas ainda não liberados pras salas que pontuam (ver a lista em
+      // roomConfigs.js). A decisão é SUA e explícita: nenhum tema entra em
+      // sala normal sozinho por ter atingido um número de palavras.
+      .filter((t) => ehSalaZoeira || !TEMAS_SO_EM_SALA_PRIVADA.has(t.key));
 
     const room = new StopRoom(roomId, io, themes, config);
     rooms.set(roomId, room);
