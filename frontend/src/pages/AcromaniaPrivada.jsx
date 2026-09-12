@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
 
@@ -13,6 +13,7 @@ import Seo from "../components/Seo.jsx";
 // uma porta óbvia pra combinar pontos.
 export default function AcromaniaPrivada() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   const [nome, setNome] = useState("");
   const [comSenha, setComSenha] = useState(false);
@@ -39,6 +40,18 @@ export default function AcromaniaPrivada() {
       // lista vazia não é erro — pode simplesmente não haver sala aberta
     }
   }
+
+  // Veio do lobby clicando numa sala: já abre a entrada dela, em vez de
+  // fazer a pessoa procurar de novo na lista.
+  useEffect(() => {
+    const alvo = params.get("sala");
+    if (!alvo || salas.length === 0) return;
+    const sala = salas.find((s) => s.roomId === alvo);
+    if (!sala) return;
+    if (sala.temSenha) setSalaComSenha(sala);
+    else entrar(sala);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salas, params]);
 
   useEffect(() => {
     carregar();
