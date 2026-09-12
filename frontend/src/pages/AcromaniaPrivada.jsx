@@ -114,26 +114,39 @@ export default function AcromaniaPrivada() {
 
       {erro && <div className="error-msg">{erro}</div>}
 
-      <div className="card">
-        <h2>Criar uma sala</h2>
-        <form onSubmit={criar}>
-          <label className="privada-label">Nome da sala</label>
+      <form onSubmit={criar}>
+        {/* Mesmo formato da criação de sala do Stop: seções numeradas e os
+            dois cartões de acesso lado a lado. Manter os dois jogos com a
+            mesma cara evita que a pessoa tenha que reaprender a tela. */}
+        <div className="card" style={{ marginTop: 16 }}>
+          <h2>1. Nome e acesso</h2>
           <input
-            placeholder="Ex: Sala do Gustavinho"
+            placeholder="Nome da sala (ex: Galera do trampo)"
             value={nome}
             onChange={(e) => setNome(e.target.value.slice(0, 30))}
             maxLength={30}
-            required
           />
 
-          <label className="privada-check">
-            <input
-              type="checkbox"
-              checked={comSenha}
-              onChange={(e) => setComSenha(e.target.checked)}
-            />
-            <span>Proteger com senha</span>
-          </label>
+          <div className="privada-tipo">
+            <button
+              type="button"
+              className={`privada-tipo-opcao ${!comSenha ? "privada-tipo-on" : ""}`}
+              onClick={() => { setComSenha(false); setSenha(""); }}
+            >
+              <span className="privada-tipo-icone">🔓</span>
+              <span className="privada-tipo-nome">Livre</span>
+              <span className="privada-tipo-desc">Qualquer um entra pela lista</span>
+            </button>
+            <button
+              type="button"
+              className={`privada-tipo-opcao ${comSenha ? "privada-tipo-on" : ""}`}
+              onClick={() => setComSenha(true)}
+            >
+              <span className="privada-tipo-icone">🔒</span>
+              <span className="privada-tipo-nome">Com senha</span>
+              <span className="privada-tipo-desc">Só quem você convidar</span>
+            </button>
+          </div>
 
           {comSenha && (
             <div className="senha-campo">
@@ -157,6 +170,10 @@ export default function AcromaniaPrivada() {
               </button>
             </div>
           )}
+        </div>
+
+        <div className="card">
+          <h2>2. Ajuste a partida</h2>
 
           <label className="privada-label">
             Tempo pra escrever a frase: <strong>{segEscrita}s</strong>
@@ -202,12 +219,12 @@ export default function AcromaniaPrivada() {
             onChange={(e) => setMaxJogadores(Number(e.target.value))}
             className="privada-range"
           />
+        </div>
 
-          <button className="btn" type="submit" disabled={criando}>
-            {criando ? "Criando..." : "Criar sala"}
-          </button>
-        </form>
-      </div>
+        <button className="btn" type="submit" disabled={criando} style={{ width: "100%" }}>
+          {criando ? "Criando..." : "Criar sala"}
+        </button>
+      </form>
 
       <div className="card">
         <h2>Salas abertas ({salas.length})</h2>
