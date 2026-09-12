@@ -24,6 +24,7 @@
     "add-temas": "node scripts/addTemas.js",
     "segmentar-animais": "node scripts/segmentarAnimais.js",
     "mover-bichos": "node scripts/moverBichos.js",
+    "apagar-tema": "node scripts/apagarTema.js",
     "importar-temas-novos": "node prisma/importarTemasNovos.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",
     "prisma:reclassify": "node prisma/reclassifyQuestions.js",

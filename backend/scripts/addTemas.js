@@ -32,7 +32,6 @@ const NOVOS = [
   // Animais — são quase todas aves, insetos e répteis já cadastrados.
   { key: "aves", name: "Aves" },
   { key: "insetos", name: "Insetos" },
-  { key: "repteis", name: "Répteis e Anfíbios" },
 ];
 
 async function main() {

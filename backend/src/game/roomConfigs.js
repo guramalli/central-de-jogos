@@ -27,7 +27,6 @@ export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
   "cobras",
   "aves",
   "insetos",
-  "repteis",
   // "estilosMusicais" saiu daqui: liberado nas salas Intermediária e
   // Avançada, que sorteiam entre TODOS os temas disponíveis. As salas Padrão
   // têm lista fixa própria (fixedThemeKeys), então ele não entra nelas —

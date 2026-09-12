@@ -46,7 +46,10 @@ const INSETOS = [
   "vespa", "zangao",
 ];
 
-const REPTEIS = [
+// RÉPTEIS E ANFÍBIOS não têm mais destino: o tema foi apagado por decisão de
+// produto. Estas palavras entram no grupo "sem tema" — são reportadas e você
+// apaga pelo painel, do mesmo jeito que aranha e ostra.
+const REPTEIS_SEM_DESTINO = [
   "camaleao", "cagado", "iguana", "jacare", "lagartixa", "lagarto", "osga",
   "perereca", "ra-touro", "ra", "salamandra", "sapo", "tartaruga",
   "dinossauro",
@@ -54,6 +57,7 @@ const REPTEIS = [
 
 // Sem tema próprio: aracnídeos, moluscos, crustáceos, vermes, equinodermos.
 const SEM_TEMA = [
+  ...REPTEIS_SEM_DESTINO,
   "aranha", "caracol", "caranguejo", "carrapato", "escorpiao",
   "estrela-do-mar", "lagosta", "mexilhao", "minhoca", "ostra", "ourico",
   "sanguessuga", "siri", "tarantula", "viuva negra", "hidra",
@@ -63,7 +67,6 @@ function classificar(palavra) {
   const n = norm(palavra);
   if (AVES.includes(n)) return "aves";
   if (INSETOS.includes(n)) return "insetos";
-  if (REPTEIS.includes(n)) return "repteis";
   if (SEM_TEMA.includes(n)) return "semTema";
   return "fica";
 }
@@ -76,7 +79,7 @@ async function main() {
   }
 
   const destinos = {};
-  for (const chave of ["aves", "insetos", "repteis"]) {
+  for (const chave of ["aves", "insetos"]) {
     destinos[chave] = await prisma.theme.findUnique({ where: { key: chave } });
     if (!destinos[chave]) {
       console.log(`\n⚠️  O tema "${chave}" ainda não existe.`);
@@ -91,23 +94,22 @@ async function main() {
     orderBy: { word: "asc" },
   });
 
-  const grupos = { aves: [], insetos: [], repteis: [], semTema: [], fica: [] };
+  const grupos = { aves: [], insetos: [], semTema: [], fica: [] };
   for (const p of palavras) grupos[classificar(p.word)].push(p);
 
   console.log(`\n=== ${palavras.length} palavras em "${origem.name}" ===\n`);
   console.log(`  vão pra AVES:               ${grupos.aves.length}`);
   console.log(`  vão pra INSETOS:            ${grupos.insetos.length}`);
-  console.log(`  vão pra RÉPTEIS E ANFÍBIOS: ${grupos.repteis.length}`);
   console.log(`  sem tema (apagar à mão):    ${grupos.semTema.length}`);
   console.log(`  ficam como mamíferos:       ${grupos.fica.length}\n`);
 
-  for (const [chave, rotulo] of [["aves", "AVES"], ["insetos", "INSETOS"], ["repteis", "RÉPTEIS"]]) {
+  for (const [chave, rotulo] of [["aves", "AVES"], ["insetos", "INSETOS"]]) {
     if (grupos[chave].length) {
       console.log(`${rotulo}: ${grupos[chave].map((p) => p.word).join(", ")}\n`);
     }
   }
   if (grupos.semTema.length) {
-    console.log("SEM TEMA (aracnídeos, moluscos, crustáceos, vermes):");
+    console.log("SEM TEMA (répteis, anfíbios, aracnídeos, moluscos, crustáceos):");
     console.log(" ", grupos.semTema.map((p) => p.word).join(", "));
     console.log("  Não serão movidos. Apague pelo painel.\n");
   }
@@ -122,7 +124,7 @@ async function main() {
     return;
   }
 
-  for (const chave of ["aves", "insetos", "repteis"]) {
+  for (const chave of ["aves", "insetos"]) {
     for (const p of grupos[chave]) {
       try {
         await prisma.wordEntry.update({
