@@ -22,6 +22,7 @@ export const SISTEMA_SOLAR_WORDS = {
   ],
   B: [
     "Betelgeuse", "Bootes", "Bellatrix", "Bólido",
+    "Baleia", "Bússola",
   ],
   C: [
     "Cometa", "Calisto", "Caronte", "Cassiopeia",
@@ -50,10 +51,11 @@ export const SISTEMA_SOLAR_WORDS = {
     "Heliosfera", "Haumea",
   ],
   I: [
-    "Io", "Iapeto", "Índio",
+    "Io", "Iapeto", "Índio", "Ida",
+    "Ícaro",
   ],
   J: [
-    "Júpiter", "Juno", "Jano",
+    "Júpiter", "Juno", "Jano", "Julieta",
   ],
   L: [
     "Lua", "Leão", "Libra", "Lua cheia",
@@ -77,7 +79,7 @@ export const SISTEMA_SOLAR_WORDS = {
     "Peixes", "Planeta anão", "Protuberância solar", "Periélio",
   ],
   Q: [
-    "Quíron", "Quasar",
+    "Quíron", "Quasar", "Quaoar",
   ],
   R: [
     "Rigel", "Reia", "Rotação", "Raios cósmicos",
@@ -94,6 +96,7 @@ export const SISTEMA_SOLAR_WORDS = {
   ],
   U: [
     "Urano", "Ursa Maior", "Ursa Menor", "Umbriel",
+    "Umbra",
   ],
   V: [
     "Vênus", "Via Láctea", "Vega", "Virgem",

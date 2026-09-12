@@ -29,6 +29,7 @@ export const FLORES_WORDS = {
   ],
   D: [
     "Dália", "Dracena", "Dente-de-leão", "Delfínio",
+    "Dama-da-noite", "Dedaleira", "Dipladênia",
   ],
   E: [
     "Estrelítzia", "Espirradeira", "Escova-de-garrafa", "Eustoma",
@@ -63,6 +64,7 @@ export const FLORES_WORDS = {
   ],
   N: [
     "Narciso", "Ninfeia", "Noivinha", "Nemésia",
+    "Nastúrcio",
   ],
   O: [
     "Orquídea", "Onze-horas", "Orelha-de-urso", "Ornitógalo",
@@ -98,6 +100,6 @@ export const FLORES_WORDS = {
     "Xerantemo",
   ],
   Z: [
-    "Zínia", "Zantedeschia", "Zamioculca",
+    "Zínia", "Zantedeschia", "Zamioculca", "Zinnia",
   ],
 };

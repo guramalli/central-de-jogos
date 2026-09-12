@@ -20,42 +20,57 @@
 // sorteio.
 export const COBRAS_WORDS = {
   A: [
-    "Áspide", "Anfisbena",
+    "Áspide", "Anfisbena", "Anaconda-verde",
   ],
   B: [
     "Boipeva", "Boa", "Bothrops", "Boa-constritora",
+    "Boiuna", "Bothrops-jararaca",
   ],
   C: [
     "Cascavel", "Caninana", "Coral", "Cobra-cega",
     "Cobra-verde", "Cobra-d'água", "Cobra-rei", "Crotalus",
+    "Cobra-do-milho", "Cobra-cipó", "Coral-verdadeira", "Cobra-nariguda",
+    "Cotiara",
   ],
 
-
   F: [
-    "Falsa-coral",
+    "Falsa-coral", "Falsa-jararaca",
   ],
   J: [
     "Jararacuçu", "Jiboia-constritora", "Jararaca-ilhoa",
   ],
   M: [
     "Mamba", "Mamba-negra", "Muçurana", "Micrurus",
+    "Mussurana", "Mamba-verde",
   ],
   N: [
     "Naja-real",
   ],
   P: [
-    "Píton", "Papa-pinto", "Píton-real",
+    "Píton", "Papa-pinto", "Píton-real", "Píton-birmanesa",
+    "Papa-ovo", "Pseudoboa",
   ],
   S: [
     "Sucuri", "Salamanta", "Surucucu", "Serpente-do-mar",
+    "Suaçubóia", "Sucuri-amarela",
   ],
   T: [
-    "Taipan",
+    "Taipan", "Taipan-do-interior",
   ],
   U: [
     "Urutu-cruzeiro",
   ],
   V: [
-    "Víbora-do-gabão", "Verrugosa",
+    "Víbora-do-gabão", "Verrugosa", "Víbora-de-russell",
+  ],
+  D: [
+    "Dendroaspis",
+  ],
+  E: [
+    "Eunectes",
+  ],
+
+  L: [
+    "Lachesis",
   ],
 };

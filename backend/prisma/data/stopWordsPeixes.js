@@ -40,7 +40,8 @@ export const PEIXES_WORDS = {
     "Dentão", "Donzela",
   ],
   E: [
-    "Espada", "Escamudo", "Espadarte",
+    "Espada", "Escamudo", "Espadarte", "Enchova",
+    "Espadinha",
   ],
   F: [
     "Frade",
@@ -50,7 +51,7 @@ export const PEIXES_WORDS = {
     "Gurijuba",
   ],
   H: [
-    "Hadoque", "Hoplias",
+    "Hadoque", "Hoplias", "Hemiodus",
   ],
 
   J: [
@@ -64,10 +65,10 @@ export const PEIXES_WORDS = {
     "Molly", "Miraguaia", "Mapará",
   ],
   N: [
-    "Neon", "Nototênia",
+    "Neon", "Nototênia", "Niquim",
   ],
   O: [
-    "Olho-de-boi", "Oscar", "Ostracion",
+    "Olho-de-boi", "Oscar", "Ostracion", "Olhete",
   ],
   P: [
     "Pacu", "Pargo", "Pintado", "Peixe-espada",
@@ -78,7 +79,7 @@ export const PEIXES_WORDS = {
     "Quimera",
   ],
   R: [
-    "Rodóstomo", "Raia",
+    "Rodóstomo", "Raia", "Roncador",
   ],
   S: [
     "Sarda", "Sargo", "Surubim", "Salmonete",
