@@ -93,7 +93,7 @@ export const SISTEMA_SOLAR_WORDS = {
     "Marte", "Mercúrio", "Meteoro", "Meteorito",
     "Mimas", "Makemake", "Manchas solares", "Magnetosfera",
     "Mancha Vermelha", "Miranda", "Mira", "Macha",
-    "Maia", "Machholz", "Manchas-solares", "Massa-coronal",
+    "Maia", "Machholz", "Massa-coronal",
   ],
   N: [
     "Netuno", "Nebulosa", "Nova", "Nebulosa de Órion",
@@ -130,7 +130,7 @@ export const SISTEMA_SOLAR_WORDS = {
     "Titã", "Terra", "Tritão", "Touro",
     "Tempestade solar", "Titânia", "Trânsito de Vênus", "Tebas",
     "Toro", "Tarântula", "Trifida", "Tuttle",
-    "Timbuktu", "Tempestade-solar",
+    "Timbuktu",
   ],
   U: [
     "Urano", "Ursa Maior", "Ursa Menor", "Umbriel",

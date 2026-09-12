@@ -198,9 +198,9 @@ export const COBRAS_WORDS = {
   R: [
     "Rabo-de-fino", "Rabo-de-mucura", "Rabo-de-mulita", "Rabo-de-pau",
     "Rabo-de-pavio", "Rabo-de-porco", "Rainbow boa", "Rat-snake",
-    "Rateira", "Ratsnake", "Rattlesnake", "Rei",
-    "Rei-californiana", "Reticulated python", "Rhinoceros-viper", "Ringhals",
-    "Ringneck-snake", "Rinkhals", "Russell-viper",
+    "Rateira", "Rattlesnake", "Rei", "Rei-californiana",
+    "Reticulated python", "Rhinoceros-viper", "Ringhals", "Ringneck-snake",
+    "Rinkhals", "Russell-viper",
   ],
   S: [
     "Salamanta", "Salamanta-boi", "Sand boa", "Sand viper",

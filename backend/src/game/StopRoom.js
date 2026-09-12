@@ -72,8 +72,16 @@ function normalize(str) {
       // glossário de uma vez — são centenas, entre "joão-de-barro",
       // "cobra-coral" e "guarda-chuva". A alternativa seria cadastrar cada
       // variação à mão, e uma esquecida vira ponto perdido.
-      .replace(/['\u2019-]/g, "")
-      .replace(/\s+/g, "")
+      // Tira TUDO que não é letra ou número: hífen, espaço, apóstrofo, e
+      // também dois-pontos, barra, exclamação e ponto.
+      //
+      // O glossário guarda o título como ele é escrito — "Fate/Stay Night",
+      // "Haikyuu!!", "K-On!", "Dr. Stone" —, mas ninguém digita pontuação na
+      // pressa da rodada. Sem isto, o título certo era recusado por causa de
+      // uma barra.
+      //
+      // Vale pra todo o glossário: "Jiu-jitsu", "bem-te-vi", "cobra-d'água".
+      .replace(/[^a-z0-9]/g, "")
       .trim()
   );
 }
