@@ -16,15 +16,18 @@
 // antes se o glossário está redondo, porque em sala normal a validação é
 // correspondência exata — palavra real que falte vira ponto perdido.
 export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
-  "animeHq",
-  // Criados em setembro/2026, ainda SEM glossário. Sem esta trava eles
-  // cairiam direto nas salas Intermediária e Avançada (que sorteiam entre
-  // todos os temas) e TODA palavra seria marcada como errada, porque não há
-  // lista pra conferir.
-  "sistema_solar",
-  "flores",
-  "peixes",
-  "cobras",
+  // Anime e HQ saiu daqui com 569 palavras — o maior dos temas novos.
+  //
+  // Sistema Solar, Flores, Peixes e Cobras SAÍRAM daqui: liberados nas salas
+  // Intermediária e Avançada depois de ganharem glossário (270, 544, 463 e
+  // 207 palavras). As salas Padrão têm lista fixa própria, então não são
+  // afetadas — pra colocá-los lá, some a chave ao fixedThemeKeys da sala.
+  //
+  // AVES e INSETOS continuam travados, e por motivos diferentes:
+  //   - Insetos tem ~26 palavras, abaixo do mínimo de 50. Numa sala que
+  //     pontua, a maioria das respostas legítimas seria recusada.
+  //   - Aves tem ~60, o que já daria — mas veio só da segmentação de
+  //     Animais, sem curadoria própria. Vale conferir a lista antes.
   "aves",
   "insetos",
   // "estilosMusicais" saiu daqui: liberado nas salas Intermediária e
