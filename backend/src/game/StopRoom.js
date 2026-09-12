@@ -56,11 +56,34 @@ const CONFLICTING_THEME_PAIRS = [
 // Remove acentuação e normaliza para comparação — assim "cha" bate com "chá",
 // "sao paulo" bate com "São Paulo", etc. O jogador não é obrigado a acentuar.
 function normalize(str) {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+  return (
+    str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      // HÍFEN, ESPAÇO E APÓSTROFO VIRAM A MESMA COISA.
+      //
+      // O glossário guarda "bem-te-vi", mas ninguém digita o hífen na pressa
+      // da rodada — escreve "bem te vi" ou "bemtevi". Antes as três formas
+      // eram palavras diferentes e só a com hífen valia ponto, o que era
+      // pura armadilha: a resposta estava certa e era recusada.
+      //
+      // Tratar isso aqui resolve pra TODAS as palavras compostas do
+      // glossário de uma vez — são centenas, entre "joão-de-barro",
+      // "cobra-coral" e "guarda-chuva". A alternativa seria cadastrar cada
+      // variação à mão, e uma esquecida vira ponto perdido.
+      // Tira TUDO que não é letra ou número: hífen, espaço, apóstrofo, e
+      // também dois-pontos, barra, exclamação e ponto.
+      //
+      // O glossário guarda o título como ele é escrito — "Fate/Stay Night",
+      // "Haikyuu!!", "K-On!", "Dr. Stone" —, mas ninguém digita pontuação na
+      // pressa da rodada. Sem isto, o título certo era recusado por causa de
+      // uma barra.
+      //
+      // Vale pra todo o glossário: "Jiu-jitsu", "bem-te-vi", "cobra-d'água".
+      .replace(/[^a-z0-9]/g, "")
+      .trim()
+  );
 }
 
 /**

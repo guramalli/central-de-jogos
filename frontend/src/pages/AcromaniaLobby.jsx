@@ -14,6 +14,10 @@ function occupancyInfo(status) {
 
 export default function AcromaniaLobby() {
   const [rooms, setRooms] = useState([]);
+  // Salas criadas pelos jogadores. Ficam ABAIXO das oficiais, no mesmo
+  // padrão do lobby do Stop: quem chega já vê que tem gente jogando e entra
+  // direto, sem passar por outra página.
+  const [salasPrivadas, setSalasPrivadas] = useState([]);
   // null enquanto carrega; false quando o jogo está desligado no painel.
   const [ativo, setAtivo] = useState(null);
   const { theme } = useTheme();
@@ -34,6 +38,18 @@ export default function AcromaniaLobby() {
         }
       })
       .catch(() => setAtivo(true));
+
+    // As salas dos jogadores são criadas e somem o tempo todo, então
+    // recarregam sozinhas — senão a lista envelhece na tela de quem deixou
+    // o lobby aberto.
+    const carregarPrivadas = () =>
+      api
+        .get("/salas-privadas/acromania")
+        .then(({ data }) => setSalasPrivadas(data || []))
+        .catch(() => {});
+    carregarPrivadas();
+    const t = setInterval(carregarPrivadas, 15000);
+    return () => clearInterval(t);
   }, []);
 
   return (
@@ -122,6 +138,57 @@ export default function AcromaniaLobby() {
         )}
         {ativo !== false && rooms.length === 0 && (
           <p style={{ color: "var(--text-dim)" }}>Carregando salas...</p>
+        )}
+      </div>
+
+      {/* Salas criadas pelos jogadores, ABAIXO das oficiais — mesmo padrão do
+          lobby do Stop. O botão de criar fica aqui, junto da lista, e não no
+          topo da página: quem quer sala privada procura por ela depois de
+          olhar as oficiais. */}
+      <div className="privadas-secao">
+        <div className="privadas-cabecalho">
+          <div>
+            <h2 className="privadas-titulo">🔒 Salas dos jogadores</h2>
+            <p className="privadas-sub">
+              Criadas pela galera, com os tempos e o número de rodadas escolhidos por
+              quem abriu — e nada disso conta pro ranking.
+            </p>
+          </div>
+          <Link to="/jogos/acromania/privada" className="retro-btn">+ Criar sala</Link>
+        </div>
+
+        {salasPrivadas.length === 0 ? (
+          <p className="privadas-vazio">
+            Nenhuma sala aberta agora.{" "}
+            <Link to="/jogos/acromania/privada">Crie a primeira!</Link>
+          </p>
+        ) : (
+          <div className="privada-lista">
+            {salasPrivadas.map((s) => (
+              <Link
+                key={s.roomId}
+                to={`/jogos/acromania/privada?sala=${s.roomId}`}
+                className="privada-sala"
+              >
+                <div className="privada-sala-topo">
+                  <span className="privada-sala-nome">
+                    <span title={s.temSenha ? "Precisa de senha" : "Sala livre"}>
+                      {s.temSenha ? "🔒 " : "🔓 "}
+                    </span>
+                    {s.nome}
+                  </span>
+                  <span
+                    className={`privada-sala-vagas ${s.onlineCount === 0 ? "privada-sala-vazia" : ""}`}
+                  >
+                    {s.onlineCount === 0 ? "esperando" : `${s.onlineCount}/${s.maxPlayers}`}
+                  </span>
+                </div>
+                <div className="privada-sala-info">
+                  por {s.criador} · {s.roundsPerTurn} rodadas · {s.writingSeconds}s pra escrever
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
     </div>

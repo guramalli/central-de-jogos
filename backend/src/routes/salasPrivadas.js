@@ -7,6 +7,12 @@ import {
   listarSalasPrivadas,
   validarEntradaSalaPrivada,
 } from "../game/gameManager.js";
+import {
+  criarSalaPrivadaAcromania,
+  listarSalasPrivadasAcromania,
+  conferirSenhaAcromania,
+  ehSalaPrivadaAcromania,
+} from "../game/acromaniaGameManager.js";
 
 const router = Router();
 
@@ -181,6 +187,74 @@ router.post("/entrar", requireAuth, (req, res) => {
   return res.status(404).json({
     error: "Essa sala não existe mais — ela é encerrada quando todo mundo sai.",
   });
+});
+
+// ===== SALAS PRIVADAS DO ACROMANIA =====
+//
+// Ficam neste mesmo arquivo, sob o prefixo /acromania, porque compartilham a
+// ideia e o formato das do Stop. Separar em outro arquivo duplicaria a
+// estrutura inteira pra ganhar pouco.
+
+router.get("/acromania", requireAuth, (req, res) => {
+  res.json(listarSalasPrivadasAcromania());
+});
+
+router.post("/acromania/criar", requireAuth, async (req, res) => {
+  const { nome, senha, writingSeconds, votingSeconds, roundsPerTurn, maxPlayers } = req.body;
+
+  const nomeLimpo = String(nome || "").trim();
+  if (nomeLimpo.length < 3 || nomeLimpo.length > 30) {
+    return res.status(400).json({ error: "O nome da sala deve ter de 3 a 30 caracteres." });
+  }
+
+  // Mesmos limites da sala privada do Stop, pelos mesmos motivos: mesa
+  // grande precisa de mais tempo, e teto evita rodada eterna.
+  const escrita = Number(writingSeconds);
+  if (!Number.isFinite(escrita) || escrita < 20 || escrita > 180) {
+    return res.status(400).json({ error: "O tempo de escrita deve ficar entre 20 e 180 segundos." });
+  }
+  const votacao = Number(votingSeconds);
+  if (!Number.isFinite(votacao) || votacao < 15 || votacao > 180) {
+    return res.status(400).json({ error: "O tempo de votação deve ficar entre 15 e 180 segundos." });
+  }
+  const rodadas = Number(roundsPerTurn);
+  if (!Number.isFinite(rodadas) || rodadas < 3 || rodadas > 20) {
+    return res.status(400).json({ error: "A partida deve ter de 3 a 20 rodadas." });
+  }
+  const max = Number(maxPlayers);
+  if (!Number.isFinite(max) || max < 2 || max > 16) {
+    return res.status(400).json({ error: "A sala aceita de 2 a 16 jogadores." });
+  }
+
+  try {
+    const io = req.app.get("io");
+    const { roomId, nome: nomeCriado } = criarSalaPrivadaAcromania(io, {
+      nome: nomeLimpo,
+      senha,
+      writingSeconds: escrita,
+      votingSeconds: votacao,
+      roundsPerTurn: rodadas,
+      maxPlayers: max,
+      criadorId: req.user.id,
+      criadorNickname: req.user.nickname,
+    });
+    res.json({ roomId, nome: nomeCriado });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post("/acromania/entrar", requireAuth, (req, res) => {
+  const { roomId, senha } = req.body;
+  if (!ehSalaPrivadaAcromania(roomId)) {
+    return res.status(404).json({
+      error: "Essa sala não existe mais — ela é encerrada quando todo mundo sai.",
+    });
+  }
+  if (!conferirSenhaAcromania(roomId, req.user.id, senha)) {
+    return res.status(403).json({ error: "Senha incorreta." });
+  }
+  res.json({ ok: true, roomId });
 });
 
 export default router;

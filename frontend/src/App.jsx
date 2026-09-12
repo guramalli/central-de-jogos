@@ -45,6 +45,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile.jsx"));
 const SalaPrivada = lazy(() => import("./pages/SalaPrivada.jsx"));
+const AcromaniaPrivada = lazy(() => import("./pages/AcromaniaPrivada.jsx"));
 const Missoes = lazy(() => import("./pages/Missoes.jsx"));
 
 function Private({ children }) {
@@ -276,6 +277,14 @@ export default function App() {
             element={
               <Private>
                 <StopLobby />
+              </Private>
+            }
+          />
+          <Route
+            path="/jogos/acromania/privada"
+            element={
+              <Private>
+                <AcromaniaPrivada />
               </Private>
             }
           />

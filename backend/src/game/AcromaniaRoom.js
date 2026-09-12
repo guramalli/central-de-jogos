@@ -77,6 +77,11 @@ export class AcromaniaRoom {
     // Se esta sala aceita bots de teste (ver acromaniaBots.js). Padrão: sim,
     // pra sala nova não precisar declarar.
     this.permiteBots = config.bots !== false;
+    // Sala privada não vale ranking: a partida é entre amigos, com tempos
+    // escolhidos a dedo, e contar isso no mesmo ranking que paga prêmio
+    // seria abrir uma porta óbvia pra combinar pontos.
+    this.semPontuacao = !!config.semPontuacao;
+    this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
     this.players = new Map(); // socketId -> {userId, nickname, socket}
@@ -829,6 +834,11 @@ export class AcromaniaRoom {
       }
     }
 
+    // Sala sem pontuação: a rodada acontece igual, o placar da partida
+    // funciona igual, mas nada é gravado no banco. A trava fica AQUI, num
+    // ponto só, em vez de espalhada por cada upsert.
+    if (this.semPontuacao) return;
+
     for (const winner of aPontuar) {
       const pts = winner.pts;
       try {
@@ -993,11 +1003,18 @@ export class AcromaniaRoom {
         if (bonus === undefined) continue;
 
         const medal = medals[entry.position - 1] || `${entry.position}º`;
+        // Em sala sem pontuação o pódio é anunciado do mesmo jeito — a
+        // disputa continua valendo pra quem está jogando —, só não vira
+        // ponto no ranking.
         this.systemMessage(
-          `${medal} Parabéns ${entry.nickname}, você ficou em ${entry.position}º na partida e ganhou ${bonus} pontos.`,
+          this.semPontuacao
+            ? `${medal} Parabéns ${entry.nickname}, ${entry.position}º lugar na partida!`
+            : `${medal} Parabéns ${entry.nickname}, você ficou em ${entry.position}º na partida e ganhou ${bonus} pontos.`,
           false,
           true
         );
+
+        if (this.semPontuacao) continue;
 
         try {
           await prisma.monthlyScore.upsert({

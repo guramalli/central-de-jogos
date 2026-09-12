@@ -23,12 +23,13 @@ export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
   // 207 palavras). As salas Padrão têm lista fixa própria, então não são
   // afetadas — pra colocá-los lá, some a chave ao fixedThemeKeys da sala.
   //
-  // AVES e INSETOS continuam travados, e por motivos diferentes:
-  //   - Insetos tem ~26 palavras, abaixo do mínimo de 50. Numa sala que
-  //     pontua, a maioria das respostas legítimas seria recusada.
-  //   - Aves tem ~60, o que já daria — mas veio só da segmentação de
-  //     Animais, sem curadoria própria. Vale conferir a lista antes.
-  "aves",
+  // AVES saiu daqui: ganhou curadoria própria e chegou a 412 palavras, com
+  // as 23 letras cobertas. Era o que faltava — antes tinha só as ~60 que
+  // vieram da segmentação de Animais.
+  //
+  // INSETOS continua travado: tem ~26 palavras, abaixo do mínimo de 50.
+  // Numa sala que pontua, a maioria das respostas legítimas seria recusada.
+  // Pra liberar, o tema precisa de um lote de palavras primeiro.
   "insetos",
   // "estilosMusicais" saiu daqui: liberado nas salas Intermediária e
   // Avançada, que sorteiam entre TODOS os temas disponíveis. As salas Padrão

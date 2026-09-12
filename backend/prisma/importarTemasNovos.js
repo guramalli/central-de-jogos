@@ -30,6 +30,7 @@ import { SISTEMA_SOLAR_WORDS } from "./data/stopWordsSistemaSolar.js";
 import { FLORES_WORDS } from "./data/stopWordsFlores.js";
 import { PEIXES_WORDS } from "./data/stopWordsPeixes.js";
 import { COBRAS_WORDS } from "./data/stopWordsCobras.js";
+import { AVES_WORDS } from "./data/stopWordsAves.js";
 
 const confirmar = process.argv.includes("--confirmar");
 
@@ -62,6 +63,7 @@ const LOTES = [
   { key: "flores", nome: "Flores", palavras: FLORES_WORDS },
   { key: "peixes", nome: "Peixes", palavras: PEIXES_WORDS },
   { key: "cobras", nome: "Cobras", palavras: COBRAS_WORDS },
+  { key: "aves", nome: "Aves", palavras: AVES_WORDS },
 ];
 
 async function main() {

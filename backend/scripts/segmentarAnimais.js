@@ -43,7 +43,7 @@ const PEIXES = [
   "peixe", "tubarao", "enguia", "jamanta", "lula", "polvo", "bagre",
   "baiacu", "dourado", "lambari", "mandi", "robalo", "sardinha", "salmao",
   "tainha", "tilapia", "traira", "tucunare", "pirarucu", "piranha",
-  "poraque", "acara", "xareu", "xexeu", "xerelete", "ubarana", "arraia",
+  "poraque", "acara", "xareu", "xerelete", "ubarana", "arraia",  // "xexeu" saiu: é ave
   "cavalo-marinho", "hipocampo", "esturjao",
   // Pegos na conferência da lista de mamíferos — eu tinha deixado passar:
   "dourada", "remora", "namorado", "xereu", "lula-gigante",

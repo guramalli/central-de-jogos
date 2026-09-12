@@ -6,6 +6,7 @@ import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
 import { ligarBotsNaSala } from "../game/acromaniaBots.js";
+import { conferirSenhaAcromania as liberadoNaAcromania, agendarDescarteAcromania } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
 import * as presence from "../game/presence.js";
 import { recheckPeak } from "../game/platformStats.js";
@@ -190,6 +191,18 @@ export function setupSocket(io) {
         });
         return;
       }
+      // Mesma barreira das salas privadas do Stop: quem não passou pela
+      // conferência de senha na tela de entrada não entra pelo link.
+      if (
+        String(roomId || "").startsWith("acromania-privada-") &&
+        !liberadoNaAcromania(userId, roomId)
+      ) {
+        socket.emit("acromania-erro", {
+          mensagem: "Entre pela lista de salas — essa sala pede senha.",
+        });
+        return;
+      }
+
       try {
         const room = await getOrCreateAcromaniaRoom(io, roomId);
         const joined = await room.addPlayer(socket, userId, nickname);

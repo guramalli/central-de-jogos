@@ -2486,6 +2486,18 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 14px;
   color: var(--qz-text, #e5e2e1);
   margin-bottom: 10px;
+  /* Tema em frase pode passar de 40 caracteres, contra ~16 dos assuntos de
+     uma palavra. Sem limite de largura ele estica a linha inteira no desktop
+     e fica difícil de ler de relance — que é o que a pessoa faz nos
+     primeiros segundos da rodada. */
+  max-width: 34ch;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.4;
+}
+@media (max-width: 600px) {
+  /* No celular a fonte mono a 14px com frase longa aperta demais. */
+  .acro-theme-label { font-size: 13px; max-width: 100%; }
 }
 .acro-letters-row { display: flex; justify-content: center; gap: 10px; }
 .acro-letter-chip {
