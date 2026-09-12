@@ -17,7 +17,10 @@
 // correspondência exata — palavra real que falte vira ponto perdido.
 export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
   "animeHq",
-  "estilosMusicais",
+  // "estilosMusicais" saiu daqui: liberado nas salas Intermediária e
+  // Avançada, que sorteiam entre TODOS os temas disponíveis. As salas Padrão
+  // têm lista fixa própria (fixedThemeKeys), então ele não entra nelas —
+  // pra isso, some a chave "estilosMusicais" à lista da sala desejada.
 ]);
 
 export const ROOM_CONFIGS = {
