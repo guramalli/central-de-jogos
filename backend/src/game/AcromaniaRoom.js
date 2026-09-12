@@ -77,6 +77,11 @@ export class AcromaniaRoom {
     // Se esta sala aceita bots de teste (ver acromaniaBots.js). Padrão: sim,
     // pra sala nova não precisar declarar.
     this.permiteBots = config.bots !== false;
+    // Sala privada não vale ranking: a partida é entre amigos, com tempos
+    // escolhidos a dedo, e contar isso no mesmo ranking que paga prêmio
+    // seria abrir uma porta óbvia pra combinar pontos.
+    this.semPontuacao = !!config.semPontuacao;
+    this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
     this.players = new Map(); // socketId -> {userId, nickname, socket}
@@ -473,9 +478,11 @@ export class AcromaniaRoom {
     // em 16 segundos, então o tempo acompanha a quantidade — mais modesto
     // que na votação, porque aqui a pessoa só confere, não precisa julgar.
     const quantas = this.lastResult?.entries?.length || 0;
+    // Aqui a pessoa só CONFERE (quem venceu, quanto cada um fez), não julga —
+    // por isso 2,5s por frase em vez dos 5s da votação.
     this.timeLeft = Math.min(
-      34,
-      Math.max(this.intermissionSeconds, Math.ceil(quantas * 1.6 + 6))
+      50,
+      Math.max(this.intermissionSeconds, Math.ceil(quantas * 2.5 + 6))
     );
     this.broadcast("acromania-intermission", {
       waitingForPlayers,
@@ -608,10 +615,16 @@ export class AcromaniaRoom {
   // Custa nada quando a sala é rápida: a votação encerra assim que todos
   // votam, então o teto maior só existe pra quem precisa dele.
   tempoDeVotacao(quantasFrases) {
-    const necessario = Math.ceil(quantasFrases * 3 + 6);
-    // Nunca menos que o configurado, nunca mais que 60s (acima disso a
-    // rodada arrasta pra quem já votou).
-    return Math.min(60, Math.max(this.votingSeconds, necessario));
+    // 5s por frase, e não 3.
+    //
+    // A conta anterior supunha 2,5s pra "ler e decidir", mas aqui não se lê:
+    // se JULGA criatividade, e comparando com as outras. Com a sala cheia o
+    // tempo não dava, segundo quem jogou. 5s por frase é o que sobrou como
+    // realista — mais generoso do que parece, porque quem já decidiu vota e
+    // a rodada encerra assim que todos votam.
+    const necessario = Math.ceil(quantasFrases * 5 + 8);
+    // Teto de 90s: com 15 frases dá 83s, então o teto quase nunca corta.
+    return Math.min(90, Math.max(this.votingSeconds, necessario));
   }
 
   async startVoting() {
@@ -821,6 +834,11 @@ export class AcromaniaRoom {
       }
     }
 
+    // Sala sem pontuação: a rodada acontece igual, o placar da partida
+    // funciona igual, mas nada é gravado no banco. A trava fica AQUI, num
+    // ponto só, em vez de espalhada por cada upsert.
+    if (this.semPontuacao) return;
+
     for (const winner of aPontuar) {
       const pts = winner.pts;
       try {
@@ -985,11 +1003,18 @@ export class AcromaniaRoom {
         if (bonus === undefined) continue;
 
         const medal = medals[entry.position - 1] || `${entry.position}º`;
+        // Em sala sem pontuação o pódio é anunciado do mesmo jeito — a
+        // disputa continua valendo pra quem está jogando —, só não vira
+        // ponto no ranking.
         this.systemMessage(
-          `${medal} Parabéns ${entry.nickname}, você ficou em ${entry.position}º na partida e ganhou ${bonus} pontos.`,
+          this.semPontuacao
+            ? `${medal} Parabéns ${entry.nickname}, ${entry.position}º lugar na partida!`
+            : `${medal} Parabéns ${entry.nickname}, você ficou em ${entry.position}º na partida e ganhou ${bonus} pontos.`,
           false,
           true
         );
+
+        if (this.semPontuacao) continue;
 
         try {
           await prisma.monthlyScore.upsert({

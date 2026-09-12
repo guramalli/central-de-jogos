@@ -98,7 +98,7 @@ export default function VotacaoPalavras({ tema, meuUserId, segundos, progresso, 
                   key={chave}
                   className={`votacao-linha ${voto === true ? "votacao-linha-sim" : ""} ${
                     voto === false ? "votacao-linha-nao" : ""
-                  }`}
+                  } ${voto === "top" ? "votacao-linha-top" : ""}`}
                 >
                   <div className="votacao-linha-texto">
                     <span className="votacao-palavra">{item.word}</span>
@@ -119,6 +119,17 @@ export default function VotacaoPalavras({ tema, meuUserId, segundos, progresso, 
                       title="Não vale"
                     >
                       ✕
+                    </button>
+                    {/* MUITO BOA: vale como "sim" e ainda dá bônus pra quem
+                        escreveu. Fica por último e com cor própria pra não
+                        ser clicado por engano no lugar do ✓. */}
+                    <button
+                      className={`votacao-btn votacao-top ${voto === "top" ? "votacao-btn-on" : ""}`}
+                      onClick={() => votar(item, "top")}
+                      disabled={voto !== undefined}
+                      title="Muito boa! Vale e ainda ganha bônus"
+                    >
+                      ⭐
                     </button>
                   </div>
                 </div>

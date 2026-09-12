@@ -7,6 +7,12 @@ import {
   listarSalasPrivadas,
   validarEntradaSalaPrivada,
 } from "../game/gameManager.js";
+import {
+  criarSalaPrivadaAcromania,
+  listarSalasPrivadasAcromania,
+  conferirSenhaAcromania,
+  ehSalaPrivadaAcromania,
+} from "../game/acromaniaGameManager.js";
 
 const router = Router();
 
@@ -35,8 +41,17 @@ router.get("/temas", requireAuth, async (req, res) => {
   });
   const porTema = Object.fromEntries(contagens.map((c) => [c.themeId, c._count._all]));
 
-  // Piso arbitrário mas útil: menos que isso e o tema ainda está incompleto
-  // demais pra validar sozinho sem frustrar quem joga.
+  // DUAS REGRAS DIFERENTES, e elas não se misturam:
+  //
+  // 1) AQUI (sala privada, modo "banco de dados"): vale a CONTAGEM. Com 50+
+  //    palavras aprovadas o tema pode ser validado automaticamente; abaixo
+  //    disso não, porque tudo seria marcado como errado. É regra técnica.
+  //
+  // 2) NAS SALAS OFICIAIS que pontuam: vale a LISTA em roomConfigs.js, que
+  //    o Gustavinho edita à mão. É decisão de produto, não de contagem.
+  //
+  // Um tema pode ter glossário completo e ainda assim não estar liberado nas
+  // salas oficiais — e isso é proposital.
   const MINIMO_PALAVRAS = 50;
 
   res.json(
@@ -47,6 +62,10 @@ router.get("/temas", requireAuth, async (req, res) => {
         name: t.name,
         zoeira: TEMAS_DA_ZOEIRA.has(t.key),
         palavras: porTema[t.id] || 0,
+        // SÓ a contagem decide aqui. A lista de temas liberados pras salas
+        // oficiais (TEMAS_SO_EM_SALA_PRIVADA) não entra nesta conta: são duas
+        // regras independentes, e misturá-las impediria o dono da sala de
+        // usar no modo automático um tema que já tem glossário pronto.
         temGlossario: (porTema[t.id] || 0) >= MINIMO_PALAVRAS,
       }))
   );
@@ -168,6 +187,74 @@ router.post("/entrar", requireAuth, (req, res) => {
   return res.status(404).json({
     error: "Essa sala não existe mais — ela é encerrada quando todo mundo sai.",
   });
+});
+
+// ===== SALAS PRIVADAS DO ACROMANIA =====
+//
+// Ficam neste mesmo arquivo, sob o prefixo /acromania, porque compartilham a
+// ideia e o formato das do Stop. Separar em outro arquivo duplicaria a
+// estrutura inteira pra ganhar pouco.
+
+router.get("/acromania", requireAuth, (req, res) => {
+  res.json(listarSalasPrivadasAcromania());
+});
+
+router.post("/acromania/criar", requireAuth, async (req, res) => {
+  const { nome, senha, writingSeconds, votingSeconds, roundsPerTurn, maxPlayers } = req.body;
+
+  const nomeLimpo = String(nome || "").trim();
+  if (nomeLimpo.length < 3 || nomeLimpo.length > 30) {
+    return res.status(400).json({ error: "O nome da sala deve ter de 3 a 30 caracteres." });
+  }
+
+  // Mesmos limites da sala privada do Stop, pelos mesmos motivos: mesa
+  // grande precisa de mais tempo, e teto evita rodada eterna.
+  const escrita = Number(writingSeconds);
+  if (!Number.isFinite(escrita) || escrita < 20 || escrita > 180) {
+    return res.status(400).json({ error: "O tempo de escrita deve ficar entre 20 e 180 segundos." });
+  }
+  const votacao = Number(votingSeconds);
+  if (!Number.isFinite(votacao) || votacao < 15 || votacao > 180) {
+    return res.status(400).json({ error: "O tempo de votação deve ficar entre 15 e 180 segundos." });
+  }
+  const rodadas = Number(roundsPerTurn);
+  if (!Number.isFinite(rodadas) || rodadas < 3 || rodadas > 20) {
+    return res.status(400).json({ error: "A partida deve ter de 3 a 20 rodadas." });
+  }
+  const max = Number(maxPlayers);
+  if (!Number.isFinite(max) || max < 2 || max > 16) {
+    return res.status(400).json({ error: "A sala aceita de 2 a 16 jogadores." });
+  }
+
+  try {
+    const io = req.app.get("io");
+    const { roomId, nome: nomeCriado } = criarSalaPrivadaAcromania(io, {
+      nome: nomeLimpo,
+      senha,
+      writingSeconds: escrita,
+      votingSeconds: votacao,
+      roundsPerTurn: rodadas,
+      maxPlayers: max,
+      criadorId: req.user.id,
+      criadorNickname: req.user.nickname,
+    });
+    res.json({ roomId, nome: nomeCriado });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post("/acromania/entrar", requireAuth, (req, res) => {
+  const { roomId, senha } = req.body;
+  if (!ehSalaPrivadaAcromania(roomId)) {
+    return res.status(404).json({
+      error: "Essa sala não existe mais — ela é encerrada quando todo mundo sai.",
+    });
+  }
+  if (!conferirSenhaAcromania(roomId, req.user.id, senha)) {
+    return res.status(403).json({ error: "Senha incorreta." });
+  }
+  res.json({ ok: true, roomId });
 });
 
 export default router;

@@ -543,11 +543,24 @@ export default function StopGame() {
           const isMine = user?.id && p.userId === user.id;
           // Sala da Zoeira não tem glossário — os temas são subjetivos, então não
                     // faz sentido sugerir palavra pra cadastrar.
-                    const canSuggest = isMine && g?.status === "wrong" && g?.word && !me?.semPontuacao;
+                    // Sugerir vale pra QUALQUER palavra recusada, não só a sua.
+                    //
+                    // Antes só o dono da palavra podia sugerir — mas quem
+                    // reconhece que "Jabuticaba" existe muitas vezes é outra
+                    // pessoa da sala, não quem digitou. Abrir isso multiplica
+                    // as sugestões, que é o que alimenta o glossário.
+                    const canSuggest = g?.status === "wrong" && g?.word && !me?.semPontuacao;
           return [
             t.key,
             <>
               <span className={STATUS_TEXT_CLASS[g?.status || "blank"]}>{g?.word || "—"}</span>
+              {/* A mesa marcou como muito boa: sem isto, o jogador veria
+                  5 pontos a mais e não saberia de onde vieram. */}
+              {g?.destaque && (
+                <span className="sc-word-destaque" title="A mesa marcou como MUITO BOA (+5 pts)">
+                  ⭐
+                </span>
+              )}
               {canSuggest && <SuggestWordButton themeKey={t.key} letter={lastResult.letter} word={g.word} />}
             </>,
           ];
@@ -715,7 +728,13 @@ export default function StopGame() {
                     const isMine = user?.id && p.userId === user.id;
                     // Sala da Zoeira não tem glossário — os temas são subjetivos, então não
                     // faz sentido sugerir palavra pra cadastrar.
-                    const canSuggest = isMine && g?.status === "wrong" && g?.word && !me?.semPontuacao;
+                    // Sugerir vale pra QUALQUER palavra recusada, não só a sua.
+                    //
+                    // Antes só o dono da palavra podia sugerir — mas quem
+                    // reconhece que "Jabuticaba" existe muitas vezes é outra
+                    // pessoa da sala, não quem digitou. Abrir isso multiplica
+                    // as sugestões, que é o que alimenta o glossário.
+                    const canSuggest = g?.status === "wrong" && g?.word && !me?.semPontuacao;
                     return (
                       <div key={t.key} className="sc-fill-grid-cell">
                         <label className="sc-fill-grid-label">{t.name}</label>

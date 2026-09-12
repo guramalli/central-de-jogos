@@ -2948,6 +2948,33 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin: 16px 0 12px;
 }
 
+/* Voto "MUITO BOA" na validação de palavras (sala privada por votos). */
+.votacao-top { color: var(--titulo-ouro, #ffd60a); }
+.votacao-linha-top {
+  border-color: var(--titulo-ouro, #ffd60a);
+  background: rgba(255, 214, 10, 0.1);
+}
+
+/* Palavra destacada pela mesa, no resultado da rodada. */
+.sc-word-destaque { color: var(--titulo-ouro, #ffd60a); margin-left: 4px; }
+
+/* Campo de senha com o botão de mostrar/esconder. */
+.senha-campo { position: relative; margin-top: 12px; }
+.senha-campo input { width: 100%; padding-right: 44px; }
+.senha-olho {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.senha-olho:hover { color: var(--accent-2); }
+
 /* ===== Hall da Fama: números ===== */
 .hall-numeros {
   display: flex;

@@ -2,6 +2,40 @@
 // acrescentar uma entrada aqui — StopRoom.js lê esses valores no lugar de
 // usar tempos fixos, e a checagem de pontuação mínima já é aplicada
 // automaticamente na entrada (join) de cada sala.
+// TEMAS QUE **NÃO** ENTRAM NAS SALAS QUE PONTUAM.
+//
+// Lista explícita, editada à mão — de propósito. Já existiu aqui uma regra
+// automática ("tema com 50+ palavras entra sozinho") e ela foi removida:
+// a decisão de abrir um tema é de produto, não de contagem. Um tema pode ter
+// 300 palavras e ainda assim você não querer soltá-lo ainda.
+//
+// Enquanto a chave estiver aqui, o tema só aparece nas SALAS PRIVADAS com
+// validação por VOTO, onde quem julga é a mesa e o glossário não é usado.
+//
+// PRA LIBERAR um tema: apague a linha dele daqui e faça o deploy. Confira
+// antes se o glossário está redondo, porque em sala normal a validação é
+// correspondência exata — palavra real que falte vira ponto perdido.
+export const TEMAS_SO_EM_SALA_PRIVADA = new Set([
+  // Anime e HQ saiu daqui com 569 palavras — o maior dos temas novos.
+  //
+  // Sistema Solar, Flores, Peixes e Cobras SAÍRAM daqui: liberados nas salas
+  // Intermediária e Avançada depois de ganharem glossário (270, 544, 463 e
+  // 207 palavras). As salas Padrão têm lista fixa própria, então não são
+  // afetadas — pra colocá-los lá, some a chave ao fixedThemeKeys da sala.
+  //
+  // AVES e INSETOS continuam travados, e por motivos diferentes:
+  //   - Insetos tem ~26 palavras, abaixo do mínimo de 50. Numa sala que
+  //     pontua, a maioria das respostas legítimas seria recusada.
+  //   - Aves tem ~60, o que já daria — mas veio só da segmentação de
+  //     Animais, sem curadoria própria. Vale conferir a lista antes.
+  "aves",
+  "insetos",
+  // "estilosMusicais" saiu daqui: liberado nas salas Intermediária e
+  // Avançada, que sorteiam entre TODOS os temas disponíveis. As salas Padrão
+  // têm lista fixa própria (fixedThemeKeys), então ele não entra nelas —
+  // pra isso, some a chave "estilosMusicais" à lista da sala desejada.
+]);
+
 export const ROOM_CONFIGS = {
   // ===== Sala da Zoeira =====
   // Sala pra rir, não pra competir. Usa temas escrachados que não caem nas

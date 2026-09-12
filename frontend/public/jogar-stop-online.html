@@ -74,8 +74,25 @@
       table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; }
       th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
       th { color: var(--accent); }
+      /* A lista antiga de temas (só os nomes) foi substituída por explicações
+         do que cada um aceita. As regras .temas ficam pra não quebrar nada
+         que ainda as use. */
       .temas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; list-style: none; padding: 0; }
       .temas li { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+
+      .temas-explicados { margin: 0 0 24px; }
+      .temas-explicados dt {
+        font-weight: 700;
+        margin-top: 16px;
+        color: var(--accent, #ffb86f);
+      }
+      .temas-explicados dd {
+        margin: 4px 0 0;
+        padding-left: 0;
+        line-height: 1.6;
+      }
+      .temas-explicados em { color: var(--dim); font-style: normal; }
+      h3 { margin-top: 32px; font-size: 18px; }
       footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 20px; text-align: center; color: var(--dim); font-size: 14px; }
     </style>
   </head>
@@ -129,30 +146,183 @@
         Quem lembrar de "açaí" ou "amora" leva os 10.
       </p>
 
-      <h2>Temas do jogo</h2>
-      <p>Estes são alguns dos temas que podem ser sorteados numa partida:</p>
-      <ul class="temas">
-        <li>Nome de pessoa</li>
-        <li>Cor</li>
-        <li>CEP (cidade, estado, país)</li>
-        <li>Profissão</li>
-        <li>Animal</li>
-        <li>Fruta</li>
-        <li>Objeto</li>
-        <li>Marca</li>
-        <li>Filme</li>
-        <li>Novela ou série</li>
-        <li>Banda musical</li>
-        <li>Instrumento musical</li>
-        <li>Time de futebol</li>
-        <li>Raça de cachorro</li>
-        <li>Idioma</li>
-        <li>Gentílico de país</li>
-        <li>Elemento químico</li>
-        <li>Ensino superior</li>
-        <li>Ossos do corpo humano</li>
-        <li>Verbos</li>
-      </ul>
+      <h2>Temas do jogo: o que vale em cada um</h2>
+      <p>
+        Saber o que o tema aceita é metade do jogo. A lista abaixo diz o que entra
+        e o que não entra em cada um — é a mesma regra que o sistema usa para
+        validar as palavras.
+      </p>
+
+      <h3>Temas do dia a dia</h3>
+      <dl class="temas-explicados">
+        <dt>Nome de pessoa</dt>
+        <dd>
+          Nome próprio, inclusive composto (<em>Maria Eduarda</em>, <em>João Pedro</em>).
+          Vale o nome pelo qual a pessoa é conhecida, não sobrenome sozinho.
+        </dd>
+
+        <dt>Cor</dt>
+        <dd>
+          Nome de cor, incluindo as compostas (<em>azul-marinho</em>, <em>verde-água</em>)
+          e as que vêm de material ou fruta (<em>cobre</em>, <em>pêssego</em>, <em>musgo</em>).
+          Não vale qualidade: <em>claro</em>, <em>escuro</em> e <em>fosco</em> não são cores.
+        </dd>
+
+        <dt>CEP (cidade, estado, país)</dt>
+        <dd>Qualquer um dos três, do Brasil ou do mundo.</dd>
+
+        <dt>Profissão</dt>
+        <dd>Ofício ou cargo. Vale a forma masculina ou feminina.</dd>
+
+        <dt>Objeto</dt>
+        <dd>Coisa física que dá pra pegar. Não vale conceito nem sentimento.</dd>
+
+        <dt>Verbos</dt>
+        <dd>No infinitivo (<em>correr</em>, <em>pensar</em>), que é como se digita mais rápido.</dd>
+
+        <dt>Idioma</dt>
+        <dd>
+          Língua, viva ou histórica. <strong>Não vale gentílico</strong>: o idioma do
+          Afeganistão é o pashto, não "afegão". Nacionalidade tem tema próprio.
+        </dd>
+
+        <dt>Gentílico de país</dt>
+        <dd>Como se chama quem nasce no país: <em>argentino</em>, <em>japonês</em>, <em>queniano</em>.</dd>
+      </dl>
+
+      <h3>Natureza</h3>
+      <dl class="temas-explicados">
+        <dt>Mamíferos</dt>
+        <dd>
+          Só mamíferos — o tema era "Animais" e foi separado. Ave, peixe, cobra e
+          inseto <strong>não valem mais</strong> aqui; alguns têm tema próprio agora.
+          Nome em português: <em>cabra-montês</em>, não "ibex".
+        </dd>
+
+        <dt>Peixes</dt>
+        <dd>
+          Peixes de mar e de água doce, ornamentais inclusive. Vale nome popular e
+          científico. Os regionais brasileiros rendem muito: <em>pacu</em>,
+          <em>curimbatá</em>, <em>matrinxã</em>, <em>surubim</em>.
+        </dd>
+
+        <dt>Cobras</dt>
+        <dd>
+          Serpentes pelo nome popular, científico <strong>ou em inglês</strong> —
+          muita cobra é conhecida assim. Valem <em>jararaca</em>, <em>Bothrops</em>
+          e <em>rattlesnake</em>.
+        </dd>
+
+        <dt>Flores</dt>
+        <dd>
+          Flores do Brasil e do mundo, pelo nome popular ou científico
+          (<em>copo-de-leite</em> ou <em>Zantedeschia</em>). Planta ornamental que
+          não floresce não vale — samambaia e cacto ficam de fora.
+        </dd>
+
+        <dt>Frutas</dt>
+        <dd>
+          Fruta de verdade, em português. As regionais brasileiras são as que mais
+          rendem: <em>bacuri</em>, <em>pitomba</em>, <em>grumixama</em>, <em>taperebá</em>.
+        </dd>
+
+        <dt>Raça de cachorro</dt>
+        <dd>Vale o nome estrangeiro, que é como se conhece: <em>pinscher</em>, <em>shih tzu</em>.</dd>
+      </dl>
+
+      <h3>Cultura e entretenimento</h3>
+      <dl class="temas-explicados">
+        <dt>Filme</dt>
+        <dd>
+          Qualquer filme, <strong>incluindo animação</strong>. Série não vale aqui —
+          tem tema próprio. Use o título como é conhecido no Brasil.
+        </dd>
+
+        <dt>Novela ou série</dt>
+        <dd>
+          Novela e série em imagem real, nacional ou estrangeira.
+          <strong>Desenho e anime não valem</strong> — vão para o tema de Anime e HQ.
+        </dd>
+
+        <dt>Anime e HQ</dt>
+        <dd>
+          Obras e personagens de anime, mangá e quadrinhos. Entram tanto o título
+          quanto o personagem, e as duas formas do nome quando circulam
+          (<em>Cavaleiros do Zodíaco</em> e <em>Saint Seiya</em>).
+        </dd>
+
+        <dt>Cantor ou banda</dt>
+        <dd>
+          Cantor, banda, dupla ou grupo. Vale o nome artístico, não o de batismo:
+          <em>Anitta</em>, e não o nome civil dela.
+        </dd>
+
+        <dt>Estilos musicais</dt>
+        <dd>
+          Gênero musical — <em>samba</em>, <em>rock</em>, <em>piseiro</em>, <em>trap</em>.
+          Artista e banda não valem aqui: "Rock" é gênero, "Rolling Stones" é banda.
+        </dd>
+
+        <dt>Games</dt>
+        <dd>Jogos eletrônicos, pelo nome original.</dd>
+
+        <dt>Time de futebol</dt>
+        <dd>Clubes do Brasil e do mundo.</dd>
+
+        <dt>Marca</dt>
+        <dd>Marca comercial de qualquer setor.</dd>
+      </dl>
+
+      <h3>Conhecimento</h3>
+      <dl class="temas-explicados">
+        <dt>Sistema Solar</dt>
+        <dd>
+          Tema largo: planetas e planetas anões, luas, asteroides, cometas,
+          constelações, estrelas, nebulosas, crateras de Marte e fenômenos solares.
+          Valem <em>Ganimedes</em>, <em>Halley</em>, <em>Órion</em> e <em>vento solar</em>.
+        </dd>
+
+        <dt>Elemento químico</dt>
+        <dd>Os 118 da tabela periódica, pelo nome em português.</dd>
+
+        <dt>Ossos do corpo humano</dt>
+        <dd>Nome anatômico: <em>fêmur</em>, <em>úmero</em>, <em>escápula</em>.</dd>
+
+        <dt>Instrumento musical</dt>
+        <dd>De qualquer família — corda, sopro, percussão.</dd>
+
+        <dt>Ensino superior</dt>
+        <dd>Cursos de graduação.</dd>
+
+        <dt>Esportes</dt>
+        <dd>
+          Esporte ou modalidade. Vale o nome estrangeiro quando é assim que se
+          conhece: <em>skate</em>, <em>muay thai</em>, <em>crossfit</em>.
+        </dd>
+      </dl>
+
+      <h3>Sala da Zoeira</h3>
+      <p>
+        Essa sala tem temas próprios e escrachados — "coisa da sogra", "motivo de
+        término", "meme da internet". Lá <strong>não existe lista de palavras
+        certas</strong>: quem decide é a mesa, na votação. Por isso ela não vale
+        pontos no ranking.
+      </p>
+
+      <h2>Quando a palavra não é aceita</h2>
+      <p>
+        Se você escreveu uma palavra que existe e ela foi recusada, é porque ainda
+        não está no glossário do tema. Nesse caso aparece um botão de
+        <strong>sugerir</strong> ao lado dela no resultado da rodada — e qualquer
+        jogador da sala pode sugerir a palavra de qualquer um, não só a própria.
+        Sugestões aprovadas passam a valer para todo mundo nas próximas partidas.
+      </p>
+      <p>
+        Nas <strong>salas privadas</strong> você pode escolher outro caminho: em vez
+        da conferência automática, a mesa vota se cada palavra vale. Nesse modo
+        qualquer palavra que os jogadores aceitarem conta — e dá para marcar uma
+        como <strong>muito boa</strong>, que rende 5 pontos extras a quem escreveu.
+      </p>
 
       <h2>Dicas para pontuar mais</h2>
       <h3>1. Comece pelos temas fáceis</h3>

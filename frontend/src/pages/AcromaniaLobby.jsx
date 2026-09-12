@@ -52,6 +52,8 @@ export default function AcromaniaLobby() {
             lobby achar no outro sem procurar. */}
         <div className="hero-lado">
           <Link to="/patentes-acromania" className="retro-btn">🏆 Ver patentes</Link>
+          {/* Sala privada: tempos à escolha e sem valer ranking. */}
+          <Link to="/jogos/acromania/privada" className="retro-btn">🔒 Sala privada</Link>
         </div>
       </div>
 
