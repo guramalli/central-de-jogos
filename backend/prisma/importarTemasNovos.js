@@ -24,6 +24,8 @@ import { FRUTAS_NOVAS } from "./data/stopWordsFrutasNovas.js";
 import { ESPORTES_NOVAS } from "./data/stopWordsEsportesNovas.js";
 import { NOVELAS_SERIES_NOVAS } from "./data/stopWordsNovelasSeriesNovas.js";
 import { FILMES_NOVAS } from "./data/stopWordsFilmesNovas.js";
+import { BANDAS_NOVAS } from "./data/stopWordsBandasNovas.js";
+import { NOMES_NOVAS } from "./data/stopWordsNomesNovas.js";
 
 const confirmar = process.argv.includes("--confirmar");
 
@@ -48,6 +50,8 @@ const LOTES = [
   { key: "esportes", nome: "Esportes (reforço)", palavras: ESPORTES_NOVAS },
   { key: "novelas_series", nome: "Novelas e Séries (reforço)", palavras: NOVELAS_SERIES_NOVAS },
   { key: "filmes", nome: "Filmes (reforço)", palavras: FILMES_NOVAS },
+  { key: "bandas_musicais", nome: "Cantor ou Banda (reforço)", palavras: BANDAS_NOVAS },
+  { key: "nomes_pessoas", nome: "Nomes de Pessoas (reforço)", palavras: NOMES_NOVAS },
 ];
 
 async function main() {
