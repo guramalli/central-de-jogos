@@ -33,6 +33,9 @@ export default function SalaPrivada() {
   // Sala que o jogador clicou e que pede senha.
   const [pedindoSenha, setPedindoSenha] = useState(null);
   const [senhaDigitada, setSenhaDigitada] = useState("");
+  // Senha mascarada por padrão: quem cria a sala numa transmissão ao vivo
+  // estaria expondo a senha pra toda a audiência. O olho permite conferir.
+  const [verSenha, setVerSenha] = useState(false);
 
   useEffect(() => {
     api.get("/salas-privadas/temas").then(({ data }) => setTemas(data)).catch(() => {});
@@ -233,13 +236,27 @@ export default function SalaPrivada() {
             </div>
 
             {comSenha && (
-              <input
-                placeholder="Defina a senha da sala"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value.slice(0, 20))}
-                maxLength={20}
-                style={{ marginTop: 12 }}
-              />
+              <div className="senha-campo">
+                <input
+                  type={verSenha ? "text" : "password"}
+                  placeholder="Defina a senha da sala"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value.slice(0, 20))}
+                  maxLength={20}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="senha-olho"
+                  onClick={() => setVerSenha((v) => !v)}
+                  title={verSenha ? "Esconder a senha" : "Mostrar a senha"}
+                  aria-label={verSenha ? "Esconder a senha" : "Mostrar a senha"}
+                >
+                  <span className="material-symbols-outlined">
+                    {verSenha ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -364,7 +381,9 @@ export default function SalaPrivada() {
                   todo mundo junto. Cada tema avança assim que todos votarem — ou quando o tempo
                   dele acabar. Com mesa grande, o tempo de cada tema{" "}
                   <strong>cresce sozinho</strong> conforme o número de palavras. Palavra sem voto é{" "}
-                  <strong>aceita</strong>.
+                  <strong>aceita</strong>. E dá pra marcar uma palavra como{" "}
+                  <strong>⭐ muito boa</strong>: ela vale e ainda rende <strong>+5</strong> pra quem
+                  escreveu.
                 </p>
               </>
             )}
@@ -413,9 +432,11 @@ export default function SalaPrivada() {
               }}
             >
               <input
+                type="password"
                 placeholder="Senha da sala"
                 value={senhaDigitada}
                 onChange={(e) => setSenhaDigitada(e.target.value)}
+                autoComplete="off"
                 autoFocus
               />
               <button className="btn" type="submit" style={{ width: "100%" }}>

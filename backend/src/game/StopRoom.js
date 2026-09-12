@@ -16,6 +16,11 @@ import { nomeComTitulo, destaqueDeTitulo } from "../utils/tituloEntrada.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
+
+// Bônus por palavra marcada como "MUITO BOA" na mesa (só em sala privada com
+// validação por voto). Valor pequeno de propósito: premia a sacada criativa
+// sem desequilibrar a rodada, que já vale 15 por palavra solitária.
+const BONUS_DESTAQUE = 5;
 const LETTERS = "ABCDEFGHIJLMNOPQRSTUVXZ".split(""); // agora inclui X e Z também
 
 // Peso de cada letra no sorteio. Letras com poucas palavras em português
@@ -1169,7 +1174,15 @@ export class StopRoom {
     const tema = this.votingTemas?.[this.temaAtualIndex];
     if (!tema || tema.key !== themeKey) return;
 
-    this.wordVotes.set(`${userId}:${targetUserId}:${themeKey}`, !!valido);
+    // `valido` aceita três valores:
+    //   true  -> palavra válida
+    //   false -> palavra inválida
+    //   "top" -> válida E muito boa (rende bônus pra quem escreveu)
+    //
+    // Guardado como string quando é "top" pra não quebrar quem já lê o
+    // booleano: em toda comparação, "top" continua sendo valor verdadeiro.
+    const voto = valido === "top" ? "top" : !!valido;
+    this.wordVotes.set(`${userId}:${targetUserId}:${themeKey}`, voto);
     this.broadcast("voting-progress", this.progressoVotacao());
 
     // Todo mundo votou nesse tema: não faz sentido esperar o relógio.
@@ -1186,20 +1199,31 @@ export class StopRoom {
     if (this.state !== "voting") return;
     this.clearTimer();
 
-    // Apura: monta o conjunto de palavras REPROVADAS pela maioria.
+    // Apura: reprovadas pela maioria, e as que a mesa achou MUITO BOAS.
     const reprovadas = new Set(); // "targetId:themeKey"
+    const destaques = new Set(); // "targetId:themeKey" — ganham bônus
     for (const item of this.votingItems || []) {
       let sim = 0;
       let nao = 0;
+      let top = 0;
       for (const [chave, valido] of this.wordVotes.entries()) {
         const [, alvo, tema] = chave.split(":");
         if (alvo === item.userId && tema === item.themeKey) {
-          valido ? sim++ : nao++;
+          if (valido === "top") {
+            top++;
+            sim++; // "muito boa" também é um voto de válida
+          } else if (valido) sim++;
+          else nao++;
         }
       }
       // Maioria simples entre quem votou. Empate mantém a palavra —
       // na dúvida, o benefício vai pra quem escreveu.
       if (nao > sim) reprovadas.add(`${item.userId}:${item.themeKey}`);
+      // Basta UM "muito boa" pra render o bônus, desde que a palavra não
+      // tenha sido reprovada. Exigir maioria faria o destaque quase nunca
+      // acontecer numa mesa pequena — e o objetivo é premiar a sacada, não
+      // eleger a melhor.
+      else if (top > 0) destaques.add(`${item.userId}:${item.themeKey}`);
     }
 
     if (reprovadas.size > 0) {
@@ -1208,13 +1232,17 @@ export class StopRoom {
       this.systemMessage("🗳️ Votação encerrada: todas as palavras foram aceitas!");
     }
 
-    return this.gradeRound(activePlayers, currentMonthKey(), reprovadas);
+    if (destaques.size > 0) {
+      this.systemMessage(`⭐ ${destaques.size} palavra(s) marcada(s) como MUITO BOA — bônus de ${BONUS_DESTAQUE} pts!`, false, true);
+    }
+
+    return this.gradeRound(activePlayers, currentMonthKey(), reprovadas, destaques);
   }
 
   // ===== Correção da rodada =====
   // `reprovadasPorVoto` só vem preenchido em sala privada; nas salas normais
   // é null e a validação segue pelo glossário, como sempre.
-  async gradeRound(activePlayers, monthKey, reprovadasPorVoto) {
+  async gradeRound(activePlayers, monthKey, reprovadasPorVoto, destaques) {
     this.state = "grading";
 
     // Progresso de missões. Sem await: é registro paralelo e não pode
@@ -1287,14 +1315,19 @@ export class StopRoom {
           }
 
           const count = wordCount.get(norm) || 1;
+          // A mesa marcou esta palavra como MUITO BOA: soma em cima do que
+          // ela já valeria. O destaque premia a sacada, não substitui a regra.
+          const ehDestaque = !!destaques?.has(`${p.userId}:${theme.key}`);
+          const extra = ehDestaque ? BONUS_DESTAQUE : 0;
+
           if (count > 1) {
-            entry[theme.key] = { word: raw, status: "duplicate", points: 5 };
+            entry[theme.key] = { word: raw, status: "duplicate", points: 5 + extra, destaque: ehDestaque };
           } else if (playerNorm.size === 1) {
             // Foi o ÚNICO jogador da sala a acertar QUALQUER palavra nesse tema
             // (não só a única palavra diferente) — vale um bônus extra.
-            entry[theme.key] = { word: raw, status: "solo", points: 15 };
+            entry[theme.key] = { word: raw, status: "solo", points: 15 + extra, destaque: ehDestaque };
           } else {
-            entry[theme.key] = { word: raw, status: "correct", points: 10 };
+            entry[theme.key] = { word: raw, status: "correct", points: 10 + extra, destaque: ehDestaque };
           }
         }
       }

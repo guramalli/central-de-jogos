@@ -332,12 +332,19 @@ export function setupSocket(io) {
       // A regra continua valendo pra todo mundo: sem isso, qualquer pessoa
       // poderia abrir conversa com desconhecidos, que é porta pra incômodo.
       if (!friendship) {
-        const quem = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { role: true },
-        });
-        const ehStaff = quem?.role === "ADMIN" || quem?.role === "MODERATOR";
-        if (!ehStaff) {
+        const [quem, oOutro] = await Promise.all([
+          prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
+          prisma.user.findUnique({ where: { id: friendUserId }, select: { role: true } }),
+        ]);
+        const ehStaff = (u) => u?.role === "ADMIN" || u?.role === "MODERATOR";
+
+        // Conversa com staff libera OS DOIS LADOS.
+        //
+        // Antes a exceção valia só pra quem ABRIA a conversa: o admin falava
+        // com qualquer jogador, mas o jogador não conseguia responder —
+        // batia na regra de amizade e a conversa morria numa via só. Quem
+        // recebe uma mensagem da administração precisa poder responder.
+        if (!ehStaff(quem) && !ehStaff(oOutro)) {
           socket.emit("dm-error", { error: "Vocês precisam ser amigos pra conversar." });
           return;
         }

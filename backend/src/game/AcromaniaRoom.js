@@ -473,9 +473,11 @@ export class AcromaniaRoom {
     // em 16 segundos, então o tempo acompanha a quantidade — mais modesto
     // que na votação, porque aqui a pessoa só confere, não precisa julgar.
     const quantas = this.lastResult?.entries?.length || 0;
+    // Aqui a pessoa só CONFERE (quem venceu, quanto cada um fez), não julga —
+    // por isso 2,5s por frase em vez dos 5s da votação.
     this.timeLeft = Math.min(
-      34,
-      Math.max(this.intermissionSeconds, Math.ceil(quantas * 1.6 + 6))
+      50,
+      Math.max(this.intermissionSeconds, Math.ceil(quantas * 2.5 + 6))
     );
     this.broadcast("acromania-intermission", {
       waitingForPlayers,
@@ -608,10 +610,16 @@ export class AcromaniaRoom {
   // Custa nada quando a sala é rápida: a votação encerra assim que todos
   // votam, então o teto maior só existe pra quem precisa dele.
   tempoDeVotacao(quantasFrases) {
-    const necessario = Math.ceil(quantasFrases * 3 + 6);
-    // Nunca menos que o configurado, nunca mais que 60s (acima disso a
-    // rodada arrasta pra quem já votou).
-    return Math.min(60, Math.max(this.votingSeconds, necessario));
+    // 5s por frase, e não 3.
+    //
+    // A conta anterior supunha 2,5s pra "ler e decidir", mas aqui não se lê:
+    // se JULGA criatividade, e comparando com as outras. Com a sala cheia o
+    // tempo não dava, segundo quem jogou. 5s por frase é o que sobrou como
+    // realista — mais generoso do que parece, porque quem já decidiu vota e
+    // a rodada encerra assim que todos votam.
+    const necessario = Math.ceil(quantasFrases * 5 + 8);
+    // Teto de 90s: com 15 frases dá 83s, então o teto quase nunca corta.
+    return Math.min(90, Math.max(this.votingSeconds, necessario));
   }
 
   async startVoting() {
