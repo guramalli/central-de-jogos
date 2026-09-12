@@ -20,6 +20,7 @@
     "fechar-mes": "node scripts/fecharMes.js",
     "triar-palavras": "node scripts/triarPalavras.js",
     "limpar-letras": "node scripts/limparLetras.js",
+    "listar-palavras": "node scripts/listarPalavras.js",
     "add-temas": "node scripts/addTemas.js",
     "importar-temas-novos": "node prisma/importarTemasNovos.js",
     "prisma:import-quiznet": "node prisma/importQuiznet.js",

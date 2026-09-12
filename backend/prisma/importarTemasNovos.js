@@ -17,6 +17,10 @@
 import { prisma } from "../src/db.js";
 import { ANIME_HQ_WORDS } from "./data/stopWordsAnimeHq.js";
 import { ESTILOS_MUSICAIS_WORDS } from "./data/stopWordsEstilosMusicais.js";
+import { ANIMAIS_NOVAS } from "./data/stopWordsAnimaisNovas.js";
+import { COR_NOVAS } from "./data/stopWordsCorNovas.js";
+import { IDIOMAS_NOVAS } from "./data/stopWordsIdiomasNovas.js";
+import { FRUTAS_NOVAS } from "./data/stopWordsFrutasNovas.js";
 
 const confirmar = process.argv.includes("--confirmar");
 
@@ -29,6 +33,15 @@ const LETRAS_DO_SORTEIO = new Set("ABCDEFGHIJLMNOPQRSTUVXZ".split(""));
 const LOTES = [
   { key: "animeHq", nome: "Anime e HQ", palavras: ANIME_HQ_WORDS },
   { key: "estilosMusicais", nome: "Estilos Musicais", palavras: ESTILOS_MUSICAIS_WORDS },
+  // Reforço do tema Animais: X estava vazia e 18 letras tinham menos de 8
+  // palavras. As que já existiam não estão aqui — o @@unique protegeria de
+  // qualquer forma, mas a lista foi escrita conferindo o que já havia.
+  { key: "animais", nome: "Animais (reforço)", palavras: ANIMAIS_NOVAS },
+  // Cor está nas duas Salas Padrão — as mais movimentadas do site.
+  { key: "cor", nome: "Cor (reforço)", palavras: COR_NOVAS },
+  // Idiomas também está nas duas Salas Padrão.
+  { key: "idiomas", nome: "Idiomas (reforço)", palavras: IDIOMAS_NOVAS },
+  { key: "frutas", nome: "Frutas (reforço)", palavras: FRUTAS_NOVAS },
 ];
 
 async function main() {
