@@ -32,10 +32,13 @@ export function quantidadeDeBots() {
 }
 
 const BOTS = [
-  { nickname: "Robozinho", email: "bot1@bots.educacaogamer.local" },
-  { nickname: "Tagarela", email: "bot2@bots.educacaogamer.local" },
-  { nickname: "Palpiteiro", email: "bot3@bots.educacaogamer.local" },
-  { nickname: "Rabisco", email: "bot4@bots.educacaogamer.local" },
+  // Nomes diretos, no lugar dos antigos ("Robozinho", "Tagarela"). Com nome
+  // de gente o jogador demora pra perceber que está jogando com bot; com
+  // "Bot1" ele sabe na hora, e isso importa mais do que a graça do apelido.
+  { nickname: "Bot1", email: "bot1@bots.educacaogamer.local" },
+  { nickname: "Bot2", email: "bot2@bots.educacaogamer.local" },
+  { nickname: "Bot3", email: "bot3@bots.educacaogamer.local" },
+  { nickname: "Bot4", email: "bot4@bots.educacaogamer.local" },
 ];
 
 // Banco de palavras por letra inicial. As frases do Acromania precisam ter
@@ -92,7 +95,16 @@ async function garantirContas(quantos) {
   for (const def of BOTS.slice(0, quantos)) {
     const conta = await prisma.user.upsert({
       where: { email: def.email },
-      update: { isGuest: true, ocultoNoRanking: true, banned: false },
+      // O nickname vai no UPDATE de propósito: as contas dos bots já existem
+      // no banco com os nomes antigos, e sem isto elas continuariam
+      // aparecendo como "Robozinho" pra sempre — mudar a lista acima não
+      // renomeia quem já foi criado.
+      update: {
+        nickname: def.nickname,
+        isGuest: true,
+        ocultoNoRanking: true,
+        banned: false,
+      },
       create: {
         nickname: def.nickname,
         email: def.email,

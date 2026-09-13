@@ -192,9 +192,19 @@ const PESO_LETRAS = {
   O: 2.5,
   I: 2,
   U: 1.8,
-  // Únicas que seguem abaixo do normal. Não por serem "difíceis", mas
-  // porque puxam pra um vocabulário estreito demais quando saem juntas.
-  H: 0.8,
+  // Abaixo do normal. Não por serem "difíceis" de lembrar uma palavra, mas
+  // porque puxam pra um vocabulário estreito — e vocabulário estreito é
+  // menos piada possível, que é o oposto do objetivo aqui.
+  //
+  // H é o caso mais claro: quase tudo que começa com H em português é
+  // substantivo (hoje, hora, homem, hotel), e substantivo sozinho não
+  // constrói frase engraçada.
+  //
+  // R tem verbos bons (rir, roubar, resolver), mas na prática a mesa cai
+  // sempre nos mesmos — quem joga percebeu antes de qualquer análise de
+  // vocabulário.
+  H: 0.5,
+  R: 0.6,
   G: 0.9,
 };
 
