@@ -81,6 +81,9 @@ export class AcromaniaRoom {
     // escolhidos a dedo, e contar isso no mesmo ranking que paga prêmio
     // seria abrir uma porta óbvia pra combinar pontos.
     this.semPontuacao = !!config.semPontuacao;
+    // Bots chamados pelos jogadores (botão na sala), separado dos bots de
+    // teste que vêm da variável de ambiente.
+    this.botsPedidos = false;
     this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
@@ -406,7 +409,14 @@ export class AcromaniaRoom {
         b.roomLifetimePoints - a.roomLifetimePoints ||
         a.nickname.localeCompare(b.nickname)
     );
-    this.broadcast("acromania-online-players", { players: list });
+    this.broadcast("acromania-online-players", {
+      players: list,
+      // Vai junto da lista de jogadores porque esta é a mensagem que todo
+      // mundo recebe ao entrar — quem chega no meio precisa saber que a sala
+      // está em modo treino.
+      botsPedidos: this.botsPedidos,
+      permiteBots: this.permiteBots && !this.privada,
+    });
   }
 
   broadcast(event, data) {
@@ -837,7 +847,16 @@ export class AcromaniaRoom {
     // Sala sem pontuação: a rodada acontece igual, o placar da partida
     // funciona igual, mas nada é gravado no banco. A trava fica AQUI, num
     // ponto só, em vez de espalhada por cada upsert.
-    if (this.semPontuacao) return;
+    //
+    // COM BOTS NA SALA, TAMBÉM NÃO PONTUA — e este é o ponto central do
+    // botão de chamar bots. Bot VOTA, e voto é o que gera ponto no
+    // Acromania: 15 por voto recebido, 50 pra frase mais votada. Uma pessoa
+    // sozinha com três bots ganharia votos todas as rodadas, sem disputa
+    // nenhuma. Seria a forma mais fácil de farmar ponto do site inteiro.
+    //
+    // Por isso a regra é simples e dita na tela: chamou bot, a partida vira
+    // treino. Quem quer pontuar joga com gente.
+    if (this.semPontuacao || this.botsPedidos) return;
 
     for (const winner of aPontuar) {
       const pts = winner.pts;
@@ -1014,7 +1033,7 @@ export class AcromaniaRoom {
           true
         );
 
-        if (this.semPontuacao) continue;
+        if (this.semPontuacao || this.botsPedidos) continue;
 
         try {
           await prisma.monthlyScore.upsert({

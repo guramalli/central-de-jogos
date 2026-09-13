@@ -63,6 +63,10 @@ export default function AcromaniaGame() {
   // Bônus por ter votado na frase vencedora. Chega só pra quem acertou.
   const [bonusVoto, setBonusVoto] = useState(0);
   const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
+  // Jogadores automáticos chamados por alguém da sala. Enquanto estiverem
+  // aqui, a partida não vale ranking.
+  const [botsPedidos, setBotsPedidos] = useState(false);
+  const [permiteBots, setPermiteBots] = useState(false);
 
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -156,7 +160,12 @@ export default function AcromaniaGame() {
       navigate(-1);
     });
 
-    socket.on("acromania-online-players", (data) => setOnlinePlayers(data.players || []));
+    socket.on("acromania-online-players", (data) => {
+      setOnlinePlayers(data.players || []);
+      if (data.botsPedidos !== undefined) setBotsPedidos(data.botsPedidos);
+      if (data.permiteBots !== undefined) setPermiteBots(data.permiteBots);
+    });
+    socket.on("acromania-bots-ligados", () => setBotsPedidos(true));
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
     // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
@@ -272,6 +281,7 @@ export default function AcromaniaGame() {
       socket.off("acromania-room-full");
       socket.off("acromania-room-state");
       socket.off("acromania-online-players");
+      socket.off("acromania-bots-ligados");
       socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("acromania-chat-message");
       socket.off("acromania-intermission");
@@ -403,6 +413,24 @@ export default function AcromaniaGame() {
                     O Acromania só roda com pelo menos <strong>{waitingInfo.minPlayersToStart}</strong> pessoas
                     na sala — agora tem <strong>{waitingInfo.onlineCount}</strong>. Chama mais gente!
                   </p>
+
+                  {/* O botão aparece justamente aqui: é o momento em que a
+                      pessoa percebe que está sozinha e ia embora. */}
+                  {permiteBots && !botsPedidos && (
+                    <div className="acro-bots-convite">
+                      <button
+                        className="btn secondary"
+                        onClick={() => socketRef.current?.emit("acromania-chamar-bots", { quantos: 2 })}
+                      >
+                        🤖 Jogar com jogadores automáticos
+                      </button>
+                      <p className="acro-bots-aviso">
+                        Dá pra jogar sozinho pra treinar. Mas atenção: enquanto eles estiverem
+                        na sala, <strong>a partida não vale pontos no ranking</strong> — bot vota,
+                        e voto é o que gera ponto aqui.
+                      </p>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -414,6 +442,12 @@ export default function AcromaniaGame() {
           )}
 
           {(phase === "writing" || phase === "voting" || phase === "grading") && theme && (
+            <>
+            {botsPedidos && (
+              <div className="acro-modo-treino">
+                🤖 Modo treino — com jogadores automáticos na sala, esta partida não vale ranking.
+              </div>
+            )}
             <div className="acro-theme-block">
               <div className="acro-theme-label">Tema: <strong>{theme}</strong></div>
               <div className="acro-letters-row">
@@ -422,6 +456,7 @@ export default function AcromaniaGame() {
                 ))}
               </div>
             </div>
+            </>
           )}
 
           {phase === "writing" && (

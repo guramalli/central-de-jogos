@@ -2481,6 +2481,31 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* ===== Acromania (reaproveita as classes .quiz-* pro visual base) ===== */
 .acro-theme-block { text-align: center; margin-bottom: 22px; }
+
+/* Convite pra chamar bots, na tela de espera. */
+.acro-bots-convite { margin-top: 18px; text-align: center; }
+.acro-bots-aviso {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  max-width: 42ch;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+/* Faixa que fica visível a partida inteira enquanto houver bot. Precisa
+   saltar aos olhos: quem entrou depois não viu o aviso do botão. */
+.acro-modo-treino {
+  text-align: center;
+  font-size: 12px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--danger, #e60000);
+  background: rgba(230, 0, 0, 0.1);
+  color: var(--qz-text, #e5e2e1);
+}
 .acro-theme-label {
   font-family: var(--qz-mono, monospace);
   font-size: 14px;

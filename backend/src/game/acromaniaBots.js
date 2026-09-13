@@ -132,8 +132,10 @@ function atraso(min, max) {
 // Liga os bots numa sala. Fica observando o estado da sala num timer próprio
 // e agindo nas transições — sem nenhum gancho dentro da AcromaniaRoom, o que
 // mantém o arquivo do jogo intocado.
-export async function ligarBotsNaSala(room) {
-  const quantos = quantidadeDeBots();
+export async function ligarBotsNaSala(room, forcarQuantidade = null) {
+  // `forcarQuantidade` vem do botão que os jogadores usam na sala. Sem ele,
+  // vale a variável de ambiente (uso de teste, como sempre foi).
+  const quantos = forcarQuantidade ?? quantidadeDeBots();
   if (quantos === 0) return;
 
   // Sala marcada com `bots: false` na config nunca recebe bot, mesmo com a

@@ -182,6 +182,29 @@ export function setupSocket(io) {
     // O try existe porque este handler é async: sem ele, uma falha ao criar a
     // sala ou ao entrar viraria unhandledRejection — o servidor não cai, mas
     // o jogador fica preso na tela de entrada sem nenhum aviso.
+    // Botão de chamar bots, dentro da sala. Qualquer jogador pode usar — não
+    // há o que proteger, já que a sala deixa de pontuar assim que eles
+    // entram, e a decisão afeta todo mundo que está lá.
+    socket.on("acromania-chamar-bots", async ({ quantos } = {}) => {
+      const room = socket.currentAcromaniaRoom;
+      if (!room) return;
+      // Sala privada nunca recebe bot, e sala marcada com bots:false também
+      // não — a checagem de verdade está no ligarBotsNaSala.
+      const n = Math.min(4, Math.max(1, Number(quantos) || 2));
+      if (room.botsPedidos) return; // já tem, não empilha
+      room.botsPedidos = true;
+      await ligarBotsNaSala(room, n);
+      room.systemMessage?.(
+        `🤖 ${nickname} chamou ${n} ${n === 1 ? "jogador automático" : "jogadores automáticos"}. ` +
+          `A partida vira TREINO: ninguém pontua no ranking enquanto eles estiverem aqui.`,
+        false,
+        true
+      );
+      // Avisa a tela que a sala virou treino, pra esconder o botão e mostrar
+      // o aviso de que não vale ranking.
+      room.broadcast?.("acromania-bots-ligados", { quantos: n });
+    });
+
     socket.on("join-acromania-room", async ({ roomId } = {}) => {
       // Barreira de verdade: sem isto, quem já estivesse com a página aberta
       // continuaria entrando mesmo com o jogo desligado no painel.
