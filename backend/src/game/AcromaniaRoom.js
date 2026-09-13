@@ -83,15 +83,9 @@ export class AcromaniaRoom {
     this.semPontuacao = !!config.semPontuacao;
     // Bots chamados pelos jogadores (botão na sala), separado dos bots de
     // teste que vêm da variável de ambiente.
+    // Só serve pra mostrar o aviso na tela e esconder o botão. Não afeta
+    // mais a pontuação.
     this.botsPedidos = false;
-    // A PARTIDA teve bot em algum momento? Diferente de `botsPedidos`, que
-    // diz se tem bot AGORA.
-    //
-    // Existe pra fechar uma brecha: sem isto, dava pra jogar a partida toda
-    // com bots — ganhando voto deles rodada após rodada — e dispensá-los na
-    // última, colhendo o bônus de fim de partida como se tivesse sido
-    // disputa real. Só zera quando uma partida NOVA começa.
-    this.partidaTeveBots = false;
     this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
@@ -603,6 +597,19 @@ export class AcromaniaRoom {
     }
   }
 
+  // Avisa QUEM já votou — só o nick, NUNCA em quem a pessoa votou.
+  //
+  // Essa distinção é o ponto todo: a votação do Acromania é anônima, e é o
+  // anonimato que faz as pessoas votarem na frase mais engraçada em vez de
+  // votarem no amigo. Saber que fulano já votou não revela nada; saber em
+  // quem ele votou estragaria o jogo.
+  broadcastVotedList() {
+    const jogadores = [...this.votes.keys()].map((userId) => ({
+      nickname: this.getNickname(userId),
+    }));
+    this.broadcast("acromania-votes-update", { jogadores });
+  }
+
   // Avisa a sala inteira QUEM já mandou a frase (só o nick, nunca o
   // conteúdo) — mostrado como uma lista de espera, tipo "aguardando".
   broadcastSubmittedList() {
@@ -722,6 +729,7 @@ export class AcromaniaRoom {
     if (entry.userId === userId) return; // não pode votar na própria frase
     this.votes.set(userId, entryId);
     socket.emit("acromania-vote-registered", { ok: true, entryId });
+    this.broadcastVotedList();
 
     // Simétrico ao submitPhrase: se todo mundo que está na sala já votou,
     // não faz sentido segurar a rodada até o cronômetro zerar. Com pouca
@@ -856,17 +864,22 @@ export class AcromaniaRoom {
     // funciona igual, mas nada é gravado no banco. A trava fica AQUI, num
     // ponto só, em vez de espalhada por cada upsert.
     //
-    // COM BOTS NA SALA, TAMBÉM NÃO PONTUA — e este é o ponto central do
-    // botão de chamar bots. Bot VOTA, e voto é o que gera ponto no
-    // Acromania: 15 por voto recebido, 50 pra frase mais votada. Uma pessoa
-    // sozinha com três bots ganharia votos todas as rodadas, sem disputa
-    // nenhuma. Seria a forma mais fácil de farmar ponto do site inteiro.
+    // SALA COM BOTS PONTUA NORMALMENTE.
     //
-    // Por isso a regra é simples e dita na tela: chamou bot, a partida vira
-    // treino. Quem quer pontuar joga com gente.
-    if (this.semPontuacao || this.botsPedidos) return;
+    // Chegou a existir uma trava aqui: bot vota, e voto gera ponto (15 por
+    // voto recebido, 50 pra mais votada), então quem jogasse com bots
+    // ganharia fácil. Foi removida por decisão de produto — o Acromania não
+    // paga prêmio nem entra no fechamento de campeões, então o único efeito
+    // seria subir patente, que é enfeite. Travar isso custava mais em
+    // confusão do que protegia.
+    //
+    // ⚠️ NÃO USE `return` NESTE PONTO DA FUNÇÃO. Tudo o que vem depois —
+    // montar o `lastResult` e emitir "acromania-round-result" — é o que
+    // MOSTRA o placar e destrava a rodada seguinte. Um `return` aqui já
+    // congelou o jogo na rodada 1, sem erro nenhum no log.
+    const gravarPontos = !this.semPontuacao;
 
-    for (const winner of aPontuar) {
+    for (const winner of gravarPontos ? aPontuar : []) {
       const pts = winner.pts;
       try {
         // Busca os pontos mensais ANTES de somar, pra comparar a patente de
@@ -1030,8 +1043,8 @@ export class AcromaniaRoom {
         if (bonus === undefined) continue;
 
         const medal = medals[entry.position - 1] || `${entry.position}º`;
-        // Em sala sem pontuação o pódio é anunciado do mesmo jeito — a
-        // disputa continua valendo pra quem está jogando —, só não vira
+        // Em sala sem pontuação (privada) o pódio é anunciado do mesmo jeito
+        // — a disputa continua valendo pra quem está jogando —, só não vira
         // ponto no ranking.
         this.systemMessage(
           this.semPontuacao
@@ -1041,7 +1054,7 @@ export class AcromaniaRoom {
           true
         );
 
-        if (this.semPontuacao || this.partidaTeveBots) continue;
+        if (this.semPontuacao) continue;
 
         try {
           await prisma.monthlyScore.upsert({
@@ -1065,10 +1078,6 @@ export class AcromaniaRoom {
 
     this.turnScores = new Map();
     this.turnRound = 0;
-    // Partida nova começa limpa: se os bots já foram dispensados, ela volta
-    // a valer ranking. Se ainda estiverem na sala, `botsPedidos` continua
-    // true e o marcador é reposto na primeira rodada.
-    this.partidaTeveBots = this.botsPedidos;
   }
 
   getNickname(userId) {

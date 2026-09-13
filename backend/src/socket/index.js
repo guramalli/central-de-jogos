@@ -193,16 +193,15 @@ export function setupSocket(io) {
       const n = Math.min(4, Math.max(1, Number(quantos) || 2));
       if (room.botsPedidos) return; // já tem, não empilha
       room.botsPedidos = true;
-      room.partidaTeveBots = true;
       await ligarBotsNaSala(room, n);
       room.systemMessage?.(
-        `🤖 ${nickname} chamou ${n} ${n === 1 ? "jogador automático" : "jogadores automáticos"}. ` +
-          `A partida vira TREINO: ninguém pontua no ranking enquanto eles estiverem aqui.`,
+        `🤖 ${nickname} chamou ${n} ${n === 1 ? "jogador automático" : "jogadores automáticos"} ` +
+          `pra sala não ficar parada. As frases deles são bobas de propósito.`,
         false,
         true
       );
-      // Avisa a tela que a sala virou treino, pra esconder o botão e mostrar
-      // o aviso de que não vale ranking.
+      // Avisa a tela pra esconder o botão e mostrar a faixa de que há bots
+      // na sala.
       room.broadcast?.("acromania-bots-ligados", { quantos: n });
     });
 
@@ -211,10 +210,9 @@ export function setupSocket(io) {
     socket.on("acromania-dispensar-bots", () => {
       const room = socket.currentAcromaniaRoom;
       if (!room || !room.botsPedidos) return;
-      const quantos = dispensarBotsDaSala(room);
+      dispensarBotsDaSala(room);
       room.systemMessage?.(
-        `👋 ${nickname} dispensou os jogadores automáticos. A partir da PRÓXIMA partida, ` +
-          `a sala volta a valer ranking.`,
+        `👋 ${nickname} dispensou os jogadores automáticos.`,
         false,
         true
       );

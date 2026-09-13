@@ -47,6 +47,8 @@ export default function AcromaniaGame() {
   const [erroFrase, setErroFrase] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [waitingNicknames, setWaitingNicknames] = useState([]);
+  // Quem já votou nesta rodada. Só o nick — em quem votou é segredo.
+  const [jaVotaram, setJaVotaram] = useState([]);
 
   const [votingEntries, setVotingEntries] = useState([]);
   const [myVote, setMyVote] = useState(null);
@@ -63,8 +65,8 @@ export default function AcromaniaGame() {
   // Bônus por ter votado na frase vencedora. Chega só pra quem acertou.
   const [bonusVoto, setBonusVoto] = useState(0);
   const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
-  // Jogadores automáticos chamados por alguém da sala. Enquanto estiverem
-  // aqui, a partida não vale ranking.
+  // Jogadores automáticos chamados por alguém da sala. Serve só pra mostrar
+  // a faixa e esconder o botão — a pontuação segue normal.
   const [botsPedidos, setBotsPedidos] = useState(false);
   const [permiteBots, setPermiteBots] = useState(false);
 
@@ -254,6 +256,7 @@ export default function AcromaniaGame() {
       setBonusVoto(0);
     });
 
+    socket.on("acromania-votes-update", (data) => setJaVotaram(data?.jogadores || []));
     socket.on("acromania-minha-frase", (data) => setMyEntryId(data?.entryId || null));
 
     // Confirmação do servidor. Antes este handler era vazio e o voto era
@@ -282,6 +285,7 @@ export default function AcromaniaGame() {
       socket.off("acromania-room-state");
       socket.off("acromania-online-players");
       socket.off("acromania-bots-ligados");
+      socket.off("acromania-votes-update");
       socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("acromania-chat-message");
       socket.off("acromania-intermission");
@@ -425,9 +429,8 @@ export default function AcromaniaGame() {
                         🤖 Jogar com jogadores automáticos
                       </button>
                       <p className="acro-bots-aviso">
-                        Dá pra jogar sozinho pra treinar. Mas atenção: enquanto eles estiverem
-                        na sala, <strong>a partida não vale pontos no ranking</strong> — bot vota,
-                        e voto é o que gera ponto aqui.
+                        Enche a sala pra você não ficar esperando. As frases deles são bobas
+                        de propósito — servem pra dar movimento, não pra competir.
                       </p>
                     </div>
                   )}
@@ -445,7 +448,7 @@ export default function AcromaniaGame() {
             <>
             {botsPedidos && (
               <div className="acro-modo-treino">
-                🤖 Modo treino — com jogadores automáticos na sala, esta partida não vale ranking.
+                🤖 Tem jogadores automáticos nesta sala.
                 <button
                   className="acro-dispensar-bots"
                   onClick={() => socketRef.current?.emit("acromania-dispensar-bots")}
@@ -645,8 +648,19 @@ export default function AcromaniaGame() {
                   </div>
                 ))
               )
+            ) : phase === "voting" ? (
+              /* Na votação a lista mostra QUEM já votou — nunca em quem.
+                 A votação é anônima, e é isso que faz as pessoas votarem na
+                 frase mais engraçada em vez de votarem no amigo. */
+              jaVotaram.length === 0 ? (
+                <p className="quiz-wrong-log-empty">Ninguém votou ainda...</p>
+              ) : (
+                jaVotaram.map((j, i) => (
+                  <div key={i} className="acro-waiting-row">✓ {j.nickname}</div>
+                ))
+              )
             ) : (
-              <p className="quiz-wrong-log-empty">Só aparece durante a escrita.</p>
+              <p className="quiz-wrong-log-empty">Só aparece durante a escrita e a votação.</p>
             )}
           </div>
         </div>
