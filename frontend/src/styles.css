@@ -2482,6 +2482,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 /* ===== Acromania (reaproveita as classes .quiz-* pro visual base) ===== */
 .acro-theme-block { text-align: center; margin-bottom: 22px; }
 
+.acro-waiting-timer {
+  font-family: var(--qz-mono, monospace);
+  font-size: 13px;
+  color: var(--qz-orange-pale, #ffc082);
+  margin-top: 6px;
+}
+
 /* Convite pra chamar bots, na tela de espera. */
 .acro-bots-convite { margin-top: 18px; text-align: center; }
 .acro-bots-aviso {

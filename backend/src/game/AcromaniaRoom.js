@@ -86,6 +86,8 @@ export class AcromaniaRoom {
     // Só serve pra mostrar o aviso na tela e esconder o botão. Não afeta
     // mais a pontuação.
     this.botsPedidos = false;
+    // O intervalo atual é espera por gente? Ver startIntermission.
+    this.esperandoJogadores = false;
     this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
@@ -314,6 +316,26 @@ export class AcromaniaRoom {
 
     await this.broadcastOnlinePlayers();
 
+    // A SALA ENCHEU DURANTE UMA ESPERA: começa agora, não daqui a 16s.
+    //
+    // Antes a rodada só arrancava quando o timer do intervalo zerava. Quem
+    // chamava os bots via eles entrarem e... nada acontecer, sem contador na
+    // tela, com cara de sala travada. Esperar sem motivo é o que mais faz o
+    // jogo parecer quebrado.
+    if (
+      this.state === "intermission" &&
+      this.esperandoJogadores &&
+      this.countUniquePlayers() >= this.minPlayersToStart
+    ) {
+      this.esperandoJogadores = false;
+      this.clearTimer();
+      this.systemMessage("✅ Já tem gente suficiente. Começando...", false, true);
+      Promise.resolve(this.startWriting()).catch((err) => {
+        console.error(`Falha ao iniciar rodada na sala ${this.roomId}:`, err);
+        setTimeout(() => this.startIntermission(), 3000);
+      });
+    }
+
     if (!alreadyInRoom) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
@@ -418,6 +440,13 @@ export class AcromaniaRoom {
       // está em modo treino.
       botsPedidos: this.botsPedidos,
       permiteBots: this.permiteBots && !this.privada,
+      // A sala tem gente suficiente pra rodar? Vai junto porque esta é a
+      // primeira mensagem que quem entra recebe — antes, o convite pros bots
+      // só existia dentro da tela de espera, que só aparece quando o ciclo
+      // termina. Quem entrava no meio de uma rodada via o cronômetro
+      // correndo, achava que estava sozinho e saía sem saber que dava pra
+      // chamar bots.
+      faltamJogadores: this.countUniquePlayers() < this.minPlayersToStart,
     });
   }
 
@@ -484,6 +513,10 @@ export class AcromaniaRoom {
   async startIntermission(waitingForPlayers = false) {
     this.clearTimer();
     this.state = "intermission";
+    // Guardado pra saber, quando alguém entrar, se este intervalo é uma
+    // espera por gente (aí a rodada pode começar na hora) ou o descanso
+    // normal entre rodadas (aí não se corta, é tempo de ler o resultado).
+    this.esperandoJogadores = waitingForPlayers;
 
     // O intervalo é também o tempo de LEITURA do resultado: as frases e os
     // votos ficam na tela durante ele. Com sala cheia são 15 frases pra ler

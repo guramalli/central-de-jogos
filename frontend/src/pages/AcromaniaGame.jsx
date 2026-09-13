@@ -69,6 +69,7 @@ export default function AcromaniaGame() {
   // a faixa e esconder o botão — a pontuação segue normal.
   const [botsPedidos, setBotsPedidos] = useState(false);
   const [permiteBots, setPermiteBots] = useState(false);
+  const [faltamJogadores, setFaltamJogadores] = useState(false);
 
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -166,6 +167,15 @@ export default function AcromaniaGame() {
       setOnlinePlayers(data.players || []);
       if (data.botsPedidos !== undefined) setBotsPedidos(data.botsPedidos);
       if (data.permiteBots !== undefined) setPermiteBots(data.permiteBots);
+      if (data.faltamJogadores !== undefined) setFaltamJogadores(data.faltamJogadores);
+      // Mantém o "agora tem N" da tela de espera em dia. Sem isto, o número
+      // congelava no valor do momento em que a espera começou — entravam
+      // dois bots e a tela continuava dizendo "agora tem 1".
+      if (data.players) {
+        setWaitingInfo((atual) =>
+          atual ? { ...atual, onlineCount: data.players.length } : atual
+        );
+      }
     });
     socket.on("acromania-bots-ligados", (d) => setBotsPedidos(d?.ligados !== false));
 
@@ -417,23 +427,14 @@ export default function AcromaniaGame() {
                     O Acromania só roda com pelo menos <strong>{waitingInfo.minPlayersToStart}</strong> pessoas
                     na sala — agora tem <strong>{waitingInfo.onlineCount}</strong>. Chama mais gente!
                   </p>
+                  {/* O contador FALTAVA aqui: ele só era mostrado no outro
+                      ramo ("próxima rodada em Xs"). Na espera a tela ficava
+                      parada, sem número nenhum, e dava impressão de sala
+                      travada — mesmo com o servidor contando normalmente. */}
+                  <p className="acro-waiting-timer">
+                    Nova checagem em <strong>{timeLeft}s</strong>
+                  </p>
 
-                  {/* O botão aparece justamente aqui: é o momento em que a
-                      pessoa percebe que está sozinha e ia embora. */}
-                  {permiteBots && !botsPedidos && (
-                    <div className="acro-bots-convite">
-                      <button
-                        className="btn secondary"
-                        onClick={() => socketRef.current?.emit("acromania-chamar-bots", { quantos: 2 })}
-                      >
-                        🤖 Jogar com jogadores automáticos
-                      </button>
-                      <p className="acro-bots-aviso">
-                        Enche a sala pra você não ficar esperando. As frases deles são bobas
-                        de propósito — servem pra dar movimento, não pra competir.
-                      </p>
-                    </div>
-                  )}
                 </>
               ) : (
                 <>
@@ -443,6 +444,26 @@ export default function AcromaniaGame() {
               )}
             </>
           )}
+
+          {/* CONVITE PROS BOTS — fora da tela de espera, de propósito.
+              Antes ele só existia lá, e a tela de espera só aparece quando
+              o ciclo termina. Quem entrava no meio de uma rodada via o
+              cronômetro correndo e saía achando que a sala estava morta.
+              Aqui ele aparece em qualquer fase, assim que a pessoa entra. */}
+          {permiteBots && !botsPedidos && faltamJogadores && (
+            <div className="acro-bots-convite">
+              <button
+                className="btn secondary"
+                onClick={() => socketRef.current?.emit("acromania-chamar-bots", { quantos: 2 })}
+              >
+                🤖 Chamar jogadores automáticos
+              </button>
+              <p className="acro-bots-aviso">
+                A sala está vazia. Eles enchem a mesa pra você não ficar esperando —
+                as frases são bobas de propósito, servem pra dar movimento.
+              </p>
+            </div>
+            )}
 
           {(phase === "writing" || phase === "voting" || phase === "grading") && theme && (
             <>
