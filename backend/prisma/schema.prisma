@@ -235,6 +235,19 @@ model WordEntry {
   createdAt     DateTime @default(now())
 
   @@unique([themeId, letter, word])
+
+  // ÍNDICE DA CONSULTA DA RODADA.
+  //
+  // A cada troca de rodada, CADA sala ativa roda:
+  //   WHERE themeId IN (...) AND letter = ? AND status = 'approved'
+  //
+  // O @@unique acima não serve pra isso: ele acha UMA palavra específica,
+  // não lista todas de um tema e letra. Sem este índice o Postgres varria a
+  // tabela inteira — e ela passou de ~4 mil pra mais de 9 mil linhas com os
+  // temas novos, multiplicado pelo número de salas trocando de rodada junto.
+  //
+  // É a causa mais provável das travadas de ~10 segundos no site inteiro.
+  @@index([themeId, letter, status])
 }
 
 // Aproveitamento de cada jogador em cada sala do Quiz — quantas perguntas
