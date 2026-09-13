@@ -84,6 +84,14 @@ export class AcromaniaRoom {
     // Bots chamados pelos jogadores (botão na sala), separado dos bots de
     // teste que vêm da variável de ambiente.
     this.botsPedidos = false;
+    // A PARTIDA teve bot em algum momento? Diferente de `botsPedidos`, que
+    // diz se tem bot AGORA.
+    //
+    // Existe pra fechar uma brecha: sem isto, dava pra jogar a partida toda
+    // com bots — ganhando voto deles rodada após rodada — e dispensá-los na
+    // última, colhendo o bônus de fim de partida como se tivesse sido
+    // disputa real. Só zera quando uma partida NOVA começa.
+    this.partidaTeveBots = false;
     this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
@@ -1033,7 +1041,7 @@ export class AcromaniaRoom {
           true
         );
 
-        if (this.semPontuacao || this.botsPedidos) continue;
+        if (this.semPontuacao || this.partidaTeveBots) continue;
 
         try {
           await prisma.monthlyScore.upsert({
@@ -1057,6 +1065,10 @@ export class AcromaniaRoom {
 
     this.turnScores = new Map();
     this.turnRound = 0;
+    // Partida nova começa limpa: se os bots já foram dispensados, ela volta
+    // a valer ranking. Se ainda estiverem na sala, `botsPedidos` continua
+    // true e o marcador é reposto na primeira rodada.
+    this.partidaTeveBots = this.botsPedidos;
   }
 
   getNickname(userId) {

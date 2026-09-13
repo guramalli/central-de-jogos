@@ -2506,6 +2506,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   background: rgba(230, 0, 0, 0.1);
   color: var(--qz-text, #e5e2e1);
 }
+.acro-dispensar-bots {
+  margin-left: 10px;
+  background: none;
+  border: 1px solid var(--danger, #e60000);
+  border-radius: 6px;
+  color: var(--qz-text, #e5e2e1);
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.acro-dispensar-bots:hover { background: rgba(230, 0, 0, 0.2); }
 .acro-theme-label {
   font-family: var(--qz-mono, monospace);
   font-size: 14px;

@@ -236,6 +236,18 @@ export async function ligarBotsNaSala(room, forcarQuantidade = null) {
 // Tira os bots da sala e desliga o timer. A sala volta a ficar vazia de
 // verdade, e o `ligarBotsNaSala` pode ser chamado de novo quando alguém
 // entrar — ele é idempotente por causa do `_botsLigados`.
+// Exportado pra permitir o desligamento MANUAL, pelo botão na sala. O
+// automático (30s sem gente) continua existindo e usa a mesma função.
+export function dispensarBotsDaSala(room) {
+  const bots = [...room.players.values()].filter((p) => p.socket?.ehBot);
+  if (!bots.length) {
+    room.botsPedidos = false;
+    return 0;
+  }
+  desligarBotsNaSala(room, bots);
+  return bots.length;
+}
+
 function desligarBotsNaSala(room, bots) {
   clearInterval(room._botsTimer);
   room._botsTimer = null;
@@ -247,5 +259,9 @@ function desligarBotsNaSala(room, bots) {
     }
   }
   room._botsLigados = false;
+  // Zera TAMBÉM a flag do botão. Sem isto a sala ficava marcada como "modo
+  // treino" pra sempre: o botão sumia de vez e — muito pior — a sala parava
+  // de pontuar até o servidor reiniciar, mesmo sem bot nenhum lá dentro.
+  room.botsPedidos = false;
   console.log(`Acromania: bots desligados na sala ${room.roomId} (sala sem gente)`);
 }

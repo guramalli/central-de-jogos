@@ -165,7 +165,7 @@ export default function AcromaniaGame() {
       if (data.botsPedidos !== undefined) setBotsPedidos(data.botsPedidos);
       if (data.permiteBots !== undefined) setPermiteBots(data.permiteBots);
     });
-    socket.on("acromania-bots-ligados", () => setBotsPedidos(true));
+    socket.on("acromania-bots-ligados", (d) => setBotsPedidos(d?.ligados !== false));
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
     // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
@@ -446,6 +446,12 @@ export default function AcromaniaGame() {
             {botsPedidos && (
               <div className="acro-modo-treino">
                 🤖 Modo treino — com jogadores automáticos na sala, esta partida não vale ranking.
+                <button
+                  className="acro-dispensar-bots"
+                  onClick={() => socketRef.current?.emit("acromania-dispensar-bots")}
+                >
+                  dispensar
+                </button>
               </div>
             )}
             <div className="acro-theme-block">

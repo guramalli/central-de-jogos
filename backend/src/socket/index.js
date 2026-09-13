@@ -5,7 +5,7 @@ import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, canc
 import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
-import { ligarBotsNaSala } from "../game/acromaniaBots.js";
+import { ligarBotsNaSala, dispensarBotsDaSala } from "../game/acromaniaBots.js";
 import { conferirSenhaAcromania as liberadoNaAcromania, agendarDescarteAcromania } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
 import * as presence from "../game/presence.js";
@@ -193,6 +193,7 @@ export function setupSocket(io) {
       const n = Math.min(4, Math.max(1, Number(quantos) || 2));
       if (room.botsPedidos) return; // já tem, não empilha
       room.botsPedidos = true;
+      room.partidaTeveBots = true;
       await ligarBotsNaSala(room, n);
       room.systemMessage?.(
         `🤖 ${nickname} chamou ${n} ${n === 1 ? "jogador automático" : "jogadores automáticos"}. ` +
@@ -203,6 +204,21 @@ export function setupSocket(io) {
       // Avisa a tela que a sala virou treino, pra esconder o botão e mostrar
       // o aviso de que não vale ranking.
       room.broadcast?.("acromania-bots-ligados", { quantos: n });
+    });
+
+    // Dispensar os bots sem precisar sair da sala. Sem isto, a única forma de
+    // voltar a valer ranking era todo mundo sair e esperar 30 segundos.
+    socket.on("acromania-dispensar-bots", () => {
+      const room = socket.currentAcromaniaRoom;
+      if (!room || !room.botsPedidos) return;
+      const quantos = dispensarBotsDaSala(room);
+      room.systemMessage?.(
+        `👋 ${nickname} dispensou os jogadores automáticos. A partir da PRÓXIMA partida, ` +
+          `a sala volta a valer ranking.`,
+        false,
+        true
+      );
+      room.broadcast?.("acromania-bots-ligados", { quantos: 0, ligados: false });
     });
 
     socket.on("join-acromania-room", async ({ roomId } = {}) => {
