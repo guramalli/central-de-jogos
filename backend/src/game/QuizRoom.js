@@ -1,3 +1,4 @@
+import { NOME_DO_TEMA } from "./quizRoomConfigs.js";
 import { prisma } from "../db.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { tituloQuizDesbloqueado } from "./titulosConfig.js";
@@ -57,7 +58,12 @@ export class QuizRoom {
     // Respostas com poucas letras não recebem dica nenhuma nas salas
     // avançadas: revelar 2 de 4 letras praticamente entrega a resposta, e
     // o objetivo da sala avançada é justamente exigir conhecimento.
-    this.minLetrasParaDica = config.minLetrasParaDica ?? (config.tier === "avancado" ? 5 : 0);
+    //
+    // O PISO DE 2 VALE PRA TODA SALA, inclusive a Padrão. Resposta de UMA
+    // letra não pode receber dica nenhuma: revelar a única letra que existe
+    // é mostrar a resposta inteira. Antes disso o piso era 0 fora da
+    // avançada, então "A" ou "X" apareciam prontas na tela.
+    this.minLetrasParaDica = config.minLetrasParaDica ?? (config.tier === "avancado" ? 5 : 2);
     // Modo turno (arena): em vez de rodar pra sempre, joga N rodadas, monta
     // um ranking do turno e premia os melhores — igual ao bloco do Stop.
     this.roundsPerTurn = config.roundsPerTurn ?? null;
@@ -749,6 +755,10 @@ export class QuizRoom {
     this.broadcast("quiz-question-start", {
       questionId: question.id,
       question: question.question,
+      // Nome do tema desta pergunta — só nas salas que MISTURAM temas (as
+      // arenas). Numa sala de tema único seria redundante: o tema já está
+      // no nome da sala e na tela inteira.
+      temaDaPergunta: this.themeKey ? null : NOME_DO_TEMA[question.themeKey] || null,
       masked: this.getMaskedAnswer(),
       seconds: this.questionSeconds,
       turnRound: this.roundsPerTurn ? this.turnRound : null,

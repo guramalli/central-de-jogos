@@ -84,6 +84,7 @@ export default function QuizGame() {
   // entre preenchendo e aguardando — o resto da tabela (formulário, tamanho)
   // fica sempre igual, pra não dar aquele "pulo" visual entre os estados.
   const [questionText, setQuestionText] = useState("Aguardando a primeira pergunta...");
+  const [temaDaPergunta, setTemaDaPergunta] = useState(null);
   const [answerLine, setAnswerLine] = useState("");
 
   const [guess, setGuess] = useState("");
@@ -182,6 +183,8 @@ export default function QuizGame() {
     socket.on("quiz-question-start", (data) => {
       setPhase("active");
       setQuestionText(data.question);
+      // Só vem preenchido nas arenas, que misturam temas.
+      setTemaDaPergunta(data.temaDaPergunta || null);
       setQuestionId(data.questionId || null);
       setAnswerLine(data.masked);
       setGuess("");
@@ -493,6 +496,13 @@ export default function QuizGame() {
                 >
                   🚩 <span className="quiz-report-btn-text">reportar erro</span>
                 </button>
+              )}
+              {/* Nas arenas a pergunta chega sem contexto nenhum: uma de
+                  química cai logo depois de uma de futebol e o jogador perde
+                  segundos só entendendo do que se trata. Nas salas de tema
+                  único isto não aparece — lá o tema já está no nome da sala. */}
+              {temaDaPergunta && (
+                <div className="quiz-tema-da-pergunta">{temaDaPergunta}:</div>
               )}
               <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
                 {questionText}

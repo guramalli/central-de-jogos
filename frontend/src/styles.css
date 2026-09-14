@@ -2481,11 +2481,78 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* ===== Acromania (reaproveita as classes .quiz-* pro visual base) ===== */
 .acro-theme-block { text-align: center; margin-bottom: 22px; }
+
+/* Nome do tema acima da pergunta, só nas arenas (salas que misturam temas). */
+.quiz-tema-da-pergunta {
+  font-family: var(--qz-mono, monospace);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-2);
+  margin-bottom: 6px;
+}
+
+.acro-waiting-timer {
+  font-family: var(--qz-mono, monospace);
+  font-size: 13px;
+  color: var(--qz-orange-pale, #ffc082);
+  margin-top: 6px;
+}
+
+/* Convite pra chamar bots, na tela de espera. */
+.acro-bots-convite { margin-top: 18px; text-align: center; }
+.acro-bots-aviso {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  max-width: 42ch;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+/* Faixa que fica visível a partida inteira enquanto houver bot. Precisa
+   saltar aos olhos: quem entrou depois não viu o aviso do botão. */
+.acro-modo-treino {
+  text-align: center;
+  font-size: 12px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  /* Deixou de ser vermelho: a faixa agora só INFORMA que há bots, não avisa
+     de perda de pontuação. Vermelho ali passava urgência que não existe. */
+  border: 1px solid var(--qz-outline, #555);
+  background: var(--qz-surface, #201f1f);
+  color: var(--text-dim);
+}
+.acro-dispensar-bots {
+  margin-left: 10px;
+  background: none;
+  border: 1px solid var(--qz-outline, #555);
+  border-radius: 6px;
+  color: var(--qz-text, #e5e2e1);
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.acro-dispensar-bots:hover { border-color: var(--accent-2); }
 .acro-theme-label {
   font-family: var(--qz-mono, monospace);
   font-size: 14px;
   color: var(--qz-text, #e5e2e1);
   margin-bottom: 10px;
+  /* Tema em frase pode passar de 40 caracteres, contra ~16 dos assuntos de
+     uma palavra. Sem limite de largura ele estica a linha inteira no desktop
+     e fica difícil de ler de relance — que é o que a pessoa faz nos
+     primeiros segundos da rodada. */
+  max-width: 34ch;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.4;
+}
+@media (max-width: 600px) {
+  /* No celular a fonte mono a 14px com frase longa aperta demais. */
+  .acro-theme-label { font-size: 13px; max-width: 100%; }
 }
 .acro-letters-row { display: flex; justify-content: center; gap: 10px; }
 .acro-letter-chip {

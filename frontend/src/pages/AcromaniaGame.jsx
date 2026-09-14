@@ -47,6 +47,8 @@ export default function AcromaniaGame() {
   const [erroFrase, setErroFrase] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [waitingNicknames, setWaitingNicknames] = useState([]);
+  // Quem já votou nesta rodada. Só o nick — em quem votou é segredo.
+  const [jaVotaram, setJaVotaram] = useState([]);
 
   const [votingEntries, setVotingEntries] = useState([]);
   const [myVote, setMyVote] = useState(null);
@@ -63,6 +65,11 @@ export default function AcromaniaGame() {
   // Bônus por ter votado na frase vencedora. Chega só pra quem acertou.
   const [bonusVoto, setBonusVoto] = useState(0);
   const [waitingInfo, setWaitingInfo] = useState(null); // { minPlayersToStart, onlineCount } | null
+  // Jogadores automáticos chamados por alguém da sala. Serve só pra mostrar
+  // a faixa e esconder o botão — a pontuação segue normal.
+  const [botsPedidos, setBotsPedidos] = useState(false);
+  const [permiteBots, setPermiteBots] = useState(false);
+  const [faltamJogadores, setFaltamJogadores] = useState(false);
 
   const [onlinePlayers, setOnlinePlayers] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -156,7 +163,21 @@ export default function AcromaniaGame() {
       navigate(-1);
     });
 
-    socket.on("acromania-online-players", (data) => setOnlinePlayers(data.players || []));
+    socket.on("acromania-online-players", (data) => {
+      setOnlinePlayers(data.players || []);
+      if (data.botsPedidos !== undefined) setBotsPedidos(data.botsPedidos);
+      if (data.permiteBots !== undefined) setPermiteBots(data.permiteBots);
+      if (data.faltamJogadores !== undefined) setFaltamJogadores(data.faltamJogadores);
+      // Mantém o "agora tem N" da tela de espera em dia. Sem isto, o número
+      // congelava no valor do momento em que a espera começou — entravam
+      // dois bots e a tela continuava dizendo "agora tem 1".
+      if (data.players) {
+        setWaitingInfo((atual) =>
+          atual ? { ...atual, onlineCount: data.players.length } : atual
+        );
+      }
+    });
+    socket.on("acromania-bots-ligados", (d) => setBotsPedidos(d?.ligados !== false));
 
     socket.on("acromania-chat-message", (msg) => setMessages((prev) => [...prev, msg]));
     // Moderador apagou uma mensagem: some da tela de todo mundo na sala.
@@ -245,6 +266,7 @@ export default function AcromaniaGame() {
       setBonusVoto(0);
     });
 
+    socket.on("acromania-votes-update", (data) => setJaVotaram(data?.jogadores || []));
     socket.on("acromania-minha-frase", (data) => setMyEntryId(data?.entryId || null));
 
     // Confirmação do servidor. Antes este handler era vazio e o voto era
@@ -272,6 +294,8 @@ export default function AcromaniaGame() {
       socket.off("acromania-room-full");
       socket.off("acromania-room-state");
       socket.off("acromania-online-players");
+      socket.off("acromania-bots-ligados");
+      socket.off("acromania-votes-update");
       socket.off("chat-message-deleted", aoApagarMensagem);
       socket.off("acromania-chat-message");
       socket.off("acromania-intermission");
@@ -403,6 +427,14 @@ export default function AcromaniaGame() {
                     O Acromania só roda com pelo menos <strong>{waitingInfo.minPlayersToStart}</strong> pessoas
                     na sala — agora tem <strong>{waitingInfo.onlineCount}</strong>. Chama mais gente!
                   </p>
+                  {/* O contador FALTAVA aqui: ele só era mostrado no outro
+                      ramo ("próxima rodada em Xs"). Na espera a tela ficava
+                      parada, sem número nenhum, e dava impressão de sala
+                      travada — mesmo com o servidor contando normalmente. */}
+                  <p className="acro-waiting-timer">
+                    Nova checagem em <strong>{timeLeft}s</strong>
+                  </p>
+
                 </>
               ) : (
                 <>
@@ -413,7 +445,39 @@ export default function AcromaniaGame() {
             </>
           )}
 
+          {/* CONVITE PROS BOTS — fora da tela de espera, de propósito.
+              Antes ele só existia lá, e a tela de espera só aparece quando
+              o ciclo termina. Quem entrava no meio de uma rodada via o
+              cronômetro correndo e saía achando que a sala estava morta.
+              Aqui ele aparece em qualquer fase, assim que a pessoa entra. */}
+          {permiteBots && !botsPedidos && faltamJogadores && (
+            <div className="acro-bots-convite">
+              <button
+                className="btn secondary"
+                onClick={() => socketRef.current?.emit("acromania-chamar-bots", { quantos: 2 })}
+              >
+                🤖 Chamar jogadores automáticos
+              </button>
+              <p className="acro-bots-aviso">
+                A sala está vazia. Eles enchem a mesa pra você não ficar esperando —
+                as frases são bobas de propósito, servem pra dar movimento.
+              </p>
+            </div>
+            )}
+
           {(phase === "writing" || phase === "voting" || phase === "grading") && theme && (
+            <>
+            {botsPedidos && (
+              <div className="acro-modo-treino">
+                🤖 Tem jogadores automáticos nesta sala.
+                <button
+                  className="acro-dispensar-bots"
+                  onClick={() => socketRef.current?.emit("acromania-dispensar-bots")}
+                >
+                  dispensar
+                </button>
+              </div>
+            )}
             <div className="acro-theme-block">
               <div className="acro-theme-label">Tema: <strong>{theme}</strong></div>
               <div className="acro-letters-row">
@@ -422,6 +486,7 @@ export default function AcromaniaGame() {
                 ))}
               </div>
             </div>
+            </>
           )}
 
           {phase === "writing" && (
@@ -604,8 +669,19 @@ export default function AcromaniaGame() {
                   </div>
                 ))
               )
+            ) : phase === "voting" ? (
+              /* Na votação a lista mostra QUEM já votou — nunca em quem.
+                 A votação é anônima, e é isso que faz as pessoas votarem na
+                 frase mais engraçada em vez de votarem no amigo. */
+              jaVotaram.length === 0 ? (
+                <p className="quiz-wrong-log-empty">Ninguém votou ainda...</p>
+              ) : (
+                jaVotaram.map((j, i) => (
+                  <div key={i} className="acro-waiting-row">✓ {j.nickname}</div>
+                ))
+              )
             ) : (
-              <p className="quiz-wrong-log-empty">Só aparece durante a escrita.</p>
+              <p className="quiz-wrong-log-empty">Só aparece durante a escrita e a votação.</p>
             )}
           </div>
         </div>

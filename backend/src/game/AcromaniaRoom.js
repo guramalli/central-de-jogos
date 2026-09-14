@@ -81,6 +81,13 @@ export class AcromaniaRoom {
     // escolhidos a dedo, e contar isso no mesmo ranking que paga prêmio
     // seria abrir uma porta óbvia pra combinar pontos.
     this.semPontuacao = !!config.semPontuacao;
+    // Bots chamados pelos jogadores (botão na sala), separado dos bots de
+    // teste que vêm da variável de ambiente.
+    // Só serve pra mostrar o aviso na tela e esconder o botão. Não afeta
+    // mais a pontuação.
+    this.botsPedidos = false;
+    // O intervalo atual é espera por gente? Ver startIntermission.
+    this.esperandoJogadores = false;
     this.privada = !!config.privada;
     this.maxPlayers = config.maxPlayers ?? 15;
 
@@ -309,6 +316,26 @@ export class AcromaniaRoom {
 
     await this.broadcastOnlinePlayers();
 
+    // A SALA ENCHEU DURANTE UMA ESPERA: começa agora, não daqui a 16s.
+    //
+    // Antes a rodada só arrancava quando o timer do intervalo zerava. Quem
+    // chamava os bots via eles entrarem e... nada acontecer, sem contador na
+    // tela, com cara de sala travada. Esperar sem motivo é o que mais faz o
+    // jogo parecer quebrado.
+    if (
+      this.state === "intermission" &&
+      this.esperandoJogadores &&
+      this.countUniquePlayers() >= this.minPlayersToStart
+    ) {
+      this.esperandoJogadores = false;
+      this.clearTimer();
+      this.systemMessage("✅ Já tem gente suficiente. Começando...", false, true);
+      Promise.resolve(this.startWriting()).catch((err) => {
+        console.error(`Falha ao iniciar rodada na sala ${this.roomId}:`, err);
+        setTimeout(() => this.startIntermission(), 3000);
+      });
+    }
+
     if (!alreadyInRoom) {
       criarAvisoDeAtividade(this.io, {
         roomId: this.roomId,
@@ -406,7 +433,21 @@ export class AcromaniaRoom {
         b.roomLifetimePoints - a.roomLifetimePoints ||
         a.nickname.localeCompare(b.nickname)
     );
-    this.broadcast("acromania-online-players", { players: list });
+    this.broadcast("acromania-online-players", {
+      players: list,
+      // Vai junto da lista de jogadores porque esta é a mensagem que todo
+      // mundo recebe ao entrar — quem chega no meio precisa saber que a sala
+      // está em modo treino.
+      botsPedidos: this.botsPedidos,
+      permiteBots: this.permiteBots && !this.privada,
+      // A sala tem gente suficiente pra rodar? Vai junto porque esta é a
+      // primeira mensagem que quem entra recebe — antes, o convite pros bots
+      // só existia dentro da tela de espera, que só aparece quando o ciclo
+      // termina. Quem entrava no meio de uma rodada via o cronômetro
+      // correndo, achava que estava sozinho e saía sem saber que dava pra
+      // chamar bots.
+      faltamJogadores: this.countUniquePlayers() < this.minPlayersToStart,
+    });
   }
 
   broadcast(event, data) {
@@ -472,6 +513,10 @@ export class AcromaniaRoom {
   async startIntermission(waitingForPlayers = false) {
     this.clearTimer();
     this.state = "intermission";
+    // Guardado pra saber, quando alguém entrar, se este intervalo é uma
+    // espera por gente (aí a rodada pode começar na hora) ou o descanso
+    // normal entre rodadas (aí não se corta, é tempo de ler o resultado).
+    this.esperandoJogadores = waitingForPlayers;
 
     // O intervalo é também o tempo de LEITURA do resultado: as frases e os
     // votos ficam na tela durante ele. Com sala cheia são 15 frases pra ler
@@ -583,6 +628,19 @@ export class AcromaniaRoom {
     if (totalPlayers > 0 && this.submissions.size >= totalPlayers) {
       this.startVoting();
     }
+  }
+
+  // Avisa QUEM já votou — só o nick, NUNCA em quem a pessoa votou.
+  //
+  // Essa distinção é o ponto todo: a votação do Acromania é anônima, e é o
+  // anonimato que faz as pessoas votarem na frase mais engraçada em vez de
+  // votarem no amigo. Saber que fulano já votou não revela nada; saber em
+  // quem ele votou estragaria o jogo.
+  broadcastVotedList() {
+    const jogadores = [...this.votes.keys()].map((userId) => ({
+      nickname: this.getNickname(userId),
+    }));
+    this.broadcast("acromania-votes-update", { jogadores });
   }
 
   // Avisa a sala inteira QUEM já mandou a frase (só o nick, nunca o
@@ -704,6 +762,7 @@ export class AcromaniaRoom {
     if (entry.userId === userId) return; // não pode votar na própria frase
     this.votes.set(userId, entryId);
     socket.emit("acromania-vote-registered", { ok: true, entryId });
+    this.broadcastVotedList();
 
     // Simétrico ao submitPhrase: se todo mundo que está na sala já votou,
     // não faz sentido segurar a rodada até o cronômetro zerar. Com pouca
@@ -837,9 +896,23 @@ export class AcromaniaRoom {
     // Sala sem pontuação: a rodada acontece igual, o placar da partida
     // funciona igual, mas nada é gravado no banco. A trava fica AQUI, num
     // ponto só, em vez de espalhada por cada upsert.
-    if (this.semPontuacao) return;
+    //
+    // SALA COM BOTS PONTUA NORMALMENTE.
+    //
+    // Chegou a existir uma trava aqui: bot vota, e voto gera ponto (15 por
+    // voto recebido, 50 pra mais votada), então quem jogasse com bots
+    // ganharia fácil. Foi removida por decisão de produto — o Acromania não
+    // paga prêmio nem entra no fechamento de campeões, então o único efeito
+    // seria subir patente, que é enfeite. Travar isso custava mais em
+    // confusão do que protegia.
+    //
+    // ⚠️ NÃO USE `return` NESTE PONTO DA FUNÇÃO. Tudo o que vem depois —
+    // montar o `lastResult` e emitir "acromania-round-result" — é o que
+    // MOSTRA o placar e destrava a rodada seguinte. Um `return` aqui já
+    // congelou o jogo na rodada 1, sem erro nenhum no log.
+    const gravarPontos = !this.semPontuacao;
 
-    for (const winner of aPontuar) {
+    for (const winner of gravarPontos ? aPontuar : []) {
       const pts = winner.pts;
       try {
         // Busca os pontos mensais ANTES de somar, pra comparar a patente de
@@ -1003,8 +1076,8 @@ export class AcromaniaRoom {
         if (bonus === undefined) continue;
 
         const medal = medals[entry.position - 1] || `${entry.position}º`;
-        // Em sala sem pontuação o pódio é anunciado do mesmo jeito — a
-        // disputa continua valendo pra quem está jogando —, só não vira
+        // Em sala sem pontuação (privada) o pódio é anunciado do mesmo jeito
+        // — a disputa continua valendo pra quem está jogando —, só não vira
         // ponto no ranking.
         this.systemMessage(
           this.semPontuacao

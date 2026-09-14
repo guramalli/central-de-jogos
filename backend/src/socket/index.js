@@ -5,7 +5,7 @@ import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, canc
 import { registrarDiaJogado } from "../game/missoes.js";
 import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
 import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
-import { ligarBotsNaSala } from "../game/acromaniaBots.js";
+import { ligarBotsNaSala, dispensarBotsDaSala } from "../game/acromaniaBots.js";
 import { conferirSenhaAcromania as liberadoNaAcromania, agendarDescarteAcromania } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
 import * as presence from "../game/presence.js";
@@ -182,6 +182,43 @@ export function setupSocket(io) {
     // O try existe porque este handler é async: sem ele, uma falha ao criar a
     // sala ou ao entrar viraria unhandledRejection — o servidor não cai, mas
     // o jogador fica preso na tela de entrada sem nenhum aviso.
+    // Botão de chamar bots, dentro da sala. Qualquer jogador pode usar — não
+    // há o que proteger, já que a sala deixa de pontuar assim que eles
+    // entram, e a decisão afeta todo mundo que está lá.
+    socket.on("acromania-chamar-bots", async ({ quantos } = {}) => {
+      const room = socket.currentAcromaniaRoom;
+      if (!room) return;
+      // Sala privada nunca recebe bot, e sala marcada com bots:false também
+      // não — a checagem de verdade está no ligarBotsNaSala.
+      const n = Math.min(4, Math.max(1, Number(quantos) || 2));
+      if (room.botsPedidos) return; // já tem, não empilha
+      room.botsPedidos = true;
+      await ligarBotsNaSala(room, n);
+      room.systemMessage?.(
+        `🤖 ${nickname} chamou ${n} ${n === 1 ? "jogador automático" : "jogadores automáticos"} ` +
+          `pra sala não ficar parada. As frases deles são bobas de propósito.`,
+        false,
+        true
+      );
+      // Avisa a tela pra esconder o botão e mostrar a faixa de que há bots
+      // na sala.
+      room.broadcast?.("acromania-bots-ligados", { quantos: n });
+    });
+
+    // Dispensar os bots sem precisar sair da sala. Sem isto, a única forma de
+    // voltar a valer ranking era todo mundo sair e esperar 30 segundos.
+    socket.on("acromania-dispensar-bots", () => {
+      const room = socket.currentAcromaniaRoom;
+      if (!room || !room.botsPedidos) return;
+      dispensarBotsDaSala(room);
+      room.systemMessage?.(
+        `👋 ${nickname} dispensou os jogadores automáticos.`,
+        false,
+        true
+      );
+      room.broadcast?.("acromania-bots-ligados", { quantos: 0, ligados: false });
+    });
+
     socket.on("join-acromania-room", async ({ roomId } = {}) => {
       // Barreira de verdade: sem isto, quem já estivesse com a página aberta
       // continuaria entrando mesmo com o jogo desligado no painel.

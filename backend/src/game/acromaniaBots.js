@@ -32,10 +32,13 @@ export function quantidadeDeBots() {
 }
 
 const BOTS = [
-  { nickname: "Robozinho", email: "bot1@bots.educacaogamer.local" },
-  { nickname: "Tagarela", email: "bot2@bots.educacaogamer.local" },
-  { nickname: "Palpiteiro", email: "bot3@bots.educacaogamer.local" },
-  { nickname: "Rabisco", email: "bot4@bots.educacaogamer.local" },
+  // Nomes diretos, no lugar dos antigos ("Robozinho", "Tagarela"). Com nome
+  // de gente o jogador demora pra perceber que está jogando com bot; com
+  // "Bot1" ele sabe na hora, e isso importa mais do que a graça do apelido.
+  { nickname: "Bot1", email: "bot1@bots.educacaogamer.local" },
+  { nickname: "Bot2", email: "bot2@bots.educacaogamer.local" },
+  { nickname: "Bot3", email: "bot3@bots.educacaogamer.local" },
+  { nickname: "Bot4", email: "bot4@bots.educacaogamer.local" },
 ];
 
 // Banco de palavras por letra inicial. As frases do Acromania precisam ter
@@ -92,7 +95,16 @@ async function garantirContas(quantos) {
   for (const def of BOTS.slice(0, quantos)) {
     const conta = await prisma.user.upsert({
       where: { email: def.email },
-      update: { isGuest: true, ocultoNoRanking: true, banned: false },
+      // O nickname vai no UPDATE de propósito: as contas dos bots já existem
+      // no banco com os nomes antigos, e sem isto elas continuariam
+      // aparecendo como "Robozinho" pra sempre — mudar a lista acima não
+      // renomeia quem já foi criado.
+      update: {
+        nickname: def.nickname,
+        isGuest: true,
+        ocultoNoRanking: true,
+        banned: false,
+      },
       create: {
         nickname: def.nickname,
         email: def.email,
@@ -132,8 +144,10 @@ function atraso(min, max) {
 // Liga os bots numa sala. Fica observando o estado da sala num timer próprio
 // e agindo nas transições — sem nenhum gancho dentro da AcromaniaRoom, o que
 // mantém o arquivo do jogo intocado.
-export async function ligarBotsNaSala(room) {
-  const quantos = quantidadeDeBots();
+export async function ligarBotsNaSala(room, forcarQuantidade = null) {
+  // `forcarQuantidade` vem do botão que os jogadores usam na sala. Sem ele,
+  // vale a variável de ambiente (uso de teste, como sempre foi).
+  const quantos = forcarQuantidade ?? quantidadeDeBots();
   if (quantos === 0) return;
 
   // Sala marcada com `bots: false` na config nunca recebe bot, mesmo com a
@@ -234,6 +248,18 @@ export async function ligarBotsNaSala(room) {
 // Tira os bots da sala e desliga o timer. A sala volta a ficar vazia de
 // verdade, e o `ligarBotsNaSala` pode ser chamado de novo quando alguém
 // entrar — ele é idempotente por causa do `_botsLigados`.
+// Exportado pra permitir o desligamento MANUAL, pelo botão na sala. O
+// automático (30s sem gente) continua existindo e usa a mesma função.
+export function dispensarBotsDaSala(room) {
+  const bots = [...room.players.values()].filter((p) => p.socket?.ehBot);
+  if (!bots.length) {
+    room.botsPedidos = false;
+    return 0;
+  }
+  desligarBotsNaSala(room, bots);
+  return bots.length;
+}
+
 function desligarBotsNaSala(room, bots) {
   clearInterval(room._botsTimer);
   room._botsTimer = null;
@@ -245,5 +271,9 @@ function desligarBotsNaSala(room, bots) {
     }
   }
   room._botsLigados = false;
+  // Zera TAMBÉM a flag do botão. Sem isto a sala ficava marcada como "modo
+  // treino" pra sempre: o botão sumia de vez e — muito pior — a sala parava
+  // de pontuar até o servidor reiniciar, mesmo sem bot nenhum lá dentro.
+  room.botsPedidos = false;
   console.log(`Acromania: bots desligados na sala ${room.roomId} (sala sem gente)`);
 }
