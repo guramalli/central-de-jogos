@@ -662,6 +662,14 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
+      {/* BARRA DE TOPO — escondida no modo compacto (multi-sala).
+          
+          Ela repete por painel: pontos, nome da sala, botão de convidar e a
+          logo do Stop. Com 4 painéis abertos isso é a mesma informação
+          quatro vezes, comendo a altura que devia ser dos campos e do
+          cronômetro. O nome da sala já aparece na barra do painel, e o botão
+          de fechar está lá também. */}
+      {!compacto && (
       <header className="sc-topbar">
         <div className="sc-topbar-left">
           <div className="sc-topbar-badges">
@@ -722,10 +730,16 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
           <img src="/stop-logo.png" alt="Stop!" className="sc-logo-img" />
         </div>
       </header>
+      )}
 
-      <div className="sc-round-info">
-        Rodada {roundInBlock} de 10
-      </div>
+      {/* No compacto a linha da rodada some daqui: ela custa uma faixa
+          inteira por painel pra mostrar dois números. A informação continua
+          no jogo — o cronômetro e a letra estão logo abaixo. */}
+      {!compacto && (
+        <div className="sc-round-info">
+          Rodada {roundInBlock} de 10
+        </div>
+      )}
 
       <div className={`sc-retro-panel sc-table-panel ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-panel-title-row">

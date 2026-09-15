@@ -30,6 +30,8 @@ export default function MultiSala() {
   const [salas, setSalas] = useState([]);     // salas disponíveis
   const [abertas, setAbertas] = useState([]); // salas nos painéis
   const [erro, setErro] = useState("");
+  // Com sala aberta, a tela é do JOGO: título e seletor saem do caminho.
+  const [mostrarSeletor, setMostrarSeletor] = useState(false);
 
   useEffect(() => {
     api
@@ -58,6 +60,7 @@ export default function MultiSala() {
     setAbertas((a) => a.filter((r) => r !== roomId));
   }
 
+  const jogando = abertas.length > 0;
   const Jogo = ehStop ? StopGame : QuizGame;
   const nomeDaSala = (id) => salas.find((s) => s.roomId === id)?.label || id;
 
@@ -68,27 +71,50 @@ export default function MultiSala() {
         description="Jogue em mais de uma sala na mesma tela, sem abrir outra aba."
       />
 
-      <div className="multi-cabecalho">
-        <div>
-          <h1>{ehStop ? "Stop" : "Quiz"} — várias salas</h1>
-          <p className="multi-sub">
-            Abra até {MAX_PAINEIS} salas na mesma tela. Cada painel é uma partida
-            independente, com chat e placar próprios.
-          </p>
+      {/* CABEÇALHO E SELETOR RECOLHEM depois que a primeira sala abre.
+          
+          Eles são a tela de escolha, e a escolha já foi feita — deixá-los
+          fixos comeria a altura das partidas, que é o que a pessoa veio ver.
+          O botão "escolher salas" traz tudo de volta. */}
+      {!jogando ? (
+        <>
+          <div className="multi-cabecalho">
+            <div>
+              <h1>{ehStop ? "Stop" : "Quiz"} — várias salas</h1>
+              <p className="multi-sub">
+                Abra até {MAX_PAINEIS} salas na mesma tela. Cada painel é uma partida
+                independente, com chat e placar próprios.
+              </p>
+            </div>
+            <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="retro-btn">
+              ← Voltar ao lobby
+            </Link>
+          </div>
+        </>
+      ) : (
+        <div className="multi-barra-jogo">
+          <button className="multi-btn-mini" onClick={() => setMostrarSeletor((v) => !v)}>
+            {mostrarSeletor ? "✕ fechar lista" : "⊞ escolher salas"}
+          </button>
+          <span className="multi-barra-contador">
+            {abertas.length} de {MAX_PAINEIS} salas
+          </span>
+          <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="multi-btn-mini">
+            ← lobby
+          </Link>
         </div>
-        <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="retro-btn">
-          ← Voltar ao lobby
-        </Link>
-      </div>
+      )}
 
       {erro && <div className="error-msg">{erro}</div>}
 
-      <Seletor
-        salas={salas}
-        abertas={abertas}
-        alternar={(id) => (abertas.includes(id) ? fechar(id) : abrir(id))}
-        ehStop={ehStop}
-      />
+      {(!jogando || mostrarSeletor) && (
+        <Seletor
+          salas={salas}
+          abertas={abertas}
+          alternar={(id) => (abertas.includes(id) ? fechar(id) : abrir(id))}
+          ehStop={ehStop}
+        />
+      )}
 
       {abertas.length === 0 ? (
         <p className="multi-vazio">

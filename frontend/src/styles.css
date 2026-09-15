@@ -2588,6 +2588,26 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .multi-sub { color: var(--text-dim); margin: 4px 0 0; font-size: 14px; }
 
+/* Barra fina que substitui o cabeçalho quando há sala aberta. */
+.multi-barra-jogo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.multi-btn-mini {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.multi-btn-mini:hover { border-color: var(--accent-2); }
+.multi-barra-contador { font-size: 12px; color: var(--text-dim); margin-right: auto; }
+
 /* SELETOR AGRUPADO POR TEMA.
    Cada bloco é um tema com os seus níveis dentro. 35 fichas soltas viravam
    caça-palavras; assim o olho procura o TEMA (que é como a pessoa pensa) e
@@ -2723,7 +2743,10 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
    * A rolagem fica DENTRO do painel, nunca na página: rolar a página faria
    * as outras partidas saírem de vista bem na hora em que a rodada começa
    * nelas — que é o oposto do que o multi-sala existe pra resolver. */
-  height: calc((100vh - 150px) / var(--linhas, 1));
+  /* 150px cobria cabeçalho da página + seletor. Com os dois recolhidos
+     durante o jogo, sobra altura: agora o desconto é só da barra fina e do
+     título de cada painel. */
+  height: calc((100vh - 90px) / var(--linhas, 1));
   min-height: 280px;
   overflow-y: auto;
   padding: 8px;

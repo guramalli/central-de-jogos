@@ -419,6 +419,10 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
     <div className="quiz-root" data-quiz-theme={themeKey || undefined}>
       <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
       <div className="quiz-stats-bar">
+        {/* No compacto some a logo e os pontos: repetem em cada painel e o
+            que importa ali é a pergunta. O cronômetro e o botão de som
+            continuam, porque são do jogo. */}
+        {!compacto && (
         <div className="quiz-topbar-badges">
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="quiz-room-logo" />
           <div className="quiz-gloss-badge">
@@ -428,9 +432,11 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
             <span className="quiz-badge-label">Pts Total:</span> {me?.lifetimePoints ?? 0}
           </div>
         </div>
+        )}
         <div className="quiz-topbar-title">
-          <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>
-          <span className="quiz-theme-name">{roomLabel}</span>
+          {/* Nome da sala já está na barra do painel no multi-sala. */}
+          {!compacto && <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>}
+          {!compacto && <span className="quiz-theme-name">{roomLabel}</span>}
           {turnInfo && (
             <span className="quiz-turn-counter">
               Rodada {turnInfo.round} de {turnInfo.total}
