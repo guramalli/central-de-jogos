@@ -2587,6 +2587,34 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin-bottom: 12px;
 }
 .multi-sub { color: var(--text-dim); margin: 4px 0 0; font-size: 14px; }
+.multi-sub-atalhos { margin-top: 8px; }
+
+/* Teclas como tecla: a pessoa reconhece o formato antes de ler a palavra. */
+.multi-sala kbd {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  background: var(--bg-panel-2);
+  color: var(--text);
+}
+
+/* Aviso da primeira vez com duas salas. */
+.multi-dica-primeira {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-3, #06d6a0);
+  background: rgba(6, 214, 160, 0.1);
+  font-size: 13px;
+}
+.multi-dica-primeira span { flex: 1; min-width: 240px; }
 
 /* Barra fina que substitui o cabeçalho quando há sala aberta. */
 .multi-barra-jogo {

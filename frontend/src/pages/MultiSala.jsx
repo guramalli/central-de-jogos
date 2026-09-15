@@ -32,6 +32,13 @@ export default function MultiSala() {
   const [erro, setErro] = useState("");
   // Com sala aberta, a tela é do JOGO: título e seletor saem do caminho.
   const [mostrarSeletor, setMostrarSeletor] = useState(false);
+  const [dicaVista, setDicaVista] = useState(() => {
+    try {
+      return localStorage.getItem("eg_dica_multisala") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     api
@@ -85,15 +92,57 @@ export default function MultiSala() {
     painel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
-  function trocarPainel(passo) {
+  // A navegação é ESPACIAL: a grade tem duas colunas, então ← → andam na
+  // LINHA e ↑ ↓ andam na COLUNA. Com 4 painéis:
+  //
+  //     [1] [2]
+  //     [3] [4]
+  //
+  // Um salto simples no índice não serve. Testei e ele errava feio: Ctrl+→
+  // no painel 2 caía no 3, que está na linha DE BAIXO — a seta apontava pra
+  // um lado e o foco ia pra outro. E com 2 painéis o Ctrl+↓ não saía do
+  // lugar, porque o salto de 2 dava a volta completa.
+  //
+  // Por isso a conta é feita em linha e coluna de verdade, e cada eixo só
+  // se move se houver painel naquela direção.
+  function trocarPainel(passo, vertical = false) {
     if (abertas.length < 2) return;
+    const colunas = window.innerWidth <= 900 ? 1 : 2;
+    const total = abertas.length;
+
     const atual = abertas.findIndex((id) =>
       paineisRef.current[id]?.contains(document.activeElement)
     );
-    // Começa do -1 quando o foco não está em painel nenhum, pra a primeira
-    // seta cair no painel 1 e não no 2.
-    const base = atual === -1 ? (passo === 1 ? -1 : 0) : atual;
-    focarPainel(abertas[(base + passo + abertas.length) % abertas.length]);
+    // Sem foco em painel nenhum: a primeira seta cai no painel 1.
+    if (atual === -1) {
+      focarPainel(abertas[0]);
+      return;
+    }
+
+    const linha = Math.floor(atual / colunas);
+    const coluna = atual % colunas;
+    const ultimaLinha = Math.floor((total - 1) / colunas);
+
+    let destino;
+    if (vertical) {
+      // Dá a volta entre a primeira e a última linha.
+      let novaLinha = linha + passo;
+      if (novaLinha < 0) novaLinha = ultimaLinha;
+      if (novaLinha > ultimaLinha) novaLinha = 0;
+      destino = novaLinha * colunas + coluna;
+      // A última linha pode estar incompleta (3 painéis): cai no que existe.
+      if (destino >= total) destino = total - 1;
+    } else {
+      // Anda na linha e volta pro começo dela ao chegar na ponta.
+      const inicioDaLinha = linha * colunas;
+      const fimDaLinha = Math.min(inicioDaLinha + colunas, total) - 1;
+      const largura = fimDaLinha - inicioDaLinha + 1;
+      if (largura < 2) return; // linha com um painel só: não há pra onde ir
+      const pos = atual - inicioDaLinha;
+      destino = inicioDaLinha + ((pos + passo) % largura + largura) % largura;
+    }
+
+    focarPainel(abertas[destino]);
   }
 
   useEffect(() => {
@@ -104,6 +153,8 @@ export default function MultiSala() {
 
       if (e.key === "ArrowRight") { e.preventDefault(); trocarPainel(1); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); trocarPainel(-1); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); trocarPainel(1, true); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); trocarPainel(-1, true); }
       else if (/^[1-9]$/.test(e.key)) {
         const alvo = abertas[Number(e.key) - 1];
         if (alvo) { e.preventDefault(); focarPainel(alvo); }
@@ -137,6 +188,14 @@ export default function MultiSala() {
                 Abra até {MAX_PAINEIS} salas na mesma tela. Cada painel é uma partida
                 independente, com chat e placar próprios.
               </p>
+              {/* A explicação dos atalhos fica AQUI, na tela de escolha:
+                  é o único momento em que a pessoa está lendo. Depois que as
+                  salas abrem ela está jogando, e texto vira ruído. */}
+              <p className="multi-sub multi-sub-atalhos">
+                Pra trocar de sala: <kbd>Ctrl</kbd> + as setas{" "}
+                <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>, ou{" "}
+                <kbd>Ctrl</kbd> + o número da sala. Clicar também funciona.
+              </p>
             </div>
             <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="retro-btn">
               ← Voltar ao lobby
@@ -162,7 +221,7 @@ export default function MultiSala() {
           <span className="multi-barra-contador">
             {abertas.length} de {MAX_PAINEIS} salas
             {abertas.length > 1 && (
-              <span className="multi-dica-atalho"> · Ctrl+← Ctrl+→ pra alternar</span>
+              <span className="multi-dica-atalho"> · Ctrl + setas pra alternar</span>
             )}
           </span>
           <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="multi-btn-mini">
@@ -172,6 +231,35 @@ export default function MultiSala() {
       )}
 
       {erro && <div className="error-msg">{erro}</div>}
+
+      {/* PRIMEIRA VEZ COM DUAS SALAS: mostra o atalho uma vez e nunca mais.
+          A explicação da tela de escolha já passou, e quem chega aqui está
+          olhando pro jogo — mas alternar é justamente o que a pessoa precisa
+          fazer agora e não sabe como. Dispensável, e o "não mostrar de novo"
+          fica guardado no navegador. */}
+      {jogando && abertas.length > 1 && !dicaVista && (
+        <div className="multi-dica-primeira">
+          <span>
+            💡 Duas salas abertas. Use <kbd>Ctrl</kbd> + as setas pra pular entre elas sem
+            tirar a mão do teclado — as setas seguem a posição na tela. Ou{" "}
+            <kbd>Ctrl</kbd> + o número da sala.
+          </span>
+          <button
+            className="multi-btn-mini"
+            onClick={() => {
+              setDicaVista(true);
+              try {
+                localStorage.setItem("eg_dica_multisala", "1");
+              } catch {
+                // Navegador com armazenamento bloqueado: a dica volta na
+                // próxima visita. Chato, mas não quebra nada.
+              }
+            }}
+          >
+            entendi
+          </button>
+        </div>
+      )}
 
       {(!jogando || mostrarSeletor) && (
         <Seletor
