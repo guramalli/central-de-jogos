@@ -2719,6 +2719,21 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   border-bottom: 1px solid var(--border);
 }
 .multi-painel-nome { font-size: 13px; font-weight: 700; }
+/* Número do atalho na barra do painel: sem ele, Ctrl+2 é adivinhação. */
+.multi-painel-atalho {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  padding: 1px 6px;
+  margin-right: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.multi-dica-atalho { opacity: 0.7; }
+/* O painel em foco ganha borda: com 4 abertos, saber em qual você está
+   importa mais do que parece — principalmente depois de trocar pelo
+   teclado, quando não houve clique pra dar a pista. */
+.multi-painel:focus-within { border-color: var(--accent-2); }
 .multi-fechar {
   background: none;
   border: 1px solid var(--border);

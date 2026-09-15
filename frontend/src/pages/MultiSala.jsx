@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import Seo from "../components/Seo.jsx";
@@ -61,6 +61,58 @@ export default function MultiSala() {
   }
 
   const jogando = abertas.length > 0;
+
+  // TROCA DE PAINEL PELO TECLADO — o "alt+tab" das salas.
+  //
+  // Ctrl + seta anda entre os painéis; Ctrl + 1..4 pula direto pro número.
+  //
+  // A escolha da tecla não foi livre: Tab já anda entre os temas do Stop,
+  // Enter envia, Ctrl+Enter pede STOP e as setas sozinhas navegam o
+  // histórico no Quiz. Ctrl+seta era o que sobrava sem atropelar nada.
+  //
+  // Focar é uma questão de DOM, não de estado: cada painel guarda seu nó e a
+  // função procura o primeiro campo de texto dentro dele. Assim não precisa
+  // mexer nas páginas de jogo nem passar mais uma propriedade pra elas.
+  const paineisRef = useRef({});
+
+  function focarPainel(roomId) {
+    const painel = paineisRef.current[roomId];
+    if (!painel) return;
+    const campo = painel.querySelector("input:not([disabled]), textarea:not([disabled])");
+    if (campo) campo.focus();
+    // Rola o painel pra vista mesmo sem campo — na fase de resultado não há
+    // onde digitar, mas a pessoa ainda quer olhar aquela sala.
+    painel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function trocarPainel(passo) {
+    if (abertas.length < 2) return;
+    const atual = abertas.findIndex((id) =>
+      paineisRef.current[id]?.contains(document.activeElement)
+    );
+    // Começa do -1 quando o foco não está em painel nenhum, pra a primeira
+    // seta cair no painel 1 e não no 2.
+    const base = atual === -1 ? (passo === 1 ? -1 : 0) : atual;
+    focarPainel(abertas[(base + passo + abertas.length) % abertas.length]);
+  }
+
+  useEffect(() => {
+    if (!jogando) return;
+
+    function aoTeclar(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+
+      if (e.key === "ArrowRight") { e.preventDefault(); trocarPainel(1); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); trocarPainel(-1); }
+      else if (/^[1-9]$/.test(e.key)) {
+        const alvo = abertas[Number(e.key) - 1];
+        if (alvo) { e.preventDefault(); focarPainel(alvo); }
+      }
+    }
+
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [jogando, abertas]);
   const Jogo = ehStop ? StopGame : QuizGame;
   const nomeDaSala = (id) => salas.find((s) => s.roomId === id)?.label || id;
 
@@ -96,8 +148,22 @@ export default function MultiSala() {
           <button className="multi-btn-mini" onClick={() => setMostrarSeletor((v) => !v)}>
             {mostrarSeletor ? "✕ fechar lista" : "⊞ escolher salas"}
           </button>
+          {/* Botão visível pro mesmo atalho: teclado que ninguém descobre não
+              existe. E no celular, onde não há Ctrl, ele é a única forma. */}
+          {abertas.length > 1 && (
+            <button
+              className="multi-btn-mini"
+              onClick={() => trocarPainel(1)}
+              title="Ctrl + seta, ou Ctrl + número da sala"
+            >
+              ⇄ próxima sala
+            </button>
+          )}
           <span className="multi-barra-contador">
             {abertas.length} de {MAX_PAINEIS} salas
+            {abertas.length > 1 && (
+              <span className="multi-dica-atalho"> · Ctrl+← Ctrl+→ pra alternar</span>
+            )}
           </span>
           <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="multi-btn-mini">
             ← lobby
@@ -122,9 +188,17 @@ export default function MultiSala() {
         </p>
       ) : (
         <div className={`multi-grade multi-grade-${abertas.length}`}>
-          {abertas.map((roomId) => (
-            <div key={roomId} className="multi-painel">
+          {abertas.map((roomId, i) => (
+            <div
+              key={roomId}
+              className="multi-painel"
+              ref={(el) => {
+                if (el) paineisRef.current[roomId] = el;
+                else delete paineisRef.current[roomId];
+              }}
+            >
               <div className="multi-painel-topo">
+                <span className="multi-painel-atalho">Ctrl+{i + 1}</span>
                 <span className="multi-painel-nome">{nomeDaSala(roomId)}</span>
                 <button className="multi-fechar" onClick={() => fechar(roomId)}>
                   fechar
