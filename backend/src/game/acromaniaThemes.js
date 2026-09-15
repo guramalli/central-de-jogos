@@ -186,26 +186,70 @@ const LETTERS = "ABCDEFGHIJLMNOPQRSTUV".split("");
 // entre as palavras mais usadas do português — penalizar Q, N, U e J era
 // tirar do jogo justamente o que faz uma frase fluir.
 const PESO_LETRAS = {
-  // Vogais: começam as palavras que amarram qualquer frase.
-  A: 2.5,
-  E: 2.5,
-  O: 2.5,
-  I: 2,
-  U: 1.8,
-  // Abaixo do normal. Não por serem "difíceis" de lembrar uma palavra, mas
-  // porque puxam pra um vocabulário estreito — e vocabulário estreito é
-  // menos piada possível, que é o oposto do objetivo aqui.
+  // ÍNDICE DE VOCABULÁRIO PARA FRASE.
   //
-  // H é o caso mais claro: quase tudo que começa com H em português é
-  // substantivo (hoje, hora, homem, hotel), e substantivo sozinho não
-  // constrói frase engraçada.
+  // O critério NÃO é quantas palavras existem com a letra — é quantas
+  // PALAVRAS DE LIGAÇÃO ela oferece: artigo, preposição, conjunção, verbo
+  // comum. São elas que fazem a frase fluir. "Zoológico" é uma palavra
+  // ótima e não ajuda em nada a montar uma frase.
   //
-  // R tem verbos bons (rir, roubar, resolver), mas na prática a mesa cai
-  // sempre nos mesmos — quem joga percebeu antes de qualquer análise de
-  // vocabulário.
-  H: 0.5,
-  R: 0.6,
-  G: 0.9,
+  // ===== DEGRAU 1 — o esqueleto do português (3,0) =====
+  // Artigos e conectivos que entram em quase toda frase.
+  //   A: a, as, ao, à, agora, ainda, antes
+  //   E: e, ele, ela, em, então, eu, era
+  //   O: o, os, ou, onde, ontem, outro
+  A: 3,
+  E: 3,
+  O: 3,
+
+  // ===== DEGRAU 2 — preposições e conjunções (2,0) =====
+  // Estavam TODAS em peso 1 até aqui, o que era o maior erro da tabela
+  // anterior: são as letras de "de", "para", "com", "não", "mas", "se" e
+  // "que" — sem elas a frase não tem como se ligar.
+  //   D: de, do, da, depois, dar, dizer
+  //   P: para, por, porque, pelo, pode, pensar
+  //   C: com, como, cada, coisa, chegar
+  //   N: não, nada, nunca, no, na, nem
+  //   M: mas, mais, me, meu, muito, mesmo
+  //   S: se, sem, sempre, só, ser, saber
+  //   Q: que, quando, quem, qual, quase
+  //   T: também, todo, tudo, ter, tempo, tão
+  D: 2,
+  P: 2,
+  C: 2,
+  N: 2,
+  M: 2,
+  S: 2,
+  Q: 2,
+  T: 2,
+
+  // ===== DEGRAU 3 — verbos e palavras comuns (1,3) =====
+  // Não ligam a frase, mas dão o conteúdo dela sem esforço.
+  //   V: você, vai, ver, vida, vamos
+  //   F: fazer, foi, falar, ficar, feliz
+  //   U: um, uma, único, último, usar
+  //   I: isso, ir, igual, imagina
+  //   L: lá, logo, levar, lembrar, lugar
+  V: 1.3,
+  F: 1.3,
+  U: 1.3,
+  I: 1.3,
+  L: 1.3,
+
+  // ===== DEGRAU 4 — vocabulário mais estreito (0,8) =====
+  //   B: bem, bom, beber, brincar
+  //   G: gente, grande, gostar, ganhar
+  //   J: já, jogar, jeito, juntos
+  B: 0.8,
+  G: 0.8,
+  J: 0.8,
+
+  // ===== DEGRAU 5 — as duas mais pobres (0,4) =====
+  // R tem verbos bons (rir, roubar, resolver), mas a mesa cai sempre nos
+  // mesmos. H é o caso extremo: quase tudo é substantivo (hoje, hora,
+  // homem, hotel), e substantivo sozinho não constrói piada.
+  R: 0.4,
+  H: 0.4,
 };
 
 function pesoDaLetra(letra) {
