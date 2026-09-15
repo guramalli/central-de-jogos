@@ -6,7 +6,7 @@ import Seo from "../components/Seo.jsx";
 // se entrar publicidade personalizada ou pagamento).
 export default function Privacidade() {
   return (
-    <div className="legal-page">
+    <div className="legal-page texto-leitura">
       <Seo
         title="Política de Privacidade"
         description="Como a Educação Gamer coleta, usa e protege seus dados: cadastro, jogos, chat e cookies. Seus direitos pela LGPD."

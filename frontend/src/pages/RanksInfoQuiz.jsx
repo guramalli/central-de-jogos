@@ -15,7 +15,7 @@ export default function RanksInfoQuiz() {
   }, []);
 
   return (
-    <div>
+    <div className="texto-leitura">
       <Seo title="Patentes do Quiz" description="Veja todas as patentes do Quiz e quanto falta pra você subir de nível." />
             <Link to="/jogos/quiz" className="btn secondary ranks-voltar">
         ← Voltar pro Quiz

@@ -21,6 +21,70 @@
 
 export const NOVIDADES = [
   {
+    id: "2026-09-multi-sala",
+    data: "2026-09-15",
+    tipo: "novo",
+    titulo: "Jogue em várias salas na mesma tela",
+    texto:
+      "No Stop e no Quiz, o botão “Várias salas” abre até 4 partidas lado a lado, sem precisar de outra aba. Cada painel é uma partida independente, com chat e placar próprios.",
+  },
+  {
+    id: "2026-09-tela-cheia",
+    data: "2026-09-15",
+    tipo: "melhoria",
+    titulo: "O site agora usa a tela inteira",
+    texto:
+      "As páginas deixaram de ficar espremidas no meio do monitor. Ranking, salas e painéis aproveitam toda a largura — e em telas grandes cabem mais salas por linha.",
+  },
+  {
+    id: "2026-09-temas-novos-stop",
+    data: "2026-09-14",
+    tipo: "novo",
+    titulo: "Seis temas novos no Stop",
+    texto:
+      "Anime e HQ, Flores, Peixes, Cobras, Aves e Sistema Solar entraram nas salas Intermediária e Avançada, com mais de 3 mil palavras cadastradas. O tema Animais virou Mamíferos — aves, peixes e cobras agora têm tema próprio.",
+  },
+  {
+    id: "2026-09-acento-hifen",
+    data: "2026-09-14",
+    tipo: "correcao",
+    titulo: "Hífen e pontuação deixaram de derrubar palavra certa",
+    texto:
+      "“bem-te-vi”, “bem te vi” e “bemtevi” valem igual agora. O mesmo pra título com barra ou exclamação. Mais de um terço do glossário é palavra composta — antes só a grafia exata contava ponto.",
+  },
+  {
+    id: "2026-09-acromania-bots",
+    data: "2026-09-13",
+    tipo: "novo",
+    titulo: "Sala vazia no Acromania? Chame jogadores automáticos",
+    texto:
+      "Botão dentro da sala enche a mesa pra você não ficar esperando. As frases deles são bobas de propósito — servem pra dar movimento. Dá pra dispensá-los a qualquer momento.",
+  },
+  {
+    id: "2026-09-acromania-privada",
+    data: "2026-09-13",
+    tipo: "novo",
+    titulo: "Salas privadas no Acromania",
+    texto:
+      "Crie uma sala com os seus tempos e número de rodadas, com senha se quiser, e chame quem você quer. Partidas em sala privada não valem pontos no ranking.",
+  },
+  {
+    id: "2026-09-acromania-melhorias",
+    data: "2026-09-13",
+    tipo: "melhoria",
+    titulo: "Acromania: trocar a frase, trocar o voto e letras mais fáceis",
+    texto:
+      "Dá pra reenviar a frase enquanto o tempo não acaba e clicar noutra frase pra mudar o voto. As letras sorteadas mudaram: X e Z saíram, e as que rendem mais vocabulário aparecem com mais frequência. O bônus do pódio subiu pra 1000, 700 e 500.",
+  },
+  {
+    id: "2026-09-stop-muito-boa",
+    data: "2026-09-12",
+    tipo: "novo",
+    titulo: "Voto “muito boa” nas salas privadas do Stop",
+    texto:
+      "Na validação por votos, dá pra marcar uma palavra como muito boa: ela vale e ainda rende 5 pontos extras pra quem escreveu. E agora qualquer jogador pode sugerir a palavra de qualquer um pro glossário.",
+  },
+  {
     id: "2026-09-acromania-sala-2",
     data: "2026-09-09",
     tipo: "novo",

@@ -23,7 +23,7 @@ function formatarData(iso) {
 
 export default function Novidades() {
   return (
-    <div>
+    <div className="texto-leitura">
       <Seo
         title="Novidades"
         description="O que mudou no Educação Gamer: funções novas, melhorias e correções."

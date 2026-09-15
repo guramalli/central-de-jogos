@@ -15,7 +15,7 @@ export default function RanksInfoAcromania() {
   }, []);
 
   return (
-    <div>
+    <div className="texto-leitura">
       <Seo
         title="Patentes do Acromania"
         description="Veja todas as patentes do Acromania e quanto falta pra você subir de nível."
