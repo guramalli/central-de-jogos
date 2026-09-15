@@ -2524,6 +2524,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin-bottom: 6px;
 }
 
+/* MODO IMERSIVO — multi-sala ocupa a tela inteira.
+ *
+ * Cabeçalho e rodapé somem porque são até 4 partidas ao mesmo tempo: cada
+ * pixel gasto com menu é um a menos pra ver os campos e o cronômetro. */
+.app-header-oculto { display: none; }
+.container-imersivo { padding: 10px 14px; }
+
 /* CHAMADA DO MULTI-SALA, acima da lista de salas.
  *
  * Usa o VERDE (--accent-3) de propósito: o laranja é a cor de todo botão do
@@ -2581,22 +2588,76 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .multi-sub { color: var(--text-dim); margin: 4px 0 0; font-size: 14px; }
 
-.multi-seletor { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-.multi-chip {
-  background: var(--bg-panel-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text);
-  padding: 6px 14px;
-  font-size: 13px;
-  cursor: pointer;
+/* SELETOR AGRUPADO POR TEMA.
+   Cada bloco é um tema com os seus níveis dentro. 35 fichas soltas viravam
+   caça-palavras; assim o olho procura o TEMA (que é como a pessoa pensa) e
+   só depois escolhe a dificuldade. */
+.multi-seletor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
 }
-.multi-chip:hover { border-color: var(--accent-2); }
-.multi-chip-on { border-color: var(--accent-2); background: rgba(255, 153, 0, 0.12); }
-.multi-chip-online {
-  margin-left: 6px;
-  font-size: 11px;
-  color: var(--accent-3, #06d6a0);
+.multi-grupo {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--bg-panel-2);
+}
+.multi-grupo-nome {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.multi-grupo-salas { display: flex; gap: 6px; }
+
+/* A arena ocupa a linha inteira e fica no topo: são as salas de todos os
+   temas juntos, não cabem na lógica de "um tema por bloco". */
+.multi-grupo-arena { grid-column: 1 / -1; border-color: var(--accent-2); }
+
+.multi-sala-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+/* CORES DA DIFICULDADE — as mesmas que o site já usa no lobby e nas
+   patentes. Verde é padrão/fácil, vermelho é avançado/difícil. Reaproveitar
+   evita ensinar um código de cor novo só pra esta tela. */
+.multi-sala-padrao { border-color: rgba(6, 214, 160, 0.5); }
+.multi-sala-padrao:hover { border-color: #06d6a0; }
+.multi-sala-avancada { border-color: rgba(255, 90, 77, 0.5); }
+.multi-sala-avancada:hover { border-color: #ff5a4d; }
+.multi-sala-arena { border-color: rgba(255, 184, 111, 0.6); }
+
+/* Selecionada: preenchimento sólido, não só borda. Com 35 botões na tela, a
+   diferença precisa saltar sem exigir comparação. */
+.multi-sala-on { font-weight: 700; }
+.multi-sala-padrao.multi-sala-on { background: rgba(6, 214, 160, 0.22); border-color: #06d6a0; }
+.multi-sala-avancada.multi-sala-on { background: rgba(255, 90, 77, 0.22); border-color: #ff5a4d; }
+.multi-sala-arena.multi-sala-on { background: rgba(255, 184, 111, 0.22); border-color: var(--accent-2); }
+
+.multi-sala-nivel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-sala-online {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(6, 214, 160, 0.2);
+  color: #06d6a0;
 }
 .multi-vazio { color: var(--text-dim); text-align: center; padding: 40px 0; }
 
@@ -2608,10 +2669,10 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
    Sempre no máximo DUAS colunas: três jogos de Stop lado a lado espremem os
    campos dos temas até virar rolagem horizontal dentro do painel. */
 .multi-grade { display: grid; gap: 14px; }
-.multi-grade-1 { grid-template-columns: 1fr; }
-.multi-grade-2 { grid-template-columns: repeat(2, 1fr); }
-.multi-grade-3 { grid-template-columns: repeat(2, 1fr); }
-.multi-grade-4 { grid-template-columns: repeat(2, 1fr); }
+.multi-grade-1 { grid-template-columns: 1fr; --linhas: 1; }
+.multi-grade-2 { grid-template-columns: repeat(2, 1fr); --linhas: 1; }
+.multi-grade-3 { grid-template-columns: repeat(2, 1fr); --linhas: 2; }
+.multi-grade-4 { grid-template-columns: repeat(2, 1fr); --linhas: 2; }
 
 /* Com 3 abertas, a terceira ocupa a linha inteira em vez de ficar sozinha
    na metade esquerda com um buraco do lado. */
@@ -2653,11 +2714,24 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
    fariam a página inteira ter a altura dos quatro somados, e a pessoa teria
    que rolar até o fim pra ver o último. */
 .multi-painel-jogo {
-  /* Altura em vh, não em pixel fixo: em monitor grande o painel aproveita a
-     tela, e em notebook não estoura a dobra. */
-  max-height: 72vh;
+  /* ALTURA CALCULADA PRA CABER NA TELA, sem a página inteira rolar.
+   *
+   * Com 2 painéis eles dividem a altura disponível; com 3 ou 4, cada linha
+   * fica com metade. O desconto de 150px cobre o cabeçalho da página, o
+   * seletor de salas e a barra de título de cada painel.
+   *
+   * A rolagem fica DENTRO do painel, nunca na página: rolar a página faria
+   * as outras partidas saírem de vista bem na hora em que a rodada começa
+   * nelas — que é o oposto do que o multi-sala existe pra resolver. */
+  height: calc((100vh - 150px) / var(--linhas, 1));
+  min-height: 280px;
   overflow-y: auto;
   padding: 8px;
+}
+@media (max-width: 900px) {
+  /* No celular é uma coluna, então cada painel é uma linha — dividir a
+     altura deixaria tudo minúsculo. Ali a página rola mesmo. */
+  .multi-painel-jogo { height: auto; max-height: 70vh; }
 }
 .multi-carregando { color: var(--text-dim); text-align: center; padding: 30px 0; }
 

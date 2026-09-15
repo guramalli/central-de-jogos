@@ -83,24 +83,12 @@ export default function MultiSala() {
 
       {erro && <div className="error-msg">{erro}</div>}
 
-      <div className="multi-seletor">
-        {salas.map((s) => {
-          const aberta = abertas.includes(s.roomId);
-          return (
-            <button
-              key={s.roomId}
-              className={`multi-chip ${aberta ? "multi-chip-on" : ""}`}
-              onClick={() => (aberta ? fechar(s.roomId) : abrir(s.roomId))}
-            >
-              {aberta ? "✓ " : "+ "}
-              {s.label || s.roomId}
-              {typeof s.onlineCount === "number" && (
-                <span className="multi-chip-online">{s.onlineCount}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <Seletor
+        salas={salas}
+        abertas={abertas}
+        alternar={(id) => (abertas.includes(id) ? fechar(id) : abrir(id))}
+        ehStop={ehStop}
+      />
 
       {abertas.length === 0 ? (
         <p className="multi-vazio">
@@ -121,7 +109,13 @@ export default function MultiSala() {
                   {/* `key` no roomId: trocar de sala precisa DESMONTAR o painel
                       inteiro, pra conexão antiga fechar e o estado não vazar de
                       uma sala pra outra. */}
-                  <Jogo key={roomId} salaFixa={roomId} socketProprio compacto />
+                  <Jogo
+                    key={roomId}
+                    salaFixa={roomId}
+                    socketProprio
+                    compacto
+                    aoFechar={() => fechar(roomId)}
+                  />
                 </Suspense>
               </div>
             </div>
@@ -129,5 +123,102 @@ export default function MultiSala() {
         </div>
       )}
     </div>
+  );
+}
+
+// SELETOR DE SALAS
+//
+// O Quiz tem 35 salas. Em fila corrida de fichas iguais, achar "Cinema —
+// Avançado" virava caça-palavras: o olho passa por 34 itens parecidos.
+//
+// Agrupar por TEMA resolve porque é assim que a pessoa procura — ela quer
+// "Cinema", e só depois escolhe a dificuldade. Cada bloco vira uma unidade
+// visual com o nome em cima e os dois níveis embaixo.
+//
+// A COR vem da convenção que o site já usa em todo lugar: verde pra
+// padrão/fácil, vermelho pra avançado/difícil. Não é cor nova, é a mesma do
+// lobby e das patentes.
+function Seletor({ salas, abertas, alternar, ehStop }) {
+  const arenas = salas.filter((s) => s.arena);
+  const comuns = salas.filter((s) => !s.arena);
+
+  // Agrupa por tema mantendo a ORDEM em que as salas chegaram — ela já vem
+  // pareada do servidor (Padrão e Avançado juntos).
+  const porTema = [];
+  for (const s of comuns) {
+    const chave = s.themeKey || s.roomId;
+    let grupo = porTema.find((g) => g.chave === chave);
+    if (!grupo) {
+      grupo = { chave, nome: nomeDoTema(s), salas: [] };
+      porTema.push(grupo);
+    }
+    grupo.salas.push(s);
+  }
+
+  return (
+    <div className="multi-seletor">
+      {arenas.length > 0 && (
+        <div className="multi-grupo multi-grupo-arena">
+          <span className="multi-grupo-nome">⚡ Arenas</span>
+          <div className="multi-grupo-salas">
+            {arenas.map((s) => (
+              <BotaoSala key={s.roomId} sala={s} aberta={abertas.includes(s.roomId)} alternar={alternar} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {porTema.map((g) => (
+        <div key={g.chave} className="multi-grupo">
+          <span className="multi-grupo-nome">{g.nome}</span>
+          <div className="multi-grupo-salas">
+            {g.salas.map((s) => (
+              <BotaoSala key={s.roomId} sala={s} aberta={abertas.includes(s.roomId)} alternar={alternar} ehStop={ehStop} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// "Cinema — Avançado" vira só "Cinema": o nível já aparece no botão embaixo.
+function nomeDoTema(sala) {
+  const bruto = sala.label || sala.roomId;
+  return bruto.split("—")[0].trim();
+}
+
+// O que sobra do rótulo depois de tirar o tema: "Padrão", "Avançado". Sala
+// sem nível (Direito, Zoeira) mostra "Entrar", porque repetir o nome do tema
+// dentro do próprio bloco dele seria redundante.
+function nivelDaSala(sala) {
+  const bruto = sala.label || "";
+  const partes = bruto.split("—");
+  if (partes.length > 1) return partes.slice(1).join("—").trim();
+  if (sala.arena) return bruto.replace(/⚡|Arena|Boca Livre|Relâmpago/gi, "").trim() || "Entrar";
+  return "Entrar";
+}
+
+function BotaoSala({ sala, aberta, alternar }) {
+  const nivel = nivelDaSala(sala);
+  // A cor sai do tier que o servidor manda, não de adivinhação pelo texto do
+  // rótulo — rótulo muda, tier não.
+  const classeNivel =
+    sala.tier === "avancado" ? "multi-sala-avancada" : sala.tier === "arena" ? "multi-sala-arena" : "multi-sala-padrao";
+
+  return (
+    <button
+      className={`multi-sala-btn ${classeNivel} ${aberta ? "multi-sala-on" : ""}`}
+      onClick={() => alternar(sala.roomId)}
+      title={sala.label}
+    >
+      <span className="multi-sala-nivel">
+        {aberta ? "✓ " : ""}
+        {nivel}
+      </span>
+      {typeof sala.onlineCount === "number" && sala.onlineCount > 0 && (
+        <span className="multi-sala-online">{sala.onlineCount}</span>
+      )}
+    </button>
   );
 }

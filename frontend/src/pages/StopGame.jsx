@@ -34,7 +34,7 @@ const EMPTY_THEME_SLOTS = Array.from({ length: THEMES_PER_ROUND }, (_, i) => ({
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala, em que
 // a mesma página é montada várias vezes lado a lado. No uso normal a sala
 // vem da URL e a conexão é a compartilhada, como sempre foi.
-export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false }) {
+export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
   const { user, logout } = useAuth();
 
   // Moderação de chat: moderadores e admins podem apagar mensagens.
@@ -367,9 +367,26 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
   // Assim que a rodada começa, o cursor vai direto para a primeira lacuna —
   // não precisa clicar, já pode começar a digitar.
   useEffect(() => {
-    if (phase === "active") {
-      inputRefs.current[0]?.focus();
-    }
+    if (phase !== "active") return;
+
+    // NÃO ROUBA O FOCO DE QUEM JÁ ESTÁ DIGITANDO.
+    //
+    // Este efeito existe pra você já começar a digitar quando a rodada abre,
+    // sem precisar clicar. Com uma sala só isso é ótimo; com várias abertas
+    // virava sabotagem: você estava no meio de uma palavra numa sala e a
+    // rodada de OUTRA começava, puxando o cursor pra lá no meio da digitação.
+    //
+    // A checagem é simples: se já existe um campo de texto em foco na
+    // página, este painel não mexe. Quem está parado continua ganhando o
+    // foco automático de sempre.
+    const focado = document.activeElement;
+    const jaDigitando =
+      focado &&
+      (focado.tagName === "INPUT" || focado.tagName === "TEXTAREA") &&
+      !focado.disabled;
+    if (jaDigitando) return;
+
+    inputRefs.current[0]?.focus();
   }, [phase, roundNumber]);
 
   // Rede de segurança: normalmente some quando o resultado da rodada chega
@@ -615,7 +632,15 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
               </p>
             </>
           )}
-          <Link to="/jogos/stop" className="btn">Voltar pro Stop</Link>
+          {/* Mesma regra do botão de sair: no multi-sala fecha só este
+              painel, senão a sala sem acesso derrubaria as outras junto. */}
+          {aoFechar ? (
+            <button type="button" className="btn" onClick={aoFechar}>
+              Fechar esta sala
+            </button>
+          ) : (
+            <Link to="/jogos/stop" className="btn">Voltar pro Stop</Link>
+          )}
         </div>
       </div>
     );
@@ -677,9 +702,23 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             url={`${window.location.origin}/jogos/stop/${roomId}`}
             message={`Vem jogar Stop comigo agora, tô na ${roomLabel || "sala"}! 🎮`}
           />
+          {/* No multi-sala este botão FECHA O PAINEL, não navega.
+              Como Link, ele levava a página inteira pro lobby — a pessoa
+              clicava pra sair de uma sala e saía das quatro. */}
+          {aoFechar ? (
+            <button
+              type="button"
+              className="room-exit-btn"
+              title="Fechar esta sala"
+              onClick={aoFechar}
+            >
+              🚪 Sair da sala
+            </button>
+          ) : (
           <Link to="/jogos/stop" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>
+          )}
           <img src="/stop-logo.png" alt="Stop!" className="sc-logo-img" />
         </div>
       </header>

@@ -46,7 +46,7 @@ const THEME_ICONS = {
 
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala (ver
 // StopGame — mesma ideia).
-export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false }) {
+export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -299,7 +299,14 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
     // serve pro desktop (onde funciona) e pra deixar o cursor no lugar certo.
     // Quem mantém o teclado aberto no iPhone é o campo nunca sair do DOM,
     // somado ao refoco feito dentro do handleGuessSubmit.
-    const focar = () => inputRef.current?.focus();
+    // Não rouba o foco de quem já está digitando — importa no multi-sala,
+    // onde a rodada de um painel começava no meio da digitação em outro e
+    // arrastava o cursor pra lá. (Mesma checagem do StopGame.)
+    const focar = () => {
+      const f = document.activeElement;
+      if (f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled) return;
+      inputRef.current?.focus();
+    };
     const raf = requestAnimationFrame(focar);
     const retry = setTimeout(focar, 120);
     return () => {
@@ -390,7 +397,15 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           A sala <strong>{roomFull.roomLabel}</strong> já está com o máximo de{" "}
           <strong>{roomFull.maxPlayers} jogadores</strong>. Tenta outro tema ou espera um pouco!
         </p>
-        <Link to="/jogos/quiz" className="btn">Voltar pro Quiz</Link>
+        {/* Mesma regra do botão de sair: no multi-sala fecha só este painel,
+            senão a sala lotada derrubaria as outras junto. */}
+        {aoFechar ? (
+          <button type="button" className="btn" onClick={aoFechar}>
+            Fechar esta sala
+          </button>
+        ) : (
+          <Link to="/jogos/quiz" className="btn">Voltar pro Quiz</Link>
+        )}
       </div>
     );
   }
@@ -428,9 +443,23 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
             url={`${window.location.origin}/jogos/quiz/${roomId}`}
             message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
           />
+          {/* No multi-sala este botão FECHA O PAINEL, não navega.
+              Como Link, ele levava a página inteira pro lobby — a pessoa
+              clicava pra sair de uma sala e saía das quatro. */}
+          {aoFechar ? (
+            <button
+              type="button"
+              className="room-exit-btn"
+              title="Fechar esta sala"
+              onClick={aoFechar}
+            >
+              🚪 Sair da sala
+            </button>
+          ) : (
           <Link to="/jogos/quiz" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>
+          )}
           <button
             className="quiz-mute-btn"
             onClick={handleToggleMute}
