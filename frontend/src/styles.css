@@ -304,13 +304,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 /* ===== Cards de jogo ===== */
 .game-grid {
   display: grid;
-  /* Colunas por ESPAÇO, não fixas em 2: com a página ocupando a tela toda,
-     dois cartões dividindo 1900px ficavam gigantes e vazios. Assim entram
-     três ou quatro em monitor grande e dois em notebook, sem media query. */
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  /* Três colunas: são exatamente três jogos (Stop, Quiz, Acromania), então
+     eles cabem numa linha só em tela cheia. Com auto-fit o terceiro caía
+     sozinho embaixo dependendo da largura. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-bottom: 24px;
 }
+@media (max-width: 1100px) { .game-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .game-grid { grid-template-columns: 1fr; } }
 
 /* Dentro de qualquer sala de jogo, no celular, o cabeçalho some — ganha
@@ -1316,7 +1317,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .lobby-benefit-icon { color: #ff9900; }
 .lobby-benefit-muted { color: var(--text-dim); }
 
-.lobby-game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.lobby-game-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .home-page .lobby-game-grid, div:has(> .home-game-card) { gap: 18px; }
 /* Listas de SALA em duas colunas fixas.
    As salas vêm do servidor em pares — Padrão e Avançado do mesmo tema no
@@ -1326,9 +1327,17 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    perder o pareamento. Com duas, cada linha é exatamente uma dupla.
    O modificador existe pra não afetar a Home nem o Lobby, que usam a mesma
    classe base pros três cards de jogo — ali três colunas é o certo. */
-/* Salas por espaço disponível: com a página em tela cheia, duas colunas
-   deixavam cada card de sala com o dobro da largura necessária. */
-.lobby-salas-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+/* DUAS COLUNAS FIXAS, e isto é intencional.
+ *
+ * As salas vêm em PARES na ordem da lista: Padrão 1 e Padrão 2, depois
+ * Intermediário 1 e 2, depois Avançada 1 e 2. Com duas colunas cada par cai
+ * lado a lado e o nível seguinte começa na linha de baixo — a pessoa lê a
+ * dificuldade descendo a tela.
+ *
+ * Cheguei a trocar por auto-fit quando o site virou tela cheia, e isso
+ * embaralhou tudo: em monitor grande entravam três ou quatro cards por
+ * linha, misturando Padrão com Avançada na mesma fileira. */
+.lobby-salas-grid { grid-template-columns: repeat(2, 1fr); }
 
 @media (max-width: 1000px) { .lobby-game-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .lobby-game-grid { grid-template-columns: 1fr; } }
@@ -4326,8 +4335,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .arena-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* Duas colunas fixas: são exatamente duas arenas (Iniciante e Avançada) e
+     elas ficam lado a lado. Com auto-fit, em tela cheia elas se esticavam
+     demais e em tela média caíam uma embaixo da outra sem motivo. */
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+}
+@media (max-width: 900px) {
+  .arena-grid { grid-template-columns: 1fr; }
 }
 .arena-card {
   display: flex;
