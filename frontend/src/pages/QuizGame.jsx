@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getSocket } from "../socket.js";
+import { getSocket, criarSocketDedicado } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ehFalhaDeAutenticacao, ROTA_SESSAO_EXPIRADA } from "../utils/sessaoSocket.js";
 import Chat from "../components/Chat.jsx";
@@ -44,7 +44,9 @@ const THEME_ICONS = {
   direito: "⚖️",
 };
 
-export default function QuizGame() {
+// `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala (ver
+// StopGame — mesma ideia).
+export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -58,7 +60,8 @@ export default function QuizGame() {
     socketRef.current?.emit("delete-chat-message", { escopo: "quiz", id });
   }, []);
   const { theme } = useTheme();
-  const { roomId } = useParams();
+  const { roomId: roomIdParam } = useParams();
+  const roomId = salaFixa || roomIdParam;
   const socketRef = useRef(null);
   const inputRef = useRef(null);
   const wrongLogEndRef = useRef(null);
@@ -105,7 +108,7 @@ export default function QuizGame() {
   const [muted, setMuted] = useState(isSoundMuted());
 
   useEffect(() => {
-    const socket = getSocket();
+    const socket = socketProprio ? criarSocketDedicado() : getSocket();
     socketRef.current = socket;
     socket.connect();
     socket.emit("join-quiz-room", { roomId });

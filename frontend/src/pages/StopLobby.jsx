@@ -105,6 +105,8 @@ export default function StopLobby() {
             do dia dividem o mesmo espaço, empilhados. */}
         <div className="hero-lado">
           <Link to="/patentes" className="retro-btn">🏆 Ver patentes</Link>
+          {/* Multi-sala: jogar em mais de uma sala sem abrir outra aba. */}
+          <Link to="/jogos/stop/varias" className="retro-btn">⊞ Várias salas</Link>
           <MissoesDoJogo gameKey="stop" />
         </div>
       </div>

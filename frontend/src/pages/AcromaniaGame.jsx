@@ -802,7 +802,7 @@ export default function AcromaniaGame() {
                       className={`quiz-player-rank-icon${p.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
                     />
                   )}
-                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
+                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" ehBot={p.ehBot} />
                 </div>
                 {/* Padronizado com Stop e Quiz: pontos nesta sala no mês,
                     não o total do jogador no Acromania inteiro. */}

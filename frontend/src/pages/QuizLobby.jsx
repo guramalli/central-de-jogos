@@ -154,6 +154,8 @@ export default function QuizLobby() {
             do dia dividem o mesmo espaço, empilhados. */}
         <div className="hero-lado">
           <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
+          {/* Multi-sala: jogar em mais de uma sala sem abrir outra aba. */}
+          <Link to="/jogos/quiz/varias" className="retro-btn">⊞ Várias salas</Link>
           <MissoesDoJogo gameKey="quiz" />
         </div>
       </div>

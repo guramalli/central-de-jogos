@@ -415,6 +415,11 @@ export class AcromaniaRoom {
       list.push({
         userId: p.userId,
         nickname: p.nickname,
+        // Marca o jogador automático. A tela usa isso pra mostrar um hover
+        // simples no lugar do perfil — bot não tem ranking, títulos nem
+        // histórico, e exibir tudo zerado dava a entender que ele compete
+        // em pé de igualdade.
+        ehBot: !!p.socket?.ehBot,
         lifetimePoints: this.lifetimeCache.get(p.userId) || 0,
         roomLifetimePoints: this.roomLifetimeCache.get(p.userId) || 0,
         roomMonthlyPoints: this.roomMonthlyCache.get(p.userId) || 0,

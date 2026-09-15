@@ -2492,6 +2492,102 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin-bottom: 6px;
 }
 
+/* ===== MULTI-SALA ===== */
+.multi-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.multi-sub { color: var(--text-dim); margin: 4px 0 0; font-size: 14px; }
+
+.multi-seletor { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.multi-chip {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.multi-chip:hover { border-color: var(--accent-2); }
+.multi-chip-on { border-color: var(--accent-2); background: rgba(255, 153, 0, 0.12); }
+.multi-chip-online {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--accent-3, #06d6a0);
+}
+.multi-vazio { color: var(--text-dim); text-align: center; padding: 40px 0; }
+
+/* Duas colunas no desktop. Uma só no celular: dois jogos lado a lado numa
+   tela de 380px não dá pra ler nem acertar os campos. */
+.multi-grade { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); }
+.multi-grade-1 { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .multi-grade { grid-template-columns: 1fr; }
+}
+
+.multi-painel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+.multi-painel-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-panel-2);
+  border-bottom: 1px solid var(--border);
+}
+.multi-painel-nome { font-size: 13px; font-weight: 700; }
+.multi-fechar {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.multi-fechar:hover { border-color: var(--danger, #e60000); color: var(--text); }
+
+/* O painel tem altura fixa e rolagem própria: sem isso, quatro jogos abertos
+   fariam a página inteira ter a altura dos quatro somados, e a pessoa teria
+   que rolar até o fim pra ver o último. */
+.multi-painel-jogo {
+  max-height: 560px;
+  overflow-y: auto;
+  padding: 8px;
+}
+.multi-carregando { color: var(--text-dim); text-align: center; padding: 30px 0; }
+
+/* Hover do jogador automático: só o ícone e o nome. Bot não tem perfil, e
+   mostrar ranking zerado dava a entender que ele disputa de igual pra
+   igual. */
+.nick-tooltip-bot {
+  text-align: center;
+  padding: 14px 18px;
+  min-width: 0;
+}
+.nick-tooltip-bot-icone { font-size: 32px; line-height: 1; }
+.nick-tooltip-bot-nome {
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--qz-text, #e5e2e1);
+}
+.nick-tooltip-bot-legenda {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .acro-submitted-aviso {
   display: block;
   font-size: 11px;

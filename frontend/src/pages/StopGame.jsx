@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getSocket } from "../socket.js";
+import { getSocket, criarSocketDedicado } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import ScoreTable from "../components/ScoreTable.jsx";
 import VotacaoPalavras from "../components/VotacaoPalavras.jsx";
@@ -31,7 +31,10 @@ const EMPTY_THEME_SLOTS = Array.from({ length: THEMES_PER_ROUND }, (_, i) => ({
   name: "",
 }));
 
-export default function StopGame() {
+// `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala, em que
+// a mesma página é montada várias vezes lado a lado. No uso normal a sala
+// vem da URL e a conexão é a compartilhada, como sempre foi.
+export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false }) {
   const { user, logout } = useAuth();
 
   // Moderação de chat: moderadores e admins podem apagar mensagens.
@@ -45,7 +48,7 @@ export default function StopGame() {
   }, []);
   const navigate = useNavigate();
   const { roomId: roomIdParam } = useParams();
-  const roomId = roomIdParam || "stop-sala-1";
+  const roomId = salaFixa || roomIdParam || "stop-sala-1";
   const socketRef = useRef(null);
   const inputRefs = useRef([]);
   // Sinais comportamentais dessa rodada — usados só pra sinalizar possível
@@ -113,7 +116,10 @@ export default function StopGame() {
 
   useEffect(() => {
     setAccessDenied(null);
-    const socket = getSocket();
+    // No multi-sala cada painel abre a SUA conexão: o backend guarda uma sala
+    // por conexão, então compartilhar faria o segundo painel expulsar o
+    // primeiro da sala dele.
+    const socket = socketProprio ? criarSocketDedicado() : getSocket();
     socketRef.current = socket;
     socket.connect();
     socket.emit("join-stop-room", { roomId });

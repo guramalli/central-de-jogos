@@ -45,6 +45,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile.jsx"));
 const SalaPrivada = lazy(() => import("./pages/SalaPrivada.jsx"));
+const MultiSala = lazy(() => import("./pages/MultiSala.jsx"));
 const AcromaniaPrivada = lazy(() => import("./pages/AcromaniaPrivada.jsx"));
 const Missoes = lazy(() => import("./pages/Missoes.jsx"));
 
@@ -277,6 +278,16 @@ export default function App() {
             element={
               <Private>
                 <StopLobby />
+              </Private>
+            }
+          />
+          {/* Multi-sala: /jogos/stop/varias e /jogos/quiz/varias. Vem ANTES
+              das rotas com :roomId, senão "varias" seria lido como id. */}
+          <Route
+            path="/jogos/:jogo/varias"
+            element={
+              <Private>
+                <MultiSala />
               </Private>
             }
           />
