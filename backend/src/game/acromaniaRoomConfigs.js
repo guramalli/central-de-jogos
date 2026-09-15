@@ -13,13 +13,17 @@ export const ACROMANIA_ROOM_CONFIGS = {
     // Quantidade de letras SORTEADA a cada rodada dentro desta faixa. Fixo
     // em 3 ficava curto e repetitivo; variar dá ritmo diferente entre uma
     // rodada e outra sem precisar de sala nova.
-    lettersMin: 4,
+    lettersMin: 5,
     lettersMax: 6,
     pointsForWin: 50,
     // Partida de 8 rodadas (~7 min no ritmo atual). Curta o bastante pra
     // caber num intervalo de almoço e longa o bastante pra virar disputa.
     roundsPerTurn: 8,
-    turnBonus: [100, 60, 30],
+    // Bônus do pódio da partida. Subiu de [100, 60, 30] por decisão de
+    // produto: com 100, terminar em primeiro rendia ~10% do que a partida
+    // inteira já pagava, e ninguém disputava as últimas rodadas. Em 1000 o
+    // pódio passa a valer a pena — mais que todas as rodadas somadas.
+    turnBonus: [1000, 700, 500],
     // Precisa de pelo menos 3 jogadores pra votação fazer sentido de verdade.
     minPlayersToStart: 3,
     // Bots de teste podem entrar AQUI. Ligados pela variável ACROMANIA_BOTS
@@ -34,11 +38,15 @@ export const ACROMANIA_ROOM_CONFIGS = {
     writingSeconds: 60,
     votingSeconds: 20,
     intermissionSeconds: 16,
-    lettersMin: 4,
+    lettersMin: 5,
     lettersMax: 6,
     pointsForWin: 50,
     roundsPerTurn: 8,
-    turnBonus: [100, 60, 30],
+    // Bônus do pódio da partida. Subiu de [100, 60, 30] por decisão de
+    // produto: com 100, terminar em primeiro rendia ~10% do que a partida
+    // inteira já pagava, e ninguém disputava as últimas rodadas. Em 1000 o
+    // pódio passa a valer a pena — mais que todas as rodadas somadas.
+    turnBonus: [1000, 700, 500],
     minPlayersToStart: 3,
     // SEM bots, nem com a variável ligada. É a sala pra quando você quiser
     // garantir que só há gente de verdade jogando — numa transmissão, por

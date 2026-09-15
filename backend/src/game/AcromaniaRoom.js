@@ -617,6 +617,17 @@ export class AcromaniaRoom {
       return;
     }
 
+    // TROCAR A FRASE CUSTA O POSTO DE MAIS RÁPIDO.
+    //
+    // O `delete` antes do `set` é o que faz isso: em JavaScript, `Map.set`
+    // numa chave que já existe MANTÉM a posição original. Sem apagar antes,
+    // dava pra mandar "a a a a" no primeiro segundo só pra garantir o bônus
+    // de mais rápido e reescrever a frase boa com calma depois.
+    //
+    // Apagando, quem troca volta pro fim da fila: se ninguém enviou nesse
+    // meio-tempo, continua em primeiro do mesmo jeito; se alguém enviou,
+    // perde o posto pra quem mandou de uma vez só. É a corrida de verdade.
+    this.submissions.delete(userId);
     this.submissions.set(userId, clean);
     registrarEvento(userId, "acro_frase").catch(() => {});
     socket.emit("acromania-phrase-submitted", { ok: true });

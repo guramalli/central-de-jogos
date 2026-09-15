@@ -2492,6 +2492,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin-bottom: 6px;
 }
 
+.acro-submitted-aviso {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-weight: normal;
+}
+
 .acro-waiting-timer {
   font-family: var(--qz-mono, monospace);
   font-size: 13px;
