@@ -2524,6 +2524,45 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin-bottom: 6px;
 }
 
+/* CHAMADA DO MULTI-SALA, acima da lista de salas.
+ *
+ * Usa o VERDE (--accent-3) de propósito: o laranja é a cor de todo botão do
+ * site, e no cabeçalho essa chamada ficava indistinguível de "Ver patentes".
+ * O verde não é usado em botão nenhum, então ela se separa sem gritar. */
+.multi-chamada {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-3, #06d6a0);
+  background: linear-gradient(90deg, rgba(6, 214, 160, 0.12), rgba(6, 214, 160, 0.03));
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.multi-chamada:hover {
+  background: linear-gradient(90deg, rgba(6, 214, 160, 0.2), rgba(6, 214, 160, 0.06));
+  transform: translateY(-1px);
+}
+.multi-chamada-icone {
+  font-size: 24px;
+  color: var(--accent-3, #06d6a0);
+  line-height: 1;
+}
+.multi-chamada-texto { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.multi-chamada-texto strong { font-size: 15px; }
+.multi-chamada-texto span { font-size: 13px; color: var(--text-dim); }
+.multi-chamada-seta { color: var(--accent-3, #06d6a0); font-size: 20px; }
+
+@media (max-width: 600px) {
+  /* No celular a segunda linha some: o multi-sala mostra uma sala por vez
+     ali, então a explicação promete algo que a tela não entrega. */
+  .multi-chamada-texto span { display: none; }
+  .multi-chamada { padding: 12px 14px; }
+}
+
 /* ===== MULTI-SALA ===== */
 
 /* Sem truque de largura aqui: o site inteiro passou a ocupar a tela

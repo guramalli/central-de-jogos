@@ -154,13 +154,25 @@ export default function QuizLobby() {
             do dia dividem o mesmo espaço, empilhados. */}
         <div className="hero-lado">
           <Link to="/patentes-quiz" className="retro-btn">🏆 Ver patentes</Link>
-          {/* Multi-sala: jogar em mais de uma sala sem abrir outra aba. */}
-          <Link to="/jogos/quiz/varias" className="retro-btn">⊞ Várias salas</Link>
           <MissoesDoJogo gameKey="quiz" />
         </div>
       </div>
 
       <MiniPodium gameKey="quiz" />
+
+      {/* FAIXA DO MULTI-SALA — acima da lista, largura toda.
+          Estava na coluna do cabeçalho, misturada com "Ver patentes" e as
+          missões: mesma cor, mesmo tamanho, num canto que a pessoa já
+          aprendeu a ignorar. Aqui ele fica no caminho de quem vai escolher
+          a sala, que é exatamente quando a escolha faz sentido. */}
+      <Link to="/jogos/quiz/varias" className="multi-chamada">
+        <span className="multi-chamada-icone">⊞</span>
+        <span className="multi-chamada-texto">
+          <strong>Jogar em várias salas ao mesmo tempo</strong>
+          <span>Abra até 4 partidas na mesma tela, sem trocar de aba</span>
+        </span>
+        <span className="multi-chamada-seta">→</span>
+      </Link>
 
       <div className="lobby-game-grid lobby-salas-grid">
         {themeRooms.map((r) => {
