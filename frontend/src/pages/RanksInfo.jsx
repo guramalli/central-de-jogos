@@ -15,7 +15,7 @@ export default function RanksInfo() {
   }, []);
 
   return (
-    <div>
+    <div className="texto-leitura">
       <Seo title="Patentes do Stop" description="Veja todas as patentes do Stop e quanto falta pra você subir de nível." />
             <Link to="/jogos/stop" className="btn secondary ranks-voltar">
         ← Voltar pro Stop

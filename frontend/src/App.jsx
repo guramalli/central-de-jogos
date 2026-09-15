@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import BarraMensagens from "./components/BarraMensagens.jsx";
+import { useAcromaniaAtivo } from "./components/useAcromaniaAtivo.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -45,6 +46,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile.jsx"));
 const SalaPrivada = lazy(() => import("./pages/SalaPrivada.jsx"));
+const MultiSala = lazy(() => import("./pages/MultiSala.jsx"));
 const AcromaniaPrivada = lazy(() => import("./pages/AcromaniaPrivada.jsx"));
 const Missoes = lazy(() => import("./pages/Missoes.jsx"));
 
@@ -153,14 +155,24 @@ export default function App() {
 
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
   // atrapalhar o espaço da tela do jogo.
+  const acromaniaAtivo = useAcromaniaAtivo();
+
   const isInsideGameRoom = /^\/jogos\/(stop|quiz|acromania)\/[^/]+/.test(location.pathname);
+
+  // MULTI-SALA É MODO IMERSIVO: cabeçalho e rodapé somem, o jogo fica com a
+  // tela inteira. São até 4 partidas simultâneas — cada pixel gasto com menu
+  // é um pixel a menos pra ver os campos e o cronômetro.
+  //
+  // A navegação não some junto: a própria página tem o botão de voltar ao
+  // lobby, que é a única saída de que a pessoa precisa ali.
+  const ehMultiSala = /^\/jogos\/(stop|quiz)\/varias$/.test(location.pathname);
   const logoSrc = theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png";
 
   return (
     <>
       <GuestBanner />
       <InstalarApp />
-      <header className={`app-header ${isInsideGameRoom ? "app-header-in-room" : ""}`}>
+      <header className={`app-header ${isInsideGameRoom ? "app-header-in-room" : ""} ${ehMultiSala ? "app-header-oculto" : ""}`}>
         <div className="app-header-inner">
           <div className="app-header-left">
             <Link to="/" className="logo">
@@ -178,14 +190,35 @@ export default function App() {
           {user && (
               <nav className="nav-links">
                 <NavLink to="/" end className={navLinkClass}>Lobby</NavLink>
-                {/* Stop e Quiz já estiveram fora daqui, por duplicarem o
-                    caminho do Lobby e alongarem a barra. Voltaram porque a
-                    falta se fez sentir: são os dois jogos principais e o
-                    atalho direto vale mais que a economia de espaço. Sem
-                    `end`, o link segue destacado dentro das salas do jogo. */}
+                {/* Os jogos já estiveram fora daqui, por duplicarem o caminho
+                    do Lobby e alongarem a barra. Voltaram porque a falta se
+                    fez sentir: o atalho direto vale mais que a economia de
+                    espaço. Sem `end`, o link segue destacado dentro das salas
+                    do jogo. */}
                 <NavLink to="/jogos/stop" className={navLinkClass}>Stop</NavLink>
                 <NavLink to="/jogos/quiz" className={navLinkClass}>Quiz</NavLink>
-                <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
+                {/* O Acromania ficou de fora enquanto a barra tinha 1100px:
+                    não cabia sem espremer o resto. Com o site em tela cheia
+                    sobrou espaço, e deixar só dois dos três jogos no menu
+                    dava a entender que ele era menos importante.
+                    
+                    Some junto com o jogo: a variável ACROMANIA_ATIVO desliga
+                    o Acromania sem deploy, e o lobby já esconde o card nesse
+                    caso. Sem esta checagem o menu levaria a uma página sem
+                    sala nenhuma. */}
+                {acromaniaAtivo && (
+                  <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
+                )}
+                {/* `end` obrigatório aqui: o Hall da Fama mora em
+                    /ranking/historico, e sem ele o NavLink casa por prefixo —
+                    os dois links ficariam acesos ao mesmo tempo. */}
+                <NavLink to="/ranking" end className={navLinkClass}>Ranking</NavLink>
+                {/* Hall da Fama ao lado do Ranking, e não dentro dele: os
+                    campeões congelados de cada mês são o registro mais
+                    duradouro do site — o ranking zera todo dia 1, o Hall
+                    fica. Esconder isso a dois cliques tirava o valor de ter
+                    vencido. `end` não entra: a página é uma só. */}
+                <NavLink to="/ranking/historico" className={navLinkClass}>Hall da Fama</NavLink>
                 <NavLink to="/missoes" className={navLinkClass}>
                   Missões{missoesPendentes > 0 && (
                     <span className="nav-badge">{missoesPendentes}</span>
@@ -242,7 +275,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="container">
+      <div className={`container ${ehMultiSala ? "container-imersivo" : ""}`}>
         {/* O boundary fica FORA do Suspense de propósito: a falha ao baixar o
             arquivo da página acontece durante o carregamento, e um boundary
             por dentro não a capturaria. `key` no pathname reinicia o estado
@@ -277,6 +310,16 @@ export default function App() {
             element={
               <Private>
                 <StopLobby />
+              </Private>
+            }
+          />
+          {/* Multi-sala: /jogos/stop/varias e /jogos/quiz/varias. Vem ANTES
+              das rotas com :roomId, senão "varias" seria lido como id. */}
+          <Route
+            path="/jogos/:jogo/varias"
+            element={
+              <Private>
+                <MultiSala />
               </Private>
             }
           />
@@ -429,7 +472,7 @@ export default function App() {
         </ErrorBoundary>
       </div>
 
-      {!isInsideGameRoom && <Footer />}
+      {!isInsideGameRoom && !ehMultiSala && <Footer />}
 
       {/* Barra de mensagens privadas no canto, em TODAS as páginas — inclusive
           dentro das salas de jogo. Ela cabe ali porque a lista não mostra

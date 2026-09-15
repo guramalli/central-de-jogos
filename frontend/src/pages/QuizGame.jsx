@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getSocket } from "../socket.js";
+import { getSocket, criarSocketDedicado } from "../socket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ehFalhaDeAutenticacao, ROTA_SESSAO_EXPIRADA } from "../utils/sessaoSocket.js";
 import Chat from "../components/Chat.jsx";
@@ -44,7 +44,9 @@ const THEME_ICONS = {
   direito: "⚖️",
 };
 
-export default function QuizGame() {
+// `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala (ver
+// StopGame — mesma ideia).
+export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -58,7 +60,8 @@ export default function QuizGame() {
     socketRef.current?.emit("delete-chat-message", { escopo: "quiz", id });
   }, []);
   const { theme } = useTheme();
-  const { roomId } = useParams();
+  const { roomId: roomIdParam } = useParams();
+  const roomId = salaFixa || roomIdParam;
   const socketRef = useRef(null);
   const inputRef = useRef(null);
   const wrongLogEndRef = useRef(null);
@@ -84,6 +87,7 @@ export default function QuizGame() {
   // entre preenchendo e aguardando — o resto da tabela (formulário, tamanho)
   // fica sempre igual, pra não dar aquele "pulo" visual entre os estados.
   const [questionText, setQuestionText] = useState("Aguardando a primeira pergunta...");
+  const [temaDaPergunta, setTemaDaPergunta] = useState(null);
   const [answerLine, setAnswerLine] = useState("");
 
   const [guess, setGuess] = useState("");
@@ -104,7 +108,7 @@ export default function QuizGame() {
   const [muted, setMuted] = useState(isSoundMuted());
 
   useEffect(() => {
-    const socket = getSocket();
+    const socket = socketProprio ? criarSocketDedicado() : getSocket();
     socketRef.current = socket;
     socket.connect();
     socket.emit("join-quiz-room", { roomId });
@@ -182,6 +186,8 @@ export default function QuizGame() {
     socket.on("quiz-question-start", (data) => {
       setPhase("active");
       setQuestionText(data.question);
+      // Só vem preenchido nas arenas, que misturam temas.
+      setTemaDaPergunta(data.temaDaPergunta || null);
       setQuestionId(data.questionId || null);
       setAnswerLine(data.masked);
       setGuess("");
@@ -293,7 +299,14 @@ export default function QuizGame() {
     // serve pro desktop (onde funciona) e pra deixar o cursor no lugar certo.
     // Quem mantém o teclado aberto no iPhone é o campo nunca sair do DOM,
     // somado ao refoco feito dentro do handleGuessSubmit.
-    const focar = () => inputRef.current?.focus();
+    // Não rouba o foco de quem já está digitando — importa no multi-sala,
+    // onde a rodada de um painel começava no meio da digitação em outro e
+    // arrastava o cursor pra lá. (Mesma checagem do StopGame.)
+    const focar = () => {
+      const f = document.activeElement;
+      if (f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled) return;
+      inputRef.current?.focus();
+    };
     const raf = requestAnimationFrame(focar);
     const retry = setTimeout(focar, 120);
     return () => {
@@ -384,7 +397,15 @@ export default function QuizGame() {
           A sala <strong>{roomFull.roomLabel}</strong> já está com o máximo de{" "}
           <strong>{roomFull.maxPlayers} jogadores</strong>. Tenta outro tema ou espera um pouco!
         </p>
-        <Link to="/jogos/quiz" className="btn">Voltar pro Quiz</Link>
+        {/* Mesma regra do botão de sair: no multi-sala fecha só este painel,
+            senão a sala lotada derrubaria as outras junto. */}
+        {aoFechar ? (
+          <button type="button" className="btn" onClick={aoFechar}>
+            Fechar esta sala
+          </button>
+        ) : (
+          <Link to="/jogos/quiz" className="btn">Voltar pro Quiz</Link>
+        )}
       </div>
     );
   }
@@ -398,6 +419,10 @@ export default function QuizGame() {
     <div className="quiz-root" data-quiz-theme={themeKey || undefined}>
       <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
       <div className="quiz-stats-bar">
+        {/* No compacto some a logo e os pontos: repetem em cada painel e o
+            que importa ali é a pergunta. O cronômetro e o botão de som
+            continuam, porque são do jogo. */}
+        {!compacto && (
         <div className="quiz-topbar-badges">
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="quiz-room-logo" />
           <div className="quiz-gloss-badge">
@@ -407,9 +432,11 @@ export default function QuizGame() {
             <span className="quiz-badge-label">Pts Total:</span> {me?.lifetimePoints ?? 0}
           </div>
         </div>
+        )}
         <div className="quiz-topbar-title">
-          <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>
-          <span className="quiz-theme-name">{roomLabel}</span>
+          {/* Nome da sala já está na barra do painel no multi-sala. */}
+          {!compacto && <span className="quiz-theme-badge">{THEME_ICONS[themeKey] || "❓"}</span>}
+          {!compacto && <span className="quiz-theme-name">{roomLabel}</span>}
           {turnInfo && (
             <span className="quiz-turn-counter">
               Rodada {turnInfo.round} de {turnInfo.total}
@@ -422,9 +449,23 @@ export default function QuizGame() {
             url={`${window.location.origin}/jogos/quiz/${roomId}`}
             message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
           />
+          {/* No multi-sala este botão FECHA O PAINEL, não navega.
+              Como Link, ele levava a página inteira pro lobby — a pessoa
+              clicava pra sair de uma sala e saía das quatro. */}
+          {aoFechar ? (
+            <button
+              type="button"
+              className="room-exit-btn"
+              title="Fechar esta sala"
+              onClick={aoFechar}
+            >
+              🚪 Sair da sala
+            </button>
+          ) : (
           <Link to="/jogos/quiz" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>
+          )}
           <button
             className="quiz-mute-btn"
             onClick={handleToggleMute}
@@ -493,6 +534,13 @@ export default function QuizGame() {
                 >
                   🚩 <span className="quiz-report-btn-text">reportar erro</span>
                 </button>
+              )}
+              {/* Nas arenas a pergunta chega sem contexto nenhum: uma de
+                  química cai logo depois de uma de futebol e o jogador perde
+                  segundos só entendendo do que se trata. Nas salas de tema
+                  único isto não aparece — lá o tema já está no nome da sala. */}
+              {temaDaPergunta && (
+                <div className="quiz-tema-da-pergunta">{temaDaPergunta}:</div>
               )}
               <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
                 {questionText}

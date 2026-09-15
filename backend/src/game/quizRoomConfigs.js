@@ -2,7 +2,7 @@
 // difícil — geradas automaticamente aqui embaixo, pra não repetir bloco por
 // bloco. Direito é exceção: fica só uma sala (o assunto já é nichado o
 // suficiente sem precisar dividir mais ainda).
-const THEMES = [
+export const THEMES = [
   { key: "mitologia", name: "Mitologia e Religião" },
   { key: "games", name: "Games" },
   { key: "terceirao", name: "Terceirão" },
@@ -20,6 +20,12 @@ const THEMES = [
   { key: "novelas", name: "Novelas" },
   { key: "geografia", name: "Geografia" },
 ];
+
+// Chave -> nome legível. Usado nas ARENAS, que misturam temas: lá a
+// pergunta vem sem contexto nenhum, e "Qual o elemento de símbolo Fe?"
+// depois de uma de futebol pega o jogador desprevenido. Nas salas de tema
+// único isso não é preciso — o tema já está no nome da sala.
+export const NOME_DO_TEMA = Object.fromEntries(THEMES.map((t) => [t.key, t.name]));
 
 function buildDifficultyRooms(themeKey, themeName) {
   return {

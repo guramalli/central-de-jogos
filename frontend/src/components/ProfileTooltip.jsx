@@ -10,7 +10,7 @@ import { classeDoNivel } from "../utils/nivelTitulo.js";
 // nunca fica "cortado" por containers com rolagem (tipo a lista de
 // jogadores online), que sempre recortam qualquer coisa que vaze pra fora
 // deles, mesmo elementos posicionados por cima.
-export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "stop", roomId = null }) {
+export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "stop", roomId = null, ehBot = false }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -122,6 +122,41 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
   // pessoa em outros temas não ajuda em nada aqui dentro.
   const roomAccuracy = roomId ? profile?.quizAccuracy?.find((a) => a.roomId === roomId) : null;
   const isMe = user?.id === userId;
+
+  // HOVER DO BOT — caminho separado, e de propósito.
+  //
+  // Bot não tem perfil: passar pelo fluxo normal mostrava ranking, títulos e
+  // histórico todos zerados, o que dava a entender que ele compete em pé de
+  // igualdade com as pessoas. Aqui é só a figura e o nome, sem busca ao
+  // servidor nenhuma — não há o que buscar.
+  if (ehBot) {
+    return (
+      <span
+        className="nick-hover"
+        ref={anchorRef}
+        onMouseEnter={showTooltip}
+        onMouseLeave={scheduleHide}
+      >
+        {nickname}
+        {visible &&
+          createPortal(
+            <div
+              className="nick-tooltip-portal"
+              style={{ top: coords.top, left: coords.left }}
+              onMouseEnter={cancelHide}
+              onMouseLeave={scheduleHide}
+            >
+              <div className="nick-tooltip nick-tooltip-bot">
+                <div className="nick-tooltip-bot-icone">🤖</div>
+                <div className="nick-tooltip-bot-nome">{nickname}</div>
+                <div className="nick-tooltip-bot-legenda">jogador automático</div>
+              </div>
+            </div>,
+            document.body
+          )}
+      </span>
+    );
+  }
 
   return (
     <span

@@ -1,4 +1,17 @@
 :root {
+  /* LARGURA DO SITE.
+   *
+   * Era 1100px fixos, repetido em dois lugares (.container e
+   * .app-header-inner) que precisavam bater entre si — e já tinham ficado
+   * desalinhados uma vez por causa disso. Agora é uma variável só: mudar
+   * aqui move o corpo e o cabeçalho juntos.
+   *
+   * Hoje vale 100%: o site ocupa a tela toda, por decisão de produto. O
+   * limite de leitura continua valendo pra TEXTO CORRIDO, aplicado por
+   * página com a classe .texto-leitura — linha de 1900px obriga o olho a
+   * varrer a tela e voltar, e é aí que a leitura cansa. */
+  --largura-site: 100%;
+
   --font-display: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", "Courier New", monospace;
   font-family: "Work Sans", "Segoe UI", system-ui, sans-serif;
@@ -109,7 +122,12 @@ body {
 }
 .nav-links a:hover { color: var(--accent-2); }
 
-.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.container { max-width: var(--largura-site); margin: 0 auto; padding: 24px 28px; }
+
+/* Para TEXTO CORRIDO dentro de páginas largas: regras, patentes, novidades,
+   privacidade. Mantém a linha num tamanho legível mesmo com a página
+   ocupando a tela toda. */
+.texto-leitura { max-width: 900px; }
 
 .card {
   background: var(--bg-panel);
@@ -286,10 +304,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 /* ===== Cards de jogo ===== */
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* Três colunas: são exatamente três jogos (Stop, Quiz, Acromania), então
+     eles cabem numa linha só em tela cheia. Com auto-fit o terceiro caía
+     sozinho embaixo dependendo da largura. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-bottom: 24px;
 }
+@media (max-width: 1100px) { .game-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .game-grid { grid-template-columns: 1fr; } }
 
 /* Dentro de qualquer sala de jogo, no celular, o cabeçalho some — ganha
@@ -1090,7 +1112,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
      perfil terminar onde ele termina. Antes eram 1200px aqui contra 1100px
      lá — 50px de desalinhamento de cada lado, visível assim que a tela
      passa de 1150px de largura. */
-  max-width: 1100px;
+  max-width: var(--largura-site);
   margin: 0 auto;
   /* Três colunas em vez de flex com space-between: as laterais têm a MESMA
      largura (1fr cada), então o menu do meio fica centralizado de verdade na
@@ -1305,6 +1327,16 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    perder o pareamento. Com duas, cada linha é exatamente uma dupla.
    O modificador existe pra não afetar a Home nem o Lobby, que usam a mesma
    classe base pros três cards de jogo — ali três colunas é o certo. */
+/* DUAS COLUNAS FIXAS, e isto é intencional.
+ *
+ * As salas vêm em PARES na ordem da lista: Padrão 1 e Padrão 2, depois
+ * Intermediário 1 e 2, depois Avançada 1 e 2. Com duas colunas cada par cai
+ * lado a lado e o nível seguinte começa na linha de baixo — a pessoa lê a
+ * dificuldade descendo a tela.
+ *
+ * Cheguei a trocar por auto-fit quando o site virou tela cheia, e isso
+ * embaralhou tudo: em monitor grande entravam três ou quatro cards por
+ * linha, misturando Padrão com Avançada na mesma fileira. */
 .lobby-salas-grid { grid-template-columns: repeat(2, 1fr); }
 
 @media (max-width: 1000px) { .lobby-game-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -2481,6 +2513,323 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 
 /* ===== Acromania (reaproveita as classes .quiz-* pro visual base) ===== */
 .acro-theme-block { text-align: center; margin-bottom: 22px; }
+
+/* Nome do tema acima da pergunta, só nas arenas (salas que misturam temas). */
+.quiz-tema-da-pergunta {
+  font-family: var(--qz-mono, monospace);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-2);
+  margin-bottom: 6px;
+}
+
+/* MODO IMERSIVO — multi-sala ocupa a tela inteira.
+ *
+ * Cabeçalho e rodapé somem porque são até 4 partidas ao mesmo tempo: cada
+ * pixel gasto com menu é um a menos pra ver os campos e o cronômetro. */
+.app-header-oculto { display: none; }
+.container-imersivo { padding: 10px 14px; }
+
+/* CHAMADA DO MULTI-SALA, acima da lista de salas.
+ *
+ * Usa o VERDE (--accent-3) de propósito: o laranja é a cor de todo botão do
+ * site, e no cabeçalho essa chamada ficava indistinguível de "Ver patentes".
+ * O verde não é usado em botão nenhum, então ela se separa sem gritar. */
+.multi-chamada {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-3, #06d6a0);
+  background: linear-gradient(90deg, rgba(6, 214, 160, 0.12), rgba(6, 214, 160, 0.03));
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.multi-chamada:hover {
+  background: linear-gradient(90deg, rgba(6, 214, 160, 0.2), rgba(6, 214, 160, 0.06));
+  transform: translateY(-1px);
+}
+.multi-chamada-icone {
+  font-size: 24px;
+  color: var(--accent-3, #06d6a0);
+  line-height: 1;
+}
+.multi-chamada-texto { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.multi-chamada-texto strong { font-size: 15px; }
+.multi-chamada-texto span { font-size: 13px; color: var(--text-dim); }
+.multi-chamada-seta { color: var(--accent-3, #06d6a0); font-size: 20px; }
+
+@media (max-width: 600px) {
+  /* No celular a segunda linha some: o multi-sala mostra uma sala por vez
+     ali, então a explicação promete algo que a tela não entrega. */
+  .multi-chamada-texto span { display: none; }
+  .multi-chamada { padding: 12px 14px; }
+}
+
+/* ===== MULTI-SALA ===== */
+
+/* Sem truque de largura aqui: o site inteiro passou a ocupar a tela
+   (--largura-site: 100%), então a multi-sala herda isso do .container.
+   Antes esta regra escapava do contêiner de 1100px com um cálculo de
+   viewport — mantê-la agora criaria rolagem horizontal, porque 100vw inclui
+   a barra de rolagem e o .container não. */
+
+.multi-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.multi-sub { color: var(--text-dim); margin: 4px 0 0; font-size: 14px; }
+.multi-sub-atalhos { margin-top: 8px; }
+
+/* Teclas como tecla: a pessoa reconhece o formato antes de ler a palavra. */
+.multi-sala kbd {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  background: var(--bg-panel-2);
+  color: var(--text);
+}
+
+/* Aviso da primeira vez com duas salas. */
+.multi-dica-primeira {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-3, #06d6a0);
+  background: rgba(6, 214, 160, 0.1);
+  font-size: 13px;
+}
+.multi-dica-primeira span { flex: 1; min-width: 240px; }
+
+/* Barra fina que substitui o cabeçalho quando há sala aberta. */
+.multi-barra-jogo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.multi-btn-mini {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.multi-btn-mini:hover { border-color: var(--accent-2); }
+.multi-barra-contador { font-size: 12px; color: var(--text-dim); margin-right: auto; }
+
+/* SELETOR AGRUPADO POR TEMA.
+   Cada bloco é um tema com os seus níveis dentro. 35 fichas soltas viravam
+   caça-palavras; assim o olho procura o TEMA (que é como a pessoa pensa) e
+   só depois escolhe a dificuldade. */
+.multi-seletor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.multi-grupo {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--bg-panel-2);
+}
+.multi-grupo-nome {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.multi-grupo-salas { display: flex; gap: 6px; }
+
+/* A arena ocupa a linha inteira e fica no topo: são as salas de todos os
+   temas juntos, não cabem na lógica de "um tema por bloco". */
+.multi-grupo-arena { grid-column: 1 / -1; border-color: var(--accent-2); }
+
+.multi-sala-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+/* CORES DA DIFICULDADE — as mesmas que o site já usa no lobby e nas
+   patentes. Verde é padrão/fácil, vermelho é avançado/difícil. Reaproveitar
+   evita ensinar um código de cor novo só pra esta tela. */
+.multi-sala-padrao { border-color: rgba(6, 214, 160, 0.5); }
+.multi-sala-padrao:hover { border-color: #06d6a0; }
+.multi-sala-avancada { border-color: rgba(255, 90, 77, 0.5); }
+.multi-sala-avancada:hover { border-color: #ff5a4d; }
+.multi-sala-arena { border-color: rgba(255, 184, 111, 0.6); }
+
+/* Selecionada: preenchimento sólido, não só borda. Com 35 botões na tela, a
+   diferença precisa saltar sem exigir comparação. */
+.multi-sala-on { font-weight: 700; }
+.multi-sala-padrao.multi-sala-on { background: rgba(6, 214, 160, 0.22); border-color: #06d6a0; }
+.multi-sala-avancada.multi-sala-on { background: rgba(255, 90, 77, 0.22); border-color: #ff5a4d; }
+.multi-sala-arena.multi-sala-on { background: rgba(255, 184, 111, 0.22); border-color: var(--accent-2); }
+
+.multi-sala-nivel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-sala-online {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(6, 214, 160, 0.2);
+  color: #06d6a0;
+}
+.multi-vazio { color: var(--text-dim); text-align: center; padding: 40px 0; }
+
+/* Arranjo por quantidade de painéis abertos.
+     1 sala  -> 1 coluna
+     2 salas -> 2 colunas
+     3 salas -> 2 em cima, 1 embaixo ocupando a largura toda
+     4 salas -> 2x2
+   Sempre no máximo DUAS colunas: três jogos de Stop lado a lado espremem os
+   campos dos temas até virar rolagem horizontal dentro do painel. */
+.multi-grade { display: grid; gap: 14px; }
+.multi-grade-1 { grid-template-columns: 1fr; --linhas: 1; }
+.multi-grade-2 { grid-template-columns: repeat(2, 1fr); --linhas: 1; }
+.multi-grade-3 { grid-template-columns: repeat(2, 1fr); --linhas: 2; }
+.multi-grade-4 { grid-template-columns: repeat(2, 1fr); --linhas: 2; }
+
+/* Com 3 abertas, a terceira ocupa a linha inteira em vez de ficar sozinha
+   na metade esquerda com um buraco do lado. */
+.multi-grade-3 > .multi-painel:nth-child(3) { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .multi-grade,
+  .multi-grade-2,
+  .multi-grade-3,
+  .multi-grade-4 { grid-template-columns: 1fr; }
+}
+
+.multi-painel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+.multi-painel-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-panel-2);
+  border-bottom: 1px solid var(--border);
+}
+.multi-painel-nome { font-size: 13px; font-weight: 700; }
+/* Número do atalho na barra do painel: sem ele, Ctrl+2 é adivinhação. */
+.multi-painel-atalho {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  padding: 1px 6px;
+  margin-right: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.multi-dica-atalho { opacity: 0.7; }
+/* O painel em foco ganha borda: com 4 abertos, saber em qual você está
+   importa mais do que parece — principalmente depois de trocar pelo
+   teclado, quando não houve clique pra dar a pista. */
+.multi-painel:focus-within { border-color: var(--accent-2); }
+.multi-fechar {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.multi-fechar:hover { border-color: var(--danger, #e60000); color: var(--text); }
+
+/* O painel tem altura fixa e rolagem própria: sem isso, quatro jogos abertos
+   fariam a página inteira ter a altura dos quatro somados, e a pessoa teria
+   que rolar até o fim pra ver o último. */
+.multi-painel-jogo {
+  /* ALTURA CALCULADA PRA CABER NA TELA, sem a página inteira rolar.
+   *
+   * Com 2 painéis eles dividem a altura disponível; com 3 ou 4, cada linha
+   * fica com metade. O desconto de 150px cobre o cabeçalho da página, o
+   * seletor de salas e a barra de título de cada painel.
+   *
+   * A rolagem fica DENTRO do painel, nunca na página: rolar a página faria
+   * as outras partidas saírem de vista bem na hora em que a rodada começa
+   * nelas — que é o oposto do que o multi-sala existe pra resolver. */
+  /* 150px cobria cabeçalho da página + seletor. Com os dois recolhidos
+     durante o jogo, sobra altura: agora o desconto é só da barra fina e do
+     título de cada painel. */
+  height: calc((100vh - 90px) / var(--linhas, 1));
+  min-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+}
+@media (max-width: 900px) {
+  /* No celular é uma coluna, então cada painel é uma linha — dividir a
+     altura deixaria tudo minúsculo. Ali a página rola mesmo. */
+  .multi-painel-jogo { height: auto; max-height: 70vh; }
+}
+.multi-carregando { color: var(--text-dim); text-align: center; padding: 30px 0; }
+
+/* Hover do jogador automático: só o ícone e o nome. Bot não tem perfil, e
+   mostrar ranking zerado dava a entender que ele disputa de igual pra
+   igual. */
+.nick-tooltip-bot {
+  text-align: center;
+  padding: 14px 18px;
+  min-width: 0;
+}
+.nick-tooltip-bot-icone { font-size: 32px; line-height: 1; }
+.nick-tooltip-bot-nome {
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--qz-text, #e5e2e1);
+}
+.nick-tooltip-bot-legenda {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.acro-submitted-aviso {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-weight: normal;
+}
 
 .acro-waiting-timer {
   font-family: var(--qz-mono, monospace);
@@ -4165,8 +4514,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .arena-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* Duas colunas fixas: são exatamente duas arenas (Iniciante e Avançada) e
+     elas ficam lado a lado. Com auto-fit, em tela cheia elas se esticavam
+     demais e em tela média caíam uma embaixo da outra sem motivo. */
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+}
+@media (max-width: 900px) {
+  .arena-grid { grid-template-columns: 1fr; }
 }
 .arena-card {
   display: flex;

@@ -340,12 +340,16 @@ export default function AcromaniaGame() {
 
   function submitPhrase(e) {
     e.preventDefault();
-    if (!phraseInput.trim() || submitted) return;
+    // Sem checar `submitted`: reenviar substitui a frase anterior, e isso é
+    // proposital. O servidor já tratava assim.
+    if (!phraseInput.trim()) return;
     socketRef.current?.emit("acromania-submit-phrase", { phrase: phraseInput.trim() });
   }
 
   function castVote(entryId) {
-    if (myVote) return;
+    // Sem checar `myVote`: clicar noutra frase TROCA o voto. Quem errava o
+    // clique ficava preso na escolha até a rodada acabar.
+    
     if (entryId === myEntryId) return; // não pode votar na própria frase
     // Sem marcação otimista: quem confirma é o servidor, no
     // "acromania-vote-registered". Assim a tela nunca mente sobre o voto.
@@ -491,10 +495,20 @@ export default function AcromaniaGame() {
 
           {phase === "writing" && (
             <form className="acro-phrase-form" onSubmit={submitPhrase}>
-              {submitted ? (
-                <p className="acro-submitted-msg">✓ Frase enviada! Espera o tempo acabar...</p>
-              ) : (
-                <>
+              {/* O formulário NÃO some depois de enviar. O servidor já aceitava
+                  a substituição (submissions.set sobrescreve) — quem travava
+                  era esta tela. Teve gente que pensou numa frase melhor no
+                  segundo seguinte e não pôde trocar. */}
+              <>
+                  {submitted && (
+                    <p className="acro-submitted-msg">
+                      ✓ Frase enviada — dá pra trocar enquanto o tempo não acabar.
+                      <span className="acro-submitted-aviso">
+                        Trocar faz você perder o bônus de mais rápido, se alguém
+                        já tiver enviado.
+                      </span>
+                    </p>
+                  )}
                   {pasteBlockedMsg && (
                     <p className="quiz-paste-blocked-hint">🚫 Colar texto não é permitido — precisa digitar sua própria frase.</p>
                   )}
@@ -517,7 +531,6 @@ export default function AcromaniaGame() {
                   />
                   <button className="quiz-answer-btn" type="submit">Enviar frase</button>
                 </>
-              )}
             </form>
           )}
 
@@ -531,7 +544,11 @@ export default function AcromaniaGame() {
                     className={`acro-vote-option ${myVote === e.entryId ? "acro-vote-option-selected" : ""} ${
                       ehMinha ? "acro-vote-option-minha" : ""
                     }`}
-                    disabled={!!myVote || ehMinha}
+                    // Só a própria frase fica travada. Antes bastava votar
+                    // pra TODOS os botões desabilitarem, e quem clicava errado
+                    // ficava preso na escolha — o servidor sempre aceitou a
+                    // troca (votes.set sobrescreve).
+                    disabled={ehMinha}
                     onClick={() => castVote(e.entryId)}
                   >
                     {e.phrase}
@@ -785,7 +802,7 @@ export default function AcromaniaGame() {
                       className={`quiz-player-rank-icon${p.rank.brilha ? " rank-badge-icon-brilha" : ""}`}
                     />
                   )}
-                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" />
+                  <ProfileTooltip userId={p.userId} nickname={p.nickname} gameKey="acromania" ehBot={p.ehBot} />
                 </div>
                 {/* Padronizado com Stop e Quiz: pontos nesta sala no mês,
                     não o total do jogador no Acromania inteiro. */}
