@@ -448,15 +448,20 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           )}
         </div>
         <div className="quiz-timer-group">
+          {/* Convidar e sair somem no compacto, como já acontecia no Stop:
+              o painel tem o ✕ na barra de título, e convidar alguém pra uma
+              sala específica não faz sentido no meio de quatro partidas. */}
+          {!compacto && (
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/quiz/${roomId}`}
             message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
           />
+          )}
           {/* No multi-sala este botão FECHA O PAINEL, não navega.
               Como Link, ele levava a página inteira pro lobby — a pessoa
               clicava pra sair de uma sala e saía das quatro. */}
-          {aoFechar ? (
+          {compacto ? null : aoFechar ? (
             <button
               type="button"
               className="room-exit-btn"
@@ -658,7 +663,13 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
-      <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
+      {/* O Quiz não tem legenda de pontuação, então aqui o compacto só
+          encolhe chat e lista — mesma ideia do Stop. */}
+      <div
+        className={`quiz-bottom-grid ${compacto ? "quiz-bottom-grid-compacto" : ""} ${
+          isMobile ? `qz-mobile-aba-${abaMobile}` : ""
+        }`}
+      >
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}

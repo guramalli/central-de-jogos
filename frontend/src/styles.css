@@ -692,6 +692,34 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   grid-template-columns: 1.5fr 0.55fr 1fr;
   gap: 10px;
 }
+
+/* ===== MODO COMPACTO (multi-sala) ===== */
+
+/* Sem a legenda, sobram duas colunas: chat e jogadores. A legenda é pra
+   quem está aprendendo; quem abre 4 salas já decorou. */
+.sc-bottom-grid-compacto {
+  grid-template-columns: 1.6fr 1fr;
+  gap: 6px;
+}
+/* Painéis de baixo encolhem: 230px cada era quase a altura de um painel
+   inteiro no multi-sala, pra mostrar chat e lista que a pessoa olha de
+   relance. O jogo é que precisa do espaço. */
+.sc-bottom-grid-compacto .sc-tab-panel {
+  min-height: 0;
+  height: 140px;
+  padding: 10px 8px 6px 8px;
+}
+.sc-bottom-grid-compacto .chat-box { height: 118px; }
+/* Lista de jogadores achatada: menos respiro por linha, fonte menor. Cabe
+   o dobro de gente no mesmo espaço. */
+.sc-bottom-grid-compacto .sc-players-list li { padding: 1px 4px; font-size: 11px; }
+.sc-bottom-grid-compacto .sc-player-rank-icon { width: 14px; height: 14px; }
+
+/* Quiz: mesma ideia, sem a parte da legenda (ele não tem uma). */
+.quiz-bottom-grid-compacto { gap: 6px; }
+.quiz-bottom-grid-compacto .quiz-panel { height: 140px; min-height: 0; padding: 10px 8px 6px 8px; }
+.quiz-bottom-grid-compacto .chat-box { height: 118px; }
+.quiz-bottom-grid-compacto .sc-players-list li { padding: 1px 4px; font-size: 11px; }
 @media (max-width: 900px) {
   .sc-bottom-grid { grid-template-columns: 1fr; }
   .sc-legend-panel { order: -1; }

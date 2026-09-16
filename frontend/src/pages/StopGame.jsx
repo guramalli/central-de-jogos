@@ -874,13 +874,22 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
-      <div className={`sc-bottom-grid ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
+      {/* No compacto a grade de baixo vira duas colunas: a legenda some.
+          Quem abre quatro salas ao mesmo tempo já sabe quanto vale palavra
+          repetida — a legenda é pra quem está aprendendo, e ali ela só ocupa
+          o espaço que o chat e a lista de jogadores precisam. */}
+      <div
+        className={`sc-bottom-grid ${compacto ? "sc-bottom-grid-compacto" : ""} ${
+          isMobile ? `sc-mobile-aba-${abaMobile}` : ""
+        }`}
+      >
         <div className="sc-retro-panel sc-tab-panel sc-chat-panel">
           <div className="sc-retro-tab sc-retro-tab-right">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
             participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
 
+        {!compacto && (
         <div className="sc-retro-panel sc-tab-panel sc-legend-panel">
           {stopOverlay ? (
             <div className="sc-legend-stopped">
@@ -924,6 +933,7 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             </>
           )}
         </div>
+        )}
 
         <div className="sc-retro-panel sc-tab-panel sc-players-panel">
           <div className="sc-retro-tab">jogadores ({onlinePlayers.length})</div>
