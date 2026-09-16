@@ -864,7 +864,10 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         )}
       </div>
 
-      {isMobile && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
+      {/* A faixa de patente é do celular, mas no multi-sala ela repete em
+          CADA painel — a mesma patente, o mesmo nick, quatro vezes, comendo
+          quase um quinto da tela. Numa sala só ela continua. */}
+      {isMobile && !compacto && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
 
       {isMobile && (
         <div className="sc-abas-mobile">

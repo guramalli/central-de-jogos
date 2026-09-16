@@ -819,7 +819,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-root.quiz-compacto .quiz-timer-group { gap: 6px; }
 .quiz-root.quiz-compacto .quiz-turn-counter { font-size: 11px; }
 /* O painel da pergunta também tinha respiro de sobra pro tamanho da caixa. */
-.quiz-root.quiz-compacto .quiz-question-card { padding: 10px; position: relative; }
+/* 18px no topo, não 10: a aba "PERGUNTA" flutua em top:-13px sobre a borda,
+   e com padding igual dos quatro lados o texto da pergunta corria por baixo
+   dela — apareceu no celular, onde a pergunta ocupa mais linhas. */
+.quiz-root.quiz-compacto .quiz-question-card { padding: 18px 10px 10px; position: relative; }
 /* PERGUNTA LONGA PRECISA CABER OU ROLAR.
  *
  * Um jogador ficou sem conseguir ler uma pergunta no multi-sala: o texto é
@@ -2946,6 +2949,27 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   transition: opacity 0.15s ease;
 }
 .multi-barra-flutuante:hover { opacity: 1; }
+
+/* NO CELULAR A BARRA NÃO FLUTUA.
+ *
+ * Flutuando, ela é semitransparente e fica por cima do primeiro painel — na
+ * tela estreita os três botões quebram em várias linhas e cobrem metade da
+ * sala 1, como na captura do iPhone. Aqui ela volta pro fluxo: ocupa a
+ * própria linha, sem tapar nada. */
+@media (max-width: 900px) {
+  .multi-barra-flutuante {
+    position: static;
+    opacity: 1;
+    margin: 0 0 6px;
+    border-radius: 8px;
+    background: var(--bg-panel-2);
+    backdrop-filter: none;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* A dica do atalho some: não existe Ctrl no celular. */
+  .multi-dica-atalho { display: none; }
+}
 .multi-btn-mini {
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
