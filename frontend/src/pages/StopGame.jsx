@@ -34,7 +34,7 @@ const EMPTY_THEME_SLOTS = Array.from({ length: THEMES_PER_ROUND }, (_, i) => ({
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala, em que
 // a mesma página é montada várias vezes lado a lado. No uso normal a sala
 // vem da URL e a conexão é a compartilhada, como sempre foi.
-export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
+export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false, ativo = false, aoFechar = null }) {
   const { user, logout } = useAuth();
 
   // Moderação de chat: moderadores e admins podem apagar mensagens.
@@ -369,16 +369,16 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
   useEffect(() => {
     if (phase !== "active") return;
 
-    // NO MULTI-SALA NÃO EXISTE FOCO AUTOMÁTICO.
+    // NO MULTI-SALA, O FOCO AUTOMÁTICO VALE SÓ NA SALA ATUAL.
     //
-    // A regra passa a ser: quem troca de sala é a PESSOA, por clique ou
-    // Ctrl+setas. Nunca o jogo.
+    // Cheguei a desligar em todas, e ficou faltando o outro lado: quem
+    // entrava numa sala ANTES da letra sair ficava sem cursor quando a
+    // rodada começava — tinha que clicar na lacuna ou sair e voltar.
     //
-    // A proteção anterior (não roubar de quem está digitando) não bastava:
-    // ao pedir STOP, os campos daquela sala desabilitam e o foco se perde —
-    // e aí a rodada de outra sala via "ninguém digitando" e puxava o cursor
-    // pra lá. Quem terminava uma rodada era jogado noutra partida sem pedir.
-    if (compacto) return;
+    // Com `ativo`, a regra fica certa dos dois lados: a sala que você
+    // escolheu põe o cursor na primeira lacuna quando a rodada abre, e as
+    // outras nunca puxam você pra elas.
+    if (compacto && !ativo) return;
 
     // NÃO ROUBA O FOCO DE QUEM JÁ ESTÁ DIGITANDO.
     //
@@ -404,7 +404,7 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
     if (ehCampoDeTexto && !noChat) return;
 
     inputRefs.current[0]?.focus();
-  }, [phase, roundNumber]);
+  }, [phase, roundNumber, ativo]);
 
   // Rede de segurança: normalmente some quando o resultado da rodada chega
   // (round-result), mas por precaução some sozinho depois de um tempo maior

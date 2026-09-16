@@ -46,7 +46,7 @@ const THEME_ICONS = {
 
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala (ver
 // StopGame — mesma ideia).
-export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
+export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false, ativo = false, aoFechar = null }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -302,8 +302,9 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
     // Não rouba o foco de quem já está digitando — importa no multi-sala,
     // onde a rodada de um painel começava no meio da digitação em outro e
     // arrastava o cursor pra lá. (Mesma checagem do StopGame.)
-    // No multi-sala não há foco automático — ver o comentário no StopGame.
-    if (compacto) return;
+    // No multi-sala o foco automático vale só na sala atual — ver o
+    // comentário no StopGame.
+    if (compacto && !ativo) return;
 
     const focar = () => {
       const f = document.activeElement;
@@ -320,7 +321,7 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
       cancelAnimationFrame(raf);
       clearTimeout(retry);
     };
-  }, [phase, questionText]);
+  }, [phase, questionText, ativo]);
 
   useEffect(() => {
     wrongLogEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });

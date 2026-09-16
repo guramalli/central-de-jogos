@@ -390,6 +390,10 @@ export default function MultiSala() {
                     salaFixa={roomId}
                     socketProprio
                     compacto
+                    /* O painel precisa saber se é o ATUAL: só nele a rodada
+                       nova leva o cursor pra primeira lacuna. Nos outros o
+                       jogo não mexe no foco. */
+                    ativo={painelAtual === roomId}
                     aoFechar={() => fechar(roomId)}
                   />
                 </Suspense>
