@@ -505,7 +505,11 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
         {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="quiz-panel quiz-question-card">
           {/* Cronômetro no canto do cartão, só no compacto. Fica sobre o
-              conteúdo em vez de ocupar uma faixa própria. */}
+              conteúdo em vez de ocupar uma faixa própria.
+              
+              EMPILHADO: cronômetro em cima, som embaixo. Lado a lado, os
+              dois ocupavam largura demais e o botão de som acabava por cima
+              do texto da pergunta — que é o que menos pode ser tapado. */}
           {compacto && (
             <div className="quiz-timer-canto">
               {turnInfo && (
@@ -513,6 +517,11 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
                   {turnInfo.round}/{turnInfo.total}
                 </span>
               )}
+              <QuizTimerRing
+                timeLeft={timeLeft}
+                totalSeconds={phase === "active" ? totalSeconds : 8}
+                size={40}
+              />
               {/* O botão de som vivia na barra de cima, que o compacto
                   removeu — e sumiu junto. Som importa: é ele que avisa que a
                   pergunta virou numa sala que você não está olhando. */}
@@ -523,11 +532,6 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
               >
                 {muted ? "🔇" : "🔊"}
               </button>
-              <QuizTimerRing
-                timeLeft={timeLeft}
-                totalSeconds={phase === "active" ? totalSeconds : 8}
-                size={40}
-              />
             </div>
           )}
           {isArenaBreak ? (

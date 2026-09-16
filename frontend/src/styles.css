@@ -816,6 +816,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-root.quiz-compacto .quiz-turn-counter { font-size: 11px; }
 /* O painel da pergunta também tinha respiro de sobra pro tamanho da caixa. */
 .quiz-root.quiz-compacto .quiz-question-card { padding: 10px; position: relative; }
+/* Espaço reservado à direita pro canto do cronômetro: sem isto o texto da
+   pergunta corre por baixo dele quando é longo. */
+.quiz-root.quiz-compacto .quiz-question-text { padding-right: 52px; }
 .quiz-root.quiz-compacto .quiz-panel { border-width: 1px; }
 
 /* Cronômetro no canto do cartão da pergunta, no lugar da barra de cima. */
@@ -824,8 +827,11 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   top: 6px;
   right: 8px;
   display: flex;
+  /* Coluna: o conjunto ocupa a largura de um só elemento, e o texto da
+     pergunta tem mais espaço antes de esbarrar nele. */
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   z-index: 2;
 }
 .quiz-timer-canto .quiz-turn-counter { font-size: 10px; }
