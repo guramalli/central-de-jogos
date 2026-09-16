@@ -83,6 +83,13 @@ export default function MultiSala() {
   const paineisRef = useRef({});
   // Última sala focada. Ver o comentário em focarPainel.
   const painelAtualRef = useRef(null);
+  // O MESMO valor também em estado, pra a tela redesenhar.
+  //
+  // A borda da sala atual vinha de `:focus-within`, que só acende quando há
+  // um CAMPO focado. Numa sala em resultado não há campo nenhum — então o
+  // Ctrl+seta ia pra lá de verdade, mas nada mudava na tela e parecia que o
+  // atalho tinha sido bloqueado.
+  const [painelAtual, setPainelAtual] = useState(null);
 
   // Onde o cursor deve parar ao entrar num painel, em ordem de prioridade.
   //
@@ -107,6 +114,7 @@ export default function MultiSala() {
     // foco não saía do painel anterior e a seta seguinte recalculava tudo a
     // partir do lugar errado — nunca passava da segunda sala.
     painelAtualRef.current = roomId;
+    setPainelAtual(roomId);
 
     for (const seletor of CAMPOS_DE_JOGO) {
       const campo = painel.querySelector(seletor);
@@ -324,7 +332,7 @@ export default function MultiSala() {
           {abertas.map((roomId, i) => (
             <div
               key={roomId}
-              className="multi-painel"
+              className={`multi-painel ${painelAtual === roomId ? "multi-painel-atual" : ""}`}
               ref={(el) => {
                 if (el) paineisRef.current[roomId] = el;
                 else delete paineisRef.current[roomId];
@@ -335,6 +343,7 @@ export default function MultiSala() {
                  lugar que não tem relação com onde a pessoa está. */
               onMouseDown={() => {
                 painelAtualRef.current = roomId;
+                setPainelAtual(roomId);
               }}
             >
               {/* Barra de título mínima: número do atalho, nome e um X.

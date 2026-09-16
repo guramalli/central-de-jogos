@@ -3104,7 +3104,26 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 /* O painel em foco ganha borda: com 4 abertos, saber em qual você está
    importa mais do que parece — principalmente depois de trocar pelo
    teclado, quando não houve clique pra dar a pista. */
-.multi-painel:focus-within { border-color: var(--accent-2); }
+/* SALA ATUAL — precisa saltar aos olhos.
+ *
+ * Era só `border-color` numa borda de 1px: com 4 painéis lado a lado e a
+ * tela cheia de cor, ninguém via. Agora são três sinais somados — borda
+ * laranja mais grossa, um brilho em volta e a barra de título acesa —
+ * porque a pessoa precisa saber em qual sala está ANTES de digitar. */
+.multi-painel-atual {
+  border-color: var(--accent-2) !important;
+  box-shadow: inset 0 0 0 2px var(--accent-2), 0 0 12px rgba(255, 153, 0, 0.35);
+  z-index: 1;
+}
+.multi-painel-atual .multi-painel-topo {
+  background: rgba(255, 153, 0, 0.18);
+  border-bottom-color: var(--accent-2);
+}
+.multi-painel-atual .multi-painel-nome { color: var(--accent-2); }
+.multi-painel-atual .multi-painel-atalho {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
 .multi-fechar {
   background: none;
   border: 1px solid var(--border);
