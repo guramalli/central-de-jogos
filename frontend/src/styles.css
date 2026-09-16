@@ -3288,6 +3288,21 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .sc-tabela-compacta td { padding: 3px 6px; font-size: 12px; }
 .sc-tabela-compacta .sc-stop-hint { font-size: 11px; margin: 2px 0; }
 .sc-tabela-compacta .sc-min-correct-hint { font-size: 11px; padding: 3px 6px; }
+
+/* EMPILHADO, O TEXTO VOLTA AO TAMANHO NORMAL.
+ *
+ * As fontes encolhidas acima existem pra caber DUAS tabelas na mesma
+ * largura. Empilhado não há essa disputa: o painel tem a tela inteira, e
+ * manter a letra miúda só força a vista sem economizar nada — que é
+ * justamente o motivo de existir o modo empilhado. */
+.multi-grade-empilhada .sc-tabela-compacta th,
+.multi-grade-empilhada .sc-tabela-compacta td { font-size: 14px; padding: 6px 10px; }
+.multi-grade-empilhada .sc-tabela-compacta .sheet-fill-input { font-size: 15px; padding: 5px 8px; }
+.multi-grade-empilhada .sc-tabela-compacta .sc-min-correct-hint { font-size: 13px; padding: 5px 10px; }
+.multi-grade-empilhada .sc-bottom-grid-compacto .sc-players-list li { font-size: 13px; padding: 3px 8px; }
+
+/* O mesmo no Quiz: a pergunta cabe maior quando há largura sobrando. */
+.multi-grade-empilhada .quiz-root.quiz-compacto .quiz-question-text { font-size: 20px; }
 @media (max-width: 900px) {
   /* No celular é uma coluna, então cada painel é uma linha — dividir a
      altura deixaria tudo minúsculo. Ali a página rola mesmo. */

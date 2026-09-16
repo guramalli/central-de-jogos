@@ -950,9 +950,12 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             </div>
           ) : (
             <>
-              <div className="sc-retro-tab">pontuação</div>
-              {/* A legenda em si continua escondida no compacto — só o
-                  botão STOP acima fica. */}
+              {/* A aba "pontuação" também some no compacto.
+                  
+                  Eu tinha escondido só a LISTA e deixado o rótulo: como ele
+                  flutua sobre a borda do painel, ficava aparecendo recortado
+                  num painel que não tem mais legenda nenhuma. */}
+              {!compacto && <div className="sc-retro-tab">pontuação</div>}
               {!compacto && (
                 <>
                   <ul className="sc-legend-list">
