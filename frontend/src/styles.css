@@ -815,8 +815,28 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-root.quiz-compacto .quiz-timer-group { gap: 6px; }
 .quiz-root.quiz-compacto .quiz-turn-counter { font-size: 11px; }
 /* O painel da pergunta também tinha respiro de sobra pro tamanho da caixa. */
-.quiz-root.quiz-compacto .quiz-question-card { padding: 10px; }
+.quiz-root.quiz-compacto .quiz-question-card { padding: 10px; position: relative; }
 .quiz-root.quiz-compacto .quiz-panel { border-width: 1px; }
+
+/* Cronômetro no canto do cartão da pergunta, no lugar da barra de cima. */
+.quiz-timer-canto {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+.quiz-timer-canto .quiz-turn-counter { font-size: 10px; }
+
+/* LOG mais estreito: ele é uma coluna quase sempre vazia ("Nenhuma resposta
+   enviada ainda") ocupando um terço da largura do painel. */
+/* 4,5fr/1fr no lugar de 3fr/1fr: o log fica mais ESTREITO que o padrão, não
+   mais largo. Conferi a regra original antes — 1fr/0.42fr teria aumentado
+   ele, que é o oposto do que eu queria. */
+.quiz-root.quiz-compacto .quiz-game-grid { grid-template-columns: 4.5fr 1fr; gap: 6px; }
+.quiz-root.quiz-compacto .quiz-wrong-log-panel { font-size: 11px; }
 @media (max-width: 900px) {
   .sc-bottom-grid { grid-template-columns: 1fr; }
   .sc-legend-panel { order: -1; }

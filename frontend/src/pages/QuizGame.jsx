@@ -422,6 +422,14 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
   return (
     <div className={`quiz-root ${compacto ? "quiz-compacto" : ""}`} data-quiz-theme={themeKey || undefined}>
       <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
+      {/* A BARRA DE CIMA SOME INTEIRA NO COMPACTO.
+          
+          Sem logo, pontos e nome da sala, ela virou uma faixa vazia com o
+          cronômetro jogado na ponta direita — desperdiçando uma linha por
+          painel. O cronômetro e o botão de som foram pra dentro do cartão da
+          pergunta (canto superior direito), que é onde a pessoa já está
+          olhando. */}
+      {!compacto && (
       <div className="quiz-stats-bar">
         {/* No compacto some a logo e os pontos: repetem em cada painel e o
             que importa ali é a pergunta. O cronômetro e o botão de som
@@ -487,14 +495,31 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           <QuizTimerRing
             timeLeft={timeLeft}
             totalSeconds={phase === "active" ? totalSeconds : 8}
-            size={compacto ? 44 : 72}
+            size={72}
           />
         </div>
       </div>
+      )}
 
       <div className={`quiz-game-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="quiz-panel quiz-question-card">
+          {/* Cronômetro no canto do cartão, só no compacto. Fica sobre o
+              conteúdo em vez de ocupar uma faixa própria. */}
+          {compacto && (
+            <div className="quiz-timer-canto">
+              {turnInfo && (
+                <span className="quiz-turn-counter">
+                  {turnInfo.round}/{turnInfo.total}
+                </span>
+              )}
+              <QuizTimerRing
+                timeLeft={timeLeft}
+                totalSeconds={phase === "active" ? totalSeconds : 8}
+                size={40}
+              />
+            </div>
+          )}
           {isArenaBreak ? (
             <>
               <div className="quiz-retro-tab">placar do turno</div>
@@ -541,7 +566,11 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           ) : (
             <>
               <div className="quiz-retro-tab">pergunta</div>
-              {questionId && phase === "active" && (
+              {/* Sem o botão de reportar no compacto: ele fica no canto
+                  superior direito, exatamente onde agora está o cronômetro,
+                  e os dois se sobrepunham em cima da pergunta. Reportar erro
+                  é coisa pra fazer numa sala só. */}
+              {questionId && phase === "active" && !compacto && (
                 <button
                   className="quiz-report-btn"
                   onClick={() => setReportOpen(true)}

@@ -81,6 +81,8 @@ export default function MultiSala() {
   // função procura o primeiro campo de texto dentro dele. Assim não precisa
   // mexer nas páginas de jogo nem passar mais uma propriedade pra elas.
   const paineisRef = useRef({});
+  // Última sala focada. Ver o comentário em focarPainel.
+  const painelAtualRef = useRef(null);
 
   // Onde o cursor deve parar ao entrar num painel, em ordem de prioridade.
   //
@@ -97,6 +99,14 @@ export default function MultiSala() {
   function focarPainel(roomId) {
     const painel = paineisRef.current[roomId];
     if (!painel) return;
+
+    // GUARDA ONDE ESTAMOS, mesmo que não dê pra focar nada.
+    //
+    // Antes a posição atual era deduzida do foco no DOM, e isso travava: se
+    // a sala de destino estivesse em intervalo (campos desabilitados), o
+    // foco não saía do painel anterior e a seta seguinte recalculava tudo a
+    // partir do lugar errado — nunca passava da segunda sala.
+    painelAtualRef.current = roomId;
 
     for (const seletor of CAMPOS_DE_JOGO) {
       const campo = painel.querySelector(seletor);
@@ -128,10 +138,15 @@ export default function MultiSala() {
     const colunas = window.innerWidth <= 900 ? 1 : 2;
     const total = abertas.length;
 
-    const atual = abertas.findIndex((id) =>
+    // O foco no DOM tem prioridade (a pessoa pode ter CLICADO noutro
+    // painel), e o valor guardado é a rede de segurança pros casos em que
+    // não há campo pra focar.
+    let atual = abertas.findIndex((id) =>
       paineisRef.current[id]?.contains(document.activeElement)
     );
-    // Sem foco em painel nenhum: a primeira seta cai no painel 1.
+    if (atual === -1) atual = abertas.indexOf(painelAtualRef.current);
+
+    // Nem foco nem posição guardada: a primeira seta cai no painel 1.
     if (atual === -1) {
       focarPainel(abertas[0]);
       return;
@@ -151,13 +166,17 @@ export default function MultiSala() {
       // A última linha pode estar incompleta (3 painéis): cai no que existe.
       if (destino >= total) destino = total - 1;
     } else {
-      // Anda na linha e volta pro começo dela ao chegar na ponta.
-      const inicioDaLinha = linha * colunas;
-      const fimDaLinha = Math.min(inicioDaLinha + colunas, total) - 1;
-      const largura = fimDaLinha - inicioDaLinha + 1;
-      if (largura < 2) return; // linha com um painel só: não há pra onde ir
-      const pos = atual - inicioDaLinha;
-      destino = inicioDaLinha + ((pos + passo) % largura + largura) % largura;
+      // ← → ANDAM POR TODOS OS PAINÉIS, na ordem.
+      //
+      // Antes davam a volta DENTRO da linha, o que era espacialmente
+      // correto e péssimo na prática: com 4 salas, Ctrl+→ alternava só
+      // entre a 1 e a 2 pra sempre — as de baixo só com Ctrl+↓. Quem não
+      // descobrisse a seta pra baixo achava que metade das salas era
+      // inalcançável.
+      //
+      // Agora ← → percorrem a sequência inteira (1→2→3→4→1) e ↑ ↓ continuam
+      // pulando de linha, pra quem quiser ir direto.
+      destino = ((atual + passo) % total + total) % total;
     }
 
     focarPainel(abertas[destino]);
@@ -168,6 +187,8 @@ export default function MultiSala() {
 
     function aoTeclar(e) {
       if (!e.ctrlKey && !e.metaKey) return;
+      // Alt junto = combinação do sistema, não é nossa.
+      if (e.altKey) return;
 
       if (e.key === "ArrowRight") { e.preventDefault(); trocarPainel(1); }
       else if (e.key === "ArrowLeft") { e.preventDefault(); trocarPainel(-1); }
@@ -179,8 +200,15 @@ export default function MultiSala() {
       }
     }
 
-    window.addEventListener("keydown", aoTeclar);
-    return () => window.removeEventListener("keydown", aoTeclar);
+    // `true` no fim = fase de CAPTURA.
+    //
+    // Sem isto o evento chega primeiro ao campo de texto onde o cursor está,
+    // e Ctrl+seta ali é atalho do navegador: anda palavra por palavra. O
+    // cursor pulava dentro da resposta em vez de trocar de sala, e às vezes
+    // o preventDefault vinha tarde demais. Na captura, a página vê a tecla
+    // antes de qualquer campo.
+    window.addEventListener("keydown", aoTeclar, true);
+    return () => window.removeEventListener("keydown", aoTeclar, true);
   }, [jogando, abertas]);
   const Jogo = ehStop ? StopGame : QuizGame;
   const nomeDaSala = (id) => salas.find((s) => s.roomId === id)?.label || id;
@@ -210,9 +238,9 @@ export default function MultiSala() {
                   é o único momento em que a pessoa está lendo. Depois que as
                   salas abrem ela está jogando, e texto vira ruído. */}
               <p className="multi-sub multi-sub-atalhos">
-                Pra trocar de sala: <kbd>Ctrl</kbd> + as setas{" "}
-                <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>, ou{" "}
-                <kbd>Ctrl</kbd> + o número da sala. Clicar também funciona.
+                Pra trocar de sala: <kbd>Ctrl</kbd> + <kbd>←</kbd> <kbd>→</kbd> passa de uma
+                em uma, <kbd>Ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> pula de linha, e{" "}
+                <kbd>Ctrl</kbd> + o número vai direto. Clicar também funciona.
               </p>
             </div>
             <Link to={ehStop ? "/jogos/stop" : "/jogos/quiz"} className="retro-btn">
@@ -258,9 +286,8 @@ export default function MultiSala() {
       {jogando && abertas.length > 1 && !dicaVista && (
         <div className="multi-dica-primeira">
           <span>
-            💡 Duas salas abertas. Use <kbd>Ctrl</kbd> + as setas pra pular entre elas sem
-            tirar a mão do teclado — as setas seguem a posição na tela. Ou{" "}
-            <kbd>Ctrl</kbd> + o número da sala.
+            💡 Duas salas abertas. Use <kbd>Ctrl</kbd> + <kbd>←</kbd> <kbd>→</kbd> pra passar
+            de uma pra outra sem tirar a mão do teclado, ou <kbd>Ctrl</kbd> + o número da sala.
           </span>
           <button
             className="multi-btn-mini"
