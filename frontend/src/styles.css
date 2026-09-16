@@ -1331,6 +1331,31 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   gap: 24px;
   flex-wrap: wrap;
 }
+
+/* PÓDIOS DO MÊS, no miolo do painel de boas-vindas.
+ *
+ * `flex: 1` é o que faz o buraco sumir: em vez de o espaço vazio ficar
+ * entre os dois blocos das pontas, ele é ocupado por este. */
+.lobby-hero-podios {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+.lobby-hero-podios .mini-podium {
+  flex: 1;
+  min-width: 0;
+  max-width: 230px;
+  margin: 0;
+}
+
+/* SÓ NO COMPUTADOR, como combinado. Abaixo de 1200px o painel já empilha e
+   três pódios ali virariam uma pilha alta antes mesmo dos cards dos jogos —
+   o contrário do que a página precisa mostrar primeiro. */
+@media (max-width: 1200px) {
+  .lobby-hero-podios { display: none; }
+}
 .lobby-hero-eyebrow {
   font-family: var(--font-display);
   font-weight: 700;
@@ -4533,10 +4558,33 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin: 8px 0 0 0;
 }
 
+/* PERFIL EM DUAS COLUNAS — conquistas de um lado, ranking mensal do outro.
+ *
+ * `align-items: start` importa: sem ele o card mais curto estica pra ficar
+ * da altura do outro, e sobra um vazio enorme dentro dele. */
+.perfil-duas-colunas {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+/* Os cards já têm margin-top próprio; dentro da grade isso viraria um
+   degrau entre as colunas. */
+.perfil-duas-colunas > .card { margin-top: 16px !important; }
+
+@media (max-width: 1000px) {
+  /* Em tela estreita volta a empilhar: duas colunas espremeriam a grade de
+     conquistas a ponto de os emblemas ficarem minúsculos. */
+  .perfil-duas-colunas { grid-template-columns: 1fr; }
+}
+
 /* ===== Cartões de patente mensal (perfil público) ===== */
 .monthly-rank-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* 150px em vez de 160: na coluna da direita, que é mais estreita, o
+     mínimo de 160 forçava uma coluna só e os três jogos viravam uma pilha
+     alta do lado de uma lista alta. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
 }
 .monthly-rank-card {

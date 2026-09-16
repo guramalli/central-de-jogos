@@ -7,6 +7,7 @@ import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import NovidadeBanner from "../components/NovidadeBanner.jsx";
+import MiniPodium from "../components/MiniPodium.jsx";
 import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
@@ -41,6 +42,23 @@ export default function Lobby() {
             <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
           </div>
         </div>
+        {/* PÓDIO DO MÊS NO MEIO DO PAINEL.
+            
+            Com o site em tela cheia o painel virou flex de dois filhos com
+            `space-between`: o texto foi pra esquerda, as patentes pra
+            direita e sobrou um buraco no meio do bloco mais visível da
+            página.
+            
+            O que entra ali é o que mais empurra pra jogar: quem está em
+            primeiro este mês. Já existia como componente nas lobbies de cada
+            jogo — aqui mostra os três lado a lado, e só no computador: no
+            celular o painel empilha e isso viraria rolagem. */}
+        <div className="lobby-hero-podios">
+          <MiniPodium gameKey="stop" />
+          <MiniPodium gameKey="quiz" />
+          {acromaniaAtivo && <MiniPodium gameKey="acromania" />}
+        </div>
+
         <PainelDoJogador userId={user?.id} />
       </section>
 
