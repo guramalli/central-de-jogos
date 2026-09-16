@@ -302,6 +302,9 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
     // Não rouba o foco de quem já está digitando — importa no multi-sala,
     // onde a rodada de um painel começava no meio da digitação em outro e
     // arrastava o cursor pra lá. (Mesma checagem do StopGame.)
+    // No multi-sala não há foco automático — ver o comentário no StopGame.
+    if (compacto) return;
+
     const focar = () => {
       const f = document.activeElement;
       const ehTexto = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled;

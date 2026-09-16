@@ -369,6 +369,17 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
   useEffect(() => {
     if (phase !== "active") return;
 
+    // NO MULTI-SALA NÃO EXISTE FOCO AUTOMÁTICO.
+    //
+    // A regra passa a ser: quem troca de sala é a PESSOA, por clique ou
+    // Ctrl+setas. Nunca o jogo.
+    //
+    // A proteção anterior (não roubar de quem está digitando) não bastava:
+    // ao pedir STOP, os campos daquela sala desabilitam e o foco se perde —
+    // e aí a rodada de outra sala via "ninguém digitando" e puxava o cursor
+    // pra lá. Quem terminava uma rodada era jogado noutra partida sem pedir.
+    if (compacto) return;
+
     // NÃO ROUBA O FOCO DE QUEM JÁ ESTÁ DIGITANDO.
     //
     // Este efeito existe pra você já começar a digitar quando a rodada abre,

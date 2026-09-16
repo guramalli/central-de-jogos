@@ -329,6 +329,13 @@ export default function MultiSala() {
                 if (el) paineisRef.current[roomId] = el;
                 else delete paineisRef.current[roomId];
               }}
+              /* Clicar no painel marca ele como o atual. Sem isto, depois de
+                 clicar numa sala o Ctrl+seta continuaria contando a partir
+                 da última que o teclado visitou — e a seta pularia pra um
+                 lugar que não tem relação com onde a pessoa está. */
+              onMouseDown={() => {
+                painelAtualRef.current = roomId;
+              }}
             >
               {/* Barra de título mínima: número do atalho, nome e um X.
                   Ela custava 28px por painel — 56px com 4 abertos — pra
