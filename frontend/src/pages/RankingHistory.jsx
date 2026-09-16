@@ -61,24 +61,99 @@ export default function RankingHistory() {
       <h1>🏛️ Hall da Fama</h1>
       <p style={{ color: "var(--text-dim)" }}>Os campeões de cada mês já encerrado, mês a mês.</p>
 
+      {months && months.length > 0 && (
+        <>
+          {/* Os dois seletores juntos, com rótulo. Soltos um embaixo do
+              outro, não dava pra saber que o de cima escolhia o MÊS e o de
+              baixo o JOGO — pareciam dois grupos de botões sem relação com
+              a tabela que vinha depois. */}
+          <div className="hall-filtros">
+          <div className="hall-filtro">
+          <span className="hall-filtro-label">Mês</span>
+          <div className="hall-meses">
+            {months.map((m) => (
+              <button
+                key={m.monthKey}
+                className={`btn ${selectedMonth === m.monthKey ? "" : "secondary"}`}
+                onClick={() => setSelectedMonth(m.monthKey)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Mesmos botões de logo do ranking. A classe `ranking-game-tabs`
+              é a dos JOGOS; a de cima, com o mesmo nome, é dos meses — o
+              nome enganava e o seletor de jogo estava usando o estilo
+              genérico de botão. */}
+          </div>
+          <div className="hall-filtro">
+          <span className="hall-filtro-label">Jogo</span>
+          <div className="ranking-game-tabs">
+            {GAMES.map((g) => (
+              <button
+                key={g.key}
+                type="button"
+                className={`jogo-tab${game === g.key ? " jogo-tab-ativo" : ""}`}
+                onClick={() => setGame(g.key)}
+                aria-pressed={game === g.key}
+              >
+                <img src={g.logo} alt={g.label} className="jogo-tab-logo" />
+              </button>
+            ))}
+          </div>
+          </div>
+          </div>
+
+          <div className="card">
+            <h2>{winners?.label || ""}</h2>
+            {winners === null && <p style={{ color: "var(--text-dim)" }}>Carregando...</p>}
+            {winners && winners.winners.length === 0 && (
+              <p style={{ color: "var(--text-dim)" }}>Ninguém pontuou nesse jogo naquele mês.</p>
+            )}
+            {winners && winners.winners.length > 0 && (
+              <table className="player-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Jogador</th>
+                    <th>Pontos</th>
+                    <th>Patente daquele mês</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {winners.winners.map((w) => (
+                    <tr key={w.position} className={w.position <= 3 ? "row-podium" : ""}>
+                      <td>{w.position <= 3 ? MEDALS[w.position - 1] : w.position}</td>
+                      <td><Link to={`/jogador/${w.userId}`}>{w.nickname}</Link></td>
+                      <td>{w.points}</td>
+                      <td><RankBadge rank={w.rank} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
       {/* Números do hall: sem eles a página era só uma lista de meses. Quem
           mais venceu e qual o recorde é o que dá peso a "hall da fama". */}
       {stats && stats.totalTitulos > 0 && (
         <>
-          <div className="hall-numeros">
-            <div className="hall-numero">
-              <strong>{stats.mesesFechados}</strong>
-              <small>{stats.mesesFechados === 1 ? "mês encerrado" : "meses encerrados"}</small>
-            </div>
-            <div className="hall-numero">
-              <strong>{stats.totalTitulos}</strong>
-              <small>{stats.totalTitulos === 1 ? "título entregue" : "títulos entregues"}</small>
-            </div>
-            <div className="hall-numero">
-              <strong>{stats.maisTitulos.length}</strong>
-              <small>{stats.maisTitulos.length === 1 ? "campeão diferente" : "campeões diferentes"}</small>
-            </div>
-          </div>
+          {/* Uma linha, não três caixas grandes.
+              
+              Eram três painéis do tamanho de um card pra mostrar três
+              números de um dígito — ocupavam o topo da página inteiro e
+              empurravam os campeões, que são o assunto, pra baixo da dobra.
+              Aqui viram uma linha de resumo no rodapé da página. */}
+          <p className="hall-resumo">
+            <strong>{stats.mesesFechados}</strong>{" "}
+            {stats.mesesFechados === 1 ? "mês encerrado" : "meses encerrados"} ·{" "}
+            <strong>{stats.totalTitulos}</strong>{" "}
+            {stats.totalTitulos === 1 ? "título entregue" : "títulos entregues"} ·{" "}
+            <strong>{stats.maisTitulos.length}</strong>{" "}
+            {stats.maisTitulos.length === 1 ? "campeão diferente" : "campeões diferentes"}
+          </p>
 
           <div className="hall-blocos">
             {/* Um bloco por jogo, mais o geral. "4 títulos" sozinho não dizia
@@ -141,70 +216,6 @@ export default function RankingHistory() {
         <p style={{ color: "var(--text-dim)" }}>
           Ainda não temos nenhum mês encerrado pra mostrar aqui — volta depois que o mês virar!
         </p>
-      )}
-
-      {months && months.length > 0 && (
-        <>
-          <div className="hall-meses">
-            {months.map((m) => (
-              <button
-                key={m.monthKey}
-                className={`btn ${selectedMonth === m.monthKey ? "" : "secondary"}`}
-                onClick={() => setSelectedMonth(m.monthKey)}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Mesmos botões de logo do ranking. A classe `ranking-game-tabs`
-              é a dos JOGOS; a de cima, com o mesmo nome, é dos meses — o
-              nome enganava e o seletor de jogo estava usando o estilo
-              genérico de botão. */}
-          <div className="ranking-game-tabs">
-            {GAMES.map((g) => (
-              <button
-                key={g.key}
-                type="button"
-                className={`jogo-tab${game === g.key ? " jogo-tab-ativo" : ""}`}
-                onClick={() => setGame(g.key)}
-                aria-pressed={game === g.key}
-              >
-                <img src={g.logo} alt={g.label} className="jogo-tab-logo" />
-              </button>
-            ))}
-          </div>
-
-          <div className="card">
-            <h2>{winners?.label || ""}</h2>
-            {winners === null && <p style={{ color: "var(--text-dim)" }}>Carregando...</p>}
-            {winners && winners.winners.length === 0 && (
-              <p style={{ color: "var(--text-dim)" }}>Ninguém pontuou nesse jogo naquele mês.</p>
-            )}
-            {winners && winners.winners.length > 0 && (
-              <table className="player-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Jogador</th>
-                    <th>Pontos</th>
-                    <th>Patente daquele mês</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {winners.winners.map((w) => (
-                    <tr key={w.position} className={w.position <= 3 ? "row-podium" : ""}>
-                      <td>{w.position <= 3 ? MEDALS[w.position - 1] : w.position}</td>
-                      <td><Link to={`/jogador/${w.userId}`}>{w.nickname}</Link></td>
-                      <td>{w.points}</td>
-                      <td><RankBadge rank={w.rank} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </>
       )}
     </div>
   );

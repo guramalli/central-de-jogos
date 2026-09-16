@@ -19,6 +19,17 @@
 // comunica abandono — é pior que não ter página nenhuma. Se parar de
 // alimentar, é melhor tirar o link do menu.
 
+// Rótulo de cada tipo. Fica AQUI, junto dos dados, porque agora duas telas
+// usam: a página de novidades e a caixa do lobby. Antes vivia dentro da
+// página, e a segunda tela teria que copiar — duas cópias que divergem na
+// primeira vez que alguém renomeia um tipo.
+export const ROTULO_TIPO = {
+  novo: "Novidade",
+  melhoria: "Melhoria",
+  correcao: "Correção",
+  aviso: "Aviso",
+};
+
 export const NOVIDADES = [
   {
     id: "2026-09-multi-sala",

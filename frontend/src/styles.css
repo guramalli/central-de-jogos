@@ -625,6 +625,43 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 }
 .sc-table-scroll { overflow: auto; flex: 1; border-radius: 4px 4px 0 0; }
 
+/* ===== AJUSTES DO COMPACTO (multi-sala) ===== */
+
+/* BOTÃO STOP NA HORIZONTAL, na faixa onde ficava só a dica.
+   Ele vivia no painel da legenda, que o compacto esconde — sem isto, o
+   multi-sala ficava sem botão nenhum de STOP. */
+.sc-stop-barra {
+  display: block;
+  width: 100%;
+  margin: 6px 0 4px;
+  padding: 7px 0;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #e63b2e, #b41f16);
+  color: #fff;
+  font-family: var(--sc-mono, monospace);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #7d120c;
+}
+.sc-stop-barra:hover { filter: brightness(1.1); }
+.sc-stop-barra:active { transform: translateY(1px); box-shadow: 0 1px 0 #7d120c; }
+.sc-stop-barra-negado { background: linear-gradient(180deg, #6b6b6b, #454545); box-shadow: 0 2px 0 #2b2b2b; }
+
+/* A ROLAGEM FICA NO CORPO DA TABELA, não no painel inteiro.
+   Com muita gente na sala o painel todo rolava, e o cabeçalho com os nomes
+   dos temas saía de vista — justamente o que a pessoa precisa olhar
+   enquanto digita. Agora só as linhas de resposta rolam; o cabeçalho fica
+   grudado no topo. */
+.sc-tabela-compacta .sc-table-scroll { max-height: 190px; }
+.sc-tabela-compacta thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
 .sc-stop-bar {
   background: var(--sc-surface-high);
   border-top: 1px solid var(--sc-outline);
@@ -1332,29 +1369,54 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   flex-wrap: wrap;
 }
 
-/* PÓDIOS DO MÊS, no miolo do painel de boas-vindas.
+/* ÚLTIMAS ATUALIZAÇÕES, no miolo do painel de boas-vindas.
  *
  * `flex: 1` é o que faz o buraco sumir: em vez de o espaço vazio ficar
  * entre os dois blocos das pontas, ele é ocupado por este. */
-.lobby-hero-podios {
+.lobby-hero-novidades {
+  flex: 1;
+  min-width: 0;
+  max-width: 460px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.lobby-novidades-topo {
   display: flex;
-  gap: 12px;
-  flex: 1;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.lobby-novidades-topo span {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+.lobby-novidades-topo a { font-size: 11px; }
+.lobby-novidades-lista { list-style: none; margin: 0; padding: 0; }
+.lobby-novidades-lista li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
   min-width: 0;
 }
-.lobby-hero-podios .mini-podium {
-  flex: 1;
-  min-width: 0;
-  max-width: 230px;
-  margin: 0;
+/* Título numa linha só: entrada longa esticaria a caixa e desalinharia o
+   painel inteiro. */
+.lobby-novidade-titulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.lobby-novidades-lista .novidade-tipo { flex-shrink: 0; }
 
-/* SÓ NO COMPUTADOR, como combinado. Abaixo de 1200px o painel já empilha e
-   três pódios ali virariam uma pilha alta antes mesmo dos cards dos jogos —
-   o contrário do que a página precisa mostrar primeiro. */
+/* SÓ NO COMPUTADOR, como combinado. Abaixo de 1200px o painel empilha, e a
+   caixa cairia entre o nome da pessoa e as patentes — atrapalhando os dois. */
 @media (max-width: 1200px) {
-  .lobby-hero-podios { display: none; }
+  .lobby-hero-novidades { display: none; }
 }
 .lobby-hero-eyebrow {
   font-family: var(--font-display);
@@ -2943,6 +3005,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   flex: 1;
   padding: 6px;
 }
+
+/* ÚLTIMO CORTE DE ESPAÇO — o que ainda fazia a barra de rolagem aparecer
+   em cada painel. São pedaços pequenos, mas somados davam a altura que
+   faltava pra tudo caber sem rolar. */
+.sc-tabela-compacta { padding: 8px 6px 6px 6px; }
+.sc-tabela-compacta .sc-panel-title-row { margin-bottom: 4px; }
+.sc-tabela-compacta .sheet-fill-input { padding: 3px 6px; font-size: 13px; }
+.sc-tabela-compacta th,
+.sc-tabela-compacta td { padding: 3px 6px; font-size: 12px; }
+.sc-tabela-compacta .sc-stop-hint { font-size: 11px; margin: 2px 0; }
+.sc-tabela-compacta .sc-min-correct-hint { font-size: 11px; padding: 3px 6px; }
 @media (max-width: 900px) {
   /* No celular é uma coluna, então cada painel é uma linha — dividir a
      altura deixaria tudo minúsculo. Ali a página rola mesmo. */
@@ -3530,35 +3603,48 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .senha-olho:hover { color: var(--accent-2); }
 
-/* ===== Hall da Fama: números ===== */
-.hall-numeros {
+/* Filtros do Hall da Fama: mês e jogo, lado a lado e rotulados. */
+.hall-filtros {
   display: flex;
-  gap: 12px;
+  gap: 24px;
   flex-wrap: wrap;
+  align-items: flex-start;
   margin: 16px 0;
 }
-.hall-numero {
-  flex: 1;
-  min-width: 110px;
-  text-align: center;
-  padding: 14px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-panel);
+.hall-filtro { display: flex; flex-direction: column; gap: 6px; }
+.hall-filtro-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
 }
-.hall-numero strong {
-  display: block;
-  font-size: 28px;
-  color: var(--accent-2);
-  font-variant-numeric: tabular-nums;
+
+/* Resumo em linha, no rodapé — era um bloco de três caixas no topo. */
+.hall-resumo {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 24px 0 8px;
 }
-.hall-numero small { color: var(--text-dim); font-size: 12px; }
+.hall-resumo strong { color: var(--accent-2); }
+
+/* As regras .hall-numeros e .hall-numero saíram: os três painéis viraram
+   uma linha de texto (.hall-resumo). */
 
 .hall-blocos {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* 1.3fr / 1fr, e não meio a meio: "quem mais venceu" tem um bloco por
+     jogo e cresce; "recordes" tem uma linha por jogo e é sempre baixo.
+     Divididos igualmente, o da direita ficava quase vazio ao lado de um
+     alto — foi o desequilíbrio que saltou na tela. */
+  grid-template-columns: 1.3fr 1fr;
   gap: 14px;
   margin-bottom: 20px;
+  /* Sem isto o card curto estica pra acompanhar o alto e fica um vazio
+     enorme dentro dele. */
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .hall-blocos { grid-template-columns: 1fr; }
 }
 @media (max-width: 800px) { .hall-blocos { grid-template-columns: 1fr; } }
 

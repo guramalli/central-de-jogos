@@ -747,7 +747,7 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
-      <div className={`sc-retro-panel sc-table-panel ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
+      <div className={`sc-retro-panel sc-table-panel ${compacto ? "sc-tabela-compacta" : ""} ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-panel-title-row">
           <div className="sc-timerletter">
             <div className="sc-timer-chip">{timeLeft}s</div>
@@ -832,6 +832,22 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
           <div className="sc-table-scroll">
             <ScoreTable themes={tableThemes} rows={tableRows} roundLabel={roundLabel} />
           </div>
+        )}
+
+        {/* NO COMPACTO O BOTÃO STOP VEM PRA CÁ, na horizontal.
+            
+            Ele morava dentro do painel da legenda — que o modo compacto
+            esconde. Resultado: o multi-sala ficou sem botão de STOP, e só
+            dava pra pedir por Ctrl+Enter. Aqui ele ocupa a faixa da dica,
+            que já estava no lugar certo da tela e sobrava espaço. */}
+        {compacto && phase === "active" && !stopOverlay && (
+          <button
+            className={`sc-stop-barra ${stopDenied ? "sc-stop-barra-negado" : ""}`}
+            onClick={handleStop}
+            title="Pedir STOP (Ctrl+Enter)"
+          >
+            STOP
+          </button>
         )}
 
         <div className="sc-stop-hint">

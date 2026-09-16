@@ -7,7 +7,7 @@ import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import NovidadeBanner from "../components/NovidadeBanner.jsx";
-import MiniPodium from "../components/MiniPodium.jsx";
+import { NOVIDADES, ROTULO_TIPO } from "../data/novidades.js";
 import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
@@ -42,21 +42,32 @@ export default function Lobby() {
             <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
           </div>
         </div>
-        {/* PÓDIO DO MÊS NO MEIO DO PAINEL.
+        {/* ÚLTIMAS ATUALIZAÇÕES NO MEIO DO PAINEL.
             
-            Com o site em tela cheia o painel virou flex de dois filhos com
-            `space-between`: o texto foi pra esquerda, as patentes pra
-            direita e sobrou um buraco no meio do bloco mais visível da
-            página.
+            O painel é um flex de dois filhos com `space-between`: o texto vai
+            pra esquerda, as patentes pra direita, e sobrava um buraco no meio
+            do bloco mais visível da página.
             
-            O que entra ali é o que mais empurra pra jogar: quem está em
-            primeiro este mês. Já existia como componente nas lobbies de cada
-            jogo — aqui mostra os três lado a lado, e só no computador: no
-            celular o painel empilha e isso viraria rolagem. */}
-        <div className="lobby-hero-podios">
-          <MiniPodium gameKey="stop" />
-          <MiniPodium gameKey="quiz" />
-          {acromaniaAtivo && <MiniPodium gameKey="acromania" />}
+            Aqui entrou o pódio do mês primeiro, mas três blocos de top 3
+            ficaram pesados — muita informação repetida a cada visita.
+            Novidade é diferente: muda toda semana, e num site em beta mostra
+            que a coisa está viva. Só as três mais recentes, com link pro
+            resto. */}
+        <div className="lobby-hero-novidades">
+          <div className="lobby-novidades-topo">
+            <span>📣 Últimas atualizações</span>
+            <Link to="/novidades">ver todas</Link>
+          </div>
+          <ul className="lobby-novidades-lista">
+            {NOVIDADES.slice(0, 3).map((n) => (
+              <li key={n.id}>
+                <span className={`novidade-tipo novidade-tipo-${n.tipo}`}>
+                  {ROTULO_TIPO[n.tipo] || n.tipo}
+                </span>
+                <span className="lobby-novidade-titulo">{n.titulo}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <PainelDoJogador userId={user?.id} />
