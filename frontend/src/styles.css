@@ -653,13 +653,23 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   justify-content: stretch;
 }
 .sc-legend-panel-so-stop .sc-status-ball-big {
-  width: 100%;
-  border-radius: 8px;
-  /* Teto de altura: com `flex: 1` ele virava uma barra vertical do tamanho
-     da tela, o que fica estranho e não ajuda em nada a acertar o clique. */
-  height: 100%;
-  max-height: 110px;
+  /* METADE DO TAMANHO, E SEM O PULSO.
+   *
+   * Ele ocupava a coluna inteira e piscava em verde quando a rodada abria —
+   * com 4 painéis na tela, quatro botões pulsando roubavam a atenção da
+   * tabela, que é onde a pessoa precisa olhar pra jogar. Continua fácil de
+   * acertar: 48px é mais que o dobro do alvo mínimo de toque. */
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
   align-self: center;
+  animation: none;
+  /* A cor fica, mais discreta: ainda diz "dá pra pedir STOP agora" sem
+     gritar. */
+  filter: saturate(0.75) brightness(0.9);
+}
+.sc-legend-panel-so-stop .sc-status-ball-big:hover {
+  filter: saturate(1) brightness(1.1);
 }
 /* Texto de estado numa linha só, com reticências. Numa coluna de 100px,
    qualquer frase quebrava e empurrava o painel. */
@@ -759,7 +769,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .sc-bottom-grid-compacto {
   /* Três colunas: chat, botão STOP e jogadores. A do meio é estreita porque
      só carrega o botão — a legenda que ocupava esse espaço foi embora. */
-  grid-template-columns: 1.5fr 0.32fr 1fr;
+  /* Coluna do meio mais estreita agora que o botão tem 48px fixos — o
+     espaço que sobrava vai pro chat. */
+  grid-template-columns: 1.6fr 0.2fr 1fr;
   gap: 6px;
 }
 /* Painéis de baixo encolhem: 230px cada era quase a altura de um painel
