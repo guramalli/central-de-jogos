@@ -2970,7 +2970,10 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .multi-barra-flutuante {
   position: absolute;
   top: 6px;
-  right: 10px;
+  /* Afastada da borda direita de propósito: o ✕ que fecha o painel fica
+     exatamente nesse canto, e a barra encostava nele — o "lobby" e o ✕
+     ficavam colados, fácil de clicar errado e sair da sala sem querer. */
+  right: 44px;
   z-index: 60;
   margin: 0;
   padding: 4px 8px;
