@@ -860,13 +860,31 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
  * Duas medidas somadas: fonte menor no compacto (a pergunta continua sendo
  * o maior texto do painel) e rolagem própria quando ainda assim não couber.
  * Rolar a pergunta é ruim, mas é muito melhor que não poder lê-la. */
+/* TEXTO ADAPTÁVEL DA PERGUNTA NO MULTI-SALA.
+ *
+ * Dois eixos, porque só um não resolve:
+ *
+ * 1) TAMANHO DA TELA — `clamp(mínimo, valor que cresce, máximo)`. O valor do
+ *    meio usa `vmin` (o menor lado da janela) em vez de `vw`: apertar F11
+ *    não muda a largura, só a ALTURA, e com `vw` a fonte ficaria igual —
+ *    que é exatamente a reclamação. Com `vmin` a tela cheia aumenta a letra.
+ *
+ * 2) TAMANHO DA PERGUNTA — pergunta curta sobra espaço e pode ser maior;
+ *    longa precisa encolher pra caber. A classe vem do JSX, contando os
+ *    caracteres.
+ *
+ * O mínimo de cada faixa é o piso de leitura; o máximo evita que numa TV a
+ * pergunta vire cartaz. */
 .quiz-root.quiz-compacto .quiz-question-text {
   padding-right: 52px;
-  font-size: 16px;
   line-height: 1.3;
   max-height: 100%;
   overflow-y: auto;
+  font-size: clamp(15px, 1.9vmin, 26px);
 }
+.quiz-root.quiz-compacto .quiz-pergunta-curta { font-size: clamp(18px, 2.6vmin, 34px); }
+.quiz-root.quiz-compacto .quiz-pergunta-media { font-size: clamp(16px, 2.1vmin, 28px); }
+.quiz-root.quiz-compacto .quiz-pergunta-longa { font-size: clamp(14px, 1.7vmin, 22px); }
 .quiz-root.quiz-compacto .quiz-panel { border-width: 1px; }
 
 /* Cronômetro no canto do cartão da pergunta, no lugar da barra de cima. */
@@ -3324,8 +3342,11 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
    quando a rodada abre. */
 .multi-grade-empilhada .sc-timerletter { transform: scale(1.1); transform-origin: left center; }
 
-/* O mesmo no Quiz: a pergunta cabe maior quando há largura sobrando. */
-.multi-grade-empilhada .quiz-root.quiz-compacto .quiz-question-text { font-size: 20px; }
+/* Empilhado, a pergunta tem a largura toda: o clamp ganha um degrau a mais
+   em vez de um tamanho fixo, que atropelaria a adaptação por tela. */
+.multi-grade-empilhada .quiz-root.quiz-compacto .quiz-pergunta-curta { font-size: clamp(22px, 3.2vmin, 40px); }
+.multi-grade-empilhada .quiz-root.quiz-compacto .quiz-pergunta-media { font-size: clamp(19px, 2.6vmin, 32px); }
+.multi-grade-empilhada .quiz-root.quiz-compacto .quiz-pergunta-longa { font-size: clamp(17px, 2.1vmin, 26px); }
 @media (max-width: 900px) {
   /* No celular é uma coluna, então cada painel é uma linha — dividir a
      altura deixaria tudo minúsculo. Ali a página rola mesmo. */

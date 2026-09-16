@@ -604,7 +604,20 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
               {temaDaPergunta && (
                 <div className="quiz-tema-da-pergunta">{temaDaPergunta}:</div>
               )}
-              <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
+              {/* A classe de tamanho vai por TAMANHO DA PERGUNTA: pergunta
+                  curta sobra espaço e pode ser maior; longa precisa ser
+                  menor pra caber. O resto do ajuste (tela grande, F11) é
+                  feito no CSS com clamp(). */}
+              <div
+                className={`quiz-question-text ${
+                  (questionText || "").length <= 60
+                    ? "quiz-pergunta-curta"
+                    : (questionText || "").length <= 110
+                    ? "quiz-pergunta-media"
+                    : "quiz-pergunta-longa"
+                }`}
+                onContextMenu={(e) => e.preventDefault()}
+              >
                 {questionText}
               </div>
               <div
