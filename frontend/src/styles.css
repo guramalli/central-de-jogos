@@ -671,6 +671,17 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .sc-legend-panel-so-stop .sc-status-ball-big:hover {
   filter: saturate(1) brightness(1.1);
 }
+
+/* Nome de quem pediu STOP: cabe numa linha e diminui sozinho se o nick for
+   comprido, em vez de quebrar no meio da palavra. */
+.sc-legend-panel-so-stop .sc-legend-stopped-name {
+  font-size: 15px;
+  line-height: 1.15;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  hyphens: none;
+}
+.sc-legend-panel-so-stop .sc-legend-stopped-label { font-size: 10px; }
 /* Texto de estado numa linha só, com reticências. Numa coluna de 100px,
    qualquer frase quebrava e empurrava o painel. */
 .sc-legend-panel-so-stop .sc-status-text {
@@ -769,9 +780,13 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .sc-bottom-grid-compacto {
   /* Três colunas: chat, botão STOP e jogadores. A do meio é estreita porque
      só carrega o botão — a legenda que ocupava esse espaço foi embora. */
-  /* Coluna do meio mais estreita agora que o botão tem 48px fixos — o
-     espaço que sobrava vai pro chat. */
-  grid-template-columns: 1.6fr 0.2fr 1fr;
+  /* A COLUNA DO MEIO CONTINUA LARGA, mesmo com o botão pequeno.
+   *
+   * Estreitei ela quando reduzi o botão pra 48px, e quebrou outra coisa:
+   * quando alguém pede STOP, é nessa coluna que aparece o NICK de quem
+   * pediu. Com a coluna fina, "Guramalli" virava "Guram / alli" em duas
+   * linhas. O nick é a informação mais importante daquele momento. */
+  grid-template-columns: 1.4fr 0.5fr 1fr;
   gap: 6px;
 }
 /* Painéis de baixo encolhem: 230px cada era quase a altura de um painel
