@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { api } from "../api/client.js";
 import { useAcromaniaAtivo } from "../components/useAcromaniaAtivo.js";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -13,6 +14,19 @@ import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
   const acromaniaAtivo = useAcromaniaAtivo();
+  const [visitas, setVisitas] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let vivo = true;
+    api
+      .get(`/users/${user.id}/profile`)
+      .then(({ data }) => vivo && setVisitas(data.visitas || 0))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [user?.id]);
   const { user } = useAuth();
   const { theme } = useTheme();
   const [showFeedback, setShowFeedback] = useState(false);
@@ -35,6 +49,14 @@ export default function Lobby() {
         <div>
           <p className="lobby-hero-tag">BEM-VINDO DE VOLTA</p>
           <h1 className="lobby-hero-title">{user?.nickname}</h1>
+          {/* Número de visitas ao lado do nome. Só aparece a partir da
+              segunda: "essa é sua 1ª vez" seria estranho pra quem já está
+              logado — e quem acabou de chegar não tem o que comemorar. */}
+          {visitas > 1 && (
+            <p className="lobby-hero-visitas">
+              Essa é sua <strong>{visitas}ª</strong> vez no portal.
+            </p>
+          )}
           <p className="lobby-hero-subtitle">
             Escolha um jogo, suba de patente e dispute a premiação mensal.
           </p>

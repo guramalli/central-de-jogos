@@ -627,28 +627,12 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 /* ===== AJUSTES DO COMPACTO (multi-sala) ===== */
 
-/* BOTÃO STOP NA HORIZONTAL, na faixa onde ficava só a dica.
-   Ele vivia no painel da legenda, que o compacto esconde — sem isto, o
-   multi-sala ficava sem botão nenhum de STOP. */
-.sc-stop-barra {
-  display: block;
-  width: 100%;
-  margin: 6px 0 4px;
-  padding: 7px 0;
-  border: none;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #e63b2e, #b41f16);
-  color: #fff;
-  font-family: var(--sc-mono, monospace);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 3px;
-  cursor: pointer;
-  box-shadow: 0 2px 0 #7d120c;
-}
-.sc-stop-barra:hover { filter: brightness(1.1); }
-.sc-stop-barra:active { transform: translateY(1px); box-shadow: 0 1px 0 #7d120c; }
-.sc-stop-barra-negado { background: linear-gradient(180deg, #6b6b6b, #454545); box-shadow: 0 2px 0 #2b2b2b; }
+/* COLUNA DO MEIO NO COMPACTO — só o botão STOP.
+   
+   A legenda some, mas a coluna fica: é onde o botão sempre esteve, entre o
+   chat e a lista de jogadores. Estreita, porque só precisa caber o botão. */
+.sc-legend-panel-so-stop { padding: 6px 4px; }
+.sc-legend-panel-so-stop .sc-status-ball-big { width: 100%; border-radius: 8px; height: 100%; }
 
 /* A ROLAGEM FICA NO CORPO DA TABELA, não no painel inteiro.
    Com muita gente na sala o painel todo rolava, e o cabeçalho com os nomes
@@ -735,7 +719,9 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 /* Sem a legenda, sobram duas colunas: chat e jogadores. A legenda é pra
    quem está aprendendo; quem abre 4 salas já decorou. */
 .sc-bottom-grid-compacto {
-  grid-template-columns: 1.6fr 1fr;
+  /* Três colunas: chat, botão STOP e jogadores. A do meio é estreita porque
+     só carrega o botão — a legenda que ocupava esse espaço foi embora. */
+  grid-template-columns: 1.5fr 0.32fr 1fr;
   gap: 6px;
 }
 /* Painéis de baixo encolhem: 230px cada era quase a altura de um painel
@@ -1364,10 +1350,20 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   padding: 28px 32px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  /* `flex-start` no lugar de `center`: com `center`, o nome da pessoa
+     flutuava no meio da altura do painel, que é definida pelo bloco de
+     títulos. Grudado no topo ele vira o começo da leitura, que é o que
+     deveria ser. */
+  align-items: flex-start;
   gap: 24px;
   flex-wrap: wrap;
 }
+.lobby-hero-visitas {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
+.lobby-hero-visitas strong { color: var(--accent-2); }
 
 /* ÚLTIMAS ATUALIZAÇÕES, no miolo do painel de boas-vindas.
  *
@@ -1381,6 +1377,22 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--bg-panel-2);
+  /* ACOMPANHA A ALTURA DO PAINEL DE PATENTES.
+     
+     O painel de títulos cresce conforme quantos a pessoa escolhe exibir —
+     quem mostra quatro tem um bloco alto, quem mostra um tem um baixo. Com
+     altura própria, a caixa de novidades ficava flutuando no meio, sem
+     alinhar com nada. `align-self: stretch` faz ela ir de ponta a ponta, e
+     a lista rola por dentro se as três entradas não couberem. */
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.lobby-hero-novidades .lobby-novidades-lista {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 .lobby-novidades-topo {
   display: flex;
@@ -3009,7 +3021,14 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 /* ÚLTIMO CORTE DE ESPAÇO — o que ainda fazia a barra de rolagem aparecer
    em cada painel. São pedaços pequenos, mas somados davam a altura que
    faltava pra tudo caber sem rolar. */
-.sc-tabela-compacta { padding: 8px 6px 6px 6px; }
+/* BORDA DE 1px NO LUGAR DE 2px, e menos respiro acima da aba.
+   
+   Cada painel tinha 2px de borda dos dois lados, e a aba flutuante do título
+   exige um espaço acima pra não ser cortada. Multiplicado por painel e por
+   linha, é exatamente o punhado de pixels que ainda forçava a barra de
+   rolagem em cada sala do multi-sala. */
+.sc-bottom-grid-compacto .sc-retro-panel { border-width: 1px; }
+.sc-tabela-compacta { border-width: 1px; padding: 8px 6px 6px 6px; }
 .sc-tabela-compacta .sc-panel-title-row { margin-bottom: 4px; }
 .sc-tabela-compacta .sheet-fill-input { padding: 3px 6px; font-size: 13px; }
 .sc-tabela-compacta th,

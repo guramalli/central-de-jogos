@@ -834,22 +834,9 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
           </div>
         )}
 
-        {/* NO COMPACTO O BOTÃO STOP VEM PRA CÁ, na horizontal.
-            
-            Ele morava dentro do painel da legenda — que o modo compacto
-            esconde. Resultado: o multi-sala ficou sem botão de STOP, e só
-            dava pra pedir por Ctrl+Enter. Aqui ele ocupa a faixa da dica,
-            que já estava no lugar certo da tela e sobrava espaço. */}
-        {compacto && phase === "active" && !stopOverlay && (
-          <button
-            className={`sc-stop-barra ${stopDenied ? "sc-stop-barra-negado" : ""}`}
-            onClick={handleStop}
-            title="Pedir STOP (Ctrl+Enter)"
-          >
-            STOP
-          </button>
-        )}
-
+        {/* A dica some no compacto: quem joga em 4 salas já sabe pedir STOP,
+            e a linha custava uma faixa por painel. */}
+        {!compacto && (
         <div className="sc-stop-hint">
           {/* A dica muda por plataforma: no celular não existe Ctrl+Enter,
               e mandar procurar um botão "abaixo" com o teclado aberto não
@@ -863,6 +850,7 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             </>
           )}
         </div>
+        )}
       </div>
 
       {isMobile && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
@@ -905,8 +893,18 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
 
-        {!compacto && (
-        <div className="sc-retro-panel sc-tab-panel sc-legend-panel">
+        {/* COLUNA DO MEIO — no compacto ela volta, mas só com o botão STOP.
+            
+            Tentei antes pôr o botão como barra horizontal sobre a tabela, e
+            ficou pior: empurrava tudo pra baixo e roubava a altura que a
+            gente estava tentando economizar. Aqui ele usa o espaço que a
+            legenda deixou vago, entre o chat e a lista de jogadores — que é
+            onde ele sempre esteve. */}
+        <div
+          className={`sc-retro-panel sc-tab-panel sc-legend-panel ${
+            compacto ? "sc-legend-panel-so-stop" : ""
+          }`}
+        >
           {stopOverlay ? (
             <div className="sc-legend-stopped">
               <div className="sc-legend-stopped-name">{stopOverlay}</div>
@@ -939,17 +937,22 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
           ) : (
             <>
               <div className="sc-retro-tab">pontuação</div>
-              <ul className="sc-legend-list">
-                <li><span className="sc-swatch sc-swatch-wrong" /> 0 pontos — errada ou em branco</li>
-                <li><span className="sc-swatch sc-swatch-duplicate" /> 5 pontos — repetida</li>
-                <li><span className="sc-swatch sc-swatch-correct" /> 10 pontos — única</li>
-                <li><span className="sc-swatch sc-swatch-solo" /> 15 pontos — só você acertou o tema</li>
-              </ul>
-              <div className="sc-legend-bonus">Bônus a cada 10 rodadas: 🥇+150 🥈+100 🥉+50</div>
+              {/* A legenda em si continua escondida no compacto — só o
+                  botão STOP acima fica. */}
+              {!compacto && (
+                <>
+                  <ul className="sc-legend-list">
+                    <li><span className="sc-swatch sc-swatch-wrong" /> 0 pontos — errada ou em branco</li>
+                    <li><span className="sc-swatch sc-swatch-duplicate" /> 5 pontos — repetida</li>
+                    <li><span className="sc-swatch sc-swatch-correct" /> 10 pontos — única</li>
+                    <li><span className="sc-swatch sc-swatch-solo" /> 15 pontos — só você acertou o tema</li>
+                  </ul>
+                  <div className="sc-legend-bonus">Bônus a cada 10 rodadas: 🥇+150 🥈+100 🥉+50</div>
+                </>
+              )}
             </>
           )}
         </div>
-        )}
 
         <div className="sc-retro-panel sc-tab-panel sc-players-panel">
           <div className="sc-retro-tab">jogadores ({onlinePlayers.length})</div>

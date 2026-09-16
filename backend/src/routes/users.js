@@ -241,6 +241,9 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     // apontaria pra /cla/undefined.
     clan: user.clan ? { id: user.clan.id, name: user.clan.name, tag: user.clan.tag } : null,
     playtimeMinutes: user.playtimeMinutes,
+    // Quantas sessões a pessoa já abriu. Contado no socket, com janela de 30
+    // minutos — recarregar a aba não conta de novo.
+    visitas: user.visitas ?? 0,
     memberSince: user.createdAt,
     // Última vez que a conta se conectou. Gravado no socket, mas só uma vez
     // a cada 24h pra não escrever no banco a cada conexão — então o dado tem
