@@ -482,7 +482,13 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           >
             {muted ? "🔇" : "🔊"}
           </button>
-          <QuizTimerRing timeLeft={timeLeft} totalSeconds={phase === "active" ? totalSeconds : 8} />
+          {/* Anel menor no compacto: 72px era metade da altura da barra, e
+              com 4 painéis isso é altura que faz falta pra pergunta. */}
+          <QuizTimerRing
+            timeLeft={timeLeft}
+            totalSeconds={phase === "active" ? totalSeconds : 8}
+            size={compacto ? 44 : 72}
+          />
         </div>
       </div>
 

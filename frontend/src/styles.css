@@ -795,19 +795,28 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   justify-content: center;
 }
 
-/* CRONÔMETRO E CONTADOR NUMA LINHA PRÓPRIA.
+/* BARRA DE CIMA ACHATADA NO COMPACTO.
    
-   No compacto a barra de cima vira duas linhas curtas em vez de uma larga:
-   sem a logo e os pontos, sobrava um vão enorme no meio dela, e o
-   cronômetro ficava jogado na ponta direita. Empilhado, some o vão e a
-   barra encolhe. */
-.quiz-root.quiz-compacto .quiz-topbar-title {
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
+   Errei na primeira tentativa: mandei o `.quiz-topbar-title` virar coluna
+   achando que o cronômetro estava dentro dele. Não está — ele é IRMÃO, no
+   `.quiz-timer-group`, então a regra não movia nada e a barra continuava
+   igual.
+   
+   O que deixava a barra alta era outra coisa: 14px de padding, 20px de
+   margem embaixo e um anel de cronômetro de 72px. Tudo isso encolhe aqui,
+   e o anel foi pra 44px pela propriedade `size`. */
+.quiz-root.quiz-compacto .quiz-stats-bar {
+  padding: 6px 10px;
+  margin: -8px -8px 8px -8px;
+  gap: 8px;
+  border-bottom-width: 1px;
 }
+.quiz-root.quiz-compacto .quiz-topbar-title { gap: 6px; }
 .quiz-root.quiz-compacto .quiz-timer-group { gap: 6px; }
 .quiz-root.quiz-compacto .quiz-turn-counter { font-size: 11px; }
+/* O painel da pergunta também tinha respiro de sobra pro tamanho da caixa. */
+.quiz-root.quiz-compacto .quiz-question-card { padding: 10px; }
+.quiz-root.quiz-compacto .quiz-panel { border-width: 1px; }
 @media (max-width: 900px) {
   .sc-bottom-grid { grid-template-columns: 1fr; }
   .sc-legend-panel { order: -1; }
