@@ -829,6 +829,13 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   z-index: 2;
 }
 .quiz-timer-canto .quiz-turn-counter { font-size: 10px; }
+/* Botão de som menor no canto — no tamanho da barra ele competia com o
+   anel do cronômetro. */
+.quiz-timer-canto .quiz-mute-btn {
+  font-size: 14px;
+  padding: 2px 5px;
+  line-height: 1;
+}
 
 /* LOG mais estreito: ele é uma coluna quase sempre vazia ("Nenhuma resposta
    enviada ainda") ocupando um terço da largura do painel. */

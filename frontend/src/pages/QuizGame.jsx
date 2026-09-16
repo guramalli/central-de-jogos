@@ -513,6 +513,16 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
                   {turnInfo.round}/{turnInfo.total}
                 </span>
               )}
+              {/* O botão de som vivia na barra de cima, que o compacto
+                  removeu — e sumiu junto. Som importa: é ele que avisa que a
+                  pergunta virou numa sala que você não está olhando. */}
+              <button
+                className="quiz-mute-btn"
+                onClick={handleToggleMute}
+                title={muted ? "Ativar som" : "Desativar som"}
+              >
+                {muted ? "🔇" : "🔊"}
+              </button>
               <QuizTimerRing
                 timeLeft={timeLeft}
                 totalSeconds={phase === "active" ? totalSeconds : 8}
@@ -739,7 +749,10 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
         </div>
       </div>
 
-      <SuggestQuestionForm themeKey={themeKey} />
+      {/* Sugerir pergunta some no compacto: é um formulário de contribuição,
+          coisa pra fazer com calma numa sala só — no meio de 4 partidas ele
+          só ocupa uma faixa no pé de cada painel. */}
+      {!compacto && <SuggestQuestionForm themeKey={themeKey} />}
 
       {reportOpen && questionId && (
         <ReportQuestionModal
