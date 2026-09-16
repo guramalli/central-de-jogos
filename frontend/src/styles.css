@@ -781,6 +781,33 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-bottom-grid-compacto .quiz-panel { height: 140px; min-height: 0; padding: 10px 8px 6px 8px; }
 .quiz-bottom-grid-compacto .chat-box { height: 118px; }
 .quiz-bottom-grid-compacto .sc-players-list li { padding: 1px 4px; font-size: 11px; }
+/* Bordas finas e rodapé de altura fixa, igual ao Stop: o que sobra de
+   altura fica com a área da pergunta. */
+.quiz-bottom-grid-compacto .quiz-panel { border-width: 1px; }
+.multi-sala-cheia .quiz-bottom-grid-compacto { flex: 0 0 auto; }
+/* A área da PERGUNTA é quem cresce — mesma decisão que no Stop, onde quem
+   cresce é a tabela. A altura tem que ir pra onde a pessoa olha. */
+.multi-sala-cheia .quiz-compacto .quiz-question-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* CRONÔMETRO E CONTADOR NUMA LINHA PRÓPRIA.
+   
+   No compacto a barra de cima vira duas linhas curtas em vez de uma larga:
+   sem a logo e os pontos, sobrava um vão enorme no meio dela, e o
+   cronômetro ficava jogado na ponta direita. Empilhado, some o vão e a
+   barra encolhe. */
+.quiz-root.quiz-compacto .quiz-topbar-title {
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+.quiz-root.quiz-compacto .quiz-timer-group { gap: 6px; }
+.quiz-root.quiz-compacto .quiz-turn-counter { font-size: 11px; }
 @media (max-width: 900px) {
   .sc-bottom-grid { grid-template-columns: 1fr; }
   .sc-legend-panel { order: -1; }
@@ -3102,8 +3129,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   flex-direction: column;
 }
 /* O `.sc-root` vira coluna flex pra a tabela poder esticar: ele é o pai da
-   tabela e do rodapé, e sem flex o `flex: 1` da tabela não teria efeito. */
+   tabela e do rodapé, e sem flex o `flex: 1` da tabela não teria efeito.
+   
+   O `.quiz-root` FALTAVA nesta lista, e o efeito era feio: sem a coluna
+   flex, o conteúdo do Quiz não cabia no painel e o chat ficava fora da
+   área visível — dava a impressão de sala travada. */
 .multi-sala-cheia .sc-root,
+.multi-sala-cheia .quiz-root,
 .multi-sala-cheia .multi-painel-jogo > div {
   display: flex;
   flex-direction: column;

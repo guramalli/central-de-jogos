@@ -420,7 +420,7 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
   const isArenaBreak = !!turnInfo && phase === "intermission";
 
   return (
-    <div className="quiz-root" data-quiz-theme={themeKey || undefined}>
+    <div className={`quiz-root ${compacto ? "quiz-compacto" : ""}`} data-quiz-theme={themeKey || undefined}>
       <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
       <div className="quiz-stats-bar">
         {/* No compacto some a logo e os pontos: repetem em cada painel e o
