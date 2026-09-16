@@ -2933,6 +2933,11 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 13px;
 }
 .multi-dica-primeira span { flex: 1; min-width: 240px; }
+/* Margem à direita do tamanho da barra flutuante: mesmo com ela abaixada,
+   o texto da dica não corre por baixo do canto onde os botões vivem. */
+@media (min-width: 901px) {
+  .multi-dica-primeira { padding-right: 340px; }
+}
 
 /* TELA CHEIA DE VERDADE — a janela inteira é jogo.
  *
@@ -2976,6 +2981,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   transition: opacity 0.15s ease;
 }
 .multi-barra-flutuante:hover { opacity: 1; }
+/* Enquanto a dica da primeira vez estiver na tela, a barra desce pra não
+   ficar em cima dela. A dica some no "entendi" e a barra volta pro topo. */
+.multi-barra-abaixo-da-dica { top: 52px; }
 
 /* NO CELULAR A BARRA NÃO FLUTUA.
  *
@@ -3295,11 +3303,23 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
  * largura. Empilhado não há essa disputa: o painel tem a tela inteira, e
  * manter a letra miúda só força a vista sem economizar nada — que é
  * justamente o motivo de existir o modo empilhado. */
+/* 16px é o TETO útil, não um número solto.
+ *
+ * Fiz a conta com a tela cheia (1900px): são 9 colunas de ~207px. A 16px o
+ * tema mais longo, "Instrumentos Musicais", ocupa ~175px e cabe numa linha.
+ * A 18px passa de 197px e o cabeçalho quebra em duas — comendo justamente a
+ * altura que o aumento deveria ganhar.
+ *
+ * Na altura: cada painel empilhado fica com ~495px numa tela de 1080, e a
+ * 16px ainda cabem 6 jogadores antes de a tabela rolar por dentro. */
 .multi-grade-empilhada .sc-tabela-compacta th,
-.multi-grade-empilhada .sc-tabela-compacta td { font-size: 14px; padding: 6px 10px; }
-.multi-grade-empilhada .sc-tabela-compacta .sheet-fill-input { font-size: 15px; padding: 5px 8px; }
-.multi-grade-empilhada .sc-tabela-compacta .sc-min-correct-hint { font-size: 13px; padding: 5px 10px; }
-.multi-grade-empilhada .sc-bottom-grid-compacto .sc-players-list li { font-size: 13px; padding: 3px 8px; }
+.multi-grade-empilhada .sc-tabela-compacta td { font-size: 16px; padding: 8px 12px; }
+.multi-grade-empilhada .sc-tabela-compacta .sheet-fill-input { font-size: 18px; padding: 7px 10px; }
+.multi-grade-empilhada .sc-tabela-compacta .sc-min-correct-hint { font-size: 14px; padding: 6px 12px; }
+.multi-grade-empilhada .sc-bottom-grid-compacto .sc-players-list li { font-size: 14px; padding: 4px 10px; }
+/* A letra sorteada e o cronômetro também: são o que a pessoa olha primeiro
+   quando a rodada abre. */
+.multi-grade-empilhada .sc-timerletter { transform: scale(1.1); transform-origin: left center; }
 
 /* O mesmo no Quiz: a pergunta cabe maior quando há largura sobrando. */
 .multi-grade-empilhada .quiz-root.quiz-compacto .quiz-question-text { font-size: 20px; }

@@ -68,6 +68,10 @@ export default function MultiSala() {
   }
 
   const jogando = abertas.length > 0;
+  // A dica da primeira vez ocupa a largura toda no topo. A barra de
+  // controle flutua nesse mesmo canto, então uma cobria a outra — o
+  // "entendi" ficava embaixo do "lobby".
+  const mostrarDica = jogando && abertas.length > 1 && !dicaVista;
 
   // TROCA DE PAINEL PELO TECLADO — o "alt+tab" das salas.
   //
@@ -307,7 +311,11 @@ export default function MultiSala() {
           </div>
         </>
       ) : (
-        <div className="multi-barra-jogo multi-barra-flutuante">
+        <div
+          className={`multi-barra-jogo multi-barra-flutuante ${
+            mostrarDica ? "multi-barra-abaixo-da-dica" : ""
+          }`}
+        >
           <button className="multi-btn-mini" onClick={() => setMostrarSeletor((v) => !v)}>
             {mostrarSeletor ? "✕ fechar lista" : "⊞ escolher salas"}
           </button>
@@ -352,7 +360,7 @@ export default function MultiSala() {
           olhando pro jogo — mas alternar é justamente o que a pessoa precisa
           fazer agora e não sabe como. Dispensável, e o "não mostrar de novo"
           fica guardado no navegador. */}
-      {jogando && abertas.length > 1 && !dicaVista && (
+      {mostrarDica && (
         <div className="multi-dica-primeira">
           <span>
             💡 Duas salas abertas. Use <kbd>Ctrl</kbd> + <kbd>←</kbd> <kbd>→</kbd> pra passar
