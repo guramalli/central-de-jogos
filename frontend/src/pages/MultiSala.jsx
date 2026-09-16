@@ -186,7 +186,7 @@ export default function MultiSala() {
   const nomeDaSala = (id) => salas.find((s) => s.roomId === id)?.label || id;
 
   return (
-    <div className="multi-sala">
+    <div className={`multi-sala ${jogando ? "multi-sala-cheia" : ""}`}>
       <Seo
         title={`Várias salas de ${ehStop ? "Stop" : "Quiz"} ao mesmo tempo`}
         description="Jogue em mais de uma sala na mesma tela, sem abrir outra aba."
@@ -221,7 +221,7 @@ export default function MultiSala() {
           </div>
         </>
       ) : (
-        <div className="multi-barra-jogo">
+        <div className="multi-barra-jogo multi-barra-flutuante">
           <button className="multi-btn-mini" onClick={() => setMostrarSeletor((v) => !v)}>
             {mostrarSeletor ? "✕ fechar lista" : "⊞ escolher salas"}
           </button>
@@ -303,11 +303,19 @@ export default function MultiSala() {
                 else delete paineisRef.current[roomId];
               }}
             >
+              {/* Barra de título mínima: número do atalho, nome e um X.
+                  Ela custava 28px por painel — 56px com 4 abertos — pra
+                  repetir o que o jogo já mostra. Encolheu pra 20px e o
+                  "fechar" virou ✕, que não precisa de palavra. */}
               <div className="multi-painel-topo">
-                <span className="multi-painel-atalho">Ctrl+{i + 1}</span>
+                <span className="multi-painel-atalho">{i + 1}</span>
                 <span className="multi-painel-nome">{nomeDaSala(roomId)}</span>
-                <button className="multi-fechar" onClick={() => fechar(roomId)}>
-                  fechar
+                <button
+                  className="multi-fechar"
+                  onClick={() => fechar(roomId)}
+                  title="Fechar esta sala"
+                >
+                  ✕
                 </button>
               </div>
               <div className="multi-painel-jogo">
