@@ -789,10 +789,14 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    cresce é a tabela. A altura tem que ir pra onde a pessoa olha. */
 .multi-sala-cheia .quiz-compacto .quiz-question-card {
   flex: 1;
+  /* `min-height: 0` é o que permite o filho rolar em vez de esticar o pai:
+     sem ele o cartão cresceria e empurraria o chat pra fora do painel — foi
+     assim que a pergunta longa sumiu da tela. */
   min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  overflow: hidden;
 }
 
 /* BARRA DE CIMA ACHATADA NO COMPACTO.
@@ -816,9 +820,23 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .quiz-root.quiz-compacto .quiz-turn-counter { font-size: 11px; }
 /* O painel da pergunta também tinha respiro de sobra pro tamanho da caixa. */
 .quiz-root.quiz-compacto .quiz-question-card { padding: 10px; position: relative; }
-/* Espaço reservado à direita pro canto do cronômetro: sem isto o texto da
-   pergunta corre por baixo dele quando é longo. */
-.quiz-root.quiz-compacto .quiz-question-text { padding-right: 52px; }
+/* PERGUNTA LONGA PRECISA CABER OU ROLAR.
+ *
+ * Um jogador ficou sem conseguir ler uma pergunta no multi-sala: o texto é
+ * de 22px, o painel tem altura limitada e não havia rolagem — a pergunta
+ * simplesmente sumia pra fora. São 29 perguntas acima de 110 caracteres no
+ * banco, a maior com 128.
+ *
+ * Duas medidas somadas: fonte menor no compacto (a pergunta continua sendo
+ * o maior texto do painel) e rolagem própria quando ainda assim não couber.
+ * Rolar a pergunta é ruim, mas é muito melhor que não poder lê-la. */
+.quiz-root.quiz-compacto .quiz-question-text {
+  padding-right: 52px;
+  font-size: 16px;
+  line-height: 1.3;
+  max-height: 100%;
+  overflow-y: auto;
+}
 .quiz-root.quiz-compacto .quiz-panel { border-width: 1px; }
 
 /* Cronômetro no canto do cartão da pergunta, no lugar da barra de cima. */

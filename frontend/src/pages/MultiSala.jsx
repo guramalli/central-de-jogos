@@ -116,15 +116,27 @@ export default function MultiSala() {
     painelAtualRef.current = roomId;
     setPainelAtual(roomId);
 
+    let focou = false;
     for (const seletor of CAMPOS_DE_JOGO) {
       const campo = painel.querySelector(seletor);
       if (campo) {
         campo.focus();
+        focou = true;
         break;
       }
     }
     // Sem campo de jogo disponível (intervalo, resultado, votação) o painel
     // só é trazido pra vista. Melhor não focar nada do que focar o chat.
+    //
+    // Mas o campo da sala ANTERIOR é desfocado: senão a pessoa troca de sala
+    // e o que ela digitar continua caindo na resposta da sala que ficou pra
+    // trás, sem nenhum sinal na tela de que isso está acontecendo.
+    if (!focou) {
+      const anterior = document.activeElement;
+      if (anterior && anterior !== document.body && !painel.contains(anterior)) {
+        anterior.blur?.();
+      }
+    }
     painel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
@@ -146,15 +158,22 @@ export default function MultiSala() {
     const colunas = window.innerWidth <= 900 ? 1 : 2;
     const total = abertas.length;
 
-    // O foco no DOM tem prioridade (a pessoa pode ter CLICADO noutro
-    // painel), e o valor guardado é a rede de segurança pros casos em que
-    // não há campo pra focar.
-    let atual = abertas.findIndex((id) =>
-      paineisRef.current[id]?.contains(document.activeElement)
-    );
-    if (atual === -1) atual = abertas.indexOf(painelAtualRef.current);
+    // A POSIÇÃO GUARDADA MANDA, não o foco do DOM.
+    //
+    // Era o contrário, e travava exatamente como o Gustavinho descreveu:
+    // com a sala de destino em resultado, não há campo pra focar, então o
+    // `activeElement` continuava na sala ANTERIOR. A seta seguinte lia o
+    // DOM, achava que ainda estávamos na sala de origem e mandava pro mesmo
+    // destino de novo — preso.
+    //
+    // Funcionava quando todas tinham rodada ativa porque aí sempre havia
+    // campo, e o foco acompanhava.
+    //
+    // O clique não se perde: `onMouseDown` no painel já atualiza a posição
+    // guardada, então clicar numa sala e seguir de teclado continua certo.
+    let atual = abertas.indexOf(painelAtualRef.current);
 
-    // Nem foco nem posição guardada: a primeira seta cai no painel 1.
+    // Sem posição guardada: a primeira seta cai no painel 1.
     if (atual === -1) {
       focarPainel(abertas[0]);
       return;
