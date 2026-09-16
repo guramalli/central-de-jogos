@@ -91,6 +91,33 @@ export default function MultiSala() {
   // atalho tinha sido bloqueado.
   const [painelAtual, setPainelAtual] = useState(null);
 
+  // COM 2 SALAS, LADO A LADO OU UMA EMBAIXO DA OUTRA.
+  //
+  // Depende do que a pessoa está jogando: no Stop a tabela é larga (6 temas
+  // + pontos), então lado a lado cada uma fica apertada e empilhado é
+  // melhor. No Quiz a pergunta é curta e lado a lado aproveita mais.
+  // Em vez de escolher por ela, o botão deixa trocar — e a escolha fica
+  // guardada no navegador pra próxima vez.
+  const [empilhado, setEmpilhado] = useState(() => {
+    try {
+      return localStorage.getItem("eg_multisala_empilhado") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  function alternarArranjo() {
+    setEmpilhado((v) => {
+      const novo = !v;
+      try {
+        localStorage.setItem("eg_multisala_empilhado", novo ? "1" : "0");
+      } catch {
+        // Armazenamento bloqueado: a escolha vale só nesta visita.
+      }
+      return novo;
+    });
+  }
+
   // Onde o cursor deve parar ao entrar num painel, em ordem de prioridade.
   //
   // O CHAT NÃO ENTRA NA LISTA, e é esse o ponto. Antes a busca pegava o
@@ -155,7 +182,11 @@ export default function MultiSala() {
   // se move se houver painel naquela direção.
   function trocarPainel(passo, vertical = false) {
     if (abertas.length < 2) return;
-    const colunas = window.innerWidth <= 900 ? 1 : 2;
+    // As colunas seguem o arranjo REAL da tela: no celular é sempre 1, e com
+    // 2 salas empilhadas também — senão Ctrl+↓ não andaria entre elas, que é
+    // justamente a direção em que estão.
+    const umaColuna = window.innerWidth <= 900 || (abertas.length === 2 && empilhado);
+    const colunas = umaColuna ? 1 : 2;
     const total = abertas.length;
 
     // A POSIÇÃO GUARDADA MANDA, não o foco do DOM.
@@ -236,7 +267,7 @@ export default function MultiSala() {
     // antes de qualquer campo.
     window.addEventListener("keydown", aoTeclar, true);
     return () => window.removeEventListener("keydown", aoTeclar, true);
-  }, [jogando, abertas]);
+  }, [jogando, abertas, empilhado]);
   const Jogo = ehStop ? StopGame : QuizGame;
   const nomeDaSala = (id) => salas.find((s) => s.roomId === id)?.label || id;
 
@@ -289,6 +320,17 @@ export default function MultiSala() {
               title="Ctrl + seta, ou Ctrl + número da sala"
             >
               ⇄ próxima sala
+            </button>
+          )}
+          {/* Só com exatamente 2 salas: com 3 ou 4 o arranjo já é 2x2 e
+              empilhar deixaria os painéis baixos demais pra jogar. */}
+          {abertas.length === 2 && (
+            <button
+              className="multi-btn-mini"
+              onClick={alternarArranjo}
+              title={empilhado ? "Colocar lado a lado" : "Colocar uma embaixo da outra"}
+            >
+              {empilhado ? "⬓ lado a lado" : "⬒ empilhar"}
             </button>
           )}
           <span className="multi-barra-contador">
@@ -347,7 +389,11 @@ export default function MultiSala() {
           Escolha as salas acima pra começar. Elas aparecem lado a lado aqui embaixo.
         </p>
       ) : (
-        <div className={`multi-grade multi-grade-${abertas.length}`}>
+        <div
+          className={`multi-grade multi-grade-${abertas.length} ${
+            abertas.length === 2 && empilhado ? "multi-grade-empilhada" : ""
+          }`}
+        >
           {abertas.map((roomId, i) => (
             <div
               key={roomId}

@@ -3123,6 +3123,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .multi-grade-1 { grid-template-columns: 1fr; --linhas: 1; }
 .multi-grade-2 { grid-template-columns: repeat(2, 1fr); --linhas: 1; }
+/* Empilhado: uma coluna, duas linhas. O `--linhas: 2` faz cada painel ficar
+   com metade da altura, igual acontece com 3 ou 4 salas. */
+.multi-grade-empilhada { grid-template-columns: 1fr; --linhas: 2; }
 .multi-grade-3 { grid-template-columns: repeat(2, 1fr); --linhas: 2; }
 .multi-grade-4 { grid-template-columns: repeat(2, 1fr); --linhas: 2; }
 
