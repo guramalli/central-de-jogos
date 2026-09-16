@@ -631,8 +631,43 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    
    A legenda some, mas a coluna fica: é onde o botão sempre esteve, entre o
    chat e a lista de jogadores. Estreita, porque só precisa caber o botão. */
-.sc-legend-panel-so-stop { padding: 6px 4px; }
-.sc-legend-panel-so-stop .sc-status-ball-big { width: 100%; border-radius: 8px; height: 100%; }
+.sc-legend-panel-so-stop {
+  padding: 6px 4px;
+  /* O conteúdo fica contido: "Stop por tempo" quebrava em três linhas na
+     coluna estreita e vazava pra fora do painel, por cima do nada. */
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+.sc-legend-panel-so-stop .sc-legend-status-only {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  gap: 4px;
+  /* O padding original reserva 26px no topo pra aba do painel ("pontuação").
+     No compacto não existe aba, então era espaço morto empurrando o botão
+     pra baixo. */
+  padding: 0;
+  justify-content: stretch;
+}
+.sc-legend-panel-so-stop .sc-status-ball-big {
+  width: 100%;
+  border-radius: 8px;
+  flex: 1;
+  min-height: 0;
+}
+/* Texto de estado numa linha só, com reticências. Numa coluna de 100px,
+   qualquer frase quebrava e empurrava o painel. */
+.sc-legend-panel-so-stop .sc-status-text {
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  max-height: 26px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
 
 /* A ROLAGEM FICA NO CORPO DA TABELA, não no painel inteiro.
    Com muita gente na sala o painel todo rolava, e o cabeçalho com os nomes
@@ -2923,6 +2958,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   flex: 1;
   gap: 2px;
   min-height: 0; /* sem isto o grid dentro de flex não encolhe e estoura */
+  /* AS LINHAS DIVIDEM A ALTURA DISPONÍVEL.
+     
+     Sem isto, a grade recebia a altura da janela mas as LINHAS continuavam
+     do tamanho do conteúdo — com 2 salas elas ocupavam só a metade de cima
+     e sobrava a tela inteira vazia embaixo. `1fr` faz cada linha esticar
+     pra preencher, tanto com 1 linha (2 salas) quanto com 2 (3 ou 4). */
+  grid-auto-rows: 1fr;
 }
 .multi-grade-1 { grid-template-columns: 1fr; --linhas: 1; }
 .multi-grade-2 { grid-template-columns: repeat(2, 1fr); --linhas: 1; }
@@ -3028,7 +3070,29 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
    linha, é exatamente o punhado de pixels que ainda forçava a barra de
    rolagem em cada sala do multi-sala. */
 .sc-bottom-grid-compacto .sc-retro-panel { border-width: 1px; }
-.sc-tabela-compacta { border-width: 1px; padding: 8px 6px 6px 6px; }
+.sc-tabela-compacta {
+  border-width: 1px;
+  padding: 8px 6px 6px 6px;
+  /* Não estica pra preencher: sobrava um vazio embaixo da única linha de
+     jogador. Para no tamanho do conteúdo e devolve o espaço pros painéis
+     de baixo — que aí sim crescem. */
+  flex: 0 0 auto;
+}
+/* Com a linha esticada, o chat e a lista de jogadores é que aproveitam a
+   altura que sobra, em vez de deixar um buraco no fim do painel.
+   
+   O `.sc-root` precisa virar coluna flex pra isso: ele é o pai da tabela e
+   do rodapé, e sem flex o `flex: 1` do rodapé não teria efeito nenhum. */
+.multi-sala-cheia .sc-root,
+.multi-sala-cheia .multi-painel-jogo > div {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.multi-sala-cheia .sc-bottom-grid-compacto { flex: 1; min-height: 0; }
+.multi-sala-cheia .sc-bottom-grid-compacto .sc-tab-panel { height: auto; }
+.multi-sala-cheia .sc-bottom-grid-compacto .chat-box { height: 100%; }
 .sc-tabela-compacta .sc-panel-title-row { margin-bottom: 4px; }
 .sc-tabela-compacta .sheet-fill-input { padding: 3px 6px; font-size: 13px; }
 .sc-tabela-compacta th,

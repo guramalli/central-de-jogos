@@ -32,6 +32,38 @@ export const ROTULO_TIPO = {
 
 export const NOVIDADES = [
   {
+    id: "2026-09-hall-no-menu",
+    data: "2026-09-16",
+    tipo: "melhoria",
+    titulo: "Hall da Fama ganhou lugar no menu",
+    texto:
+      "Os campeões de cada mês encerrado agora estão a um clique, no menu do topo. A página foi reorganizada: os vencedores do mês aparecem primeiro, com quem mais venceu e os recordes de pontuação logo abaixo.",
+  },
+  {
+    id: "2026-09-perfil",
+    data: "2026-09-16",
+    tipo: "melhoria",
+    titulo: "Perfil mais organizado",
+    texto:
+      "Conquistas e ranking mensal agora ficam lado a lado, em vez de uma lista comprida. Dá pra ver os títulos e a pontuação do mês na mesma tela, sem rolar.",
+  },
+  {
+    id: "2026-09-acromania-temas",
+    data: "2026-09-16",
+    tipo: "novo",
+    titulo: "Acromania: de 50 para 125 temas",
+    texto:
+      "Entraram 75 temas em formato de situação — \"Fui despedido porque...\", \"O que tinha dentro da mala?\", \"Algo que você não gostaria de ouvir do piloto do avião\". Com o baralho maior, dá pra jogar umas 16 partidas seguidas sem repetir tema.",
+  },
+  {
+    id: "2026-09-acromania-letras",
+    data: "2026-09-16",
+    tipo: "melhoria",
+    titulo: "Acromania: letras mais fáceis de usar",
+    texto:
+      "X e Z saíram do sorteio, e as letras que rendem mais palavras de ligação — A, E, O, D, P, C, N, M, S, Q, T — passaram a aparecer com mais frequência. A ideia é que a graça esteja na frase, não em achar palavra com letra difícil. O bônus do pódio também subiu pra 1000, 700 e 500.",
+  },
+  {
     id: "2026-09-multi-sala",
     data: "2026-09-15",
     tipo: "novo",
