@@ -87,12 +87,18 @@ export default function Lobby() {
             <Link to="/novidades">ver todas</Link>
           </div>
           <ul className="lobby-novidades-lista">
-            {NOVIDADES.slice(0, 3).map((n) => (
+            {/* 8 itens, não 3: a caixa estica junto com o painel de patentes
+                e tem rolagem própria, então o que não couber a pessoa alcança
+                rolando ali dentro — sem empurrar nada da página. */}
+            {NOVIDADES.slice(0, 8).map((n) => (
               <li key={n.id}>
                 <span className={`novidade-tipo novidade-tipo-${n.tipo}`}>
                   {ROTULO_TIPO[n.tipo] || n.tipo}
                 </span>
                 <span className="lobby-novidade-titulo">{n.titulo}</span>
+                {/* Com 8 itens a lista cobre semanas: sem a data, tudo parece
+                    ter saído hoje. */}
+                <span className="lobby-novidade-data">{n.data.slice(8, 10)}/{n.data.slice(5, 7)}</span>
               </li>
             ))}
           </ul>

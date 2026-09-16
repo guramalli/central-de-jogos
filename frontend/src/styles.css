@@ -655,8 +655,11 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 .sc-legend-panel-so-stop .sc-status-ball-big {
   width: 100%;
   border-radius: 8px;
-  flex: 1;
-  min-height: 0;
+  /* Teto de altura: com `flex: 1` ele virava uma barra vertical do tamanho
+     da tela, o que fica estranho e não ajuda em nada a acertar o clique. */
+  height: 100%;
+  max-height: 110px;
+  align-self: center;
 }
 /* Texto de estado numa linha só, com reticências. Numa coluna de 100px,
    qualquer frase quebrava e empurrava o painel. */
@@ -1457,8 +1460,22 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* É o título que cede espaço quando a linha aperta — a etiqueta do tipo e
+     a data têm largura fixa. */
+  flex: 1;
+  min-width: 0;
 }
 .lobby-novidades-lista .novidade-tipo { flex-shrink: 0; }
+/* Data à direita, empurrada pelo `margin-left: auto`. Discreta, só pra
+   situar que a lista cobre mais de um dia. */
+.lobby-novidade-data {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
 
 /* SÓ NO COMPUTADOR, como combinado. Abaixo de 1200px o painel empilha, e a
    caixa cairia entre o nome da pessoa e as patentes — atrapalhando os dois. */
@@ -3073,16 +3090,19 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 .sc-tabela-compacta {
   border-width: 1px;
   padding: 8px 6px 6px 6px;
-  /* Não estica pra preencher: sobrava um vazio embaixo da única linha de
-     jogador. Para no tamanho do conteúdo e devolve o espaço pros painéis
-     de baixo — que aí sim crescem. */
-  flex: 0 0 auto;
+  /* QUEM CRESCE É A TABELA, não o chat.
+     
+     Cheguei a fazer o contrário e ficou ruim: o chat virou um retângulo
+     enorme e vazio, o botão STOP uma barra vertical gigante, e a tabela
+     — que é o jogo — ficou espremida numa faixa no topo. A altura que
+     sobra tem que ir pra onde a pessoa olha. */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
-/* Com a linha esticada, o chat e a lista de jogadores é que aproveitam a
-   altura que sobra, em vez de deixar um buraco no fim do painel.
-   
-   O `.sc-root` precisa virar coluna flex pra isso: ele é o pai da tabela e
-   do rodapé, e sem flex o `flex: 1` do rodapé não teria efeito nenhum. */
+/* O `.sc-root` vira coluna flex pra a tabela poder esticar: ele é o pai da
+   tabela e do rodapé, e sem flex o `flex: 1` da tabela não teria efeito. */
 .multi-sala-cheia .sc-root,
 .multi-sala-cheia .multi-painel-jogo > div {
   display: flex;
@@ -3090,9 +3110,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   height: 100%;
   min-height: 0;
 }
-.multi-sala-cheia .sc-bottom-grid-compacto { flex: 1; min-height: 0; }
-.multi-sala-cheia .sc-bottom-grid-compacto .sc-tab-panel { height: auto; }
-.multi-sala-cheia .sc-bottom-grid-compacto .chat-box { height: 100%; }
+/* Rodapé com altura FIXA: chat e lista de jogadores são de consulta rápida,
+   não precisam de meia tela. O que sobra fica com a tabela. */
+.multi-sala-cheia .sc-bottom-grid-compacto { flex: 0 0 auto; }
+
+/* A rolagem da tabela acompanha o painel em vez de ser fixa em 190px: com a
+   tabela esticada, um teto fixo deixaria espaço vazio embaixo dela. */
+.multi-sala-cheia .sc-tabela-compacta .sc-table-scroll { max-height: none; flex: 1; }
 .sc-tabela-compacta .sc-panel-title-row { margin-bottom: 4px; }
 .sc-tabela-compacta .sheet-fill-input { padding: 3px 6px; font-size: 13px; }
 .sc-tabela-compacta th,
