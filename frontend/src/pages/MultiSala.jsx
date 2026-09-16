@@ -82,13 +82,31 @@ export default function MultiSala() {
   // mexer nas páginas de jogo nem passar mais uma propriedade pra elas.
   const paineisRef = useRef({});
 
+  // Onde o cursor deve parar ao entrar num painel, em ordem de prioridade.
+  //
+  // O CHAT NÃO ENTRA NA LISTA, e é esse o ponto. Antes a busca pegava o
+  // primeiro campo do painel, qualquer um — e no intervalo entre rodadas os
+  // campos do jogo ficam desabilitados, então sobrava só o do chat. A pessoa
+  // trocava de sala pra responder e caía escrevendo mensagem. Em sala
+  // avançada, o segundo perdido pra perceber e corrigir custa a rodada.
+  const CAMPOS_DE_JOGO = [
+    ".sheet-fill-input:not([disabled])",   // lacunas do Stop
+    ".quiz-guess-form input:not([disabled])", // palpite do Quiz
+  ];
+
   function focarPainel(roomId) {
     const painel = paineisRef.current[roomId];
     if (!painel) return;
-    const campo = painel.querySelector("input:not([disabled]), textarea:not([disabled])");
-    if (campo) campo.focus();
-    // Rola o painel pra vista mesmo sem campo — na fase de resultado não há
-    // onde digitar, mas a pessoa ainda quer olhar aquela sala.
+
+    for (const seletor of CAMPOS_DE_JOGO) {
+      const campo = painel.querySelector(seletor);
+      if (campo) {
+        campo.focus();
+        break;
+      }
+    }
+    // Sem campo de jogo disponível (intervalo, resultado, votação) o painel
+    // só é trazido pra vista. Melhor não focar nada do que focar o chat.
     painel.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 

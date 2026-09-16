@@ -209,7 +209,16 @@ export default function App() {
                 {acromaniaAtivo && (
                   <NavLink to="/jogos/acromania" className={navLinkClass}>Acromania</NavLink>
                 )}
-                <NavLink to="/ranking" className={navLinkClass}>Ranking</NavLink>
+                {/* `end` obrigatório aqui: o Hall da Fama mora em
+                    /ranking/historico, e sem ele o NavLink casa por prefixo —
+                    os dois links ficariam acesos ao mesmo tempo. */}
+                <NavLink to="/ranking" end className={navLinkClass}>Ranking</NavLink>
+                {/* Hall da Fama ao lado do Ranking, e não dentro dele: os
+                    campeões congelados de cada mês são o registro mais
+                    duradouro do site — o ranking zera todo dia 1, o Hall
+                    fica. Esconder isso a dois cliques tirava o valor de ter
+                    vencido. `end` não entra: a página é uma só. */}
+                <NavLink to="/ranking/historico" className={navLinkClass}>Hall da Fama</NavLink>
                 <NavLink to="/missoes" className={navLinkClass}>
                   Missões{missoesPendentes > 0 && (
                     <span className="nav-badge">{missoesPendentes}</span>

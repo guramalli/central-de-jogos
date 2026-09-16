@@ -380,11 +380,17 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
     // página, este painel não mexe. Quem está parado continua ganhando o
     // foco automático de sempre.
     const focado = document.activeElement;
-    const jaDigitando =
+    const ehCampoDeTexto =
       focado &&
       (focado.tagName === "INPUT" || focado.tagName === "TEXTAREA") &&
       !focado.disabled;
-    if (jaDigitando) return;
+
+    // Digitando NO CHAT não conta como ocupado: a rodada abriu e responder
+    // vale mais que terminar a mensagem. Sem esta exceção, quem trocava de
+    // sala durante o intervalo (quando os campos estão desabilitados e o
+    // cursor acaba no chat) ficava preso lá quando a rodada começava.
+    const noChat = !!focado?.closest?.(".chat-input");
+    if (ehCampoDeTexto && !noChat) return;
 
     inputRefs.current[0]?.focus();
   }, [phase, roundNumber]);

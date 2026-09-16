@@ -304,7 +304,11 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
     // arrastava o cursor pra lá. (Mesma checagem do StopGame.)
     const focar = () => {
       const f = document.activeElement;
-      if (f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled) return;
+      const ehTexto = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled;
+      // Mesma exceção do Stop: estar no chat não segura o foco quando a
+      // pergunta abre — responder vale mais que terminar a mensagem.
+      const noChat = !!f?.closest?.(".chat-input");
+      if (ehTexto && !noChat) return;
       inputRef.current?.focus();
     };
     const raf = requestAnimationFrame(focar);
