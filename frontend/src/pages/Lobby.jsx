@@ -14,8 +14,17 @@ import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
 export default function Lobby() {
   const acromaniaAtivo = useAcromaniaAtivo();
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const [showFeedback, setShowFeedback] = useState(false);
   const [visitas, setVisitas] = useState(0);
 
+  // ⚠️ Este efeito precisa vir DEPOIS do `const { user } = useAuth()`.
+  //
+  // Estava acima e derrubava a página inteira com "Algo deu errado": em
+  // JavaScript, ler uma const antes da linha que a declara é erro em tempo
+  // de execução, não aviso. O componente quebrava antes de renderizar
+  // qualquer coisa.
   useEffect(() => {
     if (!user?.id) return;
     let vivo = true;
@@ -27,9 +36,6 @@ export default function Lobby() {
       vivo = false;
     };
   }, [user?.id]);
-  const { user } = useAuth();
-  const { theme } = useTheme();
-  const [showFeedback, setShowFeedback] = useState(false);
 
   // Garante que a página inicial sempre abre no topo — sem isso, o
   // navegador podia manter a rolagem de onde a pessoa estava antes.
