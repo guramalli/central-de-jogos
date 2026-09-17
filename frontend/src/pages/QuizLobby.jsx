@@ -24,6 +24,9 @@ const THEME_ICONS = {
   novelas: "🎭",
   geografia: "🌍",
   direito: "⚖️",
+  // Emoji de reserva: só aparece se o PNG do emblema faltar.
+  mpb: "🎸",
+  rock: "🤘",
 };
 
 // Ícone da sala: emblema de bronze do tema, com o emoji como reserva.

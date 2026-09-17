@@ -42,6 +42,8 @@ const THEME_ICONS = {
   novelas: "🎭",
   geografia: "🌍",
   direito: "⚖️",
+  mpb: "🎸",
+  rock: "🤘",
 };
 
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala (ver

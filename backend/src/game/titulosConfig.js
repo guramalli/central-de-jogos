@@ -56,6 +56,11 @@ export const QUIZ_EPICOS = {
   novelas: "Folhetinista Supremo",
   geografia: "Atlas Humano",
   direito: "Jurista Supremo",
+  // Salas novas. "Ouvido Absoluto" já é da Música, então estes precisam de
+  // identidade própria — o título aparece embaixo do nick e é o que a pessoa
+  // exibe no perfil.
+  mpb: "Voz do Brasil",
+  rock: "Lenda do Rock",
 };
 
 // Nome bonito de cada tema (pra montar "Conhecedor de Futebol" etc.)
@@ -77,6 +82,8 @@ export const QUIZ_NOMES = {
   novelas: "Novelas",
   geografia: "Geografia",
   direito: "Direito",
+  mpb: "MPB",
+  rock: "Rock'n Roll",
 };
 
 // STOP: títulos por grupo de sala e quantidade de STOPs pedidos.
