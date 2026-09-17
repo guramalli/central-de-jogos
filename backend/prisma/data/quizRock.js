@@ -19,7 +19,10 @@ export const ROCK = {
     { "question": "Qual banda carioca canta Pro Dia Nascer Feliz?", "answer": "Barao Vermelho", "difficulty": "facil" },
     { "question": "Qual banda de Los Angeles tem Axl Rose no vocal?", "answer": "Guns N Roses", "difficulty": "facil" },
     { "question": "Qual banda britânica gravou o disco The Dark Side of the Moon?", "answer": "Pink Floyd", "difficulty": "facil" },
-    { "question": "Qual banda irlandesa tem Bono como vocalista?", "answer": "U2", "difficulty": "facil" },
+    // Trocada: o texto original já existia em outro tema, e o importador pula
+    // pergunta repetida pelo TEXTO (sem olhar o tema) — a sala ficaria com uma
+    // pergunta a menos sem ninguém perceber.
+    { "question": "Qual banda de Dublin gravou With or Without You e One?", "answer": "U2", "difficulty": "facil" },
     { "question": "Qual banda paulista canta Que País É Este?", "answer": "Legiao Urbana", "difficulty": "facil" },
     { "question": "Qual banda brasileira gravou Alagados e Todo Carnaval Tem Seu Fim?", "answer": "Paralamas do Sucesso", "difficulty": "facil" },
     { "question": "Qual banda americana tem Eddie Vedder no vocal?", "answer": "Pearl Jam", "difficulty": "facil" },
@@ -40,7 +43,7 @@ export const ROCK = {
     { "question": "Qual guitarrista brasileiro fundou o Sepultura com o irmão Max?", "answer": "Igor Cavalera", "difficulty": "medio" },
     { "question": "Qual banda inglesa gravou Paranoid Android e Creep?", "answer": "Radiohead", "difficulty": "medio" },
     { "question": "Qual vocalista do Black Sabbath ficou conhecido como Príncipe das Trevas?", "answer": "Ozzy Osbourne", "difficulty": "medio" },
-    { "question": "Qual banda de Minas Gerais canta Tempo Perdido? A pergunta é pegadinha: qual banda de Brasília canta isso?", "answer": "Legiao Urbana", "difficulty": "medio" },
+    { "question": "Qual banda de Brasília gravou Tempo Perdido?", "answer": "Legiao Urbana", "difficulty": "medio" },
     { "question": "Qual banda brasileira gravou Será, sucesso dos anos 80?", "answer": "Legiao Urbana", "difficulty": "medio" },
     { "question": "Qual guitarrista do Guns N Roses usa cartola e óculos escuros?", "answer": "Slash", "difficulty": "medio" },
     { "question": "Qual banda americana de Nova York lançou Blitzkrieg Bop?", "answer": "Ramones", "difficulty": "medio" },
@@ -59,9 +62,9 @@ export const ROCK = {
     { "question": "Qual banda britânica é considerada a criadora do heavy metal, formada em Birmingham?", "answer": "Black Sabbath", "difficulty": "dificil" },
     { "question": "Qual produtor ficou conhecido como o quinto beatle?", "answer": "George Martin", "difficulty": "dificil" },
     { "question": "Qual disco dos Beatles tem a faixa A Day in the Life e capa com uniformes coloridos?", "answer": "Sgt Peppers", "difficulty": "dificil" },
-    { "question": "Qual banda americana gravou London Calling? A pergunta é sobre uma banda inglesa de punk.", "answer": "The Clash", "difficulty": "dificil" },
+    { "question": "Qual banda inglesa de punk gravou London Calling em 1979?", "answer": "The Clash", "difficulty": "dificil" },
     { "question": "Qual vocalista do Iron Maiden também é piloto de avião?", "answer": "Bruce Dickinson", "difficulty": "dificil" },
-    { "question": "Qual banda brasileira lançou o disco Acabou Chorare? A pergunta é sobre um grupo baiano dos anos 70.", "answer": "Novos Baianos", "difficulty": "dificil" },
+    { "question": "Qual grupo baiano lançou o disco Acabou Chorare em 1972?", "answer": "Novos Baianos", "difficulty": "dificil" },
     { "question": "Qual baixista dos Beatles é canhoto?", "answer": "Paul McCartney", "difficulty": "dificil" },
     { "question": "Qual banda britânica lançou A Night at the Opera em 1975?", "answer": "Queen", "difficulty": "dificil" },
     { "question": "Qual cantor brasileiro gravou Sociedade Alternativa?", "answer": "Raul Seixas", "difficulty": "dificil" },

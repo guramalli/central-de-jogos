@@ -22,6 +22,7 @@ import { ROCK_DIF1 } from "./data/quizRockDif1.js";
 import { MPB_AUTORIA } from "./data/quizMpbAutoria.js";
 import { ROCK_DIF2 } from "./data/quizRockDif2.js";
 import { ROCK_FIM } from "./data/quizRockFim.js";
+import { ROCK_INTER } from "./data/quizRockInter.js";
 
 const prisma = new PrismaClient();
 
@@ -37,7 +38,7 @@ async function main() {
     mpb: [...MPB.mpb, ...MPB2.mpb, ...MPB3.mpb, ...FECHAMENTO.mpb,
           ...MPB_DIF1.mpb, ...MPB_DIF2.mpb, ...MPB_DIF3.mpb, ...MPB_AUTORIA.mpb],
     rock: [...ROCK.rock, ...METAL.rock, ...ROCK2.rock, ...FECHAMENTO.rock,
-           ...ROCK_DIF1.rock, ...ROCK_DIF2.rock, ...ROCK_FIM.rock],
+           ...ROCK_DIF1.rock, ...ROCK_DIF2.rock, ...ROCK_FIM.rock, ...ROCK_INTER.rock],
   })) {
     let doTema = 0;
     for (const q of perguntas) {

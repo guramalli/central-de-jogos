@@ -49,7 +49,7 @@ export const MPB_DIF2 = {
     { "question": "Qual sambista da Vila Isabel escreveu Kizomba, A Festa da Raça?", "answer": "Luiz Carlos da Vila", "difficulty": "dificil" },
     { "question": "Qual escola de samba venceu o carnaval de 1988 com Kizomba?", "answer": "Vila Isabel", "difficulty": "dificil" },
     { "question": "Qual carnavalesco assinou o desfile da Mangueira sobre Chico Buarque em 1998?", "answer": "Max Lopes", "difficulty": "dificil" },
-    { "question": "Qual compositor escreveu Aquele Abraço após a saída do exílio? A pergunta é sobre quem a gravou em 1969.", "answer": "Gilberto Gil", "difficulty": "dificil" },
+    { "question": "Quem gravou Aquele Abraço em 1969?", "answer": "Gilberto Gil", "difficulty": "dificil" },
     { "question": "Qual cantora gravou Nem Ouro Nem Prata?", "answer": "Rita Lee", "difficulty": "dificil" },
     { "question": "Com qual músico Rita Lee formou dupla na vida e na carreira?", "answer": "Roberto de Carvalho", "difficulty": "dificil" },
     { "question": "Quem canta Mania de Você, sucesso de 1979?", "answer": "Rita Lee", "difficulty": "dificil" },

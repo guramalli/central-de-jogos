@@ -14,10 +14,15 @@ const MAX_MEMBERS = 10;
 // Mínimo pra CRIAR um clã. Entrar num (por convite) não exige nada.
 //
 // Era 1.000 pontos vitalícios SÓ DO STOP — quem jogava apenas Quiz ou
-// Acromania não conseguia criar clã por mais que jogasse. Agora soma os três
-// jogos, e o valor subiu pra 50.000: criar clã deixou de ser algo das
-// primeiras horas e passou a exigir alguma estrada no site.
-const CREATE_MIN_POINTS = 50000;
+// Acromania não conseguia criar clã por mais que jogasse. A soma passou a
+// ser dos três jogos, e o valor foi pra 50.000.
+//
+// AGORA SÃO 2.000. Com 50 mil, criar clã era coisa de quem já jogava havia
+// semanas — e clã serve justamente pra segurar quem está chegando. O
+// jogador novo via a função, não alcançava, e o recurso ficava parado.
+//
+// 2.000 ainda filtra quem só passou uma vez: é cerca de uma noite de jogo.
+const CREATE_MIN_POINTS = 2000;
 
 // Soma vitalícia de TODOS os jogos.
 //

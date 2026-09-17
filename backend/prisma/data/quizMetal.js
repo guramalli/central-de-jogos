@@ -42,7 +42,7 @@ export const METAL = {
     { "question": "Quantos integrantes o Slipknot teve na formação clássica?", "answer": "Nove", "difficulty": "medio" },
     { "question": "Qual guitarrista do Megadeth fundou a banda após ser demitido de outra?", "answer": "Dave Mustaine", "difficulty": "medio" },
     { "question": "Qual banda brasileira gravou Carry On, hino do metal nacional?", "answer": "Angra", "difficulty": "medio" },
-    { "question": "Qual guitarrista do Dream Theater é conhecido pelo virtuosismo e saiu em 2010? A pergunta é sobre o baterista.", "answer": "Mike Portnoy", "difficulty": "medio" },
+    { "question": "Qual baterista fundador do Dream Theater saiu da banda em 2010?", "answer": "Mike Portnoy", "difficulty": "medio" },
     { "question": "Qual banda gravou o álbum Toxicity?", "answer": "System of a Down", "difficulty": "medio" },
     { "question": "Qual baterista do Avenged Sevenfold morreu em 2009 e era chamado de The Rev?", "answer": "Jimmy Sullivan", "difficulty": "medio" },
     { "question": "Qual disco do Iron Maiden de 1982 tem o mascote na capa com fundo vermelho?", "answer": "The Number of the Beast", "difficulty": "medio" },
@@ -58,7 +58,7 @@ export const METAL = {
     { "question": "Qual banda alemã de power metal revelou Kai Hansen e Michael Kiske?", "answer": "Helloween", "difficulty": "medio" },
 
     // ===== DIFÍCIL =====
-    { "question": "Qual baixista do Slipknot morreu em 2010 e usava máscara de palhaço? A pergunta é sobre quem tocava baixo.", "answer": "Paul Gray", "difficulty": "dificil" },
+    { "question": "Qual baixista do Slipknot morreu em 2010?", "answer": "Paul Gray", "difficulty": "dificil" },
     { "question": "Qual disco do Megadeth de 1990 tem a faixa Holy Wars?", "answer": "Rust in Peace", "difficulty": "dificil" },
     { "question": "Qual baixista do Iron Maiden fundou a banda em 1975?", "answer": "Steve Harris", "difficulty": "dificil" },
     { "question": "Qual disco do Dream Theater de 1992 é considerado o marco do metal progressivo?", "answer": "Images and Words", "difficulty": "dificil" },

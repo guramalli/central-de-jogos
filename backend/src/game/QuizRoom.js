@@ -613,8 +613,10 @@ export class QuizRoom {
         : this.difficultyFilter;
     }
 
+    // A RESPOSTA VEM JUNTO do id, e é usada logo abaixo pra espalhar
+    // perguntas que levam ao mesmo nome.
     const ids = await Promise.race([
-      prisma.quizQuestion.findMany({ where, select: { id: true } }),
+      prisma.quizQuestion.findMany({ where, select: { id: true, answer: true } }),
       new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao montar fila")), 8000)),
     ]);
 
@@ -638,6 +640,43 @@ export class QuizRoom {
     //
     // Guardamos um quarto da sala, no máximo 20. Empurrar demais deixaria o
     // sorteio previsível — o fim da fila viraria "as que você já viu".
+    // ESPALHA AS RESPOSTAS REPETIDAS.
+    //
+    // O sorteio é justo, mas cego pro conteúdo: sorteia ids, não sabe que
+    // cinco deles respondem "Eric Clapton". Por azar normal, três caíam
+    // seguidas e a sala parecia quebrada — foi o que o Gustavinho viu
+    // jogando a Rock Padrão.
+    //
+    // A correção percorre a fila e, quando encontra uma resposta que saiu há
+    // pouco, troca aquela pergunta por outra mais adiante que tenha resposta
+    // diferente. Não reordena tudo: só desfaz os encontros.
+    const respostaPorId = new Map(ids.map((q) => [q.id, q.answer]));
+    const DISTANCIA_MINIMA = 8;
+    for (let i = 0; i < fila.length; i++) {
+      const resposta = respostaPorId.get(fila[i]);
+      // Saiu nas últimas N perguntas?
+      let repetiu = false;
+      for (let k = Math.max(0, i - DISTANCIA_MINIMA); k < i; k++) {
+        if (respostaPorId.get(fila[k]) === resposta) { repetiu = true; break; }
+      }
+      if (!repetiu) continue;
+
+      // Procura adiante alguém com resposta que não conflite, e troca.
+      for (let j = i + 1; j < fila.length; j++) {
+        const candidata = respostaPorId.get(fila[j]);
+        let serve = true;
+        for (let k = Math.max(0, i - DISTANCIA_MINIMA); k < i; k++) {
+          if (respostaPorId.get(fila[k]) === candidata) { serve = false; break; }
+        }
+        if (serve) {
+          [fila[i], fila[j]] = [fila[j], fila[i]];
+          break;
+        }
+      }
+      // Se ninguém servir (sala pequena com poucas respostas distintas),
+      // segue como está — melhor repetir que travar a rodada.
+    }
+
     const quantasSegurar = Math.min(20, Math.floor(fila.length / 4));
     const segurar = new Set(this.recemVistas.slice(-quantasSegurar));
     if (segurar.size > 0 && segurar.size < fila.length) {

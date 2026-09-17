@@ -31,6 +31,7 @@ import { ROCK_DIF1 } from "../prisma/data/quizRockDif1.js";
 import { MPB_AUTORIA } from "../prisma/data/quizMpbAutoria.js";
 import { ROCK_DIF2 } from "../prisma/data/quizRockDif2.js";
 import { ROCK_FIM } from "../prisma/data/quizRockFim.js";
+import { ROCK_INTER } from "../prisma/data/quizRockInter.js";
 
 const norm = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -39,7 +40,7 @@ const TEMAS = {
   MPB: [...MPB.mpb, ...MPB2.mpb, ...MPB3.mpb, ...FECHAMENTO.mpb,
         ...MPB_DIF1.mpb, ...MPB_DIF2.mpb, ...MPB_DIF3.mpb, ...MPB_AUTORIA.mpb],
   ROCK: [...ROCK.rock, ...METAL.rock, ...ROCK2.rock, ...FECHAMENTO.rock,
-         ...ROCK_DIF1.rock, ...ROCK_DIF2.rock, ...ROCK_FIM.rock],
+         ...ROCK_DIF1.rock, ...ROCK_DIF2.rock, ...ROCK_FIM.rock, ...ROCK_INTER.rock],
 };
 
 let problemas = 0;
@@ -77,14 +78,42 @@ for (const [tema, qs] of Object.entries(TEMAS)) {
   problemas += dup.length;
 
   // 3. parecidas
+  //
+  // PALAVRAS ESTRUTURAIS SÃO IGNORADAS na comparação.
+  //
+  // Sem isso o crivo acusava "Qual o nome do vocalista do Nirvana?" e
+  // "...do Metallica?" como 71% parecidas — elas compartilham a fórmula,
+  // não o conteúdo, e são perguntas totalmente diferentes. Comparar só as
+  // palavras que carregam sentido (nomes, títulos) evita o alarme falso.
+  const ESTRUTURAIS = new Set([
+    "qual", "quem", "o", "a", "os", "as", "de", "do", "da", "dos", "das",
+    "em", "no", "na", "e", "que", "com", "por", "para", "pra", "um", "uma",
+    "nome", "banda", "grupo", "cantor", "cantora", "compositor", "musico",
+    "vocalista", "guitarrista", "baterista", "baixista", "toca", "canta",
+    "gravou", "compos", "escreveu", "lancou", "e", "foi", "tem", "sao",
+    "brasileira", "americana", "britanica", "cidade", "pais", "disco",
+    "album", "faixa", "sucesso", "anos",
+  ]);
+  const palavrasDeConteudo = (t) =>
+    new Set(norm(t).split(/\s+/).filter((p) => p.length > 2 && !ESTRUTURAIS.has(p)));
+
   const par = [];
   for (let i = 0; i < qs.length; i++) {
-    const A = new Set(norm(qs[i].question).split(/\s+/));
+    const A = palavrasDeConteudo(qs[i].question);
+    if (A.size === 0) continue;
     for (let j = i + 1; j < qs.length; j++) {
-      const B = new Set(norm(qs[j].question).split(/\s+/));
+      const B = palavrasDeConteudo(qs[j].question);
+      if (B.size === 0) continue;
       const inter = [...A].filter((x) => B.has(x)).length;
       const jac = inter / (A.size + B.size - inter);
-      if (jac >= 0.7) par.push([qs[i].question, qs[j].question, jac]);
+      // MESMA RESPOSTA é o que decide.
+      //
+      // "Qual banda gravou Bohemian Rhapsody?" (Queen) e "Quem compôs?"
+      // (Freddie Mercury) usam as mesmas palavras e são perguntas diferentes.
+      // Só é repetição quando leva ao mesmo lugar.
+      if (jac >= 0.7 && norm(qs[i].answer) === norm(qs[j].answer)) {
+        par.push([qs[i].question, qs[j].question, jac]);
+      }
     }
   }
   console.log(`PARECIDAS (70%+ das palavras): ${par.length}`);
@@ -110,5 +139,46 @@ for (const [tema, qs] of Object.entries(TEMAS)) {
   console.log(`\nSALA PADRÃO (fácil+médio): ${padrao}`);
   console.log(`SALA AVANÇADA (difícil):   ${dif.dificil || 0}`);
 }
+
+// 5. COLISÃO COM OUTROS TEMAS.
+//
+// O importador procura a pergunta pelo TEXTO, sem filtrar por tema — isso é
+// proposital, pra scripts de migração não recriarem duplicatas. O efeito
+// colateral: uma pergunta igual à de outro tema é PULADA, e a sala fica com
+// uma a menos sem ninguém perceber.
+//
+// Achei uma assim ("Qual banda irlandesa tem Bono como vocalista?", que já
+// existia em outro lote). Por isso a checagem virou parte do crivo.
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const pastaDados = path.join(path.dirname(fileURLToPath(import.meta.url)), "../prisma/data");
+const textosDeOutrosTemas = new Set();
+for (const arquivo of fs.readdirSync(pastaDados)) {
+  if (!/^quiz/i.test(arquivo)) continue;
+  if (/Mpb|Rock|Metal|Fechamento/.test(arquivo)) continue; // são os nossos
+  try {
+    const mod = await import(path.join(pastaDados, arquivo));
+    for (const valor of Object.values(mod)) {
+      const obj = Array.isArray(valor) ? { lista: valor } : valor;
+      if (typeof obj !== "object" || obj === null) continue;
+      for (const lista of Object.values(obj)) {
+        if (!Array.isArray(lista)) continue;
+        for (const q of lista) if (q?.question) textosDeOutrosTemas.add(norm(q.question));
+      }
+    }
+  } catch {
+    // arquivo que não exporta perguntas: ignora
+  }
+}
+
+const colisoes = [];
+for (const qs of Object.values(TEMAS)) {
+  for (const q of qs) if (textosDeOutrosTemas.has(norm(q.question))) colisoes.push(q.question);
+}
+console.log(`\nCOLISÃO COM OUTROS TEMAS (seriam puladas na importação): ${colisoes.length}`);
+for (const c of colisoes.slice(0, 10)) console.log(`  "${c.slice(0, 62)}"`);
+problemas += colisoes.length;
 
 console.log(`\n${problemas === 0 ? "✅ Nenhum problema." : `⚠️  ${problemas} problema(s) acima.`}\n`);
