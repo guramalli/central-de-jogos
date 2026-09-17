@@ -7,6 +7,7 @@ import VotacaoPalavras from "../components/VotacaoPalavras.jsx";
 import SalaEspera from "../components/SalaEspera.jsx";
 import FaixaPatente from "../components/FaixaPatente.jsx";
 import SuggestWordButton from "../components/SuggestWordButton.jsx";
+import ConvidarAmigo from "../components/ConvidarAmigo.jsx";
 import InviteButton from "../components/InviteButton.jsx";
 import OnlinePlayers from "../components/OnlinePlayers.jsx";
 import Chat from "../components/Chat.jsx";
@@ -727,6 +728,10 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             url={`${window.location.origin}/jogos/stop/${roomId}`}
             message={`Vem jogar Stop comigo agora, tô na ${roomLabel || "sala"}! 🎮`}
           />
+          {/* Chamar amigo que JÁ está no site, sem sair da sala.
+              O socket vai por prop: no multi-sala cada painel tem conexão
+              própria, e o convite precisa sair pela conexão DESTA sala. */}
+          <ConvidarAmigo socketDaSala={socketRef.current} />
           {/* No multi-sala este botão FECHA O PAINEL, não navega.
               Como Link, ele levava a página inteira pro lobby — a pessoa
               clicava pra sair de uma sala e saía das quatro. */}

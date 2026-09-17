@@ -10,6 +10,7 @@ import { playQuestionStartSound, playCorrectSound, isSoundMuted, toggleSoundMute
 import SuggestQuestionForm from "../components/SuggestQuestionForm.jsx";
 import ReportQuestionModal from "../components/ReportQuestionModal.jsx";
 import InviteButton from "../components/InviteButton.jsx";
+import ConvidarAmigo from "../components/ConvidarAmigo.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import FaixaPatente from "../components/FaixaPatente.jsx";
@@ -472,6 +473,10 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
             message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
           />
           )}
+          {/* Chamar amigo que já está no site — ver o comentário no StopGame.
+              Fica FORA da condicional acima: o `)}` ali fecha o bloco que
+              esconde o convite no compacto, e eu tinha colocado por dentro. */}
+          {!compacto && <ConvidarAmigo socketDaSala={socketRef.current} />}
           {/* No multi-sala este botão FECHA O PAINEL, não navega.
               Como Link, ele levava a página inteira pro lobby — a pessoa
               clicava pra sair de uma sala e saía das quatro. */}
