@@ -3014,7 +3014,13 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
  * pode ter o layout mexido por um aviso. */
 .convite-sala {
   position: fixed;
-  right: 16px;
+  /* CANTO ESQUERDO, não o direito.
+   *
+   * O canto inferior direito é onde vivem os botões flutuantes de chat e
+   * suporte — os do site e os que o próprio navegador ou extensões colocam.
+   * O convite ficava por baixo deles, e o botão "Agora não" não dava pra
+   * clicar. À esquerda não há nada disputando. */
+  left: 16px;
   bottom: 16px;
   z-index: 300;
   width: 280px;
@@ -3052,6 +3058,8 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   font-size: 12px;
 }
 @media (max-width: 700px) {
+  /* No celular ocupa a largura toda: tela estreita não comporta um cartão
+     de 280px sem espremer o conteúdo atrás. */
   .convite-sala { left: 12px; right: 12px; width: auto; }
 }
 
