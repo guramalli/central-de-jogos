@@ -143,7 +143,11 @@ export default function ProfileTooltip({ userId, nickname, rankIcon, gameKey = "
             <div
               className="nick-tooltip-portal"
               style={{ top: coords.top, left: coords.left }}
-              onMouseEnter={cancelHide}
+              // showTooltip também CANCELA o fechamento (limpa o timer), que
+              // é como o tooltip normal faz. Eu tinha escrito `cancelHide`
+              // aqui — função que nunca existiu —, e passar o mouse num bot
+              // derrubava a página inteira.
+              onMouseEnter={showTooltip}
               onMouseLeave={scheduleHide}
             >
               <div className="nick-tooltip nick-tooltip-bot">
