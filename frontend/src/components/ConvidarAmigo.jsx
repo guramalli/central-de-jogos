@@ -39,13 +39,13 @@ export default function ConvidarAmigo({ socketDaSala }) {
       .get("/friends")
       .then(({ data }) => {
         if (!vivo) return;
-        // A rota devolve { accepted, receivedPending, sentPending } — não um
-        // array. E o campo do amigo é `userId`, não `id`. Conferi antes de
-        // escrever; do contrário a lista viria sempre vazia.
+        // A chave é `friends`. Eu tinha escrito `accepted`, que é o nome da
+        // VARIÁVEL interna da rota — li o meio do arquivo em vez da linha do
+        // `res.json`, e a lista vinha sempre vazia mesmo com amigos.
         //
-        // Ela já informa quem está ONLINE, e isso é aproveitado abaixo: quem
-        // está no site aparece primeiro, porque é quem pode aceitar agora.
-        const lista = Array.isArray(data?.accepted) ? data.accepted : [];
+        // A rota já informa quem está ONLINE, e isso é usado abaixo: quem
+        // está no site fica clicável, quem não está aparece apagado.
+        const lista = Array.isArray(data?.friends) ? data.friends : [];
         setAmigos(lista);
       })
       .catch(() => vivo && setAmigos([]))
