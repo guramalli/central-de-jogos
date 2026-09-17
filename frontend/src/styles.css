@@ -1374,7 +1374,10 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
    centralizado por conta própria. */
 .app-header-left { display: flex; align-items: center; }
 /* O bloco do perfil encosta na direita. */
-.app-header-right { display: flex; align-items: center; justify-content: flex-end; gap: 14px; font-family: var(--font-mono); }
+/* `position: relative` pro painel da busca se ancorar AQUI. Sem ele, o
+   `position: absolute` do painel subiria até a página e ele apareceria no
+   canto da tela, longe da lupa. */
+.app-header-right { position: relative; display: flex; align-items: center; justify-content: flex-end; gap: 14px; font-family: var(--font-mono); }
 /* Bloco do jogador no cabeçalho: avatar + nick + "ver perfil".
    A página de perfil concentra títulos, conquistas e a vitrine de emblemas,
    mas o único caminho até ela era um link discreto de texto. Dando peso ao
@@ -2904,6 +2907,87 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
      ali, então a explicação promete algo que a tela não entrega. */
   .multi-chamada-texto span { display: none; }
   .multi-chamada { padding: 12px 14px; }
+}
+
+/* ===== BUSCA DE JOGADORES ===== */
+.header-busca-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+}
+.header-busca-btn:hover { border-color: var(--accent-2); color: var(--text); }
+
+/* Fundo que captura o clique fora. Transparente de propósito: serve só pra
+   fechar, não pra escurecer a tela. */
+.header-busca-fundo { position: fixed; inset: 0; z-index: 90; }
+
+.header-busca-painel {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  z-index: 91;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.buscar-jogador-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+  color: var(--text);
+  font-size: 14px;
+}
+.buscar-jogador-lista { margin-top: 8px; max-height: 300px; overflow-y: auto; }
+.buscar-jogador-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+.buscar-jogador-item:hover { background: var(--bg-panel-2); }
+.buscar-jogador-foto {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+/* Quem não tem foto mostra a inicial, pra lista não ficar com buracos. */
+.buscar-jogador-foto-vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.buscar-jogador-vazio {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 8px 0 0;
+  text-align: center;
 }
 
 /* ===== MULTI-SALA ===== */

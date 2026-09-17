@@ -109,6 +109,10 @@ export class QuizRoom {
     // Fila de perguntas embaralhada da volta atual. Vai sendo consumida a
     // cada rodada; quando esvazia, uma nova volta é montada e reembaralhada.
     this.filaPerguntas = [];
+    // Últimas perguntas servidas, na ordem. Sobrevive à virada de fila e é
+    // usada pra empurrar as recém-vistas pro fim do baralho novo — ver
+    // montarFilaDePerguntas.
+    this.recemVistas = [];
 
     // Placar do turno atual (só usado quando roundsPerTurn está definido).
     this.turnScores = new Map(); // userId -> pontos no turno
@@ -621,7 +625,28 @@ export class QuizRoom {
       [fila[i], fila[j]] = [fila[j], fila[i]];
     }
 
-    this.filaPerguntas = fila;
+    // AS RECÉM-VISTAS VÃO PRO FIM DO BARALHO NOVO.
+    //
+    // O embaralhamento acima é justo, mas não tem memória: uma pergunta que
+    // acabou de sair podia cair no topo da volta seguinte, e pra quem está
+    // jogando isso é "repetiu de novo".
+    //
+    // O problema ficou visível agora por dois motivos que se somaram: cada
+    // deploy reinicia o servidor e reembaralha (a fila vive em memória), e o
+    // multi-sala fez a pessoa jogar 4x mais rodadas no mesmo tempo, chegando
+    // ao fim da volta muito mais rápido.
+    //
+    // Guardamos um quarto da sala, no máximo 20. Empurrar demais deixaria o
+    // sorteio previsível — o fim da fila viraria "as que você já viu".
+    const quantasSegurar = Math.min(20, Math.floor(fila.length / 4));
+    const segurar = new Set(this.recemVistas.slice(-quantasSegurar));
+    if (segurar.size > 0 && segurar.size < fila.length) {
+      const adiadas = fila.filter((id) => segurar.has(id));
+      const resto = fila.filter((id) => !segurar.has(id));
+      this.filaPerguntas = [...resto, ...adiadas];
+    } else {
+      this.filaPerguntas = fila;
+    }
     return fila.length;
   }
 
@@ -651,7 +676,13 @@ export class QuizRoom {
       const question = await comTimeout(
         prisma.quizQuestion.findFirst({ where: { id, status: "approved" } })
       );
-      if (question) return question;
+      if (question) {
+        // Registra pra virada de fila. A lista é cortada em 20: guardar mais
+        // não adianta, porque só as últimas 20 são adiadas mesmo.
+        this.recemVistas.push(id);
+        if (this.recemVistas.length > 20) this.recemVistas.shift();
+        return question;
+      }
     }
 
     // A fila inteira ficou inválida — remonta e tenta de novo, uma vez só

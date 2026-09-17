@@ -78,6 +78,44 @@ async function buildAchievements(monthlyByGame, userId, quizStats = []) {
   return achievements;
 }
 
+// BUSCA DE JOGADORES POR NICK.
+//
+// Vem ANTES de "/:id/profile" de propósito: no Express a primeira rota que
+// casa vence, e "/buscar" seria lido como um id se viesse depois.
+//
+// Três cuidados, porque isto expõe a lista de usuários:
+//   - mínimo de 2 caracteres: com 1 letra a busca devolveria meio banco e
+//     viraria uma listagem de todo mundo;
+//   - teto de 12 resultados;
+//   - devolve só o necessário pra achar e abrir o perfil. E-mail, nunca.
+router.get("/buscar", requireAuth, async (req, res) => {
+  const termo = String(req.query.q || "").trim();
+  if (termo.length < 2) return res.json([]);
+
+  try {
+    const encontrados = await prisma.user.findMany({
+      where: {
+        nickname: { contains: termo, mode: "insensitive" },
+        // Convidado não tem perfil pra mostrar, e banido não deve aparecer
+        // numa busca pública.
+        isGuest: false,
+        banned: false,
+      },
+      select: { id: true, nickname: true, avatarUrl: true },
+      // Nick mais curto primeiro: quem procura "ana" quer "Ana" antes de
+      // "Anastacia_2010".
+      orderBy: { nickname: "asc" },
+      take: 12,
+    });
+
+    encontrados.sort((a, b) => a.nickname.length - b.nickname.length);
+    res.json(encontrados);
+  } catch (err) {
+    console.error("Falha ao buscar jogadores:", err.message);
+    res.status(500).json({ error: "Não foi possível buscar agora." });
+  }
+});
+
 router.get("/:id/profile", requireAuth, async (req, res) => {
   const { id } = req.params;
   const monthKey = currentMonthKey();
