@@ -271,7 +271,17 @@ export class QuizRoom {
     this.iniciarVigiaInatividade();
     await this.loadRoomRecord();
     socket.emit("quiz-room-state", this.publicState());
-    if (!alreadyInRoom) {
+    // Janela de silêncio contra reconexão — ver o comentário no StopRoom.
+    const agoraEntrada = Date.now();
+    const avisadoEm = this._avisoEntradaEm?.get(userId) || 0;
+    if (!alreadyInRoom && agoraEntrada - avisadoEm >= 30000) {
+      if (!this._avisoEntradaEm) this._avisoEntradaEm = new Map();
+      this._avisoEntradaEm.set(userId, agoraEntrada);
+      if (this._avisoEntradaEm.size > 200) {
+        for (const [uid, quando] of this._avisoEntradaEm) {
+          if (agoraEntrada - quando > 60000) this._avisoEntradaEm.delete(uid);
+        }
+      }
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
       const saudacoes = await querySegura(carregarSaudacoes(userId), null);

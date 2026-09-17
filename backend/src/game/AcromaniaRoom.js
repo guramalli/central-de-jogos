@@ -284,7 +284,17 @@ export class AcromaniaRoom {
     socket.emit("acromania-room-state", this.publicState());
     this.iniciarWatchdog();
 
-    if (!alreadyInRoom) {
+    // Janela de silêncio contra reconexão — ver o comentário no StopRoom.
+    const agoraEntrada = Date.now();
+    const avisadoEm = this._avisoEntradaEm?.get(userId) || 0;
+    if (!alreadyInRoom && agoraEntrada - avisadoEm >= 30000) {
+      if (!this._avisoEntradaEm) this._avisoEntradaEm = new Map();
+      this._avisoEntradaEm.set(userId, agoraEntrada);
+      if (this._avisoEntradaEm.size > 200) {
+        for (const [uid, quando] of this._avisoEntradaEm) {
+          if (agoraEntrada - quando > 60000) this._avisoEntradaEm.delete(uid);
+        }
+      }
       // Saudação personalizada (premium) no lugar do texto padrão.
       const saudacoes = await querySegura(carregarSaudacoes(userId), null);
       // Título equipado ao lado do nick — vem do socket, sem consulta.

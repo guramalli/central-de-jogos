@@ -371,7 +371,32 @@ export class StopRoom {
       needed: this.countUniquePlayers(),
       minPlayers: SKIP_VOTE_MIN_PLAYERS,
     });
-    if (!alreadyInRoom) {
+    // AVISO DE ENTRADA COM JANELA DE SILÊNCIO.
+    //
+    // `alreadyInRoom` cobre o caso de duas conexões vivas ao mesmo tempo,
+    // mas não o mais comum: a conexão cai e reconecta em seguida. Se o
+    // "disconnect" da antiga chegar ANTES do "join" da nova, o mapa fica
+    // vazio, a guarda não vê ninguém e a mensagem sai de novo — foi a
+    // mensagem dobrada que o Gustavinho viu.
+    //
+    // Guardamos o instante do último aviso por usuário e ficamos calados por
+    // 30 segundos. Quem realmente sai e volta depois disso é anunciado
+    // normalmente; quem só perdeu o sinal, não.
+    const agora = Date.now();
+    const avisadoEm = this._avisoEntradaEm?.get(userId) || 0;
+    const avisadoHaPouco = agora - avisadoEm < 30000;
+
+    if (!alreadyInRoom && !avisadoHaPouco) {
+      if (!this._avisoEntradaEm) this._avisoEntradaEm = new Map();
+      this._avisoEntradaEm.set(userId, agora);
+
+      // Limpeza: sem isto o Map cresceria com todo usuário que já passou.
+      if (this._avisoEntradaEm.size > 200) {
+        for (const [uid, quando] of this._avisoEntradaEm) {
+          if (agora - quando > 60000) this._avisoEntradaEm.delete(uid);
+        }
+      }
+
       // Título equipado ao lado do nick — vem do socket, sem consulta.
       const tituloEntrada = socket.tituloExibido || null;
       this.systemMessage(
