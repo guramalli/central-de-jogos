@@ -162,6 +162,81 @@ export const ACROMANIA_THEMES = [
   "Minha namorada descobriu que...",
   "O que aconteceu naquela noite?",
 
+
+  // ===== SEXTA LEVA — 50 temas (setembro/2026) =====
+  //
+  // Escritos depois de jogar o próprio jogo umas vinte rodadas. O que rendeu
+  // ali foi tema que dá uma CENA ou uma VOZ, não um campo aberto: "O que
+  // tinha dentro da mala?" puxa uma frase pronta, "Objetos" não puxa nada.
+  //
+  // Divididos entre engraçado, reflexivo e criativo de propósito — o
+  // Acromania fica repetitivo se tudo for piada.
+
+  // --- Confissões e vergonhas ---
+  "A pior mentira que eu já contei",
+  "Algo que eu fingi que sabia",
+  "O que eu faço quando estou sozinho em casa",
+  "Minha maior vergonha na escola",
+  "O que tem no meu histórico de busca",
+  "Uma coisa que eu nunca contei pra ninguém",
+  "O motivo real de eu ter chegado tarde",
+
+  // --- Cenas e situações ---
+  "O que o entregador viu pela janela",
+  "O barulho que veio do porão era...",
+  "Abri o armário e caiu...",
+  "O que o vizinho estava fazendo às 3 da manhã",
+  "A última coisa que vi antes de apagar",
+  "O que tinha no bolso daquele casaco",
+  "Achei um bilhete no livro usado, dizia...",
+  "O que aconteceu quando a luz voltou",
+
+  // --- Perguntas absurdas ---
+  "O que o pinguim faria com um cartão de crédito?",
+  "Por que o elevador parou no quinto andar?",
+  "O que o cachorro diria se falasse por um dia?",
+  "Por que tem um sapato no meio da estrada?",
+  "O que a estátua faz quando ninguém olha?",
+  "Por que a impressora só falha quando tem pressa?",
+
+  // --- Reflexivos ---
+  "O que eu aprendi tarde demais",
+  "Algo que eu perdoaria",
+  "O que me faz levantar da cama",
+  "Uma coisa que o dinheiro não compra",
+  "O que eu diria pra quem está desistindo",
+  "O que eu levaria de uma casa em chamas",
+  "Do que eu vou me orgulhar daqui a 20 anos",
+  "Uma coisa que melhorou com o tempo",
+
+  // --- Criativos ---
+  "Uma placa que deveria existir",
+  "O nome do meu restaurante seria...",
+  "Uma profissão que ainda vão inventar",
+  "O superpoder mais inútil do mundo",
+  "Uma nova regra pro trânsito",
+  "O feriado que faltava se chamaria...",
+  "Uma invenção que ninguém pediu",
+  "O nome da minha autobiografia",
+
+  // --- Voz de outro personagem ---
+  "O robô aspirador está pensando...",
+  "A mensagem automática do banco dizia...",
+  "O bilhete do professor pros pais dizia...",
+  "O anúncio de emprego pedia...",
+  "A bula do remédio avisava...",
+  "O aviso no elevador dizia...",
+
+  // --- Cotidiano com humor ---
+  "O que estraga um churrasco",
+  "Por que meu time perdeu de novo",
+  "O que nunca deveria ir no micro-ondas",
+  "A desculpa clássica do brasileiro",
+  "O que atrasa qualquer reunião",
+  "Como reconhecer alguém apaixonado",
+  "O que sempre some em casa",
+  "O pior tipo de vizinho",
+
 ];
 
 // ALFABETO DO ACROMANIA — sem K, W, Y (que o Stop também não usa) e SEM X e Z.
@@ -288,22 +363,107 @@ export function criarSorteadorDeTemas(temas = ACROMANIA_THEMES) {
 // Sorteia N letras distintas (sem repetir), na ordem em que a frase deve
 // seguir. Cada letra ocupa uma fatia proporcional ao peso, então X e Z
 // continuam existindo — só ficam raras.
+// Letras de vocabulário estreito. O peso já faz cada uma aparecer pouco,
+// mas peso é sorteio independente: nada impedia B, J e Q caírem na MESMA
+// rodada. Acontecia em 2,4% delas — pouco no papel, uma a cada 40 pra quem
+// joga muito, e são exatamente as rodadas em que a frase não sai.
+const LETRAS_DIFICEIS = new Set(["B", "G", "J", "R", "H", "Q"]);
+const MAX_DIFICEIS_POR_RODADA = 2;
+
+// Letras que começam palavra de LIGAÇÃO — artigo, preposição, conjunção,
+// pronome. São elas que amarram a frase: "de", "com", "não", "mas", "se",
+// "que", "para", "o", "a", "e".
+//
+// Sem nenhuma delas a pessoa fica com um monte de substantivo solto e nada
+// pra ligar. Medi em 200 mil rodadas: 0,91% saíam com no máximo UMA — como
+// "E F I U V" ou "F I L S U". Pouco no papel, mas é uma a cada 110, e são
+// justamente as rodadas em que ninguém escreve nada.
+const LETRAS_DE_LIGACAO = new Set(["A", "E", "O", "D", "P", "C", "N", "M", "S", "Q", "T"]);
+const MIN_LIGACOES_POR_RODADA = 2;
+
 export function pickRandomLetters(count = 3) {
   const pool = [...LETTERS];
   const picked = [];
+  let dificeis = 0;
+
   for (let i = 0; i < count && pool.length > 0; i++) {
-    const pesoTotal = pool.reduce((soma, l) => soma + pesoDaLetra(l), 0);
+    // TETO DE LETRAS DIFÍCEIS.
+    //
+    // Ao bater o limite, as difíceis saem do bolo para o resto do sorteio —
+    // não é "sortear de novo até dar certo", que enviesaria as outras
+    // letras. Elas voltam ao bolo na rodada seguinte.
+    const bolo =
+      dificeis >= MAX_DIFICEIS_POR_RODADA
+        ? pool.filter((l) => !LETRAS_DIFICEIS.has(l))
+        : pool;
+
+    // Se o filtro esvaziar o bolo (não acontece com o alfabeto atual, mas
+    // aconteceria se alguém reduzisse muito as letras), volta a usar o pool
+    // inteiro em vez de sortear de um vazio.
+    const disponiveis = bolo.length > 0 ? bolo : pool;
+
+    const pesoTotal = disponiveis.reduce((soma, l) => soma + pesoDaLetra(l), 0);
     let sorteio = Math.random() * pesoTotal;
-    let idx = pool.length - 1;
-    for (let j = 0; j < pool.length; j++) {
-      sorteio -= pesoDaLetra(pool[j]);
+    let idx = disponiveis.length - 1;
+    for (let j = 0; j < disponiveis.length; j++) {
+      sorteio -= pesoDaLetra(disponiveis[j]);
       if (sorteio <= 0) {
         idx = j;
         break;
       }
     }
-    picked.push(pool[idx]);
-    pool.splice(idx, 1);
+
+    const letra = disponiveis[idx];
+    picked.push(letra);
+    if (LETRAS_DIFICEIS.has(letra)) dificeis += 1;
+    pool.splice(pool.indexOf(letra), 1);
   }
+
+  // PISO DE LETRAS DE LIGAÇÃO.
+  //
+  // Feito no fim, e não durante o sorteio, de propósito: reservar vagas no
+  // meio do caminho enviesaria todas as outras letras. Aqui a rodada é
+  // sorteada normalmente e só as raras que ficaram pobres são corrigidas.
+  //
+  // A troca sai da letra MENOS útil da rodada (a mais difícil que estiver
+  // lá), não de uma qualquer — trocar uma vogal pra pôr uma conectiva não
+  // melhoraria nada.
+  let ligacoes = picked.filter((l) => LETRAS_DE_LIGACAO.has(l)).length;
+  while (ligacoes < MIN_LIGACOES_POR_RODADA) {
+    const candidatas = pool.filter((l) => LETRAS_DE_LIGACAO.has(l));
+    if (candidatas.length === 0) break;
+
+    // Índice da pior letra presente: difícil primeiro, senão a de menor peso.
+    let piorIdx = -1;
+    let piorPeso = Infinity;
+    for (let i = 0; i < picked.length; i++) {
+      const l = picked[i];
+      if (LETRAS_DE_LIGACAO.has(l)) continue; // não tira o que já ajuda
+      const p = LETRAS_DIFICEIS.has(l) ? -1 : pesoDaLetra(l);
+      if (p < piorPeso) {
+        piorPeso = p;
+        piorIdx = i;
+      }
+    }
+    if (piorIdx === -1) break;
+
+    // A entrante é sorteada pelo peso, pra não cair sempre na mesma.
+    const total = candidatas.reduce((soma, l) => soma + pesoDaLetra(l), 0);
+    let sorteio = Math.random() * total;
+    let escolhida = candidatas[candidatas.length - 1];
+    for (const l of candidatas) {
+      sorteio -= pesoDaLetra(l);
+      if (sorteio <= 0) {
+        escolhida = l;
+        break;
+      }
+    }
+
+    pool.splice(pool.indexOf(escolhida), 1);
+    pool.push(picked[piorIdx]);
+    picked[piorIdx] = escolhida;
+    ligacoes += 1;
+  }
+
   return picked;
 }
