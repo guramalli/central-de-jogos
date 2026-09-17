@@ -2973,6 +2973,40 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   margin: 10px 0;
 }
 
+/* Confirmação de que o convite saiu — aparece logo acima do botão.
+ *
+ * Fica ANCORADO no botão, não no canto da tela: o aviso do canto já é usado
+ * pelo convite RECEBIDO, e dois avisos iguais em lugares diferentes
+ * confundiriam quem está jogando. */
+.convite-aviso {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 85;
+  white-space: nowrap;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  animation: convite-aviso-entra 0.2s ease;
+}
+.convite-aviso.ok {
+  background: var(--accent-3);
+  color: #06281f;
+}
+.convite-aviso.erro {
+  background: #3a2020;
+  color: #ffb3a7;
+  border: 1px solid #a33;
+  white-space: normal;
+  max-width: 230px;
+}
+@keyframes convite-aviso-entra {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* ===== AVISO DE CONVITE RECEBIDO =====
  *
  * `position: fixed` no canto: o convite tem que aparecer por cima do jogo em

@@ -19,6 +19,9 @@ export default function ConvidarAmigo({ socketDaSala }) {
   const [amigos, setAmigos] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [convidados, setConvidados] = useState({});
+  // Aviso de confirmação. O "chamado ✓" na lista não bastava: some junto com
+  // a lista, e quem fecha o painel logo após clicar fica sem saber se saiu.
+  const [aviso, setAviso] = useState(null);
   const caixaRef = useRef(null);
 
   // Fecha ao clicar fora.
@@ -58,21 +61,43 @@ export default function ConvidarAmigo({ socketDaSala }) {
   useEffect(() => {
     if (!socketDaSala) return;
     function resultado({ ok, erro }) {
-      if (!ok && erro) alert(erro);
+      // O aviso vem da RESPOSTA DO SERVIDOR, não do clique: só diz "enviado"
+      // quando realmente saiu. Se a amizade não valer ou o limite de tempo
+      // barrar, aparece o motivo.
+      setAviso(
+        ok
+          ? { ok: true, texto: "Convite enviado!" }
+          : { ok: false, texto: erro || "Não foi possível convidar." }
+      );
     }
     socketDaSala.on("convite-resultado", resultado);
     return () => socketDaSala.off("convite-resultado", resultado);
   }, [socketDaSala]);
 
+  // Some sozinho — senão ficaria na tela durante a partida.
+  useEffect(() => {
+    if (!aviso) return;
+    const timer = setTimeout(() => setAviso(null), 4000);
+    return () => clearTimeout(timer);
+  }, [aviso]);
+
   function convidar(amigo) {
     socketDaSala?.emit("convidar-para-sala", { amigoId: amigo.userId });
-    // Marca na hora, sem esperar resposta: o retorno visual imediato é o que
-    // impede a pessoa de clicar cinco vezes achando que não funcionou.
-    setConvidados((c) => ({ ...c, [amigo.id]: true }));
+    // `amigo.userId` — estava `amigo.id`, sobra da primeira versão. A chave
+    // gravada não batia com a lida na hora de desabilitar, e o botão nunca
+    // travava: dava pra clicar sem parar no mesmo amigo.
+    setConvidados((c) => ({ ...c, [amigo.userId]: true }));
+    // Fecha a lista: a confirmação aparece no lugar dela.
+    setAberto(false);
   }
 
   return (
     <div className="convidar-amigo" ref={caixaRef}>
+      {aviso && (
+        <div className={`convite-aviso ${aviso.ok ? "ok" : "erro"}`} role="status">
+          {aviso.ok ? "✓" : "⚠"} {aviso.texto}
+        </div>
+      )}
       <button className="convidar-amigo-btn" onClick={() => setAberto((v) => !v)}>
         👥 Chamar amigo
       </button>
