@@ -15,6 +15,13 @@ import { MPB2 } from "./data/quizMpb2.js";
 import { MPB3 } from "./data/quizMpb3.js";
 import { ROCK2 } from "./data/quizRock2.js";
 import { FECHAMENTO } from "./data/quizFechamento.js";
+import { MPB_DIF1 } from "./data/quizMpbDif1.js";
+import { MPB_DIF2 } from "./data/quizMpbDif2.js";
+import { MPB_DIF3 } from "./data/quizMpbDif3.js";
+import { ROCK_DIF1 } from "./data/quizRockDif1.js";
+import { MPB_AUTORIA } from "./data/quizMpbAutoria.js";
+import { ROCK_DIF2 } from "./data/quizRockDif2.js";
+import { ROCK_FIM } from "./data/quizRockFim.js";
 
 const prisma = new PrismaClient();
 
@@ -27,8 +34,10 @@ async function main() {
     // os objetos com spread faria um sobrescrever o outro e metade das
     // perguntas sumiria em silêncio — por isso as listas são concatenadas
     // à mão, e não com { ...A, ...B }.
-    mpb: [...MPB.mpb, ...MPB2.mpb, ...MPB3.mpb, ...FECHAMENTO.mpb],
-    rock: [...ROCK.rock, ...METAL.rock, ...ROCK2.rock, ...FECHAMENTO.rock],
+    mpb: [...MPB.mpb, ...MPB2.mpb, ...MPB3.mpb, ...FECHAMENTO.mpb,
+          ...MPB_DIF1.mpb, ...MPB_DIF2.mpb, ...MPB_DIF3.mpb, ...MPB_AUTORIA.mpb],
+    rock: [...ROCK.rock, ...METAL.rock, ...ROCK2.rock, ...FECHAMENTO.rock,
+           ...ROCK_DIF1.rock, ...ROCK_DIF2.rock, ...ROCK_FIM.rock],
   })) {
     let doTema = 0;
     for (const q of perguntas) {

@@ -923,16 +923,18 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
 
 .sc-tab-panel {
   padding: 14px 10px 10px 10px;
-  /* ALTURA MÍNIMA, não fixa.
+  /* PISO E TETO, não só o piso.
    *
-   * Eram 230px travados, e o painel de pontuação não cabia: os quatro itens
-   * da legenda mais a linha de bônus passam disso, e o "+100 🏅 +50" ficava
-   * cortado pela borda. Altura fixa só funciona enquanto o conteúdo não
-   * cresce — e ele cresceu quando a legenda ganhou a linha do bônus.
+   * Eram 230px travados, e a legenda de pontuação não cabia — o "+100 🥉 +50"
+   * ficava cortado. Troquei por min-height, e isso abriu outro buraco: o
+   * chat usa `flex: 1` e passou a esticar sem parar, alongando a página do
+   * Stop conforme chegavam mensagens.
    *
-   * O min-height mantém os painéis alinhados quando o conteúdo é menor, que
-   * era o motivo de existir a altura fixa. */
+   * Um mínimo garante o alinhamento entre os painéis; um máximo devolve o
+   * limite que o chat precisa pra rolar por dentro em vez de crescer. Os
+   * 300px do teto cabem a legenda inteira com folga. */
   min-height: 230px;
+  max-height: 300px;
   display: flex;
   flex-direction: column;
 }

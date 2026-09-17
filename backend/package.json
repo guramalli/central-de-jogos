@@ -47,6 +47,7 @@
     "limpar-sugestoes-zoeira": "node prisma/limparSugestoesZoeira.js",
     "import-terceirao": "node prisma/importTerceirao.js",
     "import-mpb-rock": "node prisma/importMpbRock.js",
+    "crivo": "node scripts/crivoQuiz.js",
     "mover-games": "node prisma/moverGames.js",
     "revisar-desatualizadas": "node prisma/revisarDesatualizadas.js",
     "import-mitologia": "node prisma/importMitologia.js",
