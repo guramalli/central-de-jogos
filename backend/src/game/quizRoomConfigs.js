@@ -2,23 +2,37 @@
 // difícil — geradas automaticamente aqui embaixo, pra não repetir bloco por
 // bloco. Direito é exceção: fica só uma sala (o assunto já é nichado o
 // suficiente sem precisar dividir mais ainda).
+// O `escopo` diz O QUE CAI na sala, e é isso que aparece no card do lobby.
+//
+// Antes a descrição era gerada: "Perguntas de música pra todo mundo" — que
+// não informa nada. A Central de Jogos antiga fazia melhor: "Biologia,
+// Física, Química, Matemática e Tecnologia" embaixo de "Ciências". Quem lê
+// sabe na hora se é a sala dele, em vez de entrar pra descobrir.
 export const THEMES = [
-  { key: "mitologia", name: "Mitologia e Religião" },
-  { key: "games", name: "Games" },
-  { key: "terceirao", name: "Terceirão" },
-  { key: "esportes", name: "Esportes" },
-  { key: "futebol", name: "Futebol" },
-  { key: "automobilismo", name: "Automobilismo" },
-  { key: "anime", name: "Anime e HQ" },
-  { key: "ciencias", name: "Ciências" },
-  { key: "historia", name: "História" },
-  { key: "cinema", name: "Cinema" },
-  { key: "letras", name: "Letras" },
-  { key: "geral", name: "Conhecimentos Gerais" },
-  { key: "musica", name: "Música" },
-  { key: "series", name: "Séries e Streaming" },
-  { key: "novelas", name: "Novelas" },
-  { key: "geografia", name: "Geografia" },
+  { key: "mitologia", name: "Mitologia e Religião", escopo: "Deuses gregos e nórdicos, lendas do folclore, religiões do mundo" },
+  { key: "games", name: "Games", escopo: "Consoles, personagens, franquias e clássicos do fliperama ao online" },
+  { key: "terceirao", name: "Terceirão", escopo: "Conteúdo de ensino médio — ENEM e vestibulares" },
+  { key: "esportes", name: "Esportes", escopo: "Olimpíadas, basquete, vôlei, lutas, tênis e modalidades em geral" },
+  { key: "futebol", name: "Futebol", escopo: "Clubes, craques, Copas, Libertadores e história do futebol" },
+  { key: "automobilismo", name: "Automobilismo", escopo: "Fórmula 1, pilotos, escuderias, circuitos e carros de corrida" },
+  { key: "anime", name: "Anime e HQ", escopo: "Mangás, animes, super-heróis da Marvel e DC, personagens e obras" },
+  { key: "ciencias", name: "Ciências", escopo: "Biologia, Física, Química, Matemática e Tecnologia" },
+  { key: "historia", name: "História", escopo: "Brasil e mundo — guerras, impérios, revoluções e personagens" },
+  { key: "cinema", name: "Cinema", escopo: "Filmes, diretores, atores, Oscar e frases famosas do cinema" },
+  { key: "letras", name: "Letras", escopo: "Literatura, gramática, escritores e escolas literárias" },
+  { key: "geral", name: "Conhecimentos Gerais", escopo: "Um pouco de tudo — curiosidades, atualidades e cultura geral" },
+  { key: "musica", name: "Música", escopo: "Cantores, bandas, álbuns e hits de todos os estilos" },
+  // MPB e Rock são salas NOVAS, não uma divisão da Música.
+  //
+  // Dividir exigiria reclassificar cada pergunta já cadastrada uma a uma, e
+  // deixaria pop, sertanejo, funk e rap sem sala nenhuma. Assim a Música
+  // continua inteira e quem gosta desses dois estilos ganha uma sala com
+  // perguntas escritas pra ela.
+  { key: "mpb", name: "MPB", escopo: "Bossa nova, Tropicália, samba, Chico, Caetano, Elis e a música brasileira" },
+  { key: "rock", name: "Rock'n Roll", escopo: "Do Elvis ao metal — Beatles, Metallica, Iron Maiden, Slipknot, Angra e o rock nacional" },
+  { key: "series", name: "Séries e Streaming", escopo: "Netflix, HBO, Prime — séries, elencos e temporadas" },
+  { key: "novelas", name: "Novelas", escopo: "Novelas brasileiras, autores, bordões e personagens marcantes" },
+  { key: "geografia", name: "Geografia", escopo: "Países, capitais, rios, relevo, climas e mapas do mundo" },
 ];
 
 // Chave -> nome legível. Usado nas ARENAS, que misturam temas: lá a
@@ -27,7 +41,7 @@ export const THEMES = [
 // único isso não é preciso — o tema já está no nome da sala.
 export const NOME_DO_TEMA = Object.fromEntries(THEMES.map((t) => [t.key, t.name]));
 
-function buildDifficultyRooms(themeKey, themeName) {
+function buildDifficultyRooms(themeKey, themeName, escopo) {
   return {
     [`quiz-${themeKey}-facil`]: {
       label: `${themeName} — Padrão`,
@@ -36,7 +50,7 @@ function buildDifficultyRooms(themeKey, themeName) {
       // Médio fica só aqui (não se repete na avançada) — sala mais cheia,
       // boa pra maioria dos jogadores.
       difficultyFilter: ["facil", "medio"],
-      description: `Perguntas de ${themeName.toLowerCase()} pra todo mundo.`,
+      description: escopo || `Perguntas de ${themeName.toLowerCase()} pra todo mundo.`,
       maxPlayers: 15,
       questionSeconds: 40,
       revealIntervalSeconds: 6,
@@ -49,7 +63,9 @@ function buildDifficultyRooms(themeKey, themeName) {
       themeKey,
       tier: "avancado",
       difficultyFilter: ["dificil"],
-      description: `Só as perguntas mais puxadas de ${themeName.toLowerCase()}.`,
+      description: escopo
+        ? `${escopo} — só as perguntas mais puxadas.`
+        : `Só as perguntas mais puxadas de ${themeName.toLowerCase()}.`,
       maxPlayers: 15,
       questionSeconds: 20, // tempo curto: na avançada tem que saber de cabeça
       revealIntervalSeconds: 4,
@@ -122,7 +138,7 @@ export const QUIZ_ROOM_CONFIGS = {
     minScorersForBonus: 2,
   },
 
-  ...THEMES.reduce((acc, t) => ({ ...acc, ...buildDifficultyRooms(t.key, t.name) }), {}),
+  ...THEMES.reduce((acc, t) => ({ ...acc, ...buildDifficultyRooms(t.key, t.name, t.escopo) }), {}),
 
   "quiz-direito": {
     label: "Direito",

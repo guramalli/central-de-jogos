@@ -53,6 +53,11 @@ model User {
   patenteStopFixa  String?
   patenteQuizFixa  String?
   playtimeMinutes  Int      @default(0)
+  // Quantas vezes a pessoa ENTROU no portal. Conta sessão, não carregamento
+  // de página: só incrementa quando passam mais de 30 minutos desde o
+  // último acesso, senão recarregar a aba viraria "visita nova" e o número
+  // perderia o sentido.
+  visitas          Int      @default(0)
   // Última plataforma usada pra jogar: "mobile" ou "desktop". Serve pra
   // entender o público e decidir onde investir em melhorias de interface.
   ultimaPlataforma String?

@@ -42,11 +42,13 @@ const THEME_ICONS = {
   novelas: "🎭",
   geografia: "🌍",
   direito: "⚖️",
+  mpb: "🎸",
+  rock: "🤘",
 };
 
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala (ver
 // StopGame — mesma ideia).
-export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
+export default function QuizGame({ salaFixa = null, socketProprio = false, compacto = false, ativo = false, aoFechar = null }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -302,9 +304,17 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
     // Não rouba o foco de quem já está digitando — importa no multi-sala,
     // onde a rodada de um painel começava no meio da digitação em outro e
     // arrastava o cursor pra lá. (Mesma checagem do StopGame.)
+    // No multi-sala o foco automático vale só na sala atual — ver o
+    // comentário no StopGame.
+    if (compacto && !ativo) return;
+
     const focar = () => {
       const f = document.activeElement;
-      if (f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled) return;
+      const ehTexto = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled;
+      // Mesma exceção do Stop: estar no chat não segura o foco quando a
+      // pergunta abre — responder vale mais que terminar a mensagem.
+      const noChat = !!f?.closest?.(".chat-input");
+      if (ehTexto && !noChat) return;
       inputRef.current?.focus();
     };
     const raf = requestAnimationFrame(focar);
@@ -313,7 +323,7 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
       cancelAnimationFrame(raf);
       clearTimeout(retry);
     };
-  }, [phase, questionText]);
+  }, [phase, questionText, ativo]);
 
   useEffect(() => {
     wrongLogEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -416,8 +426,16 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
   const isArenaBreak = !!turnInfo && phase === "intermission";
 
   return (
-    <div className="quiz-root" data-quiz-theme={themeKey || undefined}>
+    <div className={`quiz-root ${compacto ? "quiz-compacto" : ""}`} data-quiz-theme={themeKey || undefined}>
       <Seo title={roomLabel ? `Quiz — ${roomLabel}` : "Quiz"} description="Jogando Quiz com a galera na Educação Gamer." />
+      {/* A BARRA DE CIMA SOME INTEIRA NO COMPACTO.
+          
+          Sem logo, pontos e nome da sala, ela virou uma faixa vazia com o
+          cronômetro jogado na ponta direita — desperdiçando uma linha por
+          painel. O cronômetro e o botão de som foram pra dentro do cartão da
+          pergunta (canto superior direito), que é onde a pessoa já está
+          olhando. */}
+      {!compacto && (
       <div className="quiz-stats-bar">
         {/* No compacto some a logo e os pontos: repetem em cada painel e o
             que importa ali é a pergunta. O cronômetro e o botão de som
@@ -444,15 +462,20 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           )}
         </div>
         <div className="quiz-timer-group">
+          {/* Convidar e sair somem no compacto, como já acontecia no Stop:
+              o painel tem o ✕ na barra de título, e convidar alguém pra uma
+              sala específica não faz sentido no meio de quatro partidas. */}
+          {!compacto && (
           <InviteButton
             label="Convidar"
             url={`${window.location.origin}/jogos/quiz/${roomId}`}
             message={`Vem jogar Quiz comigo agora, tô na sala de ${roomLabel || "Quiz"}! 🎮`}
           />
+          )}
           {/* No multi-sala este botão FECHA O PAINEL, não navega.
               Como Link, ele levava a página inteira pro lobby — a pessoa
               clicava pra sair de uma sala e saía das quatro. */}
-          {aoFechar ? (
+          {compacto ? null : aoFechar ? (
             <button
               type="button"
               className="room-exit-btn"
@@ -473,13 +496,50 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           >
             {muted ? "🔇" : "🔊"}
           </button>
-          <QuizTimerRing timeLeft={timeLeft} totalSeconds={phase === "active" ? totalSeconds : 8} />
+          {/* Anel menor no compacto: 72px era metade da altura da barra, e
+              com 4 painéis isso é altura que faz falta pra pergunta. */}
+          <QuizTimerRing
+            timeLeft={timeLeft}
+            totalSeconds={phase === "active" ? totalSeconds : 8}
+            size={72}
+          />
         </div>
       </div>
+      )}
 
       <div className={`quiz-game-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
         {/* Mesma estrutura sempre — só o texto da pergunta e a linha de letras mudam */}
         <div className="quiz-panel quiz-question-card">
+          {/* Cronômetro no canto do cartão, só no compacto. Fica sobre o
+              conteúdo em vez de ocupar uma faixa própria.
+              
+              EMPILHADO: cronômetro em cima, som embaixo. Lado a lado, os
+              dois ocupavam largura demais e o botão de som acabava por cima
+              do texto da pergunta — que é o que menos pode ser tapado. */}
+          {compacto && (
+            <div className="quiz-timer-canto">
+              {turnInfo && (
+                <span className="quiz-turn-counter">
+                  {turnInfo.round}/{turnInfo.total}
+                </span>
+              )}
+              <QuizTimerRing
+                timeLeft={timeLeft}
+                totalSeconds={phase === "active" ? totalSeconds : 8}
+                size={40}
+              />
+              {/* O botão de som vivia na barra de cima, que o compacto
+                  removeu — e sumiu junto. Som importa: é ele que avisa que a
+                  pergunta virou numa sala que você não está olhando. */}
+              <button
+                className="quiz-mute-btn"
+                onClick={handleToggleMute}
+                title={muted ? "Ativar som" : "Desativar som"}
+              >
+                {muted ? "🔇" : "🔊"}
+              </button>
+            </div>
+          )}
           {isArenaBreak ? (
             <>
               <div className="quiz-retro-tab">placar do turno</div>
@@ -526,7 +586,11 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
           ) : (
             <>
               <div className="quiz-retro-tab">pergunta</div>
-              {questionId && phase === "active" && (
+              {/* Sem o botão de reportar no compacto: ele fica no canto
+                  superior direito, exatamente onde agora está o cronômetro,
+                  e os dois se sobrepunham em cima da pergunta. Reportar erro
+                  é coisa pra fazer numa sala só. */}
+              {questionId && phase === "active" && !compacto && (
                 <button
                   className="quiz-report-btn"
                   onClick={() => setReportOpen(true)}
@@ -542,7 +606,20 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
               {temaDaPergunta && (
                 <div className="quiz-tema-da-pergunta">{temaDaPergunta}:</div>
               )}
-              <div className="quiz-question-text" onContextMenu={(e) => e.preventDefault()}>
+              {/* A classe de tamanho vai por TAMANHO DA PERGUNTA: pergunta
+                  curta sobra espaço e pode ser maior; longa precisa ser
+                  menor pra caber. O resto do ajuste (tela grande, F11) é
+                  feito no CSS com clamp(). */}
+              <div
+                className={`quiz-question-text ${
+                  (questionText || "").length <= 60
+                    ? "quiz-pergunta-curta"
+                    : (questionText || "").length <= 110
+                    ? "quiz-pergunta-media"
+                    : "quiz-pergunta-longa"
+                }`}
+                onContextMenu={(e) => e.preventDefault()}
+              >
                 {questionText}
               </div>
               <div
@@ -629,7 +706,10 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
         </div>
       </div>
 
-      {isMobile && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
+      {/* A faixa de patente é do celular, mas no multi-sala ela repete em
+          CADA painel — a mesma patente, o mesmo nick, quatro vezes, comendo
+          quase um quinto da tela. Numa sala só ela continua. */}
+      {isMobile && !compacto && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
 
       {isMobile && (
         <div className="qz-abas-mobile">
@@ -654,7 +734,13 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
-      <div className={`quiz-bottom-grid ${isMobile ? `qz-mobile-aba-${abaMobile}` : ""}`}>
+      {/* O Quiz não tem legenda de pontuação, então aqui o compacto só
+          encolhe chat e lista — mesma ideia do Stop. */}
+      <div
+        className={`quiz-bottom-grid ${compacto ? "quiz-bottom-grid-compacto" : ""} ${
+          isMobile ? `qz-mobile-aba-${abaMobile}` : ""
+        }`}
+      >
         <div className="quiz-panel quiz-chat-panel">
           <div className="quiz-retro-tab">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
@@ -689,7 +775,10 @@ export default function QuizGame({ salaFixa = null, socketProprio = false, compa
         </div>
       </div>
 
-      <SuggestQuestionForm themeKey={themeKey} />
+      {/* Sugerir pergunta some no compacto: é um formulário de contribuição,
+          coisa pra fazer com calma numa sala só — no meio de 4 partidas ele
+          só ocupa uma faixa no pé de cada painel. */}
+      {!compacto && <SuggestQuestionForm themeKey={themeKey} />}
 
       {reportOpen && questionId && (
         <ReportQuestionModal

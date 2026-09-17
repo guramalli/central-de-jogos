@@ -109,6 +109,10 @@ export class QuizRoom {
     // Fila de perguntas embaralhada da volta atual. Vai sendo consumida a
     // cada rodada; quando esvazia, uma nova volta é montada e reembaralhada.
     this.filaPerguntas = [];
+    // Últimas perguntas servidas, na ordem. Sobrevive à virada de fila e é
+    // usada pra empurrar as recém-vistas pro fim do baralho novo — ver
+    // montarFilaDePerguntas.
+    this.recemVistas = [];
 
     // Placar do turno atual (só usado quando roundsPerTurn está definido).
     this.turnScores = new Map(); // userId -> pontos no turno
@@ -267,7 +271,17 @@ export class QuizRoom {
     this.iniciarVigiaInatividade();
     await this.loadRoomRecord();
     socket.emit("quiz-room-state", this.publicState());
-    if (!alreadyInRoom) {
+    // Janela de silêncio contra reconexão — ver o comentário no StopRoom.
+    const agoraEntrada = Date.now();
+    const avisadoEm = this._avisoEntradaEm?.get(userId) || 0;
+    if (!alreadyInRoom && agoraEntrada - avisadoEm >= 30000) {
+      if (!this._avisoEntradaEm) this._avisoEntradaEm = new Map();
+      this._avisoEntradaEm.set(userId, agoraEntrada);
+      if (this._avisoEntradaEm.size > 200) {
+        for (const [uid, quando] of this._avisoEntradaEm) {
+          if (agoraEntrada - quando > 60000) this._avisoEntradaEm.delete(uid);
+        }
+      }
       // Saudação personalizada (premium) substitui o "entrou na sala"
       // padrão; sem nada configurado, segue o texto de sempre.
       const saudacoes = await querySegura(carregarSaudacoes(userId), null);
@@ -609,8 +623,10 @@ export class QuizRoom {
         : this.difficultyFilter;
     }
 
+    // A RESPOSTA VEM JUNTO do id, e é usada logo abaixo pra espalhar
+    // perguntas que levam ao mesmo nome.
     const ids = await Promise.race([
-      prisma.quizQuestion.findMany({ where, select: { id: true } }),
+      prisma.quizQuestion.findMany({ where, select: { id: true, answer: true } }),
       new Promise((_, reject) => setTimeout(() => reject(new Error("timeout ao montar fila")), 8000)),
     ]);
 
@@ -621,7 +637,65 @@ export class QuizRoom {
       [fila[i], fila[j]] = [fila[j], fila[i]];
     }
 
-    this.filaPerguntas = fila;
+    // AS RECÉM-VISTAS VÃO PRO FIM DO BARALHO NOVO.
+    //
+    // O embaralhamento acima é justo, mas não tem memória: uma pergunta que
+    // acabou de sair podia cair no topo da volta seguinte, e pra quem está
+    // jogando isso é "repetiu de novo".
+    //
+    // O problema ficou visível agora por dois motivos que se somaram: cada
+    // deploy reinicia o servidor e reembaralha (a fila vive em memória), e o
+    // multi-sala fez a pessoa jogar 4x mais rodadas no mesmo tempo, chegando
+    // ao fim da volta muito mais rápido.
+    //
+    // Guardamos um quarto da sala, no máximo 20. Empurrar demais deixaria o
+    // sorteio previsível — o fim da fila viraria "as que você já viu".
+    // ESPALHA AS RESPOSTAS REPETIDAS.
+    //
+    // O sorteio é justo, mas cego pro conteúdo: sorteia ids, não sabe que
+    // cinco deles respondem "Eric Clapton". Por azar normal, três caíam
+    // seguidas e a sala parecia quebrada — foi o que o Gustavinho viu
+    // jogando a Rock Padrão.
+    //
+    // A correção percorre a fila e, quando encontra uma resposta que saiu há
+    // pouco, troca aquela pergunta por outra mais adiante que tenha resposta
+    // diferente. Não reordena tudo: só desfaz os encontros.
+    const respostaPorId = new Map(ids.map((q) => [q.id, q.answer]));
+    const DISTANCIA_MINIMA = 8;
+    for (let i = 0; i < fila.length; i++) {
+      const resposta = respostaPorId.get(fila[i]);
+      // Saiu nas últimas N perguntas?
+      let repetiu = false;
+      for (let k = Math.max(0, i - DISTANCIA_MINIMA); k < i; k++) {
+        if (respostaPorId.get(fila[k]) === resposta) { repetiu = true; break; }
+      }
+      if (!repetiu) continue;
+
+      // Procura adiante alguém com resposta que não conflite, e troca.
+      for (let j = i + 1; j < fila.length; j++) {
+        const candidata = respostaPorId.get(fila[j]);
+        let serve = true;
+        for (let k = Math.max(0, i - DISTANCIA_MINIMA); k < i; k++) {
+          if (respostaPorId.get(fila[k]) === candidata) { serve = false; break; }
+        }
+        if (serve) {
+          [fila[i], fila[j]] = [fila[j], fila[i]];
+          break;
+        }
+      }
+      // Se ninguém servir (sala pequena com poucas respostas distintas),
+      // segue como está — melhor repetir que travar a rodada.
+    }
+
+    const quantasSegurar = Math.min(20, Math.floor(fila.length / 4));
+    const segurar = new Set(this.recemVistas.slice(-quantasSegurar));
+    if (segurar.size > 0 && segurar.size < fila.length) {
+      const adiadas = fila.filter((id) => segurar.has(id));
+      const resto = fila.filter((id) => !segurar.has(id));
+      this.filaPerguntas = [...resto, ...adiadas];
+    } else {
+      this.filaPerguntas = fila;
+    }
     return fila.length;
   }
 
@@ -651,7 +725,13 @@ export class QuizRoom {
       const question = await comTimeout(
         prisma.quizQuestion.findFirst({ where: { id, status: "approved" } })
       );
-      if (question) return question;
+      if (question) {
+        // Registra pra virada de fila. A lista é cortada em 20: guardar mais
+        // não adianta, porque só as últimas 20 são adiadas mesmo.
+        this.recemVistas.push(id);
+        if (this.recemVistas.length > 20) this.recemVistas.shift();
+        return question;
+      }
     }
 
     // A fila inteira ficou inválida — remonta e tenta de novo, uma vez só

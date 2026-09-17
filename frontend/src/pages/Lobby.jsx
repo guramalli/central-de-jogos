@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { api } from "../api/client.js";
 import { useAcromaniaAtivo } from "../components/useAcromaniaAtivo.js";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -7,6 +8,8 @@ import InviteButton from "../components/InviteButton.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import NovidadeBanner from "../components/NovidadeBanner.jsx";
+import { NOVIDADES, ROTULO_TIPO } from "../data/novidades.js";
+import JogadoresOnline from "../components/JogadoresOnline.jsx";
 import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
@@ -15,6 +18,25 @@ export default function Lobby() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [showFeedback, setShowFeedback] = useState(false);
+  const [visitas, setVisitas] = useState(0);
+
+  // ⚠️ Este efeito precisa vir DEPOIS do `const { user } = useAuth()`.
+  //
+  // Estava acima e derrubava a página inteira com "Algo deu errado": em
+  // JavaScript, ler uma const antes da linha que a declara é erro em tempo
+  // de execução, não aviso. O componente quebrava antes de renderizar
+  // qualquer coisa.
+  useEffect(() => {
+    if (!user?.id) return;
+    let vivo = true;
+    api
+      .get(`/users/${user.id}/profile`)
+      .then(({ data }) => vivo && setVisitas(data.visitas || 0))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [user?.id]);
 
   // Garante que a página inicial sempre abre no topo — sem isso, o
   // navegador podia manter a rolagem de onde a pessoa estava antes.
@@ -34,6 +56,14 @@ export default function Lobby() {
         <div>
           <p className="lobby-hero-tag">BEM-VINDO DE VOLTA</p>
           <h1 className="lobby-hero-title">{user?.nickname}</h1>
+          {/* Número de visitas ao lado do nome. Só aparece a partir da
+              segunda: "essa é sua 1ª vez" seria estranho pra quem já está
+              logado — e quem acabou de chegar não tem o que comemorar. */}
+          {visitas > 1 && (
+            <p className="lobby-hero-visitas">
+              Essa é sua <strong>{visitas}ª</strong> vez no portal.
+            </p>
+          )}
           <p className="lobby-hero-subtitle">
             Escolha um jogo, suba de patente e dispute a premiação mensal.
           </p>
@@ -41,6 +71,40 @@ export default function Lobby() {
             <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
           </div>
         </div>
+        {/* ÚLTIMAS ATUALIZAÇÕES NO MEIO DO PAINEL.
+            
+            O painel é um flex de dois filhos com `space-between`: o texto vai
+            pra esquerda, as patentes pra direita, e sobrava um buraco no meio
+            do bloco mais visível da página.
+            
+            Aqui entrou o pódio do mês primeiro, mas três blocos de top 3
+            ficaram pesados — muita informação repetida a cada visita.
+            Novidade é diferente: muda toda semana, e num site em beta mostra
+            que a coisa está viva. Só as três mais recentes, com link pro
+            resto. */}
+        <div className="lobby-hero-novidades">
+          <div className="lobby-novidades-topo">
+            <span>📣 Últimas atualizações</span>
+            <Link to="/novidades">ver todas</Link>
+          </div>
+          <ul className="lobby-novidades-lista">
+            {/* 8 itens, não 3: a caixa estica junto com o painel de patentes
+                e tem rolagem própria, então o que não couber a pessoa alcança
+                rolando ali dentro — sem empurrar nada da página. */}
+            {NOVIDADES.slice(0, 8).map((n) => (
+              <li key={n.id}>
+                <span className={`novidade-tipo novidade-tipo-${n.tipo}`}>
+                  {ROTULO_TIPO[n.tipo] || n.tipo}
+                </span>
+                <span className="lobby-novidade-titulo">{n.titulo}</span>
+                {/* Com 8 itens a lista cobre semanas: sem a data, tudo parece
+                    ter saído hoje. */}
+                <span className="lobby-novidade-data">{n.data.slice(8, 10)}/{n.data.slice(5, 7)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <PainelDoJogador userId={user?.id} />
       </section>
 
@@ -50,6 +114,7 @@ export default function Lobby() {
           <img src="/stop-logo.png" alt="Stop!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Stop</h3>
+            <JogadoresOnline jogo="stop" />
             <p className="lobby-game-desc">
               Aqui não adianta saber todos os temas: tem que ser rápido de verdade. 6 temas, 1 letra
               sorteada, e quem hesita perde a rodada pro dedo mais veloz da sala.
@@ -64,6 +129,7 @@ export default function Lobby() {
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Quiz</h3>
+            <JogadoresOnline jogo="quiz" />
             <p className="lobby-game-desc">
               Perguntas por tema — Esportes, Ciências, História, Cinema e Letras. Quem acerta
               primeiro leva os pontos!
@@ -83,6 +149,7 @@ export default function Lobby() {
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
+            <JogadoresOnline jogo="acromania" />
             <p className="lobby-game-desc">
               Um tema, algumas letras, e você cria a frase mais criativa possível — a galera vota
               na melhor. Quanto mais gente na sala, melhor fica.

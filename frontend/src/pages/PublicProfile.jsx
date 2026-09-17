@@ -248,6 +248,13 @@ export default function PublicProfile() {
         </div>
       ) : (
         <>
+      {/* CONQUISTAS E RANKING MENSAL LADO A LADO.
+          
+          Empilhados, as conquistas esticavam a largura toda e empurravam o
+          ranking mensal pro fim da página — com o site em tela cheia, a
+          lista virava uma faixa longa e o resto sumia da vista. Em duas
+          colunas cada um ocupa metade e os dois cabem sem rolar. */}
+      <div className="perfil-duas-colunas">
       {(profile.achievements.length > 0 || titulosGanhos.length > 0) && (
         <div className="card" style={{ marginTop: 16 }}>
           <h2>Conquistas</h2>
@@ -337,6 +344,7 @@ export default function PublicProfile() {
           </div>
         </div>
       )}
+      </div>
 
       {!ehAdmin && <TitulosPerfil userId={userId} />}
 

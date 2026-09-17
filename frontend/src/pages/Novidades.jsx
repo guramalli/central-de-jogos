@@ -1,13 +1,6 @@
 import { Link } from "react-router-dom";
 import Seo from "../components/Seo.jsx";
-import { NOVIDADES } from "../data/novidades.js";
-
-const ROTULO_TIPO = {
-  novo: "Novidade",
-  melhoria: "Melhoria",
-  correcao: "Correção",
-  aviso: "Aviso",
-};
+import { NOVIDADES, ROTULO_TIPO } from "../data/novidades.js";
 
 function formatarData(iso) {
   // Constrói a data em horário local: `new Date("2026-09-07")` é lido como

@@ -34,7 +34,7 @@ const EMPTY_THEME_SLOTS = Array.from({ length: THEMES_PER_ROUND }, (_, i) => ({
 // `salaFixa` e `socketProprio` só vêm preenchidos no modo multi-sala, em que
 // a mesma página é montada várias vezes lado a lado. No uso normal a sala
 // vem da URL e a conexão é a compartilhada, como sempre foi.
-export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false, aoFechar = null }) {
+export default function StopGame({ salaFixa = null, socketProprio = false, compacto = false, ativo = false, aoFechar = null }) {
   const { user, logout } = useAuth();
 
   // Moderação de chat: moderadores e admins podem apagar mensagens.
@@ -369,6 +369,17 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
   useEffect(() => {
     if (phase !== "active") return;
 
+    // NO MULTI-SALA, O FOCO AUTOMÁTICO VALE SÓ NA SALA ATUAL.
+    //
+    // Cheguei a desligar em todas, e ficou faltando o outro lado: quem
+    // entrava numa sala ANTES da letra sair ficava sem cursor quando a
+    // rodada começava — tinha que clicar na lacuna ou sair e voltar.
+    //
+    // Com `ativo`, a regra fica certa dos dois lados: a sala que você
+    // escolheu põe o cursor na primeira lacuna quando a rodada abre, e as
+    // outras nunca puxam você pra elas.
+    if (compacto && !ativo) return;
+
     // NÃO ROUBA O FOCO DE QUEM JÁ ESTÁ DIGITANDO.
     //
     // Este efeito existe pra você já começar a digitar quando a rodada abre,
@@ -380,14 +391,20 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
     // página, este painel não mexe. Quem está parado continua ganhando o
     // foco automático de sempre.
     const focado = document.activeElement;
-    const jaDigitando =
+    const ehCampoDeTexto =
       focado &&
       (focado.tagName === "INPUT" || focado.tagName === "TEXTAREA") &&
       !focado.disabled;
-    if (jaDigitando) return;
+
+    // Digitando NO CHAT não conta como ocupado: a rodada abriu e responder
+    // vale mais que terminar a mensagem. Sem esta exceção, quem trocava de
+    // sala durante o intervalo (quando os campos estão desabilitados e o
+    // cursor acaba no chat) ficava preso lá quando a rodada começava.
+    const noChat = !!focado?.closest?.(".chat-input");
+    if (ehCampoDeTexto && !noChat) return;
 
     inputRefs.current[0]?.focus();
-  }, [phase, roundNumber]);
+  }, [phase, roundNumber, ativo]);
 
   // Rede de segurança: normalmente some quando o resultado da rodada chega
   // (round-result), mas por precaução some sozinho depois de um tempo maior
@@ -741,7 +758,7 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
-      <div className={`sc-retro-panel sc-table-panel ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
+      <div className={`sc-retro-panel sc-table-panel ${compacto ? "sc-tabela-compacta" : ""} ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
         <div className="sc-panel-title-row">
           <div className="sc-timerletter">
             <div className="sc-timer-chip">{timeLeft}s</div>
@@ -828,6 +845,9 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
           </div>
         )}
 
+        {/* A dica some no compacto: quem joga em 4 salas já sabe pedir STOP,
+            e a linha custava uma faixa por painel. */}
+        {!compacto && (
         <div className="sc-stop-hint">
           {/* A dica muda por plataforma: no celular não existe Ctrl+Enter,
               e mandar procurar um botão "abaixo" com o teclado aberto não
@@ -841,9 +861,13 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             </>
           )}
         </div>
+        )}
       </div>
 
-      {isMobile && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
+      {/* A faixa de patente é do celular, mas no multi-sala ela repete em
+          CADA painel — a mesma patente, o mesmo nick, quatro vezes, comendo
+          quase um quinto da tela. Numa sala só ela continua. */}
+      {isMobile && !compacto && <FaixaPatente me={me} semPontuacao={me?.semPontuacao} />}
 
       {isMobile && (
         <div className="sc-abas-mobile">
@@ -868,14 +892,33 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         </div>
       )}
 
-      <div className={`sc-bottom-grid ${isMobile ? `sc-mobile-aba-${abaMobile}` : ""}`}>
+      {/* No compacto a grade de baixo vira duas colunas: a legenda some.
+          Quem abre quatro salas ao mesmo tempo já sabe quanto vale palavra
+          repetida — a legenda é pra quem está aprendendo, e ali ela só ocupa
+          o espaço que o chat e a lista de jogadores precisam. */}
+      <div
+        className={`sc-bottom-grid ${compacto ? "sc-bottom-grid-compacto" : ""} ${
+          isMobile ? `sc-mobile-aba-${abaMobile}` : ""
+        }`}
+      >
         <div className="sc-retro-panel sc-tab-panel sc-chat-panel">
           <div className="sc-retro-tab sc-retro-tab-right">chat</div>
           <Chat messages={messages} onSend={sendChat} canModerate={podeModerar} onDelete={apagarMensagem}
             participantes={nicksNaSala} meuNick={user?.nickname} />
         </div>
 
-        <div className="sc-retro-panel sc-tab-panel sc-legend-panel">
+        {/* COLUNA DO MEIO — no compacto ela volta, mas só com o botão STOP.
+            
+            Tentei antes pôr o botão como barra horizontal sobre a tabela, e
+            ficou pior: empurrava tudo pra baixo e roubava a altura que a
+            gente estava tentando economizar. Aqui ele usa o espaço que a
+            legenda deixou vago, entre o chat e a lista de jogadores — que é
+            onde ele sempre esteve. */}
+        <div
+          className={`sc-retro-panel sc-tab-panel sc-legend-panel ${
+            compacto ? "sc-legend-panel-so-stop" : ""
+          }`}
+        >
           {stopOverlay ? (
             <div className="sc-legend-stopped">
               <div className="sc-legend-stopped-name">{stopOverlay}</div>
@@ -907,14 +950,23 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
             </div>
           ) : (
             <>
-              <div className="sc-retro-tab">pontuação</div>
-              <ul className="sc-legend-list">
-                <li><span className="sc-swatch sc-swatch-wrong" /> 0 pontos — errada ou em branco</li>
-                <li><span className="sc-swatch sc-swatch-duplicate" /> 5 pontos — repetida</li>
-                <li><span className="sc-swatch sc-swatch-correct" /> 10 pontos — única</li>
-                <li><span className="sc-swatch sc-swatch-solo" /> 15 pontos — só você acertou o tema</li>
-              </ul>
-              <div className="sc-legend-bonus">Bônus a cada 10 rodadas: 🥇+150 🥈+100 🥉+50</div>
+              {/* A aba "pontuação" também some no compacto.
+                  
+                  Eu tinha escondido só a LISTA e deixado o rótulo: como ele
+                  flutua sobre a borda do painel, ficava aparecendo recortado
+                  num painel que não tem mais legenda nenhuma. */}
+              {!compacto && <div className="sc-retro-tab">pontuação</div>}
+              {!compacto && (
+                <>
+                  <ul className="sc-legend-list">
+                    <li><span className="sc-swatch sc-swatch-wrong" /> 0 pontos — errada ou em branco</li>
+                    <li><span className="sc-swatch sc-swatch-duplicate" /> 5 pontos — repetida</li>
+                    <li><span className="sc-swatch sc-swatch-correct" /> 10 pontos — única</li>
+                    <li><span className="sc-swatch sc-swatch-solo" /> 15 pontos — só você acertou o tema</li>
+                  </ul>
+                  <div className="sc-legend-bonus">Bônus a cada 10 rodadas: 🥇+150 🥈+100 🥉+50</div>
+                </>
+              )}
             </>
           )}
         </div>

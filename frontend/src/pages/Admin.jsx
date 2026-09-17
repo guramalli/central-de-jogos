@@ -67,18 +67,28 @@ export default function Admin() {
   //
   // Sem userId (registro antigo, conta apagada) ou visitante, vira texto
   // simples — clicar não levaria a lugar nenhum.
+  // O NICK LEVA AO PERFIL, não à conversa.
+  //
+  // Clicar no nome abria a janela de mensagem, e isso era duplicado: a linha
+  // já tem um botão de chat no fim. Ver o perfil — patente, títulos, tempo de
+  // jogo, histórico — é o que normalmente se quer ao clicar num nome, e não
+  // havia caminho nenhum pra isso no painel.
+  //
+  // Abre em aba nova pra não perder o lugar no painel, que costuma estar no
+  // meio de uma lista paginada.
   function Nick({ userId, nickname, isGuest }) {
     if (!nickname) return <span style={{ color: "var(--text-dim)" }}>—</span>;
     if (!userId || isGuest) return <span>{nickname}</span>;
     return (
-      <button
-        type="button"
+      <a
         className="admin-nick-link"
-        title={`Conversar com ${nickname}`}
-        onClick={() => setChatWith({ userId, nickname })}
+        href={`/jogador/${userId}`}
+        target="_blank"
+        rel="noreferrer"
+        title={`Ver perfil de ${nickname}`}
       >
         {nickname}
-      </button>
+      </a>
     );
   }
   const [aba, setAba] = useState(() => {

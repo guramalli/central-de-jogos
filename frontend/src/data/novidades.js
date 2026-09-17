@@ -19,7 +19,82 @@
 // comunica abandono — é pior que não ter página nenhuma. Se parar de
 // alimentar, é melhor tirar o link do menu.
 
+// Rótulo de cada tipo. Fica AQUI, junto dos dados, porque agora duas telas
+// usam: a página de novidades e a caixa do lobby. Antes vivia dentro da
+// página, e a segunda tela teria que copiar — duas cópias que divergem na
+// primeira vez que alguém renomeia um tipo.
+export const ROTULO_TIPO = {
+  novo: "Novidade",
+  melhoria: "Melhoria",
+  correcao: "Correção",
+  aviso: "Aviso",
+};
+
 export const NOVIDADES = [
+  {
+    id: "2026-09-mpb-rock",
+    data: "2026-09-17",
+    tipo: "novo",
+    titulo: "Duas salas novas no Quiz: MPB e Rock'n Roll",
+    texto:
+      "São 250 perguntas em cada uma. A MPB vai da bossa nova ao samba, forró, axé e Jovem Guarda. O Rock'n Roll vai do Elvis ao metal — Beatles, Metallica, Iron Maiden, Slipknot, Angra e o rock nacional. A sala Música continua igual, com tudo que já tinha.",
+  },
+  {
+    id: "2026-09-descricao-salas",
+    data: "2026-09-17",
+    tipo: "melhoria",
+    titulo: "Agora dá pra saber o que cai em cada sala",
+    texto:
+      "Cada sala do Quiz mostra o que realmente cai nela. Ciências diz \"Biologia, Física, Química, Matemática e Tecnologia\"; Futebol diz \"clubes, craques, Copas e Libertadores\". Antes era só \"perguntas de ciências pra todo mundo\".",
+  },
+  {
+    id: "2026-09-busca-jogador",
+    data: "2026-09-17",
+    tipo: "novo",
+    titulo: "Procure qualquer jogador pelo nick",
+    texto:
+      "A lupa no topo do site abre a busca: digite o nick e veja o perfil de quem quiser. Antes só dava pra chegar num perfil clicando no nome de alguém que estava na mesma sala ou no ranking.",
+  },
+  {
+    id: "2026-09-acromania-temas-176",
+    data: "2026-09-17",
+    tipo: "melhoria",
+    titulo: "Acromania: 176 temas e letras mais justas",
+    texto:
+      "Entraram 50 temas novos, como \"O que tinha no bolso daquele casaco\" e \"O robô aspirador está pensando...\". E o sorteio de letras mudou: no máximo duas letras difíceis por rodada e sempre pelo menos duas que ajudam a montar a frase.",
+  },
+  {
+    id: "2026-09-hall-no-menu",
+    data: "2026-09-16",
+    tipo: "melhoria",
+    titulo: "Hall da Fama ganhou lugar no menu",
+    texto:
+      "Os campeões de cada mês encerrado agora estão a um clique, no menu do topo. A página foi reorganizada: os vencedores do mês aparecem primeiro, com quem mais venceu e os recordes de pontuação logo abaixo.",
+  },
+  {
+    id: "2026-09-perfil",
+    data: "2026-09-16",
+    tipo: "melhoria",
+    titulo: "Perfil mais organizado",
+    texto:
+      "Conquistas e ranking mensal agora ficam lado a lado, em vez de uma lista comprida. Dá pra ver os títulos e a pontuação do mês na mesma tela, sem rolar.",
+  },
+  {
+    id: "2026-09-acromania-temas",
+    data: "2026-09-16",
+    tipo: "novo",
+    titulo: "Acromania: de 50 para 125 temas",
+    texto:
+      "Entraram 75 temas em formato de situação — \"Fui despedido porque...\", \"O que tinha dentro da mala?\", \"Algo que você não gostaria de ouvir do piloto do avião\". Com o baralho maior, dá pra jogar umas 16 partidas seguidas sem repetir tema.",
+  },
+  {
+    id: "2026-09-acromania-letras",
+    data: "2026-09-16",
+    tipo: "melhoria",
+    titulo: "Acromania: letras mais fáceis de usar",
+    texto:
+      "X e Z saíram do sorteio, e as letras que rendem mais palavras de ligação — A, E, O, D, P, C, N, M, S, Q, T — passaram a aparecer com mais frequência. A ideia é que a graça esteja na frase, não em achar palavra com letra difícil. O bônus do pódio também subiu pra 1000, 700 e 500.",
+  },
   {
     id: "2026-09-multi-sala",
     data: "2026-09-15",

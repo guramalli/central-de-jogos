@@ -19,8 +19,9 @@ export function setupSocket(io) {
   // no banco (conferir usuário/banimento, streak do dia, plataforma) — e o
   // Neon cobra por tempo de banco acordado. Este Map em memória lembra o
   // que já foi conferido/gravado há pouco e pula as idas repetidas.
-  const conexoesRecentes = new Map(); // userId -> { authOkAte, plataformaEm, diaJogadoEm }
+  const conexoesRecentes = new Map(); // userId -> { authOkAte, plataformaEm, diaJogadoEm, visitaEm }
   const AUTH_CACHE_MS = 60 * 1000; // reconferir usuário/banimento a cada 1 min no máximo
+  const VISITA_CADA_MS = 30 * 60 * 1000; // 30 min: janela de uma sessão
   const PLATAFORMA_CADA_MS = 30 * 60 * 1000; // regravar plataforma a cada 30 min no máximo
   const DIA_JOGADO_CADA_MS = 6 * 60 * 60 * 1000; // streak: conferir no máximo a cada 6h (a função já é diária)
 
@@ -73,6 +74,18 @@ export function setupSocket(io) {
       if (!(recente.diaJogadoEm > agora - DIA_JOGADO_CADA_MS)) {
         recente.diaJogadoEm = agora;
         registrarDiaJogado(payload.id).catch(() => {});
+      }
+
+      // CONTADOR DE VISITAS.
+      //
+      // Conta SESSÃO, não conexão. Sem a janela de 30 minutos, recarregar a
+      // aba ou entrar em duas salas contaria como duas visitas — e o número
+      // que a tela mostra viraria mentira em uma tarde de jogo.
+      if (!(recente.visitaEm > agora - VISITA_CADA_MS)) {
+        recente.visitaEm = agora;
+        prisma.user
+          .update({ where: { id: payload.id }, data: { visitas: { increment: 1 } } })
+          .catch(() => {});
       }
 
       const plataforma = socket.handshake.auth?.plataforma;

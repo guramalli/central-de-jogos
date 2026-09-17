@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import JogadoresOnline from "../components/JogadoresOnline.jsx";
 import { useAcromaniaAtivo } from "../components/useAcromaniaAtivo.js";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
@@ -84,6 +85,18 @@ export default function Home() {
             patentes e <strong>ranking mensal com premiação em dinheiro</strong>. Sem download,
             sem instalação.
           </p>
+          {/* "Tem gente jogando agora" — some quando o site está vazio.
+              
+              É o argumento mais forte que a página tem pra quem está
+              decidindo se cria conta: jogo multiplayer sem ninguém dentro
+              não vale o cadastro. Por isso fica ACIMA da lista de
+              vantagens, não no rodapé. */}
+          <JogadoresOnline
+            jogo="total"
+            texto={(n) =>
+              n === 1 ? "1 pessoa jogando agora" : `${n} pessoas jogando agora`
+            }
+          />
           <ul className="home-hero-points">
             <li>🎮 Grátis pra jogar</li>
             <li>👥 Salas públicas e privadas com amigos</li>

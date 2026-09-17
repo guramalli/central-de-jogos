@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import BarraMensagens from "./components/BarraMensagens.jsx";
 import { useAcromaniaAtivo } from "./components/useAcromaniaAtivo.js";
+import BuscarJogador from "./components/BuscarJogador.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -156,6 +157,13 @@ export default function App() {
   // Dentro de qualquer sala de jogo (Stop ou Quiz) o rodapé some, pra não
   // atrapalhar o espaço da tela do jogo.
   const acromaniaAtivo = useAcromaniaAtivo();
+  const [buscaAberta, setBuscaAberta] = useState(false);
+
+  // Fecha a busca ao trocar de página: sem isto ela ficaria aberta por cima
+  // da tela nova depois de abrir um perfil.
+  useEffect(() => {
+    setBuscaAberta(false);
+  }, [location.pathname]);
 
   const isInsideGameRoom = /^\/jogos\/(stop|quiz|acromania)\/[^/]+/.test(location.pathname);
 
@@ -244,6 +252,28 @@ export default function App() {
           <div className="app-header-right">
             {user ? (
               <>
+                {/* BUSCA DE JOGADORES — lupa, não item de menu.
+                    
+                    A barra já tem nove itens; mais um texto apertaria tudo em
+                    notebook. A lupa é reconhecida sem rótulo e abre um painel
+                    flutuante. */}
+                <button
+                  className="header-busca-btn"
+                  onClick={() => setBuscaAberta((v) => !v)}
+                  title="Procurar jogador"
+                >
+                  <span className="material-symbols-outlined">search</span>
+                </button>
+                {buscaAberta && (
+                  <>
+                    {/* Fundo invisível que fecha ao clicar fora — sem ele o
+                        painel só sairia da tela com Esc. */}
+                    <div className="header-busca-fundo" onClick={() => setBuscaAberta(false)} />
+                    <div className="header-busca-painel">
+                      <BuscarJogador aoFechar={() => setBuscaAberta(false)} />
+                    </div>
+                  </>
+                )}
                 {/* O nick vira a porta de entrada do perfil.
                     Antes ele era um link discreto ao lado de um botão vermelho
                     grande escrito "Deslogar" — o olho ia no botão, e a página
