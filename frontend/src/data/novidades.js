@@ -32,6 +32,38 @@ export const ROTULO_TIPO = {
 
 export const NOVIDADES = [
   {
+    id: "2026-09-mpb-rock",
+    data: "2026-09-17",
+    tipo: "novo",
+    titulo: "Duas salas novas no Quiz: MPB e Rock'n Roll",
+    texto:
+      "São 250 perguntas em cada uma. A MPB vai da bossa nova ao samba, forró, axé e Jovem Guarda. O Rock'n Roll vai do Elvis ao metal — Beatles, Metallica, Iron Maiden, Slipknot, Angra e o rock nacional. A sala Música continua igual, com tudo que já tinha.",
+  },
+  {
+    id: "2026-09-descricao-salas",
+    data: "2026-09-17",
+    tipo: "melhoria",
+    titulo: "Agora dá pra saber o que cai em cada sala",
+    texto:
+      "Cada sala do Quiz mostra o que realmente cai nela. Ciências diz \"Biologia, Física, Química, Matemática e Tecnologia\"; Futebol diz \"clubes, craques, Copas e Libertadores\". Antes era só \"perguntas de ciências pra todo mundo\".",
+  },
+  {
+    id: "2026-09-busca-jogador",
+    data: "2026-09-17",
+    tipo: "novo",
+    titulo: "Procure qualquer jogador pelo nick",
+    texto:
+      "A lupa no topo do site abre a busca: digite o nick e veja o perfil de quem quiser. Antes só dava pra chegar num perfil clicando no nome de alguém que estava na mesma sala ou no ranking.",
+  },
+  {
+    id: "2026-09-acromania-temas-176",
+    data: "2026-09-17",
+    tipo: "melhoria",
+    titulo: "Acromania: 176 temas e letras mais justas",
+    texto:
+      "Entraram 50 temas novos, como \"O que tinha no bolso daquele casaco\" e \"O robô aspirador está pensando...\". E o sorteio de letras mudou: no máximo duas letras difíceis por rodada e sempre pelo menos duas que ajudam a montar a frase.",
+  },
+  {
     id: "2026-09-hall-no-menu",
     data: "2026-09-16",
     tipo: "melhoria",
