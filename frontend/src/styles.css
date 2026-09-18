@@ -4303,7 +4303,22 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 @media (max-width: 800px) { .hall-blocos { grid-template-columns: 1fr; } }
 
 /* Cada jogo é um bloco dentro do card "quem mais venceu". */
-.hall-bloco-jogo + .hall-bloco-jogo { margin-top: 16px; }
+/* Cada grupo vira um BLOCO COM BORDA, igual aos das marcas vitalícias lá
+ * embaixo. Solto no card, um grupo de uma linha não parecia um conjunto —
+ * o rótulo "STOP" ficava boiando perto do "QUIZ" do lado.
+ *
+ * A margem entre blocos empilhados sai: quem separa agora é o gap da grade.
+ */
+.hall-bloco-jogo {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+/* A última linha de cada bloco não precisa de risco: a borda do bloco já
+   fecha o conjunto. */
+.hall-bloco-jogo .hall-linha:last-child { border-bottom: none; padding-bottom: 0; }
+.hall-bloco-jogo .hall-linha:first-of-type { padding-top: 2px; }
 .hall-jogo-titulo {
   margin: 0 0 4px;
   font-size: 12px;
@@ -4319,8 +4334,8 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
  * por quantidade. */
 .hall-jogos-grade {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 8px 22px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
   /* Alinha as colunas pelo TOPO: sem isto, um grupo com duas linhas estica
      e os de uma linha ficam centrados na altura dele, desencontrados. */
   align-items: start;
