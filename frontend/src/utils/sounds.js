@@ -100,50 +100,56 @@ export function playMessageSound() {
 
 /* ===== ACROMANIA =====
  *
- * Sons sintetizados, não arquivos: o jogo tem quatro momentos e gravar quatro
- * mp3 pesaria no carregamento pra algo que dois bipes resolvem.
+ * DOIS sons só: a rodada começando e a contagem dos últimos 5 segundos.
  *
- * Respeitam o MESMO mudo do Quiz (`muted`), porque quem desliga o som num
- * jogo não quer ouvir no outro — e o Acromania costuma ser jogado em outra
- * aba, junto com o Stop.
+ * Tinha resultado e palmas também, e saíram por decisão do Gustavinho — som
+ * demais em partida longa vira ruído e a pessoa desliga tudo, perdendo junto
+ * os avisos que importam.
  *
- * Cada som tem um DESENHO diferente, não só um tom diferente: quem está em
- * quatro salas precisa saber o que aconteceu sem olhar.
+ * Família arcade (onda quadrada, notas curtas): combina com a cara do site,
+ * que já é de fliperama — Stop em letras grandes, logos com contorno.
+ *
+ * Respeitam o mesmo mudo do Quiz: quem desliga num jogo não quer ouvir no
+ * outro, e os dois ficam abertos juntos.
  */
 
-// Rodada começa: sobe, é o chamado pra ação.
+// Envelope com ataque e queda. Corte seco estala no alto-falante.
+function tomArcade(freq, dur, delay = 0, vol = 0.1) {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "square";
+  osc.frequency.value = freq;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  const t = ctx.currentTime + delay;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+
+// RODADA COMEÇA — escadinha de três notas subindo (sol, dó, mi).
+//
+// Sobe e RESOLVE na última nota: som que para no meio soa como pergunta, não
+// como largada. A terceira nota é mais longa de propósito, pra fechar.
 export function playAcromaniaRoundStart() {
   if (muted) return;
-  beep(520, 0.1, 0, "triangle", 0.14);
-  beep(700, 0.12, 0.09, "triangle", 0.14);
+  tomArcade(392, 0.07, 0, 0.1);
+  tomArcade(523, 0.07, 0.07, 0.1);
+  tomArcade(659, 0.16, 0.14, 0.11);
 }
 
-// Votação abre: dois toques iguais, como quem bate na mesa pedindo atenção.
-export function playAcromaniaVotingStart() {
+// CONTAGEM — um toque por segundo, dos 5 até o 1.
+//
+// O tom sobe a cada segundo: cinco toques iguais não diriam quanto falta.
+// O último é mais longo e mais alto, pra marcar o fim.
+export function playAcromaniaTick(segundosRestantes) {
   if (muted) return;
-  beep(660, 0.08, 0, "square", 0.1);
-  beep(660, 0.08, 0.14, "square", 0.1);
-}
-
-// Resultado: acorde de três notas subindo — o único "alegre" do conjunto.
-export function playAcromaniaResult() {
-  if (muted) return;
-  beep(523, 0.12, 0, "sine", 0.14);
-  beep(659, 0.12, 0.1, "sine", 0.14);
-  beep(784, 0.2, 0.2, "sine", 0.14);
-}
-
-// Recebeu um voto: curto e agudo, pra não atrapalhar quem ainda está lendo
-// as outras frases.
-export function playAcromaniaVoteReceived() {
-  if (muted) return;
-  beep(1046, 0.07, 0, "sine", 0.1);
-}
-
-// Tempo acabando (5s): desce, é aviso. Volume mais baixo que os outros
-// porque toca enquanto a pessoa está digitando.
-export function playAcromaniaTimeWarning() {
-  if (muted) return;
-  beep(440, 0.1, 0, "sawtooth", 0.09);
-  beep(330, 0.14, 0.1, "sawtooth", 0.09);
+  const passo = Math.max(0, Math.min(4, 5 - segundosRestantes));
+  const freq = 660 + passo * 80; // 660, 740, 820, 900, 980
+  const ultimo = segundosRestantes <= 1;
+  tomArcade(freq, ultimo ? 0.24 : 0.07, 0, ultimo ? 0.13 : 0.09);
 }

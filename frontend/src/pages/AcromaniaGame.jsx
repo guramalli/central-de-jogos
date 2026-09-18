@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState , useCallback, useMemo} from "react";
 import {
   playAcromaniaRoundStart,
-  playAcromaniaVotingStart,
-  playAcromaniaResult,
-  playAcromaniaTimeWarning,
+  playAcromaniaTick,
   isSoundMuted,
   toggleSoundMuted,
 } from "../utils/sounds.js";
@@ -57,12 +55,18 @@ export default function AcromaniaGame() {
   useEffect(() => {
     const antes = tempoAnteriorRef.current;
     tempoAnteriorRef.current = timeLeft;
-    // Só na fase de escrita: na votação o tempo é curto e um aviso ali
+
+    // CONTAGEM FINAL: um toque por segundo, dos 5 até o 1.
+    //
+    // Só na fase de escrita — na votação o tempo é curto e o tique
     // atrapalharia quem está lendo as frases.
+    //
+    // A comparação com o segundo ANTERIOR é o que impede repetição: o tempo
+    // vem do servidor e o mesmo valor pode chegar mais de uma vez. Sem ela,
+    // o tique dispararia várias vezes no mesmo segundo.
     if (phase !== "writing") return;
-    if (antes !== null && antes > 5 && timeLeft <= 5 && timeLeft > 0) {
-      playAcromaniaTimeWarning();
-    }
+    if (antes === null || timeLeft >= antes) return;
+    if (timeLeft > 0 && timeLeft <= 5) playAcromaniaTick(timeLeft);
   }, [timeLeft, phase]);
   const [theme, setTheme] = useState("");
   const [letters, setLetters] = useState([]);
@@ -281,7 +285,6 @@ export default function AcromaniaGame() {
     );
 
     socket.on("acromania-voting-start", (data) => {
-      playAcromaniaVotingStart();
       setPhase("voting");
       setVotingEntries(data.entries || []);
       setTotalSeconds(data.seconds);
@@ -306,7 +309,6 @@ export default function AcromaniaGame() {
     });
 
     socket.on("acromania-round-result", (data) => {
-      playAcromaniaResult();
       setPhase("grading");
       setLastResult(data);
       setVotingEntries([]);
