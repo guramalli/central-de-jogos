@@ -4230,13 +4230,58 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 /* As regras .hall-numeros e .hall-numero saíram: os três painéis viraram
    uma linha de texto (.hall-resumo). */
 
-/* Card das marcas vitalícias — largura inteira, abaixo dos dois de cima.
-   Três linhas só; espremer num dos lados desperdiçaria espaço. */
+/* Card das marcas vitalícias, em três blocos.
+ *
+ * Era uma lista em linha, e não funcionava: rótulos de comprimentos
+ * diferentes faziam os nicks começarem em pontos distintos, e o valor ficava
+ * na outra ponta da tela, longe de quem o conquistou. */
 .hall-marcas { margin-bottom: 20px; }
-.hall-marcas .hall-pos {
-  min-width: 190px;
+.hall-marcas-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 4px;
+}
+.hall-marca {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.hall-marca-rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
   color: var(--text-dim);
-  font-size: 13px;
+}
+/* O número é o protagonista do bloco: entra grande e com a cor de destaque. */
+.hall-marca-valor {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 2px;
+}
+.hall-marca-valor small {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  letter-spacing: 0;
+}
+.hall-marca-nick { font-weight: 700; font-size: 15px; }
+.hall-marca-onde { font-size: 11px; color: var(--text-dim); }
+
+/* Uma coluna no celular: três blocos lado a lado ficariam estreitos demais
+   pro número grande, que é o ponto deles. */
+@media (max-width: 800px) {
+  .hall-marcas-grade { grid-template-columns: 1fr; }
 }
 
 .hall-blocos {

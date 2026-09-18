@@ -25,9 +25,12 @@ function formatarTempo(minutos) {
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
   if (horas < 24) return resto > 0 ? `${horas}h ${resto}min` : `${horas}h`;
-  const dias = Math.floor(horas / 24);
-  const horasResto = horas % 24;
-  return horasResto > 0 ? `${dias}d ${horasResto}h` : `${dias}d`;
+  // Acima de um dia, mostra em HORAS, não em dias.
+  //
+  // "7d" parece pouco e esconde o esforço: são 168 horas de jogo. O número
+  // grande é justamente o que faz a marca impressionar — e dias arredondam
+  // demais (7d cobre de 168h a 191h).
+  return `${horas.toLocaleString("pt-BR")}h`;
 }
 
 export default function RankingHistory() {
@@ -237,67 +240,70 @@ export default function RankingHistory() {
               <div className="card hall-marcas">
                 <h2>🏅 Marcas de todos os tempos</h2>
 
-                {stats.marcas.sequenciaQuiz && (
-                  <div className="hall-linha">
-                    <span className="hall-pos">Maior sequência de acertos no Quiz</span>
-                    <Link
-                      to={`/jogador/${stats.marcas.sequenciaQuiz.userId}`}
-                      className="hall-nick"
-                    >
-                      {stats.marcas.sequenciaQuiz.nickname}
-                    </Link>
-                    <span className="hall-valor">
-                      {stats.marcas.sequenciaQuiz.valor.toLocaleString("pt-BR")}
-                      <small>
-                        {stats.marcas.sequenciaQuiz.sala
-                          ? ` · ${stats.marcas.sequenciaQuiz.sala}`
-                          : " acertos"}
-                      </small>
-                    </span>
-                  </div>
-                )}
-
-                {/* "nas salas oficiais", não "no Stop".
+                {/* TRÊS BLOCOS, não linhas de tabela.
                     
-                    O contador (`StopStat`) só registra em salas com tempo
-                    mínimo de 40, 15 ou 5 segundos — as oficiais —, e ignora
-                    salas privadas e sem pontuação. Ele também só existe
-                    desde que os títulos de perfil entraram no ar, então não
-                    tem o histórico anterior.
+                    Em linha, cada rótulo tinha um comprimento diferente, então
+                    os nicks começavam em pontos distintos e o valor ia parar
+                    na outra ponta da tela — a marca, o dono e o número não
+                    pareciam da mesma linha.
                     
-                    Chamar isso de "total de STOPs" seria mostrar um número
-                    que o próprio jogador sabe estar baixo. O rótulo diz o
-                    que a marca realmente mede. */}
-                {stats.marcas.stopsTotal && (
-                  <div className="hall-linha">
-                    <span className="hall-pos">Mais STOPs nas salas oficiais</span>
-                    <Link
-                      to={`/jogador/${stats.marcas.stopsTotal.userId}`}
-                      className="hall-nick"
-                    >
-                      {stats.marcas.stopsTotal.nickname}
-                    </Link>
-                    <span className="hall-valor">
-                      {stats.marcas.stopsTotal.valor.toLocaleString("pt-BR")}
-                      <small> stops</small>
-                    </span>
-                  </div>
-                )}
+                    Em bloco, cada marca é uma unidade fechada: o número em
+                    destaque, o nick embaixo e o rótulo em cima. */}
+                <div className="hall-marcas-grade">
+                  {stats.marcas.sequenciaQuiz && (
+                    <div className="hall-marca">
+                      <span className="hall-marca-rotulo">Maior sequência no Quiz</span>
+                      <span className="hall-marca-valor">
+                        {stats.marcas.sequenciaQuiz.valor.toLocaleString("pt-BR")}
+                        <small>acertos seguidos</small>
+                      </span>
+                      <Link
+                        to={`/jogador/${stats.marcas.sequenciaQuiz.userId}`}
+                        className="hall-marca-nick"
+                      >
+                        {stats.marcas.sequenciaQuiz.nickname}
+                      </Link>
+                      {stats.marcas.sequenciaQuiz.sala && (
+                        <span className="hall-marca-onde">
+                          {stats.marcas.sequenciaQuiz.sala}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                {stats.marcas.tempoDeJogo && (
-                  <div className="hall-linha">
-                    <span className="hall-pos">Mais tempo de jogo</span>
-                    <Link
-                      to={`/jogador/${stats.marcas.tempoDeJogo.userId}`}
-                      className="hall-nick"
-                    >
-                      {stats.marcas.tempoDeJogo.nickname}
-                    </Link>
-                    <span className="hall-valor">
-                      {formatarTempo(stats.marcas.tempoDeJogo.valor)}
-                    </span>
-                  </div>
-                )}
+                  {stats.marcas.stopsTotal && (
+                    <div className="hall-marca">
+                      <span className="hall-marca-rotulo">Mais STOPs pedidos</span>
+                      <span className="hall-marca-valor">
+                        {stats.marcas.stopsTotal.valor.toLocaleString("pt-BR")}
+                        <small>stops</small>
+                      </span>
+                      <Link
+                        to={`/jogador/${stats.marcas.stopsTotal.userId}`}
+                        className="hall-marca-nick"
+                      >
+                        {stats.marcas.stopsTotal.nickname}
+                      </Link>
+                      <span className="hall-marca-onde">salas oficiais</span>
+                    </div>
+                  )}
+
+                  {stats.marcas.tempoDeJogo && (
+                    <div className="hall-marca">
+                      <span className="hall-marca-rotulo">Mais tempo de jogo</span>
+                      <span className="hall-marca-valor">
+                        {formatarTempo(stats.marcas.tempoDeJogo.valor)}
+                      </span>
+                      <Link
+                        to={`/jogador/${stats.marcas.tempoDeJogo.userId}`}
+                        className="hall-marca-nick"
+                      >
+                        {stats.marcas.tempoDeJogo.nickname}
+                      </Link>
+                      <span className="hall-marca-onde">em partida</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
         </>
