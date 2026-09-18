@@ -117,6 +117,16 @@ export function setupSocket(io) {
     // página. É daqui que o painel admin tira quem está online.
     presence.addConnection(socket, userId, nickname);
 
+    // SALA PESSOAL — um canal direto pra cada usuário.
+    //
+    // As DMs já existiam, mas só funcionam com os dois com a janela de
+    // conversa aberta. O convite precisa alcançar o amigo ONDE ELE ESTIVER:
+    // jogando outra sala, no lobby, lendo o ranking.
+    //
+    // Como toda conexão entra aqui, `io.to("user:<id>")` chega em todas as
+    // abas da pessoa de uma vez.
+    socket.join(`user:${userId}`);
+
     socket.on("join-stop-room", async ({ roomId } = {}) => {
       // Sala privada com senha só aceita quem passou pela conferência na
       // tela de entrada. Sem isso, bastaria ter o link pra furar a senha.
@@ -377,6 +387,75 @@ export function setupSocket(io) {
     });
 
     // ===== Mensagem privada (só entre amigos) =====
+    // CONVIDAR UM AMIGO PRA SALA EM QUE ESTOU.
+    //
+    // Regras, e cada uma tem motivo:
+    //   - só amigo confirmado. Sem isso o convite vira porta pra spam de
+    //     estranho, que é o que mata chat de jogo;
+    //   - um convite por par a cada 60s. Impede insistência em sequência;
+    //   - preciso estar REALMENTE na sala que digo estar — o servidor lê de
+    //     `socket.currentRoom`, não confia no que o cliente manda.
+    const conviteRecente = new Map(); // "de:para" -> timestamp
+    socket.on("convidar-para-sala", async ({ amigoId } = {}) => {
+      try {
+        if (!amigoId || amigoId === userId) return;
+
+        // `socket.currentRoom` guarda o OBJETO da sala, não o id — foi o que
+        // me confundiu na primeira versão. O id e o nome saem de dentro dele.
+        const sala = socket.currentRoom;
+        if (!sala?.roomId) {
+          socket.emit("convite-resultado", { ok: false, erro: "Você não está numa sala." });
+          return;
+        }
+
+        const chave = `${userId}:${amigoId}`;
+        const agora = Date.now();
+        if (agora - (conviteRecente.get(chave) || 0) < 60000) {
+          socket.emit("convite-resultado", {
+            ok: false,
+            erro: "Você convidou essa pessoa há pouco. Espere um minuto.",
+          });
+          return;
+        }
+
+        // Amizade aceita, em qualquer direção (quem pediu pode ser um ou outro).
+        const amizade = await prisma.friendship.findFirst({
+          where: {
+            status: "accepted",
+            OR: [
+              { userAId: userId, userBId: amigoId },
+              { userAId: amigoId, userBId: userId },
+            ],
+          },
+        });
+        if (!amizade) {
+          socket.emit("convite-resultado", { ok: false, erro: "Vocês não são amigos." });
+          return;
+        }
+
+        conviteRecente.set(chave, agora);
+
+        // O jogo sai do PREFIXO do id da sala ("quiz-games-facil",
+        // "acromania-sala-1"); o Stop não tem prefixo e é o padrão.
+        const id = sala.roomId;
+        const jogo = id.startsWith("quiz-") ? "quiz" : id.startsWith("acromania-") ? "acromania" : "stop";
+
+        io.to(`user:${amigoId}`).emit("convite-de-sala", {
+          de: nickname,
+          deId: userId,
+          jogo,
+          sala: id,
+          salaLabel: sala.label || id,
+          em: agora,
+        });
+
+        socket.emit("convite-resultado", { ok: true });
+      } catch (err) {
+        console.error("Falha ao convidar:", err.message);
+        socket.emit("convite-resultado", { ok: false, erro: "Não foi possível convidar agora." });
+      }
+    });
+
     socket.on("join-dm", async ({ friendUserId } = {}) => {
       if (!friendUserId) return;
       const friendship = await prisma.friendship.findFirst({

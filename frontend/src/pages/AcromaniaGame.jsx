@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState , useCallback, useMemo} from "react";
+import {
+  playAcromaniaRoundStart,
+  playAcromaniaTick,
+  isSoundMuted,
+  toggleSoundMuted,
+} from "../utils/sounds.js";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSocket } from "../socket.js";
 import Chat from "../components/Chat.jsx";
 import ProfileTooltip from "../components/ProfileTooltip.jsx";
 import InviteButton from "../components/InviteButton.jsx";
+import ConvidarAmigo from "../components/ConvidarAmigo.jsx";
 import QuizTimerRing from "../components/QuizTimerRing.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
@@ -37,6 +44,30 @@ export default function AcromaniaGame() {
   const [abaMobile, setAbaMobile] = useState("jogo");
   const [phase, setPhase] = useState("intermission");
   const [timeLeft, setTimeLeft] = useState(0);
+  // Guarda o segundo anterior pra o aviso tocar UMA vez.
+  //
+  // O tempo vem do servidor a cada atualização, não de um contador local —
+  // sem esta trava, qualquer reemissão do mesmo valor faria o aviso tocar de
+  // novo. O toque só sai quando o contador CRUZA os 5 segundos.
+  const tempoAnteriorRef = useRef(null);
+  const [mudo, setMudo] = useState(() => isSoundMuted());
+
+  useEffect(() => {
+    const antes = tempoAnteriorRef.current;
+    tempoAnteriorRef.current = timeLeft;
+
+    // CONTAGEM FINAL: um toque por segundo, dos 5 até o 1.
+    //
+    // Só na fase de escrita — na votação o tempo é curto e o tique
+    // atrapalharia quem está lendo as frases.
+    //
+    // A comparação com o segundo ANTERIOR é o que impede repetição: o tempo
+    // vem do servidor e o mesmo valor pode chegar mais de uma vez. Sem ela,
+    // o tique dispararia várias vezes no mesmo segundo.
+    if (phase !== "writing") return;
+    if (antes === null || timeLeft >= antes) return;
+    if (timeLeft > 0 && timeLeft <= 5) playAcromaniaTick(timeLeft);
+  }, [timeLeft, phase]);
   const [theme, setTheme] = useState("");
   const [letters, setLetters] = useState([]);
   const [totalSeconds, setTotalSeconds] = useState(60);
@@ -217,6 +248,7 @@ export default function AcromaniaGame() {
     });
 
     socket.on("acromania-round-start", (data) => {
+      playAcromaniaRoundStart();
       setPhase("writing");
       setTheme(data.theme);
       setLetters(data.letters);
@@ -407,6 +439,18 @@ export default function AcromaniaGame() {
             url={`${window.location.origin}/jogos/acromania/${roomId}`}
             message="Vem jogar Acromania comigo agora! 🎮"
           />
+          {/* Chamar amigo que já está no site. */}
+          <ConvidarAmigo socketDaSala={socketRef.current} />
+          {/* Botão de som — o Acromania não tinha nenhum, e agora tem o que
+              silenciar. Usa o MESMO mudo do Quiz: quem desliga num jogo não
+              quer ouvir no outro. */}
+          <button
+            className="quiz-mute-btn"
+            onClick={() => setMudo(toggleSoundMuted())}
+            title={mudo ? "Ativar som" : "Desativar som"}
+          >
+            {mudo ? "🔇" : "🔊"}
+          </button>
           <Link to="/jogos/acromania" className="room-exit-btn" title="Sair da sala">
             🚪 Sair da sala
           </Link>

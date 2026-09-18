@@ -2911,6 +2911,189 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   .multi-chamada { padding: 12px 14px; }
 }
 
+/* ===== CONVIDAR AMIGO PRA SALA ===== */
+.convidar-amigo { position: relative; display: inline-block; }
+.convidar-amigo-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.convidar-amigo-btn:hover { border-color: var(--accent-3); color: var(--text); }
+
+.convidar-amigo-lista {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 80;
+  width: 240px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.convidar-amigo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.convidar-amigo-item:hover:not(:disabled) { background: var(--bg-panel-2); }
+.convidar-amigo-item:disabled { opacity: 0.45; cursor: default; }
+.convidar-amigo-nome { display: flex; align-items: center; gap: 7px; }
+/* Ponto verde pra quem está no site; apagado pra quem não está. */
+.convidar-amigo-ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+.convidar-amigo-ponto.on { background: var(--accent-3); }
+.convidar-amigo-acao { font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+.convidar-amigo-vazio {
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+  margin: 10px 0;
+}
+
+/* Confirmação de que o convite saiu — aparece logo acima do botão.
+ *
+ * Fica ANCORADO no botão, não no canto da tela: o aviso do canto já é usado
+ * pelo convite RECEBIDO, e dois avisos iguais em lugares diferentes
+ * confundiriam quem está jogando. */
+.convite-aviso {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 85;
+  white-space: nowrap;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  animation: convite-aviso-entra 0.2s ease;
+}
+.convite-aviso.ok {
+  background: var(--accent-3);
+  color: #06281f;
+}
+.convite-aviso.erro {
+  background: #3a2020;
+  color: #ffb3a7;
+  border: 1px solid #a33;
+  white-space: normal;
+  max-width: 230px;
+}
+@keyframes convite-aviso-entra {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ===== AVISO DE CONVITE RECEBIDO =====
+ *
+ * `position: fixed` no canto: o convite tem que aparecer por cima do jogo em
+ * andamento, sem empurrar nada da tela. Quem está no meio de uma rodada não
+ * pode ter o layout mexido por um aviso. */
+.convite-sala {
+  position: fixed;
+  /* CANTO ESQUERDO, não o direito.
+   *
+   * O canto inferior direito é onde vivem os botões flutuantes de chat e
+   * suporte — os do site e os que o próprio navegador ou extensões colocam.
+   * O convite ficava por baixo deles, e o botão "Agora não" não dava pra
+   * clicar. À esquerda não há nada disputando. */
+  left: 16px;
+  bottom: 16px;
+  z-index: 300;
+  width: 280px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 2px solid var(--accent-3);
+  background: var(--bg-panel);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  animation: convite-entra 0.25s ease;
+}
+@keyframes convite-entra {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.convite-sala-texto { font-size: 14px; line-height: 1.45; margin-bottom: 12px; }
+.convite-sala-local { color: var(--accent-2); font-weight: 700; }
+.convite-sala-botoes { display: flex; gap: 8px; }
+.convite-sala-aceitar {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-3);
+  color: #06281f;
+  font-weight: 700;
+  cursor: pointer;
+}
+.convite-sala-recusar {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  /* No celular ocupa a largura toda: tela estreita não comporta um cartão
+     de 280px sem espremer o conteúdo atrás. */
+  .convite-sala { left: 12px; right: 12px; width: auto; }
+}
+
+/* Selo de "jogando agora" nos cards do lobby. */
+.jogadores-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(6, 214, 160, 0.14);
+  border: 1px solid var(--accent-3);
+  color: var(--accent-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+/* O ponto pulsa: é o que diferencia "agora" de um número estático. */
+.jogadores-online-ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-3);
+  animation: pulso-online 1.8s infinite;
+}
+@keyframes pulso-online {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+/* Quem prefere menos movimento na tela não vê o pisca. */
+@media (prefers-reduced-motion: reduce) {
+  .jogadores-online-ponto { animation: none; }
+}
+
 /* ===== BUSCA DE JOGADORES ===== */
 .header-busca-btn {
   background: none;
@@ -5977,6 +6160,45 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .admin-online-msg:hover { color: var(--accent-2); border-color: var(--accent-2); }
 .admin-online-msg .material-symbols-outlined { font-size: 16px; }
+
+/* Salas em etiquetas, agrupadas por jogo.
+ *
+ * Substitui a linha corrida "Quiz: Futebol · Quiz: Rock · Quiz: Esportes…",
+ * que ficava ilegível quando alguém jogava em seis salas pelo multi-sala.
+ * O nome do jogo aparece UMA vez por grupo, e cada sala vira uma etiqueta. */
+.admin-online-salas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.admin-online-jogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.admin-online-jogo-nome {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.admin-online-sala {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+/* Muitas salas: quebra em linhas em vez de espremer tudo numa só. */
+@media (max-width: 900px) {
+  .admin-online-salas { justify-content: flex-start; width: 100%; margin-left: 0; }
+}
 
 .admin-online-row {
   display: flex;

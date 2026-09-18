@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import BarraMensagens from "./components/BarraMensagens.jsx";
 import { useAcromaniaAtivo } from "./components/useAcromaniaAtivo.js";
 import BuscarJogador from "./components/BuscarJogador.jsx";
+import ConviteDeSala from "./components/ConviteDeSala.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { Routes, Route, Navigate, Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -249,6 +250,7 @@ export default function App() {
               existir pra grade não colapsar de três pra duas colunas. */}
           {!user && <div />}
 
+          <ConviteDeSala />
           <div className="app-header-right">
             {user ? (
               <>

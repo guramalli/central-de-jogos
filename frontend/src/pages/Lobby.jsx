@@ -9,6 +9,7 @@ import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
 import NovidadeBanner from "../components/NovidadeBanner.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../data/novidades.js";
+import JogadoresOnline from "../components/JogadoresOnline.jsx";
 import PainelDoJogador from "../components/PainelDoJogador.jsx";
 import GeneralChatWidget from "../components/GeneralChatWidget.jsx";
 
@@ -113,6 +114,7 @@ export default function Lobby() {
           <img src="/stop-logo.png" alt="Stop!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Stop</h3>
+            <JogadoresOnline jogo="stop" />
             <p className="lobby-game-desc">
               Aqui não adianta saber todos os temas: tem que ser rápido de verdade. 6 temas, 1 letra
               sorteada, e quem hesita perde a rodada pro dedo mais veloz da sala.
@@ -127,6 +129,7 @@ export default function Lobby() {
           <img src={theme === "light" ? "/quiz-logo-light.png" : "/quiz-logo.png"} alt="Quiz!" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Quiz</h3>
+            <JogadoresOnline jogo="quiz" />
             <p className="lobby-game-desc">
               Perguntas por tema — Esportes, Ciências, História, Cinema e Letras. Quem acerta
               primeiro leva os pontos!
@@ -146,6 +149,7 @@ export default function Lobby() {
           <img src={theme === "light" ? "/acromania-logo-light.png" : "/acromania-logo.png"} alt="Acromania" className="lobby-game-logo" />
           <div>
             <h3 className="lobby-game-title">Acromania</h3>
+            <JogadoresOnline jogo="acromania" />
             <p className="lobby-game-desc">
               Um tema, algumas letras, e você cria a frase mais criativa possível — a galera vota
               na melhor. Quanto mais gente na sala, melhor fica.

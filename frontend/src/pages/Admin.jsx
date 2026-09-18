@@ -567,7 +567,38 @@ export default function Admin() {
                         </span>
                       )}
                     </span>
-                    <span className="admin-online-where">{p.local}</span>
+                    {/* SALAS EM ETIQUETAS, AGRUPADAS POR JOGO.
+                        
+                        O servidor manda `locais` estruturado e também um
+                        texto pronto (`p.local`) com tudo junto separado por
+                        "·". Com uma ou duas salas dava pra ler; com seis, no
+                        multi-sala, virava uma linha corrida ilegível — e era
+                        justamente aí que interessava saber onde a pessoa
+                        está.
+                        
+                        Aqui a estrutura é usada: agrupa por jogo, mostra o
+                        jogo uma vez só e as salas como etiquetas. */}
+                    {p.locais?.length > 0 ? (
+                      <span className="admin-online-salas">
+                        {Object.entries(
+                          p.locais.reduce((acc, l) => {
+                            (acc[l.jogo] = acc[l.jogo] || []).push(l.sala);
+                            return acc;
+                          }, {})
+                        ).map(([jogo, salas]) => (
+                          <span key={jogo} className="admin-online-jogo">
+                            <span className="admin-online-jogo-nome">{jogo}</span>
+                            {salas.map((sala, i) => (
+                              <span key={i} className="admin-online-sala">
+                                {sala}
+                              </span>
+                            ))}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <span className="admin-online-where">{p.local}</span>
+                    )}
                     {/* Conversa direta com quem está online AGORA — é quem
                         você consegue alcançar na hora. Sem isto era preciso
                         ir até a aba Jogadores e achar a pessoa numa lista

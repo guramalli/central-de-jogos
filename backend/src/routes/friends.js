@@ -5,12 +5,27 @@ import { getAllOnlineUserIds as getStopOnline } from "../game/gameManager.js";
 import { getAllOnlineUserIds as getQuizOnline } from "../game/quizGameManager.js";
 import { getAllOnlineUserIds as getAcromaniaOnline } from "../game/acromaniaGameManager.js";
 import { cacheInvalidar } from "../utils/cache.js";
+import { getOnlineList } from "../game/presence.js";
 
 const router = Router();
 router.use(requireAuth);
 
+// ONLINE = está no site, não só "dentro de uma sala de jogo".
+//
+// As três funções abaixo só enxergam quem está numa partida. Quem está no
+// lobby, no ranking ou no próprio perfil aparecia como OFFLINE pros amigos —
+// e, no convite de sala, nem dava pra clicar nele.
+//
+// `getOnlineList()` é a presença global: toda conexão autenticada entra ali,
+// em qualquer página. As de jogo continuam somando por segurança, caso
+// alguma sala registre alguém que a presença não pegou.
 function getOnlineUserIds() {
-  return new Set([...getStopOnline(), ...getQuizOnline(), ...getAcromaniaOnline()]);
+  return new Set([
+    ...getOnlineList().map((p) => p.userId),
+    ...getStopOnline(),
+    ...getQuizOnline(),
+    ...getAcromaniaOnline(),
+  ]);
 }
 
 // Lista os amigos aceitos (com status online) + pedidos pendentes (enviados
