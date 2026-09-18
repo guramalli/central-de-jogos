@@ -97,3 +97,53 @@ export function playMessageSound() {
   beep(880, 0.08, 0, "sine", 0.12);
   beep(1180, 0.1, 0.08, "sine", 0.12);
 }
+
+/* ===== ACROMANIA =====
+ *
+ * Sons sintetizados, não arquivos: o jogo tem quatro momentos e gravar quatro
+ * mp3 pesaria no carregamento pra algo que dois bipes resolvem.
+ *
+ * Respeitam o MESMO mudo do Quiz (`muted`), porque quem desliga o som num
+ * jogo não quer ouvir no outro — e o Acromania costuma ser jogado em outra
+ * aba, junto com o Stop.
+ *
+ * Cada som tem um DESENHO diferente, não só um tom diferente: quem está em
+ * quatro salas precisa saber o que aconteceu sem olhar.
+ */
+
+// Rodada começa: sobe, é o chamado pra ação.
+export function playAcromaniaRoundStart() {
+  if (muted) return;
+  beep(520, 0.1, 0, "triangle", 0.14);
+  beep(700, 0.12, 0.09, "triangle", 0.14);
+}
+
+// Votação abre: dois toques iguais, como quem bate na mesa pedindo atenção.
+export function playAcromaniaVotingStart() {
+  if (muted) return;
+  beep(660, 0.08, 0, "square", 0.1);
+  beep(660, 0.08, 0.14, "square", 0.1);
+}
+
+// Resultado: acorde de três notas subindo — o único "alegre" do conjunto.
+export function playAcromaniaResult() {
+  if (muted) return;
+  beep(523, 0.12, 0, "sine", 0.14);
+  beep(659, 0.12, 0.1, "sine", 0.14);
+  beep(784, 0.2, 0.2, "sine", 0.14);
+}
+
+// Recebeu um voto: curto e agudo, pra não atrapalhar quem ainda está lendo
+// as outras frases.
+export function playAcromaniaVoteReceived() {
+  if (muted) return;
+  beep(1046, 0.07, 0, "sine", 0.1);
+}
+
+// Tempo acabando (5s): desce, é aviso. Volume mais baixo que os outros
+// porque toca enquanto a pessoa está digitando.
+export function playAcromaniaTimeWarning() {
+  if (muted) return;
+  beep(440, 0.1, 0, "sawtooth", 0.09);
+  beep(330, 0.14, 0.1, "sawtooth", 0.09);
+}
