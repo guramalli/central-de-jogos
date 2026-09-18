@@ -2569,7 +2569,12 @@ table.player-table.player-table-compact td {
   .sc-bottom-grid { gap: 8px; }
 
   /* ===== Quiz ===== */
-  .quiz-stats-bar { padding: 10px 12px; flex-direction: column; align-items: center; text-align: center; }
+  .quiz-stats-bar {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch; /* era center: com center os filhos ficam do tamanho do conteúdo */
+    text-align: center;
+  }
   /* A BARRA já virava coluna aqui, mas o GRUPO DE BOTÕES continuava numa
      linha só — e com o "Chamar amigo" novo ele passou da largura da tela,
      levando o cronômetro pra fora.
@@ -2577,12 +2582,25 @@ table.player-table.player-table-compact td {
      Escrevi uma regra em @media 700px antes de achar esta, e ela perdia:
      esta vem depois no arquivo e ganha por ordem. A correção tem que estar
      AQUI. */
+  /* A barra já virava coluna aqui, mas a LINHA DOS BOTÕES continuava numa
+     fila só e passava da largura da tela, levando o cronômetro pra fora.
+     
+     `max-width: 100%` junto do `width`: com `flex-direction: column` no pai
+     e `align-items: center`, o filho pega a largura do CONTEÚDO e transborda
+     — o `width: 100%` sozinho não segura, porque o conteúdo já definiu uma
+     largura maior. É o max-width que impõe o teto e faz o wrap acontecer. */
   .quiz-timer-group {
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;
+    max-width: 100%;
     row-gap: 8px;
   }
+  /* Os botões encolhem em vez de empurrar. Sem isto, três rótulos longos
+     ("Chamar amigo", "Sair da sala") ocupam mais que a tela sozinhos. */
+  .quiz-timer-group > * { flex-shrink: 1; min-width: 0; }
+  .quiz-timer-group .invite-btn-wrap,
+  .quiz-timer-group .convidar-amigo { flex-shrink: 0; }
   .quiz-topbar-title { order: -1; }
   .quiz-theme-name { font-size: 16px; max-width: 240px; }
   .quiz-question-text { font-size: 17px; }
@@ -6236,6 +6254,12 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   gap: 12px;
   margin: 16px 0;
 }
+/* 2x2 no celular. Com `auto-fit` e mínimo de 110px, numa tela de 390px cabem
+   TRÊS por linha — e o quarto ficava sozinho embaixo, ocupando a largura
+   toda. Quatro contadores pedem duas linhas de dois. */
+@media (max-width: 560px) {
+  .admin-online-numbers { grid-template-columns: repeat(2, 1fr); }
+}
 .admin-online-stat {
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
@@ -6312,9 +6336,28 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   color: var(--text-dim);
   white-space: nowrap;
 }
-/* Muitas salas: quebra em linhas em vez de espremer tudo numa só. */
+/* NO CELULAR A LINHA INTEIRA EMPILHA.
+ *
+ * Eu tinha mexido só nas etiquetas, e não bastava: a linha continuava
+ * horizontal, então o nick era espremido a duas letras ("Ja… R1") pra dar
+ * espaço às salas ao lado.
+ *
+ * Empilhado: nick em cima, etiquetas embaixo, botão de conversa no canto. */
 @media (max-width: 900px) {
-  .admin-online-salas { justify-content: flex-start; width: 100%; margin-left: 0; }
+  .admin-online-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 8px;
+  }
+  /* O nick ocupa a linha toda menos o botão de conversa, que fica ao lado. */
+  .admin-online-nick { flex: 1 1 auto; min-width: 0; }
+  .admin-online-salas {
+    justify-content: flex-start;
+    width: 100%;
+    margin-left: 0;
+    order: 3; /* depois do botão, que fica na linha do nick */
+  }
+  .admin-online-where { order: 3; width: 100%; text-align: left; }
 }
 
 .admin-online-row {

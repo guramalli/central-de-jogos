@@ -24,13 +24,22 @@ const audiosParaDestravar = [
     if (!questionStartAudio) {
       questionStartAudio = new Audio("/sounds/pergunta.mp3");
       questionStartAudio.volume = 0.5;
+      // `preload` + `load()`: o som da rodada toca sem aviso prévio, e o iOS
+      // não baixa arquivo de áudio por conta própria. Sem isto ele começa a
+      // buscar só na hora de tocar e perde o momento.
+      questionStartAudio.preload = "auto";
+      questionStartAudio.load();
     }
     return questionStartAudio;
   },
   () => {
     if (!correctAudio) {
       correctAudio = new Audio("/sounds/comemoracao.mp3");
-      correctAudio.volume = 0.5;
+      // 0.3, que era o valor da função antiga — a fábrica estava com 0.5 e
+      // isso deixaria o som de acerto mais alto do que sempre foi.
+      correctAudio.volume = 0.3;
+      correctAudio.preload = "auto";
+      correctAudio.load();
     }
     return correctAudio;
   },
@@ -69,17 +78,31 @@ function destravarAudio() {
     try {
       const el = criar();
       if (!el) continue;
-      el.muted = true;
-      const p = el.play();
-      if (p && p.then) {
-        p.then(() => {
+
+      // VOLUME 0, NÃO `muted`, e a restauração SEMPRE acontece.
+      //
+      // A primeira versão punha `muted = true` e só desfazia dentro do
+      // `.then()` do play(). Quando o play() não devolve promessa — Safari
+      // mais antigo faz isso — o `.then()` nunca roda e o elemento fica mudo
+      // PRA SEMPRE. Era por isso que o som de acerto tocava e o de início de
+      // rodada não: os dois passam pelo mesmo caminho, e bastava um deles
+      // cair nesse buraco.
+      //
+      // Agora a restauração vai num setTimeout, que roda de qualquer jeito.
+      const volumeOriginal = el.volume;
+      el.volume = 0;
+      el.play()?.catch(() => {});
+
+      setTimeout(() => {
+        try {
           el.pause();
           el.currentTime = 0;
-          el.muted = false;
-        }).catch(() => {
-          el.muted = false;
-        });
-      }
+        } catch {
+          // ignora
+        }
+        el.volume = volumeOriginal;
+        el.muted = false;
+      }, 120);
     } catch {
       // elemento indisponível: segue sem som, sem quebrar
     }
@@ -148,26 +171,36 @@ function beep(freq, duration, delay = 0, type = "sine", volume = 0.15) {
 // do destravamento por toque.
 export function playQuestionStartSound() {
   if (muted) return;
-  if (!questionStartAudio) {
-    questionStartAudio = new Audio("/sounds/pergunta.mp3");
-    questionStartAudio.volume = 0.5;
+  // Usa a MESMA fábrica do destravamento: antes esta função criava o
+  // elemento por conta própria, sem `preload`, e podia acabar com uma
+  // instância diferente da que foi liberada no primeiro toque.
+  const el = audiosParaDestravar[0]();
+  if (!el) return;
+  // `currentTime = 0` lança erro se o arquivo ainda não carregou — e o erro
+  // abortava a função ANTES do play(). Por isso vai dentro do try.
+  try {
+    el.currentTime = 0;
+  } catch {
+    // ainda carregando: toca do começo mesmo assim
   }
-  questionStartAudio.currentTime = 0;
-  questionStartAudio.play().catch(() => {
-    // navegador pode bloquear autoplay antes de qualquer interação — sem problema, ignora
+  el.play()?.catch(() => {
+    // navegador bloqueou: ignora, o jogo segue
   });
 }
 
 // Toca quando alguém acerta — mesma ideia do som da pergunta.
 export function playCorrectSound() {
   if (muted) return;
-  if (!correctAudio) {
-    correctAudio = new Audio("/sounds/comemoracao.mp3");
-    correctAudio.volume = 0.3;
+  // Mesma fábrica, mesmo motivo da função acima.
+  const el = audiosParaDestravar[1]();
+  if (!el) return;
+  try {
+    el.currentTime = 0;
+  } catch {
+    // ainda carregando
   }
-  correctAudio.currentTime = 0;
-  correctAudio.play().catch(() => {
-    // navegador pode bloquear autoplay antes de qualquer interação — sem problema, ignora
+  el.play()?.catch(() => {
+    // navegador bloqueou: ignora
   });
 }
 
