@@ -2319,12 +2319,7 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   justify-content: flex-end;
 }
 
-/* No celular a barra inteira pode quebrar em linhas, e os botões dividem o
-   espaço em vez de espremer. */
-@media (max-width: 700px) {
-  .quiz-stats-bar { flex-wrap: wrap; row-gap: 8px; }
-  .quiz-timer-group { justify-content: center; width: 100%; }
-}
+
 .quiz-mute-btn {
   background: var(--qz-surface-high);
   border: 2px solid var(--qz-outline);
@@ -2575,6 +2570,19 @@ table.player-table.player-table-compact td {
 
   /* ===== Quiz ===== */
   .quiz-stats-bar { padding: 10px 12px; flex-direction: column; align-items: center; text-align: center; }
+  /* A BARRA já virava coluna aqui, mas o GRUPO DE BOTÕES continuava numa
+     linha só — e com o "Chamar amigo" novo ele passou da largura da tela,
+     levando o cronômetro pra fora.
+     
+     Escrevi uma regra em @media 700px antes de achar esta, e ela perdia:
+     esta vem depois no arquivo e ganha por ordem. A correção tem que estar
+     AQUI. */
+  .quiz-timer-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    row-gap: 8px;
+  }
   .quiz-topbar-title { order: -1; }
   .quiz-theme-name { font-size: 16px; max-width: 240px; }
   .quiz-question-text { font-size: 17px; }

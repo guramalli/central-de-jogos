@@ -11,6 +11,30 @@
 // página, muito antes do primeiro som. No desktop não muda nada.
 let audioCtx;
 let destravado = false;
+// Declarados aqui em cima porque o destravamento por toque precisa deles —
+// estavam mais abaixo, junto das funções que os usam.
+let questionStartAudio;
+let correctAudio;
+
+// Fábricas dos <audio> de arquivo, pra o destravamento acima alcançá-los.
+// São funções, não elementos: assim os arquivos só são criados quando o
+// primeiro toque acontece, e não no carregamento da página.
+const audiosParaDestravar = [
+  () => {
+    if (!questionStartAudio) {
+      questionStartAudio = new Audio("/sounds/pergunta.mp3");
+      questionStartAudio.volume = 0.5;
+    }
+    return questionStartAudio;
+  },
+  () => {
+    if (!correctAudio) {
+      correctAudio = new Audio("/sounds/comemoracao.mp3");
+      correctAudio.volume = 0.5;
+    }
+    return correctAudio;
+  },
+];
 
 function destravarAudio() {
   if (destravado) return;
@@ -32,11 +56,41 @@ function destravarAudio() {
     // Contexto indisponível: o jogo segue sem som, sem quebrar nada.
   }
 
+  // OS <audio> DE ARQUIVO TÊM TRAVA PRÓPRIA no iOS.
+  //
+  // O contexto acima cobre só os sons sintetizados. Os do Quiz
+  // (pergunta.mp3, comemoracao.mp3) usam elemento <audio>, que o Safari
+  // bloqueia separadamente — foi por isso que o som da pergunta continuou
+  // mudo mesmo depois de eu destravar o contexto.
+  //
+  // O truque é dar play e pause imediato DENTRO do gesto: o elemento fica
+  // marcado como liberado e o play seguinte, fora de gesto, funciona.
+  for (const criar of audiosParaDestravar) {
+    try {
+      const el = criar();
+      if (!el) continue;
+      el.muted = true;
+      const p = el.play();
+      if (p && p.then) {
+        p.then(() => {
+          el.pause();
+          el.currentTime = 0;
+          el.muted = false;
+        }).catch(() => {
+          el.muted = false;
+        });
+      }
+    } catch {
+      // elemento indisponível: segue sem som, sem quebrar
+    }
+  }
+
   destravado = true;
   for (const ev of ["touchend", "click", "keydown"]) {
     document.removeEventListener(ev, destravarAudio);
   }
 }
+
 
 if (typeof document !== "undefined") {
   // `touchend`, não `touchstart`: o iOS conta o gesto como completo só no
@@ -89,9 +143,9 @@ function beep(freq, duration, delay = 0, type = "sine", volume = 0.15) {
   osc.stop(startTime + duration + 0.02);
 }
 
-// Toca quando uma pergunta nova começa — usa um arquivo de áudio de verdade
-// (não sintetizado). O <audio> é criado uma vez só e reaproveitado.
-let questionStartAudio;
+// Toca quando uma pergunta nova começa — arquivo de áudio de verdade. O
+// <audio> é criado uma vez só; a variável está declarada lá em cima, junto
+// do destravamento por toque.
 export function playQuestionStartSound() {
   if (muted) return;
   if (!questionStartAudio) {
@@ -104,9 +158,7 @@ export function playQuestionStartSound() {
   });
 }
 
-// Toca quando alguém acerta — usa um arquivo de áudio de verdade (não
-// sintetizado). O <audio> é criado uma vez só e reaproveitado.
-let correctAudio;
+// Toca quando alguém acerta — mesma ideia do som da pergunta.
 export function playCorrectSound() {
   if (muted) return;
   if (!correctAudio) {
