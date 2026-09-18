@@ -6336,29 +6336,6 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   color: var(--text-dim);
   white-space: nowrap;
 }
-/* NO CELULAR A LINHA INTEIRA EMPILHA.
- *
- * Eu tinha mexido só nas etiquetas, e não bastava: a linha continuava
- * horizontal, então o nick era espremido a duas letras ("Ja… R1") pra dar
- * espaço às salas ao lado.
- *
- * Empilhado: nick em cima, etiquetas embaixo, botão de conversa no canto. */
-@media (max-width: 900px) {
-  .admin-online-row {
-    flex-wrap: wrap;
-    align-items: flex-start;
-    row-gap: 8px;
-  }
-  /* O nick ocupa a linha toda menos o botão de conversa, que fica ao lado. */
-  .admin-online-nick { flex: 1 1 auto; min-width: 0; }
-  .admin-online-salas {
-    justify-content: flex-start;
-    width: 100%;
-    margin-left: 0;
-    order: 3; /* depois do botão, que fica na linha do nick */
-  }
-  .admin-online-where { order: 3; width: 100%; text-align: left; }
-}
 
 .admin-online-row {
   display: flex;
@@ -6398,6 +6375,34 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   color: var(--text-dim);
   text-align: center;
   margin: 12px 0 0 0;
+}
+
+/* NO CELULAR A LINHA INTEIRA EMPILHA.
+ *
+ * Eu tinha mexido só nas etiquetas, e não bastava: a linha continuava
+ * horizontal, então o nick era espremido a duas letras ("Ja… R1") pra dar
+ * espaço às salas ao lado.
+ *
+ * Empilhado: nick em cima, etiquetas embaixo, botão de conversa no canto.
+ *
+ * ESTE BLOCO PRECISA FICAR DEPOIS das regras base de .admin-online-*.
+ * Ele estava ANTES, e as regras base (mesma especificidade, mais abaixo no
+ * arquivo) venciam por ordem — a correção não fazia efeito nenhum. */
+@media (max-width: 900px) {
+  .admin-online-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 8px;
+  }
+  /* O nick ocupa a linha toda menos o botão de conversa, que fica ao lado. */
+  .admin-online-nick { flex: 1 1 auto; min-width: 0; }
+  .admin-online-salas {
+    justify-content: flex-start;
+    width: 100%;
+    margin-left: 0;
+    order: 3; /* depois do botão, que fica na linha do nick */
+  }
+  .admin-online-where { order: 3; width: 100%; text-align: left; }
 }
 
 /* ===== Sala da Zoeira (Stop sem pontuação) ===== */
