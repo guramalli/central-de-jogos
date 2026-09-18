@@ -4230,6 +4230,15 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 /* As regras .hall-numeros e .hall-numero saíram: os três painéis viraram
    uma linha de texto (.hall-resumo). */
 
+/* Card das marcas vitalícias — largura inteira, abaixo dos dois de cima.
+   Três linhas só; espremer num dos lados desperdiçaria espaço. */
+.hall-marcas { margin-bottom: 20px; }
+.hall-marcas .hall-pos {
+  min-width: 190px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
 .hall-blocos {
   display: grid;
   /* 1.3fr / 1fr, e não meio a meio: "quem mais venceu" tem um bloco por

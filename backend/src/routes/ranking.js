@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, RANKS } from "../utils/rank.js";
@@ -189,12 +190,87 @@ router.get("/hall-stats", requireAuth, async (req, res) => {
       }
     }
 
+    // ===== MARCAS VITALÍCIAS =====
+    //
+    // Diferente dos títulos acima, que são mensais e zeram: estas são marcas
+    // que ficam pra sempre e não dependem de ganhar o mês. Quem joga muito e
+    // nunca levou um Pix também tem lugar no Hall.
+    //
+    // As três consultas rodam juntas, e cada uma sozinha é barata (ordena e
+    // pega o primeiro). O cache de 5 minutos do endpoint já cobre o resto.
+    const [recordeSequencia, statsStop, maiorTempo] = await Promise.all([
+      // Maior sequência de acertos seguidos no Quiz. A tabela guarda o
+      // recorde POR SALA, então o maior de todos é o topo geral.
+      prisma.quizStreakRecord.findFirst({
+        orderBy: { count: "desc" },
+        where: { count: { gt: 0 } },
+      }),
+
+      // STOPs: a tabela guarda por GRUPO de sala (padrão, intermediário,
+      // avançada). O recordista geral é quem tem a maior SOMA, não o maior
+      // número numa sala só — por isso não dá pra usar findFirst aqui.
+      prisma.stopStat.groupBy({
+        by: ["userId"],
+        _sum: { stops: true },
+        orderBy: { _sum: { stops: "desc" } },
+        take: 1,
+      }),
+
+      // Tempo de jogo acumulado. `playtimeMinutes` é minuto de partida, não
+      // de aba aberta — quem deixa o site ligado sem jogar não sobe.
+      prisma.user.findFirst({
+        where: { playtimeMinutes: { gt: 0 }, isGuest: false, banned: false },
+        orderBy: { playtimeMinutes: "desc" },
+        select: { id: true, nickname: true, playtimeMinutes: true },
+      }),
+    ]);
+
+    // O groupBy devolve só o userId; o nick vem numa segunda consulta.
+    let recordeStops = null;
+    if (statsStop.length > 0 && statsStop[0]._sum.stops > 0) {
+      const dono = await prisma.user.findUnique({
+        where: { id: statsStop[0].userId },
+        select: { id: true, nickname: true, isGuest: true, banned: true },
+      });
+      // Visitante e banido ficam de fora: o Hall é uma vitrine pública, e
+      // conta sem cadastro não tem perfil pra onde apontar.
+      if (dono && !dono.isGuest && !dono.banned) {
+        recordeStops = {
+          userId: dono.id,
+          nickname: dono.nickname,
+          valor: statsStop[0]._sum.stops,
+        };
+      }
+    }
+
+    const marcas = {
+      sequenciaQuiz: recordeSequencia
+        ? {
+            userId: recordeSequencia.userId,
+            nickname: recordeSequencia.nickname,
+            valor: recordeSequencia.count,
+            // A sala vai junto: o recorde é POR SALA, e saber que foi na
+            // Futebol Padrão é metade da história.
+            sala: QUIZ_ROOM_CONFIGS[recordeSequencia.roomId]?.label || null,
+          }
+        : null,
+      stopsTotal: recordeStops,
+      tempoDeJogo: maiorTempo
+        ? {
+            userId: maiorTempo.id,
+            nickname: maiorTempo.nickname,
+            valor: maiorTempo.playtimeMinutes,
+          }
+        : null,
+    };
+
     return {
       mesesFechados: mesesFechados.length,
       totalTitulos: campeoes.length,
       maisTitulos,
       maisTitulosPorJogo: porJogo,
       recordes,
+      marcas,
     };
   });
 

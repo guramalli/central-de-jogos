@@ -17,6 +17,19 @@ const GAMES = [
 // nenhum processo especial de "arquivar" quando o mês vira: os dados de
 // pontuação mensal nunca são apagados, então essa página só consulta
 // meses passados diretamente, sempre disponível pra qualquer mês concluído.
+// Minutos viram "12h 30min" — 750 minutos não diz nada pra quem lê.
+// Acima de 24h a conta vira dias, senão "180h" também perde o sentido.
+function formatarTempo(minutos) {
+  if (!minutos || minutos < 1) return "—";
+  if (minutos < 60) return `${minutos}min`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  if (horas < 24) return resto > 0 ? `${horas}h ${resto}min` : `${horas}h`;
+  const dias = Math.floor(horas / 24);
+  const horasResto = horas % 24;
+  return horasResto > 0 ? `${dias}d ${horasResto}h` : `${dias}d`;
+}
+
 export default function RankingHistory() {
   const [months, setMonths] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
@@ -208,6 +221,85 @@ export default function RankingHistory() {
               ))}
             </div>
           </div>
+
+          {/* MARCAS VITALÍCIAS — o outro lado do Hall.
+              
+              Os cards acima são de quem GANHOU o mês: dependem de estar no
+              topo num período. Estes são de quem jogou muito, e ficam pra
+              sempre. Quem nunca levou um Pix também tem lugar aqui.
+              
+              Cada marca só aparece se existir: sala nova ou banco recém-
+              limpo não deve mostrar uma linha vazia. */}
+          {stats.marcas &&
+            (stats.marcas.sequenciaQuiz ||
+              stats.marcas.stopsTotal ||
+              stats.marcas.tempoDeJogo) && (
+              <div className="card hall-marcas">
+                <h2>🏅 Marcas de todos os tempos</h2>
+
+                {stats.marcas.sequenciaQuiz && (
+                  <div className="hall-linha">
+                    <span className="hall-pos">Maior sequência de acertos no Quiz</span>
+                    <Link
+                      to={`/jogador/${stats.marcas.sequenciaQuiz.userId}`}
+                      className="hall-nick"
+                    >
+                      {stats.marcas.sequenciaQuiz.nickname}
+                    </Link>
+                    <span className="hall-valor">
+                      {stats.marcas.sequenciaQuiz.valor.toLocaleString("pt-BR")}
+                      <small>
+                        {stats.marcas.sequenciaQuiz.sala
+                          ? ` · ${stats.marcas.sequenciaQuiz.sala}`
+                          : " acertos"}
+                      </small>
+                    </span>
+                  </div>
+                )}
+
+                {/* "nas salas oficiais", não "no Stop".
+                    
+                    O contador (`StopStat`) só registra em salas com tempo
+                    mínimo de 40, 15 ou 5 segundos — as oficiais —, e ignora
+                    salas privadas e sem pontuação. Ele também só existe
+                    desde que os títulos de perfil entraram no ar, então não
+                    tem o histórico anterior.
+                    
+                    Chamar isso de "total de STOPs" seria mostrar um número
+                    que o próprio jogador sabe estar baixo. O rótulo diz o
+                    que a marca realmente mede. */}
+                {stats.marcas.stopsTotal && (
+                  <div className="hall-linha">
+                    <span className="hall-pos">Mais STOPs nas salas oficiais</span>
+                    <Link
+                      to={`/jogador/${stats.marcas.stopsTotal.userId}`}
+                      className="hall-nick"
+                    >
+                      {stats.marcas.stopsTotal.nickname}
+                    </Link>
+                    <span className="hall-valor">
+                      {stats.marcas.stopsTotal.valor.toLocaleString("pt-BR")}
+                      <small> stops</small>
+                    </span>
+                  </div>
+                )}
+
+                {stats.marcas.tempoDeJogo && (
+                  <div className="hall-linha">
+                    <span className="hall-pos">Mais tempo de jogo</span>
+                    <Link
+                      to={`/jogador/${stats.marcas.tempoDeJogo.userId}`}
+                      className="hall-nick"
+                    >
+                      {stats.marcas.tempoDeJogo.nickname}
+                    </Link>
+                    <span className="hall-valor">
+                      {formatarTempo(stats.marcas.tempoDeJogo.valor)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
         </>
       )}
 
