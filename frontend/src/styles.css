@@ -2304,7 +2304,27 @@ table.player-table th { color: var(--text-dim); font-weight: 700; }
   font-size: 14px;
 }
 
-.quiz-timer-group { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* `flex-wrap: wrap` porque a barra ganhou um botão a mais ("Chamar amigo")
+ * e no celular não cabia mais: o cronômetro era empurrado pra fora da tela,
+ * cortado pela borda direita.
+ *
+ * O `flex-shrink: 0` continua, pra o cronômetro não ser espremido — a
+ * diferença é que agora ele DESCE em vez de sumir. */
+.quiz-timer-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* No celular a barra inteira pode quebrar em linhas, e os botões dividem o
+   espaço em vez de espremer. */
+@media (max-width: 700px) {
+  .quiz-stats-bar { flex-wrap: wrap; row-gap: 8px; }
+  .quiz-timer-group { justify-content: center; width: 100%; }
+}
 .quiz-mute-btn {
   background: var(--qz-surface-high);
   border: 2px solid var(--qz-outline);
@@ -4230,6 +4250,60 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 /* As regras .hall-numeros e .hall-numero saíram: os três painéis viraram
    uma linha de texto (.hall-resumo). */
 
+/* Card das marcas vitalícias, em três blocos.
+ *
+ * Era uma lista em linha, e não funcionava: rótulos de comprimentos
+ * diferentes faziam os nicks começarem em pontos distintos, e o valor ficava
+ * na outra ponta da tela, longe de quem o conquistou. */
+.hall-marcas { margin-bottom: 20px; }
+.hall-marcas-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 4px;
+}
+.hall-marca {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+.hall-marca-rotulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-dim);
+}
+/* O número é o protagonista do bloco: entra grande e com a cor de destaque. */
+.hall-marca-valor {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--accent-2);
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 2px;
+}
+.hall-marca-valor small {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  letter-spacing: 0;
+}
+.hall-marca-nick { font-weight: 700; font-size: 15px; }
+.hall-marca-onde { font-size: 11px; color: var(--text-dim); }
+
+/* Uma coluna no celular: três blocos lado a lado ficariam estreitos demais
+   pro número grande, que é o ponto deles. */
+@media (max-width: 800px) {
+  .hall-marcas-grade { grid-template-columns: 1fr; }
+}
+
 .hall-blocos {
   display: grid;
   /* 1.3fr / 1fr, e não meio a meio: "quem mais venceu" tem um bloco por
@@ -4249,13 +4323,42 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 @media (max-width: 800px) { .hall-blocos { grid-template-columns: 1fr; } }
 
 /* Cada jogo é um bloco dentro do card "quem mais venceu". */
-.hall-bloco-jogo + .hall-bloco-jogo { margin-top: 16px; }
+/* Cada grupo vira um BLOCO COM BORDA, igual aos das marcas vitalícias lá
+ * embaixo. Solto no card, um grupo de uma linha não parecia um conjunto —
+ * o rótulo "STOP" ficava boiando perto do "QUIZ" do lado.
+ *
+ * A margem entre blocos empilhados sai: quem separa agora é o gap da grade.
+ */
+.hall-bloco-jogo {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel-2);
+}
+/* A última linha de cada bloco não precisa de risco: a borda do bloco já
+   fecha o conjunto. */
+.hall-bloco-jogo .hall-linha:last-child { border-bottom: none; padding-bottom: 0; }
+.hall-bloco-jogo .hall-linha:first-of-type { padding-top: 2px; }
 .hall-jogo-titulo {
   margin: 0 0 4px;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--accent-2);
+}
+
+/* Grupos de jogo lado a lado dentro do card "Quem mais venceu".
+ *
+ * `auto-fit` com mínimo de 190px: com dois jogos premiados dá duas colunas,
+ * com três dá três, e no celular cai pra uma — sem precisar de uma regra
+ * por quantidade. */
+.hall-jogos-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  /* Alinha as colunas pelo TOPO: sem isto, um grupo com duas linhas estica
+     e os de uma linha ficam centrados na altura dele, desencontrados. */
+  align-items: start;
 }
 
 .hall-linha {
@@ -4266,11 +4369,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   border-bottom: 1px solid var(--border);
 }
 .hall-linha:last-child { border-bottom: none; }
+/* 76px era largura de coluna de tabela — dentro de um bloco estreito, ela
+   só empurrava o nick pra longe do número da posição. */
 .hall-pos {
-  min-width: 76px;
+  min-width: 26px;
   color: var(--text-dim);
   font-size: 13px;
 }
+/* O card dos recordes usa o NOME DO JOGO no lugar da posição ("Stop",
+   "Quiz"), e esse precisa de largura. Classe própria, não `:last-child` —
+   seletor por posição quebra se a ordem dos cards mudar. */
+.hall-recordes .hall-pos { min-width: 60px; }
 /* min-width:0 pra nick longo cortar em vez de estourar o card. */
 .hall-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hall-valor {
@@ -6160,6 +6269,45 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
 }
 .admin-online-msg:hover { color: var(--accent-2); border-color: var(--accent-2); }
 .admin-online-msg .material-symbols-outlined { font-size: 16px; }
+
+/* Salas em etiquetas, agrupadas por jogo.
+ *
+ * Substitui a linha corrida "Quiz: Futebol · Quiz: Rock · Quiz: Esportes…",
+ * que ficava ilegível quando alguém jogava em seis salas pelo multi-sala.
+ * O nome do jogo aparece UMA vez por grupo, e cada sala vira uma etiqueta. */
+.admin-online-salas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.admin-online-jogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.admin-online-jogo-nome {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.admin-online-sala {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+/* Muitas salas: quebra em linhas em vez de espremer tudo numa só. */
+@media (max-width: 900px) {
+  .admin-online-salas { justify-content: flex-start; width: 100%; margin-left: 0; }
+}
 
 .admin-online-row {
   display: flex;

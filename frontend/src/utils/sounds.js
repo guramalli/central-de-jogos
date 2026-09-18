@@ -1,8 +1,50 @@
 // Sons curtos gerados na hora (Web Audio API) — sem precisar de arquivos de
-// áudio externos. Alguns navegadores só liberam áudio depois de alguma
-// interação do usuário na página; como o jogador já clicou pra entrar na
-// sala antes disso tocar, normalmente funciona sem problema.
+// áudio externos.
+//
+// NO CELULAR (iOS principalmente) O CONTEXTO PRECISA SER DESTRAVADO POR UM
+// TOQUE. Antes o contexto era criado no primeiro som — que acontece quando a
+// rodada começa, não num toque —, e o Safari o criava SUSPENSO. O `resume()`
+// só funciona se vier de dentro de um gesto do usuário, então ele ficava
+// suspenso pra sempre e nenhum som tocava no iPhone.
+//
+// A correção é criar e destravar no PRIMEIRO TOQUE em qualquer lugar da
+// página, muito antes do primeiro som. No desktop não muda nada.
 let audioCtx;
+let destravado = false;
+
+function destravarAudio() {
+  if (destravado) return;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+
+  // Um som mudo de 1 amostra: o iOS só considera o contexto "aquecido"
+  // depois de reproduzir alguma coisa dentro do gesto. Sem isto, o resume()
+  // sozinho às vezes não basta.
+  try {
+    const buffer = audioCtx.createBuffer(1, 1, 22050);
+    const fonte = audioCtx.createBufferSource();
+    fonte.buffer = buffer;
+    fonte.connect(audioCtx.destination);
+    fonte.start(0);
+  } catch {
+    // Contexto indisponível: o jogo segue sem som, sem quebrar nada.
+  }
+
+  destravado = true;
+  for (const ev of ["touchend", "click", "keydown"]) {
+    document.removeEventListener(ev, destravarAudio);
+  }
+}
+
+if (typeof document !== "undefined") {
+  // `touchend`, não `touchstart`: o iOS conta o gesto como completo só no
+  // fim do toque.
+  for (const ev of ["touchend", "click", "keydown"]) {
+    document.addEventListener(ev, destravarAudio);
+  }
+}
 
 const MUTE_KEY = "quiz-sound-muted";
 let muted = localStorage.getItem(MUTE_KEY) === "true";
