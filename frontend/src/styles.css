@@ -4321,6 +4321,9 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 8px 22px;
+  /* Alinha as colunas pelo TOPO: sem isto, um grupo com duas linhas estica
+     e os de uma linha ficam centrados na altura dele, desencontrados. */
+  align-items: start;
 }
 
 .hall-linha {

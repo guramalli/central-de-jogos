@@ -201,10 +201,15 @@ export default function RankingHistory() {
                   ))}
                 </div>
               ))}
-              </div>
 
-              {/* O geral só faz sentido com mais de um jogo premiado — com um
-                  só, ele repetiria a lista acima palavra por palavra. */}
+              {/* O "Somando tudo" fica DENTRO da grade, como terceira coluna.
+                  
+                  Estava fora, e por isso caía sozinho embaixo, ocupando a
+                  largura inteira enquanto os outros dois dividiam a de cima —
+                  o card ficava com dois blocos em cima e um esticado embaixo.
+                  
+                  O geral só faz sentido com mais de um jogo premiado: com um
+                  só, ele repetiria a lista ao lado palavra por palavra. */}
               {Object.keys(stats.maisTitulosPorJogo || {}).length > 1 && (
                 <div className="hall-bloco-jogo">
                   <h3 className="hall-jogo-titulo">Somando tudo</h3>
@@ -219,6 +224,7 @@ export default function RankingHistory() {
                   ))}
                 </div>
               )}
+              </div>
             </div>
 
             <div className="card hall-recordes">
