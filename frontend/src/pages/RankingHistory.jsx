@@ -177,6 +177,16 @@ export default function RankingHistory() {
                 ganhou duas em cada jogo apareciam iguais. */}
             <div className="card">
               <h2>👑 Quem mais venceu</h2>
+              {/* Os grupos entram LADO A LADO, não empilhados.
+                  
+                  Cada um tem uma ou duas linhas, e empilhados elas eram
+                  esticadas pela largura toda do card: o "1º" na esquerda, o
+                  nick logo depois e o "1 título" lá na outra ponta, com um
+                  vão enorme no meio.
+                  
+                  Em colunas, a largura é ocupada pelos grupos e cada linha
+                  fica curta o bastante pra ler de uma vez. */}
+              <div className="hall-jogos-grade">
               {Object.entries(stats.maisTitulosPorJogo || {}).map(([jogo, lista]) => (
                 <div key={jogo} className="hall-bloco-jogo">
                   <h3 className="hall-jogo-titulo">{GAME_NAMES[jogo] || jogo}</h3>
@@ -191,6 +201,7 @@ export default function RankingHistory() {
                   ))}
                 </div>
               ))}
+              </div>
 
               {/* O geral só faz sentido com mais de um jogo premiado — com um
                   só, ele repetiria a lista acima palavra por palavra. */}
@@ -210,7 +221,7 @@ export default function RankingHistory() {
               )}
             </div>
 
-            <div className="card">
+            <div className="card hall-recordes">
               <h2>🔥 Recordes de pontuação</h2>
               {Object.entries(stats.recordes).map(([jogo, r]) => (
                 <div key={jogo} className="hall-linha">

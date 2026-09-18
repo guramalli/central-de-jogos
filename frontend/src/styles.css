@@ -4312,6 +4312,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   color: var(--accent-2);
 }
 
+/* Grupos de jogo lado a lado dentro do card "Quem mais venceu".
+ *
+ * `auto-fit` com mínimo de 190px: com dois jogos premiados dá duas colunas,
+ * com três dá três, e no celular cai pra uma — sem precisar de uma regra
+ * por quantidade. */
+.hall-jogos-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px 22px;
+}
+
 .hall-linha {
   display: flex;
   align-items: center;
@@ -4320,11 +4331,17 @@ button.sc-status-ball-big:active { transform: scale(0.95); }
   border-bottom: 1px solid var(--border);
 }
 .hall-linha:last-child { border-bottom: none; }
+/* 76px era largura de coluna de tabela — dentro de um bloco estreito, ela
+   só empurrava o nick pra longe do número da posição. */
 .hall-pos {
-  min-width: 76px;
+  min-width: 26px;
   color: var(--text-dim);
   font-size: 13px;
 }
+/* O card dos recordes usa o NOME DO JOGO no lugar da posição ("Stop",
+   "Quiz"), e esse precisa de largura. Classe própria, não `:last-child` —
+   seletor por posição quebra se a ordem dos cards mudar. */
+.hall-recordes .hall-pos { min-width: 60px; }
 /* min-width:0 pra nick longo cortar em vez de estourar o card. */
 .hall-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hall-valor {
