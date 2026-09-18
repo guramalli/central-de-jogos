@@ -309,6 +309,11 @@ export function setupSocket(io) {
     socket.on("join-general-chat", async () => {
       socket.join("general-chat-room");
       generalChat.addConnection(socket, userId, nickname);
+      // Marca AQUI, junto do registro — não no fim do handler. Se a conexão
+      // cair durante os `await` abaixo (ou o banco falhar no histórico), o
+      // disconnect precisa saber que tem entrada pra remover. Antes a marca
+      // vinha depois dos await e a pessoa ficava "online" pra sempre.
+      socket.inGeneralChat = true;
 
       // Tag do clã guardada no socket, buscada uma vez ao entrar no chat.
       // Consultar a cada mensagem seria uma ida ao banco por linha digitada.
@@ -326,7 +331,6 @@ export function setupSocket(io) {
       const history = await generalChat.loadHistory();
       socket.emit("general-chat-history", { messages: history });
       io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });
-      socket.inGeneralChat = true;
     });
 
     socket.on("general-chat-message", async ({ message }) => {

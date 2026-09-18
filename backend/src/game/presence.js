@@ -9,7 +9,8 @@
 const connected = new Map(); // socketId -> { userId, nickname }
 
 export function addConnection(socket, userId, nickname) {
-  connected.set(socket.id, { userId, nickname });
+  // Guarda o próprio socket: a lista confere se ele ainda está conectado.
+  connected.set(socket.id, { userId, nickname, socket });
 }
 
 export function removeConnection(socketId) {
@@ -20,6 +21,14 @@ export function removeConnection(socketId) {
 // computador) abertas ao mesmo tempo — conta uma vez só.
 export function getOnlineList() {
   const seen = new Map();
-  for (const p of connected.values()) seen.set(p.userId, p.nickname);
+  for (const [socketId, p] of connected.entries()) {
+    // Rede de segurança: conexão morta que escapou do disconnect sai aqui,
+    // em vez de deixar a pessoa "online" até o próximo deploy.
+    if (!p.socket?.connected) {
+      connected.delete(socketId);
+      continue;
+    }
+    seen.set(p.userId, p.nickname);
+  }
   return [...seen.entries()].map(([userId, nickname]) => ({ userId, nickname }));
 }
