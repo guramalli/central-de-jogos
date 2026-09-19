@@ -84,7 +84,7 @@ export default function Topo({ usuario, ativo = null }) {
               {contador(it) > 0 && <span className="v2-bolinha-contador">{contador(it)}</span>}
             </a>
           ))}
-          {admin && <a href="/admin">Painel Admin</a>}
+          {admin && <a href={linkDaPagina("admin")} className={ativo === "admin" ? "ativo" : ""} onClick={(e) => { e.preventDefault(); irParaPagina("admin"); }}>Painel Admin</a>}
         </nav>
         <div className="v2-topo-dir">
           <BuscaJogador />
@@ -123,7 +123,7 @@ export default function Topo({ usuario, ativo = null }) {
                 {contador(it) > 0 && <span className="v2-bolinha-contador">{contador(it)}</span>}
               </a>
             ))}
-            {admin && <a href="/admin">Painel Admin</a>}
+            {admin && <a href={linkDaPagina("admin")} onClick={(e) => { setMaisAberto(false); e.preventDefault(); irParaPagina("admin"); }}>Painel Admin</a>}
             <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { setMaisAberto(false); e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }}>Meu perfil</a>
             <button onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>Sair da conta</button>
           </nav>

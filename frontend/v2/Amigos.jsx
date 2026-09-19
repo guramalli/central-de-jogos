@@ -183,7 +183,7 @@ export default function Amigos({ usuario, conversaInicial }) {
 
 // Conversa privada. Conexão própria (join-dm), como no clássico: o servidor
 // guarda uma conversa aberta por conexão.
-function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
+export function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
   const socketRef = useRef(null);
   const listaRef = useRef(null);
   const [msgs, setMsgs] = useState(null);
@@ -232,7 +232,7 @@ function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
           <a href={linkDaPagina("jogador", { id: amigo.userId })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: amigo.userId }); }}><b>{amigo.nickname}</b></a>
           <span>{amigo.online ? "online" : "offline"}</span>
         </div>
-        <button className="v2-botao-pequeno" onClick={aoRemover}>Desfazer amizade</button>
+        {aoRemover && <button className="v2-botao-pequeno" onClick={aoRemover}>Desfazer amizade</button>}
       </div>
       {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
       <div className="v2-conversa-lista" ref={listaRef}>
@@ -254,5 +254,20 @@ function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
         <button className="v2-botao v2-botao-amarelo" type="submit" disabled={!!erro}>Enviar</button>
       </form>
     </>
+  );
+}
+
+// Conversa numa janela por cima da página — usada no painel admin, onde o
+// admin fala com qualquer jogador (o servidor libera sem amizade).
+export function ModalConversa({ amigo, usuario, aoFechar }) {
+  return (
+    <div className="v2-modal-fundo" onClick={aoFechar}>
+      <div className="v2-cartao v2-conversa v2-conversa-modal" role="dialog" aria-label={`Conversa com ${amigo.nickname}`} onClick={(e) => e.stopPropagation()}>
+        <Conversa amigo={amigo} usuario={usuario} aoVoltar={aoFechar} />
+        <button className="v2-modal-fechar" aria-label="Fechar conversa" onClick={aoFechar}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+    </div>
   );
 }

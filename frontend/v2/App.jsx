@@ -15,6 +15,7 @@ import Cla from "./Cla.jsx";
 import HallFama from "./HallFama.jsx";
 import Novidades from "./Novidades.jsx";
 import EditarPerfil from "./EditarPerfil.jsx";
+import Admin from "./Admin.jsx";
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
@@ -82,6 +83,7 @@ export default function App() {
     case "hall": return <HallFama usuario={usuario} />;
     case "novidades": return <Novidades usuario={usuario} />;
     case "editar-perfil": return <EditarPerfil usuario={usuario} />;
+    case "admin": return <Admin usuario={usuario} />;
     default: return <Inicio usuario={usuario} />;
   }
 }

@@ -145,7 +145,7 @@ export default function Inicio({ usuario }) {
         <Praca usuario={usuario} />
 
         {(usuario.role === "ADMIN" || usuario.role === "MODERATOR") && (
-          <a className="v2-cartao v2-atalho-admin" href="/admin">Painel admin <span>moderar glossário, perguntas e jogadores (site clássico)</span></a>
+          <a className="v2-cartao v2-atalho-admin" href={linkDaPagina("admin")} onClick={(e) => { e.preventDefault(); irParaPagina("admin"); }}>Painel admin <span>moderar glossário, perguntas, denúncias e jogadores</span></a>
         )}
 
         <section className="v2-cartao v2-sobre">

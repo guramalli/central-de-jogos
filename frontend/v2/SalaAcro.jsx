@@ -499,9 +499,7 @@ export default function SalaAcro({ roomId, usuario }) {
               return (
                 <div key={m.id || m._k} className={`v2-msg ${m.system ? "sistema" : ""} ${m.success ? "sucesso" : ""} ${m.promotion ? "promocao" : ""} ${m.aviso || m.atividade ? "aviso" : ""} ${citaMe ? "me-cita" : ""} ${m.userId === usuario.id ? "minha" : ""}`}>
                   {!m.system && (
-                    <NickHover userId={m.userId} nickname={m.nickname} meuId={usuario.id} gameKey="acromania">
-                      <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
-                    </NickHover>
+                    <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
                   <span className={m.bold ? "negrito" : ""}>{m.message}</span>

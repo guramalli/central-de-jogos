@@ -3,7 +3,6 @@ import { novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import Avatar from "./Avatar.jsx";
-import NickHover from "./NickHover.jsx";
 
 const hora = (t) => (t ? new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "");
 
@@ -63,9 +62,7 @@ export default function Praca({ usuario }) {
               return (
                 <div key={m.id || i} className={`v2-msg ${m.system ? "sistema" : ""} ${citaMe ? "me-cita" : ""} ${m.userId === usuario.id ? "minha" : ""}`}>
                   {!m.system && (
-                    <NickHover userId={m.userId} nickname={m.nickname} meuId={usuario.id}>
-                      <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
-                    </NickHover>
+                    <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
                   <span>{m.message}</span>
