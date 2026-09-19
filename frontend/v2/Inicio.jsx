@@ -138,8 +138,17 @@ export default function Inicio({ usuario }) {
               <h2>Últimas atualizações</h2>
               <a className="v2-link" href={linkDaPagina("novidades")} onClick={(e) => { e.preventDefault(); irParaPagina("novidades"); }}>ver todas</a>
             </div>
+            {/* Atualização grande (destaque: true) aparece em cima, em destaque. */}
+            {NOVIDADES.filter((n) => n.destaque).slice(0, 1).map((n) => (
+              <a key={n.id} className="v2-novidade-destaque" href={linkDaPagina("novidades")} onClick={(e) => { e.preventDefault(); irParaPagina("novidades"); }}>
+                <span className="v2-novidade-destaque-selo">Grande atualização</span>
+                <b>{n.titulo}</b>
+                <span className="v2-novidade-destaque-texto">{n.texto}</span>
+                <span className="v2-novidade-destaque-data">{n.data.slice(8, 10)}/{n.data.slice(5, 7)} · ler mais →</span>
+              </a>
+            ))}
             <ul className="v2-novidades-lista">
-              {NOVIDADES.slice(0, 8).map((n) => (
+              {NOVIDADES.filter((n) => !n.destaque).slice(0, 8).map((n) => (
                 <li key={n.id}>
                   <span className={`v2-novidade-tipo ${n.tipo}`}>{ROTULO_TIPO[n.tipo] || n.tipo}</span>
                   <span className="v2-novidade-titulo">{n.titulo}</span>

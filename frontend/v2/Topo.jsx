@@ -3,6 +3,7 @@ import { api, sair, novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
 import { ConviteRecebido } from "./Convites.jsx";
+import { trocarParaClassica } from "../src/utils/versaoSite.js";
 
 // Cabeçalho comum das páginas da v2 (menos as salas, que têm o seu).
 // Também mantém a conexão de "presença": sem ela a pessoa aparece OFFLINE
@@ -88,6 +89,8 @@ export default function Topo({ usuario, ativo = null }) {
         </nav>
         <div className="v2-topo-dir">
           <BuscaJogador />
+          {/* Volta pro site clássico, na MESMA página (a escolha fica guardada). */}
+          <button type="button" className="v2-troca-versao" onClick={() => trocarParaClassica()} title="Voltar para a versão clássica do site">Versão clássica</button>
                     <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil, títulos e conquistas">
             <Avatar userId={usuario.id} nickname={usuario.nickname} tamanho={44} borda />
             <span className="v2-topo-nick">{usuario.nickname}<small>ver perfil</small></span>
@@ -125,6 +128,7 @@ export default function Topo({ usuario, ativo = null }) {
             ))}
             {admin && <a href={linkDaPagina("admin")} onClick={(e) => { setMaisAberto(false); e.preventDefault(); irParaPagina("admin"); }}>Painel Admin</a>}
             <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { setMaisAberto(false); e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }}>Meu perfil</a>
+            <button className="v2-mais-classico" onClick={() => trocarParaClassica()}>Versão clássica do site</button>
             <button onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>Sair da conta</button>
           </nav>
         </div>

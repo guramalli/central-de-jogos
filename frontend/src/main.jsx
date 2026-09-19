@@ -7,13 +7,19 @@ import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import "./styles.css";
+import { destinoNaNova } from "./utils/versaoSite.js";
 
 // Se a variável não estiver configurada ainda, passamos string vazia — o
 // botão do Google simplesmente não aparece funcional até isso ser
 // configurado (não trava o resto do site).
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+// A VERSÃO NOVA É A PRINCIPAL: logado e numa página que existe lá (e sem
+// ter escolhido o clássico), vai direto pra ela — antes de desenhar
+// qualquer coisa, pra não piscar o site antigo.
+const destinoNovo = destinoNaNova();
+if (destinoNovo) window.location.replace(destinoNovo);
+else ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HelmetProvider>
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

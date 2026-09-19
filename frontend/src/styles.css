@@ -8901,3 +8901,13 @@ span.votacao-trilha-item {
 .nick-aviso-unico div { display: flex; flex-direction: column; gap: 4px; }
 .nick-aviso-unico strong { color: #ff6b6b; font-size: 14px; }
 .nick-aviso-unico span { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+
+/* Botão do topo: troca pra versão nova do site (a principal). */
+.versao-troca-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 38px; padding: 0 14px; border-radius: 999px;
+  border: 2px solid #ffd60a; background: rgba(255, 214, 10, 0.12);
+  color: #ffd60a; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.versao-troca-btn:hover { background: #ffd60a; color: #1a1206; }
+@media (max-width: 700px) { .versao-troca-btn { height: 32px; padding: 0 10px; font-size: 12px; } }

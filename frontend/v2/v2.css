@@ -1606,3 +1606,37 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-conversa-form .v2-chat-form { width: 100%; margin: 0; }
 .v2-sala.compacto .v2-emoji-botao { width: 36px; height: 36px; font-size: 17px; border-radius: 11px; }
 .v2-sala.compacto .v2-emoji-caixa { width: 250px; }
+
+/* ---------- Stop: as 6 lacunas numa linha só quando o cartão é largo ----------
+   Quem decide é a LARGURA DO CARTÃO (container), não a da tela: com o
+   cartão estreito, 6 campos ficariam com ~90px cada — apertado demais pra
+   digitar. Nome comprido de tema quebra em 2 linhas e os campos continuam
+   alinhados embaixo. */
+.v2-sala:not(.compacto) .v2-stop-cartao { container-type: inline-size; container-name: cartao; }
+@container cartao (min-width: 860px) {
+  .v2-stop-campos { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  .v2-stop-campo { justify-content: flex-end; }
+  .v2-stop-campo span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; font-size: 15px; overflow-wrap: anywhere; }
+  .v2-stop-campo input { height: 54px; padding: 0 10px; }
+}
+
+/* Botão do topo: volta pro site clássico. */
+.v2-troca-versao { height: 40px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--borda); background: transparent; color: var(--lilas); font-weight: 900; font-size: 13px; white-space: nowrap; }
+.v2-troca-versao:hover { border-color: var(--amarelo); color: var(--amarelo); }
+.v2-mais button.v2-mais-classico { color: var(--roxo); }
+@media (max-width: 999px) { .v2-topo .v2-troca-versao { display: none; } }
+@media (min-width: 1180px) and (max-width: 1440px) { .v2-troca-versao { padding: 0 10px; font-size: 12px; } }
+
+/* Novidade em destaque (major update). */
+.v2-novidade-destaque { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 20px; background: linear-gradient(135deg, #ffd60a, #ffb86f); color: var(--roxo); box-shadow: 0 6px 0 var(--amarelo-sombra); transition: transform .15s; animation: v2-pop .45s ease-out both; }
+.v2-novidade-destaque:hover { transform: translateY(-2px); }
+.v2-novidade-destaque::after { content: ""; position: absolute; top: 0; left: -40%; width: 30%; height: 100%; background: rgba(255,255,255,.35); transform: skewX(-20deg); animation: v2-brilho-trofeu 3.5s ease-in-out infinite; pointer-events: none; }
+.v2-novidade-destaque > b { font-family: var(--titulo); font-size: 20px; line-height: 1.15; }
+.v2-novidade-destaque-texto { font-size: 13px; font-weight: 700; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.v2-novidade-destaque-data { font-size: 12px; font-weight: 900; }
+.v2-novidade-destaque-selo { align-self: flex-start; background: var(--roxo); color: var(--amarelo); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .6px; padding: 3px 10px; border-radius: 999px; }
+.v2-novidade.destaque { background: linear-gradient(135deg, #ffd60a, #ffb86f); color: var(--roxo); box-shadow: 0 7px 0 var(--amarelo-sombra); }
+.v2-novidade.destaque p { color: #3d2a6e; }
+.v2-novidade.destaque .v2-novidade-data { color: #3d2a6e; }
+.v2-novidade.destaque h2 { font-size: 26px; }
+.v2-novidade-topo { flex-wrap: wrap; }

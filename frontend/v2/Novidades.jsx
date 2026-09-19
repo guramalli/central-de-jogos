@@ -18,9 +18,10 @@ export default function Novidades({ usuario }) {
         {NOVIDADES.length === 0 && <div className="v2-vazio-grande">Nada por aqui ainda.</div>}
         <ol className="v2-novidades">
           {NOVIDADES.map((n, i) => (
-            <li key={n.id} className="v2-cartao v2-novidade" style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}>
+            <li key={n.id} className={`v2-cartao v2-novidade ${n.destaque ? "destaque" : ""}`} style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}>
               <div className="v2-novidade-topo">
                 <span className={`v2-novidade-tipo ${n.tipo}`}>{ROTULO_TIPO[n.tipo] || n.tipo}</span>
+                {n.destaque && <span className="v2-novidade-destaque-selo">Grande atualização</span>}
                 <span className="v2-novidade-data">{data(n.data)}</span>
               </div>
               <h2>{n.titulo}</h2>
