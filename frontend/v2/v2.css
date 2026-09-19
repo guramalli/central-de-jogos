@@ -1142,3 +1142,41 @@ a { color: inherit; text-decoration: none; }
 .v2-rodape-links a, .v2-rodape-links button { display: inline-flex; align-items: center; line-height: 1; border: none; background: transparent; padding: 4px 0; min-height: 32px; color: var(--lilas); font-weight: 800; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-family: inherit; }
 .v2-rodape-links a:hover, .v2-rodape-links button:hover { color: var(--amarelo); }
 .v2-rodape-stats { font-size: 12px; font-weight: 800; color: var(--lilas-2); }
+
+/* ---------- Stop: cores do clássico ----------
+   Mesmas do site antigo (src/styles.css, .word-text-*): única laranja,
+   repetida cinza, "só você" azul, errada/em branco preta. A palavra vai
+   colorida e em negrito sobre fundo claro, como lá. */
+.v2-ap-palavra.certa, .v2-ap-palavra.repetida, .v2-ap-palavra.solo, .v2-ap-palavra.errada { background: #f6f1e6; box-shadow: inset 0 -2px 0 #e8dfcc; }
+.v2-ap-palavra.certa .v2-ap-texto { color: #ff9900; }
+.v2-ap-palavra.repetida .v2-ap-texto { color: #888888; }
+.v2-ap-palavra.solo .v2-ap-texto { color: #2b6fe6; }
+.v2-ap-palavra.errada .v2-ap-texto { color: #000000; text-decoration: none; }
+.v2-ap-texto { font-weight: 900; font-size: 15px; }
+/* Faixinha da cor em cima de cada palavra, pra bater o olho de longe. */
+.v2-ap-palavra { border-top: 4px solid transparent; }
+.v2-ap-palavra.certa { border-top-color: #ff9900; }
+.v2-ap-palavra.repetida { border-top-color: #888888; }
+.v2-ap-palavra.solo { border-top-color: #2b6fe6; }
+.v2-ap-palavra.errada { border-top-color: #000000; }
+.v2-ap-palavra .v2-ap-tema-celular { color: #5a4a8a; opacity: 1; }
+
+/* Legenda com as cores cheias e vivas. */
+.v2-leg i { width: 26px; height: 26px; border-radius: 8px; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.v2-leg i.certa { background: #ff9900; }
+.v2-leg i.repetida { background: #888888; }
+.v2-leg i.solo { background: #2b6fe6; }
+.v2-leg i.errada { background: #000000; box-shadow: inset 0 0 0 2px #999, 0 3px 0 rgba(0,0,0,.25); }
+.v2-leg { font-size: 15px; }
+
+/* Nomes dos temas maiores (campos da rodada e cabeçalho da apuração). */
+.v2-stop-campo span { font-size: 15px; letter-spacing: .3px; color: var(--roxo); }
+.v2-ap-tema-celular { font-size: 12px; }
+@media (min-width: 1000px) {
+  .v2-apuracao-linha.cabeca { font-size: 13px; color: var(--roxo); }
+  .v2-ap-palavra { font-size: 14px; }
+  .v2-ap-texto { font-size: 14px; }
+}
+@media (min-width: 1000px) {
+  .v2-apuracao-linha.cabeca .v2-ap-pts { font-size: 11px; }
+}
