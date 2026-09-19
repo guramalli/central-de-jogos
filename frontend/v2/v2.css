@@ -1,0 +1,226 @@
+/* Educação Gamer v2 — visual novo em teste. Arquivo único e isolado: só é
+   carregado pela página /v2/, nunca pelo site clássico. */
+:root {
+  --roxo: #2b1b5e;
+  --roxo-2: #3d2a80;
+  --roxo-escuro: #1d1242;
+  --roxo-fundo: #22164d;
+  --lilas: #cfc6f5;
+  --lilas-2: #a99be0;
+  --borda: #7a5cd6;
+  --amarelo: #ffd60a;
+  --amarelo-sombra: #b88a00;
+  --verde: #06d6a0;
+  --verde-sombra: #049a74;
+  --vermelho: #ff5a4d;
+  --laranja: #ffb86f;
+  --creme: #fff8ec;
+  --titulo: "Fredoka", "Trebuchet MS", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--roxo); }
+body { font-family: "Nunito", "Trebuchet MS", sans-serif; color: #fff; -webkit-tap-highlight-color: transparent; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+.v2-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.v2-app { min-height: 100vh; min-height: 100dvh; background: var(--roxo); display: flex; flex-direction: column; }
+.v2-centro { align-items: center; justify-content: center; padding: 24px; }
+
+@keyframes v2-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes v2-pulso { 0%,100% { box-shadow: 0 0 0 0 rgba(6,214,160,.6); } 70% { box-shadow: 0 0 0 7px rgba(6,214,160,0); } }
+@keyframes v2-entra { 0% { transform: translateY(14px) scale(.96); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes v2-pop { 0% { transform: scale(.85) rotate(-2deg); opacity: 0; } 60% { transform: scale(1.03) rotate(1deg); opacity: 1; } 100% { transform: none; } }
+@keyframes v2-tremer { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+@keyframes v2-bate { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@keyframes v2-cai { 0% { transform: translateY(-40px) rotate(0); } 100% { transform: translateY(110vh) rotate(540deg); } }
+@keyframes v2-estoura { 0% { transform: scale(0) rotate(-20deg); } 55% { transform: scale(1.18) rotate(6deg); } 100% { transform: none; } }
+@keyframes v2-barra { from { width: 100%; } to { width: 0; } }
+@keyframes v2-fundo-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes v2-brilho { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+
+/* ---------- Botões e utilidades ---------- */
+.v2-botao { display: inline-flex; align-items: center; justify-content: center; min-height: 54px; padding: 0 26px; border: none; border-radius: 18px; font-family: var(--titulo); font-weight: 700; font-size: 19px; transition: transform .1s; }
+.v2-botao:active { transform: translateY(3px); }
+.v2-botao-amarelo { background: var(--amarelo); color: var(--roxo); box-shadow: 0 5px 0 var(--amarelo-sombra); }
+.v2-link { color: var(--lilas); font-weight: 800; font-size: 14px; text-decoration: underline; }
+.v2-aviso { margin: 8px 0 0; text-align: center; font-weight: 800; font-size: 14px; color: var(--laranja); }
+
+.v2-cartao-entrar { width: 100%; max-width: 420px; background: var(--roxo-2); border-radius: 28px; padding: 32px 26px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.v2-cartao-entrar p { margin: 0; color: var(--lilas); font-weight: 700; line-height: 1.45; }
+.v2-logo-grande { font-family: var(--titulo); font-weight: 700; font-size: 32px; }
+.v2-logo-grande span { color: var(--amarelo); }
+
+/* ---------- Topo ---------- */
+.v2-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 8px; }
+.v2-logo { display: flex; align-items: center; gap: 8px; font-family: var(--titulo); font-weight: 700; font-size: 19px; }
+.v2-destaque { color: var(--amarelo); }
+.v2-logo-icone { width: 38px; height: 38px; border-radius: 12px; background: var(--amarelo); color: var(--roxo); box-shadow: 0 4px 0 var(--amarelo-sombra); display: inline-flex; align-items: center; justify-content: center; animation: v2-float 2.6s ease-in-out infinite; }
+.v2-selo-beta { font-family: "Nunito", sans-serif; font-size: 10px; font-weight: 900; background: var(--vermelho); color: #fff; padding: 3px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; }
+.v2-topo-dir { display: flex; align-items: center; gap: 10px; }
+.v2-link-classico { font-size: 12px; font-weight: 800; color: var(--lilas-2); text-decoration: underline; }
+.v2-avatar { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--laranja); background: var(--vermelho); color: #fff; font-family: var(--titulo); font-weight: 700; font-size: 15px; padding: 0; }
+
+/* ---------- Lobby ---------- */
+.v2-lobby { padding: 4px 18px 32px; display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 1280px; margin: 0 auto; }
+.v2-saudacao { background: var(--roxo-2); border-radius: 22px; padding: 16px 18px; }
+.v2-saudacao h1 { margin: 0; font-family: var(--titulo); font-weight: 600; font-size: 23px; overflow-wrap: anywhere; }
+.v2-saudacao p { margin: 4px 0 0; color: var(--lilas); font-weight: 700; font-size: 14px; }
+.v2-filtros { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.v2-niveis { display: flex; gap: 6px; }
+.v2-nivel { height: 40px; padding: 0 16px; border-radius: 999px; background: transparent; font-weight: 900; font-size: 14px; }
+.v2-nivel-padrao { border: 2px solid var(--verde); color: #9ff0d6; }
+.v2-nivel-avancado { border: 2px solid var(--vermelho); color: #ffb3ac; }
+.v2-nivel-padrao.ativo { background: var(--verde); color: #13322a; }
+.v2-nivel-avancado.ativo { background: var(--vermelho); color: #fff; }
+.v2-jogando { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; color: var(--lilas); }
+.v2-ponto-vivo { width: 9px; height: 9px; border-radius: 50%; background: var(--verde); animation: v2-pulso 1.6s ease-out infinite; }
+
+.v2-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.v2-card { min-height: 104px; border-radius: 22px; padding: 12px; background: var(--cor); box-shadow: 0 5px 0 var(--sombra); color: var(--roxo); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; animation: v2-entra .4s ease-out both; transition: transform .15s ease; }
+.v2-card:hover { transform: translateY(-3px) rotate(-1deg); }
+.v2-card:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--sombra); }
+.v2-card-esqueleto { background: var(--roxo-2); box-shadow: none; animation: v2-brilho 1.2s ease-in-out infinite; }
+.v2-card-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+.v2-card-icone { width: 40px; height: 40px; border-radius: 13px; background: rgba(255,255,255,.55); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.v2-card-icone img { width: 34px; height: 34px; object-fit: contain; }
+.v2-card-selo { background: var(--roxo); color: #fff; font-size: 11px; font-weight: 900; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.v2-card-nome { font-family: var(--titulo); font-weight: 700; font-size: 18px; line-height: 1.1; }
+.v2-card-sub { font-size: 12px; font-weight: 800; color: rgba(43,27,94,.72); margin-top: 2px; }
+
+/* ---------- Sala ---------- */
+.v2-sala { height: 100vh; height: 100dvh; overflow: hidden; }
+.v2-sala-topo { display: flex; align-items: center; gap: 10px; padding: 14px 16px 8px; flex-shrink: 0; }
+.v2-voltar, .v2-mudo { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: none; background: var(--roxo-2); color: #fff; display: flex; align-items: center; justify-content: center; }
+.v2-sala-titulo { flex: 1; min-width: 0; }
+.v2-sala-nome { font-family: var(--titulo); font-weight: 700; font-size: 19px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-sala-info { font-size: 12px; font-weight: 800; color: var(--verde); }
+.v2-relogio { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+.v2-relogio svg { width: 58px; height: 58px; transform: rotate(-90deg); }
+.v2-relogio-fundo { fill: var(--roxo-fundo); stroke: var(--roxo-2); stroke-width: 6; }
+.v2-relogio-arco { fill: none; stroke: var(--amarelo); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke .3s; }
+.v2-relogio span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--titulo); font-weight: 700; font-size: 20px; }
+.v2-relogio.urgente { animation: v2-bate .5s ease-in-out infinite; }
+.v2-relogio.urgente .v2-relogio-arco { stroke: var(--vermelho); }
+
+.v2-sala-corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.v2-bloco-titulo { font-family: var(--titulo); font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+
+/* Placar: no celular vira uma fileira de fichinhas rolável. */
+.v2-placar { flex-shrink: 0; padding: 4px 16px 10px; }
+.v2-placar .v2-bloco-titulo { display: none; }
+.v2-placar-lista { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.v2-placar-lista::-webkit-scrollbar { display: none; }
+.v2-jogador { display: flex; align-items: center; gap: 6px; background: var(--roxo-2); border-radius: 999px; padding: 4px 11px 4px 4px; flex-shrink: 0; min-width: 0; }
+.v2-jogador.eu { background: #4e389c; box-shadow: inset 0 0 0 2px var(--amarelo); }
+.v2-bolinha { width: 28px; height: 28px; border-radius: 50%; color: var(--roxo); font-family: var(--titulo); font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.v2-jogador-nome { display: none; font-weight: 900; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-jogador-pts { font-size: 13px; font-weight: 900; }
+
+.v2-palco { flex-shrink: 0; padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+.v2-pergunta { background: var(--creme); color: var(--roxo); border-radius: 26px; padding: 18px 18px 20px; box-shadow: 0 7px 0 #d8cbb2; display: flex; flex-direction: column; gap: 12px; }
+.v2-pergunta.entrando { animation: v2-pop .55s cubic-bezier(.2,.9,.3,1.3) both; }
+.v2-pergunta.esperando { opacity: .92; }
+.v2-pergunta-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.v2-etiqueta { background: var(--verde); color: #13322a; font-weight: 900; font-size: 12px; padding: 5px 11px; border-radius: 999px; }
+.v2-pergunta.esperando .v2-etiqueta { background: #e7dcc6; color: #5a4a8a; }
+.v2-sequencia { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 900; color: #c7493f; }
+.v2-pergunta-texto { margin: 0; font-family: var(--titulo); font-weight: 600; font-size: 22px; line-height: 1.28; overflow-wrap: anywhere; }
+.v2-mascara { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.v2-mascara.tremer { animation: v2-tremer .45s ease-in-out; }
+.v2-palavra { display: flex; gap: 4px; flex-wrap: wrap; }
+.v2-letra { width: 26px; height: 32px; border-radius: 8px; background: var(--verde); color: #13322a; font-family: var(--titulo); font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; animation: v2-pop .35s ease-out both; }
+.v2-letra.oculta { background: #ede3d0; box-shadow: inset 0 -3px 0 #d8cbb2; animation: none; }
+
+.v2-tentativas { display: flex; gap: 6px; flex-wrap: wrap; }
+.v2-tentativa { background: var(--roxo-fundo); color: var(--lilas); border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 700; text-decoration: line-through; text-decoration-color: rgba(255,90,77,.8); animation: v2-entra .25s ease-out both; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tentativa b { color: #fff; text-decoration: none; }
+
+.v2-resposta { display: flex; gap: 10px; }
+.v2-resposta.tremer { animation: v2-tremer .45s ease-in-out; }
+.v2-resposta input { flex: 1; min-width: 0; height: 58px; border-radius: 18px; border: 3px solid var(--borda); background: #fff; color: var(--roxo); padding: 0 16px; font-weight: 800; font-size: 17px; outline: none; }
+.v2-resposta input:focus { border-color: var(--amarelo); }
+.v2-resposta.tremer input { border-color: var(--vermelho); }
+.v2-enviar { width: 58px; height: 58px; flex-shrink: 0; border: none; border-radius: 18px; background: var(--amarelo); color: var(--roxo); box-shadow: 0 5px 0 var(--amarelo-sombra); display: flex; align-items: center; justify-content: center; transition: transform .1s; }
+.v2-enviar:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--amarelo-sombra); }
+.v2-enviar:disabled { opacity: .45; }
+
+.v2-chat { flex: 1; min-height: 0; margin: 12px 16px 14px; padding: 12px; border-radius: 22px; background: var(--roxo-fundo); display: flex; flex-direction: column; }
+.v2-chat .v2-bloco-titulo { display: none; }
+.v2-chat-lista { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
+.v2-msg { align-self: flex-start; max-width: 92%; background: var(--roxo-2); border-radius: 14px 14px 14px 5px; padding: 7px 11px; font-size: 14px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.v2-msg.sistema { background: transparent; color: var(--lilas-2); padding: 2px 4px; font-size: 13px; }
+.v2-chat-form { margin-top: 8px; }
+.v2-chat-form input { width: 100%; height: 44px; border-radius: 14px; border: 2px solid var(--roxo-2); background: var(--roxo); color: #fff; padding: 0 14px; font-weight: 700; font-size: 16px; outline: none; }
+.v2-chat-form input:focus { border-color: var(--borda); }
+
+/* ---------- Resultado (tela de acerto) ---------- */
+.v2-resultado { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; overflow: hidden; animation: v2-fundo-in .2s ease-out both; }
+.v2-resultado.eu { background: var(--verde); color: #13322a; }
+.v2-resultado.outro { background: rgba(43,27,94,.96); color: #fff; }
+.v2-resultado.ninguem { background: rgba(43,27,94,.96); color: #fff; }
+.v2-resultado-selo { width: 124px; height: 124px; border-radius: 40px; background: #fff; display: flex; align-items: center; justify-content: center; animation: v2-estoura .6s cubic-bezier(.2,.9,.3,1.4) both; position: relative; }
+.v2-resultado.eu .v2-resultado-selo { color: var(--verde); box-shadow: 0 8px 0 var(--verde-sombra); }
+.v2-resultado.outro .v2-resultado-selo { color: var(--borda); box-shadow: 0 8px 0 var(--roxo-escuro); }
+.v2-resultado.ninguem .v2-resultado-selo { color: var(--laranja); box-shadow: 0 8px 0 var(--roxo-escuro); }
+.v2-resultado-titulo { font-family: var(--titulo); font-weight: 700; font-size: 44px; line-height: 1.05; position: relative; overflow-wrap: anywhere; animation: v2-entra .4s .1s ease-out both; }
+.v2-resultado.eu .v2-resultado-titulo { color: #fff; font-size: 54px; text-shadow: 0 5px 0 var(--verde-sombra); }
+.v2-resultado-resposta { position: relative; background: #13322a; color: #fff; padding: 10px 22px; border-radius: 18px; font-family: var(--titulo); font-weight: 600; font-size: 24px; animation: v2-entra .4s .2s ease-out both; }
+.v2-resultado.outro .v2-resultado-resposta { background: var(--amarelo); color: var(--roxo); }
+.v2-resultado-sub { position: relative; color: var(--lilas); font-weight: 800; }
+.v2-resultado-cards { position: relative; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; animation: v2-entra .4s .3s ease-out both; }
+.v2-mini-card { min-width: 104px; padding: 12px 14px; border-radius: 20px; background: #fff; color: var(--roxo); box-shadow: 0 5px 0 var(--verde-sombra); display: flex; flex-direction: column; align-items: center; }
+.v2-mini-card b { font-family: var(--titulo); font-size: 28px; }
+.v2-mini-card span { font-size: 12px; font-weight: 900; color: #5a4a8a; }
+.v2-mini-card.amarelo { background: var(--amarelo); box-shadow: 0 5px 0 var(--amarelo-sombra); }
+.v2-resultado-barra { position: absolute; left: 24px; right: 24px; bottom: 34px; max-width: 480px; margin: 0 auto; height: 10px; border-radius: 999px; background: rgba(0,0,0,.18); overflow: hidden; }
+.v2-resultado-barra span { display: block; height: 100%; border-radius: 999px; background: currentColor; animation: v2-barra 3.8s linear both; }
+.v2-confete { position: absolute; inset: 0; pointer-events: none; }
+.v2-confete i { position: absolute; top: -30px; display: block; animation: v2-cai 2.6s linear infinite; }
+
+/* ---------- Desktop ---------- */
+@media (min-width: 700px) {
+  .v2-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1000px) {
+  .v2-topo { padding: 18px 40px; background: var(--roxo-escuro); }
+  .v2-lobby { padding: 28px 40px 48px; gap: 20px; }
+  .v2-saudacao h1 { font-size: 30px; }
+  .v2-grade { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  .v2-card { min-height: 170px; padding: 18px; border-radius: 26px; box-shadow: 0 7px 0 var(--sombra); }
+  .v2-card-icone { width: 56px; height: 56px; border-radius: 17px; }
+  .v2-card-icone img { width: 48px; height: 48px; }
+  .v2-card-nome { font-size: 24px; }
+  .v2-card-sub { font-size: 13px; }
+
+  .v2-sala-topo { padding: 16px 40px; background: var(--roxo-escuro); }
+  .v2-sala-nome { font-size: 22px; }
+  .v2-relogio { width: 64px; height: 64px; }
+  .v2-relogio svg { width: 64px; height: 64px; }
+  .v2-sala-corpo { flex-direction: row; gap: 28px; padding: 28px 40px 32px; }
+  .v2-placar { width: 280px; padding: 18px; border-radius: 26px; background: var(--roxo-2); overflow-y: auto; }
+  .v2-placar .v2-bloco-titulo, .v2-chat .v2-bloco-titulo { display: block; }
+  .v2-placar-lista { flex-direction: column; overflow: visible; }
+  .v2-jogador { border-radius: 18px; padding: 10px; gap: 10px; background: var(--roxo); }
+  .v2-bolinha { width: 40px; height: 40px; font-size: 14px; }
+  .v2-jogador-nome { display: block; flex: 1; }
+  .v2-jogador-pts { font-family: var(--titulo); font-size: 18px; }
+  .v2-palco { flex: 1; min-width: 0; padding: 0; align-items: center; justify-content: center; gap: 18px; }
+  .v2-pergunta, .v2-resposta, .v2-tentativas { width: 100%; max-width: 700px; }
+  .v2-pergunta { padding: 28px 32px 30px; border-radius: 32px; box-shadow: 0 10px 0 #d8cbb2; }
+  .v2-pergunta-texto { font-size: 32px; }
+  .v2-letra { width: 34px; height: 42px; font-size: 22px; }
+  .v2-resposta input { height: 64px; font-size: 19px; }
+  .v2-enviar { width: 64px; height: 64px; }
+  .v2-chat { width: 320px; flex: none; margin: 0; padding: 18px; border-radius: 26px; }
+  .v2-chat-form input { font-size: 14px; }
+  .v2-resultado-titulo { font-size: 60px; }
+  .v2-resultado.eu .v2-resultado-titulo { font-size: 88px; }
+  .v2-resultado-selo { width: 160px; height: 160px; border-radius: 50px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+  .v2-confete { display: none; }
+}
