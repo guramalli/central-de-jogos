@@ -1392,7 +1392,6 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 6
    log e legenda somem (repetiriam em cada painel e comeriam altura). */
 .v2-sala.compacto { height: 100%; min-height: 0; overflow: hidden; background: transparent; }
 .v2-sala.compacto .v2-sala-topo,
-.v2-sala.compacto .v2-placar,
 .v2-sala.compacto .v2-log,
 .v2-sala.compacto .v2-stop-lateral,
 .v2-sala.compacto .v2-abas-celular,
@@ -1470,3 +1469,44 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-sala.compacto .v2-quem-acertou .v2-patente-jogador { width: 32px; height: 32px; }
 .v2-sala.compacto .v2-quem-acertou .v2-stop-quem-nick { font-size: 18px; }
 .v2-sala.compacto .v2-quem-acertou .v2-stop-quem-patente { display: none; }
+
+
+/* ---------- Multi-sala: lista de jogadores e lacunas ----------
+   O painel vira um "container": o layout de dentro depende da LARGURA DO
+   PAINEL (empilhado = largo; lado a lado ou 2x2 = estreito), não da tela. */
+.v2-multi-jogo { container-type: inline-size; container-name: painel; }
+
+/* Painel estreito: jogadores numa fileira de fichinhas em cima do jogo. */
+.v2-sala.compacto .v2-placar { display: block; flex: 0 0 auto; width: auto; padding: 0; background: none; border-radius: 0; min-height: 0; }
+.v2-sala.compacto .v2-placar .v2-bloco-titulo, .v2-sala.compacto .v2-recorde { display: none !important; }
+.v2-sala.compacto .v2-placar-lista { flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 4px; scrollbar-width: none; }
+.v2-sala.compacto .v2-jogador { flex-shrink: 0; border-radius: 999px; padding: 2px 10px 2px 2px; gap: 5px; background: var(--roxo-2); }
+.v2-sala.compacto .v2-jogador-pos, .v2-sala.compacto .v2-jogador-patente { display: none; }
+.v2-sala.compacto .v2-jogador-info { display: flex; flex: none; }
+.v2-sala.compacto .v2-jogador-nome { display: block; font-size: 12px; max-width: 90px; }
+.v2-sala.compacto .v2-jogador .v2-patente-jogador { width: 24px; height: 24px; }
+.v2-sala.compacto .v2-jogador .v2-patente-sem { font-size: 9px; }
+.v2-sala.compacto .v2-jogador .v2-avatar-foto { width: 24px !important; height: 24px !important; font-size: 9px !important; }
+.v2-sala.compacto .v2-jogador-pts { font-family: inherit; font-size: 12px; }
+
+/* Temas maiores (lacunas do Stop). */
+.v2-stop-campo span { font-size: 16px; }
+.v2-sala.compacto .v2-stop-campo span { font-size: 13px; }
+
+/* Painel largo: jogo + chat à esquerda, jogadores numa coluna à direita,
+   e as 6 lacunas numa linha só (mais curtas, temas maiores). */
+@container painel (min-width: 1000px) {
+  .v2-sala.compacto .v2-sala-corpo { display: grid !important; grid-template-columns: minmax(0, 1fr) 230px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "palco placar" "chat placar"; gap: 6px; }
+  .v2-sala.compacto .v2-palco { grid-area: palco; }
+  .v2-sala.compacto .v2-chat { grid-area: chat; }
+  .v2-sala.compacto .v2-placar { grid-area: placar; background: var(--roxo-2); border-radius: 14px; padding: 8px; overflow-y: auto; }
+  .v2-sala.compacto .v2-placar .v2-bloco-titulo { display: flex !important; font-size: 14px; margin-bottom: 6px; }
+  .v2-sala.compacto .v2-placar-lista { flex-direction: column; overflow-x: hidden; overflow-y: visible; }
+  .v2-sala.compacto .v2-jogador { border-radius: 12px; padding: 5px 8px; background: var(--roxo); }
+  .v2-sala.compacto .v2-jogador-info { flex: 1; min-width: 0; }
+  .v2-sala.compacto .v2-jogador-nome { max-width: none; font-size: 13px; }
+  .v2-sala.compacto .v2-jogador .v2-patente-jogador { width: 30px; height: 30px; }
+  .v2-sala.compacto .v2-stop-campos { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .v2-sala.compacto .v2-stop-campo span { font-size: 14px; }
+  .v2-sala.compacto .v2-stop-campo input { height: 40px; font-size: 15px; }
+}
