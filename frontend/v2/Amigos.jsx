@@ -5,7 +5,6 @@ import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 import { CampoChat } from "./Chat.jsx";
-import { somOutroAcertou, estaMudo } from "./sons.js";
 
 const quando = (t) => {
   if (!t) return "";
@@ -198,7 +197,6 @@ export function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
     s.on("dm-history", (d) => { setMsgs(d.messages || []); aoLer?.(); });
     s.on("dm-message", (m) => {
       setMsgs((prev) => [...(prev || []), m]);
-      if (m.senderId === amigo.userId && !estaMudo()) somOutroAcertou();
     });
     s.on("dm-error", (d) => setErro(d?.error || "Erro ao abrir a conversa."));
     s.connect();

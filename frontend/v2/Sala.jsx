@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
-import { somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -197,6 +197,9 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
       s.disconnect();
     };
   }, [roomId]);
+
+  // Sons só existem dentro das salas: é aqui que eles são ligados.
+  useEffect(() => { ativarSons(); }, []);
 
   const sairDaSala = () => (aoFechar ? aoFechar() : voltarAoLobby("quiz"));
 

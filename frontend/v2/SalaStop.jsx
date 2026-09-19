@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby, irParaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
-import { somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -215,6 +215,9 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
       s.disconnect();
     };
   }, [roomId]);
+
+  // Sons só existem dentro das salas: é aqui que eles são ligados.
+  useEffect(() => { ativarSons(); }, []);
 
   const sairDaSala = () => (aoFechar ? aoFechar() : voltarAoLobby("stop"));
 
@@ -564,7 +567,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
         <aside className="v2-chat" aria-label="Chat da sala">
           <div className="v2-abas-celular" role="tablist">
             <button role="tab" aria-selected={aba === "chat"} className={aba === "chat" ? "ativa" : ""} onClick={() => setAba("chat")}>Chat</button>
-            <button role="tab" aria-selected={aba === "legenda"} className={aba === "legenda" ? "ativa" : ""} onClick={() => setAba("legenda")}>Pontuação</button>
+            <button role="tab" aria-selected={aba === "legenda"} className={aba === "legenda" ? "ativa" : ""} onClick={() => setAba("legenda")}>Jogadores <span className="v2-aba-contador">{jogadores.length}</span></button>
           </div>
           <div className="v2-bloco-titulo">Chat</div>
           <div className="v2-chat-lista" ref={chatListaRef}>
@@ -586,7 +589,24 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
               );
             })}
           </div>
-          <div className="v2-chat-legenda-celular">{legenda}</div>
+          {/* Celular: no lugar da legenda de pontos, a lista de quem está na
+              sala (a fileira de fichinhas do topo some no celular). */}
+          <div className="v2-chat-legenda-celular">
+            <div className="v2-lista-celular">
+              {jogadores.map((j, i) => (
+                <div key={j.userId} className={`v2-jogador ${j.userId === usuario.id ? "eu" : ""}`}>
+                  <span className="v2-jogador-pos">{i + 1}</span>
+                  <IconePatente rank={j.rank} nickname={j.nickname} userId={j.userId} />
+                  <div className="v2-jogador-info">
+                    <span className="v2-jogador-nome">{j.nickname}{j.ehBot && <em className="v2-tag-bot">bot</em>}</span>
+                    {j.rank?.name && <span className="v2-jogador-patente">{j.rank.name}</span>}
+                  </div>
+                  <span className="v2-jogador-pts">{(j.semPontuacao ? j.blockPoints ?? 0 : j.roomMonthlyPoints ?? 0).toLocaleString("pt-BR")}</span>
+                </div>
+              ))}
+              {jogadores.length === 0 && <div className="v2-vazio">Entrando na sala…</div>}
+            </div>
+          </div>
           <CampoChat id={`${uid}-chat`} aoEnviar={enviarChat} participantes={jogadores.filter((j) => !j.ehBot).map((j) => j.nickname)} meuNick={usuario.nickname} />
         </aside>
       </div>

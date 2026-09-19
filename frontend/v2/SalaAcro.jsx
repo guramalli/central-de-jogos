@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador, iniciais } from "./temas.js";
-import { somPergunta, somAcerto, somTique, estaMudo, alternarMudo } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -188,6 +188,9 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
     if (fase !== "writing" || antes === null || tempo >= antes) return;
     if (tempo > 0 && tempo <= 5) somTique();
   }, [tempo, fase]);
+
+  // Sons só existem dentro das salas: é aqui que eles são ligados.
+  useEffect(() => { ativarSons(); }, []);
 
   const sairDaSala = () => (aoFechar ? aoFechar() : voltarAoLobby("acromania"));
 
