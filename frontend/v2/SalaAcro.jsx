@@ -178,7 +178,7 @@ export default function SalaAcro({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      voltarAoLobby();
+      voltarAoLobby("acromania");
     });
 
     s.connect();
@@ -254,7 +254,7 @@ export default function SalaAcro({ roomId, usuario }) {
         <div className="v2-cartao-entrar">
           <div className="v2-logo-grande">Sala lotada!</div>
           <p>Tenta de novo daqui a pouco.</p>
-          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby()}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby("acromania")}>Voltar ao lobby</button>
         </div>
       </div>
     );
@@ -280,7 +280,7 @@ export default function SalaAcro({ roomId, usuario }) {
   return (
     <div className={`v2-app v2-sala v2-sala-acro aba-${aba}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby()}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby("acromania")}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         <img className="v2-sala-icone v2-stop-logo" src="/acromania-logo.png" alt="" />

@@ -4,8 +4,10 @@ import { irPara, irParaPagina, irParaStop, irParaAcro } from "./App.jsx";
 import { REGRAS_ACRO } from "./SalaAcro.jsx";
 import { corDoTema, nomeDoTema } from "./temas.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
-import NickHover from "./NickHover.jsx";
 import Topo from "./Topo.jsx";
+
+const LOGO_JOGO = { quiz: "/quiz-logo.png", stop: "/stop-logo.png", acromania: "/acromania-logo.png" };
+const NOME_JOGO = { quiz: "Quiz", stop: "Stop", acromania: "Acromania" };
 
 export default function Lobby({ usuario, jogoInicial }) {
   const [salas, setSalas] = useState(null);
@@ -13,7 +15,7 @@ export default function Lobby({ usuario, jogoInicial }) {
   const [perfil, setPerfil] = useState(null);
   const [nivel, setNivel] = useState(() => localStorage.getItem("eg_v2_nivel") || "padrao");
   // Qual jogo o lobby mostra. Lembrado entre visitas.
-  const [jogo, setJogo] = useState(() => (["quiz", "stop", "acromania"].includes(jogoInicial) ? jogoInicial : localStorage.getItem("eg_v2_jogo") || "quiz"));
+  const [jogo] = useState(() => (["quiz", "stop", "acromania"].includes(jogoInicial) ? jogoInicial : localStorage.getItem("eg_v2_jogo") || "quiz"));
   const [salasStop, setSalasStop] = useState(null);
   const [privadas, setPrivadas] = useState([]);
   const [acro, setAcro] = useState(null); // { ativo, rooms } do Acromania
@@ -82,13 +84,14 @@ export default function Lobby({ usuario, jogoInicial }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="jogar" />
+      <Topo usuario={usuario} ativo="inicio" />
 
       <div className="v2-lobby">
         <section className="v2-saudacao">
           <div className="v2-saudacao-topo">
-            <div>
-              <h1>Oi, <NickHover userId={usuario.id} nickname={usuario.nickname} meuId={usuario.id}>{usuario.nickname}</NickHover>!</h1>
+            <div className="v2-lobby-jogo">
+              <a className="v2-link v2-lobby-voltar" href="/v2/" onClick={(e) => { e.preventDefault(); irPara(null); }}>← todos os jogos</a>
+              <img src={LOGO_JOGO[jogo]} alt={NOME_JOGO[jogo]} />
               <p>{jogo === "stop" ? "Escolha uma sala e bora pro Stop." : jogo === "acromania" ? "Um tema, algumas letras e a frase mais criativa vence." : "Escolha um tema e bora jogar."}</p>
             </div>
             {mensal?.rank && (
@@ -108,17 +111,6 @@ export default function Lobby({ usuario, jogoInicial }) {
           </div>
         </section>
 
-        <div className="v2-chave-jogo" role="group" aria-label="Jogo">
-          <button className={jogo === "quiz" ? "ativo" : ""} aria-pressed={jogo === "quiz"} onClick={() => setJogo("quiz")}>
-            <img src="/quiz-logo.png" alt="Quiz" />
-          </button>
-          <button className={jogo === "stop" ? "ativo" : ""} aria-pressed={jogo === "stop"} onClick={() => setJogo("stop")}>
-            <img src="/stop-logo.png" alt="Stop" />
-          </button>
-          <button className={jogo === "acromania" ? "ativo" : ""} aria-pressed={jogo === "acromania"} onClick={() => setJogo("acromania")}>
-            <img src="/acromania-logo.png" alt="Acromania" />
-          </button>
-        </div>
 
         {jogo === "stop" && <LobbyStop salas={salasStop} privadas={privadas} jogando={jogandoStop} />}
         {jogo === "acromania" && <LobbyAcro dados={acro} privadas={privadasAcro} jogando={jogandoAcro} />}

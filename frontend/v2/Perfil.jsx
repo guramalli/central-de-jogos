@@ -34,12 +34,20 @@ function horas(min) {
   return `${h.toLocaleString("pt-BR")}h${min % 60 ? ` ${min % 60}min` : ""}`;
 }
 
+// "2026-08" -> "agosto de 2026"
+function mesPorExtenso(k) {
+  const [a, m] = String(k).split("-").map(Number);
+  if (!a || !m) return k;
+  return new Date(a, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
 const nivelDaMedalha = (logo) => (typeof logo === "string" && logo.match(/-(bronze|prata|ouro)\.png$/i)?.[1]?.toLowerCase()) || "";
 
 export default function Perfil({ usuario, userId }) {
   const [perfil, setPerfil] = useState(null);
   const [erro, setErro] = useState("");
   const [titulos, setTitulos] = useState([]);
+  const [trofeus, setTrofeus] = useState([]);
   const [verTodos, setVerTodos] = useState(false);
   const [amizade, setAmizade] = useState(null);
   const [erroAmizade, setErroAmizade] = useState("");
@@ -50,8 +58,11 @@ export default function Perfil({ usuario, userId }) {
   useEffect(() => {
     api.get(`/users/${userId}/profile`).then(({ data }) => setPerfil(data)).catch(() => setErro("Não foi possível carregar esse perfil."));
     api.get(`/users/${userId}/titulos`)
-      .then(({ data }) => setTitulos([...(data.quiz || []), ...(data.stop || [])].map((t) => (t.desbloqueados || []).at(-1)).filter(Boolean)))
-      .catch(() => setTitulos([]));
+      .then(({ data }) => {
+        setTitulos([...(data.quiz || []), ...(data.stop || [])].map((t) => (t.desbloqueados || []).at(-1)).filter(Boolean));
+        setTrofeus(data.trofeus?.todos || []);
+      })
+      .catch(() => { setTitulos([]); setTrofeus([]); });
   }, [userId]);
 
   // Botão "convidar pro clã" só pra dono de clã, e só se o perfil não tem clã.
@@ -103,7 +114,6 @@ export default function Perfil({ usuario, userId }) {
                   {souEu ? (
                     <div className="v2-perfil-meus-botoes">
                       <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Editar meu perfil</a>
-                      <a className="v2-botao v2-botao-contorno" href="/">Site clássico</a>
                       <button className="v2-botao v2-botao-contorno" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.replace("/v2/"); } }}>Sair</button>
                     </div>
                   ) : amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? (
@@ -119,6 +129,22 @@ export default function Perfil({ usuario, userId }) {
                 {erroAmizade && <div className="v2-erro-pequeno">{erroAmizade}</div>}
               </div>
             </section>
+
+            {trofeus.length > 0 && (
+              <section className="v2-trofeus-perfil" aria-label="Títulos de campeão mensal">
+                {trofeus.map((t) => (
+                  <div key={`${t.gameKey}-${t.monthKey}`} className="v2-trofeu-perfil">
+                    <span className="v2-trofeu-brilho" aria-hidden="true" />
+                    {t.logo && <img src={t.logo} alt="" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
+                    <div>
+                      <span className="v2-trofeu-rotulo">Campeão do mês</span>
+                      <b>Vencedor de {mesPorExtenso(t.monthKey)} no {JOGOS[t.gameKey] || t.gameKey}</b>
+                      <em>{Number(t.points || 0).toLocaleString("pt-BR")} pts no mês</em>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
 
             {admin ? (
               <section className="v2-cartao v2-perfil-admin">

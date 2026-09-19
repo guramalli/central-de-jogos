@@ -9,14 +9,13 @@ import { ConviteRecebido } from "./Convites.jsx";
 // pros amigos enquanto navega, e não recebe convite de sala.
 const ITENS = [
   { pagina: "inicio", rotulo: "Início" },
-  { pagina: "jogar", rotulo: "Jogar" },
   { pagina: "ranking", rotulo: "Ranking" },
   { pagina: "missoes", rotulo: "Missões" },
   { pagina: "amigos", rotulo: "Amigos" },
   { pagina: "clas", rotulo: "Clãs" },
   { pagina: "patentes", rotulo: "Patentes" },
 ];
-const NO_CELULAR = ["inicio", "jogar", "ranking", "amigos", "missoes"];
+const NO_CELULAR = ["inicio", "ranking", "missoes", "amigos"];
 
 const hrefDe = (pagina) => (pagina === "inicio" ? "/v2/" : linkDaPagina(pagina));
 const ir = (e, pagina) => { e.preventDefault(); irParaPagina(pagina === "inicio" ? null : pagina); };
@@ -74,9 +73,9 @@ export default function Topo({ usuario, ativo = null }) {
         </nav>
         <div className="v2-topo-dir">
           <BuscaJogador />
-          <a className="v2-link-classico" href="/">site clássico</a>
-          <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil">
+                    <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil">
             <Avatar userId={usuario.id} nickname={usuario.nickname} tamanho={44} borda />
+            <span className="v2-topo-nick">{usuario.nickname}</span>
           </a>
           <button className="v2-sair" title="Sair da conta" aria-label="Sair da conta" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>

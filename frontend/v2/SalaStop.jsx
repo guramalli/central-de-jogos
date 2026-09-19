@@ -179,7 +179,7 @@ export default function SalaStop({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      voltarAoLobby();
+      voltarAoLobby("stop");
     });
 
     s.connect();
@@ -279,7 +279,7 @@ export default function SalaStop({ roomId, usuario }) {
           ) : (
             <p>A <b>{negado.roomLabel}</b> exige {Number(negado.required || 0).toLocaleString("pt-BR")} pontos vitalícios no Stop. Você tem {Number(negado.current || 0).toLocaleString("pt-BR")} — continue jogando nas salas abertas pra liberar.</p>
           )}
-          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby()}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby("stop")}>Voltar ao lobby</button>
         </div>
       </div>
     );
@@ -299,7 +299,7 @@ export default function SalaStop({ roomId, usuario }) {
   return (
     <div className={`v2-app v2-sala v2-sala-stop aba-${aba}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby()}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby("stop")}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         <img className="v2-sala-icone v2-stop-logo" src="/stop-logo.png" alt="" />

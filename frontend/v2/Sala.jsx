@@ -193,7 +193,7 @@ export default function Sala({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      voltarAoLobby();
+      voltarAoLobby("quiz");
     });
 
     s.connect();
@@ -263,7 +263,7 @@ export default function Sala({ roomId, usuario }) {
         <div className="v2-cartao-entrar">
           <div className="v2-logo-grande">Sala cheia!</div>
           <p>{cheia.roomLabel || "Essa sala"} está lotada{cheia.maxPlayers ? ` (${cheia.maxPlayers} jogadores)` : ""}. Tenta outro tema?</p>
-          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby()}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby("quiz")}>Voltar ao lobby</button>
         </div>
       </div>
     );
@@ -272,7 +272,7 @@ export default function Sala({ roomId, usuario }) {
   return (
     <div className={`v2-app v2-sala aba-${aba}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby()}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby("quiz")}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         {themeKey && <img className="v2-sala-icone" src={`/temas-quiz/${themeKey}.png`} alt="" />}

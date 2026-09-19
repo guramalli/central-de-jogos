@@ -37,7 +37,7 @@ export const irPara = (sala) => navegar({ sala });
 export const irParaStop = (stop) => navegar({ stop });
 export const irParaAcro = (acro) => navegar({ acro });
 // Saindo de uma sala, volta pra escolha de salas (e não pro Início).
-export const voltarAoLobby = () => navegar({ pagina: "jogar" });
+export const voltarAoLobby = (jogo) => navegar({ pagina: "jogar", jogo });
 export const irParaPagina = (pagina, extra = {}) => navegar({ pagina, ...extra });
 export const linkDaPagina = (pagina, extra = {}) => {
   const q = new URLSearchParams({ pagina, ...extra });
