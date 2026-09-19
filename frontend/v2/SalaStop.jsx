@@ -39,6 +39,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const [temaVotacao, setTemaVotacao] = useState(null);
   const [progressoVoto, setProgressoVoto] = useState(null);
   const votacaoPendenteRef = useRef(null);
+  const [donoId, setDonoId] = useState(null);
   const [nomeSala, setNomeSala] = useState("");
   const [minCertas, setMinCertas] = useState(0);
   const [pronto, setPronto] = useState(false);
@@ -178,7 +179,8 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
     // Entrou pelo link sem passar pela senha: o servidor recusa.
     s.on("stop-sala-bloqueada", (d) => setNegado({ bloqueada: true, mensagem: d?.error }));
     // Esperando gente: o dono da sala é quem começa.
-    s.on("sala-aguardando", (d) => { setEspera(d); setFase("aguardando"); });
+    s.on("sala-aguardando", (d) => { setEspera(d); setFase("aguardando"); if (d?.donoId) setDonoId(d.donoId); });
+    s.on("stop-bots-erro", (d) => addMsg({ system: true, aviso: true, message: d?.error || "Não deu pra chamar os bots." }));
     s.on("voting-progress", (d) => setProgressoVoto(d));
     // Votação da mesa, tema por tema. Se chegar durante o atraso do STOP,
     // espera ele acabar (mesma regra do resultado).
@@ -315,6 +317,11 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const urgente = ativa && tempo <= 10;
   const podePular = fase !== "active" && !enviando && pular.needed >= pular.minPlayers;
   const meuNick = usuario.nickname.toLowerCase();
+  // Bots de teste (só sala privada; dono ou admin controla).
+  const botsNaSala = jogadores.filter((j) => j.ehBot).length;
+  const controlaBots = roomId.startsWith("stop-privada-") && (donoId === usuario.id || usuario.role === "ADMIN");
+  const chamarBots = () => socketRef.current?.emit("stop-chamar-bots", { quantos: 3 });
+  const dispensarBots = () => socketRef.current?.emit("stop-dispensar-bots");
 
   if (negado) {
     return (
@@ -392,9 +399,13 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                 <span className="v2-jogador-pos">{i + 1}</span>
                 <IconePatente rank={j.rank} nickname={j.nickname} userId={j.userId} />
                 <div className="v2-jogador-info">
-                  <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="stop">
-                    <span className="v2-jogador-nome">{j.nickname}</span>
-                  </NickHover>
+                  {j.ehBot ? (
+                    <span className="v2-jogador-nome" title="bot de teste">{j.nickname}</span>
+                  ) : (
+                    <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="stop">
+                      <span className="v2-jogador-nome">{j.nickname}</span>
+                    </NickHover>
+                  )}
                   {j.rank?.name && (
                     <span className="v2-jogador-patente">
                       {j.rank.name}
@@ -487,7 +498,14 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
             )}
 
             {fase === "aguardando" && espera && (
-              <SalaEspera estado={espera} souDono={espera.donoId === usuario.id} aoIniciar={() => socketRef.current?.emit("iniciar-partida")} />
+              <SalaEspera estado={espera} souDono={espera.donoId === usuario.id} aoIniciar={() => socketRef.current?.emit("iniciar-partida")}
+                bots={controlaBots ? { quantos: botsNaSala, chamar: chamarBots, dispensar: dispensarBots } : null} />
+            )}
+            {controlaBots && botsNaSala > 0 && fase !== "aguardando" && (
+              <div className="v2-acro-bots">
+                {botsNaSala} bot(s) de teste na sala — eles preenchem e votam, mas nunca pedem STOP.
+                <button onClick={dispensarBots}>dispensar</button>
+              </div>
             )}
             {fase === "voting" && temaVotacao && (
               <Votacao tema={temaVotacao} meuId={usuario.id} aoVotar={(alvo, chave, valido) => socketRef.current?.emit("vote-word", { targetUserId: alvo, themeKey: chave, valido })} />
@@ -654,7 +672,7 @@ function Confete() {
 }
 
 // Sala privada esperando gente. Só o dono vê o botão de começar.
-function SalaEspera({ estado, souDono, aoIniciar }) {
+function SalaEspera({ estado, souDono, aoIniciar, bots }) {
   const { jogadores = [], minimoParaComecar = 2, podeComecar } = estado || {};
   const faltam = Math.max(0, minimoParaComecar - jogadores.length);
   return (
@@ -671,6 +689,21 @@ function SalaEspera({ estado, souDono, aoIniciar }) {
         </>
       ) : (
         <p className="v2-nota-creme">Quem criou a sala é que começa a partida. Segura aí!</p>
+      )}
+      {bots && (
+        <div className="v2-espera-bots">
+          {bots.quantos > 0 ? (
+            <>
+              <span>{bots.quantos} bot(s) de teste na sala</span>
+              <button className="v2-botao-pequeno" onClick={bots.dispensar}>Dispensar bots</button>
+            </>
+          ) : (
+            <>
+              <button className="v2-botao-pequeno" onClick={bots.chamar}>Chamar bots de teste</button>
+              <span>Até 3 jogadores automáticos pra testar a sala e a votação. Eles nunca pedem STOP.</span>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

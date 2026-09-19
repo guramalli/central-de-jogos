@@ -230,6 +230,7 @@ export default function EditarPerfil({ usuario }) {
               <div key={t.tema} className="v2-titulos-linha">
                 <div className="v2-titulos-linha-topo"><b>{t.nomeTema}</b><span>{t.acertos} acertos</span></div>
                 <div className="v2-titulos">{(t.titulos || []).map((n) => <ItemTitulo key={n.nome} t={n} unidade="acertos" />)}</div>
+                <ProgressoTitulo valor={t.acertos} proximo={t.proximo} unidade="acertos" />
               </div>
             ))}
             {titulos.stop?.length > 0 && <div className="v2-bloco-titulo">Stop — STOPs pedidos</div>}
@@ -237,12 +238,28 @@ export default function EditarPerfil({ usuario }) {
               <div key={t.grupo} className="v2-titulos-linha">
                 <div className="v2-titulos-linha-topo"><b>{t.rotulo}</b><span>{t.stops} STOPs</span></div>
                 <div className="v2-titulos">{(t.titulos || []).map((n) => <ItemTitulo key={n.nome} t={n} unidade="STOPs" />)}</div>
+                <ProgressoTitulo valor={t.stops} proximo={t.proximo} unidade="STOPs" />
               </div>
             ))}
           </section>
         )}
       </main>
       <Rodape />
+    </div>
+  );
+}
+
+// Barra até o próximo título do tema (igual ao clássico). Com todos os
+// níveis conquistados, não aparece.
+function ProgressoTitulo({ valor = 0, proximo, unidade }) {
+  if (!proximo) return null;
+  const pct = Math.min(100, Math.round((valor / proximo.min) * 100));
+  return (
+    <div className="v2-titulo-progresso" title={`${valor} de ${proximo.min} ${unidade}`}>
+      <div className="v2-titulo-progresso-barra" role="progressbar" aria-valuemin={0} aria-valuemax={proximo.min} aria-valuenow={valor} aria-label={`Progresso até ${proximo.nome}`}>
+        <div style={{ width: `${pct}%` }} />
+      </div>
+      <span>faltam <b>{Math.max(0, proximo.min - valor).toLocaleString("pt-BR")}</b> {unidade} para <b>{proximo.nome}</b> · {pct}%</span>
     </div>
   );
 }

@@ -555,6 +555,8 @@ export class StopRoom {
           blockPoints: this.blockTotals.get(p.userId) || 0,
           rank: null,
           semPontuacao: true,
+          // Bot de teste (salas privadas — ver stopBots.js).
+          ehBot: !!p.socket?.ehBot,
         });
         continue;
       }

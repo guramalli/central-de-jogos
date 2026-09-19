@@ -1566,3 +1566,12 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-votacao-rodape.pronto { color: #049a74; }
 .v2-nota-creme { margin: 0; font-size: 13px; font-weight: 800; color: #5a4a8a; }
 .v2-minha-patente .v2-zera { display: block; font-size: 11px; font-weight: 800; color: var(--lilas-2); }
+.v2-espera-bots { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 14px; background: #ede3d0; font-size: 13px; font-weight: 800; color: #5a4a8a; max-width: 520px; }
+.v2-espera-bots .v2-botao-pequeno { background: var(--roxo); color: #fff; }
+
+/* Barra até o próximo título (Meu perfil). */
+.v2-titulo-progresso { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
+.v2-titulo-progresso-barra { height: 10px; border-radius: 999px; background: var(--roxo-fundo); overflow: hidden; }
+.v2-titulo-progresso-barra > div { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--verde), #7ff0cf); transition: width .6s ease-out; }
+.v2-titulo-progresso span { font-size: 12px; font-weight: 800; color: var(--lilas); }
+.v2-titulo-progresso b { color: #fff; }
