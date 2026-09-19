@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { irPara, irParaStop } from "./App.jsx";
+import { irPara, irParaStop, irParaAcro } from "./App.jsx";
 
 // BOTÃO "CONVIDAR": copiar/compartilhar o link da sala + chamar um amigo
 // que já está no site (evento convidar-para-sala, mesmo do clássico — sai
@@ -10,7 +10,7 @@ export function BotaoConvidar({ socket, roomId, nomeSala, jogo = "quiz" }) {
   const [amigos, setAmigos] = useState(null);
   const [aviso, setAviso] = useState(null);
   const caixaRef = useRef(null);
-  const link = `${window.location.origin}/v2/?${jogo === "stop" ? "stop" : "sala"}=${roomId}`;
+  const link = `${window.location.origin}/v2/?${jogo === "stop" ? "stop" : jogo === "acromania" ? "acro" : "sala"}=${roomId}`;
 
   useEffect(() => {
     if (!aberto) return;
@@ -34,7 +34,7 @@ export function BotaoConvidar({ socket, roomId, nomeSala, jogo = "quiz" }) {
   }, [aviso]);
 
   async function copiar() {
-    const texto = `Vem jogar ${jogo === "stop" ? "Stop" : "Quiz"} comigo, tô na ${nomeSala || "sala"}! ${link}`;
+    const texto = `Vem jogar ${jogo === "stop" ? "Stop" : jogo === "acromania" ? "Acromania" : "Quiz"} comigo, tô na ${nomeSala || "sala"}! ${link}`;
     try {
       if (navigator.share && window.matchMedia("(pointer: coarse)").matches) await navigator.share({ text: texto });
       else { await navigator.clipboard.writeText(texto); setAviso({ ok: true, t: "Link copiado!" }); }
@@ -68,8 +68,8 @@ export function BotaoConvidar({ socket, roomId, nomeSala, jogo = "quiz" }) {
 }
 
 // AVISO DE CONVITE RECEBIDO. Chega em qualquer conexão da pessoa (sala
-// pessoal user:<id>). Quiz e Stop abrem na v2; Acromania e as salas
-// privadas do Stop, que ainda não existem aqui, abrem no clássico.
+// pessoal user:<id>). Salas oficiais abrem na v2; as privadas (Stop e
+// Acromania), que ainda não existem aqui, abrem no clássico.
 export function ConviteRecebido({ socket }) {
   const [convite, setConvite] = useState(null);
   useEffect(() => {
@@ -91,7 +91,8 @@ export function ConviteRecebido({ socket }) {
     if (convite.jogo === "quiz") irPara(convite.sala);
     else if (convite.jogo === "stop" && !String(convite.sala).startsWith("stop-privada-")) irParaStop(convite.sala);
     else if (convite.jogo === "stop") window.location.href = `/jogos/stop/privada?sala=${convite.sala}`;
-    else window.location.href = `/jogos/${convite.jogo}/${convite.sala}`;
+    else if (convite.jogo === "acromania" && !String(convite.sala).startsWith("acromania-privada-")) irParaAcro(convite.sala);
+    else window.location.href = `/jogos/acromania/privada?sala=${convite.sala}`;
   };
 
   return (

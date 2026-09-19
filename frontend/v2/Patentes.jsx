@@ -3,15 +3,15 @@ import { api } from "./api.js";
 import Topo from "./Topo.jsx";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 
-// Quiz e Stop (os jogos da v2). As do Acromania continuam no clássico.
+// Patentes dos três jogos (Quiz, Stop e Acromania).
 export default function Patentes({ usuario, jogoInicial }) {
-  const [jogo, setJogo] = useState(jogoInicial === "stop" ? "stop" : "quiz");
+  const [jogo, setJogo] = useState(["stop", "acromania"].includes(jogoInicial) ? jogoInicial : "quiz");
   const [patentes, setPatentes] = useState(null);
   const [meus, setMeus] = useState(null);
 
   useEffect(() => {
     setPatentes(null);
-    api.get(jogo === "stop" ? "/ranks" : "/quiz-ranks").then(({ data }) => setPatentes([...data].sort((a, b) => b.min - a.min))).catch(() => setPatentes([]));
+    api.get(jogo === "stop" ? "/ranks" : jogo === "acromania" ? "/acromania-ranks" : "/quiz-ranks").then(({ data }) => setPatentes([...data].sort((a, b) => b.min - a.min))).catch(() => setPatentes([]));
     buscarPerfil(usuario.id, 20000).then((p) => setMeus(dadosDoJogo(p, jogo).mensal));
   }, [usuario.id, jogo]);
 
@@ -26,8 +26,9 @@ export default function Patentes({ usuario, jogoInicial }) {
         <div className="v2-segmentado" role="group" aria-label="Jogo">
           <button className={jogo === "quiz" ? "ativo" : ""} onClick={() => setJogo("quiz")}>Quiz</button>
           <button className={jogo === "stop" ? "ativo" : ""} onClick={() => setJogo("stop")}>Stop</button>
+          <button className={jogo === "acromania" ? "ativo" : ""} onClick={() => setJogo("acromania")}>Acromania</button>
         </div>
-        <p className="v2-pagina-nota">Sua patente é calculada pelos pontos <b>do mês</b> no {jogo === "stop" ? "Stop" : "Quiz"} — todo dia 1º ela recomeça do zero.</p>
+        <p className="v2-pagina-nota">Sua patente é calculada pelos pontos <b>do mês</b> no {jogo === "stop" ? "Stop" : jogo === "acromania" ? "Acromania" : "Quiz"} — todo dia 1º ela recomeça do zero.</p>
 
         {meus && (
           <section className="v2-cartao v2-patente-atual">
@@ -57,7 +58,6 @@ export default function Patentes({ usuario, jogoInicial }) {
             );
           })}
         </div>
-        <p className="v2-pagina-nota">Patentes do Acromania: <a className="v2-link" href="/patentes-acromania">no site clássico</a></p>
       </main>
     </div>
   );
