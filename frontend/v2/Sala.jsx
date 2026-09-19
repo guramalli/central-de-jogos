@@ -89,7 +89,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
     s.on("connect_error", (err) => {
       if (!ehSessaoMorta(err)) return;
       sair();
-      window.location.replace("/login?sessao=expirada");
+      window.location.replace("/v2/?pagina=entrar&sessao=expirada");
     });
     s.on("quiz-room-full", (d) => setCheia(d || {}));
     s.on("quiz-room-state", (st) => {

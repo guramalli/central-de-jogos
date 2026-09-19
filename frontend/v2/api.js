@@ -20,6 +20,33 @@ export function usuarioAtual() {
   }
 }
 
+// ENTRAR / CADASTRAR — mesmas rotas e mesmo jeito de guardar a sessão do
+// clássico (src/context/AuthContext.jsx), então a conta vale nos dois sites.
+import { registrarConversaoCadastro } from "../src/utils/analytics.js";
+
+function guardarSessao(data) {
+  localStorage.setItem("eg_token", data.token);
+  localStorage.setItem("eg_user", JSON.stringify(data.user));
+}
+export async function entrarComEmail(email, password) {
+  const { data } = await api.post("/auth/login", { email, password });
+  guardarSessao(data);
+}
+export async function cadastrar(nickname, email, password, extra = {}) {
+  const { data } = await api.post("/auth/register", { nickname, email, password, ...extra });
+  guardarSessao(data);
+  await registrarConversaoCadastro(); // conversão do Google Ads (espera o envio)
+}
+export async function entrarComGoogle(credential) {
+  const { data } = await api.post("/auth/google", { credential });
+  guardarSessao(data);
+  if (data.contaNova) await registrarConversaoCadastro();
+}
+export async function entrarComoVisitante(nickname) {
+  const { data } = await api.post("/auth/guest", { nickname });
+  guardarSessao(data);
+}
+
 export function sair() {
   localStorage.removeItem("eg_token");
   localStorage.removeItem("eg_user");

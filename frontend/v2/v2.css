@@ -1640,3 +1640,58 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-novidade.destaque .v2-novidade-data { color: #3d2a6e; }
 .v2-novidade.destaque h2 { font-size: 26px; }
 .v2-novidade-topo { flex-wrap: wrap; }
+
+/* ---------- Páginas públicas (entrada, entrar, cadastro, senha) ---------- */
+.v2-topo-publico { justify-content: space-between; }
+.v2-topo-publico .v2-topo-dir { display: flex; align-items: center; gap: 8px; }
+.v2-botao-topo { min-height: 40px; font-size: 15px; padding: 0 16px; }
+.v2-pagina-estreita { max-width: 560px; }
+.v2-hero-publico { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: center; }
+.v2-hero-texto { display: flex; flex-direction: column; gap: 12px; }
+.v2-hero-logo { width: 220px; max-width: 60%; height: auto; }
+.v2-hero-texto h1 { margin: 0; font-family: var(--titulo); font-size: 34px; line-height: 1.1; }
+.v2-hero-texto p { margin: 0; color: var(--lilas); font-weight: 700; font-size: 16px; line-height: 1.5; }
+.v2-jogando-grande { font-size: 15px; }
+.v2-vantagens { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-vantagens li { background: var(--roxo-2); padding: 8px 14px; border-radius: 999px; font-weight: 800; font-size: 14px; }
+.v2-cartao-entrada, .v2-auth { gap: 12px; }
+.v2-cartao-entrada h2, .v2-auth h1 { margin: 0; font-family: var(--titulo); }
+.v2-auth h1 { font-size: 30px; }
+.v2-google { display: flex; justify-content: center; min-height: 44px; }
+.v2-centralizado { text-align: center; align-self: center; }
+.v2-divisor { display: flex; align-items: center; gap: 10px; color: var(--lilas-2); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.v2-divisor::before, .v2-divisor::after { content: ""; flex: 1; height: 2px; background: var(--roxo); border-radius: 2px; }
+.v2-auth-form { display: flex; flex-direction: column; gap: 10px; }
+.v2-auth-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 900; font-size: 13px; }
+.v2-auth-form label em { font-style: normal; font-weight: 700; color: var(--lilas-2); }
+.v2-auth-form input:not([type=checkbox]) { height: 48px; border-radius: 14px; border: 2px solid var(--roxo); background: var(--roxo-fundo); color: #fff; padding: 0 14px; font-weight: 800; font-size: 16px; outline: none; font-family: inherit; }
+.v2-auth-form input:focus { border-color: var(--amarelo); }
+.v2-auth-form input[type=date] { color-scheme: dark; }
+.v2-aceite { flex-direction: row !important; align-items: center; gap: 10px !important; cursor: pointer; }
+.v2-aceite input { width: 22px; height: 22px; accent-color: var(--amarelo); }
+.v2-visitante-link { align-self: center; border: none; background: none; font: inherit; cursor: pointer; }
+.v2-visitante { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 2px dashed var(--roxo); }
+.v2-visitante .v2-botao { min-height: 46px; font-size: 16px; }
+button.v2-link { border: none; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; }
+.v2-jogo-card { border: none; text-align: left; font: inherit; cursor: pointer; }
+@media (min-width: 1000px) {
+  .v2-hero-publico { grid-template-columns: minmax(0, 1fr) 400px; gap: 32px; }
+  .v2-hero-texto h1 { font-size: 44px; }
+}
+
+/* ---------- Termos e Privacidade (texto vem do clássico) ---------- */
+.v2-legal .legal-page h1 { margin: 0 0 4px; font-family: var(--titulo); font-size: 34px; }
+.v2-legal .legal-page > p { color: var(--lilas-2) !important; font-weight: 700; }
+.v2-legal .legal-card { margin-top: 12px; background: var(--roxo-2); border-radius: 26px; padding: 22px 24px; line-height: 1.65; font-weight: 600; font-size: 15px; color: #efe9ff; }
+.v2-legal .legal-card h2 { margin: 22px 0 8px; font-family: var(--titulo); font-size: 20px; color: #fff; }
+.v2-legal .legal-card h2:first-child { margin-top: 0; }
+.v2-legal .legal-card ul { padding-left: 20px; }
+.v2-legal .legal-card li { margin: 4px 0; }
+.v2-legal .legal-card strong { color: var(--amarelo); }
+.v2-legal .legal-card a { color: var(--amarelo); text-decoration: underline; }
+
+/* ---------- Jornada de títulos (perfil dos outros, só leitura) ---------- */
+.v2-jornada { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.v2-titulo.leitura { cursor: default; }
+.v2-titulo.leitura.ok:hover { transform: none; box-shadow: none; }
+.v2-topo-publico .v2-botao-amarelo { background: var(--amarelo); color: var(--roxo); }

@@ -318,7 +318,10 @@ export default function App() {
                 </button>
               </>
             ) : (
-              <Link to="/login" className="retro-btn">Entrar</Link>
+              <>
+                <button type="button" className="versao-troca-btn" onClick={() => trocarParaNova(location.pathname, location.search)} title="Ir para a versão nova do site">✨ Versão nova</button>
+                <Link to="/login" className="retro-btn">Entrar</Link>
+              </>
             )}
           </div>
         </div>

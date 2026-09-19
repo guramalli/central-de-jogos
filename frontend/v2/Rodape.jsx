@@ -25,8 +25,8 @@ export default function Rodape() {
         <a href="/central-de-jogos-quiznet.html">Central de Jogos</a>
         <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer">Discord</a>
         <a href={linkDaPagina("novidades")} onClick={(e) => { e.preventDefault(); irParaPagina("novidades"); }}>Novidades</a>
-        <a href="/termos-de-uso">Termos de Uso</a>
-        <a href="/privacidade">Privacidade</a>
+        <a href={linkDaPagina("termos")} onClick={(e) => { e.preventDefault(); irParaPagina("termos"); }}>Termos de Uso</a>
+        <a href={linkDaPagina("privacidade")} onClick={(e) => { e.preventDefault(); irParaPagina("privacidade"); }}>Privacidade</a>
         <button type="button" onClick={() => setSuporte(true)}>Suporte</button>
       </nav>
       {stats && (

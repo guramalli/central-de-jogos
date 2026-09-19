@@ -17,6 +17,9 @@ import Novidades from "./Novidades.jsx";
 import EditarPerfil from "./EditarPerfil.jsx";
 import Admin from "./Admin.jsx";
 import MultiSala from "./MultiSala.jsx";
+import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
+import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import SalasPrivadas from "./SalasPrivadas.jsx";
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
@@ -24,7 +27,7 @@ import SalasPrivadas from "./SalasPrivadas.jsx";
 // site clássico por engano.
 function lerLocal() {
   const p = new URLSearchParams(window.location.search);
-  return { salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
+  return { token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
 
 function navegar(params) {
@@ -57,18 +60,30 @@ export default function App() {
     return () => window.removeEventListener("popstate", aoVoltar);
   }, []);
 
-  if (!usuario) {
-    return (
-      <div className="v2-app v2-centro">
-        <div className="v2-cartao-entrar">
-          <div className="v2-logo-grande">educação<span> gamer</span></div>
-          <p>Esta é a versão nova, em teste. Entre com sua conta (ou como visitante) no site e volte aqui.</p>
-          <a className="v2-botao v2-botao-amarelo" href="/login">Entrar</a>
-          <a className="v2-link" href="/">voltar ao site clássico</a>
-        </div>
-      </div>
-    );
+  // Páginas que qualquer um vê (logado ou não).
+  if (local.pagina === "termos" || local.pagina === "privacidade") {
+    const qual = local.pagina;
+    if (!usuario) return <Legal key={qual} qual={qual} />;
+    return <Legal key={qual} qual={qual} comTopo={(c) => (
+      <div className="v2-app v2-com-menu"><Topo usuario={usuario} ativo={null} /><main className="v2-pagina v2-pagina-estreita">{c}</main><Rodape /></div>
+    )} />;
   }
+  if (local.pagina === "redefinir-senha") return <RedefinirSenha token={local.token} />;
+
+  // SEM LOGIN: a entrada pública, ou as telas de conta. Quem abriu o link de
+  // uma página da área logada vê a tela de entrar e, depois de entrar, cai
+  // nela mesma (a tela recarrega no mesmo endereço).
+  if (!usuario) {
+    switch (local.pagina) {
+      case "entrar": return <Entrar />;
+      case "cadastro": return <Cadastro />;
+      case "esqueci-senha": return <EsqueciSenha />;
+      default:
+        return local.pagina || local.sala || local.stop || local.acro ? <Entrar /> : <Entrada />;
+    }
+  }
+  // Logado e caiu numa tela de conta (ex.: link antigo): vai pro Início.
+  if (["entrar", "cadastro", "esqueci-senha"].includes(local.pagina)) return <Inicio usuario={usuario} />;
 
   if (local.sala) return <Sala key={local.sala} roomId={local.sala} usuario={usuario} />;
   if (local.stop) return <SalaStop key={local.stop} roomId={local.stop} usuario={usuario} />;

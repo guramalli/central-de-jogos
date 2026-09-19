@@ -79,7 +79,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
     s.on("connect_error", (err) => {
       if (!ehSessaoMorta(err)) return;
       sair();
-      window.location.replace("/login?sessao=expirada");
+      window.location.replace("/v2/?pagina=entrar&sessao=expirada");
     });
     s.on("room-access-denied", (d) => setNegado(d || {}));
     s.on("stop-denied", (d) => setStopNegado(d || {}));

@@ -1,9 +1,14 @@
-// v2 — experimento de visual novo. Página separada do site clássico:
-// tem seu próprio CSS e não importa nada de src/, então nada daqui vaza
-// pro site atual (e vice-versa). Usa o mesmo login (localStorage do mesmo
+// v2 — a versão nova (principal) do site. Tem seu próprio CSS; de src/
+// só reaproveita dados e textos (novidades, termos, privacidade), nunca
+// estilo — então nada de um vaza pro outro. Usa o mesmo login (localStorage do mesmo
 // domínio) e o mesmo backend.
 import { createRoot } from "react-dom/client";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import App from "./App.jsx";
 import "./v2.css";
 
-createRoot(document.getElementById("root")).render(<App />);
+// Login com Google (mesmo client ID do clássico).
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+createRoot(document.getElementById("root")).render(
+  GOOGLE_CLIENT_ID ? <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}><App /></GoogleOAuthProvider> : <App />
+);

@@ -1,11 +1,11 @@
 // VERSÃO DO SITE — nova (v2) ou clássica.
 //
-// A versão nova é a PRINCIPAL: quem está logado e abre uma página do
-// clássico que existe na nova é levado pra ela, a não ser que tenha
-// escolhido o clássico no botão do topo (a escolha fica neste navegador).
-//
-// Quem NÃO está logado continua no clássico: a página inicial pública, o
-// login com Google, o cadastro e as páginas de SEO moram lá.
+// A versão nova é a PRINCIPAL: quem abre uma página do clássico que existe
+// na nova é levado pra ela — logado ou não, já que a entrada pública, o
+// login, o cadastro, os termos e a privacidade também existem lá —, a não
+// ser que tenha escolhido o clássico no botão do topo (a escolha fica
+// neste navegador). As páginas de SEO (.html) são arquivos à parte e não
+// passam por aqui.
 //
 // Usado pelos dois sites (src/ e v2/) — um arquivo só pra que as duas
 // traduções de endereço não divirjam.
@@ -24,14 +24,6 @@ function guardar(versao) {
   try {
     localStorage.setItem(CHAVE, versao);
   } catch {}
-}
-
-function logado() {
-  try {
-    return !!localStorage.getItem("eg_token");
-  } catch {
-    return false;
-  }
 }
 
 const q = (params) => {
@@ -65,6 +57,12 @@ export function classicoParaNova(pathname = "/", search = "") {
   if (p === "/perfil") return q({ pagina: "editar-perfil" });
   if (p === "/novidades") return q({ pagina: "novidades" });
   if (p === "/admin") return q({ pagina: "admin" });
+  if (p === "/login") return q({ pagina: "entrar", sessao: busca.get("sessao") });
+  if (p === "/registrar") return q({ pagina: "cadastro" });
+  if (p === "/esqueci-senha") return q({ pagina: "esqueci-senha" });
+  if (p === "/redefinir-senha") return q({ pagina: "redefinir-senha", token: busca.get("token") });
+  if (p === "/termos-de-uso") return q({ pagina: "termos" });
+  if (p === "/privacidade") return q({ pagina: "privacidade" });
   return null;
 }
 
@@ -93,13 +91,18 @@ export function novaParaClassico(search = "") {
     case "editar-perfil": return "/perfil";
     case "novidades": return "/novidades";
     case "admin": return "/admin";
+    case "entrar": return "/login";
+    case "cadastro": return "/registrar";
+    case "esqueci-senha": return "/esqueci-senha";
+    case "redefinir-senha": return b.get("token") ? `/redefinir-senha?token=${encodeURIComponent(b.get("token"))}` : "/redefinir-senha";
+    case "termos": return "/termos-de-uso";
+    case "privacidade": return "/privacidade";
     default: return "/";
   }
 }
 
 // No clássico: pra onde mandar esta pessoa, ou null pra ficar onde está.
 export function destinoNaNova(pathname = window.location.pathname, search = window.location.search) {
-  if (!logado()) return null;
   if (versaoPreferida() === "classica") return null;
   return classicoParaNova(pathname, search);
 }

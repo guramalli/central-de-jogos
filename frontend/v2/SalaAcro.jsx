@@ -72,7 +72,7 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
     s.on("connect_error", (err) => {
       if (!ehSessaoMorta(err)) return;
       sair();
-      window.location.replace("/login?sessao=expirada");
+      window.location.replace("/v2/?pagina=entrar&sessao=expirada");
     });
     s.on("acromania-erro", (d) => setErroServidor(d?.mensagem || "Algo deu errado. Tente recarregar a página."));
     s.on("acromania-room-full", () => setCheia(true));

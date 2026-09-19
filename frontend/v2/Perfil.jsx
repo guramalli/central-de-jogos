@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, sair } from "./api.js";
 import Topo from "./Topo.jsx";
+import JornadaTitulos from "./JornadaTitulos.jsx";
 import Rodape from "./Rodape.jsx";
 import { irParaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
@@ -49,6 +50,8 @@ export default function Perfil({ usuario, userId }) {
   const [erro, setErro] = useState("");
   const [titulos, setTitulos] = useState([]);
   const [trofeus, setTrofeus] = useState([]);
+  const [jornada, setJornada] = useState(null); // resposta completa de /titulos
+  const [verJornada, setVerJornada] = useState(false);
   const [verTodos, setVerTodos] = useState(false);
   const [amizade, setAmizade] = useState(null);
   const [erroAmizade, setErroAmizade] = useState("");
@@ -62,6 +65,7 @@ export default function Perfil({ usuario, userId }) {
       .then(({ data }) => {
         setTitulos([...(data.quiz || []), ...(data.stop || [])].map((t) => (t.desbloqueados || []).at(-1)).filter(Boolean));
         setTrofeus(data.trofeus?.todos || []);
+        setJornada(data);
       })
       .catch(() => { setTitulos([]); setTrofeus([]); });
   }, [userId]);
@@ -195,7 +199,10 @@ export default function Perfil({ usuario, userId }) {
                     {titulos.length > 12 && (
                       <button className="v2-botao-pequeno" onClick={() => setVerTodos((v) => !v)}>{verTodos ? "Mostrar menos" : `Ver todos (+${titulos.length - 12})`}</button>
                     )}
-                    {souEu ? <a className="v2-link v2-link-bloco" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Ver e escolher meus títulos</a> : <a className="v2-link v2-link-bloco" href={`/jogador/${userId}`}>Ver a jornada completa de títulos (site clássico)</a>}
+                    {souEu ? <a className="v2-link v2-link-bloco" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Ver e escolher meus títulos</a> : (
+                      <button type="button" className="v2-link v2-link-bloco" aria-expanded={verJornada} onClick={() => setVerJornada((v) => !v)}>{verJornada ? "Esconder a jornada de títulos" : "Ver a jornada completa de títulos"}</button>
+                    )}
+                    {!souEu && verJornada && jornada && <JornadaTitulos titulos={jornada} />}
                   </section>
                 )}
 
