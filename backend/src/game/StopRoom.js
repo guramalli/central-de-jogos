@@ -873,7 +873,9 @@ export class StopRoom {
     const player = [...this.players.values()].find((p) => p.userId === userId);
     const nickname = player?.nickname || "Alguém";
 
-    this.broadcast("player-stopped", { userId, nickname });
+    // `segundos`: em quanto tempo da rodada o STOP foi pedido (a tela mostra
+    // ao lado da placa "STOP!"). Só informativo — nenhuma regra usa.
+    this.broadcast("player-stopped", { userId, nickname, segundos: Math.round(elapsedSeconds * 10) / 10 });
     this.systemMessage(`🛑 ${nickname} apertou STOP!`, true);
     for (const p of this.players.values()) if (p.userId === userId) marcarAtividade(p);
     if (!this.semPontuacao) registrarEvento(userId, "stop_pedido").catch(() => {});

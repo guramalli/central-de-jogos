@@ -1760,3 +1760,82 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
   .v2-abas-celular button { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 13px; min-width: 0; }
   .v2-abas-celular .v2-aba-contador { margin-left: 0; min-width: 18px; height: 18px; font-size: 10px; }
 }
+
+/* STOP pedido: tempo da rodada ao lado da placa. */
+.v2-stop-pedido-linha { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.v2-stop-pedido-tempo { display: inline-flex; align-items: baseline; gap: 5px; padding: 8px 14px; border-radius: 16px; background: var(--roxo); color: #fff; font-weight: 800; font-size: 15px; box-shadow: 0 4px 0 var(--roxo-escuro); animation: v2-pop .35s .15s ease-out both; }
+.v2-stop-pedido-tempo b { font-family: var(--titulo); font-size: 26px; color: var(--amarelo); }
+@media (min-width: 1000px) { .v2-stop-pedido-tempo b { font-size: 32px; } }
+.v2-sala.compacto .v2-stop-pedido-tempo { padding: 4px 10px; font-size: 12px; }
+.v2-sala.compacto .v2-stop-pedido-tempo b { font-size: 18px; }
+
+/* ---------- Multi-sala: aviso de STOP cabendo no painel ----------
+   Painel empilhado = largo e BAIXO (~200px de cartão): o aviso em coluna
+   (placa + jogador + título + "conferindo") passava disso e, centralizado,
+   vazava por cima e por baixo. */
+/* Qualquer aviso sobre o cartão no multi-sala: se não couber, rola em vez
+   de cortar ("safe center"). */
+.v2-sala.compacto .v2-resultado { justify-content: safe center; overflow-y: auto; padding: 10px; gap: 6px; }
+.v2-sala.compacto .v2-stop-pedido .v2-resultado-sub { display: none; }
+.v2-sala.compacto .v2-stop-pedido-placa { font-size: 24px; padding: 2px 16px; border-radius: 14px; box-shadow: 0 4px 0 #b8362c; }
+.v2-sala.compacto .v2-stop-quem { padding: 4px 12px 4px 6px; gap: 8px; }
+.v2-sala.compacto .v2-stop-quem .v2-patente-jogador { width: 32px; height: 32px; }
+.v2-sala.compacto .v2-stop-quem-nick { font-size: 20px; }
+.v2-sala.compacto .v2-stop-quem-patente { font-size: 10px; padding: 2px 8px; }
+.v2-sala.compacto .v2-stop-pedido .v2-resultado-titulo { font-size: 18px !important; }
+
+/* Painel LARGO (empilhado ou sala única): tudo numa faixa horizontal. */
+@container painel (min-width: 1000px) {
+  .v2-sala.compacto .v2-stop-pedido { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; align-content: center; gap: 10px 16px; }
+  .v2-sala.compacto .v2-stop-pedido .v2-stop-pedido-linha { flex-wrap: nowrap; }
+}
+
+/* Cartão do hover: posição calculada em pixels no NickHover (sem transform,
+   que a animação de entrada apagava). Rola se não couber na tela. */
+.v2-balao, .v2-balao.cima { transform: none; overflow-y: auto; overscroll-behavior: contain; }
+
+/* ---------- Multi-sala do Quiz: abas Chat · Respostas · Jogadores ----------
+   Os painéis compactos escondiam o log e só tinham fichinhas de jogadores.
+   Agora usam as mesmas abas do celular. (Só o Quiz: é a sala sem classe
+   própria — .v2-sala-stop e .v2-sala-acro ficam como estão.) */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular { display: flex !important; margin-bottom: 4px; gap: 4px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular button { height: 30px; min-height: 30px; font-size: 12px; padding: 0 6px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular .v2-aba-contador { min-width: 16px; height: 16px; font-size: 10px; margin-left: 0; }
+
+/* Aba Respostas: o log ocupa o espaço do chat (as abas continuam). */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-palco { flex: 1 1 auto !important; overflow: hidden; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log { display: flex !important; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px; border-radius: 14px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log .v2-bloco-titulo { display: none; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log-lista { flex: 1; min-height: 0; overflow-y: auto; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat { flex: 0 0 auto !important; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat-lista,
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat-form { display: none; }
+
+/* Aba Jogadores: a lista completa no lugar do chat. */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-jogadores .v2-chat-lista,
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-jogadores .v2-chat-form { display: none; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-jogadores .v2-lista-jogadores-celular { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.v2-sala.compacto .v2-lista-celular { display: flex; flex-direction: column; gap: 4px; }
+.v2-sala.compacto .v2-lista-celular .v2-jogador { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 8px; border-radius: 12px; background: var(--roxo); }
+.v2-sala.compacto .v2-lista-celular .v2-jogador.eu { box-shadow: inset 0 0 0 2px var(--amarelo); }
+.v2-sala.compacto .v2-lista-celular .v2-jogador-pos { display: inline; min-width: 14px; font-size: 12px; font-weight: 900; color: var(--lilas-2); }
+.v2-sala.compacto .v2-lista-celular .v2-jogador-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.v2-sala.compacto .v2-lista-celular .v2-jogador-nome { font-size: 13px; font-weight: 900; max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-sala.compacto .v2-lista-celular .v2-jogador-patente { display: block; font-size: 11px; color: var(--lilas); }
+.v2-sala.compacto .v2-lista-celular .v2-patente-jogador { width: 26px; height: 26px; }
+.v2-sala.compacto .v2-lista-celular .v2-jogador-pts { font-size: 13px; color: var(--amarelo); font-weight: 900; }
+
+/* Painel estreito: sem fichinhas (a lista está na aba). Painel largo: a
+   coluna de jogadores já existe — some a aba Jogadores (a 3ª). */
+@container painel (max-width: 999px) {
+  .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-placar { display: none !important; }
+}
+@container painel (min-width: 1000px) {
+  .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular button:nth-child(3) { display: none; }
+}
+/* Aba Respostas no multi-sala: as abas ficam no MESMO lugar (logo abaixo
+   da pergunta) e o log vem embaixo delas — sem as abas "pularem" pro pé. */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-palco { display: contents !important; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-pergunta { order: 1; flex: 0 0 auto; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat { order: 2; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log { order: 3; }

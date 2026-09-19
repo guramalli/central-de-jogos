@@ -48,6 +48,9 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const [stopNegado, setStopNegado] = useState(null);
   const [avisoColar, setAvisoColar] = useState(false);
   const [quemPediu, setQuemPediu] = useState(null);
+  // Quando a rodada começou (relógio daqui): só pra estimar o tempo do STOP
+  // se o servidor ainda não mandar `segundos` (versão antiga no ar).
+  const inicioRodadaRef = useRef(null);
   const [enviando, setEnviando] = useState(false);
   const [porTempo, setPorTempo] = useState(false);
   const [fase, setFase] = useState("intermission");
@@ -104,6 +107,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
       setVoteiPular(false);
     });
     s.on("round-start", (d) => {
+      inicioRodadaRef.current = Date.now();
       setFase("active");
       setTemas(d.themes || []);
       setLetra(d.letter);
@@ -132,7 +136,8 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
       somPergunta();
     });
     s.on("player-stopped", (d) => {
-      setQuemPediu({ nick: d.nickname || "Alguém", id: d.userId });
+      const estimado = inicioRodadaRef.current ? (Date.now() - inicioRodadaRef.current) / 1000 : null;
+      setQuemPediu({ nick: d.nickname || "Alguém", id: d.userId, segundos: typeof d.segundos === "number" ? d.segundos : estimado });
       alguemPediuRef.current = true;
       somStop();
       // Atraso proposital de 5s (igual ao clássico): dá tempo das últimas
@@ -529,7 +534,14 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
             {/* Overlays dentro do cartão, como no Quiz. */}
             {quemPediu && (
               <div className="v2-resultado v2-stop-pedido" role="status">
-                <div className="v2-stop-pedido-placa">STOP!</div>
+                <div className="v2-stop-pedido-linha">
+                  <div className="v2-stop-pedido-placa">STOP!</div>
+                  {quemPediu.segundos != null && (
+                    <div className="v2-stop-pedido-tempo" title="Tempo da rodada até o STOP">
+                      em <b>{quemPediu.segundos.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s</b>
+                    </div>
+                  )}
+                </div>
                 {/* Quem pediu, com a patente do Stop ao lado (a mesma do placar). */}
                 <div className="v2-stop-quem">
                   <IconePatente rank={jogadores.find((j) => j.userId === quemPediu.id)?.rank} nickname={quemPediu.nick} userId={quemPediu.id} />

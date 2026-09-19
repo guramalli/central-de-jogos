@@ -23,11 +23,23 @@ export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "
     clearTimeout(fecharRef.current);
     const r = ancoraRef.current?.getBoundingClientRect();
     if (r) {
-      const alto = 300;
-      const cima = window.innerHeight - r.bottom < alto && r.top > alto;
-      const meia = 125;
-      const centro = Math.min(Math.max(r.left + r.width / 2, meia + 8), window.innerWidth - meia - 8);
-      setPos({ top: cima ? r.top - 8 : r.bottom + 8, left: centro, cima });
+      // Posição em PIXELS, sem transform: a animação de entrada (v2-pop)
+      // termina em "transform: scale(1)" e apagava o translateX(-50%) —
+      // o cartão abria 125px pra direita e, perto da borda (coluna de
+      // jogadores do multi-sala), saía da tela.
+      const LARGURA = 250;
+      const MARGEM = 8;
+      const vw = document.documentElement.clientWidth || window.innerWidth;
+      const vh = window.innerHeight;
+      const esquerda = Math.min(Math.max(r.left + r.width / 2 - LARGURA / 2, MARGEM), vw - LARGURA - MARGEM);
+      // Abre pro lado com mais espaço; se nenhum couber o cartão inteiro
+      // (~360px), ele ganha rolagem em vez de ser cortado.
+      const abaixo = vh - r.bottom - MARGEM * 2;
+      const acima = r.top - MARGEM * 2;
+      const cima = abaixo < 360 && acima > abaixo;
+      setPos(cima
+        ? { bottom: vh - r.top + MARGEM, left: esquerda, cima, max: acima }
+        : { top: r.bottom + MARGEM, left: esquerda, cima, max: abaixo });
     }
     setAberto(true);
     buscarPerfil(userId, souEu ? 20000 : 120000).then((p) => p && setPerfil(p));
@@ -60,7 +72,7 @@ export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "
       {aberto && createPortal(
         <div
           className={`v2-balao ${pos.cima ? "cima" : ""}`}
-          style={{ top: pos.top, left: pos.left }}
+          style={{ top: pos.top, bottom: pos.bottom, left: pos.left, maxHeight: pos.max }}
           onMouseEnter={abrir}
           onMouseLeave={agendarFechar}
           onClick={(e) => e.stopPropagation()}
