@@ -1180,3 +1180,16 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 1000px) {
   .v2-apuracao-linha.cabeca .v2-ap-pts { font-size: 11px; }
 }
+
+/* "Fulano pediu STOP!": nick grande com a patente ao lado. */
+.v2-stop-quem { position: relative; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; background: rgba(0,0,0,.18); padding: 8px 18px 8px 10px; border-radius: 999px; animation: v2-entra .35s .1s ease-out both; }
+.v2-stop-quem .v2-patente-jogador { width: 48px; height: 48px; filter: drop-shadow(0 3px 0 rgba(0,0,0,.25)); }
+.v2-stop-quem .v2-patente-sem { font-size: 16px; }
+.v2-stop-quem-nick { font-family: var(--titulo); font-weight: 700; font-size: 30px; color: #fff; line-height: 1.1; overflow-wrap: anywhere; }
+.v2-stop-quem-patente { background: #fff; color: var(--vermelho); font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; padding: 4px 10px; border-radius: 999px; }
+.v2-stop-pedido .v2-resultado-titulo { font-size: 26px; }
+@media (min-width: 1000px) {
+  .v2-stop-quem-nick { font-size: 38px; }
+  .v2-stop-quem .v2-patente-jogador { width: 60px; height: 60px; }
+  .v2-stop-pedido .v2-resultado-titulo { font-size: 32px; }
+}

@@ -450,7 +450,15 @@ export default function SalaStop({ roomId, usuario }) {
             {quemPediu && (
               <div className="v2-resultado v2-stop-pedido" role="status">
                 <div className="v2-stop-pedido-placa">STOP!</div>
-                <div className="v2-resultado-titulo">{quemPediu.id === usuario.id ? "Você pediu stop!" : `${quemPediu.nick} pediu stop!`}</div>
+                {/* Quem pediu, com a patente do Stop ao lado (a mesma do placar). */}
+                <div className="v2-stop-quem">
+                  <IconePatente rank={jogadores.find((j) => j.userId === quemPediu.id)?.rank} nickname={quemPediu.nick} userId={quemPediu.id} />
+                  <span className="v2-stop-quem-nick">{quemPediu.nick}</span>
+                  {jogadores.find((j) => j.userId === quemPediu.id)?.rank?.name && (
+                    <span className="v2-stop-quem-patente">{jogadores.find((j) => j.userId === quemPediu.id).rank.name}</span>
+                  )}
+                </div>
+                <div className="v2-resultado-titulo">{quemPediu.id === usuario.id ? "Você pediu stop!" : "pediu stop!"}</div>
                 <div className="v2-resultado-sub">Conferindo as palavras…</div>
               </div>
             )}
