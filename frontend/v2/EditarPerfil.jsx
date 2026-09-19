@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import { esquecerPerfil } from "./perfil.js";
 
 // Foto: recorta no centro e reduz pra 150×150 antes de enviar (igual ao
@@ -241,6 +242,7 @@ export default function EditarPerfil({ usuario }) {
           </section>
         )}
       </main>
+      <Rodape />
     </div>
   );
 }

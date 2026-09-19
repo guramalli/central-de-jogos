@@ -1,4 +1,5 @@
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
 
 function data(iso) {
@@ -28,6 +29,7 @@ export default function Novidades({ usuario }) {
           ))}
         </ol>
       </main>
+      <Rodape />
     </div>
   );
 }

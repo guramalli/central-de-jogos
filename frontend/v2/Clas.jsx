@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 
 const irCla = (e, id) => { e.preventDefault(); irParaPagina("cla", { id }); };
@@ -159,6 +160,7 @@ export default function Clas({ usuario }) {
           </div>
         </section>
       </main>
+      <Rodape />
     </div>
   );
 }

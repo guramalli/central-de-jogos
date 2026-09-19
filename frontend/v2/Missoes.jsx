@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 
 export default function Missoes({ usuario }) {
   const [dados, setDados] = useState(null);
@@ -127,6 +128,7 @@ export default function Missoes({ usuario }) {
         {dados?.ativas && bloco("Diárias", "Renovam todo dia à meia-noite", dados.diarias, "diarias")}
         {dados?.ativas && bloco("Semanais", "Renovam toda segunda-feira", dados.semanais, "semanais")}
       </main>
+      <Rodape />
     </div>
   );
 }

@@ -7,23 +7,36 @@ import { ConviteRecebido } from "./Convites.jsx";
 // Cabeçalho comum das páginas da v2 (menos as salas, que têm o seu).
 // Também mantém a conexão de "presença": sem ela a pessoa aparece OFFLINE
 // pros amigos enquanto navega, e não recebe convite de sala.
+// Mesmos itens e mesma ordem do menu do site clássico (src/App.jsx).
+// "jogo" = lobby daquele jogo; os contadores vêm da rota /avisos.
 const ITENS = [
-  { pagina: "inicio", rotulo: "Início" },
-  { pagina: "ranking", rotulo: "Ranking" },
-  { pagina: "missoes", rotulo: "Missões" },
-  { pagina: "amigos", rotulo: "Amigos" },
-  { pagina: "clas", rotulo: "Clãs" },
-  { pagina: "patentes", rotulo: "Patentes" },
+  { chave: "inicio", rotulo: "Lobby" },
+  { chave: "stop", rotulo: "Stop", jogo: "stop" },
+  { chave: "quiz", rotulo: "Quiz", jogo: "quiz" },
+  { chave: "acromania", rotulo: "Acromania", jogo: "acromania" },
+  { chave: "ranking", rotulo: "Ranking" },
+  { chave: "hall", rotulo: "Hall da Fama" },
+  { chave: "missoes", rotulo: "Missões", aviso: "missoes" },
+  { chave: "clas", rotulo: "Clã", aviso: "cla" },
+  { chave: "amigos", rotulo: "Amigos", aviso: "amigos" },
 ];
-const NO_CELULAR = ["inicio", "ranking", "missoes", "amigos"];
+const NO_CELULAR = ["inicio", "stop", "quiz", "amigos"];
 
-const hrefDe = (pagina) => (pagina === "inicio" ? "/v2/" : linkDaPagina(pagina));
+const hrefDe = (it) =>
+  it.chave === "inicio" ? "/v2/" : it.jogo ? linkDaPagina("jogar", { jogo: it.jogo }) : linkDaPagina(it.chave);
+const irItem = (e, it) => {
+  e.preventDefault();
+  if (it.chave === "inicio") irParaPagina(null);
+  else if (it.jogo) irParaPagina("jogar", { jogo: it.jogo });
+  else irParaPagina(it.chave);
+};
 const ir = (e, pagina) => { e.preventDefault(); irParaPagina(pagina === "inicio" ? null : pagina); };
 
 export default function Topo({ usuario, ativo = null }) {
   const [socket, setSocket] = useState(null);
   const [maisAberto, setMaisAberto] = useState(false);
-  const [naoLidas, setNaoLidas] = useState(0);
+  const [avisos, setAvisos] = useState({});
+  const [acroAtivo, setAcroAtivo] = useState(true);
 
   useEffect(() => {
     const s = novoSocket();
@@ -32,50 +45,52 @@ export default function Topo({ usuario, ativo = null }) {
     return () => { s.removeAllListeners(); s.disconnect(); };
   }, []);
 
-  // Mensagens não lidas: bolinha vermelha em "Amigos".
+  // Contadores do menu (mesma rota e mesmo ritmo do clássico): pedidos de
+  // amizade + mensagens em "Amigos", missões pra resgatar, pedidos do clã.
   useEffect(() => {
     let vivo = true;
-    const contar = () => {
+    const buscar = () => {
       if (document.hidden) return;
-      api.get("/friends/conversas")
-        .then(({ data }) => vivo && setNaoLidas((data || []).reduce((n, c) => n + (c.naoLidas || 0), 0)))
-        .catch(() => {});
+      api.get("/avisos").then(({ data }) => vivo && setAvisos(data || {})).catch(() => {});
     };
-    contar();
-    const t = setInterval(contar, 30000);
-    window.addEventListener("v2-mensagens-lidas", contar);
-    return () => { vivo = false; clearInterval(t); window.removeEventListener("v2-mensagens-lidas", contar); };
+    buscar();
+    const t = setInterval(buscar, 120000);
+    window.addEventListener("v2-mensagens-lidas", buscar);
+    api.get("/acromania-rooms").then(({ data }) => vivo && setAcroAtivo(Array.isArray(data) ? true : data.ativo !== false)).catch(() => {});
+    return () => { vivo = false; clearInterval(t); window.removeEventListener("v2-mensagens-lidas", buscar); };
   }, []);
+
+  const contador = (it) => (it.aviso === "amigos" ? (avisos.amigos || 0) + (avisos.mensagens || 0) : it.aviso ? avisos[it.aviso] || 0 : 0);
+  const itens = ITENS.filter((it) => it.chave !== "acromania" || acroAtivo);
+  const admin = usuario.role === "ADMIN" || usuario.role === "MODERATOR";
 
   return (
     <>
       <header className="v2-topo">
         <a className="v2-logo" href="/v2/" onClick={(e) => ir(e, "inicio")}>
-          <span className="v2-logo-icone" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="11" rx="5" /><path d="M7 11v3M5.5 12.5h3" /><circle cx="16" cy="11.5" r="0.8" /><circle cx="18" cy="13.5" r="0.8" /></svg>
-          </span>
-          educação<span className="v2-destaque"> gamer</span>
-          <span className="v2-selo-beta">v2 beta</span>
+          <img src="/educacao-gamer-logo.png" alt="Educação Gamer" className="v2-logo-img" />
+          <span className="v2-selo-beta">beta</span>
         </a>
         <nav className="v2-menu" aria-label="Site">
-          {ITENS.map((it) => (
+          {itens.map((it) => (
             <a
-              key={it.pagina}
-              href={hrefDe(it.pagina)}
-              className={ativo === it.pagina ? "ativo" : ""}
-              aria-current={ativo === it.pagina ? "page" : undefined}
-              onClick={(e) => ir(e, it.pagina)}
+              key={it.chave}
+              href={hrefDe(it)}
+              className={ativo === it.chave ? "ativo" : ""}
+              aria-current={ativo === it.chave ? "page" : undefined}
+              onClick={(e) => irItem(e, it)}
             >
               {it.rotulo}
-              {it.pagina === "amigos" && naoLidas > 0 && <span className="v2-bolinha-contador" aria-label={`${naoLidas} mensagens não lidas`}>{naoLidas}</span>}
+              {contador(it) > 0 && <span className="v2-bolinha-contador">{contador(it)}</span>}
             </a>
           ))}
+          {admin && <a href="/admin">Painel Admin</a>}
         </nav>
         <div className="v2-topo-dir">
           <BuscaJogador />
-                    <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil">
+                    <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil, títulos e conquistas">
             <Avatar userId={usuario.id} nickname={usuario.nickname} tamanho={44} borda />
-            <span className="v2-topo-nick">{usuario.nickname}</span>
+            <span className="v2-topo-nick">{usuario.nickname}<small>ver perfil</small></span>
           </a>
           <button className="v2-sair" title="Sair da conta" aria-label="Sair da conta" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
@@ -85,11 +100,11 @@ export default function Topo({ usuario, ativo = null }) {
 
       {/* Menu do celular: barra fixa embaixo, no dedão. */}
       <nav className="v2-menu-celular" aria-label="Menu">
-        {ITENS.filter((it) => NO_CELULAR.includes(it.pagina)).map((it) => (
-          <a key={it.pagina} href={hrefDe(it.pagina)} className={ativo === it.pagina ? "ativo" : ""} onClick={(e) => ir(e, it.pagina)}>
+        {itens.filter((it) => NO_CELULAR.includes(it.chave)).map((it) => (
+          <a key={it.chave} href={hrefDe(it)} className={ativo === it.chave ? "ativo" : ""} onClick={(e) => irItem(e, it)}>
             <span className="v2-menu-icone">
-              <IconeMenu nome={it.pagina} />
-              {it.pagina === "amigos" && naoLidas > 0 && <span className="v2-bolinha-contador">{naoLidas}</span>}
+              <IconeMenu nome={it.chave} />
+              {contador(it) > 0 && <span className="v2-bolinha-contador">{contador(it)}</span>}
             </span>
             {it.rotulo}
           </a>
@@ -102,10 +117,14 @@ export default function Topo({ usuario, ativo = null }) {
       {maisAberto && (
         <div className="v2-mais-fundo" onClick={() => setMaisAberto(false)}>
           <nav className="v2-mais" aria-label="Mais páginas" onClick={(e) => e.stopPropagation()}>
-            {[["clas", "Clãs"], ["patentes", "Patentes"], ["hall", "Hall da Fama"], ["novidades", "Novidades"], ["editar-perfil", "Meu perfil"]].map(([pg, r]) => (
-              <a key={pg} href={linkDaPagina(pg)} onClick={(e) => { setMaisAberto(false); ir(e, pg); }}>{r}</a>
+            {itens.filter((it) => !NO_CELULAR.includes(it.chave)).map((it) => (
+              <a key={it.chave} href={hrefDe(it)} onClick={(e) => { setMaisAberto(false); irItem(e, it); }}>
+                {it.rotulo}
+                {contador(it) > 0 && <span className="v2-bolinha-contador">{contador(it)}</span>}
+              </a>
             ))}
-            <a href="/">Site clássico</a>
+            {admin && <a href="/admin">Painel Admin</a>}
+            <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { setMaisAberto(false); e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }}>Meu perfil</a>
             <button onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>Sair da conta</button>
           </nav>
         </div>
@@ -168,6 +187,8 @@ function BuscaJogador() {
 
 function IconeMenu({ nome }) {
   const p = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round", strokeLinejoin: "round" };
+  if (nome === "stop") return <svg {...p}><path d="M7 11V6a2 2 0 014 0v5M11 10V4a2 2 0 014 0v6M15 10V6a2 2 0 014 0v8a7 7 0 01-7 7h-1a7 7 0 01-6-3.5L3 13a2 2 0 013.3-2.2L7 12" /></svg>;
+  if (nome === "quiz") return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5M12 17h.01" /></svg>;
   if (nome === "inicio") return <svg {...p}><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" /></svg>;
   if (nome === "ranking") return <svg {...p}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM17 6h3v2a3 3 0 01-3 3M7 6H4v2a3 3 0 003 3" /></svg>;
   if (nome === "missoes") return <svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" /></svg>;

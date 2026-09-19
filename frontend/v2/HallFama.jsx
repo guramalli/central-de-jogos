@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 
 const JOGOS = [
@@ -43,7 +44,7 @@ export default function HallFama({ usuario }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="ranking" />
+      <Topo usuario={usuario} ativo="hall" />
       <main className="v2-pagina">
         <a className="v2-link" href={linkDaPagina("ranking")} onClick={(e) => { e.preventDefault(); irParaPagina("ranking"); }}>← Ranking</a>
         <div className="v2-pagina-cabeca"><h1>Hall da Fama</h1></div>
@@ -154,6 +155,7 @@ export default function HallFama({ usuario }) {
           </>
         )}
       </main>
+      <Rodape />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
@@ -114,6 +115,7 @@ export default function Ranking({ usuario, jogoInicial }) {
           </div>
         )}
       </main>
+      <Rodape />
     </div>
   );
 }

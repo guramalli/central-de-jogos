@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, sair } from "./api.js";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import { irParaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
 
@@ -213,6 +214,7 @@ export default function Perfil({ usuario, userId }) {
           </>
         )}
       </main>
+      <Rodape />
     </div>
   );
 }

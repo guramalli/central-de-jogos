@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", geral: "Geral" };
@@ -77,6 +78,7 @@ export default function Cla({ usuario, claId }) {
           </>
         )}
       </main>
+      <Rodape />
     </div>
   );
 }

@@ -1105,3 +1105,40 @@ a { color: inherit; text-decoration: none; }
 .v2-trofeu-brilho { position: absolute; top: 0; left: -40%; width: 30%; height: 100%; background: rgba(255,255,255,.35); transform: skewX(-20deg); animation: v2-brilho-trofeu 3.5s ease-in-out infinite; }
 @keyframes v2-brilho-trofeu { 0% { left: -40%; } 60%, 100% { left: 130%; } }
 @media (min-width: 700px) { .v2-trofeus-perfil { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); } }
+
+/* ---------- Cabeçalho igual ao clássico ---------- */
+.v2-logo-img { height: 40px; width: auto; display: block; }
+.v2-logo { position: relative; gap: 6px; }
+.v2-topo-nick { flex-direction: column; line-height: 1.1; }
+.v2-topo-nick small { font-size: 11px; font-weight: 800; color: var(--lilas-2); }
+.v2-mais a { justify-content: space-between; }
+/* O menu tem até 10 itens: ele só cabe inteiro a partir de ~1180px. Abaixo
+   disso vale a barra de baixo (com "Mais"), também no notebook pequeno. */
+.v2-menu a { white-space: nowrap; }
+@media (min-width: 1000px) {
+  .v2-topo-nick { display: flex; }
+}
+@media (min-width: 1000px) and (max-width: 1179px) {
+  .v2-menu { display: none !important; }
+  .v2-menu-celular { display: flex !important; }
+  .v2-com-menu { padding-bottom: 84px !important; }
+}
+@media (min-width: 1180px) and (max-width: 1440px) {
+  .v2-topo { padding-left: 24px; padding-right: 24px; gap: 8px; }
+  .v2-menu { margin-left: 4px; gap: 2px; }
+  .v2-menu a { padding: 0 8px; font-size: 13px; }
+  .v2-logo-img { height: 34px; }
+  .v2-topo-nick { max-width: 120px; }
+}
+@media (max-width: 699px) {
+  .v2-logo-img { height: 32px; }
+}
+
+/* ---------- Rodapé igual ao clássico ---------- */
+.v2-rodape-site { margin-top: 24px; padding: 28px 16px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; background: var(--roxo-escuro); }
+.v2-rodape-logo { height: 44px; width: auto; opacity: .9; }
+.v2-rodape-copy { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: 1px; color: var(--lilas-2); }
+.v2-rodape-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; max-width: 900px; }
+.v2-rodape-links a, .v2-rodape-links button { display: inline-flex; align-items: center; line-height: 1; border: none; background: transparent; padding: 4px 0; min-height: 32px; color: var(--lilas); font-weight: 800; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-family: inherit; }
+.v2-rodape-links a:hover, .v2-rodape-links button:hover { color: var(--amarelo); }
+.v2-rodape-stats { font-size: 12px; font-weight: 800; color: var(--lilas-2); }

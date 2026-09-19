@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Praca from "./Praca.jsx";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
@@ -158,12 +159,8 @@ export default function Inicio({ usuario }) {
           <button className="v2-botao v2-botao-amarelo" onClick={() => setFeedback(true)}>Enviar feedback</button>
         </div>
 
-        <footer className="v2-rodape">
-          <a href="/termos-de-uso">Termos de uso</a>
-          <a href="/privacidade">Privacidade</a>
-          <a href="/" >Site clássico</a>
-        </footer>
       </main>
+      <Rodape />
       {feedback && <ModalFeedback aoFechar={() => setFeedback(false)} />}
     </div>
   );

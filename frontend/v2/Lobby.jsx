@@ -5,6 +5,7 @@ import { REGRAS_ACRO } from "./SalaAcro.jsx";
 import { corDoTema, nomeDoTema } from "./temas.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 
 const LOGO_JOGO = { quiz: "/quiz-logo.png", stop: "/stop-logo.png", acromania: "/acromania-logo.png" };
 const NOME_JOGO = { quiz: "Quiz", stop: "Stop", acromania: "Acromania" };
@@ -84,7 +85,7 @@ export default function Lobby({ usuario, jogoInicial }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="inicio" />
+      <Topo usuario={usuario} ativo={jogo} />
 
       <div className="v2-lobby">
         <section className="v2-saudacao">
@@ -176,6 +177,7 @@ export default function Lobby({ usuario, jogoInicial }) {
         </div>
         </>)}
       </div>
+      <Rodape />
     </div>
   );
 }

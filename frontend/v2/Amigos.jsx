@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 import { somOutroAcertou, estaMudo } from "./sons.js";
 
@@ -175,6 +176,7 @@ export default function Amigos({ usuario, conversaInicial }) {
           )}
         </section>
       </main>
+      <Rodape />
     </div>
   );
 }
