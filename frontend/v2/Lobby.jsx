@@ -102,6 +102,7 @@ export default function Lobby({ usuario, jogoInicial }) {
                 <div>
                   <b>{mensal.rank.name}</b>
                   <span>{mensal.points.toLocaleString("pt-BR")} pts no mês{mensal.position ? ` · ${mensal.position}º no ranking` : ""}</span>
+                  <span className="v2-zera">patente e pontos do mês zeram dia 1º</span>
                 </div>
               </a>
             )}
@@ -109,7 +110,7 @@ export default function Lobby({ usuario, jogoInicial }) {
           <div className="v2-barra-patente" aria-hidden="true"><div style={{ width: `${pct}%` }}><i /></div></div>
           <div className="v2-saudacao-rodape">
             <span>{mensal?.nextRank ? `Faltam ${mensal.nextRank.pointsNeeded.toLocaleString("pt-BR")} pra ${mensal.nextRank.name}` : mensal ? "Patente máxima do mês!" : (jogo === "quiz" ? "Acerte uma pergunta pra entrar no ranking do mês" : "Pontue numa rodada pra entrar no ranking do mês")}</span>
-            <span>{(vitalicio?.points || 0).toLocaleString("pt-BR")} pts vitalícios · zera dia 1º</span>
+            <span>{(vitalicio?.points || 0).toLocaleString("pt-BR")} pts vitalícios (não zeram)</span>
           </div>
         </section>
 

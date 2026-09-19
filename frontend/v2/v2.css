@@ -1565,3 +1565,4 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-votacao-rodape { font-size: 13px; font-weight: 800; color: #5a4a8a; }
 .v2-votacao-rodape.pronto { color: #049a74; }
 .v2-nota-creme { margin: 0; font-size: 13px; font-weight: 800; color: #5a4a8a; }
+.v2-minha-patente .v2-zera { display: block; font-size: 11px; font-weight: 800; color: var(--lilas-2); }
