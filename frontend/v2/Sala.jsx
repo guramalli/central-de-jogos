@@ -443,17 +443,27 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
             {resultado && (
               <div className={`v2-resultado ${resultado.tipo} ${resultado.arena ? "rapido" : ""}`} role="status" onClick={() => setResultado(null)}>
                 {resultado.tipo === "eu" && <Confete />}
-                <div className="v2-resultado-selo">
-                  {resultado.tipo === "ninguem" ? (
+                {resultado.tipo === "ninguem" ? (
+                  <div className="v2-resultado-selo">
                     <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9 9.5h.01M15 9.5h.01M8.5 16c2-1.5 5-1.5 7 0" /></svg>
-                  ) : resultado.tipo === "outro" ? (
-                    <Avatar userId={resultado.id} nickname={resultado.nick} tamanho={96} />
-                  ) : (
-                    <svg width="78" height="78" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 12.5l5 5 10-11" /></svg>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  // Quem acertou: patente do Quiz + nick (no lugar do selo).
+                  (() => {
+                    const id = resultado.tipo === "eu" ? usuario.id : resultado.id;
+                    const nick = resultado.tipo === "eu" ? usuario.nickname : resultado.nick;
+                    const rank = jogadores.find((j) => j.userId === id)?.rank;
+                    return (
+                      <div className="v2-stop-quem v2-quem-acertou">
+                        <IconePatente rank={rank} nickname={nick} userId={id} />
+                        <span className="v2-stop-quem-nick">{nick}</span>
+                        {rank?.name && <span className="v2-stop-quem-patente">{rank.name}</span>}
+                      </div>
+                    );
+                  })()
+                )}
                 <div className="v2-resultado-titulo">
-                  {resultado.tipo === "eu" ? "ACERTOU!" : resultado.tipo === "outro" ? `${resultado.nick} acertou!` : "Ninguém acertou"}
+                  {resultado.tipo === "eu" ? "ACERTOU!" : resultado.tipo === "outro" ? "acertou!" : "Ninguém acertou"}
                 </div>
                 {resultado.resposta && <div className="v2-resultado-resposta">{resultado.resposta}</div>}
                 {resultado.tipo === "ninguem" && <div className="v2-resultado-sub">A resposta fica em segredo…</div>}

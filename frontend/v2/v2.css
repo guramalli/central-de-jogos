@@ -1436,3 +1436,37 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-sala.compacto .v2-palco { flex: 0 1 auto !important; }
 .v2-sala.compacto .v2-chat { flex: 1 1 110px !important; }
 .v2-multi-grade.n3 .v2-sala.compacto .v2-chat, .v2-multi-grade.n4 .v2-sala.compacto .v2-chat { flex: 1 1 92px !important; }
+
+/* ---------- Lobby: top 3 do mês e arenas no fim ---------- */
+.v2-top3-lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.v2-top3-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: var(--roxo); transition: transform .15s; animation: v2-entra .35s ease-out both; min-width: 0; }
+.v2-top3-item:hover { transform: translateY(-2px); }
+.v2-top3-item.p1 { box-shadow: inset 0 0 0 3px var(--amarelo); }
+.v2-top3-item.p2 { box-shadow: inset 0 0 0 3px #c3a6ff; }
+.v2-top3-item.p3 { box-shadow: inset 0 0 0 3px var(--laranja); }
+.v2-top3-pos { width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: var(--titulo); font-weight: 700; font-size: 17px; color: var(--roxo); }
+.v2-top3-item.p1 .v2-top3-pos { background: var(--amarelo); }
+.v2-top3-item.p2 .v2-top3-pos { background: #c3a6ff; }
+.v2-top3-item.p3 .v2-top3-pos { background: var(--laranja); }
+.v2-top3-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.v2-top3-texto b { font-weight: 900; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-top3-texto span { font-size: 13px; font-weight: 800; color: var(--lilas); }
+.v2-top3-premio { flex-shrink: 0; font-style: normal; font-size: 12px; font-weight: 900; background: var(--verde); color: #13322a; padding: 4px 9px; border-radius: 999px; }
+.v2-arenas-titulo { grid-column: 1 / -1; margin: 6px 0 0; }
+@media (min-width: 700px) { .v2-top3-lista { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Quiz: quem acertou (patente + nick) no topo da comemoração. */
+.v2-quem-acertou { padding: 6px 16px 6px 8px; }
+.v2-resultado.eu .v2-quem-acertou { background: rgba(4,90,70,.25); }
+.v2-resultado.eu .v2-quem-acertou .v2-stop-quem-patente { color: #049a74; }
+.v2-resultado.outro .v2-quem-acertou { background: rgba(255,255,255,.1); }
+.v2-resultado.outro .v2-quem-acertou .v2-stop-quem-patente { color: var(--roxo); background: var(--amarelo); }
+.v2-quem-acertou .v2-patente-jogador { width: 44px; height: 44px; }
+.v2-quem-acertou .v2-stop-quem-nick { font-size: 26px; }
+@media (min-width: 1000px) {
+  .v2-quem-acertou .v2-patente-jogador { width: 52px; height: 52px; }
+  .v2-quem-acertou .v2-stop-quem-nick { font-size: 30px; }
+}
+.v2-sala.compacto .v2-quem-acertou .v2-patente-jogador { width: 32px; height: 32px; }
+.v2-sala.compacto .v2-quem-acertou .v2-stop-quem-nick { font-size: 18px; }
+.v2-sala.compacto .v2-quem-acertou .v2-stop-quem-patente { display: none; }

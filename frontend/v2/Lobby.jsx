@@ -5,6 +5,7 @@ import { REGRAS_ACRO } from "./SalaAcro.jsx";
 import { corDoTema, nomeDoTema } from "./temas.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 import Topo from "./Topo.jsx";
+import Avatar from "./Avatar.jsx";
 import Rodape from "./Rodape.jsx";
 
 const LOGO_JOGO = { quiz: "/quiz-logo.png", stop: "/stop-logo.png", acromania: "/acromania-logo.png" };
@@ -113,6 +114,8 @@ export default function Lobby({ usuario, jogoInicial }) {
         </section>
 
 
+        <Top3 jogo={jogo} />
+
         {(jogo === "stop" || jogo === "quiz") && (
           <a className="v2-chamada-multi" href={`/v2/?pagina=varias&jogo=${jogo}`} onClick={(e) => { e.preventDefault(); irParaPagina("varias", { jogo }); }}>
             <span className="v2-chamada-multi-icone" aria-hidden="true">
@@ -126,22 +129,6 @@ export default function Lobby({ usuario, jogoInicial }) {
         {jogo === "stop" && <LobbyStop salas={salasStop} privadas={privadas} jogando={jogandoStop} />}
         {jogo === "acromania" && <LobbyAcro dados={acro} privadas={privadasAcro} jogando={jogandoAcro} />}
 
-        {jogo === "quiz" && arenas.length > 0 && (
-          <section className="v2-arenas">
-            {arenas.map((a) => (
-              <a key={a.roomId} href={`/v2/?sala=${a.roomId}`} onClick={(e) => entrar(e, a.roomId)} className="v2-arena">
-                <span className="v2-arena-raio" aria-hidden="true">
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h8l-1 8 9-12h-8z" /></svg>
-                </span>
-                <div className="v2-arena-texto">
-                  <b>{a.label.replace(/^[^\p{L}\d]+/u, "")}</b>
-                  <span>Todo mundo que acerta pontua{a.roundsPerTurn ? ` · turnos de ${a.roundsPerTurn} perguntas` : ""}{a.turnBonus ? ` · bônus de ${a.turnBonus}` : ""}</span>
-                </div>
-                {a.onlineCount > 0 ? <span className="v2-card-selo">{a.onlineCount} jogando</span> : <span className="v2-arena-cta">Entrar</span>}
-              </a>
-            ))}
-          </section>
-        )}
 
         {jogo === "quiz" && (<>
         <div className="v2-filtros">
@@ -185,6 +172,24 @@ export default function Lobby({ usuario, jogoInicial }) {
             );
           })}
         </div>
+
+        {arenas.length > 0 && (
+          <section className="v2-arenas">
+            <div className="v2-bloco-titulo v2-arenas-titulo">Arenas</div>
+            {arenas.map((a) => (
+              <a key={a.roomId} href={`/v2/?sala=${a.roomId}`} onClick={(e) => entrar(e, a.roomId)} className="v2-arena">
+                <span className="v2-arena-raio" aria-hidden="true">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h8l-1 8 9-12h-8z" /></svg>
+                </span>
+                <div className="v2-arena-texto">
+                  <b>{a.label.replace(/^[^\p{L}\d]+/u, "")}</b>
+                  <span>Todo mundo que acerta pontua{a.roundsPerTurn ? ` · turnos de ${a.roundsPerTurn} perguntas` : ""}{a.turnBonus ? ` · bônus de ${a.turnBonus}` : ""}</span>
+                </div>
+                {a.onlineCount > 0 ? <span className="v2-card-selo">{a.onlineCount} jogando</span> : <span className="v2-arena-cta">Entrar</span>}
+              </a>
+            ))}
+          </section>
+        )}
         </>)}
       </div>
       <Rodape />
@@ -330,5 +335,44 @@ function LobbyAcro({ dados, privadas, jogando }) {
         )}
       </section>
     </>
+  );
+}
+
+// TOP 3 DO MÊS de cada jogo, dentro da lobby (o MiniPodium do clássico).
+// O valor do Pix aparece só nos jogos que pagam (Stop e Quiz).
+const PREMIOS = ["R$ 200", "R$ 100", "R$ 50"];
+function Top3({ jogo }) {
+  const [linhas, setLinhas] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    setLinhas(null);
+    api.get(`/ranking/monthly/${jogo}`).then(({ data }) => vivo && setLinhas((data || []).slice(0, 3))).catch(() => vivo && setLinhas([]));
+    return () => { vivo = false; };
+  }, [jogo]);
+  const pagaPix = jogo === "stop" || jogo === "quiz";
+  return (
+    <section className="v2-cartao v2-top3">
+      <div className="v2-cartao-cabeca">
+        <h2>Top 3 do mês</h2>
+        <a className="v2-link" href={`/v2/?pagina=ranking&jogo=${jogo}`} onClick={(e) => { e.preventDefault(); irParaPagina("ranking", { jogo }); }}>Ver ranking completo →</a>
+      </div>
+      {linhas === null && <div className="v2-carregando">Carregando…</div>}
+      {linhas && linhas.length === 0 && <div className="v2-vazio">Ninguém pontuou este mês ainda. O primeiro lugar pode ser seu!</div>}
+      {linhas && linhas.length > 0 && (
+        <div className="v2-top3-lista">
+          {linhas.map((r) => (
+            <a key={r.position} className={`v2-top3-item p${r.position}`} href={`/v2/?pagina=jogador&id=${r.userId}`} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: r.userId }); }}>
+              <span className="v2-top3-pos">{r.position}º</span>
+              <Avatar userId={r.userId} nickname={r.nickname} tamanho={44} borda />
+              <span className="v2-top3-texto">
+                <b>{r.nickname}</b>
+                <span>{Number(r.points || 0).toLocaleString("pt-BR")} pts</span>
+              </span>
+              {pagaPix && <em className="v2-top3-premio">{PREMIOS[r.position - 1]}</em>}
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
