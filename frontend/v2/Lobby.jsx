@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, sair, novoSocket } from "./api.js";
-import { irPara } from "./App.jsx";
+import { api } from "./api.js";
+import { irPara, irParaPagina } from "./App.jsx";
 import { corDoTema, nomeDoTema } from "./temas.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
-import Avatar from "./Avatar.jsx";
 import NickHover from "./NickHover.jsx";
-import { ConviteRecebido } from "./Convites.jsx";
+import Topo from "./Topo.jsx";
 
 export default function Lobby({ usuario }) {
   const [salas, setSalas] = useState(null);
   const [erro, setErro] = useState(false);
   const [perfil, setPerfil] = useState(null);
-  const [socket, setSocket] = useState(null);
   const [nivel, setNivel] = useState(() => localStorage.getItem("eg_v2_nivel") || "padrao");
 
   useEffect(() => {
@@ -25,16 +23,6 @@ export default function Lobby({ usuario }) {
     buscarPerfil(usuario.id, 20000).then((p) => vivo && p && setPerfil(p));
     return () => { vivo = false; clearInterval(t); };
   }, [usuario.id]);
-
-  // Conexão do lobby: sem ela a pessoa aparece OFFLINE pros amigos enquanto
-  // escolhe a sala, e não recebe convite. Fecha ao entrar numa sala (a sala
-  // abre a sua própria).
-  useEffect(() => {
-    const s = novoSocket();
-    s.connect();
-    setSocket(s);
-    return () => { s.removeAllListeners(); s.disconnect(); };
-  }, []);
 
   useEffect(() => localStorage.setItem("eg_v2_nivel", nivel), [nivel]);
 
@@ -56,32 +44,8 @@ export default function Lobby({ usuario }) {
   const entrar = (e, id) => { e.preventDefault(); irPara(id); };
 
   return (
-    <div className="v2-app">
-      <header className="v2-topo">
-        <a className="v2-logo" href="/v2/" onClick={(e) => entrar(e, null)}>
-          <span className="v2-logo-icone" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="11" rx="5" /><path d="M7 11v3M5.5 12.5h3" /><circle cx="16" cy="11.5" r="0.8" /><circle cx="18" cy="13.5" r="0.8" /></svg>
-          </span>
-          educação<span className="v2-destaque"> gamer</span>
-          <span className="v2-selo-beta">v2 beta</span>
-        </a>
-        <nav className="v2-menu" aria-label="Site">
-          <a href="/ranking">Ranking</a>
-          <a href="/missoes">Missões</a>
-          <a href="/amigos">Amigos</a>
-          <a href="/cla">Clãs</a>
-          <a href="/patentes-quiz">Patentes</a>
-        </nav>
-        <div className="v2-topo-dir">
-          <a className="v2-link-classico" href="/jogos/quiz">site clássico</a>
-          <a href="/perfil" className="v2-topo-avatar" title="Meu perfil">
-            <Avatar userId={usuario.id} nickname={usuario.nickname} tamanho={44} borda />
-          </a>
-          <button className="v2-sair" title="Sair da conta" aria-label="Sair da conta" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
-          </button>
-        </div>
-      </header>
+    <div className="v2-app v2-com-menu">
+      <Topo usuario={usuario} ativo="jogar" />
 
       <div className="v2-lobby">
         <section className="v2-saudacao">
@@ -91,13 +55,13 @@ export default function Lobby({ usuario }) {
               <p>Escolha um tema e bora jogar.</p>
             </div>
             {mensal?.rank && (
-              <div className="v2-minha-patente">
+              <a className="v2-minha-patente" href="/v2/?pagina=patentes" onClick={(e) => { e.preventDefault(); irParaPagina("patentes"); }} title="Ver todas as patentes">
                 {mensal.rank.icon && <img src={mensal.rank.icon} alt="" className={mensal.rank.brilha ? "brilha" : ""} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                 <div>
                   <b>{mensal.rank.name}</b>
                   <span>{mensal.points.toLocaleString("pt-BR")} pts no mês{mensal.position ? ` · ${mensal.position}º no ranking` : ""}</span>
                 </div>
-              </div>
+              </a>
             )}
           </div>
           <div className="v2-barra-patente" aria-hidden="true"><div style={{ width: `${pct}%` }}><i /></div></div>
@@ -166,7 +130,6 @@ export default function Lobby({ usuario }) {
           })}
         </div>
       </div>
-      <ConviteRecebido socket={socket} />
     </div>
   );
 }

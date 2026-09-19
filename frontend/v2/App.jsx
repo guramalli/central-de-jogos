@@ -2,25 +2,41 @@ import { useEffect, useState } from "react";
 import { usuarioAtual } from "./api.js";
 import Lobby from "./Lobby.jsx";
 import Sala from "./Sala.jsx";
+import Ranking from "./Ranking.jsx";
+import Missoes from "./Missoes.jsx";
+import Patentes from "./Patentes.jsx";
+import Perfil from "./Perfil.jsx";
 
-// Navegação por parâmetro (?sala=ID) em vez de rotas: assim /v2/ é sempre o
-// mesmo arquivo e recarregar a página nunca cai no site clássico por engano.
-function lerSala() {
-  return new URLSearchParams(window.location.search).get("sala");
+// Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
+// em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
+// site clássico por engano.
+function lerLocal() {
+  const p = new URLSearchParams(window.location.search);
+  return { sala: p.get("sala"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
 
-export function irPara(sala) {
-  const url = sala ? `/v2/?sala=${encodeURIComponent(sala)}` : "/v2/";
+function navegar(params) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
+  const url = q.toString() ? `/v2/?${q}` : "/v2/";
   window.history.pushState({}, "", url);
   window.dispatchEvent(new Event("popstate"));
+  window.scrollTo(0, 0);
 }
 
+export const irPara = (sala) => navegar({ sala });
+export const irParaPagina = (pagina, extra = {}) => navegar({ pagina, ...extra });
+export const linkDaPagina = (pagina, extra = {}) => {
+  const q = new URLSearchParams({ pagina, ...extra });
+  return `/v2/?${q}`;
+};
+
 export default function App() {
-  const [sala, setSala] = useState(lerSala());
+  const [local, setLocal] = useState(lerLocal());
   const usuario = usuarioAtual();
 
   useEffect(() => {
-    const aoVoltar = () => setSala(lerSala());
+    const aoVoltar = () => setLocal(lerLocal());
     window.addEventListener("popstate", aoVoltar);
     return () => window.removeEventListener("popstate", aoVoltar);
   }, []);
@@ -38,5 +54,12 @@ export default function App() {
     );
   }
 
-  return sala ? <Sala key={sala} roomId={sala} usuario={usuario} /> : <Lobby usuario={usuario} />;
+  if (local.sala) return <Sala key={local.sala} roomId={local.sala} usuario={usuario} />;
+  switch (local.pagina) {
+    case "ranking": return <Ranking usuario={usuario} jogoInicial={local.jogo} />;
+    case "missoes": return <Missoes usuario={usuario} />;
+    case "patentes": return <Patentes usuario={usuario} />;
+    case "jogador": return <Perfil key={local.id} usuario={usuario} userId={local.id || usuario.id} />;
+    default: return <Lobby usuario={usuario} />;
+  }
 }

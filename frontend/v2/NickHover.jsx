@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api } from "./api.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 import Avatar from "./Avatar.jsx";
+import { irParaPagina, linkDaPagina } from "./App.jsx";
 
 // Balão de stats ao passar o mouse no nick (no toque: abre ao tocar).
 // Mesmo conteúdo do hover do site clássico: foto/medalha, posição no
@@ -105,7 +106,7 @@ export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "
                 : perfil.friendshipStatus === "pending_received" ? <div className="v2-balao-linha">Te mandou um pedido — veja em Amigos</div>
                 : <button className="v2-balao-botao" onClick={addAmigo} disabled={amizade === "enviando"}>+ Adicionar amigo</button>
               )}
-              <a className="v2-balao-perfil" href={`/jogador/${userId}`} target="_blank" rel="noreferrer">Ver perfil completo →</a>
+              <a className="v2-balao-perfil" href={linkDaPagina("jogador", { id: userId })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: userId }); }}>Ver perfil completo →</a>
             </>
           )}
         </div>,

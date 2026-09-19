@@ -333,7 +333,7 @@ export default function Sala({ roomId, usuario }) {
         </aside>
 
         <main className="v2-palco">
-          <section key={numero} className={`v2-pergunta ${ativa ? "entrando" : "esperando"}`}>
+          <section className={`v2-pergunta ${ativa ? "" : "esperando"}`}>
             <div className="v2-pergunta-cabeca">
               <div className="v2-pergunta-etiquetas">
                 <span className="v2-etiqueta">{ativa ? "Valendo!" : intervaloArena ? "Placar do turno" : "Intervalo"}</span>
@@ -379,7 +379,7 @@ export default function Sala({ roomId, usuario }) {
                 <span>Aguarde a próxima pergunta…</span>
               </div>
             ) : (
-              <>
+              <div key={numero} className="v2-pergunta-conteudo">
                 {temaDaPergunta && <div className="v2-tema-pergunta">{temaDaPergunta}</div>}
                 <p className={`v2-pergunta-texto ${pergunta.length > 110 ? "longa" : pergunta.length > 60 ? "media" : "curta"}`} onContextMenu={(e) => e.preventDefault()}>
                   {pergunta || "Aguardando a primeira pergunta…"}
@@ -395,7 +395,7 @@ export default function Sala({ roomId, usuario }) {
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             <form className={`v2-resposta ${tremer ? "tremer" : ""}`} onSubmit={enviarPalpite}>
@@ -418,6 +418,38 @@ export default function Sala({ roomId, usuario }) {
               <button type="submit" className="v2-enviar">Responder</button>
             </form>
             {avisoColar && <p className="v2-aviso">Colar não vale — precisa digitar!</p>}
+
+            {/* Comemoração DENTRO do cartão da pergunta, por cima dele — o
+                resto da sala (placar, log, chat) continua visível. O campo
+                de resposta fica montado por baixo, então o foco (e o
+                teclado do iPhone) não se perde. */}
+            {resultado && (
+              <div className={`v2-resultado ${resultado.tipo} ${resultado.arena ? "rapido" : ""}`} role="status" onClick={() => setResultado(null)}>
+                {resultado.tipo === "eu" && <Confete />}
+                <div className="v2-resultado-selo">
+                  {resultado.tipo === "ninguem" ? (
+                    <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9 9.5h.01M15 9.5h.01M8.5 16c2-1.5 5-1.5 7 0" /></svg>
+                  ) : resultado.tipo === "outro" ? (
+                    <Avatar userId={resultado.id} nickname={resultado.nick} tamanho={96} />
+                  ) : (
+                    <svg width="78" height="78" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 12.5l5 5 10-11" /></svg>
+                  )}
+                </div>
+                <div className="v2-resultado-titulo">
+                  {resultado.tipo === "eu" ? "ACERTOU!" : resultado.tipo === "outro" ? `${resultado.nick} acertou!` : "Ninguém acertou"}
+                </div>
+                {resultado.resposta && <div className="v2-resultado-resposta">{resultado.resposta}</div>}
+                {resultado.tipo === "ninguem" && <div className="v2-resultado-sub">A resposta fica em segredo…</div>}
+                {resultado.tipo === "eu" && !resultado.arena && (
+                  <div className="v2-resultado-cards">
+                    {resultado.pontos != null && <div className="v2-mini-card"><b>+{resultado.pontos}</b><span>pontos</span></div>}
+                    {resultado.segundos != null && <div className="v2-mini-card"><b>{resultado.segundos}s</b><span>pra acertar</span></div>}
+                    {sequencia >= 2 && <div className="v2-mini-card amarelo"><b>{sequencia}</b><span>em sequência</span></div>}
+                  </div>
+                )}
+                <div className="v2-resultado-barra"><span /></div>
+              </div>
+            )}
           </section>
 
           <section className="v2-log" aria-label="Log de respostas">
@@ -474,33 +506,6 @@ export default function Sala({ roomId, usuario }) {
         </aside>
       </div>
 
-      {resultado && (
-        <div className={`v2-resultado ${resultado.tipo} ${resultado.arena ? "rapido" : ""}`} role="status" onClick={() => setResultado(null)}>
-          {resultado.tipo === "eu" && <Confete />}
-          <div className="v2-resultado-selo">
-            {resultado.tipo === "ninguem" ? (
-              <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9 9.5h.01M15 9.5h.01M8.5 16c2-1.5 5-1.5 7 0" /></svg>
-            ) : resultado.tipo === "outro" ? (
-              <Avatar userId={resultado.id} nickname={resultado.nick} tamanho={96} />
-            ) : (
-              <svg width="78" height="78" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 12.5l5 5 10-11" /></svg>
-            )}
-          </div>
-          <div className="v2-resultado-titulo">
-            {resultado.tipo === "eu" ? "ACERTOU!" : resultado.tipo === "outro" ? `${resultado.nick} acertou!` : "Ninguém acertou"}
-          </div>
-          {resultado.resposta && <div className="v2-resultado-resposta">{resultado.resposta}</div>}
-          {resultado.tipo === "ninguem" && <div className="v2-resultado-sub">A resposta fica em segredo…</div>}
-          {resultado.tipo === "eu" && !resultado.arena && (
-            <div className="v2-resultado-cards">
-              {resultado.pontos != null && <div className="v2-mini-card"><b>+{resultado.pontos}</b><span>pontos</span></div>}
-              {resultado.segundos != null && <div className="v2-mini-card"><b>{resultado.segundos}s</b><span>pra acertar</span></div>}
-              {sequencia >= 2 && <div className="v2-mini-card amarelo"><b>{sequencia}</b><span>em sequência</span></div>}
-            </div>
-          )}
-          <div className="v2-resultado-barra"><span /></div>
-        </div>
-      )}
 
       {reportando && questionId && <ModalReportar questionId={questionId} texto={pergunta} aoFechar={() => setReportando(false)} />}
       {sugerindo && <ModalSugerir themeKey={themeKey} aoFechar={() => setSugerindo(false)} />}
