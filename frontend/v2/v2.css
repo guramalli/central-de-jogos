@@ -1320,3 +1320,119 @@ a { color: inherit; text-decoration: none; }
 .v2-conversa-modal .v2-voltar.v2-so-celular { display: none; }
 @media (min-width: 700px) { .v2-par-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .v2-recolhivel[open] > * + * { margin-top: 10px; }
+
+/* ---------- Chat: botão Enviar (no celular o Enter nem sempre envia) ---------- */
+.v2-chat-form { display: flex; gap: 6px; }
+.v2-chat-form input { flex: 1; min-width: 0; width: auto; }
+.v2-chat-enviar { flex-shrink: 0; height: 44px; padding: 0 14px; border: none; border-radius: 14px; background: var(--amarelo); color: var(--roxo); font-family: var(--titulo); font-weight: 700; font-size: 15px; box-shadow: 0 3px 0 var(--amarelo-sombra); }
+.v2-chat-enviar:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--amarelo-sombra); }
+
+/* ---------- Lobby: chamada pro multi-sala ---------- */
+.v2-chamada-multi { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 20px; background: var(--roxo-2); border: 2px dashed var(--borda); transition: transform .15s, border-color .15s; }
+.v2-chamada-multi:hover { transform: translateY(-2px); border-color: var(--amarelo); }
+.v2-chamada-multi-icone { width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; background: var(--amarelo); color: var(--roxo); display: flex; align-items: center; justify-content: center; }
+.v2-chamada-multi-texto { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.v2-chamada-multi-texto b { font-family: var(--titulo); font-size: 17px; }
+.v2-chamada-multi-texto span { font-size: 13px; font-weight: 700; color: var(--lilas); }
+
+/* ---------- Multi-sala ---------- */
+.v2-multi { min-height: 100dvh; }
+.v2-multi.jogando { height: 100vh; height: 100dvh; overflow: hidden; }
+.v2-multi-cabeca { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding: 24px 24px 8px; max-width: 1200px; width: 100%; margin: 0 auto; }
+.v2-multi-cabeca h1 { margin: 0 0 6px; font-family: var(--titulo); font-size: 32px; }
+.v2-multi-cabeca p { margin: 0 0 4px; color: var(--lilas); font-weight: 700; max-width: 720px; }
+.v2-multi-cabeca .v2-botao { min-height: 46px; font-size: 16px; }
+kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 6px; background: var(--roxo-fundo); border: 1px solid var(--borda); font-family: inherit; font-size: 12px; font-weight: 900; text-align: center; color: #fff; }
+.v2-multi-barra { flex-shrink: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--roxo-escuro); }
+.v2-multi-contador { flex: 1; font-size: 13px; font-weight: 800; color: var(--lilas); }
+.v2-multi-dica { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 12px 0; padding: 10px 14px; border-radius: 14px; background: var(--amarelo); color: var(--roxo); font-weight: 800; font-size: 14px; }
+.v2-multi-dica kbd { background: #fff; color: var(--roxo); border-color: var(--amarelo-sombra); }
+.v2-multi-dica span { flex: 1; min-width: 200px; }
+.v2-multi-seletor { display: flex; flex-direction: column; gap: 10px; padding: 12px 24px; max-width: 1200px; width: 100%; margin: 0 auto; max-height: 52vh; overflow-y: auto; }
+.v2-multi.jogando .v2-multi-seletor { max-width: none; background: var(--roxo-2); padding: 12px; flex-shrink: 0; }
+.v2-multi-grupo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.v2-multi-grupo > b { min-width: 150px; font-family: var(--titulo); font-size: 16px; }
+.v2-multi-grupo > div { display: flex; gap: 6px; flex-wrap: wrap; }
+.v2-multi-sala { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 2px solid var(--verde); border-radius: 999px; background: transparent; color: #fff; font-weight: 900; font-size: 13px; }
+.v2-multi-sala.avancada { border-color: var(--vermelho); }
+.v2-multi-sala.media { border-color: var(--laranja); }
+.v2-multi-sala.arena { border-color: var(--amarelo); }
+.v2-multi-sala.aberta { background: var(--verde); color: #13322a; }
+.v2-multi-sala.avancada.aberta { background: var(--vermelho); color: #fff; }
+.v2-multi-sala.media.aberta { background: var(--laranja); color: var(--roxo); }
+.v2-multi-sala.arena.aberta { background: var(--amarelo); color: var(--roxo); }
+.v2-multi-sala em { font-style: normal; font-size: 11px; background: var(--roxo); color: #fff; padding: 1px 7px; border-radius: 999px; }
+.v2-multi-vazio { text-align: center; color: var(--lilas); font-weight: 800; padding: 20px; }
+.v2-multi-grade { flex: 1; min-height: 0; display: grid; gap: 8px; padding: 8px; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); }
+.v2-multi-painel { min-height: 0; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; background: var(--roxo); box-shadow: inset 0 0 0 2px var(--roxo-2); }
+.v2-multi-painel.atual { box-shadow: inset 0 0 0 3px var(--amarelo); }
+.v2-multi-painel-topo { flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 8px; background: var(--roxo-escuro); }
+.v2-multi-numero { width: 22px; height: 22px; border-radius: 7px; background: var(--roxo-2); color: var(--lilas); font-weight: 900; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.v2-multi-painel.atual .v2-multi-numero { background: var(--amarelo); color: var(--roxo); }
+.v2-multi-nome { flex: 1; min-width: 0; font-weight: 900; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-multi-fechar { width: 30px; height: 30px; border: none; border-radius: 9px; background: transparent; color: var(--lilas); font-size: 20px; font-weight: 900; line-height: 1; }
+.v2-multi-fechar:hover { background: var(--vermelho); color: #fff; }
+.v2-multi-jogo { flex: 1; min-height: 0; overflow: hidden; }
+@media (min-width: 901px) {
+  .v2-multi-grade.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v2-multi-grade.n2.empilhada { grid-template-columns: minmax(0, 1fr); }
+  .v2-multi-grade.n3, .v2-multi-grade.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Celular: uma coluna e a página rola; cada painel com altura de jogo. */
+@media (max-width: 900px) {
+  .v2-multi.jogando { height: auto; overflow: visible; }
+  .v2-multi-grade { grid-auto-rows: auto; }
+  .v2-multi-painel { height: 640px; }
+  .v2-multi-dica-atalho { display: none; }
+  .v2-multi-grupo > b { min-width: 0; width: 100%; }
+}
+
+/* ---------- Sala em modo compacto (dentro do multi-sala) ----------
+   Fica só o que é da partida: o cartão do jogo e o chat. Cabeçalho, placar,
+   log e legenda somem (repetiriam em cada painel e comeriam altura). */
+.v2-sala.compacto { height: 100%; min-height: 0; overflow: hidden; background: transparent; }
+.v2-sala.compacto .v2-sala-topo,
+.v2-sala.compacto .v2-placar,
+.v2-sala.compacto .v2-log,
+.v2-sala.compacto .v2-stop-lateral,
+.v2-sala.compacto .v2-abas-celular,
+.v2-sala.compacto .v2-chat .v2-bloco-titulo,
+.v2-sala.compacto .v2-chat-legenda-celular { display: none !important; }
+.v2-sala.compacto .v2-sala-corpo { display: flex !important; flex-direction: column; gap: 6px; padding: 6px !important; flex: 1; min-height: 0; }
+.v2-sala.compacto .v2-palco { display: flex !important; flex-direction: column; padding: 0; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.v2-sala.compacto .v2-pergunta { padding: 10px 12px 12px; border-radius: 18px; box-shadow: 0 4px 0 #d8cbb2; gap: 8px; }
+.v2-sala.compacto .v2-pergunta-texto, .v2-sala.compacto .v2-pergunta-texto.media { font-size: 18px; }
+.v2-sala.compacto .v2-pergunta-texto.longa { font-size: 15px; }
+.v2-sala.compacto .v2-relogio { width: 50px; height: 50px; }
+.v2-sala.compacto .v2-relogio > span { font-size: 17px; }
+.v2-sala.compacto .v2-relogio small { display: none; }
+.v2-sala.compacto .v2-letra { width: 22px; height: 28px; font-size: 15px; }
+.v2-sala.compacto .v2-resposta input, .v2-sala.compacto .v2-enviar { height: 44px; font-size: 15px; }
+.v2-sala.compacto .v2-stop-letra { width: 50px; height: 50px; font-size: 30px; border-radius: 15px; }
+.v2-sala.compacto .v2-stop-status b { font-size: 16px; }
+.v2-sala.compacto .v2-stop-campos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.v2-sala.compacto .v2-stop-campo span { font-size: 11px; }
+.v2-sala.compacto .v2-stop-campo input { height: 38px; font-size: 14px; padding: 0 8px; }
+.v2-sala.compacto .v2-botao-stop { height: 44px; font-size: 20px; padding: 0 22px; }
+.v2-sala.compacto .v2-stop-dica { display: none; }
+.v2-sala.compacto .v2-apuracao-linha { grid-template-columns: 90px repeat(var(--temas), minmax(0, 1fr)) 40px 34px !important; font-size: 12px; }
+.v2-sala.compacto .v2-chat { flex: 0 0 150px; margin: 0 !important; padding: 6px 8px; border-radius: 14px; }
+.v2-sala.compacto .v2-chat-form input, .v2-sala.compacto .v2-chat-enviar { height: 36px; font-size: 13px; }
+.v2-sala.compacto .v2-msg { font-size: 12px; padding: 4px 8px; }
+.v2-sala.compacto .v2-resultado-titulo { font-size: 24px !important; }
+.v2-sala.compacto .v2-resultado-selo { width: 44px; height: 44px; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-chat, .v2-multi-grade.n4 .v2-sala.compacto .v2-chat { flex-basis: 110px; }
+/* Compacto: o cartão do jogo tem prioridade; o chat encolhe. */
+.v2-sala.compacto .v2-chat { min-height: 0 !important; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-chat, .v2-multi-grade.n4 .v2-sala.compacto .v2-chat { flex-basis: 92px; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-stop-cabeca, .v2-multi-grade.n4 .v2-sala.compacto .v2-stop-cabeca { gap: 8px; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-stop-letra, .v2-multi-grade.n4 .v2-sala.compacto .v2-stop-letra { width: 40px; height: 40px; font-size: 24px; border-radius: 12px; box-shadow: 0 3px 0 #b8362c; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-relogio, .v2-multi-grade.n4 .v2-sala.compacto .v2-relogio { width: 42px; height: 42px; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-stop-campo input, .v2-multi-grade.n4 .v2-sala.compacto .v2-stop-campo input { height: 34px; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-stop-campos, .v2-multi-grade.n4 .v2-sala.compacto .v2-stop-campos { gap: 4px 6px; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-botao-stop, .v2-multi-grade.n4 .v2-sala.compacto .v2-botao-stop { height: 38px; font-size: 17px; }
+a.v2-botao-pequeno { display: inline-flex; align-items: center; }
+/* O cartão ocupa só o que precisa; o chat estica no espaço que sobrar. */
+.v2-sala.compacto .v2-palco { flex: 0 1 auto !important; }
+.v2-sala.compacto .v2-chat { flex: 1 1 110px !important; }
+.v2-multi-grade.n3 .v2-sala.compacto .v2-chat, .v2-multi-grade.n4 .v2-sala.compacto .v2-chat { flex: 1 1 92px !important; }

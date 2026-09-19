@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador, iniciais } from "./temas.js";
@@ -20,10 +20,11 @@ export const REGRAS_ACRO = [
   ["0", "quem não vota não pontua na rodada"],
 ];
 
-export default function SalaAcro({ roomId, usuario }) {
+export default function SalaAcro({ roomId, usuario, compacto = false, ativo = false, aoFechar = null }) {
   const socketRef = useRef(null);
   const inputRef = useRef(null);
-  const chatFimRef = useRef(null);
+  const chatListaRef = useRef(null);
+  const uid = useId();
   const tempoAntesRef = useRef(null);
 
   const [socket, setSocket] = useState(null);
@@ -133,11 +134,6 @@ export default function SalaAcro({ roomId, usuario }) {
       setEspera(null);
       setFimPartida(null);
       setBonusVoto(0);
-      requestAnimationFrame(() => {
-        const f = document.activeElement;
-        const digitando = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.closest(".v2-chat-form");
-        if (!digitando) inputRef.current?.focus({ preventScroll: true });
-      });
     });
     s.on("acromania-phrase-submitted", () => { setEnviada(true); setErroFrase(""); });
     s.on("acromania-frase-invalida", (d) => setErroFrase(d?.motivo || "Sua frase não respeita as letras da rodada."));
@@ -178,7 +174,7 @@ export default function SalaAcro({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      voltarAoLobby("acromania");
+      sairDaSala();
     });
 
     s.connect();
@@ -193,7 +189,32 @@ export default function SalaAcro({ roomId, usuario }) {
     if (tempo > 0 && tempo <= 5) somTique();
   }, [tempo, fase]);
 
-  useEffect(() => { chatFimRef.current?.scrollIntoView({ block: "end" }); }, [msgs, aba]);
+  const sairDaSala = () => (aoFechar ? aoFechar() : voltarAoLobby("acromania"));
+
+  // CURSOR NO CAMPO QUANDO A RODADA COMEÇA (mesma lógica do clássico).
+  // Tenta no próximo quadro e de novo 120ms depois (o campo pode ainda estar
+  // montando). Não rouba o foco de quem está digitando em outro campo — o
+  // chat é exceção: começou a rodada, responder vale mais que a mensagem.
+  // No multi-sala só a sala ATIVA mexe no cursor. No iPhone o teclado só
+  // abre por toque; ali quem segura o foco é o campo nunca desmontar.
+  useEffect(() => {
+    if (fase !== "writing") return;
+    if (compacto && !ativo) return;
+    const focar = () => {
+      const f = document.activeElement;
+      const campoTexto = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled;
+      const noChat = !!f?.closest?.(".v2-chat-form");
+      if (campoTexto && !noChat) return;
+      inputRef.current?.focus({ preventScroll: true });
+    };
+    const quadro = requestAnimationFrame(focar);
+    const denovo = setTimeout(focar, 120);
+    return () => { cancelAnimationFrame(quadro); clearTimeout(denovo); };
+  }, [fase, tema, ativo]);
+
+  // Rola SÓ a caixa do chat. scrollIntoView rolava a página inteira no
+  // celular — cada mensagem nova (inclusive a de acerto) puxava a tela.
+  useEffect(() => { const el = chatListaRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs, aba]);
   useEffect(() => {
     if (!fimPartida) return;
     const t = setTimeout(() => setFimPartida(null), 8000);
@@ -233,7 +254,6 @@ export default function SalaAcro({ roomId, usuario }) {
   const emJogo = fase === "writing" || fase === "voting";
   const fracao = total > 0 ? Math.max(0, Math.min(1, tempo / total)) : 0;
   const urgente = emJogo && tempo <= 5;
-  const nicks = useMemo(() => jogadores.map((j) => j.nickname.toLowerCase()), [jogadores]);
   const meuNick = usuario.nickname.toLowerCase();
 
   // Resultado: posição por número de votos (empates dividem a posição).
@@ -254,7 +274,7 @@ export default function SalaAcro({ roomId, usuario }) {
         <div className="v2-cartao-entrar">
           <div className="v2-logo-grande">Sala lotada!</div>
           <p>Tenta de novo daqui a pouco.</p>
-          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby("acromania")}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => sairDaSala()}>{aoFechar ? "Fechar esta sala" : "Voltar ao lobby"}</button>
         </div>
       </div>
     );
@@ -278,9 +298,9 @@ export default function SalaAcro({ roomId, usuario }) {
   );
 
   return (
-    <div className={`v2-app v2-sala v2-sala-acro aba-${aba}`}>
+    <div className={`v2-app v2-sala v2-sala-acro aba-${aba} ${compacto ? "compacto" : ""}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby("acromania")}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => sairDaSala()}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         <img className="v2-sala-icone v2-stop-logo" src="/acromania-logo.png" alt="" />
@@ -387,9 +407,9 @@ export default function SalaAcro({ roomId, usuario }) {
 
             {fase === "writing" && (
               <form className="v2-resposta v2-acro-form" onSubmit={enviarFrase}>
-                <label htmlFor="v2-acro-frase" className="v2-oculto">Sua frase</label>
+                <label htmlFor={`${uid}-frase`} className="v2-oculto">Sua frase</label>
                 <input
-                  id="v2-acro-frase"
+                  id={`${uid}-frase`}
                   ref={inputRef}
                   value={frase}
                   onChange={(e) => { setFrase(e.target.value); if (erroFrase) setErroFrase(""); }}
@@ -493,7 +513,7 @@ export default function SalaAcro({ roomId, usuario }) {
             <button role="tab" aria-selected={aba === "legenda"} className={aba === "legenda" ? "ativa" : ""} onClick={() => setAba("legenda")}>Placar</button>
           </div>
           <div className="v2-bloco-titulo">Chat</div>
-          <div className="v2-chat-lista">
+          <div className="v2-chat-lista" ref={chatListaRef}>
             {msgs.map((m) => {
               const citaMe = !m.system && m.userId !== usuario.id && meuNick.length > 2 && m.message?.toLowerCase().includes(meuNick);
               return (
@@ -511,17 +531,16 @@ export default function SalaAcro({ roomId, usuario }) {
                 </div>
               );
             })}
-            <div ref={chatFimRef} />
           </div>
           <div className="v2-chat-legenda-celular">{blocoPlacar}</div>
           <form className="v2-chat-form" onSubmit={enviarChat}>
-            <label htmlFor="v2-chat-acro" className="v2-oculto">Mensagem</label>
-            <input id="v2-chat-acro" value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" list="v2-nicks-acro" />
-            <datalist id="v2-nicks-acro">{nicks.map((n) => <option key={n} value={n} />)}</datalist>
+            <label htmlFor={`${uid}-chat`} className="v2-oculto">Mensagem</label>
+            <input id={`${uid}-chat`} value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" />
+            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
           </form>
         </aside>
       </div>
-      <ConviteRecebido socket={socket} />
+      {!compacto && <ConviteRecebido socket={socket} />}
     </div>
   );
 }

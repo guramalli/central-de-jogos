@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
@@ -20,7 +20,7 @@ const STATUS = {
 };
 const ehCelular = () => window.matchMedia("(max-width: 999px)").matches;
 
-export default function SalaStop({ roomId, usuario }) {
+export default function SalaStop({ roomId, usuario, compacto = false, ativo = false, aoFechar = null }) {
   const socketRef = useRef(null);
   const inputsRef = useRef([]);
   const coladoRef = useRef(false);
@@ -29,7 +29,8 @@ export default function SalaStop({ roomId, usuario }) {
   const resultadoPendenteRef = useRef(null);
   const atrasoRef = useRef(null);
   const alguemPediuRef = useRef(false);
-  const chatFimRef = useRef(null);
+  const chatListaRef = useRef(null);
+  const uid = useId();
 
   const [socket, setSocket] = useState(null);
   const [negado, setNegado] = useState(null);
@@ -118,12 +119,6 @@ export default function SalaStop({ roomId, usuario }) {
       alguemPediuRef.current = false;
       setPorTempo(false);
       somPergunta();
-      // Desktop: cursor no primeiro campo (no celular o teclado só abre por toque).
-      requestAnimationFrame(() => {
-        const f = document.activeElement;
-        const digitando = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.closest(".v2-chat-form");
-        if (!digitando) inputsRef.current[0]?.focus({ preventScroll: true });
-      });
     });
     s.on("player-stopped", (d) => {
       setQuemPediu({ nick: d.nickname || "Alguém", id: d.userId });
@@ -179,7 +174,7 @@ export default function SalaStop({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      voltarAoLobby("stop");
+      sairDaSala();
     });
 
     s.connect();
@@ -190,7 +185,32 @@ export default function SalaStop({ roomId, usuario }) {
     };
   }, [roomId]);
 
-  useEffect(() => { chatFimRef.current?.scrollIntoView({ block: "end" }); }, [msgs, aba]);
+  const sairDaSala = () => (aoFechar ? aoFechar() : voltarAoLobby("stop"));
+
+  // CURSOR NO CAMPO QUANDO A RODADA COMEÇA (mesma lógica do clássico).
+  // Tenta no próximo quadro e de novo 120ms depois (o campo pode ainda estar
+  // montando). Não rouba o foco de quem está digitando em outro campo — o
+  // chat é exceção: começou a rodada, responder vale mais que a mensagem.
+  // No multi-sala só a sala ATIVA mexe no cursor. No iPhone o teclado só
+  // abre por toque; ali quem segura o foco é o campo nunca desmontar.
+  useEffect(() => {
+    if (fase !== "active") return;
+    if (compacto && !ativo) return;
+    const focar = () => {
+      const f = document.activeElement;
+      const campoTexto = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled;
+      const noChat = !!f?.closest?.(".v2-chat-form");
+      if (campoTexto && !noChat) return;
+      inputsRef.current[0]?.focus({ preventScroll: true });
+    };
+    const quadro = requestAnimationFrame(focar);
+    const denovo = setTimeout(focar, 120);
+    return () => { cancelAnimationFrame(quadro); clearTimeout(denovo); };
+  }, [fase, rodada, ativo]);
+
+  // Rola SÓ a caixa do chat. scrollIntoView rolava a página inteira no
+  // celular — cada mensagem nova (inclusive a de acerto) puxava a tela.
+  useEffect(() => { const el = chatListaRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs, aba]);
   useEffect(() => {
     if (!stopNegado) return;
     const t = setTimeout(() => setStopNegado(null), 3500);
@@ -266,7 +286,6 @@ export default function SalaStop({ roomId, usuario }) {
     : (segIntervalo > 0 ? Math.max(0, Math.min(1, tempo / segIntervalo)) : 0);
   const urgente = ativa && tempo <= 10;
   const podePular = fase !== "active" && !enviando && pular.needed >= pular.minPlayers;
-  const nicks = useMemo(() => jogadores.map((j) => j.nickname.toLowerCase()), [jogadores]);
   const meuNick = usuario.nickname.toLowerCase();
 
   if (negado) {
@@ -279,7 +298,7 @@ export default function SalaStop({ roomId, usuario }) {
           ) : (
             <p>A <b>{negado.roomLabel}</b> exige {Number(negado.required || 0).toLocaleString("pt-BR")} pontos vitalícios no Stop. Você tem {Number(negado.current || 0).toLocaleString("pt-BR")} — continue jogando nas salas abertas pra liberar.</p>
           )}
-          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby("stop")}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => sairDaSala()}>{aoFechar ? "Fechar esta sala" : "Voltar ao lobby"}</button>
         </div>
       </div>
     );
@@ -297,9 +316,9 @@ export default function SalaStop({ roomId, usuario }) {
   );
 
   return (
-    <div className={`v2-app v2-sala v2-sala-stop aba-${aba}`}>
+    <div className={`v2-app v2-sala v2-sala-stop aba-${aba} ${compacto ? "compacto" : ""}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby("stop")}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => sairDaSala()}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         <img className="v2-sala-icone v2-stop-logo" src="/stop-logo.png" alt="" />
@@ -491,7 +510,7 @@ export default function SalaStop({ roomId, usuario }) {
             <button role="tab" aria-selected={aba === "legenda"} className={aba === "legenda" ? "ativa" : ""} onClick={() => setAba("legenda")}>Pontuação</button>
           </div>
           <div className="v2-bloco-titulo">Chat</div>
-          <div className="v2-chat-lista">
+          <div className="v2-chat-lista" ref={chatListaRef}>
             {msgs.map((m) => {
               const citaMe = !m.system && m.userId !== usuario.id && meuNick.length > 2 && m.message?.toLowerCase().includes(meuNick);
               return (
@@ -509,17 +528,16 @@ export default function SalaStop({ roomId, usuario }) {
                 </div>
               );
             })}
-            <div ref={chatFimRef} />
           </div>
           <div className="v2-chat-legenda-celular">{legenda}</div>
           <form className="v2-chat-form" onSubmit={enviarChat}>
-            <label htmlFor="v2-chat-stop" className="v2-oculto">Mensagem</label>
-            <input id="v2-chat-stop" value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" list="v2-nicks-stop" />
-            <datalist id="v2-nicks-stop">{nicks.map((n) => <option key={n} value={n} />)}</datalist>
+            <label htmlFor={`${uid}-chat`} className="v2-oculto">Mensagem</label>
+            <input id={`${uid}-chat`} value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" />
+            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
           </form>
         </aside>
       </div>
-      <ConviteRecebido socket={socket} />
+      {!compacto && <ConviteRecebido socket={socket} />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
@@ -22,11 +22,12 @@ function tempoDeResposta(ms) {
   return `${Math.floor(ms / 1000)}s ${String(ms % 1000).padStart(3, "0")}ms`;
 }
 
-export default function Sala({ roomId, usuario }) {
+export default function Sala({ roomId, usuario, compacto = false, ativo = false, aoFechar = null }) {
   const socketRef = useRef(null);
   const inputRef = useRef(null);
-  const chatFimRef = useRef(null);
-  const logFimRef = useRef(null);
+  const chatListaRef = useRef(null);
+  const uid = useId();
+  const logListaRef = useRef(null);
   const fecharResultadoRef = useRef(null);
   const totalIntervaloRef = useRef(INTERVALO_PADRAO);
   const segundosDaSalaRef = useRef(null);
@@ -126,13 +127,6 @@ export default function Sala({ roomId, usuario }) {
       setNumero((n) => n + 1);
       if (d.roundsPerTurn) setTurno({ rodada: d.turnRound, total: d.roundsPerTurn });
       somPergunta();
-      // Desktop: cursor direto no campo, a não ser que a pessoa esteja
-      // digitando em outro campo que não o chat.
-      requestAnimationFrame(() => {
-        const f = document.activeElement;
-        const digitando = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && f !== inputRef.current && !f.closest(".v2-chat-form");
-        if (!digitando) inputRef.current?.focus({ preventScroll: true });
-      });
     });
     s.on("quiz-reveal-update", (d) => setMascara(d.masked || ""));
     s.on("quiz-tick", (d) => {
@@ -193,7 +187,7 @@ export default function Sala({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      voltarAoLobby("quiz");
+      sairDaSala();
     });
 
     s.connect();
@@ -204,8 +198,33 @@ export default function Sala({ roomId, usuario }) {
     };
   }, [roomId]);
 
-  useEffect(() => { chatFimRef.current?.scrollIntoView({ block: "end" }); }, [msgs, aba]);
-  useEffect(() => { logFimRef.current?.scrollIntoView({ block: "end" }); }, [log, aba]);
+  const sairDaSala = () => (aoFechar ? aoFechar() : voltarAoLobby("quiz"));
+
+  // CURSOR NO CAMPO QUANDO A RODADA COMEÇA (mesma lógica do clássico).
+  // Tenta no próximo quadro e de novo 120ms depois (o campo pode ainda estar
+  // montando). Não rouba o foco de quem está digitando em outro campo — o
+  // chat é exceção: começou a rodada, responder vale mais que a mensagem.
+  // No multi-sala só a sala ATIVA mexe no cursor. No iPhone o teclado só
+  // abre por toque; ali quem segura o foco é o campo nunca desmontar.
+  useEffect(() => {
+    if (fase !== "active") return;
+    if (compacto && !ativo) return;
+    const focar = () => {
+      const f = document.activeElement;
+      const campoTexto = f && (f.tagName === "INPUT" || f.tagName === "TEXTAREA") && !f.disabled;
+      const noChat = !!f?.closest?.(".v2-chat-form");
+      if (campoTexto && !noChat) return;
+      inputRef.current?.focus({ preventScroll: true });
+    };
+    const quadro = requestAnimationFrame(focar);
+    const denovo = setTimeout(focar, 120);
+    return () => { cancelAnimationFrame(quadro); clearTimeout(denovo); };
+  }, [fase, numero, ativo]);
+
+  // Rola SÓ a caixa do chat. scrollIntoView rolava a página inteira no
+  // celular — cada mensagem nova (inclusive a de acerto) puxava a tela.
+  useEffect(() => { const el = chatListaRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs, aba]);
+  useEffect(() => { const el = logListaRef.current; if (el) el.scrollTop = el.scrollHeight; }, [log, aba]);
 
   function enviarPalpite(e) {
     e.preventDefault();
@@ -254,7 +273,6 @@ export default function Sala({ roomId, usuario }) {
   const urgente = ativa && tempo <= 5;
   const tema = nomeDoTema(nomeSala);
   const nivel = /Avançad/.test(nomeSala) ? "Avançada" : /Padrão|Iniciante/.test(nomeSala) ? "Padrão" : "";
-  const nicks = useMemo(() => jogadores.map((j) => j.nickname.toLowerCase()), [jogadores]);
   const meuNick = usuario.nickname.toLowerCase();
 
   if (cheia) {
@@ -263,16 +281,16 @@ export default function Sala({ roomId, usuario }) {
         <div className="v2-cartao-entrar">
           <div className="v2-logo-grande">Sala cheia!</div>
           <p>{cheia.roomLabel || "Essa sala"} está lotada{cheia.maxPlayers ? ` (${cheia.maxPlayers} jogadores)` : ""}. Tenta outro tema?</p>
-          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby("quiz")}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => sairDaSala()}>{aoFechar ? "Fechar esta sala" : "Voltar ao lobby"}</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`v2-app v2-sala aba-${aba}`}>
+    <div className={`v2-app v2-sala aba-${aba} ${compacto ? "compacto" : ""}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby("quiz")}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => sairDaSala()}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         {themeKey && <img className="v2-sala-icone" src={`/temas-quiz/${themeKey}.png`} alt="" />}
@@ -398,9 +416,9 @@ export default function Sala({ roomId, usuario }) {
             )}
 
             <form className={`v2-resposta ${tremer ? "tremer" : ""}`} onSubmit={enviarPalpite}>
-              <label htmlFor="v2-palpite" className="v2-oculto">Sua resposta</label>
+              <label htmlFor={`${uid}-palpite`} className="v2-oculto">Sua resposta</label>
               <input
-                id="v2-palpite"
+                id={`${uid}-palpite`}
                 ref={inputRef}
                 value={palpite}
                 onChange={(e) => { setPalpite(e.target.value); setIdxHist(null); }}
@@ -453,7 +471,7 @@ export default function Sala({ roomId, usuario }) {
 
           <section className="v2-log" aria-label="Log de respostas">
             <div className="v2-bloco-titulo">Respostas da rodada</div>
-            <div className="v2-log-lista">
+            <div className="v2-log-lista" ref={logListaRef}>
               {log.length === 0 && <div className="v2-vazio">Nenhuma resposta enviada ainda.</div>}
               {log.map((l, i) => (
                 <div key={i} className={`v2-log-item ${l.correct ? "certa" : ""}`}>
@@ -462,7 +480,6 @@ export default function Sala({ roomId, usuario }) {
                   <span className="v2-log-palpite">{l.guess}</span>
                 </div>
               ))}
-              <div ref={logFimRef} />
             </div>
           </section>
 
@@ -474,7 +491,7 @@ export default function Sala({ roomId, usuario }) {
             <button role="tab" aria-selected={aba === "log"} className={aba === "log" ? "ativa" : ""} onClick={() => setAba("log")}>Respostas</button>
           </div>
           <div className="v2-bloco-titulo">Chat</div>
-          <div className="v2-chat-lista">
+          <div className="v2-chat-lista" ref={chatListaRef}>
             {msgs.map((m) => {
               const citaMe = !m.system && m.userId !== usuario.id && meuNick.length > 2 && m.message?.toLowerCase().includes(meuNick);
               return (
@@ -492,19 +509,18 @@ export default function Sala({ roomId, usuario }) {
                 </div>
               );
             })}
-            <div ref={chatFimRef} />
           </div>
           <form className="v2-chat-form" onSubmit={enviarChat}>
-            <label htmlFor="v2-chat-input" className="v2-oculto">Mensagem</label>
-            <input id="v2-chat-input" value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" list="v2-nicks" />
-            <datalist id="v2-nicks">{nicks.map((n) => <option key={n} value={n} />)}</datalist>
+            <label htmlFor={`${uid}-chat`} className="v2-oculto">Mensagem</label>
+            <input id={`${uid}-chat`} value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" />
+            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
           </form>
         </aside>
       </div>
 
 
       {reportando && questionId && <ModalReportar questionId={questionId} texto={pergunta} aoFechar={() => setReportando(false)} />}
-      <ConviteRecebido socket={socket} />
+      {!compacto && <ConviteRecebido socket={socket} />}
     </div>
   );
 }

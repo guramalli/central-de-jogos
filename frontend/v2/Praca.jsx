@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
@@ -44,7 +44,6 @@ export default function Praca({ usuario }) {
     setTexto("");
   }
 
-  const nicks = useMemo(() => online.map((p) => p.nickname.toLowerCase()), [online]);
   const meuNick = usuario.nickname.toLowerCase();
 
   return (
@@ -79,8 +78,8 @@ export default function Praca({ usuario }) {
           </div>
           <form className="v2-chat-form" onSubmit={enviar}>
             <label htmlFor="v2-praca-campo" className="v2-oculto">Mensagem na praça</label>
-            <input id="v2-praca-campo" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Falar na praça…" maxLength={300} autoComplete="off" list="v2-nicks-praca" />
-            <datalist id="v2-nicks-praca">{nicks.map((n) => <option key={n} value={n} />)}</datalist>
+            <input id="v2-praca-campo" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Falar na praça…" maxLength={300} autoComplete="off" />
+            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
           </form>
         </div>
         <aside className="v2-praca-quem">
