@@ -1830,3 +1830,24 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador-info { display: flex; flex: 1; min-width: 0; }
 .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador-nome { max-width: none !important; font-size: 12px; }
 .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador .v2-patente-jogador { width: 24px; height: 24px; }
+
+/* Painel admin: versão do site de cada pessoa online. */
+.v2-tag-versao { font-style: normal; font-size: 10px; font-weight: 900; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
+.v2-tag-versao.v2 { background: var(--amarelo); color: var(--roxo); }
+.v2-tag-versao.classico { background: #3b3b3b; color: #ffb86f; border: 1px solid #ffb86f; }
+.v2-admin-versoes { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-weight: 800; font-size: 14px; }
+.v2-admin-versoes b { font-family: var(--titulo); font-size: 18px; color: #fff; }
+
+/* ---------- Multi-sala do Stop: relógio perto de quem digita ----------
+   No cartão largo, o relógio ficava na PONTA direita (o status do meio
+   ocupa todo o espaço livre) e pequeno. Agora vem colado na letra — é pra
+   onde o olho vai enquanto se preenche as lacunas. */
+.v2-sala.compacto.v2-sala-stop .v2-stop-cabeca .v2-stop-letra { order: 1; }
+.v2-sala.compacto.v2-sala-stop .v2-stop-cabeca .v2-relogio { order: 2; }
+.v2-sala.compacto.v2-sala-stop .v2-stop-cabeca .v2-stop-status { order: 3; }
+@container painel (min-width: 1000px) {
+  .v2-sala.compacto.v2-sala-stop .v2-stop-cabeca { gap: 14px; }
+  .v2-sala.compacto.v2-sala-stop .v2-stop-letra { width: 58px; height: 58px; font-size: 34px; }
+  .v2-sala.compacto.v2-sala-stop .v2-relogio { width: 70px !important; height: 70px !important; }
+  .v2-sala.compacto.v2-sala-stop .v2-relogio > span { font-size: 27px; }
+}

@@ -883,10 +883,29 @@ router.get("/online", async (req, res) => {
     }
   }
 
+  // VERSÃO DO SITE (v2 ou clássico), lida das conexões ABERTAS agora — cada
+  // site manda `versao` na autenticação do socket. Não vai pro banco: mostra
+  // onde a pessoa está neste instante (com uma aba de cada, aparecem as
+  // duas). Conexão sem o campo (site antigo em cache) fica sem marcação.
+  const versoesPorUsuario = new Map();
+  try {
+    const io = req.app.get("io");
+    for (const sk of io?.of("/")?.sockets?.values() || []) {
+      const uid = sk.user?.id;
+      const versao = sk.handshake?.auth?.versao;
+      if (!uid || (versao !== "v2" && versao !== "classico")) continue;
+      if (!versoesPorUsuario.has(uid)) versoesPorUsuario.set(uid, new Set());
+      versoesPorUsuario.get(uid).add(versao);
+    }
+  } catch {
+    // sem a marcação, a lista segue igual
+  }
+
   const resultado = lista.map((p) => ({
     ...p,
     isGuest: visitantes.has(p.userId),
     plataforma: plataformas.get(p.userId) || null,
+    versoes: [...(versoesPorUsuario.get(p.userId) || [])].sort().reverse(), // ["v2"], ["classico"] ou os dois
     local: p.locais.length > 0 ? p.locais.map((l) => `${l.jogo}: ${l.sala}`).join(" · ") : "Navegando no site",
   }));
 

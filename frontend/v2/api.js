@@ -57,7 +57,8 @@ export function sair() {
 export function novoSocket() {
   const mobile = window.matchMedia("(max-width: 900px)").matches;
   return io(API_URL, {
-    auth: { token: localStorage.getItem("eg_token"), plataforma: mobile ? "mobile" : "desktop" },
+    // `versao`: o painel admin mostra se a pessoa está na v2 ou no clássico.
+    auth: { token: localStorage.getItem("eg_token"), plataforma: mobile ? "mobile" : "desktop", versao: "v2" },
     autoConnect: false,
   });
 }

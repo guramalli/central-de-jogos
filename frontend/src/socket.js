@@ -9,7 +9,7 @@ export function getSocket() {
   // A plataforma vai junto da autenticação: o servidor registra no perfil
   // pra dar visibilidade de quantos jogam no celular e quantos no
   // computador — informação que orienta onde investir na interface.
-  const auth = { token, plataforma: detectarPlataforma() };
+  const auth = { token, plataforma: detectarPlataforma(), versao: "classico" }; // versão: identificador no painel admin
   if (!socket) {
     socket = io(API_URL, { auth, autoConnect: false });
   }
@@ -32,6 +32,6 @@ export function getSocket() {
 // esquecida é jogador fantasma na sala.
 export function criarSocketDedicado() {
   const token = localStorage.getItem("eg_token");
-  const auth = { token, plataforma: detectarPlataforma() };
+  const auth = { token, plataforma: detectarPlataforma(), versao: "classico" }; // versão: identificador no painel admin
   return io(API_URL, { auth, autoConnect: false });
 }

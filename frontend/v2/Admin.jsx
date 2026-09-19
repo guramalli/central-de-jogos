@@ -186,6 +186,19 @@ function VisaoGeral({ online, recarregarOnline, feedbacks, recarregarFeedbacks, 
               <div><b>{online.registrados}</b><span>com conta</span></div>
               <div><b>{online.visitantes}</b><span>visitantes</span></div>
             </div>
+            {/* Versão do site: contado das conexões abertas (quem tem uma aba
+                de cada conta nos dois). Sem marcação = site antigo em cache. */}
+            {(() => {
+              const conta = (v) => online.jogadores.filter((p) => (p.versoes || []).includes(v)).length;
+              const sem = online.jogadores.filter((p) => !(p.versoes || []).length).length;
+              return (
+                <div className="v2-admin-versoes">
+                  <span><em className="v2-tag-versao v2">v2</em> <b>{conta("v2")}</b></span>
+                  <span><em className="v2-tag-versao classico">clássico</em> <b>{conta("classico")}</b></span>
+                  {sem > 0 && <span className="v2-admin-apagado" title="Conexões sem a marcação — geralmente o site antigo ainda em cache no navegador">sem identificação: {sem}</span>}
+                </div>
+              );
+            })()}
             {online.jogadores.length === 0 && <div className="v2-vazio">Ninguém online no momento.</div>}
             <div className="v2-admin-online">
               {online.jogadores.map((p) => {
@@ -196,6 +209,9 @@ function VisaoGeral({ online, recarregarOnline, feedbacks, recarregarFeedbacks, 
                       <Nick id={p.userId} nick={p.nickname} visitante={p.isGuest} />
                       {p.isGuest && <em className="v2-tag-cinza">visitante</em>}
                       {p.plataforma && <em className="v2-tag-cinza" title={p.plataforma === "mobile" ? "Jogando no celular" : "Jogando no computador"}>{p.plataforma === "mobile" ? "celular" : "computador"}</em>}
+                      {(p.versoes || []).map((v) => (
+                        <em key={v} className={`v2-tag-versao ${v}`} title={v === "v2" ? "Usando a versão nova do site" : "Usando a versão clássica do site"}>{v === "v2" ? "v2" : "clássico"}</em>
+                      ))}
                     </span>
                     <span className="v2-admin-online-onde">
                       {p.locais?.length > 0
