@@ -38,7 +38,15 @@ export default function Inicio({ usuario }) {
   for (const t of titulos?.quiz || []) if (t.proximo) candidatos.push({ nome: t.proximo.nome, atual: t.acertos, alvo: t.proximo.min, logo: t.proximo.logo, unidade: "acertos" });
   for (const t of titulos?.stop || []) if (t.proximo) candidatos.push({ nome: t.proximo.nome, atual: t.stops, alvo: t.proximo.min, logo: t.proximo.logo, unidade: "STOPs" });
   const proximoTitulo = candidatos.filter((c) => c.atual > 0).sort((a, b) => b.atual / b.alvo - a.atual / a.alvo)[0];
-  const mensal = (perfil?.monthly || []).filter((m) => NOMES[m.gameKey]);
+  // No máximo 3 cartões no painel da direita. Os jogos vão do que a pessoa
+  // mais pontuou no mês pro que menos; se houver um título perto de sair,
+  // ele fica com a última vaga (a meta mais concreta).
+  const MAX_CARTOES = 3;
+  const vagasJogos = MAX_CARTOES - (proximoTitulo ? 1 : 0);
+  const mensal = (perfil?.monthly || [])
+    .filter((m) => NOMES[m.gameKey])
+    .sort((a, b) => (b.points || 0) - (a.points || 0))
+    .slice(0, vagasJogos);
 
   async function convidar() {
     const texto = `Vem jogar comigo na Educação Gamer! Stop, Quiz e muito mais: ${window.location.origin}/`;
