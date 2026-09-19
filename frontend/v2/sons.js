@@ -75,3 +75,6 @@ export const somAcerto = () => tocarArquivo(acerto);
 export const somTique = () => bip(880, 0.08, "square", 0.05);
 export const somErro = () => { bip(220, 0.12, "sawtooth", 0.06); setTimeout(() => bip(160, 0.16, "sawtooth", 0.06), 90); };
 export const somOutroAcertou = () => { bip(660, 0.1); setTimeout(() => bip(520, 0.14), 100); };
+
+// STOP pedido: três bipes subindo, tipo sirene curta.
+export const somStop = () => { bip(520, 0.09, "square", 0.07); setTimeout(() => bip(700, 0.09, "square", 0.07), 110); setTimeout(() => bip(900, 0.16, "square", 0.07), 220); };

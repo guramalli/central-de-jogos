@@ -306,6 +306,145 @@ a { color: inherit; text-decoration: none; }
   .v2-podio-item.p3 .v2-podio-coluna { min-height: 100px; }
 }
 
+/* ---------- Lobby: chave Quiz/Stop e salas do Stop ---------- */
+.v2-chave-jogo { display: flex; gap: 10px; }
+.v2-chave-jogo button { flex: 1; max-width: 220px; height: 74px; border: none; border-radius: 22px; background: var(--roxo-2); display: flex; align-items: center; justify-content: center; opacity: .55; transition: transform .15s, opacity .15s; }
+.v2-chave-jogo button img { height: 52px; width: auto; max-width: 90%; object-fit: contain; }
+.v2-chave-jogo button.ativo { opacity: 1; background: #4e389c; box-shadow: inset 0 0 0 3px var(--amarelo), 0 5px 0 var(--roxo-escuro); }
+.v2-chave-jogo button:hover { opacity: 1; transform: translateY(-2px); }
+.v2-stop-explica { margin: 0; color: var(--lilas); font-weight: 800; font-size: 14px; }
+.v2-card-stop.cheia { filter: saturate(.5); }
+.v2-cadeado { margin-left: 6px; vertical-align: -2px; }
+.v2-privadas { background: var(--roxo-2); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.v2-privadas-cabeca { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.v2-privadas-cabeca h2 { margin: 0; font-family: var(--titulo); font-size: 22px; }
+.v2-privadas-cabeca p { margin: 4px 0 0; color: var(--lilas); font-weight: 700; font-size: 13px; max-width: 560px; }
+.v2-privadas-cabeca .v2-botao { min-height: 46px; font-size: 16px; padding: 0 18px; }
+.v2-privadas-vazio { margin: 0; color: var(--lilas-2); font-weight: 800; }
+.v2-privadas-lista { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.v2-privada { background: var(--roxo); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; transition: transform .15s; }
+.v2-privada:hover { transform: translateY(-2px); }
+.v2-privada-topo { display: flex; justify-content: space-between; gap: 10px; }
+.v2-privada-topo span { font-size: 12px; font-weight: 900; color: var(--verde); flex-shrink: 0; }
+.v2-privada-info { font-size: 12px; font-weight: 700; color: var(--lilas); }
+
+/* ---------- Sala do Stop ---------- */
+.v2-sala-topo .v2-stop-logo { height: 38px; width: auto; max-width: 110px; }
+.v2-faixa-zoeira { margin: 0 16px 8px; padding: 10px 14px; border-radius: 14px; background: #c3a6ff; color: var(--roxo); font-weight: 800; font-size: 13px; }
+.v2-stop-cartao { gap: 14px; }
+.v2-stop-cabeca { display: flex; align-items: center; gap: 14px; }
+.v2-stop-letra { width: 72px; height: 72px; flex-shrink: 0; border-radius: 22px; background: var(--vermelho); color: #fff; box-shadow: 0 6px 0 #b8362c; display: flex; align-items: center; justify-content: center; font-family: var(--titulo); font-weight: 700; font-size: 44px; }
+.v2-stop-letra.girando { animation: v2-letra-sorteio .7s cubic-bezier(.2,.9,.3,1.3) both; }
+@keyframes v2-letra-sorteio { 0% { transform: rotateY(90deg) scale(.6); } 60% { transform: rotateY(-15deg) scale(1.1); } 100% { transform: none; } }
+.v2-stop-status { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.v2-stop-status b { font-family: var(--titulo); font-weight: 600; font-size: 20px; line-height: 1.2; }
+.v2-stop-status span { font-size: 13px; font-weight: 800; color: #5a4a8a; }
+.v2-stop-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.v2-stop-campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.v2-stop-campo span { font-size: 12px; font-weight: 900; color: #5a4a8a; text-transform: uppercase; letter-spacing: .4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-stop-campo input { width: 100%; height: 50px; border-radius: 14px; border: 3px solid #d8cbb2; background: #fff; color: var(--roxo); padding: 0 12px; font-weight: 800; font-size: 16px; outline: none; transition: border-color .15s, box-shadow .15s; }
+.v2-stop-campo input:focus { border-color: var(--amarelo); box-shadow: 0 0 0 4px rgba(255,214,10,.25); }
+.v2-stop-campo.preenchido input { border-color: var(--verde); }
+.v2-stop-acao { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.v2-botao-stop { height: 64px; padding: 0 34px; border: none; border-radius: 22px; background: #b8b0cc; color: #fff; font-family: var(--titulo); font-weight: 700; font-size: 28px; letter-spacing: 1px; box-shadow: 0 6px 0 #8a82a0; transition: transform .1s, background .2s; }
+.v2-botao-stop.pronto { background: var(--vermelho); box-shadow: 0 6px 0 #b8362c; animation: v2-bate 1.4s ease-in-out infinite; }
+.v2-botao-stop:active { transform: translateY(4px); box-shadow: 0 2px 0 #b8362c; }
+.v2-botao-stop.negado { animation: v2-tremer .45s ease-in-out; }
+.v2-stop-dica { flex: 1; min-width: 180px; font-size: 13px; font-weight: 800; color: #5a4a8a; }
+.v2-stop-espera { background: #ede3d0; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.v2-stop-espera b { font-family: var(--titulo); font-size: 22px; }
+.v2-stop-espera span { font-weight: 800; font-size: 13px; color: #5a4a8a; }
+.v2-stop-pular { display: flex; justify-content: flex-end; }
+.v2-stop-pular .v2-botao-pequeno { align-self: auto; }
+.v2-stop-pular .v2-botao-pequeno:disabled { opacity: .5; }
+.v2-stop-selo-tempo { position: absolute; top: 14px; left: 50%; transform: translateX(-50%) rotate(-3deg); background: var(--laranja); color: var(--roxo); font-family: var(--titulo); font-weight: 700; padding: 6px 14px; border-radius: 12px; animation: v2-pop .4s ease-out both; z-index: 3; }
+.v2-stop-pedido { background: var(--vermelho); color: #fff; }
+.v2-stop-pedido .v2-resultado-titulo { color: #fff; }
+.v2-stop-pedido .v2-resultado-sub { color: #ffe1de; }
+.v2-stop-pedido-placa { background: #fff; color: var(--vermelho); font-family: var(--titulo); font-weight: 700; font-size: 40px; padding: 6px 26px; border-radius: 20px; box-shadow: 0 6px 0 #b8362c; animation: v2-estoura .6s cubic-bezier(.2,.9,.3,1.4) both; }
+.v2-stop-bonus { gap: 10px; }
+.v2-stop-podio { position: relative; display: flex; align-items: flex-end; gap: 8px; }
+.v2-stop-podio-item { width: 96px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.v2-stop-podio-nick { font-weight: 900; font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-stop-podio-coluna { width: 100%; border-radius: 14px 14px 0 0; color: var(--roxo); display: flex; flex-direction: column; align-items: center; padding: 6px 0; transform-origin: bottom; animation: v2-sobe .6s cubic-bezier(.2,.9,.3,1.3) both; }
+.v2-stop-podio-coluna b { font-family: var(--titulo); font-size: 20px; }
+.v2-stop-podio-coluna em { font-style: normal; font-weight: 900; font-size: 12px; }
+.v2-stop-podio-item.p1 .v2-stop-podio-coluna { background: var(--amarelo); min-height: 70px; }
+.v2-stop-podio-item.p2 .v2-stop-podio-coluna { background: #e2d7ff; min-height: 54px; }
+.v2-stop-podio-item.p3 .v2-stop-podio-coluna { background: var(--laranja); min-height: 42px; }
+
+/* Apuração */
+.v2-apuracao { overflow-x: auto; margin: 0 -4px; padding: 0 4px 4px; }
+.v2-apuracao-tabela { display: flex; flex-direction: column; gap: 8px; }
+.v2-apuracao-linha { display: flex; flex-wrap: wrap; gap: 6px; background: #fff; border-radius: 16px; padding: 10px; box-shadow: inset 0 -3px 0 #ede3d0; animation: v2-entra .35s ease-out both; }
+.v2-apuracao-linha.eu { box-shadow: inset 0 0 0 3px var(--borda); }
+.v2-apuracao-linha.cabeca { display: none; }
+.v2-ap-jogador { flex-basis: 100%; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.v2-ap-jogador b { font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-ap-palavra { flex: 1 1 calc(50% - 6px); min-width: 0; border-radius: 12px; padding: 6px 9px; display: flex; flex-direction: column; gap: 1px; font-weight: 800; font-size: 14px; }
+.v2-ap-tema-celular { font-style: normal; font-size: 10px; font-weight: 900; text-transform: uppercase; opacity: .7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-ap-texto { overflow-wrap: anywhere; }
+.v2-ap-palavra.certa { background: #c8f5e6; color: #0b5a45; }
+.v2-ap-palavra.repetida { background: #fff1b8; color: #7a5b00; }
+.v2-ap-palavra.solo { background: #e2d7ff; color: #4a2fa0; }
+.v2-ap-palavra.errada { background: #ffe1de; color: #a3362c; }
+.v2-ap-palavra.errada .v2-ap-texto { text-decoration: line-through; text-decoration-color: rgba(163,54,44,.5); }
+.v2-ap-estrela { font-style: normal; color: #e0a800; margin-left: 4px; }
+.v2-ap-sugerir { align-self: flex-start; border: none; background: transparent; color: #a3362c; font-weight: 900; font-size: 11px; text-decoration: underline; padding: 2px 0; min-height: 24px; }
+.v2-ap-sugerida { font-size: 11px; font-weight: 900; color: #0b5a45; }
+.v2-ap-pts { display: flex; align-items: center; gap: 4px; font-weight: 800; color: #5a4a8a; font-size: 13px; }
+.v2-ap-pts b { font-family: var(--titulo); font-size: 18px; color: var(--roxo); }
+.v2-ap-pts:last-child::before { content: "bloco"; font-size: 11px; font-weight: 900; }
+
+/* Legenda */
+.v2-stop-lateral { display: none; }
+.v2-stop-legenda { display: flex; flex-direction: column; gap: 8px; font-weight: 800; font-size: 14px; }
+.v2-leg { display: flex; align-items: center; gap: 10px; }
+.v2-leg i { width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; }
+.v2-leg i.certa { background: #c8f5e6; }
+.v2-leg i.repetida { background: #fff1b8; }
+.v2-leg i.solo { background: #e2d7ff; }
+.v2-leg i.errada { background: #ffe1de; }
+.v2-leg b { margin-left: auto; font-family: var(--titulo); font-size: 18px; color: var(--amarelo); }
+.v2-leg-bonus { margin-top: 6px; padding: 10px 12px; border-radius: 14px; background: var(--roxo); color: var(--amarelo); font-weight: 900; font-size: 13px; }
+.v2-chat-legenda-celular { display: none; }
+/* Celular: a apuração é mais alta que a tela — a sala do Stop rola
+   (a do Quiz cabe inteira e não precisa). */
+@media (max-width: 999px) {
+  .v2-sala-stop { height: auto; min-height: 100dvh; overflow: visible; }
+  .v2-sala-stop .v2-sala-corpo { flex: none; }
+  .v2-sala-stop .v2-chat { flex: none; height: 360px; }
+}
+.v2-sala-stop.aba-legenda .v2-chat-lista, .v2-sala-stop.aba-legenda .v2-chat-form { display: none; }
+.v2-sala-stop.aba-legenda .v2-chat-legenda-celular { display: block; }
+
+@media (min-width: 700px) {
+  .v2-privadas-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v2-stop-campos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1000px) {
+  .v2-sala-stop .v2-sala-corpo { grid-template-columns: 270px minmax(0, 1fr) 280px; }
+  .v2-stop-lateral { display: flex; grid-area: log; background: var(--roxo-2); border-radius: 26px; padding: 16px; flex-direction: column; align-self: start; }
+  .v2-sala-stop .v2-chat-legenda-celular { display: none !important; }
+  .v2-faixa-zoeira { margin: 12px 32px 0; }
+  .v2-stop-letra { width: 88px; height: 88px; font-size: 56px; border-radius: 26px; }
+  .v2-stop-status b { font-size: 24px; }
+  .v2-stop-campo input { height: 56px; font-size: 17px; }
+  .v2-apuracao-linha.cabeca { display: grid; background: transparent; box-shadow: none; padding: 0 10px; animation: none; font-size: 11px; font-weight: 900; color: #5a4a8a; text-transform: uppercase; }
+  .v2-apuracao-linha { display: grid; grid-template-columns: 128px repeat(var(--temas), minmax(0, 1fr)) 50px 42px; align-items: center; gap: 5px; padding: 8px 10px; }
+  /* Palavra numa linha só, cortada com reticências (o balão de título mostra
+     inteira). Quebrar no meio ("Curitib / a") ficava ilegível. */
+  .v2-ap-texto { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+  .v2-ap-jogador { flex-basis: auto; }
+  .v2-ap-tema { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .v2-ap-tema-celular { display: none; }
+  .v2-ap-palavra { font-size: 13px; padding: 6px 8px; }
+  .v2-ap-pts { justify-content: flex-end; }
+  .v2-ap-pts:last-child::before { content: none; }
+  .v2-privadas-lista { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .v2-grade-stop { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* ---------- Avatar, hover e modais ---------- */
 .v2-avatar-foto { border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; color: var(--roxo); font-family: var(--titulo); font-weight: 700; }
 .v2-avatar-foto img { width: 100%; height: 100%; object-fit: cover; }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { usuarioAtual } from "./api.js";
 import Lobby from "./Lobby.jsx";
 import Sala from "./Sala.jsx";
+import SalaStop from "./SalaStop.jsx";
 import Ranking from "./Ranking.jsx";
 import Missoes from "./Missoes.jsx";
 import Patentes from "./Patentes.jsx";
@@ -12,7 +13,7 @@ import Perfil from "./Perfil.jsx";
 // site clássico por engano.
 function lerLocal() {
   const p = new URLSearchParams(window.location.search);
-  return { sala: p.get("sala"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
+  return { sala: p.get("sala"), stop: p.get("stop"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
 
 function navegar(params) {
@@ -25,6 +26,7 @@ function navegar(params) {
 }
 
 export const irPara = (sala) => navegar({ sala });
+export const irParaStop = (stop) => navegar({ stop });
 export const irParaPagina = (pagina, extra = {}) => navegar({ pagina, ...extra });
 export const linkDaPagina = (pagina, extra = {}) => {
   const q = new URLSearchParams({ pagina, ...extra });
@@ -55,10 +57,11 @@ export default function App() {
   }
 
   if (local.sala) return <Sala key={local.sala} roomId={local.sala} usuario={usuario} />;
+  if (local.stop) return <SalaStop key={local.stop} roomId={local.stop} usuario={usuario} />;
   switch (local.pagina) {
     case "ranking": return <Ranking usuario={usuario} jogoInicial={local.jogo} />;
     case "missoes": return <Missoes usuario={usuario} />;
-    case "patentes": return <Patentes usuario={usuario} />;
+    case "patentes": return <Patentes key={local.jogo || "q"} usuario={usuario} jogoInicial={local.jogo} />;
     case "jogador": return <Perfil key={local.id} usuario={usuario} userId={local.id || usuario.id} />;
     default: return <Lobby usuario={usuario} />;
   }

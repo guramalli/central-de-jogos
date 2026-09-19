@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { irPara } from "./App.jsx";
+import { irPara, irParaStop } from "./App.jsx";
 
 // BOTÃO "CONVIDAR": copiar/compartilhar o link da sala + chamar um amigo
 // que já está no site (evento convidar-para-sala, mesmo do clássico — sai
 // pela conexão DESTA sala, senão o servidor convida pra sala errada).
-export function BotaoConvidar({ socket, roomId, nomeSala }) {
+export function BotaoConvidar({ socket, roomId, nomeSala, jogo = "quiz" }) {
   const [aberto, setAberto] = useState(false);
   const [amigos, setAmigos] = useState(null);
   const [aviso, setAviso] = useState(null);
   const caixaRef = useRef(null);
-  const link = `${window.location.origin}/v2/?sala=${roomId}`;
+  const link = `${window.location.origin}/v2/?${jogo === "stop" ? "stop" : "sala"}=${roomId}`;
 
   useEffect(() => {
     if (!aberto) return;
@@ -34,7 +34,7 @@ export function BotaoConvidar({ socket, roomId, nomeSala }) {
   }, [aviso]);
 
   async function copiar() {
-    const texto = `Vem jogar Quiz comigo, tô na sala de ${nomeSala || "Quiz"}! ${link}`;
+    const texto = `Vem jogar ${jogo === "stop" ? "Stop" : "Quiz"} comigo, tô na ${nomeSala || "sala"}! ${link}`;
     try {
       if (navigator.share && window.matchMedia("(pointer: coarse)").matches) await navigator.share({ text: texto });
       else { await navigator.clipboard.writeText(texto); setAviso({ ok: true, t: "Link copiado!" }); }
@@ -68,8 +68,8 @@ export function BotaoConvidar({ socket, roomId, nomeSala }) {
 }
 
 // AVISO DE CONVITE RECEBIDO. Chega em qualquer conexão da pessoa (sala
-// pessoal user:<id>). Convite de Quiz abre na v2; Stop e Acromania, que
-// ainda não existem aqui, abrem no clássico.
+// pessoal user:<id>). Quiz e Stop abrem na v2; Acromania e as salas
+// privadas do Stop, que ainda não existem aqui, abrem no clássico.
 export function ConviteRecebido({ socket }) {
   const [convite, setConvite] = useState(null);
   useEffect(() => {
@@ -87,7 +87,10 @@ export function ConviteRecebido({ socket }) {
 
   const entrar = () => {
     setConvite(null);
+    // Salas privadas do Stop (votação da mesa) ainda não existem na v2.
     if (convite.jogo === "quiz") irPara(convite.sala);
+    else if (convite.jogo === "stop" && !String(convite.sala).startsWith("stop-privada-")) irParaStop(convite.sala);
+    else if (convite.jogo === "stop") window.location.href = `/jogos/stop/privada?sala=${convite.sala}`;
     else window.location.href = `/jogos/${convite.jogo}/${convite.sala}`;
   };
 

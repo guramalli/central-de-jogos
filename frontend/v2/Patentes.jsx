@@ -3,16 +3,17 @@ import { api } from "./api.js";
 import Topo from "./Topo.jsx";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 
-// Por enquanto só as do Quiz — é o único jogo da v2. As do Stop e do
-// Acromania continuam no clássico (links no fim).
-export default function Patentes({ usuario }) {
+// Quiz e Stop (os jogos da v2). As do Acromania continuam no clássico.
+export default function Patentes({ usuario, jogoInicial }) {
+  const [jogo, setJogo] = useState(jogoInicial === "stop" ? "stop" : "quiz");
   const [patentes, setPatentes] = useState(null);
   const [meus, setMeus] = useState(null);
 
   useEffect(() => {
-    api.get("/quiz-ranks").then(({ data }) => setPatentes([...data].reverse())).catch(() => setPatentes([]));
-    buscarPerfil(usuario.id, 20000).then((p) => setMeus(dadosDoJogo(p, "quiz").mensal));
-  }, [usuario.id]);
+    setPatentes(null);
+    api.get(jogo === "stop" ? "/ranks" : "/quiz-ranks").then(({ data }) => setPatentes([...data].sort((a, b) => b.min - a.min))).catch(() => setPatentes([]));
+    buscarPerfil(usuario.id, 20000).then((p) => setMeus(dadosDoJogo(p, jogo).mensal));
+  }, [usuario.id, jogo]);
 
   const pontos = meus?.points || 0;
   const atual = meus?.rank?.name;
@@ -21,8 +22,12 @@ export default function Patentes({ usuario }) {
     <div className="v2-app v2-com-menu">
       <Topo usuario={usuario} ativo="patentes" />
       <main className="v2-pagina">
-        <div className="v2-pagina-cabeca"><h1>Patentes do Quiz</h1></div>
-        <p className="v2-pagina-nota">Sua patente é calculada pelos pontos <b>do mês</b> no Quiz — todo dia 1º ela recomeça do zero.</p>
+        <div className="v2-pagina-cabeca"><h1>Patentes</h1></div>
+        <div className="v2-segmentado" role="group" aria-label="Jogo">
+          <button className={jogo === "quiz" ? "ativo" : ""} onClick={() => setJogo("quiz")}>Quiz</button>
+          <button className={jogo === "stop" ? "ativo" : ""} onClick={() => setJogo("stop")}>Stop</button>
+        </div>
+        <p className="v2-pagina-nota">Sua patente é calculada pelos pontos <b>do mês</b> no {jogo === "stop" ? "Stop" : "Quiz"} — todo dia 1º ela recomeça do zero.</p>
 
         {meus && (
           <section className="v2-cartao v2-patente-atual">
@@ -52,7 +57,7 @@ export default function Patentes({ usuario }) {
             );
           })}
         </div>
-        <p className="v2-pagina-nota">Patentes dos outros jogos: <a className="v2-link" href="/patentes">Stop</a> · <a className="v2-link" href="/patentes-acromania">Acromania</a></p>
+        <p className="v2-pagina-nota">Patentes do Acromania: <a className="v2-link" href="/patentes-acromania">no site clássico</a></p>
       </main>
     </div>
   );
