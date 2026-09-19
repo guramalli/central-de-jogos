@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
-import { irPara } from "./App.jsx";
+import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import { somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
@@ -178,7 +178,7 @@ export default function SalaStop({ roomId, usuario }) {
     });
     s.on("removido-por-inatividade", (d) => {
       alert(d?.mensagem || "Você saiu da sala por inatividade.");
-      irPara(null);
+      voltarAoLobby();
     });
 
     s.connect();
@@ -278,7 +278,7 @@ export default function SalaStop({ roomId, usuario }) {
           ) : (
             <p>A <b>{negado.roomLabel}</b> exige {Number(negado.required || 0).toLocaleString("pt-BR")} pontos vitalícios no Stop. Você tem {Number(negado.current || 0).toLocaleString("pt-BR")} — continue jogando nas salas abertas pra liberar.</p>
           )}
-          <button className="v2-botao v2-botao-amarelo" onClick={() => irPara(null)}>Voltar ao lobby</button>
+          <button className="v2-botao v2-botao-amarelo" onClick={() => voltarAoLobby()}>Voltar ao lobby</button>
         </div>
       </div>
     );
@@ -298,7 +298,7 @@ export default function SalaStop({ roomId, usuario }) {
   return (
     <div className={`v2-app v2-sala v2-sala-stop aba-${aba}`}>
       <header className="v2-sala-topo">
-        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => irPara(null)}>
+        <button className="v2-voltar" aria-label="Sair da sala" title="Sair da sala" onClick={() => voltarAoLobby()}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
         <img className="v2-sala-icone v2-stop-logo" src="/stop-logo.png" alt="" />

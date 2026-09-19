@@ -7,13 +7,13 @@ import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 import NickHover from "./NickHover.jsx";
 import Topo from "./Topo.jsx";
 
-export default function Lobby({ usuario }) {
+export default function Lobby({ usuario, jogoInicial }) {
   const [salas, setSalas] = useState(null);
   const [erro, setErro] = useState(false);
   const [perfil, setPerfil] = useState(null);
   const [nivel, setNivel] = useState(() => localStorage.getItem("eg_v2_nivel") || "padrao");
   // Qual jogo o lobby mostra. Lembrado entre visitas.
-  const [jogo, setJogo] = useState(() => localStorage.getItem("eg_v2_jogo") || "quiz");
+  const [jogo, setJogo] = useState(() => (["quiz", "stop", "acromania"].includes(jogoInicial) ? jogoInicial : localStorage.getItem("eg_v2_jogo") || "quiz"));
   const [salasStop, setSalasStop] = useState(null);
   const [privadas, setPrivadas] = useState([]);
   const [acro, setAcro] = useState(null); // { ativo, rooms } do Acromania

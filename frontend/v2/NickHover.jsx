@@ -102,7 +102,7 @@ export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "
               {!souEu && (
                 amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? <div className="v2-balao-ok">Pedido de amizade enviado!</div>
                 : amizade === "erro" ? <div className="v2-balao-erro">Não foi possível enviar.</div>
-                : perfil.friendshipStatus === "friends" ? <div className="v2-balao-ok">Vocês são amigos</div>
+                : perfil.friendshipStatus === "friends" ? <button className="v2-balao-botao" onClick={() => irParaPagina("amigos", { id: userId })}>Mandar mensagem</button>
                 : perfil.friendshipStatus === "pending_received" ? <div className="v2-balao-linha">Te mandou um pedido — veja em Amigos</div>
                 : <button className="v2-balao-botao" onClick={addAmigo} disabled={amizade === "enviando"}>+ Adicionar amigo</button>
               )}

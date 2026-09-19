@@ -38,3 +38,9 @@ export function dadosDoJogo(perfil, gameKey = "quiz") {
     vitalicio: perfil?.lifetime?.find((l) => l.gameKey === gameKey) || null,
   };
 }
+
+// Depois de editar o próprio perfil (foto, título): joga fora o cache pra
+// próxima leitura buscar de novo.
+export function esquecerPerfil(id) {
+  cache.delete(id);
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, sair } from "./api.js";
 import Topo from "./Topo.jsx";
+import { irParaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
@@ -94,7 +95,7 @@ export default function Perfil({ usuario, userId }) {
                   {visto && <span>visto {visto}</span>}
                 </div>
                 <div className="v2-perfil-cla">
-                  {perfil.clan ? <a href={`/cla/${perfil.clan.id}`}>Clã {perfil.clan.name} [{perfil.clan.tag}]</a> : <span>Sem clã</span>}
+                  {perfil.clan ? <a href={`/v2/?pagina=cla&id=${perfil.clan.id}`} onClick={(e) => { e.preventDefault(); irParaPagina("cla", { id: perfil.clan.id }); }}>Clã {perfil.clan.name} [{perfil.clan.tag}]</a> : <span>Sem clã</span>}
                   {meuCla && (convite === "ok" ? <span className="ok">Convite enviado</span>
                     : <button className="v2-botao-pequeno" onClick={convidarCla} disabled={convite === "enviando"}>{convite === "enviando" ? "Enviando…" : `Convidar pro ${meuCla.name}`}</button>)}
                 </div>
@@ -102,16 +103,16 @@ export default function Perfil({ usuario, userId }) {
                 <div className="v2-perfil-acoes">
                   {souEu ? (
                     <div className="v2-perfil-meus-botoes">
-                      <a className="v2-botao v2-botao-amarelo" href="/perfil">Editar meu perfil</a>
+                      <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Editar meu perfil</a>
                       <a className="v2-botao v2-botao-contorno" href="/">Site clássico</a>
                       <button className="v2-botao v2-botao-contorno" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.replace("/v2/"); } }}>Sair</button>
                     </div>
                   ) : amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? (
                     <span className="v2-selo-ok">Pedido de amizade enviado</span>
                   ) : perfil.friendshipStatus === "friends" ? (
-                    <span className="v2-selo-ok">Vocês são amigos</span>
+                    <button className="v2-botao v2-botao-amarelo" onClick={() => irParaPagina("amigos", { id: userId })}>Mandar mensagem</button>
                   ) : perfil.friendshipStatus === "pending_received" ? (
-                    <a className="v2-link" href="/amigos">Te mandou um pedido — responder</a>
+                    <a className="v2-link" href="/v2/?pagina=amigos" onClick={(e) => { e.preventDefault(); irParaPagina("amigos"); }}>Te mandou um pedido — responder</a>
                   ) : (
                     <button className="v2-botao v2-botao-amarelo" onClick={addAmigo} disabled={amizade === "enviando"}>{amizade === "enviando" ? "Enviando…" : "+ Adicionar amigo"}</button>
                   )}
@@ -168,7 +169,7 @@ export default function Perfil({ usuario, userId }) {
                     {titulos.length > 12 && (
                       <button className="v2-botao-pequeno" onClick={() => setVerTodos((v) => !v)}>{verTodos ? "Mostrar menos" : `Ver todos (+${titulos.length - 12})`}</button>
                     )}
-                    <a className="v2-link v2-link-bloco" href={`/jogador/${userId}`}>Ver a jornada completa de títulos</a>
+                    {souEu ? <a className="v2-link v2-link-bloco" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Ver e escolher meus títulos</a> : <a className="v2-link v2-link-bloco" href={`/jogador/${userId}`}>Ver a jornada completa de títulos (site clássico)</a>}
                   </section>
                 )}
 

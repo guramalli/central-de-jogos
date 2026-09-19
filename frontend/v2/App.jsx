@@ -8,6 +8,13 @@ import Ranking from "./Ranking.jsx";
 import Missoes from "./Missoes.jsx";
 import Patentes from "./Patentes.jsx";
 import Perfil from "./Perfil.jsx";
+import Inicio from "./Inicio.jsx";
+import Amigos from "./Amigos.jsx";
+import Clas from "./Clas.jsx";
+import Cla from "./Cla.jsx";
+import HallFama from "./HallFama.jsx";
+import Novidades from "./Novidades.jsx";
+import EditarPerfil from "./EditarPerfil.jsx";
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
@@ -29,6 +36,8 @@ function navegar(params) {
 export const irPara = (sala) => navegar({ sala });
 export const irParaStop = (stop) => navegar({ stop });
 export const irParaAcro = (acro) => navegar({ acro });
+// Saindo de uma sala, volta pra escolha de salas (e não pro Início).
+export const voltarAoLobby = () => navegar({ pagina: "jogar" });
 export const irParaPagina = (pagina, extra = {}) => navegar({ pagina, ...extra });
 export const linkDaPagina = (pagina, extra = {}) => {
   const q = new URLSearchParams({ pagina, ...extra });
@@ -66,6 +75,13 @@ export default function App() {
     case "missoes": return <Missoes usuario={usuario} />;
     case "patentes": return <Patentes key={local.jogo || "q"} usuario={usuario} jogoInicial={local.jogo} />;
     case "jogador": return <Perfil key={local.id} usuario={usuario} userId={local.id || usuario.id} />;
-    default: return <Lobby usuario={usuario} />;
+    case "jogar": return <Lobby key={local.jogo || "l"} usuario={usuario} jogoInicial={local.jogo} />;
+    case "amigos": return <Amigos usuario={usuario} conversaInicial={local.id} />;
+    case "clas": return <Clas usuario={usuario} />;
+    case "cla": return <Cla key={local.id} usuario={usuario} claId={local.id} />;
+    case "hall": return <HallFama usuario={usuario} />;
+    case "novidades": return <Novidades usuario={usuario} />;
+    case "editar-perfil": return <EditarPerfil usuario={usuario} />;
+    default: return <Inicio usuario={usuario} />;
   }
 }

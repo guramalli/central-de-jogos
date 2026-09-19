@@ -34,7 +34,7 @@ export default function Ranking({ usuario, jogoInicial }) {
   const abrirJogador = (e, id) => { e.preventDefault(); irParaPagina("jogador", { id }); };
   const nome = (r) => (cla ? `[${r.tag}] ${r.name}` : r.nickname);
   const link = (r) => cla
-    ? <a href={`/cla/${r.id}`}>{nome(r)}</a>
+    ? <a href={`/v2/?pagina=cla&id=${r.id}`} onClick={(e) => { e.preventDefault(); irParaPagina("cla", { id: r.id }); }}>{nome(r)}</a>
     : <a href={linkDaPagina("jogador", { id: r.userId })} onClick={(e) => abrirJogador(e, r.userId)}>{nome(r)}</a>;
 
   return (
@@ -43,7 +43,7 @@ export default function Ranking({ usuario, jogoInicial }) {
       <main className="v2-pagina">
         <div className="v2-pagina-cabeca">
           <h1>Ranking</h1>
-          <a className="v2-link" href="/ranking/historico">Hall da Fama</a>
+          <a className="v2-link" href="/v2/?pagina=hall" onClick={(e) => { e.preventDefault(); irParaPagina("hall"); }}>Hall da Fama</a>
         </div>
 
         <div className="v2-jogos-abas" role="group" aria-label="Jogo">

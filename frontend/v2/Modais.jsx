@@ -98,3 +98,42 @@ export function ModalSugerir({ themeKey, aoFechar }) {
     </Modal>
   );
 }
+
+export function ModalFeedback({ aoFechar }) {
+  const [tipo, setTipo] = useState("ideia");
+  const [mensagem, setMensagem] = useState("");
+  const [estado, setEstado] = useState(null);
+
+  async function enviar(e) {
+    e.preventDefault();
+    setEstado("enviando");
+    try {
+      await api.post("/feedback", { type: tipo, message: mensagem });
+      setEstado({ ok: true, msg: "Recebido! Obrigado por ajudar a melhorar o site." });
+      setMensagem("");
+      setTimeout(aoFechar, 2200);
+    } catch (err) {
+      setEstado({ ok: false, msg: err.response?.data?.error || "Erro ao enviar. Tenta de novo?" });
+    }
+  }
+
+  return (
+    <Modal titulo="Enviar feedback" aoFechar={aoFechar}>
+      <form onSubmit={enviar} className="v2-modal-form">
+        {[["ideia", "Ideia de atualização"], ["bug", "Aviso de bug"], ["outro", "Outro"]].map(([k, r]) => (
+          <label key={k} className={`v2-opcao ${tipo === k ? "ativa" : ""}`}>
+            <input type="radio" name="tipo" value={k} checked={tipo === k} onChange={() => setTipo(k)} />
+            {r}
+          </label>
+        ))}
+        <label htmlFor="v2-fb-msg">Mensagem</label>
+        <textarea id="v2-fb-msg" rows={4} required maxLength={1000} value={mensagem} onChange={(e) => setMensagem(e.target.value)} placeholder="Conta pra gente…" />
+        {estado && estado !== "enviando" && <p className={estado.ok ? "v2-modal-ok" : "v2-modal-erro"}>{estado.msg}</p>}
+        <div className="v2-modal-acoes">
+          <button type="button" className="v2-botao v2-botao-contorno" onClick={aoFechar}>Fechar</button>
+          <button type="submit" className="v2-botao v2-botao-amarelo" disabled={estado === "enviando"}>Enviar</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
