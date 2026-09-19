@@ -246,16 +246,16 @@ function LobbyStop({ salas, privadas, jogando }) {
         <div className="v2-privadas-cabeca">
           <div>
             <h2>Salas dos jogadores</h2>
-            <p>Criadas pela galera, com a mesa validando as palavras. Não contam pro ranking — e por enquanto abrem no site clássico.</p>
+            <p>Criadas pela galera, com a mesa validando as palavras. Não contam pro ranking.</p>
           </div>
-          <a className="v2-botao v2-botao-amarelo" href="/jogos/stop/privada">+ Criar sala</a>
+          <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=privadas&jogo=stop" onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "stop" }); }}>+ Criar sala</a>
         </div>
         {privadas.length === 0 ? (
           <p className="v2-privadas-vazio">Nenhuma sala aberta agora.</p>
         ) : (
           <div className="v2-privadas-lista">
             {privadas.map((p) => (
-              <a key={p.roomId} className="v2-privada" href={`/jogos/stop/privada?sala=${p.roomId}`}>
+              <a key={p.roomId} className="v2-privada" href={`/v2/?pagina=privadas&jogo=stop&privada=${p.roomId}`} onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "stop", privada: p.roomId }); }}>
                 <div className="v2-privada-topo">
                   <b>{p.temSenha ? "🔒 " : ""}{p.nome}</b>
                   <span>{p.jogadores === 0 ? "esperando" : `${p.jogadores}/${p.maxPlayers}`}</span>
@@ -316,14 +316,14 @@ function LobbyAcro({ dados, privadas, jogando }) {
         <div className="v2-privadas-cabeca">
           <div>
             <h2>Salas dos jogadores</h2>
-            <p>Com tempos e número de rodadas escolhidos por quem abriu. Não contam pro ranking — e por enquanto abrem no site clássico.</p>
+            <p>Com tempos e número de rodadas escolhidos por quem abriu. Não contam pro ranking.</p>
           </div>
-          <a className="v2-botao v2-botao-amarelo" href="/jogos/acromania/privada">+ Criar sala</a>
+          <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=privadas&jogo=acromania" onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "acromania" }); }}>+ Criar sala</a>
         </div>
         {privadas.length === 0 ? <p className="v2-privadas-vazio">Nenhuma sala aberta agora.</p> : (
           <div className="v2-privadas-lista">
             {privadas.map((p) => (
-              <a key={p.roomId} className="v2-privada" href={`/jogos/acromania/privada?sala=${p.roomId}`}>
+              <a key={p.roomId} className="v2-privada" href={`/v2/?pagina=privadas&jogo=acromania&privada=${p.roomId}`} onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "acromania", privada: p.roomId }); }}>
                 <div className="v2-privada-topo">
                   <b>{p.temSenha ? "🔒 " : ""}{p.nome}</b>
                   <span>{p.jogadores === 0 ? "esperando" : `${p.jogadores}/${p.maxPlayers}`}</span>

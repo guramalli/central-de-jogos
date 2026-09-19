@@ -1510,3 +1510,58 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
   .v2-sala.compacto .v2-stop-campo span { font-size: 14px; }
   .v2-sala.compacto .v2-stop-campo input { height: 40px; font-size: 15px; }
 }
+
+/* ---------- Salas privadas: criar e entrar ---------- */
+.v2-privadas-logo { height: 46px; width: auto; }
+.v2-bloco-centro { margin: 12px auto 0; display: flex; min-height: 46px; font-size: 16px; }
+.v2-privada-botao { border: none; color: #fff; text-align: left; font: inherit; cursor: pointer; }
+.v2-privada-temas { font-size: 12px; font-weight: 800; color: var(--lilas-2); }
+.v2-opcoes-grandes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.v2-opcoes-grandes button { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left; padding: 14px 16px; border: 3px solid transparent; border-radius: 18px; background: var(--roxo); color: #fff; min-height: 76px; }
+.v2-opcoes-grandes button b { font-family: var(--titulo); font-size: 18px; }
+.v2-opcoes-grandes button span { font-size: 13px; font-weight: 700; color: var(--lilas); }
+.v2-opcoes-grandes button.ativa { border-color: var(--amarelo); background: #4e389c; }
+.v2-temas-opcoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-tema-opcao { min-height: 42px; padding: 0 16px; border: 2px solid var(--borda); border-radius: 999px; background: transparent; color: #fff; font-weight: 900; font-size: 15px; }
+.v2-tema-opcao.zoeira { border-color: #c3a6ff; }
+.v2-tema-opcao.ativa { background: var(--amarelo); border-color: var(--amarelo); color: var(--roxo); }
+.v2-deslizante { display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: 15px; }
+.v2-deslizante b { color: var(--amarelo); }
+.v2-deslizante em { font-style: normal; font-size: 13px; color: var(--lilas); }
+.v2-deslizante input[type=range] { width: 100%; accent-color: var(--amarelo); height: 28px; }
+.v2-botao-largo { width: 100%; min-height: 58px; font-size: 20px; }
+.v2-botao-largo:disabled { opacity: .5; }
+@media (max-width: 599px) { .v2-opcoes-grandes { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Stop privado: sala de espera e votação ---------- */
+.v2-espera { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 8px 0; }
+.v2-espera-titulo { font-family: var(--titulo); font-size: 22px; }
+.v2-espera-lista { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.v2-espera-jogador { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #ede3d0; font-weight: 900; font-size: 14px; }
+.v2-espera-jogador i { width: 9px; height: 9px; border-radius: 50%; background: #c9bfae; }
+.v2-espera-jogador i.on { background: var(--verde); }
+.v2-espera-jogador.vazio { color: #8a7fa8; font-weight: 700; }
+.v2-espera .v2-botao { min-height: 50px; font-size: 18px; }
+.v2-espera .v2-botao:disabled { opacity: .55; }
+.v2-votacao { display: flex; flex-direction: column; gap: 10px; }
+.v2-votacao-trilha { display: flex; gap: 5px; flex-wrap: wrap; }
+.v2-votacao-trilha span { width: 28px; height: 28px; border-radius: 9px; background: #ede3d0; color: #8a7fa8; font-weight: 900; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+.v2-votacao-trilha span.atual { background: var(--roxo); color: #fff; }
+.v2-votacao-trilha span.feito { background: var(--verde); color: #13322a; }
+.v2-votacao-tema { font-family: var(--titulo); font-weight: 700; font-size: 24px; }
+.v2-votacao-todas { align-self: flex-start; }
+.v2-votacao-lista { display: flex; flex-direction: column; gap: 6px; }
+.v2-votacao-linha { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; border-radius: 14px; background: #fff; box-shadow: inset 0 -3px 0 #ede3d0; animation: v2-entra .25s ease-out both; }
+.v2-votacao-linha.sim { background: #c8f5e6; }
+.v2-votacao-linha.nao { background: #ffe1de; }
+.v2-votacao-linha.top { background: #fff1b8; }
+.v2-votacao-palavra { flex: 1; min-width: 0; font-weight: 900; font-size: 17px; overflow-wrap: anywhere; }
+.v2-votacao-botoes { display: flex; gap: 6px; }
+.v2-votacao-botoes button { width: 44px; height: 44px; border: none; border-radius: 12px; font-size: 20px; font-weight: 900; color: #fff; }
+.v2-votacao-botoes button.sim { background: var(--verde); color: #13322a; }
+.v2-votacao-botoes button.nao { background: var(--vermelho); }
+.v2-votacao-botoes button.top { background: var(--amarelo); color: var(--roxo); }
+.v2-votacao-botoes button:disabled { opacity: .35; }
+.v2-votacao-rodape { font-size: 13px; font-weight: 800; color: #5a4a8a; }
+.v2-votacao-rodape.pronto { color: #049a74; }
+.v2-nota-creme { margin: 0; font-size: 13px; font-weight: 800; color: #5a4a8a; }

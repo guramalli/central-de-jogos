@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
-import { voltarAoLobby } from "./App.jsx";
+import { voltarAoLobby, irParaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import { somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
@@ -34,6 +34,11 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
 
   const [socket, setSocket] = useState(null);
   const [negado, setNegado] = useState(null);
+  // Salas privadas: sala de espera (dono começa) e votação da mesa.
+  const [espera, setEspera] = useState(null);
+  const [temaVotacao, setTemaVotacao] = useState(null);
+  const [progressoVoto, setProgressoVoto] = useState(null);
+  const votacaoPendenteRef = useRef(null);
   const [nomeSala, setNomeSala] = useState("");
   const [minCertas, setMinCertas] = useState(0);
   const [pronto, setPronto] = useState(false);
@@ -115,6 +120,10 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
       aguardandoRef.current = false;
       setEnviando(false);
       resultadoPendenteRef.current = null;
+      votacaoPendenteRef.current = null;
+      setEspera(null);
+      setTemaVotacao(null);
+      setProgressoVoto(null);
       clearTimeout(atrasoRef.current);
       alguemPediuRef.current = false;
       setPorTempo(false);
@@ -136,6 +145,10 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
         if (resultadoPendenteRef.current) {
           aplicarResultado(resultadoPendenteRef.current);
           resultadoPendenteRef.current = null;
+        }
+        if (votacaoPendenteRef.current) {
+          votacaoPendenteRef.current();
+          votacaoPendenteRef.current = null;
         }
       }, 5000);
     });
@@ -161,9 +174,25 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
       setBonusBloco(lista);
       if (lista.some((b) => b.userId === usuario.id)) somAcerto();
     });
-    // Salas privadas usam votação da mesa — ainda não existem na v2.
-    s.on("sala-aguardando", () => setFase("aguardando"));
-    s.on("voting-tema", () => setFase("voting"));
+    // SALAS PRIVADAS.
+    // Entrou pelo link sem passar pela senha: o servidor recusa.
+    s.on("stop-sala-bloqueada", (d) => setNegado({ bloqueada: true, mensagem: d?.error }));
+    // Esperando gente: o dono da sala é quem começa.
+    s.on("sala-aguardando", (d) => { setEspera(d); setFase("aguardando"); });
+    s.on("voting-progress", (d) => setProgressoVoto(d));
+    // Votação da mesa, tema por tema. Se chegar durante o atraso do STOP,
+    // espera ele acabar (mesma regra do resultado).
+    s.on("voting-tema", (d) => {
+      const abrir = () => {
+        setFase("voting");
+        setTemaVotacao(d);
+        setTempo(d.seconds);
+        setQuemPediu(null);
+        setProgressoVoto(null);
+      };
+      if (aguardandoRef.current) votacaoPendenteRef.current = abrir;
+      else abrir();
+    });
     s.on("players-online", (d) => setJogadores(d.players || []));
     s.on("chat-message", (m) => addMsg(m));
     s.on("chat-message-deleted", ({ id }) => setMsgs((prev) => prev.filter((m) => m.id !== id)));
@@ -281,9 +310,8 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const eu = jogadores.find((j) => j.userId === usuario.id);
   const semPontos = !!eu?.semPontuacao;
   const preenchidas = temas.filter((t) => (respostas[t.key] || "").trim()).length;
-  const fracao = fase === "active"
-    ? (segResposta > 0 ? Math.max(0, Math.min(1, tempo / segResposta)) : 0)
-    : (segIntervalo > 0 ? Math.max(0, Math.min(1, tempo / segIntervalo)) : 0);
+  const totalAnel = fase === "active" ? segResposta : fase === "voting" && temaVotacao?.seconds ? temaVotacao.seconds : segIntervalo;
+  const fracao = totalAnel > 0 ? Math.max(0, Math.min(1, tempo / totalAnel)) : 0;
   const urgente = ativa && tempo <= 10;
   const podePular = fase !== "active" && !enviando && pular.needed >= pular.minPlayers;
   const meuNick = usuario.nickname.toLowerCase();
@@ -293,12 +321,18 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
       <div className="v2-app v2-centro">
         <div className="v2-cartao-entrar">
           <div className="v2-logo-grande">{negado.full ? "Sala lotada!" : "Sala trancada"}</div>
-          {negado.full ? (
+          {negado.bloqueada ? (
+            <p>{negado.mensagem || "Essa sala pede senha — entre pela lista de salas dos jogadores."}</p>
+          ) : negado.full ? (
             <p>A <b>{negado.roomLabel}</b> está com o máximo de {negado.maxPlayers} jogadores. Tenta de novo daqui a pouco!</p>
           ) : (
             <p>A <b>{negado.roomLabel}</b> exige {Number(negado.required || 0).toLocaleString("pt-BR")} pontos vitalícios no Stop. Você tem {Number(negado.current || 0).toLocaleString("pt-BR")} — continue jogando nas salas abertas pra liberar.</p>
           )}
-          <button className="v2-botao v2-botao-amarelo" onClick={() => sairDaSala()}>{aoFechar ? "Fechar esta sala" : "Voltar ao lobby"}</button>
+          {negado.bloqueada && !aoFechar ? (
+            <button className="v2-botao v2-botao-amarelo" onClick={() => irParaPagina("privadas", { jogo: "stop", privada: roomId })}>Entrar com a senha</button>
+          ) : (
+            <button className="v2-botao v2-botao-amarelo" onClick={() => sairDaSala()}>{aoFechar ? "Fechar esta sala" : "Voltar ao lobby"}</button>
+          )}
         </div>
       </div>
     );
@@ -387,11 +421,14 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                   {enviando ? "Enviando palavras…"
                     : fase === "active" ? "Preencha as lacunas!"
                     : resultado ? `Resultado da rodada ${resultado.roundInBlock ?? resultado.roundNumber} de 10`
-                    : fase === "voting" || fase === "aguardando" ? "Esta sala usa a votação da mesa — jogue pelo site clássico."
+                    : fase === "aguardando" ? "Esperando a galera"
+                    : fase === "voting" ? "Vale ou não vale?"
                     : "Sorteando a próxima letra…"}
                 </b>
                 <span>
                   {fase === "active" && !enviando ? `${preenchidas} de ${temas.length} preenchidas${minCertas > 0 ? ` · mínimo de ${minCertas} certas pra pedir STOP` : ""}`
+                    : fase === "voting" && temaVotacao ? `Tema ${temaVotacao.indice + 1} de ${temaVotacao.total}${progressoVoto ? ` · ${progressoVoto.prontos}/${progressoVoto.total} votaram` : ""}`
+                    : fase === "aguardando" ? "Quem criou a sala começa a partida"
                     : fase !== "active" && !enviando ? "Próxima rodada logo mais" : ""}
                 </span>
               </div>
@@ -401,7 +438,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                   <circle cx="36" cy="36" r={RAIO} className="v2-relogio-arco" strokeDasharray={VOLTA} strokeDashoffset={VOLTA * (1 - fracao)} />
                 </svg>
                 <span>{tempo > 0 ? tempo : "…"}</span>
-                {fase !== "active" && <small>próxima</small>}
+                {fase !== "active" && fase !== "voting" && fase !== "aguardando" && <small>próxima</small>}
               </div>
             </div>
 
@@ -449,15 +486,21 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
               </div>
             )}
 
-            {fase !== "active" && resultado && <Resultado resultado={resultado} meuId={usuario.id} semPontos={semPontos} />}
-            {fase !== "active" && !resultado && (
+            {fase === "aguardando" && espera && (
+              <SalaEspera estado={espera} souDono={espera.donoId === usuario.id} aoIniciar={() => socketRef.current?.emit("iniciar-partida")} />
+            )}
+            {fase === "voting" && temaVotacao && (
+              <Votacao tema={temaVotacao} meuId={usuario.id} aoVotar={(alvo, chave, valido) => socketRef.current?.emit("vote-word", { targetUserId: alvo, themeKey: chave, valido })} />
+            )}
+            {fase !== "active" && fase !== "voting" && fase !== "aguardando" && resultado && <Resultado resultado={resultado} meuId={usuario.id} semPontos={semPontos} />}
+            {fase !== "active" && fase !== "voting" && fase !== "aguardando" && !resultado && (
               <div className="v2-stop-espera">
                 <b>Fique pronto!</b>
                 <span>Quando a letra aparecer, os 6 temas abrem aqui.</span>
               </div>
             )}
 
-            {fase !== "active" && !enviando && (
+            {fase !== "active" && fase !== "voting" && fase !== "aguardando" && !enviando && (
               <div className="v2-stop-pular">
                 <button className="v2-botao-pequeno" onClick={votarPular} disabled={!podePular || voteiPular} title={!podePular ? `Precisa de ${pular.minPlayers}+ jogadores na sala` : "Vote pra pular a espera"}>
                   {voteiPular ? "Voto registrado" : "Pular espera"}{podePular ? ` (${pular.votes}/${pular.needed})` : ""}
@@ -606,6 +649,79 @@ function Confete() {
       {Array.from({ length: 24 }).map((_, i) => (
         <i key={i} style={{ left: `${(i * 41) % 100}%`, background: CORES_CONFETE[i % CORES_CONFETE.length], animationDelay: `${((i * 0.13) % 1.2).toFixed(2)}s`, width: i % 3 ? 9 : 14, height: i % 3 ? 16 : 8, borderRadius: i % 4 ? 3 : "50%" }} />
       ))}
+    </div>
+  );
+}
+
+// Sala privada esperando gente. Só o dono vê o botão de começar.
+function SalaEspera({ estado, souDono, aoIniciar }) {
+  const { jogadores = [], minimoParaComecar = 2, podeComecar } = estado || {};
+  const faltam = Math.max(0, minimoParaComecar - jogadores.length);
+  return (
+    <div className="v2-espera">
+      <b className="v2-espera-titulo">{faltam > 0 ? `Falta ${faltam} ${faltam === 1 ? "jogador" : "jogadores"} pra poder começar` : "Já dá pra começar!"}</b>
+      <div className="v2-espera-lista">
+        {jogadores.map((j) => <span key={j.userId} className="v2-espera-jogador"><i className="on" />{j.nickname}</span>)}
+        {Array.from({ length: faltam }).map((_, i) => <span key={`v${i}`} className="v2-espera-jogador vazio"><i />aguardando…</span>)}
+      </div>
+      {souDono ? (
+        <>
+          <button className="v2-botao v2-botao-amarelo" onClick={aoIniciar} disabled={!podeComecar}>{podeComecar ? "Começar a partida" : `Aguardando mais ${faltam}…`}</button>
+          <p className="v2-nota-creme">Chame a galera pelo botão Convidar — a sala também aparece na lista de salas dos jogadores.</p>
+        </>
+      ) : (
+        <p className="v2-nota-creme">Quem criou a sala é que começa a partida. Segura aí!</p>
+      )}
+    </div>
+  );
+}
+
+// VOTAÇÃO DA MESA: tema por tema, cada um julga as palavras dos OUTROS.
+// Palavra sem voto até o tempo acabar é aceita. "Muito boa" vale e dá +5.
+function Votacao({ tema, meuId, aoVotar }) {
+  const [votos, setVotos] = useState({});
+  useEffect(() => { setVotos({}); }, [tema?.indice]);
+  const dosOutros = (tema.itens || []).filter((i) => i.userId !== meuId);
+  const minhas = (tema.itens || []).filter((i) => i.userId === meuId);
+  const chave = (i) => `${i.userId}:${i.themeKey}`;
+  function votar(item, valido) {
+    if (votos[chave(item)] !== undefined) return;
+    setVotos((v) => ({ ...v, [chave(item)]: valido }));
+    aoVotar(item.userId, item.themeKey, valido);
+  }
+  const faltam = dosOutros.filter((i) => votos[chave(i)] === undefined).length;
+  return (
+    <div className="v2-votacao">
+      <div className="v2-votacao-trilha" aria-hidden="true">
+        {Array.from({ length: tema.total }).map((_, i) => (
+          <span key={i} className={i === tema.indice ? "atual" : i < tema.indice ? "feito" : ""}>{i < tema.indice ? "✓" : i + 1}</span>
+        ))}
+      </div>
+      <div className="v2-votacao-tema">{tema.themeName}</div>
+      {dosOutros.length === 0 ? <p className="v2-nota-creme">Ninguém mais escreveu nesse tema.</p> : (
+        <>
+          {dosOutros.length > 1 && faltam > 0 && (
+            <button className="v2-botao-pequeno ok v2-votacao-todas" onClick={() => dosOutros.forEach((i) => votos[chave(i)] === undefined && votar(i, true))}>Aceitar todas deste tema</button>
+          )}
+          <div className="v2-votacao-lista">
+            {dosOutros.map((item) => {
+              const v = votos[chave(item)];
+              return (
+                <div key={chave(item)} className={`v2-votacao-linha ${v === true ? "sim" : v === false ? "nao" : v === "top" ? "top" : ""}`}>
+                  <span className="v2-votacao-palavra">{item.word}</span>
+                  <div className="v2-votacao-botoes">
+                    <button className="sim" onClick={() => votar(item, true)} disabled={v !== undefined} aria-label={`${item.word}: vale`} title="Vale">✓</button>
+                    <button className="nao" onClick={() => votar(item, false)} disabled={v !== undefined} aria-label={`${item.word}: não vale`} title="Não vale">✕</button>
+                    <button className="top" onClick={() => votar(item, "top")} disabled={v !== undefined} aria-label={`${item.word}: muito boa`} title="Muito boa! Vale e ainda ganha bônus">★</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {minhas.length > 0 && <div className="v2-nota-creme">Sua palavra: <b>{minhas.map((m) => m.word).join(", ")}</b></div>}
+      <div className={`v2-votacao-rodape ${faltam === 0 ? "pronto" : ""}`}>{faltam === 0 ? "Pronto! Esperando os outros…" : <>Palavra sem voto até o tempo acabar é <b>aceita</b>.</>}</div>
     </div>
   );
 }

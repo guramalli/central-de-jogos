@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { irPara, irParaStop, irParaAcro } from "./App.jsx";
+import { irPara, irParaStop, irParaAcro, irParaPagina } from "./App.jsx";
 
 // BOTÃO "CONVIDAR": copiar/compartilhar o link da sala + chamar um amigo
 // que já está no site (evento convidar-para-sala, mesmo do clássico — sai
@@ -10,7 +10,10 @@ export function BotaoConvidar({ socket, roomId, nomeSala, jogo = "quiz" }) {
   const [amigos, setAmigos] = useState(null);
   const [aviso, setAviso] = useState(null);
   const caixaRef = useRef(null);
-  const link = `${window.location.origin}/v2/?${jogo === "stop" ? "stop" : jogo === "acromania" ? "acro" : "sala"}=${roomId}`;
+  const privada = /-privada-/.test(String(roomId));
+  const link = privada
+    ? `${window.location.origin}/v2/?pagina=privadas&jogo=${jogo}&privada=${roomId}`
+    : `${window.location.origin}/v2/?${jogo === "stop" ? "stop" : jogo === "acromania" ? "acro" : "sala"}=${roomId}`;
 
   useEffect(() => {
     if (!aberto) return;
@@ -68,8 +71,8 @@ export function BotaoConvidar({ socket, roomId, nomeSala, jogo = "quiz" }) {
 }
 
 // AVISO DE CONVITE RECEBIDO. Chega em qualquer conexão da pessoa (sala
-// pessoal user:<id>). Salas oficiais abrem na v2; as privadas (Stop e
-// Acromania), que ainda não existem aqui, abrem no clássico.
+// pessoal user:<id>). Sala privada passa pela página de salas privadas
+// (é ali que a senha é conferida e a entrada liberada).
 export function ConviteRecebido({ socket }) {
   const [convite, setConvite] = useState(null);
   useEffect(() => {
@@ -90,9 +93,9 @@ export function ConviteRecebido({ socket }) {
     // Salas privadas do Stop (votação da mesa) ainda não existem na v2.
     if (convite.jogo === "quiz") irPara(convite.sala);
     else if (convite.jogo === "stop" && !String(convite.sala).startsWith("stop-privada-")) irParaStop(convite.sala);
-    else if (convite.jogo === "stop") window.location.href = `/jogos/stop/privada?sala=${convite.sala}`;
+    else if (convite.jogo === "stop") irParaPagina("privadas", { jogo: "stop", privada: convite.sala });
     else if (convite.jogo === "acromania" && !String(convite.sala).startsWith("acromania-privada-")) irParaAcro(convite.sala);
-    else window.location.href = `/jogos/acromania/privada?sala=${convite.sala}`;
+    else irParaPagina("privadas", { jogo: "acromania", privada: convite.sala });
   };
 
   return (

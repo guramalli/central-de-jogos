@@ -17,13 +17,14 @@ import Novidades from "./Novidades.jsx";
 import EditarPerfil from "./EditarPerfil.jsx";
 import Admin from "./Admin.jsx";
 import MultiSala from "./MultiSala.jsx";
+import SalasPrivadas from "./SalasPrivadas.jsx";
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
 // site clássico por engano.
 function lerLocal() {
   const p = new URLSearchParams(window.location.search);
-  return { sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
+  return { salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
 
 function navegar(params) {
@@ -85,6 +86,7 @@ export default function App() {
     case "novidades": return <Novidades usuario={usuario} />;
     case "editar-perfil": return <EditarPerfil usuario={usuario} />;
     case "admin": return <Admin usuario={usuario} />;
+    case "privadas": return <SalasPrivadas key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "acromania" ? "acromania" : "stop"} salaDoLink={local.salaPrivada} />;
     case "varias": return <MultiSala key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "quiz" ? "quiz" : "stop"} />;
     default: return <Inicio usuario={usuario} />;
   }
