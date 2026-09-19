@@ -6,6 +6,7 @@ import { ativarSons, somPergunta, somAcerto, somTique, estaMudo, alternarMudo } 
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
+import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
 
@@ -58,7 +59,7 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
   const [cheia, setCheia] = useState(false);
   const [erroServidor, setErroServidor] = useState("");
   const [mudo, setMudo] = useState(estaMudo());
-  const [aba, setAba] = useState("chat"); // celular: chat | placar
+  const [aba, setAba] = useState("chat"); // celular: chat | placar | jogadores
 
   const addMsg = (m) => setMsgs((prev) => [...prev, { ...m, _k: Math.random() }].slice(-120));
   const podeModerar = usuario.role === "ADMIN" || usuario.role === "MODERATOR";
@@ -510,6 +511,7 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
           <div className="v2-abas-celular" role="tablist">
             <button role="tab" aria-selected={aba === "chat"} className={aba === "chat" ? "ativa" : ""} onClick={() => setAba("chat")}>Chat</button>
             <button role="tab" aria-selected={aba === "legenda"} className={aba === "legenda" ? "ativa" : ""} onClick={() => setAba("legenda")}>Placar</button>
+            <button role="tab" aria-selected={aba === "jogadores"} className={aba === "jogadores" ? "ativa" : ""} onClick={() => setAba("jogadores")}>Jogadores <span className="v2-aba-contador">{jogadores.length}</span></button>
           </div>
           <div className="v2-bloco-titulo">Chat</div>
           <div className="v2-chat-lista" ref={chatListaRef}>
@@ -523,7 +525,7 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
                   {!m.system && " "}
                   <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
                   {podeModerar && !m.system && m.id && (
-                    <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => socketRef.current?.emit("delete-chat-message", { escopo: "acromania", id: m.id })}>
+                    <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => { if (window.confirm(`Apagar a mensagem de ${m.nickname}?`)) socketRef.current?.emit("delete-chat-message", { escopo: "acromania", id: m.id }); }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                     </button>
                   )}
@@ -532,6 +534,7 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
             })}
           </div>
           <div className="v2-chat-legenda-celular">{blocoPlacar}</div>
+          <div className="v2-lista-jogadores-celular"><ListaJogadores jogadores={jogadores} meuId={usuario.id} pontos={(j) => j.roomMonthlyPoints} /></div>
           <CampoChat id={`${uid}-chat`} aoEnviar={enviarChat} participantes={jogadores.filter((j) => !j.ehBot).map((j) => j.nickname)} meuNick={usuario.nickname} />
         </aside>
       </div>

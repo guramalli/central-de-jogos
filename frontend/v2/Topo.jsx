@@ -21,7 +21,9 @@ const ITENS = [
   { chave: "clas", rotulo: "Clã", aviso: "cla" },
   { chave: "amigos", rotulo: "Amigos", aviso: "amigos" },
 ];
-const NO_CELULAR = ["inicio", "stop", "quiz", "amigos"];
+// Barra de baixo do celular: Lobby e os três jogos. Amigos (e o resto) ficam
+// no "Mais" — e a bolinha de avisos de Amigos aparece no próprio "Mais".
+const NO_CELULAR = ["inicio", "stop", "quiz", "acromania"];
 
 const hrefDe = (it) =>
   it.chave === "inicio" ? "/v2/" : it.jogo ? linkDaPagina("jogar", { jogo: it.jogo }) : linkDaPagina(it.chave);
@@ -113,7 +115,10 @@ export default function Topo({ usuario, ativo = null }) {
           </a>
         ))}
         <button className={maisAberto ? "ativo" : ""} onClick={() => setMaisAberto((v) => !v)} aria-expanded={maisAberto}>
-          <span className="v2-menu-icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg></span>
+          <span className="v2-menu-icone">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg>
+            {(() => { const n = itens.filter((it) => !NO_CELULAR.includes(it.chave)).reduce((t, it) => t + contador(it), 0); return n > 0 ? <span className="v2-bolinha-contador">{n}</span> : null; })()}
+          </span>
           Mais
         </button>
       </nav>
@@ -193,6 +198,7 @@ function IconeMenu({ nome }) {
   const p = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round", strokeLinejoin: "round" };
   if (nome === "stop") return <svg {...p}><path d="M7 11V6a2 2 0 014 0v5M11 10V4a2 2 0 014 0v6M15 10V6a2 2 0 014 0v8a7 7 0 01-7 7h-1a7 7 0 01-6-3.5L3 13a2 2 0 013.3-2.2L7 12" /></svg>;
   if (nome === "quiz") return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5M12 17h.01" /></svg>;
+  if (nome === "acromania") return <svg {...p}><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" /></svg>;
   if (nome === "inicio") return <svg {...p}><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" /></svg>;
   if (nome === "ranking") return <svg {...p}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM17 6h3v2a3 3 0 01-3 3M7 6H4v2a3 3 0 003 3" /></svg>;
   if (nome === "missoes") return <svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" /></svg>;

@@ -31,6 +31,10 @@ export default function Admin({ usuario }) {
   const [erro, setErro] = useState("");
 
   const [pendentesStop, setPendentesStop] = useState([]);
+  // Ordem dos temas CONGELADA a cada carga do servidor (igual ao clássico):
+  // aprovar/rejeitar não reordena os grupos — senão o grupo que encolhe
+  // muda de lugar e o próximo clique cai na palavra errada.
+  const [ordemTemasStop, setOrdemTemasStop] = useState([]);
   const [pendentesQuiz, setPendentesQuiz] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [plataformas, setPlataformas] = useState(null);
@@ -43,7 +47,13 @@ export default function Admin({ usuario }) {
   const falha = (e, padrao) => setErro(e?.response?.data?.error || padrao);
 
   const carregar = {
-    stop: () => api.get("/admin/glossary/pending").then(({ data }) => setPendentesStop(data || [])).catch((e) => falha(e, "Erro ao carregar pendências.")),
+    stop: () => api.get("/admin/glossary/pending").then(({ data }) => {
+      const lista = data || [];
+      const contagem = {};
+      for (const p of lista) contagem[p.theme.name] = (contagem[p.theme.name] || 0) + 1;
+      setOrdemTemasStop(Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a] || a.localeCompare(b, "pt-BR")));
+      setPendentesStop(lista);
+    }).catch((e) => falha(e, "Erro ao carregar pendências.")),
     quiz: () => api.get("/admin/quiz-questions/pending").then(({ data }) => setPendentesQuiz(data || [])).catch((e) => falha(e, "Erro ao carregar pendências do quiz.")),
     usuarios: () => { if (!ehAdmin) return; api.get("/admin/users").then(({ data }) => setUsuarios(data || [])).catch(() => {}); api.get("/admin/plataformas").then(({ data }) => setPlataformas(data)).catch(() => {}); },
     feedbacks: () => api.get("/admin/feedback").then(({ data }) => setFeedbacks(data || [])).catch(() => {}),
@@ -109,7 +119,7 @@ export default function Admin({ usuario }) {
         )}
         {aba === "stop" && (
           <>
-            <PendentesStop lista={pendentesStop} setLista={setPendentesStop} recarregar={carregar.stop} />
+            <PendentesStop lista={pendentesStop} ordem={ordemTemasStop} setLista={setPendentesStop} recarregar={carregar.stop} />
             <GlossarioStop />
             {ehAdmin && <Suspeitos lista={suspeitos} recarregar={carregar.suspeitos} recarregarUsuarios={carregar.usuarios} falha={falha} />}
           </>
@@ -342,16 +352,15 @@ function PendentesQuiz({ lista, recarregar, temas }) {
   );
 }
 
-function PendentesStop({ lista, setLista, recarregar }) {
+function PendentesStop({ lista, ordem = [], setLista, recarregar }) {
   // Agrupado por tema (mais pendências primeiro), letra e palavra dentro —
   // julgar dez frutas seguidas é mais rápido que pular de tema a cada linha.
   const grupos = useMemo(() => {
     const por = {};
     for (const p of lista) (por[p.theme.name] ||= []).push(p);
-    return Object.entries(por)
-      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "pt-BR"))
-      .map(([tema, itens]) => [tema, [...itens].sort((a, b) => a.letter.localeCompare(b.letter) || a.word.localeCompare(b.word, "pt-BR"))]);
-  }, [lista]);
+    const temas = [...ordem.filter((t) => por[t]), ...Object.keys(por).filter((t) => !ordem.includes(t))];
+    return temas.map((tema) => [tema, [...por[tema]].sort((a, b) => a.letter.localeCompare(b.letter) || a.word.localeCompare(b.word, "pt-BR"))]);
+  }, [lista, ordem]);
   const acao = async (id, tipo) => {
     setLista((l) => l.filter((p) => p.id !== id)); // sai da lista na hora
     try { await api.post(`/admin/glossary/${id}/${tipo}`); } catch { recarregar(); }

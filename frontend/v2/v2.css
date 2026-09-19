@@ -1721,3 +1721,42 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 }
 .v2-aba-contador { display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--roxo-fundo); font-size: 11px; align-items: center; justify-content: center; }
 .v2-tag-bot { font-style: normal; font-size: 10px; font-weight: 900; text-transform: uppercase; background: var(--roxo-2); color: var(--lilas); padding: 1px 6px; border-radius: 999px; margin-left: 6px; }
+
+/* Apagar mensagem (admin/moderador): "×" SEMPRE visível ao lado da
+   mensagem, como no clássico. Antes só aparecia no hover — que não existe
+   no celular — e ficava fora do balão, cortado pela rolagem do chat. */
+/* O seletor com :hover tem o mesmo peso da regra antiga de hover (que
+   virava "display: flex" e fazia o botão PULAR de linha bem na hora do
+   toque — o clique começava na lista e terminava no botão, e não valia). */
+.v2-msg .v2-msg-apagar, .v2-msg:hover .v2-msg-apagar { position: static; display: inline-flex; top: auto; right: auto; width: 22px; height: 22px; margin-left: 6px; vertical-align: middle; flex-shrink: 0; background: rgba(255, 90, 77, .18); color: #ff8a80; opacity: .85; }
+.v2-msg .v2-msg-apagar:hover { background: var(--vermelho); color: #fff; opacity: 1; }
+
+/* Hall da Fama — "Quem mais venceu" e "Recordes" em largura total (um
+   embaixo do outro). Lado a lado, cada cartão ficava com meia largura e as
+   3 colunas de jogos dentro dele cortavam os nomes ("Wi…", "Gu…"). */
+.v2-hall-grade { grid-template-columns: minmax(0, 1fr) !important; }
+.v2-hall-jogos { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important; gap: 12px 20px; }
+.v2-hall-jogos > div { background: var(--roxo); border-radius: 16px; padding: 10px 14px; }
+.v2-hall-linha { gap: 8px; }
+.v2-hall-linha > span { min-width: 26px; }
+.v2-hall-linha > a { font-size: 15px; }
+
+/* ---------- Celular: aba "Jogadores" no Quiz e no Acromania ----------
+   A lista fica dentro do bloco do chat e só aparece na aba dela; a fileira
+   de fichinhas do topo some no celular (igual ao Stop) — fora do
+   multi-sala, que continua com as fichinhas. */
+.v2-lista-jogadores-celular { display: none; }
+@media (max-width: 999px) {
+  .v2-sala:not(.compacto) .v2-placar { display: none; }
+  .v2-sala.aba-jogadores .v2-chat-lista,
+  .v2-sala.aba-jogadores .v2-chat-form,
+  .v2-sala.aba-jogadores .v2-chat-legenda-celular { display: none; }
+  .v2-sala.aba-jogadores .v2-lista-jogadores-celular { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .v2-sala.aba-jogadores .v2-lista-jogadores-celular .v2-lista-celular { flex: 1; max-height: none; }
+  .v2-sala-acro.aba-jogadores .v2-lista-jogadores-celular .v2-lista-celular { max-height: 290px; }
+  .v2-abas-celular button { font-size: 14px; padding: 0 6px; }
+}
+@media (max-width: 999px) {
+  .v2-abas-celular button { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 13px; min-width: 0; }
+  .v2-abas-celular .v2-aba-contador { margin-left: 0; min-width: 18px; height: 18px; font-size: 10px; }
+}

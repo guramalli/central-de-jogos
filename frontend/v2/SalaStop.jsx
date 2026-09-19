@@ -6,6 +6,7 @@ import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, altern
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
+import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
 
@@ -581,7 +582,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                   {!m.system && " "}
                   <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
                   {podeModerar && !m.system && m.id && (
-                    <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => socketRef.current?.emit("delete-chat-message", { escopo: "stop", id: m.id })}>
+                    <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => { if (window.confirm(`Apagar a mensagem de ${m.nickname}?`)) socketRef.current?.emit("delete-chat-message", { escopo: "stop", id: m.id }); }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                     </button>
                   )}
@@ -592,20 +593,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
           {/* Celular: no lugar da legenda de pontos, a lista de quem está na
               sala (a fileira de fichinhas do topo some no celular). */}
           <div className="v2-chat-legenda-celular">
-            <div className="v2-lista-celular">
-              {jogadores.map((j, i) => (
-                <div key={j.userId} className={`v2-jogador ${j.userId === usuario.id ? "eu" : ""}`}>
-                  <span className="v2-jogador-pos">{i + 1}</span>
-                  <IconePatente rank={j.rank} nickname={j.nickname} userId={j.userId} />
-                  <div className="v2-jogador-info">
-                    <span className="v2-jogador-nome">{j.nickname}{j.ehBot && <em className="v2-tag-bot">bot</em>}</span>
-                    {j.rank?.name && <span className="v2-jogador-patente">{j.rank.name}</span>}
-                  </div>
-                  <span className="v2-jogador-pts">{(j.semPontuacao ? j.blockPoints ?? 0 : j.roomMonthlyPoints ?? 0).toLocaleString("pt-BR")}</span>
-                </div>
-              ))}
-              {jogadores.length === 0 && <div className="v2-vazio">Entrando na sala…</div>}
-            </div>
+            <ListaJogadores jogadores={jogadores} meuId={usuario.id} pontos={(j) => (j.semPontuacao ? j.blockPoints : j.roomMonthlyPoints)} />
           </div>
           <CampoChat id={`${uid}-chat`} aoEnviar={enviarChat} participantes={jogadores.filter((j) => !j.ehBot).map((j) => j.nickname)} meuNick={usuario.nickname} />
         </aside>

@@ -63,7 +63,7 @@ export default function Praca({ usuario }) {
                   <span>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={online.map((p) => p.nickname)} meuNick={usuario.nickname} />}</span>
                   <small className="v2-msg-hora">{hora(m.at || m.createdAt)}</small>
                   {podeModerar && m.id && !m.system && (
-                    <button className="v2-msg-apagar" aria-label="Apagar mensagem" onClick={() => socketRef.current?.emit("delete-chat-message", { escopo: "geral", id: m.id })}>
+                    <button className="v2-msg-apagar" aria-label="Apagar mensagem" onClick={() => { if (window.confirm(`Apagar a mensagem de ${m.nickname}?`)) socketRef.current?.emit("delete-chat-message", { escopo: "geral", id: m.id }); }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
                     </button>
                   )}
