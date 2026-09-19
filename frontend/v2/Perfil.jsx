@@ -88,7 +88,6 @@ export default function Perfil({ usuario, userId }) {
               <Avatar userId={userId} nickname={perfil.nickname} tamanho={112} borda />
               <div className="v2-perfil-info">
                 <h1>{perfil.nickname}</h1>
-                {perfil.tituloExibido && <div className={`v2-perfil-titulo ${nivelDaMedalha(perfil.tituloExibidoLogo)}`}>{perfil.tituloExibido}</div>}
                 <div className="v2-perfil-fatos">
                   <span>Membro desde {membroDesde(perfil.memberSince)}</span>
                   <span>{horas(perfil.playtimeMinutes)} jogados</span>

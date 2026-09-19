@@ -114,25 +114,18 @@ export default function EditarPerfil({ usuario }) {
     const novo = eu?.tituloExibido === nome ? null : nome; // clicar de novo desmarca
     try {
       await api.patch("/users/me/titulo-exibido", { titulo: novo });
-      setEu((x) => ({ ...x, tituloExibido: novo, medalhaNoLugarDaFoto: novo ? x.medalhaNoLugarDaFoto : false }));
+      setEu((x) => ({ ...x, tituloExibido: novo }));
       esquecerPerfil(usuario.id);
-      avisar("titulo", true, novo ? `Exibindo "${novo}" ao lado do seu nick.` : "Nenhum título exibido.");
+      avisar("titulo", true, novo ? `"${novo}" aparece agora no hover do seu nick.` : "Nenhum título exibido.");
     } catch (err) {
       avisar("titulo", false, err.response?.data?.error || "Erro ao salvar o título.");
     }
   }
-  async function alternarMedalha() {
-    const novo = !eu?.medalhaNoLugarDaFoto;
-    setEu((x) => ({ ...x, medalhaNoLugarDaFoto: novo }));
-    try { await api.patch("/users/me/medalha-no-lugar-da-foto", { ligado: novo }); esquecerPerfil(usuario.id); }
-    catch (err) { setEu((x) => ({ ...x, medalhaNoLugarDaFoto: !novo })); avisar("titulo", false, err.response?.data?.error || "Erro ao salvar."); }
-  }
-
   const Aviso = ({ s }) => (msg[s] ? <p className={msg[s].ok ? "v2-modal-ok" : "v2-modal-erro"} role="status">{msg[s].texto}</p> : null);
   const ItemTitulo = ({ t, unidade }) => {
     const ativo = eu?.tituloExibido === t.nome;
     return (
-      <button className={`v2-titulo ${t.desbloqueado ? "ok" : ""} ${ativo ? "ativo" : ""}`} disabled={!t.desbloqueado} onClick={() => escolherTitulo(t.nome)} title={t.desbloqueado ? (ativo ? "Clique pra deixar de exibir" : "Clique pra exibir no seu nick") : `Falta: ${t.min} ${unidade}`}>
+      <button className={`v2-titulo ${t.desbloqueado ? "ok" : ""} ${ativo ? "ativo" : ""}`} disabled={!t.desbloqueado} onClick={() => escolherTitulo(t.nome)} title={t.desbloqueado ? (ativo ? "Clique pra deixar de exibir" : "Clique pra exibir no hover do seu nick") : `Falta: ${t.min} ${unidade}`}>
         {t.logo ? <img src={t.logo} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} /> : <span className="v2-titulo-sem" />}
         <b className={t.desbloqueado ? `v2-medalha-${nivel(t.logo)}` : ""}>{t.nome}</b>
         <small>{t.desbloqueado ? (ativo ? "exibindo" : "exibir") : `${t.min} ${unidade}`}</small>
@@ -203,14 +196,8 @@ export default function EditarPerfil({ usuario }) {
         {titulos && (
           <section className="v2-cartao">
             <h2>Títulos</h2>
-            <p className="v2-cartao-nota">Clique num título conquistado pra exibi-lo ao lado do seu nick. Clicar de novo tira.</p>
+            <p className="v2-cartao-nota">Clique num título conquistado pra exibi-lo no cartão que aparece quando passam o mouse no seu nick. Clicar de novo tira. Sua foto continua aparecendo em todo o site.</p>
             <Aviso s="titulo" />
-            {eu?.tituloExibido && (
-              <label className="v2-opcao-medalha">
-                <input type="checkbox" checked={!!eu.medalhaNoLugarDaFoto} onChange={alternarMedalha} />
-                <span>Usar a medalha de <b>{eu.tituloExibido}</b> no lugar da minha foto (no cartão que aparece quando passam o mouse no seu nick)</span>
-              </label>
-            )}
 
             {titulos.trofeus?.todos?.length > 0 && (
               <>

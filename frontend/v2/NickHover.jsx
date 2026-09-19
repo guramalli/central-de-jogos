@@ -6,7 +6,7 @@ import Avatar from "./Avatar.jsx";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 
 // Balão de stats ao passar o mouse no nick (no toque: abre ao tocar).
-// Mesmo conteúdo do hover do site clássico: foto/medalha, posição no
+// Mesmo conteúdo do hover do site clássico: foto + título escolhido, posição no
 // ranking, pontos do mês e vitalícios, quanto falta pra próxima patente,
 // clã, aproveitamento na sala, adicionar amigo, convidar pro clã e perfil.
 export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "quiz", children }) {
@@ -69,7 +69,12 @@ export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "
             <Avatar userId={userId} nickname={nickname} tamanho={58} borda />
             <div className="v2-balao-nome">
               <b>{nickname}</b>
-              {perfil?.medalhaNoLugarDaFoto && perfil?.tituloExibido && <span className="v2-balao-titulo">{perfil.tituloExibido}</span>}
+              {perfil?.tituloExibido && (
+                <span className="v2-balao-titulo">
+                  {perfil.tituloExibidoLogo && <img src={perfil.tituloExibidoLogo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+                  {perfil.tituloExibido}
+                </span>
+              )}
               {mensal?.rank?.name && (
                 <span className="v2-balao-patente">
                   {mensal.rank.icon && <img src={mensal.rank.icon} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />}

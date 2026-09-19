@@ -900,7 +900,6 @@ a { color: inherit; text-decoration: none; }
 .v2-log-item:not(.certa) .v2-log-palpite { text-decoration: line-through; text-decoration-color: rgba(255,90,77,.7); }
 .v2-log-item.certa { background: var(--verde); color: #13322a; }
 .v2-log-item.certa .v2-log-tempo, .v2-log-item.certa .v2-log-palpite { color: #13322a; }
-.v2-sugerir { display: none; align-self: center; border: none; background: transparent; color: var(--lilas-2); font-weight: 800; font-size: 13px; text-decoration: underline; min-height: 40px; }
 
 .v2-chat { flex: 1; min-height: 0; margin: 12px 16px 14px; padding: 10px 12px 12px; border-radius: 22px; background: var(--roxo-fundo); display: flex; flex-direction: column; }
 .v2-chat .v2-bloco-titulo { display: none; }
@@ -989,15 +988,18 @@ a { color: inherit; text-decoration: none; }
   /* Desktop em grade: placar à esquerda, pergunta + CHAT no centro (o chat
      na horizontal, logo abaixo da pergunta) e o LOG de respostas na coluna
      da direita. O .v2-palco vira "transparente" (display: contents) pra
-     pergunta, log e sugerir entrarem direto na grade — no celular nada
+     pergunta e log entrarem direto na grade — no celular nada
      disso muda. */
-  .v2-sala-corpo { display: grid; grid-template-columns: 290px minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "placar pergunta log" "placar chat log" "placar sugerir log"; column-gap: 24px; row-gap: 16px; padding: 22px 32px 20px; }
+  /* Duas linhas só: a de cima é a pergunta, a de baixo o chat, que estica
+     até o fim e fecha na mesma linha do placar e do log. (Havia uma 3ª
+     linha pro "sugerir pergunta" — saiu, e o espaço vazio dela desalinhava
+     o chat.) */
+  .v2-sala-corpo { display: grid; grid-template-columns: 290px minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "placar pergunta log" "placar chat log"; column-gap: 24px; row-gap: 16px; padding: 22px 32px 24px; }
   .v2-palco { display: contents; }
   .v2-placar { grid-area: placar; }
   .v2-pergunta { grid-area: pergunta; }
   .v2-chat { grid-area: chat; }
   .v2-log { grid-area: log; }
-  .v2-sugerir { grid-area: sugerir; }
 
   .v2-placar { padding: 16px; border-radius: 26px; background: var(--roxo-2); display: flex; flex-direction: column; min-height: 0; }
   .v2-placar .v2-bloco-titulo { display: flex; }
@@ -1026,7 +1028,6 @@ a { color: inherit; text-decoration: none; }
   .v2-enviar { height: 62px; padding: 0 26px; font-size: 19px; }
   .v2-log { display: flex; flex-direction: column; min-height: 0; padding: 16px; border-radius: 26px; }
   .v2-log-lista { flex: 1; min-height: 0; }
-  .v2-sugerir { display: block; flex-shrink: 0; }
 
   .v2-chat { margin: 0; padding: 16px; border-radius: 26px; min-height: 160px; }
   .v2-chat .v2-bloco-titulo { display: flex; }
@@ -1069,3 +1070,13 @@ a { color: inherit; text-decoration: none; }
   .v2-topo .v2-busca .v2-sair { display: flex; width: 40px; height: 40px; }
   .v2-busca-caixa { right: -52px; width: min(300px, calc(100vw - 28px)); }
 }
+
+/* Patente ao lado do nick nas salas (no lugar da foto). */
+.v2-patente-jogador { width: 30px; height: 30px; flex-shrink: 0; object-fit: contain; }
+.v2-patente-sem { border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--roxo); font-family: var(--titulo); font-weight: 700; font-size: 11px; }
+@media (min-width: 1000px) {
+  .v2-jogador .v2-patente-jogador { width: 40px; height: 40px; }
+  .v2-jogador .v2-patente-sem { font-size: 14px; }
+}
+.v2-balao-titulo { display: inline-flex; align-items: center; gap: 4px; }
+.v2-balao-titulo img { width: 20px; height: 20px; object-fit: contain; }

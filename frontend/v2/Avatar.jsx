@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { buscarPerfil, perfilEmCache } from "./perfil.js";
 import { iniciais, corDoJogador } from "./temas.js";
 
-// Foto do jogador (ou a medalha, se ele escolheu mostrar o título no lugar
-// da foto). Sem foto: bolinha colorida com as iniciais.
+// Foto do jogador. Sem foto: bolinha colorida com as iniciais.
+// Na v2 a foto aparece SEMPRE — o título escolhido fica só no hover do nick
+// (a opção "medalha no lugar da foto" do clássico não vale aqui).
 export default function Avatar({ userId, nickname, tamanho = 40, borda = false }) {
   const [perfil, setPerfil] = useState(() => perfilEmCache(userId));
   const [falhou, setFalhou] = useState(false);
@@ -14,17 +15,16 @@ export default function Avatar({ userId, nickname, tamanho = 40, borda = false }
     return () => { vivo = false; };
   }, [userId]);
 
-  const medalha = perfil?.medalhaNoLugarDaFoto && perfil?.tituloExibidoLogo;
-  const src = medalha ? perfil.tituloExibidoLogo : perfil?.avatarUrl;
+  const src = perfil?.avatarUrl;
   const estilo = {
     width: tamanho,
     height: tamanho,
     fontSize: Math.round(tamanho * 0.36),
-    background: src && !falhou ? (medalha ? "transparent" : "#22164d") : corDoJogador(userId),
+    background: src && !falhou ? "#22164d" : corDoJogador(userId),
   };
 
   return (
-    <span className={`v2-avatar-foto ${borda ? "com-borda" : ""} ${medalha ? "medalha" : ""}`} style={estilo}>
+    <span className={`v2-avatar-foto ${borda ? "com-borda" : ""}`} style={estilo}>
       {src && !falhou ? (
         <img src={src} alt="" onError={() => setFalhou(true)} />
       ) : (

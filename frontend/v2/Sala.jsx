@@ -4,8 +4,9 @@ import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
 import { somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import IconePatente from "./IconePatente.jsx";
 import NickHover from "./NickHover.jsx";
-import { ModalReportar, ModalSugerir } from "./Modais.jsx";
+import { ModalReportar } from "./Modais.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
 
 const RAIO = 30;
@@ -59,7 +60,6 @@ export default function Sala({ roomId, usuario }) {
   const [rankingTurno, setRankingTurno] = useState([]);
   const [jaPontuei, setJaPontuei] = useState(false);
   const [reportando, setReportando] = useState(false);
-  const [sugerindo, setSugerindo] = useState(false);
   const [recorde, setRecorde] = useState(null);
   const [aba, setAba] = useState("chat"); // celular: chat | log
 
@@ -307,14 +307,13 @@ export default function Sala({ roomId, usuario }) {
             {jogadores.map((j, i) => (
               <div key={j.userId} className={`v2-jogador ${j.userId === usuario.id ? "eu" : ""}`}>
                 <span className="v2-jogador-pos">{i + 1}</span>
-                <Avatar userId={j.userId} nickname={j.nickname} tamanho={40} />
+                <IconePatente rank={j.rank} nickname={j.nickname} userId={j.userId} />
                 <div className="v2-jogador-info">
                   <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} roomId={roomId}>
                     <span className="v2-jogador-nome">{j.nickname}</span>
                   </NickHover>
                   {j.rank?.name && (
                     <span className="v2-jogador-patente">
-                      {j.rank.icon && <img src={j.rank.icon} alt="" className={j.rank.brilha ? "brilha" : ""} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                       {j.rank.name}
                     </span>
                   )}
@@ -467,7 +466,6 @@ export default function Sala({ roomId, usuario }) {
             </div>
           </section>
 
-          <button className="v2-sugerir" onClick={() => setSugerindo(true)}>Sugerir uma pergunta pra esse tema</button>
         </main>
 
         <aside className="v2-chat" aria-label="Chat da sala">
@@ -508,7 +506,6 @@ export default function Sala({ roomId, usuario }) {
 
 
       {reportando && questionId && <ModalReportar questionId={questionId} texto={pergunta} aoFechar={() => setReportando(false)} />}
-      {sugerindo && <ModalSugerir themeKey={themeKey} aoFechar={() => setSugerindo(false)} />}
       <ConviteRecebido socket={socket} />
     </div>
   );

@@ -4,6 +4,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import { somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import IconePatente from "./IconePatente.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
 
@@ -336,14 +337,13 @@ export default function SalaStop({ roomId, usuario }) {
             {jogadores.map((j, i) => (
               <div key={j.userId} className={`v2-jogador ${j.userId === usuario.id ? "eu" : ""}`}>
                 <span className="v2-jogador-pos">{i + 1}</span>
-                <Avatar userId={j.userId} nickname={j.nickname} tamanho={40} />
+                <IconePatente rank={j.rank} nickname={j.nickname} userId={j.userId} />
                 <div className="v2-jogador-info">
                   <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="stop">
                     <span className="v2-jogador-nome">{j.nickname}</span>
                   </NickHover>
                   {j.rank?.name && (
                     <span className="v2-jogador-patente">
-                      {j.rank.icon && <img src={j.rank.icon} alt="" className={j.rank.brilha ? "brilha" : ""} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                       {j.rank.name}
                     </span>
                   )}

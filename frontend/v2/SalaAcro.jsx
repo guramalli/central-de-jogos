@@ -4,6 +4,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador, iniciais } from "./temas.js";
 import { somPergunta, somAcerto, somTique, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import IconePatente from "./IconePatente.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
 
@@ -316,7 +317,7 @@ export default function SalaAcro({ roomId, usuario }) {
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 4v4M9 13h.01M15 13h.01M9 17h6" /></svg>
                   </span>
                 ) : (
-                  <Avatar userId={j.userId} nickname={j.nickname} tamanho={40} />
+                  <IconePatente rank={j.rank} nickname={j.nickname} userId={j.userId} />
                 )}
                 <div className="v2-jogador-info">
                   {j.ehBot ? <span className="v2-jogador-nome">{j.nickname}</span> : (
@@ -326,7 +327,6 @@ export default function SalaAcro({ roomId, usuario }) {
                   )}
                   {j.ehBot ? <span className="v2-jogador-patente">jogador automático</span> : j.rank?.name && (
                     <span className="v2-jogador-patente">
-                      {j.rank.icon && <img src={j.rank.icon} alt="" className={j.rank.brilha ? "brilha" : ""} onError={(e) => { e.currentTarget.style.display = "none"; }} />}
                       {j.rank.name}
                     </span>
                   )}
