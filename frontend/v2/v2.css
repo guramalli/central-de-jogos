@@ -1794,48 +1794,39 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
    que a animação de entrada apagava). Rola se não couber na tela. */
 .v2-balao, .v2-balao.cima { transform: none; overflow-y: auto; overscroll-behavior: contain; }
 
-/* ---------- Multi-sala do Quiz: abas Chat · Respostas · Jogadores ----------
-   Os painéis compactos escondiam o log e só tinham fichinhas de jogadores.
-   Agora usam as mesmas abas do celular. (Só o Quiz: é a sala sem classe
-   própria — .v2-sala-stop e .v2-sala-acro ficam como estão.) */
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular { display: flex !important; margin-bottom: 4px; gap: 4px; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular button { height: 30px; min-height: 30px; font-size: 12px; padding: 0 6px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular .v2-aba-contador { min-width: 16px; height: 16px; font-size: 10px; margin-left: 0; }
 
-/* Aba Respostas: o log ocupa o espaço do chat (as abas continuam). */
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-palco { flex: 1 1 auto !important; overflow: hidden; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log { display: flex !important; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px; border-radius: 14px; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log .v2-bloco-titulo { display: none; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log-lista { flex: 1; min-height: 0; overflow-y: auto; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat { flex: 0 0 auto !important; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat-lista,
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat-form { display: none; }
-
-/* Aba Jogadores: a lista completa no lugar do chat. */
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-jogadores .v2-chat-lista,
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-jogadores .v2-chat-form { display: none; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-jogadores .v2-lista-jogadores-celular { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
-.v2-sala.compacto .v2-lista-celular { display: flex; flex-direction: column; gap: 4px; }
-.v2-sala.compacto .v2-lista-celular .v2-jogador { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 8px; border-radius: 12px; background: var(--roxo); }
-.v2-sala.compacto .v2-lista-celular .v2-jogador.eu { box-shadow: inset 0 0 0 2px var(--amarelo); }
-.v2-sala.compacto .v2-lista-celular .v2-jogador-pos { display: inline; min-width: 14px; font-size: 12px; font-weight: 900; color: var(--lilas-2); }
-.v2-sala.compacto .v2-lista-celular .v2-jogador-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.v2-sala.compacto .v2-lista-celular .v2-jogador-nome { font-size: 13px; font-weight: 900; max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.v2-sala.compacto .v2-lista-celular .v2-jogador-patente { display: block; font-size: 11px; color: var(--lilas); }
-.v2-sala.compacto .v2-lista-celular .v2-patente-jogador { width: 26px; height: 26px; }
-.v2-sala.compacto .v2-lista-celular .v2-jogador-pts { font-size: 13px; color: var(--amarelo); font-weight: 900; }
-
-/* Painel estreito: sem fichinhas (a lista está na aba). Painel largo: a
-   coluna de jogadores já existe — some a aba Jogadores (a 3ª). */
-@container painel (max-width: 999px) {
-  .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-placar { display: none !important; }
+/* ---------- Multi-sala do Quiz: tudo à vista, como no clássico ----------
+   Cada painel vira uma grade 2x2 — sem abas:
+       [ pergunta ][ log       ]
+       [ chat     ][ jogadores ]
+   (Só o Quiz: é a sala sem classe própria.) */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-sala-corpo {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) clamp(170px, 28%, 280px);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "pergunta log" "chat placar";
+  gap: 6px;
 }
-@container painel (min-width: 1000px) {
-  .v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular button:nth-child(3) { display: none; }
-}
-/* Aba Respostas no multi-sala: as abas ficam no MESMO lugar (logo abaixo
-   da pergunta) e o log vem embaixo delas — sem as abas "pularem" pro pé. */
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-palco { display: contents !important; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-pergunta { order: 1; flex: 0 0 auto; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-chat { order: 2; }
-.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro).aba-log .v2-log { order: 3; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-palco { display: contents !important; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-pergunta { grid-area: pergunta; min-width: 0; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-abas-celular,
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-lista-jogadores-celular { display: none !important; }
+
+/* LOG à direita da pergunta. */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-log { grid-area: log; display: flex !important; flex-direction: column; min-height: 0; overflow: hidden; padding: 8px; border-radius: 14px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-log .v2-bloco-titulo { display: flex; font-size: 12px; margin-bottom: 4px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-log-lista { flex: 1; min-height: 0; overflow-y: auto; font-size: 12px; }
+
+/* CHAT embaixo da pergunta. */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-chat { grid-area: chat; flex: none !important; min-height: 0 !important; display: flex; flex-direction: column; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-chat .v2-chat-lista { display: block; flex: 1; min-height: 0; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-chat .v2-chat-form { display: flex; }
+
+/* JOGADORES à direita do chat: lista em coluna, com o hover do nick. */
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-placar { grid-area: placar; display: flex !important; flex-direction: column; min-height: 0; overflow-y: auto; background: var(--roxo-2); border-radius: 14px; padding: 8px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-placar .v2-bloco-titulo { display: flex !important; font-size: 12px; margin-bottom: 4px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-placar-lista { flex-direction: column !important; overflow-x: hidden !important; overflow-y: visible; gap: 4px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador { border-radius: 10px !important; padding: 4px 8px !important; background: var(--roxo) !important; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador-info { display: flex; flex: 1; min-width: 0; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador-nome { max-width: none !important; font-size: 12px; }
+.v2-sala.compacto:not(.v2-sala-stop):not(.v2-sala-acro) .v2-jogador .v2-patente-jogador { width: 24px; height: 24px; }
