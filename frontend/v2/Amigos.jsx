@@ -4,6 +4,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
+import { CampoChat } from "./Chat.jsx";
 import { somOutroAcertou, estaMudo } from "./sons.js";
 
 const quando = (t) => {
@@ -188,7 +189,6 @@ export function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
   const listaRef = useRef(null);
   const [msgs, setMsgs] = useState(null);
   const [erro, setErro] = useState("");
-  const [texto, setTexto] = useState("");
 
   useEffect(() => {
     const s = novoSocket();
@@ -210,12 +210,8 @@ export function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs]);
 
-  function enviar(e) {
-    e.preventDefault();
-    const t = texto.trim();
-    if (!t) return;
-    socketRef.current?.emit("dm-message", { message: t });
-    setTexto("");
+  function enviar(texto) {
+    socketRef.current?.emit("dm-message", { message: texto });
   }
 
   return (
@@ -248,11 +244,9 @@ export function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
           );
         })}
       </div>
-      <form className="v2-chat-form v2-conversa-form" onSubmit={enviar}>
-        <label htmlFor="v2-dm-campo" className="v2-oculto">Mensagem para {amigo.nickname}</label>
-        <input id="v2-dm-campo" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={`Mensagem para ${amigo.nickname}…`} maxLength={500} autoComplete="off" disabled={!!erro} />
-        <button className="v2-botao v2-botao-amarelo" type="submit" disabled={!!erro}>Enviar</button>
-      </form>
+      <div className="v2-conversa-form">
+        <CampoChat id="v2-dm-campo" aoEnviar={enviar} placeholder={`Mensagem para ${amigo.nickname}…`} maxLength={500} desativado={!!erro} />
+      </div>
     </>
   );
 }

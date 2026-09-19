@@ -4,6 +4,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
 import { somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
 import NickHover from "./NickHover.jsx";
 import { ModalReportar } from "./Modais.jsx";
@@ -52,7 +53,6 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
   const [palpite, setPalpite] = useState("");
   const [historico, setHistorico] = useState([]);
   const [idxHist, setIdxHist] = useState(null);
-  const [textoChat, setTextoChat] = useState("");
   const [tremer, setTremer] = useState(false);
   const [cheia, setCheia] = useState(null);
   const [mudo, setMudo] = useState(estaMudo());
@@ -256,12 +256,8 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
     }
   }
 
-  function enviarChat(e) {
-    e.preventDefault();
-    const t = textoChat.trim();
-    if (!t) return;
-    socketRef.current?.emit("quiz-chat-message", { message: t });
-    setTextoChat("");
+  function enviarChat(texto) {
+    socketRef.current?.emit("quiz-chat-message", { message: texto });
   }
 
   const eu = jogadores.find((j) => j.userId === usuario.id);
@@ -510,7 +506,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
                     <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
-                  <span className={m.bold ? "negrito" : ""}>{m.message}</span>
+                  <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
                   {podeModerar && !m.system && m.id && (
                     <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => socketRef.current?.emit("delete-chat-message", { escopo: "quiz", id: m.id })}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -520,11 +516,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
               );
             })}
           </div>
-          <form className="v2-chat-form" onSubmit={enviarChat}>
-            <label htmlFor={`${uid}-chat`} className="v2-oculto">Mensagem</label>
-            <input id={`${uid}-chat`} value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" />
-            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
-          </form>
+          <CampoChat id={`${uid}-chat`} aoEnviar={enviarChat} participantes={jogadores.filter((j) => !j.ehBot).map((j) => j.nickname)} meuNick={usuario.nickname} />
         </aside>
       </div>
 

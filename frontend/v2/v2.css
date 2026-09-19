@@ -1575,3 +1575,34 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 .v2-titulo-progresso-barra > div { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--verde), #7ff0cf); transition: width .6s ease-out; }
 .v2-titulo-progresso span { font-size: 12px; font-weight: 800; color: var(--lilas); }
 .v2-titulo-progresso b { color: #fff; }
+
+/* ---------- Chat: título colorido, @menção, emojis ---------- */
+/* Hierarquia do título na entrada (mesmas cores do clássico no escuro):
+   bronze < prata < ouro < campeão do mês / lendário (dourado com brilho). */
+.v2-titulo-entrada { font-weight: 900; }
+.v2-titulo-entrada.nivel-bronze { color: #e0914a; }
+.v2-titulo-entrada.nivel-prata { color: #d4d4dc; }
+.v2-titulo-entrada.nivel-ouro { color: #ffd60a; }
+.v2-titulo-entrada.nivel-campeao,
+.v2-titulo-entrada.nivel-lendario { color: #ffd60a; text-shadow: 0 0 8px rgba(255, 214, 10, .55); }
+.v2-titulo-entrada.nivel-lendario { background: linear-gradient(90deg, #ffd60a, #ffb86f, #ff9ed2, #ffd60a); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 0 6px rgba(255, 214, 10, .45)); }
+.v2-mencao { color: var(--amarelo); font-weight: 900; }
+.v2-mencao.eu { background: rgba(255, 184, 111, .25); border-radius: 5px; padding: 0 4px; }
+
+.v2-chat-form { position: relative; align-items: center; }
+.v2-chat-campo { position: relative; flex: 1; min-width: 0; display: flex; }
+.v2-chat-campo input { width: 100%; }
+.v2-emoji { position: relative; flex-shrink: 0; }
+.v2-emoji-botao { width: 44px; height: 44px; border: none; border-radius: 14px; background: var(--roxo-2); font-size: 20px; line-height: 1; }
+.v2-emoji-botao:hover, .v2-emoji-botao[aria-expanded="true"] { background: var(--roxo); box-shadow: inset 0 0 0 2px var(--amarelo); }
+.v2-emoji-caixa { position: absolute; bottom: 52px; left: 0; z-index: 40; width: 292px; padding: 10px; border-radius: 18px; background: var(--creme); color: var(--roxo); box-shadow: 0 6px 0 #d8cbb2, 0 18px 40px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 8px; animation: v2-pop .18s ease-out both; }
+.v2-emoji-rotulo { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #5a4a8a; }
+.v2-emoji-grade { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.v2-emoji-grade button { height: 40px; border: none; border-radius: 10px; background: transparent; font-size: 22px; }
+.v2-emoji-grade button:hover { background: #ede3d0; }
+.v2-sugestoes { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; z-index: 40; display: flex; flex-direction: column; padding: 6px; border-radius: 14px; background: var(--creme); box-shadow: 0 5px 0 #d8cbb2, 0 12px 30px rgba(0,0,0,.3); }
+.v2-sugestoes button { text-align: left; min-height: 36px; padding: 0 10px; border: none; border-radius: 10px; background: transparent; color: var(--roxo); font-weight: 900; font-size: 14px; }
+.v2-sugestoes button.ativa, .v2-sugestoes button:hover { background: var(--amarelo); }
+.v2-conversa-form .v2-chat-form { width: 100%; margin: 0; }
+.v2-sala.compacto .v2-emoji-botao { width: 36px; height: 36px; font-size: 17px; border-radius: 11px; }
+.v2-sala.compacto .v2-emoji-caixa { width: 250px; }

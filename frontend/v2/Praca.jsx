@@ -3,6 +3,7 @@ import { novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import Avatar from "./Avatar.jsx";
+import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 
 const hora = (t) => (t ? new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "");
 
@@ -14,7 +15,6 @@ export default function Praca({ usuario }) {
   const listaRef = useRef(null);
   const [msgs, setMsgs] = useState([]);
   const [online, setOnline] = useState([]);
-  const [texto, setTexto] = useState("");
   const podeModerar = usuario.role === "ADMIN" || usuario.role === "MODERATOR";
 
   useEffect(() => {
@@ -36,12 +36,8 @@ export default function Praca({ usuario }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs]);
 
-  function enviar(e) {
-    e.preventDefault();
-    const t = texto.trim();
-    if (!t) return;
-    socketRef.current?.emit("general-chat-message", { message: t });
-    setTexto("");
+  function enviar(texto) {
+    socketRef.current?.emit("general-chat-message", { message: texto });
   }
 
   const meuNick = usuario.nickname.toLowerCase();
@@ -64,7 +60,7 @@ export default function Praca({ usuario }) {
                     <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
-                  <span>{m.message}</span>
+                  <span>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={online.map((p) => p.nickname)} meuNick={usuario.nickname} />}</span>
                   <small className="v2-msg-hora">{hora(m.at || m.createdAt)}</small>
                   {podeModerar && m.id && !m.system && (
                     <button className="v2-msg-apagar" aria-label="Apagar mensagem" onClick={() => socketRef.current?.emit("delete-chat-message", { escopo: "geral", id: m.id })}>
@@ -76,11 +72,7 @@ export default function Praca({ usuario }) {
             })}
             <div ref={fimRef} />
           </div>
-          <form className="v2-chat-form" onSubmit={enviar}>
-            <label htmlFor="v2-praca-campo" className="v2-oculto">Mensagem na praça</label>
-            <input id="v2-praca-campo" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Falar na praça…" maxLength={300} autoComplete="off" />
-            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
-          </form>
+          <CampoChat id="v2-praca-campo" aoEnviar={enviar} participantes={online.map((p) => p.nickname)} meuNick={usuario.nickname} placeholder="Falar na praça…" />
         </div>
         <aside className="v2-praca-quem">
           <div className="v2-bloco-titulo">Quem está na praça</div>

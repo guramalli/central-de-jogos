@@ -4,6 +4,7 @@ import { voltarAoLobby, irParaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import { somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
@@ -63,7 +64,6 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const [jogadores, setJogadores] = useState([]);
   const [pular, setPular] = useState({ votes: 0, needed: 0, minPlayers: 3 });
   const [voteiPular, setVoteiPular] = useState(false);
-  const [textoChat, setTextoChat] = useState("");
   const [mudo, setMudo] = useState(estaMudo());
   const [aba, setAba] = useState("chat"); // celular: chat | legenda
 
@@ -301,12 +301,8 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
     socketRef.current?.emit("vote-skip-intermission");
   }
 
-  function enviarChat(e) {
-    e.preventDefault();
-    const t = textoChat.trim();
-    if (!t) return;
-    socketRef.current?.emit("chat-message", { message: t });
-    setTextoChat("");
+  function enviarChat(texto) {
+    socketRef.current?.emit("chat-message", { message: texto });
   }
 
   const eu = jogadores.find((j) => j.userId === usuario.id);
@@ -580,7 +576,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                     <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
-                  <span className={m.bold ? "negrito" : ""}>{m.message}</span>
+                  <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
                   {podeModerar && !m.system && m.id && (
                     <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => socketRef.current?.emit("delete-chat-message", { escopo: "stop", id: m.id })}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -591,11 +587,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
             })}
           </div>
           <div className="v2-chat-legenda-celular">{legenda}</div>
-          <form className="v2-chat-form" onSubmit={enviarChat}>
-            <label htmlFor={`${uid}-chat`} className="v2-oculto">Mensagem</label>
-            <input id={`${uid}-chat`} value={textoChat} onChange={(e) => setTextoChat(e.target.value)} placeholder="Mandar mensagem…" maxLength={300} autoComplete="off" />
-            <button type="submit" className="v2-chat-enviar" aria-label="Enviar mensagem">Enviar</button>
-          </form>
+          <CampoChat id={`${uid}-chat`} aoEnviar={enviarChat} participantes={jogadores.filter((j) => !j.ehBot).map((j) => j.nickname)} meuNick={usuario.nickname} />
         </aside>
       </div>
       {!compacto && <ConviteRecebido socket={socket} />}
