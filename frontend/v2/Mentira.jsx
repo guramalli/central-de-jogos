@@ -73,7 +73,10 @@ export default function Mentira({ usuario, salaDoLink }) {
         <div>
           <h1>🎭 Mentira Sincera</h1>
           {fase !== "aguardando" && fase !== "fim" && (
-            <span className="v2-mentira-rodada">Rodada {estado.rodada} de {estado.totalRodadas}{estado.dobro && <b> · VALE O DOBRO!</b>}</span>
+            <span className="v2-mentira-rodada">
+              {estado.final ? "FINAL" : `Pergunta ${estado.rodada} de ${estado.totalRodadas}`}
+              {estado.multiplicador > 1 && <b className={`v2-mentira-mult x${estado.multiplicador}`}>×{estado.multiplicador}</b>}
+            </span>
           )}
         </div>
         <div className="v2-mentira-topo-dir">
@@ -88,9 +91,9 @@ export default function Mentira({ usuario, salaDoLink }) {
       <div className="v2-mentira-corpo">
         <div className="v2-mentira-palco">
           {fase === "aguardando" && <Espera estado={estado} streamer={streamer} aoComecar={() => pedir("mentira-comecar")} aoBot={(acao) => pedir("mentira-bot", { acao })} />}
-          {fase === "escrever" && <Escrever key={`${estado.rodada}-${estado.curiosidade?.texto}`} estado={estado} aoMentir={(texto) => pedir("mentira-mentir", { texto })} aoPular={() => pedir("mentira-pular")} />}
-          {fase === "escolher" && <Escolher estado={estado} aoEscolher={(opcaoId) => pedir("mentira-escolher", { opcaoId })} />}
-          {fase === "revelar" && <Revelar key={estado.rodada} estado={estado} />}
+          {fase === "escrever" && <Escrever key={`${estado.rodada}-${estado.perguntas?.[0]?.texto}`} estado={estado} aoMentir={(texto) => pedir("mentira-mentir", { texto })} aoPular={() => pedir("mentira-pular")} />}
+          {fase === "escolher" && <Escolher estado={estado} aoEscolher={(opcaoId, pergunta) => pedir("mentira-escolher", { opcaoId, pergunta })} aoCurtir={(opcaoId) => pedir("mentira-curtir", { opcaoId })} />}
+          {fase === "revelar" && <Revelar key={estado.rodada} estado={estado} aoCurtir={(opcaoId) => pedir("mentira-curtir", { opcaoId })} />}
           {fase === "fim" && <Fim estado={estado} aoJogarDeNovo={() => pedir("mentira-comecar")} />}
         </div>
         <Placar estado={estado} meuId={usuario.id} />
@@ -119,10 +122,11 @@ function Relogio({ tempo, total }) {
 }
 
 // A curiosidade com a lacuna destacada (ou preenchida com a verdade).
-function Curiosidade({ texto, preenchida }) {
+function Curiosidade({ texto, preenchida, numero }) {
   const [antes, depois] = String(texto || "").split("___");
   return (
     <p className="v2-mentira-curiosidade">
+      {numero && <span className="v2-mentira-num">{numero}</span>}
       {antes}
       <span className={`v2-mentira-lacuna ${preenchida ? "cheia" : ""}`}>{preenchida || "_____"}</span>
       {depois}
@@ -178,6 +182,14 @@ function Espera({ estado, streamer, aoComecar, aoBot }) {
   );
 }
 
+// Frase do apresentador no começo de cada pergunta (a mesma pra todos).
+function aberturaDaRodada(estado) {
+  if (estado.final) return "🎤 FINAL! Uma mentira só, pra DUAS perguntas. Pontos TRIPLICADOS — e quem enganar nas duas leva +1000!";
+  if (estado.rodada === 4) return "🎤 Segunda fase: a partir de agora os pontos DOBRAM. Quem está atrás ainda vira!";
+  if (estado.rodada === 1) return "🎤 Bem-vindos ao Mentira Sincera! Mintam com convicção — e cuidado com as mentiras da casa, elas tiram pontos.";
+  return escolherFrase(["🎤 Mais uma. Capricha nessa mentira.", "🎤 Essa aqui é verdade, acredite se quiser.", "🎤 Quero ver quem cai nessa.", "🎤 Fato real. Juro. Agora mintam."], `${estado.codigo}-${estado.rodada}`);
+}
+
 function Escrever({ estado, aoMentir, aoPular }) {
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -193,9 +205,10 @@ function Escrever({ estado, aoMentir, aoPular }) {
   }
   return (
     <section className="v2-cartao v2-mentira-fase">
-      <Relogio tempo={estado.tempo} total={45} />
-      <span className="v2-mentira-instrucao">Invente uma mentira que pareça verdade:</span>
-      <Curiosidade texto={estado.curiosidade?.texto} />
+      <Relogio tempo={estado.tempo} total={estado.final ? 60 : 45} />
+      <p className="v2-mentira-apresentador">{aberturaDaRodada(estado)}</p>
+      <span className="v2-mentira-instrucao">{estado.final ? "Uma mentira que sirva pras DUAS:" : "Invente uma mentira que pareça verdade:"}</span>
+      {estado.perguntas.map((p, i) => <Curiosidade key={i} texto={p.texto} numero={estado.final ? i + 1 : null} />)}
       {estado.minhaMentira ? (
         <div className="v2-mentira-enviada">Sua mentira: <b>{estado.minhaMentira}</b></div>
       ) : (
@@ -206,31 +219,67 @@ function Escrever({ estado, aoMentir, aoPular }) {
         </form>
       )}
       <QuemJa estado={estado} verbo="escrever" />
-      {estado.souDono && <button className="v2-link v2-mentira-pular" onClick={aoPular}>pular esta curiosidade</button>}
+      {estado.souDono && <button className="v2-link v2-mentira-pular" onClick={aoPular}>pular {estado.final ? "estas curiosidades" : "esta curiosidade"}</button>}
     </section>
   );
 }
 
-function Escolher({ estado, aoEscolher }) {
+function Escolher({ estado, aoEscolher, aoCurtir }) {
+  const escolheuTudo = estado.meusVotos.every(Boolean);
   return (
     <section className="v2-cartao v2-mentira-fase">
-      <Relogio tempo={estado.tempo} total={25} />
-      <span className="v2-mentira-instrucao">Qual dessas é a VERDADE?</span>
-      <Curiosidade texto={estado.curiosidade?.texto} />
-      <div className="v2-mentira-opcoes">
-        {(estado.opcoes || []).map((o) => (
-          <button key={o.id} className={`v2-mentira-opcao ${estado.meuVoto === o.id ? "escolhida" : ""} ${o.minha ? "minha" : ""}`} disabled={o.minha || !!estado.meuVoto} onClick={() => aoEscolher(o.id)}>
-            {o.texto}{o.minha && <small>sua mentira</small>}
-          </button>
-        ))}
-      </div>
+      <Relogio tempo={estado.tempo} total={estado.final ? 35 : 25} />
+      {estado.perguntas.map((p, i) => (
+        <div key={i} className="v2-mentira-bloco-escolha">
+          <span className="v2-mentira-instrucao">{estado.final ? `Pergunta ${i + 1}: qual é a VERDADE?` : "Qual dessas é a VERDADE?"}</span>
+          <Curiosidade texto={p.texto} />
+          <div className="v2-mentira-opcoes">
+            {(estado.opcoes?.[i] || []).map((o) => {
+              const escolhida = estado.meusVotos[i] === o.id;
+              const curtida = estado.minhasCurtidas.includes(o.id);
+              return (
+                <div key={o.id} className="v2-mentira-opcao-linha">
+                  <button className={`v2-mentira-opcao ${escolhida ? "escolhida" : ""} ${o.minha ? "minha" : ""}`} disabled={o.minha || !!estado.meusVotos[i]} onClick={() => aoEscolher(o.id, i)}>
+                    {o.texto}{o.minha && <small>sua mentira</small>}
+                  </button>
+                  {escolheuTudo && !o.minha && (
+                    <button className={`v2-mentira-curtir ${curtida ? "ativo" : ""}`} aria-pressed={curtida} aria-label={`Curtir: ${o.texto}`} title="Curtir essa mentira (troféu Mais Engraçado)" onClick={() => aoCurtir(o.id)}>👍</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {escolheuTudo && <p className="v2-mentira-dica">Curta as mentiras que te fizeram rir — no fim sai o troféu <b>Mais Engraçado</b>.</p>}
       <QuemJa estado={estado} verbo="escolher" />
     </section>
   );
 }
 
-// Revelação passo a passo: cada mentira em que alguém caiu, depois a verdade.
-function Revelar({ estado }) {
+// Frase do apresentador pra cada carta — a mesma pra todos (sorteio fixo pelo id).
+function escolherFrase(lista, semente) {
+  let h = 0;
+  for (const c of String(semente)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return lista[h % lista.length];
+}
+function comentario(item, total) {
+  const n = item.escolheram.length;
+  if (item.verdade) {
+    if (n === 0) return escolherFrase(["🎤 NINGUÉM acertou. Vocês não sabem de nada.", "🎤 Zero acertos. A verdade é mais estranha que a ficção."], item.id);
+    if (n >= total - 1) return escolherFrase(["🎤 Fácil demais, né? Todo mundo sabia.", "🎤 Essa todo mundo matou."], item.id);
+    return escolherFrase(["🎤 Pois é, isso é verdade mesmo.", "🎤 Acredite se quiser: verdade pura."], item.id);
+  }
+  if (item.casa) return escolherFrase(["🎤 Caíram na mentira DA CASA. Isso custa pontos, hein!", "🎤 Essa fui eu que inventei. Obrigado pelos pontos."], item.id);
+  const autor = item.autores.join(" e ");
+  if (n >= 3) return escolherFrase([`🎤 ${autor} enganou ${n} pessoas. Isso é um profissional.`, `🎤 ${n} vítimas de ${autor}. Assustador.`], item.id);
+  if (n === 2) return escolherFrase([`🎤 ${autor} pegou dois de uma vez!`, `🎤 Dois caíram na do ${autor}. Nada mal.`], item.id);
+  return escolherFrase([`🎤 ${autor} fez uma vítima.`, `🎤 Um caiu na do ${autor}. Já é alguma coisa.`], item.id);
+}
+
+// Revelação passo a passo: cada mentira em que alguém caiu, depois a verdade
+// (na final, uma pergunta de cada vez).
+function Revelar({ estado, aoCurtir }) {
   const itens = estado.revelacao?.itens || [];
   const [passo, setPasso] = useState(0);
   useEffect(() => {
@@ -241,14 +290,26 @@ function Revelar({ estado }) {
   const item = itens[Math.min(passo, itens.length - 1)];
   const final = passo >= itens.length - 1;
   if (!item) return null;
+  const pergunta = estado.perguntas[item.pergunta] || estado.perguntas[0];
+  const totalJogadores = estado.jogadores.filter((j) => j.online).length;
   return (
     <section className="v2-cartao v2-mentira-fase v2-mentira-revela">
-      <Curiosidade texto={estado.curiosidade?.texto} preenchida={final ? estado.curiosidade?.verdade : null} />
+      {estado.final && <span className="v2-mentira-instrucao">Pergunta {item.pergunta + 1} de 2</span>}
+      <Curiosidade texto={pergunta.texto} preenchida={item.verdade ? pergunta.verdade : null} />
       <div key={item.id} className={`v2-mentira-carta ${item.verdade ? "verdade" : "mentira"}`}>
         <b className="v2-mentira-carta-texto">{item.texto}</b>
         {item.escolheram.length > 0 && <span className="v2-mentira-caiu">{item.verdade ? "Acertaram" : "Caíram"}: {item.escolheram.join(", ")}</span>}
         <span className="v2-mentira-carimbo">{item.verdade ? "VERDADE!" : item.casa ? "MENTIRA DA CASA" : `MENTIRA de ${item.autores.join(" e ")}`}</span>
+        {item.curtivel ? (
+          <button className={`v2-mentira-curtir-carta ${estado.minhasCurtidas.includes(item.id) ? "ativo" : ""}`} onClick={() => aoCurtir(item.id)} aria-pressed={estado.minhasCurtidas.includes(item.id)} title="Curtir essa mentira (troféu Mais Engraçado)">
+            👍 {item.curtidas > 0 ? item.curtidas : "curtir"}
+          </button>
+        ) : item.curtidas > 0 && <span className="v2-mentira-curtidas">👍 {item.curtidas}</span>}
       </div>
+      <p className="v2-mentira-apresentador">{comentario(item, totalJogadores)}</p>
+      {final && estado.revelacao.dupla?.length > 0 && (
+        <p className="v2-mentira-dupla">🎯 MENTIRA DUPLA! {estado.revelacao.dupla.join(" e ")} {estado.revelacao.dupla.length > 1 ? "enganaram" : "enganou"} nas duas perguntas: +1000!</p>
+      )}
       {final && (estado.revelacao.ninguemCaiu || []).length > 0 && (
         <p className="v2-mentira-ninguem">Ninguém caiu em: {estado.revelacao.ninguemCaiu.map((i) => `"${i.texto}" (${i.autores.join(", ")})`).join(" · ")}</p>
       )}
@@ -271,6 +332,20 @@ function Fim({ estado, aoJogarDeNovo }) {
           </div>
         ))}
       </div>
+      {estado.trofeus && (
+        <div className="v2-mentira-trofeus">
+          {[["🤥", "Maior Mentiroso", estado.trofeus.mentiroso, "enganados"], ["😂", "Mais Engraçado", estado.trofeus.engracado, "curtidas"], ["🔎", "Detetive", estado.trofeus.detetive, "verdades achadas"]]
+            .filter(([, , t]) => t)
+            .map(([icone, nome, t, unidade]) => (
+              <div key={nome} className="v2-mentira-trofeu-item">
+                <span>{icone}</span>
+                <b>{nome}</b>
+                <em>{t.nomes.join(" e ")}</em>
+                <small>{t.valor} {unidade}</small>
+              </div>
+            ))}
+        </div>
+      )}
       {estado.souDono ? <button className="v2-botao v2-botao-amarelo v2-botao-largo" onClick={aoJogarDeNovo}>Jogar de novo</button> : <p className="v2-cartao-nota">O dono da sala pode começar outra partida.</p>}
     </section>
   );

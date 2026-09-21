@@ -70,7 +70,8 @@ export function registrarMentira(io, socket) {
 
   socket.on("mentira-comecar", naSala((sala) => sala.comecar(user.id)));
   socket.on("mentira-mentir", naSala((sala, { texto }) => sala.mentir(user.id, texto)));
-  socket.on("mentira-escolher", naSala((sala, { opcaoId }) => sala.escolher(user.id, opcaoId)));
+  socket.on("mentira-escolher", naSala((sala, { opcaoId, pergunta }) => sala.escolher(user.id, opcaoId, pergunta)));
+  socket.on("mentira-curtir", naSala((sala, { opcaoId }) => sala.curtir(user.id, opcaoId)));
   socket.on("mentira-pular", naSala((sala) => sala.pular(user.id)));
   socket.on("mentira-bot", naSala((sala, { acao }) => (acao === "remover" ? sala.removerBots(user.id) : sala.adicionarBot(user.id))));
   socket.on("mentira-sair", (_d, cb) => { sairDaSala(); responder(cb, { ok: true }); });

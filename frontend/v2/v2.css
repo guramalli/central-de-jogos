@@ -1951,3 +1951,30 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 .v2-mentira-bots { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .v2-mentira-bots small { width: 100%; font-weight: 700; color: #5a4a8a; }
 .v2-mentira-bots .v2-link { color: #7a5bd1; }
+
+/* Mentira Sincera — Pacote 1 */
+.v2-mentira-mult { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 999px; font-family: var(--titulo); font-size: 14px; }
+.v2-mentira-mult.x2 { background: var(--laranja); color: var(--roxo); }
+.v2-mentira-mult.x3 { background: var(--vermelho); color: #fff; animation: v2-pop .5s ease-out both; }
+.v2-mentira-apresentador { margin: 0; padding: 10px 14px; border-radius: 14px; background: #2B1B5E; color: #fff; font-weight: 800; font-size: 15px; line-height: 1.4; animation: v2-entra .35s ease-out both; }
+.v2-mentira-num { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin-right: 8px; border-radius: 10px; background: var(--roxo); color: #fff; font-size: 16px; vertical-align: middle; }
+.v2-mentira-bloco-escolha { display: flex; flex-direction: column; gap: 10px; }
+.v2-mentira-bloco-escolha + .v2-mentira-bloco-escolha { padding-top: 12px; border-top: 3px dashed #ede3d0; }
+.v2-mentira-opcao-linha { display: flex; gap: 6px; align-items: stretch; }
+.v2-mentira-opcao-linha .v2-mentira-opcao { flex: 1; min-width: 0; }
+.v2-mentira-curtir { width: 52px; flex-shrink: 0; border: none; border-radius: 16px; background: #ede3d0; font-size: 22px; cursor: pointer; filter: grayscale(1); transition: transform .1s; }
+.v2-mentira-curtir:hover { transform: scale(1.06); }
+.v2-mentira-curtir.ativo { background: var(--amarelo); filter: none; animation: v2-pop .3s ease-out both; }
+.v2-mentira-dica { margin: 0; font-size: 13px; font-weight: 700; color: #5a4a8a; }
+.v2-mentira-curtidas { font-weight: 900; font-size: 16px; background: #fff; padding: 3px 12px; border-radius: 999px; }
+.v2-mentira-dupla { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--amarelo); font-family: var(--titulo); font-size: 18px; text-align: center; animation: v2-pop .5s ease-out both; }
+.v2-mentira-trofeus { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; width: 100%; }
+.v2-mentira-trofeu-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 8px; border-radius: 16px; background: #fff; }
+.v2-mentira-trofeu-item span { font-size: 34px; }
+.v2-mentira-trofeu-item b { font-family: var(--titulo); font-size: 16px; }
+.v2-mentira-trofeu-item em { font-style: normal; font-weight: 900; color: #7a5bd1; }
+.v2-mentira-trofeu-item small { font-size: 12px; font-weight: 700; color: #8a7fa8; }
+@media (min-width: 900px) { .v2-mentira-final-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } }
+.v2-mentira-curtir-carta { border: none; border-radius: 999px; padding: 6px 16px; background: #fff; font: inherit; font-weight: 900; font-size: 16px; cursor: pointer; filter: grayscale(.6); transition: transform .1s; }
+.v2-mentira-curtir-carta:hover { transform: scale(1.06); filter: none; }
+.v2-mentira-curtir-carta.ativo { background: var(--amarelo); filter: none; animation: v2-pop .3s ease-out both; }
