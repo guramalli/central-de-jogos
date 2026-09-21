@@ -87,7 +87,7 @@ export default function Mentira({ usuario, salaDoLink }) {
 
       <div className="v2-mentira-corpo">
         <div className="v2-mentira-palco">
-          {fase === "aguardando" && <Espera estado={estado} streamer={streamer} aoComecar={() => pedir("mentira-comecar")} />}
+          {fase === "aguardando" && <Espera estado={estado} streamer={streamer} aoComecar={() => pedir("mentira-comecar")} aoBot={(acao) => pedir("mentira-bot", { acao })} />}
           {fase === "escrever" && <Escrever key={`${estado.rodada}-${estado.curiosidade?.texto}`} estado={estado} aoMentir={(texto) => pedir("mentira-mentir", { texto })} aoPular={() => pedir("mentira-pular")} />}
           {fase === "escolher" && <Escolher estado={estado} aoEscolher={(opcaoId) => pedir("mentira-escolher", { opcaoId })} />}
           {fase === "revelar" && <Revelar key={estado.rodada} estado={estado} />}
@@ -142,7 +142,7 @@ function QuemJa({ estado, verbo }) {
   );
 }
 
-function Espera({ estado, streamer, aoComecar }) {
+function Espera({ estado, streamer, aoComecar, aoBot }) {
   const [copiado, setCopiado] = useState(false);
   const online = estado.jogadores.filter((j) => j.online);
   async function copiar() {
@@ -161,7 +161,14 @@ function Espera({ estado, streamer, aoComecar }) {
         </div>
       )}
       <button className="v2-botao v2-botao-contorno" onClick={copiar}>{copiado ? "Link copiado!" : "Copiar link de convite"}</button>
-      <div className="v2-mentira-quem">{online.map((j) => <span key={j.id} className="pronto">{j.nickname}{j.id === estado.donoId ? " 👑" : ""}</span>)}</div>
+      <div className="v2-mentira-quem">{online.map((j) => <span key={j.id} className="pronto">{j.nickname}{j.id === estado.donoId ? " 👑" : ""}{j.bot ? " 🤖" : ""}</span>)}</div>
+      {estado.souDono && (
+        <div className="v2-mentira-bots">
+          <button className="v2-botao v2-botao-contorno" onClick={() => aoBot("adicionar")} disabled={estado.jogadores.length >= 8}>+ bot de teste</button>
+          {online.some((j) => j.bot) && <button className="v2-link" onClick={() => aoBot("remover")}>remover bots</button>}
+          <small>Bots escrevem mentiras e votam sozinhos — pra testar sem precisar de gente.</small>
+        </div>
+      )}
       {estado.souDono ? (
         <button className="v2-botao v2-botao-amarelo v2-botao-largo" onClick={aoComecar} disabled={online.length < 2}>{online.length < 2 ? "Esperando mais gente (mín. 2)" : `Começar com ${online.length} jogadores`}</button>
       ) : (
@@ -277,7 +284,7 @@ function Placar({ estado, meuId }) {
         <div key={j.id} className={`v2-mentira-jogador ${j.id === meuId ? "eu" : ""} ${j.online ? "" : "fora"}`}>
           <span className="v2-mentira-pos">{i + 1}</span>
           <Avatar userId={j.id} nickname={j.nickname} tamanho={30} />
-          <span className="v2-mentira-nick">{j.nickname}{j.id === estado.donoId ? " 👑" : ""}</span>
+          <span className="v2-mentira-nick">{j.nickname}{j.id === estado.donoId ? " 👑" : ""}{j.bot && <em className="v2-tag-bot">bot</em>}</span>
           {j.ganhou > 0 && <em className="v2-mentira-ganho">+{j.ganhou}</em>}
           <b>{j.pontos.toLocaleString("pt-BR")}</b>
         </div>

@@ -1948,3 +1948,6 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
   .v2-mentira-opcoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v2-mentira-curiosidade { font-size: 32px; }
 }
+.v2-mentira-bots { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.v2-mentira-bots small { width: 100%; font-weight: 700; color: #5a4a8a; }
+.v2-mentira-bots .v2-link { color: #7a5bd1; }

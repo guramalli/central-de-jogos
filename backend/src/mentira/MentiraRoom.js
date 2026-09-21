@@ -19,6 +19,9 @@ export const SEG_ESCOLHER = 25;
 const PONTOS_VERDADE = 500;
 const PONTOS_POR_ENGANADO = 250;
 const MIN_OPCOES = 4;
+const MAX_JOGADORES = 8;
+// Mentiras dos BOTS quando as da casa já foram usadas.
+const MENTIRAS_BOT = ["um pato de borracha", "o Faustão", "três pinguins", "uma galinha", "o Silvio Santos", "pão de queijo", "um fusca azul", "a Xuxa", "um tamanduá", "uma panela de pressão"];
 const MAX_MENTIRA = 60;
 
 export const normalizar = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
@@ -99,16 +102,18 @@ export class MentiraRoom {
       // (pode voltar e manter os pontos).
       if (j.sockets.size === 0 && this.fase === "aguardando") this.jogadores.delete(j.id);
     }
-    if (!this.online().some((j) => j.id === this.donoId)) {
-      const novo = this.online()[0];
+    if (!this.humanos().some((j) => j.id === this.donoId)) {
+      const novo = this.humanos()[0];
       if (novo) this.donoId = novo.id;
     }
-    if (this.online().length === 0) this.parar();
+    if (this.vazia()) this.parar();
     else { this.conferirFimAntecipado(); this.transmitir(); }
   }
 
-  online() { return [...this.jogadores.values()].filter((j) => j.sockets.size > 0); }
-  vazia() { return this.online().length === 0; }
+  online() { return [...this.jogadores.values()].filter((j) => j.bot || j.sockets.size > 0); }
+  humanos() { return this.online().filter((j) => !j.bot); }
+  // Sala "vazia" = sem PESSOAS (bots não seguram a sala nem o relógio).
+  vazia() { return this.humanos().length === 0; }
 
   // ---------------- controle ----------------
   comecar(userId) {
@@ -117,11 +122,52 @@ export class MentiraRoom {
     if (this.online().length < 2) return "Precisa de pelo menos 2 jogadores.";
     for (const j of this.jogadores.values()) j.pontos = 0;
     // Remove quem saiu durante a partida anterior.
-    for (const j of [...this.jogadores.values()]) if (j.sockets.size === 0) this.jogadores.delete(j.id);
+    for (const j of [...this.jogadores.values()]) if (!j.bot && j.sockets.size === 0) this.jogadores.delete(j.id);
     this.rodada = 0;
     this.proximaRodada();
     this.iniciarRelogio();
     return null;
+  }
+
+  // BOTS DE TESTE: o dono adiciona pra testar sozinho.
+  adicionarBot(userId) {
+    if (userId !== this.donoId) return "Só o dono da sala adiciona bots.";
+    if (this.jogadores.size >= MAX_JOGADORES) return "A sala já está cheia (8).";
+    const n = [...this.jogadores.values()].filter((j) => j.bot).length + 1;
+    const id = `bot-${this.codigo}-${n}-${Math.random().toString(36).slice(2, 5)}`;
+    this.jogadores.set(id, { id, nickname: `Robô Mentiroso ${n}`, pontos: 0, sockets: new Set(), bot: true, agenda: null });
+    this.transmitir();
+    return null;
+  }
+
+  removerBots(userId) {
+    if (userId !== this.donoId) return "Só o dono da sala remove bots.";
+    for (const j of [...this.jogadores.values()]) if (j.bot) this.jogadores.delete(j.id);
+    this.conferirFimAntecipado();
+    this.transmitir();
+    return null;
+  }
+
+  // Um "segundo" de cada bot: escreve ou escolhe depois de um atraso.
+  agirBots() {
+    const bots = [...this.jogadores.values()].filter((j) => j.bot);
+    for (const b of bots) {
+      const chave = `${this.fase}-${this.rodada}`;
+      if (b.agendaChave !== chave) { b.agendaChave = chave; b.agenda = this.tempo - (this.fase === "escrever" ? 5 + Math.floor(Math.random() * 15) : 3 + Math.floor(Math.random() * 8)); }
+      if (this.tempo > Math.max(b.agenda, 1)) continue;
+      if (this.fase === "escrever" && !this.mentiras.has(b.id)) {
+        const usadas = new Set([...this.mentiras.values()].map(normalizar));
+        const candidatas = [...embaralhar(this.curiosidade.casa || []), ...embaralhar(MENTIRAS_BOT)].filter((t) => !usadas.has(normalizar(t)) && !ehAVerdade(t, this.curiosidade));
+        if (candidatas.length) this.mentir(b.id, candidatas[0]);
+      } else if (this.fase === "escolher" && !this.votos.has(b.id)) {
+        const possiveis = this.opcoes.filter((o) => !o.autores.includes(b.id));
+        const verdade = possiveis.find((o) => o.verdade);
+        const mentiras = possiveis.filter((o) => !o.verdade);
+        const alvo = Math.random() < 0.4 || !mentiras.length ? verdade : mentiras[Math.floor(Math.random() * mentiras.length)];
+        if (alvo) this.escolher(b.id, alvo.id);
+      }
+      if (this.fase === "revelar" || this.fase === "fim") break;
+    }
   }
 
   pular(userId) {
@@ -238,6 +284,8 @@ export class MentiraRoom {
 
   tick() {
     if (!["escrever", "escolher", "revelar"].includes(this.fase)) return;
+    if (this.fase !== "revelar") this.agirBots();
+    if (!["escrever", "escolher", "revelar"].includes(this.fase)) return;
     this.tempo -= 1;
     if (this.tempo > 0) { this.transmitirTempo(); return; }
     if (this.fase === "escrever") this.irParaEscolha();
@@ -259,7 +307,7 @@ export class MentiraRoom {
       souDono: userId === this.donoId,
       jogadores: [...this.jogadores.values()]
         .map((j) => ({
-          id: j.id, nickname: j.nickname, pontos: j.pontos, online: j.sockets.size > 0,
+          id: j.id, nickname: j.nickname, pontos: j.pontos, online: !!j.bot || j.sockets.size > 0, bot: !!j.bot,
           pronto: this.fase === "escrever" ? this.mentiras.has(j.id) : this.fase === "escolher" ? this.votos.has(j.id) : false,
           ganhou: this.fase === "revelar" || this.fase === "fim" ? this.ganhosDaRodada.get(j.id) || 0 : 0,
         }))
@@ -284,7 +332,7 @@ export class MentiraRoom {
     return base;
   }
 
-  transmitir() { for (const j of this.jogadores.values()) if (j.sockets.size) this.enviar(j.id, this.estadoPara(j.id)); }
+  transmitir() { for (const j of this.jogadores.values()) if (!j.bot && j.sockets.size) this.enviar(j.id, this.estadoPara(j.id)); }
   // Só o relógio mudou: manda o estado inteiro mesmo (poucos jogadores).
   transmitirTempo() { this.transmitir(); }
 }
