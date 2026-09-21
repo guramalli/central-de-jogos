@@ -17,6 +17,7 @@ import Novidades from "./Novidades.jsx";
 import EditarPerfil from "./EditarPerfil.jsx";
 import Admin from "./Admin.jsx";
 import MultiSala from "./MultiSala.jsx";
+import Mentira from "./Mentira.jsx";
 import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
@@ -27,7 +28,7 @@ import SalasPrivadas from "./SalasPrivadas.jsx";
 // site clássico por engano.
 function lerLocal() {
   const p = new URLSearchParams(window.location.search);
-  return { token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
+  return { mesa: p.get("mesa"), token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
 
 function navegar(params) {
@@ -102,6 +103,8 @@ export default function App() {
     case "editar-perfil": return <EditarPerfil usuario={usuario} />;
     case "admin": return <Admin usuario={usuario} />;
     case "privadas": return <SalasPrivadas key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "acromania" ? "acromania" : "stop"} salaDoLink={local.salaPrivada} />;
+    // Mentira Sincera — EM TESTE, sem link em lugar nenhum (só o atalho do painel admin).
+    case "mentira": return <Mentira usuario={usuario} salaDoLink={local.mesa} />;
     case "varias": return <MultiSala key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "quiz" ? "quiz" : "stop"} />;
     default: return <Inicio usuario={usuario} />;
   }

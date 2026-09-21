@@ -96,7 +96,11 @@ export default function Admin({ usuario }) {
     <div className="v2-app v2-com-menu">
       <Topo usuario={usuario} ativo="admin" />
       <main className="v2-pagina v2-admin">
-        <div className="v2-pagina-cabeca"><h1>Painel Admin</h1></div>
+        <div className="v2-pagina-cabeca">
+          <h1>Painel Admin</h1>
+          {/* Jogo em teste, sem link no site: o atalho mora só aqui. */}
+          <a className="v2-botao-pequeno v2-atalho-teste" href="/v2/?pagina=mentira" onClick={(e) => { e.preventDefault(); irParaPagina("mentira"); }}>🎭 Mentira Sincera (teste)</a>
+        </div>
         <div className="v2-admin-abas" role="tablist">
           {ABAS.map((a) => (
             <button key={a.id} role="tab" aria-selected={aba === a.id} className={aba === a.id ? "ativa" : ""} onClick={() => trocarAba(a.id)}>

@@ -1,3 +1,4 @@
+import { registrarMentira } from "../mentira/socketMentira.js";
 import { chamarBotsNoStop, dispensarBotsDoStop } from "../game/stopBots.js";
 import { verifyToken } from "../utils/jwt.js";
 import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
@@ -113,6 +114,8 @@ export function setupSocket(io) {
 
   io.on("connection", async (socket) => {
     const { id: userId, nickname } = socket.user;
+    // Mentira Sincera (em teste — ver src/mentira/).
+    registrarMentira(io, socket);
 
     // Toda conexão autenticada conta como "no site" — independente da
     // página. É daqui que o painel admin tira quem está online.
