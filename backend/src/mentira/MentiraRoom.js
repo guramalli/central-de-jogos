@@ -1,4 +1,5 @@
 import { CURIOSIDADES } from "./curiosidades.js";
+import { FRASES_SOBRE, VERDADES_BOT } from "./frasesSobre.js";
 
 // MENTIRA SINCERA — jogo de blefe (inspirado no Fibbage 4). Regras:
 //   - 7 perguntas em 3 FASES: 1–3 valem ×1; 4–6 valem ×2; a 7ª é a FINAL
@@ -20,6 +21,9 @@ export const SEG_ESCREVER = 45;
 export const SEG_ESCOLHER = 25;
 export const SEG_ESCREVER_FINAL = 60;
 export const SEG_ESCOLHER_FINAL = 35;
+export const SEG_CONFESSAR = 60;
+// Modo "Sobre Vocês": cada um confessa uma verdade sobre si; depois, uma
+// rodada por pessoa (os OUTROS mentem e tentam achar a verdade dela).
 const PONTOS_VERDADE = 500;
 const PONTOS_POR_ENGANADO = 250;
 const PENALIDADE_CASA = 250;
@@ -72,6 +76,12 @@ export class MentiraRoom {
     this.curiosidades = curiosidades;
     this.jogadores = new Map(); // userId -> { id, nickname, pontos, sockets:Set, bot?, stats }
     this.fase = "aguardando";
+    this.modo = "curiosidades"; // curiosidades | sobre
+    this.totalRodadas = TOTAL_RODADAS;
+    this.frasesDoJogador = new Map(); // (sobre) userId -> frase sorteada
+    this.confissoes = new Map(); // (sobre) userId -> verdade confessada
+    this.fila = []; // (sobre) ordem das rodadas: userIds
+    this.assuntoId = null; // (sobre) de quem é a rodada
     this.rodada = 0;
     this.baralho = [];
     this.timer = null;
@@ -89,8 +99,14 @@ export class MentiraRoom {
     this.ganhosDaRodada = new Map();
   }
 
-  get ehFinal() { return this.rodada === TOTAL_RODADAS; }
-  get multiplicador() { return this.rodada >= TOTAL_RODADAS ? 3 : this.rodada >= 4 ? 2 : 1; }
+  get sobre() { return this.modo === "sobre"; }
+  get ehFinal() { return !this.sobre && this.rodada === TOTAL_RODADAS; }
+  get multiplicador() {
+    if (this.sobre) return this.rodada >= this.totalRodadas ? 2 : 1; // última vale o dobro
+    return this.rodada >= TOTAL_RODADAS ? 3 : this.rodada >= 4 ? 2 : 1;
+  }
+  // Quem joga a rodada (no "Sobre Vocês", o assunto só assiste).
+  participantes() { return this.online().filter((j) => j.id !== this.assuntoId); }
 
   // ---------------- gente ----------------
   novoJogador(id, nickname, bot = false) {
@@ -128,10 +144,23 @@ export class MentiraRoom {
     if (this.fase !== "aguardando" && this.fase !== "fim") return "A partida já está rolando.";
     if (this.online().length < 2) return "Precisa de pelo menos 2 jogadores.";
     for (const j of [...this.jogadores.values()]) if (!j.bot && j.sockets.size === 0) this.jogadores.delete(j.id);
+    if (this.sobre && this.online().length < 3) return "O modo Sobre Vocês precisa de pelo menos 3 jogadores (vale bot).";
     for (const j of this.jogadores.values()) { j.pontos = 0; j.stats = { enganou: 0, acertos: 0, curtidas: 0 }; }
     this.rodada = 0;
-    this.proximaRodada();
+    this.assuntoId = null;
+    this.totalRodadas = TOTAL_RODADAS;
+    if (this.sobre) this.iniciarConfissoes();
+    else this.proximaRodada();
     this.iniciarRelogio();
+    return null;
+  }
+
+  definirModo(userId, modo) {
+    if (userId !== this.donoId) return "Só o dono da sala escolhe o modo.";
+    if (this.fase !== "aguardando" && this.fase !== "fim") return "Dá pra trocar o modo só antes de começar.";
+    if (!["curiosidades", "sobre"].includes(modo)) return "Modo inválido.";
+    this.modo = modo;
+    this.transmitir();
     return null;
   }
 
@@ -156,9 +185,55 @@ export class MentiraRoom {
   pular(userId) {
     if (userId !== this.donoId) return "Só o dono da sala pode pular.";
     if (this.fase !== "escrever") return "Só dá pra pular enquanto escrevem.";
+    if (this.sobre) {
+      this.fila.splice(this.rodada - 1, 1);
+      this.totalRodadas = this.fila.length;
+      this.rodada -= 1;
+      if (this.rodada >= this.totalRodadas) { this.fase = "fim"; this.pararRelogio(); this.transmitir(); }
+      else this.proximaRodada();
+      return null;
+    }
     this.rodada -= 1; // a pulada não conta
     this.proximaRodada();
     return null;
+  }
+
+  // ---------------- "Sobre Vocês": confissões ----------------
+  iniciarConfissoes() {
+    this.limparRodada();
+    this.frasesDoJogador = new Map();
+    this.confissoes = new Map();
+    const frases = embaralhar(FRASES_SOBRE);
+    this.online().forEach((j, i) => this.frasesDoJogador.set(j.id, frases[i % frases.length]));
+    this.fase = "confessar";
+    this.tempo = SEG_CONFESSAR;
+    this.transmitir();
+  }
+
+  confessar(userId, texto) {
+    if (this.fase !== "confessar") return "Agora não é hora de confessar.";
+    if (!this.frasesDoJogador.has(userId)) return "Você entrou depois — espere a próxima partida.";
+    const t = String(texto || "").replace(/\s+/g, " ").trim().slice(0, MAX_MENTIRA);
+    if (!t) return "Escreva a sua verdade.";
+    this.confissoes.set(userId, t);
+    if ([...this.frasesDoJogador.keys()].every((uid) => this.confissoes.has(uid) || !this.jogadores.get(uid)?.sockets.size && !this.jogadores.get(uid)?.bot)) this.iniciarRodadasSobre();
+    else this.transmitir();
+    return null;
+  }
+
+  iniciarRodadasSobre() {
+    // Uma rodada por pessoa que confessou (quem não confessou fica de fora).
+    this.fila = embaralhar([...this.confissoes.keys()].filter((uid) => this.jogadores.has(uid)));
+    if (this.fila.length === 0) { this.fase = "fim"; this.pararRelogio(); this.transmitir(); return; }
+    this.totalRodadas = this.fila.length;
+    this.rodada = 0;
+    this.proximaRodada();
+  }
+
+  curiosidadeSobre(uid) {
+    const frase = this.frasesDoJogador.get(uid);
+    const nick = this.jogadores.get(uid)?.nickname || "Alguém";
+    return { id: `sobre-${frase.id}-${uid}`, texto: frase.ele.replace("{n}", nick), verdade: this.confissoes.get(uid), aceitas: [], casa: frase.casa };
   }
 
   tirarDoBaralho() {
@@ -170,6 +245,14 @@ export class MentiraRoom {
   proximaRodada() {
     this.limparRodada();
     this.rodada += 1;
+    if (this.sobre) {
+      this.assuntoId = this.fila[this.rodada - 1];
+      this.perguntas = [this.curiosidadeSobre(this.assuntoId)];
+      this.fase = "escrever";
+      this.tempo = SEG_ESCREVER;
+      this.transmitir();
+      return;
+    }
     this.perguntas = [this.tirarDoBaralho()];
     if (this.ehFinal) {
       let segunda = this.tirarDoBaralho();
@@ -185,8 +268,10 @@ export class MentiraRoom {
   mentir(userId, texto) {
     if (this.fase !== "escrever") return "Agora não é hora de escrever.";
     if (!this.jogadores.has(userId)) return "Você não está nesta sala.";
+    if (userId === this.assuntoId) return "Essa rodada é sobre você — só assista (e curta as mentiras)!";
     const t = String(texto || "").replace(/\s+/g, " ").trim().slice(0, MAX_MENTIRA);
     if (!t) return "Escreva alguma coisa.";
+    if (this.sobre && this.perguntas.some((c) => ehAVerdade(t, c))) return `Essa é a verdade de ${this.jogadores.get(this.assuntoId)?.nickname || "alguém"}! Invente uma mentira.`;
     if (this.perguntas.some((c) => ehAVerdade(t, c))) {
       return this.ehFinal ? "Essa é a resposta certa de uma das perguntas! Invente outra mentira." : "Essa é a resposta certa! Invente outra mentira.";
     }
@@ -199,6 +284,7 @@ export class MentiraRoom {
   escolher(userId, opcaoId, pergunta = 0) {
     if (this.fase !== "escolher") return "Agora não é hora de escolher.";
     if (!this.jogadores.has(userId)) return "Você não está nesta sala.";
+    if (userId === this.assuntoId) return "Essa rodada é sobre você — quem escolhe são os outros.";
     const p = Number(pergunta) || 0;
     const op = (this.opcoes[p] || []).find((o) => o.id === opcaoId);
     if (!op) return "Opção inválida.";
@@ -215,7 +301,7 @@ export class MentiraRoom {
   // assim que o último escolhe — sem a revelação, ele nunca curtiria.
   curtir(userId, opcaoId) {
     if (this.fase !== "escolher" && this.fase !== "revelar") return "Agora não dá pra curtir.";
-    if (this.fase === "escolher" && !this.votos.every((v) => v.has(userId))) return "Escolha sua resposta antes de curtir.";
+    if (this.fase === "escolher" && userId !== this.assuntoId && !this.votos.every((v) => v.has(userId))) return "Escolha sua resposta antes de curtir.";
     const op = this.opcoes.flat().find((o) => o.id === opcaoId);
     if (!op) return "Opção inválida.";
     if (op.autores.includes(userId)) return "Não vale curtir a própria mentira.";
@@ -228,7 +314,7 @@ export class MentiraRoom {
   }
 
   conferirFimAntecipado() {
-    const ativos = this.online();
+    const ativos = this.participantes();
     if (!ativos.length) return;
     if (this.fase === "escrever" && ativos.every((j) => this.mentiras.has(j.id))) this.irParaEscolha();
     else if (this.fase === "escolher" && ativos.every((j) => this.votos.every((v) => v.has(j.id)))) this.irParaRevelacao();
@@ -325,19 +411,24 @@ export class MentiraRoom {
       if (n && !o.verdade && !o.casa) o.autores.forEach((uid) => { const j = this.jogadores.get(uid); if (j) j.stats.curtidas += n; });
     }
     this.curtidas = new Map();
-    if (this.rodada >= TOTAL_RODADAS) { this.fase = "fim"; this.pararRelogio(); this.transmitir(); }
+    if (this.rodada >= this.totalRodadas) { this.fase = "fim"; this.assuntoId = null; this.pararRelogio(); this.transmitir(); }
     else this.proximaRodada();
   }
 
   // ---------------- bots ----------------
   agirBots() {
-    for (const b of [...this.jogadores.values()].filter((j) => j.bot)) {
+    for (const b of [...this.jogadores.values()].filter((j) => j.bot && j.id !== this.assuntoId)) {
       const chave = `${this.fase}-${this.rodada}`;
       if (b.agendaChave !== chave) {
         b.agendaChave = chave;
         b.agenda = this.tempo - (this.fase === "escrever" ? 5 + Math.floor(Math.random() * 15) : 3 + Math.floor(Math.random() * 8));
       }
       if (this.tempo > Math.max(b.agenda, 1)) continue;
+      if (this.fase === "confessar") {
+        if (!this.confissoes.has(b.id) && this.frasesDoJogador.has(b.id)) this.confessar(b.id, VERDADES_BOT[Math.floor(Math.random() * VERDADES_BOT.length)]);
+        if (this.fase !== "confessar") break;
+        continue;
+      }
       if (this.fase === "escrever" && !this.mentiras.has(b.id)) {
         const usadas = new Set([...this.mentiras.values()].map(normalizar));
         const fonte = this.ehFinal ? embaralhar(MENTIRAS_BOT) : [...embaralhar(this.perguntas[0].casa || []), ...embaralhar(MENTIRAS_BOT)];
@@ -363,12 +454,14 @@ export class MentiraRoom {
   parar() { this.pararRelogio(); }
 
   tick() {
-    if (!["escrever", "escolher", "revelar"].includes(this.fase)) return;
+    const comRelogio = ["confessar", "escrever", "escolher", "revelar"];
+    if (!comRelogio.includes(this.fase)) return;
     if (this.fase !== "revelar") this.agirBots();
-    if (!["escrever", "escolher", "revelar"].includes(this.fase)) return;
+    if (!comRelogio.includes(this.fase)) return;
     this.tempo -= 1;
     if (this.tempo > 0) { this.transmitir(); return; }
-    if (this.fase === "escrever") this.irParaEscolha();
+    if (this.fase === "confessar") this.iniciarRodadasSobre();
+    else if (this.fase === "escrever") this.irParaEscolha();
     else if (this.fase === "escolher") this.irParaRevelacao();
     else this.depoisDaRevelacao();
   }
@@ -391,7 +484,12 @@ export class MentiraRoom {
       codigo: this.codigo,
       fase: this.fase,
       rodada: this.rodada,
-      totalRodadas: TOTAL_RODADAS,
+      totalRodadas: this.totalRodadas,
+      modo: this.modo,
+      assunto: this.assuntoId ? { id: this.assuntoId, nickname: this.jogadores.get(this.assuntoId)?.nickname || "alguém" } : null,
+      souAssunto: !!this.assuntoId && this.assuntoId === userId,
+      minhaFrase: this.fase === "confessar" ? this.frasesDoJogador.get(userId)?.eu || null : null,
+      minhaConfissao: this.fase === "confessar" ? this.confissoes.get(userId) || null : null,
       multiplicador: this.multiplicador,
       final: this.ehFinal,
       tempo: this.tempo,
@@ -400,7 +498,10 @@ export class MentiraRoom {
       jogadores: [...this.jogadores.values()]
         .map((j) => ({
           id: j.id, nickname: j.nickname, pontos: j.pontos, online: !!j.bot || j.sockets.size > 0, bot: !!j.bot,
-          pronto: this.fase === "escrever" ? this.mentiras.has(j.id) : this.fase === "escolher" ? this.votos.every((v) => v.has(j.id)) : false,
+          pronto: this.fase === "confessar" ? this.confissoes.has(j.id)
+            : this.fase === "escrever" ? this.mentiras.has(j.id)
+            : this.fase === "escolher" ? this.votos.every((v) => v.has(j.id)) : false,
+          assunto: j.id === this.assuntoId,
           ganhou: this.fase === "revelar" || this.fase === "fim" ? this.ganhosDaRodada.get(j.id) || 0 : 0,
         }))
         .sort((a, b) => b.pontos - a.pontos),
