@@ -21,15 +21,13 @@ import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import SalasPrivadas from "./SalasPrivadas.jsx";
-import Duelos from "./Duelos.jsx";
-import Duelo from "./Duelo.jsx";
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
 // site clássico por engano.
 function lerLocal() {
   const p = new URLSearchParams(window.location.search);
-  return { convite: p.get("convite"), token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
+  return { token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
 
 function navegar(params) {
@@ -104,8 +102,6 @@ export default function App() {
     case "editar-perfil": return <EditarPerfil usuario={usuario} />;
     case "admin": return <Admin usuario={usuario} />;
     case "privadas": return <SalasPrivadas key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "acromania" ? "acromania" : "stop"} salaDoLink={local.salaPrivada} />;
-    case "duelos": return <Duelos usuario={usuario} />;
-    case "duelo": return <Duelo key={local.id} usuario={usuario} dueloId={local.id} veioDeConvite={!!local.convite} />;
     case "varias": return <MultiSala key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "quiz" ? "quiz" : "stop"} />;
     default: return <Inicio usuario={usuario} />;
   }

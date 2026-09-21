@@ -39,9 +39,6 @@ model User {
   // pra contas de teste do próprio time (que jogam o tempo todo validando
   // features) não distorcerem a disputa nem a premiação.
   ocultoNoRanking  Boolean  @default(false)
-  // Duelo (quiz por turnos) — lados da partida.
-  duelosComoA      Duelo[]  @relation("DueloA")
-  duelosComoB      Duelo[]  @relation("DueloB")
   // Ocultação POR JOGO. O campo acima é o interruptor geral (some de todos os
   // rankings); este permite sumir só de alguns, guardando as gameKeys — por
   // exemplo ["stop"] esconde do ranking do Stop e mantém no do Quiz.
@@ -517,59 +514,4 @@ model StopStat {
   rapidos Int    @default(0)
 
   @@unique([userId, grupo])
-}
-
-// DUELO — quiz por turnos (assíncrono), 1x1, feito pro celular.
-//
-// Cada jogador joga NA SUA VEZ, quando puder (prazo de 24h por turno): não
-// precisa ninguém online junto. O estado inteiro da partida mora nesta
-// linha — um turno nunca fica "metade gravado".
-//
-// Regras (aprovadas): 6 temas sorteados viram a roleta; múltipla escolha
-// com 4 alternativas e 20s; acertar enche 1/3 do medidor; medidor cheio =
-// pergunta da medalha (tema à escolha); até 3 perguntas por turno; vence
-// quem fizer 6 medalhas (ou mais medalhas em 25 turnos de cada).
-//
-// ISOLADO do ranking mensal e do Pix nesta etapa.
-model Duelo {
-  id              String    @id @default(cuid())
-  jogadorAId      String
-  jogadorA        User      @relation("DueloA", fields: [jogadorAId], references: [id], onDelete: Cascade)
-  // null = convite por link ainda sem adversário
-  jogadorBId      String?
-  jogadorB        User?     @relation("DueloB", fields: [jogadorBId], references: [id], onDelete: Cascade)
-  contraBot       Boolean   @default(false)
-  temas           String[]  // as 6 fatias da roleta (chaves de tema do Quiz)
-  // andamento | aguardando (link sem adversário) | encerrado | recusado | cancelado
-  status          String    @default("andamento")
-  vezDeId         String?
-  prazoEm         DateTime? // fim do prazo do turno atual (24h)
-  medalhasA       String[]  @default([])
-  medalhasB       String[]  @default([])
-  medidorA        Int       @default(0) // 0..3
-  medidorB        Int       @default(0)
-  acertosA        Int       @default(0)
-  acertosB        Int       @default(0)
-  turnosA         Int       @default(0) // turnos terminados
-  turnosB         Int       @default(0)
-  perguntasNoTurno Int      @default(0) // perguntas "normais" já feitas no turno
-  // Pergunta aberta agora (a resposta certa NUNCA sai do servidor antes da jogada).
-  perguntaId      String?
-  perguntaTema    String?
-  perguntaTipo    String?   // normal | medalha
-  alternativas    String[]  @default([])
-  indiceCerto     Int?
-  perguntaEm      DateTime?
-  usadas          String[]  @default([]) // perguntas que já saíram neste duelo
-  // Resumo das últimas jogadas pro outro ver ("Rafa acertou Games...").
-  eventos         Json      @default("[]")
-  vencedorId      String?
-  motivoFim       String?   // medalhas | turnos | prazo | desistencia | empate
-  criadoEm        DateTime  @default(now())
-  atualizadoEm    DateTime  @updatedAt
-  encerradoEm     DateTime?
-
-  @@index([jogadorAId, status])
-  @@index([jogadorBId, status])
-  @@index([status, prazoEm])
 }

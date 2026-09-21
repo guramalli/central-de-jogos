@@ -15,7 +15,6 @@ const ITENS = [
   { chave: "stop", rotulo: "Stop", jogo: "stop" },
   { chave: "quiz", rotulo: "Quiz", jogo: "quiz" },
   { chave: "acromania", rotulo: "Acromania", jogo: "acromania" },
-  { chave: "duelos", rotulo: "Duelo", aviso: "duelos" },
   { chave: "ranking", rotulo: "Ranking" },
   { chave: "hall", rotulo: "Hall da Fama" },
   { chave: "missoes", rotulo: "Missões", aviso: "missoes" },
@@ -55,17 +54,13 @@ export default function Topo({ usuario, ativo = null }) {
     let vivo = true;
     const buscar = () => {
       if (document.hidden) return;
-      api.get("/avisos").then(({ data }) => vivo && setAvisos((a) => ({ ...(data || {}), duelos: a.duelos }))).catch(() => {});
+      api.get("/avisos").then(({ data }) => vivo && setAvisos(data || {})).catch(() => {});
     };
     buscar();
     const t = setInterval(buscar, 120000);
     window.addEventListener("v2-mensagens-lidas", buscar);
     api.get("/acromania-rooms").then(({ data }) => vivo && setAcroAtivo(Array.isArray(data) ? true : data.ativo !== false)).catch(() => {});
-    // Duelos esperando a MINHA vez (bolinha no item "Duelo").
-    const duelos = () => { if (!document.hidden) api.get("/duelos").then(({ data }) => vivo && setAvisos((a) => ({ ...a, duelos: (data || []).filter((d) => d.minhaVez).length }))).catch(() => {}); };
-    duelos();
-    const td = setInterval(duelos, 60000);
-    return () => { vivo = false; clearInterval(t); clearInterval(td); window.removeEventListener("v2-mensagens-lidas", buscar); };
+    return () => { vivo = false; clearInterval(t); window.removeEventListener("v2-mensagens-lidas", buscar); };
   }, []);
 
   const contador = (it) => (it.aviso === "amigos" ? (avisos.amigos || 0) + (avisos.mensagens || 0) : it.aviso ? avisos[it.aviso] || 0 : 0);

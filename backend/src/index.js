@@ -28,8 +28,6 @@ import quizQuestionsRoutes from "./routes/quizQuestions.js";
 import feedbackRoutes from "./routes/feedback.js";
 import ranksRoutes from "./routes/ranks.js";
 import acromaniaRanksRoutes from "./routes/acromaniaRanks.js";
-import duelosRoutes from "./routes/duelos.js";
-import { iniciarVarredura as iniciarVarreduraDuelos } from "./duelo/duelo.js";
 import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
 import { setupSocket } from "./socket/index.js";
@@ -109,7 +107,6 @@ app.use("/api/ranks", ranksRoutes);
 app.use("/api/platform-stats", platformStatsRoutes);
 app.use("/api/quiz-ranks", quizRanksRoutes);
 app.use("/api/acromania-ranks", acromaniaRanksRoutes);
-app.use("/api/duelos", duelosRoutes); // Duelo: quiz por turnos (assíncrono)
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno
@@ -155,6 +152,4 @@ process.on("uncaughtException", (err) => {
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Educação Gamer backend rodando em http://localhost:${PORT}`);
-  // Duelo: prazos de 24h, perguntas abandonadas e turnos do bot.
-  iniciarVarreduraDuelos();
 });

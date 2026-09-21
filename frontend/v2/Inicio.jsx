@@ -12,7 +12,6 @@ const JOGOS = [
   { chave: "stop", logo: "/stop-logo.png", cor: "#FF8A7F", sombra: "#C7493F", texto: "Aqui não adianta saber todos os temas: tem que ser rápido. 6 temas, 1 letra sorteada, e quem hesita perde a rodada." },
   { chave: "quiz", logo: "/quiz-logo.png", cor: "#FFD60A", sombra: "#B88A00", texto: "Milhares de perguntas por tema — Futebol, Anime, Games, Terceirão e muito mais. Quem acerta primeiro leva os pontos!" },
   { chave: "acromania", logo: "/acromania-logo.png", cor: "#C3A6FF", sombra: "#8465D1", texto: "Um tema, algumas letras, e você cria a frase mais criativa. A galera vota na melhor.", beta: true },
-  { chave: "duelo", titulo: "⚔️ Duelo", cor: "#7CC8FF", sombra: "#3E86C2", texto: "Quiz 1×1 por turnos, feito pro celular: jogue na sua vez, quando puder. Gire a roleta e conquiste as 6 medalhas.", novo: true },
 ];
 
 export default function Inicio({ usuario }) {
@@ -21,13 +20,11 @@ export default function Inicio({ usuario }) {
   const [online, setOnline] = useState(null);
   const [acroAtivo, setAcroAtivo] = useState(true);
   const [feedback, setFeedback] = useState(false);
-  const [duelosNaVez, setDuelosNaVez] = useState(0);
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
     let vivo = true;
     api.get(`/users/${usuario.id}/profile`).then(({ data }) => vivo && setPerfil(data)).catch(() => {});
-    api.get("/duelos").then(({ data }) => vivo && setDuelosNaVez((data || []).filter((d) => d.minhaVez).length)).catch(() => {});
     api.get(`/users/${usuario.id}/titulos`).then(({ data }) => vivo && setTitulos(data)).catch(() => {});
     api.get("/acromania-rooms").then(({ data }) => vivo && setAcroAtivo(Array.isArray(data) ? true : data.ativo !== false)).catch(() => {});
     const contar = () => api.get("/platform-stats/online").then(({ data }) => vivo && setOnline(data)).catch(() => {});
@@ -59,7 +56,7 @@ export default function Inicio({ usuario }) {
     } catch {}
   }
 
-  const jogar = (e, jogo) => { e.preventDefault(); if (jogo === "duelo") irParaPagina("duelos"); else irParaPagina("jogar", { jogo }); };
+  const jogar = (e, jogo) => { e.preventDefault(); irParaPagina("jogar", { jogo }); };
 
   return (
     <div className="v2-app v2-com-menu">
@@ -113,11 +110,9 @@ export default function Inicio({ usuario }) {
 
         <div className="v2-jogos-cards">
           {JOGOS.filter((j) => j.chave !== "acromania" || acroAtivo).map((j, i) => (
-            <a key={j.chave} className="v2-jogo-card" href={j.chave === "duelo" ? linkDaPagina("duelos") : linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
+            <a key={j.chave} className="v2-jogo-card" href={linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
               {j.beta && <span className="v2-jogo-card-beta">em testes</span>}
-              {j.logo ? <img src={j.logo} alt={NOMES[j.chave]} /> : <span className="v2-jogo-card-titulo">{j.titulo}</span>}
-              {j.novo && <span className="v2-jogo-card-beta v2-jogo-card-novo">novo</span>}
-              {j.chave === "duelo" && duelosNaVez > 0 && <span className="v2-jogo-card-online v2-jogo-card-vez">{duelosNaVez === 1 ? "1 duelo esperando você" : `${duelosNaVez} duelos esperando você`}</span>}
+              <img src={j.logo} alt={NOMES[j.chave]} />
               {online?.[j.chave] > 0 && <span className="v2-jogo-card-online"><span className="v2-ponto-vivo" />{online[j.chave]} jogando agora</span>}
               <p>{j.texto}</p>
               <span className="v2-jogo-card-cta">Ver salas →</span>
