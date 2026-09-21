@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { destinoNaNova, trocarParaNova } from "./utils/versaoSite.js";
 import BarraMensagens from "./components/BarraMensagens.jsx";
 import { useAcromaniaAtivo } from "./components/useAcromaniaAtivo.js";
 import BuscarJogador from "./components/BuscarJogador.jsx";
@@ -160,6 +161,13 @@ export default function App() {
   const acromaniaAtivo = useAcromaniaAtivo();
   const [buscaAberta, setBuscaAberta] = useState(false);
 
+  // Navegação DENTRO do clássico (ex.: o login leva pra "/" sem recarregar):
+  // confere de novo se a página tem versão na nova, que é a principal.
+  useEffect(() => {
+    const destino = destinoNaNova(location.pathname, location.search);
+    if (destino) window.location.replace(destino);
+  }, [location.pathname, location.search, user]);
+
   // Fecha a busca ao trocar de página: sem isto ela ficaria aberta por cima
   // da tela nova depois de abrir um perfil.
   useEffect(() => {
@@ -254,6 +262,15 @@ export default function App() {
           <div className="app-header-right">
             {user ? (
               <>
+                {/* Troca pra versão nova (a principal) na MESMA página. */}
+                <button
+                  type="button"
+                  className="versao-troca-btn"
+                  onClick={() => trocarParaNova(location.pathname, location.search)}
+                  title="Ir para a versão nova do site"
+                >
+                  ✨ Versão nova
+                </button>
                 {/* BUSCA DE JOGADORES — lupa, não item de menu.
                     
                     A barra já tem nove itens; mais um texto apertaria tudo em
@@ -301,7 +318,10 @@ export default function App() {
                 </button>
               </>
             ) : (
-              <Link to="/login" className="retro-btn">Entrar</Link>
+              <>
+                <button type="button" className="versao-troca-btn" onClick={() => trocarParaNova(location.pathname, location.search)} title="Ir para a versão nova do site">✨ Versão nova</button>
+                <Link to="/login" className="retro-btn">Entrar</Link>
+              </>
             )}
           </div>
         </div>

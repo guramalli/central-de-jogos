@@ -1,3 +1,4 @@
+import { chamarBotsNoStop, dispensarBotsDoStop } from "../game/stopBots.js";
 import { verifyToken } from "../utils/jwt.js";
 import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
 import { cacheInvalidar } from "../utils/cache.js";
@@ -166,6 +167,36 @@ export function setupSocket(io) {
       socket.currentRoom?.iniciarPartida?.(userId);
     });
 
+    // BOTS DE TESTE NA SALA PRIVADA DO STOP (ver game/stopBots.js).
+    // Só em sala privada, e só o dono dela ou um admin.
+    async function podeMexerNosBots(room) {
+      if (!room?.privada) return false;
+      if (room.donoId && room.donoId === userId) return true;
+      const quem = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      return quem?.role === "ADMIN";
+    }
+    socket.on("stop-chamar-bots", async ({ quantos } = {}) => {
+      const room = socket.currentRoom;
+      try {
+        if (!(await podeMexerNosBots(room))) {
+          socket.emit("stop-bots-erro", { error: "Só quem criou a sala pode chamar bots de teste." });
+          return;
+        }
+        const n = await chamarBotsNoStop(room, quantos);
+        if (!n) socket.emit("stop-bots-erro", { error: "Não deu pra chamar bots agora (sala cheia ou já tem bots)." });
+      } catch (err) {
+        console.error("stop-chamar-bots:", err.message);
+      }
+    });
+    socket.on("stop-dispensar-bots", async () => {
+      const room = socket.currentRoom;
+      try {
+        if (await podeMexerNosBots(room)) dispensarBotsDoStop(room, { motivo: "pedido do dono" });
+      } catch (err) {
+        console.error("stop-dispensar-bots:", err.message);
+      }
+    });
+
     socket.on("vote-word", ({ targetUserId, themeKey, valido } = {}) => {
       if (!targetUserId || !themeKey) return;
       socket.currentRoom?.submitWordVote?.(userId, targetUserId, themeKey, valido);
@@ -309,6 +340,11 @@ export function setupSocket(io) {
     socket.on("join-general-chat", async () => {
       socket.join("general-chat-room");
       generalChat.addConnection(socket, userId, nickname);
+      // Marca AQUI, junto do registro — não no fim do handler. Se a conexão
+      // cair durante os `await` abaixo (ou o banco falhar no histórico), o
+      // disconnect precisa saber que tem entrada pra remover. Antes a marca
+      // vinha depois dos await e a pessoa ficava "online" pra sempre.
+      socket.inGeneralChat = true;
 
       // Tag do clã guardada no socket, buscada uma vez ao entrar no chat.
       // Consultar a cada mensagem seria uma ida ao banco por linha digitada.
@@ -326,7 +362,6 @@ export function setupSocket(io) {
       const history = await generalChat.loadHistory();
       socket.emit("general-chat-history", { messages: history });
       io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });
-      socket.inGeneralChat = true;
     });
 
     socket.on("general-chat-message", async ({ message }) => {

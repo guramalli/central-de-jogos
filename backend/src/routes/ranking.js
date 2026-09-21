@@ -198,13 +198,20 @@ router.get("/hall-stats", requireAuth, async (req, res) => {
     //
     // As três consultas rodam juntas, e cada uma sozinha é barata (ordena e
     // pega o primeiro). O cache de 5 minutos do endpoint já cobre o resto.
-    const [recordeSequencia, statsStop, maiorTempo] = await Promise.all([
+    const [recordeSequencia, usuariosAtuais, statsStop, maiorTempo] = await Promise.all([
       // Maior sequência de acertos seguidos no Quiz. A tabela guarda o
       // recorde POR SALA, então o maior de todos é o topo geral.
       prisma.quizStreakRecord.findFirst({
         orderBy: { count: "desc" },
         where: { count: { gt: 0 } },
       }),
+      // Lista de nicks ATUAIS. A tabela de recordes guarda o nick da época,
+      // e quem trocou de nome depois aparecia com o antigo no Hall.
+      //
+      // Não dá pra usar `include` aqui: QuizStreakRecord não tem relação
+      // declarada com User no schema, só o userId solto. Por isso a busca é
+      // separada e o cruzamento é feito abaixo.
+      prisma.user.findMany({ select: { id: true, nickname: true } }),
 
       // STOPs: a tabela guarda por GRUPO de sala (padrão, intermediário,
       // avançada). O recordista geral é quem tem a maior SOMA, não o maior
@@ -243,11 +250,16 @@ router.get("/hall-stats", requireAuth, async (req, res) => {
       }
     }
 
+    const nickAtual = new Map(usuariosAtuais.map((u) => [u.id, u.nickname]));
+
     const marcas = {
       sequenciaQuiz: recordeSequencia
         ? {
             userId: recordeSequencia.userId,
-            nickname: recordeSequencia.nickname,
+            // Nick ATUAL, com o guardado como reserva (caso a conta tenha
+            // sido apagada).
+            nickname:
+              nickAtual.get(recordeSequencia.userId) || recordeSequencia.nickname,
             valor: recordeSequencia.count,
             // A sala vai junto: o recorde é POR SALA, e saber que foi na
             // Futebol Padrão é metade da história.
