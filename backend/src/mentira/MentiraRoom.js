@@ -22,6 +22,13 @@ export const SEG_ESCOLHER = 25;
 export const SEG_ESCREVER_FINAL = 60;
 export const SEG_ESCOLHER_FINAL = 35;
 export const SEG_CONFESSAR = 60;
+// Depois que TODO MUNDO vota, a escolha não fecha na hora: sobra esse tempo
+// pra curtir as mentiras (senão ninguém premia a mais criativa).
+export const SEG_CURTIR = 7;
+// Revelação: tempo de cada carta + o resumo da rodada no fim (a tela usa os
+// MESMOS números pra sincronizar).
+export const SEG_POR_CARTA = 5.5;
+export const SEG_RESUMO = 11;
 // Modo "Sobre Vocês": cada um confessa uma verdade sobre si; depois, uma
 // rodada por pessoa (os OUTROS mentem e tentam achar a verdade dela).
 const PONTOS_VERDADE = 500;
@@ -86,6 +93,7 @@ export class MentiraRoom {
     this.baralho = [];
     this.timer = null;
     this.tempo = 0;
+    this.segCurtir = SEG_CURTIR; // (os testes zeram pra ir direto)
     this.limparRodada();
   }
 
@@ -97,6 +105,7 @@ export class MentiraRoom {
     this.curtidas = new Map(); // userId -> Set(opcaoId)
     this.revelacao = null;
     this.ganhosDaRodada = new Map();
+    this.todosVotaram = false;
   }
 
   get sobre() { return this.modo === "sobre"; }
@@ -317,7 +326,13 @@ export class MentiraRoom {
     const ativos = this.participantes();
     if (!ativos.length) return;
     if (this.fase === "escrever" && ativos.every((j) => this.mentiras.has(j.id))) this.irParaEscolha();
-    else if (this.fase === "escolher" && ativos.every((j) => this.votos.every((v) => v.has(j.id)))) this.irParaRevelacao();
+    else if (this.fase === "escolher" && ativos.every((j) => this.votos.every((v) => v.has(j.id)))) {
+      if (this.segCurtir <= 0) { this.irParaRevelacao(); return; }
+      if (!this.todosVotaram) {
+        this.todosVotaram = true;
+        this.tempo = Math.min(this.tempo, this.segCurtir);
+      }
+    }
   }
 
   // ---------------- fases ----------------
@@ -390,9 +405,9 @@ export class MentiraRoom {
       vistas.add(n);
       return true;
     });
-    this.revelacao = { itens: ordem, ninguemCaiu, dupla };
+    this.revelacao = { itens: ordem, ninguemCaiu, dupla, todas: itens };
     this.fase = "revelar";
-    this.tempo = Math.min(45, Math.ceil(ordem.length * 3.5) + 5);
+    this.tempo = Math.ceil(ordem.length * SEG_POR_CARTA) + SEG_RESUMO;
     this.transmitir();
   }
 
@@ -495,6 +510,8 @@ export class MentiraRoom {
       tempo: this.tempo,
       donoId: this.donoId,
       souDono: userId === this.donoId,
+      todosVotaram: this.todosVotaram,
+      segPorCarta: SEG_POR_CARTA,
       jogadores: [...this.jogadores.values()]
         .map((j) => ({
           id: j.id, nickname: j.nickname, pontos: j.pontos, online: !!j.bot || j.sockets.size > 0, bot: !!j.bot,
@@ -524,7 +541,12 @@ export class MentiraRoom {
       });
       base.perguntas = this.perguntas.map((c) => ({ texto: c.texto, verdade: c.verdade }));
       base.revelacao = this.revelacao
-        ? { itens: this.revelacao.itens.map(traduzir), ninguemCaiu: this.revelacao.ninguemCaiu.map(traduzir), dupla: this.revelacao.dupla.map(nome) }
+        ? {
+          itens: this.revelacao.itens.map(traduzir),
+          ninguemCaiu: this.revelacao.ninguemCaiu.map(traduzir),
+          dupla: this.revelacao.dupla.map(nome),
+          todas: this.revelacao.todas.map(traduzir), // resumo da rodada
+        }
         : null;
     }
     if (this.fase === "fim") base.trofeus = this.trofeus();

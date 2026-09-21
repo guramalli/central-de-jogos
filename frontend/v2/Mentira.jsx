@@ -9,13 +9,43 @@ import Avatar from "./Avatar.jsx";
 // ("mentira-estado"), já personalizado — a verdade só vem na revelação.
 
 const linkDaSala = (codigo) => `${window.location.origin}/v2/?pagina=mentira&mesa=${codigo}`;
-const REVELA_MS = 3500; // tempo de cada mentira na revelação
+// NARRADOR POR VOZ — síntese de voz do próprio navegador (pt-BR), sem custo.
+// A qualidade depende do aparelho (no Chrome/Edge costuma ter voz boa).
+// Cada fala nova interrompe a anterior, pra não acumular fila.
+function vozPtBr() {
+  const vozes = window.speechSynthesis?.getVoices?.() || [];
+  const pt = vozes.filter((v) => /^pt(-|_)BR/i.test(v.lang) || /portugu/i.test(v.name));
+  return pt.find((v) => /google|luciana|francisca|thalita|natural/i.test(v.name)) || pt[0] || null;
+}
+function falarTexto(texto) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth || !texto) return;
+    synth.cancel();
+    const limpo = String(texto).replace(/🎤|🎯|🫵|👍|🤫|🏆|[\u{1F300}-\u{1FAFF}]/gu, "").replace(/_{2,}/g, "tal coisa").trim();
+    const u = new SpeechSynthesisUtterance(limpo);
+    u.lang = "pt-BR";
+    const voz = vozPtBr();
+    if (voz) u.voice = voz;
+    u.rate = 1.05;
+    u.pitch = 1.05;
+    synth.speak(u);
+  } catch {}
+}
+function useNarrador(ligado) {
+  useEffect(() => { window.speechSynthesis?.getVoices?.(); }, []); // carrega a lista de vozes
+  useEffect(() => { if (!ligado) window.speechSynthesis?.cancel?.(); }, [ligado]);
+  return (texto) => { if (ligado) falarTexto(texto); };
+}
 
 export default function Mentira({ usuario, salaDoLink }) {
   const [estado, setEstado] = useState(null);
   const [erro, setErro] = useState("");
   const [codigoDigitado, setCodigoDigitado] = useState("");
   const [streamer, setStreamer] = useState(() => localStorage.getItem("eg_mentira_streamer") === "1");
+  const [voz, setVoz] = useState(() => localStorage.getItem("eg_mentira_voz") !== "0");
+  const falar = useNarrador(voz);
+  function alternarVoz() { const n = !voz; setVoz(n); localStorage.setItem("eg_mentira_voz", n ? "1" : "0"); if (n) falarTexto("Narração ligada!"); }
   const socketRef = useRef(null);
   const ehAdmin = usuario.role === "ADMIN";
 
@@ -35,6 +65,20 @@ export default function Mentira({ usuario, salaDoLink }) {
     s.connect();
     return () => { s.emit("mentira-sair"); s.disconnect(); };
   }, [salaDoLink]);
+
+  // Narra as mudanças de fase (uma vez por fase/rodada).
+  const narradoRef = useRef("");
+  useEffect(() => {
+    if (!estado) return;
+    const chave = `${estado.fase}-${estado.rodada}-${estado.todosVotaram ? 1 : 0}`;
+    if (narradoRef.current === chave) return;
+    narradoRef.current = chave;
+    if (estado.fase === "escrever") falar(`${aberturaDaRodada(estado)} ${estado.perguntas.map((p) => p.texto).join(" E a outra: ")}`);
+    else if (estado.fase === "escolher" && !estado.todosVotaram) falar(estado.final ? "Hora de escolher! Achem a verdade nas duas perguntas." : "Hora de escolher! Qual dessas é a verdade?");
+    else if (estado.fase === "escolher" && estado.todosVotaram) falar("Todo mundo votou! Aproveitem pra curtir as mentiras mais criativas.");
+    else if (estado.fase === "confessar") falar("Hora da confissão! Contem a verdade sobre vocês.");
+    else if (estado.fase === "fim") falar(estado.jogadores[0] ? `Fim de jogo! ${estado.jogadores[0].nickname} é o grande mentiroso da partida!` : "Fim de jogo!");
+  }, [estado?.fase, estado?.rodada, estado?.todosVotaram]);
 
   const pedir = (evento, dados = {}) => new Promise((ok) => socketRef.current?.emit(evento, dados, (r) => { if (r?.erro) setErro(r.erro); ok(r); }));
   function alternarStreamer() { const n = !streamer; setStreamer(n); localStorage.setItem("eg_mentira_streamer", n ? "1" : "0"); }
@@ -81,6 +125,7 @@ export default function Mentira({ usuario, salaDoLink }) {
         </div>
         <div className="v2-mentira-topo-dir">
           <span className="v2-mentira-cod-selo">{streamer ? "código escondido" : `sala ${estado.codigo}`}</span>
+          <button className={`v2-botao-pequeno ${voz ? "ativo" : ""}`} onClick={alternarVoz} aria-pressed={voz} title="Narração por voz (liga/desliga)">{voz ? "🔊 Voz" : "🔇 Voz"}</button>
           <button className={`v2-botao-pequeno ${streamer ? "ativo" : ""}`} onClick={alternarStreamer} title="Esconde o código e o link da tela (pra live)">{streamer ? "Modo streamer: ligado" : "Modo streamer"}</button>
           <button className="v2-botao-pequeno" onClick={() => { socketRef.current?.emit("mentira-sair"); irParaPagina(null); }}>Sair</button>
         </div>
@@ -88,16 +133,16 @@ export default function Mentira({ usuario, salaDoLink }) {
 
       {erro && <div className="v2-faixa-aviso erro" role="alert">{erro}</div>}
 
-      <div className="v2-mentira-corpo">
+      <div className={`v2-mentira-corpo ${fase === "revelar" ? "palco-cheio" : ""}`}>
         <div className="v2-mentira-palco">
           {fase === "aguardando" && <Espera estado={estado} streamer={streamer} aoComecar={() => pedir("mentira-comecar")} aoBot={(acao) => pedir("mentira-bot", { acao })} aoModo={(modo) => pedir("mentira-modo", { modo })} />}
           {fase === "confessar" && <Confessar estado={estado} aoConfessar={(texto) => pedir("mentira-confessar", { texto })} />}
           {fase === "escrever" && <Escrever key={`${estado.rodada}-${estado.perguntas?.[0]?.texto}`} estado={estado} aoMentir={(texto) => pedir("mentira-mentir", { texto })} aoPular={() => pedir("mentira-pular")} />}
           {fase === "escolher" && <Escolher estado={estado} aoEscolher={(opcaoId, pergunta) => pedir("mentira-escolher", { opcaoId, pergunta })} aoCurtir={(opcaoId) => pedir("mentira-curtir", { opcaoId })} />}
-          {fase === "revelar" && <Revelar key={estado.rodada} estado={estado} aoCurtir={(opcaoId) => pedir("mentira-curtir", { opcaoId })} />}
+          {fase === "revelar" && <Revelar key={`${estado.rodada}-${estado.perguntas?.[0]?.texto}`} estado={estado} falar={falar} meuId={usuario.id} aoCurtir={(opcaoId) => pedir("mentira-curtir", { opcaoId })} />}
           {fase === "fim" && <Fim estado={estado} aoJogarDeNovo={() => pedir("mentira-comecar")} aoModo={(modo) => pedir("mentira-modo", { modo })} />}
         </div>
-        <Placar estado={estado} meuId={usuario.id} />
+        {fase !== "revelar" && <Placar estado={estado} meuId={usuario.id} />}
       </div>
     </Moldura>
   );
@@ -306,7 +351,9 @@ function Escolher({ estado, aoEscolher, aoCurtir }) {
           </div>
         </div>
       ))}
-      {escolheuTudo && <p className="v2-mentira-dica">Curta as mentiras que te fizeram rir — no fim sai o troféu <b>Mais Engraçado</b>.</p>}
+      {estado.todosVotaram ? (
+        <p className="v2-mentira-janela">✅ Todo mundo votou! Aproveita pra curtir 👍 as mais criativas — revelação em <b>{estado.tempo}s</b></p>
+      ) : escolheuTudo && <p className="v2-mentira-dica">Curta as mentiras que te fizeram rir — no fim sai o troféu <b>Mais Engraçado</b>.</p>}
       <QuemJa estado={estado} verbo="escolher" />
     </section>
   );
@@ -332,29 +379,62 @@ function comentario(item, total) {
   return escolherFrase([`🎤 ${autor} fez uma vítima.`, `🎤 Um caiu na do ${autor}. Já é alguma coisa.`], item.id);
 }
 
-// Revelação passo a passo: cada mentira em que alguém caiu, depois a verdade
-// (na final, uma pergunta de cada vez).
-function Revelar({ estado, aoCurtir }) {
+// Pontos que uma carta dá (pra mostrar na hora da carta).
+function pontosDaCarta(item, mult) {
+  const n = item.escolheram.length;
+  if (item.verdade) return n ? `+${(500 * mult).toLocaleString("pt-BR")} pra quem acertou` : null;
+  if (item.casa) return n ? `−${(250 * mult).toLocaleString("pt-BR")} pra quem caiu` : null;
+  return n ? `+${Math.round((250 * mult * n) / Math.max(1, item.autores.length)).toLocaleString("pt-BR")} pra ${item.autores.join(" e ")}` : null;
+}
+
+// Revelação: cada carta (mentiras em que alguém caiu, depois a verdade) fica
+// segPorCarta segundos — os nomes de quem caiu aparecem um a um; depois vem o
+// RESUMO DA RODADA (todas as frases + quem votou em cada + placar subindo).
+function Revelar({ estado, falar, meuId, aoCurtir }) {
   const itens = estado.revelacao?.itens || [];
+  const porCarta = (estado.segPorCarta || 5.5) * 1000;
   const [passo, setPasso] = useState(0);
   useEffect(() => {
-    if (passo >= itens.length - 1) return;
-    const t = setTimeout(() => setPasso((p) => p + 1), REVELA_MS);
+    if (passo > itens.length - 1) return;
+    const t = setTimeout(() => setPasso((p) => p + 1), porCarta);
     return () => clearTimeout(t);
   }, [passo, itens.length]);
+  const noResumo = passo > itens.length - 1;
   const item = itens[Math.min(passo, itens.length - 1)];
-  const final = passo >= itens.length - 1;
-  if (!item) return null;
-  const pergunta = estado.perguntas[item.pergunta] || estado.perguntas[0];
+  const pergunta = item ? estado.perguntas[item.pergunta] || estado.perguntas[0] : null;
   const totalJogadores = estado.jogadores.filter((j) => j.online).length;
+
+  // Narração de cada carta e do resumo.
+  useEffect(() => {
+    if (noResumo) { falar(estado.revelacao?.dupla?.length ? `Mentira dupla! ${estado.revelacao.dupla.join(" e ")} ganhou mil pontos! Vamos ao placar.` : "Vamos ver como ficou o placar!"); return; }
+    if (!item) return;
+    const quem = item.verdade ? `A verdade é: ${item.texto}!` : item.casa ? `${item.texto}. Mentira da casa!` : `${item.texto}. Mentira de ${item.autores.join(" e ")}!`;
+    falar(`${quem} ${comentario(item, totalJogadores).replace("🎤", "")}`);
+  }, [passo]);
+
+  if (noResumo) return <ResumoRodada estado={estado} meuId={meuId} />;
+  if (!item) return null;
+  const pontos = pontosDaCarta(item, estado.multiplicador || 1);
   return (
     <section className="v2-cartao v2-mentira-fase v2-mentira-revela">
+      <div className="v2-mentira-progresso" aria-hidden="true">
+        {itens.map((_, i) => <span key={i} className={i < passo ? "feito" : i === passo ? "atual" : ""} />)}
+        <em>resumo</em>
+      </div>
       {estado.final && <span className="v2-mentira-instrucao">Pergunta {item.pergunta + 1} de 2</span>}
       <Curiosidade texto={pergunta.texto} preenchida={item.verdade ? pergunta.verdade : null} />
       <div key={item.id} className={`v2-mentira-carta ${item.verdade ? "verdade" : "mentira"}`}>
         <b className="v2-mentira-carta-texto">{item.texto}</b>
-        {item.escolheram.length > 0 && <span className="v2-mentira-caiu">{item.verdade ? "Acertaram" : "Caíram"}: {item.escolheram.join(", ")}</span>}
-        <span className="v2-mentira-carimbo">{item.verdade ? (estado.modo === "sobre" ? `VERDADE! Confissão de ${estado.assunto?.nickname || "alguém"}` : "VERDADE!") : item.casa ? "MENTIRA DA CASA" : `MENTIRA de ${item.autores.join(" e ")}`}</span>
+        {item.escolheram.length > 0 && (
+          <div className="v2-mentira-caiu-lista">
+            <small>{item.verdade ? "Acertaram:" : "Caíram:"}</small>
+            {item.escolheram.map((n, i) => <span key={n} className="v2-mentira-caiu-chip" style={{ animationDelay: `${0.5 + i * 0.45}s` }}>{n}</span>)}
+          </div>
+        )}
+        <span className="v2-mentira-carimbo" style={{ animationDelay: `${0.8 + item.escolheram.length * 0.45}s` }}>
+          {item.verdade ? (estado.modo === "sobre" ? `VERDADE! Confissão de ${estado.assunto?.nickname || "alguém"}` : "VERDADE!") : item.casa ? "MENTIRA DA CASA" : `MENTIRA de ${item.autores.join(" e ")}`}
+        </span>
+        {pontos && <span className={`v2-mentira-pontos-carta ${item.casa ? "negativo" : ""}`} style={{ animationDelay: `${1.3 + item.escolheram.length * 0.45}s` }}>{pontos}</span>}
         {item.curtivel ? (
           <button className={`v2-mentira-curtir-carta ${estado.minhasCurtidas.includes(item.id) ? "ativo" : ""}`} onClick={() => aoCurtir(item.id)} aria-pressed={estado.minhasCurtidas.includes(item.id)} title="Curtir essa mentira (troféu Mais Engraçado)">
             👍 {item.curtidas > 0 ? item.curtidas : "curtir"}
@@ -362,12 +442,74 @@ function Revelar({ estado, aoCurtir }) {
         ) : item.curtidas > 0 && <span className="v2-mentira-curtidas">👍 {item.curtidas}</span>}
       </div>
       <p className="v2-mentira-apresentador">{comentario(item, totalJogadores)}</p>
-      {final && estado.revelacao.dupla?.length > 0 && (
-        <p className="v2-mentira-dupla">🎯 MENTIRA DUPLA! {estado.revelacao.dupla.join(" e ")} {estado.revelacao.dupla.length > 1 ? "enganaram" : "enganou"} nas duas perguntas: +1000!</p>
-      )}
-      {final && (estado.revelacao.ninguemCaiu || []).length > 0 && (
-        <p className="v2-mentira-ninguem">Ninguém caiu em: {estado.revelacao.ninguemCaiu.map((i) => `"${i.texto}" (${i.autores.join(", ")})`).join(" · ")}</p>
-      )}
+    </section>
+  );
+}
+
+// Número que conta do valor antigo até o novo.
+function Contador({ de, ate, ms = 1600 }) {
+  const [v, setV] = useState(de);
+  useEffect(() => {
+    let raf, inicio;
+    const passo = (t) => {
+      if (!inicio) inicio = t;
+      const f = Math.min(1, (t - inicio) / ms);
+      setV(Math.round(de + (ate - de) * (1 - Math.pow(1 - f, 3))));
+      if (f < 1) raf = requestAnimationFrame(passo);
+    };
+    const espera = setTimeout(() => { raf = requestAnimationFrame(passo); }, 700);
+    return () => { clearTimeout(espera); cancelAnimationFrame(raf); };
+  }, [de, ate]);
+  return v.toLocaleString("pt-BR");
+}
+
+// RESUMO DA RODADA (estilo Fibbage): todas as frases, de quem é cada uma e
+// quem caiu em cada; depois o placar com as barras e os pontos subindo.
+function ResumoRodada({ estado, meuId }) {
+  const todas = [...(estado.revelacao?.todas || [])].sort((a, b) =>
+    (a.verdade ? 1 : 0) - (b.verdade ? 1 : 0) || b.escolheram.length - a.escolheram.length);
+  const [cresceu, setCresceu] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setCresceu(true), 700); return () => clearTimeout(t); }, []);
+  const jogadores = estado.jogadores;
+  const maior = Math.max(1, ...jogadores.map((j) => j.pontos));
+  const porPergunta = estado.final ? [0, 1] : [0];
+  return (
+    <section className="v2-cartao v2-mentira-fase v2-mentira-resumo">
+      <h2>Resumo da rodada</h2>
+      {porPergunta.map((p) => (
+        <div key={p} className="v2-mentira-resumo-bloco">
+          {estado.final && <span className="v2-mentira-instrucao">Pergunta {p + 1}</span>}
+          <ul className="v2-mentira-resumo-lista">
+            {todas.filter((i) => (i.pergunta || 0) === p).map((i, k) => (
+              <li key={i.id} className={i.verdade ? "verdade" : i.casa ? "casa" : ""} style={{ animationDelay: `${k * 0.12}s` }}>
+                <div className="v2-mentira-resumo-frase">
+                  <b>{i.texto}</b>
+                  <em>{i.verdade ? "✅ VERDADE" : i.casa ? "🏠 da casa" : `de ${i.autores.join(" e ")}`}{i.curtidas > 0 ? ` · 👍 ${i.curtidas}` : ""}</em>
+                </div>
+                <div className="v2-mentira-resumo-votos">
+                  {i.escolheram.length ? i.escolheram.map((n) => <span key={n} className={i.verdade ? "acertou" : "caiu"}>{n}</span>) : <small>ninguém</small>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      {estado.revelacao?.dupla?.length > 0 && <p className="v2-mentira-dupla">🎯 MENTIRA DUPLA! {estado.revelacao.dupla.join(" e ")}: +1000!</p>}
+      <div className="v2-mentira-placar-animado">
+        {jogadores.map((j) => {
+          const antes = Math.max(0, j.pontos - j.ganhou);
+          return (
+            <div key={j.id} className={`v2-mentira-barra-linha ${j.id === meuId ? "eu" : ""}`}>
+              <span className="v2-mentira-barra-nome">{j.nickname}</span>
+              <div className="v2-mentira-barra">
+                <div style={{ width: `${((cresceu ? j.pontos : antes) / maior) * 100}%` }} />
+              </div>
+              <b><Contador de={antes} ate={j.pontos} /></b>
+              {j.ganhou !== 0 && <em className={j.ganhou < 0 ? "negativo" : ""}>{j.ganhou > 0 ? "+" : ""}{j.ganhou.toLocaleString("pt-BR")}</em>}
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
