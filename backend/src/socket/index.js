@@ -43,6 +43,7 @@ export function setupSocket(io) {
   io.use(async (socket, next) => {
     try {
       if (ipEstaBanido(ipDoSocket(socket))) {
+        console.log(`[bloqueado por IP banido, socket] de ${ipDoSocket(socket)} (x-forwarded-for bruto: ${socket.handshake.headers?.["x-forwarded-for"] || "-"})`);
         return next(new Error("SESSAO_INVALIDA"));
       }
 
@@ -100,7 +101,11 @@ export function setupSocket(io) {
         // ao navegar pelo site enche o log de linha repetida). Zip 607: é o
         // jeito de achar o IP de uma conta que JÁ existe e está online
         // agora, sem precisar esperar ela se cadastrar de novo.
-        console.log(`[conectou] ${payload.nickname} de ${ipDoSocket(socket)}`);
+        // Cabeçalho bruto junto, não só o IP já calculado — se um dia o IP
+        // banido não bater com o que a gente esperava, dá pra ver aqui se
+        // o problema é a extração (ex.: um proxy a mais no caminho) em vez
+        // de ficar só supondo.
+        console.log(`[conectou] ${payload.nickname} de ${ipDoSocket(socket)} (x-forwarded-for bruto: ${socket.handshake.headers?.["x-forwarded-for"] || "-"})`);
       }
 
       const plataforma = socket.handshake.auth?.plataforma;

@@ -32,6 +32,11 @@ model BannedIP {
   id        String   @id @default(cuid())
   ip        String   @unique
   motivo    String?
+  // Mensagem opcional mostrada PRA PESSOA BANIDA (zip 608) — o "motivo"
+  // acima é só pra você lembrar por que baniu; essa aqui é o que ela
+  // efetivamente vê, na próxima vez que tentar criar conta ou jogar como
+  // visitante. Sem essa mensagem, cai numa genérica.
+  mensagem  String?
   criadoEm  DateTime @default(now())
 }
 

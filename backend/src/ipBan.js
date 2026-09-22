@@ -4,12 +4,14 @@
 // precisa valer no MESMO segundo em que foi criado.
 import { prisma } from "./db.js";
 
-let banidos = new Set();
+const MENSAGEM_PADRAO = "Acesso bloqueado.";
+
+let banidos = new Map(); // ip -> mensagem (a que a pessoa banida vê)
 
 async function recarregar() {
   try {
-    const linhas = await prisma.bannedIP.findMany({ select: { ip: true } });
-    banidos = new Set(linhas.map((l) => l.ip));
+    const linhas = await prisma.bannedIP.findMany({ select: { ip: true, mensagem: true } });
+    banidos = new Map(linhas.map((l) => [l.ip, l.mensagem || MENSAGEM_PADRAO]));
   } catch (e) {
     console.error("Falha ao carregar IPs banidos:", e.message);
   }
@@ -21,6 +23,13 @@ setInterval(recarregar, 60 * 1000).unref?.();
 
 export function ipEstaBanido(ip) {
   return banidos.has(ip);
+}
+
+// A mensagem que essa pessoa banida deve ver (a personalizada, se o admin
+// escreveu uma; senão a genérica). Só faz sentido chamar depois de
+// confirmar o banimento com ipEstaBanido.
+export function mensagemDoBanido(ip) {
+  return banidos.get(ip) || MENSAGEM_PADRAO;
 }
 
 // Socket.IO não aplica o "trust proxy" do Express (isso é só pro objeto

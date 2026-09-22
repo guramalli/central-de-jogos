@@ -34,7 +34,7 @@ import tribunalRoomsRoutes from "./routes/tribunalRooms.js";
 import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
 import { setupSocket } from "./socket/index.js";
-import { ipEstaBanido } from "./ipBan.js";
+import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 
 const app = express();
 const server = createServer(app);
@@ -53,7 +53,10 @@ app.set("trust proxy", 1);
 // caso que motivou isso (zip 599): banir só a conta não impede criar outra
 // no minuto seguinte, banir o IP sim.
 app.use((req, res, next) => {
-  if (ipEstaBanido(req.ip)) return res.status(403).json({ error: "Acesso bloqueado." });
+  if (ipEstaBanido(req.ip)) {
+    console.log(`[bloqueado por IP banido] ${req.method} ${req.path} de ${req.ip} (x-forwarded-for bruto: ${req.headers["x-forwarded-for"] || "-"})`);
+    return res.status(403).json({ error: mensagemDoBanido(req.ip) });
+  }
   next();
 });
 
