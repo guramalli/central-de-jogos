@@ -6,6 +6,7 @@ import { api, entrarComEmail, cadastrar, entrarComGoogle, entrarComoVisitante } 
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Rodape from "./Rodape.jsx";
 import { trocarParaClassica } from "../src/utils/versaoSite.js";
+import { obterTokenTurnstile } from "../src/utils/turnstile.js";
 
 // PÁGINAS PÚBLICAS (quem não está logado) — mesmas regras e rotas do
 // clássico: Home, Login, Register, ForgotPassword, ResetPassword.
@@ -31,10 +32,11 @@ const irLink = (pagina, extra) => (e) => { e.preventDefault(); irParaPagina(pagi
 // quem vinha de fora achava que o botão estava quebrado (e ninguém se
 // cadastra sem jogar uma vez). Se o número já estiver em uso, tenta outro.
 async function jogarSemCadastro(destino) {
+  const turnstileToken = await obterTokenTurnstile();
   for (let tentativa = 0; tentativa < 4; tentativa++) {
     const apelido = `Jogador ${Math.floor(1000 + Math.random() * 9000)}`;
     try {
-      await entrarComoVisitante(apelido);
+      await entrarComoVisitante(apelido, turnstileToken);
       window.location.replace(destino);
       return;
     } catch (err) {
@@ -94,7 +96,11 @@ function Visitante({ aoErro }) {
   async function entrar(e) {
     e.preventDefault();
     setEntrando(true);
-    try { await entrarComoVisitante(nick); depoisDeEntrar(); }
+    try {
+      const turnstileToken = await obterTokenTurnstile();
+      await entrarComoVisitante(nick, turnstileToken);
+      depoisDeEntrar();
+    }
     catch (err) { aoErro(err.response?.data?.error || "Erro ao entrar. Tenta de novo?"); setEntrando(false); }
   }
   if (!aberto) {
@@ -235,7 +241,11 @@ export function Cadastro() {
     setErro("");
     if (!aceite) { setErro("Você precisa aceitar os Termos de Uso para se cadastrar."); return; }
     setEnviando(true);
-    try { await cadastrar(nick, email, senha, { birthDate: nascimento, termsAccepted: aceite }); depoisDeEntrar(); }
+    try {
+      const turnstileToken = await obterTokenTurnstile();
+      await cadastrar(nick, email, senha, { birthDate: nascimento, termsAccepted: aceite, turnstileToken });
+      depoisDeEntrar();
+    }
     catch (err) { setErro(err.response?.data?.error || "Erro ao cadastrar."); setEnviando(false); }
   }
   return (

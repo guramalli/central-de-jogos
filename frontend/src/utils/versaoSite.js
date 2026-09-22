@@ -9,12 +9,27 @@
 //
 // Usado pelos dois sites (src/ e v2/) — um arquivo só pra que as duas
 // traduções de endereço não divirjam.
+//
+// A escolha pela clássica EXPIRA depois de um tempo (zip 597): quem clicou
+// uma vez, mesmo sem querer, não fica preso na versão antiga pra sempre —
+// ela volta a mostrar a nova depois de DIAS_EXPIRA dias sem escolher de
+// novo. Preferências antigas (gravadas antes dessa mudança, sem data)
+// contam como já vencidas e voltam pra nova na primeira visita seguinte.
 
 const CHAVE = "eg_versao_site";
+const CHAVE_QUANDO = "eg_versao_site_em";
+const DIAS_EXPIRA = 30;
 
 export function versaoPreferida() {
   try {
-    return localStorage.getItem(CHAVE) === "classica" ? "classica" : "nova";
+    if (localStorage.getItem(CHAVE) !== "classica") return "nova";
+    const quando = Number(localStorage.getItem(CHAVE_QUANDO));
+    if (!quando || Date.now() - quando > DIAS_EXPIRA * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(CHAVE);
+      localStorage.removeItem(CHAVE_QUANDO);
+      return "nova";
+    }
+    return "classica";
   } catch {
     return "nova";
   }
@@ -23,6 +38,8 @@ export function versaoPreferida() {
 function guardar(versao) {
   try {
     localStorage.setItem(CHAVE, versao);
+    if (versao === "classica") localStorage.setItem(CHAVE_QUANDO, String(Date.now()));
+    else localStorage.removeItem(CHAVE_QUANDO);
   } catch {}
 }
 

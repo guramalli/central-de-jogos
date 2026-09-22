@@ -96,32 +96,31 @@ export default function DicaNova({ chave, texto, lado = "baixo-esquerda", alvoSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visivel]);
 
-  // Mede o elemento-alvo (pra recortar o furo de luz) e acompanha
-  // rolagem/redimensionamento enquanto a dica estiver na tela. Se o alvo
-  // estiver fora da parte visível (abaixo da dobra, por exemplo), rola
-  // suavemente até ele primeiro — senão o destaque cai fora da tela e
-  // ninguém vê nada.
+  // Mede o elemento-alvo (pra recortar o furo de luz) em loop, quadro a
+  // quadro, enquanto a dica estiver na tela — em vez de medir só uma vez.
+  // No celular, imagens e dados que ainda estão carregando empurram a
+  // página DEPOIS da 1ª medição (a escada de patentes, por exemplo, só
+  // ganha o tamanho final quando os ícones e os pontos do mês chegam); uma
+  // medição única "engessava" o destaque no lugar errado. Medir toda hora
+  // é barato (getBoundingClientRect não mexe no layout) e se autocorrige
+  // sozinho assim que a página para de se mexer — sem precisar adivinhar
+  // quando isso acontece.
   useEffect(() => {
     if (!visivel) { setRect(null); return; }
     const alvo = alvoSeletor ? marcaRef.current?.closest(alvoSeletor) : marcaRef.current?.parentElement;
     if (!alvo) return;
-    const medir = () => setRect(alvo.getBoundingClientRect());
-    const r0 = alvo.getBoundingClientRect();
-    const dentroDaTela = r0.top >= 0 && r0.bottom <= window.innerHeight;
-    let esperaRolagem = null;
-    if (!dentroDaTela) {
-      alvo.scrollIntoView({ behavior: "smooth", block: "center" });
-      esperaRolagem = setTimeout(medir, 400);
-    } else {
-      medir();
-    }
-    window.addEventListener("resize", medir);
-    window.addEventListener("scroll", medir, true);
-    return () => {
-      clearTimeout(esperaRolagem);
-      window.removeEventListener("resize", medir);
-      window.removeEventListener("scroll", medir, true);
-    };
+    let rolou = false;
+    let quadro = requestAnimationFrame(function loop() {
+      const r = alvo.getBoundingClientRect();
+      if (!rolou) {
+        rolou = true;
+        const dentroDaTela = r.top >= 0 && r.bottom <= window.innerHeight;
+        if (!dentroDaTela) alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setRect((atual) => (atual && atual.top === r.top && atual.left === r.left && atual.width === r.width && atual.height === r.height) ? atual : r);
+      quadro = requestAnimationFrame(loop);
+    });
+    return () => cancelAnimationFrame(quadro);
   }, [visivel, alvoSeletor]);
 
   function dispensar() {
@@ -134,19 +133,24 @@ export default function DicaNova({ chave, texto, lado = "baixo-esquerda", alvoSe
 
   if (vista) return null;
 
-  // Posição do balão: perto do alvo, sem sair da tela.
+  // Posição do balão: perto do alvo, sem sair da tela. A largura precisa
+  // bater com a do CSS — que é MENOR no celular (@media max-width: 520px)
+  // — senão a seta e a centralização calculam errado num tamanho que o
+  // balão nem tem de verdade, e tudo aparece desalinhado.
   let estiloBalao = null;
   if (rect) {
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
-    let esquerda = lado === "baixo-direita" ? rect.right - LARGURA_BALAO : rect.left;
-    esquerda = Math.min(Math.max(esquerda, MARGEM), vw - LARGURA_BALAO - MARGEM);
+    const larguraBalao = vw <= 520 ? 190 : LARGURA_BALAO;
+    let esquerda = lado === "baixo-direita" ? rect.right - larguraBalao : rect.left;
+    esquerda = Math.min(Math.max(esquerda, MARGEM), vw - larguraBalao - MARGEM);
     const cabeAbaixo = rect.bottom + 140 < vh;
     estiloBalao = cabeAbaixo
       ? { top: rect.bottom + 14, left: esquerda }
       : { bottom: vh - rect.top + 14, left: esquerda };
-    estiloBalao.setaEm = Math.min(Math.max(rect.left + rect.width / 2 - esquerda, 18), LARGURA_BALAO - 18);
+    estiloBalao.setaEm = Math.min(Math.max(rect.left + rect.width / 2 - esquerda, 18), larguraBalao - 18);
     estiloBalao.cabeAbaixo = cabeAbaixo;
+    estiloBalao.largura = larguraBalao;
   }
 
   return (
@@ -157,7 +161,7 @@ export default function DicaNova({ chave, texto, lado = "baixo-esquerda", alvoSe
           <div className="v2-dica-destaque" style={{ top: rect.top - 8, left: rect.left - 8, width: rect.width + 16, height: rect.height + 16 }} />
           <div
             className={`v2-dica-balao ${estiloBalao.cabeAbaixo ? "v2-dica-abaixo" : "v2-dica-acima"}`}
-            style={{ top: estiloBalao.top, bottom: estiloBalao.bottom, left: estiloBalao.left, "--seta-em": `${estiloBalao.setaEm}px` }}
+            style={{ top: estiloBalao.top, bottom: estiloBalao.bottom, left: estiloBalao.left, width: estiloBalao.largura, "--seta-em": `${estiloBalao.setaEm}px` }}
             role="status"
             onClick={(e) => e.stopPropagation()}
           >

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import { api } from "../api/client.js";
 import { registrarConversaoCadastro } from "../utils/analytics.js";
+import { obterTokenTurnstile } from "../utils/turnstile.js";
 
 const AuthContext = createContext(null);
 
@@ -18,7 +19,8 @@ export function AuthProvider({ children }) {
   }
 
   async function register(nickname, email, password, extra = {}) {
-    const { data } = await api.post("/auth/register", { nickname, email, password, ...extra });
+    const turnstileToken = await obterTokenTurnstile();
+    const { data } = await api.post("/auth/register", { nickname, email, password, turnstileToken, ...extra });
     localStorage.setItem("eg_token", data.token);
     localStorage.setItem("eg_user", JSON.stringify(data.user));
     setUser(data.user);
@@ -48,7 +50,8 @@ export function AuthProvider({ children }) {
   // Entrada rápida como visitante — sem cadastro, só um apelido. A pessoa
   // pode jogar e conhecer o site, mas não concorre a ranking nenhum.
   async function loginAsGuest(nickname) {
-    const { data } = await api.post("/auth/guest", { nickname });
+    const turnstileToken = await obterTokenTurnstile();
+    const { data } = await api.post("/auth/guest", { nickname, turnstileToken });
     localStorage.setItem("eg_token", data.token);
     localStorage.setItem("eg_user", JSON.stringify(data.user));
     setUser(data.user);

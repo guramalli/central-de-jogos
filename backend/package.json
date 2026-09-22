@@ -17,6 +17,8 @@
     "respostas-repetidas": "node scripts/respostasRepetidas.js",
     "listar-respostas": "node scripts/listarRespostas.js",
     "achar-respostas-ruins": "node scripts/acharRespostasRuins.js",
+    "limpar-visitantes": "node scripts/limparVisitantesSuspeitos.js",
+    "banir-ip": "node scripts/banirIP.js",
     "fechar-mes": "node scripts/fecharMes.js",
     "triar-palavras": "node scripts/triarPalavras.js",
     "limpar-letras": "node scripts/limparLetras.js",

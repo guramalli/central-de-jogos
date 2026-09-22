@@ -15,6 +15,7 @@ import * as generalChat from "../game/generalChat.js";
 import * as presence from "../game/presence.js";
 import { recheckPeak } from "../game/platformStats.js";
 import { prisma } from "../db.js";
+import { ipEstaBanido, ipDoSocket } from "../ipBan.js";
 
 export function setupSocket(io) {
   // ===== Amortecedor de consultas por conexão =====
@@ -41,6 +42,10 @@ export function setupSocket(io) {
 
   io.use(async (socket, next) => {
     try {
+      if (ipEstaBanido(ipDoSocket(socket))) {
+        return next(new Error("SESSAO_INVALIDA"));
+      }
+
       const token = socket.handshake.auth?.token;
       const payload = verifyToken(token);
 

@@ -6,6 +6,7 @@ import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../db.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetEmail } from "../utils/mailer.js";
+import { verificarTurnstile } from "../turnstile.js";
 
 const router = Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -49,8 +50,56 @@ const entradaLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post("/register", entradaLimiter, async (req, res) => {
-  const { nickname, email, password, city, state, birthDate, termsAccepted } = req.body;
+// Visitante é um caso à parte: não pede e-mail nem senha, então um script
+// consegue criar dezenas de contas em segundos sem nunca esbarrar no limite
+// de cima (pensado pra cadastro de verdade). Foi exatamente isso que
+// aconteceu (zip 599): mais de 50 contas "LoadTestUserNN" criadas em
+// sequência, direto na API, sem passar pela tela de "jogar sem cadastro".
+// Dois limites, mais apertados: um curto (pega rajada) e um diário (pega
+// quem tenta driblar espaçando as requisições).
+const visitanteLimiterCurto = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 8, // 8 visitantes por IP — dá folga pra uma família/rede compartilhada, não pra um script
+  message: { error: "Muitas entradas de visitante seguidas. Aguarda um pouquinho ou crie uma conta." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const visitanteLimiterDiario = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 horas
+  max: 25, // 25 visitantes por IP no dia — pega quem tenta espaçar as requisições pra escapar do limite de cima
+  message: { error: "Limite de entradas de visitante desse endereço hoje. Tenta de novo amanhã ou crie uma conta." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// LIMITE GLOBAL, não por IP (zip 601) — os limites acima seguram um único
+// endereço, mas não seguram alguém trocando de IP a cada tentativa (o nome
+// "ChkRL1/2/3" que apareceu no ataque sugere justamente alguém testando
+// se dá pra escapar do limite por IP). `keyGenerator` sempre igual pra
+// todo mundo faz o próprio express-rate-limit contar o site INTEIRO como
+// uma coisa só. Generoso o bastante pra não atrapalhar um pico real de
+// gente chegando (a campanha no Reddit, por exemplo), apertado o bastante
+// pra travar um ataque robotizado vindo de vários endereços.
+const contaNovaLimiterGlobal = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutos
+  max: 50, // contas novas (visitante + cadastro) no SITE INTEIRO nesse período
+  keyGenerator: () => "global",
+  message: { error: "Muita gente criando conta ao mesmo tempo. Tenta de novo em alguns minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Domínios reservados só pra documentação (RFC 2606) — nenhuma pessoa de
+// verdade tem e-mail neles. Uma das contas do ataque (zip 601) usava
+// "@example.com" pra se cadastrar de verdade, driblando o limite pensado
+// só pra visitante. Bloquear aqui tem risco zero de barrar gente real.
+const DOMINIOS_RESERVADOS = new Set(["example.com", "example.net", "example.org", "example.edu"]);
+
+router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res) => {
+  const { nickname, email, password, city, state, birthDate, termsAccepted, turnstileToken } = req.body;
+  if (!(await verificarTurnstile(turnstileToken, req.ip))) {
+    return res.status(400).json({ error: "Não foi possível confirmar que você não é um robô. Recarregue a página e tente de novo." });
+  }
   if (!nickname || !email || !password) {
     return res.status(400).json({ error: "Preencha nickname, email e senha." });
   }
@@ -70,6 +119,9 @@ router.post("/register", entradaLimiter, async (req, res) => {
   const mail = String(email).trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
     return res.status(400).json({ error: "Informe um e-mail válido." });
+  }
+  if (DOMINIOS_RESERVADOS.has(mail.split("@")[1])) {
+    return res.status(400).json({ error: "Esse domínio de e-mail não é válido pra cadastro." });
   }
   if (!termsAccepted) {
     return res.status(400).json({ error: "É preciso aceitar os Termos de Uso para se cadastrar." });
@@ -253,8 +305,11 @@ router.post("/google", entradaLimiter, async (req, res) => {
 // sem e-mail nem senha, pra pessoa experimentar o jogo antes de decidir se
 // quer se cadastrar. Visitante NÃO concorre a ranking nenhum — a conta
 // existe só pra o jogo funcionar (chat, salas, placar da partida).
-router.post("/guest", entradaLimiter, async (req, res) => {
-  const { nickname } = req.body;
+router.post("/guest", visitanteLimiterCurto, visitanteLimiterDiario, contaNovaLimiterGlobal, async (req, res) => {
+  const { nickname, turnstileToken } = req.body;
+  if (!(await verificarTurnstile(turnstileToken, req.ip))) {
+    return res.status(400).json({ error: "Não foi possível confirmar que você não é um robô. Recarregue a página e tente de novo." });
+  }
 
   const nick = (nickname || "").trim();
   if (nick.length < 3 || nick.length > 15) {

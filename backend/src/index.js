@@ -34,6 +34,7 @@ import tribunalRoomsRoutes from "./routes/tribunalRooms.js";
 import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
 import { setupSocket } from "./socket/index.js";
+import { ipEstaBanido } from "./ipBan.js";
 
 const app = express();
 const server = createServer(app);
@@ -46,6 +47,15 @@ const server = createServer(app);
 // Render), que é o comportamento seguro — confiar em todos deixaria o IP
 // ser falsificado.
 app.set("trust proxy", 1);
+
+// Bloqueia IPs banidos manualmente (scripts/banirIP.js) antes de qualquer
+// rota — inclusive antes de criar conta de visitante, que é justamente o
+// caso que motivou isso (zip 599): banir só a conta não impede criar outra
+// no minuto seguinte, banir o IP sim.
+app.use((req, res, next) => {
+  if (ipEstaBanido(req.ip)) return res.status(403).json({ error: "Acesso bloqueado." });
+  next();
+});
 
 // Cabeçalhos de segurança padrão de mercado (esconde tecnologia usada,
 // evita que o site seja carregado dentro de um iframe malicioso em outro

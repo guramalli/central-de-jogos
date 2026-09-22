@@ -24,6 +24,17 @@ model SuspiciousActivity {
   createdAt DateTime @default(now())
 }
 
+// IPs banidos manualmente (scripts/banirIP.js) — bloqueia ANTES de chegar
+// nas rotas ou no socket, então funciona mesmo pra quem nunca criou conta
+// (o caso de visitantes criados em rajada: banir só a conta não impede
+// criar outra, banir o IP impede criar a próxima).
+model BannedIP {
+  id        String   @id @default(cuid())
+  ip        String   @unique
+  motivo    String?
+  criadoEm  DateTime @default(now())
+}
+
 model User {
   id               String   @id @default(cuid())
   nickname         String   @unique

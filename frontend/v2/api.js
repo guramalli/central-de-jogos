@@ -43,8 +43,8 @@ export async function entrarComGoogle(credential) {
   guardarSessao(data);
   if (data.contaNova) await registrarConversaoCadastro();
 }
-export async function entrarComoVisitante(nickname) {
-  const { data } = await api.post("/auth/guest", { nickname });
+export async function entrarComoVisitante(nickname, turnstileToken) {
+  const { data } = await api.post("/auth/guest", { nickname, turnstileToken });
   guardarSessao(data);
 }
 
