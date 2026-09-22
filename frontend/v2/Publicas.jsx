@@ -209,8 +209,8 @@ export function Entrar() {
         <BotaoGoogle aoErro={setErro} />
         {temGoogle && <div className="v2-divisor"><span>ou entre com e-mail</span></div>}
         <form className="v2-auth-form" onSubmit={enviar}>
-          <label>E-mail<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-          <label>Senha<input type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></label>
+          <label>E-mail<input type="email" className="data-cs-mask" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+          <label>Senha<input type="password" className="data-cs-mask" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></label>
           <button className="v2-botao v2-botao-amarelo v2-botao-largo" type="submit" disabled={enviando}>{enviando ? "Entrando…" : "Entrar"}</button>
         </form>
         <a className="v2-link" href={linkDaPagina("esqueci-senha")} onClick={irLink("esqueci-senha")}>Esqueci minha senha</a>
@@ -253,8 +253,8 @@ export function Cadastro() {
         )}
         <form className="v2-auth-form" onSubmit={enviar}>
           <label>Nickname<input value={nick} onChange={(e) => setNick(e.target.value)} maxLength={15} autoComplete="nickname" required /></label>
-          <label>E-mail<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-          <label>Senha <em>(mínimo 8 caracteres)</em><input type="password" minLength={8} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></label>
+          <label>E-mail<input type="email" className="data-cs-mask" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+          <label>Senha <em>(mínimo 8 caracteres)</em><input type="password" className="data-cs-mask" minLength={8} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></label>
           <label>Data de nascimento <em>(opcional)</em><input type="date" value={nascimento} onChange={(e) => setNascimento(e.target.value)} /></label>
           <label className="v2-aceite">
             <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
@@ -289,7 +289,7 @@ export function EsqueciSenha() {
             <p className="v2-cartao-nota">Digite o e-mail da sua conta e enviamos um link pra você criar uma senha nova.</p>
             {estado?.erro && <div className="v2-faixa-aviso erro" role="alert">{estado.erro}</div>}
             <form className="v2-auth-form" onSubmit={enviar}>
-              <label>E-mail<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+              <label>E-mail<input type="email" className="data-cs-mask" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
               <button className="v2-botao v2-botao-amarelo v2-botao-largo" type="submit" disabled={estado === "enviando"}>{estado === "enviando" ? "Enviando…" : "Enviar link"}</button>
             </form>
           </>
@@ -327,8 +327,8 @@ export function RedefinirSenha({ token }) {
           <>
             {estado?.erro && <div className="v2-faixa-aviso erro" role="alert">{estado.erro}</div>}
             <form className="v2-auth-form" onSubmit={enviar}>
-              <label>Nova senha <em>(mínimo 8 caracteres)</em><input type="password" minLength={8} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></label>
-              <label>Confirmar a nova senha<input type="password" minLength={8} autoComplete="new-password" value={confirma} onChange={(e) => setConfirma(e.target.value)} required /></label>
+              <label>Nova senha <em>(mínimo 8 caracteres)</em><input type="password" className="data-cs-mask" minLength={8} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required /></label>
+              <label>Confirmar a nova senha<input type="password" className="data-cs-mask" minLength={8} autoComplete="new-password" value={confirma} onChange={(e) => setConfirma(e.target.value)} required /></label>
               <button className="v2-botao v2-botao-amarelo v2-botao-largo" type="submit" disabled={estado === "enviando"}>{estado === "enviando" ? "Salvando…" : "Salvar senha nova"}</button>
             </form>
           </>

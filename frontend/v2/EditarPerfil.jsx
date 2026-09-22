@@ -184,9 +184,9 @@ export default function EditarPerfil({ usuario }) {
               <h2>{eu.hasPassword ? "Trocar senha" : "Definir uma senha"}</h2>
               {!eu.hasPassword && <p className="v2-cartao-nota">Você entra com o Google. Definindo uma senha, também dá pra entrar com e-mail e senha.</p>}
               <form className="v2-modal-form" onSubmit={trocarSenha}>
-                {eu.hasPassword && <label>Senha atual<input type="password" autoComplete="current-password" value={senhas.atual} onChange={(e) => setSenhas((x) => ({ ...x, atual: e.target.value }))} required /></label>}
-                <label>Nova senha<input type="password" autoComplete="new-password" value={senhas.nova} onChange={(e) => setSenhas((x) => ({ ...x, nova: e.target.value }))} required minLength={6} /></label>
-                <label>Confirmar nova senha<input type="password" autoComplete="new-password" value={senhas.confirma} onChange={(e) => setSenhas((x) => ({ ...x, confirma: e.target.value }))} required minLength={6} /></label>
+                {eu.hasPassword && <label>Senha atual<input type="password" className="data-cs-mask" autoComplete="current-password" value={senhas.atual} onChange={(e) => setSenhas((x) => ({ ...x, atual: e.target.value }))} required /></label>}
+                <label>Nova senha<input type="password" className="data-cs-mask" autoComplete="new-password" value={senhas.nova} onChange={(e) => setSenhas((x) => ({ ...x, nova: e.target.value }))} required minLength={6} /></label>
+                <label>Confirmar nova senha<input type="password" className="data-cs-mask" autoComplete="new-password" value={senhas.confirma} onChange={(e) => setSenhas((x) => ({ ...x, confirma: e.target.value }))} required minLength={6} /></label>
                 <button className="v2-botao v2-botao-amarelo" type="submit">Salvar senha</button>
               </form>
               <Aviso s="senha" />

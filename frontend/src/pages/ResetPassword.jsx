@@ -63,7 +63,7 @@ export default function ResetPassword() {
               {error && <div className="error-msg">{error}</div>}
               <form onSubmit={handleSubmit}>
                 <input
-                  type="password"
+                  type="password" className="data-cs-mask"
                   placeholder="Senha nova (mín. 8 caracteres)"
                   minLength={8}
                   value={password}
@@ -71,7 +71,7 @@ export default function ResetPassword() {
                   required
                 />
                 <input
-                  type="password"
+                  type="password" className="data-cs-mask"
                   placeholder="Confirme a senha nova"
                   minLength={8}
                   value={confirm}

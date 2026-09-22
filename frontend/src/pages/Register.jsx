@@ -72,8 +72,8 @@ export default function Register() {
 
           <form onSubmit={handleSubmit}>
             <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={15} required />
-            <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha (mín. 8 caracteres)" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input placeholder="E-mail" type="email" className="data-cs-mask" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input placeholder="Senha (mín. 8 caracteres)" type="password" className="data-cs-mask" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
 
             <label className="register-label">Data de nascimento</label>
             <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />

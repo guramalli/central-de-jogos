@@ -432,7 +432,7 @@ export default function SalaPrivada() {
               }}
             >
               <input
-                type="password"
+                type="password" className="data-cs-mask"
                 placeholder="Senha da sala"
                 value={senhaDigitada}
                 onChange={(e) => setSenhaDigitada(e.target.value)}

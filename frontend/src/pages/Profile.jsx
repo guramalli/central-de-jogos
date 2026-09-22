@@ -171,7 +171,7 @@ export default function Profile() {
         <form onSubmit={handlePasswordSave}>
           {hasPassword && (
             <input
-              type="password"
+              type="password" className="data-cs-mask"
               placeholder="Senha atual"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -179,7 +179,7 @@ export default function Profile() {
             />
           )}
           <input
-            type="password"
+            type="password" className="data-cs-mask"
             placeholder="Senha nova (mín. 8 caracteres)"
             minLength={8}
             value={newPassword}
@@ -187,7 +187,7 @@ export default function Profile() {
             required
           />
           <input
-            type="password"
+            type="password" className="data-cs-mask"
             placeholder="Confirme a senha nova"
             minLength={8}
             value={confirmPassword}

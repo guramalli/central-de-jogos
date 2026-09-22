@@ -54,7 +54,7 @@ export default function ForgotPassword() {
               {error && <div className="error-msg">{error}</div>}
               <form onSubmit={handleSubmit}>
                 <input
-                  type="email"
+                  type="email" className="data-cs-mask"
                   placeholder="Seu e-mail"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

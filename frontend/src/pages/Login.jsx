@@ -70,8 +70,8 @@ export default function Login() {
           )}
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
-            <input placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input placeholder="Senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input placeholder="E-mail" type="email" className="data-cs-mask" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input placeholder="Senha" type="password" className="data-cs-mask" value={password} onChange={(e) => setPassword(e.target.value)} required />
             <button className="btn" type="submit" style={{ width: "100%" }}>Entrar</button>
           </form>
 

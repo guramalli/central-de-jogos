@@ -115,7 +115,7 @@ export default function SalasPrivadas({ usuario, jogo, salaDoLink }) {
             <p className="v2-modal-citacao">Essa sala é protegida. Peça a senha pra quem te chamou.</p>
             <form className="v2-modal-form" onSubmit={(e) => { e.preventDefault(); entrar(pedindoSenha, senhaDigitada); setPedindoSenha(null); }}>
               <label htmlFor="v2-senha-sala" className="v2-oculto">Senha da sala</label>
-              <input id="v2-senha-sala" type="password" placeholder="Senha da sala" value={senhaDigitada} onChange={(e) => setSenhaDigitada(e.target.value)} autoComplete="off" autoFocus />
+              <input id="v2-senha-sala" type="password" className="data-cs-mask" placeholder="Senha da sala" value={senhaDigitada} onChange={(e) => setSenhaDigitada(e.target.value)} autoComplete="off" autoFocus />
               <div className="v2-modal-acoes"><button type="submit" className="v2-botao v2-botao-amarelo">Entrar</button></div>
             </form>
           </div>
