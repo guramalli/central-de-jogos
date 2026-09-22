@@ -73,6 +73,26 @@ const visitanteLimiterDiario = rateLimit({
   legacyHeaders: false,
 });
 
+// O cadastro completo NUNCA teve um limite apertado por IP (zip 613) — só
+// o "entradaLimiter" de cima (60/5min, pensado pra outra coisa) e o global
+// do site inteiro. Um IP só conseguia criar dezenas de contas registradas
+// seguidas sem esbarrar em nada específico. Mesmo padrão do visitante:
+// curto (rajada) + diário (quem tenta espaçar).
+const cadastroLimiterCurto = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 5, // 5 cadastros por IP — uma família cadastrando todo mundo cabe, um script não
+  message: { error: "Muitos cadastros seguidos desse endereço. Aguarda um pouquinho." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const cadastroLimiterDiario = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 horas
+  max: 15, // 15 cadastros por IP no dia
+  message: { error: "Limite de cadastros desse endereço hoje. Tenta de novo amanhã." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // LIMITE GLOBAL, não por IP (zip 601) — os limites acima seguram um único
 // endereço, mas não seguram alguém trocando de IP a cada tentativa (o nome
 // "ChkRL1/2/3" que apareceu no ataque sugere justamente alguém testando
@@ -124,7 +144,7 @@ function apelidoReservado(nick) {
   return false;
 }
 
-router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res) => {
+router.post("/register", entradaLimiter, cadastroLimiterCurto, cadastroLimiterDiario, contaNovaLimiterGlobal, async (req, res) => {
   const { nickname, email, password, city, state, birthDate, termsAccepted, turnstileToken } = req.body;
   if (!(await verificarTurnstile(turnstileToken, req.ip))) {
     return res.status(400).json({ error: "Não foi possível confirmar que você não é um robô. Recarregue a página e tente de novo." });
