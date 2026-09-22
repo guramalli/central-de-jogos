@@ -95,6 +95,23 @@ const contaNovaLimiterGlobal = rateLimit({
 // só pra visitante. Bloquear aqui tem risco zero de barrar gente real.
 const DOMINIOS_RESERVADOS = new Set(["example.com", "example.net", "example.org", "example.edu"]);
 
+// Apelidos que passam por moderador/admin/dono do site (zip 603) — um
+// visitante chamado "admin" não ganha NENHUM poder de verdade, mas pode
+// enganar outros jogadores no chat fingindo ser da equipe. Pega variações
+// com espaço/underline/maiúscula ("A D M I N", "_admin_") normalizando
+// antes de comparar.
+const APELIDOS_RESERVADOS = new Set([
+  "admin", "administrador", "administrator", "moderador", "moderator",
+  "staff", "suporte", "support", "sistema", "system", "root",
+  "equipe", "oficial", "official", "educacaogamer",
+]);
+function normalizarApelido(s) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+function apelidoReservado(nick) {
+  return APELIDOS_RESERVADOS.has(normalizarApelido(nick));
+}
+
 router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res) => {
   const { nickname, email, password, city, state, birthDate, termsAccepted, turnstileToken } = req.body;
   if (!(await verificarTurnstile(turnstileToken, req.ip))) {
@@ -115,6 +132,9 @@ router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res
   }
   if (!/^[\p{L}\p{N}_ ]+$/u.test(nick)) {
     return res.status(400).json({ error: "Nickname pode ter apenas letras, números, espaço e underline." });
+  }
+  if (apelidoReservado(nick)) {
+    return res.status(400).json({ error: "Esse apelido não está disponível." });
   }
   const mail = String(email).trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
@@ -317,6 +337,9 @@ router.post("/guest", visitanteLimiterCurto, visitanteLimiterDiario, contaNovaLi
   }
   if (!/^[\p{L}\p{N}_ ]+$/u.test(nick)) {
     return res.status(400).json({ error: "Use apenas letras, números, espaço e underline." });
+  }
+  if (apelidoReservado(nick)) {
+    return res.status(400).json({ error: "Esse apelido não está disponível." });
   }
 
   // Visitante ganha um sufixo pra deixar claro que não é conta registrada e
