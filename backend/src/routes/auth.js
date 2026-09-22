@@ -7,7 +7,7 @@ import { prisma } from "../db.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetEmail } from "../utils/mailer.js";
 import { verificarTurnstile } from "../turnstile.js";
-import { autoBanirIP, registrarRejeicao } from "../ipBan.js";
+import { autoBanirIP, registrarRejeicao, registrarCriacaoConta } from "../ipBan.js";
 
 const router = Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -218,6 +218,7 @@ router.post("/register", entradaLimiter, cadastroLimiterCurto, cadastroLimiterDi
   }
   const token = signToken(user);
   console.log(`[conta criada via /register] ${user.nickname} <${mail}> de ${req.ip} (x-forwarded-for bruto: ${req.headers["x-forwarded-for"] || "-"})`);
+  await registrarCriacaoConta(req.ip);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });
 

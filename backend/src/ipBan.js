@@ -78,6 +78,26 @@ export async function registrarRejeicao(ip, motivo) {
   }
 }
 
+// Grupo 3 (zip 614): mesma ideia do Grupo 2, mas pra contas criadas COM
+// SUCESSO, sem nada de suspeito em nenhuma delas isoladamente (nome
+// aleatório, e-mail de verdade — o padrão que passa direto pelos outros
+// gatilhos). Uma pessoa só raramente cria 3 contas registradas em 10
+// minutos pelo MESMO endereço; script sim. Contador separado do de
+// rejeição — são coisas diferentes (sucesso, não falha).
+const criacoesConta = new Map(); // ip -> [timestamps]
+
+export async function registrarCriacaoConta(ip) {
+  if (!ip || banidos.has(ip)) return;
+  const agora = Date.now();
+  const lista = (criacoesConta.get(ip) || []).filter((t) => t > agora - JANELA_MS);
+  lista.push(agora);
+  criacoesConta.set(ip, lista);
+  if (lista.length >= LIMIAR) {
+    criacoesConta.delete(ip);
+    await autoBanirIP(ip, `${lista.length} contas criadas em menos de 10min`);
+  }
+}
+
 // Socket.IO não aplica o "trust proxy" do Express (isso é só pro objeto
 // de requisição do Express) — sem isso, todo mundo pareceria vir do IP
 // interno do Render. Lê o X-Forwarded-For manualmente; o primeiro endereço
