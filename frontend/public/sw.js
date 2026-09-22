@@ -21,7 +21,14 @@
 // ARTE_TROCAVEL: próximas trocas chegam sozinhas, sem subir a versão).
 // eg-v11: arte própria das 12 patentes do Mentira (/ranks-mentira/),
 // sobrescrevendo as cópias provisórias do Acromania.
-const VERSAO = "eg-v11";
+// eg-v12: a busca da página (navegação) agora ignora explicitamente o
+// cache HTTP do navegador (cache: "no-store"), não só o Cache Storage do
+// SW. Sem isso, um F5 normal (sem Shift) podia reaproveitar um index.html
+// antigo guardado pelo próprio navegador — depois de um deploy, esse HTML
+// velho apontava pra arquivos JS/CSS com hash que já não existiam mais, e
+// a tela ficava em branco. Reforça o Cache-Control do vercel.json, que
+// resolve a mesma causa do lado do servidor.
+const VERSAO = "eg-v12";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -83,7 +90,7 @@ self.addEventListener("fetch", (evento) => {
   // se a pessoa estiver realmente sem internet.
   if (req.mode === "navigate") {
     evento.respondWith(
-      fetch(req).catch(() => caches.match("/").then((r) => r || Response.error()))
+      fetch(req, { cache: "no-store" }).catch(() => caches.match("/").then((r) => r || Response.error()))
     );
     return;
   }

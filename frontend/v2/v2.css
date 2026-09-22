@@ -2346,14 +2346,31 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; }
 .v2-versao-jogo-lobby { margin: 4px auto 0; }
 
-/* =================== Dicas contextuais (zip 591) =================== */
-.v2-dica-nova { position: relative; display: inline-flex; vertical-align: middle; margin-left: 5px; }
-.v2-dica-ponto { width: 18px; height: 18px; padding: 0; border: none; border-radius: 50%; background: var(--amarelo); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 rgba(255,214,10,.6); animation: v2-dica-pulso 1.8s ease-out infinite; }
-.v2-dica-ponto-aro { width: 8px; height: 8px; border-radius: 50%; background: #7a5b00; }
-@keyframes v2-dica-pulso { 0% { box-shadow: 0 0 0 0 rgba(255,214,10,.55); } 70% { box-shadow: 0 0 0 9px rgba(255,214,10,0); } 100% { box-shadow: 0 0 0 0 rgba(255,214,10,0); } }
-.v2-dica-balao { position: absolute; z-index: 40; top: calc(100% + 8px); width: 220px; padding: 10px 12px; border-radius: 14px; background: #2b1b5e; color: #fff; font-size: 13px; font-weight: 700; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 8px; animation: v2-pop .2s ease-out both; }
-.v2-dica-balao-baixo-esquerda { left: 0; }
-.v2-dica-balao-baixo-direita { right: 0; }
-.v2-dica-balao button { align-self: flex-end; border: none; border-radius: 999px; padding: 4px 12px; background: var(--amarelo); color: var(--roxo); font: inherit; font-weight: 900; font-size: 12px; cursor: pointer; }
-@media (max-width: 520px) { .v2-dica-balao { width: 190px; } }
-@media (prefers-reduced-motion: reduce) { .v2-dica-ponto { animation: none; } }
+/* =================== Dicas contextuais (zip 594) =================== */
+/* O site inteiro escurece (por cima de tudo, num portal pro <body>) e só o
+   alvo + o balão ficam coloridos — recorte de luz feito com um box-shadow
+   gigante em volta do próprio alvo, igual ao truque clássico de "spotlight". */
+/* pointer-events: none no fundo inteiro — a dica escurece a tela por cima
+   de UM JOGO EM ANDAMENTO, e nunca pode travar o clique/toque de quem
+   está jogando. Só o próprio balão volta a aceitar toque (o "Entendi"). */
+.v2-dica-fundo { position: fixed; inset: 0; z-index: 200; background: transparent; pointer-events: none; }
+.v2-dica-destaque {
+  position: fixed; z-index: 201; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(10,6,30,.86);
+  outline: 2px solid var(--amarelo); outline-offset: 2px;
+  animation: v2-dica-destaque-in .25s ease-out both;
+}
+@keyframes v2-dica-destaque-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+.v2-dica-balao {
+  position: fixed; z-index: 202; width: 240px; padding: 12px 14px; border-radius: 14px;
+  background: #2b1b5e; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.45;
+  box-shadow: 0 10px 28px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 10px;
+  animation: v2-dica-entra .25s ease-out both; cursor: default; pointer-events: auto;
+}
+.v2-dica-balao::before { content: ""; position: absolute; left: var(--seta-em, 24px); width: 14px; height: 14px; background: #2b1b5e; transform: translateX(-50%) rotate(45deg); border-radius: 3px; }
+.v2-dica-abaixo::before { top: -6px; }
+.v2-dica-acima::before { bottom: -6px; }
+@keyframes v2-dica-entra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.v2-dica-balao button { align-self: flex-end; border: none; border-radius: 999px; padding: 5px 14px; background: var(--amarelo); color: var(--roxo); font: inherit; font-weight: 900; font-size: 12px; cursor: pointer; }
+@media (max-width: 520px) { .v2-dica-balao { width: 200px; } }
+@media (prefers-reduced-motion: reduce) { .v2-dica-balao, .v2-dica-destaque { animation: none; } }
