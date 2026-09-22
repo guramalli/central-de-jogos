@@ -108,8 +108,19 @@ const APELIDOS_RESERVADOS = new Set([
 function normalizarApelido(s) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 }
+// zip 606: era comparação EXATA ("admin" == "admin") — passava por cima de
+// "AdminEG" (normaliza pra "admineg", uma palavra "diferente" de "admin"
+// pra uma comparação exata). Agora checa se a palavra reservada aparece em
+// QUALQUER parte do apelido normalizado — pega "AdminEG", "SuperAdmin",
+// "Admin123" etc. O preço é bloquear também quem só TEM essas letras por
+// coincidência (raro em nomes reais); vale a troca depois de ver alguém
+// de verdade explorando essa brecha pra se passar pela equipe do site.
 function apelidoReservado(nick) {
-  return APELIDOS_RESERVADOS.has(normalizarApelido(nick));
+  const norm = normalizarApelido(nick);
+  for (const palavra of APELIDOS_RESERVADOS) {
+    if (norm.includes(palavra)) return true;
+  }
+  return false;
 }
 
 router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res) => {
@@ -136,8 +147,14 @@ router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res
   if (apelidoReservado(nick)) {
     return res.status(400).json({ error: "Esse apelido não está disponível." });
   }
+  // Validação de e-mail mais rígida (zip 605) — a de antes aceitava
+  // basicamente qualquer coisa com "@" e um ponto ("a@a.a" passava), e o
+  // ataque estava se aproveitando disso pra cadastrar e-mails que não têm
+  // cara de e-mail de verdade. Exige domínio com estrutura real e TLD de
+  // pelo menos 2 letras — cobre e-mail de verdade (inclusive .com.br,
+  // +apelido, etc.) sem abrir espaço pra lixo sintático.
   const mail = String(email).trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+  if (mail.length > 254 || !/^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(mail)) {
     return res.status(400).json({ error: "Informe um e-mail válido." });
   }
   if (DOMINIOS_RESERVADOS.has(mail.split("@")[1])) {
@@ -177,6 +194,7 @@ router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res
     throw err;
   }
   const token = signToken(user);
+  console.log(`[conta criada via /register] ${user.nickname} <${mail}> de ${req.ip}`);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });
 
@@ -314,6 +332,7 @@ router.post("/google", entradaLimiter, async (req, res) => {
   if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
 
   const token = signToken(user);
+  if (contaNova) console.log(`[conta criada via /google] ${user.nickname} <${user.email}> de ${req.ip}`);
   res.json({
     token,
     contaNova,
@@ -364,6 +383,7 @@ router.post("/guest", visitanteLimiterCurto, visitanteLimiterDiario, contaNovaLi
       },
     });
 
+    console.log(`[conta criada via /guest] ${user.nickname} de ${req.ip}`);
     const token = signToken(user);
     res.json({
       token,

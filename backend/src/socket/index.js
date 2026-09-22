@@ -95,6 +95,12 @@ export function setupSocket(io) {
         prisma.user
           .update({ where: { id: payload.id }, data: { visitas: { increment: 1 } } })
           .catch(() => {});
+        // Log leve de conexão, na mesma cadência da visita (no máx. uma vez
+        // a cada 30min por pessoa — sem isso, alguém reconectando toda hora
+        // ao navegar pelo site enche o log de linha repetida). Zip 607: é o
+        // jeito de achar o IP de uma conta que JÁ existe e está online
+        // agora, sem precisar esperar ela se cadastrar de novo.
+        console.log(`[conectou] ${payload.nickname} de ${ipDoSocket(socket)}`);
       }
 
       const plataforma = socket.handshake.auth?.plataforma;
