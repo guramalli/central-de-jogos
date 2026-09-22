@@ -194,7 +194,7 @@ router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res
     throw err;
   }
   const token = signToken(user);
-  console.log(`[conta criada via /register] ${user.nickname} <${mail}> de ${req.ip}`);
+  console.log(`[conta criada via /register] ${user.nickname} <${mail}> de ${req.ip} (x-forwarded-for bruto: ${req.headers["x-forwarded-for"] || "-"})`);
   res.json({ token, user: { id: user.id, nickname: user.nickname, role: user.role } });
 });
 
@@ -332,7 +332,7 @@ router.post("/google", entradaLimiter, async (req, res) => {
   if (user.banned) return res.status(403).json({ error: "Esta conta foi banida da plataforma." });
 
   const token = signToken(user);
-  if (contaNova) console.log(`[conta criada via /google] ${user.nickname} <${user.email}> de ${req.ip}`);
+  if (contaNova) console.log(`[conta criada via /google] ${user.nickname} <${user.email}> de ${req.ip} (x-forwarded-for bruto: ${req.headers["x-forwarded-for"] || "-"})`);
   res.json({
     token,
     contaNova,
@@ -383,7 +383,7 @@ router.post("/guest", visitanteLimiterCurto, visitanteLimiterDiario, contaNovaLi
       },
     });
 
-    console.log(`[conta criada via /guest] ${user.nickname} de ${req.ip}`);
+    console.log(`[conta criada via /guest] ${user.nickname} de ${req.ip} (x-forwarded-for bruto: ${req.headers["x-forwarded-for"] || "-"})`);
     const token = signToken(user);
     res.json({
       token,

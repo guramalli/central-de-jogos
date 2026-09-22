@@ -39,14 +39,16 @@ import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 const app = express();
 const server = createServer(app);
 
-// O Render (e qualquer plataforma parecida) coloca um proxy na frente do
-// servidor. Esse proxy manda o IP real do visitante no header
-// X-Forwarded-For. Sem avisar o Express pra confiar nesse header, o
-// express-rate-limit não consegue identificar cada usuário e fica lançando
-// ValidationError a cada requisição. "1" confia só no primeiro proxy (o do
-// Render), que é o comportamento seguro — confiar em todos deixaria o IP
-// ser falsificado.
-app.set("trust proxy", 1);
+// A API (api.educacaogamer.com.br) passa pela Cloudflare ANTES de chegar
+// no Render — são DOIS saltos de proxy, não um só (confirmado num log real
+// do ataque: o X-Forwarded-For chegou com dois endereços, "IP do
+// atacante, IP da borda da Cloudflare"). Com "1", o Express calculava o IP
+// da própria Cloudflare como se fosse o do visitante — o banimento de IP
+// (zip 600) nunca barrava criação de conta nova por causa disso, só
+// funcionava no socket (que já extraía certo, por outro caminho). "2"
+// conta os dois saltos de verdade. Confiar em todos deixaria o IP ser
+// falsificado por quem quisesse — por isso um número fixo, não "todos".
+app.set("trust proxy", 2);
 
 // Bloqueia IPs banidos manualmente (scripts/banirIP.js) antes de qualquer
 // rota — inclusive antes de criar conta de visitante, que é justamente o
