@@ -50,6 +50,11 @@ export function getOnlinePlayersDetailed() {
   const vistos = new Set();
   for (const [roomId, room] of rooms.entries()) {
     for (const p of room.players.values()) {
+      // Rede de segurança (zip 611, mesma ideia do presence.js): se o
+      // "disconnect" não disparou por algum motivo raro, o socket fica
+      // desconectado de verdade mas continua na lista até alguém entrar
+      // de novo. Sem isso, o painel mostra gente "online" que já foi.
+      if (!p.socket?.connected) continue;
       const chave = `${p.userId}:${roomId}`;
       if (vistos.has(chave)) continue;
       vistos.add(chave);
