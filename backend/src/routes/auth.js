@@ -7,6 +7,7 @@ import { prisma } from "../db.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetEmail } from "../utils/mailer.js";
 import { verificarTurnstile } from "../turnstile.js";
+import { autoBanirIP, registrarRejeicao } from "../ipBan.js";
 
 const router = Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -145,6 +146,7 @@ router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res
     return res.status(400).json({ error: "Nickname pode ter apenas letras, números, espaço e underline." });
   }
   if (apelidoReservado(nick)) {
+    await registrarRejeicao(req.ip, "apelido de admin");
     return res.status(400).json({ error: "Esse apelido não está disponível." });
   }
   // Validação de e-mail mais rígida (zip 605) — a de antes aceitava
@@ -158,6 +160,7 @@ router.post("/register", entradaLimiter, contaNovaLimiterGlobal, async (req, res
     return res.status(400).json({ error: "Informe um e-mail válido." });
   }
   if (DOMINIOS_RESERVADOS.has(mail.split("@")[1])) {
+    await autoBanirIP(req.ip, "e-mail de domínio reservado no cadastro");
     return res.status(400).json({ error: "Esse domínio de e-mail não é válido pra cadastro." });
   }
   if (!termsAccepted) {
@@ -358,6 +361,7 @@ router.post("/guest", visitanteLimiterCurto, visitanteLimiterDiario, contaNovaLi
     return res.status(400).json({ error: "Use apenas letras, números, espaço e underline." });
   }
   if (apelidoReservado(nick)) {
+    await registrarRejeicao(req.ip, "apelido de admin (visitante)");
     return res.status(400).json({ error: "Esse apelido não está disponível." });
   }
 

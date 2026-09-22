@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ROOM_CONFIGS } from "../game/roomConfigs.js";
+import { autoBanirIP } from "../ipBan.js";
 
 const router = Router();
 
@@ -43,6 +44,9 @@ router.post("/suggest", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "A palavra precisa ter entre 1 e 60 caracteres." });
   }
   if (!/^[\p{L}\p{N} '-]+$/u.test(palavra)) {
+    // zip 612: bane na hora — ninguém sugere "<script>" por engano, é
+    // sondagem de propósito (foi um ataque real, ver zip 604).
+    await autoBanirIP(req.ip, "conteúdo malicioso numa sugestão de palavra");
     return res.status(400).json({ error: "Use apenas letras, números, espaço, apóstrofo e hífen." });
   }
   const letraUnica = String(letter).trim();
