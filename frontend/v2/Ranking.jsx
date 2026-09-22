@@ -29,6 +29,8 @@ export default function Ranking({ usuario, jogoInicial }) {
   const cla = aba === "clans";
   const premio = aba === "monthly" && COM_PREMIO.includes(jogo);
   const jogos = cla ? ["geral", "stop", "quiz", "acromania"] : ["stop", "quiz", "acromania"];
+  // O Mentira Sincera não entra no ranking de clãs: se ele estava marcado, volta pro Geral.
+  useEffect(() => { if (cla && !jogos.includes(jogo)) setJogo("geral"); }, [cla, jogo]);
   const podio = (linhas || []).slice(0, 3);
   const ordemPodio = [podio[1], podio[0], podio[2]].filter(Boolean);
 

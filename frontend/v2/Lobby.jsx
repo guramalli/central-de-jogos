@@ -1,3 +1,4 @@
+import { versaoTexto } from "./versoes.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { irPara, irParaPagina, irParaStop, irParaAcro } from "./App.jsx";
@@ -93,7 +94,10 @@ export default function Lobby({ usuario, jogoInicial }) {
           <div className="v2-saudacao-topo">
             <div className="v2-lobby-jogo">
               <a className="v2-link v2-lobby-voltar" href="/v2/" onClick={(e) => { e.preventDefault(); irPara(null); }}>← todos os jogos</a>
-              <img src={LOGO_JOGO[jogo]} alt={NOME_JOGO[jogo]} />
+              <div className="v2-lobby-jogo-titulo">
+                <img src={LOGO_JOGO[jogo]} alt={NOME_JOGO[jogo]} />
+                <span className="v2-versao-jogo" title="Quantas entregas já mexeram neste jogo">{versaoTexto(jogo)}</span>
+              </div>
               <p>{jogo === "stop" ? "Escolha uma sala e bora pro Stop." : jogo === "acromania" ? "Um tema, algumas letras e a frase mais criativa vence." : "Escolha um tema e bora jogar."}</p>
             </div>
             {mensal?.rank && (
@@ -383,13 +387,13 @@ function Top3({ jogo }) {
 // ESCADA DE PATENTES do jogo, dentro da lobby: a atual destacada, as já
 // conquistadas marcadas e as próximas com quantos pontos faltam. No celular
 // a fileira rola de lado e já abre na patente atual.
-function EscadaPatentes({ jogo, mensal }) {
+export function EscadaPatentes({ jogo, mensal, semLink = false, rodape = null }) {
   const [patentes, setPatentes] = useState(null);
   const faixaRef = useRef(null);
   useEffect(() => {
     let vivo = true;
     setPatentes(null);
-    api.get(jogo === "stop" ? "/ranks" : jogo === "acromania" ? "/acromania-ranks" : "/quiz-ranks")
+    api.get(jogo === "stop" ? "/ranks" : jogo === "acromania" ? "/acromania-ranks" : jogo === "mentira" ? "/mentira-ranks" : "/quiz-ranks")
       .then(({ data }) => vivo && setPatentes([...(data || [])].sort((a, b) => a.min - b.min)))
       .catch(() => vivo && setPatentes([]));
     return () => { vivo = false; };
@@ -397,17 +401,24 @@ function EscadaPatentes({ jogo, mensal }) {
 
   const pontos = mensal?.points || 0;
   const atual = mensal?.rank?.name;
+  // Rola SÓ a faixa horizontal até a patente atual — scrollIntoView rolava
+  // a PÁGINA inteira até aqui (mesmo com "nearest"), porque ele sobe por
+  // todos os ancestrais roláveis, não só o mais próximo. Mesma causa já
+  // corrigida nas listas de chat (Sala.jsx, SalaAcro.jsx, SalaStop.jsx).
   useEffect(() => {
-    const el = faixaRef.current?.querySelector(".v2-escada-item.atual");
-    if (el) el.scrollIntoView({ block: "nearest", inline: "center" });
+    const faixa = faixaRef.current;
+    const el = faixa?.querySelector(".v2-escada-item.atual");
+    if (!faixa || !el) return;
+    const alvo = el.offsetLeft - (faixa.clientWidth - el.clientWidth) / 2;
+    faixa.scrollTo({ left: Math.max(0, alvo), behavior: "auto" });
   }, [patentes, atual]);
 
   if (!patentes || patentes.length === 0) return null;
   return (
     <section className="v2-cartao v2-escada">
       <div className="v2-cartao-cabeca">
-        <h2>Patentes do {jogo === "stop" ? "Stop" : jogo === "acromania" ? "Acromania" : "Quiz"}</h2>
-        <a className="v2-link" href={`/v2/?pagina=patentes&jogo=${jogo}`} onClick={(e) => { e.preventDefault(); irParaPagina("patentes", { jogo }); }}>ver página completa →</a>
+        <h2>Patentes do {jogo === "stop" ? "Stop" : jogo === "acromania" ? "Acromania" : jogo === "mentira" ? "Mentira Sincera" : "Quiz"}</h2>
+        {!semLink && <a className="v2-link" href={`/v2/?pagina=patentes&jogo=${jogo}`} onClick={(e) => { e.preventDefault(); irParaPagina("patentes", { jogo }); }}>ver página completa →</a>}
       </div>
       <p className="v2-cartao-nota">Contam os pontos <b>do mês</b> — todo dia 1º recomeça do zero.</p>
       <div className="v2-escada-faixa" ref={faixaRef}>
@@ -423,6 +434,7 @@ function EscadaPatentes({ jogo, mensal }) {
           );
         })}
       </div>
+      {rodape && <p className="v2-cartao-nota">{rodape}</p>}
     </section>
   );
 }

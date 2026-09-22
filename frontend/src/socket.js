@@ -1,3 +1,4 @@
+import { ligarAvisoChat } from "./utils/avisoChat.js";
 import { io } from "socket.io-client";
 import { API_URL } from "./api/client.js";
 import { detectarPlataforma } from "./utils/useIsMobile.js";
@@ -11,7 +12,7 @@ export function getSocket() {
   // computador — informação que orienta onde investir na interface.
   const auth = { token, plataforma: detectarPlataforma(), versao: "classico" }; // versão: identificador no painel admin
   if (!socket) {
-    socket = io(API_URL, { auth, autoConnect: false });
+    socket = ligarAvisoChat(io(API_URL, { auth, autoConnect: false }));
   }
   socket.auth = auth;
   return socket;
@@ -33,5 +34,5 @@ export function getSocket() {
 export function criarSocketDedicado() {
   const token = localStorage.getItem("eg_token");
   const auth = { token, plataforma: detectarPlataforma(), versao: "classico" }; // versão: identificador no painel admin
-  return io(API_URL, { auth, autoConnect: false });
+  return ligarAvisoChat(io(API_URL, { auth, autoConnect: false }));
 }

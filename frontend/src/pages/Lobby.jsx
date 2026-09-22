@@ -160,6 +160,27 @@ export default function Lobby() {
           </div>
         </Link>
         )}
+        {/* O Tribunal: só existe na versão nova (v2). O card leva pra lá e
+            AVISA antes do clique — sair da versão clássica sem aviso pareceria
+            um erro. */}
+        <a href="/v2/?pagina=tribunal" className="glossy-panel lobby-game-card home-game-card home-game-card-beta">
+          <span className="home-game-beta-badge">EM TESTES</span>
+          <img src="/tribunal-logo.png" alt="O Tribunal" className="lobby-game-logo" />
+          <div>
+            <h3 className="lobby-game-title">O Tribunal</h3>
+            <p className="lobby-game-desc">
+              Alguém é acusado de um crime absurdo. O promotor acusa, o advogado defende,
+              e o júri decide: culpado ou inocente?
+            </p>
+            <p className="home-game-aviso-v2">
+              <span className="material-symbols-outlined">open_in_new</span>
+              Abre na versão nova do site
+            </p>
+            <span className="lobby-game-cta">
+              Jogar na versão nova <span className="material-symbols-outlined">arrow_forward</span>
+            </span>
+          </div>
+        </a>
       </div>
 
       {/* Premiação do mês */}

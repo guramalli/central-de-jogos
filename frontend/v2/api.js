@@ -1,3 +1,4 @@
+import { ligarAvisoChat } from "../src/utils/avisoChat.js";
 import axios from "axios";
 import { io } from "socket.io-client";
 
@@ -56,11 +57,11 @@ export function sair() {
 // fantasma).
 export function novoSocket() {
   const mobile = window.matchMedia("(max-width: 900px)").matches;
-  return io(API_URL, {
+  return ligarAvisoChat(io(API_URL, {
     // `versao`: o painel admin mostra se a pessoa está na v2 ou no clássico.
     auth: { token: localStorage.getItem("eg_token"), plataforma: mobile ? "mobile" : "desktop", versao: "v2" },
     autoConnect: false,
-  });
+  }));
 }
 
 // Só estas duas mensagens deslogam — queda de rede e deploy NÃO (mesma regra

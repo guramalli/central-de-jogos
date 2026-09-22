@@ -20,15 +20,33 @@
 const ARQUIVOS = {
   pergunta: { url: "/sounds/pergunta.mp3", volume: 0.5 },
   acerto: { url: "/sounds/comemoracao.mp3", volume: 0.35 },
+  // O Tribunal (grupo "tribunal": só baixa quando a página do jogo pede,
+  // pra não pesar nas salas do Stop/Quiz). Já cortados e nivelados.
+  marteloAbertura: { url: "/sounds/martelo-abertura.mp3", volume: 0.6, grupo: "tribunal" },
+  marteloUma: { url: "/sounds/martelo-uma.mp3", volume: 0.6, grupo: "tribunal" },
+  plateia: { url: "/sounds/plateia-suspense.mp3", volume: 0.45, grupo: "tribunal" },
+  tambor: { url: "/sounds/tambor.mp3", volume: 0.5, grupo: "tribunal" },
+  culpado: { url: "/sounds/culpado.mp3", volume: 0.6, grupo: "tribunal" },
+  inocente: { url: "/sounds/inocente.mp3", volume: 0.5, grupo: "tribunal" },
 };
+const gruposPedidos = new Set();
 
 let ctx = null;
 const buffers = {};
-let carregando = false;
 let escutando = false;
 let mudo = localStorage.getItem("eg_v2_mudo") === "1";
 
 export const estaMudo = () => mudo;
+
+// VOLUME GERAL (0 a 1), além do liga/desliga. Vale pra todos os sons da v2
+// (arquivos e bipes) e fica guardado no aparelho.
+let volumeGeral = Math.min(1, Math.max(0, parseFloat(localStorage.getItem("eg_v2_volume") ?? "0.7") || 0));
+export const volumeAtual = () => volumeGeral;
+export function definirVolume(v) {
+  volumeGeral = Math.min(1, Math.max(0, Number(v) || 0));
+  localStorage.setItem("eg_v2_volume", String(volumeGeral));
+  return volumeGeral;
+}
 export function alternarMudo() {
   mudo = !mudo;
   localStorage.setItem("eg_v2_mudo", mudo ? "1" : "0");
@@ -36,16 +54,25 @@ export function alternarMudo() {
 }
 
 function carregarArquivos() {
-  if (carregando || !ctx) return;
-  carregando = true;
-  for (const [nome, { url }] of Object.entries(ARQUIVOS)) {
+  if (!ctx) return;
+  for (const [nome, { url, grupo }] of Object.entries(ARQUIVOS)) {
+    if (buffers[nome] || buffers[nome] === null) continue;      // já carregado (ou carregando)
+    if (grupo && !gruposPedidos.has(grupo)) continue;            // grupo que ninguém pediu ainda
+    buffers[nome] = null;
     fetch(url)
       .then((r) => r.arrayBuffer())
       // Forma de callback: o Safari mais antigo não devolve promessa aqui.
       .then((dados) => new Promise((ok, falha) => ctx.decodeAudioData(dados, ok, falha)))
       .then((buf) => { buffers[nome] = buf; })
-      .catch(() => {}); // sem o arquivo, o jogo segue sem esse som
+      .catch(() => { delete buffers[nome]; }); // sem o arquivo, o jogo segue sem esse som
   }
+}
+
+// Um jogo pede o grupo de sons dele (ex.: "tribunal"); baixa junto dos outros
+// quando o áudio for destravado — ou agora, se já estiver.
+export function carregarSons(grupo) {
+  gruposPedidos.add(grupo);
+  carregarArquivos();
 }
 
 // Chamado DENTRO de um gesto (toque/tecla): cria/retoma o contexto e toca
@@ -97,7 +124,7 @@ function tocarArquivo(nome) {
     if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const fonte = ctx.createBufferSource();
     const ganho = ctx.createGain();
-    ganho.gain.value = ARQUIVOS[nome].volume;
+    ganho.gain.value = ARQUIVOS[nome].volume * volumeGeral;
     fonte.buffer = buffers[nome];
     fonte.connect(ganho).connect(ctx.destination);
     fonte.start(0);
@@ -111,7 +138,7 @@ function bip(freq, dur, tipo = "sine", vol = 0.12) {
     const g = ctx.createGain();
     o.type = tipo;
     o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.setValueAtTime(vol * volumeGeral, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
     o.connect(g).connect(ctx.destination);
     o.start();
@@ -126,3 +153,24 @@ export const somErro = () => { bip(220, 0.12, "sawtooth", 0.06); setTimeout(() =
 export const somOutroAcertou = () => { bip(660, 0.1); setTimeout(() => bip(520, 0.14), 100); };
 // STOP pedido: três bipes subindo, tipo sirene curta.
 export const somStop = () => { bip(520, 0.09, "square", 0.07); setTimeout(() => bip(700, 0.09, "square", 0.07), 110); setTimeout(() => bip(900, 0.16, "square", 0.07), 220); };
+
+// ---------- Mentira Sincera ----------
+// Início de rodada: três notas subindo, rápidas ("vai começar!").
+export const somRodada = () => { bip(523, 0.1, "triangle", 0.1); setTimeout(() => bip(659, 0.1, "triangle", 0.1), 110); setTimeout(() => bip(784, 0.22, "triangle", 0.12), 220); };
+// Venceu a rodada: arpejo de vitória.
+export const somVitoriaRodada = () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => bip(f, i === 3 ? 0.35 : 0.12, "triangle", 0.12), i * 100)); };
+// Campeão da partida: comemoração do site + fanfarra por cima.
+export const somCampeao = () => {
+  tocarArquivo("acerto");
+  const fanfarra = [[523, 0.12], [523, 0.12], [523, 0.12], [698, 0.5], [880, 0.14], [784, 0.14], [1047, 0.6]];
+  let t = 0;
+  fanfarra.forEach(([f, d]) => { setTimeout(() => bip(f, d, "square", 0.06), t); t += d * 1000 * 0.85; });
+};
+
+// ---------- O Tribunal ----------
+export const somMarteloAbertura = () => tocarArquivo("marteloAbertura");
+export const somMarteloUma = () => tocarArquivo("marteloUma");
+export const somPlateia = () => tocarArquivo("plateia");
+export const somTambor = () => tocarArquivo("tambor");
+export const somCulpado = () => tocarArquivo("culpado");
+export const somInocente = () => tocarArquivo("inocente");

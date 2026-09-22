@@ -17,7 +17,11 @@
 // Agora elas entraram no ARTE_TROCAVEL abaixo, então troca de logo passa a
 // chegar sozinha nas próximas vezes; esta subida de versão é pra alcançar
 // quem já tem a antiga guardada.
-const VERSAO = "eg-v9";
+// eg-v10: logo do Mentira Sincera trocado (e agora ele está na lista de
+// ARTE_TROCAVEL: próximas trocas chegam sozinhas, sem subir a versão).
+// eg-v11: arte própria das 12 patentes do Mentira (/ranks-mentira/),
+// sobrescrevendo as cópias provisórias do Acromania.
+const VERSAO = "eg-v11";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -26,7 +30,7 @@ const ESSENCIAIS = ["/", "/favicon.png", "/manifest.json"];
 // Pastas de arte com nome de arquivo FIXO (sem hash): quando uma imagem é
 // regerada, o nome continua o mesmo. Elas precisam ser revalidadas, senão
 // a versão antiga fica presa no cache do jogador pra sempre.
-const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|ranks-acromania|temas-quiz|dificuldades|sounds)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*)\.png$/;
+const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|ranks-acromania|ranks-mentira|temas-quiz|dificuldades|sounds)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*|mentira-logo[a-z-]*|tribunal-logo[a-z-]*)\.png$/;
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(

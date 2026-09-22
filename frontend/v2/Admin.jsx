@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
-import { irParaPagina, linkDaPagina } from "./App.jsx";
+import { linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import { ModalConversa } from "./Amigos.jsx";
@@ -98,8 +98,6 @@ export default function Admin({ usuario }) {
       <main className="v2-pagina v2-admin">
         <div className="v2-pagina-cabeca">
           <h1>Painel Admin</h1>
-          {/* Jogo em teste, sem link no site: o atalho mora só aqui. */}
-          <a className="v2-botao-pequeno v2-atalho-teste" href="/v2/?pagina=mentira" onClick={(e) => { e.preventDefault(); irParaPagina("mentira"); }}>🎭 Mentira Sincera (teste)</a>
         </div>
         <div className="v2-admin-abas" role="tablist">
           {ABAS.map((a) => (

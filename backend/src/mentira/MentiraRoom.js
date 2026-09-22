@@ -18,9 +18,18 @@ import { FRASES_SOBRE, VERDADES_BOT } from "./frasesSobre.js";
 
 export const TOTAL_RODADAS = 7;
 export const SEG_ESCREVER = 45;
-export const SEG_ESCOLHER = 25;
+export const SEG_ESCOLHER = 25; // (referência; o tempo real é proporcional às opções)
 export const SEG_ESCREVER_FINAL = 60;
-export const SEG_ESCOLHER_FINAL = 35;
+export const SEG_ESCOLHER_FINAL = 35; // (referência)
+
+// TEMPO DE VOTO proporcional ao número de opções na tela (o que a pessoa
+// precisa ler): base pra se situar + um tanto por opção, com piso e teto.
+// Na final dupla, contam as opções das DUAS perguntas.
+export function tempoDeVoto(opcoesPorPergunta) {
+  const total = opcoesPorPergunta.reduce((a, n) => a + n, 0);
+  if (opcoesPorPergunta.length > 1) return Math.min(60, Math.max(25, Math.round(8 + 4 * total)));
+  return Math.min(50, Math.max(18, Math.round(8 + 4.5 * total)));
+}
 export const SEG_CONFESSAR = 60;
 // Depois que TODO MUNDO vota, a escolha não fecha na hora: sobra esse tempo
 // pra curtir as mentiras (senão ninguém premia a mais criativa).
@@ -35,9 +44,17 @@ const PONTOS_VERDADE = 500;
 const PONTOS_POR_ENGANADO = 250;
 const PENALIDADE_CASA = 250;
 const BONUS_DUPLA = 1000;
+// CRIATIVIDADE VALE PONTOS: cada curtida recebida dá +100 (× a fase).
+// Contra combinação: até 2 curtidas por pessoa por rodada, e a mesma
+// pessoa só ganha uma vez de cada curtidor na rodada.
+export const PONTOS_POR_CURTIDA = 100;
+export const MAX_CURTIDAS = 2;
 const MIN_OPCOES = 4;
 const MAX_MENTIRA = 60;
 const MAX_JOGADORES = 8;
+// CHAT da sala: mensagens (as últimas ficam no estado) + reações flutuantes.
+const MAX_CHAT = 60;
+export const REACOES = ["😂", "🤥", "😱", "🔥", "👏", "🤡"];
 const MENTIRAS_BOT = ["um pato de borracha", "o Faustão", "três pinguins", "uma galinha", "o Silvio Santos", "pão de queijo", "um fusca azul", "a Xuxa", "um tamanduá", "uma panela de pressão"];
 
 export const normalizar = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
@@ -59,7 +76,9 @@ export function ehAVerdade(texto, cur) {
   for (const certa of [cur.verdade, ...(cur.aceitas || [])].map(normalizar)) {
     if (!certa) continue;
     if (n === certa) return true;
-    if (certa.length >= 6 && distancia(n, certa) <= 1) return true;
+    // Tolera UMA letra de diferença (erro de digitação)… mas não em números:
+    // "5 da manhã" é outra resposta, não um erro de "4 da manhã".
+    if (certa.length >= 6 && !/\d/.test(n + certa) && distancia(n, certa) <= 1) return true;
     // "contém a verdade" só pra respostas longas: "porco-espinho" é uma
     // mentira legítima quando a verdade é "porco".
     if (certa.length >= 8 && n.includes(certa)) return true;
@@ -76,17 +95,29 @@ const novoId = () => Math.random().toString(36).slice(2, 8);
 
 export class MentiraRoom {
   // enviar(userId, estado): entrega o estado personalizado a um jogador.
-  constructor(codigo, dono, enviar, curiosidades = CURIOSIDADES) {
+  // opcoes.publica: sala ABERTA da lobby (só Curiosidades; dono = quem chegou
+  // primeiro). opcoes.permiteBots: se o dono pode chamar bots pra completar.
+  // Sem opcoes: sala de AMIGOS, criada por convite (os dois modos; nasce no
+  // Sobre Vocês).
+  constructor(codigo, dono, enviar, curiosidades = CURIOSIDADES, opcoes = {}) {
     this.codigo = codigo;
-    this.donoId = dono.id;
+    this.publica = !!opcoes.publica;
+    this.permiteBots = opcoes.permiteBots !== false;
+    this.nomeSala = opcoes.nome || null;
+    this.donoId = dono?.id || null;
     this.enviar = enviar;
     this.curiosidades = curiosidades;
     this.jogadores = new Map(); // userId -> { id, nickname, pontos, sockets:Set, bot?, stats }
     this.fase = "aguardando";
+    // Os dois modos no ar; o dono escolhe na sala de espera.
+    // Sem temas: curiosidades e frases saem SEMPRE sorteadas do banco inteiro.
+    // Padrão: Curiosidades — serve pra qualquer pessoa. O "Sobre Vocês" é o
+    // modo ENTRE AMIGOS (quem não se conhece só chuta a verdade dos outros).
     this.modo = "curiosidades"; // curiosidades | sobre
+    if (opcoes.modo) this.modo = opcoes.modo;
     this.totalRodadas = TOTAL_RODADAS;
-    this.frasesDoJogador = new Map(); // (sobre) userId -> frase sorteada
-    this.confissoes = new Map(); // (sobre) userId -> verdade confessada
+    this.frasesDoJogador = new Map(); // (sobre) userId -> [frases sorteadas]
+    this.confissoes = new Map(); // (sobre) userId -> [verdades confessadas]
     this.fila = []; // (sobre) ordem das rodadas: userIds
     this.assuntoId = null; // (sobre) de quem é a rodada
     this.rodada = 0;
@@ -94,6 +125,12 @@ export class MentiraRoom {
     this.timer = null;
     this.tempo = 0;
     this.segCurtir = SEG_CURTIR; // (os testes zeram pra ir direto)
+    this.chat = []; // { id, tipo: "msg" | "sistema", uid?, nick?, texto, em }
+    this.aoFimDePartida = null; // (sala) => grava o ranking do mês (socketMentira)
+    this.patentes = new Map(); // userId -> { name, icon, brilha } (patente do mês)
+    this.ganhoRanking = new Map(); // userId -> pontos que a última partida rendeu no ranking
+    this.reacoes = []; // efêmeras: { id, nick, emoji, em } (somem em 4s)
+    this.ultimaFala = new Map(); // userId -> horário (limite de velocidade)
     this.limparRodada();
   }
 
@@ -106,6 +143,7 @@ export class MentiraRoom {
     this.revelacao = null;
     this.ganhosDaRodada = new Map();
     this.todosVotaram = false;
+    this.curtidasFechadas = false;
   }
 
   get sobre() { return this.modo === "sobre"; }
@@ -124,8 +162,12 @@ export class MentiraRoom {
 
   entrar(user, socketId) {
     let j = this.jogadores.get(user.id);
-    if (!j) { j = this.novoJogador(user.id, user.nickname); this.jogadores.set(user.id, j); }
+    if (!j) { j = this.novoJogador(user.id, user.nickname); this.jogadores.set(user.id, j); this.avisoChat(`👋 ${user.nickname} entrou na sala.`); }
     j.sockets.add(socketId);
+    if (!this.donoId || !this.humanos().some((h) => h.id === this.donoId)) this.donoId = user.id;
+    // Voltou pra uma partida em andamento que tinha ficado sem ninguém (a
+    // conexão da única pessoa caiu e o relógio parou): religa o relógio.
+    if (!this.timer && ["confessar", "escrever", "escolher", "revelar"].includes(this.fase)) this.iniciarRelogio();
     this.transmitir();
   }
 
@@ -147,8 +189,58 @@ export class MentiraRoom {
   // Sala "vazia" = sem PESSOAS (bots não seguram a sala nem o relógio).
   vazia() { return this.humanos().length === 0; }
 
+  // ---------------- ranking ----------------
+  definirPatente(userId, patente) {
+    if (!patente) return;
+    this.patentes.set(userId, { name: patente.name, icon: patente.icon || null, brilha: !!patente.brilha });
+    this.transmitir();
+  }
+
+  // ---------------- chat ----------------
+  avisoChat(texto) {
+    this.chat.push({ id: novoId(), tipo: "sistema", texto, em: Date.now() });
+    if (this.chat.length > MAX_CHAT) this.chat.splice(0, this.chat.length - MAX_CHAT);
+  }
+
+  mensagemChat(userId, texto) {
+    const j = this.jogadores.get(userId);
+    if (!j) return "Você não está nesta sala.";
+    const t = String(texto || "").replace(/\s+/g, " ").trim().slice(0, 300);
+    if (!t) return null;
+    const agora = Date.now();
+    if (agora - (this.ultimaFala.get(userId) || 0) < 800) return "Calma! Uma mensagem de cada vez.";
+    // ANTI-SPOILER enquanto se escreve e se vota: nada de entregar a própria
+    // mentira (todo mundo saberia de quem é) nem a verdade (no "Sobre
+    // Vocês" o assunto da rodada sabe a resposta).
+    if (this.fase === "escrever" || this.fase === "escolher") {
+      const n = normalizar(t);
+      const minha = normalizar(this.mentiras.get(userId) || "");
+      if (minha.length >= 3 && n.includes(minha)) return "Não entregue sua mentira no chat! 🤫";
+      const entregaVerdade = this.perguntas.some((c) => ehAVerdade(t, c) || (normalizar(c.verdade).length >= 4 && n.includes(normalizar(c.verdade))));
+      if (entregaVerdade) return "Sem spoiler da resposta! 🤐";
+    }
+    this.ultimaFala.set(userId, agora);
+    this.chat.push({ id: novoId(), tipo: "msg", uid: userId, nick: j.nickname, texto: t, em: agora });
+    if (this.chat.length > MAX_CHAT) this.chat.splice(0, this.chat.length - MAX_CHAT);
+    this.transmitir();
+    return null;
+  }
+
+  reagir(userId, emoji) {
+    const j = this.jogadores.get(userId);
+    if (!j || !REACOES.includes(emoji)) return null;
+    const agora = Date.now();
+    if (agora - (j.ultimaReacao || 0) < 350) return null; // sem metralhadora
+    j.ultimaReacao = agora;
+    this.reacoes = this.reacoes.filter((r) => agora - r.em < 4000);
+    this.reacoes.push({ id: novoId(), nick: j.nickname, emoji, em: agora });
+    this.transmitir();
+    return null;
+  }
+
   // ---------------- controle ----------------
   comecar(userId) {
+    if (userId === this.donoId) this.ganhoRanking = new Map();
     if (userId !== this.donoId) return "Só quem criou a sala começa a partida.";
     if (this.fase !== "aguardando" && this.fase !== "fim") return "A partida já está rolando.";
     if (this.online().length < 2) return "Precisa de pelo menos 2 jogadores.";
@@ -168,6 +260,7 @@ export class MentiraRoom {
     if (userId !== this.donoId) return "Só o dono da sala escolhe o modo.";
     if (this.fase !== "aguardando" && this.fase !== "fim") return "Dá pra trocar o modo só antes de começar.";
     if (!["curiosidades", "sobre"].includes(modo)) return "Modo inválido.";
+    if (this.publica && modo === "sobre") return "O Sobre Vocês é pra jogar com amigos — crie uma sala e mande o convite.";
     this.modo = modo;
     this.transmitir();
     return null;
@@ -175,6 +268,7 @@ export class MentiraRoom {
 
   adicionarBot(userId) {
     if (userId !== this.donoId) return "Só o dono da sala adiciona bots.";
+    if (!this.permiteBots) return "Esta sala é só com gente de verdade — pra jogar com bots, vá pra Sala Livre.";
     if (this.jogadores.size >= MAX_JOGADORES) return "A sala já está cheia (8).";
     const n = [...this.jogadores.values()].filter((j) => j.bot).length + 1;
     const id = `bot-${this.codigo}-${n}-${Math.random().toString(36).slice(2, 5)}`;
@@ -208,44 +302,72 @@ export class MentiraRoom {
   }
 
   // ---------------- "Sobre Vocês": confissões ----------------
+  // Com até 4 jogadores, cada um confessa DUAS verdades (senão a partida
+  // teria só 3–4 rodadas); com mais gente, uma. Máximo de 8 rodadas.
   iniciarConfissoes() {
     this.limparRodada();
     this.frasesDoJogador = new Map();
     this.confissoes = new Map();
-    const frases = embaralhar(FRASES_SOBRE);
-    this.online().forEach((j, i) => this.frasesDoJogador.set(j.id, frases[i % frases.length]));
+    const pessoas = this.online();
+    const porPessoa = pessoas.length <= 4 ? 2 : 1;
+    const frases = embaralhar(FRASES_SOBRE); // sorteadas do banco inteiro
+    let k = 0;
+    for (const j of pessoas) {
+      const minhas = [];
+      for (let i = 0; i < porPessoa; i++) minhas.push(frases[k++ % frases.length]);
+      this.frasesDoJogador.set(j.id, minhas);
+      this.confissoes.set(j.id, minhas.map(() => null));
+    }
     this.fase = "confessar";
-    this.tempo = SEG_CONFESSAR;
+    this.avisoChat("🤫 Hora das confissões!");
+    this.tempo = SEG_CONFESSAR * (porPessoa === 2 ? 1.5 : 1);
+    this.tempoTotal = this.tempo;
     this.transmitir();
   }
 
-  confessar(userId, texto) {
+  confessar(userId, texto, indice = 0) {
     if (this.fase !== "confessar") return "Agora não é hora de confessar.";
     if (!this.frasesDoJogador.has(userId)) return "Você entrou depois — espere a próxima partida.";
+    const i = Number(indice) || 0;
+    const minhas = this.confissoes.get(userId);
+    if (i < 0 || i >= minhas.length) return "Confissão inválida.";
     const t = String(texto || "").replace(/\s+/g, " ").trim().slice(0, MAX_MENTIRA);
     if (!t) return "Escreva a sua verdade.";
-    this.confissoes.set(userId, t);
-    if ([...this.frasesDoJogador.keys()].every((uid) => this.confissoes.has(uid) || !this.jogadores.get(uid)?.sockets.size && !this.jogadores.get(uid)?.bot)) this.iniciarRodadasSobre();
+    minhas[i] = t;
+    const terminou = (uid) => {
+      const j = this.jogadores.get(uid);
+      return this.confissoes.get(uid).every(Boolean) || (!j?.bot && !j?.sockets.size);
+    };
+    if ([...this.frasesDoJogador.keys()].every(terminou)) this.iniciarRodadasSobre();
     else this.transmitir();
     return null;
   }
 
+  // Ordem das rodadas: embaralhada, evitando a mesma pessoa duas vezes seguidas.
   iniciarRodadasSobre() {
-    // Uma rodada por pessoa que confessou (quem não confessou fica de fora).
-    this.fila = embaralhar([...this.confissoes.keys()].filter((uid) => this.jogadores.has(uid)));
+    const entradas = [];
+    for (const [uid, lista] of this.confissoes) {
+      if (!this.jogadores.has(uid)) continue;
+      lista.forEach((t, i) => { if (t) entradas.push({ uid, i }); });
+    }
+    let fila = embaralhar(entradas);
+    for (let tentativa = 0; tentativa < 30 && fila.some((e, k) => k && fila[k - 1].uid === e.uid); tentativa++) fila = embaralhar(entradas);
+    this.fila = fila.slice(0, 8);
     if (this.fila.length === 0) { this.fase = "fim"; this.pararRelogio(); this.transmitir(); return; }
     this.totalRodadas = this.fila.length;
     this.rodada = 0;
     this.proximaRodada();
   }
 
-  curiosidadeSobre(uid) {
-    const frase = this.frasesDoJogador.get(uid);
+  curiosidadeSobre({ uid, i }) {
+    const frase = this.frasesDoJogador.get(uid)[i];
     const nick = this.jogadores.get(uid)?.nickname || "Alguém";
-    return { id: `sobre-${frase.id}-${uid}`, texto: frase.ele.replace("{n}", nick), verdade: this.confissoes.get(uid), aceitas: [], casa: frase.casa };
+    return { id: `sobre-${frase.id}-${uid}`, texto: frase.ele.replace("{n}", nick), verdade: this.confissoes.get(uid)[i], aceitas: [], casa: frase.casa };
   }
 
   tirarDoBaralho() {
+    // Baralho embaralhado (Fisher-Yates) do banco INTEIRO: nenhuma repete
+    // até todas saírem; nada segue a ordem da lista.
     if (this.baralho.length === 0) this.baralho = embaralhar(this.curiosidades.map((c) => c.id));
     const id = this.baralho.shift();
     return this.curiosidades.find((c) => c.id === id);
@@ -255,10 +377,13 @@ export class MentiraRoom {
     this.limparRodada();
     this.rodada += 1;
     if (this.sobre) {
-      this.assuntoId = this.fila[this.rodada - 1];
-      this.perguntas = [this.curiosidadeSobre(this.assuntoId)];
+      const entrada = this.fila[this.rodada - 1];
+      this.assuntoId = entrada.uid;
+      this.perguntas = [this.curiosidadeSobre(entrada)];
+      this.avisoChat(`🎲 Rodada ${this.rodada}: agora é sobre ${this.jogadores.get(entrada.uid)?.nickname || "alguém"}!`);
       this.fase = "escrever";
       this.tempo = SEG_ESCREVER;
+      this.tempoTotal = this.tempo;
       this.transmitir();
       return;
     }
@@ -269,7 +394,9 @@ export class MentiraRoom {
       this.perguntas.push(segunda);
     }
     this.fase = "escrever";
+    this.avisoChat(this.ehFinal ? "🎲 FINAL: mentira dupla, pontos triplicados!" : `🎲 Pergunta ${this.rodada} de ${TOTAL_RODADAS} começou.`);
     this.tempo = this.ehFinal ? SEG_ESCREVER_FINAL : SEG_ESCREVER;
+    this.tempoTotal = this.tempo;
     this.transmitir();
   }
 
@@ -315,9 +442,14 @@ export class MentiraRoom {
     if (!op) return "Opção inválida.";
     if (op.autores.includes(userId)) return "Não vale curtir a própria mentira.";
     if (this.fase === "revelar" && (op.verdade || op.casa)) return "Curtida é pra mentira de jogador.";
+    if (this.curtidasFechadas) return "As curtidas desta rodada já foram contadas.";
     if (!this.curtidas.has(userId)) this.curtidas.set(userId, new Set());
     const minhas = this.curtidas.get(userId);
-    if (minhas.has(opcaoId)) minhas.delete(opcaoId); else minhas.add(opcaoId);
+    if (minhas.has(opcaoId)) minhas.delete(opcaoId);
+    else {
+      if (minhas.size >= MAX_CURTIDAS) return `Você já usou suas ${MAX_CURTIDAS} curtidas desta rodada — tire uma pra dar outra.`;
+      minhas.add(opcaoId);
+    }
     this.transmitir();
     return null;
   }
@@ -344,9 +476,18 @@ export class MentiraRoom {
       porTexto.get(n).autores.push(uid);
     }
     const opcoes = [...porTexto.values(), { id: novoId(), texto: cur.verdade, autores: [], verdade: true, casa: false }];
-    for (const falsa of embaralhar(cur.casa || [])) {
-      if (opcoes.length >= MIN_OPCOES) break;
-      if (porTexto.has(normalizar(falsa))) continue;
+    // Mentiras da casa: nunca iguais (ou quase) à VERDADE nem a outra opção.
+    // No "Sobre Vocês" a verdade é escrita na hora — se alguém confessa
+    // "Evidências" e a casa também tem "Evidências", apareciam duas opções
+    // idênticas e quem clicava na "da casa" perdia pontos achando que acertou.
+    // Se a da casa for descartada, entra uma reserva no lugar.
+    const jaTem = (t) => opcoes.some((o) => normalizar(o.texto) === normalizar(t)) || ehAVerdade(t, cur);
+    // Com até 2 jogadores, 5 opções (as 3 mentiras da casa entram): sobra
+    // mais coisa pra desconfiar além da mentira do outro jogador.
+    const alvo = this.online().length <= 2 ? MIN_OPCOES + 1 : MIN_OPCOES;
+    for (const falsa of [...embaralhar(cur.casa || []), ...embaralhar(MENTIRAS_BOT)]) {
+      if (opcoes.length >= alvo) break;
+      if (jaTem(falsa)) continue;
       opcoes.push({ id: novoId(), texto: falsa, autores: [], verdade: false, casa: true });
     }
     return embaralhar(opcoes);
@@ -356,7 +497,8 @@ export class MentiraRoom {
     this.opcoes = this.perguntas.map((c) => this.montarOpcoes(c));
     this.votos = this.perguntas.map(() => new Map());
     this.fase = "escolher";
-    this.tempo = this.ehFinal ? SEG_ESCOLHER_FINAL : SEG_ESCOLHER;
+    this.tempo = tempoDeVoto(this.opcoes.map((l) => l.length));
+    this.tempoTotal = this.tempo;
     this.transmitir();
   }
 
@@ -388,6 +530,7 @@ export class MentiraRoom {
     for (const [uid, pts] of ganhos) { const j = this.jogadores.get(uid); if (j) j.pontos = Math.max(0, j.pontos + pts); }
     this.ganhosDaRodada = ganhos;
 
+
     // Ordem: por pergunta, as mentiras em que alguém caiu; a verdade por último.
     const ordem = [];
     this.perguntas.forEach((_, p) => {
@@ -408,6 +551,7 @@ export class MentiraRoom {
     this.revelacao = { itens: ordem, ninguemCaiu, dupla, todas: itens };
     this.fase = "revelar";
     this.tempo = Math.ceil(ordem.length * SEG_POR_CARTA) + SEG_RESUMO;
+    this.tempoTotal = this.tempo;
     this.transmitir();
   }
 
@@ -418,15 +562,51 @@ export class MentiraRoom {
     return porOpcao;
   }
 
+  // Conta as curtidas da rodada: pontos pra quem escreveu (e o troféu "Mais
+  // Engraçado"). Roda quando o RESUMO começa — assim o placar do resumo já
+  // sobe com elas — ou, no máximo, no fim da revelação.
+  fecharCurtidas() {
+    if (this.curtidasFechadas) return;
+    this.curtidasFechadas = true;
+    const mult = this.multiplicador;
+    const opcoes = this.opcoes.flat();
+    for (const [curtidor, ids] of this.curtidas) {
+      const jaGanhou = new Set(); // cada autor ganha uma vez por curtidor
+      for (const id of ids) {
+        const o = opcoes.find((x) => x.id === id);
+        if (!o || o.verdade || o.casa) continue;
+        const cada = Math.round((PONTOS_POR_CURTIDA * mult) / o.autores.length);
+        for (const autor of o.autores) {
+          if (autor === curtidor || jaGanhou.has(autor)) continue;
+          jaGanhou.add(autor);
+          const j = this.jogadores.get(autor);
+          if (!j) continue;
+          j.pontos += cada;
+          j.stats.curtidas += 1;
+          this.ganhosDaRodada.set(autor, (this.ganhosDaRodada.get(autor) || 0) + cada);
+        }
+      }
+    }
+  }
+
   depoisDaRevelacao() {
-    // Fecha as curtidas da rodada no placar do troféu "Mais Engraçado".
-    const porOpcao = this.contarCurtidas();
-    for (const o of this.opcoes.flat()) {
-      const n = porOpcao.get(o.id) || 0;
-      if (n && !o.verdade && !o.casa) o.autores.forEach((uid) => { const j = this.jogadores.get(uid); if (j) j.stats.curtidas += n; });
+    this.fecharCurtidas();
+    // O vencedor da rodada vai pro chat só DEPOIS da revelação (antes seria
+    // spoiler das cartas).
+    const melhor = Math.max(0, ...this.ganhosDaRodada.values());
+    if (melhor > 0) {
+      const quem = [...this.ganhosDaRodada].filter(([, v]) => v === melhor).map(([uid]) => this.jogadores.get(uid)?.nickname).filter(Boolean);
+      this.avisoChat(`🏆 ${quem.join(" e ")} ${quem.length > 1 ? "venceram" : "venceu"} a rodada (+${melhor.toLocaleString("pt-BR")}).`);
     }
     this.curtidas = new Map();
-    if (this.rodada >= this.totalRodadas) { this.fase = "fim"; this.assuntoId = null; this.pararRelogio(); this.transmitir(); }
+    if (this.rodada >= this.totalRodadas) {
+      this.fase = "fim"; this.assuntoId = null; this.pararRelogio();
+      const topo = Math.max(0, ...[...this.jogadores.values()].map((j) => j.pontos));
+      const campeoes = [...this.jogadores.values()].filter((j) => topo > 0 && j.pontos === topo).map((j) => j.nickname);
+      if (campeoes.length) this.avisoChat(`🎉 ${campeoes.join(" e ")} ${campeoes.length > 1 ? "venceram" : "venceu"} a partida!`);
+      try { this.aoFimDePartida?.(this); } catch (err) { console.error("Mentira: falha ao gravar o ranking:", err); }
+      this.transmitir();
+    }
     else this.proximaRodada();
   }
 
@@ -440,13 +620,18 @@ export class MentiraRoom {
       }
       if (this.tempo > Math.max(b.agenda, 1)) continue;
       if (this.fase === "confessar") {
-        if (!this.confissoes.has(b.id) && this.frasesDoJogador.has(b.id)) this.confessar(b.id, VERDADES_BOT[Math.floor(Math.random() * VERDADES_BOT.length)]);
+        (this.confissoes.get(b.id) || []).forEach((t, i) => {
+          if (!t && this.fase === "confessar") this.confessar(b.id, VERDADES_BOT[Math.floor(Math.random() * VERDADES_BOT.length)], i);
+        });
         if (this.fase !== "confessar") break;
         continue;
       }
       if (this.fase === "escrever" && !this.mentiras.has(b.id)) {
         const usadas = new Set([...this.mentiras.values()].map(normalizar));
-        const fonte = this.ehFinal ? embaralhar(MENTIRAS_BOT) : [...embaralhar(this.perguntas[0].casa || []), ...embaralhar(MENTIRAS_BOT)];
+        // Mentira com nexo: as da casa (na final, as das DUAS perguntas). A
+        // lista genérica ("o Silvio Santos") é só o último recurso.
+        const daCasa = this.perguntas.flatMap((c) => c.casa || []);
+        const fonte = [...embaralhar(daCasa), ...embaralhar(MENTIRAS_BOT)];
         const texto = fonte.find((t) => !usadas.has(normalizar(t)) && !this.perguntas.some((c) => ehAVerdade(t, c)));
         if (texto) this.mentir(b.id, texto);
       } else if (this.fase === "escolher") {
@@ -464,9 +649,29 @@ export class MentiraRoom {
   }
 
   // ---------------- relógio ----------------
-  iniciarRelogio() { this.pararRelogio(); this.timer = setInterval(() => this.tick(), 1000); }
+  // try/catch: um erro inesperado numa rodada não pode derrubar o servidor
+  // inteiro (exceção dentro de setInterval encerra o processo do Node).
+  iniciarRelogio() {
+    this.pararRelogio();
+    this.timer = setInterval(() => {
+      try { this.tick(); } catch (err) { console.error(`Mentira: erro na sala ${this.codigo}:`, err); }
+    }, 1000);
+  }
   pararRelogio() { if (this.timer) clearInterval(this.timer); this.timer = null; }
   parar() { this.pararRelogio(); }
+
+  // Sala ABERTA que esvaziou: volta pra espera, sem bots nem partida velha.
+  reiniciarVazia() {
+    this.pararRelogio();
+    this.limparRodada();
+    for (const j of [...this.jogadores.values()]) if (j.bot || j.sockets.size === 0) this.jogadores.delete(j.id);
+    this.fase = "aguardando";
+    this.rodada = 0;
+    this.assuntoId = null;
+    this.baralho = [];
+    this.chat = [];
+    this.donoId = this.humanos()[0]?.id || null;
+  }
 
   tick() {
     const comRelogio = ["confessar", "escrever", "escolher", "revelar"];
@@ -474,6 +679,7 @@ export class MentiraRoom {
     if (this.fase !== "revelar") this.agirBots();
     if (!comRelogio.includes(this.fase)) return;
     this.tempo -= 1;
+    if (this.fase === "revelar" && !this.curtidasFechadas && this.tempo <= SEG_RESUMO) this.fecharCurtidas();
     if (this.tempo > 0) { this.transmitir(); return; }
     if (this.fase === "confessar") this.iniciarRodadasSobre();
     else if (this.fase === "escrever") this.irParaEscolha();
@@ -503,29 +709,40 @@ export class MentiraRoom {
       modo: this.modo,
       assunto: this.assuntoId ? { id: this.assuntoId, nickname: this.jogadores.get(this.assuntoId)?.nickname || "alguém" } : null,
       souAssunto: !!this.assuntoId && this.assuntoId === userId,
-      minhaFrase: this.fase === "confessar" ? this.frasesDoJogador.get(userId)?.eu || null : null,
-      minhaConfissao: this.fase === "confessar" ? this.confissoes.get(userId) || null : null,
+      minhasFrases: this.fase === "confessar" ? (this.frasesDoJogador.get(userId) || []).map((f) => f.eu) : [],
+      minhasConfissoes: this.fase === "confessar" ? this.confissoes.get(userId) || [] : [],
       multiplicador: this.multiplicador,
       final: this.ehFinal,
       tempo: this.tempo,
+      tempoTotal: this.tempoTotal || this.tempo,
       donoId: this.donoId,
       souDono: userId === this.donoId,
+      publica: this.publica,
+      permiteBots: this.permiteBots,
+      nomeSala: this.nomeSala,
       todosVotaram: this.todosVotaram,
       segPorCarta: SEG_POR_CARTA,
       jogadores: [...this.jogadores.values()]
         .map((j) => ({
           id: j.id, nickname: j.nickname, pontos: j.pontos, online: !!j.bot || j.sockets.size > 0, bot: !!j.bot,
-          pronto: this.fase === "confessar" ? this.confissoes.has(j.id)
+          patente: j.bot ? null : this.patentes.get(j.id) || null,
+          pronto: this.fase === "confessar" ? (this.confissoes.get(j.id) || []).length > 0 && this.confissoes.get(j.id).every(Boolean)
             : this.fase === "escrever" ? this.mentiras.has(j.id)
             : this.fase === "escolher" ? this.votos.every((v) => v.has(j.id)) : false,
           assunto: j.id === this.assuntoId,
           ganhou: this.fase === "revelar" || this.fase === "fim" ? this.ganhosDaRodada.get(j.id) || 0 : 0,
         }))
         .sort((a, b) => b.pontos - a.pontos),
-      perguntas: this.perguntas.map((c) => ({ texto: c.texto })),
+      perguntas: this.perguntas.map((c) => ({ texto: c.texto, ficcao: !!c.ficcao })),
       minhaMentira: this.mentiras.get(userId) || null,
       meusVotos: this.votos.map((v) => v.get(userId) || null),
       minhasCurtidas,
+      meuGanhoRanking: this.ganhoRanking.get(userId) ?? null,
+      curtidasRestantes: Math.max(0, MAX_CURTIDAS - minhasCurtidas.length),
+      curtidasFechadas: this.curtidasFechadas,
+      pontosPorCurtida: PONTOS_POR_CURTIDA * this.multiplicador,
+      chat: this.chat.slice(-50),
+      reacoes: this.reacoes.filter((r) => Date.now() - r.em < 4000).map(({ id, nick, emoji }) => ({ id, nick, emoji })),
     };
     if (this.fase === "escolher") {
       base.opcoes = this.opcoes.map((lista) => lista.map((o) => ({ id: o.id, texto: o.texto, minha: o.autores.includes(userId) })));
@@ -539,7 +756,7 @@ export class MentiraRoom {
         autores: i.autores.map(nome), escolheram: i.escolheram.map(nome),
         euCai: i.escolheram.includes(userId), minha: i.autores.includes(userId),
       });
-      base.perguntas = this.perguntas.map((c) => ({ texto: c.texto, verdade: c.verdade }));
+      base.perguntas = this.perguntas.map((c) => ({ texto: c.texto, verdade: c.verdade, ficcao: !!c.ficcao }));
       base.revelacao = this.revelacao
         ? {
           itens: this.revelacao.itens.map(traduzir),

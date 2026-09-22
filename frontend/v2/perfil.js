@@ -11,7 +11,9 @@ export function perfilEmCache(id) {
 }
 
 export function buscarPerfil(id, validadeMs = 120000) {
-  if (!id) return Promise.resolve(null);
+  // Bots de teste do Mentira Sincera ("bot-…") vivem só na memória da sala,
+  // não no banco: buscar o perfil deles dava 404 no console.
+  if (!id || String(id).startsWith("bot-")) return Promise.resolve(null);
   const item = cache.get(id);
   if (item?.data && Date.now() - item.em < validadeMs) return Promise.resolve(item.data);
   if (item?.promessa) return item.promessa;

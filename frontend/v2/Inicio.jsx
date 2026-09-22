@@ -7,11 +7,14 @@ import Praca from "./Praca.jsx";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
 
-const NOMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
+const NOMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", mentira: "Mentira Sincera", tribunal: "O Tribunal" };
+// Jogos com página própria (não usam a lobby de salas do Stop/Quiz/Acromania).
+const PAGINA_PROPRIA = { mentira: "mentira", tribunal: "tribunal" };
 const JOGOS = [
   { chave: "stop", logo: "/stop-logo.png", cor: "#FF8A7F", sombra: "#C7493F", texto: "Aqui não adianta saber todos os temas: tem que ser rápido. 6 temas, 1 letra sorteada, e quem hesita perde a rodada." },
   { chave: "quiz", logo: "/quiz-logo.png", cor: "#FFD60A", sombra: "#B88A00", texto: "Milhares de perguntas por tema — Futebol, Anime, Games, Terceirão e muito mais. Quem acerta primeiro leva os pontos!" },
   { chave: "acromania", logo: "/acromania-logo.png", cor: "#C3A6FF", sombra: "#8465D1", texto: "Um tema, algumas letras, e você cria a frase mais criativa. A galera vota na melhor.", beta: true },
+  { chave: "tribunal", logo: "/tribunal-logo.png", cor: "#7CC8FF", sombra: "#3F84C4", texto: "Alguém é acusado de um crime absurdo. Promotor acusa, advogado defende, e o júri decide: culpado ou inocente?", beta: true },
 ];
 
 export default function Inicio({ usuario }) {
@@ -56,7 +59,7 @@ export default function Inicio({ usuario }) {
     } catch {}
   }
 
-  const jogar = (e, jogo) => { e.preventDefault(); irParaPagina("jogar", { jogo }); };
+  const jogar = (e, jogo) => { e.preventDefault(); if (PAGINA_PROPRIA[jogo]) irParaPagina(PAGINA_PROPRIA[jogo]); else irParaPagina("jogar", { jogo }); };
 
   return (
     <div className="v2-app v2-com-menu">
@@ -110,9 +113,9 @@ export default function Inicio({ usuario }) {
 
         <div className="v2-jogos-cards">
           {JOGOS.filter((j) => j.chave !== "acromania" || acroAtivo).map((j, i) => (
-            <a key={j.chave} className="v2-jogo-card" href={linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
+            <a key={j.chave} className="v2-jogo-card" href={PAGINA_PROPRIA[j.chave] ? linkDaPagina(PAGINA_PROPRIA[j.chave]) : linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
               {j.beta && <span className="v2-jogo-card-beta">em testes</span>}
-              <img src={j.logo} alt={NOMES[j.chave]} />
+              {j.logo ? <img src={j.logo} alt={NOMES[j.chave]} /> : <span className="v2-jogo-card-titulo">{j.titulo}</span>}
               {online?.[j.chave] > 0 && <span className="v2-jogo-card-online"><span className="v2-ponto-vivo" />{online[j.chave]} jogando agora</span>}
               <p>{j.texto}</p>
               <span className="v2-jogo-card-cta">Ver salas →</span>

@@ -28,6 +28,9 @@ import quizQuestionsRoutes from "./routes/quizQuestions.js";
 import feedbackRoutes from "./routes/feedback.js";
 import ranksRoutes from "./routes/ranks.js";
 import acromaniaRanksRoutes from "./routes/acromaniaRanks.js";
+import mentiraRoomsRoutes from "./routes/mentiraRooms.js";
+import mentiraRanksRoutes from "./routes/mentiraRanks.js";
+import tribunalRoomsRoutes from "./routes/tribunalRooms.js";
 import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
 import { setupSocket } from "./socket/index.js";
@@ -107,6 +110,9 @@ app.use("/api/ranks", ranksRoutes);
 app.use("/api/platform-stats", platformStatsRoutes);
 app.use("/api/quiz-ranks", quizRanksRoutes);
 app.use("/api/acromania-ranks", acromaniaRanksRoutes);
+app.use("/api/mentira-rooms", mentiraRoomsRoutes); // Mentira Sincera: salas abertas
+app.use("/api/mentira-ranks", mentiraRanksRoutes); // Mentira Sincera: patentes
+app.use("/api/tribunal-rooms", tribunalRoomsRoutes); // O Tribunal: salas abertas (em teste)
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno

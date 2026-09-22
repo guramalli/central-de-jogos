@@ -64,6 +64,8 @@ export default function Ranking() {
   const jogosDisponiveis = isClans
     ? ["geral", "stop", "quiz", "acromania"]
     : ["stop", "quiz", "acromania"];
+  // O Mentira Sincera não entra no ranking de clãs: se estava marcado, volta pro Geral.
+  useEffect(() => { if (isClans && !jogosDisponiveis.includes(game)) setGame("geral"); }, [isClans, game]);
   const nameOf = (r) => (isClans ? `[${r.tag}] ${r.name}` : r.nickname);
 
   return (

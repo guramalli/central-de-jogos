@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { getRankForPoints, RANKS } from "../utils/rank.js";
 import { getQuizRankForPoints, QUIZ_RANKS } from "../utils/quizRank.js";
 import { getAcromaniaRankForPoints, ACROMANIA_RANKS } from "../utils/acromaniaRank.js";
+import { getMentiraRankForPoints, MENTIRA_RANKS } from "../utils/mentiraRank.js";
 import { cacheOuBuscar } from "../utils/cache.js";
 import { currentMonthKey, formatMonthKey } from "../utils/monthKey.js";
 
@@ -20,12 +21,14 @@ function patenteDoHistorico(points, gameKey, ehPrimeiro) {
       ? getQuizRankForPoints
       : gameKey === "acromania"
         ? getAcromaniaRankForPoints
-        : getRankForPoints;
+        : gameKey === "mentira"
+          ? getMentiraRankForPoints
+          : getRankForPoints;
   // Sem userId: nenhuma checagem de detentor vigente é feita.
   const bruta = calcular(points);
 
   const escada =
-    gameKey === "quiz" ? QUIZ_RANKS : gameKey === "acromania" ? ACROMANIA_RANKS : RANKS;
+    gameKey === "quiz" ? QUIZ_RANKS : gameKey === "acromania" ? ACROMANIA_RANKS : gameKey === "mentira" ? MENTIRA_RANKS : RANKS;
   const topo = escada[escada.length - 1];
 
   // Alcançou o topo mas não era o primeiro daquele mês: um degrau abaixo.
@@ -77,7 +80,9 @@ router.get("/monthly/:gameKey", requireAuth, async (req, res) => {
             ? getQuizRankForPoints(s.points, { userId: s.user.id })
             : gameKey === "acromania"
               ? getAcromaniaRankForPoints(s.points, { userId: s.user.id })
-              : getRankForPoints(s.points, { userId: s.user.id, gameKey }))
+              : gameKey === "mentira"
+                ? getMentiraRankForPoints(s.points, { userId: s.user.id })
+                : getRankForPoints(s.points, { userId: s.user.id, gameKey }))
         : patenteDoHistorico(s.points, gameKey, idx === 0),
     }));
   });

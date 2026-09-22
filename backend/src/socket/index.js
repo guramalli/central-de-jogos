@@ -1,4 +1,6 @@
 import { registrarMentira } from "../mentira/socketMentira.js";
+import { registrarTribunal } from "../tribunal/socketTribunal.js";
+import { podeFalar } from "../utils/antiFlood.js";
 import { chamarBotsNoStop, dispensarBotsDoStop } from "../game/stopBots.js";
 import { verifyToken } from "../utils/jwt.js";
 import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
@@ -116,10 +118,28 @@ export function setupSocket(io) {
     const { id: userId, nickname } = socket.user;
     // Mentira Sincera (em teste — ver src/mentira/).
     registrarMentira(io, socket);
+    registrarTribunal(io, socket); // O Tribunal (em teste, sem link no site)
 
     // Toda conexão autenticada conta como "no site" — independente da
     // página. É daqui que o painel admin tira quem está online.
     presence.addConnection(socket, userId, nickname);
+
+    // ANTI-FLOOD dos chats (utils/antiFlood.js): limite por CONTA. Admin e
+    // moderador ficam fora — o papel só é consultado no banco quando alguém
+    // esbarra no limite (conversa normal não gera consulta nenhuma).
+    async function liberadoNoChat(texto) {
+      const r = podeFalar(userId, texto);
+      if (r.ok) return true;
+      if (socket.ehEquipe === undefined) {
+        try {
+          const q = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+          socket.ehEquipe = q?.role === "ADMIN" || q?.role === "MODERATOR";
+        } catch { socket.ehEquipe = false; }
+      }
+      if (socket.ehEquipe) return true;
+      socket.emit("chat-limite", { mensagem: r.mensagem, esperaMs: r.esperaMs, silenciado: r.silenciado });
+      return false;
+    }
 
     // SALA PESSOAL — um canal direto pra cada usuário.
     //
@@ -205,8 +225,9 @@ export function setupSocket(io) {
       socket.currentRoom?.submitWordVote?.(userId, targetUserId, themeKey, valido);
     });
 
-    socket.on("chat-message", ({ message }) => {
-      if (!message?.trim()) return;
+    socket.on("chat-message", async ({ message } = {}) => {
+      if (!message?.trim() || !socket.currentRoom) return;
+      if (!(await liberadoNoChat(message))) return;
       socket.currentRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
     });
 
@@ -230,8 +251,9 @@ export function setupSocket(io) {
       socket.currentQuizRoom?.submitGuess(socket, userId, nickname, limpo);
     });
 
-    socket.on("quiz-chat-message", ({ message }) => {
-      if (!message?.trim()) return;
+    socket.on("quiz-chat-message", async ({ message } = {}) => {
+      if (!message?.trim() || !socket.currentQuizRoom) return;
+      if (!(await liberadoNoChat(message))) return;
       socket.currentQuizRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
     });
 
@@ -334,8 +356,9 @@ export function setupSocket(io) {
       socket.currentAcromaniaRoom.vote(socket, userId, entryId);
     });
 
-    socket.on("acromania-chat-message", ({ message }) => {
-      if (!message?.trim()) return;
+    socket.on("acromania-chat-message", async ({ message } = {}) => {
+      if (!message?.trim() || !socket.currentAcromaniaRoom) return;
+      if (!(await liberadoNoChat(message))) return;
       socket.currentAcromaniaRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
     });
 
@@ -383,6 +406,7 @@ export function setupSocket(io) {
       const agora = Date.now();
       if (socket.ultimaMsgGeral && agora - socket.ultimaMsgGeral < 700) return;
       socket.ultimaMsgGeral = agora;
+      if (!(await liberadoNoChat(message))) return; // anti-flood por conta
 
       const clean = message.trim().slice(0, 300);
       const salva = await generalChat.saveMessage(userId, clean);

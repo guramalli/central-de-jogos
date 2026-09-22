@@ -43,6 +43,14 @@ export const NOVIDADES = [
       "O site inteiro foi redesenhado: visual novo, mais rápido e feito pra funcionar tão bem no celular quanto no computador. Tem página inicial com a Praça, salas do Quiz, Stop e Acromania com patentes ao lado dos nicks, várias salas na mesma tela, salas privadas com votação da mesa, ranking com pódio, Hall da Fama, perfil com seus títulos, amigos com conversa privada, clãs, emojis e @ pra marcar alguém no chat. Prefere o jeito antigo? O botão \"Versão clássica\", no topo, leva de volta — e dá pra trocar quando quiser.",
   },
   {
+    id: "2026-09-tribunal",
+    data: "2026-09-22",
+    tipo: "novo",
+    titulo: "Jogo novo em testes: O Tribunal",
+    texto:
+      "Alguém é acusado de um crime absurdo, tipo \"comeu o último pedaço de pizza e guardou a caixa vazia na geladeira\". O promotor acusa, o advogado defende e o júri decide se quer mais provas ou se já dá pra votar. No fim, o réu tem a última palavra e o júri dá o veredito: culpado ou inocente? Precisa de pelo menos 3 pessoas (com 3, o réu se defende sozinho). Chame os amigos e conte pra gente o que achou!",
+  },
+  {
     id: "2026-09-mpb-rock",
     data: "2026-09-17",
     tipo: "novo",

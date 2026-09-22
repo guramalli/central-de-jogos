@@ -25,6 +25,25 @@ function depoisDeEntrar() {
 }
 const irLink = (pagina, extra) => (e) => { e.preventDefault(); irParaPagina(pagina, extra); };
 
+// JOGAR SEM CADASTRO, com UM clique: entra como visitante com um apelido
+// automático ("Jogador 4821") e abre direto o destino (a lobby do jogo).
+// Antes, o "Jogar grátis" só rolava a página até o formulário de cadastro —
+// quem vinha de fora achava que o botão estava quebrado (e ninguém se
+// cadastra sem jogar uma vez). Se o número já estiver em uso, tenta outro.
+async function jogarSemCadastro(destino) {
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    const apelido = `Jogador ${Math.floor(1000 + Math.random() * 9000)}`;
+    try {
+      await entrarComoVisitante(apelido);
+      window.location.replace(destino);
+      return;
+    } catch (err) {
+      if (err.response?.status !== 409) throw err; // 409 = apelido em uso agora
+    }
+  }
+  throw new Error("Não foi possível entrar agora. Tenta de novo?");
+}
+
 function TopoPublico() {
   return (
     <header className="v2-topo v2-topo-publico">
@@ -79,7 +98,7 @@ function Visitante({ aoErro }) {
     catch (err) { aoErro(err.response?.data?.error || "Erro ao entrar. Tenta de novo?"); setEntrando(false); }
   }
   if (!aberto) {
-    return <button type="button" className="v2-link v2-visitante-link" onClick={() => { setAberto(true); requestAnimationFrame(() => ref.current?.focus()); }}>Só quero dar uma olhada primeiro →</button>;
+    return <button type="button" className="v2-link v2-visitante-link" onClick={() => { setAberto(true); requestAnimationFrame(() => ref.current?.focus()); }}>Prefiro escolher meu apelido de visitante →</button>;
   }
   return (
     <form className="v2-visitante" onSubmit={entrar}>
@@ -96,7 +115,21 @@ export function Entrada() {
   const [online, setOnline] = useState(null);
   const [acroAtivo, setAcroAtivo] = useState(true);
   const [erro, setErro] = useState("");
+  const [entrando, setEntrando] = useState(null); // chave do jogo (ou "inicio") enquanto entra
   const entradaRef = useRef(null);
+
+  async function jogar(chave) {
+    if (entrando) return;
+    setErro(""); setEntrando(chave);
+    try {
+      // O Tribunal tem página própria; os outros abrem a lobby de salas do jogo.
+      const destino = chave === "inicio" ? "/v2/" : chave === "tribunal" ? linkDaPagina("tribunal") : linkDaPagina("jogar", { jogo: chave });
+      await jogarSemCadastro(destino);
+    } catch (err) {
+      setErro(err.response?.data?.error || err.message || "Não foi possível entrar agora. Tenta de novo?");
+      setEntrando(null);
+    }
+  }
 
   useEffect(() => {
     api.get("/platform-stats/online").then(({ data }) => setOnline(data)).catch(() => {});
@@ -107,6 +140,7 @@ export function Entrada() {
     { chave: "stop", logo: "/stop-logo.png", cor: "#FF8A7F", sombra: "#C7493F", texto: "A adedonha de verdade, online. 6 temas, 1 letra sorteada, e quem hesita perde a rodada." },
     { chave: "quiz", logo: "/quiz-logo.png", cor: "#FFD60A", sombra: "#B88A00", texto: "Milhares de perguntas por tema — Futebol, Anime, Games, Terceirão e muito mais. Quem acerta primeiro leva os pontos!" },
     { chave: "acromania", logo: "/acromania-logo.png", cor: "#C3A6FF", sombra: "#8465D1", texto: "Um tema, algumas letras, e você cria a frase mais criativa — a galera vota na melhor.", beta: true },
+    { chave: "tribunal", logo: "/tribunal-logo.png", cor: "#7CC8FF", sombra: "#3F84C4", texto: "Alguém é acusado de um crime absurdo. Promotor acusa, advogado defende, e o júri decide: culpado ou inocente?", beta: true },
   ].filter((j) => j.chave !== "acromania" || acroAtivo);
 
   return (
@@ -125,10 +159,14 @@ export function Entrada() {
         </div>
         <div className="v2-cartao v2-cartao-entrada" ref={entradaRef}>
           <h2>Comece a jogar agora</h2>
-          <p className="v2-cartao-nota">Crie sua conta em segundos e já entre valendo: ranking mensal, patentes, títulos e a premiação via Pix.</p>
           {erro && <div className="v2-faixa-aviso erro" role="alert">{erro}</div>}
+          <button type="button" className="v2-botao v2-botao-amarelo v2-botao-largo" onClick={() => jogar("inicio")} disabled={!!entrando}>
+            {entrando === "inicio" ? "Entrando…" : "Jogar agora, sem cadastro"}
+          </button>
+          <p className="v2-cartao-nota v2-centralizado">Sem e-mail, sem senha. Gostou? Crie sua conta pra entrar no <b>ranking</b>, ganhar <b>patentes</b> e concorrer à <b>premiação via Pix</b>.</p>
+          <div className="v2-entrada-divisor"><span>ou</span></div>
           <BotaoGoogle aoErro={setErro} />
-          <a className="v2-botao v2-botao-amarelo v2-botao-largo" href={linkDaPagina("cadastro")} onClick={irLink("cadastro")}>Criar conta grátis</a>
+          <a className="v2-botao v2-botao-contorno v2-botao-largo" href={linkDaPagina("cadastro")} onClick={irLink("cadastro")}>Criar conta grátis</a>
           <a className="v2-link v2-centralizado" href={linkDaPagina("entrar")} onClick={irLink("entrar")}>Já tenho conta — entrar</a>
           <Visitante aoErro={setErro} />
         </div>
@@ -137,11 +175,11 @@ export function Entrada() {
       <div className="v2-jogos-cards">
         {jogos.map((j, i) => (
           <button key={j.chave} type="button" className="v2-jogo-card" style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}
-            onClick={() => entradaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+            onClick={() => jogar(j.chave)} disabled={!!entrando} aria-busy={entrando === j.chave}>
             {j.beta && <span className="v2-jogo-card-beta">em testes</span>}
             <img src={j.logo} alt={j.chave} />
             <p>{j.texto}</p>
-            <span className="v2-jogo-card-cta">Jogar grátis →</span>
+            <span className="v2-jogo-card-cta">{entrando === j.chave ? "Entrando…" : "Jogar grátis, sem cadastro →"}</span>
           </button>
         ))}
       </div>

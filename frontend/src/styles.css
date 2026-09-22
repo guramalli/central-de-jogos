@@ -8911,3 +8911,7 @@ span.votacao-trilha-item {
 }
 .versao-troca-btn:hover { background: #ffd60a; color: #1a1206; }
 @media (max-width: 700px) { .versao-troca-btn { height: 32px; padding: 0 10px; font-size: 12px; } }
+
+/* Card do Mentira Sincera na versão clássica: aviso de que abre na v2. */
+.home-game-aviso-v2 { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 8px; padding: 4px 10px; border-radius: 999px; background: rgba(255, 184, 111, 0.15); color: #ffb86f; font-size: 0.8rem; font-weight: 700; }
+.home-game-aviso-v2 .material-symbols-outlined { font-size: 16px; }
