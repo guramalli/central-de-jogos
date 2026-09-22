@@ -1,3 +1,4 @@
+import DicaNova from "./DicaNova.jsx";
 import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby, irParaPagina } from "./App.jsx";
@@ -416,9 +417,12 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                   {j.ehBot ? (
                     <span className="v2-jogador-nome" title="bot de teste">{j.nickname}</span>
                   ) : (
-                    <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="stop">
-                      <span className="v2-jogador-nome">{j.nickname}</span>
-                    </NickHover>
+                    <>
+                      <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="stop">
+                        <span className="v2-jogador-nome">{j.nickname}</span>
+                      </NickHover>
+                      {i === jogadores.findIndex((x) => !x.ehBot) && <DicaNova chave="nickname" texto="Toque no nome de alguém pra ver o perfil, os pontos do mês e a patente." lado="baixo-direita" />}
+                    </>
                   )}
                   {j.rank?.name && (
                     <span className="v2-jogador-patente">

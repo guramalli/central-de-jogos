@@ -1,3 +1,4 @@
+import DicaNova from "./DicaNova.jsx";
 import { versaoTexto } from "./versoes.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
@@ -417,7 +418,7 @@ export function EscadaPatentes({ jogo, mensal, semLink = false, rodape = null })
   return (
     <section className="v2-cartao v2-escada">
       <div className="v2-cartao-cabeca">
-        <h2>Patentes do {jogo === "stop" ? "Stop" : jogo === "acromania" ? "Acromania" : jogo === "mentira" ? "Mentira Sincera" : "Quiz"}</h2>
+        <h2>Patentes do {jogo === "stop" ? "Stop" : jogo === "acromania" ? "Acromania" : jogo === "mentira" ? "Mentira Sincera" : "Quiz"} <DicaNova chave="patentes" texto="Essa é a sua patente do mês. Arraste pro lado pra ver quanto falta pra próxima — ela some e recomeça do zero todo dia 1º." lado="baixo-esquerda" /></h2>
         {!semLink && <a className="v2-link" href={`/v2/?pagina=patentes&jogo=${jogo}`} onClick={(e) => { e.preventDefault(); irParaPagina("patentes", { jogo }); }}>ver página completa →</a>}
       </div>
       <p className="v2-cartao-nota">Contam os pontos <b>do mês</b> — todo dia 1º recomeça do zero.</p>

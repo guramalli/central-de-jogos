@@ -1,3 +1,4 @@
+import DicaNova from "./DicaNova.jsx";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
@@ -350,9 +351,12 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
                 )}
                 <div className="v2-jogador-info">
                   {j.ehBot ? <span className="v2-jogador-nome">{j.nickname}</span> : (
-                    <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="acromania">
-                      <span className="v2-jogador-nome">{j.nickname}</span>
-                    </NickHover>
+                    <>
+                      <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} gameKey="acromania">
+                        <span className="v2-jogador-nome">{j.nickname}</span>
+                      </NickHover>
+                      {i === jogadores.findIndex((x) => !x.ehBot) && <DicaNova chave="nickname" texto="Toque no nome de alguém pra ver o perfil, os pontos do mês e a patente." lado="baixo-direita" />}
+                    </>
                   )}
                   {j.ehBot ? <span className="v2-jogador-patente">jogador automático</span> : j.rank?.name && (
                     <span className="v2-jogador-patente">

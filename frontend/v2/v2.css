@@ -2345,3 +2345,15 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 .v2-versao-jogo { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.14); color: #fff; font-family: var(--titulo); font-size: 13px; letter-spacing: .3px; }
 h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; }
 .v2-versao-jogo-lobby { margin: 4px auto 0; }
+
+/* =================== Dicas contextuais (zip 591) =================== */
+.v2-dica-nova { position: relative; display: inline-flex; vertical-align: middle; margin-left: 5px; }
+.v2-dica-ponto { width: 18px; height: 18px; padding: 0; border: none; border-radius: 50%; background: var(--amarelo); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 rgba(255,214,10,.6); animation: v2-dica-pulso 1.8s ease-out infinite; }
+.v2-dica-ponto-aro { width: 8px; height: 8px; border-radius: 50%; background: #7a5b00; }
+@keyframes v2-dica-pulso { 0% { box-shadow: 0 0 0 0 rgba(255,214,10,.55); } 70% { box-shadow: 0 0 0 9px rgba(255,214,10,0); } 100% { box-shadow: 0 0 0 0 rgba(255,214,10,0); } }
+.v2-dica-balao { position: absolute; z-index: 40; top: calc(100% + 8px); width: 220px; padding: 10px 12px; border-radius: 14px; background: #2b1b5e; color: #fff; font-size: 13px; font-weight: 700; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 8px; animation: v2-pop .2s ease-out both; }
+.v2-dica-balao-baixo-esquerda { left: 0; }
+.v2-dica-balao-baixo-direita { right: 0; }
+.v2-dica-balao button { align-self: flex-end; border: none; border-radius: 999px; padding: 4px 12px; background: var(--amarelo); color: var(--roxo); font: inherit; font-weight: 900; font-size: 12px; cursor: pointer; }
+@media (max-width: 520px) { .v2-dica-balao { width: 190px; } }
+@media (prefers-reduced-motion: reduce) { .v2-dica-ponto { animation: none; } }

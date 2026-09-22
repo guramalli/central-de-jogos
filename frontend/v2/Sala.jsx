@@ -1,3 +1,4 @@
+import DicaNova from "./DicaNova.jsx";
 import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
@@ -339,6 +340,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
                   <NickHover userId={j.userId} nickname={j.nickname} meuId={usuario.id} roomId={roomId}>
                     <span className="v2-jogador-nome">{j.nickname}</span>
                   </NickHover>
+                  {i === 0 && <DicaNova chave="nickname" texto="Toque no nome de alguém pra ver o perfil, os pontos do mês e a patente." lado="baixo-direita" />}
                   {j.rank?.name && (
                     <span className="v2-jogador-patente">
                       {j.rank.name}

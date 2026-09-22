@@ -1,3 +1,4 @@
+import DicaNova, { marcarDicaVista } from "./DicaNova.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api, sair, novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
@@ -93,9 +94,10 @@ export default function Topo({ usuario, ativo = null }) {
           <BuscaJogador />
           {/* Volta pro site clássico, na MESMA página (a escolha fica guardada). */}
           <button type="button" className="v2-troca-versao" onClick={() => trocarParaClassica()} title="Voltar para a versão clássica do site">Versão clássica</button>
-                    <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil, títulos e conquistas">
+                    <a href={linkDaPagina("jogador", { id: usuario.id })} onClick={(e) => { e.preventDefault(); marcarDicaVista("perfil"); irParaPagina("jogador", { id: usuario.id }); }} className="v2-topo-avatar" title="Meu perfil, títulos e conquistas">
             <Avatar userId={usuario.id} nickname={usuario.nickname} tamanho={44} borda />
             <span className="v2-topo-nick">{usuario.nickname}<small>ver perfil</small></span>
+            <DicaNova chave="perfil" texto="Aqui é você! Toque pra ver seu perfil, os títulos que já conquistou e sua patente em cada jogo." lado="baixo-direita" />
           </a>
           <button className="v2-sair" title="Sair da conta" aria-label="Sair da conta" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.reload(); } }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
