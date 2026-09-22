@@ -30,6 +30,26 @@ router.post("/suggest", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "themeKey, letter e word são obrigatórios." });
   }
 
+  // Validação que faltava (achado num ataque real, zip 604): a rota aceitava
+  // QUALQUER string, sem tamanho nem conteúdo — chegou a receber
+  // "<script>" e "<img src=x onerror=alert(1)>" como sugestão de palavra.
+  // O React escapa tudo automaticamente (não existe dangerouslySetInnerHTML
+  // em lugar nenhum do site, então nada disso executaria), mas depender só
+  // disso é frágil — uma função nova no futuro podia abrir essa porta sem
+  // ninguém perceber. Aqui a barreira é na ORIGEM: só entra o que parece
+  // palavra de verdade.
+  const palavra = String(word).trim();
+  if (palavra.length < 1 || palavra.length > 60) {
+    return res.status(400).json({ error: "A palavra precisa ter entre 1 e 60 caracteres." });
+  }
+  if (!/^[\p{L}\p{N} '-]+$/u.test(palavra)) {
+    return res.status(400).json({ error: "Use apenas letras, números, espaço, apóstrofo e hífen." });
+  }
+  const letraUnica = String(letter).trim();
+  if (letraUnica.length !== 1 || !/^\p{L}$/u.test(letraUnica)) {
+    return res.status(400).json({ error: "A letra precisa ser um único caractere." });
+  }
+
   // Temas da Sala da Zoeira não têm glossário — quem julga a resposta é a
   // galera na hora, não uma lista de palavras aceitas.
   if (TEMAS_SEM_GLOSSARIO.has(themeKey)) {
@@ -45,8 +65,8 @@ router.post("/suggest", requireAuth, async (req, res) => {
     const entry = await prisma.wordEntry.create({
       data: {
         themeId: theme.id,
-        letter: letter.toUpperCase(),
-        word: word.trim(),
+        letter: letraUnica.toUpperCase(),
+        word: palavra,
         status: "pending",
         suggestedById: req.user.id,
       },

@@ -1,7 +1,8 @@
-// Cloudflare Turnstile (zip 602) — verificação anti-robô. No modo
-// "invisible", na imensa maioria das vezes NADA aparece na tela pra gente
-// de verdade (só atrapalha automação); só mostra um desafio visível se o
-// Cloudflare achar o pedido suspeito.
+// Cloudflare Turnstile (zip 602/604) — verificação anti-robô, no modo
+// "Managed" (o recomendado pelo próprio Cloudflare): pra gente de verdade,
+// normalmente não aparece nada; só mostra um desafio pra quem o Cloudflare
+// achar arriscado — mais forte contra alguém insistente do que o modo
+// puramente invisível.
 //
 // DESLIGADO ATÉ TER A CHAVE: sem VITE_TURNSTILE_SITE_KEY configurada (no
 // .env do frontend, na Vercel), essa função devolve null sem fazer nada —
@@ -43,10 +44,12 @@ export async function obterTokenTurnstile() {
   }
   return new Promise((resolve) => {
     const div = document.createElement("div");
-    // Fora da tela, não com display:none — alguns navegadores não rodam
-    // conteúdo com display:none corretamente, e o widget precisa existir
-    // de verdade no DOM pra funcionar.
-    div.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;";
+    // Canto da tela, DENTRO da área visível — não escondido fora da tela.
+    // No modo "Managed" (o escolhido no painel), o normal é não aparecer
+    // nada; mas se o Cloudflare achar um pedido arriscado, ele pode
+    // mostrar um desafio pra resolver — e quem precisar dele só consegue
+    // ver e responder se o widget estiver de verdade na tela.
+    div.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:9999;";
     document.body.appendChild(div);
     let resolvido = false;
     const terminar = (token) => {
@@ -58,7 +61,6 @@ export async function obterTokenTurnstile() {
     try {
       window.turnstile.render(div, {
         sitekey: SITE_KEY,
-        size: "invisible",
         callback: (token) => terminar(token),
         "error-callback": () => terminar(null),
         "expired-callback": () => terminar(null),
@@ -67,8 +69,9 @@ export async function obterTokenTurnstile() {
       terminar(null);
       return;
     }
-    // Rede de segurança: se o Cloudflare nunca responder, não trava o
-    // cadastro pra sempre — segue sem o token depois de um tempo curto.
-    setTimeout(() => terminar(null), 8000);
+    // Rede de segurança: dá tempo de verdade pra alguém resolver um
+    // desafio que tenha aparecido (1 minuto), mas não trava o cadastro
+    // pra sempre se o Cloudflare nunca responder.
+    setTimeout(() => terminar(null), 60000);
   });
 }
