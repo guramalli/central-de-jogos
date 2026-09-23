@@ -6,7 +6,9 @@ export default function Entrada({ aoCriar, aoEntrar, entrando }) {
   const [codigo, setCodigo] = useState("");
   return (
     <section className="imp-entrada">
-      <h1 className="imp-titulo-heroi">O IMPOSTOR</h1>
+      <h1 className="imp-logo-titulo">
+        <img src="/impostor-logo.png" alt="O Impostor" className="imp-logo" />
+      </h1>
       <p className="imp-sub">Um de vocês não sabe a palavra. Dê dicas, desconfie de todo mundo e vote em quem está blefando.</p>
       {entrando ? (
         <p className="imp-sub">Entrando na sala…</p>

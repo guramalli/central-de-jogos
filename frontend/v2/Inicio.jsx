@@ -17,8 +17,8 @@ const JOGOS = [
   { chave: "quiz", logo: "/quiz-logo.png", cor: "#FFD60A", sombra: "#B88A00", texto: "Milhares de perguntas por tema — Futebol, Anime, Games, Terceirão e muito mais. Quem acerta primeiro leva os pontos!" },
   { chave: "acromania", logo: "/acromania-logo.png", cor: "#C3A6FF", sombra: "#8465D1", texto: "Um tema, algumas letras, e você cria a frase mais criativa. A galera vota na melhor.", beta: true },
   { chave: "tribunal", logo: "/tribunal-logo.png", cor: "#7CC8FF", sombra: "#3F84C4", texto: "Alguém é acusado de um crime absurdo. Promotor acusa, advogado defende, e o júri decide: culpado ou inocente?", beta: true },
-  // O Impostor — em testes (sem ranking ainda). Sem logo: o card usa o título em texto.
-  { chave: "impostor", titulo: "O Impostor", cor: "#FF4D5E", sombra: "#A3202E", texto: "Todo mundo sabe a palavra, menos um. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", beta: true },
+  // O Impostor — em testes (sem ranking ainda).
+  { chave: "impostor", logo: "/impostor-logo.png", cor: "#FF4D5E", sombra: "#A3202E", texto: "Todo mundo sabe a palavra, menos um. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", beta: true },
 ];
 
 export default function Inicio({ usuario }) {
