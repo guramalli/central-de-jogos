@@ -115,8 +115,8 @@ export default function Inicio({ usuario }) {
           </div>
         </section>
 
-        {/* Duas fileiras: SALAS (Stop, Quiz) e PARTIDA RÁPIDA (os jogos com fila
-            de espera — a fila fica no rodapé do card). */}
+        {/* Duas fileiras: SALAS (Stop, Quiz) e FILA DE ESPERA (os jogos com
+            fila — a pessoa deixa o nome no rodapé do card). */}
         <div className="v2-jogos-cards v2-jogos-salas">
           {JOGOS.filter((j) => !NOMES_FILA[j.chave]).map((j, i) => (
             <a key={j.chave} className="v2-jogo-card" href={PAGINA_PROPRIA[j.chave] ? linkDaPagina(PAGINA_PROPRIA[j.chave]) : linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
@@ -131,8 +131,8 @@ export default function Inicio({ usuario }) {
 
         <section className="v2-jogos-rapida" aria-labelledby="v2-jogos-rapida-titulo">
           <div className="v2-jogos-rapida-topo">
-            <h2 id="v2-jogos-rapida-titulo">⚡ Partida rápida</h2>
-            <p>Entre na fila e jogue com quem estiver esperando. Juntou gente, aparece “Partida encontrada” — é só aceitar.</p>
+            <h2 id="v2-jogos-rapida-titulo">📝 Fila de espera</h2>
+            <p>Coloque seu nome na fila e continue navegando. Quando juntar gente suficiente, a gente te chama pra confirmar — com som e aviso na tela.</p>
           </div>
           <div className="v2-jogos-cards v2-jogos-rapidos">
             {JOGOS.filter((j) => NOMES_FILA[j.chave] && (j.chave !== "acromania" || acroAtivo)).map((j, i) => (

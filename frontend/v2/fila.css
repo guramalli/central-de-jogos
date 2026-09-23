@@ -1,7 +1,7 @@
 /* FILA DE ESPERA — controle nos cards/telas, janela "Partida encontrada!",
    aviso flutuante e recado. Prefixo v2-fila- (cores da v2). */
 
-/* ---------- Início: fileiras "Salas" e "Partida rápida" ---------- */
+/* ---------- Início: fileiras "Salas" e "Fila de espera" ---------- */
 @media (min-width: 700px) {
   .v2-jogos-cards.v2-jogos-salas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v2-jogos-cards.v2-jogos-rapidos { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -22,13 +22,13 @@
 /* ---------- Controles da fila ---------- */
 .v2-fila-controles { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 2px solid rgba(43, 27, 94, .15); }
 .v2-fila-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.v2-fila-jogar { min-height: 46px; padding: 0 18px; border: none; border-radius: 14px; background: var(--roxo); color: #fff; font-family: var(--titulo); font-weight: 700; font-size: 17px; box-shadow: 0 4px 0 var(--roxo-escuro); transition: transform .1s; }
+.v2-fila-jogar { width: 100%; min-height: 46px; padding: 0 18px; border: none; border-radius: 14px; background: var(--roxo); color: #fff; font-family: var(--titulo); font-weight: 700; font-size: 17px; box-shadow: 0 4px 0 var(--roxo-escuro); transition: transform .1s; }
 .v2-fila-jogar:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--roxo-escuro); }
-.v2-fila-jogar.secundario { font-size: 15px; }
+.v2-fila-jogar.secundario { width: auto; font-size: 15px; }
 .v2-fila-jogar:disabled, .v2-fila-sair:disabled { opacity: .6; }
-.v2-fila-ver-salas { font-family: var(--titulo); font-weight: 700; font-size: 16px; color: var(--roxo); padding: 10px 6px; text-decoration: underline; text-underline-offset: 3px; }
+.v2-fila-ver-salas { font-family: var(--titulo); font-weight: 700; font-size: 15px; color: var(--roxo); padding: 10px 4px; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
 .v2-fila-sair { min-height: 44px; padding: 0 14px; border: 2px solid var(--roxo); border-radius: 14px; background: transparent; color: var(--roxo); font-weight: 900; font-size: 14px; }
-.v2-fila-dica { margin: 0; font-size: 12px; font-weight: 800; opacity: .85; }
+.v2-fila-dica { flex: 1; margin: 0; font-size: 12px; font-weight: 800; opacity: .85; }
 .v2-fila-status { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 900; font-size: 14px; }
 .v2-fila-status.destaque { font-size: 15px; }
 .v2-fila-erro { margin: 0; color: #8a0f06; font-size: 12px; font-weight: 800; }
@@ -38,7 +38,7 @@
 .v2-fila-bolinhas-mini span { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--roxo); }
 .v2-fila-bolinhas-mini span.ok { background: var(--roxo); }
 
-/* Bloco "⚡ Partida rápida" nas páginas dos jogos (mesma largura dos blocos da página).
+/* Bloco "Fila de espera" nas páginas dos jogos (mesma largura dos blocos da página).
    Seletores com duas classes: o v2.css carrega depois deste arquivo e o
    .v2-cartao dele (fundo roxo) ganharia de uma classe só. */
 .v2-cartao.v2-partida-rapida { max-width: 720px; width: 100%; margin: 0 auto; background: var(--amarelo); color: var(--roxo); box-shadow: 0 6px 0 var(--amarelo-sombra); }

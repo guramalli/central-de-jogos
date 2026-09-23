@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useFila, pedirFila, destravarSom } from "./fila.js";
 
-// FILA DE ESPERA ("Partida rápida") — três formas de mostrar o mesmo controle:
+// FILA DE ESPERA — a pessoa COLOCA O NOME na fila e segue a vida (navega,
+// joga outra coisa); quando juntar gente, é chamada pra confirmar. Não é
+// "partida rápida": muitas vezes não tem ninguém esperando na hora.
+// Três formas de mostrar o mesmo controle:
 //   <CardPartidaRapida> card do jogo no Início, com a fila no rodapé;
-//   <PartidaRapida>     bloco "⚡ Partida rápida" na página do jogo;
+//   <PartidaRapida>     bloco "Fila de espera" na página do jogo;
 //   <FilaNoCard>        só os controles (ex.: tela escura do Impostor).
 // Bots são sempre manuais ("Começar agora com bots").
 
@@ -15,7 +18,7 @@ function Bolinhas({ n, total }) {
   );
 }
 
-// Controles: "Jogar agora" / progresso na fila / partida encontrada.
+// Controles: "Colocar meu nome na fila" / nome na fila / partida encontrada.
 function ControlesFila({ jogo, verSalas = null }) {
   const { contagem, fila, proposta } = useFila();
   const [erro, setErro] = useState("");
@@ -44,15 +47,17 @@ function ControlesFila({ jogo, verSalas = null }) {
   if (fila.jogo !== jogo) {
     return (
       <div className="v2-fila-controles">
+        <button type="button" className="v2-fila-jogar" disabled={enviando} onClick={(e) => agir(e, "fila-entrar", { jogo })}>
+          ✋ Colocar meu nome na fila
+        </button>
         <div className="v2-fila-linha">
-          <button type="button" className="v2-fila-jogar" disabled={enviando} onClick={(e) => agir(e, "fila-entrar", { jogo })}>
-            ⚡ Jogar agora
-          </button>
+          <p className="v2-fila-dica">
+            {quantos > 0
+              ? <><b>{quantos}</b> {quantos === 1 ? "nome na fila" : "nomes na fila"} — faltam poucos!</>
+              : "Ninguém esperando agora. Deixe seu nome e a gente te chama."}
+          </p>
           {verSalas}
         </div>
-        <p className="v2-fila-dica">
-          {quantos > 0 ? <><b>{quantos}</b> {quantos === 1 ? "pessoa esperando" : "pessoas esperando"} — entra que já junta!</> : "Ninguém na fila ainda. Seja o primeiro!"}
-        </p>
         {erro && <p className="v2-fila-erro" role="alert">{erro}</p>}
       </div>
     );
@@ -63,26 +68,31 @@ function ControlesFila({ jogo, verSalas = null }) {
     <div className="v2-fila-controles" role="status">
       <p className="v2-fila-status">
         <span className="v2-fila-radar" aria-hidden="true" />
-        {faltam > 0 ? "Procurando jogadores…" : fila.fechaEmMs != null ? "Grupo fechando…" : "Montando a partida…"}
+        {faltam > 0 ? "Seu nome está na fila" : fila.fechaEmMs != null ? "Juntou gente! Fechando o grupo…" : "Montando a partida…"}
         <span className="v2-fila-progresso">
           <Bolinhas n={Math.min(fila.naFila, fila.minimo)} total={fila.minimo} />
           <b>{fila.naFila}/{fila.minimo}</b>
         </span>
       </p>
+      {faltam > 0 && (
+        <p className="v2-fila-dica">
+          {faltam === 1 ? "Falta 1 pessoa." : `Faltam ${faltam} pessoas.`} Pode navegar ou jogar outra coisa — quando juntar, a gente te chama.
+        </p>
+      )}
       <div className="v2-fila-linha">
         {fila.podeComecarAgora && (
           <button type="button" className="v2-fila-jogar secundario" disabled={enviando} onClick={(e) => agir(e, "fila-comecar-agora")}>
-            {fila.bots ? "🤖 Começar com bots" : "Começar agora"}
+            {fila.bots ? "🤖 Jogar agora com bots" : "Começar com quem está"}
           </button>
         )}
-        <button type="button" className="v2-fila-sair" disabled={enviando} onClick={(e) => agir(e, "fila-sair")}>Sair da fila</button>
+        <button type="button" className="v2-fila-sair" disabled={enviando} onClick={(e) => agir(e, "fila-sair")}>Tirar meu nome</button>
       </div>
       {erro && <p className="v2-fila-erro" role="alert">{erro}</p>}
     </div>
   );
 }
 
-// Card do jogo no Início (fileira "Partida rápida").
+// Card do jogo no Início (fileira "Fila de espera").
 export function CardPartidaRapida({ jogo, logo, titulo, nome, texto, cor, sombra, beta, online, hrefSalas, aoVerSalas, atraso = 0 }) {
   const { contagem, fila, proposta } = useFila();
   const quantos = contagem?.[jogo] || 0;
@@ -90,7 +100,7 @@ export function CardPartidaRapida({ jogo, logo, titulo, nome, texto, cor, sombra
   return (
     <article className={`v2-jogo-card v2-jogo-card-rapido ${ativo ? "na-fila" : ""}`} style={{ "--cor": cor, "--sombra": sombra, animationDelay: `${atraso}ms` }}>
       <div className="v2-jogo-card-selos">
-        {quantos > 0 && !ativo && <span className="v2-fila-esperando">🔥 {quantos} esperando</span>}
+        {quantos > 0 && !ativo && <span className="v2-fila-esperando">🔥 {quantos} na fila</span>}
         {beta && <span className="v2-jogo-card-beta">em testes</span>}
       </div>
       {logo ? <img src={logo} alt={nome} /> : <span className="v2-jogo-card-titulo">{titulo}</span>}
@@ -109,8 +119,8 @@ export function PartidaRapida({ jogo }) {
   return (
     <section className="v2-cartao v2-partida-rapida">
       <div>
-        <h2>⚡ Partida rápida</h2>
-        <p className="v2-cartao-nota">Entre na fila e jogue com quem estiver esperando. Quando juntar gente, aparece “Partida encontrada” — é só aceitar.</p>
+        <h2>📝 Fila de espera</h2>
+        <p className="v2-cartao-nota">Coloque seu nome na fila e continue navegando ou jogando outra coisa. Quando juntar gente suficiente, a gente te chama pra confirmar.</p>
       </div>
       <ControlesFila jogo={jogo} />
     </section>

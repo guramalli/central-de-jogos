@@ -112,8 +112,8 @@ function ChipFila({ fila }) {
   return (
     <div className="v2-fila-chip" role="status">
       <span className="v2-ponto-vivo" />
-      <span>Na fila do <b>{NOMES_FILA[fila.jogo] || fila.jogo}</b> · {fila.naFila}/{fila.minimo}</span>
-      <button type="button" onClick={() => pedirFila("fila-sair")}>Sair</button>
+      <span>Seu nome está na fila do <b>{NOMES_FILA[fila.jogo] || fila.jogo}</b> · {fila.naFila}/{fila.minimo}</span>
+      <button type="button" onClick={() => pedirFila("fila-sair")}>Tirar</button>
     </div>
   );
 }

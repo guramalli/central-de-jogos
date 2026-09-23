@@ -12,7 +12,7 @@ export default function Entrada({ aoCriar, aoEntrar, entrando }) {
         <p className="imp-sub">Entrando na sala…</p>
       ) : (
         <div className="imp-painel imp-entrada-painel">
-          <span className="imp-rotulo">⚡ PARTIDA RÁPIDA — JOGUE COM QUEM ESTIVER NA FILA</span>
+          <span className="imp-rotulo">📝 FILA DE ESPERA — DEIXE SEU NOME E A GENTE TE CHAMA</span>
           <FilaNoCard jogo="impostor" />
           <button className="imp-botao principal" onClick={aoCriar}>Criar sala com amigos</button>
           <form
