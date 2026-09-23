@@ -108,16 +108,47 @@ function JanelaProposta({ proposta }) {
   );
 }
 
+// Minimizado ou não: vale pra aba toda (fica igual ao trocar de página).
+// Storage bloqueado: só não lembra, abre aberto.
+const CHAVE_MINIMIZADO = "eg_v2_fila_minimizada";
+function lerMinimizado() {
+  try { return sessionStorage.getItem(CHAVE_MINIMIZADO) === "1"; } catch { return false; }
+}
+
 function ChipFila({ fila }) {
+  const [minimizado, setMinimizado] = useState(lerMinimizado);
   const jogos = Object.keys(fila.filas);
   const um = jogos.length === 1 ? fila.filas[jogos[0]] : null;
+  const nomes = jogos.map((j) => NOMES_FILA[j] || j).join(", ");
+
+  function trocar(valor) {
+    setMinimizado(valor);
+    try { sessionStorage.setItem(CHAVE_MINIMIZADO, valor ? "1" : "0"); } catch { /* sem storage: só não lembra */ }
+  }
+
+  if (minimizado) {
+    return (
+      <button
+        type="button"
+        className="v2-fila-chip v2-fila-chip-mini"
+        onClick={() => trocar(false)}
+        aria-label={`Seu nome está na fila: ${nomes}. Mostrar detalhes`}
+        title={`Na fila: ${nomes}`}
+      >
+        <span className="v2-ponto-vivo" />
+        <span>Fila{um ? ` · ${um.naFila}/${um.minimo}` : ` · ${jogos.length}`}</span>
+      </button>
+    );
+  }
+
   return (
     <div className="v2-fila-chip" role="status">
       <span className="v2-ponto-vivo" />
       {um
         ? <span>Seu nome está na fila do <b>{NOMES_FILA[jogos[0]]}</b> · {um.naFila}/{um.minimo}</span>
-        : <span>Seu nome está na fila: <b>{jogos.map((j) => NOMES_FILA[j] || j).join(", ")}</b></span>}
+        : <span>Seu nome está na fila: <b>{nomes}</b></span>}
       <button type="button" onClick={() => pedirFila("fila-sair")}>{um ? "Tirar" : "Tirar de todas"}</button>
+      <button type="button" className="v2-fila-minimizar" onClick={() => trocar(true)} aria-label="Minimizar aviso da fila" title="Minimizar">–</button>
     </div>
   );
 }

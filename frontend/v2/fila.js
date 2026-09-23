@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { novoSocket, usuarioAtual } from "./api.js";
+import { socketDoPortal, usuarioAtual } from "./api.js";
 
-// FILA DE ESPERA ("Jogar agora") — UMA conexão por aba, que continua viva
-// enquanto a pessoa navega pela v2 (a fila não pode morrer ao trocar de
-// página). Fechou a aba: o servidor tira a pessoa da fila.
+// FILA DE ESPERA ("Jogar agora") — usa a conexão do portal (api.js), UMA por
+// aba, que continua viva enquanto a pessoa navega pela v2 (a fila não pode
+// morrer ao trocar de página). Fechou a aba: o servidor tira a pessoa da fila.
 //
 // As telas usam `useFila()` pra ler o estado e `pedirFila()` pra agir.
 export const NOMES_FILA = { impostor: "Impostor", tribunal: "Tribunal", acromania: "Acromania" };
@@ -20,8 +20,13 @@ function mudar(parcial) {
 
 export function ligarFila() {
   if (socket || !usuarioAtual()) return;
-  socket = novoSocket();
-  socket.on("connect", () => socket.emit("fila-assinar", {}, () => {}));
+  socket = socketDoPortal();
+  if (!socket) return;
+  // A assinatura vale por conexão: refaz a cada reconexão. A do portal pode
+  // já estar conectada (o Topo pediu antes).
+  const assinar = () => socket.emit("fila-assinar", {}, () => {});
+  socket.on("connect", assinar);
+  if (socket.connected) assinar();
   socket.on("fila-contagem", (contagem) => mudar({ contagem }));
   socket.on("fila-estado", (fila) => mudar({ fila }));
   socket.on("fila-proposta", (proposta) => {
@@ -30,7 +35,6 @@ export function ligarFila() {
     if (nova) tocarPartidaEncontrada();
   });
   socket.on("fila-fim", (fim) => mudar({ proposta: null, fim: { ...fim, em: Date.now() } }));
-  socket.connect();
 }
 
 export function limparFim() { mudar({ fim: null }); }

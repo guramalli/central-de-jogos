@@ -9,7 +9,8 @@ import { avisarSalas as avisarQuiz } from "../game/quizGameManager.js";
 import { avisarSalas as avisarAcromania } from "../game/acromaniaGameManager.js";
 import { getOnlineList as getGeneralChatOnline } from "../game/generalChat.js";
 import { getOnlineList as getPresenceOnline } from "../game/presence.js";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { requireAuth, requireRole, esquecerSessao } from "../middleware/auth.js";
+import { encerrarSessoesDoUsuario } from "../socket/index.js";
 
 const router = Router();
 
@@ -643,6 +644,9 @@ router.post("/users/:id/role", requireRole("ADMIN"), async (req, res) => {
     where: { id: req.params.id },
     data: { role },
   });
+  // Vale na hora: o papel do token não é mais o que manda (ver requireAuth).
+  esquecerSessao(user.id);
+  encerrarSessoesDoUsuario(req.app.get("io"), user.id);
   res.json({ id: user.id, role: user.role });
 });
 
@@ -662,6 +666,9 @@ router.post("/users/:id/ban", requireRole("ADMIN"), async (req, res) => {
     where: { id: req.params.id },
     data: { banned: !!banned },
   });
+  // Sem isso o banido seguia usando o site até o token vencer (7 dias).
+  esquecerSessao(user.id);
+  encerrarSessoesDoUsuario(req.app.get("io"), user.id, { banido: user.banned });
   res.json({ id: user.id, banned: user.banned });
 });
 
@@ -699,6 +706,9 @@ router.delete("/users/:id", requireRole("ADMIN"), async (req, res) => {
       await tx.quizQuestion.updateMany({ where: { suggestedById: userId }, data: { suggestedById: null } });
       await tx.user.delete({ where: { id: userId } });
     });
+    // Conta apagada: derruba as sessões abertas, igual ao banimento.
+    esquecerSessao(userId);
+    encerrarSessoesDoUsuario(req.app.get("io"), userId, { banido: true });
     res.json({ ok: true });
   } catch (err) {
     console.error("Falha ao apagar usuário", userId, err.message);

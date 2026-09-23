@@ -1,14 +1,15 @@
 import DicaNova, { marcarDicaVista } from "./DicaNova.jsx";
 import { useEffect, useRef, useState } from "react";
-import { api, sair, novoSocket } from "./api.js";
+import { api, sair, socketDoPortal } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
 import { ConviteRecebido } from "./Convites.jsx";
 import { trocarParaClassica } from "../src/utils/versaoSite.js";
 
 // Cabeçalho comum das páginas da v2 (menos as salas, que têm o seu).
-// Também mantém a conexão de "presença": sem ela a pessoa aparece OFFLINE
-// pros amigos enquanto navega, e não recebe convite de sala.
+// Também usa a conexão de "presença" (a do portal, em api.js, que não fecha
+// ao trocar de página): sem ela a pessoa aparece OFFLINE pros amigos
+// enquanto navega, e não recebe convite de sala.
 // Mesmos itens e mesma ordem do menu do site clássico (src/App.jsx).
 // "jogo" = lobby daquele jogo; os contadores vêm da rota /avisos.
 const ITENS = [
@@ -42,11 +43,10 @@ export default function Topo({ usuario, ativo = null }) {
   const [avisos, setAvisos] = useState({});
   const [acroAtivo, setAcroAtivo] = useState(true);
 
+  // Só pega a conexão do portal; o ouvinte do convite (ConviteRecebido) se
+  // desliga sozinho ao desmontar. Não desconecta: a conexão é da aba.
   useEffect(() => {
-    const s = novoSocket();
-    s.connect();
-    setSocket(s);
-    return () => { s.removeAllListeners(); s.disconnect(); };
+    setSocket(socketDoPortal());
   }, []);
 
   // Contadores do menu (mesma rota e mesmo ritmo do clássico): pedidos de

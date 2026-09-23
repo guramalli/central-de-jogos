@@ -42,6 +42,15 @@ export function cacheInvalidar(prefixo) {
   }
 }
 
+// Apaga UMA chave exata (sem o efeito "prefixo" do cacheInvalidar, em que
+// "auth:abc" também levaria "auth:abcd"). Também descarta uma busca que
+// esteja em andamento pra essa chave: o resultado dela é de ANTES da
+// mudança e não pode ser gravado por cima (ver cacheOuBuscar).
+export function cacheApagar(chave) {
+  store.delete(chave);
+  emAndamento.delete(chave);
+}
+
 // Atalho: devolve do cache se tiver, senão executa a função e guarda.
 //
 // Protege contra "debandada de cache": quando o cache está vazio e chegam
@@ -61,11 +70,17 @@ export async function cacheOuBuscar(chave, segundos, buscar) {
 
   const promessa = (async () => {
     try {
+      // Cede a vez uma vez: garante que `promessa` já foi registrada em
+      // emAndamento antes de qualquer comparação abaixo — mesmo se `buscar`
+      // estourar erro de forma síncrona.
+      await null;
       const valor = await buscar();
-      cacheSet(chave, valor, segundos);
+      // Só grava se ninguém apagou a chave no meio do caminho (cacheApagar):
+      // senão um dado velho voltaria pro cache logo depois da invalidação.
+      if (emAndamento.get(chave) === promessa) cacheSet(chave, valor, segundos);
       return valor;
     } finally {
-      emAndamento.delete(chave);
+      if (emAndamento.get(chave) === promessa) emAndamento.delete(chave);
     }
   })();
 

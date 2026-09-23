@@ -70,6 +70,11 @@
 .v2-fila-chip, .v2-fila-recado { position: fixed; left: 16px; bottom: 16px; z-index: 2500; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 10px 12px 10px 14px; border-radius: 16px; background: var(--roxo-escuro); border: 2px solid var(--amarelo); color: #fff; font-size: 13px; font-weight: 800; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
 .v2-fila-chip button, .v2-fila-recado button { min-height: 36px; padding: 0 12px; border: none; border-radius: 10px; background: var(--amarelo); color: var(--roxo); font-weight: 900; }
 .v2-fila-recado { border-color: var(--laranja); }
+/* Botão "–" do aviso da fila, e o aviso minimizado (só a bolinha + contagem). */
+.v2-fila-chip button.v2-fila-minimizar { min-width: 36px; padding: 0; background: transparent; border: 2px solid rgba(255, 255, 255, .35); color: #fff; font-size: 18px; line-height: 1; }
+.v2-fila-chip button.v2-fila-minimizar:hover { border-color: var(--amarelo); color: var(--amarelo); }
+.v2-fila-chip.v2-fila-chip-mini { min-height: 40px; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 900; cursor: pointer; }
+.v2-fila-chip.v2-fila-chip-mini:hover { background: var(--roxo); }
 
 @media (max-width: 899px) {
   .v2-fila-chip, .v2-fila-recado { bottom: 84px; } /* acima da barra de baixo */
