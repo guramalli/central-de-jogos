@@ -17,9 +17,16 @@ async function recarregar() {
   }
 }
 
-// Primeira carga na subida do servidor, depois a cada 1 minuto.
+// Primeira carga na subida do servidor, depois a cada 15 minutos.
+//
+// Era a cada 1 minuto — e uma consulta por minuto, pra sempre, impedia o
+// Neon de "dormir" (ele suspende depois de 5 min sem consulta, e cobra pelo
+// tempo acordado). Os banimentos AUTOMÁTICOS (abaixo) já valem na hora,
+// porque atualizam a lista em memória; só o banimento manual pelo script
+// (scripts/banirIP.js) espera a próxima recarga.
+const RECARREGAR_MS = 15 * 60 * 1000;
 recarregar();
-setInterval(recarregar, 60 * 1000).unref?.();
+setInterval(recarregar, RECARREGAR_MS).unref?.();
 
 export function ipEstaBanido(ip) {
   return banidos.has(ip);

@@ -33,6 +33,16 @@ const pendingCreation = new Map(); // roomId -> Promise<StopRoom> (evita criar a
 // de rodada rodando ao mesmo tempo e brigando pelos mesmos eventos (causa da tela
 // piscando / cronômetro perdido). Por isso reaproveitamos a mesma Promise entre
 // chamadas concorrentes para o mesmo roomId.
+// O código da sala vem do navegador: só vale se for uma sala oficial (da
+// config) ou uma sala que já existe (privada criada pela rota). Antes,
+// qualquer texto inventado criava uma sala nova, com timers próprios, que
+// nunca era descartada — e ainda contava pro ranking. `Object.hasOwn` evita que "constructor"
+// ou "__proto__" passem como se fossem salas da config.
+export function salaStopValida(roomId) {
+  if (roomId === undefined) return true; // sem código: sala padrão
+  return typeof roomId === "string" && (Object.hasOwn(ROOM_CONFIGS, roomId) || rooms.has(roomId) || pendingCreation.has(roomId));
+}
+
 export async function getOrCreateStopRoom(io, roomId = DEFAULT_ROOM_ID) {
   if (rooms.has(roomId)) return rooms.get(roomId);
   if (pendingCreation.has(roomId)) return pendingCreation.get(roomId);

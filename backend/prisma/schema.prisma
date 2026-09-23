@@ -295,6 +295,10 @@ model Friendship {
   status   String @default("pending") // pending | accepted
 
   @@unique([userAId, userBId])
+  // Pedidos de amizade pendentes são contados por userBId (avisos do menu,
+  // a cada 20s por pessoa). O @@unique acima começa por userAId e não
+  // serve pra essa busca — sem este índice o banco varria a tabela.
+  @@index([userBId, status])
 }
 
 // Mensagem privada entre dois amigos — só pode existir entre quem já tem
@@ -329,6 +333,11 @@ model ChatMessage {
   user      User     @relation(fields: [userId], references: [id])
   message   String
   createdAt DateTime @default(now())
+
+  // O histórico da praça (últimas 50 do chat geral, ordenadas por data) é
+  // carregado a cada entrada no chat. Sem índice, o banco ordenava uma
+  // tabela que só cresce.
+  @@index([roomId, createdAt])
 }
 
 // Recorde de respostas corretas seguidas (sequência) em cada sala do Quiz.

@@ -7,10 +7,10 @@ import { chamarBotsNoStop, dispensarBotsDoStop } from "../game/stopBots.js";
 import { verifyToken } from "../utils/jwt.js";
 import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
 import { cacheInvalidar } from "../utils/cache.js";
-import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, cancelarDescarteSala } from "../game/gameManager.js";
+import { getOrCreateStopRoom, limparSalaPrivadaSeVazia, jogadoresLiberados, cancelarDescarteSala, salaStopValida } from "../game/gameManager.js";
 import { registrarDiaJogado } from "../game/missoes.js";
-import { getOrCreateQuizRoom } from "../game/quizGameManager.js";
-import { getOrCreateAcromaniaRoom } from "../game/acromaniaGameManager.js";
+import { getOrCreateQuizRoom, salaQuizValida } from "../game/quizGameManager.js";
+import { getOrCreateAcromaniaRoom, salaAcromaniaValida } from "../game/acromaniaGameManager.js";
 import { ligarBotsNaSala, dispensarBotsDaSala } from "../game/acromaniaBots.js";
 import { conferirSenhaAcromania as liberadoNaAcromania, agendarDescarteAcromania } from "../game/acromaniaGameManager.js";
 import * as generalChat from "../game/generalChat.js";
@@ -172,6 +172,11 @@ export function setupSocket(io) {
     socket.join(`user:${userId}`);
 
     socket.on("join-stop-room", async ({ roomId } = {}) => {
+      // Só sala oficial ou que já existe (ver salaStopValida).
+      if (!salaStopValida(roomId)) {
+        socket.emit("stop-sala-bloqueada", { error: "Essa sala não existe mais. Escolha outra na lista de salas." });
+        return;
+      }
       // Sala privada com senha só aceita quem passou pela conferência na
       // tela de entrada. Sem isso, bastaria ter o link pra furar a senha.
       if (String(roomId || "").startsWith("stop-privada-") && !jogadoresLiberados.has(`${userId}:${roomId}`)) {
@@ -253,6 +258,7 @@ export function setupSocket(io) {
 
     // ===== Quiz =====
     socket.on("join-quiz-room", async ({ roomId } = {}) => {
+      if (!salaQuizValida(roomId)) return; // só sala oficial ou que já existe
       const room = await getOrCreateQuizRoom(io, roomId);
       const joined = await room.addPlayer(socket, userId, nickname);
       if (joined) {
@@ -319,6 +325,10 @@ export function setupSocket(io) {
     });
 
     socket.on("join-acromania-room", async ({ roomId } = {}) => {
+      if (!salaAcromaniaValida(roomId)) {
+        socket.emit("acromania-erro", { mensagem: "Essa sala não existe mais. Escolha outra na lista de salas." });
+        return;
+      }
       // Barreira de verdade: sem isto, quem já estivesse com a página aberta
       // continuaria entrando mesmo com o jogo desligado no painel.
       if (!acromaniaAtivo()) {
@@ -618,6 +628,12 @@ export function setupSocket(io) {
 
     socket.on("dm-message", async ({ message } = {}) => {
       if (!socket.currentDmRoom || !socket.currentDmFriendId || !message?.trim()) return;
+      // Mesmo freio da praça: cada mensagem privada é uma GRAVAÇÃO no banco,
+      // e sem limite um script podia gravar milhares por minuto.
+      const agora = Date.now();
+      if (socket.ultimaDm && agora - socket.ultimaDm < 700) return;
+      socket.ultimaDm = agora;
+      if (!(await liberadoNoChat(message))) return; // anti-flood por conta
       const clean = message.trim().slice(0, 500);
 
       // Se o destinatário já estiver com essa conversa aberta agora (tem
@@ -654,7 +670,12 @@ export function setupSocket(io) {
       // some da memória, em vez de ficar rodando timer pra ninguém.
       if (salaQueSaiu?.privada) limparSalaPrivadaSeVazia(salaQueSaiu.roomId);
       socket.currentQuizRoom?.removePlayer(socket.id);
-      socket.currentAcromaniaRoom?.removePlayer(socket.id);
+      const acroQueSaiu = socket.currentAcromaniaRoom;
+      acroQueSaiu?.removePlayer(socket.id);
+      // Sala privada do Acromania: agenda o descarte (a função confere de
+      // novo, na hora, se continua vazia). Sem isto ela ficava na memória
+      // pra sempre, com o relógio rodando pra ninguém.
+      if (acroQueSaiu?.privada) agendarDescarteAcromania(acroQueSaiu.roomId);
       if (socket.inGeneralChat) {
         generalChat.removeConnection(socket.id);
         io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });

@@ -7,6 +7,16 @@ import { ligarBotsNaSala, quantidadeDeBots } from "./acromaniaBots.js";
 const rooms = new Map();
 const pendingCreation = new Map();
 
+// O código da sala vem do navegador: só vale se for uma sala oficial (da
+// config) ou uma sala que já existe (privada criada pela rota). Antes,
+// qualquer texto inventado criava uma sala nova, com timers próprios, que
+// nunca era descartada. `Object.hasOwn` evita que "constructor"
+// ou "__proto__" passem como se fossem salas da config.
+export function salaAcromaniaValida(roomId) {
+  if (roomId === undefined) return true;
+  return typeof roomId === "string" && (Object.hasOwn(ACROMANIA_ROOM_CONFIGS, roomId) || rooms.has(roomId) || pendingCreation.has(roomId));
+}
+
 export async function getOrCreateAcromaniaRoom(io, roomId = DEFAULT_ACROMANIA_ROOM_ID) {
   if (rooms.has(roomId)) return rooms.get(roomId);
   if (pendingCreation.has(roomId)) return pendingCreation.get(roomId);

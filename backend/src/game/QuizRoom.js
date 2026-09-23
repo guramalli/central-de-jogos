@@ -1,5 +1,6 @@
 import { NOME_DO_TEMA } from "./quizRoomConfigs.js";
 import { prisma } from "../db.js";
+import { pontosDoMes, posicaoNoMes } from "../utils/pontosDoMes.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { tituloQuizDesbloqueado } from "./titulosConfig.js";
 import { getQuizRankForPoints } from "../utils/quizRank.js";
@@ -419,28 +420,15 @@ export class QuizRoom {
     if (idsDaSala.length > 0) {
       try {
         const monthKey = currentMonthKey();
-        // Mesmos filtros do announceRankingPosition: sem ADMIN, sem
-        // visitante, sem quem se ocultou (no geral ou só neste jogo).
-        const elegiveis = {
-          role: { not: "ADMIN" },
-          isGuest: false,
-          ocultoNoRanking: false,
-          NOT: { ocultoNosRankings: { has: GAME_KEY } },
-        };
         const meus = await prisma.monthlyScore.findMany({
           where: { userId: { in: idsDaSala }, gameKey: GAME_KEY, monthKey },
         });
-        const menor = meus.length ? Math.min(...meus.map((m) => m.points)) : null;
-        if (menor !== null) {
-          // Quem está acima do MENOR da sala: dá pra derivar a posição de
-          // todo mundo a partir daí, sem uma consulta por pessoa.
-          const acima = await prisma.monthlyScore.findMany({
-            where: { gameKey: GAME_KEY, monthKey, points: { gt: menor }, user: elegiveis },
-            select: { points: true },
-          });
-          const pontosAcima = acima.map((a) => a.points);
+        if (meus.length) {
+          // Pontos do mês de todo mundo (60s em cache, compartilhado entre
+          // as salas — ver utils/pontosDoMes.js): a posição sai por contagem.
+          const todosPontos = await pontosDoMes(GAME_KEY, monthKey);
           for (const m of meus) {
-            posicaoPorUsuario[m.userId] = pontosAcima.filter((v) => v > m.points).length + 1;
+            posicaoPorUsuario[m.userId] = posicaoNoMes(todosPontos, m.points);
           }
         }
       } catch (err) {

@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { cacheOuBuscar } from "../utils/cache.js";
 import { getAllOnlineUserIds as getStopOnlineIds } from "./gameManager.js";
 import { getAllOnlineUserIds as getQuizOnlineIds } from "./quizGameManager.js";
 import { getAllOnlineUserIds as getAcromaniaOnlineIds } from "./acromaniaGameManager.js";
@@ -45,8 +46,14 @@ export async function recheckPeak() {
 }
 
 // Usado pela rota pública que alimenta a página inicial.
+// Total de cadastrados e recorde vêm do banco e ficam 2 min em cache (o
+// rodapé chama isto em TODAS as páginas, até sem login). O "online agora"
+// é calculado na hora, da memória — esse não pode atrasar.
 export async function getPlatformStats() {
-  const [totalUsers, peak] = await Promise.all([prisma.user.count(), loadPeak()]);
+  const { totalUsers, peak } = await cacheOuBuscar("platform-stats-banco", 120, async () => {
+    const [totalUsers, peak] = await Promise.all([prisma.user.count(), loadPeak()]);
+    return { totalUsers, peak };
+  });
   const current = currentOnlineCount();
   return {
     totalUsers,
