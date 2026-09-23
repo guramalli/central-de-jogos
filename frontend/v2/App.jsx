@@ -19,6 +19,7 @@ import Admin from "./Admin.jsx";
 import MultiSala from "./MultiSala.jsx";
 import Mentira from "./Mentira.jsx";
 import Tribunal from "./Tribunal.jsx";
+import Impostor from "./ImpostorSobDemanda.jsx";
 import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
@@ -108,6 +109,8 @@ export default function App() {
     case "mentira": return <Mentira usuario={usuario} salaDoLink={local.mesa} />;
     // O Tribunal — EM TESTE (cards com selo "em testes").
     case "tribunal": return <Tribunal usuario={usuario} salaDoLink={local.mesa} />;
+    // O Impostor — EM CONSTRUÇÃO, sem link no site.
+    case "impostor": return <Impostor usuario={usuario} salaDoLink={local.mesa} />;
     case "varias": return <MultiSala key={local.jogo || "stop"} usuario={usuario} jogo={local.jogo === "quiz" ? "quiz" : "stop"} />;
     default: return <Inicio usuario={usuario} />;
   }

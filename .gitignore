@@ -1,3 +1,6 @@
 node_modules/
 dist/
 .env
+
+# Spec e telas de referência do Impostor (material de trabalho, fora do repo)
+pacote/

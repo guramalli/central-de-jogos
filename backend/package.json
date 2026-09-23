@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "seed:impostor": "node prisma/seedImpostor.js",
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:seed": "node prisma/seed.js",
@@ -37,6 +39,7 @@
     "import-stop-words": "node prisma/importStopWords.js",
     "prisma:studio": "prisma studio",
     "bot": "node bot/stopBot.js",
+    "bot:impostor": "node bot/impostorBot.js",
     "set-score": "node scripts/setTestScore.js",
     "set-role": "node scripts/setRole.js",
     "ocultar-ranking": "node scripts/ocultarRanking.js",

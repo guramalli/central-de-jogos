@@ -1,0 +1,324 @@
+/* O IMPOSTOR — identidade visual (spec, seção 6) e layouts das telas de
+   referência. Tudo com prefixo "imp-" pra não vazar pro resto da v2.
+   Abaixo de 900px: layout de celular; acima: computador. */
+
+/* ".v2-app.imp-app": o v2.css carrega depois deste arquivo e pinta o
+   .v2-app de roxo; com as duas classes, o fundo do Impostor ganha. */
+.v2-app.imp-app {
+  --imp-fundo: #0E0F14;
+  --imp-superficie: #1A1C24;
+  --imp-borda: #2A2D38;
+  --imp-texto: #F2EFE8;
+  --imp-texto-2: #A3A6B3;
+  --imp-apagado: #7C8090;
+  --imp-vermelho: #FF4D5E;
+  --imp-vermelho-escuro: #3A1419;
+  --imp-vermelho-texto: #1A0508;
+  --imp-ambar: #FFB547;
+  --imp-ambar-escuro: #2A2110;
+  --imp-verde: #3DD68C;
+  --imp-titulo: "Anton", Impact, sans-serif;
+  --imp-corpo: "Manrope", system-ui, sans-serif;
+  background: var(--imp-fundo);
+  color: var(--imp-texto);
+  font-family: var(--imp-corpo);
+}
+.imp-app button, .imp-app input { font-family: var(--imp-corpo); }
+.imp { width: 100%; max-width: 1280px; margin: 0 auto; padding: 16px clamp(16px, 3vw, 40px) 48px; display: flex; flex-direction: column; gap: 16px; }
+.imp-tela { display: flex; flex-direction: column; gap: 20px; }
+
+/* ---------- peças gerais ---------- */
+.imp-barra { display: flex; justify-content: flex-end; align-items: center; gap: 12px; min-height: 44px; }
+.imp-barra-sala { color: var(--imp-apagado); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.imp-botao-som { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); font-size: 18px; }
+
+.imp-painel { background: var(--imp-superficie); border: 1px solid var(--imp-borda); border-radius: 24px; padding: 22px; }
+.imp-rotulo { display: block; margin: 0; color: var(--imp-texto-2); font-size: 12px; font-weight: 800; letter-spacing: 2px; }
+.imp-titulo { margin: 0; font-family: var(--imp-titulo); font-weight: 400; font-size: 34px; letter-spacing: 1px; line-height: 1.05; }
+.imp-titulo-heroi { margin: 0; font-family: var(--imp-titulo); font-weight: 400; font-size: clamp(72px, 8.5vw, 112px); line-height: .92; letter-spacing: 1px; }
+.imp-sub { margin: 0; color: var(--imp-texto-2); font-size: 15px; line-height: 1.5; }
+.imp-sub b { color: var(--imp-texto); }
+.imp-nota { margin: 0; color: var(--imp-texto-2); font-size: 13px; }
+.imp-centro { text-align: center; }
+.imp-nota-status { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--imp-texto-2); font-size: 13px; }
+.imp-ponto { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; animation: imp-piscar 1.6s infinite; }
+.imp-ponto.verde { background: var(--imp-verde); }
+.imp-ponto.ambar { background: var(--imp-ambar); animation-duration: 1s; }
+@keyframes imp-piscar { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.imp-aviso { padding: 12px 16px; border-radius: 16px; background: var(--imp-ambar-escuro); border: 1px solid var(--imp-ambar); color: var(--imp-ambar); font-weight: 700; font-size: 14px; }
+.imp-aviso.erro { background: var(--imp-vermelho-escuro); border-color: var(--imp-vermelho); color: #FFD9DC; }
+.imp-branco { color: var(--imp-apagado) !important; font-family: var(--imp-corpo) !important; font-style: italic; font-weight: 600 !important; font-size: 14px !important; letter-spacing: 0 !important; }
+
+.imp-botao { height: 56px; padding: 0 28px; border-radius: 16px; border: 1px solid var(--imp-borda); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 15px; transition: background .15s, opacity .15s, transform .1s; }
+.imp-botao:active:not(:disabled) { transform: translateY(2px); }
+.imp-botao.principal { border: none; background: var(--imp-vermelho); color: var(--imp-vermelho-texto); font-weight: 800; font-size: 16px; letter-spacing: .3px; }
+.imp-botao.principal:disabled { background: var(--imp-borda); color: var(--imp-texto-2); cursor: not-allowed; }
+.imp-botao.secundario { background: transparent; color: var(--imp-texto); }
+.imp-botao.secundario:hover { background: var(--imp-superficie); }
+.imp-botao.pequeno { height: 44px; padding: 0 16px; border-radius: 12px; font-size: 14px; background: var(--imp-fundo); }
+.imp-botao.compacto { height: 48px; padding: 0 18px; border-radius: 12px; font-size: 14px; }
+.imp-botao-icone { width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); color: var(--imp-texto); display: inline-flex; align-items: center; justify-content: center; }
+.imp-campo { flex-grow: 1; min-width: 0; height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-fundo); color: var(--imp-texto); font-size: 16px; }
+.imp-campo:focus { outline: none; border-color: var(--imp-ambar); box-shadow: 0 0 0 3px rgba(255, 181, 71, .18); }
+.imp-campo:disabled { opacity: .6; }
+.imp-acoes { display: flex; gap: 10px; align-items: center; }
+.imp-acoes > .imp-botao { flex: 1 1 0; }
+.imp-acoes > .imp-botao.largo { flex: 2 1 0; }
+.imp-acoes.coluna { flex-direction: column; align-items: stretch; width: 100%; max-width: 340px; }
+.imp-acoes.coluna > .imp-botao { flex: none; }
+.imp-aguardando { flex: 2 1 0; text-align: center; font-size: 14px; }
+.imp-dica-linha { display: flex; gap: 8px; }
+
+.imp-avatar { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; color: var(--imp-fundo); font-family: var(--imp-titulo); line-height: 1; }
+
+.imp-so-celular { display: none !important; }
+
+/* ---------- entrada ---------- */
+.imp-entrada { display: flex; flex-direction: column; align-items: center; gap: 18px; max-width: 560px; margin: 24px auto; text-align: center; }
+.imp-entrada .imp-titulo-heroi { font-size: 96px; }
+.imp-entrada-painel { width: 100%; display: flex; flex-direction: column; gap: 18px; text-align: left; }
+.imp-codigo-form { display: flex; flex-direction: column; gap: 8px; }
+.imp-campo-codigo { font-family: var(--imp-titulo); font-size: 22px; letter-spacing: 3px; text-transform: uppercase; }
+
+/* ---------- sala de espera ---------- */
+.imp-espera { display: flex; gap: clamp(28px, 4vw, 56px); align-items: stretch; min-height: 560px; }
+.imp-espera-heroi { flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+.imp-espera-heroi .imp-sub { font-size: 18px; max-width: 440px; }
+.imp-modos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 520px; }
+.imp-modo { text-align: left; padding: 16px 18px; border-radius: 16px; border: 2px dashed var(--imp-borda); background: transparent; color: var(--imp-apagado); display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.imp-modo b { font-size: 16px; font-weight: 800; }
+.imp-modo.ativo { border: 2px solid var(--imp-vermelho); background: var(--imp-vermelho-escuro); color: #FFD9DC; cursor: default; }
+.imp-modo.ativo b { color: var(--imp-texto); }
+.imp-espera-painel { width: min(520px, 50%); flex-shrink: 0; padding: 28px; border-radius: 28px; display: flex; flex-direction: column; gap: 22px; }
+.imp-codigo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.imp-codigo > div { display: flex; flex-direction: column; gap: 2px; }
+.imp-codigo-valor { font-family: var(--imp-titulo); font-weight: 400; font-size: 40px; letter-spacing: 4px; color: var(--imp-ambar); }
+.imp-linha-titulo { display: flex; justify-content: space-between; align-items: baseline; }
+.imp-linha-titulo h2 { margin: 0; font-size: 16px; font-weight: 800; }
+.imp-contagem { color: var(--imp-texto-2); font-size: 14px; }
+.imp-contagem b { color: var(--imp-texto); }
+.imp-grade-jogadores { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px 8px; }
+.imp-jogador { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; min-width: 0; }
+.imp-jogador.fora { opacity: .55; }
+.imp-jogador.vaga { color: var(--imp-apagado); font-size: 12px; }
+.imp-vaga-circulo { width: 56px; height: 56px; border-radius: 50%; border: 2px dashed var(--imp-borda); }
+.imp-jogador-nome { font-weight: 700; font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-tag { font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+.imp-tag.anfitriao { color: var(--imp-ambar); }
+.imp-tag.pronto { color: var(--imp-verde); }
+.imp-tag.fora { color: var(--imp-apagado); font-weight: 700; }
+.imp-tag.bot { color: #9FB4FF; }
+.imp-bots { display: flex; gap: 8px; flex-wrap: wrap; }
+.imp-aviso-testes { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--imp-borda); color: var(--imp-texto-2); font-size: 13px; line-height: 1.45; }
+.imp-aviso-testes b { color: var(--imp-ambar); }
+.imp-espera-progresso { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.imp-progresso { height: 6px; border-radius: 3px; background: var(--imp-borda); overflow: hidden; }
+.imp-progresso > div { height: 100%; background: var(--imp-ambar); }
+
+/* ---------- cronômetro ---------- */
+.imp-cronometro { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--imp-ambar); flex-shrink: 0; }
+.imp-cronometro.pilula { height: 32px; padding: 0 12px; border-radius: 999px; background: var(--imp-superficie); border: 1px solid var(--imp-borda); font-weight: 800; font-size: 13px; }
+.imp-cronometro.circulo { width: 96px; height: 96px; border-radius: 50%; border: 5px solid var(--imp-ambar); font-family: var(--imp-titulo); font-size: 34px; }
+.imp-cronometro.anel { width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--imp-ambar); font-family: var(--imp-titulo); font-size: 20px; }
+.imp-cronometro.urgente { color: var(--imp-vermelho); border-color: var(--imp-vermelho); }
+
+/* ---------- carta ---------- */
+.imp-carta { --imp-carta-larg: clamp(250px, 26vw, 340px); position: relative; width: var(--imp-carta-larg); height: calc(var(--imp-carta-larg) * 1.41); padding: 0; border: none; background: transparent; perspective: 1400px; color: inherit; flex-shrink: 0; }
+.imp-carta.vazia { display: flex; align-items: center; justify-content: center; border: 2px dashed var(--imp-borda); border-radius: 28px; color: var(--imp-apagado); }
+.imp-carta-dentro { position: absolute; inset: 0; transform-style: preserve-3d; }
+.imp-carta-camada { position: absolute; inset: 0; }
+.imp-carta-face { position: absolute; inset: 0; border-radius: 28px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; }
+.imp-carta-face.frente { justify-content: center; gap: 20px; border: 2px solid var(--imp-borda); background-image: repeating-linear-gradient(45deg, #1F222B 0 12px, #1A1C24 12px 24px); }
+.imp-carta-interrogacao { width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--imp-ambar); display: flex; align-items: center; justify-content: center; font-family: var(--imp-titulo); font-size: 84px; color: var(--imp-ambar); background: var(--imp-fundo); }
+.imp-carta-chamada { font-weight: 800; font-size: 16px; color: var(--imp-texto); }
+.imp-carta-face.verso { transform: rotateY(180deg); justify-content: space-between; padding: 40px 28px; }
+.imp-carta-dentro.plano .imp-carta-face.verso { transform: none; }
+.imp-carta.tripulante .verso { background: var(--imp-texto); --imp-rotulo-carta: #4A4D5A; --imp-palavra-carta: var(--imp-fundo); }
+.imp-carta.impostor .verso { background: var(--imp-vermelho); --imp-rotulo-carta: #3A0A10; --imp-palavra-carta: var(--imp-vermelho-texto); }
+.imp-carta-rotulo { font-size: 12px; font-weight: 800; letter-spacing: 3px; color: var(--imp-rotulo-carta); }
+.imp-carta-meio { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.imp-carta-tema { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--imp-rotulo-carta); }
+.imp-carta-palavra { font-family: var(--imp-titulo); font-size: var(--tam); line-height: 1; color: var(--imp-palavra-carta); text-align: center; word-break: break-word; }
+.imp-carta-dica { font-size: 15px; line-height: 1.45; color: var(--imp-rotulo-carta); text-align: center; max-width: 250px; }
+
+/* ---------- rodada ---------- */
+.imp-cabecalho-rodada { display: flex; align-items: center; gap: 14px; }
+.imp-etapa-carta { display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+.imp-etapa-carta-titulo { display: flex; flex-direction: column; gap: 4px; }
+.imp-rodada { display: flex; gap: clamp(16px, 2.5vw, 32px); align-items: flex-start; }
+.imp-ordem { width: clamp(200px, 20vw, 260px); flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
+.imp-ordem ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.imp-ordem-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid transparent; transition: background .2s, border-color .2s; }
+.imp-ordem-item.vez { background: var(--imp-ambar-escuro); border-color: var(--imp-ambar); }
+.imp-ordem-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.imp-ordem-texto b { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-ordem-texto small { font-size: 12px; font-weight: 600; color: var(--imp-apagado); }
+.imp-ordem-item.vez small { color: var(--imp-ambar); }
+.imp-ordem-item.feito small { color: var(--imp-verde); }
+.imp-rodada-centro { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.imp-rodada-dicas { width: clamp(270px, 25vw, 320px); flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+.imp-dicas { display: flex; flex-direction: column; gap: 14px; min-height: 480px; }
+.imp-dicas ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.imp-dicas-anteriores p { margin: 6px 0 0; color: var(--imp-texto-2); font-size: 13px; line-height: 1.5; }
+.imp-dica { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--imp-fundo); }
+.imp-dica-nome { font-size: 12px; font-weight: 700; color: var(--imp-texto-2); }
+.imp-dica-texto { font-family: var(--imp-titulo); font-weight: 400; font-size: 26px; letter-spacing: .5px; text-transform: uppercase; word-break: break-word; }
+.imp-pensando { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--imp-borda); color: var(--imp-texto-2); font-size: 13px; }
+.imp-dica-form { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.imp-dica-form label { font-size: 13px; font-weight: 700; }
+.imp-dica-form label.sua-vez { color: var(--imp-ambar); }
+.imp-dica-recusa { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--imp-vermelho-escuro); border: 1px solid var(--imp-vermelho); color: #FFD9DC; font-size: 13px; font-weight: 700; line-height: 1.4; }
+.imp-campo[aria-invalid="true"] { border-color: var(--imp-vermelho); }
+.imp-sobreposicao { position: fixed; inset: 0; z-index: 1000; background: rgba(14, 15, 20, .95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px; }
+
+/* ---------- votação ---------- */
+.imp-votacao { display: flex; flex-direction: column; gap: 28px; }
+.imp-votacao-topo { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.imp-votacao-topo > div { display: flex; flex-direction: column; gap: 8px; }
+.imp-titulo-voto { margin: 0; font-family: var(--imp-titulo); font-weight: 400; font-size: clamp(48px, 5.6vw, 72px); line-height: 1; letter-spacing: 1px; }
+.imp-suspeitos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+.imp-suspeito { width: 100%; height: 100%; min-height: 68px; padding: 28px 18px; border-radius: 24px; border: 2px solid var(--imp-borda); background: var(--imp-superficie); color: var(--imp-texto); display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 14px; transition: background .2s, border-color .2s; }
+.imp-suspeito:disabled { cursor: default; }
+.imp-suspeito.selecionado { background: var(--imp-vermelho-escuro); border-color: var(--imp-vermelho); }
+.imp-suspeito.selecionado .imp-suspeito-avatar { box-shadow: 0 0 0 5px var(--imp-vermelho); }
+.imp-suspeito-info { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.imp-suspeito-nome { font-weight: 800; font-size: 20px; }
+.imp-suspeito-dicas { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.imp-suspeito-dicas b { font-family: var(--imp-titulo); font-weight: 400; font-size: 28px; letter-spacing: .5px; text-transform: uppercase; }
+.imp-selo { height: 36px; padding: 0 16px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; font-weight: 800; letter-spacing: 1px; border: 1px solid var(--imp-borda); color: var(--imp-texto-2); }
+.imp-selo.ativo { border-color: var(--imp-vermelho); background: var(--imp-vermelho); color: var(--imp-vermelho-texto); }
+.imp-suspeitos.muitos .imp-suspeito { padding: 20px 14px; }
+.imp-suspeitos.muitos .imp-suspeito-avatar { width: 72px !important; height: 72px !important; font-size: 33px !important; }
+.imp-votacao-pe { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.imp-votacao-pe .imp-botao { padding: 0 32px; }
+
+/* ---------- revelação ---------- */
+.imp-revelacao { display: flex; gap: clamp(28px, 5vw, 64px); align-items: center; min-height: 560px; }
+.imp-revelacao.simples { justify-content: center; }
+.imp-escuro { position: fixed; inset: 0; z-index: 1000; background: #000; display: flex; align-items: center; justify-content: center; }
+.imp-escuro span { font-family: var(--imp-titulo); font-size: clamp(40px, 9vw, 96px); color: var(--imp-texto); }
+.imp-revelacao-palco { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
+.imp-verdade { letter-spacing: 4px; font-size: 13px; }
+.imp-acusado-espaco { min-height: 330px; display: flex; align-items: center; justify-content: center; }
+.imp-suspense { font-family: var(--imp-titulo); font-size: 34px; color: var(--imp-texto-2); letter-spacing: 1px; }
+.imp-acusado { display: flex; flex-direction: column; align-items: center; gap: 16px; min-height: 330px; }
+.imp-anel { border: 7px solid var(--imp-vermelho); animation: imp-anel 1.4s infinite; }
+@keyframes imp-anel { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 94, .55); } 100% { box-shadow: 0 0 0 36px rgba(255, 77, 94, 0); } }
+.imp-acusado-textos { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.imp-acusado-nome { margin: 0; font-family: var(--imp-titulo); font-size: clamp(56px, 7vw, 96px); line-height: 1; letter-spacing: 2px; text-transform: uppercase; }
+.imp-acusado-veredito { margin: 0; font-family: var(--imp-titulo); font-size: 40px; letter-spacing: 2px; }
+.imp-acusado-veredito.culpado { color: var(--imp-vermelho); }
+.imp-acusado-veredito.inocente { color: var(--imp-verde); }
+.imp-palavra-era { margin: 0; color: var(--imp-texto-2); font-size: 15px; }
+.imp-palavra-era b { font-family: var(--imp-titulo); font-weight: 400; font-size: 22px; letter-spacing: 1px; color: var(--imp-texto); text-transform: uppercase; }
+.imp-revelacao-lado { width: min(440px, 45%); flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+.imp-placar { display: flex; flex-direction: column; gap: 12px; }
+.imp-placar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.imp-placar li { display: flex; align-items: center; gap: 12px; }
+.imp-placar-nome { width: 90px; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-placar-trilho { flex-grow: 1; height: 12px; border-radius: 6px; background: var(--imp-borda); overflow: hidden; }
+.imp-placar-trilho span { display: block; height: 100%; border-radius: 6px; background: var(--imp-apagado); transition: background .3s; }
+.imp-placar li.acusado .imp-placar-trilho span { background: var(--imp-vermelho); }
+.imp-placar li b { width: 18px; text-align: right; font-size: 14px; }
+.imp-ultima { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 22px; background: var(--imp-ambar-escuro); border: 1px solid var(--imp-ambar); font-size: 14px; line-height: 1.45; }
+.imp-ultima p { margin: 0; }
+.imp-ultima b { color: var(--imp-ambar); }
+.imp-ultima-form { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; }
+.imp-resultado { display: flex; flex-direction: column; gap: 14px; }
+.imp-vencedor { margin: 0; font-family: var(--imp-titulo); font-size: 30px; letter-spacing: 1px; text-align: center; }
+.imp-meus-pontos { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; border-radius: 22px; }
+.imp-meus-pontos > div { display: flex; flex-direction: column; gap: 2px; }
+.imp-meus-pontos b { font-size: 14px; }
+.imp-meus-pontos span { font-size: 12px; color: var(--imp-texto-2); }
+.imp-meus-pontos .imp-pontos-numero { font-family: var(--imp-titulo); font-size: 36px; color: var(--imp-verde); white-space: nowrap; }
+.imp-pontos-lista { list-style: none; margin: 0; padding: 0 4px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.imp-pontos-lista li { display: flex; justify-content: space-between; color: var(--imp-texto-2); }
+.imp-pontos-lista b { color: var(--imp-verde); }
+.imp-cancelada { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 16px; text-align: center; }
+
+/* ============ celular (< 900px) ============ */
+@media (max-width: 899px) {
+  .imp { padding: 8px 16px 96px; gap: 14px; }
+  .imp-so-celular { display: revert !important; }
+  .imp-botao.imp-so-celular { display: inline-flex !important; }
+  .imp-sobreposicao.imp-so-celular { display: flex !important; }
+  .imp-so-computador { display: none !important; }
+  .imp-titulo-heroi, .imp-entrada .imp-titulo-heroi { font-size: 54px; line-height: 1; }
+  .imp-botao { width: 100%; }
+  .imp-acoes { flex-direction: column; align-items: stretch; }
+  .imp-acoes > .imp-botao, .imp-acoes > .imp-botao.largo { flex: none; }
+  .imp-acoes:not(.coluna) > .imp-botao.principal { order: -1; }
+  .imp-aguardando { order: -1; }
+
+  /* sala de espera */
+  .imp-espera { flex-direction: column; gap: 22px; min-height: 0; }
+  .imp-espera-heroi { gap: 14px; }
+  .imp-espera-heroi .imp-sub { font-size: 14px; }
+  .imp-codigo.imp-so-celular { display: flex !important; }
+  .imp-codigo-valor { font-size: 26px; letter-spacing: 3px; }
+  .imp-modos { display: flex; flex-wrap: wrap; gap: 8px; }
+  .imp-modo { flex-direction: row; align-items: center; height: 36px; padding: 0 14px; border-radius: 999px; border-width: 1px; font-size: 13px; }
+  .imp-modo b { font-size: 13px; font-weight: 700; }
+  .imp-modo.ativo { border-width: 1px; }
+  .imp-espera-painel { width: auto; padding: 18px; border-radius: 20px; gap: 14px; }
+  .imp-grade-jogadores { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+  .imp-grade-jogadores .imp-avatar { width: 52px !important; height: 52px !important; font-size: 24px !important; }
+  .imp-vaga-circulo { width: 52px; height: 52px; }
+  .imp-jogador.vaga:nth-child(n+9) { display: none; } /* duas fileiras bastam no celular */
+
+  /* carta e rodada */
+  .imp-carta { --imp-carta-larg: min(290px, 78vw); }
+  .imp-carta-face.frente { gap: 18px; }
+  .imp-carta-interrogacao { width: 120px; height: 120px; font-size: 72px; }
+  .imp-carta-face.verso { padding: 34px 24px; }
+  .imp-carta-dica { font-size: 14px; max-width: 220px; }
+  .imp-cabecalho-rodada { width: 100%; justify-content: space-between; }
+  .imp-rodada { flex-direction: column; gap: 14px; align-items: stretch; }
+  .imp-rodada-centro { display: none; }
+  .imp-rodada-dicas { width: auto; order: 1; }
+  .imp-rodada-topo-celular { display: flex !important; flex-direction: column; gap: 6px; }
+  .imp-ordem { width: auto; order: 2; }
+  .imp-dicas { min-height: 0; }
+  .imp-dica-form { margin-top: 4px; }
+  .imp-dica-linha .imp-botao { width: auto; }
+
+  /* votação */
+  .imp-votacao { gap: 16px; }
+  .imp-votacao-topo { align-items: flex-start; }
+  .imp-titulo-voto { font-size: 36px; line-height: 1.05; letter-spacing: .5px; }
+  .imp-cronometro.circulo { width: 64px; height: 64px; border-width: 4px; font-size: 22px; }
+  .imp-suspeitos { display: flex; flex-direction: column; gap: 10px; }
+  .imp-suspeito { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 12px 14px; border-radius: 16px; }
+  .imp-suspeito-avatar, .imp-suspeitos.muitos .imp-suspeito-avatar { width: 44px !important; height: 44px !important; font-size: 20px !important; }
+  .imp-suspeito.selecionado .imp-suspeito-avatar { box-shadow: 0 0 0 3px var(--imp-vermelho); }
+  .imp-suspeito-info { align-items: flex-start; flex-grow: 1; text-align: left; }
+  .imp-suspeito-nome { font-size: 15px; }
+  .imp-suspeito-disse { font-size: 13px; color: var(--imp-texto-2); }
+  .imp-suspeito-disse b { color: var(--imp-texto); font-weight: 700; }
+  .imp-selo { height: auto; padding: 4px 8px; border-radius: 6px; font-size: 10px; border: none; }
+  .imp-selo:not(.ativo) { display: none; }
+  .imp-votacao-pe { flex-direction: column; align-items: stretch; text-align: center; gap: 10px; }
+  .imp-votacao-pe .imp-sub { font-size: 12px; }
+
+  /* revelação */
+  .imp-revelacao { flex-direction: column; gap: 20px; min-height: 0; align-items: stretch; }
+  .imp-revelacao-palco { gap: 14px; }
+  .imp-acusado-espaco, .imp-acusado { min-height: 220px; }
+  .imp-acusado-avatar .imp-avatar { width: 128px !important; height: 128px !important; font-size: 60px !important; border-width: 5px; }
+  .imp-acusado-nome { font-size: 52px; letter-spacing: 1px; }
+  .imp-acusado-veredito { font-size: 26px; letter-spacing: 1px; }
+  .imp-suspense { font-size: 26px; }
+  .imp-revelacao-lado { width: auto; }
+  .imp-placar { padding: 16px; border-radius: 18px; gap: 10px; }
+  .imp-placar-trilho { height: 10px; }
+  .imp-ultima { padding: 14px 16px; border-radius: 18px; font-size: 13px; }
+  .imp-cronometro.anel { width: 44px; height: 44px; font-size: 16px; }
+  .imp-meus-pontos .imp-pontos-numero { font-size: 28px; }
+}
+
+/* Reduzir movimento: sem pulsos nem piscadas (o motion já troca as
+   animações por fades via MotionConfig). */
+@media (prefers-reduced-motion: reduce) {
+  .imp-ponto, .imp-anel { animation: none; }
+  .imp-botao:active:not(:disabled) { transform: none; }
+}
