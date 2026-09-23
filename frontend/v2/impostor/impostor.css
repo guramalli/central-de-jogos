@@ -1,0 +1,175 @@
+/* O IMPOSTOR — estilo da Fase 2 (funcional). Cores da spec; fontes Anton/
+   Manrope, animações e sons entram na Fase 3. Tudo com prefixo "imp-" pra
+   não vazar pro resto da v2. */
+/* ".v2-app.imp-app": o v2.css carrega depois deste arquivo e pinta o
+   .v2-app de roxo; com as duas classes, o fundo do Impostor ganha. */
+.v2-app.imp-app {
+  --imp-fundo: #0E0F14;
+  --imp-superficie: #1A1C24;
+  --imp-borda: #2A2D38;
+  --imp-texto: #F2EFE8;
+  --imp-texto-2: #A3A6B3;
+  --imp-apagado: #7C8090;
+  --imp-vermelho: #FF4D5E;
+  --imp-vermelho-escuro: #3A1419;
+  --imp-ambar: #FFB547;
+  --imp-ambar-escuro: #2A2110;
+  --imp-verde: #3DD68C;
+  background: var(--imp-fundo);
+  color: var(--imp-texto);
+}
+.imp { width: 100%; max-width: 1180px; margin: 0 auto; padding: 16px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+.imp-tela { display: flex; flex-direction: column; gap: 16px; animation: imp-entra .25s ease-out both; }
+@keyframes imp-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.imp-painel { background: var(--imp-superficie); border: 1px solid var(--imp-borda); border-radius: 20px; padding: 18px; }
+.imp-titulo { margin: 0; font-size: clamp(28px, 5vw, 44px); font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+.imp-sub { margin: 0; color: var(--imp-texto-2); }
+.imp-nota { margin: 0; color: var(--imp-apagado); font-size: 13px; }
+.imp-rotulo { display: block; margin: 0 0 8px; color: var(--imp-apagado); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; }
+.imp-aviso { padding: 12px 16px; border-radius: 16px; background: var(--imp-ambar-escuro); color: var(--imp-ambar); font-weight: 700; }
+.imp-aviso.erro { background: var(--imp-vermelho-escuro); color: var(--imp-vermelho); }
+
+.imp-botao { min-height: 56px; padding: 0 24px; border: 2px solid var(--imp-vermelho); border-radius: 16px; background: var(--imp-vermelho); color: #fff; font-weight: 800; font-size: 17px; }
+.imp-botao.contorno { background: transparent; color: var(--imp-texto); border-color: var(--imp-borda); }
+.imp-botao.pequeno { min-height: 44px; font-size: 14px; padding: 0 16px; }
+.imp-botao:disabled { opacity: .45; cursor: not-allowed; }
+.imp-campo { min-height: 52px; width: 100%; padding: 0 16px; border-radius: 14px; border: 2px solid var(--imp-borda); background: var(--imp-fundo); color: var(--imp-texto); font-size: 17px; }
+.imp-campo:focus { outline: none; border-color: var(--imp-ambar); }
+.imp-campo:disabled { opacity: .5; }
+.imp-acoes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: flex-end; }
+
+.imp-avatar { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; color: var(--imp-fundo); font-weight: 900; }
+
+/* Entrada */
+.imp-entrada { display: flex; flex-direction: column; gap: 14px; max-width: 520px; margin: 24px auto; text-align: center; }
+.imp-codigo-form { display: flex; gap: 10px; }
+
+/* Sala de espera */
+.imp-espera-topo { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+.imp-codigo { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.imp-codigo-valor { font-size: 34px; letter-spacing: 3px; color: var(--imp-ambar); }
+.imp-modos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.imp-modo { padding: 14px; border-radius: 16px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); display: flex; flex-direction: column; gap: 4px; color: var(--imp-apagado); }
+.imp-modo.ativo { border-color: var(--imp-vermelho); color: var(--imp-texto); background: var(--imp-vermelho-escuro); }
+.imp-modo span { font-size: 13px; }
+.imp-linha-titulo { display: flex; justify-content: space-between; align-items: baseline; }
+.imp-linha-titulo h2 { margin: 0 0 12px; font-size: 18px; }
+.imp-contagem { color: var(--imp-texto-2); font-weight: 800; }
+.imp-grade-jogadores { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+.imp-jogador { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 16px; background: var(--imp-fundo); text-align: center; }
+.imp-jogador.fora { opacity: .55; }
+.imp-jogador.vaga { border: 2px dashed var(--imp-borda); background: transparent; color: var(--imp-apagado); font-size: 13px; justify-content: center; }
+.imp-vaga-circulo { width: 52px; height: 52px; border-radius: 50%; border: 2px dashed var(--imp-borda); }
+.imp-jogador-nome { font-weight: 700; font-size: 14px; word-break: break-word; }
+.imp-tag { font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+.imp-tag.anfitriao { color: var(--imp-ambar); }
+.imp-tag.pronto { color: var(--imp-verde); }
+.imp-tag.fora { color: var(--imp-apagado); }
+.imp-progresso { height: 8px; border-radius: 999px; background: var(--imp-borda); overflow: hidden; margin-bottom: 10px; }
+.imp-progresso > div { height: 100%; background: var(--imp-verde); transition: width .3s; }
+
+/* Cabeçalho das fases + cronômetro */
+.imp-cabecalho { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.imp-tema { font-size: 18px; }
+.imp-cronometro { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; background: var(--imp-ambar-escuro); color: var(--imp-ambar); font-weight: 900; }
+.imp-cronometro b { font-size: 28px; min-width: 2ch; text-align: center; }
+.imp-cronometro span { font-size: 12px; font-weight: 700; }
+.imp-cronometro.urgente { background: var(--imp-vermelho-escuro); color: var(--imp-vermelho); }
+
+/* Carta */
+.imp-etapa-carta { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.imp-etapa-carta .imp-cabecalho { width: 100%; }
+.imp-carta-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.imp-carta { position: relative; width: min(300px, 80vw); aspect-ratio: 3 / 4; padding: 0; border: none; background: none; perspective: 1000px; color: inherit; }
+.imp-carta.vazia { display: flex; align-items: center; justify-content: center; border: 2px dashed var(--imp-borda); border-radius: 24px; color: var(--imp-apagado); }
+.imp-carta-dentro { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .5s ease; }
+.imp-carta.aberta .imp-carta-dentro { transform: rotateY(180deg); }
+.imp-carta-face { position: absolute; inset: 0; border-radius: 24px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; }
+.imp-carta-face.frente { background: var(--imp-superficie); border: 2px solid var(--imp-borda); color: var(--imp-texto-2); }
+.imp-carta-interrogacao { font-size: 72px; font-weight: 900; color: var(--imp-texto); }
+.imp-carta-face.verso { transform: rotateY(180deg); }
+.imp-carta.tripulante .verso { background: var(--imp-texto); color: var(--imp-fundo); }
+.imp-carta.impostor .verso { background: var(--imp-vermelho); color: #fff; }
+.imp-carta-rotulo { font-size: 13px; font-weight: 800; letter-spacing: 2px; opacity: .75; }
+.imp-carta-palavra { font-size: clamp(30px, 8vw, 44px); font-weight: 900; text-transform: uppercase; text-align: center; line-height: 1.05; word-break: break-word; }
+.imp-carta-tema { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; }
+.imp-carta-dica { font-size: 13px; opacity: .8; }
+
+/* Rodada */
+.imp-rodada { display: flex; flex-direction: column; gap: 14px; }
+.imp-rodada-grade { display: grid; grid-template-columns: 260px 1fr 340px; gap: 16px; align-items: start; }
+.imp-rodada-carta { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.imp-ordem ol, .imp-dicas ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.imp-ordem-item { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 8px 10px; border-radius: 14px; }
+.imp-ordem-item .imp-avatar { grid-row: span 2; }
+.imp-ordem-item small { color: var(--imp-apagado); font-size: 12px; }
+.imp-ordem-item.vez { background: var(--imp-ambar-escuro); }
+.imp-ordem-item.vez small { color: var(--imp-ambar); font-weight: 800; }
+.imp-ordem-item.feito small { color: var(--imp-verde); }
+.imp-dicas-rodada { margin-bottom: 10px; }
+.imp-dica { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--imp-fundo); animation: imp-entra .25s ease-out both; }
+.imp-dica-nome { color: var(--imp-texto-2); font-size: 14px; }
+.imp-dica b { margin-left: auto; font-size: 18px; text-transform: uppercase; }
+b.imp-branco { color: var(--imp-apagado); font-weight: 600; font-style: italic; text-transform: none !important; font-size: 14px !important; }
+.imp-pensando { margin: 8px 0; }
+.imp-dica-form { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.imp-dica-linha { display: flex; gap: 8px; }
+.imp-sobreposicao { position: fixed; inset: 0; z-index: 1000; background: rgba(14,15,20,.94); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px; }
+.imp-so-celular { display: none; }
+
+/* Votação */
+.imp-suspeitos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.imp-suspeito { position: relative; width: 100%; min-height: 68px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px; border-radius: 20px; border: 2px solid var(--imp-borda); background: var(--imp-superficie); color: var(--imp-texto); transition: border-color .2s, background .2s; }
+.imp-suspeito:disabled { cursor: default; }
+.imp-suspeito.selecionado { border-color: var(--imp-vermelho); background: var(--imp-vermelho-escuro); }
+.imp-suspeito-nome { font-weight: 800; font-size: 17px; }
+.imp-suspeito-dicas { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.imp-suspeito-dicas b { padding: 4px 10px; border-radius: 999px; background: var(--imp-fundo); text-transform: uppercase; font-size: 14px; }
+.imp-selo { position: absolute; top: 10px; right: 10px; padding: 3px 8px; border-radius: 999px; background: var(--imp-vermelho); color: #fff; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+.imp-votacao .imp-acoes { justify-content: space-between; }
+
+/* Revelação */
+.imp-revelacao { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.imp-revelacao > .imp-painel { width: 100%; max-width: 640px; }
+.imp-verdade { color: var(--imp-texto-2); }
+.imp-acusado { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.imp-acusado-nome { margin: 0; font-size: 26px; font-weight: 900; text-transform: uppercase; }
+.imp-acusado-veredito { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: 1px; }
+.imp-acusado.culpado .imp-acusado-veredito { color: var(--imp-vermelho); }
+.imp-acusado.inocente .imp-acusado-veredito { color: var(--imp-verde); }
+.imp-placar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.imp-placar li { display: grid; grid-template-columns: 110px 1fr 28px; gap: 10px; align-items: center; text-align: left; }
+.imp-placar-trilho { height: 10px; border-radius: 5px; background: var(--imp-borda); overflow: hidden; }
+.imp-placar-trilho span { display: block; height: 100%; background: var(--imp-apagado); }
+.imp-placar li.acusado .imp-placar-trilho span { background: var(--imp-vermelho); }
+.imp-ultima { display: flex; flex-direction: column; align-items: center; gap: 10px; border-color: var(--imp-ambar); }
+.imp-ultima .imp-dica-form { width: 100%; }
+.imp-resultado { display: flex; flex-direction: column; gap: 10px; }
+.imp-resultado-titulo { margin: 0; font-size: 24px; font-weight: 900; }
+.imp-palavra-final { color: var(--imp-texto); text-transform: uppercase; }
+.imp-meus-pontos { margin: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 16px; background: var(--imp-fundo); }
+.imp-meus-pontos b { font-size: 26px; color: var(--imp-verde); }
+.imp-pontos-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.imp-pontos-lista li { display: flex; justify-content: space-between; color: var(--imp-texto-2); }
+.imp-pontos-lista b { color: var(--imp-verde); }
+
+/* Celular (< 900px): carta e dicas em etapas separadas */
+@media (max-width: 899px) {
+  .imp-modos { grid-template-columns: repeat(2, 1fr); }
+  .imp-codigo { align-items: flex-start; }
+  .imp-rodada-grade { grid-template-columns: 1fr; }
+  .imp-rodada-carta, .imp-so-computador { display: none; }
+  .imp-ordem { order: 2; }
+  .imp-dicas { order: 1; }
+  .imp-so-celular { display: flex; }
+  button.imp-so-celular { display: inline-flex; align-items: center; justify-content: center; }
+  .imp-acoes { justify-content: stretch; }
+  .imp-acoes .imp-botao { flex: 1; }
+  .imp-codigo-form { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imp-tela, .imp-dica { animation: none; }
+  .imp-carta-dentro { transition: none; }
+}

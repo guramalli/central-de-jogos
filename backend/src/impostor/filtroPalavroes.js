@@ -21,7 +21,7 @@ const PROIBIDAS = new Set(LISTA);
 function limpar(texto) {
   return String(texto ?? "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
 }

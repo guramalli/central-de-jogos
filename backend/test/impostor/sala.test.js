@@ -432,11 +432,52 @@ test("quem entra no meio da partida só assiste (sem carta, sem dica, sem voto)"
   assert.ok(!JSON.stringify(ultimoEstado(enviados, "j9")).toLowerCase().includes("praia"));
 });
 
-test("anfitrião passa pro próximo quando sai", () => {
+test("anfitrião que recarrega a página no lobby continua anfitrião", async () => {
   const { sala } = criarSala();
   sala.sair("s1");
+  assert.equal(sala.anfitriaoId, "j1");
+  segundos(CONFIG.SEG_TOLERANCIA_SALA - 1);
+  sala.entrar({ id: "j1", nickname: "Jogador1" }, "s1b");
+  assert.equal(sala.anfitriaoId, "j1");
+  segundos(CONFIG.SEG_TOLERANCIA_SALA * 2);
+  assert.ok(sala.jogadores.has("j1"));
+  assert.equal(await sala.iniciar("j1"), null);
+});
+
+test("anfitrião que não volta: o posto passa pro próximo depois da tolerância", () => {
+  const { sala } = criarSala();
+  sala.sair("s1");
+  segundos(CONFIG.SEG_TOLERANCIA_SALA);
+  assert.equal(sala.jogadores.has("j1"), false);
+  assert.equal(sala.anfitriaoId, "j2");
+});
+
+test("anfitrião que clica em Sair perde o posto na hora", () => {
+  const { sala } = criarSala();
+  sala.sairDeVez("j1");
   assert.equal(sala.anfitriaoId, "j2");
   assert.equal(sala.jogadores.has("j1"), false);
+});
+
+test("quem cai no lobby não conta pro mínimo, mas segura a vaga", async () => {
+  const { sala } = criarSala();
+  sala.sair("s4");
+  assert.match(await sala.iniciar("j1"), /pelo menos 4/);
+  sala.entrar({ id: "j4", nickname: "Jogador4" }, "s4b");
+  assert.equal(await sala.iniciar("j1"), null);
+});
+
+test("quem caiu na partida e não voltou até o FIM tem a tolerância da sala", async () => {
+  const { sala } = await iniciada({ n: 5 });
+  jogarAteVotacao(sala);
+  sala.sair("s5");
+  votar(sala, { j1: "j2", j2: "j1", j3: "j1", j4: "j1" });
+  segundos(CONFIG.SEG_REVELACAO);
+  sala.chutar("j1", "x");
+  assert.equal(sala.fase, FASES.FIM);
+  assert.ok(sala.jogadores.has("j5"));
+  segundos(CONFIG.SEG_TOLERANCIA_SALA);
+  assert.equal(sala.jogadores.has("j5"), false);
 });
 
 test("FIM → LOBBY: só o anfitrião, ou sozinho depois do tempo", async () => {

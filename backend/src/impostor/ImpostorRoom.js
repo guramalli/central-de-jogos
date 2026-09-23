@@ -46,6 +46,7 @@ export const CONFIG = {
   SEG_ULTIMA_CHANCE: 15,
   SEG_FIM: 90, // sem o anfitrião clicar em "Próxima partida", volta sozinho
   SEG_TOLERANCIA: 30, // quem cai continua na partida por esse tempo
+  SEG_TOLERANCIA_SALA: 20, // no lobby/fim: tempo pra voltar (recarregar a página) sem perder a vaga
   MAX_CHUTE: 40,
 };
 
@@ -115,7 +116,10 @@ export class ImpostorRoom {
     return null;
   }
 
-  // Conexão caiu (ou fechou a aba). Não tira da partida na hora: 30s de tolerância.
+  // Conexão caiu (ou fechou a aba). Ninguém sai na hora: na partida são 30s
+  // de tolerância; no lobby/fim, SEG_TOLERANCIA_SALA — sem isso, o anfitrião
+  // que recarregava a página perdia o posto (e, se passasse pra um bot,
+  // ninguém mais conseguia iniciar).
   sair(socketId) {
     const j = [...this.jogadores.values()].find((x) => x.sockets.has(socketId));
     if (!j) return;
@@ -123,13 +127,26 @@ export class ImpostorRoom {
     if (this.conectado(j)) return;
     if (j.naPartida && EM_PARTIDA.has(this.fase)) {
       j.timerSaida = setTimeout(() => this.protegido(() => this.removerDaPartida(j.id)), this.cfg.SEG_TOLERANCIA * 1000);
-      this.ajustarAnfitriao();
       if (this.fase === FASES.CARTAS) this.conferirCartasVistas();
       if (this.fase === FASES.VOTACAO) this.conferirVotacaoCompleta();
-      if (this.fase !== FASES.LOBBY) this.transmitir();
+      this.transmitir();
       return;
     }
-    this.jogadores.delete(j.id);
+    this.segurarVaga(j);
+    this.transmitir();
+  }
+
+  segurarVaga(j) {
+    if (j.timerSaida) clearTimeout(j.timerSaida);
+    j.timerSaida = setTimeout(() => this.protegido(() => this.removerDaSala(j.id)), this.cfg.SEG_TOLERANCIA_SALA * 1000);
+  }
+
+  // Fim da tolerância fora de partida: sai da sala.
+  removerDaSala(id) {
+    const j = this.jogadores.get(id);
+    if (!j || this.conectado(j) || (j.naPartida && EM_PARTIDA.has(this.fase))) return;
+    if (j.timerSaida) { clearTimeout(j.timerSaida); j.timerSaida = null; }
+    this.jogadores.delete(id);
     this.ajustarAnfitriao();
     this.transmitir();
   }
@@ -139,6 +156,7 @@ export class ImpostorRoom {
     const j = this.jogadores.get(userId);
     if (!j) return;
     j.sockets.clear();
+    if (j.timerSaida) { clearTimeout(j.timerSaida); j.timerSaida = null; }
     if (j.naPartida && EM_PARTIDA.has(this.fase)) this.removerDaPartida(userId);
     else { this.jogadores.delete(userId); this.ajustarAnfitriao(); this.transmitir(); }
   }
@@ -166,9 +184,10 @@ export class ImpostorRoom {
     return CORES.find((c) => !usadas.has(c)) || CORES[this.jogadores.size % CORES.length];
   }
 
+  // O anfitrião só é trocado quando sai de vez — não durante a tolerância.
   ajustarAnfitriao() {
     const atual = this.jogadores.get(this.anfitriaoId);
-    if (atual && this.conectado(atual)) return;
+    if (atual && (this.conectado(atual) || atual.timerSaida)) return;
     this.anfitriaoId = this.conectados()[0]?.id || null;
   }
 
@@ -394,11 +413,12 @@ export class ImpostorRoom {
 
   encerrarPartida() {
     this.fase = FASES.FIM;
-    for (const j of [...this.jogadores.values()]) {
+    // Quem estava caído passa pra tolerância da sala (pode voltar a tempo
+    // de ver o resultado e jogar a próxima).
+    for (const j of this.jogadores.values()) {
       if (j.timerSaida) { clearTimeout(j.timerSaida); j.timerSaida = null; }
-      if (!this.conectado(j)) this.jogadores.delete(j.id);
+      if (!this.conectado(j)) this.segurarVaga(j);
     }
-    this.ajustarAnfitriao();
     this.agendar(this.cfg.SEG_FIM, () => this.voltarAoLobby());
     try { this.aoFimDePartida?.(this.resultado()); } catch (err) { console.error("Impostor: falha ao gravar a partida:", err); }
     this.transmitir();
