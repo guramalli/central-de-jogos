@@ -228,6 +228,37 @@ test("dicas: tripulante não pode dar dica com a palavra; limite e 1 palavra", a
   assert.equal(sala.vezDe, vez); // erro não passa a vez
 });
 
+test("dica recusada: a vez continua e o relógio NÃO é zerado", async () => {
+  const { sala, enviados } = await iniciada();
+  segundos(CONFIG.SEG_CARTAS);
+  while (sala.vezDe === "j1") sala.darDica("j1", "x"); // j1 é o impostor: pula pra um tripulante
+  const vez = sala.vezDe;
+  segundos(20); // usou 20 dos 30s
+  const antes = sala.restanteMs();
+  const n = enviados.length;
+  assert.match(sala.darDica(vez, "praia"), /palavra secreta/);
+  assert.match(sala.darDica(vez, "duas palavras"), /uma palavra/);
+  assert.equal(sala.vezDe, vez);
+  assert.equal(sala.restanteMs(), antes); // nada reiniciou
+  assert.equal(enviados.length, n); // e nada foi transmitido (a tela não pisca)
+  assert.equal(sala.darDica(vez, "areia"), null); // corrigiu a tempo
+  assert.notEqual(sala.vezDe, vez);
+});
+
+test("dica recusada e o tempo acaba: fica em branco no prazo ORIGINAL", async () => {
+  const { sala } = await iniciada();
+  segundos(CONFIG.SEG_CARTAS);
+  while (sala.vezDe === "j1") sala.darDica("j1", "x");
+  const vez = sala.vezDe;
+  segundos(25);
+  assert.ok(sala.darDica(vez, "PRAIA"));
+  segundos(4);
+  assert.equal(sala.vezDe, vez);
+  segundos(1); // 30s desde o início da vez, não 30s desde a recusa
+  assert.notEqual(sala.vezDe, vez);
+  assert.equal(sala.partida.dicas.find((d) => d.jogadorId === vez).texto, "");
+});
+
 test("fora de fase: não dá pra votar nas dicas nem dar dica na votação", async () => {
   const { sala } = await iniciada();
   segundos(CONFIG.SEG_CARTAS);

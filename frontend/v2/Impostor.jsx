@@ -71,14 +71,15 @@ export default function Impostor({ usuario, salaDoLink }) {
   }, [salaDoLink]);
 
   // Sem resposta em 8s (conexão caída ou recusada), avisa em vez de ficar
-  // esperando pra sempre.
-  const pedir = (evento, dados = {}) =>
+  // esperando pra sempre. `avisoNoTopo: false`: a tela mostra o erro ela
+  // mesma, perto do campo (ex.: dica recusada).
+  const pedir = (evento, dados = {}, { avisoNoTopo = true } = {}) =>
     new Promise((ok) => {
       const s = socketRef.current;
       if (!s) return ok({});
       s.timeout(8000).emit(evento, dados, (falhou, r) => {
         if (falhou) { setErro("O servidor não respondeu. Confira sua conexão e tente de novo."); return ok({}); }
-        if (r?.erro) setErro(r.erro);
+        if (r?.erro && avisoNoTopo) setErro(r.erro);
         else setErro("");
         ok(r || {});
       });

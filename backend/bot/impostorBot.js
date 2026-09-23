@@ -24,6 +24,7 @@ import "dotenv/config";
 import { io } from "socket.io-client";
 import { prisma } from "../src/db.js";
 import { signToken } from "../src/utils/jwt.js";
+import { validarDica } from "../src/impostor/regras.js";
 
 const API_URL = process.env.API_URL || "http://localhost:4000";
 const SALA = process.env.IMPOSTOR_SALA;
@@ -43,7 +44,6 @@ const DICAS = [
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const entre = (a, b) => a + Math.random() * (b - a);
 const sortear = (lista) => lista[Math.floor(Math.random() * lista.length)];
-const semAcento = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 async function contaDoBot(n) {
   const email = `impbot${n}@bot.local`;
@@ -96,8 +96,8 @@ function ligarBot({ user, token }) {
 
     if (e.fase === "DICAS" && e.vezDe === eu) {
       umaVez(`dica-${e.rodada}`, entre(2000, 6000), async () => {
-        const palavra = carta?.palavra ? semAcento(carta.palavra) : null;
-        const opcoes = DICAS.filter((d) => !palavra || !semAcento(d).includes(palavra));
+        // Mesma validação do servidor: nada de dica que seria recusada.
+        const opcoes = DICAS.filter((d) => !validarDica(d, carta?.palavra || null).erro);
         const dica = sortear(opcoes);
         const r = await pedir("impostor-dica", { texto: dica });
         if (r?.ok) log(`dica (rodada ${e.rodada}): ${dica}`);

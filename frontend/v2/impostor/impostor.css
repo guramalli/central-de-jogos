@@ -163,6 +163,8 @@
 .imp-dica-form { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .imp-dica-form label { font-size: 13px; font-weight: 700; }
 .imp-dica-form label.sua-vez { color: var(--imp-ambar); }
+.imp-dica-recusa { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--imp-vermelho-escuro); border: 1px solid var(--imp-vermelho); color: #FFD9DC; font-size: 13px; font-weight: 700; line-height: 1.4; }
+.imp-campo[aria-invalid="true"] { border-color: var(--imp-vermelho); }
 .imp-sobreposicao { position: fixed; inset: 0; z-index: 1000; background: rgba(14, 15, 20, .95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px; }
 
 /* ---------- votação ---------- */

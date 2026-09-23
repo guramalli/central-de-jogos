@@ -53,8 +53,25 @@ export function validarDica(texto, palavra) {
     const d = colado(dica);
     const p = colado(palavra);
     if (p && d.includes(p)) return { erro: "A dica não pode ter a palavra secreta." };
+    if (usaPedacoDaComposta(dica, palavra)) return { erro: "A dica não pode usar parte da palavra secreta." };
   }
   return { dica };
+}
+
+// Palavra composta ("pão de queijo", "guarda-chuva"): cada pedaço com 3+
+// letras, sem os conectores, também é proibido como dica. A comparação é
+// com as PALAVRAS INTEIRAS da dica (separadas por hífen), não "contém" —
+// senão "melodia" cairia por causa do "dia" de "dia das crianças". Aceita
+// plural simples nos dois sentidos: "queijos" x "queijo", "lata" x "latas".
+const CONECTORES = new Set(["de", "da", "do", "das", "dos", "sem"]);
+
+function usaPedacoDaComposta(dica, palavra) {
+  const pedacos = normalizar(palavra).split(/[\s-]+/).map(colado);
+  if (pedacos.length < 2) return false;
+  const proibidos = pedacos.filter((p) => p.length >= 3 && !CONECTORES.has(p));
+  const partesDaDica = normalizar(dica).split(/-+/).map(colado).filter(Boolean);
+  const mesma = (a, b) => a === b || a === `${b}s` || b === `${a}s`;
+  return partesDaDica.some((d) => proibidos.some((p) => mesma(d, p)));
 }
 
 // Conta os votos e diz quem foi acusado.

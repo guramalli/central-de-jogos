@@ -1,0 +1,402 @@
+[
+  {
+    "tema": "Lugares",
+    "palavras": [
+      "praia",
+      "hospital",
+      "aeroporto",
+      "biblioteca",
+      "cinema",
+      "farmácia",
+      "padaria",
+      "museu",
+      "estádio",
+      "shopping",
+      "zoológico",
+      "circo",
+      "fazenda",
+      "rodoviária",
+      "academia"
+    ]
+  },
+  {
+    "tema": "Comidas",
+    "palavras": [
+      "pizza",
+      "feijoada",
+      "brigadeiro",
+      "coxinha",
+      "pastel",
+      "lasanha",
+      "sushi",
+      "hambúrguer",
+      "pipoca",
+      "açaí",
+      "pão de queijo",
+      "churrasco",
+      "macarrão",
+      "tapioca",
+      "sorvete"
+    ]
+  },
+  {
+    "tema": "Profissões",
+    "palavras": [
+      "médico",
+      "bombeiro",
+      "professor",
+      "astronauta",
+      "cozinheiro",
+      "dentista",
+      "policial",
+      "piloto",
+      "jornalista",
+      "veterinário",
+      "carteiro",
+      "mecânico",
+      "arquiteto",
+      "cabeleireiro",
+      "fotógrafo"
+    ]
+  },
+  {
+    "tema": "Animais",
+    "palavras": [
+      "elefante",
+      "girafa",
+      "tubarão",
+      "pinguim",
+      "leão",
+      "macaco",
+      "cobra",
+      "jacaré",
+      "coruja",
+      "cavalo",
+      "polvo",
+      "tartaruga",
+      "canguru",
+      "abelha",
+      "morcego"
+    ]
+  },
+  {
+    "tema": "Objetos da casa",
+    "palavras": [
+      "geladeira",
+      "sofá",
+      "espelho",
+      "travesseiro",
+      "vassoura",
+      "cortina",
+      "chuveiro",
+      "abajur",
+      "tapete",
+      "relógio",
+      "guarda-roupa",
+      "escada",
+      "ventilador",
+      "máquina de lavar",
+      "ferro de passar"
+    ]
+  },
+  {
+    "tema": "Esportes",
+    "palavras": [
+      "futebol",
+      "vôlei",
+      "basquete",
+      "natação",
+      "tênis",
+      "surfe",
+      "boxe",
+      "judô",
+      "skate",
+      "ciclismo",
+      "xadrez",
+      "atletismo",
+      "handebol",
+      "ginástica",
+      "golfe"
+    ]
+  },
+  {
+    "tema": "Transportes",
+    "palavras": [
+      "avião",
+      "metrô",
+      "bicicleta",
+      "navio",
+      "helicóptero",
+      "ônibus",
+      "trem",
+      "moto",
+      "submarino",
+      "caminhão",
+      "táxi",
+      "patinete",
+      "balão",
+      "canoa",
+      "teleférico"
+    ]
+  },
+  {
+    "tema": "Instrumentos musicais",
+    "palavras": [
+      "violão",
+      "bateria",
+      "piano",
+      "flauta",
+      "saxofone",
+      "pandeiro",
+      "violino",
+      "trompete",
+      "sanfona",
+      "cavaquinho",
+      "harpa",
+      "gaita",
+      "tambor",
+      "berimbau",
+      "xilofone"
+    ]
+  },
+  {
+    "tema": "Roupas e acessórios",
+    "palavras": [
+      "chapéu",
+      "cachecol",
+      "óculos",
+      "chinelo",
+      "gravata",
+      "mochila",
+      "luva",
+      "pijama",
+      "biquíni",
+      "casaco",
+      "boné",
+      "brinco",
+      "bota",
+      "uniforme",
+      "guarda-chuva"
+    ]
+  },
+  {
+    "tema": "Natureza",
+    "palavras": [
+      "vulcão",
+      "cachoeira",
+      "floresta",
+      "deserto",
+      "montanha",
+      "arco-íris",
+      "caverna",
+      "ilha",
+      "geleira",
+      "trovão",
+      "lago",
+      "tempestade",
+      "neve",
+      "terremoto",
+      "oceano"
+    ]
+  },
+  {
+    "tema": "Escola",
+    "palavras": [
+      "lousa",
+      "recreio",
+      "caderno",
+      "prova",
+      "merenda",
+      "borracha",
+      "estojo",
+      "formatura",
+      "régua",
+      "calculadora",
+      "excursão",
+      "boletim",
+      "apontador",
+      "dicionário",
+      "chamada"
+    ]
+  },
+  {
+    "tema": "Festas e comemorações",
+    "palavras": [
+      "aniversário",
+      "carnaval",
+      "casamento",
+      "natal",
+      "festa junina",
+      "réveillon",
+      "dia das crianças",
+      "páscoa",
+      "bolo",
+      "confete",
+      "fantasia",
+      "fogos de artifício",
+      "presente",
+      "quadrilha",
+      "velinha"
+    ]
+  },
+  {
+    "tema": "Brinquedos e brincadeiras",
+    "palavras": [
+      "pipa",
+      "boneca",
+      "bola de gude",
+      "pião",
+      "quebra-cabeça",
+      "dominó",
+      "videogame",
+      "esconde-esconde",
+      "amarelinha",
+      "ioiô",
+      "bambolê",
+      "cubo mágico",
+      "pega-pega",
+      "carrinho",
+      "cama elástica"
+    ]
+  },
+  {
+    "tema": "Tecnologia",
+    "palavras": [
+      "celular",
+      "computador",
+      "fone de ouvido",
+      "impressora",
+      "robô",
+      "drone",
+      "internet",
+      "senha",
+      "wi-fi",
+      "controle remoto",
+      "carregador",
+      "câmera",
+      "televisão",
+      "mouse",
+      "pen drive"
+    ]
+  },
+  {
+    "tema": "Espaço",
+    "palavras": [
+      "lua",
+      "sol",
+      "cometa",
+      "galáxia",
+      "satélite",
+      "meteoro",
+      "telescópio",
+      "marte",
+      "buraco negro",
+      "eclipse",
+      "foguete",
+      "extraterrestre",
+      "constelação",
+      "estação espacial",
+      "órbita"
+    ]
+  },
+  {
+    "tema": "Corpo humano",
+    "palavras": [
+      "coração",
+      "cotovelo",
+      "cérebro",
+      "umbigo",
+      "joelho",
+      "sobrancelha",
+      "pulmão",
+      "dente",
+      "unha",
+      "orelha",
+      "esqueleto",
+      "língua",
+      "cabelo",
+      "bochecha",
+      "tornozelo"
+    ]
+  },
+  {
+    "tema": "Países",
+    "palavras": [
+      "Brasil",
+      "Japão",
+      "Egito",
+      "Itália",
+      "México",
+      "Argentina",
+      "França",
+      "China",
+      "Austrália",
+      "Canadá",
+      "Índia",
+      "Portugal",
+      "Estados Unidos",
+      "Rússia",
+      "Alemanha"
+    ]
+  },
+  {
+    "tema": "Cozinha",
+    "palavras": [
+      "panela",
+      "frigideira",
+      "garfo",
+      "colher de pau",
+      "peneira",
+      "ralador",
+      "micro-ondas",
+      "fogão",
+      "concha",
+      "abridor de latas",
+      "batedeira",
+      "avental",
+      "liquidificador",
+      "tábua de corte",
+      "chaleira"
+    ]
+  },
+  {
+    "tema": "Folclore e fantasia",
+    "palavras": [
+      "saci",
+      "curupira",
+      "sereia",
+      "dragão",
+      "bruxa",
+      "fada",
+      "vampiro",
+      "lobisomem",
+      "fantasma",
+      "mula sem cabeça",
+      "unicórnio",
+      "gigante",
+      "duende",
+      "múmia",
+      "zumbi"
+    ]
+  },
+  {
+    "tema": "Supermercado",
+    "palavras": [
+      "arroz",
+      "leite",
+      "ovo",
+      "sabonete",
+      "detergente",
+      "papel higiênico",
+      "pasta de dente",
+      "café",
+      "açúcar",
+      "manteiga",
+      "xampu",
+      "farinha",
+      "biscoito",
+      "refrigerante",
+      "esponja"
+    ]
+  }
+]

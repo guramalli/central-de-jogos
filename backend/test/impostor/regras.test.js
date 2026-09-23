@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   normalizar, chuteCorreto, validarDica, apurarVotos, calcularPontuacao, PONTOS, MAX_DICA,
 } from "../../src/impostor/regras.js";
@@ -41,6 +42,58 @@ test("dica: recusa igual à palavra ou contendo a palavra (sem acento/caixa/híf
   assert.ok(validarDica("pao-de-queijo", "Pão de queijo").erro);
   assert.ok(validarDica("paodequeijo", "Pão de queijo").erro);
   assert.ok(!validarDica("mineiro", "Pão de queijo").erro);
+});
+
+test("dica: palavras compostas não passam escritas de outro jeito", () => {
+  for (const d of ["pao-de-queijo", "PAODEQUEIJO", "Pão-De-Queijo"]) assert.ok(validarDica(d, "pão de queijo").erro, d);
+  for (const d of ["guardachuva", "guarda-chuva", "GUARDA-CHUVAS"]) assert.ok(validarDica(d, "guarda-chuva").erro, d);
+  assert.ok(validarDica("estados-unidos", "Estados Unidos").erro);
+  assert.ok(validarDica("arcoiris", "arco-íris").erro);
+});
+
+test("dica: pedaço de composta (3+ letras) é recusado, inclusive no plural", () => {
+  for (const [d, p] of [
+    ["queijo", "pão de queijo"], ["QUEIJOS", "pão de queijo"], ["pão", "pão de queijo"], ["pao", "pão de queijo"],
+    ["chuva", "guarda-chuva"], ["guarda", "guarda-roupa"], ["roupas", "guarda-roupa"],
+    ["unidos", "Estados Unidos"], ["estado", "Estados Unidos"], ["buraco", "buraco negro"],
+    ["mula", "mula sem cabeça"], ["cabeça", "mula sem cabeça"], ["lata", "abridor de latas"],
+    ["crianças", "dia das crianças"], ["dia", "dia das crianças"], ["ondas", "micro-ondas"],
+    ["fogo-de-chão", "fogos de artifício"], // parte "fogo" (plural de "fogos") dentro de dica com hífen
+  ]) {
+    assert.match(validarDica(d, p).erro || "", /parte da palavra/, `"${d}" deveria ser recusada para "${p}"`);
+  }
+});
+
+test("dica: pedaço de composta só conta como PALAVRA INTEIRA, não como trecho", () => {
+  for (const [d, p] of [
+    ["melodia", "dia das crianças"], ["queijadinha", "pão de queijo"], ["guardanapo", "guarda-roupa"],
+    ["chuvisco", "guarda-chuva"], ["cabeçada", "mula sem cabeça"], ["mineiro", "pão de queijo"],
+  ]) {
+    assert.deepEqual(validarDica(d, p), { dica: d }, `"${d}" deveria passar para "${p}"`);
+  }
+});
+
+test("dica: conectores e pedaços curtos das compostas não contam", () => {
+  // "de", "das", "sem" são conectores; "wi" e "fi" têm menos de 3 letras.
+  assert.deepEqual(validarDica("sem", "mula sem cabeça"), { dica: "sem" });
+  assert.deepEqual(validarDica("de", "pão de queijo"), { dica: "de" });
+  assert.deepEqual(validarDica("fi", "wi-fi"), { dica: "fi" });
+  assert.ok(validarDica("wifi", "wi-fi").erro); // a palavra inteira continua proibida
+});
+
+test("dica: palavras curtas continuam com a regra do \"contém\"", () => {
+  assert.ok(validarDica("girassol", "sol").erro);
+  assert.ok(validarDica("extremo", "trem").erro);
+  assert.deepEqual(validarDica("estrela", "sol"), { dica: "estrela" });
+});
+
+test("dica: nenhuma palavra do banco passa como dica dela mesma", () => {
+  const temas = JSON.parse(readFileSync(new URL("../../prisma/data/impostorPalavras.json", import.meta.url), "utf8"));
+  for (const p of temas.flatMap((t) => t.palavras)) {
+    for (const v of [p.replace(/\s+/g, "-"), p.replace(/[\s-]+/g, ""), p.toUpperCase().replace(/\s+/g, "-"), `${p}s`]) {
+      if (v.length <= MAX_DICA) assert.ok(validarDica(v, p).erro, `"${v}" passou como dica de "${p}"`);
+    }
+  }
 });
 
 test("dica do impostor (palavra = null) não é checada contra a palavra", () => {

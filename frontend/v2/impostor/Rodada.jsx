@@ -129,9 +129,10 @@ const ENTRADA_DICA = {
 function Dicas({ estado, pedir }) {
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [recusa, setRecusa] = useState("");
   const minhaVez = estado.vezDe === estado.euId;
   const campo = useRef(null);
-  useEffect(() => { if (minhaVez) campo.current?.focus(); }, [minhaVez]);
+  useEffect(() => { if (minhaVez) campo.current?.focus(); else setRecusa(""); }, [minhaVez]);
   const vez = estado.vezDe ? quem(estado, estado.vezDe) : null;
   const daRodada = estado.dicas.filter((d) => d.rodada === estado.rodada);
   const anteriores = estado.dicas.filter((d) => d.rodada < estado.rodada);
@@ -140,9 +141,15 @@ function Dicas({ estado, pedir }) {
     e.preventDefault();
     if (!texto.trim() || enviando) return;
     setEnviando(true);
-    const r = await pedir("impostor-dica", { texto: texto.trim() });
+    const r = await pedir("impostor-dica", { texto: texto.trim() }, { avisoNoTopo: false });
     setEnviando(false);
-    if (r.ok) setTexto("");
+    if (r.ok) { setTexto(""); setRecusa(""); return; }
+    // Dica recusada: a vez continua sua e o relógio segue de onde estava
+    // (o servidor não reinicia nada). Mostra o motivo junto do campo, mantém
+    // o texto pra corrigir e devolve o foco.
+    setRecusa(r.erro || "");
+    campo.current?.focus();
+    campo.current?.select();
   }
 
   return (
@@ -177,11 +184,18 @@ function Dicas({ estado, pedir }) {
               autoComplete="off"
               disabled={!minhaVez}
               value={texto}
-              onChange={(e) => setTexto(e.target.value)}
+              onChange={(e) => { setTexto(e.target.value); if (recusa) setRecusa(""); }}
               placeholder={minhaVez ? "Digite sua dica" : "Aguarde sua vez"}
+              aria-invalid={!!recusa}
+              aria-describedby={recusa ? "imp-dica-recusa" : undefined}
             />
             <button className="imp-botao principal compacto" type="submit" disabled={!minhaVez || !texto.trim() || enviando}>Enviar</button>
           </div>
+          {recusa && (
+            <p id="imp-dica-recusa" className="imp-dica-recusa" role="alert">
+              {recusa} Tente outra — a vez continua sua.
+            </p>
+          )}
         </form>
       )}
     </section>
