@@ -26,6 +26,16 @@ aoPontuar(({ gameKey, userIds, salaOrigem }) => {
 });
 const pendingCreation = new Map();
 
+// O código da sala vem do navegador: só vale se for uma sala oficial (da
+// config) ou uma sala que já existe (privada criada pela rota). Antes,
+// qualquer texto inventado criava uma sala nova, com timers próprios, que
+// nunca era descartada. `Object.hasOwn` evita que "constructor"
+// ou "__proto__" passem como se fossem salas da config.
+export function salaQuizValida(roomId) {
+  if (roomId === undefined) return true;
+  return typeof roomId === "string" && (Object.hasOwn(QUIZ_ROOM_CONFIGS, roomId) || rooms.has(roomId) || pendingCreation.has(roomId));
+}
+
 export async function getOrCreateQuizRoom(io, roomId = DEFAULT_QUIZ_ROOM_ID) {
   if (rooms.has(roomId)) return rooms.get(roomId);
   if (pendingCreation.has(roomId)) return pendingCreation.get(roomId);

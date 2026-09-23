@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { pontosDoMes, posicaoNoMes } from "../utils/pontosDoMes.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { getRankForPoints } from "../utils/rank.js";
 import { isBirthdayToday } from "../utils/birthday.js";
@@ -307,6 +308,12 @@ export class StopRoom {
 
     this.players.set(socket.id, { userId, nickname, socket, clanTag, joinedAt: Date.now() });
 
+    // Sala estava pausada por estar vazia: chegou gente, o intervalo recomeça.
+    if (this.pausadaVazia) {
+      this.pausadaVazia = false;
+      this.startIntermission();
+    }
+
     // Sala sem pontuação começa do zero pra quem entra: não carrega nada do
     // banco. O placar dali é só da partida em andamento, e ninguém deve
     // chegar já com pontos de outras salas no marcador.
@@ -495,41 +502,26 @@ export class StopRoom {
     // entrava ou saía — numa sala de 10 pessoas isso eram 20 idas ao banco
     // a cada movimento. Agora são 2, independente de quantos estão na sala.
     const idsNaSala = [...new Set([...this.players.values()].map((p) => p.userId))];
-    const mensais = idsNaSala.length
+    // Sala sem pontuação não mostra pontos do mês: nem busca.
+    const mensais = idsNaSala.length && !this.semPontuacao
       ? await prisma.monthlyScore.findMany({
           where: { userId: { in: idsNaSala }, gameKey: GAME_KEY, monthKey },
         })
       : [];
     const mensalPorUsuario = Object.fromEntries(mensais.map((m) => [m.userId, m.points]));
 
-    // As posições no ranking também vêm juntas: uma consulta traz todo
-    // mundo que pontuou mais que o menor pontuador da sala, e a posição
-    // de cada um sai daí por contagem em memória.
+    // As posições no ranking saem da lista de pontos do mês (60s em cache,
+    // compartilhada entre as salas — ver utils/pontosDoMes.js), por
+    // contagem em memória.
     const posicaoPorUsuario = {};
     const pontuadores = idsNaSala.map((id) => mensalPorUsuario[id] || 0).filter((v) => v > 0);
     if (pontuadores.length > 0 && !this.semPontuacao) {
       try {
-        const menor = Math.min(...pontuadores);
-        const acima = await prisma.monthlyScore.findMany({
-          where: {
-            gameKey: GAME_KEY,
-            monthKey,
-            points: { gte: menor },
-            user: {
-            role: { not: "ADMIN" },
-            isGuest: false,
-            ocultoNoRanking: false,
-            // Ocultação só deste jogo (ver ocultoNosRankings no schema).
-            NOT: { ocultoNosRankings: { has: GAME_KEY } },
-          },
-          },
-          select: { points: true },
-        });
-        const todosPontos = acima.map((a) => a.points);
+        const todosPontos = await pontosDoMes(GAME_KEY, monthKey);
         for (const id of idsNaSala) {
           const meus = mensalPorUsuario[id] || 0;
           if (meus > 0) {
-            posicaoPorUsuario[id] = todosPontos.filter((p) => p > meus).length + 1;
+            posicaoPorUsuario[id] = posicaoNoMes(todosPontos, meus);
           }
         }
       } catch {
@@ -631,6 +623,17 @@ export class StopRoom {
       this.timeLeft -= 1;
       this.broadcast("tick", { state: this.state, timeLeft: this.timeLeft });
       if (this.timeLeft <= 0) {
+        // SALA VAZIA: pausa em vez de sortear outra rodada. Antes as salas
+        // públicas rodavam rodadas pra ninguém, pra sempre — e cada rodada
+        // consulta o glossário no banco, o que não deixava o Neon "dormir"
+        // (ele cobra pelo tempo acordado). Quem entrar retoma o intervalo
+        // (ver addPlayer).
+        if (this.players.size === 0) {
+          this.clearTimer();
+          this.pausadaVazia = true;
+          this.timeLeft = this.intermissionSeconds;
+          return;
+        }
         // startRound é assíncrono e desliga o timer atual logo na primeira
         // linha. Se ele falhar no meio (banco instável, por exemplo), a sala
         // ficaria SEM timer nenhum — travada pra sempre. O catch abaixo
@@ -1443,20 +1446,18 @@ export class StopRoom {
       for (const [userId, pts] of (this.semPontuacao ? [] : roundScores.entries())) {
         if (pts <= 0) continue;
         try {
-          // Busca os pontos mensais ANTES de somar, pra comparar a patente
-          // de antes com a de depois — patente é conceito mensal, então é
-          // essa pontuação que decide se a pessoa subiu de nível agora.
-          const existingMonthly = await prisma.monthlyScore.findUnique({
-            where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
-          });
-          const oldMonthlyPoints = existingMonthly?.points || 0;
-          const newMonthlyPoints = oldMonthlyPoints + pts;
-
-          await prisma.monthlyScore.upsert({
+          // A gravação devolve o total NOVO do mês; o de antes é o novo
+          // menos os pontos da rodada. Antes havia uma leitura só pra isso,
+          // antes da gravação — uma ida ao banco a mais por jogador.
+          // Patente é conceito mensal: é essa comparação que decide se a
+          // pessoa subiu de nível agora.
+          const salvoMensal = await prisma.monthlyScore.upsert({
             where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
             update: { points: { increment: pts } },
             create: { userId, gameKey: GAME_KEY, monthKey, points: pts },
           });
+          const newMonthlyPoints = salvoMensal.points;
+          const oldMonthlyPoints = newMonthlyPoints - pts;
 
           // Mesmo ajuste do Quiz: considera patente fixa/exclusiva na
           // promoção, pra mensagem e ícone nunca discordarem.
@@ -1482,27 +1483,30 @@ export class StopRoom {
             this.announceRankingPosition(userId, jogador.nickname, newMonthlyPoints).catch(() => {});
           }
 
-          await prisma.lifetimeScore.upsert({
-            where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
-            update: { points: { increment: pts } },
-            create: { userId, gameKey: GAME_KEY, points: pts },
-          });
+          // As três gravações abaixo são independentes: vão juntas, em vez
+          // de uma esperando a outra (3 idas ao banco em sequência viravam
+          // o tempo de uma só).
+          await Promise.all([
+            prisma.lifetimeScore.upsert({
+              where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+              update: { points: { increment: pts } },
+              create: { userId, gameKey: GAME_KEY, points: pts },
+            }),
+            prisma.lifetimeScore.upsert({
+              where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
+              update: { points: { increment: pts } },
+              create: { userId, gameKey: this.roomGameKey, points: pts },
+            }),
+            // Mesma pontuação, recortada por mês. Linha separada (gameKey com
+            // ":") — não interfere no ranking, que só lê o gameKey global.
+            prisma.monthlyScore.upsert({
+              where: { userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey } },
+              update: { points: { increment: pts } },
+              create: { userId, gameKey: this.roomGameKey, monthKey, points: pts },
+            }),
+          ]);
           this.lifetimeCache.set(userId, (this.lifetimeCache.get(userId) || 0) + pts);
-
-          await prisma.lifetimeScore.upsert({
-            where: { userId_gameKey: { userId, gameKey: this.roomGameKey } },
-            update: { points: { increment: pts } },
-            create: { userId, gameKey: this.roomGameKey, points: pts },
-          });
           this.roomLifetimeCache.set(userId, (this.roomLifetimeCache.get(userId) || 0) + pts);
-
-          // Mesma pontuação, recortada por mês. Linha separada (gameKey com
-          // ":") — não interfere no ranking, que só lê o gameKey global.
-          await prisma.monthlyScore.upsert({
-            where: { userId_gameKey_monthKey: { userId, gameKey: this.roomGameKey, monthKey } },
-            update: { points: { increment: pts } },
-            create: { userId, gameKey: this.roomGameKey, monthKey, points: pts },
-          });
           this.roomMonthlyCache.set(userId, (this.roomMonthlyCache.get(userId) || 0) + pts);
         } catch (err) {
           console.error("Falha ao salvar pontuação para", userId, err.message);

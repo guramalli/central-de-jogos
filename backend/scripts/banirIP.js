@@ -18,8 +18,9 @@
 // "Acesso bloqueado."). O aviso só aparece nessas duas ações — dentro do
 // chat/sala já conectado, o site não mostra texto nenhum, só desconecta.
 //
-// O banimento vale em até 1 minuto (o servidor recarrega a lista de tempos
-// em tempos — ver src/ipBan.js), não precisa reiniciar nada.
+// O banimento vale em até 15 minutos (o servidor recarrega a lista de
+// tempos em tempos — ver src/ipBan.js), não precisa reiniciar nada. Pra
+// valer na hora, reinicie o servidor no Render.
 import "dotenv/config";
 import { prisma } from "../src/db.js";
 
@@ -59,7 +60,7 @@ async function main() {
     update: { motivo: motivo ?? undefined, mensagem: mensagem ?? undefined },
     create: { ip, motivo: motivo || null, mensagem: mensagem || null },
   });
-  console.log(`✔ IP ${ip} banido${motivo ? ` (${motivo})` : ""}. Vale em até 1 minuto.`);
+  console.log(`✔ IP ${ip} banido${motivo ? ` (${motivo})` : ""}. Vale em até 15 minutos (ou na hora, reiniciando o servidor).`);
   if (mensagem) console.log(`  Mensagem que ele vai ver: "${mensagem}"`);
 }
 
