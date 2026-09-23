@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby, irParaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
-import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -71,6 +71,8 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const [pular, setPular] = useState({ votes: 0, needed: 0, minPlayers: 3 });
   const [voteiPular, setVoteiPular] = useState(false);
   const [mudo, setMudo] = useState(estaMudo());
+  // Confete de acerto ligado/desligado (preferência do aparelho, ao lado do mudo).
+  const [semAnimacao, setSemAnimacao] = useState(estaSemAnimacao());
   const [aba, setAba] = useState("chat"); // celular: chat | legenda
 
   const addMsg = (m) => setMsgs((prev) => [...prev, { ...m, _k: Math.random() }].slice(-120));
@@ -402,6 +404,13 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13" /></svg>
           )}
         </button>
+        <button className="v2-mudo" aria-label={semAnimacao ? "Ligar animação de acerto" : "Desligar animação de acerto"} title={semAnimacao ? "Ligar animação de acerto" : "Desligar animação de acerto"} onClick={() => setSemAnimacao(alternarAnimacao())}>
+          {semAnimacao ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M4.9 19.1l3.5-3.5M15.6 8.4l3.5-3.5M4 4l16 16" /></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M4.9 4.9l3.5 3.5M15.6 15.6l3.5 3.5M4.9 19.1l3.5-3.5M15.6 8.4l3.5-3.5" /></svg>
+          )}
+        </button>
       </header>
 
       {semPontos && <div className="v2-faixa-zoeira">Esta sala é só resenha: <b>não conta pontos</b> pro ranking nem pra premiação.</div>}
@@ -573,7 +582,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
             )}
             {bonusBloco && bonusBloco.length > 0 && fase !== "active" && (
               <div className={`v2-resultado ${bonusBloco.some((b) => b.userId === usuario.id) ? "eu" : "outro"} v2-stop-bonus`} role="status" onClick={() => setBonusBloco(null)}>
-                {bonusBloco.some((b) => b.userId === usuario.id) && <Confete />}
+                {bonusBloco.some((b) => b.userId === usuario.id) && !semAnimacao && <Confete />}
                 <div className="v2-resultado-titulo">Fim do bloco!</div>
                 <div className="v2-stop-podio">
                   {[bonusBloco[1], bonusBloco[0], bonusBloco[2]].filter(Boolean).map((b) => (
@@ -606,7 +615,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                     <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
-                  <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
+                  <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} fila={m.fila} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
                   {podeModerar && !m.system && m.id && (
                     <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => { if (window.confirm(`Apagar a mensagem de ${m.nickname}?`)) socketRef.current?.emit("delete-chat-message", { escopo: "stop", id: m.id }); }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>

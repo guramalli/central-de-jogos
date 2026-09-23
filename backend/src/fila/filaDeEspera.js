@@ -22,13 +22,19 @@
 
 export const SEG_JUNTAR = 10;
 export const SEG_ACEITAR = 20;
+// Convite nos chats das salas ("Fulano colocou o nome na fila do X"): no
+// máximo um por jogo nesse intervalo, pra não virar spam no chat.
+export const SEG_ENTRE_ANUNCIOS = 120;
 
 export class Filas {
   // jogos: { chave: { nome, min, max, bots, minComecarAgora, criarSala({ membros, comBots }) => destino } }
-  constructor({ jogos, enviar, contagem = () => {} }) {
+  // anunciar({ jogo, nome, nickname, naFila, minimo }): convite nos chats.
+  constructor({ jogos, enviar, contagem = () => {}, anunciar = () => {} }) {
     this.jogos = jogos;
     this.enviar = enviar;
     this.avisarContagem = contagem;
+    this.anunciar = anunciar;
+    this.ultimoAnuncio = new Map(); // jogo -> quando foi o último convite (ms)
     this.filas = new Map(Object.keys(jogos).map((j) => [j, []])); // jogo -> [{ id, nickname }]
     this.juntando = new Map(); // jogo -> { timer, fimEm }
     this.propostas = new Map(); // id -> proposta
@@ -97,7 +103,26 @@ export class Filas {
     this.mudou(jogo);
     this.enviar(user.id, "fila-estado", this.estadoDe(user.id));
     this.conferirFormacao(jogo);
+    this.convidarNosChats(jogo, user);
     return null;
+  }
+
+  // Quem está jogando outra coisa fica sabendo da fila e pode entrar junto.
+  // Só enquanto ainda falta gente (fila cheia já vai formar o grupo sozinha)
+  // e no máximo um convite por jogo a cada SEG_ENTRE_ANUNCIOS.
+  convidarNosChats(jogo, user) {
+    const cfg = this.jogos[jogo];
+    const naFila = this.filas.get(jogo).length;
+    if (naFila >= cfg.min) return;
+    const agora = Date.now();
+    const ultimo = this.ultimoAnuncio.get(jogo);
+    if (ultimo !== undefined && agora - ultimo < SEG_ENTRE_ANUNCIOS * 1000) return;
+    this.ultimoAnuncio.set(jogo, agora);
+    try {
+      this.anunciar({ jogo, nome: cfg.nome, nickname: user.nickname, naFila, minimo: cfg.min });
+    } catch (err) {
+      console.error("Fila: convite nos chats falhou:", err);
+    }
   }
 
   // Sem `jogo`: tira o nome de TODAS as filas.

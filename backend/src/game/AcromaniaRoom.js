@@ -471,7 +471,8 @@ export class AcromaniaRoom {
 
   // `aviso` é o comunicado da administração: precisa saltar aos olhos no meio
   // das outras mensagens de sistema, que são todas cinzas e parecidas.
-  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false) {
+  // `extra`: campos a mais pra tela (ex.: `fila`, o convite da fila de espera).
+  systemMessage(message, bold = false, success = false, promotion = false, tituloDestaque = null, aviso = false, extra = null) {
     this.broadcast("acromania-chat-message", {
       userId: null,
       nickname: "Sistema",
@@ -482,6 +483,7 @@ export class AcromaniaRoom {
       promotion,
       tituloDestaque,
       aviso,
+      ...extra,
       at: Date.now(),
     });
   }

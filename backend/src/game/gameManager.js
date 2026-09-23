@@ -342,3 +342,17 @@ export function avisarSalas(mensagem) {
   }
   return alcancadas;
 }
+
+// Recado de sistema em todas as salas COM GENTE, sem o prefixo de AVISO —
+// usado pelo convite da fila de espera (fila/anuncio.js). `extra` vai junto
+// na mensagem (a tela desenha o botão "Colocar meu nome" com ele).
+export function anunciarNasSalas(mensagem, extra = null) {
+  for (const room of rooms.values()) {
+    if (!room.players || room.players.size === 0) continue;
+    try {
+      room.systemMessage(mensagem, false, false, false, null, false, extra);
+    } catch (err) {
+      console.error(`Falha ao anunciar na sala ${room.roomId}:`, err.message);
+    }
+  }
+}

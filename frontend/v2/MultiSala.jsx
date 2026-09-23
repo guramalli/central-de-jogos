@@ -10,7 +10,10 @@ import { nomeDoTema } from "./temas.js";
 //  - cada painel tem a SUA conexão (o servidor guarda uma sala por conexão);
 //  - só o painel ATUAL puxa o cursor quando a rodada começa;
 //  - Ctrl+←/→ passa de sala, Ctrl+↑/↓ pula de linha, Ctrl+número vai direto;
-//  - com 2 salas dá pra empilhar (uma embaixo da outra).
+//  - com 2 salas dá pra empilhar (uma embaixo da outra);
+//  - as salas são ESCOLHIDAS primeiro na lista (marca/desmarca) e abrem todas
+//    juntas no "Abrir" — antes cada clique já abria uma sala e a tela virava
+//    jogo, e as outras só dava pra escolher depois, pelo botão lá em cima.
 const MAX_PAINEIS = 4;
 // Campos de jogo que recebem o foco ao trocar de painel.
 const CAMPOS = [".v2-stop-campo input:not([disabled])", ".v2-resposta input:not([disabled])"];
@@ -21,6 +24,8 @@ export default function MultiSala({ usuario, jogo }) {
   const [abertas, setAbertas] = useState([]);
   const [erro, setErro] = useState("");
   const [seletor, setSeletor] = useState(false);
+  // Marcadas na lista, ainda não abertas (vira `abertas` no confirmar).
+  const [escolhidas, setEscolhidas] = useState([]);
   const [atual, setAtual] = useState(null);
   const atualRef = useRef(null);
   const paineisRef = useRef({});
@@ -37,14 +42,35 @@ export default function MultiSala({ usuario, jogo }) {
     return () => { vivo = false; clearInterval(t); };
   }, [ehStop]);
 
-  function abrir(id) {
+  function marcar(id) {
     setErro("");
-    if (abertas.includes(id)) return;
-    if (abertas.length >= MAX_PAINEIS) { setErro(`Dá pra abrir até ${MAX_PAINEIS} salas ao mesmo tempo.`); return; }
-    setAbertas((a) => [...a, id]);
-    if (!atualRef.current) { atualRef.current = id; setAtual(id); }
+    if (escolhidas.includes(id)) { setEscolhidas((e) => e.filter((x) => x !== id)); return; }
+    if (escolhidas.length >= MAX_PAINEIS) { setErro(`Dá pra abrir até ${MAX_PAINEIS} salas ao mesmo tempo.`); return; }
+    setEscolhidas((e) => [...e, id]);
   }
+
+  // Confirma a lista: as que já estavam abertas e continuam marcadas ficam no
+  // mesmo lugar (a partida delas não reinicia); as novas entram no fim.
+  function confirmar() {
+    if (!escolhidas.length) return;
+    setErro("");
+    const ficam = abertas.filter((id) => escolhidas.includes(id));
+    const novas = escolhidas.filter((id) => !abertas.includes(id));
+    const final = [...ficam, ...novas];
+    setAbertas(final);
+    setSeletor(false);
+    if (!final.includes(atualRef.current)) { atualRef.current = final[0]; setAtual(final[0]); }
+  }
+
+  function abrirSeletor() {
+    if (seletor) { setSeletor(false); return; }
+    setEscolhidas(abertas); // começa do que já está na tela
+    setErro("");
+    setSeletor(true);
+  }
+
   function fechar(id) {
+    setEscolhidas((e) => e.filter((r) => r !== id));
     setAbertas((a) => a.filter((r) => r !== id));
     if (atualRef.current === id) { atualRef.current = null; setAtual(null); }
   }
@@ -121,7 +147,7 @@ export default function MultiSala({ usuario, jogo }) {
         </header>
       ) : (
         <div className="v2-multi-barra">
-          <button className="v2-botao-pequeno" onClick={() => setSeletor((v) => !v)}>{seletor ? "Fechar lista" : "Escolher salas"}</button>
+          <button className="v2-botao-pequeno" onClick={abrirSeletor}>{seletor ? "Fechar lista" : "Escolher salas"}</button>
           {abertas.length > 1 && <button className="v2-botao-pequeno" onClick={() => trocar(1)} title="Ctrl + seta, ou Ctrl + número da sala">Próxima sala</button>}
           {abertas.length === 2 && <button className="v2-botao-pequeno" onClick={alternarEmpilhado}>{empilhado ? "Lado a lado" : "Empilhar"}</button>}
           <span className="v2-multi-contador">{abertas.length} de {MAX_PAINEIS} salas{abertas.length > 1 && <span className="v2-multi-dica-atalho"> · Ctrl + setas pra alternar</span>}</span>
@@ -138,10 +164,22 @@ export default function MultiSala({ usuario, jogo }) {
         </div>
       )}
 
-      {(!jogando || seletor) && <Seletor salas={salas} abertas={abertas} ehStop={ehStop} alternar={(id) => (abertas.includes(id) ? fechar(id) : abrir(id))} />}
+      {(!jogando || seletor) && (
+        <>
+          <Seletor salas={salas} escolhidas={escolhidas} ehStop={ehStop} alternar={marcar} />
+          <Confirmar
+            escolhidas={escolhidas}
+            abertas={abertas}
+            jogando={jogando}
+            nomeSala={nomeSala}
+            confirmar={confirmar}
+            limpar={() => setEscolhidas(jogando ? abertas : [])}
+          />
+        </>
+      )}
 
       {!jogando ? (
-        <p className="v2-multi-vazio">Escolha as salas acima pra começar. Elas aparecem lado a lado aqui embaixo.</p>
+        <p className="v2-multi-vazio">Marque até {MAX_PAINEIS} salas na lista e toque em <b>Abrir</b>: elas abrem todas juntas, lado a lado.</p>
       ) : (
         <div className={`v2-multi-grade n${abertas.length} ${abertas.length === 2 && empilhado ? "empilhada" : ""}`}>
           {abertas.map((id, i) => (
@@ -168,7 +206,29 @@ export default function MultiSala({ usuario, jogo }) {
   );
 }
 
-function Seletor({ salas, abertas, ehStop, alternar }) {
+// Barra de confirmação da escolha: mostra o que foi marcado e abre tudo
+// de uma vez. Com jogo já rolando, "Aplicar" também fecha as desmarcadas.
+function Confirmar({ escolhidas, abertas, jogando, nomeSala, confirmar, limpar }) {
+  const mudou = escolhidas.length !== abertas.length || escolhidas.some((id) => !abertas.includes(id));
+  const fecham = abertas.filter((id) => !escolhidas.includes(id)).length;
+  const n = escolhidas.length;
+  let rotulo = n === 0 ? "Abrir salas" : n === 1 ? "Abrir 1 sala" : `Abrir ${n} salas`;
+  if (jogando) rotulo = "Aplicar";
+  return (
+    <div className="v2-multi-confirmar" role="region" aria-label="Salas escolhidas">
+      <div className="v2-multi-confirmar-texto">
+        {n === 0
+          ? <span>Nenhuma sala marcada ainda.</span>
+          : <span><b>{n} de {MAX_PAINEIS}</b> · {escolhidas.map(nomeSala).join(", ")}</span>}
+        {jogando && fecham > 0 && <span className="v2-multi-confirmar-aviso">{fecham === 1 ? "1 sala aberta vai fechar." : `${fecham} salas abertas vão fechar.`}</span>}
+      </div>
+      {n > 0 && mudou && <button type="button" className="v2-botao-pequeno" onClick={limpar}>{jogando ? "Desfazer" : "Limpar"}</button>}
+      <button type="button" className="v2-botao v2-botao-amarelo" disabled={n === 0 || (jogando && !mudou)} onClick={confirmar}>{rotulo}</button>
+    </div>
+  );
+}
+
+function Seletor({ salas, escolhidas, ehStop, alternar }) {
   const arenas = salas.filter((s) => s.arena);
   const grupos = [];
   for (const s of salas.filter((x) => !x.arena)) {
@@ -185,7 +245,7 @@ function Seletor({ salas, abertas, ehStop, alternar }) {
     return "Entrar";
   };
   const Botao = ({ s }) => {
-    const aberta = abertas.includes(s.roomId);
+    const aberta = escolhidas.includes(s.roomId);
     const cls = ehStop ? (s.difficulty === "advanced" ? "avancada" : s.difficulty === "mid" ? "media" : "padrao") : s.arena ? "arena" : s.tier === "avancado" ? "avancada" : "padrao";
     return (
       <button className={`v2-multi-sala ${cls} ${aberta ? "aberta" : ""}`} onClick={() => alternar(s.roomId)} title={s.label} aria-pressed={aberta}>

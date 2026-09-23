@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
-import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -59,6 +59,8 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
   const [tremer, setTremer] = useState(false);
   const [cheia, setCheia] = useState(null);
   const [mudo, setMudo] = useState(estaMudo());
+  // Confete de acerto ligado/desligado (preferência do aparelho, ao lado do mudo).
+  const [semAnimacao, setSemAnimacao] = useState(estaSemAnimacao());
   const [avisoColar, setAvisoColar] = useState(false);
   const [turno, setTurno] = useState(null); // arenas: { rodada, total }
   const [rankingTurno, setRankingTurno] = useState([]);
@@ -327,6 +329,13 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13" /></svg>
           )}
         </button>
+        <button className="v2-mudo" aria-label={semAnimacao ? "Ligar animação de acerto" : "Desligar animação de acerto"} title={semAnimacao ? "Ligar animação de acerto" : "Desligar animação de acerto"} onClick={() => setSemAnimacao(alternarAnimacao())}>
+          {semAnimacao ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M4.9 19.1l3.5-3.5M15.6 8.4l3.5-3.5M4 4l16 16" /></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M4.9 4.9l3.5 3.5M15.6 15.6l3.5 3.5M4.9 19.1l3.5-3.5M15.6 8.4l3.5-3.5" /></svg>
+          )}
+        </button>
       </header>
 
       <div className="v2-sala-corpo">
@@ -454,7 +463,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
                 teclado do iPhone) não se perde. */}
             {resultado && (
               <div className={`v2-resultado ${resultado.tipo} ${resultado.arena ? "rapido" : ""}`} role="status" onClick={() => setResultado(null)}>
-                {resultado.tipo === "eu" && <Confete />}
+                {resultado.tipo === "eu" && !semAnimacao && <Confete />}
                 {resultado.tipo === "ninguem" ? (
                   <div className="v2-resultado-selo">
                     <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9 9.5h.01M15 9.5h.01M8.5 16c2-1.5 5-1.5 7 0" /></svg>
@@ -523,7 +532,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
                     <b style={{ color: corDoJogador(m.userId) }}>{m.clanTag ? `[${m.clanTag}] ` : ""}{m.nickname}</b>
                   )}
                   {!m.system && " "}
-                  <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
+                  <span className={m.bold ? "negrito" : ""}>{m.system ? <TextoSistema mensagem={m.message} destaque={m.tituloDestaque} fila={m.fila} /> : <TextoComMarcacoes texto={m.message} participantes={jogadores.map((j) => j.nickname)} meuNick={usuario.nickname} />}</span>
                   {podeModerar && !m.system && m.id && (
                     <button className="v2-msg-apagar" aria-label="Apagar mensagem" title="Apagar mensagem" onClick={() => { if (window.confirm(`Apagar a mensagem de ${m.nickname}?`)) socketRef.current?.emit("delete-chat-message", { escopo: "quiz", id: m.id }); }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>

@@ -1,6 +1,6 @@
 import { test, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
-import { Filas, SEG_JUNTAR, SEG_ACEITAR } from "../../src/fila/filaDeEspera.js";
+import { Filas, SEG_JUNTAR, SEG_ACEITAR, SEG_ENTRE_ANUNCIOS } from "../../src/fila/filaDeEspera.js";
 
 beforeEach(() => mock.timers.enable({ apis: ["setTimeout", "Date"] }));
 afterEach(() => mock.timers.reset());
@@ -207,4 +207,27 @@ test("erro ao criar a sala: todo mundo volta pra fila", () => {
   } finally { console.error = erroOriginal; }
   assert.equal(ultimo("a", "fila-fim").motivo, "voltou");
   assert.deepEqual(f.filasDe("a"), ["impostor"]);
+});
+
+// ---------------- convite nos chats das salas ----------------
+
+test("fila: convida nos chats enquanto falta gente, no máximo 1 por jogo a cada 2 min", () => {
+  const anuncios = [];
+  const jogos = {
+    impostor: { nome: "Impostor", min: 4, max: 6, bots: true, criarSala: () => ({ mesa: "S" }) },
+    tribunal: { nome: "Tribunal", min: 3, max: 6, bots: true, criarSala: () => ({ mesa: "S" }) },
+  };
+  const f = new Filas({ jogos, enviar: () => {}, anunciar: (a) => anuncios.push(a) });
+  const u = (id) => ({ id, nickname: id.toUpperCase() });
+  f.entrar(u("a"), "impostor");
+  assert.deepEqual(anuncios, [{ jogo: "impostor", nome: "Impostor", nickname: "A", naFila: 1, minimo: 4 }]);
+  f.entrar(u("b"), "impostor"); // dentro dos 2 min: não repete
+  f.entrar(u("a"), "tribunal"); // outro jogo: convida
+  assert.equal(anuncios.length, 2);
+  segundos(SEG_ENTRE_ANUNCIOS);
+  f.entrar(u("c"), "impostor"); // passou o intervalo, ainda falta gente
+  assert.equal(anuncios.at(-1).naFila, 3);
+  segundos(SEG_ENTRE_ANUNCIOS);
+  f.entrar(u("d"), "impostor"); // fila completou: não convida
+  assert.equal(anuncios.length, 3);
 });

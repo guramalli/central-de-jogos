@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useFila, pedirFila } from "./fila.js";
 
 // PEÇAS DO CHAT da v2 — mesma lógica do chat do clássico
 // (src/components/Chat.jsx e EmojiPicker.jsx):
@@ -11,7 +12,8 @@ const normalizar = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u03
 // "👋 Guramalli (STOP Supersônico) entrou na sala." — o servidor manda o
 // trecho do título e o nível (bronze | prata | ouro | campeao | lendario) em
 // `tituloDestaque`; aqui só o trecho entre parênteses ganha a cor.
-export function TextoSistema({ mensagem, destaque }) {
+export function TextoSistema({ mensagem, destaque, fila }) {
+  if (fila?.jogo) return <>{mensagem} <ConviteFila jogo={fila.jogo} nome={fila.nome} /></>;
   if (!destaque?.texto || !destaque?.nivel) return mensagem;
   const marca = `(${destaque.texto})`;
   const corte = String(mensagem).indexOf(marca);
@@ -21,6 +23,31 @@ export function TextoSistema({ mensagem, destaque }) {
       {mensagem.slice(0, corte)}
       <span className={`v2-titulo-entrada nivel-${destaque.nivel}`}>{marca}</span>
       {mensagem.slice(corte + marca.length)}
+    </>
+  );
+}
+
+// Convite da fila de espera no chat ("Fulano colocou o nome na fila do
+// Impostor"): um botão pra quem está jogando outra coisa entrar junto, sem
+// sair da sala. Quem já está nessa fila vê só a confirmação.
+function ConviteFila({ jogo, nome }) {
+  const { fila } = useFila();
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
+  if (fila?.filas?.[jogo]) return <span className="v2-msg-fila-ok">✓ Seu nome está nessa fila</span>;
+  async function entrar() {
+    setEnviando(true);
+    setErro("");
+    const r = await pedirFila("fila-entrar", { jogo });
+    setEnviando(false);
+    if (r?.erro) setErro(r.erro);
+  }
+  return (
+    <>
+      <button type="button" className="v2-msg-fila-botao" disabled={enviando} onClick={entrar}>
+        {enviando ? "Colocando…" : `Colocar meu nome na fila do ${nome || jogo}`}
+      </button>
+      {erro && <span className="v2-msg-fila-erro">{erro}</span>}
     </>
   );
 }

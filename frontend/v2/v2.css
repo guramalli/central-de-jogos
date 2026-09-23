@@ -885,7 +885,8 @@ a { color: inherit; text-decoration: none; }
 .v2-mascara.tremer, .v2-resposta.tremer { animation: v2-tremer .45s ease-in-out; }
 .v2-palavra { display: flex; gap: 4px; flex-wrap: wrap; }
 .v2-letra { width: 26px; height: 32px; border-radius: 8px; background: var(--verde); color: #13322a; font-family: var(--titulo); font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; animation: v2-pop .35s ease-out both; }
-.v2-letra.oculta { background: #ede3d0; box-shadow: inset 0 -3px 0 #d8cbb2; animation: none; }
+/* Caixa ainda escondida: lilás com borda, pra cada letra se destacar do creme do cartão. */
+.v2-letra.oculta { background: var(--lilas); box-shadow: inset 0 0 0 2px var(--lilas-2), inset 0 -4px 0 var(--lilas-2); animation: none; }
 .v2-ja-pontuei { background: var(--verde); color: #13322a; border-radius: 18px; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .v2-ja-pontuei b { font-family: var(--titulo); font-size: 26px; }
 .v2-ranking-turno { display: flex; flex-direction: column; gap: 6px; }
@@ -1379,6 +1380,15 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 6
 .v2-multi-sala.arena.aberta { background: var(--amarelo); color: var(--roxo); }
 .v2-multi-sala em { font-style: normal; font-size: 11px; background: var(--roxo); color: #fff; padding: 1px 7px; border-radius: 999px; }
 .v2-multi-vazio { text-align: center; color: var(--lilas); font-weight: 800; padding: 20px; }
+/* Barra "Abrir N salas" embaixo da lista de escolha. Grudada no rodapé da
+   tela antes do jogo, pra o botão ficar sempre à mão mesmo com lista longa. */
+.v2-multi-confirmar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 1200px; width: 100%; margin: 0 auto; padding: 12px 24px; background: var(--roxo-escuro); border-top: 2px solid var(--roxo-2); }
+.v2-multi.jogando .v2-multi-confirmar { position: static; max-width: none; padding: 10px 12px; background: var(--roxo-2); border-top: 1px solid rgba(255, 255, 255, .12); }
+.v2-multi-confirmar-texto { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 700; color: var(--lilas); }
+.v2-multi-confirmar-texto b { color: #fff; }
+.v2-multi-confirmar-aviso { font-size: 12px; color: var(--laranja); font-weight: 800; }
+.v2-multi-confirmar .v2-botao { min-height: 46px; padding: 0 22px; font-size: 16px; }
+.v2-multi-confirmar .v2-botao:disabled { opacity: .45; cursor: not-allowed; }
 .v2-multi-grade { flex: 1; min-height: 0; display: grid; gap: 8px; padding: 8px; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); }
 .v2-multi-painel { min-height: 0; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; background: var(--roxo); box-shadow: inset 0 0 0 2px var(--roxo-2); }
 .v2-multi-painel.atual { box-shadow: inset 0 0 0 3px var(--amarelo); }
@@ -2334,7 +2344,7 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 .v2-controle-som-caixa b { color: var(--amarelo); min-width: 38px; text-align: right; }
 .v2-controle-som-mudo { border: none; border-radius: 10px; padding: 6px 10px; background: rgba(255,255,255,.12); color: #fff; font: inherit; font-weight: 800; font-size: 12px; cursor: pointer; }
 .v2-controle-som-mudo[aria-pressed="true"] { background: var(--vermelho); }
-@media (max-width: 520px) { .v2-controle-som-caixa { left: auto; right: -8px; } .v2-controle-som-caixa input[type=range] { width: 100px; } }
+@media (max-width: 520px) { .v2-controle-som-caixa { left: auto; right: -8px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 24px); } .v2-controle-som-caixa input[type=range] { width: 100px; } }
 
 /* Tribunal: pacote do crime (testemunha, prova, álibi) */
 .v2-tribunal-dossie { margin: 2px 0 0; font-size: 15px; font-weight: 700; opacity: .92; }
@@ -2404,3 +2414,10 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
   .v2-sala.compacto .v2-emoji-botao { width: 44px; height: 44px; }
   .v2-sugestoes button { min-height: 44px; }
 }
+
+/* Convite da fila de espera no chat das salas (Chat.jsx, ConviteFila). */
+.v2-msg-fila-botao { display: inline-flex; align-items: center; min-height: 32px; margin: 4px 0 0; padding: 0 12px; border: none; border-radius: 999px; background: var(--amarelo); color: var(--roxo); font-weight: 900; font-size: 12px; cursor: pointer; box-shadow: 0 2px 0 var(--amarelo-sombra); }
+.v2-msg-fila-botao:disabled { opacity: .6; cursor: default; }
+.v2-msg-fila-ok { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 900; color: var(--verde); }
+.v2-msg-fila-erro { display: block; margin-top: 2px; font-size: 12px; font-weight: 800; color: #ff8a80; }
+@media (pointer: coarse) { .v2-msg-fila-botao { min-height: 40px; } }
