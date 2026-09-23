@@ -76,6 +76,8 @@
 /* ---------- entrada ---------- */
 .imp-entrada { display: flex; flex-direction: column; align-items: center; gap: 18px; max-width: 560px; margin: 24px auto; text-align: center; }
 .imp-entrada .imp-titulo-heroi { font-size: 96px; }
+.imp-logo-titulo { margin: 0; line-height: 0; }
+.imp-logo { width: min(460px, 90vw); height: auto; filter: drop-shadow(0 6px 0 rgba(0, 0, 0, .35)); }
 .imp-entrada-painel { width: 100%; display: flex; flex-direction: column; gap: 18px; text-align: left; }
 .imp-codigo-form { display: flex; flex-direction: column; gap: 8px; }
 .imp-campo-codigo { font-family: var(--imp-titulo); font-size: 22px; letter-spacing: 3px; text-transform: uppercase; }

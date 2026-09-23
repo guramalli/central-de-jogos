@@ -116,9 +116,9 @@ test("jogo sem bots (Acromania): 'Começar com quem está' precisa de 2", () => 
 
 // ---------------- várias filas ----------------
 
-test("várias filas: dá pra colocar o nome em todas", () => {
+test("várias filas: dá pra colocar o nome em mais de uma", () => {
   const { f, u, ultimo } = criar();
-  assert.equal(f.entrarEmTodas(u("a")), null);
+  for (const jogo of ["impostor", "tribunal", "acromania"]) assert.equal(f.entrar(u("a"), jogo), null);
   assert.deepEqual(f.filasDe("a").sort(), ["acromania", "impostor", "tribunal"]);
   assert.deepEqual(Object.keys(ultimo("a", "fila-estado").filas).sort(), ["acromania", "impostor", "tribunal"]);
   f.sair("a"); // sem jogo: tira de todas
@@ -127,7 +127,7 @@ test("várias filas: dá pra colocar o nome em todas", () => {
 
 test("várias filas: aceitou e a partida saiu → sai das outras filas", () => {
   const { f, u, entrar, salas, ultimo, aceitar } = criar();
-  f.entrarEmTodas(u("a"));
+  for (const jogo of ["impostor", "tribunal", "acromania"]) f.entrar(u("a"), jogo);
   entrar("tribunal", "b", "c");
   segundos(SEG_JUNTAR);
   assert.equal(ultimo("a", "fila-proposta").jogo, "tribunal");
@@ -140,7 +140,7 @@ test("várias filas: aceitou e a partida saiu → sai das outras filas", () => {
 
 test("várias filas: enquanto confirma, fica PAUSADO nas outras (sem proposta dupla)", () => {
   const { f, u, entrar, ultimo } = criar();
-  f.entrarEmTodas(u("a"));
+  for (const jogo of ["impostor", "tribunal", "acromania"]) f.entrar(u("a"), jogo);
   entrar("tribunal", "b", "c");
   segundos(SEG_JUNTAR); // proposta do Tribunal para a, b, c
   entrar("impostor", "x", "y", "z"); // Impostor tem a + x + y + z = 4, mas "a" está pausado
@@ -152,7 +152,7 @@ test("várias filas: enquanto confirma, fica PAUSADO nas outras (sem proposta du
 
 test("várias filas: recusou → sai só dessa fila e a outra volta a contar", () => {
   const { f, u, entrar, ultimo, idProposta, aceitar } = criar();
-  f.entrarEmTodas(u("a"));
+  for (const jogo of ["impostor", "tribunal", "acromania"]) f.entrar(u("a"), jogo);
   entrar("tribunal", "b", "c");
   segundos(SEG_JUNTAR);
   entrar("impostor", "x", "y", "z");
@@ -167,7 +167,7 @@ test("várias filas: recusou → sai só dessa fila e a outra volta a contar", (
 
 test("várias filas: não respondeu → tira o nome de TODAS", () => {
   const { f, u, entrar, ultimo, aceitar } = criar();
-  f.entrarEmTodas(u("a"));
+  for (const jogo of ["impostor", "tribunal", "acromania"]) f.entrar(u("a"), jogo);
   entrar("tribunal", "b", "c");
   segundos(SEG_JUNTAR);
   aceitar("b", "c");
@@ -178,7 +178,7 @@ test("várias filas: não respondeu → tira o nome de TODAS", () => {
 
 test("fechou todas as abas: sai de todas as filas e recusa a partida pendente", () => {
   const { f, u, entrar, ultimo, aceitar } = criar();
-  f.entrarEmTodas(u("d"));
+  for (const jogo of ["impostor", "tribunal", "acromania"]) f.entrar(u("d"), jogo);
   entrar("impostor", "a", "b", "c");
   segundos(SEG_JUNTAR);
   f.desconectou("d");

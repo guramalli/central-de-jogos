@@ -4,7 +4,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Praca from "./Praca.jsx";
-import { CardPartidaRapida, BotaoTodasAsFilas } from "./FilaNoCard.jsx";
+import { CardPartidaRapida } from "./FilaNoCard.jsx";
 import { NOMES_FILA } from "./fila.js";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
@@ -17,8 +17,8 @@ const JOGOS = [
   { chave: "quiz", logo: "/quiz-logo.png", cor: "#FFD60A", sombra: "#B88A00", texto: "Milhares de perguntas por tema — Futebol, Anime, Games, Terceirão e muito mais. Quem acerta primeiro leva os pontos!" },
   { chave: "acromania", logo: "/acromania-logo.png", cor: "#C3A6FF", sombra: "#8465D1", texto: "Um tema, algumas letras, e você cria a frase mais criativa. A galera vota na melhor.", beta: true },
   { chave: "tribunal", logo: "/tribunal-logo.png", cor: "#7CC8FF", sombra: "#3F84C4", texto: "Alguém é acusado de um crime absurdo. Promotor acusa, advogado defende, e o júri decide: culpado ou inocente?", beta: true },
-  // O Impostor — em testes (sem ranking ainda). Sem logo: o card usa o título em texto.
-  { chave: "impostor", titulo: "O Impostor", cor: "#FF4D5E", sombra: "#A3202E", texto: "Todo mundo sabe a palavra, menos um. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", beta: true },
+  // O Impostor — em testes (sem ranking ainda).
+  { chave: "impostor", logo: "/impostor-logo.png", cor: "#FF4D5E", sombra: "#A3202E", texto: "Todo mundo sabe a palavra, menos um. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", beta: true },
 ];
 
 export default function Inicio({ usuario }) {
@@ -132,8 +132,7 @@ export default function Inicio({ usuario }) {
         <section className="v2-jogos-rapida" aria-labelledby="v2-jogos-rapida-titulo">
           <div className="v2-jogos-rapida-topo">
             <h2 id="v2-jogos-rapida-titulo">📝 Fila de espera</h2>
-            <p>Coloque seu nome na fila e continue navegando. Quando juntar gente suficiente, a gente te chama pra confirmar — com som e aviso na tela. Pode deixar o nome em mais de um jogo: você joga no que juntar gente primeiro.</p>
-            <BotaoTodasAsFilas jogos={Object.keys(NOMES_FILA).filter((j) => j !== "acromania" || acroAtivo)} />
+            <p>Coloque seu nome na fila de um ou mais jogos e continue navegando. Quando juntar gente, a gente te chama pra confirmar.</p>
           </div>
           <div className="v2-jogos-cards v2-jogos-rapidos">
             {JOGOS.filter((j) => NOMES_FILA[j.chave] && (j.chave !== "acromania" || acroAtivo)).map((j, i) => (

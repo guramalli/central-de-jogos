@@ -25,9 +25,6 @@
 .v2-fila-jogar { width: 100%; min-height: 46px; padding: 0 18px; border: none; border-radius: 14px; background: var(--roxo); color: #fff; font-family: var(--titulo); font-weight: 700; font-size: 17px; box-shadow: 0 4px 0 var(--roxo-escuro); transition: transform .1s; }
 .v2-fila-jogar:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--roxo-escuro); }
 .v2-fila-jogar.secundario { width: auto; font-size: 15px; }
-.v2-fila-jogar.contorno { background: transparent; color: var(--amarelo); border: 2px solid var(--amarelo); box-shadow: none; }
-.v2-fila-todas { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
-.v2-fila-todas .v2-fila-jogar:not(.contorno) { background: var(--amarelo); color: var(--roxo); box-shadow: 0 4px 0 var(--amarelo-sombra); }
 .v2-fila-jogar:disabled, .v2-fila-sair:disabled { opacity: .6; }
 .v2-fila-ver-salas { font-family: var(--titulo); font-weight: 700; font-size: 15px; color: var(--roxo); padding: 10px 4px; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
 .v2-fila-sair { min-height: 44px; padding: 0 14px; border: 2px solid var(--roxo); border-radius: 14px; background: transparent; color: var(--roxo); font-weight: 900; font-size: 14px; }
