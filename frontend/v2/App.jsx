@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { usuarioAtual } from "./api.js";
 import Lobby from "./Lobby.jsx";
-import Sala from "./Sala.jsx";
-import SalaStop from "./SalaStop.jsx";
 import SalaAcro from "./SalaAcro.jsx";
 import Ranking from "./Ranking.jsx";
 import Missoes from "./Missoes.jsx";
@@ -10,21 +8,29 @@ import Patentes from "./Patentes.jsx";
 import Perfil from "./Perfil.jsx";
 import Inicio from "./Inicio.jsx";
 import Amigos from "./Amigos.jsx";
-import Clas from "./Clas.jsx";
 import Cla from "./Cla.jsx";
-import HallFama from "./HallFama.jsx";
 import Novidades from "./Novidades.jsx";
-import EditarPerfil from "./EditarPerfil.jsx";
-import Admin from "./Admin.jsx";
-import MultiSala from "./MultiSala.jsx";
-import Mentira from "./Mentira.jsx";
-import Tribunal from "./Tribunal.jsx";
 import Impostor from "./ImpostorSobDemanda.jsx";
 import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
-import SalasPrivadas from "./SalasPrivadas.jsx";
 import ErroNaPagina from "./ErroNaPagina.jsx";
+
+// Páginas pesadas ou pouco visitadas carregam sob demanda (mesma ideia do
+// ImpostorSobDemanda): quem só abre o Início não baixa o painel admin nem as
+// salas. Ficam de fora as que outro arquivo já importa direto (SalaAcro, via
+// Lobby; Amigos, via o chat flutuante) — lá não adiantaria.
+// Falha ao baixar (deploy no meio) cai no ErroNaPagina, que recarrega.
+const Sala = lazy(() => import("./Sala.jsx"));
+const SalaStop = lazy(() => import("./SalaStop.jsx"));
+const MultiSala = lazy(() => import("./MultiSala.jsx"));
+const Admin = lazy(() => import("./Admin.jsx"));
+const Mentira = lazy(() => import("./Mentira.jsx"));
+const Tribunal = lazy(() => import("./Tribunal.jsx"));
+const EditarPerfil = lazy(() => import("./EditarPerfil.jsx"));
+const SalasPrivadas = lazy(() => import("./SalasPrivadas.jsx"));
+const HallFama = lazy(() => import("./HallFama.jsx"));
+const Clas = lazy(() => import("./Clas.jsx"));
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
@@ -73,7 +79,9 @@ export default function App() {
   const qualPagina = local.sala ? `sala-${local.sala}` : local.stop ? `stop-${local.stop}` : local.acro ? `acro-${local.acro}` : local.pagina || "inicio";
   return (
     <ErroNaPagina key={qualPagina}>
-      <Pagina local={local} usuario={usuario} />
+      <Suspense fallback={<div className="v2-carregando">Carregando…</div>}>
+        <Pagina local={local} usuario={usuario} />
+      </Suspense>
     </ErroNaPagina>
   );
 }

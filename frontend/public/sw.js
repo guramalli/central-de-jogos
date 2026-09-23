@@ -28,7 +28,12 @@
 // velho apontava pra arquivos JS/CSS com hash que já não existiam mais, e
 // a tela ficava em branco. Reforça o Cache-Control do vercel.json, que
 // resolve a mesma causa do lado do servidor.
-const VERSAO = "eg-v12";
+// eg-v13: o cache de arquivos do build (/assets/) passou a ter limite — a
+// cada deploy entravam arquivos novos (com hash novo) e os velhos ficavam
+// guardados pra sempre. O manifest.json também passou a ser conferido por
+// trás (antes, quem instalou o app nunca recebia um manifest novo). A
+// subida de versão limpa o que já tinha acumulado.
+const VERSAO = "eg-v13";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -37,6 +42,17 @@ const ESSENCIAIS = ["/", "/favicon.png", "/manifest.json"];
 // Pastas de arte com nome de arquivo FIXO (sem hash): quando uma imagem é
 // regerada, o nome continua o mesmo. Elas precisam ser revalidadas, senão
 // a versão antiga fica presa no cache do jogador pra sempre.
+// Quantos arquivos do build (/assets/) ficam guardados, no máximo. Cada
+// deploy gera nomes novos; passando do limite, saem os mais antigos (o
+// Cache Storage devolve as chaves na ordem em que entraram).
+const MAX_ASSETS = 80;
+
+async function apararAssets(cache) {
+  const chaves = (await cache.keys()).filter((r) => new URL(r.url).pathname.startsWith("/assets/"));
+  const sobra = chaves.length - MAX_ASSETS;
+  for (let i = 0; i < sobra; i++) await cache.delete(chaves[i]);
+}
+
 const ARTE_TROCAVEL = /^\/(titulos|ranks|ranks-quiz|ranks-acromania|ranks-mentira|temas-quiz|dificuldades|sounds)\/|^\/(educacao-gamer-logo[a-z-]*|favicon|pwa-[a-z0-9-]+|quiz-logo[a-z-]*|stop-logo|acromania-logo[a-z-]*|mentira-logo[a-z-]*|tribunal-logo[a-z-]*|impostor-logo[a-z-]*)\.png$/;
 
 self.addEventListener("install", (evento) => {
@@ -105,7 +121,8 @@ self.addEventListener("fetch", (evento) => {
   // Aqui a pessoa continua recebendo na hora o que está no cache — sem
   // perder velocidade — e o navegador busca a versão nova em segundo plano
   // pra próxima visita. Trocar uma arte passa a chegar sozinho.
-  if (ARTE_TROCAVEL.test(url.pathname)) {
+  // O manifest.json entra aqui também: nome fixo, precisa chegar atualizado.
+  if (ARTE_TROCAVEL.test(url.pathname) || url.pathname === "/manifest.json") {
     evento.respondWith(
       caches.match(req).then((cacheado) => {
         const daRede = fetch(req)
@@ -137,7 +154,10 @@ self.addEventListener("fetch", (evento) => {
             return resposta;
           }
           const copia = resposta.clone();
-          caches.open(CACHE_ESTATICO).then((cache) => cache.put(req, copia));
+          caches
+            .open(CACHE_ESTATICO)
+            .then((cache) => cache.put(req, copia).then(() => url.pathname.startsWith("/assets/") && apararAssets(cache)))
+            .catch(() => {});
           return resposta;
         })
         .catch(() => cacheado);
