@@ -6,7 +6,7 @@ import { ativarSons, somCampeao, carregarSons, somMarteloAbertura, somMarteloUma
 import { Moldura, Relogio, Confete, ReacoesFlutuando, ChatMentira, ControleSom } from "./Mentira.jsx";
 import { BotaoConvidar } from "./Convites.jsx";
 import ChatAmigosFlutuante from "./ChatAmigosFlutuante.jsx";
-import FilaNoCard from "./FilaNoCard.jsx";
+import { PartidaRapida } from "./FilaNoCard.jsx";
 
 // O TRIBUNAL — tela (EM TESTE, com selo "em testes" nos cards do Início, da
 // página pública e da versão clássica).
@@ -125,7 +125,7 @@ export default function Tribunal({ usuario, salaDoLink }) {
           {erro && <div className="v2-faixa-aviso erro" role="alert">{erro}</div>}
           {salaDoLink && !erro && <div className="v2-carregando">Entrando na sala…</div>}
         </section>
-        <FilaNoCard jogo="tribunal" classe="v2-fila-tela" />
+        <PartidaRapida jogo="tribunal" />
         <SalasAbertas aoEntrar={entrarEm} />
         <section className="v2-cartao v2-mentira-amigos">
           <div>

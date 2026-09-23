@@ -4,7 +4,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Praca from "./Praca.jsx";
-import FilaNoCard from "./FilaNoCard.jsx";
+import { CardPartidaRapida } from "./FilaNoCard.jsx";
 import { NOMES_FILA } from "./fila.js";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
@@ -20,18 +20,6 @@ const JOGOS = [
   // O Impostor — em testes (sem ranking ainda). Sem logo: o card usa o título em texto.
   { chave: "impostor", titulo: "O Impostor", cor: "#FF4D5E", sombra: "#A3202E", texto: "Todo mundo sabe a palavra, menos um. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", beta: true },
 ];
-
-// Jogos com fila de espera ("Jogar agora"): o card ganha o controle da fila
-// logo abaixo (fora do link, pra o clique não abrir o jogo).
-function comFila(chave, card) {
-  if (!NOMES_FILA[chave]) return card;
-  return (
-    <div key={chave} className="v2-jogo-card-envelope">
-      {card}
-      <FilaNoCard jogo={chave} />
-    </div>
-  );
-}
 
 export default function Inicio({ usuario }) {
   const [perfil, setPerfil] = useState(null);
@@ -127,8 +115,10 @@ export default function Inicio({ usuario }) {
           </div>
         </section>
 
-        <div className="v2-jogos-cards">
-          {JOGOS.filter((j) => j.chave !== "acromania" || acroAtivo).map((j, i) => comFila(j.chave,
+        {/* Duas fileiras: SALAS (Stop, Quiz) e PARTIDA RÁPIDA (os jogos com fila
+            de espera — a fila fica no rodapé do card). */}
+        <div className="v2-jogos-cards v2-jogos-salas">
+          {JOGOS.filter((j) => !NOMES_FILA[j.chave]).map((j, i) => (
             <a key={j.chave} className="v2-jogo-card" href={PAGINA_PROPRIA[j.chave] ? linkDaPagina(PAGINA_PROPRIA[j.chave]) : linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
               {j.beta && <span className="v2-jogo-card-beta">em testes</span>}
               {j.logo ? <img src={j.logo} alt={NOMES[j.chave]} /> : <span className="v2-jogo-card-titulo">{j.titulo}</span>}
@@ -138,6 +128,32 @@ export default function Inicio({ usuario }) {
             </a>
           ))}
         </div>
+
+        <section className="v2-jogos-rapida" aria-labelledby="v2-jogos-rapida-titulo">
+          <div className="v2-jogos-rapida-topo">
+            <h2 id="v2-jogos-rapida-titulo">⚡ Partida rápida</h2>
+            <p>Entre na fila e jogue com quem estiver esperando. Juntou gente, aparece “Partida encontrada” — é só aceitar.</p>
+          </div>
+          <div className="v2-jogos-cards v2-jogos-rapidos">
+            {JOGOS.filter((j) => NOMES_FILA[j.chave] && (j.chave !== "acromania" || acroAtivo)).map((j, i) => (
+              <CardPartidaRapida
+                key={j.chave}
+                jogo={j.chave}
+                logo={j.logo}
+                titulo={j.titulo}
+                nome={NOMES[j.chave]}
+                texto={j.texto}
+                cor={j.cor}
+                sombra={j.sombra}
+                beta={j.beta}
+                online={online?.[j.chave]}
+                hrefSalas={PAGINA_PROPRIA[j.chave] ? linkDaPagina(PAGINA_PROPRIA[j.chave]) : linkDaPagina("jogar", { jogo: j.chave })}
+                aoVerSalas={(e) => jogar(e, j.chave)}
+                atraso={(i + 2) * 80}
+              />
+            ))}
+          </div>
+        </section>
 
         <div className="v2-inicio-duas">
           <section className="v2-cartao v2-premiacao">
