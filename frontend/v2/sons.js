@@ -53,6 +53,18 @@ export function alternarMudo() {
   return mudo;
 }
 
+// ANIMAÇÃO DE ACERTO (o confete). Mora aqui junto do mudo porque é a mesma
+// ideia: preferência do aparelho, com botão ao lado do de som nos jogos.
+// Desligar só tira o confete — o destaque verde e o som continuam.
+let semAnimacao = false;
+try { semAnimacao = localStorage.getItem("eg_v2_sem_animacao") === "1"; } catch { /* sem armazenamento */ }
+export const estaSemAnimacao = () => semAnimacao;
+export function alternarAnimacao() {
+  semAnimacao = !semAnimacao;
+  try { localStorage.setItem("eg_v2_sem_animacao", semAnimacao ? "1" : "0"); } catch { /* vale só nesta página */ }
+  return semAnimacao;
+}
+
 function carregarArquivos() {
   if (!ctx) return;
   for (const [nome, { url, grupo }] of Object.entries(ARQUIVOS)) {

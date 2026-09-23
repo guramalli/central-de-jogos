@@ -4,7 +4,7 @@ import { api, novoSocket, ehSessaoMorta } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Avatar from "./Avatar.jsx";
-import { ativarSons, alternarMudo, estaMudo, somRodada, somVitoriaRodada, somCampeao, volumeAtual, definirVolume } from "./sons.js";
+import { ativarSons, alternarMudo, estaMudo, estaSemAnimacao, alternarAnimacao, somRodada, somVitoriaRodada, somCampeao, volumeAtual, definirVolume } from "./sons.js";
 import { CampoChat, TextoComMarcacoes } from "./Chat.jsx";
 import { EscadaPatentes } from "./Lobby.jsx";
 
@@ -28,7 +28,7 @@ export function Confete({ quantidade = 90, duracao = 4200 }) {
   })));
   const [vivo, setVivo] = useState(true);
   useEffect(() => { const t = setTimeout(() => setVivo(false), duracao); return () => clearTimeout(t); }, []);
-  if (!vivo || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return null;
+  if (!vivo || estaSemAnimacao() || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return null;
   return (
     <div className="v2-confete" aria-hidden="true">
       {pecas.map((p) => (
@@ -357,6 +357,7 @@ export function ControleSom({ aoTestar = null }) {
   const [mudo, setMudo] = useState(estaMudo());
   const [vol, setVol] = useState(volumeAtual());
   const [aberto, setAberto] = useState(false);
+  const [semAnimacao, setSemAnimacao] = useState(estaSemAnimacao());
   const efetivo = mudo ? 0 : vol;
   const icone = efetivo === 0 ? "🔇" : efetivo < 0.4 ? "🔈" : efetivo < 0.75 ? "🔉" : "🔊";
   function mudar(e) {
@@ -372,6 +373,7 @@ export function ControleSom({ aoTestar = null }) {
           <button className="v2-controle-som-mudo" onClick={() => setMudo(alternarMudo())} aria-pressed={mudo}>{mudo ? "🔇 desligado" : "🔊 ligado"}</button>
           <input type="range" min="0" max="100" value={Math.round(vol * 100)} onChange={mudar} onPointerUp={() => aoTestar?.()} onKeyUp={(e) => { if (e.key.startsWith("Arrow")) aoTestar?.(); }} aria-label="Volume" />
           <b>{Math.round(vol * 100)}%</b>
+          <button className="v2-controle-som-mudo" onClick={() => setSemAnimacao(alternarAnimacao())} aria-pressed={semAnimacao} aria-label={semAnimacao ? "Ligar animação de acerto" : "Desligar animação de acerto"} title={semAnimacao ? "Ligar animação de acerto" : "Desligar animação de acerto"}>{semAnimacao ? "🚫 confete" : "🎉 confete"}</button>
         </div>
       )}
     </div>

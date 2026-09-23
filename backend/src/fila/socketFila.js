@@ -1,5 +1,19 @@
 import { Filas } from "./filaDeEspera.js";
 import { jogosDaFila } from "./jogos.js";
+import { anunciarNasSalas as anunciarStop } from "../game/gameManager.js";
+import { anunciarNasSalas as anunciarQuiz } from "../game/quizGameManager.js";
+import { anunciarNasSalas as anunciarAcromania } from "../game/acromaniaGameManager.js";
+
+// Convite da fila nos chats das salas do Stop, Quiz e Acromania. O texto
+// serve pra qualquer tela (o clássico mostra só ele); a v2 usa `fila` pra
+// desenhar o botão "Colocar meu nome na fila".
+function anunciarFila({ jogo, nome, nickname, naFila, minimo }) {
+  const texto = `🎮 ${nickname} colocou o nome na fila do ${nome} (${naFila}/${minimo}). Bora jogar junto?`;
+  const extra = { fila: { jogo, nome } };
+  anunciarStop(texto, extra);
+  anunciarQuiz(texto, extra);
+  anunciarAcromania(texto, extra);
+}
 
 // FILA DE ESPERA — eventos de socket.
 //
@@ -22,6 +36,7 @@ function obterFilas(io) {
       jogos: jogosDaFila(io),
       enviar: (userId, evento, dados) => io.to(`fila:${userId}`).emit(evento, dados),
       contagem: (dados) => io.to("fila-observadores").emit("fila-contagem", dados),
+      anunciar: anunciarFila,
     });
   }
   return filas;
