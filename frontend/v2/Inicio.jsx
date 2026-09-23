@@ -4,7 +4,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Praca from "./Praca.jsx";
-import { CardPartidaRapida } from "./FilaNoCard.jsx";
+import { CardPartidaRapida, BotaoTodasAsFilas } from "./FilaNoCard.jsx";
 import { NOMES_FILA } from "./fila.js";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
@@ -132,7 +132,8 @@ export default function Inicio({ usuario }) {
         <section className="v2-jogos-rapida" aria-labelledby="v2-jogos-rapida-titulo">
           <div className="v2-jogos-rapida-topo">
             <h2 id="v2-jogos-rapida-titulo">📝 Fila de espera</h2>
-            <p>Coloque seu nome na fila e continue navegando. Quando juntar gente suficiente, a gente te chama pra confirmar — com som e aviso na tela.</p>
+            <p>Coloque seu nome na fila e continue navegando. Quando juntar gente suficiente, a gente te chama pra confirmar — com som e aviso na tela. Pode deixar o nome em mais de um jogo: você joga no que juntar gente primeiro.</p>
+            <BotaoTodasAsFilas jogos={Object.keys(NOMES_FILA).filter((j) => j !== "acromania" || acroAtivo)} />
           </div>
           <div className="v2-jogos-cards v2-jogos-rapidos">
             {JOGOS.filter((j) => NOMES_FILA[j.chave] && (j.chave !== "acromania" || acroAtivo)).map((j, i) => (

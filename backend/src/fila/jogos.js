@@ -37,7 +37,8 @@ export function jogosDaFila(io) {
       min: 3,
       max: 8,
       bots: false, // sala privada do Acromania não aceita bot
-      minComecarAgora: 2, // "Começar agora" a partir de 2 (mínimo da sala privada)
+      minComecarAgora: 2, // "Começar com quem está" a partir de 2 (mínimo da sala privada)
+      ativo: acromaniaAtivo, // em manutenção: ninguém coloca o nome
       criarSala: ({ membros }) => {
         if (!acromaniaAtivo()) throw new Error("Acromania em manutenção");
         // Sala privada com senha aleatória: só quem aceitou a partida entra

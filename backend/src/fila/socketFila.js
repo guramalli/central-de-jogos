@@ -59,8 +59,10 @@ export function registrarFila(io, socket) {
   };
 
   socket.on("fila-entrar", acao((f, { jogo }) => f.entrar(user, String(jogo || ""))));
-  socket.on("fila-sair", acao((f) => f.sair(user.id)));
-  socket.on("fila-comecar-agora", acao((f) => f.comecarAgora(user.id)));
+  socket.on("fila-entrar-todas", acao((f) => f.entrarEmTodas(user)));
+  // Com { jogo }: tira o nome dessa fila. Sem: de todas.
+  socket.on("fila-sair", acao((f, { jogo }) => f.sair(user.id, jogo ? String(jogo) : null)));
+  socket.on("fila-comecar-agora", acao((f, { jogo }) => f.comecarAgora(user.id, String(jogo || ""))));
   socket.on("fila-aceitar", acao((f, { id }) => f.responder(user.id, String(id || ""), true)));
   socket.on("fila-recusar", acao((f, { id }) => f.responder(user.id, String(id || ""), false)));
 

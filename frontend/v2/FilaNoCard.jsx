@@ -44,10 +44,11 @@ function ControlesFila({ jogo, verSalas = null }) {
     );
   }
 
-  if (fila.jogo !== jogo) {
+  const e = fila.filas?.[jogo];
+  if (!e) {
     return (
       <div className="v2-fila-controles">
-        <button type="button" className="v2-fila-jogar" disabled={enviando} onClick={(e) => agir(e, "fila-entrar", { jogo })}>
+        <button type="button" className="v2-fila-jogar" disabled={enviando || !!proposta} title={proposta ? "Confirme a partida encontrada primeiro" : undefined} onClick={(ev) => agir(ev, "fila-entrar", { jogo })}>
           ✋ Colocar meu nome na fila
         </button>
         <div className="v2-fila-linha">
@@ -63,15 +64,23 @@ function ControlesFila({ jogo, verSalas = null }) {
     );
   }
 
-  const faltam = Math.max(0, fila.minimo - fila.naFila);
+  if (e.pausado) {
+    return (
+      <div className="v2-fila-controles" role="status">
+        <p className="v2-fila-status">⏸ Seu nome continua aqui, pausado enquanto você confirma outra partida.</p>
+      </div>
+    );
+  }
+
+  const faltam = Math.max(0, e.minimo - e.naFila);
   return (
     <div className="v2-fila-controles" role="status">
       <p className="v2-fila-status">
         <span className="v2-fila-radar" aria-hidden="true" />
-        {faltam > 0 ? "Seu nome está na fila" : fila.fechaEmMs != null ? "Juntou gente! Fechando o grupo…" : "Montando a partida…"}
+        {faltam > 0 ? "Seu nome está na fila" : e.fechaEmMs != null ? "Juntou gente! Fechando o grupo…" : "Montando a partida…"}
         <span className="v2-fila-progresso">
-          <Bolinhas n={Math.min(fila.naFila, fila.minimo)} total={fila.minimo} />
-          <b>{fila.naFila}/{fila.minimo}</b>
+          <Bolinhas n={Math.min(e.naFila, e.minimo)} total={e.minimo} />
+          <b>{e.naFila}/{e.minimo}</b>
         </span>
       </p>
       {faltam > 0 && (
@@ -80,12 +89,12 @@ function ControlesFila({ jogo, verSalas = null }) {
         </p>
       )}
       <div className="v2-fila-linha">
-        {fila.podeComecarAgora && (
-          <button type="button" className="v2-fila-jogar secundario" disabled={enviando} onClick={(e) => agir(e, "fila-comecar-agora")}>
-            {fila.bots ? "🤖 Jogar agora com bots" : "Começar com quem está"}
+        {e.podeComecarAgora && (
+          <button type="button" className="v2-fila-jogar secundario" disabled={enviando} onClick={(ev) => agir(ev, "fila-comecar-agora", { jogo })}>
+            {e.bots ? "🤖 Jogar agora com bots" : "Começar com quem está"}
           </button>
         )}
-        <button type="button" className="v2-fila-sair" disabled={enviando} onClick={(e) => agir(e, "fila-sair")}>Tirar meu nome</button>
+        <button type="button" className="v2-fila-sair" disabled={enviando} onClick={(ev) => agir(ev, "fila-sair", { jogo })}>Tirar meu nome</button>
       </div>
       {erro && <p className="v2-fila-erro" role="alert">{erro}</p>}
     </div>
@@ -96,7 +105,7 @@ function ControlesFila({ jogo, verSalas = null }) {
 export function CardPartidaRapida({ jogo, logo, titulo, nome, texto, cor, sombra, beta, online, hrefSalas, aoVerSalas, atraso = 0 }) {
   const { contagem, fila, proposta } = useFila();
   const quantos = contagem?.[jogo] || 0;
-  const ativo = fila.jogo === jogo || proposta?.jogo === jogo;
+  const ativo = !!fila.filas?.[jogo] || proposta?.jogo === jogo;
   return (
     <article className={`v2-jogo-card v2-jogo-card-rapido ${ativo ? "na-fila" : ""}`} style={{ "--cor": cor, "--sombra": sombra, animationDelay: `${atraso}ms` }}>
       <div className="v2-jogo-card-selos">
@@ -111,6 +120,28 @@ export function CardPartidaRapida({ jogo, logo, titulo, nome, texto, cor, sombra
         verSalas={<a className="v2-fila-ver-salas" href={hrefSalas} onClick={aoVerSalas}>Ver salas</a>}
       />
     </article>
+  );
+}
+
+// "Colocar meu nome em todas as filas" (título da fileira no Início): pra
+// quem topa jogar o que juntar gente primeiro.
+export function BotaoTodasAsFilas({ jogos }) {
+  const { fila, proposta } = useFila();
+  const [erro, setErro] = useState("");
+  const emTodas = jogos.every((j) => fila.filas?.[j]);
+  async function clicar() {
+    if (!emTodas) destravarSom();
+    setErro("");
+    const r = await pedirFila(emTodas ? "fila-sair" : "fila-entrar-todas");
+    if (r.erro) setErro(r.erro);
+  }
+  return (
+    <div className="v2-fila-todas">
+      <button type="button" className={`v2-fila-jogar ${emTodas ? "contorno" : ""}`} disabled={!!proposta} onClick={clicar}>
+        {emTodas ? "Tirar meu nome de todas" : "✋ Colocar meu nome em todas as filas"}
+      </button>
+      {erro && <p className="v2-fila-erro" role="alert">{erro}</p>}
+    </div>
   );
 }
 

@@ -9,7 +9,8 @@ import { novoSocket, usuarioAtual } from "./api.js";
 export const NOMES_FILA = { impostor: "Impostor", tribunal: "Tribunal", acromania: "Acromania" };
 
 let socket = null;
-let estado = { contagem: {}, fila: { jogo: null }, proposta: null, fim: null };
+// fila = { filas: { impostor: {...}, tribunal: {...} } } — o nome pode estar em várias.
+let estado = { contagem: {}, fila: { filas: {} }, proposta: null, fim: null };
 const ouvintes = new Set();
 
 function mudar(parcial) {
