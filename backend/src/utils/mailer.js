@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 
-const FEEDBACK_TO = "guramalli@gmail.com";
+// E-mail oficial do site: feedbacks e respostas da newsletter chegam aqui.
+export const EMAIL_DO_SITE = "educacaogamer1@gmail.com";
+const FEEDBACK_TO = EMAIL_DO_SITE;
 
 // O envio de e-mail é OPCIONAL — só funciona se EMAIL_USER e EMAIL_PASS
 // estiverem configurados nas variáveis de ambiente (uma conta do Gmail com

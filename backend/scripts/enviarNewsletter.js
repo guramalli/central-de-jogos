@@ -21,6 +21,8 @@
 //   NEWSLETTER_PROVEDOR   brevo | resend
 //   NEWSLETTER_API_KEY    chave do serviço
 //   NEWSLETTER_REMETENTE  ex.: novidades@educacaogamer.com.br (domínio verificado no serviço)
+//   NEWSLETTER_RESPONDER  opcional; pra onde vão as RESPOSTAS ao e-mail
+//                         (padrão: o e-mail do site, educacaogamer1@gmail.com)
 //   NEWSLETTER_API_URL    opcional; endereço da API pro link de sair
 //                         (padrão: https://api.educacaogamer.com.br)
 //
@@ -36,6 +38,10 @@ import { linkDescadastro } from "../src/utils/newsletter.js";
 const PASTA = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "newsletters");
 const PAUSA_MS = 600; // entre um e-mail e outro: bem abaixo do limite por segundo dos serviços
 const API_URL = process.env.NEWSLETTER_API_URL || "https://api.educacaogamer.com.br";
+// O remetente precisa ser do domínio verificado no serviço (um @gmail.com
+// como remetente cai no spam: o Gmail não deixa terceiros mandarem em nome
+// dele). Por isso o e-mail do site entra como "responder para".
+const RESPONDER = process.env.NEWSLETTER_RESPONDER || "educacaogamer1@gmail.com";
 
 const args = process.argv.slice(2);
 const id = args.find((a) => !a.startsWith("--"));
@@ -77,13 +83,13 @@ async function mandar({ email, nome, html, texto, linkSair }) {
     r = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": chave, "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ sender: { name: "Educação Gamer", email: remetente }, to: [{ email, name: nome }], subject: meta.assunto, htmlContent: html, textContent: texto, headers: cabecalhos }),
+      body: JSON.stringify({ sender: { name: "Educação Gamer", email: remetente }, replyTo: { email: RESPONDER, name: "Educação Gamer" }, to: [{ email, name: nome }], subject: meta.assunto, htmlContent: html, textContent: texto, headers: cabecalhos }),
     });
   } else if (provedor === "resend") {
     r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${chave}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: `Educação Gamer <${remetente}>`, to: [email], subject: meta.assunto, html, text: texto, headers: cabecalhos }),
+      body: JSON.stringify({ from: `Educação Gamer <${remetente}>`, reply_to: RESPONDER, to: [email], subject: meta.assunto, html, text: texto, headers: cabecalhos }),
     });
   } else {
     sair(`NEWSLETTER_PROVEDOR desconhecido: ${provedor} (use brevo ou resend)`);

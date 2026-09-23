@@ -38,7 +38,7 @@ async function mudarInscricao(req, recebe) {
 
 router.get("/sair", async (req, res) => {
   if (!(await mudarInscricao(req, false))) {
-    return res.status(400).send(pagina("Link inválido", "Esse link de descadastro não é válido. Se quiser parar de receber, responda o e-mail pedindo e a gente tira na hora."));
+    return res.status(400).send(pagina("Link inválido", "Esse link de descadastro não é válido. Se quiser parar de receber, mande um e-mail pra educacaogamer1@gmail.com pedindo e a gente tira na hora."));
   }
   const q = new URLSearchParams({ u: String(req.query.u), t: String(req.query.t) });
   res.send(pagina(
