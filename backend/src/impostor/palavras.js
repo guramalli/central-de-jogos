@@ -29,6 +29,12 @@ export function escolherPalavra(lista, jaUsadas = [], aleatorio = Math.random) {
   return { tema: escolhida.tema, palavra: escolhida.palavra };
 }
 
+// Palavras de um tema, do cache (o bot impostor usa pra chutar). O cache já
+// foi carregado pelo sorteio da partida quando o chute acontece.
+export function palavrasDoTema(tema) {
+  return cache.lista.filter((l) => l.tema === tema).map((l) => l.palavra);
+}
+
 export async function sortearPalavra(sala) {
   const lista = await carregar();
   const r = escolherPalavra(lista, sala?.historico || []);

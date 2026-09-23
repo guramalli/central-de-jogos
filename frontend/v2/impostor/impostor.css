@@ -107,6 +107,10 @@
 .imp-tag.anfitriao { color: var(--imp-ambar); }
 .imp-tag.pronto { color: var(--imp-verde); }
 .imp-tag.fora { color: var(--imp-apagado); font-weight: 700; }
+.imp-tag.bot { color: #9FB4FF; }
+.imp-bots { display: flex; gap: 8px; flex-wrap: wrap; }
+.imp-aviso-testes { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--imp-borda); color: var(--imp-texto-2); font-size: 13px; line-height: 1.45; }
+.imp-aviso-testes b { color: var(--imp-ambar); }
 .imp-espera-progresso { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .imp-progresso { height: 6px; border-radius: 3px; background: var(--imp-borda); overflow: hidden; }
 .imp-progresso > div { height: 100%; background: var(--imp-ambar); }

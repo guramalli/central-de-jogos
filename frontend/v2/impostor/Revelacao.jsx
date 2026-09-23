@@ -264,7 +264,7 @@ function Resultado({ estado, rev, fim, souImpostor, pedir, aoSair }) {
         <div className="imp-painel imp-meus-pontos">
           <div>
             <b>{frasePessoal(estado, rev, fim, souImpostor)}</b>
-            <span>{meus > 0 ? "Conta para o ranking mensal" : "Sem pontos desta vez"}</span>
+            <span>{!estado.valeRanking ? "Fase de testes: não vale ranking" : meus > 0 ? "Conta para o ranking mensal" : "Sem pontos desta vez"}</span>
           </div>
           <span className="imp-pontos-numero">+{contador} PTS</span>
         </div>

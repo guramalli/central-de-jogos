@@ -98,8 +98,8 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
               >
                 <AvatarImp nome={j.nickname} cor={j.cor} tamanho={56} />
                 <span className="imp-jogador-nome">{j.nickname}{j.id === estado.euId ? " (você)" : ""}</span>
-                <span className={`imp-tag ${j.anfitriao ? "anfitriao" : j.conectado ? "pronto" : "fora"}`}>
-                  {j.anfitriao ? "ANFITRIÃO" : j.conectado ? "PRONTO" : "ENTRANDO"}
+                <span className={`imp-tag ${j.bot ? "bot" : j.anfitriao ? "anfitriao" : j.conectado ? "pronto" : "fora"}`}>
+                  {j.bot ? "BOT" : j.anfitriao ? "ANFITRIÃO" : j.conectado ? "PRONTO" : "ENTRANDO"}
                 </span>
               </motion.li>
             ))}
@@ -108,6 +108,18 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
             <li key={`vaga-${i}`} className="imp-jogador vaga" aria-hidden="true"><span className="imp-vaga-circulo" />vago</li>
           ))}
         </ul>
+        {souAnfitriao && (
+          <div className="imp-bots">
+            <button className="imp-botao secundario pequeno" onClick={() => pedir("impostor-bot", { acao: "adicionar" })} disabled={jogadores.length >= maxJogadores}>+ Adicionar bot</button>
+            {estado.temBots && (
+              <button className="imp-botao secundario pequeno" onClick={() => pedir("impostor-bot", { acao: "remover" })}>Remover bots</button>
+            )}
+          </div>
+        )}
+        <p className="imp-aviso-testes">
+          🧪 <b>Em testes:</b> as partidas ainda não valem ranking.
+          {estado.temBots ? " Os bots dão dicas e votam ao acaso." : " Sem gente suficiente? O anfitrião pode chamar bots."}
+        </p>
         <div className="imp-espera-progresso">
           <div className="imp-progresso" role="progressbar" aria-label="Jogadores até o mínimo" aria-valuemin={0} aria-valuemax={minJogadores} aria-valuenow={Math.min(conectados, minJogadores)}>
             <motion.div initial={false} animate={{ width: `${Math.min(100, (conectados / minJogadores) * 100)}%` }} transition={{ duration: 0.4 }} />

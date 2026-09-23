@@ -5,6 +5,7 @@ import {
   calcularPontuacao,
   embaralhar,
 } from "./regras.js";
+import { CerebroBot } from "./bots.js";
 
 // O IMPOSTOR — motor de UMA sala (só memória).
 //
@@ -48,6 +49,9 @@ export const CONFIG = {
   SEG_TOLERANCIA: 30, // quem cai continua na partida por esse tempo
   SEG_TOLERANCIA_SALA: 20, // no lobby/fim: tempo pra voltar (recarregar a página) sem perder a vaga
   MAX_CHUTE: 40,
+  // Fase de testes: nenhuma partida grava ranking (e sala com bot nunca grava).
+  VALE_RANKING: false,
+  BOT_ATRASO: [1500, 5000], // ms entre o bot "pensar" e agir
 };
 
 const CORES = [
@@ -61,7 +65,8 @@ const COM_REVELACAO = new Set([FASES.REVELACAO, FASES.ULTIMA_CHANCE, FASES.FIM])
 export class ImpostorRoom {
   // sortearPalavra: async (sala) => { tema, palavra }
   // aoFimDePartida: (resultado) => void — grava no banco (socketImpostor)
-  constructor({ codigo, enviar, sortearPalavra, aoFimDePartida = null, aleatorio = Math.random, config = {} }) {
+  // palavrasDoTema: (tema) => [palavras] — usado pelo bot impostor no chute
+  constructor({ codigo, enviar, sortearPalavra, aoFimDePartida = null, aleatorio = Math.random, config = {}, palavrasDoTema = () => [] }) {
     this.codigo = codigo;
     this.enviar = enviar;
     this.sortearPalavra = sortearPalavra;
@@ -77,12 +82,19 @@ export class ImpostorRoom {
     this.prazo = null;
     this.tique = null;
     this.historico = []; // palavras já usadas nesta sala (palavras.js evita repetir)
+    this.palavrasDoTema = palavrasDoTema;
+    this.cerebros = new Map(); // botId -> CerebroBot
+    this.botsCriados = 0;
   }
 
   // ---------------- consultas ----------------
-  conectado(j) { return j.sockets.size > 0; }
+  // Bot não tem socket, mas está sempre "conectado".
+  conectado(j) { return j.bot || j.sockets.size > 0; }
   conectados() { return [...this.jogadores.values()].filter((j) => this.conectado(j)); }
-  vazia() { return this.conectados().length === 0; }
+  humanosConectados() { return this.conectados().filter((j) => !j.bot); }
+  temBots() { return [...this.jogadores.values()].some((j) => j.bot); }
+  // Sala só com bots conta como vazia (é descartada como uma sala sem ninguém).
+  vazia() { return this.humanosConectados().length === 0; }
   // Quem está NA partida agora (inclui quem caiu e ainda está na tolerância).
   ativos() { return [...this.jogadores.values()].filter((j) => j.naPartida); }
   ehAtivo(id) { return !!this.jogadores.get(id)?.naPartida; }
@@ -179,6 +191,44 @@ export class ImpostorRoom {
     this.transmitir();
   }
 
+  // ---------------- bots de teste ----------------
+  adicionarBot(userId) {
+    if (userId !== this.anfitriaoId) return "Só o anfitrião chama bots.";
+    if (this.fase !== FASES.LOBBY) return "Dá pra chamar bots só na sala de espera.";
+    if (this.jogadores.size >= this.cfg.MAX_JOGADORES) return "Sala cheia.";
+    this.botsCriados++;
+    const id = `bot-${this.codigo}-${this.botsCriados}`;
+    this.jogadores.set(id, {
+      id, nickname: `Robô ${this.botsCriados}`, cor: this.corLivre(), bot: true,
+      sockets: new Set(), naPartida: false, cartaVista: false, timerSaida: null,
+    });
+    this.cerebros.set(id, new CerebroBot(this, id, { palavrasDoTema: this.palavrasDoTema, atraso: this.cfg.BOT_ATRASO, aleatorio: this.aleatorio }));
+    this.transmitir();
+    return null;
+  }
+
+  removerBots(userId) {
+    if (userId !== this.anfitriaoId) return "Só o anfitrião remove bots.";
+    if (this.fase !== FASES.LOBBY) return "Dá pra remover bots só na sala de espera.";
+    for (const j of [...this.jogadores.values()]) {
+      if (!j.bot) continue;
+      this.cerebros.get(j.id)?.parar();
+      this.cerebros.delete(j.id);
+      this.jogadores.delete(j.id);
+    }
+    this.botsCriados = 0;
+    this.transmitir();
+    return null;
+  }
+
+  // Todo pacote passa por aqui: pra gente vai pelo socket (enviar), pra
+  // bot vai pro "cérebro" dele.
+  entregar(uid, evento, dados) {
+    const cerebro = this.cerebros.get(uid);
+    if (cerebro) cerebro.receber(evento, dados);
+    else this.enviar(uid, evento, dados);
+  }
+
   corLivre() {
     const usadas = new Set([...this.jogadores.values()].map((j) => j.cor));
     return CORES.find((c) => !usadas.has(c)) || CORES[this.jogadores.size % CORES.length];
@@ -187,8 +237,8 @@ export class ImpostorRoom {
   // O anfitrião só é trocado quando sai de vez — não durante a tolerância.
   ajustarAnfitriao() {
     const atual = this.jogadores.get(this.anfitriaoId);
-    if (atual && (this.conectado(atual) || atual.timerSaida)) return;
-    this.anfitriaoId = this.conectados()[0]?.id || null;
+    if (atual && !atual.bot && (this.conectado(atual) || atual.timerSaida)) return;
+    this.anfitriaoId = this.humanosConectados()[0]?.id || null; // bot nunca é anfitrião
   }
 
   // ---------------- início ----------------
@@ -257,7 +307,7 @@ export class ImpostorRoom {
     const carta = j.id === p.impostorId
       ? { papel: "impostor", tema: p.tema }
       : { papel: "tripulante", tema: p.tema, palavra: p.palavra };
-    this.enviar(j.id, "impostor-carta", carta);
+    this.entregar(j.id, "impostor-carta", carta);
   }
 
   cartaVista(userId) {
@@ -436,6 +486,7 @@ export class ImpostorRoom {
       motivo: p.motivo,
       pontos: { ...p.pontos },
       participantes: [...p.participantes],
+      comBots: p.participantes.some((id) => id.startsWith("bot-")),
     };
   }
 
@@ -475,7 +526,7 @@ export class ImpostorRoom {
 
   enviarTempo() {
     const dados = { fase: this.fase, restanteMs: this.restanteMs() };
-    for (const j of this.conectados()) this.enviar(j.id, "impostor-tempo", dados);
+    for (const j of this.humanosConectados()) this.enviar(j.id, "impostor-tempo", dados);
   }
 
   pararRelogio() {
@@ -488,6 +539,7 @@ export class ImpostorRoom {
   parar() {
     this.pararRelogio();
     for (const j of this.jogadores.values()) if (j.timerSaida) clearTimeout(j.timerSaida);
+    for (const c of this.cerebros.values()) c.parar();
   }
 
   // Um erro num callback de timer não pode travar a sala nem o servidor.
@@ -506,6 +558,8 @@ export class ImpostorRoom {
       anfitriaoId: this.anfitriaoId,
       minJogadores: this.cfg.MIN_JOGADORES,
       maxJogadores: this.cfg.MAX_JOGADORES,
+      temBots: this.temBots(),
+      valeRanking: this.cfg.VALE_RANKING && !this.temBots(),
       restanteMs: this.fase === FASES.LOBBY ? null : this.restanteMs(),
       jogadores: [...this.jogadores.values()].map((j) => ({
         id: j.id,
@@ -514,6 +568,7 @@ export class ImpostorRoom {
         anfitriao: j.id === this.anfitriaoId,
         conectado: this.conectado(j),
         naPartida: j.naPartida,
+        bot: !!j.bot,
       })),
     };
     if (!p) return estado;
@@ -563,6 +618,6 @@ export class ImpostorRoom {
   }
 
   transmitir() {
-    for (const j of this.conectados()) this.enviar(j.id, "impostor-estado", this.estadoPara(j.id));
+    for (const j of this.conectados()) this.entregar(j.id, "impostor-estado", this.estadoPara(j.id));
   }
 }

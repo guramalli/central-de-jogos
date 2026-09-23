@@ -1,5 +1,5 @@
-import { ImpostorRoom } from "./ImpostorRoom.js";
-import { sortearPalavra as sortearDoBanco } from "./palavras.js";
+import { ImpostorRoom, CONFIG } from "./ImpostorRoom.js";
+import { sortearPalavra as sortearDoBanco, palavrasDoTema } from "./palavras.js";
 import { prisma } from "../db.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { currentMonthKey } from "../utils/monthKey.js";
@@ -27,6 +27,7 @@ let ioGlobal = null;
 const deps = {
   sortearPalavra: sortearDoBanco,
   gravarResultado: gravarResultadoNoBanco,
+  palavrasDoTema,
 };
 export function __configurarImpostorParaTestes(novas) { Object.assign(deps, novas); }
 export function __resetImpostorParaTestes() {
@@ -34,12 +35,16 @@ export function __resetImpostorParaTestes() {
   salas.clear(); salaDoSocket.clear(); salaDoUsuario.clear();
   deps.sortearPalavra = sortearDoBanco;
   deps.gravarResultado = gravarResultadoNoBanco;
+  deps.palavrasDoTema = palavrasDoTema;
 }
 
 // ---------------- ranking / histórico ----------------
 // Grava a partida (inclusive cancelada, pro histórico) e soma os pontos no
 // ranking do mês e no vitalício. Visitante e admin não pontuam no ranking
 // (mesma regra dos outros jogos), mas o que fizeram fica na partida.
+//
+// FASE DE TESTES: CONFIG.VALE_RANKING = false — a partida é gravada, mas os
+// pontos NÃO vão pro ranking. Sala com bot nunca vai (seria ponto fácil).
 async function gravarResultadoNoBanco(r) {
   try {
     await prisma.impostorPartida.create({
@@ -57,7 +62,7 @@ async function gravarResultadoNoBanco(r) {
   } catch (err) {
     console.error("Impostor: falha ao gravar a partida:", err.message);
   }
-  if (r.vencedor === "cancelada") return;
+  if (r.vencedor === "cancelada" || r.comBots || !CONFIG.VALE_RANKING) return;
 
   const monthKey = currentMonthKey();
   for (const [userId, pontos] of Object.entries(r.pontos)) {
@@ -92,6 +97,7 @@ function novaSala(codigo) {
     enviar: () => {},
     sortearPalavra: (s) => deps.sortearPalavra(s),
     aoFimDePartida: (r) => { Promise.resolve(deps.gravarResultado(r)).catch(() => {}); },
+    palavrasDoTema: (tema) => deps.palavrasDoTema(tema),
   });
   sala.enviar = emissor(sala);
   salas.set(codigo, sala);
@@ -209,6 +215,8 @@ export function registrarImpostor(io, socket) {
   socket.on("impostor-votar", naSala((sala, { alvoId }) => sala.votar(user.id, String(alvoId || ""))));
   socket.on("impostor-chute", naSala((sala, { palavra }) => sala.chutar(user.id, palavra)));
   socket.on("impostor-proxima", naSala((sala) => sala.proxima(user.id)));
+  // Bots de teste (só o anfitrião, só no lobby — a sala confere).
+  socket.on("impostor-bot", naSala((sala, { acao }) => (acao === "remover" ? sala.removerBots(user.id) : sala.adicionarBot(user.id))));
   socket.on("impostor-sair", (_d, cb) => {
     sairDaSala({ deVez: true });
     salaDoUsuario.delete(user.id);

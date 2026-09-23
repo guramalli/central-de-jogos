@@ -543,3 +543,89 @@ test("parar() desliga todos os timers da sala", async () => {
   segundos(120);
   assert.equal(enviados.length, n);
 });
+
+// ======================================================================
+// Bots de teste
+// ======================================================================
+
+function salaComBots(nBots, { aleatorio = () => 0 } = {}) {
+  const ctx = criarSala({ n: 1, aleatorio });
+  ctx.sala.palavrasDoTema = () => ["Praia", "Escola"];
+  for (let i = 0; i < nBots; i++) assert.equal(ctx.sala.adicionarBot("j1"), null);
+  return ctx;
+}
+
+test("bots: só o anfitrião chama, só no lobby, e bot nunca vira anfitrião", async () => {
+  const { sala } = criarSala({ n: 2 });
+  assert.match(sala.adicionarBot("j2"), /anfitrião/);
+  assert.equal(sala.adicionarBot("j1"), null);
+  const bot = [...sala.jogadores.values()].find((j) => j.bot);
+  assert.equal(bot.nickname, "Robô 1");
+  sala.sairDeVez("j1");
+  assert.equal(sala.anfitriaoId, "j2"); // pulou o bot
+  sala.sairDeVez("j2");
+  assert.equal(sala.anfitriaoId, null);
+  assert.equal(sala.vazia(), true); // só bot = vazia (sala é descartada)
+});
+
+test("bots: contam pro mínimo de 4 e jogam a partida inteira sozinhos", async () => {
+  const { sala, resultados } = salaComBots(3);
+  assert.equal(await sala.iniciar("j1"), null);
+  assert.match(sala.adicionarBot("j1"), /sala de espera/);
+  for (let i = 0; i < 400 && sala.fase !== FASES.FIM; i++) {
+    if (sala.fase === FASES.CARTAS) sala.cartaVista("j1");
+    if (sala.vezDe === "j1") sala.darDica("j1", "areia");
+    if (sala.fase === FASES.VOTACAO && !sala.partida.votos.has("j1")) {
+      sala.votar("j1", [...sala.jogadores.keys()].find((id) => id !== "j1"));
+    }
+    if (sala.fase === FASES.ULTIMA_CHANCE && sala.partida.impostorId === "j1") sala.chutar("j1", "praia");
+    segundos(1);
+  }
+  assert.equal(sala.fase, FASES.FIM);
+  const dicasDosBots = sala.partida.dicas.filter((d) => d.jogadorId.startsWith("bot-"));
+  assert.equal(dicasDosBots.length, 6); // 3 bots x 2 rodadas, nenhuma em branco por tempo
+  assert.ok(dicasDosBots.every((d) => d.texto));
+  assert.equal(sala.partida.votos.size, 4);
+  assert.equal(resultados[0].comBots, true);
+});
+
+test("bots: bot impostor recebe só o tema e chuta uma palavra do tema", async () => {
+  // aleatorio perto de 1: o impostor sorteado é o último a entrar (um bot).
+  const { sala } = salaComBots(3, { aleatorio: () => 0.99 });
+  await sala.iniciar("j1");
+  const impId = sala.partida.impostorId;
+  assert.ok(impId.startsWith("bot-"));
+  assert.deepEqual(sala.cerebros.get(impId).carta, { papel: "impostor", tema: TEMA });
+  for (const [id, c] of sala.cerebros) if (id !== impId) assert.equal(c.carta.palavra, PALAVRA);
+  // Força o bot impostor a ser acusado e espera o chute dele.
+  segundos(CONFIG.SEG_CARTAS);
+  sala.cartaVista("j1");
+  for (let i = 0; i < 300 && sala.fase !== FASES.VOTACAO; i++) { if (sala.vezDe === "j1") sala.darDica("j1", "areia"); segundos(1); }
+  sala.votar("j1", impId);
+  for (const id of sala.cerebros.keys()) if (id !== impId) sala.partida.votos.set(id, impId);
+  sala.apurar();
+  segundos(CONFIG.SEG_REVELACAO);
+  assert.equal(sala.fase, FASES.ULTIMA_CHANCE);
+  segundos(6);
+  assert.equal(sala.fase, FASES.FIM);
+  assert.ok(["Praia", "Escola"].includes(sala.partida.chute));
+});
+
+test("bots: estado avisa que a sala não vale ranking; remover bots limpa tudo", () => {
+  const { sala, enviados } = salaComBots(2);
+  const est = ultimoEstado(enviados, "j1");
+  assert.equal(est.temBots, true);
+  assert.equal(est.valeRanking, false);
+  assert.equal(est.jogadores.filter((j) => j.bot).length, 2);
+  assert.equal(sala.removerBots("j1"), null);
+  assert.equal(sala.temBots(), false);
+  assert.equal(sala.cerebros.size, 0);
+  assert.equal(ultimoEstado(enviados, "j1").jogadores.length, 1);
+});
+
+test("bots: nenhum pacote de bot vai pro socket (enviar)", async () => {
+  const { sala, enviados } = salaComBots(3);
+  await sala.iniciar("j1");
+  segundos(40);
+  assert.ok(enviados.every((e) => !String(e.para).startsWith("bot-")));
+});
