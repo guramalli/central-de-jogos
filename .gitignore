@@ -4,3 +4,7 @@ dist/
 
 # Spec e telas de referência do Impostor (material de trabalho, fora do repo)
 pacote/
+
+# Newsletter: prévia gerada e registro de quem já recebeu (dado pessoal, fica só local)
+backend/newsletters/.previa.html
+backend/newsletters/.enviados/

@@ -24,6 +24,7 @@ import avisosRoutes from "./routes/avisos.js";
 import friendsRoutes from "./routes/friends.js";
 import quizRoomsRoutes from "./routes/quizRooms.js";
 import acromaniaRoomsRoutes from "./routes/acromaniaRooms.js";
+import newsletterRoutes from "./routes/newsletter.js";
 import quizQuestionsRoutes from "./routes/quizQuestions.js";
 import feedbackRoutes from "./routes/feedback.js";
 import ranksRoutes from "./routes/ranks.js";
@@ -128,6 +129,7 @@ app.use("/api/acromania-ranks", acromaniaRanksRoutes);
 app.use("/api/mentira-rooms", mentiraRoomsRoutes); // Mentira Sincera: salas abertas
 app.use("/api/mentira-ranks", mentiraRanksRoutes); // Mentira Sincera: patentes
 app.use("/api/tribunal-rooms", tribunalRoomsRoutes); // O Tribunal: salas abertas (em teste)
+app.use("/api/newsletter", newsletterRoutes); // descadastro pelo link do e-mail (sem login)
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno
