@@ -1,19 +1,62 @@
 /* FILA DE ESPERA — controle nos cards/telas, janela "Partida encontrada!",
    aviso flutuante e recado. Prefixo v2-fila- (cores da v2). */
 
-/* Card do Início com a fila embaixo */
-.v2-jogo-card-envelope { display: flex; flex-direction: column; gap: 8px; }
-.v2-jogo-card-envelope > .v2-jogo-card { flex: 1; }
+/* ---------- Início: fileiras "Salas" e "Fila de espera" ---------- */
+@media (min-width: 700px) {
+  .v2-jogos-cards.v2-jogos-salas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v2-jogos-cards.v2-jogos-rapidos { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+.v2-jogos-rapida { display: flex; flex-direction: column; gap: 12px; }
+.v2-jogos-rapida-topo h2 { margin: 0; font-family: var(--titulo); font-size: 26px; color: var(--amarelo); }
+.v2-jogos-rapida-topo p { margin: 4px 0 0; color: var(--lilas); font-weight: 700; font-size: 14px; }
 
-/* Controle da fila */
-.v2-fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 16px; background: var(--roxo-escuro); border: 2px solid var(--roxo-2); color: #fff; font-size: 13px; font-weight: 800; }
-.v2-fila.ativa { border-color: var(--amarelo); }
-.v2-fila-contagem { display: inline-flex; align-items: center; gap: 7px; }
-.v2-fila-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
-.v2-fila-botao { min-height: 44px; padding: 0 14px; border: none; border-radius: 12px; background: var(--amarelo); color: var(--roxo); font-weight: 900; font-size: 13px; }
-.v2-fila-botao.contorno { background: transparent; color: #fff; border: 2px solid var(--roxo-2); }
-.v2-fila-erro { flex-basis: 100%; color: var(--vermelho); font-size: 12px; }
-.v2-fila-tela { margin: 4px 0; }
+/* Card de partida rápida: mesma cara dos outros, com a fila no rodapé */
+.v2-jogo-card.v2-jogo-card-rapido { cursor: default; }
+.v2-jogo-card.v2-jogo-card-rapido:hover { transform: none; }
+.v2-jogo-card-rapido.na-fila { outline: 4px solid var(--amarelo); outline-offset: 3px; animation: v2-fila-brilho 1.6s ease-in-out infinite; }
+@keyframes v2-fila-brilho { 0%, 100% { outline-color: var(--amarelo); } 50% { outline-color: rgba(255, 214, 10, .35); } }
+.v2-jogo-card-selos { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; align-items: center; }
+.v2-jogo-card-selos .v2-jogo-card-beta { position: static; }
+.v2-fila-esperando { background: var(--vermelho); color: #fff; font-size: 11px; font-weight: 900; padding: 3px 9px; border-radius: 999px; animation: v2-bate 1.4s ease-in-out infinite; }
+
+/* ---------- Controles da fila ---------- */
+.v2-fila-controles { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 2px solid rgba(43, 27, 94, .15); }
+.v2-fila-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.v2-fila-jogar { width: 100%; min-height: 46px; padding: 0 18px; border: none; border-radius: 14px; background: var(--roxo); color: #fff; font-family: var(--titulo); font-weight: 700; font-size: 17px; box-shadow: 0 4px 0 var(--roxo-escuro); transition: transform .1s; }
+.v2-fila-jogar:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--roxo-escuro); }
+.v2-fila-jogar.secundario { width: auto; font-size: 15px; }
+.v2-fila-jogar.contorno { background: transparent; color: var(--amarelo); border: 2px solid var(--amarelo); box-shadow: none; }
+.v2-fila-todas { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
+.v2-fila-todas .v2-fila-jogar:not(.contorno) { background: var(--amarelo); color: var(--roxo); box-shadow: 0 4px 0 var(--amarelo-sombra); }
+.v2-fila-jogar:disabled, .v2-fila-sair:disabled { opacity: .6; }
+.v2-fila-ver-salas { font-family: var(--titulo); font-weight: 700; font-size: 15px; color: var(--roxo); padding: 10px 4px; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+.v2-fila-sair { min-height: 44px; padding: 0 14px; border: 2px solid var(--roxo); border-radius: 14px; background: transparent; color: var(--roxo); font-weight: 900; font-size: 14px; }
+.v2-fila-dica { flex: 1; margin: 0; font-size: 12px; font-weight: 800; opacity: .85; }
+.v2-fila-status { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 900; font-size: 14px; }
+.v2-fila-status.destaque { font-size: 15px; }
+.v2-fila-erro { margin: 0; color: #8a0f06; font-size: 12px; font-weight: 800; }
+.v2-fila-radar { width: 12px; height: 12px; border-radius: 50%; background: var(--roxo); animation: v2-pulso 1.2s infinite; }
+.v2-fila-progresso { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.v2-fila-bolinhas-mini { display: inline-flex; gap: 4px; }
+.v2-fila-bolinhas-mini span { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--roxo); }
+.v2-fila-bolinhas-mini span.ok { background: var(--roxo); }
+
+/* Bloco "Fila de espera" nas páginas dos jogos (mesma largura dos blocos da página).
+   Seletores com duas classes: o v2.css carrega depois deste arquivo e o
+   .v2-cartao dele (fundo roxo) ganharia de uma classe só. */
+.v2-cartao.v2-partida-rapida { max-width: 720px; width: 100%; margin: 0 auto; background: var(--amarelo); color: var(--roxo); box-shadow: 0 6px 0 var(--amarelo-sombra); }
+.v2-cartao.v2-partida-rapida h2 { margin: 0; font-family: var(--titulo); font-size: 24px; }
+.v2-cartao.v2-partida-rapida .v2-cartao-nota { color: var(--roxo); opacity: .85; margin: 4px 0 0; }
+.v2-partida-rapida .v2-fila-controles { border-top-color: rgba(43, 27, 94, .2); }
+
+/* Só os controles, em fundo escuro (tela do Impostor) */
+.v2-fila-solta { color: #F2EFE8; }
+.v2-fila-solta .v2-fila-controles { margin-top: 0; padding-top: 0; border-top: none; }
+.v2-fila-solta .v2-fila-jogar { background: #FF4D5E; color: #1A0508; box-shadow: none; }
+.v2-fila-solta .v2-fila-sair { border-color: #2A2D38; color: #F2EFE8; }
+.v2-fila-solta .v2-fila-radar, .v2-fila-solta .v2-fila-bolinhas-mini span.ok { background: #FFB547; }
+.v2-fila-solta .v2-fila-bolinhas-mini span { border-color: #FFB547; }
+.v2-fila-solta .v2-fila-erro { color: #FF4D5E; }
 
 /* Janela "Partida encontrada!" — por cima de tudo */
 .v2-fila-fundo { position: fixed; inset: 0; z-index: 3000; background: rgba(15, 8, 40, .72); display: flex; align-items: center; justify-content: center; padding: 16px; animation: v2-fundo-in .2s ease-out both; }
@@ -37,5 +80,5 @@
   .v2-fila-chip, .v2-fila-recado { bottom: 84px; } /* acima da barra de baixo */
 }
 @media (prefers-reduced-motion: reduce) {
-  .v2-fila-fundo, .v2-fila-janela { animation: none; }
+  .v2-fila-fundo, .v2-fila-janela, .v2-jogo-card-rapido.na-fila, .v2-fila-esperando, .v2-fila-radar { animation: none; }
 }

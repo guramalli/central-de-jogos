@@ -9,7 +9,7 @@ import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 import Topo from "./Topo.jsx";
 import IconePatente from "./IconePatente.jsx";
 import Rodape from "./Rodape.jsx";
-import FilaNoCard from "./FilaNoCard.jsx";
+import { PartidaRapida } from "./FilaNoCard.jsx";
 
 const LOGO_JOGO = { quiz: "/quiz-logo.png", stop: "/stop-logo.png", acromania: "/acromania-logo.png" };
 const NOME_JOGO = { quiz: "Quiz", stop: "Stop", acromania: "Acromania" };
@@ -134,7 +134,7 @@ export default function Lobby({ usuario, jogoInicial }) {
         )}
 
         {jogo === "stop" && <LobbyStop salas={salasStop} privadas={privadas} jogando={jogandoStop} />}
-        {jogo === "acromania" && <FilaNoCard jogo="acromania" classe="v2-fila-tela" />}
+        {jogo === "acromania" && <PartidaRapida jogo="acromania" />}
         {jogo === "acromania" && <LobbyAcro dados={acro} privadas={privadasAcro} jogando={jogandoAcro} />}
 
 

@@ -58,7 +58,7 @@ export default function AvisoFila() {
   return (
     <>
       {proposta && <JanelaProposta proposta={proposta} />}
-      {!proposta && fila.jogo && <ChipFila fila={fila} />}
+      {!proposta && Object.keys(fila.filas || {}).length > 0 && <ChipFila fila={fila} />}
       {fim && !fim.ok && (
         <div className="v2-fila-recado" role="status">
           <span>{fim.mensagem}</span>
@@ -109,11 +109,15 @@ function JanelaProposta({ proposta }) {
 }
 
 function ChipFila({ fila }) {
+  const jogos = Object.keys(fila.filas);
+  const um = jogos.length === 1 ? fila.filas[jogos[0]] : null;
   return (
     <div className="v2-fila-chip" role="status">
       <span className="v2-ponto-vivo" />
-      <span>Na fila do <b>{NOMES_FILA[fila.jogo] || fila.jogo}</b> · {fila.naFila}/{fila.minimo}</span>
-      <button type="button" onClick={() => pedirFila("fila-sair")}>Sair</button>
+      {um
+        ? <span>Seu nome está na fila do <b>{NOMES_FILA[jogos[0]]}</b> · {um.naFila}/{um.minimo}</span>
+        : <span>Seu nome está na fila: <b>{jogos.map((j) => NOMES_FILA[j] || j).join(", ")}</b></span>}
+      <button type="button" onClick={() => pedirFila("fila-sair")}>{um ? "Tirar" : "Tirar de todas"}</button>
     </div>
   );
 }
