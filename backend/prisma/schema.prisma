@@ -78,6 +78,10 @@ model User {
   // entender o público e decidir onde investir em melhorias de interface.
   ultimaPlataforma String?
   ultimoAcesso     DateTime?
+  // Newsletter (e-mail de novidades do portal). Todo mundo com conta começa
+  // recebendo; o link "não quero mais receber" do próprio e-mail desliga
+  // (rota /api/newsletter/sair, sem precisar de login). Visitante nunca recebe.
+  recebeNovidades  Boolean  @default(true)
 
   // ===== Conta premium =====
   // Tudo aqui é ESTÉTICO e de conveniência de propósito: o ranking tem

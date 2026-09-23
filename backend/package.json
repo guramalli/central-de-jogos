@@ -22,6 +22,7 @@
     "limpar-visitantes": "node prisma/limparVisitantes.js",
     "limpar-visitantes-suspeitos": "node scripts/limparVisitantesSuspeitos.js",
     "banir-ip": "node scripts/banirIP.js",
+    "newsletter": "node scripts/enviarNewsletter.js",
     "fechar-mes": "node scripts/fecharMes.js",
     "triar-palavras": "node scripts/triarPalavras.js",
     "limpar-letras": "node scripts/limparLetras.js",
