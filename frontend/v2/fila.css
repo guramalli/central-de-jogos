@@ -7,8 +7,6 @@
   .v2-jogos-cards.v2-jogos-rapidos { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 }
 .v2-jogos-rapida { display: flex; flex-direction: column; gap: 12px; }
-.v2-jogos-rapida-topo h2 { margin: 0; font-family: var(--titulo); font-size: 26px; color: var(--amarelo); }
-.v2-jogos-rapida-topo p { margin: 4px 0 0; color: var(--lilas); font-weight: 700; font-size: 14px; }
 
 /* Card de partida rápida: mesma cara dos outros, com a fila no rodapé */
 .v2-jogo-card.v2-jogo-card-rapido { cursor: default; }
