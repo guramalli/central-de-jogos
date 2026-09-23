@@ -43,6 +43,22 @@ export const NOVIDADES = [
       "O site inteiro foi redesenhado: visual novo, mais rápido e feito pra funcionar tão bem no celular quanto no computador. Tem página inicial com a Praça, salas do Quiz, Stop e Acromania com patentes ao lado dos nicks, várias salas na mesma tela, salas privadas com votação da mesa, ranking com pódio, Hall da Fama, perfil com seus títulos, amigos com conversa privada, clãs, emojis e @ pra marcar alguém no chat. Prefere o jeito antigo? O botão \"Versão clássica\", no topo, leva de volta — e dá pra trocar quando quiser.",
   },
   {
+    id: "2026-09-impostor",
+    data: "2026-09-23",
+    tipo: "novo",
+    titulo: "Jogo novo em testes: O Impostor",
+    texto:
+      "Todo mundo recebe a mesma palavra secreta, menos um: o impostor, que só sabe o tema. Em duas rodadas, cada um dá uma dica de uma palavra só, sem entregar a palavra pro impostor. Depois, todo mundo vota em quem está blefando. Pegaram o impostor? Ele ainda tem uma última chance: se acertar a palavra, rouba a vitória. Precisa de 4 pessoas, mas dá pra chamar bots pra completar a sala. Por enquanto, as partidas ainda não valem ranking.",
+  },
+  {
+    id: "2026-09-fila-de-espera",
+    data: "2026-09-23",
+    tipo: "novo",
+    titulo: "Fila de espera no Acromania, no Tribunal e no Impostor",
+    texto:
+      "Não achou ninguém pra jogar? Coloque seu nome na fila pelo card do jogo no Início (ou na página do jogo) e continue navegando, pode até jogar outra coisa. Quando juntar gente, aparece \"Partida encontrada!\" com um aviso sonoro, em qualquer página do site: é só aceitar que você vai direto pra sala. Dá pra deixar o nome em mais de um jogo ao mesmo tempo, e quando você aceita uma partida, seu nome sai das outras filas.",
+  },
+  {
     id: "2026-09-tribunal",
     data: "2026-09-22",
     tipo: "novo",

@@ -129,11 +129,7 @@ export default function Inicio({ usuario }) {
           ))}
         </div>
 
-        <section className="v2-jogos-rapida" aria-labelledby="v2-jogos-rapida-titulo">
-          <div className="v2-jogos-rapida-topo">
-            <h2 id="v2-jogos-rapida-titulo">📝 Fila de espera</h2>
-            <p>Coloque seu nome na fila de um ou mais jogos e continue navegando. Quando juntar gente, a gente te chama pra confirmar.</p>
-          </div>
+        <section className="v2-jogos-rapida" aria-label="Jogos com fila de espera">
           <div className="v2-jogos-cards v2-jogos-rapidos">
             {JOGOS.filter((j) => NOMES_FILA[j.chave] && (j.chave !== "acromania" || acroAtivo)).map((j, i) => (
               <CardPartidaRapida
