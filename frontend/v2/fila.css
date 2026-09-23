@@ -1,0 +1,41 @@
+/* FILA DE ESPERA — controle nos cards/telas, janela "Partida encontrada!",
+   aviso flutuante e recado. Prefixo v2-fila- (cores da v2). */
+
+/* Card do Início com a fila embaixo */
+.v2-jogo-card-envelope { display: flex; flex-direction: column; gap: 8px; }
+.v2-jogo-card-envelope > .v2-jogo-card { flex: 1; }
+
+/* Controle da fila */
+.v2-fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 16px; background: var(--roxo-escuro); border: 2px solid var(--roxo-2); color: #fff; font-size: 13px; font-weight: 800; }
+.v2-fila.ativa { border-color: var(--amarelo); }
+.v2-fila-contagem { display: inline-flex; align-items: center; gap: 7px; }
+.v2-fila-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.v2-fila-botao { min-height: 44px; padding: 0 14px; border: none; border-radius: 12px; background: var(--amarelo); color: var(--roxo); font-weight: 900; font-size: 13px; }
+.v2-fila-botao.contorno { background: transparent; color: #fff; border: 2px solid var(--roxo-2); }
+.v2-fila-erro { flex-basis: 100%; color: var(--vermelho); font-size: 12px; }
+.v2-fila-tela { margin: 4px 0; }
+
+/* Janela "Partida encontrada!" — por cima de tudo */
+.v2-fila-fundo { position: fixed; inset: 0; z-index: 3000; background: rgba(15, 8, 40, .72); display: flex; align-items: center; justify-content: center; padding: 16px; animation: v2-fundo-in .2s ease-out both; }
+.v2-fila-janela { position: relative; width: min(420px, 100%); padding: 28px 22px 22px; border-radius: 26px; background: var(--roxo); border: 3px solid var(--amarelo); box-shadow: 0 10px 0 var(--amarelo-sombra); color: #fff; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; animation: v2-pop .35s ease-out both; }
+.v2-fila-janela h2 { margin: 0; font-family: var(--titulo); font-size: 30px; color: var(--amarelo); }
+.v2-fila-jogo { margin: 0; font-weight: 900; font-size: 17px; }
+.v2-fila-nota, .v2-fila-espera { margin: 0; color: var(--lilas); font-size: 14px; font-weight: 700; }
+.v2-fila-relogio { position: absolute; top: 12px; right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--amarelo); display: flex; align-items: center; justify-content: center; font-weight: 900; }
+.v2-fila-bolinhas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.v2-fila-bolinhas span { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--lilas-2); }
+.v2-fila-bolinhas span.ok { background: var(--verde); border-color: var(--verde); }
+.v2-fila-janela-acoes { display: flex; gap: 10px; width: 100%; }
+.v2-fila-janela-acoes .v2-botao { flex: 1; }
+
+/* Aviso flutuante "Na fila do X" e recado */
+.v2-fila-chip, .v2-fila-recado { position: fixed; left: 16px; bottom: 16px; z-index: 2500; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 10px 12px 10px 14px; border-radius: 16px; background: var(--roxo-escuro); border: 2px solid var(--amarelo); color: #fff; font-size: 13px; font-weight: 800; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+.v2-fila-chip button, .v2-fila-recado button { min-height: 36px; padding: 0 12px; border: none; border-radius: 10px; background: var(--amarelo); color: var(--roxo); font-weight: 900; }
+.v2-fila-recado { border-color: var(--laranja); }
+
+@media (max-width: 899px) {
+  .v2-fila-chip, .v2-fila-recado { bottom: 84px; } /* acima da barra de baixo */
+}
+@media (prefers-reduced-motion: reduce) {
+  .v2-fila-fundo, .v2-fila-janela { animation: none; }
+}

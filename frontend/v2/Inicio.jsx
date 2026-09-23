@@ -4,6 +4,8 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Praca from "./Praca.jsx";
+import FilaNoCard from "./FilaNoCard.jsx";
+import { NOMES_FILA } from "./fila.js";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
 
@@ -18,6 +20,18 @@ const JOGOS = [
   // O Impostor — em testes (sem ranking ainda). Sem logo: o card usa o título em texto.
   { chave: "impostor", titulo: "O Impostor", cor: "#FF4D5E", sombra: "#A3202E", texto: "Todo mundo sabe a palavra, menos um. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", beta: true },
 ];
+
+// Jogos com fila de espera ("Jogar agora"): o card ganha o controle da fila
+// logo abaixo (fora do link, pra o clique não abrir o jogo).
+function comFila(chave, card) {
+  if (!NOMES_FILA[chave]) return card;
+  return (
+    <div key={chave} className="v2-jogo-card-envelope">
+      {card}
+      <FilaNoCard jogo={chave} />
+    </div>
+  );
+}
 
 export default function Inicio({ usuario }) {
   const [perfil, setPerfil] = useState(null);
@@ -114,7 +128,7 @@ export default function Inicio({ usuario }) {
         </section>
 
         <div className="v2-jogos-cards">
-          {JOGOS.filter((j) => j.chave !== "acromania" || acroAtivo).map((j, i) => (
+          {JOGOS.filter((j) => j.chave !== "acromania" || acroAtivo).map((j, i) => comFila(j.chave,
             <a key={j.chave} className="v2-jogo-card" href={PAGINA_PROPRIA[j.chave] ? linkDaPagina(PAGINA_PROPRIA[j.chave]) : linkDaPagina("jogar", { jogo: j.chave })} onClick={(e) => jogar(e, j.chave)} style={{ "--cor": j.cor, "--sombra": j.sombra, animationDelay: `${i * 80}ms` }}>
               {j.beta && <span className="v2-jogo-card-beta">em testes</span>}
               {j.logo ? <img src={j.logo} alt={NOMES[j.chave]} /> : <span className="v2-jogo-card-titulo">{j.titulo}</span>}

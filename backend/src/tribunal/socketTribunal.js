@@ -1,4 +1,4 @@
-import { TribunalRoom } from "./TribunalRoom.js";
+import { TribunalRoom, MIN_JOGADORES } from "./TribunalRoom.js";
 
 // O TRIBUNAL — eventos de socket (tudo em memória). Mesmo modelo do Mentira
 // Sincera: 2 salas abertas fixas ("livre" aceita bots; "sala2" só gente) e
@@ -57,6 +57,50 @@ export function statusSalasAbertasTribunal() {
   });
 }
 
+// ---------------- sala da FILA DE ESPERA ----------------
+// A fila (src/fila/) cria a sala pro grupo que aceitou a partida. O primeiro
+// a chegar vira dono, e a sessão começa sozinha quando todos chegam (ou
+// depois de ESPERA_GRUPO_MS, com quem veio).
+const ESPERA_GRUPO_MS = 20 * 1000;
+
+export function criarSalaDeGrupoTribunal({ membros, comBots }) {
+  const codigo = novoCodigo();
+  const sala = new TribunalRoom(codigo, null, () => {});
+  sala.enviar = emissor(sala);
+  salas.set(codigo, sala);
+  sala.grupo = { esperados: new Set(membros.map((m) => m.id)), comBots, iniciou: false };
+  sala.grupo.timer = setTimeout(() => iniciarGrupo(sala), ESPERA_GRUPO_MS);
+  sala.grupo.timer.unref?.();
+  return { pagina: "tribunal", mesa: codigo };
+}
+
+function conferirInicioDoGrupo(sala) {
+  const g = sala.grupo;
+  if (!g || g.iniciou) return;
+  const chegaram = [...g.esperados].filter((id) => sala.jogadores.get(id)?.sockets.size > 0);
+  if (chegaram.length === g.esperados.size) iniciarGrupo(sala);
+}
+
+function iniciarGrupo(sala) {
+  const g = sala.grupo;
+  if (!g || g.iniciou) return;
+  g.iniciou = true;
+  clearTimeout(g.timer);
+  if (sala.vazia()) { // ninguém veio: descarta a sala
+    sala.parar();
+    if (salas.get(sala.codigo) === sala) salas.delete(sala.codigo);
+    return;
+  }
+  // Bots só se o grupo escolheu ("Começar agora com bots").
+  if (g.comBots) {
+    while (sala.online().length < MIN_JOGADORES && sala.adicionarBot(sala.donoId) === null) { /* completa */ }
+  }
+  // Faltou gente: fica na espera, como sala normal (o dono chama bots ou espera).
+  if (sala.online().length < MIN_JOGADORES) return;
+  const erro = sala.comecar(sala.donoId);
+  if (erro) console.error("Tribunal: início do grupo falhou:", erro);
+}
+
 function novoCodigo() {
   for (let i = 0; i < 50; i++) {
     const c = String(Math.floor(1000 + Math.random() * 9000));
@@ -96,6 +140,7 @@ export function registrarTribunal(io, socket) {
     // pra convite e qualquer outra coisa que precise achar "a sala dessa
     // pessoa agora" conseguirem, sem precisar reimplementar a busca.
     socket.currentTribunalSala = sala;
+    conferirInicioDoGrupo(sala); // sala da fila de espera: todos chegaram?
     return null;
   }
 
