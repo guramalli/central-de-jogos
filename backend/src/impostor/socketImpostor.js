@@ -1,0 +1,220 @@
+import { ImpostorRoom } from "./ImpostorRoom.js";
+import { sortearPalavra as sortearDoBanco } from "./palavras.js";
+import { prisma } from "../db.js";
+import { concorreAoRanking } from "../utils/rankingElegivel.js";
+import { currentMonthKey } from "../utils/monthKey.js";
+
+// O IMPOSTOR — eventos de socket. Tudo em memória; o banco só entra no
+// sorteio da palavra e na gravação do fim da partida.
+//
+// Mesmo modelo do Tribunal/Mentira: sala criada por CÓDIGO ("KX7-42"),
+// respostas por callback ({ ok } ou { erro }), e a conta volta sozinha pra
+// sala depois de uma queda de conexão.
+//
+// REGRA DE OURO: nada aqui faz broadcast pra sala. Todo pacote sai pelo
+// `emissor`, que manda pra cada socket da pessoa, um por um.
+export const GAME_KEY = "impostor";
+const MAX_SALAS = 200;
+const DESCARTE_SALA_VAZIA_MS = 2 * 60 * 1000;
+
+const salas = new Map();          // codigo -> ImpostorRoom
+const salaDoSocket = new Map();   // socketId -> codigo
+const salaDoUsuario = new Map();  // userId -> codigo (volta depois de queda)
+
+let ioGlobal = null;
+
+// Trocáveis nos testes (sem banco).
+const deps = {
+  sortearPalavra: sortearDoBanco,
+  gravarResultado: gravarResultadoNoBanco,
+};
+export function __configurarImpostorParaTestes(novas) { Object.assign(deps, novas); }
+export function __resetImpostorParaTestes() {
+  for (const sala of salas.values()) sala.parar();
+  salas.clear(); salaDoSocket.clear(); salaDoUsuario.clear();
+  deps.sortearPalavra = sortearDoBanco;
+  deps.gravarResultado = gravarResultadoNoBanco;
+}
+
+// ---------------- ranking / histórico ----------------
+// Grava a partida (inclusive cancelada, pro histórico) e soma os pontos no
+// ranking do mês e no vitalício. Visitante e admin não pontuam no ranking
+// (mesma regra dos outros jogos), mas o que fizeram fica na partida.
+async function gravarResultadoNoBanco(r) {
+  try {
+    await prisma.impostorPartida.create({
+      data: {
+        sala: r.sala,
+        impostorId: r.impostorId,
+        acusadoId: r.acusadoId,
+        tema: r.tema,
+        palavra: r.palavra,
+        vencedor: r.vencedor,
+        motivo: r.motivo,
+        pontuacao: r.pontos,
+      },
+    });
+  } catch (err) {
+    console.error("Impostor: falha ao gravar a partida:", err.message);
+  }
+  if (r.vencedor === "cancelada") return;
+
+  const monthKey = currentMonthKey();
+  for (const [userId, pontos] of Object.entries(r.pontos)) {
+    if (pontos <= 0) continue;
+    try {
+      if (!(await concorreAoRanking(userId))) continue;
+      await prisma.monthlyScore.upsert({
+        where: { userId_gameKey_monthKey: { userId, gameKey: GAME_KEY, monthKey } },
+        update: { points: { increment: pontos } },
+        create: { userId, gameKey: GAME_KEY, monthKey, points: pontos },
+      });
+      await prisma.lifetimeScore.upsert({
+        where: { userId_gameKey: { userId, gameKey: GAME_KEY } },
+        update: { points: { increment: pontos } },
+        create: { userId, gameKey: GAME_KEY, points: pontos },
+      });
+    } catch (err) {
+      console.error("Impostor: falha ao gravar ranking de", userId, err.message);
+    }
+  }
+}
+
+// ---------------- salas ----------------
+const emissor = (sala) => (userId, evento, dados) => {
+  const j = sala.jogadores.get(userId);
+  for (const sid of j?.sockets || []) ioGlobal?.to(sid).emit(evento, dados);
+};
+
+function novaSala(codigo) {
+  const sala = new ImpostorRoom({
+    codigo,
+    enviar: () => {},
+    sortearPalavra: (s) => deps.sortearPalavra(s),
+    aoFimDePartida: (r) => { Promise.resolve(deps.gravarResultado(r)).catch(() => {}); },
+  });
+  sala.enviar = emissor(sala);
+  salas.set(codigo, sala);
+  return sala;
+}
+
+// "KX7-42": 3 letras/números + 2 dígitos. Sem 0/O/1/I/L pra ninguém errar
+// ao ditar o código.
+const LETRAS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function novoCodigo() {
+  for (let i = 0; i < 100; i++) {
+    let c = "";
+    for (let k = 0; k < 3; k++) c += LETRAS[Math.floor(Math.random() * LETRAS.length)];
+    c += "-" + String(Math.floor(Math.random() * 100)).padStart(2, "0");
+    if (!salas.has(c)) return c;
+  }
+  return null;
+}
+
+// Aceita "kx742", "KX7 42", "kx7-42"...
+export function normalizarCodigo(codigo) {
+  const c = String(codigo || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return c.length === 5 ? `${c.slice(0, 3)}-${c.slice(3)}` : c;
+}
+
+export function getOnlinePlayersDetailedImpostor() {
+  const lista = [];
+  for (const [codigo, sala] of salas.entries()) {
+    for (const j of sala.conectados()) lista.push({ userId: j.id, nickname: j.nickname, roomId: codigo, roomLabel: codigo });
+  }
+  return lista;
+}
+
+export function registrarImpostor(io, socket) {
+  ioGlobal = io;
+  const user = { id: socket.user.id, nickname: socket.user.nickname };
+  const responder = (cb, dados) => { if (typeof cb === "function") cb(dados); };
+
+  function sairDaSala({ deVez = false } = {}) {
+    // "Sair" de uma conexão nova (depois de queda) também tira a conta da sala.
+    const codigo = salaDoSocket.get(socket.id) || (deVez ? salaDoUsuario.get(user.id) : null);
+    if (!codigo) return;
+    salaDoSocket.delete(socket.id);
+    socket.currentImpostorSala = null;
+    const sala = salas.get(codigo);
+    if (!sala) return;
+    if (deVez) sala.sairDeVez(user.id);
+    else sala.sair(socket.id);
+    if (sala.vazia()) {
+      setTimeout(() => {
+        if (salas.get(codigo) !== sala || !sala.vazia()) return;
+        sala.parar();
+        salas.delete(codigo);
+      }, DESCARTE_SALA_VAZIA_MS).unref?.();
+    }
+  }
+
+  function entrarNaSala(sala) {
+    if (salaDoSocket.get(socket.id) && salaDoSocket.get(socket.id) !== sala.codigo) sairDaSala();
+    const erro = sala.entrar(user, socket.id);
+    if (erro) return erro;
+    salaDoSocket.set(socket.id, sala.codigo);
+    salaDoUsuario.set(user.id, sala.codigo);
+    socket.currentImpostorSala = sala;
+    return null;
+  }
+
+  socket.on("impostor-criar", (_d, cb) => {
+    try {
+      if (salas.size >= MAX_SALAS) return responder(cb, { erro: "Muitas salas abertas agora. Tente de novo em instantes." });
+      const codigo = novoCodigo();
+      if (!codigo) return responder(cb, { erro: "Não foi possível criar a sala." });
+      const sala = novaSala(codigo);
+      const erro = entrarNaSala(sala);
+      responder(cb, erro ? { erro } : { codigo });
+    } catch (err) {
+      console.error("Impostor: criar falhou:", err.message);
+      responder(cb, { erro: "Não foi possível criar a sala." });
+    }
+  });
+
+  socket.on("impostor-entrar", ({ codigo } = {}, cb) => {
+    try {
+      const sala = salas.get(normalizarCodigo(codigo));
+      if (!sala) return responder(cb, { erro: "Sala não encontrada. Confira o código." });
+      const erro = entrarNaSala(sala);
+      responder(cb, erro ? { erro } : { codigo: sala.codigo });
+    } catch (err) {
+      console.error("Impostor: entrar falhou:", err.message);
+      responder(cb, { erro: "Não foi possível entrar na sala." });
+    }
+  });
+
+  // Ação dentro da sala. Se a conexão é nova (depois de uma queda), recoloca
+  // a pessoa na sala da conta antes de executar.
+  const naSala = (fn) => async (dados, cb) => {
+    try {
+      let sala = salas.get(salaDoSocket.get(socket.id));
+      if (!sala) {
+        const daConta = salas.get(salaDoUsuario.get(user.id));
+        if (daConta && daConta.jogadores.has(user.id) && !entrarNaSala(daConta)) sala = daConta;
+      }
+      if (!sala) return responder(cb, { erro: "Você não está numa sala." });
+      const erro = await fn(sala, dados && typeof dados === "object" ? dados : {});
+      responder(cb, erro ? { erro } : { ok: true });
+    } catch (err) {
+      console.error("Impostor: ação falhou:", err);
+      responder(cb, { erro: "Algo deu errado. Tente de novo." });
+    }
+  };
+
+  socket.on("impostor-iniciar", naSala((sala) => sala.iniciar(user.id)));
+  socket.on("impostor-carta-vista", naSala((sala) => sala.cartaVista(user.id)));
+  socket.on("impostor-dica", naSala((sala, { texto }) => sala.darDica(user.id, texto)));
+  socket.on("impostor-votar", naSala((sala, { alvoId }) => sala.votar(user.id, String(alvoId || ""))));
+  socket.on("impostor-chute", naSala((sala, { palavra }) => sala.chutar(user.id, palavra)));
+  socket.on("impostor-proxima", naSala((sala) => sala.proxima(user.id)));
+  socket.on("impostor-sair", (_d, cb) => {
+    sairDaSala({ deVez: true });
+    salaDoUsuario.delete(user.id);
+    responder(cb, { ok: true });
+  });
+  socket.on("disconnect", () => sairDaSala());
+}
+
+export { salas as __salasImpostor };

@@ -516,6 +516,38 @@ model MissaoProgresso {
   @@index([userId, periodo])
 }
 
+// ===== O Impostor =====
+// Banco de palavras: o servidor sorteia um tema e uma palavra dele. `ativo`
+// desliga uma palavra sem apagar (mesma ideia do status das outras tabelas).
+model ImpostorPalavra {
+  id       String   @id @default(cuid())
+  tema     String
+  palavra  String
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  @@unique([tema, palavra])
+  @@index([ativo, tema])
+}
+
+// Uma linha por partida do Impostor, inclusive as canceladas (impostor saiu,
+// gente de menos). Os ids ficam como texto, sem relação com User, pra não
+// precisar mexer no model User. `pontuacao` é { userId: pontos }.
+model ImpostorPartida {
+  id         String   @id @default(cuid())
+  sala       String
+  criadoEm   DateTime @default(now())
+  impostorId String
+  acusadoId  String?
+  tema       String
+  palavra    String
+  vencedor   String   // "impostor" | "tripulantes" | "cancelada"
+  motivo     String   // "empate" | "inocente" | "adivinhou" | "errou" | "impostor_saiu" | "poucos_jogadores"
+  pontuacao  Json
+
+  @@index([criadoEm])
+}
+
 // Contadores de STOP pedidos por jogador, agrupados por nível de sala
 // (padrao | intermediario | avancada). Alimentam os TÍTULOS do perfil.
 // "rapidos" conta os STOPs pedidos em até N segundos do início da rodada
