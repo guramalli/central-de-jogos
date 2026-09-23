@@ -123,6 +123,51 @@ export function normalizarCodigo(codigo) {
   return c.length === 5 ? `${c.slice(0, 3)}-${c.slice(3)}` : c;
 }
 
+// ---------------- sala da FILA DE ESPERA ----------------
+// A fila (src/fila/) cria a sala pro grupo que aceitou a partida. O primeiro
+// a chegar vira anfitrião, e a partida começa sozinha quando todos chegam
+// (ou depois de ESPERA_GRUPO_MS, com quem veio).
+const ESPERA_GRUPO_MS = 20 * 1000;
+
+export function criarSalaDeGrupo({ membros, comBots }) {
+  const codigo = novoCodigo();
+  if (!codigo) throw new Error("sem código livre");
+  const sala = novaSala(codigo);
+  sala.grupo = { esperados: new Set(membros.map((m) => m.id)), comBots, iniciou: false };
+  sala.grupo.timer = setTimeout(() => iniciarGrupo(sala), ESPERA_GRUPO_MS);
+  sala.grupo.timer.unref?.();
+  return { pagina: "impostor", mesa: codigo };
+}
+
+// Chamado a cada entrada: todo mundo do grupo chegou? Começa.
+export function conferirInicioDoGrupo(sala) {
+  const g = sala.grupo;
+  if (!g || g.iniciou) return;
+  const chegaram = [...g.esperados].filter((id) => sala.jogadores.get(id)?.sockets.size > 0);
+  if (chegaram.length === g.esperados.size) iniciarGrupo(sala);
+}
+
+function iniciarGrupo(sala) {
+  const g = sala.grupo;
+  if (!g || g.iniciou) return;
+  g.iniciou = true;
+  clearTimeout(g.timer);
+  if (sala.vazia()) { // ninguém veio: descarta a sala
+    sala.parar();
+    if (salas.get(sala.codigo) === sala) salas.delete(sala.codigo);
+    return;
+  }
+  const anfitriao = sala.anfitriaoId;
+  // Bots só se o grupo escolheu ("Começar agora com bots").
+  if (g.comBots) {
+    while (sala.conectados().length < sala.cfg.MIN_JOGADORES && sala.adicionarBot(anfitriao) === null) { /* completa */ }
+  }
+  // Faltou gente (alguém aceitou e não veio): a sala fica na espera, como
+  // uma sala normal — o anfitrião pode chamar bots ou esperar.
+  if (sala.conectados().length < sala.cfg.MIN_JOGADORES) return;
+  Promise.resolve(sala.iniciar(anfitriao)).catch((err) => console.error("Impostor: início do grupo falhou:", err));
+}
+
 export function getOnlinePlayersDetailedImpostor() {
   const lista = [];
   for (const [codigo, sala] of salas.entries()) {
@@ -162,6 +207,7 @@ export function registrarImpostor(io, socket) {
     salaDoSocket.set(socket.id, sala.codigo);
     salaDoUsuario.set(user.id, sala.codigo);
     socket.currentImpostorSala = sala;
+    conferirInicioDoGrupo(sala);
     return null;
   }
 

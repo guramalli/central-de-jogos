@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FilaNoCard from "../FilaNoCard.jsx";
 
 // Antes de estar numa sala: criar uma ou entrar com o código.
 export default function Entrada({ aoCriar, aoEntrar, entrando }) {
@@ -11,7 +12,9 @@ export default function Entrada({ aoCriar, aoEntrar, entrando }) {
         <p className="imp-sub">Entrando na sala…</p>
       ) : (
         <div className="imp-painel imp-entrada-painel">
-          <button className="imp-botao principal" onClick={aoCriar}>Criar sala</button>
+          <span className="imp-rotulo">JOGAR AGORA COM QUEM ESTIVER NA FILA</span>
+          <FilaNoCard jogo="impostor" />
+          <button className="imp-botao principal" onClick={aoCriar}>Criar sala com amigos</button>
           <form
             className="imp-codigo-form"
             onSubmit={(e) => { e.preventDefault(); if (codigo.trim()) aoEntrar(codigo.trim()); }}

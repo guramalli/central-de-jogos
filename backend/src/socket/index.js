@@ -1,6 +1,7 @@
 import { registrarMentira } from "../mentira/socketMentira.js";
 import { registrarTribunal } from "../tribunal/socketTribunal.js";
 import { registrarImpostor } from "../impostor/socketImpostor.js";
+import { registrarFila } from "../fila/socketFila.js";
 import { podeFalar } from "../utils/antiFlood.js";
 import { chamarBotsNoStop, dispensarBotsDoStop } from "../game/stopBots.js";
 import { verifyToken } from "../utils/jwt.js";
@@ -137,6 +138,7 @@ export function setupSocket(io) {
     registrarMentira(io, socket);
     registrarTribunal(io, socket); // O Tribunal (em teste, sem link no site)
     registrarImpostor(io, socket); // O Impostor (em construção, sem link no site)
+    registrarFila(io, socket); // Fila de espera "Jogar agora" (Impostor, Tribunal, Acromania)
 
     // Toda conexão autenticada conta como "no site" — independente da
     // página. É daqui que o painel admin tira quem está online.

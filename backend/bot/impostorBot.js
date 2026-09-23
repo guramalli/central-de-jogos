@@ -9,6 +9,7 @@
 // Como usar (dentro da pasta backend, com o servidor rodando):
 //   1. abra /v2/?pagina=impostor no navegador e crie a sala;
 //   2. em outro terminal:  IMPOSTOR_SALA=KX7-42 BOTS=3 npm run bot:impostor
+//      (ou, pra testar a fila de espera:  BOT_FILA=1 BOTS=3 npm run bot:impostor)
 //      (no PowerShell:  $env:IMPOSTOR_SALA="KX7-42"; $env:BOTS=3; npm run bot:impostor)
 //
 // BOT_VOTO=acerta faz os bots tripulantes votarem no impostor (pra testar a
@@ -28,6 +29,9 @@ import { validarDica } from "../src/impostor/regras.js";
 
 const API_URL = process.env.API_URL || "http://localhost:4000";
 const SALA = process.env.IMPOSTOR_SALA;
+// BOT_FILA=1: em vez de entrar numa sala, os bots entram na FILA DE ESPERA
+// do Impostor, aceitam a partida encontrada e vão pra sala criada.
+const FILA = process.env.BOT_FILA === "1";
 const BOTS = Math.min(11, Math.max(1, Number(process.env.BOTS) || 3));
 const VOTO_CERTO = process.env.BOT_VOTO === "acerta";
 
@@ -75,8 +79,24 @@ function ligarBot({ user, token }) {
   }
 
   socket.on("connect", async () => {
+    if (FILA) {
+      // Modo fila: entra na fila de espera, aceita a partida e vai pra sala.
+      await pedir("fila-assinar");
+      const r = await pedir("fila-entrar", { jogo: "impostor" });
+      if (r?.ok) log("entrou na fila do Impostor");
+      return;
+    }
     const r = await pedir("impostor-entrar", { codigo: SALA });
     if (r?.codigo) log("entrou na sala", r.codigo);
+  });
+  socket.on("fila-proposta", (p) => {
+    if (p.eu === "aceitei") return;
+    setTimeout(async () => { const r = await pedir("fila-aceitar", { id: p.id }); if (r?.ok) log("aceitou a partida"); }, entre(1000, 3000));
+  });
+  socket.on("fila-fim", async (f) => {
+    if (!f.ok) return log("fila:", f.mensagem);
+    const r = await pedir("impostor-entrar", { codigo: f.destino.mesa });
+    if (r?.codigo) log("foi pra sala da fila", r.codigo);
   });
   socket.on("connect_error", (err) => log("não conectou:", err.message));
   socket.on("impostor-carta", (c) => {
@@ -140,12 +160,12 @@ function ligarBot({ user, token }) {
 }
 
 async function main() {
-  if (!SALA) {
+  if (!SALA && !FILA) {
     console.error("Informe o código da sala: IMPOSTOR_SALA=KX7-42 npm run bot:impostor");
     process.exit(1);
   }
   const host = (process.env.DATABASE_URL || "").replace(/^.*@([^/:?]+).*$/, "$1");
-  console.log(`Banco: ${host} · servidor: ${API_URL} · sala: ${SALA} · ${BOTS} bot(s)${VOTO_CERTO ? " · votam no impostor" : ""}`);
+  console.log(`Banco: ${host} · servidor: ${API_URL} · ${FILA ? "fila de espera" : `sala: ${SALA}`} · ${BOTS} bot(s)${VOTO_CERTO ? " · votam no impostor" : ""}`);
   const sockets = [];
   for (let n = 1; n <= BOTS; n++) sockets.push(ligarBot(await contaDoBot(n)));
   process.on("SIGINT", async () => {
