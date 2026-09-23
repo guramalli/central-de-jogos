@@ -13,7 +13,7 @@ export const ALTERACOES = {
   quiz: 32,
   acromania: 28,
   mentira: 31,
-  tribunal: 13,
+  tribunal: 14,
 };
 
 export function versaoTexto(jogo) {

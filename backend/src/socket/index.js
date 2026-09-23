@@ -478,10 +478,22 @@ export function setupSocket(io) {
       try {
         if (!amigoId || amigoId === userId) return;
 
-        // `socket.currentRoom` guarda o OBJETO da sala, não o id — foi o que
-        // me confundiu na primeira versão. O id e o nome saem de dentro dele.
-        const sala = socket.currentRoom;
-        if (!sala?.roomId) {
+        // Cada jogo guarda a sala atual numa propriedade própria do socket
+        // (currentRoom pro Stop, currentQuizRoom pro Quiz, etc.) — checa as
+        // quatro nessa ordem e usa a primeira que existir. Antes disso só
+        // checava currentRoom, então convidar de dentro do Quiz ou do
+        // Acromania sempre dava "Você não está numa sala", mesmo estando
+        // (zip 618 — achado ao construir o convite do Tribunal).
+        let jogo, id, label;
+        if (socket.currentRoom?.roomId) {
+          jogo = "stop"; id = socket.currentRoom.roomId; label = socket.currentRoom.label;
+        } else if (socket.currentQuizRoom?.roomId) {
+          jogo = "quiz"; id = socket.currentQuizRoom.roomId; label = socket.currentQuizRoom.label;
+        } else if (socket.currentAcromaniaRoom?.roomId) {
+          jogo = "acromania"; id = socket.currentAcromaniaRoom.roomId; label = socket.currentAcromaniaRoom.label;
+        } else if (socket.currentTribunalSala?.codigo) {
+          jogo = "tribunal"; id = socket.currentTribunalSala.codigo; label = socket.currentTribunalSala.nomeSala;
+        } else {
           socket.emit("convite-resultado", { ok: false, erro: "Você não está numa sala." });
           return;
         }
@@ -513,17 +525,12 @@ export function setupSocket(io) {
 
         conviteRecente.set(chave, agora);
 
-        // O jogo sai do PREFIXO do id da sala ("quiz-games-facil",
-        // "acromania-sala-1"); o Stop não tem prefixo e é o padrão.
-        const id = sala.roomId;
-        const jogo = id.startsWith("quiz-") ? "quiz" : id.startsWith("acromania-") ? "acromania" : "stop";
-
         io.to(`user:${amigoId}`).emit("convite-de-sala", {
           de: nickname,
           deId: userId,
           jogo,
           sala: id,
-          salaLabel: sala.label || id,
+          salaLabel: label || id,
           em: agora,
         });
 

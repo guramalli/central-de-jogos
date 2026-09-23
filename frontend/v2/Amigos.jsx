@@ -251,11 +251,11 @@ export function Conversa({ amigo, usuario, aoVoltar, aoRemover, aoLer }) {
 
 // Conversa numa janela por cima da página — usada no painel admin, onde o
 // admin fala com qualquer jogador (o servidor libera sem amizade).
-export function ModalConversa({ amigo, usuario, aoFechar }) {
+export function ModalConversa({ amigo, usuario, aoFechar, aoLer }) {
   return (
     <div className="v2-modal-fundo" onClick={aoFechar}>
       <div className="v2-cartao v2-conversa v2-conversa-modal" role="dialog" aria-label={`Conversa com ${amigo.nickname}`} onClick={(e) => e.stopPropagation()}>
-        <Conversa amigo={amigo} usuario={usuario} aoVoltar={aoFechar} />
+        <Conversa amigo={amigo} usuario={usuario} aoVoltar={aoFechar} aoLer={aoLer} />
         <button className="v2-modal-fechar" aria-label="Fechar conversa" onClick={aoFechar}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>

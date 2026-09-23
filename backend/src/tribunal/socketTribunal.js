@@ -30,6 +30,22 @@ function salaAberta(cfg) {
   return salas.get(cfg.codigo);
 }
 
+// Contagem de "quem está jogando agora", no mesmo formato que Stop/Quiz/
+// Acromania usam (getOnlinePlayersDetailed) — soma TODAS as salas, não só
+// as 2 públicas fixas (statusSalasAbertasTribunal, acima, é só pra listar
+// as públicas na tela de entrada do Tribunal; salas com amigos, criadas
+// por convite, também contam aqui). Bots não entram na conta — "jogadores
+// jogando" é sobre gente de verdade.
+export function getOnlinePlayersDetailedTribunal() {
+  const lista = [];
+  for (const [codigo, sala] of salas.entries()) {
+    for (const j of sala.humanos()) {
+      lista.push({ userId: j.id, nickname: j.nickname, roomId: codigo, roomLabel: sala.nomeSala || codigo });
+    }
+  }
+  return lista;
+}
+
 export function statusSalasAbertasTribunal() {
   return SALAS_ABERTAS.map((cfg) => {
     const sala = salas.get(cfg.codigo);
@@ -58,6 +74,7 @@ export function registrarTribunal(io, socket) {
     const codigo = salaDoSocket.get(socket.id);
     if (!codigo) return;
     salaDoSocket.delete(socket.id);
+    socket.currentTribunalSala = null;
     const sala = salas.get(codigo);
     if (!sala) return;
     sala.sair(socket.id);
@@ -74,6 +91,11 @@ export function registrarTribunal(io, socket) {
     if (erro) return erro;
     salaDoSocket.set(socket.id, sala.codigo);
     salaDoUsuario.set(user.id, sala.codigo);
+    // Guarda a referência da sala no próprio socket (zip 618) — mesmo
+    // padrão que Stop/Quiz/Acromania já usam (socket.currentRoom etc.),
+    // pra convite e qualquer outra coisa que precise achar "a sala dessa
+    // pessoa agora" conseguirem, sem precisar reimplementar a busca.
+    socket.currentTribunalSala = sala;
     return null;
   }
 

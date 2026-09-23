@@ -96,28 +96,35 @@ export default function DicaNova({ chave, texto, lado = "baixo-esquerda", alvoSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visivel]);
 
-  // Mede o elemento-alvo (pra recortar o furo de luz) em loop, quadro a
-  // quadro, enquanto a dica estiver na tela — em vez de medir só uma vez.
-  // No celular, imagens e dados que ainda estão carregando empurram a
-  // página DEPOIS da 1ª medição (a escada de patentes, por exemplo, só
-  // ganha o tamanho final quando os ícones e os pontos do mês chegam); uma
-  // medição única "engessava" o destaque no lugar errado. Medir toda hora
-  // é barato (getBoundingClientRect não mexe no layout) e se autocorrige
-  // sozinho assim que a página para de se mexer — sem precisar adivinhar
-  // quando isso acontece.
+  // Mede o elemento-alvo (pra recortar o furo de luz) em loop enquanto a
+  // dica estiver na tela — em vez de medir só uma vez — porque no celular
+  // conteúdo que ainda está carregando pode empurrar a página depois da 1ª
+  // medição. MAS: o destaque usa um box-shadow gigante (9999px) pra
+  // escurecer o resto da tela, que é caro de repintar — atualizar isso a
+  // cada quadro (60x/seg), ainda por cima ao mesmo tempo que uma rolagem
+  // suave também está animando, sobrecarrega o navegador e trava a tela
+  // bem na hora que a dica deveria aparecer. Duas correções: a rolagem é
+  // instantânea (não "smooth" — sem isso, as duas animações rodando juntas
+  // é que causava o travamento) e o React só é avisado da posição nova no
+  // máximo a cada 150ms (a MEDIÇÃO continua todo quadro, barata; só o
+  // REPINTAR cai de 60x/seg pra ~7x/seg).
   useEffect(() => {
     if (!visivel) { setRect(null); return; }
     const alvo = alvoSeletor ? marcaRef.current?.closest(alvoSeletor) : marcaRef.current?.parentElement;
     if (!alvo) return;
     let rolou = false;
-    let quadro = requestAnimationFrame(function loop() {
+    let ultimaAtualizacao = 0;
+    let quadro = requestAnimationFrame(function loop(agora) {
       const r = alvo.getBoundingClientRect();
       if (!rolou) {
         rolou = true;
         const dentroDaTela = r.top >= 0 && r.bottom <= window.innerHeight;
-        if (!dentroDaTela) alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (!dentroDaTela) alvo.scrollIntoView({ behavior: "auto", block: "center" });
       }
-      setRect((atual) => (atual && atual.top === r.top && atual.left === r.left && atual.width === r.width && atual.height === r.height) ? atual : r);
+      if (agora - ultimaAtualizacao >= 150) {
+        ultimaAtualizacao = agora;
+        setRect((atual) => (atual && atual.top === r.top && atual.left === r.left && atual.width === r.width && atual.height === r.height) ? atual : r);
+      }
       quadro = requestAnimationFrame(loop);
     });
     return () => cancelAnimationFrame(quadro);

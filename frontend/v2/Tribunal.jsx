@@ -4,6 +4,8 @@ import { api, novoSocket } from "./api.js";
 import Avatar from "./Avatar.jsx";
 import { ativarSons, somCampeao, carregarSons, somMarteloAbertura, somMarteloUma, somPlateia, somTambor, somCulpado, somInocente } from "./sons.js";
 import { Moldura, Relogio, Confete, ReacoesFlutuando, ChatMentira, ControleSom } from "./Mentira.jsx";
+import { BotaoConvidar } from "./Convites.jsx";
+import ChatAmigosFlutuante from "./ChatAmigosFlutuante.jsx";
 
 // O TRIBUNAL — tela (EM TESTE, com selo "em testes" nos cards do Início, da
 // página pública e da versão clássica).
@@ -42,6 +44,7 @@ export default function Tribunal({ usuario, salaDoLink }) {
   const [erro, setErro] = useState("");
   const [codigoDigitado, setCodigoDigitado] = useState("");
   const [caiu, setCaiu] = useState(false);
+  const [socket, setSocket] = useState(null);
   const socketRef = useRef(null);
   const codigoRef = useRef(salaDoLink || null);
   useEffect(() => { ativarSons(); carregarSons("tribunal"); }, []);
@@ -49,6 +52,7 @@ export default function Tribunal({ usuario, salaDoLink }) {
   useEffect(() => {
     const s = novoSocket();
     socketRef.current = s;
+    setSocket(s);
     let etapa = "";
     s.on("tribunal-estado", (e) => {
       const agora = `${e.fase}-${e.rodada}`;
@@ -155,6 +159,8 @@ export default function Tribunal({ usuario, salaDoLink }) {
         </div>
         <div className="v2-mentira-topo-dir">
           <span className="v2-mentira-cod-selo">{estado.publica ? estado.nomeSala : `sala ${estado.codigo}`}</span>
+          <BotaoConvidar socket={socket} roomId={estado.codigo} nomeSala={estado.publica ? estado.nomeSala : `sala ${estado.codigo}`} jogo="tribunal" />
+          <ChatAmigosFlutuante usuario={usuario} />
           {estado.modoPapeis === "fixo" && fase !== "aguardando" && fase !== "fim" && <span className="v2-mentira-cod-selo v2-tribunal-modo-selo" title="O grupo decide, depois de cada veredito, se sorteia os papéis de novo">📌 fixo</span>}
           <ControleSom aoTestar={somMarteloUma} />
           <button className="v2-botao-pequeno" onClick={sairDaSala}>Sair</button>

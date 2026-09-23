@@ -10,6 +10,7 @@ import IconePatente from "./IconePatente.jsx";
 import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
+import ChatAmigosFlutuante from "./ChatAmigosFlutuante.jsx";
 
 const RAIO = 30;
 const VOLTA = 2 * Math.PI * RAIO;
@@ -577,7 +578,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                 <div className="v2-stop-podio">
                   {[bonusBloco[1], bonusBloco[0], bonusBloco[2]].filter(Boolean).map((b) => (
                     <div key={b.userId} className={`v2-stop-podio-item p${b.position}`}>
-                      <Avatar userId={b.userId} nickname={b.nickname} tamanho={b.position === 1 ? 56 : 44} borda />
+                      <IconePatente rank={jogadores.find((j) => j.userId === b.userId)?.rank} nickname={b.nickname} userId={b.userId} />
                       <span className="v2-stop-podio-nick">{b.nickname}</span>
                       <div className="v2-stop-podio-coluna"><b>{b.position}º</b><em>+{b.bonus}</em></div>
                     </div>
@@ -624,6 +625,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
         </aside>
       </div>
       {!compacto && <ConviteRecebido socket={socket} />}
+      {!compacto && <ChatAmigosFlutuante usuario={usuario} />}
     </div>
   );
 }

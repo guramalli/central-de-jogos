@@ -7,7 +7,7 @@ import { REGRAS_ACRO } from "./SalaAcro.jsx";
 import { corDoTema, nomeDoTema } from "./temas.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 import Topo from "./Topo.jsx";
-import Avatar from "./Avatar.jsx";
+import IconePatente from "./IconePatente.jsx";
 import Rodape from "./Rodape.jsx";
 
 const LOGO_JOGO = { quiz: "/quiz-logo.png", stop: "/stop-logo.png", acromania: "/acromania-logo.png" };
@@ -371,7 +371,7 @@ function Top3({ jogo }) {
           {linhas.map((r) => (
             <a key={r.position} className={`v2-top3-item p${r.position}`} href={`/v2/?pagina=jogador&id=${r.userId}`} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id: r.userId }); }}>
               <span className="v2-top3-pos">{r.position}º</span>
-              <Avatar userId={r.userId} nickname={r.nickname} tamanho={44} borda />
+              <IconePatente rank={r.rank} nickname={r.nickname} userId={r.userId} />
               <span className="v2-top3-texto">
                 <b>{r.nickname}</b>
                 <span>{Number(r.points || 0).toLocaleString("pt-BR")} pts</span>

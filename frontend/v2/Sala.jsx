@@ -11,6 +11,7 @@ import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
 import { ModalReportar } from "./Modais.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
+import ChatAmigosFlutuante from "./ChatAmigosFlutuante.jsx";
 
 const RAIO = 30;
 const VOLTA = 2 * Math.PI * RAIO;
@@ -540,6 +541,7 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
 
       {reportando && questionId && <ModalReportar questionId={questionId} texto={pergunta} aoFechar={() => setReportando(false)} />}
       {!compacto && <ConviteRecebido socket={socket} />}
+      {!compacto && <ChatAmigosFlutuante usuario={usuario} />}
     </div>
   );
 }

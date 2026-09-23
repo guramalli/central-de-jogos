@@ -3,6 +3,7 @@ import { getPlatformStats } from "../game/platformStats.js";
 import { getOnlinePlayersDetailed as stopOnline } from "../game/gameManager.js";
 import { getOnlinePlayersDetailed as quizOnline } from "../game/quizGameManager.js";
 import { getOnlinePlayersDetailed as acromaniaOnline } from "../game/acromaniaGameManager.js";
+import { getOnlinePlayersDetailedTribunal as tribunalOnline } from "../tribunal/socketTribunal.js";
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.get("/online", (req, res) => {
     ["stop", stopOnline()],
     ["quiz", quizOnline()],
     ["acromania", acromaniaOnline()],
+    ["tribunal", tribunalOnline()],
   ];
 
   const resultado = {};

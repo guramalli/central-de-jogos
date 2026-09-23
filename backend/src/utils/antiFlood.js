@@ -5,16 +5,21 @@
 // o objetivo é segurar o engraçadinho na hora, não guardar histórico).
 //
 // Regras (folgadas pra conversa normal, apertadas pra spam):
-//   - no mínimo 1,5s entre mensagens            -> recusa, sem punição;
+//   - no mínimo 900ms entre mensagens             -> recusa, sem punição;
 //   - a MESMA mensagem só 2x por minuto          -> recusa, sem punição;
-//   - mais de 5 mensagens em 15s                 -> SILENCIADO;
+//   - mais de 8 mensagens em 20s                 -> SILENCIADO;
 //   - silêncio cresce se a pessoa insiste: 1 min -> 5 min -> 30 min
 //     (reincidência conta nos últimos 30 minutos).
 // Admin e moderadores ficam fora (checado em socket/index.js).
+//
+// zip 619: intervalo entre mensagens estava pegando gente digitando rápido
+// numa conversa normal, não só spam de verdade — 1,5s → 900ms, e a rajada
+// (que também jogava nisso) foi de 5 em 15s pra 8 em 20s, dando mais fôlego
+// pra uma sequência de mensagens curtas sem cair em silêncio à toa.
 export const LIMITES = {
-  intervaloMs: 1500,
-  rajada: 5,
-  janelaRajadaMs: 15000,
+  intervaloMs: 900,
+  rajada: 8,
+  janelaRajadaMs: 20000,
   repeticoes: 2,
   janelaRepeticaoMs: 60000,
   silencios: [60000, 5 * 60000, 30 * 60000],
