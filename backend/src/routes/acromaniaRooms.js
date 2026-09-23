@@ -5,6 +5,13 @@ import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
 
 const router = Router();
 
+// Público (sem login): só diz se o Acromania está ligado, pra página de
+// quem ainda não entrou esconder o card. A lista de salas continua exigindo
+// login — antes a página pública chamava a rota de baixo e tomava 401.
+router.get("/ativo", (req, res) => {
+  res.json({ ativo: acromaniaAtivo() });
+});
+
 router.get("/", requireAuth, (req, res) => {
   // Desligado pelo painel do Render: devolve lista vazia e avisa o motivo.
   // O front usa o campo `ativo` pra mostrar "em manutenção" em vez de ficar

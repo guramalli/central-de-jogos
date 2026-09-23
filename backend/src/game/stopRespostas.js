@@ -7,7 +7,7 @@
 // e ninguém pontuava. Fica num arquivo separado (sem banco) pra dar pra
 // testar isolado.
 
-// Mesmo limite do campo no frontend (maxLength={40} em StopGame/AnswerTable).
+// Mesmo limite do campo no frontend (maxLength={40} em StopGame).
 export const MAX_RESPOSTA = 40;
 
 // Devolve um objeto novo só com as chaves dos temas da rodada atual, cada

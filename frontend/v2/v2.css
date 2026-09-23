@@ -2393,3 +2393,14 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
 .v2-dica-balao button { align-self: flex-end; border: none; border-radius: 999px; padding: 5px 14px; background: var(--amarelo); color: var(--roxo); font: inherit; font-weight: 900; font-size: 12px; cursor: pointer; }
 @media (max-width: 520px) { .v2-dica-balao { width: 200px; } }
 @media (prefers-reduced-motion: reduce) { .v2-dica-balao, .v2-dica-destaque { animation: none; } }
+
+/* ---------- Toque: botões do chat no tamanho do dedo ----------
+   No celular, o "apagar mensagem" (22px) e os controles da sala compacta
+   (36px) ficavam pequenos demais pra acertar. Só em tela de toque; no
+   mouse continua tudo como está. */
+@media (pointer: coarse) {
+  .v2-msg .v2-msg-apagar, .v2-msg:hover .v2-msg-apagar { width: 32px; height: 32px; }
+  .v2-sala.compacto .v2-chat-form input, .v2-sala.compacto .v2-chat-enviar { height: 44px; }
+  .v2-sala.compacto .v2-emoji-botao { width: 44px; height: 44px; }
+  .v2-sugestoes button { min-height: 44px; }
+}
