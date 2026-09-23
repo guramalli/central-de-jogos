@@ -19,7 +19,7 @@ import Admin from "./Admin.jsx";
 import MultiSala from "./MultiSala.jsx";
 import Mentira from "./Mentira.jsx";
 import Tribunal from "./Tribunal.jsx";
-import Impostor from "./Impostor.jsx";
+import Impostor from "./ImpostorSobDemanda.jsx";
 import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";

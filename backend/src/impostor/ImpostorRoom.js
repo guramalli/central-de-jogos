@@ -42,7 +42,7 @@ export const CONFIG = {
   SEG_VOTACAO: 30,
   // A revelação é uma animação no cliente ("A VERDADE", votos um a um,
   // suspense, nome do acusado). O servidor só segura a fase por esse tempo.
-  SEG_REVELACAO: 7,
+  SEG_REVELACAO: 9,
   SEG_ULTIMA_CHANCE: 15,
   SEG_FIM: 90, // sem o anfitrião clicar em "Próxima partida", volta sozinho
   SEG_TOLERANCIA: 30, // quem cai continua na partida por esse tempo

@@ -100,7 +100,7 @@ test("partida completa pela rede: impostor nunca recebe a palavra; cada um receb
   for (const t of tripulantes) await emitir(t, "impostor-votar", { alvoId: impostor.id });
   await esperar(() => a.estado.fase === "REVELACAO");
   assert.equal(a.estado.revelacao.impostorId, impostor.id);
-  await esperar(() => impostor.estado.fase === "ULTIMA_CHANCE", 10000);
+  await esperar(() => impostor.estado.fase === "ULTIMA_CHANCE", 15000);
 
   assert.deepEqual(await emitir(impostor, "impostor-chute", { palavra: "escola" }), { ok: true });
   await esperar(() => clientes.every((x) => x.estado.fase === "FIM"));
