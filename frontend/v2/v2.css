@@ -1362,6 +1362,10 @@ a { color: inherit; text-decoration: none; }
 kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 6px; background: var(--roxo-fundo); border: 1px solid var(--borda); font-family: inherit; font-size: 12px; font-weight: 900; text-align: center; color: #fff; }
 .v2-multi-barra { flex-shrink: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--roxo-escuro); }
 .v2-multi-contador { flex: 1; font-size: 13px; font-weight: 800; color: var(--lilas); }
+.v2-multi-som { display: flex; gap: 6px; }
+.v2-multi-som .v2-mudo { width: 36px; height: 36px; border-radius: 11px; }
+.v2-multi-som .v2-mudo svg { width: 18px; height: 18px; }
+@media (pointer: coarse) { .v2-multi-som .v2-mudo { width: 44px; height: 44px; } }
 .v2-multi-dica { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 12px 0; padding: 10px 14px; border-radius: 14px; background: var(--amarelo); color: var(--roxo); font-weight: 800; font-size: 14px; }
 .v2-multi-dica kbd { background: #fff; color: var(--roxo); border-color: var(--amarelo-sombra); }
 .v2-multi-dica span { flex: 1; min-width: 200px; }

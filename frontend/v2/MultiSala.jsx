@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Sala from "./Sala.jsx";
 import SalaStop from "./SalaStop.jsx";
+import BotoesSom from "./BotoesSom.jsx";
 import { nomeDoTema } from "./temas.js";
 
 // MULTI-SALA — até 4 partidas na mesma tela (Stop ou Quiz), igual ao
@@ -151,6 +152,9 @@ export default function MultiSala({ usuario, jogo }) {
           {abertas.length > 1 && <button className="v2-botao-pequeno" onClick={() => trocar(1)} title="Ctrl + seta, ou Ctrl + número da sala">Próxima sala</button>}
           {abertas.length === 2 && <button className="v2-botao-pequeno" onClick={alternarEmpilhado}>{empilhado ? "Lado a lado" : "Empilhar"}</button>}
           <span className="v2-multi-contador">{abertas.length} de {MAX_PAINEIS} salas{abertas.length > 1 && <span className="v2-multi-dica-atalho"> · Ctrl + setas pra alternar</span>}</span>
+          {/* Os painéis compactos escondem o topo de cada sala (onde ficam
+              som e confete): os dois botões vêm pra cá e valem pra todas. */}
+          <div className="v2-multi-som"><BotoesSom /></div>
           <a className="v2-botao-pequeno" href={linkDaPagina("jogar", { jogo: ehStop ? "stop" : "quiz" })} onClick={voltar}>← salas</a>
         </div>
       )}
