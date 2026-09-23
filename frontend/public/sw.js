@@ -33,11 +33,13 @@
 // guardados pra sempre. O manifest.json também passou a ser conferido por
 // trás (antes, quem instalou o app nunca recebia um manifest novo). A
 // subida de versão limpa o que já tinha acumulado.
-const VERSAO = "eg-v13";
+// eg-v14: sem internet, quem está na v2 caía na casca do site CLÁSSICO
+// (o reserva era sempre "/"). Agora a v2 tem a própria casca guardada.
+const VERSAO = "eg-v14";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
-const ESSENCIAIS = ["/", "/favicon.png", "/manifest.json"];
+const ESSENCIAIS = ["/", "/v2/", "/favicon.png", "/manifest.json"];
 
 // Pastas de arte com nome de arquivo FIXO (sem hash): quando uma imagem é
 // regerada, o nome continua o mesmo. Elas precisam ser revalidadas, senão
@@ -106,7 +108,12 @@ self.addEventListener("fetch", (evento) => {
   // se a pessoa estiver realmente sem internet.
   if (req.mode === "navigate") {
     evento.respondWith(
-      fetch(req, { cache: "no-store" }).catch(() => caches.match("/").then((r) => r || Response.error()))
+      fetch(req, { cache: "no-store" }).catch(() => {
+        // Sem internet: cada site volta pra própria casca (a v2 não pode
+        // cair no clássico).
+        const casca = url.pathname === "/v2" || url.pathname.startsWith("/v2/") ? "/v2/" : "/";
+        return caches.match(casca).then((r) => r || caches.match("/")).then((r) => r || Response.error());
+      })
     );
     return;
   }

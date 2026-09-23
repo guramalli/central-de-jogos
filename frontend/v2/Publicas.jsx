@@ -139,7 +139,7 @@ export function Entrada() {
 
   useEffect(() => {
     api.get("/platform-stats/online").then(({ data }) => setOnline(data)).catch(() => {});
-    api.get("/acromania-rooms").then(({ data }) => setAcroAtivo(Array.isArray(data) ? true : data.ativo !== false)).catch(() => {});
+    api.get("/acromania-rooms/ativo").then(({ data }) => setAcroAtivo(data.ativo !== false)).catch(() => {});
   }, []);
 
   const jogos = [
