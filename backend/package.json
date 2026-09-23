@@ -19,7 +19,8 @@
     "respostas-repetidas": "node scripts/respostasRepetidas.js",
     "listar-respostas": "node scripts/listarRespostas.js",
     "achar-respostas-ruins": "node scripts/acharRespostasRuins.js",
-    "limpar-visitantes": "node scripts/limparVisitantesSuspeitos.js",
+    "limpar-visitantes": "node prisma/limparVisitantes.js",
+    "limpar-visitantes-suspeitos": "node scripts/limparVisitantesSuspeitos.js",
     "banir-ip": "node scripts/banirIP.js",
     "fechar-mes": "node scripts/fecharMes.js",
     "triar-palavras": "node scripts/triarPalavras.js",
@@ -46,7 +47,6 @@
     "import-quiz-novas": "node prisma/importQuizNovas.js",
     "mover-anime": "node prisma/moverAnime.js",
     "import-quiz-temas-novos": "node prisma/importTemasNovos.js",
-    "limpar-visitantes": "node prisma/limparVisitantes.js",
     "import-quiz-avancadas": "node prisma/importAvancadas.js",
     "teste-carga": "node prisma/testeCarga.js",
     "limpar-sugestoes-zoeira": "node prisma/limparSugestoesZoeira.js",
@@ -84,6 +84,9 @@
     "revisar-dificuldade": "node scripts/revisarDificuldade.js",
     "ver-stops": "node scripts/verStops.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@prisma/client": "5.19.1",
     "axios": "^1.7.2",
@@ -96,7 +99,7 @@
     "google-auth-library": "^9.14.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^10.0.10",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5"
   },

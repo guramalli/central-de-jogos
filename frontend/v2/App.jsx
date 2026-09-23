@@ -24,6 +24,7 @@ import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import SalasPrivadas from "./SalasPrivadas.jsx";
+import ErroNaPagina from "./ErroNaPagina.jsx";
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
@@ -63,6 +64,21 @@ export default function App() {
     return () => window.removeEventListener("popstate", aoVoltar);
   }, []);
 
+  // Erro numa página mostra a tela de erro SÓ nela (e não tela em branco no
+  // site todo). A `key` muda quando troca de página e zera o erro — sem ela,
+  // a tela de erro ficaria presa nas páginas seguintes. Só a página (não os
+  // outros parâmetros, igual ao pathname do clássico), e vinda de `local`:
+  // os jogos trocam a URL com replaceState ao entrar numa sala, e isso não
+  // pode remontar a página.
+  const qualPagina = local.sala ? `sala-${local.sala}` : local.stop ? `stop-${local.stop}` : local.acro ? `acro-${local.acro}` : local.pagina || "inicio";
+  return (
+    <ErroNaPagina key={qualPagina}>
+      <Pagina local={local} usuario={usuario} />
+    </ErroNaPagina>
+  );
+}
+
+function Pagina({ local, usuario }) {
   // Páginas que qualquer um vê (logado ou não).
   if (local.pagina === "termos" || local.pagina === "privacidade") {
     const qual = local.pagina;

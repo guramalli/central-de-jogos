@@ -18,9 +18,9 @@
 // prefixo, ou nome aleatório).
 //
 // Uso (dentro da pasta backend):
-//   npm run limpar-visitantes                        (só mostra as rajadas)
-//   npm run limpar-visitantes -- --prefixo LoadTestUser   (filtra por um trecho do nome)
-//   npm run limpar-visitantes -- --prefixo LoadTestUser --apagar   (apaga os encontrados)
+//   npm run limpar-visitantes-suspeitos                        (só mostra as rajadas)
+//   npm run limpar-visitantes-suspeitos -- --prefixo LoadTestUser   (filtra por um trecho do nome)
+//   npm run limpar-visitantes-suspeitos -- --prefixo LoadTestUser --apagar   (apaga os encontrados)
 //
 // NUNCA apaga sem --apagar, e só mexe em contas com isGuest: true — conta
 // cadastrada de verdade (com e-mail e senha) nunca entra nessa lista.

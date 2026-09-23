@@ -46,21 +46,32 @@ export default function Admin({ usuario }) {
   const trocarAba = (id) => { setAba(id); try { sessionStorage.setItem("v2-admin-aba", id); } catch {} };
   const falha = (e, padrao) => setErro(e?.response?.data?.error || padrao);
 
+  // Lista que falhou ao carregar NÃO pode parecer vazia (o moderador achava
+  // que não tinha nada pendente). Cada carga marca aqui se deu certo ou não;
+  // a faixa de erro lista o que falhou, com um botão pra tentar de novo.
+  const [falhas, setFalhas] = useState({});
+  const buscar = (chave, url, aplicar) => api.get(url)
+    .then(({ data }) => { aplicar(data); setFalhas((f) => ({ ...f, [chave]: false })); })
+    .catch(() => setFalhas((f) => ({ ...f, [chave]: true })));
+
   const carregar = {
-    stop: () => api.get("/admin/glossary/pending").then(({ data }) => {
+    stop: () => buscar("stop", "/admin/glossary/pending", (data) => {
       const lista = data || [];
       const contagem = {};
       for (const p of lista) contagem[p.theme.name] = (contagem[p.theme.name] || 0) + 1;
       setOrdemTemasStop(Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a] || a.localeCompare(b, "pt-BR")));
       setPendentesStop(lista);
-    }).catch((e) => falha(e, "Erro ao carregar pendências.")),
-    quiz: () => api.get("/admin/quiz-questions/pending").then(({ data }) => setPendentesQuiz(data || [])).catch((e) => falha(e, "Erro ao carregar pendências do quiz.")),
-    usuarios: () => { if (!ehAdmin) return; api.get("/admin/users").then(({ data }) => setUsuarios(data || [])).catch(() => {}); api.get("/admin/plataformas").then(({ data }) => setPlataformas(data)).catch(() => {}); },
-    feedbacks: () => api.get("/admin/feedback").then(({ data }) => setFeedbacks(data || [])).catch(() => {}),
-    suspeitos: () => { if (ehAdmin) api.get("/admin/suspicious-activity").then(({ data }) => setSuspeitos(data || [])).catch(() => {}); },
-    online: () => api.get("/admin/online").then(({ data }) => setOnline(data)).catch(() => {}),
-    denuncias: () => api.get("/admin/question-reports").then(({ data }) => setDenuncias(data || [])).catch(() => {}),
+    }),
+    quiz: () => buscar("quiz", "/admin/quiz-questions/pending", (data) => setPendentesQuiz(data || [])),
+    usuarios: () => { if (!ehAdmin) return; buscar("usuarios", "/admin/users", (data) => setUsuarios(data || [])); buscar("plataformas", "/admin/plataformas", setPlataformas); },
+    feedbacks: () => buscar("feedbacks", "/admin/feedback", (data) => setFeedbacks(data || [])),
+    suspeitos: () => { if (ehAdmin) buscar("suspeitos", "/admin/suspicious-activity", (data) => setSuspeitos(data || [])); },
+    online: () => buscar("online", "/admin/online", setOnline),
+    denuncias: () => buscar("denuncias", "/admin/question-reports", (data) => setDenuncias(data || [])),
   };
+  const NOME_DA_CARGA = { stop: "palavras pendentes do Stop", quiz: "perguntas pendentes do Quiz", usuarios: "jogadores", plataformas: "plataformas", feedbacks: "feedbacks", suspeitos: "sinais suspeitos", online: "online agora", denuncias: "denúncias" };
+  const falhou = Object.keys(falhas).filter((k) => falhas[k]);
+  const tentarDeNovo = () => new Set(falhou.map((k) => (k === "plataformas" ? "usuarios" : k))).forEach((k) => carregar[k]());
 
   useEffect(() => {
     if (!podeEntrar) return;
@@ -107,12 +118,18 @@ export default function Admin({ usuario }) {
           ))}
         </div>
         {erro && <div className="v2-faixa-aviso erro" onClick={() => setErro("")}>{erro}</div>}
+        {falhou.length > 0 && (
+          <div className="v2-faixa-aviso erro" role="alert">
+            Não deu pra carregar: {falhou.map((k) => NOME_DA_CARGA[k] || k).join(", ")}. O que aparece vazio abaixo pode ser falha, não falta de pendência.{" "}
+            <button className="v2-botao-pequeno" onClick={tentarDeNovo}>Tentar de novo</button>
+          </div>
+        )}
 
-        {aba === "visao" && <VisaoGeral online={online} recarregarOnline={carregar.online} feedbacks={feedbacks} recarregarFeedbacks={carregar.feedbacks} abrirConversa={setConversa} />}
-        {aba === "denuncias" && <Denuncias denuncias={denuncias} recarregar={carregar.denuncias} temas={temas} falha={falha} />}
+        {aba === "visao" && <VisaoGeral falhas={falhas} online={online} recarregarOnline={carregar.online} feedbacks={feedbacks} recarregarFeedbacks={carregar.feedbacks} abrirConversa={setConversa} />}
+        {aba === "denuncias" && <Denuncias falhou={falhas.denuncias} denuncias={denuncias} recarregar={carregar.denuncias} temas={temas} falha={falha} />}
         {aba === "quiz" && (
           <>
-            <PendentesQuiz lista={pendentesQuiz} recarregar={carregar.quiz} temas={temas} />
+            <PendentesQuiz falhou={falhas.quiz} lista={pendentesQuiz} recarregar={carregar.quiz} temas={temas} />
             <IndicePerguntas temas={temas} />
             {ehAdmin && <RespostasRepetidas temas={temas} />}
             {ehAdmin && <PerguntasParecidas />}
@@ -121,9 +138,9 @@ export default function Admin({ usuario }) {
         )}
         {aba === "stop" && (
           <>
-            <PendentesStop lista={pendentesStop} ordem={ordemTemasStop} setLista={setPendentesStop} recarregar={carregar.stop} />
+            <PendentesStop falhou={falhas.stop} lista={pendentesStop} ordem={ordemTemasStop} setLista={setPendentesStop} recarregar={carregar.stop} />
             <GlossarioStop />
-            {ehAdmin && <Suspeitos lista={suspeitos} recarregar={carregar.suspeitos} recarregarUsuarios={carregar.usuarios} falha={falha} />}
+            {ehAdmin && <Suspeitos falhou={falhas.suspeitos} lista={suspeitos} recarregar={carregar.suspeitos} recarregarUsuarios={carregar.usuarios} falha={falha} />}
           </>
         )}
         {aba === "jogadores" && ehAdmin && <Jogadores usuarios={usuarios} plataformas={plataformas} recarregar={carregar.usuarios} recarregarSuspeitos={carregar.suspeitos} abrirConversa={setConversa} falha={falha} />}
@@ -141,7 +158,7 @@ function Nick({ id, nick, visitante }) {
   return <a className="v2-admin-nick" href={linkDaPagina("jogador", { id })} target="_blank" rel="noreferrer">{nick}</a>;
 }
 
-function VisaoGeral({ online, recarregarOnline, feedbacks, recarregarFeedbacks, abrirConversa }) {
+function VisaoGeral({ falhas = {}, online, recarregarOnline, feedbacks, recarregarFeedbacks, abrirConversa }) {
   const [texto, setTexto] = useState("");
   const [jogo, setJogo] = useState("todos");
   const [enviando, setEnviando] = useState(false);
@@ -180,7 +197,7 @@ function VisaoGeral({ online, recarregarOnline, feedbacks, recarregarFeedbacks, 
           <h2>Online agora</h2>
           <button className="v2-botao-pequeno" onClick={recarregarOnline}>Atualizar</button>
         </div>
-        {!online ? <div className="v2-carregando">Carregando…</div> : (
+        {!online ? (falhas.online ? <div className="v2-erro-pequeno">Não foi possível carregar.</div> : <div className="v2-carregando">Carregando…</div>) : (
           <>
             <div className="v2-admin-numeros">
               <div><b>{online.total}</b><span>no site</span></div>
@@ -235,7 +252,7 @@ function VisaoGeral({ online, recarregarOnline, feedbacks, recarregarFeedbacks, 
 
       <section className="v2-cartao">
         <h2>Feedback dos jogadores ({feedbacks.length})</h2>
-        {feedbacks.length === 0 && <div className="v2-vazio">Nenhum feedback enviado ainda.</div>}
+        {feedbacks.length === 0 && (falhas.feedbacks ? <div className="v2-erro-pequeno">Não foi possível carregar os feedbacks.</div> : <div className="v2-vazio">Nenhum feedback enviado ainda.</div>)}
         <div className="v2-admin-feedbacks">
           {feedbacks.map((f) => (
             <div key={f.id} className="v2-admin-feedback">
@@ -253,7 +270,7 @@ function VisaoGeral({ online, recarregarOnline, feedbacks, recarregarFeedbacks, 
   );
 }
 
-function Denuncias({ denuncias, recarregar, temas, falha }) {
+function Denuncias({ falhou, denuncias, recarregar, temas, falha }) {
   const [editando, setEditando] = useState(null);
   const [rascunho, setRascunho] = useState({});
   const [aviso, setAviso] = useState("");
@@ -282,7 +299,7 @@ function Denuncias({ denuncias, recarregar, temas, falha }) {
       <h2>Perguntas reportadas ({denuncias.length})</h2>
       <p className="v2-cartao-nota">A com mais denúncias aparece primeiro. Dá pra corrigir, trocar de tema ou apagar aqui mesmo — corrigir já marca como resolvida.</p>
       {aviso && <div className="v2-faixa-aviso ok">{aviso}</div>}
-      {denuncias.length === 0 && <div className="v2-vazio">Nenhuma pergunta reportada no momento.</div>}
+      {denuncias.length === 0 && (falhou ? <div className="v2-erro-pequeno">Não foi possível carregar as denúncias.</div> : <div className="v2-vazio">Nenhuma pergunta reportada no momento.</div>)}
       {denuncias.map((g) => (
         <div key={g.questionId} className="v2-denuncia">
           <div className="v2-denuncia-topo">
@@ -323,7 +340,7 @@ function Denuncias({ denuncias, recarregar, temas, falha }) {
   );
 }
 
-function PendentesQuiz({ lista, recarregar, temas }) {
+function PendentesQuiz({ falhou, lista, recarregar, temas }) {
   const [editando, setEditando] = useState(null);
   const [rascunho, setRascunho] = useState({ question: "", answer: "" });
   async function aprovar(id) {
@@ -363,14 +380,14 @@ function PendentesQuiz({ lista, recarregar, temas }) {
               </tr>
             );
           })}
-          {lista.length === 0 && <tr><td colSpan={5} className="v2-admin-apagado">Nenhuma pendência.</td></tr>}
+          {lista.length === 0 && <tr><td colSpan={5} className={falhou ? "v2-erro-pequeno" : "v2-admin-apagado"}>{falhou ? "Não foi possível carregar as pendências." : "Nenhuma pendência."}</td></tr>}
         </tbody>
       </table></div>
     </section>
   );
 }
 
-function PendentesStop({ lista, ordem = [], setLista, recarregar }) {
+function PendentesStop({ falhou, lista, ordem = [], setLista, recarregar }) {
   // Agrupado por tema (mais pendências primeiro), letra e palavra dentro —
   // julgar dez frutas seguidas é mais rápido que pular de tema a cada linha.
   const grupos = useMemo(() => {
@@ -386,7 +403,7 @@ function PendentesStop({ lista, ordem = [], setLista, recarregar }) {
   return (
     <section className="v2-cartao">
       <h2>Palavras pendentes de aprovação ({lista.length})</h2>
-      {lista.length === 0 && <div className="v2-vazio">Nenhuma pendência.</div>}
+      {lista.length === 0 && (falhou ? <div className="v2-erro-pequeno">Não foi possível carregar as pendências.</div> : <div className="v2-vazio">Nenhuma pendência.</div>)}
       {grupos.map(([tema, itens]) => (
         <div key={tema} className="v2-pendentes-grupo">
           <div className="v2-bloco-titulo">{tema} <span>{itens.length}</span></div>
@@ -405,7 +422,7 @@ function PendentesStop({ lista, ordem = [], setLista, recarregar }) {
   );
 }
 
-function Suspeitos({ lista, recarregar, recarregarUsuarios, falha }) {
+function Suspeitos({ falhou, lista, recarregar, recarregarUsuarios, falha }) {
   async function banir(u) {
     if (!confirm(`Tem certeza que quer ${u.banned ? "desbanir" : "banir"} "${u.nickname}"?`)) return;
     try { await api.post(`/admin/users/${u.id}/ban`, { banned: !u.banned }); recarregar(); recarregarUsuarios(); }
@@ -431,7 +448,7 @@ function Suspeitos({ lista, recarregar, recarregarUsuarios, falha }) {
               <td className="v2-admin-acoes"><button className="v2-botao-pequeno perigo" onClick={() => banir(g.user)}>{g.user.banned ? "Desbanir" : "Banir"}</button><button className="v2-botao-pequeno" onClick={() => ignorar(g.user)}>Ignorar</button></td>
             </tr>
           ))}
-          {lista.length === 0 && <tr><td colSpan={6} className="v2-admin-apagado">Nenhum sinal registrado ainda.</td></tr>}
+          {lista.length === 0 && <tr><td colSpan={6} className={falhou ? "v2-erro-pequeno" : "v2-admin-apagado"}>{falhou ? "Não foi possível carregar os sinais." : "Nenhum sinal registrado ainda."}</td></tr>}
         </tbody>
       </table></div>
     </section>

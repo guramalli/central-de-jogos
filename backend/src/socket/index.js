@@ -19,14 +19,49 @@ import { recheckPeak } from "../game/platformStats.js";
 import { prisma } from "../db.js";
 import { ipEstaBanido, ipDoSocket } from "../ipBan.js";
 
+// ===== Amortecedor de consultas por conexão =====
+// Com a presença global, o socket reconecta a cada navegação entre
+// páginas. Sem amortecedor, CADA reconexão faria 2 leituras + 1 escrita
+// no banco (conferir usuário/banimento, streak do dia, plataforma) — e o
+// Neon cobra por tempo de banco acordado. Este Map em memória lembra o
+// que já foi conferido/gravado há pouco e pula as idas repetidas.
+// Fica fora do setupSocket pra encerrarSessoesDoUsuario conseguir limpar.
+const conexoesRecentes = new Map(); // userId -> { authOkAte, plataformaEm, diaJogadoEm, visitaEm }
+
+// Chamado pelas rotas admin quando alguém é banido (ou tem o papel trocado).
+// - Apaga o "já conferido" da pessoa: a próxima conexão vai ao banco de novo
+//   (sem isso, um banido reconectava por até 1 minuto).
+// - Banido: avisa e derruba todas as abas na hora. A próxima tentativa de
+//   conexão recebe SESSAO_INVALIDA, que o frontend já trata deslogando.
+// - Papel trocado: não derruba ninguém do jogo; só esquece o "é equipe"
+//   guardado no socket (usado pelo anti-flood do chat).
+export function encerrarSessoesDoUsuario(io, userId, { banido = false } = {}) {
+  const recente = conexoesRecentes.get(userId);
+  if (recente) recente.authOkAte = 0;
+  if (!io) return;
+  const sala = `user:${userId}`;
+  if (banido) {
+    io.to(sala).emit("sessao-encerrada", { motivo: "banido" });
+    io.in(sala).disconnectSockets(true);
+  } else {
+    for (const s of io.of("/").sockets.values()) {
+      if (s.user?.id === userId) s.ehEquipe = undefined;
+    }
+  }
+}
+
+// Embrulho pros handlers async de socket: uma falha (banco instável, sala
+// que sumiu no meio do caminho) só vai pro log, com o nome do evento, em vez
+// de virar unhandledRejection anônima no console.
+const seguro = (evento, fn) => async (...args) => {
+  try {
+    await fn(...args);
+  } catch (err) {
+    console.error(`Socket "${evento}" falhou:`, err);
+  }
+};
+
 export function setupSocket(io) {
-  // ===== Amortecedor de consultas por conexão =====
-  // Com a presença global, o socket reconecta a cada navegação entre
-  // páginas. Sem amortecedor, CADA reconexão faria 2 leituras + 1 escrita
-  // no banco (conferir usuário/banimento, streak do dia, plataforma) — e o
-  // Neon cobra por tempo de banco acordado. Este Map em memória lembra o
-  // que já foi conferido/gravado há pouco e pula as idas repetidas.
-  const conexoesRecentes = new Map(); // userId -> { authOkAte, plataformaEm, diaJogadoEm, visitaEm }
   const AUTH_CACHE_MS = 60 * 1000; // reconferir usuário/banimento a cada 1 min no máximo
   const VISITA_CADA_MS = 30 * 60 * 1000; // 30 min: janela de uma sessão
   const PLATAFORMA_CADA_MS = 30 * 60 * 1000; // regravar plataforma a cada 30 min no máximo
@@ -171,7 +206,7 @@ export function setupSocket(io) {
     // abas da pessoa de uma vez.
     socket.join(`user:${userId}`);
 
-    socket.on("join-stop-room", async ({ roomId } = {}) => {
+    socket.on("join-stop-room", seguro("join-stop-room", async ({ roomId } = {}) => {
       // Só sala oficial ou que já existe (ver salaStopValida).
       if (!salaStopValida(roomId)) {
         socket.emit("stop-sala-bloqueada", { error: "Essa sala não existe mais. Escolha outra na lista de salas." });
@@ -194,10 +229,12 @@ export function setupSocket(io) {
         socket.currentRoom = room;
         recheckPeak().catch(() => {});
       }
-    });
+    }));
 
-    socket.on("submit-answers", ({ answers, behavior }) => {
-      socket.currentRoom?.submitAnswers(socket, userId, answers, behavior);
+    // `dados?.`: um cliente adulterado pode mandar null aqui, e desestruturar
+    // null estoura. O formato das respostas é conferido em submitAnswers.
+    socket.on("submit-answers", (dados) => {
+      socket.currentRoom?.submitAnswers(socket, userId, dados?.answers, dados?.behavior);
     });
 
     socket.on("stop", () => {
@@ -250,14 +287,14 @@ export function setupSocket(io) {
       socket.currentRoom?.submitWordVote?.(userId, targetUserId, themeKey, valido);
     });
 
-    socket.on("chat-message", async ({ message } = {}) => {
+    socket.on("chat-message", seguro("chat-message", async ({ message } = {}) => {
       if (!message?.trim() || !socket.currentRoom) return;
       if (!(await liberadoNoChat(message))) return;
       socket.currentRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
-    });
+    }));
 
     // ===== Quiz =====
-    socket.on("join-quiz-room", async ({ roomId } = {}) => {
+    socket.on("join-quiz-room", seguro("join-quiz-room", async ({ roomId } = {}) => {
       if (!salaQuizValida(roomId)) return; // só sala oficial ou que já existe
       const room = await getOrCreateQuizRoom(io, roomId);
       const joined = await room.addPlayer(socket, userId, nickname);
@@ -265,7 +302,7 @@ export function setupSocket(io) {
         socket.currentQuizRoom = room;
         recheckPeak().catch(() => {});
       }
-    });
+    }));
 
     socket.on("quiz-submit-guess", ({ guess }) => {
       // Corta o palpite no portão, como já era feito com as mensagens de
@@ -277,11 +314,11 @@ export function setupSocket(io) {
       socket.currentQuizRoom?.submitGuess(socket, userId, nickname, limpo);
     });
 
-    socket.on("quiz-chat-message", async ({ message } = {}) => {
+    socket.on("quiz-chat-message", seguro("quiz-chat-message", async ({ message } = {}) => {
       if (!message?.trim() || !socket.currentQuizRoom) return;
       if (!(await liberadoNoChat(message))) return;
       socket.currentQuizRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
-    });
+    }));
 
     // ===== Acromania =====
     // O try existe porque este handler é async: sem ele, uma falha ao criar a
@@ -290,7 +327,7 @@ export function setupSocket(io) {
     // Botão de chamar bots, dentro da sala. Qualquer jogador pode usar — não
     // há o que proteger, já que a sala deixa de pontuar assim que eles
     // entram, e a decisão afeta todo mundo que está lá.
-    socket.on("acromania-chamar-bots", async ({ quantos } = {}) => {
+    socket.on("acromania-chamar-bots", seguro("acromania-chamar-bots", async ({ quantos } = {}) => {
       const room = socket.currentAcromaniaRoom;
       if (!room) return;
       // Sala privada nunca recebe bot, e sala marcada com bots:false também
@@ -308,7 +345,7 @@ export function setupSocket(io) {
       // Avisa a tela pra esconder o botão e mostrar a faixa de que há bots
       // na sala.
       room.broadcast?.("acromania-bots-ligados", { quantos: n });
-    });
+    }));
 
     // Dispensar os bots sem precisar sair da sala. Sem isto, a única forma de
     // voltar a valer ranking era todo mundo sair e esperar 30 segundos.
@@ -386,14 +423,14 @@ export function setupSocket(io) {
       socket.currentAcromaniaRoom.vote(socket, userId, entryId);
     });
 
-    socket.on("acromania-chat-message", async ({ message } = {}) => {
+    socket.on("acromania-chat-message", seguro("acromania-chat-message", async ({ message } = {}) => {
       if (!message?.trim() || !socket.currentAcromaniaRoom) return;
       if (!(await liberadoNoChat(message))) return;
       socket.currentAcromaniaRoom?.chatMessage(userId, nickname, message.trim().slice(0, 300));
-    });
+    }));
 
     // ===== Chat Geral (fora das salas, sempre disponível) =====
-    socket.on("join-general-chat", async () => {
+    socket.on("join-general-chat", seguro("join-general-chat", async () => {
       socket.join("general-chat-room");
       generalChat.addConnection(socket, userId, nickname);
       // Marca AQUI, junto do registro — não no fim do handler. Se a conexão
@@ -418,9 +455,9 @@ export function setupSocket(io) {
       const history = await generalChat.loadHistory();
       socket.emit("general-chat-history", { messages: history });
       io.to("general-chat-room").emit("general-chat-online", { players: generalChat.getOnlineList() });
-    });
+    }));
 
-    socket.on("general-chat-message", async ({ message }) => {
+    socket.on("general-chat-message", seguro("general-chat-message", async ({ message }) => {
       if (!socket.inGeneralChat || !message?.trim()) return;
 
       // Intervalo mínimo entre mensagens da praça.
@@ -448,14 +485,14 @@ export function setupSocket(io) {
         message: clean,
         at: Date.now(),
       });
-    });
+    }));
 
     // ===== Moderação de chat (MODERATOR e ADMIN) =====
     // Apaga uma mensagem de qualquer chat: praça (geral), Stop, Quiz ou
     // Acromania. O cargo vem do banco na hora, e não do token, porque o
     // token dura 7 dias — alguém rebaixado hoje não pode continuar
     // moderando com um token emitido antes.
-    socket.on("delete-chat-message", async ({ escopo, id } = {}) => {
+    socket.on("delete-chat-message", seguro("delete-chat-message", async ({ escopo, id } = {}) => {
       if (!id || !escopo) return;
       const quem = await prisma.user.findUnique({
         where: { id: userId },
@@ -476,7 +513,7 @@ export function setupSocket(io) {
       } else if (escopo === "acromania") {
         socket.currentAcromaniaRoom?.apagarMensagem(id);
       }
-    });
+    }));
 
     // ===== Mensagem privada (só entre amigos) =====
     // CONVIDAR UM AMIGO PRA SALA EM QUE ESTOU.
@@ -555,7 +592,7 @@ export function setupSocket(io) {
       }
     });
 
-    socket.on("join-dm", async ({ friendUserId } = {}) => {
+    socket.on("join-dm", seguro("join-dm", async ({ friendUserId } = {}) => {
       if (!friendUserId) return;
       const friendship = await prisma.friendship.findFirst({
         where: {
@@ -624,9 +661,9 @@ export function setupSocket(io) {
           at: m.createdAt.getTime(),
         })),
       });
-    });
+    }));
 
-    socket.on("dm-message", async ({ message } = {}) => {
+    socket.on("dm-message", seguro("dm-message", async ({ message } = {}) => {
       if (!socket.currentDmRoom || !socket.currentDmFriendId || !message?.trim()) return;
       // Mesmo freio da praça: cada mensagem privada é uma GRAVAÇÃO no banco,
       // e sem limite um script podia gravar milhares por minuto.
@@ -660,7 +697,7 @@ export function setupSocket(io) {
         message: clean,
         at: saved.createdAt.getTime(),
       });
-    });
+    }));
 
     socket.on("disconnect", () => {
       presence.removeConnection(socket.id);

@@ -14,6 +14,7 @@ import { grupoDaSala, RAPIDO_SEGUNDOS, tituloStopDesbloqueado } from "./titulosC
 import { pareceePalavraReal } from "../utils/palavraPlausivel.js";
 import { novoIdMensagem } from "../utils/chatIds.js";
 import { nomeComTitulo, destaqueDeTitulo } from "../utils/tituloEntrada.js";
+import { sanitizarRespostas, sanitizarComportamento } from "./stopRespostas.js";
 
 const ROUNDS_PER_BLOCK = 10;
 const BLOCK_BONUS = [150, 100, 50]; // 1º, 2º, 3º lugar do bloco
@@ -914,7 +915,10 @@ export class StopRoom {
   submitAnswers(socket, userId, answers, behavior) {
     marcarAtividade(this.players.get(socket.id));
     if (this.state !== "active") return;
-    this.answers.set(userId, answers);
+    // Vem do cliente: só guarda os temas da rodada, como texto curto. Um
+    // formato inesperado aqui derrubava a correção da rodada de todo mundo.
+    this.answers.set(userId, sanitizarRespostas(answers, this.currentThemes));
+    behavior = sanitizarComportamento(behavior);
     if (behavior) {
       const prev = this.behaviorFlags.get(userId) || { pasted: false, corrected: false };
       this.behaviorFlags.set(userId, {
@@ -1340,22 +1344,28 @@ export class StopRoom {
         const playerNorm = new Map();
 
         for (const p of activePlayers) {
-          const raw = (this.answers.get(p.userId)?.[theme.key] || "").trim();
-          if (!raw) continue;
-          const normRaw = normalize(raw);
-          if (normRaw[0]?.toUpperCase() !== this.currentLetter) continue;
-          // Em sala privada, quem valida é a mesa: se a maioria reprovou,
-          // a palavra cai; senão, vale. O glossário nem entra na conta.
-          const valid = reprovadasPorVoto
-            ? !reprovadasPorVoto.has(`${p.userId}:${theme.key}`)
-            : await this.isValidWord(theme.id, this.currentLetter, raw);
-          if (!valid) continue;
-          playerNorm.set(p.userId, normRaw);
-          wordCount.set(normRaw, (wordCount.get(normRaw) || 0) + 1);
+          // Um jogador com dado estranho não pode derrubar a correção de
+          // todos: se algo falhar aqui, a palavra dele só não conta.
+          try {
+            const raw = String(this.answers.get(p.userId)?.[theme.key] || "").trim();
+            if (!raw) continue;
+            const normRaw = normalize(raw);
+            if (normRaw[0]?.toUpperCase() !== this.currentLetter) continue;
+            // Em sala privada, quem valida é a mesa: se a maioria reprovou,
+            // a palavra cai; senão, vale. O glossário nem entra na conta.
+            const valid = reprovadasPorVoto
+              ? !reprovadasPorVoto.has(`${p.userId}:${theme.key}`)
+              : await this.isValidWord(theme.id, this.currentLetter, raw);
+            if (!valid) continue;
+            playerNorm.set(p.userId, normRaw);
+            wordCount.set(normRaw, (wordCount.get(normRaw) || 0) + 1);
+          } catch (err) {
+            console.error(`Falha ao corrigir resposta de ${p.userId} (${theme.key}) na sala ${this.roomId}:`, err.message);
+          }
         }
 
         for (const p of activePlayers) {
-          const raw = (this.answers.get(p.userId)?.[theme.key] || "").trim();
+          const raw = String(this.answers.get(p.userId)?.[theme.key] || "").trim();
           const entry = graded.get(p.userId);
 
           if (!raw) {

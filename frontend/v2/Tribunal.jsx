@@ -1,6 +1,6 @@
 import { versaoTexto } from "./versoes.js";
 import { useEffect, useRef, useState } from "react";
-import { api, novoSocket } from "./api.js";
+import { api, novoSocket, ehSessaoMorta } from "./api.js";
 import Avatar from "./Avatar.jsx";
 import { ativarSons, somCampeao, carregarSons, somMarteloAbertura, somMarteloUma, somPlateia, somTambor, somCulpado, somInocente } from "./sons.js";
 import { Moldura, Relogio, Confete, ReacoesFlutuando, ChatMentira, ControleSom } from "./Mentira.jsx";
@@ -63,9 +63,18 @@ export default function Tribunal({ usuario, salaDoLink }) {
     });
     s.on("connect", () => {
       setCaiu(false);
+      setErro("");
       if (codigoRef.current) s.emit("tribunal-entrar", { codigo: codigoRef.current }, (r) => r?.erro && setErro(r.erro));
     });
     s.on("disconnect", () => setCaiu(true));
+    // Conexão recusada (login que não vale neste servidor, servidor fora do
+    // ar): sem isto, os botões não faziam nada e não aparecia aviso nenhum.
+    // Mesmo aviso do Impostor.
+    s.on("connect_error", (err) => {
+      setErro(ehSessaoMorta(err)
+        ? "Seu login não vale mais neste servidor. Saia da conta (botão no topo) e entre de novo."
+        : "Não foi possível conectar ao servidor do jogo. Tentando de novo…");
+    });
     s.connect();
     return () => { s.emit("tribunal-sair"); s.disconnect(); };
   }, [salaDoLink]);
