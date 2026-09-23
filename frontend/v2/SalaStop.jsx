@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby, irParaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
-import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -73,6 +73,8 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
   const [mudo, setMudo] = useState(estaMudo());
   // Confete de acerto ligado/desligado (preferência do aparelho, ao lado do mudo).
   const [semAnimacao, setSemAnimacao] = useState(estaSemAnimacao());
+  // Mudou em outro botão (ex.: barra do "várias salas"): acompanha.
+  useEffect(() => ouvirPreferencias(() => { setMudo(estaMudo()); setSemAnimacao(estaSemAnimacao()); }), []);
   const [aba, setAba] = useState("chat"); // celular: chat | legenda
 
   const addMsg = (m) => setMsgs((prev) => [...prev, { ...m, _k: Math.random() }].slice(-120));

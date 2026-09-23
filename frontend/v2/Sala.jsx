@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api, novoSocket, ehSessaoMorta, sair } from "./api.js";
 import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
-import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao } from "./sons.js";
+import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -61,6 +61,8 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
   const [mudo, setMudo] = useState(estaMudo());
   // Confete de acerto ligado/desligado (preferência do aparelho, ao lado do mudo).
   const [semAnimacao, setSemAnimacao] = useState(estaSemAnimacao());
+  // Mudou em outro botão (ex.: barra do "várias salas"): acompanha.
+  useEffect(() => ouvirPreferencias(() => { setMudo(estaMudo()); setSemAnimacao(estaSemAnimacao()); }), []);
   const [avisoColar, setAvisoColar] = useState(false);
   const [turno, setTurno] = useState(null); // arenas: { rodada, total }
   const [rankingTurno, setRankingTurno] = useState([]);

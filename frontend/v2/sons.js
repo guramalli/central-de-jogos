@@ -50,7 +50,18 @@ export function definirVolume(v) {
 export function alternarMudo() {
   mudo = !mudo;
   localStorage.setItem("eg_v2_mudo", mudo ? "1" : "0");
+  avisarPreferencias();
   return mudo;
+}
+
+// Quem mostra um botão de som/animação escuta aqui pra ficar em dia quando
+// OUTRO botão muda a preferência — no "várias salas" o botão fica na barra
+// de cima e os painéis precisam saber (o confete é decidido em cada sala).
+const ouvintesPreferencias = new Set();
+function avisarPreferencias() { for (const fn of ouvintesPreferencias) fn(); }
+export function ouvirPreferencias(fn) {
+  ouvintesPreferencias.add(fn);
+  return () => ouvintesPreferencias.delete(fn);
 }
 
 // ANIMAÇÃO DE ACERTO (o confete). Mora aqui junto do mudo porque é a mesma
@@ -62,6 +73,7 @@ export const estaSemAnimacao = () => semAnimacao;
 export function alternarAnimacao() {
   semAnimacao = !semAnimacao;
   try { localStorage.setItem("eg_v2_sem_animacao", semAnimacao ? "1" : "0"); } catch { /* vale só nesta página */ }
+  avisarPreferencias();
   return semAnimacao;
 }
 
