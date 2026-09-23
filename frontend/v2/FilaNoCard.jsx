@@ -123,28 +123,6 @@ export function CardPartidaRapida({ jogo, logo, titulo, nome, texto, cor, sombra
   );
 }
 
-// "Colocar meu nome em todas as filas" (título da fileira no Início): pra
-// quem topa jogar o que juntar gente primeiro.
-export function BotaoTodasAsFilas({ jogos }) {
-  const { fila, proposta } = useFila();
-  const [erro, setErro] = useState("");
-  const emTodas = jogos.every((j) => fila.filas?.[j]);
-  async function clicar() {
-    if (!emTodas) destravarSom();
-    setErro("");
-    const r = await pedirFila(emTodas ? "fila-sair" : "fila-entrar-todas");
-    if (r.erro) setErro(r.erro);
-  }
-  return (
-    <div className="v2-fila-todas">
-      <button type="button" className={`v2-fila-jogar ${emTodas ? "contorno" : ""}`} disabled={!!proposta} onClick={clicar}>
-        {emTodas ? "Tirar meu nome de todas" : "✋ Colocar meu nome em todas as filas"}
-      </button>
-      {erro && <p className="v2-fila-erro" role="alert">{erro}</p>}
-    </div>
-  );
-}
-
 // Bloco na página do jogo.
 export function PartidaRapida({ jogo }) {
   return (

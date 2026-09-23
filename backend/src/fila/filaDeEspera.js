@@ -100,16 +100,6 @@ export class Filas {
     return null;
   }
 
-  entrarEmTodas(user) {
-    if (this.pausado(user.id)) return "Você tem uma partida esperando confirmação.";
-    for (const jogo of Object.keys(this.jogos)) {
-      if (this.jogos[jogo].ativo && !this.jogos[jogo].ativo()) continue; // em manutenção: pula
-      const erro = this.entrar(user, jogo);
-      if (erro) return erro;
-    }
-    return null;
-  }
-
   // Sem `jogo`: tira o nome de TODAS as filas.
   sair(userId, jogo = null) {
     const jogos = jogo ? this.filasDe(userId).filter((j) => j === jogo) : this.filasDe(userId);
