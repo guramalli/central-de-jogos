@@ -9,8 +9,15 @@
 .v2-jogos-rapida { display: flex; flex-direction: column; gap: 12px; }
 
 /* Card de partida rápida: mesma cara dos outros, com a fila no rodapé */
-.v2-jogo-card.v2-jogo-card-rapido { cursor: default; }
-.v2-jogo-card.v2-jogo-card-rapido:hover { transform: none; }
+/* Card inteiro clicável: o "Ver salas →" estica uma área por cima do card
+   todo; os controles da fila sobem acima dela pra continuarem clicáveis. */
+.v2-jogo-card.v2-jogo-card-rapido { cursor: pointer; }
+.v2-jogo-card-rapido .v2-jogo-card-link { margin-top: 0; color: inherit; text-decoration: none; }
+.v2-jogo-card-rapido .v2-jogo-card-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.v2-jogo-card-rapido .v2-jogo-card-link:focus-visible { outline: none; }
+.v2-jogo-card-rapido:has(.v2-jogo-card-link:focus-visible) { outline: 4px solid #fff; outline-offset: 3px; }
+.v2-jogo-card-rapido .v2-fila-controles, .v2-jogo-card-rapido .v2-jogo-card-selos { position: relative; z-index: 1; }
+.v2-jogo-card-rapido .v2-fila-controles { cursor: default; }
 .v2-jogo-card-rapido.na-fila { outline: 4px solid var(--amarelo); outline-offset: 3px; animation: v2-fila-brilho 1.6s ease-in-out infinite; }
 @keyframes v2-fila-brilho { 0%, 100% { outline-color: var(--amarelo); } 50% { outline-color: rgba(255, 214, 10, .35); } }
 .v2-jogo-card-selos { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; align-items: center; }
@@ -24,7 +31,6 @@
 .v2-fila-jogar:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--roxo-escuro); }
 .v2-fila-jogar.secundario { width: auto; font-size: 15px; }
 .v2-fila-jogar:disabled, .v2-fila-sair:disabled { opacity: .6; }
-.v2-fila-ver-salas { font-family: var(--titulo); font-weight: 700; font-size: 15px; color: var(--roxo); padding: 10px 4px; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
 .v2-fila-sair { min-height: 44px; padding: 0 14px; border: 2px solid var(--roxo); border-radius: 14px; background: transparent; color: var(--roxo); font-weight: 900; font-size: 14px; }
 .v2-fila-dica { flex: 1; margin: 0; font-size: 12px; font-weight: 800; opacity: .85; }
 .v2-fila-status { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 900; font-size: 14px; }

@@ -19,7 +19,7 @@ function Bolinhas({ n, total }) {
 }
 
 // Controles: "Colocar meu nome na fila" / nome na fila / partida encontrada.
-function ControlesFila({ jogo, verSalas = null }) {
+function ControlesFila({ jogo }) {
   const { contagem, fila, proposta } = useFila();
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -57,7 +57,6 @@ function ControlesFila({ jogo, verSalas = null }) {
               ? <><b>{quantos}</b> {quantos === 1 ? "nome na fila" : "nomes na fila"} — faltam poucos!</>
               : "Ninguém esperando agora. Deixe seu nome e a gente te chama."}
           </p>
-          {verSalas}
         </div>
         {erro && <p className="v2-fila-erro" role="alert">{erro}</p>}
       </div>
@@ -115,10 +114,11 @@ export function CardPartidaRapida({ jogo, logo, titulo, nome, texto, cor, sombra
       {logo ? <img src={logo} alt={nome} /> : <span className="v2-jogo-card-titulo">{titulo}</span>}
       {online > 0 && <span className="v2-jogo-card-online"><span className="v2-ponto-vivo" />{online} jogando agora</span>}
       <p>{texto}</p>
-      <ControlesFila
-        jogo={jogo}
-        verSalas={<a className="v2-fila-ver-salas" href={hrefSalas} onClick={aoVerSalas}>Ver salas</a>}
-      />
+      {/* O card INTEIRO leva às salas, igual aos outros cards: o link se
+          estica por cima do card todo (::after em fila.css), e só os botões
+          da fila ficam por cima dele — clicar neles mexe só na fila. */}
+      <a className="v2-jogo-card-cta v2-jogo-card-link" href={hrefSalas} onClick={aoVerSalas}>Ver salas →</a>
+      <ControlesFila jogo={jogo} />
     </article>
   );
 }
