@@ -8,7 +8,8 @@ import { getAcromaniaRankForPoints, getAcromaniaNextRankInfo } from "../utils/ac
 import { cacheGet, cacheSet, cacheInvalidar } from "../utils/cache.js";
 import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
-import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario, trofeusDeCampeao, logoDoTrofeu } from "../game/titulosConfig.js";
+import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario, trofeusDeCampeao, logoDoTrofeu, nomesDeTitulosDesbloqueados } from "../game/titulosConfig.js";
+import { configPublica } from "../avatar/desbloqueio.js";
 
 const router = Router();
 
@@ -262,6 +263,7 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     });
   }
 
+  const avatarPublico = configPublica(user.avatarMontado);
   const resposta = {
     id: user.id,
     nickname: user.nickname,
@@ -275,6 +277,12 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     // ligada de um estado antigo.
     medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
+    // Avatar montado (slot -> id da peça), já limpo de peças que saíram do
+    // catálogo; null = nunca montou. `mostrarAvatar` é a escolha pras
+    // bolinhas pequenas (chat, listas): false = foto, true = avatar. Nos
+    // lugares grandes (perfil, pódio, lobby) o avatar aparece sempre.
+    avatar: avatarPublico,
+    mostrarAvatar: user.mostrarAvatar === true && !!avatarPublico,
     // O id vai junto: o perfil linka pro perfil do clã, e sem ele o link
     // apontaria pra /cla/undefined.
     clan: user.clan ? { id: user.clan.id, name: user.clan.name, tag: user.clan.tag } : null,
@@ -341,11 +349,6 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
     where: { userId: req.user.id, roomId: { startsWith: "quiz-" } },
     select: { roomId: true, correct: true },
   });
-  const porTema = {};
-  for (const s of statsQuiz) {
-    const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
-    porTema[tema] = (porTema[tema] || 0) + s.correct;
-  }
   let statsStop = [];
   try {
     statsStop = await prisma.stopStat.findMany({
@@ -355,27 +358,15 @@ router.patch("/me/titulo-exibido", requireAuth, async (req, res) => {
   } catch {
     // tabela ainda não criada (db push pendente) — segue só com o Quiz
   }
-  const desbloqueados = new Set();
-  const listaQuiz = titulosDoQuiz(porTema);
-  const listaStop = titulosDoStop(statsStop);
-  for (const t of listaQuiz) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
-  for (const t of listaStop) for (const d of t.desbloqueados) desbloqueados.add(d.nome);
-  // Sem isto o lendário seria recusado na validação: quem conquistou não
-  // conseguiria escolhê-lo como título exibido, que é justamente a graça.
-  const lendario = tituloLendario(listaQuiz, listaStop);
-  if (lendario.desbloqueado) desbloqueados.add(lendario.nome);
-
   // Troféus de campeão também podem ser escolhidos como título exibido —
-  // sem isto seriam recusados aqui, e não adiantaria conquistá-los.
-  // Aceita tanto o nome puro quanto o rótulo com contagem ("(2x)"), porque
-  // é o rótulo que a vitrine mostra e envia.
+  // sem eles seriam recusados aqui, e não adiantaria conquistá-los. O mesmo
+  // vale pro lendário. A lista inteira sai de nomesDeTitulosDesbloqueados
+  // (titulosConfig), que também libera as peças do avatar.
   const registrosCampeao = await prisma.campeaoMensal.findMany({
     where: { userId: req.user.id },
     select: { gameKey: true, monthKey: true, points: true },
   });
-  const meusTrofeus = trofeusDeCampeao(registrosCampeao);
-  for (const t of meusTrofeus.todos) desbloqueados.add(t.nome);
-  for (const t of meusTrofeus.resumo) desbloqueados.add(t.rotulo);
+  const desbloqueados = nomesDeTitulosDesbloqueados({ statsQuiz, statsStop, registrosCampeao });
 
   if (!desbloqueados.has(titulo)) {
     return res.status(400).json({ error: "Esse título ainda não foi desbloqueado." });

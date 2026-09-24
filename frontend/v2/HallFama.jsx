@@ -101,7 +101,7 @@ export default function HallFama({ usuario }) {
               <div className="v2-podio">
                 {ordem.map((r) => (
                   <div key={r.position} className={`v2-podio-item p${r.position}`}>
-                    <Avatar userId={r.userId} nickname={r.nickname} tamanho={r.position === 1 ? 76 : 60} borda />
+                    <Avatar userId={r.userId} nickname={r.nickname} tamanho={r.position === 1 ? 76 : 60} borda sempreBoneco />
                     <div className="v2-podio-nome"><Jogador id={r.userId} nick={r.nickname} /></div>
                     <div className="v2-podio-coluna"><b>{r.position}</b><span>{r.points.toLocaleString("pt-BR")} pts</span></div>
                   </div>

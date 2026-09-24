@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { tocar } from "./sons.js";
+import AvatarBoneco, { useBonecoNaBolinha } from "../AvatarBoneco.jsx";
 
 // Peças usadas por várias telas do Impostor.
 
@@ -55,14 +56,18 @@ export function Cronometro({ tempo, variante = "pilula", comSom = true }) {
   );
 }
 
-export function AvatarImp({ nome, cor, tamanho = 44, className = "" }) {
+export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
+  // Quem escolheu "Avatar" pras bolinhas aparece com o busto do boneco
+  // (mesma regra do Avatar da v2; ver ../AvatarBoneco.jsx). Sem `id`, ou
+  // bot: segue a inicial.
+  const boneco = useBonecoNaBolinha(id);
   return (
     <span
       className={`imp-avatar ${className}`}
-      style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46) }}
+      style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46), overflow: boneco ? "hidden" : undefined }}
       aria-hidden="true"
     >
-      {String(nome || "?").charAt(0).toUpperCase()}
+      {boneco ? <AvatarBoneco config={boneco} busto tamanho={tamanho} preencher /> : String(nome || "?").charAt(0).toUpperCase()}
     </span>
   );
 }

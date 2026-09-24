@@ -5,6 +5,7 @@ import JornadaTitulos from "./JornadaTitulos.jsx";
 import Rodape from "./Rodape.jsx";
 import { irParaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
+import AvatarBoneco from "./AvatarBoneco.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 
@@ -101,7 +102,13 @@ export default function Perfil({ usuario, userId }) {
         {perfil && (
           <>
             <section className="v2-cartao v2-perfil-cabeca">
-              <Avatar userId={userId} nickname={perfil.nickname} tamanho={112} borda />
+              {/* Lugar grande: com avatar montado, o boneco de corpo inteiro
+                  aparece sempre (a escolha Foto/Avatar vale só pras bolinhas). */}
+              {perfil.avatar ? (
+                <div className="v2-perfil-boneco"><AvatarBoneco config={perfil.avatar} altura={220} rotulo={`Avatar de ${perfil.nickname}`} /></div>
+              ) : (
+                <Avatar userId={userId} nickname={perfil.nickname} tamanho={112} borda />
+              )}
               <div className="v2-perfil-info">
                 <h1>{perfil.nickname}</h1>
                 <div className="v2-perfil-fatos">

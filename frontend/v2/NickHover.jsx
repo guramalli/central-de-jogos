@@ -78,7 +78,7 @@ export default function NickHover({ userId, nickname, meuId, roomId, gameKey = "
           onClick={(e) => e.stopPropagation()}
         >
           <div className="v2-balao-topo">
-            <Avatar userId={userId} nickname={nickname} tamanho={58} borda />
+            <Avatar userId={userId} nickname={nickname} tamanho={58} borda sempreBoneco />
             <div className="v2-balao-nome">
               <b>{nickname}</b>
               {perfil?.tituloExibido && (

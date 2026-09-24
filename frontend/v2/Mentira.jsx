@@ -772,7 +772,7 @@ function Fim({ estado, meuId, aoJogarDeNovo, aoModo }) {
       <div className="v2-mentira-podio">
         {[segundo, primeiro, terceiro].filter(Boolean).map((j) => (
           <div key={j.id} className={j === primeiro ? "p1" : j === segundo ? "p2" : "p3"}>
-            <Avatar userId={j.id} nickname={j.nickname} tamanho={j === primeiro ? 64 : 48} />
+            <Avatar userId={j.id} nickname={j.nickname} tamanho={j === primeiro ? 64 : 48} sempreBoneco />
             <b>{j.nickname}</b>
             <span>{j.pontos.toLocaleString("pt-BR")}</span>
           </div>

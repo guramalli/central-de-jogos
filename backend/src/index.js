@@ -34,6 +34,7 @@ import mentiraRanksRoutes from "./routes/mentiraRanks.js";
 import tribunalRoomsRoutes from "./routes/tribunalRooms.js";
 import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
+import avatarRoutes from "./routes/avatar.js";
 import { setupSocket } from "./socket/index.js";
 import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 
@@ -130,6 +131,7 @@ app.use("/api/mentira-rooms", mentiraRoomsRoutes); // Mentira Sincera: salas abe
 app.use("/api/mentira-ranks", mentiraRanksRoutes); // Mentira Sincera: patentes
 app.use("/api/tribunal-rooms", tribunalRoomsRoutes); // O Tribunal: salas abertas (em teste)
 app.use("/api/newsletter", newsletterRoutes); // descadastro pelo link do e-mail (sem login)
+app.use("/api/avatar", avatarRoutes); // avatar montado: catálogo, minha montagem, salvar
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno

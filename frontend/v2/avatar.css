@@ -1,0 +1,51 @@
+/* ===== Avatar montado (AvatarBoneco.jsx, EditorAvatar.jsx) ===== */
+
+/* Caixa de tamanho fixo + "palco" com todas as camadas empilhadas. O busto é
+   o mesmo palco ampliado e deslocado (tamanhos em % vindos do catálogo). */
+.v2-boneco { position: relative; display: inline-block; flex-shrink: 0; overflow: hidden; line-height: 0; vertical-align: middle; }
+.v2-boneco.busto { border-radius: 50%; }
+.v2-boneco-palco { position: absolute; display: block; }
+/* !important: .v2-avatar-foto img (e parecidos) aplicam object-fit: cover,
+   que deformaria as camadas. Cada camada ocupa o palco inteiro, sem corte. */
+.v2-boneco-palco > img,
+.v2-boneco-palco > svg { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
+.v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
+
+/* Perfil: corpo inteiro no lugar da bolinha. */
+.v2-perfil-boneco { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.v2-perfil-boneco .v2-boneco { border-radius: 20px; background: var(--roxo-fundo); }
+
+/* ---------- editor ---------- */
+.v2-avatar-editor-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.v2-avatar-previa { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--roxo-fundo); }
+.v2-avatar-previa-bolinha { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--lilas-2); font-size: 12px; }
+
+.v2-avatar-lado { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* Abas roláveis no celular (10 partes não cabem numa linha). */
+.v2-avatar-abas { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--borda) transparent; }
+.v2-avatar-abas button { flex-shrink: 0; min-height: 38px; padding: 0 14px; border: none; border-radius: 12px; background: var(--roxo); color: var(--lilas); font-weight: 900; font-size: 13px; white-space: nowrap; }
+.v2-avatar-abas button.ativa { background: var(--amarelo); color: var(--roxo-escuro); }
+
+.v2-avatar-pecas { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.v2-avatar-peca { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 2px solid transparent; border-radius: 16px; background: var(--roxo); color: #fff; font-size: 12px; line-height: 1.2; text-align: center; }
+.v2-avatar-peca:hover { border-color: var(--borda); }
+.v2-avatar-peca.escolhida { border-color: var(--amarelo); }
+.v2-avatar-peca.trancada { color: var(--lilas-2); }
+.v2-avatar-peca.trancada .v2-boneco { opacity: .35; filter: grayscale(1); }
+.v2-avatar-miniatura { position: relative; width: 64px; height: 64px; border-radius: 50%; background: var(--roxo-fundo); display: inline-flex; align-items: center; justify-content: center; }
+.v2-avatar-nenhum { font-size: 28px; color: var(--lilas-2); }
+.v2-avatar-cadeado { position: absolute; right: -2px; bottom: -2px; font-size: 18px; line-height: 1; }
+.v2-avatar-dica { margin: 0; min-height: 1.4em; color: var(--lilas); font-size: 14px; }
+
+.v2-avatar-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.v2-avatar-rodape .v2-botao { min-height: 46px; font-size: 16px; padding: 0 22px; }
+.v2-avatar-bolinha-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--lilas); font-size: 14px; }
+.v2-avatar-segmento { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--roxo-fundo); }
+.v2-avatar-segmento button { min-height: 34px; padding: 0 16px; border: none; border-radius: 10px; background: transparent; color: var(--lilas); font-weight: 900; font-size: 13px; }
+.v2-avatar-segmento button.ativa { background: var(--roxo-2); color: #fff; box-shadow: 0 0 0 2px var(--amarelo) inset; }
+.v2-avatar-segmento button:disabled { opacity: .45; }
+
+@media (min-width: 760px) {
+  .v2-avatar-editor-grade { grid-template-columns: 300px minmax(0, 1fr); }
+  .v2-avatar-previa { flex-direction: column; align-items: center; }
+}
