@@ -45,19 +45,20 @@ export function catalogoAvatar() {
 
 // Enquadramento da miniatura de cada parte (pixels da tela 900×1200), usado
 // no editor e na coleção do perfil: um chapéu visto no corpo inteiro ficaria
-// minúsculo. Ajustar junto com a arte.
-const CORPO_TODO = { x: -150, y: 0, lado: 1200 };
+// minúsculo. Medido na arte final: personagem de x ~160 a 740 e de y ~290
+// (topo da cabeça) a ~1100 (pés); chapéus sobem até ~y 100.
 export const ENQUADRAMENTO = {
-  pele: CORPO_TODO,
-  cabelo: { x: 230, y: 150, lado: 440 },
-  chapeu: { x: 230, y: 90, lado: 440 },
-  rosto: { x: 260, y: 230, lado: 380 },
-  pescoco: { x: 270, y: 480, lado: 360 },
-  roupa: { x: 190, y: 520, lado: 520 },
-  parteDeBaixo: { x: 220, y: 760, lado: 460 },
-  costas: CORPO_TODO,
-  mao: CORPO_TODO,
-  fundo: CORPO_TODO,
+  pele: { x: 25, y: 260, lado: 850 },
+  cabelo: { x: 170, y: 200, lado: 560 },
+  chapeu: { x: 130, y: 60, lado: 640 },
+  rosto: { x: 250, y: 380, lado: 400 },
+  pescoco: { x: 270, y: 590, lado: 360 },
+  roupa: { x: 140, y: 580, lado: 620 },
+  parteDeBaixo: { x: 250, y: 775, lado: 400 },
+  costas: { x: 60, y: 300, lado: 780 },
+  // Os objetos ficam na mão direita do boneco (lado direito da tela).
+  mao: { x: 410, y: 580, lado: 520 },
+  fundo: { x: 0, y: 150, lado: 900 },
 };
 
 export function useCatalogoAvatar() {

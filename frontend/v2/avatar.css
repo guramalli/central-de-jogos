@@ -9,6 +9,7 @@
    que deformaria as camadas. Cada camada ocupa o palco inteiro, sem corte. */
 .v2-boneco-palco > img,
 .v2-boneco-palco > svg { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
+.v2-boneco-mascara { position: absolute; inset: 0; display: block; mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
 .v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
 
 /* Perfil: corpo inteiro no lugar da bolinha. */
@@ -59,7 +60,9 @@
 .v2-colecao-peca { display: flex; justify-content: center; padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; }
 .v2-colecao-peca .v2-avatar-miniatura { width: 52px; height: 52px; }
 /* Trancada: silhueta escura da própria peça (sem entregar as cores). */
-.v2-colecao-peca.trancada .v2-boneco { filter: brightness(0); opacity: .45; }
+.v2-colecao-peca.trancada .v2-boneco { filter: brightness(0); opacity: .75; }
+/* Fundo mais claro atrás da silhueta preta, senão ela some no roxo escuro. */
+.v2-colecao-peca.trancada .v2-avatar-miniatura { background: #5a4699; }
 .v2-colecao-peca.ativa, .v2-colecao-peca:hover { border-color: var(--borda); }
 
 /* ---------- aviso de peça nova ---------- */

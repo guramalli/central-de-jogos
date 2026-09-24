@@ -23,6 +23,20 @@ function carregar(src) {
   });
 }
 
+// Máscara branca pintada com uma cor: desenha a máscara num canvas à parte e
+// preenche com a cor só onde ela tem pixel ("source-in").
+function pintar(mascara, cor, largura, altura) {
+  const c = document.createElement("canvas");
+  c.width = largura;
+  c.height = altura;
+  const g = c.getContext("2d");
+  g.drawImage(mascara, 0, 0, largura, altura);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = cor;
+  g.fillRect(0, 0, largura, altura);
+  return c;
+}
+
 // Quebra um texto em linhas que caibam na largura.
 function linhas(ctx, texto, largura) {
   const saida = [];
@@ -59,11 +73,20 @@ export async function montarCartaoPeca({ catalogo, config, item }) {
   ctx.font = `700 64px ${FONTE}`;
   ctx.fillText("NOVA PEÇA DESBLOQUEADA!", LARGURA / 2, 190);
 
-  // Avatar: a tela de 900×1200 escalada pra 810×1080.
-  const camadas = camadasDaMontagem(catalogo, { ...config, [item.slot]: item.id });
-  const imagens = await Promise.all(camadas.map((c) => carregar(c.arquivo)));
+  // Avatar: a tela de 900×1200 escalada pra 810×1080. Peça com máscara de
+  // pele: a máscara pintada com a cor da pele vai logo abaixo dela.
+  const montagem = { ...config, [item.slot]: item.id };
+  const corDaPele = catalogo.porId.get(montagem.pele)?.cor;
+  const camadas = camadasDaMontagem(catalogo, montagem);
+  const [imagens, mascaras] = await Promise.all([
+    Promise.all(camadas.map((c) => carregar(c.arquivo))),
+    Promise.all(camadas.map((c) => (c.mascaraPele && corDaPele ? carregar(c.mascaraPele) : null))),
+  ]);
   const [ax, ay, aw, ah] = [135, 300, 810, 1080];
-  for (const img of imagens) if (img) ctx.drawImage(img, ax, ay, aw, ah);
+  camadas.forEach((_, i) => {
+    if (mascaras[i]) ctx.drawImage(pintar(mascaras[i], corDaPele, aw, ah), ax, ay, aw, ah);
+    if (imagens[i]) ctx.drawImage(imagens[i], ax, ay, aw, ah);
+  });
 
   ctx.fillStyle = "#ffffff";
   ctx.font = `700 84px ${FONTE}`;

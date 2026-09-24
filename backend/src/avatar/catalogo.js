@@ -27,18 +27,24 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../g
 // é pura): os testes e o script de fechamento do mês importam ele à vontade.
 
 // Sobe a cada mudança em LISTA: o frontend usa pra invalidar o cache dele.
-export const VERSAO_CATALOGO = 2;
+export const VERSAO_CATALOGO = 3;
 
 // Tamanho da tela de todas as camadas e os dois recortes usados fora do
 // corpo inteiro (em pixels da tela):
 //   cabeca — só a cabeça, pras bolinhas pequenas (chat, listas: 28–40px);
 //   busto  — cabeça e ombros, pras bolinhas grandes (pódio, cartão do nick).
 // Moram aqui, e não no CSS, pra serem ajustados junto com a arte.
+//
+// Medidos na arte final: a cabeça (orelha a orelha) vai de x 235 a 665 e
+// de y 290 (topo, careca) a ~700 (queixo); os ombros ficam em ~y 760 e os
+// pés em ~y 1100. O recorte da cabeça deixa um respiro em volta; o topo de
+// chapéus altos (elmo, cartola) fica de fora de propósito, senão o rosto
+// encolheria demais a 28px.
 export const TELA = {
   largura: 900,
   altura: 1200,
-  cabeca: { x: 250, y: 190, lado: 400 },
-  busto: { x: 200, y: 170, lado: 500 },
+  cabeca: { x: 225, y: 265, lado: 450 },
+  busto: { x: 140, y: 220, lado: 620 },
 };
 
 // Slots que a pessoa escolhe. `pele` é o corpo-base (com o rosto padrão) e é
@@ -208,11 +214,37 @@ const LISTA_CRUA = [
   ["fundo", "fundo-galaxia", "Galáxia", dias(60)],
 ];
 
+// ===== Cor da pele e máscaras de pele =====
+//
+// Cada corpo-base tem a sua cor (usada pra pintar as máscaras abaixo).
+export const CORES_DA_PELE = {
+  "pele-clara": "#fcdccc",
+  "pele-media": "#ec9c7c",
+  "pele-morena": "#cc8464",
+  "pele-negra": "#a4644c",
+  "pele-retinta": "#643c3c",
+};
+
+// Peças que DESCOBREM pele que o corpo-base não mostra (braço da regata, a
+// mão que mudou de lugar pra segurar um objeto...). Cada uma tem um arquivo
+// irmão <id>-pele-v1.webp: máscara branca sobre transparente, pintada com a
+// cor da pele de quem veste e desenhada logo ABAIXO da peça. Lista tirada
+// da pasta da arte (um teste confere que bate com os arquivos).
+const COM_MASCARA_DE_PELE = new Set([
+  "roupa-banda", "roupa-beca", "roupa-camiseta", "roupa-couro", "roupa-futebol", "roupa-jaleco",
+  "roupa-manto-impostor", "roupa-moletom", "roupa-piloto", "roupa-regata", "roupa-terno", "roupa-xadrez",
+  "baixo-camuflada", "baixo-jeans", "baixo-moletom", "baixo-praia", "baixo-saia", "baixo-shorts",
+  "mao-bola", "mao-controle", "mao-guitarra", "mao-livro", "mao-lupa", "mao-martelo", "mao-microfone", "mao-trofeu",
+]);
+
 export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica]) => {
   // Título do Quiz por tema/nível: guarda também o NOME do título (é por ele
   // que a lista de desbloqueados é conferida).
   const desbloqueio = regra.tipo === "titulo" && regra.tema ? { ...regra, nome: nomeDoTituloQuiz(regra.tema, regra.nivel) } : regra;
-  return { id, slot, nome, arquivo: arte(slot, id), desbloqueio, dica: dica || dicaDaRegra(desbloqueio) };
+  const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, dica: dica || dicaDaRegra(desbloqueio) };
+  if (CORES_DA_PELE[id]) item.cor = CORES_DA_PELE[id];
+  if (COM_MASCARA_DE_PELE.has(id)) item.mascaraPele = `/avatar/${slot}/${id}-pele-v1.webp`;
+  return item;
 });
 export const ITEM_POR_ID = new Map(ITENS.map((i) => [i.id, i]));
 

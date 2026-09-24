@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, CAMADAS, CONFIG_PADRAO, TIPOS_DE_DESBLOQUEIO, catalogoPublico,
   avatarPadrao, hashDoTexto, TELA,
@@ -33,6 +36,23 @@ test("catálogo: 73 peças, ids únicos, slots válidos, arquivo no padrão", ()
   // Recorte da cabeça cabe na tela e é mais fechado que o busto.
   assert.ok(TELA.cabeca.lado < TELA.busto.lado);
   assert.ok(TELA.cabeca.x + TELA.cabeca.lado <= TELA.largura && TELA.cabeca.y + TELA.cabeca.lado <= TELA.altura);
+});
+
+test("catálogo bate com a arte: todo arquivo existe, toda máscara está listada, toda pele tem cor", () => {
+  const pasta = fileURLToPath(new URL("../../../frontend/public/avatar", import.meta.url));
+  if (!existsSync(pasta)) return; // backend isolado, sem o frontend ao lado
+  const noDisco = new Set();
+  for (const slot of readdirSync(pasta)) for (const f of readdirSync(join(pasta, slot))) noDisco.add(`/avatar/${slot}/${f}`);
+  for (const i of ITENS) {
+    assert.ok(noDisco.has(i.arquivo), `falta a arte ${i.arquivo}`);
+    if (i.mascaraPele) assert.ok(noDisco.has(i.mascaraPele), `falta a máscara ${i.mascaraPele}`);
+    if (i.slot === "pele") assert.match(i.cor || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor`);
+  }
+  const mascaras = [...noDisco].filter((f) => f.endsWith("-pele-v1.webp"));
+  const listadas = new Set(ITENS.filter((i) => i.mascaraPele).map((i) => i.mascaraPele));
+  for (const m of mascaras) assert.ok(listadas.has(m), `máscara sem peça no catálogo: ${m}`);
+  assert.equal(listadas.size, 26);
+  assert.equal(noDisco.size, 73 + 26, "nenhum arquivo sobrando na pasta");
 });
 
 test("catálogo: toda regra aponta pra algo que existe", () => {

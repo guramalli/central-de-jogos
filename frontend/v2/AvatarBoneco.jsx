@@ -21,8 +21,8 @@ import "./avatar.css";
 const TELA_PADRAO = {
   largura: 900,
   altura: 1200,
-  cabeca: { x: 250, y: 190, lado: 400 },
-  busto: { x: 200, y: 170, lado: 500 },
+  cabeca: { x: 225, y: 265, lado: 450 },
+  busto: { x: 140, y: 220, lado: 620 },
 };
 
 // Arquivos que já deram erro nesta aba: os outros bonecos nem tentam de novo
@@ -106,13 +106,19 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
   }
   const { px, ...estiloPalco } = palco;
 
+  // Cor da pele de quem veste: pinta as máscaras de pele (braço que a
+  // regata descobre, mão que segura o objeto...).
+  const corDaPele = catalogo?.porId.get(config?.pele)?.cor;
   const camadas = [];
   for (const slot of catalogo?.camadas || []) {
     if (semFundo && slot === "fundo") continue;
     const item = catalogo.porId.get(config?.[slot]);
     const ok = item && item.slot === slot && !arteQueFalhou.has(item.arquivo);
-    if (ok) camadas.push({ slot, item });
-    else if (slot === "pele" && config?.pele) camadas.push({ slot, silhueta: true });
+    if (ok) {
+      // Máscara logo ABAIXO da peça (dentro do mesmo slot: máscara, peça).
+      if (item.mascaraPele && corDaPele) camadas.push({ slot: `${slot}-pele`, mascara: item.mascaraPele });
+      camadas.push({ slot, item });
+    } else if (slot === "pele" && config?.pele) camadas.push({ slot, silhueta: true });
   }
 
   // width/height nos <img> reservam o espaço antes da arte chegar.
@@ -130,6 +136,18 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
         {camadas.map((c) =>
           c.silhueta ? (
             <Silhueta key={c.slot} />
+          ) : c.mascara ? (
+            // Branco sobre transparente, usado como máscara de um bloco da
+            // cor da pele: do mesmo tamanho das camadas, então encaixa.
+            <span
+              key={c.slot}
+              className="v2-boneco-mascara"
+              style={{
+                backgroundColor: corDaPele,
+                maskImage: `url("${c.mascara}")`,
+                WebkitMaskImage: `url("${c.mascara}")`,
+              }}
+            />
           ) : (
             <img
               key={c.slot}
@@ -155,10 +173,10 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
 function Silhueta() {
   return (
     <svg className="v2-boneco-silhueta" viewBox="0 0 900 1200" preserveAspectRatio="none" aria-hidden="true">
-      <circle cx="450" cy="400" r="190" />
-      <rect x="310" y="600" width="280" height="340" rx="90" />
-      <rect x="330" y="920" width="105" height="240" rx="50" />
-      <rect x="465" y="920" width="105" height="240" rx="50" />
+      <circle cx="450" cy="495" r="205" />
+      <rect x="290" y="700" width="320" height="240" rx="80" />
+      <rect x="320" y="920" width="100" height="175" rx="45" />
+      <rect x="480" y="920" width="100" height="175" rx="45" />
     </svg>
   );
 }
