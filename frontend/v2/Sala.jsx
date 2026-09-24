@@ -5,6 +5,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
 import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import { BonecoDoJogador } from "./AvatarBoneco.jsx";
 import { FiguraPodio } from "./PodioSala.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
@@ -472,6 +473,14 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
             {resultado && (
               <div className={`v2-resultado ${resultado.tipo} ${resultado.arena ? "rapido" : ""}`} role="status" onClick={() => setResultado(null)}>
                 {resultado.tipo === "eu" && !semAnimacao && <Confete />}
+                {/* Avatar de quem acertou, de corpo inteiro e comemorando: a
+                    sala inteira vê — é a vitrine do avatar no Quiz. Bot (sem
+                    perfil) não tem boneco: fica só a patente. */}
+                {resultado.tipo !== "ninguem" && (
+                  <div className="v2-resultado-boneco" aria-hidden="true">
+                    <BonecoDoJogador userId={resultado.tipo === "eu" ? usuario.id : resultado.id} altura={compacto ? 96 : 150} semFundo />
+                  </div>
+                )}
                 {resultado.tipo === "ninguem" ? (
                   <div className="v2-resultado-selo">
                     <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9 9.5h.01M15 9.5h.01M8.5 16c2-1.5 5-1.5 7 0" /></svg>
