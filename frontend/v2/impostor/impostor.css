@@ -30,6 +30,9 @@
 /* ---------- peças gerais ---------- */
 .imp-barra { display: flex; justify-content: flex-end; align-items: center; gap: 12px; min-height: 44px; }
 .imp-barra-sala { color: var(--imp-apagado); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+/* "← Voltar ao lobby" da tela inicial: fica à esquerda, o som à direita. */
+.imp-voltar { margin-right: auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); color: var(--imp-texto); font-weight: 700; font-size: 14px; text-decoration: none; }
+.imp-voltar:hover, .imp-voltar:focus-visible { border-color: var(--imp-ambar); color: var(--imp-ambar); }
 .imp-botao-som { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); font-size: 18px; }
 
 .imp-painel { background: var(--imp-superficie); border: 1px solid var(--imp-borda); border-radius: 24px; padding: 22px; }

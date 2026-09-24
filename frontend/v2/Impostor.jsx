@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { novoSocket, ehSessaoMorta } from "./api.js";
 import Topo from "./Topo.jsx";
+import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Entrada from "./impostor/Entrada.jsx";
 import SalaEspera from "./impostor/SalaEspera.jsx";
 import Rodada from "./impostor/Rodada.jsx";
@@ -132,6 +133,17 @@ export default function Impostor({ usuario, salaDoLink }) {
         <Topo usuario={usuario} ativo={null} />
         <main className={estado ? "imp com-chat" : "imp"}>
           <div className="imp-barra">
+            {/* Tela inicial: um jeito claro de desistir e voltar pro lobby.
+                Dentro da sala quem cuida disso é o "Sair" da própria tela. */}
+            {qual === "entrada" && (
+              <a
+                className="imp-voltar"
+                href={linkDaPagina("inicio")}
+                onClick={(e) => { e.preventDefault(); irParaPagina("inicio"); }}
+              >
+                ← Voltar ao lobby
+              </a>
+            )}
             {estado && <span className="imp-barra-sala">Sala {estado.codigo}</span>}
             <BotaoSom />
           </div>
