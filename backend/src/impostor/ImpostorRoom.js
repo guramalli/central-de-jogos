@@ -15,7 +15,20 @@ import { CerebroBot } from "./bots.js";
 // O IMPOSTOR — motor de UMA sala (só memória).
 //
 //   LOBBY → CARTAS (10s) → DICAS (rodada 1, rodada 2) → VOTACAO (30s)
-//         → REVELACAO → (ULTIMA_CHANCE 15s) → FIM → LOBBY
+//         → REVELACAO → (ULTIMA_CHANCE 25s) → FIM → LOBBY
+//
+// SÉRIE: o anfitrião escolhe no lobby quantas partidas (1, 3 ou 5; padrão
+// PARTIDAS_SERIE). Todas no mesmo modo; o placar soma os pontos de cada uma.
+//   LOBBY → [partida 1] → FIM (resultado + ranking parcial, SEG_ENTRE_PARTIDAS)
+//         → [partida 2] → FIM → … → [última] → FIM (RANKING DA SÉRIE, SEG_FIM)
+//         → LOBBY
+// Cada partida nova: segredo novo, ordem nova e outro impostor (nunca o da
+// partida anterior, com preferência — peso PESO_IMPOSTOR_INEDITO — por quem
+// ainda não foi impostor na série; peso e não regra fixa, pra ninguém deduzir
+// o impostor das últimas partidas por eliminação). Entra quem estiver
+// conectado na hora (quem chegou no meio joga a próxima). Se a sala ficar com
+// menos de MIN_JOGADORES entre uma partida e outra, a série acaba ali e o FIM
+// vira o ranking final. Cada partida continua gravada sozinha (aoFimDePartida).
 //
 // No fim de cada rodada de dicas há uma pausa curta (SEG_ULTIMA_DICA), ainda
 // na fase DICAS e sem ninguém na vez, pra todo mundo ler a última dica.
@@ -38,13 +51,18 @@ import { CerebroBot } from "./bots.js";
 // ---------------- PROTOCOLO (pro cliente) ----------------
 // Cliente → servidor (todos com callback { ok } | { erro }):
 //   impostor-modo     { modo }          anfitrião, só no LOBBY. modo ∈ MODOS.
-//   impostor-iniciar  { modo? }         anfitrião; `modo` opcional (= impostor-modo antes).
+//   impostor-serie    { partidas }      anfitrião, só no LOBBY. partidas ∈ OPCOES_SERIE (1, 3, 5).
+//   impostor-iniciar  { modo?, partidas? }  anfitrião; opcionais (= impostor-modo /
+//                                       impostor-serie antes). Começa a SÉRIE.
+//   impostor-proxima  {}                anfitrião, no FIM: entre partidas, começa a
+//                                       próxima já (sem esperar a contagem); no fim
+//                                       da série ("Jogar outra série"), volta ao LOBBY.
 //   impostor-dica     { texto }         DICAS: dica (palavra/situação) ou frase (história).
 //   impostor-resposta { texto }         RESPOSTAS (pergunta): uma resposta, sem troca.
 //   impostor-chute    { palavra } | { opcao }   ULTIMA_CHANCE. Palavra: texto.
 //                                       Situação/História: `opcao` = índice (0–5) em
 //                                       `estado.opcoes` (ou o texto exato da opção).
-//   (os demais — carta-vista, votar, proxima, chat, bot, sair — não mudaram)
+//   (os demais — carta-vista, votar, chat, bot, sair — não mudaram)
 //
 // Servidor → cliente:
 //   impostor-carta (individual, a partir de CARTAS e de novo ao voltar de queda):
@@ -56,6 +74,17 @@ import { CerebroBot } from "./bots.js";
 //   impostor-estado (por jogador) — além dos campos de sempre:
 //     sempre: modo  (no LOBBY é o escolhido pra próxima; na partida, o dela)
 //     LOBBY : modos [{ id, nome, descricao }]
+//             partidasDaSerie (a escolhida pra próxima série), opcoesSerie [1, 3, 5]
+//     da largada ao FIM da série: serie { partida, total, encerrada, motivoFim }
+//             partida = nº da atual (1…total); encerrada = true só no FIM da
+//             última (ou quando a série acaba antes); motivoFim: null |
+//             "completa" | "poucos_jogadores" | "erro".
+//     FIM: serie.ranking [{ id, nickname, cor, bot, posicao, total,
+//             pontos [por partida: número | null = não jogou], impostor (vezes),
+//             descoberto (vezes em que foi impostor e o mais votado) }],
+//             do maior total pro menor; posicao repete no empate (1, 1, 3).
+//             Só no FIM: tudo ali já foi revelado. restanteMs = contagem até a
+//             próxima partida (SEG_ENTRE_PARTIDAS) ou até o LOBBY (SEG_FIM).
 //     na partida: limites { caracteres, palavras? } do texto do modo
 //                 tema = categoria (palavra) ou "Situação"/"Pergunta"/"História"
 //     DICAS (palavra/situacao/historia): dicas [{ rodada, jogadorId, texto }]
@@ -127,7 +156,14 @@ export const CONFIG = {
   // suspense, nome do acusado). O servidor só segura a fase por esse tempo.
   SEG_REVELACAO: 9,
   SEG_ULTIMA_CHANCE: 25, // (era 15) a múltipla escolha precisa de tempo pra ler as 6 opções
-  SEG_FIM: 90, // sem o anfitrião clicar em "Próxima partida", volta sozinho
+  SEG_FIM: 90, // fim da série: sem o anfitrião clicar em "Jogar outra série", volta sozinho ao lobby
+  // SÉRIE de partidas no mesmo modo (o anfitrião escolhe no lobby).
+  OPCOES_SERIE: [1, 3, 5],
+  PARTIDAS_SERIE: 3, // padrão do lobby
+  SEG_ENTRE_PARTIDAS: 12, // FIM de uma partida que não é a última → próxima sozinha
+  // Sorteio do impostor na série: quem ainda não foi impostor pesa isso
+  // (os outros pesam 1; o impostor da partida anterior fica de fora).
+  PESO_IMPOSTOR_INEDITO: 2,
   SEG_TOLERANCIA: 30, // quem cai continua na partida por esse tempo
   SEG_TOLERANCIA_SALA: 20, // no lobby/fim: tempo pra voltar (recarregar a página) sem perder a vaga
   MAX_CHUTE: 40,
@@ -184,6 +220,8 @@ export class ImpostorRoom {
     this.aoFimDePartida = aoFimDePartida;
     this.aleatorio = aleatorio;
     this.cfg = { ...CONFIG, ...config };
+    this.partidasSerie = this.cfg.PARTIDAS_SERIE; // escolhido pelo anfitrião no lobby
+    this.serie = null; // da largada até voltar ao lobby (ver novaSerie)
     this.jogadores = new Map(); // userId -> jogador
     this.anfitriaoId = null;
     this.fase = FASES.LOBBY;
@@ -277,6 +315,7 @@ export class ImpostorRoom {
     if (j.timerSaida) { clearTimeout(j.timerSaida); j.timerSaida = null; }
     this.jogadores.delete(id);
     this.ajustarAnfitriao();
+    if (this.conferirSerie()) return;
     this.transmitir();
   }
 
@@ -287,7 +326,11 @@ export class ImpostorRoom {
     j.sockets.clear();
     if (j.timerSaida) { clearTimeout(j.timerSaida); j.timerSaida = null; }
     if (j.naPartida && EM_PARTIDA.has(this.fase)) this.removerDaPartida(userId);
-    else { this.jogadores.delete(userId); this.ajustarAnfitriao(); this.transmitir(); }
+    else {
+      this.jogadores.delete(userId);
+      this.ajustarAnfitriao();
+      if (!this.conferirSerie()) this.transmitir();
+    }
   }
 
   removerDaPartida(id) {
@@ -369,16 +412,62 @@ export class ImpostorRoom {
     return null;
   }
 
+  // ---------------- série ----------------
+  // Quantas partidas a próxima série terá. Só no lobby, como o modo.
+  definirSerie(userId, partidas) {
+    if (userId !== this.anfitriaoId) return "Só o anfitrião escolhe quantas partidas.";
+    if (this.fase !== FASES.LOBBY || this.iniciando) return "Dá pra mudar o número de partidas só na sala de espera.";
+    if (!Number.isInteger(partidas) || !this.cfg.OPCOES_SERIE.includes(partidas)) {
+      return `Escolha ${this.cfg.OPCOES_SERIE.join(", ").replace(/, (\d+)$/, " ou $1")} partidas.`;
+    }
+    if (partidas !== this.partidasSerie) { this.partidasSerie = partidas; this.transmitir(); }
+    return null;
+  }
+
+  novaSerie() {
+    return {
+      total: this.partidasSerie,
+      modo: this.modo,
+      numero: 0, // partida atual (1…total)
+      encerrada: false,
+      motivoFim: null,
+      placar: new Map(), // userId -> { id, total, pontos [por partida], impostor, descoberto }
+      nomes: {}, // userId -> { nickname, cor } — quem sai continua no ranking
+      impostores: new Set(), // quem já foi impostor nesta série
+      ultimoImpostor: null,
+    };
+  }
+
+  // O impostor da partida: nunca o da anterior (se sobrar alguém) e, entre
+  // os outros, quem ainda não foi pesa PESO_IMPOSTOR_INEDITO (ver o topo).
+  sortearImpostor(participantes, serie) {
+    let candidatos = participantes;
+    if (serie.ultimoImpostor && candidatos.length > 1) candidatos = candidatos.filter((j) => j.id !== serie.ultimoImpostor);
+    const ineditos = candidatos.filter((j) => !serie.impostores.has(j.id));
+    const outros = candidatos.filter((j) => serie.impostores.has(j.id));
+    const peso = Math.max(1, this.cfg.PESO_IMPOSTOR_INEDITO);
+    const lista = [...ineditos.map((j) => [j, peso]), ...outros.map((j) => [j, 1])];
+    let r = this.aleatorio() * lista.reduce((s, [, p]) => s + p, 0);
+    for (const [j, p] of lista) { if (r < p) return j; r -= p; }
+    return lista.at(-1)[0];
+  }
+
   // ---------------- início ----------------
-  // `modo` opcional: o cliente pode mandar junto do "Iniciar".
-  async iniciar(userId, modo) {
+  // `modo` e `partidas` opcionais: o cliente pode mandar junto do "Iniciar".
+  async iniciar(userId, modo, partidas) {
     if (this.fase !== FASES.LOBBY) return "A partida já começou.";
     if (userId !== this.anfitriaoId) return "Só o anfitrião inicia a partida.";
     if (this.iniciando) return "A partida já está começando.";
     if (modo != null) { const e = this.definirModo(userId, modo); if (e) return e; }
+    if (partidas != null) { const e = this.definirSerie(userId, partidas); if (e) return e; }
     if (this.conectados().length < this.cfg.MIN_JOGADORES) return `Precisa de pelo menos ${this.cfg.MIN_JOGADORES} jogadores.`;
+    return this.iniciarPartida(this.novaSerie(), FASES.LOBBY);
+  }
 
-    const modoDaPartida = this.modo;
+  // Começa uma partida da série: a 1ª (do LOBBY) ou a seguinte (do FIM).
+  // Devolve null ou a mensagem de erro (nada muda se deu erro).
+  async iniciarPartida(serie, deOnde) {
+    const modoDaPartida = serie.modo;
     this.iniciando = true;
     let sorteio;
     try {
@@ -393,18 +482,23 @@ export class ImpostorRoom {
     }
     if (!sorteio?.tema || !sorteio?.palavra) return "Não foi possível sortear a palavra. Tente de novo.";
 
-    // Alguém pode ter saído durante o sorteio (que vai ao banco).
-    if (this.fase !== FASES.LOBBY) return "A partida já começou.";
+    // Alguém pode ter saído (ou a sala mudado de fase) durante o sorteio,
+    // que vai ao banco.
+    if (this.fase !== deOnde || (deOnde === FASES.FIM && (this.serie !== serie || serie.encerrada))) return "A partida já começou.";
     const participantes = this.conectados();
     if (participantes.length < this.cfg.MIN_JOGADORES) return `Precisa de pelo menos ${this.cfg.MIN_JOGADORES} jogadores.`;
 
-    const impostor = participantes[Math.floor(this.aleatorio() * participantes.length)];
+    this.pararRelogio(); // FIM entre partidas: a contagem pra próxima acaba aqui
+    this.serie = serie;
+    serie.numero++;
+    const impostor = this.sortearImpostor(participantes, serie);
     for (const j of this.jogadores.values()) { j.naPartida = false; j.cartaVista = false; }
     for (const j of participantes) j.naPartida = true;
     this.historico.push(sorteio.palavra);
     if (this.historico.length > 50) this.historico.shift();
 
     this.partida = {
+      numero: serie.numero,
       modo: modoDaPartida,
       tema: sorteio.tema,
       // O SEGREDO da partida em todos os modos: palavra, situação, pergunta
@@ -729,9 +823,87 @@ export class ImpostorRoom {
       if (j.timerSaida) { clearTimeout(j.timerSaida); j.timerSaida = null; }
       if (!this.conectado(j)) this.segurarVaga(j);
     }
-    this.agendar(this.cfg.SEG_FIM, () => this.voltarAoLobby());
+    const s = this.serie;
+    this.somarNaSerie(this.partida);
+    if (s.numero >= s.total) this.fecharSerie("completa");
+    else if (this.jogadores.size < this.cfg.MIN_JOGADORES) this.fecharSerie("poucos_jogadores");
+    else this.agendar(this.cfg.SEG_ENTRE_PARTIDAS, () => this.comecarProxima());
     try { this.aoFimDePartida?.(this.resultado()); } catch (err) { console.error("Impostor: falha ao gravar a partida:", err); }
     this.transmitir();
+  }
+
+  // Pontos da partida no placar da série. Quem saiu no meio (ou partida
+  // cancelada) soma 0 nela, mas continua no ranking.
+  somarNaSerie(p) {
+    const s = this.serie;
+    Object.assign(s.nomes, p.nomes);
+    for (const id of p.participantes) {
+      let linha = s.placar.get(id);
+      if (!linha) { linha = { id, total: 0, pontos: [], impostor: 0, descoberto: 0 }; s.placar.set(id, linha); }
+      const pts = p.pontos[id] ?? 0;
+      linha.pontos[p.numero - 1] = pts;
+      linha.total += pts;
+      if (id === p.impostorId) {
+        linha.impostor++;
+        if (p.descoberto && p.vencedor !== "cancelada") linha.descoberto++;
+      }
+    }
+    s.impostores.add(p.impostorId);
+    s.ultimoImpostor = p.impostorId;
+  }
+
+  // Fim da série (última partida, ou gente de menos pra seguir): o FIM vira
+  // o ranking final e a sala volta ao lobby depois de SEG_FIM.
+  fecharSerie(motivo) {
+    this.serie.encerrada = true;
+    this.serie.motivoFim = motivo;
+    this.agendar(this.cfg.SEG_FIM, () => this.voltarAoLobby());
+  }
+
+  // Entre partidas, alguém saiu de vez e a sala ficou pequena: acaba a série
+  // na hora (em vez de esperar a contagem). true = já transmitiu.
+  conferirSerie() {
+    const s = this.serie;
+    if (this.fase !== FASES.FIM || !s || s.encerrada || this.jogadores.size >= this.cfg.MIN_JOGADORES) return false;
+    this.fecharSerie("poucos_jogadores");
+    this.transmitir();
+    return true;
+  }
+
+  // Próxima partida da série (fim da contagem ou o anfitrião).
+  comecarProxima() {
+    const s = this.serie;
+    if (this.fase !== FASES.FIM || !s || s.encerrada || this.iniciando) return;
+    if (this.conectados().length < this.cfg.MIN_JOGADORES) { this.fecharSerie("poucos_jogadores"); this.transmitir(); return; }
+    this.iniciarPartida(s, FASES.FIM).then((erro) => {
+      if (!erro || this.fase !== FASES.FIM || this.serie !== s || s.encerrada) return;
+      // Não deu pra sortear, ou saiu gente durante o sorteio: fecha a série
+      // com o que já foi jogado (melhor que travar a sala no FIM).
+      this.fecharSerie(this.conectados().length < this.cfg.MIN_JOGADORES ? "poucos_jogadores" : "erro");
+      this.transmitir();
+    }).catch((err) => console.error(`Impostor [${this.codigo}]: próxima partida falhou:`, err));
+  }
+
+  // Ranking da série, do maior total pro menor (posição repete no empate).
+  rankingDaSerie() {
+    const s = this.serie;
+    const linhas = [...s.placar.values()].map((l) => {
+      const j = this.jogadores.get(l.id);
+      const nome = s.nomes[l.id] || {};
+      return {
+        id: l.id,
+        nickname: j?.nickname ?? nome.nickname ?? "?",
+        cor: j?.cor ?? nome.cor ?? "#7C8090",
+        bot: l.id.startsWith("bot-"),
+        total: l.total,
+        pontos: Array.from({ length: s.numero }, (_, i) => l.pontos[i] ?? null),
+        impostor: l.impostor,
+        descoberto: l.descoberto,
+      };
+    });
+    linhas.sort((a, b) => b.total - a.total || a.nickname.localeCompare(b.nickname, "pt-BR"));
+    linhas.forEach((l, i) => { l.posicao = i > 0 && linhas[i - 1].total === l.total ? linhas[i - 1].posicao : i + 1; });
+    return linhas;
   }
 
   resultado() {
@@ -749,13 +921,21 @@ export class ImpostorRoom {
       pontos: { ...p.pontos },
       participantes: [...p.participantes],
       comBots: p.participantes.some((id) => id.startsWith("bot-")),
+      serie: { partida: p.numero, total: this.serie?.total ?? 1 }, // só informativo (não vai pro banco)
     };
   }
 
-  // "Próxima partida" (anfitrião) — ou sozinho depois de SEG_FIM.
+  // Anfitrião no FIM: entre partidas, "Próxima partida" (sem esperar a
+  // contagem); no fim da série, "Jogar outra série" (volta ao lobby, com
+  // todo mundo). Sem clique, cada um acontece sozinho no fim do tempo.
   proxima(userId) {
     if (this.fase !== FASES.FIM) return "A partida ainda não acabou.";
     if (userId !== this.anfitriaoId) return "Só o anfitrião começa a próxima.";
+    if (this.serie && !this.serie.encerrada) {
+      if (this.iniciando) return "A próxima partida já está começando.";
+      this.comecarProxima();
+      return null;
+    }
     this.voltarAoLobby();
     return null;
   }
@@ -763,6 +943,7 @@ export class ImpostorRoom {
   voltarAoLobby() {
     this.pararRelogio();
     this.partida = null;
+    this.serie = null;
     this.fase = FASES.LOBBY;
     for (const j of this.jogadores.values()) { j.naPartida = false; j.cartaVista = false; }
     this.transmitir();
@@ -835,7 +1016,17 @@ export class ImpostorRoom {
       // No lobby: o modo escolhido pra próxima. Na partida: o dela.
       modo: p ? p.modo : this.modo,
     };
-    if (this.fase === FASES.LOBBY) estado.modos = INFO_MODOS.map((m) => ({ ...m }));
+    if (this.fase === FASES.LOBBY) {
+      estado.modos = INFO_MODOS.map((m) => ({ ...m }));
+      estado.partidasDaSerie = this.partidasSerie;
+      estado.opcoesSerie = [...this.cfg.OPCOES_SERIE];
+    }
+    const s = this.serie;
+    if (s) {
+      estado.serie = { partida: s.numero, total: s.total, encerrada: s.encerrada, motivoFim: s.motivoFim };
+      // O placar só no FIM: tudo nele já foi revelado (impostores inclusive).
+      if (this.fase === FASES.FIM) estado.serie.ranking = this.rankingDaSerie();
+    }
     if (!p) return estado;
 
     estado.limites = { ...LIMITES[p.modo] };

@@ -451,8 +451,8 @@ test("acusado inocente: impostor vence", async () => {
 // Última chance
 // ======================================================================
 
-async function ateUltimaChance() {
-  const ctx = await iniciada();
+async function ateUltimaChance(opcoes) {
+  const ctx = await iniciada(opcoes);
   jogarAteVotacao(ctx.sala);
   votar(ctx.sala, { j1: "j2", j2: "j1", j3: "j1", j4: "j3" });
   segundos(CONFIG.SEG_REVELACAO);
@@ -645,16 +645,21 @@ test("quem caiu na partida e não voltou até o FIM tem a tolerância da sala", 
   assert.equal(sala.jogadores.has("j5"), false);
 });
 
-test("FIM → LOBBY: só o anfitrião, ou sozinho depois do tempo", async () => {
-  const { sala } = await ateUltimaChance();
+// Série de 1 partida: o FIM já é o fim da série (as séries longas estão em
+// serie.test.js).
+test("FIM → LOBBY (série de 1): só o anfitrião, ou sozinho depois do tempo", async () => {
+  const umaSo = { config: { PARTIDAS_SERIE: 1 } };
+  const { sala } = await ateUltimaChance(umaSo);
   sala.chutar("j1", "x");
+  assert.equal(sala.serie.encerrada, true);
   assert.match(sala.proxima("j2"), /anfitrião/);
   assert.equal(sala.proxima("j1"), null);
   assert.equal(sala.fase, FASES.LOBBY);
   assert.equal(sala.partida, null);
+  assert.equal(sala.serie, null);
   assert.equal(await sala.iniciar("j1"), null); // dá pra jogar de novo
 
-  const b = await ateUltimaChance();
+  const b = await ateUltimaChance(umaSo);
   b.sala.chutar("j1", "x");
   segundos(CONFIG.SEG_FIM);
   assert.equal(b.sala.fase, FASES.LOBBY);

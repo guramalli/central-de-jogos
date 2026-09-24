@@ -17,6 +17,10 @@
   --imp-ambar: #FFB547;
   --imp-ambar-escuro: #2A2110;
   --imp-verde: #3DD68C;
+  /* pódio da série */
+  --imp-ouro: #FFC94D;
+  --imp-prata: #C9D1DE;
+  --imp-bronze: #E0955E;
   --imp-titulo: "Anton", Impact, sans-serif;
   --imp-corpo: "Manrope", system-ui, sans-serif;
   background: var(--imp-fundo);
@@ -412,6 +416,118 @@
 .imp-pontos-lista li { gap: 8px; min-width: 0; }
 .imp-pontos-lista li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .imp-cancelada { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 16px; text-align: center; }
+.imp-cancelada .imp-placar-serie { text-align: left; }
+
+/* ============ série de partidas ============ */
+/* "1º": o º no Anton parece um zero elevado; vai na letra do corpo. */
+.imp-ord { font-family: var(--imp-corpo); font-size: .58em; font-weight: 800; vertical-align: .55em; margin-left: 1px; }
+/* Barra de cima: "Partida 2 de 3" com as bolinhas da série. */
+.imp-barra-serie { display: inline-flex; align-items: center; gap: 10px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); color: var(--imp-texto-2); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.imp-barra-serie b { color: var(--imp-texto); }
+.imp-serie-pontos { display: inline-flex; gap: 5px; }
+.imp-serie-pontos i { width: 8px; height: 8px; border-radius: 50%; background: var(--imp-borda); transition: background .3s, transform .3s; }
+.imp-serie-pontos i.feita { background: var(--imp-texto-2); }
+.imp-serie-pontos i.atual { background: var(--imp-vermelho); transform: scale(1.25); box-shadow: 0 0 0 3px rgba(255, 77, 94, .22); }
+/* Tela da carta: "PARTIDA 2 DE 3" acima de "SUA CARTA". */
+.imp-carta-serie { color: var(--imp-vermelho); font-size: 12px; font-weight: 800; letter-spacing: 3px; }
+
+/* Lobby: quantas partidas (controle segmentado ao lado dos modos). */
+.imp-serie-escolha { display: flex; align-items: center; gap: 12px 14px; flex-wrap: wrap; margin-top: 4px; }
+.imp-serie-opcoes { position: relative; display: inline-flex; gap: 2px; padding: 3px; border-radius: 14px; border: 1px solid var(--imp-borda); background: var(--imp-fundo); }
+.imp-serie-opcao { position: relative; width: 48px; height: 38px; border: none; border-radius: 11px; background: transparent; color: var(--imp-texto-2); font-family: var(--imp-titulo); font-size: 20px; letter-spacing: 1px; transition: color .15s; }
+.imp-serie-opcao b { position: relative; z-index: 1; font-weight: 400; }
+.imp-serie-opcao.ativo { color: var(--imp-texto); cursor: default; }
+.imp-serie-opcao:disabled { cursor: default; }
+.imp-serie-opcao:disabled:not(.ativo) { opacity: .45; }
+.imp-serie-opcoes.escolha .imp-serie-opcao:not(.ativo):hover, .imp-serie-opcoes.escolha .imp-serie-opcao:not(.ativo):focus-visible { color: var(--imp-ambar); }
+.imp-serie-marca { position: absolute; inset: 0; border-radius: 11px; background: var(--imp-vermelho-escuro); box-shadow: inset 0 0 0 2px var(--imp-vermelho); }
+.imp-serie-nota { flex: 1 1 200px; color: var(--imp-texto-2); font-size: 13px; line-height: 1.4; }
+
+/* FIM de cada partida: placar somado da série. */
+.imp-placar-serie { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 20px; }
+.imp-placar-serie-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.imp-placar-serie-apos { color: var(--imp-apagado); font-size: 12px; font-weight: 700; }
+.imp-placar-serie ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.imp-placar-serie li { display: flex; align-items: center; gap: 10px; min-height: 30px; padding: 2px 8px 2px 4px; border-radius: 10px; font-size: 14px; }
+.imp-placar-serie li.eu { background: rgba(255, 255, 255, .05); box-shadow: inset 0 0 0 1px var(--imp-borda); }
+.imp-placar-serie-pos { width: 24px; flex-shrink: 0; text-align: right; color: var(--imp-apagado); font-family: var(--imp-titulo); font-size: 15px; }
+.imp-placar-serie li.pos-1 .imp-placar-serie-pos { color: var(--imp-ouro); }
+.imp-placar-serie li.pos-2 .imp-placar-serie-pos { color: var(--imp-prata); }
+.imp-placar-serie li.pos-3 .imp-placar-serie-pos { color: var(--imp-bronze); }
+.imp-placar-serie-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.imp-placar-serie-tag { flex-shrink: 0; margin-left: -4px; color: var(--imp-vermelho); font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+.imp-placar-serie-ganho { flex-shrink: 0; color: var(--imp-verde); font-size: 12px; font-weight: 800; }
+.imp-placar-serie-ganho.zero { color: var(--imp-apagado); }
+.imp-placar-serie li > b { width: 44px; flex-shrink: 0; text-align: right; font-family: var(--imp-titulo); font-weight: 400; font-size: 18px; letter-spacing: .5px; }
+/* Mesa cheia (9+): linhas mais baixas, pra caber ao lado dos votos. */
+.imp-placar-serie ol.muitos { gap: 0; }
+.imp-placar-serie ol.muitos li { min-height: 26px; font-size: 13px; }
+.imp-proxima-nota { margin-top: -4px; }
+.imp-resultado .imp-aviso, .imp-cancelada .imp-aviso { margin: 0; }
+
+/* RANKING DA SÉRIE (fim da última partida). */
+.imp-ranking { display: flex; flex-direction: column; gap: 22px; max-width: 980px; width: 100%; margin: 0 auto; scroll-margin-top: 16px; }
+.imp-ranking-topo { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.imp-ranking-titulos { display: flex; flex-direction: column; gap: 8px; }
+.imp-ranking-titulos .imp-rotulo { color: var(--imp-ambar); }
+.imp-ranking-titulo { margin: 0; font-family: var(--imp-titulo); font-weight: 400; font-size: clamp(56px, 7vw, 92px); line-height: .95; letter-spacing: 1px; }
+.imp-agente-ranking { width: 150px; height: 188px; margin: -12px 0 -18px; }
+
+.imp-podio-palco { position: relative; padding-top: 12px; }
+.imp-podio { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: clamp(8px, 2vw, 20px); max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+.imp-podio-lugar { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; }
+.imp-podio-pessoa { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; max-width: 100%; text-align: center; }
+.imp-podio-avatar { position: relative; display: inline-flex; border-radius: 50%; }
+.imp-podio-lugar .imp-podio-avatar .imp-avatar { box-shadow: 0 0 0 4px var(--imp-medalha, var(--imp-borda)); }
+.imp-podio-lugar.ouro { --imp-medalha: var(--imp-ouro); }
+.imp-podio-lugar.prata { --imp-medalha: var(--imp-prata); }
+.imp-podio-lugar.bronze { --imp-medalha: var(--imp-bronze); }
+.imp-podio-lugar.lugar-1 .imp-podio-avatar { animation: imp-brilho-ouro 2.4s ease-in-out 1.6s infinite; }
+@keyframes imp-brilho-ouro { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 201, 77, 0); } 50% { box-shadow: 0 0 36px 6px rgba(255, 201, 77, .35); } }
+.imp-podio-medalha { position: absolute; right: -6px; bottom: -4px; min-width: 34px; height: 34px; padding: 0 6px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: var(--imp-medalha, var(--imp-borda)); color: #1A1406; font-family: var(--imp-titulo); font-size: 16px; letter-spacing: .5px; box-shadow: 0 0 0 3px var(--imp-fundo); }
+.imp-podio-lugar.lugar-1 .imp-podio-medalha { min-width: 40px; height: 40px; font-size: 19px; }
+.imp-podio-coroa { width: 54px; height: 34px; margin-bottom: -4px; fill: var(--imp-ouro); filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)); }
+.imp-podio-nome { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; font-size: 16px; }
+.imp-podio-lugar.eu .imp-podio-nome { color: var(--imp-ambar); }
+.imp-podio-pontos { color: var(--imp-texto-2); font-size: 13px; font-weight: 700; }
+.imp-podio-pontos b { font-family: var(--imp-titulo); font-weight: 400; font-size: 26px; letter-spacing: .5px; color: var(--imp-medalha, var(--imp-texto)); }
+.imp-podio-lugar.lugar-1 .imp-podio-pontos b { font-size: 34px; }
+.imp-podio-degrau { width: 100%; display: flex; justify-content: center; padding-top: 10px; border-radius: 16px 16px 6px 6px; transform-origin: bottom; background: linear-gradient(180deg, color-mix(in srgb, var(--imp-medalha, var(--imp-borda)) 30%, var(--imp-superficie)), var(--imp-superficie)); border: 1px solid color-mix(in srgb, var(--imp-medalha, var(--imp-borda)) 45%, var(--imp-borda)); border-bottom: none; }
+.imp-podio-degrau span { font-family: var(--imp-titulo); font-size: 40px; line-height: 1; color: color-mix(in srgb, var(--imp-medalha, var(--imp-texto-2)) 80%, transparent); }
+.imp-podio-lugar.lugar-1 .imp-podio-degrau { height: 150px; }
+.imp-podio-lugar.lugar-2 .imp-podio-degrau { height: 104px; }
+.imp-podio-lugar.lugar-3 .imp-podio-degrau { height: 72px; }
+/* Confete: tiras caindo por trás do pódio, uma vez só. */
+.imp-confete { position: absolute; inset: -20px 0 0; overflow: hidden; pointer-events: none; }
+.imp-confete i { position: absolute; top: -16px; left: calc(4% + var(--i) * 5.3%); width: 7px; height: 13px; border-radius: 2px; opacity: 0; background: var(--imp-ouro); animation: imp-confete 2.6s cubic-bezier(.25, .6, .4, 1) forwards; animation-delay: calc(1.1s + var(--i) * 70ms); }
+.imp-confete i:nth-child(3n) { background: var(--imp-vermelho); width: 6px; height: 10px; }
+.imp-confete i:nth-child(3n+1) { background: var(--imp-verde); }
+.imp-confete i:nth-child(4n) { background: var(--imp-prata); }
+@keyframes imp-confete { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(340px) rotate(calc(200deg + var(--i) * 37deg)); } }
+
+.imp-ranking-lista { display: flex; flex-direction: column; gap: 14px; }
+.imp-ranking-lista ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.imp-ranking-lista li { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 14px; border: 1px solid transparent; }
+.imp-ranking-lista li:nth-child(odd) { background: rgba(255, 255, 255, .025); }
+.imp-ranking-lista li.eu { border-color: var(--imp-ambar); background: var(--imp-ambar-escuro); }
+.imp-ranking-pos { width: 32px; flex-shrink: 0; text-align: center; font-family: var(--imp-titulo); font-size: 20px; color: var(--imp-apagado); }
+.imp-ranking-lista li.ouro .imp-ranking-pos { color: var(--imp-ouro); }
+.imp-ranking-lista li.prata .imp-ranking-pos { color: var(--imp-prata); }
+.imp-ranking-lista li.bronze .imp-ranking-pos { color: var(--imp-bronze); }
+.imp-ranking-quem { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.imp-ranking-nome { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-ranking-nome em { font-style: normal; font-weight: 600; color: var(--imp-texto-2); }
+.imp-ranking-detalhes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.imp-ranking-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.imp-ranking-chip { height: 22px; padding: 0 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; background: var(--imp-fundo); border: 1px solid var(--imp-borda); color: var(--imp-apagado); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.imp-ranking-chip b { color: var(--imp-texto-2); font-weight: 800; }
+.imp-ranking-chip.ganhou b { color: var(--imp-verde); }
+.imp-ranking-chip.fora { opacity: .6; }
+.imp-ranking-stats { color: var(--imp-vermelho); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.imp-ranking-total { flex-shrink: 0; display: flex; align-items: baseline; gap: 4px; }
+.imp-ranking-total b { font-family: var(--imp-titulo); font-weight: 400; font-size: 28px; letter-spacing: .5px; }
+.imp-ranking-total small { color: var(--imp-texto-2); font-size: 12px; font-weight: 700; }
+.imp-ranking-acoes { max-width: 720px; width: 100%; margin: 0 auto; }
 
 /* ============ chat da sala ============
    Classes v2-chat/v2-msg (as mesmas dos outros chats) repintadas com as
@@ -564,11 +680,49 @@
   .imp-barra-sala { margin-right: auto; }
   .imp-barra-botao { padding: 0 12px; font-size: 13px; }
   .imp-dica-texto { font-size: 18px; }
+
+  /* série */
+  .imp-barra-serie { height: 32px; padding: 0 10px; gap: 7px; font-size: 12px; }
+  .imp-serie-pontos { gap: 4px; }
+  .imp-serie-pontos i { width: 7px; height: 7px; }
+  .imp-serie-escolha { gap: 8px 12px; }
+  .imp-serie-opcao { width: 44px; height: 34px; font-size: 18px; }
+  .imp-serie-nota { flex-basis: 100%; font-size: 12px; }
+  .imp-placar-serie { padding: 14px; border-radius: 18px; }
+  .imp-ranking { gap: 18px; }
+  .imp-ranking-topo { align-items: flex-end; gap: 4px; }
+  .imp-ranking-titulo { font-size: 46px; line-height: 1; }
+  .imp-agente-ranking { width: 104px; height: 130px; margin: -6px -6px -10px 0; }
+  .imp-podio { gap: 6px; }
+  .imp-podio-lugar { gap: 8px; }
+  .imp-podio-lugar .imp-avatar { width: 64px !important; height: 64px !important; font-size: 30px !important; }
+  .imp-podio-lugar.lugar-1 .imp-avatar { width: 84px !important; height: 84px !important; font-size: 38px !important; }
+  .imp-podio-lugar .imp-podio-avatar .imp-avatar { box-shadow: 0 0 0 3px var(--imp-medalha, var(--imp-borda)); }
+  .imp-podio-medalha, .imp-podio-lugar.lugar-1 .imp-podio-medalha { min-width: 28px; height: 28px; font-size: 14px; right: -8px; }
+  .imp-podio-coroa { width: 40px; height: 26px; }
+  .imp-podio-nome { font-size: 13px; }
+  .imp-podio-pontos { font-size: 11px; }
+  .imp-podio-pontos b, .imp-podio-lugar.lugar-1 .imp-podio-pontos b { font-size: 22px; }
+  .imp-podio-degrau span { font-size: 28px; }
+  .imp-podio-lugar.lugar-1 .imp-podio-degrau { height: 104px; }
+  .imp-podio-lugar.lugar-2 .imp-podio-degrau { height: 72px; }
+  .imp-podio-lugar.lugar-3 .imp-podio-degrau { height: 48px; }
+  .imp-ranking-lista { padding: 14px 10px; border-radius: 20px; }
+  .imp-ranking-lista li { gap: 8px; padding: 8px 8px 8px 4px; align-items: flex-start; }
+  .imp-ranking-lista li .imp-avatar { width: 34px !important; height: 34px !important; font-size: 16px !important; }
+  .imp-ranking-pos { width: 24px; font-size: 17px; line-height: 34px; }
+  .imp-ranking-nome { font-size: 14px; line-height: 1.3; }
+  .imp-ranking-detalhes { gap: 4px 8px; }
+  .imp-ranking-chip { height: 20px; padding: 0 6px; font-size: 10px; }
+  .imp-ranking-total { align-self: center; }
+  .imp-ranking-total b { font-size: 22px; }
+  .imp-ranking-total small { display: none; }
 }
 
 /* Reduzir movimento: sem pulsos nem piscadas (o motion já troca as
    animações por fades via MotionConfig). */
 @media (prefers-reduced-motion: reduce) {
-  .imp-ponto, .imp-anel, .imp-dica.ultima { animation: none; }
+  .imp-ponto, .imp-anel, .imp-dica.ultima, .imp-podio-lugar.lugar-1 .imp-podio-avatar { animation: none; }
+  .imp-confete { display: none; }
   .imp-botao:active:not(:disabled) { transform: none; }
 }

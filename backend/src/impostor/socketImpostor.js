@@ -275,7 +275,9 @@ export function registrarImpostor(io, socket) {
 
   // Modo de jogo (ver o PROTOCOLO no topo do ImpostorRoom.js).
   socket.on("impostor-modo", naSala((sala, { modo }) => sala.definirModo(user.id, modo)));
-  socket.on("impostor-iniciar", naSala((sala, { modo }) => sala.iniciar(user.id, modo)));
+  // Série: quantas partidas (1, 3 ou 5). Também pode vir junto do "Iniciar".
+  socket.on("impostor-serie", naSala((sala, { partidas }) => sala.definirSerie(user.id, partidas)));
+  socket.on("impostor-iniciar", naSala((sala, { modo, partidas }) => sala.iniciar(user.id, modo, partidas)));
   socket.on("impostor-carta-vista", naSala((sala) => sala.cartaVista(user.id)));
   socket.on("impostor-dica", naSala((sala, { texto }) => sala.darDica(user.id, texto)));
   socket.on("impostor-resposta", naSala((sala, { texto }) => sala.responder(user.id, texto)));

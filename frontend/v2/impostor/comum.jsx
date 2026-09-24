@@ -113,6 +113,29 @@ export function rotuloTema(estado) {
   return modo === "palavra" ? `TEMA ${String(estado.tema || "").toUpperCase()}` : `MODO ${NOME_MODO[modo].toUpperCase()}`;
 }
 
+// ---------------- série ----------------
+// O servidor manda `estado.serie` { partida, total, encerrada, motivoFim,
+// ranking? } da largada até a volta ao lobby. Série de 1 = partida avulsa
+// (nada de "Partida 1 de 1" nem ranking da série).
+export const emSerie = (estado) => (estado?.serie?.total || 1) > 1;
+
+// "PARTIDA 2 DE 3" (null fora de série).
+export function rotuloSerie(estado) {
+  const s = estado?.serie;
+  return emSerie(estado) && s.partida > 0 ? `PARTIDA ${s.partida} DE ${s.total}` : null;
+}
+
+// Bolinhas da série: jogadas, a atual, as que faltam.
+export function PontosSerie({ serie }) {
+  return (
+    <span className="imp-serie-pontos" aria-hidden="true">
+      {Array.from({ length: serie.total }, (_, i) => (
+        <i key={i} className={i + 1 < serie.partida ? "feita" : i + 1 === serie.partida ? "atual" : ""} />
+      ))}
+    </span>
+  );
+}
+
 // O que cada jogador "disse" na partida, pra mostrar nos suspeitos:
 // dicas (palavra/situação), frases (história) ou a resposta (pergunta).
 export function falasDe(estado, id) {

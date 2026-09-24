@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Carta from "./Carta.jsx";
-import { AvatarImp, Cronometro, NOME_MODO, PontoPiscando, contarPalavras, modoDe, quem, useSegundos } from "./comum.jsx";
+import { AvatarImp, Cronometro, NOME_MODO, PontoPiscando, contarPalavras, modoDe, quem, rotuloSerie, useSegundos } from "./comum.jsx";
 
 // CARTAS e DICAS.
 //   computador: ordem das dicas à esquerda, carta ao centro, dicas à direita;
@@ -81,6 +81,7 @@ function EtapaCarta({ estado, carta, tempo, pedir }) {
     <div className="imp-etapa-carta">
       <Cabecalho estado={estado} tempo={tempo} titulo={titulo} />
       <div className="imp-etapa-carta-titulo">
+        {rotuloSerie(estado) && <span className="imp-carta-serie">{rotuloSerie(estado)}</span>}
         <h1 className="imp-titulo">SUA CARTA</h1>
         <p className="imp-sub">Cubra a tela. Só você pode ver.</p>
       </div>
