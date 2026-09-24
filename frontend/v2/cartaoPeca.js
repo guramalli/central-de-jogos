@@ -1,4 +1,5 @@
-import { camadasDaMontagem, corDoCabelo } from "./AvatarBoneco.jsx";
+import { camadasDaMontagem, corDoCabelo, corDaPeleDe, posicaoDaPlaca } from "./AvatarBoneco.jsx";
+import { CHAVE_DO_MES, mesesDeCampeao } from "./avatarCatalogo.js";
 
 // Cartão de "story" (1080×1920) pra compartilhar uma peça nova: o avatar da
 // pessoa já vestindo a peça, o nome dela e o convite pro site. Montado no
@@ -67,7 +68,51 @@ function linhas(ctx, texto, largura) {
   return saida;
 }
 
-export async function montarCartaoPeca({ catalogo, config, item }) {
+// Desenha uma camada (já pintada ou não) na área do avatar. Espelhada (mão
+// esquerda): vira em torno do centro e só a metade esquerda fica, como no
+// boneco da tela (.espelhado no avatar.css).
+function desenharCamada(ctx, fonte, [ax, ay, aw, ah], espelhado) {
+  if (!espelhado) { ctx.drawImage(fonte, ax, ay, aw, ah); return; }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(ax, ay, aw / 2, ah);
+  ctx.clip();
+  ctx.translate(ax + aw, ay);
+  ctx.scale(-1, 1);
+  ctx.drawImage(fonte, 0, 0, aw, ah);
+  ctx.restore();
+}
+
+// Brilho dourado da aura, atrás do personagem.
+function desenharAura(ctx, [ax, ay, aw, ah]) {
+  const cx = ax + aw / 2;
+  const cy = ay + ah * 0.6;
+  const g = ctx.createRadialGradient(cx, cy, aw * 0.05, cx, cy, aw * 0.5);
+  g.addColorStop(0, "rgba(255, 214, 90, .8)");
+  g.addColorStop(0.55, "rgba(255, 190, 40, .35)");
+  g.addColorStop(1, "rgba(255, 190, 40, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(ax, ay, aw, ah);
+}
+
+// Mês na plaqueta do troféu (sem espelhar o texto).
+function desenharPlaca(ctx, placa, texto, espelhado, [ax, ay, aw, ah], tela) {
+  const p = posicaoDaPlaca(placa, espelhado, tela.largura);
+  const esc = aw / tela.largura;
+  ctx.save();
+  ctx.translate(ax + p.x * esc, ay + p.y * (ah / tela.altura));
+  ctx.rotate((p.angulo * Math.PI) / 180);
+  ctx.fillStyle = "#6b3d06";
+  ctx.font = `700 ${p.fonte * esc}px ${FONTE}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(texto, 0, 0);
+  ctx.restore();
+}
+
+// `campeonatos`: meses de campeão por jogo — troféu recém-ganho sem mês
+// escolhido ainda mostra o mais recente na plaqueta.
+export async function montarCartaoPeca({ catalogo, config, item, campeonatos }) {
   const canvas = document.createElement("canvas");
   canvas.width = LARGURA;
   canvas.height = ALTURA;
@@ -93,21 +138,61 @@ export async function montarCartaoPeca({ catalogo, config, item }) {
   // Avatar: a tela de 900×1200 escalada pra 810×1080. Peça com máscara de
   // pele: a máscara pintada com a cor da pele vai logo abaixo dela.
   const montagem = { ...config, [item.slot]: item.id };
-  const corDaPele = catalogo.porId.get(montagem.pele)?.cor;
+  // Troféu novo: se o mês gravado não é de um campeonato desse jogo, vale o
+  // mais recente.
+  const meses = mesesDeCampeao(item, campeonatos);
+  if (item.placa && meses.length && !meses.includes(montagem[CHAVE_DO_MES[item.slot]])) montagem[CHAVE_DO_MES[item.slot]] = meses[0];
+  const corDaPele = corDaPeleDe(catalogo, montagem);
   const corCabelo = corDoCabelo(catalogo, montagem);
-  const camadas = camadasDaMontagem(catalogo, montagem);
-  const [imagens, mascaras, cinzas] = await Promise.all([
+  const { camadas, apagas, aura } = camadasDaMontagem(catalogo, montagem);
+  const [imagens, mascaras, cinzas, mascarasApaga] = await Promise.all([
     Promise.all(camadas.map((c) => carregar(c.arquivo))),
-    Promise.all(camadas.map((c) => (c.mascaraPele && corDaPele ? carregar(c.mascaraPele) : null))),
-    Promise.all(camadas.map((c) => (c.slot === "cabelo" && corCabelo ? carregar(c.pintavel) : null))),
+    Promise.all(camadas.map((c) => (c.item.mascaraPele && corDaPele ? carregar(c.item.mascaraPele) : null))),
+    Promise.all(camadas.map((c) => (c.slot === "cabelo" && corCabelo ? carregar(c.item.pintavel) : null))),
+    Promise.all(apagas.map((a) => carregar(a.mascara))),
   ]);
-  const [ax, ay, aw, ah] = [135, 300, 810, 1080];
-  camadas.forEach((_, i) => {
-    if (mascaras[i]) ctx.drawImage(pintar(mascaras[i], corDaPele, aw, ah), ax, ay, aw, ah);
+  const area = [135, 300, 810, 1080];
+  const [ax, ay, aw, ah] = area;
+  const tela = catalogo.tela || { largura: 900, altura: 1200 };
+
+  // Camadas apagáveis (corpo, calça, roupa, pescoço) vão num canvas à parte,
+  // recortado pelas máscaras de apagar o braço ("destination-in"; a da mão
+  // esquerda espelhada) — igual ao boneco da tela.
+  const temApaga = mascarasApaga.some(Boolean);
+  const grupo = temApaga ? document.createElement("canvas") : null;
+  if (grupo) { grupo.width = aw; grupo.height = ah; }
+  const aqui = [0, 0, aw, ah];
+  const soltarGrupo = () => {
+    const g = grupo.getContext("2d");
+    g.globalCompositeOperation = "destination-in";
+    apagas.forEach((a, i) => {
+      if (!mascarasApaga[i]) return;
+      if (!a.espelhado) { g.drawImage(mascarasApaga[i], 0, 0, aw, ah); return; }
+      g.save();
+      g.translate(aw, 0);
+      g.scale(-1, 1);
+      g.drawImage(mascarasApaga[i], 0, 0, aw, ah);
+      g.restore();
+    });
+    ctx.drawImage(grupo, ax, ay, aw, ah);
+  };
+  let grupoSolto = !grupo;
+  // Sem fundo escolhido, o brilho vai antes de tudo (atrás do boneco).
+  if (aura && !camadas.some((c) => c.slot === "fundo")) desenharAura(ctx, area);
+  camadas.forEach((c, i) => {
+    if (!grupoSolto && !c.apagavel && camadas.slice(0, i).some((x) => x.apagavel)) { soltarGrupo(); grupoSolto = true; }
+    const noGrupo = grupo && c.apagavel;
+    const alvo = noGrupo ? grupo.getContext("2d") : ctx;
+    const onde = noGrupo ? aqui : area;
+    if (mascaras[i]) desenharCamada(alvo, pintar(mascaras[i], corDaPele, aw, ah), onde, c.espelhado);
     // Cinza que não carregou: fica o cabelo original.
-    if (cinzas[i]) ctx.drawImage(pintarCabelo(cinzas[i], corCabelo, aw, ah), ax, ay, aw, ah);
-    else if (imagens[i]) ctx.drawImage(imagens[i], ax, ay, aw, ah);
+    if (cinzas[i]) desenharCamada(alvo, pintarCabelo(cinzas[i], corCabelo, aw, ah), onde, false);
+    else if (imagens[i]) desenharCamada(alvo, imagens[i], onde, c.espelhado);
+    if (imagens[i] && c.placa) desenharPlaca(ctx, c.item.placa, c.placa, c.espelhado, area, tela);
+    // Aura (peça de ouro do Quiz): brilho dourado parado logo acima do fundo.
+    if (aura && c.slot === "fundo") desenharAura(ctx, area);
   });
+  if (!grupoSolto) soltarGrupo();
 
   ctx.fillStyle = "#ffffff";
   ctx.font = `700 84px ${FONTE}`;
@@ -133,8 +218,8 @@ export async function montarCartaoPeca({ catalogo, config, item }) {
 }
 
 // Compartilha com o arquivo (Web Share, no celular); sem suporte, baixa o PNG.
-export async function compartilharPeca({ catalogo, config, item }) {
-  const blob = await montarCartaoPeca({ catalogo, config, item });
+export async function compartilharPeca({ catalogo, config, item, campeonatos }) {
+  const blob = await montarCartaoPeca({ catalogo, config, item, campeonatos });
   if (!blob) return;
   const nome = `educacao-gamer-${item.id}.png`;
   const arquivo = new File([blob], nome, { type: "image/png" });

@@ -5,6 +5,7 @@ import { voltarAoLobby, irParaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import { BonecoDoJogador } from "./AvatarBoneco.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
 import { FiguraPodio } from "./PodioSala.jsx";
@@ -554,6 +555,10 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
             {/* Overlays dentro do cartão, como no Quiz. */}
             {quemPediu && (
               <div className="v2-resultado v2-stop-pedido" role="status">
+                {/* Avatar de quem pediu STOP, pulando no canto (a sala toda vê). */}
+                <div className="v2-resultado-boneco" aria-hidden="true">
+                  <BonecoDoJogador userId={quemPediu.id} altura={compacto ? 96 : 150} semFundo />
+                </div>
                 <div className="v2-stop-pedido-linha">
                   <div className="v2-stop-pedido-placa">STOP!</div>
                   {quemPediu.segundos != null && (

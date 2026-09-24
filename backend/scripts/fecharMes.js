@@ -1,4 +1,4 @@
-// Fecha um mês: grava quem foi campeão do Stop e do Quiz.
+// Fecha um mês: grava quem foi campeão do Stop, do Quiz e do Acromania.
 //
 // POR QUE MANUAL E NÃO AUTOMÁTICO:
 // Não existe rotina agendada de fechamento no projeto, e isso é proposital —
@@ -21,16 +21,22 @@
 //   npm run fechar-mes -- 2026-08 --confirmar
 //
 // Sem --confirmar ele só MOSTRA quem seriam os campeões, sem gravar nada.
+//
+// MÊS PASSADO QUE JÁ FOI FECHADO: rodar de novo é seguro — o que já está
+// gravado (jogo ou clã) é pulado ("já fechado") e só entra o que falta. É
+// assim que se grava o campeão do Acromania de um mês fechado antes de ele
+// entrar aqui: "npm run fechar-mes -- 2026-08" pra conferir e, se bater,
+// de novo com --confirmar. (O avatar congelado nesse caso é o de HOJE.)
 import "dotenv/config";
 import { prisma } from "../src/db.js";
 import { currentMonthKey } from "../src/utils/monthKey.js";
 import { avatarParaCongelar } from "../src/avatar/desbloqueio.js";
 
-const JOGOS = ["stop", "quiz"];
+// O Acromania não paga Pix, mas o campeão dele ganha o título, a coroa e o
+// troféu do avatar — então fecha junto.
+const JOGOS = ["stop", "quiz", "acromania"];
 
-// Clãs fecham TAMBÉM no Acromania. Os campeões individuais só existem onde
-// há premiação em Pix (Stop e Quiz); o troféu de clã é reconhecimento, não
-// dinheiro, então não há motivo pra deixar o Acromania de fora.
+// Clãs fecham nos mesmos três jogos (mais o "geral", lá embaixo).
 const JOGOS_CLA = ["stop", "quiz", "acromania"];
 
 function nomeDoMes(monthKey) {
@@ -55,7 +61,7 @@ async function main() {
     if (jaFechados.length) {
       console.log("\nMeses já fechados:");
       for (const c of jaFechados) {
-        console.log(`  ${c.monthKey}  ${c.gameKey.padEnd(5)}  ${c.nickname} (${c.points.toLocaleString("pt-BR")} pts)`);
+        console.log(`  ${c.monthKey}  ${c.gameKey.padEnd(9)}  ${c.nickname} (${c.points.toLocaleString("pt-BR")} pts)`);
       }
     }
     return;
@@ -77,7 +83,7 @@ async function main() {
       where: { monthKey_gameKey: { monthKey, gameKey } },
     });
     if (jaTem) {
-      console.log(`  ${gameKey.toUpperCase().padEnd(5)} já fechado: ${jaTem.nickname} (${jaTem.points.toLocaleString("pt-BR")} pts)`);
+      console.log(`  ${gameKey.toUpperCase().padEnd(9)} já fechado: ${jaTem.nickname} (${jaTem.points.toLocaleString("pt-BR")} pts)`);
       continue;
     }
 
@@ -99,7 +105,7 @@ async function main() {
     });
 
     if (top.length === 0) {
-      console.log(`  ${gameKey.toUpperCase().padEnd(5)} ninguém pontuou neste mês.`);
+      console.log(`  ${gameKey.toUpperCase().padEnd(9)} ninguém pontuou neste mês.`);
       continue;
     }
 

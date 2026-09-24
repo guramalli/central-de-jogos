@@ -360,6 +360,16 @@ a { color: inherit; text-decoration: none; }
 .v2-stop-selo-tempo { position: absolute; top: 14px; left: 50%; transform: translateX(-50%) rotate(-3deg); background: var(--laranja); color: var(--roxo); font-family: var(--titulo); font-weight: 700; padding: 6px 14px; border-radius: 12px; animation: v2-pop .4s ease-out both; z-index: 3; }
 .v2-stop-pedido { background: var(--vermelho); color: #fff; }
 .v2-stop-pedido .v2-resultado-titulo { color: #fff; }
+/* Avatar de quem acertou: no canto de baixo à esquerda do painel, entra
+   pulando e fica quicando enquanto o painel está na tela. */
+.v2-resultado-boneco { position: absolute; left: 14px; bottom: 6px; z-index: 0; pointer-events: none; animation: v2-boneco-acerto .55s cubic-bezier(.2,.9,.3,1.4) both, v2-boneco-quica 1.1s .55s ease-in-out infinite; transform-origin: 50% 100%; }
+.v2-resultado-boneco > * { display: block; }
+.v2-resultado > :not(.v2-resultado-boneco):not(.v2-confete):not(.v2-resultado-barra) { position: relative; z-index: 1; }
+.v2-resultado > .v2-resultado-barra { z-index: 1; }
+@keyframes v2-boneco-acerto { from { opacity: 0; transform: translateY(40px) scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes v2-boneco-quica { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px) rotate(-2deg); } }
+@media (max-width: 560px) { .v2-resultado-boneco { left: 6px; opacity: .95; } }
+@media (prefers-reduced-motion: reduce) { .v2-resultado-boneco { animation: none; } }
 .v2-stop-pedido .v2-resultado-sub { color: #ffe1de; }
 .v2-stop-pedido-placa { background: #fff; color: var(--vermelho); font-family: var(--titulo); font-weight: 700; font-size: 40px; padding: 6px 26px; border-radius: 20px; box-shadow: 0 6px 0 #b8362c; animation: v2-estoura .6s cubic-bezier(.2,.9,.3,1.4) both; }
 .v2-stop-bonus { gap: 10px; }
@@ -2519,3 +2529,11 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
 /* "← Voltar ao lobby" na tela inicial dos jogos (Tribunal). */
 .v2-voltar-lobby { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 14px; background: var(--roxo-2); color: #fff; font-weight: 800; font-size: 14px; text-decoration: none; }
 .v2-voltar-lobby:hover, .v2-voltar-lobby:focus-visible { background: var(--roxo); box-shadow: inset 0 0 0 2px var(--amarelo); }
+
+/* Acromania: autor da frase vencedora ao lado da frase, comemorando. */
+.v2-acro-linha.vencedora { position: relative; padding-left: 128px; min-height: 132px; }
+.v2-acro-vencedor-boneco { position: absolute; left: 6px; bottom: 4px; animation: v2-boneco-acerto .55s cubic-bezier(.2,.9,.3,1.4) both, v2-boneco-quica 1.1s .55s ease-in-out infinite; transform-origin: 50% 100%; }
+.v2-acro-vencedor-boneco > * { display: block; }
+.v2-acro-linha.vencedora:not(:has(.v2-acro-vencedor-boneco *)) { padding-left: revert; min-height: 0; }
+@media (max-width: 560px) { .v2-acro-linha.vencedora { padding-left: 96px; } .v2-acro-vencedor-boneco { transform: scale(.8); transform-origin: 0 100%; } }
+@media (prefers-reduced-motion: reduce) { .v2-acro-vencedor-boneco { animation: none; } }

@@ -24,7 +24,9 @@ function novasPecas(usuarioId, liberados) {
   }
 }
 
-export default function AvisoPecaNova({ usuarioId, liberados, config }) {
+// `campeonatos` (de /avatar/meu): o mês da plaqueta de um troféu novo no
+// cartão de compartilhar.
+export default function AvisoPecaNova({ usuarioId, liberados, config, campeonatos }) {
   const catalogo = useCatalogoAvatar();
   const [novas, setNovas] = useState([]);
   const [gerando, setGerando] = useState(false);
@@ -39,12 +41,12 @@ export default function AvisoPecaNova({ usuarioId, liberados, config }) {
 
   async function compartilhar() {
     setGerando(true);
-    try { await compartilharPeca({ catalogo, config, item }); } finally { setGerando(false); }
+    try { await compartilharPeca({ catalogo, config, item, campeonatos }); } finally { setGerando(false); }
   }
 
   return (
     <div className="v2-peca-nova" role="status">
-      <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} /></span>
+      <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} corpo={config} /></span>
       <div className="v2-peca-nova-texto">
         <b>Nova peça desbloqueada: {item.nome}!</b>
         {mais > 0 && <small>e mais {mais} {mais === 1 ? "peça" : "peças"} — veja no editor do avatar</small>}

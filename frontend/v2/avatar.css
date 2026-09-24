@@ -7,13 +7,46 @@
 .v2-boneco-palco { position: absolute; display: block; }
 /* !important: .v2-avatar-foto img (e parecidos) aplicam object-fit: cover,
    que deformaria as camadas. Cada camada ocupa o palco inteiro, sem corte. */
-.v2-boneco-palco > img,
-.v2-boneco-palco > svg,
-.v2-boneco-pintado > img { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
+.v2-boneco-palco img,
+.v2-boneco-palco svg { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
 .v2-boneco-mascara { position: absolute; inset: 0; display: block; mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
 /* Cabelo pintado: cinza + bloco da cor em multiply, isolados do resto. */
 .v2-boneco-pintado { position: absolute; inset: 0; display: block; isolation: isolate; pointer-events: none; }
 .v2-boneco-tinta { mix-blend-mode: multiply; }
+/* Mão esquerda: a camada da mão espelhada em torno do centro da tela. Só a
+   METADE ESQUERDA (depois de espelhar) aparece: a arte da mão traz pedaços
+   do contorno do corpo do outro lado, que espelhados cairiam por cima do
+   objeto da mão direita. (O recorte vale antes do espelho, por isso
+   "corta a esquerda" = sobra a metade da direita, que vira a esquerda.) */
+.v2-boneco-palco > .espelhado { transform: scaleX(-1); clip-path: inset(0 0 0 50%); }
+/* Máscaras de apagar o braço: cada caixa recorta o que tem dentro (caixas
+   aninhadas = interseção). A da mão esquerda vira a máscara (scaleX(-1)) e
+   a caixa de dentro desvira o conteúdo. */
+.v2-boneco-grupo,
+.v2-boneco-apaga,
+.v2-boneco-apaga-desvira { position: absolute; inset: 0; display: block; pointer-events: none; }
+.v2-boneco-apaga { mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; }
+.v2-boneco-apaga.espelhado-mascara,
+.v2-boneco-apaga-desvira { transform: scaleX(-1); }
+
+/* Aura (peça de ouro do Quiz): brilho dourado atrás do personagem e umas
+   faíscas subindo em volta. Só CSS; sem movimento pra quem pede menos. */
+.v2-boneco-aura { position: absolute; left: 8%; right: 8%; top: 18%; bottom: 4%; display: block; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 214, 90, .75), rgba(255, 190, 40, .35) 55%, rgba(255, 190, 40, 0)); filter: blur(2px); animation: v2-aura-pulso 2.6s ease-in-out infinite; pointer-events: none; }
+.v2-boneco-faiscas { position: absolute; inset: 0; display: block; pointer-events: none; }
+.v2-boneco-faiscas i { position: absolute; width: 3.2%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, #fff 0, #ffe27a 35%, rgba(255, 214, 90, 0) 70%); opacity: 0; animation: v2-faisca 3.2s ease-in-out infinite; }
+.v2-boneco-faiscas i:nth-child(1) { left: 16%; top: 58%; animation-delay: 0s; }
+.v2-boneco-faiscas i:nth-child(2) { left: 80%; top: 48%; animation-delay: .7s; }
+.v2-boneco-faiscas i:nth-child(3) { left: 24%; top: 30%; animation-delay: 1.4s; width: 2.4%; }
+.v2-boneco-faiscas i:nth-child(4) { left: 72%; top: 24%; animation-delay: 2.1s; width: 2.6%; }
+.v2-boneco-faiscas i:nth-child(5) { left: 50%; top: 14%; animation-delay: 2.7s; width: 2.2%; }
+@keyframes v2-aura-pulso { 0%, 100% { opacity: .7; transform: scale(.97); } 50% { opacity: 1; transform: scale(1.03); } }
+@keyframes v2-faisca { 0% { opacity: 0; transform: translateY(0) scale(.4); } 30% { opacity: 1; transform: translateY(-40%) scale(1); } 100% { opacity: 0; transform: translateY(-160%) scale(.5); } }
+@media (prefers-reduced-motion: reduce) {
+  .v2-boneco-aura { animation: none; opacity: .85; }
+  .v2-boneco-faiscas { display: none; }
+}
+/* Mês do campeonato na plaqueta do troféu (posição e tamanho vêm do JSX). */
+.v2-boneco-placa { position: absolute; display: block; font-family: "Fredoka", "Trebuchet MS", sans-serif; font-weight: 700; line-height: 1; letter-spacing: .02em; color: #6b3d06; white-space: nowrap; pointer-events: none; user-select: none; }
 .v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
 
 /* Perfil: corpo inteiro no lugar da bolinha. */
@@ -21,6 +54,12 @@
 .v2-perfil-boneco .v2-boneco { border-radius: 20px; background: var(--roxo-fundo); }
 
 /* ---------- editor ---------- */
+/* Corpo (primeiro controle): Masculino / Feminino, com a prévia do rosto. */
+.v2-avatar-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.v2-avatar-corpo button { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 76px; padding: 6px 12px; border: 3px solid transparent; border-radius: 18px; background: var(--roxo-fundo); color: var(--lilas); font-size: 17px; }
+.v2-avatar-corpo button .v2-avatar-foto { width: 60px; height: 60px; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: #22164d; }
+.v2-avatar-corpo button.ativo { border-color: var(--amarelo); background: var(--roxo-2); color: #fff; }
+.v2-avatar-corpo button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .v2-avatar-editor-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .v2-avatar-previa { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--roxo-fundo); }
 .v2-avatar-previa-bolinha { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--lilas-2); font-size: 12px; }
@@ -52,6 +91,9 @@
 .v2-avatar-cor.original { width: auto; padding: 0 12px; border-radius: 17px; background: var(--roxo); color: var(--lilas); font-weight: 900; font-size: 12px; }
 .v2-avatar-cor.escolhida { border-color: var(--amarelo); box-shadow: 0 0 0 2px var(--roxo-escuro) inset; }
 .v2-avatar-cor:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* Mês na plaqueta do troféu (campeão mais de uma vez daquele jogo). */
+.v2-avatar-mes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--lilas); font-size: 13px; font-weight: 800; }
+.v2-avatar-mes select { min-height: 36px; padding: 0 10px; border: 2px solid var(--borda); border-radius: 12px; background: var(--roxo); color: #fff; font: inherit; font-weight: 900; }
 
 .v2-avatar-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .v2-avatar-rodape .v2-botao { min-height: 46px; font-size: 16px; padding: 0 22px; }
@@ -77,10 +119,10 @@
 .v2-colecao-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
 .v2-colecao-peca { display: flex; justify-content: center; padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; }
 .v2-colecao-peca .v2-avatar-miniatura { width: 52px; height: 52px; }
-/* Trancada: silhueta escura da própria peça (sem entregar as cores). */
-.v2-colecao-peca.trancada .v2-boneco { filter: brightness(0); opacity: .75; }
-/* Fundo mais claro atrás da silhueta preta, senão ela some no roxo escuro. */
-.v2-colecao-peca.trancada .v2-avatar-miniatura { background: #5a4699; }
+/* Trancada: a peça (vestida no corpo) apagada e sem cor, como no editor. */
+.v2-colecao-peca.trancada .v2-boneco { opacity: .4; filter: grayscale(1); }
+.v2-colecao-peca { position: relative; }
+.v2-colecao-peca .v2-avatar-cadeado { font-size: 14px; }
 .v2-colecao-peca.ativa, .v2-colecao-peca:hover { border-color: var(--borda); }
 
 /* ---------- aviso de peça nova ---------- */
@@ -134,3 +176,27 @@
 .v2-proxima-peca > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .v2-proxima-peca > div > span { color: var(--lilas-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
 .v2-proxima-peca small { color: var(--lilas); font-size: 12px; }
+
+/* ---------- Raridade das peças (editor e Coleção) ----------
+   base azul · iniciante verde · intermediário roxo · difícil laranja ·
+   lendário dourado com brilho passando. A cor vem do catálogo (raridade). */
+.v2-avatar-peca { position: relative; overflow: hidden; }
+.v2-avatar-peca.raridade-base { background: linear-gradient(180deg, #2f5bb7, #1d3a7c); }
+.v2-avatar-peca.raridade-iniciante { background: linear-gradient(180deg, #23915e, #155c3c); }
+.v2-avatar-peca.raridade-intermediario { background: linear-gradient(180deg, #7a47d6, #4b2a93); }
+.v2-avatar-peca.raridade-dificil { background: linear-gradient(180deg, #e3702a, #9c3f12); }
+.v2-avatar-peca.raridade-lendario { background: linear-gradient(160deg, #ffd35a, #d99a14 45%, #8a5a06); color: #2b1b5e; box-shadow: 0 0 0 1px #ffe89a inset, 0 0 12px rgba(255, 211, 90, .45); }
+.v2-avatar-peca.raridade-lendario::after { content: ""; position: absolute; inset: -40%; background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, .55) 50%, transparent 60%); animation: v2-brilho-lendario 3.2s ease-in-out infinite; pointer-events: none; }
+@keyframes v2-brilho-lendario { 0% { transform: translateX(-60%); } 55%, 100% { transform: translateX(60%); } }
+.v2-avatar-peca.trancada { filter: saturate(.55) brightness(.8); }
+.v2-raridade-etiqueta { font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: rgba(0, 0, 0, .28); color: #fff; }
+.v2-avatar-peca.raridade-lendario .v2-raridade-etiqueta { background: #2b1b5e; color: #ffd35a; }
+/* Peça com aura: faísca no canto do card. */
+.v2-avatar-aura-selo { position: absolute; left: 6px; top: 4px; font-size: 13px; line-height: 1; z-index: 1; }
+/* Coleção: o anel da bolinha na cor do nível */
+.v2-colecao-peca.raridade-base { border-color: #3d6fd6; }
+.v2-colecao-peca.raridade-iniciante { border-color: #2fb574; }
+.v2-colecao-peca.raridade-intermediario { border-color: #9b6bff; }
+.v2-colecao-peca.raridade-dificil { border-color: #f08a3c; }
+.v2-colecao-peca.raridade-lendario { border-color: #ffd35a; box-shadow: 0 0 10px rgba(255, 211, 90, .6); }
+@media (prefers-reduced-motion: reduce) { .v2-avatar-peca.raridade-lendario::after { animation: none; display: none; } }

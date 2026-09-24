@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useCatalogoAvatar, ENQUADRAMENTO } from "./avatarCatalogo.js";
+import { useCatalogoAvatar, ENQUADRAMENTO, slotDasPecas, CHAVE_DO_MES, textoDaPlaca } from "./avatarCatalogo.js";
 import { buscarPerfil, perfilEmCache, ouvirPerfil } from "./perfil.js";
 import "./avatar.css";
 
@@ -72,12 +72,24 @@ export function BonecoDoJogador({ userId, altura = 120, reserva = null, classNam
 }
 
 // Miniatura redonda de UMA peça (editor, coleção do perfil, aviso de peça
-// nova), no enquadramento da parte do corpo dela. `corCabelo`: o editor
-// mostra os cabelos pintáveis já na cor escolhida.
-export function MiniaturaPeca({ item, tamanho = 64, corCabelo }) {
-  const config = { [item.slot]: item.id };
-  if (corCabelo && item.slot === "cabelo") config.corCabelo = corCabelo;
-  return <AvatarBoneco config={config} busto tamanho={tamanho} recorte={ENQUADRAMENTO[item.slot]} />;
+// nova), no enquadramento da parte do corpo dela.
+//
+// A peça vai VESTIDA no corpo (a pele) da pessoa, sem as outras peças: a
+// arte de cada camada traz pedacinhos do contorno do corpo pra fechar as
+// frestas, que sozinhos (sem o corpo embaixo) desenhavam um rosto fantasma
+// atrás do cabelo. `corpo`: a montagem atual (só a pele e o tipo de corpo
+// são usados; sem pele, a primeira do catálogo). Fundo aparece sozinho.
+// `corCabelo`: o editor mostra os cabelos pintáveis já na cor escolhida.
+// `slot`: onde a peça vai (a aba "Mão esq." mostra a peça da mão espelhada).
+export function MiniaturaPeca({ item, tamanho = 64, corCabelo, corpo, slot = item.slot }) {
+  const catalogo = useCatalogoAvatar();
+  const config = { [slot]: item.id };
+  if (slot !== "fundo") {
+    if (slot !== "pele") config.pele = corpo?.pele || catalogo?.itens.find((i) => i.slot === "pele")?.id;
+    if (corpo?.corpo) config.corpo = corpo.corpo;
+  }
+  if (corCabelo && slot === "cabelo") config.corCabelo = corCabelo;
+  return <AvatarBoneco config={config} busto tamanho={tamanho} recorte={ENQUADRAMENTO[slot] || ENQUADRAMENTO[item.slot]} />;
 }
 
 // Cor (hex) do cabelo de uma montagem, ou null pra camada original: sem
@@ -90,16 +102,54 @@ export function corDoCabelo(catalogo, config) {
   return catalogo.coresCabelo?.find((c) => c.chave === chave)?.cor || null;
 }
 
-// Lista das camadas (na ordem de desenho) de uma montagem — o cartão de
-// compartilhar usa pra desenhar no canvas.
-export function camadasDaMontagem(catalogo, config) {
-  const lista = [];
-  for (const slot of catalogo?.camadas || []) {
-    const item = catalogo.porId.get(config?.[slot]);
-    if (item && item.slot === slot) lista.push(item);
-  }
-  return lista;
+const feminino = (config) => config?.corpo === "feminino";
+
+// Cor da pele de uma montagem (a do corpo feminino é um tiquinho diferente).
+export function corDaPeleDe(catalogo, config) {
+  const pele = catalogo?.porId.get(config?.pele);
+  return (feminino(config) && pele?.corFeminina) || pele?.cor;
 }
+
+// Arquivo de uma peça numa montagem: a pele troca pela versão feminina.
+export function arquivoDaPeca(item, config) {
+  return (item.slot === "pele" && feminino(config) && item.arquivoFeminino) || item.arquivo;
+}
+
+// Lista das camadas (na ordem de desenho) de uma montagem — o boneco da
+// tela e o cartão de compartilhar desenham a partir dela.
+//   camadas: { slot, item, arquivo, espelhado, placa, apagavel }
+//     placa    — texto da plaqueta ("SET/26") de troféu com mês escolhido;
+//     apagavel — camada recortada pelas máscaras de apagar o braço.
+//   apagas: máscaras de apagar o braço das mãos vestidas ({ mascara, espelhado });
+//   aura:   alguma peça vestida tem aura (as de ouro do Quiz).
+export function camadasDaMontagem(catalogo, config, { semFundo = false } = {}) {
+  const camadas = [];
+  const apagas = [];
+  let aura = false;
+  const apagaveis = new Set(catalogo?.camadasApagaveis || []);
+  for (const slot of catalogo?.camadas || []) {
+    if (semFundo && slot === "fundo") continue;
+    const item = catalogo.porId.get(config?.[slot]);
+    if (!item || item.slot !== slotDasPecas(catalogo, slot)) continue;
+    const espelhado = item.slot !== slot;
+    const placa = item.placa && CHAVE_DO_MES[slot] ? textoDaPlaca(config[CHAVE_DO_MES[slot]]) : null;
+    camadas.push({ slot, item, arquivo: arquivoDaPeca(item, config), espelhado, placa, apagavel: apagaveis.has(slot) });
+    if (item.apagaBraco) apagas.push({ mascara: item.apagaBraco, espelhado });
+    if (item.aura) aura = true;
+  }
+  return { camadas, apagas, aura };
+}
+
+// Onde fica a plaqueta de um troféu na tela (900×1200): na mão esquerda,
+// espelhada (x e ângulo invertidos) — mas o TEXTO não é espelhado.
+export function posicaoDaPlaca(placa, espelhado, largura = 900) {
+  return espelhado ? { ...placa, x: largura - placa.x, angulo: -placa.angulo } : placa;
+}
+
+// Aura (peça de ouro do Quiz vestida): só onde o boneco aparece grande —
+// corpo inteiro e bustos (pódio, cartão do nick); nunca nas bolinhas de
+// cabeça nem nas miniaturas das peças (que usam `recorte`).
+const AURA_MINIMA_BUSTO = 56;
 
 export default function AvatarBoneco({ config, altura = 240, busto = false, tamanho = 40, preencher = false, recorte, className = "", rotulo, semFundo = false }) {
   const catalogo = useCatalogoAvatar();
@@ -124,85 +174,146 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
 
   // Cor da pele de quem veste: pinta as máscaras de pele (braço que a
   // regata descobre, mão que segura o objeto...).
-  const corDaPele = catalogo?.porId.get(config?.pele)?.cor;
+  const corDaPele = corDaPeleDe(catalogo, config);
   const corCabelo = corDoCabelo(catalogo, config);
+  const montagem = camadasDaMontagem(catalogo, config, { semFundo });
   const camadas = [];
-  for (const slot of catalogo?.camadas || []) {
-    if (semFundo && slot === "fundo") continue;
-    const item = catalogo.porId.get(config?.[slot]);
-    const ok = item && item.slot === slot && !arteQueFalhou.has(item.arquivo);
-    if (ok) {
-      // Máscara logo ABAIXO da peça (dentro do mesmo slot: máscara, peça).
-      if (item.mascaraPele && corDaPele) camadas.push({ slot: `${slot}-pele`, mascara: item.mascaraPele });
-      // Cabelo pintado: a versão cinza no lugar da colorida (se o cinza
-      // falhar ao baixar, volta a original).
-      if (slot === "cabelo" && corCabelo && !arteQueFalhou.has(item.pintavel)) camadas.push({ slot, item, cinza: item.pintavel });
-      else camadas.push({ slot, item });
-    } else if (slot === "pele" && config?.pele) camadas.push({ slot, silhueta: true });
+  const placas = [];
+  for (const c of montagem.camadas) {
+    const { slot, item, espelhado, apagavel } = c;
+    if (arteQueFalhou.has(c.arquivo)) {
+      if (slot === "pele") camadas.push({ slot, silhueta: true, apagavel });
+      continue;
+    }
+    // Máscara logo ABAIXO da peça (dentro do mesmo slot: máscara, peça).
+    if (item.mascaraPele && corDaPele) camadas.push({ slot: `${slot}-pele`, mascara: item.mascaraPele, espelhado, apagavel });
+    // Cabelo pintado: a versão cinza no lugar da colorida (se o cinza
+    // falhar ao baixar, volta a original).
+    if (slot === "cabelo" && corCabelo && !arteQueFalhou.has(item.pintavel)) camadas.push({ slot, item, cinza: item.pintavel });
+    else camadas.push({ slot, item, arquivo: c.arquivo, espelhado, apagavel });
+    if (c.placa) placas.push({ slot, texto: c.placa, ...posicaoDaPlaca(item.placa, espelhado, tela.largura) });
+  }
+  // Pele desconhecida (catálogo velho?): silhueta no lugar do corpo, logo
+  // depois do fundo e das costas.
+  if (config?.pele && !montagem.camadas.some((c) => c.slot === "pele")) {
+    const i = camadas.filter((c) => c.slot === "fundo" || c.slot === "costas").length;
+    camadas.splice(i, 0, { slot: "pele", silhueta: true, apagavel: true });
   }
 
   // width/height nos <img> reservam o espaço antes da arte chegar.
   const larg = Math.round(px[0]);
   const alt = Math.round(px[1]);
+  // Texto da plaqueta só onde dá pra ler (some nas bolinhas pequenas).
+  const escala = px[0] / tela.largura;
+  const pctX = (v) => `${(v / tela.largura) * 100}%`;
+  const pctY = (v) => `${(v / tela.altura) * 100}%`;
+  const comAura = montagem.aura && (!busto || (busto !== "cabeca" && !recorte && tamanho >= AURA_MINIMA_BUSTO));
+
+  const desenhar = (c) =>
+    c.silhueta ? (
+      <Silhueta key={c.slot} />
+    ) : c.mascara ? (
+      // Branco sobre transparente, usado como máscara de um bloco da
+      // cor da pele: do mesmo tamanho das camadas, então encaixa.
+      <span
+        key={c.slot}
+        className={`v2-boneco-mascara ${c.espelhado ? "espelhado" : ""}`}
+        style={{
+          backgroundColor: corDaPele,
+          maskImage: `url("${c.mascara}")`,
+          WebkitMaskImage: `url("${c.mascara}")`,
+        }}
+      />
+    ) : c.cinza ? (
+      // Cinza x cor: o bloco da cor, recortado pelo próprio cinza
+      // (máscara), MULTIPLICA o cinza — o sombreado fica, a cor entra.
+      // `isolation` no grupo: a multiplicação vale só entre os dois,
+      // sem escurecer o corpo e o fundo que estão embaixo.
+      <span key={c.slot} className="v2-boneco-pintado">
+        <img
+          src={c.cinza}
+          alt=""
+          width={larg}
+          height={alt}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => { arteQueFalhou.add(c.cinza); setFalhas((n) => n + 1); }}
+        />
+        <span
+          className="v2-boneco-mascara v2-boneco-tinta"
+          style={{ backgroundColor: corCabelo, maskImage: `url("${c.cinza}")`, WebkitMaskImage: `url("${c.cinza}")` }}
+        />
+      </span>
+    ) : (
+      <img
+        key={c.slot}
+        src={c.arquivo}
+        className={c.espelhado ? "espelhado" : undefined}
+        alt=""
+        width={larg}
+        height={alt}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        onError={() => { arteQueFalhou.add(c.arquivo); setFalhas((n) => n + 1); }}
+      />
+    );
+
+  // Máscaras de apagar o braço: as camadas apagáveis (corpo, calça, roupa,
+  // pescoço, que são seguidas na ordem de desenho) vão num grupo, embrulhado
+  // numa caixa por máscara — caixas aninhadas = interseção das máscaras. A
+  // da mão esquerda é a mesma máscara espelhada: a caixa dela vira
+  // (scaleX(-1)) e uma caixa de dentro desvira o conteúdo.
+  const apagas = montagem.apagas.filter((a) => !arteQueFalhou.has(a.mascara));
+  const primeiraApagavel = camadas.findIndex((c) => c.apagavel);
+  let conteudo;
+  if (apagas.length && primeiraApagavel >= 0) {
+    const grupo = camadas.filter((c) => c.apagavel);
+    const antes = camadas.slice(0, primeiraApagavel).filter((c) => !c.apagavel);
+    const depois = camadas.slice(primeiraApagavel).filter((c) => !c.apagavel);
+    let embrulhado = grupo.map(desenhar);
+    for (const a of apagas) {
+      const estilo = { maskImage: `url("${a.mascara}")`, WebkitMaskImage: `url("${a.mascara}")` };
+      embrulhado = a.espelhado ? (
+        <span className="v2-boneco-apaga espelhado-mascara" style={estilo}><span className="v2-boneco-apaga-desvira">{embrulhado}</span></span>
+      ) : (
+        <span className="v2-boneco-apaga" style={estilo}>{embrulhado}</span>
+      );
+    }
+    conteudo = [...antes.map(desenhar), <span key="apaga" className="v2-boneco-grupo">{embrulhado}</span>, ...depois.map(desenhar)];
+  } else {
+    conteudo = camadas.map(desenhar);
+  }
+  // A aura fica logo acima do fundo (atrás do personagem).
+  if (comAura) {
+    const iFundo = camadas[0]?.slot === "fundo" ? 1 : 0;
+    conteudo.splice(iFundo, 0, <span key="aura" className="v2-boneco-aura" aria-hidden="true" />);
+  }
+
   return (
     <span
-      className={`v2-boneco ${busto ? "busto" : ""} ${className}`}
+      className={`v2-boneco ${busto ? "busto" : ""} ${comAura ? "com-aura" : ""} ${className}`}
       style={caixa}
       role={rotulo ? "img" : undefined}
       aria-label={rotulo}
       aria-hidden={rotulo ? undefined : true}
     >
       <span className="v2-boneco-palco" style={estiloPalco}>
-        {camadas.map((c) =>
-          c.silhueta ? (
-            <Silhueta key={c.slot} />
-          ) : c.mascara ? (
-            // Branco sobre transparente, usado como máscara de um bloco da
-            // cor da pele: do mesmo tamanho das camadas, então encaixa.
-            <span
-              key={c.slot}
-              className="v2-boneco-mascara"
-              style={{
-                backgroundColor: corDaPele,
-                maskImage: `url("${c.mascara}")`,
-                WebkitMaskImage: `url("${c.mascara}")`,
-              }}
-            />
-          ) : c.cinza ? (
-            // Cinza x cor: o bloco da cor, recortado pelo próprio cinza
-            // (máscara), MULTIPLICA o cinza — o sombreado fica, a cor entra.
-            // `isolation` no grupo: a multiplicação vale só entre os dois,
-            // sem escurecer o corpo e o fundo que estão embaixo.
-            <span key={c.slot} className="v2-boneco-pintado">
-              <img
-                src={c.cinza}
-                alt=""
-                width={larg}
-                height={alt}
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-                onError={() => { arteQueFalhou.add(c.cinza); setFalhas((n) => n + 1); }}
-              />
-              <span
-                className="v2-boneco-mascara v2-boneco-tinta"
-                style={{ backgroundColor: corCabelo, maskImage: `url("${c.cinza}")`, WebkitMaskImage: `url("${c.cinza}")` }}
-              />
-            </span>
-          ) : (
-            <img
-              key={c.slot}
-              src={c.item.arquivo}
-              alt=""
-              width={larg}
-              height={alt}
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-              onError={() => { arteQueFalhou.add(c.item.arquivo); setFalhas((n) => n + 1); }}
-            />
-          )
-        )}
+        {conteudo}
+        {/* Mês do campeonato na plaqueta do troféu, por cima da arte (em %
+            da tela, então acompanha qualquer tamanho). */}
+        {placas.map((p) => (p.fonte * escala >= 4 ? (
+          <span
+            key={`${p.slot}-placa`}
+            className="v2-boneco-placa"
+            style={{ left: pctX(p.x), top: pctY(p.y), fontSize: `${p.fonte * escala}px`, transform: `translate(-50%, -50%) rotate(${p.angulo}deg)` }}
+          >
+            {p.texto}
+          </span>
+        ) : null))}
+        {/* Faíscas da aura, por cima de tudo. */}
+        {comAura && <span className="v2-boneco-faiscas" aria-hidden="true"><i /><i /><i /><i /><i /></span>}
       </span>
     </span>
   );

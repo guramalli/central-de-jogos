@@ -216,6 +216,9 @@ export function tituloStopDesbloqueado(grupo, stops, rapidos) {
 // lá embaixo.
 const TITULO_LENDARIO_NOME = "Lenda do Educação Gamer";
 
+// Nome de um troféu de campeão mensal ("Campeão Acromania Set/2026").
+const RE_CAMPEAO = /^Campeão (Stop|Quiz|Acromania) /;
+
 export function logoPorNomeDeTitulo(nome) {
   if (!nome) return null;
   // O lendário é definido fora das tabelas (não pertence a tema nem grupo),
@@ -227,10 +230,8 @@ export function logoPorNomeDeTitulo(nome) {
   // Ago/2026", com "(2x)" opcional), então é resolvido por padrão em vez de
   // busca em tabela. Sem isto, quem equipasse o troféu ficaria sem emblema
   // nenhum no hover e na lista de jogadores.
-  const campeao = /^Campeão (Stop|Quiz) /.exec(nome);
-  if (campeao) {
-    return `/titulos/titulo-campeao-${campeao[1].toLowerCase()}.png`;
-  }
+  const campeao = RE_CAMPEAO.exec(nome);
+  if (campeao) return logoDoTrofeu(campeao[1].toLowerCase());
   // Quiz: reconstrói os nomes de cada tema/nível
   for (const [tema, nomeTema] of Object.entries(QUIZ_NOMES)) {
     for (let i = 0; i < QUIZ_NIVEIS.length; i++) {
@@ -264,7 +265,7 @@ export function nivelPorNomeDeTitulo(nome) {
   // devolvia null e eles apareciam SEM COR na saudação de entrada — logo os
   // dois títulos mais raros do site, que são justamente os que merecem
   // destaque. Tratados aqui, antes da regra geral.
-  if (/^Campeão (Stop|Quiz) /.test(nome)) return "campeao";
+  if (RE_CAMPEAO.test(nome)) return "campeao";
   if (nome === TITULO_LENDARIO_NOME) return "lendario";
 
   const logo = logoPorNomeDeTitulo(nome);
@@ -343,12 +344,15 @@ export function mesCurto(monthKey) {
   return `${MESES_CURTOS[Number(mes) - 1] || mes}/${ano}`;
 }
 
+const JOGO_DO_TROFEU = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
+
 export function nomeDoTrofeu(gameKey, monthKey) {
-  const jogo = gameKey === "quiz" ? "Quiz" : "Stop";
-  return `Campeão ${jogo} ${mesCurto(monthKey)}`;
+  return `Campeão ${JOGO_DO_TROFEU[gameKey] || "Stop"} ${mesCurto(monthKey)}`;
 }
 
+// O Acromania ainda não tem emblema próprio de campeão: usa a logo do jogo.
 export function logoDoTrofeu(gameKey) {
+  if (gameKey === "acromania") return "/acromania-logo.png";
   return `/titulos/titulo-campeao-${gameKey === "quiz" ? "quiz" : "stop"}.png`;
 }
 
@@ -447,7 +451,7 @@ export function nomeDoTituloQuiz(tema, nivel) {
 // "Campeão Stop Ago/2026" só precisa da CampeaoMensal; o lendário precisa
 // de Quiz e Stop (é a soma dos outros).
 export function fonteDoTitulo(nome) {
-  if (/^Campeão (Stop|Quiz) /.test(nome)) return { campeao: true };
+  if (RE_CAMPEAO.test(nome)) return { campeao: true };
   if (nome === TITULO_LENDARIO_NOME) return { quiz: true, stop: true };
   for (const tiers of Object.values(STOP_TITULOS)) {
     if (tiers.some((t) => t.nome === nome)) return { stop: true };
