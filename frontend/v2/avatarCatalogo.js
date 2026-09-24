@@ -9,6 +9,10 @@ import { api } from "./api.js";
 // (sem piscar a bolinha de iniciais); a busca de fundo atualiza se o
 // catálogo mudou de versão.
 const CHAVE = "eg_avatar_catalogo";
+// Cópia de VERSAO_CATALOGO (backend/src/avatar/catalogo.js): vai no "?v="
+// da busca, pra o cache HTTP do navegador (1h) não segurar um catálogo velho
+// depois de uma mudança. Suba junto com a do backend.
+export const VERSAO_CATALOGO = 4;
 let catalogo = lerCopia();
 let promessa = null;
 
@@ -29,7 +33,7 @@ function indexar(c) {
 export function catalogoAvatar() {
   if (!promessa) {
     promessa = api
-      .get("/avatar/catalogo")
+      .get("/avatar/catalogo", { params: { v: VERSAO_CATALOGO } })
       .then(({ data }) => {
         catalogo = indexar(data);
         try { localStorage.setItem(CHAVE, JSON.stringify(data)); } catch {}
@@ -69,4 +73,16 @@ export function useCatalogoAvatar() {
     return () => { vivo = false; };
   }, []);
   return c;
+}
+
+// Como uma peça liberada foi ganha (texto fixo do catálogo, gerado da regra
+// no servidor). Catálogo antigo guardado no navegador pode vir sem ele — a
+// busca de fundo traz o novo.
+export function motivoDe(item) {
+  return item?.motivo || "Peça liberada.";
+}
+
+// "Conquistada com..." -> "conquistada com..." (depois de "Coroa — ").
+export function minuscula(texto) {
+  return texto ? texto[0].toLowerCase() + texto.slice(1) : "";
 }

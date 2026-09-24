@@ -69,9 +69,22 @@ export function BonecoDoJogador({ userId, altura = 120, reserva = null, classNam
 }
 
 // Miniatura redonda de UMA peça (editor, coleção do perfil, aviso de peça
-// nova), no enquadramento da parte do corpo dela.
-export function MiniaturaPeca({ item, tamanho = 64 }) {
-  return <AvatarBoneco config={{ [item.slot]: item.id }} busto tamanho={tamanho} recorte={ENQUADRAMENTO[item.slot]} />;
+// nova), no enquadramento da parte do corpo dela. `corCabelo`: o editor
+// mostra os cabelos pintáveis já na cor escolhida.
+export function MiniaturaPeca({ item, tamanho = 64, corCabelo }) {
+  const config = { [item.slot]: item.id };
+  if (corCabelo && item.slot === "cabelo") config.corCabelo = corCabelo;
+  return <AvatarBoneco config={config} busto tamanho={tamanho} recorte={ENQUADRAMENTO[item.slot]} />;
+}
+
+// Cor (hex) do cabelo de uma montagem, ou null pra camada original: sem
+// cor escolhida, "original", cabelo que não se pinta, ou catálogo antigo
+// (sem paleta) guardado no navegador.
+export function corDoCabelo(catalogo, config) {
+  const chave = config?.corCabelo;
+  if (!chave || chave === "original") return null;
+  if (!catalogo?.porId.get(config?.cabelo)?.pintavel) return null;
+  return catalogo.coresCabelo?.find((c) => c.chave === chave)?.cor || null;
 }
 
 // Lista das camadas (na ordem de desenho) de uma montagem — o cartão de
@@ -109,6 +122,7 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
   // Cor da pele de quem veste: pinta as máscaras de pele (braço que a
   // regata descobre, mão que segura o objeto...).
   const corDaPele = catalogo?.porId.get(config?.pele)?.cor;
+  const corCabelo = corDoCabelo(catalogo, config);
   const camadas = [];
   for (const slot of catalogo?.camadas || []) {
     if (semFundo && slot === "fundo") continue;
@@ -117,7 +131,10 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
     if (ok) {
       // Máscara logo ABAIXO da peça (dentro do mesmo slot: máscara, peça).
       if (item.mascaraPele && corDaPele) camadas.push({ slot: `${slot}-pele`, mascara: item.mascaraPele });
-      camadas.push({ slot, item });
+      // Cabelo pintado: a versão cinza no lugar da colorida (se o cinza
+      // falhar ao baixar, volta a original).
+      if (slot === "cabelo" && corCabelo && !arteQueFalhou.has(item.pintavel)) camadas.push({ slot, item, cinza: item.pintavel });
+      else camadas.push({ slot, item });
     } else if (slot === "pele" && config?.pele) camadas.push({ slot, silhueta: true });
   }
 
@@ -148,6 +165,27 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
                 WebkitMaskImage: `url("${c.mascara}")`,
               }}
             />
+          ) : c.cinza ? (
+            // Cinza x cor: o bloco da cor, recortado pelo próprio cinza
+            // (máscara), MULTIPLICA o cinza — o sombreado fica, a cor entra.
+            // `isolation` no grupo: a multiplicação vale só entre os dois,
+            // sem escurecer o corpo e o fundo que estão embaixo.
+            <span key={c.slot} className="v2-boneco-pintado">
+              <img
+                src={c.cinza}
+                alt=""
+                width={larg}
+                height={alt}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                onError={() => { arteQueFalhou.add(c.cinza); setFalhas((n) => n + 1); }}
+              />
+              <span
+                className="v2-boneco-mascara v2-boneco-tinta"
+                style={{ backgroundColor: corCabelo, maskImage: `url("${c.cinza}")`, WebkitMaskImage: `url("${c.cinza}")` }}
+              />
+            </span>
           ) : (
             <img
               key={c.slot}

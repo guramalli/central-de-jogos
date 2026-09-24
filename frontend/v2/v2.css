@@ -552,7 +552,6 @@ a { color: inherit; text-decoration: none; }
 .v2-sobretitulo { font-size: 12px; font-weight: 900; letter-spacing: 1px; color: var(--verde); text-transform: uppercase; }
 .v2-boas-vindas h1 { margin: 0; font-family: var(--titulo); font-size: 36px; line-height: 1.05; overflow-wrap: anywhere; }
 .v2-boas-vindas p { color: var(--lilas); font-weight: 700; }
-.v2-boas-vindas .v2-botao { margin-top: 8px; min-height: 48px; font-size: 17px; }
 .v2-painel-jogador { display: flex; flex-direction: column; gap: 8px; }
 .v2-painel-item { background: var(--roxo); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; transition: transform .15s; }
 .v2-painel-item:hover { transform: translateY(-2px); }

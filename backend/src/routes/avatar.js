@@ -51,7 +51,7 @@ router.get("/colecao/:userId", requireAuth, async (req, res) => {
 });
 
 // Salva a montagem e/ou a preferência da bolinha. Corpo:
-//   { config?: { slot: idDaPeça | null }, mostrarAvatar?: boolean }
+//   { config?: { slot: idDaPeça | null, corCabelo?: chaveDaPaleta }, mostrarAvatar?: boolean }
 router.put("/", requireAuth, async (req, res) => {
   const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { isGuest: true } });
   const { status, corpo } = await salvarAvatar(req.user.id, req.body, {

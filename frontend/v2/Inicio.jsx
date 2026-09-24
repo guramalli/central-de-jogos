@@ -30,7 +30,6 @@ export default function Inicio({ usuario }) {
   const [online, setOnline] = useState(null);
   const [acroAtivo, setAcroAtivo] = useState(true);
   const [feedback, setFeedback] = useState(false);
-  const [copiado, setCopiado] = useState(false);
   const [meuAvatar, setMeuAvatar] = useState(null); // GET /avatar/meu
 
   useEffect(() => {
@@ -62,14 +61,6 @@ export default function Inicio({ usuario }) {
     .sort((a, b) => (b.points || 0) - (a.points || 0))
     .slice(0, vagasJogos);
 
-  async function convidar() {
-    const texto = `Vem jogar comigo na Educação Gamer! Stop, Quiz e muito mais: ${window.location.origin}/`;
-    try {
-      if (navigator.share && window.matchMedia("(pointer: coarse)").matches) await navigator.share({ text: texto });
-      else { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 2500); }
-    } catch {}
-  }
-
   const jogar = (e, jogo) => { e.preventDefault(); if (PAGINA_PROPRIA[jogo]) irParaPagina(PAGINA_PROPRIA[jogo]); else irParaPagina("jogar", { jogo }); };
 
   return (
@@ -81,7 +72,9 @@ export default function Inicio({ usuario }) {
             <div className="v2-boas-vindas-eu">
               {perfil?.avatar && (
                 <a className="v2-boas-vindas-avatar" href={linkDaPagina("editar-perfil")} onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }} title="Editar meu avatar">
-                  <AvatarBoneco config={perfil.avatar} altura={170} rotulo="Seu avatar" />
+                  {/* Sem o fundo escolhido: o quadrado dele brigava com o cartão. O
+                      fundo aparece no editor, no perfil e no cartão de compartilhar. */}
+                  <AvatarBoneco config={perfil.avatar} altura={170} rotulo="Seu avatar" semFundo />
                 </a>
               )}
               <div>
@@ -90,8 +83,6 @@ export default function Inicio({ usuario }) {
                 {perfil?.visitas > 1 && <p>Essa é sua <b>{perfil.visitas}ª</b> vez no portal.</p>}
               </div>
             </div>
-            <p>Escolha um jogo, suba de patente e dispute a premiação mensal.</p>
-            <button className="v2-botao v2-botao-amarelo" onClick={convidar}>{copiado ? "Link copiado!" : "Convidar amigos"}</button>
             <ProximaPeca meu={meuAvatar} />
           </div>
           {meuAvatar && !meuAvatar.convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meuAvatar.liberados} config={perfil?.avatar || meuAvatar.config} />}

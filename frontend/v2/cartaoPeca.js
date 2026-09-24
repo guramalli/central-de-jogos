@@ -1,4 +1,4 @@
-import { camadasDaMontagem } from "./AvatarBoneco.jsx";
+import { camadasDaMontagem, corDoCabelo } from "./AvatarBoneco.jsx";
 
 // Cartão de "story" (1080×1920) pra compartilhar uma peça nova: o avatar da
 // pessoa já vestindo a peça, o nome dela e o convite pro site. Montado no
@@ -34,6 +34,23 @@ function pintar(mascara, cor, largura, altura) {
   g.globalCompositeOperation = "source-in";
   g.fillStyle = cor;
   g.fillRect(0, 0, largura, altura);
+  return c;
+}
+
+// Cabelo pintado (mesma conta do boneco da tela): o cinza multiplicado pela
+// cor e depois recortado pelo contorno do próprio cinza ("destination-in"),
+// senão o preenchimento da cor vazaria pela tela inteira.
+function pintarCabelo(cinza, cor, largura, altura) {
+  const c = document.createElement("canvas");
+  c.width = largura;
+  c.height = altura;
+  const g = c.getContext("2d");
+  g.drawImage(cinza, 0, 0, largura, altura);
+  g.globalCompositeOperation = "multiply";
+  g.fillStyle = cor;
+  g.fillRect(0, 0, largura, altura);
+  g.globalCompositeOperation = "destination-in";
+  g.drawImage(cinza, 0, 0, largura, altura);
   return c;
 }
 
@@ -77,15 +94,19 @@ export async function montarCartaoPeca({ catalogo, config, item }) {
   // pele: a máscara pintada com a cor da pele vai logo abaixo dela.
   const montagem = { ...config, [item.slot]: item.id };
   const corDaPele = catalogo.porId.get(montagem.pele)?.cor;
+  const corCabelo = corDoCabelo(catalogo, montagem);
   const camadas = camadasDaMontagem(catalogo, montagem);
-  const [imagens, mascaras] = await Promise.all([
+  const [imagens, mascaras, cinzas] = await Promise.all([
     Promise.all(camadas.map((c) => carregar(c.arquivo))),
     Promise.all(camadas.map((c) => (c.mascaraPele && corDaPele ? carregar(c.mascaraPele) : null))),
+    Promise.all(camadas.map((c) => (c.slot === "cabelo" && corCabelo ? carregar(c.pintavel) : null))),
   ]);
   const [ax, ay, aw, ah] = [135, 300, 810, 1080];
   camadas.forEach((_, i) => {
     if (mascaras[i]) ctx.drawImage(pintar(mascaras[i], corDaPele, aw, ah), ax, ay, aw, ah);
-    if (imagens[i]) ctx.drawImage(imagens[i], ax, ay, aw, ah);
+    // Cinza que não carregou: fica o cabelo original.
+    if (cinzas[i]) ctx.drawImage(pintarCabelo(cinzas[i], corCabelo, aw, ah), ax, ay, aw, ah);
+    else if (imagens[i]) ctx.drawImage(imagens[i], ax, ay, aw, ah);
   });
 
   ctx.fillStyle = "#ffffff";

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, CAMADAS, CONFIG_PADRAO, TIPOS_DE_DESBLOQUEIO, catalogoPublico,
-  avatarPadrao, hashDoTexto, TELA,
+  avatarPadrao, hashDoTexto, TELA, CORES_CABELO, corDoCabeloValida, VERSAO_CATALOGO,
 } from "../../src/avatar/catalogo.js";
 import {
   itemLiberado, liberadosPelosDados, dadosNecessarios, carregarDados, patenteDoCatalogo,
@@ -46,13 +46,18 @@ test("catálogo bate com a arte: todo arquivo existe, toda máscara está listad
   for (const i of ITENS) {
     assert.ok(noDisco.has(i.arquivo), `falta a arte ${i.arquivo}`);
     if (i.mascaraPele) assert.ok(noDisco.has(i.mascaraPele), `falta a máscara ${i.mascaraPele}`);
+    if (i.pintavel) assert.ok(noDisco.has(i.pintavel), `falta o cinza ${i.pintavel}`);
     if (i.slot === "pele") assert.match(i.cor || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor`);
   }
   const mascaras = [...noDisco].filter((f) => f.endsWith("-pele-v1.webp"));
   const listadas = new Set(ITENS.filter((i) => i.mascaraPele).map((i) => i.mascaraPele));
   for (const m of mascaras) assert.ok(listadas.has(m), `máscara sem peça no catálogo: ${m}`);
   assert.equal(listadas.size, 26);
-  assert.equal(noDisco.size, 73 + 26, "nenhum arquivo sobrando na pasta");
+  const cinzas = [...noDisco].filter((f) => f.endsWith("-cinza-v1.webp"));
+  const pintaveis = new Set(ITENS.filter((i) => i.pintavel).map((i) => i.pintavel));
+  for (const c of cinzas) assert.ok(pintaveis.has(c), `cinza sem cabelo no catálogo: ${c}`);
+  assert.equal(pintaveis.size, 8);
+  assert.equal(noDisco.size, 73 + 26 + 8, "nenhum arquivo sobrando na pasta");
 });
 
 test("catálogo: toda regra aponta pra algo que existe", () => {
@@ -361,4 +366,81 @@ test("salvarAvatar: visitante não salva nada, nem peça inicial", async () => {
   assert.equal(r.status, 403);
   assert.match(r.corpo.error, /Crie sua conta/);
   assert.equal(deps.gravados.length, 0);
+});
+
+// ---------------- motivo (como a peça foi ganha) ----------------
+
+test("motivo: toda peça tem o texto de como foi ganha, coerente com a regra", () => {
+  for (const i of ITENS) {
+    assert.ok(typeof i.motivo === "string" && i.motivo.length > 10, `${i.id}: sem motivo`);
+    if (i.desbloqueio.tipo === "inicial") assert.match(i.motivo, /^Peça inicial/, i.id);
+    else assert.match(i.motivo, /^Conquistada /, i.id);
+  }
+  assert.equal(ITEM_POR_ID.get("cabelo-anime").motivo, "Conquistada com o título Sábio Otaku (ouro em Anime no Quiz).");
+  assert.equal(ITEM_POR_ID.get("cabelo-moicano").motivo, "Conquistada por jogar 7 dias seguidos.");
+  assert.equal(ITEM_POR_ID.get("cabelo-rabo-rosa").motivo, "Conquistada com 5.000 pontos no Quiz.");
+  assert.match(ITEM_POR_ID.get("roupa-terno").motivo, /patente Cartola de Bronze no Mentira Sincera/);
+  assert.match(ITEM_POR_ID.get("chapeu-coroa").motivo, /Campeão do mês/);
+  assert.ok(catalogoPublico().itens.every((i) => i.motivo), "o motivo vai no catálogo público");
+});
+
+// ---------------- cor do cabelo ----------------
+
+test("cor do cabelo: 8 cabelos pintáveis, moicano e chamas não; paleta no catálogo", () => {
+  assert.equal(ITENS.filter((i) => i.pintavel).length, 8);
+  assert.ok(ITENS.filter((i) => i.pintavel).every((i) => i.slot === "cabelo" && i.pintavel === `/avatar/cabelo/${i.id}-cinza-v1.webp`));
+  assert.equal(ITEM_POR_ID.get("cabelo-moicano").pintavel, undefined);
+  assert.equal(ITEM_POR_ID.get("cabelo-chamas").pintavel, undefined);
+  assert.equal(CORES_CABELO.original, null);
+  for (const [k, v] of Object.entries(CORES_CABELO)) if (k !== "original") assert.match(v, /^#[0-9a-f]{6}$/i, k);
+  const pub = catalogoPublico();
+  assert.equal(pub.versao, VERSAO_CATALOGO);
+  assert.deepEqual(pub.coresCabelo.map((c) => c.chave), Object.keys(CORES_CABELO));
+  assert.ok(pub.coresCabelo.every((c) => c.nome));
+});
+
+test("validarConfig: cor do cabelo precisa ser da paleta; some com cabelo que não se pinta", () => {
+  const lib = new Set([...iniciais(), "cabelo-moicano"]);
+  assert.deepEqual(validarConfig({ pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "ruivo" }, lib), { config: { pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "ruivo" } });
+  // "original" (e null) = sem cor gravada.
+  assert.deepEqual(validarConfig({ pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "original" }, lib), { config: { pele: "pele-clara", cabelo: "cabelo-curto" } });
+  assert.deepEqual(validarConfig({ pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: null }, lib), { config: { pele: "pele-clara", cabelo: "cabelo-curto" } });
+  // Moicano não se pinta; sem cabelo, também não.
+  assert.deepEqual(validarConfig({ pele: "pele-clara", cabelo: "cabelo-moicano", corCabelo: "azul" }, lib), { config: { pele: "pele-clara", cabelo: "cabelo-moicano" } });
+  assert.deepEqual(validarConfig({ pele: "pele-clara", corCabelo: "azul" }, lib), { config: { pele: "pele-clara" } });
+  // Fora da paleta: erro.
+  for (const cor of ["dourado", "#ff0000", 3, "toString", "__proto__", ["azul"]]) {
+    assert.match(validarConfig({ pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: cor }, lib).erro, /Cor de cabelo inválida/, String(cor));
+  }
+});
+
+test("salvarAvatar e configPublica: a cor vai e volta; cor velha de cabelo trocado some", async () => {
+  const deps = depsFalsas();
+  const r = await salvarAvatar("u1", { config: { pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "roxo" } }, deps);
+  assert.equal(r.status, 200);
+  assert.deepEqual(deps.gravados[0].avatarMontado, { pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "roxo" });
+  assert.equal(r.corpo.avatar.corCabelo, "roxo");
+  assert.equal((await salvarAvatar("u1", { config: { pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "dourado" } }, deps)).status, 400);
+  assert.deepEqual(configPublica({ pele: "pele-clara", cabelo: "cabelo-chamas", corCabelo: "azul" }), { pele: "pele-clara", cabelo: "cabelo-chamas" });
+  assert.deepEqual(configPublica({ pele: "pele-clara", cabelo: "cabelo-curto", corCabelo: "sumiu" }), { pele: "pele-clara", cabelo: "cabelo-curto" });
+  assert.equal(avatarDoUsuario({ id: "u9", avatarMontado: { pele: "pele-clara", cabelo: "cabelo-anime", corCabelo: "verde" } }).corCabelo, "verde");
+  assert.equal(corDoCabeloValida("cabelo-anime", "verde"), "verde");
+  assert.equal(corDoCabeloValida("cabelo-moicano", "verde"), null);
+});
+
+test("avatar padrão: cor de cabelo natural, sorteada do id e sempre a mesma", () => {
+  const naturais = new Set(["preto", "castanho", "loiro", "ruivo"]);
+  const vistas = new Set();
+  for (let i = 0; i < 80; i++) {
+    const a = avatarPadrao(`user-${i}`);
+    assert.deepEqual(avatarPadrao(`user-${i}`), a, "mesmo id, mesma cor");
+    if (a.corCabelo) {
+      assert.ok(naturais.has(a.corCabelo), a.corCabelo);
+      assert.ok(ITEM_POR_ID.get(a.cabelo).pintavel);
+    }
+    vistas.add(a.corCabelo || "original");
+    assert.deepEqual(validarConfig(a, new Set(iniciais())), { config: a }, "padrão com cor passa na validação");
+    assert.deepEqual(configPublica(a), a);
+  }
+  assert.ok(vistas.size >= 4, `cores sorteadas: ${[...vistas]}`);
 });
