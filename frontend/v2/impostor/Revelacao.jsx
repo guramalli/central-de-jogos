@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
 import { AvatarImp, Cronometro, SEGREDO_ERA, modoDe, quem } from "./comum.jsx";
 import { tocar } from "./sons.js";
+import Agente from "./Agente.jsx";
 
 const MOTIVO_CANCELADA = {
   impostor_saiu: "O impostor saiu da partida. Ninguém pontua.",
@@ -32,6 +33,17 @@ function ordemDosVotos(contagem) {
   const ordem = [];
   for (let k = 1; k <= max; k++) for (const c of asc) if (c.votos >= k) ordem.push(c.id);
   return ordem;
+}
+
+// O mascote torce pelo impostor: nervoso até o veredito (e de novo na
+// última chance); escapou (inocente/empate) → comemora; descoberto → é
+// pego. No FIM vale o vencedor (acertou a última chance = comemora).
+// Só valores simples entram (o `estado` chega novo a cada aviso do servidor).
+function humorDoAgente(fase, descoberto, vencedor, pronto) {
+  if (!pronto) return "votacao";
+  if (vencedor) return vencedor === "impostor" ? "festa" : vencedor === "tripulantes" ? "pego" : "lobby";
+  if (fase === "ULTIMA_CHANCE") return "votacao";
+  return descoberto ? "pego" : "festa";
 }
 
 function useSequencia(estado, tempo, totalVotos) {
@@ -67,6 +79,10 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
   const impostorId = rev.impostorId;
   const souImpostor = impostorId === estado.euId || carta?.papel === "impostor";
   const pronto = etapa >= VEREDITO;
+  const humorAgente = useMemo(
+    () => humorDoAgente(estado.fase, !!rev.descoberto, fim?.vencedor || null, pronto),
+    [estado.fase, rev.descoberto, fim?.vencedor, pronto],
+  );
 
   // Vitória: toca uma vez, quando o resultado aparece e o meu lado ganhou.
   const tocouVitoria = useRef(false);
@@ -99,6 +115,7 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
 
       <section className="imp-revelacao-palco" aria-live="polite">
         <span className="imp-rotulo imp-verdade">A VERDADE</span>
+        <Agente humor={humorAgente} className="imp-agente-revelacao" />
         <Acusado estado={estado} rev={rev} etapa={etapa} />
         {fim && pronto && <Segredo estado={estado} fim={fim} />}
       </section>

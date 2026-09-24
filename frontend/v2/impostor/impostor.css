@@ -140,6 +140,21 @@
 .imp-progresso { height: 6px; border-radius: 3px; background: var(--imp-borda); overflow: hidden; }
 .imp-progresso > div { height: 100%; background: var(--imp-ambar); }
 
+/* ---------- mascote (agente 3D) ----------
+   O tamanho fica na caixa (reservada enquanto o three.js chega); o canvas
+   ocupa tudo e entra com fade. Decorativo: não pega clique. */
+.imp-agente { position: relative; flex-shrink: 0; pointer-events: none; }
+.imp-agente-palco { position: absolute; inset: 0; }
+.imp-agente-canvas { display: block; width: 100%; height: 100%; opacity: 0; transition: opacity .5s ease-out; }
+.imp-agente-canvas.pronto { opacity: 1; }
+.imp-agente-entrada { width: 172px; height: 215px; margin: -10px 0 -6px; }
+.imp-espera-titulo { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 560px; }
+.imp-agente-lobby { width: clamp(150px, 15vw, 208px); height: clamp(190px, 19vw, 260px); flex-shrink: 1; min-width: 120px; }
+.imp-agente-revelacao { width: 136px; height: 170px; margin: -8px 0 -14px; }
+/* Canto da partida: só existe com margem sobrando (ver Impostor.jsx), fica
+   na lateral esquerda, fora da coluna do jogo, abaixo das sobreposições. */
+.imp-agente-canto { position: fixed; left: 12px; bottom: 16px; z-index: 5; width: 116px; height: 145px; }
+
 /* ---------- cronômetro ---------- */
 .imp-cronometro { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--imp-ambar); flex-shrink: 0; }
 .imp-cronometro.pilula { height: 32px; padding: 0 12px; border-radius: 999px; background: var(--imp-superficie); border: 1px solid var(--imp-borda); font-weight: 800; font-size: 13px; }
@@ -449,6 +464,10 @@
   .imp-espera { flex-direction: column; gap: 22px; min-height: 0; }
   .imp-espera-heroi { gap: 14px; }
   .imp-espera-heroi .imp-sub { font-size: 14px; }
+  .imp-espera-titulo { gap: 8px; }
+  .imp-agente-lobby { width: 124px; height: 155px; min-width: 96px; margin: -8px 0 -12px; }
+  .imp-agente-entrada { width: 128px; height: 160px; margin: -6px 0 -8px; }
+  .imp-agente-revelacao { width: 100px; height: 125px; margin: -6px 0 -10px; }
   .imp-codigo.imp-so-celular { display: flex !important; }
   .imp-codigo-valor { font-size: 26px; letter-spacing: 3px; }
   .imp-modos { display: flex; flex-wrap: wrap; gap: 8px; }

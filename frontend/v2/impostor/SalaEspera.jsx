@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AvatarImp, PontoPiscando } from "./comum.jsx";
+import Agente from "./Agente.jsx";
 
 // Reserva, caso o estado venha sem a lista (servidor antigo): só o Palavra.
 const MODOS_PADRAO = [
@@ -65,7 +66,12 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
           </div>
           <button className="imp-botao-icone" onClick={convidar} aria-label="Copiar link da sala"><IconeCopiar /></button>
         </div>
-        <h1 className="imp-titulo-heroi">O <br className="imp-so-computador" />IMPOSTOR</h1>
+        {/* Título e o mascote lado a lado (no celular também: o título
+            quebra em duas linhas pra caber o boneco). */}
+        <div className="imp-espera-titulo">
+          <h1 className="imp-titulo-heroi">O <br />IMPOSTOR</h1>
+          <Agente humor="lobby" className="imp-agente-lobby" />
+        </div>
         <p className="imp-sub">
           <span className="imp-so-computador">{chamada[0]}</span>
           <span className="imp-so-celular">{chamada[1]}</span>

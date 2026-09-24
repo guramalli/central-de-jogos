@@ -11,6 +11,7 @@ import Votacao from "./impostor/Votacao.jsx";
 import Revelacao from "./impostor/Revelacao.jsx";
 import BotaoSom from "./impostor/BotaoSom.jsx";
 import ChatImpostor from "./impostor/ChatImpostor.jsx";
+import Agente from "./impostor/Agente.jsx";
 import { carregarFontes } from "./impostor/fontes.js";
 import { prepararSons } from "./impostor/sons.js";
 import "./impostor/impostor.css";
@@ -29,6 +30,25 @@ const TELA = {
   LOBBY: "espera", CARTAS: "carta", DICAS: "dicas", RESPOSTAS: "respostas", CONFRONTO: "confronto",
   VOTACAO: "votacao", REVELACAO: "revelacao", ULTIMA_CHANCE: "revelacao", FIM: "revelacao",
 };
+// Mascote no canto durante a partida (humor por fase). Lobby, entrada e
+// revelação têm o boneco dentro da própria tela.
+const HUMOR_NO_CANTO = { CARTAS: "cartas", DICAS: "dicas", RESPOSTAS: "dicas", CONFRONTO: "dicas", VOTACAO: "votacao" };
+// O canto só existe quando sobra margem de verdade ao lado do jogo + chat
+// (1680px de largura máxima): assim ele nunca cobre botão nem empurra nada
+// (a rodada com 12 jogadores continua cabendo sem rolar).
+const COM_MARGEM = "(min-width: 1880px)";
+function useMidia(consulta) {
+  const [bate, setBate] = useState(() => window.matchMedia(consulta).matches);
+  useEffect(() => {
+    const m = window.matchMedia(consulta);
+    const mudou = () => setBate(m.matches);
+    mudou();
+    m.addEventListener("change", mudou);
+    return () => m.removeEventListener("change", mudou);
+  }, [consulta]);
+  return bate;
+}
+
 // Fases com a partida rolando: sair aqui pede confirmação.
 const EM_PARTIDA = new Set(["CARTAS", "DICAS", "RESPOSTAS", "CONFRONTO", "VOTACAO", "REVELACAO", "ULTIMA_CHANCE"]);
 
@@ -178,6 +198,8 @@ export default function Impostor({ usuario, salaDoLink }) {
 
   const props = { estado, carta, tempo, pedir, aoSair: sairDaSala };
   const qual = estado ? TELA[estado.fase] : "entrada";
+  const temMargem = useMidia(COM_MARGEM);
+  const humorNoCanto = temMargem && estado ? HUMOR_NO_CANTO[estado.fase] : null;
   // Tela nova começa do topo (no celular, a rolagem da tela anterior
   // escondia o cabeçalho com a rodada e o cronômetro).
   useEffect(() => { window.scrollTo(0, 0); }, [qual]);
@@ -245,6 +267,9 @@ export default function Impostor({ usuario, salaDoLink }) {
             </div>
             {estado && <ChatImpostor mensagens={chat} estado={estado} pedir={pedir} />}
           </div>
+          {/* Fora da troca de tela: o mesmo boneco segue de CARTAS até a
+              VOTACAO, mudando de humor sem recarregar. */}
+          {humorNoCanto && <Agente humor={humorNoCanto} className="imp-agente-canto" />}
         </main>
       </div>
     </MotionConfig>

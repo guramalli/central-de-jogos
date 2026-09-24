@@ -1,5 +1,6 @@
 import { useState } from "react";
 import FilaNoCard from "../FilaNoCard.jsx";
+import Agente from "./Agente.jsx";
 
 // Antes de estar numa sala: criar uma ou entrar com o código.
 export default function Entrada({ aoCriar, aoEntrar, entrando }) {
@@ -9,6 +10,7 @@ export default function Entrada({ aoCriar, aoEntrar, entrando }) {
       <h1 className="imp-logo-titulo">
         <img src="/impostor-logo.png" alt="O Impostor" className="imp-logo" />
       </h1>
+      <Agente humor="lobby" className="imp-agente-entrada" />
       <p className="imp-sub">Um de vocês não sabe a palavra. Dê dicas, desconfie de todo mundo e vote em quem está blefando.</p>
       {entrando ? (
         <p className="imp-sub">Entrando na sala…</p>
