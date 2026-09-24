@@ -541,10 +541,15 @@ export class TribunalRoom {
     };
     // Sem marcar gênero ("foi condenado") — o réu pode ser qualquer pessoa.
     const reuNick = this.jogadores.get(this.papeis.acusado)?.nickname;
-    this.avisoChat(veredito === "culpado"
+    const aviso = veredito === "culpado"
       ? `⚖️ Veredito: CULPADO (${culpado} a ${inocente}) — ${reuNick}.`
       : empate ? `🕊️ Veredito: INOCENTE por falta de provas (empate) — ${reuNick}.`
-        : `🕊️ Veredito: INOCENTE (${inocente} a ${culpado}) — ${reuNick}.`);
+        : `🕊️ Veredito: INOCENTE (${inocente} a ${culpado}) — ${reuNick}.`;
+    // A tela conta os votos com suspense e só revela aos 3,2s (REVELAR em
+    // frontend/v2/tribunal/tempos.js): o aviso no chat espera a revelação,
+    // senão entregaria o resultado no meio da contagem.
+    const rodadaDoAviso = this.rodada;
+    setTimeout(() => { if (this.rodada === rodadaDoAviso) this.avisoChat(aviso); }, 3500).unref?.();
     this.fase = "veredito";
     this.tempo = this.tempoTotal = SEG_VEREDITO;
     this.transmitir();
