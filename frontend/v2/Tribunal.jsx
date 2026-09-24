@@ -336,7 +336,8 @@ function Retrato({ papel, tamanho = 40, className = "" }) {
 }
 
 // Personagem de um papel: o AVATAR de quem joga (busto, ou corpo inteiro com
-// `altura`), com o retrato do papel como selo no canto. Sem avatar (bot, ou
+// `altura`), sem selo do papel: o nome e o papel já aparecem escritos junto
+// (e o selo miúdo no canto não se via). Sem avatar (bot, ou
 // perfil que não carregou): o retrato do papel, como antes. O juiz 3D não
 // passa por aqui.
 function Personagem({ userId, papel, tamanho = 48, altura = null, className = "" }) {
@@ -347,7 +348,6 @@ function Personagem({ userId, papel, tamanho = 48, altura = null, className = ""
       {altura
         ? <AvatarBoneco config={config} altura={altura} semFundo />
         : <AvatarBoneco config={config} busto tamanho={tamanho} preencher />}
-      <Retrato papel={papel} tamanho={altura ? 40 : 22} className="v2-tribunal-selo" />
     </span>
   );
 }
