@@ -142,7 +142,7 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 420, damping: 24 }}
               >
-                <AvatarImp nome={j.nickname} cor={j.cor} tamanho={56} />
+                <AvatarImp id={j.id} nome={j.nickname} cor={j.cor} tamanho={56} />
                 <span className="imp-jogador-nome">{j.nickname}{j.id === estado.euId ? " (você)" : ""}</span>
                 <span className={`imp-tag ${j.bot ? "bot" : j.anfitriao ? "anfitriao" : j.conectado ? "pronto" : "fora"}`}>
                   {j.bot ? "BOT" : j.anfitriao ? "ANFITRIÃO" : j.conectado ? "PRONTO" : "ENTRANDO"}

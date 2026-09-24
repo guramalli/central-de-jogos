@@ -186,7 +186,7 @@ function Ordem({ estado, textos }) {
           const antigas = estado.dicas.filter((d) => d.jogadorId === id && d.rodada < estado.rodada);
           return (
             <li key={id} className={`imp-ordem-item ${vez ? "vez" : ""} ${deu ? "feito" : ""}`} style={{ "--imp-cor-jogador": p.cor }}>
-              <AvatarImp nome={p.nickname} cor={p.cor} tamanho={muitos ? 32 : 40} />
+              <AvatarImp id={id} nome={p.nickname} cor={p.cor} tamanho={muitos ? 32 : 40} />
               <span className="imp-ordem-texto">
                 <b>{p.nickname}{eu ? " (você)" : ""}</b>
                 <span className="imp-ordem-linha">
@@ -350,7 +350,7 @@ function ListaDaRodada({ estado }) {
             const ultima = destaque?.rodada === d.rodada && destaque?.jogadorId === d.jogadorId;
             return (
               <motion.li key={`${d.rodada}-${d.jogadorId}`} className={`imp-dica ${ultima ? "ultima" : ""}`} style={{ "--imp-cor-jogador": p.cor }} {...ENTRADA_DICA}>
-                <AvatarImp nome={p.nickname} cor={p.cor} tamanho={24} />
+                <AvatarImp id={d.jogadorId} nome={p.nickname} cor={p.cor} tamanho={24} />
                 <span className="imp-dica-quem">
                   <span className="imp-dica-nome">{p.nickname}{d.jogadorId === estado.euId ? " (você)" : ""}</span>
                   {ultima && <span className="imp-dica-selo">ÚLTIMA DICA</span>}

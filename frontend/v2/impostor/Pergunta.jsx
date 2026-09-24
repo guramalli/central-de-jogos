@@ -174,7 +174,7 @@ export function CartaoResposta({ estado, resposta, indice = 0 }) {
       transition={{ delay: 0.15 + indice * 0.08, duration: 0.5, ease: CURVA }}
     >
       <span className="imp-resposta-quem">
-        <AvatarImp nome={p.nickname} cor={p.cor} tamanho={28} />
+        <AvatarImp id={resposta.jogadorId} nome={p.nickname} cor={p.cor} tamanho={28} />
         <span className="imp-resposta-nome">{p.nickname}{eu ? " (você)" : ""}</span>
       </span>
       <b className={`imp-resposta-texto ${resposta.texto ? "" : "imp-branco"}`}>{resposta.texto || "(em branco)"}</b>
