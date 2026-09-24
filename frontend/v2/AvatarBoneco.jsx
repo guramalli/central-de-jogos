@@ -1,58 +1,100 @@
 import { useEffect, useState } from "react";
-import { useCatalogoAvatar } from "./avatarCatalogo.js";
+import { useCatalogoAvatar, ENQUADRAMENTO } from "./avatarCatalogo.js";
 import { buscarPerfil, perfilEmCache } from "./perfil.js";
 import "./avatar.css";
 
 // Avatar montado: empilha as camadas (todas do mesmo tamanho de tela,
-// 900×1200) na ordem do catálogo. Dois jeitos:
+// 900×1200) na ordem do catálogo. Três jeitos:
 //   - corpo inteiro: <AvatarBoneco config={...} altura={240} />
-//   - busto (cabeça e ombros, pras bolinhas): <AvatarBoneco config={...} busto tamanho={40} />
-//     O busto é o MESMO empilhamento, ampliado e deslocado — o recorte vem
-//     do catálogo (tela.busto), não há arte separada.
-// `recorte` ({ x, y, lado } em pixels da tela) troca o enquadramento do
-// busto — o editor usa pra mostrar cada peça de perto.
+//   - cabeça (bolinhas pequenas: chat, listas): <AvatarBoneco config={...} busto="cabeca" tamanho={32} />
+//   - busto (bolinhas grandes: pódio, cartão do nick): <AvatarBoneco config={...} busto tamanho={76} />
+//   Cabeça e busto são o MESMO empilhamento, ampliado e deslocado — os
+//   recortes vêm do catálogo (tela.cabeca / tela.busto), sem arte separada.
+// `recorte` ({ x, y, lado } em pixels da tela) troca o enquadramento — o
+// editor usa pra mostrar cada peça de perto.
 //
 // Arte que falta (ainda não desenhada, ou falhou ao baixar) é só pulada; se
 // faltar o corpo, entra uma silhueta tracejada no lugar dele.
 
 // Usado só enquanto o catálogo não chegou (pra caixa já nascer do tamanho
 // certo, sem a página pular).
-const TELA_PADRAO = { largura: 900, altura: 1200, busto: { x: 225, y: 70, lado: 450 } };
+const TELA_PADRAO = {
+  largura: 900,
+  altura: 1200,
+  cabeca: { x: 250, y: 190, lado: 400 },
+  busto: { x: 200, y: 170, lado: 500 },
+};
 
 // Arquivos que já deram erro nesta aba: os outros bonecos nem tentam de novo
 // (numa lista com 30 jogadores, seriam 30 pedidos pro mesmo arquivo que falta).
 const arteQueFalhou = new Set();
 
-// Regra das bolinhas, num lugar só (Avatar da v2 e AvatarImp do Impostor):
-// nas pequenas (chat, listas) vale a escolha da pessoa (`mostrarAvatar`);
-// nos lugares grandes (`sempre`: pódio, perfil, cartão do nick) o avatar
-// aparece sempre que existir. Sem avatar montado: null (fica a foto/iniciais).
-export function montagemNaBolinha(perfil, sempre = false) {
-  return perfil?.avatar?.pele && (sempre || perfil.mostrarAvatar) ? perfil.avatar : null;
+// Regra das bolinhas, num lugar só (Avatar da v2, AvatarImp do Impostor,
+// Tribunal): o perfil sempre traz um avatar (o montado ou o padrão sorteado
+// do id). Ele aparece:
+//   - nos lugares grandes (`sempre`: pódio, perfil, cartão do nick);
+//   - nas bolinhas de quem escolheu "Avatar";
+//   - nas bolinhas de quem NÃO tem foto (no lugar das iniciais).
+// Quem tem foto e escolheu "Foto" continua com a foto nas bolinhas.
+// null = mostra a foto (ou as iniciais, se nem perfil houver — bots).
+export function montagemNaBolinha(perfil, sempre = false, temFoto = !!perfil?.avatarUrl) {
+  if (!perfil?.avatar?.pele) return null;
+  return sempre || perfil.mostrarAvatar || !temFoto ? perfil.avatar : null;
 }
 
-// A mesma regra pra quem só tem o id (usa o cache de perfis da v2, então não
-// custa busca extra onde o Avatar/hover já pediram o perfil).
-export function useBonecoNaBolinha(userId, sempre = false) {
+// Perfil do jogador pelo cache da v2 (não custa busca extra onde o
+// Avatar/hover já pediram o mesmo perfil).
+function usePerfil(userId) {
   const [perfil, setPerfil] = useState(() => perfilEmCache(userId));
   useEffect(() => {
     let vivo = true;
     buscarPerfil(userId).then((p) => vivo && p && setPerfil(p));
     return () => { vivo = false; };
   }, [userId]);
-  return montagemNaBolinha(perfil, sempre);
+  return perfil;
 }
 
-export default function AvatarBoneco({ config, altura = 240, busto = false, tamanho = 40, preencher = false, recorte, className = "", rotulo }) {
+// A regra das bolinhas pra quem só tem o id.
+export function useBonecoNaBolinha(userId, sempre = false) {
+  return montagemNaBolinha(usePerfil(userId), sempre);
+}
+
+// Corpo inteiro de um jogador pelo id (pódios de sala, Tribunal). Sem
+// perfil (bot, falha de rede): mostra `reserva`.
+// `semFundo`: no meio de uma cena (pódio de sala, Tribunal) o retângulo do
+// fundo escolhido brigaria com o cenário — só o personagem aparece.
+export function BonecoDoJogador({ userId, altura = 120, reserva = null, className = "", rotulo, semFundo = false }) {
+  const config = useBonecoNaBolinha(userId, true);
+  return config ? <AvatarBoneco config={config} altura={altura} className={className} rotulo={rotulo} semFundo={semFundo} /> : reserva;
+}
+
+// Miniatura redonda de UMA peça (editor, coleção do perfil, aviso de peça
+// nova), no enquadramento da parte do corpo dela.
+export function MiniaturaPeca({ item, tamanho = 64 }) {
+  return <AvatarBoneco config={{ [item.slot]: item.id }} busto tamanho={tamanho} recorte={ENQUADRAMENTO[item.slot]} />;
+}
+
+// Lista das camadas (na ordem de desenho) de uma montagem — o cartão de
+// compartilhar usa pra desenhar no canvas.
+export function camadasDaMontagem(catalogo, config) {
+  const lista = [];
+  for (const slot of catalogo?.camadas || []) {
+    const item = catalogo.porId.get(config?.[slot]);
+    if (item && item.slot === slot) lista.push(item);
+  }
+  return lista;
+}
+
+export default function AvatarBoneco({ config, altura = 240, busto = false, tamanho = 40, preencher = false, recorte, className = "", rotulo, semFundo = false }) {
   const catalogo = useCatalogoAvatar();
   const [, setFalhas] = useState(0);
-  const tela = catalogo?.tela || TELA_PADRAO;
+  const tela = { ...TELA_PADRAO, ...(catalogo?.tela || {}) };
 
   let caixa, palco;
   if (busto) {
     // Em PORCENTAGEM da caixa (que é quadrada): várias telas forçam o
     // tamanho da bolinha no CSS (!important), e o recorte acompanha.
-    const r = recorte || tela.busto;
+    const r = recorte || (busto === "cabeca" ? tela.cabeca : tela.busto);
     const pct = (v) => `${(v / r.lado) * 100}%`;
     const esc = tamanho / r.lado;
     caixa = preencher ? { width: "100%", height: "100%" } : { width: tamanho, height: tamanho };
@@ -66,6 +108,7 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
 
   const camadas = [];
   for (const slot of catalogo?.camadas || []) {
+    if (semFundo && slot === "fundo") continue;
     const item = catalogo.porId.get(config?.[slot]);
     const ok = item && item.slot === slot && !arteQueFalhou.has(item.arquivo);
     if (ok) camadas.push({ slot, item });
@@ -106,15 +149,16 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
   );
 }
 
-// Corpo provisório (sem arte): cabeçona chibi + corpo, em tracejado discreto.
-// Mesmas coordenadas da tela (900×1200), então o busto recorta igual.
+// Corpo provisório (sem arte): cabeçona chibi + corpo, em tracejado discreto,
+// embaixo e centralizado como a arte final. Mesmas coordenadas da tela
+// (900×1200), então cabeça e busto recortam igual.
 function Silhueta() {
   return (
     <svg className="v2-boneco-silhueta" viewBox="0 0 900 1200" preserveAspectRatio="none" aria-hidden="true">
-      <circle cx="450" cy="330" r="210" />
-      <rect x="300" y="560" width="300" height="360" rx="90" />
-      <rect x="320" y="900" width="110" height="230" rx="50" />
-      <rect x="470" y="900" width="110" height="230" rx="50" />
+      <circle cx="450" cy="400" r="190" />
+      <rect x="310" y="600" width="280" height="340" rx="90" />
+      <rect x="330" y="920" width="105" height="240" rx="50" />
+      <rect x="465" y="920" width="105" height="240" rx="50" />
     </svg>
   );
 }

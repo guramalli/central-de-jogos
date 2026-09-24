@@ -491,6 +491,10 @@ model CampeaoMensal {
   user      User     @relation(fields: [userId], references: [id])
   nickname  String   // guardado junto: se o nick mudar, o troféu registra o da época
   points    Int
+  // Avatar que o campeão vestia no fechamento (slot -> id da peça), pro Hall
+  // da Fama mostrar o boneco DAQUELE mês. null nos meses fechados antes do
+  // avatar existir (a tela usa o avatar atual).
+  avatarNoMes Json?
   createdAt DateTime @default(now())
 
   // Um campeão por mês/jogo. Impede gravar dois por engano.

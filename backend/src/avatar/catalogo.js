@@ -1,13 +1,16 @@
+import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../game/titulosConfig.js";
+
 // ===== CATÁLOGO DO AVATAR (boneco chibi em camadas) =====
 //
 // Cada peça é um PNG/WebP transparente do MESMO tamanho de tela (900×1200,
-// retrato, personagem de corpo inteiro centralizado). Por isso montar o
-// boneco é só empilhar as camadas na ordem de CAMADAS — nada de posicionar
-// peça por peça.
+// retrato, personagem de corpo inteiro centralizado embaixo, com folga em
+// cima). Por isso montar o boneco é só empilhar as camadas na ordem de
+// CAMADAS — nada de posicionar peça por peça.
 //
 // TUDO É GRÁTIS: nenhuma peça é vendida. Algumas vêm liberadas pra todo
-// mundo ("inicial"); as outras se ganham jogando (ver os tipos de desbloqueio abaixo e
-// src/avatar/desbloqueio.js, que confere cada regra contra os dados reais).
+// mundo ("inicial"); as outras se ganham jogando (ver os tipos de desbloqueio
+// abaixo e src/avatar/desbloqueio.js, que confere cada regra contra os dados
+// reais).
 //
 // COMO ACRESCENTAR UMA PEÇA:
 //   1. salvar a arte em frontend/public/avatar/<slot>/<id>-v1.webp;
@@ -19,17 +22,23 @@
 //
 // Enquanto a arte não existe, o frontend pula a camada que falta (e desenha
 // uma silhueta tracejada se faltar o corpo) — o sistema funciona sem arte.
+//
+// Este arquivo não fala com o banco (só lê a config dos títulos, que também
+// é pura): os testes e o script de fechamento do mês importam ele à vontade.
 
 // Sobe a cada mudança em LISTA: o frontend usa pra invalidar o cache dele.
-export const VERSAO_CATALOGO = 1;
+export const VERSAO_CATALOGO = 2;
 
-// Tamanho da tela de todas as camadas, e o recorte do "busto" (cabeça e
-// ombros) usado nas bolinhas pequenas. O recorte mora aqui, e não no CSS,
-// pra quem desenha a arte poder ajustá-lo junto com as peças.
+// Tamanho da tela de todas as camadas e os dois recortes usados fora do
+// corpo inteiro (em pixels da tela):
+//   cabeca — só a cabeça, pras bolinhas pequenas (chat, listas: 28–40px);
+//   busto  — cabeça e ombros, pras bolinhas grandes (pódio, cartão do nick).
+// Moram aqui, e não no CSS, pra serem ajustados junto com a arte.
 export const TELA = {
   largura: 900,
   altura: 1200,
-  busto: { x: 225, y: 70, lado: 450 },
+  cabeca: { x: 250, y: 190, lado: 400 },
+  busto: { x: 200, y: 170, lado: 500 },
 };
 
 // Slots que a pessoa escolhe. `pele` é o corpo-base (com o rosto padrão) e é
@@ -53,45 +62,192 @@ export const NOMES_DOS_SLOTS = SLOTS.map((s) => s.slot);
 export const CAMADAS = ["fundo", "costas", "pele", "parteDeBaixo", "roupa", "pescoco", "cabelo", "rosto", "chapeu", "mao"];
 
 // Tipos de desbloqueio aceitos (conferidos em desbloqueio.js):
-//   { tipo: "inicial" }                                   todo mundo
-//   { tipo: "titulo", nome: "Mestre de Games" }           título conquistado (nome exato)
-//   { tipo: "titulo", comecaCom: "Campeão Stop " }        qualquer título com esse começo
+//   { tipo: "inicial" }                                   todo mundo (menos visitante)
+//   { tipo: "titulo", tema: "anime", nivel: "ouro" }      título do Quiz daquele tema/nível
+//   { tipo: "titulo", nome: "Lenda do Educação Gamer" }   título pelo nome exato
+//   { tipo: "titulo", comecaCom: "Campeão " }             qualquer título com esse começo
 //   { tipo: "patente", jogo: "quiz", patente: "calouro" } patente alcançada em ALGUM mês
 //   { tipo: "sequencia", dias: 30 }                       recorde de dias seguidos jogando
 //   { tipo: "pontos", jogo: "stop", min: 50000 }          pontos vitalícios no jogo
-// jogo: "stop" | "quiz" | "acromania" | "mentira" (pontos também aceita "impostor").
+//   { tipo: "pontos", jogo: "total", min: 25000 }         pontos vitalícios somando todos os jogos
+// jogo (patente): "stop" | "quiz" | "acromania" | "mentira".
 export const TIPOS_DE_DESBLOQUEIO = ["inicial", "titulo", "patente", "sequencia", "pontos"];
 
+// Nível dos títulos do Quiz como aparece pra pessoa.
+export const NOME_DO_NIVEL = { bronze: "bronze", prata: "prata", ouro: "ouro" };
+const INDICE_DO_NIVEL = { bronze: 0, prata: 1, ouro: 2 };
+
 const arte = (slot, id) => `/avatar/${slot}/${id}-v1.webp`;
+const milhar = (n) => n.toLocaleString("pt-BR");
 
-// PEÇAS PROVISÓRIAS: cobrem cada slot e cada tipo de desbloqueio, pra testar
-// o sistema de ponta a ponta. A lista definitiva (~60 peças) entra junto
-// com a arte.
-const LISTA = [
-  // Corpo-base em tons de pele — todos iniciais.
-  { id: "pele-1", slot: "pele", nome: "Pele 1", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
-  { id: "pele-2", slot: "pele", nome: "Pele 2", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
-  { id: "pele-3", slot: "pele", nome: "Pele 3", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
-  { id: "pele-4", slot: "pele", nome: "Pele 4", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
+// Atalhos pra escrever a lista abaixo sem repetir objeto.
+const inicial = { tipo: "inicial" };
+const quiz = (tema, nivel) => ({ tipo: "titulo", tema, nivel });
+const dias = (n) => ({ tipo: "sequencia", dias: n });
+const pontos = (jogo, min) => ({ tipo: "pontos", jogo, min });
+const patente = (jogo, key) => ({ tipo: "patente", jogo, patente: key });
+const campeao = { tipo: "titulo", comecaCom: "Campeão " };
+const lendario = { tipo: "titulo", nome: TITULO_LENDARIO.nome };
 
-  { id: "cabelo-curto", slot: "cabelo", nome: "Cabelo curto", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
-  { id: "roupa-camiseta", slot: "roupa", nome: "Camiseta", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
-  { id: "parteDeBaixo-bermuda", slot: "parteDeBaixo", nome: "Bermuda", desbloqueio: { tipo: "inicial" }, dica: "Liberado pra todo mundo." },
+const NOME_DO_JOGO = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", mentira: "Mentira Sincera", impostor: "Impostor", total: "todos os jogos" };
 
-  { id: "chapeu-capelo", slot: "chapeu", nome: "Capelo de formatura", desbloqueio: { tipo: "patente", jogo: "quiz", patente: "calouro" }, dica: "Chegue à patente Calouro no Quiz em algum mês." },
-  { id: "fundo-arena", slot: "fundo", nome: "Arena do Stop", desbloqueio: { tipo: "patente", jogo: "stop", patente: "trofeu_bronze" }, dica: "Chegue ao Troféu de Bronze no Stop em algum mês." },
-  { id: "rosto-oculos-gamer", slot: "rosto", nome: "Óculos gamer", desbloqueio: { tipo: "titulo", nome: "Conhecedor de Games" }, dica: "Conquiste o título Conhecedor de Games no Quiz." },
-  { id: "pescoco-medalha-campeao", slot: "pescoco", nome: "Medalha de campeão", desbloqueio: { tipo: "titulo", comecaCom: "Campeão " }, dica: "Seja campeão do ranking mensal (Stop ou Quiz)." },
-  { id: "costas-capa-fogo", slot: "costas", nome: "Capa de fogo", desbloqueio: { tipo: "sequencia", dias: 30 }, dica: "Jogue 30 dias seguidos." },
-  { id: "mao-controle", slot: "mao", nome: "Controle", desbloqueio: { tipo: "pontos", jogo: "stop", min: 50000 }, dica: "Some 50.000 pontos no Stop (desde sempre)." },
+// Dica gerada da regra, pra ficar sempre coerente com ela. Peças de patente
+// escrevem a dica à mão (o nome da patente mora nas tabelas de rank, que
+// falam com o banco — este arquivo não importa elas).
+export function dicaDaRegra(d) {
+  switch (d.tipo) {
+    case "inicial":
+      return "Liberada pra todo mundo.";
+    case "titulo":
+      if (d.tema) {
+        const min = QUIZ_NIVEIS[INDICE_DO_NIVEL[d.nivel]]?.min || 0;
+        return `Conquiste o título de ${NOME_DO_NIVEL[d.nivel]} em ${QUIZ_NOMES[d.tema]} no Quiz: "${nomeDoTituloQuiz(d.tema, d.nivel)}" (${milhar(min)} acertos no tema).`;
+      }
+      if (d.nome === TITULO_LENDARIO.nome) return `Conquiste o título lendário "${TITULO_LENDARIO.nome}" (todos os títulos do portal).`;
+      if (d.comecaCom === "Campeão ") return "Seja campeão do ranking mensal do Stop ou do Quiz.";
+      return `Conquiste o título "${d.nome || d.comecaCom}".`;
+    case "sequencia":
+      return `Jogue ${d.dias} dias seguidos.`;
+    case "pontos":
+      return d.jogo === "total"
+        ? `Some ${milhar(d.min)} pontos, juntando todos os jogos (desde sempre).`
+        : `Some ${milhar(d.min)} pontos no ${NOME_DO_JOGO[d.jogo] || d.jogo} (desde sempre).`;
+    default:
+      return "";
+  }
+}
+
+// ===== AS 73 PEÇAS =====
+// [slot, id, nome, desbloqueio, dica opcional]
+const LISTA_CRUA = [
+  // Pele (corpo-base com o rosto padrão) — todas iniciais.
+  ["pele", "pele-clara", "Pele clara", inicial],
+  ["pele", "pele-media", "Pele média", inicial],
+  ["pele", "pele-morena", "Pele morena", inicial],
+  ["pele", "pele-negra", "Pele negra", inicial],
+  ["pele", "pele-retinta", "Pele retinta", inicial],
+
+  ["cabelo", "cabelo-curto", "Cabelo curto", inicial],
+  ["cabelo", "cabelo-cacheado", "Cacheado", inicial],
+  ["cabelo", "cabelo-liso-longo", "Liso longo", inicial],
+  ["cabelo", "cabelo-coque", "Coque", inicial],
+  ["cabelo", "cabelo-black-power", "Black power", inicial],
+  ["cabelo", "cabelo-moicano", "Moicano colorido", dias(7)],
+  ["cabelo", "cabelo-anime", "Espetado de anime", quiz("anime", "ouro")],
+  ["cabelo", "cabelo-rabo-rosa", "Rabo de cavalo rosa", pontos("quiz", 5000)],
+  ["cabelo", "cabelo-topete", "Topete de roqueiro", quiz("rock", "ouro")],
+  ["cabelo", "cabelo-chamas", "Cabelo em chamas", lendario],
+
+  ["roupa", "roupa-camiseta", "Camiseta", inicial],
+  ["roupa", "roupa-moletom", "Moletom", inicial],
+  ["roupa", "roupa-xadrez", "Camisa xadrez", inicial],
+  ["roupa", "roupa-regata", "Regata", inicial],
+  ["roupa", "roupa-futebol", "Camisa de futebol", quiz("futebol", "ouro")],
+  ["roupa", "roupa-piloto", "Macacão de piloto", quiz("automobilismo", "ouro")],
+  ["roupa", "roupa-jaleco", "Jaleco", quiz("ciencias", "ouro")],
+  ["roupa", "roupa-beca", "Beca de formatura", quiz("terceirao", "ouro")],
+  ["roupa", "roupa-couro", "Jaqueta de couro", quiz("rock", "prata")],
+  ["roupa", "roupa-banda", "Camisa de banda", quiz("musica", "ouro")],
+  // Patente do meio da escada do Mentira (6ª de 12): Cartola de Bronze, 28.000 pts num mês.
+  ["roupa", "roupa-terno", "Terno de advogado", patente("mentira", "cartola_bronze"), "Chegue à patente Cartola de Bronze no Mentira Sincera (28.000 pontos num mês)."],
+  ["roupa", "roupa-manto-impostor", "Manto do impostor", dias(21)],
+
+  ["parteDeBaixo", "baixo-shorts", "Shorts", inicial],
+  ["parteDeBaixo", "baixo-jeans", "Calça jeans", inicial],
+  ["parteDeBaixo", "baixo-saia", "Saia", inicial],
+  ["parteDeBaixo", "baixo-moletom", "Calça de moletom", inicial],
+  ["parteDeBaixo", "baixo-praia", "Bermuda de praia", dias(14)],
+  ["parteDeBaixo", "baixo-camuflada", "Calça camuflada", pontos("stop", 10000)],
+
+  ["chapeu", "chapeu-bone", "Boné", inicial],
+  ["chapeu", "chapeu-gorro", "Gorro", inicial],
+  ["chapeu", "chapeu-palha", "Chapéu de palha", dias(3)],
+  ["chapeu", "chapeu-capacete", "Capacete de piloto", quiz("automobilismo", "prata")],
+  ["chapeu", "chapeu-capelo", "Capelo", quiz("terceirao", "prata")],
+  ["chapeu", "chapeu-viking", "Elmo viking", quiz("mitologia", "ouro")],
+  ["chapeu", "chapeu-explorador", "Chapéu de explorador", quiz("historia", "ouro")],
+  ["chapeu", "chapeu-headset", "Headset gamer", quiz("games", "ouro")],
+  ["chapeu", "chapeu-cartola", "Cartola", quiz("cinema", "ouro")],
+  ["chapeu", "chapeu-coroa", "Coroa", campeao],
+
+  ["rosto", "rosto-redondos", "Óculos redondos", inicial],
+  ["rosto", "rosto-escuros", "Óculos escuros", inicial],
+  ["rosto", "rosto-pintura", "Pintura verde e amarela", quiz("futebol", "bronze")],
+  ["rosto", "rosto-nerd", "Óculos de nerd", quiz("ciencias", "prata")],
+  ["rosto", "rosto-heroi", "Máscara de herói", quiz("series", "ouro")],
+  ["rosto", "rosto-monoculo", "Monóculo", quiz("letras", "ouro")],
+
+  ["pescoco", "pescoco-cachecol", "Cachecol", inicial],
+  ["pescoco", "pescoco-apito", "Apito de juiz", quiz("esportes", "ouro")],
+  ["pescoco", "pescoco-gravata", "Gravata borboleta", quiz("novelas", "ouro")],
+  ["pescoco", "pescoco-havaiano", "Colar havaiano", quiz("geografia", "ouro")],
+  ["pescoco", "pescoco-medalha", "Medalha de ouro", pontos("total", 25000)],
+
+  ["costas", "costas-mochila", "Mochila", inicial],
+  ["costas", "costas-capa", "Capa de herói", dias(30)],
+  // Patentes máximas. As do Quiz e do Stop são EXCLUSIVAS (só o 1º do mês):
+  // a peça exige também o troféu de campeão daquele mês.
+  ["costas", "costas-anjo", "Asas de anjo", patente("quiz", "enciclopedia"), "Chegue à patente máxima do Quiz, Enciclopédia (só o 1º do mês a leva)."],
+  ["costas", "costas-morcego", "Asas de morcego", patente("stop", "coroa_imperial_ouro"), "Chegue à patente máxima do Stop, Coroa Imperial de Ouro (só o 1º do mês a leva)."],
+  ["costas", "costas-jetpack", "Jetpack", patente("acromania", "coroa_ouro"), "Chegue à patente máxima do Acromania, Coroa de Ouro (160.000 pontos num mês)."],
+
+  ["mao", "mao-controle", "Controle", inicial],
+  ["mao", "mao-livro", "Livro", inicial],
+  ["mao", "mao-bola", "Bola de futebol", quiz("futebol", "prata")],
+  ["mao", "mao-guitarra", "Guitarra", quiz("rock", "ouro")],
+  ["mao", "mao-microfone", "Microfone", quiz("mpb", "ouro")],
+  ["mao", "mao-martelo", "Martelo de juiz", quiz("direito", "prata")],
+  ["mao", "mao-lupa", "Lupa de detetive", patente("mentira", "mascara_ouro"), "Chegue à patente máxima do Mentira Sincera, Máscara de Ouro (150.000 pontos num mês)."],
+  ["mao", "mao-trofeu", "Troféu", campeao],
+
+  ["fundo", "fundo-roxo", "Roxo", inicial],
+  ["fundo", "fundo-quarto", "Quarto gamer", inicial],
+  ["fundo", "fundo-estadio", "Estádio", quiz("esportes", "ouro")],
+  ["fundo", "fundo-palco", "Palco de show", quiz("musica", "ouro")],
+  ["fundo", "fundo-tribunal", "Tribunal", quiz("direito", "ouro")],
+  ["fundo", "fundo-galaxia", "Galáxia", dias(60)],
 ];
 
-// `arquivo` é opcional na lista: sem ele, segue a convenção /avatar/<slot>/<id>-v1.webp.
-export const ITENS = LISTA.map((i) => ({ ...i, arquivo: i.arquivo || arte(i.slot, i.id) }));
+export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica]) => {
+  // Título do Quiz por tema/nível: guarda também o NOME do título (é por ele
+  // que a lista de desbloqueados é conferida).
+  const desbloqueio = regra.tipo === "titulo" && regra.tema ? { ...regra, nome: nomeDoTituloQuiz(regra.tema, regra.nivel) } : regra;
+  return { id, slot, nome, arquivo: arte(slot, id), desbloqueio, dica: dica || dicaDaRegra(desbloqueio) };
+});
 export const ITEM_POR_ID = new Map(ITENS.map((i) => [i.id, i]));
 
-// Montagem de quem nunca abriu o editor (só o corpo).
-export const CONFIG_PADRAO = { pele: "pele-1" };
+// ===== Avatar padrão =====
+//
+// Quem nunca montou um avatar (e visitante) ganha um boneco sorteado a
+// partir do próprio id — sempre o MESMO pra mesma pessoa, sem gravar nada no
+// banco. Só peças iniciais, e fundo roxo (o da marca), pra ficar discreto.
+const PADRAO_FUNDO = "fundo-roxo";
+const SLOTS_SORTEADOS = ["pele", "cabelo", "roupa", "parteDeBaixo"];
+
+// FNV-1a de 32 bits: simples, rápido e igual em qualquer máquina.
+export function hashDoTexto(texto) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texto.length; i++) {
+    h ^= texto.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+export function avatarPadrao(userId) {
+  const config = {};
+  for (const slot of SLOTS_SORTEADOS) {
+    const opcoes = ITENS.filter((i) => i.slot === slot && i.desbloqueio.tipo === "inicial");
+    // Um sorteio por slot (o slot entra no hash): senão pele e cabelo
+    // andariam juntos e sairiam sempre as mesmas combinações.
+    config[slot] = opcoes[hashDoTexto(`${userId}:${slot}`) % opcoes.length].id;
+  }
+  config.fundo = PADRAO_FUNDO;
+  return config;
+}
+
+// Montagem da tela de "começar do zero" (o editor parte do padrão da pessoa).
+export const CONFIG_PADRAO = { pele: "pele-clara" };
 
 // O que vai pro navegador (GET /api/avatar/catalogo). O `desbloqueio` vai
 // junto, sem nada sensível: serve pra tela explicar a regra.

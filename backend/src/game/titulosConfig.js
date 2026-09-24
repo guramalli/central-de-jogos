@@ -432,6 +432,17 @@ export function nomesDeTitulosDesbloqueados({ statsQuiz = [], statsStop = [], re
   return nomes;
 }
 
+// Nome do título do Quiz de um tema num nível ("bronze" | "prata" | "ouro"),
+// ou null se o tema/nível não existir. Usado pelo catálogo do avatar, que
+// descreve as peças por tema+nível em vez de repetir os nomes.
+export function nomeDoTituloQuiz(tema, nivel) {
+  const i = NIVEL_SLUG.indexOf(nivel);
+  const nomeTema = QUIZ_NOMES[tema];
+  if (i < 0 || !nomeTema) return null;
+  const n = QUIZ_NIVEIS[i];
+  return n.prefixo ? `${n.prefixo} ${nomeTema}` : (QUIZ_EPICOS[tema] || `Lenda de ${nomeTema}`);
+}
+
 // De que dados um título depende — pra buscar no banco só o necessário.
 // "Campeão Stop Ago/2026" só precisa da CampeaoMensal; o lendário precisa
 // de Quiz e Stop (é a soma dos outros).

@@ -4,8 +4,8 @@ import { RANKS } from "../utils/rank.js";
 import { QUIZ_RANKS } from "../utils/quizRank.js";
 import { ACROMANIA_RANKS } from "../utils/acromaniaRank.js";
 import { MENTIRA_RANKS } from "../utils/mentiraRank.js";
-import { nomesDeTitulosDesbloqueados, fonteDoTitulo } from "../game/titulosConfig.js";
-import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS } from "./catalogo.js";
+import { nomesDeTitulosDesbloqueados, fonteDoTitulo, acertosPorTema, QUIZ_NIVEIS, QUIZ_NOMES } from "../game/titulosConfig.js";
+import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, avatarPadrao } from "./catalogo.js";
 
 // ===== Quais peças do avatar uma pessoa já liberou =====
 //
@@ -13,11 +13,15 @@ import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS } from "./catalogo.js";
 // guarda (títulos, patentes, sequência, pontos). Assim uma peça nova no
 // catálogo já nasce liberada pra quem cumpre a regra, sem migração.
 //
-// CUSTO NO BANCO: só roda ao abrir o editor e ao salvar (nunca no hover do
-// perfil), com cache de 60s. E só busca o que o catálogo PRECISA: se nenhuma
-// peça depende de título do Quiz, a QuizRoomStat nem é lida. No pior caso
-// são 6 consultas pequenas em paralelo, todas por índice que começa em
-// userId (dezenas de linhas por pessoa, no máximo).
+// CUSTO NO BANCO: só roda no editor, no "Bem-vindo de volta" do início, na
+// coleção do perfil e ao salvar (nunca no hover do perfil), com cache de
+// 60s. E só busca o que o catálogo PRECISA: se nenhuma peça depende de
+// título do Stop, a StopStat nem é lida. No pior caso são 6 consultas
+// pequenas em paralelo, todas por índice que começa em userId (dezenas de
+// linhas por pessoa, no máximo).
+//
+// VISITANTE (conta sem cadastro) não libera nada, nem as iniciais: fica com
+// o avatar padrão e não pode salvar — o convite é criar a conta.
 
 export const TABELAS_DE_PATENTE = {
   stop: RANKS,
@@ -26,8 +30,8 @@ export const TABELAS_DE_PATENTE = {
   mentira: MENTIRA_RANKS,
 };
 
-const LIBERADOS_CACHE_SEGUNDOS = 60;
-const chaveLiberados = (userId) => `avatar-liberados:${userId}`;
+const RESUMO_CACHE_SEGUNDOS = 60;
+const chaveResumo = (userId) => `avatar-liberados:${userId}`;
 
 export function patenteDoCatalogo(jogo, key) {
   return (TABELAS_DE_PATENTE[jogo] || []).find((r) => r.key === key) || null;
@@ -35,11 +39,14 @@ export function patenteDoCatalogo(jogo, key) {
 
 // Que dados o conjunto de peças exige — pra não consultar tabela à toa.
 export function dadosNecessarios(itens = ITENS) {
-  const p = { quiz: false, stop: false, campeao: false, sequencia: false, jogosMensais: new Set(), jogosVitalicios: new Set() };
+  const p = {
+    quiz: false, stop: false, campeao: false, sequencia: false,
+    jogosMensais: new Set(), jogosVitalicios: new Set(), vitalicioTotal: false,
+  };
   for (const { desbloqueio: d } of itens) {
     if (d.tipo === "titulo") {
       // "comecaCom" pode casar com qualquer família de título: busca tudo.
-      const fonte = d.nome ? fonteDoTitulo(d.nome) : { quiz: true, stop: true, campeao: true };
+      const fonte = d.tema ? { quiz: true } : d.nome ? fonteDoTitulo(d.nome) : { quiz: true, stop: true, campeao: true };
       if (fonte.quiz) p.quiz = true;
       if (fonte.stop) p.stop = true;
       if (fonte.campeao) p.campeao = true;
@@ -50,7 +57,8 @@ export function dadosNecessarios(itens = ITENS) {
     } else if (d.tipo === "sequencia") {
       p.sequencia = true;
     } else if (d.tipo === "pontos") {
-      p.jogosVitalicios.add(d.jogo);
+      if (d.jogo === "total") p.vitalicioTotal = true;
+      else p.jogosVitalicios.add(d.jogo);
     }
   }
   return p;
@@ -83,18 +91,30 @@ export async function carregarDados(userId, precisa, db = prisma) {
         _max: { points: true },
       })
       : nada,
-    precisa.jogosVitalicios.size
-      ? db.lifetimeScore.findMany({ where: { userId, gameKey: { in: [...precisa.jogosVitalicios] } }, select: { gameKey: true, points: true } })
+    // Vitalício: com peça de "todos os jogos", lê todas as linhas da pessoa
+    // (uma por jogo, menos as "por sala", que têm ":" e repetiriam pontos);
+    // senão, só os jogos pedidos.
+    precisa.vitalicioTotal || precisa.jogosVitalicios.size
+      ? db.lifetimeScore.findMany({
+        where: precisa.vitalicioTotal
+          ? { userId, NOT: { gameKey: { contains: ":" } } }
+          : { userId, gameKey: { in: [...precisa.jogosVitalicios] } },
+        select: { gameKey: true, points: true },
+      })
       : nada,
   ]);
+
+  const vitalicio = Object.fromEntries(vitalicios.map((l) => [l.gameKey, l.points]));
+  if (precisa.vitalicioTotal) vitalicio.total = vitalicios.reduce((s, l) => s + (l.points || 0), 0);
 
   return {
     titulos: precisa.quiz || precisa.stop || precisa.campeao
       ? nomesDeTitulosDesbloqueados({ statsQuiz, statsStop, registrosCampeao: campeoes })
       : new Set(),
+    acertosPorTema: acertosPorTema(statsQuiz),
     campeoes,
     melhorMes: Object.fromEntries(mensais.map((m) => [m.gameKey, m._max?.points || 0])),
-    vitalicio: Object.fromEntries(vitalicios.map((l) => [l.gameKey, l.points])),
+    vitalicio,
     streakRecorde: user?.streakRecorde || 0,
   };
 }
@@ -136,16 +156,73 @@ export function liberadosPelosDados(dados, itens = ITENS) {
   return itens.filter((i) => itemLiberado(i, dados)).map((i) => i.id);
 }
 
-// Lista de ids liberados pra essa pessoa (cache de 60s).
-export function itensLiberados(userId) {
-  return cacheOuBuscar(chaveLiberados(userId), LIBERADOS_CACHE_SEGUNDOS, async () => {
+// ===== Progresso até uma peça trancada =====
+//
+// Só pras regras MEDÍVEIS (um número que sobe até uma meta). Título
+// lendário e troféu de campeão não têm barra: ou tem, ou não tem.
+// Patente exclusiva também fica de fora — passar da marca não basta.
+const INDICE_DO_NIVEL = { bronze: 0, prata: 1, ouro: 2 };
+const NOME_DO_JOGO = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", mentira: "Mentira Sincera" };
+
+export function progressoDaPeca(item, dados) {
+  const d = item.desbloqueio;
+  if (d.tipo === "sequencia") {
+    // Conta o RECORDE (é ele que libera), não a sequência atual.
+    return { atual: dados.streakRecorde, meta: d.dias, unidade: "dias seguidos" };
+  }
+  if (d.tipo === "pontos") {
+    return { atual: dados.vitalicio[d.jogo] || 0, meta: d.min, unidade: d.jogo === "total" ? "pontos somando todos os jogos" : `pontos no ${NOME_DO_JOGO[d.jogo] || d.jogo}` };
+  }
+  if (d.tipo === "patente") {
+    const p = patenteDoCatalogo(d.jogo, d.patente);
+    if (!p || p.exclusiva) return null;
+    return { atual: dados.melhorMes[d.jogo] || 0, meta: p.min, unidade: `pontos num mês no ${NOME_DO_JOGO[d.jogo] || d.jogo}` };
+  }
+  if (d.tipo === "titulo" && d.tema) {
+    const nivel = QUIZ_NIVEIS[INDICE_DO_NIVEL[d.nivel]];
+    if (!nivel) return null;
+    return { atual: dados.acertosPorTema[d.tema] || 0, meta: nivel.min, unidade: `acertos em ${QUIZ_NOMES[d.tema]} no Quiz` };
+  }
+  return null;
+}
+
+// A peça trancada mais perto de sair (maior fração atual/meta). Empate: a
+// de meta menor (menos trabalho absoluto). null se nada for medível.
+export function proximaPeca(dados, liberados, itens = ITENS) {
+  const jaTem = new Set(liberados);
+  let melhor = null;
+  for (const item of itens) {
+    if (jaTem.has(item.id)) continue;
+    const p = progressoDaPeca(item, dados);
+    if (!p || p.meta <= 0) continue;
+    const fracao = Math.min(1, p.atual / p.meta);
+    if (!melhor || fracao > melhor.fracao || (fracao === melhor.fracao && p.meta < melhor.meta)) {
+      melhor = { id: item.id, slot: item.slot, nome: item.nome, dica: item.dica, ...p, fracao };
+    }
+  }
+  if (!melhor) return null;
+  const { fracao, ...resto } = melhor;
+  return { ...resto, atual: Math.min(resto.atual, resto.meta), faltam: Math.max(0, resto.meta - resto.atual) };
+}
+
+// Liberados + próxima peça (cache de 60s). `convidado`: visitante não
+// libera nada (e nem consulta o banco).
+export function resumoDoAvatar(userId, { convidado = false } = {}) {
+  if (convidado) return Promise.resolve({ liberados: [], proxima: null });
+  return cacheOuBuscar(chaveResumo(userId), RESUMO_CACHE_SEGUNDOS, async () => {
     const dados = await carregarDados(userId, dadosNecessarios());
-    return liberadosPelosDados(dados);
+    const liberados = liberadosPelosDados(dados);
+    return { liberados, proxima: proximaPeca(dados, liberados) };
   });
 }
 
+// Só a lista de ids liberados.
+export async function itensLiberados(userId, opcoes) {
+  return (await resumoDoAvatar(userId, opcoes)).liberados;
+}
+
 export function esquecerLiberados(userId) {
-  cacheApagar(chaveLiberados(userId));
+  cacheApagar(chaveResumo(userId));
 }
 
 // ===== Validação da montagem =====
@@ -173,10 +250,9 @@ export function validarConfig(config, liberados) {
   return { config: limpa };
 }
 
-// Montagem pra mostrar aos OUTROS (perfil público): descarta peças que
-// saíram do catálogo ou mudaram de slot. Não reconfere o desbloqueio — isso
-// foi feito ao salvar, e peça ganha não se perde. Sem pele válida = null
-// (quem vê cai na foto/iniciais).
+// Montagem SALVA, limpa pra mostrar aos outros: descarta peças que saíram
+// do catálogo ou mudaram de slot. Não reconfere o desbloqueio — isso foi
+// feito ao salvar, e peça ganha não se perde. Sem pele válida = null.
 export function configPublica(salvo) {
   if (!salvo || typeof salvo !== "object" || Array.isArray(salvo)) return null;
   const limpa = {};
@@ -187,11 +263,25 @@ export function configPublica(salvo) {
   return limpa.pele ? limpa : null;
 }
 
+// O avatar que os outros veem: o montado, ou o padrão (sorteado do id) de
+// quem nunca montou — inclusive visitante.
+export function avatarDoUsuario(user) {
+  return configPublica(user?.avatarMontado) || avatarPadrao(user?.id || "");
+}
+
+// Foto do avatar pro Hall da Fama, congelada no fechamento do mês
+// (scripts/fecharMes.js): o que o campeão vestia naquele mês, mesmo que ele
+// troque tudo depois.
+export function avatarParaCongelar(user) {
+  return avatarDoUsuario(user);
+}
+
 // ===== Salvar (PUT /api/avatar) =====
 //
 // Separado da rota pra dar pra testar sem Express nem banco: `deps` traz
 // `liberados(userId)` e `gravar(userId, data)`. Devolve { status, corpo }.
-export async function salvarAvatar(userId, corpo, deps) {
+export async function salvarAvatar(userId, corpo, deps, { convidado = false } = {}) {
+  if (convidado) return { status: 403, corpo: { error: "Crie sua conta para desbloquear peças e salvar seu avatar." } };
   const { config, mostrarAvatar } = corpo || {};
   const data = {};
 
@@ -204,11 +294,8 @@ export async function salvarAvatar(userId, corpo, deps) {
 
   if (mostrarAvatar !== undefined) {
     if (typeof mostrarAvatar !== "boolean") return { status: 400, corpo: { error: "Preferência inválida." } };
-    // Mesma trava da medalha no lugar da foto: ligar o avatar na bolinha sem
-    // ter montado um deixaria a pessoa sem imagem nenhuma.
-    if (mostrarAvatar && !data.avatarMontado && !configPublica(await deps.montagemAtual(userId))) {
-      return { status: 400, corpo: { error: "Monte e salve seu avatar primeiro." } };
-    }
+    // Sem montagem salva vale o avatar padrão, então ligar não deixa
+    // ninguém sem imagem.
     data.mostrarAvatar = mostrarAvatar;
   }
 
@@ -216,6 +303,6 @@ export async function salvarAvatar(userId, corpo, deps) {
   const salvo = await deps.gravar(userId, data);
   return {
     status: 200,
-    corpo: { ok: true, avatar: configPublica(salvo.avatarMontado), mostrarAvatar: salvo.mostrarAvatar === true },
+    corpo: { ok: true, avatar: avatarDoUsuario({ id: userId, avatarMontado: salvo.avatarMontado }), avatarProprio: !!configPublica(salvo.avatarMontado), mostrarAvatar: salvo.mostrarAvatar === true },
   };
 }

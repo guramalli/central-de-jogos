@@ -57,9 +57,9 @@ export function Cronometro({ tempo, variante = "pilula", comSom = true }) {
 }
 
 export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
-  // Quem escolheu "Avatar" pras bolinhas aparece com o busto do boneco
-  // (mesma regra do Avatar da v2; ver ../AvatarBoneco.jsx). Sem `id`, ou
-  // bot: segue a inicial.
+  // Quem escolheu "Avatar" pras bolinhas, ou não tem foto, aparece com a
+  // cabeça do boneco (mesma regra do Avatar da v2; ver ../AvatarBoneco.jsx).
+  // Sem `id`, ou bot: segue a inicial.
   const boneco = useBonecoNaBolinha(id);
   return (
     <span
@@ -67,7 +67,7 @@ export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
       style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46), overflow: boneco ? "hidden" : undefined }}
       aria-hidden="true"
     >
-      {boneco ? <AvatarBoneco config={boneco} busto tamanho={tamanho} preencher /> : String(nome || "?").charAt(0).toUpperCase()}
+      {boneco ? <AvatarBoneco config={boneco} busto="cabeca" tamanho={tamanho} preencher /> : String(nome || "?").charAt(0).toUpperCase()}
     </span>
   );
 }

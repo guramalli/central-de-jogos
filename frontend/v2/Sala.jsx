@@ -5,6 +5,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { nomeDoTema, corDoJogador } from "./temas.js";
 import { ativarSons, somPergunta, somAcerto, somTique, somErro, somOutroAcertou, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import { FiguraPodio } from "./PodioSala.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
 import ListaJogadores from "./ListaJogadores.jsx";
@@ -398,6 +399,17 @@ export default function Sala({ roomId, usuario, compacto = false, ativo = false,
 
             {intervaloArena ? (
               <div className="v2-ranking-turno">
+                {/* Pódio do turno com os avatares (some no modo várias-salas). */}
+                {rankingTurno.length > 0 && (
+                  <div className="v2-stop-podio v2-podio-turno" aria-hidden="true">
+                    {[rankingTurno[1], rankingTurno[0], rankingTurno[2]].filter((r) => r && r.position <= 3).map((r) => (
+                      <div key={r.userId} className={`v2-stop-podio-item p${r.position}`}>
+                        <FiguraPodio userId={r.userId} posicao={r.position} />
+                        <span className="v2-stop-podio-nick">{r.nickname}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {rankingTurno.length === 0 ? <p>Ninguém pontuou ainda neste turno.</p> : rankingTurno.slice(0, 10).map((r) => (
                   <div key={r.userId} className={`v2-rt-linha ${r.userId === usuario.id ? "eu" : ""} ${r.position <= 3 ? `p${r.position}` : ""}`}>
                     <span className="v2-rt-pos">{r.position}º</span>

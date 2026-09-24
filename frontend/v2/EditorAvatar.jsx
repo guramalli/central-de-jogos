@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { esquecerPerfil } from "./perfil.js";
 import { useCatalogoAvatar } from "./avatarCatalogo.js";
-import AvatarBoneco from "./AvatarBoneco.jsx";
+import AvatarBoneco, { MiniaturaPeca } from "./AvatarBoneco.jsx";
+import AvisoPecaNova from "./AvisoPecaNova.jsx";
 
 // Editor do avatar (página "Meu perfil"): prévia ao vivo de um lado, abas
 // por parte do corpo do outro. Peça trancada aparece com cadeado e a dica
@@ -10,22 +11,11 @@ import AvatarBoneco from "./AvatarBoneco.jsx";
 //
 // Tudo é grátis — nada aqui é vendido. O servidor confere de novo, ao
 // salvar, se cada peça está mesmo liberada (PUT /api/avatar).
-
-// Enquadramento da miniatura de cada parte (pixels da tela 900×1200): um
-// chapéu visto no corpo inteiro ficaria minúsculo. Ajustar junto com a arte.
-const CORPO_TODO = { x: -150, y: 0, lado: 1200 };
-const ENQUADRAMENTO = {
-  pele: CORPO_TODO,
-  cabelo: { x: 225, y: 40, lado: 450 },
-  chapeu: { x: 225, y: 0, lado: 450 },
-  rosto: { x: 250, y: 150, lado: 400 },
-  pescoco: { x: 250, y: 380, lado: 400 },
-  roupa: { x: 175, y: 450, lado: 550 },
-  parteDeBaixo: { x: 200, y: 700, lado: 500 },
-  costas: CORPO_TODO,
-  mao: CORPO_TODO,
-  fundo: CORPO_TODO,
-};
+//
+// VISITANTE vê o catálogo inteiro trancado ("Crie sua conta para
+// desbloquear") e não salva: o avatar dele é o padrão sorteado. Deixar
+// salvar só as iniciais daria trabalho de montar num boneco que some quando
+// a conta de visitante é limpa — melhor usar o editor como convite.
 
 export default function EditorAvatar({ usuario }) {
   const catalogo = useCatalogoAvatar();
@@ -51,10 +41,12 @@ export default function EditorAvatar({ usuario }) {
     );
   }
 
+  const convidado = meu.convidado;
   const liberados = new Set(meu.liberados);
   const slotAtual = catalogo.slots.find((s) => s.slot === aba) || catalogo.slots[0];
   const pecas = catalogo.itens.filter((i) => i.slot === slotAtual.slot);
   const mudou = JSON.stringify(limpar(config)) !== JSON.stringify(limpar(meu.config)) || !meu.jaMontou;
+  const dicaDe = (item) => (convidado ? "Crie sua conta para desbloquear." : item.dica);
 
   function vestir(item) {
     if (!liberados.has(item.id)) { setDica(item); return; }
@@ -84,30 +76,35 @@ export default function EditorAvatar({ usuario }) {
   }
 
   // A preferência da bolinha salva na hora (é um interruptor, não um
-  // formulário). Só vale depois de ter um avatar salvo.
+  // formulário). Sem avatar montado vale o padrão, então sempre pode.
   async function escolherBolinha(mostrarAvatar) {
     if (mostrarAvatar === meu.mostrarAvatar) return;
     try {
       const { data } = await api.put("/avatar", { mostrarAvatar });
       setMeu((m) => ({ ...m, mostrarAvatar: data.mostrarAvatar }));
       esquecerPerfil(usuario.id);
-      setMsg({ ok: true, texto: data.mostrarAvatar ? "Seu avatar aparece agora nas bolinhas." : "Sua foto aparece agora nas bolinhas." });
+      setMsg({ ok: true, texto: data.mostrarAvatar ? "Seu avatar aparece agora nas bolinhas." : "Sua foto aparece agora nas bolinhas (sem foto, fica o avatar)." });
     } catch (err) {
       setMsg({ ok: false, texto: err.response?.data?.error || "Erro ao salvar a preferência." });
     }
   }
 
   return (
-    <section className="v2-cartao v2-avatar-editor">
+    <section className="v2-cartao v2-avatar-editor" id="avatar">
+      {!convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meu.liberados} config={config} />}
       <h2>Avatar</h2>
-      <p className="v2-cartao-nota">Monte seu boneco. Tudo é grátis: as peças com cadeado você ganha jogando. No seu perfil, nos pódios e nas salas de jogo, o avatar aparece no lugar da foto.</p>
+      <p className="v2-cartao-nota">
+        {convidado
+          ? "Este é o seu avatar de visitante. Crie sua conta para desbloquear as peças e montar o seu."
+          : "Monte seu boneco. Tudo é grátis: as peças com cadeado você ganha jogando. No seu perfil e nos pódios o avatar aparece sempre; nas bolinhas do chat, você escolhe."}
+      </p>
 
       <div className="v2-avatar-editor-grade">
         <div className="v2-avatar-previa">
           <AvatarBoneco config={config} altura={300} rotulo="Prévia do seu avatar" />
           <div className="v2-avatar-previa-bolinha" title="Como fica na bolinha">
-            <span className="v2-avatar-foto" style={{ width: 52, height: 52, background: "#22164d" }}>
-              <AvatarBoneco config={config} busto tamanho={52} preencher />
+            <span className="v2-avatar-foto" style={{ width: 40, height: 40, background: "#22164d" }}>
+              <AvatarBoneco config={config} busto="cabeca" tamanho={40} preencher />
             </span>
             <small>na bolinha</small>
           </div>
@@ -131,7 +128,7 @@ export default function EditorAvatar({ usuario }) {
           </div>
 
           <div className="v2-avatar-pecas" id="v2-avatar-pecas" role="tabpanel" aria-labelledby={`v2-avatar-aba-${slotAtual.slot}`}>
-            {!slotAtual.obrigatorio && (
+            {!slotAtual.obrigatorio && !convidado && (
               <button className={`v2-avatar-peca ${!config[slotAtual.slot] ? "escolhida" : ""}`} aria-pressed={!config[slotAtual.slot]} onClick={() => tirar(slotAtual.slot)}>
                 <span className="v2-avatar-miniatura v2-avatar-nenhum" aria-hidden="true">∅</span>
                 <small>Nenhum</small>
@@ -145,12 +142,12 @@ export default function EditorAvatar({ usuario }) {
                   key={item.id}
                   className={`v2-avatar-peca ${escolhida ? "escolhida" : ""} ${livre ? "" : "trancada"}`}
                   aria-pressed={escolhida}
-                  aria-label={livre ? item.nome : `${item.nome} (trancado: ${item.dica})`}
-                  title={livre ? item.nome : `🔒 ${item.dica}`}
+                  aria-label={livre ? item.nome : `${item.nome} (trancado: ${dicaDe(item)})`}
+                  title={livre ? item.nome : `🔒 ${dicaDe(item)}`}
                   onClick={() => vestir(item)}
                 >
                   <span className="v2-avatar-miniatura">
-                    <AvatarBoneco config={{ [item.slot]: item.id }} busto tamanho={64} recorte={ENQUADRAMENTO[item.slot]} />
+                    <MiniaturaPeca item={item} />
                     {!livre && <span className="v2-avatar-cadeado" aria-hidden="true">🔒</span>}
                   </span>
                   <small>{item.nome}</small>
@@ -159,31 +156,25 @@ export default function EditorAvatar({ usuario }) {
             })}
           </div>
           <p className="v2-avatar-dica" role="status">
-            {dica ? <>🔒 <b>{dica.nome}</b>: {dica.dica}</> : " "}
+            {dica ? <>🔒 <b>{dica.nome}</b>: {dicaDe(dica)}</> : " "}
           </p>
         </div>
       </div>
 
-      <div className="v2-avatar-rodape">
-        <button className="v2-botao v2-botao-amarelo" onClick={salvar} disabled={salvando || !mudou}>
-          {salvando ? "Salvando…" : mudou ? "Salvar" : "Salvo"}
-        </button>
-        <div className="v2-avatar-bolinha-opcao" role="group" aria-labelledby="v2-avatar-bolinha-rotulo">
-          <span id="v2-avatar-bolinha-rotulo">Na bolinha do chat e das listas, mostrar:</span>
-          <div className="v2-avatar-segmento">
-            <button aria-pressed={!meu.mostrarAvatar} className={!meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(false)}>Foto</button>
-            <button
-              aria-pressed={meu.mostrarAvatar}
-              className={meu.mostrarAvatar ? "ativa" : ""}
-              onClick={() => escolherBolinha(true)}
-              disabled={!meu.jaMontou}
-              title={meu.jaMontou ? undefined : "Salve seu avatar primeiro"}
-            >
-              Avatar
-            </button>
+      {!convidado && (
+        <div className="v2-avatar-rodape">
+          <button className="v2-botao v2-botao-amarelo" onClick={salvar} disabled={salvando || !mudou}>
+            {salvando ? "Salvando…" : mudou ? "Salvar" : "Salvo"}
+          </button>
+          <div className="v2-avatar-bolinha-opcao" role="group" aria-labelledby="v2-avatar-bolinha-rotulo">
+            <span id="v2-avatar-bolinha-rotulo">Na bolinha do chat e das listas, mostrar:</span>
+            <div className="v2-avatar-segmento">
+              <button aria-pressed={!meu.mostrarAvatar} className={!meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(false)}>Foto</button>
+              <button aria-pressed={meu.mostrarAvatar} className={meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(true)}>Avatar</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       {msg && <p className={msg.ok ? "v2-modal-ok" : "v2-modal-erro"} role="status">{msg.texto}</p>}
     </section>
   );

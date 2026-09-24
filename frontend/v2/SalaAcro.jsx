@@ -7,6 +7,7 @@ import { ativarSons, somPergunta, somAcerto, somTique, estaMudo, alternarMudo, e
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
+import { FiguraPodio } from "./PodioSala.jsx";
 import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
@@ -502,7 +503,9 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
                   <div className="v2-stop-podio">
                     {[fimPartida[1], fimPartida[0], fimPartida[2]].filter(Boolean).map((r) => (
                       <div key={r.userId} className={`v2-stop-podio-item p${r.position}`}>
-                        <IconePatente rank={jogadores.find((j) => j.userId === r.userId)?.rank} nickname={r.nickname} userId={r.userId} />
+                        <FiguraPodio userId={r.userId} posicao={r.position}>
+                          <IconePatente rank={jogadores.find((j) => j.userId === r.userId)?.rank} nickname={r.nickname} userId={r.userId} />
+                        </FiguraPodio>
                         <span className="v2-stop-podio-nick">{r.nickname}</span>
                         <div className="v2-stop-podio-coluna"><b>{r.position}º</b><em>{r.points} pts</em></div>
                       </div>

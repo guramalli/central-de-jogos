@@ -7,9 +7,10 @@ import AvatarBoneco, { montagemNaBolinha } from "./AvatarBoneco.jsx";
 // Na v2 a foto aparece SEMPRE — o título escolhido fica só no hover do nick
 // (a opção "medalha no lugar da foto" do clássico não vale aqui).
 //
-// Avatar montado: quem escolheu "Avatar" pras bolinhas aparece com o busto
-// do boneco no lugar da foto. `sempreBoneco` é pros lugares grandes (pódio,
-// cartão do nick), onde o avatar aparece mesmo pra quem escolheu "Foto".
+// Avatar montado (regra em montagemNaBolinha): quem escolheu "Avatar", ou
+// não tem foto, aparece com a CABEÇA do boneco (legível até 28px).
+// `sempreBoneco` é pros lugares grandes (pódio, cartão do nick): o avatar
+// aparece sempre, em busto (cabeça e ombros).
 export default function Avatar({ userId, nickname, tamanho = 40, borda = false, sempreBoneco = false }) {
   const [perfil, setPerfil] = useState(() => perfilEmCache(userId));
   const [falhou, setFalhou] = useState(false);
@@ -20,20 +21,21 @@ export default function Avatar({ userId, nickname, tamanho = 40, borda = false, 
     return () => { vivo = false; };
   }, [userId]);
 
-  const boneco = montagemNaBolinha(perfil, sempreBoneco);
   const src = perfil?.avatarUrl;
+  const fotoOk = !!src && !falhou;
+  const boneco = montagemNaBolinha(perfil, sempreBoneco, fotoOk);
   const estilo = {
     width: tamanho,
     height: tamanho,
     fontSize: Math.round(tamanho * 0.36),
-    background: boneco || (src && !falhou) ? "#22164d" : corDoJogador(userId),
+    background: boneco || fotoOk ? "#22164d" : corDoJogador(userId),
   };
 
   return (
     <span className={`v2-avatar-foto ${borda ? "com-borda" : ""}`} style={estilo}>
       {boneco ? (
-        <AvatarBoneco config={boneco} busto tamanho={tamanho} preencher />
-      ) : src && !falhou ? (
+        <AvatarBoneco config={boneco} busto={sempreBoneco ? "busto" : "cabeca"} tamanho={tamanho} preencher />
+      ) : fotoOk ? (
         <img src={src} alt="" onError={() => setFalhou(true)} />
       ) : (
         iniciais(nickname)

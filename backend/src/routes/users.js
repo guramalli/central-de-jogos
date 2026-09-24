@@ -10,6 +10,7 @@ import { currentMonthKey } from "../utils/monthKey.js";
 import { QUIZ_ROOM_CONFIGS } from "../game/quizRoomConfigs.js";
 import { titulosDoQuiz, titulosDoStop, logoPorNomeDeTitulo, tituloLendario, trofeusDeCampeao, logoDoTrofeu, nomesDeTitulosDesbloqueados } from "../game/titulosConfig.js";
 import { configPublica } from "../avatar/desbloqueio.js";
+import { avatarPadrao } from "../avatar/catalogo.js";
 
 const router = Router();
 
@@ -277,12 +278,15 @@ router.get("/:id/profile", requireAuth, async (req, res) => {
     // ligada de um estado antigo.
     medalhaNoLugarDaFoto: !!user.tituloExibido && user.medalhaNoLugarDaFoto === true,
     avatarUrl: user.avatarUrl || null,
-    // Avatar montado (slot -> id da peça), já limpo de peças que saíram do
-    // catálogo; null = nunca montou. `mostrarAvatar` é a escolha pras
-    // bolinhas pequenas (chat, listas): false = foto, true = avatar. Nos
-    // lugares grandes (perfil, pódio, lobby) o avatar aparece sempre.
-    avatar: avatarPublico,
-    mostrarAvatar: user.mostrarAvatar === true && !!avatarPublico,
+    // Avatar (slot -> id da peça): o montado, já limpo de peças que saíram
+    // do catálogo, ou o padrão sorteado do id pra quem nunca montou.
+    // `avatarProprio` diz qual dos dois. `mostrarAvatar` é a escolha pras
+    // bolinhas pequenas de quem TEM foto (false = foto, true = avatar); sem
+    // foto, a bolinha já mostra o avatar. Nos lugares grandes (perfil,
+    // pódio) o avatar aparece sempre.
+    avatar: avatarPublico || avatarPadrao(user.id),
+    avatarProprio: !!avatarPublico,
+    mostrarAvatar: user.mostrarAvatar === true,
     // O id vai junto: o perfil linka pro perfil do clã, e sem ele o link
     // apontaria pra /cla/undefined.
     clan: user.clan ? { id: user.clan.id, name: user.clan.name, tag: user.clan.tag } : null,

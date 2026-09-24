@@ -7,6 +7,7 @@ import { ativarSons, somPergunta, somAcerto, somTique, somStop, estaMudo, altern
 import Avatar from "./Avatar.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
+import { FiguraPodio } from "./PodioSala.jsx";
 import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
 import { BotaoConvidar, ConviteRecebido } from "./Convites.jsx";
@@ -583,7 +584,9 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
                 <div className="v2-stop-podio">
                   {[bonusBloco[1], bonusBloco[0], bonusBloco[2]].filter(Boolean).map((b) => (
                     <div key={b.userId} className={`v2-stop-podio-item p${b.position}`}>
-                      <IconePatente rank={jogadores.find((j) => j.userId === b.userId)?.rank} nickname={b.nickname} userId={b.userId} />
+                      <FiguraPodio userId={b.userId} posicao={b.position}>
+                        <IconePatente rank={jogadores.find((j) => j.userId === b.userId)?.rank} nickname={b.nickname} userId={b.userId} />
+                      </FiguraPodio>
                       <span className="v2-stop-podio-nick">{b.nickname}</span>
                       <div className="v2-stop-podio-coluna"><b>{b.position}º</b><em>+{b.bonus}</em></div>
                     </div>

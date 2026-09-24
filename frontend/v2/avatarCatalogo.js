@@ -43,6 +43,23 @@ export function catalogoAvatar() {
   return promessa;
 }
 
+// Enquadramento da miniatura de cada parte (pixels da tela 900×1200), usado
+// no editor e na coleção do perfil: um chapéu visto no corpo inteiro ficaria
+// minúsculo. Ajustar junto com a arte.
+const CORPO_TODO = { x: -150, y: 0, lado: 1200 };
+export const ENQUADRAMENTO = {
+  pele: CORPO_TODO,
+  cabelo: { x: 230, y: 150, lado: 440 },
+  chapeu: { x: 230, y: 90, lado: 440 },
+  rosto: { x: 260, y: 230, lado: 380 },
+  pescoco: { x: 270, y: 480, lado: 360 },
+  roupa: { x: 190, y: 520, lado: 520 },
+  parteDeBaixo: { x: 220, y: 760, lado: 460 },
+  costas: CORPO_TODO,
+  mao: CORPO_TODO,
+  fundo: CORPO_TODO,
+};
+
 export function useCatalogoAvatar() {
   const [c, setC] = useState(catalogo);
   useEffect(() => {

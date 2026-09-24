@@ -4,6 +4,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
+import AvatarBoneco, { BonecoDoJogador } from "./AvatarBoneco.jsx";
 
 const JOGOS = [
   { key: "stop", label: "Stop", logo: "/stop-logo.png" },
@@ -101,7 +102,16 @@ export default function HallFama({ usuario }) {
               <div className="v2-podio">
                 {ordem.map((r) => (
                   <div key={r.position} className={`v2-podio-item p${r.position}`}>
-                    <Avatar userId={r.userId} nickname={r.nickname} tamanho={r.position === 1 ? 76 : 60} borda sempreBoneco />
+                    {/* Campeão: corpo inteiro, com o avatar que vestia no
+                        fechamento do mês (avatarNoMes); mês fechado antes do
+                        avatar existir usa o de hoje. */}
+                    {r.position === 1 ? (
+                      r.avatarNoMes
+                        ? <AvatarBoneco config={r.avatarNoMes} altura={150} className="v2-podio-boneco" rotulo={`Avatar de ${r.nickname} em ${vencedores.label}`} />
+                        : <BonecoDoJogador userId={r.userId} altura={150} className="v2-podio-boneco" reserva={<Avatar userId={r.userId} nickname={r.nickname} tamanho={76} borda sempreBoneco />} />
+                    ) : (
+                      <Avatar userId={r.userId} nickname={r.nickname} tamanho={60} borda sempreBoneco />
+                    )}
                     <div className="v2-podio-nome"><Jogador id={r.userId} nick={r.nickname} /></div>
                     <div className="v2-podio-coluna"><b>{r.position}</b><span>{r.points.toLocaleString("pt-BR")} pts</span></div>
                   </div>
