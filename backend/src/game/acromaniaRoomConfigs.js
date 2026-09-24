@@ -10,10 +10,11 @@ export const ACROMANIA_ROOM_CONFIGS = {
     // 5 frases. Sobrou espaço no ciclo porque escrita e votação agora
     // encerram assim que todos respondem.
     intermissionSeconds: 16,
-    // Quantidade de letras SORTEADA a cada rodada dentro desta faixa. Fixo
-    // em 3 ficava curto e repetitivo; variar dá ritmo diferente entre uma
-    // rodada e outra sem precisar de sala nova.
-    lettersMin: 5,
+    // Quantidade de letras por rodada: CRESCE ao longo do turno dentro desta
+    // faixa (4,4,5,5,5,5,6,6 num turno de 8 — ver letrasDaRodada). Aquece com
+    // poucas letras e aperta no fim; antes era sorteio 5–6 e metade das
+    // rodadas tinha 6 letras pra 60s de escrita.
+    lettersMin: 4,
     lettersMax: 6,
     pointsForWin: 50,
     // Partida de 8 rodadas (~7 min no ritmo atual). Curta o bastante pra
@@ -38,7 +39,7 @@ export const ACROMANIA_ROOM_CONFIGS = {
     writingSeconds: 60,
     votingSeconds: 20,
     intermissionSeconds: 16,
-    lettersMin: 5,
+    lettersMin: 4,
     lettersMax: 6,
     pointsForWin: 50,
     roundsPerTurn: 8,
