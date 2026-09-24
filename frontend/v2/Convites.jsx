@@ -100,7 +100,10 @@ export function ConviteRecebido({ socket }) {
     else if (convite.jogo === "stop" && !String(convite.sala).startsWith("stop-privada-")) irParaStop(convite.sala);
     else if (convite.jogo === "stop") irParaPagina("privadas", { jogo: "stop", privada: convite.sala });
     else if (convite.jogo === "acromania" && !String(convite.sala).startsWith("acromania-privada-")) irParaAcro(convite.sala);
-    else irParaPagina("privadas", { jogo: "acromania", privada: convite.sala });
+    else if (convite.jogo === "acromania") irParaPagina("privadas", { jogo: "acromania", privada: convite.sala });
+    // Mesmo endereço do link da mesa (?pagina=<jogo>&mesa=<código>). Jogo
+    // desconhecido não cai em sala de outro jogo — só fecha o aviso.
+    else if (convite.jogo === "mentira" || convite.jogo === "impostor") irParaPagina(convite.jogo, { mesa: convite.sala });
   };
 
   return (

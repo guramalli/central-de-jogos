@@ -15,6 +15,7 @@ const resultados = [];
 __configurarImpostorParaTestes({
   sortearPalavra: async () => ({ tema: "Lugares", palavra: "Praia" }),
   gravarResultado: (r) => resultados.push(r),
+  config: { SEG_ULTIMA_DICA: 0.2 }, // relógio de verdade aqui: pausa curtinha
 });
 
 const http = createServer();
@@ -85,6 +86,8 @@ test("partida completa pela rede: impostor nunca recebe a palavra; cada um receb
   // 2 rodadas de dicas, sempre de quem está na vez.
   let n = 0;
   while (a.estado.fase === "DICAS") {
+    // Pausa da última dica da rodada: ninguém na vez por um instante.
+    if (!a.estado.vezDe) { await esperar(() => a.estado.vezDe || a.estado.fase !== "DICAS"); continue; }
     const vez = clientes.find((x) => x.id === a.estado.vezDe);
     const outro = clientes.find((x) => x !== vez);
     assert.deepEqual(await emitir(outro, "impostor-dica", { texto: "fura" }), { erro: "Não é a sua vez." });
@@ -93,6 +96,16 @@ test("partida completa pela rede: impostor nunca recebe a palavra; cada um receb
     await esperar(() => a.estado.dicas.length > antes || a.estado.fase !== "DICAS");
   }
   assert.equal(a.estado.fase, "VOTACAO");
+
+  // Chat no meio da partida: chega a todos da sala, com o nick de quem falou.
+  assert.deepEqual(await emitir(b, "impostor-chat", { texto: "  quem foi?  " }), { ok: true });
+  await esperar(() => clientes.every((x) => x.recebidos.some((e) => e.evento === "impostor-chat")));
+  for (const x of clientes) {
+    const m = x.recebidos.find((e) => e.evento === "impostor-chat").dados;
+    assert.equal(m.texto, "quem foi?");
+    assert.equal(m.nick, "BIA");
+  }
+  assert.match((await emitir(b, "impostor-chat", { texto: "de novo" })).erro, /Devagar|Calma/);
 
   // Todos os tripulantes votam no impostor; o impostor vota em alguém.
   assert.deepEqual(await emitir(impostor, "impostor-votar", { alvoId: impostor.id }), { erro: "Você não pode votar em si mesmo." });

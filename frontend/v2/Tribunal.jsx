@@ -14,6 +14,9 @@ import { PartidaRapida } from "./FilaNoCard.jsx";
 // depois de uma queda). O motor fica em backend/src/tribunal/.
 
 const REACOES = ["😂", "⚖️", "😱", "🔥", "👏", "🤡"];
+// Limite dos campos de texto (acusação, defesa, depoimento, última palavra).
+// Igual ao MAX_TEXTO de backend/src/tribunal/TribunalRoom.js (era 200).
+const MAX_TEXTO = 250;
 const PAPEL = {
   promotor: { nome: "Promotor", icone: "🧑‍💼", classe: "promotor",
     missao: (reu, k) => (k === 1 ? `Convença o júri de que ${reu} é CULPADO.` : `Rebata a defesa: mostre que ${reu} continua CULPADO.`),
@@ -490,10 +493,10 @@ function CampoArgumento({ papel, k = 1, aoEnviar }) {
   return (
     <form className="v2-tribunal-form" onSubmit={enviar}>
       <label htmlFor="v2-tribunal-texto" className="v2-oculto">Seu argumento</label>
-      <textarea id="v2-tribunal-texto" ref={campoRef} value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={200} rows={3} placeholder={dica}
+      <textarea id="v2-tribunal-texto" ref={campoRef} value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={MAX_TEXTO} rows={3} placeholder={dica}
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) enviar(e); }} />
       <div className="v2-tribunal-form-rodape">
-        <small>{texto.length}/200</small>
+        <small>{texto.length}/{MAX_TEXTO}</small>
         <button className="v2-botao v2-botao-amarelo" type="submit" disabled={!texto.trim() || enviando}>{enviando ? "Entregando…" : "Entregar"}</button>
       </div>
     </form>

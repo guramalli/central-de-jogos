@@ -40,12 +40,14 @@ async function iniciada(opcoes) {
 
 const segundos = (s) => mock.timers.tick(s * 1000);
 
-// Pula a carta e dá as dicas das 2 rodadas.
+// Pula a carta e dá as dicas das 2 rodadas (esperando a pausa da última
+// dica de cada rodada, quando ninguém está na vez).
 function jogarAteVotacao(sala) {
   segundos(CONFIG.SEG_CARTAS);
   let n = 0;
   while (sala.fase === FASES.DICAS) {
-    assert.equal(sala.darDica(sala.vezDe, `dica${n++}`), null);
+    if (sala.vezDe) assert.equal(sala.darDica(sala.vezDe, `dica${n++}`), null);
+    else segundos(CONFIG.SEG_ULTIMA_DICA);
   }
   assert.equal(sala.fase, FASES.VOTACAO);
 }
@@ -211,7 +213,8 @@ test("dicas: tempo estourado deixa a dica em branco e passa a vez", async () => 
   segundos(CONFIG.SEG_CARTAS);
   const primeiro = sala.vezDe;
   segundos(CONFIG.SEG_DICA);
-  assert.deepEqual(sala.partida.dicas[0], { rodada: 1, jogadorId: primeiro, texto: "" });
+  const { rodada, jogadorId, texto } = sala.partida.dicas[0];
+  assert.deepEqual({ rodada, jogadorId, texto }, { rodada: 1, jogadorId: primeiro, texto: "" });
   assert.notEqual(sala.vezDe, primeiro);
 });
 
@@ -266,6 +269,133 @@ test("fora de fase: não dá pra votar nas dicas nem dar dica na votação", asy
   jogarAteVotacao(sala);
   assert.match(sala.darDica("j2", "areia"), /não é hora/);
   assert.match(sala.chutar("j1", "praia"), /não é hora/);
+});
+
+// Dá as dicas da rodada atual até sobrar só o último da ordem.
+function ateOUltimoDaRodada(sala) {
+  const p = sala.partida;
+  while (p.vez < p.ordem.length - 1) assert.equal(sala.darDica(sala.vezDe, `d${p.vez}`), null);
+}
+
+test("ÚLTIMA DICA: pausa SEG_ULTIMA_DICA na tela antes da próxima rodada e da votação", async () => {
+  const { sala, enviados } = await iniciada();
+  segundos(CONFIG.SEG_CARTAS);
+  ateOUltimoDaRodada(sala);
+  const ultimo = sala.vezDe;
+  assert.equal(sala.darDica(ultimo, "concha"), null);
+
+  // Pausa: continua em DICAS, rodada 1, ninguém na vez, última dica destacada.
+  assert.equal(sala.fase, FASES.DICAS);
+  assert.equal(sala.partida.rodada, 1);
+  assert.equal(sala.vezDe, null);
+  assert.equal(sala.restanteMs(), CONFIG.SEG_ULTIMA_DICA * 1000);
+  const est = ultimoEstado(enviados, "j2");
+  assert.deepEqual(est.ultimaDica, { rodada: 1, jogadorId: ultimo });
+  assert.equal(est.vezDe, null);
+  assert.equal(est.dicas.at(-1).texto, "concha");
+  assert.equal(est.dicas.at(-1).em, undefined); // hora da dica não vai pro cliente
+  assert.match(sala.darDica(ultimo, "outra"), /vez/);
+
+  segundos(CONFIG.SEG_ULTIMA_DICA - 1);
+  assert.equal(sala.partida.rodada, 1);
+  segundos(1);
+  assert.equal(sala.partida.rodada, 2);
+  assert.ok(sala.vezDe);
+  assert.equal(ultimoEstado(enviados, "j2").ultimaDica, null);
+
+  // Fim da rodada 2: mesma pausa, depois votação.
+  ateOUltimoDaRodada(sala);
+  assert.equal(sala.darDica(sala.vezDe, "sol"), null);
+  assert.equal(sala.fase, FASES.DICAS);
+  assert.equal(sala.vezDe, null);
+  segundos(CONFIG.SEG_ULTIMA_DICA - 1);
+  assert.equal(sala.fase, FASES.DICAS);
+  segundos(1);
+  assert.equal(sala.fase, FASES.VOTACAO);
+  assert.equal(ultimoEstado(enviados, "j2").ultimaDica, undefined); // só existe em DICAS
+});
+
+test("ÚLTIMA DICA: sem pausa quando o último da rodada deixa o tempo estourar", async () => {
+  const { sala } = await iniciada();
+  segundos(CONFIG.SEG_CARTAS);
+  ateOUltimoDaRodada(sala);
+  segundos(CONFIG.SEG_DICA); // último ficou em branco; a dica anterior já estava na tela havia 30s
+  assert.equal(sala.partida.rodada, 2);
+  assert.ok(sala.vezDe);
+});
+
+test("ÚLTIMA DICA: pausa também quando o último da ordem caiu (dica em branco na hora)", async () => {
+  const { sala } = await iniciada();
+  segundos(CONFIG.SEG_CARTAS);
+  const p = sala.partida;
+  const ultimoDaOrdem = p.ordem.at(-1);
+  sala.sair(`s${ultimoDaOrdem.slice(1)}`);
+  while (p.vez < p.ordem.length - 2) sala.darDica(sala.vezDe, "ok");
+  const penultimo = sala.vezDe;
+  assert.equal(sala.darDica(penultimo, "areia"), null);
+  assert.equal(sala.vezDe, null);
+  assert.deepEqual(p.ultimaDica, { rodada: 1, jogadorId: penultimo });
+  segundos(CONFIG.SEG_ULTIMA_DICA);
+  assert.equal(p.rodada, 2);
+});
+
+test("ÚLTIMA DICA: quem sai durante a pausa não trava a sala", async () => {
+  const { sala } = await iniciada({ n: 5 });
+  segundos(CONFIG.SEG_CARTAS);
+  ateOUltimoDaRodada(sala);
+  sala.darDica(sala.vezDe, "ok");
+  assert.equal(sala.vezDe, null);
+  sala.sairDeVez("j5");
+  assert.equal(sala.fase, FASES.DICAS);
+  segundos(CONFIG.SEG_ULTIMA_DICA);
+  assert.equal(sala.partida.rodada, 2);
+  assert.ok(!sala.partida.ordem.includes("j5"));
+});
+
+// ======================================================================
+// Chat
+// ======================================================================
+
+test("chat: mensagem vai pra todos da sala (por jogador), com nick e cor; sem mexer no estado", async () => {
+  const { sala, enviados } = await iniciada();
+  const estadosAntes = enviados.filter((e) => e.evento === "impostor-estado").length;
+  assert.equal(sala.mensagemChat("j2", "   oi   gente  "), null);
+  const msgs = enviados.filter((e) => e.evento === "impostor-chat");
+  assert.deepEqual(msgs.map((m) => m.para).sort(), ["j1", "j2", "j3", "j4"]);
+  const m = msgs[0].dados;
+  assert.equal(m.texto, "oi gente");
+  assert.equal(m.uid, "j2");
+  assert.equal(m.nick, "Jogador2");
+  assert.equal(m.cor, sala.jogadores.get("j2").cor);
+  assert.equal(enviados.filter((e) => e.evento === "impostor-estado").length, estadosAntes);
+});
+
+test("chat: limite de tamanho, texto vazio, intervalo mínimo e só quem está na sala", () => {
+  const { sala, enviados } = criarSala();
+  assert.equal(sala.mensagemChat("j1", "x".repeat(500)), null);
+  assert.equal(sala.chat.at(-1).texto.length, CONFIG.MAX_MSG_CHAT);
+  assert.match(sala.mensagemChat("j1", "de novo"), /Calma/);
+  mock.timers.tick(CONFIG.MS_ENTRE_MSGS);
+  assert.equal(sala.mensagemChat("j1", "de novo"), null);
+  const n = enviados.length;
+  assert.equal(sala.mensagemChat("j2", "   "), null);
+  assert.equal(enviados.length, n); // vazio: nada sai
+  assert.match(sala.mensagemChat("intruso", "oi"), /não está nesta sala/);
+});
+
+test("chat: bot não fala nem recebe; quem entra recebe o histórico (limitado)", () => {
+  const { sala, enviados } = salaComBots(2);
+  const bot = [...sala.jogadores.values()].find((j) => j.bot);
+  assert.match(sala.mensagemChat(bot.id, "bip"), /não está nesta sala/);
+  for (let i = 0; i < CONFIG.MAX_HIST_CHAT + 5; i++) {
+    assert.equal(sala.mensagemChat("j1", `msg ${i}`), null);
+    mock.timers.tick(CONFIG.MS_ENTRE_MSGS);
+  }
+  assert.ok(enviados.every((e) => !String(e.para).startsWith("bot-")));
+  sala.entrar({ id: "j7", nickname: "Novo" }, "s7");
+  const hist = enviados.filter((e) => e.para === "j7" && e.evento === "impostor-chat-historico").at(-1).dados.mensagens;
+  assert.equal(hist.length, CONFIG.MAX_HIST_CHAT);
+  assert.equal(hist.at(-1).texto, `msg ${CONFIG.MAX_HIST_CHAT + 4}`);
 });
 
 // ======================================================================
@@ -368,6 +498,7 @@ test("desconexão: quem caiu tem a dica em branco na vez dele e volta dentro de 
   sala.sair(`s${n}`);
   while (sala.fase === FASES.DICAS && sala.partida.rodada === 1) {
     if (sala.vezDe) sala.darDica(sala.vezDe, "ok");
+    else segundos(1); // pausa da última dica
   }
   const dicaDoCaido = sala.partida.dicas.find((d) => d.jogadorId === caido && d.rodada === 1);
   assert.equal(dicaDoCaido.texto, "");
@@ -389,7 +520,10 @@ test("desconexão: depois de 30s fora, sai da partida e é pulado", async () => 
   segundos(1);
   assert.equal(sala.ehAtivo("j5"), false);
   assert.equal(sala.partida.rodada, 1);
-  while (sala.fase === FASES.DICAS) sala.darDica(sala.vezDe, "ok");
+  while (sala.fase === FASES.DICAS) {
+    if (sala.vezDe) sala.darDica(sala.vezDe, "ok");
+    else segundos(1); // pausa da última dica
+  }
   assert.equal(sala.fase, FASES.VOTACAO);
   assert.ok(!sala.partida.dicas.some((d) => d.jogadorId === "j5" && d.rodada === 2));
   assert.match(sala.votar("j2", "j5"), /não está na partida/);

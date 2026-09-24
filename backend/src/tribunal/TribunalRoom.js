@@ -11,7 +11,7 @@ import { ACUSACOES, SENTENCAS, ARGUMENTOS_BOT, PACOTES } from "./acusacoes.js";
 //   julgamento (16s)    → os dois argumentos aparecem (8s cada)
 //   deliberar (15s)     → o JÚRI decide: "mais provas" (nova rodada) ou
 //                         "prontos pra votar"; máx. 2 rodadas; empate = prontos
-//   ultima (45s)        → o réu escreve a ÚLTIMA PALAVRA
+//   ultima (50s)        → o réu escreve a ÚLTIMA PALAVRA
 //   palavraFinal (8s)   → a última palavra aparece
 //   votar (20s)         → CULPADO / INOCENTE (+ curtidas em qualquer frase)
 //   veredito (8s)       → pena e pontos
@@ -32,7 +32,7 @@ export const MAX_JOGADORES = 8;
 // limite é só pra quem demora — quando os três entregam, o julgamento
 // começa na hora (a rodada não fica mais lenta).
 export const SEG_ESCREVER = 90;
-// Leitura: 8s por texto (era 5 — pouco pra ler acusação e defesa de até 200
+// Leitura: 8s por texto (era 5 — pouco pra ler acusação e defesa de até 250
 // caracteres). A tela divide este total por 3, sincronizada pelo relógio.
 export const SEG_POR_TEXTO = 8;
 export const SEG_JULGAMENTO = SEG_POR_TEXTO * 3;
@@ -42,10 +42,10 @@ export const SEG_VOTAR = 20; // (era 15) acaba antes se todos votarem
 // uma sessão de 8 passava de 40 minutos).
 export const MAX_DEBATE = 2;
 export const SEG_DELIBERAR = 15;
-export const SEG_ULTIMA = 45;   // última palavra do réu (acaba quando ele entrega)
+export const SEG_ULTIMA = 50;   // última palavra do réu (era 45; acaba quando ele entrega)
 export const SEG_VEREDITO = 8;
 export const SEG_ESCOLHA_PAPEIS = 15; // modo fixo: votação "sortear" x "manter"
-export const MAX_TEXTO = 200;
+export const MAX_TEXTO = 250; // (era 200) todos os campos de texto do Tribunal
 export const MAX_CURTIDAS = 3; // (era 2) com o debate há mais frases pra curtir
 
 // Pontos (× 2 na última rodada)

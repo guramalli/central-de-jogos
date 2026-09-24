@@ -5,7 +5,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador, iniciais } from "./temas.js";
 import { ativarSons, somPergunta, somAcerto, somTique, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
-import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
+import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
 import ListaJogadores from "./ListaJogadores.jsx";
 import NickHover from "./NickHover.jsx";
@@ -224,16 +224,10 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
 
   // Rola SÓ a caixa do chat. scrollIntoView rolava a página inteira no
   // celular — cada mensagem nova (inclusive a de acerto) puxava a tela.
-  useEffect(() => { const el = chatListaRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs, aba]);
-  // A caixa do chat muda de tamanho DEPOIS das mensagens chegarem (grade do
-  // multi-sala se ajustando, abas, teclado): segue colada no fim.
-  useEffect(() => {
-    const el = chatListaRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => { el.scrollTop = el.scrollHeight; });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // Só gruda no fim se a pessoa já estava lá (ou se a mensagem é dela); a
+  // caixa mudando de tamanho (multi-sala, abas, teclado) também segue colada.
+  const ultimaMsg = msgs[msgs.length - 1];
+  useColarNoFim(chatListaRef, ultimaMsg?.id || ultimaMsg?._k, !!ultimaMsg && !ultimaMsg.system && ultimaMsg.userId === usuario.id, aba);
   useEffect(() => {
     if (!fimPartida) return;
     const t = setTimeout(() => setFimPartida(null), 8000);
