@@ -174,9 +174,9 @@ router.get("/hall-stats", requireAuth, async (req, res) => {
     };
 
     const maisTitulos = contar(null);
-    // Só os jogos que REALMENTE têm campeão congelado. O Acromania não entra
-    // no fechamento individual (não paga Pix), então listar uma coluna vazia
-    // pra ele seria prometer o que não existe.
+    // Só os jogos que REALMENTE têm campeão congelado (o Acromania aparece a
+    // partir do primeiro mês fechado com ele) — coluna vazia seria prometer
+    // o que não existe.
     const porJogo = {};
     for (const jogo of [...new Set(campeoes.map((c) => c.gameKey))]) {
       porJogo[jogo] = contar(jogo);

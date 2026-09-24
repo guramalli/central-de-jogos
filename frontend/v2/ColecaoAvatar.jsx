@@ -1,22 +1,29 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { useCatalogoAvatar, motivoDe } from "./avatarCatalogo.js";
-import { MiniaturaPeca } from "./AvatarBoneco.jsx";
+import { MiniaturaPeca, useBonecoNaBolinha } from "./AvatarBoneco.jsx";
 
-// Vitrine do perfil: todas as peças do avatar, as conquistadas em cor e as
-// trancadas como silhueta escura. Hover ou toque: a trancada mostra a dica
-// de como ganhar; a conquistada, COMO foi ganha (o `motivo` do catálogo).
+// Vitrine do perfil: todas as peças do avatar, vestidas no corpo do dono do
+// perfil — as conquistadas em cor, as trancadas apagadas e com cadeado.
+// Hover ou toque: a trancada mostra a dica de como ganhar; a conquistada,
+// COMO foi ganha (o `motivo` do catálogo; coroas e troféus com os meses
+// em que a pessoa foi campeã).
 // Uma busca só (GET /api/avatar/colecao/:id, cache de 60s no servidor), e
 // só nesta página — nunca no hover do nick.
 export default function ColecaoAvatar({ userId }) {
   const catalogo = useCatalogoAvatar();
   const [liberados, setLiberados] = useState(null);
+  const [campeonatos, setCampeonatos] = useState({});
   const [dica, setDica] = useState(null); // peça tocada: { item, ok }
+  // O corpo (pele) do dono do perfil, pras miniaturas.
+  const corpo = useBonecoNaBolinha(userId, true);
 
   useEffect(() => {
     let vivo = true;
     setLiberados(null);
-    api.get(`/avatar/colecao/${userId}`).then(({ data }) => vivo && setLiberados(new Set(data.liberados))).catch(() => vivo && setLiberados(new Set()));
+    api.get(`/avatar/colecao/${userId}`)
+      .then(({ data }) => { if (!vivo) return; setLiberados(new Set(data.liberados)); setCampeonatos(data.campeonatos || {}); })
+      .catch(() => vivo && setLiberados(new Set()));
     return () => { vivo = false; };
   }, [userId]);
 
@@ -39,16 +46,19 @@ export default function ColecaoAvatar({ userId }) {
               key={item.id}
               type="button"
               className={`v2-colecao-peca raridade-${item.raridade || "base"} ${ok ? "" : "trancada"} ${dica?.item.id === item.id ? "ativa" : ""}`}
-              title={ok ? `${item.nome} — ${motivoDe(item)}` : `${item.nome} — ${item.dica}`}
-              aria-label={ok ? `${item.nome}, conquistada: ${motivoDe(item)}` : `${item.nome}, trancada: ${item.dica}`}
+              title={ok ? `${item.nome} — ${motivoDe(item, campeonatos)}` : `${item.nome} — ${item.dica}`}
+              aria-label={ok ? `${item.nome}, conquistada: ${motivoDe(item, campeonatos)}` : `${item.nome}, trancada: ${item.dica}`}
               onClick={() => setDica({ item, ok })}
             >
-              <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} tamanho={52} /></span>
+              <span className="v2-avatar-miniatura">
+                <MiniaturaPeca item={item} tamanho={52} corpo={corpo} />
+                {!ok && <span className="v2-avatar-cadeado" aria-hidden="true">🔒</span>}
+              </span>
             </button>
           );
         })}
       </div>
-      <p className="v2-avatar-dica" role="status">{dica ? (dica.ok ? <>✔ <b>{dica.item.nome}</b>: {motivoDe(dica.item)}</> : <>🔒 <b>{dica.item.nome}</b>: {dica.item.dica}</>) : " "}</p>
+      <p className="v2-avatar-dica" role="status">{dica ? (dica.ok ? <>✔ <b>{dica.item.nome}</b>: {motivoDe(dica.item, campeonatos)}</> : <>🔒 <b>{dica.item.nome}</b>: {dica.item.dica}</>) : " "}</p>
     </section>
   );
 }

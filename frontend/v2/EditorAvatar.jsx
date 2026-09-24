@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { esquecerPerfil } from "./perfil.js";
-import { useCatalogoAvatar, motivoDe, minuscula } from "./avatarCatalogo.js";
+import { useCatalogoAvatar, motivoDe, minuscula, slotDasPecas, CHAVE_DO_MES, mesesDeCampeao, mesCurto } from "./avatarCatalogo.js";
 import AvatarBoneco, { MiniaturaPeca, corDoCabelo } from "./AvatarBoneco.jsx";
 import AvisoPecaNova from "./AvisoPecaNova.jsx";
 
@@ -13,6 +13,11 @@ import AvisoPecaNova from "./AvisoPecaNova.jsx";
 //
 // Cabelo pintável (item.pintavel) ganha a fileira de cores embaixo das
 // peças; a cor fica em config.corCabelo (chave da paleta do catálogo).
+//
+// Duas mãos: a aba "Mão esq." usa as MESMAS peças da mão, espelhadas.
+// Troféu de campeão leva o mês na plaqueta (config.mesTrofeu, e
+// mesTrofeuEsquerda na outra mão): vestir escolhe o mês mais recente, e quem
+// foi campeão daquele jogo mais de uma vez ganha um seletor de mês.
 //
 // Tudo é grátis — nada aqui é vendido. O servidor confere de novo, ao
 // salvar, se cada peça está mesmo liberada (PUT /api/avatar).
@@ -51,24 +56,44 @@ export default function EditorAvatar({ usuario, foto = null }) {
   const convidado = meu.convidado;
   const liberados = new Set(meu.liberados);
   const slotAtual = catalogo.slots.find((s) => s.slot === aba) || catalogo.slots[0];
-  const pecas = catalogo.itens.filter((i) => i.slot === slotAtual.slot);
+  const pecas = catalogo.itens.filter((i) => i.slot === slotDasPecas(catalogo, slotAtual.slot));
+  const campeonatos = meu.campeonatos || {};
   const mudou = JSON.stringify(limpar(config, catalogo)) !== JSON.stringify(limpar(meu.config, catalogo)) || !meu.jaMontou;
   const dicaDe = (item) => (convidado ? "Crie sua conta para desbloquear." : item.dica);
   // Peça escolhida na aba aberta (a linha embaixo da prévia fala dela).
   const escolhidaNaAba = catalogo.porId.get(config[slotAtual.slot]);
   const mostrarMotivo = !convidado && escolhidaNaAba && liberados.has(escolhidaNaAba.id);
+  // Mês da plaqueta: só com troféu na mão da aba aberta e mais de um mês.
+  const chaveDoMes = CHAVE_DO_MES[slotAtual.slot];
+  const mesesDoTrofeu = escolhidaNaAba?.placa && chaveDoMes ? mesesDeCampeao(escolhidaNaAba, campeonatos) : [];
   // Cores do cabelo: só na aba do cabelo, com um cabelo pintável vestido.
   const cabeloVestido = catalogo.porId.get(config.cabelo);
   const cores = !convidado && aba === "cabelo" && cabeloVestido?.pintavel ? catalogo.coresCabelo || [] : [];
   const corAtual = config.corCabelo || "original";
   const corNasMiniaturas = corDoCabelo(catalogo, config) ? config.corCabelo : null;
 
+  // Veste na aba aberta (a peça da mão também vai na mão esquerda).
   function vestir(item) {
     const livre = liberados.has(item.id);
     setDica({ item, livre });
     if (!livre) return;
     setMsg(null);
-    setConfig((c) => ({ ...c, [item.slot]: item.id }));
+    const slot = slotAtual.slot;
+    setConfig((c) => {
+      const nova = { ...c, [slot]: item.id };
+      const chave = CHAVE_DO_MES[slot];
+      if (chave) {
+        // Troféu: mantém o mês se ele vale pro jogo desse troféu; senão, o
+        // mais recente. Sem troféu, a mão não leva mês.
+        const meses = item.placa ? mesesDeCampeao(item, campeonatos) : [];
+        nova[chave] = meses.includes(c[chave]) ? c[chave] : meses[0] || null;
+      }
+      return nova;
+    });
+  }
+  function escolherMes(mes) {
+    setMsg(null);
+    setConfig((c) => ({ ...c, [chaveDoMes]: mes }));
   }
   function pintar(chave) {
     setMsg(null);
@@ -86,7 +111,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
   function tirar(slot) {
     setDica(null);
     setMsg(null);
-    setConfig((c) => ({ ...c, [slot]: null }));
+    setConfig((c) => ({ ...c, [slot]: null, ...(CHAVE_DO_MES[slot] ? { [CHAVE_DO_MES[slot]]: null } : {}) }));
   }
 
   async function salvar() {
@@ -123,7 +148,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
 
   return (
     <section className="v2-cartao v2-avatar-editor" id="avatar">
-      {!convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meu.liberados} config={config} />}
+      {!convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meu.liberados} config={config} campeonatos={campeonatos} />}
       <h2>Avatar</h2>
       <p className="v2-cartao-nota">
         {convidado
@@ -136,7 +161,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
           <AvatarBoneco config={config} altura={300} rotulo="Prévia do seu avatar" />
           {mostrarMotivo && (
             <p className="v2-avatar-motivo">
-              <b>{escolhidaNaAba.nome}</b> — {minuscula(motivoDe(escolhidaNaAba))}
+              <b>{escolhidaNaAba.nome}</b> — {minuscula(motivoDe(escolhidaNaAba, campeonatos))}
             </p>
           )}
           <div className="v2-avatar-previa-bolinha" title="Como fica na bolinha">
@@ -159,7 +184,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
                 className={aba === s.slot ? "ativa" : ""}
                 onClick={() => { setAba(s.slot); setDica(null); }}
               >
-                {s.nome}
+                {NOME_CURTO_DA_ABA[s.slot] || s.nome}
               </button>
             ))}
           </div>
@@ -173,18 +198,18 @@ export default function EditorAvatar({ usuario, foto = null }) {
             )}
             {[...pecas].sort((a, b) => ordemRaridade(a) - ordemRaridade(b)).map((item) => {
               const livre = liberados.has(item.id);
-              const escolhida = config[item.slot] === item.id;
+              const escolhida = config[slotAtual.slot] === item.id;
               return (
                 <button
                   key={item.id}
                   className={`v2-avatar-peca raridade-${item.raridade || "base"} ${escolhida ? "escolhida" : ""} ${livre ? "" : "trancada"}`}
                   aria-pressed={escolhida}
-                  aria-label={livre ? `${item.nome} (${minuscula(motivoDe(item))})` : `${item.nome} (trancado: ${dicaDe(item)})`}
-                  title={livre ? `${item.nome} — ${motivoDe(item)}` : `🔒 ${dicaDe(item)}`}
+                  aria-label={livre ? `${item.nome} (${minuscula(motivoDe(item, campeonatos))})` : `${item.nome} (trancado: ${dicaDe(item)})`}
+                  title={livre ? `${item.nome} — ${motivoDe(item, campeonatos)}` : `🔒 ${dicaDe(item)}`}
                   onClick={() => vestir(item)}
                 >
                   <span className="v2-avatar-miniatura">
-                    <MiniaturaPeca item={item} corCabelo={item.pintavel ? corNasMiniaturas : null} />
+                    <MiniaturaPeca item={item} slot={slotAtual.slot} corpo={config} corCabelo={item.pintavel ? corNasMiniaturas : null} />
                     {!livre && <span className="v2-avatar-cadeado" aria-hidden="true">🔒</span>}
                   </span>
                   <small>{item.nome}</small>
@@ -193,6 +218,14 @@ export default function EditorAvatar({ usuario, foto = null }) {
               );
             })}
           </div>
+          {mesesDoTrofeu.length > 1 && !convidado && (
+            <label className="v2-avatar-mes">
+              <span>Mês na plaqueta do troféu</span>
+              <select value={config[chaveDoMes] || mesesDoTrofeu[0]} onChange={(e) => escolherMes(e.target.value)}>
+                {mesesDoTrofeu.map((m) => <option key={m} value={m}>{mesCurto(m)}</option>)}
+              </select>
+            </label>
+          )}
           {cores.length > 0 && (
             <div className="v2-avatar-cores">
               <span id="v2-avatar-cores-rotulo">Cor do cabelo</span>
@@ -218,7 +251,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
             </div>
           )}
           <p className="v2-avatar-dica" role="status">
-            {dica ? (dica.livre ? <>✔ <b>{dica.item.nome}</b>: {motivoDe(dica.item)}</> : <>🔒 <b>{dica.item.nome}</b>: {dicaDe(dica.item)}</>) : " "}
+            {dica ? (dica.livre ? <>✔ <b>{dica.item.nome}</b>: {motivoDe(dica.item, campeonatos)}</> : <>🔒 <b>{dica.item.nome}</b>: {dicaDe(dica.item)}</>) : " "}
           </p>
         </div>
       </div>
@@ -259,6 +292,8 @@ export default function EditorAvatar({ usuario, foto = null }) {
 // Nível de dificuldade da peça (vem do catálogo): ordena as peças de cada
 // aba da base até a lendária e dá nome à etiqueta do card.
 const ORDEM_RARIDADE = ["base", "iniciante", "intermediario", "dificil", "lendario"];
+// Rótulo mais curto pra aba (10+ partes numa fileira).
+const NOME_CURTO_DA_ABA = { maoEsquerda: "Mão esq." };
 const NOME_RARIDADE = { base: "Base", iniciante: "Iniciante", intermediario: "Intermediário", dificil: "Difícil", lendario: "Lendário" };
 const ordemRaridade = (item) => Math.max(0, ORDEM_RARIDADE.indexOf(item.raridade || "base"));
 

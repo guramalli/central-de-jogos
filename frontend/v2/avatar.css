@@ -14,6 +14,14 @@
 /* Cabelo pintado: cinza + bloco da cor em multiply, isolados do resto. */
 .v2-boneco-pintado { position: absolute; inset: 0; display: block; isolation: isolate; pointer-events: none; }
 .v2-boneco-tinta { mix-blend-mode: multiply; }
+/* Mão esquerda: a camada da mão espelhada em torno do centro da tela. Só a
+   METADE ESQUERDA (depois de espelhar) aparece: a arte da mão traz pedaços
+   do contorno do corpo do outro lado, que espelhados cairiam por cima do
+   objeto da mão direita. (O recorte vale antes do espelho, por isso
+   "corta a esquerda" = sobra a metade da direita, que vira a esquerda.) */
+.v2-boneco-palco > .espelhado { transform: scaleX(-1); clip-path: inset(0 0 0 50%); }
+/* Mês do campeonato na plaqueta do troféu (posição e tamanho vêm do JSX). */
+.v2-boneco-placa { position: absolute; display: block; font-family: "Fredoka", "Trebuchet MS", sans-serif; font-weight: 700; line-height: 1; letter-spacing: .02em; color: #6b3d06; white-space: nowrap; pointer-events: none; user-select: none; }
 .v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
 
 /* Perfil: corpo inteiro no lugar da bolinha. */
@@ -52,6 +60,9 @@
 .v2-avatar-cor.original { width: auto; padding: 0 12px; border-radius: 17px; background: var(--roxo); color: var(--lilas); font-weight: 900; font-size: 12px; }
 .v2-avatar-cor.escolhida { border-color: var(--amarelo); box-shadow: 0 0 0 2px var(--roxo-escuro) inset; }
 .v2-avatar-cor:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* Mês na plaqueta do troféu (campeão mais de uma vez daquele jogo). */
+.v2-avatar-mes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--lilas); font-size: 13px; font-weight: 800; }
+.v2-avatar-mes select { min-height: 36px; padding: 0 10px; border: 2px solid var(--borda); border-radius: 12px; background: var(--roxo); color: #fff; font: inherit; font-weight: 900; }
 
 .v2-avatar-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .v2-avatar-rodape .v2-botao { min-height: 46px; font-size: 16px; padding: 0 22px; }
@@ -77,10 +88,10 @@
 .v2-colecao-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
 .v2-colecao-peca { display: flex; justify-content: center; padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; }
 .v2-colecao-peca .v2-avatar-miniatura { width: 52px; height: 52px; }
-/* Trancada: silhueta escura da própria peça (sem entregar as cores). */
-.v2-colecao-peca.trancada .v2-boneco { filter: brightness(0); opacity: .75; }
-/* Fundo mais claro atrás da silhueta preta, senão ela some no roxo escuro. */
-.v2-colecao-peca.trancada .v2-avatar-miniatura { background: #5a4699; }
+/* Trancada: a peça (vestida no corpo) apagada e sem cor, como no editor. */
+.v2-colecao-peca.trancada .v2-boneco { opacity: .4; filter: grayscale(1); }
+.v2-colecao-peca { position: relative; }
+.v2-colecao-peca .v2-avatar-cadeado { font-size: 14px; }
 .v2-colecao-peca.ativa, .v2-colecao-peca:hover { border-color: var(--borda); }
 
 /* ---------- aviso de peça nova ---------- */

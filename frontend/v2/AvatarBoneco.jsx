@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useCatalogoAvatar, ENQUADRAMENTO } from "./avatarCatalogo.js";
+import { useCatalogoAvatar, ENQUADRAMENTO, slotDasPecas, CHAVE_DO_MES, textoDaPlaca } from "./avatarCatalogo.js";
 import { buscarPerfil, perfilEmCache, ouvirPerfil } from "./perfil.js";
 import "./avatar.css";
 
@@ -72,12 +72,23 @@ export function BonecoDoJogador({ userId, altura = 120, reserva = null, classNam
 }
 
 // Miniatura redonda de UMA peça (editor, coleção do perfil, aviso de peça
-// nova), no enquadramento da parte do corpo dela. `corCabelo`: o editor
-// mostra os cabelos pintáveis já na cor escolhida.
-export function MiniaturaPeca({ item, tamanho = 64, corCabelo }) {
-  const config = { [item.slot]: item.id };
-  if (corCabelo && item.slot === "cabelo") config.corCabelo = corCabelo;
-  return <AvatarBoneco config={config} busto tamanho={tamanho} recorte={ENQUADRAMENTO[item.slot]} />;
+// nova), no enquadramento da parte do corpo dela.
+//
+// A peça vai VESTIDA no corpo (a pele) da pessoa, sem as outras peças: a
+// arte de cada camada traz pedacinhos do contorno do corpo pra fechar as
+// frestas, que sozinhos (sem o corpo embaixo) desenhavam um rosto fantasma
+// atrás do cabelo. `corpo`: a montagem atual (só a pele é usada; sem ela,
+// a primeira pele do catálogo). Fundo e pele aparecem sozinhos.
+// `corCabelo`: o editor mostra os cabelos pintáveis já na cor escolhida.
+// `slot`: onde a peça vai (a aba "Mão esq." mostra a peça da mão espelhada).
+export function MiniaturaPeca({ item, tamanho = 64, corCabelo, corpo, slot = item.slot }) {
+  const catalogo = useCatalogoAvatar();
+  const config = { [slot]: item.id };
+  if (slot !== "pele" && slot !== "fundo") {
+    config.pele = corpo?.pele || catalogo?.itens.find((i) => i.slot === "pele")?.id;
+  }
+  if (corCabelo && slot === "cabelo") config.corCabelo = corCabelo;
+  return <AvatarBoneco config={config} busto tamanho={tamanho} recorte={ENQUADRAMENTO[slot] || ENQUADRAMENTO[item.slot]} />;
 }
 
 // Cor (hex) do cabelo de uma montagem, ou null pra camada original: sem
@@ -91,14 +102,23 @@ export function corDoCabelo(catalogo, config) {
 }
 
 // Lista das camadas (na ordem de desenho) de uma montagem — o cartão de
-// compartilhar usa pra desenhar no canvas.
+// compartilhar usa pra desenhar no canvas: { slot, item, espelhado, placa }.
+// `placa`: texto da plaqueta ("SET/26") de troféu com mês escolhido.
 export function camadasDaMontagem(catalogo, config) {
   const lista = [];
   for (const slot of catalogo?.camadas || []) {
     const item = catalogo.porId.get(config?.[slot]);
-    if (item && item.slot === slot) lista.push(item);
+    if (!item || item.slot !== slotDasPecas(catalogo, slot)) continue;
+    const placa = item.placa && CHAVE_DO_MES[slot] ? textoDaPlaca(config[CHAVE_DO_MES[slot]]) : null;
+    lista.push({ slot, item, espelhado: item.slot !== slot, placa });
   }
   return lista;
+}
+
+// Onde fica a plaqueta de um troféu na tela (900×1200): na mão esquerda,
+// espelhada (x e ângulo invertidos) — mas o TEXTO não é espelhado.
+export function posicaoDaPlaca(placa, espelhado, largura = 900) {
+  return espelhado ? { ...placa, x: largura - placa.x, angulo: -placa.angulo } : placa;
 }
 
 export default function AvatarBoneco({ config, altura = 240, busto = false, tamanho = 40, preencher = false, recorte, className = "", rotulo, semFundo = false }) {
@@ -127,23 +147,32 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
   const corDaPele = catalogo?.porId.get(config?.pele)?.cor;
   const corCabelo = corDoCabelo(catalogo, config);
   const camadas = [];
+  const placas = [];
   for (const slot of catalogo?.camadas || []) {
     if (semFundo && slot === "fundo") continue;
     const item = catalogo.porId.get(config?.[slot]);
-    const ok = item && item.slot === slot && !arteQueFalhou.has(item.arquivo);
+    const ok = item && item.slot === slotDasPecas(catalogo, slot) && !arteQueFalhou.has(item.arquivo);
     if (ok) {
+      // Mão esquerda: a peça da mão, espelhada (ver .espelhado no CSS).
+      const espelhado = item.slot !== slot;
       // Máscara logo ABAIXO da peça (dentro do mesmo slot: máscara, peça).
-      if (item.mascaraPele && corDaPele) camadas.push({ slot: `${slot}-pele`, mascara: item.mascaraPele });
+      if (item.mascaraPele && corDaPele) camadas.push({ slot: `${slot}-pele`, mascara: item.mascaraPele, espelhado });
       // Cabelo pintado: a versão cinza no lugar da colorida (se o cinza
       // falhar ao baixar, volta a original).
       if (slot === "cabelo" && corCabelo && !arteQueFalhou.has(item.pintavel)) camadas.push({ slot, item, cinza: item.pintavel });
-      else camadas.push({ slot, item });
+      else camadas.push({ slot, item, espelhado });
+      const texto = item.placa && CHAVE_DO_MES[slot] ? textoDaPlaca(config[CHAVE_DO_MES[slot]]) : null;
+      if (texto) placas.push({ slot, texto, ...posicaoDaPlaca(item.placa, espelhado, tela.largura) });
     } else if (slot === "pele" && config?.pele) camadas.push({ slot, silhueta: true });
   }
 
   // width/height nos <img> reservam o espaço antes da arte chegar.
   const larg = Math.round(px[0]);
   const alt = Math.round(px[1]);
+  // Texto da plaqueta só onde dá pra ler (some nas bolinhas pequenas).
+  const escala = px[0] / tela.largura;
+  const pctX = (v) => `${(v / tela.largura) * 100}%`;
+  const pctY = (v) => `${(v / tela.altura) * 100}%`;
   return (
     <span
       className={`v2-boneco ${busto ? "busto" : ""} ${className}`}
@@ -161,7 +190,7 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
             // cor da pele: do mesmo tamanho das camadas, então encaixa.
             <span
               key={c.slot}
-              className="v2-boneco-mascara"
+              className={`v2-boneco-mascara ${c.espelhado ? "espelhado" : ""}`}
               style={{
                 backgroundColor: corDaPele,
                 maskImage: `url("${c.mascara}")`,
@@ -193,6 +222,7 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
             <img
               key={c.slot}
               src={c.item.arquivo}
+              className={c.espelhado ? "espelhado" : undefined}
               alt=""
               width={larg}
               height={alt}
@@ -203,6 +233,17 @@ export default function AvatarBoneco({ config, altura = 240, busto = false, tama
             />
           )
         )}
+        {/* Mês do campeonato na plaqueta do troféu, por cima da arte (em %
+            da tela, então acompanha qualquer tamanho). */}
+        {placas.map((p) => (p.fonte * escala >= 4 ? (
+          <span
+            key={`${p.slot}-placa`}
+            className="v2-boneco-placa"
+            style={{ left: pctX(p.x), top: pctY(p.y), fontSize: `${p.fonte * escala}px`, transform: `translate(-50%, -50%) rotate(${p.angulo}deg)` }}
+          >
+            {p.texto}
+          </span>
+        ) : null))}
       </span>
     </span>
   );

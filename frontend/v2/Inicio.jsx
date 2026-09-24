@@ -85,7 +85,7 @@ export default function Inicio({ usuario }) {
             </div>
             <ProximaPeca meu={meuAvatar} />
           </div>
-          {meuAvatar && !meuAvatar.convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meuAvatar.liberados} config={perfil?.avatar || meuAvatar.config} />}
+          {meuAvatar && !meuAvatar.convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meuAvatar.liberados} config={perfil?.avatar || meuAvatar.config} campeonatos={meuAvatar.campeonatos} />}
           <div className="v2-painel-jogador">
             {mensal.length === 0 && !proximoTitulo && <div className="v2-vazio">Jogue uma partida pra aparecer aqui a sua patente do mês.</div>}
             {mensal.map((m) => {
@@ -242,7 +242,7 @@ function ProximaPeca({ meu }) {
   const pct = Math.min(100, Math.round((p.atual / p.meta) * 100));
   return (
     <a className="v2-proxima-peca" href={linkDaPagina("editar-perfil")} onClick={abrir} title={item.dica}>
-      <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} tamanho={48} /></span>
+      <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} tamanho={48} corpo={meu.config} /></span>
       <div>
         <span>Próxima peça</span>
         <b>{item.nome}</b>

@@ -13,12 +13,13 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../g
 // reais).
 //
 // COMO ACRESCENTAR UMA PEÇA:
-//   1. salvar a arte em frontend/public/avatar/<slot>/<id>-v1.webp;
+//   1. salvar a arte em frontend/public/avatar/<slot>/<id>-<VERSAO_ARTE>.webp;
 //   2. acrescentar a linha em LISTA;
 //   3. subir VERSAO_CATALOGO (o navegador guarda o catálogo em cache).
-// O "-v1" no nome do arquivo é de propósito: arquivo de nome fixo fica preso
-// no cache do service worker. Pra trocar a arte de uma peça, salve como
-// "-v2" e mude o `arquivo` aqui — o id da peça (o que fica no banco) não muda.
+// A versão no nome do arquivo é de propósito: arquivo de nome fixo fica
+// preso no cache do service worker. Pra trocar a arte TODA (como na v2, que
+// fechou as frestas do contorno da careca), exporte tudo com o sufixo novo e
+// suba VERSAO_ARTE — o id da peça (o que fica no banco) não muda.
 //
 // Enquanto a arte não existe, o frontend pula a camada que falta (e desenha
 // uma silhueta tracejada se faltar o corpo) — o sistema funciona sem arte.
@@ -28,9 +29,14 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../g
 
 // Sobe a cada mudança em LISTA: o frontend usa pra invalidar o cache dele.
 // v4: `motivo` de cada peça, cabelos pintáveis e a paleta CORES_CABELO.
+// v6: arte v2, coroas e troféus por jogo (com a plaqueta do mês), undercut
+// rosa e a mão esquerda.
 // (O frontend tem uma cópia deste número em avatarCatalogo.js, que vai no
 // "?v=" da busca — suba as duas juntas.)
-export const VERSAO_CATALOGO = 5;
+export const VERSAO_CATALOGO = 6;
+
+// Sufixo dos arquivos de arte (peças, máscaras de pele e cinzas).
+export const VERSAO_ARTE = "v2";
 
 // Tamanho da tela de todas as camadas e os dois recortes usados fora do
 // corpo inteiro (em pixels da tela):
@@ -62,31 +68,41 @@ export const SLOTS = [
   { slot: "pescoco", nome: "Pescoço" },
   { slot: "costas", nome: "Costas" },
   { slot: "mao", nome: "Na mão" },
+  // Segunda mão: usa as MESMAS peças de "mao", espelhadas na horizontal (o
+  // corpo é simétrico, então o objeto cai na outra mão). `pecasDe` diz de
+  // que slot vêm as peças.
+  { slot: "maoEsquerda", nome: "Mão esquerda", pecasDe: "mao" },
   { slot: "fundo", nome: "Fundo" },
 ];
 export const NOMES_DOS_SLOTS = SLOTS.map((s) => s.slot);
 
+// Slot de onde vêm as peças de cada slot (só a mão esquerda empresta).
+export const SLOT_DAS_PECAS = Object.fromEntries(SLOTS.map((s) => [s.slot, s.pecasDe || s.slot]));
+// Slots desenhados espelhados.
+export const SLOTS_ESPELHADOS = ["maoEsquerda"];
+
 // Ordem de desenho, de baixo pra cima. O chapéu vem DEPOIS do cabelo e não
 // esconde nada: a arte do chapéu já é desenhada por cima do cabelo.
-export const CAMADAS = ["fundo", "costas", "pele", "parteDeBaixo", "roupa", "pescoco", "cabelo", "rosto", "chapeu", "mao"];
+export const CAMADAS = ["fundo", "costas", "pele", "parteDeBaixo", "roupa", "pescoco", "cabelo", "rosto", "chapeu", "mao", "maoEsquerda"];
 
 // Tipos de desbloqueio aceitos (conferidos em desbloqueio.js):
 //   { tipo: "inicial" }                                   todo mundo (menos visitante)
 //   { tipo: "titulo", tema: "anime", nivel: "ouro" }      título do Quiz daquele tema/nível
 //   { tipo: "titulo", nome: "Lenda do Educação Gamer" }   título pelo nome exato
-//   { tipo: "titulo", comecaCom: "Campeão " }             qualquer título com esse começo
+//   { tipo: "campeao", jogo: "acromania" }                campeão do mês do jogo (CampeaoMensal), em ALGUM mês
 //   { tipo: "patente", jogo: "quiz", patente: "calouro" } patente alcançada em ALGUM mês
 //   { tipo: "sequencia", dias: 30 }                       recorde de dias seguidos jogando
 //   { tipo: "pontos", jogo: "stop", min: 50000 }          pontos vitalícios no jogo
 //   { tipo: "pontos", jogo: "total", min: 25000 }         pontos vitalícios somando todos os jogos
-// jogo (patente): "stop" | "quiz" | "acromania" | "mentira".
-export const TIPOS_DE_DESBLOQUEIO = ["inicial", "titulo", "patente", "sequencia", "pontos"];
+// jogo (patente/campeão): "stop" | "quiz" | "acromania". O Mentira Sincera
+// está desligado e não libera peça nenhuma.
+export const TIPOS_DE_DESBLOQUEIO = ["inicial", "titulo", "campeao", "patente", "sequencia", "pontos"];
 
 // Nível dos títulos do Quiz como aparece pra pessoa.
 export const NOME_DO_NIVEL = { bronze: "bronze", prata: "prata", ouro: "ouro" };
 const INDICE_DO_NIVEL = { bronze: 0, prata: 1, ouro: 2 };
 
-const arte = (slot, id) => `/avatar/${slot}/${id}-v1.webp`;
+const arte = (slot, id, sufixo = "") => `/avatar/${slot}/${id}${sufixo}-${VERSAO_ARTE}.webp`;
 const milhar = (n) => n.toLocaleString("pt-BR");
 
 // Atalhos pra escrever a lista abaixo sem repetir objeto.
@@ -95,10 +111,10 @@ const quiz = (tema, nivel) => ({ tipo: "titulo", tema, nivel });
 const dias = (n) => ({ tipo: "sequencia", dias: n });
 const pontos = (jogo, min) => ({ tipo: "pontos", jogo, min });
 const patente = (jogo, key) => ({ tipo: "patente", jogo, patente: key });
-const campeao = { tipo: "titulo", comecaCom: "Campeão " };
+const campeao = (jogo) => ({ tipo: "campeao", jogo });
 const lendario = { tipo: "titulo", nome: TITULO_LENDARIO.nome };
 
-const NOME_DO_JOGO = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", mentira: "Mentira Sincera", impostor: "Impostor", total: "todos os jogos" };
+export const NOME_DO_JOGO = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", impostor: "Impostor", total: "todos os jogos" };
 
 // Dica gerada da regra, pra ficar sempre coerente com ela. Peças de patente
 // escrevem a dica à mão (o nome da patente mora nas tabelas de rank, que
@@ -113,8 +129,9 @@ export function dicaDaRegra(d) {
         return `Conquiste o título de ${NOME_DO_NIVEL[d.nivel]} em ${QUIZ_NOMES[d.tema]} no Quiz: "${nomeDoTituloQuiz(d.tema, d.nivel)}" (${milhar(min)} acertos no tema).`;
       }
       if (d.nome === TITULO_LENDARIO.nome) return `Conquiste o título lendário "${TITULO_LENDARIO.nome}" (todos os títulos do portal).`;
-      if (d.comecaCom === "Campeão ") return "Seja campeão do ranking mensal do Stop ou do Quiz.";
-      return `Conquiste o título "${d.nome || d.comecaCom}".`;
+      return `Conquiste o título "${d.nome}".`;
+    case "campeao":
+      return `Seja campeão do mês no ${NOME_DO_JOGO[d.jogo] || d.jogo} (1º lugar do ranking mensal).`;
     case "sequencia":
       return `Jogue ${d.dias} dias seguidos.`;
     case "pontos":
@@ -136,8 +153,11 @@ export function motivoDaRegra(d) {
     case "titulo":
       if (d.tema) return `Conquistada com o título ${nomeDoTituloQuiz(d.tema, d.nivel)} (${NOME_DO_NIVEL[d.nivel]} em ${QUIZ_NOMES[d.tema]} no Quiz).`;
       if (d.nome === TITULO_LENDARIO.nome) return `Conquistada com o título lendário ${TITULO_LENDARIO.nome} (todos os títulos do portal).`;
-      if (d.comecaCom === "Campeão ") return "Conquistada com o título Campeão do mês (1º lugar no ranking mensal do Stop ou do Quiz).";
-      return `Conquistada com o título ${d.nome || d.comecaCom}.`;
+      return `Conquistada com o título ${d.nome}.`;
+    case "campeao":
+      // Texto genérico (o catálogo é igual pra todo mundo). A tela troca por
+      // "…em Set/2026, Ago/2026" com os meses de quem ganhou (campeonatos).
+      return `Conquistada como campeão do mês no ${NOME_DO_JOGO[d.jogo] || d.jogo} (1º lugar do ranking mensal).`;
     case "sequencia":
       return `Conquistada por jogar ${d.dias} dias seguidos.`;
     case "pontos":
@@ -149,7 +169,11 @@ export function motivoDaRegra(d) {
   }
 }
 
-// ===== AS 73 PEÇAS =====
+// Rabo de cavalo e undercut rosa saem JUNTOS (mesma regra): o undercut é a
+// alternativa masculina da mesma recompensa.
+const DICA_DO_PAR_ROSA = "Some 5.000 pontos no Quiz (desde sempre). Libera o par rosa: Rabo de cavalo rosa e Undercut rosa.";
+
+// ===== AS 78 PEÇAS =====
 // [slot, id, nome, desbloqueio, dica opcional, motivo opcional]
 const LISTA_CRUA = [
   // Pele (corpo-base com o rosto padrão) — todas iniciais.
@@ -166,7 +190,8 @@ const LISTA_CRUA = [
   ["cabelo", "cabelo-black-power", "Black power", inicial],
   ["cabelo", "cabelo-moicano", "Moicano colorido", dias(7)],
   ["cabelo", "cabelo-anime", "Espetado de anime", quiz("anime", "ouro")],
-  ["cabelo", "cabelo-rabo-rosa", "Rabo de cavalo rosa", pontos("quiz", 5000)],
+  ["cabelo", "cabelo-rabo-rosa", "Rabo de cavalo rosa", pontos("quiz", 5000), DICA_DO_PAR_ROSA],
+  ["cabelo", "cabelo-undercut-rosa", "Undercut rosa", pontos("quiz", 5000), DICA_DO_PAR_ROSA],
   ["cabelo", "cabelo-topete", "Topete de roqueiro", quiz("rock", "ouro")],
   ["cabelo", "cabelo-chamas", "Cabelo em chamas", lendario],
 
@@ -180,8 +205,7 @@ const LISTA_CRUA = [
   ["roupa", "roupa-beca", "Beca de formatura", quiz("terceirao", "ouro")],
   ["roupa", "roupa-couro", "Jaqueta de couro", quiz("rock", "prata")],
   ["roupa", "roupa-banda", "Camisa de banda", quiz("musica", "ouro")],
-  // Patente do meio da escada do Mentira (6ª de 12): Cartola de Bronze, 28.000 pts num mês.
-  ["roupa", "roupa-terno", "Terno de advogado", patente("mentira", "cartola_bronze"), "Chegue à patente Cartola de Bronze no Mentira Sincera (28.000 pontos num mês).", "Conquistada ao alcançar a patente Cartola de Bronze no Mentira Sincera."],
+  ["roupa", "roupa-terno", "Terno de advogado", quiz("direito", "bronze")],
   ["roupa", "roupa-manto-impostor", "Manto do impostor", dias(21)],
 
   ["parteDeBaixo", "baixo-shorts", "Shorts", inicial],
@@ -200,7 +224,11 @@ const LISTA_CRUA = [
   ["chapeu", "chapeu-explorador", "Chapéu de explorador", quiz("historia", "ouro")],
   ["chapeu", "chapeu-headset", "Headset gamer", quiz("games", "ouro")],
   ["chapeu", "chapeu-cartola", "Cartola", quiz("cinema", "ouro")],
-  ["chapeu", "chapeu-coroa", "Coroa", campeao],
+  // Coroas de campeão do mês, uma por jogo ("chapeu-coroa" é a do Stop:
+  // o id ficou o antigo pra não mexer em quem já veste).
+  ["chapeu", "chapeu-coroa", "Coroa do Stop", campeao("stop")],
+  ["chapeu", "chapeu-coroa-quiz", "Coroa do Quiz", campeao("quiz")],
+  ["chapeu", "chapeu-coroa-acromania", "Coroa do Acromania", campeao("acromania")],
 
   ["rosto", "rosto-redondos", "Óculos redondos", inicial],
   ["rosto", "rosto-escuros", "Óculos escuros", inicial],
@@ -229,8 +257,12 @@ const LISTA_CRUA = [
   ["mao", "mao-guitarra", "Guitarra", quiz("rock", "ouro")],
   ["mao", "mao-microfone", "Microfone", quiz("mpb", "ouro")],
   ["mao", "mao-martelo", "Martelo de juiz", quiz("direito", "prata")],
-  ["mao", "mao-lupa", "Lupa de detetive", patente("mentira", "mascara_ouro"), "Chegue à patente máxima do Mentira Sincera, Máscara de Ouro (150.000 pontos num mês).", "Conquistada ao alcançar a patente máxima do Mentira Sincera, Máscara de Ouro."],
-  ["mao", "mao-trofeu", "Troféu", campeao],
+  ["mao", "mao-lupa", "Lupa de detetive", quiz("geral", "ouro")],
+  // Troféus de campeão do mês, um por jogo, com o mês escrito na plaqueta
+  // (ver PLACAS).
+  ["mao", "mao-trofeu-stop", "Troféu do Stop", campeao("stop")],
+  ["mao", "mao-trofeu-quiz", "Troféu do Quiz", campeao("quiz")],
+  ["mao", "mao-trofeu-acromania", "Troféu do Acromania", campeao("acromania")],
 
   ["fundo", "fundo-roxo", "Roxo", inicial],
   ["fundo", "fundo-quarto", "Quarto gamer", inicial],
@@ -253,25 +285,41 @@ export const CORES_DA_PELE = {
 
 // Peças que DESCOBREM pele que o corpo-base não mostra (braço da regata, a
 // mão que mudou de lugar pra segurar um objeto...). Cada uma tem um arquivo
-// irmão <id>-pele-v1.webp: máscara branca sobre transparente, pintada com a
-// cor da pele de quem veste e desenhada logo ABAIXO da peça. Lista tirada
-// da pasta da arte (um teste confere que bate com os arquivos).
+// irmão <id>-pele-<VERSAO_ARTE>.webp: máscara branca sobre transparente,
+// pintada com a cor da pele de quem veste e desenhada logo ABAIXO da peça.
+// Lista tirada da pasta da arte (um teste confere que bate com os arquivos).
 const COM_MASCARA_DE_PELE = new Set([
   "roupa-banda", "roupa-beca", "roupa-camiseta", "roupa-couro", "roupa-futebol", "roupa-jaleco",
   "roupa-manto-impostor", "roupa-moletom", "roupa-piloto", "roupa-regata", "roupa-terno", "roupa-xadrez",
   "baixo-camuflada", "baixo-jeans", "baixo-moletom", "baixo-praia", "baixo-saia", "baixo-shorts",
-  "mao-bola", "mao-controle", "mao-guitarra", "mao-livro", "mao-lupa", "mao-martelo", "mao-microfone", "mao-trofeu",
+  "mao-bola", "mao-controle", "mao-guitarra", "mao-livro", "mao-lupa", "mao-martelo", "mao-microfone",
+  "mao-trofeu-stop", "mao-trofeu-quiz", "mao-trofeu-acromania",
 ]);
+
+// ===== Plaqueta do troféu =====
+//
+// A base de cada troféu tem uma plaqueta dourada em branco: a tela escreve
+// nela o mês do campeonato ("SET/26", avatarMontado.mesTrofeu). Posição em
+// pixels da tela 900×1200 (centro, tamanho, inclinação em graus e tamanho
+// da letra), medida na arte v2 — o troféu fica na mão direita do boneco, do
+// lado DIREITO de quem olha. Na mão esquerda (espelhada) o x vira 900 - x e
+// o ângulo troca de sinal; o texto em si nunca é espelhado.
+export const PLACAS = {
+  "mao-trofeu-stop": { x: 735, y: 856, largura: 70, altura: 32, angulo: -1, fonte: 19 },
+  "mao-trofeu-quiz": { x: 720, y: 835, largura: 70, altura: 34, angulo: 3, fonte: 19 },
+  "mao-trofeu-acromania": { x: 735, y: 787, largura: 74, altura: 36, angulo: 7, fonte: 20 },
+};
 
 // ===== Cor do cabelo =====
 //
-// Cabelos PINTÁVEIS têm um arquivo irmão <id>-cinza-v1.webp: a mesma camada
+// Cabelos PINTÁVEIS têm um arquivo irmão <id>-cinza-<VERSAO_ARTE>.webp: a mesma camada
 // (mesma tela, mesmo contorno) em tons de cinza claro, feita pra ser
 // MULTIPLICADA por uma cor — o cinza guarda o sombreado e a cor entra por
 // cima. Moicano e chamas ficam de fora: as cores são a graça deles.
 const CABELOS_PINTAVEIS = new Set([
   "cabelo-curto", "cabelo-cacheado", "cabelo-liso-longo", "cabelo-coque",
   "cabelo-black-power", "cabelo-anime", "cabelo-rabo-rosa", "cabelo-topete",
+  "cabelo-undercut-rosa",
 ]);
 
 // Paleta (a chave é o que fica gravado em avatarMontado.corCabelo).
@@ -312,15 +360,16 @@ export const RARIDADES = [
   { chave: "lendario", nome: "Lendário" },
 ];
 // Patentes do topo de cada jogo (as mais difíceis).
-const PATENTES_MAXIMAS = new Set(["enciclopedia", "coroa_imperial_ouro", "coroa_ouro", "mascara_ouro"]);
+const PATENTES_MAXIMAS = new Set(["enciclopedia", "coroa_imperial_ouro", "coroa_ouro"]);
 export function raridadeDaRegra(d) {
   switch (d.tipo) {
     case "inicial": return "base";
+    case "campeao": return "lendario";
     case "titulo":
       if (d.nivel === "bronze") return "iniciante";
       if (d.nivel === "prata") return "intermediario";
       if (d.nivel === "ouro") return "dificil";
-      return "lendario"; // título lendário e campeão do mês
+      return "lendario"; // título lendário
     case "sequencia": return d.dias <= 7 ? "iniciante" : d.dias <= 21 ? "intermediario" : d.dias < 60 ? "dificil" : "lendario";
     case "pontos":
       if (d.jogo === "total" || d.min >= 25000) return "dificil";
@@ -336,11 +385,28 @@ export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica, motivo]) => {
   const desbloqueio = regra.tipo === "titulo" && regra.tema ? { ...regra, nome: nomeDoTituloQuiz(regra.tema, regra.nivel) } : regra;
   const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, raridade: raridadeDaRegra(desbloqueio), dica: dica || dicaDaRegra(desbloqueio), motivo: motivo || motivoDaRegra(desbloqueio) };
   if (CORES_DA_PELE[id]) item.cor = CORES_DA_PELE[id];
-  if (COM_MASCARA_DE_PELE.has(id)) item.mascaraPele = `/avatar/${slot}/${id}-pele-v1.webp`;
-  if (CABELOS_PINTAVEIS.has(id)) item.pintavel = `/avatar/${slot}/${id}-cinza-v1.webp`;
+  if (COM_MASCARA_DE_PELE.has(id)) item.mascaraPele = arte(slot, id, "-pele");
+  if (CABELOS_PINTAVEIS.has(id)) item.pintavel = arte(slot, id, "-cinza");
+  if (PLACAS[id]) item.placa = PLACAS[id];
   return item;
 });
 export const ITEM_POR_ID = new Map(ITENS.map((i) => [i.id, i]));
+
+// A peça cabe nesse slot? (a mão esquerda aceita as peças da mão)
+export function pecaCabeNoSlot(item, slot) {
+  return !!item && !!SLOT_DAS_PECAS[slot] && item.slot === SLOT_DAS_PECAS[slot];
+}
+
+// Chave do mês gravado pra cada mão com troféu (avatarMontado).
+export const CHAVE_DO_MES = { mao: "mesTrofeu", maoEsquerda: "mesTrofeuEsquerda" };
+
+// "2026-09" -> "SET/26" (o texto da plaqueta).
+const MESES_PLACA = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+export function textoDaPlaca(monthKey) {
+  const m = /^(\d{4})-(\d{2})$/.exec(monthKey || "");
+  if (!m || !MESES_PLACA[Number(m[2]) - 1]) return null;
+  return `${MESES_PLACA[Number(m[2]) - 1]}/${m[1].slice(2)}`;
+}
 
 // ===== Avatar padrão =====
 //
