@@ -43,7 +43,10 @@ export class CerebroBot {
   }
 
   agir(e) {
-    if (e.fase === "LOBBY") { this.feito.clear(); this.minhasDicas.clear(); this.carta = null; return; }
+    // Fim de partida (numa série, a próxima vem direto do FIM, sem passar
+    // pelo LOBBY) ou volta ao lobby: esquece a partida que acabou. A carta
+    // nova chega antes do estado de CARTAS, então pode limpar aqui.
+    if (e.fase === "LOBBY" || e.fase === "FIM") { this.parar(); this.feito.clear(); this.minhasDicas.clear(); this.carta = null; return; }
     if (!e.participo) return;
     if (e.fase === "CARTAS" && !e.cartaVista) this.umaVez("carta", () => this.sala.cartaVista(this.id));
     if (e.fase === "DICAS" && e.vezDe === this.id) this.umaVez(`dica-${e.rodada}`, () => this.darDica(e.modo));

@@ -31,6 +31,8 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
   const modos = estado.modos?.length ? estado.modos : MODOS_PADRAO;
   const modoAtual = modos.find((m) => m.id === estado.modo) || modos[0];
   const chamada = CHAMADA[modoAtual.id] || CHAMADA.palavra;
+  const opcoesSerie = estado.opcoesSerie?.length ? estado.opcoesSerie : [1];
+  const partidas = estado.partidasDaSerie || 1;
   const conectados = jogadores.filter((j) => j.conectado).length;
   const faltam = Math.max(0, minJogadores - conectados);
   // Vagas tracejadas até completar a fileira (6 no computador, 4 no celular
@@ -115,6 +117,34 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
               <b>{modoAtual.nome}:</b> {modoAtual.descricao}
             </motion.p>
           </AnimatePresence>
+          {/* Série: quantas partidas no mesmo modo (pontos somados no fim).
+              Mesmo esquema dos modos: o anfitrião escolhe, os outros veem. */}
+          <div className="imp-serie-escolha">
+            <span className="imp-rotulo" id="imp-serie-rotulo">PARTIDAS</span>
+            <div className={`imp-serie-opcoes ${souAnfitriao ? "escolha" : ""}`} role="radiogroup" aria-labelledby="imp-serie-rotulo">
+              {opcoesSerie.map((n) => {
+                const ativo = n === partidas;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={ativo}
+                    aria-label={`${n} ${n === 1 ? "partida" : "partidas"}`}
+                    className={`imp-serie-opcao ${ativo ? "ativo" : ""}`}
+                    disabled={!souAnfitriao}
+                    onClick={() => { if (!ativo) pedir("impostor-serie", { partidas: n }); }}
+                  >
+                    {ativo && <motion.span layoutId="imp-serie-marca" className="imp-serie-marca" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
+                    <b>{n}</b>
+                  </button>
+                );
+              })}
+            </div>
+            <span className="imp-serie-nota">
+              {partidas === 1 ? "Uma partida avulsa." : <>Série de {partidas} no modo {modoAtual.nome}, <span className="imp-so-computador">com impostor diferente a cada partida e </span>ranking somado no fim.</>}
+            </span>
+          </div>
         </div>
       </section>
 
@@ -142,7 +172,7 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 420, damping: 24 }}
               >
-                <AvatarImp nome={j.nickname} cor={j.cor} tamanho={56} />
+                <AvatarImp id={j.id} nome={j.nickname} cor={j.cor} tamanho={56} />
                 <span className="imp-jogador-nome">{j.nickname}{j.id === estado.euId ? " (você)" : ""}</span>
                 <span className={`imp-tag ${j.bot ? "bot" : j.anfitriao ? "anfitriao" : j.conectado ? "pronto" : "fora"}`}>
                   {j.bot ? "BOT" : j.anfitriao ? "ANFITRIÃO" : j.conectado ? "PRONTO" : "ENTRANDO"}
@@ -176,7 +206,9 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
           <button className="imp-botao secundario" onClick={aoSair}>Sair</button>
           <button className="imp-botao secundario imp-so-celular" onClick={convidar}>{copiado ? "Link copiado!" : "Convidar amigos"}</button>
           {souAnfitriao ? (
-            <button className="imp-botao principal largo" disabled={faltam > 0} onClick={() => pedir("impostor-iniciar")}>Iniciar partida</button>
+            <button className="imp-botao principal largo" disabled={faltam > 0} onClick={() => pedir("impostor-iniciar")}>
+              {partidas > 1 ? `Iniciar série · ${partidas} partidas` : "Iniciar partida"}
+            </button>
           ) : (
             <span className="imp-sub imp-aguardando">Só o anfitrião inicia a partida.</span>
           )}

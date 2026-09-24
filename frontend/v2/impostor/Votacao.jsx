@@ -95,7 +95,7 @@ export default function Votacao({ estado, tempo, pedir }) {
                 animate={{ y: sel ? -6 : 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               >
-                <AvatarImp nome={s.nickname} cor={s.cor} tamanho={96} className="imp-suspeito-avatar" />
+                <AvatarImp id={s.id} nome={s.nickname} cor={s.cor} tamanho={96} className="imp-suspeito-avatar" />
                 <span className="imp-suspeito-info">
                   <span className="imp-suspeito-nome">{s.nickname}</span>
                   <span className="imp-suspeito-disse imp-so-celular">

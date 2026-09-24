@@ -2516,3 +2516,7 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
 .v2-msg-fila-ok { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 900; color: var(--verde); }
 .v2-msg-fila-erro { display: block; margin-top: 2px; font-size: 12px; font-weight: 800; color: #ff8a80; }
 @media (pointer: coarse) { .v2-msg-fila-botao { min-height: 40px; } }
+
+/* "← Voltar ao lobby" na tela inicial dos jogos (Tribunal). */
+.v2-voltar-lobby { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 14px; background: var(--roxo-2); color: #fff; font-weight: 800; font-size: 14px; text-decoration: none; }
+.v2-voltar-lobby:hover, .v2-voltar-lobby:focus-visible { background: var(--roxo); box-shadow: inset 0 0 0 2px var(--amarelo); }

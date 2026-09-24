@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { buscarPerfil, perfilEmCache } from "../perfil.js";
 import { motion } from "motion/react";
 import { tocar } from "./sons.js";
 
@@ -55,14 +56,25 @@ export function Cronometro({ tempo, variante = "pilula", comSom = true }) {
   );
 }
 
-export function AvatarImp({ nome, cor, tamanho = 44, className = "" }) {
+// Foto de perfil do jogador (a mesma do resto do site, com cache
+// compartilhado em ../perfil.js), com um anel na cor dele. Sem foto — ou bot,
+// que não tem perfil — fica a bolinha colorida com a inicial.
+export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
+  const [perfil, setPerfil] = useState(() => perfilEmCache(id));
+  const [falhou, setFalhou] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    buscarPerfil(id).then((p) => vivo && p && setPerfil(p));
+    return () => { vivo = false; };
+  }, [id]);
+  const foto = perfil?.avatarUrl && !falhou ? perfil.avatarUrl : null;
   return (
     <span
-      className={`imp-avatar ${className}`}
-      style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46) }}
+      className={`imp-avatar ${foto ? "com-foto" : ""} ${className}`}
+      style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46), "--imp-cor-avatar": cor }}
       aria-hidden="true"
     >
-      {String(nome || "?").charAt(0).toUpperCase()}
+      {foto ? <img src={foto} alt="" onError={() => setFalhou(true)} /> : String(nome || "?").charAt(0).toUpperCase()}
     </span>
   );
 }
@@ -99,6 +111,29 @@ export const SEGREDO_ERA = {
 export function rotuloTema(estado) {
   const modo = modoDe(estado);
   return modo === "palavra" ? `TEMA ${String(estado.tema || "").toUpperCase()}` : `MODO ${NOME_MODO[modo].toUpperCase()}`;
+}
+
+// ---------------- série ----------------
+// O servidor manda `estado.serie` { partida, total, encerrada, motivoFim,
+// ranking? } da largada até a volta ao lobby. Série de 1 = partida avulsa
+// (nada de "Partida 1 de 1" nem ranking da série).
+export const emSerie = (estado) => (estado?.serie?.total || 1) > 1;
+
+// "PARTIDA 2 DE 3" (null fora de série).
+export function rotuloSerie(estado) {
+  const s = estado?.serie;
+  return emSerie(estado) && s.partida > 0 ? `PARTIDA ${s.partida} DE ${s.total}` : null;
+}
+
+// Bolinhas da série: jogadas, a atual, as que faltam.
+export function PontosSerie({ serie }) {
+  return (
+    <span className="imp-serie-pontos" aria-hidden="true">
+      {Array.from({ length: serie.total }, (_, i) => (
+        <i key={i} className={i + 1 < serie.partida ? "feita" : i + 1 === serie.partida ? "atual" : ""} />
+      ))}
+    </span>
+  );
 }
 
 // O que cada jogador "disse" na partida, pra mostrar nos suspeitos:

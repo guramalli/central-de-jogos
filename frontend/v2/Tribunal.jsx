@@ -11,6 +11,7 @@ import Juiz from "./tribunal/Juiz.jsx";
 import * as T from "./tribunal/tempos.js";
 import { Moldura, Relogio, Confete, ReacoesFlutuando, ChatMentira, ControleSom } from "./Mentira.jsx";
 import { BotaoConvidar } from "./Convites.jsx";
+import { irParaPagina, linkDaPagina } from "./App.jsx";
 import ChatAmigosFlutuante from "./ChatAmigosFlutuante.jsx";
 import { PartidaRapida } from "./FilaNoCard.jsx";
 
@@ -199,6 +200,14 @@ export default function Tribunal({ usuario, salaDoLink }) {
   if (!estado) {
     return (
       <Moldura usuario={usuario} classe="v2-mentira v2-tribunal">
+        {/* Tela inicial: um jeito claro de desistir e voltar pro lobby. */}
+        <a
+          className="v2-voltar-lobby"
+          href={linkDaPagina("inicio")}
+          onClick={(e) => { e.preventDefault(); irParaPagina("inicio"); }}
+        >
+          ← Voltar ao lobby
+        </a>
         <section className="v2-cartao v2-tribunal-entrada">
           <img src="/tribunal-logo.png" alt="" className="v2-tribunal-logo" />
           <Juiz className="v2-juiz-lobby" humor="lobby" />

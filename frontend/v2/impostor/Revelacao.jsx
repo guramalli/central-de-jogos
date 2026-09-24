@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
-import { AvatarImp, Cronometro, SEGREDO_ERA, modoDe, quem } from "./comum.jsx";
+import { AvatarImp, Cronometro, SEGREDO_ERA, emSerie, modoDe, quem, useSegundos } from "./comum.jsx";
 import { tocar } from "./sons.js";
 import Agente from "./Agente.jsx";
+import RankingSerie from "./RankingSerie.jsx";
 
 const MOTIVO_CANCELADA = {
   impostor_saiu: "O impostor saiu da partida. Ninguém pontua.",
@@ -16,13 +17,32 @@ const MOTIVO_CANCELADA = {
 // O servidor segura a REVELACAO por 9s; com 12 votos a sequência leva ~7s.
 const ESCURO = 0, VOTOS = 1, SUSPENSE = 2, AVATAR = 3, VEREDITO = 4;
 
+// Depois do resultado da ÚLTIMA partida da série, quanto tempo até a tela
+// virar o RANKING DA SÉRIE sozinha (dá pra ler o segredo e os pontos).
+const MS_ATE_RANKING = 7000;
+
 // REVELACAO, ULTIMA_CHANCE e FIM (fica montado nas três: a sequência roda
-// uma vez só, no começo da revelação).
+// uma vez só, no começo da revelação). No FIM que fecha uma série, o
+// resultado da partida fica na tela um pouco e dá lugar ao ranking final
+// (com um botão pra voltar a ver a partida).
 export default function Revelacao({ estado, carta, tempo, pedir, aoSair }) {
   const rev = estado.revelacao;
   const fim = estado.fase === "FIM" ? estado.resultado : null;
-  if (!rev) return <Cancelada estado={estado} fim={fim} pedir={pedir} aoSair={aoSair} />;
-  return <Sequencia estado={estado} rev={rev} fim={fim} carta={carta} tempo={tempo} pedir={pedir} aoSair={aoSair} />;
+  const final = !!fim && emSerie(estado) && !!estado.serie.encerrada && !!estado.serie.ranking;
+  const [verRanking, setVerRanking] = useState(false);
+  useEffect(() => {
+    if (!final) return undefined;
+    const t = setTimeout(() => setVerRanking(true), MS_ATE_RANKING);
+    return () => clearTimeout(t);
+  }, [final]);
+  const aoVerRanking = final ? () => setVerRanking(true) : null;
+
+  if (final && verRanking) {
+    return <RankingSerie estado={estado} tempo={tempo} pedir={pedir} aoSair={aoSair} aoVerPartida={() => setVerRanking(false)} />;
+  }
+  const comuns = { estado, fim, tempo, pedir, aoSair, aoVerRanking };
+  if (!rev) return <Cancelada {...comuns} />;
+  return <Sequencia {...comuns} rev={rev} carta={carta} />;
 }
 
 // Ordem em que os votos "chegam": em rodízio, do menos votado pro mais
@@ -73,7 +93,7 @@ function useSequencia(estado, tempo, totalVotos) {
   return { etapa, mostrados };
 }
 
-function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
+function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair, aoVerRanking }) {
   const ordem = useMemo(() => ordemDosVotos(rev.contagem), [rev]);
   const { etapa, mostrados } = useSequencia(estado, tempo, ordem.length);
   const impostorId = rev.impostorId;
@@ -121,7 +141,9 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
       </section>
 
       <section className="imp-revelacao-lado">
-        {etapa >= VOTOS && (
+        {/* Série com mesa cheia (9+): no FIM o placar da série toma o lugar
+            dos votos (que já passaram na revelação) — senão a coluna não cabe. */}
+        {etapa >= VOTOS && !(fim && emSerie(estado) && (estado.serie.ranking?.length || 0) > 8) && (
           <motion.div className="imp-painel imp-placar" aria-label="Votos" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="imp-rotulo">VOTOS</h2>
             <ul className={rev.contagem.length > 6 ? "muitos" : ""}>
@@ -151,7 +173,7 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
         )}
 
         {pronto && fim && (
-          <Resultado estado={estado} rev={rev} fim={fim} souImpostor={souImpostor} pedir={pedir} aoSair={aoSair} />
+          <Resultado estado={estado} rev={rev} fim={fim} souImpostor={souImpostor} tempo={tempo} pedir={pedir} aoSair={aoSair} aoVerRanking={aoVerRanking} />
         )}
       </section>
     </div>
@@ -194,7 +216,7 @@ function Acusado({ estado, rev, etapa }) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 180, damping: 14 }}
       >
-        <AvatarImp nome={a.nickname} cor={a.cor} tamanho={200} className="imp-anel" />
+        <AvatarImp id={rev.acusadoId} nome={a.nickname} cor={a.cor} tamanho={200} className="imp-anel" />
       </motion.div>
       {etapa >= VEREDITO && (
         <motion.div
@@ -334,11 +356,13 @@ function frasePessoal(estado, rev, fim, souImpostor) {
   return estado.meuVoto === rev.impostorId ? "Você acertou o voto" : "Você errou o voto";
 }
 
-function Resultado({ estado, rev, fim, souImpostor, pedir, aoSair }) {
+function Resultado({ estado, rev, fim, souImpostor, tempo, pedir, aoSair, aoVerRanking }) {
   const meus = fim.pontos[estado.euId];
   const contador = useContador(meus ?? 0);
   const lista = Object.entries(fim.pontos).sort((a, b) => b[1] - a[1]);
-  const anfitriao = estado.anfitriaoId === estado.euId;
+  // Numa série, o placar somado (com o que cada um ganhou nesta) substitui
+  // a lista de pontos da partida.
+  const ranking = emSerie(estado) ? estado.serie.ranking : null;
   return (
     <motion.div className="imp-resultado" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <p className="imp-vencedor">{fim.vencedor === "impostor" ? "O IMPOSTOR VENCEU" : "OS TRIPULANTES VENCERAM"}</p>
@@ -359,42 +383,115 @@ function Resultado({ estado, rev, fim, souImpostor, pedir, aoSair }) {
           <span className="imp-pontos-numero">+{contador} PTS</span>
         </div>
       )}
-      <ul className={`imp-pontos-lista ${lista.length > 6 ? "muitos" : ""}`}>
-        {lista.map(([id, pts]) => (
-          <li key={id}>
-            <span>{quem(estado, id).nickname}{id === fim.impostorId ? " · impostor" : ""}</span>
-            <b>+{pts}</b>
-          </li>
-        ))}
-      </ul>
-      <Acoes anfitriao={anfitriao} pedir={pedir} aoSair={aoSair} />
+      {ranking ? (
+        <PlacarSerie estado={estado} ranking={ranking} impostorId={fim.impostorId} />
+      ) : (
+        <ul className={`imp-pontos-lista ${lista.length > 6 ? "muitos" : ""}`}>
+          {lista.map(([id, pts]) => (
+            <li key={id}>
+              <span>{quem(estado, id).nickname}{id === fim.impostorId ? " · impostor" : ""}</span>
+              <b>+{pts}</b>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Acoes estado={estado} tempo={tempo} pedir={pedir} aoSair={aoSair} aoVerRanking={aoVerRanking} />
     </motion.div>
   );
 }
 
-function Acoes({ anfitriao, pedir, aoSair }) {
+// Placar da série no FIM de cada partida: posição, quanto ganhou nesta e o
+// total até aqui. Sobe com mola quando a ordem muda (layout).
+function PlacarSerie({ estado, ranking, impostorId }) {
+  const s = estado.serie;
+  const n = s.partida;
   return (
-    <div className="imp-acoes">
-      <button className="imp-botao secundario" onClick={aoSair}>Sair da sala</button>
-      {anfitriao ? (
-        <button className="imp-botao principal largo" onClick={() => pedir("impostor-proxima")}>Próxima partida</button>
-      ) : (
-        <span className="imp-sub imp-aguardando">Aguardando o anfitrião começar a próxima…</span>
+    <section className="imp-painel imp-placar-serie" aria-label="Placar da série">
+      <div className="imp-placar-serie-topo">
+        <span className="imp-rotulo">PLACAR DA SÉRIE</span>
+        <span className="imp-placar-serie-apos">{s.encerrada ? "final" : `após ${n} de ${s.total}`}</span>
+      </div>
+      <ol className={ranking.length > 8 ? "muitos" : ""}>
+        {ranking.map((l, i) => {
+          const ganho = l.pontos[n - 1];
+          return (
+            <motion.li
+              key={l.id}
+              layout
+              className={`${l.id === estado.euId ? "eu" : ""} ${l.posicao <= 3 ? `pos-${l.posicao}` : ""}`}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 * i, type: "spring", stiffness: 420, damping: 32 }}
+            >
+              <span className="imp-placar-serie-pos">{l.posicao}<small className="imp-ord">º</small></span>
+              <AvatarImp id={l.id} nome={l.nickname} cor={l.cor} tamanho={26} />
+              <span className="imp-placar-serie-nome">{l.nickname}</span>
+              {l.id === impostorId && <em className="imp-placar-serie-tag">impostor</em>}
+              <span className={`imp-placar-serie-ganho ${ganho ? "" : "zero"}`}>{ganho == null ? "—" : `+${ganho}`}</span>
+              <b>{l.total}</b>
+            </motion.li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+// Botões do FIM. Partida avulsa: "Próxima partida" (volta ao lobby).
+// Série no meio: a próxima começa sozinha na contagem (o anfitrião pode
+// adiantar). Fim da série: "Ver ranking da série".
+function Acoes({ estado, tempo, pedir, aoSair, aoVerRanking }) {
+  const anfitriao = estado.anfitriaoId === estado.euId;
+  const s = estado.serie;
+  const segundos = useSegundos(tempo);
+  const seg = segundos > 0 ? segundos : null; // no zero, a próxima já está começando
+  const meioDaSerie = emSerie(estado) && !s.encerrada;
+  let principal;
+  if (aoVerRanking) {
+    principal = <button className="imp-botao principal largo" onClick={aoVerRanking}>Ver ranking da série</button>;
+  } else if (meioDaSerie) {
+    principal = anfitriao ? (
+      <button className="imp-botao principal largo" onClick={() => pedir("impostor-proxima")}>
+        Próxima partida{seg != null ? ` · ${seg}s` : ""}
+      </button>
+    ) : (
+      <span className="imp-sub imp-aguardando">Partida {s.partida + 1} de {s.total} começa{seg != null ? <> em <b>{seg}s</b></> : " já"}…</span>
+    );
+  } else {
+    principal = anfitriao ? (
+      <button className="imp-botao principal largo" onClick={() => pedir("impostor-proxima")}>Próxima partida</button>
+    ) : (
+      <span className="imp-sub imp-aguardando">Aguardando o anfitrião começar a próxima…</span>
+    );
+  }
+  return (
+    <>
+      {meioDaSerie && anfitriao && (
+        <p className="imp-nota imp-centro imp-proxima-nota">A partida {s.partida + 1} começa sozinha{seg != null ? ` em ${seg}s` : ""}. Mesmo modo, outro impostor.</p>
       )}
-    </div>
+      {emSerie(estado) && s.encerrada && s.motivoFim === "poucos_jogadores" && (
+        <p className="imp-aviso imp-centro" role="status">A série acabou antes: ficou gente de menos na sala.</p>
+      )}
+      <div className="imp-acoes">
+        <button className="imp-botao secundario" onClick={aoSair}>Sair da sala</button>
+        {principal}
+      </div>
+    </>
   );
 }
 
 // Partida cancelada (impostor saiu / gente de menos): sem revelação.
-function Cancelada({ estado, fim, pedir, aoSair }) {
+function Cancelada({ estado, fim, tempo, pedir, aoSair, aoVerRanking }) {
   if (!fim) return null;
+  const ranking = emSerie(estado) ? estado.serie.ranking : null;
   return (
     <div className="imp-revelacao simples">
       <section className="imp-painel imp-cancelada">
         <span className="imp-rotulo">PARTIDA ENCERRADA</span>
         <p className="imp-vencedor">{MOTIVO_CANCELADA[fim.motivo] || "Partida encerrada."}</p>
         <Segredo estado={estado} fim={fim} />
-        <Acoes anfitriao={estado.anfitriaoId === estado.euId} pedir={pedir} aoSair={aoSair} />
+        {ranking && <PlacarSerie estado={estado} ranking={ranking} impostorId={null} />}
+        <Acoes estado={estado} tempo={tempo} pedir={pedir} aoSair={aoSair} aoVerRanking={aoVerRanking} />
       </section>
     </div>
   );

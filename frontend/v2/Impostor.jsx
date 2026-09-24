@@ -12,6 +12,7 @@ import Revelacao from "./impostor/Revelacao.jsx";
 import BotaoSom from "./impostor/BotaoSom.jsx";
 import ChatImpostor from "./impostor/ChatImpostor.jsx";
 import Agente from "./impostor/Agente.jsx";
+import { PontosSerie, emSerie } from "./impostor/comum.jsx";
 import { carregarFontes } from "./impostor/fontes.js";
 import { prepararSons } from "./impostor/sons.js";
 import "./impostor/impostor.css";
@@ -116,7 +117,9 @@ export default function Impostor({ usuario, salaDoLink }) {
     let fase = "";
     s.on("impostor-estado", (e) => {
       if (e.fase !== fase) { fase = e.fase; setErro(""); }
-      if (e.fase === "LOBBY") setCarta(null);
+      // Numa série a próxima partida vem direto do FIM (sem LOBBY): a carta
+      // velha sai no FIM, e a nova chega antes do estado de CARTAS.
+      if (e.fase === "LOBBY" || e.fase === "FIM") setCarta(null);
       codigoRef.current = e.codigo;
       setTempo({ ms: e.restanteMs, em: Date.now() });
       setEstado(e);
@@ -229,6 +232,14 @@ export default function Impostor({ usuario, salaDoLink }) {
               >
                 ← Voltar ao lobby
               </a>
+            )}
+            {/* Série: "Partida 2 de 3" (celular: só "2 de 3" com as bolinhas). */}
+            {estado && emSerie(estado) && estado.fase !== "LOBBY" && (
+              <span className="imp-barra-serie">
+                <span className="imp-leitor">Partida {estado.serie.partida} de {estado.serie.total}</span>
+                <PontosSerie serie={estado.serie} />
+                <span aria-hidden="true"><span className="imp-so-computador">Partida </span><b>{estado.serie.partida}</b> de {estado.serie.total}</span>
+              </span>
             )}
             {estado && <span className="imp-barra-sala">Sala {estado.codigo}</span>}
             <BotaoSom />

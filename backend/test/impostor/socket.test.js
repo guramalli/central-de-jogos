@@ -135,6 +135,24 @@ test("partida completa pela rede: impostor nunca recebe a palavra; cada um receb
   for (const t of tripulantes) assert.equal(resultados[0].pontos[t.id], 200);
 });
 
+test("série pela rede: impostor-serie (anfitrião, 1/3/5) e `partidas` no impostor-iniciar", async () => {
+  const grupo = ["ivo", "jana", "kel", "lia"].map(novoCliente);
+  await Promise.all(grupo.map((x) => new Promise((r) => x.socket.on("connect", r))));
+  const [i, j] = grupo;
+  const { codigo } = await emitir(i, "impostor-criar");
+  for (const x of grupo.slice(1)) await emitir(x, "impostor-entrar", { codigo });
+  await esperar(() => j.estado?.jogadores.length === 4);
+  assert.equal(j.estado.partidasDaSerie, 3);
+  assert.deepEqual(await emitir(j, "impostor-serie", { partidas: 5 }), { erro: "Só o anfitrião escolhe quantas partidas." });
+  assert.match((await emitir(i, "impostor-serie", { partidas: 2 })).erro, /1, 3 ou 5/);
+  assert.deepEqual(await emitir(i, "impostor-serie", { partidas: 5 }), { ok: true });
+  await esperar(() => j.estado.partidasDaSerie === 5);
+  assert.deepEqual(await emitir(i, "impostor-iniciar", { partidas: 1 }), { ok: true });
+  await esperar(() => grupo.every((x) => x.estado.fase === "CARTAS"));
+  assert.deepEqual(j.estado.serie, { partida: 1, total: 1, encerrada: false, motivoFim: null });
+  assert.match((await emitir(i, "impostor-serie", { partidas: 3 })).erro, /sala de espera/);
+});
+
 test("modo PERGUNTA pela rede: impostor-modo, impostor-resposta; a pergunta real só chega ao impostor na votação", async () => {
   const grupo = ["eva", "fabi", "gui", "hugo"].map(novoCliente);
   await Promise.all(grupo.map((x) => new Promise((r) => x.socket.on("connect", r))));
