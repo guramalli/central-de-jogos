@@ -13,8 +13,9 @@ export default defineConfig({
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         v2: fileURLToPath(new URL("./v2/index.html", import.meta.url)),
       },
-      // three.js (só o mascote do Impostor usa, via import dinâmico) em dois
-      // pedaços: o núcleo e o renderizador WebGL. Sozinho passaria de 500 kB.
+      // three.js (só os mascotes 3D usam — agente do Impostor e juiz do
+      // Tribunal —, via import dinâmico) em dois pedaços:
+      // o núcleo e o renderizador WebGL. Sozinho passaria de 500 kB.
       // Continua sob demanda: só o Agente3D importa esses pedaços.
       output: {
         manualChunks(id) {
@@ -35,6 +36,8 @@ export default defineConfig({
       "three",
       "three/examples/jsm/loaders/GLTFLoader.js",
       "three/examples/jsm/libs/meshopt_decoder.module.js",
+      // juiz do Tribunal (modelo com esqueleto: o clone precisa religar os ossos)
+      "three/examples/jsm/utils/SkeletonUtils.js",
     ],
   },
   server: {

@@ -2213,7 +2213,6 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 @keyframes v2-tribunal-entra { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
 .v2-tribunal-anuncio { margin: 0; text-align: center; font-family: var(--titulo); font-size: 18px; }
 .v2-tribunal-argumento { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: 16px; background: #fff; border-left: 6px solid; }
-.v2-tribunal-argumento.entra { animation: v2-tribunal-entra .5s ease-out both; }
 .v2-tribunal-argumento.promotor { border-color: var(--t-promotor); }
 .v2-tribunal-argumento.advogado { border-color: var(--t-advogado); }
 .v2-tribunal-argumento.acusado { border-color: var(--t-acusado); background: #fff8e1; }
@@ -2263,7 +2262,7 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 .v2-tribunal-tag.acusado { color: var(--amarelo); }
 .v2-tribunal-tag.jurado { color: #6fe3c0; }
 @media (max-width: 520px) { .v2-tribunal-carimbo { font-size: 34px; } .v2-tribunal-votos button { font-size: 18px; } .v2-tribunal-crime { font-size: 16px; } }
-@media (prefers-reduced-motion: reduce) { .v2-tribunal-carimbo, .v2-tribunal-argumento.entra, .v2-tribunal-ganhos li { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .v2-tribunal-carimbo, .v2-tribunal-ganhos li { animation: none; } }
 
 /* Tribunal: debate em rodadas (zip 575) */
 .v2-tribunal-debate-selo { font-style: normal; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #4a3a8f; color: #fff; font-size: 12px; font-weight: 900; }
@@ -2286,16 +2285,17 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 @keyframes v2-cena-flash { 0% { opacity: 0; } 12% { opacity: 0; } 18% { opacity: .75; } 100% { opacity: 0; } }
 .v2-tribunal-cena-martelo { position: relative; width: min(260px, 60vw); }
 .v2-tribunal-martelo-svg { width: 100%; height: auto; filter: drop-shadow(0 10px 0 rgba(0,0,0,.35)); }
-/* o grupo do martelo gira em torno do cabo; 3 batidas em 1,6s (o som bate em ~0,1s, 0,6s e 1,1s) */
+/* o grupo do martelo gira em torno do cabo. "Ordem no tribunal!" (2,6s):
+   fica armado enquanto a voz fala e bate nos 2 tocs do som, 1,70s e 1,97s */
 .v2-tribunal-martelo-mov { transform-origin: 96px 120px; }
-.v2-tribunal-martelo-svg.abertura .v2-tribunal-martelo-mov { animation: v2-martelada 0.5s ease-in 3 both; }
+.v2-tribunal-cena-ordem .v2-tribunal-cena-fundo, .v2-tribunal-cena-ordem .v2-tribunal-cena-texto { animation-duration: 2.6s; }
+.v2-tribunal-martelo-svg.ordem .v2-tribunal-martelo-mov { animation: v2-martelada-ordem 2.6s ease-in both; }
+@keyframes v2-martelada-ordem { 0% { transform: rotate(-40deg); } 50% { transform: rotate(-58deg); } 65.4% { transform: rotate(6deg); } 68% { transform: rotate(0deg); } 71% { transform: rotate(-26deg); } 75.8% { transform: rotate(6deg); } 78% { transform: rotate(0deg); } 100% { transform: rotate(0deg); } }
 .v2-tribunal-martelo-svg.veredito .v2-tribunal-martelo-mov { animation: v2-martelada-forte 0.45s cubic-bezier(.5,0,.9,.4) 1 both; }
-@keyframes v2-martelada { 0% { transform: rotate(-40deg); } 22% { transform: rotate(6deg); } 30% { transform: rotate(0deg); } 100% { transform: rotate(-40deg); } }
 @keyframes v2-martelada-forte { 0% { transform: rotate(-70deg) scale(1.15); } 25% { transform: rotate(8deg) scale(1); } 40% { transform: rotate(0deg); } 100% { transform: rotate(0deg); } }
 .v2-tribunal-onda { position: absolute; left: 34%; bottom: 8%; width: 60px; height: 60px; margin: -30px; border-radius: 50%; border: 5px solid var(--cena-cor); opacity: 0; }
-.v2-tribunal-cena-abertura .o1 { animation: v2-onda .6s ease-out .1s both; }
-.v2-tribunal-cena-abertura .o2 { animation: v2-onda .6s ease-out .6s both; }
-.v2-tribunal-cena-abertura .o3 { animation: v2-onda .6s ease-out 1.1s both; }
+.v2-tribunal-cena-ordem .o1 { animation: v2-onda .6s ease-out 1.68s both; }
+.v2-tribunal-cena-ordem .o2 { animation: v2-onda .6s ease-out 1.95s both; }
 .v2-tribunal-cena-veredito .o1 { animation: v2-onda .7s ease-out .12s both; }
 .v2-tribunal-cena-veredito .o2 { animation: v2-onda .9s ease-out .18s both; }
 @keyframes v2-onda { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
@@ -2372,6 +2372,97 @@ button.v2-link { border: none; background: none; padding: 0; font: inherit; curs
 /* votação de sortear x manter (reaproveita o layout de .v2-tribunal-votos) */
 .v2-tribunal-escolha-papeis .mais { background: #6a4bc4; }
 .v2-tribunal-escolha-papeis .prontos { background: #0b9a72; }
+
+/* =================== TRIBUNAL repaginado: juiz 3D, retratos, carimbo, holofote, apuração =================== */
+/* juiz 3D (tribunal/Juiz.jsx): decorativo, sem cliques; o tamanho vem da classe
+   (espaço reservado enquanto o modelo carrega) e o canvas entra com fade */
+.v2-juiz { position: relative; flex-shrink: 0; pointer-events: none; }
+.v2-juiz-palco { position: absolute; inset: 0; }
+.v2-juiz-canvas { display: block; width: 100%; height: 100%; opacity: 0; transition: opacity .5s ease-out; }
+.v2-juiz-canvas.pronto { opacity: 1; }
+.v2-juiz-lobby { width: 200px; height: 240px; margin: -14px auto -10px; }
+.v2-tribunal-espera-topo { display: flex; align-items: center; gap: 14px; }
+.v2-tribunal-espera-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.v2-juiz-espera { width: 200px; height: 240px; margin: -10px -4px -14px -8px; }
+/* no jogo: ao lado do título, sem empurrar o layout (margens negativas) */
+.v2-tribunal-topo-esq { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.v2-juiz-topo { width: 92px; height: 104px; margin: -16px -6px -16px -8px; }
+.v2-juiz-veredito { width: 170px; height: 200px; margin: -8px auto -4px; z-index: 3; }
+@media (max-width: 600px) {
+  .v2-juiz-lobby { width: 125px; height: 150px; margin: -8px auto -6px; }
+  .v2-tribunal-espera-topo { flex-direction: column; align-items: stretch; gap: 6px; }
+  .v2-juiz-espera { width: 125px; height: 150px; margin: -8px auto -6px; }
+  .v2-juiz-topo { width: 58px; height: 68px; margin: -8px -4px -8px -6px; }
+  /* fases de digitar/votar no celular: o espaço vai todo pro jogo */
+  .v2-juiz-topo.fase-escrever, .v2-juiz-topo.fase-ultima, .v2-juiz-topo.fase-votar { display: none; }
+  .v2-juiz-veredito { width: 112px; height: 132px; margin: -6px auto -10px; }
+}
+
+/* retratos dos papéis (arte chibi em fundo escuro, sempre em círculo) */
+.v2-tribunal-retrato { display: inline-block; flex-shrink: 0; border-radius: 50%; background: #0e0f14; object-fit: cover; vertical-align: middle; }
+.v2-tribunal-elenco span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; }
+.v2-tribunal-tag .v2-tribunal-retrato { width: 16px; height: 16px; margin: -2px 2px 0 0; }
+.v2-tribunal-jurado-cara.v2-tribunal-retrato { width: 44px; height: 44px; box-shadow: 0 0 0 3px var(--t-jurado); }
+.v2-tribunal-ganhos li span { display: inline-flex; align-items: center; gap: 6px; }
+.v2-tribunal-papel.promotor, .v2-tribunal-argumento.promotor { --papel-cor: var(--t-promotor); }
+.v2-tribunal-papel.advogado, .v2-tribunal-argumento.advogado { --papel-cor: var(--t-advogado); }
+.v2-tribunal-papel.acusado, .v2-tribunal-argumento.acusado { --papel-cor: var(--t-acusado); }
+.v2-tribunal-papel.jurado { --papel-cor: var(--t-jurado); }
+.v2-tribunal-papel.testemunha, .v2-tribunal-argumento.testemunha { --papel-cor: #b98cff; }
+/* faixa "seu papel": retrato + texto */
+.v2-tribunal-papel { flex-direction: row; align-items: center; gap: 12px; }
+.v2-tribunal-papel-retrato { flex-shrink: 0; display: block; line-height: 0; border-radius: 50%; box-shadow: 0 0 0 3px var(--papel-cor, #d8cbb2); }
+.v2-tribunal-papel-retrato .v2-tribunal-retrato { width: 60px; height: 60px; }
+.v2-tribunal-papel-texto { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+/* argumento = cartão de fala: retrato à esquerda, balão à direita */
+.v2-tribunal-argumento { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 12px; row-gap: 4px; align-items: start; }
+.v2-tribunal-argumento > * { grid-column: 2; }
+.v2-tribunal-argumento > .v2-tribunal-argumento-retrato { grid-column: 1; grid-row: 1 / span 3; width: 48px; height: 48px; box-shadow: 0 0 0 3px var(--papel-cor, #d8cbb2); }
+.v2-tribunal-argumento > .v2-tribunal-curtir { justify-self: start; }
+@media (max-width: 520px) {
+  .v2-tribunal-argumento { grid-template-columns: 36px minmax(0, 1fr); column-gap: 10px; }
+  .v2-tribunal-argumento > .v2-tribunal-argumento-retrato { width: 36px; height: 36px; }
+  .v2-tribunal-papel-retrato .v2-tribunal-retrato { width: 48px; height: 48px; }
+}
+
+/* carimbo do caso: o quadro bate na tela (escala/giro vêm do motion); o
+   palco corta a sobra lateral pra a escala não criar rolagem de lado */
+.v2-tribunal .v2-mentira-palco { overflow-x: clip; }
+.v2-tribunal-caso { position: relative; }
+.v2-tribunal-selo { position: absolute; top: 8px; right: 10px; padding: 1px 8px; border: 3px solid #ff6b5e; border-radius: 6px; color: #ff6b5e; font-family: var(--titulo); font-size: 13px; letter-spacing: 1px; white-space: nowrap; transform: rotate(-12deg); opacity: .9; pointer-events: none; }
+
+/* última palavra: holofote no réu (palco escuro, feixe de luz, retrato aceso) */
+.v2-tribunal-palco-reu { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 28px 16px 14px; border-radius: 18px; overflow: hidden; background: radial-gradient(ellipse 55% 75% at 50% 40%, #3b2b70 0%, #1a1036 58%, #0c0820 100%); color: #fff; text-align: center; }
+.v2-tribunal-feixe { position: absolute; top: -8px; left: 50%; width: 240px; height: 190px; margin-left: -120px; transform-origin: 50% 0; background: linear-gradient(180deg, rgba(255,236,170,.6), rgba(255,236,170,.1) 80%, transparent); clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); pointer-events: none; }
+.v2-tribunal-palco-retrato { position: relative; line-height: 0; border-radius: 50%; box-shadow: 0 0 0 4px var(--t-acusado), 0 0 38px 10px rgba(255,214,120,.5); }
+.v2-tribunal-palco-retrato .v2-tribunal-retrato { width: 104px; height: 104px; }
+.v2-tribunal-palco-reu b { position: relative; margin-top: 6px; font-family: var(--titulo); font-size: 20px; color: var(--amarelo); }
+.v2-tribunal-palco-reu small { position: relative; font-weight: 800; opacity: .85; }
+@media (max-width: 520px) { .v2-tribunal-palco-retrato .v2-tribunal-retrato { width: 80px; height: 80px; } .v2-tribunal-palco-reu { padding-top: 20px; } }
+
+/* veredito: apuração (fichas dos jurados caindo) e revelação */
+.v2-tribunal-apuracao { position: relative; z-index: 3; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 460px; }
+.v2-tribunal-apuracao.rufando { animation: v2-rufar .11s linear infinite alternate; }
+@keyframes v2-rufar { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
+.v2-tribunal-apuracao-col { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 8px; border-radius: 16px; background: #fff; border: 3px solid #eadfca; transition: transform .35s, opacity .35s, border-color .35s; }
+.v2-tribunal-apuracao-rotulo { font-family: var(--titulo); font-size: 16px; }
+.v2-tribunal-apuracao-col.culpado .v2-tribunal-apuracao-rotulo { color: #d8392c; }
+.v2-tribunal-apuracao-col.inocente .v2-tribunal-apuracao-rotulo { color: #0b9a72; }
+.v2-tribunal-fichas { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 34px; }
+.v2-tribunal-ficha { display: block; line-height: 0; border-radius: 50%; }
+.v2-tribunal-ficha .v2-tribunal-retrato { width: 30px; height: 30px; }
+.v2-tribunal-ficha.culpado { box-shadow: 0 0 0 2px #d8392c; }
+.v2-tribunal-ficha.inocente { box-shadow: 0 0 0 2px #0b9a72; }
+.v2-tribunal-apuracao-num { font-family: var(--titulo); font-size: 28px; line-height: 1; }
+.v2-tribunal-apuracao.fim .v2-tribunal-apuracao-col:not(.venceu) { opacity: .55; transform: scale(.94); }
+.v2-tribunal-apuracao.fim .v2-tribunal-apuracao-col.venceu { transform: scale(1.04); }
+.v2-tribunal-apuracao-col.culpado.venceu { border-color: #d8392c; }
+.v2-tribunal-apuracao-col.inocente.venceu { border-color: #0b9a72; }
+.v2-tribunal-veredito .v2-tribunal-carimbo { position: relative; z-index: 3; }
+.v2-tribunal-flash { position: absolute; inset: 0; z-index: 4; background: #d8392c; pointer-events: none; }
+.v2-tribunal-papeis { position: absolute; left: 50%; top: 42%; width: 0; height: 0; z-index: 4; pointer-events: none; }
+.v2-tribunal-papeis span { position: absolute; left: -5px; top: -3px; width: 10px; height: 6px; border-radius: 2px; box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+@media (prefers-reduced-motion: reduce) { .v2-tribunal-apuracao.rufando { animation: none; } .v2-tribunal-apuracao-col { transition: none; } }
 
 /* Selo de versão de cada jogo (zip 586): vX.Y ao lado do logo/título */
 .v2-lobby-jogo-titulo { display: flex; align-items: center; gap: 8px; }

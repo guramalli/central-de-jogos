@@ -22,12 +22,22 @@ const ARQUIVOS = {
   acerto: { url: "/sounds/comemoracao.mp3", volume: 0.35 },
   // O Tribunal (grupo "tribunal": só baixa quando a página do jogo pede,
   // pra não pesar nas salas do Stop/Quiz). Já cortados e nivelados.
-  marteloAbertura: { url: "/sounds/martelo-abertura.mp3", volume: 0.6, grupo: "tribunal" },
+  // (martelo-abertura.mp3, as 3 batidas da abertura, deu lugar à vinheta e ao
+  // "Ordem no tribunal!" — o arquivo segue na pasta, mas ninguém baixa.)
   marteloUma: { url: "/sounds/martelo-uma.mp3", volume: 0.6, grupo: "tribunal" },
   plateia: { url: "/sounds/plateia-suspense.mp3", volume: 0.45, grupo: "tribunal" },
   tambor: { url: "/sounds/tambor.mp3", volume: 0.5, grupo: "tribunal" },
   culpado: { url: "/sounds/culpado.mp3", volume: 0.6, grupo: "tribunal" },
   inocente: { url: "/sounds/inocente.mp3", volume: 0.5, grupo: "tribunal" },
+  // Repaginação do Tribunal. Volumes nivelados pelo pico de cada arquivo:
+  // o relógio e a vaia vieram bem baixinhos (pico 0,04 e 0,12), por isso o
+  // ganho acima de 1.
+  vinheta: { url: "/sounds/tribunal-vinheta.mp3", volume: 0.6, grupo: "tribunal" },
+  ordem: { url: "/sounds/tribunal-ordem.mp3", volume: 0.6, grupo: "tribunal" },
+  carimbo: { url: "/sounds/tribunal-carimbo.mp3", volume: 0.45, grupo: "tribunal" },
+  suspense: { url: "/sounds/tribunal-suspense.mp3", volume: 0.5, grupo: "tribunal" },
+  relogio: { url: "/sounds/tribunal-relogio.mp3", volume: 5, grupo: "tribunal" },
+  vaia: { url: "/sounds/tribunal-vaia.mp3", volume: 2.2, grupo: "tribunal" },
 };
 const gruposPedidos = new Set();
 
@@ -50,6 +60,7 @@ export function definirVolume(v) {
 export function alternarMudo() {
   mudo = !mudo;
   localStorage.setItem("eg_v2_mudo", mudo ? "1" : "0");
+  if (mudo) pararSons(); // o relógio em laço não pode continuar tiquetaqueando
   avisarPreferencias();
   return mudo;
 }
@@ -142,17 +153,51 @@ export function ativarSons() {
   }
 }
 
-function tocarArquivo(nome) {
-  if (mudo || !ctx || !buffers[nome]) return;
+// Sons tocando agora (os de arquivo): dá pra parar os longos (relógio em
+// laço, suspense, vinheta) quando a fase muda, quando a pessoa sai do jogo
+// ou quando ela liga o mudo no meio.
+const tocando = new Set();
+const SEM_SOM = { parar() {} };
+
+// opcoes: { laco: repete até parar, inicio: começa a partir de X segundos }.
+// Devolve { parar(ms) } — ms > 0 abaixa o volume antes de cortar.
+function tocarArquivo(nome, { laco = false, inicio = 0 } = {}) {
+  if (mudo || !ctx || !buffers[nome]) return SEM_SOM;
   try {
     if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const fonte = ctx.createBufferSource();
     const ganho = ctx.createGain();
     ganho.gain.value = ARQUIVOS[nome].volume * volumeGeral;
     fonte.buffer = buffers[nome];
+    fonte.loop = laco;
     fonte.connect(ganho).connect(ctx.destination);
-    fonte.start(0);
-  } catch {}
+    fonte.start(0, Math.min(inicio, Math.max(0, buffers[nome].duration - 0.05)));
+    const item = { grupo: ARQUIVOS[nome].grupo, parar: null };
+    let parado = false;
+    item.parar = (ms = 0) => {
+      if (parado) return;
+      parado = true;
+      tocando.delete(item);
+      try {
+        if (ms > 0) {
+          const agora = ctx.currentTime;
+          ganho.gain.setValueAtTime(ganho.gain.value, agora);
+          ganho.gain.linearRampToValueAtTime(0.0001, agora + ms / 1000);
+          fonte.stop(agora + ms / 1000 + 0.02);
+        } else fonte.stop();
+      } catch {}
+    };
+    fonte.onended = () => { parado = true; tocando.delete(item); };
+    tocando.add(item);
+    return { parar: item.parar };
+  } catch {
+    return SEM_SOM;
+  }
+}
+
+// Para tudo de um grupo (ex.: "tribunal" ao sair da sala) — ou tudo.
+export function pararSons(grupo = null) {
+  for (const item of [...tocando]) if (!grupo || item.grupo === grupo) item.parar(120);
 }
 
 function bip(freq, dur, tipo = "sine", vol = 0.12) {
@@ -192,9 +237,19 @@ export const somCampeao = () => {
 };
 
 // ---------- O Tribunal ----------
-export const somMarteloAbertura = () => tocarArquivo("marteloAbertura");
 export const somMarteloUma = () => tocarArquivo("marteloUma");
 export const somPlateia = () => tocarArquivo("plateia");
 export const somTambor = () => tocarArquivo("tambor");
 export const somCulpado = () => tocarArquivo("culpado");
 export const somInocente = () => tocarArquivo("inocente");
+// Repaginação: vinheta (abertura da sessão, "toc" final em 3,45s), "Ordem
+// no tribunal!" (tocs em 1,70s e 1,97s), carimbo, suspense do veredito,
+// relógio dos últimos 10s (em laço) e vaia. Os que duram devolvem { parar }.
+export const somVinheta = () => tocarArquivo("vinheta");
+export const somOrdem = () => tocarArquivo("ordem");
+export const somCarimbo = () => tocarArquivo("carimbo");
+// O pico do suspense fica em ~4,6s do arquivo: `inicio` adianta a subida
+// pra ele cair na hora da revelação.
+export const somSuspense = (inicio = 0) => tocarArquivo("suspense", { inicio });
+export const somRelogio = () => tocarArquivo("relogio", { laco: true });
+export const somVaia = () => tocarArquivo("vaia");
