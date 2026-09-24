@@ -94,10 +94,15 @@ function EtapaDicas({ estado, carta, tempo, pedir }) {
   );
 }
 
+// Ordem das dicas + o que cada um disse nas rodadas anteriores (um chip por
+// rodada, na cor do jogador, ao lado do status). Assim o histórico não
+// precisa de uma lista própria — com 12 jogadores ela ficava enorme.
+// Com mais de 6 jogadores a lista fica mais justa (avatar menor).
 function Ordem({ estado }) {
   const daRodada = estado.dicas.filter((d) => d.rodada === estado.rodada);
+  const muitos = estado.ordem.length > 6;
   return (
-    <section className="imp-ordem" aria-label="Ordem das dicas">
+    <section className={`imp-ordem ${muitos ? "muitos" : ""}`} aria-label="Ordem das dicas">
       <h2 className="imp-rotulo">ORDEM DAS DICAS</h2>
       <ol>
         {estado.ordem.map((id) => {
@@ -106,12 +111,24 @@ function Ordem({ estado }) {
           const vez = estado.vezDe === id;
           const eu = id === estado.euId;
           const status = vez ? (eu ? "sua vez!" : "na vez") : deu ? "deu a dica" : eu ? "aguardando (você)" : "aguardando";
+          const antigas = estado.dicas.filter((d) => d.jogadorId === id && d.rodada < estado.rodada);
           return (
-            <li key={id} className={`imp-ordem-item ${vez ? "vez" : ""} ${deu ? "feito" : ""}`}>
-              <AvatarImp nome={p.nickname} cor={p.cor} tamanho={40} />
+            <li key={id} className={`imp-ordem-item ${vez ? "vez" : ""} ${deu ? "feito" : ""}`} style={{ "--imp-cor-jogador": p.cor }}>
+              <AvatarImp nome={p.nickname} cor={p.cor} tamanho={muitos ? 32 : 40} />
               <span className="imp-ordem-texto">
-                <b>{p.nickname}</b>
-                <small>{status}</small>
+                <b>{p.nickname}{eu ? " (você)" : ""}</b>
+                <span className="imp-ordem-linha">
+                  <small>{status}</small>
+                  {antigas.map((d) => (
+                    <span key={d.rodada} className="imp-chip-dica" title={`Rodada ${d.rodada}: ${d.texto || "(em branco)"}`}>
+                      <i aria-hidden="true">R{d.rodada}</i>
+                      <span className="imp-leitor">, rodada {d.rodada}: </span>
+                      <b className={d.texto ? "" : "imp-branco"}>
+                        {d.texto || <><span aria-hidden="true">—</span><span className="imp-leitor">em branco</span></>}
+                      </b>
+                    </span>
+                  ))}
+                </span>
               </span>
             </li>
           );
@@ -127,39 +144,6 @@ const ENTRADA_DICA = {
   animate: { y: 0, opacity: 1 },
   transition: { type: "spring", stiffness: 520, damping: 18 },
 };
-
-// HISTÓRICO das rodadas anteriores: uma linha por dica, com avatar e nome na
-// cor do jogador (a mesma cor em todas as rodadas e em toda a sala), agrupado
-// por rodada.
-function Historico({ estado }) {
-  const rodadas = [];
-  for (let r = 1; r < estado.rodada; r++) {
-    const dicas = estado.dicas.filter((d) => d.rodada === r);
-    if (dicas.length) rodadas.push({ r, dicas });
-  }
-  if (!rodadas.length) return null;
-  return (
-    <div className="imp-historico" aria-label="Dicas das rodadas anteriores">
-      {rodadas.map(({ r, dicas }) => (
-        <section key={r} className="imp-historico-rodada">
-          <h3 className="imp-rotulo">RODADA {r}</h3>
-          <ul>
-            {dicas.map((d) => {
-              const p = quem(estado, d.jogadorId);
-              return (
-                <li key={d.jogadorId} className="imp-historico-item" style={{ "--imp-cor-jogador": p.cor }}>
-                  <AvatarImp nome={p.nickname} cor={p.cor} tamanho={24} />
-                  <span className="imp-historico-nome">{p.nickname}{d.jogadorId === estado.euId ? " (você)" : ""}</span>
-                  <b className={`imp-historico-palavra ${d.texto ? "" : "imp-branco"}`}>{d.texto || "(em branco)"}</b>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-    </div>
-  );
-}
 
 // Aviso da pausa depois da última dica da rodada, com a contagem curta.
 function AvisoUltimaDica({ estado, tempo }) {
@@ -201,30 +185,12 @@ function Dicas({ estado, tempo, pedir }) {
     campo.current?.select();
   }
 
+  // Ordem do painel: campo da dica e avisos EM CIMA (fixos, fáceis de achar)
+  // e a lista compacta da rodada embaixo — uma linha por dica, a mais nova
+  // no fim. As rodadas anteriores ficam na "Ordem das dicas", ao lado de
+  // cada jogador.
   return (
     <section className="imp-painel imp-dicas" aria-label="Dicas">
-      <Historico estado={estado} />
-      <h2 className="imp-rotulo">DICAS DA RODADA {estado.rodada}</h2>
-      <ul aria-live="polite">
-        {daRodada.map((d) => {
-          const p = quem(estado, d.jogadorId);
-          const ultima = destaque?.rodada === d.rodada && destaque?.jogadorId === d.jogadorId;
-          return (
-            <motion.li key={`${d.rodada}-${d.jogadorId}`} className={`imp-dica ${ultima ? "ultima" : ""}`} style={{ "--imp-cor-jogador": p.cor }} {...ENTRADA_DICA}>
-              <span className="imp-dica-quem">
-                <AvatarImp nome={p.nickname} cor={p.cor} tamanho={22} />
-                <span className="imp-dica-nome">{p.nickname}{d.jogadorId === estado.euId ? " (você)" : ""}</span>
-                {ultima && <span className="imp-dica-selo">ÚLTIMA DICA</span>}
-              </span>
-              <b className={`imp-dica-texto ${d.texto ? "" : "imp-branco"}`}>{d.texto || "(em branco)"}</b>
-            </motion.li>
-          );
-        })}
-      </ul>
-      {destaque && <AvisoUltimaDica estado={estado} tempo={tempo} />}
-      {!minhaVez && vez && (
-        <p className="imp-pensando"><PontoPiscando cor="ambar" />{vez.nickname} está pensando…</p>
-      )}
       {estado.participo && (
         <form className="imp-dica-form" onSubmit={enviar}>
           <label htmlFor="imp-dica" className={minhaVez ? "sua-vez" : ""}>{minhaVez ? "Sua vez! Sua dica (1 palavra)" : "Sua dica (1 palavra)"}</label>
@@ -251,6 +217,33 @@ function Dicas({ estado, tempo, pedir }) {
           )}
         </form>
       )}
+      {destaque && <AvisoUltimaDica estado={estado} tempo={tempo} />}
+      {!minhaVez && vez && (
+        <p className="imp-pensando"><PontoPiscando cor="ambar" />{vez.nickname} está pensando…</p>
+      )}
+      <div className="imp-dicas-lista">
+        <h2 className="imp-rotulo">DICAS DA RODADA {estado.rodada}</h2>
+        {daRodada.length === 0 ? (
+          <p className="imp-nota">Nenhuma dica ainda nesta rodada.</p>
+        ) : (
+          <ul aria-live="polite">
+            {daRodada.map((d) => {
+              const p = quem(estado, d.jogadorId);
+              const ultima = destaque?.rodada === d.rodada && destaque?.jogadorId === d.jogadorId;
+              return (
+                <motion.li key={`${d.rodada}-${d.jogadorId}`} className={`imp-dica ${ultima ? "ultima" : ""}`} style={{ "--imp-cor-jogador": p.cor }} {...ENTRADA_DICA}>
+                  <AvatarImp nome={p.nickname} cor={p.cor} tamanho={24} />
+                  <span className="imp-dica-quem">
+                    <span className="imp-dica-nome">{p.nickname}{d.jogadorId === estado.euId ? " (você)" : ""}</span>
+                    {ultima && <span className="imp-dica-selo">ÚLTIMA DICA</span>}
+                  </span>
+                  <b className={`imp-dica-texto ${d.texto ? "" : "imp-branco"}`}>{d.texto || "(em branco)"}</b>
+                </motion.li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,11 +1,12 @@
 import { Howl, Howler } from "howler";
+import { alternarMudo as alternarMudoV2, estaMudo as estaMudoV2, ouvirPreferencias } from "../sons.js";
 
 // Sons do Impostor (Howler).
 //
 // Mudo e volume são OS MESMOS do resto da v2 (chaves eg_v2_mudo e
 // eg_v2_volume, gravadas por v2/sons.js): quem desligou o som no site não
-// leva susto aqui, e vice-versa. Este módulo só lê as chaves na hora de
-// tocar e escreve o mudo no mesmo formato ("1"/"0") — v2/sons.js não muda.
+// leva susto aqui, e vice-versa. Este módulo lê as chaves na hora de tocar
+// e troca o mudo pelo próprio v2/sons.js (ver alternarMudo).
 //
 // Os arquivos em /sounds/impostor/ são PROVISÓRIOS (bipes curtos). Pra
 // trocar, basta sobrescrever com o mesmo nome — ou mudar a extensão aqui.
@@ -38,12 +39,18 @@ export function estaMudo() {
   return ler(CHAVE_MUDO, "0") === "1";
 }
 
+// O liga/desliga passa pelo v2/sons.js: ele guarda o mudo numa variável
+// (lida só ao carregar) e avisa os outros botões de som. Gravando direto no
+// armazenamento, o Quiz/Stop aberto depois (sem recarregar a página) seguia
+// com o valor antigo.
 export function alternarMudo() {
-  const mudo = !estaMudo();
-  try { localStorage.setItem(CHAVE_MUDO, mudo ? "1" : "0"); } catch { /* sem armazenamento: vale só nesta página */ }
+  if (estaMudoV2() !== estaMudo()) alternarMudoV2(); // alinha se alguém mexeu na chave por fora
+  const mudo = alternarMudoV2();
   if (mudo) Howler.stop();
   return mudo;
 }
+
+export { ouvirPreferencias };
 
 // Baixa os arquivos ao abrir o jogo, pra o primeiro som não atrasar.
 export function prepararSons() {

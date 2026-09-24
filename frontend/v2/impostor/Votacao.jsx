@@ -38,7 +38,9 @@ export default function Votacao({ estado, tempo, pedir }) {
       </header>
       <p className="imp-sub imp-so-celular">Tema: <b>{estado.tema}</b> · Releia as dicas e escolha um suspeito.</p>
 
-      <ul className={`imp-suspeitos ${suspeitos.length > 4 ? "muitos" : ""}`} role="radiogroup" aria-label="Suspeitos">
+      {/* "muitos" (5+) encolhe um pouco; "lotado" (7+, mesa de até 12)
+          vira grade de cartões pequenos, pra caber sem rolar muito. */}
+      <ul className={`imp-suspeitos ${suspeitos.length > 4 ? "muitos" : ""} ${suspeitos.length > 6 ? "lotado" : ""}`} role="radiogroup" aria-label="Suspeitos">
         {suspeitos.map((s) => {
           const sel = marcado === s.id;
           const dicas = dicasDe(estado, s.id);
@@ -65,7 +67,7 @@ export default function Votacao({ estado, tempo, pedir }) {
                 <span className="imp-suspeito-dicas imp-so-computador">
                   <span className="imp-rotulo">DICAS</span>
                   {dicas.map((d) => (
-                    <b key={d.rodada} className={d.texto ? "" : "imp-branco"}>{d.texto || "(em branco)"}</b>
+                    <b key={d.rodada} className={d.texto ? "" : "imp-branco"} title={`Rodada ${d.rodada}: ${d.texto || "(em branco)"}`}>{d.texto || "(em branco)"}</b>
                   ))}
                 </span>
                 <span className={`imp-selo ${sel ? "ativo" : ""}`}>{sel ? "SEU VOTO" : "Votar"}</span>

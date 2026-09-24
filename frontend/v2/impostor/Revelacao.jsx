@@ -111,7 +111,7 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
         {etapa >= VOTOS && (
           <motion.div className="imp-painel imp-placar" aria-label="Votos" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="imp-rotulo">VOTOS</h2>
-            <ul>
+            <ul className={rev.contagem.length > 6 ? "muitos" : ""}>
               {rev.contagem.map((c) => {
                 const n = votosVisiveis(c.id);
                 return (
@@ -269,7 +269,7 @@ function Resultado({ estado, rev, fim, souImpostor, pedir, aoSair }) {
           <span className="imp-pontos-numero">+{contador} PTS</span>
         </div>
       )}
-      <ul className="imp-pontos-lista">
+      <ul className={`imp-pontos-lista ${lista.length > 6 ? "muitos" : ""}`}>
         {lista.map(([id, pts]) => (
           <li key={id}>
             <span>{quem(estado, id).nickname}{id === fim.impostorId ? " · impostor" : ""}</span>
