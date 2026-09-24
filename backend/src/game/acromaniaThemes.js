@@ -295,7 +295,10 @@ const PESO_LETRAS = {
   N: 2,
   M: 2,
   S: 2,
-  Q: 2,
+  // Q com peso normal: com peso dobrado ele caía em 1 de cada 3 rodadas
+  // (simulação de 1000 rodadas: 32%) e quase toda frase virava "... que ...".
+  // Continua sendo letra de ligação (conta pro piso abaixo).
+  Q: 1,
   T: 2,
 
   // ===== DEGRAU 3 — verbos e palavras comuns (1,3) =====
@@ -368,6 +371,7 @@ export function criarSorteadorDeTemas(temas = ACROMANIA_THEMES) {
 // rodada. Acontecia em 2,4% delas — pouco no papel, uma a cada 40 pra quem
 // joga muito, e são exatamente as rodadas em que a frase não sai.
 const LETRAS_DIFICEIS = new Set(["B", "G", "J", "R", "H", "Q"]);
+const VOGAIS = new Set(["A", "E", "I", "O", "U"]);
 const MAX_DIFICEIS_POR_RODADA = 2;
 
 // Letras que começam palavra de LIGAÇÃO — artigo, preposição, conjunção,
@@ -465,5 +469,55 @@ export function pickRandomLetters(count = 3) {
     ligacoes += 1;
   }
 
+  // PISO DE UMA VOGAL.
+  //
+  // Rodada sem nenhuma vogal ("C N Q V M G") ainda é jogável, mas é a mais
+  // travada: saía em ~6% das rodadas. Mesma lógica do piso acima — corrige
+  // no fim, trocando a letra menos útil por uma vogal sorteada pelo peso.
+  // Se a letra trocada for de ligação e o piso de ligações ficaria furado,
+  // a vogal entrante é uma que TAMBÉM liga (A, E, O).
+  if (!picked.some((l) => VOGAIS.has(l))) {
+    let piorIdx = -1;
+    let piorPeso = Infinity;
+    for (let i = 0; i < picked.length; i++) {
+      const l = picked[i];
+      const p = LETRAS_DIFICEIS.has(l) ? -1 : pesoDaLetra(l);
+      if (p < piorPeso) {
+        piorPeso = p;
+        piorIdx = i;
+      }
+    }
+    const saiLigacao = piorIdx >= 0 && LETRAS_DE_LIGACAO.has(picked[piorIdx]);
+    const precisaLigar = saiLigacao && ligacoes - 1 < MIN_LIGACOES_POR_RODADA;
+    const candidatas = pool.filter((l) => VOGAIS.has(l) && (!precisaLigar || LETRAS_DE_LIGACAO.has(l)));
+    if (piorIdx >= 0 && candidatas.length > 0) {
+      const total = candidatas.reduce((soma, l) => soma + pesoDaLetra(l), 0);
+      let sorteio = Math.random() * total;
+      let escolhida = candidatas[candidatas.length - 1];
+      for (const l of candidatas) {
+        sorteio -= pesoDaLetra(l);
+        if (sorteio <= 0) {
+          escolhida = l;
+          break;
+        }
+      }
+      pool.splice(pool.indexOf(escolhida), 1);
+      pool.push(picked[piorIdx]);
+      picked[piorIdx] = escolhida;
+    }
+  }
+
   return picked;
+}
+
+// QUANTAS LETRAS NA RODADA: crescem ao longo do turno. Antes era sorteio
+// entre 5 e 6 (metade das rodadas com 6 letras e 60s pra escrever — sobrava
+// pouco tempo pra ser engraçado, que é o que ganha voto). Agora aquece com
+// poucas letras e aperta no fim: com 4–6 e turno de 8 rodadas fica
+// 4,4,5,5,5,5,6,6. `rodada` é 0 na primeira. Sem turno definido (ou turno de
+// 1 rodada), sorteia na faixa como antes.
+export function letrasDaRodada(min, max, rodada, rodadasNoTurno) {
+  if (!rodadasNoTurno || rodadasNoTurno < 2) return min + Math.floor(Math.random() * (max - min + 1));
+  const progresso = Math.min(1, Math.max(0, rodada / (rodadasNoTurno - 1)));
+  return min + Math.round(progresso * (max - min));
 }

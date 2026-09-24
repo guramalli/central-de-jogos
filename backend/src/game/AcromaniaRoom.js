@@ -1,7 +1,7 @@
 import { prisma } from "../db.js";
 import { marcarAtividade, verificarInativos, minutosRestantes } from "./inatividade.js";
 import { isBirthdayToday } from "../utils/birthday.js";
-import { criarSorteadorDeTemas, pickRandomLetters } from "./acromaniaThemes.js";
+import { criarSorteadorDeTemas, pickRandomLetters, letrasDaRodada } from "./acromaniaThemes.js";
 import { validarFrase } from "./acromaniaValidacao.js";
 import { trackPlaytime } from "./playtimeTracker.js";
 import { currentMonthKey } from "../utils/monthKey.js";
@@ -587,8 +587,8 @@ export class AcromaniaRoom {
     this.roundNumber += 1;
     this.state = "writing";
     this.currentTheme = this.sortearTema();
-    const quantasLetras =
-      this.lettersMin + Math.floor(Math.random() * (this.lettersMax - this.lettersMin + 1));
+    // Cresce ao longo do turno (ver letrasDaRodada): aquece com menos letras.
+    const quantasLetras = letrasDaRodada(this.lettersMin, this.lettersMax, this.turnRound, this.roundsPerTurn);
     this.currentLetters = pickRandomLetters(quantasLetras);
     this.submissions = new Map();
     this.votes = new Map();
