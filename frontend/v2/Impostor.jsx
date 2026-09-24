@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { novoSocket, ehSessaoMorta } from "./api.js";
 import Topo from "./Topo.jsx";
@@ -6,10 +6,12 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Entrada from "./impostor/Entrada.jsx";
 import SalaEspera from "./impostor/SalaEspera.jsx";
 import Rodada from "./impostor/Rodada.jsx";
+import Pergunta from "./impostor/Pergunta.jsx";
 import Votacao from "./impostor/Votacao.jsx";
 import Revelacao from "./impostor/Revelacao.jsx";
 import BotaoSom from "./impostor/BotaoSom.jsx";
 import ChatImpostor from "./impostor/ChatImpostor.jsx";
+import Agente from "./impostor/Agente.jsx";
 import { carregarFontes } from "./impostor/fontes.js";
 import { prepararSons } from "./impostor/sons.js";
 import "./impostor/impostor.css";
@@ -23,7 +25,77 @@ import "./impostor/impostor.css";
 
 // Qual tela mostra cada fase. REVELACAO, ULTIMA_CHANCE e FIM são a MESMA
 // tela: a sequência da revelação roda uma vez e o resto aparece embaixo.
-const TELA = { LOBBY: "espera", CARTAS: "carta", DICAS: "dicas", VOTACAO: "votacao", REVELACAO: "revelacao", ULTIMA_CHANCE: "revelacao", FIM: "revelacao" };
+// RESPOSTAS e CONFRONTO são do modo Pergunta (no lugar das DICAS).
+const TELA = {
+  LOBBY: "espera", CARTAS: "carta", DICAS: "dicas", RESPOSTAS: "respostas", CONFRONTO: "confronto",
+  VOTACAO: "votacao", REVELACAO: "revelacao", ULTIMA_CHANCE: "revelacao", FIM: "revelacao",
+};
+// Mascote no canto durante a partida (humor por fase). Lobby, entrada e
+// revelação têm o boneco dentro da própria tela.
+const HUMOR_NO_CANTO = { CARTAS: "cartas", DICAS: "dicas", RESPOSTAS: "dicas", CONFRONTO: "dicas", VOTACAO: "votacao" };
+// O canto só existe quando sobra margem de verdade ao lado do jogo + chat
+// (1680px de largura máxima): assim ele nunca cobre botão nem empurra nada
+// (a rodada com 12 jogadores continua cabendo sem rolar).
+const COM_MARGEM = "(min-width: 1880px)";
+function useMidia(consulta) {
+  const [bate, setBate] = useState(() => window.matchMedia(consulta).matches);
+  useEffect(() => {
+    const m = window.matchMedia(consulta);
+    const mudou = () => setBate(m.matches);
+    mudou();
+    m.addEventListener("change", mudou);
+    return () => m.removeEventListener("change", mudou);
+  }, [consulta]);
+  return bate;
+}
+
+// Fases com a partida rolando: sair aqui pede confirmação.
+const EM_PARTIDA = new Set(["CARTAS", "DICAS", "RESPOSTAS", "CONFRONTO", "VOTACAO", "REVELACAO", "ULTIMA_CHANCE"]);
+
+const IconeSair = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+  </svg>
+);
+
+// Confirmação de saída no meio da partida (Esc ou clicar fora = ficar).
+function ConfirmarSaida({ aoFicar, aoSair }) {
+  const ficar = useRef(null);
+  useEffect(() => {
+    ficar.current?.focus();
+    const tecla = (e) => { if (e.key === "Escape") aoFicar(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [aoFicar]);
+  return (
+    <motion.div
+      className="imp-sobreposicao imp-confirmar-fundo"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={(e) => { if (e.target === e.currentTarget) aoFicar(); }}
+    >
+      <motion.div
+        className="imp-painel imp-confirmar"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="imp-confirmar-titulo"
+        aria-describedby="imp-confirmar-texto"
+        initial={{ scale: 0.94, y: 8 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 420, damping: 28 }}
+      >
+        <h2 id="imp-confirmar-titulo" className="imp-titulo">SAIR NO MEIO DA PARTIDA?</h2>
+        <p id="imp-confirmar-texto" className="imp-sub">Você deixa a mesa e não volta pra esta rodada.</p>
+        <div className="imp-acoes">
+          <button ref={ficar} type="button" className="imp-botao secundario" onClick={aoFicar}>Continuar jogando</button>
+          <button type="button" className="imp-botao principal" onClick={aoSair}>Sair da sala</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export default function Impostor({ usuario, salaDoLink }) {
   const [estado, setEstado] = useState(null);
@@ -32,6 +104,7 @@ export default function Impostor({ usuario, salaDoLink }) {
   const [erro, setErro] = useState("");
   const [caiu, setCaiu] = useState(false);
   const [chat, setChat] = useState([]);
+  const [confirmarSaida, setConfirmarSaida] = useState(false);
   const socketRef = useRef(null);
   const codigoRef = useRef(salaDoLink || null);
 
@@ -104,7 +177,17 @@ export default function Impostor({ usuario, salaDoLink }) {
     const r = await pedir("impostor-entrar", { codigo });
     if (r.codigo) irParaSala(r.codigo);
   }
+  // "Sair da sala" da barra de cima. No meio de uma partida em que você
+  // joga, pergunta antes (sair tira você da mesa de vez). No lobby, no
+  // resultado ou só assistindo, sai direto.
+  // Estável (useCallback): o diálogo não refaz o foco a cada tique do relógio.
+  const ficarNaSala = useCallback(() => setConfirmarSaida(false), []);
+  function pedirSaida() {
+    if (estado?.participo && EM_PARTIDA.has(estado.fase)) setConfirmarSaida(true);
+    else sairDaSala();
+  }
   function sairDaSala() {
+    setConfirmarSaida(false);
     socketRef.current?.emit("impostor-sair");
     codigoRef.current = null;
     setEstado(null);
@@ -115,6 +198,8 @@ export default function Impostor({ usuario, salaDoLink }) {
 
   const props = { estado, carta, tempo, pedir, aoSair: sairDaSala };
   const qual = estado ? TELA[estado.fase] : "entrada";
+  const temMargem = useMidia(COM_MARGEM);
+  const humorNoCanto = temMargem && estado ? HUMOR_NO_CANTO[estado.fase] : null;
   // Tela nova começa do topo (no celular, a rolagem da tela anterior
   // escondia o cabeçalho com a rodada e o cronômetro).
   useEffect(() => { window.scrollTo(0, 0); }, [qual]);
@@ -122,6 +207,7 @@ export default function Impostor({ usuario, salaDoLink }) {
   if (qual === "entrada") tela = <Entrada aoCriar={criar} aoEntrar={entrar} entrando={!!salaDoLink && !erro} />;
   else if (qual === "espera") tela = <SalaEspera {...props} />;
   else if (qual === "carta" || qual === "dicas") tela = <Rodada {...props} />;
+  else if (qual === "respostas" || qual === "confronto") tela = <Pergunta {...props} />;
   else if (qual === "votacao") tela = <Votacao {...props} />;
   else tela = <Revelacao {...props} />;
 
@@ -134,7 +220,7 @@ export default function Impostor({ usuario, salaDoLink }) {
         <main className={estado ? "imp com-chat" : "imp"}>
           <div className="imp-barra">
             {/* Tela inicial: um jeito claro de desistir e voltar pro lobby.
-                Dentro da sala quem cuida disso é o "Sair" da própria tela. */}
+                Dentro da sala, o "Sair da sala" fica aqui na barra (todas as fases). */}
             {qual === "entrada" && (
               <a
                 className="imp-voltar"
@@ -146,7 +232,16 @@ export default function Impostor({ usuario, salaDoLink }) {
             )}
             {estado && <span className="imp-barra-sala">Sala {estado.codigo}</span>}
             <BotaoSom />
+            {estado && (
+              <button type="button" className="imp-barra-botao imp-barra-sair" onClick={pedirSaida}>
+                <IconeSair />
+                <span>Sair<span className="imp-so-computador"> da sala</span></span>
+              </button>
+            )}
           </div>
+          <AnimatePresence>
+            {confirmarSaida && estado && <ConfirmarSaida aoFicar={ficarNaSala} aoSair={sairDaSala} />}
+          </AnimatePresence>
           {caiu && <div className="imp-aviso" role="status">Conexão caiu — reconectando…</div>}
           {erro && <div className="imp-aviso erro" role="alert">{erro}</div>}
           {estado && !estado.participo && estado.fase !== "LOBBY" && (
@@ -172,6 +267,9 @@ export default function Impostor({ usuario, salaDoLink }) {
             </div>
             {estado && <ChatImpostor mensagens={chat} estado={estado} pedir={pedir} />}
           </div>
+          {/* Fora da troca de tela: o mesmo boneco segue de CARTAS até a
+              VOTACAO, mudando de humor sem recarregar. */}
+          {humorNoCanto && <Agente humor={humorNoCanto} className="imp-agente-canto" />}
         </main>
       </div>
     </MotionConfig>

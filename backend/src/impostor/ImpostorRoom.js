@@ -1,10 +1,15 @@
 import {
-  validarDica,
+  validarTextoDaVez,
+  validarResposta,
   chuteCorreto,
   apurarVotos,
   calcularPontuacao,
   embaralhar,
+  normalizar,
+  MODOS,
+  LIMITES,
 } from "./regras.js";
+import { sortearConteudo as sortearConteudoPadrao, opcoesDoChute } from "./conteudoModos.js";
 import { CerebroBot } from "./bots.js";
 
 // O IMPOSTOR — motor de UMA sala (só memória).
@@ -15,6 +20,56 @@ import { CerebroBot } from "./bots.js";
 // No fim de cada rodada de dicas há uma pausa curta (SEG_ULTIMA_DICA), ainda
 // na fase DICAS e sem ninguém na vez, pra todo mundo ler a última dica.
 //
+// MODOS (o anfitrião escolhe no lobby; a partida guarda o modo da largada):
+//   palavra  — o original: tripulantes recebem tema + palavra (do banco),
+//              o impostor só o tema. Dica = 1 palavra. Última chance digitada.
+//   situacao — tripulantes recebem uma situação ("Na fila do SUS"), o
+//              impostor nada. Dica de 1 a 3 palavras. Última chance: 6 opções.
+//   historia — tripulantes recebem o tema de uma história, o impostor nada.
+//              Na vez, cada um escreve UMA frase (até 120) continuando a
+//              história (SEG_FRASE). Última chance: 6 opções.
+//   pergunta — todos recebem uma pergunta; o impostor, outra parecida (e,
+//              com PERGUNTA_IMPOSTOR_SABE = false, nem sabe que é o impostor).
+//              LOBBY → CARTAS → RESPOSTAS (40s, todos ao mesmo tempo) →
+//              CONFRONTO (10s: respostas na mesa, pergunta ainda escondida) →
+//              VOTACAO (45s, agora com a pergunta da maioria) → REVELACAO →
+//              FIM. SEM última chance: descoberto = tripulantes vencem.
+//
+// ---------------- PROTOCOLO (pro cliente) ----------------
+// Cliente → servidor (todos com callback { ok } | { erro }):
+//   impostor-modo     { modo }          anfitrião, só no LOBBY. modo ∈ MODOS.
+//   impostor-iniciar  { modo? }         anfitrião; `modo` opcional (= impostor-modo antes).
+//   impostor-dica     { texto }         DICAS: dica (palavra/situação) ou frase (história).
+//   impostor-resposta { texto }         RESPOSTAS (pergunta): uma resposta, sem troca.
+//   impostor-chute    { palavra } | { opcao }   ULTIMA_CHANCE. Palavra: texto.
+//                                       Situação/História: `opcao` = índice (0–5) em
+//                                       `estado.opcoes` (ou o texto exato da opção).
+//   (os demais — carta-vista, votar, proxima, chat, bot, sair — não mudaram)
+//
+// Servidor → cliente:
+//   impostor-carta (individual, a partir de CARTAS e de novo ao voltar de queda):
+//     palavra : { papel: "impostor", tema } | { papel: "tripulante", tema, palavra }
+//     situacao: { papel: "impostor" }       | { papel: "tripulante", situacao }
+//     historia: { papel: "impostor" }       | { papel: "tripulante", historia }
+//     pergunta: { pergunta }  (a sua; o impostor recebe a DELE, sem `papel`.
+//               Com PERGUNTA_IMPOSTOR_SABE = true vai também `papel`.)
+//   impostor-estado (por jogador) — além dos campos de sempre:
+//     sempre: modo  (no LOBBY é o escolhido pra próxima; na partida, o dela)
+//     LOBBY : modos [{ id, nome, descricao }]
+//     na partida: limites { caracteres, palavras? } do texto do modo
+//                 tema = categoria (palavra) ou "Situação"/"Pergunta"/"História"
+//     DICAS (palavra/situacao/historia): dicas [{ rodada, jogadorId, texto }]
+//             — na história, `texto` é a frase; a história é a lista em ordem.
+//     RESPOSTAS: responderam (quantos), totalRespondentes, minhaResposta (só a sua | null)
+//     CONFRONTO, VOTACAO, REVELACAO, FIM (pergunta):
+//             respostas [{ jogadorId, texto }] (texto "" = em branco), ordem embaralhada
+//     VOTACAO, REVELACAO, FIM (pergunta): perguntaReal (a da maioria)
+//     ULTIMA_CHANCE (situacao/historia): opcoes [6 textos] (pra todos)
+//     FIM: resultado ganha `modo`, `palavra` = o segredo (palavra, situação,
+//          pergunta da maioria ou tema da história) e, na pergunta,
+//          `perguntaImpostor`. `chute` = texto digitado ou opção escolhida.
+//          motivo novo: "descoberto" (pergunta: impostor votado, sem última chance).
+//
 // A sala não conhece socket nem banco. Tudo que sai dela passa por
 // `enviar(userId, evento, dados)`, que o socketImpostor liga num emit POR
 // SOCKET do jogador — nunca broadcast. Isso é o que garante, num ponto só,
@@ -22,7 +77,12 @@ import { CerebroBot } from "./bots.js";
 //
 // O QUE NUNCA SAI ANTES DA HORA:
 //   - a palavra: só na carta dos tripulantes, e pra todos só no FIM (depois
-//     da última chance);
+//     da última chance). Vale igual pro segredo dos outros modos (situação,
+//     tema da história) — com a exceção das 6 opções da última chance, que
+//     são justamente a pergunta feita ao impostor;
+//   - pergunta: a da maioria só a partir da VOTACAO (depois do confronto
+//     das respostas); a do impostor, pros outros, só no FIM; a resposta de
+//     cada um só a partir do CONFRONTO;
 //   - quem é o impostor: só a partir da REVELACAO;
 //   - em quem cada um votou: nunca. Na revelação sai só a contagem.
 
@@ -30,6 +90,8 @@ export const FASES = {
   LOBBY: "LOBBY",
   CARTAS: "CARTAS",
   DICAS: "DICAS",
+  RESPOSTAS: "RESPOSTAS",
+  CONFRONTO: "CONFRONTO",
   VOTACAO: "VOTACAO",
   REVELACAO: "REVELACAO",
   ULTIMA_CHANCE: "ULTIMA_CHANCE",
@@ -46,6 +108,20 @@ export const CONFIG = {
   // Pausa depois da ÚLTIMA dica de cada rodada: sem ela a tela pulava pra
   // próxima rodada (ou pra votação) e ninguém chegava a ler a última dica.
   SEG_ULTIMA_DICA: 4,
+  // História: escrever uma frase inteira (até 120) no celular, depois de
+  // ler as anteriores, leva bem mais que uma palavra — 45s em vez de 30.
+  SEG_FRASE: 45,
+  // Pergunta: todos respondem ao mesmo tempo (texto curto).
+  SEG_RESPOSTA: 40,
+  // Pergunta: as respostas ficam na mesa, sem a pergunta, pra todo mundo
+  // ler (até 12) e desconfiar antes de a pergunta da maioria aparecer.
+  SEG_CONFRONTO: 10,
+  // Pergunta: a votação é também a discussão (comparar respostas com a
+  // pergunta revelada), então tem mais tempo que a do modo Palavra.
+  SEG_VOTACAO_PERGUNTA: 45,
+  // Pergunta: o impostor sabe que é o impostor? false = não sabe (recebe só
+  // a pergunta dele e responde "de boa fé"; descobre ao ver a pergunta real).
+  PERGUNTA_IMPOSTOR_SABE: false,
   SEG_VOTACAO: 30,
   // A revelação é uma animação no cliente ("A VERDADE", votos um a um,
   // suspense, nome do acusado). O servidor só segura a fase por esse tempo.
@@ -70,17 +146,41 @@ const CORES = [
   "#9FB4FF", "#F2D16B", "#6FE0E0", "#D6A2E8", "#B5E36B", "#FFA95E",
 ];
 
-const EM_PARTIDA = new Set([FASES.CARTAS, FASES.DICAS, FASES.VOTACAO, FASES.REVELACAO, FASES.ULTIMA_CHANCE]);
+const EM_PARTIDA = new Set([
+  FASES.CARTAS, FASES.DICAS, FASES.RESPOSTAS, FASES.CONFRONTO, FASES.VOTACAO, FASES.REVELACAO, FASES.ULTIMA_CHANCE,
+]);
 const COM_REVELACAO = new Set([FASES.REVELACAO, FASES.ULTIMA_CHANCE, FASES.FIM]);
+// Pergunta: fases em que as respostas estão na mesa / a pergunta real aparece.
+const COM_RESPOSTAS = new Set([FASES.CONFRONTO, FASES.VOTACAO, FASES.REVELACAO, FASES.FIM]);
+const COM_PERGUNTA_REAL = new Set([FASES.VOTACAO, FASES.REVELACAO, FASES.FIM]);
+
+// Nome e explicação curta de cada modo (vão no estado do LOBBY).
+export const INFO_MODOS = [
+  { id: "palavra", nome: "Palavra", descricao: "Todos recebem uma palavra secreta; o impostor, só o tema. Dicas de uma palavra." },
+  { id: "situacao", nome: "Situação", descricao: "Todos sabem onde estão; o impostor, não. Dicas de até 3 palavras." },
+  { id: "pergunta", nome: "Pergunta", descricao: "Todos respondem a mesma pergunta; o impostor responde outra parecida." },
+  { id: "historia", nome: "História", descricao: "Cada um escreve uma frase de uma história; o impostor não sabe o tema." },
+];
+
+// Modos com a última chance em múltipla escolha (os outros: palavra
+// digitada; pergunta: sem última chance).
+const CHUTE_COM_OPCOES = new Set(["situacao", "historia"]);
 
 export class ImpostorRoom {
   // sortearPalavra: async (sala) => { tema, palavra }
   // aoFimDePartida: (resultado) => void — grava no banco (socketImpostor)
   // palavrasDoTema: (tema) => [palavras] — usado pelo bot impostor no chute
-  constructor({ codigo, enviar, sortearPalavra, aoFimDePartida = null, aleatorio = Math.random, config = {}, palavrasDoTema = () => [] }) {
+  // sortearConteudo: (modo, historico, aleatorio) => { tema, palavra, ... } —
+  //   modos Situação/Pergunta/História (padrão: conteudoModos.js)
+  constructor({
+    codigo, enviar, sortearPalavra, aoFimDePartida = null, aleatorio = Math.random, config = {},
+    palavrasDoTema = () => [], sortearConteudo = sortearConteudoPadrao,
+  }) {
     this.codigo = codigo;
     this.enviar = enviar;
     this.sortearPalavra = sortearPalavra;
+    this.sortearConteudo = sortearConteudo;
+    this.modo = "palavra"; // escolhido pelo anfitrião no lobby
     this.aoFimDePartida = aoFimDePartida;
     this.aleatorio = aleatorio;
     this.cfg = { ...CONFIG, ...config };
@@ -156,6 +256,7 @@ export class ImpostorRoom {
     if (j.naPartida && EM_PARTIDA.has(this.fase)) {
       j.timerSaida = setTimeout(() => this.protegido(() => this.removerDaPartida(j.id)), this.cfg.SEG_TOLERANCIA * 1000);
       if (this.fase === FASES.CARTAS) this.conferirCartasVistas();
+      if (this.fase === FASES.RESPOSTAS) this.conferirRespostasCompletas();
       if (this.fase === FASES.VOTACAO) this.conferirVotacaoCompleta();
       this.transmitir();
       return;
@@ -203,6 +304,7 @@ export class ImpostorRoom {
 
     if (this.fase === FASES.CARTAS) this.conferirCartasVistas();
     if (this.fase === FASES.DICAS && this.vezDe === id) return this.proximaVez();
+    if (this.fase === FASES.RESPOSTAS) { p.respostas.delete(id); if (this.conferirRespostasCompletas()) return; }
     if (this.fase === FASES.VOTACAO) { p.votos.delete(id); this.conferirVotacaoCompleta(); }
     this.transmitir();
   }
@@ -257,17 +359,32 @@ export class ImpostorRoom {
     this.anfitriaoId = this.humanosConectados()[0]?.id || null; // bot nunca é anfitrião
   }
 
+  // ---------------- modo ----------------
+  // Só no lobby (e não durante o sorteio de um início em andamento).
+  definirModo(userId, modo) {
+    if (userId !== this.anfitriaoId) return "Só o anfitrião escolhe o modo.";
+    if (this.fase !== FASES.LOBBY || this.iniciando) return "Dá pra trocar o modo só na sala de espera.";
+    if (!MODOS.includes(modo)) return "Modo de jogo desconhecido.";
+    if (modo !== this.modo) { this.modo = modo; this.transmitir(); }
+    return null;
+  }
+
   // ---------------- início ----------------
-  async iniciar(userId) {
+  // `modo` opcional: o cliente pode mandar junto do "Iniciar".
+  async iniciar(userId, modo) {
     if (this.fase !== FASES.LOBBY) return "A partida já começou.";
     if (userId !== this.anfitriaoId) return "Só o anfitrião inicia a partida.";
     if (this.iniciando) return "A partida já está começando.";
+    if (modo != null) { const e = this.definirModo(userId, modo); if (e) return e; }
     if (this.conectados().length < this.cfg.MIN_JOGADORES) return `Precisa de pelo menos ${this.cfg.MIN_JOGADORES} jogadores.`;
 
+    const modoDaPartida = this.modo;
     this.iniciando = true;
     let sorteio;
     try {
-      sorteio = await this.sortearPalavra(this);
+      sorteio = modoDaPartida === "palavra"
+        ? await this.sortearPalavra(this)
+        : this.sortearConteudo(modoDaPartida, this.historico, this.aleatorio);
     } catch (err) {
       console.error("Impostor: falha ao sortear palavra:", err.message);
       return "Não foi possível sortear a palavra. Tente de novo.";
@@ -288,8 +405,15 @@ export class ImpostorRoom {
     if (this.historico.length > 50) this.historico.shift();
 
     this.partida = {
+      modo: modoDaPartida,
       tema: sorteio.tema,
+      // O SEGREDO da partida em todos os modos: palavra, situação, pergunta
+      // da maioria ou tema da história. Mesmo cuidado em todos.
       palavra: sorteio.palavra,
+      perguntaImpostor: sorteio.perguntaImpostor ?? null, // só no modo pergunta
+      respostas: new Map(), // pergunta: userId -> resposta
+      respostasReveladas: null, // pergunta: [{ jogadorId, texto }] a partir do CONFRONTO
+      opcoes: null, // última chance em múltipla escolha
       impostorId: impostor.id,
       participantes: participantes.map((j) => j.id),
       // Nome e cor guardados na largada: quem sai no meio some de
@@ -311,18 +435,28 @@ export class ImpostorRoom {
 
     this.fase = FASES.CARTAS;
     for (const j of participantes) this.enviarCarta(j);
-    this.agendar(this.cfg.SEG_CARTAS, () => this.iniciarDicas());
+    this.agendar(this.cfg.SEG_CARTAS, () => this.depoisDasCartas());
     this.transmitir();
     return null;
   }
 
-  // A CARTA: emissão individual. O impostor recebe só o tema.
+  // A CARTA: emissão individual. O impostor recebe só o tema (Palavra),
+  // nada (Situação/História) ou a pergunta DELE (Pergunta).
   enviarCarta(j) {
     const p = this.partida;
     if (!p) return;
-    const carta = j.id === p.impostorId
-      ? { papel: "impostor", tema: p.tema }
-      : { papel: "tripulante", tema: p.tema, palavra: p.palavra };
+    const ehImpostor = j.id === p.impostorId;
+    let carta;
+    if (p.modo === "situacao") carta = ehImpostor ? { papel: "impostor" } : { papel: "tripulante", situacao: p.palavra };
+    else if (p.modo === "historia") carta = ehImpostor ? { papel: "impostor" } : { papel: "tripulante", historia: p.palavra };
+    else if (p.modo === "pergunta") {
+      carta = { pergunta: ehImpostor ? p.perguntaImpostor : p.palavra };
+      if (this.cfg.PERGUNTA_IMPOSTOR_SABE) carta.papel = ehImpostor ? "impostor" : "tripulante";
+    } else {
+      carta = ehImpostor
+        ? { papel: "impostor", tema: p.tema }
+        : { papel: "tripulante", tema: p.tema, palavra: p.palavra };
+    }
     this.entregar(j.id, "impostor-carta", carta);
   }
 
@@ -339,8 +473,54 @@ export class ImpostorRoom {
   conferirCartasVistas() {
     const faltam = this.ativos().filter((j) => this.conectado(j) && !j.cartaVista);
     if (faltam.length > 0) return false;
-    this.iniciarDicas();
+    this.depoisDasCartas();
     return true;
+  }
+
+  // Pergunta vai pras respostas simultâneas; os outros modos, pras dicas.
+  depoisDasCartas() {
+    if (this.partida.modo === "pergunta") return this.iniciarRespostas();
+    return this.iniciarDicas();
+  }
+
+  // ---------------- respostas (modo pergunta) ----------------
+  iniciarRespostas() {
+    this.fase = FASES.RESPOSTAS;
+    this.partida.respostas = new Map();
+    this.agendar(this.cfg.SEG_RESPOSTA, () => this.revelarRespostas()); // quem não respondeu fica em branco
+    this.transmitir();
+  }
+
+  responder(userId, texto) {
+    if (this.fase !== FASES.RESPOSTAS) return "Agora não é hora de responder.";
+    if (!this.ehAtivo(userId)) return "Você não está nesta partida.";
+    const p = this.partida;
+    if (p.respostas.has(userId)) return "Você já respondeu.";
+    const r = validarResposta(texto);
+    if (r.erro) return r.erro;
+    p.respostas.set(userId, r.resposta);
+    if (!this.conferirRespostasCompletas()) this.transmitir();
+    return null;
+  }
+
+  // Todos os conectados responderam: não precisa esperar os 40s.
+  conferirRespostasCompletas() {
+    const p = this.partida;
+    const faltam = this.ativos().filter((j) => this.conectado(j) && !p.respostas.has(j.id));
+    if (faltam.length > 0) return false;
+    this.revelarRespostas();
+    return true;
+  }
+
+  // Respostas na mesa, com autor, em ordem embaralhada (a ordem de chegada
+  // entregaria quem hesitou). A pergunta da maioria ainda não aparece.
+  revelarRespostas() {
+    const p = this.partida;
+    p.respostasReveladas = embaralhar(this.ativos().map((j) => j.id), this.aleatorio)
+      .map((id) => ({ jogadorId: id, texto: p.respostas.get(id) ?? "" }));
+    this.fase = FASES.CONFRONTO;
+    this.agendar(this.cfg.SEG_CONFRONTO, () => this.iniciarVotacao());
+    this.transmitir();
   }
 
   // ---------------- dicas ----------------
@@ -369,7 +549,8 @@ export class ImpostorRoom {
       break;
     }
     const quem = p.ordem[p.vez];
-    this.agendar(this.cfg.SEG_DICA, () => {
+    const seg = p.modo === "historia" ? this.cfg.SEG_FRASE : this.cfg.SEG_DICA;
+    this.agendar(seg, () => {
       this.registrarDica(quem, ""); // estourou o tempo: fica em branco
       this.proximaVez();
     });
@@ -406,10 +587,11 @@ export class ImpostorRoom {
     if (!this.ehAtivo(userId)) return "Você não está nesta partida.";
     if (this.vezDe !== userId) return "Não é a sua vez.";
     const p = this.partida;
-    // Pro impostor, sem checar contra a palavra (ver validarDica).
-    const r = validarDica(texto, userId === p.impostorId ? null : p.palavra);
+    // Pro impostor, sem checar contra o segredo (ver validarDica). Na
+    // história o "texto" é uma frase (validarFrase), nos outros uma dica.
+    const r = validarTextoDaVez(p.modo, texto, userId === p.impostorId ? null : p.palavra);
     if (r.erro) return r.erro;
-    this.registrarDica(userId, r.dica);
+    this.registrarDica(userId, r.texto);
     this.proximaVez();
     return null;
   }
@@ -440,7 +622,8 @@ export class ImpostorRoom {
   iniciarVotacao() {
     this.fase = FASES.VOTACAO;
     this.partida.votos = new Map();
-    this.agendar(this.cfg.SEG_VOTACAO, () => this.apurar());
+    const seg = this.partida.modo === "pergunta" ? this.cfg.SEG_VOTACAO_PERGUNTA : this.cfg.SEG_VOTACAO;
+    this.agendar(seg, () => this.apurar());
     this.transmitir();
   }
 
@@ -470,21 +653,38 @@ export class ImpostorRoom {
     p.apuracao = apurarVotos(p.votos, this.ativos().map((j) => j.id));
     p.descoberto = p.apuracao.acusadoId === p.impostorId;
     this.fase = FASES.REVELACAO;
-    this.agendar(this.cfg.SEG_REVELACAO, () => (p.descoberto ? this.iniciarUltimaChance() : this.finalizar()));
+    // Pergunta não tem última chance: descoberto = tripulantes vencem.
+    const temUltimaChance = p.descoberto && p.modo !== "pergunta";
+    this.agendar(this.cfg.SEG_REVELACAO, () => (temUltimaChance ? this.iniciarUltimaChance() : this.finalizar()));
     this.transmitir();
   }
 
   // ---------------- última chance ----------------
+  // Situação/História: múltipla escolha entre 6 (o segredo + 5 da mesma lista).
   iniciarUltimaChance() {
+    const p = this.partida;
+    if (CHUTE_COM_OPCOES.has(p.modo)) p.opcoes = opcoesDoChute(p.modo, p.palavra, this.aleatorio);
     this.fase = FASES.ULTIMA_CHANCE;
     this.agendar(this.cfg.SEG_ULTIMA_CHANCE, () => this.finalizar()); // sem chute = errou
     this.transmitir();
   }
 
+  // `chute`: o texto digitado (Palavra) ou, nos modos com opções, o índice
+  // da opção (número) ou o texto exato dela.
   chutar(userId, texto) {
     if (this.fase !== FASES.ULTIMA_CHANCE) return "Agora não é hora de chutar.";
     const p = this.partida;
     if (userId !== p.impostorId) return "Só o impostor pode chutar a palavra.";
+    if (p.opcoes) {
+      const escolhida = typeof texto === "number"
+        ? p.opcoes[texto]
+        : p.opcoes.find((o) => normalizar(o) === normalizar(texto));
+      if (!escolhida) return "Escolha uma das opções.";
+      p.chute = escolhida;
+      p.adivinhou = escolhida === p.palavra;
+      this.finalizar();
+      return null;
+    }
     const chute = String(texto ?? "").trim().slice(0, this.cfg.MAX_CHUTE);
     if (!chute) return "Escreva a palavra.";
     p.chute = chute;
@@ -505,7 +705,10 @@ export class ImpostorRoom {
     });
     p.vencedor = vencedor;
     p.pontos = pontos;
-    p.motivo = p.apuracao?.empate ? "empate" : !p.descoberto ? "inocente" : p.adivinhou ? "adivinhou" : "errou";
+    p.motivo = p.apuracao?.empate ? "empate"
+      : !p.descoberto ? "inocente"
+      : p.modo === "pergunta" ? "descoberto" // sem última chance
+      : p.adivinhou ? "adivinhou" : "errou";
     this.encerrarPartida();
   }
 
@@ -535,8 +738,10 @@ export class ImpostorRoom {
     const p = this.partida;
     return {
       sala: this.codigo,
+      modo: p.modo,
       tema: p.tema,
       palavra: p.palavra,
+      perguntaImpostor: p.perguntaImpostor,
       impostorId: p.impostorId,
       acusadoId: p.apuracao?.acusadoId ?? null,
       vencedor: p.vencedor,
@@ -627,9 +832,13 @@ export class ImpostorRoom {
         naPartida: j.naPartida,
         bot: !!j.bot,
       })),
+      // No lobby: o modo escolhido pra próxima. Na partida: o dela.
+      modo: p ? p.modo : this.modo,
     };
+    if (this.fase === FASES.LOBBY) estado.modos = INFO_MODOS.map((m) => ({ ...m }));
     if (!p) return estado;
 
+    estado.limites = { ...LIMITES[p.modo] };
     estado.tema = p.tema;
     estado.nomes = p.nomes;
     estado.participo = p.participantes.includes(uid);
@@ -645,6 +854,18 @@ export class ImpostorRoom {
       estado.cartasVistas = this.ativos().filter((j) => j.cartaVista).length;
       estado.cartaVista = !!this.jogadores.get(uid)?.cartaVista;
     }
+    // Pergunta: durante as respostas, só quantos já foram e a SUA resposta.
+    if (this.fase === FASES.RESPOSTAS) {
+      estado.responderam = p.respostas.size;
+      estado.totalRespondentes = this.ativos().length;
+      estado.minhaResposta = p.respostas.get(uid) ?? null;
+    }
+    if (p.modo === "pergunta" && COM_RESPOSTAS.has(this.fase) && p.respostasReveladas) {
+      estado.respostas = p.respostasReveladas.map((r) => ({ jogadorId: r.jogadorId, texto: r.texto }));
+    }
+    // A pergunta da maioria só depois do confronto das respostas.
+    if (p.modo === "pergunta" && COM_PERGUNTA_REAL.has(this.fase)) estado.perguntaReal = p.palavra;
+    if (this.fase === FASES.ULTIMA_CHANCE && p.opcoes) estado.opcoes = [...p.opcoes];
     if (this.fase === FASES.VOTACAO) {
       estado.votaram = p.votos.size;
       estado.totalVotantes = this.ativos().length;
@@ -664,14 +885,16 @@ export class ImpostorRoom {
     if (this.fase === FASES.FIM) {
       // Só aqui, depois da última chance, a palavra vai pra todo mundo.
       estado.resultado = {
+        modo: p.modo,
         vencedor: p.vencedor,
         motivo: p.motivo,
         impostorId: p.impostorId,
-        palavra: p.palavra,
+        palavra: p.palavra, // o segredo do modo (ver PROTOCOLO)
         chute: p.chute,
         adivinhou: p.adivinhou,
         pontos: { ...p.pontos },
       };
+      if (p.modo === "pergunta") estado.resultado.perguntaImpostor = p.perguntaImpostor;
     }
     return estado;
   }

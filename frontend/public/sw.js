@@ -103,6 +103,21 @@ self.addEventListener("fetch", (evento) => {
     return;
   }
 
+  // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
+  // O index.html registra este SW também no `npm run dev`. Lá os módulos
+  // não têm hash (/v2/App.jsx, /src/...) e as dependências trocam de ?v=
+  // quando o Vite re-otimiza: servir do cache misturava arquivo velho com
+  // novo — duas cópias do React ("Invalid hook call") e tela piscando.
+  // Nada disso existe no build de produção (lá é tudo /assets/).
+  if (
+    url.pathname.startsWith("/@") ||
+    url.pathname.startsWith("/node_modules/") ||
+    url.pathname.startsWith("/src/") ||
+    (url.pathname.startsWith("/v2/") && req.mode !== "navigate")
+  ) {
+    return;
+  }
+
   // ===== Navegação: rede primeiro =====
   // Assim uma versão nova do site chega na hora. O cache só entra em cena
   // se a pessoa estiver realmente sem internet.
