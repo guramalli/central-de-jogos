@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
 import { AvatarImp, Cronometro, SEGREDO_ERA, emSerie, modoDe, quem, useSegundos } from "./comum.jsx";
+import { BonecoDoJogador } from "../AvatarBoneco.jsx";
 import { tocar } from "./sons.js";
 import Agente from "./Agente.jsx";
 import RankingSerie from "./RankingSerie.jsx";
@@ -216,7 +217,15 @@ function Acusado({ estado, rev, etapa }) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 180, damping: 14 }}
       >
-        <AvatarImp id={rev.acusadoId} nome={a.nickname} cor={a.cor} tamanho={200} className="imp-anel" />
+        {/* Acusado de corpo inteiro (o avatar dele); bot ou sem perfil: a
+            bolinha grande de antes. */}
+        <BonecoDoJogador
+          userId={rev.acusadoId}
+          altura={230}
+          semFundo
+          className="imp-acusado-boneco"
+          reserva={<AvatarImp id={rev.acusadoId} nome={a.nickname} cor={a.cor} tamanho={200} className="imp-anel" />}
+        />
       </motion.div>
       {etapa >= VEREDITO && (
         <motion.div

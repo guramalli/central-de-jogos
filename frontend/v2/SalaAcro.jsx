@@ -5,6 +5,7 @@ import { voltarAoLobby } from "./App.jsx";
 import { corDoJogador, iniciais } from "./temas.js";
 import { ativarSons, somPergunta, somAcerto, somTique, estaMudo, alternarMudo, estaSemAnimacao, alternarAnimacao, ouvirPreferencias } from "./sons.js";
 import Avatar from "./Avatar.jsx";
+import { BonecoDoJogador } from "./AvatarBoneco.jsx";
 import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import IconePatente from "./IconePatente.jsx";
 import { FiguraPodio } from "./PodioSala.jsx";
@@ -478,6 +479,13 @@ export default function SalaAcro({ roomId, usuario, compacto = false, ativo = fa
                   <p className="v2-acro-vazio">Ninguém escreveu uma frase nessa rodada.</p>
                 ) : linhasResultado.map((e, i) => (
                   <div key={e.entryId} className={`v2-acro-linha ${e.pos === 1 ? (e.empate ? "empate" : "vencedora") : e.pos === 2 && !e.empate ? "segunda" : ""} ${e.userId === usuario.id ? "minha" : ""}`} style={{ animationDelay: `${i * 80}ms` }}>
+                    {/* Autor da frase vencedora de corpo inteiro, comemorando
+                        (no empate não: seriam vários). Bot não tem boneco. */}
+                    {e.pos === 1 && !e.empate && !compacto && (
+                      <div className="v2-acro-vencedor-boneco" aria-hidden="true">
+                        <BonecoDoJogador userId={e.userId} altura={120} semFundo />
+                      </div>
+                    )}
                     <div className="v2-acro-linha-frase">
                       {e.pos === 1 && <span className="v2-acro-trofeu" aria-label={e.empate ? "empate" : "vencedora"}>{e.empate ? "=" : "1º"}</span>}
                       “{e.phrase}”
