@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, animate, motion, useReducedMotion } from "motion/react";
-import { AvatarImp, Cronometro, quem } from "./comum.jsx";
+import { AvatarImp, Cronometro, SEGREDO_ERA, modoDe, quem } from "./comum.jsx";
 import { tocar } from "./sons.js";
 
 const MOTIVO_CANCELADA = {
@@ -100,11 +100,7 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
       <section className="imp-revelacao-palco" aria-live="polite">
         <span className="imp-rotulo imp-verdade">A VERDADE</span>
         <Acusado estado={estado} rev={rev} etapa={etapa} />
-        {fim && pronto && (
-          <motion.p className="imp-palavra-era" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            A palavra era <b>{fim.palavra}</b>
-          </motion.p>
-        )}
+        {fim && pronto && <Segredo estado={estado} fim={fim} />}
       </section>
 
       <section className="imp-revelacao-lado">
@@ -132,7 +128,9 @@ function Sequencia({ estado, rev, fim, carta, tempo, pedir, aoSair }) {
           <UltimaChance estado={estado} tempo={tempo} pedir={pedir} souImpostor={souImpostor} impostorId={impostorId} />
         )}
         {pronto && estado.fase === "REVELACAO" && rev.descoberto && (
-          <p className="imp-sub imp-centro">Preparando a última chance…</p>
+          <p className="imp-sub imp-centro">
+            {modoDe(estado) === "pergunta" ? "No modo Pergunta não tem última chance. Contando os pontos…" : "Preparando a última chance…"}
+          </p>
         )}
 
         {pronto && fim && (
@@ -197,16 +195,87 @@ function Acusado({ estado, rev, etapa }) {
   );
 }
 
+// O segredo, no fim (só o que o servidor mandou em `resultado`). Na
+// Pergunta vão as duas perguntas — e o que o impostor respondeu.
+function Segredo({ estado, fim }) {
+  const modo = fim.modo || modoDe(estado);
+  const doImpostor = modo === "pergunta" ? (estado.respostas || []).find((r) => r.jogadorId === fim.impostorId) : null;
+  return (
+    <motion.div className={`imp-segredo ${modo}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <p className="imp-palavra-era">{SEGREDO_ERA[modo] || SEGREDO_ERA.palavra} <b>{fim.palavra}</b></p>
+      {modo === "pergunta" && fim.perguntaImpostor && (
+        <p className="imp-palavra-era impostor">
+          A pergunta do impostor era: <b>{fim.perguntaImpostor}</b>
+          {doImpostor && <span className="imp-segredo-resposta">Resposta do impostor: <i className={doImpostor.texto ? "" : "imp-branco"}>{doImpostor.texto ? `“${doImpostor.texto}”` : "(em branco)"}</i></span>}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+// Situação e História: a última chance é múltipla escolha (6 opções que o
+// servidor manda pra todos). Palavra: o chute é digitado.
+const PERGUNTA_CHUTE = {
+  situacao: "Onde vocês estavam?",
+  historia: "Qual era o tema da história?",
+};
+
 function UltimaChance({ estado, tempo, pedir, souImpostor, impostorId }) {
   const [chute, setChute] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [escolhida, setEscolhida] = useState(null);
   const nome = quem(estado, impostorId).nickname;
+  const opcoes = estado.opcoes;
   async function enviar(e) {
     e.preventDefault();
     if (!chute.trim() || enviando) return;
     setEnviando(true);
     await pedir("impostor-chute", { palavra: chute.trim() });
     setEnviando(false);
+  }
+  async function escolher(i) {
+    if (enviando || escolhida != null) return;
+    setEscolhida(i);
+    setEnviando(true);
+    const r = await pedir("impostor-chute", { opcao: i });
+    setEnviando(false);
+    if (!r.ok) setEscolhida(null);
+  }
+  if (opcoes?.length) {
+    const pergunta = PERGUNTA_CHUTE[modoDe(estado)] || "Qual era o segredo?";
+    return (
+      <motion.div className="imp-ultima opcoes" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="imp-ultima-topo">
+          <Cronometro tempo={tempo} variante="anel" />
+          {souImpostor ? (
+            <p><b>Última chance:</b> {pergunta} Você só tem uma tentativa.</p>
+          ) : (
+            <p><b>Última chance:</b> {nome} está tentando adivinhar… Se acertar, rouba a vitória.</p>
+          )}
+        </div>
+        <ul className="imp-opcoes" role={souImpostor ? "radiogroup" : undefined} aria-label={pergunta}>
+          {opcoes.map((o, i) => (
+            <motion.li
+              key={o}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.25 }}
+            >
+              <button
+                type="button"
+                role={souImpostor ? "radio" : undefined}
+                aria-checked={souImpostor ? escolhida === i : undefined}
+                className={`imp-opcao ${escolhida === i ? "escolhida" : ""}`}
+                disabled={!souImpostor || escolhida != null}
+                onClick={() => escolher(i)}
+              >
+                {o}
+              </button>
+            </motion.li>
+          ))}
+        </ul>
+      </motion.div>
+    );
   }
   return (
     <motion.div className="imp-ultima" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -241,7 +310,8 @@ function useContador(valor) {
 function frasePessoal(estado, rev, fim, souImpostor) {
   if (souImpostor) {
     if (!rev.descoberto) return "Você não foi descoberto";
-    return fim.adivinhou ? "Você adivinhou a palavra" : "Você foi descoberto";
+    if (!fim.adivinhou) return "Você foi descoberto";
+    return fim.modo === "situacao" || fim.modo === "historia" ? "Você acertou na última chance" : "Você adivinhou a palavra";
   }
   if (estado.meuVoto == null) return "Você não votou";
   return estado.meuVoto === rev.impostorId ? "Você acertou o voto" : "Você errou o voto";
@@ -257,8 +327,11 @@ function Resultado({ estado, rev, fim, souImpostor, pedir, aoSair }) {
       <p className="imp-vencedor">{fim.vencedor === "impostor" ? "O IMPOSTOR VENCEU" : "OS TRIPULANTES VENCERAM"}</p>
       {fim.chute != null && (
         <p className="imp-sub imp-centro">
-          {quem(estado, fim.impostorId).nickname} chutou “{fim.chute}” — {fim.adivinhou ? "acertou!" : "errou."}
+          {quem(estado, fim.impostorId).nickname} {fim.modo === "situacao" || fim.modo === "historia" ? "escolheu" : "chutou"} “{fim.chute}” — {fim.adivinhou ? "acertou!" : "errou."}
         </p>
+      )}
+      {fim.motivo === "descoberto" && (
+        <p className="imp-sub imp-centro">{quem(estado, fim.impostorId).nickname} foi descoberto — no modo Pergunta não tem última chance.</p>
       )}
       {meus != null && (
         <div className="imp-painel imp-meus-pontos">
@@ -303,7 +376,7 @@ function Cancelada({ estado, fim, pedir, aoSair }) {
       <section className="imp-painel imp-cancelada">
         <span className="imp-rotulo">PARTIDA ENCERRADA</span>
         <p className="imp-vencedor">{MOTIVO_CANCELADA[fim.motivo] || "Partida encerrada."}</p>
-        <p className="imp-palavra-era">A palavra era <b>{fim.palavra}</b></p>
+        <Segredo estado={estado} fim={fim} />
         <Acoes anfitriao={estado.anfitriaoId === estado.euId} pedir={pedir} aoSair={aoSair} />
       </section>
     </div>

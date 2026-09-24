@@ -79,6 +79,44 @@ export function dicasDe(estado, id) {
   return (estado.dicas || []).filter((d) => d.jogadorId === id);
 }
 
+// ---------------- modos ----------------
+// palavra | situacao | pergunta | historia. O servidor manda `estado.modo`
+// sempre; estes textos só dão nome às coisas em cada modo.
+export const NOME_MODO = { palavra: "Palavra", situacao: "Situação", pergunta: "Pergunta", historia: "História" };
+
+export const modoDe = (estado) => estado?.modo || "palavra";
+
+// "A palavra era X" / "A situação era X"… — o segredo, no fim da partida.
+export const SEGREDO_ERA = {
+  palavra: "A palavra era",
+  situacao: "A situação era",
+  pergunta: "A pergunta era",
+  historia: "O tema da história era",
+};
+
+// Rótulo curto do topo (votação etc.): no Palavra, a categoria; nos outros,
+// o nome do modo (o `tema` deles é só "Situação"/"Pergunta"/"História").
+export function rotuloTema(estado) {
+  const modo = modoDe(estado);
+  return modo === "palavra" ? `TEMA ${String(estado.tema || "").toUpperCase()}` : `MODO ${NOME_MODO[modo].toUpperCase()}`;
+}
+
+// O que cada jogador "disse" na partida, pra mostrar nos suspeitos:
+// dicas (palavra/situação), frases (história) ou a resposta (pergunta).
+export function falasDe(estado, id) {
+  if (modoDe(estado) === "pergunta") {
+    const r = (estado.respostas || []).find((x) => x.jogadorId === id);
+    return r ? [{ chave: "resposta", texto: r.texto, titulo: "Resposta" }] : [];
+  }
+  return dicasDe(estado, id).map((d) => ({ chave: d.rodada, texto: d.texto, titulo: `Rodada ${d.rodada}` }));
+}
+
+// Contador de caracteres / palavras de um campo (dica, frase, resposta).
+export function contarPalavras(texto) {
+  const t = String(texto || "").trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+
 export function PontoPiscando({ cor = "verde" }) {
   return <span className={`imp-ponto ${cor}`} aria-hidden="true" />;
 }

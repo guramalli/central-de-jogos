@@ -23,7 +23,7 @@
   color: var(--imp-texto);
   font-family: var(--imp-corpo);
 }
-.imp-app button, .imp-app input { font-family: var(--imp-corpo); }
+.imp-app button, .imp-app input, .imp-app textarea { font-family: var(--imp-corpo); }
 .imp { width: 100%; max-width: 1280px; margin: 0 auto; padding: 16px clamp(16px, 3vw, 40px) 48px; display: flex; flex-direction: column; gap: 16px; }
 .imp-tela { display: flex; flex-direction: column; gap: 20px; }
 
@@ -103,10 +103,17 @@
 .imp-espera-heroi { flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
 .imp-espera-heroi .imp-sub { font-size: 18px; max-width: 440px; }
 .imp-modos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 520px; }
-.imp-modo { text-align: left; padding: 16px 18px; border-radius: 16px; border: 2px dashed var(--imp-borda); background: transparent; color: var(--imp-apagado); display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.imp-modo b { font-size: 16px; font-weight: 800; }
+/* Modos: o anfitrião escolhe (botões); os outros veem o escolhido. */
+.imp-modos-bloco { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+.imp-modo { text-align: left; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--imp-borda); background: transparent; color: var(--imp-texto-2); display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.4; transition: border-color .15s, background .15s, color .15s, opacity .15s; }
+.imp-modo b { font-size: 16px; font-weight: 800; color: var(--imp-texto); }
+.imp-modo:disabled { cursor: default; }
+.imp-modo:disabled:not(.ativo) { opacity: .5; }
+.imp-modos.escolha .imp-modo:not(.ativo):hover, .imp-modos.escolha .imp-modo:not(.ativo):focus-visible { border-color: var(--imp-ambar); background: var(--imp-superficie); color: var(--imp-texto); }
 .imp-modo.ativo { border: 2px solid var(--imp-vermelho); background: var(--imp-vermelho-escuro); color: #FFD9DC; cursor: default; }
 .imp-modo.ativo b { color: var(--imp-texto); }
+.imp-modo-descricao { margin: 0; color: var(--imp-texto-2); font-size: 13px; line-height: 1.45; }
+.imp-modo-descricao b { color: var(--imp-texto); }
 .imp-espera-painel { width: min(520px, 50%); flex-shrink: 0; padding: 28px; border-radius: 28px; display: flex; flex-direction: column; gap: 22px; }
 .imp-codigo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .imp-codigo > div { display: flex; flex-direction: column; gap: 2px; }
@@ -158,6 +165,8 @@
 .imp-carta-tema { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--imp-rotulo-carta); }
 .imp-carta-palavra { font-family: var(--imp-titulo); font-size: var(--tam); line-height: 1; color: var(--imp-palavra-carta); text-align: center; word-break: break-word; }
 .imp-carta-dica { font-size: 15px; line-height: 1.45; color: var(--imp-rotulo-carta); text-align: center; max-width: 250px; }
+/* Situação, tema da história e pergunta: frase em várias linhas. */
+.imp-carta-palavra.frase { line-height: 1.12; letter-spacing: .3px; word-break: normal; overflow-wrap: break-word; padding: 0 4px; }
 
 /* ---------- rodada ---------- */
 .imp-cabecalho-rodada { display: flex; align-items: center; gap: 14px; }
@@ -180,6 +189,8 @@
 .imp-chip-dica i { flex-shrink: 0; font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .5px; color: var(--imp-apagado); }
 .imp-chip-dica b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--imp-titulo); font-weight: 400; font-size: 15px; letter-spacing: .5px; text-transform: uppercase; color: var(--imp-cor-jogador, var(--imp-texto)); }
 .imp-chip-dica b.imp-branco { font-size: 12px !important; }
+/* História: o chip só marca que a pessoa escreveu (a frase é longa). */
+.imp-chip-dica b.imp-chip-ok { font-family: var(--imp-corpo); font-weight: 800; font-size: 12px; }
 /* Muitos jogadores (mais de 6): linhas mais justas, pra 12 caberem. */
 .imp-ordem.muitos { gap: 10px; }
 .imp-ordem.muitos ol { gap: 3px; }
@@ -214,6 +225,74 @@
 .imp-dica-form label.sua-vez { color: var(--imp-ambar); }
 .imp-dica-recusa { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--imp-vermelho-escuro); border: 1px solid var(--imp-vermelho); color: #FFD9DC; font-size: 13px; font-weight: 700; line-height: 1.4; }
 .imp-campo[aria-invalid="true"] { border-color: var(--imp-vermelho); }
+/* Ajuda + contador embaixo do campo (situação, história, pergunta). */
+.imp-dica-ajuda { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; color: var(--imp-texto-2); font-size: 12px; line-height: 1.4; }
+.imp-contador { margin-left: auto; flex-shrink: 0; color: var(--imp-apagado); font-weight: 700; font-variant-numeric: tabular-nums; }
+.imp-contador.cheio { color: var(--imp-vermelho); }
+
+/* ---------- história (modo História) ----------
+   A história é o centro da tela: ordem à esquerda, e ao lado o campo da
+   frase em cima e o texto corrido embaixo. A carta fica no botão. */
+.imp-rodada.historia .imp-rodada-historia { flex: 1 1 0; min-width: 0; max-width: 860px; display: flex; flex-direction: column; gap: 12px; }
+.imp-rodada-historia-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.imp-dicas.historia { gap: 14px; }
+.imp-frase-linha { display: flex; gap: 8px; align-items: flex-end; }
+.imp-campo-frase { height: auto; min-height: 76px; padding: 12px 14px; resize: none; line-height: 1.45; }
+.imp-historia { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--imp-borda); }
+.imp-historia-rodada + .imp-historia-rodada { margin-top: 12px; }
+.imp-historia-rodada-titulo { margin: 0 0 4px; color: var(--imp-apagado); font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.imp-historia-texto { margin: 0; color: var(--imp-texto); font-size: 16px; line-height: 1.8; }
+/* Cada frase: nome do autor pequeno na cor dele + a frase com um
+   sublinhado discreto da mesma cor (dá pra ver onde cada uma começa). */
+.imp-frase { padding: 2px 3px; border-radius: 6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: background .25s, box-shadow .25s; }
+.imp-frase-nome { margin-right: 2px; color: var(--imp-cor-jogador, var(--imp-texto-2)); font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; white-space: nowrap; }
+.imp-frase-texto { text-decoration: underline 2px color-mix(in srgb, var(--imp-cor-jogador, #7C8090) 45%, transparent); text-underline-offset: 5px; }
+.imp-frase.vazia .imp-frase-texto { color: var(--imp-apagado); font-style: italic; text-decoration: none; }
+.imp-frase .imp-dica-selo { margin-left: 4px; vertical-align: 2px; }
+.imp-frase.ultima { background: var(--imp-ambar-escuro); box-shadow: 0 0 0 2px var(--imp-ambar); }
+
+/* ---------- respostas (modo Pergunta) ---------- */
+.imp-respostas { width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.imp-respostas .imp-cabecalho-rodada { justify-content: space-between; }
+.imp-pergunta-painel { display: flex; flex-direction: column; gap: 18px; padding: 32px; border-radius: 28px; }
+.imp-pergunta-texto { margin: 0; font-family: var(--imp-titulo); font-weight: 400; font-size: clamp(30px, 3.6vw, 46px); line-height: 1.1; letter-spacing: .5px; overflow-wrap: break-word; }
+.imp-resposta-enviada { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 18px; background: rgba(61, 214, 140, .1); border: 1px solid var(--imp-verde); }
+.imp-resposta-enviada > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.imp-resposta-enviada small { color: var(--imp-verde); font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+.imp-resposta-enviada b { font-family: var(--imp-titulo); font-weight: 400; font-size: 24px; letter-spacing: .5px; overflow-wrap: anywhere; }
+.imp-resposta-check { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--imp-verde); color: var(--imp-fundo); display: inline-flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; }
+.imp-respostas-progresso { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.imp-respostas-progresso .imp-nota-status b { color: var(--imp-texto); }
+.imp-marcas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.imp-marcas li { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--imp-borda); display: flex; align-items: center; justify-content: center; color: var(--imp-verde); font-size: 14px; font-weight: 800; transition: border-color .2s, background .2s; }
+.imp-marcas li.feito { border-style: solid; border-color: var(--imp-verde); background: rgba(61, 214, 140, .14); }
+
+/* ---------- confronto (modo Pergunta) ---------- */
+.imp-confronto { display: flex; flex-direction: column; gap: 20px; }
+.imp-confronto-aviso { align-self: flex-start; }
+.imp-respostas-mesa { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; perspective: 1200px; }
+.imp-respostas-mesa.muitos { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.imp-resposta { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 112px; padding: 14px 16px 16px; border-radius: 18px; background: var(--imp-superficie); border: 1px solid var(--imp-borda); border-top: 4px solid var(--imp-cor-jogador, var(--imp-borda)); backface-visibility: hidden; }
+.imp-resposta.minha { background: #20232D; }
+.imp-resposta-quem { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.imp-resposta-quem .imp-avatar { font-size: 13px !important; }
+.imp-resposta-nome { min-width: 0; color: var(--imp-cor-jogador, var(--imp-texto-2)); font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-resposta-texto { font-family: var(--imp-titulo); font-weight: 400; font-size: 24px; line-height: 1.15; letter-spacing: .5px; overflow-wrap: anywhere; }
+.imp-respostas-mesa.muitos .imp-resposta { min-height: 96px; padding: 12px 14px 14px; }
+.imp-respostas-mesa.muitos .imp-resposta-texto { font-size: 20px; }
+
+/* ---------- votação: pergunta real e textos longos ---------- */
+.imp-pergunta-real { display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; border-radius: 22px; background: var(--imp-ambar-escuro); border: 1px solid var(--imp-ambar); }
+.imp-pergunta-real .imp-rotulo { color: var(--imp-ambar); }
+.imp-pergunta-real .imp-pergunta-texto { font-size: clamp(26px, 3vw, 38px); }
+.imp-pergunta-real .imp-nota b { color: var(--imp-texto); }
+/* História (frases) e Pergunta (respostas): texto normal, cortado em 3
+   linhas no cartão (a frase inteira fica no "title"). */
+.imp-votacao.longo .imp-suspeito-dicas { max-width: 100%; }
+.imp-votacao.longo .imp-suspeito-dicas b { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; font-family: var(--imp-corpo); font-weight: 700; font-size: 14px; line-height: 1.35; letter-spacing: 0; text-transform: none; text-align: center; white-space: normal; }
+.imp-votacao.longo .imp-suspeitos.lotado .imp-suspeito-dicas { flex-direction: column; gap: 4px; }
+.imp-votacao.longo .imp-suspeitos.lotado .imp-suspeito-dicas b { -webkit-line-clamp: 2; font-size: 13.5px; }
+.imp-votacao.longo .imp-suspeitos.lotado .imp-suspeito-dicas b + b::before { content: none; }
 .imp-sobreposicao { position: fixed; inset: 0; z-index: 1000; background: rgba(14, 15, 20, .95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px; }
 
 /* ---------- votação ---------- */
@@ -281,6 +360,23 @@
 .imp-ultima p { margin: 0; }
 .imp-ultima b { color: var(--imp-ambar); }
 .imp-ultima-form { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; }
+/* Última chance em múltipla escolha (Situação e História). */
+.imp-ultima.opcoes { flex-direction: column; align-items: stretch; }
+.imp-ultima-topo { display: flex; align-items: center; gap: 14px; }
+.imp-opcoes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.imp-opcao { width: 100%; height: 100%; min-height: 52px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255, 181, 71, .35); background: var(--imp-fundo); color: var(--imp-texto); font-size: 14px; font-weight: 700; line-height: 1.3; text-align: left; transition: background .15s, border-color .15s, opacity .15s; }
+.imp-opcao:hover:not(:disabled), .imp-opcao:focus-visible { border-color: var(--imp-ambar); background: var(--imp-superficie); }
+.imp-opcao:disabled { cursor: default; }
+.imp-opcao.escolhida { border-color: var(--imp-ambar); background: var(--imp-ambar); color: var(--imp-ambar-escuro); }
+.imp-opcoes:has(.escolhida) .imp-opcao:not(.escolhida) { opacity: .45; }
+/* O segredo no fim (e, na Pergunta, a do impostor). */
+.imp-segredo { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.imp-segredo.pergunta .imp-palavra-era b, .imp-segredo.historia .imp-palavra-era b { text-transform: none; }
+/* Pergunta: a frase inteira numa linha própria, embaixo do rótulo. */
+.imp-segredo.pergunta .imp-palavra-era b { display: block; margin-top: 2px; }
+.imp-segredo-resposta { display: block; margin-top: 4px; }
+.imp-palavra-era.impostor b { color: var(--imp-vermelho); }
+.imp-palavra-era i { font-style: normal; font-weight: 700; color: var(--imp-texto); }
 .imp-resultado { display: flex; flex-direction: column; gap: 14px; }
 .imp-vencedor { margin: 0; font-family: var(--imp-titulo); font-size: 30px; letter-spacing: 1px; text-align: center; }
 .imp-meus-pontos { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; border-radius: 22px; }
@@ -377,7 +473,27 @@
   .imp-rodada-dicas { width: auto; order: 1; }
   .imp-rodada-topo-celular { display: flex !important; flex-direction: column; gap: 6px; }
   .imp-ordem { width: auto; order: 2; }
-  .imp-dica-linha .imp-botao { width: auto; }
+  .imp-dica-linha .imp-botao, .imp-frase-linha .imp-botao { width: auto; }
+  .imp-rodada.historia .imp-rodada-historia { order: 1; max-width: none; }
+  .imp-rodada-historia-topo .imp-cabecalho-rodada { width: 100%; }
+  .imp-historia-texto { font-size: 15px; line-height: 1.75; }
+
+  /* pergunta: respostas e confronto */
+  .imp-respostas { gap: 14px; }
+  .imp-pergunta-painel { padding: 20px 18px; border-radius: 20px; gap: 14px; }
+  .imp-pergunta-texto { font-size: 30px; }
+  .imp-resposta-enviada b { font-size: 20px; }
+  .imp-marcas li { width: 26px; height: 26px; font-size: 12px; }
+  .imp-confronto { gap: 14px; }
+  .imp-confronto-aviso { align-self: stretch; }
+  .imp-respostas-mesa, .imp-respostas-mesa.muitos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .imp-resposta, .imp-respostas-mesa.muitos .imp-resposta { min-height: 0; padding: 10px 12px 12px; gap: 6px; border-radius: 14px; }
+  .imp-resposta-texto, .imp-respostas-mesa.muitos .imp-resposta-texto { font-size: 18px; }
+  .imp-resposta-quem .imp-avatar { width: 22px !important; height: 22px !important; font-size: 11px !important; }
+  .imp-pergunta-real { padding: 14px 16px; border-radius: 18px; }
+  .imp-pergunta-real .imp-pergunta-texto { font-size: 24px; }
+  .imp-votacao.longo .imp-suspeito-disse { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .imp-opcoes { grid-template-columns: minmax(0, 1fr); }
 
   /* votação */
   .imp-votacao { gap: 16px; }

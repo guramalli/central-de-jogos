@@ -2,12 +2,18 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AvatarImp, PontoPiscando } from "./comum.jsx";
 
-const MODOS = [
-  { nome: "Palavra", texto: "Todos sabem a palavra, menos um.", ativo: true },
-  { nome: "Situação", texto: "Em breve" },
-  { nome: "Pergunta", texto: "Em breve" },
-  { nome: "História", texto: "Em breve" },
+// Reserva, caso o estado venha sem a lista (servidor antigo): só o Palavra.
+const MODOS_PADRAO = [
+  { id: "palavra", nome: "Palavra", descricao: "Todos recebem uma palavra secreta; o impostor, só o tema. Dicas de uma palavra." },
 ];
+
+// Chamada do topo, por modo (computador / celular).
+const CHAMADA = {
+  palavra: ["Um de vocês não sabe a palavra. Dê dicas, desconfie de todo mundo e vote em quem está blefando.", "Um de vocês não sabe a palavra. Descubra quem."],
+  situacao: ["Um de vocês não sabe onde vocês estão. Dê dicas curtas, desconfie de todo mundo e vote em quem está blefando.", "Um de vocês não sabe onde vocês estão. Descubra quem."],
+  pergunta: ["Um de vocês respondeu outra pergunta — e nem sabe disso. Comparem as respostas e votem.", "Um de vocês respondeu outra pergunta. Descubra quem."],
+  historia: ["Um de vocês não sabe o tema da história. Escrevam juntos, frase por frase, e descubram quem está inventando.", "Um de vocês não sabe o tema da história. Descubra quem."],
+};
 
 const IconeCopiar = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -21,6 +27,9 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
   const [copiado, setCopiado] = useState(false);
   const { jogadores, minJogadores, maxJogadores } = estado;
   const souAnfitriao = estado.anfitriaoId === estado.euId;
+  const modos = estado.modos?.length ? estado.modos : MODOS_PADRAO;
+  const modoAtual = modos.find((m) => m.id === estado.modo) || modos[0];
+  const chamada = CHAMADA[modoAtual.id] || CHAMADA.palavra;
   const conectados = jogadores.filter((j) => j.conectado).length;
   const faltam = Math.max(0, minJogadores - conectados);
   // Vagas tracejadas até completar a fileira (6 no computador, 4 no celular
@@ -58,17 +67,48 @@ export default function SalaEspera({ estado, pedir, aoSair }) {
         </div>
         <h1 className="imp-titulo-heroi">O <br className="imp-so-computador" />IMPOSTOR</h1>
         <p className="imp-sub">
-          <span className="imp-so-computador">Um de vocês não sabe a palavra. Dê dicas, desconfie de todo mundo e vote em quem está blefando.</span>
-          <span className="imp-so-celular">Um de vocês não sabe a palavra. Descubra quem.</span>
+          <span className="imp-so-computador">{chamada[0]}</span>
+          <span className="imp-so-celular">{chamada[1]}</span>
         </p>
-        <div className="imp-modos" aria-label="Modos de jogo">
-          {MODOS.map((m) => (
-            <button key={m.nome} className={`imp-modo ${m.ativo ? "ativo" : ""}`} disabled={!m.ativo} aria-pressed={m.ativo}>
-              <b>{m.nome}</b>
-              <span className="imp-so-computador">{m.texto}</span>
-              {!m.ativo && <span className="imp-so-celular">· em breve</span>}
-            </button>
-          ))}
+        {/* Modos: o anfitrião escolhe (o servidor confirma e manda o estado
+            novo pra todos); os outros só veem qual está valendo. */}
+        <div className="imp-modos-bloco">
+          <span className="imp-rotulo">
+            {souAnfitriao ? "ESCOLHA O MODO" : <>MODO DA PARTIDA<span className="imp-so-computador"> · ESCOLHIDO PELO ANFITRIÃO</span></>}
+          </span>
+          <div className={`imp-modos ${souAnfitriao ? "escolha" : ""}`} role="radiogroup" aria-label="Modo de jogo">
+            {modos.map((m) => {
+              const ativo = m.id === modoAtual.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={ativo}
+                  className={`imp-modo ${ativo ? "ativo" : ""}`}
+                  disabled={!souAnfitriao}
+                  onClick={() => { if (!ativo) pedir("impostor-modo", { modo: m.id }); }}
+                >
+                  <b>{m.nome}</b>
+                  <span className="imp-so-computador">{m.descricao}</span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Celular: os modos são pílulas só com o nome; a explicação do
+              escolhido vem aqui embaixo. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={modoAtual.id}
+              className="imp-modo-descricao imp-so-celular"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <b>{modoAtual.nome}:</b> {modoAtual.descricao}
+            </motion.p>
+          </AnimatePresence>
         </div>
       </section>
 

@@ -6,6 +6,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Entrada from "./impostor/Entrada.jsx";
 import SalaEspera from "./impostor/SalaEspera.jsx";
 import Rodada from "./impostor/Rodada.jsx";
+import Pergunta from "./impostor/Pergunta.jsx";
 import Votacao from "./impostor/Votacao.jsx";
 import Revelacao from "./impostor/Revelacao.jsx";
 import BotaoSom from "./impostor/BotaoSom.jsx";
@@ -23,9 +24,13 @@ import "./impostor/impostor.css";
 
 // Qual tela mostra cada fase. REVELACAO, ULTIMA_CHANCE e FIM são a MESMA
 // tela: a sequência da revelação roda uma vez e o resto aparece embaixo.
-const TELA = { LOBBY: "espera", CARTAS: "carta", DICAS: "dicas", VOTACAO: "votacao", REVELACAO: "revelacao", ULTIMA_CHANCE: "revelacao", FIM: "revelacao" };
+// RESPOSTAS e CONFRONTO são do modo Pergunta (no lugar das DICAS).
+const TELA = {
+  LOBBY: "espera", CARTAS: "carta", DICAS: "dicas", RESPOSTAS: "respostas", CONFRONTO: "confronto",
+  VOTACAO: "votacao", REVELACAO: "revelacao", ULTIMA_CHANCE: "revelacao", FIM: "revelacao",
+};
 // Fases com a partida rolando: sair aqui pede confirmação.
-const EM_PARTIDA = new Set(["CARTAS", "DICAS", "VOTACAO", "REVELACAO", "ULTIMA_CHANCE"]);
+const EM_PARTIDA = new Set(["CARTAS", "DICAS", "RESPOSTAS", "CONFRONTO", "VOTACAO", "REVELACAO", "ULTIMA_CHANCE"]);
 
 const IconeSair = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -180,6 +185,7 @@ export default function Impostor({ usuario, salaDoLink }) {
   if (qual === "entrada") tela = <Entrada aoCriar={criar} aoEntrar={entrar} entrando={!!salaDoLink && !erro} />;
   else if (qual === "espera") tela = <SalaEspera {...props} />;
   else if (qual === "carta" || qual === "dicas") tela = <Rodada {...props} />;
+  else if (qual === "respostas" || qual === "confronto") tela = <Pergunta {...props} />;
   else if (qual === "votacao") tela = <Votacao {...props} />;
   else tela = <Revelacao {...props} />;
 
