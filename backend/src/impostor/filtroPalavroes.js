@@ -32,3 +32,9 @@ export function ehPalavrao(texto) {
   const pedacos = [t.replace(/[^a-z0-9]/g, ""), ...t.split(/[-_.]+/)];
   return pedacos.some((p) => PROIBIDAS.has(p.replace(/[^a-z0-9]/g, "")));
 }
+
+// Texto com várias palavras (dica de 3 palavras, frase da história,
+// resposta): confere palavra por palavra, com a mesma regra acima.
+export function temPalavrao(texto) {
+  return String(texto ?? "").split(/\s+/).some(ehPalavrao);
+}

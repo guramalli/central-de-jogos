@@ -48,6 +48,20 @@ export function __resetImpostorParaTestes() {
 //
 // FASE DE TESTES: CONFIG.VALE_RANKING = false — a partida é gravada, mas os
 // pontos NÃO vão pro ranking. Sala com bot nunca vai (seria ponto fácil).
+//
+// MODO DE JOGO: a tabela não tem coluna de modo (e o schema não muda), então
+// ele vai no `tema`. Modo Palavra grava o tema do banco como sempre
+// ("Lugares", "Comidas"...); os outros gravam "Modo Situação", "Modo
+// História" e "Modo Pergunta | impostor: <pergunta do impostor>" — os temas
+// do banco nunca começam com "Modo ". A coluna `palavra` guarda o segredo:
+// a situação, o tema da história ou a pergunta da maioria.
+const NOME_DO_MODO = { situacao: "Situação", historia: "História", pergunta: "Pergunta" };
+export function temaParaGravar(r) {
+  if (!r.modo || r.modo === "palavra") return r.tema;
+  const base = `Modo ${NOME_DO_MODO[r.modo] || r.modo}`;
+  return r.modo === "pergunta" && r.perguntaImpostor ? `${base} | impostor: ${r.perguntaImpostor}` : base;
+}
+
 async function gravarResultadoNoBanco(r) {
   try {
     await prisma.impostorPartida.create({
@@ -55,7 +69,7 @@ async function gravarResultadoNoBanco(r) {
         sala: r.sala,
         impostorId: r.impostorId,
         acusadoId: r.acusadoId,
-        tema: r.tema,
+        tema: temaParaGravar(r),
         palavra: r.palavra,
         vencedor: r.vencedor,
         motivo: r.motivo,
@@ -259,11 +273,16 @@ export function registrarImpostor(io, socket) {
     }
   };
 
-  socket.on("impostor-iniciar", naSala((sala) => sala.iniciar(user.id)));
+  // Modo de jogo (ver o PROTOCOLO no topo do ImpostorRoom.js).
+  socket.on("impostor-modo", naSala((sala, { modo }) => sala.definirModo(user.id, modo)));
+  socket.on("impostor-iniciar", naSala((sala, { modo }) => sala.iniciar(user.id, modo)));
   socket.on("impostor-carta-vista", naSala((sala) => sala.cartaVista(user.id)));
   socket.on("impostor-dica", naSala((sala, { texto }) => sala.darDica(user.id, texto)));
+  socket.on("impostor-resposta", naSala((sala, { texto }) => sala.responder(user.id, texto)));
   socket.on("impostor-votar", naSala((sala, { alvoId }) => sala.votar(user.id, String(alvoId || ""))));
-  socket.on("impostor-chute", naSala((sala, { palavra }) => sala.chutar(user.id, palavra)));
+  // Palavra: { palavra } digitada. Situação/História: { opcao } = índice da opção.
+  socket.on("impostor-chute", naSala((sala, { palavra, opcao }) =>
+    sala.chutar(user.id, Number.isInteger(opcao) ? opcao : palavra)));
   socket.on("impostor-proxima", naSala((sala) => sala.proxima(user.id)));
 
   // CHAT DA SALA. Duas travas, como nos outros chats: o anti-flood por CONTA

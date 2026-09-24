@@ -8,3 +8,7 @@ pacote/
 # Newsletter: prévia gerada e registro de quem já recebeu (dado pessoal, fica só local)
 backend/newsletters/.previa.html
 backend/newsletters/.enviados/
+
+# Skills do Higgsfield (ferramenta local de geração de imagem/vídeo, fora do repo)
+.agents/
+skills-lock.json

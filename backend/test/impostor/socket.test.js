@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { io as conectar } from "socket.io-client";
 import {
-  registrarImpostor, __configurarImpostorParaTestes, __resetImpostorParaTestes,
+  registrarImpostor, __configurarImpostorParaTestes, __resetImpostorParaTestes, __salasImpostor,
 } from "../../src/impostor/socketImpostor.js";
 
 // Ponta a ponta com Socket.IO DE VERDADE: 4 clientes jogam uma partida
@@ -133,4 +133,47 @@ test("partida completa pela rede: impostor nunca recebe a palavra; cada um receb
   assert.equal(resultados.length, 1);
   assert.equal(resultados[0].pontos[impostor.id], 0);
   for (const t of tripulantes) assert.equal(resultados[0].pontos[t.id], 200);
+});
+
+test("modo PERGUNTA pela rede: impostor-modo, impostor-resposta; a pergunta real só chega ao impostor na votação", async () => {
+  const grupo = ["eva", "fabi", "gui", "hugo"].map(novoCliente);
+  await Promise.all(grupo.map((x) => new Promise((r) => x.socket.on("connect", r))));
+  const [e, f] = grupo;
+  const { codigo } = await emitir(e, "impostor-criar");
+  for (const x of grupo.slice(1)) await emitir(x, "impostor-entrar", { codigo });
+  assert.deepEqual(await emitir(f, "impostor-modo", { modo: "pergunta" }), { erro: "Só o anfitrião escolhe o modo." });
+  assert.deepEqual(await emitir(e, "impostor-modo", { modo: "pergunta" }), { ok: true });
+  await esperar(() => f.estado?.modo === "pergunta");
+  // Relógio de verdade: confronto e revelação curtinhos.
+  Object.assign(__salasImpostor.get(codigo).cfg, { SEG_CONFRONTO: 0.2, SEG_REVELACAO: 0.2 });
+  assert.deepEqual(await emitir(e, "impostor-iniciar"), { ok: true });
+
+  await esperar(() => grupo.every((x) => x.carta));
+  const perguntas = grupo.map((x) => x.carta.pergunta);
+  const real = perguntas.find((p) => perguntas.filter((q) => q === p).length === 3);
+  const impostor = grupo.find((x) => x.carta.pergunta !== real);
+  assert.ok(real && impostor);
+  for (const x of grupo) assert.equal(x.carta.papel, undefined);
+
+  for (const x of grupo) await emitir(x, "impostor-carta-vista");
+  await esperar(() => e.estado.fase === "RESPOSTAS");
+  for (const x of grupo) assert.deepEqual(await emitir(x, "impostor-resposta", { texto: `resp-${x.id}` }), { ok: true });
+  await esperar(() => grupo.every((x) => x.estado.fase === "CONFRONTO"));
+  assert.equal(e.estado.respostas.length, 4);
+  assert.equal(e.estado.perguntaReal, undefined);
+  await esperar(() => grupo.every((x) => x.estado.fase === "VOTACAO"));
+  assert.equal(impostor.estado.perguntaReal, real);
+
+  for (const x of grupo) {
+    const alvo = x === impostor ? grupo.find((y) => y !== impostor) : impostor;
+    await emitir(x, "impostor-votar", { alvoId: alvo.id });
+  }
+  await esperar(() => grupo.every((x) => x.estado.fase === "FIM"));
+  assert.equal(impostor.estado.resultado.motivo, "descoberto");
+
+  const i = impostor.recebidos.findIndex((r) => r.evento === "impostor-estado" && r.dados.fase === "VOTACAO");
+  for (const r of impostor.recebidos.slice(0, i)) {
+    assert.ok(!JSON.stringify(r.dados ?? null).includes(real), `pergunta real vazou em ${r.evento}`);
+  }
+  assert.equal(resultados.at(-1).modo, "pergunta");
 });
