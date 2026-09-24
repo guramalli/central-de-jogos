@@ -134,3 +134,25 @@
 .v2-proxima-peca > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .v2-proxima-peca > div > span { color: var(--lilas-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
 .v2-proxima-peca small { color: var(--lilas); font-size: 12px; }
+
+/* ---------- Raridade das peças (editor e Coleção) ----------
+   base azul · iniciante verde · intermediário roxo · difícil laranja ·
+   lendário dourado com brilho passando. A cor vem do catálogo (raridade). */
+.v2-avatar-peca { position: relative; overflow: hidden; }
+.v2-avatar-peca.raridade-base { background: linear-gradient(180deg, #2f5bb7, #1d3a7c); }
+.v2-avatar-peca.raridade-iniciante { background: linear-gradient(180deg, #23915e, #155c3c); }
+.v2-avatar-peca.raridade-intermediario { background: linear-gradient(180deg, #7a47d6, #4b2a93); }
+.v2-avatar-peca.raridade-dificil { background: linear-gradient(180deg, #e3702a, #9c3f12); }
+.v2-avatar-peca.raridade-lendario { background: linear-gradient(160deg, #ffd35a, #d99a14 45%, #8a5a06); color: #2b1b5e; box-shadow: 0 0 0 1px #ffe89a inset, 0 0 12px rgba(255, 211, 90, .45); }
+.v2-avatar-peca.raridade-lendario::after { content: ""; position: absolute; inset: -40%; background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, .55) 50%, transparent 60%); animation: v2-brilho-lendario 3.2s ease-in-out infinite; pointer-events: none; }
+@keyframes v2-brilho-lendario { 0% { transform: translateX(-60%); } 55%, 100% { transform: translateX(60%); } }
+.v2-avatar-peca.trancada { filter: saturate(.55) brightness(.8); }
+.v2-raridade-etiqueta { font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: rgba(0, 0, 0, .28); color: #fff; }
+.v2-avatar-peca.raridade-lendario .v2-raridade-etiqueta { background: #2b1b5e; color: #ffd35a; }
+/* Coleção: o anel da bolinha na cor do nível */
+.v2-colecao-peca.raridade-base { border-color: #3d6fd6; }
+.v2-colecao-peca.raridade-iniciante { border-color: #2fb574; }
+.v2-colecao-peca.raridade-intermediario { border-color: #9b6bff; }
+.v2-colecao-peca.raridade-dificil { border-color: #f08a3c; }
+.v2-colecao-peca.raridade-lendario { border-color: #ffd35a; box-shadow: 0 0 10px rgba(255, 211, 90, .6); }
+@media (prefers-reduced-motion: reduce) { .v2-avatar-peca.raridade-lendario::after { animation: none; display: none; } }

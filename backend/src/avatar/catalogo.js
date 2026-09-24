@@ -30,7 +30,7 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../g
 // v4: `motivo` de cada peça, cabelos pintáveis e a paleta CORES_CABELO.
 // (O frontend tem uma cópia deste número em avatarCatalogo.js, que vai no
 // "?v=" da busca — suba as duas juntas.)
-export const VERSAO_CATALOGO = 4;
+export const VERSAO_CATALOGO = 5;
 
 // Tamanho da tela de todas as camadas e os dois recortes usados fora do
 // corpo inteiro (em pixels da tela):
@@ -297,11 +297,44 @@ export const NOMES_CORES_CABELO = {
   grisalho: "Grisalho", rosa: "Rosa", azul: "Azul", roxo: "Roxo", verde: "Verde",
 };
 
+// ===== Raridade =====
+//
+// Nível de dificuldade de cada peça, tirado da PRÓPRIA regra de desbloqueio
+// (sem lista à mão, pra não desencontrar da regra). No editor e na Coleção
+// cada nível tem a sua cor de card: base azul, iniciante verde, intermediário
+// roxo, difícil laranja e lendário dourado (com brilho). Lendário é só o que
+// é raro de verdade (título lendário, campeão do mês, patente máxima, 60 dias).
+export const RARIDADES = [
+  { chave: "base", nome: "Base" },
+  { chave: "iniciante", nome: "Iniciante" },
+  { chave: "intermediario", nome: "Intermediário" },
+  { chave: "dificil", nome: "Difícil" },
+  { chave: "lendario", nome: "Lendário" },
+];
+// Patentes do topo de cada jogo (as mais difíceis).
+const PATENTES_MAXIMAS = new Set(["enciclopedia", "coroa_imperial_ouro", "coroa_ouro", "mascara_ouro"]);
+export function raridadeDaRegra(d) {
+  switch (d.tipo) {
+    case "inicial": return "base";
+    case "titulo":
+      if (d.nivel === "bronze") return "iniciante";
+      if (d.nivel === "prata") return "intermediario";
+      if (d.nivel === "ouro") return "dificil";
+      return "lendario"; // título lendário e campeão do mês
+    case "sequencia": return d.dias <= 7 ? "iniciante" : d.dias <= 21 ? "intermediario" : d.dias < 60 ? "dificil" : "lendario";
+    case "pontos":
+      if (d.jogo === "total" || d.min >= 25000) return "dificil";
+      return d.min >= 10000 ? "intermediario" : "iniciante";
+    case "patente": return PATENTES_MAXIMAS.has(d.patente) ? "lendario" : "intermediario";
+    default: return "base";
+  }
+}
+
 export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica, motivo]) => {
   // Título do Quiz por tema/nível: guarda também o NOME do título (é por ele
   // que a lista de desbloqueados é conferida).
   const desbloqueio = regra.tipo === "titulo" && regra.tema ? { ...regra, nome: nomeDoTituloQuiz(regra.tema, regra.nivel) } : regra;
-  const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, dica: dica || dicaDaRegra(desbloqueio), motivo: motivo || motivoDaRegra(desbloqueio) };
+  const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, raridade: raridadeDaRegra(desbloqueio), dica: dica || dicaDaRegra(desbloqueio), motivo: motivo || motivoDaRegra(desbloqueio) };
   if (CORES_DA_PELE[id]) item.cor = CORES_DA_PELE[id];
   if (COM_MASCARA_DE_PELE.has(id)) item.mascaraPele = `/avatar/${slot}/${id}-pele-v1.webp`;
   if (CABELOS_PINTAVEIS.has(id)) item.pintavel = `/avatar/${slot}/${id}-cinza-v1.webp`;
@@ -367,6 +400,7 @@ export function catalogoPublico() {
     slots: SLOTS,
     camadas: CAMADAS,
     coresCabelo: Object.entries(CORES_CABELO).map(([chave, cor]) => ({ chave, nome: NOMES_CORES_CABELO[chave], cor })),
+    raridades: RARIDADES,
     itens: ITENS,
   };
 }

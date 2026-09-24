@@ -38,7 +38,7 @@ export default function ColecaoAvatar({ userId }) {
             <button
               key={item.id}
               type="button"
-              className={`v2-colecao-peca ${ok ? "" : "trancada"} ${dica?.item.id === item.id ? "ativa" : ""}`}
+              className={`v2-colecao-peca raridade-${item.raridade || "base"} ${ok ? "" : "trancada"} ${dica?.item.id === item.id ? "ativa" : ""}`}
               title={ok ? `${item.nome} — ${motivoDe(item)}` : `${item.nome} — ${item.dica}`}
               aria-label={ok ? `${item.nome}, conquistada: ${motivoDe(item)}` : `${item.nome}, trancada: ${item.dica}`}
               onClick={() => setDica({ item, ok })}

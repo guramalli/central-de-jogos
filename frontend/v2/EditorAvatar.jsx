@@ -171,13 +171,13 @@ export default function EditorAvatar({ usuario, foto = null }) {
                 <small>Nenhum</small>
               </button>
             )}
-            {pecas.map((item) => {
+            {[...pecas].sort((a, b) => ordemRaridade(a) - ordemRaridade(b)).map((item) => {
               const livre = liberados.has(item.id);
               const escolhida = config[item.slot] === item.id;
               return (
                 <button
                   key={item.id}
-                  className={`v2-avatar-peca ${escolhida ? "escolhida" : ""} ${livre ? "" : "trancada"}`}
+                  className={`v2-avatar-peca raridade-${item.raridade || "base"} ${escolhida ? "escolhida" : ""} ${livre ? "" : "trancada"}`}
                   aria-pressed={escolhida}
                   aria-label={livre ? `${item.nome} (${minuscula(motivoDe(item))})` : `${item.nome} (trancado: ${dicaDe(item)})`}
                   title={livre ? `${item.nome} — ${motivoDe(item)}` : `🔒 ${dicaDe(item)}`}
@@ -188,6 +188,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
                     {!livre && <span className="v2-avatar-cadeado" aria-hidden="true">🔒</span>}
                   </span>
                   <small>{item.nome}</small>
+                  {item.raridade && item.raridade !== "base" && <em className="v2-raridade-etiqueta">{NOME_RARIDADE[item.raridade]}</em>}
                 </button>
               );
             })}
@@ -255,6 +256,12 @@ export default function EditorAvatar({ usuario, foto = null }) {
 
 // Compara montagens ignorando slots vazios ({ chapeu: null } == {}) e cor
 // de cabelo que não vale (cabelo que não se pinta — o servidor descarta).
+// Nível de dificuldade da peça (vem do catálogo): ordena as peças de cada
+// aba da base até a lendária e dá nome à etiqueta do card.
+const ORDEM_RARIDADE = ["base", "iniciante", "intermediario", "dificil", "lendario"];
+const NOME_RARIDADE = { base: "Base", iniciante: "Iniciante", intermediario: "Intermediário", dificil: "Difícil", lendario: "Lendário" };
+const ordemRaridade = (item) => Math.max(0, ORDEM_RARIDADE.indexOf(item.raridade || "base"));
+
 function limpar(c, catalogo) {
   const semCor = !corDoCabelo(catalogo, c);
   return Object.fromEntries(
