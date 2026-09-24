@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { buscarPerfil, perfilEmCache } from "../perfil.js";
+import { buscarPerfil, perfilEmCache, ouvirPerfil } from "../perfil.js";
 import { motion } from "motion/react";
 import { tocar } from "./sons.js";
 import AvatarBoneco, { useBonecoNaBolinha } from "../AvatarBoneco.jsx";
@@ -67,8 +67,11 @@ export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
   const [falhou, setFalhou] = useState(false);
   useEffect(() => {
     let vivo = true;
-    buscarPerfil(id).then((p) => vivo && p && setPerfil(p));
-    return () => { vivo = false; };
+    const buscar = () => buscarPerfil(id).then((p) => vivo && p && setPerfil(p));
+    buscar();
+    // Perfil editado nesta aba (foto nova, avatar salvo): busca de novo.
+    const parar = ouvirPerfil(id, () => { setFalhou(false); buscar(); });
+    return () => { vivo = false; parar(); };
   }, [id]);
   const foto = !boneco && perfil?.avatarUrl && !falhou ? perfil.avatarUrl : null;
   return (

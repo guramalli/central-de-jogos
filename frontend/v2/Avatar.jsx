@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { buscarPerfil, perfilEmCache } from "./perfil.js";
+import { buscarPerfil, perfilEmCache, ouvirPerfil } from "./perfil.js";
 import { iniciais, corDoJogador } from "./temas.js";
 import AvatarBoneco, { montagemNaBolinha } from "./AvatarBoneco.jsx";
 
@@ -18,7 +18,12 @@ export default function Avatar({ userId, nickname, tamanho = 40, borda = false, 
   useEffect(() => {
     let vivo = true;
     buscarPerfil(userId).then((p) => vivo && p && setPerfil(p));
-    return () => { vivo = false; };
+    // Perfil editado nesta aba (foto nova, avatar salvo): busca de novo.
+    const parar = ouvirPerfil(userId, () => {
+      setFalhou(false);
+      buscarPerfil(userId).then((p) => vivo && p && setPerfil(p));
+    });
+    return () => { vivo = false; parar(); };
   }, [userId]);
 
   const src = perfil?.avatarUrl;

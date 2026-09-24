@@ -22,7 +22,9 @@ import AvisoPecaNova from "./AvisoPecaNova.jsx";
 // salvar só as iniciais daria trabalho de montar num boneco que some quando
 // a conta de visitante é limpa — melhor usar o editor como convite.
 
-export default function EditorAvatar({ usuario }) {
+// `foto`: a foto de perfil atual (ou null), pra prévia da opção "Foto" das
+// bolinhas.
+export default function EditorAvatar({ usuario, foto = null }) {
   const catalogo = useCatalogoAvatar();
   const [meu, setMeu] = useState(null); // resposta de GET /avatar/meu
   const [config, setConfig] = useState(null);
@@ -91,10 +93,13 @@ export default function EditorAvatar({ usuario }) {
     setSalvando(true);
     try {
       const { data } = await api.put("/avatar", { config });
-      setMeu((m) => ({ ...m, config: data.avatar, jaMontou: true }));
+      setMeu((m) => ({ ...m, config: data.avatar, jaMontou: true, mostrarAvatar: data.mostrarAvatar }));
       setConfig(data.avatar);
+      // Avisa as bolinhas abertas nesta aba (placar, hover...) pra buscarem
+      // o perfil de novo.
       esquecerPerfil(usuario.id);
-      setMsg({ ok: true, texto: "Avatar salvo!" });
+      // Primeiro avatar: o servidor ligou o avatar nas bolinhas sozinho.
+      setMsg({ ok: true, texto: data.avatarLigado ? "Avatar salvo! Seu avatar agora aparece nas bolinhas do site." : "Avatar salvo!" });
     } catch (err) {
       setMsg({ ok: false, texto: err.response?.data?.error || "Erro ao salvar o avatar." });
     } finally {
@@ -222,11 +227,23 @@ export default function EditorAvatar({ usuario }) {
           <button className="v2-botao v2-botao-amarelo" onClick={salvar} disabled={salvando || !mudou}>
             {salvando ? "Salvando…" : mudou ? "Salvar" : "Salvo"}
           </button>
+          {/* As duas opções com a prévia de como a bolinha fica (salva na
+              hora, é um interruptor). Sem foto, a bolinha já é o avatar. */}
           <div className="v2-avatar-bolinha-opcao" role="group" aria-labelledby="v2-avatar-bolinha-rotulo">
-            <span id="v2-avatar-bolinha-rotulo">Na bolinha do chat e das listas, mostrar:</span>
-            <div className="v2-avatar-segmento">
-              <button aria-pressed={!meu.mostrarAvatar} className={!meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(false)}>Foto</button>
-              <button aria-pressed={meu.mostrarAvatar} className={meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(true)}>Avatar</button>
+            <span id="v2-avatar-bolinha-rotulo">Nas bolinhas do chat, das salas e das listas, mostrar:</span>
+            <div className="v2-avatar-bolinha-escolhas">
+              <button aria-pressed={!meu.mostrarAvatar} className={!meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(false)}>
+                <span className="v2-avatar-foto" aria-hidden="true" style={{ width: 40, height: 40, background: "#22164d" }}>
+                  {foto ? <img src={foto} alt="" /> : <AvatarBoneco config={meu.config} busto="cabeca" tamanho={40} preencher />}
+                </span>
+                <span>Foto{!foto && <small>sem foto, fica o avatar</small>}</span>
+              </button>
+              <button aria-pressed={meu.mostrarAvatar} className={meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(true)}>
+                <span className="v2-avatar-foto" aria-hidden="true" style={{ width: 40, height: 40, background: "#22164d" }}>
+                  <AvatarBoneco config={meu.config} busto="cabeca" tamanho={40} preencher />
+                </span>
+                <span>Avatar</span>
+              </button>
             </div>
           </div>
         </div>

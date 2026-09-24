@@ -444,3 +444,28 @@ test("avatar padrão: cor de cabelo natural, sorteada do id e sempre a mesma", (
   }
   assert.ok(vistas.size >= 4, `cores sorteadas: ${[...vistas]}`);
 });
+
+test("salvarAvatar: o PRIMEIRO avatar liga o avatar nas bolinhas; depois, não mexe", async () => {
+  // Primeira vez: liga sozinho e avisa a tela.
+  let deps = depsFalsas();
+  let r = await salvarAvatar("u1", { config: { pele: "pele-clara" } }, deps, { jaMontou: false });
+  assert.equal(r.status, 200);
+  assert.deepEqual(deps.gravados, [{ avatarMontado: { pele: "pele-clara" }, mostrarAvatar: true }]);
+  assert.equal(r.corpo.mostrarAvatar, true);
+  assert.equal(r.corpo.avatarLigado, true);
+  // Primeira vez, mas o pedido diz "Foto": vale o pedido.
+  deps = depsFalsas();
+  r = await salvarAvatar("u1", { config: { pele: "pele-clara" }, mostrarAvatar: false }, deps, { jaMontou: false });
+  assert.deepEqual(deps.gravados, [{ avatarMontado: { pele: "pele-clara" }, mostrarAvatar: false }]);
+  assert.equal(r.corpo.avatarLigado, false);
+  // Já tinha montado: a preferência fica como estava.
+  deps = depsFalsas();
+  r = await salvarAvatar("u1", { config: { pele: "pele-clara" } }, deps, { jaMontou: true });
+  assert.deepEqual(deps.gravados, [{ avatarMontado: { pele: "pele-clara" } }]);
+  assert.equal(r.corpo.avatarLigado, false);
+  // Montagem inválida na primeira vez: nada gravado, nada ligado.
+  deps = depsFalsas();
+  r = await salvarAvatar("u1", { config: { cabelo: "cabelo-curto" } }, deps, { jaMontou: false });
+  assert.equal(r.status, 400);
+  assert.equal(deps.gravados.length, 0);
+});

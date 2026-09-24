@@ -293,7 +293,13 @@ export function avatarParaCongelar(user) {
 //
 // Separado da rota pra dar pra testar sem Express nem banco: `deps` traz
 // `liberados(userId)` e `gravar(userId, data)`. Devolve { status, corpo }.
-export async function salvarAvatar(userId, corpo, deps, { convidado = false } = {}) {
+//
+// PRIMEIRO avatar (`jaMontou` false: nada montado antes deste PUT): liga
+// sozinho o avatar nas bolinhas. Quem tem foto começava com "Foto" e montava
+// o boneco sem nunca vê-lo no placar das salas. Se o mesmo pedido manda
+// mostrarAvatar: false, vale o pedido; e o editor continua deixando voltar
+// pra foto. `corpo.avatarLigado` avisa a tela que isso aconteceu.
+export async function salvarAvatar(userId, corpo, deps, { convidado = false, jaMontou = true } = {}) {
   if (convidado) return { status: 403, corpo: { error: "Crie sua conta para desbloquear peças e salvar seu avatar." } };
   const { config, mostrarAvatar } = corpo || {};
   const data = {};
@@ -303,6 +309,7 @@ export async function salvarAvatar(userId, corpo, deps, { convidado = false } = 
     const r = validarConfig(config, liberados);
     if (r.erro) return { status: 400, corpo: { error: r.erro } };
     data.avatarMontado = r.config;
+    if (!jaMontou && mostrarAvatar === undefined) data.mostrarAvatar = true;
   }
 
   if (mostrarAvatar !== undefined) {
@@ -316,6 +323,6 @@ export async function salvarAvatar(userId, corpo, deps, { convidado = false } = 
   const salvo = await deps.gravar(userId, data);
   return {
     status: 200,
-    corpo: { ok: true, avatar: avatarDoUsuario({ id: userId, avatarMontado: salvo.avatarMontado }), avatarProprio: !!configPublica(salvo.avatarMontado), mostrarAvatar: salvo.mostrarAvatar === true },
+    corpo: { ok: true, avatarLigado: !jaMontou && data.mostrarAvatar === true && mostrarAvatar === undefined, avatar: avatarDoUsuario({ id: userId, avatarMontado: salvo.avatarMontado }), avatarProprio: !!configPublica(salvo.avatarMontado), mostrarAvatar: salvo.mostrarAvatar === true },
   };
 }

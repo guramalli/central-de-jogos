@@ -56,10 +56,12 @@
 .v2-avatar-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .v2-avatar-rodape .v2-botao { min-height: 46px; font-size: 16px; padding: 0 22px; }
 .v2-avatar-bolinha-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--lilas); font-size: 14px; }
-.v2-avatar-segmento { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--roxo-fundo); }
-.v2-avatar-segmento button { min-height: 34px; padding: 0 16px; border: none; border-radius: 10px; background: transparent; color: var(--lilas); font-weight: 900; font-size: 13px; }
-.v2-avatar-segmento button.ativa { background: var(--roxo-2); color: #fff; box-shadow: 0 0 0 2px var(--amarelo) inset; }
-.v2-avatar-segmento button:disabled { opacity: .45; }
+/* Foto x Avatar nas bolinhas: cada opção com a prévia da bolinha. */
+.v2-avatar-bolinha-escolhas { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-avatar-bolinha-escolhas button { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 14px 6px 8px; border: 2px solid transparent; border-radius: 16px; background: var(--roxo-fundo); color: var(--lilas); font-weight: 900; font-size: 14px; text-align: left; }
+.v2-avatar-bolinha-escolhas button > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.v2-avatar-bolinha-escolhas small { color: var(--lilas-2); font-size: 11px; font-weight: 700; }
+.v2-avatar-bolinha-escolhas button.ativa { border-color: var(--amarelo); background: var(--roxo-2); color: #fff; }
 
 @media (min-width: 760px) {
   .v2-avatar-editor-grade { grid-template-columns: 300px minmax(0, 1fr); }

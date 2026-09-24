@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useCatalogoAvatar, ENQUADRAMENTO } from "./avatarCatalogo.js";
-import { buscarPerfil, perfilEmCache } from "./perfil.js";
+import { buscarPerfil, perfilEmCache, ouvirPerfil } from "./perfil.js";
 import "./avatar.css";
 
 // Avatar montado: empilha as camadas (todas do mesmo tamanho de tela,
@@ -43,13 +43,16 @@ export function montagemNaBolinha(perfil, sempre = false, temFoto = !!perfil?.av
 }
 
 // Perfil do jogador pelo cache da v2 (não custa busca extra onde o
-// Avatar/hover já pediram o mesmo perfil).
+// Avatar/hover já pediram o mesmo perfil). Perfil editado nesta aba
+// (esquecerPerfil): busca de novo.
 function usePerfil(userId) {
   const [perfil, setPerfil] = useState(() => perfilEmCache(userId));
   useEffect(() => {
     let vivo = true;
-    buscarPerfil(userId).then((p) => vivo && p && setPerfil(p));
-    return () => { vivo = false; };
+    const buscar = () => buscarPerfil(userId).then((p) => vivo && p && setPerfil(p));
+    buscar();
+    const parar = ouvirPerfil(userId, buscar);
+    return () => { vivo = false; parar(); };
   }, [userId]);
   return perfil;
 }

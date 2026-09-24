@@ -53,12 +53,12 @@ router.get("/colecao/:userId", requireAuth, async (req, res) => {
 // Salva a montagem e/ou a preferência da bolinha. Corpo:
 //   { config?: { slot: idDaPeça | null, corCabelo?: chaveDaPaleta }, mostrarAvatar?: boolean }
 router.put("/", requireAuth, async (req, res) => {
-  const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { isGuest: true } });
+  const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { isGuest: true, avatarMontado: true } });
   const { status, corpo } = await salvarAvatar(req.user.id, req.body, {
     liberados: (id) => itensLiberados(id),
     gravar: (id, data) =>
       prisma.user.update({ where: { id }, data, select: { avatarMontado: true, mostrarAvatar: true } }),
-  }, { convidado: !!(eu?.isGuest ?? req.user.isGuest) });
+  }, { convidado: !!(eu?.isGuest ?? req.user.isGuest), jaMontou: !!configPublica(eu?.avatarMontado) });
   // O perfil (que leva o avatar pros outros) tem cache de 15s: descarta
   // pra montagem nova aparecer na hora.
   if (status === 200) cacheInvalidar(`perfil:${req.user.id}:`);
