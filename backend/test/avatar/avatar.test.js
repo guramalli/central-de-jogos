@@ -6,14 +6,14 @@ import { fileURLToPath } from "node:url";
 import {
   ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, CAMADAS, CONFIG_PADRAO, TIPOS_DE_DESBLOQUEIO, catalogoPublico,
   avatarPadrao, hashDoTexto, TELA, CORES_CABELO, corDoCabeloValida, VERSAO_CATALOGO, VERSAO_ARTE,
-  SLOT_DAS_PECAS, PLACAS, textoDaPlaca, raridadeDaRegra,
+  SLOT_DAS_PECAS, PLACAS, textoDaPlaca, raridadeDaRegra, CORPOS, CAMADAS_APAGAVEIS,
 } from "../../src/avatar/catalogo.js";
 import {
   itemLiberado, liberadosPelosDados, dadosNecessarios, carregarDados, patenteDoCatalogo,
   validarConfig, configPublica, salvarAvatar, TABELAS_DE_PATENTE, progressoDaPeca, proximaPeca,
   resumoDoAvatar, avatarDoUsuario, avatarParaCongelar, campeonatosDe,
 } from "../../src/avatar/desbloqueio.js";
-import { logoPorNomeDeTitulo, nomesDeTitulosDesbloqueados, fonteDoTitulo, nomeDoTituloQuiz } from "../../src/game/titulosConfig.js";
+import { logoPorNomeDeTitulo, nomesDeTitulosDesbloqueados, fonteDoTitulo, nomeDoTituloQuiz, QUIZ_NOMES, RAPIDO_TITULOS } from "../../src/game/titulosConfig.js";
 
 // Nada aqui toca o banco: as regras são funções puras sobre os dados, e a
 // busca recebe um "db" de mentira que só registra o que foi consultado.
@@ -24,8 +24,8 @@ const iniciais = () => ITENS.filter((i) => i.desbloqueio.tipo === "inicial").map
 
 // ---------------- catálogo ----------------
 
-test("catálogo: 78 peças, ids únicos, slots válidos, arquivo no padrão", () => {
-  assert.equal(ITENS.length, 78);
+test("catálogo: 112 peças, ids únicos, slots válidos, arquivo no padrão", () => {
+  assert.equal(ITENS.length, 112);
   assert.equal(VERSAO_ARTE, "v2");
   assert.equal(ITEM_POR_ID.size, ITENS.length, "id repetido no catálogo");
   for (const i of ITENS) {
@@ -50,12 +50,25 @@ test("catálogo bate com a arte: todo arquivo existe, toda máscara está listad
     assert.ok(noDisco.has(i.arquivo), `falta a arte ${i.arquivo}`);
     if (i.mascaraPele) assert.ok(noDisco.has(i.mascaraPele), `falta a máscara ${i.mascaraPele}`);
     if (i.pintavel) assert.ok(noDisco.has(i.pintavel), `falta o cinza ${i.pintavel}`);
-    if (i.slot === "pele") assert.match(i.cor || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor`);
+    if (i.apagaBraco) assert.ok(noDisco.has(i.apagaBraco), `falta a máscara de apagar ${i.apagaBraco}`);
+    if (i.slot === "pele") {
+      assert.match(i.cor || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor`);
+      assert.match(i.corFeminina || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor feminina`);
+      assert.equal(i.arquivoFeminino, `/avatar/pele/${i.id}-f-v2.webp`);
+      assert.ok(noDisco.has(i.arquivoFeminino), `falta o corpo feminino ${i.arquivoFeminino}`);
+    }
   }
+  const apagas = [...noDisco].filter((f) => f.endsWith("-apaga-v2.webp"));
+  const comApaga = new Set(ITENS.filter((i) => i.apagaBraco).map((i) => i.apagaBraco));
+  for (const a of apagas) assert.ok(comApaga.has(a), `máscara de apagar sem peça no catálogo: ${a}`);
+  assert.equal(comApaga.size, 21);
+  assert.ok(ITENS.filter((i) => i.apagaBraco).every((i) => i.slot === "mao"), "só peças da mão apagam o braço");
+  const femininos = [...noDisco].filter((f) => f.endsWith("-f-v2.webp"));
+  assert.equal(femininos.length, 5);
   const mascaras = [...noDisco].filter((f) => f.endsWith("-pele-v2.webp"));
   const listadas = new Set(ITENS.filter((i) => i.mascaraPele).map((i) => i.mascaraPele));
   for (const m of mascaras) assert.ok(listadas.has(m), `máscara sem peça no catálogo: ${m}`);
-  assert.equal(listadas.size, 28);
+  assert.equal(listadas.size, 52);
   const cinzas = [...noDisco].filter((f) => f.endsWith("-cinza-v2.webp"));
   const pintaveis = new Set(ITENS.filter((i) => i.pintavel).map((i) => i.pintavel));
   for (const c of cinzas) assert.ok(pintaveis.has(c), `cinza sem cabelo no catálogo: ${c}`);
@@ -63,7 +76,7 @@ test("catálogo bate com a arte: todo arquivo existe, toda máscara está listad
   // Só arte v2 na pasta: a v1 e o troféu genérico saíram.
   assert.deepEqual([...noDisco].filter((f) => !f.endsWith("-v2.webp")), [], "arquivo fora da versão atual");
   assert.ok(![...noDisco].some((f) => f.includes("/mao-trofeu-v2") || f.includes("/mao-trofeu-pele-v2")), "troféu genérico apagado");
-  assert.equal(noDisco.size, 78 + 28 + 9, "nenhum arquivo sobrando na pasta");
+  assert.equal(noDisco.size, 112 + 52 + 9 + 21 + 5, "nenhum arquivo sobrando na pasta");
 });
 
 test("catálogo: toda regra aponta pra algo que existe", () => {
@@ -76,7 +89,8 @@ test("catálogo: toda regra aponta pra algo que existe", () => {
     if (d.tipo === "sequencia") assert.ok(d.dias > 0, id);
     if (d.tipo === "pontos") assert.ok(d.jogo && d.min > 0, id);
   }
-  assert.equal(ITEM_POR_ID.get("cabelo-anime").desbloqueio.nome, "Sábio Otaku");
+  assert.equal(ITEM_POR_ID.get("cabelo-anime").desbloqueio.nome, "Mestre de Anime");
+  assert.equal(ITEM_POR_ID.get("cabelo-anime-ouro").desbloqueio.nome, "Sábio Otaku");
   assert.equal(ITEM_POR_ID.get("rosto-pintura").desbloqueio.nome, "Conhecedor de Futebol");
   assert.equal(ITEM_POR_ID.get("roupa-couro").desbloqueio.nome, "Mestre de Rock'n Roll");
   assert.equal(nomeDoTituloQuiz("xyz", "ouro"), null);
@@ -194,8 +208,8 @@ test("Mentira Sincera desligado: nenhuma peça depende dele", () => {
   assert.equal(TABELAS_DE_PATENTE.mentira, undefined);
   assert.equal(ITEM_POR_ID.get("roupa-terno").desbloqueio.nome, nomeDoTituloQuiz("direito", "bronze"));
   assert.equal(ITEM_POR_ID.get("roupa-terno").raridade, "iniciante");
-  assert.equal(ITEM_POR_ID.get("mao-lupa").desbloqueio.nome, nomeDoTituloQuiz("geral", "ouro"));
-  assert.equal(ITEM_POR_ID.get("mao-lupa").raridade, "dificil");
+  assert.equal(ITEM_POR_ID.get("mao-lupa").desbloqueio.nome, nomeDoTituloQuiz("geral", "prata"));
+  assert.equal(ITEM_POR_ID.get("mao-lupa").raridade, "intermediario");
 });
 
 test("undercut rosa: mesma regra do rabo de cavalo rosa, pintável, sai junto", () => {
@@ -281,7 +295,7 @@ test("progresso: cada regra medível vira atual/meta; o resto é null", () => {
   assert.equal(progressoDaPeca(ITEM_POR_ID.get("pescoco-medalha"), dados).atual, 3000);
   assert.deepEqual(
     [progressoDaPeca(ITEM_POR_ID.get("cabelo-anime"), dados).atual, progressoDaPeca(ITEM_POR_ID.get("cabelo-anime"), dados).meta],
-    [2500, 10000],
+    [2500, 5000],
   );
   assert.equal(progressoDaPeca(ITEM_POR_ID.get("roupa-terno"), dados).atual, 70);
   assert.equal(progressoDaPeca(ITEM_POR_ID.get("costas-jetpack"), dados).atual, 7000);
@@ -463,7 +477,7 @@ test("motivo: toda peça tem o texto de como foi ganha, coerente com a regra", (
     if (i.desbloqueio.tipo === "inicial") assert.match(i.motivo, /^Peça inicial/, i.id);
     else assert.match(i.motivo, /^Conquistada /, i.id);
   }
-  assert.equal(ITEM_POR_ID.get("cabelo-anime").motivo, "Conquistada com o título Sábio Otaku (ouro em Anime no Quiz).");
+  assert.equal(ITEM_POR_ID.get("cabelo-anime-ouro").motivo, "Conquistada com o título Sábio Otaku (ouro em Anime no Quiz).");
   assert.equal(ITEM_POR_ID.get("cabelo-moicano").motivo, "Conquistada por jogar 7 dias seguidos.");
   assert.equal(ITEM_POR_ID.get("cabelo-rabo-rosa").motivo, "Conquistada com 5.000 pontos no Quiz.");
   assert.match(ITEM_POR_ID.get("roupa-terno").motivo, /bronze em Direito no Quiz/);
@@ -622,4 +636,131 @@ test("troféu genérico antigo: montagem salva com ele perde só a peça", () =>
   assert.deepEqual(configPublica({ pele: "pele-media", mao: "mao-trofeu-stop", mesTrofeu: "lixo" }), { pele: "pele-media", mao: "mao-trofeu-stop" });
   // Reenviar pro PUT (o editor parte do configPublica) passa na validação.
   assert.ok(validarConfig(configPublica(salvo), new Set(["pele-media", "chapeu-coroa"])).config);
+});
+
+// ---------------- escada do Quiz ----------------
+
+const ESCADA = {
+  futebol: [["rosto-pintura"], ["roupa-futebol", "mao-bola"], ["roupa-camisa10-ouro"]],
+  esportes: [["chapeu-faixa"], ["pescoco-apito", "fundo-estadio"], ["mao-tocha-ouro"]],
+  automobilismo: [["chapeu-capacete"], ["roupa-piloto"], ["roupa-piloto-ouro"]],
+  anime: [["roupa-escolar"], ["cabelo-anime"], ["cabelo-anime-ouro"]],
+  ciencias: [["rosto-nerd"], ["roupa-jaleco"], ["roupa-jaleco-ouro"]],
+  terceirao: [["mao-lapis"], ["chapeu-capelo", "roupa-beca"], ["roupa-beca-ouro"]],
+  historia: [["chapeu-tricornio"], ["chapeu-explorador"], ["roupa-cavaleiro-ouro"]],
+  mitologia: [["chapeu-louros"], ["chapeu-viking"], ["chapeu-espartano-ouro"]],
+  games: [["roupa-pixel"], ["chapeu-headset"], ["mao-espada-pixel-ouro"]],
+  cinema: [["rosto-3d"], ["chapeu-cartola"], ["mao-estatueta-ouro"]],
+  series: [["mao-pipoca"], ["rosto-heroi"], ["roupa-heroi-ouro"]],
+  letras: [["mao-pena"], ["rosto-monoculo"], ["mao-livro-ouro"]],
+  geral: [[], ["mao-lupa"], ["mao-lampada-ouro"]],
+  musica: [["mao-pandeiro"], ["roupa-banda", "fundo-palco"], ["roupa-rockstar-ouro"]],
+  mpb: [["chapeu-panama"], ["mao-microfone"], ["mao-violao-ouro"]],
+  rock: [["cabelo-topete"], ["roupa-couro", "mao-guitarra"], ["mao-guitarra-ouro"]],
+  novelas: [["rosto-estrela"], ["pescoco-gravata"], ["roupa-smoking-ouro"]],
+  geografia: [["costas-trilha"], ["pescoco-havaiano"], ["mao-globo-ouro"]],
+  direito: [["roupa-terno"], ["mao-martelo", "fundo-tribunal"], ["roupa-toga-ouro"]],
+};
+
+test("escada do Quiz: cada tema bronze/prata/ouro aponta pro título de verdade; ouro é lendário com aura", () => {
+  assert.deepEqual(Object.keys(ESCADA).sort(), Object.keys(QUIZ_NOMES).sort(), "todos os temas do Quiz");
+  const niveis = ["bronze", "prata", "ouro"];
+  const raridade = { bronze: "iniciante", prata: "intermediario", ouro: "lendario" };
+  const naEscada = new Set();
+  for (const [tema, degraus] of Object.entries(ESCADA)) {
+    degraus.forEach((ids, n) => {
+      for (const id of ids) {
+        const item = ITEM_POR_ID.get(id);
+        assert.ok(item, id);
+        naEscada.add(id);
+        assert.equal(item.desbloqueio.tipo, "titulo", id);
+        assert.equal(item.desbloqueio.tema, tema, id);
+        assert.equal(item.desbloqueio.nivel, niveis[n], id);
+        assert.equal(item.desbloqueio.nome, nomeDoTituloQuiz(tema, niveis[n]), id);
+        assert.ok(logoPorNomeDeTitulo(item.desbloqueio.nome), `${id}: título existe`);
+        assert.equal(item.raridade, raridade[niveis[n]], id);
+        assert.equal(!!item.aura, niveis[n] === "ouro", `${id}: aura só no ouro`);
+      }
+    });
+  }
+  // Nenhuma outra peça sai de título do Quiz; as 19 de ouro são as únicas com aura.
+  for (const i of ITENS) if (i.desbloqueio.tema) assert.ok(naEscada.has(i.id), `${i.id} fora da escada`);
+  assert.equal(ITENS.filter((i) => i.aura).length, 19);
+  assert.ok(ITENS.filter((i) => i.aura).every((i) => i.raridade === "lendario"));
+  assert.equal(ITEM_POR_ID.get("cabelo-anime-ouro").pintavel, undefined, "cabelo dourado não se pinta");
+});
+
+test("relâmpago: jaqueta e rastro de raio saem com o título relâmpago do Stop", () => {
+  const nome = RAPIDO_TITULOS[0].nome;
+  assert.equal(nome, "Relâmpago da Avançada");
+  for (const id of ["roupa-relampago", "costas-raio"]) {
+    const item = ITEM_POR_ID.get(id);
+    assert.deepEqual(item.desbloqueio, { tipo: "titulo", nome });
+    assert.equal(item.raridade, "intermediario");
+    assert.match(item.dica, /500 STOPs/);
+  }
+  // O verificador de títulos enxerga os relâmpago (vêm da StopStat).
+  assert.deepEqual(fonteDoTitulo(nome), { stop: true });
+  const titulos = nomesDeTitulosDesbloqueados({ statsStop: [{ grupo: "avancada", stops: 600, rapidos: 500 }] });
+  assert.ok(titulos.has(nome));
+  const lib = liberadosPelosDados({ ...semNada(), titulos });
+  assert.ok(lib.includes("roupa-relampago") && lib.includes("costas-raio"));
+  assert.ok(!liberadosPelosDados({ ...semNada(), titulos: nomesDeTitulosDesbloqueados({ statsStop: [{ grupo: "avancada", stops: 600, rapidos: 499 }] }) }).includes("costas-raio"));
+});
+
+// ---------------- corpo ----------------
+
+test("corpo: masculino ou feminino; só o feminino é gravado; o resto é erro", () => {
+  assert.deepEqual(CORPOS.map((c) => c.chave), ["masculino", "feminino"]);
+  const lib = new Set(iniciais());
+  assert.deepEqual(validarConfig({ pele: "pele-clara", corpo: "feminino" }, lib), { config: { pele: "pele-clara", corpo: "feminino" } });
+  assert.deepEqual(validarConfig({ pele: "pele-clara", corpo: "masculino" }, lib), { config: { pele: "pele-clara" } });
+  assert.deepEqual(validarConfig({ pele: "pele-clara", corpo: null }, lib), { config: { pele: "pele-clara" } });
+  for (const corpo of ["outro", 1, ["feminino"], "Feminino"]) assert.match(validarConfig({ pele: "pele-clara", corpo }, lib).erro, /Corpo inválido/, String(corpo));
+  assert.deepEqual(configPublica({ pele: "pele-clara", corpo: "feminino" }), { pele: "pele-clara", corpo: "feminino" });
+  assert.deepEqual(configPublica({ pele: "pele-clara", corpo: "xyz" }), { pele: "pele-clara" });
+});
+
+test("corpo no avatar padrão: sorteado do id (meio a meio), com cabelo que combina", () => {
+  const femininos = ["cabelo-liso-longo", "cabelo-coque", "cabelo-cacheado", "cabelo-black-power"];
+  const masculinos = ["cabelo-curto", "cabelo-cacheado", "cabelo-black-power"];
+  let f = 0;
+  const N = 400;
+  for (let i = 0; i < N; i++) {
+    const a = avatarPadrao(`pessoa-${i}`);
+    assert.deepEqual(avatarPadrao(`pessoa-${i}`), a, "determinístico");
+    if (a.corpo === "feminino") { f++; assert.ok(femininos.includes(a.cabelo), a.cabelo); } else {
+      assert.equal(a.corpo, undefined);
+      assert.ok(masculinos.includes(a.cabelo), a.cabelo);
+    }
+  }
+  assert.ok(f > N * 0.35 && f < N * 0.65, `femininos: ${f} de ${N}`);
+});
+
+// ---------------- mãos ----------------
+
+test("máscara de apagar o braço: só das camadas de baixo (não fundo nem costas)", () => {
+  assert.deepEqual(CAMADAS_APAGAVEIS, ["pele", "parteDeBaixo", "roupa", "pescoco"]);
+  // Seguidas na ordem de desenho (o frontend embrulha as quatro num grupo).
+  const i = CAMADAS.indexOf("pele");
+  assert.deepEqual(CAMADAS.slice(i, i + 4), CAMADAS_APAGAVEIS);
+  assert.equal(catalogoPublico().camadasApagaveis.length, 4);
+  assert.equal(ITEM_POR_ID.get("mao-trofeu-stop").apagaBraco, "/avatar/mao/mao-trofeu-stop-apaga-v2.webp");
+  assert.equal(ITEM_POR_ID.get("mao-livro").apagaBraco, undefined, "livro não levanta o braço");
+});
+
+test("toda peça da mão fica do lado DIREITO de quem olha (a mão esquerda espelha)", async (t) => {
+  // Precisa decodificar WebP: usa o sharp se estiver instalado (ou em
+  // SHARP_DIR); sem ele, o teste é pulado.
+  let sharp;
+  try { sharp = (await import(process.env.SHARP_DIR ? `file:///${process.env.SHARP_DIR.replace(/\\/g, "/")}/node_modules/sharp/lib/index.js` : "sharp")).default; } catch { t.skip("sem sharp pra ler WebP"); return; }
+  const pasta = fileURLToPath(new URL("../../../frontend/public/avatar", import.meta.url));
+  if (!existsSync(pasta)) { t.skip("sem o frontend ao lado"); return; }
+  for (const item of ITENS.filter((i) => i.slot === "mao")) {
+    const { data, info } = await sharp(join(pasta, item.arquivo.replace("/avatar/", ""))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let soma = 0;
+    let n = 0;
+    for (let p = 0; p < info.width * info.height; p++) if (data[p * 4 + 3] > 128) { soma += p % info.width; n++; }
+    assert.ok(soma / n > info.width / 2, `${item.id}: centro em x ${Math.round(soma / n)}`);
+  }
 });

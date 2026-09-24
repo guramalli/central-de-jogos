@@ -7,9 +7,8 @@
 .v2-boneco-palco { position: absolute; display: block; }
 /* !important: .v2-avatar-foto img (e parecidos) aplicam object-fit: cover,
    que deformaria as camadas. Cada camada ocupa o palco inteiro, sem corte. */
-.v2-boneco-palco > img,
-.v2-boneco-palco > svg,
-.v2-boneco-pintado > img { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
+.v2-boneco-palco img,
+.v2-boneco-palco svg { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
 .v2-boneco-mascara { position: absolute; inset: 0; display: block; mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
 /* Cabelo pintado: cinza + bloco da cor em multiply, isolados do resto. */
 .v2-boneco-pintado { position: absolute; inset: 0; display: block; isolation: isolate; pointer-events: none; }
@@ -20,6 +19,32 @@
    objeto da mão direita. (O recorte vale antes do espelho, por isso
    "corta a esquerda" = sobra a metade da direita, que vira a esquerda.) */
 .v2-boneco-palco > .espelhado { transform: scaleX(-1); clip-path: inset(0 0 0 50%); }
+/* Máscaras de apagar o braço: cada caixa recorta o que tem dentro (caixas
+   aninhadas = interseção). A da mão esquerda vira a máscara (scaleX(-1)) e
+   a caixa de dentro desvira o conteúdo. */
+.v2-boneco-grupo,
+.v2-boneco-apaga,
+.v2-boneco-apaga-desvira { position: absolute; inset: 0; display: block; pointer-events: none; }
+.v2-boneco-apaga { mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; }
+.v2-boneco-apaga.espelhado-mascara,
+.v2-boneco-apaga-desvira { transform: scaleX(-1); }
+
+/* Aura (peça de ouro do Quiz): brilho dourado atrás do personagem e umas
+   faíscas subindo em volta. Só CSS; sem movimento pra quem pede menos. */
+.v2-boneco-aura { position: absolute; left: 8%; right: 8%; top: 18%; bottom: 4%; display: block; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 214, 90, .75), rgba(255, 190, 40, .35) 55%, rgba(255, 190, 40, 0)); filter: blur(2px); animation: v2-aura-pulso 2.6s ease-in-out infinite; pointer-events: none; }
+.v2-boneco-faiscas { position: absolute; inset: 0; display: block; pointer-events: none; }
+.v2-boneco-faiscas i { position: absolute; width: 3.2%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, #fff 0, #ffe27a 35%, rgba(255, 214, 90, 0) 70%); opacity: 0; animation: v2-faisca 3.2s ease-in-out infinite; }
+.v2-boneco-faiscas i:nth-child(1) { left: 16%; top: 58%; animation-delay: 0s; }
+.v2-boneco-faiscas i:nth-child(2) { left: 80%; top: 48%; animation-delay: .7s; }
+.v2-boneco-faiscas i:nth-child(3) { left: 24%; top: 30%; animation-delay: 1.4s; width: 2.4%; }
+.v2-boneco-faiscas i:nth-child(4) { left: 72%; top: 24%; animation-delay: 2.1s; width: 2.6%; }
+.v2-boneco-faiscas i:nth-child(5) { left: 50%; top: 14%; animation-delay: 2.7s; width: 2.2%; }
+@keyframes v2-aura-pulso { 0%, 100% { opacity: .7; transform: scale(.97); } 50% { opacity: 1; transform: scale(1.03); } }
+@keyframes v2-faisca { 0% { opacity: 0; transform: translateY(0) scale(.4); } 30% { opacity: 1; transform: translateY(-40%) scale(1); } 100% { opacity: 0; transform: translateY(-160%) scale(.5); } }
+@media (prefers-reduced-motion: reduce) {
+  .v2-boneco-aura { animation: none; opacity: .85; }
+  .v2-boneco-faiscas { display: none; }
+}
 /* Mês do campeonato na plaqueta do troféu (posição e tamanho vêm do JSX). */
 .v2-boneco-placa { position: absolute; display: block; font-family: "Fredoka", "Trebuchet MS", sans-serif; font-weight: 700; line-height: 1; letter-spacing: .02em; color: #6b3d06; white-space: nowrap; pointer-events: none; user-select: none; }
 .v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
@@ -29,6 +54,12 @@
 .v2-perfil-boneco .v2-boneco { border-radius: 20px; background: var(--roxo-fundo); }
 
 /* ---------- editor ---------- */
+/* Corpo (primeiro controle): Masculino / Feminino, com a prévia do rosto. */
+.v2-avatar-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.v2-avatar-corpo button { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 76px; padding: 6px 12px; border: 3px solid transparent; border-radius: 18px; background: var(--roxo-fundo); color: var(--lilas); font-size: 17px; }
+.v2-avatar-corpo button .v2-avatar-foto { width: 60px; height: 60px; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: #22164d; }
+.v2-avatar-corpo button.ativo { border-color: var(--amarelo); background: var(--roxo-2); color: #fff; }
+.v2-avatar-corpo button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .v2-avatar-editor-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .v2-avatar-previa { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--roxo-fundo); }
 .v2-avatar-previa-bolinha { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--lilas-2); font-size: 12px; }
@@ -160,6 +191,8 @@
 .v2-avatar-peca.trancada { filter: saturate(.55) brightness(.8); }
 .v2-raridade-etiqueta { font-style: normal; font-size: 9px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; background: rgba(0, 0, 0, .28); color: #fff; }
 .v2-avatar-peca.raridade-lendario .v2-raridade-etiqueta { background: #2b1b5e; color: #ffd35a; }
+/* Peça com aura: faísca no canto do card. */
+.v2-avatar-aura-selo { position: absolute; left: 6px; top: 4px; font-size: 13px; line-height: 1; z-index: 1; }
 /* Coleção: o anel da bolinha na cor do nível */
 .v2-colecao-peca.raridade-base { border-color: #3d6fd6; }
 .v2-colecao-peca.raridade-iniciante { border-color: #2fb574; }

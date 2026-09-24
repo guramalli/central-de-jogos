@@ -1,4 +1,4 @@
-import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../game/titulosConfig.js";
+import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO, RAPIDO_TITULOS, RAPIDO_SEGUNDOS } from "../game/titulosConfig.js";
 
 // ===== CATÁLOGO DO AVATAR (boneco chibi em camadas) =====
 //
@@ -31,9 +31,11 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../g
 // v4: `motivo` de cada peça, cabelos pintáveis e a paleta CORES_CABELO.
 // v6: arte v2, coroas e troféus por jogo (com a plaqueta do mês), undercut
 // rosa e a mão esquerda.
+// v7: corpo feminino, máscaras que apagam o braço, escada do Quiz com as
+// peças de ouro (aura) e o conjunto Relâmpago.
 // (O frontend tem uma cópia deste número em avatarCatalogo.js, que vai no
 // "?v=" da busca — suba as duas juntas.)
-export const VERSAO_CATALOGO = 6;
+export const VERSAO_CATALOGO = 7;
 
 // Sufixo dos arquivos de arte (peças, máscaras de pele e cinzas).
 export const VERSAO_ARTE = "v2";
@@ -55,6 +57,19 @@ export const TELA = {
   cabeca: { x: 225, y: 265, lado: 450 },
   busto: { x: 140, y: 220, lado: 620 },
 };
+
+// ===== Corpo =====
+//
+// Cada pele tem DUAS artes, mesma silhueta: masculina (<id>-v2.webp) e
+// feminina (<id>-f-v2.webp: cílios, bochechas rosadas, lábios). A escolha
+// fica em avatarMontado.corpo; sem a chave = masculino (o corpo de sempre),
+// então só "feminino" é gravado. Todas as peças servem nos dois corpos.
+export const CORPOS = [
+  { chave: "masculino", nome: "Masculino" },
+  { chave: "feminino", nome: "Feminino" },
+];
+export const CORPO_PADRAO = "masculino";
+export const corpoValido = (corpo) => (corpo === "feminino" ? "feminino" : CORPO_PADRAO);
 
 // Slots que a pessoa escolhe. `pele` é o corpo-base (com o rosto padrão) e é
 // o único obrigatório; os demais podem ficar vazios.
@@ -173,10 +188,21 @@ export function motivoDaRegra(d) {
 // alternativa masculina da mesma recompensa.
 const DICA_DO_PAR_ROSA = "Some 5.000 pontos no Quiz (desde sempre). Libera o par rosa: Rabo de cavalo rosa e Undercut rosa.";
 
-// ===== AS 78 PEÇAS =====
+// Conjunto Relâmpago: título relâmpago do Stop (STOPs rápidos na Avançada).
+const TITULO_RELAMPAGO = RAPIDO_TITULOS[0].nome; // "Relâmpago da Avançada"
+const relampago = { tipo: "titulo", nome: TITULO_RELAMPAGO };
+const DICA_RELAMPAGO = `Conquiste o título "${TITULO_RELAMPAGO}": peça ${milhar(RAPIDO_TITULOS[0].min)} STOPs em até ${RAPIDO_SEGUNDOS}s nas salas Avançadas do Stop.`;
+const MOTIVO_RELAMPAGO = `Conquistada com o título ${TITULO_RELAMPAGO} (${milhar(RAPIDO_TITULOS[0].min)} STOPs relâmpago na Avançada).`;
+
+// ===== AS 112 PEÇAS =====
 // [slot, id, nome, desbloqueio, dica opcional, motivo opcional]
+//
+// ESCADA DO QUIZ: cada tema dá uma peça de bronze (iniciante), uma ou duas
+// de prata (intermediário) e uma de ouro — as de ouro são LENDÁRIAS e têm
+// aura (brilho dourado em volta do boneco inteiro). Ver ESCADA_DO_QUIZ.
 const LISTA_CRUA = [
-  // Pele (corpo-base com o rosto padrão) — todas iniciais.
+  // Pele (corpo-base com o rosto padrão) — todas iniciais. Cada uma tem as
+  // duas versões de corpo (masculino e feminino, ver CORPOS).
   ["pele", "pele-clara", "Pele clara", inicial],
   ["pele", "pele-media", "Pele média", inicial],
   ["pele", "pele-morena", "Pele morena", inicial],
@@ -189,23 +215,36 @@ const LISTA_CRUA = [
   ["cabelo", "cabelo-coque", "Coque", inicial],
   ["cabelo", "cabelo-black-power", "Black power", inicial],
   ["cabelo", "cabelo-moicano", "Moicano colorido", dias(7)],
-  ["cabelo", "cabelo-anime", "Espetado de anime", quiz("anime", "ouro")],
+  ["cabelo", "cabelo-anime", "Espetado de anime", quiz("anime", "prata")],
+  ["cabelo", "cabelo-anime-ouro", "Cabelo dourado", quiz("anime", "ouro")],
   ["cabelo", "cabelo-rabo-rosa", "Rabo de cavalo rosa", pontos("quiz", 5000), DICA_DO_PAR_ROSA],
   ["cabelo", "cabelo-undercut-rosa", "Undercut rosa", pontos("quiz", 5000), DICA_DO_PAR_ROSA],
-  ["cabelo", "cabelo-topete", "Topete de roqueiro", quiz("rock", "ouro")],
+  ["cabelo", "cabelo-topete", "Topete de roqueiro", quiz("rock", "bronze")],
   ["cabelo", "cabelo-chamas", "Cabelo em chamas", lendario],
 
   ["roupa", "roupa-camiseta", "Camiseta", inicial],
   ["roupa", "roupa-moletom", "Moletom", inicial],
   ["roupa", "roupa-xadrez", "Camisa xadrez", inicial],
   ["roupa", "roupa-regata", "Regata", inicial],
-  ["roupa", "roupa-futebol", "Camisa de futebol", quiz("futebol", "ouro")],
-  ["roupa", "roupa-piloto", "Macacão de piloto", quiz("automobilismo", "ouro")],
-  ["roupa", "roupa-jaleco", "Jaleco", quiz("ciencias", "ouro")],
-  ["roupa", "roupa-beca", "Beca de formatura", quiz("terceirao", "ouro")],
+  ["roupa", "roupa-futebol", "Camisa de futebol", quiz("futebol", "prata")],
+  ["roupa", "roupa-camisa10-ouro", "Camisa 10 Dourada", quiz("futebol", "ouro")],
+  ["roupa", "roupa-piloto", "Macacão de piloto", quiz("automobilismo", "prata")],
+  ["roupa", "roupa-piloto-ouro", "Macacão cromado de campeão", quiz("automobilismo", "ouro")],
+  ["roupa", "roupa-escolar", "Uniforme escolar", quiz("anime", "bronze")],
+  ["roupa", "roupa-jaleco", "Jaleco", quiz("ciencias", "prata")],
+  ["roupa", "roupa-jaleco-ouro", "Jaleco de gênio", quiz("ciencias", "ouro")],
+  ["roupa", "roupa-beca", "Beca de formatura", quiz("terceirao", "prata")],
+  ["roupa", "roupa-beca-ouro", "Beca de honra", quiz("terceirao", "ouro")],
+  ["roupa", "roupa-cavaleiro-ouro", "Armadura de cavaleiro", quiz("historia", "ouro")],
+  ["roupa", "roupa-pixel", "Camiseta pixel", quiz("games", "bronze")],
+  ["roupa", "roupa-heroi-ouro", "Traje de herói dourado", quiz("series", "ouro")],
+  ["roupa", "roupa-banda", "Camisa de banda", quiz("musica", "prata")],
+  ["roupa", "roupa-rockstar-ouro", "Jaqueta de rockstar dourada", quiz("musica", "ouro")],
   ["roupa", "roupa-couro", "Jaqueta de couro", quiz("rock", "prata")],
-  ["roupa", "roupa-banda", "Camisa de banda", quiz("musica", "ouro")],
+  ["roupa", "roupa-smoking-ouro", "Smoking de gala dourado", quiz("novelas", "ouro")],
   ["roupa", "roupa-terno", "Terno de advogado", quiz("direito", "bronze")],
+  ["roupa", "roupa-toga-ouro", "Toga dourada", quiz("direito", "ouro")],
+  ["roupa", "roupa-relampago", "Jaqueta Relâmpago", relampago, DICA_RELAMPAGO, MOTIVO_RELAMPAGO],
   ["roupa", "roupa-manto-impostor", "Manto do impostor", dias(21)],
 
   ["parteDeBaixo", "baixo-shorts", "Shorts", inicial],
@@ -218,12 +257,17 @@ const LISTA_CRUA = [
   ["chapeu", "chapeu-bone", "Boné", inicial],
   ["chapeu", "chapeu-gorro", "Gorro", inicial],
   ["chapeu", "chapeu-palha", "Chapéu de palha", dias(3)],
-  ["chapeu", "chapeu-capacete", "Capacete de piloto", quiz("automobilismo", "prata")],
+  ["chapeu", "chapeu-faixa", "Faixa esportiva", quiz("esportes", "bronze")],
+  ["chapeu", "chapeu-capacete", "Capacete de piloto", quiz("automobilismo", "bronze")],
   ["chapeu", "chapeu-capelo", "Capelo", quiz("terceirao", "prata")],
-  ["chapeu", "chapeu-viking", "Elmo viking", quiz("mitologia", "ouro")],
-  ["chapeu", "chapeu-explorador", "Chapéu de explorador", quiz("historia", "ouro")],
-  ["chapeu", "chapeu-headset", "Headset gamer", quiz("games", "ouro")],
-  ["chapeu", "chapeu-cartola", "Cartola", quiz("cinema", "ouro")],
+  ["chapeu", "chapeu-tricornio", "Tricórnio", quiz("historia", "bronze")],
+  ["chapeu", "chapeu-explorador", "Chapéu de explorador", quiz("historia", "prata")],
+  ["chapeu", "chapeu-louros", "Coroa de louros", quiz("mitologia", "bronze")],
+  ["chapeu", "chapeu-viking", "Elmo viking", quiz("mitologia", "prata")],
+  ["chapeu", "chapeu-espartano-ouro", "Elmo espartano dourado", quiz("mitologia", "ouro")],
+  ["chapeu", "chapeu-headset", "Headset gamer", quiz("games", "prata")],
+  ["chapeu", "chapeu-cartola", "Cartola", quiz("cinema", "prata")],
+  ["chapeu", "chapeu-panama", "Chapéu panamá", quiz("mpb", "bronze")],
   // Coroas de campeão do mês, uma por jogo ("chapeu-coroa" é a do Stop:
   // o id ficou o antigo pra não mexer em quem já veste).
   ["chapeu", "chapeu-coroa", "Coroa do Stop", campeao("stop")],
@@ -233,17 +277,21 @@ const LISTA_CRUA = [
   ["rosto", "rosto-redondos", "Óculos redondos", inicial],
   ["rosto", "rosto-escuros", "Óculos escuros", inicial],
   ["rosto", "rosto-pintura", "Pintura verde e amarela", quiz("futebol", "bronze")],
-  ["rosto", "rosto-nerd", "Óculos de nerd", quiz("ciencias", "prata")],
-  ["rosto", "rosto-heroi", "Máscara de herói", quiz("series", "ouro")],
-  ["rosto", "rosto-monoculo", "Monóculo", quiz("letras", "ouro")],
+  ["rosto", "rosto-nerd", "Óculos de nerd", quiz("ciencias", "bronze")],
+  ["rosto", "rosto-3d", "Óculos 3D", quiz("cinema", "bronze")],
+  ["rosto", "rosto-heroi", "Máscara de herói", quiz("series", "prata")],
+  ["rosto", "rosto-monoculo", "Monóculo", quiz("letras", "prata")],
+  ["rosto", "rosto-estrela", "Óculos de estrela", quiz("novelas", "bronze")],
 
   ["pescoco", "pescoco-cachecol", "Cachecol", inicial],
-  ["pescoco", "pescoco-apito", "Apito de juiz", quiz("esportes", "ouro")],
-  ["pescoco", "pescoco-gravata", "Gravata borboleta", quiz("novelas", "ouro")],
-  ["pescoco", "pescoco-havaiano", "Colar havaiano", quiz("geografia", "ouro")],
+  ["pescoco", "pescoco-apito", "Apito de juiz", quiz("esportes", "prata")],
+  ["pescoco", "pescoco-gravata", "Gravata borboleta", quiz("novelas", "prata")],
+  ["pescoco", "pescoco-havaiano", "Colar havaiano", quiz("geografia", "prata")],
   ["pescoco", "pescoco-medalha", "Medalha de ouro", pontos("total", 25000)],
 
   ["costas", "costas-mochila", "Mochila", inicial],
+  ["costas", "costas-trilha", "Mochila de trilha", quiz("geografia", "bronze")],
+  ["costas", "costas-raio", "Rastro de raio", relampago, DICA_RELAMPAGO, MOTIVO_RELAMPAGO],
   ["costas", "costas-capa", "Capa de herói", dias(30)],
   // Patentes máximas. As do Quiz e do Stop são EXCLUSIVAS (só o 1º do mês):
   // a peça exige também o troféu de campeão daquele mês.
@@ -254,10 +302,22 @@ const LISTA_CRUA = [
   ["mao", "mao-controle", "Controle", inicial],
   ["mao", "mao-livro", "Livro", inicial],
   ["mao", "mao-bola", "Bola de futebol", quiz("futebol", "prata")],
-  ["mao", "mao-guitarra", "Guitarra", quiz("rock", "ouro")],
-  ["mao", "mao-microfone", "Microfone", quiz("mpb", "ouro")],
+  ["mao", "mao-tocha-ouro", "Tocha dourada", quiz("esportes", "ouro")],
+  ["mao", "mao-lapis", "Lápis gigante", quiz("terceirao", "bronze")],
+  ["mao", "mao-espada-pixel-ouro", "Espada pixel lendária", quiz("games", "ouro")],
+  ["mao", "mao-estatueta-ouro", "Estatueta dourada", quiz("cinema", "ouro")],
+  ["mao", "mao-pipoca", "Balde de pipoca", quiz("series", "bronze")],
+  ["mao", "mao-pena", "Pena de escrever", quiz("letras", "bronze")],
+  ["mao", "mao-livro-ouro", "Livro mágico dourado", quiz("letras", "ouro")],
+  ["mao", "mao-lupa", "Lupa de detetive", quiz("geral", "prata")],
+  ["mao", "mao-lampada-ouro", "Lâmpada de gênio", quiz("geral", "ouro")],
+  ["mao", "mao-pandeiro", "Pandeiro", quiz("musica", "bronze")],
+  ["mao", "mao-microfone", "Microfone", quiz("mpb", "prata")],
+  ["mao", "mao-violao-ouro", "Violão dourado", quiz("mpb", "ouro")],
+  ["mao", "mao-guitarra", "Guitarra", quiz("rock", "prata")],
+  ["mao", "mao-guitarra-ouro", "Guitarra flamejante dourada", quiz("rock", "ouro")],
+  ["mao", "mao-globo-ouro", "Globo dourado", quiz("geografia", "ouro")],
   ["mao", "mao-martelo", "Martelo de juiz", quiz("direito", "prata")],
-  ["mao", "mao-lupa", "Lupa de detetive", quiz("geral", "ouro")],
   // Troféus de campeão do mês, um por jogo, com o mês escrito na plaqueta
   // (ver PLACAS).
   ["mao", "mao-trofeu-stop", "Troféu do Stop", campeao("stop")],
@@ -266,15 +326,23 @@ const LISTA_CRUA = [
 
   ["fundo", "fundo-roxo", "Roxo", inicial],
   ["fundo", "fundo-quarto", "Quarto gamer", inicial],
-  ["fundo", "fundo-estadio", "Estádio", quiz("esportes", "ouro")],
-  ["fundo", "fundo-palco", "Palco de show", quiz("musica", "ouro")],
-  ["fundo", "fundo-tribunal", "Tribunal", quiz("direito", "ouro")],
+  ["fundo", "fundo-estadio", "Estádio", quiz("esportes", "prata")],
+  ["fundo", "fundo-palco", "Palco de show", quiz("musica", "prata")],
+  ["fundo", "fundo-tribunal", "Tribunal", quiz("direito", "prata")],
   ["fundo", "fundo-galaxia", "Galáxia", dias(60)],
 ];
 
 // ===== Cor da pele e máscaras de pele =====
 //
 // Cada corpo-base tem a sua cor (usada pra pintar as máscaras abaixo).
+// Tons do corpo feminino (amostrados na arte -f; bem perto dos masculinos).
+export const CORES_DA_PELE_FEMININA = {
+  "pele-clara": "#fcd4c4",
+  "pele-media": "#f4ac94",
+  "pele-morena": "#d4846c",
+  "pele-negra": "#ac6454",
+  "pele-retinta": "#643c3c",
+};
 export const CORES_DA_PELE = {
   "pele-clara": "#fcdccc",
   "pele-media": "#ec9c7c",
@@ -294,7 +362,30 @@ const COM_MASCARA_DE_PELE = new Set([
   "baixo-camuflada", "baixo-jeans", "baixo-moletom", "baixo-praia", "baixo-saia", "baixo-shorts",
   "mao-bola", "mao-controle", "mao-guitarra", "mao-livro", "mao-lupa", "mao-martelo", "mao-microfone",
   "mao-trofeu-stop", "mao-trofeu-quiz", "mao-trofeu-acromania",
+  "roupa-beca-ouro", "roupa-camisa10-ouro", "roupa-cavaleiro-ouro", "roupa-escolar", "roupa-heroi-ouro",
+  "roupa-jaleco-ouro", "roupa-piloto-ouro", "roupa-pixel", "roupa-relampago", "roupa-rockstar-ouro",
+  "roupa-smoking-ouro", "roupa-toga-ouro",
+  "mao-espada-pixel-ouro", "mao-estatueta-ouro", "mao-globo-ouro", "mao-guitarra-ouro", "mao-lampada-ouro",
+  "mao-lapis", "mao-livro-ouro", "mao-pandeiro", "mao-pena", "mao-pipoca", "mao-tocha-ouro", "mao-violao-ouro",
 ]);
+
+// ===== Máscara que apaga o braço =====
+//
+// Objeto da mão que LEVANTA o braço (o braço vai pra cima segurando a
+// coisa) tem um arquivo irmão <id>-apaga-<VERSAO_ARTE>.webp: branco opaco =
+// fica, transparente = some. Com a peça vestida, as camadas ABAIXO da mão
+// (corpo, calça, roupa, pescoço e as máscaras de pele delas — não o fundo
+// nem as costas) são recortadas por ele: o braço caído do corpo-base some
+// e não sobra "braço a mais". Na mão esquerda, a mesma máscara espelhada.
+// Lista tirada da pasta da arte (um teste confere).
+const COM_APAGA_BRACO = new Set([
+  "mao-bola", "mao-controle", "mao-espada-pixel-ouro", "mao-estatueta-ouro", "mao-globo-ouro",
+  "mao-guitarra", "mao-guitarra-ouro", "mao-lampada-ouro", "mao-lapis", "mao-livro-ouro", "mao-lupa",
+  "mao-martelo", "mao-microfone", "mao-pandeiro", "mao-pena", "mao-pipoca", "mao-tocha-ouro",
+  "mao-trofeu-stop", "mao-trofeu-quiz", "mao-trofeu-acromania", "mao-violao-ouro",
+]);
+// Camadas que a máscara de apagar recorta.
+export const CAMADAS_APAGAVEIS = ["pele", "parteDeBaixo", "roupa", "pescoco"];
 
 // ===== Plaqueta do troféu =====
 //
@@ -366,10 +457,12 @@ export function raridadeDaRegra(d) {
     case "inicial": return "base";
     case "campeao": return "lendario";
     case "titulo":
+      // Escada do Quiz: bronze iniciante, prata intermediário, ouro lendário.
       if (d.nivel === "bronze") return "iniciante";
       if (d.nivel === "prata") return "intermediario";
-      if (d.nivel === "ouro") return "dificil";
-      return "lendario"; // título lendário
+      if (d.nivel === "ouro") return "lendario";
+      if (d.nome === TITULO_LENDARIO.nome) return "lendario";
+      return "intermediario"; // outros títulos por nome (relâmpago do Stop)
     case "sequencia": return d.dias <= 7 ? "iniciante" : d.dias <= 21 ? "intermediario" : d.dias < 60 ? "dificil" : "lendario";
     case "pontos":
       if (d.jogo === "total" || d.min >= 25000) return "dificil";
@@ -384,7 +477,14 @@ export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica, motivo]) => {
   // que a lista de desbloqueados é conferida).
   const desbloqueio = regra.tipo === "titulo" && regra.tema ? { ...regra, nome: nomeDoTituloQuiz(regra.tema, regra.nivel) } : regra;
   const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, raridade: raridadeDaRegra(desbloqueio), dica: dica || dicaDaRegra(desbloqueio), motivo: motivo || motivoDaRegra(desbloqueio) };
-  if (CORES_DA_PELE[id]) item.cor = CORES_DA_PELE[id];
+  if (CORES_DA_PELE[id]) {
+    item.cor = CORES_DA_PELE[id];
+    item.corFeminina = CORES_DA_PELE_FEMININA[id];
+    item.arquivoFeminino = arte(slot, id, "-f");
+  }
+  if (COM_APAGA_BRACO.has(id)) item.apagaBraco = arte(slot, id, "-apaga");
+  // Ouro do Quiz: peça lendária com aura em volta do boneco.
+  if (desbloqueio.tipo === "titulo" && desbloqueio.tema && desbloqueio.nivel === "ouro") item.aura = true;
   if (COM_MASCARA_DE_PELE.has(id)) item.mascaraPele = arte(slot, id, "-pele");
   if (CABELOS_PINTAVEIS.has(id)) item.pintavel = arte(slot, id, "-cinza");
   if (PLACAS[id]) item.placa = PLACAS[id];
@@ -414,7 +514,13 @@ export function textoDaPlaca(monthKey) {
 // partir do próprio id — sempre o MESMO pra mesma pessoa, sem gravar nada no
 // banco. Só peças iniciais, e fundo roxo (o da marca), pra ficar discreto.
 const PADRAO_FUNDO = "fundo-roxo";
-const SLOTS_SORTEADOS = ["pele", "cabelo", "roupa", "parteDeBaixo"];
+const SLOTS_SORTEADOS = ["pele", "roupa", "parteDeBaixo"];
+// Cabelos sorteados pra cada corpo (todos servem nos dois; estes só combinam
+// mais com o corpo sorteado).
+const CABELOS_DO_CORPO = {
+  feminino: ["cabelo-liso-longo", "cabelo-coque", "cabelo-cacheado", "cabelo-black-power"],
+  masculino: ["cabelo-curto", "cabelo-cacheado", "cabelo-black-power"],
+};
 
 // FNV-1a de 32 bits: simples, rápido e igual em qualquer máquina.
 export function hashDoTexto(texto) {
@@ -434,6 +540,11 @@ export function avatarPadrao(userId) {
     // andariam juntos e sairiam sempre as mesmas combinações.
     config[slot] = opcoes[hashDoTexto(`${userId}:${slot}`) % opcoes.length].id;
   }
+  // Corpo meio a meio, e um cabelo que combine com ele.
+  const corpo = hashDoTexto(`${userId}:corpo`) % 2 ? "feminino" : "masculino";
+  if (corpo === "feminino") config.corpo = corpo;
+  const cabelos = CABELOS_DO_CORPO[corpo];
+  config.cabelo = cabelos[hashDoTexto(`${userId}:cabelo`) % cabelos.length];
   config.fundo = PADRAO_FUNDO;
   // Cabelo pintável ganha uma cor natural, também sorteada do id
   // ("original" não é gravado: é a ausência de cor).
@@ -465,6 +576,8 @@ export function catalogoPublico() {
     tela: TELA,
     slots: SLOTS,
     camadas: CAMADAS,
+    corpos: CORPOS,
+    camadasApagaveis: CAMADAS_APAGAVEIS,
     coresCabelo: Object.entries(CORES_CABELO).map(([chave, cor]) => ({ chave, nome: NOMES_CORES_CABELO[chave], cor })),
     raridades: RARIDADES,
     itens: ITENS,

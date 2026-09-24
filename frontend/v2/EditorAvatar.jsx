@@ -14,6 +14,10 @@ import AvisoPecaNova from "./AvisoPecaNova.jsx";
 // Cabelo pintável (item.pintavel) ganha a fileira de cores embaixo das
 // peças; a cor fica em config.corCabelo (chave da paleta do catálogo).
 //
+// Corpo: o primeiro controle do editor é Masculino / Feminino (a pele troca
+// de arte; todas as peças servem nos dois). Fica em config.corpo, só quando
+// feminino (sem a chave = masculino).
+//
 // Duas mãos: a aba "Mão esq." usa as MESMAS peças da mão, espelhadas.
 // Troféu de campeão leva o mês na plaqueta (config.mesTrofeu, e
 // mesTrofeuEsquerda na outra mão): vestir escolhe o mês mais recente, e quem
@@ -95,6 +99,10 @@ export default function EditorAvatar({ usuario, foto = null }) {
     setMsg(null);
     setConfig((c) => ({ ...c, [chaveDoMes]: mes }));
   }
+  function escolherCorpo(chave) {
+    setMsg(null);
+    setConfig((c) => ({ ...c, corpo: chave === "feminino" ? "feminino" : null }));
+  }
   function pintar(chave) {
     setMsg(null);
     setConfig((c) => ({ ...c, corCabelo: chave === "original" ? null : chave }));
@@ -156,6 +164,22 @@ export default function EditorAvatar({ usuario, foto = null }) {
           : "Monte seu boneco. Tudo é grátis: as peças com cadeado você ganha jogando. No seu perfil e nos pódios o avatar aparece sempre; nas bolinhas do chat, você escolhe."}
       </p>
 
+      {!convidado && (
+        <div className="v2-avatar-corpo" role="radiogroup" aria-label="Corpo do avatar">
+          {(catalogo.corpos || CORPOS_RESERVA).map((c) => {
+            const ativo = (config.corpo || "masculino") === c.chave;
+            return (
+              <button key={c.chave} type="button" role="radio" aria-checked={ativo} className={ativo ? "ativo" : ""} onClick={() => escolherCorpo(c.chave)}>
+                <span className="v2-avatar-foto" aria-hidden="true">
+                  <AvatarBoneco config={{ ...config, corpo: c.chave === "feminino" ? "feminino" : null }} busto tamanho={64} preencher />
+                </span>
+                <b>{c.nome}</b>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="v2-avatar-editor-grade">
         <div className="v2-avatar-previa">
           <AvatarBoneco config={config} altura={300} rotulo="Prévia do seu avatar" />
@@ -213,6 +237,7 @@ export default function EditorAvatar({ usuario, foto = null }) {
                     {!livre && <span className="v2-avatar-cadeado" aria-hidden="true">🔒</span>}
                   </span>
                   <small>{item.nome}</small>
+                  {item.aura && <span className="v2-avatar-aura-selo" aria-hidden="true" title="Aura dourada em volta do avatar">✨</span>}
                   {item.raridade && item.raridade !== "base" && <em className="v2-raridade-etiqueta">{NOME_RARIDADE[item.raridade]}</em>}
                 </button>
               );
@@ -292,6 +317,8 @@ export default function EditorAvatar({ usuario, foto = null }) {
 // Nível de dificuldade da peça (vem do catálogo): ordena as peças de cada
 // aba da base até a lendária e dá nome à etiqueta do card.
 const ORDEM_RARIDADE = ["base", "iniciante", "intermediario", "dificil", "lendario"];
+// Catálogo velho guardado no navegador pode vir sem a lista de corpos.
+const CORPOS_RESERVA = [{ chave: "masculino", nome: "Masculino" }, { chave: "feminino", nome: "Feminino" }];
 // Rótulo mais curto pra aba (10+ partes numa fileira).
 const NOME_CURTO_DA_ABA = { maoEsquerda: "Mão esq." };
 const NOME_RARIDADE = { base: "Base", iniciante: "Iniciante", intermediario: "Intermediário", dificil: "Difícil", lendario: "Lendário" };

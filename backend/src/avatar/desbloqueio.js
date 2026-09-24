@@ -4,7 +4,7 @@ import { RANKS } from "../utils/rank.js";
 import { QUIZ_RANKS } from "../utils/quizRank.js";
 import { ACROMANIA_RANKS } from "../utils/acromaniaRank.js";
 import { nomesDeTitulosDesbloqueados, fonteDoTitulo, acertosPorTema, QUIZ_NIVEIS, QUIZ_NOMES } from "../game/titulosConfig.js";
-import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, CORES_CABELO, CHAVE_DO_MES, avatarPadrao, corDoCabeloValida, pecaCabeNoSlot } from "./catalogo.js";
+import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, CORES_CABELO, CHAVE_DO_MES, CORPOS, avatarPadrao, corDoCabeloValida, pecaCabeNoSlot } from "./catalogo.js";
 
 // ===== Quais peças do avatar uma pessoa já liberou =====
 //
@@ -248,6 +248,8 @@ export function esquecerLiberados(userId) {
 // ids liberados. Confere, pra cada slot: se o slot existe, se a peça existe,
 // se cabe NESSE slot (a mão esquerda aceita as peças da mão) e se está
 // liberada. `pele` é obrigatória. Chaves extras:
+//   corpo              — "masculino" | "feminino" (só o feminino é gravado:
+//                        sem a chave, o corpo é o masculino de sempre);
 //   corCabelo          — paleta CORES_CABELO, vale pra cabelo pintável;
 //   mesTrofeu          — mês escrito na plaqueta do troféu da mão direita;
 //   mesTrofeuEsquerda  — idem, mão esquerda.
@@ -263,7 +265,10 @@ export function validarConfig(config, liberados, campeonatos = {}) {
   // Cor do cabelo: não é uma peça (não tranca nada), só uma chave da
   // paleta. Cor fora da paleta é erro; "original", ou cabelo que não se
   // pinta (moicano, chamas, sem cabelo), simplesmente não é gravado.
-  const { corCabelo, mesTrofeu, mesTrofeuEsquerda, ...pecas } = config;
+  const { corpo, corCabelo, mesTrofeu, mesTrofeuEsquerda, ...pecas } = config;
+  if (corpo !== undefined && corpo !== null && !CORPOS.some((c) => c.chave === corpo)) {
+    return { erro: "Corpo inválido." };
+  }
   if (corCabelo !== undefined && corCabelo !== null && (typeof corCabelo !== "string" || !Object.hasOwn(CORES_CABELO, corCabelo))) {
     return { erro: "Cor de cabelo inválida." };
   }
@@ -278,6 +283,7 @@ export function validarConfig(config, liberados, campeonatos = {}) {
     limpa[slot] = id;
   }
   if (!limpa.pele) return { erro: "Escolha a pele do seu avatar." };
+  if (corpo === "feminino") limpa.corpo = corpo;
   const cor = corDoCabeloValida(limpa.cabelo, corCabelo);
   if (cor) limpa.corCabelo = cor;
 
@@ -310,6 +316,7 @@ export function configPublica(salvo) {
     if (pecaCabeNoSlot(item, slot)) limpa[slot] = item.id;
   }
   // A cor só vai junto se ainda vale pro cabelo gravado.
+  if (salvo.corpo === "feminino") limpa.corpo = "feminino";
   const cor = corDoCabeloValida(limpa.cabelo, salvo.corCabelo);
   if (cor) limpa.corCabelo = cor;
   // O mês da plaqueta só vai junto se a mão ainda segura um troféu.

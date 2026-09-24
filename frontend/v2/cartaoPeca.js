@@ -1,4 +1,4 @@
-import { camadasDaMontagem, corDoCabelo, posicaoDaPlaca } from "./AvatarBoneco.jsx";
+import { camadasDaMontagem, corDoCabelo, corDaPeleDe, posicaoDaPlaca } from "./AvatarBoneco.jsx";
 import { CHAVE_DO_MES, mesesDeCampeao } from "./avatarCatalogo.js";
 
 // Cartão de "story" (1080×1920) pra compartilhar uma peça nova: o avatar da
@@ -83,6 +83,18 @@ function desenharCamada(ctx, fonte, [ax, ay, aw, ah], espelhado) {
   ctx.restore();
 }
 
+// Brilho dourado da aura, atrás do personagem.
+function desenharAura(ctx, [ax, ay, aw, ah]) {
+  const cx = ax + aw / 2;
+  const cy = ay + ah * 0.6;
+  const g = ctx.createRadialGradient(cx, cy, aw * 0.05, cx, cy, aw * 0.5);
+  g.addColorStop(0, "rgba(255, 214, 90, .8)");
+  g.addColorStop(0.55, "rgba(255, 190, 40, .35)");
+  g.addColorStop(1, "rgba(255, 190, 40, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(ax, ay, aw, ah);
+}
+
 // Mês na plaqueta do troféu (sem espelhar o texto).
 function desenharPlaca(ctx, placa, texto, espelhado, [ax, ay, aw, ah], tela) {
   const p = posicaoDaPlaca(placa, espelhado, tela.largura);
@@ -130,24 +142,57 @@ export async function montarCartaoPeca({ catalogo, config, item, campeonatos }) 
   // mais recente.
   const meses = mesesDeCampeao(item, campeonatos);
   if (item.placa && meses.length && !meses.includes(montagem[CHAVE_DO_MES[item.slot]])) montagem[CHAVE_DO_MES[item.slot]] = meses[0];
-  const corDaPele = catalogo.porId.get(montagem.pele)?.cor;
+  const corDaPele = corDaPeleDe(catalogo, montagem);
   const corCabelo = corDoCabelo(catalogo, montagem);
-  const camadas = camadasDaMontagem(catalogo, montagem);
-  const [imagens, mascaras, cinzas] = await Promise.all([
-    Promise.all(camadas.map((c) => carregar(c.item.arquivo))),
+  const { camadas, apagas, aura } = camadasDaMontagem(catalogo, montagem);
+  const [imagens, mascaras, cinzas, mascarasApaga] = await Promise.all([
+    Promise.all(camadas.map((c) => carregar(c.arquivo))),
     Promise.all(camadas.map((c) => (c.item.mascaraPele && corDaPele ? carregar(c.item.mascaraPele) : null))),
     Promise.all(camadas.map((c) => (c.slot === "cabelo" && corCabelo ? carregar(c.item.pintavel) : null))),
+    Promise.all(apagas.map((a) => carregar(a.mascara))),
   ]);
   const area = [135, 300, 810, 1080];
-  const [, , aw, ah] = area;
+  const [ax, ay, aw, ah] = area;
   const tela = catalogo.tela || { largura: 900, altura: 1200 };
+
+  // Camadas apagáveis (corpo, calça, roupa, pescoço) vão num canvas à parte,
+  // recortado pelas máscaras de apagar o braço ("destination-in"; a da mão
+  // esquerda espelhada) — igual ao boneco da tela.
+  const temApaga = mascarasApaga.some(Boolean);
+  const grupo = temApaga ? document.createElement("canvas") : null;
+  if (grupo) { grupo.width = aw; grupo.height = ah; }
+  const aqui = [0, 0, aw, ah];
+  const soltarGrupo = () => {
+    const g = grupo.getContext("2d");
+    g.globalCompositeOperation = "destination-in";
+    apagas.forEach((a, i) => {
+      if (!mascarasApaga[i]) return;
+      if (!a.espelhado) { g.drawImage(mascarasApaga[i], 0, 0, aw, ah); return; }
+      g.save();
+      g.translate(aw, 0);
+      g.scale(-1, 1);
+      g.drawImage(mascarasApaga[i], 0, 0, aw, ah);
+      g.restore();
+    });
+    ctx.drawImage(grupo, ax, ay, aw, ah);
+  };
+  let grupoSolto = !grupo;
+  // Sem fundo escolhido, o brilho vai antes de tudo (atrás do boneco).
+  if (aura && !camadas.some((c) => c.slot === "fundo")) desenharAura(ctx, area);
   camadas.forEach((c, i) => {
-    if (mascaras[i]) desenharCamada(ctx, pintar(mascaras[i], corDaPele, aw, ah), area, c.espelhado);
+    if (!grupoSolto && !c.apagavel && camadas.slice(0, i).some((x) => x.apagavel)) { soltarGrupo(); grupoSolto = true; }
+    const noGrupo = grupo && c.apagavel;
+    const alvo = noGrupo ? grupo.getContext("2d") : ctx;
+    const onde = noGrupo ? aqui : area;
+    if (mascaras[i]) desenharCamada(alvo, pintar(mascaras[i], corDaPele, aw, ah), onde, c.espelhado);
     // Cinza que não carregou: fica o cabelo original.
-    if (cinzas[i]) desenharCamada(ctx, pintarCabelo(cinzas[i], corCabelo, aw, ah), area, false);
-    else if (imagens[i]) desenharCamada(ctx, imagens[i], area, c.espelhado);
+    if (cinzas[i]) desenharCamada(alvo, pintarCabelo(cinzas[i], corCabelo, aw, ah), onde, false);
+    else if (imagens[i]) desenharCamada(alvo, imagens[i], onde, c.espelhado);
     if (imagens[i] && c.placa) desenharPlaca(ctx, c.item.placa, c.placa, c.espelhado, area, tela);
+    // Aura (peça de ouro do Quiz): brilho dourado parado logo acima do fundo.
+    if (aura && c.slot === "fundo") desenharAura(ctx, area);
   });
+  if (!grupoSolto) soltarGrupo();
 
   ctx.fillStyle = "#ffffff";
   ctx.font = `700 84px ${FONTE}`;
