@@ -30,6 +30,9 @@
 /* ---------- peças gerais ---------- */
 .imp-barra { display: flex; justify-content: flex-end; align-items: center; gap: 12px; min-height: 44px; }
 .imp-barra-sala { color: var(--imp-apagado); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+/* "← Voltar ao lobby" da tela inicial: fica à esquerda, o som à direita. */
+.imp-voltar { margin-right: auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); color: var(--imp-texto); font-weight: 700; font-size: 14px; text-decoration: none; }
+.imp-voltar:hover, .imp-voltar:focus-visible { border-color: var(--imp-ambar); color: var(--imp-ambar); }
 .imp-botao-som { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-superficie); font-size: 18px; }
 
 .imp-painel { background: var(--imp-superficie); border: 1px solid var(--imp-borda); border-radius: 24px; padding: 22px; }
@@ -161,7 +164,30 @@
 .imp-rodada-dicas { width: clamp(270px, 25vw, 320px); flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
 .imp-dicas { display: flex; flex-direction: column; gap: 14px; min-height: 480px; }
 .imp-dicas ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.imp-dicas-anteriores p { margin: 6px 0 0; color: var(--imp-texto-2); font-size: 13px; line-height: 1.5; }
+/* Quem disse cada dica: avatar + nome na cor do jogador (a mesma em todas
+   as rodadas) e um filete dessa cor à esquerda. */
+.imp-dica { border-left: 4px solid var(--imp-cor-jogador, var(--imp-borda)); transition: background .25s, box-shadow .25s; }
+.imp-dica-quem { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.imp-dica-quem .imp-avatar { font-size: 11px !important; }
+.imp-dica-quem .imp-dica-nome { color: var(--imp-cor-jogador, var(--imp-texto-2)); font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Pausa da última dica: ela fica em destaque até a rodada seguir. */
+.imp-dica.ultima { background: var(--imp-ambar-escuro); box-shadow: 0 0 0 2px var(--imp-ambar); animation: imp-ultima-dica 1.2s ease-out 1; }
+.imp-dica-selo { margin-left: auto; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; background: var(--imp-ambar); color: var(--imp-ambar-escuro); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+@keyframes imp-ultima-dica {
+  0% { box-shadow: 0 0 0 0 rgba(255, 181, 71, .75); }
+  60% { box-shadow: 0 0 0 12px rgba(255, 181, 71, 0); }
+  100% { box-shadow: 0 0 0 2px var(--imp-ambar); }
+}
+.imp-fechando { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--imp-ambar-escuro); border: 1px solid var(--imp-ambar); color: var(--imp-ambar); font-size: 13px; font-weight: 700; line-height: 1.4; }
+
+/* Histórico das rodadas anteriores: agrupado por rodada, uma linha por dica. */
+.imp-historico { display: flex; flex-direction: column; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--imp-borda); }
+.imp-historico-rodada { display: flex; flex-direction: column; gap: 6px; }
+.imp-historico ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.imp-historico-item { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 10px 6px 8px; border-radius: 10px; background: var(--imp-fundo); border-left: 3px solid var(--imp-cor-jogador, var(--imp-borda)); }
+.imp-historico-item .imp-avatar { font-size: 12px !important; }
+.imp-historico-nome { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 700; color: var(--imp-cor-jogador, var(--imp-texto-2)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-historico-palavra { flex-shrink: 0; max-width: 55%; font-family: var(--imp-titulo); font-weight: 400; font-size: 18px; letter-spacing: .5px; text-transform: uppercase; text-align: right; overflow-wrap: anywhere; }
 .imp-dica { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--imp-fundo); }
 .imp-dica-nome { font-size: 12px; font-weight: 700; color: var(--imp-texto-2); }
 .imp-dica-texto { font-family: var(--imp-titulo); font-weight: 400; font-size: 26px; letter-spacing: .5px; text-transform: uppercase; word-break: break-word; }
@@ -237,6 +263,42 @@
 .imp-pontos-lista li { display: flex; justify-content: space-between; color: var(--imp-texto-2); }
 .imp-pontos-lista b { color: var(--imp-verde); }
 .imp-cancelada { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 16px; text-align: center; }
+
+/* ============ chat da sala ============
+   Classes v2-chat/v2-msg (as mesmas dos outros chats) repintadas com as
+   cores do Impostor. ".imp-app .imp-chat" ganha das regras do v2.css (que
+   carrega depois) — inclusive o "grid-area: chat" do layout do Quiz. */
+.imp-corpo { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.imp-corpo-jogo { min-width: 0; }
+.imp-app .imp-chat { grid-area: auto; flex: none; min-height: 0; margin: 0; padding: 10px 14px 14px; border-radius: 20px; background: var(--imp-superficie); border: 1px solid var(--imp-borda); display: flex; flex-direction: column; gap: 8px; }
+.imp-app .imp-chat.recolhido { padding-bottom: 10px; }
+.imp-chat-cabeca { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0; border: none; background: transparent; color: var(--imp-texto); text-align: left; cursor: pointer; }
+.imp-chat-seta { margin-left: auto; color: var(--imp-texto-2); font-size: 14px; }
+.imp-chat-novas { padding: 2px 8px; border-radius: 999px; background: var(--imp-vermelho); color: var(--imp-vermelho-texto); font-size: 11px; font-weight: 800; }
+.imp-chat-corpo { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.imp-app .imp-chat-lista { flex: none; height: 240px; overflow-y: auto; overscroll-behavior: contain; }
+.imp-app .imp-chat .v2-msg { background: var(--imp-fundo); color: var(--imp-texto); font-weight: 600; border-radius: 12px 12px 12px 4px; }
+.imp-app .imp-chat .v2-msg.minha { align-self: flex-end; background: #262A36; border-radius: 12px 12px 4px 12px; }
+.imp-chat-nick { color: var(--imp-cor-jogador, var(--imp-texto-2)); font-weight: 800; }
+.imp-app .imp-chat .v2-msg-hora { color: var(--imp-apagado); }
+.imp-app .imp-chat .v2-mencao { color: var(--imp-ambar); }
+.imp-app .imp-chat .v2-mencao.eu { background: rgba(255, 181, 71, .2); }
+.imp-chat-vazio { margin: auto 0; text-align: center; color: var(--imp-apagado); font-size: 13px; }
+.imp-chat-aviso { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--imp-vermelho-escuro); border: 1px solid var(--imp-vermelho); color: #FFD9DC; font-size: 12px; font-weight: 700; }
+.imp-app .imp-chat .v2-chat-form { margin-top: 0; }
+.imp-app .imp-chat .v2-chat-form input { height: 44px; border-radius: 12px; border: 1px solid var(--imp-borda); background: var(--imp-fundo); color: var(--imp-texto); font-size: 16px; }
+.imp-app .imp-chat .v2-chat-form input:focus { border-color: var(--imp-ambar); box-shadow: 0 0 0 3px rgba(255, 181, 71, .18); }
+.imp-app .imp-chat .v2-emoji-botao { background: var(--imp-fundo); border: 1px solid var(--imp-borda); border-radius: 12px; }
+.imp-app .imp-chat .v2-chat-enviar { background: var(--imp-vermelho); color: var(--imp-vermelho-texto); box-shadow: none; border-radius: 12px; font-family: var(--imp-corpo); font-weight: 800; }
+
+/* Computador largo: chat numa coluna ao lado do jogo (antes disso a
+   rodada — ordem, carta e dicas — não cabe com mais uma coluna). */
+@media (min-width: 1500px) {
+  .imp.com-chat { max-width: 1680px; }
+  .imp.com-chat .imp-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 330px; align-items: start; gap: 28px; }
+  .imp-app .imp-chat { position: sticky; top: 16px; }
+  .imp-app .imp-chat-lista { height: clamp(280px, calc(100vh - 260px), 640px); }
+}
 
 /* ============ celular (< 900px) ============ */
 @media (max-width: 899px) {
@@ -316,11 +378,16 @@
   .imp-ultima { padding: 14px 16px; border-radius: 18px; font-size: 13px; }
   .imp-cronometro.anel { width: 44px; height: 44px; font-size: 16px; }
   .imp-meus-pontos .imp-pontos-numero { font-size: 28px; }
+
+  /* chat embaixo do jogo, mais baixo; dicas antigas mais compactas */
+  .imp-app .imp-chat { border-radius: 18px; padding: 8px 12px 12px; }
+  .imp-app .imp-chat-lista { height: 200px; }
+  .imp-historico-palavra { font-size: 16px; }
 }
 
 /* Reduzir movimento: sem pulsos nem piscadas (o motion já troca as
    animações por fades via MotionConfig). */
 @media (prefers-reduced-motion: reduce) {
-  .imp-ponto, .imp-anel { animation: none; }
+  .imp-ponto, .imp-anel, .imp-dica.ultima { animation: none; }
   .imp-botao:active:not(:disabled) { transform: none; }
 }

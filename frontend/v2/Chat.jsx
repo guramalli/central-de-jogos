@@ -1,5 +1,37 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFila, pedirFila } from "./fila.js";
+
+// "Grudar no fim" da lista do chat. Mensagem nova (muda `chave`) rola a
+// lista até o fim SE a pessoa já estava perto do fim (até FOLGA_FIM px) ou se
+// a mensagem é dela (`minha`); quem subiu pra ler o histórico não é puxado.
+// Mudar `forcar` (ex.: a aba do celular) sempre rola até o fim. Rola SÓ a
+// caixa (scrollTop), nunca scrollIntoView — isso arrastava a página inteira.
+// Também segue colada quando a caixa muda de tamanho (grade do multi-sala,
+// abas, teclado do celular).
+const FOLGA_FIM = 80;
+export function useColarNoFim(ref, chave, minha = false, forcar = null) {
+  const pertoRef = useRef(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const aoRolar = () => { pertoRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= FOLGA_FIM; };
+    el.addEventListener("scroll", aoRolar, { passive: true });
+    let ro = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => { if (pertoRef.current) el.scrollTop = el.scrollHeight; });
+      ro.observe(el);
+    }
+    return () => { el.removeEventListener("scroll", aoRolar); ro?.disconnect(); };
+  }, [ref]);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && (pertoRef.current || minha)) { el.scrollTop = el.scrollHeight; pertoRef.current = true; }
+  }, [ref, chave, minha]);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) { el.scrollTop = el.scrollHeight; pertoRef.current = true; }
+  }, [ref, forcar]);
+}
 
 // PEÇAS DO CHAT da v2 — mesma lógica do chat do clássico
 // (src/components/Chat.jsx e EmojiPicker.jsx):

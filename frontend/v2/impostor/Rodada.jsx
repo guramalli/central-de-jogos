@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Carta from "./Carta.jsx";
-import { AvatarImp, Cronometro, PontoPiscando, quem } from "./comum.jsx";
+import { AvatarImp, Cronometro, PontoPiscando, quem, useSegundos } from "./comum.jsx";
 
 // CARTAS e DICAS.
 //   computador: ordem das dicas à esquerda, carta ao centro, dicas à direita;
@@ -12,11 +12,13 @@ export default function Rodada({ estado, carta, tempo, pedir }) {
   return <EtapaDicas estado={estado} carta={carta} tempo={tempo} pedir={pedir} />;
 }
 
+// Na pausa da última dica o relógio some (a contagem curta aparece no aviso
+// da lista de dicas, sem o vermelho/tique de "tempo acabando").
 function Cabecalho({ estado, tempo, titulo }) {
   return (
     <header className="imp-cabecalho-rodada">
       <span className="imp-rotulo">{titulo}</span>
-      <Cronometro tempo={tempo} variante="pilula" />
+      {!estado.ultimaDica && <Cronometro tempo={tempo} variante="pilula" />}
     </header>
   );
 }
@@ -66,7 +68,7 @@ function EtapaDicas({ estado, carta, tempo, pedir }) {
           <Cabecalho estado={estado} tempo={tempo} titulo={titulo} />
           <p className="imp-sub">Tema: <b>{estado.tema}</b></p>
         </div>
-        <Dicas estado={estado} pedir={pedir} />
+        <Dicas estado={estado} tempo={tempo} pedir={pedir} />
         {estado.participo && (
           <button className="imp-botao secundario imp-so-celular" onClick={() => setCartaNoCelular(true)}>Ver minha carta</button>
         )}
@@ -126,7 +128,54 @@ const ENTRADA_DICA = {
   transition: { type: "spring", stiffness: 520, damping: 18 },
 };
 
-function Dicas({ estado, pedir }) {
+// HISTÓRICO das rodadas anteriores: uma linha por dica, com avatar e nome na
+// cor do jogador (a mesma cor em todas as rodadas e em toda a sala), agrupado
+// por rodada.
+function Historico({ estado }) {
+  const rodadas = [];
+  for (let r = 1; r < estado.rodada; r++) {
+    const dicas = estado.dicas.filter((d) => d.rodada === r);
+    if (dicas.length) rodadas.push({ r, dicas });
+  }
+  if (!rodadas.length) return null;
+  return (
+    <div className="imp-historico" aria-label="Dicas das rodadas anteriores">
+      {rodadas.map(({ r, dicas }) => (
+        <section key={r} className="imp-historico-rodada">
+          <h3 className="imp-rotulo">RODADA {r}</h3>
+          <ul>
+            {dicas.map((d) => {
+              const p = quem(estado, d.jogadorId);
+              return (
+                <li key={d.jogadorId} className="imp-historico-item" style={{ "--imp-cor-jogador": p.cor }}>
+                  <AvatarImp nome={p.nickname} cor={p.cor} tamanho={24} />
+                  <span className="imp-historico-nome">{p.nickname}{d.jogadorId === estado.euId ? " (você)" : ""}</span>
+                  <b className={`imp-historico-palavra ${d.texto ? "" : "imp-branco"}`}>{d.texto || "(em branco)"}</b>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// Aviso da pausa depois da última dica da rodada, com a contagem curta.
+function AvisoUltimaDica({ estado, tempo }) {
+  const s = useSegundos(tempo);
+  const proxima = estado.rodada < estado.totalRodadas
+    ? `A rodada ${estado.rodada + 1} começa`
+    : "A votação começa";
+  return (
+    <p className="imp-fechando" role="status">
+      <PontoPiscando cor="ambar" />
+      <span>Última dica da rodada! {proxima}{s ? ` em ${s}s` : " já"}…</span>
+    </p>
+  );
+}
+
+function Dicas({ estado, tempo, pedir }) {
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [recusa, setRecusa] = useState("");
@@ -135,7 +184,7 @@ function Dicas({ estado, pedir }) {
   useEffect(() => { if (minhaVez) campo.current?.focus(); else setRecusa(""); }, [minhaVez]);
   const vez = estado.vezDe ? quem(estado, estado.vezDe) : null;
   const daRodada = estado.dicas.filter((d) => d.rodada === estado.rodada);
-  const anteriores = estado.dicas.filter((d) => d.rodada < estado.rodada);
+  const destaque = estado.ultimaDica;
 
   async function enviar(e) {
     e.preventDefault();
@@ -154,21 +203,25 @@ function Dicas({ estado, pedir }) {
 
   return (
     <section className="imp-painel imp-dicas" aria-label="Dicas">
-      {anteriores.length > 0 && (
-        <div className="imp-dicas-anteriores">
-          <span className="imp-rotulo">RODADA 1</span>
-          <p>{anteriores.map((d) => `${quem(estado, d.jogadorId).nickname}: ${d.texto || "—"}`).join(" · ")}</p>
-        </div>
-      )}
-      <h2 className="imp-rotulo">DICAS DA RODADA</h2>
+      <Historico estado={estado} />
+      <h2 className="imp-rotulo">DICAS DA RODADA {estado.rodada}</h2>
       <ul aria-live="polite">
-        {daRodada.map((d) => (
-          <motion.li key={`${d.rodada}-${d.jogadorId}`} className="imp-dica" {...ENTRADA_DICA}>
-            <span className="imp-dica-nome">{quem(estado, d.jogadorId).nickname}</span>
-            <b className={`imp-dica-texto ${d.texto ? "" : "imp-branco"}`}>{d.texto || "(em branco)"}</b>
-          </motion.li>
-        ))}
+        {daRodada.map((d) => {
+          const p = quem(estado, d.jogadorId);
+          const ultima = destaque?.rodada === d.rodada && destaque?.jogadorId === d.jogadorId;
+          return (
+            <motion.li key={`${d.rodada}-${d.jogadorId}`} className={`imp-dica ${ultima ? "ultima" : ""}`} style={{ "--imp-cor-jogador": p.cor }} {...ENTRADA_DICA}>
+              <span className="imp-dica-quem">
+                <AvatarImp nome={p.nickname} cor={p.cor} tamanho={22} />
+                <span className="imp-dica-nome">{p.nickname}{d.jogadorId === estado.euId ? " (você)" : ""}</span>
+                {ultima && <span className="imp-dica-selo">ÚLTIMA DICA</span>}
+              </span>
+              <b className={`imp-dica-texto ${d.texto ? "" : "imp-branco"}`}>{d.texto || "(em branco)"}</b>
+            </motion.li>
+          );
+        })}
       </ul>
+      {destaque && <AvisoUltimaDica estado={estado} tempo={tempo} />}
       {!minhaVez && vez && (
         <p className="imp-pensando"><PontoPiscando cor="ambar" />{vez.nickname} está pensando…</p>
       )}

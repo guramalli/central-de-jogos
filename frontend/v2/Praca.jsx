@@ -3,7 +3,7 @@ import { novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
 import { corDoJogador } from "./temas.js";
 import Avatar from "./Avatar.jsx";
-import { CampoChat, TextoSistema, TextoComMarcacoes } from "./Chat.jsx";
+import { CampoChat, TextoSistema, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 
 const hora = (t) => (t ? new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "");
 
@@ -30,11 +30,10 @@ export default function Praca({ usuario }) {
     return () => { s.removeAllListeners(); s.disconnect(); };
   }, []);
 
-  // Rola só a caixa do chat (não a página inteira).
-  useEffect(() => {
-    const el = listaRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [msgs]);
+  // Rola só a caixa do chat (não a página inteira), e só se a pessoa já
+  // estava no fim ou se a mensagem é dela.
+  const ultimaMsg = msgs[msgs.length - 1];
+  useColarNoFim(listaRef, ultimaMsg ? (ultimaMsg.id || `${msgs.length}-${ultimaMsg.createdAt || ""}`) : null, !!ultimaMsg && !ultimaMsg.system && ultimaMsg.userId === usuario.id);
 
   function enviar(texto) {
     socketRef.current?.emit("general-chat-message", { message: texto });

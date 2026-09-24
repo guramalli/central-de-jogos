@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { novoSocket, ehSessaoMorta } from "./api.js";
 import Topo from "./Topo.jsx";
+import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Entrada from "./impostor/Entrada.jsx";
 import SalaEspera from "./impostor/SalaEspera.jsx";
 import Rodada from "./impostor/Rodada.jsx";
 import Votacao from "./impostor/Votacao.jsx";
 import Revelacao from "./impostor/Revelacao.jsx";
 import BotaoSom from "./impostor/BotaoSom.jsx";
+import ChatImpostor from "./impostor/ChatImpostor.jsx";
 import { carregarFontes } from "./impostor/fontes.js";
 import { prepararSons } from "./impostor/sons.js";
 import "./impostor/impostor.css";
@@ -29,6 +31,7 @@ export default function Impostor({ usuario, salaDoLink }) {
   const [tempo, setTempo] = useState({ ms: null, em: 0 });
   const [erro, setErro] = useState("");
   const [caiu, setCaiu] = useState(false);
+  const [chat, setChat] = useState([]);
   const socketRef = useRef(null);
   const codigoRef = useRef(salaDoLink || null);
 
@@ -47,6 +50,10 @@ export default function Impostor({ usuario, salaDoLink }) {
     });
     s.on("impostor-carta", setCarta);
     s.on("impostor-tempo", (t) => setTempo({ ms: t.restanteMs, em: Date.now() }));
+    // Chat: o histórico chega a cada entrada (substitui a lista); depois, uma
+    // mensagem por evento. O corte em 150 só segura a memória numa sala longa.
+    s.on("impostor-chat-historico", (d) => setChat(Array.isArray(d?.mensagens) ? d.mensagens : []));
+    s.on("impostor-chat", (m) => setChat((lista) => (lista.some((x) => x.id === m.id) ? lista : [...lista, m].slice(-150))));
     s.on("connect", () => {
       setCaiu(false);
       setErro("");
@@ -102,6 +109,7 @@ export default function Impostor({ usuario, salaDoLink }) {
     codigoRef.current = null;
     setEstado(null);
     setCarta(null);
+    setChat([]);
     window.history.replaceState(null, "", "/v2/?pagina=impostor");
   }
 
@@ -123,8 +131,19 @@ export default function Impostor({ usuario, salaDoLink }) {
     <MotionConfig reducedMotion="user">
       <div className="v2-app v2-com-menu imp-app">
         <Topo usuario={usuario} ativo={null} />
-        <main className="imp">
+        <main className={estado ? "imp com-chat" : "imp"}>
           <div className="imp-barra">
+            {/* Tela inicial: um jeito claro de desistir e voltar pro lobby.
+                Dentro da sala quem cuida disso é o "Sair" da própria tela. */}
+            {qual === "entrada" && (
+              <a
+                className="imp-voltar"
+                href={linkDaPagina("inicio")}
+                onClick={(e) => { e.preventDefault(); irParaPagina("inicio"); }}
+              >
+                ← Voltar ao lobby
+              </a>
+            )}
             {estado && <span className="imp-barra-sala">Sala {estado.codigo}</span>}
             <BotaoSom />
           </div>
@@ -133,18 +152,26 @@ export default function Impostor({ usuario, salaDoLink }) {
           {estado && !estado.participo && estado.fase !== "LOBBY" && (
             <div className="imp-aviso" role="status">Partida em andamento. Você está assistindo e joga a próxima.</div>
           )}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={qual}
-              className="imp-tela"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-            >
-              {tela}
-            </motion.div>
-          </AnimatePresence>
+          {/* Com sala: jogo + chat (ao lado no computador largo, embaixo no
+              resto). O chat fica FORA da animação de troca de tela, pra não
+              piscar nem perder a rolagem quando a fase muda. */}
+          <div className="imp-corpo">
+            <div className="imp-corpo-jogo">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={qual}
+                  className="imp-tela"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                >
+                  {tela}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            {estado && <ChatImpostor mensagens={chat} estado={estado} pedir={pedir} />}
+          </div>
         </main>
       </div>
     </MotionConfig>

@@ -18,6 +18,12 @@ const ROTAS = {
   quiz: "/jogos/quiz",
   acromania: "/jogos/acromania",
 };
+// Jogos que só existem na versão nova (v2): o convite leva pra página do
+// jogo lá, com o código da mesa (?pagina=tribunal&mesa=123456 — o mesmo
+// endereço do link de convite da própria sala). Antes, jogo que não estava
+// em ROTAS caía no Stop: convite do Tribunal abria uma sala de STOP com o
+// código da mesa como nome.
+const SO_NA_NOVA = ["tribunal", "mentira", "impostor"];
 
 export default function ConviteDeSala() {
   const [convite, setConvite] = useState(null);
@@ -33,6 +39,9 @@ export default function ConviteDeSala() {
     const socket = getSocket();
     function aoReceber(dados) {
       if (!dados?.sala) return;
+      // Jogo que este site não sabe abrir: melhor não mostrar do que mandar
+      // a pessoa pra sala errada.
+      if (!ROTAS[dados.jogo] && !SO_NA_NOVA.includes(dados.jogo)) return;
       setConvite(dados);
     }
     socket.on("convite-de-sala", aoReceber);
@@ -47,7 +56,7 @@ export default function ConviteDeSala() {
 
   if (!convite) return null;
 
-  const base = ROTAS[convite.jogo] || ROTAS.stop;
+  const base = ROTAS[convite.jogo];
 
   return (
     <div className="convite-sala" role="alert">
@@ -63,8 +72,14 @@ export default function ConviteDeSala() {
             // Rota direta por sala, que já existia (/jogos/stop/:roomId).
             // Cheguei a escrever `?sala=` antes de conferir — as páginas de
             // jogo não leem parâmetro de busca, e o botão não faria nada.
-            navigate(`${base}/${encodeURIComponent(convite.sala)}`);
             setConvite(null);
+            if (!base) {
+              // Página de outro app (/v2/): troca de endereço de verdade.
+              const q = new URLSearchParams({ pagina: convite.jogo, mesa: convite.sala });
+              window.location.assign(`/v2/?${q}`);
+              return;
+            }
+            navigate(`${base}/${encodeURIComponent(convite.sala)}`);
           }}
         >
           Entrar

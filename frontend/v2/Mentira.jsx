@@ -5,7 +5,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Avatar from "./Avatar.jsx";
 import { ativarSons, alternarMudo, estaMudo, estaSemAnimacao, alternarAnimacao, somRodada, somVitoriaRodada, somCampeao, volumeAtual, definirVolume } from "./sons.js";
-import { CampoChat, TextoComMarcacoes } from "./Chat.jsx";
+import { CampoChat, TextoComMarcacoes, useColarNoFim } from "./Chat.jsx";
 import { EscadaPatentes } from "./Lobby.jsx";
 
 // MENTIRA SINCERA (em teste, escondido): só admin cria sala; quem tiver o
@@ -47,7 +47,11 @@ export function ChatMentira({ estado, usuario, pedir, prefixo = "mentira", reaco
   const [aviso, setAviso] = useState("");
   const chat = estado.chat || [];
   const nicks = estado.jogadores.filter((j) => !j.bot).map((j) => j.nickname);
-  useEffect(() => { const el = listaRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chat.length]);
+  // A chave é o id da ÚLTIMA mensagem, não chat.length: o servidor manda só
+  // as 50 últimas, então depois de 50 mensagens o tamanho parava de mudar e
+  // o chat deixava de rolar sozinho.
+  const ultimaMsg = chat[chat.length - 1];
+  useColarNoFim(listaRef, ultimaMsg?.id, ultimaMsg?.uid === usuario.id);
   async function enviar(texto) {
     const r = await pedir(`${prefixo}-chat`, { texto });
     if (r?.erro) { setAviso(r.erro); setTimeout(() => setAviso(""), 3000); }

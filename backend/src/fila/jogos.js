@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { criarSalaDeGrupo as criarSalaImpostor } from "../impostor/socketImpostor.js";
 import { criarSalaDeGrupoTribunal } from "../tribunal/socketTribunal.js";
 import {
+  salaPublicaAcromaniaParaGrupo,
   criarSalaPrivadaAcromania,
   conferirSenhaAcromania,
   agendarDescarteAcromania,
@@ -12,8 +13,10 @@ import { acromaniaAtivo } from "../utils/acromaniaAtivo.js";
 // como criar a sala do grupo. `criarSala` devolve o DESTINO que a tela usa
 // pra levar a pessoa até a sala (mesmos parâmetros da URL da v2).
 //
-// Nenhuma sala da fila vale ranking: o Impostor está em testes, o Tribunal
-// não tem ranking e a sala privada do Acromania já é sem pontuação.
+// O Impostor (em testes) e o Tribunal não têm ranking, então o grupo ganha
+// uma sala própria. No Acromania o grupo vai pra uma sala PÚBLICA, que vale
+// ponto (a mais vazia com lugar pra todos) — a sala privada, que não pontua,
+// fica só de plano B, se as públicas estiverem lotadas.
 let contadorAcro = 0;
 
 export function jogosDaFila(io) {
@@ -41,6 +44,8 @@ export function jogosDaFila(io) {
       ativo: acromaniaAtivo, // em manutenção: ninguém coloca o nome
       criarSala: ({ membros }) => {
         if (!acromaniaAtivo()) throw new Error("Acromania em manutenção");
+        const publica = salaPublicaAcromaniaParaGrupo(membros.length);
+        if (publica) return { acro: publica };
         // Sala privada com senha aleatória: só quem aceitou a partida entra
         // (a senha é "digitada" aqui por cada um, sem ninguém ver).
         const senha = randomUUID().slice(0, 8);

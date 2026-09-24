@@ -3,6 +3,7 @@ import { sortearPalavra as sortearDoBanco, palavrasDoTema } from "./palavras.js"
 import { prisma } from "../db.js";
 import { concorreAoRanking } from "../utils/rankingElegivel.js";
 import { currentMonthKey } from "../utils/monthKey.js";
+import { podeFalar } from "../utils/antiFlood.js";
 
 // O IMPOSTOR — eventos de socket. Tudo em memória; o banco só entra no
 // sorteio da palavra e na gravação do fim da partida.
@@ -28,6 +29,7 @@ const deps = {
   sortearPalavra: sortearDoBanco,
   gravarResultado: gravarResultadoNoBanco,
   palavrasDoTema,
+  config: {}, // sobrescreve CONFIG nas salas novas (testes: pausas curtas)
 };
 export function __configurarImpostorParaTestes(novas) { Object.assign(deps, novas); }
 export function __resetImpostorParaTestes() {
@@ -36,6 +38,7 @@ export function __resetImpostorParaTestes() {
   deps.sortearPalavra = sortearDoBanco;
   deps.gravarResultado = gravarResultadoNoBanco;
   deps.palavrasDoTema = palavrasDoTema;
+  deps.config = {};
 }
 
 // ---------------- ranking / histórico ----------------
@@ -98,6 +101,7 @@ function novaSala(codigo) {
     sortearPalavra: (s) => deps.sortearPalavra(s),
     aoFimDePartida: (r) => { Promise.resolve(deps.gravarResultado(r)).catch(() => {}); },
     palavrasDoTema: (tema) => deps.palavrasDoTema(tema),
+    config: deps.config,
   });
   sala.enviar = emissor(sala);
   salas.set(codigo, sala);
@@ -261,6 +265,28 @@ export function registrarImpostor(io, socket) {
   socket.on("impostor-votar", naSala((sala, { alvoId }) => sala.votar(user.id, String(alvoId || ""))));
   socket.on("impostor-chute", naSala((sala, { palavra }) => sala.chutar(user.id, palavra)));
   socket.on("impostor-proxima", naSala((sala) => sala.proxima(user.id)));
+
+  // CHAT DA SALA. Duas travas, como nos outros chats: o anti-flood por CONTA
+  // (utils/antiFlood.js — o mesmo do "chat-message" em socket/index.js, com
+  // admin/moderador fora) e o intervalo mínimo da própria sala
+  // (mensagemChat). A mensagem sai pelo `enviar` da sala, por socket.
+  async function ehEquipe() {
+    if (socket.ehEquipe === undefined) {
+      try {
+        const q = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } });
+        socket.ehEquipe = q?.role === "ADMIN" || q?.role === "MODERATOR";
+      } catch { socket.ehEquipe = false; }
+    }
+    return socket.ehEquipe;
+  }
+  socket.on("impostor-chat", naSala(async (sala, { texto }) => {
+    const t = typeof texto === "string" ? texto.trim().slice(0, sala.cfg.MAX_MSG_CHAT) : "";
+    if (!t) return null;
+    if (!sala.jogadores.has(user.id)) return "Você não está nesta sala.";
+    const r = podeFalar(user.id, t);
+    if (!r.ok && !(await ehEquipe())) return r.mensagem;
+    return sala.mensagemChat(user.id, t);
+  }));
   // Bots de teste (só o anfitrião, só no lobby — a sala confere).
   socket.on("impostor-bot", naSala((sala, { acao }) => (acao === "remover" ? sala.removerBots(user.id) : sala.adicionarBot(user.id))));
   socket.on("impostor-sair", (_d, cb) => {

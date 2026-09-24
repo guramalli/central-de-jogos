@@ -12,6 +12,9 @@ import { CerebroBot } from "./bots.js";
 //   LOBBY → CARTAS (10s) → DICAS (rodada 1, rodada 2) → VOTACAO (30s)
 //         → REVELACAO → (ULTIMA_CHANCE 15s) → FIM → LOBBY
 //
+// No fim de cada rodada de dicas há uma pausa curta (SEG_ULTIMA_DICA), ainda
+// na fase DICAS e sem ninguém na vez, pra todo mundo ler a última dica.
+//
 // A sala não conhece socket nem banco. Tudo que sai dela passa por
 // `enviar(userId, evento, dados)`, que o socketImpostor liga num emit POR
 // SOCKET do jogador — nunca broadcast. Isso é o que garante, num ponto só,
@@ -40,6 +43,9 @@ export const CONFIG = {
   RODADAS: 2,
   SEG_CARTAS: 10,
   SEG_DICA: 30,
+  // Pausa depois da ÚLTIMA dica de cada rodada: sem ela a tela pulava pra
+  // próxima rodada (ou pra votação) e ninguém chegava a ler a última dica.
+  SEG_ULTIMA_DICA: 4,
   SEG_VOTACAO: 30,
   // A revelação é uma animação no cliente ("A VERDADE", votos um a um,
   // suspense, nome do acusado). O servidor só segura a fase por esse tempo.
@@ -52,6 +58,11 @@ export const CONFIG = {
   // Fase de testes: nenhuma partida grava ranking (e sala com bot nunca grava).
   VALE_RANKING: false,
   BOT_ATRASO: [1500, 5000], // ms entre o bot "pensar" e agir
+  // Chat da sala (mesmos números do Tribunal/Mentira; o anti-flood por
+  // conta — utils/antiFlood.js — fica no socketImpostor).
+  MAX_MSG_CHAT: 300,
+  MAX_HIST_CHAT: 60,
+  MS_ENTRE_MSGS: 800,
 };
 
 const CORES = [
@@ -85,6 +96,9 @@ export class ImpostorRoom {
     this.palavrasDoTema = palavrasDoTema;
     this.cerebros = new Map(); // botId -> CerebroBot
     this.botsCriados = 0;
+    this.chat = []; // últimas MAX_HIST_CHAT mensagens (quem entra recebe o histórico)
+    this.chatSeq = 0;
+    this.ultimaFala = new Map(); // userId -> ms da última mensagem
   }
 
   // ---------------- consultas ----------------
@@ -125,6 +139,8 @@ export class ImpostorRoom {
     // Voltou de uma queda no meio da partida: recebe a carta de novo.
     if (j.naPartida && EM_PARTIDA.has(this.fase)) this.enviarCarta(j);
     this.transmitir();
+    // Histórico do chat pra quem chegou (ou voltou de uma queda).
+    this.enviar(user.id, "impostor-chat-historico", { mensagens: this.chat });
     return null;
   }
 
@@ -337,6 +353,7 @@ export class ImpostorRoom {
     const p = this.partida;
     p.ordem = embaralhar(this.ativos().map((j) => j.id), this.aleatorio);
     p.vez = -1;
+    p.ultimaDica = null;
     this.fase = FASES.DICAS;
     this.proximaVez();
   }
@@ -345,10 +362,7 @@ export class ImpostorRoom {
     const p = this.partida;
     for (;;) {
       p.vez++;
-      if (p.vez >= p.ordem.length) {
-        if (p.rodada < this.cfg.RODADAS) { p.rodada++; return this.novaRodadaDeDicas(); }
-        return this.iniciarVotacao();
-      }
+      if (p.vez >= p.ordem.length) return this.fecharRodada();
       const j = this.jogadores.get(p.ordem[p.vez]);
       if (!j?.naPartida) continue; // saiu de vez: pula
       if (!this.conectado(j)) { this.registrarDica(j.id, ""); continue; } // caído: dica em branco
@@ -362,8 +376,29 @@ export class ImpostorRoom {
     this.transmitir();
   }
 
+  // Todos da rodada já falaram. Se a última dica de verdade (não em branco)
+  // acabou de chegar, segura SEG_ULTIMA_DICA na tela antes de seguir — ainda
+  // em DICAS, com a vez vazia (vezDe = null) e `ultimaDica` no estado pro
+  // cliente destacá-la. Rodada fechada por tempo estourado ou por quem caiu
+  // não pausa: a última dica "de verdade" já está na tela faz tempo.
+  fecharRodada() {
+    const p = this.partida;
+    const seguir = () => {
+      p.ultimaDica = null;
+      if (p.rodada < this.cfg.RODADAS) { p.rodada++; return this.novaRodadaDeDicas(); }
+      return this.iniciarVotacao();
+    };
+    const pausa = this.cfg.SEG_ULTIMA_DICA;
+    const ultima = p.dicas.filter((d) => d.rodada === p.rodada && d.texto).at(-1);
+    if (!(pausa > 0) || !ultima || Date.now() - ultima.em >= pausa * 1000) return seguir();
+    p.ultimaDica = { rodada: ultima.rodada, jogadorId: ultima.jogadorId };
+    this.agendar(pausa, seguir);
+    this.transmitir();
+  }
+
+  // `em` fica só no servidor (decide a pausa da última dica); não vai no estado.
   registrarDica(jogadorId, texto) {
-    this.partida.dicas.push({ rodada: this.partida.rodada, jogadorId, texto });
+    this.partida.dicas.push({ rodada: this.partida.rodada, jogadorId, texto, em: Date.now() });
   }
 
   darDica(userId, texto) {
@@ -376,6 +411,28 @@ export class ImpostorRoom {
     if (r.erro) return r.erro;
     this.registrarDica(userId, r.dica);
     this.proximaVez();
+    return null;
+  }
+
+  // ---------------- chat ----------------
+  // Texto livre, pra todo mundo da sala (inclusive quem só assiste). Não
+  // tem trava de "spoiler": como nos outros jogos de festa, digitar a
+  // palavra no chat é problema do jogador — o servidor nunca revela nada por
+  // aqui. Vai pelo `enviar` (por socket, só pra quem está na sala), como
+  // todo o resto; bot não recebe nem fala.
+  mensagemChat(userId, texto) {
+    const j = this.jogadores.get(userId);
+    if (!j || j.bot) return "Você não está nesta sala.";
+    const t = String(texto ?? "").replace(/\s+/g, " ").trim().slice(0, this.cfg.MAX_MSG_CHAT);
+    if (!t) return null;
+    const agora = Date.now();
+    const antes = this.ultimaFala.get(userId);
+    if (antes != null && agora - antes < this.cfg.MS_ENTRE_MSGS) return "Calma! Uma mensagem de cada vez.";
+    this.ultimaFala.set(userId, agora);
+    const msg = { id: ++this.chatSeq, uid: userId, nick: j.nickname, cor: j.cor, texto: t, em: agora };
+    this.chat.push(msg);
+    if (this.chat.length > this.cfg.MAX_HIST_CHAT) this.chat.splice(0, this.chat.length - this.cfg.MAX_HIST_CHAT);
+    for (const h of this.humanosConectados()) this.enviar(h.id, "impostor-chat", msg);
     return null;
   }
 
@@ -581,6 +638,8 @@ export class ImpostorRoom {
     estado.ordem = [...p.ordem];
     estado.vezDe = this.vezDe;
     estado.dicas = p.dicas.map((d) => ({ rodada: d.rodada, jogadorId: d.jogadorId, texto: d.texto }));
+    // Pausa do fim da rodada: qual dica destacar (null fora da pausa).
+    if (this.fase === FASES.DICAS) estado.ultimaDica = p.ultimaDica ? { ...p.ultimaDica } : null;
 
     if (this.fase === FASES.CARTAS) {
       estado.cartasVistas = this.ativos().filter((j) => j.cartaVista).length;

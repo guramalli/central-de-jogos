@@ -3,6 +3,7 @@ import { AcromaniaRoom } from "./AcromaniaRoom.js";
 import { ligarDicas, desligarDicas } from "./dicasDoSistema.js";
 import { ACROMANIA_ROOM_CONFIGS, DEFAULT_ACROMANIA_ROOM_ID } from "./acromaniaRoomConfigs.js";
 import { ligarBotsNaSala, quantidadeDeBots } from "./acromaniaBots.js";
+import { escolherSalaParaGrupo } from "../fila/escolherSala.js";
 
 const rooms = new Map();
 const pendingCreation = new Map();
@@ -192,6 +193,18 @@ export function agendarDescarteAcromania(roomId) {
       if (chave.endsWith(`:${roomId}`)) jogadoresLiberados.delete(chave);
     }
   }, MINUTOS_ATE_DESCARTAR * 60 * 1000).unref?.();
+}
+
+// Sala pública (que pontua) com lugar pra um grupo inteiro da fila de
+// espera — a mais vazia. null se nenhuma comporta (ver fila/jogos.js).
+export function salaPublicaAcromaniaParaGrupo(tamanho) {
+  const salas = Object.entries(ACROMANIA_ROOM_CONFIGS).map(([roomId, config]) => ({
+    roomId,
+    onlineCount: rooms.get(roomId)?.countUniquePlayers() ?? 0,
+    maxPlayers: config.maxPlayers ?? 15,
+    pontua: !config.semPontuacao && !config.privada,
+  }));
+  return escolherSalaParaGrupo(salas, tamanho);
 }
 
 export function getAllAcromaniaRoomsStatus() {
