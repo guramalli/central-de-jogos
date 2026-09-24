@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { esquecerPerfil } from "./perfil.js";
-import { useCatalogoAvatar } from "./avatarCatalogo.js";
-import AvatarBoneco, { MiniaturaPeca } from "./AvatarBoneco.jsx";
+import { useCatalogoAvatar, motivoDe, minuscula } from "./avatarCatalogo.js";
+import AvatarBoneco, { MiniaturaPeca, corDoCabelo } from "./AvatarBoneco.jsx";
 import AvisoPecaNova from "./AvisoPecaNova.jsx";
 
 // Editor do avatar (página "Meu perfil"): prévia ao vivo de um lado, abas
 // por parte do corpo do outro. Peça trancada aparece com cadeado e a dica
-// de como ganhar (no hover e ao tocar, pro celular).
+// de como ganhar; peça liberada mostra COMO foi ganha (o `motivo` do
+// catálogo) — os dois no hover e ao tocar, pro celular. Embaixo da prévia,
+// uma linha diz de onde veio a peça escolhida na aba aberta.
+//
+// Cabelo pintável (item.pintavel) ganha a fileira de cores embaixo das
+// peças; a cor fica em config.corCabelo (chave da paleta do catálogo).
 //
 // Tudo é grátis — nada aqui é vendido. O servidor confere de novo, ao
 // salvar, se cada peça está mesmo liberada (PUT /api/avatar).
@@ -17,12 +22,14 @@ import AvisoPecaNova from "./AvisoPecaNova.jsx";
 // salvar só as iniciais daria trabalho de montar num boneco que some quando
 // a conta de visitante é limpa — melhor usar o editor como convite.
 
-export default function EditorAvatar({ usuario }) {
+// `foto`: a foto de perfil atual (ou null), pra prévia da opção "Foto" das
+// bolinhas.
+export default function EditorAvatar({ usuario, foto = null }) {
   const catalogo = useCatalogoAvatar();
   const [meu, setMeu] = useState(null); // resposta de GET /avatar/meu
   const [config, setConfig] = useState(null);
   const [aba, setAba] = useState("pele");
-  const [dica, setDica] = useState(null); // peça trancada tocada
+  const [dica, setDica] = useState(null); // peça tocada: { item, livre }
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -45,14 +52,36 @@ export default function EditorAvatar({ usuario }) {
   const liberados = new Set(meu.liberados);
   const slotAtual = catalogo.slots.find((s) => s.slot === aba) || catalogo.slots[0];
   const pecas = catalogo.itens.filter((i) => i.slot === slotAtual.slot);
-  const mudou = JSON.stringify(limpar(config)) !== JSON.stringify(limpar(meu.config)) || !meu.jaMontou;
+  const mudou = JSON.stringify(limpar(config, catalogo)) !== JSON.stringify(limpar(meu.config, catalogo)) || !meu.jaMontou;
   const dicaDe = (item) => (convidado ? "Crie sua conta para desbloquear." : item.dica);
+  // Peça escolhida na aba aberta (a linha embaixo da prévia fala dela).
+  const escolhidaNaAba = catalogo.porId.get(config[slotAtual.slot]);
+  const mostrarMotivo = !convidado && escolhidaNaAba && liberados.has(escolhidaNaAba.id);
+  // Cores do cabelo: só na aba do cabelo, com um cabelo pintável vestido.
+  const cabeloVestido = catalogo.porId.get(config.cabelo);
+  const cores = !convidado && aba === "cabelo" && cabeloVestido?.pintavel ? catalogo.coresCabelo || [] : [];
+  const corAtual = config.corCabelo || "original";
+  const corNasMiniaturas = corDoCabelo(catalogo, config) ? config.corCabelo : null;
 
   function vestir(item) {
-    if (!liberados.has(item.id)) { setDica(item); return; }
-    setDica(null);
+    const livre = liberados.has(item.id);
+    setDica({ item, livre });
+    if (!livre) return;
     setMsg(null);
     setConfig((c) => ({ ...c, [item.slot]: item.id }));
+  }
+  function pintar(chave) {
+    setMsg(null);
+    setConfig((c) => ({ ...c, corCabelo: chave === "original" ? null : chave }));
+  }
+  // Setas movem a escolha dentro da fileira de cores (padrão de radiogroup).
+  function teclaNasCores(e, i) {
+    const passo = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    const alvo = passo ? (i + passo + cores.length) % cores.length : e.key === "Home" ? 0 : e.key === "End" ? cores.length - 1 : null;
+    if (alvo === null) return;
+    e.preventDefault();
+    pintar(cores[alvo].chave);
+    e.currentTarget.parentElement.children[alvo]?.focus();
   }
   function tirar(slot) {
     setDica(null);
@@ -64,10 +93,13 @@ export default function EditorAvatar({ usuario }) {
     setSalvando(true);
     try {
       const { data } = await api.put("/avatar", { config });
-      setMeu((m) => ({ ...m, config: data.avatar, jaMontou: true }));
+      setMeu((m) => ({ ...m, config: data.avatar, jaMontou: true, mostrarAvatar: data.mostrarAvatar }));
       setConfig(data.avatar);
+      // Avisa as bolinhas abertas nesta aba (placar, hover...) pra buscarem
+      // o perfil de novo.
       esquecerPerfil(usuario.id);
-      setMsg({ ok: true, texto: "Avatar salvo!" });
+      // Primeiro avatar: o servidor ligou o avatar nas bolinhas sozinho.
+      setMsg({ ok: true, texto: data.avatarLigado ? "Avatar salvo! Seu avatar agora aparece nas bolinhas do site." : "Avatar salvo!" });
     } catch (err) {
       setMsg({ ok: false, texto: err.response?.data?.error || "Erro ao salvar o avatar." });
     } finally {
@@ -102,6 +134,11 @@ export default function EditorAvatar({ usuario }) {
       <div className="v2-avatar-editor-grade">
         <div className="v2-avatar-previa">
           <AvatarBoneco config={config} altura={300} rotulo="Prévia do seu avatar" />
+          {mostrarMotivo && (
+            <p className="v2-avatar-motivo">
+              <b>{escolhidaNaAba.nome}</b> — {minuscula(motivoDe(escolhidaNaAba))}
+            </p>
+          )}
           <div className="v2-avatar-previa-bolinha" title="Como fica na bolinha">
             <span className="v2-avatar-foto" style={{ width: 40, height: 40, background: "#22164d" }}>
               <AvatarBoneco config={config} busto="cabeca" tamanho={40} preencher />
@@ -142,12 +179,12 @@ export default function EditorAvatar({ usuario }) {
                   key={item.id}
                   className={`v2-avatar-peca ${escolhida ? "escolhida" : ""} ${livre ? "" : "trancada"}`}
                   aria-pressed={escolhida}
-                  aria-label={livre ? item.nome : `${item.nome} (trancado: ${dicaDe(item)})`}
-                  title={livre ? item.nome : `🔒 ${dicaDe(item)}`}
+                  aria-label={livre ? `${item.nome} (${minuscula(motivoDe(item))})` : `${item.nome} (trancado: ${dicaDe(item)})`}
+                  title={livre ? `${item.nome} — ${motivoDe(item)}` : `🔒 ${dicaDe(item)}`}
                   onClick={() => vestir(item)}
                 >
                   <span className="v2-avatar-miniatura">
-                    <MiniaturaPeca item={item} />
+                    <MiniaturaPeca item={item} corCabelo={item.pintavel ? corNasMiniaturas : null} />
                     {!livre && <span className="v2-avatar-cadeado" aria-hidden="true">🔒</span>}
                   </span>
                   <small>{item.nome}</small>
@@ -155,8 +192,32 @@ export default function EditorAvatar({ usuario }) {
               );
             })}
           </div>
+          {cores.length > 0 && (
+            <div className="v2-avatar-cores">
+              <span id="v2-avatar-cores-rotulo">Cor do cabelo</span>
+              <div role="radiogroup" aria-labelledby="v2-avatar-cores-rotulo">
+                {cores.map((c, i) => (
+                  <button
+                    key={c.chave}
+                    type="button"
+                    role="radio"
+                    aria-checked={corAtual === c.chave}
+                    aria-label={c.nome}
+                    title={c.nome}
+                    tabIndex={corAtual === c.chave ? 0 : -1}
+                    className={`v2-avatar-cor ${c.cor ? "" : "original"} ${corAtual === c.chave ? "escolhida" : ""}`}
+                    style={c.cor ? { background: c.cor } : undefined}
+                    onClick={() => pintar(c.chave)}
+                    onKeyDown={(e) => teclaNasCores(e, i)}
+                  >
+                    {!c.cor && "Original"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="v2-avatar-dica" role="status">
-            {dica ? <>🔒 <b>{dica.nome}</b>: {dicaDe(dica)}</> : " "}
+            {dica ? (dica.livre ? <>✔ <b>{dica.item.nome}</b>: {motivoDe(dica.item)}</> : <>🔒 <b>{dica.item.nome}</b>: {dicaDe(dica.item)}</>) : " "}
           </p>
         </div>
       </div>
@@ -166,11 +227,23 @@ export default function EditorAvatar({ usuario }) {
           <button className="v2-botao v2-botao-amarelo" onClick={salvar} disabled={salvando || !mudou}>
             {salvando ? "Salvando…" : mudou ? "Salvar" : "Salvo"}
           </button>
+          {/* As duas opções com a prévia de como a bolinha fica (salva na
+              hora, é um interruptor). Sem foto, a bolinha já é o avatar. */}
           <div className="v2-avatar-bolinha-opcao" role="group" aria-labelledby="v2-avatar-bolinha-rotulo">
-            <span id="v2-avatar-bolinha-rotulo">Na bolinha do chat e das listas, mostrar:</span>
-            <div className="v2-avatar-segmento">
-              <button aria-pressed={!meu.mostrarAvatar} className={!meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(false)}>Foto</button>
-              <button aria-pressed={meu.mostrarAvatar} className={meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(true)}>Avatar</button>
+            <span id="v2-avatar-bolinha-rotulo">Nas bolinhas do chat, das salas e das listas, mostrar:</span>
+            <div className="v2-avatar-bolinha-escolhas">
+              <button aria-pressed={!meu.mostrarAvatar} className={!meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(false)}>
+                <span className="v2-avatar-foto" aria-hidden="true" style={{ width: 40, height: 40, background: "#22164d" }}>
+                  {foto ? <img src={foto} alt="" /> : <AvatarBoneco config={meu.config} busto="cabeca" tamanho={40} preencher />}
+                </span>
+                <span>Foto{!foto && <small>sem foto, fica o avatar</small>}</span>
+              </button>
+              <button aria-pressed={meu.mostrarAvatar} className={meu.mostrarAvatar ? "ativa" : ""} onClick={() => escolherBolinha(true)}>
+                <span className="v2-avatar-foto" aria-hidden="true" style={{ width: 40, height: 40, background: "#22164d" }}>
+                  <AvatarBoneco config={meu.config} busto="cabeca" tamanho={40} preencher />
+                </span>
+                <span>Avatar</span>
+              </button>
             </div>
           </div>
         </div>
@@ -180,7 +253,11 @@ export default function EditorAvatar({ usuario }) {
   );
 }
 
-// Compara montagens ignorando slots vazios ({ chapeu: null } == {}).
-function limpar(c) {
-  return Object.fromEntries(Object.entries(c || {}).filter(([, v]) => v).sort(([a], [b]) => a.localeCompare(b)));
+// Compara montagens ignorando slots vazios ({ chapeu: null } == {}) e cor
+// de cabelo que não vale (cabelo que não se pinta — o servidor descarta).
+function limpar(c, catalogo) {
+  const semCor = !corDoCabelo(catalogo, c);
+  return Object.fromEntries(
+    Object.entries(c || {}).filter(([k, v]) => v && !(k === "corCabelo" && semCor)).sort(([a], [b]) => a.localeCompare(b))
+  );
 }

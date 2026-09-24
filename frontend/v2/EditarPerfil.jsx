@@ -195,7 +195,7 @@ export default function EditarPerfil({ usuario }) {
           </div>
         )}
 
-        {eu && <EditorAvatar usuario={usuario} />}
+        {eu && <EditorAvatar usuario={usuario} foto={foto} />}
 
         {titulos && (
           <section className="v2-cartao">

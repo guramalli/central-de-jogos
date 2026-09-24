@@ -27,7 +27,10 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO } from "../g
 // é pura): os testes e o script de fechamento do mês importam ele à vontade.
 
 // Sobe a cada mudança em LISTA: o frontend usa pra invalidar o cache dele.
-export const VERSAO_CATALOGO = 3;
+// v4: `motivo` de cada peça, cabelos pintáveis e a paleta CORES_CABELO.
+// (O frontend tem uma cópia deste número em avatarCatalogo.js, que vai no
+// "?v=" da busca — suba as duas juntas.)
+export const VERSAO_CATALOGO = 4;
 
 // Tamanho da tela de todas as camadas e os dois recortes usados fora do
 // corpo inteiro (em pixels da tela):
@@ -123,8 +126,31 @@ export function dicaDaRegra(d) {
   }
 }
 
+// A mesma regra contada no passado: é o "como ganhei" que aparece nas peças
+// JÁ liberadas (editor e coleção do perfil). Como a regra é o motivo, o
+// texto é fixo por peça. Peças de patente escrevem à mão, como a dica.
+export function motivoDaRegra(d) {
+  switch (d.tipo) {
+    case "inicial":
+      return "Peça inicial, liberada pra todo mundo.";
+    case "titulo":
+      if (d.tema) return `Conquistada com o título ${nomeDoTituloQuiz(d.tema, d.nivel)} (${NOME_DO_NIVEL[d.nivel]} em ${QUIZ_NOMES[d.tema]} no Quiz).`;
+      if (d.nome === TITULO_LENDARIO.nome) return `Conquistada com o título lendário ${TITULO_LENDARIO.nome} (todos os títulos do portal).`;
+      if (d.comecaCom === "Campeão ") return "Conquistada com o título Campeão do mês (1º lugar no ranking mensal do Stop ou do Quiz).";
+      return `Conquistada com o título ${d.nome || d.comecaCom}.`;
+    case "sequencia":
+      return `Conquistada por jogar ${d.dias} dias seguidos.`;
+    case "pontos":
+      return d.jogo === "total"
+        ? `Conquistada ao somar ${milhar(d.min)} pontos, juntando todos os jogos.`
+        : `Conquistada com ${milhar(d.min)} pontos no ${NOME_DO_JOGO[d.jogo] || d.jogo}.`;
+    default:
+      return "";
+  }
+}
+
 // ===== AS 73 PEÇAS =====
-// [slot, id, nome, desbloqueio, dica opcional]
+// [slot, id, nome, desbloqueio, dica opcional, motivo opcional]
 const LISTA_CRUA = [
   // Pele (corpo-base com o rosto padrão) — todas iniciais.
   ["pele", "pele-clara", "Pele clara", inicial],
@@ -155,7 +181,7 @@ const LISTA_CRUA = [
   ["roupa", "roupa-couro", "Jaqueta de couro", quiz("rock", "prata")],
   ["roupa", "roupa-banda", "Camisa de banda", quiz("musica", "ouro")],
   // Patente do meio da escada do Mentira (6ª de 12): Cartola de Bronze, 28.000 pts num mês.
-  ["roupa", "roupa-terno", "Terno de advogado", patente("mentira", "cartola_bronze"), "Chegue à patente Cartola de Bronze no Mentira Sincera (28.000 pontos num mês)."],
+  ["roupa", "roupa-terno", "Terno de advogado", patente("mentira", "cartola_bronze"), "Chegue à patente Cartola de Bronze no Mentira Sincera (28.000 pontos num mês).", "Conquistada ao alcançar a patente Cartola de Bronze no Mentira Sincera."],
   ["roupa", "roupa-manto-impostor", "Manto do impostor", dias(21)],
 
   ["parteDeBaixo", "baixo-shorts", "Shorts", inicial],
@@ -193,9 +219,9 @@ const LISTA_CRUA = [
   ["costas", "costas-capa", "Capa de herói", dias(30)],
   // Patentes máximas. As do Quiz e do Stop são EXCLUSIVAS (só o 1º do mês):
   // a peça exige também o troféu de campeão daquele mês.
-  ["costas", "costas-anjo", "Asas de anjo", patente("quiz", "enciclopedia"), "Chegue à patente máxima do Quiz, Enciclopédia (só o 1º do mês a leva)."],
-  ["costas", "costas-morcego", "Asas de morcego", patente("stop", "coroa_imperial_ouro"), "Chegue à patente máxima do Stop, Coroa Imperial de Ouro (só o 1º do mês a leva)."],
-  ["costas", "costas-jetpack", "Jetpack", patente("acromania", "coroa_ouro"), "Chegue à patente máxima do Acromania, Coroa de Ouro (160.000 pontos num mês)."],
+  ["costas", "costas-anjo", "Asas de anjo", patente("quiz", "enciclopedia"), "Chegue à patente máxima do Quiz, Enciclopédia (só o 1º do mês a leva).", "Conquistada ao alcançar a patente máxima do Quiz, Enciclopédia (1º lugar do mês)."],
+  ["costas", "costas-morcego", "Asas de morcego", patente("stop", "coroa_imperial_ouro"), "Chegue à patente máxima do Stop, Coroa Imperial de Ouro (só o 1º do mês a leva).", "Conquistada ao alcançar a patente máxima do Stop, Coroa Imperial de Ouro (1º lugar do mês)."],
+  ["costas", "costas-jetpack", "Jetpack", patente("acromania", "coroa_ouro"), "Chegue à patente máxima do Acromania, Coroa de Ouro (160.000 pontos num mês).", "Conquistada ao alcançar a patente máxima do Acromania, Coroa de Ouro."],
 
   ["mao", "mao-controle", "Controle", inicial],
   ["mao", "mao-livro", "Livro", inicial],
@@ -203,7 +229,7 @@ const LISTA_CRUA = [
   ["mao", "mao-guitarra", "Guitarra", quiz("rock", "ouro")],
   ["mao", "mao-microfone", "Microfone", quiz("mpb", "ouro")],
   ["mao", "mao-martelo", "Martelo de juiz", quiz("direito", "prata")],
-  ["mao", "mao-lupa", "Lupa de detetive", patente("mentira", "mascara_ouro"), "Chegue à patente máxima do Mentira Sincera, Máscara de Ouro (150.000 pontos num mês)."],
+  ["mao", "mao-lupa", "Lupa de detetive", patente("mentira", "mascara_ouro"), "Chegue à patente máxima do Mentira Sincera, Máscara de Ouro (150.000 pontos num mês).", "Conquistada ao alcançar a patente máxima do Mentira Sincera, Máscara de Ouro."],
   ["mao", "mao-trofeu", "Troféu", campeao],
 
   ["fundo", "fundo-roxo", "Roxo", inicial],
@@ -237,13 +263,48 @@ const COM_MASCARA_DE_PELE = new Set([
   "mao-bola", "mao-controle", "mao-guitarra", "mao-livro", "mao-lupa", "mao-martelo", "mao-microfone", "mao-trofeu",
 ]);
 
-export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica]) => {
+// ===== Cor do cabelo =====
+//
+// Cabelos PINTÁVEIS têm um arquivo irmão <id>-cinza-v1.webp: a mesma camada
+// (mesma tela, mesmo contorno) em tons de cinza claro, feita pra ser
+// MULTIPLICADA por uma cor — o cinza guarda o sombreado e a cor entra por
+// cima. Moicano e chamas ficam de fora: as cores são a graça deles.
+const CABELOS_PINTAVEIS = new Set([
+  "cabelo-curto", "cabelo-cacheado", "cabelo-liso-longo", "cabelo-coque",
+  "cabelo-black-power", "cabelo-anime", "cabelo-rabo-rosa", "cabelo-topete",
+]);
+
+// Paleta (a chave é o que fica gravado em avatarMontado.corCabelo).
+// "original" = a camada colorida de sempre, sem pintar. Os tons foram
+// acertados compondo a multiplicação sobre o cinza de verdade: o cinza dos
+// cabelos fica, na média, entre 45% e 70% de brilho, então a cor sai bem
+// mais escura que o hex — por isso o loiro puxa pro laranja (#ffb94a): um
+// amarelo "de verdade" multiplicado vira verde-oliva.
+export const CORES_CABELO = {
+  original: null,
+  preto: "#2a2230",
+  castanho: "#7a4a2a",
+  loiro: "#ffb94a",
+  ruivo: "#e0582a",
+  grisalho: "#e2dfea",
+  rosa: "#ff8ccb",
+  azul: "#4f82ff",
+  roxo: "#a066ff",
+  verde: "#46c776",
+};
+export const NOMES_CORES_CABELO = {
+  original: "Original", preto: "Preto", castanho: "Castanho", loiro: "Loiro", ruivo: "Ruivo",
+  grisalho: "Grisalho", rosa: "Rosa", azul: "Azul", roxo: "Roxo", verde: "Verde",
+};
+
+export const ITENS = LISTA_CRUA.map(([slot, id, nome, regra, dica, motivo]) => {
   // Título do Quiz por tema/nível: guarda também o NOME do título (é por ele
   // que a lista de desbloqueados é conferida).
   const desbloqueio = regra.tipo === "titulo" && regra.tema ? { ...regra, nome: nomeDoTituloQuiz(regra.tema, regra.nivel) } : regra;
-  const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, dica: dica || dicaDaRegra(desbloqueio) };
+  const item = { id, slot, nome, arquivo: arte(slot, id), desbloqueio, dica: dica || dicaDaRegra(desbloqueio), motivo: motivo || motivoDaRegra(desbloqueio) };
   if (CORES_DA_PELE[id]) item.cor = CORES_DA_PELE[id];
   if (COM_MASCARA_DE_PELE.has(id)) item.mascaraPele = `/avatar/${slot}/${id}-pele-v1.webp`;
+  if (CABELOS_PINTAVEIS.has(id)) item.pintavel = `/avatar/${slot}/${id}-cinza-v1.webp`;
   return item;
 });
 export const ITEM_POR_ID = new Map(ITENS.map((i) => [i.id, i]));
@@ -275,7 +336,23 @@ export function avatarPadrao(userId) {
     config[slot] = opcoes[hashDoTexto(`${userId}:${slot}`) % opcoes.length].id;
   }
   config.fundo = PADRAO_FUNDO;
+  // Cabelo pintável ganha uma cor natural, também sorteada do id
+  // ("original" não é gravado: é a ausência de cor).
+  if (ITEM_POR_ID.get(config.cabelo)?.pintavel) {
+    const cor = CORES_NATURAIS[hashDoTexto(`${userId}:corCabelo`) % CORES_NATURAIS.length];
+    if (cor !== "original") config.corCabelo = cor;
+  }
   return config;
+}
+
+// Cores sorteadas no avatar padrão (as fantasia ficam pra quem escolhe).
+const CORES_NATURAIS = ["original", "preto", "castanho", "loiro", "ruivo"];
+
+// A cor do cabelo que vale pra uma montagem: a chave da paleta, ou null
+// ("original", cor desconhecida ou cabelo que não se pinta).
+export function corDoCabeloValida(cabeloId, cor) {
+  if (typeof cor !== "string" || cor === "original" || !Object.hasOwn(CORES_CABELO, cor)) return null;
+  return ITEM_POR_ID.get(cabeloId)?.pintavel ? cor : null;
 }
 
 // Montagem da tela de "começar do zero" (o editor parte do padrão da pessoa).
@@ -289,6 +366,7 @@ export function catalogoPublico() {
     tela: TELA,
     slots: SLOTS,
     camadas: CAMADAS,
+    coresCabelo: Object.entries(CORES_CABELO).map(([chave, cor]) => ({ chave, nome: NOMES_CORES_CABELO[chave], cor })),
     itens: ITENS,
   };
 }

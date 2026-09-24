@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { useCatalogoAvatar } from "./avatarCatalogo.js";
+import { useCatalogoAvatar, motivoDe } from "./avatarCatalogo.js";
 import { MiniaturaPeca } from "./AvatarBoneco.jsx";
 
 // Vitrine do perfil: todas as peças do avatar, as conquistadas em cor e as
-// trancadas como silhueta escura, com a dica de como ganhar (hover ou toque).
+// trancadas como silhueta escura. Hover ou toque: a trancada mostra a dica
+// de como ganhar; a conquistada, COMO foi ganha (o `motivo` do catálogo).
 // Uma busca só (GET /api/avatar/colecao/:id, cache de 60s no servidor), e
 // só nesta página — nunca no hover do nick.
 export default function ColecaoAvatar({ userId }) {
   const catalogo = useCatalogoAvatar();
   const [liberados, setLiberados] = useState(null);
-  const [dica, setDica] = useState(null);
+  const [dica, setDica] = useState(null); // peça tocada: { item, ok }
 
   useEffect(() => {
     let vivo = true;
@@ -37,17 +38,17 @@ export default function ColecaoAvatar({ userId }) {
             <button
               key={item.id}
               type="button"
-              className={`v2-colecao-peca ${ok ? "" : "trancada"} ${dica?.id === item.id ? "ativa" : ""}`}
-              title={ok ? item.nome : `${item.nome} — ${item.dica}`}
-              aria-label={ok ? item.nome : `${item.nome}, trancada: ${item.dica}`}
-              onClick={() => setDica(ok ? null : item)}
+              className={`v2-colecao-peca ${ok ? "" : "trancada"} ${dica?.item.id === item.id ? "ativa" : ""}`}
+              title={ok ? `${item.nome} — ${motivoDe(item)}` : `${item.nome} — ${item.dica}`}
+              aria-label={ok ? `${item.nome}, conquistada: ${motivoDe(item)}` : `${item.nome}, trancada: ${item.dica}`}
+              onClick={() => setDica({ item, ok })}
             >
               <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} tamanho={52} /></span>
             </button>
           );
         })}
       </div>
-      <p className="v2-avatar-dica" role="status">{dica ? <>🔒 <b>{dica.nome}</b>: {dica.dica}</> : " "}</p>
+      <p className="v2-avatar-dica" role="status">{dica ? (dica.ok ? <>✔ <b>{dica.item.nome}</b>: {motivoDe(dica.item)}</> : <>🔒 <b>{dica.item.nome}</b>: {dica.item.dica}</>) : " "}</p>
     </section>
   );
 }

@@ -41,8 +41,20 @@ export function dadosDoJogo(perfil, gameKey = "quiz") {
   };
 }
 
-// Depois de editar o próprio perfil (foto, título): joga fora o cache pra
-// próxima leitura buscar de novo.
+// Depois de editar o próprio perfil (foto, título, avatar): joga fora o
+// cache e AVISA quem está na tela com esse perfil (bolinhas do placar, hover,
+// pódio...), pra buscarem de novo — senão a foto velha ficava até recarregar.
+const EVENTO = "eg:perfil-mudou";
+
 export function esquecerPerfil(id) {
   cache.delete(id);
+  try { window.dispatchEvent(new CustomEvent(EVENTO, { detail: { id } })); } catch {}
+}
+
+// Chama `aoMudar` quando o perfil `id` for editado nesta aba. Devolve a
+// função que desliga (pra usar no retorno do useEffect).
+export function ouvirPerfil(id, aoMudar) {
+  const ouvinte = (e) => { if (e.detail?.id === id) aoMudar(); };
+  window.addEventListener(EVENTO, ouvinte);
+  return () => window.removeEventListener(EVENTO, ouvinte);
 }

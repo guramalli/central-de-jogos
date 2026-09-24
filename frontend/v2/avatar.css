@@ -8,8 +8,12 @@
 /* !important: .v2-avatar-foto img (e parecidos) aplicam object-fit: cover,
    que deformaria as camadas. Cada camada ocupa o palco inteiro, sem corte. */
 .v2-boneco-palco > img,
-.v2-boneco-palco > svg { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
+.v2-boneco-palco > svg,
+.v2-boneco-pintado > img { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
 .v2-boneco-mascara { position: absolute; inset: 0; display: block; mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
+/* Cabelo pintado: cinza + bloco da cor em multiply, isolados do resto. */
+.v2-boneco-pintado { position: absolute; inset: 0; display: block; isolation: isolate; pointer-events: none; }
+.v2-boneco-tinta { mix-blend-mode: multiply; }
 .v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
 
 /* Perfil: corpo inteiro no lugar da bolinha. */
@@ -18,7 +22,7 @@
 
 /* ---------- editor ---------- */
 .v2-avatar-editor-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-.v2-avatar-previa { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--roxo-fundo); }
+.v2-avatar-previa { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--roxo-fundo); }
 .v2-avatar-previa-bolinha { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--lilas-2); font-size: 12px; }
 
 .v2-avatar-lado { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -37,18 +41,32 @@
 .v2-avatar-nenhum { font-size: 28px; color: var(--lilas-2); }
 .v2-avatar-cadeado { position: absolute; right: -2px; bottom: -2px; font-size: 18px; line-height: 1; }
 .v2-avatar-dica { margin: 0; min-height: 1.4em; color: var(--lilas); font-size: 14px; }
+/* Embaixo da prévia: de onde veio a peça escolhida na aba aberta. */
+.v2-avatar-motivo { order: 3; flex-basis: 100%; margin: 0 auto; max-width: 300px; color: var(--lilas); font-size: 13px; line-height: 1.35; text-align: center; }
+.v2-avatar-motivo b { color: #fff; }
+/* Cor do cabelo (cabelo pintável). */
+.v2-avatar-cores { display: flex; flex-direction: column; gap: 6px; }
+.v2-avatar-cores > span { color: var(--lilas); font-size: 13px; font-weight: 800; }
+.v2-avatar-cores > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-avatar-cor { width: 34px; height: 34px; padding: 0; border: 2px solid rgba(255, 255, 255, .25); border-radius: 50%; }
+.v2-avatar-cor.original { width: auto; padding: 0 12px; border-radius: 17px; background: var(--roxo); color: var(--lilas); font-weight: 900; font-size: 12px; }
+.v2-avatar-cor.escolhida { border-color: var(--amarelo); box-shadow: 0 0 0 2px var(--roxo-escuro) inset; }
+.v2-avatar-cor:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 .v2-avatar-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .v2-avatar-rodape .v2-botao { min-height: 46px; font-size: 16px; padding: 0 22px; }
 .v2-avatar-bolinha-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--lilas); font-size: 14px; }
-.v2-avatar-segmento { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--roxo-fundo); }
-.v2-avatar-segmento button { min-height: 34px; padding: 0 16px; border: none; border-radius: 10px; background: transparent; color: var(--lilas); font-weight: 900; font-size: 13px; }
-.v2-avatar-segmento button.ativa { background: var(--roxo-2); color: #fff; box-shadow: 0 0 0 2px var(--amarelo) inset; }
-.v2-avatar-segmento button:disabled { opacity: .45; }
+/* Foto x Avatar nas bolinhas: cada opção com a prévia da bolinha. */
+.v2-avatar-bolinha-escolhas { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-avatar-bolinha-escolhas button { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 14px 6px 8px; border: 2px solid transparent; border-radius: 16px; background: var(--roxo-fundo); color: var(--lilas); font-weight: 900; font-size: 14px; text-align: left; }
+.v2-avatar-bolinha-escolhas button > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.v2-avatar-bolinha-escolhas small { color: var(--lilas-2); font-size: 11px; font-weight: 700; }
+.v2-avatar-bolinha-escolhas button.ativa { border-color: var(--amarelo); background: var(--roxo-2); color: #fff; }
 
 @media (min-width: 760px) {
   .v2-avatar-editor-grade { grid-template-columns: 300px minmax(0, 1fr); }
-  .v2-avatar-previa { flex-direction: column; align-items: center; }
+  .v2-avatar-previa { flex-direction: column; flex-wrap: nowrap; align-items: center; }
+  .v2-avatar-motivo { order: 0; flex-basis: auto; }
 }
 
 /* ---------- coleção (perfil) ---------- */
@@ -108,7 +126,8 @@
 /* ---------- início: "Bem-vindo de volta" ---------- */
 .v2-boas-vindas-eu { display: flex; align-items: flex-end; gap: 14px; }
 .v2-boas-vindas-eu > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.v2-boas-vindas-avatar { flex-shrink: 0; line-height: 0; border-radius: 18px; background: var(--roxo-fundo); transition: transform .15s; }
+/* Sem fundo nem caixa: o boneco fica solto sobre o cartão (semFundo no JSX). */
+.v2-boas-vindas-avatar { flex-shrink: 0; line-height: 0; border-radius: 18px; transition: transform .15s; }
 .v2-boas-vindas-avatar:hover { transform: translateY(-3px); }
 .v2-proxima-peca { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 420px; margin-top: 8px; padding: 10px 12px; border-radius: 16px; background: var(--roxo); color: #fff; text-decoration: none; }
 .v2-proxima-peca .v2-avatar-miniatura { width: 48px; height: 48px; flex-shrink: 0; }

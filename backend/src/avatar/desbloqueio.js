@@ -5,7 +5,7 @@ import { QUIZ_RANKS } from "../utils/quizRank.js";
 import { ACROMANIA_RANKS } from "../utils/acromaniaRank.js";
 import { MENTIRA_RANKS } from "../utils/mentiraRank.js";
 import { nomesDeTitulosDesbloqueados, fonteDoTitulo, acertosPorTema, QUIZ_NIVEIS, QUIZ_NOMES } from "../game/titulosConfig.js";
-import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, avatarPadrao } from "./catalogo.js";
+import { ITENS, ITEM_POR_ID, NOMES_DOS_SLOTS, CORES_CABELO, avatarPadrao, corDoCabeloValida } from "./catalogo.js";
 
 // ===== Quais peças do avatar uma pessoa já liberou =====
 //
@@ -229,14 +229,22 @@ export function esquecerLiberados(userId) {
 //
 // Recebe o que o navegador mandou ({ slot: idDaPeça | null }) e o conjunto de
 // ids liberados. Confere, pra cada slot: se o slot existe, se a peça existe,
-// se é DESSE slot e se está liberada. `pele` é obrigatória. Devolve a
+// se é DESSE slot e se está liberada. `pele` é obrigatória. A chave extra
+// `corCabelo` (paleta CORES_CABELO) vale pra cabelo pintável. Devolve a
 // montagem limpa (sem slots vazios) ou a mensagem de erro.
 export function validarConfig(config, liberados) {
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     return { erro: "Montagem inválida." };
   }
   const limpa = {};
-  for (const [slot, id] of Object.entries(config)) {
+  // Cor do cabelo: não é uma peça (não tranca nada), só uma chave da
+  // paleta. Cor fora da paleta é erro; "original", ou cabelo que não se
+  // pinta (moicano, chamas, sem cabelo), simplesmente não é gravado.
+  const { corCabelo, ...pecas } = config;
+  if (corCabelo !== undefined && corCabelo !== null && (typeof corCabelo !== "string" || !Object.hasOwn(CORES_CABELO, corCabelo))) {
+    return { erro: "Cor de cabelo inválida." };
+  }
+  for (const [slot, id] of Object.entries(pecas)) {
     if (!NOMES_DOS_SLOTS.includes(slot)) return { erro: `Parte desconhecida: ${slot}.` };
     if (id === null || id === undefined || id === "") continue; // slot vazio
     if (typeof id !== "string") return { erro: "Montagem inválida." };
@@ -247,6 +255,8 @@ export function validarConfig(config, liberados) {
     limpa[slot] = id;
   }
   if (!limpa.pele) return { erro: "Escolha a pele do seu avatar." };
+  const cor = corDoCabeloValida(limpa.cabelo, corCabelo);
+  if (cor) limpa.corCabelo = cor;
   return { config: limpa };
 }
 
@@ -260,6 +270,9 @@ export function configPublica(salvo) {
     const item = ITEM_POR_ID.get(salvo[slot]);
     if (item && item.slot === slot) limpa[slot] = item.id;
   }
+  // A cor só vai junto se ainda vale pro cabelo gravado.
+  const cor = corDoCabeloValida(limpa.cabelo, salvo.corCabelo);
+  if (cor) limpa.corCabelo = cor;
   return limpa.pele ? limpa : null;
 }
 
@@ -280,7 +293,13 @@ export function avatarParaCongelar(user) {
 //
 // Separado da rota pra dar pra testar sem Express nem banco: `deps` traz
 // `liberados(userId)` e `gravar(userId, data)`. Devolve { status, corpo }.
-export async function salvarAvatar(userId, corpo, deps, { convidado = false } = {}) {
+//
+// PRIMEIRO avatar (`jaMontou` false: nada montado antes deste PUT): liga
+// sozinho o avatar nas bolinhas. Quem tem foto começava com "Foto" e montava
+// o boneco sem nunca vê-lo no placar das salas. Se o mesmo pedido manda
+// mostrarAvatar: false, vale o pedido; e o editor continua deixando voltar
+// pra foto. `corpo.avatarLigado` avisa a tela que isso aconteceu.
+export async function salvarAvatar(userId, corpo, deps, { convidado = false, jaMontou = true } = {}) {
   if (convidado) return { status: 403, corpo: { error: "Crie sua conta para desbloquear peças e salvar seu avatar." } };
   const { config, mostrarAvatar } = corpo || {};
   const data = {};
@@ -290,6 +309,7 @@ export async function salvarAvatar(userId, corpo, deps, { convidado = false } = 
     const r = validarConfig(config, liberados);
     if (r.erro) return { status: 400, corpo: { error: r.erro } };
     data.avatarMontado = r.config;
+    if (!jaMontou && mostrarAvatar === undefined) data.mostrarAvatar = true;
   }
 
   if (mostrarAvatar !== undefined) {
@@ -303,6 +323,6 @@ export async function salvarAvatar(userId, corpo, deps, { convidado = false } = 
   const salvo = await deps.gravar(userId, data);
   return {
     status: 200,
-    corpo: { ok: true, avatar: avatarDoUsuario({ id: userId, avatarMontado: salvo.avatarMontado }), avatarProprio: !!configPublica(salvo.avatarMontado), mostrarAvatar: salvo.mostrarAvatar === true },
+    corpo: { ok: true, avatarLigado: !jaMontou && data.mostrarAvatar === true && mostrarAvatar === undefined, avatar: avatarDoUsuario({ id: userId, avatarMontado: salvo.avatarMontado }), avatarProprio: !!configPublica(salvo.avatarMontado), mostrarAvatar: salvo.mostrarAvatar === true },
   };
 }
