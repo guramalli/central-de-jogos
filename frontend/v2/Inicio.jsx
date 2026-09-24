@@ -8,6 +8,9 @@ import { CardPartidaRapida } from "./FilaNoCard.jsx";
 import { NOMES_FILA } from "./fila.js";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
+import AvatarBoneco, { MiniaturaPeca } from "./AvatarBoneco.jsx";
+import AvisoPecaNova from "./AvisoPecaNova.jsx";
+import { useCatalogoAvatar } from "./avatarCatalogo.js";
 
 const NOMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", mentira: "Mentira Sincera", tribunal: "O Tribunal", impostor: "O Impostor" };
 // Jogos com página própria (não usam a lobby de salas do Stop/Quiz/Acromania).
@@ -28,11 +31,15 @@ export default function Inicio({ usuario }) {
   const [acroAtivo, setAcroAtivo] = useState(true);
   const [feedback, setFeedback] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [meuAvatar, setMeuAvatar] = useState(null); // GET /avatar/meu
 
   useEffect(() => {
     let vivo = true;
     api.get(`/users/${usuario.id}/profile`).then(({ data }) => vivo && setPerfil(data)).catch(() => {});
     api.get(`/users/${usuario.id}/titulos`).then(({ data }) => vivo && setTitulos(data)).catch(() => {});
+    // Peças liberadas + a próxima (cache de 60s no servidor): alimenta o
+    // "Próxima peça" e o aviso de peça nova.
+    api.get("/avatar/meu").then(({ data }) => vivo && setMeuAvatar(data)).catch(() => {});
     api.get("/acromania-rooms").then(({ data }) => vivo && setAcroAtivo(Array.isArray(data) ? true : data.ativo !== false)).catch(() => {});
     const contar = () => api.get("/platform-stats/online").then(({ data }) => vivo && setOnline(data)).catch(() => {});
     contar();
@@ -71,12 +78,23 @@ export default function Inicio({ usuario }) {
       <main className="v2-pagina v2-inicio">
         <section className="v2-cartao v2-boas-vindas">
           <div className="v2-boas-vindas-texto">
-            <span className="v2-sobretitulo">Bem-vindo de volta</span>
-            <h1>{usuario.nickname}</h1>
-            {perfil?.visitas > 1 && <p>Essa é sua <b>{perfil.visitas}ª</b> vez no portal.</p>}
+            <div className="v2-boas-vindas-eu">
+              {perfil?.avatar && (
+                <a className="v2-boas-vindas-avatar" href={linkDaPagina("editar-perfil")} onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }} title="Editar meu avatar">
+                  <AvatarBoneco config={perfil.avatar} altura={170} rotulo="Seu avatar" />
+                </a>
+              )}
+              <div>
+                <span className="v2-sobretitulo">Bem-vindo de volta</span>
+                <h1>{usuario.nickname}</h1>
+                {perfil?.visitas > 1 && <p>Essa é sua <b>{perfil.visitas}ª</b> vez no portal.</p>}
+              </div>
+            </div>
             <p>Escolha um jogo, suba de patente e dispute a premiação mensal.</p>
             <button className="v2-botao v2-botao-amarelo" onClick={convidar}>{copiado ? "Link copiado!" : "Convidar amigos"}</button>
+            <ProximaPeca meu={meuAvatar} />
           </div>
+          {meuAvatar && !meuAvatar.convidado && <AvisoPecaNova usuarioId={usuario.id} liberados={meuAvatar.liberados} config={perfil?.avatar || meuAvatar.config} />}
           <div className="v2-painel-jogador">
             {mensal.length === 0 && !proximoTitulo && <div className="v2-vazio">Jogue uma partida pra aparecer aqui a sua patente do mês.</div>}
             {mensal.map((m) => {
@@ -211,5 +229,35 @@ export default function Inicio({ usuario }) {
       <Rodape />
       {feedback && <ModalFeedback aoFechar={() => setFeedback(false)} />}
     </div>
+  );
+}
+
+// "Próxima peça": a peça trancada mais perto de sair (calculada no servidor
+// junto com as liberadas), com barra de progresso. Abre o editor do avatar.
+function ProximaPeca({ meu }) {
+  const catalogo = useCatalogoAvatar();
+  if (!meu) return null;
+  const abrir = (e) => { e.preventDefault(); irParaPagina("editar-perfil"); };
+  if (meu.convidado) {
+    return (
+      <a className="v2-proxima-peca" href={linkDaPagina("editar-perfil")} onClick={abrir}>
+        <div><span>Seu avatar</span><b>Crie sua conta para desbloquear peças</b></div>
+      </a>
+    );
+  }
+  const p = meu.proxima;
+  const item = p && catalogo?.porId.get(p.id);
+  if (!item) return null;
+  const pct = Math.min(100, Math.round((p.atual / p.meta) * 100));
+  return (
+    <a className="v2-proxima-peca" href={linkDaPagina("editar-perfil")} onClick={abrir} title={item.dica}>
+      <span className="v2-avatar-miniatura"><MiniaturaPeca item={item} tamanho={48} /></span>
+      <div>
+        <span>Próxima peça</span>
+        <b>{item.nome}</b>
+        <div className="v2-missao-barra" role="progressbar" aria-valuemin={0} aria-valuemax={p.meta} aria-valuenow={p.atual} aria-label={`Progresso até ${item.nome}`}><div style={{ width: `${pct}%` }} /></div>
+        <small>faltam {p.faltam.toLocaleString("pt-BR")} {p.unidade}</small>
+      </div>
+    </a>
   );
 }

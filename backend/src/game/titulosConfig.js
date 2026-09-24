@@ -398,3 +398,60 @@ export function trofeusDeCampeao(registros = []) {
     resumo,
   };
 }
+
+// ===== Nomes de todos os títulos desbloqueados de uma pessoa =====
+//
+// Usado onde é preciso só SABER se um título foi conquistado (validar o
+// título exibido, liberar peças do avatar), sem montar a vitrine inteira.
+// Recebe as linhas cruas do banco — quem chama decide o que buscar.
+
+// Linhas de QuizRoomStat ("quiz-<tema>[-facil|-dificil]") -> acertos por tema.
+export function acertosPorTema(statsQuiz = []) {
+  const porTema = {};
+  for (const s of statsQuiz) {
+    const tema = s.roomId.replace(/^quiz-/, "").replace(/-(facil|dificil)$/, "");
+    porTema[tema] = (porTema[tema] || 0) + s.correct;
+  }
+  return porTema;
+}
+
+// Devolve um Set com o nome de cada título conquistado (Quiz, Stop,
+// relâmpago, lendário e troféus de campeão — estes também pelo rótulo com
+// contagem, "(2x)", que é o que a vitrine mostra e envia).
+export function nomesDeTitulosDesbloqueados({ statsQuiz = [], statsStop = [], registrosCampeao = [] } = {}) {
+  const nomes = new Set();
+  const listaQuiz = titulosDoQuiz(acertosPorTema(statsQuiz));
+  const listaStop = titulosDoStop(statsStop);
+  for (const t of listaQuiz) for (const d of t.desbloqueados) nomes.add(d.nome);
+  for (const t of listaStop) for (const d of t.desbloqueados) nomes.add(d.nome);
+  const lendario = tituloLendario(listaQuiz, listaStop);
+  if (lendario.desbloqueado) nomes.add(lendario.nome);
+  const trofeus = trofeusDeCampeao(registrosCampeao);
+  for (const t of trofeus.todos) nomes.add(t.nome);
+  for (const t of trofeus.resumo) nomes.add(t.rotulo);
+  return nomes;
+}
+
+// Nome do título do Quiz de um tema num nível ("bronze" | "prata" | "ouro"),
+// ou null se o tema/nível não existir. Usado pelo catálogo do avatar, que
+// descreve as peças por tema+nível em vez de repetir os nomes.
+export function nomeDoTituloQuiz(tema, nivel) {
+  const i = NIVEL_SLUG.indexOf(nivel);
+  const nomeTema = QUIZ_NOMES[tema];
+  if (i < 0 || !nomeTema) return null;
+  const n = QUIZ_NIVEIS[i];
+  return n.prefixo ? `${n.prefixo} ${nomeTema}` : (QUIZ_EPICOS[tema] || `Lenda de ${nomeTema}`);
+}
+
+// De que dados um título depende — pra buscar no banco só o necessário.
+// "Campeão Stop Ago/2026" só precisa da CampeaoMensal; o lendário precisa
+// de Quiz e Stop (é a soma dos outros).
+export function fonteDoTitulo(nome) {
+  if (/^Campeão (Stop|Quiz) /.test(nome)) return { campeao: true };
+  if (nome === TITULO_LENDARIO_NOME) return { quiz: true, stop: true };
+  for (const tiers of Object.values(STOP_TITULOS)) {
+    if (tiers.some((t) => t.nome === nome)) return { stop: true };
+  }
+  if (RAPIDO_TITULOS.some((t) => t.nome === nome)) return { stop: true };
+  return { quiz: true };
+}

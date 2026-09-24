@@ -4,6 +4,7 @@ import { irParaPagina, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import { esquecerPerfil } from "./perfil.js";
+import EditorAvatar from "./EditorAvatar.jsx";
 
 // Foto: recorta no centro e reduz pra 150×150 antes de enviar (igual ao
 // clássico) — pesa pouco no banco e carrega rápido em todo lugar.
@@ -194,10 +195,12 @@ export default function EditarPerfil({ usuario }) {
           </div>
         )}
 
+        {eu && <EditorAvatar usuario={usuario} />}
+
         {titulos && (
           <section className="v2-cartao">
             <h2>Títulos</h2>
-            <p className="v2-cartao-nota">Clique num título conquistado pra exibi-lo no cartão que aparece quando passam o mouse no seu nick. Clicar de novo tira. Sua foto continua aparecendo em todo o site.</p>
+            <p className="v2-cartao-nota">Clique num título conquistado pra exibi-lo no cartão que aparece quando passam o mouse no seu nick. Clicar de novo tira. Sua foto (ou seu avatar) continua aparecendo em todo o site.</p>
             <Aviso s="titulo" />
 
             {titulos.trofeus?.todos?.length > 0 && (

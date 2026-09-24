@@ -24,6 +24,7 @@
 import "dotenv/config";
 import { prisma } from "../src/db.js";
 import { currentMonthKey } from "../src/utils/monthKey.js";
+import { avatarParaCongelar } from "../src/avatar/desbloqueio.js";
 
 const JOGOS = ["stop", "quiz"];
 
@@ -94,7 +95,7 @@ async function main() {
       },
       orderBy: { points: "desc" },
       take: 3,
-      include: { user: { select: { id: true, nickname: true } } },
+      include: { user: { select: { id: true, nickname: true, avatarMontado: true } } },
     });
 
     if (top.length === 0) {
@@ -113,6 +114,8 @@ async function main() {
       userId: top[0].user.id,
       nickname: top[0].user.nickname,
       points: top[0].points,
+      // O boneco que o campeão vestia agora, congelado pro Hall da Fama.
+      avatarNoMes: avatarParaCongelar(top[0].user),
     });
   }
 
@@ -199,7 +202,7 @@ async function main() {
 
   for (const r of resultados) {
     await prisma.campeaoMensal.create({
-      data: { monthKey, gameKey: r.gameKey, userId: r.userId, nickname: r.nickname, points: r.points },
+      data: { monthKey, gameKey: r.gameKey, userId: r.userId, nickname: r.nickname, points: r.points, avatarNoMes: r.avatarNoMes },
     });
     console.log(`\n✅ ${r.gameKey.toUpperCase()}: ${r.nickname} congelado como campeão de ${nomeDoMes(monthKey)}.`);
   }

@@ -8,6 +8,7 @@ import { getAcromaniaRankForPoints, ACROMANIA_RANKS } from "../utils/acromaniaRa
 import { getMentiraRankForPoints, MENTIRA_RANKS } from "../utils/mentiraRank.js";
 import { cacheOuBuscar } from "../utils/cache.js";
 import { currentMonthKey, formatMonthKey } from "../utils/monthKey.js";
+import { configPublica } from "../avatar/desbloqueio.js";
 
 const router = Router();
 
@@ -310,6 +311,13 @@ router.get("/history/:monthKey/:gameKey", requireAuth, async (req, res) => {
     take: 10,
     include: { user: true },
   });
+  // Boneco que o campeão vestia no fechamento do mês (uma busca pela chave
+  // única). Mês sem fechamento, ou fechado antes do avatar existir: null, e
+  // a tela mostra o avatar atual.
+  const fechado = await prisma.campeaoMensal.findUnique({
+    where: { monthKey_gameKey: { monthKey, gameKey } },
+    select: { userId: true, avatarNoMes: true },
+  });
   res.json({
     monthKey,
     label: formatMonthKey(monthKey),
@@ -318,6 +326,7 @@ router.get("/history/:monthKey/:gameKey", requireAuth, async (req, res) => {
       userId: s.user.id,
       nickname: s.user.nickname,
       points: s.points,
+      avatarNoMes: fechado?.userId === s.user.id ? configPublica(fechado.avatarNoMes) : null,
       // A patente do HISTÓRICO reflete aquele mês, não o de hoje.
       //
       // Passar o userId dispara a checagem de patente exclusiva, que pergunta

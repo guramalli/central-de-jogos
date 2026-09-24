@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { buscarPerfil, perfilEmCache } from "../perfil.js";
 import { motion } from "motion/react";
 import { tocar } from "./sons.js";
+import AvatarBoneco, { useBonecoNaBolinha } from "../AvatarBoneco.jsx";
 
 // Peças usadas por várias telas do Impostor.
 
@@ -56,10 +57,12 @@ export function Cronometro({ tempo, variante = "pilula", comSom = true }) {
   );
 }
 
-// Foto de perfil do jogador (a mesma do resto do site, com cache
-// compartilhado em ../perfil.js), com um anel na cor dele. Sem foto — ou bot,
-// que não tem perfil — fica a bolinha colorida com a inicial.
+// Bolinha do jogador. Mesma regra do resto da v2: quem escolheu "Avatar"
+// pras bolinhas, ou não tem foto, aparece com a cabeça do boneco
+// (../AvatarBoneco.jsx); senão a foto de perfil com um anel na cor dele
+// (cache compartilhado em ../perfil.js). Bot, ou sem `id`: a inicial.
 export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
+  const boneco = useBonecoNaBolinha(id);
   const [perfil, setPerfil] = useState(() => perfilEmCache(id));
   const [falhou, setFalhou] = useState(false);
   useEffect(() => {
@@ -67,14 +70,16 @@ export function AvatarImp({ id, nome, cor, tamanho = 44, className = "" }) {
     buscarPerfil(id).then((p) => vivo && p && setPerfil(p));
     return () => { vivo = false; };
   }, [id]);
-  const foto = perfil?.avatarUrl && !falhou ? perfil.avatarUrl : null;
+  const foto = !boneco && perfil?.avatarUrl && !falhou ? perfil.avatarUrl : null;
   return (
     <span
       className={`imp-avatar ${foto ? "com-foto" : ""} ${className}`}
-      style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46), "--imp-cor-avatar": cor }}
+      style={{ background: cor, width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.46), "--imp-cor-avatar": cor, overflow: boneco ? "hidden" : undefined }}
       aria-hidden="true"
     >
-      {foto ? <img src={foto} alt="" onError={() => setFalhou(true)} /> : String(nome || "?").charAt(0).toUpperCase()}
+      {boneco
+        ? <AvatarBoneco config={boneco} busto="cabeca" tamanho={tamanho} preencher />
+        : foto ? <img src={foto} alt="" onError={() => setFalhou(true)} /> : String(nome || "?").charAt(0).toUpperCase()}
     </span>
   );
 }

@@ -1,0 +1,117 @@
+/* ===== Avatar montado (AvatarBoneco.jsx, EditorAvatar.jsx) ===== */
+
+/* Caixa de tamanho fixo + "palco" com todas as camadas empilhadas. O busto é
+   o mesmo palco ampliado e deslocado (tamanhos em % vindos do catálogo). */
+.v2-boneco { position: relative; display: inline-block; flex-shrink: 0; overflow: hidden; line-height: 0; vertical-align: middle; }
+.v2-boneco.busto { border-radius: 50%; }
+.v2-boneco-palco { position: absolute; display: block; }
+/* !important: .v2-avatar-foto img (e parecidos) aplicam object-fit: cover,
+   que deformaria as camadas. Cada camada ocupa o palco inteiro, sem corte. */
+.v2-boneco-palco > img,
+.v2-boneco-palco > svg { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; max-width: none; object-fit: fill !important; border-radius: 0 !important; user-select: none; pointer-events: none; }
+.v2-boneco-mascara { position: absolute; inset: 0; display: block; mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
+.v2-boneco-silhueta { fill: rgba(207, 198, 245, .06); stroke: var(--lilas, #cfc6f5); stroke-width: 12; stroke-dasharray: 30 24; opacity: .55; }
+
+/* Perfil: corpo inteiro no lugar da bolinha. */
+.v2-perfil-boneco { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.v2-perfil-boneco .v2-boneco { border-radius: 20px; background: var(--roxo-fundo); }
+
+/* ---------- editor ---------- */
+.v2-avatar-editor-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.v2-avatar-previa { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding: 12px; border-radius: 20px; background: var(--roxo-fundo); }
+.v2-avatar-previa-bolinha { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--lilas-2); font-size: 12px; }
+
+.v2-avatar-lado { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* Abas roláveis no celular (10 partes não cabem numa linha). */
+.v2-avatar-abas { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--borda) transparent; }
+.v2-avatar-abas button { flex-shrink: 0; min-height: 38px; padding: 0 14px; border: none; border-radius: 12px; background: var(--roxo); color: var(--lilas); font-weight: 900; font-size: 13px; white-space: nowrap; }
+.v2-avatar-abas button.ativa { background: var(--amarelo); color: var(--roxo-escuro); }
+
+.v2-avatar-pecas { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.v2-avatar-peca { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 2px solid transparent; border-radius: 16px; background: var(--roxo); color: #fff; font-size: 12px; line-height: 1.2; text-align: center; }
+.v2-avatar-peca:hover { border-color: var(--borda); }
+.v2-avatar-peca.escolhida { border-color: var(--amarelo); }
+.v2-avatar-peca.trancada { color: var(--lilas-2); }
+.v2-avatar-peca.trancada .v2-boneco { opacity: .35; filter: grayscale(1); }
+.v2-avatar-miniatura { position: relative; width: 64px; height: 64px; border-radius: 50%; background: var(--roxo-fundo); display: inline-flex; align-items: center; justify-content: center; }
+.v2-avatar-nenhum { font-size: 28px; color: var(--lilas-2); }
+.v2-avatar-cadeado { position: absolute; right: -2px; bottom: -2px; font-size: 18px; line-height: 1; }
+.v2-avatar-dica { margin: 0; min-height: 1.4em; color: var(--lilas); font-size: 14px; }
+
+.v2-avatar-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.v2-avatar-rodape .v2-botao { min-height: 46px; font-size: 16px; padding: 0 22px; }
+.v2-avatar-bolinha-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--lilas); font-size: 14px; }
+.v2-avatar-segmento { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--roxo-fundo); }
+.v2-avatar-segmento button { min-height: 34px; padding: 0 16px; border: none; border-radius: 10px; background: transparent; color: var(--lilas); font-weight: 900; font-size: 13px; }
+.v2-avatar-segmento button.ativa { background: var(--roxo-2); color: #fff; box-shadow: 0 0 0 2px var(--amarelo) inset; }
+.v2-avatar-segmento button:disabled { opacity: .45; }
+
+@media (min-width: 760px) {
+  .v2-avatar-editor-grade { grid-template-columns: 300px minmax(0, 1fr); }
+  .v2-avatar-previa { flex-direction: column; align-items: center; }
+}
+
+/* ---------- coleção (perfil) ---------- */
+.v2-colecao-cabeca { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.v2-colecao-cabeca h2 { margin: 0; }
+.v2-colecao-contador { color: var(--lilas); font-weight: 800; font-size: 14px; }
+.v2-colecao-contador b { color: var(--amarelo); font-size: 18px; }
+.v2-colecao-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
+.v2-colecao-peca { display: flex; justify-content: center; padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; }
+.v2-colecao-peca .v2-avatar-miniatura { width: 52px; height: 52px; }
+/* Trancada: silhueta escura da própria peça (sem entregar as cores). */
+.v2-colecao-peca.trancada .v2-boneco { filter: brightness(0); opacity: .75; }
+/* Fundo mais claro atrás da silhueta preta, senão ela some no roxo escuro. */
+.v2-colecao-peca.trancada .v2-avatar-miniatura { background: #5a4699; }
+.v2-colecao-peca.ativa, .v2-colecao-peca:hover { border-color: var(--borda); }
+
+/* ---------- aviso de peça nova ---------- */
+.v2-peca-nova { position: fixed; left: 50%; bottom: 16px; z-index: 60; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 18px; background: var(--roxo-escuro); box-shadow: 0 0 0 2px var(--amarelo), 0 12px 30px rgba(0,0,0,.45); color: #fff; }
+.v2-peca-nova .v2-avatar-miniatura { flex-shrink: 0; }
+.v2-peca-nova-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.v2-peca-nova-texto b { font-size: 15px; }
+.v2-peca-nova-texto small { color: var(--lilas); font-size: 12px; }
+.v2-peca-nova .v2-botao-pequeno { align-self: center; background: var(--amarelo); color: var(--roxo-escuro); }
+.v2-peca-nova-fechar { border: none; background: none; color: var(--lilas); font-size: 22px; line-height: 1; padding: 4px; }
+
+/* ---------- pódio das salas (Stop, Acromania, turno do Quiz) ---------- */
+.v2-podio-figura { position: relative; display: inline-flex; flex-direction: column; align-items: center; }
+.v2-podio-boneco-sala { animation: v2-podio-pulo 1.1s cubic-bezier(.3,1.6,.5,1) .35s both; transform-origin: bottom center; }
+.v2-podio-figura.p1 .v2-podio-boneco-sala { animation-name: v2-podio-pulo-campeao; }
+/* Com boneco, a patente vira um selo no canto. */
+.v2-podio-figura .v2-podio-boneco-sala ~ .v2-patente-jogador { position: absolute; right: -8px; bottom: 2px; width: 30px !important; height: 30px !important; font-size: 11px !important; }
+@keyframes v2-podio-pulo { 0% { transform: translateY(24px) scale(.6); opacity: 0; } 60% { transform: translateY(-8px) scale(1.04); opacity: 1; } 100% { transform: none; } }
+@keyframes v2-podio-pulo-campeao { 0% { transform: translateY(24px) scale(.6); opacity: 0; } 45% { transform: translateY(-14px) scale(1.06); opacity: 1; } 70% { transform: translateY(0) scale(.98); } 85% { transform: translateY(-5px); } 100% { transform: none; } }
+.v2-podio-turno { justify-content: center; margin-bottom: 6px; }
+/* Várias salas: não cabe corpo inteiro — volta o pódio compacto. */
+.v2-sala.compacto .v2-podio-boneco-sala,
+.v2-sala.compacto .v2-podio-turno { display: none !important; }
+.v2-sala.compacto .v2-podio-figura .v2-patente-jogador { position: static; }
+@media (prefers-reduced-motion: reduce) { .v2-podio-boneco-sala { animation: none; } }
+
+/* Hall da Fama: campeão do mês de corpo inteiro. */
+.v2-podio-boneco { border-radius: 16px; }
+
+/* ---------- Tribunal: avatar como personagem ---------- */
+.v2-tribunal-personagem { position: relative; display: inline-block; flex-shrink: 0; line-height: 0; }
+.v2-tribunal-personagem.busto { border-radius: 50%; background: #0e0f14; }
+.v2-tribunal-personagem.busto > .v2-boneco { border-radius: 50%; }
+.v2-tribunal-personagem .v2-tribunal-selo { position: absolute; right: -4px; bottom: -4px; width: 22px !important; height: 22px !important; box-shadow: 0 0 0 2px #fff; }
+.v2-tribunal-personagem.corpo .v2-tribunal-selo { width: 40px !important; height: 40px !important; right: -6px; bottom: 6px; }
+/* No holofote, o réu de corpo inteiro não fica dentro da bolinha do retrato. */
+.v2-tribunal-palco-retrato:has(> .v2-tribunal-personagem.corpo) { border-radius: 0; box-shadow: none; filter: drop-shadow(0 0 22px rgba(255, 214, 120, .55)); }
+.v2-tribunal-reu-veredito { position: relative; display: flex; justify-content: center; transition: filter .4s, transform .4s; }
+.v2-tribunal-reu-veredito.culpado { filter: grayscale(.7) brightness(.8); transform: translateY(4px); }
+.v2-tribunal-reu-veredito.inocente .v2-boneco { animation: v2-podio-pulo-campeao 1.1s cubic-bezier(.3,1.6,.5,1) both; }
+@media (prefers-reduced-motion: reduce) { .v2-tribunal-reu-veredito.inocente .v2-boneco { animation: none; } }
+
+/* ---------- início: "Bem-vindo de volta" ---------- */
+.v2-boas-vindas-eu { display: flex; align-items: flex-end; gap: 14px; }
+.v2-boas-vindas-eu > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.v2-boas-vindas-avatar { flex-shrink: 0; line-height: 0; border-radius: 18px; background: var(--roxo-fundo); transition: transform .15s; }
+.v2-boas-vindas-avatar:hover { transform: translateY(-3px); }
+.v2-proxima-peca { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 420px; margin-top: 8px; padding: 10px 12px; border-radius: 16px; background: var(--roxo); color: #fff; text-decoration: none; }
+.v2-proxima-peca .v2-avatar-miniatura { width: 48px; height: 48px; flex-shrink: 0; }
+.v2-proxima-peca > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.v2-proxima-peca > div > span { color: var(--lilas-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+.v2-proxima-peca small { color: var(--lilas); font-size: 12px; }

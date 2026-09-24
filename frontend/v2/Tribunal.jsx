@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { api, novoSocket, ehSessaoMorta } from "./api.js";
 import Avatar from "./Avatar.jsx";
+import AvatarBoneco, { useBonecoNaBolinha } from "./AvatarBoneco.jsx";
 import {
   ativarSons, somCampeao, carregarSons, somMarteloUma, somPlateia, somTambor, somCulpado, somInocente,
   somVinheta, somOrdem, somCarimbo, somSuspense, somRelogio, somVaia, pararSons,
@@ -334,6 +335,27 @@ function Retrato({ papel, tamanho = 40, className = "" }) {
   return <img className={`v2-tribunal-retrato ${className}`} src={`/tribunal/papel-${arq}-v1.webp`} width={tamanho} height={tamanho} alt="" loading="lazy" decoding="async" draggable="false" />;
 }
 
+// Personagem de um papel: o AVATAR de quem joga (busto, ou corpo inteiro com
+// `altura`), com o retrato do papel como selo no canto. Sem avatar (bot, ou
+// perfil que não carregou): o retrato do papel, como antes. O juiz 3D não
+// passa por aqui.
+function Personagem({ userId, papel, tamanho = 48, altura = null, className = "" }) {
+  const config = useBonecoNaBolinha(userId, true);
+  if (!config) return <Retrato papel={papel} tamanho={tamanho} className={className} />;
+  return (
+    <span className={`v2-tribunal-personagem ${altura ? "corpo" : "busto"} ${className}`}>
+      {altura
+        ? <AvatarBoneco config={config} altura={altura} semFundo />
+        : <AvatarBoneco config={config} busto tamanho={tamanho} preencher />}
+      <Retrato papel={papel} tamanho={altura ? 40 : 22} className="v2-tribunal-selo" />
+    </span>
+  );
+}
+
+// Id de quem está num papel. O estado traz os papéis por NICK (é o que a
+// tela mostra), e o nick é único — então dá pra achar o jogador por ele.
+const idPorNick = (estado, nick) => (nick ? estado.jogadores.find((j) => j.nickname === nick)?.id : undefined);
+
 function JuriCochichando({ nomes }) {
   return (
     <div className="v2-tribunal-juri" aria-hidden="true">
@@ -523,13 +545,13 @@ function animFala(papel, reduzir) {
     transition: { type: "spring", stiffness: 380, damping: 26, opacity: { duration: 0.2 } },
   };
 }
-function Argumento({ papel, texto, titulo, autor, entrada = true, acoes = null, prova = null, retrato = papel }) {
+function Argumento({ papel, texto, titulo, autor, autorId, entrada = true, acoes = null, prova = null, retrato = papel }) {
   const reduzir = useReducedMotion();
   if (!texto) return null;
   return (
     <motion.div className={`v2-tribunal-argumento ${papel} ${texto.padrao ? "padrao" : ""}`} {...(entrada ? animFala(papel, reduzir) : {})}>
       {entrada && prova && !texto.padrao && <span className="v2-tribunal-prova">{prova}</span>}
-      <Retrato papel={retrato} tamanho={48} className="v2-tribunal-argumento-retrato" />
+      <Personagem userId={autorId} papel={retrato} tamanho={48} className="v2-tribunal-argumento-retrato" />
       <span className="v2-tribunal-argumento-quem">{titulo} · <b>{autor}</b></span>
       <p>{texto.padrao ? <i>{texto.texto}</i> : `“${texto.texto}”`}</p>
       {acoes}
@@ -552,11 +574,11 @@ function Debate({ estado, ate = estado.debate.length, ultimaEntra = false, curti
             {itens.map((p, k) => {
               if (nova && visiveis !== null && k >= visiveis) return null;
               if (p === "testemunha") {
-                return <Argumento key={p} papel="testemunha" texto={d.testemunha} titulo={NOME_ARG.testemunha[0]} autor={estado.papeis.testemunha} entrada={nova}
+                return <Argumento key={p} papel="testemunha" texto={d.testemunha} titulo={NOME_ARG.testemunha[0]} autor={estado.papeis.testemunha} autorId={idPorNick(estado, estado.papeis.testemunha)} entrada={nova}
                   acoes={curtir ? curtir(`testemunha-${d.rodada}`, d.testemunha) : null} />;
               }
               const provaIdx = p === "promotor" ? 0 : 1;
-              return <Argumento key={p} papel={p} retrato={p === "advogado" && estado.causaPropria ? "causaPropria" : p} texto={d[p]} titulo={(NOME_ARG[p][i] || NOME_ARG[p][2]) + (p === "advogado" && estado.causaPropria ? " (em causa própria)" : "")} autor={estado.papeis[p]} entrada={nova}
+              return <Argumento key={p} papel={p} retrato={p === "advogado" && estado.causaPropria ? "causaPropria" : p} texto={d[p]} titulo={(NOME_ARG[p][i] || NOME_ARG[p][2]) + (p === "advogado" && estado.causaPropria ? " (em causa própria)" : "")} autor={estado.papeis[p]} autorId={idPorNick(estado, estado.papeis[p])} entrada={nova}
                 prova={`PROVA ${i * 2 + provaIdx + 1}`} acoes={curtir ? curtir(`${p}-${d.rodada}`, d[p]) : null} />;
             })}
           </div>
@@ -712,7 +734,7 @@ function Deliberar({ estado, aoDecidir }) {
 // ---------- última palavra do réu ----------
 // Holofote: o palco escurece em volta e um feixe de luz acende (piscando,
 // como refletor ligando) em cima do retrato do réu.
-function HolofoteReu({ nome, legenda }) {
+function HolofoteReu({ nome, userId, legenda }) {
   const reduzir = useReducedMotion();
   return (
     <motion.div className="v2-tribunal-palco-reu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
@@ -724,7 +746,8 @@ function HolofoteReu({ nome, legenda }) {
         initial={reduzir ? { opacity: 0 } : { opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={reduzir ? { delay: 0.3, duration: 0.3 } : { delay: 0.35, type: "spring", stiffness: 300, damping: 18 }}>
-        <Retrato papel="acusado" tamanho={104} />
+        {/* O avatar do réu, de corpo inteiro, debaixo do holofote. */}
+        <Personagem userId={userId} papel="acusado" tamanho={104} altura={170} />
       </motion.span>
       <b>{nome}</b>
       <small>{legenda}</small>
@@ -738,7 +761,7 @@ function UltimaPalavra({ estado, aoEnviar }) {
     <section className="v2-cartao v2-mentira-fase">
       <Caso estado={estado} />
       <p className="v2-tribunal-anuncio">✅ O júri está pronto. A palavra final é do réu.</p>
-      <HolofoteReu nome={estado.papeis.acusado} legenda={souReu ? "a palavra é sua" : estado.palavraDoReu ? "já entregou a última palavra" : "está escrevendo a última palavra…"} />
+      <HolofoteReu nome={estado.papeis.acusado} userId={idPorNick(estado, estado.papeis.acusado)}legenda={souReu ? "a palavra é sua" : estado.palavraDoReu ? "já entregou a última palavra" : "está escrevendo a última palavra…"} />
       {souReu && (
         <>
           <BannerPapel classe="acusado" retrato="acusado">
@@ -759,8 +782,8 @@ function PalavraFinal({ estado }) {
   return (
     <section className="v2-cartao v2-mentira-fase">
       <Caso estado={estado} />
-      <HolofoteReu nome={estado.papeis.acusado} legenda="tem a palavra final" />
-      <Argumento papel="acusado" texto={estado.palavraDoReu} titulo="Última palavra do réu" autor={estado.papeis.acusado} />
+      <HolofoteReu nome={estado.papeis.acusado} userId={idPorNick(estado, estado.papeis.acusado)}legenda="tem a palavra final" />
+      <Argumento papel="acusado" texto={estado.palavraDoReu} titulo="Última palavra do réu" autor={estado.papeis.acusado} autorId={idPorNick(estado, estado.papeis.acusado)} />
       <Debate estado={estado} />
     </section>
   );
@@ -790,7 +813,7 @@ function Votacao({ estado, aoVotar, aoCurtir }) {
       ) : (
         <p className="v2-tribunal-anuncio">🧑‍🤝‍🧑 O júri está decidindo… ({estado.jaVotaram.length} de {estado.totalJurados} votaram)</p>
       )}
-      <Argumento papel="acusado" texto={estado.palavraDoReu} titulo="Última palavra do réu" autor={estado.papeis.acusado} entrada={false} acoes={curtir("ultima", estado.palavraDoReu)} />
+      <Argumento papel="acusado" texto={estado.palavraDoReu} titulo="Última palavra do réu" autor={estado.papeis.acusado} autorId={idPorNick(estado, estado.papeis.acusado)} entrada={false} acoes={curtir("ultima", estado.palavraDoReu)} />
       <Debate estado={estado} curtir={curtir} />
     </section>
   );
@@ -882,6 +905,10 @@ function Veredito({ estado, meuId, revelado, gesto }) {
         : <PapeisPicados />)}
       <Juiz className="v2-juiz-veredito" humor={revelado ? (culpado ? "culpado" : "inocente") : "suspense"} gesto={gesto} />
       <span className="v2-tribunal-caso-rotulo">Veredito · {estado.papeis.acusado}</span>
+      {/* O réu, de corpo inteiro, esperando a sentença (reage à revelação pelo CSS). */}
+      <span className={`v2-tribunal-reu-veredito ${revelado ? (culpado ? "culpado" : "inocente") : ""}`}>
+        <Personagem userId={idPorNick(estado, estado.papeis.acusado)} papel="acusado" tamanho={72} altura={130} />
+      </span>
       {!revelado && <p className="v2-tribunal-anuncio" role="status">O júri decidiu… contando os votos!</p>}
       <Apuracao r={r} revelado={revelado} />
       {revelado && (

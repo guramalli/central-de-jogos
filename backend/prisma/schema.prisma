@@ -106,6 +106,15 @@ model User {
   // são as OUTRAS pessoas, ao passar o mouse neste jogador.
   // Só vale se tituloExibido não for nulo — a checagem é feita no servidor.
   medalhaNoLugarDaFoto Boolean @default(false)
+  // ===== Avatar montado (boneco em camadas) =====
+  // { slot: idDaPeça }, ex. { "pele": "pele-2", "cabelo": "cabelo-topete" }.
+  // As peças moram no catálogo do código (src/avatar/catalogo.js), não no
+  // banco; o que LIBERA cada peça é calculado das estatísticas, então não há
+  // tabela de desbloqueios. null = nunca montou (mostra a foto/iniciais).
+  avatarMontado    Json?
+  // Nas bolinhas pequenas (chat, listas): false = foto, true = avatar.
+  // Nos lugares grandes (perfil, pódio, lobby) o avatar aparece sempre.
+  mostrarAvatar    Boolean  @default(false)
   celebration      String?  // frase de comemoração personalizada (até 20 caracteres), usada no Quiz
   city             String?
   state            String?
@@ -482,6 +491,10 @@ model CampeaoMensal {
   user      User     @relation(fields: [userId], references: [id])
   nickname  String   // guardado junto: se o nick mudar, o troféu registra o da época
   points    Int
+  // Avatar que o campeão vestia no fechamento (slot -> id da peça), pro Hall
+  // da Fama mostrar o boneco DAQUELE mês. null nos meses fechados antes do
+  // avatar existir (a tela usa o avatar atual).
+  avatarNoMes Json?
   createdAt DateTime @default(now())
 
   // Um campeão por mês/jogo. Impede gravar dois por engano.

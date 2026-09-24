@@ -77,7 +77,7 @@ export default function Ranking({ usuario, jogoInicial }) {
           <div className="v2-podio">
             {ordemPodio.map((r) => (
               <div key={r.position} className={`v2-podio-item p${r.position}`}>
-                {!cla && <Avatar userId={r.userId} nickname={r.nickname} tamanho={r.position === 1 ? 76 : 60} borda />}
+                {!cla && <Avatar userId={r.userId} nickname={r.nickname} tamanho={r.position === 1 ? 76 : 60} borda sempreBoneco />}
                 <div className="v2-podio-nome">{link(r)}</div>
                 <div className="v2-podio-coluna">
                   <b>{r.position}</b>
