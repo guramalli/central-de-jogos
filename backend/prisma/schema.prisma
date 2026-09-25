@@ -589,3 +589,35 @@ model StopStat {
 
   @@unique([userId, grupo])
 }
+
+// ===== Lenda do Campinho (RPG de futebol, em frontend/public/lenda-do-campinho/) =====
+// Tabelas próprias, sem relação com as outras (não mexem no modelo User).
+
+// Save na nuvem: cópia comprimida (gzip em base64) do save do navegador, pra
+// continuar em outro aparelho. O servidor não abre o conteúdo.
+model LendaSave {
+  userId       String   @id
+  dados        String
+  nivel        Int      @default(1)
+  tamanho      Int      @default(0)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+}
+
+// Casa publicada: o que os outros jogadores veem na porta e ao visitar.
+// `apelido` é o nickname da conta (não o nome livre do personagem).
+model LendaCasa {
+  userId       String   @id
+  apelido      String
+  casaId       String
+  mapa         String
+  moveis       Json
+  itens        Json
+  vitrine      Json
+  prestigio    Int      @default(0)
+  visitas      Int      @default(0)
+  atualizadoEm DateTime @updatedAt
+
+  @@index([mapa, prestigio])
+  @@index([prestigio])
+}

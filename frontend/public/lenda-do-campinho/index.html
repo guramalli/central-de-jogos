@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<!-- Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados. Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. Termos: direitos.html -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Lenda do Campinho</title>
+<meta name="copyright" content="© 2026 Educação Gamer. Todos os direitos reservados.">
+<meta name="author" content="Educação Gamer">
+<meta name="description" content="RPG de futebol em pixel art do Educação Gamer: nasça, treine desde criança e vire uma lenda.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=90">
+<link rel="icon" href="https://www.educacaogamer.com.br/favicon.png">
+</head>
+<body>
+
+<!-- ============ TELA INICIAL / CRIAÇÃO ============ -->
+<div id="inicio">
+  <div class="inicio-caixa madeira">
+    <div class="inicio-topo">
+      <img class="logo-eg" src="https://www.educacaogamer.com.br/educacao-gamer-logo.png" alt="Educação Gamer">
+      <h1 class="logo-jogo"><img src="a/logo_jogo.webp" alt="Lenda do Campinho"></h1>
+      <p class="sub">O RPG de futebol do Educação Gamer. Nasça na Vila do Campinho, treine desde criança e vire uma LENDA.</p>
+    </div>
+    <div id="inicioMenu" class="inicio-menu">
+      <button class="btn amarelo grande" id="btnContinuar" hidden>Continuar</button>
+      <button class="btn grande" id="btnNovo">Novo jogador</button>
+      <button class="btn" id="btnHistoria">📖 História e capítulos</button>
+      <button class="btn" data-abre="ranking">Ranking</button>
+      <button class="btn" data-abre="ajuda">Como jogar</button>
+      <p id="resumoSave" class="resumo"></p>
+    </div>
+    <p class="copyright-inicio">© 2026 <a href="https://www.educacaogamer.com.br" target="_blank" rel="noopener">Educação Gamer</a>. Todos os direitos reservados. · <a href="direitos.html" target="_blank">Direitos autorais e privacidade</a></p>
+    <div id="criacao" class="criacao" hidden>
+      <div class="criacao-preview">
+        <div id="retratoCriacao" class="retrato grande"></div>
+        <p class="dica">Esse é você! Suas roupas e acessórios mudam conforme você evolui.</p>
+      </div>
+      <div class="criacao-opcoes">
+        <label>Nome do jogador
+          <input id="inpNome" maxlength="14" placeholder="Ex.: Joãozinho10" autocomplete="off">
+        </label>
+        <div class="opc"><span>Corpo</span><div id="opCorpo" class="chips"></div></div>
+        <div class="opc"><span>Pele</span><div id="opPele" class="chips"></div></div>
+        <div class="opc"><span>Cabelo</span><div id="opCabelo" class="chips"></div></div>
+        <div class="opc"><span>Cor do cabelo</span><div id="opCorCabelo" class="chips"></div></div>
+        <div class="opc"><span>Cor da camiseta</span><div id="opRoupa" class="chips"></div></div>
+        <div class="opc"><span>Parte de baixo</span><div id="opBaixo" class="chips"></div></div>
+        <div class="opc"><span>Óculos</span><div id="opRosto" class="chips"></div></div>
+        <div class="opc"><span>Classe (seu estilo de jogo)</span><div id="opClasse" class="grade-classes"></div></div>
+        <div class="criacao-acoes">
+          <button class="btn" id="btnVoltar">Voltar</button>
+          <button class="btn amarelo grande" id="btnNascer">Nascer!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JOGO ============ -->
+<div id="app" hidden>
+  <header id="topo">
+    <div class="marca"><img src="https://www.educacaogamer.com.br/educacao-gamer-logo.png" alt=""><b>Lenda do Campinho</b></div>
+    <div class="topo-info">
+      <span id="nomeMapa" class="tag"></span>
+      <span id="relogio" class="tag"></span>
+      <span class="tag moeda"><i class="coin"></i><b id="ouro">0</b></span>
+    </div>
+    <nav class="topo-nav">
+      <button class="btn mini verde" id="btnFicha">Ficha (C)</button>
+      <button class="btn mini" data-abre="mapa">Mapa (M)</button>
+      <button class="btn mini roxo" data-abre="carreira">Carreira (U)</button>
+      <button class="btn mini amarelo" data-abre="time">Meu Time</button>
+      <button class="btn mini" data-abre="missoes">Missões</button>
+      <button class="btn mini" data-abre="album">Álbum</button>
+      <button class="btn mini" data-abre="ranking">Ranking</button>
+      <button class="btn mini" data-abre="atalhos">Atalhos (H)</button>
+      <button class="btn mini" data-abre="ajuda">?</button>
+      <button class="btn mini" id="btnSom" title="Som">Som: on</button>
+    </nav>
+  </header>
+
+  <main id="principal">
+    <aside id="lateralEsq" class="coluna-paineis vazia" data-coluna="esq"></aside>
+    <section id="colJogo">
+      <div id="tela">
+        <canvas id="cv"></canvas>
+        <div id="rastreador"></div>
+        <div id="banner"></div>
+      </div>
+      <div id="toque">
+        <div id="joy"><div class="joy-base"><div class="joy-bot"></div></div></div>
+        <div class="toque-acoes">
+          <button id="tAlvo" class="btn">Alvo</button>
+          <button id="tFalar" class="btn amarelo">Falar / Usar</button>
+        </div>
+      </div>
+      <div id="barraAcoes">
+        <button id="btnModo" class="btn mini modo" title="Alternar modo de ataque (tecla X)">X · Drible</button>
+        <button id="btnClasse" class="btn mini roxo btn-classe" title="Habilidade de classe (Q)">Q</button>
+        <button id="btnCaca" class="btn mini btn-caca" title="Caça contínua (G)">G · Caça: off</button>
+        <div id="hotbar"></div>
+      </div>
+      <div id="log" aria-live="polite"></div>
+    </section>
+
+    <aside id="lateral" class="coluna-paineis" data-coluna="dir">
+      <div class="bloco" data-painel="perfil">
+        <div class="painel perfil">
+          <div id="retrato" class="retrato"></div>
+          <div class="perfil-info">
+            <div id="pNome" class="p-nome"></div>
+            <div id="pFase" class="p-fase"></div>
+            <div id="pNivel" class="p-nivel"></div>
+          </div>
+        </div>
+        <div class="painel barras">
+          <div class="barra hp"><i id="bHp"></i><span id="tHp"></span></div>
+          <div class="barra foco"><i id="bFoco"></i><span id="tFoco"></span></div>
+          <div class="barra xp"><i id="bXp"></i><span id="tXp"></span></div>
+        </div>
+      </div>
+      <div class="bloco" data-painel="mini"><div class="painel mini-wrap"><canvas id="mini"></canvas></div></div>
+      <div class="bloco" data-painel="abas">
+        <div class="abas">
+          <button data-aba="batalha" class="ativa">Batalha</button>
+          <button data-aba="equip">Equipamento</button>
+          <button data-aba="mochila">Mochila</button>
+          <button data-aba="skills">Habilidades</button>
+        </div>
+        <div class="painel aba ativa" id="aba-batalha"><div id="listaBatalha"></div></div>
+        <div class="painel aba" id="aba-equip"><div id="equip"></div></div>
+        <div class="painel aba" id="aba-mochila"><div id="mochila"></div></div>
+        <div class="painel aba" id="aba-skills"><div id="skills"></div></div>
+      </div>
+    </aside>
+  </main>
+
+</div>
+
+<!-- ============ MODAL ============ -->
+<div id="modal" hidden>
+  <div class="modal-caixa madeira">
+    <button class="fechar" aria-label="Fechar">×</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<script src="js/data.js?v=90"></script>
+<script src="js/arte.js?v=90"></script>
+<script src="js/assets.js?v=90"></script>
+<script src="js/world.js?v=90"></script>
+<script src="js/game.js?v=90"></script>
+<script src="js/europa.js?v=90"></script>
+<script src="js/cidades.js?v=90"></script>
+<script src="js/team.js?v=90"></script>
+<script src="js/copa.js?v=90"></script>
+<script src="js/carreira.js?v=90"></script>
+<script src="js/historia.js?v=90"></script>
+<script src="js/ui.js?v=90"></script>
+<script src="js/bonecos_meta.js?v=90"></script>
+<script src="js/boneco.js?v=90"></script>
+<script src="js/clima.js?v=90"></script>
+<script src="js/itens.js?v=90"></script>
+<script src="js/layout.js?v=90"></script>
+<script src="js/backup.js?v=90"></script>
+<script src="js/minimapa.js?v=90"></script>
+<script src="js/audio.js?v=90"></script>
+<script src="js/jogadas.js?v=90"></script>
+<script src="js/arenas.js?v=90"></script>
+<script src="js/montarias.js?v=90"></script>
+<script src="js/armazem.js?v=90"></script>
+<script src="js/casas.js?v=90"></script>
+<script src="js/celular.js?v=90"></script>
+<script src="js/beta.js?v=90"></script>
+<script src="js/portal.js?v=90"></script>
+<script src="js/nuvem.js?v=90"></script>
+</body>
+</html>

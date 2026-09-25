@@ -1,0 +1,1082 @@
+{
+ "arvore": [
+  406,
+  512
+ ],
+ "mangueira": [
+  414,
+  512
+ ],
+ "arbusto": [
+  389,
+  400
+ ],
+ "banco": [
+  442,
+  371
+ ],
+ "poste": [
+  174,
+  512
+ ],
+ "bau": [
+  395,
+  334
+ ],
+ "vaso": [
+  351,
+  412
+ ],
+ "placa": [
+  254,
+  512
+ ],
+ "ponto_onibus": [
+  204,
+  512
+ ],
+ "pedra": [
+  428,
+  373
+ ],
+ "quadro": [
+  401,
+  512
+ ],
+ "banca": [
+  470,
+  512
+ ],
+ "coqueiro": [
+  322,
+  512
+ ],
+ "coqueiro2": [
+  393,
+  512
+ ],
+ "guarda_sol": [
+  380,
+  480
+ ],
+ "torre": [
+  364,
+  512
+ ],
+ "quiosque": [
+  448,
+  512
+ ],
+ "rede": [
+  448,
+  473
+ ],
+ "toalha": [
+  479,
+  332
+ ],
+ "isopor": [
+  361,
+  337
+ ],
+ "prancha": [
+  315,
+  512
+ ],
+ "castelo": [
+  474,
+  480
+ ],
+ "boia": [
+  370,
+  349
+ ],
+ "cadeira_praia": [
+  409,
+  446
+ ],
+ "hidrante": [
+  280,
+  394
+ ],
+ "lixeira": [
+  335,
+  429
+ ],
+ "carro": [
+  512,
+  420
+ ],
+ "carro2": [
+  475,
+  431
+ ],
+ "rampa": [
+  512,
+  499
+ ],
+ "cone_deco": [
+  279,
+  352
+ ],
+ "grade": [
+  462,
+  512
+ ],
+ "poste2": [
+  219,
+  512
+ ],
+ "maquina": [
+  331,
+  512
+ ],
+ "bicicletario": [
+  489,
+  420
+ ],
+ "caixa_correio": [
+  249,
+  492
+ ],
+ "canteiro": [
+  333,
+  512
+ ],
+ "boneco": [
+  217,
+  512
+ ],
+ "cones": [
+  270,
+  402
+ ],
+ "barreiras": [
+  431,
+  340
+ ],
+ "barra": [
+  476,
+  502
+ ],
+ "sacola_bolas": [
+  361,
+  495
+ ],
+ "bebedouro": [
+  405,
+  512
+ ],
+ "holofote": [
+  172,
+  512
+ ],
+ "placar": [
+  411,
+  512
+ ],
+ "arquibancada": [
+  488,
+  400
+ ],
+ "prancheta_cav": [
+  303,
+  512
+ ],
+ "banco_reservas": [
+  512,
+  397
+ ],
+ "trofeu": [
+  280,
+  495
+ ],
+ "cama": [
+  469,
+  507
+ ],
+ "mesa": [
+  423,
+  451
+ ],
+ "estante": [
+  303,
+  512
+ ],
+ "balcao": [
+  487,
+  433
+ ],
+ "carteira": [
+  384,
+  430
+ ],
+ "lousa": [
+  393,
+  512
+ ],
+ "guarda_roupa": [
+  309,
+  512
+ ],
+ "tapete": [
+  472,
+  335
+ ],
+ "sofa": [
+  478,
+  432
+ ],
+ "tv": [
+  362,
+  512
+ ],
+ "palmeira_vaso": [
+  364,
+  512
+ ],
+ "geladeira": [
+  296,
+  512
+ ],
+ "pombo": [
+  483,
+  457
+ ],
+ "cachorro": [
+  512,
+  437
+ ],
+ "caranguejo": [
+  497,
+  400
+ ],
+ "gaivota": [
+  512,
+  490
+ ],
+ "pombo2": [
+  512,
+  289
+ ],
+ "cachorro2": [
+  483,
+  512
+ ],
+ "i_agua": [
+  68,
+  160
+ ],
+ "i_isotonico": [
+  65,
+  160
+ ],
+ "i_acai": [
+  160,
+  146
+ ],
+ "i_suco_verde": [
+  94,
+  160
+ ],
+ "i_vitamina": [
+  80,
+  160
+ ],
+ "i_agua_coco": [
+  116,
+  160
+ ],
+ "i_pacotinho": [
+  144,
+  160
+ ],
+ "i_pena": [
+  118,
+  160
+ ],
+ "i_bola_murcha": [
+  160,
+  136
+ ],
+ "i_osso": [
+  160,
+  136
+ ],
+ "i_apito_velho": [
+  160,
+  135
+ ],
+ "i_concha": [
+  160,
+  147
+ ],
+ "i_oculos_sol": [
+  160,
+  91
+ ],
+ "i_roda_skate": [
+  146,
+  160
+ ],
+ "i_cone": [
+  140,
+  160
+ ],
+ "i_prancheta": [
+  137,
+  160
+ ],
+ "i_cronometro": [
+  128,
+  160
+ ],
+ "i_cartao": [
+  135,
+  160
+ ],
+ "i_cartao_vermelho": [
+  133,
+  160
+ ],
+ "i_luva": [
+  142,
+  160
+ ],
+ "i_bone": [
+  160,
+  136
+ ],
+ "i_faixa_suor": [
+  160,
+  109
+ ],
+ "i_faixa_capitao": [
+  160,
+  142
+ ],
+ "i_headset": [
+  145,
+  160
+ ],
+ "i_louros": [
+  160,
+  144
+ ],
+ "i_coroa": [
+  160,
+  147
+ ],
+ "i_camiseta": [
+  160,
+  155
+ ],
+ "i_camisa_vila": [
+  160,
+  157
+ ],
+ "i_camisa_listrada": [
+  157,
+  160
+ ],
+ "i_camisa_futsal": [
+  160,
+  160
+ ],
+ "i_camisa_ct": [
+  160,
+  160
+ ],
+ "i_camisa10": [
+  159,
+  160
+ ],
+ "i_shorts_rasgado": [
+  160,
+  126
+ ],
+ "i_calcao_tactel": [
+  160,
+  135
+ ],
+ "i_calcao_praia": [
+  160,
+  142
+ ],
+ "i_calcao_pro": [
+  160,
+  141
+ ],
+ "i_calcao_camuflado": [
+  160,
+  142
+ ],
+ "i_caneleira_papelao": [
+  149,
+  160
+ ],
+ "i_caneleira_plastico": [
+  159,
+  160
+ ],
+ "i_caneleira_carbono": [
+  153,
+  160
+ ],
+ "i_pe_descalco": [
+  160,
+  122
+ ],
+ "i_tenis_velho": [
+  160,
+  122
+ ],
+ "i_chuteira_pano": [
+  160,
+  122
+ ],
+ "i_chuteira_couro": [
+  160,
+  125
+ ],
+ "i_chuteira_society": [
+  160,
+  125
+ ],
+ "i_chuteira_travas": [
+  160,
+  124
+ ],
+ "i_chuteira_pro": [
+  160,
+  121
+ ],
+ "i_chuteira_ouro": [
+  160,
+  126
+ ],
+ "i_munhequeira": [
+  160,
+  127
+ ],
+ "i_colar_havaiano": [
+  160,
+  147
+ ],
+ "i_medalha_bronze": [
+  103,
+  160
+ ],
+ "i_medalha_prata": [
+  102,
+  160
+ ],
+ "i_medalha_ouro": [
+  102,
+  160
+ ],
+ "i_medalha_colecionador": [
+  103,
+  160
+ ],
+ "i_bola": [
+  158,
+  160
+ ],
+ "i_bola_praia": [
+  160,
+  160
+ ],
+ "d_pedalada": [
+  150,
+  160
+ ],
+ "d_respiro": [
+  146,
+  160
+ ],
+ "d_chute_colocado": [
+  160,
+  160
+ ],
+ "d_arrancada": [
+  122,
+  160
+ ],
+ "d_chapeu": [
+  122,
+  160
+ ],
+ "d_voleio": [
+  160,
+  145
+ ],
+ "d_elastico": [
+  157,
+  160
+ ],
+ "d_caneta": [
+  160,
+  140
+ ],
+ "dc_tufo1": [
+  128,
+  115
+ ],
+ "dc_tufo2": [
+  120,
+  128
+ ],
+ "dc_tufo3": [
+  128,
+  95
+ ],
+ "dc_tufo4": [
+  112,
+  128
+ ],
+ "dc_flor1": [
+  128,
+  128
+ ],
+ "dc_flor2": [
+  128,
+  120
+ ],
+ "dc_flor3": [
+  128,
+  122
+ ],
+ "dc_flor4": [
+  126,
+  128
+ ],
+ "dc_pedra1": [
+  128,
+  108
+ ],
+ "dc_pedra2": [
+  128,
+  114
+ ],
+ "dc_folhas": [
+  128,
+  108
+ ],
+ "dc_cogumelo": [
+  128,
+  118
+ ],
+ "dc_trevo": [
+  128,
+  120
+ ],
+ "dc_dente": [
+  120,
+  128
+ ],
+ "dc_poca": [
+  128,
+  91
+ ],
+ "dc_margarida": [
+  128,
+  121
+ ],
+ "b_casa": [
+  900,
+  668
+ ],
+ "b_bazar": [
+  900,
+  714
+ ],
+ "b_escola": [
+  900,
+  667
+ ],
+ "b_loja": [
+  900,
+  681
+ ],
+ "b_ct": [
+  900,
+  573
+ ],
+ "b_ap1": [
+  712,
+  900
+ ],
+ "b_ap2": [
+  755,
+  900
+ ],
+ "b_padaria": [
+  900,
+  774
+ ],
+ "i_pao_queijo": [
+  160,
+  133
+ ],
+ "i_coxinha": [
+  156,
+  160
+ ],
+ "i_pastel": [
+  160,
+  136
+ ],
+ "i_tapioca": [
+  160,
+  126
+ ],
+ "i_banana": [
+  160,
+  153
+ ],
+ "i_sanduiche": [
+  160,
+  148
+ ],
+ "i_feijoada": [
+  160,
+  128
+ ],
+ "i_brigadeiro": [
+  160,
+  128
+ ],
+ "i_prato_feito": [
+  160,
+  115
+ ],
+ "i_melancia": [
+  160,
+  159
+ ],
+ "i_retalho": [
+  160,
+  148
+ ],
+ "i_couro": [
+  160,
+  139
+ ],
+ "i_fio_ouro": [
+  120,
+  160
+ ],
+ "i_oficina": [
+  160,
+  157
+ ],
+ "i_gema": [
+  152,
+  160
+ ],
+ "i_tostao": [
+  158,
+  160
+ ],
+ "bonde": [
+  461,
+  512
+ ],
+ "cabine": [
+  300,
+  512
+ ],
+ "onibus2": [
+  490,
+  512
+ ],
+ "mesa_cafe": [
+  387,
+  512
+ ],
+ "chafariz": [
+  498,
+  499
+ ],
+ "poste3": [
+  220,
+  512
+ ],
+ "carrinho_flores": [
+  508,
+  467
+ ],
+ "grafite": [
+  490,
+  512
+ ],
+ "grade_torcida": [
+  512,
+  443
+ ],
+ "lixeira2": [
+  243,
+  423
+ ],
+ "banca_jornal": [
+  395,
+  512
+ ],
+ "bandeirao": [
+  512,
+  510
+ ],
+ "i_chuteira_lenda": [
+  160,
+  135
+ ],
+ "i_camisa_elite": [
+  157,
+  160
+ ],
+ "i_camisa_lenda": [
+  158,
+  160
+ ],
+ "i_caneleira_elite": [
+  145,
+  160
+ ],
+ "i_cachecol": [
+  160,
+  152
+ ],
+ "i_passaporte": [
+  142,
+  160
+ ],
+ "i_contrato": [
+  160,
+  146
+ ],
+ "i_bola_ouro": [
+  100,
+  160
+ ],
+ "i_pastel_nata": [
+  160,
+  138
+ ],
+ "i_churros": [
+  160,
+  119
+ ],
+ "i_fish_chips": [
+  134,
+  160
+ ],
+ "i_megafone": [
+  160,
+  145
+ ],
+ "i_ingresso": [
+  160,
+  119
+ ],
+ "i_mala": [
+  95,
+  160
+ ],
+ "i_apito_ouro": [
+  160,
+  129
+ ],
+ "i_chuteira_elite": [
+  160,
+  140
+ ],
+ "b_lisboa1": [
+  477,
+  900
+ ],
+ "b_lisboa2": [
+  868,
+  900
+ ],
+ "b_madri1": [
+  872,
+  900
+ ],
+ "b_madri2": [
+  622,
+  900
+ ],
+ "b_londres1": [
+  728,
+  900
+ ],
+ "b_londres2": [
+  891,
+  900
+ ],
+ "b_aeroporto": [
+  900,
+  617
+ ],
+ "b_sede": [
+  900,
+  619
+ ],
+ "palmeira_tamara": [
+  330,
+  512
+ ],
+ "tenda_mercado": [
+  479,
+  507
+ ],
+ "jarros": [
+  397,
+  419
+ ],
+ "obelisco": [
+  347,
+  512
+ ],
+ "camelo": [
+  416,
+  481
+ ],
+ "torii": [
+  453,
+  512
+ ],
+ "cerejeira": [
+  473,
+  512
+ ],
+ "lanterna_pedra": [
+  345,
+  512
+ ],
+ "bambu": [
+  337,
+  512
+ ],
+ "ponte_arco": [
+  512,
+  372
+ ],
+ "maneki": [
+  377,
+  437
+ ],
+ "piramide": [
+  512,
+  417
+ ],
+ "palmeira_real": [
+  315,
+  512
+ ],
+ "fonte_moderna": [
+  474,
+  427
+ ],
+ "carro_luxo": [
+  449,
+  376
+ ],
+ "duna": [
+  455,
+  365
+ ],
+ "tenda_beduina": [
+  512,
+  472
+ ],
+ "lanterna_arabe": [
+  198,
+  512
+ ],
+ "torre_salva": [
+  442,
+  512
+ ],
+ "flamingo": [
+  293,
+  503
+ ],
+ "carro_retro": [
+  504,
+  384
+ ],
+ "food_truck": [
+  512,
+  488
+ ],
+ "cadeira_sol": [
+  390,
+  512
+ ],
+ "neon_palmeira": [
+  335,
+  512
+ ],
+ "catedral": [
+  393,
+  512
+ ],
+ "vespa": [
+  351,
+  398
+ ],
+ "mesa_italiana": [
+  415,
+  351
+ ],
+ "cipreste": [
+  157,
+  512
+ ],
+ "fonte_italiana": [
+  471,
+  512
+ ],
+ "estatua": [
+  289,
+  512
+ ],
+ "torre_relogio": [
+  287,
+  512
+ ],
+ "mesa_bavara": [
+  489,
+  393
+ ],
+ "pinheiro": [
+  286,
+  512
+ ],
+ "banca_pretzel": [
+  446,
+  502
+ ],
+ "maibaum": [
+  220,
+  512
+ ],
+ "bicicleta": [
+  407,
+  385
+ ],
+ "i_falafel": [
+  160,
+  154
+ ],
+ "i_onigiri": [
+  160,
+  160
+ ],
+ "i_tamaras": [
+  160,
+  142
+ ],
+ "i_cachorro_quente": [
+  160,
+  141
+ ],
+ "i_pizza": [
+  160,
+  156
+ ],
+ "i_pretzel": [
+  160,
+  146
+ ],
+ "i_chuteira_mundo": [
+  160,
+  132
+ ],
+ "i_camisa_mundo": [
+  160,
+  159
+ ],
+ "i_caneleira_mundo": [
+  160,
+  153
+ ],
+ "i_pulseira": [
+  160,
+  158
+ ],
+ "i_chuteira_tita": [
+  160,
+  134
+ ],
+ "i_camisa_tita": [
+  160,
+  158
+ ],
+ "i_escaravelho": [
+  138,
+  160
+ ],
+ "i_leque": [
+  160,
+  138
+ ],
+ "i_lamparina": [
+  160,
+  121
+ ],
+ "i_oculos_neon": [
+  160,
+  90
+ ],
+ "b_cairo1": [
+  840,
+  900
+ ],
+ "b_cairo2": [
+  900,
+  764
+ ],
+ "b_toquio1": [
+  900,
+  632
+ ],
+ "b_toquio2": [
+  900,
+  796
+ ],
+ "b_doha1": [
+  900,
+  665
+ ],
+ "b_doha2": [
+  900,
+  873
+ ],
+ "b_miami1": [
+  900,
+  868
+ ],
+ "b_miami2": [
+  900,
+  722
+ ],
+ "b_milao1": [
+  900,
+  842
+ ],
+ "b_milao2": [
+  900,
+  898
+ ],
+ "b_munique1": [
+  900,
+  806
+ ],
+ "b_munique2": [
+  900,
+  806
+ ]
+}

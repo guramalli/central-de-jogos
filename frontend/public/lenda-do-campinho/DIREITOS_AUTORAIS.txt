@@ -1,0 +1,18 @@
+LENDA DO CAMPINHO
+© 2026 Educação Gamer — www.educacaogamer.com.br
+Todos os direitos reservados.
+
+Este jogo (código-fonte, história, personagens, textos, mapas, sistemas, arte, sprites,
+logo, músicas e efeitos sonoros) é obra protegida pela Lei nº 9.610/1998 (Direitos Autorais)
+e pela Lei nº 9.609/1998 (Software).
+
+É PROIBIDO, sem autorização por escrito do Educação Gamer:
+- copiar, redistribuir, hospedar ou espelhar o jogo, no todo ou em parte;
+- modificar, adaptar ou criar versões derivadas;
+- reaproveitar o código, a arte ou os sons em outros projetos;
+- vender, cobrar acesso, inserir anúncios ou usar comercialmente;
+- usar o nome "Lenda do Campinho", a logo ou a marca Educação Gamer.
+
+Clubes, ligas e pessoas do jogo são fictícios (nomes de paródia), sem vínculo com entidades reais.
+
+Termos completos e privacidade: direitos.html
