@@ -3,7 +3,7 @@ import { prisma } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
 import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
-import { validarSave, validarCasa, escolherCasas } from "../lenda/validar.js";
+import { validarSave, validarCasa, escolherCasas, validarRanking } from "../lenda/validar.js";
 
 // ===== Lenda do Campinho (RPG de futebol, em public/lenda-do-campinho/) =====
 //
@@ -19,6 +19,7 @@ const router = Router();
 // minuto; o limite aqui só barra abuso.
 const SAVE_INTERVALO_MS = 10_000;
 const CASA_INTERVALO_MS = 5_000;
+const RANKING_INTERVALO_MS = 30_000;
 
 // Quem está pedindo (opcional): as rotas públicas funcionam sem login, mas
 // com login dá pra não mostrar a casa da própria pessoa pra ela mesma.
@@ -101,6 +102,41 @@ router.get("/casas-ranking", async (_req, res) => {
       select: { userId: true, apelido: true, casaId: true, mapa: true, prestigio: true, visitas: true, vitrine: true },
     })
   );
+  res.json(lista);
+});
+
+// ---------- ranking online dos jogadores ----------
+// Atualizar a minha linha (o jogo manda sozinho, no máximo 1x por minuto).
+router.put("/ranking", requireAuth, async (req, res) => {
+  const v = validarRanking(req.body);
+  if (!v.ok) return res.status(400).json({ error: v.erro });
+  const antes = await prisma.lendaRanking.findUnique({ where: { userId: req.user.id }, select: { atualizadoEm: true } });
+  if (antes && Date.now() - new Date(antes.atualizadoEm).getTime() < RANKING_INTERVALO_MS) {
+    return res.status(429).json({ error: "Atualizando rápido demais." });
+  }
+  const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true } });
+  const dados = { apelido: eu?.nickname || req.user.nickname || "Jogador", ...v.ranking };
+  await prisma.lendaRanking.upsert({ where: { userId: req.user.id }, create: { userId: req.user.id, ...dados }, update: dados });
+  res.json({ ok: true });
+});
+
+// Top dos jogadores por XP. Público; guardado 1 min (o banco não acorda a
+// cada abertura da janela). Fica de fora conta banida ou oculta dos rankings.
+router.get("/ranking", async (_req, res) => {
+  const lista = await cacheOuBuscar("lenda:ranking", 60, async () => {
+    const topo = await prisma.lendaRanking.findMany({
+      orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }],
+      take: 80,
+      select: { userId: true, apelido: true, nivel: true, xp: true, posicao: true, fase: true, time: true },
+    });
+    const bloqueados = new Set(
+      (await prisma.user.findMany({
+        where: { id: { in: topo.map((t) => t.userId) }, OR: [{ banned: true }, { ocultoNoRanking: true }, { role: "ADMIN" }] },
+        select: { id: true },
+      })).map((u) => u.id)
+    );
+    return topo.filter((t) => !bloqueados.has(t.userId)).slice(0, 50);
+  });
   res.json(lista);
 });
 

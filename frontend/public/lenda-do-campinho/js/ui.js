@@ -107,7 +107,7 @@ function montaPaineis() {
   });
   $('#btnModo').onclick = trocaModo;
   $('#btnClasse').onclick = usarClasse; $('#btnCaca').onclick = alternaCaca; $('#btnFicha').onclick = abreFicha;
-  $('#btnSom').onclick = () => { G.somOn = !G.somOn; $('#btnSom').textContent = 'Som: ' + (G.somOn ? 'on' : 'off'); };
+  $('#btnSom').onclick = () => { G.somOn = !G.somOn; $('#btnSom').textContent = G.somOn ? '🔊' : '🔇'; $('#btnSom').title = G.somOn ? 'Som ligado (clique para desligar)' : 'Som desligado (clique para ligar)'; };
 }
 function atualizaBarras() {
   const s = G.save, st = stats();
@@ -143,7 +143,7 @@ function atualizaPaineis() {
   $('#btnModo').textContent = 'X · ' + (G.modo === 'drible' ? 'Drible' : 'Chute');
   { const cl = CLASSES[s.classe]; $('#btnClasse').innerHTML = ''; $('#btnClasse').append(el('span', { class: 'tecla' }, 'Q'), cl ? `${cl.emoji} ${cl.especial.nome}` : 'Classe'); $('#btnClasse').title = cl ? cl.especial.desc : ''; }
   $('#btnCaca').textContent = 'G · Caça: ' + (G.caca ? 'ON' : 'off'); $('#btnCaca').classList.toggle('ligado', !!G.caca);
-  $('#btnFicha').classList.toggle('tem-pontos', (s.pontos || 0) > 0); $('#btnFicha').textContent = (s.pontos || 0) > 0 ? `Ficha (C) +${s.pontos}` : 'Ficha (C)';
+  $('#btnFicha').classList.toggle('tem-pontos', (s.pontos || 0) > 0); { const tx = (s.pontos || 0) > 0 ? `📋 Ficha +${s.pontos}` : '📋 Ficha'; if ($('#btnFicha').textContent !== tx) $('#btnFicha').textContent = tx; }
   // hotbar
   document.querySelectorAll('#hotbar .slot').forEach((b, i) => {
     const h = s.hotbar[i]; b.innerHTML = ''; b.append(el('span', { class: 'tecla' }, teclaSlot(i)));
@@ -231,11 +231,17 @@ function atualizaRastreador() {
     if (dc.destaque) document.querySelectorAll(dc.destaque).forEach(e => e.classList.add('destaque'));
   } else if (s.tut < TUTORIAL.length) {
     const st = TUTORIAL[s.tut];
-    const ops = el('div', { class: 'tut-ops' });
-    if (st.ok) ops.append(el('button', { class: 'btn amarelo mini', onclick: avancaTutorial }, 'Entendi'));
-    ops.append(el('button', { class: 'btn mini', onclick: () => { if (confirm('Pular o tutorial? As dicas continuam aparecendo.')) pularTutorial(); } }, 'Pular tutorial'));
-    R.append(el('div', { class: 'cartao-tut' }, el('div', { class: 'tut-topo' }, el('b', {}, `Tutorial ${s.tut + 1}/${TUTORIAL.length}`), st.tecla ? el('span', { class: 'kbd' }, st.tecla) : ''), el('p', {}, st.txt), ops));
-    if (st.destaque) document.querySelectorAll(st.destaque).forEach(e => e.classList.add('destaque'));
+    if (G.tutMin === s.tut) {
+      // passo minimizado: só uma etiqueta; ele continua valendo e avança sozinho quando a ação for feita
+      R.append(el('button', { class: 'btn mini cartao-tut-min', type: 'button', onclick: () => { G.tutMin = -1; G.uiSujo = true; } }, `📖 Tutorial ${s.tut + 1}/${TUTORIAL.length} · ver dica`));
+    } else {
+      const ops = el('div', { class: 'tut-ops' });
+      if (st.ok) ops.append(el('button', { class: 'btn amarelo mini', onclick: avancaTutorial }, 'Entendi'));
+      else ops.append(el('button', { class: 'btn amarelo mini', title: 'Esconde a dica; o tutorial continua quando você fizer o que ela pede', onclick: () => { G.tutMin = s.tut; G.uiSujo = true; } }, 'Ok'));
+      ops.append(el('button', { class: 'btn mini', onclick: () => { if (confirm('Pular o tutorial? As dicas continuam aparecendo.')) pularTutorial(); } }, 'Pular tutorial'));
+      R.append(el('div', { class: 'cartao-tut' }, el('div', { class: 'tut-topo' }, el('b', {}, `Tutorial ${s.tut + 1}/${TUTORIAL.length}`), st.tecla ? el('span', { class: 'kbd' }, st.tecla) : ''), el('p', {}, st.txt), ops));
+      if (st.destaque) document.querySelectorAll(st.destaque).forEach(e => e.classList.add('destaque'));
+    }
   }
   if (s.tut >= TUTORIAL.length) {
     let n = 0;
@@ -616,10 +622,26 @@ function modalAlbum() {
   abreModal(el('h2', {}, `Álbum de figurinhas (${n}/${FIGURINHAS.length})`), el('p', {}, 'Figurinhas caem raramente dos adversários (chefões dão mais), vêm em pacotinhos do Seu Juca e nos desafios. Repetidas viram 25 tostões. Complete o álbum para ganhar a Medalha do Colecionador!'), ops, g);
 }
 async function modalRanking() {
+  // Online: o top de todos os jogadores do site (GET /api/lenda/ranking).
+  // Sem internet ou fora do site, cai no ranking deste aparelho.
+  if (typeof PORTAL !== 'undefined' && PORTAL.ativo) {
+    try {
+      const r = await fetch(PORTAL.api + '/api/lenda/ranking');
+      if (r.ok) {
+        const on = await r.json(); const euId = PORTAL.user && PORTAL.user.id;
+        const tabOn = el('table', { class: 'rank-tab' }, el('tr', {}, el('th', {}, '#'), el('th', {}, 'Jogador'), el('th', {}, 'Nível'), el('th', {}, 'Fase'), el('th', {}, 'Time'), el('th', {}, 'XP')));
+        on.forEach((x, i) => tabOn.append(el('tr', { class: x.userId === euId ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, x.apelido), el('td', {}, x.nivel), el('td', {}, x.fase + (x.posicao && POSICOES[x.posicao] ? ' · ' + POSICOES[x.posicao].nome : '')), el('td', {}, x.time ? `${x.time.nome} (${nomeDivisao(x.time.div)})` : '—'), el('td', {}, fmt(x.xp)))));
+        const avisoOn = PORTAL.token ? 'Ranking de todos os jogadores do Educação Gamer. Seu progresso entra sozinho enquanto você joga.' : 'Ranking de todos os jogadores do Educação Gamer. Entre na sua conta do site para aparecer aqui.';
+        abreModal(el('h2', {}, 'Ranking'), el('p', {}, avisoOn), on.length ? tabOn : el('p', {}, 'Ninguém no ranking ainda. Seja o primeiro!'));
+        if (!G.rodando) $('#modal').onclick = null;
+        return;
+      }
+    } catch (e) { }
+  }
   const lista = lerRanking(); const eu = G.save ? G.save.criado : null;
   const tab = el('table', { class: 'rank-tab' }, el('tr', {}, el('th', {}, '#'), el('th', {}, 'Jogador'), el('th', {}, 'Nível'), el('th', {}, 'Fase'), el('th', {}, 'Time'), el('th', {}, 'XP')));
   lista.forEach((r, i) => tab.append(el('tr', { class: r.id === eu ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, r.nome), el('td', {}, r.nivel), el('td', {}, r.fase + (r.posicao ? ' · ' + POSICOES[r.posicao].nome : '')), el('td', {}, r.time ? `${r.time.nome} (${nomeDivisao(r.time.div)})` : '—'), el('td', {}, fmt(r.xp)))));
-  const aviso = CONFIG.rankingUrl ? 'Ranking online conectado.' : 'Este ranking mostra os jogadores criados neste aparelho. (Para um ranking online, conecte o jogo à API do site: veja CONFIG.rankingUrl em js/data.js.)';
+  const aviso = 'Este ranking mostra os jogadores criados neste aparelho (o ranking online não respondeu agora).';
   abreModal(el('h2', {}, 'Ranking'), el('p', {}, aviso), lista.length ? tab : el('p', {}, 'Ninguém no ranking ainda. Seja o primeiro!'));
   if (!G.rodando) $('#modal').onclick = null;
 }
