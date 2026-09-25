@@ -169,7 +169,7 @@ function montaCasa(def) {
 }
 function minhaCasa() { const s = G.save; return s && s.casa && CASAS[s.casa.id] ? s.casa : null; }
 function minhaCasaAqui() { const c = minhaCasa(); return !!(c && G.mapa && G.mapa.casa === c.id); }
-function limpaCacheMapa(m) { delete m._mini; delete m._miniHD; }
+function limpaCacheMapa(m) { delete m._mini; delete m._miniHD; delete m._miniHD16; }
 function garanteTodasAsCasas() { for (const [mapa] of CASA_LOCAIS) if (MAPAS_DEF[mapa]) try { getMapa(mapa); } catch (e) { } }
 
 /* ---------- prestígio ---------- */

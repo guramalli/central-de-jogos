@@ -71,13 +71,14 @@ function renderChao(m) {
     const e = est.e * T, rad = est.r * T;
     if (e > 0 || rad > 0) { x.fillStyle = t === CH.AGUA ? 'rgba(240,250,255,0.95)' : est.borda; x.globalAlpha = t === CH.AGUA ? 1 : 0.75; x.fill(caminhoTiles(tiles, e + (t === CH.AGUA ? 7 : 3), rad + 3)); x.globalAlpha = 1; }
     const corpo = caminhoTiles(tiles, e, rad);
-    x.fillStyle = padrao(x, TEX_CHAO[t], esc) || est.cor; x.fill(corpo);
+    if (t === CH.AGUA && typeof pintaAgua === 'function') pintaAgua(x, m, corpo); // água lisa, sem quadriculado (agua.js)
+    else { x.fillStyle = padrao(x, TEX_CHAO[t], esc) || est.cor; x.fill(corpo); }
     x.save(); x.clip(corpo);
     if (t === CH.AREIA_MOLHADA) { x.fillStyle = 'rgba(120,90,40,0.2)'; x.fillRect(0, 0, W, H); }
     if (t === CH.CONCRETO) { x.fillStyle = 'rgba(90,90,120,0.16)'; x.fillRect(0, 0, W, H); }
     if (t === CH.QUADRA_AZUL) { x.globalCompositeOperation = 'color'; x.fillStyle = '#3a6ae0'; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
     if (t === CH.CAMPO) for (const [i, j] of tiles) if (Math.floor(i / 2) % 2) { x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * T, j * T, T, T); }
-    if (t === CH.AGUA) { x.strokeStyle = 'rgba(20,70,140,0.25)'; x.lineWidth = 10; x.stroke(caminhoTiles(tiles, e, rad)); }
+    // (antes: contorno escuro em CADA quadrado de água — era isso que fazia a grade)
     x.restore();
   }
   // enfeites no chão (tufos, flores, pedrinhas)

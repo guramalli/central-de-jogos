@@ -708,7 +708,7 @@ const CLASSES = {
 /* ---------- Moeda, alimentos, materiais e refino ---------- */
 const MOEDA = { nome: 'tostão', plural: 'tostões' };
 Object.assign(ITENS, {
-  // Alimentos: dão um bônus que dura alguns minutos (só um por vez). O bônus cresce com o nível.
+  // Alimentos: dão um bônus que dura alguns minutos (até 3 diferentes ao mesmo tempo, os bônus somam). O bônus cresce com o nível.
   pao_queijo: { nome: 'Pão de Queijo', tipo: 'comida', efeito: { dur: 180, regen: 1.2 }, preco: 12, venda: 3, desc: 'Quentinho! Recupera fôlego mais rápido por 3 min.' },
   melancia: { nome: 'Fatia de Melancia', tipo: 'comida', efeito: { dur: 180, regen: 1, regenFoco: 1 }, preco: 10, venda: 2, desc: 'Refrescante. Recupera fôlego e foco mais rápido por 3 min.' },
   banana: { nome: 'Banana', tipo: 'comida', efeito: { dur: 240, vel: 14 }, preco: 15, venda: 3, desc: 'Energia rápida: +velocidade por 4 min.' },
@@ -769,3 +769,16 @@ MISSOES.splice(MISSOES.findIndex(q => q.id === 'q_quiz') + 1, 0,
     texto: 'Traga um equipamento e deixe comigo: vou refinar até +2. Refino deixa o item mais forte!',
     req: { refino: 2, desc: 'Refine equipamentos 2 vezes com o Seu Remendo' }, rec: { xp: 180, itens: [['retalho', 6]] },
     fim: 'Viu como ficou? Do +4 em diante eu preciso de Retalhos de Tecido, e depois de Couro e Fio de Ouro.' });
+
+/* ---------- balanceamento: tostões no começo (Vila e Praia) ----------
+   Vila e Praia são as áreas tranquilas (ninguém parte pra cima). Aqui a pessoa
+   precisa juntar tostões pra comprar e FORJAR os itens antes da Cidade, onde os
+   adversários são valentes. Antes: ~8 mil tostões até o nível 20, contra ~22 mil
+   pra montar e refinar (+3) o conjunto da Praia. Agora rende ~3x mais. */
+const BONUS_TOSTAO_INICIO = { pombo: 3, moleque: 3, caramelo: 3, zagueiro_rua: 3, tonhao: 2, futevoleiro: 3, caranguejo: 3, gaivota: 3, salva_vidas: 3, rei_areia: 2,
+  // Cidade (primeira área valente): um pouco mais, pra continuar valendo mais que a Praia
+  skatista: 1.6, pivo: 1.6, ala: 1.6, goleiro_linha: 1.6 };
+for (const k in BONUS_TOSTAO_INICIO) { const m = MONSTROS[k]; if (m && m.ouro) m.ouro = m.ouro.map(v => Math.round(v * BONUS_TOSTAO_INICIO[k])); }
+// sucatas que só caem de adversários (nenhuma loja vende: não dá pra comprar barato e revender)
+const VENDA_SUCATA = { pena: 5, osso: 16, bola_murcha: 12, bola_praia: 12, concha: 28, apito_velho: 30 };
+for (const k in VENDA_SUCATA) if (ITENS[k] && !ITENS[k].preco) ITENS[k].venda = VENDA_SUCATA[k];

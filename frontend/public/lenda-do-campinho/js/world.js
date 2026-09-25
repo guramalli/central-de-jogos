@@ -200,10 +200,13 @@ function mapaVila() {
   b.espalha('pedra', 5, 2, 2, 44, 34, FILTRO_GRAMA);
   // clareira no mato leste: os Zagueiros da Rua e o Caramelo precisam de espaço
   // (fica só uma árvore aqui e ali, mais na beirada)
-  for (let y = 28; y <= 35; y++) for (let x = 34; x <= 45; x++) {
-    const o = b.m.obj[y * b.m.w + x]; if (!o || !/^(arvore|mangueira|arbusto|pedra)$/.test(o.t)) continue;
-    const fica = (x === 45 || y === 28) ? hash2(x, y) < 0.4 : false;
-    if (!fica) b.obj(x, y, null);
+  { // (coordenadas reais do mapa: b.X/b.Y convertem as de projeto quando o mapa é espalhado — espalha.js)
+    const X = v => (b.X ? b.X(v) : v), Y = v => (b.Y ? b.Y(v) : v);
+    for (let y = Y(28); y < Y(36); y++) for (let x = X(34); x < X(46); x++) {
+      const o = b.m.obj[y * b.m.w + x]; if (!o || !/^(arvore|mangueira|arbusto|pedra)$/.test(o.t)) continue;
+      const fica = (x >= X(45) || y < Y(29)) ? hash2(x, y) < 0.4 : false;
+      if (!fica) b.m.obj[y * b.m.w + x] = null;
+    }
   }
   // saída para a PRAIA
   b.ret(44, 17, 4, 2, CH.TERRA); b.limpa(44, 17, 4, 2);
