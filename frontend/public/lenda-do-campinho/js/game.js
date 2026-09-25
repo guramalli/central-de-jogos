@@ -88,8 +88,15 @@ function enviaRankingOnline(r) {
   if (typeof PORTAL === 'undefined' || !PORTAL.ativo || !PORTAL.token || !r) return;
   const agora = Date.now(); if (agora - ultimoEnvioRanking < 60000) return; ultimoEnvioRanking = agora;
   const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time, chefes: r.chefes || 0, figs: r.figs || 0 };
-  fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) }).catch(() => { });
+  fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) })
+    .then(async res => { // guarda o resultado: a janela do Ranking mostra se entrou ou por que não entrou
+      let msg = ''; if (!res.ok) { try { msg = (await res.json()).error || ''; } catch (e) { } console.warn('[ranking] envio recusado', res.status, msg); }
+      RANK_ONLINE = { quando: Date.now(), ok: res.ok, status: res.status, msg };
+    })
+    .catch(() => { RANK_ONLINE = { quando: Date.now(), ok: false, status: 0, msg: 'sem conexão com o site' }; });
 }
+let RANK_ONLINE = null; // último envio ao ranking online: { quando, ok, status, msg }
+function enviaRankingJa() { ultimoEnvioRanking = 0; if (G.save) atualizaRanking(); }
 
 /* ---------------- atributos ---------------- */
 function stats() {
@@ -696,13 +703,31 @@ function atualizaMonstro(m, dt) {
   const longe = dist(m, casa) > m.sp.raio + 10;
   const v = m.d.vel / 60 * 0.88 * dt / 1000;
   const aggro = Math.max(1, m.d.aggro + (m.d.grupo && G.save.carreira && G.save.carreira.satTorcida < 40 ? 2 : 0) + (G.climaAggro || 0));
-  if (vivo && !m.bravo && m.d.aggro > 0 && d <= aggro && !MAPAS_PACIFICOS.has(G.mapa.id)) {
+  if (m.bravo) m.voltando = false; // levou drible/chute no caminho de volta: encara de novo
+  if (vivo && !m.bravo && !m.voltando && m.d.aggro > 0 && d <= aggro && !MAPAS_PACIFICOS.has(G.mapa.id)) {
     m.bravo = true;
     dica('desafio_rivais', `Aqui é diferente da Vila: os rivais vêm te DESAFIAR quando você chega perto! Fique de olho no fôlego, e se precisar, afaste-se para eles desistirem.`);
   }
   if (m.bravo && m.d.grupo && !m.avisouGrupo) { m.avisouGrupo = true; for (const o of G.mons) if (o !== m && o.d.grupo === m.d.grupo && !o.bravo && dist(o, m) < 6) o.bravo = true; if (Math.random() < 0.5) fala(m, m.d.falas[rndi(0, m.d.falas.length - 1)]); }
   if (!m.bravo) m.avisouGrupo = false;
-  if (m.bravo && (d > 11 || longe || !vivo)) m.bravo = false;
+  // desistiu (você foi longe, ele se afastou demais de casa, ou não acha caminho até você): volta pro lugar dele
+  const desiste = () => { m.bravo = false; if (m.ar) return; /* chefão de arena tem a regra dele (arenas.js) */ m.voltando = true; m.volta0 = G.agora; m.cam = null; m.dest = null; m.tParado = 0; if (G.alvo === m) G.alvo = null; };
+  if (m.bravo && (d > 11 || longe || !vivo)) desiste();
+  if (m.voltando) {
+    if (dist(m, casa) <= Math.max(1, m.sp.raio)) { // chegou: recupera o fôlego e volta a passear
+      m.voltando = false; m.hp = m.d.hp; m.prox = G.agora + rnd(800, 2000);
+    } else if (G.agora - m.volta0 > 12000) { // empacou no caminho: reaparece em casa
+      efeito('puff', m.x, m.y); const pos = posLivre(m.sp.x, m.sp.y, m.sp.raio) || casa; m.x = pos.x; m.y = pos.y; efeito('puff', m.x, m.y);
+      m.voltando = false; m.hp = m.d.hp; m.cam = null; m.prox = G.agora + rnd(800, 2000);
+    } else {
+      if (segLivre(m.x, m.y, casa.x, casa.y, m.r)) andaAte(m, casa, v);
+      else {
+        if (!m.cam || !m.cam.length || G.agora > (m.tCam || 0)) { m.tCam = G.agora + 1500; m.cam = caminho(Math.floor(m.x), Math.floor(m.y), (x, y) => Math.hypot(x + 0.5 - casa.x, y + 0.5 - casa.y) <= Math.max(1, m.sp.raio), 5000) || []; }
+        if (m.cam.length) segue(m, m.cam, v, m.r);
+      }
+      separa(m); return;
+    }
+  }
   if (m.bravo) {
     const alcance = 0.95 + (m.r - R_ENT);
     if (d <= alcance && G.agora >= m.cdAtk) { m.cdAtk = G.agora + m.d.atkCd; monstroAtaca(m); }
@@ -718,6 +743,9 @@ function atualizaMonstro(m, dt) {
     }
     if (r) { if (d > r.alcance - 0.3) andaAte(m, p, v); else if (d < 2) andaAte(m, p, v * 0.8, true); else m.flip = p.x < m.x; }
     else if (d > alcance - 0.15) andaAte(m, p, v); else m.flip = p.x < m.x;
+    // parado longe de você (sem caminho até você) por uns segundos: desiste e volta
+    if (!m.mov && d > (r ? r.alcance + 0.5 : alcance + 1)) { if (!m.tParado) m.tParado = G.agora; else if (G.agora - m.tParado > 2500) desiste(); }
+    else m.tParado = 0;
   } else {
     if (!m.dest) {
       if (G.agora > m.prox) { m.dest = posLivre(m.sp.x, m.sp.y, m.sp.raio); m.destT = G.agora + 6000; m.cam = null; }
@@ -970,14 +998,14 @@ function desenha(dt) {
       { const nv = nivelMonstro(e.d); rotulo(ctx, `Nv ${nv}`, topo.x, topo.y - 25 * px, corNivel(nv), 11.5); } // força da criatura
       rotulo(ctx, e.d.nome, topo.x, topo.y - 12 * px, e.d.chefe ? '#ff8a7a' : '#ffffff', 12);
       barraVida(ctx, topo.x, topo.y - 6 * px, e.hp / e.d.hp);
-    } else if (perto || hover) rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#bfeaff', 12.5);
+    } else if (perto || hover || dist(e, G.p) < 9) placaNPC(ctx, e, topo.x, topo.y - 4 * px, perto || hover); // NPC: plaquinha verde com ícone
   }
   for (const n of G.npcs) {
     const qs = MISSOES.filter(q => q.npc === n.id); let marca = null;
     if (qs.some(q => statusMissao(q) === 'pronta')) marca = '?'; else if (qs.some(q => statusMissao(q) === 'disponivel')) marca = '!';
     if (!marca) continue;
     const t = tela(n.x, n.y - alturaEnt(n) - 0.35); const b = Math.sin(G.agora / 250) * 4 * px;
-    balao(ctx, t.x, t.y + b - (dist(n, G.p) < 3.2 ? 12 * px : 0), marca);
+    balao(ctx, t.x, t.y + b - (dist(n, G.p) < 9 ? 16 * px : 0), marca); // acima da plaquinha do nome
   }
   { const s = G.save, st = stats(); const t = tela(G.p.x, G.p.y - alturaEnt(G.p) - 0.06); barraVida(ctx, t.x, t.y - 9 * px, s.hp / st.maxHp); barraVida(ctx, t.x, t.y - 1 * px, s.foco / st.maxFoco, '#4aa6ff', 4); rotulo(ctx, `Nv ${s.nivel} ${s.nome}`, t.x, t.y - 20 * px, '#ffe14a', 12.5); } // nível + nome, fôlego e, embaixo, foco
   for (const f of G.falas) { const t = tela(f.ent.x, f.ent.y - alturaEnt(f.ent) - 0.4); rotulo(ctx, f.txt, t.x, t.y, f.cor, 13); }
@@ -1086,6 +1114,11 @@ function desenhaEnt(ctx, e) {
   const hit = e.hitT && G.agora - e.hitT < 180 ? Math.sin((G.agora - e.hitT) / 18) * 4 : 0;
   const golpe = e.golpe && G.agora - e.golpe < 220 ? Math.sin((G.agora - e.golpe) / 220 * Math.PI) : 0;
   ctx.fillStyle = 'rgba(30,20,40,0.25)'; ctx.beginPath(); ctx.ellipse(x, y, Math.min(alt * 0.22, 26), 8, 0, 0, 7); ctx.fill();
+  if (e.hp === undefined && e !== G.p) { // NPC (amigo): anel verde-água no chão, pra não confundir com adversário
+    const rx = Math.min(alt * 0.26, 30), pul = 1 + Math.sin(G.agora / 500 + e.x + e.y) * 0.05;
+    ctx.save(); ctx.beginPath(); ctx.ellipse(x, y, rx * pul, 9.5 * pul, 0, 0, 7);
+    ctx.fillStyle = 'rgba(90,240,200,0.15)'; ctx.fill(); ctx.strokeStyle = 'rgba(90,240,200,0.9)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.restore();
+  }
   if (look.tipo !== 'humano') {
     const nome = { pombo: e.mov || e.bravo || Math.sin(G.agora / 900 + (e.uid || 0)) < 0.3 ? 'pombo' : 'pombo2', cachorro: e.mov || e.bravo ? 'cachorro' : 'cachorro2', caranguejo: 'caranguejo', gaivota: 'gaivota', boneco: 'boneco' }[look.tipo];
     const im = aSprite(nome);
@@ -1178,6 +1211,17 @@ function desenhaNoite(ctx, cam, vw, vh, x0, y0, x1, y1) {
     luz(G.p.x * T, (G.p.y - 0.5) * T, 90, (a - 0.12) * 0.5);
     ctx.globalCompositeOperation = 'source-over';
   }
+}
+// nome do NPC numa plaquinha verde-água com o ícone do que ele faz (🛒 loja, 🎓 professor, 💬 conversa...)
+function placaNPC(ctx, n, x, y, forte) {
+  const ic = (typeof iconeNPC === 'function' && iconeNPC(n)) || '💬'; const txt = ic + ' ' + n.d.nome;
+  const s = 11.5 * G.dpr; ctx.font = `700 ${s}px Fredoka, Nunito, sans-serif`;
+  const w = ctx.measureText(txt).width + 14 * G.dpr, h = s + 8 * G.dpr, cy = y - h / 2 + 2 * G.dpr;
+  ctx.globalAlpha = forte ? 1 : 0.82;
+  ctx.fillStyle = 'rgba(12,72,60,0.9)'; ctx.strokeStyle = '#6ff0c8'; ctx.lineWidth = 1.5 * G.dpr;
+  ctx.beginPath(); ctx.roundRect(x - w / 2, cy - h / 2, w, h, h / 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#eafff6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, cy + 0.5 * G.dpr);
+  ctx.textBaseline = 'alphabetic'; ctx.globalAlpha = 1;
 }
 function rotulo(ctx, txt, x, y, cor, tam) {
   const s = tam * G.dpr; ctx.font = `700 ${s}px Fredoka, Nunito, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';

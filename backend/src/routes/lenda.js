@@ -117,11 +117,16 @@ router.put("/ranking", requireAuth, async (req, res) => {
   const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true } });
   const dados = { apelido: eu?.nickname || req.user.nickname || "Jogador", ...v.ranking };
   await prisma.lendaRanking.upsert({ where: { userId: req.user.id }, create: { userId: req.user.id, ...dados }, update: dados });
+  // Limpa a lista guardada: quem acabou de entrar aparece na hora (antes
+  // esperava até 1 min, e a janela aberta logo em seguida vinha vazia).
+  cacheInvalidar("lenda:ranking");
   res.json({ ok: true });
 });
 
 // Top dos jogadores por XP. Público; guardado 1 min (o banco não acorda a
 // cada abertura da janela). Fica de fora conta banida ou oculta dos rankings.
+// Admin ENTRA: este ranking não vale prêmio (os rankings com premiação do
+// site é que tiram admin) — e tirar deixava a lista vazia pra quem testava.
 router.get("/ranking", async (_req, res) => {
   const lista = await cacheOuBuscar("lenda:ranking", 60, async () => {
     const topo = await prisma.lendaRanking.findMany({
@@ -131,7 +136,7 @@ router.get("/ranking", async (_req, res) => {
     });
     const bloqueados = new Set(
       (await prisma.user.findMany({
-        where: { id: { in: topo.map((t) => t.userId) }, OR: [{ banned: true }, { ocultoNoRanking: true }, { role: "ADMIN" }] },
+        where: { id: { in: topo.map((t) => t.userId) }, OR: [{ banned: true }, { ocultoNoRanking: true }] },
         select: { id: true },
       })).map((u) => u.id)
     );

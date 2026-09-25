@@ -79,3 +79,12 @@ test("ranking: recusa números absurdos, fase inventada e posição estranha", (
   assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", time: { nome: "", div: 1 } }).ok);
   assert.ok(validarRanking({ nivel: 5, xp: 10, fase: "Criança" }).ok);
 });
+
+test("ranking: aceita exatamente o que o jogo manda (posicao e time nulos, fase com acento)", () => {
+  // corpo do enviaRankingOnline (js/game.js) de um jogador novo, sem time
+  const v = validarRanking({ nivel: 3, xp: 120, posicao: null, fase: "Criança", time: null, chefes: 0, figs: 0 });
+  assert.equal(v.ok, true);
+  assert.equal(v.ranking.posicao, null);
+  assert.equal(v.ranking.time, null);
+  for (const fase of ["Criança", "Juvenil", "Sub-20", "Profissional", "Lenda"]) assert.ok(validarRanking({ nivel: 1, xp: 0, fase }).ok, fase);
+});
