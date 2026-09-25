@@ -288,3 +288,21 @@ document.addEventListener('mousedown', escondeTip); window.addEventListener('blu
   `;
   document.head.append(st);
 })();
+
+/* ---------- organizar a mochila: por raridade ou por função ---------- */
+// (a barra de atalhos guarda o item pelo nome, não pela posição: organizar não bagunça os atalhos)
+const ORDEM_FUNCAO = ['consumivel', 'comida', 'equip', 'loot', 'movel'];
+const ORDEM_SLOT = ['cabeca', 'camisa', 'acessorio', 'perna', 'calcao', 'chuteira'];
+function organizaMochila(modo) {
+  const s = G.save; if (!s || !s.mochila.length) return;
+  const rar = e => { const i = ORDEM_RAR.indexOf(raridadeItem(e.id)); return i < 0 ? 0 : i; }; // maior = mais raro
+  const fun = e => { const it = ITENS[e.id] || {}; const i = ORDEM_FUNCAO.indexOf(it.tipo); return i < 0 ? ORDEM_FUNCAO.length : i; };
+  const slot = e => { const it = ITENS[e.id] || {}; const i = ORDEM_SLOT.indexOf(it.slot); return i < 0 ? 9 : i; };
+  const nome = e => (ITENS[e.id] ? ITENS[e.id].nome : e.id);
+  const cmp = modo === 'raridade'
+    ? (a, b) => rar(b) - rar(a) || fun(a) - fun(b) || slot(a) - slot(b) || (b.r || 0) - (a.r || 0) || nome(a).localeCompare(nome(b), 'pt')
+    : (a, b) => fun(a) - fun(b) || slot(a) - slot(b) || rar(b) - rar(a) || (b.r || 0) - (a.r || 0) || nome(a).localeCompare(nome(b), 'pt');
+  s.mochila.sort(cmp);
+  escondeTip(); som('equip'); log(modo === 'raridade' ? '🎒 Mochila organizada por raridade (os mais raros primeiro).' : '🎒 Mochila organizada por função.', 'l-info');
+  G.uiSujo = true; salvar();
+}

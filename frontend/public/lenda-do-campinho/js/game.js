@@ -99,6 +99,14 @@ let RANK_ONLINE = null; // último envio ao ranking online: { quando, ok, status
 function enviaRankingJa() { ultimoEnvioRanking = 0; if (G.save) atualizaRanking(); }
 
 /* ---------------- atributos ---------------- */
+// comidas fazendo efeito agora: [{ id, resta (s) }]. Saves antigos tinham uma só (s.comida).
+const COMIDAS_MAX = 3;
+function comidasAtivas(s) {
+  if (!s) return [];
+  if (!Array.isArray(s.comidas)) s.comidas = [];
+  if (s.comida) { if (ITENS[s.comida.id] && !s.comidas.some(c => c.id === s.comida.id)) s.comidas.push(s.comida); s.comida = null; }
+  return s.comidas;
+}
 function stats() {
   const s = G.save; const pos = POSICOES[s.posicao];
   let atk = 0, def = 0; const b = { drible: 0, chute: 0, defesa: 0, visao: 0, hp: 0, foco: 0, vel: 0, regen: 0 };
@@ -112,8 +120,10 @@ function stats() {
   const nivel = s.nivel;
   const buff = (G.buffs.arrancada || 0) > G.agora ? DRIBLES.arrancada.vel : 0;
   const a = Object.assign({}, s.atr || { defesa: 5, habilidade: 5, inteligencia: 5, folego: 5 }); const cl = s.classe;
-  const com = s.comida && ITENS[s.comida.id] ? ITENS[s.comida.id].efeito : null; const mc = 1 + nivel / 25;
-  if (com && com.atr) for (const k in com.atr) a[k] += Math.round(com.atr[k] * mc);
+  // comidas: até COMIDAS_MAX diferentes ao mesmo tempo, os bônus SOMAM
+  const coms = comidasAtivas(s).map(c => ITENS[c.id] && ITENS[c.id].efeito).filter(Boolean); const mc = 1 + nivel / 25;
+  const com = { vel: 0, regen: 0, regenFoco: 0 };
+  for (const e of coms) { for (const k in (e.atr || {})) a[k] += Math.round(e.atr[k] * mc); com.vel += e.vel || 0; com.regen += e.regen || 0; com.regenFoco += e.regenFoco || 0; }
   const velBase = (220 + 2 * (nivel - 1) + b.vel + a.folego * 0.35 + ((com && com.vel) || 0)) * (cl === 'motorzinho' ? 1.08 : 1);
   return {
     nivel, atk, atr: a,
@@ -272,7 +282,7 @@ function entrarMapa(id, x, y, silencioso) {
   Object.assign(G.p, { x, y }); G.p.mov = false; G.p.cam = null;
   for (const sp of G.mapa.spawns) for (let i = 0; i < sp.qtd; i++) { const m = criaMonstro(sp); if (m) G.mons.push(m); }
   preCarregaMapa();
-  $('#nomeMapa').textContent = G.mapa.nome;
+  $('#nomeMapa').textContent = G.mapa.nome; { const lt = $('#lugarTela'); if (lt) lt.textContent = '📍 ' + G.mapa.nome; } // nome do lugar também no alto da tela do jogo
   const cam = alvoCamera(); G.cam.x = cam.x; G.cam.y = cam.y;
   if (!silencioso && !G.mapa.interior) { log(`Você chegou em: ${G.mapa.nome}.`, 'l-sis'); banner(G.mapa.nome, FASES[faseIdx(G.save.nivel)].nome + ' — nível ' + G.save.nivel); }
   G.uiSujo = true;
@@ -378,7 +388,7 @@ function aplicaDano(m, dano) {
   if (dano <= 0) { efeito('puff', m.x, m.y); texto(m, 'defendeu', '#d8e0ff', 700); return; }
   m.hp -= dano; m.hitT = G.agora; texto(m, dano, '#ffcf4a');
   if (m.d.treino) { m.hp = m.d.hp; return; } // boneco de treino fica parado no lugar
-  const dx = m.x - G.p.x, dy = m.y - G.p.y, d = Math.hypot(dx, dy) || 1; mover(m, dx / d * 0.1, dy / d * 0.1, m.r);
+  if (!G.semEmpurrao) { const dx = m.x - G.p.x, dy = m.y - G.p.y, d = Math.hypot(dx, dy) || 1; mover(m, dx / d * 0.1, dy / d * 0.1, m.r); } // drible comum não empurra (lances.js)
   if (m.hp <= 0) matar(m);
 }
 const RARIDADE = {
@@ -568,7 +578,7 @@ function addItem(id, q = 1) {
     for (let i = 0; i < q; i++) { if (s.mochila.length >= 30) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push({ id, q: 1 }); }
   }
   if ((ITENS[id].tipo === 'consumivel' || ITENS[id].tipo === 'comida') && id !== 'pacotinho' && !s.hotbar.some(h => h && h.t === 'i' && h.id === id)) poeNaHotbar('i', id, true);
-  if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (só um por vez). Use pela barra de atalhos ou pela mochila.`, '#hotbar');
+  if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (até 3 comidas diferentes ao mesmo tempo: os bônus somam). Use pela barra de atalhos ou pela mochila.`, '#hotbar');
   if (ITENS[id].tipo === 'equip') dica('equip', `Você ganhou um equipamento: ${ITENS[id].nome}! Abra a aba MOCHILA (à direita, ou tecla I), clique nele e escolha "Equipar". Equipamentos deixam você mais forte.`, '[data-aba=mochila]');
   if (id === 'bola') atualizaRetrato();
   G.uiSujo = true; return true;
@@ -583,9 +593,15 @@ function usarItem(id) {
   if (it.tipo === 'equip') return equipar(id);
   if (it.tipo === 'comida') {
     if (it.lvl && s.nivel < it.lvl) { log(`Você precisa do nível ${it.lvl} para comer ${it.nome}.`, 'l-sis'); return; }
-    const antes = s.comida && ITENS[s.comida.id];
-    s.comida = { id, resta: it.efeito.dur }; removeItem(id); som('gole'); efeito('cura', G.p.x, G.p.y, '#ffd23f');
-    texto(G.p, 'Nham!', '#ffe14a'); log(`Você comeu ${it.nome}! ${it.desc}${antes && antes !== it ? ` (substituiu ${antes.nome})` : ''}`, 'l-info');
+    const lista = comidasAtivas(s); const ja = lista.find(c => c.id === id); let extra = '';
+    if (ja) { ja.resta = it.efeito.dur; extra = ' (o tempo recomeçou)'; }
+    else {
+      if (lista.length >= COMIDAS_MAX) { lista.sort((x, y) => x.resta - y.resta); const sai = lista.shift(); extra = ` (substituiu ${ITENS[sai.id] ? ITENS[sai.id].nome : 'a comida mais antiga'}: dá pra ter até ${COMIDAS_MAX} comidas diferentes fazendo efeito juntas)`; }
+      lista.push({ id, resta: it.efeito.dur });
+      if (!extra && lista.length > 1) extra = ` Agora são ${lista.length} comidas fazendo efeito juntas: os bônus somam!`;
+    }
+    removeItem(id); som('gole'); efeito('cura', G.p.x, G.p.y, '#ffd23f');
+    texto(G.p, 'Nham!', '#ffe14a'); log(`Você comeu ${it.nome}! ${it.desc}${extra}`, 'l-info');
     contaEvento('comer'); G.uiSujo = true; return;
   }
   if (it.tipo !== 'consumivel') { log(`${it.nome}: ${it.desc}`, 'l-info'); return; }
@@ -800,7 +816,8 @@ function atualiza(dt) {
   const s = G.save;
   s.st.tempo += dt / 1000;
   if (!G.mapa.interior) { s.hora += dt / 700; if (s.hora >= 26 * 60) { s.hora = 6 * 60; s.dia++; log(`Amanheceu! Dia ${s.dia}.`, 'l-sis'); } }
-  if (s.comida) { s.comida.resta -= dt / 1000; if (s.comida.resta <= 0) { log(`O efeito de ${ITENS[s.comida.id].nome} acabou. Hora de comer de novo!`, 'l-sis'); s.comida = null; G.uiSujo = true; } }
+  { const lista = comidasAtivas(s);
+    for (let i = lista.length - 1; i >= 0; i--) { const c = lista[i]; c.resta -= dt / 1000; if (c.resta <= 0 || !ITENS[c.id]) { if (ITENS[c.id]) log(`O efeito de ${ITENS[c.id].nome} acabou. Hora de comer de novo!`, 'l-sis'); lista.splice(i, 1); G.uiSujo = true; } } }
   G.tRegen += dt;
   if (G.tRegen >= 1000) {
     G.tRegen -= 1000;
@@ -1022,7 +1039,7 @@ function desenhaBuffs(ctx) {
   if ((G.buffs.muralha || 0) > G.agora) itens.push(['🛡️ Muralha', Math.ceil((G.buffs.muralha - G.agora) / 1000) + 's', '#4a8ae8']);
   if ((G.buffs.arrancada || 0) > G.agora) itens.push(['⚡ Arrancada', Math.ceil((G.buffs.arrancada - G.agora) / 1000) + 's', '#2ab0c8']);
   if (G.firula > 0) itens.push(['✨ Firula', 'x' + G.firula, '#ff9a3a']);
-  if (G.save.comida) { const r = Math.ceil(G.save.comida.resta); itens.push(['🍽️ ' + ITENS[G.save.comida.id].nome, `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`, '#e8a020']); }
+  for (const c of comidasAtivas(G.save)) { if (!ITENS[c.id]) continue; const r = Math.ceil(c.resta); itens.push(['🍽️ ' + ITENS[c.id].nome, `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`, '#e8a020']); }
   if (G.caca) itens.push(['🎯 Caça contínua', 'G', '#d04a4a']);
   if (G.modo === 'chute') itens.push(['⚽ Modo Chute', 'X', '#2a8ae0']);
   let y = 12 * s;
@@ -1355,10 +1372,19 @@ function trocaModoAlvo() {
   const ks = Object.keys(MODOS_ALVO); const s = G.save; s.modoAlvo = ks[(ks.indexOf(s.modoAlvo || 'perto') + 1) % ks.length];
   log(`🎯 Espaço agora marca: ${MODOS_ALVO[s.modoAlvo].toUpperCase()} (tecla V troca).`, 'l-info'); G.alvo = null; G.uiSujo = true; atualizaBotaoAlvo();
 }
+// prioridade de ataque: fica no alto da aba BATALHA (escolha direta; a tecla V continua trocando)
+const NOMES_ALVO = { perto: 'Perto', forte: 'Forte', fraco: 'Fraco', vida: 'Fôlego' };
 function atualizaBotaoAlvo() {
-  let b = document.getElementById('btnAlvo');
-  if (!b) { const caca = document.getElementById('btnCaca'); if (!caca) return; b = document.createElement('button'); b.id = 'btnAlvo'; b.className = 'btn mini'; b.title = 'Como o ESPAÇO escolhe o adversário (tecla V troca)'; b.onclick = trocaModoAlvo; caca.after(b); }
-  b.textContent = `V · 🎯 ${{ perto: 'Perto', forte: 'Forte', fraco: 'Fraco', vida: 'Fôlego' }[G.save.modoAlvo || 'perto']}`; b.title = `ESPAÇO marca: ${MODOS_ALVO[G.save.modoAlvo || 'perto']} (tecla V troca)`;
+  const aba = document.getElementById('aba-batalha'), lista = document.getElementById('listaBatalha'); if (!aba || !lista || !G.save) return;
+  let box = document.getElementById('prioAlvo');
+  if (!box) {
+    box = el('div', { id: 'prioAlvo', class: 'prio-alvo' }, el('span', { class: 'prio-rot', title: 'Como o ESPAÇO escolhe o adversário (tecla V troca)' }, '🎯 Prioridade (V):'));
+    for (const k of Object.keys(MODOS_ALVO)) box.append(el('button', { class: 'btn mini', type: 'button', 'data-modo': k, title: `ESPAÇO marca: ${MODOS_ALVO[k]}`, onclick: () => { G.save.modoAlvo = k; G.alvo = null; G.uiSujo = true; log(`🎯 Espaço agora marca: ${MODOS_ALVO[k].toUpperCase()} (tecla V troca).`, 'l-info'); atualizaBotaoAlvo(); } }, NOMES_ALVO[k] || k));
+    lista.before(box);
+  }
+  const atual = G.save.modoAlvo || 'perto';
+  box.querySelectorAll('button').forEach(b => b.classList.toggle('ativo', b.dataset.modo === atual));
+  const velho = document.getElementById('btnAlvo'); if (velho) velho.remove(); // o botão antigo da barra de ações sai
 }
 function alvoMaisProximo() {
   const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8 && naTela(m)));

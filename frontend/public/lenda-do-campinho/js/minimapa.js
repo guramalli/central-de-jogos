@@ -14,9 +14,9 @@ const MINI_VISTA = 28;     // tiles na largura do minimapa lateral
 const ARVORES_MINI = { arvore: '#3f8a3a', mangueira: '#3a7f34', coqueiro: '#4fae4a', coqueiro2: '#4fae4a', arbusto: '#4a9a3e', pinheiro: '#2f6a3a', cerejeira: '#f29ac4', cipreste: '#2f5a34', palmeira_real: '#4fae4a', palmeira: '#4fae4a' };
 const TELHADOS = ['#c8643c', '#b5523a', '#3a6ea8', '#6a8a3a', '#8a5a9a', '#c89a3a', '#5a6a7a'];
 
-function renderMiniHD(m) {
-  if (m._miniHD) return m._miniHD;
-  const S = MINI_S, W = m.w, H = m.h;
+function renderMiniHD(m, S = MINI_S) { // S = pixels por quadro (o mapa grande usa mais, pra ficar nítido)
+  const chave = S === MINI_S ? '_miniHD' : '_miniHD' + S; if (m[chave]) return m[chave];
+  const W = m.w, H = m.h;
   const r = mulberry((m.seed || 7) + W * 131 + H);
   // 1) chão: pixel por tile, depois ampliado com e sem suavização (bordas macias, mas com textura)
   const baixo = mkCanvas(W, H), bx = baixo.getContext('2d');
@@ -64,7 +64,7 @@ function renderMiniHD(m) {
   // 5) moldura suave nas bordas
   const g = x.createRadialGradient(c.width / 2, c.height / 2, Math.min(c.width, c.height) * 0.35, c.width / 2, c.height / 2, Math.max(c.width, c.height) * 0.75);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(40,20,10,0.28)'); x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
-  m._miniHD = c; return c;
+  m[chave] = c; return c;
 }
 
 /* ---------- o que cada NPC faz (ícone) ---------- */
@@ -100,6 +100,7 @@ function desenhaMarcadores(x, tx, ty, e, grande) {
   // pontos especiais (pênalti, baú)
   for (const pt of (m.pontos || [])) { const ic = pt.tipo === 'penalti' ? '⚽' : pt.tipo === 'bau' ? '🎁' : null; if (!ic) continue; x.font = `${9 * e}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ic, tx(pt.x + 0.5), ty(pt.y + 0.5)); }
   // saídas: seta apontando para fora do mapa
+  const saidasComNome = new Set(); // saída larga (2 quadros) pro mesmo lugar: um nome só
   for (const s of (m.saidas || [])) {
     if (s.porta) continue; // portas de prédio já têm o nome do prédio
     const cx = tx(s.x + 0.5), cy = ty(s.y + 0.5);
@@ -107,7 +108,7 @@ function desenhaMarcadores(x, tx, ty, e, grande) {
     const ang = [Math.PI, 0, -Math.PI / 2, Math.PI / 2][bordas.indexOf(Math.min(...bordas))];
     x.save(); x.translate(cx, cy); x.rotate(ang); x.fillStyle = '#ffd23f'; contorno(1.6);
     x.beginPath(); x.moveTo(6 * e, 0); x.lineTo(-4 * e, -5 * e); x.lineTo(-4 * e, 5 * e); x.closePath(); x.fill(); x.stroke(); x.restore();
-    if (grande && s.para && MAPAS_DEF[s.para]) { const nm = '→ ' + getMapa(s.para).nome.split(' —')[0]; rotuloMini(x, nm, cx, cy - 11 * e, e, '#ffe9a8'); }
+    if (grande && s.para && MAPAS_DEF[s.para] && !saidasComNome.has(s.para)) { saidasComNome.add(s.para); const nm = '→ ' + getMapa(s.para).nome.split(' —')[0]; rotuloMini(x, nm, cx, cy - 11 * e, e, '#ffe9a8'); }
   }
   // adversários
   for (const mo of G.mons) {
@@ -135,7 +136,7 @@ function desenhaMarcadores(x, tx, ty, e, grande) {
       x.fillStyle = mq === '?' ? '#5ad86a' : '#ffd23f'; contorno(1.3); x.beginPath(); x.arc(cx, by, 4.2 * e, 0, 7); x.fill(); x.stroke();
       x.fillStyle = '#1a1026'; x.font = `800 ${7 * e}px Fredoka, Nunito, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(mq, cx, by + 0.5 * e);
     }
-    if (grande) rotuloMini(x, n.d.nome, cx, cy + 11 * e, e, '#ffffff');
+    if (grande) rotuloMini(x, n.d.nome, cx, cy + 10 * e, e * 0.82, '#ffffff'); // nome menor: sobra espaço pros outros
   }
   // objetivo da seta amarela
   const alvo = typeof alvoGuia === 'function' ? alvoGuia() : null;
@@ -150,6 +151,10 @@ function desenhaMarcadores(x, tx, ty, e, grande) {
 let ROTULOS = null;
 function rotuloMini(x, txt, cx, cy, e, cor) {
   x.font = `700 ${10 * e}px Fredoka, Nunito, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  { // nunca corta na beirada do mapa: empurra o nome pra dentro
+    const W = x.canvas.width, H = x.canvas.height, meio = x.measureText(txt).width / 2 + 4 * e, alt = 8 * e;
+    cx = Math.min(W - meio, Math.max(meio, cx)); cy = Math.min(H - alt, Math.max(alt, cy));
+  }
   if (ROTULOS) {
     const w = x.measureText(txt).width + 6, h = 12 * e; const livre = y => !ROTULOS.some(r => Math.abs(r.x - cx) < (r.w + w) / 2 && Math.abs(r.y - y) < (r.h + h) / 2);
     const tentativas = [0, h, -h, 2 * h, -2 * h]; const d = tentativas.find(dy => livre(cy + dy)); if (d === undefined) return;
@@ -159,7 +164,7 @@ function rotuloMini(x, txt, cx, cy, e, cor) {
 }
 
 /* ---------- minimapa lateral: acompanha você ---------- */
-let MINI_T = 0, MINI_CAM = null; // câmera do minimapa desliza atrás do jogador
+let MINI_T = 0, MINI_CAM = null, MINI_VIEW = null; // câmera do minimapa desliza atrás do jogador
 desenhaMini = function () {
   const mc = $('#mini'); if (!mc || !G.mapa || !G.p) return;
   const agora = performance.now(); const dt = Math.min(100, agora - (MINI_T || agora)); MINI_T = agora;
@@ -174,6 +179,7 @@ desenhaMini = function () {
   const k0 = 1 - Math.exp(-dt / 110); MINI_CAM.x += (G.p.x - MINI_CAM.x) * k0; MINI_CAM.y += (G.p.y - MINI_CAM.y) * k0;
   let x0 = clamp(MINI_CAM.x - vw / 2, 0, Math.max(0, m.w - vw)), y0 = clamp(MINI_CAM.y - vh / 2, 0, Math.max(0, m.h - vh));
   const k = larg / vw; const ox = (larg - vw * k) / 2, oy = (alt - vh * k) / 2;
+  MINI_VIEW = { x0, y0, k, ox, oy }; // pro "passar o mouse" saber o que está embaixo
   x.fillStyle = '#1a1026'; x.fillRect(0, 0, larg, alt);
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   x.drawImage(base, x0 * MINI_S, y0 * MINI_S, vw * MINI_S, vh * MINI_S, ox, oy, vw * k, vh * k);
@@ -189,16 +195,16 @@ document.addEventListener('click', ev => { if (ev.target && ev.target.id === 'mi
 
 /* ---------- mapa grande (tecla M) ---------- */
 modalMapa = function () {
-  const m = G.mapa; const base = renderMiniHD(m);
-  const esc = Math.min(1.6, Math.max(0.6, 860 / base.width)); const c = mkCanvas(Math.round(base.width * esc), Math.round(base.height * esc)); const x = c.getContext('2d');
+  const m = G.mapa; const base = renderMiniHD(m, 16); // o dobro de detalhe do minimapa: fica nítido na janela grande
+  const esc = Math.min(1.2, Math.max(0.35, 1100 / base.width)); const c = mkCanvas(Math.round(base.width * esc), Math.round(base.height * esc)); const x = c.getContext('2d');
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(base, 0, 0, c.width, c.height);
-  const k = MINI_S * esc; const e = Math.max(1, k / 8);
+  const k = 16 * esc; const e = Math.max(1, k / 13);
   ROTULOS = [];
   // nomes dos prédios
   for (const b of (m.predios || [])) if (b.interior && MAPAS_DEF[b.interior]) rotuloMini(x, getMapa(b.interior).nome, (b.porta.x + 0.5) * k, (b.porta.y + 1.9) * k, e * 0.9, '#ffe9a8');
   for (const z of (m.zonas || [])) rotuloMini(x, '⚠ ' + z.nome, (z.x + z.w / 2) * k, (z.y + 1) * k, e * 0.9, '#ffb0b0');
   desenhaMarcadores(x, wx => wx * k, wy => wy * k, e, true); ROTULOS = null;
-  c.className = 'mapa-grande';
+  c.className = 'mapa-grande'; c._mapaK = k; // escala (px por quadro) pro "passar o mouse"
   const L = (html, txt) => el('span', { class: 'leg-item' }, el('span', { class: 'leg-ic ' + html[0] }, html[1]), txt);
   const legenda = el('div', { class: 'legenda-mapa' },
     L(['leg-voce', '➤'], 'Você'), L(['leg-alvo', '◯'], 'Objetivo (seta amarela)'), L(['leg-saida', '▶'], 'Saída'),
@@ -233,3 +239,52 @@ modalMapa = function () {
   `;
   document.head.append(st);
 })();
+
+/* ---------- passar o mouse no minimapa / mapa grande: mostra o nome ---------- */
+// o que há perto do ponto (wx, wy) do mapa (em quadros); raio em quadros. Mais perto primeiro.
+function oQueTemNoMapa(wx, wy, raio) {
+  const m = G.mapa; const achados = [];
+  const perto = (x, y, txt, peso = 0) => { const d = Math.hypot(x - wx, y - wy); if (d <= raio) achados.push({ d: d - peso, txt }); };
+  if (G.p) perto(G.p.x, G.p.y, '➤ Você', 0.2);
+  for (const n of G.npcs) { const ic = iconeNPC(n) || '💬'; const mq = marcaMissaoNPC(n); perto(n.x, n.y, `${ic} ${n.d.nome}${mq === '!' ? ' — missão nova!' : mq === '?' ? ' — missão pronta!' : ''}`, 0.3); }
+  for (const mo of G.mons) {
+    if (mo.d.treino) { perto(mo.x, mo.y, '🎯 ' + mo.d.nome); continue; }
+    const nv = typeof nivelMonstro === 'function' ? `Nv ${nivelMonstro(mo.d)} ` : '';
+    perto(mo.x, mo.y, (mo.d.chefe ? '♛ ' : rivalBravo(mo) ? '🔴 ' : '🟠 ') + nv + mo.d.nome + (mo.d.chefe ? ' (chefão)' : rivalBravo(mo) ? ' — vem te desafiar' : ''), mo.d.chefe ? 0.3 : 0);
+  }
+  for (const pt of (m.pontos || [])) { const nm = pt.tipo === 'penalti' ? '⚽ Marca do pênalti' : pt.tipo === 'bau' ? '🎁 Baú' : pt.tipo === 'armazem' ? '📦 Armazém' : null; if (nm) perto(pt.x + 0.5, pt.y + 0.5, nm); }
+  for (const s of (m.saidas || [])) { if (s.porta || !s.para || !MAPAS_DEF[s.para]) continue; perto(s.x + 0.5, s.y + 0.5, '➜ Saída para ' + getMapa(s.para).nome.split(' —')[0]); }
+  // prédios: vale estar em cima do telhado
+  for (const b of (m.predios || [])) {
+    if (!b.interior) continue;
+    if (wx >= b.x - 0.3 && wx <= b.x + b.w + 0.3 && wy >= b.y - 0.3 && wy <= b.y + b.h + 0.6) {
+      let nm = null;
+      if (typeof CASAS !== 'undefined' && CASAS[b.interior]) { const c = CASAS[b.interior]; const minha = G.save.casa && G.save.casa.id === b.interior; nm = `🏠 ${c.nome}${minha ? ' (sua casa)' : ' — à venda'}`; }
+      else if (MAPAS_DEF[b.interior]) nm = '🏢 ' + getMapa(b.interior).nome;
+      if (nm) achados.push({ d: raio * 0.9, txt: nm });
+    }
+  }
+  for (const z of (m.zonas || [])) if (wx >= z.x && wx <= z.x + z.w && wy >= z.y && wy <= z.y + z.h) achados.push({ d: raio, txt: '⚠ ' + z.nome });
+  achados.sort((a, b) => a.d - b.d);
+  const vistos = new Set(); return achados.filter(a => !vistos.has(a.txt) && vistos.add(a.txt)).slice(0, 3).map(a => a.txt);
+}
+function dicaDoMapa(ev, linhas) {
+  if (!linhas.length) { escondeTip(); return; }
+  const box = el('div', { class: 'tip-item tip-mapa' }, ...linhas.map((t, i) => i ? el('small', {}, t) : el('b', {}, t)));
+  if (TIP && TIP.classList.contains('tip-mapa') && TIP.textContent === box.textContent) { moveTip(ev); return; }
+  mostraTip(ev, box);
+}
+document.addEventListener('mousemove', ev => {
+  const alvo = ev.target; if (!alvo || !G.mapa || !G.rodando) return;
+  if (alvo.id === 'mini' && MINI_VIEW) {
+    const r = alvo.getBoundingClientRect(); if (!r.width) return;
+    const px = (ev.clientX - r.left) * alvo.width / r.width, py = (ev.clientY - r.top) * alvo.height / r.height;
+    const V = MINI_VIEW; const wx = V.x0 + (px - V.ox) / V.k, wy = V.y0 + (py - V.oy) / V.k;
+    dicaDoMapa(ev, oQueTemNoMapa(wx, wy, 12 * (alvo.width / r.width) / V.k)); // ~12 px de tolerância
+  } else if (alvo.classList && alvo.classList.contains('mapa-grande') && alvo._mapaK) {
+    const r = alvo.getBoundingClientRect(); if (!r.width) return;
+    const kk = alvo._mapaK * r.width / alvo.width; // px de tela por quadro
+    dicaDoMapa(ev, oQueTemNoMapa((ev.clientX - r.left) / kk, (ev.clientY - r.top) / kk, 12 / kk));
+  } else if (TIP && TIP.classList.contains('tip-mapa')) escondeTip();
+});
+document.addEventListener('mouseleave', () => { if (TIP && TIP.classList.contains('tip-mapa')) escondeTip(); });

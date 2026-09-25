@@ -358,7 +358,7 @@ canvas { image-rendering: auto; }
 .fl-meio .top { display: flex; justify-content: space-between; font-size: 16px; }
 .fl-meio small { font-family: Nunito, sans-serif; font-weight: 600; font-size: 12px; opacity: .85; }
 .fl-meio .sk-bar { height: 8px; margin: 3px 0; }
-.mapa-grande { width: 100%; border: 3px solid var(--madeira2); border-radius: 8px; image-rendering: pixelated; }
+.mapa-grande { width: 100%; border: 3px solid var(--madeira2); border-radius: 8px; image-rendering: auto; }
 .tag-reg { background: #fffaf0; border: 2px solid var(--madeira3); border-radius: 999px; padding: 3px 10px; font-weight: 700; }
 .tag-reg.bloq { opacity: .6; } .tag-reg.aqui { background: var(--amarelo); }
 .atalhos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 14px; }
@@ -422,3 +422,13 @@ canvas { image-rendering: auto; }
 @media (min-width: 901px) { .coluna-paineis { max-height: calc(100vh - var(--topoH, 0px) - 22px) !important; } }
 .sk-pc { font-weight: 700; color: #7a5a3a; font-size: 12px; }
 .cartao-tut-min { pointer-events: auto; opacity: .92; font-size: 12px; }
+.mochila-org { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin: 0 0 6px; font-size: 12.5px; font-weight: 700; }
+.mochila-org span { flex: 1; min-width: 0; }
+.mochila-org .btn { padding: 3px 8px; font-size: 12px; }
+#lugarTela { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); pointer-events: none; z-index: 3; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(30,18,40,.72); border: 1px solid rgba(255,225,74,.45); color: #ffe14a; font: 700 14px/1 Fredoka, sans-serif; padding: 6px 14px; border-radius: 999px; text-shadow: 1px 1px 0 #000; }
+#lugarTela:empty { display: none; }
+body.modo-celular #lugarTela { display: none; } /* no celular o lugar já aparece no painel de cima */
+.prio-alvo { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; font-size: 12.5px; font-weight: 700; }
+.prio-alvo .prio-rot { margin-right: 2px; }
+.prio-alvo .btn { padding: 3px 8px; font-size: 12px; opacity: .75; }
+.prio-alvo .btn.ativo { opacity: 1; background: #ffd23f; color: #3a2400; box-shadow: 0 0 0 2px #fff4b0 inset; }
