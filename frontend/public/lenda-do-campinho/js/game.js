@@ -411,6 +411,11 @@ function soltaDrop(m, id, q, rar, i, n) {
   G.drops.push({ id, q, rar, x0: m.x, y0: m.y, dx: Math.cos(ang) * rnd(0.5, 0.9), dy: rnd(0.15, 0.45), t0: G.agora + i * 90, espera: rar === 'comum' || rar === 'incomum' ? 350 : 900 });
 }
 // adversário muito mais fraco que você rende menos (ou nada): evita "farmar" onde é fácil demais
+// alguma missão aceita ainda precisa desse item (e você ainda não tem o suficiente)?
+function itemPedidoEmMissao(id) {
+  const s = G.save;
+  return MISSOES.some(q => { const e = s.quests[q.id]; return e && e.s === 'ativa' && q.req && q.req.itens && q.req.itens.some(([iid, n]) => iid === id && contaItem(iid) < n); });
+}
 function penalidadeNivel(d) {
   const dif = nivelMonstro(d) - G.save.nivel;
   if (dif >= -5) return { xp: 1, drop: 1, faixa: 0 };
@@ -428,7 +433,7 @@ function matar(m) {
   const ouro = Math.round(rndi(d.ouro[0], d.ouro[1]) * pen.drop); const ganhos = []; const caidos = [];
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
   let melhor = null; const ordemR = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
-  for (const [id, ch, mn, mx] of d.loot) if (Math.random() < ch * pen.drop) {
+  for (const [id, ch, mn, mx] of d.loot) if (Math.random() < ch * (itemPedidoEmMissao(id) ? 1 : pen.drop)) { // item que uma missão ATIVA ainda pede: chance cheia, mesmo em adversário fraco
     const q = rndi(mn, mx); if (!addItem(id, q)) continue;
     const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}`); caidos.push([id, q, rar]);
     if (!melhor || ordemR.indexOf(rar) > ordemR.indexOf(melhor.rar)) melhor = { id, rar };
