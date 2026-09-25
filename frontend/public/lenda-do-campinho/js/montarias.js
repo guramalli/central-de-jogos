@@ -218,7 +218,27 @@ function desenhaMontado(ctx, e) {
   } else {
     const sx = px(mt.assento[0]), sy = vy + mt.assento[1] * h; const k = mt.corte;
     const jogador = () => { ctx.save(); ctx.translate(sx, sy); if (e.flip) ctx.scale(-1, 1); ctx.drawImage(comp.c, 0, 0, comp.c.width, comp.c.height * k, -pw / 2, -ph * k, pw, ph * k); ctx.restore(); };
-    if (mt.frente) { jogador(); veiculo(); } else { veiculo(); jogador(); }
+    if (mt.vista === 'lado' && typeof pernaDe === 'function') {
+      // sentado de lado: corpo até o quadril + as duas pernas saindo do quadril
+      // (bicicleta: pedalam quando anda; lambreta: pés apoiados no piso)
+      const c = comp.c, p = pernaDe(c), s = pw / c.width;
+      const oy = sy - ph * k + p.py * s; // o quadril fica na mesma altura de antes (topo da cabeça no mesmo lugar)
+      const t = G.agora / 130, pedala = mt.spr === 'bicicleta';
+      const base = pedala ? -0.75 : -0.9;
+      const aPerto = base + (pedala && e.mov ? Math.sin(t) * 0.45 : 0), aLonge = base + (pedala ? (e.mov ? Math.sin(t + Math.PI) * 0.45 : 0.25) : 0.15);
+      const perna = (ang, escura) => {
+        ctx.save(); ctx.rotate(ang); if (escura) ctx.filter = 'brightness(0.72)';
+        const h0 = p.fim - p.quadril + 2; ctx.drawImage(c, 0, p.quadril, c.width, h0, -p.px * s, (p.quadril - p.py) * s, c.width * s, h0 * s);
+        ctx.restore();
+      };
+      veiculo();
+      ctx.save(); ctx.translate(sx, oy); if (e.flip) ctx.scale(-1, 1);
+      perna(aLonge, true);                                                         // perna de trás (mais escura)
+      const corteY = p.quadril + 3; ctx.drawImage(c, 0, 0, c.width, corteY, -p.px * s, -p.py * s, c.width * s, corteY * s); // corpo
+      perna(aPerto, false);                                                        // perna da frente
+      ctx.restore();
+      if (mt.frente) veiculo();
+    } else if (mt.frente) { jogador(); veiculo(); } else { veiculo(); jogador(); }
     e._altMont = Math.max(-vy, -(sy - ph * k)) / T;
   }
   ctx.restore();

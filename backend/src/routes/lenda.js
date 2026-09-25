@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
 import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 import { validarSave, validarCasa, escolherCasas, validarRanking } from "../lenda/validar.js";
+import { abrirSave, fichaPublica } from "../lenda/ficha.js";
 
 // ===== Lenda do Campinho (RPG de futebol, em public/lenda-do-campinho/) =====
 //
@@ -143,6 +144,53 @@ router.get("/ranking", async (_req, res) => {
     return topo.filter((t) => !bloqueados.has(t.userId)).slice(0, 50);
   });
   res.json(lista);
+});
+
+// ---------- personagens (página tipo Tibia) ----------
+// Contas que não aparecem em lugar nenhum: banida ou oculta dos rankings.
+async function contasBloqueadas(ids) {
+  if (!ids.length) return new Set();
+  return new Set((await prisma.user.findMany({ where: { id: { in: ids }, OR: [{ banned: true }, { ocultoNoRanking: true }] }, select: { id: true } })).map((u) => u.id));
+}
+// Lista (com busca pelo apelido). Público; 1 min de cache por busca.
+router.get("/personagens", async (req, res) => {
+  const busca = String(req.query.busca || "").trim().slice(0, 30);
+  const lista = await cacheOuBuscar("lenda:personagens:" + busca.toLowerCase(), 60, async () => {
+    const achados = await prisma.lendaRanking.findMany({
+      where: busca ? { apelido: { contains: busca, mode: "insensitive" } } : {},
+      orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 60,
+      select: { userId: true, apelido: true, nivel: true, xp: true, posicao: true, fase: true, time: true, atualizadoEm: true },
+    });
+    const bloq = await contasBloqueadas(achados.map((a) => a.userId));
+    return achados.filter((a) => !bloq.has(a.userId)).slice(0, 50).map(({ userId, ...r }) => r);
+  });
+  res.json(lista);
+});
+// Ficha de um personagem pelo apelido da conta. Público; 1 min de cache.
+// Vem do save na nuvem (fichaPublica escolhe só o que pode ser mostrado).
+router.get("/personagem/:apelido", async (req, res) => {
+  const apelido = String(req.params.apelido || "").trim().slice(0, 30);
+  if (!apelido) return res.status(400).json({ error: "Diga o nome do personagem." });
+  const r = await cacheOuBuscar("lenda:personagem:" + apelido.toLowerCase(), 60, async () => {
+    const u = await prisma.user.findFirst({
+      where: { nickname: { equals: apelido, mode: "insensitive" } },
+      select: { id: true, nickname: true, createdAt: true, isGuest: true, banned: true, ocultoNoRanking: true },
+    });
+    if (!u || u.banned || u.ocultoNoRanking) return { naoAchou: true };
+    const [save, rank] = await Promise.all([
+      prisma.lendaSave.findUnique({ where: { userId: u.id }, select: { dados: true, atualizadoEm: true } }),
+      prisma.lendaRanking.findUnique({ where: { userId: u.id }, select: { nivel: true, xp: true, fase: true, posicao: true, time: true, atualizadoEm: true } }),
+    ]);
+    if (!save && !rank) return { naoAchou: true };
+    return {
+      apelido: u.nickname, membroDesde: u.createdAt, visitante: !!u.isGuest,
+      ultimoJogo: (save || rank).atualizadoEm,
+      ficha: save ? fichaPublica(abrirSave(save.dados)) : null,
+      resumo: rank ? { nivel: rank.nivel, xp: rank.xp, fase: rank.fase, posicao: rank.posicao, time: rank.time } : null,
+    };
+  });
+  if (r.naoAchou) return res.status(404).json({ error: "Personagem não encontrado." });
+  res.json(r);
 });
 
 // Visitar a casa de alguém (só olhar). Conta a visita quando quem olha não é o dono.

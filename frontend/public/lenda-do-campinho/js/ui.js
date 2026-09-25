@@ -633,7 +633,7 @@ async function modalRanking() {
       if (r.ok) {
         const on = await r.json(); const euId = PORTAL.user && PORTAL.user.id;
         const tabOn = el('table', { class: 'rank-tab' }, el('tr', {}, el('th', {}, '#'), el('th', {}, 'Jogador'), el('th', {}, 'Nível'), el('th', {}, 'Fase'), el('th', {}, 'Time'), el('th', {}, 'XP')));
-        on.forEach((x, i) => tabOn.append(el('tr', { class: x.userId === euId ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, x.apelido), el('td', {}, x.nivel), el('td', {}, x.fase + (x.posicao && POSICOES[x.posicao] ? ' · ' + POSICOES[x.posicao].nome : '')), el('td', {}, x.time ? `${x.time.nome} (${nomeDivisao(x.time.div)})` : '—'), el('td', {}, fmt(x.xp)))));
+        on.forEach((x, i) => tabOn.append(el('tr', { class: x.userId === euId ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, typeof linkPers === 'function' ? linkPers(x.apelido) : x.apelido), el('td', {}, x.nivel), el('td', {}, x.fase + (x.posicao && POSICOES[x.posicao] ? ' · ' + POSICOES[x.posicao].nome : '')), el('td', {}, x.time ? `${x.time.nome} (${nomeDivisao(x.time.div)})` : '—'), el('td', {}, fmt(x.xp)))));
         const avisoOn = PORTAL.token ? 'Ranking de todos os jogadores do Educação Gamer. Seu progresso entra sozinho enquanto você joga.' : 'Ranking de todos os jogadores do Educação Gamer. Entre na sua conta do site para aparecer aqui.';
         // logado mas fora da lista: diz o que aconteceu com o último envio (e deixa mandar de novo)
         let estado = null;

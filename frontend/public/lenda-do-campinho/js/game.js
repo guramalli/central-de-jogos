@@ -257,14 +257,35 @@ function linhaVisao(a, b) {
   }
   return true;
 }
-function posLivre(x, y, raio) {
-  for (let i = 0; i < 40; i++) {
-    const nx = x + rndi(-raio, raio), ny = y + rndi(-raio, raio);
-    if (podeAndar(nx, ny) && !(G.p && Math.hypot(nx + 0.5 - G.p.x, ny + 0.5 - G.p.y) < 3)) return { x: nx + 0.5, y: ny + 0.5 };
+// lugar livre pra nascer/passear perto de (x,y): só quadros que dá pra ALCANÇAR andando a partir
+// do ponto (cerca, grade, prédio e água separam) — antes podia nascer do outro lado da grade
+const POS_LIVRE_CACHE = new WeakMap();
+function areaDoSpawn(x, y, raio) {
+  const m = G.mapa; if (!m) return [];
+  let cache = POS_LIVRE_CACHE.get(m); if (!cache) POS_LIVRE_CACHE.set(m, cache = new Map());
+  const chave = x + ',' + y + ',' + raio; if (cache.has(chave)) return cache.get(chave);
+  let ini = podeAndar(x, y) ? [x, y] : null; // o próprio ponto, ou o livre mais perto dele
+  for (let r = 1; r <= 3 && !ini; r++) for (let dy = -r; dy <= r && !ini; dy++) for (let dx = -r; dx <= r && !ini; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && podeAndar(x + dx, y + dy)) ini = [x + dx, y + dy];
+  const ok = [];
+  if (ini) {
+    const lim = Math.max(0, raio | 0) + (ini[0] !== x || ini[1] !== y ? 1 : 0);
+    const vis = new Set([ini[1] * m.w + ini[0]]); const fila = [ini];
+    for (let k = 0; k < fila.length; k++) {
+      const [cx, cy] = fila[k]; ok.push(fila[k]);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy; if (Math.abs(nx - x) > lim || Math.abs(ny - y) > lim) continue;
+        const i = ny * m.w + nx; if (vis.has(i) || !podeAndar(nx, ny)) continue; vis.add(i); fila.push([nx, ny]);
+      }
+    }
   }
-  const c = caminho(x, y, (i, j) => podeAndar(i, j), 800);
-  if (c && c.length) return c[c.length - 1];
-  return podeAndar(x, y) ? { x: x + 0.5, y: y + 0.5 } : null;
+  cache.set(chave, ok); return ok;
+}
+function posLivre(x, y, raio) {
+  const ok = areaDoSpawn(x, y, raio);
+  if (!ok.length) return podeAndar(x, y) ? { x: x + 0.5, y: y + 0.5 } : null;
+  const longe = ok.filter(([i, j]) => !(G.p && Math.hypot(i + 0.5 - G.p.x, j + 0.5 - G.p.y) < 3));
+  const lista = longe.length ? longe : ok; const [i, j] = lista[rndi(0, lista.length - 1)];
+  return { x: i + 0.5, y: j + 0.5 };
 }
 
 /* ---------------- mapa e entidades ---------------- */
@@ -433,12 +454,13 @@ function matar(m) {
   const ouro = Math.round(rndi(d.ouro[0], d.ouro[1]) * pen.drop); const ganhos = []; const caidos = [];
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
   let melhor = null; const ordemR = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
-  for (const [id, ch, mn, mx] of d.loot) if (Math.random() < ch * (itemPedidoEmMissao(id) ? 1 : pen.drop)) { // item que uma missão ATIVA ainda pede: chance cheia, mesmo em adversário fraco
+  for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * (daMissao ? 1 : pen.drop)) { // item que uma missão ATIVA ainda pede: chance cheia, mesmo em adversário fraco
     const q = rndi(mn, mx); if (!addItem(id, q)) continue;
+    if (daMissao && !itemPedidoEmMissao(id)) log(`✔ Você já juntou todos os ${ITENS[id].nome} que a missão pede!${pen.drop < 1 ? ' (Daqui pra frente eles voltam a cair pouco de adversários fracos.)' : ''}`, 'l-xp');
     const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}`); caidos.push([id, q, rar]);
     if (!melhor || ordemR.indexOf(rar) > ordemR.indexOf(melhor.rar)) melhor = { id, rar };
     if (ordemR.indexOf(rar) >= 2) log(`★ Item ${RARIDADE[rar].nome.toUpperCase()}: ${ITENS[id].nome}!`, RARIDADE[rar].log);
-  }
+  } }
   caidos.forEach(([id, q, rar], i) => soltaDrop(m, id, q, rar, i, caidos.length));
   if (melhor && ordemR.indexOf(melhor.rar) >= 2) { som('raro'); if (ordemR.indexOf(melhor.rar) >= 3) { const mb = melhor; setTimeout(() => banner(`ITEM ${RARIDADE[mb.rar].nome.toUpperCase()}!`, ITENS[mb.id].nome), 1800); } }
   if (d.fig && Math.random() < (d.chefe ? 0.5 : 1 / 110) * pen.drop) ganhaFigurinha(d.fig);
