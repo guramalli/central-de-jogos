@@ -621,3 +621,21 @@ model LendaCasa {
   @@index([mapa, prestigio])
   @@index([prestigio])
 }
+
+// Ranking online: o resumo do progresso de cada conta (o jogo manda sozinho,
+// no máximo uma vez por minuto). O nome mostrado é o APELIDO da conta, não o
+// nome livre do personagem — igual às casas.
+model LendaRanking {
+  userId       String   @id
+  apelido      String
+  nivel        Int
+  xp           Int
+  posicao      String?
+  fase         String
+  time         Json?
+  chefes       Int      @default(0)
+  figs         Int      @default(0)
+  atualizadoEm DateTime @updatedAt
+
+  @@index([xp])
+}

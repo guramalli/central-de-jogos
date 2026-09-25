@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validarSave, validarCasa, escolherCasas, LIMITES } from "../../src/lenda/validar.js";
+import { validarSave, validarCasa, escolherCasas, LIMITES, validarRanking } from "../../src/lenda/validar.js";
 
 // Nada aqui toca o banco: só as regras do que o jogo pode mandar.
 
@@ -61,4 +61,21 @@ test("escolherCasas: tira a própria pessoa, põe as mais prestigiadas primeiro 
   assert.equal(r.some((c) => c.userId === "eu"), false);
   assert.equal(new Set(r.map((c) => c.userId)).size, 4);
   assert.deepEqual(escolherCasas([], { limite: 3 }), []);
+});
+
+test("ranking: aceita o resumo do progresso e limpa o nome do time", () => {
+  const v = validarRanking({ nivel: 27, xp: 15400, posicao: "atacante", fase: "Sub-20", time: { nome: " <b>Campinho</b> FC ", div: 3, titulos: 1 }, chefes: 4, figs: 30 });
+  assert.equal(v.ok, true);
+  assert.equal(v.ranking.time.nome, "bCampinho/b FC");
+  assert.equal(v.ranking.nivel, 27);
+});
+
+test("ranking: recusa números absurdos, fase inventada e posição estranha", () => {
+  assert.ok(!validarRanking({ nivel: 0, xp: 10, fase: "Criança" }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: -1, fase: "Criança" }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 1.5, fase: "Criança" }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Deus" }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", posicao: "<script>" }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", time: { nome: "", div: 1 } }).ok);
+  assert.ok(validarRanking({ nivel: 5, xp: 10, fase: "Criança" }).ok);
 });

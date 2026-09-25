@@ -421,3 +421,4 @@ canvas { image-rendering: auto; }
 }
 @media (min-width: 901px) { .coluna-paineis { max-height: calc(100vh - var(--topoH, 0px) - 22px) !important; } }
 .sk-pc { font-weight: 700; color: #7a5a3a; font-size: 12px; }
+.cartao-tut-min { pointer-events: auto; opacity: .92; font-size: 12px; }

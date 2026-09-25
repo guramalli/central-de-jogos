@@ -67,27 +67,65 @@ Object.assign(NPCS, {
 if (typeof iconeNPC === 'function') { const _iconeNPCCs = iconeNPC; iconeNPC = function (n) { return ({ sonia: '🏠', tonico: '🪑', visitante: '👀' })[n.id] || _iconeNPCCs(n); }; }
 
 /* ---------- casas nos mapas ---------- */
+// Casinha nova só em terreno "vazio" (grama ou areia), longe de portas e prédios,
+// e SEM fechar caminho: antes de construir, confere se tudo que dava para
+// alcançar a pé (saídas, portas, pessoas, baús) continua alcançável.
+const CHAO_CASA = new Set([CH.GRAMA, CH.GRAMA_FLOR, CH.AREIA]);
 function livreParaCasa(m, x, y) {
-  return x > 1 && y > 1 && x < m.w - 2 && y < m.h - 2 && !m.obj[y * m.w + x] && CH_ANDA(m.chao[y * m.w + x]) && m.chao[y * m.w + x] !== CH.AGUA
-    && !m.saidas.some(s => Math.abs(s.x - x) <= 1 && Math.abs(s.y - y) <= 1) && !m.npcs.some(n => Math.abs(n.x - x) <= 2 && Math.abs(n.y - y) <= 2)
+  return x > 1 && y > 1 && x < m.w - 2 && y < m.h - 2 && !m.obj[y * m.w + x] && CHAO_CASA.has(m.chao[y * m.w + x])
+    && !m.saidas.some(s => Math.abs(s.x - x) <= 2 && Math.abs(s.y - y) <= 2) && !m.npcs.some(n => Math.abs(n.x - x) <= 2 && Math.abs(n.y - y) <= 2)
+    && !m.pontos.some(pt => Math.abs(pt.x - x) <= 2 && Math.abs(pt.y - y) <= 2)
     && !m.campos.some(c => x >= c.x - 1 && x <= c.x + c.w && y >= c.y - 1 && y <= c.y + c.h)
     && !m.spawns.some(sp => Math.abs(sp.x - x) <= sp.raio + 1 && Math.abs(sp.y - y) <= sp.raio + 1)
-    && !m.predios.some(p => x >= p.x - 1 && x <= p.x + p.w && y >= p.y - 1 && y <= p.y + p.h);
+    && !m.predios.some(p => x >= p.x - 2 && x <= p.x + p.w + 1 && y >= p.y - 2 && y <= p.y + p.h + 2);
 }
-function constroiCasinha(m, ref) { // procura um terreno livre 5x3 (+ calçada embaixo) perto de ref
-  const W = 5, H = 3; let melhor = null, md = 1e9;
+function tileBloqueado(m, x, y) {
+  if (x < 0 || y < 0 || x >= m.w || y >= m.h) return true;
+  const c = m.chao[y * m.w + x]; if (!CH_ANDA(c) || c === CH.AGUA) return true;
+  const o = m.obj[y * m.w + x]; return !!(o && (o.t === 'x' || OBJ_BLOQUEIA.has(o.t)));
+}
+function alcancaveis(m, ini) {
+  const vis = new Uint8Array(m.w * m.h); const fila = [];
+  if (!tileBloqueado(m, ini.x, ini.y)) { vis[ini.y * m.w + ini.x] = 1; fila.push(ini.x, ini.y); }
+  for (let k = 0; k < fila.length; k += 2) {
+    const x = fila[k], y = fila[k + 1];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) continue; const i = ny * m.w + nx; if (!vis[i] && !tileBloqueado(m, nx, ny)) { vis[i] = 1; fila.push(nx, ny); } }
+  }
+  return vis;
+}
+// pontos que precisam continuar alcançáveis: saídas, frente das portas, vizinhos de pessoas/baús
+function pontosImportantes(m) {
+  const pts = [];
+  for (const s of m.saidas) pts.push(s.porta ? { x: s.x, y: s.y + 1 } : { x: s.x, y: s.y });
+  for (const p of m.predios) if (p.porta) pts.push({ x: p.porta.x, y: p.porta.y + 1 });
+  for (const n of [...m.npcs, ...m.pontos]) for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (!tileBloqueado(m, n.x + dx, n.y + dy)) { pts.push({ x: n.x + dx, y: n.y + dy }); break; }
+  return pts.filter(pt => pt.x >= 0 && pt.y >= 0 && pt.x < m.w && pt.y < m.h);
+}
+function constroiCasinha(m, ref) { // terreno livre 5x3 (+ uma fileira livre na frente) perto de ref, sem fechar caminho
+  const W = 5, H = 3;
+  const inicio = m.renasce || m.inicio || { x: m.w >> 1, y: m.h >> 1 };
+  const antes = alcancaveis(m, inicio);
+  const importantes = pontosImportantes(m).filter(pt => antes[pt.y * m.w + pt.x]);
+  const cands = [];
   for (let y = 2; y < m.h - H - 2; y++) for (let x = 2; x < m.w - W - 2; x++) {
-    const d = Math.hypot(x + W / 2 - ref.x, y + H - ref.y); if (d >= md) continue;
     let ok = true;
     for (let j = y; j <= y + H && ok; j++) for (let i = x; i < x + W && ok; i++) if (!livreParaCasa(m, i, j)) ok = false;
-    if (ok) { melhor = { x, y }; md = d; }
+    if (ok) cands.push({ x, y, d: Math.hypot(x + W / 2 - ref.x, y + H - ref.y) });
   }
-  if (!melhor) return null;
-  const { x, y } = melhor; const px = x + Math.floor(W / 2);
-  for (let j = y; j < y + H; j++) for (let i = x; i < x + W; i++) m.obj[j * m.w + i] = { t: 'x', v: 0, predio: true };
-  m.obj[(y + H - 1) * m.w + px] = null;
-  const p = { spr: 'b_casa', x, y, w: W, h: H, porta: { x: px, y: y + H - 1 } };
-  m.predios.push(p); return p;
+  cands.sort((a, b) => a.d - b.d);
+  for (const { x, y } of cands) {
+    const px = x + Math.floor(W / 2);
+    const guarda = []; for (let j = y; j < y + H; j++) for (let i = x; i < x + W; i++) { guarda.push([j * m.w + i, m.obj[j * m.w + i]]); m.obj[j * m.w + i] = { t: 'x', v: 0, predio: true }; }
+    m.obj[(y + H - 1) * m.w + px] = null;
+    const depois = alcancaveis(m, inicio);
+    const frente = depois[(y + H) * m.w + px];
+    if (frente && importantes.every(pt => depois[pt.y * m.w + pt.x])) {
+      const p = { spr: 'b_casa', x, y, w: W, h: H, porta: { x: px, y: y + H - 1 } };
+      m.predios.push(p); return p;
+    }
+    for (const [i, o] of guarda) m.obj[i] = o; // fecharia algum caminho: desfaz e tenta outro lugar
+  }
+  return null;
 }
 function criaCasasNoMapa(m, local) {
   const [mapa, nomeLocal, preco, rua, tema] = local;

@@ -191,13 +191,20 @@ function mapaVila() {
   b.espalha(ARVORES, 22, 36, 29, 10, 7, FILTRO_GRAMA);
   b.espalha('arbusto', 10, 36, 29, 10, 7, FILTRO_GRAMA);
   b.spawn('caramelo', 40, 31, 5, 4);
-  b.spawn('zagueiro_rua', 42, 34, 4, 3);
+  b.spawn('zagueiro_rua', 40, 32, 3, 2);
   b.spawn('caramelo', 5, 34, 3, 3);
   // postes na rua
   for (let x = 4; x < 44; x += 8) if (b.livre(x, 16)) b.obj(x, 16, 'poste');
   b.espalha(ARVORES, 14, 2, 2, 44, 34, FILTRO_GRAMA);
   b.espalha('arbusto', 16, 2, 2, 44, 34, FILTRO_GRAMA);
   b.espalha('pedra', 5, 2, 2, 44, 34, FILTRO_GRAMA);
+  // clareira no mato leste: os Zagueiros da Rua e o Caramelo precisam de espaço
+  // (fica só uma árvore aqui e ali, mais na beirada)
+  for (let y = 28; y <= 35; y++) for (let x = 34; x <= 45; x++) {
+    const o = b.m.obj[y * b.m.w + x]; if (!o || !/^(arvore|mangueira|arbusto|pedra)$/.test(o.t)) continue;
+    const fica = (x === 45 || y === 28) ? hash2(x, y) < 0.4 : false;
+    if (!fica) b.obj(x, y, null);
+  }
   // saída para a PRAIA
   b.ret(44, 17, 4, 2, CH.TERRA); b.limpa(44, 17, 4, 2);
   const req = { flag: 'libera_praia', msg: 'O caminho pra praia é longe! Vença o Tonhão (missão do Seu Zé) primeiro.' };

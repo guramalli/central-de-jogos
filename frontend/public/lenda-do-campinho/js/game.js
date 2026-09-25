@@ -78,7 +78,17 @@ function atualizaRanking() {
   lista.push({ id: s.criado, nome: s.nome, nivel: s.nivel, xp: s.xp, posicao: s.posicao, fase: FASES[faseIdx(s.nivel)].nome, chefes: s.st.chefes, figs: Object.keys(s.figs).length, time, data: Date.now() });
   lista.sort((a, b) => b.xp - a.xp);
   try { localStorage.setItem(RANK_KEY, JSON.stringify(lista.slice(0, 50))); } catch { }
-  if (CONFIG.rankingUrl) fetch(CONFIG.rankingUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lista.find(r => r.id === s.criado)) }).catch(() => { });
+  enviaRankingOnline(lista.find(r => r.id === s.criado));
+}
+// Ranking online (site Educação Gamer, PUT /api/lenda/ranking): manda o resumo
+// da conta logada no site, no máximo 1x por minuto (salvar() roda toda hora).
+// O nome mostrado lá é o apelido da conta, não o do personagem.
+let ultimoEnvioRanking = 0;
+function enviaRankingOnline(r) {
+  if (typeof PORTAL === 'undefined' || !PORTAL.ativo || !PORTAL.token || !r) return;
+  const agora = Date.now(); if (agora - ultimoEnvioRanking < 60000) return; ultimoEnvioRanking = agora;
+  const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time, chefes: r.chefes || 0, figs: r.figs || 0 };
+  fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) }).catch(() => { });
 }
 
 /* ---------------- atributos ---------------- */
@@ -272,8 +282,16 @@ function velJogador() {
   const t = tileDe(G.p); const c = G.mapa.chao[t.y * G.mapa.w + t.x];
   return stats().vel / 60 * (c === CH.AREIA || c === CH.AREIA_MOLHADA ? 0.88 : 1);
 }
+// está na tela? (folga em quadros além da beirada)
+function naTela(e, folga = 0) {
+  if (!CV || !G.zoom || !G.cam) return true;
+  const vw = CV.width / G.zoom, vh = CV.height / G.zoom, x = e.x * T, y = e.y * T, f = folga * T;
+  return x >= G.cam.x - f && x <= G.cam.x + vw + f && y >= G.cam.y - f && y <= G.cam.y + vh + f;
+}
 function atualizaJogador(dt) {
   const p = G.p; p.mov = false;
+  // o alvo saiu da tela: perde o foco (senão o jogador volta andando atrás dele)
+  if (G.alvo && !naTela(G.alvo, 1)) { G.alvo = null; p.cam = null; G.uiSujo = true; }
   if (G.save.hp <= 0) return;
   const v = velJogador() * dt / 1000;
   let ix = 0, iy = 0;
@@ -847,7 +865,7 @@ function proximoPasso(destMapa) {
 }
 function objetivoAtual() {
   const s = G.save;
-  if (s.tut < TUTORIAL.length) { const st = TUTORIAL[s.tut]; return st.alvo ? st.alvo() : null; }
+  if (s.tut < TUTORIAL.length) { const st = TUTORIAL[s.tut]; if (st.alvo) { const a = st.alvo(); if (a) return a; } } // passo sem alvo (ex.: "passe por 6 pombos"): a seta segue a missão ativa
   if (!G.guiaOn) return null;
   for (const q of MISSOES) if (statusMissao(q) === 'pronta') return alvoNpc(q.npc);
   for (const q of MISSOES) if (statusMissao(q) === 'ativa') {
@@ -1299,8 +1317,8 @@ function atualizaBotaoAlvo() {
   b.textContent = `V · 🎯 ${{ perto: 'Perto', forte: 'Forte', fraco: 'Fraco', vida: 'Fôlego' }[G.save.modoAlvo || 'perto']}`; b.title = `ESPAÇO marca: ${MODOS_ALVO[G.save.modoAlvo || 'perto']} (tecla V troca)`;
 }
 function alvoMaisProximo() {
-  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8));
-  if (!vis.length) { const t = G.mons.filter(m => m.d.treino && dist(m, p) < 6).sort((a, b) => dist(a, p) - dist(b, p)); if (t.length) { G.alvo = t[0]; G.uiSujo = true; } return; }
+  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8 && naTela(m)));
+  if (!vis.length) { const t = G.mons.filter(m => m.d.treino && dist(m, p) < 6 && naTela(m)).sort((a, b) => dist(a, p) - dist(b, p)); if (t.length) { G.alvo = t[0]; G.uiSujo = true; } return; }
   const i = vis.indexOf(G.alvo); G.alvo = vis[(i + 1) % vis.length]; G.uiSujo = true;
 }
 function instalaEntrada() {
@@ -1341,7 +1359,7 @@ function instalaEntrada() {
 }
 function mudaZoom(d) { G.zoomVis = clamp((G.zoomVis || 15.5) + d, 9, 22); }
 function alvoAnterior() {
-  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8)); if (!vis.length) return;
+  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8 && naTela(m))); if (!vis.length) return;
   const i = vis.indexOf(G.alvo); G.alvo = vis[(i - 1 + vis.length) % vis.length]; G.uiSujo = true;
 }
 function trocaModo() { G.modo = G.modo === 'drible' ? 'chute' : 'drible'; log(G.modo === 'drible' ? 'Modo DRIBLE: ataca colado no adversário (treina Drible).' : 'Modo CHUTE: ataca de longe (treina Chute).', 'l-info'); G.uiSujo = true; }

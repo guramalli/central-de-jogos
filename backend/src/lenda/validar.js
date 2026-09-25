@@ -82,6 +82,26 @@ export function validarCasa(body) {
   return { ok: true, casa: { casaId, mapa, moveis: moveisOk, itens: itensOk, vitrine: vitrineOk, prestigio } };
 }
 
+// Resumo do progresso pro ranking online. Só números e nomes curtos; o nome
+// mostrado vem da conta (apelido), então o do personagem nem é aceito aqui.
+const FASES_VALIDAS = new Set(["Criança", "Juvenil", "Sub-20", "Profissional", "Lenda"]);
+const RE_POSICAO = /^[a-z_]{2,20}$/;
+export function validarRanking(body) {
+  const { nivel, xp, posicao, fase, time, chefes = 0, figs = 0 } = body || {};
+  if (!inteiro(nivel, 1, LIMITES.nivelMax)) return { erro: "Nível inválido." };
+  if (!inteiro(xp, 0, 2_000_000_000)) return { erro: "XP inválido." };
+  if (posicao != null && (typeof posicao !== "string" || !RE_POSICAO.test(posicao))) return { erro: "Posição inválida." };
+  if (!FASES_VALIDAS.has(fase)) return { erro: "Fase inválida." };
+  if (!inteiro(chefes, 0, 100_000) || !inteiro(figs, 0, 100_000)) return { erro: "Números inválidos." };
+  let timeOk = null;
+  if (time != null) {
+    const nome = typeof time.nome === "string" ? time.nome.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 30) : "";
+    if (!nome || !inteiro(time.div, 0, 50) || !inteiro(time.titulos ?? 0, 0, 100_000)) return { erro: "Time inválido." };
+    timeOk = { nome, div: time.div, titulos: time.titulos ?? 0 };
+  }
+  return { ok: true, ranking: { nivel, xp, posicao: posicao ?? null, fase, time: timeOk, chefes, figs } };
+}
+
 // Quais casas mostrar num lugar: algumas das mais prestigiadas (as "vitrines"
 // que valem a visita) + um sorteio entre as outras, pra todo mundo ter chance
 // de ser visto. `lista` já vem do banco; `sortear` é injetável pra teste.

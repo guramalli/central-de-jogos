@@ -11,6 +11,7 @@
    Carregar DEPOIS de game.js (e de clima.js, que também envolve atualiza).
    ============================================================ */
 const JOGADA_DUR = { pedalada: 750, chapeu: 900, elastico: 700, caneta: 850, chute_colocado: 380, voleio: 520, bicicleta: 750, tabela: 900, relampago: 800, respiro: 900, folego_campeao: 1100, arrancada: 600 };
+const PERNAS_JOGADA = { pedalada: 3, relampago: 5 }; // ciclos de passo (4 quadros cada) durante a jogada
 const jLerp = (a, b, k) => a + (b - a) * k;
 const jSuave = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
 
@@ -66,7 +67,7 @@ function bolaDaJogada(j, k) {
 function poseDaJogada(j, k) {
   const lado = -j.dy;
   switch (j.id) {
-    case 'pedalada': return { ox: Math.sin(k * Math.PI * 4) * 0.12 * lado, oy: 0, sobe: Math.abs(Math.sin(k * Math.PI * 4)) * 0.05, rot: Math.sin(k * Math.PI * 4) * 0.12 };
+    case 'pedalada': return { ox: Math.sin(k * Math.PI * 4) * 0.08 * lado, oy: 0, sobe: Math.abs(Math.sin(k * Math.PI * 4)) * 0.03, rot: Math.sin(k * Math.PI * 4) * 0.04 };
     case 'elastico': return { ox: lado * 0.1 * Math.sin(k * Math.PI * 2), oy: 0, sobe: 0, rot: Math.sin(k * Math.PI * 2) * 0.15 };
     case 'relampago': return { ox: Math.sin(k * Math.PI * 6) * 0.25 * lado, oy: 0, sobe: 0.05, rot: 0, rastro: true };
     case 'voleio': return { ox: 0, oy: 0, sobe: Math.sin(Math.min(1, k / 0.6) * Math.PI) * 0.35, rot: k < 0.6 ? -0.2 : 0 };
@@ -126,7 +127,14 @@ desenhaEnt = function (ctx, e) {
   ctx.translate(cx, base - pose.sobe * T);
   if (pose.rot) { const meio = alturaEnt(e) * T * 0.5; ctx.translate(0, -meio); ctx.rotate(pose.rot); ctx.translate(0, meio); }
   ctx.translate(-e.x * T, -e.y * T);
-  _desenhaEntJ(ctx, e);
+  // pedalada: as perninhas passam por cima da bola (quadros de passo bem rápidos, no lugar)
+  const pernas = PERNAS_JOGADA[j.id];
+  if (pernas) {
+    const g = { mov: e.mov, fase: e.fase, vista: e.vista, tVista: e.tVista, golpe: e.golpe };
+    e.mov = true; e.fase = k * pernas * Math.PI * 2; e.vista = 'lado'; e.tVista = G.agora; e.golpe = 0;
+    _desenhaEntJ(ctx, e);
+    Object.assign(e, g);
+  } else _desenhaEntJ(ctx, e);
   ctx.restore();
   G.save.flags.pegou_bola = flag;
   // a bola coreografada

@@ -8,11 +8,11 @@
 // Onde ficam as peças de avatar do Educação Gamer (CORS liberado)
 const ASSET_BASE = 'https://www.educacaogamer.com.br';
 
-// Ranking online (opcional). Se quiser plugar na API do site, coloque
-// a URL aqui. O jogo faz POST {nome, nivel, xp, posicao, fase, ...}
-// e GET para listar o top. Com null, o ranking fica só no aparelho.
+// Ranking online: ligado pelo PORTAL (js/portal.js) quando o jogo roda dentro
+// do site — PUT/GET /api/lenda/ranking (ver enviaRankingOnline em game.js e
+// modalRanking em ui.js). Fora do site, o ranking fica só no aparelho.
 const CONFIG = {
-  rankingUrl: null,
+  rankingUrl: null, // não usado mais (mantido pra saves/código antigos)
   versaoSave: 1,
 };
 
