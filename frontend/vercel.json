@@ -1,5 +1,9 @@
 {
+  "redirects": [
+    { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false }
+  ],
   "rewrites": [
+    { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }

@@ -2537,3 +2537,28 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
 .v2-acro-linha.vencedora:not(:has(.v2-acro-vencedor-boneco *)) { padding-left: revert; min-height: 0; }
 @media (max-width: 560px) { .v2-acro-linha.vencedora { padding-left: 96px; } .v2-acro-vencedor-boneco { transform: scale(.8); transform-origin: 0 100%; } }
 @media (prefers-reduced-motion: reduce) { .v2-acro-vencedor-boneco { animation: none; } }
+
+/* ===== Lenda do Campinho: card de destaque (carro-chefe) ===== */
+.v2-lenda { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: center; margin: 4px 0 18px; padding: 20px 18px 22px;
+  border-radius: 28px; border: 3px solid var(--amarelo); box-shadow: 0 8px 0 var(--amarelo-sombra), 0 14px 34px rgba(255, 214, 10, .18);
+  background: radial-gradient(120% 120% at 0% 0%, rgba(255, 214, 10, .22) 0%, transparent 55%), radial-gradient(120% 140% at 100% 100%, rgba(6, 214, 160, .18) 0%, transparent 55%), linear-gradient(160deg, var(--roxo-2), var(--roxo-escuro));
+  animation: v2-entra .45s ease-out both; transition: transform .15s; overflow: hidden; }
+.v2-lenda:hover { transform: translateY(-4px) rotate(-.3deg); }
+.v2-lenda-selos { position: absolute; top: 14px; right: 14px; display: flex; gap: 6px; z-index: 1; }
+.v2-lenda-selos b { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px; padding: 4px 10px; border-radius: 999px; }
+.v2-lenda-novo { background: var(--amarelo); color: var(--roxo); }
+.v2-lenda-beta { background: var(--vermelho); color: #fff; }
+.v2-lenda-logo { width: 100%; max-width: 360px; height: auto; justify-self: center; filter: drop-shadow(0 6px 0 rgba(0, 0, 0, .25)); animation: v2-float 3.5s ease-in-out infinite; }
+.v2-lenda-texto { display: flex; flex-direction: column; gap: 8px; }
+.v2-lenda-sobre { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: var(--amarelo); }
+.v2-lenda h2 { margin: 0; font-family: var(--titulo); font-weight: 700; font-size: 32px; line-height: 1.05; }
+.v2-lenda p { margin: 0; font-weight: 700; font-size: 15px; line-height: 1.5; color: var(--creme); }
+.v2-lenda-lista { list-style: none; margin: 2px 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+.v2-lenda-lista li { font-size: 13px; font-weight: 900; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 214, 10, .4); }
+.v2-lenda-cta { align-self: flex-start; margin-top: 4px; font-family: var(--titulo); font-weight: 700; font-size: 20px; color: var(--roxo); background: var(--amarelo); padding: 10px 24px; border-radius: 999px; box-shadow: 0 5px 0 var(--amarelo-sombra); }
+.v2-lenda:hover .v2-lenda-cta { transform: translateY(-1px); }
+.v2-lenda-obs { font-size: 12.5px; font-weight: 800; color: var(--lilas); }
+@media (min-width: 700px) {
+  .v2-lenda { grid-template-columns: minmax(240px, 42%) 1fr; gap: 22px; padding: 24px 28px 26px; }
+  .v2-lenda h2 { font-size: 38px; }
+}

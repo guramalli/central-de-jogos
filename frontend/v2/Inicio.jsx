@@ -11,6 +11,7 @@ import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
 import AvatarBoneco, { MiniaturaPeca } from "./AvatarBoneco.jsx";
 import AvisoPecaNova from "./AvisoPecaNova.jsx";
 import { useCatalogoAvatar } from "./avatarCatalogo.js";
+import LendaDestaque from "./LendaDestaque.jsx";
 
 const NOMES = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", mentira: "Mentira Sincera", tribunal: "O Tribunal", impostor: "O Impostor" };
 // Jogos com página própria (não usam a lobby de salas do Stop/Quiz/Acromania).
@@ -123,6 +124,9 @@ export default function Inicio({ usuario }) {
             )}
           </div>
         </section>
+
+        {/* Carro-chefe: o RPG Lenda do Campinho, em destaque acima dos outros jogos */}
+        <LendaDestaque />
 
         {/* Duas fileiras: SALAS (Stop, Quiz) e FILA DE ESPERA (os jogos com
             fila — a pessoa deixa o nome no rodapé do card). */}

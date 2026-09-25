@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import LendaDestaque from "./LendaDestaque.jsx";
 import { GoogleLogin } from "@react-oauth/google";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
@@ -177,6 +178,9 @@ export function Entrada() {
           <Visitante aoErro={setErro} />
         </div>
       </section>
+
+      {/* Carro-chefe: o RPG Lenda do Campinho (dá pra jogar sem cadastro) */}
+      <LendaDestaque publico />
 
       <div className="v2-jogos-cards">
         {jogos.map((j, i) => (

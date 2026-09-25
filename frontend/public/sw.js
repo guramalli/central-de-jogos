@@ -35,7 +35,12 @@
 // subida de versão limpa o que já tinha acumulado.
 // eg-v14: sem internet, quem está na v2 caía na casca do site CLÁSSICO
 // (o reserva era sempre "/"). Agora a v2 tem a própria casca guardada.
-const VERSAO = "eg-v14";
+// eg-v15: o jogo Lenda do Campinho (/lenda-do-campinho/) fica FORA deste SW.
+// Ele tem imagens com nome fixo e muitos arquivos; na regra de "cache
+// primeiro" daqui, a arte nova nunca chegaria e o cache cresceria a cada
+// versão. O próprio jogo cuida do que precisa (e o vercel.json já dá o
+// cache certo às imagens).
+const VERSAO = "eg-v15";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -102,6 +107,9 @@ self.addEventListener("fetch", (evento) => {
   ) {
     return;
   }
+
+  // ===== Lenda do Campinho: fica de fora (ver eg-v15) =====
+  if (url.pathname === "/lenda-do-campinho" || url.pathname.startsWith("/lenda-do-campinho/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos
