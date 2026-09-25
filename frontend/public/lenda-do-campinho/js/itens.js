@@ -106,10 +106,15 @@ function escondeTip() { if (TIP) { TIP.remove(); TIP = null; } }
 let MOUSE = { x: -1, y: -1 };
 window.addEventListener('mousemove', ev => { MOUSE = { x: ev.clientX, y: ev.clientY }; }, { passive: true });
 function comTip(elm, fn) {
+  // os ouvintes entram uma vez só e leem elm._tip na hora: um quadro que é
+  // redesenhado (ex.: slot da barra que trocou de item/drible) mostra sempre a dica ATUAL
   elm._tip = fn;
-  elm.addEventListener('mouseenter', ev => mostraTip(ev, fn()));
-  elm.addEventListener('mousemove', moveTip);
-  elm.addEventListener('mouseleave', escondeTip);
+  if (!elm._comTip) {
+    elm._comTip = true;
+    elm.addEventListener('mouseenter', ev => { if (elm._tip) mostraTip(ev, elm._tip()); });
+    elm.addEventListener('mousemove', moveTip);
+    elm.addEventListener('mouseleave', escondeTip);
+  }
   elm.removeAttribute('title');
 }
 // selo no quadro: atributo principal + seta de comparação
@@ -177,7 +182,7 @@ atualizaPaineis = function () {
     comTip(b, () => tipItem(id, r, 'Clique para tirar'));
   });
   // barra de atalhos (itens) com dica
-  document.querySelectorAll('#hotbar .slot').forEach((b, i) => { const h = s.hotbar[i]; ORDEM_RAR.forEach(r => b.classList.remove('rar-' + r)); if (h && h.t === 'i' && ITENS[h.id]) { marcaRaridade(b, h.id); comTip(b, () => tipItem(h.id, 0, 'Botão direito remove da barra')); } });
+  document.querySelectorAll('#hotbar .slot').forEach((b, i) => { const h = s.hotbar[i]; ORDEM_RAR.forEach(r => b.classList.remove('rar-' + r)); if (h && h.t === 'i' && ITENS[h.id]) { marcaRaridade(b, h.id); comTip(b, () => tipItem(h.id, 0, 'Botão direito remove da barra')); } else b._tip = null; });
   // habilidades: dribles aprendidos
   const sk = $('#skills'); if (!sk) return;
   const box = el('div', { class: 'dribles-lista' }, el('h4', {}, 'Dribles'), el('small', { class: 'vazio' }, 'Arraste para a barra de atalhos (1–0) ou use o botão.'));

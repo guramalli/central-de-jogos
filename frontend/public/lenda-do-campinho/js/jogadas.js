@@ -10,9 +10,41 @@
    o dano continua sendo calculado em usarDrible (game.js).
    Carregar DEPOIS de game.js (e de clima.js, que também envolve atualiza).
    ============================================================ */
-const JOGADA_DUR = { pedalada: 750, chapeu: 900, elastico: 700, caneta: 850, chute_colocado: 380, voleio: 520, bicicleta: 750, tabela: 900, relampago: 800, respiro: 900, folego_campeao: 1100, arrancada: 600 };
+const JOGADA_DUR = { pedalada: 750, chapeu: 900, elastico: 700, caneta: 850, chute_colocado: 600, voleio: 520, bicicleta: 750, tabela: 900, relampago: 800, respiro: 900, folego_campeao: 1100, arrancada: 600 };
 const PERNAS_JOGADA = { pedalada: 3, relampago: 5 }; // ciclos de passo (4 quadros cada) durante a jogada
 const jLerp = (a, b, k) => a + (b - a) * k;
+// Chute colocado: ângulo da perna (radianos; + = pé pra trás, − = pé pra frente e pra cima)
+// preparo rápido → batida → segura a finalização → volta
+function anguloChute(k) {
+  if (k < 0.12) return jLerp(0, 0.75, k / 0.12);
+  if (k < 0.26) return jLerp(0.75, -1.25, (k - 0.12) / 0.14);
+  if (k < 0.6) return jLerp(-1.25, -1.0, (k - 0.26) / 0.34);
+  return jLerp(-1.0, 0, (k - 0.6) / 0.4);
+}
+// Monta o boneco chutando a partir do quadro de lado parado (pernas juntas):
+// recorta a parte das pernas e desenha uma cópia girada no quadril por cima.
+const PERNA_INFO = new WeakMap(); let CHUTE_CV = null;
+function pernaDe(c) {
+  let inf = PERNA_INFO.get(c); if (inf) return inf;
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, W = c.width;
+  const linha = y => { let a = -1, b = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 128) { if (a < 0) a = x; b = x; } return [a, b]; };
+  let fim = c.height - 1; while (fim > 0 && linha(fim)[0] < 0) fim--;
+  let ini = 0; while (ini < fim && linha(ini)[0] < 0) ini++;
+  const quadril = Math.round(fim - (fim - ini) * 0.175); const [a, b] = linha(quadril); // da barra do calção pra baixo
+  inf = { quadril, fim, px: a >= 0 ? (a + b) / 2 : W / 2, py: quadril - 8 }; // gira no quadril (um pouco acima, dentro do calção)
+  PERNA_INFO.set(c, inf); return inf;
+}
+function spriteChute(base, ang) {
+  const p = pernaDe(base);
+  if (!CHUTE_CV || CHUTE_CV.width !== base.width || CHUTE_CV.height !== base.height) CHUTE_CV = mkCanvas(base.width, base.height);
+  const x = CHUTE_CV.getContext('2d'); x.clearRect(0, 0, base.width, base.height);
+  x.drawImage(base, 0, 0); // corpo + perna de apoio
+  const h = p.fim - p.quadril + 2;
+  x.save(); x.translate(p.px, p.py); x.rotate(ang); x.translate(-p.px, -p.py);
+  x.drawImage(base, 0, p.quadril, base.width, h, 0, p.quadril, base.width, h); // perna que chuta
+  x.restore();
+  return CHUTE_CV;
+}
 const jSuave = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
 
 function iniciaJogada(id) {
@@ -129,7 +161,13 @@ desenhaEnt = function (ctx, e) {
   ctx.translate(-e.x * T, -e.y * T);
   // pedalada: as perninhas passam por cima da bola (quadros de passo bem rápidos, no lugar)
   const pernas = PERNAS_JOGADA[j.id];
-  if (pernas) {
+  if (j.id === 'chute_colocado' && typeof spriteBoneco === 'function') {
+    // chute: o boneco de lado, parado, e a perna da frente (direita) balança no quadril
+    const g = { mov: e.mov, vista: e.vista, tVista: e.tVista, golpe: e.golpe }, orig = spriteBoneco;
+    e.mov = false; e.vista = 'lado'; e.tVista = G.agora; e.golpe = 0;
+    spriteBoneco = function (look, vista, q) { const s = orig(look, vista, q); return e === G.p && vista === 'lado' && s && s.c ? { c: spriteChute(s.c, anguloChute(k)) } : s; };
+    try { _desenhaEntJ(ctx, e); } finally { spriteBoneco = orig; Object.assign(e, g); }
+  } else if (pernas) {
     const g = { mov: e.mov, fase: e.fase, vista: e.vista, tVista: e.tVista, golpe: e.golpe };
     e.mov = true; e.fase = k * pernas * Math.PI * 2; e.vista = 'lado'; e.tVista = G.agora; e.golpe = 0;
     _desenhaEntJ(ctx, e);

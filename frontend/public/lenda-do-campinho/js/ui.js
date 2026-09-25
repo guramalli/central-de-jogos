@@ -632,7 +632,17 @@ async function modalRanking() {
         const tabOn = el('table', { class: 'rank-tab' }, el('tr', {}, el('th', {}, '#'), el('th', {}, 'Jogador'), el('th', {}, 'Nível'), el('th', {}, 'Fase'), el('th', {}, 'Time'), el('th', {}, 'XP')));
         on.forEach((x, i) => tabOn.append(el('tr', { class: x.userId === euId ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, x.apelido), el('td', {}, x.nivel), el('td', {}, x.fase + (x.posicao && POSICOES[x.posicao] ? ' · ' + POSICOES[x.posicao].nome : '')), el('td', {}, x.time ? `${x.time.nome} (${nomeDivisao(x.time.div)})` : '—'), el('td', {}, fmt(x.xp)))));
         const avisoOn = PORTAL.token ? 'Ranking de todos os jogadores do Educação Gamer. Seu progresso entra sozinho enquanto você joga.' : 'Ranking de todos os jogadores do Educação Gamer. Entre na sua conta do site para aparecer aqui.';
-        abreModal(el('h2', {}, 'Ranking'), el('p', {}, avisoOn), on.length ? tabOn : el('p', {}, 'Ninguém no ranking ainda. Seja o primeiro!'));
+        // logado mas fora da lista: diz o que aconteceu com o último envio (e deixa mandar de novo)
+        let estado = null;
+        if (PORTAL.token && G.save && !on.some(x => x.userId === euId)) {
+          const R = typeof RANK_ONLINE !== 'undefined' ? RANK_ONLINE : null;
+          const txt = !R ? 'Seu progresso vai para o ranking em até 1 minuto de jogo.'
+            : R.ok ? 'Seu progresso foi enviado! Pode levar até 1 minuto para aparecer aqui.'
+            : R.status === 401 ? 'Sua sessão do site expirou: entre de novo na sua conta do Educação Gamer para aparecer no ranking.'
+            : `Não deu para entrar no ranking agora (${R.status ? 'erro ' + R.status : 'sem conexão'}${R.msg ? ': ' + R.msg : ''}).`;
+          estado = el('div', { class: 'nuvem-caixa' }, el('span', {}, txt), el('button', { class: 'btn mini', type: 'button', onclick: () => { enviaRankingJa(); setTimeout(() => modalRanking(), 1500); } }, '🔄 Enviar agora'));
+        }
+        abreModal(el('h2', {}, 'Ranking'), el('p', {}, avisoOn), ...(estado ? [estado] : []), on.length ? tabOn : el('p', {}, 'Ninguém no ranking ainda. Seja o primeiro!'));
         if (!G.rodando) $('#modal').onclick = null;
         return;
       }
