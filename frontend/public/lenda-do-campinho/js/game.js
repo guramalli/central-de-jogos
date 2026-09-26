@@ -1066,7 +1066,7 @@ function desenha(dt) {
     const topo = tela(e.x, e.y - alturaEnt(e) - 0.08);
     if (topo.x < -50 || topo.x > CV.width + 50 || topo.y < -50 || topo.y > CV.height + 50) continue;
     if (e.hp !== undefined) {
-      if (!(e === G.alvo || hover || e.bravo || e.hp < e.d.hp || (e.d.chefe && perto))) continue;
+      if (!(e === G.alvo || hover || e.bravo || e.hp < e.d.hp || (e.d.chefe && perto) || e.d.pedra)) continue; // pedra celestial (vale.js): nome sempre à vista
       if (e.d.treino) { rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#e8e8e8', 12); continue; }
       { const nv = nivelMonstro(e.d); rotulo(ctx, `Nv ${nv}`, topo.x, topo.y - 25 * px, corNivel(nv), 11.5); } // força da criatura
       rotulo(ctx, e.d.nome, topo.x, topo.y - 12 * px, e.d.chefe ? '#ff8a7a' : '#ffffff', 12);

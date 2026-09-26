@@ -59,6 +59,7 @@ const BICHOS_ATL = [
   ['dragao_anciao', 'Dragão Ancião', 296, 'meia', 1.9, false, 'ovo_dragao', 'Ovo de Dragão', 'Raríssimo! Dizem que choca quando alguém faz um gol de bicicleta.', ['GROOOOAR!', 'Mil anos de futebol!']],
 ];
 const BICHOS_ATL_ID = new Set(BICHOS_ATL.map(b => b[0]));
+const SPR_BICHO = id => id === 'rato' ? 'bicho_rato2' : 'bicho_' + id; // rato2: a 1ª arte segurava uma bola de futebol americano
 
 /* ---------- itens: equipamentos 200–300, poções, comida, loot ---------- */
 Object.assign(ITENS, {
@@ -80,7 +81,7 @@ Object.assign(ITENS, {
 for (const [id, nome, L, , , , item, nomeItem, descItem] of BICHOS_ATL) ITENS[item] = { nome: nomeItem, tipo: 'loot', venda: Math.round(L * 14 * (id === 'dragao_anciao' ? 6 : 1)), desc: descItem };
 const ICONES_ATL = BICHOS_ATL.map(b => 'i_' + b[6]);
 const ASSETS_ATL = ['t_areia_mar', 't_pedra_mar', 'b_atl1', 'b_atl2', 'coral_grande', 'alga_alta', 'concha_gigante', 'ancora_bau', 'submarino', 'estatua_netuno', 'coluna_ruina', 'bolhas', 'ent_porao', 'ent_toca', 'ent_toca_deserto',
-  ...BICHOS_ATL.map(b => 'bicho_' + b[0]), ...ICONES_ATL];
+  ...BICHOS_ATL.map(b => SPR_BICHO(b[0])), ...ICONES_ATL];
 ASSETS_ATL.forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
 // ícone "tingido" (equipamentos novos usam a arte de outro item com outra cor)
 const ICON_TINGE = new Map();
@@ -98,7 +99,7 @@ iconeItem = function (id) {
 const GEAR_TIER = L => L < 232 ? ['chuteira_coral', 'camisa_coral', 'caneleira_coral', 'colar_perola'] : L < 268 ? ['chuteira_abissal', 'camisa_abissal', 'caneleira_abissal'] : ['chuteira_draconica', 'camisa_draconica', 'caneleira_draconica', 'coroa_dragao'];
 for (const [id, nome, L, arq, alt, voa, item, , , falas] of BICHOS_ATL) {
   const m = montaMonstro(id, nome, arq, L, { falas, proj: /dragao/.test(id) ? 'bolaforte' : id === 'aranha' ? 'papel' : 'bola' });
-  m.look = { tipo: id, spr: 'bicho_' + id, voa, grande: alt >= 1.3 };
+  m.look = { tipo: id, spr: SPR_BICHO(id), voa, grande: alt >= 1.3 };
   if (id === 'dragao_anciao') { m.hp = Math.round(m.hp * 1.6); m.xp = Math.round(m.xp * 1.5); m.atk = Math.round(m.atk * 1.1); }
   const g = GEAR_TIER(L);
   m.loot = [[item, 0.3, 1, 2], ['fio_ouro', 0.02, 1, 1], ['elixir_mar', 0.05, 1, 1], [g[(L >> 1) % g.length], id === 'dragao_anciao' ? 0.012 : 0.004, 1, 1]];
@@ -109,7 +110,7 @@ for (const [id, nome, L, arq, alt, voa, item, , , falas] of BICHOS_ATL) {
 const _desenhaBichoAtl = desenhaBicho;
 desenhaBicho = function (x, tipo, px, py, s, a) {
   if (!BICHOS_ATL_ID.has(tipo)) return _desenhaBichoAtl.apply(this, arguments);
-  const im = aSprite('bicho_' + tipo); if (!im) return;
+  const im = aSprite(SPR_BICHO(tipo)); if (!im) return;
   const h = (ALTURA_BICHO[tipo] || 1) * T * s, w = h * im.width / im.height;
   x.save(); x.translate(px, py); if (a && a.flip === false) x.scale(-1, 1); x.drawImage(im, -w / 2, -h, w, h); x.restore();
 };
@@ -129,7 +130,7 @@ function criaAtlantida() {
   // doca do submarino (chegada)
   b.ret(3, 3, 13, 7, CH.PEDRA_MAR); objLargo(b, 7, 6, 'submarino', 3); b.npc('capita_atl', 11, 7);
   b.m.inicio = { x: 10, y: 9 }; b.m.renasce = { x: 10, y: 9 };
-  b.placa(14, 8, '🌊 ATLÂNTIDA — a cidade perdida. Os 16 PORTAIS levam a mundos perdidos (níveis 205 a 296). Comece pelos de cima!');
+  b.placa(14, 8, '🌊 ATLÂNTIDA — aqui nas profundezas até os BICHOS jogam bola! Cada um dos 16 PORTAIS é o campo de um time de bichos (níveis 205 a 296). Comece pelos de cima!');
   // praça: estátua, mercador, técnica, quadro
   objLargo(b, 36, 28, 'estatua_netuno', 3);
   b.npc('loja_atl', 31, 32); b.npc('lider_atl', 41, 32); b.npc('quadro', 36, 34);
@@ -165,15 +166,17 @@ const DUNGEONS_ATL = [
 DUNGEONS_ATL.forEach(([m, id, nome, tema, ent, guia, look], i) => {
   registraCaca({ id, nome, host: 'atlantida', m, tema, ent, guia, look, seed: 9101 + i * 131, pos: { x: ATL_PORTAIS_X[i % 4], y: ATL_PORTAIS_Y[i >> 2] } });
 });
+// guias dos portais: cada portal é o campo de um time de bichos
+DUNGEONS_ATL.forEach(([m, id]) => { const d = MONSTROS[m]; if (NPCS['guia_' + id]) NPCS['guia_' + id].ola = `Bem-vindo(a)! Este é o campo do time "${d.nome}" (nível ${nivelMonstro(d)}). Esses bichos jogam bola há mil anos e não veem um adversário há séculos. Quer uma missão?`; });
 DESAFIOS.atlantida = [['rato', 150], ['minhocao', 150], ['morcego', 150], ['aranha', 150]];
 
 /* ---------- NPCs: submarino, mercador, técnica ---------- */
 const LOOK_IARA = { tipo: 'humano', corpo: 'f', alt: 1.72, pele: 'pele-morena', cabelo: 'cabelo-rabo', corCabelo: 'preto', roupa: 'roupa-terno', corRoupa: '#1a3a6a', baixo: 'baixo-jeans', chapeu: 'chapeu-bone' };
 Object.assign(NPCS, {
-  capita_iara: { nome: 'Capitã Iara, do submarino', submarino: 'descer', look: LOOK_IARA, ola: 'Dizem que no fundo do mar existe uma cidade perdida onde se joga o futebol mais antigo do mundo. Quer ver?' },
+  capita_iara: { nome: 'Capitã Iara, do submarino', submarino: 'descer', look: LOOK_IARA, ola: 'Dizem que no fundo do mar existe uma cidade perdida onde até os BICHOS jogam bola! Ratazanas, polvos, yetis, dragões... Quer ver com os próprios olhos?' },
   capita_atl: { nome: 'Capitã Iara, do submarino', submarino: 'subir', look: LOOK_IARA, ola: 'O submarino está pronto! Quando quiser voltar para a praia, é só falar.' },
   loja_atl: { nome: 'Seu Coral, o mercador', loja: ['elixir_mar', 'perola_azul', 'bolinho_algas', 'chuteira_coral', 'camisa_coral', 'caneleira_coral', 'colar_perola'], look: { tipo: 'humano', corpo: 'm', alt: 1.72, pele: 'pele-media', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#3ad0c0', baixo: 'baixo-shorts' }, ola: 'Bem-vindo(a) às profundezas! Elixir do Mar, pérolas e chuteiras de coral: tudo fresquinho!' },
-  lider_atl: { nome: 'Rainha Marina, técnica de Atlântida', look: { tipo: 'humano', corpo: 'f', alt: 1.76, pele: 'pele-media', cabelo: 'cabelo-rabo', corCabelo: 'ruivo', roupa: 'roupa-futebol', corRoupa: '#3ad0c0', baixo: 'baixo-saia', chapeu: 'chapeu-coroa' }, ola: 'Os portais de Atlântida se abriram depois de mil anos. Só uma verdadeira lenda consegue atravessar todos eles!' },
+  lider_atl: { nome: 'Rainha Marina, técnica de Atlântida', look: { tipo: 'humano', corpo: 'f', alt: 1.76, pele: 'pele-media', cabelo: 'cabelo-rabo', corCabelo: 'ruivo', roupa: 'roupa-futebol', corRoupa: '#3ad0c0', baixo: 'baixo-saia', chapeu: 'chapeu-coroa' }, ola: 'Sabia que nas profundezas os bichos jogam bola? Cada portal é o campo de um time deles, e faz mil anos que ninguém aparece para jogar. Eles estão doidos por um desafio!' },
 });
 const ATL_NIVEL = 195, ATL_PRECO = 50000;
 function modalSubmarino(npc) {
@@ -211,7 +214,7 @@ let ATL_VOLTA = null;
 {
   const xpNivel = x => xpPara(x + 1) - xpPara(x);
   MISSOES.push(
-    { id: 'atl_m1', npc: 'lider_atl', titulo: 'Bem-vindo(a) a Atlântida', lvl: 196, texto: 'Os portais acordaram e soltaram bichos para todo lado! Comece pelos Esgotos Afundados: passe por 50 Ratazanas Gandulas.', req: { kill: 'rato', n: 50 }, rec: { xp: Math.round(xpNivel(205) * 1.5), ouro: 400000, itens: [['elixir_mar', 10], ['perola_azul', 5]] }, fim: 'Você tem coragem de verdade. Atlântida está de olho em você!' },
+    { id: 'atl_m1', npc: 'lider_atl', titulo: 'Bem-vindo(a) a Atlântida', lvl: 196, texto: 'Os portais acordaram e os times de bichos querem jogar! Comece pelo mais fácil, o time dos Esgotos Afundados: passe no drible por 50 Ratazanas Gandulas.', req: { kill: 'rato', n: 50 }, rec: { xp: Math.round(xpNivel(205) * 1.5), ouro: 400000, itens: [['elixir_mar', 10], ['perola_azul', 5]] }, fim: 'Você tem coragem de verdade. Atlântida está de olho em você!' },
     { id: 'atl_m2', npc: 'lider_atl', titulo: 'A maldição da Pirâmide', lvl: 228, pre: 'atl_m1', texto: 'Na Pirâmide Perdida, as Múmias Zagueiras não deixam ninguém passar. Vença 60 delas.', req: { kill: 'mumia', n: 60 }, rec: { xp: Math.round(xpNivel(234) * 2), ouro: 700000, itens: [['colar_perola', 1], ['bolinho_algas', 5]] }, fim: 'As faixas caíram e o portal ficou mais calmo. Obrigada, craque!' },
     { id: 'atl_m3', npc: 'lider_atl', titulo: 'O frio da Caverna do Yeti', lvl: 268, pre: 'atl_m2', texto: 'O Yeti Zagueirão congelou o portal do gelo. Passe por 60 deles e traga o calor do futebol de volta.', req: { kill: 'yeti', n: 60 }, rec: { xp: Math.round(xpNivel(276) * 2), ouro: 1200000, itens: [['chuteira_abissal', 1]] }, fim: 'Olha só, o gelo derreteu de tanto que você correu!' },
     { id: 'atl_m4', npc: 'lider_atl', titulo: 'O Dragão Ancião', lvl: 290, pre: 'atl_m3', texto: 'O último portal guarda o Dragão Ancião, que joga bola há mil anos. Vença 30 e você será a lenda de Atlântida!', req: { kill: 'dragao_anciao', n: 30 }, rec: { xp: Math.round(xpNivel(296) * 4), ouro: 3000000, itens: [['coroa_dragao', 1]], flag: 'lenda_atlantida' }, fim: 'LENDA DE ATLÂNTIDA! Os dragões fazem reverência quando você passa. E dizem que acima das nuvens existe outro campo esperando...' },
@@ -226,9 +229,10 @@ if (typeof CAPITULOS !== 'undefined') {
     cenas: [
       { img: 'cap_atl_1', kb: 'kb-a', cor: ['#0a3a6a', '#3ad0c0'], txt: n => `Depois da Copa, ${typeof _hn === 'function' ? _hn(n) : 'a lenda'} ouviu uma história antiga: no fundo do mar existe Atlântida, a cidade onde o futebol nasceu.` },
       { img: 'cap_atl_1', kb: 'kb-zoom', foco: '60% 45%', cor: ['#0a3a6a', '#3ad0c0'], txt: n => 'O submarino amarelo da Capitã Iara desceu, desceu... até as luzes da cidade perdida aparecerem entre os corais.' },
-      { img: 'cap_atl_2', kb: 'kb-b', cor: ['#140a40', '#3ad0c0'], txt: n => 'Na praça, a Rainha Marina mostrou os 16 portais: mundos de gelo, desertos, vulcões e até um estádio de fantasminhas. Cada um, um desafio.' },
+      { img: 'cap_atl_2', kb: 'kb-b', cor: ['#140a40', '#3ad0c0'], txt: n => 'Na praça, a Rainha Marina contou o grande segredo: há mil anos, nas profundezas, os BICHOS também jogavam bola! Ratazanas, múmias, polvos, yetis e até dragões tinham seus próprios times.' },
+      { img: 'cap_atl_2', kb: 'kb-zoom', foco: '70% 40%', cor: ['#140a40', '#3ad0c0'], txt: n => 'Cada portal leva ao campo de um desses times. Quando Atlântida afundou, os portais se fecharam e os bichos ficaram mil anos sem ninguém para desafiar. Agora eles querem jogar... contra você!' },
     ],
-    final: { emoji: '🌊', titulo: 'Atlântida', sub: n => 'Capítulo 7 começou! Atravesse os 16 portais (níveis 205 a 296) e enfrente o Dragão Ancião.', botao: 'Mergulhar! 🌊' },
+    final: { emoji: '🌊', titulo: 'Atlântida', sub: n => 'Capítulo 7 começou! Cada portal é o campo de um time de bichos (níveis 205 a 296). Vença todos e desafie o capitão dos dragões: o Dragão Ancião!', botao: 'Mergulhar! 🌊' },
   };
   const ord = CAPITULOS_ORDEM; const ig = ord.indexOf('gloria'); if (!ord.includes('atlantida')) ord.splice(ig >= 0 ? ig : ord.length, 0, 'atlantida');
 }
