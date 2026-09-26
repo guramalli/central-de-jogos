@@ -448,7 +448,7 @@ function comAcessorios(x, sp, v, meta, fase) {
     chapeu(x, sp, v); x.restore();
   }
 }
-const SPR_CACHE = new Map(); const SPR_MAX = 320;
+const SPR_CACHE = new Map(); const SPR_MAX = 220; // celular: cada sprite pronto ocupa ~180 kB
 function spriteBoneco(look, vista = 'frente', q = 0) {
   const sp = specDe(look); const nome = folhaDoLook(sp, look); const f = FOLHAS[nome];
   if (!f || !f.ok) { carregaFolhas(); return spriteVetor(look, vista, q); }

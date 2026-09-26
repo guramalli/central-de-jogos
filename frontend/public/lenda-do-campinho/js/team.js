@@ -349,7 +349,7 @@ function ovrNoSlot(j, slot) { const o = ovr({ ...j, pos: slot }); const f = j.po
 function recuperaEnergia() {
   const t = G.save.time; if (!t) return; const agora = Date.now(); const min = (agora - (t.ultEnergia || agora)) / 60000; t.ultEnergia = agora;
   const ganho = min * 12 * (1 + 0.25 * ((t.estr && t.estr.med) || 0)); // 12 pontos por minuto real
-  t.elenco.forEach(j => j.energia = Math.min(100, j.energia + ganho)); t.energiaEu = Math.min(100, (t.energiaEu || 100) + ganho);
+  t.elenco.forEach(j => j.energia = Math.min(100, j.energia + ganho)); t.energiaEu = Math.min(100, (Number.isFinite(t.energiaEu) ? t.energiaEu : 100) + ganho);
 }
 
 /* ---------------- simulação ---------------- */
@@ -439,7 +439,7 @@ function telaElenco() {
   wrap.append(el('h3', {}, `Reservas (${reservas.length}) — elenco ${t.elenco.length + 1}/20 · folha salarial ${fmt(folhaSalarial())} por rodada`));
   const lr = el('div', { class: 'lista' });
   reservas.forEach(j => {
-    const venda = Math.round(precoJogador(j) * 0.5);
+    const venda = Math.round(Math.min(precoJogador(j), j.lenda && LENDAS[j.lendaId] ? LENDAS[j.lendaId].preco : Infinity) * 0.5); // lenda: no máximo metade do que custou (comprar e vender não dá lucro)
     lr.append(cartaJogador(j, j.eu ? '' : el('button', { class: 'btn mini', title: 'Vende o jogador; o dinheiro vai para o caixa do clube', onclick: () => { if (!confirm(`Vender ${j.nome} por ${fmt(venda)} tostões?`)) return; t.elenco = t.elenco.filter(x => x.id !== j.id); t.titulares = t.titulares.map(id => id === j.id ? null : id); t.caixa += venda; t.finTemp.ent += venda; log(`${j.nome} foi vendido por ${fmt(venda)} tostões.`, 'l-loot'); som('moeda'); salvar(); abrirTime('elenco'); } }, `Vender (${fmt(venda)})`)));
   });
   if (!reservas.length) lr.append(el('p', { class: 'vazio' }, 'Sem reservas. Contrate no Mercado para poder revezar quem está cansado.'));
@@ -526,7 +526,7 @@ function telaClube() {
   for (const [k, e] of Object.entries(ESTRUTURA)) {
     const n = t.estr[k] || 0; const custo = custoEstr(k, n);
     le.append(el('div', { class: 'linha-item' }, el('div', { class: 'nm' }, el('b', {}, `${e.nome} ${'★'.repeat(n)}${'☆'.repeat(ESTR_MAX - n)}`), el('small', {}, (n ? e.desc(n) : 'Ainda não construído.') + (n < ESTR_MAX ? ` Próximo nível: ${e.desc(n + 1)}` : ''))),
-      n >= ESTR_MAX ? el('b', {}, 'MÁXIMO') : el('span', { class: 'preco-col' }, precoTag(custo), el('button', { class: 'btn amarelo mini', disabled: t.caixa < custo ? 'disabled' : null, onclick: () => { if (t.caixa < custo) return; t.caixa -= custo; t.finTemp.sai -= custo; t.estr[k] = n + 1; log(`Obra concluída: ${e.nome} nível ${n + 1}!`, 'l-lvl'); som('nivel'); salvar(); abrirTime('clube'); } }, 'Melhorar'))));
+      n >= ESTR_MAX ? el('b', {}, 'MÁXIMO') : el('span', { class: 'preco-col' }, precoTag(custo), el('button', { class: 'btn amarelo mini', disabled: t.caixa < custo ? 'disabled' : null, onclick: () => { if (t.caixa < custo) { log('Caixa do clube insuficiente para chamar o olheiro.', 'l-dano'); som('erro'); return; } t.caixa -= custo; t.finTemp.sai -= custo; t.estr[k] = n + 1; log(`Obra concluída: ${e.nome} nível ${n + 1}!`, 'l-lvl'); som('nivel'); salvar(); abrirTime('clube'); } }, 'Melhorar'))));
   }
   wrap.append(le);
   // base
@@ -570,7 +570,7 @@ function mudarPais(pid) {
 }
 function telaMercado() {
   const s = G.save; const t = s.time; const wrap = el('div');
-  if (t.diaMercado !== s.dia || !t.mercado.length) { t.diaMercado = s.dia; t.mercado = geraMercado(); }
+  if (t.diaMercado !== s.dia) { t.diaMercado = s.dia; t.mercado = geraMercado(); } // esvaziou comprando todos: o olheiro só volta amanhã (ou chame pagando)
   wrap.append(el('p', {}, `O olheiro traz jogadores novos a cada dia do jogo. Contratações saem do caixa do clube: `, precoTag(t.caixa)));
   const lista = el('div', { class: 'lista' });
   t.mercado.forEach(j => {
@@ -668,7 +668,7 @@ function simularPartida(pj, nos, eles) {
 function concluiJogo(pj, gn, ge, escN, rapido, nos, eles) {
   const s = G.save; const t = s.time; const L = t.liga; const d = t.div; const P = premioDiv(d), X = xpDiv(d);
   const tt = TATICAS[t.tatica]; const est = t.estr;
-  escN.forEach(x => { if (!x.j) return; const gasto = rndi(16, 24) * tt.en * (1 - 0.05 * est.med); if (x.j.eu) t.energiaEu = Math.max(0, t.energiaEu - gasto); else { x.j.energia = Math.max(0, x.j.energia - gasto); ganhaXpJogador(x.j, Math.round(30 * (1 + 0.2 * est.ct))); } });
+  escN.forEach(x => { if (!x.j) return; const gasto = rndi(16, 24) * tt.en * (1 - 0.05 * est.med); if (x.j.eu) t.energiaEu = Math.max(0, t.energiaEu - gasto); else { x.j.energia = Math.max(0, x.j.energia - gasto); ganhaXpJogador(x.j, Math.round(30 * (1 + 0.3 * est.ct))); } });
   t.jogos++;
   let venceu = gn > ge, empate = gn === ge, pen = null;
   if (pj.tipo === 'copa' && empate) { venceu = Math.random() < clamp(0.5 + (nos.gol - eles.gol) * 0.006, 0.25, 0.75); empate = false; pen = venceu ? [rndi(4, 5), rndi(2, 3)] : [rndi(2, 3), rndi(4, 5)]; }
@@ -799,7 +799,7 @@ function fimTemporada() {
     banner('CAMPEÃO!', d.nome); som('nivel');
     if (d.topo) {
       const novo = !t.campeoes[t.pais]; t.campeoes[t.pais] = true; s.flags['campeao_pais_' + t.pais] = true;
-      if (t.pais === 'mundo') { addItem('medalha_ouro'); linhas.push('🌍 CAMPEÃO DO MUNDO! Você ganhou uma Medalha de Ouro.'); }
+      if (t.pais === 'mundo') { const cabe = recebeItem('medalha_ouro') === 'mochila'; linhas.push(cabe ? '🌍 CAMPEÃO DO MUNDO! Você ganhou uma Medalha de Ouro.' : '🌍 CAMPEÃO DO MUNDO! Você ganhou uma Medalha de Ouro (mochila cheia: ela foi para o seu armazém).'); }
       else if (novo) { const i = PAISES.findIndex(x => x.id === t.pais); const prox = PAISES[i + 1]; if (prox) linhas.push(`✉️ CONVITE: o clube pode disputar a liga de ${prox.nome} (nível ${prox.lvl}). Veja em Clube → Ligas pelo mundo.`); }
     }
   }

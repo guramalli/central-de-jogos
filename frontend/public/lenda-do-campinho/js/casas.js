@@ -31,6 +31,8 @@ const CASA_LOCAIS = [
   ['milao', 'Milão', 550000, 'Via della Moda', 'casa_luxo'],
   ['munique', 'Munique', 700000, 'Rua do Relógio', 'casa_luxo'],
   ['londres', 'Londres', 900000, 'Baker Street', 'casa_luxo'],
+  ['buenos', 'Buenos Aires', 1200000, 'Caminito', 'casa_rosa'],
+  ['rio', 'Rio de Janeiro', 1600000, 'Avenida Atlântica', 'casa_luxo'],
 ];
 const CASA_MAX_POR_MAPA = 3, CASA_MIN_POR_MAPA = 2;
 const CASAS = {}, CASAS_POR_MAPA = {};
@@ -167,7 +169,7 @@ function montaCasa(def) {
   if (s && s.casa && s.casa.id === def.id) for (const mv of s.casa.moveis) { const it = ITENS[mv.id]; if (it) b.m.obj[mv.y * b.m.w + mv.x] = { t: it.obj, v: 1, movel: mv.id }; }
   return b.m;
 }
-function minhaCasa() { const s = G.save; return s && s.casa && CASAS[s.casa.id] ? s.casa : null; }
+function minhaCasa() { const s = G.save; if (!s || !s.casa) return null; if (!CASAS[s.casa.id]) garanteTodasAsCasas(); return CASAS[s.casa.id] ? s.casa : null; } // casa em outra cidade ainda não montada também conta (senão dava para comprar outra e perder a primeira)
 function minhaCasaAqui() { const c = minhaCasa(); return !!(c && G.mapa && G.mapa.casa === c.id); }
 function limpaCacheMapa(m) { delete m._mini; delete m._miniHD; delete m._miniHD16; }
 function garanteTodasAsCasas() { for (const [mapa] of CASA_LOCAIS) if (MAPAS_DEF[mapa]) try { getMapa(mapa); } catch (e) { } }
@@ -196,7 +198,7 @@ function comprarCasa(id) {
 function devolve(id, r) { // tenta pôr na mochila; se não couber, vai para o armazém
   const s = G.save;
   if (cabeNaMochila(id, r)) { if (r) { s.mochila.push({ id, q: 1, r }); G.uiSujo = true; return true; } if (addItem(id, 1)) return true; }
-  armazem(); guardaNoArmazem(id, 1, r || 0); return false;
+  armazem(); if (!guardaNoArmazem(id, 1, r || 0)) G.save.armazem.push(r ? { id, q: 1, r } : { id, q: 1 }); return false; // armazém cheio: passa do limite, mas nada se perde
 }
 function venderCasa() {
   const s = G.save, c = minhaCasa(); if (!c) return;

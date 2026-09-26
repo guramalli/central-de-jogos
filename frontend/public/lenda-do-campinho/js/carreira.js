@@ -597,6 +597,7 @@ function carrChanceTxt(p) { return p >= 0.65 ? 'boa' : p >= 0.4 ? 'média' : 'ba
 function carrProxReuniao(k) {
   const d = carrDia();
   k.proxReuniao = Math.min(k.fimDia, Math.max(k.proxReuniao + CARR_PERIODO, d + 1));
+  if (k.proxReuniao < d) k.proxReuniao = d; // contrato já vencido: a renovação é hoje (não multa por uma data no passado)
 }
 function carrEscolhe(op) {
   const c = carrDados(); const k = c.clube; const ra = c.reuniaoAtual; if (!k || !ra || !CARR_OPCOES[op]) return null;
@@ -1226,7 +1227,7 @@ function reuniaoEmpresario(fala) {
       el('div', { class: 'caixa' }, dicas.map(t => el('p', { style: 'margin:3px 0;font-weight:700' }, t))),
       el('div', { class: 'opcoes' }, carrVoltar(), carrFechar()));
   }
-  if (!c.ofertas.length || c.ofertasDia !== d) c.ofertas = carrGeraOfertas(c.historico.length <= 1 && !k ? { inicial: true } : {});
+  if (c.ofertasDia !== d) c.ofertas = carrGeraOfertas(c.historico.length <= 1 && !k ? { inicial: true } : {}); // recusou hoje: propostas novas só amanhã (senão dava para pescar a dos sonhos)
   const temEuropa = c.ofertas.some(o => carrClube(o.id).pais !== 'brasil');
   let txt = fala;
   if (!txt) {
@@ -1238,7 +1239,8 @@ function reuniaoEmpresario(fala) {
     else if (c.satEmp >= 40) txt = 'Trabalhei muito nessas propostas. Dá uma olhada:';
     else if (c.satEmp >= 25) txt = 'Olha... não foi fácil, mas consegui isto aqui:';
     else txt = 'Sinceramente? Você anda me dando trabalho. Só consegui estas:';
-    if (temEuropa) txt = txt.replace(/:$/, '!') + (c.ofertas.some(o => CARR_EUROPA_PAISES.includes(carrClube(o.id).pais)) ? ' E tem proposta da EUROPA, hein!' : ' E tem proposta do EXTERIOR, hein!');
+    if (!c.ofertas.length) txt = 'Você recusou as propostas de hoje. Volte amanhã que eu consigo outras!';
+    else if (temEuropa) txt = txt.replace(/:$/, '!') + (c.ofertas.some(o => CARR_EUROPA_PAISES.includes(carrClube(o.id).pais)) ? ' E tem proposta da EUROPA, hein!' : ' E tem proposta do EXTERIOR, hein!');
   }
   const at = {};
   const cards = c.ofertas.map((o, i) => {

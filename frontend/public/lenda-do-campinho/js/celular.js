@@ -121,7 +121,7 @@ if (CEL) (function () {
   // minimapa pequeno no canto (cópia do minimapa do painel)
   setInterval(() => {
     if (!G.rodando || document.body.classList.contains('cel-paineis')) return;
-    const src = document.getElementById('mini'), dst = document.getElementById('chMini'); if (!src || !dst || !src.width) return;
+    const src = document.getElementById('mini'), dst = document.getElementById('chMini'); if (dst) dst.style.visibility = G.mapa && G.mapa.interior ? 'hidden' : ''; if (!src || !dst || !src.width) return; // dentro de casa não tem minimapa: nada de quadro vazio
     const x = dst.getContext('2d'); x.clearRect(0, 0, dst.width, dst.height);
     const s = Math.min(dst.width / src.width, dst.height / src.height); const w = src.width * s, h = src.height * s;
     x.drawImage(src, (dst.width - w) / 2, (dst.height - h) / 2, w, h);
@@ -182,7 +182,7 @@ if (CEL) (function () {
   /* chat: só as últimas linhas, por cima do jogo */
   body.modo-celular #log { position: fixed; z-index: 4; top: calc(6px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(40vw, 400px); height: 48px; overflow: hidden; background: rgba(10,4,24,.42); border: 0; border-radius: 8px; font-size: 11px; line-height: 1.3; padding: 3px 7px; pointer-events: none; }
   body.modo-celular #log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body.modo-celular #rastreador { top: 100px; left: calc(6px + env(safe-area-inset-left)); max-width: 36vw; }
+  body.modo-celular #rastreador { top: 100px; bottom: auto; flex-direction: column; left: calc(6px + env(safe-area-inset-left)); max-width: 36vw; } /* a regra de tela estreita prendia no rodapé, embaixo do joystick */
   body.modo-celular .cartao-dica { pointer-events: auto; font-size: 12px; max-width: 46vw; }
   /* controles */
   body.modo-celular #toque { display: block !important; position: fixed; z-index: 5; left: calc(14px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom)); padding: 0; background: none; }
@@ -231,6 +231,12 @@ if (CEL) (function () {
     body.modo-celular #rastreador { top: calc(206px + env(safe-area-inset-top)); max-width: 62vw; }
     body.modo-celular .cartao-dica { max-width: 70vw; }
   }
+  /* celular deitado: a dica abre no alto, no meio (no canto de baixo ela ficava embaixo do joystick e não dava para apertar "Entendi") */
+  @media (orientation: landscape) {
+    body.modo-celular .cartao-dica { position: fixed; z-index: 7; top: calc(60px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); max-width: min(46vw, 420px); }
+  }
+  /* botões de modo (drible/chute, alvo, caça, 2ª fileira): altura boa para o dedo */
+  body.modo-celular #barraAcoes .btn { min-height: 34px; }
   /* telas bem baixas (celular deitado pequeno) */
   @media (max-height: 380px) {
     body.modo-celular #hotbar { grid-template-columns: repeat(5, 40px) !important; grid-auto-rows: 40px; }

@@ -52,6 +52,12 @@ const ARENAS = [
     guarda: { id: 'gd_lendas', nome: 'Guardião Lendário', arq: 'zagueiro', look: { pele: 'pele-negra', cabelo: 'cabelo-black-power', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#e8b848', baixo: 'baixo-shorts' } },
     porteiro: { id: 'port_lendas', nome: 'Dona Vitória, porteira da Arena', look: { corpo: 'f', pele: 'pele-negra', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-terno', corRoupa: '#1a1a1a', baixo: 'baixo-saia', pescoco: 'pescoco-medalha' } },
     golpes: { bolada: 'Chute Imortal', onda: 'Onda Dourada', chuva: 'Chuva de Estrelas', investida: 'Arrancada Lendária' } },
+  { id: 'arena_copa', nome: 'Arena da Copa do Mundo', host: 'rio', L: 200, req: 190, offset: 110, tema: 'copa', seed: 1107, cor: '#2ad96a',
+    chefe: { id: 'ch_lenda_copa', nome: 'A Lenda da Copa', falas: ['Esta é a final. Não existe amanhã!', 'Mostre tudo o que o campinho te ensinou!', 'Só um campeão levanta a taça!'],
+      look: { pele: 'pele-morena', cabelo: 'cabelo-anime-ouro', roupa: 'roupa-cavaleiro-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-louros', costas: 'costas-capa' } },
+    guarda: { id: 'gd_copa', nome: 'Craque da Seleção Mundial', arq: 'meia', look: { pele: 'pele-media', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#f4f4f8', baixo: 'baixo-shorts' } },
+    porteiro: { id: 'port_copa', nome: 'Seu Didi, porteiro da Arena', look: { pele: 'pele-retinta', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-terno', corRoupa: '#1a9a3a', baixo: 'baixo-jeans', pescoco: 'pescoco-apito' } },
+    golpes: { bolada: 'Chute da Final', onda: 'Onda da Torcida', chuva: 'Chuva de Confete', investida: 'Arrancada de Campeão' } },
 ];
 const ARENA_POR_ID = {}; for (const a of ARENAS) ARENA_POR_ID[a.id] = a;
 const ARENA_DO_CHEFE = {}; for (const a of ARENAS) ARENA_DO_CHEFE[a.chefe.id] = a;
@@ -89,6 +95,11 @@ const ITENS_MITICOS = {
     coroa_imortal: { nome: 'Coroa do Imortal', slot: 'cabeca', def: 16, st: { drible: 7, chute: 7, visao: 5, hp: 200 }, avatar: 'chapeu-coroa', iconeBase: 'i_coroa', matiz: 0, brilho: '#ffffff' },
     chuteira_eterna: { nome: 'Chuteira Eterna', slot: 'chuteira', atk: 56, st: { vel: 16, chute: 6, drible: 4 }, iconeBase: 'i_chuteira_lenda', matiz: 0, brilho: '#ffe070' },
   },
+  arena_copa: {
+    chuteira_campea: { nome: 'Chuteira Campeã do Mundo', slot: 'chuteira', atk: 64, st: { vel: 18, chute: 8, drible: 6 }, iconeBase: 'i_chuteira_galaxia', matiz: 90, brilho: '#2ad96a' },
+    camisa_campea: { nome: 'Camisa Campeã do Mundo', slot: 'camisa', def: 46, st: { hp: 750, drible: 5, chute: 5, visao: 5 }, avatar: 'roupa-futebol', cor: '#f8d838', cor2: '#1a9a3a', iconeBase: 'i_camisa_galaxia', matiz: 120, brilho: '#f8d838' },
+    estrela_campea: { nome: 'Estrela do Campeão', slot: 'acessorio', def: 12, st: { hp: 500, foco: 350, regen: 7, visao: 3 }, avatar: 'pescoco-medalha', iconeBase: 'i_insignia_estrela', matiz: 60, brilho: '#ffe070' },
+  },
 };
 const NOME_SLOT_AR = { cabeca: 'Cabeça', acessorio: 'Pescoço', camisa: 'Camisa', calcao: 'Calção', perna: 'Caneleira', chuteira: 'Chuteira' };
 function descMitico(it) {
@@ -105,7 +116,7 @@ for (const a of ARENAS) {
   }
   a.trofeu = 'trofeu_' + a.tema;
   ITENS[a.trofeu] = { nome: `Troféu da ${a.nome}`, tipo: 'loot', venda: a.L * 60, trofeuArena: true, desc: `Prova de que você venceu ${a.chefe.nome}. Peça de colecionador (vende bem).` };
-  ICON_ALIAS[a.trofeu] = 'trofeu';
+  ICON_ALIAS[a.trofeu] = a.id === 'arena_copa' ? 'i_bola_coroa' : 'trofeu';
 }
 
 /* ---------- raridade MÍTICA ---------- */
@@ -164,6 +175,7 @@ const TEMAS_ARENA = {
   neon: { base: CH.CALCADA, campo: CH.QUADRA_AZUL, props: ['cerejeira', 'lanterna_pedra', 'neon_palmeira', 'maneki', 'bambu'], marco: 'torii', marcoLarg: 3 },
   nevasca: { base: CH.PISO, campo: CH.QUADRA_AZUL, props: ['pinheiro', 'pinheiro', 'estatua', 'poste3'], marco: 'torre_relogio', marcoLarg: 3 },
   lendas: { base: CH.CONCRETO, campo: CH.CAMPO, props: ['estatua', 'trofeu', 'fonte_moderna', 'poste3'], marco: 'trofeu', marcoLarg: 1 },
+  copa: { base: CH.CONCRETO, campo: CH.CAMPO, props: ['guarda_sol', 'coqueiro', 'estatua', 'poste3', 'trofeu'], marco: 'arcos_lapa', marcoLarg: 6, agua: true },
 };
 const ARENA_W = 32, ARENA_H = 26, ARENA_CHEFE_POS = { x: 16, y: 10 };
 function criaArena(a) {
@@ -281,7 +293,7 @@ function modalArenas() {
     el('p', {}, `Cada arena tem um chefão muito difícil que entra em campo ${ARENA_JANELA} minutos a cada ${ARENA_CICLO / 60} horas, e só pode ser vencido uma vez por dia. Eles deixam cair itens MÍTICOS que nenhum outro adversário tem.`), lista,
     el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Fechar')));
 }
-function getNomeMapa(id) { try { return (MAPAS[id] && MAPAS[id].nome) || ({ cidade: 'Cidade', praia: 'Praia', cairo: 'Cairo', toquio: 'Tóquio', munique: 'Munique', londres: 'Londres' })[id] || id; } catch (e) { return id; } }
+function getNomeMapa(id) { try { return (MAPAS[id] && MAPAS[id].nome) || ({ cidade: 'Cidade', praia: 'Praia', cairo: 'Cairo', toquio: 'Tóquio', munique: 'Munique', londres: 'Londres', buenos: 'Buenos Aires', rio: 'Rio de Janeiro' })[id] || id; } catch (e) { return id; } }
 const _abrirNPCAr = abrirNPC;
 abrirNPC = function (npc) { if (npc && npc.d && npc.d.arenaId) return modalPorteiro(npc); return _abrirNPCAr(npc); };
 if (typeof iconeNPC === 'function') { const _iconeNPCAr = iconeNPC; iconeNPC = function (n) { const d = n.d || NPCS[n.id] || {}; return d.arenaId ? '🏟️' : _iconeNPCAr(n); }; }
@@ -425,7 +437,7 @@ matar = function (m) {
   for (const o of G.mons.filter(o => o.invocado)) { efeito('puff', o.x, o.y); }
   G.mons = G.mons.filter(o => !o.invocado);
   const primeira = !s.flags['arena_' + a.id]; s.flags['arena_' + a.id] = true;
-  const chance = chanceMitico(a) * pen.drop;
+  const chance = chanceMitico(a); // a mesma que o porteiro mostra (a arena já é 1x por dia)
   if (Math.random() < chance) {
     const id = a.miticos[rndi(0, a.miticos.length - 1)];
     reg.sorte = 0; if (!reg.itens.includes(id)) reg.itens.push(id);

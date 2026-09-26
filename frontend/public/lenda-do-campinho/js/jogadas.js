@@ -119,6 +119,8 @@ usarDrible = function (id) {
   _usarDribleJ(id);
   if (G.cds[id] !== antes) iniciaJogada(id); // só anima se o drible foi usado de verdade
 };
+const _entrarMapaJ = entrarMapa;
+entrarMapa = function (...a) { G.jogada = null; return _entrarMapaJ.apply(this, a); }; // chapéu/caneta passando por uma porta: a jogada acaba ali
 const _atualizaJ = atualiza;
 atualiza = function (dt) {
   _atualizaJ(dt);

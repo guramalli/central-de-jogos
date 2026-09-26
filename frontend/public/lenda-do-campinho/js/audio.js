@@ -328,8 +328,8 @@
   }
 
   const VILA = ['vila', 'praia', 'casa', 'bazar', 'escola'];
-  const CIDADE = ['cidade', 'ct', 'estadio', 'loja', 'refeitorio'];
-  const MUNDO = ['cairo', 'toquio', 'doha', 'miami'];
+  const CIDADE = ['cidade', 'ct', 'estadio', 'loja', 'refeitorio', 'rio', 'arena_copa'];
+  const MUNDO = ['cairo', 'toquio', 'doha', 'miami', 'buenos'];
   const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres'];
   function faixaDoMapa(id) {
     if (VILA.includes(id)) return 'vila';

@@ -22,5 +22,10 @@ self.addEventListener('fetch', e => {
   e.respondWith(fetch(req).then(r => {
     if (r.ok) { const cp = r.clone(); caches.open(CACHE_CODIGO).then(c => c.put(req, cp)); }
     return r;
-  }).catch(() => caches.match(req).then(h => h || caches.match('./index.html'))));
+  }).catch(() => caches.match(req).then(h => {
+    if (h) return h;
+    // sem internet: só a PÁGINA cai na cópia guardada; um script/estilo nunca vira a página (senão o jogo abre quebrado)
+    if (req.mode === 'navigate') return caches.match(req, { ignoreSearch: true }).then(p => p || caches.match('./index.html', { ignoreSearch: true })).then(p => p || Response.error());
+    return Response.error();
+  })));
 });

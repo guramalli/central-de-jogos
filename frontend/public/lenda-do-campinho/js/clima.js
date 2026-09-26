@@ -15,8 +15,9 @@ const CLIMA_CIDADE = {
   cairo: 'deserto', doha: 'deserto',
   lisboa: 'temperado', madri: 'temperado', milao: 'temperado',
   londres: 'frio', munique: 'frio', toquio: 'frio',
+  buenos: 'temperado', rio: 'tropical',
 };
-const HEMISFERIO_SUL = new Set(['vila', 'praia', 'cidade', 'ct', 'estadio']);
+const HEMISFERIO_SUL = new Set(['vila', 'praia', 'cidade', 'ct', 'estadio', 'buenos', 'rio']);
 // pesos de cada tempo por clima e estação
 const TABELA_CLIMA = {
   tropical: { 'Verão': { sol: 4, chuva: 3, tempestade: 2 }, Outono: { sol: 5, nublado: 2, chuva: 2 }, Inverno: { sol: 5, nublado: 3, chuva: 1, neblina: 1 }, Primavera: { sol: 5, chuva: 2, nublado: 2 } },

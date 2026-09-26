@@ -65,6 +65,7 @@ const FOLHA_CHEFE = {
   tonhao: 'ch_tonhao', rei_areia: 'ch_rei_areia', rei_quadra: 'ch_rei_quadra', capitao_sub20: 'ch_capitao_sub20', paredao: 'ch_paredao', capitao_tejo: 'ch_capitao_tejo',
   galactico: 'ch_galactico', lorde: 'ch_lorde', cairo_chefe: 'ch_farao', toquio_chefe: 'ch_sensei', doha_chefe: 'ch_falcao', miami_chefe: 'ch_showman', milao_chefe: 'ch_maestro',
   munique_chefe: 'ch_general', ch_trovao: 'ch_trovao', ch_rainha_ondas: 'ch_rainha_ondas', ch_esfinge: 'ch_esfinge', ch_ronin: 'ch_ronin', ch_nevasca: 'ch_nevasca', ch_imortal: 'ch_imortal',
+  buenos_chefe: 'ch_tango', rio_chefe: 'ch_maracana', ch_lenda_copa: 'ch_lenda_copa',
 };
 for (const [id, f] of Object.entries(FOLHA_CHEFE)) if (MONSTROS[id] && MONSTROS[id].look && META_BONECOS[f]) { MONSTROS[id].look = Object.assign({}, MONSTROS[id].look, { folha: f }); delete MONSTROS[id].look._kb; }
 
@@ -119,7 +120,7 @@ lookDoMonstro = function (m, mapa) {
     lojista_lisboa: 'vestido_f', lojista_madri: 'chef', lojista_londres: 'avental', lider_lisboa: 'ancia', lider_madri: 'jaqueta_f', lider_londres: 'sobretudo_m',
     loja_cairo: 'vovo', lider_cairo: 'adulta', loja_toquio: 'golalta_f', lider_toquio: 'anciao', loja_doha: 'social_m', lider_doha: 'bone_f',
     loja_miami: 'bone_reta', lider_miami: 'jaqueta_f', loja_milao: 'vova', lider_milao: 'sobretudo_m', loja_munique: 'gordinha', lider_munique: 'touca_m',
-    almanaque: 'vovo', pedal: 'jaqueta_m', rita: 'jaqueta_f', johnny: 'social_m', vera: 'golalta_f', tonico: 'barbudo',
+    almanaque: 'vovo', loja_buenos: 'vova', lider_buenos: 'barbudo', loja_rio: 'avental', lider_rio: 'adulta', pedal: 'jaqueta_m', rita: 'jaqueta_f', johnny: 'social_m', vera: 'golalta_f', tonico: 'barbudo',
   };
   const IDOSO = new Set(['vovo', 'vova', 'anciao', 'ancia']);
   for (const [id, fo] of Object.entries(PAPEL)) { const n = NPCS[id]; if (n && n.look && META_BONECOS[fo]) { n.look = Object.assign({}, n.look, { folha: fo }, IDOSO.has(fo) ? { corCabelo: 'grisalho' } : {}); delete n.look._kb; } }
@@ -160,3 +161,32 @@ lookDoMonstro = function (m, mapa) {
     MISSOES_MONT.push(q); MISSOES.push(q);
   }
 })();
+
+/* ---------- memória (celular): as células de trabalho das folhas ficam num limite ----------
+   Cada célula guardada (recorte + rótulos + brilho) ocupa ~0,9 MB; com 64 folhas, uma sessão longa
+   passava de 700 MB e o iPhone pode apagar os desenhos. Guarda só as usadas por último. */
+const CEL_LRU = new Map(); const CEL_MAX = 60;
+const _rotulaCelulaCp = rotulaCelula;
+rotulaCelula = function (f, idx) {
+  const r = _rotulaCelulaCp.apply(this, arguments);
+  const k = f.im.src + '#' + idx;
+  CEL_LRU.delete(k); CEL_LRU.set(k, [f, idx]);
+  while (CEL_LRU.size > CEL_MAX) { const [kk, [ff, ii]] = CEL_LRU.entries().next().value; CEL_LRU.delete(kk); if (ff.rot) delete ff.rot[ii]; }
+  return r;
+};
+
+/* ---------- sem engasgo ao entrar num mapa: no máximo ~12 ms pintando bonecos novos por quadro ----------
+   (só durante o desenho do jogo; retratos e janelas sempre saem na hora) */
+let ORC_DESENHO = false, ORC_MS = 0; const ORC_LIMITE = 12; const ORC_VAZIO = { c: mkCanvas(2, 2) };
+const _desenhaOrc = desenha;
+desenha = function () { ORC_DESENHO = true; ORC_MS = 0; try { return _desenhaOrc.apply(this, arguments); } finally { ORC_DESENHO = false; } };
+const _spriteBonecoOrc = spriteBoneco;
+spriteBoneco = function (look, vista = 'frente', q = 0) {
+  if (!ORC_DESENHO) return _spriteBonecoOrc.apply(this, arguments);
+  if (ORC_MS > ORC_LIMITE) { // já gastou o orçamento do quadro: se não está pronto, aparece no próximo
+    const L = look && look.folha && MODO_FOLHA[look.folha] && look._semAc ? look._semAc : look;
+    const v = vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f';
+    if (L && !SPR_CACHE.has(chaveBoneco(L) + '|S' + v + q)) return ORC_VAZIO;
+  }
+  const t0 = performance.now(); const r = _spriteBonecoOrc.apply(this, arguments); ORC_MS += performance.now() - t0; return r;
+};

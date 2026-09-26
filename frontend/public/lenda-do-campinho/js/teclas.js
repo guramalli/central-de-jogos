@@ -55,6 +55,7 @@ function executaAcao(a) {
 
 let TECLA_ESPERA = null; // { acao, aoTerminar } enquanto espera a pessoa apertar a tecla nova
 window.addEventListener('keydown', ev => {
+  if (TECLA_ESPERA && document.getElementById('modal').hidden) TECLA_ESPERA = null; // fechou a janela no meio da troca: desarma
   if (TECLA_ESPERA) { // trocando uma tecla: essa tecla é a nova
     ev.preventDefault(); ev.stopImmediatePropagation();
     const { acao, aoTerminar } = TECLA_ESPERA; TECLA_ESPERA = null;

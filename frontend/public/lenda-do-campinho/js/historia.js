@@ -39,6 +39,7 @@ const HISTORIA_CENAS = [
 
 const CAP_MAPAS_MUNDO = ['cairo', 'toquio', 'doha', 'miami'];
 const CAP_MAPAS_EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres'];
+const CAP_MAPAS_FINAL = ['buenos', 'rio', 'arena_copa'];
 
 // Ordem da história (e da checagem). cond(save, idDoMapa) → true quando o momento chegou.
 // implica: capítulos anteriores que ficam "vistos" junto (ex.: quem chegou à Europa já viajou o mundo).
@@ -102,6 +103,37 @@ const CAPITULOS = {
     ],
     final: { emoji: '🏰', titulo: 'O Velho Continente', sub: n => 'Fim do Capítulo 4. Lá no fim do caminho, o Mundial de Clubes te espera...', botao: 'Continuar ⚽' },
   },
+  retorno: {
+    rotulo: 'Capítulo 5', titulo: 'Rumo à Copa', emoji: '🌎', implica: ['mundo', 'europa'],
+    cond: (s, mapa) => CAP_MAPAS_FINAL.includes(mapa),
+    cenas: [
+      { img: 'cap_copa_1', kb: 'kb-a', cor: ['#f7b35a', '#1a9a3a'],
+        txt: n => `A notícia correu o planeta: a próxima Copa do Mundo vai ser na América do Sul! E ${_hn(n)} foi convocado(a) para a seleção.` },
+      { img: 'cap_copa_1', kb: 'kb-zoom', foco: '40% 60%', cor: ['#f7b35a', '#1a9a3a'],
+        txt: n => 'Em Buenos Aires, o futebol tem ritmo de tango. No Rio, tem cheiro de mar e som de pandeiro. Os adversários mais fortes do mundo estão aqui.' },
+      { img: 'historia_1', kb: 'kb-d', cor: ['#f7b35a', '#3aa0c8'],
+        txt: n => 'Lá na Vila do Campinho, a molecada pintou o muro de verde e amarelo. O Seu Zé ajeitou o boné: “Vai lá e joga como no campinho. Com alegria!”' },
+    ],
+    final: { emoji: '🌎', titulo: 'Rumo à Copa', sub: n => 'Fim do Capítulo 5. Vença o Maestro do Tango e o Rei do Maracanã, e a Arena da Copa vai te chamar.', botao: 'Continuar ⚽' },
+  },
+  copa: {
+    rotulo: 'Capítulo 6', titulo: 'A Copa do Mundo', emoji: '🏆', implica: ['mundo', 'europa', 'retorno'],
+    cond: s => !!s.flags.campeao_copa,
+    cenas: [
+      { img: 'cap_copa_2', kb: 'kb-b', cor: ['#140a40', '#2ad96a'],
+        txt: n => 'A grande final da Copa do Mundo. Um estádio gigante, fogos no céu, e o mundo inteiro segurando a respiração.' },
+      { img: 'cap_copa_3', kb: 'kb-e', cor: ['#1a1450', '#f8d838'], som: 'gol',
+        txt: n => `Último minuto. A bola sobe, ${_hn(n)} dá uma bicicleta... e GOOOOL! O estádio explode de alegria!` },
+      { img: 'cap_copa_4', kb: 'kb-c', cor: ['#f8d838', '#1a9a3a'],
+        txt: n => `Na arquibancada, a Mãe e o Seu Zé choravam abraçados. O moleque do campinho de terra levantou a taça mais famosa do planeta.` },
+      { img: 'cap_gloria_4', kb: 'kb-d', cor: ['#140a40', '#3a2780'],
+        txt: n => 'E lá na Vila, uma criança pega uma bola de capotão, olha pro céu estrelado e sonha. Porque toda lenda começa num campinho.' },
+      { img: 'cap_gloria_4', kb: 'kb-zoom', foco: '50% 25%', cor: ['#140a40', '#3a2780'],
+        txt: n => 'Mas o Seu Zé tem uma história estranha pra contar: dizem que existem campos no fundo do mar, lá em cima das nuvens... e até na Lua. Será?' },
+    ],
+    final: { emoji: '🏆', titulo: 'Campeã(o) do Mundo!', sub: n => `Parabéns${n ? ', ' + n : ''}! Você venceu a Copa do Mundo. Novos mundos vão aparecer nas próximas atualizações!`,
+      creditos: ['Lenda do Campinho', 'Uma história de educacaogamer.com.br', 'Obrigado por jogar!'], botao: 'A lenda continua... ⚽' },
+  },
   gloria: {
     rotulo: 'Epílogo', titulo: 'Glória Eterna', emoji: '👑', implica: ['adulto', 'paredao', 'mundo', 'europa'],
     cond: s => !!s.flags.campeao_pais_mundo,
@@ -123,7 +155,7 @@ const CAPITULOS = {
       creditos: ['Lenda do Campinho', 'Uma história de educacaogamer.com.br', 'Obrigado por jogar!'], botao: 'A lenda continua... ⚽' },
   },
 };
-const CAPITULOS_ORDEM = ['intro', 'adulto', 'paredao', 'mundo', 'europa', 'gloria'];
+const CAPITULOS_ORDEM = ['intro', 'adulto', 'paredao', 'mundo', 'europa', 'retorno', 'copa', 'gloria'];
 
 let HIST = null; // estado da cutscene aberta (só uma por vez)
 

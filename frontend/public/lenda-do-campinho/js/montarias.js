@@ -116,7 +116,7 @@ modalMissao = function (npc, q) {
 
 /* ---------- estado ---------- */
 function estMont() { const s = G.save; if (!Array.isArray(s.montarias)) s.montarias = []; if (!Array.isArray(s.skins)) s.skins = []; return s; }
-function montariaAtual() { const s = estMont(); return s.montaria && s.montarias.includes(s.montaria) ? MONTARIAS[s.montaria] : null; }
+function montariaAtual() { const s = estMont(); return s.montaria && s.montarias.includes(s.montaria) && MONTARIAS[s.montaria] ? MONTARIAS[s.montaria] : null; }
 function montadoAgora() { const s = G.save; return !!(s && s.montado && montariaAtual() && G.mapa && !G.mapa.interior && s.hp > 0); }
 function ganhaMontaria(id) {
   const s = estMont(); if (!s.montarias.includes(id)) s.montarias.push(id);
@@ -131,7 +131,7 @@ function ganhaSkin(id) {
 }
 function rivalPerto() { return G.mons.some(m => m.bravo && !m.d.treino && dist(m, G.p) < 6); }
 function montar() {
-  const s = estMont();
+  const s = estMont(); s.montarias = s.montarias.filter(id => MONTARIAS[id]); // save antigo com montaria que não existe mais
   if (!s.montarias.length) { log('Você ainda não tem montaria. O Seu Pedal, na Vila, tem um skate para você (nível 5).', 'l-sis'); return; }
   if (!montariaAtual()) s.montaria = s.montarias[s.montarias.length - 1];
   if (s.montado) { desmontar(); return; }

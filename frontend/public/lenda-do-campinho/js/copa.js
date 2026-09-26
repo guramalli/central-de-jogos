@@ -440,6 +440,12 @@ function copaCss() {
 }
 
 /* ---------- utilidades de UI ---------- */
+// prêmios (XP, tostões, pacotinho) só nas primeiras Copas do dia; depois dá para jogar por diversão
+// (feedback de jogador: dava para ganhar dinheiro sem parar)
+const COPA_PREMIADAS_DIA = 3;
+function copaHoje() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+function copaPremiadasRestam() { const c = copaDados(); return c.premioDia === copaHoje() ? Math.max(0, COPA_PREMIADAS_DIA - (c.premioN || 0)) : COPA_PREMIADAS_DIA; }
+function copaUsaPremio() { const c = copaDados(); if (c.premioDia !== copaHoje()) { c.premioDia = copaHoje(); c.premioN = 0; } if (c.premioN >= COPA_PREMIADAS_DIA) return false; c.premioN++; return true; }
 function copaDados() {
   const s = G.save; if (!s.copa) s.copa = {};
   const c = s.copa;
@@ -536,6 +542,7 @@ function abrirCopaSonhos() {
     el('div', { class: 'alm' + (dados.almanaque ? ' on' : '') }, almBtn,
       el('p', {}, 'No Modo Almanaque as forças dos jogadores ficam ESCONDIDAS no sorteio. Só quem conhece a história do futebol se dá bem! Prêmios ×1,5.')),
     el('p', { class: 'dica' }, `Prêmio por vitória: ${fmt(pb.xp * mult)} XP e ${fmt(pb.ouro * mult)} tostões. Bônus de campeão e bônus do 7 a 0 perfeito (com pacotinho de figurinhas!).`),
+    el('p', { class: 'dica', style: 'font-weight:800' }, copaPremiadasRestam() ? `🎁 Copas com prêmio hoje: ${copaPremiadasRestam()} de ${COPA_PREMIADAS_DIA}. Depois, dá para jogar só por diversão.` : `🎮 As ${COPA_PREMIADAS_DIA} Copas com prêmio de hoje já foram! Pode jogar por diversão (sem XP e tostões) — os prêmios voltam amanhã.`),
     el('div', { class: 'opcoes' },
       el('button', { class: 'btn amarelo grande', onclick: () => copaTelaFormacao() }, emAndamento ? '⚽ Nova Copa (recomeçar)' : '⚽ Nova Copa'),
       emAndamento ? el('button', { class: 'btn verde grande', onclick: () => copaContinuar() }, '▶ Continuar Copa') : null),
@@ -568,6 +575,7 @@ function copaTelaFormacao() {
 /* ---------- draft ---------- */
 function copaTelaDraft(novo) {
   const d = COPA.draft; COPA.etapa = 'draft';
+  if (d && !d.atual && COPA.pendente) { d.atual = COPA.pendente; COPA.pendente = null; COPA.rolando = false; }
   if (copaDraftCompleto(d)) return copaTelaEstilo();
   const alm = d.almanaque; const esc = 11 - copaLivres(d);
   const sel = d.atual && COPA.sel != null ? d.atual.jogadores[COPA.sel] : null;
@@ -653,7 +661,7 @@ function copaTelaDraft(novo) {
 function copaAnimaRolagem(painel) {
   if (COPA.rolando) return;
   const d = COPA.draft; COPA.sel = null; COPA.msg = null;
-  const alvo = copaRolar(d); d.atual = null; // só mostra depois da animação
+  const alvo = copaRolar(d); d.atual = null; COPA.pendente = alvo; // só mostra depois da animação (se fechar antes, não se perde)
   COPA.atalhos = {};
   const nome = el('div', { class: 'tit', style: 'font-size:20px;font-weight:700;min-height:28px' }, '...');
   painel.innerHTML = '';
@@ -662,7 +670,7 @@ function copaAnimaRolagem(painel) {
   let n = 0;
   copaTimer(() => { const e = COPA_ELENCOS[Math.floor(Math.random() * COPA_ELENCOS.length)]; nome.textContent = `${e.emoji} ${e.time} ${e.ano}`; n++; }, 70, true);
   COPA.rolando = true;
-  const fim = setTimeout(() => { copaLimpaTimers(); d.atual = alvo; copaSom('moeda'); copaTelaDraft(); }, 850);
+  const fim = setTimeout(() => { copaLimpaTimers(); d.atual = alvo; COPA.pendente = null; copaSom('moeda'); copaTelaDraft(); }, 850);
   COPA.timers.push(fim);
 }
 
@@ -674,7 +682,7 @@ function copaTelaEstilo(novo) {
   const efeito = k => { const t = tt(k); const pa = Math.round((t.atq - 1) * 100), pd = Math.round((t.def - 1) * 100); return pa === 0 && pd === 0 ? 'Ataque e defesa normais' : `Ataque ${pa > 0 ? '+' : ''}${pa}% · Defesa ${pd > 0 ? '+' : ''}${pd}%`; };
   const media = copaForcaMedia(d.slots);
   const escolhe = k => { COPA.estilo = k; copaSom('equip'); copaTelaEstilo(); };
-  const comecar = () => { COPA.camp = copaNovaCampanha(d.slots, COPA.estilo, d.almanaque); COPA.etapa = 'copa'; copaSom('apito'); copaTelaCopa(); };
+  const comecar = () => { COPA.camp = copaNovaCampanha(d.slots, COPA.estilo, d.almanaque); COPA.camp.comPremio = copaUsaPremio(); COPA.etapa = 'copa'; copaSom('apito'); copaTelaCopa(); };
   COPA.atalhos = { '1': () => escolhe('defensivo'), '2': () => escolhe('equilibrado'), '3': () => escolhe('ofensivo'), Enter: comecar };
   const improv = d.slots.filter(s => s.p.pos !== s.pos).length;
   copaMostra(
@@ -820,7 +828,7 @@ function copaTelaJogo() {
 // aplica prêmios por vitória e, se a Copa acabou, o fechamento (estatísticas, missões, bônus)
 function copaPosJogo(res) {
   const c = COPA.camp; const pb = copaPremioBase(); const mult = c.almanaque ? 1.5 : 1;
-  if (res.resultado === 'v') {
+  if (res.resultado === 'v' && c.comPremio !== false) {
     const xp = Math.round(pb.xp * mult), ouro = Math.round(pb.ouro * mult);
     res.premio = { xp, ouro }; c.premio.xp += xp; c.premio.ouro += ouro;
     G.save.ouro += ouro; ganhaXp(xp);
@@ -829,7 +837,7 @@ function copaPosJogo(res) {
   salvar();
 }
 function copaFechaCopa() {
-  const c = COPA.camp; const dados = copaDados(); const pb = copaPremioBase(); const mult = c.almanaque ? 1.5 : 1;
+  const c = COPA.camp; const dados = copaDados(); const pb = copaPremioBase(); const mult = c.comPremio === false ? 0 : c.almanaque ? 1.5 : 1; // Copa por diversão: sem prêmio
   c.processado = true;
   dados.jogadas++;
   const nomes = c.slots.map(s => s.p.nome);
@@ -846,7 +854,7 @@ function copaFechaCopa() {
       dados.perfeitos++;
       const xp2 = Math.round(pb.xp * 6 * mult), ouro2 = Math.round(pb.ouro * 10 * mult), pac = c.almanaque ? 2 : 1;
       c.premio.xp += xp2; c.premio.ouro += ouro2; G.save.ouro += ouro2; ganhaXp(xp2);
-      if (typeof addItem === 'function' && addItem('pacotinho', pac)) c.premio.itens.push(`${pac}x Pacotinho de Figurinhas`);
+      if (mult > 0 && typeof addItem === 'function' && addItem('pacotinho', pac)) c.premio.itens.push(`${pac}x Pacotinho de Figurinhas`);
       conta('copa7a0');
       G.save.flags = G.save.flags || {}; G.save.flags.copa7a0 = true;
       if (typeof log === 'function') log('7 A 0 PERFEITO na Copa dos Sonhos! 7 vitórias sem sofrer nenhum gol!', 'l-lvl');

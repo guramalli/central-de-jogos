@@ -65,8 +65,33 @@ function lerSave() {
     return s && s.v ? s : null;
   } catch { return null; }
 }
+// prêmio (missão, álbum, baú, desafio...): nunca se perde. Mochila → armazém → guardado até abrir espaço
+function recebeItem(id, n = 1) {
+  const s = G.save; if (!ITENS[id]) return null;
+  const c0 = contaItem(id);
+  if (addItem(id, n)) return 'mochila';
+  const falta = n - Math.max(0, contaItem(id) - c0); if (falta <= 0) return 'mochila';
+  if (typeof guardaNoArmazem === 'function' && (armazem(), guardaNoArmazem(id, falta))) { log(`🎒 Mochila cheia: ${falta}x ${ITENS[id].nome} ${falta > 1 ? 'foram guardados' : 'foi guardado'} no seu ARMAZÉM.`, 'l-loot'); return 'armazem'; }
+  (s.pendentes = s.pendentes || []).push([id, falta]);
+  log(`🎒 Mochila e armazém cheios: ${falta}x ${ITENS[id].nome} fica guardado para você — libere espaço e ele chega sozinho.`, 'l-dano'); return 'pendente';
+}
+// prêmios que não couberam em lugar nenhum: chegam quando abrir espaço
+function entregaPendentes() {
+  const s = G.save; if (!s || !Array.isArray(s.pendentes) || !s.pendentes.length) return;
+  const ficam = [];
+  for (const [id, n] of s.pendentes) {
+    if (!ITENS[id]) continue;
+    const cabe = s.mochila.length < 30 || (empilha(id) && s.mochila.some(i => i.id === id));
+    if (!cabe) { ficam.push([id, n]); continue; }
+    const c0 = contaItem(id); addItem(id, n); const veio = contaItem(id) - c0;
+    if (veio > 0) log(`📦 Chegou o prêmio que estava guardado: ${veio}x ${ITENS[id].nome}.`, 'l-loot');
+    if (veio < n) ficam.push([id, n - veio]);
+  }
+  s.pendentes = ficam;
+}
 function salvar() {
   const s = G.save; if (!s || !G.mapa) return;
+  if (s.pendentes && s.pendentes.length) entregaPendentes();
   s.mapa = G.mapa.id; if (Number.isFinite(G.p.x) && Number.isFinite(G.p.y)) { s.x = G.p.x; s.y = G.p.y; }
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { }
   atualizaRanking();
@@ -583,7 +608,7 @@ function usarClasse() {
   if (G.agora < (G.cds.classe || 0)) { log(`${esp.nome} ainda recarregando (${Math.ceil((G.cds.classe - G.agora) / 1000)}s).`, 'l-sis'); return; }
   if (esp.id === 'muralha') { G.buffs.muralha = G.agora + esp.dur; efeito('escudo', p.x, p.y, '#7ab8ff'); log('Muralha! Você toma metade do dano por 6 segundos.', 'l-info'); }
   else if (esp.id === 'firula') { G.firula = esp.dur; efeito('estrelas', p.x, p.y, '#ffb03a'); log('Firula! Seus próximos 3 ataques são críticos.', 'l-info'); }
-  else if (esp.id === 'leitura') { const f = Math.round(st.maxFoco * 0.35); s.foco = Math.min(st.maxFoco, s.foco + f); texto(p, '+' + f, '#8ac8ff'); G.mons.forEach(m => { if (dist(m, p) < 5 && !m.d.chefe) { m.bravo = false; m.dest = null; } }); efeito('area', p.x, p.y, '#b07aff', 3); log('Leitura de Jogo! Foco recuperado e os adversários por perto se acalmaram.', 'l-info'); }
+  else if (esp.id === 'leitura') { const f = Math.round(st.maxFoco * 0.35); s.foco = Math.min(st.maxFoco, s.foco + f); texto(p, '+' + f, '#8ac8ff'); G.mons.forEach(m => { if (dist(m, p) < 5 && !m.d.chefe) { m.bravo = false; m.dest = null; m.cam = null; m.calmoAte = G.agora + 6000; } }); efeito('area', p.x, p.y, '#b07aff', 3); log('Leitura de Jogo! Foco recuperado e os adversários por perto se acalmaram.', 'l-info'); }
   else if (esp.id === 'segundo_folego') { const h = Math.round(st.maxHp * 0.4); s.hp = Math.min(st.maxHp, s.hp + h); texto(p, '+' + h, '#6aff9a'); efeito('curaforte', p.x, p.y, '#5affb0'); }
   G.cds.classe = G.agora + esp.cd; tituloSkill(p, esp.nome, cl.cor); som('cl_' + esp.id); p.golpe = G.agora; G.uiSujo = true;
 }
@@ -601,6 +626,7 @@ function contaItem(id) { return G.save.mochila.filter(i => i.id === id).reduce((
 function empilha(id) { const t = ITENS[id].tipo; return t === 'consumivel' || t === 'loot' || t === 'comida'; }
 function addItem(id, q = 1) {
   const s = G.save; if (!ITENS[id]) return false;
+  if (ITENS[id].tipo === 'chave' && contaItem(id)) return true; // item único (chave/troféu): já tem, não ocupa outro espaço
   if (empilha(id)) {
     const ex = s.mochila.find(i => i.id === id);
     if (ex) ex.q += q; else { if (s.mochila.length >= 30) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa.', 'l-dano'); return false; } s.mochila.push({ id, q }); }
@@ -715,7 +741,7 @@ function entregaMissao(q) {
   s.quests[q.id] = { s: 'feita' };
   log(`Missão concluída: ${q.titulo}!`, 'l-lvl');
   if (r.ouro) { s.ouro += r.ouro; log(`Você recebeu ${r.ouro} tostões.`, 'l-loot'); }
-  (r.itens || []).forEach(([id, n]) => { addItem(id, n); log(`Você recebeu ${n}x ${ITENS[id].nome}.`, 'l-loot'); });
+  (r.itens || []).forEach(([id, n]) => { if (recebeItem(id, n) === 'mochila') log(`Você recebeu ${n}x ${ITENS[id].nome}.`, 'l-loot'); });
   if (r.flag) s.flags[r.flag] = true;
   if (r.flag === 'libera_praia') dica('praia', 'O caminho para a PRAIA foi liberado! Siga a rua principal para o leste (direita) da vila. A seta amarela sempre mostra seu próximo objetivo.');
   if (r.drible) aprendeDrible(r.drible);
@@ -750,7 +776,7 @@ function atualizaMonstro(m, dt) {
   const v = m.d.vel / 60 * 0.88 * dt / 1000;
   const aggro = Math.max(1, m.d.aggro + (m.d.grupo && G.save.carreira && G.save.carreira.satTorcida < 40 ? 2 : 0) + (G.climaAggro || 0));
   if (m.bravo) m.voltando = false; // levou drible/chute no caminho de volta: encara de novo
-  if (vivo && !m.bravo && !m.voltando && m.d.aggro > 0 && d <= aggro && !MAPAS_PACIFICOS.has(G.mapa.id)) {
+  if (vivo && !m.bravo && !m.voltando && !((m.calmoAte || 0) > G.agora) && m.d.aggro > 0 && d <= aggro && !MAPAS_PACIFICOS.has(G.mapa.id)) { // calmoAte: Leitura de Jogo
     m.bravo = true;
     dica('desafio_rivais', `Aqui é diferente da Vila: os rivais vêm te DESAFIAR quando você chega perto! Fique de olho no fôlego, e se precisar, afaste-se para eles desistirem.`);
   }
@@ -1344,7 +1370,7 @@ function interagir() {
 function usarPonto(pt) {
   const s = G.save;
   if (pt.tipo === 'bau_bola') {
-    if (!s.flags.pegou_bola) { s.flags.pegou_bola = true; addItem('bola'); log('Você pegou sua Bola de Capotão! Agora ela vai com você pra todo lado.', 'l-loot'); banner('Sua primeira bola!', 'Volte e fale com a Mãe'); som('moeda'); G.uiSujo = true; salvar(); }
+    if (!s.flags.pegou_bola) { s.flags.pegou_bola = true; recebeItem('bola'); log('Você pegou sua Bola de Capotão! Agora ela vai com você pra todo lado.', 'l-loot'); banner('Sua primeira bola!', 'Volte e fale com a Mãe'); som('moeda'); G.uiSujo = true; salvar(); }
     else log('O baú está vazio. Só tem umas figurinhas velhas de 1994.', 'l-info');
   } else if (pt.tipo === 'penalti') abrirPenalti();
 }
@@ -1388,7 +1414,11 @@ function nivelMonstro(d) {
   if (d.nivel) return d.nivel;
   if (d._nv) return d._nv;
   if (!d.chefe) return d._nv = Math.max(1, Math.round(Math.sqrt(d.xp / 0.55)));
-  const area = G.mapa ? G.mapa.spawns.map(sp => MONSTROS[sp.m]).filter(o => o && !o.chefe && !o.treino) : [];
+  // chefão: nível = o mais forte da área DELE + 3 (não a área onde o jogador está na hora — antes ficava gravado errado)
+  const tipo = Object.keys(MONSTROS).find(k => MONSTROS[k] === d || (MONSTROS[k].chefe && MONSTROS[k].nome === d.nome));
+  const casa = Object.values(MAPAS).find(m => m && m.spawns && m.spawns.some(sp => sp.m === tipo));
+  if (!casa) return Math.round(Math.sqrt(d.xp / 6.6)) + 3; // mapa dele ainda não montado: estimativa (sem gravar)
+  const area = casa.spawns.map(sp => MONSTROS[sp.m]).filter(o => o && !o.chefe && !o.treino);
   return d._nv = (area.length ? Math.max(...area.map(nivelMonstro)) : Math.round(Math.sqrt(d.xp / 6.6))) + 3;
 }
 function corNivel(n) { const dif = n - G.save.nivel; return dif <= -10 ? '#b8b8c0' : dif <= -3 ? '#7aff8a' : dif < 3 ? '#ffffff' : dif < 8 ? '#ffb040' : '#ff5a4a'; }
@@ -1425,7 +1455,7 @@ function instalaEntrada() {
   window.addEventListener('keydown', ev => {
     if (!G.rodando) return;
     const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-    if (ev.key === 'Escape') { if (!$('#modal').hidden) fechaModal(); else { G.alvo = null; G.caminho = null; G.uiSujo = true; } return; }
+    if (ev.key === 'Escape') { if (!$('#modal').hidden) { if (!$('#modal .fechar').hidden) fechaModal(); } else { G.alvo = null; G.caminho = null; G.uiSujo = true; } return; }
     if (G.pausado) { if (window.teclaModal) window.teclaModal(ev); return; }
     if (ev.key in TECLA_DIR) { ev.preventDefault(); G.teclas.add(TECLA_DIR[ev.key]); return; }
     if (ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') { ev.preventDefault(); interagir(); return; }
@@ -1497,7 +1527,28 @@ function som(tipo) {
 }
 
 /* ---------------- início ---------------- */
+// save de versão antiga (ou estragado): completa o que falta e tira o que não existe mais, sem mexer no resto
+function normalizaSave(s) {
+  const pad = novoSave({ nome: s.nome || 'Craque', corpo: s.corpo || 'm', pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'original', roupa: 'roupa-camiseta', baixo: 'baixo-shorts', rosto: null, classe: CLASSES[s.classe] ? s.classe : null });
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v);
+  for (const k of ['look', 'sk', 'equip', 'flags', 'quests', 'kills', 'figs', 'dicas', 'atr']) if (!obj(s[k])) s[k] = pad[k];
+  for (const k of ['sk', 'equip']) for (const [kk, v] of Object.entries(pad[k])) if (!(kk in s[k])) s[k][kk] = v;
+  for (const k of ['mochila', 'dribles']) if (!Array.isArray(s[k])) s[k] = pad[k];
+  if (!Array.isArray(s.hotbar)) s.hotbar = pad.hotbar;
+  while (s.hotbar.length < 10) s.hotbar.push(null);
+  for (const k of ['nivel', 'xp', 'ouro', 'hp', 'foco', 'dia', 'hora']) if (!Number.isFinite(s[k])) s[k] = pad[k];
+  if (s.nivel < 1) s.nivel = 1; if (s.ouro < 0) s.ouro = 0; if (s.foco < 0) s.foco = 0;
+  if (s.classe && !CLASSES[s.classe]) s.classe = null;
+  s.mochila = s.mochila.filter(i => i && ITENS[i.id] && Number.isFinite(i.q) && i.q > 0);
+  { const vistos = new Set(); s.mochila = s.mochila.filter(i => ITENS[i.id].tipo !== 'chave' || (!vistos.has(i.id) && vistos.add(i.id))); } // itens únicos repetidos (ex.: várias Bolas de Ouro)
+  for (const [slot, id] of Object.entries(s.equip)) if (id && !ITENS[id]) s.equip[slot] = pad.equip[slot] || null;
+  s.dribles = s.dribles.filter(id => DRIBLES[id]);
+  s.hotbar = s.hotbar.map(h => !h || (h.t === 'i' && !ITENS[h.id]) || (h.t === 'd' && !DRIBLES[h.id]) ? null : h);
+  if (!Number.isFinite(s.x) || !Number.isFinite(s.y)) { s.x = undefined; s.y = undefined; }
+  return s;
+}
 async function iniciarJogo(save) {
+  normalizaSave(save);
   G.save = save;
   save.st = Object.assign({ mortes: 0, gols: 0, quiz: 0, prof: 0, tempo: 0, chefes: 0, abates: 0 }, save.st);
   save.dicas = save.dicas || {}; if (save.tut == null) save.tut = 99;
@@ -1507,6 +1558,7 @@ async function iniciarJogo(save) {
   CV = $('#cv'); CTX = CV.getContext('2d');
   if (!G.entradaOk) { instalaEntrada(); G.entradaOk = true; requestAnimationFrame(loop); }
   G.p = null;
+  if (!MAPAS_DEF[save.mapa] && /^casa_/.test(save.mapa || '') && typeof garanteTodasAsCasas === 'function') garanteTodasAsCasas(); // salvou dentro de casa
   const mapa = MAPAS_DEF[save.mapa] ? save.mapa : 'vila';
   ajustaCanvas();
   entrarMapa(mapa, save.x, save.y, true);

@@ -128,7 +128,7 @@ function atualizaHotbarCd() {
     const h = s.hotbar[i]; let cd = b.querySelector('.cd');
     if (!h) { if (cd) cd.remove(); return; }
     let fim = 0, dur = 1;
-    if (h.t === 'd') { const dr = DRIBLES[h.id]; const g = dr.tipo === 'cura' ? 'cura' : 'ataque'; fim = Math.max(G.cds[g] || 0, G.cds[h.id] || 0); dur = Math.max(dr.cd, 1000); b.classList.toggle('off', s.nivel < dr.lvl || s.foco < dr.foco); }
+    if (h.t === 'd') { const dr = DRIBLES[h.id]; const g = dr.tipo === 'cura' ? 'cura' : 'ataque'; fim = Math.max(G.cds[g] || 0, G.cds[h.id] || 0); dur = Math.max(dr.cd, 1000); b.classList.toggle('off', s.nivel < dr.lvl || s.foco < Math.ceil(dr.foco * (st.custoFoco || 1))); }
     else { fim = G.cds.pocao || 0; dur = 1000; const q = b.querySelector('.qtd'); const n = contaItem(h.id); if (q) q.textContent = n; b.classList.toggle('off', !n); }
     const rest = fim - G.agora;
     if (rest > 0) { if (!cd) { cd = el('i', { class: 'cd' }); b.append(cd); } cd.style.height = clamp(rest / dur * 100, 0, 100) + '%'; } else if (cd) cd.remove();
@@ -333,7 +333,7 @@ function abrirNPC(npc) {
   if (d.onibus) ops.append(el('button', { class: 'btn', onclick: modalOnibus }, 'Viajar de ônibus'));
   if (d.empresario) ops.append(el('button', { class: 'btn amarelo', onclick: () => { fechaModal(); abrirTime(); } }, s.time ? 'Gerenciar meu time' : 'Fundar meu time'));
   if (d.posicao && s.posicao && s.nivel >= 10) ops.append(el('button', { class: 'btn', onclick: modalPosicao }, 'Trocar de posição'));
-  if (d.posicao && s.classe && s.nivel >= 2) ops.append(el('button', { class: 'btn', onclick: redistribuiAtributos }, `Redistribuir atributos (${fmt(150 * s.nivel)})`));
+  if (d.posicao && s.classe && s.nivel >= 2) ops.append(el('button', { class: 'btn amarelo', onclick: redistribuiAtributos }, `🔄 Redistribuir pontos de atributo (${custoRedistribuir() ? fmt(custoRedistribuir()) + ' tostões' : 'grátis na 1ª vez'})`));
   ops.append(el('button', { class: 'btn', onclick: fechaModal }, 'Tchau!'));
   abreModal(el('h2', {}, d.nome), el('div', { class: 'npc-topo' }, retratoNPC(npc), el('div', { class: 'fala' }, el('p', {}, fala), ...extras)), ops);
 }
@@ -441,7 +441,7 @@ function modalQuadro() {
   if (t) {
     const d = MONSTROS[t.m]; const pronta = t.p >= t.n; const xp = Math.round(d.xp * t.n * 0.6), ouro = Math.round(d.xp * t.n * 0.12);
     lista.append(el('div', { class: 'linha-item' }, el('div', { class: 'nm' }, el('b', {}, `Desafio atual: ${d.nome}`), el('small', {}, `${t.p}/${t.n} — Recompensa: ${fmt(xp)} XP, ${fmt(ouro)} tostões e 1 pacotinho de figurinhas`)),
-      pronta ? el('button', { class: 'btn amarelo', onclick: () => { s.ouro += ouro; addItem('pacotinho', 1); s.tarefa = null; log(`Desafio concluído! +${fmt(ouro)} tostões.`, 'l-loot'); ganhaXp(xp); salvar(); modalQuadro(); } }, 'Resgatar!') :
+      pronta ? el('button', { class: 'btn amarelo', onclick: () => { s.ouro += ouro; recebeItem('pacotinho', 1); s.tarefa = null; log(`Desafio concluído! +${fmt(ouro)} tostões.`, 'l-loot'); ganhaXp(xp); salvar(); modalQuadro(); } }, 'Resgatar!') :
         el('button', { class: 'btn mini', onclick: () => { if (confirm('Desistir do desafio atual?')) { s.tarefa = null; modalQuadro(); } } }, 'Desistir')));
   } else {
     for (const [m, n] of (DESAFIOS[G.mapa.id] || [])) {
@@ -474,12 +474,15 @@ function perguntaMat() {
   return [q, [String(resp), ...[...ops].filter(x => x !== resp).map(String)]];
 }
 let ultimasQuiz = [];
-// Descanso dos quizzes (tempo real): errar/deixar o tempo acabar/fugir da pergunta = pausa curta;
-// acertar QUIZ_RODADA seguidas = pausa longa. Evita subir de nível só no quiz.
-const QUIZ_RODADA = 5, QUIZ_PAUSA_ERRO = 3 * 60000, QUIZ_PAUSA_RODADA = 10 * 60000;
-const QUIZ_QUEM = { futebol: { nome: 'Seu Juca', erro: 'O Seu Juca coçou a cabeça: "Errou, hein? Vai dar uma volta, treina um pouco e depois a gente continua!"', cheio: 'O Seu Juca fechou a banca pra buscar revistas novas. "Bom demais! Volta daqui a pouco que tem mais pergunta!"' },
-  mat: { nome: 'Professora Lúcia', erro: 'A Professora Lúcia sorriu: "Quase! Revise com calma e volte daqui a pouco."', cheio: 'A Professora Lúcia foi corrigir provas. "Excelente aula! Descanse a cabeça e volte mais tarde."' } };
-function estadoQuiz(tipo) { const s = G.save; s.quizCd = s.quizCd || {}; return s.quizCd[tipo] = s.quizCd[tipo] || { ate: 0, certas: 0 }; }
+// Quiz sem espera longa (feedback: a criança perdia o interesse esperando 3-10 min).
+// Errar = só 15 s para respirar. Para não subir de nível só no quiz, o XP vai caindo
+// conforme a quantidade de acertos na última hora (100% → 50% → 25%). Acertos seguidos dão bônus.
+const QUIZ_PAUSA_ERRO = 15000, QUIZ_HORA = 3600000, QUIZ_CHEIO = 15, QUIZ_MEIO = 30;
+function quizMultXp(e) { return e.n < QUIZ_CHEIO ? 1 : e.n < QUIZ_MEIO ? 0.5 : 0.25; }
+const QUIZ_QUEM = { futebol: { nome: 'Seu Juca', erro: 'O Seu Juca coçou a cabeça: "Errou, hein? Respira e tenta a próxima!"', cheio: 'O Seu Juca riu: "Você já sabe muita coisa! Pode continuar, mas agora vale menos XP. Que tal um jogo lá fora?"' },
+  mat: { nome: 'Professora Lúcia', erro: 'A Professora Lúcia sorriu: "Quase! Pense com calma na próxima."', cheio: 'A Professora Lúcia sorriu: "Excelente aula! Pode continuar, mas agora vale menos XP. Que tal descansar a cabeça?"' } };
+function estadoQuiz(tipo) { const s = G.save; s.quizCd = s.quizCd || {}; const e = s.quizCd[tipo] = s.quizCd[tipo] || { ate: 0, certas: 0 };
+  if (!e.hora || Date.now() - e.hora > QUIZ_HORA) { e.hora = Date.now(); e.n = 0; } if (e.ate > Date.now() + QUIZ_PAUSA_ERRO) e.ate = Date.now() + QUIZ_PAUSA_ERRO; return e; } // saves antigos com pausa de 10 min
 function quizFalta(tipo) { return Math.max(0, estadoQuiz(tipo).ate - Date.now()); }
 function fmtFalta(ms) { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }
 function pausaQuiz(tipo, ms) { const e = estadoQuiz(tipo); e.ate = Date.now() + ms; e.certas = 0; salvar(); }
@@ -487,7 +490,7 @@ function modalQuizPausa(tipo) {
   const quem = QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol; const txt = el('b', {}, fmtFalta(quizFalta(tipo)));
   const tm = setInterval(() => { const f = quizFalta(tipo); if (!document.body.contains(txt)) return clearInterval(tm); if (f <= 0) { clearInterval(tm); modalQuiz(tipo); return; } txt.textContent = fmtFalta(f); }, 500);
   abreModal(el('h2', {}, tipo === 'mat' ? 'Aula da Professora Lúcia' : 'Quiz do Seu Juca'), el('p', {}, `${quem.nome} está descansando. Volte em `, txt, '.'),
-    el('p', { class: 'vazio' }, `Enquanto isso, que tal treinar dribles, fazer missões ou o Quadro de Desafios?`), el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Ok')));
+    el('p', { class: 'vazio' }, `Respire fundo... já já tem outra pergunta!`), el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Ok')));
 }
 function modalQuiz(tipo) {
   const s = G.save;
@@ -498,6 +501,7 @@ function modalQuiz(tipo) {
   const [pergunta, ops] = q; const certa = ops[0];
   const emb = [...ops]; for (let i = emb.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [emb[i], emb[k]] = [emb[k], emb[i]]; }
   const DUR = 20000; const t0 = performance.now(); let resp = false;
+  { const e0 = estadoQuiz(tipo); e0.ate = Date.now() + QUIZ_PAUSA_ERRO; salvar(); } // já conta como erro se recarregar a página no meio da pergunta
   const barra = el('i'); barra.style.width = '100%';
   const grade = el('div', { class: 'quiz-op' });
   const fim = el('div', { class: 'opcoes' });
@@ -507,23 +511,28 @@ function modalQuiz(tipo) {
     grade.querySelectorAll('button').forEach(b => { b.disabled = true; if (b.textContent === certa) b.classList.add('certo'); });
     if (!ok && btn) btn.classList.add('errado');
     if (ok) {
-      const xp = Math.round((tipo === 'mat' ? 8 + s.nivel * 3 : 10 + s.nivel * 4) * stats().xpEstudo);
+      const e = estadoQuiz(tipo); const mult = quizMultXp(e) * (1 + Math.min(e.certas, 10) * 0.05);
+      const xp = Math.max(1, Math.round((tipo === 'mat' ? 8 + s.nivel * 3 : 10 + s.nivel * 4) * stats().xpEstudo * mult));
       treinaSkill('visao', 30);
       if (tipo === 'mat') { s.st.prof++; contaEvento('prof'); } else { s.st.quiz++; contaEvento('quiz'); }
       ganhaXp(xp); som('moeda'); log(`Resposta certa! +${xp} XP e um pouco de Visão de Jogo.`, 'l-xp');
-      const e = estadoQuiz(tipo); e.certas++;
-      fim.prepend(el('p', {}, `✔ Certa! +${xp} XP (${e.certas}/${QUIZ_RODADA} nesta rodada)`));
-      if (e.certas >= QUIZ_RODADA) { pausaQuiz(tipo, QUIZ_PAUSA_RODADA); fim.append(el('p', {}, `🏁 Rodada completa! ${(QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol).cheio} (${QUIZ_PAUSA_RODADA / 60000} min)`)); }
+      e.ate = 0; e.certas++; e.n++;
+      fim.prepend(el('p', {}, `✔ Certa! +${xp} XP` + (e.certas >= 2 ? ` · ${e.certas} seguidas 🔥` : '')));
+      if (e.n === QUIZ_CHEIO || e.n === QUIZ_MEIO) fim.append(el('p', { class: 'dica' }, `${(QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol).cheio} (as próximas perguntas desta hora dão menos XP)`));
     } else {
       som('erro'); fim.prepend(el('p', {}, `✘ ${op ? 'Errou' : 'Tempo esgotado'}! A resposta era: ${certa}`));
-      pausaQuiz(tipo, QUIZ_PAUSA_ERRO); fim.append(el('p', {}, `${(QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol).erro} (${QUIZ_PAUSA_ERRO / 60000} min)`));
+      pausaQuiz(tipo, QUIZ_PAUSA_ERRO); fim.append(el('p', {}, `${(QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol).erro} (${QUIZ_PAUSA_ERRO / 1000} s)`));
     }
-    if (quizFalta(tipo) > 0) fim.append(el('button', { class: 'btn amarelo', onclick: fechaModal }, 'Ok'));
+    if (quizFalta(tipo) > 0) { // espera curta dentro da própria janela: o botão libera sozinho
+      const prox = el('button', { class: 'btn amarelo', disabled: 'disabled', onclick: () => modalQuiz(tipo) }, `Próxima em ${Math.ceil(quizFalta(tipo) / 1000)} s`);
+      const tp = setInterval(() => { if (!document.body.contains(prox)) return clearInterval(tp); const f = quizFalta(tipo); if (f <= 0) { clearInterval(tp); prox.disabled = false; prox.textContent = 'Próxima pergunta'; } else prox.textContent = `Próxima em ${Math.ceil(f / 1000)} s`; }, 250);
+      fim.append(prox, el('button', { class: 'btn', onclick: fechaModal }, 'Parar'));
+    }
     else fim.append(el('button', { class: 'btn amarelo', onclick: () => modalQuiz(tipo) }, 'Próxima pergunta'), el('button', { class: 'btn', onclick: fechaModal }, 'Parar'));
   };
   emb.forEach(op => { const b = el('button', { class: 'btn' }, op); b.onclick = () => responder(op, b); grade.append(b); });
   const tm = setInterval(() => { const k = 1 - (performance.now() - t0) / DUR; barra.style.width = clamp(k * 100, 0, 100) + '%'; if (k <= 0) responder(null, null); }, 100);
-  window.pararQuiz = () => { clearInterval(tm); if (!resp) { resp = true; pausaQuiz(tipo, QUIZ_PAUSA_ERRO); log(`Você saiu no meio da pergunta. ${(QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol).nome} vai descansar ${QUIZ_PAUSA_ERRO / 60000} min.`, 'l-sis'); } window.pararQuiz = null; };
+  window.pararQuiz = () => { clearInterval(tm); if (!resp) { resp = true; pausaQuiz(tipo, QUIZ_PAUSA_ERRO); log(`Você saiu no meio da pergunta. ${(QUIZ_QUEM[tipo] || QUIZ_QUEM.futebol).nome} volta em ${QUIZ_PAUSA_ERRO / 1000} s.`, 'l-sis'); } window.pararQuiz = null; };
   window.teclaModal = ev => { const n = '1234'.indexOf(ev.key); if (n >= 0 && !resp) grade.children[n].click(); };
   abreModal(el('h2', {}, tipo === 'mat' ? 'Aula da Professora Lúcia' : 'Quiz do Seu Juca'), el('div', { class: 'timer' }, barra), el('p', { style: 'font-size:18px' }, pergunta), grade, fim);
 }
@@ -620,7 +629,7 @@ function modalAlbum() {
   }
   const n = Object.keys(s.figs).length; const completo = n >= FIGURINHAS.length;
   const ops = el('div', { class: 'opcoes' });
-  if (completo && !s.flags.album_premio) ops.append(el('button', { class: 'btn amarelo grande', onclick: () => { s.flags.album_premio = true; addItem('medalha_colecionador'); log('ÁLBUM COMPLETO! Você ganhou a Medalha do Colecionador!', 'l-lvl'); banner('ÁLBUM COMPLETO!', 'Medalha do Colecionador'); salvar(); modalAlbum(); } }, 'Resgatar prêmio do álbum!'));
+  if (completo && !s.flags.album_premio) ops.append(el('button', { class: 'btn amarelo grande', onclick: () => { s.flags.album_premio = true; recebeItem('medalha_colecionador'); log('ÁLBUM COMPLETO! Você ganhou a Medalha do Colecionador!', 'l-lvl'); banner('ÁLBUM COMPLETO!', 'Medalha do Colecionador'); salvar(); modalAlbum(); } }, 'Resgatar prêmio do álbum!'));
   abreModal.largo = true;
   abreModal(el('h2', {}, `Álbum de figurinhas (${n}/${FIGURINHAS.length})`), el('p', {}, 'Figurinhas caem raramente dos adversários (chefões dão mais), vêm em pacotinhos do Seu Juca e nos desafios. Repetidas viram 25 tostões. Complete o álbum para ganhar a Medalha do Colecionador!'), ops, g);
 }
@@ -691,7 +700,7 @@ function telaInicial() {
     else if (k === 'missoes') modalMissoes(); else if (k === 'album') modalAlbum(); else if (k === 'time') abrirTime(); else if (k === 'mapa') modalMapa(); else if (k === 'carreira') { if (typeof abrirCarreira === 'function') abrirCarreira(); } else if (k === 'atalhos') modalAtalhos();
   }));
   $('#modal .fechar').onclick = () => { if (G.save && G.save.hp <= 0) return; fechaModal(); };
-  $('#modal').addEventListener('mousedown', ev => { if (ev.target.id === 'modal' && !(G.save && G.save.hp <= 0)) fechaModal(); });
+  $('#modal').addEventListener('mousedown', ev => { if (ev.target.id === 'modal' && !(G.save && G.save.hp <= 0) && !$('#modal .fechar').hidden) fechaModal(); }); // sem ✕ = não fecha clicando fora
 }
 function abrirCriacao() {
   $('#inicioMenu').hidden = true; $('#criacao').hidden = false;
@@ -775,7 +784,7 @@ function abreFicha() {
   const pct = v => Math.round(v * 100) + '%';
   const deriv = el('div', { class: 'sk-info' },
     el('span', {}, 'Fôlego máx.'), el('b', {}, fmt(st.maxHp)), el('span', {}, 'Foco máx.'), el('b', {}, fmt(st.maxFoco)),
-    el('span', {}, 'Defesa total'), el('b', {}, Math.round(st.def)), el('span', {}, 'Dano extra'), el('b', {}, '+' + pct(st.danoMult - 1)),
+    el('span', {}, 'Defesa total'), el('b', {}, Math.round(st.def)), el('span', {}, 'Dano extra'), el('b', {}, (st.danoMult >= 1 ? '+' : '') + pct(st.danoMult - 1)),
     el('span', {}, 'Crítico'), el('b', {}, pct(st.crit)), el('span', {}, 'Bloqueio'), el('b', {}, pct(st.bloqueio)),
     el('span', {}, 'Velocidade'), el('b', {}, Math.round(st.vel)), el('span', {}, 'XP em missões/quiz'), el('b', {}, '+' + pct(st.xpEstudo - 1)),
     el('span', {}, 'Recuperação'), el('b', {}, `${st.regenHp.toFixed(1)} / ${st.regenFoco.toFixed(1)} por seg.`));
@@ -789,12 +798,27 @@ function abreFicha() {
         linhas, el('h3', {}, 'O que isso muda'), deriv,
         el('p', { class: 'vazio' }, 'Quer redistribuir tudo? Fale com o Seu Zé no campinho (custa tostões).'))));
 }
+// Seu Zé devolve os pontos de atributo gastos (a 1ª vez é grátis, depois o preço sobe com o nível)
+function custoRedistribuir() { const s = G.save; return s.flags && s.flags.redist_gratis ? 150 * s.nivel + 3 * s.nivel * s.nivel : 0; }
 function redistribuiAtributos() {
-  const s = G.save; const custo = 150 * s.nivel; const cl = CLASSES[s.classe]; if (!cl) return;
-  if (s.ouro < custo) { log(`Redistribuir custa ${fmt(custo)} tostões.`, 'l-dano'); return; }
-  if (!confirm(`Redistribuir todos os pontos de atributo por ${fmt(custo)} tostões?`)) return;
-  s.ouro -= custo; const lv = s.nivel - 1; s.atr = Object.assign({}, cl.base); s.atr[cl.principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
-  log('Pontos devolvidos! Aperte C para distribuir de novo.', 'l-lvl'); salvar(); abreFicha();
+  const s = G.save; const custo = custoRedistribuir(); const cl = CLASSES[s.classe]; if (!cl) return;
+  const lv = s.nivel - 1; const gastos = lv * PONTOS_POR_NIVEL - (s.pontos || 0);
+  const voltar = el('button', { class: 'btn', onclick: fechaModal }, 'Agora não');
+  if (gastos <= 0) return abreModal(el('h2', {}, 'Seu Zé'), el('p', {}, 'Você ainda não gastou nenhum ponto de atributo. Aperte C para distribuir!'), el('div', { class: 'opcoes' }, voltar));
+  const txtCusto = custo ? `${fmt(custo)} tostões` : 'nada (a primeira vez é por conta da casa!)';
+  const falta = s.ouro < custo;
+  const sim = el('button', { class: 'btn amarelo', disabled: falta ? 'disabled' : null, onclick: () => {
+    if (s.ouro < custo) return;
+    s.ouro -= custo; s.flags.redist_gratis = true;
+    s.atr = Object.assign({}, cl.base); s.atr[cl.principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
+    som('moeda'); efeito('curaforte', G.p.x, G.p.y, '#ffd23f');
+    log(`Seu Zé devolveu ${s.pontos} pontos de atributo! Distribua de novo na Ficha.`, 'l-lvl'); salvar(); G.uiSujo = true; fechaModal(); abreFicha();
+  } }, falta ? `Faltam ${fmt(custo - s.ouro)} tostões` : 'Sim, devolver meus pontos');
+  abreModal(el('h2', {}, '🔄 Redistribuir atributos'),
+    el('p', {}, `"Quer mudar seu jeito de jogar? Eu te devolvo os ${gastos} pontos de atributo que você já usou, e você escolhe tudo de novo."`),
+    el('p', {}, 'Custo: ', el('b', {}, txtCusto)),
+    el('p', { class: 'dica' }, 'Seu nível, suas habilidades e seus itens continuam iguais. Só os pontos de atributo voltam para você distribuir.'),
+    el('div', { class: 'opcoes' }, sim, voltar));
 }
 function modalMapa() {
   const m = G.mapa; const base = renderMini(m);
@@ -864,15 +888,16 @@ function modalRefino(npc, msg) {
 function refinar(o, npc) {
   const s = G.save; const c = custoRefino(o.id, o.r);
   if (s.ouro < c.tostoes || !c.mats.every(([m, n]) => contaItem(m) >= n)) return;
+  const alvoM = o.onde === 'mochila' ? s.mochila[o.i] : null; // pega o item ANTES de gastar o material (a mochila anda quando uma pilha acaba)
   s.ouro -= c.tostoes; c.mats.forEach(([m, n]) => removeItem(m, n));
   let msg;
   if (Math.random() < c.chance) {
     const novo = o.r + 1;
-    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = novo; } else if (s.mochila[o.i]) s.mochila[o.i].r = novo;
+    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = novo; } else if (alvoM) alvoM.r = novo;
     msg = `✨ SUCESSO! ${nomeItem(o.id, novo)} ficou mais forte!`; som('nivel'); banner(nomeItem(o.id, novo), 'Refino bem-sucedido!'); log(msg, 'l-lvl'); contaEvento('refino');
   } else if (c.cai) { // refino alto: falhou, o item volta 1 nível (nunca quebra)
     const volta = Math.max(0, o.r - 1);
-    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = volta; } else if (s.mochila[o.i]) s.mochila[o.i].r = volta;
+    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = volta; } else if (alvoM) alvoM.r = volta;
     msg = `💥 Não deu certo... e o item voltou para ${nomeItem(o.id, volta)}. Refino alto é assim: arriscado!`; som('erro'); log(msg, 'l-dano');
   } else { msg = `💥 Não deu certo desta vez... O item continua ${nomeItem(o.id, o.r)}. Tente de novo!`; som('erro'); log(msg, 'l-dano'); }
   salvar(); G.uiSujo = true; atualizaRetrato(); modalRefino(npc, msg);
