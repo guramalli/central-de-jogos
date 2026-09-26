@@ -35,10 +35,13 @@ import { nomeDoTituloQuiz, QUIZ_NOMES, QUIZ_NIVEIS, TITULO_LENDARIO, RAPIDO_TITU
 // peças de ouro (aura) e o conjunto Relâmpago.
 // (O frontend tem uma cópia deste número em avatarCatalogo.js, que vai no
 // "?v=" da busca — suba as duas juntas.)
-export const VERSAO_CATALOGO = 7;
+export const VERSAO_CATALOGO = 8;
 
 // Sufixo dos arquivos de arte (peças, máscaras de pele e cinzas).
-export const VERSAO_ARTE = "v2";
+// v3: as camadas perderam o "fantasma" do corpo-base (contorno, olhos e
+// mãos que a arte trazia junto e apareciam por cima de outra peça), a calça
+// jeans ganhou o tecido que faltava e as costas, o pedaço atrás da mão.
+export const VERSAO_ARTE = "v3";
 
 // Tamanho da tela de todas as camadas e os dois recortes usados fora do
 // corpo inteiro (em pixels da tela):
@@ -60,8 +63,8 @@ export const TELA = {
 
 // ===== Corpo =====
 //
-// Cada pele tem DUAS artes, mesma silhueta: masculina (<id>-v2.webp) e
-// feminina (<id>-f-v2.webp: cílios, bochechas rosadas, lábios). A escolha
+// Cada pele tem DUAS artes, mesma silhueta: masculina (<id>-<VERSAO_ARTE>.webp) e
+// feminina (<id>-f-<VERSAO_ARTE>.webp: cílios, bochechas rosadas, lábios). A escolha
 // fica em avatarMontado.corpo; sem a chave = masculino (o corpo de sempre),
 // então só "feminino" é gravado. Todas as peças servem nos dois corpos.
 export const CORPOS = [
