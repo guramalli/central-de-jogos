@@ -308,7 +308,7 @@ function abreCasaPorta(id) {
     el('p', {}, el('b', {}, def.nome), ` — ${def.local}`),
     el('ul', { class: 'casa-info' }, el('li', {}, `Tamanho: ${def.iw - 2} × ${def.ih - 3} quadradinhos para decorar`), el('li', {}, `Preço: ${fmt(def.preco)} tostões (você tem ${fmt(s.ouro)})`),
       el('li', {}, 'Uma casa por pessoa (como no Tibia). Dentro dela você coloca móveis e expõe seus itens para todo mundo ver.')),
-    tem ? el('p', { class: 'casa-aviso' }, `Você já tem a casa ${CASAS[tem.id].nome}. Para trocar, venda a sua com a Dona Sônia.`) : null,
+    tem ? el('p', { class: 'casa-aviso' }, `Você já tem a casa ${CASAS[tem.id].nome}. Para trocar, venda a sua com a Dona Sônia.`) : '',
     el('div', { class: 'opcoes' },
       el('button', { class: 'btn amarelo', type: 'button', disabled: sim ? null : 'disabled', onclick: () => { comprarCasa(id); fechaModal(); } }, sim ? `Comprar por ${fmt(def.preco)}` : tem ? 'Você já tem casa' : `Faltam ${fmt(def.preco - s.ouro)}`),
       el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Agora não')));

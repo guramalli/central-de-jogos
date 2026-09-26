@@ -99,7 +99,7 @@ function alcanceChute() { const v = vocDe(); return 4.3 + (v ? v.alcance : 0); }
   const _de = desenhaEnt;
   desenhaEnt = function (ctx, e) {
     const r = _de(ctx, e);
-    if ((e.atordoado || 0) > G.agora) { // estrelinhas girando na cabeça
+    if ((e.atordoado || 0) > G.agora && !(typeof FX !== 'undefined' && FX.img.tontura && FX.img.tontura.ok)) { // estrelinhas girando na cabeça (fx.js desenha a animada)
       const h = alturaEnt(e) * T, t = G.agora / 250;
       for (let i = 0; i < 3; i++) { const a = t + i * 2.1; ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💫', e.x * T + Math.cos(a) * 14, e.y * T - h - 6 + Math.sin(a) * 4); }
     }

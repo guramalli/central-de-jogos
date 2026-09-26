@@ -259,7 +259,7 @@ function atualizaRastreador() {
 
 /* ---------------- modal genérico ---------------- */
 function abreModal(...conteudo) {
-  const M = $('#modal'); const C = $('#modalConteudo'); C.innerHTML = ''; C.append(...conteudo.flat());
+  const M = $('#modal'); const C = $('#modalConteudo'); C.innerHTML = ''; C.append(...conteudo.flat().filter(x => x != null && x !== false)); // sem "null" escrito na janela
   M.hidden = false; G.pausado = true; G.teclas.clear(); M.querySelector('.fechar').hidden = false;
   M.querySelector('.modal-caixa').classList.toggle('largo', !!abreModal.largo); abreModal.largo = false;
 }
