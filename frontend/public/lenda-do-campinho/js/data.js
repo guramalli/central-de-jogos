@@ -738,13 +738,32 @@ for (const k in LOOT_EXTRA) if (MONSTROS[k]) MONSTROS[k].loot.push(...LOOT_EXTRA
 // Refino: +1 até +10
 const REFINO_MAX = 10;
 const REFINO_CHANCE = [1, 1, 1, 1, 0.85, 0.75, 0.62, 0.5, 0.4, 0.3]; // chance de ir de r para r+1
+// material raro pedido na forja (+5 em diante), pelo nível do item: [nível mínimo, material]
+const MATERIAL_RARO_REFINO = [[130, 'megafone'], [110, 'ingresso'], [93, 'oculos_neon'], [80, 'lamparina'], [70, 'leque'], [60, 'escaravelho'], [40, 'cartao_vermelho'], [20, 'luva']];
+function materialRaroRefino(lvl) { const f = MATERIAL_RARO_REFINO.find(([min]) => lvl >= min); return f ? f[1] : null; }
+// troféu de arena pedido no +9 e no +10, pela faixa do item
+const TROFEU_REFINO = [[155, 'trofeu_lendas'], [140, 'trofeu_nevasca'], [74, 'trofeu_neon'], [60, 'trofeu_piramides'], [40, 'trofeu_ondas'], [28, 'trofeu_terrao']];
+function trofeuRefino(lvl) { const f = TROFEU_REFINO.find(([min]) => lvl >= min); return f ? f[1] : null; }
 function custoRefino(id, r) {
   const it = ITENS[id]; const base = it.preco || (it.venda || 10) * 4;
   const mats = [];
   if (r + 1 >= 4 && r + 1 <= 6) mats.push(['retalho', r - 2]);
   if (r + 1 >= 7 && r + 1 <= 9) mats.push(['couro', r - 5]);
   if (r + 1 === 10) mats.push(['couro', 3], ['fio_ouro', 1]);
-  return { tostoes: Math.round(base * 0.3 * Math.pow(r + 1, 1.7)) + 20, mats, chance: REFINO_CHANCE[r] };
+  // Item de nível 20+ (quem está começando não sofre com isso): os refinos altos são BEM difíceis,
+  // pra que os itens mais fortes levem muito tempo de jogo.
+  const lvl = it.lvl || 0, alvo = r + 1;
+  // material RARO da região do item, do +5 em diante: 1, 2, 4, 6, 9, 12
+  const raro = alvo >= 5 ? materialRaroRefino(lvl) : null;
+  if (raro && ITENS[raro]) mats.push([raro, { 5: 1, 6: 2, 7: 4, 8: 6, 9: 9, 10: 12 }[alvo]]);
+  // +9 e +10: troféu da arena da faixa do item (o chefão só pode ser vencido 1x por dia)
+  const trofeu = alvo >= 9 ? trofeuRefino(lvl) : null;
+  if (trofeu && ITENS[trofeu]) mats.push([trofeu, alvo === 10 ? 2 : 1]);
+  let chance = REFINO_CHANCE[r];
+  if (alvo >= 7 && lvl >= 40) chance *= lvl >= 100 ? 0.7 : 0.85;
+  // tentar +8, +9 ou +10 e falhar faz o item voltar 1 nível (nunca quebra)
+  const cai = alvo >= 8 && lvl >= 20;
+  return { tostoes: Math.round(base * 0.3 * Math.pow(r + 1, 1.7)) + 20, mats, chance, cai };
 }
 function nomeItem(id, r) { return ITENS[id].nome + (r ? ` +${r}` : ''); }
 

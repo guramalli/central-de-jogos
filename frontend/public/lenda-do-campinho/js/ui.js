@@ -852,13 +852,13 @@ function modalRefino(npc, msg) {
     const c = custoRefino(o.id, o.r);
     const temMats = c.mats.every(([m, n]) => contaItem(m) >= n);
     const pode = s.ouro >= c.tostoes && temMats;
-    linha.append(el('div', { class: 'refino-custo' }, precoTag(c.tostoes), ...c.mats.map(([m, n]) => el('small', { class: contaItem(m) >= n ? '' : 'falta' }, `${n}x ${ITENS[m].nome} (${contaItem(m)})`)), el('small', {}, `Chance: ${Math.round(c.chance * 100)}%`)),
+    linha.append(el('div', { class: 'refino-custo' }, precoTag(c.tostoes), ...c.mats.map(([m, n]) => el('small', { class: contaItem(m) >= n ? '' : 'falta' }, `${n}x ${ITENS[m].nome} (${contaItem(m)})`)), el('small', {}, `Chance: ${Math.round(c.chance * 100)}%`), c.cai ? el('small', { class: 'falta' }, `Se falhar: volta pra +${o.r - 1}`) : null),
       el('button', { class: 'btn amarelo mini', disabled: pode ? null : 'disabled', onclick: () => refinar(o, npc) }, `Refinar +${o.r + 1}`));
     lista.append(linha);
   }
   abreModal.largo = true;
   abreModal(el('h2', {}, 'Oficina do Seu Remendo'), msg ? el('p', { class: 'refino-msg' }, msg) : '',
-    el('p', {}, 'Cada refino deixa o item mais forte (+12% de ataque/defesa e +10% nos bônus). Até +3 é garantido; depois pode falhar — se falhar, o item NÃO quebra, só gasta os tostões e os materiais.'),
+    el('p', {}, 'Cada refino deixa o item mais forte (+12% de ataque/defesa e +10% nos bônus). Até +4 é garantido; depois pode falhar (+5: 85% · +6: 75% · +7: 62% · +8: 50% · +9: 40% · +10: 30%) — se falhar, o item NÃO quebra, só gasta os tostões e os materiais. Itens a partir do nível 20: do +5 em diante pedem um material RARO da região; o +9 e o +10 pedem TROFÉUS de arena; e tentar +8, +9 ou +10 e falhar faz o item voltar 1 nível.'),
     el('p', {}, 'Seus tostões: ', precoTag(s.ouro)), lista, el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: () => abrirNPC(npc) }, 'Voltar')));
 }
 function refinar(o, npc) {
@@ -870,6 +870,10 @@ function refinar(o, npc) {
     const novo = o.r + 1;
     if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = novo; } else if (s.mochila[o.i]) s.mochila[o.i].r = novo;
     msg = `✨ SUCESSO! ${nomeItem(o.id, novo)} ficou mais forte!`; som('nivel'); banner(nomeItem(o.id, novo), 'Refino bem-sucedido!'); log(msg, 'l-lvl'); contaEvento('refino');
+  } else if (c.cai) { // refino alto: falhou, o item volta 1 nível (nunca quebra)
+    const volta = Math.max(0, o.r - 1);
+    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = volta; } else if (s.mochila[o.i]) s.mochila[o.i].r = volta;
+    msg = `💥 Não deu certo... e o item voltou para ${nomeItem(o.id, volta)}. Refino alto é assim: arriscado!`; som('erro'); log(msg, 'l-dano');
   } else { msg = `💥 Não deu certo desta vez... O item continua ${nomeItem(o.id, o.r)}. Tente de novo!`; som('erro'); log(msg, 'l-dano'); }
   salvar(); G.uiSujo = true; atualizaRetrato(); modalRefino(npc, msg);
 }

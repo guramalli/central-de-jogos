@@ -86,6 +86,7 @@ function atualizaRanking() {
 let ultimoEnvioRanking = 0;
 function enviaRankingOnline(r) {
   if (typeof PORTAL === 'undefined' || !PORTAL.ativo || !PORTAL.token || !r) return;
+  if (typeof saveDaConta === 'function' && !saveDaConta()) return; // personagem de outra conta: não entra no ranking desta
   const agora = Date.now(); if (agora - ultimoEnvioRanking < 60000) return; ultimoEnvioRanking = agora;
   const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time, chefes: r.chefes || 0, figs: r.figs || 0 };
   fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) })
@@ -348,7 +349,7 @@ function atualizaJogador(dt) {
   } else {
     const a = G.alvo; // perseguir o alvo
     if (a && G.mons.includes(a)) {
-      const alc = G.modo === 'chute' ? 4.3 : 1.05;
+      const alc = G.modo === 'chute' ? (typeof alcanceChute === 'function' ? alcanceChute() : 4.3) : 1.05;
       const ok = dist(p, a) <= alc && (alc < 2 || linhaVisao(p, a));
       if (!ok) {
         if (G.modo !== 'chute' && segLivre(p.x, p.y, a.x, a.y)) {
@@ -390,7 +391,7 @@ function ataqueAutomatico() {
     const dano = Math.round(danoMaxJogador('drible') * (0.15 + 0.85 * Math.random())) - Math.round(a.d.def * (0.5 + 0.5 * Math.random()));
     treinaSkill('drible', 1); efeito('toque', a.x, a.y); som('toque'); p.golpe = G.agora;
     aplicaDano(a, critico(dano, a));
-  } else if (G.modo === 'chute' && d <= 4.5 && linhaVisao(p, a)) {
+  } else if (G.modo === 'chute' && d <= (typeof alcanceChute === 'function' ? alcanceChute() : 4.3) + 0.2 && linhaVisao(p, a)) { // alcance: Artilheiro chuta de mais longe (vocacoes.js)
     G.cdAtaque = G.agora + 1500; p.flip = a.x < p.x;
     const max = danoMaxJogador('chute'); treinaSkill('chute', 1); som('chute'); p.golpe = G.agora;
     projetil(p, a, 'bola', () => { if (!G.mons.includes(a)) return; aplicaDano(a, critico(Math.round(max * (0.15 + 0.85 * Math.random())) - Math.round(a.d.def * (0.5 + 0.5 * Math.random())), a)); });
@@ -435,7 +436,8 @@ function soltaDrop(m, id, q, rar, i, n) {
 // alguma missão aceita ainda precisa desse item (e você ainda não tem o suficiente)?
 function itemPedidoEmMissao(id) {
   const s = G.save;
-  return MISSOES.some(q => { const e = s.quests[q.id]; return e && e.s === 'ativa' && q.req && q.req.itens && q.req.itens.some(([iid, n]) => iid === id && contaItem(iid) < n); });
+  // vale para missão aceita E para missão de juntar itens que já está disponível (dá pra ir juntando antes de aceitar)
+  return MISSOES.some(q => { if (!q.req || !q.req.itens) return false; const st = statusMissao(q); return (st === 'ativa' || st === 'disponivel') && q.req.itens.some(([iid, n]) => iid === id && contaItem(iid) < n); });
 }
 function penalidadeNivel(d) {
   const dif = nivelMonstro(d) - G.save.nivel;
@@ -454,7 +456,7 @@ function matar(m) {
   const ouro = Math.round(rndi(d.ouro[0], d.ouro[1]) * pen.drop); const ganhos = []; const caidos = [];
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
   let melhor = null; const ordemR = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
-  for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * (daMissao ? 1 : pen.drop)) { // item que uma missão ATIVA ainda pede: chance cheia, mesmo em adversário fraco
+  for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * (daMissao ? 1 : pen.drop)) { // item que uma missão (aceita ou disponível) ainda pede: chance cheia, mesmo em adversário fraco
     const q = rndi(mn, mx); if (!addItem(id, q)) continue;
     if (daMissao && !itemPedidoEmMissao(id)) log(`✔ Você já juntou todos os ${ITENS[id].nome} que a missão pede!${pen.drop < 1 ? ' (Daqui pra frente eles voltam a cair pouco de adversários fracos.)' : ''}`, 'l-xp');
     const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}`); caidos.push([id, q, rar]);
@@ -464,7 +466,8 @@ function matar(m) {
   caidos.forEach(([id, q, rar], i) => soltaDrop(m, id, q, rar, i, caidos.length));
   if (melhor && ordemR.indexOf(melhor.rar) >= 2) { som('raro'); if (ordemR.indexOf(melhor.rar) >= 3) { const mb = melhor; setTimeout(() => banner(`ITEM ${RARIDADE[mb.rar].nome.toUpperCase()}!`, ITENS[mb.id].nome), 1800); } }
   if (d.fig && Math.random() < (d.chefe ? 0.5 : 1 / 110) * pen.drop) ganhaFigurinha(d.fig);
-  const aviso = ['', ' (fraco para o seu nível: XP −40%)', ' (bem mais fraco que você: XP −75%, menos loot)', ' (muito mais fraco: quase nada de XP e loot)', ' (fraco demais: sem XP e sem loot)'][pen.faixa];
+  const temItemMissao = d.loot.some(([id]) => itemPedidoEmMissao(id)) || caidos.some(([id]) => id !== 'tostao' && MISSOES.some(q => q.req && q.req.itens && q.req.itens.some(([i]) => i === id)));
+  const aviso = ['', ' (fraco para o seu nível: XP −40%)', ' (bem mais fraco que você: XP −75%, menos loot)', ' (muito mais fraco: quase nada de XP e loot)', temItemMissao ? ' (fraco demais: sem XP — só caem os itens de missão)' : ' (fraco demais: sem XP e sem loot)'][pen.faixa];
   log(`Você passou por ${d.nome}.${ganhos.length ? ' Ganhou: ' + ganhos.join(', ') + '.' : ''}${aviso}`, pen.faixa >= 3 ? 'l-sis' : 'l-loot');
   if (pen.faixa >= 2) dica('nivel_baixo', `Adversários muito mais fracos que você (nível em CINZA) dão pouca ou nenhuma XP e quase nada de loot. Para evoluir, procure rivais do seu nível (branco) ou mais fortes (laranja/vermelho)!`);
   for (const q of MISSOES) { const e = s.quests[q.id]; if (e && e.s === 'ativa' && q.req.kill === m.tipo) { e.p = (e.p || 0) + 1; if (e.p === q.req.n) { log(`Missão "${q.titulo}" pronta! Volte para falar com ${NPCS[q.npc].nome}.`, 'l-xp'); banner('Missão pronta!', `Fale com ${NPCS[q.npc].nome}`); } } }

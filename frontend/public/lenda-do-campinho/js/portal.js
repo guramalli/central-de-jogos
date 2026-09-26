@@ -16,8 +16,12 @@ const PORTAL = (() => {
   const local = (h === 'localhost' || h === '127.0.0.1') && location.pathname.startsWith('/lenda-do-campinho');
   let token = null, user = null;
   try { token = localStorage.getItem('eg_token'); user = JSON.parse(localStorage.getItem('eg_user') || 'null'); } catch (e) { }
-  return { ativo: producao || local, api: producao ? 'https://api.educacaogamer.com.br' : 'http://localhost:4000', token, user };
+  let contaId = user && user.id ? String(user.id) : null;
+  if (!contaId && token) try { contaId = String(JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).id || '') || null; } catch (e) { }
+  return { ativo: producao || local, api: producao ? 'https://api.educacaogamer.com.br' : 'http://localhost:4000', token, user, contaId };
 })();
+// o personagem aberto é desta conta? (save sem dono ainda = sim; o contas.js marca o dono)
+function saveDaConta(s = G.save) { return !!s && (!s.conta || !PORTAL.contaId || s.conta === PORTAL.contaId); }
 
 // mensagem do bug: o texto da pessoa + o essencial dos dados técnicos (limite do site: 2000 caracteres)
 function mensagemBugPortal(texto) {

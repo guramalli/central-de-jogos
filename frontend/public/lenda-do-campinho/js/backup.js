@@ -39,6 +39,7 @@ function importarArquivo(arquivo, aoTerminar) {
     const atual = lerSave();
     const msg = `Carregar o progresso do arquivo?\n\nArquivo: ${resumoSave(s)}\nAtual: ${resumoSave(atual)}\n\nO progresso atual deste navegador será SUBSTITUÍDO.`;
     if (!confirm(msg)) return aoTerminar && aoTerminar(false);
+    delete s.conta; // o save importado passa a ser de quem está jogando (o jogo pergunta se houver outro na conta)
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { alert('Não foi possível gravar o save neste navegador.'); return aoTerminar && aoTerminar(false); }
     G.rodando = false; // não deixa o jogo aberto regravar o save antigo por cima
     alert(`Progresso de ${s.nome} carregado! O jogo vai recomeçar.`);

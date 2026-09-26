@@ -35,6 +35,7 @@ function nuvemStatus(txt) { NUVEM.status = txt; const e = document.getElementByI
 /* ---------- save na nuvem ---------- */
 async function enviaSave(forcar) {
   if (!NUVEM.ativa || NUVEM.parada || NUVEM.enviando || !G.save || !G.rodando) return;
+  if (!saveDaConta()) { nuvemStatus(typeof CONTA_SEM_CONFERIR !== 'undefined' && CONTA_SEM_CONFERIR ? '☁️ Não deu para conferir o save online: desta vez salvo só neste aparelho' : '⚠️ Este personagem é de outra conta: não salvo online'); return; }
   if (!forcar && (!NUVEM.sujo || Date.now() - NUVEM.ultimoEnvio < 60000)) return;
   NUVEM.enviando = true;
   try {
@@ -52,7 +53,7 @@ async function preparaPacote() {
   try { NUVEM.pacote = { dados: await comprime(JSON.stringify(G.save)), nivel: Math.max(1, Math.min(999, G.save.nivel | 0)), pendente: true }; } catch (e) { }
 }
 function enviaPacoteAgora() {
-  const p = NUVEM.pacote; if (!p || !p.pendente || NUVEM.parada) return;
+  const p = NUVEM.pacote; if (!p || !p.pendente || NUVEM.parada || !saveDaConta()) return;
   p.pendente = false;
   try { fetch(PORTAL.api + '/api/lenda/save', { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify({ dados: p.dados, nivel: p.nivel }) }).catch(() => { }); } catch (e) { }
 }
@@ -105,7 +106,7 @@ function vitrineDaCasa(c) {
   return c.itens.slice().sort((a, b) => ((PONTOS_RAR[raridadeItem(b.id)] || 0) + (b.r || 0)) - ((PONTOS_RAR[raridadeItem(a.id)] || 0) + (a.r || 0))).slice(0, 3).map(i => ({ id: i.id, r: i.r || 0 }));
 }
 async function publicaCasa() {
-  const c = minhaCasa(); if (!c || NUVEM.parada) return;
+  const c = minhaCasa(); if (!c || NUVEM.parada || !saveDaConta()) return;
   const def = CASAS[c.id];
   const r = await nuvemPede('PUT', '/casa', { casaId: c.id, mapa: def.mapa, moveis: c.moveis.map(({ x, y, id }) => ({ x, y, id })), itens: c.itens.map(({ x, y, id, r }) => ({ x, y, id, r: r || 0 })), vitrine: vitrineDaCasa(c), prestigio: Math.min(100000, prestigioCasa(c).pontos) }).catch(() => null);
   if (r && r.status === 429) { clearTimeout(publicaTimer); publicaTimer = setTimeout(publicaCasa, 6000); }

@@ -79,8 +79,20 @@ if (CEL) (function () {
   window.fechaPaineisCel = () => { document.body.classList.remove('cel-paineis'); if (typeof escondeTip === 'function') escondeTip(); };
   window.telaCheiaCel = () => {
     const d = document.documentElement; const pede = d.requestFullscreen || d.webkitRequestFullscreen;
-    if (!document.fullscreenElement && pede) Promise.resolve(pede.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => { });
-    else if (document.exitFullscreen) document.exitFullscreen().catch(() => { });
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(() => { }); return; }
+    // iPhone: o Safari não deixa página nenhuma ficar em tela cheia (só vídeo) — o jeito é abrir pelo ícone na Tela de Início
+    if (!pede) return comoTelaCheiaIphone();
+    Promise.resolve(pede.call(d, { navigationUI: 'hide' })).then(() => { try { screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => comoTelaCheiaIphone());
+  };
+  window.comoTelaCheiaIphone = () => {
+    if (navigator.standalone) { abreModal(el('h2', {}, '⛶ Tela cheia'), el('p', {}, 'Você já está jogando pelo ícone da Tela de Início: esta já é a maior tela que o iPhone deixa.')); return; }
+    abreModal(el('h2', {}, '⛶ Tela cheia no iPhone'),
+      el('p', {}, 'No iPhone, o Safari não deixa nenhum site esconder as barras de cima. Mas dá para jogar SEM elas:'),
+      el('ol', {},
+        el('li', {}, 'Toque em Compartilhar (o quadradinho com a setinha para cima).'),
+        el('li', {}, 'Escolha "Adicionar à Tela de Início" e toque em Adicionar.'),
+        el('li', {}, 'Abra o jogo pelo ícone "Lenda" que apareceu: ele abre sem as barras do Safari.')),
+      el('p', {}, el('b', {}, 'Na primeira vez pelo ícone, entre na sua conta do Educação Gamer'), ' (o iPhone guarda o ícone separado do Safari). Seu save online volta sozinho.'));
   };
   window.alternaEdicaoBarra = (liga) => {
     const on = liga === undefined ? !document.body.classList.contains('cel-editar') : liga;
@@ -121,6 +133,7 @@ if (CEL) (function () {
     const r = await _iniciarJogoCel.apply(this, a); document.body.classList.add('cel-jogando');
     setTimeout(() => { try { ajustaCanvas(); atualizaBarras(); } catch (e) { } }, 100);
     if (innerHeight > innerWidth) log('📱 Dica: deite o celular para ver mais do campo! Menu ☰ → Tela cheia deixa ainda melhor.', 'l-sis');
+    else if (!document.documentElement.requestFullscreen && !document.documentElement.webkitRequestFullscreen && !navigator.standalone) log('📱 Quer jogar sem as barras do Safari? Menu ☰ → Tela cheia mostra como.', 'l-sis');
     return r;
   };
   addEventListener('resize', () => { setTimeout(() => { try { if (G.rodando) ajustaCanvas(); } catch (e) { } }, 60); });
