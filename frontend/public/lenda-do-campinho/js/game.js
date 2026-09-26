@@ -1193,10 +1193,10 @@ function desenhaEnt(ctx, e) {
     ctx.fillStyle = 'rgba(90,240,200,0.15)'; ctx.fill(); ctx.strokeStyle = 'rgba(90,240,200,0.9)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.restore();
   }
   if (look.tipo !== 'humano') {
-    const nome = { pombo: e.mov || e.bravo || Math.sin(G.agora / 900 + (e.uid || 0)) < 0.3 ? 'pombo' : 'pombo2', cachorro: e.mov || e.bravo ? 'cachorro' : 'cachorro2', caranguejo: 'caranguejo', gaivota: 'gaivota', boneco: 'boneco' }[look.tipo];
+    const nome = { pombo: e.mov || e.bravo || Math.sin(G.agora / 900 + (e.uid || 0)) < 0.3 ? 'pombo' : 'pombo2', cachorro: e.mov || e.bravo ? 'cachorro' : 'cachorro2', caranguejo: 'caranguejo', gaivota: 'gaivota', boneco: 'boneco' }[look.tipo] || look.spr; // look.spr: bichos novos (atlantida.js)
     const im = aSprite(nome);
     if (!im) { desenhaBicho(ctx, look.tipo, x, y, 1, { fase: e.fase, mov: e.mov, flip: e.flip, t: G.agora, id: e.uid }); return; }
-    const voo = look.tipo === 'gaivota' ? -T * 0.5 + Math.sin(G.agora / 300 + (e.uid || 0)) * 5 : 0;
+    const voo = look.tipo === 'gaivota' || look.voa ? -T * 0.5 + Math.sin(G.agora / 300 + (e.uid || 0)) * 5 : 0;
     const bob = e.mov ? Math.abs(Math.sin(e.fase)) * 3 : 0;
     const h = alt, w = h * im.width / im.height;
     const espelha = (FACE_BICHO[nome] || 'e') === 'd' ? e.flip : !e.flip; // sprites olham para a esquerda

@@ -171,6 +171,13 @@ function criaCaca(c) {
 
 // entrada na cidade: um "prédio" com porta perto de onde o jogador chega, num lugar que dá para alcançar andando
 function poeEntradaCaca(m, c) {
+  if (c.pos) { // posição escolhida no mapa (ex.: os portais de Atlântida)
+    const { x, y } = c.pos;
+    for (let j = y; j < y + 2; j++) for (let i = x; i < x + 3; i++) m.obj[j * m.w + i] = { t: 'x', v: 0, predio: true };
+    for (let i = x - 1; i <= x + 3; i++) if (m.obj[(y + 2) * m.w + i] && !m.obj[(y + 2) * m.w + i].predio) m.obj[(y + 2) * m.w + i] = null;
+    m.obj[(y + 1) * m.w + x + 1] = null; m.predios.push({ spr: c.ent, x, y, w: 3, h: 2, porta: { x: x + 1, y: y + 1 }, interior: c.id }); m.saidas.push({ x: x + 1, y: y + 1, para: c.id, porta: true });
+    c.porta = { x: x + 1, y: y + 1 }; return true;
+  }
   const W = m.w, H = m.h; const bloq = (x, y) => { if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) return true; const o = m.obj[y * W + x]; return m.chao[y * W + x] === CH.AGUA || !CH_ANDA(m.chao[y * W + x]) || (o && OBJ_BLOQUEIA.has(o.t)); };
   const ini = m.inicio || { x: W >> 1, y: H >> 1 };
   // o que dá para alcançar a partir da chegada
@@ -179,11 +186,14 @@ function poeEntradaCaca(m, c) {
   const livre = (x, y) => !bloq(x, y) && !m.obj[y * W + x] && !m.saidas.some(s => Math.abs(s.x - x) < 2 && Math.abs(s.y - y) < 2)
     && !m.npcs.some(n => Math.abs(n.x - x) < 3 && Math.abs(n.y - y) < 3) && !m.campos.some(f => x >= f.x - 1 && x <= f.x + f.w && y >= f.y - 1 && y <= f.y + f.h)
     && !m.predios.some(p => x >= p.x - 1 && x <= p.x + p.w && y >= p.y - 2 && y <= p.y + p.h + 1) && !(m.placas || []).some(p => Math.abs(p.x - x) < 2 && Math.abs(p.y - y) < 2);
-  const cabe = (x, y) => { for (let j = y - 1; j <= y + 2; j++) for (let i = x - 1; i <= x + 3; i++) if (!livre(i, j)) return false; return alc[(y + 2) * W + x + 1] === 1; };
-  for (let rr = 6; rr < 40; rr++) for (let dy = -rr; dy <= rr; dy++) for (let dx = -rr; dx <= rr; dx++) {
+  // de preferência no chão "de fundo" do mapa (grama, areia...), nunca em cima de rua/calçadão/trilha
+  const conta = {}; for (let i = 0; i < W * H; i++) { const t = m.chao[i]; if (t !== CH.AGUA) conta[t] = (conta[t] || 0) + 1; }
+  const fundo = +Object.keys(conta).sort((a, b) => conta[b] - conta[a])[0];
+  const cabe = (x, y, estrito) => { if (x < 6 || x + 3 > W - 7 || y < 5 || y + 3 > H - 3) return false; /* longe das beiradas: a plaquinha com o nome cabe na tela */ for (let j = y - 1; j <= y + 2; j++) for (let i = x - 1; i <= x + 3; i++) if (!livre(i, j) || (estrito && m.chao[j * W + i] !== fundo)) return false; return alc[(y + 2) * W + x + 1] === 1; };
+  for (const estrito of [true, false]) for (let rr = 6; rr < 40; rr++) for (let dy = -rr; dy <= rr; dy++) for (let dx = -rr; dx <= rr; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== rr) continue;
     const x = ini.x + dx, y = ini.y + dy;
-    if (!cabe(x, y)) continue;
+    if (!cabe(x, y, estrito)) continue;
     const p = { spr: c.ent, x, y, w: 3, h: 2, porta: { x: x + 1, y: y + 1 }, interior: c.id };
     for (let j = y; j < y + 2; j++) for (let i = x; i < x + 3; i++) m.obj[j * W + i] = { t: 'x', v: 0, predio: true };
     m.obj[(y + 1) * W + x + 1] = null; m.predios.push(p); m.saidas.push({ x: x + 1, y: y + 1, para: c.id, porta: true });
@@ -193,7 +203,10 @@ function poeEntradaCaca(m, c) {
   console.warn('área de caça sem lugar na cidade:', c.id); return false;
 }
 
-for (const c of CACADAS) {
+// registra uma área (as daqui e as de outras regiões, ex.: atlantida.js)
+function registraCaca(c) {
+  if (!CACA_POR_ID[c.id]) { CACA_POR_ID[c.id] = c; if (!CACADAS.includes(c)) CACADAS.push(c); }
+  if (!c.seed) c.seed = 7301 + CACADAS.indexOf(c) * 97;
   MAPAS_DEF[c.id] = () => criaCaca(c);
   const base = MAPAS_DEF[c.host];
   MAPAS_DEF[c.host] = function () { const m = base(); poeEntradaCaca(m, c); return m; };
@@ -207,6 +220,7 @@ for (const c of CACADAS) {
     { id: c.id + '_m2', npc: 'guia_' + c.id, titulo: `Grande Caçada: ${c.nome}`, lvl: Math.max(1, L - 2), pre: c.id + '_m1', texto: `Agora o desafio de verdade: passe por 250 adversários do tipo ${d.nome}. Quem termina essa vira Caçador(a) Oficial: ${c.nome}!`, req: { kill: c.m, n: 250 }, rec: { xp: Math.round(xpNivel(L) * 2), ouro: L * 250, itens: [['pacotinho', 2]], flag: 'cacador_' + c.id }, fim: `CAÇADOR(A) OFICIAL: ${c.nome.toUpperCase()}! Seu nome vai ficar na nossa parede.` },
   );
 }
+CACADAS.slice().forEach(registraCaca);
 if (typeof PAPEL !== 'undefined') CACADAS.forEach(c => { if (!PAPEL['guia_' + c.id]) PAPEL['guia_' + c.id] = c.look.corpo === 'f' ? 'adulta' : 'adulto'; });
 
 /* ---------- regras dentro da área ---------- */
