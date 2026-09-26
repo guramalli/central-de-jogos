@@ -73,13 +73,10 @@ test("catálogo bate com a arte: todo arquivo existe, toda máscara está listad
   const pintaveis = new Set(ITENS.filter((i) => i.pintavel).map((i) => i.pintavel));
   for (const c of cinzas) assert.ok(pintaveis.has(c), `cinza sem cabelo no catálogo: ${c}`);
   assert.equal(pintaveis.size, 9);
-  // Só arte v2 na pasta: a v1 e o troféu genérico saíram.
-  // Transição v2 -> v3: a arte v2 fica no ar até o backend novo (catálogo v3)
-  // estar no ar, pra quem baixar o catálogo velho nesse meio-tempo não ficar
-  // sem boneco. Sai no commit seguinte.
-  assert.deepEqual([...noDisco].filter((f) => !f.endsWith("-v3.webp") && !f.endsWith("-v2.webp")), [], "arquivo fora da versão atual");
+  // Só arte v3 na pasta: a v1, a v2 e o troféu genérico saíram.
+  assert.deepEqual([...noDisco].filter((f) => !f.endsWith("-v3.webp")), [], "arquivo fora da versão atual");
   assert.ok(![...noDisco].some((f) => f.includes("/mao-trofeu-v2") || f.includes("/mao-trofeu-pele-v2")), "troféu genérico apagado");
-  assert.equal([...noDisco].filter((f) => f.endsWith("-v3.webp")).length, 112 + 52 + 9 + 21 + 5, "nenhum arquivo sobrando na pasta");
+  assert.equal(noDisco.size, 112 + 52 + 9 + 21 + 5, "nenhum arquivo sobrando na pasta");
 });
 
 test("catálogo: toda regra aponta pra algo que existe", () => {
