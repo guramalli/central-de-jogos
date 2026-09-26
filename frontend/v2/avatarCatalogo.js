@@ -12,7 +12,7 @@ const CHAVE = "eg_avatar_catalogo";
 // Cópia de VERSAO_CATALOGO (backend/src/avatar/catalogo.js): vai no "?v="
 // da busca, pra o cache HTTP do navegador (1h) não segurar um catálogo velho
 // depois de uma mudança. Suba junto com a do backend.
-export const VERSAO_CATALOGO = 7;
+export const VERSAO_CATALOGO = 8;
 let catalogo = lerCopia();
 let promessa = null;
 

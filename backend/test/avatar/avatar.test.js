@@ -26,11 +26,11 @@ const iniciais = () => ITENS.filter((i) => i.desbloqueio.tipo === "inicial").map
 
 test("catálogo: 112 peças, ids únicos, slots válidos, arquivo no padrão", () => {
   assert.equal(ITENS.length, 112);
-  assert.equal(VERSAO_ARTE, "v2");
+  assert.equal(VERSAO_ARTE, "v3");
   assert.equal(ITEM_POR_ID.size, ITENS.length, "id repetido no catálogo");
   for (const i of ITENS) {
     assert.ok(NOMES_DOS_SLOTS.includes(i.slot), `${i.id}: slot ${i.slot}`);
-    assert.equal(i.arquivo, `/avatar/${i.slot}/${i.id}-v2.webp`);
+    assert.equal(i.arquivo, `/avatar/${i.slot}/${i.id}-v3.webp`);
     assert.notEqual(i.slot, "maoEsquerda", "a mão esquerda não tem peça própria");
     assert.ok(i.nome && i.dica, `${i.id}: nome e dica`);
   }
@@ -54,29 +54,32 @@ test("catálogo bate com a arte: todo arquivo existe, toda máscara está listad
     if (i.slot === "pele") {
       assert.match(i.cor || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor`);
       assert.match(i.corFeminina || "", /^#[0-9a-f]{6}$/i, `${i.id} sem cor feminina`);
-      assert.equal(i.arquivoFeminino, `/avatar/pele/${i.id}-f-v2.webp`);
+      assert.equal(i.arquivoFeminino, `/avatar/pele/${i.id}-f-v3.webp`);
       assert.ok(noDisco.has(i.arquivoFeminino), `falta o corpo feminino ${i.arquivoFeminino}`);
     }
   }
-  const apagas = [...noDisco].filter((f) => f.endsWith("-apaga-v2.webp"));
+  const apagas = [...noDisco].filter((f) => f.endsWith("-apaga-v3.webp"));
   const comApaga = new Set(ITENS.filter((i) => i.apagaBraco).map((i) => i.apagaBraco));
   for (const a of apagas) assert.ok(comApaga.has(a), `máscara de apagar sem peça no catálogo: ${a}`);
   assert.equal(comApaga.size, 21);
   assert.ok(ITENS.filter((i) => i.apagaBraco).every((i) => i.slot === "mao"), "só peças da mão apagam o braço");
-  const femininos = [...noDisco].filter((f) => f.endsWith("-f-v2.webp"));
+  const femininos = [...noDisco].filter((f) => f.endsWith("-f-v3.webp"));
   assert.equal(femininos.length, 5);
-  const mascaras = [...noDisco].filter((f) => f.endsWith("-pele-v2.webp"));
+  const mascaras = [...noDisco].filter((f) => f.endsWith("-pele-v3.webp"));
   const listadas = new Set(ITENS.filter((i) => i.mascaraPele).map((i) => i.mascaraPele));
   for (const m of mascaras) assert.ok(listadas.has(m), `máscara sem peça no catálogo: ${m}`);
   assert.equal(listadas.size, 52);
-  const cinzas = [...noDisco].filter((f) => f.endsWith("-cinza-v2.webp"));
+  const cinzas = [...noDisco].filter((f) => f.endsWith("-cinza-v3.webp"));
   const pintaveis = new Set(ITENS.filter((i) => i.pintavel).map((i) => i.pintavel));
   for (const c of cinzas) assert.ok(pintaveis.has(c), `cinza sem cabelo no catálogo: ${c}`);
   assert.equal(pintaveis.size, 9);
   // Só arte v2 na pasta: a v1 e o troféu genérico saíram.
-  assert.deepEqual([...noDisco].filter((f) => !f.endsWith("-v2.webp")), [], "arquivo fora da versão atual");
+  // Transição v2 -> v3: a arte v2 fica no ar até o backend novo (catálogo v3)
+  // estar no ar, pra quem baixar o catálogo velho nesse meio-tempo não ficar
+  // sem boneco. Sai no commit seguinte.
+  assert.deepEqual([...noDisco].filter((f) => !f.endsWith("-v3.webp") && !f.endsWith("-v2.webp")), [], "arquivo fora da versão atual");
   assert.ok(![...noDisco].some((f) => f.includes("/mao-trofeu-v2") || f.includes("/mao-trofeu-pele-v2")), "troféu genérico apagado");
-  assert.equal(noDisco.size, 112 + 52 + 9 + 21 + 5, "nenhum arquivo sobrando na pasta");
+  assert.equal([...noDisco].filter((f) => f.endsWith("-v3.webp")).length, 112 + 52 + 9 + 21 + 5, "nenhum arquivo sobrando na pasta");
 });
 
 test("catálogo: toda regra aponta pra algo que existe", () => {
@@ -219,7 +222,7 @@ test("undercut rosa: mesma regra do rabo de cavalo rosa, pintável, sai junto", 
   assert.deepEqual(undercut.desbloqueio, rabo.desbloqueio);
   assert.equal(undercut.dica, rabo.dica);
   assert.match(undercut.dica, /Rabo de cavalo rosa e Undercut rosa/);
-  assert.equal(undercut.pintavel, "/avatar/cabelo/cabelo-undercut-rosa-cinza-v2.webp");
+  assert.equal(undercut.pintavel, "/avatar/cabelo/cabelo-undercut-rosa-cinza-v3.webp");
   const dados = { ...semNada(), vitalicio: { quiz: 5000 } };
   assert.equal(itemLiberado(undercut, dados), true);
   assert.equal(itemLiberado(rabo, dados), true);
@@ -489,7 +492,7 @@ test("motivo: toda peça tem o texto de como foi ganha, coerente com a regra", (
 
 test("cor do cabelo: 9 cabelos pintáveis, moicano e chamas não; paleta no catálogo", () => {
   assert.equal(ITENS.filter((i) => i.pintavel).length, 9);
-  assert.ok(ITENS.filter((i) => i.pintavel).every((i) => i.slot === "cabelo" && i.pintavel === `/avatar/cabelo/${i.id}-cinza-v2.webp`));
+  assert.ok(ITENS.filter((i) => i.pintavel).every((i) => i.slot === "cabelo" && i.pintavel === `/avatar/cabelo/${i.id}-cinza-v3.webp`));
   assert.equal(ITEM_POR_ID.get("cabelo-moicano").pintavel, undefined);
   assert.equal(ITEM_POR_ID.get("cabelo-chamas").pintavel, undefined);
   assert.equal(CORES_CABELO.original, null);
@@ -745,7 +748,7 @@ test("máscara de apagar o braço: só das camadas de baixo (não fundo nem cost
   const i = CAMADAS.indexOf("pele");
   assert.deepEqual(CAMADAS.slice(i, i + 4), CAMADAS_APAGAVEIS);
   assert.equal(catalogoPublico().camadasApagaveis.length, 4);
-  assert.equal(ITEM_POR_ID.get("mao-trofeu-stop").apagaBraco, "/avatar/mao/mao-trofeu-stop-apaga-v2.webp");
+  assert.equal(ITEM_POR_ID.get("mao-trofeu-stop").apagaBraco, "/avatar/mao/mao-trofeu-stop-apaga-v3.webp");
   assert.equal(ITEM_POR_ID.get("mao-livro").apagaBraco, undefined, "livro não levanta o braço");
 });
 
