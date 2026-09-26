@@ -82,7 +82,10 @@
     if (!menu.contains(cartao)) return; // tela de "carregando o mundo" limpou o menu: não mexe
     for (const c of [...menu.children]) {
       if (c === avisos || c === cartao || c === tiles || c === titTiles) continue;
-      if (c.matches('#contaEscolha')) avisos.prepend(c);
+      if (c.matches('#contaEscolha')) { // "qual save usar?": aparece no lugar do Continuar (antes ficava lá embaixo e parecia que nada acontecia)
+        cartao.append(c); cartao.classList.add('escolhendo'); menu.classList.add('escolhendo');
+        setTimeout(() => { try { c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } }, 60);
+      }
       else if (c.matches('.cad-cartao, .nuvem-caixa')) avisos.append(c);
       else if (c === cont || c === novo) cartao.append(c);
       else if (c === resumo) c.hidden = true;
