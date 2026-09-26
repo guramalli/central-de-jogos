@@ -83,7 +83,7 @@ function modalTreino() {
     el('p', {}, 'Vai deixar o personagem treinando (no boneco ou caçando)? Ligue o Modo Treino: o calendário do jogo para, então nenhuma reunião do clube passa enquanto você está longe da tela. Enquanto ele estiver ligado, também não passa dia de salário.'),
     el('div', { class: 'opcoes' }, el('button', { class: on ? 'btn' : 'btn amarelo', type: 'button', onclick: () => { alternaModoTreino(); modalTreino(); } }, on ? '⏹️ Desligar Modo Treino' : '▶️ Ligar Modo Treino')),
     el('h3', {}, 'Treino offline (jogo fechado)'),
-    el('p', {}, 'Escolha uma habilidade e saia do jogo. Quando voltar, ela terá treinado pelo tempo em que você ficou fora (até 12 horas). Offline rende a METADE do treino com o jogo aberto.'),
+    el('p', {}, 'Escolha uma habilidade e saia do jogo. Quando voltar, ela terá treinado pelo tempo em que você ficou fora (até 12 horas). Offline rende a METADE do treino com o jogo aberto. Quanto mais alta a habilidade, mais tempo leva para subir.'),
     perto ? el('p', { class: 'dica' }, 'Qual habilidade vai treinar?') : el('p', { class: 'vazio' }, '📍 Para treinar offline, fique perto de um Boneco de Treino (na Vila do Campinho ou no CT) ou dentro da sua casa.'),
     escolha);
 }
@@ -119,4 +119,26 @@ const _ataqueAutoTreino = ataqueAutomatico;
 ataqueAutomatico = function () {
   const a = G.alvo; if (a && a.d && a.d.treino && G.save && !G.save.treinoOn) dica('modo_treino', 'Vai deixar treinando no boneco? Abra ☰ Mais → 🏋️ Treino: o Modo Treino para o calendário (nenhuma reunião do clube passa) e o Treino Offline treina até com o jogo fechado.');
   return _ataqueAutoTreino.apply(this, arguments);
+};
+
+/* ---------- ritmo das habilidades (v136) ----------
+   Antes: no nível 25, 5 h de boneco davam Drible 67 (quase o mesmo de um nível 91).
+   Agora a curva é a mesma para todo mundo, mas cada ponto custa cada vez mais a partir
+   do 18 (visão: a partir do 8). Tempo de treino contínuo para chegar em cada valor:
+   15 min → 26 · 1 h → 35 · 5 h → 46 · 12 h → 52 · 24 h → 57 · 50 h → 63 · 100 h → 69 · 200 h → 76.
+   Ninguém perde o que já tem. */
+const _precisaTentativasBase = precisaTentativas;
+precisaTentativas = function (sk, lv) {
+  const x = Math.max(0, lv - (sk === 'visao' ? 8 : 18)) / 10;
+  return Math.max(1, Math.round(_precisaTentativasBase(sk, lv) * (1 + x * x)));
+};
+/* Experiência de jogo: como as habilidades agora sobem bem mais devagar, quem joga normal
+   chegaria nos níveis altos com menos dano/defesa do que o jogo foi equilibrado. Esse bônus
+   vem só do nível (aparece como "+X" nas Habilidades) e mantém chefes e cidades no ritmo. */
+function bonusExperiencia(nivel) { const n = Math.max(0, nivel - 12); return Math.max(0, Math.round(0.28 * n - 0.0003 * n * n)); }
+const _statsTreino = stats;
+stats = function () {
+  const st = _statsTreino.apply(this, arguments); const B = bonusExperiencia(st.nivel || (G.save && G.save.nivel) || 1);
+  if (B) { st.drible += B; st.chute += B; st.defesa += B; st.visao += Math.round(B * 0.8); st.def += B * 0.3; }
+  return st;
 };
