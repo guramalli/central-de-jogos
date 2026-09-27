@@ -323,7 +323,7 @@ function criaMonstro(sp) {
 function entrarMapa(id, x, y, silencioso) {
   G.mapa = getMapa(id);
   if (!Number.isFinite(x) || !Number.isFinite(y)) { const r = G.mapa.renasce || G.mapa.inicio || { x: 1, y: 1 }; x = r.x + 0.5; y = r.y + 0.5; } // posição inválida (save antigo quebrado): vai para a chegada do mapa
-  G.mons = []; G.respawns = []; G.fx = []; G.textos = []; G.falas = []; G.projs = []; G.drops = []; G.alvo = null; G.caminho = null; G.acaoChegar = null;
+  G.mons = []; G.respawns = []; G.fx = []; G.textos = []; G.falas = []; G.projs = []; G.drops = []; G.alvo = null; G.caminho = null; G.acaoChegar = null; G.travaSaida = null;
   G.npcs = G.mapa.npcs.map(n => ({ id: n.id, d: NPCS[n.id], x: n.x + 0.5, y: n.y + 0.5, flip: false, r: 0.32 }));
   if (!G.p) G.p = { x, y, flip: false, fase: 0, mov: false };
   Object.assign(G.p, { x, y }); G.p.mov = false; G.p.cam = null;
@@ -392,12 +392,19 @@ function atualizaJogador(dt) {
   }
   separa(p);
   const t = tileDe(p); const s = G.mapa.saidas.find(s => s.x === t.x && s.y === t.y);
+  // acabou de passar por uma porta: as portas ficam travadas até soltar o controle ou se afastar
+  // (andando para a frente ao sair da dungeon, a pessoa entrava de novo sem querer)
+  if (G.travaSaida) {
+    const tr = G.travaSaida, solto = !G.teclas.size && !G.joy && !G.caminho, longe = Math.hypot(p.x - tr.x, p.y - tr.y) > 1.8;
+    if (!s && G.agora > tr.t && (solto || longe)) G.travaSaida = null;
+    else if (s) { p.x = antes.x; p.y = antes.y; return; } // porta travada = parede
+  }
   if (s) {
     if (s.req && s.req.flag && !G.save.flags[s.req.flag]) {
       p.x = antes.x; p.y = antes.y; const dx = p.x - (s.x + 0.5), dy = p.y - (s.y + 0.5); const d = Math.hypot(dx, dy) || 1; mover(p, dx / d * 0.15, dy / d * 0.15);
       G.caminho = null;
       if (G.agora > G.tMsgSaida) { G.tMsgSaida = G.agora + 3000; if (s.req.casa && typeof abreCasaPorta === 'function') abreCasaPorta(s.req.casa); else { log(s.req.msg, 'l-sis'); fala(p, 'Ainda não posso ir...'); } }
-    } else { if (s.tx == null || s.ty == null) getMapa(s.para); trocaMapa(s.para, s.tx + 0.5, s.ty + 0.5); } // o destino da porta só existe depois que o mapa de fora é montado
+    } else { if (s.tx == null || s.ty == null) getMapa(s.para); trocaMapa(s.para, s.tx + 0.5, s.ty + 0.5); G.travaSaida = { x: G.p.x, y: G.p.y, t: G.agora + 400 }; } // o destino da porta só existe depois que o mapa de fora é montado
   }
 }
 

@@ -12,7 +12,7 @@
    ============================================================ */
 // escala: o quadro é um pouco maior que o bicho (asas, pulo) → desenha maior para o bicho ficar do mesmo tamanho
 const CORRE_ESC = {
-  pombo: 1, gaivota: 1.331, caranguejo: 1.016,
+  pombo: 1, gaivota: 0.75, caranguejo: 1.016, // gaivota: com as asas abertas ficava maior que o jogador (v150)
   bicho_rato2: 1.003, bicho_tanuki: 1.013, bicho_morcego: 1.194, bicho_aranha: 1, bicho_toupeira: 1.006, bicho_mumia: 1,
   bicho_escorpiao: 1, bicho_jacare: 1.009, bicho_polvo: 1.006, bicho_touro: 1.002, bicho_gargula: 1.011, bicho_yeti: 1.007,
   bicho_dragao: 1, bicho_dragao_anciao: 1,

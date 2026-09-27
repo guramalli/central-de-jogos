@@ -69,6 +69,14 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   const _logCel2 = log; log = function (m, ...r) { return _logCel2.call(this, semTecla(m), ...r); };
   const _bannerCel2 = banner; banner = function (a, b) { return _bannerCel2.call(this, semTecla(a), semTecla(b)); };
   if (typeof dica === 'function') { const _dicaCel2 = dica; dica = function (id, txt, ...r) { return _dicaCel2.call(this, id, semTecla(txt), ...r); }; }
+  // janelas também (ex.: "habilidade especial (tecla Q)")
+  const _abreModalCel2 = abreModal;
+  abreModal = function () {
+    const r = _abreModalCel2.apply(this, arguments);
+    const box = document.getElementById('modalConteudo');
+    if (box) { const tw = document.createTreeWalker(box, NodeFilter.SHOW_TEXT); for (let n = tw.nextNode(); n; n = tw.nextNode()) if (/tecla/i.test(n.nodeValue)) n.nodeValue = semTecla(n.nodeValue); }
+    return r;
+  };
 
   // ---------- vários dedos ao mesmo tempo (v147) ----------
   // O navegador só gera "click"/"mousedown" quando há UM dedo na tela: com o dedo
@@ -151,6 +159,36 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
     grade.append(b);
   }
 
+  // ---------- pontos para distribuir (v149): selo no ☰, "Ficha +N" no menu e etiqueta no painel ----------
+  const chPontos = el('button', { class: 'btn', id: 'chPontos', type: 'button', hidden: 'hidden', onclick: () => { const b = document.getElementById('btnFicha'); if (b) b.click(); } });
+  const chEsq = document.querySelector('#celHud .ch-esq'); if (chEsq) chEsq.append(chPontos);
+  const fichaMenu = grade && [...grade.children].find(b => /Ficha/.test(b.textContent));
+  let pontosAntes = -1;
+  const _atualizaBarrasCel2 = atualizaBarras;
+  atualizaBarras = function () {
+    const r = _atualizaBarrasCel2.apply(this, arguments);
+    const p = (G.save && G.save.pontos) || 0; if (p === pontosAntes) return r; pontosAntes = p;
+    chPontos.hidden = !p; chPontos.textContent = `⭐ Distribuir ${p} ponto${p > 1 ? 's' : ''}`;
+    const bm = document.getElementById('chMenu'); if (bm) { if (p) bm.dataset.pontos = p; else delete bm.dataset.pontos; }
+    if (fichaMenu) { fichaMenu.classList.toggle('cm-pontos', !!p); fichaMenu.lastChild.textContent = p ? `Ficha +${p}` : 'Ficha'; }
+    return r;
+  };
+
+  // ---------- v150: Mochila e Equipamento a um toque (embaixo do minimapa) ----------
+  const abrePainel = aba => { if (typeof fechaMenuCel === 'function') fechaMenuCel(); if (typeof abrePaineisCel === 'function') abrePaineisCel(); if (typeof abreAba === 'function') abreAba(aba); const l = document.getElementById('lateral'); if (l) l.scrollTop = 0; };
+  const chDir = document.querySelector('#celHud .ch-dir');
+  if (chDir && !document.getElementById('chRapido')) chDir.append(el('div', { id: 'chRapido' },
+    el('button', { class: 'btn', type: 'button', id: 'chMochila', 'aria-label': 'Mochila', onclick: () => abrePainel('mochila') }, '🎒'),
+    el('button', { class: 'btn', type: 'button', id: 'chEquip', 'aria-label': 'Equipamento', onclick: () => abrePainel('equip') }, '🧍')));
+  // botão de atacar (Alvo) diferente dos outros: vermelho, com a mira
+  const tAlvo = document.getElementById('tAlvo'); if (tAlvo) tAlvo.textContent = '🎯 Alvo';
+
+  // ---------- menu ☰: "Sair" sempre por último (outros arquivos põem botões depois) ----------
+  if (grade) {
+    const sairFim = () => { const s = document.getElementById('cmSair'); if (s && grade.lastElementChild !== s) grade.append(s); };
+    new MutationObserver(sairFim).observe(grade, { childList: true }); sairFim();
+  }
+
   // ---------- estilo ----------
   const st = document.createElement('style');
   st.textContent = `
@@ -167,6 +205,18 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   body.modo-celular #btnClasse .tecla, body.modo-celular #hotbar .slot .tecla { display: none !important; }
   /* botões de modo: altura boa para o dedo */
   body.modo-celular #barraAcoes > .btn { min-height: 40px; font-size: 12.5px !important; padding: 6px 10px !important; }
+  /* Mochila / Equipamento a um toque */
+  body.modo-celular #chRapido { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+  body.modo-celular #chRapido .btn { width: 46px; height: 46px; padding: 0 !important; font-size: 22px !important; line-height: 1; border-radius: 12px; }
+  /* Alvo = atacar: vermelho e com mira, para não confundir com os outros */
+  body.modo-celular #tAlvo { background: linear-gradient(#ef5a4c, #b8281d) !important; color: #fff !important; border-color: #6e150e !important; box-shadow: 0 3px 0 #6e150e !important; text-shadow: 0 1px 0 rgba(0,0,0,.35); font-weight: 800; }
+  /* pontos para distribuir */
+  body.modo-celular #chPontos { display: block; margin-top: 4px; padding: 4px 9px !important; min-height: 30px; font-size: 12px !important; font-weight: 800; background: #f5b82e !important; color: #3d2410 !important; border: 2px solid #6b3f1d !important; border-radius: 10px; animation: chPisca 1.6s ease-in-out infinite; }
+  body.modo-celular #chPontos[hidden] { display: none; }
+  body.modo-celular #chMenu { position: relative; }
+  body.modo-celular #chMenu[data-pontos]::after { content: attr(data-pontos); position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: #e03a3a; color: #fff; font: 800 12px/20px system-ui, sans-serif; border: 2px solid #fff; box-sizing: border-box; }
+  body.modo-celular .cm-bt.cm-pontos { background: #f5b82e !important; color: #3d2410 !important; box-shadow: 0 0 0 2px #fff inset; }
+  @keyframes chPisca { 50% { transform: scale(1.05); filter: brightness(1.12); } }
   /* botão "Entendi" das dicas: bom para o dedo */
   body.modo-celular .cartao-dica .btn { min-height: 38px; min-width: 96px; }
   /* mensagens: 2 linhas, somem sozinhas */

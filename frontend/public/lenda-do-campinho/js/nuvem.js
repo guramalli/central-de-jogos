@@ -84,6 +84,7 @@ if (NUVEM.ativa && typeof CompressionStream === 'function') {
       if (r.status === 404) { caixa.textContent = '☁️ Seu progresso vai ser salvo online automaticamente (entre com a mesma conta em outro aparelho).'; return; }
       if (!r.ok) { caixa.remove(); return; }
       const nuvem = JSON.parse(await descomprime(r.dados.dados));
+      NUVEM.online = { save: nuvem, z: r.dados.dados, quando: new Date(r.dados.atualizadoEm).getTime() }; // protege.js
       let local = null; try { local = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { }
       const quando = new Date(r.dados.atualizadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       const igual = local && (local.salvoEm || 0) >= new Date(r.dados.atualizadoEm).getTime() - 5000;

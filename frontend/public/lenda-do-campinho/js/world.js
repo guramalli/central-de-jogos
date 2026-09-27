@@ -390,7 +390,8 @@ function getMapa(id) {
     const m = MAPAS_DEF[id]();
     // liga as portas dos prédios aos interiores e de volta
     // entrar pela porta: aparece logo depois da porta, por dentro (não no canto onde o jogo começa)
-    for (const s of m.saidas) if (s.porta) {
+    // (porta que já sabe para onde vai — ex.: a saída de uma dungeon, que volta em frente à entrada — fica como está)
+    for (const s of m.saidas) if (s.porta && s.tx == null) {
       const int = getMapaInterior(s.para); const volta = int.saidas.find(v => v.volta);
       const livre = (x, y) => x >= 0 && y >= 0 && x < int.w && y < int.h && !int.obj[y * int.w + x] && CH_ANDA(int.chao[y * int.w + x]);
       if (volta && livre(volta.x, volta.y - 1)) { s.tx = volta.x; s.ty = volta.y - 1; } else { s.tx = int.inicio.x; s.ty = int.inicio.y; }
