@@ -81,7 +81,7 @@ function entregaPendentes() {
   const ficam = [];
   for (const [id, n] of s.pendentes) {
     if (!ITENS[id]) continue;
-    const cabe = s.mochila.length < 30 || (empilha(id) && s.mochila.some(i => i.id === id));
+    const cabe = s.mochila.length < capMochila() || (empilha(id) && s.mochila.some(i => i.id === id));
     if (!cabe) { ficam.push([id, n]); continue; }
     const c0 = contaItem(id); addItem(id, n); const veio = contaItem(id) - c0;
     if (veio > 0) log(`📦 Chegou o prêmio que estava guardado: ${veio}x ${ITENS[id].nome}.`, 'l-loot');
@@ -630,15 +630,17 @@ function bebeMelhor(tipo) { // tipo: 'hp' | 'foco'
 }
 function alternaCaca() { G.caca = !G.caca; log(G.caca ? 'Caça contínua LIGADA: ao vencer um adversário, você já marca o próximo (tecla G desliga).' : 'Caça contínua desligada.', 'l-info'); G.uiSujo = true; }
 function contaItem(id) { return G.save.mochila.filter(i => i.id === id).reduce((a, i) => a + i.q, 0); }
+// v152: bolsas (itens tipo 'bolsa' com .espacos) aumentam a mochila; contam até 4 bolsas, as maiores
+function capMochila(s = G.save) { if (!s) return 30; const b = s.mochila.filter(i => ITENS[i.id] && ITENS[i.id].tipo === 'bolsa').map(i => ITENS[i.id].espacos || 0).sort((a, b) => b - a).slice(0, 4); return 30 + b.reduce((a, x) => a + x, 0); }
 function empilha(id) { const t = ITENS[id].tipo; return t === 'consumivel' || t === 'loot' || t === 'comida'; }
 function addItem(id, q = 1) {
   const s = G.save; if (!ITENS[id]) return false;
   if (ITENS[id].tipo === 'chave' && contaItem(id)) return true; // item único (chave/troféu): já tem, não ocupa outro espaço
   if (empilha(id)) {
     const ex = s.mochila.find(i => i.id === id);
-    if (ex) ex.q += q; else { if (s.mochila.length >= 30) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa.', 'l-dano'); return false; } s.mochila.push({ id, q }); }
+    if (ex) ex.q += q; else { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa.', 'l-dano'); return false; } s.mochila.push({ id, q }); }
   } else {
-    for (let i = 0; i < q; i++) { if (s.mochila.length >= 30) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push({ id, q: 1 }); }
+    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push({ id, q: 1 }); }
   }
   if ((ITENS[id].tipo === 'consumivel' || ITENS[id].tipo === 'comida') && id !== 'pacotinho' && !s.hotbar.some(h => h && h.t === 'i' && h.id === id)) poeNaHotbar('i', id, true);
   if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (até 3 comidas diferentes ao mesmo tempo: os bônus somam). Use pela barra de atalhos ou pela mochila.`, '#hotbar');
@@ -690,7 +692,7 @@ function equipar(id, r) {
 }
 function desequipar(slot) {
   const s = G.save; const id = s.equip[slot]; if (!id) return;
-  if (s.mochila.length >= 30) { log('Mochila cheia!', 'l-dano'); return; }
+  if (s.mochila.length >= capMochila()) { log('Mochila cheia!', 'l-dano'); return; }
   const r = (s.equipR || {})[slot] || 0; s.equip[slot] = null; if (s.equipR) s.equipR[slot] = 0; s.mochila.push(r ? { id, q: 1, r } : { id, q: 1 });
   const st = stats(); s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
   log(`Você tirou ${ITENS[id].nome}.`, 'l-info'); atualizaRetrato(); preCarregaMapa(); G.uiSujo = true;

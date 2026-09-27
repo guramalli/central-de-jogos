@@ -58,6 +58,7 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
     const r = _atualizaPaineisCel2.apply(this, arguments);
     const bm = document.getElementById('btnModo'); if (bm) bm.textContent = G.modo === 'drible' ? '🦶 Drible' : '⚽ Chute';
     const bc = document.getElementById('btnCaca'); if (bc) bc.textContent = G.caca ? '🎯 Caça: SIM' : '🎯 Caça: não';
+    const dm = document.querySelector('#mochila > .vazio'); if (dm && /Botão direito/.test(dm.textContent)) dm.textContent = 'Toque num item para ver e usar / equipar.';
     return r;
   };
 
@@ -65,7 +66,18 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   const semTecla = t => typeof t !== 'string' ? t : t
     .replace(/\s*\((?:tecla|teclas)\s[^)]*\)/gi, '')
     .replace(/aperte a tecla/gi, 'toque no botão')
-    .replace(/\(ou botão direito\)\s*/gi, '');
+    .replace(/\(ou botão direito\)\s*/gi, '')
+    // v150b: mais textos de computador
+    .replace(/Arraste por cima de um atalho para trocar, ou clique com o botão direito para liberar\.?/gi, 'Use Menu ☰ › Editar barra para liberar um espaço.')
+    .replace(/Clique com o botão direito num atalho para liberar\.?/gi, 'Use Menu ☰ › Editar barra para liberar um espaço.')
+    .replace(/aperte E\b/g, 'toque em Falar / Usar')
+    .replace(/Aperte C \(ou o botão Ficha\)/g, 'Abra a Ficha (menu ☰)').replace(/Aperte C\b/g, 'Abra a Ficha (menu ☰)')
+    .replace(/Aperte U para abrir a Carreira/g, 'Abra a Carreira (menu ☰)').replace(/Aperte U\b/g, 'Abra a Carreira (menu ☰)')
+    .replace(/Aperte P para subir e descer( do skate)?/g, 'Toque em Montar para subir e descer$1').replace(/Aperte P\b/g, 'Toque em Montar')
+    .replace(/Aperte R para beber isotônico/g, 'Use o isotônico da barra de atalhos')
+    .replace(/aperte X \(ou o botão "Modo"\)/g, 'toque no botão Drible / Chute')
+    .replace(/aperte ESPAÇO \(ou toque no campo\)/g, 'toque no campo (ou em 🎯 Alvo)').replace(/aperte ESPAÇO\)/g, 'toque em 🎯 Alvo)').replace(/aperte ESPAÇO \(ou clique\)/g, 'toque na tela')
+    .replace(/\s*\((?:E|Q|V|X|G|C|I|M|J|F|R|U)\)/g, '');
   const _logCel2 = log; log = function (m, ...r) { return _logCel2.call(this, semTecla(m), ...r); };
   const _bannerCel2 = banner; banner = function (a, b) { return _bannerCel2.call(this, semTecla(a), semTecla(b)); };
   if (typeof dica === 'function') { const _dicaCel2 = dica; dica = function (id, txt, ...r) { return _dicaCel2.call(this, id, semTecla(txt), ...r); }; }
@@ -130,6 +142,28 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
     }
   }, { capture: true, passive: false });
   document.addEventListener('touchcancel', e => { for (const t of e.changedTouches) toques.delete(t.identifier); }, true);
+
+  // ---------- v150b: tutorial com joystick e botões (não "W A S D" / "aperte E") ----------
+  if (typeof TUTORIAL !== 'undefined') {
+    const T = [
+      ['Use o JOYSTICK (o círculo embaixo, à esquerda) para andar. Também dá pra tocar no chão.', 'Joystick'],
+      ['Fale com a sua MÃE: chegue perto dela e toque em FALAR / USAR.', 'Falar'],
+      ['Saia de casa pela porta (embaixo) e abra o BAÚ do quintal: chegue perto e toque em FALAR / USAR.', 'Falar'],
+      ['Achou sua bola! Volte para casa e ENTREGUE a missão para a Mãe (FALAR / USAR).', 'Falar'],
+      ['Sua bola e os tostões foram para a MOCHILA (botão 🎒 embaixo do mapinha). Tudo que você ganha fica lá.', null, '#chMochila'],
+      [null, 'Falar'],
+      ['TOQUE num Pombo Folgado para desafiá-lo (ou use o botão 🎯 ALVO). Você corre até ele e dribla sozinho!', 'Toque'],
+    ];
+    T.forEach(([txt, tecla, dest], i) => { const st = TUTORIAL[i]; if (!st) return; if (txt) st.txt = txt; if (tecla && st.tecla) st.tecla = tecla; if (dest) st.destaque = dest; });
+  }
+  // dica flutuante dos itens (segurar o dedo): "Botão direito: EQUIPAR" → como é no celular
+  if (typeof mostraTip === 'function') {
+    const _mostraTipCel2 = mostraTip;
+    mostraTip = function (ev, conteudo) {
+      if (conteudo && conteudo.nodeType) { const tw = document.createTreeWalker(conteudo, NodeFilter.SHOW_TEXT); for (let n = tw.nextNode(); n; n = tw.nextNode()) if (/Botão direito|botão direito|arraste/i.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(/Botão direito:\s*/g, 'Toque no item: ').replace(/\s*·\s*arraste para a barra/gi, '').replace(/\s*[—-]?\s*botão direito remove\.?/gi, ''); }
+      return _mostraTipCel2.call(this, ev, conteudo);
+    };
+  }
 
   // ---------- barra de atalhos: páginas de 5 ----------
   const hb = document.getElementById('hotbar'); const pag = document.getElementById('celPag');

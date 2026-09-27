@@ -24,7 +24,7 @@ function guardaNoArmazem(id, q = 1, r = 0) { // true se coube
   if (!r && empilha(id)) a.push({ id, q }); else for (let i = 0; i < q; i++) a.push(r ? { id, q: 1, r } : { id, q: 1 });
   return true;
 }
-function cabeNaMochila(id, r) { const s = G.save; return s.mochila.length < MOCHILA_MAX || (!r && empilha(id) && s.mochila.some(i => i.id === id && !i.r)); }
+function cabeNaMochila(id, r) { const s = G.save; return s.mochila.length < capMochila() || (!r && empilha(id) && s.mochila.some(i => i.id === id && !i.r)); }
 function guardaDaMochila(i) {
   const s = G.save; const e = s.mochila[i]; if (!e) return false;
   if (!guardaNoArmazem(e.id, e.q, e.r || 0)) { log('O armazém está cheio!', 'l-dano'); som('erro'); return false; }
@@ -69,7 +69,7 @@ function modalArmazem(filtro) {
       el('button', { class: 'btn mini', type: 'button', onclick: guardaTipo(it => it.tipo === 'equip', 'equipamentos') }, 'Guardar equipamentos'),
       el('button', { class: 'btn mini', type: 'button', onclick: guardaTipo(it => it.tipo === 'movel', 'móveis') }, 'Guardar móveis')),
     el('div', { class: 'arm-cols' },
-      el('div', {}, el('h3', {}, `🎒 Mochila (${s.mochila.length}/${MOCHILA_MAX})`), gMoch),
+      el('div', {}, el('h3', {}, `🎒 Mochila (${s.mochila.length}/${capMochila()})`), gMoch),
       el('div', {}, el('h3', {}, `📦 Armazém (${a.length}/${ARMAZEM_MAX})`), busca, gArm)));
 }
 

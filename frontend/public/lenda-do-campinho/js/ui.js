@@ -168,11 +168,11 @@ function atualizaPaineis() {
   eq.append(g, el('div', { class: 'eq-tot' }, el('span', {}, 'Ataque ', el('b', {}, st.atk)), el('span', {}, 'Defesa ', el('b', {}, st.armadura)), el('span', {}, 'Veloc. ', el('b', {}, Math.round(st.vel)))));
   // mochila
   const mo = $('#mochila'); mo.innerHTML = '';
-  if (typeof organizaMochila === 'function') mo.append(el('div', { class: 'mochila-org' }, el("span", { title: "Itens na mochila" }, `🎒 ${s.mochila.length}/30`),
+  if (typeof organizaMochila === 'function') mo.append(el('div', { class: 'mochila-org' }, el("span", { title: "Itens na mochila" }, `🎒 ${s.mochila.length}/${capMochila()}`),
     el('button', { class: 'btn mini', type: 'button', title: 'Organizar: os mais raros primeiro (mítico → comum)', onclick: () => organizaMochila('raridade') }, '⭐ Por raridade'),
     el('button', { class: 'btn mini', type: 'button', title: 'Organizar: juntos por função: bebidas, comidas, equipamentos (cabeça → chuteira), materiais...', onclick: () => organizaMochila('funcao') }, '🧩 Por função')));
   const gm = el('div', { class: 'mochila-grade' });
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < capMochila(); i++) {
     const it = s.mochila[i]; const b = el('button', { class: 'slot' + (it && ITENS[it.id].raro ? ' raro' : '') });
     if (it) {
       b.append(iconeClone(iconeItem(it.id))); if (it.q > 1) b.append(el('span', { class: 'qtd' }, it.q));

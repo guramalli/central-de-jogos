@@ -334,17 +334,17 @@ function modalVisual(aba) {
       grade.append(el('div', { class: 'mt-card' + (tem ? '' : ' bloq') + (usando ? ' usando' : '') }, iconeMontaria(id),
         el('b', {}, mt.nome), el('small', {}, `+${Math.round(mt.bonus * 100)}% de velocidade`),
         tem ? el('button', { class: 'btn mini ' + (usando && s.montado ? '' : 'amarelo'), onclick: () => { if (usando && s.montado) desmontar(); else escolheMontaria(id); modalVisual('mont'); } }, usando && s.montado ? 'Descer' : usando ? 'Montar (P)' : 'Usar esta')
-          : el('small', { class: 'mt-como' }, `🔒 Missão com ${ondeMissao(q.id)}`)));
+          : el('small', { class: 'mt-como' }, (mt.luxo ? `💎 Barão Diamante (Miami): ${fmt(mt.luxo)} tostões · nível ${mt.lvl}` : q ? `🔒 Missão com ${ondeMissao(q.id)}` : '🔒'))));
     }
   } else {
     grade.append(el('div', { class: 'mt-card' + (!s.skin ? ' usando' : '') }, previewSkin(null), el('b', {}, 'Visual normal'), el('small', {}, 'Suas roupas e equipamentos'), el('button', { class: 'btn mini' + (s.skin ? ' amarelo' : ''), onclick: () => { vesteSkin(null); modalVisual('skin'); } }, s.skin ? 'Usar' : 'Usando')));
     for (const id in SKINS) {
       const sk = SKINS[id]; const tem = s.skins.includes(id); const usando = s.skin === id;
       const q = MISSOES_MONT.find(q => q.rec.skin === id);
-      const req = q.req.itens.map(([iid, n]) => `${fmt(Math.min(contaItem(iid), n))}/${fmt(n)} ${ITENS[iid] ? ITENS[iid].nome : iid}`).join(' · ');
+      const req = !q ? '' : q.req.itens.map(([iid, n]) => `${fmt(Math.min(contaItem(iid), n))}/${fmt(n)} ${ITENS[iid] ? ITENS[iid].nome : iid}`).join(' · ');
       grade.append(el('div', { class: 'mt-card skin' + (tem ? '' : ' bloq') + (usando ? ' usando' : '') }, previewSkin(id), el('b', {}, sk.nome), el('small', {}, sk.desc),
         tem ? el('button', { class: 'btn mini' + (usando ? '' : ' amarelo'), onclick: () => { vesteSkin(usando ? null : id); modalVisual('skin'); } }, usando ? 'Tirar' : 'Vestir')
-          : el('small', { class: 'mt-como' }, `🔒 ${ondeMissao(q.id)}. Pede: ${req}`)));
+          : el('small', { class: 'mt-como' }, (sk.luxo ? `💎 Barão Diamante (Miami): ${fmt(sk.luxo)} tostões · nível ${sk.lvl}` : q ? `🔒 ${ondeMissao(q.id)}. Pede: ${req}` : '🔒'))));
     }
   }
   abreModal.largo = true;
