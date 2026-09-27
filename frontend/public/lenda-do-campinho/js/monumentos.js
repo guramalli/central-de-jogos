@@ -23,7 +23,7 @@ const MONUMENTOS = {
   londres: [{ spr: 'mon_bigben', w: 4, h: 3, ar: 1.731, ref: [30, 24], nome: 'Big Ben', txt: 'Big Ben é o nome do sino gigante dentro da torre: ele pesa mais de 13 toneladas!' }],
   paris: [
     { spr: 'mon_eiffel', w: 6, h: 3, ar: 1.682, ref: [44, 24], nome: 'Torre Eiffel', txt: 'Tem 330 metros e foi construída em 1889. No verão, com o calor, o ferro dilata e ela cresce uns 15 cm!' },
-    { spr: 'mon_arco', w: 6, h: 4, ar: 0.934, ref: [6, 22], nome: 'Arco do Triunfo', txt: 'Doze avenidas saem da praça em volta dele, formando uma estrela.' },
+    { spr: 'mon_arco', w: 6, h: 4, ar: 0.934, ref: [38, 32], nome: 'Arco do Triunfo', txt: 'Doze avenidas saem da praça em volta dele, formando uma estrela.' },
     { spr: 'mon_louvre', w: 8, h: 4, ar: 0.736, ref: [24, 6], nome: 'Museu do Louvre', txt: 'O maior museu de arte do mundo. É lá que mora a Mona Lisa!' },
     { spr: 'mon_notredame', w: 6, h: 4, ar: 1.343, ref: [28, 31], nome: 'Catedral de Notre-Dame', txt: 'Fica numa ilha no meio do rio Sena e tem gárgulas de pedra nos telhados.' },
   ],
@@ -44,7 +44,11 @@ for (const lista of Object.values(MONUMENTOS)) for (const d of lista) {
 function poeMonumento(m, d) {
   const { w, h, alto } = d, i = (x, y) => y * m.w + x;
   const dentro = (x, y) => x >= 1 && y >= 1 && x < m.w - 1 && y < m.h - 1;
-  const livre = (x, y) => dentro(x, y) && !m.obj[i(x, y)] && CH_ANDA(m.chao[i(x, y)]) && m.chao[i(x, y)] !== CH.AGUA;
+  // d.limpa (estádios): árvore e enfeite solto não impedem — saem do terreno
+  const cid = typeof CIDADES !== 'undefined' && CIDADES.find(k => k.id === m.id);
+  const deco = d.limpa ? new Set(['arvore', 'arvore2', 'arbusto', 'pedra', 'flores', 'vaso', 'lixeira2', 'banco', ...(cid ? [...(cid.props || []), ...(cid.arvores || [])] : [])]) : null;
+  const solto = k => { const o = m.obj[k]; return !o || (deco && deco.has(o.t) && !o.predio); };
+  const livre = (x, y) => dentro(x, y) && solto(i(x, y)) && CH_ANDA(m.chao[i(x, y)]) && m.chao[i(x, y)] !== CH.AGUA;
   // chão mais comum do mapa: o monumento prefere ficar numa praça, não em cima da rua
   const conta = {}; for (const c of m.chao) conta[c] = (conta[c] || 0) + 1;
   const base = +Object.keys(conta).filter(c => CH_ANDA(+c) && +c !== CH.AGUA).sort((a, b) => conta[b] - conta[a])[0];
@@ -63,7 +67,7 @@ function poeMonumento(m, d) {
       if (m.campos.some(c => cruza(V, [c.x - 1, c.y - 1, c.x + c.w + 1, c.y + c.h + 1]))) continue;
       if ((m.zonas || []).some(z => cruza(V, [z.x, z.y, z.x + z.w, z.y + z.h]))) continue;
       if (m.predios.some(p => { const f = p.monumento ? 4 : 1; return cruza(V, [p.x - f, p.y - (p.alto || 4), p.x + p.w + f, p.y + p.h + f]); })) continue; // entre dois monumentos, uma praça de folga
-      if (m.spawns.some(s => s.x >= V[0] - 1 && s.x < V[2] + 1 && s.y >= V[1] - 1 && s.y < V[3] + 1)) continue;
+      if (m.spawns.some(s => (!d.limpa || s.qtd === 1) && s.x >= V[0] - 1 && s.x < V[2] + 1 && s.y >= V[1] - 1 && s.y < V[3] + 1)) continue; // estádio: só o chefão precisa de espaço (os outros mudam de lugar, veja abaixo)
       cands.push({ x, y, d: Math.hypot(x + w / 2 - ref.x, y + h - ref.y) });
     }
   }
@@ -73,11 +77,18 @@ function poeMonumento(m, d) {
   for (const { x, y } of cands.slice(0, 40)) {
     const pl = { x: x - 1, y: y + h - 1 }, guarda = [];
     const marca = (k, j, o) => { guarda.push([i(k, j), m.obj[i(k, j)]]); m.obj[i(k, j)] = o; };
+    if (d.limpa) for (let j = y; j <= y + h; j++) for (let k = x - 1; k <= x + w; k++) if (m.obj[i(k, j)]) marca(k, j, null); // tira as árvores/enfeites do terreno
     for (let j = y; j < y + h; j++) for (let k = x; k < x + w; k++) marca(k, j, { t: 'x', v: 0, predio: true });
     marca(pl.x, pl.y, { t: 'placa', v: 1 });
+    const px = x + Math.floor(w / 2); if (d.interior) m.obj[i(px, y + h - 1)] = null; // prédio com porta (estádio): a porta fica aberta
     const depois = alcancaveis(m, inicio);
-    if (importantes.every(pt => depois[pt.y * m.w + pt.x])) {
-      m.predios.push({ spr: d.spr, x, y, w, h, porta: { x: x + Math.floor(w / 2), y: y + h - 1 }, alto, monumento: d.nome });
+    if (importantes.every(pt => depois[pt.y * m.w + pt.x]) && (!d.interior || depois[(y + h) * m.w + px])) {
+      m.predios.push({ spr: d.spr, x, y, w, h, porta: { x: px, y: y + h - 1 }, alto, monumento: d.nome, interior: d.interior });
+      if (d.interior) { m.saidas.push({ x: px, y: y + h - 1, para: d.interior, porta: true }); if (d.aoPor) d.aoPor({ x: px, y: y + h - 1 }); }
+      if (d.limpa) for (const sp of m.spawns) if (sp.x >= x - 2 && sp.x <= x + w + 1 && sp.y >= y - 1 && sp.y <= y + h + 1) { // o grupo que nascia debaixo do estádio vai para a frente dele
+        let melhor = null; for (let r = 1; r < 14 && !melhor; r++) for (let dy = -r; dy <= r && !melhor; dy++) for (let dx = -r; dx <= r && !melhor; dx++) { const a = sp.x + dx, b = sp.y + dy; if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !(a >= x - 2 && a <= x + w + 1 && b >= y - 1 && b <= y + h + 2) && livre(a, b) && depois[b * m.w + a]) melhor = { x: a, y: b }; }
+        if (melhor) { sp.x = melhor.x; sp.y = melhor.y; }
+      }
       m.placas.push({ x: pl.x, y: pl.y, texto: `🏛️ ${d.nome.toUpperCase()} — ${d.txt}` });
       return true;
     }
