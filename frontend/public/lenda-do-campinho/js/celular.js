@@ -142,14 +142,14 @@ if (CEL) (function () {
   let tipTimer = null, tipDe = null, bloqueiaClique = 0;
   document.addEventListener('touchstart', ev => {
     if (typeof escondeTip === 'function') escondeTip();
-    clearTimeout(tipTimer); const t = ev.touches[0]; if (!t) return;
+    clearTimeout(tipTimer); const t = ev.changedTouches[0]; if (!t) return; // o dedo que ACABOU de tocar (outro pode estar no joystick)
     let alvo = ev.target; while (alvo && alvo !== document.body && !alvo._tip) alvo = alvo.parentNode;
     if (!alvo || !alvo._tip) return;
-    tipDe = { x: t.clientX, y: t.clientY };
+    tipDe = { x: t.clientX, y: t.clientY, id: t.identifier };
     tipTimer = setTimeout(() => { try { mostraTip({ clientX: tipDe.x, clientY: tipDe.y - 20 }, alvo._tip()); bloqueiaClique = Date.now(); if (navigator.vibrate) navigator.vibrate(15); } catch (e) { } }, 450);
   }, { passive: true, capture: true });
-  document.addEventListener('touchmove', ev => { const t = ev.touches[0]; if (tipDe && t && Math.hypot(t.clientX - tipDe.x, t.clientY - tipDe.y) > 12) clearTimeout(tipTimer); }, { passive: true, capture: true });
-  document.addEventListener('touchend', () => clearTimeout(tipTimer), { passive: true, capture: true });
+  document.addEventListener('touchmove', ev => { if (!tipDe) return; for (const t of ev.changedTouches) if (t.identifier === tipDe.id && Math.hypot(t.clientX - tipDe.x, t.clientY - tipDe.y) > 12) clearTimeout(tipTimer); }, { passive: true, capture: true });
+  document.addEventListener('touchend', ev => { if (!tipDe || [...ev.changedTouches].some(t => t.identifier === tipDe.id)) clearTimeout(tipTimer); }, { passive: true, capture: true });
   document.addEventListener('click', ev => { if (Date.now() - bloqueiaClique < 700) { ev.stopPropagation(); ev.preventDefault(); bloqueiaClique = 0; } }, true);
   document.addEventListener('contextmenu', ev => { if (ev.target.closest && ev.target.closest('#app')) ev.preventDefault(); }, true); // segurar não abre o menu do navegador
 

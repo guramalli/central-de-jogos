@@ -70,6 +70,59 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   const _bannerCel2 = banner; banner = function (a, b) { return _bannerCel2.call(this, semTecla(a), semTecla(b)); };
   if (typeof dica === 'function') { const _dicaCel2 = dica; dica = function (id, txt, ...r) { return _dicaCel2.call(this, id, semTecla(txt), ...r); }; }
 
+  // ---------- vários dedos ao mesmo tempo (v147) ----------
+  // O navegador só gera "click"/"mousedown" quando há UM dedo na tela: com o dedo
+  // no joystick, os botões e o toque no campo não respondiam. Aqui:
+  // - o joystick segue o SEU dedo (identifier), não "o primeiro dedo da tela";
+  // - botões do jogo e o campo agem no fim do toque, sem esperar o clique do navegador.
+  const toque = document.getElementById('toque'), joy = document.getElementById('joy');
+  if (toque && joy) {
+    let joyId = null;
+    const acha = lista => { for (const t of lista) if (t.identifier === joyId) return t; return null; };
+    const mv = t => {
+      const base = joy.querySelector('.joy-base'), bot = joy.querySelector('.joy-bot'); if (!base) return;
+      const r = base.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      let dx = (t.clientX - cx) / (r.width / 2), dy = (t.clientY - cy) / (r.height / 2); const d = Math.hypot(dx, dy); if (d > 1) { dx /= d; dy /= d; }
+      G.joy = d < 0.15 ? null : { x: dx, y: dy }; if (bot) bot.style.transform = `translate(${dx * 30}px, ${dy * 30}px)`;
+    };
+    const solta = () => { joyId = null; G.joy = null; const bot = joy.querySelector('.joy-bot'); if (bot) bot.style.transform = ''; };
+    // na captura do #toque: os ouvintes antigos do #joy (game.js) não recebem mais nada
+    toque.addEventListener('touchstart', e => {
+      if (!joy.contains(e.target)) return; e.stopPropagation(); e.preventDefault();
+      if (joyId === null) { const t = e.changedTouches[0]; joyId = t.identifier; mv(t); }
+    }, { capture: true, passive: false });
+    toque.addEventListener('touchmove', e => {
+      if (!joy.contains(e.target)) return; e.stopPropagation(); e.preventDefault();
+      const t = joyId !== null && acha(e.changedTouches); if (t) mv(t);
+    }, { capture: true, passive: false });
+    const fim = e => { if (!joy.contains(e.target)) return; e.stopPropagation(); if (joyId !== null && acha(e.changedTouches)) solta(); };
+    toque.addEventListener('touchend', fim, true); toque.addEventListener('touchcancel', fim, true);
+    addEventListener('blur', solta);
+  }
+  const SEL_TOQUE = '#toque button, #barraAcoes button, #barraAcoes .slot, #celHud button';
+  const toques = new Map(); // dedo → onde começou
+  const temDica = el => { for (let a = el; a && a !== document.body; a = a.parentNode) if (a._tip) return true; return false; };
+  document.addEventListener('touchstart', e => {
+    if (!G.rodando) return;
+    for (const t of e.changedTouches) {
+      const alvo = t.target; if (!alvo || !alvo.closest) continue;
+      const bt = alvo.closest(SEL_TOQUE), cv = alvo === CV;
+      if (bt || cv) toques.set(t.identifier, { el: bt || CV, cv, x: t.clientX, y: t.clientY, t: performance.now(), dica: bt ? temDica(alvo) : false });
+    }
+  }, { capture: true, passive: true });
+  document.addEventListener('touchend', e => {
+    for (const t of e.changedTouches) {
+      const r = toques.get(t.identifier); if (!r) continue; toques.delete(t.identifier);
+      const longe = Math.hypot(t.clientX - r.x, t.clientY - r.y) > (r.cv ? 14 : 30);
+      const segurou = performance.now() - r.t > (r.dica ? 420 : 1200); // segurar um atalho = dica do item (celular.js)
+      if (longe || segurou) continue;
+      if (e.cancelable) e.preventDefault(); // sem o clique do navegador: quem clica somos nós (uma vez só)
+      if (r.cv) CV.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, clientX: t.clientX, clientY: t.clientY, button: 0 }));
+      else if (!r.el.disabled) r.el.click();
+    }
+  }, { capture: true, passive: false });
+  document.addEventListener('touchcancel', e => { for (const t of e.changedTouches) toques.delete(t.identifier); }, true);
+
   // ---------- barra de atalhos: páginas de 5 ----------
   const hb = document.getElementById('hotbar'); const pag = document.getElementById('celPag');
   if (hb) hb.dataset.pag = '0';
