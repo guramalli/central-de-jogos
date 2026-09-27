@@ -1193,15 +1193,18 @@ function desenhaEnt(ctx, e) {
     ctx.fillStyle = 'rgba(90,240,200,0.15)'; ctx.fill(); ctx.strokeStyle = 'rgba(90,240,200,0.9)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.restore();
   }
   if (look.tipo !== 'humano') {
-    const nome = { pombo: e.mov || e.bravo || Math.sin(G.agora / 900 + (e.uid || 0)) < 0.3 ? 'pombo' : 'pombo2', cachorro: e.mov ? 'cachorro_c' + (1 + Math.floor((e.fase || 0) / (Math.PI / 2)) % 4) : e.bravo ? 'cachorro' : 'cachorro2', /* v147: correndo com as patas (4 quadros) */ caranguejo: 'caranguejo', gaivota: 'gaivota', boneco: 'boneco' }[look.tipo] || look.spr; // look.spr: bichos novos (atlantida.js)
+    const nome0 = { pombo: e.mov || e.bravo || Math.sin(G.agora / 900 + (e.uid || 0)) < 0.3 ? 'pombo' : 'pombo2', cachorro: e.mov ? 'cachorro_c' + (1 + Math.floor((e.fase || 0) / (Math.PI / 2)) % 4) : e.bravo ? 'cachorro' : 'cachorro2', /* v147: correndo com as patas (4 quadros) */ caranguejo: 'caranguejo', gaivota: 'gaivota', boneco: 'boneco' }[look.tipo] || look.spr; // look.spr: bichos novos (atlantida.js)
+    const nome = typeof quadroBicho === 'function' ? quadroBicho(e, nome0, look) : nome0; // corrida.js: quadro da corrida
     const im = aSprite(nome);
     if (!im) { desenhaBicho(ctx, look.tipo, x, y, 1, { fase: e.fase, mov: e.mov, flip: e.flip, t: G.agora, id: e.uid }); return; }
     const voo = look.tipo === 'gaivota' || look.voa ? -T * 0.5 + Math.sin(G.agora / 300 + (e.uid || 0)) * 5 : 0;
-    const bob = e.mov ? Math.abs(Math.sin(e.fase)) * (nome.startsWith('cachorro_c') ? 1.5 : 3) : 0; // quem já mexe as patas balança menos
-    const h = alt, w = h * im.width / im.height;
+    const bob = e.mov ? Math.abs(Math.sin(e.fase)) * (/_c\d$/.test(nome) ? 1.5 : 3) : 0; // quem já mexe as patas balança menos
+    const df = typeof deformaBicho === 'function' ? deformaBicho(e, nome0) : null; // corrida.js: bichos sem patas
+    const h = alt * (nome !== nome0 && typeof CORRE_ESC !== 'undefined' && CORRE_ESC[nome0] || 1), w = h * im.width / im.height;
     const espelha = (FACE_BICHO[nome] || 'e') === 'd' ? e.flip : !e.flip; // sprites olham para a esquerda
-    ctx.save(); ctx.translate(x + hit + (e.flip ? -1 : 1) * golpe * 6, y + voo - bob);
+    ctx.save(); ctx.translate(x + hit + (e.flip ? -1 : 1) * golpe * 6, y + voo - bob - (df && df.dy || 0));
     if (look.tipo !== 'caranguejo' && look.tipo !== 'boneco' && espelha) ctx.scale(-1, 1);
+    if (df) { if (df.rot) ctx.rotate(df.rot); if (df.sx || df.sy) ctx.scale(df.sx || 1, df.sy || 1); }
     ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
     return;
   }
