@@ -991,7 +991,7 @@ function alvoGuia() {
 
 /* ================= RENDERIZAÇÃO ================= */
 function ajustaCanvas() {
-  const r = CV.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const r = CV.getBoundingClientRect(); const dpr = Math.min(G.dprMax || 2, window.devicePixelRatio || 1); // G.dprMax: modo leve do celular (celular2.js)
   const W = Math.max(200, Math.round(r.width * dpr)), H = Math.max(150, Math.round(r.height * dpr));
   if (CV.width !== W || CV.height !== H) { CV.width = W; CV.height = H; }
   G.dpr = dpr; const vis = r.width < 640 ? 10 : (G.zoomVis || 15.5); G.zoom = W / ((G.mapa && G.mapa.interior ? Math.min(vis, G.mapa.w + 1.5) : vis) * T);
@@ -1323,14 +1323,15 @@ function desenhaGuia(ctx, tela) {
   const alvo = alvoGuia(); G.guiaAlvo = alvo; if (!alvo) return;
   const alt = alvo.ent ? alturaEnt(alvo.ent) + 0.75 : 0.9;
   const t = tela(alvo.x, alvo.y - alt); const s = G.dpr; const b = Math.sin(G.agora / 220) * 7 * s;
-  const W = CV.width, H = CV.height, mg = 44 * s;
-  if (t.x > mg && t.x < W - mg && t.y > mg && t.y < H - mg) {
+  const W = CV.width, H = CV.height, gm = G.guiaMg || {}; // G.guiaMg: celular (celular2.js) — a seta fica fora do HUD e dos botões
+  const ml = (gm.l || 44) * s, mr = (gm.r || 44) * s, mt = (gm.t || 44) * s, mb = (gm.b || 44) * s;
+  if (t.x > ml && t.x < W - mr && t.y > mt && t.y < H - mb) {
     if (dist(G.p, alvo) < 1.2 && !alvo.saida) return;
     ctx.save(); ctx.translate(t.x, t.y + b); seta(ctx, Math.PI / 2, s); ctx.restore();
     if (alvo.espera) { const seg = Math.ceil(alvo.espera / 1000); rotulo(ctx, `${alvo.quem} volta em ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`, t.x, t.y - 26 * s, '#ffe14a', 16); }
   } else {
-    const c = { x: W / 2, y: H / 2 }; const ang = Math.atan2(t.y - c.y, t.x - c.x);
-    const ex = clamp(c.x + Math.cos(ang) * W, mg, W - mg), ey = clamp(c.y + Math.sin(ang) * H, mg, H - mg);
+    const c = { x: (ml + W - mr) / 2, y: (mt + H - mb) / 2 }; const ang = Math.atan2(t.y - c.y, t.x - c.x);
+    const ex = clamp(c.x + Math.cos(ang) * W, ml, W - mr), ey = clamp(c.y + Math.sin(ang) * H, mt, H - mb);
     ctx.save(); ctx.translate(ex - Math.cos(ang) * Math.abs(b), ey - Math.sin(ang) * Math.abs(b)); seta(ctx, ang, s); ctx.restore();
     if (alvo.espera) { const seg = Math.ceil(alvo.espera / 1000); rotulo(ctx, `${alvo.quem} volta em ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`, clamp(ex - Math.cos(ang) * 46 * s, 110 * s, W - 110 * s), clamp(ey - Math.sin(ang) * 40 * s, 30 * s, H - 20 * s), '#ffe14a', 16); }
   }

@@ -33,6 +33,7 @@
     ['#btnPersInicio', '📜', 'Personagens', 'fichas dos jogadores'],
     ['#btnBackupInicio', '💾', 'Backup', 'exportar / importar'],
     ['#btnBugInicio', '🐞', 'Informar bug', 'achou um erro?'],
+    ['#btnAppWin', '💻', 'Jogar no Windows', 'baixe o aplicativo'],
   ];
   const fazTile = (b) => {
     if (b.classList.contains('ini-tile')) return;
