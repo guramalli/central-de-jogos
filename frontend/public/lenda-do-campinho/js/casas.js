@@ -31,6 +31,7 @@ const CASA_LOCAIS = [
   ['milao', 'Milão', 550000, 'Via della Moda', 'casa_luxo'],
   ['munique', 'Munique', 700000, 'Rua do Relógio', 'casa_luxo'],
   ['londres', 'Londres', 900000, 'Baker Street', 'casa_luxo'],
+  ['paris', 'Paris', 1050000, 'Rue des Craques', 'casa_luxo'],
   ['buenos', 'Buenos Aires', 1200000, 'Caminito', 'casa_rosa'],
   ['rio', 'Rio de Janeiro', 1600000, 'Avenida Atlântica', 'casa_luxo'],
 ];
@@ -78,7 +79,7 @@ function livreParaCasa(m, x, y) {
     && !m.saidas.some(s => Math.abs(s.x - x) <= 2 && Math.abs(s.y - y) <= 2) && !m.npcs.some(n => Math.abs(n.x - x) <= 2 && Math.abs(n.y - y) <= 2)
     && !m.pontos.some(pt => Math.abs(pt.x - x) <= 2 && Math.abs(pt.y - y) <= 2)
     && !m.campos.some(c => x >= c.x - 1 && x <= c.x + c.w && y >= c.y - 1 && y <= c.y + c.h)
-    && !m.spawns.some(sp => Math.abs(sp.x - x) <= sp.raio + 1 && Math.abs(sp.y - y) <= sp.raio + 1)
+    && !m.spawns.some(sp => Math.abs(sp.x - x) <= Math.min(sp.raio, 5) + 1 && Math.abs(sp.y - y) <= Math.min(sp.raio, 5) + 1) // v153: com o mapa maior o raio do spawn cresceu e não sobrava lugar na Praia
     && !m.predios.some(p => x >= p.x - 2 && x <= p.x + p.w + 1 && y >= p.y - 2 && y <= p.y + p.h + 2);
 }
 function tileBloqueado(m, x, y) {

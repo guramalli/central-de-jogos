@@ -17,7 +17,7 @@
    - beirada: os últimos quadros do mapa ficam colados na beirada nova.
    Carregar DEPOIS de world.js, europa.js e cidades.js e ANTES de arenas/armazem/casas/montarias.
    ============================================================ */
-const ESCALA_MAPA = 1.3;
+const ESCALA_MAPA = 1.6; // v153: 1.3 → 1.6 (mapas mais espaçados; o save de 1.3 é convertido lá embaixo)
 const OBJ_LINHA = new Set(['x', 'grade', 'rede', 'arquibancada', 'grafite']);
 // tamanho de projeto de cada mapa aberto
 function dimProjeto(id) {
@@ -56,6 +56,7 @@ function escalaPosMapa(id, x, y) {
       while (n > 0 && tent++ < n * 40) {
         const i = x + ((b.r() * w) | 0), j = y + ((b.r() * h) | 0);
         if (!cru.livre(b, i, j)) continue;
+        if (b.m.predios.some(p => p.porta && Math.abs(p.porta.x - i) <= 1 && j === p.porta.y + 1)) continue; // v153: a frente das portas fica livre
         if (filtro && !filtro(b.m.chao[j * b.m.w + i])) continue;
         cru.obj(b, i, j, tipos[(b.r() * tipos.length) | 0]); n--;
       }
@@ -147,6 +148,15 @@ bordaInvisivel = function (b) { b.X(0); const { w, h } = b.m; for (let x = 0; x 
   iniciarJogo = async function (save, ...r) {
     if (save && !save.mapasEspalhados) {
       if (save.mapa && dimProjeto(save.mapa) && Number.isFinite(save.x) && Number.isFinite(save.y)) { const p = escalaPosMapa(save.mapa, save.x, save.y); save.x = p.x; save.y = p.y; }
+      save.mapasEspalhados = ESCALA_MAPA;
+    } else if (save && save.mapasEspalhados !== ESCALA_MAPA) {
+      // save de outra escala (ex.: 1.3): volta pra coordenada de projeto e vai pra escala nova (se cair num obstáculo, o jogo leva pro renascer)
+      const d = save.mapa && dimProjeto(save.mapa), velha = +save.mapasEspalhados || 1;
+      if (d && Number.isFinite(save.x) && Number.isFinite(save.y)) {
+        const volta = (v, D) => { const R = Math.round(D * velha); return v >= R - 3 ? D - (R - v) : v / velha; };
+        const p = escalaPosMapa(save.mapa, volta(save.x, d[0]), volta(save.y, d[1]));
+        save.x = Math.max(1.5, Math.min(tamNovo(d[0]) - 1.5, p.x)); save.y = Math.max(1.5, Math.min(tamNovo(d[1]) - 1.5, p.y));
+      }
       save.mapasEspalhados = ESCALA_MAPA;
     }
     return _iniciarJogoEsp.call(this, save, ...r);

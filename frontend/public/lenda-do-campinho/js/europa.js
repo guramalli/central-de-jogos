@@ -236,9 +236,15 @@ Object.assign(DESAFIOS, {
 // Aeroporto na Cidade (Brasil)
 const _mapaCidadeBase = MAPAS_DEF.cidade;
 MAPAS_DEF.cidade = function () {
-  const m = _mapaCidadeBase(); const p = m.predios.find(b => b.x === 40 && b.y === 33); if (p) p.spr = 'b_aeroporto';
-  m.npcs.push({ id: 'comissaria', x: 43, y: 32 }); m.obj[32 * m.w + 43] = null;
-  m.placas.push({ x: 44, y: 31, texto: 'AEROPORTO — voos para a Europa (nível 50+)' }); m.obj[31 * m.w + 44] = { t: 'placa', v: 1 };
+  const m = _mapaCidadeBase();
+  // v153: o prédio do aeroporto é o b_ap1 do canto sudeste (com os mapas espalhados ele não fica mais em 40,33); a comissária fica na frente da porta
+  const p = m.predios.filter(b => b.spr === 'b_ap1').sort((a, b) => (b.x + b.y) - (a.x + a.y))[0];
+  const livre = (x, y) => x > 1 && y > 1 && x < m.w - 2 && y < m.h - 2 && !m.obj[y * m.w + x] && CH_ANDA(m.chao[y * m.w + x]) && !m.saidas.some(s => s.x === x && s.y === y) && !m.npcs.some(n => Math.abs(n.x - x) < 2 && Math.abs(n.y - y) < 2);
+  let pos = null;
+  if (p) { p.spr = 'b_aeroporto'; const c = { x: p.porta.x + 2, y: p.porta.y + 1 }; for (let r = 0; r < 10 && !pos; r++) for (let dy = -r; dy <= r && !pos; dy++) for (let dx = -r; dx <= r && !pos; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && c.y + dy > p.porta.y && livre(c.x + dx, c.y + dy) && livre(c.x + dx + 1, c.y + dy - 1)) pos = { x: c.x + dx, y: c.y + dy }; }
+  if (!pos) pos = { x: 43, y: 32 };
+  m.npcs.push({ id: 'comissaria', x: pos.x, y: pos.y }); m.obj[pos.y * m.w + pos.x] = null;
+  m.placas.push({ x: pos.x + 1, y: pos.y - 1, texto: 'AEROPORTO — voos para a Europa (nível 50+)' }); m.obj[(pos.y - 1) * m.w + pos.x + 1] = { t: 'placa', v: 1 };
   return m;
 };
 

@@ -120,7 +120,7 @@ lookDoMonstro = function (m, mapa) {
     lojista_lisboa: 'vestido_f', lojista_madri: 'chef', lojista_londres: 'avental', lider_lisboa: 'ancia', lider_madri: 'jaqueta_f', lider_londres: 'sobretudo_m',
     loja_cairo: 'vovo', lider_cairo: 'adulta', loja_toquio: 'golalta_f', lider_toquio: 'anciao', loja_doha: 'social_m', lider_doha: 'bone_f',
     loja_miami: 'bone_reta', lider_miami: 'jaqueta_f', loja_milao: 'vova', lider_milao: 'sobretudo_m', loja_munique: 'gordinha', lider_munique: 'touca_m',
-    almanaque: 'vovo', loja_buenos: 'vova', lider_buenos: 'barbudo', loja_rio: 'avental', lider_rio: 'adulta', pedal: 'jaqueta_m', rita: 'jaqueta_f', johnny: 'social_m', vera: 'golalta_f', tonico: 'barbudo',
+    almanaque: 'vovo', loja_buenos: 'vova', lider_buenos: 'barbudo', loja_rio: 'avental', lider_rio: 'adulta', loja_paris: 'vestido_f', lider_paris: 'boina_m', pedal: 'jaqueta_m', rita: 'jaqueta_f', johnny: 'social_m', vera: 'golalta_f', tonico: 'barbudo',
   };
   const IDOSO = new Set(['vovo', 'vova', 'anciao', 'ancia']);
   for (const [id, fo] of Object.entries(PAPEL)) { const n = NPCS[id]; if (n && n.look && META_BONECOS[fo]) { n.look = Object.assign({}, n.look, { folha: fo }, IDOSO.has(fo) ? { corCabelo: 'grisalho' } : {}); delete n.look._kb; } }

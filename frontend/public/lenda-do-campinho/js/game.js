@@ -1044,7 +1044,7 @@ function desenha(dt) {
   if (G.caminho && G.caminho.length) { const d = G.caminho[G.caminho.length - 1]; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(d.x * T, d.y * T, 12, 7, 0, 0, 7); ctx.stroke(); }
   const lista = [];
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const o = m.obj[y * m.w + x]; if (o && o.t !== 'x') lista.push({ k: (y + 0.9) * T, o, x, y }); }
-  for (const b of m.predios) if (b.x < x1 + 4 && b.x + b.w > x0 - 4 && b.y < y1 + 2 && b.y + b.h > y0 - 4) lista.push({ k: (b.y + b.h - 0.05) * T, b });
+  for (const b of m.predios) if (b.x < x1 + 4 && b.x + b.w > x0 - 4 && b.y < y1 + 2 + (b.alto || 0) && b.y + b.h > y0 - 4) lista.push({ k: (b.y + b.h - 0.05) * T, b });
   const ents = [G.p, ...G.mons, ...G.npcs];
   for (const e of ents) if (e.x > x0 - 2 && e.x < x1 + 2 && e.y > y0 - 1 && e.y < y1 + 1) lista.push({ k: e.y * T, e });
   lista.sort((a, b) => a.k - b.k);

@@ -330,7 +330,7 @@
   const VILA = ['vila', 'praia', 'casa', 'bazar', 'escola'];
   const CIDADE = ['cidade', 'ct', 'estadio', 'loja', 'refeitorio', 'rio', 'arena_copa'];
   const MUNDO = ['cairo', 'toquio', 'doha', 'miami', 'buenos'];
-  const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres'];
+  const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres', 'paris'];
   function faixaDoMapa(id) {
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';

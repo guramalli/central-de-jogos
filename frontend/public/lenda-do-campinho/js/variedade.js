@@ -18,7 +18,7 @@ const VAR_PELES = ['pele-clara', 'pele-media', 'pele-morena', 'pele-negra', 'pel
 const VAR_CAB = { m: ['cabelo-curto', 'cabelo-cacheado', 'cabelo-black-power', 'cabelo-moicano'], f: ['cabelo-rabo', 'cabelo-liso-longo', 'cabelo-coque', 'cabelo-cacheado', 'cabelo-black-power'] };
 const VAR_COR_CAB = ['preto', 'preto', 'preto', 'castanho', 'castanho', 'castanho', 'loiro', 'ruivo'];
 const PADRAO_TIME = {
-  buenos: ['banda', '#f8d838'], lisboa: ['aros', '#f4f4f8'], milao: ['listras', '#c01a2a'], munique: ['listras', '#f4f4f8'], cairo: ['metade', '#1a1a1a'],
+  buenos: ['banda', '#f8d838'], paris: ['faixa', '#d42a2a'], lisboa: ['aros', '#f4f4f8'], milao: ['listras', '#c01a2a'], munique: ['listras', '#f4f4f8'], cairo: ['metade', '#1a1a1a'],
   toquio: ['faixa', '#f4f4f8'], doha: ['aros', '#e8c048'], miami: ['metade', '#1a1a2a'], estadio: ['aros', '#1a1a1a'],
 };
 function hashTxt(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
