@@ -46,7 +46,25 @@ function nomeTecla(code, curto) {
   m = /^F(\d+)$/.exec(code); if (m) return code;
   return code;
 }
-function salvaTeclas() { try { localStorage.setItem(TECLAS_KEY, JSON.stringify(TECLAS)); } catch (e) { } G.uiSujo = true; }
+function salvaTeclas() {
+  try { localStorage.setItem(TECLAS_KEY, JSON.stringify(TECLAS)); } catch (e) { }
+  if (G.save) { G.save.teclas = Object.assign({}, TECLAS); if (typeof salvar === 'function') salvar(); } // v212: vai junto com o save (nuvem)
+  G.uiSujo = true;
+}
+// v212: as teclas escolhidas ficam no save da conta: entrando em outro computador, elas vêm junto.
+// Save sem teclas (de antes) leva as deste aparelho.
+{
+  const _iniTeclas = iniciarJogo;
+  iniciarJogo = async function (save) {
+    try {
+      if (save && save.teclas && typeof save.teclas === 'object') {
+        TECLAS = {}; for (const [a, c] of Object.entries(save.teclas)) if (TECLA_PADRAO[a] && typeof c === 'string' && c) TECLAS[a] = c;
+        try { localStorage.setItem(TECLAS_KEY, JSON.stringify(TECLAS)); } catch (e) { }
+      } else if (save && Object.keys(TECLAS).length) save.teclas = Object.assign({}, TECLAS);
+    } catch (e) { }
+    return _iniTeclas.apply(this, arguments);
+  };
+}
 
 const MOVE_TECLA = { cima: 'u', baixo: 'd', esquerda: 'l', direita: 'r', cimaNum: 'u', baixoNum: 'd', esquerdaNum: 'l', direitaNum: 'r', cimaEsq: 'ul', cimaDir: 'ur', baixoEsq: 'dl', baixoDir: 'dr' };
 function executaAcao(a) {

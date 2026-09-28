@@ -483,11 +483,12 @@ function itemPedidoEmMissao(id) {
 }
 function penalidadeNivel(d) {
   const dif = nivelMonstro(d) - G.save.nivel;
+  // v212: como no Tibia, tostões e itens NÃO caem com o nível (o fraco já dá pouco por natureza); só a XP diminui
   if (dif >= -5) return { xp: 1, drop: 1, faixa: 0 };
-  if (dif >= -9) return { xp: 0.6, drop: 0.8, faixa: 1 };
-  if (dif >= -14) return { xp: 0.25, drop: 0.4, faixa: 2 };
-  if (dif >= -19) return { xp: 0.1, drop: 0.15, faixa: 3 };
-  return { xp: 0, drop: 0, faixa: 4 };
+  if (dif >= -9) return { xp: 0.6, drop: 1, faixa: 1 };
+  if (dif >= -14) return { xp: 0.25, drop: 1, faixa: 2 };
+  if (dif >= -19) return { xp: 0.1, drop: 1, faixa: 3 };
+  return { xp: 0, drop: 1, faixa: 4 };
 }
 function matar(m) {
   const d = m.d; const s = G.save; const pen = penalidadeNivel(d);
@@ -508,10 +509,9 @@ function matar(m) {
   caidos.forEach(([id, q, rar], i) => soltaDrop(m, id, q, rar, i, caidos.length));
   if (melhor && ordemR.indexOf(melhor.rar) >= 2) { som('raro'); if (ordemR.indexOf(melhor.rar) >= 3) { const mb = melhor; setTimeout(() => banner(`ITEM ${RARIDADE[mb.rar].nome.toUpperCase()}!`, ITENS[mb.id].nome), 1800); } }
   if (d.fig && Math.random() < (d.chefe ? 0.5 : 1 / 110) * pen.drop) ganhaFigurinha(d.fig);
-  const temItemMissao = d.loot.some(([id]) => itemPedidoEmMissao(id)) || caidos.some(([id]) => id !== 'tostao' && MISSOES.some(q => q.req && q.req.itens && q.req.itens.some(([i]) => i === id)));
-  const aviso = ['', ' (fraco para o seu nível: XP −40%)', ' (bem mais fraco que você: XP −75%, menos loot)', ' (muito mais fraco: quase nada de XP e loot)', temItemMissao ? ' (fraco demais: sem XP — só caem os itens de missão)' : ' (fraco demais: sem XP e sem loot)'][pen.faixa];
+  const aviso = ['', ' (fraco para o seu nível: XP −40%)', ' (bem mais fraco que você: XP −75%)', ' (muito mais fraco: quase nada de XP)', ' (fraco demais: sem XP)'][pen.faixa];
   log(`Você passou por ${d.nome}.${ganhos.length ? ' Ganhou: ' + ganhos.join(', ') + '.' : ''}${aviso}`, pen.faixa >= 3 ? 'l-sis' : 'l-loot');
-  if (pen.faixa >= 2) dica('nivel_baixo', `Adversários muito mais fracos que você (nível em CINZA) dão pouca ou nenhuma XP e quase nada de loot. Para evoluir, procure rivais do seu nível (branco) ou mais fortes (laranja/vermelho)!`);
+  if (pen.faixa >= 2) dica('nivel_baixo', `Adversários muito mais fracos que você (nível em CINZA) dão pouca ou nenhuma XP (tostões e itens caem normalmente, mas os fracos dão pouco). Para evoluir, procure rivais do seu nível (branco) ou mais fortes (laranja/vermelho)!`);
   for (const q of MISSOES) { const e = s.quests[q.id]; if (e && e.s === 'ativa' && q.req.kill === m.tipo) { e.p = (e.p || 0) + 1; if (e.p === q.req.n) { log(`Missão "${q.titulo}" pronta! Volte para falar com ${NPCS[q.npc].nome}.`, 'l-xp'); banner('Missão pronta!', `Fale com ${NPCS[q.npc].nome}`); } } }
   if (s.tarefa && s.tarefa.m === m.tipo && s.tarefa.p < s.tarefa.n) { s.tarefa.p++; if (s.tarefa.p === s.tarefa.n) log('Desafio completo! Resgate a recompensa em qualquer Quadro de Desafios.', 'l-xp'); }
   if (typeof carreiraEvento === 'function') carreiraEvento('abate', { monstro: m.tipo, mapa: G.mapa.id, chefe: !!d.chefe });

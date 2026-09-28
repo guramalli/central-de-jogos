@@ -23,3 +23,35 @@ for (const L of LINHAS_RECUP) L.ids.forEach((id, k) => {
   if (typeof ASSET_SET !== 'undefined' && !ASSET_SET.has(spr)) { ASSETS.push(spr); ASSET_SET.add(spr); }
   if (typeof ICON_ALIAS !== 'undefined') ICON_ALIAS[id] = spr;
 });
+// v213: como no Tibia ("Using one of 263 mana potions..."): ao usar uma garrafa ou isotônico, uma linha branca
+// no pé da tela mostra quantos você tinha. Some sozinha; não vai para o chat (não enche).
+{
+  LINHAS_RECUP[0].plural = 'Garrafas de Fôlego'; LINHAS_RECUP[0].fem = true;
+  LINHAS_RECUP[1].plural = 'Isotônicos de Foco'; LINHAS_RECUP[1].fem = false;
+  const linhaDe = id => LINHAS_RECUP.find(L => L.ids.includes(id));
+  const plTam = t => (!t || t === 'Mini') ? t : t + 's'; // Média→Médias, Grande→Grandes, Supremo→Supremos
+  function textoUso(id, n) {
+    const L = linhaDe(id), k = L.ids.indexOf(id), tam = L.tam[k];
+    if (n <= 1) return `Usando ${L.fem ? 'a última' : 'o último'} ${ITENS[id].nome}.`;
+    return `Usando 1 ${L.fem ? 'das' : 'dos'} ${fmt(n)} ${L.plural}${tam ? ' ' + plTam(tam) : ''}...`;
+  }
+  let timer = 0;
+  function statusTela(txt) {
+    const tela = document.getElementById('tela'); if (!tela) return;
+    let e = document.getElementById('statusTela');
+    if (!e) { e = el('div', { id: 'statusTela', 'aria-live': 'polite' }); tela.append(e); }
+    e.textContent = txt; e.classList.add('on'); clearTimeout(timer); timer = setTimeout(() => e.classList.remove('on'), 2500);
+  }
+  const _usarItemPoc = usarItem;
+  usarItem = function (id) {
+    const L = G.save && linhaDe(id); const antes = L ? contaItem(id) : 0;
+    const r = _usarItemPoc.apply(this, arguments);
+    if (L && contaItem(id) < antes) statusTela(textoUso(id, antes));
+    return r;
+  };
+  const st = document.createElement('style');
+  st.textContent = `#statusTela { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 4; pointer-events: none; max-width: 90%; text-align: center;
+    color: #fff; font: 700 14px/1.2 Nunito, sans-serif; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; opacity: 0; transition: opacity .35s; }
+  #statusTela.on { opacity: 1; transition: none; }`;
+  document.head.append(st);
+}
