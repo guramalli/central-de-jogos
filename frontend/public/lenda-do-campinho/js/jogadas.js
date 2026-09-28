@@ -31,7 +31,10 @@ function pernaDe(c) {
   let fim = c.height - 1; while (fim > 0 && linha(fim)[0] < 0) fim--;
   let ini = 0; while (ini < fim && linha(ini)[0] < 0) ini++;
   const quadril = Math.round(fim - (fim - ini) * 0.175); const [a, b] = linha(quadril); // da barra do calção pra baixo
-  inf = { quadril, fim, px: a >= 0 ? (a + b) / 2 : W / 2, py: quadril - 8 }; // gira no quadril (um pouco acima, dentro do calção)
+  const px = a >= 0 ? (a + b) / 2 : W / 2;
+  // v160: onde separar as duas pernas: na altura do tornozelo costuma haver dois "pés" separados; o corte fica no meio do vão
+  let corte = px; { const yT = Math.round(fim - (fim - quadril) * 0.3); const runs = []; let ini = -1; for (let x = 0; x <= W; x++) { const on = x < W && d[(yT * W + x) * 4 + 3] > 128; if (on && ini < 0) ini = x; if (!on && ini >= 0) { runs.push([ini, x - 1]); ini = -1; } } if (runs.length >= 2) corte = (runs[0][1] + runs[runs.length - 1][0]) / 2; }
+  inf = { quadril, fim, px, py: quadril - 8, corte }; // gira no quadril (um pouco acima, dentro do calção)
   PERNA_INFO.set(c, inf); return inf;
 }
 function spriteChute(base, ang) {
@@ -39,9 +42,10 @@ function spriteChute(base, ang) {
   if (!CHUTE_CV || CHUTE_CV.width !== base.width || CHUTE_CV.height !== base.height) CHUTE_CV = mkCanvas(base.width, base.height);
   const x = CHUTE_CV.getContext('2d'); x.clearRect(0, 0, base.width, base.height);
   x.drawImage(base, 0, 0); // corpo + perna de apoio
-  const h = p.fim - p.quadril + 2;
+  const h = p.fim - p.quadril + 2, c = Math.round(p.corte), wf = base.width - c;
+  x.clearRect(c, p.quadril, wf, h); // v160: tira a perna da frente parada (antes sobravam as duas e o chute saía com os dois pés)
   x.save(); x.translate(p.px, p.py); x.rotate(ang); x.translate(-p.px, -p.py);
-  x.drawImage(base, 0, p.quadril, base.width, h, 0, p.quadril, base.width, h); // perna que chuta
+  x.drawImage(base, c, p.quadril, wf, h, c, p.quadril, wf, h); // só a perna da frente chuta
   x.restore();
   return CHUTE_CV;
 }

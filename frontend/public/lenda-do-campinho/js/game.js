@@ -776,13 +776,23 @@ function andaAte(m, alvo, v, afastar) {
 // Áreas tranquilas: ninguém vem desafiar você, só joga quem você desafiar (driblar/chutar).
 // No resto do mundo, os rivais vêm tirar satisfação quando você chega perto.
 const MAPAS_PACIFICOS = new Set(['vila', 'praia']);
+// v160: adversário nunca corre tanto quanto você. Limite = % da velocidade de um jogador do MESMO nível SEM equipamento:
+// os rápidos de verdade (pontas, skatistas, bichos ligeiros: vel >= 300 ou 'rapido') até 85%, o resto até 72%.
+const VEL_MON = new WeakMap();
+function velMonstro(d) {
+  let v = VEL_MON.get(d); if (v != null) return v;
+  const L = Math.max(1, d.nivel || (typeof nivelMonstro === 'function' ? nivelMonstro(d) : 1) || 1);
+  const jog = 220 + 2 * (L - 1); const rapido = d.vel >= 300;
+  v = Math.min(d.vel * 0.88, jog * (rapido ? 0.85 : 0.72));
+  VEL_MON.set(d, v); return v;
+}
 function atualizaMonstro(m, dt) {
   m.mov = false;
   if (m.d.treino) return;
   const p = G.p; const d = dist(m, p); const vivo = G.save.hp > 0;
   const casa = { x: m.sp.x + 0.5, y: m.sp.y + 0.5 };
   const longe = dist(m, casa) > m.sp.raio + 10;
-  const v = m.d.vel / 60 * 0.88 * dt / 1000;
+  const v = velMonstro(m.d) / 60 * dt / 1000;
   const aggro = Math.max(1, m.d.aggro + (m.d.grupo && G.save.carreira && G.save.carreira.satTorcida < 40 ? 2 : 0) + (G.climaAggro || 0));
   if (m.bravo) m.voltando = false; // levou drible/chute no caminho de volta: encara de novo
   if (vivo && !m.bravo && !m.voltando && !((m.calmoAte || 0) > G.agora) && m.d.aggro > 0 && d <= aggro && !MAPAS_PACIFICOS.has(G.mapa.id)) { // calmoAte: Leitura de Jogo
