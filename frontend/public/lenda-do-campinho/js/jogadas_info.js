@@ -17,7 +17,7 @@ function tipoJogada(dr) {
     buff: { ic: '⚡', rot: 'Reforço', cor: '#d0a010', expl: 'Um efeito bom em você por alguns segundos. Não precisa de alvo.' },
   }[dr.tipo] || { ic: '⭐', rot: 'Especial', cor: '#888', expl: '' };
   const extras = [];
-  if (dr.areaAlvo) extras.push(['💥', `em área no alvo (raio ${dr.areaAlvo})`]);
+  if (dr.areaAlvo) extras.push(['💥', `em área no alvo (raio ${dr.areaAlvo}) e em todos colados em você`]);
   if (dr.atravessa) extras.push(['➡️', 'atravessa e acerta quem está atrás']);
   if (dr.atordoa) extras.push(['💫', `deixa tonto ${dr.atordoa / 1000} s`]);
   if (dr.efeitoMagia === 'provoca') extras.push(['🛡️', 'puxa os adversários e você toma menos dano']);

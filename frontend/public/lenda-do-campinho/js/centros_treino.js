@@ -17,7 +17,7 @@ const APARELHOS = {
   visao: { spr: 'ct_quadro', sk: 'visao', nome: 'Quadro Tático', ic: '🧠', ar: 0.948, n: 3, txt: 'Estudar jogadas no quadro' },
 };
 const ORDEM_EST = ['chute', 'defesa', 'drible', 'visao'];
-const EST_CD = 1500;
+const EST_CD = 1200; // v195: treinar ONLINE no aparelho rende 2,5x o treino offline (o boneco comum: 2x)
 // onde fica o centro (coordenada de projeto, antes do "espalha"); sem ref = perto de onde a pessoa chega
 const CENTROS_TREINO = { vila: [12, 22], ct: [8, 31], praia: null, cidade: null, cairo: null, toquio: null, doha: null, miami: null, lisboa: null, madri: null, milao: null, munique: null, londres: null, paris: null, buenos: null, rio: null };
 for (const e of Object.values(APARELHOS)) {
@@ -27,19 +27,31 @@ for (const e of Object.values(APARELHOS)) {
   e.alto = Math.max(0, Math.ceil(H * 0.97 - 1));
 }
 
-// O setor é um gramado de treino de 15×6 (o piso delimita a área):
-//   fileira 1: os 4 aparelhos (2 quadros cada, 1 de folga), centralizados
-//   fileira 2: onde a pessoa fica treinando · fileira 4: 3 bonecos de treino alinhados
-// Só vai para terreno de UM tipo só (não atravessa caminho de grama/calçada), longe dos bichos.
-const CT_W = 15, CT_H = 6;
+// v195: o setor fica no CHÃO DO PRÓPRIO LUGAR (praça, calçada, areia, terra...), sem pintar grama e sem moldura.
+// Regras (o dono pediu mais critério): só num pedaço de um tipo de chão só — o chão principal do mapa, nunca rua
+// nem caminho —, com 1 quadro de folga em volta; longe de prédios, quadras, pessoas, saídas e de onde os
+// adversários valentes andam e atacam. Formatos: fileira (15×6) ou, se não couber, 2×2 (9×10). Não coube: o mapa
+// fica sem centro (melhor que feio). Ambientação: um bebedouro e uma sacola de bolas nas pontas.
+const CT_FORMATOS = [
+  { W: 15, H: 6, est: [[2, 1], [5, 1], [8, 1], [11, 1]], bonecos: [[3, 4], [7, 4], [11, 4]], placa: [0, 2], enfeites: [['bebedouro', 0, 1], ['sacola_bolas', 14, 1]] },
+  { W: 9, H: 10, est: [[1, 1], [5, 1], [1, 5], [5, 5]], bonecos: [[2, 8], [6, 8]], placa: [0, 3], enfeites: [['bebedouro', 8, 1], ['sacola_bolas', 8, 5]] },
+  { W: 12, H: 3, est: [[1, 1], [4, 1], [7, 1], [10, 1]], bonecos: [], placa: [0, 2], enfeites: [['bebedouro', 0, 1]] }, // cidade apertada: só a fileira dos aparelhos
+];
 function poeCentroTreino(m, refProj) {
   const i = (x, y) => y * m.w + x;
-  // enfeite solto (árvore, flor, pedra...) pode sair de dentro do setor, como nos estádios
   const cid = typeof CIDADES !== 'undefined' && CIDADES.find(k => k.id === m.id);
-  const deco = new Set(['arvore', 'arvore2', 'arbusto', 'pedra', 'flores', 'vaso', 'lixeira2', 'banco', 'cones', 'barreiras', 'sacola_bolas', ...(cid ? [...(cid.props || []), ...(cid.arvores || [])] : [])]);
+  // enfeite/mobiliário solto de praça pode sair de dentro do setor (rede de vôlei, baú, placa e prédio, nunca)
+  const deco = new Set(['arvore', 'arvore2', 'arbusto', 'pedra', 'flores', 'vaso', 'vaso2', 'lixeira', 'lixeira2', 'banco', 'banco2', 'cones', 'barreiras', 'sacola_bolas',
+    'poste', 'poste2', 'poste3', 'canteiro', 'caixa_correio', 'hidrante', 'coqueiro', 'coqueiro2', 'guarda_sol', ...(cid ? [...(cid.props || []), ...(cid.arvores || [])] : [])]);
   const placaVelha = new Set(m.placas.filter(pl => /^TREINO LIVRE/.test(pl.texto)).map(pl => i(pl.x, pl.y)));
   const solto = k => { const o = m.obj[k]; return !o || (deco.has(o.t) && !o.predio) || (o.t === 'placa' && placaVelha.has(k)); };
-  const livre = (x, y) => x >= 1 && y >= 1 && x < m.w - 1 && y < m.h - 1 && solto(i(x, y)) && CH_ANDA(m.chao[i(x, y)]) && m.chao[i(x, y)] !== CH.AGUA;
+  // o chão principal do mapa (o mais comum que dá para andar, fora água e rua)
+  const ruas = typeof tiposRua === 'function' ? tiposRua(m.id) : new Set([CH.ASFALTO]);
+  const conta = {}; for (const c of m.chao) if (CH_ANDA(c) && c !== CH.AGUA && !ruas.has(c)) conta[c] = (conta[c] || 0) + 1;
+  const base = +Object.keys(conta).sort((a, b) => conta[b] - conta[a])[0];
+  const FAMILIA = [[CH.GRAMA, CH.GRAMA_FLOR]]; // grama com florzinha é o mesmo gramado
+  const fam = FAMILIA.find(f => f.includes(base)) || [base];
+  const noChao = (x, y) => x >= 1 && y >= 1 && x < m.w - 1 && y < m.h - 1 && fam.includes(m.chao[i(x, y)]);
   const dp = refProj && typeof dimProjeto === 'function' && dimProjeto(m.id);
   const inicio = m.renasce || m.inicio || { x: m.w >> 1, y: m.h >> 1 };
   const ref = refProj ? (dp ? { x: escalaCoord(refProj[0], dp[0], tamNovo(dp[0])), y: escalaCoord(refProj[1], dp[1], tamNovo(dp[1])) } : { x: refProj[0], y: refProj[1] }) : inicio;
@@ -47,44 +59,56 @@ function poeCentroTreino(m, refProj) {
   const pontosIn = (V, lista) => lista.some(p => p.x >= V[0] && p.x < V[2] && p.y >= V[1] && p.y < V[3]);
   const alto = Math.max(...ORDEM_EST.map(k => APARELHOS[k].alto));
   const treino = s => MONSTROS[s.m] && MONSTROS[s.m].treino;
-  const cands = [];
-  for (let estrito = 1; estrito >= 0 && !cands.length; estrito--) {
-    for (let Y = alto + 1; Y < m.h - CT_H - 2; Y++) for (let X = 2; X < m.w - CT_W - 2; X++) {
-      let ok = true; const c0 = m.chao[i(X, Y)];
-      for (let j = Y; j < Y + CT_H && ok; j++) for (let k = X; k < X + CT_W && ok; k++) if (!livre(k, j) || (estrito && m.chao[i(k, j)] !== c0)) ok = false;
-      if (!ok) continue;
-      const V = [X, Y + 1 - alto, X + CT_W, Y + CT_H];
-      if (pontosIn(V, m.npcs) || pontosIn(V, m.saidas) || pontosIn(V, m.placas.filter(pl => !/^TREINO LIVRE/.test(pl.texto))) || pontosIn(V, m.pontos)) continue;
-      if (m.campos.some(c => cruza(V, [c.x - 1, c.y - 1, c.x + c.w + 1, c.y + c.h + 1]))) continue;
-      if ((m.zonas || []).some(z => cruza(V, [z.x, z.y, z.x + z.w, z.y + z.h]))) continue;
-      if (m.predios.some(p => cruza(V, [p.x - 1, p.y - (p.alto || 3) - 3, p.x + p.w + 1, p.y + p.h + 1]))) continue; // o telhado desenhado sobe mais que a base
-      if (m.spawns.some(s => { const r = 1 + (s.raio || 0); return !treino(s) && s.x >= V[0] - r && s.x < V[2] + r && s.y >= V[1] - r && s.y < V[3] + r; })) continue; // longe de onde os bichos andam
-      cands.push({ X, Y, d: Math.hypot(X + CT_W / 2 - ref.x, Y + CT_H / 2 - ref.y) });
-    }
-  }
-  cands.sort((a, b) => a.d - b.d);
   const antes = alcancaveis(m, inicio), importantes = pontosImportantes(m).filter(pt => antes[pt.y * m.w + pt.x]);
-  const xs = [2, 5, 8, 11]; // os aparelhos dentro do piso (sobram 2 quadros de cada lado)
-  for (const { X, Y } of cands.slice(0, 30)) {
-    const y = Y + 1, guarda = [];
-    for (let j = Y; j < Y + CT_H; j++) for (let k = X; k < X + CT_W; k++) if (m.obj[i(k, j)]) { guarda.push([i(k, j), m.obj[i(k, j)]]); m.obj[i(k, j)] = null; } // tira os enfeites do gramado
-    for (const dx of xs) for (let k = 0; k < 2; k++) m.obj[i(X + dx + k, y)] = { t: 'x', v: 0, predio: true };
-    const depois = alcancaveis(m, inicio);
-    if (xs.every(dx => depois[i(X + dx, y + 1)]) && importantes.every(pt => depois[pt.y * m.w + pt.x])) {
-      for (let j = Y; j < Y + CT_H; j++) for (let k = X; k < X + CT_W; k++) m.chao[i(k, j)] = CH.CAMPO; // o gramado do setor
-      ORDEM_EST.forEach((k, e) => { const d = APARELHOS[k]; m.predios.push({ spr: d.spr, x: X + xs[e], y, w: 2, h: 1, porta: { x: X + xs[e], y }, alto: d.alto, estacao: k }); });
-      // os bonecos de treino antigos (soltos pelo mapa) vêm para dentro do setor, em fila
-      m.spawns = m.spawns.filter(s => !treino(s));
-      for (const pl of m.placas.filter(pl => /^TREINO LIVRE/.test(pl.texto))) { if (m.obj[i(pl.x, pl.y)] && m.obj[i(pl.x, pl.y)].t === 'placa') m.obj[i(pl.x, pl.y)] = null; }
-      m.placas = m.placas.filter(pl => !/^TREINO LIVRE/.test(pl.texto));
-      for (const dx of [3, 7, 11]) m.spawns.push({ m: 'boneco', x: X + dx, y: Y + 4, qtd: 1, raio: 0 });
-      m.obj[i(X, Y + 2)] = { t: 'placa', v: 1 };
-      m.placas.push({ x: X, y: Y + 2, texto: '🏋️ CENTRO DE TREINAMENTO — clique num aparelho para treinar: 🎯 Boneco = Chute · 🏋️ Academia = Defesa · 🔶 Cones = Drible · 🧠 Quadro tático = Visão de jogo. Treina até você andar. Os bonecos de treino da frente: bata no modo Drible ou Chute.' });
-      m.centroTreino = { x: X + xs[0], y, X, Y };
-      return true;
+  for (const F of CT_FORMATOS) {
+    const cands = [];
+    for (let Y = alto + 2; Y < m.h - F.H - 2; Y++) for (let X = 2; X < m.w - F.W - 2; X++) {
+      let ok = true;
+      // por dentro: um tipo de chão só e nada fixo; a volta: qualquer piso de andar, mas nunca rua nem água
+      for (let j = Y - 1; j <= Y + F.H && ok; j++) for (let k = X - 1; k <= X + F.W && ok; k++) {
+        const dentro = j >= Y && j < Y + F.H && k >= X && k < X + F.W, c = m.chao[i(k, j)];
+        if (dentro ? (!noChao(k, j) || !solto(i(k, j))) : (!CH_ANDA(c) || c === CH.AGUA || ruas.has(c) || (m.obj[i(k, j)] && !solto(i(k, j))))) ok = false;
+      }
+      for (let j = Y - 2; j <= Y + F.H + 1 && ok; j++) for (let k = X - 2; k <= X + F.W + 1 && ok; k++) if (j >= 0 && k >= 0 && j < m.h && k < m.w && ruas.has(m.chao[i(k, j)])) ok = false; // longe da rua
+      // logo abaixo do setor não pode ter nada fixo e grande: o desenho sobe e cobre os aparelhos (ex.: a pirâmide do Cairo)
+      for (let j = Y + F.H + 1; j <= Y + F.H + 5 && ok; j++) for (let k = X - 8; k <= X + F.W + 7 && ok; k++) {
+        const o = j < m.h && k >= 0 && k < m.w && m.obj[i(k, j)]; if (!o || o.t === 'x' || solto(i(k, j)) || !OBJ_INFO[o.t] || OBJ_INFO[o.t].w < 1.5) continue;
+        const meia = OBJ_INFO[o.t].w / 2; if (k + 0.5 + meia > X - 1 && k + 0.5 - meia < X + F.W + 1) ok = false; // a largura do desenho alcança o setor
+      }
+      if (!ok) continue;
+      const V = [X - 1, Y + 1 - alto, X + F.W + 1, Y + F.H + 1];
+      const V3 = [V[0] - 2, V[1] - 2, V[2] + 2, V[3] + 2], V4 = [V[0] - 4, V[1] - 4, V[2] + 4, V[3] + 4]; // pessoas a 2; saídas/entradas de dungeon a 4
+      if (m.predios.some(p => p.interior && cruza(V4, [p.x, p.y - (p.alto || 3), p.x + p.w, p.y + p.h]))) continue;
+      if (pontosIn(V3, m.npcs) || pontosIn(V4, m.saidas) || pontosIn(V, m.placas.filter(pl => !/^TREINO LIVRE/.test(pl.texto))) || pontosIn(V, m.pontos)) continue;
+      if (m.campos.some(c => cruza(V, [c.x - 1, c.y - 1, c.x + c.w + 1, c.y + c.h + 1]))) continue;
+      if ((m.zonas || []).some(z => cruza(V, [z.x - 1, z.y - 1, z.x + z.w + 1, z.y + z.h + 1]))) continue;
+      if (m.predios.some(p => cruza(V, [p.x - 1, p.y - (p.alto || 3) - 1, p.x + p.w + 1, p.y + p.h + 1]))) continue; // nem colado, nem escondido atrás do prédio
+      if (m.spawns.some(s => { if (treino(s)) return false; const r = (s.raio || 0) + 1; return s.x >= V[0] - r && s.x < V[2] + r && s.y >= V[1] - r && s.y < V[3] + r; })) continue; // fora de onde os bichos passeiam (o setor é zona segura: zona_segura.js)
+      cands.push({ X, Y, d: Math.hypot(X + F.W / 2 - ref.x, Y + F.H / 2 - ref.y) });
     }
-    for (const dx of xs) for (let k = 0; k < 2; k++) m.obj[i(X + dx + k, y)] = null;
-    for (const [k, o] of guarda) m.obj[k] = o; // fecharia algum caminho: devolve os enfeites
+    cands.sort((a, b) => a.d - b.d);
+    for (const { X, Y } of cands.slice(0, 30)) {
+      const guarda = [], marca = (k, o) => { guarda.push([k, m.obj[k]]); m.obj[k] = o; };
+      for (let j = Y - 1; j <= Y + F.H; j++) for (let k = X - 1; k <= X + F.W; k++) if (m.obj[i(k, j)]) marca(i(k, j), null); // tira os enfeites soltos de dentro e da volta (árvore/guarda-sol colado cobria os aparelhos)
+      for (const [dx, dy] of F.est) for (let k = 0; k < 2; k++) marca(i(X + dx + k, Y + dy), { t: 'x', v: 0, predio: true });
+      for (const [t, dx, dy] of F.enfeites) marca(i(X + dx, Y + dy), { t, v: 0 });
+      marca(i(X + F.placa[0], Y + F.placa[1]), { t: 'placa', v: 1 });
+      const depois = alcancaveis(m, inicio);
+      if (F.est.every(([dx, dy]) => depois[i(X + dx, Y + dy + 1)]) && importantes.every(pt => depois[pt.y * m.w + pt.x])) {
+        ORDEM_EST.forEach((k, e) => { const d = APARELHOS[k], [dx, dy] = F.est[e]; m.predios.push({ spr: d.spr, x: X + dx, y: Y + dy, w: 2, h: 1, porta: { x: X + dx, y: Y + dy }, alto: d.alto, estacao: k }); });
+        // os bonecos de treino antigos (soltos pelo mapa) vêm para dentro do setor (se o formato tiver lugar para eles)
+        if (F.bonecos.length) {
+          m.spawns = m.spawns.filter(s => !treino(s));
+          for (const pl of m.placas.filter(pl => /^TREINO LIVRE/.test(pl.texto))) { if (m.obj[i(pl.x, pl.y)] && m.obj[i(pl.x, pl.y)].t === 'placa') m.obj[i(pl.x, pl.y)] = null; }
+          m.placas = m.placas.filter(pl => !/^TREINO LIVRE/.test(pl.texto));
+        }
+        for (const [dx, dy] of F.bonecos) m.spawns.push({ m: 'boneco', x: X + dx, y: Y + dy, qtd: 1, raio: 0 });
+        m.placas.push({ x: X + F.placa[0], y: Y + F.placa[1], texto: '🏋️ CENTRO DE TREINAMENTO — clique num aparelho para treinar: 🎯 Boneco = Chute · 🏋️ Academia = Defesa · 🔶 Cones = Drible · 🧠 Quadro tático = Visão de jogo. Treina até você andar.' + (F.bonecos.length ? ' Os bonecos de treino: bata no modo Drible ou Chute.' : '') });
+        m.centroTreino = { x: X + F.est[0][0], y: Y + F.H / 2, X, Y, W: F.W, H: F.H };
+        return true;
+      }
+      for (let g = guarda.length - 1; g >= 0; g--) m.obj[guarda[g][0]] = guarda[g][1]; // fecharia algum caminho: desfaz
+    }
   }
   console.warn('centro de treinamento sem lugar:', m.id); return false;
 }
@@ -92,14 +116,21 @@ for (const [id, ref] of Object.entries(CENTROS_TREINO)) {
   const base = MAPAS_DEF[id]; if (!base) continue;
   MAPAS_DEF[id] = function () { const m = base(); try { poeCentroTreino(m, ref); } catch (e) { console.error('centro de treino', id, e); } return m; };
 }
-
-// linha branca de campo em volta do gramado: deixa claro onde é o setor
-if (typeof desenhaChaoClima === 'function') {
-  const _dccCt = desenhaChaoClima;
-  desenhaChaoClima = function (ctx) {
-    const r = _dccCt.apply(this, arguments);
+// no mapa (tecla M): a legenda "Centro de Treinamento" e o nome ao passar o mouse
+if (typeof desenhaMarcadores === 'function') {
+  const _marcCt = desenhaMarcadores;
+  desenhaMarcadores = function (x, tx, ty, e, grande) {
+    const r = _marcCt.apply(this, arguments);
     const c = G.mapa && G.mapa.centroTreino;
-    if (c && c.X != null) { const k = 0.18 * T; ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(c.X * T + k, c.Y * T + k, CT_W * T - 2 * k, CT_H * T - 2 * k, 6); ctx.stroke(); ctx.restore(); }
+    if (c && c.X != null && grande && typeof rotuloMini === 'function') rotuloMini(x, '🏋️ Centro de Treinamento', tx(c.X + c.W / 2), ty(c.Y + c.H / 2), e * 0.95, '#b8ffb0');
+    return r;
+  };
+}
+if (typeof oQueTemNoMapa === 'function') {
+  const _oqCt = oQueTemNoMapa;
+  oQueTemNoMapa = function (wx, wy, raio) {
+    const r = _oqCt.apply(this, arguments); const c = G.mapa && G.mapa.centroTreino;
+    if (c && c.X != null && wx >= c.X - 0.5 && wx <= c.X + c.W + 0.5 && wy >= c.Y - 1 && wy <= c.Y + c.H + 0.5 && r.length < 3) r.push('🏋️ Centro de Treinamento — aparelhos para treinar Chute, Defesa, Drible e Visão');
     return r;
   };
 }

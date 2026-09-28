@@ -155,7 +155,7 @@ G.areaGrade = null;
     if (GRADE.on && dr && G.cds[id] !== antes) {
       let c = null, raio = 0;
       if (dr.tipo === 'area') { c = G.p; raio = Math.max(1, Math.round(dr.raio)); } else if (dr.areaAlvo && a) { c = a; raio = Math.max(1, Math.round(dr.areaAlvo)); }
-      if (c) G.areaGrade = { x: Math.floor(c.x), y: Math.floor(c.y), raio, cor: dr.cor || '#ffe14a', t0: G.agora };
+      if (c) G.areaGrade = { x: Math.floor(c.x), y: Math.floor(c.y), raio, cor: dr.cor || '#ffe14a', t0: G.agora, eu: dr.areaAlvo && a ? { x: Math.floor(G.p.x), y: Math.floor(G.p.y) } : null }; // no alvo: pisca também em volta de você
     }
     return r;
   };
@@ -165,7 +165,9 @@ G.areaGrade = null;
     const A = G.areaGrade; if (A && GRADE.on) {
       const k = (G.agora - A.t0) / 700; if (k > 1) G.areaGrade = null;
       else { ctx.save(); ctx.globalAlpha = 0.55 * (1 - k); ctx.fillStyle = A.cor; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-        for (let y = A.y - A.raio; y <= A.y + A.raio; y++) for (let x = A.x - A.raio; x <= A.x + A.raio; x++) { ctx.fillRect(x * T + 2, y * T + 2, T - 4, T - 4); ctx.strokeRect(x * T + 2, y * T + 2, T - 4, T - 4); }
+        const qs = new Set(); for (let y = A.y - A.raio; y <= A.y + A.raio; y++) for (let x = A.x - A.raio; x <= A.x + A.raio; x++) qs.add(x + ',' + y);
+        if (A.eu) for (let y = A.eu.y - 1; y <= A.eu.y + 1; y++) for (let x = A.eu.x - 1; x <= A.eu.x + 1; x++) if (x !== A.eu.x || y !== A.eu.y) qs.add(x + ',' + y);
+        for (const q of qs) { const [x, y] = q.split(',').map(Number); ctx.fillRect(x * T + 2, y * T + 2, T - 4, T - 4); ctx.strokeRect(x * T + 2, y * T + 2, T - 4, T - 4); }
         ctx.restore(); }
     }
     return r;

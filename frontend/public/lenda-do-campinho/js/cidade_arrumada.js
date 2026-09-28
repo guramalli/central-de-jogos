@@ -22,14 +22,15 @@ function desenhaAlambrado(ctx, o, x, y) {
   ctx.save();
   const poste = (px, topo) => { ctx.fillStyle = POSTE; ctx.fillRect(px - 2.5, topo, 5, base - topo); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(px - 1.5, topo, 1.5, base - topo); };
   if (d === 'h') {
-    const x0 = x * T, topo = base - H;
-    ctx.fillStyle = FUNDO; ctx.fillRect(x0, topo, T, H);
-    ctx.save(); ctx.beginPath(); ctx.rect(x0, topo, T, H); ctx.clip();
+    // v193: no canto a tela começa/termina no MEIO do quadrado, onde passa a cerca de lado (antes sobrava meio quadrado para fora)
+    const canto = o.meta && o.meta.canto, xa = canto === 'esq' ? (x + 0.5) * T : x * T, xb = canto === 'dir' ? (x + 0.5) * T : (x + 1) * T, L = xb - xa, topo = base - H;
+    ctx.fillStyle = FUNDO; ctx.fillRect(xa, topo, L, H);
+    ctx.save(); ctx.beginPath(); ctx.rect(xa, topo, L, H); ctx.clip();
     ctx.strokeStyle = TELA; ctx.lineWidth = 1.2; ctx.beginPath();
-    for (let k = -H; k < T + H; k += 8) { ctx.moveTo(x0 + k, base); ctx.lineTo(x0 + k + H, topo); ctx.moveTo(x0 + k + H, base); ctx.lineTo(x0 + k, topo); }
+    for (let k = -H; k < T + H; k += 8) { ctx.moveTo(x * T + k, base); ctx.lineTo(x * T + k + H, topo); ctx.moveTo(x * T + k + H, base); ctx.lineTo(x * T + k, topo); }
     ctx.stroke(); ctx.restore();
-    ctx.fillStyle = TUBO; ctx.fillRect(x0, topo - 2, T, 4); ctx.fillRect(x0, base - 3, T, 3);
-    poste(x0, topo - 3); if (o.meta && o.meta.fim) poste(x0 + T, topo - 3);
+    ctx.fillStyle = TUBO; ctx.fillRect(xa, topo - 2, L, 4); ctx.fillRect(xa, base - 3, L, 3);
+    if (canto !== 'dir') poste(xa, topo - 3); if (canto === 'dir' || (o.meta && o.meta.fim)) poste(xb, topo - 3);
   } else {
     // de lado: a tela vira uma faixa estreita e os postes ficam em fila
     const cx = (x + 0.5) * T, yTopo = y * T - H + 0.92 * T, yBase = base;
@@ -52,7 +53,7 @@ function refazAlambrados(m) {
     if (!tinha) continue;
     const x0 = c.x - 1, x1 = c.x + c.w, y0 = c.y - 1, y1 = c.y + c.h, meio = Math.round((x0 + x1) / 2);
     const livre = (x, y) => x > 0 && y > 0 && x < W - 1 && y < m.h - 1 && !m.npcs.some(n => n.x === x && n.y === y) && !m.saidas.some(s => s.x === x && s.y === y) && !m.predios.some(p => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
-    const poe = (x, y, d, fim) => { if (livre(x, y)) m.obj[i(x, y)] = { t: 'alambrado', v: 0, meta: { d, fim } }; };
+    const poe = (x, y, d, fim) => { if (livre(x, y)) m.obj[i(x, y)] = { t: 'alambrado', v: 0, meta: { d, fim, canto: d === 'h' ? (x === x0 ? 'esq' : x === x1 ? 'dir' : null) : null } }; };
     for (let x = x0; x <= x1; x++) { poe(x, y0, 'h', x === x1); if (Math.abs(x - meio) > 1) poe(x, y1, 'h', x === x1 || x === meio - 2); } // portão de 3 embaixo, no meio
     for (let y = y0 + 1; y < y1; y++) { poe(x0, y, 'v'); poe(x1, y, 'v'); }
   }
@@ -75,10 +76,16 @@ function montaFeirinha(m) {
     && !m.saidas.some(s => Math.abs(s.x - x) <= 1 && Math.abs(s.y - y) <= 1) && !m.npcs.some(n => Math.abs(n.x - x) <= 1 && Math.abs(n.y - y) <= 1)
     && !m.campos.some(c => x >= c.x - 1 && x <= c.x + c.w && y >= c.y - 1 && y <= c.y + c.h) && !m.predios.some(p => x >= p.x - 1 && x <= p.x + p.w && y >= p.y - 2 && y <= p.y + p.h)
     && !m.spawns.some(s => Math.abs(s.x - x) <= 1 && Math.abs(s.y - y) <= 1);
+  // v193: longe de onde os adversários VALENTES andam e atacam (antes o Goleiro-Linha atacava quem ia falar com os vendedores)
+  const valentes = m.spawns.filter(s => { const d = MONSTROS[s.m]; return d && !d.treino && (d.aggro || 0) > 0; });
   const ref = m.renasce || m.inicio || { x: W >> 1, y: H >> 1 }; const cands = [];
-  for (let y = 3; y < H - HB - 3; y++) for (let x = 2; x < W - larg - 2; x++) {
-    let bom = true; for (let yy = y - 2; yy <= y + HB + 1 && bom; yy++) for (let xx = x - 1; xx <= x + larg && bom; xx++) if (!ok(xx, yy)) bom = false;
-    if (bom) cands.push({ x, y, d: Math.hypot(x + larg / 2 - ref.x, y - ref.y) });
+  for (const folga of [1, -1, -3]) { // tenta com a folga toda; se não couber em lugar nenhum, afrouxa um pouco
+    const seguro = (x, y) => !valentes.some(s => Math.hypot(s.x - x, s.y - y) <= (s.raio || 0) + MONSTROS[s.m].aggro + folga);
+    for (let y = 3; y < H - HB - 3; y++) for (let x = 2; x < W - larg - 2; x++) {
+      let bom = true; for (let yy = y - 2; yy <= y + HB + 1 && bom; yy++) for (let xx = x - 1; xx <= x + larg && bom; xx++) if (!ok(xx, yy) || !seguro(xx, yy)) bom = false;
+      if (bom) cands.push({ x, y, d: Math.hypot(x + larg / 2 - ref.x, y - ref.y) });
+    }
+    if (cands.length) break;
   }
   cands.sort((a, b) => a.d - b.d);
   const inicio = m.renasce || m.inicio; const antes = alcancaveis(m, inicio), imp = pontosImportantes(m).filter(pt => antes[pt.y * W + pt.x]);

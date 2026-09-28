@@ -140,7 +140,8 @@ function danoMagia(dr, m) {
         }
         // área em volta do alvo, de longe
         if (dr.areaAlvo && a) {
-          const cx = a.x, cy = a.y; const outros = G.mons.filter(m => m !== a && !m.d.treino && (modoGrade() ? naArea({ x: cx, y: cy }, m, dr.areaAlvo) : Math.hypot(m.x - cx, m.y - cy) <= dr.areaAlvo));
+          // v195: a área em volta do ALVO e também todos que estão colados em você (cercado, ninguém escapa)
+          const cx = a.x, cy = a.y; const outros = G.mons.filter(m => m !== a && !m.d.treino && ((modoGrade() ? naArea({ x: cx, y: cy }, m, dr.areaAlvo) : Math.hypot(m.x - cx, m.y - cy) <= dr.areaAlvo) || naArea(G.p, m, 1)));
           setTimeout(() => { efeito('area', cx, cy, dr.cor, dr.areaAlvo); outros.forEach(m => { if (G.mons.includes(m)) { efeito('impacto', m.x, m.y, dr.cor); aplicaDano(m, danoMagia(dr, m)); } }); }, 380);
         }
         // Grito da Torcida: fica rápido e vai recuperando fôlego

@@ -83,7 +83,7 @@ function modalTreino() {
     el('p', {}, 'Vai deixar o personagem treinando (no boneco ou caçando)? Ligue o Modo Treino: o calendário do jogo para, então nenhuma reunião do clube passa enquanto você está longe da tela. Enquanto ele estiver ligado, também não passa dia de salário.'),
     el('div', { class: 'opcoes' }, el('button', { class: on ? 'btn' : 'btn amarelo', type: 'button', onclick: () => { alternaModoTreino(); modalTreino(); } }, on ? '⏹️ Desligar Modo Treino' : '▶️ Ligar Modo Treino')),
     el('h3', {}, 'Treino offline (jogo fechado)'),
-    el('p', {}, 'Escolha uma habilidade e saia do jogo. Quando voltar, ela terá treinado pelo tempo em que você ficou fora (até 12 horas). Offline rende a METADE do treino com o jogo aberto. Quanto mais alta a habilidade, mais tempo leva para subir.'),
+    el('p', {}, 'Escolha uma habilidade e saia do jogo. Quando voltar, ela terá treinado pelo tempo em que você ficou fora (até 12 horas). Offline rende a METADE do treino com o jogo aberto — e nos aparelhos do 🏋️ Centro de Treinamento o treino com o jogo aberto rende ainda mais (2,5x o offline). Quanto mais alta a habilidade, mais tempo leva para subir.'),
     perto ? el('p', { class: 'dica' }, 'Qual habilidade vai treinar?') : el('p', { class: 'vazio' }, '📍 Para treinar offline, fique perto de um Boneco de Treino (na Vila do Campinho ou no CT) ou dentro da sua casa.'),
     escolha);
 }
