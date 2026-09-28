@@ -67,9 +67,11 @@ Object.assign(ITENS, {
   saca_cafe: { nome: 'Saca de Café', tipo: 'loot', venda: 2600, desc: 'Por mais de cem anos, o café do Brasil saiu pelo Porto de Santos para o mundo inteiro.' },
   estatueta_rei: { nome: 'Estatueta Dourada do Rei', tipo: 'chave', desc: 'Presente do Museu Pelé para quem enfrentou o Esquadrão de 1962 na Vila Belmiro. O Rei do Futebol mora no coração de quem joga com alegria!' },
 });
-['i_pastel_caldo', 'i_saca_cafe', 'i_estatueta_rei', 'b_santos1', 'b_santos2', 'guindaste_porto', 'sacas_cafe', 'jardim_orla', 'carrinho_caldo', 'mureta_orla', 'pilar_orla', 'farol_orla', 'pavilhao_orla', 't_calcada_santos'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
-Object.assign(OBJ_INFO, { guindaste_porto: { w: 1.6, b: 1 }, sacas_cafe: { w: 1.2, b: 1 }, jardim_orla: { w: 1.5, b: 1 }, carrinho_caldo: { w: 1.4, b: 1 }, mureta_orla: { w: 1.12, b: 1 }, pilar_orla: { w: 0.7, b: 1 }, farol_orla: { w: 1.1, b: 1 }, pavilhao_orla: { w: 2.4, b: 1 } });
-Object.assign(PORTAS, { b_santos1: { x: 0.5, y: 0.93 }, b_santos2: { x: 0.5, y: 0.93 } });
+['i_pastel_caldo', 'i_saca_cafe', 'i_estatueta_rei', 'b_santos1', 'b_santos2', 'guindaste_porto', 'sacas_cafe', 'jardim_orla', 'carrinho_caldo', 'mureta_orla', 'pilar_orla', 'farol_orla', 'pavilhao_orla', 't_calcada_santos', 'mureta_reta',
+  'b_santos3', 'b_santos4', 'b_santos5', 'b_santos6', 'b_santos7', 'b_santos8', 'b_santos9'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
+Object.assign(OBJ_INFO, { guindaste_porto: { w: 1.6, b: 1 }, sacas_cafe: { w: 1.2, b: 1 }, jardim_orla: { w: 1.5, b: 1 }, carrinho_caldo: { w: 1.4, b: 1 }, mureta_orla: { w: 1.12, b: 1 }, mureta_reta: { w: 1.0, b: 1 }, pilar_orla: { w: 0.7, b: 1 }, farol_orla: { w: 1.1, b: 1 }, pavilhao_orla: { w: 2.4, b: 1 } });
+Object.assign(PORTAS, { b_santos1: { x: 0.5, y: 0.93 }, b_santos2: { x: 0.5, y: 0.93 }, b_santos3: { x: 0.5, y: 0.93 }, b_santos4: { x: 0.5, y: 0.93 }, b_santos5: { x: 0.5, y: 0.93 },
+  b_santos6: { x: 0.5, y: 0.93 }, b_santos7: { x: 0.5, y: 0.93 }, b_santos8: { x: 0.5, y: 0.93 }, b_santos9: { x: 0.5, y: 0.93 } });
 // Buenos Aires e Rio de Janeiro (v233: níveis 106 e 118; os itens Galáxia viraram equipamento de Madri e Londres)
 Object.assign(ITENS, {
   chuteira_galaxia: { nome: 'Chuteira Galáxia', tipo: 'equip', slot: 'chuteira', atk: 52, st: { vel: 14, drible: 3 }, lvl: 172, preco: 420000, venda: 90000, desc: 'Ataque 52, +14 velocidade, +3 drible.' },

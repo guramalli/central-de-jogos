@@ -45,13 +45,13 @@ function criaSantos(c) {
 
   /* ---------- CENTRO HISTÓRICO (y 6–11) ---------- */
   // lotes vazios: Museu Pelé (x 2–11) e Bolsa do Café (x 18–25) — os monumentos entram neles
-  b.predio(c.predios[0], 10, 7, 5, 3);                                              // casarão ao lado do museu
-  for (const x of [25, 28, 31]) b.predio(c.predios[0], x, 7, 5, 3);                  // casarões coloniais (1ª fileira)
-  for (const x of [28, 31]) b.predio(c.predios[0], x, 9.5, 5, 3);                    // 2ª fileira
-  b.predio(c.predios[0], 42, 7, 5, 3); b.predio(c.predios[1], 46, 7, 5, 3); b.predio(c.predios[0], 46, 9.5, 5, 3);
-  // Praça do Centro (entre os casarões e o canal): gramado, árvores, banco e poste
-  b.ret(34, 7, 3, 4, CH.GRAMA);
-  poe(34, 7, 'arvore'); poe(36, 10, 'arvore'); poe(35, 9, 'banco'); poe(36, 7, 'poste3');
+  // cada lote com um prédio DIFERENTE (nada de casarões iguais empilhados)
+  b.predio('b_santos1', 10, 7, 5, 3);                                                // casarão azul ao lado do museu
+  b.predio('b_santos5', 25.5, 7, 5, 3); b.predio('b_santos9', 29, 7.3, 5, 3);        // sobrado amarelo e a casinha santista
+  b.predio('b_santos7', 42, 7, 7, 3); b.predio('b_santos1', 47.2, 7, 5, 3);          // armazém do porto e casarão
+  // Praça do Centro (entre os prédios e o canal): gramado com árvores, bancos e poste
+  b.ret(32.5, 7, 4.5, 4, CH.GRAMA);
+  poe(33, 7, 'arvore'); poe(36, 10, 'arvore'); poe(34.5, 9, 'banco'); poe(36, 7, 'poste3'); poe(33, 10, 'banco');
 
   /* ---------- VILA BELMIRO (y 14–20) ---------- */
   // lote do estádio: x 19–32 (vazio); campinho dos Meninos da Vila no oeste; aeroporto no leste
@@ -60,12 +60,13 @@ function criaSantos(c) {
   b.placa(6, 14, '⚽ CAMPINHO DOS MENINOS DA VILA — aqui a base do Peixe treina pedalada, chapéu e caneta. Cuidado com o drible!');
   b.predio('b_aeroporto', 43, 15, 8, 4); b.npc('comissaria', 46, 19);
   b.m.inicio = { x: 47, y: 20 }; b.m.renasce = { x: 48, y: 20 };
-  b.predio(c.predios[1], 34, 15, 5, 3); b.predio(c.predios[0], 34, 18, 5, 3);      // o bairro em volta do estádio
+  b.predio('b_santos6', 34, 15.5, 5, 3);                                         // a padaria da esquina do bairro
   b.npc('quadro', 32, 24);                                                        // o quadro de desafios fica na Praça do Gonzaga, com as lojas
 
   /* ---------- ORLA: prédios da praia (y 23–26) ---------- */
   // os prédios de frente para o mar; lotes vazios: prédios tortos (x 2–11) e a Praça do Gonzaga (x 24–33, com as lojas)
-  for (const x of [17, 20.2, 34, 42, 46]) b.predio(c.predios[1], x, 23, 5, 3);
+  // prédios altos só onde atrás deles tem rua ou calçada livre (não cobrem outro prédio)
+  for (const [x, spr, w] of [[17.3, 'b_santos4', 3], [20.5, 'b_santos2', 5], [34, 'b_santos8', 5], [42, 'b_santos3', 3.5], [46.5, 'b_santos2', 5]]) b.predio(spr, x, 23, w, 3);
   b.npc('loja_' + c.id, 27, 24); b.npc('lider_' + c.id, 30, 24);
   c.enfeitesLoja.forEach(([t, dx]) => poe(27 + dx, 23, t));
 
@@ -75,11 +76,10 @@ function criaSantos(c) {
 
   /* ---------- JARDIM DA ORLA (y 30–33) ---------- */
   b.ret(1, 30, 42, 4, CH.GRAMA);
-  for (let x = 1; x <= 42; x++) b.ret(x, 31 + (Math.sin(x / 3.1) > 0.3 ? 1 : 0), 1, 1, M); // o caminho que serpenteia
-  for (const x of [6, 15, 31, 38]) b.ret(x, 30, 1, 4, M);                                 // passagens para a praia
+  for (const x of [7, 16, 31, 38]) b.ret(x, 30, 1, 4, M);                                 // passagens retas para a praia: gramados em canteiros retos
   b.ret(20, 30, 9, 4, CH.GRAMA); b.limpa(20, 30, 9, 4);                                   // a praça da estátua do Rei (lote livre)
   b.obj(3, 32, 'farol_orla'); objLargo(b, 11, 31, 'pavilhao_orla', 3);
-  for (const [x, y] of [[8, 30], [18, 33], [30, 33], [35, 30], [41, 33], [26, 30]]) poe(x, y, 'jardim_orla');
+  for (const [x, y] of [[9, 31], [18, 31], [33, 31], [36, 32], [41, 31], [26, 31]]) poe(x, y, 'jardim_orla');
   for (const [x, y] of [[2, 30], [13, 33], [17, 30], [33, 33], [36, 33], [40, 30], [9, 33], [4, 33]]) poe(x, y, x % 2 ? 'coqueiro' : 'coqueiro2');
   for (const [x, y] of [[10, 33], [19, 32], [34, 32]]) poe(x, y, 'banco');
   b.placa(7, 29, '🌺 JARDIM DA ORLA — está no Guinness como o MAIOR JARDIM DE PRAIA DO MUNDO: são mais de 5 km de flores e gramados na beira da praia!');
@@ -90,20 +90,35 @@ function criaSantos(c) {
   for (const x of [44, 47]) poe(x, 32, 'banco');
   for (const [x, y] of [[45, 30], [49, 31], [43, 33]]) poe(x, y, x % 2 ? 'coqueiro' : 'coqueiro2');
   b.placa(44, 30, '🌊 PONTA DA PRAIA — a mureta branca e o calçadão de mosaico com bolinhas brancas são a cara de Santos. Daqui dá pra ver os navios entrando no porto!');
-  for (const [x, y, t] of [[4, 34, 'quiosque'], [16, 34, 'quiosque'], [33, 34, 'quiosque'], [8, 35, 'guarda_sol'], [12, 34, 'guarda_sol'], [20, 35, 'guarda_sol'],
-    [25, 34, 'guarda_sol'], [29, 35, 'guarda_sol'], [37, 34, 'guarda_sol'], [9, 35, 'cadeira_praia'], [21, 34, 'cadeira_praia'], [30, 34, 'cadeira_praia'], [16, 29, 'carrinho_caldo'], [37, 29, 'carrinho_caldo']]) poe(x, y, t);
+  // os jogos de GOL CAIXOTE dos turistas na areia: dois golzinhos de frente um pro outro
+  for (const x of [2, 24, 33]) { b.obj(x, 35, 'gol_caixote_d'); b.obj(x + 6, 35, 'gol_caixote_e'); }
+  for (const [x, y, t] of [[11, 34, 'quiosque'], [21, 34, 'quiosque'], [41, 34, 'quiosque'], [13, 35, 'guarda_sol'], [17, 34, 'guarda_sol'], [19, 35, 'guarda_sol'],
+    [12, 35, 'toalha_praia'], [18, 35, 'toalha_praia'], [15, 34, 'isopor_praia'], [16, 35, 'cadeira_praia'], [20, 35, 'cadeira_praia'], [16, 29, 'carrinho_caldo'], [37, 29, 'carrinho_caldo']]) poe(x, y, t);
   (b.m.zonas = b.m.zonas || []).push({ x: 1, y: 34, w: 42, h: 3, nome: c.zona, hostil: false }, { x: 43, y: 30, w: 8, h: 5, nome: 'Ponta da Praia', hostil: false });
 
   /* ---------- os Meninos da Vila ---------- */
   b.spawn(c.zagueiro, 5, 17, 3, 2); b.spawn(c.meia, 9, 17, 3, 2);                 // no campinho
-  b.spawn(c.rapido, 8, 35, 5, 3); b.spawn(c.rapido, 27, 35, 5, 3); b.spawn(c.meia, 37, 35, 3, 2);   // na praia
+  for (const x of [5, 27, 36]) b.spawn('santos_turista', x, 35, 3, 2);            // os turistas branquelos, jogando gol caixote na areia
+  b.spawn(c.rapido, 4, 31, 3, 1); b.spawn(c.rapido, 35, 31, 3, 1);              // os Meninos da Vila no jardim da orla
   b.spawn(c.rapido, 30, 5, 3, 1); b.spawn(c.zagueiro, 44, 11, 3, 2);             // no centro
   b.spawn(c.meia, 8, 22, 3, 1);                                                  // na rua de trás da orla
   b.spawn(c.chefe, 48, 33, 1, 1); b.placa(46, 33, `Território do ${MONSTROS[c.chefe].nome.toUpperCase()} — a Ponta da Praia é dele!`);
   // a mureta branca: UMA fileira contínua na beira d'água (desenhada já no tamanho final do mapa)
   { const m = b.m, esc = typeof escalaCoord === 'function' && m.projeto ? (v, D, R) => escalaCoord(v, D, R) : v => v;
     const y = esc(36, H, m.h) - 1, x0 = esc(43, W, m.w), x1 = m.w - 2;
-    for (let x = x0; x <= x1; x++) { m.obj[y * m.w + x] = { t: (x - x0) % 4 === 0 ? 'pilar_orla' : 'mureta_orla', v: 0 }; } }
+    for (let x = x0; x <= x1; x++) m.obj[y * m.w + x] = { t: 'mureta_reta', v: 0 };                 // a parede inteira, sem buraco
+    for (let x = x0 + 1; x <= x1; x += 4) if (!m.obj[(y - 1) * m.w + x]) m.obj[(y - 1) * m.w + x] = { t: 'poste3', v: 0 }; } // postes logo atrás da mureta
   return b.m;
 }
 { const c = CIDADES.find(k => k.id === 'santos'); if (c) c.cria = criaSantos; }
+// os TURISTAS BRANQUELOS: meninos de sunga, vermelhos de sol, jogando gol caixote na praia
+{
+  const t = montaMonstro('santos_turista', 'Turista Branquelo', 'rapido', 186, { falas: ['Gol caixote!', 'Tá ardendo!', 'Cadê o protetor?', 'Passa a bola!'], look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-regata', corRoupa: '#e03a3a', baixo: 'baixo-praia' } });
+  t.loot = [['couro', 0.3, 1, 2], ['pastel_caldo', 0.05, 1, 1], ['saca_cafe', 0.05, 1, 1], ['medalha_copa', 0.002, 1, 1]];
+  Object.assign(OBJ_INFO, { gol_caixote_d: { w: 2.1, b: 1 }, gol_caixote_e: { w: 2.1, b: 1 }, toalha_praia: { w: 1.2, b: 0 }, isopor_praia: { w: 0.8, b: 1 } });
+  ['gol_caixote_d', 'gol_caixote_e', 'isopor_praia'].forEach(k => OBJ_BLOQUEIA.add(k));
+  ['gol_caixote_d', 'gol_caixote_e', 'toalha_praia', 'isopor_praia', 'boneco_turista_a', 'boneco_turista_b'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
+  MISSOES.push({ id: 'santos_turistas', npc: 'loja_santos', titulo: 'Gol Caixote na Areia', lvl: 184,
+    texto: 'Os turistas branquelos tomaram conta da praia com o gol caixote... e esqueceram o protetor solar! Vença 30 deles no jogo limpo e mostre como se joga na areia de Santos.',
+    req: { kill: 'santos_turista', n: 30 }, rec: { xp: Math.round((xpPara(187) - xpPara(186)) * 1.1), ouro: 186 * 150, itens: [['pastel_caldo', 5]] }, fim: 'Agora eles querem aprender a pedalada... e comprar protetor! Toma um pastel por conta da casa.' });
+}

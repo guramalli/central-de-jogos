@@ -83,6 +83,9 @@ NPCS.guia_rei = { nome: 'Dona Celeste, guia do Museu Pelé', ola: 'Bem-vindo(a) 
       if (p) for (let dy = 0; dy < 3 && !pos; dy++) for (let dx = p.w - 1; dx >= 0 && !pos; dx--) { const x = p.x + dx, y = p.y + p.h + dy; if (livre(x, y)) pos = { x, y }; }
       if (!pos) for (let r = 0; r < 8 && !pos; r++) for (let dx = -r; dx <= r && !pos; dx++) if (livre(10 + dx, 22)) pos = { x: 10 + dx, y: 22 };
       if (pos) m.npcs.push({ id: 'guia_rei', x: pos.x, y: pos.y });
+      // a praça da estátua do Rei com o mosaico da orla (não a pedra cinza das outras praças)
+      const e = m.predios.find(q => q.spr === 'mon_pele');
+      if (e && CH.CALCADA_SANTOS != null) for (let y = e.y - 1; y <= e.y + e.h + 1; y++) for (let x = e.x - 2; x <= e.x + e.w + 1; x++) { const k = y * m.w + x; if (m.chao[k] === CH.PEDRA) m.chao[k] = CH.CALCADA_SANTOS; }
     } catch (e) { console.error('guia do museu', e); }
     return m;
   };
@@ -114,4 +117,18 @@ if (typeof CAPITULOS !== 'undefined') {
   // "Rumo à Copa": depois da bênção do Rei, de volta ao Rio (ou direto na Arena da Copa)
   if (CAPITULOS.retorno) { CAPITULOS.retorno.cond = (s, mapa) => CAP_MAPAS_FINAL.includes(mapa) || (mapa === 'rio' && !!s.flags.bencao_rei); CAPITULOS.retorno.implica = ['mundo', 'europa', 'rei']; }
   for (const id of ['copa', 'atlantida', 'espaco', 'galaxia']) if (CAPITULOS[id] && Array.isArray(CAPITULOS[id].implica) && !CAPITULOS[id].implica.includes('rei')) CAPITULOS[id].implica.push('rei');
+}
+
+/* ---------- os Turistas Branquelos (praia, gol caixote): dois jeitos misturados na areia ---------- */
+{
+  const META_TUR = {"turista_a":[{"cabeca":[37,48,161,147],"tronco":[82,147,118,208]},{"cabeca":[37,48,161,147],"tronco":[82,147,118,208]},{"cabeca":[42,48,165,147],"tronco":[82,147,118,208]},{"cabeca":[39,48,163,147],"tronco":[82,147,118,208]},{"cabeca":[44,61,161,154],"tronco":[82,154,118,212]},{"cabeca":[42,61,159,154],"tronco":[82,154,118,212]},{"cabeca":[43,61,160,154],"tronco":[82,154,118,212]},{"cabeca":[44,60,161,154],"tronco":[82,154,118,212]},{"cabeca":[39,54,161,150],"tronco":[82,150,118,210]},{"cabeca":[41,54,163,150],"tronco":[82,150,118,210]},{"cabeca":[39,54,161,150],"tronco":[82,150,118,210]},{"cabeca":[42,54,164,150],"tronco":[82,150,118,210]}],"turista_b":[{"cabeca":[32,48,169,147],"tronco":[82,147,118,208]},{"cabeca":[32,46,168,145],"tronco":[82,145,118,207]},{"cabeca":[35,46,171,145],"tronco":[82,145,118,207]},{"cabeca":[34,48,170,147],"tronco":[82,147,118,208]},{"cabeca":[45,55,166,151],"tronco":[82,151,118,210]},{"cabeca":[46,55,166,151],"tronco":[82,151,118,210]},{"cabeca":[46,55,167,151],"tronco":[82,151,118,210]},{"cabeca":[47,55,167,151],"tronco":[82,151,118,210]},{"cabeca":[37,48,163,147],"tronco":[82,147,118,208]},{"cabeca":[39,48,165,147],"tronco":[82,147,118,208]},{"cabeca":[36,48,162,147],"tronco":[82,147,118,208]},{"cabeca":[38,48,164,147],"tronco":[82,147,118,208]}]};
+  Object.assign(META_BONECOS, META_TUR); for (const f in META_TUR) CORPOS_MODO[f] = 'fixo';
+  if (typeof carregaFolhas === 'function') carregaFolhas();
+  const d = MONSTROS.santos_turista;
+  if (d) { d.look = Object.assign({}, d.look, { folha: 'turista_a', corpo: 'm', grande: false }); delete d.look._kb; }
+  const _lookTur = lookDoMonstro;
+  lookDoMonstro = function (m, mapa) {
+    if (!m || m.tipo !== 'santos_turista' || !m.d || !m.d.look) return _lookTur.apply(this, arguments);
+    const L = Object.assign({}, m.d.look, { folha: (m.uid || 0) % 2 ? 'turista_b' : 'turista_a' }); delete L._kb; return L;
+  };
 }
