@@ -322,7 +322,7 @@ function abrirNPC(npc) {
     }
   }
   if (d.loja) ops.append(el('button', { class: 'btn verde', onclick: () => modalLoja(npc) }, 'Comprar / vender'));
-  if (d.professor) ops.append(el('button', { class: 'btn roxo', onclick: () => modalProfessor(npc) }, 'Aprender dribles'));
+  if (d.professor) ops.append(el('button', { class: 'btn roxo', onclick: () => modalProfessor(npc) }, 'Dribles que ensino'));
   if (d.quiz) ops.append(el('button', { class: 'btn roxo', onclick: () => modalQuiz('futebol') }, quizFalta('futebol') > 0 ? `Quiz de futebol (volta em ${fmtFalta(quizFalta('futebol'))})` : 'Quiz de futebol'));
   if (d.prof) ops.append(el('button', { class: 'btn roxo', onclick: () => modalQuiz('mat') }, quizFalta('mat') > 0 ? `Aula de matemática (volta em ${fmtFalta(quizFalta('mat'))})` : 'Aula de matemática'));
   if (d.copa && typeof abrirCopaSonhos === 'function') ops.append(el('button', { class: 'btn amarelo', onclick: () => { fechaModal(); abrirCopaSonhos(); } }, 'Copa dos Sonhos'));

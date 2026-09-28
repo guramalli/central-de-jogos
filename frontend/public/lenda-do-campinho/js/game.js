@@ -452,7 +452,7 @@ function aplicaDano(m, dano) {
   if (dano <= 0) { efeito('puff', m.x, m.y); texto(m, 'defendeu', '#d8e0ff', 700); return; }
   m.hp -= dano; m.hitT = G.agora; texto(m, dano, '#ffcf4a');
   if (m.d.treino) { m.hp = m.d.hp; return; } // boneco de treino fica parado no lugar
-  if (!G.semEmpurrao) { const dx = m.x - G.p.x, dy = m.y - G.p.y, d = Math.hypot(dx, dy) || 1; mover(m, dx / d * 0.1, dy / d * 0.1, m.r); } // drible comum não empurra (lances.js)
+  if (!G.semEmpurrao && !modoGrade()) { const dx = m.x - G.p.x, dy = m.y - G.p.y, d = Math.hypot(dx, dy) || 1; mover(m, dx / d * 0.1, dy / d * 0.1, m.r); } // drible comum não empurra (lances.js); v186: em quadradinhos ninguém é empurrado (virava um passo inteiro para trás)
   if (m.hp <= 0) matar(m);
 }
 const RARIDADE = {

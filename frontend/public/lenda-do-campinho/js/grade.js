@@ -13,7 +13,17 @@
    ============================================================ */
 // v178: sempre em quadradinhos (o "andar livre" deixava os adversários encavalados; pedido do dono)
 const GRADE = { on: true, dt: 16 };
-const GR_DIAG = 1.35; // passo na diagonal demora um pouco mais
+// v185: regras do Tibia (tiradas do OTClient, o cliente aberto do Tibia):
+const GR_DIAG = 3;       // passo na diagonal demora 3x o passo reto
+const GR_REPETE = 200;   // segurando a tecla, o passo só se repete 200 ms depois de apertar (o 1º passo é na hora)
+// apertou uma tecla de andar (de verdade, não a repetição do teclado)
+function grApertou(tok) {
+  const d = typeof DIR_VET !== 'undefined' && DIR_VET[tok], p = G.p; if (!d || !p || !GRADE.on) return;
+  p.dirDesde = G.agora;
+  if (!p.pas) p.fila = d;                                               // parado: anda já
+  else if (d[0] !== p.pas.dir[0] || d[1] !== p.pas.dir[1]) p.fila = d;  // andando: outra direção entra na fila (a mais nova substitui); a mesma é ignorada
+}
+{ const T0 = G.teclas, _add = T0.add.bind(T0); T0.add = function (v) { if (!T0.has(v)) try { grApertou(v); } catch (e) { } return _add(v); }; }
 
 function grTile(e) { const s = e.pas; return s ? { x: s.tx, y: s.ty } : { x: Math.floor(e.x), y: Math.floor(e.y) }; }
 function grOcupa(e) { return e && !(e.d && e.d.look && (e.d.look.tipo === 'gaivota' || e.d.look.voa || e.d.voa)); }
@@ -29,7 +39,9 @@ function grPasso(e, tx, ty, velTiles) {
   const cx = tx + 0.5, cy = ty + 0.5, d = Math.hypot(cx - e.x, cy - e.y); if (d < 0.01) return false;
   const diag = Math.abs(tx - Math.floor(e.x)) + Math.abs(ty - Math.floor(e.y)) === 2;
   const dur = Math.max(70, 1000 * d / Math.max(0.5, velTiles) * (diag ? GR_DIAG / Math.SQRT2 : 1));
-  e.pas = { x0: e.x, y0: e.y, tx, ty, t: 0, dur }; return true;
+  e.pas = { x0: e.x, y0: e.y, tx, ty, t: 0, dur, dir: [Math.sign(tx + 0.5 - e.x), Math.sign(ty + 0.5 - e.y)] };
+  if (e === G.p) { const d = e.pas.dir; if (d[0]) e.flip = d[0] < 0; if (typeof olha === 'function') olha(e, d[0], d[1]); } // já começa o passo olhando para onde vai
+  return true;
 }
 // avança os passos de todo mundo (antes do resto do jogo, a cada quadro)
 function grAvanca(dt) {
@@ -37,13 +49,16 @@ function grAvanca(dt) {
     if (!e) continue; e._movQ = 0; const s = e.pas; if (!s) continue;
     s.t += dt; const k = Math.min(1, s.t / s.dur); const nx = s.x0 + (s.tx + 0.5 - s.x0) * k, ny = s.y0 + (s.ty + 0.5 - s.y0) * k;
     e._movQ = Math.hypot(nx - e.x, ny - e.y) || 0.0006; e.x = nx; e.y = ny;
-    if (k >= 1) { e.x = s.tx + 0.5; e.y = s.ty + 0.5; e.pas = null; }
+    if (k >= 1) { e.x = s.tx + 0.5; e.y = s.ty + 0.5; e.pas = null; e.fimPasso = G.agora; e.ultDir = s.dir; }
   }
 }
 // escolhe o quadrado vizinho na direção pedida (e, se ocupado, um dos lados)
 function grVizinho(e, dx, dy, deLado) {
   const a = Math.atan2(dy, dx); const cur = { x: Math.floor(e.x), y: Math.floor(e.y) };
-  const oct = Math.round(a / (Math.PI / 4)); const dirs = deLado ? [0, 1, -1, 2, -2] : [0];
+  const oct = Math.round(a / (Math.PI / 4));
+  // diagonal custa 3 (reto custa 1): quem anda sozinho (adversário, clique, perseguir) prefere o reto, como o caminho do Tibia
+  const lado = a / (Math.PI / 4) - oct >= 0 ? 1 : -1, diag = Math.abs(oct) % 2 === 1;
+  const dirs = !deLado ? [0] : diag ? [lado, -lado, 0, 2 * lado, -2 * lado] : [0, 1, -1, 2, -2];
   for (const k of dirs) {
     const o = oct + k; const sx = Math.round(Math.cos(o * Math.PI / 4)), sy = Math.round(Math.sin(o * Math.PI / 4));
     const tx = cur.x + sx, ty = cur.y + sy;
@@ -51,6 +66,9 @@ function grVizinho(e, dx, dy, deLado) {
     if (sx && sy && tileBloq(cur.x + sx, cur.y) && tileBloq(cur.x, cur.y + sy)) continue; // não atravessa quina de parede
     if (Math.abs(k) === 2 && deLado) { // de lado só se não afastar muito
       const antes = Math.hypot(dx, dy), depois = Math.hypot(dx - sx, dy - sy); if (depois > antes + 0.2) continue;
+    }
+    if (diag && Math.abs(k) === 1 && deLado) { // o reto só vale se aproximar de verdade (não fica rodando em volta)
+      const n = Math.hypot(dx, dy) || 1; if ((sx * dx + sy * dy) / n < 0.6) continue;
     }
     return { x: tx, y: ty };
   }
@@ -66,11 +84,19 @@ function grVizinho(e, dx, dy, deLado) {
   const _mover = mover;
   mover = function (e, dx, dy, r) {
     if (!GRADE.on || !e || (e !== G.p && !G.mons.includes(e))) return _mover.apply(this, arguments);
-    if (e.pas) return e._movQ || 0.0006; // já está indo para o próximo quadrado
+    if (e.pas) return e._movQ || 0.0006; // no meio do passo não muda nada (a próxima direção fica na fila)
     const cx = Math.floor(e.x) + 0.5, cy = Math.floor(e.y) + 0.5;
     const vel = e === G.p ? velJogador() : Math.max(0.5, Math.hypot(dx, dy) / Math.max(0.001, GRADE.dt / 1000));
     if (Math.hypot(e.x - cx, e.y - cy) > 0.05) { grPasso(e, Math.floor(e.x), Math.floor(e.y), vel); return 0.0006; } // centraliza primeiro
     if (Math.hypot(dx, dy) < 1e-6) return 0;
+    // teclado (como no Tibia): o 1º passo é na hora; segurando, repete só depois de 200 ms; toque no meio do passo = próximo passo
+    if (e === G.p && !G.joy && G.teclas.size) {
+      const h = dirTeclas(); if (h[0] || h[1]) {
+        let d; if (e.fila) { d = e.fila; e.fila = null; } else if (G.agora >= (e.dirDesde || 0) + GR_REPETE) d = h; else return 0;
+        const alvoT = grVizinho(e, d[0], d[1], false); if (!alvoT) return 0;
+        grPasso(e, alvoT.x, alvoT.y, vel); return 0.0006;
+      }
+    }
     const alvo = grVizinho(e, dx, dy, e !== G.p || (!G.teclas.size && !G.joy)); // teclado/joystick: só na direção pedida; seguindo caminho/alvo: pode desviar
     if (!alvo) return 0;
     grPasso(e, alvo.x, alvo.y, vel); return 0.0006;
@@ -88,7 +114,15 @@ function grVizinho(e, dx, dy, deLado) {
   atualiza = function (dt) {
     GRADE.dt = dt || 16;
     if (GRADE.on && G.mapa && !G.pausado) try { grAvanca(dt || 16); if (G.p && !G.p.pas && !G.jogada) separaJogador(); } catch (e) { }
-    return _atualiza.apply(this, arguments);
+    const r = _atualiza.apply(this, arguments);
+    const p = G.p;
+    if (GRADE.on && p && !G.pausado) {
+      // durante o passo, olha para onde está indo (antes virava para a tecla apertada e "andava de costas")
+      if (p.pas && p.pas.dir) { const d = p.pas.dir; if (d[0]) p.flip = d[0] < 0; if (typeof olha === 'function') olha(p, d[0], d[1]); }
+      // o toque que ficou na fila vira UM passo, mesmo que a tecla já tenha sido solta
+      else if (p.fila && !G.joy && !G.caminho && !G.jogada) { const h = dirTeclas(); if (!h[0] && !h[1]) { const d = p.fila; p.fila = null; const alvo = grVizinho(p, d[0], d[1], false); if (alvo) grPasso(p, alvo.x, alvo.y, velJogador()); } }
+    }
+    return r;
   };
 }
 // o jogador também não pode ficar em cima de ninguém (ex.: chegou por uma porta onde havia alguém)
@@ -98,7 +132,7 @@ function separaJogador() {
   for (const [sx, sy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) if (grLivre(t.x + sx, t.y + sy, p)) { grPasso(p, t.x + sx, t.y + sy, velJogador()); return; }
 }
 // trocar de mapa / carregar: começa certinho no quadrado
-{ const _entrarMapaG = entrarMapa; entrarMapa = function () { const r = _entrarMapaG.apply(this, arguments); if (G.p) { G.p.pas = null; if (GRADE.on) { G.p.x = Math.floor(G.p.x) + 0.5; G.p.y = Math.floor(G.p.y) + 0.5; } } for (const m of G.mons) { m.pas = null; if (GRADE.on) { m.x = Math.floor(m.x) + 0.5; m.y = Math.floor(m.y) + 0.5; } } return r; }; }
+{ const _entrarMapaG = entrarMapa; entrarMapa = function () { const r = _entrarMapaG.apply(this, arguments); if (G.p) { G.p.pas = null; G.p.fila = null; if (GRADE.on) { G.p.x = Math.floor(G.p.x) + 0.5; G.p.y = Math.floor(G.p.y) + 0.5; } } for (const m of G.mons) { m.pas = null; if (GRADE.on) { m.x = Math.floor(m.x) + 0.5; m.y = Math.floor(m.y) + 0.5; } } return r; }; }
 { const _criaMonstroG = criaMonstro; criaMonstro = function () { const m = _criaMonstroG.apply(this, arguments); if (m && GRADE.on) { m.x = Math.floor(m.x) + 0.5; m.y = Math.floor(m.y) + 0.5; } return m; }; }
 
 // jogada que atravessa o adversário (Chapéu/Caneta) move o jogador sozinha: sem passo em andamento

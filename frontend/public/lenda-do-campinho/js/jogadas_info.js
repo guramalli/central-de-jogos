@@ -42,7 +42,7 @@ function modalJogadas() {
     corpo.append(el('h3', {}, titulo));
     for (const [id, dr] of js) {
       const tem = s.dribles.includes(id);
-      const onde = tem ? '✔ Você sabe' : dr.classe ? `Aprende sozinho no nível ${dr.lvl} (vocação)` : (() => { const q = MISSOES.find(m => m.rec && m.rec.drible === id); const prof = Object.values(NPCS).find(n => Array.isArray(n.professor) && n.professor.includes(id)); return q ? `Missão "${q.titulo}"` : prof ? `Aprende com ${prof.nome} (nível ${dr.lvl})` : `Nível ${dr.lvl}`; })();
+      const onde = tem ? '✔ Você sabe' : dr.classe ? `Aprende sozinho no nível ${dr.lvl} (vocação)` : `Aprende sozinho no nível ${dr.lvl}`; // v186: todo drible vem pelo nível
       const num = [`${dr.foco} de foco`, `recarga ${(Math.max(dr.cd, 1000) / 1000).toFixed(dr.cd % 1000 ? 1 : 0)} s`, dr.alcance ? `alcance ${dr.alcance}` : null, dr.raio ? `raio ${dr.raio}` : null, dr.dur ? `dura ${dr.dur / 1000} s` : null].filter(Boolean).join(' · ');
       corpo.append(el('div', { class: 'linha-item' + (tem ? '' : ' bloq') }, iconeClone(iconeDrible(id)),
         el('div', { class: 'nm' }, el('b', {}, dr.nome), seloJogada(dr), el('small', {}, dr.desc), el('small', { class: 'jog-num' }, num)),
