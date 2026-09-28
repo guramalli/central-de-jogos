@@ -77,7 +77,7 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
     .replace(/Aperte R para beber isotônico/g, 'Use o isotônico da barra de atalhos')
     .replace(/aperte X \(ou o botão "Modo"\)/g, 'toque no botão Drible / Chute')
     .replace(/aperte ESPAÇO \(ou toque no campo\)/g, 'toque no campo (ou em 🎯 Alvo)').replace(/aperte ESPAÇO\)/g, 'toque em 🎯 Alvo)').replace(/aperte ESPAÇO \(ou clique\)/g, 'toque na tela')
-    .replace(/\s*\((?:E|Q|V|X|G|C|I|M|J|F|R|U)\)/g, '');
+    .replace(/\s*\((?:E|Q|V|X|G|C|I|M|J|F|R|U|Shift)\)/g, '');
   const _logCel2 = log; log = function (m, ...r) { return _logCel2.call(this, semTecla(m), ...r); };
   const _bannerCel2 = banner; banner = function (a, b) { return _bannerCel2.call(this, semTecla(a), semTecla(b)); };
   if (typeof dica === 'function') { const _dicaCel2 = dica; dica = function (id, txt, ...r) { return _dicaCel2.call(this, id, semTecla(txt), ...r); }; }

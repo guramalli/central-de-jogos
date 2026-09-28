@@ -129,7 +129,7 @@ function danoMagia(dr, m) {
         const p = G.p;
         // tonto / hipnotizado
         if (dr.atordoa) {
-          const alvos = dr.tipo === 'area' ? G.mons.filter(m => dist(p, m) <= dr.raio + 0.6 && !m.d.treino) : a ? [a] : [];
+          const alvos = dr.tipo === 'area' ? G.mons.filter(m => naArea(p, m, dr.raio) && !m.d.treino) : a ? [a] : [];
           alvos.forEach(m => { if (!m.d.chefe) m.atordoado = G.agora + dr.atordoa; else m.atordoado = G.agora + dr.atordoa * 0.3; });
         }
         // atravessa: acerta também quem está logo atrás do alvo
@@ -140,7 +140,7 @@ function danoMagia(dr, m) {
         }
         // área em volta do alvo, de longe
         if (dr.areaAlvo && a) {
-          const cx = a.x, cy = a.y; const outros = G.mons.filter(m => m !== a && !m.d.treino && Math.hypot(m.x - cx, m.y - cy) <= dr.areaAlvo);
+          const cx = a.x, cy = a.y; const outros = G.mons.filter(m => m !== a && !m.d.treino && (modoGrade() ? naArea({ x: cx, y: cy }, m, dr.areaAlvo) : Math.hypot(m.x - cx, m.y - cy) <= dr.areaAlvo));
           setTimeout(() => { efeito('area', cx, cy, dr.cor, dr.areaAlvo); outros.forEach(m => { if (G.mons.includes(m)) { efeito('impacto', m.x, m.y, dr.cor); aplicaDano(m, danoMagia(dr, m)); } }); }, 380);
         }
         // Grito da Torcida: fica rápido e vai recuperando fôlego

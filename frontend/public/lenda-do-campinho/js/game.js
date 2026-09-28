@@ -233,6 +233,12 @@ function mover(e, dx, dy, r = R_ENT) {
   }
   return mov;
 }
+// v166: movimento em quadradinhos (grade.js). Colado = os 8 quadrados em volta; área = quadrado exato de raio N.
+function modoGrade() { return typeof GRADE !== 'undefined' && GRADE.on; }
+function naArea(c, m, raio) {
+  if (modoGrade()) { const r = Math.max(1, Math.round(raio)); return Math.max(Math.abs(Math.floor(m.x) - Math.floor(c.x)), Math.abs(Math.floor(m.y) - Math.floor(c.y))) <= r; }
+  return dist(c, m) <= raio + 0.6;
+}
 function corpos() { return [G.p, ...G.mons.filter(m => m.d.look.tipo !== 'gaivota'), ...G.npcs]; }
 function separa(e) {
   const r = e.r || R_ENT;
@@ -374,7 +380,7 @@ function atualizaJogador(dt) {
   } else {
     const a = G.alvo; // perseguir o alvo
     if (a && G.mons.includes(a)) {
-      const alc = G.modo === 'chute' ? (typeof alcanceChute === 'function' ? alcanceChute() : 4.3) : 1.05;
+      const alc = G.modo === 'chute' ? (typeof alcanceChute === 'function' ? alcanceChute() : 4.3) : (modoGrade() ? 1.45 : 1.05); // quadradinhos: colado inclui a diagonal
       const ok = dist(p, a) <= alc && (alc < 2 || linhaVisao(p, a));
       if (!ok) {
         if (G.modo !== 'chute' && segLivre(p.x, p.y, a.x, a.y)) {
@@ -418,7 +424,7 @@ function ataqueAutomatico() {
   if (a.hp <= 0 || !G.mons.includes(a)) { G.alvo = null; G.uiSujo = true; return; }
   if (G.agora < G.cdAtaque || G.save.hp <= 0) return;
   const p = G.p; const d = dist(p, a);
-  if (G.modo === 'drible' && d <= 1.15) {
+  if (G.modo === 'drible' && d <= (modoGrade() ? 1.5 : 1.15)) {
     G.cdAtaque = G.agora + 1500; p.flip = a.x < p.x;
     const dano = Math.round(danoMaxJogador('drible') * (0.15 + 0.85 * Math.random())) - Math.round(a.d.def * (0.5 + 0.5 * Math.random()));
     treinaSkill('drible', 1); efeito('toque', a.x, a.y); som('toque'); p.golpe = G.agora;
@@ -586,15 +592,15 @@ function usarDrible(id) {
   const a = G.alvo && G.mons.includes(G.alvo) ? G.alvo : null;
   const danoDe = m => { const sk = st[dr.skill] || st.drible; treinaSkill(dr.skill, 1); return critico(Math.round((st.nivel * 0.3 + sk * dr.poder + st.visao * dr.poder * 0.5) * rnd(0.85, 1.15) * st.danoMult * st.poderMult - m.d.def * 0.3), m); };
   if (dr.tipo === 'melee') {
-    if (!a || dist(p, a) > 1.3) { log(`Marque um adversário (clique nele) e chegue colado para usar ${dr.nome}.`, 'l-sis'); return; }
+    if (!a || dist(p, a) > (modoGrade() ? 1.5 : 1.3)) { log(`Marque um adversário (clique nele) e chegue colado para usar ${dr.nome}.`, 'l-sis'); return; }
     p.flip = a.x < p.x; efeito(dr.fx, a.x, a.y, dr.cor); efeito('impacto', a.x, a.y, dr.cor); aplicaDano(a, danoDe(a));
   } else if (dr.tipo === 'dist') {
     if (!a || dist(p, a) > dr.alcance + 0.5 || !linhaVisao(p, a)) { log(`Marque um alvo a até ${dr.alcance} passos, sem obstáculo, para usar ${dr.nome}.`, 'l-sis'); return; }
     p.flip = a.x < p.x; const dano = danoDe(a);
     projetil(p, a, dr.fx === 'explosao' ? 'bolaforte' : 'bola', () => { if (G.mons.includes(a)) { efeito(dr.fx === 'bola' ? 'toque' : dr.fx, a.x, a.y, dr.cor); efeito('impacto', a.x, a.y, dr.cor); aplicaDano(a, dano); } });
   } else if (dr.tipo === 'area') {
-    const alvos = G.mons.filter(m => dist(p, m) <= dr.raio + 0.6 && !m.d.treino);
-    if (!alvos.length && !(a && a.d.treino && dist(p, a) <= dr.raio + 0.6)) { log(`Nenhum adversário perto para a ${dr.nome}.`, 'l-sis'); return; }
+    const alvos = G.mons.filter(m => naArea(p, m, dr.raio) && !m.d.treino);
+    if (!alvos.length && !(a && a.d.treino && naArea(p, a, dr.raio))) { log(`Nenhum adversário perto para a ${dr.nome}.`, 'l-sis'); return; }
     efeito(dr.fx, p.x, p.y, dr.cor, dr.raio);
     (alvos.length ? alvos : [a]).forEach(m => { efeito('impacto', m.x, m.y, dr.cor); aplicaDano(m, danoDe(m)); });
   } else if (dr.tipo === 'cura') {
@@ -820,7 +826,7 @@ function atualizaMonstro(m, dt) {
     }
   }
   if (m.bravo) {
-    const alcance = 0.95 + (m.r - R_ENT);
+    const alcance = modoGrade() ? 1.5 : 0.95 + (m.r - R_ENT); // quadradinhos: ataca dos 8 lados
     if (d <= alcance && G.agora >= m.cdAtk) { m.cdAtk = G.agora + m.d.atkCd; monstroAtaca(m); }
     const r = m.d.ranged;
     if (r && d > 1.3 && d <= r.alcance + 0.5 && G.agora >= m.cdRng && linhaVisao(m, p)) {
@@ -1085,19 +1091,21 @@ function desenha(dt) {
     const topo = tela(e.x, e.y - alturaEnt(e) - 0.08);
     if (topo.x < -50 || topo.x > CV.width + 50 || topo.y < -50 || topo.y > CV.height + 50) continue;
     if (e.hp !== undefined) {
-      if (!(e === G.alvo || hover || e.bravo || e.hp < e.d.hp || (e.d.chefe && perto) || e.d.pedra)) continue; // pedra celestial (vale.js): nome sempre à vista
+      // v163: nome e nível SEMPRE à vista (pedido do dono); a barra de vida só na briga
+      const briga = e === G.alvo || hover || e.bravo || e.hp < e.d.hp || (e.d.chefe && perto) || e.d.pedra;
       if (e.d.treino) { rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#e8e8e8', 12); continue; }
-      { const nv = nivelMonstro(e.d); rotulo(ctx, `Nv ${nv}`, topo.x, topo.y - 25 * px, corNivel(nv), 11.5); } // força da criatura
-      rotulo(ctx, e.d.nome, topo.x, topo.y - 12 * px, e.d.chefe ? '#ff8a7a' : '#ffffff', 12);
-      barraVida(ctx, topo.x, topo.y - 6 * px, e.hp / e.d.hp);
-    } else if (perto || hover || dist(e, G.p) < 9) placaNPC(ctx, e, topo.x, topo.y - 4 * px, perto || hover); // NPC: plaquinha verde com ícone
+      const dy = briga ? 0 : 6 * px;
+      { const nv = nivelMonstro(e.d); rotulo(ctx, `Nv ${nv}`, topo.x, topo.y - 25 * px + dy, corNivel(nv), 11.5); } // força da criatura
+      rotulo(ctx, e.d.nome, topo.x, topo.y - 12 * px + dy, e.d.chefe ? '#ff8a7a' : '#ffffff', 12);
+      if (briga) barraVida(ctx, topo.x, topo.y - 6 * px, e.hp / e.d.hp);
+    } else placaNPC(ctx, e, topo.x, topo.y - 4 * px, perto || hover); // NPC: plaquinha com o nome, sempre à vista
   }
   for (const n of G.npcs) {
     const qs = MISSOES.filter(q => q.npc === n.id); let marca = null;
     if (qs.some(q => statusMissao(q) === 'pronta')) marca = '?'; else if (qs.some(q => statusMissao(q) === 'disponivel')) marca = '!';
     if (!marca) continue;
     const t = tela(n.x, n.y - alturaEnt(n) - 0.35); const b = Math.sin(G.agora / 250) * 4 * px;
-    balao(ctx, t.x, t.y + b - (dist(n, G.p) < 9 ? 16 * px : 0), marca); // acima da plaquinha do nome
+    balao(ctx, t.x, t.y + b - 16 * px, marca); // acima da plaquinha do nome (que agora fica sempre à vista)
   }
   { const s = G.save, st = stats(); const t = tela(G.p.x, G.p.y - alturaEnt(G.p) - 0.06); barraVida(ctx, t.x, t.y - 9 * px, s.hp / st.maxHp); barraVida(ctx, t.x, t.y - 1 * px, s.foco / st.maxFoco, '#4aa6ff', 4); rotulo(ctx, `Nv ${s.nivel} ${s.nome}`, t.x, t.y - 20 * px, '#ffe14a', 12.5); } // nível + nome, fôlego e, embaixo, foco
   for (const f of G.falas) { const t = tela(f.ent.x, f.ent.y - alturaEnt(f.ent) - 0.4); rotulo(ctx, f.txt, t.x, t.y, f.cor, 13); }
@@ -1485,7 +1493,7 @@ function instalaEntrada() {
     if (ev.key === 'Tab' && ev.shiftKey) { ev.preventDefault(); alvoAnterior(); return; }
     if (ev.key === ' ' || ev.key === 'Tab') { ev.preventDefault(); alvoMaisProximo(); return; }
     const k = ev.key.toLowerCase();
-    const atalho = { v: trocaModoAlvo, x: trocaModo, i: () => abreAba('mochila'), q: usarClasse, f: () => bebeMelhor('hp'), r: () => bebeMelhor('foco'), g: alternaCaca, c: abreFicha, m: modalMapa, j: modalMissoes, t: () => abrirTime(), h: modalAtalhos, b: modalAlbum, u: () => (typeof abrirCarreira === 'function' ? abrirCarreira() : null), k: () => abreAba('skills'), l: () => abreAba('batalha') }[k];
+    const atalho = { v: trocaModoAlvo, x: trocaModo, i: () => abreAba('mochila'), f: () => bebeMelhor('hp'), r: () => bebeMelhor('foco'), g: alternaCaca, c: abreFicha, m: modalMapa, j: modalMissoes, t: () => abrirTime(), h: modalAtalhos, b: modalAlbum, u: () => (typeof abrirCarreira === 'function' ? abrirCarreira() : null), k: () => abreAba('skills'), l: () => abreAba('batalha') }[k];
     if (atalho && !ev.ctrlKey && !ev.metaKey && !ev.altKey) { ev.preventDefault(); atalho(); return; }
     if (ev.key === '+' || ev.key === '=') { mudaZoom(-1.5); return; }
     if (ev.key === '-' || ev.key === '_') { mudaZoom(1.5); return; }
@@ -1523,6 +1531,7 @@ function slotDaTecla(ev) {
   m = /^Numpad(\d)$/.exec(ev.code || ''); if (m) return 10 + (+m[1] + 9) % 10;
   const n = '1234567890'.indexOf(ev.key); return ev.code ? -1 : n; // navegadores sem ev.code
 }
+function teclaEspecial() { return typeof teclaDe === 'function' ? nomeTecla(teclaDe('classe')) : 'Shift'; }
 function teclaSlot(i) { return i < 10 ? String((i + 1) % 10) : 'N' + ((i - 9) % 10); }
 function usarHotbar(i) { const h = G.save.hotbar[i]; if (!h) return; if (h.t === 'd') usarDrible(h.id); else usarItem(h.id); }
 

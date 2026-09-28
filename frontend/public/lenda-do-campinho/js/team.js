@@ -646,9 +646,9 @@ function telaPreJogo() {
   const cansados = esc.filter(x => x.j && x.j.energia < 45).map(x => x.j.nome);
   if (cansados.length) wrap.append(el('p', { style: 'color:#b0301a;text-align:center' }, `Cansados: ${cansados.join(', ')}. Energia baixa derruba o rendimento (recupera com o tempo).`));
   const mult = pj.tipo === 'copa' ? [1.5, 2, 3][pj.fase] : 1;
-  wrap.append(el('p', { class: 'vazio' }, `Prêmio por vitória: ${fmt(Math.round(premioDiv(t.div) * mult))} tostões (+25% de bicho no seu bolso) e ${fmt(Math.round(xpDiv(t.div) * mult))} XP. Jogando, VOCÊ decide seus lances; simulando, ganha só metade do XP.`));
+  wrap.append(el('p', { class: 'vazio' }, `Prêmio por vitória: ${fmt(Math.round(premioDiv(t.div) * mult))} tostões (+25% de bicho no seu bolso) e ${fmt(Math.round(xpDiv(t.div) * mult))} XP. Assistindo (Apito inicial) você acompanha ao vivo, mexe no time quando quiser e ganha o XP inteiro; simulando, sai só o placar e metade do XP.`));
   wrap.append(el('div', { class: 'opcoes', style: 'justify-content:center' },
-    el('button', { class: 'btn amarelo grande', disabled: faltam ? 'disabled' : null, onclick: () => jogarPartida(pj, nos, eles) }, faltam ? `Faltam ${faltam} titulares` : 'Apito inicial!'),
+    el('button', { class: 'btn amarelo grande', disabled: faltam ? 'disabled' : null, onclick: () => jogarPartida(pj, nos, eles) }, faltam ? `Faltam ${faltam} titulares` : '📺 Apito inicial! (assistir)'),
     el('button', { class: 'btn', disabled: faltam ? 'disabled' : null, onclick: () => simularPartida(pj, nos, eles) }, 'Simular resultado')));
   return wrap;
 }

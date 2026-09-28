@@ -141,7 +141,7 @@ function atualizaPaineis() {
   $('#pFase').textContent = FASES[faseIdx(s.nivel)].nome + (s.posicao ? ' — ' + POSICOES[s.posicao].nome : '');
   $('#pNivel').textContent = 'Nível ' + s.nivel;
   $('#btnModo').textContent = 'X · ' + (G.modo === 'drible' ? 'Drible' : 'Chute');
-  { const cl = CLASSES[s.classe]; $('#btnClasse').innerHTML = ''; $('#btnClasse').append(el('span', { class: 'tecla' }, 'Q'), cl ? `${cl.emoji} ${cl.especial.nome}` : 'Classe'); $('#btnClasse').title = cl ? cl.especial.desc : ''; }
+  { const cl = CLASSES[s.classe]; $('#btnClasse').innerHTML = ''; $('#btnClasse').append(el('span', { class: 'tecla' }, '⇧'), cl ? `${cl.emoji} ${cl.especial.nome}` : 'Classe'); $('#btnClasse').title = cl ? cl.especial.desc : ''; }
   $('#btnCaca').textContent = 'G · Caça: ' + (G.caca ? 'ON' : 'off'); $('#btnCaca').classList.toggle('ligado', !!G.caca);
   $('#btnFicha').classList.toggle('tem-pontos', (s.pontos || 0) > 0); { const tx = (s.pontos || 0) > 0 ? `📋 Ficha +${s.pontos}` : '📋 Ficha'; if ($('#btnFicha').textContent !== tx) $('#btnFicha').textContent = tx; }
   // hotbar
@@ -756,7 +756,7 @@ function cartaClasse(id, sel, onclick) {
   const c = CLASSES[id]; const a = ATRIBUTOS[c.principal];
   return el('button', { class: 'card-classe' + (sel ? ' sel' : ''), type: 'button', style: `--cor:${c.cor}`, onclick },
     el('div', { class: 'cc-emoji' }, c.emoji), el('b', {}, c.nome), el('small', { class: 'cc-attr' }, `${a.icone} mais ${a.nome}`),
-    el('p', {}, c.desc), el('p', { class: 'cc-pass' }, c.passiva), el('p', { class: 'cc-esp' }, el('span', { class: 'kbd' }, 'Q'), ` ${c.especial.nome}: ${c.especial.desc}`));
+    el('p', {}, c.desc), el('p', { class: 'cc-pass' }, c.passiva), el('p', { class: 'cc-esp' }, el('span', { class: 'kbd' }, teclaEspecial()), ` ${c.especial.nome}: ${c.especial.desc}`));
 }
 function modalEscolheClasse(obrigatorio) {
   const s = G.save; let esc = s.classe || 'driblador';
@@ -764,7 +764,7 @@ function modalEscolheClasse(obrigatorio) {
   const render = () => { grade.innerHTML = ''; Object.keys(CLASSES).forEach(id => grade.append(cartaClasse(id, id === esc, () => { esc = id; render(); }))); };
   render();
   abreModal.largo = true;
-  abreModal(el('h2', {}, 'Escolha sua classe'), el('p', {}, 'Cada classe é mais forte em um atributo e tem uma habilidade especial (tecla Q). Você ainda distribui pontos a cada nível, então dá pra misturar!'), grade,
+  abreModal(el('h2', {}, 'Escolha sua classe'), el('p', {}, 'Cada classe é mais forte em um atributo e tem uma habilidade especial (tecla ' + teclaEspecial() + '). Você ainda distribui pontos a cada nível, então dá pra misturar!'), grade,
     el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo grande', onclick: () => {
       s.classe = esc; const lv = s.nivel - 1; s.atr = Object.assign({}, CLASSES[esc].base); s.atr[CLASSES[esc].principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
       log(`Você agora é ${CLASSES[esc].nome}! ${s.pontos ? 'Aperte C para distribuir seus pontos.' : ''}`, 'l-lvl'); banner(CLASSES[esc].nome.toUpperCase(), 'Classe escolhida'); som('nivel'); salvar(); fechaModal();
@@ -792,7 +792,7 @@ function abreFicha() {
   abreModal(el('h2', {}, `Ficha de ${s.nome}`),
     el('div', { class: 'ficha' },
       el('div', { class: 'ficha-esq' }, retr, el('b', { class: 'ficha-nome' }, s.nome), el('span', {}, `${FASES[faseIdx(s.nivel)].nome} · Nível ${s.nivel}`), s.posicao ? el('span', {}, POSICOES[s.posicao].nome) : '',
-        cl ? el('div', { class: 'ficha-classe', style: `--cor:${cl.cor}` }, el('b', {}, `${cl.emoji} ${cl.nome}`), el('small', {}, cl.passiva), el('small', {}, el('span', { class: 'kbd' }, 'Q'), ` ${cl.especial.nome}: ${cl.especial.desc}`)) : el('button', { class: 'btn amarelo', onclick: () => modalEscolheClasse() }, 'Escolher classe')),
+        cl ? el('div', { class: 'ficha-classe', style: `--cor:${cl.cor}` }, el('b', {}, `${cl.emoji} ${cl.nome}`), el('small', {}, cl.passiva), el('small', {}, el('span', { class: 'kbd' }, teclaEspecial()), ` ${cl.especial.nome}: ${cl.especial.desc}`)) : el('button', { class: 'btn amarelo', onclick: () => modalEscolheClasse() }, 'Escolher classe')),
       el('div', { class: 'ficha-dir' },
         el('div', { class: 'ficha-pontos' + (s.pontos ? ' tem' : '') }, s.pontos ? `Você tem ${s.pontos} ponto(s) para distribuir!` : 'Sem pontos livres. Você ganha ' + PONTOS_POR_NIVEL + ' a cada nível.'),
         linhas, el('h3', {}, 'O que isso muda'), deriv,
@@ -838,9 +838,9 @@ function modalMapa() {
 }
 function modalAtalhos() {
   const L = [
-    ['W A S D / Setas', 'Andar (diagonal também)'], ['Clique no chão', 'Andar até lá'], ['Clique no adversário', 'Marcar alvo e driblar'],
+    ['W A S D / Setas', 'Andar (duas juntas = diagonal)'], ['Num 7 9 1 3', 'Andar na diagonal, como no Tibia (Num 8 2 4 6 = reto)'], ['Home PgUp End PgDn', 'Diagonais também'], ['Clique no chão', 'Andar até lá'], ['Clique no adversário', 'Marcar alvo e driblar'],
     ['Espaço / Tab', 'Próximo adversário (segue o modo de alvo)'], ['V', 'Modo de alvo: mais perto / mais forte / mais fraco / menos fôlego'], ['Shift + Tab', 'Adversário anterior'], ['Esc', 'Desmarcar alvo / fechar janela'],
-    ['E', 'Falar, abrir baú, ler placa, pênalti'], ['1 … 0', 'Dribles e itens da barra (fileira de cima)'], ['Num 1 … Num 0', 'Segunda fileira da barra (teclado numérico)'], ['Q', 'Habilidade especial da classe'],
+    ['E', 'Falar, abrir baú, ler placa, pênalti'], ['1 … 0', 'Dribles e itens da barra (fileira de cima)'], ['F1 … F10', 'Segunda fileira da barra'], ['Shift', 'Habilidade especial da classe'],
     ['F', 'Beber a melhor bebida de FÔLEGO'], ['R', 'Beber a melhor bebida de FOCO'], ['G', 'Caça contínua (marca o próximo sozinho)'],
     ['X', 'Modo Drible / Chute'], ['C', 'Ficha do personagem e atributos'], ['I', 'Mochila'], ['K', 'Habilidades'], ['L', 'Lista de batalha'],
     ['M', 'Mapa grande'], ['U', 'Carreira: contrato, metas e reuniões'], ['J', 'Missões'], ['B', 'Álbum de figurinhas'], ['T', 'Meu Time'], ['H', 'Esta lista'], ['Roda do mouse / + −', 'Zoom'],

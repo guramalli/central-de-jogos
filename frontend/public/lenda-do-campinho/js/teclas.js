@@ -12,26 +12,33 @@
 const TECLAS_KEY = 'rac_teclas_v1';
 const ACOES_TECLA = [
   ['cima', 'Andar para cima', 'KeyW'], ['baixo', 'Andar para baixo', 'KeyS'], ['esquerda', 'Andar para a esquerda', 'KeyA'], ['direita', 'Andar para a direita', 'KeyD'],
+  ['cimaEsq', 'Andar na diagonal ↖', 'Numpad7'], ['cimaDir', 'Andar na diagonal ↗', 'Numpad9'], ['baixoEsq', 'Andar na diagonal ↙', 'Numpad1'], ['baixoDir', 'Andar na diagonal ↘', 'Numpad3'],
   ['interagir', 'Falar / usar / abrir baú / pênalti', 'KeyE'], ['alvo', 'Marcar o próximo adversário', 'Space'], ['prioridade', 'Trocar a prioridade de ataque', 'KeyV'],
-  ['modo', 'Modo Drible / Chute', 'KeyX'], ['classe', 'Habilidade especial da classe', 'KeyQ'], ['folego', 'Beber a melhor bebida de FÔLEGO', 'KeyF'], ['foco', 'Beber a melhor bebida de FOCO', 'KeyR'],
+  ['modo', 'Modo Drible / Chute', 'KeyX'], ['classe', 'Habilidade especial da classe', 'ShiftLeft'], ['folego', 'Beber a melhor bebida de FÔLEGO', 'KeyF'], ['foco', 'Beber a melhor bebida de FOCO', 'KeyR'],
   ['caca', 'Caça contínua', 'KeyG'], ['montar', 'Subir / descer da montaria', 'KeyP'],
   ['ficha', 'Ficha do personagem', 'KeyC'], ['mochila', 'Mochila', 'KeyI'], ['habilidades', 'Habilidades', 'KeyK'], ['batalha', 'Lista de batalha', 'KeyL'],
   ['mapa', 'Mapa grande', 'KeyM'], ['missoes', 'Missões', 'KeyJ'], ['time', 'Meu Time', 'KeyT'], ['carreira', 'Carreira', 'KeyU'], ['album', 'Álbum de figurinhas', 'KeyB'], ['atalhos', 'Teclas (esta janela)', 'KeyH'],
   ...Array.from({ length: 10 }, (_, i) => ['slot' + i, `Barra de atalhos: espaço ${(i + 1) % 10}`, 'Digit' + ((i + 1) % 10)]),
-  ...Array.from({ length: 10 }, (_, i) => ['slot' + (10 + i), `Barra de atalhos (2ª fileira): N${(i + 1) % 10}`, 'Numpad' + ((i + 1) % 10)]),
+  ...Array.from({ length: 10 }, (_, i) => ['slot' + (10 + i), `Barra de atalhos (2ª fileira): F${i + 1}`, 'F' + (i + 1)]),
 ];
 const TECLA_PADRAO = Object.fromEntries(ACOES_TECLA.map(([a, , c]) => [a, c]));
-const TECLAS_FIXAS = new Set(['Escape', 'Tab', 'Enter', 'NumpadEnter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Equal', 'Minus', 'NumpadAdd', 'NumpadSubtract', 'MetaLeft', 'MetaRight', 'ContextMenu']);
+const TECLAS_FIXAS = new Set(['Escape', 'Tab', 'Enter', 'NumpadEnter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Equal', 'Minus', 'NumpadAdd', 'NumpadSubtract', 'MetaLeft', 'MetaRight', 'ContextMenu', 'Numpad8', 'Numpad2', 'Numpad4', 'Numpad6', 'Home', 'PageUp', 'End', 'PageDown']);
 let TECLAS = {};
 try { TECLAS = JSON.parse(localStorage.getItem(TECLAS_KEY) || '{}') || {}; } catch (e) { TECLAS = {}; }
 const teclaDe = a => TECLAS[a] || TECLA_PADRAO[a];
 function acaoDaTecla(code) { for (const [a] of ACOES_TECLA) if (teclaDe(a) === code) return a; return null; }
-const CODIGOS_PADRAO = new Set(Object.values(TECLA_PADRAO));
+// teclas que o game.js antigo usava (Q = especial, teclado numérico = 2ª fileira): agora não fazem nada sozinhas
+const CODIGOS_PADRAO = new Set([...Object.values(TECLA_PADRAO), 'KeyQ', ...Array.from({ length: 10 }, (_, i) => 'Numpad' + i)]);
+// v168: andar como no Tibia — teclado numérico (8 2 4 6 retos; 7 9 1 3 diagonais, mesmo com o Num Lock ligado)
+// e Home / PgUp / End / PgDn (as diagonais do teclado numérico com o Num Lock desligado)
+const ANDA_FIXA = { Numpad8: ['u'], Numpad2: ['d'], Numpad4: ['l'], Numpad6: ['r'], Home: ['u', 'l'], PageUp: ['u', 'r'], End: ['d', 'l'], PageDown: ['d', 'r'] };
+const MOD_TECLA = /^(Shift|Control|Alt)(Left|Right)$/;
 function nomeTecla(code, curto) {
   if (!code) return '—';
   let m = /^Key([A-Z])$/.exec(code); if (m) return m[1];
   m = /^Digit(\d)$/.exec(code); if (m) return m[1];
   m = /^Numpad(\d)$/.exec(code); if (m) return (curto ? 'N' : 'Num ') + m[1];
+  if (curto && /^Shift/.test(code)) return '⇧';
   const nomes = { Space: 'Espaço', ShiftLeft: 'Shift', ShiftRight: 'Shift dir.', ControlLeft: 'Ctrl', ControlRight: 'Ctrl dir.', AltLeft: 'Alt', AltRight: 'AltGr', Backquote: '´', Semicolon: 'Ç', Quote: '~', BracketLeft: '´', BracketRight: '[', Backslash: ']', Comma: ',', Period: '.', Slash: ';', IntlBackslash: '\\', CapsLock: 'Caps', Backspace: '⌫', Delete: 'Del', Insert: 'Ins', Home: 'Home', End: 'End', PageUp: 'PgUp', PageDown: 'PgDn', NumpadDecimal: 'Num ,', NumpadMultiply: 'Num *', NumpadDivide: 'Num /' };
   if (nomes[code]) return curto && nomes[code].length > 3 ? nomes[code].slice(0, 3) : nomes[code];
   m = /^F(\d+)$/.exec(code); if (m) return code;
@@ -39,9 +46,9 @@ function nomeTecla(code, curto) {
 }
 function salvaTeclas() { try { localStorage.setItem(TECLAS_KEY, JSON.stringify(TECLAS)); } catch (e) { } G.uiSujo = true; }
 
-const MOVE_TECLA = { cima: 'u', baixo: 'd', esquerda: 'l', direita: 'r' };
+const MOVE_TECLA = { cima: 'u', baixo: 'd', esquerda: 'l', direita: 'r', cimaEsq: 'ul', cimaDir: 'ur', baixoEsq: 'dl', baixoDir: 'dr' };
 function executaAcao(a) {
-  if (MOVE_TECLA[a]) { G.teclas.add(MOVE_TECLA[a]); return; }
+  if (MOVE_TECLA[a]) { for (const d of MOVE_TECLA[a]) G.teclas.add(d); return; }
   if (a.startsWith('slot')) { usarHotbar(+a.slice(4)); return; }
   const f = {
     interagir: () => interagir(), alvo: () => alvoMaisProximo(), prioridade: () => trocaModoAlvo(), modo: () => trocaModo(), classe: () => usarClasse(),
@@ -73,7 +80,11 @@ window.addEventListener('keydown', ev => {
   if (!G.rodando || G.pausado || ev.ctrlKey || ev.metaKey || ev.altKey || ev.code === 'Escape') return;
   if (typeof HIST !== 'undefined' && HIST) return; // cena da história aberta
   const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-  const a = acaoDaTecla(ev.code);
+  if (!MOD_TECLA.test(ev.code)) TECLA_MOD = null;
+  if (ANDA_FIXA[ev.code]) { ev.preventDefault(); ev.stopImmediatePropagation(); for (const d of ANDA_FIXA[ev.code]) G.teclas.add(d); return; }
+  const a = acaoDaTecla(ev.code) || (MOD_TECLA.test(ev.code) ? acaoDaTecla(ev.code.replace('Right', 'Left')) : null); // Shift da direita = Shift da esquerda
+  // ação num Shift/Ctrl/Alt: só vale ao SOLTAR sem ter apertado outra tecla junto (Shift+Tab, Shift+clique continuam normais)
+  if (a && MOD_TECLA.test(ev.code)) { if (!ev.repeat) TECLA_MOD = { code: ev.code, acao: a }; return; }
   if (a) {
     ev.preventDefault(); ev.stopImmediatePropagation();
     if (ev.repeat && !MOVE_TECLA[a] && !a.startsWith('slot')) return; // segurar a tecla não abre a mesma janela 30 vezes
@@ -82,9 +93,18 @@ window.addEventListener('keydown', ev => {
   // tecla que era de uma ação e mudou de dono: não faz mais nada
   if (CODIGOS_PADRAO.has(ev.code)) { ev.preventDefault(); ev.stopImmediatePropagation(); }
 }, true);
+let TECLA_MOD = null;
+window.addEventListener('mousedown', () => { TECLA_MOD = null; }, true);
+window.addEventListener('pointerdown', () => { TECLA_MOD = null; }, true);
 window.addEventListener('keyup', ev => {
+  if (TECLA_MOD && TECLA_MOD.code === ev.code) {
+    const { acao } = TECLA_MOD; TECLA_MOD = null;
+    if (G.rodando && !G.pausado && !(typeof HIST !== 'undefined' && HIST)) executaAcao(acao);
+    return;
+  }
+  if (ANDA_FIXA[ev.code]) { for (const d of ANDA_FIXA[ev.code]) G.teclas.delete(d); ev.stopImmediatePropagation(); return; }
   const a = acaoDaTecla(ev.code);
-  if (a && MOVE_TECLA[a]) { G.teclas.delete(MOVE_TECLA[a]); ev.stopImmediatePropagation(); }
+  if (a && MOVE_TECLA[a]) { for (const d of MOVE_TECLA[a]) G.teclas.delete(d); ev.stopImmediatePropagation(); }
   else if (CODIGOS_PADRAO.has(ev.code) && !a) ev.stopImmediatePropagation();
 }, true);
 
@@ -119,7 +139,7 @@ modalAtalhos = function () {
     }
   };
   monta();
-  const fixas = el('div', { class: 'tec-fixas' }, el('b', {}, 'Sempre valem: '), 'setas = andar · Enter = falar · Tab / Shift+Tab = próximo / anterior adversário · Esc = fechar/desmarcar · roda do mouse ou + / − = zoom · clique no chão = andar · clique no adversário = marcar');
+  const fixas = el('div', { class: 'tec-fixas' }, el('b', {}, 'Sempre valem: '), 'setas = andar · teclado numérico = andar como no Tibia (7 9 1 3 = diagonais) · Home / PgUp / End / PgDn = diagonais · Enter = falar · Tab / Shift+Tab = próximo / anterior adversário · Esc = fechar/desmarcar · roda do mouse ou + / − = zoom · clique no chão = andar · clique no adversário = marcar');
   const restaurar = el('button', { class: 'btn', type: 'button', onclick: () => { TECLAS = {}; salvaTeclas(); aviso.textContent = 'Teclas voltaram ao padrão.'; monta(); } }, '↺ Voltar ao padrão');
   abreModal.largo = true;
   abreModal(el('h2', {}, '⌨️ Teclas do jogo'), aviso, fixas, lista, el('div', { class: 'opcoes' }, restaurar));

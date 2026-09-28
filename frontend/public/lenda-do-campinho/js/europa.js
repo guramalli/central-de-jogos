@@ -239,12 +239,24 @@ MAPAS_DEF.cidade = function () {
   const m = _mapaCidadeBase();
   // v153: o prédio do aeroporto é o b_ap1 do canto sudeste (com os mapas espalhados ele não fica mais em 40,33); a comissária fica na frente da porta
   const p = m.predios.filter(b => b.spr === 'b_ap1').sort((a, b) => (b.x + b.y) - (a.x + a.y))[0];
-  const livre = (x, y) => x > 1 && y > 1 && x < m.w - 2 && y < m.h - 2 && !m.obj[y * m.w + x] && CH_ANDA(m.chao[y * m.w + x]) && !m.saidas.some(s => s.x === x && s.y === y) && !m.npcs.some(n => Math.abs(n.x - x) < 2 && Math.abs(n.y - y) < 2);
+  const livre = (x, y) => x > 1 && y > 1 && x < m.w - 2 && y < m.h - 1 && !m.obj[y * m.w + x] && CH_ANDA(m.chao[y * m.w + x]) && !m.saidas.some(s => s.x === x && s.y === y) && !m.npcs.some(n => Math.abs(n.x - x) < 2 && Math.abs(n.y - y) < 2);
   let pos = null;
-  if (p) { p.spr = 'b_aeroporto'; const c = { x: p.porta.x + 2, y: p.porta.y + 1 }; for (let r = 0; r < 10 && !pos; r++) for (let dy = -r; dy <= r && !pos; dy++) for (let dx = -r; dx <= r && !pos; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && c.y + dy > p.porta.y && livre(c.x + dx, c.y + dy) && livre(c.x + dx + 1, c.y + dy - 1)) pos = { x: c.x + dx, y: c.y + dy }; }
-  if (!pos) pos = { x: 43, y: 32 };
+  // v165: ao LADO da porta (o aeroporto ficou colado na beirada de baixo do mapa maior; antes ela ia parar no meio da cidade)
+  let pl = null;
+  if (p) {
+    p.spr = 'b_aeroporto'; const P = p.porta; const frente = (x, y) => x === P.x && (y === P.y || y === P.y + 1);
+    // 1º: na calçada da FRENTE, ao lado da porta (mais perto primeiro)
+    for (const dx of [2, -2, 3, -3, 1, -1, 4, -4]) { const x = P.x + dx, y = P.y + 1; if (pos || !livre(x, y)) continue; const lado = [[Math.sign(dx), 0], [0, 1]].find(([a, b]) => livre(x + a, y + b) && !frente(x + a, y + b)); if (lado) { pos = { x, y }; pl = { x: x + lado[0], y: y + lado[1] }; } }
+    for (let r = 1; r < 9 && !pos; r++) for (let dy = -r; dy <= r && !pos; dy++) for (let dx = -r; dx <= r && !pos; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const x = P.x + dx, y = P.y + dy;
+      if (frente(x, y) || !livre(x, y)) continue;
+      const lado = [[1, 0], [-1, 0], [0, -1]].find(([a, b]) => livre(x + a, y + b) && !frente(x + a, y + b)); if (!lado) continue;
+      pos = { x, y }; pl = { x: x + lado[0], y: y + lado[1] };
+    }
+  }
+  if (!pos) { pos = { x: 43, y: 32 }; pl = { x: 44, y: 31 }; }
   m.npcs.push({ id: 'comissaria', x: pos.x, y: pos.y }); m.obj[pos.y * m.w + pos.x] = null;
-  m.placas.push({ x: pos.x + 1, y: pos.y - 1, texto: 'AEROPORTO — voos para a Europa (nível 50+)' }); m.obj[(pos.y - 1) * m.w + pos.x + 1] = { t: 'placa', v: 1 };
+  m.placas.push({ x: pl.x, y: pl.y, texto: 'AEROPORTO — voos para a Europa (nível 50+)' }); m.obj[pl.y * m.w + pl.x] = { t: 'placa', v: 1 };
   return m;
 };
 

@@ -55,6 +55,21 @@ function blocoOndeAchar(q, compacto) {
     return r;
   };
 }
+// v165: na conversa com o personagem, a missão EM ANDAMENTO também mostra onde achar os itens
+{
+  const _abrirNPCOa = abrirNPC;
+  abrirNPC = function (npc) {
+    const r = _abrirNPCOa.apply(this, arguments);
+    try {
+      for (const li of document.querySelectorAll('#modalConteudo .fala .linha-item')) {
+        if (li.querySelector('.onde-achar')) continue;
+        const titulo = (li.querySelector('.nm b') || {}).textContent; const q = MISSOES.find(x => x.titulo === titulo); if (!q) continue;
+        const b = blocoOndeAchar(q, false); if (b) (li.querySelector('.nm') || li).append(b);
+      }
+    } catch (e) { }
+    return r;
+  };
+}
 // na janela Missões: as ativas e disponíveis ganham a linha "onde achar" (curta)
 {
   const _modalMissoesOa = modalMissoes;

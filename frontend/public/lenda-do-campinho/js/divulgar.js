@@ -16,6 +16,21 @@ function textoQuebrado(x, txt, xc, y, larg, alt) {
   for (const p of pal) { const t = l ? l + ' ' + p : p; if (x.measureText(t).width > larg && l) { linhas.push(l); l = p; } else l = t; }
   if (l) linhas.push(l); linhas.forEach((ln, i) => x.fillText(ln, xc, y + i * alt)); return linhas.length;
 }
+// v169: retrato de frente com as costas (asas, capa) INTEIRAS, num quadro mais largo que o do boneco.
+// Devolve o desenho e onde o corpo ficou dentro dele (ox, oy, w, h), para manter o tamanho de antes.
+function retratoLargo(look) {
+  try {
+    if (typeof spriteBoneco !== 'function' || typeof comAcessorios !== 'function') return null;
+    const sp = specDe(look); if (!sp.costas || sp.costas === 'mochila') return null;
+    const nome = folhaDoLook(sp, look), f = FOLHAS[nome], meta = (META_BONECOS[nome] || [])[0]; if (!f || !f.ok || !meta) return null;
+    const corpo = spriteBoneco(Object.assign({}, look, { costas: null }), 'frente', 0); if (!corpo || !corpo.c) return null;
+    // o mesmo recorte de cima que o spriteBoneco faz
+    const topo = Math.max(0, Math.min(...(META_BONECOS[nome] || []).filter(Boolean).map(m => m.cabeca ? m.cabeca[1] : 20)) - ({ coroa: 40, cartola: 50, espartano: 48, louros: 22 }[sp.chapeu] || (sp.chapeu ? 26 : 4)));
+    const PX = 150, PY = 60, c = mkCanvas(FOLHA_CW + PX * 2, FOLHA_CH + PY), x = c.getContext('2d');
+    x.translate(PX, PY); comAcessorios(x, sp, 'f', meta, 'tras'); x.drawImage(corpo.c, 10, topo);
+    return { c, ox: PX + 10, oy: PY + topo, w: corpo.c.width, h: corpo.c.height };
+  } catch (e) { return null; }
+}
 async function montaCartao(o = {}) {
   const s = G.save; const W = 1080, H = 1350; const c = mkCanvas(W, H), x = c.getContext('2d');
   const fundo = await carregaImg(ASSET_DIR + 'titulo.webp'), logo = await carregaImg(ASSET_DIR + 'logo_jogo.webp');
@@ -34,7 +49,9 @@ async function montaCartao(o = {}) {
       const look = lookJogador(true); try { preCarrega(look); } catch (e) { }
       const pc = mkCanvas(420, 560); pintaAparencia(pc, look, { inteiro: true });
       await new Promise(r => setTimeout(r, 700)); pintaAparencia(pc, look, { inteiro: true }); await new Promise(r => setTimeout(r, 300));
-      x.drawImage(pc, (W - 480) / 2, 330, 480, 640); // entre o logo e o nome
+      const larg = retratoLargo(look); // asas/capa: o quadro do boneco é estreito e cortava as asas dos lados
+      if (larg) { const k = 640 / larg.h; x.drawImage(larg.c, (W - larg.w * k) / 2 - larg.ox * k, 330 - larg.oy * k, larg.c.width * k, larg.c.height * k); }
+      else x.drawImage(pc, (W - 480) / 2, 330, 480, 640); // entre o logo e o nome
     }
   } finally { s.skin = skin0; }
   // faixa de baixo: nome, nível, feito e o convite

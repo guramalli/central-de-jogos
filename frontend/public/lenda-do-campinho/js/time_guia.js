@@ -92,7 +92,7 @@ function caixaProximoPasso() {
         const nome = (card.querySelector('.nm b') || {}).textContent; const j = (t.mercado || []).find(x => x.nome === nome && card.textContent.includes(POS_NOME[x.pos])); if (!j) continue;
         const ref = titularDa(j.pos); const dif = ref == null ? null : ovr(j) - Math.round(ref);
         const tag = ref == null ? el('small', { class: 'guia-cmp bom' }, `⬆ você não tem titular ${POS_NOME[j.pos].toLowerCase()}`) : dif > 0 ? el('small', { class: 'guia-cmp bom' }, `⬆ +${dif} sobre o seu titular ${POS_NOME[j.pos].toLowerCase()}`) : el('small', { class: 'guia-cmp' }, dif === 0 ? '= igual ao seu titular' : `${dif} abaixo do seu titular (serve de reserva)`);
-        const nm = card.querySelector('.nm'); if (nm) nm.append(tag, el('small', { class: 'guia-cmp' }, ` · salário ${fmt(salario(j))}/rodada`));
+        const nm = card.querySelector('.nm'); if (nm) nm.append(tag); // o salário já aparece na linha de cima
       }
       const p = box.querySelector('p'); if (p) p.after(el('p', { class: 'guia-legenda' }, 'Vale contratar quando aparece "⬆ sobre o seu titular" ou quando faltam reservas para revezar os cansados. Lembre do salário por rodada!'));
     }
