@@ -158,11 +158,11 @@ function danoMagia(dr, m) {
       if (dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
       if (!s.dribles.includes(id)) return; if (s.nivel < dr.lvl) return;
       const custo = Math.ceil(dr.foco * st.custoFoco); if (s.foco < custo) { log(`Foco insuficiente para ${dr.nome}.`, 'l-sis'); som('erro'); return; }
-      if (G.agora < (G.cds.ataque || 0) || G.agora < (G.cds[id] || 0)) return;
+      if (G.agora < (G.cds.suporte || 0) || G.agora < (G.cds[id] || 0)) return; // v220: magia de suporte (não trava os ataques)
       const p = G.p; G.buffs.provoca = G.agora + dr.dur;
       G.mons.forEach(m => { if (!m.d.treino && dist(m, p) <= 5) { m.bravo = true; m.voltando = false; } });
       efeito('escudo', p.x, p.y, dr.cor); log('📣 Chamou a marcação! Todo mundo vem pra cima, e você toma 30% menos dano por 6 s.', 'l-info');
-      s.foco -= custo; treinaSkill('visao', custo); G.cds.ataque = G.agora + 1000; G.cds[id] = G.agora + dr.cd;
+      s.foco -= custo; treinaSkill('visao', custo); G.cds.suporte = G.agora + CD_GRUPO.suporte; G.cds[id] = G.agora + dr.cd;
       tituloSkill(p, dr.nome, dr.cor); p.golpe = G.agora; som('cl_muralha'); G.uiSujo = true; return;
     }
     return _ud2(id);

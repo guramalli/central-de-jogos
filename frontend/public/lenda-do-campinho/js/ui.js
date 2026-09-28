@@ -128,7 +128,7 @@ function atualizaHotbarCd() {
     const h = s.hotbar[i]; let cd = b.querySelector('.cd');
     if (!h) { if (cd) cd.remove(); return; }
     let fim = 0, dur = 1;
-    if (h.t === 'd') { const dr = DRIBLES[h.id]; const g = dr.tipo === 'cura' ? 'cura' : 'ataque'; fim = Math.max(G.cds[g] || 0, G.cds[h.id] || 0); dur = Math.max(dr.cd, 1000); b.classList.toggle('off', s.nivel < dr.lvl || s.foco < Math.ceil(dr.foco * (st.custoFoco || 1))); }
+    if (h.t === 'd') { const dr = DRIBLES[h.id]; const g = grupoDrible(dr); const fimG = G.cds[g] || 0, fimP = G.cds[h.id] || 0; fim = Math.max(fimG, fimP); dur = fimP >= fimG ? Math.max(dr.cd, 1000) : CD_GRUPO[g]; b.classList.toggle('off', s.nivel < dr.lvl || s.foco < Math.ceil(dr.foco * (st.custoFoco || 1))); }
     else { fim = G.cds.pocao || 0; dur = 1000; const q = b.querySelector('.qtd'); const n = contaItem(h.id); if (q) q.textContent = n; b.classList.toggle('off', !n); }
     const rest = fim - G.agora;
     if (rest > 0) { if (!cd) { cd = el('i', { class: 'cd' }); b.append(cd); } cd.style.height = clamp(rest / dur * 100, 0, 100) + '%'; } else if (cd) cd.remove();

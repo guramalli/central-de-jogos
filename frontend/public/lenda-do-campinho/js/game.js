@@ -585,13 +585,17 @@ function renascer() {
 }
 
 /* ---------------- dribles e itens ---------------- */
+// v220: tempo de recarga como no Tibia — cada drible tem a SUA recarga e ainda trava o GRUPO dele por um instante:
+// ataque 2 s (todos os de ataque), cura 1 s (só as curas), suporte 2 s (Arrancada, Chamar a Marcação). Um grupo não trava o outro.
+const CD_GRUPO = { ataque: 2000, cura: 1000, suporte: 2000 };
+function grupoDrible(dr) { return dr.tipo === 'cura' ? 'cura' : dr.tipo === 'buff' ? 'suporte' : 'ataque'; }
 function usarDrible(id) {
   const dr = DRIBLES[id]; const s = G.save; const st = stats(); const p = G.p;
   if (!dr || !s.dribles.includes(id) || s.hp <= 0) return;
   if (s.nivel < dr.lvl) { log(`Você precisa do nível ${dr.lvl} para usar ${dr.nome}.`, 'l-sis'); return; }
   const custo = Math.ceil(dr.foco * st.custoFoco);
   if (s.foco < custo) { log(`Foco insuficiente para ${dr.nome} (precisa de ${custo}). O foco (barra azul) volta sozinho com o tempo. Aperte R para beber isotônico.`, 'l-sis'); som('erro'); return; }
-  const grupo = dr.tipo === 'cura' ? 'cura' : 'ataque';
+  const grupo = grupoDrible(dr);
   if (G.agora < (G.cds[grupo] || 0) || G.agora < (G.cds[id] || 0)) return;
   const a = G.alvo && G.mons.includes(G.alvo) ? G.alvo : null;
   const danoDe = m => { const sk = st[dr.skill] || st.drible; treinaSkill(dr.skill, 1); return critico(Math.round((st.nivel * 0.3 + sk * dr.poder + st.visao * dr.poder * 0.5) * rnd(0.85, 1.15) * st.danoMult * st.poderMult - m.d.def * 0.3), m); };
@@ -615,7 +619,7 @@ function usarDrible(id) {
     log(`Arrancada! Você está mais rápido(a) por ${dr.dur / 1000} segundos.`, 'l-info');
   }
   s.foco -= custo; treinaSkill('visao', custo);
-  G.cds[grupo] = G.agora + (grupo === 'cura' ? 1000 : 2000); G.cds[id] = G.agora + dr.cd;
+  G.cds[grupo] = G.agora + CD_GRUPO[grupo]; G.cds[id] = G.agora + dr.cd;
   tituloSkill(p, dr.nome, dr.cor); p.golpe = G.agora; som('dr_' + id); // cada drible tem seu som
   G.uiSujo = true;
 }
