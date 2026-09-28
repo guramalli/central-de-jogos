@@ -56,7 +56,7 @@ function tarConfereSemana() {
       if (!G.save || !m || !m.tipo) return r; const t = tarDados();
       const b = t.bounty;
       if (b && b.tipo === m.tipo && b.p < b.n) {
-        b.p++;
+        b.p++; G.uiSujo = true;
         if (b.p >= b.n) {
           ganhaXp(b.xp); t.pts += TAR_BOUNTY_PTS; t.bounty = null; t.opcoes = tarSorteia(3);
           const msg = `🎯 Caçada da vez completa! +${fmt(b.xp)} XP e +${TAR_BOUNTY_PTS} pontos de tarefa. Escolha a próxima em 🎯 Tarefas de caça.`;
@@ -108,13 +108,13 @@ function modalTarefas(aba = 'vez') {
       const b = t.bounty;
       corpo.append(el('div', { class: 'tar-card ativa' }, el('b', {}, `Vença ${b.n} ${tarNome(b.tipo)}`), el('div', { class: 'tar-bar' }, el('i', { style: `width:${Math.round(b.p / b.n * 100)}%` })),
         el('small', {}, `${b.p}/${b.n} · onde: ${tarOndeFica(b.tipo)} · prêmio: ${fmt(b.xp)} XP e ${TAR_BOUNTY_PTS} pontos`)),
-        el('div', { class: 'opcoes' }, el('button', { class: 'btn mini', type: 'button', onclick: () => { t.bounty = null; t.opcoes = tarSorteia(3); modalTarefas('vez'); } }, 'Desistir desta caçada')));
+        el('div', { class: 'opcoes' }, el('button', { class: 'btn mini', type: 'button', onclick: () => { t.bounty = null; t.opcoes = tarSorteia(3); G.uiSujo = true; modalTarefas('vez'); } }, 'Desistir desta caçada')));
     } else {
       corpo.append(el('p', {}, 'Escolha um adversário para caçar. Vencendo todos, você ganha XP extra e pontos de tarefa.'));
       for (const tp of t.opcoes || []) {
         const d = MONSTROS[tp]; const xp = tarXp(tp, TAR_BOUNTY_N, 1);
         corpo.append(el('div', { class: 'tar-card' }, el('div', {}, el('b', {}, `${TAR_BOUNTY_N}× ${tarNome(tp)}`), el('small', {}, ` Nv ${nivelMonstro(d)} · ${tarOndeFica(tp)}`), el('div', { class: 'tar-premio' }, `Prêmio: ${fmt(xp)} XP + ${TAR_BOUNTY_PTS} pontos`)),
-          el('button', { class: 'btn verde mini', type: 'button', onclick: () => { t.bounty = { tipo: tp, n: TAR_BOUNTY_N, p: 0, xp }; t.opcoes = null; salvar(); modalTarefas('vez'); } }, 'Caçar este')));
+          el('button', { class: 'btn verde mini', type: 'button', onclick: () => { t.bounty = { tipo: tp, n: TAR_BOUNTY_N, p: 0, xp }; t.opcoes = null; salvar(); G.uiSujo = true; modalTarefas('vez'); } }, 'Caçar este')));
       }
       const gratis = t.trocaDia !== tarHoje();
       corpo.append(el('div', { class: 'opcoes' }, el('button', { class: 'btn mini', type: 'button', disabled: !gratis && t.pts < TAR_TROCA_PTS ? 'disabled' : null, onclick: () => { if (gratis) t.trocaDia = tarHoje(); else t.pts -= TAR_TROCA_PTS; t.opcoes = tarSorteia(3, t.opcoes || []); modalTarefas('vez'); } }, gratis ? '🔄 Sortear outros (grátis hoje)' : `🔄 Sortear outros (${TAR_TROCA_PTS} pontos)`)));
@@ -146,5 +146,29 @@ function modalTarefas(aba = 'vez') {
   .tar-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(0,0,0,.05); }
   .tar-card > div { flex: 1; } .tar-card.ativa { display: grid; background: rgba(255,210,63,.25); } .tar-card.feita { opacity: .7; }
   .tar-premio { font-size: 13px; opacity: .85; } .tar-bar { height: 8px; background: rgba(0,0,0,.12); border-radius: 4px; overflow: hidden; margin: 4px 0; } .tar-bar i { display: block; height: 100%; background: #3aa84a; }`;
+  document.head.append(st);
+}
+// v214: andamento da caçada da vez ao lado da etiqueta "📜 Missões" (canto de baixo da tela); clicar abre as Tarefas
+{
+  const _rastTar = atualizaRastreador;
+  atualizaRastreador = function () {
+    const r = _rastTar.apply(this, arguments);
+    const R = document.getElementById('rastreador'), b = G.save && G.save.tarefas && G.save.tarefas.bounty;
+    if (!R || !b) return r;
+    const pc = Math.round(Math.min(b.p, b.n) / b.n * 100);
+    const bt = el('button', { class: 'btn mini rast-tarefa', type: 'button', title: `Caçada da vez: vença ${b.n} ${tarNome(b.tipo)} (${tarOndeFica(b.tipo)}). Clique para ver as tarefas.`, onclick: ev => { ev.stopPropagation(); modalTarefas('vez'); } },
+      el('span', {}, `🎯 ${b.p}/${b.n} ${tarNome(b.tipo)}`), el('i', { class: 'rt-bar' }, el('i', { style: `width:${pc}%` })));
+    const et = R.querySelector(':scope > .rast-etiqueta');
+    if (et) { const linha = el('div', { class: 'rast-linha' }); et.replaceWith(linha); linha.append(et, bt); }
+    else if (getComputedStyle(R).flexDirection === 'column-reverse') R.insertBefore(bt, R.querySelector(':scope > .rast') || null); else R.append(bt);
+    return r;
+  };
+  const st = document.createElement('style');
+  st.textContent = `#rastreador .rast-linha { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; pointer-events: none; }
+  #rastreador .rast-linha .rast-etiqueta { align-self: auto; }
+  #rastreador .rast-tarefa { pointer-events: auto; align-self: flex-start; margin: 3px 0; opacity: .92; font-size: 13px; padding: 4px 10px 6px; position: relative; max-width: 260px; }
+  #rastreador .rast-tarefa > span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #rastreador .rast-tarefa .rt-bar { position: absolute; left: 8px; right: 8px; bottom: 2px; height: 3px; border-radius: 2px; background: rgba(0,0,0,.3); overflow: hidden; }
+  #rastreador .rast-tarefa .rt-bar i { display: block; height: 100%; background: #6aff9a; }`;
   document.head.append(st);
 }
