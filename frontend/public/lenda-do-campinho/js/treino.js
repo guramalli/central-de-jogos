@@ -29,8 +29,13 @@ atualiza = function (dt) {
 };
 function alternaModoTreino(ligar) {
   const s = G.save; if (!s) return;
-  s.treinoOn = ligar == null ? !s.treinoOn : !!ligar;
-  log(s.treinoOn ? '🏋️ Modo Treino LIGADO: o calendário do jogo parou. Pode deixar treinando que nenhuma reunião do clube vai passar.' : '🏋️ Modo Treino desligado: o tempo do jogo voltou a correr.', 'l-xp');
+  const novo = ligar == null ? !s.treinoOn : !!ligar;
+  // v225: o descanso do time conta até a hora de ligar; o tempo com o Modo Treino ligado não conta (senão dava para
+  // "treinar" com o calendário parado e continuar jogando o modo clube com o time sempre descansado)
+  if (novo && !s.treinoOn && typeof recuperaEnergia === 'function') recuperaEnergia();
+  if (!novo && s.treinoOn && s.time) s.time.ultEnergia = Date.now();
+  s.treinoOn = novo;
+  log(s.treinoOn ? '🏋️ Modo Treino LIGADO: o calendário do jogo parou (e o seu time não descansa enquanto isso). Pode deixar treinando que nenhuma reunião do clube vai passar.' : '🏋️ Modo Treino desligado: o tempo do jogo voltou a correr.', 'l-xp');
   som('apito'); salvar(); G.uiSujo = true; atualizaChipTreino();
 }
 
@@ -80,7 +85,7 @@ function modalTreino() {
     ...['drible', 'chute', 'defesa', 'visao'].map(sk => el('button', { class: 'btn', type: 'button', disabled: perto ? null : 'disabled', onclick: () => comecaTreinoOffline(sk) }, `${SKILLS[sk].nome} ${s.sk[sk].lv}`)));
   abreModal(el('h2', {}, '🏋️ Treino'),
     el('h3', {}, 'Modo Treino (com o jogo aberto)'),
-    el('p', {}, 'Vai deixar o personagem treinando (no boneco ou caçando)? Ligue o Modo Treino: o calendário do jogo para, então nenhuma reunião do clube passa enquanto você está longe da tela. Enquanto ele estiver ligado, também não passa dia de salário.'),
+    el('p', {}, 'Vai deixar o personagem treinando (no boneco ou caçando)? Ligue o Modo Treino: o calendário do jogo para, então nenhuma reunião do clube passa enquanto você está longe da tela. Enquanto ele estiver ligado, também não passa dia de salário e o seu time não descansa.'),
     el('div', { class: 'opcoes' }, el('button', { class: on ? 'btn' : 'btn amarelo', type: 'button', onclick: () => { alternaModoTreino(); modalTreino(); } }, on ? '⏹️ Desligar Modo Treino' : '▶️ Ligar Modo Treino')),
     el('h3', {}, 'Treino offline (jogo fechado)'),
     el('p', {}, 'Escolha uma habilidade e saia do jogo. Quando voltar, ela terá treinado pelo tempo em que você ficou fora (até 12 horas). Offline rende a METADE do treino com o jogo aberto — e nos aparelhos do 🏋️ Centro de Treinamento o treino com o jogo aberto rende ainda mais (2,5x o offline). Quanto mais alta a habilidade, mais tempo leva para subir.'),

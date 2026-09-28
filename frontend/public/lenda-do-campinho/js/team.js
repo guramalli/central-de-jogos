@@ -349,7 +349,9 @@ function autoEscalar() {
 }
 function ovrNoSlot(j, slot) { const o = ovr({ ...j, pos: slot }); const f = j.pos === slot ? 1 : (POS_COMPAT[slot] || []).includes(j.pos) ? 0.85 : 0.68; return o * (slot === 'GOL' && j.pos !== 'GOL' ? 0.4 : f); }
 function recuperaEnergia() {
-  const t = G.save.time; if (!t) return; const agora = Date.now(); const min = (agora - (t.ultEnergia || agora)) / 60000; t.ultEnergia = agora;
+  const t = G.save.time; if (!t) return; const agora = Date.now();
+  if (G.save.treinoOn) { t.ultEnergia = agora; return; } // v225: com o Modo Treino (calendário parado) o time NÃO descansa
+  const min = (agora - (t.ultEnergia || agora)) / 60000; t.ultEnergia = agora;
   const ganho = min * 12 * (1 + 0.25 * ((t.estr && t.estr.med) || 0)); // 12 pontos por minuto real
   t.elenco.forEach(j => j.energia = Math.min(100, j.energia + ganho)); t.energiaEu = Math.min(100, (Number.isFinite(t.energiaEu) ? t.energiaEu : 100) + ganho);
 }

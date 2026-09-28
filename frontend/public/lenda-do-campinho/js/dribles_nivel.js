@@ -6,7 +6,7 @@
    chega sozinho ao alcançar o nível dele, igual às magias da classe.
    - Quem já joga: ao entrar, ganha os dribles do seu nível que faltavam.
    - As missões continuam dando XP, tostões e itens (só não dão mais drible).
-   - Os professores mostram o que ensinam e em que nível cada um chega.
+   - (v227) Os NPCs não têm mais o botão "Dribles que ensino".
    Carregar DEPOIS de vocacoes.js e jogadas_info.js.
    ============================================================ */
 // as missões não dão mais drible; as falas de fim avisam em que nível ele chega

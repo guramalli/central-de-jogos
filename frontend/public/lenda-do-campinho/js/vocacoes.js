@@ -163,7 +163,7 @@ function danoMagia(dr, m) {
       G.mons.forEach(m => { if (!m.d.treino && dist(m, p) <= 5) { m.bravo = true; m.voltando = false; } });
       efeito('escudo', p.x, p.y, dr.cor); log('📣 Chamou a marcação! Todo mundo vem pra cima, e você toma 30% menos dano por 6 s.', 'l-info');
       s.foco -= custo; treinaSkill('visao', custo); G.cds.suporte = G.agora + CD_GRUPO.suporte; G.cds[id] = G.agora + dr.cd;
-      tituloSkill(p, dr.nome, dr.cor); p.golpe = G.agora; som('cl_muralha'); G.uiSujo = true; return;
+      tituloSkill(p, dr.nome, dr.cor); p.golpe = G.agora; som('dr_chamar_marcacao'); G.uiSujo = true; return;
     }
     return _ud2(id);
   };

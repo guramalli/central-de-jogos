@@ -904,7 +904,13 @@ function projetil(de, para, tipo, cb) { G.projs.push({ x0: de.x, y0: de.y - 0.4,
 function atualiza(dt) {
   const s = G.save;
   s.st.tempo += dt / 1000;
-  if (!G.mapa.interior) { s.hora += dt / 700; if (s.hora >= 26 * 60) { s.hora = 6 * 60; s.dia++; log(`Amanheceu! Dia ${s.dia}.`, 'l-sis'); } }
+  if (!G.mapa.interior) {
+    // v224: o dia vira à MEIA-NOITE (antes só virava às 02:00); a madrugada continua curta: às 02:00 o relógio pula para as 06:00
+    if (s.hora >= 24 * 60) s.hora -= 24 * 60; // save antigo parado entre 24:00 e 26:00
+    const antes = s.hora; s.hora += dt / 700;
+    if (s.hora >= 24 * 60) { s.hora -= 24 * 60; s.dia++; log(`🌙 Meia-noite! Começou o dia ${s.dia}.`, 'l-sis'); }
+    else if (antes < 2 * 60 && s.hora >= 2 * 60) { s.hora = 6 * 60; log('☀️ Amanheceu!', 'l-sis'); }
+  }
   { const lista = comidasAtivas(s);
     for (let i = lista.length - 1; i >= 0; i--) { const c = lista[i]; c.resta -= dt / 1000; if (c.resta <= 0 || !ITENS[c.id]) { if (ITENS[c.id]) log(`O efeito de ${ITENS[c.id].nome} acabou. Hora de comer de novo!`, 'l-sis'); lista.splice(i, 1); G.uiSujo = true; } } }
   G.tRegen += dt;
@@ -1121,11 +1127,15 @@ function desenha(dt) {
     if (e.d.treino) { const w = larguraTxt(e.d.nome, 11) / 2 + 2 * px, r = [topo.x - w, topo.y - 16 * px, topo.x + w, topo.y]; if (cabe(r)) { rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#e8e8e8', 11); ocupados.push(r); } continue; }
     const nv = nivelMonstro(e.d), marcado = e === G.alvo || hover;
     const txt = marcado ? `Nv ${nv} · ${e.d.nome}` : e.d.nome, cor = e.d.chefe ? '#ff8a7a' : corNivel(nv);
-    const yNome = briga ? topo.y - 11 * px : topo.y - 4 * px;
-    const w = larguraTxt(txt, 11.5) / 2 + 2 * px, rNome = [topo.x - w, yNome - 12 * px, topo.x + w, yNome + 2 * px];
+    // v224: como no Tibia, nome e vida NÃO somem quando os adversários se juntam em volta de você (box):
+    // a vida aparece em quem briga ou está perto (até 7 passos); o nome, se não couber, fica menor em vez de sumir
+    const comBarra = briga || d <= 7;
+    const yNome = comBarra ? topo.y - 11 * px : topo.y - 4 * px;
+    let tam = 11.5, w = larguraTxt(txt, tam) / 2 + 2 * px, rNome = [topo.x - w, yNome - 12 * px, topo.x + w, yNome + 2 * px];
+    if (!(marcado ? naoCobreEu(rNome) : cabe(rNome))) { tam = 9; w = larguraTxt(txt, tam) / 2 + 2 * px; rNome = [topo.x - w, yNome - 9 * px, topo.x + w, yNome + 2 * px]; }
     const rBarra = [topo.x - 24 * px, topo.y - 9 * px, topo.x + 24 * px, topo.y - 2 * px];
-    if (marcado ? naoCobreEu(rNome) : cabe(rNome)) { rotulo(ctx, txt, topo.x, yNome, cor, 11.5); ocupados.push(rNome); }
-    if (briga && (marcado ? naoCobreEu(rBarra) : cabe(rBarra))) { barraVida(ctx, topo.x, topo.y - 5.5 * px, e.hp / e.d.hp, undefined, 5); ocupados.push(rBarra); }
+    if (tam === 11.5 || comBarra || d <= 9) { rotulo(ctx, txt, topo.x, yNome, cor, tam); ocupados.push(rNome); }
+    if (comBarra) { barraVida(ctx, topo.x, topo.y - 5.5 * px, e.hp / e.d.hp, undefined, 5); ocupados.push(rBarra); }
   }
   for (const n of G.npcs) {
     const qs = MISSOES.filter(q => q.npc === n.id); let marca = null;
@@ -1328,7 +1338,7 @@ function desenhaEfeito(ctx, f) {
 function desenhaNoite(ctx, cam, vw, vh, x0, y0, x1, y1) {
   if (G.mapa.interior) return;
   const h = G.save.hora / 60; let a = 0;
-  if (h >= 17 && h < 19.5) a = (h - 17) / 2.5 * 0.26; else if (h >= 19.5 && h < 22) a = 0.26 + (h - 19.5) / 2.5 * 0.18; else if (h >= 22) a = 0.44; else if (h < 7) a = 0.44 - (h - 6) * 0.44;
+  if (h >= 17 && h < 19.5) a = (h - 17) / 2.5 * 0.26; else if (h >= 19.5 && h < 22) a = 0.26 + (h - 19.5) / 2.5 * 0.18; else if (h >= 22 || h < 6) a = 0.44; else if (h < 7) a = 0.44 - (h - 6) * 0.44; // v224: a madrugada agora é 00:00–02:00 do dia novo
   if (G.mapa.id === 'estadio') a *= 0.5;
   if (a <= 0.01) return;
   ctx.fillStyle = h < 19 && h >= 17 ? `rgba(120,50,90,${a})` : `rgba(20,24,80,${a})`; ctx.fillRect(cam.x, cam.y, vw, vh);

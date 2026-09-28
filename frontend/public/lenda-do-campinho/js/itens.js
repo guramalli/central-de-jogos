@@ -186,7 +186,7 @@ atualizaPaineis = function () {
   // habilidades: dribles aprendidos
   const sk = $('#skills'); if (!sk) return;
   const box = el('div', { class: 'dribles-lista' }, el('h4', {}, 'Dribles'), el('small', { class: 'vazio' }, 'Arraste para a barra de atalhos (1–0) ou use o botão.'));
-  if (!s.dribles.length) box.append(el('p', { class: 'vazio' }, 'Nenhum drible ainda. Os professores ensinam dribles novos!'));
+  if (!s.dribles.length) box.append(el('p', { class: 'vazio' }, 'Nenhum drible ainda. Você aprende dribles novos sozinho ao subir de nível!'));
   for (const d of s.dribles) {
     const dr = DRIBLES[d]; if (!dr) continue;
     const pos = s.hotbar.findIndex(h => h && h.t === 'd' && h.id === d);

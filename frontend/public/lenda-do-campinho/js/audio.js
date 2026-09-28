@@ -29,6 +29,11 @@
     gol: ['gol', 0.8, 0.02, 600, 1],
     // moeda, cura, gole, erro e raro saíam com voz/"narração" do gerador: agora são sintetizados (SINT, abaixo)
   };
+  // v226: sons gravados das habilidades (Seed Audio): dr_<drible> e cl_<especial>. [arquivo, vol, pitch, intervalo, vozes, rate, duração máx. (s)]
+  const SONS_HAB = { dr_pedalada: 2.6, dr_respiro: 1.5, dr_chute_colocado: 2.2, dr_arrancada: 1.5, dr_chapeu: 2.6, dr_voleio: 1.5, dr_elastico: 2.8, dr_tabela: 1.5, dr_caneta: 3.2,
+    dr_folego_campeao: 2.2, dr_bicicleta: 2.4, dr_relampago: 1.8, dr_carrinho: 1.8, dr_chamar_marcacao: 2.2, dr_tranco: 1.6, dr_trivela: 1.8, dr_chuva_bolas: 2.8, dr_canhao: 2.4,
+    dr_lancamento: 2, dr_hipnose: 2.2, dr_toque_mestre: 1.8, dr_agua_gelada: 1.8, dr_grito_torcida: 3, dr_raiz: 2.2, cl_muralha: 2.2, cl_firula: 2.6, cl_leitura: 2.2, cl_segundo_folego: 2.2 };
+  for (const [k, dur] of Object.entries(SONS_HAB)) SFX[k] = [k, 0.8, 0.03, 180, 2, 1, dur];
   const DUCK = { nivel: [0.35, 2.2], gol: [0.3, 3.2], raro: [0.6, 1.2] };
 
   const A = {
@@ -91,7 +96,23 @@
     A.carregando[nome] = p;
     return p;
   }
-  function carregaEfeitos() { const vistos = new Set(); for (const k in SFX) { const f = SFX[k][0]; if (!vistos.has(f)) { vistos.add(f); carrega('sfx_' + f); } } }
+  function carregaEfeitos() { const vistos = new Set(); for (const k in SFX) { if (SONS_HAB[k]) continue; const f = SFX[k][0]; if (!vistos.has(f)) { vistos.add(f); carrega('sfx_' + f); } } }
+  // v226: dos sons de habilidade, baixa só os que o jogador já tem (os outros, no 1º uso)
+  function carregaHabilidades() {
+    const s = typeof G !== 'undefined' && G.save; if (!s) return;
+    const lista = (s.dribles || []).map(id => 'dr_' + id); const cl = typeof CLASSES !== 'undefined' && CLASSES[s.classe]; if (cl && cl.especial) lista.push('cl_' + cl.especial.id);
+    lista.filter(k => SONS_HAB[k]).forEach((k, i) => setTimeout(() => carrega('sfx_' + k), 300 * i));
+  }
+  A.carregaHabilidades = carregaHabilidades;
+  if (typeof iniciarJogo === 'function') { const _iniAu = iniciarJogo; iniciarJogo = async function () { const r = await _iniAu.apply(this, arguments); setTimeout(carregaHabilidades, 3000); return r; }; }
+  // corta o silêncio do começo e iguala o volume (os arquivos gerados vêm com volumes diferentes)
+  function medeAmostra(b, durMax) {
+    const d = b.getChannelData(0), sr = b.sampleRate; let ini = 0; const lim = 0.02;
+    while (ini < d.length && Math.abs(d[ini]) < lim) ini++;
+    ini = Math.max(0, ini - Math.round(sr * 0.01)); const fim = Math.min(d.length, ini + Math.round(sr * durMax));
+    let q = 0; for (let i = ini; i < fim; i++) q += d[i] * d[i]; const rms = Math.sqrt(q / Math.max(1, fim - ini));
+    return { off: ini / sr, ganho: Math.max(0.35, Math.min(4, 0.13 / Math.max(1e-4, rms))) };
+  }
 
   /* ---------- efeitos ---------- */
   function duck(tipo) {
@@ -119,7 +140,11 @@
     s.connect(g); g.connect(A.sfxBus);
     const voz = { s, g, acabou: false }; s.onended = () => { voz.acabou = true; };
     vivas.push(voz); A.vozes[tipo] = vivas;
-    s.start();
+    if (cf[6]) { // v226: som de habilidade: sem o silêncio do começo, volume igualado e fim suave na duração máxima
+      const m = b._med || (b._med = medeAmostra(b, cf[6])), t = c.currentTime, v = cf[1] * m.ganho;
+      g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + cf[6] - 0.35); g.gain.linearRampToValueAtTime(0.0001, t + cf[6]);
+      s.start(t, m.off); s.stop(t + cf[6] + 0.05);
+    } else s.start();
     duck(tipo);
     return true;
   }
@@ -218,7 +243,8 @@
     const c = garanteCtx();
     if (c) {
       if (c.state === 'suspended' && A.gesto && !document.hidden) c.resume().catch(() => { });
-      try { if (tocaSint(tipo)) return; } catch (e) { /* cai no sintetizador antigo */ }
+      if (SONS_HAB[tipo] && A.buf['sfx_' + tipo]) { try { if (tocaAmostra(tipo)) return; } catch (e) { } } // v226: habilidade com som gravado: ele primeiro
+      try { if (tocaSint(tipo)) { if (SONS_HAB[tipo] && !A.falhou['sfx_' + tipo]) carrega('sfx_' + tipo); return; } } catch (e) { /* cai no sintetizador antigo */ }
       if (SFX[tipo] && !A.buf['sfx_' + SFX[tipo][0]] && !A.falhou['sfx_' + SFX[tipo][0]]) carrega('sfx_' + SFX[tipo][0]);
       try { if (tocaAmostra(tipo)) return; } catch (e) { /* cai no sintetizador */ }
     }

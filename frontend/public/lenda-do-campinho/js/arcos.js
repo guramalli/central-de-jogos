@@ -14,6 +14,14 @@ const ARCOS_KEY = 'rac_arcos';
 let HUD_BONECO = 'ambos';
 try { const v = localStorage.getItem(ARCOS_KEY); HUD_BONECO = v === '0' ? 'barras' : (v === 'arcos' || v === 'barras') ? v : 'ambos'; } catch (e) { }
 let ARCOS_ON = HUD_BONECO !== 'barras';
+// v224: distância dos arcos até o boneco (Menu): perto (como era), média ou longe
+const ARCOS_DIST_KEY = 'rac_arcos_dist', ARCOS_DISTS = { perto: 1, media: 1.2, longe: 1.4 };
+let ARCOS_DIST = 'perto'; try { const v = localStorage.getItem(ARCOS_DIST_KEY); if (ARCOS_DISTS[v]) ARCOS_DIST = v; } catch (e) { }
+// v226: a escolha também fica no SAVE da conta (vale em qualquer aparelho, no site e no app)
+function guardaHud() {
+  try { localStorage.setItem(ARCOS_KEY, HUD_BONECO === 'ambos' ? '1' : HUD_BONECO); localStorage.setItem(ARCOS_DIST_KEY, ARCOS_DIST); } catch (e) { }
+  if (G.save) { G.save.hud = { boneco: HUD_BONECO, dist: ARCOS_DIST }; if (typeof salvar === 'function') salvar(); }
+}
 const MSG_USO_MS = 2500;
 {
   let stCache = null, stT = 0; // stats() é pesado para chamar em todo quadro
@@ -39,7 +47,7 @@ const MSG_USO_MS = 2500;
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
     const alt = alturaEnt(p), sx = (p.x * T - G.cam.x) * z, pe = (p.y * T - G.cam.y) * z;
     if (ARCOS_ON && s.hp > 0) {
-      const st = maximos(), cy = pe - alt * T * z * 0.46, raio = Math.max(alt * 0.62, 0.95) * T * z, larg = Math.max(4.5 * px, T * z * 0.11);
+      const st = maximos(), cy = pe - alt * T * z * 0.46, raio = Math.max(alt * 0.62, 0.95) * T * z * ARCOS_DISTS[ARCOS_DIST], larg = Math.max(4.5 * px, T * z * 0.11);
       const ab = 0.62 * Math.PI / 2; // meia-abertura de cada arco (em volta de 180° e de 0°)
       ctx.globalAlpha = 0.78;
       const pcH = s.hp / Math.max(1, st.maxHp), pcF = s.foco / Math.max(1, st.maxFoco);
@@ -69,8 +77,23 @@ const MSG_USO_MS = 2500;
   const poe = () => {
     const lista = document.querySelector('#topo .tb-lista');
     if (lista && !document.getElementById('btnArcos')) lista.append(el('button', { class: 'btn', id: 'btnArcos', type: 'button', role: 'menuitem', title: 'Clique para trocar: arcos em volta do boneco (como no Tibia), barrinhas em cima da cabeça, ou os dois',
-      onclick: ev => { HUD_BONECO = PROX_HUD[HUD_BONECO]; ARCOS_ON = HUD_BONECO !== 'barras'; try { localStorage.setItem(ARCOS_KEY, HUD_BONECO === 'ambos' ? '1' : HUD_BONECO); } catch (e) { } ev.currentTarget.textContent = rotuloBt(); } }, rotuloBt()));
+      onclick: ev => { HUD_BONECO = PROX_HUD[HUD_BONECO]; ARCOS_ON = HUD_BONECO !== 'barras'; guardaHud(); ev.currentTarget.textContent = rotuloBt(); } }, rotuloBt()));
+    const NOMES_DIST = { perto: 'perto', media: 'média', longe: 'longe' }, PROX_DIST = { perto: 'media', media: 'longe', longe: 'perto' };
+    const rotuloDist = () => `◐ Distância dos arcos: ${NOMES_DIST[ARCOS_DIST]}`;
+    if (lista && !document.getElementById('btnArcosDist')) lista.append(el('button', { class: 'btn', id: 'btnArcosDist', type: 'button', role: 'menuitem', title: 'Clique para afastar ou aproximar os arcos de fôlego e foco do boneco',
+      onclick: ev => { ARCOS_DIST = PROX_DIST[ARCOS_DIST]; guardaHud(); ev.currentTarget.textContent = rotuloDist(); } }, rotuloDist()));
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(poe, 0)); else setTimeout(poe, 0);
-  const _iniArcos = iniciarJogo; iniciarJogo = async function () { const r = await _iniArcos.apply(this, arguments); poe(); return r; };
+  const _iniArcos = iniciarJogo; iniciarJogo = async function (save) {
+    // o save manda (escolha feita em outro aparelho); save antigo sem a escolha leva a deste aparelho
+    try {
+      const h = save && save.hud;
+      if (h && typeof h === 'object') { if (NOMES_HUD[h.boneco]) HUD_BONECO = h.boneco; if (ARCOS_DISTS[h.dist]) ARCOS_DIST = h.dist; ARCOS_ON = HUD_BONECO !== 'barras'; }
+      else if (save) save.hud = { boneco: HUD_BONECO, dist: ARCOS_DIST };
+    } catch (e) { }
+    const r = await _iniArcos.apply(this, arguments); poe();
+    const b1 = document.getElementById('btnArcos'), b2 = document.getElementById('btnArcosDist');
+    if (b1) b1.textContent = rotuloBt(); if (b2) b2.textContent = `◐ Distância dos arcos: ${({ perto: 'perto', media: 'média', longe: 'longe' })[ARCOS_DIST]}`;
+    return r;
+  };
 }

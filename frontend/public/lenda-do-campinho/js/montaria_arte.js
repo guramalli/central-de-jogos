@@ -99,3 +99,17 @@ desenhaMontado = function (ctx, e) {
   e._altMont = (h - T * 0.2) / T;
   return true;
 };
+
+// v227: montado ficava desproporcional (maior que as pessoas e adversários em volta): o conjunto
+// personagem + montaria sai um pouco menor, com os pés/rodas no mesmo lugar
+const ESC_MONTADO = 0.8;
+{
+  const _desenhaMontadoEsc = desenhaMontado;
+  desenhaMontado = function (ctx, e) {
+    const x = e.x * T, y = e.y * T;
+    ctx.save(); ctx.translate(x, y); ctx.scale(ESC_MONTADO, ESC_MONTADO); ctx.translate(-x, -y);
+    let r; try { r = _desenhaMontadoEsc.apply(this, arguments); } finally { ctx.restore(); }
+    if (r && e._altMont) e._altMont *= ESC_MONTADO; // nome e barras descem junto
+    return r;
+  };
+}

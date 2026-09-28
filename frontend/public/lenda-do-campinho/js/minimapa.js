@@ -75,7 +75,6 @@ function iconeNPC(n) {
   if (d.onibus) return '🚌';
   if (d.refino) return '🔨';
   if (d.loja) return '🛒';
-  if (d.professor) return '🎓';
   if (d.quiz) return '📰';
   if (d.prof) return '📘';
   if (d.empresario) return '💼';

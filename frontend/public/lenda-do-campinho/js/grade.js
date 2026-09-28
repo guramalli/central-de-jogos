@@ -101,6 +101,40 @@ function grVizinho(e, dx, dy, deLado) {
     if (!alvo) return 0;
     grPasso(e, alvo.x, alvo.y, vel); return 0.0006;
   };
+  // v224: adversário indo até você (como no Tibia): colado em qualquer um dos 8 quadrados em volta, PARA e ataca
+  // (antes, na diagonal ele achava que ainda estava longe e ficava indo e voltando). Longe: segue um caminho de
+  // verdade até um quadrado livre do seu lado, desviando dos outros; com a sua "box" cheia, espera no lugar.
+  const _andaAte = andaAte;
+  const passoAteJogador = (m, comGente) => {
+    const p = grTile(G.p), o = grTile(m), R = 12, W = 2 * R + 1, x0 = o.x - R, y0 = o.y - R;
+    const visto = new Int16Array(W * W).fill(-1), fila = [o.x, o.y]; visto[R * W + R] = R * W + R;
+    const bloq = (x, y) => tileBloq(x, y) || (comGente && grOcupado(x, y, m));
+    for (let k = 0; k < fila.length; k += 2) {
+      const x = fila[k], y = fila[k + 1];
+      if (Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) === 1) { // chegou do lado do jogador: volta até o 1º passo
+        let i = (y - y0) * W + (x - x0); const ini = R * W + R;
+        while (visto[i] !== ini) i = visto[i];
+        return { x: x0 + i % W, y: y0 + Math.floor(i / W) };
+      }
+      for (const [sx, sy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+        const nx = x + sx, ny = y + sy, lx = nx - x0, ly = ny - y0; if (lx < 0 || ly < 0 || lx >= W || ly >= W) continue;
+        const j = ly * W + lx; if (visto[j] !== -1 || (nx === p.x && ny === p.y) || bloq(nx, ny)) continue;
+        if (sx && sy && tileBloq(x + sx, y) && tileBloq(x, y + sy)) continue; // não corta quina de parede
+        visto[j] = (y - y0) * W + (x - x0); fila.push(nx, ny);
+      }
+    }
+    return null;
+  };
+  andaAte = function (m, alvo, v, afastar) {
+    if (!GRADE.on || afastar || alvo !== G.p || !G.mons.includes(m) || m.pas) return _andaAte.apply(this, arguments);
+    const o = grTile(m), p = grTile(G.p), dx = G.p.x - m.x, dy = G.p.y - m.y;
+    const encara = () => { if (Math.abs(dx) > 0.02) m.flip = dx < 0; olha(m, dx, dy); };
+    if (Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)) <= 1 && (o.x !== p.x || o.y !== p.y)) { if (Math.hypot(m.x - o.x - 0.5, m.y - o.y - 0.5) > 0.05) return _andaAte.apply(this, arguments); m.mov = false; encara(); return; }
+    const passo = passoAteJogador(m, true);
+    if (passo) { grPasso(m, passo.x, passo.y, Math.max(0.5, v / Math.max(0.001, GRADE.dt / 1000))); m.mov = true; encara(); m.fase += 0.3; return; }
+    // sem caminho agora: se for só gente no meio (box cheia), espera ali mesmo sem desistir; parede de verdade: deixa desistir
+    m.mov = false; encara(); if (Math.hypot(dx, dy) < 7 && passoAteJogador(m, false)) m.tParado = 0;
+  };
   // v190: andar clicando — na grade só se para no CENTRO do quadrado. O ponto final era o lugar exato do clique
   // (fora do centro): o boneco nunca "chegava" e ficava indo e voltando entre dois quadrados.
   const _segue = segue;
