@@ -79,6 +79,16 @@ window.addEventListener('keydown', ev => {
     } else aoTerminar('');
     return;
   }
+  // Ctrl + seta (ou tecla de andar): vira para o lado sem sair do lugar, como no Tibia
+  if (ev.ctrlKey && !ev.altKey && !ev.metaKey && G.rodando && !G.pausado && G.p && !(typeof HIST !== 'undefined' && HIST)) {
+    const tok = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r' }[ev.code] || MOVE_TECLA[acaoDaTecla(ev.code)];
+    const dir = tok && { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] }[tok];
+    if (dir) {
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      if (!G.p.pas) { if (dir[0]) G.p.flip = dir[0] < 0; olha(G.p, dir[0], dir[1]); G.p.tVista = G.agora + 3600000; } // fica virado até andar
+      return;
+    }
+  }
   if (!G.rodando || G.pausado || ev.ctrlKey || ev.metaKey || ev.altKey || ev.code === 'Escape') return;
   if (typeof HIST !== 'undefined' && HIST) return; // cena da história aberta
   const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;

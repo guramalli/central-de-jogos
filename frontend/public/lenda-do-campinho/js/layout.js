@@ -223,7 +223,7 @@ const BOTOES = {}, PAINEIS = {};
 let LAY = null;        // layout escolhido (salvo)
 let LAY_VISTO = null;  // layout desenhado agora (LAY; no celular, o padrão)
 const ehAbas = it => !!(it && typeof it === 'object' && Array.isArray(it.g));
-const padraoLayout = () => ({ esq: [], dir: ['perfil', 'mini', { g: LAY_ABAS.slice(), a: 'batalha', m: false }], min: {} });
+const padraoLayout = () => ({ esq: [], dir: ['perfil', 'mini', { g: ['batalha'], a: 'batalha', m: false }, { g: ['mochila', 'equip', 'skills'], a: 'mochila', m: false }], min: {} }); // v211: Batalha sempre à vista, como no Tibia
 const listasDe = L => [L.esq, L.dir];
 function itemDaAba(n, L = LAY_VISTO) { if (!L) return null; for (const l of listasDe(L)) for (const it of l) if (ehAbas(it) && it.g.includes(n)) return it; return null; }
 const promovida = n => { const it = itemDaAba(n); return !!(it && it.g.length === 1); };
@@ -722,7 +722,9 @@ function encaixaTela() {
   const w = tela.getBoundingClientRect().width; if (!w) return;
   const topoH = topo ? topo.getBoundingClientRect().height : 0;
   document.documentElement.style.setProperty('--topoH', Math.ceil(topoH) + 'px'); // colunas de painéis também cabem abaixo do topo
-  const resto = (barra ? barra.offsetHeight : 0) + (log ? log.offsetHeight : 0) + 16 /* gaps */ + 20 /* padding */ + 6;
+  const cj = document.getElementById('colJogo'), pr = document.getElementById('principal');
+  const gap = cj ? parseFloat(getComputedStyle(cj).rowGap) || 8 : 8, pad = pr ? (parseFloat(getComputedStyle(pr).paddingTop) || 0) + (parseFloat(getComputedStyle(pr).paddingBottom) || 0) : 20;
+  const resto = (barra ? barra.offsetHeight : 0) + (log ? log.offsetHeight : 0) + 2 * gap + pad + 6;
   const h = Math.floor(Math.max(300, Math.min(w / 1.6, innerHeight - topoH - resto)));
   if (Math.abs((parseFloat(tela.style.height) || 0) - h) > 1) { tela.style.aspectRatio = 'auto'; tela.style.height = h + 'px'; }
 }
