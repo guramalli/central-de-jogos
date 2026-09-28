@@ -269,6 +269,11 @@ canvas { image-rendering: auto; }
 .eu-card { background: #fff6c0; border-color: #e0b030; }
 .slot-esc { display: grid; grid-template-columns: 44px 1fr 200px; gap: 6px; align-items: center; }
 .pos-tag { background: var(--roxo2); color: #fff; border-radius: 5px; text-align: center; padding: 3px 0; font-size: 13px; }
+/* v221: cor por posição (GOL amarelo, ZAG azul, LAT turquesa, VOL verde, MEI roxo, ATA vermelho) */
+.slot-esc[style*="--pc"] { background: color-mix(in srgb, var(--pc) 13%, transparent); border-left: 5px solid var(--pc); border-radius: 8px; padding: 3px 6px 3px 4px; }
+.slot-esc[style*="--pc"] > .pos-tag { background: var(--pc); text-shadow: 0 1px 0 rgba(0,0,0,.4); }
+.slot-esc .sel { border-width: 2px; }
+.pc-card { box-shadow: inset 5px 0 0 var(--pc); padding-left: 10px; }
 .setores { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; background: #fffaf0; border: 2px solid var(--papel2); border-radius: 8px; padding: 8px; }
 .setor { display: grid; grid-template-columns: 70px 1fr 40px; gap: 6px; align-items: center; font-size: 14px; }
 .setor:has(.sbar.b) { grid-template-columns: 70px 1fr 36px 36px 1fr; }

@@ -89,6 +89,17 @@ function marcaMissaoNPC(n) {
   if (qs.some(q => statusMissao(q) === 'disponivel')) return '!';
   return null;
 }
+// v223: quem está DENTRO de cada prédio (o mapa mostra na porta a marca de missão e, no mapa grande, os nomes)
+function gentePredio(b) {
+  if (!b || !b.interior || !MAPAS_DEF[b.interior]) return [];
+  try { return getMapa(b.interior).npcs.filter(n => NPCS[n.id]).map(n => ({ id: n.id, d: NPCS[n.id] })); } catch (e) { return []; }
+}
+const MARCA_PREDIO = new WeakMap(); // o minimapa redesenha muito: guarda a resposta por meio segundo
+function marcaPredio(b) {
+  const agora = performance.now(), c = MARCA_PREDIO.get(b); if (c && agora - c.t < 500) return c.v;
+  const ms = gentePredio(b).map(marcaMissaoNPC), v = ms.includes('?') ? '?' : ms.includes('!') ? '!' : null;
+  MARCA_PREDIO.set(b, { t: agora, v }); return v;
+}
 function rivalBravo(mo) { return !MAPAS_PACIFICOS_MINI().has(G.mapa.id) && mo.d.aggro > 0; }
 function MAPAS_PACIFICOS_MINI() { return typeof MAPAS_PACIFICOS !== 'undefined' ? MAPAS_PACIFICOS : new Set(); }
 
@@ -137,6 +148,13 @@ function desenhaMarcadores(x, tx, ty, e, grande) {
       x.fillStyle = '#1a1026'; x.font = `800 ${7 * e}px Fredoka, Nunito, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(mq, cx, by + 0.5 * e);
     }
     if (grande) rotuloMini(x, n.d.nome, cx, cy + 10 * e, e * 0.82, '#ffffff'); // nome menor: sobra espaço pros outros
+  }
+  // prédios com alguém lá dentro que tem missão: a marca fica em cima da porta
+  for (const b of (m.predios || [])) {
+    const mq = b.porta && marcaPredio(b); if (!mq) continue;
+    const cx = tx(b.porta.x + 0.5), by = ty(b.porta.y + 0.2) - Math.abs(Math.sin(t / 250)) * 2 * e;
+    x.fillStyle = mq === '?' ? '#5ad86a' : '#ffd23f'; contorno(1.3); x.beginPath(); x.arc(cx, by, 4.2 * e, 0, 7); x.fill(); x.stroke();
+    x.fillStyle = '#1a1026'; x.font = `800 ${7 * e}px Fredoka, Nunito, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(mq, cx, by + 0.5 * e);
   }
   // objetivo da seta amarela
   const alvo = typeof alvoGuia === 'function' ? alvoGuia() : null;
@@ -212,7 +230,11 @@ modalMapa = function () {
     x.drawImage(base, V.x0 * 16, V.y0 * 16, W / k * 16, H / k * 16, 0, 0, W, H);
     const fx = wx => (wx - V.x0) * k, fy = wy => (wy - V.y0) * k;
     ROTULOS = [];
-    for (const b of (m.predios || [])) if (b.interior && MAPAS_DEF[b.interior]) rotuloMini(x, getMapa(b.interior).nome, fx(b.porta.x + 0.5), fy(b.porta.y + 1.9), e * 0.9, '#ffe9a8');
+    for (const b of (m.predios || [])) if (b.interior && MAPAS_DEF[b.interior]) {
+      rotuloMini(x, getMapa(b.interior).nome, fx(b.porta.x + 0.5), fy(b.porta.y + 1.9), e * 0.9, '#ffe9a8');
+      const gente = gentePredio(b); // v223: quem está lá dentro
+      if (gente.length) rotuloMini(x, '👤 ' + gente.slice(0, 2).map(g => g.d.nome + (marcaMissaoNPC(g) === '?' ? ' ✔' : marcaMissaoNPC(g) === '!' ? ' ❗' : '')).join(', ') + (gente.length > 2 ? ` +${gente.length - 2}` : ''), fx(b.porta.x + 0.5), fy(b.porta.y + 2.9), e * 0.78, '#ffffff');
+    }
     for (const z of (m.zonas || [])) rotuloMini(x, '\u26a0 ' + z.nome, fx(z.x + z.w / 2), fy(z.y + 1), e * 0.9, '#ffb0b0');
     desenhaMarcadores(x, fx, fy, e, true); ROTULOS = null;
     c._mapaView = { x0: V.x0, y0: V.y0, k }; c.style.cursor = V.z > 1 ? 'grab' : 'zoom-in';
@@ -307,7 +329,11 @@ function oQueTemNoMapa(wx, wy, raio) {
     if (wx >= b.x - 0.3 && wx <= b.x + b.w + 0.3 && wy >= b.y - 0.3 && wy <= b.y + b.h + 0.6) {
       let nm = null;
       if (typeof CASAS !== 'undefined' && CASAS[b.interior]) { const c = CASAS[b.interior]; const minha = G.save.casa && G.save.casa.id === b.interior; nm = `🏠 ${c.nome}${minha ? ' (sua casa)' : ' — à venda'}`; }
-      else if (MAPAS_DEF[b.interior]) nm = '🏢 ' + getMapa(b.interior).nome;
+      else if (MAPAS_DEF[b.interior]) {
+        nm = '🏢 ' + getMapa(b.interior).nome;
+        const gente = gentePredio(b); // v223: quem está lá dentro (e se tem missão)
+        if (gente.length) nm += ' — lá dentro: ' + gente.map(g => { const mq = marcaMissaoNPC(g); return g.d.nome + (mq === '?' ? ' (missão pronta!)' : mq === '!' ? ' (missão nova!)' : ''); }).join(', ');
+      }
       if (nm) achados.push({ d: raio * 0.9, txt: nm });
     }
   }

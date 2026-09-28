@@ -115,7 +115,7 @@ for (const a of ARENAS) {
       { desc: `MÍTICO. ${descMitico(it)}. Só o chefão da ${a.nome} deixa cair — e é raríssimo.` });
   }
   a.trofeu = 'trofeu_' + a.tema;
-  ITENS[a.trofeu] = { nome: `Troféu da ${a.nome}`, tipo: 'loot', venda: a.L * 60, trofeuArena: true, desc: `Prova de que você venceu ${a.chefe.nome}. Peça de colecionador (vende bem).` };
+  ITENS[a.trofeu] = { nome: `Troféu da ${a.nome}`, tipo: 'loot', venda: a.L * 250 /* v222: era L*60, valia menos que um épico comum */, trofeuArena: true, desc: `Prova de que você venceu ${a.chefe.nome}. Peça de colecionador (vende bem).` };
   ICON_ALIAS[a.trofeu] = a.id === 'arena_copa' ? 'i_bola_coroa' : 'trofeu';
 }
 

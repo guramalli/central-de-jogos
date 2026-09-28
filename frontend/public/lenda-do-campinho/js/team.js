@@ -9,6 +9,8 @@
    ============================================================ */
 const NIVEL_TIME = 25;
 const POS_NOME = { GOL: 'Goleiro', ZAG: 'Zagueiro', LAT: 'Lateral', VOL: 'Volante', MEI: 'Meia', ATA: 'Atacante' };
+// v221: cada posição tem uma cor (etiqueta, fundo da linha e faixa no cartão do jogador)
+const POS_COR = { GOL: '#e0a000', ZAG: '#2a6ad9', LAT: '#12a0a8', VOL: '#2a9d4a', MEI: '#8a4ad9', ATA: '#d93a3a' };
 const POS_COMPAT = { ZAG: ['VOL', 'LAT'], LAT: ['ZAG', 'VOL', 'MEI'], VOL: ['ZAG', 'MEI', 'LAT'], MEI: ['VOL', 'ATA', 'LAT'], ATA: ['MEI'], GOL: [] };
 const FORMACOES = {
   '4-4-2': ['GOL', 'ZAG', 'ZAG', 'LAT', 'LAT', 'VOL', 'VOL', 'MEI', 'MEI', 'ATA', 'ATA'],
@@ -407,7 +409,7 @@ function cartaJogador(j, extra) {
   const t = G.save.time; const c = mkCanvas(96, 120); pintaAparencia(c, lookJogadorTime(j, t.cor1, t.cor2));
   c.style.width = '40px'; c.style.height = '50px';
   const en = el('div', { class: 'bl-hp', title: 'Energia' }); const i = el('i'); i.style.width = clamp(j.energia, 0, 100) + '%'; i.style.background = j.energia > 60 ? '#3ad83a' : j.energia > 30 ? '#e8d23a' : '#e83a3a'; en.append(i);
-  return el('div', { class: 'linha-item' + (j.eu ? ' eu-card' : '') }, c,
+  return el('div', { class: 'linha-item pc-card' + (j.eu ? ' eu-card' : ''), style: `--pc:${POS_COR[j.pos] || '#888'}` }, c,
     el('div', { class: 'nm' }, el('b', {}, (j.eu ? '★ ' : '') + j.nome + (j.lenda ? ' (lenda)' : '')), el('small', {}, `${POS_NOME[j.pos]} · ATQ ${j.atq} · DEF ${j.def} · PAS ${j.pas} · FÍS ${j.fis}${j.eu ? '' : ` · nível ${j.nivel} (máx ${j.pot}) · ${j.idade || '?'} anos · salário ${fmt(salario(j))}`}`), en),
     el('b', { class: 'ovr', title: 'Força geral' }, ovr(j)), extra || '');
 }
@@ -429,10 +431,19 @@ function telaElenco() {
   const lista = el('div', { class: 'lista' });
   const todos = elencoCompleto();
   esc.forEach(({ slot, j }, i) => {
-    const sel = el('select', { class: 'sel' }, el('option', { value: '' }, '— vazio —'), ...todos.map(x => el('option', { value: x.id, selected: j && x.id === j.id ? 'selected' : null }, `${x.nome} (${x.pos} ${ovr(x)})`)));
+    // v221: a lista mostra só quem está aqui e os RESERVAS (primeiro os da posição, depois os outros com a força que teriam aqui)
+    const reserv = todos.filter(x => !t.titulares.includes(x.id));
+    const opc = x => el('option', { value: x.id, style: `background:${POS_COR[x.pos]}22` }, `${x.nome} — ${x.pos} ${ovr(x)}${x.pos !== slot ? ` (aqui rende ${Math.round(ovrNoSlot(x, slot))})` : ''}`);
+    const daPos = reserv.filter(x => x.pos === slot).sort((a, b) => ovr(b) - ovr(a)), outros = reserv.filter(x => x.pos !== slot).sort((a, b) => ovrNoSlot(b, slot) - ovrNoSlot(a, slot));
+    const sel = el('select', { class: 'sel', style: `border-color:${POS_COR[slot]}` },
+      j ? el('option', { value: j.id, selected: 'selected' }, `✓ ${j.nome} — ${j.pos} ${ovr(j)}`) : el('option', { value: '', selected: 'selected' }, '— ninguém —'),
+      daPos.length ? el('optgroup', { label: `Reservas ${POS_NOME[slot].toLowerCase()}s` }, ...daPos.map(opc)) : '',
+      outros.length ? el('optgroup', { label: 'Outros reservas (fora de posição)' }, ...outros.map(opc)) : '',
+      !reserv.length ? el('option', { value: '', disabled: 'disabled' }, 'Sem reservas — contrate no Mercado') : '',
+      j ? el('option', { value: '' }, '— tirar do time —') : '');
     sel.onchange = () => { const v = sel.value || null; const k = t.titulares.indexOf(v); if (v && k >= 0) t.titulares[k] = t.titulares[i]; t.titulares[i] = v; abrirTime('elenco'); };
     const aviso = j && j.pos !== slot ? el('small', { style: 'color:#b0301a' }, ' fora de posição') : '';
-    lista.append(el('div', { class: 'slot-esc' }, el('b', { class: 'pos-tag' }, slot), j ? cartaJogador(j) : el('div', { class: 'linha-item bloq' }, 'Ninguém escalado'), el('div', {}, sel, aviso)));
+    lista.append(el('div', { class: 'slot-esc', style: `--pc:${POS_COR[slot]}` }, el('b', { class: 'pos-tag', title: POS_NOME[slot] }, slot), j ? cartaJogador(j) : el('div', { class: 'linha-item bloq' }, 'Ninguém escalado'), el('div', {}, sel, aviso)));
   });
   wrap.append(lista);
   const reservas = todos.filter(j => !t.titulares.includes(j.id));

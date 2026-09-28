@@ -93,7 +93,7 @@ Object.assign(ITENS, {
   soro_estelar: { nome: 'Soro Estelar', tipo: 'consumivel', efeito: { hp: 12000 }, lvl: 300, preco: 5200, venda: 1040, desc: 'Recupera 12.000 de fôlego. Nível 300.', icon: { k: 'copo', c: '#f8d838' } },
   cristal_foco: { nome: 'Cristal de Foco', tipo: 'consumivel', efeito: { foco: 6000 }, lvl: 300, preco: 4800, venda: 960, desc: 'Recupera 6.000 de foco. Nível 300.', icon: { k: 'copo', c: '#b07aff' } },
   rango_astronauta: { nome: 'Rango de Astronauta', tipo: 'comida', efeito: { dur: 900, regen: 10, regenFoco: 7, atr: { defesa: 18, habilidade: 18, inteligencia: 18, folego: 18 } }, lvl: 300, preco: 6000, venda: 1200, desc: 'Comida de tubinho: +18 em TUDO e muita recuperação por 15 min.', iconeBase: 'i_areia_colorida', matiz: 200 },
-  trofeu_galaxia: { nome: 'Troféu da Copa Intergaláctica', tipo: 'loot', venda: 400 * 60, desc: 'Prova de que você venceu o Supremo da Galáxia. Peça de colecionador.', iconeBase: 'i_taca_copa', matiz: 250 },
+  trofeu_galaxia: { nome: 'Troféu da Copa Intergaláctica', tipo: 'loot', venda: 400 * 250, desc: 'Prova de que você venceu o Supremo da Galáxia. Peça de colecionador.', iconeBase: 'i_taca_copa', matiz: 250 },
 });
 for (const p of PLANETAS) for (const [id, , L, , , , item, nomeItem, descItem] of p.ets) ITENS[item] = { nome: nomeItem, tipo: 'loot', venda: Math.round(L * 15), desc: descItem };
 const ASSETS_ESP = ['t_poeira_lua', 't_marte', 't_solo_anel', 't_solo_nebula', 't_metal_esp', 't_estrelas', 'b_estacao1', 'b_estacao2', 'b_lua1', 'b_lua2', 'b_marte1', 'b_marte2', 'b_saturno1', 'b_saturno2', 'b_nebula1', 'b_nebula2',
