@@ -3,12 +3,12 @@
 /* ============================================================
    🪽 ASAS GRANDES (v228), como os addons de asa do Tibia: passam do quadrado.
    As asas eram pintadas DENTRO do desenho do boneco (não podiam passar da borda). No jogo, agora
-   saem do desenho e são pintadas à parte: maiores (≈1,7 quadrado), um pouco translúcidas e batendo
+   saem do desenho e são pintadas à parte: maiores (≈1,7 quadrado), translúcidas (50%) e batendo
    de leve quando anda. De frente e de lado ficam atrás do corpo; de costas, na frente (como antes).
    Retrato, ficha e cartão continuam com as asas de antes. Montado: continua como era.
    Carregar DEPOIS de luxo.js e montarias.js.
    ============================================================ */
-const ASAS_ALFA = 0.82, ASAS_LARG = 1.7;
+const ASAS_ALFA = 0.5, ASAS_LARG = 1.7; // v230: mais translúcidas (na box, com adversários em volta, elas não "quebram" a imagem)
 let ASAS_FORA = false; // true só enquanto o jogo desenha o jogador (a pé)
 {
   const _lookAsas = lookJogador;
