@@ -50,6 +50,40 @@ const ESTILO_CHAO = {
   [CH.AGUA]: { cor: '#4ca8e8', borda: '#eaf8ff', r: 0.45, e: 0.16, tex: 'agua', o: 15 },
 };
 
+// v235: calçadas e pisos junto ao GRAMADO com as arestas suavizadas (curvas):
+// - canto de fora cercado de grama → arredondado;
+// - cantinho de grama entre duas calçadas (canto de dentro) → preenchido com uma curva.
+// Só onde encosta em grama: esquinas de rua, meio-fio e pisos entre si continuam retos.
+function chaoSuaviza(t) {
+  const est = ESTILO_CHAO[t]; if (!est) return false;
+  if ([CH.ASFALTO, CH.CAMPO, CH.QUADRA, CH.QUADRA_AZUL, CH.PISTA, CH.MADEIRA, CH.PISO, CH.AGUA, CH.GRAMA, CH.GRAMA_FLOR].includes(t)) return false;
+  return (est.r === 0 && est.e === 0) || [CH.PEDRA, CH.TERRA, CH.AREIA, CH.AREIA_MOLHADA].includes(t);
+}
+function caminhoSuave(m, t, tiles) {
+  const p = new Path2D(), R = 0.5 * T, Rf = 0.5 * T;
+  const at = (i, j) => (i >= 0 && j >= 0 && i < m.w && j < m.h) ? m.chao[j * m.w + i] : -1;
+  // chão "natural" em volta: grama, areia e terra (rua, meio-fio e pisos entre si continuam retos)
+  const NAT = [CH.GRAMA, CH.GRAMA_FLOR, CH.AREIA, CH.AREIA_MOLHADA, CH.TERRA];
+  const eN = v => v !== t && NAT.includes(v);
+  const mesmo = (a, b) => a === b || ((a === CH.GRAMA || a === CH.GRAMA_FLOR) && (b === CH.GRAMA || b === CH.GRAMA_FLOR));
+  const CANTOS = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; // ordem do roundRect: sup-esq, sup-dir, inf-dir, inf-esq
+  p.pre = []; // cantos que precisam do chão vizinho pintado por baixo (areia/terra: a grama já é o fundo)
+  for (const [i, j] of tiles) {
+    const raios = CANTOS.map(([sx, sy]) => {
+      const h = at(i + sx, j), v = at(i, j + sy), d = at(i + sx, j + sy);
+      if (!(eN(h) && mesmo(h, v) && mesmo(h, d))) return 0;
+      if (h !== CH.GRAMA && h !== CH.GRAMA_FLOR) p.pre.push([i * T + (sx > 0 ? T - R : 0), j * T + (sy > 0 ? T - R : 0), R, R, h]);
+      return R;
+    });
+    if (raios.some(r => r)) p.roundRect(i * T, j * T, T, T, raios); else p.rect(i * T, j * T, T, T);
+    for (const [sx, sy] of CANTOS) {
+      if (at(i + sx, j) !== t || at(i, j + sy) !== t || !eN(at(i + sx, j + sy))) continue;
+      const Px = i * T + (sx > 0 ? T : 0), Py = j * T + (sy > 0 ? T : 0);
+      p.moveTo(Px + sx * Rf, Py); p.arcTo(Px, Py, Px, Py + sy * Rf, Rf); p.lineTo(Px, Py); p.closePath();
+    }
+  }
+  return p;
+}
 function caminhoTiles(tiles, e, rad) {
   const p = new Path2D();
   for (const [i, j] of tiles) {
@@ -138,9 +172,9 @@ function renderChaoVetor(m) {
     const est = ESTILO_CHAO[t]; const tiles = [];
     for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if (m.chao[j * m.w + i] === t) tiles.push([i, j]);
     if (!tiles.length) continue;
-    const e = est.e * T, rad = est.r * T;
-    x.fillStyle = est.borda; x.fill(caminhoTiles(tiles, e + (t === CH.AGUA ? 6 : 3), rad + 3));
-    const corpo = caminhoTiles(tiles, e, rad);
+    const e = est.e * T, rad = est.r * T, suave = chaoSuaviza(t);
+    if (!suave) { x.fillStyle = est.borda; x.fill(caminhoTiles(tiles, e + (t === CH.AGUA ? 6 : 3), rad + 3)); }
+    const corpo = suave ? caminhoSuave(m, t, tiles) : caminhoTiles(tiles, e, rad);
     x.fillStyle = est.cor; x.fill(corpo);
     x.save(); x.clip(corpo); texturaChao(x, est.tex, tiles, r); x.restore();
   }

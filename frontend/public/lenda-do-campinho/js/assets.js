@@ -68,9 +68,17 @@ function renderChao(m) {
     const est = ESTILO_CHAO[t]; const tiles = [];
     for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if (m.chao[j * m.w + i] === t) tiles.push([i, j]);
     if (!tiles.length) continue;
-    const e = est.e * T, rad = est.r * T;
-    if (e > 0 || rad > 0) { x.fillStyle = t === CH.AGUA ? 'rgba(240,250,255,0.95)' : est.borda; x.globalAlpha = t === CH.AGUA ? 1 : 0.75; x.fill(caminhoTiles(tiles, e + (t === CH.AGUA ? 7 : 3), rad + 3)); x.globalAlpha = 1; }
-    const corpo = caminhoTiles(tiles, e, rad);
+    const e = est.e * T, rad = est.r * T, suave = typeof chaoSuaviza === 'function' && chaoSuaviza(t);
+    if (!suave && (e > 0 || rad > 0)) { x.fillStyle = t === CH.AGUA ? 'rgba(240,250,255,0.95)' : est.borda; x.globalAlpha = t === CH.AGUA ? 1 : 0.75; x.fill(caminhoTiles(tiles, e + (t === CH.AGUA ? 7 : 3), rad + 3)); x.globalAlpha = 1; }
+    const corpo = suave ? caminhoSuave(m, t, tiles) : caminhoTiles(tiles, e, rad);
+    if (suave && corpo.pre) for (const [px, py, pw, ph, n] of corpo.pre) { // o canto arredondado mostra a areia/terra do lado
+      x.fillStyle = padrao(x, TEX_CHAO[n], esc) || (ESTILO_CHAO[n] || {}).cor || '#f7e2a9'; x.fillRect(px, py, pw, ph);
+      if (n === CH.AREIA_MOLHADA) { x.fillStyle = 'rgba(120,90,40,0.2)'; x.fillRect(px, py, pw, ph); }
+    }
+    if (suave && (e > 0 || rad > 0)) { // terra/areia/pedra: a borda macia e o "inchadinho" seguem a curva (o traço de dentro some embaixo do preenchimento)
+      x.save(); x.lineJoin = 'round'; x.globalAlpha = 0.75; x.strokeStyle = est.borda; x.lineWidth = 2 * (e + 3); x.stroke(corpo); x.globalAlpha = 1;
+      if (e > 0) { x.strokeStyle = padrao(x, TEX_CHAO[t], esc) || est.cor; x.lineWidth = 2 * e; x.stroke(corpo); } x.restore();
+    }
     if (t === CH.AGUA && typeof pintaAgua === 'function') pintaAgua(x, m, corpo); // água lisa, sem quadriculado (agua.js)
     else { x.fillStyle = padrao(x, TEX_CHAO[t], esc) || est.cor; x.fill(corpo); }
     x.save(); x.clip(corpo);
