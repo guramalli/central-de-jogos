@@ -8,11 +8,11 @@
      (3×3, 5×5...) e os quadrados atingidos piscam no chão.
    - Como: trocamos só as peças básicas (mover/separar). A inteligência dos
      adversários, caminhos e cliques continuam os mesmos.
-   - Chave: ☰ Mais → "Movimento: quadradinhos / livre" (fica guardado neste aparelho).
+   - v178: não tem mais a opção "andar livre" (vale para todo mundo, como no Tibia).
    Carregar no FIM.
    ============================================================ */
+// v178: sempre em quadradinhos (o "andar livre" deixava os adversários encavalados; pedido do dono)
 const GRADE = { on: true, dt: 16 };
-try { GRADE.on = localStorage.getItem('rac_grade_v1') !== '0'; } catch (e) { }
 const GR_DIAG = 1.35; // passo na diagonal demora um pouco mais
 
 function grTile(e) { const s = e.pas; return s ? { x: s.tx, y: s.ty } : { x: Math.floor(e.x), y: Math.floor(e.y) }; }
@@ -140,17 +140,3 @@ G.areaGrade = null;
   };
 }
 
-/* ---------- chave: quadradinhos ou livre ---------- */
-function rotuloGrade() { return GRADE.on ? '🔲 Movimento: quadradinhos (trocar para livre)' : '🔲 Movimento: livre (trocar para quadradinhos)'; }
-{
-  const lista = document.querySelector('.tb-lista');
-  if (lista && !document.getElementById('btnGrade')) {
-    const b = el('button', { class: 'btn', id: 'btnGrade', type: 'button', role: 'menuitem' }, rotuloGrade());
-    b.addEventListener('click', () => {
-      GRADE.on = !GRADE.on; try { localStorage.setItem('rac_grade_v1', GRADE.on ? '1' : '0'); } catch (e) { }
-      if (G.p) { G.p.pas = null; if (GRADE.on) { G.p.x = Math.floor(G.p.x) + 0.5; G.p.y = Math.floor(G.p.y) + 0.5; } } for (const m of G.mons) m.pas = null;
-      b.textContent = rotuloGrade(); log(GRADE.on ? '🔲 Movimento em quadradinhos (como no Tibia): cada um no seu quadrado.' : '🔲 Movimento livre.', 'l-sis');
-    });
-    lista.append(b);
-  }
-}

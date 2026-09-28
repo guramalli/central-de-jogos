@@ -1086,19 +1086,38 @@ function desenha(dt) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const tela = (wx, wy) => ({ x: (wx * T - cam.x) * z, y: (wy * T - cam.y) * z });
   const px = G.dpr;
+  // v178: letreiros organizados, como no Tibia. Adversário: UMA linha com o nome (a cor diz a força:
+  // cinza/verde = fraco, branco = parelho, laranja/vermelho = forte) e a barra de vida embaixo na briga;
+  // o nível aparece no alvo marcado e com o mouse em cima. Nada encavala: quem importa mais aparece
+  // (o seu nome e barras, o alvo, quem está brigando, os mais perto) e os outros nomes somem enquanto cobririam.
+  const ocupados = [], cruzaR = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+  const cabe = r => !ocupados.some(o => cruzaR(r, o)), naoCobreEu = r => !ocupados.length || !cruzaR(r, ocupados[0]); // [0] = o seu nome e barras
+  const larguraTxt = (txt, tam) => { ctx.font = `700 ${tam * px}px Fredoka, Nunito, sans-serif`; return ctx.measureText(txt).width; };
+  { const s = G.save; const t = tela(G.p.x, G.p.y - alturaEnt(G.p) - 0.06); const w = Math.max(48 * px, larguraTxt(`Nv ${s.nivel} ${s.nome}`, 12.5)) / 2 + 3 * px; ocupados.push([t.x - w, t.y - 33 * px, t.x + w, t.y + 3 * px]); }
+  const fila = [];
   for (const e of [...G.mons, ...G.npcs]) {
-    const perto = dist(e, G.p) < 3.2, hover = G.mouse && G.mouse.ent === e;
     const topo = tela(e.x, e.y - alturaEnt(e) - 0.08);
     if (topo.x < -50 || topo.x > CV.width + 50 || topo.y < -50 || topo.y > CV.height + 50) continue;
-    if (e.hp !== undefined) {
-      // v163: nome e nível SEMPRE à vista (pedido do dono); a barra de vida só na briga
-      const briga = e === G.alvo || hover || e.bravo || e.hp < e.d.hp || (e.d.chefe && perto) || e.d.pedra;
-      if (e.d.treino) { rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#e8e8e8', 12); continue; }
-      const dy = briga ? 0 : 6 * px;
-      { const nv = nivelMonstro(e.d); rotulo(ctx, `Nv ${nv}`, topo.x, topo.y - 25 * px + dy, corNivel(nv), 11.5); } // força da criatura
-      rotulo(ctx, e.d.nome, topo.x, topo.y - 12 * px + dy, e.d.chefe ? '#ff8a7a' : '#ffffff', 12);
-      if (briga) barraVida(ctx, topo.x, topo.y - 6 * px, e.hp / e.d.hp);
-    } else placaNPC(ctx, e, topo.x, topo.y - 4 * px, perto || hover); // NPC: plaquinha com o nome, sempre à vista
+    const hover = G.mouse && G.mouse.ent === e, d = dist(e, G.p);
+    const briga = e.hp !== undefined && (e === G.alvo || hover || e.bravo || e.hp < e.d.hp || (e.d.chefe && d < 3.2) || e.d.pedra);
+    const prio = e === G.alvo ? -2 : hover ? -1 : e.hp === undefined ? 4 + d * 0.5 : e.d.chefe ? d * 0.3 : briga ? 1 + d * 0.5 : 8 + d;
+    fila.push({ e, topo, hover, briga, prio, d });
+  }
+  fila.sort((a, b) => a.prio - b.prio);
+  for (const { e, topo, hover, briga, d } of fila) {
+    if (e.hp === undefined) { // NPC: plaquinha com o nome, sempre à vista (se não cobrir algo mais importante)
+      const w = larguraTxt(e.d.nome, 11.5) / 2 + 16 * px, r = [topo.x - w, topo.y - 20 * px, topo.x + w, topo.y + 2 * px];
+      if (cabe(r) || hover) { placaNPC(ctx, e, topo.x, topo.y - 4 * px, d < 3.2 || hover); ocupados.push(r); }
+      continue;
+    }
+    if (e.d.treino) { const w = larguraTxt(e.d.nome, 11) / 2 + 2 * px, r = [topo.x - w, topo.y - 16 * px, topo.x + w, topo.y]; if (cabe(r)) { rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#e8e8e8', 11); ocupados.push(r); } continue; }
+    const nv = nivelMonstro(e.d), marcado = e === G.alvo || hover;
+    const txt = marcado ? `Nv ${nv} · ${e.d.nome}` : e.d.nome, cor = e.d.chefe ? '#ff8a7a' : corNivel(nv);
+    const yNome = briga ? topo.y - 11 * px : topo.y - 4 * px;
+    const w = larguraTxt(txt, 11.5) / 2 + 2 * px, rNome = [topo.x - w, yNome - 12 * px, topo.x + w, yNome + 2 * px];
+    const rBarra = [topo.x - 24 * px, topo.y - 9 * px, topo.x + 24 * px, topo.y - 2 * px];
+    if (marcado ? naoCobreEu(rNome) : cabe(rNome)) { rotulo(ctx, txt, topo.x, yNome, cor, 11.5); ocupados.push(rNome); }
+    if (briga && (marcado ? naoCobreEu(rBarra) : cabe(rBarra))) { barraVida(ctx, topo.x, topo.y - 5.5 * px, e.hp / e.d.hp, undefined, 5); ocupados.push(rBarra); }
   }
   for (const n of G.npcs) {
     const qs = MISSOES.filter(q => q.npc === n.id); let marca = null;
@@ -1112,7 +1131,7 @@ function desenha(dt) {
   desenhaTitulos(ctx, tela);
   for (const tx of G.textos) { const kk = (G.agora - tx.t0) / tx.dur; const t = tela(tx.x + tx.ox, tx.y - tx.alt * 0.7 - kk * 0.55); ctx.globalAlpha = kk > 0.7 ? (1 - kk) / 0.3 : 1; rotulo(ctx, tx.txt, t.x, t.y, tx.cor, 17); ctx.globalAlpha = 1; }
   const inter = interacaoPerto();
-  if (inter) { const t = tela(inter.x, inter.y - (inter.alt || 1) - 0.25); dicaTecla(ctx, t.x, t.y - 16 * px, 'E', inter.txt); }
+  if (inter) { const t = tela(inter.x, inter.y - (inter.alt || 1) - 0.25); dicaTecla(ctx, t.x, t.y - 16 * px, typeof teclaDaAcao === 'function' ? teclaDaAcao('interagir') : 'E', inter.txt); }
   desenhaGuia(ctx, tela);
   desenhaBuffs(ctx);
   desenhaMini();

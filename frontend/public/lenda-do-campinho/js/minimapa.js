@@ -153,6 +153,7 @@ function rotuloMini(x, txt, cx, cy, e, cor) {
   x.font = `700 ${10 * e}px Fredoka, Nunito, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
   { // nunca corta na beirada do mapa: empurra o nome pra dentro
     const W = x.canvas.width, H = x.canvas.height, meio = x.measureText(txt).width / 2 + 4 * e, alt = 8 * e;
+    if (x.canvas._mapaView && (cx < -12 * e || cx > W + 12 * e || cy < -12 * e || cy > H + 12 * e)) return; // mapa com zoom: o que ficou fora da tela não deixa o nome na beirada
     cx = Math.min(W - meio, Math.max(meio, cx)); cy = Math.min(H - alt, Math.max(alt, cy));
   }
   if (ROTULOS) {
@@ -193,18 +194,63 @@ desenhaMini = function () {
 // o mapa lateral abre o mapa grande
 document.addEventListener('click', ev => { if (ev.target && ev.target.id === 'mini' && G.rodando && typeof modalMapa === 'function') modalMapa(); });
 
-/* ---------- mapa grande (tecla M) ---------- */
+/* ---------- mapa grande (tecla M) ----------
+   v178: dá para dar ZOOM (rodinha do mouse no ponto, pinça no celular, duplo clique, botões + e -)
+   e ARRASTAR para passear. O desenho é refeito no zoom certo (nomes e marcadores continuam nítidos). */
 modalMapa = function () {
-  const m = G.mapa; const base = renderMiniHD(m, 16); // o dobro de detalhe do minimapa: fica nítido na janela grande
-  const esc = Math.min(1.2, Math.max(0.35, 1100 / base.width)); const c = mkCanvas(Math.round(base.width * esc), Math.round(base.height * esc)); const x = c.getContext('2d');
-  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(base, 0, 0, c.width, c.height);
-  const k = 16 * esc; const e = Math.max(1, k / 13);
-  ROTULOS = [];
-  // nomes dos prédios
-  for (const b of (m.predios || [])) if (b.interior && MAPAS_DEF[b.interior]) rotuloMini(x, getMapa(b.interior).nome, (b.porta.x + 0.5) * k, (b.porta.y + 1.9) * k, e * 0.9, '#ffe9a8');
-  for (const z of (m.zonas || [])) rotuloMini(x, '⚠ ' + z.nome, (z.x + z.w / 2) * k, (z.y + 1) * k, e * 0.9, '#ffb0b0');
-  desenhaMarcadores(x, wx => wx * k, wy => wy * k, e, true); ROTULOS = null;
-  c.className = 'mapa-grande'; c._mapaK = k; // escala (px por quadro) pro "passar o mouse"
+  const m = G.mapa; const base = renderMiniHD(m, 16); // 16 px por quadro
+  const esc0 = Math.min(1.2, Math.max(0.35, 1100 / base.width)); // zoom 1x = o mapa inteiro, como antes
+  const W = Math.round(base.width * esc0), H = Math.round(base.height * esc0), kBase = 16 * esc0;
+  const tilesW = base.width / 16, tilesH = base.height / 16, ZMAX = 5;
+  const c = mkCanvas(W, H); const x = c.getContext('2d');
+  const V = { z: 1, x0: 0, y0: 0 };
+  const limita = () => { const k = kBase * V.z; V.x0 = clamp(V.x0, 0, Math.max(0, tilesW - W / k)); V.y0 = clamp(V.y0, 0, Math.max(0, tilesH - H / k)); };
+  const rotZoom = el('span', { class: 'mz-nivel' }, '1×');
+  const desenhaTudo = () => {
+    const k = kBase * V.z, e = Math.max(1, kBase / 13) * (1 + (V.z - 1) * 0.22);
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.clearRect(0, 0, W, H);
+    x.drawImage(base, V.x0 * 16, V.y0 * 16, W / k * 16, H / k * 16, 0, 0, W, H);
+    const fx = wx => (wx - V.x0) * k, fy = wy => (wy - V.y0) * k;
+    ROTULOS = [];
+    for (const b of (m.predios || [])) if (b.interior && MAPAS_DEF[b.interior]) rotuloMini(x, getMapa(b.interior).nome, fx(b.porta.x + 0.5), fy(b.porta.y + 1.9), e * 0.9, '#ffe9a8');
+    for (const z of (m.zonas || [])) rotuloMini(x, '\u26a0 ' + z.nome, fx(z.x + z.w / 2), fy(z.y + 1), e * 0.9, '#ffb0b0');
+    desenhaMarcadores(x, fx, fy, e, true); ROTULOS = null;
+    c._mapaView = { x0: V.x0, y0: V.y0, k }; c.style.cursor = V.z > 1 ? 'grab' : 'zoom-in';
+    rotZoom.textContent = (Math.round(V.z * 10) / 10) + '×';
+  };
+  // zoom mantendo parado o ponto (px, py) do desenho
+  const zoomEm = (fator, px = W / 2, py = H / 2) => {
+    const k = kBase * V.z, wx = V.x0 + px / k, wy = V.y0 + py / k;
+    V.z = clamp(V.z * fator, 1, ZMAX); const k2 = kBase * V.z; V.x0 = wx - px / k2; V.y0 = wy - py / k2; limita(); desenhaTudo();
+  };
+  const noDesenho = ev => { const r = c.getBoundingClientRect(); return { px: (ev.clientX - r.left) * W / r.width, py: (ev.clientY - r.top) * H / r.height }; };
+  c.addEventListener('wheel', ev => { ev.preventDefault(); const p = noDesenho(ev); zoomEm(ev.deltaY < 0 ? 1.25 : 0.8, p.px, p.py); }, { passive: false });
+  c.addEventListener('dblclick', ev => { const p = noDesenho(ev); zoomEm(1.8, p.px, p.py); });
+  // arrastar (mouse ou 1 dedo) e pinça (2 dedos)
+  const toques = new Map(); let pinca = null;
+  c.addEventListener('pointerdown', ev => { try { c.setPointerCapture(ev.pointerId); } catch (e) { } toques.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); if (toques.size === 1 && V.z > 1) c.style.cursor = 'grabbing'; pinca = null; });
+  c.addEventListener('pointermove', ev => {
+    const ant = toques.get(ev.pointerId); if (!ant) return;
+    const agora = { x: ev.clientX, y: ev.clientY }; toques.set(ev.pointerId, agora);
+    if (toques.size >= 2) {
+      const [a, b] = [...toques.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinca) { const r = c.getBoundingClientRect(); zoomEm(d / pinca, ((a.x + b.x) / 2 - r.left) * W / r.width, ((a.y + b.y) / 2 - r.top) * H / r.height); }
+      pinca = d; return;
+    }
+    if (V.z <= 1) return;
+    const sc = W / c.getBoundingClientRect().width, k = kBase * V.z;
+    V.x0 -= (agora.x - ant.x) * sc / k; V.y0 -= (agora.y - ant.y) * sc / k; limita(); desenhaTudo();
+  });
+  const solta = ev => { toques.delete(ev.pointerId); if (toques.size < 2) pinca = null; c.style.cursor = V.z > 1 ? 'grab' : 'zoom-in'; };
+  c.addEventListener('pointerup', solta); c.addEventListener('pointercancel', solta);
+  c.style.touchAction = 'none';
+  const bt = (txt, title, fn) => el('button', { class: 'btn mini', type: 'button', title, onclick: fn }, txt);
+  const controles = el('div', { class: 'mapa-zoom' },
+    bt('\u2796', 'Afastar', () => zoomEm(0.7)), rotZoom, bt('\u2795', 'Aproximar', () => zoomEm(1.4)),
+    bt('\ud83d\udccd Eu', 'Aproximar em você', () => { V.z = Math.max(V.z, 2.5); const k = kBase * V.z; V.x0 = G.p.x - W / k / 2; V.y0 = G.p.y - H / k / 2; limita(); desenhaTudo(); }),
+    bt('\u2922 Inteiro', 'Ver o mapa inteiro', () => { V.z = 1; V.x0 = V.y0 = 0; desenhaTudo(); }),
+    el('small', { class: 'mz-dica' }, 'Rodinha do mouse / pinça = zoom · arraste para andar pelo mapa'));
+  c.className = 'mapa-grande'; desenhaTudo();
   const L = (html, txt) => el('span', { class: 'leg-item' }, el('span', { class: 'leg-ic ' + html[0] }, html[1]), txt);
   const legenda = el('div', { class: 'legenda-mapa' },
     L(['leg-voce', '➤'], 'Você'), L(['leg-alvo', '◯'], 'Objetivo (seta amarela)'), L(['leg-saida', '▶'], 'Saída'),
@@ -213,12 +259,9 @@ modalMapa = function () {
     el('span', { class: 'leg-item' }, '🛒 loja · 🔨 forja · ✈️ voos · 🚌 ônibus · ❤️ cura · 🎓 dribles · 📰 quiz · 📘 aula · 💼 empresário · 📋 desafios'));
   const regioes = el('div', { class: 'opcoes' }, ...MAPAS_ORDEM.map(id => { const f = MAPAS_FLAG[id]; const ok = !f || G.save.flags[f]; return el('span', { class: 'tag-reg' + (ok ? '' : ' bloq') + (G.mapa.id === id ? ' aqui' : '') }, (ok ? '' : '🔒 ') + getMapa(id).nome); }));
   abreModal.largo = true;
-  abreModal(el('h2', {}, `Mapa — ${m.nome}`), legenda, c, el('h3', {}, 'Regiões'), regioes);
+  abreModal(el('h2', {}, `Mapa — ${m.nome}`), legenda, controles, c, el('h3', {}, 'Regiões'), regioes);
   // anima os marcadores enquanto o mapa está aberto
-  const anima = () => { if ($('#modal').hidden || !document.body.contains(c)) { ROTULOS = null; return; } ROTULOS = []; x.drawImage(base, 0, 0, c.width, c.height);
-    for (const b of (m.predios || [])) if (b.interior && MAPAS_DEF[b.interior]) rotuloMini(x, getMapa(b.interior).nome, (b.porta.x + 0.5) * k, (b.porta.y + 1.9) * k, e * 0.9, '#ffe9a8');
-    for (const z of (m.zonas || [])) rotuloMini(x, '⚠ ' + z.nome, (z.x + z.w / 2) * k, (z.y + 1) * k, e * 0.9, '#ffb0b0');
-    desenhaMarcadores(x, wx => wx * k, wy => wy * k, e, true); ROTULOS = null; setTimeout(anima, 120); };
+  const anima = () => { if ($('#modal').hidden || !document.body.contains(c)) { ROTULOS = null; return; } desenhaTudo(); setTimeout(anima, 120); };
   setTimeout(anima, 120);
 };
 
@@ -227,6 +270,10 @@ modalMapa = function () {
   const st = document.createElement('style'); st.id = 'minimapa-css';
   st.textContent = `
   #mini { image-rendering: auto !important; cursor: zoom-in; border-radius: 6px; }
+  .mapa-zoom { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; }
+  .mapa-zoom .mz-nivel { min-width: 34px; text-align: center; font: 800 13px Fredoka, Nunito, sans-serif; }
+  .mapa-zoom .mz-dica { opacity: .75; font-size: 11.5px; }
+  canvas.mapa-grande { max-width: 100%; user-select: none; -webkit-user-select: none; }
   .legenda-mapa { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 700 12px Nunito, sans-serif; margin: 4px 0 8px; align-items: center; }
   .leg-item { display: inline-flex; align-items: center; gap: 4px; }
   .leg-ic { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; font: 800 10px Fredoka, Nunito, sans-serif; color: #1a1026; border: 2px solid #1a1026; }
@@ -281,10 +328,10 @@ document.addEventListener('mousemove', ev => {
     const px = (ev.clientX - r.left) * alvo.width / r.width, py = (ev.clientY - r.top) * alvo.height / r.height;
     const V = MINI_VIEW; const wx = V.x0 + (px - V.ox) / V.k, wy = V.y0 + (py - V.oy) / V.k;
     dicaDoMapa(ev, oQueTemNoMapa(wx, wy, 12 * (alvo.width / r.width) / V.k)); // ~12 px de tolerância
-  } else if (alvo.classList && alvo.classList.contains('mapa-grande') && alvo._mapaK) {
+  } else if (alvo.classList && alvo.classList.contains('mapa-grande') && alvo._mapaView) {
     const r = alvo.getBoundingClientRect(); if (!r.width) return;
-    const kk = alvo._mapaK * r.width / alvo.width; // px de tela por quadro
-    dicaDoMapa(ev, oQueTemNoMapa((ev.clientX - r.left) / kk, (ev.clientY - r.top) / kk, 12 / kk));
+    const V = alvo._mapaView, kk = V.k * r.width / alvo.width; // px de tela por quadro (com o zoom)
+    dicaDoMapa(ev, oQueTemNoMapa(V.x0 + (ev.clientX - r.left) / kk, V.y0 + (ev.clientY - r.top) / kk, 12 / kk));
   } else if (TIP && TIP.classList.contains('tip-mapa')) escondeTip();
 });
 document.addEventListener('mouseleave', () => { if (TIP && TIP.classList.contains('tip-mapa')) escondeTip(); });

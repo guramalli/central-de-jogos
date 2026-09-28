@@ -160,3 +160,41 @@ modalAtalhos = function () {
   `;
   document.head.append(st);
 })();
+
+/* ---------- v180: os textos mostram a tecla que a pessoa escolheu ----------
+   Muitos textos dizem "aperte E", "tecla I", "(C)"... Se a ação daquela letra mudou de tecla,
+   troca a letra pelo nome da tecla nova (numa passada só: trocar E↔F sai certo nos dois textos).
+   Vale para dicas, avisos, janelas, placas, tutorial e o balãozinho em cima das coisas. */
+function mapaLetrasTrocadas() {
+  const m = {};
+  for (const [a, , cod] of ACOES_TECLA) { const k = /^Key([A-Z])$/.exec(cod); if (!k) continue; const atual = teclaDe(a); if (atual !== cod) m[k[1]] = nomeTecla(atual); }
+  return m;
+}
+function textoComTeclas(t) {
+  if (typeof t !== 'string' || !t) return t;
+  const m = mapaLetrasTrocadas(); const ls = Object.keys(m); if (!ls.length) return t;
+  const L = ls.join('');
+  return t.replace(new RegExp(`\\b([Aa]perte|[Tt]ecla|[Aa]pertar) ([${L}])\\b`, 'g'), (_, v, l) => `${v} ${m[l]}`)
+    .replace(new RegExp(`\\(([${L}])\\)`, 'g'), (_, l) => `(${m[l]})`);
+}
+function teclaDaAcao(a) { return nomeTecla(teclaDe(a), true); }
+{
+  const _logTx = log; log = function (msg, ...r) { return _logTx.call(this, textoComTeclas(msg), ...r); };
+  const _bannerTx = banner; banner = function (a, b) { return _bannerTx.call(this, textoComTeclas(a), textoComTeclas(b)); };
+  if (typeof dica === 'function') { const _dicaTx = dica; dica = function (id, txt, ...r) { return _dicaTx.call(this, id, textoComTeclas(txt), ...r); }; }
+  const trocaNos = raiz => {
+    if (!raiz || !Object.keys(mapaLetrasTrocadas()).length) return;
+    const tw = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) { const v = textoComTeclas(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+    const m = mapaLetrasTrocadas(); raiz.querySelectorAll('.kbd').forEach(k => { const t = k.textContent.trim(); if (m[t]) k.textContent = m[t]; }); // selo de tecla do tutorial
+  };
+  const _abreModalTx = abreModal; abreModal = function () { const r = _abreModalTx.apply(this, arguments); trocaNos(document.getElementById('modalConteudo')); return r; };
+  // o cartão de dica/tutorial é refeito a cada atualização da tela (ex.: a cada chute no treino): se ele JÁ
+  // estava lá com o mesmo texto, volta sem a animação de entrada (antes ficava piscando)
+  let cartoesAntes = new Set();
+  const _rastTx = atualizaRastreador; atualizaRastreador = function () {
+    const r = _rastTx.apply(this, arguments); const R = document.getElementById('rastreador'); trocaNos(R);
+    if (R) { const cs = [...R.querySelectorAll('.cartao-dica, .cartao-tut, .cartao-tut-min')]; cs.forEach(c => { if (cartoesAntes.has(c.textContent)) c.style.animation = 'none'; }); cartoesAntes = new Set(cs.map(c => c.textContent)); }
+    return r;
+  };
+}
