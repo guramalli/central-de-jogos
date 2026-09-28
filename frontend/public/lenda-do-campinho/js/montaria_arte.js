@@ -21,9 +21,13 @@ Object.keys(MONT_ARTE).forEach(id => { const n = 'mt_' + id; if (!ASSET_SET.has(
 
 // recorta os 2 quadros (mesma caixa nos dois, para não "pular") e rotula os pixels do piloto
 const MONT_BASE = {};
-function baseMontaria(id) {
-  if (MONT_BASE[id]) return MONT_BASE[id];
-  const im = aSprite('mt_' + id); if (!im) return null;
+// v159: vistas de frente (_f) e de costas (_c) — antes a montaria andava sempre de lado
+const MONT_VISTAS = ['skate', 'bicicleta', 'lambreta', 'carro', 'conversivel', 'luxo', 'hover', 'diamante', 'dragao', 'nave'];
+MONT_VISTAS.forEach(id => ['_f', '_c'].forEach(v => { const n = 'mt_' + id + v; if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } }));
+function baseMontaria(id, v) {
+  const nome = 'mt_' + id + (v ? '_' + v : '');
+  if (MONT_BASE[nome]) return MONT_BASE[nome];
+  const im = aSprite(nome); if (!im) return null;
   const W = im.width, H = im.height, hw = W >> 1;
   const c = mkCanvas(W, H), x = c.getContext('2d'); x.drawImage(im, 0, 0);
   const all = x.getImageData(0, 0, W, H).data;
@@ -51,13 +55,13 @@ function baseMontaria(id) {
     for (let k = 1; k <= 4; k++) { const v = []; for (let i = 0; i < n; i += 3) if (rot[i] === k) v.push(lum[i]); v.sort((a, b) => a - b); ref[k] = v.length ? v[v.length >> 1] : 0.5; }
     quadros.push({ c: qc, d, rot, lum, sat, ref, w: cw, h: ch });
   }
-  return MONT_BASE[id] = { quadros };
+  return MONT_BASE[nome] = { quadros };
 }
 // pinta o piloto com as cores do jogador (e o carro de luxo de dourado)
 const MONT_PRONTA = new Map();
-function montariaPintada(id, q, sp) {
-  const b = baseMontaria(id); if (!b) return null;
-  const k = `${id}|${q}|${sp.corCab}|${sp.corRoupa}|${sp.corBaixo}|${sp.pele}`; const hit = MONT_PRONTA.get(k); if (hit) return hit;
+function montariaPintada(id, q, sp, v) {
+  const b = baseMontaria(id, v); if (!b) return null;
+  const k = `${id}|${v || ''}|${q}|${sp.corCab}|${sp.corRoupa}|${sp.corBaixo}|${sp.pele}`; const hit = MONT_PRONTA.get(k); if (hit) return hit;
   const f = b.quadros[q]; const out = mkCanvas(f.w, f.h), x = out.getContext('2d');
   const img = x.createImageData(f.w, f.h), o = img.data; o.set(f.d);
   const alvo = [null, sp.corCab, sp.corRoupa, sp.corBaixo, sp.pele].map(c => c ? bRgb(c) : null);
@@ -78,14 +82,18 @@ desenhaMontado = function (ctx, e) {
   const s = G.save; const id = s && s.montaria; const cfg = id && MONT_ARTE[id];
   if (!cfg) return _desenhaMontadoAntigo(ctx, e);
   const q = e.mov ? Math.floor(G.agora / cfg.anda) % 2 : 0;
-  const sp = specDe(lookJogador()); const c = montariaPintada(id, q, sp);
+  const sp = specDe(lookJogador()); const lado = montariaPintada(id, q, sp);
+  const v = e.vista === 'frente' ? 'f' : e.vista === 'costas' ? 'c' : null;
+  const vc = v && MONT_VISTAS.includes(id) ? montariaPintada(id, q, sp, v) : null; // subindo = de costas, descendo = de frente
+  const c = vc || lado;
   if (!c) return _desenhaMontadoAntigo(ctx, e);
   const alt = alturaEnt({ ...e, _semMont: true }); // o veículo cresce um pouco junto com o jogador
-  const w = cfg.w * T * (0.86 + 0.14 * alt / 1.56), h = w * c.height / c.width;
+  let w = cfg.w * T * (0.86 + 0.14 * alt / 1.56), h = w * c.height / c.width;
+  if (vc && lado) { h = w * lado.height / lado.width * 1.05; w = h * vc.width / vc.height; } // de frente/costas: mesma altura da vista de lado
   const x = e.x * T, y = e.y * T; const bump = e.mov ? Math.abs(Math.sin(G.agora / 70)) * 1.4 : 0;
   ctx.save(); ctx.translate(x, y - bump);
   ctx.fillStyle = 'rgba(30,20,40,0.26)'; ctx.beginPath(); ctx.ellipse(0, T * 0.1, w * 0.42, T * 0.2, 0, 0, 7); ctx.fill();
-  if (e.flip !== (cfg.face === 'e')) ctx.scale(-1, 1);
+  if (!vc && e.flip !== (cfg.face === 'e')) ctx.scale(-1, 1);
   ctx.drawImage(c, -w / 2, T * 0.2 - h, w, h);
   ctx.restore();
   e._altMont = (h - T * 0.2) / T;

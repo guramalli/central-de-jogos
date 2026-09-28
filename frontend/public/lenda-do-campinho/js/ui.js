@@ -148,7 +148,7 @@ function atualizaPaineis() {
   document.querySelectorAll('#hotbar .slot').forEach((b, i) => {
     const h = s.hotbar[i]; b.innerHTML = ''; b.append(el('span', { class: 'tecla' }, teclaSlot(i)));
     if (!h) { b.title = 'Vazio'; return; }
-    if (h.t === 'd') { const dr = DRIBLES[h.id]; b.prepend(iconeClone(iconeDrible(h.id))); b.title = `${dr.nome} — ${dr.desc} (nível ${dr.lvl}, ${dr.foco} de foco). Botão direito remove.`; }
+    if (h.t === 'd') { const dr = DRIBLES[h.id]; b.prepend(iconeClone(iconeDrible(h.id))); const tj = typeof tipoJogada === 'function' ? tipoJogada(dr) : null; if (tj) b.append(el('span', { class: 'tipo-j' }, tj.ic)); b.title = `${dr.nome} — ${dr.desc}${tj ? ' ' + textoJogada(dr) : ''} (nível ${dr.lvl}, ${dr.foco} de foco). Botão direito remove.`; }
     else { b.prepend(iconeClone(iconeItem(h.id))); b.append(el('span', { class: 'qtd' }, contaItem(h.id))); b.title = ITENS[h.id].nome + ' — botão direito remove.'; }
   });
   // equipamento: boneco com cada peça no seu lugar do corpo (desenho, posições e linhas em layout.js)
