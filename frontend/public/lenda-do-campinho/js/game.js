@@ -174,6 +174,10 @@ function precisaTentativas(sk, lv) {
   if (sk === 'visao') return Math.max(1, Math.round(60 * Math.pow(1.09, lv) * taxa));
   return Math.max(1, Math.round(18 * Math.pow(1.07, lv - 10) * taxa));
 }
+// v181: andar igual ao Tibia — vale a ÚLTIMA tecla de andar apertada (W+A não anda na diagonal; soltou a
+// última, volta a valer a anterior). Diagonal só com as teclas de diagonal, que entram como 'ul', 'ur', 'dl', 'dr'.
+const DIR_VET = { l: [-1, 0], r: [1, 0], u: [0, -1], d: [0, 1], ul: [-1, -1], ur: [1, -1], dl: [-1, 1], dr: [1, 1] };
+function dirTeclas() { let v = [0, 0]; for (const k of G.teclas) if (DIR_VET[k]) v = DIR_VET[k]; return v; } // o Set guarda a ordem em que foram apertadas
 function treinaSkill(sk, n) {
   const o = G.save.sk[sk]; o.t += n; let subiu = false; G.skSujo = true;
   while (o.t >= precisaTentativas(sk, o.lv)) { o.t -= precisaTentativas(sk, o.lv); o.lv++; subiu = true; }
@@ -365,7 +369,7 @@ function atualizaJogador(dt) {
   if (G.save.hp <= 0) return;
   const v = velJogador() * dt / 1000;
   let ix = 0, iy = 0;
-  if (G.teclas.has('l')) ix -= 1; if (G.teclas.has('r')) ix += 1; if (G.teclas.has('u')) iy -= 1; if (G.teclas.has('d')) iy += 1;
+  { const v = dirTeclas(); ix += v[0]; iy += v[1]; } // v181: como no Tibia (a última tecla apertada manda)
   if (G.joy) { ix = G.joy.x; iy = G.joy.y; }
   const antes = { x: p.x, y: p.y };
   if (ix || iy) {
@@ -1507,7 +1511,7 @@ function instalaEntrada() {
     const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
     if (ev.key === 'Escape') { if (!$('#modal').hidden) { if (!$('#modal .fechar').hidden) fechaModal(); } else { G.alvo = null; G.caminho = null; G.uiSujo = true; } return; }
     if (G.pausado) { if (window.teclaModal) window.teclaModal(ev); return; }
-    if (ev.key in TECLA_DIR) { ev.preventDefault(); G.teclas.add(TECLA_DIR[ev.key]); return; }
+    if (ev.key in TECLA_DIR) { ev.preventDefault(); if (!ev.repeat) { G.teclas.delete(TECLA_DIR[ev.key]); G.teclas.add(TECLA_DIR[ev.key]); } return; }
     if (ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') { ev.preventDefault(); interagir(); return; }
     if (ev.key === 'Tab' && ev.shiftKey) { ev.preventDefault(); alvoAnterior(); return; }
     if (ev.key === ' ' || ev.key === 'Tab') { ev.preventDefault(); alvoMaisProximo(); return; }

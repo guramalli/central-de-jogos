@@ -135,7 +135,8 @@ G.areaGrade = null;
   const _dcc2 = desenhaChaoClima;
   desenhaChaoClima = function (ctx) {
     const r = _dcc2.apply(this, arguments);
-    if (GRADE.on && G.alvo && G.mons.includes(G.alvo)) { const t = grTile(G.alvo); ctx.save(); ctx.strokeStyle = 'rgba(255,60,60,0.9)'; ctx.lineWidth = 3; ctx.strokeRect(t.x * T + 3, t.y * T + 3, T - 6, T - 6); ctx.restore(); }
+    // v184: segue a posição de verdade da criatura (antes usava o quadrado de destino e chegava antes dela)
+    if (GRADE.on && G.alvo && G.mons.includes(G.alvo)) { const a = G.alvo; ctx.save(); ctx.strokeStyle = 'rgba(255,60,60,0.9)'; ctx.lineWidth = 3; ctx.strokeRect((a.x - 0.5) * T + 3, (a.y - 0.5) * T + 3, T - 6, T - 6); ctx.restore(); }
     return r;
   };
 }

@@ -33,7 +33,7 @@ const CODIGOS_PADRAO = new Set([...Object.values(TECLA_PADRAO), 'KeyQ', ...Array
 // v168: andar como no Tibia — teclado numérico (8 2 4 6 retos; 7 9 1 3 diagonais, mesmo com o Num Lock ligado)
 // e Home / PgUp / End / PgDn (as diagonais do teclado numérico com o Num Lock desligado)
 // v176: 8 2 4 6 viraram ações que dá para trocar; Home/PgUp/End/PgDn só andam se não forem de nenhuma ação
-const ANDA_FIXA = { Home: ['u', 'l'], PageUp: ['u', 'r'], End: ['d', 'l'], PageDown: ['d', 'r'] };
+const ANDA_FIXA = { Home: 'ul', PageUp: 'ur', End: 'dl', PageDown: 'dr' };
 const MOD_TECLA = /^(Shift|Control|Alt)(Left|Right)$/;
 function nomeTecla(code, curto) {
   if (!code) return '—';
@@ -50,7 +50,7 @@ function salvaTeclas() { try { localStorage.setItem(TECLAS_KEY, JSON.stringify(T
 
 const MOVE_TECLA = { cima: 'u', baixo: 'd', esquerda: 'l', direita: 'r', cimaNum: 'u', baixoNum: 'd', esquerdaNum: 'l', direitaNum: 'r', cimaEsq: 'ul', cimaDir: 'ur', baixoEsq: 'dl', baixoDir: 'dr' };
 function executaAcao(a) {
-  if (MOVE_TECLA[a]) { for (const d of MOVE_TECLA[a]) G.teclas.add(d); return; }
+  if (MOVE_TECLA[a]) { G.teclas.delete(MOVE_TECLA[a]); G.teclas.add(MOVE_TECLA[a]); return; } // vai para o fim da fila: a última apertada manda
   if (a.startsWith('slot')) { usarHotbar(+a.slice(4)); return; }
   const f = {
     interagir: () => interagir(), alvo: () => alvoMaisProximo(), prioridade: () => trocaModoAlvo(), modo: () => trocaModo(), classe: () => usarClasse(),
@@ -83,13 +83,13 @@ window.addEventListener('keydown', ev => {
   if (typeof HIST !== 'undefined' && HIST) return; // cena da história aberta
   const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
   if (!MOD_TECLA.test(ev.code)) TECLA_MOD = null;
-  if (ANDA_FIXA[ev.code] && !acaoDaTecla(ev.code)) { ev.preventDefault(); ev.stopImmediatePropagation(); for (const d of ANDA_FIXA[ev.code]) G.teclas.add(d); return; }
+  if (ANDA_FIXA[ev.code] && !acaoDaTecla(ev.code)) { ev.preventDefault(); ev.stopImmediatePropagation(); if (!ev.repeat) { G.teclas.delete(ANDA_FIXA[ev.code]); G.teclas.add(ANDA_FIXA[ev.code]); } return; }
   const a = acaoDaTecla(ev.code) || (MOD_TECLA.test(ev.code) ? acaoDaTecla(ev.code.replace('Right', 'Left')) : null); // Shift da direita = Shift da esquerda
   // ação num Shift/Ctrl/Alt: só vale ao SOLTAR sem ter apertado outra tecla junto (Shift+Tab, Shift+clique continuam normais)
   if (a && MOD_TECLA.test(ev.code)) { if (!ev.repeat) TECLA_MOD = { code: ev.code, acao: a }; return; }
   if (a) {
     ev.preventDefault(); ev.stopImmediatePropagation();
-    if (ev.repeat && !MOVE_TECLA[a] && !a.startsWith('slot')) return; // segurar a tecla não abre a mesma janela 30 vezes
+    if (ev.repeat && !a.startsWith('slot')) return; // segurar a tecla não abre a mesma janela 30 vezes (e andar não reordena a fila) // segurar a tecla não abre a mesma janela 30 vezes
     executaAcao(a); return;
   }
   // tecla que era de uma ação e mudou de dono: não faz mais nada
@@ -104,9 +104,9 @@ window.addEventListener('keyup', ev => {
     if (G.rodando && !G.pausado && !(typeof HIST !== 'undefined' && HIST)) executaAcao(acao);
     return;
   }
-  if (ANDA_FIXA[ev.code] && !acaoDaTecla(ev.code)) { for (const d of ANDA_FIXA[ev.code]) G.teclas.delete(d); ev.stopImmediatePropagation(); return; }
+  if (ANDA_FIXA[ev.code] && !acaoDaTecla(ev.code)) { G.teclas.delete(ANDA_FIXA[ev.code]); ev.stopImmediatePropagation(); return; }
   const a = acaoDaTecla(ev.code);
-  if (a && MOVE_TECLA[a]) { for (const d of MOVE_TECLA[a]) G.teclas.delete(d); ev.stopImmediatePropagation(); }
+  if (a && MOVE_TECLA[a]) { G.teclas.delete(MOVE_TECLA[a]); ev.stopImmediatePropagation(); }
   else if (CODIGOS_PADRAO.has(ev.code) && !a) ev.stopImmediatePropagation();
 }, true);
 
