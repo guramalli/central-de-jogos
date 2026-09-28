@@ -61,6 +61,15 @@ Object.assign(ITENS, {
 Object.assign(OBJ_INFO, { banca_livros: { w: 1.9, b: 1 }, metro_paris: { w: 1.9, b: 1 }, carrinho_crepe: { w: 1.4, b: 1 }, cavalete: { w: 1.1, b: 1 } });
 Object.assign(PORTAS, { b_paris1: { x: 0.5, y: 0.93 }, b_paris2: { x: 0.5, y: 0.93 } });
 ['i_croissant', 'i_macarons', 'i_boina', 'i_mini_eiffel', 'b_paris1', 'b_paris2', 'banca_livros', 'metro_paris', 'carrinho_crepe', 'cavalete'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
+// v234: Santos — pastel com caldo de cana, sacas de café do porto e a estatueta do Rei
+Object.assign(ITENS, {
+  pastel_caldo: { nome: 'Pastel com Caldo de Cana', tipo: 'comida', efeito: { dur: 900, regen: 6, regenFoco: 4, vel: 10, atr: { habilidade: 10, folego: 10, inteligencia: 10 } }, lvl: 182, preco: 3400, venda: 680, desc: 'De Santos: +Habilidade, +Fôlego, +Inteligência, velocidade, foco e recuperação por 15 min.' },
+  saca_cafe: { nome: 'Saca de Café', tipo: 'loot', venda: 2600, desc: 'Por mais de cem anos, o café do Brasil saiu pelo Porto de Santos para o mundo inteiro.' },
+  estatueta_rei: { nome: 'Estatueta Dourada do Rei', tipo: 'chave', desc: 'Presente do Museu Pelé para quem enfrentou o Esquadrão de 1962 na Vila Belmiro. O Rei do Futebol mora no coração de quem joga com alegria!' },
+});
+['i_pastel_caldo', 'i_saca_cafe', 'i_estatueta_rei', 'b_santos1', 'b_santos2', 'guindaste_porto', 'sacas_cafe', 'jardim_orla', 'carrinho_caldo', 'mureta_orla', 'pilar_orla', 'farol_orla', 'pavilhao_orla', 't_calcada_santos'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
+Object.assign(OBJ_INFO, { guindaste_porto: { w: 1.6, b: 1 }, sacas_cafe: { w: 1.2, b: 1 }, jardim_orla: { w: 1.5, b: 1 }, carrinho_caldo: { w: 1.4, b: 1 }, mureta_orla: { w: 1.12, b: 1 }, pilar_orla: { w: 0.7, b: 1 }, farol_orla: { w: 1.1, b: 1 }, pavilhao_orla: { w: 2.4, b: 1 } });
+Object.assign(PORTAS, { b_santos1: { x: 0.5, y: 0.93 }, b_santos2: { x: 0.5, y: 0.93 } });
 // Buenos Aires e Rio de Janeiro (v233: níveis 106 e 118; os itens Galáxia viraram equipamento de Madri e Londres)
 Object.assign(ITENS, {
   chuteira_galaxia: { nome: 'Chuteira Galáxia', tipo: 'equip', slot: 'chuteira', atk: 52, st: { vel: 14, drible: 3 }, lvl: 172, preco: 420000, venda: 90000, desc: 'Ataque 52, +14 velocidade, +3 drible.' },
@@ -196,6 +205,13 @@ const CIDADES = [
     cores: ['#f8d838', '#1a9a3a'], chefeLook: { pele: 'pele-retinta', cabelo: 'cabelo-black-power', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#f8d838', baixo: 'baixo-shorts', chapeu: 'chapeu-coroa' },
     loja: { nome: 'Seu Tião do Mate', ola: 'Ó o mate! Biscoito e mate geladinho pra aguentar o calor de Copacabana!', look: { pele: 'pele-negra', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-regata', baixo: 'baixo-praia', chapeu: 'chapeu-bone' } },
     lider: { nome: 'Dona Glória, técnica da seleção', ola: 'Bem-vindo(a) de volta ao Brasil! Vença a elite daqui e ganhe o mundo. Quando for uma lenda, a Copa do Mundo te espera aqui no Rio!', look: { corpo: 'f', pele: 'pele-morena', cabelo: 'cabelo-cacheado', corCabelo: 'grisalho', roupa: 'roupa-moletom', corRoupa: '#1a9a3a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
+  // ---- v234: Santos (a última parada antes da Copa: Vila Belmiro, a casa do Rei) ----
+  { id: 'santos', nome: 'Santos — Orla e Vila Belmiro', L: 188, base: CH.CALCADA, rua: CH.ASFALTO, seed: 910, agua: true, cais: CH.AREIA, predios: ['b_santos1', 'b_santos2'], marco: 'farol_orla', marcoLarg: 1,
+    props: ['jardim_orla', 'sacas_cafe', 'carrinho_caldo', 'guarda_sol', 'quiosque'], arvores: ['coqueiro', 'coqueiro2'], enfeitesLoja: [['carrinho_caldo', 2], ['sacas_cafe', -2]], zona: 'Praia do Gonzaga', comida: 'pastel_caldo', lootEsp: 'saca_cafe',
+    nomes: { rapido: 'Ponta Menino da Vila', meia: 'Meia Menino da Vila', zagueiro: 'Zagueiro Menino da Vila', chefe: 'Capitão dos Meninos da Vila' },
+    cores: ['#f4f4f8', '#1a1a1a'], chefeLook: { pele: 'pele-media', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-futebol', corRoupa: '#f4f4f8', baixo: 'baixo-shorts' },
+    loja: { nome: 'Seu Nenê do Pastel', ola: 'Pastel quentinho e caldo de cana geladinho! Aqui na Baixada Santista é tradição!', look: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-regata', corRoupa: '#f4f4f8', baixo: 'baixo-jeans', chapeu: 'chapeu-bone' } },
+    lider: { nome: 'Dona Zilda, técnica da base', ola: 'Aqui na Vila Belmiro nascem os Meninos da Vila: pedalada, chapéu, caneta e muita alegria. Aguenta o ritmo deles?', look: { corpo: 'f', pele: 'pele-negra', cabelo: 'cabelo-coque', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#1a1a1a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
 ];
 
 // v233: equipamento de cada loja/queda segue o DEGRAU da cidade (a ordem nova do mundo)
@@ -205,9 +221,10 @@ const GEAR_POR_CIDADE = {
   lisboa: ['chuteira_elite', 'camisa_elite', 'caneleira_elite', 'chuteira_tita'], paris: ['chuteira_elite', 'camisa_tita', 'chuteira_tita', 'caneleira_elite'],
   munique: ['chuteira_tita', 'camisa_tita', 'caneleira_elite', 'cachecol'], milao: ['chuteira_tita', 'camisa_tita', 'caneleira_galaxia', 'cachecol'],
   madri: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'camisa_tita'], londres: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'medalha_copa'],
+  santos: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'medalha_copa'],
 };
 const LOOT_GEAR = { cairo: 'chuteira_mundo', doha: 'pulseira', toquio: 'camisa_mundo', miami: 'pulseira', buenos: 'chuteira_elite', rio: 'caneleira_elite',
-  lisboa: 'chuteira_tita', paris: 'camisa_tita', munique: 'camisa_lenda', milao: 'chuteira_lenda', madri: 'caneleira_galaxia', londres: 'medalha_copa' };
+  lisboa: 'chuteira_tita', paris: 'camisa_tita', munique: 'camisa_lenda', milao: 'chuteira_lenda', madri: 'caneleira_galaxia', londres: 'medalha_copa', santos: 'medalha_copa' };
 
 for (const c of CIDADES) {
   const L = c.L, id = c.id, cor = c.cores[0];
@@ -227,7 +244,7 @@ for (const c of CIDADES) {
   }
   NPCS['loja_' + id] = { nome: c.loja.nome, ola: c.loja.ola, loja: [c.comida, 'agua_coco', 'vitamina', ...GEAR_POR_CIDADE[id]], look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, c.loja.look) };
   NPCS['lider_' + id] = { nome: c.lider.nome, ola: c.lider.ola, look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, c.lider.look) };
-  MAPAS_DEF[id] = () => criaCidade(c);
+  MAPAS_DEF[id] = () => (c.cria || criaCidade)(c); // v234: Santos tem mapa próprio (santos_mapa.js)
   DESAFIOS[id] = [[c.rapido, 150], [c.meia, 150], [c.zagueiro, 150]].concat(c.fanatico ? [[c.fanatico, 150]] : []);
   // missões
   const xpNivel = x => xpPara(x + 1) - xpPara(x);
@@ -280,7 +297,7 @@ for (const [id, [cid, arq]] of Object.entries(EUR_ARQ)) {
   if (arq === 'rapido' || arq === 'zagueiro') m.loot.push([LOOT_GEAR[cid], arq === 'zagueiro' ? 0.004 : 0.003, 1, 1]);
 }
 // v233: ordem pela relevância do futebol (o nível de cada voo é o do degrau da cidade)
-const ORDEM_MUNDO = ['cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'];
+const ORDEM_MUNDO = ['cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao', 'madri', 'londres', 'santos'];
 Object.assign(VOOS, {
   cairo: { nome: 'Cairo, Egito', lvl: 50, preco: 2000 },
   doha: { nome: 'Doha, Catar', lvl: 62, preco: 3000 },
@@ -294,6 +311,7 @@ Object.assign(VOOS, {
   milao: { nome: 'Milão, Itália', lvl: 156, preco: 18000 },
   madri: { nome: 'Madri, Espanha', lvl: 162, preco: 20000 },
   londres: { nome: 'Londres, Inglaterra', lvl: 176, preco: 25000 },
+  santos: { nome: 'Santos, Brasil (Vila Belmiro)', lvl: 182, preco: 28000 },
 });
 // ordem de exibição dos voos
 { const ord = ['cidade', ...ORDEM_MUNDO]; const cp = Object.assign({}, VOOS); for (const k of Object.keys(VOOS)) delete VOOS[k]; for (const k of ord) VOOS[k] = cp[k]; }

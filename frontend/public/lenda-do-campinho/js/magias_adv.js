@@ -27,7 +27,7 @@ const MAG_EL = {
 };
 // cidade → elemento (Brasil: tremor; o mundo com a sua cara)
 const MAG_CIDADE = { vila: 'terra', praia: 'agua', cidade: 'terra', ct: 'terra', estadio: 'energia', cairo: 'areia', toquio: 'energia', doha: 'fogo', miami: 'agua',
-  lisboa: 'agua', madri: 'fogo', milao: 'veneno', munique: 'gelo', londres: 'sonico', paris: 'energia', buenos: 'fogo', rio: 'confete' };
+  lisboa: 'agua', madri: 'fogo', milao: 'veneno', munique: 'gelo', londres: 'sonico', paris: 'energia', buenos: 'fogo', rio: 'confete', santos: 'agua' };
 // arquétipo → formato
 const MAG_FORMA = { zagueiro: 'anel', volante: 'onda', centroavante: 'raio', meia: 'bola', ponta: 'raio', goleiro: 'anel', torcedor: 'bola', arbitro: null };
 // criaturas e ETs: [elemento, formato, deixa campo?]

@@ -9,7 +9,7 @@
    Tudo com cuidado: nada na frente de porta, placa ou pessoa, e nenhum caminho pode fechar.
    Carregar DEPOIS de ruas.js.
    ============================================================ */
-const AMB_ARVORE = { cairo: 'palmeira_tamara', toquio: 'cerejeira', doha: 'palmeira_real', miami: 'palmeira_real', milao: 'cipreste', munique: 'pinheiro', paris: 'arvore', buenos: 'arvore', rio: 'coqueiro', lisboa: 'arvore', londres: 'arvore', madri: 'arvore' };
+const AMB_ARVORE = { cairo: 'palmeira_tamara', toquio: 'cerejeira', doha: 'palmeira_real', miami: 'palmeira_real', milao: 'cipreste', munique: 'pinheiro', paris: 'arvore', buenos: 'arvore', rio: 'coqueiro', santos: 'arvore', lisboa: 'arvore', londres: 'arvore', madri: 'arvore' };
 
 function ambienta(m) {
   if (m.interior || m._amb) return; m._amb = true;

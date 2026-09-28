@@ -35,6 +35,7 @@ const CASA_LOCAIS = [
   ['milao', 'Milão', 1050000, 'Via della Moda', 'casa_luxo'],
   ['madri', 'Madri', 1200000, 'Calle Mayor', 'casa_luxo'],
   ['londres', 'Londres', 1600000, 'Baker Street', 'casa_luxo'],
+  ['santos', 'Santos', 1800000, 'Avenida da Praia', 'casa_azul'],
 ];
 const CASA_MAX_POR_MAPA = 3, CASA_MIN_POR_MAPA = 2;
 const CASAS = {}, CASAS_POR_MAPA = {};

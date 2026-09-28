@@ -10,7 +10,7 @@
    Carregar ANTES de casas.js.
    ============================================================ */
 const ARMAZEM_MAX = 150, MOCHILA_MAX = 30;
-const ARMAZEM_LOCAIS = ['vila', 'praia', 'cidade', 'ct', 'estadio', 'cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'];
+const ARMAZEM_LOCAIS = ['vila', 'praia', 'cidade', 'ct', 'estadio', 'cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao', 'madri', 'londres', 'santos'];
 
 function armazem() {
   const s = G.save; if (!Array.isArray(s.armazem)) s.armazem = [];

@@ -11,7 +11,7 @@ const MASSAGISTAS = {
   vila: ['Massagista Bené', 'm'], praia: ['Massagista Dora', 'f'], cidade: ['Massagista Juca', 'm'], ct: ['Massagista Lúcia', 'f'], estadio: ['Massagista Tonho', 'm'],
   cairo: ['Massagista Samir', 'm'], toquio: ['Massagista Aiko', 'f'], doha: ['Massagista Nadia', 'f'], miami: ['Massagista Joe', 'm'], lisboa: ['Massagista Inês', 'f'],
   madri: ['Massagista Paco', 'm'], milao: ['Massagista Giulia', 'f'], munique: ['Massagista Hans', 'm'], londres: ['Massagista Olivia', 'f'], paris: ['Massagista Amélie', 'f'],
-  buenos: ['Massagista Tito', 'm'], rio: ['Massagista Glória', 'f'],
+  buenos: ['Massagista Tito', 'm'], rio: ['Massagista Glória', 'f'], santos: ['Massagista Zeca', 'm'],
 };
 const LOJA_BATALHA = ['agua', 'isotonico', 'acai', 'suco_verde', 'vitamina', 'agua_coco', 'energetico', 'guarana', 'kit_massagista', 'isotonico_pro', 'elixir_mar', 'perola_azul', 'soro_estelar', 'cristal_foco'];
 const PELES_MASS = ['pele-morena', 'pele-negra', 'pele-clara', 'pele-media'];

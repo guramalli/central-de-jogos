@@ -13,7 +13,7 @@ const venceuEst = (f, id) => (f.arenas || []).some(a => a.id === id && a.vitoria
 const CONQ_ESTADIO = {
   cairo: ['Faraó do Cairu', '🐫'], toquio: ['Samurai de Tókyo', '🗾'], doha: ['Sultão das Dunas', '🏜️'], miami: ['Astro de Miamy', '🌴'],
   lisboa: ['Águia da Luz', '🦅'], madri: ['Galáctico do Bernabéo', '👑'], milao: ['Maestro do San Syro', '🎼'], munique: ['Kaiser da Aliança Arena', '🏰'],
-  londres: ['Lorde de Stamford Brydge', '🎩'], paris: ['Príncipe do Parque', '🗼'], buenos: ['Dono da Bombonerra', '🎺'], rio: ['Rei do Maracanã', '🏆'],
+  londres: ['Lorde de Stamford Brydge', '🎩'], paris: ['Príncipe do Parque', '🗼'], buenos: ['Dono da Bombonerra', '🎺'], rio: ['Rei do Maracanã', '🏆'], santos: ['Menino da Vila Belmiro', '🐟'],
 };
 const CONQUISTAS = [];
 // estádios

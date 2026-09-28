@@ -19,7 +19,7 @@ const APARELHOS = {
 const ORDEM_EST = ['chute', 'defesa', 'drible', 'visao'];
 const EST_CD = 1200; // v195: treinar ONLINE no aparelho rende 2,5x o treino offline (o boneco comum: 2x)
 // onde fica o centro (coordenada de projeto, antes do "espalha"); sem ref = perto de onde a pessoa chega
-const CENTROS_TREINO = { vila: [12, 22], ct: [8, 31], praia: null, cidade: null, cairo: null, toquio: null, doha: null, miami: null, lisboa: null, madri: null, milao: null, munique: null, londres: null, paris: null, buenos: null, rio: null };
+const CENTROS_TREINO = { vila: [12, 22], ct: [8, 31], praia: null, cidade: null, cairo: null, toquio: null, doha: null, miami: null, lisboa: null, madri: null, milao: null, munique: null, londres: null, paris: null, buenos: null, rio: null, santos: null };
 for (const e of Object.values(APARELHOS)) {
   if (!ASSET_SET.has(e.spr)) { ASSETS.push(e.spr); ASSET_SET.add(e.spr); }
   const W = 2.5, H = W * e.ar;

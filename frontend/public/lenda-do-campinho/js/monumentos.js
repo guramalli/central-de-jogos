@@ -32,6 +32,13 @@ const MONUMENTOS = {
     { spr: 'mon_cristo', w: 6, h: 4, ar: 1.442, ref: [6, 22], nome: 'Cristo Redentor', txt: 'No alto do Corcovado, tem 38 metros e é uma das Sete Maravilhas do Mundo Moderno!' },
     { spr: 'mon_paodeacucar', w: 8, h: 4, ar: 0.852, ref: [30, 30], nome: 'Pão de Açúcar', txt: 'O bondinho que sobe até o topo existe desde 1912, um dos primeiros do mundo.' },
   ],
+  // v234: Santos
+  santos: [
+    { spr: 'mon_pele', w: 3, h: 2, ar: 1.689, ref: [24, 33], chao: CH.GRAMA, nome: 'Estátua Dourada do Rei Pelé', txt: 'Pelé, o Rei do Futebol: fez mais de mil gols e é o único jogador tricampeão da Copa do Mundo (1958, 1962 e 1970). Jogou quase toda a carreira aqui, no Santos!' },
+    { spr: 'mon_museu_pele', w: 7, h: 3, ar: 0.762, ref: [6, 10], nome: 'Museu Pelé', txt: 'Fica em casarões históricos restaurados do bairro do Valongo e guarda troféus, fotos e camisas do Rei. Fale com a guia do museu!' },
+    { spr: 'mon_bolsa_cafe', w: 5, h: 3, ar: 1.331, ref: [21, 10], nome: 'Bolsa Oficial do Café', txt: 'Por mais de cem anos, o café do Brasil saiu pelo Porto de Santos, o maior da América Latina. O relógio da torre é famoso!' },
+    { spr: 'mon_predios_tortos', w: 5, h: 3, ar: 1.327, ref: [6, 25], nome: 'Prédios Tortos da Orla', txt: 'Alguns prédios da orla de Santos são inclinados porque foram construídos sobre um chão de argila mole. Tem prédio que fica mais de 1 metro fora do prumo lá no alto!' },
+  ],
 };
 for (const lista of Object.values(MONUMENTOS)) for (const d of lista) {
   if (!ASSET_SET.has(d.spr)) { ASSETS.push(d.spr); ASSET_SET.add(d.spr); }
@@ -51,7 +58,7 @@ function poeMonumento(m, d) {
   const livre = (x, y) => dentro(x, y) && solto(i(x, y)) && CH_ANDA(m.chao[i(x, y)]) && m.chao[i(x, y)] !== CH.AGUA;
   // chão mais comum do mapa: o monumento prefere ficar numa praça, não em cima da rua
   const conta = {}; for (const c of m.chao) conta[c] = (conta[c] || 0) + 1;
-  const base = +Object.keys(conta).filter(c => CH_ANDA(+c) && +c !== CH.AGUA).sort((a, b) => conta[b] - conta[a])[0];
+  const base = d.chao != null ? d.chao : +Object.keys(conta).filter(c => CH_ANDA(+c) && +c !== CH.AGUA).sort((a, b) => conta[b] - conta[a])[0]; // v234: d.chao = chão preferido (a estátua do Rei fica no jardim)
   const dp = typeof dimProjeto === 'function' && dimProjeto(m.id);
   const ref = dp ? { x: escalaCoord(d.ref[0], dp[0], tamNovo(dp[0])), y: escalaCoord(d.ref[1], dp[1], tamNovo(dp[1])) } : { x: m.w >> 1, y: m.h >> 1 };
   const cruza = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
