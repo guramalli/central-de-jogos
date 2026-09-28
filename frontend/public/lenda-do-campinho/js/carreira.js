@@ -729,7 +729,7 @@ function checaCarreira() {
       c.avisoInicio = true;
       carrBanner('Proposta de carreira!', 'O Empresário Rodrigues quer falar com você (tecla U)');
       carrLog('💼 O Empresário Rodrigues quer começar sua CARREIRA PROFISSIONAL! Aperte U.', 'l-xp'); carrSom('apito');
-      try { if (typeof dica === 'function') dica('carreira_inicio', 'Você chegou ao nível 25! Aperte U para abrir a Carreira: assine com um clube, cumpra metas e vá às reuniões com o dirigente.'); } catch (e) { /* sem dica */ }
+      try { if (typeof dica === 'function') dica('carreira_inicio', 'Você chegou ao nível 25! Clique no botão ⭐ Carreira que está PISCANDO (ou aperte U): assine com um clube, cumpra metas e vá às reuniões com o dirigente.', '[data-abre="carreira"]'); } catch (e) { /* sem dica */ }
     }
     c.ultimoPagamento = d;
     return;

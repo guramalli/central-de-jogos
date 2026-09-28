@@ -16,7 +16,8 @@
   const PRE = 0.05;       // início do loop dentro do arquivo (folga para atraso do decodificador mp3)
 
   // duração exata do corpo do loop (o arquivo tem +0,5 s repetindo o começo, para emenda perfeita)
-  const MUSICAS = { titulo: 18.5388, vila: 18.5388, cidade: 18.5388, mundo: 16.5788, europa: 18.5388 };
+  const MUSICAS = { titulo: 18.5388, vila: 18.5388, cidade: 18.5388, mundo: 16.5788, europa: 18.5388,
+    vila2: 58.0236, cidade2: 58.0236, mundo2: 58.0236, europa2: 58.0236, caca: 58.0236, estadio: 58.0236 }; // v155: faixas longas (1 min) — as de 18 s repetiam demais
   const AMBIENTE = { torcida: 11.65 };
 
   // tipo do jogo -> [arquivo, volume, variação de pitch, intervalo mínimo (ms), vozes máx.]
@@ -270,16 +271,18 @@
   }
 
   /* ---------- sessões de música: toca um pouco, dá um tempo, volta (às vezes outra faixa) ---------- */
-  const ALTERNA = { vila: ['vila', 'vila', 'titulo'], cidade: ['cidade', 'cidade', 'vila'], mundo: ['mundo', 'mundo', 'titulo'], europa: ['europa', 'europa', 'mundo'] };
-  const PAUSA = [50, 100];   // segundos de intervalo (só ambiente)
-  const VOLTAS = 2;          // quantas voltas da faixa por sessão
+  // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
+  const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
+  const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
+  const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
   function sessao(base) {
     const S = A.ses || (A.ses = { base: null });
     const agora = performance.now() / 1000;
-    if (S.base !== base) { S.base = base; S.fase = 'toca'; S.faixa = base; S.ate = agora + (MUSICAS[base] || 18) * VOLTAS; } // lugar novo: música na hora
+    const op = ALTERNA[base] || [base];
+    if (S.base !== base) { S.base = base; S.fase = 'toca'; S.faixa = op[0]; S.ate = agora + duracaoSessao(S.faixa); } // lugar novo: a faixa longa da região, na hora
     if (agora > S.ate) {
       if (S.fase === 'toca') { S.fase = 'pausa'; S.ate = agora + PAUSA[0] + Math.random() * (PAUSA[1] - PAUSA[0]); }
-      else { const op = ALTERNA[base] || [base]; S.faixa = op[Math.floor(Math.random() * op.length)]; S.fase = 'toca'; S.ate = agora + (MUSICAS[S.faixa] || 18) * VOLTAS; }
+      else { const outras = op.filter(f => f !== S.faixa); S.faixa = (outras.length ? outras : op)[Math.floor(Math.random() * (outras.length || op.length))]; S.fase = 'toca'; S.ate = agora + duracaoSessao(S.faixa); }
     }
     return S.fase === 'toca' ? S.faixa : null;
   }
@@ -348,7 +351,7 @@
     if (partida) return { musica: 'cidade', torcida: true };
     if (typeof G !== 'undefined' && G.rodando && G.mapa) {
       const id = G.mapa.id;
-      let f = faixaDoMapa(id);
+      let f = G.mapa.caca ? 'caca' : (G.mapa.estadio || G.mapa.arena) ? 'estadio' : faixaDoMapa(id); // v155: caçadas e estádios/arenas têm música própria
       if (!f && G.mapa.interior && A.faixa) f = A.faixa;   // interiores desconhecidos: mantém a faixa
       return { musica: f || A.faixa || 'vila', torcida: id === 'estadio' };
     }

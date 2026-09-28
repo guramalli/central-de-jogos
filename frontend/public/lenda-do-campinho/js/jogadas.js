@@ -48,7 +48,9 @@ function spriteChute(base, ang) {
 const jSuave = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
 
 function iniciaJogada(id) {
-  const p = G.p; const a = G.alvo && G.mons.includes(G.alvo) ? G.alvo : null;
+  const p = G.p; const dr0 = DRIBLES[id];
+  const proprio = dr0 && (dr0.tipo === 'cura' || dr0.tipo === 'buff'); // Respiro, Fôlego, Arrancada: é em você, não no adversário
+  const a = !proprio && G.alvo && G.mons.includes(G.alvo) ? G.alvo : null;
   const dur = JOGADA_DUR[id]; if (!dur) return;
   let dx = a ? a.x - p.x : (p.flip ? -1 : 1), dy = a ? a.y - p.y : 0; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
   const j = { id, t0: G.agora, dur, x0: p.x, y0: p.y, dx, dy, alvo: a, rastro: [] };
@@ -57,6 +59,7 @@ function iniciaJogada(id) {
     const fx = a.x + dx * 0.95, fy = a.y + dy * 0.95;
     if (!colide(fx, fy, R_ENT)) { j.fim = { x: fx, y: fy }; }
   }
+  if (proprio) { G.jogada = j; j.livre = true; return; } // v155: continua andando/fugindo — antes soltava as teclas e o boneco voltava a perseguir o alvo
   if (Math.abs(dx) > 0.2) p.flip = dx < 0;
   if (typeof olha === 'function') olha(p, dx, dy);
   G.caminho = null; G.acaoChegar = null; if (G.teclas && G.teclas.clear) G.teclas.clear();

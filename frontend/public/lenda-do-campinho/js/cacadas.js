@@ -85,6 +85,13 @@ const nivelCaca = c => { const d = MONSTROS[c.m]; try { return nivelMonstro(d); 
 
 /* ---------- montagem do mapa da área ---------- */
 const CACA_W = 52, CACA_H = 42;
+// saída das caçadas: a entrada que desce (bueiro, metrô, alçapão, cavernas com degraus...) vira uma escada que SOBE
+const SAIDA_CACA = {
+  ent_bueiro: 'sai_metal', ent_escotilha: 'sai_metal', ent_metro: 'sai_concreto', ent_tunel: 'sai_concreto',
+  ent_porao: 'sai_madeira', ent_toca: 'sai_rocha', ent_toca_deserto: 'sai_rocha', ent_gruta_praia: 'sai_rocha', ent_cratera: 'sai_rocha', ent_trilha_cav: 'sai_rocha',
+  ent_catacumba: 'sai_pedra', ent_tumba: 'sai_pedra', ent_torii: 'sai_pedra', ent_gelo: 'sai_gelo', ent_vulcao: 'sai_lava', ent_cristal: 'sai_cristal', ent_cristal_esp: 'sai_cristal',
+};
+['sai_metal', 'sai_concreto', 'sai_rocha', 'sai_pedra', 'sai_gelo', 'sai_lava', 'sai_cristal', 'sai_madeira'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
 function criaCaca(c) {
   const t = TEMAS_CACA[c.tema]; const W = CACA_W, H = CACA_H; const r = mulberry(c.seed);
   if (!c.porta) getMapa(c.host); // garante a porta na cidade (para a saída voltar em frente a ela)
@@ -149,7 +156,7 @@ function criaCaca(c) {
   const E = salas[0], ex = E.x + (E.w >> 1), ey = E.y + E.h - 1;
   const chFrente = t.aberto ? (t.trilha || t.chao) : t.chao;
   for (let a = -2; a <= 2; a++) { b.chao(ex + a, ey + 1, chFrente); b.obj(ex + a, ey + 1, null); piso[(ey + 1) * W + ex + a] = 1; }
-  b.predio(c.ent, ex - 1, ey - 1, 3, 2, c.host, ex);
+  b.predio(SAIDA_CACA[c.ent] || c.ent, ex - 1, ey - 1, 3, 2, c.host, ex); // v155: quem desceu por escada/buraco sai SUBINDO (arte própria de saída)
   const sd = b.m.saidas.find(s => s.x === ex && s.y === ey); if (sd && c.porta) { sd.tx = c.porta.x; sd.ty = c.porta.y + 1; }
   b.npc('guia_' + c.id, E.x + 1, E.y + 1); b.npc('quadro', E.x + E.w - 2, E.y + 1);
   b.placa(E.x + 1, E.y + E.h - 1, `🎯 ${c.nome.toUpperCase()} — aqui só tem ${MONSTROS[c.m].nome} (nível ${nivelCaca(c)}). Missões com o Guia e desafios no Quadro!`);
