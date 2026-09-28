@@ -14,7 +14,7 @@
 // v178: sempre em quadradinhos (o "andar livre" deixava os adversários encavalados; pedido do dono)
 const GRADE = { on: true, dt: 16 };
 // v185: regras do Tibia (tiradas do OTClient, o cliente aberto do Tibia):
-const GR_DIAG = 1.15;    // passo na diagonal demora só um pouquinho mais que o reto (no Tibia é 3x; o dono achou lento demais)
+const GR_DIAG = 1;       // passo na diagonal leva o MESMO tempo que o reto (no Tibia é 3x; pedido do dono)
 const GR_REPETE = 200;   // segurando a tecla, o passo só se repete 200 ms depois de apertar (o 1º passo é na hora)
 // apertou uma tecla de andar (de verdade, não a repetição do teclado)
 function grApertou(tok) {
@@ -100,6 +100,13 @@ function grVizinho(e, dx, dy, deLado) {
     const alvo = grVizinho(e, dx, dy, e !== G.p || (!G.teclas.size && !G.joy)); // teclado/joystick: só na direção pedida; seguindo caminho/alvo: pode desviar
     if (!alvo) return 0;
     grPasso(e, alvo.x, alvo.y, vel); return 0.0006;
+  };
+  // v190: andar clicando — na grade só se para no CENTRO do quadrado. O ponto final era o lugar exato do clique
+  // (fora do centro): o boneco nunca "chegava" e ficava indo e voltando entre dois quadrados.
+  const _segue = segue;
+  segue = function (e, cam) {
+    if (GRADE.on && cam && cam.length) for (const pt of cam) if (!pt._gr) { pt.x = Math.floor(pt.x) + 0.5; pt.y = Math.floor(pt.y) + 0.5; pt._gr = 1; }
+    return _segue.apply(this, arguments);
   };
   const _separa = separa;
   separa = function (e) {
