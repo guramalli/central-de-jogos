@@ -189,7 +189,7 @@ function atualizaPaineis() {
   sk.append(el('div', { class: 'sk-linha' }, el('div', { class: 'top' }, el('b', {}, 'Nível ' + s.nivel), el('span', {}, `faltam ${fmt(bxp - s.xp)} XP · ${Math.floor((s.xp - a) / (bxp - a) * 100)}%`)), el('div', { class: 'sk-bar' }, barraI((s.xp - a) / (bxp - a)))));
   for (const k of ['drible', 'chute', 'defesa', 'visao']) {
     const o = s.sk[k]; const bonus = st[k] - o.lv;
-    sk.append(el('div', { class: 'sk-linha', title: SKILLS[k].desc }, el('div', { class: 'top' }, el('span', {}, SKILLS[k].nome), el('b', {}, st[k] + (bonus ? ` (+${bonus})` : ''), el('small', { class: 'sk-pc' }, ` · ${Math.floor(o.t / precisaTentativas(k, o.lv) * 100)}%`))), el('div', { class: 'sk-bar' }, barraI(o.t / precisaTentativas(k, o.lv)))));
+    sk.append(el('div', { class: 'sk-linha', title: SKILLS[k].desc }, el('div', { class: 'top' }, el('span', {}, SKILLS[k].nome), el('b', {}, num1(st[k]) + (bonus ? ` (+${num1(bonus)})` : ''), el('small', { class: 'sk-pc' }, ` · ${Math.floor(o.t / precisaTentativas(k, o.lv) * 100)}%`))), el('div', { class: 'sk-bar' }, barraI(o.t / precisaTentativas(k, o.lv)))));
   }
   const hh = Math.floor(s.st.tempo / 3600), mm = Math.floor(s.st.tempo / 60) % 60;
   sk.append(el('div', { class: 'sk-info' },
@@ -484,6 +484,8 @@ const QUIZ_QUEM = { futebol: { nome: 'Seu Juca', erro: 'O Seu Juca coçou a cabe
 function estadoQuiz(tipo) { const s = G.save; s.quizCd = s.quizCd || {}; const e = s.quizCd[tipo] = s.quizCd[tipo] || { ate: 0, certas: 0 };
   if (!e.hora || Date.now() - e.hora > QUIZ_HORA) { e.hora = Date.now(); e.n = 0; } if (e.ate > Date.now() + QUIZ_PAUSA_ERRO) e.ate = Date.now() + QUIZ_PAUSA_ERRO; return e; } // saves antigos com pausa de 10 min
 function quizFalta(tipo) { return Math.max(0, estadoQuiz(tipo).ate - Date.now()); }
+// v219: no máximo 1 casa depois da vírgula (os bônus em % davam 8.29999999999997)
+const num1 = v => String(Math.round(v * 10) / 10).replace('.', ',');
 function fmtFalta(ms) { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }
 function pausaQuiz(tipo, ms) { const e = estadoQuiz(tipo); e.ate = Date.now() + ms; e.certas = 0; salvar(); }
 function modalQuizPausa(tipo) {
@@ -779,7 +781,7 @@ function abreFicha() {
     const a = ATRIBUTOS[k]; const v = s.atr[k];
     const bar = el('div', { class: 'sk-bar' }); const i = el('i'); i.style.width = Math.min(100, v) + '%'; i.style.background = a.cor; bar.append(i);
     const mais = el('button', { class: 'btn verde mini', disabled: s.pontos > 0 ? null : 'disabled', title: 'Clique: +1 · Shift+clique: +5', onclick: ev => { const n = Math.min(s.pontos, ev.shiftKey ? 5 : 1); s.atr[k] += n; s.pontos -= n; som('equip'); G.uiSujo = true; abreFicha(); } }, '+');
-    linhas.append(el('div', { class: 'ficha-linha' + (cl && cl.principal === k ? ' principal' : '') }, el('span', { class: 'fl-ic' }, a.icone), el('div', { class: 'fl-meio' }, el('div', { class: 'top' }, el('b', {}, a.nome), el('b', {}, v + (st.atr[k] > v ? ` (+${st.atr[k] - v} 🍽️)` : ''))), bar, el('small', {}, a.desc)), mais));
+    linhas.append(el('div', { class: 'ficha-linha' + (cl && cl.principal === k ? ' principal' : '') }, el('span', { class: 'fl-ic' }, a.icone), el('div', { class: 'fl-meio' }, el('div', { class: 'top' }, el('b', {}, a.nome), el('b', {}, v + (st.atr[k] > v ? ` (+${num1(st.atr[k] - v)} 🍽️)` : ''))), bar, el('small', {}, a.desc)), mais));
   }
   const pct = v => Math.round(v * 100) + '%';
   const deriv = el('div', { class: 'sk-info' },
