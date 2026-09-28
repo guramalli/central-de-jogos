@@ -34,7 +34,7 @@ const MONUMENTOS = {
   ],
   // v234: Santos
   santos: [
-    { spr: 'mon_pele', w: 3, h: 2, ar: 1.689, ref: [24, 33], chao: CH.GRAMA, nome: 'Estátua Dourada do Rei Pelé', txt: 'Pelé, o Rei do Futebol: fez mais de mil gols e é o único jogador tricampeão da Copa do Mundo (1958, 1962 e 1970). Jogou quase toda a carreira aqui, no Santos!' },
+    { spr: 'mon_pele', w: 3, h: 2, ar: 1.689, ref: [24, 32], chao: CH.GRAMA, nome: 'Estátua Dourada do Rei Pelé', txt: 'Pelé, o Rei do Futebol: fez mais de mil gols e é o único jogador tricampeão da Copa do Mundo (1958, 1962 e 1970). Jogou quase toda a carreira aqui, no Santos!' },
     { spr: 'mon_museu_pele', w: 7, h: 3, ar: 0.762, ref: [6, 10], nome: 'Museu Pelé', txt: 'Fica em casarões históricos restaurados do bairro do Valongo e guarda troféus, fotos e camisas do Rei. Fale com a guia do museu!' },
     { spr: 'mon_bolsa_cafe', w: 5, h: 3, ar: 1.331, ref: [21, 10], nome: 'Bolsa Oficial do Café', txt: 'Por mais de cem anos, o café do Brasil saiu pelo Porto de Santos, o maior da América Latina. O relógio da torre é famoso!' },
     { spr: 'mon_predios_tortos', w: 5, h: 3, ar: 1.327, ref: [6, 25], nome: 'Prédios Tortos da Orla', txt: 'Alguns prédios da orla de Santos são inclinados porque foram construídos sobre um chão de argila mole. Tem prédio que fica mais de 1 metro fora do prumo lá no alto!' },
