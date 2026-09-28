@@ -3,13 +3,17 @@
 /* ============================================================
    ◐ ARCOS DE FÔLEGO E FOCO (v215), como os arcos de vida e mana do Tibia:
    em volta do seu boneco, à esquerda o FÔLEGO (verde → amarelo → vermelho conforme cai)
-   e à direita o FOCO (azul). Enchem de baixo para cima. Dá para desligar no Menu.
+   e à direita o FOCO (azul). Enchem de baixo para cima. No Menu dá para escolher: arcos e barrinhas,
+   só os arcos (tira as barrinhas de cima da cabeça) ou só as barrinhas.
    Também desenha, em letras pequenas logo abaixo do boneco, o aviso "Usando 1 das N garrafas..."
    (G.msgUso, preenchido em pocoes.js).
    Carregar DEPOIS dos outros arquivos que embrulham desenha().
    ============================================================ */
 const ARCOS_KEY = 'rac_arcos';
-let ARCOS_ON = true; try { ARCOS_ON = localStorage.getItem(ARCOS_KEY) !== '0'; } catch (e) { }
+// v217: o que aparece no boneco — 'ambos' (arcos + barrinhas em cima), 'arcos' (só os arcos) ou 'barras' (só as barrinhas)
+let HUD_BONECO = 'ambos';
+try { const v = localStorage.getItem(ARCOS_KEY); HUD_BONECO = v === '0' ? 'barras' : (v === 'arcos' || v === 'barras') ? v : 'ambos'; } catch (e) { }
+let ARCOS_ON = HUD_BONECO !== 'barras';
 const MSG_USO_MS = 2500;
 {
   let stCache = null, stT = 0; // stats() é pesado para chamar em todo quadro
@@ -18,7 +22,11 @@ const MSG_USO_MS = 2500;
   function arco(ctx, cx, cy, r, a0, a1, pc, cor, larg) {
     // a0 = ponta de baixo, a1 = ponta de cima; enche de a0 para a1
     const anti = a1 < a0;
-    ctx.lineWidth = larg; ctx.lineCap = 'butt';
+    ctx.lineCap = 'butt';
+    // v218: contorno escuro fininho em volta do arco inteiro (aparece em qualquer chão)
+    const bd = Math.max(1.2, larg * 0.22);
+    ctx.lineWidth = larg + bd * 2; ctx.strokeStyle = 'rgba(12,8,20,0.85)'; ctx.beginPath(); ctx.arc(cx, cy, r, a0 + (anti ? 0.012 : -0.012), a1 + (anti ? -0.012 : 0.012), anti); ctx.stroke();
+    ctx.lineWidth = larg;
     ctx.strokeStyle = 'rgba(20,12,30,0.45)'; ctx.beginPath(); ctx.arc(cx, cy, r, a0, a1, anti); ctx.stroke();
     if (pc <= 0) return;
     ctx.strokeStyle = cor; ctx.beginPath(); ctx.arc(cx, cy, r, a0, a0 + (a1 - a0) * Math.min(1, pc), anti); ctx.stroke();
@@ -56,11 +64,12 @@ const MSG_USO_MS = 2500;
     return r;
   };
   // botão no Menu para ligar/desligar os arcos
-  const rotuloBt = () => ARCOS_ON ? '◐ Arcos de fôlego e foco: ligados' : '◐ Arcos de fôlego e foco: desligados';
+  const NOMES_HUD = { ambos: 'arcos e barrinhas', arcos: 'só os arcos', barras: 'só as barrinhas' }, PROX_HUD = { ambos: 'arcos', arcos: 'barras', barras: 'ambos' };
+  const rotuloBt = () => `◐ Fôlego e foco no boneco: ${NOMES_HUD[HUD_BONECO]}`;
   const poe = () => {
     const lista = document.querySelector('#topo .tb-lista');
-    if (lista && !document.getElementById('btnArcos')) lista.append(el('button', { class: 'btn', id: 'btnArcos', type: 'button', role: 'menuitem', title: 'Os arcos em volta do boneco mostram o fôlego (esquerda) e o foco (direita), como no Tibia',
-      onclick: ev => { ARCOS_ON = !ARCOS_ON; try { localStorage.setItem(ARCOS_KEY, ARCOS_ON ? '1' : '0'); } catch (e) { } ev.currentTarget.textContent = rotuloBt(); } }, rotuloBt()));
+    if (lista && !document.getElementById('btnArcos')) lista.append(el('button', { class: 'btn', id: 'btnArcos', type: 'button', role: 'menuitem', title: 'Clique para trocar: arcos em volta do boneco (como no Tibia), barrinhas em cima da cabeça, ou os dois',
+      onclick: ev => { HUD_BONECO = PROX_HUD[HUD_BONECO]; ARCOS_ON = HUD_BONECO !== 'barras'; try { localStorage.setItem(ARCOS_KEY, HUD_BONECO === 'ambos' ? '1' : HUD_BONECO); } catch (e) { } ev.currentTarget.textContent = rotuloBt(); } }, rotuloBt()));
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(poe, 0)); else setTimeout(poe, 0);
   const _iniArcos = iniciarJogo; iniciarJogo = async function () { const r = await _iniArcos.apply(this, arguments); poe(); return r; };

@@ -1130,7 +1130,7 @@ function desenha(dt) {
     const t = tela(n.x, n.y - alturaEnt(n) - 0.35); const b = Math.sin(G.agora / 250) * 4 * px;
     balao(ctx, t.x, t.y + b - 16 * px, marca); // acima da plaquinha do nome (que agora fica sempre à vista)
   }
-  { const s = G.save, st = stats(); const t = tela(G.p.x, G.p.y - alturaEnt(G.p) - 0.06); barraVida(ctx, t.x, t.y - 9 * px, s.hp / st.maxHp); barraVida(ctx, t.x, t.y - 1 * px, s.foco / st.maxFoco, '#4aa6ff', 4); rotulo(ctx, `Nv ${s.nivel} ${s.nome}`, t.x, t.y - 20 * px, '#ffe14a', 12.5); } // nível + nome, fôlego e, embaixo, foco
+  { const s = G.save, st = stats(); const t = tela(G.p.x, G.p.y - alturaEnt(G.p) - 0.06); const barras = typeof HUD_BONECO === 'undefined' || HUD_BONECO !== 'arcos'; if (barras) { barraVida(ctx, t.x, t.y - 9 * px, s.hp / st.maxHp); barraVida(ctx, t.x, t.y - 1 * px, s.foco / st.maxFoco, '#4aa6ff', 4); } rotulo(ctx, `Nv ${s.nivel} ${s.nome}`, t.x, t.y - (barras ? 20 : 4) * px, '#ffe14a', 12.5); } // nível + nome, fôlego e, embaixo, foco (v217: dá para deixar só os arcos)
   for (const f of G.falas) { const t = tela(f.ent.x, f.ent.y - alturaEnt(f.ent) - 0.4); rotulo(ctx, f.txt, t.x, t.y, f.cor, 13); }
   desenhaTitulos(ctx, tela);
   for (const tx of G.textos) { const kk = (G.agora - tx.t0) / tx.dur; const t = tela(tx.x + tx.ox, tx.y - tx.alt * 0.7 - kk * 0.55); ctx.globalAlpha = kk > 0.7 ? (1 - kk) / 0.3 : 1; rotulo(ctx, tx.txt, t.x, t.y, tx.cor, 17); ctx.globalAlpha = 1; }
