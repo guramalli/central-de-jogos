@@ -531,7 +531,7 @@ const NPCS = {
   marinho: { nome: 'Chefe Marinho', look: { tipo: 'humano', pele: '#ec9c7c', cabelo: '#3a2a1a', estilo: 'curto', camisa: '#ffd23f', calcao: '#ff3a3a', meia: null, chuteira: null, fase: 4, apito: true },
     ola: 'Chefe dos salva-vidas. Os bons, tá?', cura: true },
   bene: { nome: 'Quiosque do Bené', look: { tipo: 'humano', pele: '#cc8464', cabelo: '#1a1a1a', estilo: 'cacheado', camisa: '#ff8a3a', calcao: '#2a8a3a', meia: null, chuteira: null, fase: 4 },
-    ola: 'Açaí, água de coco e roupa de praia!', loja: ['agua', 'isotonico', 'acai', 'calcao_praia', 'camisa_listrada', 'caneleira_plastico', 'faixa_capitao', 'colar_havaiano', 'apito'] },
+    ola: 'Garrafas de fôlego, isotônicos e roupa de praia!', loja: ['agua', 'isotonico', 'acai', 'calcao_praia', 'camisa_listrada', 'caneleira_plastico', 'faixa_capitao', 'colar_havaiano', 'apito'] },
 
   rodrigues: { nome: 'Empresário Rodrigues', look: { tipo: 'humano', pele: '#cc8464', cabelo: '#1a1a1a', estilo: 'curto', camisa: '#1a1a2a', calcao: '#1a1a2a', meia: null, chuteira: '#101010', fase: 4, gravata: true, oculos: true },
     ola: 'Rodrigues, empresário de craques. Quando você for adulto(a) (nível 25), eu te ajudo a fundar seu próprio clube!', empresario: true },
