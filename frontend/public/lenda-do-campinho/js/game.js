@@ -494,7 +494,7 @@ function matar(m) {
   const d = m.d; const s = G.save; const pen = penalidadeNivel(d);
   G.mons = G.mons.filter(x => x !== m);
   if (G.alvo === m) G.alvo = null;
-  efeito('morte', m.x, m.y); texto(m, 'DRIBLADO!', '#ffffff', 1100);
+  efeito('morte', m.x, m.y); if (d.chefe) texto(m, 'DRIBLADO!', '#ffffff', 1100, -0.5); // v231: só no chefão (cobria o número do dano)
   s.kills[m.tipo] = (s.kills[m.tipo] || 0) + 1; s.st.abates++;
   const ouro = Math.round(rndi(d.ouro[0], d.ouro[1]) * pen.drop); const ganhos = []; const caidos = [];
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
