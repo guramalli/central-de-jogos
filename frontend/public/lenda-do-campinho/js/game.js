@@ -413,7 +413,7 @@ function atualizaJogador(dt) {
     if (s.req && s.req.flag && !G.save.flags[s.req.flag]) {
       p.x = antes.x; p.y = antes.y; const dx = p.x - (s.x + 0.5), dy = p.y - (s.y + 0.5); const d = Math.hypot(dx, dy) || 1; mover(p, dx / d * 0.15, dy / d * 0.15);
       G.caminho = null;
-      if (G.agora > G.tMsgSaida) { G.tMsgSaida = G.agora + 3000; if (s.req.casa && typeof abreCasaPorta === 'function') abreCasaPorta(s.req.casa); else { log(s.req.msg, 'l-sis'); fala(p, 'Ainda não posso ir...'); } }
+      if (G.agora > G.tMsgSaida) { G.tMsgSaida = G.agora + 3000; if (s.req.casa && typeof abreCasaPorta === 'function') abreCasaPorta(s.req.casa); else { if (typeof avisaSaidaTrancada === 'function') avisaSaidaTrancada(s); else log(s.req.msg, 'l-sis'); fala(p, 'Ainda não posso ir...'); } }
     } else { if (s.tx == null || s.ty == null) getMapa(s.para); trocaMapa(s.para, s.tx + 0.5, s.ty + 0.5); G.travaSaida = { x: G.p.x, y: G.p.y, t: G.agora + 400 }; } // o destino da porta só existe depois que o mapa de fora é montado
   }
 }

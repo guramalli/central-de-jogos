@@ -14,7 +14,7 @@
 // v178: sempre em quadradinhos (o "andar livre" deixava os adversários encavalados; pedido do dono)
 const GRADE = { on: true, dt: 16 };
 // v185: regras do Tibia (tiradas do OTClient, o cliente aberto do Tibia):
-const GR_DIAG = 3;       // passo na diagonal demora 3x o passo reto
+const GR_DIAG = 1.15;    // passo na diagonal demora só um pouquinho mais que o reto (no Tibia é 3x; o dono achou lento demais)
 const GR_REPETE = 200;   // segurando a tecla, o passo só se repete 200 ms depois de apertar (o 1º passo é na hora)
 // apertou uma tecla de andar (de verdade, não a repetição do teclado)
 function grApertou(tok) {
@@ -57,7 +57,7 @@ function grVizinho(e, dx, dy, deLado) {
   const a = Math.atan2(dy, dx); const cur = { x: Math.floor(e.x), y: Math.floor(e.y) };
   const oct = Math.round(a / (Math.PI / 4));
   // diagonal custa 3 (reto custa 1): quem anda sozinho (adversário, clique, perseguir) prefere o reto, como o caminho do Tibia
-  const lado = a / (Math.PI / 4) - oct >= 0 ? 1 : -1, diag = Math.abs(oct) % 2 === 1;
+  const lado = a / (Math.PI / 4) - oct >= 0 ? 1 : -1, diag = GR_DIAG >= 2 && Math.abs(oct) % 2 === 1; // só compensa desviar da diagonal se ela for cara
   const dirs = !deLado ? [0] : diag ? [lado, -lado, 0, 2 * lado, -2 * lado] : [0, 1, -1, 2, -2];
   for (const k of dirs) {
     const o = oct + k; const sx = Math.round(Math.cos(o * Math.PI / 4)), sy = Math.round(Math.sin(o * Math.PI / 4));
