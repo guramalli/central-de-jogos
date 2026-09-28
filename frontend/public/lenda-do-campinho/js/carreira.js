@@ -1010,7 +1010,7 @@ function abrirCarreira() {
             k.promessa ? el('span', { class: 'pill roxo' }, '⚽ Metas turbinadas: bônus ×2') : null,
             k.estrutura ? el('span', { class: 'pill verde' }, '🏗️ Estrutura nova: bônus +50%') : null))),
       el('h3', {}, '🎯 Metas até a próxima reunião'),
-      el('div', { class: 'metas' }, k.metas.length ? k.metas.map(carrMetaLinha) : el('p', { class: 'vazio' }, 'Sem metas neste período.')));
+      el('div', { class: 'metas' }, k.metas.length ? k.metas.map(carrMetaLinha) : el('p', { class: 'vazio' }, 'Sem metas neste período.')), typeof carrBotaoMetas === 'function' ? carrBotaoMetas(k) : null);
   } else {
     clube = el('div', { class: 'clube-card', style: '--c1:#aaa;--c2:#ddd' }, el('span', { style: 'font-size:48px' }, '🎒'),
       el('div', {}, el('div', { class: 'nm' }, `Sem clube — ${carrG('jogador livre', 'jogadora livre')}`),
@@ -1088,7 +1088,7 @@ function reuniaoDirigente() {
   if (!c.reuniaoPendente) {
     return carrMostra({}, el('h2', {}, `📋 ${def.nome}`),
       carrTopo(def.dirigente.look, def.dirigente.nome, carrTexto(F.espera, { dia: k.proxReuniao })),
-      el('h3', {}, '🎯 Suas metas'), el('div', { class: 'metas' }, k.metas.map(carrMetaLinha)),
+      el('h3', {}, '🎯 Suas metas'), el('div', { class: 'metas' }, k.metas.map(carrMetaLinha)), typeof carrBotaoMetas === 'function' ? carrBotaoMetas(k) : null,
       el('div', { class: 'opcoes' }, carrVoltar(), carrFechar()));
   }
   const ra = carrIniciaReuniao();
@@ -1157,7 +1157,7 @@ function carrTelaResposta(r, def) {
     el('div', { class: 'veredito ' + (r.ok ? 'sim' : 'nao') }, r.ok ? '👍 Deu certo!' : '👎 Não rolou...'),
     carrChips(r.ef),
     r.extra ? el('p', { class: 'dica' }, r.extra) : null,
-    !r.dispensa && k ? el('div', {}, el('h3', {}, `🎯 Novas metas até o dia ${k.proxReuniao}`), el('div', { class: 'metas' }, k.metas.map(carrMetaLinha))) : null,
+    !r.dispensa && k ? el('div', {}, el('h3', {}, `🎯 Novas metas até o dia ${k.proxReuniao}`), el('div', { class: 'metas' }, k.metas.map(carrMetaLinha)), typeof carrBotaoMetas === 'function' ? carrBotaoMetas(k) : null) : null,
     ops);
 }
 function carrTelaRenovacao(ra) {

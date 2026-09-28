@@ -58,7 +58,7 @@ function tarConfereSemana() {
       if (b && b.tipo === m.tipo && b.p < b.n) {
         b.p++; G.uiSujo = true;
         if (b.p >= b.n) {
-          ganhaXp(b.xp); t.pts += TAR_BOUNTY_PTS; t.bounty = null; t.opcoes = tarSorteia(3);
+          ganhaXp(b.xp); t.pts += TAR_BOUNTY_PTS; t.bounty = null; t.opcoes = tarSorteia(3); if (typeof carreiraEvento === 'function') carreiraEvento('tarefa', {});
           const msg = `🎯 Caçada da vez completa! +${fmt(b.xp)} XP e +${TAR_BOUNTY_PTS} pontos de tarefa. Escolha a próxima em 🎯 Tarefas de caça.`;
           log(msg, 'l-xp'); if (typeof avisoTela === 'function') avisoTela(msg, 'l-xp'); som('nivel');
         } else if (b.p % 10 === 0 && typeof avisoTela === 'function') avisoTela(`🎯 Caçada da vez: ${b.p}/${b.n} ${tarNome(b.tipo)}`, 'l-info');
@@ -67,7 +67,7 @@ function tarConfereSemana() {
       if (sem) for (const q of sem.lista) if (!q.feita && q.tipo === m.tipo) {
         q.p++;
         if (q.p >= q.n) {
-          q.feita = true; t.pts += TAR_SEM_PTS; const xp = tarXp(q.tipo, q.n, 0.6); ganhaXp(xp);
+          q.feita = true; t.pts += TAR_SEM_PTS; if (typeof carreiraEvento === 'function') carreiraEvento('tarefaSemana', {}); const xp = tarXp(q.tipo, q.n, 0.6); ganhaXp(xp);
           log(`📅 Tarefa da semana feita: ${q.n} ${tarNome(q.tipo)}! +${fmt(xp)} XP e +${TAR_SEM_PTS} pontos.`, 'l-xp'); if (typeof avisoTela === 'function') avisoTela(`📅 Tarefa da semana feita: ${tarNome(q.tipo)}! +${TAR_SEM_PTS} pontos`, 'l-xp');
           if (!sem.bonus && sem.lista.every(x => x.feita)) { sem.bonus = true; t.pts += TAR_SEM_BONUS; log(`🏆 Todas as tarefas da semana! +${TAR_SEM_BONUS} pontos de bônus.`, 'l-lvl'); banner('SEMANA COMPLETA!', `+${TAR_SEM_BONUS} pontos de tarefa`); }
         }
