@@ -25,8 +25,8 @@ const CARR_HIST_MAX = 60;
 const CARR_FAMA_MAX = 3000;
 const CARR_FAMA_BONUS_XP = 2100;     // fama que dá +5% de XP extra (título "Astro Mundial")
 const CARR_FAMA_FREIO = 0.35;        // ganho de fama quando ela já passou 2 degraus à frente do clube
-const CARR_SAL_BASE = 240;           // salário-base do tier 1; cada tier ×1,35
-const CARR_SAL_CRESCE = 1.35;
+const CARR_SAL_BASE = 240;           // salário-base do tier 1; cada tier ×1,266 (v233: 15 degraus, o topo paga o mesmo de antes)
+const CARR_SAL_CRESCE = 1.266;
 const CARR_CONTADORES = ['abates', 'abatesCidade', 'missoes', 'chefes', 'gols', 'partidas', 'vitorias', 'copas', 'exaustos', 'paz',
   'reunioes', 'metasCumpridas', 'metasFalhas', 'transferencias', 'dispensas', 'renovacoes', 'aumentos', 'recusas', 'ganhos'];
 
@@ -42,38 +42,49 @@ const CARR_PAISES = {
   italia: { nome: 'Itália', bandeira: '🇮🇹', de: 'da Itália', em: 'na Itália', grito: 'Mamma mia, que estádio!' },
   alemanha: { nome: 'Alemanha', bandeira: '🇩🇪', de: 'da Alemanha', em: 'na Alemanha', grito: 'Vou aprender a falar "Tor"!' },
   inglaterra: { nome: 'Inglaterra', bandeira: '🇬🇧', de: 'da Inglaterra', em: 'na Inglaterra', grito: 'Cheguei à terra onde o futebol nasceu!' },
+  argentina: { nome: 'Argentina', bandeira: '🇦🇷', de: 'da Argentina', em: 'na Argentina', grito: '¡Vamos! Futebol com raça e ritmo de tango!' },
+  franca: { nome: 'França', bandeira: '🇫🇷', de: 'da França', em: 'na França', grito: 'Oh là là, que estádio!' },
 };
-// 12 degraus: Brasil (1–3) → meio do mundo (4–7) → Europa (8–12)
+// v233: 15 degraus pela RELEVÂNCIA do futebol de cada país (o nível é o da cidade de cada liga):
+// Brasil de base (1–3) → Egito, Catar, Japão, EUA → Argentina → elite do Brasil (Rio) → Portugal, França, Alemanha, Itália, Espanha, Inglaterra
 const CARR_TIERS = {
   1: { liga: 'Divisão de Acesso', nivel: 25, fama: 0 },
   2: { liga: 'Segundona Nacional', nivel: 32, fama: 100 },
-  3: { liga: 'Elite Nacional', nivel: 40, fama: 220 },
+  3: { liga: 'Série B Nacional', nivel: 40, fama: 220 },
   4: { liga: 'Liga do Nilo', nivel: 50, fama: 350 },
-  5: { liga: 'Liga das Cerejeiras', nivel: 62, fama: 500 },
-  6: { liga: 'Liga das Dunas', nivel: 74, fama: 680 },
-  7: { liga: 'Liga das Estrelas', nivel: 86, fama: 880 },
-  8: { liga: 'Liga dos Navegadores', nivel: 100, fama: 1100 },
-  9: { liga: 'Liga do Sol', nivel: 112, fama: 1350 },
-  10: { liga: 'Liga da Bota', nivel: 124, fama: 1650 },
-  11: { liga: 'Liga dos Castelos', nivel: 136, fama: 2000 },
-  12: { liga: 'Liga da Coroa', nivel: 148, fama: 2400 },
+  5: { liga: 'Liga das Dunas', nivel: 62, fama: 480 },
+  6: { liga: 'Liga das Cerejeiras', nivel: 74, fama: 620 },
+  7: { liga: 'Liga das Estrelas', nivel: 86, fama: 780 },
+  8: { liga: 'Liga do Tango', nivel: 100, fama: 950 },
+  9: { liga: 'Elite Nacional', nivel: 112, fama: 1130 },
+  10: { liga: 'Liga dos Navegadores', nivel: 124, fama: 1330 },
+  11: { liga: 'Liga das Luzes', nivel: 136, fama: 1550 },
+  12: { liga: 'Liga dos Castelos', nivel: 148, fama: 1790 },
+  13: { liga: 'Liga da Bota', nivel: 156, fama: 2050 },
+  14: { liga: 'Liga do Sol', nivel: 162, fama: 2330 },
+  15: { liga: 'Liga da Coroa', nivel: 176, fama: 2600 },
 };
-const CARR_TIER_MAX = 12;
-const CARR_EUROPA_PAISES = ['portugal', 'espanha', 'italia', 'alemanha', 'inglaterra'];
-const CARR_CONVITE_TOPO = 2800;      // convite para amistoso em Londres (não existe tier 13)
+const CARR_TIER_MAX = 15;
+const CARR_EUROPA_PAISES = ['portugal', 'franca', 'espanha', 'italia', 'alemanha', 'inglaterra'];
+const CARR_CONVITE_TOPO = 2800;      // convite para amistoso em Londres (não existe tier 16)
+// saves de antes da v233: degrau velho → degrau novo (Japão 5→6, Catar 6→5, Portugal 8→10, Espanha 9→14, Itália 10→13, Alemanha 11→12, Inglaterra 12→15)
+const CARR_TIER_V232 = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 5, 7: 7, 8: 10, 9: 14, 10: 13, 11: 12, 12: 15 };
 const CARR_BRASIL = ['vila', 'praia', 'cidade', 'ct', 'estadio'];
-const CARR_CIDADE_PADRAO = { vila: 'Vila do Campinho', praia: 'Praia', cidade: 'Cidade', ct: 'CT Sub-20', estadio: 'Estádio' };
+const CARR_CIDADE_PADRAO = { vila: 'Vila do Campinho', praia: 'Praia', cidade: 'Cidade', ct: 'CT Sub-20', estadio: 'Estádio', rio: 'Rio de Janeiro' };
 // cidades fora do Brasil: nome e preposições ("ir ao Cairo", "jogar no Cairo", "voo para o Cairo").
 // tier e convite (fama para amistoso = famaMin do tier SEGUINTE) são calculados depois da lista de clubes.
+// (o Rio é Brasil: não precisa de convite, só do nível do voo)
 const CARR_EXTERIOR = {
   cairo: { pais: 'egito', nome: 'Cairo', a: 'ao Cairo', em: 'no Cairo', para: 'para o Cairo' },
-  toquio: { pais: 'japao', nome: 'Tóquio' },
   doha: { pais: 'catar', nome: 'Doha' },
+  toquio: { pais: 'japao', nome: 'Tóquio' },
   miami: { pais: 'eua', nome: 'Miami' },
+  buenos: { pais: 'argentina', nome: 'Buenos Aires' },
   lisboa: { pais: 'portugal', nome: 'Lisboa' },
-  madri: { pais: 'espanha', nome: 'Madri' },
-  milao: { pais: 'italia', nome: 'Milão' },
+  paris: { pais: 'franca', nome: 'Paris' },
   munique: { pais: 'alemanha', nome: 'Munique' },
+  milao: { pais: 'italia', nome: 'Milão' },
+  madri: { pais: 'espanha', nome: 'Madri' },
   londres: { pais: 'inglaterra', nome: 'Londres' },
 };
 const CARR_RANKS = [
@@ -118,38 +129,50 @@ const CARR_CLUBES_BRUTO = [
   ['faraos', 'Faraós do Nilo FC', 'FDN', 'cairo', 4, '#d4a020', '#1a3a8a', 'faixa', 1.05, 0, 0, 'Sr. Ramsés Areia', 'vaidoso', ['m', 'pele-morena', 'cabelo-curto', 'preto', 'rosto-escuros']],
   ['esfinge', 'Esfinge Futebol Clube', 'ESF', 'cairo', 4, '#c8b07a', '#8a1010', 'metade', 1.0, 1, 20, 'Dona Nefertari Lótus', 'estrategista', ['f', 'pele-morena', 'cabelo-liso-longo', 'preto', null]],
   ['oasis', 'Oásis Atlético', 'OAT', 'cairo', 4, '#2a9a6a', '#f0e0a0', 'listras', 0.94, 0, 0, 'Sr. Omar Papiro', 'paciente', ['m', 'pele-media', 'cabelo-cacheado', 'grisalho', 'rosto-redondos']],
-  // ---- Japão (Tóquio) ----
-  ['samurais', 'Samurais de Tóquio', 'SDT', 'toquio', 5, '#d42a2a', '#ffffff', 'horizontal', 1.05, 1, 20, 'Sr. Kenji Bonsai', 'exigente', ['m', 'pele-clara', 'cabelo-curto', 'preto', 'rosto-redondos']],
-  ['cerejeiras', 'Cerejeiras FC', 'CFC', 'toquio', 5, '#ff8ac8', '#ffffff', 'listras', 0.95, 0, 0, 'Dona Sakura Haikai', 'paciente', ['f', 'pele-clara', 'cabelo-coque', 'preto', null]],
-  ['dragoes', 'Dragões do Sol Nascente', 'DSN', 'toquio', 5, '#1a1a2a', '#ffd23f', 'faixa', 1.0, 0, 0, 'Sr. Hiro Mangá', 'vaidoso', ['m', 'pele-clara', 'cabelo-liso-longo', 'preto', 'rosto-escuros']],
   // ---- Catar (Doha) ----
-  ['falcoes', 'Falcões do Deserto', 'FDD', 'doha', 6, '#8a1a3a', '#ffffff', 'metade', 1.05, 0, 0, 'Sr. Karim Duna', 'vaidoso', ['m', 'pele-morena', 'cabelo-curto', 'preto', 'rosto-escuros']],
-  ['perolas', 'Pérolas do Golfo', 'PDG', 'doha', 6, '#ffffff', '#1a8aa0', 'listras', 1.0, 0, 0, 'Dona Layla Miragem', 'estrategista', ['f', 'pele-media', 'cabelo-liso-longo', 'castanho', 'rosto-redondos']],
-  ['tempestade', 'Tempestade de Areia SC', 'TDA', 'doha', 6, '#e0a040', '#5a3a1a', 'faixa', 1.08, 2, 30, 'Sr. Faisal Camelo', 'exigente', ['m', 'pele-negra', 'cabelo-curto', 'grisalho', null]],
+  ['falcoes', 'Falcões do Deserto', 'FDD', 'doha', 5, '#8a1a3a', '#ffffff', 'metade', 1.05, 0, 0, 'Sr. Karim Duna', 'vaidoso', ['m', 'pele-morena', 'cabelo-curto', 'preto', 'rosto-escuros']],
+  ['perolas', 'Pérolas do Golfo', 'PDG', 'doha', 5, '#ffffff', '#1a8aa0', 'listras', 1.0, 0, 0, 'Dona Layla Miragem', 'estrategista', ['f', 'pele-media', 'cabelo-liso-longo', 'castanho', 'rosto-redondos']],
+  ['tempestade', 'Tempestade de Areia SC', 'TDA', 'doha', 5, '#e0a040', '#5a3a1a', 'faixa', 1.08, 2, 30, 'Sr. Faisal Camelo', 'exigente', ['m', 'pele-negra', 'cabelo-curto', 'grisalho', null]],
+  // ---- Japão (Tóquio) ----
+  ['samurais', 'Samurais de Tóquio', 'SDT', 'toquio', 6, '#d42a2a', '#ffffff', 'horizontal', 1.05, 1, 20, 'Sr. Kenji Bonsai', 'exigente', ['m', 'pele-clara', 'cabelo-curto', 'preto', 'rosto-redondos']],
+  ['cerejeiras', 'Cerejeiras FC', 'CFC', 'toquio', 6, '#ff8ac8', '#ffffff', 'listras', 0.95, 0, 0, 'Dona Sakura Haikai', 'paciente', ['f', 'pele-clara', 'cabelo-coque', 'preto', null]],
+  ['dragoes', 'Dragões do Sol Nascente', 'DSN', 'toquio', 6, '#1a1a2a', '#ffd23f', 'faixa', 1.0, 0, 0, 'Sr. Hiro Mangá', 'vaidoso', ['m', 'pele-clara', 'cabelo-liso-longo', 'preto', 'rosto-escuros']],
   // ---- Estados Unidos (Miami) ----
   ['flamingos', 'Miami Flamingos', 'MFL', 'miami', 7, '#ff5ab0', '#1ac8c8', 'faixa', 1.05, 0, 0, 'Mr. Chuck Hollywood', 'vaidoso', ['m', 'pele-clara', 'cabelo-curto', 'loiro', 'rosto-escuros']],
   ['jacares', 'Jacarés do Pântano FC', 'JDP', 'miami', 7, '#2a8a3a', '#ffd23f', 'listras', 0.96, 0, 0, 'Ms. Dolores Palmeira', 'paciente', ['f', 'pele-negra', 'cabelo-cacheado', 'preto', null]],
   ['ondas', 'Ondas de Miami FC', 'ODM', 'miami', 7, '#1a4ad9', '#ff8a1a', 'horizontal', 1.02, 1, 20, 'Mr. Bob Surf', 'estrategista', ['m', 'pele-morena', 'cabelo-liso-longo', 'loiro', 'rosto-redondos']],
+  // ---- Argentina (Buenos Aires) — v233 ----
+  ['tangueros', 'Tangueros de La Boca', 'TLB', 'buenos', 8, '#1a3ab9', '#f8d838', 'faixa', 1.03, 0, 0, 'Don Julio Bandoneón', 'vaidoso', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-escuros']],
+  ['pampas', 'Club Atlético Pampas', 'CAP', 'buenos', 8, '#6ab0e0', '#ffffff', 'listras', 0.96, 0, 0, 'Doña Graciela Mate', 'paciente', ['f', 'pele-media', 'cabelo-cacheado', 'castanho', null]],
+  ['gauchos', 'Gaúchos del Plata', 'GDP', 'buenos', 8, '#d42a2a', '#ffffff', 'metade', 1.07, 2, 30, 'Don Ernesto Parrilla', 'exigente', ['m', 'pele-media', 'cabelo-curto', 'preto', null]],
+  // ---- Brasil, a elite (Rio de Janeiro) — v233 ----
+  ['cristo', 'Cristo Redentor FC', 'CRF', 'rio', 9, '#1a9a3a', '#f8d838', 'faixa', 1.04, 0, 0, 'Dona Iolanda Samba', 'vaidoso', ['f', 'pele-negra', 'cabelo-black-power', 'preto', 'rosto-escuros']],
+  ['paoacucar', 'Pão de Açúcar EC', 'PAE', 'rio', 9, '#ffffff', '#1a4ad9', 'listras', 0.96, 0, 0, 'Seu Aloísio Bondinho', 'paciente', ['m', 'pele-morena', 'cabelo-curto', 'grisalho', 'rosto-redondos']],
+  ['guanabara', 'Guanabara Futebol Clube', 'GFC', 'rio', 9, '#d42a2a', '#1a1a1a', 'horizontal', 1.08, 2, 40, 'Dr. Otávio Arquibancada', 'estrategista', ['m', 'pele-retinta', 'cabelo-curto', 'preto', null]],
   // ---- Portugal (Lisboa) ----
-  ['navegadores', 'Os Navegadores FC', 'NAV', 'lisboa', 8, '#0a3a8a', '#f0c030', 'horizontal', 0.95, 0, 0, 'Senhor Joaquim Caravela', 'paciente', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-redondos']],
-  ['setecolinas', 'Académico Sete Colinas', 'ASC', 'lisboa', 8, '#1a8a4a', '#ffffff', 'listras', 1.0, 1, 20, 'Dona Amália Fado', 'vaidoso', ['f', 'pele-clara', 'cabelo-coque', 'castanho', null]],
-  ['eletrico', 'Elétrico Futebol Clube', 'EFC', 'lisboa', 8, '#f0c030', '#d42a2a', 'faixa', 1.06, 3, 50, 'Engenheiro Duarte Bacalhau', 'estrategista', ['m', 'pele-media', 'cabelo-curto', 'castanho', 'rosto-redondos']],
-  // ---- Espanha (Madri) ----
-  ['castelhano', 'Real Castelhano', 'RC', 'madri', 9, '#ffffff', '#6a2ad9', 'faixa', 1.03, 0, 0, 'Don Rodrigo del Castillo', 'vaidoso', ['m', 'pele-media', 'cabelo-liso-longo', 'preto', 'rosto-escuros']],
-  ['moinhos', 'Atlético Moinhos de Vento', 'AMV', 'madri', 9, '#d42a2a', '#1a2a6a', 'listras', 0.96, 0, 0, 'Doña Pilar Quixote', 'exigente', ['f', 'pele-morena', 'cabelo-cacheado', 'castanho', null]],
-  ['soldeouro', 'Unión Sol de Oro', 'USO', 'madri', 9, '#f0a81a', '#1a1a2a', 'metade', 1.08, 3, 40, 'Don Paco Churros', 'paciente', ['m', 'pele-clara', 'cabelo-cacheado', 'grisalho', 'rosto-redondos']],
-  // ---- Itália (Milão) ----
-  ['dolomitas', 'Real Dolomitas', 'RDO', 'milao', 10, '#1a2a6a', '#ffffff', 'listras', 1.04, 0, 0, 'Dom Vittorio Espresso', 'vaidoso', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-escuros']],
-  ['gondoleiros', 'Gondoleiros Unidos', 'GU', 'milao', 10, '#0a8a6a', '#f0c030', 'faixa', 0.96, 0, 0, 'Dona Giulia Pizzaiola', 'paciente', ['f', 'pele-media', 'cabelo-coque', 'castanho', null]],
-  ['catedral', 'Estrela da Catedral', 'EDC', 'milao', 10, '#8a1010', '#1a1a2a', 'metade', 1.07, 2, 40, 'Sr. Marco Risoto', 'exigente', ['m', 'pele-media', 'cabelo-cacheado', 'preto', null]],
+  ['navegadores', 'Os Navegadores FC', 'NAV', 'lisboa', 10, '#0a3a8a', '#f0c030', 'horizontal', 0.95, 0, 0, 'Senhor Joaquim Caravela', 'paciente', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-redondos']],
+  ['setecolinas', 'Académico Sete Colinas', 'ASC', 'lisboa', 10, '#1a8a4a', '#ffffff', 'listras', 1.0, 1, 20, 'Dona Amália Fado', 'vaidoso', ['f', 'pele-clara', 'cabelo-coque', 'castanho', null]],
+  ['eletrico', 'Elétrico Futebol Clube', 'EFC', 'lisboa', 10, '#f0c030', '#d42a2a', 'faixa', 1.06, 3, 50, 'Engenheiro Duarte Bacalhau', 'estrategista', ['m', 'pele-media', 'cabelo-curto', 'castanho', 'rosto-redondos']],
+  // ---- França (Paris) — v233 ----
+  ['sena', 'Sena Saint-Denis FC', 'SSD', 'paris', 11, '#1a2a6a', '#d42a2a', 'faixa', 1.04, 0, 0, 'Monsieur Antoine Baguette', 'vaidoso', ['m', 'pele-clara', 'cabelo-curto', 'castanho', 'rosto-escuros']],
+  ['louvre', 'Racing do Louvre', 'RDL', 'paris', 11, '#f4f4f8', '#1a4ad9', 'listras', 0.96, 0, 0, 'Madame Juliette Croissant', 'paciente', ['f', 'pele-clara', 'cabelo-coque', 'loiro', null]],
+  ['montmartre', 'Étoile de Montmartre', 'EDM', 'paris', 11, '#7a2ad9', '#f0c030', 'metade', 1.07, 2, 40, 'Monsieur Pierre Pincel', 'exigente', ['m', 'pele-negra', 'cabelo-curto', 'preto', 'rosto-redondos']],
   // ---- Alemanha (Munique) ----
-  ['alpinos', 'Alpinos da Baviera', 'ADB', 'munique', 11, '#d42a2a', '#ffffff', 'horizontal', 1.05, 0, 0, 'Herr Klaus Montanha', 'estrategista', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-escuros']],
-  ['relojoeiros', 'Relojoeiros da Floresta Negra', 'RFN', 'munique', 11, '#1a1a2a', '#e04a3a', 'listras', 1.0, 1, 30, 'Frau Greta Relógio', 'exigente', ['f', 'pele-clara', 'cabelo-liso-longo', 'loiro', 'rosto-redondos']],
-  ['castelo', 'Castelo Encantado SV', 'CE', 'munique', 11, '#4a2ad9', '#ffffff', 'faixa', 0.95, 0, 0, 'Herr Otto Strudel', 'paciente', ['m', 'pele-clara', 'cabelo-curto', 'castanho', null]],
+  ['alpinos', 'Alpinos da Baviera', 'ADB', 'munique', 12, '#d42a2a', '#ffffff', 'horizontal', 1.05, 0, 0, 'Herr Klaus Montanha', 'estrategista', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-escuros']],
+  ['relojoeiros', 'Relojoeiros da Floresta Negra', 'RFN', 'munique', 12, '#1a1a2a', '#e04a3a', 'listras', 1.0, 1, 30, 'Frau Greta Relógio', 'exigente', ['f', 'pele-clara', 'cabelo-liso-longo', 'loiro', 'rosto-redondos']],
+  ['castelo', 'Castelo Encantado SV', 'CE', 'munique', 12, '#4a2ad9', '#ffffff', 'faixa', 0.95, 0, 0, 'Herr Otto Strudel', 'paciente', ['m', 'pele-clara', 'cabelo-curto', 'castanho', null]],
+  // ---- Itália (Milão) ----
+  ['dolomitas', 'Real Dolomitas', 'RDO', 'milao', 13, '#1a2a6a', '#ffffff', 'listras', 1.04, 0, 0, 'Dom Vittorio Espresso', 'vaidoso', ['m', 'pele-clara', 'cabelo-curto', 'grisalho', 'rosto-escuros']],
+  ['gondoleiros', 'Gondoleiros Unidos', 'GU', 'milao', 13, '#0a8a6a', '#f0c030', 'faixa', 0.96, 0, 0, 'Dona Giulia Pizzaiola', 'paciente', ['f', 'pele-media', 'cabelo-coque', 'castanho', null]],
+  ['catedral', 'Estrela da Catedral', 'EDC', 'milao', 13, '#8a1010', '#1a1a2a', 'metade', 1.07, 2, 40, 'Sr. Marco Risoto', 'exigente', ['m', 'pele-media', 'cabelo-cacheado', 'preto', null]],
+  // ---- Espanha (Madri) ----
+  ['castelhano', 'Real Castelhano', 'RC', 'madri', 14, '#ffffff', '#6a2ad9', 'faixa', 1.03, 0, 0, 'Don Rodrigo del Castillo', 'vaidoso', ['m', 'pele-media', 'cabelo-liso-longo', 'preto', 'rosto-escuros']],
+  ['moinhos', 'Atlético Moinhos de Vento', 'AMV', 'madri', 14, '#d42a2a', '#1a2a6a', 'listras', 0.96, 0, 0, 'Doña Pilar Quixote', 'exigente', ['f', 'pele-morena', 'cabelo-cacheado', 'castanho', null]],
+  ['soldeouro', 'Unión Sol de Oro', 'USO', 'madri', 14, '#f0a81a', '#1a1a2a', 'metade', 1.08, 3, 40, 'Don Paco Churros', 'paciente', ['m', 'pele-clara', 'cabelo-cacheado', 'grisalho', 'rosto-redondos']],
   // ---- Inglaterra (Londres) ----
-  ['royalthames', 'Royal Thames FC', 'RTF', 'londres', 12, '#1a2a6a', '#d42a2a', 'horizontal', 1.03, 0, 0, 'Sir Arthur Teapot', 'estrategista', ['m', 'pele-clara', 'cabelo-curto', 'loiro', 'rosto-redondos']],
-  ['bigben', 'Big Ben United', 'BBU', 'londres', 12, '#1a1a2a', '#f0c030', 'listras', 0.97, 0, 0, 'Lady Margaret Clockwork', 'exigente', ['f', 'pele-negra', 'cabelo-liso-longo', 'preto', null]],
-  ['foghill', 'Fog Hill Rovers', 'FHR', 'londres', 12, '#6ab0e0', '#ffffff', 'metade', 1.1, 3, 60, 'Mr. Oliver Pudding', 'paciente', ['m', 'pele-retinta', 'cabelo-black-power', 'grisalho', null]],
+  ['royalthames', 'Royal Thames FC', 'RTF', 'londres', 15, '#1a2a6a', '#d42a2a', 'horizontal', 1.03, 0, 0, 'Sir Arthur Teapot', 'estrategista', ['m', 'pele-clara', 'cabelo-curto', 'loiro', 'rosto-redondos']],
+  ['bigben', 'Big Ben United', 'BBU', 'londres', 15, '#1a1a2a', '#f0c030', 'listras', 0.97, 0, 0, 'Lady Margaret Clockwork', 'exigente', ['f', 'pele-negra', 'cabelo-liso-longo', 'preto', null]],
+  ['foghill', 'Fog Hill Rovers', 'FHR', 'londres', 15, '#6ab0e0', '#ffffff', 'metade', 1.1, 3, 60, 'Mr. Oliver Pudding', 'paciente', ['m', 'pele-retinta', 'cabelo-black-power', 'grisalho', null]],
 ];
 function carrSalTier(tier, mult = 1) { return Math.round(CARR_SAL_BASE * Math.pow(CARR_SAL_CRESCE, tier - 1) * mult / 10) * 10; }
 function carrPaisPorCidade(cid) { return CARR_EXTERIOR[cid] ? CARR_EXTERIOR[cid].pais : 'brasil'; }
@@ -306,12 +329,13 @@ function carrDados() {
   for (const k of ['fama', 'satEmp', 'satDir', 'satTorcida']) if (typeof c[k] !== 'number' || isNaN(c[k])) c[k] = k === 'fama' ? 0 : k === 'satEmp' ? 60 : 50;
   if (c.ultimoPagamento == null) c.ultimoPagamento = carrDia();
   c.fama = carrCl(c.fama, 0, CARR_FAMA_MAX);
-  // saves antigos: o contrato guarda tier/país da tabela velha (Portugal era 4, Espanha 5, Inglaterra 6)
-  if (c.clube && c.clube.v !== 2) {
+  // saves antigos: o contrato guarda tier/país da tabela velha (v233: a escada foi reordenada pela relevância)
+  if (c.clube && c.clube.v !== 3) {
     const def = carrClube(c.clube.id);
     if (def) Object.assign(c.clube, { tier: def.tier, pais: def.pais, cidade: def.cidade, cidadeNome: def.cidadeNome });
-    c.clube.v = 2;
+    c.clube.v = 3;
   }
+  if (c.escadaV !== 3) { if (c.ultimoTier) c.ultimoTier = CARR_TIER_V232[c.ultimoTier] || c.ultimoTier; c.escadaV = 3; }
   return c;
 }
 function carrHist(txt) {
@@ -414,7 +438,7 @@ function carrElegivel(k, folga) {
 }
 function carrNovoContrato(def, salario) {
   const d = carrDia();
-  const k = { v: 2, id: def.id, nome: def.nome, pais: def.pais, cidade: def.cidade, cidadeNome: def.cidadeNome, tier: def.tier, salario,
+  const k = { v: 3, id: def.id, nome: def.nome, pais: def.pais, cidade: def.cidade, cidadeNome: def.cidadeNome, tier: def.tier, salario,
     inicioDia: d, fimDia: d + CARR_PERIODO * CARR_PERIODOS_CONTRATO, metas: [], periodoDias: CARR_PERIODO, proxReuniao: d + CARR_PERIODO,
     promessa: false, estrutura: false, cumpridas: 0, totalMetas: 0 };
   k.metas = carrGeraMetas(k);
@@ -432,7 +456,7 @@ function carrGeraOfertas(opts = {}) {
   const maxTier = Math.max(...pool.map(k => k.tier));
   const temProximo = pool.some(k => k.tier === atual + 1);
   let n = opts.inicial ? 3 : c.satEmp < 25 ? 2 : c.satEmp >= 70 ? 4 : 3;
-  // o mercado anda um degrau por vez: Brasil → Cairo → Tóquio → Doha → Miami → Lisboa → Madri → Milão → Munique → Londres
+  // o mercado anda um degrau por vez: Brasil → Cairo → Doha → Tóquio → Miami → Buenos Aires → Rio → Lisboa → Paris → Munique → Milão → Madri → Londres
   const peso = k => {
     let w;
     if (k.tier === atual + 1) w = 6;

@@ -242,3 +242,6 @@ for (const e of ESTADIOS) {
   if (typeof FOLHAS !== 'undefined' && !FOLHAS[f]) { const im = new Image(); const fo = FOLHAS[f] = { im, ok: false, rot: null }; im.onload = () => { fo.ok = true; }; im.src = `a/boneco_${f}.webp?v=154`; }
   MONSTROS[cap.id].look = Object.assign({}, MONSTROS[cap.id].look, { folha: f }); delete MONSTROS[cap.id].look._kb;
 }
+
+// v233: estádios na ordem do mundo (pelo nível)
+ESTADIOS.sort((a, b) => a.L - b.L);

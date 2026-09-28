@@ -37,9 +37,10 @@ const HISTORIA_CENAS = [
     txt: n => 'E quando crescer, você vai fundar o seu próprio clube, subir da Várzea até a Série A... e rodar o mundo, do Cairo a Londres, rumo ao Mundial de Clubes!' },
 ];
 
-const CAP_MAPAS_MUNDO = ['cairo', 'toquio', 'doha', 'miami'];
-const CAP_MAPAS_EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres'];
-const CAP_MAPAS_FINAL = ['buenos', 'rio', 'arena_copa'];
+// v233: ordem do mundo pela relevância do futebol — Cairo, Doha, Tóquio, Miami, Buenos Aires, Rio → Europa → Copa no Rio
+const CAP_MAPAS_MUNDO = ['cairo', 'toquio', 'doha', 'miami', 'buenos', 'rio'];
+const CAP_MAPAS_EUROPA = ['lisboa', 'paris', 'madri', 'milao', 'munique', 'londres'];
+const CAP_MAPAS_FINAL = ['arena_copa'];
 
 // Ordem da história (e da checagem). cond(save, idDoMapa) → true quando o momento chegou.
 // implica: capítulos anteriores que ficam "vistos" junto (ex.: quem chegou à Europa já viajou o mundo).
@@ -86,7 +87,7 @@ const CAPITULOS = {
       { img: 'cap_mundo_1', kb: 'kb-zoom', foco: '72% 50%', cor: ['#5ac8ff', '#f0c060'],
         txt: n => 'Na mochila, junto com a chuteira, ia a velha bola de capotão. Afinal, ela também merecia conhecer o mundo!' },
       { img: 'cap_mundo_2', kb: 'kb-e', cor: ['#f7b35a', '#3aa0c8'],
-        txt: n => 'Pirâmides, luzes de neon, dunas douradas e praias ensolaradas: cada cidade ama o futebol de um jeito. E em todas tem gente querendo jogar com você.' },
+        txt: n => 'Pirâmides, dunas douradas, luzes de neon, praias ensolaradas, o tango de Buenos Aires e o samba do Rio: cada cidade ama o futebol de um jeito. E em todas tem gente querendo jogar com você.' },
     ],
     final: { emoji: '✈️', titulo: 'Asas pelo Mundo', sub: n => 'Fim do Capítulo 3. Faça amigos, respeite os rivais e mostre o futebol da Vila!', botao: 'Continuar ⚽' },
   },
@@ -105,16 +106,16 @@ const CAPITULOS = {
   },
   retorno: {
     rotulo: 'Capítulo 5', titulo: 'Rumo à Copa', emoji: '🌎', implica: ['mundo', 'europa'],
-    cond: (s, mapa) => CAP_MAPAS_FINAL.includes(mapa),
+    cond: (s, mapa) => CAP_MAPAS_FINAL.includes(mapa) || (mapa === 'rio' && (!!s.flags.lenda_mundial || (s.nivel || 1) >= 186)),
     cenas: [
       { img: 'cap_copa_1', kb: 'kb-a', cor: ['#f7b35a', '#1a9a3a'],
         txt: n => `A notícia correu o planeta: a próxima Copa do Mundo vai ser na América do Sul! E ${_hn(n)} foi convocado(a) para a seleção.` },
       { img: 'cap_copa_1', kb: 'kb-zoom', foco: '40% 60%', cor: ['#f7b35a', '#1a9a3a'],
-        txt: n => 'Em Buenos Aires, o futebol tem ritmo de tango. No Rio, tem cheiro de mar e som de pandeiro. Os adversários mais fortes do mundo estão aqui.' },
+        txt: n => 'Depois de rodar o mundo inteiro, é hora de voltar pra casa. A grande final vai ser no Rio de Janeiro, e os craques mais fortes do planeta estão chegando.' },
       { img: 'historia_1', kb: 'kb-d', cor: ['#f7b35a', '#3aa0c8'],
         txt: n => 'Lá na Vila do Campinho, a molecada pintou o muro de verde e amarelo. O Seu Zé ajeitou o boné: “Vai lá e joga como no campinho. Com alegria!”' },
     ],
-    final: { emoji: '🌎', titulo: 'Rumo à Copa', sub: n => 'Fim do Capítulo 5. Vença o Maestro do Tango e o Rei do Maracanã, e a Arena da Copa vai te chamar.', botao: 'Continuar ⚽' },
+    final: { emoji: '🌎', titulo: 'Rumo à Copa', sub: n => 'Fim do Capítulo 5. No nível 190, a Arena da Copa no Rio abre as portas para a grande final.', botao: 'Continuar ⚽' },
   },
   copa: {
     rotulo: 'Capítulo 6', titulo: 'A Copa do Mundo', emoji: '🏆', implica: ['mundo', 'europa', 'retorno'],

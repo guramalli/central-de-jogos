@@ -1,9 +1,11 @@
 /* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
-   RUMO AO CRAQUE — MUNDO: midgame (Cairo, Tóquio, Doha, Miami)
-   e Europa ampliada (Milão, Munique) + reescala de níveis.
-   Brasil 1–50 · Midgame 50–100 · Europa 100–160.
+   RUMO AO CRAQUE — MUNDO: midgame (Cairo, Doha, Tóquio, Miami),
+   América do Sul (Buenos Aires, Rio) e Europa + reescala de níveis.
+   v233: a ORDEM segue a relevância do futebol de cada país:
+   Cairo 56 · Doha 68 · Tóquio 80 · Miami 93 · Buenos Aires 106 · Rio 118 ·
+   Lisboa 130 · Paris 142 · Munique 154 · Milão 162 · Madri 170 · Londres 186.
    Carregar DEPOIS de europa.js.
    ============================================================ */
 
@@ -59,7 +61,7 @@ Object.assign(ITENS, {
 Object.assign(OBJ_INFO, { banca_livros: { w: 1.9, b: 1 }, metro_paris: { w: 1.9, b: 1 }, carrinho_crepe: { w: 1.4, b: 1 }, cavalete: { w: 1.1, b: 1 } });
 Object.assign(PORTAS, { b_paris1: { x: 0.5, y: 0.93 }, b_paris2: { x: 0.5, y: 0.93 } });
 ['i_croissant', 'i_macarons', 'i_boina', 'i_mini_eiffel', 'b_paris1', 'b_paris2', 'banca_livros', 'metro_paris', 'carrinho_crepe', 'cavalete'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
-// pós-jogo (nível 165–200): Buenos Aires e Rio de Janeiro
+// Buenos Aires e Rio de Janeiro (v233: níveis 106 e 118; os itens Galáxia viraram equipamento de Madri e Londres)
 Object.assign(ITENS, {
   chuteira_galaxia: { nome: 'Chuteira Galáxia', tipo: 'equip', slot: 'chuteira', atk: 52, st: { vel: 14, drible: 3 }, lvl: 172, preco: 420000, venda: 90000, desc: 'Ataque 52, +14 velocidade, +3 drible.' },
   camisa_galaxia: { nome: 'Camisa Galáxia', tipo: 'equip', slot: 'camisa', def: 38, st: { hp: 500, defesa: 2 }, lvl: 172, preco: 480000, venda: 100000, avatar: 'roupa-futebol', desc: '+500 fôlego, +2 defesa.', cor: '#1a1450', cor2: '#3ae0ff' },
@@ -144,13 +146,13 @@ const CIDADES = [
     cores: ['#e0203a', '#ffffff'], chefeLook: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-camisa10-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-coroa', pescoco: 'pescoco-medalha' },
     loja: { nome: 'Seu Karim do Mercado', ola: 'Ahlan! Falafel quentinho e equipamento de primeira para o craque viajante!', look: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#c8903a', baixo: 'baixo-jeans' } },
     lider: { nome: 'Nour, treinadora do bairro', ola: 'Aqui o futebol é paixão! Mas paixão não pode virar confusão.', look: { corpo: 'f', pele: 'pele-negra', cabelo: 'cabelo-coque', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#e0203a', baixo: 'baixo-jeans', pescoco: 'pescoco-apito' } } },
-  { id: 'toquio', nome: 'Tóquio — Distrito Neon', L: 68, base: CH.CALCADA, rua: CH.ASFALTO, seed: 902, predios: ['b_toquio1', 'b_toquio2'], marco: 'torii', marcoLarg: 3,
+  { id: 'toquio', nome: 'Tóquio — Distrito Neon', L: 80, base: CH.CALCADA, rua: CH.ASFALTO, seed: 902, predios: ['b_toquio1', 'b_toquio2'], marco: 'torii', marcoLarg: 3,
     props: ['lanterna_pedra', 'bambu', 'maneki', 'cerejeira', 'ponte_arco'], arvores: ['cerejeira', 'bambu'], enfeitesLoja: [['lanterna_pedra', 2], ['maneki', -2]], zona: 'Jardim Zen', comida: 'onigiri', lootEsp: 'leque',
     nomes: { rapido: 'Ponta Ninja', meia: 'Meia Origami', zagueiro: 'Zagueiro Sumô', chefe: 'O Sensei do Drible' },
     cores: ['#1a3ab9', '#ffffff'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-futebol', corRoupa: '#1a1a2a', baixo: 'baixo-shorts', chapeu: 'chapeu-faixa', rosto: 'rosto-escuros' },
     loja: { nome: 'Dona Yuki do Onigiri', ola: 'Irasshaimase! Onigiri fresquinho para dar foco no treino.', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-liso-longo', corCabelo: 'preto', roupa: 'roupa-camiseta', corRoupa: '#e05a8a', baixo: 'baixo-saia' } },
     lider: { nome: 'Mestre Kenji', ola: 'Disciplina, respeito e treino. Assim nasce um craque.', look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-moletom', corRoupa: '#1a1a2a', baixo: 'baixo-moletom', rosto: 'rosto-redondos' } } },
-  { id: 'doha', nome: 'Doha — Cidade das Dunas', L: 80, base: CH.AREIA, rua: CH.ASFALTO, seed: 903, agua: true, cais: CH.CALCADA, predios: ['b_doha1', 'b_doha2'], marco: 'fonte_moderna', marcoLarg: 3,
+  { id: 'doha', nome: 'Doha — Cidade das Dunas', L: 68, base: CH.AREIA, rua: CH.ASFALTO, seed: 903, agua: true, cais: CH.CALCADA, predios: ['b_doha1', 'b_doha2'], marco: 'fonte_moderna', marcoLarg: 3,
     props: ['duna', 'tenda_beduina', 'lanterna_arabe', 'carro_luxo', 'palmeira_real'], arvores: ['palmeira_real'], enfeitesLoja: [['lanterna_arabe', 2], ['palmeira_real', -3]], zona: 'Dunas Douradas', comida: 'tamaras', lootEsp: 'lamparina', zonaChao: CH.AREIA,
     nomes: { rapido: 'Ponta do Deserto', meia: 'Meia Miragem', zagueiro: 'Zagueiro Duna', chefe: 'O Falcão do Deserto' },
     cores: ['#8a1a3a', '#ffffff'], chefeLook: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#8a1a3a', baixo: 'baixo-shorts', costas: 'costas-capa', rosto: 'rosto-escuros' },
@@ -162,47 +164,50 @@ const CIDADES = [
     cores: ['#ff5ad0', '#3ac8e8'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-topete', corCabelo: 'loiro', roupa: 'roupa-rockstar-ouro', baixo: 'baixo-praia', rosto: 'rosto-estrela', mao: 'mao-microfone' },
     loja: { nome: 'Tio Joe do Food Truck', ola: 'Hey, buddy! Cachorro-quente e chuteira nova, tudo aqui!', look: { pele: 'pele-negra', cabelo: 'cabelo-black-power', corCabelo: 'preto', roupa: 'roupa-regata', baixo: 'baixo-praia', chapeu: 'chapeu-bone', pescoco: 'pescoco-havaiano' } },
     lider: { nome: 'Coach Sofia', ola: 'Nos Estados Unidos o futebol está crescendo. Me ajuda a mostrar como se joga!', look: { corpo: 'f', pele: 'pele-media', cabelo: 'cabelo-liso-longo', corCabelo: 'loiro', roupa: 'roupa-moletom', corRoupa: '#3ac8e8', baixo: 'baixo-moletom', pescoco: 'pescoco-apito', chapeu: 'chapeu-bone' } } },
-  { id: 'milao', nome: 'Milão — Piazza e Curva', L: 130, base: CH.PARALELO, rua: CH.CALCADA_PT, seed: 905, predios: ['b_milao1', 'b_milao2'], marco: 'fonte_italiana', marcoLarg: 3, // v153: a catedral agora é o monumento (Duomo)
+  { id: 'milao', nome: 'Milão — Piazza e Curva', L: 162, base: CH.PARALELO, rua: CH.CALCADA_PT, seed: 905, predios: ['b_milao1', 'b_milao2'], marco: 'fonte_italiana', marcoLarg: 3, // v153: a catedral agora é o monumento (Duomo)
     props: ['vespa', 'mesa_italiana', 'fonte_italiana', 'estatua', 'cipreste'], arvores: ['cipreste'], enfeitesLoja: [['mesa_italiana', 2], ['vespa', -2]], zona: 'Curva dos Ultras', comida: 'pizza', lootEsp: 'ingresso',
     nomes: { rapido: 'Ala Elegante', meia: 'Regista de Milão', zagueiro: 'Líbero Catenaccio', fanatico: 'Ultra da Curva', chefe: 'Il Maestro' },
     cores: ['#1a1a1a', '#1a3ab9'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-liso-longo', corCabelo: 'castanho', roupa: 'roupa-smoking-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-louros', rosto: 'rosto-escuros' },
     loja: { nome: 'Nonna Giulia da Pizzaria', ola: 'Mangia, mangia! Craque bem alimentado joga melhor!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#c01a2a', baixo: 'baixo-saia' } },
     lider: { nome: 'Padre Marco, do oratório', ola: 'Os ultras da Curva são meninos do bairro. Só precisam de um bom exemplo.', look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-terno', corRoupa: '#1a1a2a', baixo: 'baixo-jeans', rosto: 'rosto-redondos' } } },
-  { id: 'munique', nome: 'Munique — Praça do Relógio', L: 142, base: CH.PARALELO, rua: CH.ASFALTO, seed: 906, predios: ['b_munique1', 'b_munique2'], marco: 'maibaum', marcoLarg: 1, // v153: a torre do relógio agora é o monumento (Prefeitura)
+  { id: 'munique', nome: 'Munique — Praça do Relógio', L: 154, base: CH.PARALELO, rua: CH.ASFALTO, seed: 906, predios: ['b_munique1', 'b_munique2'], marco: 'maibaum', marcoLarg: 1, // v153: a torre do relógio agora é o monumento (Prefeitura)
     props: ['mesa_bavara', 'banca_pretzel', 'maibaum', 'bicicleta', 'pinheiro'], arvores: ['pinheiro'], enfeitesLoja: [['banca_pretzel', 2], ['bicicleta', -2]], zona: 'Parque Alpino', comida: 'pretzel', lootEsp: 'cronometro', zonaChao: CH.GRAMA,
     nomes: { rapido: 'Ponta Relâmpago Bávaro', meia: 'Meia Engrenagem', zagueiro: 'Zagueiro Muralha Alpina', chefe: 'O General Bávaro' },
     cores: ['#c01a2a', '#ffffff'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-cavaleiro-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-espartano-ouro' },
     loja: { nome: 'Frau Helga da Padaria', ola: 'Guten Tag! Pretzel quentinho saindo do forno!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-liso-longo', corCabelo: 'loiro', roupa: 'roupa-xadrez', corRoupa: '#3a6ad9', baixo: 'baixo-saia' } },
     lider: { nome: 'Treinador Hans', ola: 'Aqui tudo é organizado: treino, tática e muita dedicação.', look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'ruivo', roupa: 'roupa-moletom', corRoupa: '#c01a2a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
-  // ---- v153: Paris (depois de Londres, antes de Buenos Aires) ----
-  { id: 'paris', nome: 'Paris — Às margens do Sena', L: 162, base: CH.PARALELO, rua: CH.ASFALTO, seed: 909, agua: true, cais: CH.PEDRA, predios: ['b_paris1', 'b_paris2'], marco: 'metro_paris', marcoLarg: 2,
+  // ---- Paris (v233: entre Lisboa e Munique) ----
+  { id: 'paris', nome: 'Paris — Às margens do Sena', L: 142, base: CH.PARALELO, rua: CH.ASFALTO, seed: 909, agua: true, cais: CH.PEDRA, predios: ['b_paris1', 'b_paris2'], marco: 'metro_paris', marcoLarg: 2,
     props: ['banca_livros', 'carrinho_crepe', 'cavalete', 'mesa_cafe', 'carrinho_flores'], arvores: ['arvore'], enfeitesLoja: [['carrinho_crepe', 2], ['mesa_cafe', -2]], zona: 'Parque dos Príncipes', comida: 'croissant', lootEsp: 'boina',
     nomes: { rapido: 'Ponta do Sena', meia: 'Meia do Boulevard', zagueiro: 'Zagueiro da Bastilha', fanatico: 'Torcedor dos Príncipes', chefe: 'Le Grand Capitaine' },
     cores: ['#1a2a6a', '#d42a2a'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#1a2a6a', baixo: 'baixo-shorts', pescoco: 'pescoco-cachecol' },
     loja: { nome: 'Madame Colette da Boulangerie', ola: 'Bonjour! Croissant quentinho e macarons coloridos para o craque brasileiro!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'castanho', roupa: 'roupa-xadrez', corRoupa: '#d42a2a', baixo: 'baixo-saia' } },
     lider: { nome: 'Monsieur Didier, o técnico', ola: 'Em Paris o futebol é arte: cada passe é uma pincelada!', look: { pele: 'pele-negra', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#1a2a6a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
-  // ---- pós-jogo (nível 165–200) ----
-  { id: 'buenos', nome: 'Buenos Aires — La Boca', L: 170, base: CH.PARALELO, rua: CH.PEDRA, seed: 907, agua: true, cais: CH.PEDRA, predios: ['b_buenos1', 'b_buenos2'], marco: 'estatua_tango', marcoLarg: 2,
+  // ---- América do Sul (v233: antes da Europa; a final da Copa continua no Rio, na Arena da Copa) ----
+  { id: 'buenos', nome: 'Buenos Aires — La Boca', L: 106, base: CH.PARALELO, rua: CH.PEDRA, seed: 907, agua: true, cais: CH.PEDRA, predios: ['b_buenos1', 'b_buenos2'], marco: 'estatua_tango', marcoLarg: 2,
     props: ['mural_tango', 'banca_empanada', 'mesa_cafe', 'carrinho_flores', 'poste3'], arvores: ['arvore'], enfeitesLoja: [['banca_empanada', 2], ['mesa_cafe', -2]], zona: 'Bombonerita', comida: 'empanada', lootEsp: 'bandoneon',
     nomes: { rapido: 'Ponta do Caminito', meia: 'Enganche Portenho', zagueiro: 'Zagueiro Caudilho', fanatico: 'Hincha da Bombonerita', chefe: 'El Maestro del Tango' },
     cores: ['#1a3ab9', '#f8d838'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#1a1a1a', baixo: 'baixo-shorts' },
     loja: { nome: 'Doña Rosa das Empanadas', ola: '¡Hola, pibe! Empanadas quentinhas: quem come uma joga como um craque do bairro!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#1a3ab9', baixo: 'baixo-saia' } },
     lider: { nome: 'Profe Martín', ola: 'Aqui o futebol é tango: tem ritmo, tem drama e tem muito coração.', look: { pele: 'pele-media', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#1a3ab9', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
-  { id: 'rio', nome: 'Rio de Janeiro — Copacabana', L: 186, base: CH.AREIA, rua: CH.CALCADA_PT, seed: 908, agua: true, cais: CH.AREIA, predios: ['b_rio1', 'b_rio2'], marco: 'arcos_lapa', marcoLarg: 6,
+  { id: 'rio', nome: 'Rio de Janeiro — Copacabana', L: 118, base: CH.AREIA, rua: CH.CALCADA_PT, seed: 908, agua: true, cais: CH.AREIA, predios: ['b_rio1', 'b_rio2'], marco: 'arcos_lapa', marcoLarg: 6,
     props: ['carrinho_mate', 'bondinho', 'guarda_sol', 'cadeira_praia', 'quiosque'], arvores: ['coqueiro', 'coqueiro2'], enfeitesLoja: [['carrinho_mate', 2], ['guarda_sol', -2]], zona: 'Arquibancada da Geral', comida: 'biscoito_mate', lootEsp: 'pandeiro',
     nomes: { rapido: 'Ponta de Copacabana', meia: 'Meia do Samba', zagueiro: 'Zagueiro do Calçadão', fanatico: 'Torcedor da Geral', chefe: 'O Rei do Maracanã' },
     cores: ['#f8d838', '#1a9a3a'], chefeLook: { pele: 'pele-retinta', cabelo: 'cabelo-black-power', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#f8d838', baixo: 'baixo-shorts', chapeu: 'chapeu-coroa' },
     loja: { nome: 'Seu Tião do Mate', ola: 'Ó o mate! Biscoito e mate geladinho pra aguentar o calor de Copacabana!', look: { pele: 'pele-negra', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-regata', baixo: 'baixo-praia', chapeu: 'chapeu-bone' } },
-    lider: { nome: 'Dona Glória, técnica da seleção', ola: 'Todo o caminho te trouxe até aqui. Agora é a hora da Copa do Mundo!', look: { corpo: 'f', pele: 'pele-morena', cabelo: 'cabelo-cacheado', corCabelo: 'grisalho', roupa: 'roupa-moletom', corRoupa: '#1a9a3a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
+    lider: { nome: 'Dona Glória, técnica da seleção', ola: 'Bem-vindo(a) de volta ao Brasil! Vença a elite daqui e ganhe o mundo. Quando for uma lenda, a Copa do Mundo te espera aqui no Rio!', look: { corpo: 'f', pele: 'pele-morena', cabelo: 'cabelo-cacheado', corCabelo: 'grisalho', roupa: 'roupa-moletom', corRoupa: '#1a9a3a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
 ];
 
+// v233: equipamento de cada loja/queda segue o DEGRAU da cidade (a ordem nova do mundo)
 const GEAR_POR_CIDADE = {
-  cairo: ['chuteira_mundo', 'camisa_mundo', 'caneleira_mundo'], toquio: ['chuteira_mundo', 'camisa_mundo', 'caneleira_mundo', 'pulseira'], doha: ['camisa_mundo', 'caneleira_mundo', 'pulseira'], miami: ['chuteira_mundo', 'camisa_mundo', 'pulseira'],
-  milao: ['chuteira_elite', 'camisa_elite', 'caneleira_elite', 'chuteira_tita'], munique: ['chuteira_elite', 'camisa_tita', 'chuteira_tita', 'caneleira_elite'],
-  paris: ['chuteira_tita', 'camisa_tita', 'caneleira_elite', 'cachecol'],
-  buenos: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'camisa_tita'], rio: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'medalha_copa'],
+  cairo: ['chuteira_mundo', 'camisa_mundo', 'caneleira_mundo'], doha: ['chuteira_mundo', 'camisa_mundo', 'caneleira_mundo', 'pulseira'], toquio: ['camisa_mundo', 'caneleira_mundo', 'pulseira'], miami: ['chuteira_mundo', 'camisa_mundo', 'pulseira'],
+  buenos: ['chuteira_elite', 'camisa_elite', 'caneleira_elite'], rio: ['chuteira_elite', 'camisa_elite', 'caneleira_elite', 'cachecol'],
+  lisboa: ['chuteira_elite', 'camisa_elite', 'caneleira_elite', 'chuteira_tita'], paris: ['chuteira_elite', 'camisa_tita', 'chuteira_tita', 'caneleira_elite'],
+  munique: ['chuteira_tita', 'camisa_tita', 'caneleira_elite', 'cachecol'], milao: ['chuteira_tita', 'camisa_tita', 'caneleira_galaxia', 'cachecol'],
+  madri: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'camisa_tita'], londres: ['chuteira_galaxia', 'camisa_galaxia', 'caneleira_galaxia', 'medalha_copa'],
 };
-const LOOT_GEAR = { cairo: 'chuteira_mundo', toquio: 'pulseira', doha: 'camisa_mundo', miami: 'pulseira', milao: 'chuteira_tita', munique: 'camisa_tita', paris: 'camisa_lenda', buenos: 'caneleira_galaxia', rio: 'medalha_copa' };
+const LOOT_GEAR = { cairo: 'chuteira_mundo', doha: 'pulseira', toquio: 'camisa_mundo', miami: 'pulseira', buenos: 'chuteira_elite', rio: 'caneleira_elite',
+  lisboa: 'chuteira_tita', paris: 'camisa_tita', munique: 'camisa_lenda', milao: 'chuteira_lenda', madri: 'caneleira_galaxia', londres: 'medalha_copa' };
 
 for (const c of CIDADES) {
   const L = c.L, id = c.id, cor = c.cores[0];
@@ -237,7 +242,7 @@ for (const c of CIDADES) {
   );
 }
 
-/* ---------- pós-jogo: extras de Buenos Aires e do Rio ---------- */
+/* ---------- extras de Buenos Aires, do Rio e de Paris ---------- */
 MONSTROS.buenos_fanatico.loot.push(['insignia_estrela', 0.07, 1, 1]);
 MONSTROS.rio_fanatico.loot.push(['bandeira_verde', 0.07, 1, 1]);
 MONSTROS.paris_fanatico.loot.push(['mini_eiffel', 0.07, 1, 1]);
@@ -245,8 +250,9 @@ NPCS.loja_paris.loja.splice(1, 0, 'macarons');
 // a final: a Copa do Mundo (Arena da Copa, no Rio — arenas.js)
 MISSOES.push({ id: 'rio_m5', npc: 'lider_rio', titulo: 'A Copa do Mundo', lvl: 192, pre: 'rio_m4', texto: 'Chegou a hora. A ARENA DA COPA DO MUNDO abriu as portas aqui no Rio, e A LENDA DA COPA espera por você no gramado. Vença a final e traga a taça para casa!', req: { kill: 'ch_lenda_copa', n: 1 }, rec: { xp: 30000000, ouro: 2000000, flag: 'campeao_copa', itens: [['taca_copa', 1]] }, fim: 'É CAMPEÃ(O) DO MUNDO! Do campinho de terra até a taça mais famosa do planeta. A Vila inteira está chorando de alegria!' });
 
-/* ---------- Europa reescalonada (100–160) ---------- */
-const NIVEL_EUROPA = { lisboa: 106, madri: 118, londres: 154 };
+/* ---------- Europa reescalonada (v233: Lisboa 130, Madri 170, Londres 186) ---------- */
+const NIVEL_EUROPA = { lisboa: 130, madri: 170, londres: 186 };
+const NIVEL_EUROPA_V232 = { lisboa: 106, madri: 118, londres: 154 }; // para reescalar as recompensas das missões
 const EUR_ARQ = {
   ponta_alfama: ['lisboa', 'rapido'], medio_chiado: ['lisboa', 'meia'], central_belem: ['lisboa', 'zagueiro'], ultra_lisboa: ['lisboa', 'fanatico'], capitao_tejo: ['lisboa', 'chefe'],
   extremo_madri: ['madri', 'rapido'], pivote_madri: ['madri', 'meia'], zagueiro_toureiro: ['madri', 'zagueiro'], ultra_madri: ['madri', 'fanatico'], galactico: ['madri', 'chefe'],
@@ -258,25 +264,67 @@ for (const [id, [cid, arq]] of Object.entries(EUR_ARQ)) {
   if (m.ranged) m.ranged.dano = Math.round(m.atk * 0.95);
   m.ouro = arq === 'chefe' ? [L * 150, L * 220] : [Math.round(L * 2.2), Math.round(L * 4.5)];
 }
-const SOBE_EUROPA = { l_: 50, m_: 47, o_: 68 };
+const SOBE_EUROPA = { l_: 74, m_: 99, o_: 100 };
 for (const q of MISSOES) for (const [pref, d] of Object.entries(SOBE_EUROPA)) if (q.id.startsWith(pref) && q.lvl < 100) q.lvl += d;
-for (const q of MISSOES) if (/^(l_|m_|o_)/.test(q.id) && q.rec.xp) q.rec.xp = Math.round(q.rec.xp * 3);
+{ const CID_PREF = { l_: 'lisboa', m_: 'madri', o_: 'londres' };
+  for (const q of MISSOES) { const pref = q.id.slice(0, 2); const cid = CID_PREF[pref]; if (!cid || !/^(l_|m_|o_)/.test(q.id)) continue;
+    const k = NIVEL_EUROPA[cid] / NIVEL_EUROPA_V232[cid];
+    if (q.rec.xp) q.rec.xp = Math.round(q.rec.xp * 3 * k * k); if (q.rec.ouro) q.rec.ouro = Math.round(q.rec.ouro * k); } }
+// lojas e quedas de equipamento da Europa antiga: pelo degrau novo
+for (const cid of ['lisboa', 'madri', 'londres']) {
+  const n = NPCS['lojista_' + cid]; if (n && Array.isArray(n.loja)) n.loja = n.loja.filter(id => !ITENS[id] || ITENS[id].tipo !== 'equip').concat(GEAR_POR_CIDADE[cid]);
+}
+for (const [id, [cid, arq]] of Object.entries(EUR_ARQ)) {
+  if (arq === 'chefe') continue;
+  const m = MONSTROS[id]; m.loot = m.loot.filter(l => !ITENS[l[0]] || ITENS[l[0]].tipo !== 'equip');
+  if (arq === 'rapido' || arq === 'zagueiro') m.loot.push([LOOT_GEAR[cid], arq === 'zagueiro' ? 0.004 : 0.003, 1, 1]);
+}
+// v233: ordem pela relevância do futebol (o nível de cada voo é o do degrau da cidade)
+const ORDEM_MUNDO = ['cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'];
 Object.assign(VOOS, {
   cairo: { nome: 'Cairo, Egito', lvl: 50, preco: 2000 },
-  toquio: { nome: 'Tóquio, Japão', lvl: 62, preco: 3000 },
-  doha: { nome: 'Doha, Catar', lvl: 74, preco: 4000 },
+  doha: { nome: 'Doha, Catar', lvl: 62, preco: 3000 },
+  toquio: { nome: 'Tóquio, Japão', lvl: 74, preco: 4000 },
   miami: { nome: 'Miami, Estados Unidos', lvl: 86, preco: 5000 },
-  lisboa: { nome: 'Lisboa, Portugal', lvl: 100, preco: 7000 },
-  madri: { nome: 'Madri, Espanha', lvl: 112, preco: 9000 },
-  milao: { nome: 'Milão, Itália', lvl: 124, preco: 11000 },
-  munique: { nome: 'Munique, Alemanha', lvl: 136, preco: 13000 },
-  londres: { nome: 'Londres, Inglaterra', lvl: 148, preco: 16000 },
-  paris: { nome: 'Paris, França', lvl: 156, preco: 18000 },
-  buenos: { nome: 'Buenos Aires, Argentina', lvl: 162, preco: 20000 },
-  rio: { nome: 'Rio de Janeiro, Brasil', lvl: 176, preco: 25000 },
+  buenos: { nome: 'Buenos Aires, Argentina', lvl: 100, preco: 7000 },
+  rio: { nome: 'Rio de Janeiro, Brasil', lvl: 112, preco: 9000 },
+  lisboa: { nome: 'Lisboa, Portugal', lvl: 124, preco: 11000 },
+  paris: { nome: 'Paris, França', lvl: 136, preco: 13000 },
+  munique: { nome: 'Munique, Alemanha', lvl: 148, preco: 16000 },
+  milao: { nome: 'Milão, Itália', lvl: 156, preco: 18000 },
+  madri: { nome: 'Madri, Espanha', lvl: 162, preco: 20000 },
+  londres: { nome: 'Londres, Inglaterra', lvl: 176, preco: 25000 },
 });
 // ordem de exibição dos voos
-{ const ord = ['cidade', 'cairo', 'toquio', 'doha', 'miami', 'lisboa', 'madri', 'milao', 'munique', 'londres', 'paris', 'buenos', 'rio']; const cp = Object.assign({}, VOOS); for (const k of Object.keys(VOOS)) delete VOOS[k]; for (const k of ord) VOOS[k] = cp[k]; }
+{ const ord = ['cidade', ...ORDEM_MUNDO]; const cp = Object.assign({}, VOOS); for (const k of Object.keys(VOOS)) delete VOOS[k]; for (const k of ord) VOOS[k] = cp[k]; }
+
+/* ---------- v233: comidas típicas no degrau novo (cada cidade mantém a sua comida; a força é a do degrau) ---------- */
+{
+  const C = (lvl, preco, venda, efeito) => ({ lvl, preco, venda, efeito });
+  const COMIDA_DEGRAU = {
+    falafel: ['Do Cairo', C(50, 180, 36, { dur: 600, regen: 2, atr: { defesa: 7 } })],
+    tamaras: ['De Doha', C(62, 260, 52, { dur: 600, vel: 12, atr: { folego: 7 } })],
+    onigiri: ['De Tóquio', C(74, 340, 68, { dur: 600, regenFoco: 3, atr: { inteligencia: 7 } })],
+    cachorro_quente: ['De Miami', C(86, 420, 84, { dur: 600, regen: 2.5, atr: { habilidade: 7 } })],
+    empanada: ['De Buenos Aires', C(100, 400, 80, { dur: 600, regen: 3, atr: { habilidade: 8 } })],
+    biscoito_mate: ['Da praia do Rio', C(112, 700, 140, { dur: 600, regenFoco: 4, vel: 6, atr: { folego: 8 } })],
+    pastel_nata: ['Doce de Lisboa', C(124, 1600, 320, { dur: 900, regen: 4, regenFoco: 3, atr: { defesa: 7, habilidade: 7, inteligencia: 7, folego: 7 } })],
+    croissant: ['De Paris', C(136, 1900, 380, { dur: 900, regen: 5, atr: { habilidade: 10, inteligencia: 10 } })],
+    macarons: ['De Paris', C(140, 2000, 400, { dur: 900, regen: 4, regenFoco: 3, vel: 6, atr: { defesa: 8, folego: 8 } })],
+    pretzel: ['De Munique', C(148, 2100, 420, { dur: 900, regen: 5, atr: { folego: 10, defesa: 10 } })],
+    pizza: ['De Milão', C(156, 2200, 440, { dur: 900, regen: 5, regenFoco: 3, atr: { defesa: 8, habilidade: 8, inteligencia: 8, folego: 8 } })],
+    churros: ['De Madri', C(162, 2400, 480, { dur: 900, regen: 5, regenFoco: 4, atr: { habilidade: 10, folego: 9 } })],
+    fish_chips: ['De Londres', C(176, 3200, 640, { dur: 900, regen: 6, regenFoco: 4, vel: 10, atr: { defesa: 10, inteligencia: 10, folego: 10 } })],
+  };
+  const NM = { defesa: 'Defesa', inteligencia: 'Inteligência', folego: 'Fôlego', habilidade: 'Habilidade' };
+  const descComida = (de, e) => {
+    const a = Object.entries(e.atr || {}); const p = [];
+    if (a.length === 4 && a.every(([, v]) => v === a[0][1])) p.push(`+${a[0][1]} em TUDO`); else a.forEach(([k]) => p.push('+' + NM[k]));
+    if (e.vel) p.push('velocidade'); if (e.regenFoco) p.push('foco'); if (e.regen) p.push('recuperação');
+    return `${de}: ${p.length > 1 ? p.slice(0, -1).join(', ') + ' e ' + p[p.length - 1] : p[0]} por ${Math.round(e.dur / 60)} min.`;
+  };
+  for (const [id, [de, v]] of Object.entries(COMIDA_DEGRAU)) if (ITENS[id]) Object.assign(ITENS[id], v, { desc: descComida(de, v.efeito) });
+}
 
 /* ---------- bebidas dos níveis altos (o teste de balanceamento mostrou que a Vitamina, 520, não segura a Europa) ---------- */
 Object.assign(ITENS, {
@@ -287,3 +335,21 @@ Object.assign(ITENS, {
 });
 ['i_energetico', 'i_guarana', 'i_kit_massagista', 'i_isotonico_pro'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
 for (const [id, n] of Object.entries(NPCS)) if (/^loja_|^lojista_/.test(id) && Array.isArray(n.loja)) for (const b of ['energetico', 'guarana', 'kit_massagista', 'isotonico_pro']) if (!n.loja.includes(b)) n.loja.splice(3, 0, b);
+
+/* ---------- v233: aviso (uma vez) de que o mundo mudou de ordem ---------- */
+{
+  const _iniciarJogoOrdem = iniciarJogo;
+  iniciarJogo = async function () {
+    const r = await _iniciarJogoOrdem.apply(this, arguments);
+    try {
+      const s = G.save; s.flags = s.flags || {};
+      if (!s.flags.aviso_ordem_v233 && (s.nivel || 1) >= 45) {
+        s.flags.aviso_ordem_v233 = true;
+        log('🌍 O mapa-múndi foi reorganizado pela força do futebol de cada país: Cairo → Doha → Tóquio → Miami → Buenos Aires → Rio → Lisboa → Paris → Munique → Milão → Madri → Londres. A final da Copa continua no Rio!', 'l-lvl');
+        const c = CIDADES.find(k => k.id === G.mapa.id); const L = c ? c.L : (NIVEL_EUROPA[G.mapa.id] || 0);
+        if (L && L > (s.nivel || 1) + 10) log(`⚠️ Cuidado: aqui os adversários agora são nível ${L}. O aeroporto leva você para uma cidade do seu nível.`, 'l-dano');
+      }
+    } catch (e) { }
+    return r;
+  };
+}
