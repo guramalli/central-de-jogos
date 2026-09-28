@@ -29,22 +29,30 @@ const TATICAS = {
 
 /* ---------------- países e divisões ---------------- */
 // Cada país tem uma pirâmide de divisões (da mais baixa para a mais alta) e a força média dos times.
-// A divisão de entrada de um país tem mais ou menos a força da elite do país anterior.
+// v232: forças pela RELEVÂNCIA real do futebol de cada país (ESCADA_PAISES). O Brasil é a casa: a Várzea é
+// a liga mais fraca do jogo e a Série A fica acima de Argentina, EUA, Japão, Catar e Egito e abaixo da Europa.
+// Países novos entram SEMPRE no fim da lista (t.div é índice em DIVS, e as flags campeao_div<n> também).
 const PAISES = [
-  { id: 'brasil', nome: 'Brasil', lvl: NIVEL_TIME, copa: 'Copa do Brasil', cores: ['#1a9a3a', '#f8d838', '#2a4ad9'], divs: [['Várzea', 26], ['Série D', 34], ['Série C', 42], ['Série B', 50], ['Série A', 58]] },
-  { id: 'egito', nome: 'Egito', lvl: 50, copa: 'Copa do Egito', cores: ['#ce1126', '#ffffff', '#1a1a1a'], divs: [['2ª Divisão Egípcia', 57], ['Liga do Nilo', 62]] },
-  { id: 'japao', nome: 'Japão', lvl: 62, copa: 'Copa do Japão', cores: ['#ffffff', '#d8203a', '#ffffff'], divs: [['2ª Divisão Japonesa', 61], ['Liga do Sol Nascente', 66]] },
-  { id: 'catar', nome: 'Catar', lvl: 74, copa: 'Copa do Emir', cores: ['#ffffff', '#8a1538', '#8a1538'], vert: true, divs: [['2ª Divisão do Catar', 65], ['Liga das Estrelas do Golfo', 70]] },
-  { id: 'eua', nome: 'Estados Unidos', lvl: 86, copa: 'Copa dos EUA', cores: ['#b22234', '#ffffff', '#3c3b6e'], divs: [['Liga Norte-Americana B', 69], ['Liga Norte-Americana', 73]] },
-  { id: 'portugal', nome: 'Portugal', lvl: 100, copa: 'Taça de Portugal', cores: ['#006600', '#ff0000', '#ff0000'], vert: true, divs: [['3ª Liga Portuguesa', 72], ['2ª Liga Portuguesa', 75], ['Liga Lusitana', 78]] },
-  { id: 'espanha', nome: 'Espanha', lvl: 112, copa: 'Copa do Rei', cores: ['#c60b1e', '#ffc400', '#c60b1e'], divs: [['3ª Divisão Espanhola', 76], ['2ª Divisão Espanhola', 79], ['Liga Ibérica', 82]] },
-  { id: 'italia', nome: 'Itália', lvl: 124, copa: 'Copa da Itália', cores: ['#009246', '#ffffff', '#ce2b37'], vert: true, divs: [['Série C Italiana', 80], ['Série B Italiana', 83], ['Série A Italiana', 86]] },
-  { id: 'alemanha', nome: 'Alemanha', lvl: 136, copa: 'Copa da Alemanha', cores: ['#1a1a1a', '#dd0000', '#ffce00'], divs: [['Liga Regional Alemã', 83], ['2ª Liga Alemã', 86], ['1ª Liga Alemã', 89]] },
-  { id: 'inglaterra', nome: 'Inglaterra', lvl: 148, copa: 'Copa da Inglaterra', cores: ['#ffffff', '#ce1124', '#ffffff'], divs: [['Divisão Nacional Inglesa', 86], ['Segundona Inglesa', 89], ['Primeira Liga Inglesa', 92]] },
+  { id: 'brasil', nome: 'Brasil', lvl: NIVEL_TIME, copa: 'Copa do Brasil', cores: ['#1a9a3a', '#f8d838', '#2a4ad9'], divs: [['Várzea', 26], ['Série D', 34], ['Série C', 42], ['Série B', 51], ['Série A', 61]] },
+  { id: 'egito', nome: 'Egito', lvl: 35, copa: 'Copa do Egito', cores: ['#ce1126', '#ffffff', '#1a1a1a'], divs: [['2ª Divisão Egípcia', 38], ['Liga do Nilo', 44]] },
+  { id: 'japao', nome: 'Japão', lvl: 45, copa: 'Copa do Japão', cores: ['#ffffff', '#d8203a', '#ffffff'], divs: [['2ª Divisão Japonesa', 42], ['Liga do Sol Nascente', 48]] },
+  { id: 'catar', nome: 'Catar', lvl: 40, copa: 'Copa do Emir', cores: ['#ffffff', '#8a1538', '#8a1538'], vert: true, divs: [['2ª Divisão do Catar', 40], ['Liga das Estrelas do Golfo', 46]] },
+  { id: 'eua', nome: 'Estados Unidos', lvl: 50, copa: 'Copa dos EUA', cores: ['#b22234', '#ffffff', '#3c3b6e'], divs: [['Liga Norte-Americana B', 44], ['Liga Norte-Americana', 51]] },
+  { id: 'portugal', nome: 'Portugal', lvl: 90, copa: 'Taça de Portugal', cores: ['#006600', '#ff0000', '#ff0000'], vert: true, divs: [['3ª Liga Portuguesa', 62], ['2ª Liga Portuguesa', 65], ['Liga Lusitana', 68]] },
+  { id: 'espanha', nome: 'Espanha', lvl: 138, copa: 'Copa do Rei', cores: ['#c60b1e', '#ffc400', '#c60b1e'], divs: [['3ª Divisão Espanhola', 77], ['2ª Divisão Espanhola', 80], ['Liga Ibérica', 85]] },
+  { id: 'italia', nome: 'Itália', lvl: 128, copa: 'Copa da Itália', cores: ['#009246', '#ffffff', '#ce2b37'], vert: true, divs: [['Série C Italiana', 74], ['Série B Italiana', 77], ['Série A Italiana', 82]] },
+  { id: 'alemanha', nome: 'Alemanha', lvl: 116, copa: 'Copa da Alemanha', cores: ['#1a1a1a', '#dd0000', '#ffce00'], divs: [['Liga Regional Alemã', 70], ['2ª Liga Alemã', 74], ['1ª Liga Alemã', 79]] },
+  { id: 'inglaterra', nome: 'Inglaterra', lvl: 148, copa: 'Copa da Inglaterra', cores: ['#ffffff', '#ce1124', '#ffffff'], divs: [['Divisão Nacional Inglesa', 81], ['Segundona Inglesa', 85], ['Primeira Liga Inglesa', 90]] },
   { id: 'mundo', nome: 'Mundial', lvl: 150, copa: null, cores: ['#2a4ad9', '#2ad96a', '#2a4ad9'], divs: [['Mundial de Clubes', 95]] },
+  // v232 (sempre no fim: não mexe nos índices dos saves)
+  { id: 'argentina', nome: 'Argentina', lvl: 55, copa: 'Copa Argentina', cores: ['#74acdf', '#ffffff', '#74acdf'], divs: [['Primera Nacional', 48], ['Liga Profissional Argentina', 56]] },
+  { id: 'franca', nome: 'França', lvl: 104, copa: 'Copa da França', cores: ['#0055a4', '#ffffff', '#ef4135'], vert: true, divs: [['National Francês', 66], ['Ligue 2 Francesa', 70], ['Ligue 1 Francesa', 74]] },
 ];
+// ordem de relevância (da liga mais fraca para a mais forte): é a escada mostrada em "Ligas pelo mundo"
+const ESCADA_PAISES = ['egito', 'catar', 'japao', 'eua', 'argentina', 'brasil', 'portugal', 'franca', 'alemanha', 'italia', 'espanha', 'inglaterra', 'mundo'];
+const ESCADA_FOLGA = 5; // campeão de uma liga de força X abre os países cuja divisão de entrada tem força até X+5
 const PAIS = Object.fromEntries(PAISES.map(p => [p.id, p]));
-const PAISES_EUROPA = ['portugal', 'espanha', 'italia', 'alemanha', 'inglaterra'];
+const PAISES_EUROPA = ['portugal', 'franca', 'espanha', 'italia', 'alemanha', 'inglaterra'];
 // lista "achatada" de todas as divisões — t.div é um índice aqui
 const DIVS = PAISES.flatMap(p => p.divs.map(([nome, base], k) => ({ nome, base, pais: p.id, k, topo: k === p.divs.length - 1, piso: k === 0 })));
 function divDe(pais, k) { return DIVS.findIndex(d => d.pais === pais && d.k === k); }
@@ -62,6 +70,8 @@ const NOMES_PAIS = {
   italia: { a: ['Associazione', 'Unione', 'Sportiva', 'Atletico', 'Virtus', 'Robur'], b: ['Siena', 'Pisa', 'Lucca', 'Trento', 'Rimini', 'Pádua', 'Lecce', 'Como', 'Perugia', 'Módena', 'Ravena', 'Ancona'] },
   alemanha: { a: ['SV', 'FC', 'TSV', 'SC', 'Viktoria', 'Fortuna'], b: ['Ulm', 'Kassel', 'Trier', 'Passau', 'Rostock', 'Lübeck', 'Erfurt', 'Jena', 'Bamberg', 'Göttingen', 'Würzburg', 'Coblença'] },
   inglaterra: { b: ['Bath', 'York', 'Dover', 'Chester', 'Exeter', 'Durham', 'Kent', 'Hull', 'Lincoln', 'Bristol', 'Salisbury', 'Canterbury'], c: ['Rovers', 'Athletic', 'Albion', 'Wanderers', 'Town', 'Harriers', 'Rangers', 'Mariners'] },
+  argentina: { a: ['Club Atlético', 'Deportivo', 'Sportivo', 'Racing de', 'Unión de', 'Estudiantes de'], b: ['Rosário', 'Mendoza', 'Córdoba', 'Salta', 'Tucumán', 'La Plata', 'Mar del Plata', 'Bahía Blanca', 'Santa Fé', 'Jujuy', 'Neuquén', 'Paraná'] },
+  franca: { a: ['Olympique de', 'Stade', 'AS', 'FC', 'Racing de', 'Étoile de'], b: ['Rouen', 'Dijon', 'Tours', 'Nancy', 'Grenoble', 'Avignon', 'Orléans', 'Limoges', 'Calais', 'Toulon', 'Annecy', 'Amiens'] },
   mundo: { a: ['Real', 'Inter', 'Atlético', 'Sporting', 'Dínamo', 'Olímpico', 'Racing', 'Imperial'], b: ['Tordesilhas', 'Lisboa Nova', 'Nova Iorque', 'Tóquio', 'Cairo', 'Madri Velha', 'Monte Alto', 'Porto Frio', 'Sidney', 'Buenos Aires', 'Munique Sul', 'Doha Norte'] },
 };
 // clubes conhecidos com uma pequena mudança criativa no nome — [nome, cor1, cor2], do mais forte para o mais fraco
@@ -114,6 +124,15 @@ const CLUBES_PAIS = {
     [['Burnlei', '#8a1a2a', '#6ab0e0'], ['Watfordd', '#f0c030', '#d42a2a'], ['Norwichi', '#f0c030', '#1a8a3a'], ['Middlesbrô', '#d42a2a', '#ffffff'], ['Sheffield Unaited', '#d42a2a', '#ffffff'], ['Blackburno', '#1a4ad9', '#ffffff'], ['Derby Countri', '#ffffff', '#1a1a1a'], ['Ipswichi', '#1a4ad9', '#ffffff'], ['Queens Park Rangérs', '#1a4ad9', '#ffffff'], ['Bristol Citty', '#d42a2a', '#ffffff']],
     [['Leeds Unaited', '#ffffff', '#f0c030'], ['Leicestter', '#1a4ad9', '#ffffff'], ['Lobos de Wolverhampton', '#f0a030', '#1a1a1a'], ['Palácio de Cristal', '#1a4ad9', '#d42a2a'], ['Nottingham Floresta', '#d42a2a', '#ffffff'], ['Brightom', '#1a4ad9', '#ffffff'], ['Fulhamm', '#ffffff', '#1a1a1a'], ['Brentfordd', '#d42a2a', '#ffffff'], ['Southamptom', '#d42a2a', '#ffffff'], ['Sunderlandia', '#d42a2a', '#ffffff']],
     [['Manchester Citty', '#6ab0e0', '#ffffff'], ['Liverpúl', '#d42a2a', '#ffffff'], ['Arsenau', '#d42a2a', '#ffffff'], ['Chelsi', '#1a4ad9', '#ffffff'], ['Manchester Unaited', '#d42a2a', '#1a1a1a'], ['Newcastello', '#1a1a1a', '#ffffff'], ['Totenhamm', '#ffffff', '#1a2a6a'], ['Aston Vila', '#8a1a2a', '#6ab0e0'], ['West Hamm', '#8a1a2a', '#6ab0e0'], ['Evertão', '#1a4ad9', '#ffffff']],
+  ],
+  argentina: [
+    [['Huracánn', '#ffffff', '#d42a2a'], ['Lanúss', '#8a1a2a', '#ffffff'], ['Banfieldd', '#1a8a3a', '#ffffff'], ['Argentinos Juniorz', '#d42a2a', '#ffffff'], ['Gimnasia La Platta', '#ffffff', '#1a2a6a'], ['Colón de Santa Fé', '#d42a2a', '#1a1a1a'], ['Unión de Santa Fé', '#d42a2a', '#ffffff'], ['Quilmez', '#ffffff', '#1a2a6a'], ['Chacarita Juniorz', '#d42a2a', '#1a1a1a'], ['Tigrê', '#1a4ad9', '#d42a2a']],
+    [['Boca Juniorz', '#1a2a6a', '#f0c030'], ['Ríver Plata', '#ffffff', '#d42a2a'], ['Racing Clube', '#6ab0e0', '#ffffff'], ['Independientte', '#d42a2a', '#ffffff'], ['San Lorenço', '#1a2a6a', '#d42a2a'], ['Estudiantis', '#d42a2a', '#ffffff'], ['Vélez Sarsfieldd', '#ffffff', '#1a4ad9'], ["Newell's Old Boyz", '#d42a2a', '#1a1a1a'], ['Rosário Centrau', '#1a4ad9', '#f0c030'], ['Tayeres de Córdoba', '#1a2a6a', '#ffffff']],
+  ],
+  franca: [
+    [['Sochauxx', '#f0c030', '#1a2a6a'], ['Nancyê', '#d42a2a', '#ffffff'], ['Caenn', '#1a2a6a', '#d42a2a'], ['Guingampê', '#d42a2a', '#1a1a1a'], ['Bastiá', '#1a4ad9', '#ffffff'], ['Amiênss', '#ffffff', '#1a1a1a'], ['Valenciennê', '#d42a2a', '#ffffff'], ['Dijonn', '#d42a2a', '#ffffff'], ['Niort Chamois', '#1a4ad9', '#ffffff'], ['Estrela Vermelha de Paris', '#1a8a3a', '#ffffff']],
+    [['Saint-Étiennê', '#1a8a3a', '#ffffff'], ['Girondinos de Bordéus', '#1a2a6a', '#ffffff'], ['Montpelliê', '#1a2a6a', '#ff8a1a'], ['Toulousê', '#7a2ad9', '#ffffff'], ['Auxerrê', '#ffffff', '#1a4ad9'], ['Metzê', '#8a1a2a', '#ffffff'], ['Stade de Reimss', '#d42a2a', '#ffffff'], ['Brestê', '#d42a2a', '#ffffff'], ['Angers SCO', '#1a1a1a', '#ffffff'], ['Le Havrê', '#6ab0e0', '#1a2a6a']],
+    [['Paris Saint-Germã', '#1a2a6a', '#d42a2a'], ['Olympique de Marselha', '#ffffff', '#6ab0e0'], ['Olympique Lyonês', '#ffffff', '#1a4ad9'], ['Mônaco AS', '#d42a2a', '#ffffff'], ['Lillê', '#d42a2a', '#1a2a6a'], ['Stade Rennês', '#d42a2a', '#1a1a1a'], ['Nicê', '#d42a2a', '#1a1a1a'], ['Lensê', '#f0c030', '#d42a2a'], ['Nantis', '#f0c030', '#1a8a3a'], ['Estrasburgo', '#1a4ad9', '#ffffff']],
   ],
   mundo: [
     [['Real Madrís', '#ffffff', '#7a2ad9'], ['Manchester Citty', '#6ab0e0', '#ffffff'], ['Bayernn München', '#d42a2a', '#ffffff'], ['Barcelonha', '#1a2a6a', '#8a1a2a'], ['Liverpúl', '#d42a2a', '#ffffff'], ['Juventos', '#ffffff', '#1a1a1a'], ['Framengo', '#d42a2a', '#1a1a1a'], ['Palmeiral', '#1a8a3a', '#ffffff'], ['Boca Juniorz', '#1a2a6a', '#f0c030'], ['Ríver Plata', '#ffffff', '#d42a2a']],
@@ -554,9 +573,9 @@ function telaClube() {
   wrap.append(el('h3', {}, `🏆 Sala de troféus (${t.trofeus.length})`));
   wrap.append(t.trofeus.length ? el('div', { class: 'trofeus' }, ...t.trofeus.map(x => el('span', { class: 'trofeu' }, `🏆 ${x.nome} (T${x.temp})`))) : el('p', { class: 'vazio' }, 'Nenhum troféu ainda. Vença uma liga ou copa!'));
   // mundo
-  wrap.append(el('h3', {}, '🌍 Ligas pelo mundo'), el('p', {}, 'Campeão da divisão principal de um país? O clube recebe convite para disputar a liga do próximo país (começando na divisão de entrada). Também é preciso ter o nível do seu craque.'));
+  wrap.append(el('h3', {}, '🌍 Ligas pelo mundo'), el('p', {}, `Da liga mais fraca para a mais forte. Cada título abre países com liga de força parecida (até +${ESCADA_FOLGA}); o clube entra na divisão que combina com a força dele. Também é preciso ter o nível do seu craque.${melhorTitulo() ? ` Seu melhor título: força ${melhorTitulo()}.` : ''}`));
   const lm = el('div', { class: 'lista' });
-  PAISES.forEach((p, i) => {
+  ESCADA_PAISES.map(id => PAIS[id]).forEach(p => {
     const aqui = t.pais === p.id; const r = requisitoPais(p.id);
     lm.append(el('div', { class: 'linha-item' + (r.ok || aqui ? '' : ' bloq') }, bandeira(p.id), el('div', { class: 'nm' }, el('b', {}, p.nome + (t.campeoes[p.id] ? ' 🏆' : '')), el('small', {}, `${p.divs.length} divisão(ões) · força ${p.divs[0][1]}–${p.divs[p.divs.length - 1][1]} · ${aqui ? 'VOCÊ ESTÁ AQUI' : r.ok ? 'convite disponível' : r.motivo}`)),
       aqui || !r.ok ? '' : el('button', { class: 'btn amarelo mini', onclick: () => mudarPais(p.id) }, 'Transferir clube')));
@@ -564,21 +583,26 @@ function telaClube() {
   wrap.append(lm);
   return wrap;
 }
+// força da liga mais forte em que o clube já foi campeão (flags campeao_div<índice>)
+function melhorTitulo() { const f = G.save.flags || {}; return DIVS.reduce((m, d, i) => f['campeao_div' + i] ? Math.max(m, d.base) : m, 0); }
+// divisão em que o clube entra ao se mudar: a mais alta com força até o melhor título + folga
+function divEntrada(pid) { const p = PAIS[pid]; const lim = melhorTitulo() + ESCADA_FOLGA; let k = 0; p.divs.forEach(([, base], i) => { if (base <= lim) k = i; }); return pid === 'brasil' ? Math.min(k, 3) : k; }
 function requisitoPais(pid) {
-  const s = G.save; const t = s.time; const i = PAISES.findIndex(p => p.id === pid); const p = PAISES[i];
+  const s = G.save; const t = s.time; const p = PAIS[pid];
   if (s.nivel < p.lvl) return { ok: false, motivo: `precisa do nível ${p.lvl}` };
-  if (i === 0) return { ok: true };
+  if (pid === 'brasil' || t.campeoes[pid]) return { ok: true };
   if (pid === 'mundo') return PAISES_EUROPA.some(x => t.campeoes[x]) ? { ok: true } : { ok: false, motivo: 'seja campeão da liga principal de um país europeu' };
-  const ant = PAISES[i - 1];
-  return t.campeoes[ant.id] || t.campeoes[pid] ? { ok: true } : { ok: false, motivo: `seja campeão da ${ant.divs[ant.divs.length - 1][0]} (${ant.nome})` };
+  const ent = p.divs[0][1];
+  return melhorTitulo() + ESCADA_FOLGA >= ent ? { ok: true } : { ok: false, motivo: `seja campeão de uma liga de força ${ent - ESCADA_FOLGA} ou mais` };
 }
 function mudarPais(pid) {
   const t = G.save.time; const p = PAIS[pid];
   if (!requisitoPais(pid).ok) return;
-  if (t.liga.rodada > 0 && !confirm(`Transferir o ${t.nome} para ${p.nome}? A temporada atual será abandonada e o clube começa na ${p.divs[0][0]}.`)) return;
+  const k0 = divEntrada(pid); const nomeDiv = p.divs[k0][0];
+  if (t.liga.rodada > 0 && !confirm(`Transferir o ${t.nome} para ${p.nome}? A temporada atual será abandonada e o clube começa na ${nomeDiv}.`)) return;
   t.historico.push(`Temporada ${t.temporada}: o clube se mudou para ${p.nome}!`);
-  t.pais = pid; t.div = divDe(pid, 0); t.piramide = gerarPiramide(pid, 0); t.liga = gerarLiga(t.div); t.copa = novaCopa(); t.meta = defineMeta(); t.mercado = []; t.finTemp = { ent: 0, sai: 0 };
-  banner(`${t.nome.toUpperCase()} EM ${p.nome.toUpperCase()}!`, p.divs[0][0]); log(`O ${t.nome} agora disputa a ${p.divs[0][0]} (${p.nome}). Novos rivais, novos desafios!`, 'l-lvl'); som('apito');
+  t.pais = pid; t.div = divDe(pid, k0); t.piramide = gerarPiramide(pid, k0); t.liga = gerarLiga(t.div); t.copa = novaCopa(); t.meta = defineMeta(); t.mercado = []; t.finTemp = { ent: 0, sai: 0 };
+  banner(`${t.nome.toUpperCase()} EM ${p.nome.toUpperCase()}!`, nomeDiv); log(`O ${t.nome} agora disputa a ${nomeDiv} (${p.nome}). Novos rivais, novos desafios!`, 'l-lvl'); som('apito');
   salvar(); abrirTime('liga');
 }
 function telaMercado() {
@@ -805,6 +829,7 @@ function fimTemporada() {
   const tab = tabelaOrdenada(L); const pos = tab.findIndex(x => x.id === 'eu') + 1; const n = tab.length;
   const linhas = []; let msg = `Temporada ${t.temporada} (${nomeDivisaoPais(t.div)}): ${pos}º lugar.`;
   // título
+  const abertosAntes = new Set(ESCADA_PAISES.filter(id => melhorTitulo() + ESCADA_FOLGA >= PAIS[id].divs[0][1]));
   if (pos === 1) {
     t.titulos++; const premio = P * 6; t.caixa += premio; t.finTemp.ent += premio; s.ouro += Math.round(premio * 0.2); ganhaXp(xpDiv(t.div) * 5);
     t.trofeus.push({ nome: d.nome, temp: t.temporada }); s.flags['campeao_div' + t.div] = true;
@@ -813,8 +838,9 @@ function fimTemporada() {
     if (d.topo) {
       const novo = !t.campeoes[t.pais]; t.campeoes[t.pais] = true; s.flags['campeao_pais_' + t.pais] = true;
       if (t.pais === 'mundo') { const cabe = recebeItem('medalha_ouro') === 'mochila'; linhas.push(cabe ? '🌍 CAMPEÃO DO MUNDO! Você ganhou uma Medalha de Ouro.' : '🌍 CAMPEÃO DO MUNDO! Você ganhou uma Medalha de Ouro (mochila cheia: ela foi para o seu armazém).'); }
-      else if (novo) { const i = PAISES.findIndex(x => x.id === t.pais); const prox = PAISES[i + 1]; if (prox) linhas.push(`✉️ CONVITE: o clube pode disputar a liga de ${prox.nome} (nível ${prox.lvl}). Veja em Clube → Ligas pelo mundo.`); }
     }
+    const novos = ESCADA_PAISES.filter(id => id !== 'mundo' && id !== t.pais && !abertosAntes.has(id) && melhorTitulo() + ESCADA_FOLGA >= PAIS[id].divs[0][1]);
+    if (novos.length) linhas.push(`✉️ CONVITE: o clube pode disputar a liga de ${novos.map(id => `${PAIS[id].nome} (nível ${PAIS[id].lvl})`).join(', ')}. Veja em Clube → Ligas pelo mundo.`);
   }
   // premiação por colocação na liga
   const colocacao = Math.round(P * (n - pos + 1) * 0.5); t.caixa += colocacao; t.finTemp.ent += colocacao;

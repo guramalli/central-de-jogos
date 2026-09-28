@@ -17,7 +17,7 @@ function modalComoFunciona(voltaPara) {
   const sec = (tit, ...ps) => el('div', { class: 'guia-sec' }, el('h3', {}, tit), ...ps.map(p => el('p', {}, p)));
   abreModal.largo = true;
   abreModal(el('h2', {}, '📘 Como funciona o Meu Time'),
-    sec('🎯 O objetivo', `Cada temporada tem ${t.liga.rodadas.length} rodadas contra os outros ${TIMES_LIGA - 1} times da divisão. No fim, os 2 PRIMEIROS sobem de divisão e os 2 ÚLTIMOS caem. Quem é campeão da divisão principal de um país recebe convite para jogar a liga do próximo país.`,
+    sec('🎯 O objetivo', `Cada temporada tem ${t.liga.rodadas.length} rodadas contra os outros ${TIMES_LIGA - 1} times da divisão. No fim, os 2 PRIMEIROS sobem de divisão e os 2 ÚLTIMOS caem. Cada título abre convites para ligas de outros países com força parecida (em Clube → Ligas pelo mundo, da mais fraca para a mais forte).`,
       `Durante a temporada ainda tem a Copa (mata-mata com prêmios maiores) e a meta do patrocinador (aba Clube).`),
     sec('⚽ Jogar uma partida', `Na aba "Jogar partida": "Apito inicial!" = você joga e decide os seus lances (ganha a XP inteira). "Simular resultado" = sai o placar na hora (ganha metade da XP). Vitória dá prêmio no caixa do clube e um "bicho" de 25% no SEU bolso.`,
       `A tela mostra a chance de vitória antes do jogo: se estiver baixa, melhore a escalação primeiro.`),
