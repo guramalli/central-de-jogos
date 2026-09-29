@@ -268,6 +268,10 @@ function precoJogador(j) { const p = premioForca(ovr(j)); return Math.round(p * 
 function salario(j) { return j.eu ? 0 : Math.max(2, Math.round(premioForca(ovr(j)) * 0.05)); }
 function folhaSalarial() { return G.save.time.elenco.reduce((a, j) => a + salario(j), 0); }
 function limiteSaque() { return premioDiv(G.save.time.div) * 25; } // v239: era ×8
+// v243: o treino libera num dia novo do jogo OU a cada 3 jogos do clube (jogando partidas seguidas o relógio quase não anda)
+const TREINO_JOGOS = 3;
+function faltamJogosTreino(t) { return t.jogosTreino == null ? 0 : Math.max(0, TREINO_JOGOS - ((t.jogos || 0) - t.jogosTreino)); }
+function treinoLiberado(t) { return t.diaTreino !== G.save.dia || faltamJogosTreino(t) === 0; }
 function custoTreino() { return Math.round(premioDiv(G.save.time.div) * 0.6); }
 
 /* ---------------- força por setor ---------------- */
@@ -474,12 +478,12 @@ function telaElenco() {
   fSel.onchange = () => { t.formacao = fSel.value; autoEscalar(); abrirTime('elenco'); };
   const tSel = el('select', { class: 'sel' }, ...Object.entries(TATICAS).map(([k, v]) => el('option', { value: k, selected: k === t.tatica ? 'selected' : null }, `${v.nome} — ${v.desc}`)));
   tSel.onchange = () => { t.tatica = tSel.value; abrirTime('elenco'); };
-  const treinoOk = t.diaTreino !== G.save.dia; const ct = custoTreino();
+  const treinoOk = treinoLiberado(t); const ct = custoTreino();
   wrap.append(el('div', { class: 'opcoes', style: 'align-items:center' }, el('label', {}, 'Formação ', fSel), el('label', {}, 'Tática ', tSel),
     el('button', { class: 'btn', onclick: () => { autoEscalar(); abrirTime('elenco'); } }, 'Escalar automático'),
-    el('button', { class: 'btn verde', disabled: !treinoOk || t.caixa < ct ? 'disabled' : null, title: 'Uma vez por dia do jogo, pago pelo caixa do clube', onclick: () => {
-      t.caixa -= ct; t.finTemp.sai -= ct; t.diaTreino = G.save.dia; const xp = Math.round(45 * (1 + 0.3 * t.estr.ct)); t.elenco.forEach(j => ganhaXpJogador(j, xp)); log(`Treino do ${t.nome} feito! Todos ganharam ${xp} de experiência.`, 'l-xp'); som('apito'); abrirTime('elenco');
-    } }, treinoOk ? `Treinar elenco (${fmt(ct)} do caixa)` : 'Treino feito hoje')));
+    el('button', { class: 'btn verde', disabled: !treinoOk || t.caixa < ct ? 'disabled' : null, title: `Libera num dia novo do jogo ou a cada ${TREINO_JOGOS} jogos do clube. Pago pelo caixa do clube.`, onclick: () => {
+      t.caixa -= ct; t.finTemp.sai -= ct; t.diaTreino = G.save.dia; t.jogosTreino = t.jogos || 0; const xp = Math.round(45 * (1 + 0.3 * t.estr.ct)); t.elenco.forEach(j => ganhaXpJogador(j, xp)); log(`Treino do ${t.nome} feito! Todos ganharam ${xp} de experiência.`, 'l-xp'); som('apito'); abrirTime('elenco');
+    } }, treinoOk ? `Treinar elenco (${fmt(ct)} do caixa)` : (() => { const f = faltamJogosTreino(t); return `Treino feito · próximo em ${f} jogo${f > 1 ? 's' : ''} (ou amanhã)`; })())));
   const esc = escalacaoAtual(); const s = setores(esc, t.tatica, t.moral);
   wrap.append(barrasSetores(s, null));
   wrap.append(el('h3', {}, `Titulares — força média ${forcaTitulares()} (divisão: ~${DIVS[t.div].base})`));

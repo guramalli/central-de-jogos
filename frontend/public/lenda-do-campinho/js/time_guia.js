@@ -52,7 +52,7 @@ function proximosPassos() {
   if (fora.length) dicas.push({ nivel: 1, txt: `${fora.map(x => x.j.nome).join(', ')} ${fora.length > 1 ? 'estão' : 'está'} fora de posição e rende${fora.length > 1 ? 'm' : ''} menos. O ideal é ter jogador de cada posição.` });
   const fracos = esc.filter(x => x.j && !x.j.eu && ovr(x.j) < DIVS[t.div].base - 3);
   if (fracos.length) dicas.push({ nivel: 1, txt: `Ponto fraco: ${fracos.map(x => `${x.j.nome} (${ovr(x.j)})`).join(', ')} abaixo da média da divisão (~${DIVS[t.div].base}). Procure um reforço no Mercado.`, bt: ['Ver o Mercado', () => abrirTime('mercado')] });
-  if (t.diaTreino !== s.dia && t.caixa >= custoTreino()) dicas.push({ nivel: 1, txt: `O treino de hoje está disponível: todos os jogadores ganham experiência (${fmt(custoTreino())} do caixa).` });
+  if (treinoLiberado(t) && t.caixa >= custoTreino()) dicas.push({ nivel: 1, txt: `O treino está disponível: todos os jogadores ganham experiência (${fmt(custoTreino())} do caixa).` });
   if (!dicas.length) dicas.push({ nivel: 0, txt: 'Tudo pronto! Time descansado e escalado. Vá em "Jogar partida".', bt: ['Jogar partida', () => abrirTime('jogar')] });
   return dicas.sort((a, b) => b.nivel - a.nivel).slice(0, 3);
 }
