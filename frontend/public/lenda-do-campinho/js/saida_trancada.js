@@ -64,7 +64,7 @@ function avisaSaidaTrancada(sa) {
     const g = G.guiaPedido, s = G.save;
     if (g && s && s.tut >= TUTORIAL.length) {
       const q = MISSOES.find(m => m.id === g.quest), st = q && statusMissao(q);
-      if (!q || st === 'ativa' || st === 'feita') G.guiaPedido = null;
+      if (!q || st === 'feita' || (st === 'ativa' && !g.entregar)) G.guiaPedido = null; // v238: pedido do rastreador (entregar) vale até a missão acabar
       else { const a = alvoNpc(g.npc); if (a) return a; }
     }
     return _objetivoSaida.apply(this, arguments);

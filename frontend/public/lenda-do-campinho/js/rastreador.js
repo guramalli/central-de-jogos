@@ -19,7 +19,7 @@ let RAST_ASSIN = null, RAST_ATE = 0;
     const R = $('#rastreador'); if (!R) return r;
     const cartoes = [...R.querySelectorAll(':scope > .rast')]; if (!cartoes.length) { RAST_ASSIN = null; return r; }
     // mudou algum número? mostra a lista um pouquinho
-    const assin = cartoes.map(c => c.textContent).join('|');
+    const assin = cartoes.map(c => { const o = c.querySelector('.rast-onde'); return o ? c.textContent.replace(o.textContent, '') : c.textContent; }).join('|'); // v238: trocar de mapa ("aqui neste mapa") não abre a lista
     if (RAST_ASSIN !== null && assin !== RAST_ASSIN) RAST_ATE = (G.agora || 0) + RAST_MOSTRA_MS;
     RAST_ASSIN = assin;
     const prontas = cartoes.filter(c => c.classList.contains('pronta')).length;
@@ -40,7 +40,10 @@ let RAST_ASSIN = null, RAST_ATE = 0;
 {
   const st = document.createElement('style');
   st.textContent = `#rastreador .rast-etiqueta { pointer-events: auto; align-self: flex-start; margin: 3px 0; opacity: .92; font-size: 13px; padding: 4px 10px; }
-  #rastreador .rast-etiqueta.tem-pronta { background: #3aa04a; color: #fff; box-shadow: 0 0 0 2px #ffe14a; }`;
+  #rastreador .rast-etiqueta.tem-pronta { background: #3aa04a; color: #fff; box-shadow: 0 0 0 2px #ffe14a; }
+  #rastreador .rast-q { pointer-events: auto; cursor: pointer; }
+  #rastreador .rast-q:hover { filter: brightness(1.06); box-shadow: 0 0 0 2px #ffe14a, 0 2px 0 rgba(0,0,0,.3); }
+  #rastreador .rast-onde { font-size: 11.5px; opacity: .85; margin-top: 2px; }`;
   document.head.append(st);
 }
 
