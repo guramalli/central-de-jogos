@@ -19,20 +19,34 @@ function tarDados() {
 function tarHoje() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function tarSemanaId() { const d = new Date(); const seg = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); return `${seg.getFullYear()}-${seg.getMonth() + 1}-${seg.getDate()}`; } // a semana começa na segunda
 // adversários que servem: do seu nível, com lugar para caçar que você alcança
-function tarCandidatos(min = 3) {
+function tarCandidatos(min = 3, semLimite = false) {
   const s = G.save, nv = s.nivel, idx = indice();
   const todos = Object.entries(MONSTROS).filter(([id, d]) => d && !d.chefe && !d.treino && !d.pedra && !d.arena && d.xp > 0 && idx.spawn[id] && !/^est_/.test(id)).map(([id, d]) => ({ id, d, nv: nivelMonstro(d) }));
   const alcanca = x => {
     if ((s.kills[x.id] || 0) > 0) return true; // já enfrentou: sabe chegar lá
     const mapa = idx.spawn[x.id].mapa; const caca = typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[mapa]; const casa = caca ? caca.host : mapa;
+    // v251: cidades do mundo (voo liberado: nível + contrato/fama) e Atlântida também contam — antes só o Brasil contava
+    // e quem estava no nível 120 recebia tarefas do Estádio (nível 36–57), sempre as mesmas
+    if (typeof VOOS !== 'undefined' && VOOS[casa] && casa !== 'cidade') { try { return s.nivel >= VOOS[casa].lvl && (typeof podeViajar !== 'function' || podeViajar(casa).ok); } catch (e) { return false; } }
+    if (casa === 'atlantida') return s.nivel >= (typeof ATL_NIVEL !== 'undefined' ? ATL_NIVEL : 195);
     return Object.prototype.hasOwnProperty.call(MAPAS_FLAG, casa) && (!MAPAS_FLAG[casa] || s.flags[MAPAS_FLAG[casa]]);
   };
-  for (const [a, b] of [[-8, 4], [-14, 6], [-30, 10]]) { const l = todos.filter(x => x.nv >= nv + a && x.nv <= nv + b && alcanca(x)); if (l.length >= min) return l; }
+  let l = [];
+  for (const [a, b] of [[-8, 4], [-14, 6], [-20, 8], [-30, 10]]) { l = todos.filter(x => x.nv >= nv + a && x.nv <= nv + b && alcanca(x)); if (l.length >= min) return l; }
+  if (l.length >= 3 && !semLimite) return l; // v251: com 3 ou mais até 30 níveis abaixo, não desce mais que isso
   return todos.filter(alcanca).sort((a, b) => Math.abs(a.nv - nv) - Math.abs(b.nv - nv)).slice(0, 6);
 }
 function tarSorteia(n, evita = []) {
-  const l = tarCandidatos(Math.max(3, n + evita.length)).filter(x => !evita.includes(x.id)); const out = [];
-  while (l.length && out.length < n) out.push(l.splice(Math.floor(Math.random() * l.length), 1)[0].id);
+  // v251: evita repetir os adversários das últimas tarefas (usa os repetidos só se não houver outros do seu nível)
+  const t = G.save && G.save.tarefas, rec = (t && t.recentes) || [];
+  const l = tarCandidatos(Math.max(6, n + evita.length)).filter(x => !evita.includes(x.id)); const out = [];
+  for (const pool of [l.filter(x => !rec.includes(x.id)), l.filter(x => rec.includes(x.id))])
+    while (pool.length && out.length < n) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0].id);
+  if (out.length < n) { // poucos adversários do seu nível alcançáveis: completa com os mais próximos (as semanais precisam de 6)
+    const nv = G.save.nivel; const resto = Object.keys(MONSTROS).filter(id => !out.includes(id) && !evita.includes(id)).map(id => ({ id, nv: nivelMonstro(MONSTROS[id]) }));
+    const ok = new Set(tarCandidatos(99, true).map(x => x.id)); resto.filter(x => ok.has(x.id)).sort((a, b) => Math.abs(a.nv - nv) - Math.abs(b.nv - nv)).forEach(x => { if (out.length < n) out.push(x.id); });
+  }
+  if (t) t.recentes = rec.filter(id => !out.includes(id)).concat(out).slice(-9);
   return out;
 }
 const tarNome = id => (MONSTROS[id] && MONSTROS[id].nome) || id;
@@ -171,4 +185,23 @@ function modalTarefas(aba = 'vez') {
   #rastreador .rast-tarefa .rt-bar { position: absolute; left: 8px; right: 8px; bottom: 2px; height: 3px; border-radius: 2px; background: rgba(0,0,0,.3); overflow: hidden; }
   #rastreador .rast-tarefa .rt-bar i { display: block; height: 100%; background: #6aff9a; }`;
   document.head.append(st);
+}
+
+/* v251: ao entrar, as opções da Caçada da Vez e as semanais AINDA NÃO COMEÇADAS que ficaram muito abaixo do seu nível
+   (sorteadas antes da correção das cidades do mundo) são sorteadas de novo. Progresso e caçada ativa não mudam. */
+{
+  const _iniTarV251 = iniciarJogo;
+  iniciarJogo = async function (...a) {
+    const r = await _iniTarV251.apply(this, a);
+    try {
+      const s = G.save, t = s && s.tarefas; if (!t) return r;
+      const baixo = id => MONSTROS[id] && nivelMonstro(MONSTROS[id]) < s.nivel - 15;
+      if (!t.bounty && t.opcoes && t.opcoes.length && t.opcoes.some(baixo)) t.opcoes = tarSorteia(3);
+      if (t.semana && Array.isArray(t.semana.lista)) {
+        const trocar = t.semana.lista.filter(x => !x.feita && !x.p && baixo(x.tipo));
+        if (trocar.length) { const novos = tarSorteia(trocar.length, t.semana.lista.filter(x => !trocar.includes(x)).map(x => x.tipo)); trocar.forEach((x, i) => { if (novos[i]) x.tipo = novos[i]; }); }
+      }
+    } catch (e) { }
+    return r;
+  };
 }
