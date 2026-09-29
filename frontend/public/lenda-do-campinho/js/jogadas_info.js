@@ -41,7 +41,7 @@ function modalJogadas() {
   const s = G.save; if (!s) return;
   const daClasse = dr => !dr.classe || dr.classe === s.classe;
   const lista = Object.entries(DRIBLES).filter(([, dr]) => daClasse(dr)).sort((a, b) => a[1].lvl - b[1].lvl);
-  const grupos = [['melee', '👟 Colado (encostado no adversário)'], ['dist', '🎯 De longe'], ['area', '💥 Em área'], ['cura', '💚 Cura'], ['buff', '⚡ Reforço']];
+  const grupos = [['melee', '👟 Perto (encostado no adversário)'], ['dist', '🎯 Longe'], ['area', '💥 Área'], ['cura', '💚 Cura'], ['buff', '⚡ Reforço']];
   const corpo = el('div', { class: 'jog-lista' });
   for (const [tipo, titulo] of grupos) {
     const js = lista.filter(([, dr]) => dr.tipo === tipo); if (!js.length) continue;
@@ -57,7 +57,7 @@ function modalJogadas() {
   }
   abreModal.largo = true;
   abreModal(el('h2', {}, '📖 Minhas jogadas'),
-    el('p', { class: 'vazio' }, 'Colado e De longe precisam de um adversário MARCADO (clique nele). Em área acerta todos em volta. Cura e Reforço são em você. Todas gastam FOCO (barra azul) e depois precisam recarregar. Coloque as jogadas na barra de atalhos para usar rápido.'),
+    el('p', { class: 'vazio' }, 'Perto e Longe precisam de um adversário MARCADO (clique nele). Área acerta vários de uma vez. Cura e Reforço são em você. Todas gastam FOCO (barra azul) e depois precisam recarregar. Coloque as jogadas na barra de atalhos para usar rápido.'),
     corpo, el('div', { class: 'opcoes' }, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Fechar')));
 }
 
