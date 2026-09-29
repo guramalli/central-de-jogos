@@ -21,3 +21,42 @@
     return _iniVolta.apply(this, arguments);
   };
 }
+
+/* ---------- v266: "a sua classe está certa?" ----------
+   Na v262 a classe mudava SOZINHA conforme os pontos de atributo (quem pôs mais em Inteligência virou Cérebro...).
+   Ao voltar para a v258, a classe ficou a última calculada — e o save não guarda qual era a original.
+   Então quem jogou naqueles dias recebe UMA pergunta: mantém a classe ou escolhe a certa (de graça, em qualquer
+   nível; os pontos de atributo voltam para distribuir). Depois de responder, não pergunta mais. */
+const V262_NO_AR = Date.parse('2026-09-29T15:00:00-03:00'), V266_FEITA = Date.parse('2026-09-30T02:00:00-03:00');
+function trocaClasseGratisV266(esc) {
+  const s = G.save; const velha = CLASSES[s.classe] ? CLASSES[s.classe].nome : '—';
+  s.classe = esc; const lv = s.nivel - 1; s.atr = Object.assign({}, CLASSES[esc].base); s.atr[CLASSES[esc].principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
+  if (s.posicao && typeof posicaoDaClasse === 'function') s.posicao = posicaoDaClasse(esc);
+  s.dribles = s.dribles.filter(id => !(DRIBLES[id] && DRIBLES[id].classe && DRIBLES[id].classe !== esc));
+  s.hotbar = s.hotbar.map(h => h && h.t === 'd' && !s.dribles.includes(h.id) ? null : h);
+  if (typeof aprendeMagiasDaVocacao === 'function') aprendeMagiasDaVocacao();
+  G.cds.classe = 0; const st = stats(); s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
+  log(`🎭 Classe corrigida: de ${velha} para ${CLASSES[esc].nome}! Seus ${s.pontos} pontos de atributo voltaram: aperte C para distribuir (dá para digitar o número).`, 'l-lvl');
+  banner(CLASSES[esc].nome.toUpperCase(), 'Classe de volta'); som('nivel');
+  if (typeof atualizaRetrato === 'function') atualizaRetrato(); G.uiSujo = true;
+}
+function conferirClasseV266() {
+  const s = G.save; if (!s || !CLASSES[s.classe]) return;
+  let esc = s.classe; const grade = el('div', { class: 'grade-classes' });
+  const bt = el('button', { class: 'btn amarelo grande', type: 'button' });
+  const render = () => { grade.innerHTML = ''; Object.keys(CLASSES).forEach(id => grade.append(cartaClasse(id, id === esc, () => { esc = id; render(); }))); bt.textContent = esc === s.classe ? `Está certa: continuar ${CLASSES[esc].nome}` : `Voltar a ser ${CLASSES[esc].nome}`; };
+  bt.onclick = () => { s.flags.classe_conferida_v266 = true; if (esc !== s.classe) { trocaClasseGratisV266(esc); fechaModal(); if (typeof abreFicha === 'function') setTimeout(abreFicha, 300); } else fechaModal(); salvar(); };
+  render(); abreModal.largo = true;
+  abreModal(el('h2', {}, '🎭 A sua classe está certa?'),
+    el('p', {}, `Nos últimos dias, uma versão do jogo trocava a classe sozinha conforme os pontos de atributo — isso foi desfeito. Hoje você é ${CLASSES[s.classe].emoji} ${CLASSES[s.classe].nome}. Se não era essa a sua classe, escolha a certa abaixo: é de graça e os seus pontos de atributo voltam para você distribuir de novo.`),
+    grade, el('div', { class: 'opcoes' }, bt));
+}
+{
+  const _iniConf = iniciarJogo;
+  iniciarJogo = async function (save) {
+    const precisa = save && save.classe && !(save.flags && save.flags.classe_conferida_v266) && (save.criado || 0) < V266_FEITA && (!save.salvoEm || save.salvoEm >= V262_NO_AR);
+    const r = await _iniConf.apply(this, arguments);
+    if (precisa) { let t = 0; const tenta = () => { if (G.save !== save) return; const livre = $('#modal').hidden && !document.querySelector('.cj-caixa') && !document.querySelector('.hist-pular'); if (livre) conferirClasseV266(); else if ((t += 1) < 60) setTimeout(tenta, 2000); }; setTimeout(tenta, 3000); }
+    return r;
+  };
+}

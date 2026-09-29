@@ -927,8 +927,16 @@ function atualiza(dt) {
   }
   if (G.caca && !G.alvo && G.agora > (G.tCaca || 0) && s.hp > 0) {
     G.tCaca = G.agora + 500;
-    const m = ordenaAlvos(G.mons.filter(m => !m.d.treino && !m.d.chefe && naTela(m)))[0]; // v255: qualquer adversário VISÍVEL na tela (antes só até 7 quadradinhos)
-    if (m) { G.alvo = m; G.uiSujo = true; }
+    const dAPe = distanciasAPe(); // v266: só quem dá para alcançar a pé (até ~25 passos); do outro lado do rio/muro não puxa
+    const m = ordenaAlvos(G.mons.filter(m => !m.d.treino && !m.d.chefe && naTela(m) && dAPe(m) < 1000))[0]; // v255: qualquer adversário VISÍVEL na tela (antes só até 7 quadradinhos)
+    if (m) { G.alvo = G.alvoAuto = m; G.uiSujo = true; }
+  }
+  // v266: na caça contínua com prioridade PERTO, se outro adversário estiver bem mais perto (a pé) que o marcado,
+  // troca para ele — o boneco não sai atravessando o mapa com gente colada nele. (Alvo escolhido no clique não troca.)
+  if (G.caca && G.alvo && G.alvo === G.alvoAuto && (s.modoAlvo || 'perto') === 'perto' && G.agora > (G.tTrocaAlvo || 0) && s.hp > 0) {
+    G.tTrocaAlvo = G.agora + 600;
+    const vis = G.mons.filter(m => !m.d.treino && !m.d.chefe && naTela(m));
+    if (vis.length > 1) { const dd = distanciasAPe(), da = dd(G.alvo); if (da > 1.5) { const m = vis.sort((a, b) => dd(a) - dd(b))[0]; if (m !== G.alvo && dd(m) + 1.5 <= da) { G.alvo = G.alvoAuto = m; G.uiSujo = true; } } }
   }
   atualizaJogador(dt);
   ataqueAutomatico();
@@ -1499,8 +1507,25 @@ function nivelMonstro(d) {
 }
 function corNivel(n) { const dif = n - G.save.nivel; return dif <= -10 ? '#b8b8c0' : dif <= -3 ? '#7aff8a' : dif < 3 ? '#ffffff' : dif < 8 ? '#ffb040' : '#ff5a4a'; }
 const MODOS_ALVO = { perto: 'Mais perto', forte: 'Mais forte', fraco: 'Mais fraco', vida: 'Menos fôlego' };
+// v266: distância A PÉ (desvia de muro, prédio, rio...) até ~25 passos. Antes era em linha reta: um adversário
+// do outro lado de um muro "parecia perto" e o boneco atravessava o mapa atrás dele, puxando todo mundo no caminho.
+// Quem não dá para alcançar a pé fica por último.
+function distanciasAPe(lim = 25) {
+  const p = G.p, m = G.mapa, W = m.w, H = m.h, x0 = Math.floor(p.x), y0 = Math.floor(p.y);
+  const d = new Int16Array(W * H).fill(-1); d[y0 * W + x0] = 0; let fila = [[x0, y0]];
+  for (let passo = 1; passo <= lim && fila.length; passo++) {
+    const prox = [];
+    for (const [x, y] of fila) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H || d[ny * W + nx] >= 0 || tileBloq(nx, ny)) continue;
+      if (dx && dy && tileBloq(x + dx, y) && tileBloq(x, y + dy)) continue; // não corta quina de parede
+      d[ny * W + nx] = passo; prox.push([nx, ny]);
+    }
+    fila = prox;
+  }
+  return e => { const x = Math.floor(e.x), y = Math.floor(e.y); const v = x >= 0 && y >= 0 && x < W && y < H ? d[y * W + x] : -1; return v < 0 ? 1000 + dist(e, p) : v + dist(e, p) * 0.01; };
+}
 function ordenaAlvos(lista) {
-  const p = G.p, modo = G.save.modoAlvo || 'perto', dd = m => dist(m, p);
+  const p = G.p, modo = G.save.modoAlvo || 'perto', dd = lista.length > 1 ? distanciasAPe() : m => dist(m, p);
   const crit = { perto: m => dd(m), forte: m => -nivelMonstro(m.d) * 1000 + dd(m), fraco: m => nivelMonstro(m.d) * 1000 + dd(m), vida: m => (m.hp / m.d.hp) * 1000 + dd(m) }[modo] || dd;
   return lista.sort((a, b) => crit(a) - crit(b));
 }

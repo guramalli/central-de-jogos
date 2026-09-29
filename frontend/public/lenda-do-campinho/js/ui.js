@@ -112,8 +112,8 @@ function montaPaineis() {
 function atualizaBarras() {
   const s = G.save, st = stats();
   s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
-  $('#bHp').style.width = (s.hp / st.maxHp * 100) + '%'; $('#tHp').textContent = `Fôlego ${fmt(s.hp)} / ${fmt(st.maxHp)}`;
-  $('#bFoco').style.width = (s.foco / st.maxFoco * 100) + '%'; $('#tFoco').textContent = `Foco ${fmt(s.foco)} / ${fmt(st.maxFoco)}`;
+  $('#bHp').style.width = (s.hp / st.maxHp * 100) + '%'; $('#tHp').textContent = `Fôlego (HP) ${fmt(s.hp)} / ${fmt(st.maxHp)}`;
+  $('#bFoco').style.width = (s.foco / st.maxFoco * 100) + '%'; $('#tFoco').textContent = `Foco (mana) ${fmt(s.foco)} / ${fmt(st.maxFoco)}`;
   const a = xpPara(s.nivel), b = xpPara(s.nivel + 1);
   $('#bXp').style.width = ((s.xp - a) / (b - a) * 100) + '%'; $('#tXp').textContent = `XP ${fmt(s.xp)} / ${fmt(b)}`;
   $('#ouro').textContent = fmt(s.ouro);
