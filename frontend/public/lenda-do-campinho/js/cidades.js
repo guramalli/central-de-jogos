@@ -336,7 +336,7 @@ Object.assign(VOOS, {
     churros: ['De Madri', C(162, 2400, 480, { dur: 900, regen: 5, regenFoco: 4, atr: { habilidade: 10, folego: 9 } })],
     fish_chips: ['De Londres', C(176, 3200, 640, { dur: 900, regen: 6, regenFoco: 4, vel: 10, atr: { defesa: 10, inteligencia: 10, folego: 10 } })],
   };
-  const NM = { defesa: 'Defesa', inteligencia: 'Inteligência', folego: 'Fôlego', habilidade: 'Habilidade' };
+  const NM = { defesa: 'Força', inteligencia: 'Inteligência', folego: 'Fôlego', habilidade: 'Habilidade' };
   const descComida = (de, e) => {
     const a = Object.entries(e.atr || {}); const p = [];
     if (a.length === 4 && a.every(([, v]) => v === a[0][1])) p.push(`+${a[0][1]} em TUDO`); else a.forEach(([k]) => p.push('+' + NM[k]));

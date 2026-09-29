@@ -55,7 +55,7 @@ function novoSave(d) {
     mapa: 'casa', x: 2.5, y: 3.6,
     st: { mortes: 0, gols: 0, quiz: 0, prof: 0, tempo: 0, chefes: 0, abates: 0 },
     criado: Date.now(), dia: 1, hora: 7 * 60, time: null, tut: 0, dicas: {},
-    classe: d.classe || null, atr: Object.assign({}, (CLASSES[d.classe] || {}).base || { defesa: 5, habilidade: 5, inteligencia: 5, folego: 5 }), pontos: 0,
+    classe: d.classe || null, atr: Object.assign({}, (CLASSES[d.classe] || {}).base || { defesa: 7, habilidade: 7, inteligencia: 7, folego: 7 }), pontos: 0, // v262: sem classe — todo mundo começa igual (estilo.js)
   };
 }
 function lerSave() {
@@ -150,7 +150,7 @@ function stats() {
   const coms = comidasAtivas(s).map(c => ITENS[c.id] && ITENS[c.id].efeito).filter(Boolean); const mc = 1 + nivel / 25;
   const com = { vel: 0, regen: 0, regenFoco: 0 };
   for (const e of coms) { for (const k in (e.atr || {})) a[k] += Math.round(e.atr[k] * mc); com.vel += e.vel || 0; com.regen += e.regen || 0; com.regenFoco += e.regenFoco || 0; }
-  const velBase = (220 + 2 * (nivel - 1) + b.vel + a.folego * 0.35 + ((com && com.vel) || 0)) * (cl === 'motorzinho' ? 1.08 : 1);
+  const velBase = 220 + 2 * (nivel - 1) + b.vel + a.folego * 0.35 + ((com && com.vel) || 0); // v262: sem bônus de classe (o estilo vem dos atributos)
   return {
     nivel, atk, atr: a,
     maxHp: Math.round(100 + (nivel - 1) * (pos ? pos.hp : 10) + b.hp + a.folego * 4),
@@ -158,14 +158,15 @@ function stats() {
     drible: s.sk.drible.lv + b.drible, chute: s.sk.chute.lv + b.chute, defesa: s.sk.defesa.lv + b.defesa, visao: s.sk.visao.lv + b.visao,
     armadura: def, def: def + (s.sk.defesa.lv + b.defesa) * 0.3 + (s.posicao === 'zagueiro' ? 4 : s.posicao === 'volante' ? 2 : 0) + a.defesa * 0.35,
     vel: buff ? velBase * 1.3 : velBase,
-    regenHp: (0.6 + nivel * 0.06 + b.regen * 0.5 + (s.posicao === 'zagueiro' ? 0.6 : s.posicao === 'volante' ? 0.3 : 0) + a.folego * 0.04 + ((com && com.regen) || 0) * mc) * (cl === 'motorzinho' ? 2 : 1),
-    regenFoco: 0.8 + nivel * 0.07 + b.regen * 0.5 + (s.posicao === 'meia' ? 1.2 : s.posicao === 'volante' ? 0.6 : 0) + a.inteligencia * 0.03 + ((com && com.regenFoco) || 0) * mc,
-    danoMult: (pos ? pos.dano : 1) * (1 + a.habilidade * 0.006),
-    crit: Math.min(0.45, 0.03 + a.habilidade * 0.0015 + (cl === 'driblador' ? 0.08 : 0)),
-    bloqueio: Math.min(0.35, (cl === 'paredao' ? 0.12 : 0) + a.defesa * 0.001),
-    poderMult: 1 + a.inteligencia * 0.008, curaMult: 1 + a.inteligencia * 0.012,
-    custoFoco: cl === 'cerebro' ? 0.8 : 1,
-    xpEstudo: 1 + a.inteligencia * 0.004 + (cl === 'cerebro' ? 0.25 : 0),
+    regenHp: (0.6 + nivel * 0.06 + b.regen * 0.5 + (s.posicao === 'zagueiro' ? 0.6 : s.posicao === 'volante' ? 0.3 : 0) + a.folego * 0.06 + ((com && com.regen) || 0) * mc),
+    regenFoco: 0.8 + nivel * 0.07 + b.regen * 0.5 + (s.posicao === 'meia' ? 1.2 : s.posicao === 'volante' ? 0.6 : 0) + a.inteligencia * 0.04 + ((com && com.regenFoco) || 0) * mc,
+    // v262: cada atributo fortalece o SEU tipo de jogada (estilo.js multiplica o dano pelo atributo da jogada)
+    danoMult: pos ? pos.dano : 1,
+    crit: Math.min(0.45, 0.03 + a.habilidade * 0.0015),
+    bloqueio: Math.min(0.35, a.defesa * 0.0015),
+    poderMult: 1, curaMult: 1 + a.folego * 0.012,
+    custoFoco: Math.max(0.75, 1 - a.inteligencia * 0.0015),
+    xpEstudo: 1 + a.inteligencia * 0.005,
   };
 }
 function precisaTentativas(sk, lv) {
@@ -537,10 +538,10 @@ function ganhaXp(n) {
 function subiuNivel(faseAntes) {
   const s = G.save;
   s.pontos = (s.pontos || 0) + PONTOS_POR_NIVEL;
-  const cl = CLASSES[s.classe]; if (cl && s.atr) s.atr[cl.principal]++;
+  /* v262: não há mais +1 automático no atributo da classe: são PONTOS_POR_NIVEL pontos livres (eram 2 + 1 automático) */
   const st = stats();
   s.hp = st.maxHp; s.foco = st.maxFoco;
-  dica('atributos', `Você ganhou ${PONTOS_POR_NIVEL} pontos de atributo! Aperte C (ou o botão Ficha) para distribuir em Defesa, Habilidade, Inteligência ou Fôlego.`, '#btnFicha');
+  dica('atributos', `Você ganhou ${PONTOS_POR_NIVEL} pontos de atributo! Aperte C (ou o botão Ficha) para distribuir em Força, Habilidade, Inteligência ou Fôlego: é assim que você escolhe o seu jeito de jogar.`, '#btnFicha');
   log(`Você subiu do nível ${s.nivel - 1} para o nível ${s.nivel}!`, 'l-lvl');
   efeito('nivel', G.p.x, G.p.y); som('nivel');
   const fase = faseIdx(s.nivel);
@@ -1645,7 +1646,7 @@ async function iniciarJogo(save) {
   if (!save.atr) save.atr = { defesa: 5, habilidade: 5, inteligencia: 5, folego: 5 };
   if (save.pontos == null) save.pontos = 0;
   atualizaRetrato(); montaPaineis(); atualizaPaineis(); atualizaBotaoAlvo();
-  if (!save.classe) setTimeout(() => modalEscolheClasse(true), 600);
+  /* v262: não se escolhe mais classe (o estilo vem dos pontos de atributo — estilo.js) */
   if (save.tut === 0) { banner('Lenda do Campinho', 'Dia 1 — um novo craque nasceu!'); log('Bem-vindo(a) ao Lenda do Campinho! Siga as dicas no canto da tela e a seta amarela.', 'l-lvl'); }
   else { banner(G.mapa.nome, `Dia ${save.dia}`); log(`Bem-vindo(a) de volta, ${save.nome}!`, 'l-sis'); }
 }

@@ -15,7 +15,7 @@ const ACOES_TECLA = [
   ['cimaNum', 'Andar para cima (teclado numérico)', 'Numpad8'], ['baixoNum', 'Andar para baixo (teclado numérico)', 'Numpad2'], ['esquerdaNum', 'Andar para a esquerda (teclado numérico)', 'Numpad4'], ['direitaNum', 'Andar para a direita (teclado numérico)', 'Numpad6'],
   ['cimaEsq', 'Andar na diagonal ↖', 'Numpad7'], ['cimaDir', 'Andar na diagonal ↗', 'Numpad9'], ['baixoEsq', 'Andar na diagonal ↙', 'Numpad1'], ['baixoDir', 'Andar na diagonal ↘', 'Numpad3'],
   ['interagir', 'Falar / usar / abrir baú / pênalti', 'KeyE'], ['alvo', 'Marcar o próximo adversário', 'Space'], ['prioridade', 'Trocar a prioridade de ataque', 'KeyV'],
-  ['modo', 'Modo Drible / Chute', 'KeyX'], ['classe', 'Habilidade especial da classe', 'ShiftLeft'], ['folego', 'Beber a melhor bebida de FÔLEGO', 'KeyF'], ['foco', 'Beber a melhor bebida de FOCO', 'KeyR'],
+  ['modo', 'Modo Drible / Chute', 'KeyX'], ['classe', 'Especial do seu estilo', 'ShiftLeft'], ['folego', 'Beber a melhor bebida de FÔLEGO', 'KeyF'], ['foco', 'Beber a melhor bebida de FOCO', 'KeyR'],
   ['caca', 'Caça contínua', 'KeyG'], ['montar', 'Subir / descer da montaria', 'KeyP'],
   ['ficha', 'Ficha do personagem', 'KeyC'], ['mochila', 'Mochila', 'KeyI'], ['habilidades', 'Habilidades', 'KeyK'], ['batalha', 'Lista de batalha', 'KeyL'],
   ['mapa', 'Mapa grande', 'KeyM'], ['missoes', 'Missões', 'KeyJ'], ['time', 'Meu Time', 'KeyT'], ['carreira', 'Carreira', 'KeyU'], ['album', 'Álbum de figurinhas', 'KeyB'], ['atalhos', 'Teclas (esta janela)', 'KeyH'],

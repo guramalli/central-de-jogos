@@ -63,7 +63,7 @@ function paginaFicha(dados) {
     el('p', { class: 'tbia-obs' }, 'Esse jogador ainda não salvou o jogo online: a ficha completa aparece depois que ele jogar logado no site.')];
   if (typeof garanteTodasAsCasas === 'function') try { garanteTodasAsCasas(); } catch (e) { }
   const pos = f.posicao && POSICOES[f.posicao] ? POSICOES[f.posicao].nome : '—';
-  const cl = f.classe && CLASSES[f.classe] ? `${CLASSES[f.classe].emoji || ''} ${CLASSES[f.classe].nome}` : '—';
+  const cl = typeof nomeEstilo === 'function' && f.atr ? nomeEstilo(f) : f.classe && CLASSES[f.classe] ? `${CLASSES[f.classe].emoji || ''} ${CLASSES[f.classe].nome}` : '—'; // v262: o estilo vem dos atributos
   const casa = f.casa && typeof CASAS !== 'undefined' && CASAS[f.casa] ? `${CASAS[f.casa].nome} (${CASAS[f.casa].local})` : '—';
   const time = f.time ? `${f.time.nome} — ${typeof nomeDivisao === 'function' ? nomeDivisao(f.time.div) : 'divisão ' + f.time.div}${f.time.titulos ? ` · ${f.time.titulos} título(s)` : ''}` : '—';
   const clube = f.clube ? `${f.clube.nome}${f.clube.cidade ? ' (' + f.clube.cidade + ')' : ''}` : 'Sem clube';
@@ -71,7 +71,7 @@ function paginaFicha(dados) {
     ['Nome:', el('b', {}, dados.apelido)],
     ['Personagem:', f.nome || '—'],
     ['Sexo:', f.genero === 'f' ? 'feminino' : 'masculino'],
-    ['Posição:', pos], ['Classe:', cl],
+    ['Posição:', pos], ['Estilo:', cl],
     ['Nível:', String(f.nivel)], ['Experiência:', fmt(f.xp)],
     ['Fase:', FASES[faseIdx(f.nivel)].nome],
     ['Onde está:', nomeLugarPers(f.mapa)],
@@ -83,7 +83,7 @@ function paginaFicha(dados) {
   ];
   const sk = f.skills || {}, a = f.atr || {};
   const habil = [['Drible', sk.drible], ['Chute', sk.chute], ['Defesa', sk.defesa], ['Visão de jogo', sk.visao]].map(([n, v]) => [n, String(v ?? '—')]);
-  const atrib = [['Defesa', a.defesa], ['Habilidade', a.habilidade], ['Inteligência', a.inteligencia], ['Fôlego', a.folego]].map(([n, v]) => [n, String(v ?? '—')]);
+  const atrib = [['Força', a.defesa], ['Habilidade', a.habilidade], ['Inteligência', a.inteligencia], ['Fôlego', a.folego]].map(([n, v]) => [n, String(v ?? '—')]);
   const rotSlot = { cabeca: 'Cabeça', camisa: 'Camisa', acessorio: 'Pescoço', perna: 'Caneleira', calcao: 'Calção', chuteira: 'Chuteira' };
   const equip = Object.keys(rotSlot).map(k => { const e = (f.equip || {})[k]; const it = e && ITENS[e.id]; const cel = it ? el('span', { class: 'tbia-item' }, iconeClone(iconeItem(e.id)), `${it.nome}${e.r ? ' +' + e.r : ''}`) : '—'; return [rotSlot[k] + ':', cel]; });
   const e = f.estatisticas || {};

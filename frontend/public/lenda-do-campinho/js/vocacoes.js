@@ -155,7 +155,7 @@ function danoMagia(dr, m) {
     const dr = DRIBLES[id];
     if (dr && dr.efeitoMagia === 'provoca') {
       const s = G.save; const st = stats(); if (!s || s.hp <= 0) return;
-      if (dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
+      if (dr.classe && dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
       if (!s.dribles.includes(id)) return; if (s.nivel < dr.lvl) return;
       const custo = Math.ceil(dr.foco * st.custoFoco); if (s.foco < custo) { log(`Foco insuficiente para ${dr.nome}.`, 'l-sis'); som('erro'); return; }
       if (G.agora < (G.cds.suporte || 0) || G.agora < (G.cds[id] || 0)) return; // v220: magia de suporte (não trava os ataques)

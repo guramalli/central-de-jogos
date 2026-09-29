@@ -422,7 +422,7 @@ const MISSOES = [
     req: { kill: 'tonhao', n: 1 }, rec: { xp: 1100, ouro: 150, drible: 'arrancada', flag: 'libera_praia' },
     fim: 'Você venceu o Tonhão! Aprendeu a ARRANCADA. A estrada pra PRAIA (leste) está liberada. No nível 10, volte aqui pra peneira!' },
   { id: 'q_peneira', npc: 'ze', titulo: 'A peneira', lvl: 10, pre: 'q_tonhao',
-    texto: 'Tá na hora da peneira! Vou ver você jogar e dizer em que posição você joga (ela combina com a sua classe).',
+    texto: 'Tá na hora da peneira! Vou ver você jogar e dizer em que posição você joga (ela combina com o seu estilo de jogo).',
     req: { flag: 'escolheu_posicao', desc: 'Faça a peneira com o Seu Zé' }, rec: { xp: 400, itens: [['apito', 1]] },
     fim: 'Agora você é JUVENIL! O mundo é seu.' },
 
@@ -670,15 +670,16 @@ for (const k in APARENCIAS) {
 }
 
 /* ---------- Atributos e classes ----------
-   4 atributos: cada nível dá pontos para distribuir e a classe
-   ganha +1 automático no atributo principal. */
+   4 atributos: cada nível dá pontos para distribuir. v262: não se escolhe mais classe — o ESTILO
+   (Paredão, Artilheiro, Cérebro, Motorzinho ou Craque Completo) vem de onde você põe os pontos (estilo.js).
+   As CLASSES abaixo continuam como os 4 estilos (nome, cor, emoji e o especial da tecla Shift). */
 const ATRIBUTOS = {
-  defesa: { nome: 'Defesa', icone: '🛡️', cor: '#4a8ae8', desc: 'Reduz o dano das divididas e aumenta a chance de bloqueio.' },
-  habilidade: { nome: 'Habilidade', icone: '✨', cor: '#ff9a3a', desc: 'Aumenta o dano dos dribles e chutes e a chance de crítico.' },
-  inteligencia: { nome: 'Inteligência', icone: '🧠', cor: '#b07aff', desc: 'Mais foco, dribles especiais mais fortes, curas melhores e mais XP em missões e quiz.' },
-  folego: { nome: 'Fôlego', icone: '💨', cor: '#4fc26a', desc: 'Mais fôlego máximo, recuperação mais rápida e mais velocidade.' },
+  defesa: { nome: 'Força', icone: '💪', cor: '#4a8ae8', desc: 'Jogo de perto: mais dano no drible e nas jogadas corpo a corpo, mais defesa e chance de bloquear.' }, // v262: o id continua 'defesa' (saves antigos)
+  habilidade: { nome: 'Habilidade', icone: '🎯', cor: '#ff9a3a', desc: 'Jogo de longe: mais dano nos chutes, chuta mais longe e mais chance de crítico.' },
+  inteligencia: { nome: 'Inteligência', icone: '🧠', cor: '#b07aff', desc: 'Jogadas de craque: mais dano nas jogadas em área e de controle, mais foco, jogadas mais baratas e mais XP em missões e quiz.' },
+  folego: { nome: 'Fôlego', icone: '💨', cor: '#4fc26a', desc: 'Resistência: mais fôlego máximo, curas mais fortes, recuperação e velocidade, e o Caramelo morde mais forte.' },
 };
-const PONTOS_POR_NIVEL = 2;
+const PONTOS_POR_NIVEL = 3; // v262: 3 pontos livres por nível (antes 2 + 1 automático no atributo da classe)
 const CLASSES = {
   paredao: {
     nome: 'Paredão', principal: 'defesa', cor: '#4a8ae8', emoji: '🛡️',

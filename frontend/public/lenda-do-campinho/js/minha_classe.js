@@ -53,10 +53,10 @@ function modalMinhaClasse() {
 }
 {
   const lista = document.querySelector('.tb-lista');
-  if (lista && !document.getElementById('btnMinhaClasse')) { const b = el('button', { class: 'btn', id: 'btnMinhaClasse', type: 'button', role: 'menuitem' }, '🎓 Minha classe'); b.addEventListener('click', () => modalMinhaClasse()); lista.prepend(b); }
+  if (lista && !document.getElementById('btnMinhaClasse')) { const b = el('button', { class: 'btn', id: 'btnMinhaClasse', type: 'button', role: 'menuitem' }, '🎓 Meu estilo'); b.addEventListener('click', () => modalMinhaClasse()); lista.prepend(b); }
   const grade = document.querySelector('#celMenu .cm-grade');
-  if (grade && !document.getElementById('cmMinhaClasse')) grade.prepend(el('button', { class: 'btn cm-bt', id: 'cmMinhaClasse', type: 'button', onclick: () => { if (typeof fechaMenuCel === 'function') fechaMenuCel(); modalMinhaClasse(); } }, el('span', { class: 'cm-ic' }, '🎓'), 'Classe'));
-  if (typeof abreFicha === 'function') { const _abreFichaMc = abreFicha; abreFicha = function () { const r = _abreFichaMc.apply(this, arguments); const box = document.getElementById('modalConteudo'); if (box && !box.querySelector('.bt-classe') && G.save && G.save.classe) { const c = CLASSES[G.save.classe]; box.querySelector('h2') && box.querySelector('h2').after(el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo bt-classe', type: 'button', onclick: modalMinhaClasse }, `${c.emoji} Minha classe: ${c.nome} — especialidade, deficiências e o que subir`))); } return r; }; }
+  if (grade && !document.getElementById('cmMinhaClasse')) grade.prepend(el('button', { class: 'btn cm-bt', id: 'cmMinhaClasse', type: 'button', onclick: () => { if (typeof fechaMenuCel === 'function') fechaMenuCel(); modalMinhaClasse(); } }, el('span', { class: 'cm-ic' }, '🎓'), 'Estilo'));
+  if (typeof abreFicha === 'function') { const _abreFichaMc = abreFicha; abreFicha = function () { const r = _abreFichaMc.apply(this, arguments); const box = document.getElementById('modalConteudo'); if (box && !box.querySelector('.bt-classe') && G.save && G.save.classe) { const c = CLASSES[G.save.classe]; box.querySelector('h2') && box.querySelector('h2').after(el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo bt-classe', type: 'button', onclick: modalMinhaClasse }, typeof nomeEstilo === 'function' ? `Meu estilo: ${nomeEstilo(G.save)} — o que cada atributo faz` : `${c.emoji} Minha classe: ${c.nome}`))); } return r; }; }
 }
 {
   const st = document.createElement('style');

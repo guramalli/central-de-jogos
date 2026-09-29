@@ -42,29 +42,8 @@ if (typeof EMOJI_DRIBLE !== 'undefined') Object.assign(EMOJI_DRIBLE, { bote: '�
   const novas = { paredao: ['bote', 'lateral_area'], driblador: ['recuo', 'folha_seca'], cerebro: ['cabeca_fria', 'gramado_encharcado'], motorzinho: ['mascote_caramelo', 'ponto_hidratacao'] };
   for (const [c, l] of Object.entries(novas)) { const v = VOCACAO[c]; v.magias = [...v.magias.filter(m => !l.includes(m)), ...l].sort((a, b) => DRIBLES[a].lvl - DRIBLES[b].lvl); }
 }
-// o que cada classe tem de forte e de fraco (cartão da classe e "Minha classe")
-Object.assign(VOCACAO.paredao, { forte: 'Corpo a corpo (+35% de dano) e muito fôlego (+35%). Cada ponto de Defesa também aumenta o seu dano. Dá o Bote em quem está longe.', fraco: 'Chute de longe fraco (−30%) e pouca mobilidade.' });
-Object.assign(VOCACAO.driblador, { forte: 'Chute de longe (+15% de dano e +2 de alcance) e o Recuo para escapar.', fraco: 'Colado no adversário: drible −30% e toma +25% de dano.' });
-Object.assign(VOCACAO.cerebro, { forte: 'Muito foco (+50%), jogadas de longe e em área (+45%) e a Cabeça Fria, que faz o dano gastar foco no lugar do fôlego. Cada ponto de Inteligência também aumenta o seu dano.', fraco: 'Pouco fôlego (−25%): se o foco acabar, fica frágil.' });
-Object.assign(VOCACAO.motorzinho, { forte: 'Curas 60% mais fortes, +25% de foco e o Caramelo jogando do seu lado. Cada ponto de Fôlego também aumenta o seu dano.', fraco: 'Pouco dano num alvo só: as vitórias demoram mais.' });
-// v261: acertos do balanceamento (teste de caça: as 4 classes perto da mesma XP por minuto)
-VOCACAO.cerebro.magia = 1.45; // era 1.35
-DRIBLES.lancamento.poder = 3.3; // era 2.6 (o Cérebro começava devagar)
-DRIBLES.canhao.poder = 5.8; // era 6.5: o Artilheiro caçava bem mais rápido que as outras classes
-VOCACAO.driblador.longe = 1.15; // era 1.4 (o Artilheiro fazia ~70-80% mais XP que a média nos níveis 100-150)
-VOCACAO.paredao.perto = 1.35; // era 1.2 (matava devagar)
-VOCACAO.motorzinho.perto = 1.15; // era 1 (o dano fraco agora é compensado pelo Caramelo)
-// v261: o atributo principal de cada classe também "bate" (sinergia, como no Diablo II). Antes só a Habilidade (do Artilheiro)
-// aumentava o dano de tudo; quem seguia a recomendação do Paredão (Defesa) ou do Motorzinho (Fôlego) ficava para trás.
-const SINERGIA = { paredao: ['defesa', 0.004], motorzinho: ['folego', 0.003], cerebro: ['inteligencia', 0.0025] }; // % de dano a mais por ponto (a Inteligência já fortalece as jogadas especiais)
-{
-  const _stJC = stats;
-  stats = function () {
-    const st = _stJC.apply(this, arguments); const s = G.save, k = s && SINERGIA[s.classe];
-    if (k && st.atr) st.danoMult *= 1 + (st.atr[k[0]] || 0) * k[1];
-    return st;
-  };
-}
+// v262: os números de classe da v261 (vocação, sinergia) saíram: agora cada ATRIBUTO fortalece o seu tipo de jogada (estilo.js)
+DRIBLES.canhao.poder = 5.8; // era 6.5
 // o som de cada jogada nova (reaproveita os sons gravados das parecidas)
 const SOM_JOGADA = { bote: 'dr_carrinho', lateral_area: 'dr_lancamento', recuo: 'dr_chapeu', folha_seca: 'dr_trivela', cabeca_fria: 'cl_leitura', gramado_encharcado: 'dr_raiz', mascote_caramelo: 'moeda', ponto_hidratacao: 'dr_agua_gelada' };
 
@@ -78,7 +57,7 @@ function jcTeleporta(tx, ty) {
 // confere tudo antes de usar (igual ao usarDrible do jogo) e devolve o custo; null = não dá
 function jcPode(id) {
   const dr = DRIBLES[id], s = G.save; if (!dr || !s || s.hp <= 0 || !s.dribles.includes(id)) return null;
-  if (dr.classe !== s.classe) { log(`${dr.nome} é uma jogada de outra classe.`, 'l-sis'); return null; }
+  if (dr.classe && dr.classe !== s.classe) { log(`${dr.nome} é uma jogada de outra classe.`, 'l-sis'); return null; }
   if (s.nivel < dr.lvl) { log(`Você precisa do nível ${dr.lvl} para usar ${dr.nome}.`, 'l-sis'); return null; }
   const st = stats(), custo = Math.ceil(dr.foco * st.custoFoco), grupo = grupoDrible(dr);
   if (s.foco < custo) { log(`Foco (mana) insuficiente para ${dr.nome} (precisa de ${custo}).`, 'l-sis'); som('erro'); return null; }
@@ -118,7 +97,8 @@ function jcAtualizaCaramelo(c, dt) {
   if (a && d <= 1.15 && G.agora >= c.cdAtk) {
     c.cdAtk = G.agora + 1500; c.golpe = G.agora; c.flip = a.x < c.x;
     const forca = 0.3 + 0.3 * Math.min(1, Math.max(0, (s.nivel - 15) / 60)); // o Caramelo cresce com você: 30% do seu drible no nível 15, 60% a partir do 75
-    const dano = Math.max(1, Math.round(danoMaxJogador('drible') * (0.15 + 0.85 * Math.random()) * forca - a.d.def * 0.4));
+    const base = typeof comAtributo === 'function' ? comAtributo('folego', () => danoMaxJogador('drible')) : danoMaxJogador('drible'); // v262: o Caramelo morde mais forte com Fôlego
+    const dano = Math.max(1, Math.round(base * (0.15 + 0.85 * Math.random()) * forca - a.d.def * 0.4));
     efeito('impacto', a.x, a.y, '#d08a3a'); aplicaDano(a, dano);
     if (Math.random() < 0.12) texto(c, 'Grrr!', '#ffd08a', 700);
   }
