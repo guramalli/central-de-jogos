@@ -82,6 +82,8 @@ function executaAcao(a) {
 
 let TECLA_ESPERA = null; // { acao, aoTerminar } enquanto espera a pessoa apertar a tecla nova
 window.addEventListener('keydown', ev => {
+  // v258: F1–F10 são da barra de atalhos e o F5 / Ctrl+R recarregavam a página (inclusive no .exe) quando havia uma janela aberta
+  if (/^F([1-9]|10)$/.test(ev.code) || (ev.code === 'KeyR' && (ev.ctrlKey || ev.metaKey)) || ev.key === 'BrowserRefresh') ev.preventDefault();
   if (TECLA_ESPERA && document.getElementById('modal').hidden) TECLA_ESPERA = null; // fechou a janela no meio da troca: desarma
   if (TECLA_ESPERA) { // trocando uma tecla: essa tecla é a nova
     ev.preventDefault(); ev.stopImmediatePropagation();
