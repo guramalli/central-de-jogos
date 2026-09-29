@@ -50,6 +50,8 @@ canvas { image-rendering: auto; }
 .btn:disabled { filter: grayscale(.8) brightness(.8); cursor: not-allowed; }
 .btn.amarelo { background: linear-gradient(#ffe070, #f0a81a); color: #3b2410; border-color: #9a5a0a; text-shadow: none; }
 .btn.verde { background: linear-gradient(#6ad88a, #2e9a4a); border-color: #1a5a2a; }
+.btn.vermelho { background: linear-gradient(#ff7a6a, #d0342a); border-color: #7a1a12; }
+.desiste-conf { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; background: #fff1e6; border: 2px solid #d0342a; border-radius: 8px; padding: 4px 6px; font-size: 13px; font-weight: 700; color: #7a1a12; max-width: 260px; }
 .btn.roxo { background: linear-gradient(#7a5ae0, #4a2ab0); border-color: #24125e; }
 .btn.grande { font-size: 18px; padding: 10px 20px; }
 .btn.mini { font-size: 13px; padding: 4px 8px; }

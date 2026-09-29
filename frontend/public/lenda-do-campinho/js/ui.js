@@ -618,12 +618,16 @@ function modalMissoes() {
     const [a, b] = progressoMissao(q);
     const rot = { pronta: '✔ Pronta! Fale com ' + NPCS[q.npc].nome, ativa: `Em andamento: ${a}/${b}`, disponivel: 'Disponível com ' + NPCS[q.npc].nome, nivel: `Disponível no nível ${q.lvl} (${NPCS[q.npc].nome})`, feita: 'Concluída' }[st];
     // v239: desistir de uma missão aceita (ela volta para quem deu; dá para pegar de novo depois)
-    const desiste = (st === 'ativa' || st === 'pronta') ? el('button', { class: 'btn mini', type: 'button', title: 'Cancelar esta missão. Ela volta para ' + NPCS[q.npc].nome + ' e você pode aceitar de novo quando quiser.', onclick: () => {
-      if (!confirm(`Desistir da missão "${q.titulo}"?
-
-O progresso dela (${a}/${b}) será perdido. Você pode pegar de novo com ${NPCS[q.npc].nome} quando quiser.`)) return;
-      delete s.quests[q.id]; if (G.guiaPedido && G.guiaPedido.quest === q.id) G.guiaPedido = null;
-      log(`Você desistiu da missão "${q.titulo}". Ela continua com ${NPCS[q.npc].nome} se quiser fazer depois.`, 'l-info'); G.uiSujo = true; salvar(); modalMissoes();
+    // v241: a confirmação aparece na própria linha (antes era a caixinha do navegador "www... diz")
+    const desiste = (st === 'ativa' || st === 'pronta') ? el('button', { class: 'btn mini', type: 'button', title: 'Cancelar esta missão. Ela volta para ' + NPCS[q.npc].nome + ' e você pode aceitar de novo quando quiser.', onclick: ev => {
+      const bt = ev.currentTarget;
+      const caixa = el('div', { class: 'desiste-conf' }, el('span', {}, a > 0 ? `Desistir? Você perde o progresso (${a}/${b}).` : 'Desistir desta missão?'),
+        el('button', { class: 'btn vermelho mini', type: 'button', onclick: () => {
+          delete s.quests[q.id]; if (G.guiaPedido && G.guiaPedido.quest === q.id) G.guiaPedido = null;
+          log(`Você desistiu da missão "${q.titulo}". Ela continua com ${NPCS[q.npc].nome} se quiser fazer depois.`, 'l-info'); G.uiSujo = true; salvar(); modalMissoes();
+        } }, 'Sim, desistir'),
+        el('button', { class: 'btn mini', type: 'button', onclick: () => caixa.replaceWith(bt) }, 'Não'));
+      bt.replaceWith(caixa);
     } }, 'Desistir') : null;
     lista.append(el('div', { class: 'linha-item' + (st === 'feita' || st === 'nivel' ? ' bloq' : '') }, el('div', { class: 'nm' }, el('b', {}, q.titulo), el('small', {}, descMissao(q) + ' — ' + rot), st === 'ativa' ? el('div', { class: 'progresso' }, barraI(a / b)) : ''), desiste));
   }
