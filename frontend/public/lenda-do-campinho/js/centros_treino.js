@@ -262,7 +262,8 @@ function chipEstacao() {
   const o = G.save.sk[t.d.sk], pc = Math.min(99, Math.floor(o.t / precisaTentativas(t.d.sk, o.lv) * 100));
   c.innerHTML = ''; c.title = 'Clique (ou ande) para parar';
   const r = CV.getBoundingClientRect(); c.style.left = (r.left + r.width / 2) + 'px'; c.style.top = (r.top + (innerWidth <= 600 ? 34 : 42)) + 'px'; // logo abaixo do nome do mapa
-  c.append(el('b', {}, `${t.d.ic} Treinando ${SKILLS[t.d.sk].nome} ${o.lv} `), el('span', { class: 'ce-bar' }, el('i', { style: `width:${pc}%` })), el('small', {}, `${pc}% · ande para parar`));
+  const tot = typeof stats === 'function' ? stats()[t.d.sk] : o.lv; const bon = tot - o.lv; /* v249: deixa claro o treinado x o total com bônus */
+  c.append(el('b', {}, `${t.d.ic} Treinando ${SKILLS[t.d.sk].nome} ${o.lv} → ${o.lv + 1} `), el('span', { class: 'ce-bar' }, el('i', { style: `width:${pc}%` })), el('small', {}, `${pc}%${bon > 0.05 ? ` · com bônus: ${num1(tot)}` : ''} · ande para parar`));
 }
 {
   const st = document.createElement('style');

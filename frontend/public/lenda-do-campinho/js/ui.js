@@ -189,7 +189,7 @@ function atualizaPaineis() {
   sk.append(el('div', { class: 'sk-linha' }, el('div', { class: 'top' }, el('b', {}, 'Nível ' + s.nivel), el('span', {}, `faltam ${fmt(bxp - s.xp)} XP · ${Math.floor((s.xp - a) / (bxp - a) * 100)}%`)), el('div', { class: 'sk-bar' }, barraI((s.xp - a) / (bxp - a)))));
   for (const k of ['drible', 'chute', 'defesa', 'visao']) {
     const o = s.sk[k]; const bonus = st[k] - o.lv;
-    sk.append(el('div', { class: 'sk-linha', title: SKILLS[k].desc }, el('div', { class: 'top' }, el('span', {}, SKILLS[k].nome), el('b', {}, num1(st[k]) + (bonus ? ` (+${num1(bonus)})` : ''), el('small', { class: 'sk-pc' }, ` · ${Math.floor(o.t / precisaTentativas(k, o.lv) * 100)}%`))), el('div', { class: 'sk-bar' }, barraI(o.t / precisaTentativas(k, o.lv)))));
+    sk.append(el('div', { class: 'sk-linha', title: SKILLS[k].desc + (bonus ? ` — ${o.lv} treinado + ${num1(bonus)} de bônus (equipamentos, comidas...). O treino sobe o ${o.lv}.` : '') }, el('div', { class: 'top' }, el('span', {}, SKILLS[k].nome), el('b', {}, num1(st[k]) + (bonus ? ` (${o.lv} + ${num1(bonus)})` : ''), el('small', { class: 'sk-pc' }, ` · ${Math.floor(o.t / precisaTentativas(k, o.lv) * 100)}%`))), el('div', { class: 'sk-bar' }, barraI(o.t / precisaTentativas(k, o.lv)))));
   }
   const hh = Math.floor(s.st.tempo / 3600), mm = Math.floor(s.st.tempo / 60) % 60;
   sk.append(el('div', { class: 'sk-info' },
