@@ -551,7 +551,7 @@ function subiuNivel(faseAntes) {
   } else banner(`NÍVEL ${s.nivel}!`, 'Mais fôlego e mais foco!');
   atualizaRetrato();
   for (const id of s.dribles) if (DRIBLES[id].lvl === s.nivel) log(`Agora você pode usar ${DRIBLES[id].nome}!`, 'l-xp');
-  if (s.nivel === 10 && !s.posicao) log('Nível 10! Fale com o Seu Zé para fazer a peneira e escolher sua posição.', 'l-xp');
+  if (s.nivel === 10 && !s.posicao) log('Nível 10! Fale com o Seu Zé para fazer a peneira.', 'l-xp');
   dica('nivel', 'Você subiu de nível! Fôlego e foco aumentam e o fôlego enche. Pessoas com um "!" amarelo em cima têm missões novas pra você.');
 }
 function monstroAtaca(m) {

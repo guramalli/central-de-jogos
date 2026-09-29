@@ -417,8 +417,8 @@ const MISSOES = [
     req: { kill: 'tonhao', n: 1 }, rec: { xp: 1100, ouro: 150, drible: 'arrancada', flag: 'libera_praia' },
     fim: 'Você venceu o Tonhão! Aprendeu a ARRANCADA. A estrada pra PRAIA (leste) está liberada. No nível 10, volte aqui pra peneira!' },
   { id: 'q_peneira', npc: 'ze', titulo: 'A peneira', lvl: 10, pre: 'q_tonhao',
-    texto: 'Tá na hora da peneira! Escolha sua posição. Ela muda como você evolui, então pense bem.',
-    req: { flag: 'escolheu_posicao', desc: 'Escolha sua posição com o Seu Zé' }, rec: { xp: 400, itens: [['apito', 1]] },
+    texto: 'Tá na hora da peneira! Vou ver você jogar e dizer em que posição você joga (ela combina com a sua classe).',
+    req: { flag: 'escolheu_posicao', desc: 'Faça a peneira com o Seu Zé' }, rec: { xp: 400, itens: [['apito', 1]] },
     fim: 'Agora você é JUVENIL! O mundo é seu.' },
 
   // ------ Praia
