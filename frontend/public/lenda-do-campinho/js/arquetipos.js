@@ -99,9 +99,9 @@ const ARQ_TXT = { zagueiro: 'CARRINHO!', volante: 'MARCAÇÃO!', centroavante: '
   const agora = () => G.agora;
   // você tonto(a) (carrinho) não anda; com cartão amarelo anda mais devagar
   const _moverArq = mover;
-  mover = function (e) { if (e === G.p && (G.p.tontoAte || 0) > agora()) return 0; return _moverArq.apply(this, arguments); };
+  /* v252: como o paralyze do Tibia, ninguém fica TRAVADO — tonto/preso só deixa você bem mais devagar */
   const _velArq = velJogador;
-  velJogador = function () { const v = _velArq.apply(this, arguments); return (G.p && (G.p.lentoAte || 0) > agora()) ? v * 0.7 : v; };
+  velJogador = function () { const v = _velArq.apply(this, arguments); if (!G.p) return v; const t = agora(); return (G.p.tontoAte || 0) > t ? v * 0.5 : (G.p.lentoAte || 0) > t ? v * 0.7 : v; };
   // dano que VOCÊ recebe: volante rouba foco; quem ouviu o grito da torcida bate +20%
   const _recebeArq = recebeDano;
   recebeDano = function (dano, m) {

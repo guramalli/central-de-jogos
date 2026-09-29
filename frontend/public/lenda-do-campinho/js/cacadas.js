@@ -231,11 +231,11 @@ CACADAS.slice().forEach(registraCaca);
 if (typeof PAPEL !== 'undefined') CACADAS.forEach(c => { if (!PAPEL['guia_' + c.id]) PAPEL['guia_' + c.id] = c.look.corpo === 'f' ? 'adulta' : 'adulto'; });
 
 /* ---------- regras dentro da área ---------- */
-// voltam mais rápido (12–20 s em vez de 22–38 s)
+// v252: voltam no ritmo do Tibia (~40–60 s); antes voltavam em 12–20 s e lotavam a área
 const _matarCaca = matar;
 matar = function (m) {
   const r = _matarCaca.apply(this, arguments);
-  if (G.mapa && G.mapa.caca) for (let i = G.respawns.length - 1; i >= 0; i--) if (G.respawns[i].sp === m.sp) { G.respawns[i].em = Math.min(G.respawns[i].em, G.agora + rnd(12000, 20000)); break; }
+  if (G.mapa && G.mapa.caca) for (let i = G.respawns.length - 1; i >= 0; i--) if (G.respawns[i].sp === m.sp) { G.respawns[i].em = G.agora + rnd(40000, 60000); break; }
   return r;
 };
 // ficou exausto lá dentro: acorda na cidade

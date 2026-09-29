@@ -97,7 +97,7 @@ function tilesMagia(forma, m, alvo) {
     if (st === 'fogo') { p.stFogo = { ate: t + 3000, prox: t + 1000, m }; texto(p, 'queimando!', '#ff9a4a', 800, -0.3); }
     else if (st === 'veneno') { p.stVeneno = { ate: t + 5000, prox: t + 1000, m }; texto(p, 'envenenado!', '#8aff6a', 800, -0.3); }
     else if (st === 'tonto') { p.tontoAte = Math.max(p.tontoAte || 0, t + 500); }
-    else if (st === 'preso') { p.tontoAte = Math.max(p.tontoAte || 0, t + 900); texto(p, 'preso!', '#d8b890', 800, -0.3); }
+    else if (st === 'preso') { p.tontoAte = Math.max(p.tontoAte || 0, t + 900); texto(p, 'pés pesados!', '#d8b890', 800, -0.3); }
     else if (st === 'lento') { p.lentoAte = Math.max(p.lentoAte || 0, t + 2500); }
     else if (st === 'tinta') { G.tintaAte = t + 2500; }
   }

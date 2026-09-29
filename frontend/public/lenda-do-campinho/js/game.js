@@ -484,11 +484,9 @@ function itemPedidoEmMissao(id) {
 function penalidadeNivel(d) {
   const dif = nivelMonstro(d) - G.save.nivel;
   // v212: como no Tibia, tostões e itens NÃO caem com o nível (o fraco já dá pouco por natureza); só a XP diminui
-  if (dif >= -5) return { xp: 1, drop: 1, faixa: 0 };
-  if (dif >= -9) return { xp: 0.6, drop: 1, faixa: 1 };
-  if (dif >= -14) return { xp: 0.25, drop: 1, faixa: 2 };
-  if (dif >= -19) return { xp: 0.1, drop: 1, faixa: 3 };
-  return { xp: 0, drop: 1, faixa: 4 };
+  // v252: como no Tibia, TODO adversário dá a XP cheia (antes caía até zero para quem era 20+ níveis mais fraco).
+  // O fraco rende pouco por natureza: a XP para subir de nível cresce muito.
+  return { xp: 1, drop: 1, faixa: 0, dif };
 }
 function matar(m) {
   const d = m.d; const s = G.save; const pen = penalidadeNivel(d);
@@ -518,7 +516,7 @@ function matar(m) {
   if (d.chefe) { s.st.chefes++; s.flags['venceu_' + m.tipo] = true; banner(`Você venceu ${d.nome}!`, 'Que partida!'); som('nivel'); }
   ganhaXp(Math.round(d.xp * pen.xp));
   if (s.st.abates === 1) dica('loot', 'Boa! Cada adversário vencido dá XP (barra verde embaixo do seu retrato), tostões e às vezes itens. Leia o que você ganhou no chat, lá embaixo.', '#bXp');
-  G.respawns.push({ sp: m.sp, em: G.agora + (d.respawn || rnd(22000, 38000)) });
+  G.respawns.push({ sp: m.sp, em: G.agora + (d.respawn || rnd(40000, 60000)) }); // v252: ~1 minuto, como no Tibia (era 22–38 s)
   G.uiSujo = true;
 }
 function ganhaXp(n) {
@@ -800,7 +798,7 @@ function velMonstro(d) {
   let v = VEL_MON.get(d); if (v != null) return v;
   const L = Math.max(1, d.nivel || (typeof nivelMonstro === 'function' ? nivelMonstro(d) : 1) || 1);
   const jog = 220 + 2 * (L - 1); const rapido = d.vel >= 300;
-  v = Math.min(d.vel * 0.88, jog * (rapido ? 0.85 : 0.72));
+  v = Math.min(d.vel * 0.88, jog * (rapido ? 0.72 : 0.62)); // v252: no Tibia os adversários andam a ~40–65% do jogador do nível deles (era 85% / 72%)
   VEL_MON.set(d, v); return v;
 }
 function atualizaMonstro(m, dt) {
