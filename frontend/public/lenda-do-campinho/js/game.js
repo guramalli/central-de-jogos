@@ -1343,8 +1343,9 @@ function desenhaNoite(ctx, cam, vw, vh, x0, y0, x1, y1) {
   const h = G.save.hora / 60; let a = 0;
   if (h >= 17 && h < 19.5) a = (h - 17) / 2.5 * 0.26; else if (h >= 19.5 && h < 22) a = 0.26 + (h - 19.5) / 2.5 * 0.18; else if (h >= 22 || h < 6) a = 0.44; else if (h < 7) a = 0.44 - (h - 6) * 0.44; // v224: a madrugada agora é 00:00–02:00 do dia novo
   if (G.mapa.id === 'estadio') a *= 0.5;
+  a *= 0.86; /* v245: noite um pouco menos escura (máx. 0,38) */
   if (a <= 0.01) return;
-  ctx.fillStyle = h < 19 && h >= 17 ? `rgba(120,50,90,${a})` : `rgba(20,24,80,${a})`; ctx.fillRect(cam.x, cam.y, vw, vh);
+  const corN = h < 19 && h >= 17 ? '120,50,90' : '20,24,80'; ctx.fillStyle = typeof corEscuro === 'function' ? corEscuro(ctx, corN, a) : `rgba(${corN},${a})`; ctx.fillRect(cam.x, cam.y, vw, vh);
   if (a > 0.18) {
     ctx.globalCompositeOperation = 'lighter';
     const luz = (x, y, r, int) => { const g = ctx.createRadialGradient(x, y, 2, x, y, r); g.addColorStop(0, `rgba(255,205,120,${int})`); g.addColorStop(1, 'rgba(255,205,120,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };

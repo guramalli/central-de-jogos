@@ -261,7 +261,7 @@ const _desenhaNoiteCaca = desenhaNoite;
 desenhaNoite = function (ctx, cam, vw, vh, x0, y0, x1, y1) {
   const m = G.mapa;
   if (!m || !m.fechado) return _desenhaNoiteCaca.apply(this, arguments);
-  ctx.fillStyle = 'rgba(12,8,24,0.42)'; ctx.fillRect(cam.x, cam.y, vw, vh);
+  ctx.fillStyle = typeof corEscuro === 'function' ? corEscuro(ctx, '12,8,24', 0.42) : 'rgba(12,8,24,0.42)'; ctx.fillRect(cam.x, cam.y, vw, vh); /* v245: Utevo Lux abre um círculo claro */
   ctx.globalCompositeOperation = 'lighter';
   const cor = m.luzCor || '255,200,130';
   const luz = (x, y, r, int) => { const g = ctx.createRadialGradient(x, y, 2, x, y, r); g.addColorStop(0, `rgba(${cor},${int})`); g.addColorStop(1, `rgba(${cor},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };

@@ -131,8 +131,8 @@ function desenhaClima(ctx) {
   const W = CV.width, H = CV.height, s = G.dpr || 1;
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   // tons do tempo
-  const tint = { chuva: 'rgba(40,60,100,0.18)', tempestade: 'rgba(20,30,60,0.3)', neve: 'rgba(235,245,255,0.22)', neblina: null, nublado: 'rgba(90,100,120,0.12)', calor: 'rgba(255,170,60,0.12)', areia: 'rgba(220,150,70,0.28)', sol: null }[c.tempo];
-  if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, W, H); }
+  const tint = { chuva: 'rgba(40,60,100,0.18)', tempestade: 'rgba(20,30,60,0.24)', neve: 'rgba(235,245,255,0.22)', neblina: null, nublado: 'rgba(90,100,120,0.12)', calor: 'rgba(255,170,60,0.12)', areia: 'rgba(220,150,70,0.28)', sol: null }[c.tempo];
+  if (tint) { const mm = /rgba\((\d+,\d+,\d+),([\d.]+)\)/.exec(tint); ctx.fillStyle = mm && typeof corEscuro === 'function' ? corEscuro(ctx, mm[1], +mm[2], true) : tint; ctx.fillRect(0, 0, W, H); }
   if (c.estacao === 'Inverno' && c.tempo !== 'neve') { ctx.fillStyle = 'rgba(150,190,255,0.08)'; ctx.fillRect(0, 0, W, H); }
   if (c.estacao === 'Outono') { ctx.fillStyle = 'rgba(230,140,50,0.06)'; ctx.fillRect(0, 0, W, H); }
   if (c.tempo === 'sol' || c.tempo === 'calor') { // raios de sol
