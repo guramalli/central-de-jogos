@@ -516,7 +516,7 @@ function matar(m) {
   if (d.chefe) { s.st.chefes++; s.flags['venceu_' + m.tipo] = true; banner(`Você venceu ${d.nome}!`, 'Que partida!'); som('nivel'); }
   ganhaXp(Math.round(d.xp * pen.xp));
   if (s.st.abates === 1) dica('loot', 'Boa! Cada adversário vencido dá XP (barra verde embaixo do seu retrato), tostões e às vezes itens. Leia o que você ganhou no chat, lá embaixo.', '#bXp');
-  G.respawns.push({ sp: m.sp, em: G.agora + (d.respawn || rnd(40000, 60000)) }); // v252: ~1 minuto, como no Tibia (era 22–38 s)
+  G.respawns.push({ sp: m.sp, em: G.agora + (d.respawn || rnd(22000, 38000)) }); // v253: fora das dungeons volta ao normal (o ~1 min do Tibia vale só nas áreas de caça, cacadas.js)
   G.uiSujo = true;
 }
 function ganhaXp(n) {
