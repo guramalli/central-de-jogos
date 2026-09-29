@@ -27,7 +27,9 @@
    Ao voltar para a v258, a classe ficou a última calculada — e o save não guarda qual era a original.
    Então quem jogou naqueles dias recebe UMA pergunta: mantém a classe ou escolhe a certa (de graça, em qualquer
    nível; os pontos de atributo voltam para distribuir). Depois de responder, não pergunta mais. */
-const V262_NO_AR = Date.parse('2026-09-29T15:00:00-03:00'), V266_FEITA = Date.parse('2026-09-30T02:00:00-03:00');
+// V266_FEITA = quando a v265 (de volta à escolha de classe na criação) entrou no ar: quem criou o personagem depois disso já escolheu a classe
+// (v270: era 30/09 02:00 e a pergunta aparecia também para jogador NOVO, por cima do tutorial)
+const V262_NO_AR = Date.parse('2026-09-29T15:00:00-03:00'), V266_FEITA = Date.parse('2026-09-29T17:00:00-03:00');
 function trocaClasseGratisV266(esc) {
   const s = G.save; const velha = CLASSES[s.classe] ? CLASSES[s.classe].nome : '—';
   s.classe = esc; const lv = s.nivel - 1; s.atr = Object.assign({}, CLASSES[esc].base); s.atr[CLASSES[esc].principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
@@ -54,7 +56,7 @@ function conferirClasseV266() {
 {
   const _iniConf = iniciarJogo;
   iniciarJogo = async function (save) {
-    const precisa = save && save.classe && !(save.flags && save.flags.classe_conferida_v266) && (save.criado || 0) < V266_FEITA && (!save.salvoEm || save.salvoEm >= V262_NO_AR);
+    const precisa = save && save.classe && !(save.flags && save.flags.classe_conferida_v266) && (save.criado || 0) < V266_FEITA && (!save.salvoEm || save.salvoEm >= V262_NO_AR) && (save.nivel || 1) >= 2 && (save.tut || 0) >= 5; // nunca para quem está no começo/tutorial
     const r = await _iniConf.apply(this, arguments);
     if (precisa) { let t = 0; const tenta = () => { if (G.save !== save) return; const livre = $('#modal').hidden && !document.querySelector('.cj-caixa') && !document.querySelector('.hist-pular'); if (livre) conferirClasseV266(); else if ((t += 1) < 60) setTimeout(tenta, 2000); }; setTimeout(tenta, 3000); }
     return r;
