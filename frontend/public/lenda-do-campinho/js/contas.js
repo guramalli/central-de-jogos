@@ -83,8 +83,8 @@ function escolheSave(local, nuvem, mesmo) {
     } catch (e) { }
     iniciarJogo(nuvem);
   };
-  const usaLocal = () => {
-    if (!confirm(`O save online da sua conta (${desc(nuvem)}) vai ser SUBSTITUÍDO por ${desc(local)}. Continuar?`)) return;
+  const usaLocal = async () => {
+    if (!(await perguntaJogo(`O save online da sua conta (${desc(nuvem)}) vai ser SUBSTITUÍDO por ${desc(local)}. Continuar?`, { sim: 'Substituir', perigo: true }))) return;
     iniciarJogo(local);
   };
   const caixa = el('div', { class: 'nuvem-caixa', id: 'contaEscolha' },

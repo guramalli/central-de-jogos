@@ -33,8 +33,8 @@ function modalSair() {
     el('p', {}, 'Seu progresso é salvo antes de sair.' + (logado ? ' "Sair da conta" também desconecta você do site Educação Gamer.' : '')),
     botoes, aviso);
 }
-function sairDaContaInicio() {
-  if (!confirm('Sair da sua conta do Educação Gamer?')) return;
+async function sairDaContaInicio() {
+  if (!(await perguntaJogo('Sair da sua conta do Educação Gamer?', { sim: 'Sair', perigo: true }))) return;
   try { localStorage.removeItem('eg_token'); localStorage.removeItem('eg_user'); } catch (e) { }
   location.href = '/';
 }

@@ -59,7 +59,7 @@ if (CEL) (function () {
     ['📊', 'Ranking', clica('[data-abre="ranking"]')], ['💾', 'Save', clica('#btnBackup')], ['🎵', 'Sons', clica('#btnAudio')], ['❓', 'Como jogar', clica('[data-abre="ajuda"]')],
     ['⛶', 'Tela cheia', () => { fechaMenuCel(); telaCheiaCel(); }], ['✏️', 'Editar barra', () => { fechaMenuCel(); alternaEdicaoBarra(); }],
     ['🔍', 'Zoom +', () => { mudaZoom(-1.5); }], ['🔎', 'Zoom −', () => { mudaZoom(1.5); }],
-    ['🖥️', 'Versão PC', () => { if (confirm('Usar a versão de computador neste aparelho? (dá para voltar no menu ☰ dela, em "?")')) { try { localStorage.setItem(CEL_PREF, 'off'); } catch (e) { } location.reload(); } }],
+    ['🖥️', 'Versão PC', async () => { if (await perguntaJogo('Usar a versão de computador neste aparelho? (dá para voltar no menu ☰ dela, em "?")', { sim: 'Usar versão PC' })) { try { localStorage.setItem(CEL_PREF, 'off'); } catch (e) { } location.reload(); } }],
   ];
   const menu = el('div', { id: 'celMenu', hidden: 'hidden' },
     el('div', { class: 'cm-caixa madeira' },

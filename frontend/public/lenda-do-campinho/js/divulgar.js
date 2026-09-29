@@ -78,7 +78,7 @@ async function divulgar(o = {}) {
   const pode = arq && navigator.canShare && navigator.canShare({ files: [arq] });
   const img = el('img', { src: url, alt: 'Cartão do seu jogador', style: 'width:100%;max-width:360px;border-radius:12px;display:block;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,.35)' });
   const abre = link => { try { window.open(link, '_blank', 'noopener'); } catch (e) { } };
-  const copiar = async () => { try { await navigator.clipboard.writeText(txt); log('📋 Texto copiado! É só colar onde quiser.', 'l-sis'); } catch (e) { prompt('Copie o texto:', txt); } };
+  const copiar = async () => { try { await navigator.clipboard.writeText(txt); log('📋 Texto copiado! É só colar onde quiser.', 'l-sis'); } catch (e) { textoParaCopiar(txt); } };
   abreModal(el('h2', {}, '📣 Divulgar'), img,
     el('p', { class: 'vazio' }, txt),
     el('div', { class: 'opcoes' },

@@ -241,7 +241,7 @@ function atualizaRastreador() {
       const ops = el('div', { class: 'tut-ops' });
       if (st.ok) ops.append(el('button', { class: 'btn amarelo mini', onclick: avancaTutorial }, 'Entendi'));
       else ops.append(el('button', { class: 'btn amarelo mini', title: 'Esconde a dica; o tutorial continua quando você fizer o que ela pede', onclick: () => { G.tutMin = s.tut; G.uiSujo = true; } }, 'Ok'));
-      ops.append(el('button', { class: 'btn mini', onclick: () => { if (confirm('Pular o tutorial? As dicas continuam aparecendo.')) pularTutorial(); } }, 'Pular tutorial'));
+      ops.append(el('button', { class: 'btn mini', onclick: async () => { if (await perguntaJogo('Pular o tutorial? As dicas continuam aparecendo.', { sim: 'Pular' })) pularTutorial(); } }, 'Pular tutorial'));
       R.append(el('div', { class: 'cartao-tut' }, el('div', { class: 'tut-topo' }, el('b', {}, `Tutorial ${s.tut + 1}/${TUTORIAL.length}`), st.tecla ? el('span', { class: 'kbd' }, st.tecla) : ''), el('p', {}, st.txt), ops));
       if (st.destaque) document.querySelectorAll(st.destaque).forEach(e => e.classList.add('destaque'));
     }
@@ -288,7 +288,7 @@ function modalItem(id, r = 0) {
     ops.append(el('button', { class: 'btn amarelo', onclick: () => { usarItem(id); fechaModal(); } }, 'Usar'));
     ops.append(el('button', { class: 'btn', onclick: () => { poeNaHotbar('i', id); fechaModal(); } }, 'Pôr na barra de atalhos'));
   }
-  if (it.tipo !== 'chave') ops.append(el('button', { class: 'btn', onclick: () => { if (confirm(`Jogar fora ${it.nome}?`)) { if (it.tipo === 'equip') removeEquipR(id, r); else removeItem(id, n); fechaModal(); } } }, 'Jogar fora'));
+  if (it.tipo !== 'chave') ops.append(el('button', { class: 'btn', onclick: async () => { if (await perguntaJogo(`Jogar fora ${it.nome}?`, { sim: 'Jogar fora', perigo: true })) { if (it.tipo === 'equip') removeEquipR(id, r); else removeItem(id, n); fechaModal(); } } }, 'Jogar fora'));
   abreModal(el('h2', {}, nomeItem(id, r)), el('div', { class: 'npc-topo' }, c, el('div', {}, el('p', {}, it.desc || ''), el('p', {}, info.join(' · ')), el('p', {}, `Você tem: ${n}` + (it.venda ? ` · Vale ${it.venda} tostões` : '')))), ops);
 }
 
@@ -395,7 +395,7 @@ function modalLoja(npc, aba = 'comprar') {
     const vistos = new Set();
     for (const m of vendaveis) {
       const chave = m.id + '|' + (m.r || 0); if (vistos.has(chave)) continue; vistos.add(chave);
-      if (m.r) { const itR = ITENS[m.id]; const v = Math.round(itR.venda * (1 + 0.5 * m.r)); lista.append(el('div', { class: 'linha-item' }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', {}, nomeItem(m.id, m.r)), el('small', {}, 'Refinado')), precoTag(v), el('button', { class: 'btn mini', onclick: () => { if (!confirm('Vender ' + nomeItem(m.id, m.r) + '?')) return; removeEquipR(m.id, m.r); s.ouro += v; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender'))); continue; }
+      if (m.r) { const itR = ITENS[m.id]; const v = Math.round(itR.venda * (1 + 0.5 * m.r)); lista.append(el('div', { class: 'linha-item' }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', {}, nomeItem(m.id, m.r)), el('small', {}, 'Refinado')), precoTag(v), el('button', { class: 'btn mini', onclick: async () => { if (!(await perguntaJogo('Vender ' + nomeItem(m.id, m.r) + '?', { sim: 'Vender' }))) return; removeEquipR(m.id, m.r); s.ouro += v; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender'))); continue; }
       const it = ITENS[m.id]; const n = s.mochila.filter(x => x.id === m.id && !x.r).reduce((a, x) => a + x.q, 0);
       lista.append(el('div', { class: 'linha-item' }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', {}, it.nome), el('small', {}, `Você tem ${n}`)), precoTag(it.venda),
         el('button', { class: 'btn mini', onclick: () => { removeItem(m.id, 1); s.ouro += it.venda; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender 1'),
@@ -446,7 +446,7 @@ function modalQuadro() {
     const d = MONSTROS[t.m]; const pronta = t.p >= t.n; const xp = Math.round(d.xp * t.n * 0.6), ouro = Math.round(d.xp * t.n * 0.12);
     lista.append(el('div', { class: 'linha-item' }, el('div', { class: 'nm' }, el('b', {}, `Desafio atual: ${d.nome}`), el('small', {}, `${t.p}/${t.n} — Recompensa: ${fmt(xp)} XP, ${fmt(ouro)} tostões e 1 pacotinho de figurinhas`)),
       pronta ? el('button', { class: 'btn amarelo', onclick: () => { s.ouro += ouro; recebeItem('pacotinho', 1); s.tarefa = null; log(`Desafio concluído! +${fmt(ouro)} tostões.`, 'l-loot'); ganhaXp(xp); salvar(); modalQuadro(); } }, 'Resgatar!') :
-        el('button', { class: 'btn mini', onclick: () => { if (confirm('Desistir do desafio atual?')) { s.tarefa = null; modalQuadro(); } } }, 'Desistir')));
+        el('button', { class: 'btn mini', onclick: async () => { if (await perguntaJogo('Desistir do desafio atual?', { sim: 'Desistir', perigo: true })) { s.tarefa = null; modalQuadro(); } } }, 'Desistir')));
   } else {
     for (const [m, n] of (DESAFIOS[G.mapa.id] || [])) {
       const d = MONSTROS[m]; const xp = Math.round(d.xp * n * 0.6);
@@ -709,7 +709,7 @@ function telaInicial() {
   const save = lerSave();
   const bc = $('#btnContinuar');
   if (save) { bc.hidden = false; $('#resumoSave').textContent = `${save.nome} — nível ${save.nivel} (${FASES[faseIdx(save.nivel)].nome})`; bc.onclick = () => iniciarJogo(save); }
-  $('#btnNovo').onclick = () => { if (save && !confirm(`Criar um novo jogador vai substituir ${save.nome} (nível ${save.nivel}). Continuar?`)) return; abrirCriacao(); };
+  $('#btnNovo').onclick = async () => { if (save && !(await perguntaJogo(`Criar um novo jogador vai substituir ${save.nome} (nível ${save.nivel}). Continuar?`, { sim: 'Criar novo', perigo: true }))) return; abrirCriacao(); };
   $('#btnVoltar').onclick = () => { $('#criacao').hidden = true; $('#inicioMenu').hidden = false; };
   { const bh = $('#btnHistoria'); if (bh) { if (typeof abreMenuCapitulos === 'function') bh.onclick = () => abreMenuCapitulos(); else if (typeof mostraHistoria === 'function') bh.onclick = () => mostraHistoria(null, () => { }); else bh.hidden = true; } }
   document.querySelectorAll('[data-abre]').forEach(b => b.addEventListener('click', () => {

@@ -43,10 +43,10 @@ function lootVendavel() {
   const s = G.save; const pede = typeof itemPedidoEmMissao === 'function' ? itemPedidoEmMissao : () => false;
   return s.mochila.filter(m => { const it = ITENS[m.id]; return it && it.tipo === 'loot' && it.venda > 0 && !m.r && !pede(m.id); });
 }
-function venderTodoLoot(npc) {
+async function venderTodoLoot(npc) {
   const s = G.save; const lista = lootVendavel(); if (!lista.length) return;
   const total = lista.reduce((a, m) => a + ITENS[m.id].venda * m.q, 0), n = lista.reduce((a, m) => a + m.q, 0);
-  if (!confirm(`Vender ${fmt(n)} item(ns) de loot por ${fmt(total)} tostões?\n(Equipamentos, poções, comidas e o que uma missão ainda pede NÃO são vendidos.)`)) return;
+  if (!(await perguntaJogo(`Vender ${fmt(n)} item(ns) de loot por ${fmt(total)} tostões?\n(Equipamentos, poções, comidas e o que uma missão ainda pede NÃO são vendidos.)`, { sim: 'Vender tudo' }))) return;
   for (const m of lista) _removeItemLx(m.id, m.q);
   s.ouro += total; som('moeda'); log(`💰 Vendeu ${fmt(n)} item(ns) de loot por ${fmt(total)} tostões.`, 'l-loot'); salvar(); G.uiSujo = true;
   modalLoja(npc, 'vender');
@@ -149,11 +149,11 @@ function modalLuxo(aba = 'mont') {
     el('div', { class: 'mt-abas' }, bt('mont', '🛵 Montarias'), bt('skin', '✨ Skins'), bt('bolsa', '🎒 Bolsas')), grade,
     el('p', { class: 'vazio' }, 'Dica: venda o loot dos adversários nas lojas (💰 Vender todo o loot) e quebre Pedras Celestiais para juntar tostões.'));
 }
-function compraLuxo(tipo, id) {
+async function compraLuxo(tipo, id) {
   const s = estMont();
   const def = tipo === 'mont' ? MONTARIAS[id] : tipo === 'skin' ? SKINS[id] : { ...BOLSAS[id], luxo: BOLSAS[id].preco };
   if (s.nivel < def.lvl || s.ouro < def.luxo) return;
-  if (!confirm(`Comprar ${def.nome} por ${fmt(def.luxo)} tostões?`)) return;
+  if (!(await perguntaJogo(`Comprar ${def.nome} por ${fmt(def.luxo)} tostões?`, { sim: 'Comprar' }))) return;
   if (tipo === 'bolsa') { if (!addItem(id, 1)) return; s.ouro -= def.luxo; log(`🎒 Você comprou a ${def.nome}! A mochila ficou maior.`, 'l-loot'); som('moeda'); salvar(); G.uiSujo = true; return modalLuxo('bolsa'); }
   s.ouro -= def.luxo;
   if (tipo === 'mont') ganhaMontaria(id); else ganhaSkin(id);

@@ -203,10 +203,10 @@ function devolve(id, r) { // tenta pôr na mochila; se não couber, vai para o a
   if (cabeNaMochila(id, r)) { if (r) { s.mochila.push({ id, q: 1, r }); G.uiSujo = true; return true; } if (addItem(id, 1)) return true; }
   armazem(); if (!guardaNoArmazem(id, 1, r || 0)) G.save.armazem.push(r ? { id, q: 1, r } : { id, q: 1 }); return false; // armazém cheio: passa do limite, mas nada se perde
 }
-function venderCasa() {
+async function venderCasa() {
   const s = G.save, c = minhaCasa(); if (!c) return;
   const def = CASAS[c.id]; const volta = Math.round(def.preco * 0.5);
-  if (!confirm(`Vender a casa ${def.nome}? Você recebe ${fmt(volta)} tostões (metade do preço). Móveis e itens expostos voltam para você.`)) return;
+  if (!(await perguntaJogo(`Vender a casa ${def.nome}? Você recebe ${fmt(volta)} tostões (metade do preço). Móveis e itens expostos voltam para você.`, { sim: 'Vender', perigo: true }))) return;
   let dep = 0;
   for (const mv of c.moveis) if (!devolve(mv.id, 0)) dep++;
   for (const it of c.itens) if (!devolve(it.id, it.r)) dep++;

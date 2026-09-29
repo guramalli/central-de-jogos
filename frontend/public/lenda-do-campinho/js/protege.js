@@ -117,10 +117,10 @@ if (typeof modalBackup === 'function') {
   };
 }
 async function recuperaAnterior(a) {
-  let s; try { s = await abreAnterior(a); } catch (e) { alert('Não deu para abrir esse personagem.'); return; }
+  let s; try { s = await abreAnterior(a); } catch (e) { avisoJogo('Não deu para abrir esse personagem.'); return; }
   if (G.rodando) { try { salvar(); } catch (e) { } }
   const atual = lerSave();
-  if (!confirm(`Voltar a jogar com ${s.nome} (nível ${s.nivel})?` + (atual && atual.criado !== s.criado ? `\n\n${atual.nome} (nível ${atual.nivel}) também fica guardado aqui.` : ''))) return;
+  if (!(await perguntaJogo(`Voltar a jogar com ${s.nome} (nível ${s.nivel})?` + (atual && atual.criado !== s.criado ? `\n\n${atual.nome} (nível ${atual.nivel}) também fica guardado aqui.` : ''), { sim: 'Jogar com ' + s.nome }))) return;
   if (atual && atual.criado !== s.criado) await guardaAnterior(atual);
   // o jogo salva o jogador em curso ao sair da página: ele passa a ser o recuperado (senão sobrescreveria)
   if (G.rodando) { G.rodando = false; G.save = s; }

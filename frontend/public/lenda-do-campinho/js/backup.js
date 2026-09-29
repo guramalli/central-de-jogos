@@ -19,7 +19,7 @@ function saveValido(s) {
 function exportarSave() {
   if (G.save && G.rodando) salvar(); // grava a posição atual antes
   const s = lerSave();
-  if (!s) { alert('Ainda não há progresso salvo para exportar.'); return; }
+  if (!s) { avisoJogo('Ainda não há progresso salvo para exportar.'); return; }
   const pacote = { tipo: BACKUP_TIPO, versao: 1, exportadoEm: new Date().toISOString(), save: s };
   const blob = new Blob([JSON.stringify(pacote)], { type: 'application/json' });
   const data = new Date(); const d = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
@@ -31,18 +31,18 @@ function exportarSave() {
 }
 function importarArquivo(arquivo, aoTerminar) {
   const leitor = new FileReader();
-  leitor.onload = () => {
+  leitor.onload = async () => {
     let pacote = null;
     try { pacote = JSON.parse(leitor.result); } catch { }
     const s = pacote && (pacote.tipo === BACKUP_TIPO ? pacote.save : pacote); // aceita também o save "puro"
-    if (!saveValido(s)) { alert('Esse arquivo não é um save do Lenda do Campinho (ou está danificado).'); return aoTerminar && aoTerminar(false); }
+    if (!saveValido(s)) { avisoJogo('Esse arquivo não é um save do Lenda do Campinho (ou está danificado).'); return aoTerminar && aoTerminar(false); }
     const atual = lerSave();
     const msg = `Carregar o progresso do arquivo?\n\nArquivo: ${resumoSave(s)}\nAtual: ${resumoSave(atual)}\n\nO progresso atual deste navegador será SUBSTITUÍDO.`;
-    if (!confirm(msg)) return aoTerminar && aoTerminar(false);
+    if (!(await perguntaJogo(msg, { titulo: 'Carregar progresso', sim: 'Carregar', perigo: true }))) return aoTerminar && aoTerminar(false);
     delete s.conta; // o save importado passa a ser de quem está jogando (o jogo pergunta se houver outro na conta)
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { alert('Não foi possível gravar o save neste navegador.'); return aoTerminar && aoTerminar(false); }
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { avisoJogo('Não foi possível gravar o save neste navegador.'); return aoTerminar && aoTerminar(false); }
     G.rodando = false; // não deixa o jogo aberto regravar o save antigo por cima
-    alert(`Progresso de ${s.nome} carregado! O jogo vai recomeçar.`);
+    await avisoJogo(`Progresso de ${s.nome} carregado! O jogo vai recomeçar.`, { ok: 'Recomeçar' });
     location.reload();
   };
   leitor.readAsText(arquivo);

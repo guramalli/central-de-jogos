@@ -56,7 +56,7 @@ if (PORTAL.ativo) (function () {
   }
   // no jogo: a marca do topo volta ao portal
   const marca = document.querySelector('#topo .marca');
-  if (marca) { marca.style.cursor = 'pointer'; marca.title = 'Voltar ao Educação Gamer'; marca.addEventListener('click', () => { if (confirm('Voltar para o Educação Gamer? Seu progresso fica salvo.')) { try { salvar(); } catch (e) { } location.href = '/'; } }); }
+  if (marca) { marca.style.cursor = 'pointer'; marca.title = 'Voltar ao Educação Gamer'; marca.addEventListener('click', async () => { if (await perguntaJogo('Voltar para o Educação Gamer? Seu progresso fica salvo.', { sim: 'Voltar ao site' })) { try { salvar(); } catch (e) { } location.href = '/'; } }); }
   const grade = document.querySelector('#celMenu .cm-grade');
   if (grade) grade.append(el('button', { class: 'btn cm-bt', type: 'button', onclick: () => { try { salvar(); } catch (e) { } location.href = '/'; } }, el('span', { class: 'cm-ic' }, '🏠'), 'Educação Gamer'));
 
@@ -69,7 +69,7 @@ if (PORTAL.ativo) (function () {
     const avisa = (msg, erro) => { if (!ok) return; ok.textContent = msg; ok.hidden = false; ok.style.background = erro ? '#ffe0d8' : ''; ok.style.color = erro ? '#8a1a1a' : ''; };
     const b = el('button', { class: 'btn amarelo', type: 'button' }, PORTAL.token ? '📨 Enviar para a equipe' : '🔑 Entrar para enviar');
     b.onclick = async () => {
-      if (!PORTAL.token) { if (confirm('Para enviar, entre na sua conta do Educação Gamer. Ir para o login agora? (seu progresso fica salvo)')) { try { salvar(); } catch (e) { } location.href = '/login'; } return; }
+      if (!PORTAL.token) { if (await perguntaJogo('Para enviar, entre na sua conta do Educação Gamer. Ir para o login agora? (seu progresso fica salvo)', { sim: 'Ir para o login' })) { try { salvar(); } catch (e) { } location.href = '/login'; } return; }
       const texto = area.value.trim();
       if (texto.length < 5) { avisa('Conte o que aconteceu antes de enviar.', true); area.focus(); return; }
       b.disabled = true; b.textContent = 'Enviando...';

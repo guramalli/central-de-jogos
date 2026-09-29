@@ -92,8 +92,8 @@ if (NUVEM.ativa && typeof CompressionStream === 'function') {
       caixa.append(el('b', {}, `☁️ Save online: ${nuvem.nome} · nível ${nuvem.nivel}`), el('small', {}, ` (salvo em ${quando})`));
       if (igual) { caixa.append(el('small', { class: 'nuvem-ok' }, ' — igual ao deste aparelho ✔')); return; }
       if (local) caixa.append(el('small', { class: 'nuvem-aviso' }, ` Neste aparelho: ${local.nome} · nível ${local.nivel}.`));
-      caixa.append(el('button', { class: 'btn amarelo', type: 'button', onclick: () => {
-        if (local && !confirm(`Trocar o progresso DESTE aparelho (${local.nome}, nível ${local.nivel}) pelo save online (${nuvem.nome}, nível ${nuvem.nivel})?`)) return;
+      caixa.append(el('button', { class: 'btn amarelo', type: 'button', onclick: async () => {
+        if (local && !(await perguntaJogo(`Trocar o progresso DESTE aparelho (${local.nome}, nível ${local.nivel}) pelo save online (${nuvem.nome}, nível ${nuvem.nivel})?`, { sim: 'Trocar', perigo: true }))) return;
         try { localStorage.setItem(SAVE_KEY, JSON.stringify(nuvem)); } catch (e) { }
         iniciarJogo(nuvem);
       } }, '☁️ Continuar do save online'));

@@ -506,7 +506,7 @@ function telaElenco() {
   const lr = el('div', { class: 'lista' });
   reservas.forEach(j => {
     const venda = Math.round(Math.min(precoJogador(j), j.lenda && LENDAS[j.lendaId] ? LENDAS[j.lendaId].preco : Infinity) * 0.5); // lenda: no máximo metade do que custou (comprar e vender não dá lucro)
-    lr.append(cartaJogador(j, j.eu ? '' : el('button', { class: 'btn mini', title: 'Vende o jogador; o dinheiro vai para o caixa do clube', onclick: () => { if (!confirm(`Vender ${j.nome} por ${fmt(venda)} tostões?`)) return; t.elenco = t.elenco.filter(x => x.id !== j.id); t.titulares = t.titulares.map(id => id === j.id ? null : id); t.caixa += venda; t.finTemp.ent += venda; log(`${j.nome} foi vendido por ${fmt(venda)} tostões.`, 'l-loot'); som('moeda'); salvar(); abrirTime('elenco'); } }, `Vender (${fmt(venda)})`)));
+    lr.append(cartaJogador(j, j.eu ? '' : el('button', { class: 'btn mini', title: 'Vende o jogador; o dinheiro vai para o caixa do clube', onclick: async () => { if (!(await perguntaJogo(`Vender ${j.nome} por ${fmt(venda)} tostões?`, { sim: 'Vender', perigo: true }))) return; t.elenco = t.elenco.filter(x => x.id !== j.id); t.titulares = t.titulares.map(id => id === j.id ? null : id); t.caixa += venda; t.finTemp.ent += venda; log(`${j.nome} foi vendido por ${fmt(venda)} tostões.`, 'l-loot'); som('moeda'); salvar(); abrirTime('elenco'); } }, `Vender (${fmt(venda)})`)));
   });
   if (!reservas.length) lr.append(el('p', { class: 'vazio' }, 'Sem reservas. Contrate no Mercado para poder revezar quem está cansado.'));
   wrap.append(lr);
@@ -629,11 +629,11 @@ function requisitoPais(pid) {
   const ent = p.divs[0][1];
   return melhorTitulo() + ESCADA_FOLGA >= ent ? { ok: true } : { ok: false, motivo: `seja campeão de uma liga de força ${ent - ESCADA_FOLGA} ou mais` };
 }
-function mudarPais(pid) {
+async function mudarPais(pid) {
   const t = G.save.time; const p = PAIS[pid];
   if (!requisitoPais(pid).ok) return;
   const k0 = divEntrada(pid); const nomeDiv = p.divs[k0][0];
-  if (t.liga.rodada > 0 && !confirm(`Transferir o ${t.nome} para ${p.nome}? A temporada atual será abandonada e o clube começa na ${nomeDiv}.`)) return;
+  if (t.liga.rodada > 0 && !(await perguntaJogo(`Transferir o ${t.nome} para ${p.nome}? A temporada atual será abandonada e o clube começa na ${nomeDiv}.`, { sim: 'Transferir', perigo: true }))) return;
   t.historico.push(`Temporada ${t.temporada}: o clube se mudou para ${p.nome}!`);
   t.pais = pid; t.div = divDe(pid, k0); t.piramide = gerarPiramide(pid, k0); t.liga = gerarLiga(t.div); t.copa = novaCopa(); t.meta = defineMeta(); t.mercado = []; t.finTemp = { ent: 0, sai: 0 };
   banner(`${t.nome.toUpperCase()} EM ${p.nome.toUpperCase()}!`, nomeDiv); log(`O ${t.nome} agora disputa a ${nomeDiv} (${p.nome}). Novos rivais, novos desafios!`, 'l-lvl'); som('apito');
