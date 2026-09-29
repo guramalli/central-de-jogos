@@ -132,8 +132,9 @@ const CAPITULOS = {
       { img: 'cap_gloria_4', kb: 'kb-zoom', foco: '50% 25%', cor: ['#140a40', '#3a2780'],
         txt: n => 'Mas o Seu Zé tem uma história estranha pra contar: dizem que existem campos no fundo do mar, lá em cima das nuvens... e até na Lua. Será?' },
     ],
-    final: { emoji: '🏆', titulo: 'Campeã(o) do Mundo!', sub: n => `Parabéns${n ? ', ' + n : ''}! Você venceu a Copa do Mundo. Novos mundos vão aparecer nas próximas atualizações!`,
-      creditos: ['Lenda do Campinho', 'Uma história de educacaogamer.com.br', 'Obrigado por jogar!'], botao: 'A lenda continua... ⚽' },
+    // v244: o jogo NÃO acaba aqui (antes dizia "novos mundos nas próximas atualizações" e mostrava créditos) — já existem Atlântida e o Espaço
+    final: { emoji: '🏆', titulo: 'Campeã(o) do Mundo!', sub: n => `Parabéns${n ? ', ' + n : ''}! Você venceu a Copa do Mundo. Mas a história continua: a Capitã Iara espera com o submarino na praia do Rio (a partir do nível ${typeof ATL_NIVEL !== 'undefined' ? ATL_NIVEL : 195}) para levar você até ATLÂNTIDA. E depois... o espaço!`,
+      botao: 'Rumo a Atlântida! 🌊' },
   },
   gloria: {
     rotulo: 'Epílogo', titulo: 'Glória Eterna', emoji: '👑', implica: ['adulto', 'paredao', 'mundo', 'europa'],

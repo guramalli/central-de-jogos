@@ -113,7 +113,7 @@ if (typeof CAPITULOS !== 'undefined') {
   const i = CAPITULOS_ORDEM.indexOf('europa'); if (i >= 0 && !CAPITULOS_ORDEM.includes('rei')) CAPITULOS_ORDEM.splice(i + 1, 0, 'rei');
   // os capítulos seguintes andam uma casa
   const num = { retorno: 6, copa: 7, atlantida: 8, espaco: 9, galaxia: 10 };
-  for (const [id, k] of Object.entries(num)) if (CAPITULOS[id]) { CAPITULOS[id].rotulo = 'Capítulo ' + k; if (CAPITULOS[id].final && typeof CAPITULOS[id].final.sub === 'function') { const f = CAPITULOS[id].final.sub; CAPITULOS[id].final.sub = n => String(f(n)).replace(/Fim do Capítulo \d+/, 'Fim do Capítulo ' + k); } }
+  for (const [id, k] of Object.entries(num)) if (CAPITULOS[id]) { CAPITULOS[id].rotulo = 'Capítulo ' + k; if (CAPITULOS[id].final && typeof CAPITULOS[id].final.sub === 'function') { const f = CAPITULOS[id].final.sub; CAPITULOS[id].final.sub = n => String(f(n)).replace(/Capítulo \d+/, 'Capítulo ' + k); /* v244: também 'Capítulo N começou!' */ } }
   // "Rumo à Copa": depois da bênção do Rei, de volta ao Rio (ou direto na Arena da Copa)
   if (CAPITULOS.retorno) { CAPITULOS.retorno.cond = (s, mapa) => CAP_MAPAS_FINAL.includes(mapa) || (mapa === 'rio' && !!s.flags.bencao_rei); CAPITULOS.retorno.implica = ['mundo', 'europa', 'rei']; }
   for (const id of ['copa', 'atlantida', 'espaco', 'galaxia']) if (CAPITULOS[id] && Array.isArray(CAPITULOS[id].implica) && !CAPITULOS[id].implica.includes('rei')) CAPITULOS[id].implica.push('rei');
