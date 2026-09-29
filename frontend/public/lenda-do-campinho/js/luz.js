@@ -1,7 +1,7 @@
 /* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
-   💡 UTEVO LUX (v245) — a luz do craque, como no Tibia
+   💡 HOLOFOTE (v245; nome trocado na v247 — antes era 'Utevo Lux', igual ao Tibia) — as luzes do estádio em você
    Todo mundo aprende no nível 8 (vai sozinho para a barra de atalhos).
    Por 6 minutos, abre um círculo claro em volta de você: a escuridão da noite,
    das cavernas/áreas fechadas e o tom escuro da chuva/tempestade ficam de fora.
@@ -9,7 +9,7 @@
    Carregar DEPOIS de game.js (usa usarDrible, DRIBLES, EMOJI_DRIBLE).
    ============================================================ */
 const LUZ_DUR = 6 * 60 * 1000, LUZ_RAIO = 5.5; // em quadradinhos
-DRIBLES.utevo_lux = { nome: 'Utevo Lux', tipo: 'buff', lvl: 8, foco: 20, cd: 2000, dur: LUZ_DUR, fx: 'estrelas', cor: '#fff2a0', desc: 'Uma luz acompanha você por 6 minutos: clareia a noite, as cavernas e a chuva.' };
+DRIBLES.utevo_lux = { nome: 'Holofote', tipo: 'buff', lvl: 8, foco: 20, cd: 2000, dur: LUZ_DUR, fx: 'estrelas', cor: '#fff2a0', desc: 'As luzes do estádio acompanham você por 6 minutos: clareia a noite, as cavernas e a chuva.' };
 if (typeof EMOJI_DRIBLE !== 'undefined') EMOJI_DRIBLE.utevo_lux = '💡';
 
 function luzAtiva() { return typeof G !== 'undefined' && G.buffs && (G.buffs.luz || 0) > G.agora; }
@@ -35,13 +35,13 @@ function corEscuro(ctx, rgb, a, emTela) {
     if (s.foco < custo) { log(`Foco insuficiente para ${dr.nome} (precisa de ${custo}).`, 'l-sis'); som('erro'); return; }
     s.foco -= custo; G.cds[id] = G.agora + dr.cd; G.buffs.luz = G.agora + dr.dur; G.luzAvisou = false;
     efeito('estrelas', p.x, p.y, dr.cor); tituloSkill(p, dr.nome, dr.cor); som('moeda');
-    log('💡 Utevo Lux! Uma luz acompanha você por 6 minutos.', 'l-info'); G.uiSujo = true;
+    log('💡 Holofote! As luzes do estádio acompanham você por 6 minutos.', 'l-info'); G.uiSujo = true;
   };
   // avisa quando a luz apaga
   const _atualizaLuz = atualiza;
   atualiza = function () {
     const r = _atualizaLuz.apply(this, arguments);
-    if (G.buffs && G.buffs.luz && G.agora >= G.buffs.luz && !G.luzAvisou) { G.luzAvisou = true; G.buffs.luz = 0; if (G.rodando) log('💡 A sua luz apagou. Use Utevo Lux de novo quando quiser.', 'l-sis'); }
+    if (G.buffs && G.buffs.luz && G.agora >= G.buffs.luz && !G.luzAvisou) { G.luzAvisou = true; G.buffs.luz = 0; if (G.rodando) log('💡 O seu Holofote apagou. Acenda de novo quando quiser.', 'l-sis'); }
     return r;
   };
   // um brilho quentinho em volta de você enquanto a luz está acesa
