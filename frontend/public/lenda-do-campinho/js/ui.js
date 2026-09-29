@@ -337,6 +337,7 @@ function abrirNPC(npc) {
   if (d.onibus) ops.append(el('button', { class: 'btn', onclick: modalOnibus }, 'Viajar de ônibus'));
   if (d.empresario) ops.append(el('button', { class: 'btn amarelo', onclick: () => { fechaModal(); abrirTime(); } }, s.time ? 'Gerenciar meu time' : 'Fundar meu time'));
   if (d.posicao && s.posicao && s.nivel >= 10) ops.append(el('button', { class: 'btn', onclick: modalPosicao }, 'Trocar de posição'));
+  if (d.posicao && s.classe && s.nivel <= CLASSE_TROCA_ATE) ops.append(el('button', { class: 'btn', onclick: modalTrocaClasse }, `🎭 Trocar de classe (grátis até o nível ${CLASSE_TROCA_ATE})`)); // v256
   if (d.posicao && s.classe && s.nivel >= 2) ops.append(el('button', { class: 'btn amarelo', onclick: redistribuiAtributos }, `🔄 Redistribuir pontos de atributo (${custoRedistribuir() ? fmt(custoRedistribuir()) + ' tostões' : 'grátis na 1ª vez'})`));
   ops.append(el('button', { class: 'btn', onclick: fechaModal }, 'Tchau!'));
   abreModal(el('h2', {}, d.nome), el('div', { class: 'npc-topo' }, retratoNPC(npc), el('div', { class: 'fala' }, el('p', {}, fala), ...extras)), ops);
@@ -817,6 +818,29 @@ function abreFicha() {
         el('p', { class: 'vazio' }, 'Quer redistribuir tudo? Fale com o Seu Zé no campinho (custa tostões).'))));
 }
 // Seu Zé devolve os pontos de atributo gastos (a 1ª vez é grátis, depois o preço sobe com o nível)
+// v256: até o nível 25 dá para trocar de classe com o Seu Zé (de graça): os pontos são redistribuídos e as magias
+// da classe antiga saem (as da nova chegam conforme o nível)
+const CLASSE_TROCA_ATE = 25;
+function modalTrocaClasse() {
+  const s = G.save; if (!s || !s.classe) return;
+  if (s.nivel > CLASSE_TROCA_ATE) { log(`A troca de classe só vale até o nível ${CLASSE_TROCA_ATE}.`, 'l-sis'); return; }
+  let esc = s.classe; const grade = el('div', { class: 'grade-classes' });
+  const bt = el('button', { class: 'btn amarelo grande', type: 'button' }, 'Trocar de classe');
+  const render = () => { grade.innerHTML = ''; Object.keys(CLASSES).forEach(id => grade.append(cartaClasse(id, id === esc, () => { esc = id; render(); }))); bt.disabled = esc === s.classe; bt.textContent = esc === s.classe ? 'Escolha outra classe' : `Virar ${CLASSES[esc].nome}`; };
+  bt.onclick = () => {
+    if (esc === s.classe) return; const velha = CLASSES[s.classe].nome;
+    s.classe = esc; const lv = s.nivel - 1; s.atr = Object.assign({}, CLASSES[esc].base); s.atr[CLASSES[esc].principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
+    s.dribles = s.dribles.filter(id => !(DRIBLES[id] && DRIBLES[id].classe && DRIBLES[id].classe !== esc));
+    s.hotbar = s.hotbar.map(h => h && h.t === 'd' && !s.dribles.includes(h.id) ? null : h);
+    if (typeof aprendeMagiasDaVocacao === 'function') aprendeMagiasDaVocacao();
+    G.cds.classe = 0; const st = stats(); s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
+    log(`🎭 Você trocou de classe: de ${velha} para ${CLASSES[esc].nome}! ${s.pontos ? 'Aperte C para distribuir seus pontos.' : ''}`, 'l-lvl'); banner(CLASSES[esc].nome.toUpperCase(), 'Nova classe'); som('nivel');
+    if (typeof atualizaRetrato === 'function') atualizaRetrato(); G.uiSujo = true; salvar(); fechaModal();
+  };
+  render(); abreModal.largo = true;
+  abreModal(el('h2', {}, '🎭 Trocar de classe'), el('p', {}, `Até o nível ${CLASSE_TROCA_ATE} você pode trocar de classe aqui, de graça. Seus pontos de atributo voltam para distribuir de novo e as magias da classe antiga saem da barra (as da nova chegam conforme o seu nível). Sua posição (${s.posicao ? (POSICOES[s.posicao] || {}).nome || s.posicao : 'ainda não escolhida'}) não muda.`), grade,
+    el('div', { class: 'opcoes' }, bt, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Agora não')));
+}
 function custoRedistribuir() { const s = G.save; return s.flags && s.flags.redist_gratis ? 150 * s.nivel + 3 * s.nivel * s.nivel : 0; }
 function redistribuiAtributos() {
   const s = G.save; const custo = custoRedistribuir(); const cl = CLASSES[s.classe]; if (!cl) return;
