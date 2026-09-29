@@ -8,10 +8,10 @@
    Carregar DEPOIS de vocacoes.js e jogadas_info.js.
    ============================================================ */
 const CLASSE_GUIA = {
-  paredao: { sobe: ['defesa', 'folego'], modo: 'drible', jeito: 'Jogue COLADO no adversário (modo Drible, tecla X). Você aguenta o tranco: chame a marcação e segure vários de uma vez. Quem ficar longe leva o Bote (você chega nele na hora) ou um Lateral na Área.' },
-  driblador: { sobe: ['habilidade', 'folego'], modo: 'chute', jeito: 'Jogue de LONGE (modo Chute, tecla X). Mantenha distância: quando o adversário encostar, use o Recuo (ou dê uns passos para trás) e volte a chutar. Com a fila formada, a Folha Seca acerta todos.' },
-  cerebro: { sobe: ['inteligencia', 'habilidade'], modo: 'chute', jeito: 'Jogue de longe e use as jogadas especiais: você tem muito foco. Deixe a Cabeça Fria sempre ligada (o dano gasta foco no lugar do fôlego), encharque o gramado para deixar os grupos lentos e hipnotize quem chegar perto.' },
-  motorzinho: { sobe: ['folego', 'inteligencia'], modo: 'drible', jeito: 'Você cansa pouco e se cura muito: aguente as lutas longas, chame o Caramelo para ajudar no dano, lute dentro do Ponto de Hidratação, use a Raiz do Campo nos grupos e cure-se sempre que o fôlego baixar.' },
+  paredao: { sobe: ['defesa', 'folego'], modo: 'drible', jeito: 'Jogue COLADO no adversário (modo Drible, tecla X). Você aguenta o tranco: chame a marcação e segure vários de uma vez.' },
+  driblador: { sobe: ['habilidade', 'folego'], modo: 'chute', jeito: 'Jogue de LONGE (modo Chute, tecla X). Mantenha distância: quando o adversário encostar, dê uns passos para trás e volte a chutar.' },
+  cerebro: { sobe: ['inteligencia', 'habilidade'], modo: 'chute', jeito: 'Jogue de longe e use as jogadas especiais: você tem muito foco. Hipnotize quem chegar perto e use as jogadas em área nos grupos.' },
+  motorzinho: { sobe: ['folego', 'inteligencia'], modo: 'drible', jeito: 'Você cansa pouco e se cura muito: aguente as lutas longas, use a Raiz do Campo nos grupos e cure-se sempre que o fôlego baixar.' },
 };
 function modalMinhaClasse() {
   const s = G.save; if (!s) return;
@@ -53,10 +53,10 @@ function modalMinhaClasse() {
 }
 {
   const lista = document.querySelector('.tb-lista');
-  if (lista && !document.getElementById('btnMinhaClasse')) { const b = el('button', { class: 'btn', id: 'btnMinhaClasse', type: 'button', role: 'menuitem' }, '🎓 Meu estilo'); b.addEventListener('click', () => modalMinhaClasse()); lista.prepend(b); }
+  if (lista && !document.getElementById('btnMinhaClasse')) { const b = el('button', { class: 'btn', id: 'btnMinhaClasse', type: 'button', role: 'menuitem' }, '🎓 Minha classe'); b.addEventListener('click', () => modalMinhaClasse()); lista.prepend(b); }
   const grade = document.querySelector('#celMenu .cm-grade');
-  if (grade && !document.getElementById('cmMinhaClasse')) grade.prepend(el('button', { class: 'btn cm-bt', id: 'cmMinhaClasse', type: 'button', onclick: () => { if (typeof fechaMenuCel === 'function') fechaMenuCel(); modalMinhaClasse(); } }, el('span', { class: 'cm-ic' }, '🎓'), 'Estilo'));
-  if (typeof abreFicha === 'function') { const _abreFichaMc = abreFicha; abreFicha = function () { const r = _abreFichaMc.apply(this, arguments); const box = document.getElementById('modalConteudo'); if (box && !box.querySelector('.bt-classe') && G.save && G.save.classe) { const c = CLASSES[G.save.classe]; box.querySelector('h2') && box.querySelector('h2').after(el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo bt-classe', type: 'button', onclick: modalMinhaClasse }, typeof nomeEstilo === 'function' ? `Meu estilo: ${nomeEstilo(G.save)} — o que cada atributo faz` : `${c.emoji} Minha classe: ${c.nome}`))); } return r; }; }
+  if (grade && !document.getElementById('cmMinhaClasse')) grade.prepend(el('button', { class: 'btn cm-bt', id: 'cmMinhaClasse', type: 'button', onclick: () => { if (typeof fechaMenuCel === 'function') fechaMenuCel(); modalMinhaClasse(); } }, el('span', { class: 'cm-ic' }, '🎓'), 'Classe'));
+  if (typeof abreFicha === 'function') { const _abreFichaMc = abreFicha; abreFicha = function () { const r = _abreFichaMc.apply(this, arguments); const box = document.getElementById('modalConteudo'); if (box && !box.querySelector('.bt-classe') && G.save && G.save.classe) { const c = CLASSES[G.save.classe]; box.querySelector('h2') && box.querySelector('h2').after(el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo bt-classe', type: 'button', onclick: modalMinhaClasse }, `${c.emoji} Minha classe: ${c.nome} — especialidade, deficiências e o que subir`))); } return r; }; }
 }
 {
   const st = document.createElement('style');

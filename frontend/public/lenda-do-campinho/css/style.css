@@ -359,8 +359,13 @@ canvas { image-rendering: auto; }
 .ficha-pontos { padding: 8px 12px; border-radius: 8px; background: #efe0bd; font-weight: 700; margin-bottom: 8px; }
 .ficha-pontos.tem { background: #fff2a0; border: 2px solid #e0a020; animation: pisca 1.2s ease-in-out infinite; }
 .ficha-attrs { display: flex; flex-direction: column; gap: 8px; }
-.ficha-linha { display: grid; grid-template-columns: 34px 1fr 40px; gap: 8px; align-items: center; background: #fffaf0; border: 2px solid var(--papel2); border-radius: 8px; padding: 6px 8px; }
+.ficha-linha { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; background: #fffaf0; border: 2px solid var(--papel2); border-radius: 8px; padding: 6px 8px; }
 .ficha-linha.principal { border-color: #e0a020; }
+/* v264: digitar quantos pontos pôr + segurar o "+" */
+.ficha-ctrl { display: flex; gap: 4px; align-items: center; }
+.ficha-qtd { width: 58px; padding: 4px 5px; border: 2px solid var(--papel2); border-radius: 6px; font: 700 13px Nunito, sans-serif; text-align: center; background: #fff; }
+.ficha-qtd:disabled { opacity: .5; }
+@media (max-width: 600px) { .ficha-qtd { width: 46px; } }
 .fl-ic { font-size: 24px; text-align: center; }
 .fl-meio .top { display: flex; justify-content: space-between; font-size: 16px; }
 .fl-meio small { font-family: Nunito, sans-serif; font-weight: 600; font-size: 12px; opacity: .85; }

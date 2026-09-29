@@ -36,9 +36,9 @@ for (const [id, folha] of [['santos_rapido', 'menino_vila_a'], ['santos_meia', '
 
 /* ---------- missões da cidade (textos com os Meninos da Vila) ---------- */
 {
-  const tx = { santos_m1: 'Os Meninos da Vila correm pela orla inteira com pedaladas e chapéus. Mostre o futebol da Vila do Campinho: passe por 30 Pontas Meninos da Vila.',
-    santos_m2: 'Os Zagueiros Meninos da Vila são a defesa mais habilidosa daqui: eles saem driblando! Vença 30.',
-    santos_m3: 'Os Meias Meninos da Vila leem o jogo como ninguém. Vença 30 para aprender com eles.',
+  const tx = { santos_m1: 'Os Meninos da Vila correm pela orla inteira com pedaladas e chapéus. Mostre o futebol da Vila do Campinho: passe por 30 Moleques da Vila.',
+    santos_m2: 'Os Xerifes da Vila Belmiro são a defesa mais habilidosa daqui: eles saem driblando! Vença 30.',
+    santos_m3: 'Os Camisas 10 da Baixada leem o jogo como ninguém. Vença 30 para aprender com eles.',
     santos_m4: 'O CAPITÃO DOS MENINOS DA VILA manda na Ponta da Praia. Vença e toda a Vila Belmiro vai falar de você!' };
   for (const [id, t] of Object.entries(tx)) { const q = MISSOES.find(x => x.id === id); if (q) q.texto = t; }
   const m4 = MISSOES.find(x => x.id === 'santos_m4'); if (m4) m4.fim = 'Os Meninos da Vila te aplaudiram! Agora vá ao Museu Pelé: a guia tem uma história para te contar.';

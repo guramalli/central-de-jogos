@@ -83,27 +83,3 @@ document.addEventListener('dblclick', ev => {
   #mini { cursor: pointer; }`;
   document.head.append(st);
 }
-
-/* ---------- v260: "fôlego (HP)" e "foco (mana)" em todos os itens e menus ----------
-   Pedido do dono: sempre deixar claro que fôlego = HP e foco = mana. Um ajuste automático acrescenta o
-   "(HP)"/"(mana)" nos textos das janelas, dos painéis laterais e das dicas de itens — os NOMES
-   (negrito/títulos: "Garrafa de Fôlego", "Fôlego de Campeão") ficam como estão. O chat (log) não muda. */
-const HPMANA_RE = /(?<!Segundo[\s\u00a0])\b(f[oô]lego|foco)(?![\s\u00a0]*\()(?![\s\u00a0]+de[\s\u00a0]+Campe)(?!\w)/gi;
-const HPMANA_ONDE = '#modalConteudo, .tip-item, #lateral, #lateralEsq, .cj-caixa, #celMenu';
-const HPMANA_FORA = 'b, strong, h1, h2, h3, h4, .nm > b, .bloco-titulo, .abas, button.btn, input, textarea, select, .kbd, #tHp, #tFoco';
-function hpManaTexto(t) { return t.replace(HPMANA_RE, (m, w) => /^f[oô]lego$/i.test(w) ? `${w} (HP)` : `${w} (mana)`); }
-function hpManaNo(n) {
-  if (n.nodeType !== 3 || !n.nodeValue || !/f[oô]lego|foco/i.test(n.nodeValue)) return;
-  const pai = n.parentElement; if (!pai || !pai.closest(HPMANA_ONDE) || pai.closest(HPMANA_FORA)) return;
-  const novo = hpManaTexto(n.nodeValue); if (novo !== n.nodeValue) n.nodeValue = novo;
-}
-function hpManaVarre(raiz) {
-  if (!raiz) return; if (raiz.nodeType === 3) return hpManaNo(raiz);
-  if (raiz.nodeType !== 1) return;
-  const w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) hpManaNo(n);
-}
-{
-  const obs = new MutationObserver(lista => { for (const m of lista) { if (m.type === 'characterData') hpManaNo(m.target); else m.addedNodes.forEach(hpManaVarre); } });
-  const liga = () => { obs.observe(document.body, { childList: true, subtree: true, characterData: true }); hpManaVarre(document.body); };
-  if (document.body) liga(); else document.addEventListener('DOMContentLoaded', liga);
-}

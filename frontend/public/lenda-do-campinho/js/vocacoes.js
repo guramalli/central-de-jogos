@@ -119,7 +119,7 @@ function danoMagia(dr, m) {
     if (dr.classe && dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
     const v = vocDe();
     // o que conta como "de perto" e "de longe" para o dano da vocação
-    VOC_MODO = dr.modoVoc || (dr.tipo === 'dist' ? (s.classe === 'cerebro' ? 'magia' : 'longe') : (dr.tipo === 'area' || dr.tipo === 'melee') ? 'perto' : null); // v261: a magia pode dizer como conta (Lateral com Força do Paredão = de perto)
+    VOC_MODO = dr.tipo === 'dist' ? (s.classe === 'cerebro' ? 'magia' : 'longe') : (dr.tipo === 'area' || dr.tipo === 'melee') ? 'perto' : null;
     const alcanceAntes = dr.alcance; if (dr.tipo === 'dist' && v && v.alcance) dr.alcance = (dr.alcance || 5) + v.alcance; // Artilheiro chuta de mais longe
     const a = G.alvo && G.mons.includes(G.alvo) ? G.alvo : null, cdAntes = G.cds[id];
     try { _ud(id); } finally { dr.alcance = alcanceAntes; }
@@ -155,7 +155,7 @@ function danoMagia(dr, m) {
     const dr = DRIBLES[id];
     if (dr && dr.efeitoMagia === 'provoca') {
       const s = G.save; const st = stats(); if (!s || s.hp <= 0) return;
-      if (dr.classe && dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
+      if (dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
       if (!s.dribles.includes(id)) return; if (s.nivel < dr.lvl) return;
       const custo = Math.ceil(dr.foco * st.custoFoco); if (s.foco < custo) { log(`Foco insuficiente para ${dr.nome}.`, 'l-sis'); som('erro'); return; }
       if (G.agora < (G.cds.suporte || 0) || G.agora < (G.cds[id] || 0)) return; // v220: magia de suporte (não trava os ataques)

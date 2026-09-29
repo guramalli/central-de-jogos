@@ -153,64 +153,64 @@ function criaCidade(c) {
 const CIDADES = [
   { id: 'cairo', nome: 'Cairo — Às margens do Nilo', L: 56, base: CH.AREIA, rua: CH.PEDRA, seed: 901, agua: true, cais: CH.PEDRA, predios: ['b_cairo1', 'b_cairo2'], marco: 'piramide', marcoLarg: 5,
     props: ['tenda_mercado', 'jarros', 'obelisco', 'camelo', 'palmeira_tamara'], arvores: ['palmeira_tamara'], enfeitesLoja: [['tenda_mercado', 2], ['jarros', -2]], zona: 'Arquibancada Norte', comida: 'falafel', lootEsp: 'escaravelho',
-    nomes: { rapido: 'Ponta das Pirâmides', meia: 'Meia do Nilo', zagueiro: 'Zagueiro Esfinge', fanatico: 'Fanático da Arquibancada', chefe: 'O Faraó da Bola' },
+    nomes: { rapido: 'Corredor das Pirâmides', meia: 'Escriba do Nilo', zagueiro: 'Guardião da Esfinge', fanatico: 'Tamboreiro do Bazar', chefe: 'O Faraó da Bola' },
     cores: ['#e0203a', '#ffffff'], chefeLook: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-camisa10-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-coroa', pescoco: 'pescoco-medalha' },
     loja: { nome: 'Seu Karim do Mercado', ola: 'Ahlan! Falafel quentinho e equipamento de primeira para o craque viajante!', look: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#c8903a', baixo: 'baixo-jeans' } },
     lider: { nome: 'Nour, treinadora do bairro', ola: 'Aqui o futebol é paixão! Mas paixão não pode virar confusão.', look: { corpo: 'f', pele: 'pele-negra', cabelo: 'cabelo-coque', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#e0203a', baixo: 'baixo-jeans', pescoco: 'pescoco-apito' } } },
   { id: 'toquio', nome: 'Tóquio — Distrito Neon', L: 80, base: CH.CALCADA, rua: CH.ASFALTO, seed: 902, predios: ['b_toquio1', 'b_toquio2'], marco: 'torii', marcoLarg: 3,
     props: ['lanterna_pedra', 'bambu', 'maneki', 'cerejeira', 'ponte_arco'], arvores: ['cerejeira', 'bambu'], enfeitesLoja: [['lanterna_pedra', 2], ['maneki', -2]], zona: 'Jardim Zen', comida: 'onigiri', lootEsp: 'leque',
-    nomes: { rapido: 'Ponta Ninja', meia: 'Meia Origami', zagueiro: 'Zagueiro Sumô', chefe: 'O Sensei do Drible' },
+    nomes: { rapido: 'Ninja da Linha de Fundo', meia: 'Mestra do Origami', zagueiro: 'Lutador de Sumô', chefe: 'O Sensei do Drible' },
     cores: ['#1a3ab9', '#ffffff'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-futebol', corRoupa: '#1a1a2a', baixo: 'baixo-shorts', chapeu: 'chapeu-faixa', rosto: 'rosto-escuros' },
     loja: { nome: 'Dona Yuki do Onigiri', ola: 'Irasshaimase! Onigiri fresquinho para dar foco no treino.', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-liso-longo', corCabelo: 'preto', roupa: 'roupa-camiseta', corRoupa: '#e05a8a', baixo: 'baixo-saia' } },
     lider: { nome: 'Mestre Kenji', ola: 'Disciplina, respeito e treino. Assim nasce um craque.', look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-moletom', corRoupa: '#1a1a2a', baixo: 'baixo-moletom', rosto: 'rosto-redondos' } } },
   { id: 'doha', nome: 'Doha — Cidade das Dunas', L: 68, base: CH.AREIA, rua: CH.ASFALTO, seed: 903, agua: true, cais: CH.CALCADA, predios: ['b_doha1', 'b_doha2'], marco: 'fonte_moderna', marcoLarg: 3,
     props: ['duna', 'tenda_beduina', 'lanterna_arabe', 'carro_luxo', 'palmeira_real'], arvores: ['palmeira_real'], enfeitesLoja: [['lanterna_arabe', 2], ['palmeira_real', -3]], zona: 'Dunas Douradas', comida: 'tamaras', lootEsp: 'lamparina', zonaChao: CH.AREIA,
-    nomes: { rapido: 'Ponta do Deserto', meia: 'Meia Miragem', zagueiro: 'Zagueiro Duna', chefe: 'O Falcão do Deserto' },
+    nomes: { rapido: 'Vento do Deserto', meia: 'Maga da Miragem', zagueiro: 'Sentinela do Oásis', chefe: 'O Falcão do Deserto' },
     cores: ['#8a1a3a', '#ffffff'], chefeLook: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#8a1a3a', baixo: 'baixo-shorts', costas: 'costas-capa', rosto: 'rosto-escuros' },
     loja: { nome: 'Seu Rashid das Tâmaras', ola: 'Tâmaras doces e equipamento de luxo. Seja bem-vindo!', look: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-terno', corRoupa: '#f4f4f8', baixo: 'baixo-jeans' } },
     lider: { nome: 'Layla, capitã da seleção feminina', ola: 'Aqui treinamos no calor de 40 graus. Aguenta?', look: { corpo: 'f', pele: 'pele-morena', cabelo: 'cabelo-coque', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#8a1a3a', baixo: 'baixo-shorts', chapeu: 'chapeu-faixa' } } },
   { id: 'miami', nome: 'Miami — Ocean Drive', L: 93, base: CH.CALCADA, rua: CH.ASFALTO, seed: 904, agua: true, cais: CH.AREIA, predios: ['b_miami1', 'b_miami2'], marco: 'torre_salva', marcoLarg: 2,
     props: ['flamingo', 'carro_retro', 'food_truck', 'cadeira_sol', 'neon_palmeira'], arvores: ['neon_palmeira', 'palmeira_real'], enfeitesLoja: [['food_truck', 3], ['flamingo', -2]], zona: 'Calçadão Neon', comida: 'cachorro_quente', lootEsp: 'oculos_neon',
-    nomes: { rapido: 'Ponta Surfista', meia: 'Meia Estrela de TV', zagueiro: 'Zagueiro Fisiculturista', chefe: 'O Showman de Miami' },
+    nomes: { rapido: 'Surfista Veloz', meia: 'Estrela de TV', zagueiro: 'Fisiculturista da Praia', chefe: 'O Showman de Miami' },
     cores: ['#ff5ad0', '#3ac8e8'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-topete', corCabelo: 'loiro', roupa: 'roupa-rockstar-ouro', baixo: 'baixo-praia', rosto: 'rosto-estrela', mao: 'mao-microfone' },
     loja: { nome: 'Tio Joe do Food Truck', ola: 'Hey, buddy! Cachorro-quente e chuteira nova, tudo aqui!', look: { pele: 'pele-negra', cabelo: 'cabelo-black-power', corCabelo: 'preto', roupa: 'roupa-regata', baixo: 'baixo-praia', chapeu: 'chapeu-bone', pescoco: 'pescoco-havaiano' } },
     lider: { nome: 'Coach Sofia', ola: 'Nos Estados Unidos o futebol está crescendo. Me ajuda a mostrar como se joga!', look: { corpo: 'f', pele: 'pele-media', cabelo: 'cabelo-liso-longo', corCabelo: 'loiro', roupa: 'roupa-moletom', corRoupa: '#3ac8e8', baixo: 'baixo-moletom', pescoco: 'pescoco-apito', chapeu: 'chapeu-bone' } } },
   { id: 'milao', nome: 'Milão — Piazza e Curva', L: 162, base: CH.PARALELO, rua: CH.CALCADA_PT, seed: 905, predios: ['b_milao1', 'b_milao2'], marco: 'fonte_italiana', marcoLarg: 3, // v153: a catedral agora é o monumento (Duomo)
     props: ['vespa', 'mesa_italiana', 'fonte_italiana', 'estatua', 'cipreste'], arvores: ['cipreste'], enfeitesLoja: [['mesa_italiana', 2], ['vespa', -2]], zona: 'Curva dos Ultras', comida: 'pizza', lootEsp: 'ingresso',
-    nomes: { rapido: 'Ala Elegante', meia: 'Regista de Milão', zagueiro: 'Líbero Catenaccio', fanatico: 'Ultra da Curva', chefe: 'Il Maestro' },
+    nomes: { rapido: 'Estilista da Ala', meia: 'Regista de Milão', zagueiro: 'Líbero Catenaccio', fanatico: 'Ultra da Curva', chefe: 'Il Maestro' },
     cores: ['#1a1a1a', '#1a3ab9'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-liso-longo', corCabelo: 'castanho', roupa: 'roupa-smoking-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-louros', rosto: 'rosto-escuros' },
     loja: { nome: 'Nonna Giulia da Pizzaria', ola: 'Mangia, mangia! Craque bem alimentado joga melhor!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#c01a2a', baixo: 'baixo-saia' } },
     lider: { nome: 'Padre Marco, do oratório', ola: 'Os ultras da Curva são meninos do bairro. Só precisam de um bom exemplo.', look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-terno', corRoupa: '#1a1a2a', baixo: 'baixo-jeans', rosto: 'rosto-redondos' } } },
   { id: 'munique', nome: 'Munique — Praça do Relógio', L: 154, base: CH.PARALELO, rua: CH.ASFALTO, seed: 906, predios: ['b_munique1', 'b_munique2'], marco: 'maibaum', marcoLarg: 1, // v153: a torre do relógio agora é o monumento (Prefeitura)
     props: ['mesa_bavara', 'banca_pretzel', 'maibaum', 'bicicleta', 'pinheiro'], arvores: ['pinheiro'], enfeitesLoja: [['banca_pretzel', 2], ['bicicleta', -2]], zona: 'Parque Alpino', comida: 'pretzel', lootEsp: 'cronometro', zonaChao: CH.GRAMA,
-    nomes: { rapido: 'Ponta Relâmpago Bávaro', meia: 'Meia Engrenagem', zagueiro: 'Zagueiro Muralha Alpina', chefe: 'O General Bávaro' },
+    nomes: { rapido: 'Relâmpago Bávaro', meia: 'Relojoeira da Praça', zagueiro: 'Muralha Alpina', chefe: 'O General Bávaro' },
     cores: ['#c01a2a', '#ffffff'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-cavaleiro-ouro', baixo: 'baixo-shorts', chapeu: 'chapeu-espartano-ouro' },
     loja: { nome: 'Frau Helga da Padaria', ola: 'Guten Tag! Pretzel quentinho saindo do forno!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-liso-longo', corCabelo: 'loiro', roupa: 'roupa-xadrez', corRoupa: '#3a6ad9', baixo: 'baixo-saia' } },
     lider: { nome: 'Treinador Hans', ola: 'Aqui tudo é organizado: treino, tática e muita dedicação.', look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'ruivo', roupa: 'roupa-moletom', corRoupa: '#c01a2a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
   // ---- Paris (v233: entre Lisboa e Munique) ----
   { id: 'paris', nome: 'Paris — Às margens do Sena', L: 142, base: CH.PARALELO, rua: CH.ASFALTO, seed: 909, agua: true, cais: CH.PEDRA, predios: ['b_paris1', 'b_paris2'], marco: 'metro_paris', marcoLarg: 2,
     props: ['banca_livros', 'carrinho_crepe', 'cavalete', 'mesa_cafe', 'carrinho_flores'], arvores: ['arvore'], enfeitesLoja: [['carrinho_crepe', 2], ['mesa_cafe', -2]], zona: 'Parque dos Príncipes', comida: 'croissant', lootEsp: 'boina',
-    nomes: { rapido: 'Ponta do Sena', meia: 'Meia do Boulevard', zagueiro: 'Zagueiro da Bastilha', fanatico: 'Torcedor dos Príncipes', chefe: 'Le Grand Capitaine' },
+    nomes: { rapido: 'Ciclista do Sena', meia: 'Artista de Montmartre', zagueiro: 'Guarda da Bastilha', fanatico: 'Torcedor dos Príncipes', chefe: 'Le Grand Capitaine' },
     cores: ['#1a2a6a', '#d42a2a'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#1a2a6a', baixo: 'baixo-shorts', pescoco: 'pescoco-cachecol' },
     loja: { nome: 'Madame Colette da Boulangerie', ola: 'Bonjour! Croissant quentinho e macarons coloridos para o craque brasileiro!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'castanho', roupa: 'roupa-xadrez', corRoupa: '#d42a2a', baixo: 'baixo-saia' } },
     lider: { nome: 'Monsieur Didier, o técnico', ola: 'Em Paris o futebol é arte: cada passe é uma pincelada!', look: { pele: 'pele-negra', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#1a2a6a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
   // ---- América do Sul (v233: antes da Europa; a final da Copa continua no Rio, na Arena da Copa) ----
   { id: 'buenos', nome: 'Buenos Aires — La Boca', L: 106, base: CH.PARALELO, rua: CH.PEDRA, seed: 907, agua: true, cais: CH.PEDRA, predios: ['b_buenos1', 'b_buenos2'], marco: 'estatua_tango', marcoLarg: 2,
     props: ['mural_tango', 'banca_empanada', 'mesa_cafe', 'carrinho_flores', 'poste3'], arvores: ['arvore'], enfeitesLoja: [['banca_empanada', 2], ['mesa_cafe', -2]], zona: 'Bombonerita', comida: 'empanada', lootEsp: 'bandoneon',
-    nomes: { rapido: 'Ponta do Caminito', meia: 'Enganche Portenho', zagueiro: 'Zagueiro Caudilho', fanatico: 'Hincha da Bombonerita', chefe: 'El Maestro del Tango' },
+    nomes: { rapido: 'Pibe do Caminito', meia: 'Enganche Portenho', zagueiro: 'Caudilho da Boca', fanatico: 'Hincha da Bombonerita', chefe: 'El Maestro del Tango' },
     cores: ['#1a3ab9', '#f8d838'], chefeLook: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#1a1a1a', baixo: 'baixo-shorts' },
     loja: { nome: 'Doña Rosa das Empanadas', ola: '¡Hola, pibe! Empanadas quentinhas: quem come uma joga como um craque do bairro!', look: { corpo: 'f', pele: 'pele-clara', cabelo: 'cabelo-coque', corCabelo: 'grisalho', roupa: 'roupa-xadrez', corRoupa: '#1a3ab9', baixo: 'baixo-saia' } },
     lider: { nome: 'Profe Martín', ola: 'Aqui o futebol é tango: tem ritmo, tem drama e tem muito coração.', look: { pele: 'pele-media', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#1a3ab9', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
   { id: 'rio', nome: 'Rio de Janeiro — Copacabana', L: 118, base: CH.AREIA, rua: CH.CALCADA_PT, seed: 908, agua: true, cais: CH.AREIA, predios: ['b_rio1', 'b_rio2'], marco: 'arcos_lapa', marcoLarg: 6,
     props: ['carrinho_mate', 'bondinho', 'guarda_sol', 'cadeira_praia', 'quiosque'], arvores: ['coqueiro', 'coqueiro2'], enfeitesLoja: [['carrinho_mate', 2], ['guarda_sol', -2]], zona: 'Arquibancada da Geral', comida: 'biscoito_mate', lootEsp: 'pandeiro',
-    nomes: { rapido: 'Ponta de Copacabana', meia: 'Meia do Samba', zagueiro: 'Zagueiro do Calçadão', fanatico: 'Torcedor da Geral', chefe: 'O Rei do Maracanã' },
+    nomes: { rapido: 'Passista de Copacabana', meia: 'Sambista da Lapa', zagueiro: 'Leão do Calçadão', fanatico: 'Torcedor da Geral', chefe: 'O Rei do Maracanã' },
     cores: ['#f8d838', '#1a9a3a'], chefeLook: { pele: 'pele-retinta', cabelo: 'cabelo-black-power', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#f8d838', baixo: 'baixo-shorts', chapeu: 'chapeu-coroa' },
     loja: { nome: 'Seu Tião do Mate', ola: 'Ó o mate! Biscoito e mate geladinho pra aguentar o calor de Copacabana!', look: { pele: 'pele-negra', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-regata', baixo: 'baixo-praia', chapeu: 'chapeu-bone' } },
     lider: { nome: 'Dona Glória, técnica da seleção', ola: 'Bem-vindo(a) de volta ao Brasil! Vença a elite daqui e ganhe o mundo. Quando for uma lenda, a Copa do Mundo te espera aqui no Rio!', look: { corpo: 'f', pele: 'pele-morena', cabelo: 'cabelo-cacheado', corCabelo: 'grisalho', roupa: 'roupa-moletom', corRoupa: '#1a9a3a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
   // ---- v234: Santos (a última parada antes da Copa: Vila Belmiro, a casa do Rei) ----
   { id: 'santos', nome: 'Santos — Orla e Vila Belmiro', L: 188, base: CH.CALCADA, rua: CH.ASFALTO, seed: 910, agua: true, cais: CH.AREIA, predios: ['b_santos1', 'b_santos2'], marco: 'farol_orla', marcoLarg: 1,
     props: ['jardim_orla', 'sacas_cafe', 'carrinho_caldo', 'guarda_sol', 'quiosque'], arvores: ['coqueiro', 'coqueiro2'], enfeitesLoja: [['carrinho_caldo', 2], ['sacas_cafe', -2]], zona: 'Praia do Gonzaga', comida: 'pastel_caldo', lootEsp: 'saca_cafe',
-    nomes: { rapido: 'Ponta Menino da Vila', meia: 'Meia Menino da Vila', zagueiro: 'Zagueiro Menino da Vila', chefe: 'Capitão dos Meninos da Vila' },
+    nomes: { rapido: 'Moleque da Vila', meia: 'Camisa 10 da Baixada', zagueiro: 'Xerife da Vila Belmiro', chefe: 'Capitão dos Meninos da Vila' },
     cores: ['#f4f4f8', '#1a1a1a'], chefeLook: { pele: 'pele-media', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-futebol', corRoupa: '#f4f4f8', baixo: 'baixo-shorts' },
     loja: { nome: 'Seu Nenê do Pastel', ola: 'Pastel quentinho e caldo de cana geladinho! Aqui na Baixada Santista é tradição!', look: { pele: 'pele-morena', cabelo: 'cabelo-curto', corCabelo: 'grisalho', roupa: 'roupa-regata', corRoupa: '#f4f4f8', baixo: 'baixo-jeans', chapeu: 'chapeu-bone' } },
     lider: { nome: 'Dona Zilda, técnica da base', ola: 'Aqui na Vila Belmiro nascem os Meninos da Vila: pedalada, chapéu, caneta e muita alegria. Aguenta o ritmo deles?', look: { corpo: 'f', pele: 'pele-negra', cabelo: 'cabelo-coque', corCabelo: 'preto', roupa: 'roupa-moletom', corRoupa: '#1a1a1a', baixo: 'baixo-moletom', pescoco: 'pescoco-apito' } } },
@@ -252,11 +252,11 @@ for (const c of CIDADES) {
   const xpNivel = x => xpPara(x + 1) - xpPara(x);
   const cidadeCurta = c.nome.split(' —')[0];
   MISSOES.push(
-    { id: id + '_m1', npc: 'loja_' + id, titulo: `Bem-vindo a ${cidadeCurta}`, lvl: L - 6, texto: `${c.nomes.rapido}s correm por toda a cidade. Mostra o futebol brasileiro: passe por 30 deles.`, req: { kill: c.rapido, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 0.9), ouro: L * 120, itens: [[c.comida, 5]] }, fim: `${cidadeCurta} já sabe o seu nome!` },
-    { id: id + '_m2', npc: 'loja_' + id, titulo: 'A muralha local', lvl: L - 3, pre: id + '_m1', texto: `Os ${c.nomes.zagueiro}s são a defesa mais dura daqui. Vença 30.`, req: { kill: c.zagueiro, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 160, itens: [[GEAR_POR_CIDADE[id][0], 1]] }, fim: 'Toma um equipamento digno de você!' },
+    { id: id + '_m1', npc: 'loja_' + id, titulo: `Bem-vindo a ${cidadeCurta}`, lvl: L - 6, texto: `Os adversários do tipo ${c.nomes.rapido} correm por toda a cidade. Mostre o futebol brasileiro: passe por 30 deles.`, req: { kill: c.rapido, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 0.9), ouro: L * 120, itens: [[c.comida, 5]] }, fim: `${cidadeCurta} já sabe o seu nome!` },
+    { id: id + '_m2', npc: 'loja_' + id, titulo: 'A muralha local', lvl: L - 3, pre: id + '_m1', texto: `O ${c.nomes.zagueiro} é a defesa mais dura daqui. Vença 30 deles.`, req: { kill: c.zagueiro, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 160, itens: [[GEAR_POR_CIDADE[id][0], 1]] }, fim: 'Toma um equipamento digno de você!' },
     c.fanatico
       ? { id: id + '_m3', npc: 'lider_' + id, titulo: `Missão da Paz: ${c.zona}`, lvl: L - 4, texto: `Os fanáticos da ${c.zona} intimidam quem passa. Vença 25 no jogo limpo e mostre que rivalidade é dentro de campo.`, req: { kill: c.fanatico, n: 25 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 150, evento: 'paz', itens: [[L < 100 ? 'pulseira' : 'cachecol', 1]] }, fim: 'Hoje eles cantaram em vez de vaiar. Torcer é festa!' }
-      : { id: id + '_m3', npc: 'lider_' + id, titulo: `Treino em ${cidadeCurta}`, lvl: L - 4, texto: `Os ${c.nomes.meia}s leem o jogo como ninguém. Vença 30 para aprender com eles.`, req: { kill: c.meia, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 150, itens: [['pulseira', 1]] }, fim: 'Você aprendeu muito aqui!' },
+      : { id: id + '_m3', npc: 'lider_' + id, titulo: `Treino em ${cidadeCurta}`, lvl: L - 4, texto: `Quem joga como ${c.nomes.meia} lê o jogo como ninguém. Vença 30 deles para aprender.`, req: { kill: c.meia, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 150, itens: [['pulseira', 1]] }, fim: 'Você aprendeu muito aqui!' },
     { id: id + '_m4', npc: 'lider_' + id, titulo: c.nomes.chefe, lvl: L + 2, pre: id + '_m3', texto: `${c.nomes.chefe.toUpperCase()} manda no canto sudeste da cidade. Vença e a próxima liga vai te chamar.`, req: { kill: c.chefe, n: 1 }, rec: { xp: Math.round(xpNivel(L) * 3), ouro: L * 400, flag: 'venceu_' + id }, fim: `LENDÁRIO! ${cidadeCurta} conquistada. Fale com o Empresário Rodrigues sobre a próxima liga!` },
   );
 }
@@ -336,7 +336,7 @@ Object.assign(VOOS, {
     churros: ['De Madri', C(162, 2400, 480, { dur: 900, regen: 5, regenFoco: 4, atr: { habilidade: 10, folego: 9 } })],
     fish_chips: ['De Londres', C(176, 3200, 640, { dur: 900, regen: 6, regenFoco: 4, vel: 10, atr: { defesa: 10, inteligencia: 10, folego: 10 } })],
   };
-  const NM = { defesa: 'Força', inteligencia: 'Inteligência', folego: 'Fôlego', habilidade: 'Habilidade' };
+  const NM = { defesa: 'Defesa', inteligencia: 'Inteligência', folego: 'Fôlego', habilidade: 'Habilidade' };
   const descComida = (de, e) => {
     const a = Object.entries(e.atr || {}); const p = [];
     if (a.length === 4 && a.every(([, v]) => v === a[0][1])) p.push(`+${a[0][1]} em TUDO`); else a.forEach(([k]) => p.push('+' + NM[k]));

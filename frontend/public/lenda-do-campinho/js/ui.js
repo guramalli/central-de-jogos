@@ -112,8 +112,8 @@ function montaPaineis() {
 function atualizaBarras() {
   const s = G.save, st = stats();
   s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
-  $('#bHp').style.width = (s.hp / st.maxHp * 100) + '%'; $('#tHp').textContent = `Fôlego (HP) ${fmt(s.hp)} / ${fmt(st.maxHp)}`;
-  $('#bFoco').style.width = (s.foco / st.maxFoco * 100) + '%'; $('#tFoco').textContent = `Foco (mana) ${fmt(s.foco)} / ${fmt(st.maxFoco)}`;
+  $('#bHp').style.width = (s.hp / st.maxHp * 100) + '%'; $('#tHp').textContent = `Fôlego ${fmt(s.hp)} / ${fmt(st.maxHp)}`;
+  $('#bFoco').style.width = (s.foco / st.maxFoco * 100) + '%'; $('#tFoco').textContent = `Foco ${fmt(s.foco)} / ${fmt(st.maxFoco)}`;
   const a = xpPara(s.nivel), b = xpPara(s.nivel + 1);
   $('#bXp').style.width = ((s.xp - a) / (b - a) * 100) + '%'; $('#tXp').textContent = `XP ${fmt(s.xp)} / ${fmt(b)}`;
   $('#ouro').textContent = fmt(s.ouro);
@@ -337,8 +337,8 @@ function abrirNPC(npc) {
   if (d.onibus) ops.append(el('button', { class: 'btn', onclick: modalOnibus }, 'Viajar de ônibus'));
   if (d.empresario) ops.append(el('button', { class: 'btn amarelo', onclick: () => { fechaModal(); abrirTime(); } }, s.time ? 'Gerenciar meu time' : 'Fundar meu time'));
   /* v257: não existe mais 'Trocar de posição' — a posição vem da classe (troque a classe até o nível 25) */
-  /* v262: não existe mais classe (nem troca de classe): para mudar de estilo, redistribua os pontos */
-  if (d.posicao && s.nivel >= 2) ops.append(el('button', { class: 'btn amarelo', onclick: redistribuiAtributos }, `🔄 Mudar de estilo: redistribuir pontos (${custoRedistribuir() ? fmt(custoRedistribuir()) + ' tostões' : 'grátis na 1ª vez'})`));
+  if (d.posicao && s.classe && s.nivel <= CLASSE_TROCA_ATE) ops.append(el('button', { class: 'btn', onclick: modalTrocaClasse }, `🎭 Trocar de classe (grátis até o nível ${CLASSE_TROCA_ATE})`)); // v256
+  if (d.posicao && s.classe && s.nivel >= 2) ops.append(el('button', { class: 'btn amarelo', onclick: redistribuiAtributos }, `🔄 Redistribuir pontos de atributo (${custoRedistribuir() ? fmt(custoRedistribuir()) + ' tostões' : 'grátis na 1ª vez'})`));
   ops.append(el('button', { class: 'btn', onclick: fechaModal }, 'Tchau!'));
   abreModal(el('h2', {}, d.nome), el('div', { class: 'npc-topo' }, retratoNPC(npc), el('div', { class: 'fala' }, el('p', {}, fala), ...extras)), ops);
 }
@@ -353,15 +353,15 @@ function modalMissao(npc, q) {
     el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', onclick: () => { aceitaMissao(q); fechaModal(); } }, 'Aceitar!'), el('button', { class: 'btn', onclick: () => abrirNPC(npc) }, 'Agora não')));
 }
 // v257: a POSIÇÃO vem da CLASSE (antes eram duas escolhas separadas e confundia): Paredão = Zagueiro,
-// Artilheiro = Atacante, Cérebro = Meio-campo, Motorzinho = Volante (v259). A peneira só confirma a posição da sua classe.
-const POSICAO_DA_CLASSE = { paredao: 'zagueiro', driblador: 'atacante', cerebro: 'meia', motorzinho: 'volante' };
+// Artilheiro = Atacante, Cérebro e Motorzinho = Meio-campo. A peneira só confirma a posição da sua classe.
+const POSICAO_DA_CLASSE = { paredao: 'zagueiro', driblador: 'atacante', cerebro: 'meia', motorzinho: 'meia' };
 function posicaoDaClasse(cl) { return POSICAO_DA_CLASSE[cl] || 'meia'; }
 function modalPosicao() {
   const s = G.save; const cl = CLASSES[s.classe]; const k = posicaoDaClasse(s.classe), p = POSICOES[k];
   abreModal(el('h2', {}, '⚽ A peneira'),
-    el('p', {}, `O Seu Zé olhou você jogar e já sabe: ${typeof nomeEstilo === 'function' ? `com o seu estilo (${nomeEstilo(s)}), você joga de` : 'você joga de'} ${p.nome.toUpperCase()}!`),
-    el('div', { class: 'card-pos', style: `border-color:${p.cor};max-width:320px;margin:0 auto` }, el('h4', {}, p.nome), el('p', {}, p.desc)),
-    el('p', { class: 'dica' }, 'A posição acompanha o seu estilo: força = Zagueiro, habilidade = Atacante, inteligência = Meio-campo, fôlego = Volante. Se você mudar os pontos de atributo, ela muda junto.'),
+    el('p', {}, `O Seu Zé olhou você jogar e já sabe: ${cl ? `${cl.emoji} ${cl.nome} joga de` : 'você joga de'} ${p.nome.toUpperCase()}!`),
+    el('div', { class: 'card-pos', style: `border-color:${p.cor};max-width:320px;margin:0 auto` }, el('h4', {}, p.nome), el('p', {}, p.desc), el('p', {}, `+${p.hp} fôlego e +${p.foco} foco por nível`)),
+    el('p', { class: 'dica' }, `A posição vem junto com a classe. Até o nível ${typeof CLASSE_TROCA_ATE !== 'undefined' ? CLASSE_TROCA_ATE : 25}, se trocar de classe aqui com o Seu Zé, a posição troca junto.`),
     el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', type: 'button', onclick: () => {
       s.posicao = k; s.flags.escolheu_posicao = true; const st = stats(); s.hp = st.maxHp; s.foco = st.maxFoco;
       log(`Peneira aprovada: você é ${p.nome}!`, 'l-lvl'); banner(p.nome.toUpperCase(), 'Aprovado na peneira'); som('nivel'); salvar(); fechaModal();
@@ -723,7 +723,7 @@ function telaInicial() {
 }
 function abrirCriacao() {
   $('#inicioMenu').hidden = true; $('#criacao').hidden = false;
-  const d = { corpo: 'm', pele: 'pele-morena', cabelo: 'cabelo-cacheado', corCabelo: 'original', roupa: 'roupa-camiseta', baixo: 'baixo-shorts', rosto: null, classe: null }; // v262: sem classe (o estilo vem dos pontos)
+  const d = { corpo: 'm', pele: 'pele-morena', cabelo: 'cabelo-cacheado', corCabelo: 'original', roupa: 'roupa-camiseta', baixo: 'baixo-shorts', rosto: null, classe: 'driblador' };
   // só o que o boneco mostra de verdade: cada gênero tem seus penteados; roupa e parte de baixo pelo que aparece
   const CAB_GEN = { m: ['cabelo-curto', 'cabelo-cacheado', 'cabelo-black-power', 'cabelo-moicano'], f: ['cabelo-rabo', 'cabelo-liso-longo', 'cabelo-coque', 'cabelo-cacheado', 'cabelo-black-power'] };
   const cabelosDe = g => CAB_GEN[g].map(id => AVATAR.cabelos.find(c => c.id === id)).filter(Boolean);
@@ -755,7 +755,7 @@ function abrirCriacao() {
     chips('#opRoupa', AVATAR.roupas, 'roupa', o => NOME_ROUPA[o.id] || o.nome, o => o.cor);
     chips('#opBaixo', baixosDe(d.corpo), 'baixo', o => o.nome, o => o.cor);
     chips('#opRosto', AVATAR.rostos, 'rosto', o => NOME_ROSTO[o.id] || o.nome);
-    /* v262: não se escolhe classe — o estilo vem dos pontos de atributo (estilo.js) */
+    { const g = $('#opClasse'); g.innerHTML = ''; Object.keys(CLASSES).forEach(id => g.append(cartaClasse(id, d.classe === id, () => { d.classe = id; render(); }))); }
     montaRetrato($('#retratoCriacao'), cfgCriacaoFallback(d));
   }
   render();
@@ -796,14 +796,34 @@ function abreFicha() {
   const linhas = el('div', { class: 'ficha-attrs' });
   for (const k of Object.keys(ATRIBUTOS)) {
     const a = ATRIBUTOS[k]; const v = s.atr[k];
-    const bar = el('div', { class: 'sk-bar' }); const i = el('i'); i.style.width = Math.min(100, v) + '%'; i.style.background = a.cor; bar.append(i);
-    const mais = el('button', { class: 'btn verde mini', disabled: s.pontos > 0 ? null : 'disabled', title: 'Clique: +1 · Shift+clique: +5', onclick: ev => { const n = Math.min(s.pontos, ev.shiftKey ? 5 : 1); s.atr[k] += n; s.pontos -= n; som('equip'); G.uiSujo = true; abreFicha(); } }, '+');
-    linhas.append(el('div', { class: 'ficha-linha' + (cl && cl.principal === k ? ' principal' : '') }, el('span', { class: 'fl-ic' }, a.icone), el('div', { class: 'fl-meio' }, el('div', { class: 'top' }, el('b', {}, a.nome), el('b', {}, v + (st.atr[k] > v ? ` (+${num1(st.atr[k] - v)} 🍽️)` : ''))), bar, el('small', {}, a.desc)), mais));
+    const maxA = Math.max(100, ...Object.keys(ATRIBUTOS).map(x => s.atr[x] || 0)); // v264: a barra acompanha o maior atributo (passava de 100 e ficava sempre cheia)
+    const bar = el('div', { class: 'sk-bar' }); const i = el('i'); i.style.width = Math.min(100, v / maxA * 100) + '%'; i.style.background = a.cor; bar.append(i);
+    const valB = el('b', {}, v + (st.atr[k] > v ? ` (+${num1(st.atr[k] - v)} 🍽️)` : ''));
+    // v264: SEGURAR o "+" vai somando sozinho (e cada vez mais rápido); clique = +1, Shift+clique = +5
+    const mais = el('button', { class: 'btn verde mini', type: 'button', disabled: s.pontos > 0 ? null : 'disabled', title: 'Clique: +1 · Segure: vai somando sem parar · Shift+clique: +5' }, '+');
+    const soma = n => { n = Math.min(s.pontos, n); if (n <= 0) return false; s.atr[k] += n; s.pontos -= n; G.uiSujo = true; valB.textContent = s.atr[k]; i.style.width = Math.min(100, s.atr[k] / Math.max(maxA, s.atr[k]) * 100) + '%'; const pt = document.getElementById('fichaPontos'); if (pt) pt.textContent = s.pontos ? `Você tem ${s.pontos} ponto(s) para distribuir!` : 'Pronto: todos os pontos distribuídos.'; return true; };
+    mais.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); if (soma(ev.shiftKey ? 5 : 1)) { som('equip'); abreFicha(); } } });
+    mais.addEventListener('pointerdown', ev => {
+      if (mais.disabled || (ev.button !== undefined && ev.button !== 0)) return; ev.preventDefault();
+      const t0 = Date.now(); let tm = null, acabou = false;
+      const fim = () => { if (acabou) return; acabou = true; clearTimeout(tm); window.removeEventListener('pointerup', fim); window.removeEventListener('pointercancel', fim); abreFicha(); };
+      if (!soma(ev.shiftKey ? 5 : 1)) return; som('equip');
+      const repete = () => { const seg = (Date.now() - t0) / 1000; if (!soma(seg > 3 ? 10 : seg > 1.5 ? 3 : 1)) return fim(); tm = setTimeout(repete, 70); };
+      tm = setTimeout(repete, 380);
+      window.addEventListener('pointerup', fim); window.addEventListener('pointercancel', fim);
+    });
+    // v264: ou DIGITA quantos pontos quer pôr e aperta Enter (ou "Pôr")
+    const semPts = s.pontos > 0 ? null : 'disabled';
+    const qtd = el('input', { type: 'number', class: 'ficha-qtd', min: '1', max: String(s.pontos || 0), step: '1', inputmode: 'numeric', placeholder: 'nº', title: 'Digite quantos pontos pôr aqui e aperte Enter', disabled: semPts });
+    const poe = () => { const n = Math.floor(Number(qtd.value)); if (!(n > 0)) { qtd.focus(); return; } if (soma(n)) { som('equip'); abreFicha(); } };
+    qtd.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); poe(); } });
+    const btPoe = el('button', { class: 'btn amarelo mini', type: 'button', disabled: semPts, title: 'Pôr os pontos digitados', onclick: poe }, 'Pôr');
+    linhas.append(el('div', { class: 'ficha-linha' + (cl && cl.principal === k ? ' principal' : '') }, el('span', { class: 'fl-ic' }, a.icone), el('div', { class: 'fl-meio' }, el('div', { class: 'top' }, el('b', {}, a.nome), valB), bar, el('small', {}, a.desc)), el('div', { class: 'ficha-ctrl' }, qtd, btPoe, mais)));
   }
   const pct = v => Math.round(v * 100) + '%';
   const deriv = el('div', { class: 'sk-info' },
     el('span', {}, 'Fôlego máx.'), el('b', {}, fmt(st.maxHp)), el('span', {}, 'Foco máx.'), el('b', {}, fmt(st.maxFoco)),
-    el('span', {}, 'Defesa total'), el('b', {}, Math.round(st.def)), el('span', {}, 'Jogo de perto'), el('b', {}, '+' + pct(typeof bonusAtributo === 'function' ? bonusAtributo('defesa', st) : 0)), el('span', {}, 'Jogo de longe'), el('b', {}, '+' + pct(typeof bonusAtributo === 'function' ? bonusAtributo('habilidade', st) : 0)), el('span', {}, 'Jogadas de craque'), el('b', {}, '+' + pct(typeof bonusAtributo === 'function' ? bonusAtributo('inteligencia', st) : 0)), el('span', {}, 'Curas'), el('b', {}, '+' + pct(st.curaMult - 1)),
+    el('span', {}, 'Defesa total'), el('b', {}, Math.round(st.def)), el('span', {}, 'Dano extra'), el('b', {}, (st.danoMult >= 1 ? '+' : '') + pct(st.danoMult - 1)),
     el('span', {}, 'Crítico'), el('b', {}, pct(st.crit)), el('span', {}, 'Bloqueio'), el('b', {}, pct(st.bloqueio)),
     el('span', {}, 'Velocidade'), el('b', {}, Math.round(st.vel) + (typeof tpsDeVel === 'function' ? ` (${String(Math.round(tpsDeVel(st.vel) * 10) / 10).replace('.', ',')} quadradinhos/s)` : '')), el('span', {}, 'XP em missões/quiz'), el('b', {}, '+' + pct(st.xpEstudo - 1)),
     el('span', {}, 'Recuperação'), el('b', {}, `${st.regenHp.toFixed(1)} / ${st.regenFoco.toFixed(1)} por seg.`));
@@ -811,9 +831,9 @@ function abreFicha() {
   abreModal(el('h2', {}, `Ficha de ${s.nome}`),
     el('div', { class: 'ficha' },
       el('div', { class: 'ficha-esq' }, retr, el('b', { class: 'ficha-nome' }, s.nome), el('span', {}, `${FASES[faseIdx(s.nivel)].nome} · Nível ${s.nivel}`), s.posicao ? el('span', {}, POSICOES[s.posicao].nome) : '',
-        cl ? el('div', { class: 'ficha-classe', style: `--cor:${typeof infoEstilo === 'function' ? infoEstilo(s).cor : cl.cor}`, onclick: () => modalMinhaClasse(), title: 'Ver o meu estilo' }, el('b', {}, typeof nomeEstilo === 'function' ? `Estilo: ${nomeEstilo(s)}` : `${cl.emoji} ${cl.nome}`), el('small', {}, 'Vem de onde você põe os pontos de atributo.'), el('small', {}, el('span', { class: 'kbd' }, teclaEspecial()), ` ${cl.especial.nome}: ${cl.especial.desc}`)) : el('button', { class: 'btn amarelo', onclick: () => modalEscolheClasse() }, 'Escolher classe')),
+        cl ? el('div', { class: 'ficha-classe', style: `--cor:${cl.cor}` }, el('b', {}, `${cl.emoji} ${cl.nome}`), el('small', {}, cl.passiva), el('small', {}, el('span', { class: 'kbd' }, teclaEspecial()), ` ${cl.especial.nome}: ${cl.especial.desc}`)) : el('button', { class: 'btn amarelo', onclick: () => modalEscolheClasse() }, 'Escolher classe')),
       el('div', { class: 'ficha-dir' },
-        el('div', { class: 'ficha-pontos' + (s.pontos ? ' tem' : '') }, s.pontos ? `Você tem ${s.pontos} ponto(s) para distribuir!` : 'Sem pontos livres. Você ganha ' + PONTOS_POR_NIVEL + ' a cada nível.'),
+        el('div', { class: 'ficha-pontos' + (s.pontos ? ' tem' : ''), id: 'fichaPontos' }, s.pontos ? `Você tem ${s.pontos} ponto(s) para distribuir!` : 'Sem pontos livres. Você ganha ' + PONTOS_POR_NIVEL + ' a cada nível.'),
         linhas, el('h3', {}, 'O que isso muda'), deriv,
         el('p', { class: 'vazio' }, 'Quer redistribuir tudo? Fale com o Seu Zé no campinho (custa tostões).'))));
 }
@@ -839,13 +859,13 @@ function modalTrocaClasse() {
     if (typeof atualizaRetrato === 'function') atualizaRetrato(); G.uiSujo = true; salvar(); fechaModal();
   };
   render(); abreModal.largo = true;
-  abreModal(el('h2', {}, '🎭 Trocar de classe'), el('p', {}, `Até o nível ${CLASSE_TROCA_ATE} você pode trocar de classe aqui, de graça. Seus pontos de atributo voltam para distribuir de novo e as magias da classe antiga saem da barra (as da nova chegam conforme o seu nível). A posição vem junto: Paredão joga de Zagueiro, Artilheiro de Atacante, Cérebro de Meio-campo e Motorzinho de Volante.`), grade,
+  abreModal(el('h2', {}, '🎭 Trocar de classe'), el('p', {}, `Até o nível ${CLASSE_TROCA_ATE} você pode trocar de classe aqui, de graça. Seus pontos de atributo voltam para distribuir de novo e as magias da classe antiga saem da barra (as da nova chegam conforme o seu nível). A posição vem junto: Paredão joga de Zagueiro, Artilheiro de Atacante, Cérebro e Motorzinho de Meio-campo.`), grade,
     el('div', { class: 'opcoes' }, bt, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Agora não')));
 }
 function custoRedistribuir() { const s = G.save; return s.flags && s.flags.redist_gratis ? 150 * s.nivel + 3 * s.nivel * s.nivel : 0; }
 function redistribuiAtributos() {
-  const s = G.save; const custo = custoRedistribuir();
-  const gastos = Object.values(s.atr || {}).reduce((a, v) => a + v, 0) - 28; // v262: tudo acima dos 7 iniciais de cada atributo volta
+  const s = G.save; const custo = custoRedistribuir(); const cl = CLASSES[s.classe]; if (!cl) return;
+  const lv = s.nivel - 1; const gastos = lv * PONTOS_POR_NIVEL - (s.pontos || 0);
   const voltar = el('button', { class: 'btn', onclick: fechaModal }, 'Agora não');
   if (gastos <= 0) return abreModal(el('h2', {}, 'Seu Zé'), el('p', {}, 'Você ainda não gastou nenhum ponto de atributo. Aperte C para distribuir!'), el('div', { class: 'opcoes' }, voltar));
   const txtCusto = custo ? `${fmt(custo)} tostões` : 'nada (a primeira vez é por conta da casa!)';
@@ -853,7 +873,7 @@ function redistribuiAtributos() {
   const sim = el('button', { class: 'btn amarelo', disabled: falta ? 'disabled' : null, onclick: () => {
     if (s.ouro < custo) return;
     s.ouro -= custo; s.flags.redist_gratis = true;
-    s.pontos = (s.pontos || 0) + gastos; s.atr = { defesa: 7, habilidade: 7, inteligencia: 7, folego: 7 };
+    s.atr = Object.assign({}, cl.base); s.atr[cl.principal] += lv; s.pontos = lv * PONTOS_POR_NIVEL;
     som('moeda'); efeito('curaforte', G.p.x, G.p.y, '#ffd23f');
     log(`Seu Zé devolveu ${s.pontos} pontos de atributo! Distribua de novo na Ficha.`, 'l-lvl'); salvar(); G.uiSujo = true; fechaModal(); abreFicha();
   } }, falta ? `Faltam ${fmt(custo - s.ouro)} tostões` : 'Sim, devolver meus pontos');
@@ -883,7 +903,7 @@ function modalAtalhos() {
   const L = [
     ['W A S D / Setas', 'Andar (duas juntas = diagonal)'], ['Num 7 9 1 3', 'Andar na diagonal, como no Tibia (Num 8 2 4 6 = reto)'], ['Home PgUp End PgDn', 'Diagonais também'], ['Clique no chão', 'Andar até lá'], ['Clique no adversário', 'Marcar alvo e driblar'],
     ['Espaço / Tab', 'Próximo adversário (segue o modo de alvo)'], ['V', 'Modo de alvo: mais perto / mais forte / mais fraco / menos fôlego'], ['Shift + Tab', 'Adversário anterior'], ['Esc', 'Desmarcar alvo / fechar janela'],
-    ['E', 'Falar, abrir baú, ler placa, pênalti'], ['1 … 0', 'Dribles e itens da barra (fileira de cima)'], ['F1 … F10', 'Segunda fileira da barra'], ['Shift', 'Especial do seu estilo'],
+    ['E', 'Falar, abrir baú, ler placa, pênalti'], ['1 … 0', 'Dribles e itens da barra (fileira de cima)'], ['F1 … F10', 'Segunda fileira da barra'], ['Shift', 'Habilidade especial da classe'],
     ['F', 'Beber a melhor bebida de FÔLEGO'], ['R', 'Beber a melhor bebida de FOCO'], ['G', 'Caça contínua (marca o próximo sozinho)'],
     ['X', 'Modo Drible / Chute'], ['C', 'Ficha do personagem e atributos'], ['I', 'Mochila'], ['K', 'Habilidades'], ['L', 'Lista de batalha'],
     ['M', 'Mapa grande'], ['U', 'Carreira: contrato, metas e reuniões'], ['J', 'Missões'], ['B', 'Álbum de figurinhas'], ['T', 'Meu Time'], ['H', 'Esta lista'], ['Roda do mouse / + −', 'Zoom'],

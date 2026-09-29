@@ -37,6 +37,7 @@ Object.assign(OBJ_INFO, {
 Object.keys(OBJ_INFO).forEach(k => { if (OBJ_INFO[k].b) OBJ_BLOQUEIA.add(k); });
 Object.assign(OBJ_MINI, { estalagmite: '#6a5a48', rochas: '#8a8580', cristais: '#8a6ae0', gelo_bloco: '#aee0f8', rocha_lava: '#a0402a' });
 const ASSETS_CACA = 'estalagmite cristais cogumelos tocha teia gelo_bloco rocha_lava rochas t_caverna t_parede_cav t_arenito t_gelo t_lodo t_rocha_lava t_concreto_escuro t_face_cav ent_bueiro ent_gruta_praia ent_metro ent_tumba ent_torii ent_palafita ent_celeiro ent_gelo ent_vulcao ent_cais ent_catacumba ent_cristal ent_trilha ent_parque ent_tunel ent_oasis'.split(' ');
+ASSETS_CACA.push('ent_metro_paris', 'ent_armazem_cafe'); // v263
 ASSETS_CACA.forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
 
 /* ---------- temas ---------- */
@@ -58,6 +59,9 @@ const TEMAS_CACA = {
   esgoto: { chao: CH.CONCRETO_ESC, parede: CH.PAREDE_CAV, canal: 1, props: ['lixeira2', 'rochas'], enfeite: ['rochas'], luz: ['tocha'], tocha: 'tocha', cor: '255,200,130' },
   lava: { chao: CH.CAVERNA, parede: CH.ROCHA_LAVA, props: ['rocha_lava', 'rocha_lava', 'estalagmite', 'rochas'], enfeite: ['rocha_lava', 'rocha_lava', 'estalagmite'], densa: 1, luz: ['rocha_lava', 'tocha'], tocha: 'rocha_lava', cor: '255,120,60' },
   cristal: { chao: CH.CAVERNA, parede: CH.PAREDE_CAV, props: ['cristais', 'cogumelos', 'estalagmite'], enfeite: ['cristais', 'estalagmite'], luz: ['cristais', 'cogumelos'], tocha: 'cristais', cor: '170,140,255' },
+  // v263: o metrô antigo de Paris (plataformas de pedra clara, bancas de livro e cavaletes dos artistas) e os armazéns de café do porto de Santos
+  metro_paris: { chao: CH.CALCADA, parede: CH.PAREDE_CAV, props: ['banca_livros', 'cavalete', 'banco', 'lixeira2', 'carrinho_flores'], enfeite: ['rochas'], luz: ['poste3', 'tocha'], tocha: 'poste3', cor: '255,225,170' },
+  armazem: { chao: CH.MADEIRA, parede: CH.PAREDE_CAV, props: ['sacas_cafe', 'sacas_cafe', 'jarros', 'rochas'], enfeite: ['rochas', 'sacas_cafe'], luz: ['tocha'], tocha: 'tocha', cor: '255,190,110' },
 };
 
 /* ---------- as áreas ---------- */
@@ -78,6 +82,9 @@ const CACADAS = [
   { id: 'caca_gelo', nome: 'Caverna de Gelo dos Alpes', host: 'munique', m: 'munique_zagueiro', tema: 'gelo', ent: 'ent_gelo', guia: 'Heidi, a alpinista', look: lkGuia('pele-clara', '#d02a2a', { corpo: 'f', cabelo: 'cabelo-coque', corCabelo: 'loiro', chapeu: 'chapeu-gorro' }) },
   { id: 'caca_esgoto', nome: 'Esgotos de Londres', host: 'londres', m: 'fanatico_eastend', tema: 'esgoto', ent: 'ent_bueiro', guia: 'Mr. Oliver, o encanador', look: lkGuia('pele-media', '#3a5a3a') },
   { id: 'caca_cratera', nome: 'Cratera da Patagônia', host: 'buenos', m: 'buenos_zagueiro', tema: 'lava', ent: 'ent_vulcao', guia: 'Doña Inés, a vulcanóloga', look: lkGuia('pele-media', '#e06a2a', { corpo: 'f', cabelo: 'cabelo-coque', corCabelo: 'preto' }) },
+  // v263: Paris e Santos ganham dungeon — com a entrada num lugar diferente das outras cidades (ancora = onde procurar o lugar)
+  { id: 'caca_metro_paris', nome: 'Metrô de Paris', host: 'paris', m: 'paris_meia', tema: 'metro_paris', ent: 'ent_metro_paris', ancora: { x: 30, y: 12 }, guia: 'Madame Odile, a maquinista', look: lkGuia('pele-negra', '#1a4a3a', { corpo: 'f', cabelo: 'cabelo-coque', corCabelo: 'preto', chapeu: 'chapeu-boina' }) },
+  { id: 'caca_armazem', nome: 'Armazéns do Café', host: 'santos', m: 'santos_zagueiro', tema: 'armazem', ent: 'ent_armazem_cafe', ancora: { x: 30, y: 7 }, guia: 'Seu Tonico, o estivador', look: lkGuia('pele-retinta', '#c8a060', { corCabelo: 'grisalho', chapeu: 'chapeu-palha' }) },
   { id: 'caca_cristal', nome: 'Gruta de Cristal da Tijuca', host: 'rio', m: 'rio_rapido', tema: 'cristal', ent: 'ent_cristal', guia: 'Seu Bené, o mateiro', look: lkGuia('pele-retinta', '#6a3ad9', { corCabelo: 'grisalho', chapeu: 'chapeu-palha' }) },
 ];
 const CACA_POR_ID = {}; CACADAS.forEach((c, i) => { CACA_POR_ID[c.id] = c; c.seed = 7301 + i * 97; });
@@ -87,7 +94,7 @@ const nivelCaca = c => { const d = MONSTROS[c.m]; try { return nivelMonstro(d); 
 const CACA_W = 52, CACA_H = 42;
 // saída das caçadas: a entrada que desce (bueiro, metrô, alçapão, cavernas com degraus...) vira uma escada que SOBE
 const SAIDA_CACA = {
-  ent_bueiro: 'sai_metal', ent_escotilha: 'sai_metal', ent_metro: 'sai_concreto', ent_tunel: 'sai_concreto',
+  ent_bueiro: 'sai_metal', ent_escotilha: 'sai_metal', ent_metro: 'sai_concreto', ent_metro_paris: 'sai_concreto', ent_armazem_cafe: 'sai_madeira', ent_tunel: 'sai_concreto',
   ent_porao: 'sai_madeira', ent_toca: 'sai_rocha', ent_toca_deserto: 'sai_rocha', ent_gruta_praia: 'sai_rocha', ent_cratera: 'sai_rocha', ent_trilha_cav: 'sai_rocha',
   ent_catacumba: 'sai_pedra', ent_tumba: 'sai_pedra', ent_torii: 'sai_pedra', ent_gelo: 'sai_gelo', ent_vulcao: 'sai_lava', ent_cristal: 'sai_cristal', ent_cristal_esp: 'sai_cristal',
 };
@@ -186,7 +193,7 @@ function poeEntradaCaca(m, c) {
     c.porta = { x: x + 1, y: y + 1 }; return true;
   }
   const W = m.w, H = m.h; const bloq = (x, y) => { if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) return true; const o = m.obj[y * W + x]; return m.chao[y * W + x] === CH.AGUA || !CH_ANDA(m.chao[y * W + x]) || (o && OBJ_BLOQUEIA.has(o.t)); };
-  const ini = m.inicio || { x: W >> 1, y: H >> 1 };
+  const ini = m.inicio || { x: W >> 1, y: H >> 1 }, centro = c.ancora || ini, r0 = c.ancora ? 0 : 6; // v263: ancora = procura o lugar perto dali (e não perto da chegada)
   // o que dá para alcançar a partir da chegada
   const alc = new Uint8Array(W * H); const fila = [[ini.x, ini.y]]; alc[ini.y * W + ini.x] = 1;
   while (fila.length) { const [x, y] = fila.pop(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (bloq(nx, ny) || alc[ny * W + nx]) continue; alc[ny * W + nx] = 1; fila.push([nx, ny]); } }
@@ -197,9 +204,9 @@ function poeEntradaCaca(m, c) {
   const conta = {}; for (let i = 0; i < W * H; i++) { const t = m.chao[i]; if (t !== CH.AGUA) conta[t] = (conta[t] || 0) + 1; }
   const fundo = +Object.keys(conta).sort((a, b) => conta[b] - conta[a])[0];
   const cabe = (x, y, estrito) => { if (x < 6 || x + 3 > W - 7 || y < 5 || y + 3 > H - 3) return false; /* longe das beiradas: a plaquinha com o nome cabe na tela */ for (let j = y - 1; j <= y + 2; j++) for (let i = x - 1; i <= x + 3; i++) if (!livre(i, j) || (estrito && m.chao[j * W + i] !== fundo)) return false; return alc[(y + 2) * W + x + 1] === 1; };
-  for (const estrito of [true, false]) for (let rr = 6; rr < 40; rr++) for (let dy = -rr; dy <= rr; dy++) for (let dx = -rr; dx <= rr; dx++) {
+  for (const estrito of [true, false]) for (let rr = r0; rr < 40; rr++) for (let dy = -rr; dy <= rr; dy++) for (let dx = -rr; dx <= rr; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== rr) continue;
-    const x = ini.x + dx, y = ini.y + dy;
+    const x = centro.x + dx, y = centro.y + dy;
     if (!cabe(x, y, estrito)) continue;
     const p = { spr: c.ent, x, y, w: 3, h: 2, porta: { x: x + 1, y: y + 1 }, interior: c.id };
     for (let j = y; j < y + 2; j++) for (let i = x; i < x + 3; i++) m.obj[j * W + i] = { t: 'x', v: 0, predio: true };
