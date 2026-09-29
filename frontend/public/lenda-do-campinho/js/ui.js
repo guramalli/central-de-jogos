@@ -804,7 +804,7 @@ function abreFicha() {
     el('span', {}, 'Fôlego máx.'), el('b', {}, fmt(st.maxHp)), el('span', {}, 'Foco máx.'), el('b', {}, fmt(st.maxFoco)),
     el('span', {}, 'Defesa total'), el('b', {}, Math.round(st.def)), el('span', {}, 'Dano extra'), el('b', {}, (st.danoMult >= 1 ? '+' : '') + pct(st.danoMult - 1)),
     el('span', {}, 'Crítico'), el('b', {}, pct(st.crit)), el('span', {}, 'Bloqueio'), el('b', {}, pct(st.bloqueio)),
-    el('span', {}, 'Velocidade'), el('b', {}, Math.round(st.vel)), el('span', {}, 'XP em missões/quiz'), el('b', {}, '+' + pct(st.xpEstudo - 1)),
+    el('span', {}, 'Velocidade'), el('b', {}, Math.round(st.vel) + (typeof tpsDeVel === 'function' ? ` (${String(Math.round(tpsDeVel(st.vel) * 10) / 10).replace('.', ',')} quadradinhos/s)` : '')), el('span', {}, 'XP em missões/quiz'), el('b', {}, '+' + pct(st.xpEstudo - 1)),
     el('span', {}, 'Recuperação'), el('b', {}, `${st.regenHp.toFixed(1)} / ${st.regenFoco.toFixed(1)} por seg.`));
   abreModal.largo = true;
   abreModal(el('h2', {}, `Ficha de ${s.nome}`),

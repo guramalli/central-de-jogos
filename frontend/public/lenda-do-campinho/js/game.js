@@ -144,7 +144,7 @@ function stats() {
   }
   atk = Math.round(atk * 10) / 10; def = Math.round(def * 10) / 10;
   const nivel = s.nivel;
-  const buff = (G.buffs.arrancada || 0) > G.agora ? DRIBLES.arrancada.vel : 0;
+  const buff = (G.buffs.arrancada || 0) > G.agora; // v254: a Arrancada é como o haste do Tibia: velocidade ×1,3 (antes somava +70)
   const a = Object.assign({}, s.atr || { defesa: 5, habilidade: 5, inteligencia: 5, folego: 5 }); const cl = s.classe;
   // comidas: até COMIDAS_MAX diferentes ao mesmo tempo, os bônus SOMAM
   const coms = comidasAtivas(s).map(c => ITENS[c.id] && ITENS[c.id].efeito).filter(Boolean); const mc = 1 + nivel / 25;
@@ -157,7 +157,7 @@ function stats() {
     maxFoco: Math.round(40 + (nivel - 1) * (pos ? pos.foco : 7) + b.foco + a.inteligencia * 3),
     drible: s.sk.drible.lv + b.drible, chute: s.sk.chute.lv + b.chute, defesa: s.sk.defesa.lv + b.defesa, visao: s.sk.visao.lv + b.visao,
     armadura: def, def: def + (s.sk.defesa.lv + b.defesa) * 0.3 + (s.posicao === 'zagueiro' ? 4 : 0) + a.defesa * 0.35,
-    vel: velBase + buff,
+    vel: buff ? velBase * 1.3 : velBase,
     regenHp: (0.6 + nivel * 0.06 + b.regen * 0.5 + (s.posicao === 'zagueiro' ? 0.6 : 0) + a.folego * 0.04 + ((com && com.regen) || 0) * mc) * (cl === 'motorzinho' ? 2 : 1),
     regenFoco: 0.8 + nivel * 0.07 + b.regen * 0.5 + (s.posicao === 'meia' ? 1.2 : 0) + a.inteligencia * 0.03 + ((com && com.regenFoco) || 0) * mc,
     danoMult: (pos ? pos.dano : 1) * (1 + a.habilidade * 0.006),
@@ -352,9 +352,15 @@ function preCarregaMapa() {
 }
 
 /* ---------------- jogador ---------------- */
+/* v254: VELOCIDADE COMO NO TIBIA DE HOJE. A "velocidade" do jogo (220 + 2/nível + itens) é o dobro da escala do Tibia
+   (109 + nível); o passo segue a curva oficial do Tibia (857,36 · ln(v + 261,29) − 4795,009), que cresce cada vez
+   menos nos níveis altos. Antes era linear (velocidade ÷ 60): nível 400 andava 17 quadradinhos por segundo (24 com itens);
+   agora ~8,5. VEL_K deixa um pouco mais rápido que o Tibia (nossos mapas são maiores). */
+const VEL_K = 1.4;
+function tpsDeVel(v) { const pts = Math.max(20, v / 2); return Math.max(0.6, VEL_K * (857.36 * Math.log(pts + 261.29) - 4795.009) / 150); }
 function velJogador() {
   const t = tileDe(G.p); const c = G.mapa.chao[t.y * G.mapa.w + t.x];
-  return stats().vel / 60 * (c === CH.AREIA || c === CH.AREIA_MOLHADA ? 0.88 : 1);
+  return tpsDeVel(stats().vel) * (c === CH.AREIA || c === CH.AREIA_MOLHADA ? 0.88 : 1);
 }
 // está na tela? (folga em quadros além da beirada)
 function naTela(e, folga = 0) {
@@ -798,7 +804,7 @@ function velMonstro(d) {
   let v = VEL_MON.get(d); if (v != null) return v;
   const L = Math.max(1, d.nivel || (typeof nivelMonstro === 'function' ? nivelMonstro(d) : 1) || 1);
   const jog = 220 + 2 * (L - 1); const rapido = d.vel >= 300;
-  v = Math.min(d.vel * 0.88, jog * (rapido ? 0.72 : 0.62)); // v252: no Tibia os adversários andam a ~40–65% do jogador do nível deles (era 85% / 72%)
+  v = Math.min(d.vel * 0.88, jog * (rapido ? 0.68 : 0.55)); // v254: como no Tibia, bem mais lentos que o jogador do nível deles (v252: 0,72/0,62; antes 0,85/0,72)
   VEL_MON.set(d, v); return v;
 }
 function atualizaMonstro(m, dt) {
@@ -807,7 +813,7 @@ function atualizaMonstro(m, dt) {
   const p = G.p; const d = dist(m, p); const vivo = G.save.hp > 0;
   const casa = { x: m.sp.x + 0.5, y: m.sp.y + 0.5 };
   const longe = dist(m, casa) > m.sp.raio + 10;
-  const v = velMonstro(m.d) / 60 * dt / 1000;
+  const v = tpsDeVel(velMonstro(m.d)) * dt / 1000; // v254: mesma curva do jogador
   const aggro = Math.max(1, m.d.aggro + (m.d.grupo && G.save.carreira && G.save.carreira.satTorcida < 40 ? 2 : 0) + (G.climaAggro || 0));
   if (m.bravo) m.voltando = false; // levou drible/chute no caminho de volta: encara de novo
   if (vivo && !m.bravo && !m.voltando && !((m.calmoAte || 0) > G.agora) && m.d.aggro > 0 && d <= aggro && !MAPAS_PACIFICOS.has(G.mapa.id)) { // calmoAte: Leitura de Jogo

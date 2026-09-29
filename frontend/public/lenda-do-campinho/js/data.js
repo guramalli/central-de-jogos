@@ -182,7 +182,7 @@ const DRIBLES = {
   pedalada: { nome: 'Pedalada', tipo: 'melee', lvl: 2, foco: 10, cd: 2000, poder: 1.3, skill: 'drible', fx: 'giro', cor: '#ffd23f', desc: 'Pedaladas em cima do marcador.' },
   respiro: { nome: 'Respiro', tipo: 'cura', lvl: 4, foco: 20, cd: 1000, poder: 1, fx: 'cura', cor: '#5affb0', desc: 'Respira fundo e recupera fôlego.' },
   chute_colocado: { nome: 'Chute Colocado', tipo: 'dist', lvl: 6, foco: 15, cd: 2000, alcance: 5, poder: 1.5, skill: 'chute', fx: 'bola', cor: '#ffffff', desc: 'Chute no cantinho, à distância.' },
-  arrancada: { nome: 'Arrancada', tipo: 'buff', lvl: 8, foco: 30, cd: 2000, dur: 22000, vel: 70, fx: 'vento', cor: '#9ad8ff', desc: 'Fica mais rápido por 22 segundos.' },
+  arrancada: { nome: 'Arrancada', tipo: 'buff', lvl: 8, foco: 30, cd: 2000, dur: 22000, vel: 70, fx: 'vento', cor: '#9ad8ff', desc: 'Fica 30% mais rápido por 22 segundos.' },
   chapeu: { nome: 'Chapéu', tipo: 'melee', lvl: 12, foco: 25, cd: 2000, poder: 2.1, skill: 'drible', fx: 'chapeu', cor: '#ff9a3a', desc: 'A bola passa por cima da cabeça dele.' },
   voleio: { nome: 'Voleio', tipo: 'dist', lvl: 15, foco: 35, cd: 2000, alcance: 5, poder: 2.5, skill: 'chute', fx: 'bolaforte', cor: '#ffe27a', desc: 'Pega de primeira, sem deixar cair.' },
   elastico: { nome: 'Elástico', tipo: 'melee', lvl: 20, foco: 40, cd: 2000, poder: 3.0, skill: 'drible', fx: 'elastico', cor: '#ff5ad0', desc: 'Pra lá e pra cá, e ele caiu sentado.' },
