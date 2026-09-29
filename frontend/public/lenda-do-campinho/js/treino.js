@@ -165,3 +165,15 @@ function fatorCurvaSkill(sk, lv) {
   const _precisaV247 = precisaTentativas;
   precisaTentativas = function (sk, lv) { return Math.max(1, Math.round(_precisaV247(sk, lv) * fatorCurvaSkill(sk, lv))); };
 }
+
+/* v250: com a curva nova (v248) o treino já guardado pode passar do que o próximo ponto pede (aparecia "123%").
+   Ao entrar no jogo, a habilidade sobe na hora o que já deve. */
+{
+  const _iniciarCurva = iniciarJogo;
+  iniciarJogo = async function (...a) {
+    const r = await _iniciarCurva.apply(this, a);
+    try { const s = G.save; if (s && s.sk) for (const k of Object.keys(s.sk)) if (s.sk[k].t >= precisaTentativas(k, s.sk[k].lv)) treinaSkill(k, 0); } catch (e) { }
+    return r;
+  };
+}
+{ const st = document.createElement('style'); st.textContent = '#skills .sk-bonus { color: #2f9a3f; font-weight: 800; }'; document.head.append(st); }
