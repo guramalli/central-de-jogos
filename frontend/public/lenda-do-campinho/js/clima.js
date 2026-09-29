@@ -3,8 +3,8 @@
 /* ============================================================
    RUMO AO CRAQUE — ESTAÇÕES DO ANO E CLIMA
    Ano de 20 dias do jogo (4 estações x 5 dias). Hemisfério sul
-   (Brasil) tem as estações invertidas. O clima muda a cada 6h
-   do jogo, de forma determinística por cidade e dia.
+   (Brasil) tem as estações invertidas. v268: quase sempre sol; às vezes chove
+   por 6 h num dia (determinístico por cidade e dia).
    Carregar DEPOIS de game.js e cidades.js.
    ============================================================ */
 const DIAS_ESTACAO = 5;
@@ -40,14 +40,21 @@ function estacaoDe(mapaId, dia) {
   const idx = Math.floor((Math.max(1, dia) - 1) / DIAS_ESTACAO) % 4;
   return ESTACOES[HEMISFERIO_SUL.has(mapaId) ? (idx + 2) % 4 : idx];
 }
+// v268: pedido do dono — o tempo mudava a cada 6 h (nublado, neve, neblina, tempestade...) e atrapalhava.
+// Agora é quase sempre SOL; em ~1 de cada 7 dias chove UMA vez naquele dia, por um turno de 6 h (no deserto, mais raro).
+// No inverno das cidades frias, em vez de chuva, NEVA (pedido do dono: "deixe a neve também").
+// (A TABELA_CLIMA antiga ficou acima só como referência.)
+const CHANCE_DIA_CHUVA = { tropical: 0.15, temperado: 0.15, frio: 0.15, deserto: 0.05 };
+// no INVERNO, nas cidades frias (e às vezes nas temperadas), o dia de "tempo diferente" vira NEVE — também só 6 h
+const CHANCE_DIA_NEVE = { frio: 0.35, temperado: 0.12 };
 function climaDe(mapaId, dia, hora) {
   const tipo = CLIMA_CIDADE[mapaId]; if (!tipo) return null;
-  const est = estacaoDe(mapaId, dia); const tab = TABELA_CLIMA[tipo][est];
+  const est = estacaoDe(mapaId, dia), semente = mapaId.length * 131 + mapaId.charCodeAt(0) * 17 + mapaId.charCodeAt(1);
+  const neva = est === 'Inverno' && CHANCE_DIA_NEVE[tipo];
+  if (hash2(dia * 13 + 5, semente) >= (neva ? CHANCE_DIA_NEVE[tipo] : CHANCE_DIA_CHUVA[tipo] || 0.15)) return { tempo: 'sol', estacao: est };
+  const turnoChuva = Math.floor(hash2(dia * 29 + 3, semente + 7) * 4) % 4; // qual das 4 partes do dia chove (ou neva)
   const turno = Math.floor(((hora || 0) % 1440) / 360);
-  const r = hash2(dia * 7 + turno, mapaId.length * 131 + mapaId.charCodeAt(0) * 17 + mapaId.charCodeAt(1));
-  const tot = Object.values(tab).reduce((a, b) => a + b, 0); let acc = 0;
-  for (const [k, p] of Object.entries(tab)) { acc += p / tot; if (r < acc) return { tempo: k, estacao: est }; }
-  return { tempo: 'sol', estacao: est };
+  return { tempo: turno === turnoChuva ? (neva ? 'neve' : 'chuva') : 'sol', estacao: est };
 }
 function climaAtual() {
   if (!G.mapa || !G.save) return null;
