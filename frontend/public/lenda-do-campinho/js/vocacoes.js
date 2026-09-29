@@ -119,7 +119,7 @@ function danoMagia(dr, m) {
     if (dr.classe && dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
     const v = vocDe();
     // o que conta como "de perto" e "de longe" para o dano da vocação
-    VOC_MODO = dr.tipo === 'dist' ? (s.classe === 'cerebro' ? 'magia' : 'longe') : (dr.tipo === 'area' || dr.tipo === 'melee') ? 'perto' : null;
+    VOC_MODO = dr.modoVoc || (dr.tipo === 'dist' ? (s.classe === 'cerebro' ? 'magia' : 'longe') : (dr.tipo === 'area' || dr.tipo === 'melee') ? 'perto' : null); // v261: a magia pode dizer como conta (Lateral com Força do Paredão = de perto)
     const alcanceAntes = dr.alcance; if (dr.tipo === 'dist' && v && v.alcance) dr.alcance = (dr.alcance || 5) + v.alcance; // Artilheiro chuta de mais longe
     const a = G.alvo && G.mons.includes(G.alvo) ? G.alvo : null, cdAntes = G.cds[id];
     try { _ud(id); } finally { dr.alcance = alcanceAntes; }

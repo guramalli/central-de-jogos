@@ -8,10 +8,10 @@
    Carregar DEPOIS de vocacoes.js e jogadas_info.js.
    ============================================================ */
 const CLASSE_GUIA = {
-  paredao: { sobe: ['defesa', 'folego'], modo: 'drible', jeito: 'Jogue COLADO no adversário (modo Drible, tecla X). Você aguenta o tranco: chame a marcação e segure vários de uma vez.' },
-  driblador: { sobe: ['habilidade', 'folego'], modo: 'chute', jeito: 'Jogue de LONGE (modo Chute, tecla X). Mantenha distância: quando o adversário encostar, dê uns passos para trás e volte a chutar.' },
-  cerebro: { sobe: ['inteligencia', 'habilidade'], modo: 'chute', jeito: 'Jogue de longe e use as jogadas especiais: você tem muito foco. Hipnotize quem chegar perto e use as jogadas em área nos grupos.' },
-  motorzinho: { sobe: ['folego', 'inteligencia'], modo: 'drible', jeito: 'Você cansa pouco e se cura muito: aguente as lutas longas, use a Raiz do Campo nos grupos e cure-se sempre que o fôlego baixar.' },
+  paredao: { sobe: ['defesa', 'folego'], modo: 'drible', jeito: 'Jogue COLADO no adversário (modo Drible, tecla X). Você aguenta o tranco: chame a marcação e segure vários de uma vez. Quem ficar longe leva o Bote (você chega nele na hora) ou um Lateral na Área.' },
+  driblador: { sobe: ['habilidade', 'folego'], modo: 'chute', jeito: 'Jogue de LONGE (modo Chute, tecla X). Mantenha distância: quando o adversário encostar, use o Recuo (ou dê uns passos para trás) e volte a chutar. Com a fila formada, a Folha Seca acerta todos.' },
+  cerebro: { sobe: ['inteligencia', 'habilidade'], modo: 'chute', jeito: 'Jogue de longe e use as jogadas especiais: você tem muito foco. Deixe a Cabeça Fria sempre ligada (o dano gasta foco no lugar do fôlego), encharque o gramado para deixar os grupos lentos e hipnotize quem chegar perto.' },
+  motorzinho: { sobe: ['folego', 'inteligencia'], modo: 'drible', jeito: 'Você cansa pouco e se cura muito: aguente as lutas longas, chame o Caramelo para ajudar no dano, lute dentro do Ponto de Hidratação, use a Raiz do Campo nos grupos e cure-se sempre que o fôlego baixar.' },
 };
 function modalMinhaClasse() {
   const s = G.save; if (!s) return;
