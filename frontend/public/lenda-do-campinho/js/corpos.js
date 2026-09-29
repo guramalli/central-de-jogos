@@ -36,8 +36,14 @@ spriteBoneco = function (look, ...r) {
     if (f && MODO_FOLHA[f]) {
       // chefão/skin: tudo já está no desenho; corpos/roupas novos: o chapéu é o do desenho (o vetorial não assenta nessas cabeças)
       const tira = MODO_AGORA === 'chave' ? (FOLHA_COM_CHAPEU.has(f) ? { chapeu: null, rosto: null } : { chapeu: null }) : SEM_ACESS;
-      look = look._semAc && look._semAcDe === look._kb ? look._semAc : (look._semAc = Object.assign({}, look, tira, { _kb: undefined, _semAc: undefined }));
-      look._semAcDe = look._kb;
+      // v240: a cópia guardada fica escondida (não enumerável): quem copia um look (traje regional, variação) não leva junto
+      // a cópia antiga com a folha de antes — os zagueiros do Cairo renasciam sem turbante — e a chave do cache (JSON) não a vê
+      const o = look;
+      if (!(o._semAc && o._semAcDono === o && o._semAcDe === o._kb && o._semAc.folha === o.folha)) {
+        const sa = Object.assign({}, o, tira, { _kb: undefined });
+        for (const [k, v] of [['_semAc', sa], ['_semAcDono', o], ['_semAcDe', o._kb]]) Object.defineProperty(o, k, { value: v, writable: true, configurable: true, enumerable: false });
+      }
+      look = o._semAc;
     }
     return _spriteBonecoCp.call(this, look, ...r);
   } finally { MODO_AGORA = null; }
@@ -184,7 +190,7 @@ const _spriteBonecoOrc = spriteBoneco;
 spriteBoneco = function (look, vista = 'frente', q = 0) {
   if (!ORC_DESENHO) return _spriteBonecoOrc.apply(this, arguments);
   if (ORC_MS > ORC_LIMITE) { // já gastou o orçamento do quadro: se não está pronto, aparece no próximo
-    const L = look && look.folha && MODO_FOLHA[look.folha] && look._semAc ? look._semAc : look;
+    const L = look && look.folha && MODO_FOLHA[look.folha] && look._semAc && look._semAcDono === look ? look._semAc : look;
     const v = vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f';
     if (L && !SPR_CACHE.has(chaveBoneco(L) + '|S' + v + q)) return ORC_VAZIO;
   }
