@@ -187,10 +187,17 @@ atualizaPaineis = function () {
   const sk = $('#skills'); if (!sk) return;
   const box = el('div', { class: 'dribles-lista' }, el('h4', {}, 'Dribles'), el('small', { class: 'vazio' }, 'Arraste para a barra de atalhos (1–0) ou use o botão.'));
   if (!s.dribles.length) box.append(el('p', { class: 'vazio' }, 'Nenhum drible ainda. Você aprende dribles novos sozinho ao subir de nível!'));
-  for (const d of s.dribles) {
-    const dr = DRIBLES[d]; if (!dr) continue;
+  // v267: agrupadas por tipo (perto, área, longe, cura, reforço), cada grupo com a sua cor
+  const tjDe = d => (typeof tipoJogada === 'function' && tipoJogada(DRIBLES[d])) || { k: 'reforco', cor: '#888' };
+  const grupos = typeof TJ_GRUPOS !== 'undefined' ? TJ_GRUPOS : [['reforco', 'Jogadas', '', '#888']];
+  if (s.dribles.length && typeof legendaTiposJogada === 'function') box.append(legendaTiposJogada());
+  const ordem = s.dribles.filter(d => DRIBLES[d]).sort((a, b) => { const ia = grupos.findIndex(g => g[0] === tjDe(a).k), ib = grupos.findIndex(g => g[0] === tjDe(b).k); return ia - ib || DRIBLES[a].lvl - DRIBLES[b].lvl; });
+  let grupoAtual = null;
+  for (const d of ordem) {
+    const dr = DRIBLES[d]; if (!dr) continue; const tj = tjDe(d);
+    if (tj.k !== grupoAtual) { grupoAtual = tj.k; const g = grupos.find(x => x[0] === tj.k); if (g) box.append(el('div', { class: 'grupo-tj', style: `--tj:${g[3]}` }, g[1], ' ', el('small', {}, `— ${g[2]}`))); }
     const pos = s.hotbar.findIndex(h => h && h.t === 'd' && h.id === d);
-    const card = el('div', { class: 'drible-card' + (s.nivel < dr.lvl ? ' bloq' : '') }, iconeClone(iconeDrible(d)),
+    const card = el('div', { class: 'drible-card tj' + (s.nivel < dr.lvl ? ' bloq' : ''), style: `--tj:${tj.cor}` }, iconeClone(iconeDrible(d)),
       el('div', { class: 'nm' }, el('b', {}, dr.nome), el('small', {}, `${dr.foco} foco · ${(dr.cd / 1000).toFixed(1).replace('.0', '')}s`)),
       pos >= 0 ? el('span', { class: 'kbd', title: 'Tecla na barra' }, teclaSlot(pos))
         : el('button', { class: 'btn mini amarelo', onclick: () => { const i = colocaNaBarra('d', d); if (i >= 0) log(`${dr.nome} voltou para a barra (tecla ${teclaSlot(i)}).`, 'l-sis'); } }, 'Pôr na barra'));

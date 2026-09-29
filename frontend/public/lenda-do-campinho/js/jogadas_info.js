@@ -10,12 +10,14 @@
 function tipoJogada(dr) {
   if (!dr) return null;
   const T = {
-    melee: { ic: '👟', rot: 'Colado', cor: '#e8a020', expl: 'Acerta 1 adversário: precisa estar marcado e encostado em você.' },
-    dist: { ic: '🎯', rot: 'De longe', cor: '#3a8ae0', expl: `Acerta 1 adversário marcado a até ${dr.alcance || 5} passos, sem nada no caminho.` },
-    area: { ic: '💥', rot: 'Em área', cor: '#c04ae0', expl: `Acerta TODOS os adversários em volta de você (raio ${dr.raio || 1}).` },
-    cura: { ic: '💚', rot: 'Cura', cor: '#2aa84a', expl: 'Recupera o SEU fôlego. Não precisa de alvo.' },
-    buff: { ic: '⚡', rot: 'Reforço', cor: '#d0a010', expl: 'Um efeito bom em você por alguns segundos. Não precisa de alvo.' },
-  }[dr.tipo] || { ic: '⭐', rot: 'Especial', cor: '#888', expl: '' };
+    melee: { k: 'perto', ic: '👟', rot: 'Perto', cor: '#e8841a', expl: 'Acerta 1 adversário: precisa estar marcado e encostado em você.' },
+    dist: { k: 'longe', ic: '🎯', rot: 'Longe', cor: '#2f7fe0', expl: `Acerta 1 adversário marcado a até ${dr.alcance || 5} passos, sem nada no caminho.` },
+    area: { k: 'area', ic: '💥', rot: 'Área', cor: '#b04ae0', expl: `Acerta TODOS os adversários em volta de você (raio ${dr.raio || 1}).` },
+    cura: { k: 'cura', ic: '💚', rot: 'Cura', cor: '#25a84a', expl: 'Recupera o SEU fôlego. Não precisa de alvo.' },
+    buff: { k: 'reforco', ic: '⚡', rot: 'Reforço', cor: '#d4a010', expl: 'Um efeito bom em você por alguns segundos. Não precisa de alvo.' },
+  }[dr.tipo] || { k: 'reforco', ic: '⭐', rot: 'Especial', cor: '#888', expl: '' };
+  // v267: de longe mas acerta um grupo (Chuva de Bolas, Toque de Mestre...) = ÁREA de longe
+  if (dr.tipo === 'dist' && dr.areaAlvo) Object.assign(T, { k: 'area', ic: '💥', rot: 'Área de longe', cor: '#b04ae0', expl: `Chuta de longe (até ${dr.alcance || 5} passos) e acerta o alvo e TODOS em volta dele.` });
   const extras = [];
   if (dr.areaAlvo) extras.push(['💥', `em área no alvo (raio ${dr.areaAlvo}) e em todos colados em você`]);
   if (dr.atravessa) extras.push(['➡️', 'atravessa e acerta quem está atrás']);
@@ -28,6 +30,10 @@ function seloJogada(dr, curto) {
   const t = tipoJogada(dr); if (!t) return null;
   return el('span', { class: 'selo-jog', style: `background:${t.cor}`, title: t.expl }, `${t.ic} ${t.rot}`, ...(curto ? [] : t.extras.map(([ic, tx]) => el('span', { class: 'selo-extra' }, ` · ${ic} ${tx}`))));
 }
+// v267: nome curto (faixa da barra) e a ordem dos grupos
+const TJ_FAIXA = { perto: 'PERTO', longe: 'LONGE', area: 'ÁREA', cura: 'CURA', reforco: 'REFORÇO' };
+const TJ_GRUPOS = [['perto', '👟 Perto', 'encostado no adversário marcado', '#e8841a'], ['area', '💥 Área', 'acerta vários de uma vez', '#b04ae0'], ['longe', '🎯 Longe', 'um adversário marcado, à distância', '#2f7fe0'], ['cura', '💚 Cura', 'recupera o seu fôlego (HP)', '#25a84a'], ['reforco', '⚡ Reforço', 'efeito em você, sem alvo', '#d4a010']];
+function legendaTiposJogada() { return el('div', { class: 'legenda-tj' }, TJ_GRUPOS.map(([k, nome, , cor]) => el('span', { style: `background:${cor}` }, nome))); }
 function textoJogada(dr) { const t = tipoJogada(dr); return t ? `${t.ic} ${t.rot}: ${t.expl}${t.extras.length ? ' Extra: ' + t.extras.map(x => x[1]).join(', ') + '.' : ''}` : ''; }
 
 /* ---------- janela "Minhas jogadas" ---------- */
@@ -83,6 +89,14 @@ if (typeof modalProfessor === 'function') {
   const st = document.createElement('style');
   st.textContent = `.selo-jog { display: inline-block; color: #fff; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 10px; margin: 2px 0 2px 6px; vertical-align: middle; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
   .selo-extra { font-weight: 700; } .jog-num { display: block; opacity: .8; } .jog-onde { min-width: 120px; text-align: right; font-weight: 700; }
-  .slot .tipo-j { position: absolute; right: 1px; bottom: 1px; font-size: 11px; line-height: 1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.6)); pointer-events: none; }`;
+  .slot .tipo-j { position: absolute; right: 1px; bottom: 1px; font-size: 11px; line-height: 1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.6)); pointer-events: none; }
+  /* v267: cada tipo de jogada com cor própria — faixa embaixo do atalho e grupos na lista de Habilidades */
+  #hotbar .slot.tj { box-shadow: inset 0 0 0 3px var(--tj); }
+  #hotbar .slot .faixa-tj { position: absolute; left: 0; right: 0; bottom: 0; background: var(--tj); color: #fff; font: 900 8.5px/1.35 Nunito, sans-serif; letter-spacing: .3px; text-align: center; text-shadow: 0 1px 0 rgba(0,0,0,.45); pointer-events: none; border-radius: 0 0 4px 4px; }
+  .dribles-lista .grupo-tj { margin: 8px 0 3px; padding: 3px 8px; border-radius: 6px; background: var(--tj); color: #fff; font: 800 12.5px Nunito, sans-serif; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .dribles-lista .grupo-tj small { font-weight: 700; opacity: .95; }
+  .drible-card.tj { border-left: 5px solid var(--tj) !important; }
+  @media (max-width: 600px) { #hotbar .slot .faixa-tj { font-size: 6.5px; letter-spacing: 0; } #hotbar .slot.tj { box-shadow: inset 0 0 0 2px var(--tj); } }
+  .legenda-tj { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0 2px; } .legenda-tj span { color: #fff; font: 800 10.5px Nunito, sans-serif; padding: 1px 6px; border-radius: 8px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }`;
   document.head.append(st);
 }

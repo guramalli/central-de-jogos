@@ -723,9 +723,10 @@ function poeNaHotbar(t, id, silencioso) {
 function aprendeDrible(id) {
   const s = G.save; if (s.dribles.includes(id)) return;
   s.dribles.push(id); poeNaHotbar('d', id, true);
-  const tecla = teclaSlot(s.hotbar.findIndex(h => h && h.t === 'd' && h.id === id));
-  log(`Você aprendeu o drible ${DRIBLES[id].nome}! (nível ${DRIBLES[id].lvl}) — tecla ${tecla}.`, 'l-lvl'); banner(DRIBLES[id].nome.toUpperCase(), 'Novo drible aprendido!'); som('nivel');
-  dica('drible', `Novo drible: ${DRIBLES[id].nome}! Ele fica na barra de atalhos (tecla ${tecla}). Com um adversário marcado e perto, aperte a tecla para usar. Dribles gastam FOCO (barra azul).`, '#hotbar');
+  const iBarra = s.hotbar.findIndex(h => h && h.t === 'd' && h.id === id), tecla = teclaSlot(iBarra);
+  if (iBarra < 0) log(`Você aprendeu o drible ${DRIBLES[id].nome}! (nível ${DRIBLES[id].lvl}) — a barra de atalhos está CHEIA: abra o painel HABILIDADES e clique em "Pôr na barra" (ou tire um atalho com o botão direito).`, 'l-lvl'); /* v267: antes dizia "tecla ?" e parecia que a jogada tinha sumido */
+  else log(`Você aprendeu o drible ${DRIBLES[id].nome}! (nível ${DRIBLES[id].lvl}) — tecla ${tecla}.`, 'l-lvl'); banner(DRIBLES[id].nome.toUpperCase(), 'Novo drible aprendido!'); som('nivel');
+  if (iBarra >= 0) dica('drible', `Novo drible: ${DRIBLES[id].nome}! Ele fica na barra de atalhos (tecla ${tecla}). Com um adversário marcado e perto, aperte a tecla para usar. Dribles gastam FOCO (barra azul).`, '#hotbar');
   if (id === 'chute_colocado') dica('modo', 'Dica: aperte X (ou o botão "Modo") para trocar entre DRIBLE (ataca colado) e CHUTE (ataca de longe e treina a habilidade Chute).', '#btnModo');
 }
 function ganhaFigurinha(fid) {
