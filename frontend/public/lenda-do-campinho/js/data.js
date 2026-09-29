@@ -82,6 +82,11 @@ const POSICOES = {
     nome: 'Meio-campo', desc: 'Muito foco e visão de jogo: dribles especiais e curas fortes.',
     hp: 9, foco: 15, taxa: { drible: 1.3, chute: 1.2, defesa: 1.8, visao: 0.8 }, dano: 1, cor: '#5ac8ff',
   },
+  // v259: a posição do Motorzinho — entre o meio-campo e a zaga
+  volante: {
+    nome: 'Volante', desc: 'Marca, desarma e distribui: fôlego forte, bom foco e recupera rápido.',
+    hp: 14, foco: 11, taxa: { drible: 1.2, chute: 1.3, defesa: 1.1, visao: 1.2 }, dano: 1, cor: '#4fc26a',
+  },
   zagueiro: {
     nome: 'Zagueiro', desc: 'Muito fôlego e defesa. Aguenta a pancada de vários de uma vez.',
     hp: 17, foco: 5, taxa: { drible: 1.15, chute: 1.4, defesa: 0.8, visao: 2 }, dano: 0.95, cor: '#7ee06a',

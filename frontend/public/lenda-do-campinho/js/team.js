@@ -236,7 +236,7 @@ function geraJogador(pos, alvo, r = Math.random) {
 }
 function jogadorEu() {
   const s = G.save; const st = stats(); const t = s.time;
-  const pos = { atacante: 'ATA', meia: 'MEI', zagueiro: 'ZAG' }[s.posicao] || 'MEI';
+  const pos = { atacante: 'ATA', meia: 'MEI', volante: 'VOL', zagueiro: 'ZAG' }[s.posicao] || 'MEI';
   // o craque nunca fica muito atrás do próprio nível: piso de 18 + nível/2 em cada atributo
   const piso = 18 + s.nivel * 0.5; const v = x => Math.min(99, Math.round(Math.max(piso, x)));
   return {

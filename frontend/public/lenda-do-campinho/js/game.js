@@ -156,10 +156,10 @@ function stats() {
     maxHp: Math.round(100 + (nivel - 1) * (pos ? pos.hp : 10) + b.hp + a.folego * 4),
     maxFoco: Math.round(40 + (nivel - 1) * (pos ? pos.foco : 7) + b.foco + a.inteligencia * 3),
     drible: s.sk.drible.lv + b.drible, chute: s.sk.chute.lv + b.chute, defesa: s.sk.defesa.lv + b.defesa, visao: s.sk.visao.lv + b.visao,
-    armadura: def, def: def + (s.sk.defesa.lv + b.defesa) * 0.3 + (s.posicao === 'zagueiro' ? 4 : 0) + a.defesa * 0.35,
+    armadura: def, def: def + (s.sk.defesa.lv + b.defesa) * 0.3 + (s.posicao === 'zagueiro' ? 4 : s.posicao === 'volante' ? 2 : 0) + a.defesa * 0.35,
     vel: buff ? velBase * 1.3 : velBase,
-    regenHp: (0.6 + nivel * 0.06 + b.regen * 0.5 + (s.posicao === 'zagueiro' ? 0.6 : 0) + a.folego * 0.04 + ((com && com.regen) || 0) * mc) * (cl === 'motorzinho' ? 2 : 1),
-    regenFoco: 0.8 + nivel * 0.07 + b.regen * 0.5 + (s.posicao === 'meia' ? 1.2 : 0) + a.inteligencia * 0.03 + ((com && com.regenFoco) || 0) * mc,
+    regenHp: (0.6 + nivel * 0.06 + b.regen * 0.5 + (s.posicao === 'zagueiro' ? 0.6 : s.posicao === 'volante' ? 0.3 : 0) + a.folego * 0.04 + ((com && com.regen) || 0) * mc) * (cl === 'motorzinho' ? 2 : 1),
+    regenFoco: 0.8 + nivel * 0.07 + b.regen * 0.5 + (s.posicao === 'meia' ? 1.2 : s.posicao === 'volante' ? 0.6 : 0) + a.inteligencia * 0.03 + ((com && com.regenFoco) || 0) * mc,
     danoMult: (pos ? pos.dano : 1) * (1 + a.habilidade * 0.006),
     crit: Math.min(0.45, 0.03 + a.habilidade * 0.0015 + (cl === 'driblador' ? 0.08 : 0)),
     bloqueio: Math.min(0.35, (cl === 'paredao' ? 0.12 : 0) + a.defesa * 0.001),
@@ -616,7 +616,7 @@ function usarDrible(id) {
     efeito(dr.fx, p.x, p.y, dr.cor, dr.raio);
     (alvos.length ? alvos : [a]).forEach(m => { efeito('impacto', m.x, m.y, dr.cor); aplicaDano(m, danoDe(m)); });
   } else if (dr.tipo === 'cura') {
-    const cura = Math.round((st.nivel * 1.2 + st.visao * 3 + 20) * dr.poder * rnd(0.9, 1.1) * (s.posicao === 'meia' ? 1.2 : 1) * st.curaMult);
+    const cura = Math.round((st.nivel * 1.2 + st.visao * 3 + 20) * dr.poder * rnd(0.9, 1.1) * (s.posicao === 'meia' ? 1.2 : s.posicao === 'volante' ? 1.1 : 1) * st.curaMult);
     s.hp = Math.min(st.maxHp, s.hp + cura); texto(p, '+' + cura, '#6aff9a'); efeito(dr.fx, p.x, p.y, dr.cor);
   } else if (dr.tipo === 'buff') {
     G.buffs.arrancada = G.agora + dr.dur; efeito('vento', p.x, p.y, dr.cor);

@@ -353,8 +353,8 @@ function modalMissao(npc, q) {
     el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', onclick: () => { aceitaMissao(q); fechaModal(); } }, 'Aceitar!'), el('button', { class: 'btn', onclick: () => abrirNPC(npc) }, 'Agora não')));
 }
 // v257: a POSIÇÃO vem da CLASSE (antes eram duas escolhas separadas e confundia): Paredão = Zagueiro,
-// Artilheiro = Atacante, Cérebro e Motorzinho = Meio-campo. A peneira só confirma a posição da sua classe.
-const POSICAO_DA_CLASSE = { paredao: 'zagueiro', driblador: 'atacante', cerebro: 'meia', motorzinho: 'meia' };
+// Artilheiro = Atacante, Cérebro = Meio-campo, Motorzinho = Volante (v259). A peneira só confirma a posição da sua classe.
+const POSICAO_DA_CLASSE = { paredao: 'zagueiro', driblador: 'atacante', cerebro: 'meia', motorzinho: 'volante' };
 function posicaoDaClasse(cl) { return POSICAO_DA_CLASSE[cl] || 'meia'; }
 function modalPosicao() {
   const s = G.save; const cl = CLASSES[s.classe]; const k = posicaoDaClasse(s.classe), p = POSICOES[k];
@@ -839,7 +839,7 @@ function modalTrocaClasse() {
     if (typeof atualizaRetrato === 'function') atualizaRetrato(); G.uiSujo = true; salvar(); fechaModal();
   };
   render(); abreModal.largo = true;
-  abreModal(el('h2', {}, '🎭 Trocar de classe'), el('p', {}, `Até o nível ${CLASSE_TROCA_ATE} você pode trocar de classe aqui, de graça. Seus pontos de atributo voltam para distribuir de novo e as magias da classe antiga saem da barra (as da nova chegam conforme o seu nível). A posição vem junto: Paredão joga de Zagueiro, Artilheiro de Atacante, Cérebro e Motorzinho de Meio-campo.`), grade,
+  abreModal(el('h2', {}, '🎭 Trocar de classe'), el('p', {}, `Até o nível ${CLASSE_TROCA_ATE} você pode trocar de classe aqui, de graça. Seus pontos de atributo voltam para distribuir de novo e as magias da classe antiga saem da barra (as da nova chegam conforme o seu nível). A posição vem junto: Paredão joga de Zagueiro, Artilheiro de Atacante, Cérebro de Meio-campo e Motorzinho de Volante.`), grade,
     el('div', { class: 'opcoes' }, bt, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Agora não')));
 }
 function custoRedistribuir() { const s = G.save; return s.flags && s.flags.redist_gratis ? 150 * s.nivel + 3 * s.nivel * s.nivel : 0; }
