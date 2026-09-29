@@ -147,3 +147,21 @@ stats = function () {
   if (B) { st.drible += B; st.chute += B; st.defesa += B; st.visao += Math.round(B * 0.8); st.def += B * 0.3; }
   return st;
 };
+
+/* ---------- v248: o meio da curva ficou mais rápido; perto de 80/90 continua bem difícil ----------
+   Pedido do dono: acima de ~50 cada ponto demorava demais (60→61 levava ~4 h de boneco).
+   Multiplica o que era preciso por um fator que cai no meio (até 0,2 perto do 70) e volta a 1 no 90.
+   Minutos por ponto no boneco (Drible/Chute/Defesa), antes → agora:
+   50: 76 → 30 · 55: 139 → 44 · 60: 247 → 64 · 65: 429 → 94 · 70: 731 → 146 · 75: 1225 → 306 · 80: 2023 → 809 · 85: 3302 → 2311 · 90+: igual.
+   A Visão usa a mesma régua deslocada 20 pontos (Visão 30 ≈ Drible 50). Ninguém perde o que já tem. */
+const CURVA_V248 = [[35, 1], [40, 0.7], [45, 0.55], [50, 0.4], [55, 0.32], [60, 0.26], [65, 0.22], [70, 0.2], [75, 0.25], [80, 0.4], [85, 0.7], [90, 1]];
+function fatorCurvaSkill(sk, lv) {
+  const x = sk === 'visao' ? lv + 20 : lv, C = CURVA_V248;
+  if (x <= C[0][0]) return 1; if (x >= C[C.length - 1][0]) return 1;
+  for (let i = 1; i < C.length; i++) if (x <= C[i][0]) { const [a, fa] = C[i - 1], [b, fb] = C[i]; return fa + (fb - fa) * (x - a) / (b - a); }
+  return 1;
+}
+{
+  const _precisaV247 = precisaTentativas;
+  precisaTentativas = function (sk, lv) { return Math.max(1, Math.round(_precisaV247(sk, lv) * fatorCurvaSkill(sk, lv))); };
+}
