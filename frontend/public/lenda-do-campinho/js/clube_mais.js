@@ -71,7 +71,11 @@ function novoMundial(cont) {
   fimTemporada = function () {
     const t = G.save.time; const d = DIVS[t.div]; const pos = minhaPosicao(); const pais = t.pais;
     const vaga = d && d.topo && pos <= 2 && contDe(pais);
+    // v239: 25% do lucro dos jogos da temporada vai para o seu bolso (o dono também ganha!)
+    const lucro = Math.round(t.opTemp || 0), parte = Math.max(0, Math.min(Math.round(lucro * 0.25), Math.floor(t.caixa))); t.opTemp = 0;
+    if (parte > 0) { t.caixa -= parte; G.save.ouro += parte; log(`💼 Sua parte do lucro da temporada: +${fmt(parte)} tostões no seu bolso.`, 'l-loot'); }
     const r = _fimTempCM.apply(this, arguments);
+    { const box = document.getElementById('modalConteudo'), bt = box && box.querySelector('.opcoes'); if (bt) bt.before(el('p', { class: 'meta-linha' }, parte > 0 ? `💼 Lucro dos jogos: ${fmt(lucro)}. Sua parte de dono (25%): +${fmt(parte)} tostões no seu bolso!` : `💼 A temporada não deu lucro nos jogos (${fmt(lucro)}), então não teve parte do dono. Estádio, loja e sócio-torcedor aumentam a renda.`)); }
     if (vaga) {
       t.cont = novaContinental(vaga);
       log(`🌎 VAGA CONTINENTAL! O ${t.nome} vai disputar a ${t.cont.nome} nesta temporada (aba 🌎 Continental).`, 'l-lendario');
@@ -244,11 +248,12 @@ function cmExtrasPosJogo(pj, r) {
   const t = G.save.time; if (!t || !r) return; const P = premioDiv(t.div); const est = t.estr || {};
   const add = (rot, v) => { if (!v) return; t.caixa += v; t.finTemp.ent += v; r.fin.push([rot, v]); r.saldo = (r.saldo || 0) + v; };
   const mult = pj.tipo === 'copa' ? [1.5, 2, 3][pj.fase] || 1 : pj.tipo === 'cont' ? MULT_CONT[pj.fase] : pj.tipo === 'mundial' ? MULT_MUNDIAL[pj.fase] : 1;
-  if (est.loja) add('Loja do clube', Math.round(P * mult * 0.15 * est.loja));
-  if (pj.casa && est.torcida) add('Sócio-torcedor', Math.round(P * 0.5 * (1 + 0.5 * (est.estadio || 0)) * 0.1 * est.torcida));
+  if (est.loja) add('Loja do clube', Math.round(P * mult * 0.15 * estrMult(est.loja)));
+  if (pj.casa && est.torcida) add('Sócio-torcedor', Math.round(P * 0.5 * (1 + 0.5 * estrMult(est.estadio || 0)) * 0.06 * estrMult(est.torcida, 1.35)));
   if (est.torcida) t.moral = Math.max(t.moral, -3 + Math.min(3, Math.ceil(est.torcida / 2)));
   if (t.desafioPatro && pj.tipo === 'liga') { if (r.venceu) { add('Desafio do patrocinador', t.desafioPatro); log(`🤝 Desafio do patrocinador cumprido: +${fmt(t.desafioPatro)} no caixa!`, 'l-loot'); } else log('🤝 O desafio do patrocinador não saiu desta vez.', 'l-info'); t.desafioPatro = 0; }
   t.fin = r.fin;
+  t.opTemp = (t.opTemp || 0) + (r.saldo || 0); // v239: lucro dos jogos na temporada (prêmios, bilheteria, loja... menos salários)
   // título da copa nacional → coletiva de imprensa
   if (pj.tipo === 'copa' && t.copa && t.copa.status === 'campeao' && !t.copa._coletiva) { t.copa._coletiva = true; t.evento = cmEventoColetiva(t.copa.nome); }
   // eventos entre as rodadas
@@ -556,3 +561,15 @@ if (typeof ICON_ALIAS !== 'undefined') { ICON_ALIAS.medalha_copa_america = 'i_me
   .cm-evento p { margin: 4px 0 8px; }`;
   document.head.append(st);
 }
+
+/* v239: quanto cada obra de renda rende por temporada e em quantas temporadas se paga (aparece na lista de Estrutura) */
+function estrRendaTxt(k, n) {
+  const t = G.save && G.save.time; if (!t || !['estadio', 'loja', 'torcida'].includes(k) || n >= ESTR_MAX) return null;
+  const P = premioDiv(t.div), e = t.estr || {}, casa = 10, jogos = 20; const d = k === 'torcida' ? estrMult(n + 1, 1.35) - estrMult(n, 1.35) : estrMult(n + 1) - estrMult(n);
+  const ganho = Math.round(k === 'estadio' ? P * 0.5 * 0.5 * d * casa * (1 + 0.06 * estrMult(e.torcida || 0, 1.35))
+    : k === 'loja' ? P * 0.15 * d * jogos
+    : P * 0.5 * (1 + 0.5 * estrMult(e.estadio || 0)) * 0.06 * d * casa);
+  const temps = custoEstr(k, n) / Math.max(1, ganho);
+  return el('small', { class: 'cm-renda' }, `💰 Próximo nível rende +${fmt(ganho)} por temporada na divisão atual · se paga em ~${temps < 1 ? 'menos de 1 temporada' : Math.ceil(temps) + (Math.ceil(temps) > 1 ? ' temporadas' : ' temporada')}`);
+}
+{ const st = document.createElement('style'); st.textContent = '.cm-renda { display: block; color: #2f7a2f; font-weight: 800; margin-top: 2px; }'; document.head.append(st); }

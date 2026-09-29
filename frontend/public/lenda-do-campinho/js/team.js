@@ -177,14 +177,16 @@ function nomeTimeIA(pais, r) {
 const ESTRUTURA = {
   ct: { nome: 'Centro de Treinamento', base: 1500, desc: n => `Treinos e jogos dão +${n * 30}% de XP aos jogadores.` },
   med: { nome: 'Departamento Médico', base: 1200, desc: n => `Energia volta ${n * 25}% mais rápido e o time cansa ${n * 5}% menos.` },
-  estadio: { nome: 'Estádio', base: 2000, desc: n => `Bilheteria +${n * 50}% nos jogos em casa.` },
+  estadio: { nome: 'Estádio', base: 2000, desc: n => `Bilheteria +${Math.round(estrMult(n) * 50)}% nos jogos em casa.` },
   base: { nome: 'Categoria de Base', base: 1800, desc: n => `${1 + Math.ceil(n / 2)} jovem(ns) promessa(s) por temporada, potencial +${n * 2}.` },
   olheiro: { nome: 'Rede de Olheiros', base: 1000, desc: n => `Mercado com ${6 + n} jogadores, ${n ? '+' + n : 'sem bônus'} de força.` },
   // v236: evoluções novas
-  loja: { nome: 'Loja e Marketing', base: 2200, desc: n => `Venda de camisas e produtos: +${n * 15}% do prêmio da rodada em cada jogo.` },
-  torcida: { nome: 'Sócio-Torcedor', base: 2600, desc: n => `+${n * 10}% de bilheteria em casa e o moral do time não cai abaixo de ${-3 + Math.min(3, Math.ceil(n / 2))}.` },
+  loja: { nome: 'Loja e Marketing', base: 2200, desc: n => `Venda de camisas e produtos: +${Math.round(estrMult(n) * 15)}% do prêmio da rodada em cada jogo.` },
+  torcida: { nome: 'Sócio-Torcedor', base: 2600, desc: n => `+${Math.round(estrMult(n, 1.35) * 6)}% de bilheteria em casa e o moral do time não cai abaixo de ${-3 + Math.min(3, Math.ceil(n / 2))}.` },
 };
 const ESTR_MAX = 8; // v236: 5 → 8 níveis
+// v239: as obras de renda (estádio, loja, sócio-torcedor) rendem cada vez mais por nível, acompanhando o preço (antes: +50% por nível e custo ×2,6 = nunca se pagavam)
+function estrMult(n, r = 1.7) { return n > 0 ? (Math.pow(r, n) - 1) / (r - 1) : 0; }
 function custoEstr(k, n) { return Math.round(ESTRUTURA[k].base * Math.pow(2.6, n)); }
 const METAS = {
   campeao: { txt: 'Ser CAMPEÃO', ok: pos => pos === 1 },
@@ -265,7 +267,7 @@ function xpPartida(d) { return xpDiv(d); }
 function precoJogador(j) { const p = premioForca(ovr(j)); return Math.round(p * 4 + Math.max(0, j.pot - ovr(j)) * p * 0.15 + 300); }
 function salario(j) { return j.eu ? 0 : Math.max(2, Math.round(premioForca(ovr(j)) * 0.05)); }
 function folhaSalarial() { return G.save.time.elenco.reduce((a, j) => a + salario(j), 0); }
-function limiteSaque() { return premioDiv(G.save.time.div) * 8; }
+function limiteSaque() { return premioDiv(G.save.time.div) * 25; } // v239: era ×8
 function custoTreino() { return Math.round(premioDiv(G.save.time.div) * 0.6); }
 
 /* ---------------- força por setor ---------------- */
@@ -571,10 +573,10 @@ function telaClube() {
   // caixa
   const inp = el('input', { type: 'number', min: 0, value: Math.min(s.ouro, 1000), style: 'width:110px' });
   wrap.append(el('h3', {}, '💰 Caixa do clube'),
-    el('p', {}, 'O caixa paga salários, contratações, treinos e obras. Entram prêmios, patrocínio, bilheteria e vendas. A cada vitória você (o craque) ainda ganha um bicho de 25% do prêmio no seu bolso.'),
+    el('p', {}, 'O caixa paga salários, contratações, treinos e obras. Entram prêmios, patrocínio, bilheteria e vendas. A cada vitória você (o craque) ainda ganha um bicho de 25% do prêmio no seu bolso, e no fim da temporada 25% do LUCRO dos jogos vai para você.'),
     el('div', { class: 'opcoes', style: 'align-items:center' }, el('b', {}, 'Caixa: '), precoTag(t.caixa), el('span', {}, ' · Seu bolso: '), precoTag(s.ouro), inp,
       el('button', { class: 'btn verde mini', onclick: () => { const v = Math.floor(+inp.value || 0); if (v <= 0 || v > s.ouro) { log('Valor inválido.', 'l-dano'); return; } s.ouro -= v; t.caixa += v; t.finTemp.ent += v; log(`Você investiu ${fmt(v)} tostões no ${t.nome}.`, 'l-loot'); som('moeda'); salvar(); abrirTime('clube'); } }, 'Investir no clube'),
-      el('button', { class: 'btn mini', title: `Taxa de 25%. Limite por temporada: ${fmt(limiteSaque())}`, onclick: () => { const v = Math.floor(+inp.value || 0); if (v <= 0 || v > t.caixa) { log('Valor inválido.', 'l-dano'); return; } if ((t.sacado || 0) + v > limiteSaque()) { log(`O conselho só libera ${fmt(limiteSaque())} de saque por temporada (já sacou ${fmt(t.sacado || 0)}).`, 'l-dano'); som('erro'); return; } t.sacado = (t.sacado || 0) + v; t.caixa -= v; t.finTemp.sai -= v; s.ouro += Math.floor(v * 0.75); log(`Você sacou ${fmt(v)} do caixa (recebeu ${fmt(Math.floor(v * 0.75))} após a taxa).`, 'l-loot'); salvar(); abrirTime('clube'); } }, 'Sacar (taxa 25%)')));
+      el('button', { class: 'btn mini', title: `Taxa de 10%. Limite por temporada: ${fmt(limiteSaque())}`, onclick: () => { const v = Math.floor(+inp.value || 0); if (v <= 0 || v > t.caixa) { log('Valor inválido.', 'l-dano'); return; } if ((t.sacado || 0) + v > limiteSaque()) { log(`O conselho só libera ${fmt(limiteSaque())} de saque por temporada (já sacou ${fmt(t.sacado || 0)}).`, 'l-dano'); som('erro'); return; } t.sacado = (t.sacado || 0) + v; t.caixa -= v; t.finTemp.sai -= v; s.ouro += Math.floor(v * 0.9); log(`Você sacou ${fmt(v)} do caixa (recebeu ${fmt(Math.floor(v * 0.9))} após a taxa).`, 'l-loot'); salvar(); abrirTime('clube'); } }, 'Sacar (taxa 10%)')));
   if (t.caixa < 0) wrap.append(el('p', { style: 'color:#b0301a' }, 'Caixa NEGATIVO: os salários atrasam e o moral do time cai a cada rodada. Invista ou venda jogadores!'));
   // patrocínio e finanças
   const fin = el('div', { class: 'fin' });
@@ -589,7 +591,7 @@ function telaClube() {
   const le = el('div', { class: 'lista' });
   for (const [k, e] of Object.entries(ESTRUTURA)) {
     const n = t.estr[k] || 0; const custo = custoEstr(k, n);
-    le.append(el('div', { class: 'linha-item' }, el('div', { class: 'nm' }, el('b', {}, `${e.nome} ${'★'.repeat(n)}${'☆'.repeat(ESTR_MAX - n)}`), el('small', {}, (n ? e.desc(n) : 'Ainda não construído.') + (n < ESTR_MAX ? ` Próximo nível: ${e.desc(n + 1)}` : ''))),
+    le.append(el('div', { class: 'linha-item' }, el('div', { class: 'nm' }, el('b', {}, `${e.nome} ${'★'.repeat(n)}${'☆'.repeat(ESTR_MAX - n)}`), el('small', {}, (n ? e.desc(n) : 'Ainda não construído.') + (n < ESTR_MAX ? ` Próximo nível: ${e.desc(n + 1)}` : '')), typeof estrRendaTxt === 'function' ? estrRendaTxt(k, n) : null),
       n >= ESTR_MAX ? el('b', {}, 'MÁXIMO') : el('span', { class: 'preco-col' }, precoTag(custo), el('button', { class: 'btn amarelo mini', disabled: t.caixa < custo ? 'disabled' : null, onclick: () => { if (t.caixa < custo) { log('Caixa do clube insuficiente para chamar o olheiro.', 'l-dano'); som('erro'); return; } t.caixa -= custo; t.finTemp.sai -= custo; t.estr[k] = n + 1; log(`Obra concluída: ${e.nome} nível ${n + 1}!`, 'l-lvl'); som('nivel'); salvar(); abrirTime('clube'); } }, 'Melhorar'))));
   }
   wrap.append(le);
@@ -746,7 +748,7 @@ function concluiJogo(pj, gn, ge, escN, rapido, nos, eles) {
   const xp = Math.round(X * mult * (venceu ? 1 : empate ? 0.4 : 0.15) * (rapido ? 0.5 : 1));
   const bicho = venceu ? Math.round(premio * 0.25) : 0;
   const fin = [['Prêmio da partida', premio]];
-  if (pj.casa) fin.push(['Bilheteria', Math.round(P * 0.5 * (1 + 0.5 * est.estadio) * (1 + t.moral * 0.08))]);
+  if (pj.casa) fin.push(['Bilheteria', Math.round(P * 0.5 * (1 + 0.5 * estrMult(est.estadio)) * (1 + t.moral * 0.08))]);
   if (pj.tipo === 'liga') fin.push(['Patrocínio', Math.round(P * t.patro)], ['Salários', -folhaSalarial()]);
   const saldo = fin.reduce((a, [, v]) => a + v, 0); t.caixa += saldo; t.fin = fin;
   fin.forEach(([, v]) => { if (v >= 0) t.finTemp.ent += v; else t.finTemp.sai += v; });
