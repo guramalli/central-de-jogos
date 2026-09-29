@@ -730,7 +730,10 @@ function ganhaFigurinha(fid) {
   else { s.figs[fid] = true; log(`FIGURINHA NOVA: ${f.nome}! (${Object.keys(s.figs).length}/${FIGURINHAS.length})`, 'l-xp'); som('moeda'); }
   G.uiSujo = true;
 }
-function abrirPacotinho() { const f = FIGURINHAS[rndi(0, FIGURINHAS.length - 1)]; ganhaFigurinha(f.id); }
+function abrirPacotinho() { // v237: metade das vezes vem uma que falta (no fim do álbum quase só vinha repetida)
+  const falta = FIGURINHAS.filter(x => !G.save.figs[x.id]);
+  const f = falta.length && Math.random() < 0.5 ? falta[rndi(0, falta.length - 1)] : FIGURINHAS[rndi(0, FIGURINHAS.length - 1)]; ganhaFigurinha(f.id);
+}
 
 /* ---------------- missões ---------------- */
 function statusMissao(q) {

@@ -105,7 +105,7 @@ const ARQ_TXT = { zagueiro: 'CARRINHO!', volante: 'MARCAÇÃO!', centroavante: '
   // dano que VOCÊ recebe: volante rouba foco; quem ouviu o grito da torcida bate +20%
   const _recebeArq = recebeDano;
   recebeDano = function (dano, m) {
-    if (m && (m._gritoAte || 0) > agora()) dano = Math.round(dano * 1.2);
+    if (m && (m._gritoAte || 0) > agora()) dano = Math.round(dano * 1.1); // v237: era +20%
     const r = _recebeArq.call(this, dano, m);
     if (m && m.d && m.d._arq === 'volante' && G.save) { const tira = Math.min(G.save.foco, Math.max(2, Math.round(stats().maxFoco * 0.03))); if (tira > 0) { G.save.foco -= tira; texto(G.p, '-' + tira + ' foco', '#6ab8ff', 800, -0.3); } }
     return r;
@@ -130,13 +130,13 @@ const ARQ_TXT = { zagueiro: 'CARRINHO!', volante: 'MARCAÇÃO!', centroavante: '
     const d = dist(m, G.p);
     if (a === 'zagueiro' && d <= 1.6) { m._cdArq = t + 7500 + Math.random() * 2000; if (Math.random() < 0.4) { G.p.tontoAte = t + 700; m.golpe = t; texto(m, ARQ_TXT.zagueiro, '#ff9a5a', 900); efeito('impacto', G.p.x, G.p.y, '#ff9a5a'); som('chute'); } }
     else if (a === 'centroavante' && d > 1.6 && d <= 5.5 && (typeof linhaVisao !== 'function' || linhaVisao(m, G.p))) {
-      m._cdArq = t + 9000 + Math.random() * 2000; m.golpe = t; m.flip = G.p.x < m.x; texto(m, ARQ_TXT.centroavante, '#ffcf4a', 900);
-      projetil(m, G.p, 'bolaforte', () => { const s = stats(); const dano = Math.max(1, Math.round(m.d.atk * (0.9 + 0.4 * Math.random()) - s.def * 0.5)); recebeDano(dano, m); });
+      m._cdArq = t + 12000 + Math.random() * 3000; m.golpe = t; m.flip = G.p.x < m.x; texto(m, ARQ_TXT.centroavante, '#ffcf4a', 900);
+      projetil(m, G.p, 'bolaforte', () => { const s = stats(); const dano = Math.max(1, Math.round(m.d.atk * (0.5 + 0.3 * Math.random()) - s.def * 0.6)); /* v237: era atk×(0,9–1,3) */ recebeDano(dano, m); });
     }
     else if (a === 'meia') {
       const ferido = G.mons.filter(o => o !== m && !o.d.treino && o.hp < o.d.hp * 0.7 && dist(o, m) <= 4).sort((x, y) => x.hp / x.d.hp - y.hp / y.d.hp)[0];
       m._cdArq = t + (ferido ? 6500 : 1500);
-      if (ferido) { const cura = Math.round(ferido.d.hp * 0.18); ferido.hp = Math.min(ferido.d.hp, ferido.hp + cura); projetil(m, ferido, 'bola', () => {}); texto(ferido, '+' + cura, '#6aff9a', 900); texto(m, ARQ_TXT.meia, '#b0ffb0', 800); }
+      if (ferido) { const cura = Math.round(ferido.d.hp * 0.12); ferido.hp = Math.min(ferido.d.hp, ferido.hp + cura); projetil(m, ferido, 'bola', () => {}); texto(ferido, '+' + cura, '#6aff9a', 900); texto(m, ARQ_TXT.meia, '#b0ffb0', 800); }
     }
     else if (a === 'torcedor' && d <= 6) {
       m._cdArq = t + 10000 + Math.random() * 2000; const colegas = G.mons.filter(o => o !== m && !o.d.treino && dist(o, m) <= 4);

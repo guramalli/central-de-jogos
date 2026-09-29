@@ -55,7 +55,7 @@ carrGeraMetas = function (k) {
   cand.push({ tipo: 'tarefa', w: 2, n: 1 });
   cand.push({ tipo: 'semana', w: 1.5, n: k.promessa ? 3 : 2 });
   cand.push({ tipo: 'treino', w: 1.5, n: r(50 + t * 5) });
-  cand.push({ tipo: 'figurinha', w: 1, n: k.promessa ? 3 : 2 });
+  { const falta = FIGURINHAS.length - Object.keys(s.figs || {}).length; if (falta > 0) cand.push({ tipo: 'figurinha', w: 1, n: Math.min(falta, k.promessa ? 3 : 2) }); } // v237: nunca pede mais do que falta
   { const xpNv = (xpPara(nv + 1) - xpPara(nv)) || 1000; cand.push({ tipo: 'xp', w: 1.5, n: Math.round(xpNv * 0.45 * dif) }); }
   cand.push({ tipo: 'dribles', w: 1.5, n: r(30 + t * 3) });
   cand.push({ tipo: 'chefe', w: 1, n: k.promessa ? 2 : 1 });
@@ -87,13 +87,16 @@ carrGeraMetas = function (k) {
       case 'tarefa': return 'Complete a Caçada da vez (🎯 Tarefas de caça)';
       case 'semana': return `Complete ${n} tarefas da semana (🎯 Tarefas de caça)`;
       case 'treino': return `Treine ${n} vezes nos aparelhos de um Centro de Treinamento`;
-      case 'figurinha': return n === 1 ? 'Consiga 1 figurinha NOVA para o álbum' : `Consiga ${n} figurinhas NOVAS para o álbum`;
+      case 'figurinha': return (n === 1 ? 'Consiga 1 figurinha NOVA para o álbum' : `Consiga ${n} figurinhas NOVAS para o álbum`) + ' (pacotinhos na banca do Seu Juca)';
       case 'xp': return `Ganhe ${fmt(n)} de XP`;
       case 'dribles': return `Use ${n} dribles em adversários`;
       case 'missoes': return n === 1 ? 'Conclua 1 missão do seu nível' : `Conclua ${n} missões do seu nível`;
     }
     return _descMeta.apply(this, arguments);
   };
+  // v237: álbum completo = meta de figurinha cumprida (antes ficava impossível)
+  const _metaOk = carrMetaOk;
+  carrMetaOk = function (m) { if (m && m.tipo === 'figurinha' && G.save && Object.keys(G.save.figs || {}).length >= FIGURINHAS.length) return true; return _metaOk.apply(this, arguments); };
   const _progMeta = carrProgMeta;
   carrProgMeta = function (tipo, qtd = 1, filtro) {
     const c = carrDados(); const k = c && c.clube; if (!k || !k.metas) return;

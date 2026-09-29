@@ -89,7 +89,9 @@ function tilesMagia(forma, m, alvo) {
     G.magAdv.push({ m, tiles, el: mg.el, campo: mg.campo, t: agora() + 700, mult });
     m.golpe = agora(); m.flip = G.p.x < m.x; texto(m, el.nome + '!', `rgb(${el.cor})`, 1000); return true;
   }
-  function danoDe(m, mult) { const s = stats(); return Math.max(1, Math.round(m.d.atk * mult * (0.85 + 0.3 * Math.random()) - s.def * 0.4)); }
+  // v237 (rebalanceamento): a magia somava ~+100% no dano recebido; agora ~+20%: golpe mais fraco, defesa conta como no ataque normal
+  const MAG_DANO = 0.55, MAG_DEF = 0.6;
+  function danoDe(m, mult) { const s = stats(); return Math.max(1, Math.round(m.d.atk * MAG_DANO * mult * (0.85 + 0.3 * Math.random()) - s.def * MAG_DEF)); }
   function aplicaStatus(st, m) {
     const t = agora(), p = G.p;
     if (st === 'fogo') { p.stFogo = { ate: t + 3000, prox: t + 1000, m }; texto(p, 'queimando!', '#ff9a4a', 800, -0.3); }
@@ -104,9 +106,9 @@ function tilesMagia(forma, m, alvo) {
     const r = _atualizaMonstroMag.apply(this, arguments);
     if (!m.bravo || !G.p || G.save.hp <= 0 || m.voltando) return r;
     const mg = magiaDe(m.tipo); if (!mg) return r;
-    const t = agora(); if (!m._cdMag) { m._cdMag = t + 2000 + Math.random() * 2500; return r; }
+    const t = agora(); if (!m._cdMag) { m._cdMag = t + 4000 + Math.random() * 3000; return r; }
     if (t < m._cdMag || naZona()) return r;
-    m._cdMag = t + (lanca(m, mg) ? 8000 + Math.random() * 4000 : 1200);
+    m._cdMag = t + (lanca(m, mg) ? 12000 + Math.random() * 4000 : 1200);
     return r;
   };
   const _atualizaMag = atualiza;
@@ -133,7 +135,7 @@ function tilesMagia(forma, m, alvo) {
     G.campoAdv = G.campoAdv.filter(c => {
       if (t >= c.ate) return false;
       if (t >= c.prox) { c.prox = t + 1000; const q = c.tiles[Math.floor(Math.random() * c.tiles.length)]; fxAnim(MAG_EL[c.el].fx, q.x + 0.5, q.y + 0.9, { tam: 1.1, dur: 700 });
-        if (c.tiles.some(q => q.x === pt.x && q.y === pt.y) && G.save.hp > 0) recebeDano(Math.max(1, Math.round(c.m.d.atk * 0.25)), c.m); }
+        if (c.tiles.some(q => q.x === pt.x && q.y === pt.y) && G.save.hp > 0) recebeDano(Math.max(1, Math.round(c.m.d.atk * 0.1)), c.m); }
       return true;
     });
     // queimando / envenenado
@@ -141,7 +143,7 @@ function tilesMagia(forma, m, alvo) {
     for (const k of ['stFogo', 'stVeneno']) {
       const s = p[k]; if (!s) continue;
       if (t >= s.ate || G.save.hp <= 0) { p[k] = null; continue; }
-      if (t >= s.prox) { s.prox = t + 1000; const dano = Math.max(1, Math.round(s.m.d.atk * (k === 'stFogo' ? 0.2 : 0.12))); recebeDano(dano, s.m); }
+      if (t >= s.prox) { s.prox = t + 1000; const dano = Math.max(1, Math.round(s.m.d.atk * (k === 'stFogo' ? 0.08 : 0.05))); recebeDano(dano, s.m); }
     }
     return r;
   };

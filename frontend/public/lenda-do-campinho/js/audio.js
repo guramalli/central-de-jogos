@@ -31,7 +31,7 @@
   };
   // v226: sons gravados das habilidades (Seed Audio): dr_<drible> e cl_<especial>. [arquivo, vol, pitch, intervalo, vozes, rate, duração máx. (s)]
   const SONS_HAB = { dr_pedalada: 2.6, dr_respiro: 1.5, dr_chute_colocado: 2.2, dr_arrancada: 1.5, dr_chapeu: 2.6, dr_voleio: 1.5, dr_elastico: 2.8, dr_tabela: 1.5, dr_caneta: 3.2,
-    dr_folego_campeao: 2.2, dr_bicicleta: 2.4, dr_relampago: 1.8, dr_carrinho: 1.8, dr_chamar_marcacao: 2.2, dr_tranco: 1.6, dr_trivela: 1.8, dr_chuva_bolas: 2.8, dr_canhao: 2.4,
+    dr_bicicleta: 2.4, dr_relampago: 1.8, dr_carrinho: 1.8, dr_chamar_marcacao: 2.2, dr_tranco: 1.6, dr_trivela: 1.8, dr_chuva_bolas: 2.8, dr_canhao: 2.4,
     dr_lancamento: 2, dr_hipnose: 2.2, dr_toque_mestre: 1.8, dr_agua_gelada: 1.8, dr_grito_torcida: 3, dr_raiz: 2.2, cl_muralha: 2.2, cl_firula: 2.6, cl_leitura: 2.2, cl_segundo_folego: 2.2 };
   for (const [k, dur] of Object.entries(SONS_HAB)) SFX[k] = [k, 0.8, 0.03, 180, 2, 1, dur];
   const DUCK = { nivel: [0.35, 2.2], gol: [0.3, 3.2], raro: [0.6, 1.2] };
@@ -218,7 +218,7 @@
     dr_chapeu: { ms: 250, f(t) { whoosh(t, 0.15, 500, 1500, 0.1); nota('sine', [330, 990], t + 0.05, 0.22, 0.2, { glide: 0.2 }); nota('sine', [990, 440], t + 0.27, 0.22, 0.16, { glide: 0.2 }); nota('triangle', 1320, t + 0.5, 0.15, 0.05); } },
     dr_voleio: { ms: 250, f(t) { whoosh(t, 0.14, 400, 2200, 0.13); baque(t + 0.12, 0.5, [180, 50]); ruido(t + 0.12, 0.09, 0.14, 'highpass', 3000, 6000, 0.8); } },
     dr_elastico: { ms: 250, f(t) { nota('sine', [420, 720], t, 0.16, 0.18, { vib: [28, 40], pan: -0.5 }); nota('sine', [720, 380], t + 0.17, 0.2, 0.18, { vib: [28, 40], pan: 0.5 }); nota('triangle', [300, 150], t + 0.4, 0.2, 0.12); } },
-    dr_folego_campeao: { ms: 400, f(t) { acorde(t, [262, 330, 392, 523], 'triangle', 1.1, 0.07, 0.03, { ataque: 0.15 }); [1047, 1319, 1568, 2093, 2637].forEach((f, i) => nota('sine', f, t + 0.3 + i * 0.07, 0.6, 0.05, { eco: true })); ruido(t + 0.3, 0.9, 0.03, 'highpass', 6000, 9000, 0.7, true); } },
+    dr_folego_campeao: { ms: 600, f(t) { nota('sine', 659, t, 0.22, 0.03); nota('sine', 988, t + 0.09, 0.3, 0.025, { eco: true }); } }, // v237: som leve (o gravado de 2,2 s cansava — é a cura mais usada)
     dr_caneta: { ms: 250, f(t) { ruido(t, 0.22, 0.4, 'bandpass', 2400, 600, 2); nota('square', 523, t + 0.2, 0.08, 0.09, { passaBaixa: 3000 }); nota('square', 1047, t + 0.29, 0.16, 0.09, { passaBaixa: 4000, eco: true }); } },
     dr_tabela: { ms: 300, f(t) { baque(t, 0.25, [320, 140]); ruido(t, 0.05, 0.05, 'highpass', 2000, 3000, 1, false, -0.7); baque(t + 0.16, 0.25, [360, 150]); ruido(t + 0.16, 0.05, 0.05, 'highpass', 2000, 3000, 1, false, 0.7);
       whoosh(t + 0.28, 0.35, 700, 2800, 0.12); acorde(t + 0.35, [659, 880, 1109], 'triangle', 0.35, 0.06, 0.04, { eco: true }); } },
