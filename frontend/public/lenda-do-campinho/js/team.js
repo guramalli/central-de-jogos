@@ -47,12 +47,22 @@ const PAISES = [
   // v232 (sempre no fim: não mexe nos índices dos saves)
   { id: 'argentina', nome: 'Argentina', lvl: 55, copa: 'Copa Argentina', cores: ['#74acdf', '#ffffff', '#74acdf'], divs: [['Primera Nacional', 48], ['Liga Profissional Argentina', 56]] },
   { id: 'franca', nome: 'França', lvl: 104, copa: 'Copa da França', cores: ['#0055a4', '#ffffff', '#ef4135'], vert: true, divs: [['National Francês', 66], ['Ligue 2 Francesa', 70], ['Ligue 1 Francesa', 74]] },
+  // v236: mais ligas (sempre no fim)
+  { id: 'china', nome: 'China', lvl: 38, copa: 'Copa da China', cores: ['#de2910', '#ffde00', '#de2910'], divs: [['Liga Chinesa B', 36], ['Superliga Chinesa', 42]] },
+  { id: 'arabia', nome: 'Arábia Saudita', lvl: 47, copa: 'Copa do Rei Saudita', cores: ['#006c35', '#ffffff', '#006c35'], divs: [['1ª Divisão Saudita', 43], ['Liga Pro Saudita', 50]] },
+  { id: 'colombia', nome: 'Colômbia', lvl: 51, copa: 'Copa Colômbia', cores: ['#fcd116', '#003893', '#ce1126'], divs: [['Torneio Colombiano B', 45], ['Liga Colombiana', 52]] },
+  { id: 'uruguai', nome: 'Uruguai', lvl: 53, copa: 'Copa AUF Uruguai', cores: ['#ffffff', '#0038a8', '#ffffff'], divs: [['Segunda Uruguaia', 46], ['Campeonato Uruguaio', 53]] },
+  { id: 'mexico', nome: 'México', lvl: 56, copa: 'Copa MX', cores: ['#006847', '#ffffff', '#ce1126'], vert: true, divs: [['Liga de Expansão MX', 48], ['Liga MX', 55]] },
+  { id: 'escocia', nome: 'Escócia', lvl: 64, copa: 'Copa da Escócia', cores: ['#005eb8', '#ffffff', '#005eb8'], divs: [['Championship Escocesa', 55], ['Premiership Escocesa', 60]] },
+  { id: 'turquia', nome: 'Turquia', lvl: 70, copa: 'Copa da Turquia', cores: ['#e30a17', '#ffffff', '#e30a17'], divs: [['1ª Liga Turca', 58], ['2ª Superliga Turca', 61], ['Superliga Turca', 64]] },
+  { id: 'belgica', nome: 'Bélgica', lvl: 76, copa: 'Copa da Bélgica', cores: ['#000000', '#fdda24', '#ef3340'], vert: true, divs: [['Challenger Belga', 60], ['Pro League B', 63], ['Pro League Belga', 66]] },
+  { id: 'holanda', nome: 'Holanda', lvl: 82, copa: 'Copa da Holanda', cores: ['#ae1c28', '#ffffff', '#21468b'], divs: [['Tweede Divisie', 60], ['Eerste Divisie', 64], ['Eredivisie', 67]] },
 ];
 // ordem de relevância (da liga mais fraca para a mais forte): é a escada mostrada em "Ligas pelo mundo"
-const ESCADA_PAISES = ['egito', 'catar', 'japao', 'eua', 'argentina', 'brasil', 'portugal', 'franca', 'alemanha', 'italia', 'espanha', 'inglaterra', 'mundo'];
+const ESCADA_PAISES = ['china', 'egito', 'catar', 'japao', 'arabia', 'eua', 'colombia', 'uruguai', 'mexico', 'argentina', 'escocia', 'brasil', 'turquia', 'belgica', 'holanda', 'portugal', 'franca', 'alemanha', 'italia', 'espanha', 'inglaterra', 'mundo'];
 const ESCADA_FOLGA = 5; // campeão de uma liga de força X abre os países cuja divisão de entrada tem força até X+5
 const PAIS = Object.fromEntries(PAISES.map(p => [p.id, p]));
-const PAISES_EUROPA = ['portugal', 'franca', 'espanha', 'italia', 'alemanha', 'inglaterra'];
+const PAISES_EUROPA = ['portugal', 'franca', 'espanha', 'italia', 'alemanha', 'inglaterra', 'escocia', 'turquia', 'belgica', 'holanda'];
 // lista "achatada" de todas as divisões — t.div é um índice aqui
 const DIVS = PAISES.flatMap(p => p.divs.map(([nome, base], k) => ({ nome, base, pais: p.id, k, topo: k === p.divs.length - 1, piso: k === 0 })));
 function divDe(pais, k) { return DIVS.findIndex(d => d.pais === pais && d.k === k); }
@@ -72,6 +82,15 @@ const NOMES_PAIS = {
   inglaterra: { b: ['Bath', 'York', 'Dover', 'Chester', 'Exeter', 'Durham', 'Kent', 'Hull', 'Lincoln', 'Bristol', 'Salisbury', 'Canterbury'], c: ['Rovers', 'Athletic', 'Albion', 'Wanderers', 'Town', 'Harriers', 'Rangers', 'Mariners'] },
   argentina: { a: ['Club Atlético', 'Deportivo', 'Sportivo', 'Racing de', 'Unión de', 'Estudiantes de'], b: ['Rosário', 'Mendoza', 'Córdoba', 'Salta', 'Tucumán', 'La Plata', 'Mar del Plata', 'Bahía Blanca', 'Santa Fé', 'Jujuy', 'Neuquén', 'Paraná'] },
   franca: { a: ['Olympique de', 'Stade', 'AS', 'FC', 'Racing de', 'Étoile de'], b: ['Rouen', 'Dijon', 'Tours', 'Nancy', 'Grenoble', 'Avignon', 'Orléans', 'Limoges', 'Calais', 'Toulon', 'Annecy', 'Amiens'] },
+  china: { a: ['Dragões de', 'Tigres de', 'Estrela de', 'FC', 'União de', 'Garças de'], b: ['Hangzhou', 'Nanjing', 'Qingdao', 'Dalian', 'Xiamen', 'Suzhou', 'Kunming', 'Harbin', 'Xian', 'Changsha', 'Hefei', 'Jinan'] },
+  arabia: { a: ['Al', 'Clube', 'Falcões de', 'Estrela de', 'União de', 'Oásis de'], b: ['Abha', 'Hail', 'Tabuk', 'Najran', 'Jizan', 'Buraidah', 'Khobar', 'Yanbu', 'Taif', 'Qassim', 'Jubail', 'Medina'] },
+  colombia: { a: ['Deportivo', 'Atlético', 'Real', 'Independiente', 'Unión', 'Club'], b: ['Cúcuta', 'Pasto', 'Neiva', 'Armenia', 'Ibagué', 'Manizales', 'Santa Marta', 'Villavicencio', 'Tunja', 'Popayán', 'Montería', 'Valledupar'] },
+  uruguai: { a: ['Club', 'Atlético', 'Sportivo', 'Deportivo', 'Racing', 'Unión'], b: ['Salto', 'Paysandú', 'Rivera', 'Maldonado', 'Colonia', 'Durazno', 'Tacuarembó', 'Florida', 'Minas', 'Rocha', 'Artigas', 'Melo'] },
+  mexico: { a: ['Club', 'Atlético', 'Deportivo', 'Leones de', 'Águilas de', 'Venados de'], b: ['Puebla', 'Oaxaca', 'Mérida', 'Querétaro', 'Tijuana', 'Cancún', 'Morelia', 'Zacatecas', 'Veracruz', 'Durango', 'Sinaloa', 'Tepic'] },
+  escocia: { a: ['FC', 'Athletic', 'Rovers', 'United', 'Thistle', 'Academical'], b: ['Perth', 'Inverness', 'Stirling', 'Dunfermline', 'Falkirk', 'Ayr', 'Arbroath', 'Montrose', 'Greenock', 'Paisley', 'Airdrie', 'Hamilton'] },
+  turquia: { a: ['Spor', 'Gençlik', 'FK', 'Belediye', 'Kulübü', 'Yıldız'], b: ['Bursa', 'Izmir', 'Adana', 'Samsun', 'Kayseri', 'Eskişehir', 'Malatya', 'Denizli', 'Rize', 'Manisa', 'Sakarya', 'Bodrum'] },
+  belgica: { a: ['Royal', 'KV', 'KAS', 'Sporting', 'Racing', 'Union'], b: ['Ostende', 'Lommel', 'Lier', 'Beveren', 'Tubize', 'Namur', 'Mons', 'Tournai', 'Hasselt', 'Aalst', 'Ronse', 'Waregem'] },
+  holanda: { a: ['FC', 'SC', 'VV', 'Go Ahead', 'Fortuna', 'Excelsior'], b: ['Deventer', 'Zwolle', 'Almere', 'Breda', 'Tilburg', 'Nijmegen', 'Leeuwarden', 'Emmen', 'Venlo', 'Den Bosch', 'Maastricht', 'Dordrecht'] },
   mundo: { a: ['Real', 'Inter', 'Atlético', 'Sporting', 'Dínamo', 'Olímpico', 'Racing', 'Imperial'], b: ['Tordesilhas', 'Lisboa Nova', 'Nova Iorque', 'Tóquio', 'Cairo', 'Madri Velha', 'Monte Alto', 'Porto Frio', 'Sidney', 'Buenos Aires', 'Munique Sul', 'Doha Norte'] },
 };
 // clubes conhecidos com uma pequena mudança criativa no nome — [nome, cor1, cor2], do mais forte para o mais fraco
@@ -134,6 +153,15 @@ const CLUBES_PAIS = {
     [['Saint-Étiennê', '#1a8a3a', '#ffffff'], ['Girondinos de Bordéus', '#1a2a6a', '#ffffff'], ['Montpelliê', '#1a2a6a', '#ff8a1a'], ['Toulousê', '#7a2ad9', '#ffffff'], ['Auxerrê', '#ffffff', '#1a4ad9'], ['Metzê', '#8a1a2a', '#ffffff'], ['Stade de Reimss', '#d42a2a', '#ffffff'], ['Brestê', '#d42a2a', '#ffffff'], ['Angers SCO', '#1a1a1a', '#ffffff'], ['Le Havrê', '#6ab0e0', '#1a2a6a']],
     [['Paris Saint-Germã', '#1a2a6a', '#d42a2a'], ['Olympique de Marselha', '#ffffff', '#6ab0e0'], ['Olympique Lyonês', '#ffffff', '#1a4ad9'], ['Mônaco AS', '#d42a2a', '#ffffff'], ['Lillê', '#d42a2a', '#1a2a6a'], ['Stade Rennês', '#d42a2a', '#1a1a1a'], ['Nicê', '#d42a2a', '#1a1a1a'], ['Lensê', '#f0c030', '#d42a2a'], ['Nantis', '#f0c030', '#1a8a3a'], ['Estrasburgo', '#1a4ad9', '#ffffff']],
   ],
+  china: [null, [['Shanghai Portô', '#d42a2a', '#ffffff'], ['Shandong Taishão', '#ff8a1a', '#1a1a1a'], ['Beijing Guoã', '#1a8a3a', '#ffffff'], ['Guangzhou Tigres do Sul', '#d42a2a', '#f0c030'], ['Wuhan Três Cidades', '#1a4ad9', '#ffffff'], ['Chengdu Rongchen', '#d42a2a', '#1a1a1a'], ['Tianjin Tigre', '#1a4ad9', '#f0c030'], ['Shanghai Shenhuá', '#1a4ad9', '#ffffff'], ['Zhejiang Verde', '#1a8a3a', '#ffffff'], ['Changchun Yatai', '#ff8a1a', '#ffffff']]],
+  arabia: [null, [['Al Hilaal', '#1a4ad9', '#ffffff'], ['Al Nassar', '#f0c030', '#1a4ad9'], ['Al Ittihaad', '#f0c030', '#1a1a1a'], ['Al Ahlii Jidá', '#1a8a3a', '#ffffff'], ['Al Shabaab', '#ffffff', '#1a1a1a'], ['Al Ettifaq', '#1a8a3a', '#d42a2a'], ['Al Fateh', '#1a4ad9', '#ffffff'], ['Al Taawon', '#f0c030', '#ffffff'], ['Al Fayha', '#ff8a1a', '#1a4ad9'], ['Damac Abha', '#d42a2a', '#f0c030']]],
+  colombia: [null, [['Atlético Nacionau', '#1a8a3a', '#ffffff'], ['Millonários', '#1a4ad9', '#ffffff'], ['América de Calli', '#d42a2a', '#ffffff'], ['Deportivo Calli', '#1a8a3a', '#ffffff'], ['Júnior Barranquila', '#d42a2a', '#ffffff'], ['Santa Fé Bogotá', '#d42a2a', '#ffffff'], ['Independente Medellín', '#d42a2a', '#1a4ad9'], ['Once Caldass', '#ffffff', '#1a1a1a'], ['Tolimá', '#8a1a2a', '#f0c030'], ['Pereirá', '#f0c030', '#d42a2a']]],
+  uruguai: [null, [['Peñarou', '#f0c030', '#1a1a1a'], ['Nacionau de Montevidéu', '#ffffff', '#1a4ad9'], ['Defensor Esportin', '#7a2ad9', '#ffffff'], ['Danubiô', '#ffffff', '#1a1a1a'], ['Liverpúl de Montevidéu', '#1a1a1a', '#1a4ad9'], ['Wanderers Montevidéu', '#ffffff', '#1a1a1a'], ['River Plate Montevidéu', '#d42a2a', '#ffffff'], ['Cerro Largô', '#1a4ad9', '#ffffff'], ['Fênix', '#7a2ad9', '#ffffff'], ['Progresso', '#d42a2a', '#f0c030']]],
+  mexico: [null, [['Clube Amérika', '#f0c030', '#1a4ad9'], ['Chivás', '#d42a2a', '#ffffff'], ['Cruz Azúl', '#1a4ad9', '#ffffff'], ['Tigres de Nuevo León', '#f0c030', '#1a4ad9'], ['Monterrey Rayados', '#1a2a6a', '#ffffff'], ['Pumas da Capital', '#1a2a6a', '#f0c030'], ['Toluca Diablos', '#d42a2a', '#ffffff'], ['León Esmeralda', '#1a8a3a', '#ffffff'], ['Pachuca Tuzos', '#1a4ad9', '#ffffff'], ['Santos Laguna', '#1a8a3a', '#ffffff']]],
+  escocia: [null, [['Celtik', '#1a8a3a', '#ffffff'], ['Rangérs', '#1a4ad9', '#ffffff'], ['Aberdín', '#d42a2a', '#ffffff'], ['Hearts de Edimburgo', '#8a1a2a', '#ffffff'], ['Hibernián', '#1a8a3a', '#ffffff'], ['Dundee Unaited', '#ff8a1a', '#1a1a1a'], ['Motherwéll', '#f0c030', '#8a1a2a'], ['Kilmarnók', '#1a4ad9', '#ffffff'], ['St. Mirrén', '#1a1a1a', '#ffffff'], ['Ross Countri', '#1a2a6a', '#d42a2a']]],
+  turquia: [null, null, [['Galatasarai', '#d42a2a', '#f0c030'], ['Fenerbahçê', '#f0c030', '#1a2a6a'], ['Besiktás', '#1a1a1a', '#ffffff'], ['Trabzonspôr', '#8a1a2a', '#6ab0e0'], ['Basaksehír', '#ff8a1a', '#1a2a6a'], ['Konyaspôr', '#1a8a3a', '#ffffff'], ['Antalyaspôr', '#d42a2a', '#ffffff'], ['Kasimpasá', '#1a2a6a', '#ffffff'], ['Sivasspôr', '#d42a2a', '#ffffff'], ['Alanyaspôr', '#ff8a1a', '#1a8a3a']]],
+  belgica: [null, null, [['Club Bruges', '#1a4ad9', '#1a1a1a'], ['Anderléchti', '#7a2ad9', '#ffffff'], ['Genk Racing', '#1a4ad9', '#ffffff'], ['Antuérpia Royal', '#d42a2a', '#ffffff'], ['Standard de Liège', '#d42a2a', '#ffffff'], ['Gent Búfalos', '#1a4ad9', '#ffffff'], ['Union Saint-Gilles', '#f0c030', '#1a4ad9'], ['Charleroí', '#1a1a1a', '#ffffff'], ['Mechelén', '#d42a2a', '#f0c030'], ['Cercle Bruges', '#1a8a3a', '#1a1a1a']]],
+  holanda: [null, null, [['Ajáx', '#ffffff', '#d42a2a'], ['PSV Eindhovén', '#d42a2a', '#ffffff'], ['Feyenoordi', '#d42a2a', '#1a1a1a'], ['AZ Alkmar', '#d42a2a', '#ffffff'], ['Twenté', '#d42a2a', '#ffffff'], ['Utrecht FC', '#d42a2a', '#ffffff'], ['Vitésse', '#f0c030', '#1a1a1a'], ['Heerenveen Frísio', '#1a4ad9', '#ffffff'], ['Groningên', '#1a8a3a', '#ffffff'], ['Sparta Roterdã', '#d42a2a', '#ffffff']]],
   mundo: [
     [['Real Madrís', '#ffffff', '#7a2ad9'], ['Manchester Citty', '#6ab0e0', '#ffffff'], ['Bayernn München', '#d42a2a', '#ffffff'], ['Barcelonha', '#1a2a6a', '#8a1a2a'], ['Liverpúl', '#d42a2a', '#ffffff'], ['Juventos', '#ffffff', '#1a1a1a'], ['Framengo', '#d42a2a', '#1a1a1a'], ['Palmeiral', '#1a8a3a', '#ffffff'], ['Boca Juniorz', '#1a2a6a', '#f0c030'], ['Ríver Plata', '#ffffff', '#d42a2a']],
   ],
@@ -152,8 +180,11 @@ const ESTRUTURA = {
   estadio: { nome: 'Estádio', base: 2000, desc: n => `Bilheteria +${n * 50}% nos jogos em casa.` },
   base: { nome: 'Categoria de Base', base: 1800, desc: n => `${1 + Math.ceil(n / 2)} jovem(ns) promessa(s) por temporada, potencial +${n * 2}.` },
   olheiro: { nome: 'Rede de Olheiros', base: 1000, desc: n => `Mercado com ${6 + n} jogadores, ${n ? '+' + n : 'sem bônus'} de força.` },
+  // v236: evoluções novas
+  loja: { nome: 'Loja e Marketing', base: 2200, desc: n => `Venda de camisas e produtos: +${n * 15}% do prêmio da rodada em cada jogo.` },
+  torcida: { nome: 'Sócio-Torcedor', base: 2600, desc: n => `+${n * 10}% de bilheteria em casa e o moral do time não cai abaixo de ${-3 + Math.min(3, Math.ceil(n / 2))}.` },
 };
-const ESTR_MAX = 5;
+const ESTR_MAX = 8; // v236: 5 → 8 níveis
 function custoEstr(k, n) { return Math.round(ESTRUTURA[k].base * Math.pow(2.6, n)); }
 const METAS = {
   campeao: { txt: 'Ser CAMPEÃO', ok: pos => pos === 1 },
@@ -283,6 +314,7 @@ function gerarPiramide(pais, minhaK) {
   const usados = new Set([G.save.time.nome]);
   const reais = CLUBES_PAIS[pais];
   if (reais) return { pais, divs: PAIS[pais].divs.map(([, base], k) => {
+    if (!reais[k]) { const lugares = new Set(); return Array.from({ length: k === minhaK ? TIMES_LIGA - 1 : TIMES_LIGA }, () => novoTimeIA(pais, base, usados, Math.random, lugares)); } // v236: sem clubes conhecidos nesta divisão
     // o mais forte da lista começa com força base+4, o mais fraco base-5; se você está na divisão, o último fica de fora
     const lista = reais[k].slice(0, k === minhaK ? TIMES_LIGA - 1 : TIMES_LIGA);
     return lista.map(([nome, cor1, cor2], i) => ({ ...novoTimeIA(pais, base, usados), nome, cor1, cor2, ovr: base + 4 - i + rndi(-1, 1) }));
@@ -328,7 +360,7 @@ function fundarTime(nome, cor1, cor2) {
   const s = G.save;
   s.time = {
     nome, cor1, cor2, formacao: '4-4-2', tatica: 'equilibrada', elenco: [], titulares: [], energiaEu: 100, moral: 0, titulos: 0, temporada: 1, historico: [], mercado: [], diaMercado: 0, diaTreino: 0, ultEnergia: Date.now(), div: 0, jogos: 0, vitorias: 0,
-    pais: 'brasil', nomesReais: true, caixa: 1500, patro: 1, estr: { ct: 0, med: 0, estadio: 0, base: 0, olheiro: 0 }, base: [], trofeus: [], campeoes: {}, finTemp: { ent: 0, sai: 0 }, fin: [],
+    pais: 'brasil', nomesReais: true, caixa: 1500, patro: 1, estr: { ct: 0, med: 0, estadio: 0, base: 0, olheiro: 0, loja: 0, torcida: 0 }, base: [], trofeus: [], campeoes: {}, finTemp: { ent: 0, sai: 0 }, fin: [],
   };
   ['GOL', 'ZAG', 'ZAG', 'LAT', 'LAT', 'VOL', 'VOL', 'MEI', 'MEI', 'ATA', 'ATA'].forEach(p => s.time.elenco.push(geraJogador(p, 27)));
   s.time.piramide = gerarPiramide('brasil', 0);
@@ -341,7 +373,7 @@ function fundarTime(nome, cor1, cor2) {
 function renomeiaRivais() {
   const t = G.save.time; const reais = CLUBES_PAIS[t.pais]; if (!reais) return;
   const mapa = {};
-  t.piramide.divs.forEach((lista, k) => [...lista].sort((a, b) => b.ovr - a.ovr).forEach((a, i) => { const r = reais[k][i]; if (!r) return; [a.nome, a.cor1, a.cor2] = r; mapa[a.id] = a; }));
+  t.piramide.divs.forEach((lista, k) => [...lista].sort((a, b) => b.ovr - a.ovr).forEach((a, i) => { const r = reais[k] && reais[k][i]; if (!r) return; [a.nome, a.cor1, a.cor2] = r; mapa[a.id] = a; }));
   const copia = x => { const a = mapa[x.id]; if (a) { x.nome = a.nome; x.cor1 = a.cor1; x.cor2 = a.cor2; } };
   t.liga.times.forEach(copia); if (t.copa) t.copa.advs.forEach(copia);
 }
