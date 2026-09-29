@@ -355,7 +355,7 @@ function preCarregaMapa() {
 /* v254: VELOCIDADE COMO NO TIBIA DE HOJE. A "velocidade" do jogo (220 + 2/nível + itens) é o dobro da escala do Tibia
    (109 + nível); o passo segue a curva oficial do Tibia (857,36 · ln(v + 261,29) − 4795,009), que cresce cada vez
    menos nos níveis altos. Antes era linear (velocidade ÷ 60): nível 400 andava 17 quadradinhos por segundo (24 com itens);
-   agora ~8,5. VEL_K deixa um pouco mais rápido que o Tibia (nossos mapas são maiores). */
+   agora ~8,5. VEL_K = 1,4 deixa 40% mais rápido que o Tibia (1,0 = igual ao Tibia) — em teste pelo dono. */
 const VEL_K = 1.4;
 function tpsDeVel(v) { const pts = Math.max(20, v / 2); return Math.max(0.6, VEL_K * (857.36 * Math.log(pts + 261.29) - 4795.009) / 150); }
 function velJogador() {
@@ -927,7 +927,7 @@ function atualiza(dt) {
   }
   if (G.caca && !G.alvo && G.agora > (G.tCaca || 0) && s.hp > 0) {
     G.tCaca = G.agora + 500;
-    const m = ordenaAlvos(G.mons.filter(m => !m.d.treino && !m.d.chefe && dist(m, G.p) < 7))[0];
+    const m = ordenaAlvos(G.mons.filter(m => !m.d.treino && !m.d.chefe && naTela(m)))[0]; // v255: qualquer adversário VISÍVEL na tela (antes só até 7 quadradinhos)
     if (m) { G.alvo = m; G.uiSujo = true; }
   }
   atualizaJogador(dt);
@@ -1523,7 +1523,7 @@ function atualizaBotaoAlvo() {
   const velho = document.getElementById('btnAlvo'); if (velho) velho.remove(); // o botão antigo da barra de ações sai
 }
 function alvoMaisProximo() {
-  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8 && naTela(m)));
+  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && naTela(m))); // v255: a tela toda (antes até 8 quadradinhos)
   if (!vis.length) { const t = G.mons.filter(m => m.d.treino && dist(m, p) < 6 && naTela(m)).sort((a, b) => dist(a, p) - dist(b, p)); if (t.length) { G.alvo = t[0]; G.uiSujo = true; } return; }
   const i = vis.indexOf(G.alvo); G.alvo = vis[(i + 1) % vis.length]; G.uiSujo = true;
 }
@@ -1565,7 +1565,7 @@ function instalaEntrada() {
 }
 function mudaZoom(d) { G.zoomVis = clamp((G.zoomVis || 15.5) + d, 9, 22); }
 function alvoAnterior() {
-  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && dist(m, p) < 8 && naTela(m))); if (!vis.length) return;
+  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && naTela(m))); if (!vis.length) return;
   const i = vis.indexOf(G.alvo); G.alvo = vis[(i - 1 + vis.length) % vis.length]; G.uiSujo = true;
 }
 function trocaModo() { G.modo = G.modo === 'drible' ? 'chute' : 'drible'; log(G.modo === 'drible' ? 'Modo DRIBLE: ataca colado no adversário (treina Drible).' : 'Modo CHUTE: ataca de longe (treina Chute).', 'l-info'); G.uiSujo = true; }
