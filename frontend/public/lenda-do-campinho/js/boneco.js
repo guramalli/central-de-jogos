@@ -412,7 +412,7 @@ function ajustaGenero(n, sp) {
 // rótulo de cada pixel (1 cabelo, 2 camisa, 3 shorts, 4 pele) — calculado 1 vez por célula da folha
 function rotulaCelula(f, idx) {
   f.rot = f.rot || {}; if (f.rot[idx]) return f.rot[idx];
-  const c = mkCanvas(FOLHA_CW, FOLHA_CH), x = c.getContext('2d'); const col = idx % 4, lin = Math.floor(idx / 4);
+  const c = mkCanvas(FOLHA_CW, FOLHA_CH), x = c.getContext('2d', { willReadFrequently: true }); const col = idx % 4, lin = Math.floor(idx / 4);
   x.drawImage(f.im, col * FOLHA_CW, lin * FOLHA_CH, FOLHA_CW, FOLHA_CH, 0, 0, FOLHA_CW, FOLHA_CH);
   const d = x.getImageData(0, 0, FOLHA_CW, FOLHA_CH).data, n = FOLHA_CW * FOLHA_CH;
   const rot = new Uint8Array(n), lum = new Float32Array(n);
