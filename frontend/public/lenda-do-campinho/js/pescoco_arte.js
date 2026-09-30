@@ -83,13 +83,14 @@
   function cordao(x, tipo, cor, fn, fnFita) {
     if (tipo === 'corrente') corrente(x, fn, cor);
     else if (tipo === 'fita') { const [c1, c2] = cor; fnFita(c1, c2); }
-    else risco(x, fn, cor, 1.3);
+    else risco(x, fn, cor, 1.1);
   }
   function fitaV(x, lx, yb, c1, c2) { // fita de medalha, em "V", cada lado de uma cor
-    const lado = (s, c) => { const p = P(); p.moveTo(lx + s * 8.2, 78.2); p.lineTo(lx + s * 5, 78.2); p.lineTo(lx + s * 0.2, yb + 0.6); p.lineTo(lx + s * 2.9, yb - 1.4); p.closePath(); pinta(x, p, c, { lw: 0.9, k: 0.25, dx: -0.8, dy: -0.6 }); };
+    const lado = (s, c) => { const p = P(); p.moveTo(lx + s * 6.8, 79.8); p.lineTo(lx + s * 4.1, 79.8); p.lineTo(lx + s * 0.2, yb + 0.6); p.lineTo(lx + s * 2.6, yb - 1.3); p.closePath(); pinta(x, p, c, { lw: 0.9, k: 0.25, dx: -0.8, dy: -0.6 }); };
     lado(-1, c1); lado(1, c2);
   }
-  function pingente(x, nome, cx, cy, alt, sx = 1) {
+  function pingente(x, nome, cx, cy, alt, sx = 1, halo = false) {
+    if (halo) { x.save(); const g = x.createRadialGradient(cx, cy + alt * 0.5, 0, cx, cy + alt * 0.5, alt * 0.75); g.addColorStop(0, 'rgba(255,250,225,0.55)'); g.addColorStop(1, 'rgba(255,250,225,0)'); x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy + alt * 0.5, alt * 0.75 * sx, alt * 0.75, 0, 0, 7); x.fill(); x.restore(); }
     const im = aSprite('pg_' + nome); if (!im) { faltou = true; x.save(); x.fillStyle = '#e8b830'; x.strokeStyle = LINHA; x.lineWidth = 0.9; x.beginPath(); x.arc(cx, cy + alt * 0.4, alt * 0.32, 0, 7); x.fill(); x.stroke(); x.restore(); return; }
     const meta = PG_META[nome] || [0.5], w = alt * im.width / im.height;
     x.save(); x.imageSmoothingQuality = 'high'; x.translate(cx, cy); x.scale(sx, 1); x.drawImage(im, -meta[0] * w, -0.4, w, alt); x.restore();
@@ -147,19 +148,19 @@
         const [nome, alt, tipo, cor] = PING[it] && (PING[it][2] !== undefined) ? PING[it] : PING[PING_PADRAO[n]];
         if (v === 'c') { // de costas: só o cordão na nuca
           const c1 = Array.isArray(cor) ? cor[0] : cor;
-          cordao(x, tipo === 'fita' ? 'cordao' : tipo, c1, () => { x.moveTo(lx - 7, 77.8); x.quadraticCurveTo(lx, 81.5, lx + 7, 77.8); });
+          cordao(x, tipo === 'fita' ? 'cordao' : tipo, c1, () => { x.moveTo(lx - 6, 79.4); x.quadraticCurveTo(lx, 82.5, lx + 6, 79.4); });
           return;
         }
         if (v === 'l') { // de lado: o cordão desce do pescoço para a frente do peito, o pingente fica de perfil
           const bx = lx + 7.5, by = 87.5, c1 = Array.isArray(cor) ? cor[1] : cor;
-          if (tipo === 'fita') { const p = P(); p.moveTo(lx + 0.5, 77.5); p.lineTo(lx + 3.4, 77.5); p.lineTo(bx + 1.2, by); p.lineTo(bx - 1.6, by + 0.3); p.closePath(); pinta(x, p, c1, { lw: 0.9, k: 0.25, dx: -0.8, dy: -0.6 }); }
-          else cordao(x, tipo, c1, () => { x.moveTo(lx + 1.5, 77.6); x.quadraticCurveTo(lx + 6.5, 80, bx, by); });
-          pingente(x, nome, bx, by - 0.4, alt * 0.94, 0.62);
+          if (tipo === 'fita') { const p = P(); p.moveTo(lx + 0.8, 79.4); p.lineTo(lx + 3.4, 79.4); p.lineTo(bx + 1.2, by); p.lineTo(bx - 1.6, by + 0.3); p.closePath(); pinta(x, p, c1, { lw: 0.9, k: 0.25, dx: -0.8, dy: -0.6 }); }
+          else cordao(x, tipo, c1, () => { x.moveTo(lx + 1.8, 79.4); x.quadraticCurveTo(lx + 6.5, 81.5, bx, by); });
+          pingente(x, nome, bx, by - 0.4, alt * 1.0, 0.62, true);
           return;
         }
-        const by = tipo === 'fita' ? 88 : 87.5;
-        cordao(x, tipo, cor, () => { x.moveTo(lx - 7.2, 78); x.quadraticCurveTo(lx - 4.6, by - 0.4, lx, by); x.quadraticCurveTo(lx + 4.6, by - 0.4, lx + 7.2, 78); }, (c1, c2) => fitaV(x, lx, by, c1, c2));
-        pingente(x, nome, lx, by - 0.4, alt);
+        const by = tipo === 'fita' ? 89 : 88.6;
+        cordao(x, tipo, cor, () => { x.moveTo(lx - 5.8, 79.6); x.quadraticCurveTo(lx - 3.8, by - 0.5, lx, by); x.quadraticCurveTo(lx + 3.8, by - 0.5, lx + 5.8, 79.6); }, (c1, c2) => fitaV(x, lx, by, c1, c2));
+        pingente(x, nome, lx, by - 0.4, alt * 1.08, 1, true);
         return;
       }
       if (n === 'havaiano') { colar(x, COLAR[it] || 'havaiano', v, lx); return; }
@@ -191,8 +192,11 @@
     for (let y = Math.floor(lim); y <= y1; y++) for (let xx = 0; xx < W; xx++) {
       const i = y * W + xx; if (d[i * 4 + 3] < 40 || rot[i] === 4 || rot[i] === 3) continue;
       const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b) / 255;
-      if (mx > 0.62 || mx < 0.1) continue; // meia branca e contorno ficam como estão
-      idx.push(i);
+      if (mx > 0.62 || mx < 0.2) continue; // meia branca e contorno ficam como estão
+      let meia = false; // a borda lateral da meia (colada num pixel branco na mesma linha) também fica
+      for (let dx = -2; dx <= 2 && !meia; dx++) { const j = (i + dx) * 4; if (dx && xx + dx >= 0 && xx + dx < W && Math.min(d[j], d[j + 1], d[j + 2]) > 190) meia = true; }
+      for (let k = -2; k <= 2 && !meia; k++) if (k && (rot[i + k] === 4 || rot[i + k * W] === 4)) meia = true; // e o contorno da canela (colado na pele)
+      if (!meia) idx.push(i);
     }
     if (idx.length < 20) return;
     const v = idx.map(i => lum[i] || Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) / 255).sort((a, b) => a - b), ref = v[v.length >> 1] || 0.3;

@@ -221,7 +221,7 @@ G.areaGrade = null;
     const r = _dcc.apply(this, arguments);
     const A = G.areaGrade; if (A && GRADE.on) {
       const k = (G.agora - A.t0) / 700; if (k > 1) G.areaGrade = null;
-      else { ctx.save(); const al = 1 - k; ctx.fillStyle = A.cor; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; // v301: bem mais transparente (antes 55% e borda grossa)
+      else { ctx.save(); const al = 1 - k; ctx.fillStyle = A.cor; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; // v300: bem mais transparente (antes 55% e borda grossa)
         const qs = new Set(); for (let y = A.y - A.raio; y <= A.y + A.raio; y++) for (let x = A.x - A.raio; x <= A.x + A.raio; x++) qs.add(x + ',' + y);
         if (A.eu) for (let y = A.eu.y - 1; y <= A.eu.y + 1; y++) for (let x = A.eu.x - 1; x <= A.eu.x + 1; x++) if (x !== A.eu.x || y !== A.eu.y) qs.add(x + ',' + y);
         for (const q of qs) { const [x, y] = q.split(',').map(Number); ctx.globalAlpha = 0.2 * al; ctx.fillRect(x * T + 2, y * T + 2, T - 4, T - 4); ctx.globalAlpha = 0.35 * al; ctx.strokeRect(x * T + 2, y * T + 2, T - 4, T - 4); }
