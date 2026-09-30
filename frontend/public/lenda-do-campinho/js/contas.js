@@ -62,7 +62,7 @@ async function confereContinuar(local) {
   delete bc.dataset.conferindo; bc.innerHTML = txt;
   if (r.falhou) {
     // já é desta conta: pode seguir normal. Sem marca: não dá pra saber de quem é, então não sobe nada
-    if (!local.conta) { CONTA_SEM_CONFERIR = true; setTimeout(() => nuvemStatus('☁️ Não deu para conferir o save online: desta vez salvo só neste aparelho'), 3000); }
+    if (!local.conta) { CONTA_SEM_CONFERIR = true; setTimeout(() => nuvemStatus('☁️ Não deu para conferir o save online: tentando de novo...'), 3000); tentaConferirDeNovo(local); }
     return iniciarJogo(local);
   }
   const nuvem = r.nuvem;
@@ -71,6 +71,23 @@ async function confereContinuar(local) {
   const onlineMaisNovo = mesmo && (nuvem.salvoEm || r.quando || 0) > (local.salvoEm || 0) + 60000 && (nuvem.xp || 0) > (local.xp || 0);
   if (mesmo && !onlineMaisNovo) return iniciarJogo(local);
   escolheSave(local, nuvem, mesmo);
+}
+
+// v295: o servidor demorou na hora do "Continuar": antes a sessão INTEIRA ficava sem salvar online e sem ranking.
+// Agora tenta de novo em segundo plano; quando o servidor responde e o personagem é mesmo desta conta
+// (ou a conta ainda não tem save online), volta a salvar online sozinho.
+function tentaConferirDeNovo(local, tentativa = 1) {
+  if (tentativa > 12) { nuvemStatus('☁️ Não deu para conferir o save online: desta vez salvo só neste aparelho'); return; }
+  setTimeout(async () => {
+    if (!CONTA_SEM_CONFERIR || !G.save) return;
+    const r = await saveOnlineComPrazo(15000);
+    if (r.falhou) return tentaConferirDeNovo(local, tentativa + 1);
+    const nuvem = r.nuvem, s = G.save;
+    const mesmo = !nuvem || (nuvem.criado ? nuvem.criado === s.criado : nuvem.nome === s.nome);
+    if (!mesmo) { nuvemStatus('⚠️ Sua conta já tem outro personagem online: este fica salvo só neste aparelho'); return; }
+    CONTA_SEM_CONFERIR = false; if (!s.conta) s.conta = CONTA;
+    nuvemStatus('☁️ Conferido! Salvando online de novo'); try { salvar(); enviaRankingJa(); } catch (e) { }
+  }, tentativa === 1 ? 8000 : 20000);
 }
 
 function escolheSave(local, nuvem, mesmo) {

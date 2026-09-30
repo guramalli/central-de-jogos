@@ -66,7 +66,7 @@ function atualizaBotaoDiaria() {
     espera = setInterval(() => {
       if (!G.save || Date.now() - t0 > 600000) { clearInterval(espera); return; }
       if (diariaEstado().pegou) { clearInterval(espera); return; }
-      const livre = G.rodando && !G.pausado && $('#modal').hidden && !(typeof HIST !== 'undefined' && HIST) && (G.save.st.tempo > 60 || G.save.nivel > 1);
+      const livre = G.rodando && !G.pausado && $('#modal').hidden && !(typeof HIST !== 'undefined' && HIST) && !G.jogoC && !G.fut && (G.save.st.tempo > 60 || G.save.nivel > 1); // v295: nunca no meio de uma partida da carreira
       if (livre && Date.now() - t0 > 2500) { clearInterval(espera); modalDiaria(); }
     }, 1000);
     return r;

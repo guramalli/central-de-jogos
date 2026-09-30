@@ -99,6 +99,8 @@ window.addEventListener('keydown', ev => {
     } else aoTerminar('');
     return;
   }
+  // v295: futebol da carreira: a tecla é do lance (chutar, passar, driblar, pênalti) — deixa passar para carreira_futebol.js
+  if (typeof futQuerTecla === 'function' && futQuerTecla(ev.code)) return;
   // Ctrl + seta (ou tecla de andar): vira para o lado sem sair do lugar, como no Tibia
   if (ev.ctrlKey && !ev.altKey && !ev.metaKey && G.rodando && !G.pausado && G.p && !(typeof HIST !== 'undefined' && HIST)) {
     const tok = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r' }[ev.code] || MOVE_TECLA[acaoDaTecla(ev.code)];

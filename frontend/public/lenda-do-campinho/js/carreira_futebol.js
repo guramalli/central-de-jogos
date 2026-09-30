@@ -442,6 +442,13 @@ function futPosiciona() {
 window.addEventListener('resize', () => { if (G.jogoC) futPosiciona(); });
 { const _plc = cjPlacar; cjPlacar = function () { const r = _plc.apply(this, arguments); try { futPosiciona(); } catch (e) { } return r; }; }
 // teclado (só durante o lance)
+// v295: o teclas.js (teclas configuráveis) escuta ANTES e segurava W/S, Espaço, X, E, C, F... para andar, marcar alvo,
+// falar: o chute, o passe, o drible e o pênalti pelo teclado nunca chegavam aqui. Ele pergunta aqui se a tecla é do lance.
+function futQuerTecla(c) {
+  const F = G.fut; if (!F || F.acabou || (typeof $ === 'function' && !$('#modal').hidden)) return false;
+  if (F.tipo === 'penalti') return F.penalti && F.penalti.fase === 'mira'; // no pênalti, nenhuma tecla anda (antes o boneco "corria parado")
+  return ['Space', 'KeyX', 'KeyK', 'KeyC', 'KeyE', 'KeyJ', 'KeyF', 'KeyL', 'ShiftLeft'].includes(c);
+}
 window.addEventListener('keydown', ev => {
   const F = G.fut; if (!F || F.acabou || (typeof $ === 'function' && !$('#modal').hidden)) return;
   const c = ev.code; let fn = null;
