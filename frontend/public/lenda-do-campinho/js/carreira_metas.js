@@ -141,7 +141,9 @@ function carrBotaoMetas(k) {
     el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => carrEscolherMetas(k) }, `🔄 Escolher as metas (${k.opcoesMeta.length} opções, você fica com 3)`));
 }
 function carrEscolherMetas(k) {
-  const escolhidas = new Set(k.metas);
+  // v284: depois de recarregar o jogo, as metas escolhidas não são mais os MESMOS objetos das opções (o save vira texto): compara pelo conteúdo
+  const igual = (a, b) => a.tipo === b.tipo && a.alvo === b.alvo && a.n === b.n;
+  const escolhidas = new Set(k.opcoesMeta.filter(o => (k.metas || []).some(m => m === o || igual(m, o))).slice(0, 3));
   const lista = el('div', { class: 'cm-opcoes' });
   const conta = el('p', { class: 'dica' });
   const pinta = () => { conta.textContent = `Escolhidas: ${escolhidas.size} de 3. Enquanto você não começar a cumprir nenhuma, dá para trocar.`; ok.disabled = escolhidas.size !== Math.min(3, k.opcoesMeta.length); };
