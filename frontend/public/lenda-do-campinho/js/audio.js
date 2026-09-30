@@ -18,8 +18,10 @@
   // duração exata do corpo do loop (o arquivo tem +0,5 s repetindo o começo, para emenda perfeita)
   const MUSICAS = { titulo: 18.5388, vila: 18.5388, cidade: 18.5388, mundo: 16.5788, europa: 18.5388,
     vila2: 58.0236, cidade2: 58.0236, mundo2: 58.0236, europa2: 58.0236, caca: 58.0236, estadio: 58.0236 }; // v155: faixas longas (1 min) — as de 18 s repetiam demais
-  // v276: música própria de cada cidade (2 minutos, com a cara do lugar); as outras cidades continuam com a da região
-  const MUS_CIDADE = { cairo: 119.9, rio: 119.9, buenos: 119.9, toquio: 119.9, paris: 119.9, munique: 119.9, madri: 119.9 }; // tocam inteiras (2 min), uma vez, e dão lugar a uma pausa
+  // v276: música própria de cada cidade (faixas prontas da Pixabay Music — licença livre para usar no jogo, sem crédito obrigatório),
+  // com a cara do lugar (samba, tango, flamenco, acordeão, polca, koto...). Toca inteira ao chegar, depois alterna com a da região.
+  const MUS_CIDADE = { rio: 173.76, santos: 137.32, buenos: 146.45, madri: 156.5, paris: 142.08, munique: 202.76, toquio: 171.35,
+    cairo: 150.43, doha: 143.31, miami: 179.97, lisboa: 220.52, milao: 135.07, londres: 165.08 };
   Object.assign(MUSICAS, MUS_CIDADE);
   const AMBIENTE = { torcida: 11.65 };
 
