@@ -13,12 +13,15 @@ const PORTAS = { b_casa: { x: 0.46, y: 0.86 }, b_bazar: { x: 0.49, y: 0.81 }, b_
 const FACE_BICHO = { pombo: 'e', pombo2: 'e', cachorro: 'e', cachorro2: 'e', gaivota: 'e', caranguejo: 'f', boneco: 'f' };
 
 const SPR = {};
+// v296: imagem que foi REFEITA com o mesmo nome ganha uma versão no endereço (senão o navegador continua mostrando a
+// antiga por até 1 dia — foi o que aconteceu com as pontes com rampa). Só as que mudaram: as outras seguem no cache.
+const ASSET_VER = {};
 function spr(nome) {
   let e = SPR[nome];
   if (!e) {
     e = SPR[nome] = { im: new Image(), ok: false, err: false };
     e.im.onload = () => { e.ok = true; }; e.im.onerror = () => { e.err = true; };
-    e.im.src = ASSET_DIR + nome + '.webp';
+    e.im.src = ASSET_DIR + nome + '.webp' + (ASSET_VER[nome] ? '?v=' + ASSET_VER[nome] : '');
   }
   return e;
 }

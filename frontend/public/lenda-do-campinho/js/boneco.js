@@ -326,7 +326,15 @@ function desenhaBonecoEm(x, look, v, q) {
 
 /* ---------- cache de sprites ---------- */
 const BON_CACHE = new Map(); const BON_MAX = 260;
-function chaveBoneco(look) { return look._kb || (look._kb = JSON.stringify(look)); }
+// v296: a chave fica "escondida" (não enumerável): uma cópia da aparência (Object.assign) não herda mais a chave da
+// original — antes, a cópia SEM asas do cartão de divulgar herdava a chave COM asas e o cache devolvia o boneco errado
+// (as asas antigas, cortadas no quadro do boneco, apareciam como retângulos brancos por cima das asas grandes).
+function chaveBoneco(look) {
+  if (look._kb) return look._kb;
+  const k = JSON.stringify(look);
+  try { Object.defineProperty(look, '_kb', { value: k, writable: true, configurable: true, enumerable: false }); } catch (e) { look._kb = k; }
+  return k;
+}
 function caixaBoneco(look) { // recorte comum a todas as vistas: pelo quadro de frente parado, com folga
   const k = chaveBoneco(look) + '|box'; if (BON_CACHE.has(k)) return BON_CACHE.get(k);
   const S = 1, c = mkCanvas(BON.W, BON.H), x = c.getContext('2d'); desenhaBonecoEm(x, look, 'f', 0);

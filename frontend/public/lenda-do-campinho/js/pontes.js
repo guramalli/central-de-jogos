@@ -23,6 +23,7 @@
     londres: { spr: 'ponte_londres', eixo: 'v', fx: [0.225, 0.82], fy: [0, 1] },
   };
   for (const d of Object.values(PONTE_ARTE)) if (!ASSET_SET.has(d.spr)) { ASSETS.push(d.spr); ASSET_SET.add(d.spr); }
+  if (typeof ASSET_VER !== 'undefined') Object.assign(ASSET_VER, { ponte_cairo: 290, ponte_toquio: 290, ponte_munique: 290 }); // refeitas com rampa na v290
 
   // acha as pontes: pedaços de asfalto com água dos dois lados (h = a rua cruza um rio "em pé"; v = um rio "deitado")
   function achaPontes(m) {

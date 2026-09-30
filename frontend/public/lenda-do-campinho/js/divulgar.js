@@ -23,7 +23,8 @@ function retratoLargo(look) {
     if (typeof spriteBoneco !== 'function' || typeof comAcessorios !== 'function') return null;
     const sp = specDe(look); if (!sp.costas || sp.costas === 'mochila') return null;
     const nome = folhaDoLook(sp, look), f = FOLHAS[nome], meta = (META_BONECOS[nome] || [])[0]; if (!f || !f.ok || !meta) return null;
-    const corpo = spriteBoneco(Object.assign({}, look, { costas: null }), 'frente', 0); if (!corpo || !corpo.c) return null;
+    const semAsas = Object.assign({}, look, { costas: null }); delete semAsas._kb; // v296: sem a chave da aparência COM asas (o cache devolvia o boneco errado)
+    const corpo = spriteBoneco(semAsas, 'frente', 0); if (!corpo || !corpo.c) return null;
     // o mesmo recorte de cima que o spriteBoneco faz
     const topo = Math.max(0, Math.min(...(META_BONECOS[nome] || []).filter(Boolean).map(m => m.cabeca ? m.cabeca[1] : 20)) - ({ coroa: 40, cartola: 50, espartano: 48, louros: 22 }[sp.chapeu] || (sp.chapeu ? 26 : 4)));
     const PX = 150, PY = 60, c = mkCanvas(FOLHA_CW + PX * 2, FOLHA_CH + PY), x = c.getContext('2d');
