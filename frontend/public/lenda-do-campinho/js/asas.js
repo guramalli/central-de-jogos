@@ -19,12 +19,14 @@ let ASAS_FORA = false; // true só enquanto o jogo desenha o jogador (a pé)
   };
   const temAsas = () => { try { const L = _lookAsas(); return !!(L && L.costas === 'costas-anjo'); } catch (e) { return false; } };
   function desenhaAsas(ctx, e, vista) {
-    const lado = vista === 'lado', im = aSprite(lado ? 'ac_asa_lado' : 'ac_asas'); if (!im) return false;
+    const lado = vista === 'lado', pad = lado ? 'ac_asa_lado' : 'ac_asas';
+    const nome = typeof asaEscolhida === 'function' ? asaEscolhida(lado) : pad; if (!nome) return false; // v302: adornos.js escolhe o tipo (ou nenhuma)
+    const im = aSprite(nome) || aSprite(pad); if (!im) return false;
     const alt = alturaEnt(e) * T, x = e.x * T, pe = e.y * T;
     const bate = e.mov ? Math.sin(G.agora / 110) * 0.06 : Math.sin(G.agora / 600) * 0.02; // bater de asas
     let w = (lado ? ASAS_LARG * 0.42 : ASAS_LARG) * T, h = w * im.height / im.width;
     const ombro = pe - alt * 0.6; // altura dos ombros
-    ctx.save(); ctx.globalAlpha *= ASAS_ALFA;
+    ctx.save(); ctx.globalAlpha *= (typeof asaAlfa === "function" ? asaAlfa() : ASAS_ALFA);
     ctx.translate(x, ombro); if (e.flip) ctx.scale(-1, 1);
     ctx.scale(1 + bate, 1 - bate * 0.4);
     if (lado) ctx.drawImage(im, -w * 0.95, -h * 0.42, w, h); // atrás das costas (para a esquerda quando olha à direita)
@@ -33,12 +35,25 @@ let ASAS_FORA = false; // true só enquanto o jogo desenha o jogador (a pé)
   }
   const _desenhaEntAsas = desenhaEnt;
   desenhaEnt = function (ctx, e) {
-    if (e !== G.p || !G.save || (typeof montadoAgora === 'function' && montadoAgora()) || G.jogada || !temAsas()) return _desenhaEntAsas.apply(this, arguments);
-    const vista = !e.mov && G.agora - (e.tVista || 0) > 2500 ? 'frente' : (e.vista || 'frente');
+    if (e !== G.p || !G.save || (typeof montadoAgora === 'function' && montadoAgora()) || !temAsas()) return _desenhaEntAsas.apply(this, arguments);
+    let vista = !e.mov && G.agora - (e.tVista || 0) > 2500 ? 'frente' : (e.vista || 'frente');
+    // v302: durante uma jogada (Fôlego de Campeão, pedalada...) as asas grandes saíam e voltavam as antigas, cortadas
+    // dentro do desenho ("asa quebrada"). Agora as asas grandes continuam, seguindo o pulo/giro da jogada.
+    const j = G.jogada; let pose = null;
+    if (j && typeof poseDaJogada === 'function') {
+      try { pose = poseDaJogada(j, Math.min(1, (G.agora - j.t0) / j.dur)); } catch (err) { pose = null; }
+      if (j.id === 'chute_colocado' || (typeof PERNAS_JOGADA !== 'undefined' && PERNAS_JOGADA[j.id])) vista = 'lado';
+    }
+    const asas = () => {
+      if (!pose) return desenhaAsas(ctx, e, vista);
+      ctx.save(); ctx.translate((e.x + (pose.ox || 0)) * T, e.y * T - (pose.sobe || 0) * T);
+      if (pose.rot) { const meio = alturaEnt(e) * T * 0.5; ctx.translate(0, -meio); ctx.rotate(pose.rot); ctx.translate(0, meio); }
+      ctx.translate(-e.x * T, -e.y * T); desenhaAsas(ctx, e, vista); ctx.restore();
+    };
     const atras = vista !== 'costas';
-    if (atras) desenhaAsas(ctx, e, vista);
+    if (atras) asas();
     ASAS_FORA = true; let r; try { r = _desenhaEntAsas.apply(this, arguments); } finally { ASAS_FORA = false; }
-    if (!atras) desenhaAsas(ctx, e, vista);
+    if (!atras) asas();
     return r;
   };
 }
