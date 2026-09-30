@@ -244,4 +244,52 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   `;
   document.head.append(st);
   try { atualizaPaineis(); } catch (e) { }
+
+  /* ---------- 8) v274: JANELAS no celular (o Meu Time era o pior caso) ---------- */
+  // abre com a aba escolhida à vista (as abas agora rolam de lado)
+  const _abreModalC3 = abreModal;
+  abreModal = function () {
+    const r = _abreModalC3.apply(this, arguments);
+    try { const a = document.querySelector('#modalConteudo .tabs-modal .btn.amarelo'); if (a) a.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { }
+    return r;
+  };
+  const sj = document.createElement('style');
+  sj.textContent = `
+  /* nunca embaixo do relógio/bateria do iPhone; no ícone da Tela de Início o iPhone deixava uma faixa sem cobrir embaixo */
+  html, body.cel3 { background: #120a22 !important; }
+  body.cel3 #modal { align-items: flex-start !important; bottom: calc(-1 * env(safe-area-inset-top)) !important;
+    padding: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right)) 6px calc(6px + env(safe-area-inset-left)) !important; }
+  body.cel3 .modal-caixa { width: min(760px, 100%) !important; max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important; margin: 0 auto; }
+  @media (orientation: portrait) { body.cel3 #tela { height: calc(100dvh + env(safe-area-inset-top)) !important; } }
+  /* abas: uma fileira que rola de lado, botões baixos */
+  body.cel3 .tabs-modal { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; gap: 5px !important; padding: 2px 0 4px; margin-bottom: 6px !important; }
+  body.cel3 .tabs-modal::-webkit-scrollbar { display: none; }
+  body.cel3 .tabs-modal > .btn { flex: 0 0 auto !important; padding: 6px 12px !important; font-size: 13.5px !important; min-height: 38px; height: auto !important; white-space: nowrap !important; }
+  /* MEU TIME: cabeçalho, guia e escalação compactos */
+  body.cel3 .modal-caixa:has(.time-cab) { padding: 10px 10px 12px !important; font-size: 14px; }
+  body.cel3 .time-cab { gap: 8px !important; margin: 0 40px 6px 0 !important; }
+  body.cel3 .time-cab h2 { font-size: 19px !important; line-height: 1.15; } body.cel3 .time-cab > div > div { font-size: 12px; line-height: 1.3; }
+  body.cel3 .time-cab > canvas { width: 30px !important; height: 34px !important; }
+  body.cel3 .guia-passo { font-size: 12.5px !important; padding: 6px 8px !important; margin: 4px 0 8px !important; }
+  body.cel3 .guia-passo .btn { min-height: 32px; font-size: 12px !important; }
+  body.cel3 .modal-caixa:has(.time-cab) .opcoes { gap: 6px !important; }
+  body.cel3 .modal-caixa:has(.time-cab) .opcoes .btn { min-height: 38px; padding: 6px 12px !important; font-size: 13.5px !important; }
+  body.cel3 .modal-caixa:has(.time-cab) .sel { font-size: 14px !important; min-height: 36px; }
+  body.cel3 .modal-caixa label, body.cel3 .modal-caixa .sel, body.cel3 .modal-caixa select { max-width: 100%; box-sizing: border-box; }
+  body.cel3 .modal-caixa label:has(> .sel) { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+  body.cel3 .setores { padding: 6px 8px !important; gap: 3px !important; font-size: 13px; }
+  body.cel3 .guia-legenda { font-size: 11.5px !important; line-height: 1.3; }
+  body.cel3 .slot-esc { grid-template-columns: 34px minmax(0, 1fr) !important; gap: 4px 6px !important; padding: 4px 6px 5px 4px !important; margin-bottom: 4px; }
+  body.cel3 .slot-esc > div:last-child { grid-column: 1 / -1; }
+  body.cel3 .slot-esc .pos-tag { font-size: 11px !important; padding: 2px 0 !important; }
+  body.cel3 .slot-esc .sel { font-size: 13px !important; min-height: 34px; padding: 3px 6px; }
+  /* cartão do jogador: foto | nome e números | força — numa linha só (o botão, se tiver, vai embaixo à direita) */
+  body.cel3 .pc-card { display: grid !important; grid-template-columns: 32px minmax(0, 1fr) auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 5px 8px 5px 10px !important; }
+  body.cel3 .pc-card > canvas { width: 32px !important; height: 40px !important; grid-row: span 2; }
+  body.cel3 .pc-card > .nm { min-width: 0; grid-column: 2; }
+  body.cel3 .pc-card > .nm b { font-size: 14px; } body.cel3 .pc-card > .nm small { display: block; font-size: 11.5px !important; line-height: 1.25; }
+  body.cel3 .pc-card > .ovr { grid-column: 3; grid-row: 1; font-size: 20px !important; margin: 0 !important; }
+  body.cel3 .pc-card > :not(canvas):not(.nm):not(.ovr) { grid-column: 2 / 4; justify-self: end; }
+  `;
+  document.head.append(sj);
 })();
