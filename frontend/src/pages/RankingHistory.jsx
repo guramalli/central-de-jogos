@@ -246,7 +246,7 @@ export default function RankingHistory() {
               
               Os cards acima são de quem GANHOU o mês: dependem de estar no
               topo num período. Estes são de quem jogou muito, e ficam pra
-              sempre. Quem nunca levou um Pix também tem lugar aqui.
+              sempre. Quem nunca foi campeão também tem lugar aqui.
               
               Cada marca só aparece se existir: sala nova ou banco recém-
               limpo não deve mostrar uma linha vazia. */}

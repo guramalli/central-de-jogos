@@ -349,8 +349,7 @@ function LobbyAcro({ dados, privadas, jogando }) {
 }
 
 // TOP 3 DO MÊS de cada jogo, dentro da lobby (o MiniPodium do clássico).
-// O valor do Pix aparece só nos jogos que pagam (Stop e Quiz).
-const PREMIOS = ["R$ 200", "R$ 100", "R$ 50"];
+// Sem valor em dinheiro: a premiação em Pix acabou em setembro/2026.
 function Top3({ jogo }) {
   const [linhas, setLinhas] = useState(null);
   useEffect(() => {
@@ -359,7 +358,6 @@ function Top3({ jogo }) {
     api.get(`/ranking/monthly/${jogo}`).then(({ data }) => vivo && setLinhas((data || []).slice(0, 3))).catch(() => vivo && setLinhas([]));
     return () => { vivo = false; };
   }, [jogo]);
-  const pagaPix = jogo === "stop" || jogo === "quiz";
   return (
     <section className="v2-cartao v2-top3">
       <div className="v2-cartao-cabeca">
@@ -378,7 +376,6 @@ function Top3({ jogo }) {
                 <b>{r.nickname}</b>
                 <span>{Number(r.points || 0).toLocaleString("pt-BR")} pts</span>
               </span>
-              {pagaPix && <em className="v2-top3-premio">{PREMIOS[r.position - 1]}</em>}
             </a>
           ))}
         </div>

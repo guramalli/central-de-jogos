@@ -7,9 +7,6 @@ import Avatar from "./Avatar.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 const LOGO = { stop: "/stop-logo.png", quiz: "/quiz-logo.png", acromania: "/acromania-logo.png" };
-// Mesmos valores do clássico. Só Stop e Quiz pagam.
-const PREMIOS = ["R$ 200", "R$ 100", "R$ 50"];
-const COM_PREMIO = ["stop", "quiz"];
 const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 
 export default function Ranking({ usuario, jogoInicial }) {
@@ -27,7 +24,6 @@ export default function Ranking({ usuario, jogoInicial }) {
   }, [aba, jogo]);
 
   const cla = aba === "clans";
-  const premio = aba === "monthly" && COM_PREMIO.includes(jogo);
   const jogos = cla ? ["geral", "stop", "quiz", "acromania"] : ["stop", "quiz", "acromania"];
   // O Mentira Sincera não entra no ranking de clãs: se ele estava marcado, volta pro Geral.
   useEffect(() => { if (cla && !jogos.includes(jogo)) setJogo("geral"); }, [cla, jogo]);
@@ -66,9 +62,8 @@ export default function Ranking({ usuario, jogoInicial }) {
         <p className="v2-pagina-nota">
           {cla
             ? jogo === "geral" ? "Soma dos pontos do mês de todos os membros, nos três jogos." : `Soma dos pontos do mês dos membros no ${JOGOS[jogo]}.`
-            : aba === "lifetime" ? "Total acumulado desde sempre. Não zera e não vale prêmio."
-            : premio ? "Zera todo dia 1º. Os três primeiros recebem por Pix no fim do mês."
-            : "Zera todo dia 1º. Este jogo ainda não tem premiação em dinheiro."}
+            : aba === "lifetime" ? "Total acumulado desde sempre. Não zera."
+            : "Zera todo dia 1º. O primeiro colocado vira campeão do mês (coroa e troféu no avatar)."}
         </p>
 
         {linhas === null && <div className="v2-carregando">Carregando…</div>}
@@ -82,7 +77,6 @@ export default function Ranking({ usuario, jogoInicial }) {
                 <div className="v2-podio-coluna">
                   <b>{r.position}</b>
                   <span>{fmt(r.points)} pts</span>
-                  {premio && <em>{PREMIOS[r.position - 1]}</em>}
                 </div>
               </div>
             ))}

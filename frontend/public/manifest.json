@@ -1,7 +1,7 @@
 {
   "name": "Educação Gamer — Stop, Quiz e Acromania",
   "short_name": "Educação Gamer",
-  "description": "Jogue Stop (adedonha), Quiz e Acromania online com outros jogadores em tempo real. Ranking mensal, patentes e premiação.",
+  "description": "Jogue Stop (adedonha), Quiz e Acromania online com outros jogadores em tempo real. Ranking mensal, patentes e títulos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

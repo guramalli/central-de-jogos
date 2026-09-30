@@ -66,7 +66,7 @@ export default function Home() {
     <div className="lobby-page home-public">
       <Seo
         title="Jogue Stop, Quiz e Acromania online grátis"
-        description="A nostalgia da Central de Jogos, de volta: Stop (adedonha), Quiz e Acromania multiplayer, direto do navegador, sem download. Ranking mensal com premiação de verdade."
+        description="A nostalgia da Central de Jogos, de volta: Stop (adedonha), Quiz e Acromania multiplayer, direto do navegador, sem download. Ranking mensal, patentes e títulos."
       />
 
       <NovidadeBanner />
@@ -82,7 +82,7 @@ export default function Home() {
           <h1 className="home-hero-title">Stop, Quiz e Acromania — juntos de novo, direto do navegador</h1>
           <p className="home-hero-subtitle">
             A nostalgia da Central de Jogos, de volta: salas multiplayer em tempo real, chat,
-            patentes e <strong>ranking mensal com premiação em dinheiro</strong>. Sem download,
+            patentes e <strong>ranking mensal</strong>. Sem download,
             sem instalação.
           </p>
           {/* "Tem gente jogando agora" — some quando o site está vazio.
@@ -100,15 +100,15 @@ export default function Home() {
           <ul className="home-hero-points">
             <li>🎮 Grátis pra jogar</li>
             <li>👥 Salas públicas e privadas com amigos</li>
-            <li>🏆 Premiação mensal via Pix</li>
+            <li>🏆 Ranking mensal, patentes e títulos</li>
           </ul>
         </div>
 
         <div className="card home-entry-card" ref={entradaRef}>
           <h2>Comece a jogar agora</h2>
           <p className="home-entry-sub">
-            Crie sua conta em segundos e já entre valendo: ranking mensal, patentes, títulos e a
-            premiação via Pix.
+            Crie sua conta em segundos e já entre valendo: ranking mensal, patentes e
+            títulos.
           </p>
 
           <div className="auth-google-btn-wrap">
@@ -157,7 +157,7 @@ export default function Home() {
                 </button>
                 <p className="guest-warning-note">
                   Visitantes jogam à vontade, mas só contas cadastradas pontuam no ranking, ganham
-                  títulos e concorrem à premiação mensal.
+                  títulos e sobem de patente.
                 </p>
               </form>
             )}

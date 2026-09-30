@@ -32,6 +32,14 @@ export const ROTULO_TIPO = {
 
 export const NOVIDADES = [
   {
+    id: "2026-09-fim-da-premiacao",
+    data: "2026-09-30",
+    tipo: "aviso",
+    titulo: "Setembro é o último mês com premiação em Pix",
+    texto:
+      "A partir de outubro, o Stop e o Quiz não pagam mais prêmio em dinheiro aos primeiros colocados. Os rankings mensais continuam do mesmo jeito: patentes, títulos, a coroa e o troféu de campeão do mês. Tudo zera no dia 1º.",
+  },
+  {
     // MAJOR UPDATE — `destaque: true` faz ela aparecer grande, no topo da
     // caixa de atualizações e da página de novidades.
     id: "2026-09-nova-versao",

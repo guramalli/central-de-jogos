@@ -7,12 +7,6 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-// Premiação em Pix — só Stop e Quiz pagam. O Acromania entra no ranking mas
-// não distribui prêmio, e a tela precisa dizer isso em vez de deixar
-// subentendido.
-const PREMIOS = ["R$ 200", "R$ 100", "R$ 50"];
-const JOGOS_COM_PREMIO = ["stop", "quiz"];
-
 const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 const VALID_GAMES = ["stop", "quiz", "acromania"];
 
@@ -54,10 +48,6 @@ export default function Ranking() {
   }, [tab, game]);
 
   const isClans = tab === "clans";
-  // Prêmio só aparece onde ele existe de verdade: mensal, individual, e nos
-  // dois jogos que pagam. No Acromania e no vitalício, mostrar valores seria
-  // prometer o que não existe.
-  const mostraPremio = tab === "monthly" && !isClans && JOGOS_COM_PREMIO.includes(game);
   // O seletor de jogo agora vale TAMBÉM pra aba de clãs: antes ele era
   // escondido ali e a soma era só do Stop, com o jogo fixo no servidor —
   // quem jogava Quiz achava que estava somando pro clã e não estava.
@@ -104,7 +94,7 @@ export default function Ranking() {
 
       <div className="ranking-tabs">
         <button className={`btn ${tab === "monthly" ? "" : "secondary"}`} onClick={() => setTab("monthly")}>
-          Mensal (premiação)
+          Mensal
         </button>
         <button className={`btn ${tab === "lifetime" ? "" : "secondary"}`} onClick={() => setTab("lifetime")}>
           Vitalício (geral)
@@ -120,10 +110,8 @@ export default function Ranking() {
             ? "Soma dos pontos do mês de todos os membros, nos três jogos."
             : `Soma dos pontos do mês dos membros no ${ROTULO_JOGO[game]}.`
           : tab === "lifetime"
-          ? "Total acumulado desde sempre. Não zera e não vale prêmio."
-          : mostraPremio
-          ? "Zera todo dia 1º. Os três primeiros recebem por Pix no fim do mês."
-          : "Zera todo dia 1º. Este jogo ainda não tem premiação em dinheiro."}
+          ? "Total acumulado desde sempre. Não zera."
+          : "Zera todo dia 1º. O primeiro colocado vira campeão do mês (coroa e troféu no avatar)."}
       </p>
 
       {rows.length > 0 && (
@@ -139,9 +127,6 @@ export default function Ranking() {
                 )}
               </div>
               <div className="podium-points">{fmt(r.points)} pts</div>
-              {/* O prêmio ao lado da posição responde a pergunta que a pessoa
-                  tem na cabeça: quanto vale estar aqui. */}
-              {mostraPremio && <div className="podium-premio">{PREMIOS[r.position - 1]}</div>}
             </div>
           ))}
         </div>

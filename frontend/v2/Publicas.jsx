@@ -112,7 +112,7 @@ function Visitante({ aoErro }) {
       <label htmlFor="v2-nick-visitante" className="v2-oculto">Apelido de visitante</label>
       <input id="v2-nick-visitante" ref={ref} className="v2-campo" placeholder="Escolha um apelido de visitante" value={nick} onChange={(e) => setNick(e.target.value)} maxLength={15} required />
       <button className="v2-botao v2-botao-contorno" type="submit" disabled={entrando}>{entrando ? "Entrando…" : "Testar sem cadastro"}</button>
-      <p className="v2-cartao-nota">Visitantes jogam à vontade, mas só contas cadastradas pontuam no ranking, ganham títulos e concorrem à premiação mensal.</p>
+      <p className="v2-cartao-nota">Visitantes jogam à vontade, mas só contas cadastradas pontuam no ranking, ganham títulos e sobem de patente.</p>
     </form>
   );
 }
@@ -156,12 +156,12 @@ export function Entrada() {
         <div className="v2-hero-texto">
           <img src="/educacao-gamer-logo.png" alt="Educação Gamer" className="v2-hero-logo" />
           <h1>Stop, Quiz e Acromania — juntos de novo, direto do navegador</h1>
-          <p>A nostalgia da Central de Jogos, de volta: salas multiplayer em tempo real, chat, patentes e <b>ranking mensal com premiação em dinheiro</b>. Sem download, sem instalação.</p>
+          <p>A nostalgia da Central de Jogos, de volta: salas multiplayer em tempo real, chat, patentes e <b>ranking mensal</b>. Sem download, sem instalação.</p>
           {online?.total > 0 && <div className="v2-jogando v2-jogando-grande"><span className="v2-ponto-vivo" />{online.total === 1 ? "1 pessoa jogando agora" : `${online.total} pessoas jogando agora`}</div>}
           <ul className="v2-vantagens">
             <li>Grátis pra jogar</li>
             <li>Salas públicas e privadas com amigos</li>
-            <li>Premiação mensal via Pix</li>
+            <li>Ranking mensal, patentes e títulos</li>
           </ul>
         </div>
         <div className="v2-cartao v2-cartao-entrada" ref={entradaRef}>
@@ -170,7 +170,7 @@ export function Entrada() {
           <button type="button" className="v2-botao v2-botao-amarelo v2-botao-largo" onClick={() => jogar("inicio")} disabled={!!entrando}>
             {entrando === "inicio" ? "Entrando…" : "Jogar agora, sem cadastro"}
           </button>
-          <p className="v2-cartao-nota v2-centralizado">Sem e-mail, sem senha. Gostou? Crie sua conta pra entrar no <b>ranking</b>, ganhar <b>patentes</b> e concorrer à <b>premiação via Pix</b>.</p>
+          <p className="v2-cartao-nota v2-centralizado">Sem e-mail, sem senha. Gostou? Crie sua conta pra entrar no <b>ranking</b>, ganhar <b>patentes</b> e <b>títulos</b>.</p>
           <div className="v2-entrada-divisor"><span>ou</span></div>
           <BotaoGoogle aoErro={setErro} />
           <a className="v2-botao v2-botao-contorno v2-botao-largo" href={linkDaPagina("cadastro")} onClick={irLink("cadastro")}>Criar conta grátis</a>
