@@ -136,9 +136,14 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
 
   /* ---------- 7) estilo ---------- */
   const st = document.createElement('style');
-  const SL = 'env(safe-area-inset-left)', SR = 'env(safe-area-inset-right)', SB = 'env(safe-area-inset-bottom)', ST = 'env(safe-area-inset-top)';
+  // v274: nos CANTOS dá para chegar bem mais perto da borda do que a "margem de segurança" inteira do iPhone
+  // (ela existe por causa da câmera, que fica no MEIO da lateral, e da barrinha de baixo). O que fica no meio
+  // da lateral (especial da classe e caça) guarda mais distância.
+  const SL = 'calc(env(safe-area-inset-left) * .4)', SR = 'calc(env(safe-area-inset-right) * .4)', SB = 'calc(env(safe-area-inset-bottom) * .35)', ST = 'env(safe-area-inset-top)';
+  const SRm = 'calc(env(safe-area-inset-right) * .8)';
   st.textContent = `
   /* ===== topo: cartão pequeno à esquerda, mapinha + ☰ à direita ===== */
+  body.cel3 #celHud { top: calc(4px + ${ST}) !important; left: calc(4px + ${SL}) !important; right: calc(4px + ${SR}) !important; }
   body.cel3 #celHud .ch-esq { width: 168px; padding: 4px 7px 5px; border-width: 1.5px; background: rgba(20,10,40,.55); }
   body.cel3 #celHud .ch-nome { font-size: 12px; }
   body.cel3 #celHud .ch-nome .beta, body.cel3 #celHud .ch-nome [class*=beta], body.cel3 #celHud .selo-beta { display: none !important; }
@@ -162,7 +167,7 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   body.cel3 #banner .b1 { font-size: 19px !important; text-shadow: 2px 2px 0 #000 !important; }
   body.cel3 #banner .b2 { font-size: 12px !important; }
   /* ===== missões e avisos: pequenos, embaixo do cartão ===== */
-  body.cel3 #rastreador { top: calc(80px + ${ST}) !important; bottom: auto !important; left: calc(6px + ${SL}) !important; max-width: min(300px, 40vw) !important; gap: 4px; flex-direction: column !important;
+  body.cel3 #rastreador { top: calc(78px + ${ST}) !important; bottom: auto !important; left: calc(4px + ${SL}) !important; max-width: min(300px, 40vw) !important; gap: 4px; flex-direction: column !important;
     max-height: calc(100dvh - 80px - 140px - ${ST} - ${SB}); overflow: hidden; }
   body.cel3 #rastreador:has(> .cartao-dica) > .rast { display: none !important; } /* com uma dica na tela, a missão aberta espera */
   body.cel3 #rastreador > .alertas-box { order: 0; } body.cel3 #rastreador > .rast-linha, body.cel3 #rastreador > .rast-etiqueta { order: 1; }
@@ -182,10 +187,10 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   body.cel3 .toque-acoes { display: contents !important; }
   body.cel3 #tAlvo, body.cel3 #tFalar, body.cel3 #btnCaca, body.cel3 #btnClasse, body.cel3 #c3Mais { position: fixed !important; z-index: 6; margin: 0 !important; padding: 0 !important; min-width: 0 !important; display: flex !important; flex-direction: column; align-items: center; justify-content: center; line-height: 1; opacity: .95; }
   body.cel3 .c3-ic { font-size: 26px; line-height: 1; } body.cel3 #tAlvo small, body.cel3 #tFalar small, body.cel3 #btnCaca small, body.cel3 #btnClasse small { font: 900 9.5px/1 Nunito, sans-serif; letter-spacing: .5px; margin-top: 2px; }
-  body.cel3 #tAlvo { right: calc(12px + ${SR}); bottom: calc(12px + ${SB}); width: 80px; height: 80px; border-radius: 50% !important; }
+  body.cel3 #tAlvo { right: calc(8px + ${SR}); bottom: calc(8px + ${SB}); width: 80px; height: 80px; border-radius: 50% !important; }
   body.cel3 #tAlvo .c3-ic { font-size: 34px; }
-  body.cel3 #btnClasse { right: calc(18px + ${SR}); bottom: calc(100px + ${SB}); width: 68px; height: 50px; border-radius: 16px !important; font-size: 10px !important; white-space: normal !important; text-align: center; padding: 2px 3px !important; line-height: 1.1 !important; }
-  body.cel3 #btnCaca { right: calc(29px + ${SR}); bottom: calc(158px + ${SB}); width: 46px; height: 46px; border-radius: 50% !important; font-size: 10px !important; background: rgba(40,24,60,.75) !important; color: #fff !important; border: 2px solid #7a5a9a !important; box-shadow: none !important; }
+  body.cel3 #btnClasse { right: calc(18px + ${SRm}); bottom: calc(100px + ${SB}); width: 68px; height: 50px; border-radius: 16px !important; font-size: 10px !important; white-space: normal !important; text-align: center; padding: 2px 3px !important; line-height: 1.1 !important; }
+  body.cel3 #btnCaca { right: calc(29px + ${SRm}); bottom: calc(158px + ${SB}); width: 46px; height: 46px; border-radius: 50% !important; font-size: 10px !important; background: rgba(40,24,60,.75) !important; color: #fff !important; border: 2px solid #7a5a9a !important; box-shadow: none !important; }
   body.cel3 #btnClasse .c3-ic { font-size: 20px; } body.cel3 #btnClasse small { font-size: 8.5px !important; letter-spacing: 0 !important; line-height: 1.05 !important; max-width: 64px; }
   body.cel3 #btnClasse .cd { border-radius: 16px; }
   body.cel3 #btnCaca .c3-ic { font-size: 18px; } body.cel3 #btnCaca small { font-size: 8px; }
@@ -194,17 +199,17 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   body.cel3 #tFalar.c3-on { display: flex !important; animation: c3Pula .35s ease-out; }
   @keyframes c3Pula { from { transform: scale(.6); opacity: 0; } }
   /* a fileira de atalhos: à esquerda do Alvo, colada embaixo */
-  body.cel3 #barraAcoes { right: calc(100px + ${SR}) !important; bottom: calc(12px + ${SB}) !important; width: auto !important; max-width: none !important; gap: 4px !important; flex-wrap: nowrap !important; align-items: flex-end !important; transform: none !important; }
+  body.cel3 #barraAcoes { right: calc(96px + ${SR}) !important; bottom: calc(8px + ${SB}) !important; width: auto !important; max-width: none !important; gap: 4px !important; flex-wrap: nowrap !important; align-items: flex-end !important; transform: none !important; }
   body.cel3 #barraAcoes > #btnModo, body.cel3 #barraAcoes > #btnCaca, body.cel3 #barraAcoes > #btnClasse { order: 0; }
   body.cel3 #hotbar { grid-template-columns: repeat(5, 48px) !important; grid-auto-rows: 48px !important; gap: 4px !important; }
   body.cel3 #hotbar .slot { width: 48px !important; height: 48px !important; }
   body.cel3 #celPag { min-height: 48px !important; width: 38px !important; font-size: 10px !important; padding: 0 !important; }
-  body.cel3 #c3Mais { right: calc(${SR} + 100px + 5 * 52px + 42px + 6px); bottom: calc(12px + ${SB}); width: 40px; height: 48px; border-radius: 12px !important; font-size: 22px !important; font-weight: 900; }
+  body.cel3 #c3Mais { right: calc(${SR} + 96px + 5 * 52px + 42px + 6px); bottom: calc(8px + ${SB}); width: 40px; height: 48px; border-radius: 12px !important; font-size: 22px !important; font-weight: 900; }
   body.cel3 #c3Mais.c3-aberto { background: #ffd23f !important; }
-  #c3Bandeja { position: fixed; z-index: 9; right: calc(${SR} + 100px + 5 * 52px + 42px + 6px); bottom: calc(66px + ${SB}); display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(20,10,40,.85); border: 2px solid #b8733a; border-radius: 14px; }
+  #c3Bandeja { position: fixed; z-index: 9; right: calc(${SR} + 96px + 5 * 52px + 42px + 6px); bottom: calc(66px + ${SB}); display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(20,10,40,.85); border: 2px solid #b8733a; border-radius: 14px; }
   #c3Bandeja[hidden] { display: none; }
   #c3Bandeja .btn { position: static !important; display: block !important; width: auto !important; min-width: 170px !important; min-height: 42px; padding: 6px 12px !important; font-size: 13.5px !important; text-align: left; opacity: 1; }
-  body.cel3 #toque { left: calc(16px + ${SL}) !important; bottom: calc(14px + ${SB}) !important; }
+  body.cel3 #toque { left: calc(8px + ${SL}) !important; bottom: calc(8px + ${SB}) !important; }
   body.cel3 #joy, body.cel3 .joy-base { width: 120px !important; height: 120px !important; }
   body.cel3 .joy-base { background: rgba(30,18,60,.28) !important; border-width: 2px !important; }
   body.cel3 .joy-bot { left: 34px !important; top: 34px !important; width: 48px !important; height: 48px !important; opacity: .9; }
