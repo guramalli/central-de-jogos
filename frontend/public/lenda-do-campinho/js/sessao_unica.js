@@ -93,7 +93,7 @@ if (typeof NUVEM !== 'undefined' && NUVEM.ativa) {
       el('p', {}, 'Por isso o seu progresso NÃO está indo para o save online: ele está guardado só neste aparelho. Se você abrir o jogo em outro computador ou celular agora, vai achar o save antigo.'),
       el('p', { class: 'dica' }, 'Entre de novo no site e volte para o jogo NESTE aparelho: ele manda o progresso novo para a nuvem sozinho.'),
       el('div', { class: 'opcoes' },
-        el('button', { class: 'btn amarelo', type: 'button', onclick: () => { try { salvar(); } catch (e) { } location.href = '/login'; } }, '🔑 Entrar de novo'),
+        el('button', { class: 'btn amarelo', type: 'button', onclick: () => { try { salvar(); } catch (e) { } location.href = urlConta('entrar', 'sessao=expirada'); } }, '🔑 Entrar de novo'),
         el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Continuar jogando aqui')));
   };
   const _nuvemStatusSes = nuvemStatus;

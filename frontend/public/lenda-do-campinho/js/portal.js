@@ -20,6 +20,8 @@ const PORTAL = (() => {
   if (!contaId && token) try { contaId = String(JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).id || '') || null; } catch (e) { }
   return { ativo: producao || local, api: producao ? 'https://api.educacaogamer.com.br' : 'http://localhost:4000', token, user, contaId };
 })();
+// v290: login e cadastro do site VOLTAM para o jogo depois (?volta=): antes a pessoa caía na página inicial do site
+function urlConta(tipo, extra) { return (tipo === 'cadastro' ? '/registrar' : '/login') + '?' + (extra ? extra + '&' : '') + 'volta=' + encodeURIComponent(location.pathname + location.search); }
 // o personagem aberto é desta conta? (save sem dono ainda = sim; o contas.js marca o dono)
 function saveDaConta(s = G.save) { return !!s && (!s.conta || !PORTAL.contaId || s.conta === PORTAL.contaId); }
 
@@ -45,7 +47,7 @@ if (PORTAL.ativo) (function () {
   if (topo && !document.querySelector('.portal-barra')) {
     const quem = PORTAL.user && PORTAL.user.nickname
       ? el('span', { class: 'portal-quem' }, '🎮 Jogando como ', el('b', {}, PORTAL.user.nickname))
-      : el('a', { class: 'portal-quem', href: '/login' }, '🔑 Entrar na conta do Educação Gamer');
+      : el('a', { class: 'portal-quem', href: urlConta('entrar') }, '🔑 Entrar na conta do Educação Gamer');
     topo.prepend(el('div', { class: 'portal-barra' }, el('a', { class: 'btn mini', href: '/' }, '← Voltar ao Educação Gamer'), quem));
   }
   // apelido do site no nome do personagem (dá pra trocar)
@@ -69,7 +71,7 @@ if (PORTAL.ativo) (function () {
     const avisa = (msg, erro) => { if (!ok) return; ok.textContent = msg; ok.hidden = false; ok.style.background = erro ? '#ffe0d8' : ''; ok.style.color = erro ? '#8a1a1a' : ''; };
     const b = el('button', { class: 'btn amarelo', type: 'button' }, PORTAL.token ? '📨 Enviar para a equipe' : '🔑 Entrar para enviar');
     b.onclick = async () => {
-      if (!PORTAL.token) { if (await perguntaJogo('Para enviar, entre na sua conta do Educação Gamer. Ir para o login agora? (seu progresso fica salvo)', { sim: 'Ir para o login' })) { try { salvar(); } catch (e) { } location.href = '/login'; } return; }
+      if (!PORTAL.token) { if (await perguntaJogo('Para enviar, entre na sua conta do Educação Gamer. Ir para o login agora? (seu progresso fica salvo)', { sim: 'Ir para o login' })) { try { salvar(); } catch (e) { } location.href = urlConta('entrar'); } return; }
       const texto = area.value.trim();
       if (texto.length < 5) { avisa('Conte o que aconteceu antes de enviar.', true); area.focus(); return; }
       b.disabled = true; b.textContent = 'Enviando...';

@@ -15,7 +15,7 @@
    ============================================================ */
 const CADASTRO = {
   semConta: typeof PORTAL !== 'undefined' && PORTAL.ativo && !PORTAL.token,
-  urlCriar: '/?pagina=cadastro', urlEntrar: '/?pagina=entrar',
+  urlCriar: urlConta('cadastro'), urlEntrar: urlConta('entrar'), // v290: o site volta para o jogo depois
   presente: [['pacotinho', 3]], ouroPresente: 500,
   marcos: [5, 10, 15, 20, 30, 40, 50, 75, 100, 125, 150, 175, 200],
   intervalo: 20 * 60000, ultimo: 0,
@@ -50,7 +50,7 @@ if (CADASTRO.semConta) (function () {
       el('span', {}, 'Crie sua conta grátis no Educação Gamer para aparecer no Ranking, salvar na nuvem e ganhar um presente!'),
       botoesConta()));
   }
-  document.querySelectorAll('a.portal-quem[href="/login"]').forEach(a => { a.href = CADASTRO.urlEntrar; });
+  document.querySelectorAll('a.portal-quem[href^="/login"]').forEach(a => { a.href = CADASTRO.urlEntrar; });
 
   // ---------- antes de começar: pergunta uma vez por sessão ----------
   let perguntou = false; try { perguntou = sessionStorage.getItem('rac_convite_conta') === '1'; } catch (e) { }

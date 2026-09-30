@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import { irDepoisDoLogin, comVolta, destinoVolta } from "../utils/voltaJogo.js";
 
 export default function Register() {
   const { register, loginWithGoogle } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  // vindo da página do jogo (?volta=/lenda-do-campinho/...): depois do cadastro, volta para o jogo
+  const [params] = useSearchParams();
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +28,7 @@ export default function Register() {
     }
     try {
       await register(nickname, email, password, { birthDate, termsAccepted });
-      navigate("/");
+      irDepoisDoLogin(navigate, params);
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao cadastrar.");
     }
@@ -35,7 +38,7 @@ export default function Register() {
     setError("");
     try {
       await loginWithGoogle(credentialResponse.credential);
-      navigate("/");
+      irDepoisDoLogin(navigate, params);
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao cadastrar com Google.");
     }
@@ -70,6 +73,9 @@ export default function Register() {
 
           <div className="auth-divider"><span>ou cadastre com e-mail</span></div>
 
+          {destinoVolta(params) && !error && (
+            <div className="aviso-sessao-expirada">⚽ Depois do cadastro, você volta direto para a Lenda do Campinho — e o seu progresso passa a ser salvo online.</div>
+          )}
           <form onSubmit={handleSubmit}>
             <input placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={15} required />
             <input placeholder="E-mail" type="email" className="data-cs-mask" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -95,7 +101,7 @@ export default function Register() {
             <button className="btn" type="submit" style={{ width: "100%", marginTop: 10 }}>Cadastrar</button>
           </form>
           <p style={{ marginTop: 14, fontSize: 13 }}>
-            Já tem conta? <Link to="/login">Entrar</Link>
+            Já tem conta? <Link to={comVolta("/login", params)}>Entrar</Link>
           </p>
         </div>
       </div>

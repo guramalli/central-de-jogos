@@ -4,6 +4,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Seo from "../components/Seo.jsx";
+import { irDepoisDoLogin, comVolta, destinoVolta } from "../utils/voltaJogo.js";
 
 export default function Login() {
   const { login, loginWithGoogle, loginAsGuest } = useAuth();
@@ -24,7 +25,7 @@ export default function Login() {
     setError("");
     try {
       await loginAsGuest(guestNick);
-      navigate("/");
+      irDepoisDoLogin(navigate, params);
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao entrar como visitante.");
     }
@@ -35,7 +36,7 @@ export default function Login() {
     setError("");
     try {
       await login(email, password);
-      navigate("/");
+      irDepoisDoLogin(navigate, params);
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao entrar.");
     }
@@ -45,7 +46,7 @@ export default function Login() {
     setError("");
     try {
       await loginWithGoogle(credentialResponse.credential);
-      navigate("/");
+      irDepoisDoLogin(navigate, params);
     } catch (err) {
       setError(err.response?.data?.error || "Erro ao entrar com Google.");
     }
@@ -68,6 +69,9 @@ export default function Login() {
               seus pontos, patentes e títulos estão todos salvos.
             </div>
           )}
+          {destinoVolta(params) && !error && (
+            <div className="aviso-sessao-expirada">⚽ Depois de entrar, você volta direto para a Lenda do Campinho.</div>
+          )}
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
             <input placeholder="E-mail" type="email" className="data-cs-mask" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -88,7 +92,7 @@ export default function Login() {
           </div>
 
           <p style={{ marginTop: 14, fontSize: 13 }}>
-            Não tem conta? <Link to="/registrar">Cadastre-se</Link>
+            Não tem conta? <Link to={comVolta("/registrar", params)}>Cadastre-se</Link>
           </p>
           <p style={{ marginTop: 6, fontSize: 13 }}>
             <Link to="/esqueci-senha">Esqueci minha senha</Link>
