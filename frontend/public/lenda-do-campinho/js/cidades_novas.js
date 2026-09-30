@@ -526,8 +526,12 @@ CIDADES_NOVAS.rio = function (b, c, K) {
   K.zona(22, 58, 60, 7, 'Praia de Copacabana');
   b.placa(30, 57, '🏖️ COPACABANA — o calçadão de ondas pretas e brancas foi inspirado nas calçadas de Lisboa!');
   K.mon('mon_paodeacucar', 91, 64);
-  // a Capitã Iara (submarino) e a Dra. Estela (foguete) ficam na areia, perto do aeroporto
-  b.npc('capita_iara', 6, 60); b.npc('estela', 14, 60);
+  // v308: a Capitã Iara (submarino) e a Dra. Estela (foguete) ficam na praça do aeroporto, do lado da chegada
+  // (na areia ninguém achava). O submarino e o foguete continuam na praia, como enfeite.
+  b.npc('capita_iara', 18, 48); b.npc('estela', 22, 48);
+  b.placa(18, 46, '🌊 SUBMARINO PARA ATLÂNTIDA — fale com a Capitã Iara. A partir do nível 195.');
+  b.placa(22, 46, '🚀 FOGUETE PARA O ESPAÇO — fale com a Dra. Estela. A partir do nível 298.');
+  b.obj(8, 60, 'submarino'); b.obj(9, 60, 'x'); b.obj(16, 60, 'foguete'); b.m.veiculosProprios = true;
 };
 
 /* ============================================================

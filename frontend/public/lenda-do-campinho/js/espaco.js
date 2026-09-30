@@ -266,7 +266,7 @@ if (typeof iconeNPC === 'function') { const _iconeNPCEsp = iconeNPC; iconeNPC = 
   MAPAS_DEF.rio = function () {
     const m = base(); poeNpcPerto(m, 'estela', 'capita_iara');
     const n = m.npcs.find(k => k.id === 'estela');
-    if (n) { ESP_VOLTA = { x: n.x, y: n.y }; const sx = n.x + 2, sy = n.y; if (!m.obj[sy * m.w + sx]) m.obj[sy * m.w + sx] = { t: 'foguete', v: 1 }; }
+    if (n) { ESP_VOLTA = { x: n.x, y: n.y }; const sx = n.x + 2, sy = n.y; if (!m.veiculosProprios && !m.obj[sy * m.w + sx]) m.obj[sy * m.w + sx] = { t: 'foguete', v: 1 }; }
     return m;
   };
 }

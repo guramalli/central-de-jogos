@@ -205,7 +205,7 @@ let ATL_VOLTA = null;
   MAPAS_DEF.rio = function () {
     const m = base(); poeNpcPerto(m, 'capita_iara', 'comissaria');
     const n = m.npcs.find(k => k.id === 'capita_iara');
-    if (n) { ATL_VOLTA = { x: n.x, y: n.y }; const sx = n.x + 2, sy = n.y; if (!m.obj[sy * m.w + sx] && !m.obj[sy * m.w + sx + 1]) { m.obj[sy * m.w + sx] = { t: 'submarino', v: 1 }; m.obj[sy * m.w + sx + 1] = { t: 'x', v: 0 }; } }
+    if (n) { ATL_VOLTA = { x: n.x, y: n.y }; const sx = n.x + 2, sy = n.y; if (!m.veiculosProprios && !m.obj[sy * m.w + sx] && !m.obj[sy * m.w + sx + 1]) { m.obj[sy * m.w + sx] = { t: 'submarino', v: 1 }; m.obj[sy * m.w + sx + 1] = { t: 'x', v: 0 }; } }
     return m;
   };
 }
