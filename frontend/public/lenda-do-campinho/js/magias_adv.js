@@ -155,9 +155,13 @@ function tilesMagia(forma, m, alvo) {
     const ctx = CTX, z = G.zoom, cam = G.cam, t = agora();
     if (G.magAdv.length || G.campoAdv.length) {
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-      const pinta = (q, cor, a) => { const x = (q.x * T - cam.x) * z, y = (q.y * T - cam.y) * z, s = T * z; ctx.fillStyle = `rgba(${cor},${a})`; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); ctx.strokeStyle = `rgba(${cor},${Math.min(1, a + 0.35)})`; ctx.lineWidth = 2; ctx.strokeRect(x + 2, y + 2, s - 4, s - 4); };
-      for (const g of G.magAdv) { const k = 1 - Math.max(0, g.t - t) / 700, a = 0.18 + 0.3 * k + 0.08 * Math.sin(t / 60); for (const q of g.tiles) pinta(q, MAG_EL[g.el].cor, a); }
-      for (const c of G.campoAdv) for (const q of c.tiles) pinta(q, MAG_EL[c.el].cor, 0.16 + 0.05 * Math.sin(t / 150));
+      const pinta = (q, cor, a) => { const x = (q.x * T - cam.x) * z, y = (q.y * T - cam.y) * z, s = T * z; ctx.fillStyle = `rgba(${cor},${a})`; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); ctx.strokeStyle = `rgba(${cor},${Math.min(0.7, a + 0.25)})`; ctx.lineWidth = 1.5; ctx.strokeRect(x + 2, y + 2, s - 4, s - 4); };
+      // v303: cada quadrado é pintado UMA vez (vários adversários soltando a mesma magia no mesmo lugar empilhavam
+      // as camadas e o chão ficava opaco); vale a magia mais forte naquele quadrado
+      const quad = new Map(), poe = (q, cor, a) => { const kk = q.x + ',' + q.y, o = quad.get(kk); if (!o || a > o.a) quad.set(kk, { q, cor, a }); };
+      for (const g of G.magAdv) { const k = 1 - Math.max(0, g.t - t) / 700, a = 0.17 + 0.24 * k + 0.04 * Math.sin(t / 60); for (const q of g.tiles) poe(q, MAG_EL[g.el].cor, a); }
+      for (const c of G.campoAdv) for (const q of c.tiles) poe(q, MAG_EL[c.el].cor, 0.13 + 0.04 * Math.sin(t / 150));
+      for (const { q, cor, a } of quad.values()) pinta(q, cor, a);
       ctx.restore();
     }
     if ((G.tintaAte || 0) > t) { // jato de tinta: tudo escuro, só um pouco em volta de você
