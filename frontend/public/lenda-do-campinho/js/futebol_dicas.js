@@ -10,7 +10,7 @@
    ============================================================ */
 {
   const VEZES_CARTAO = 3, VEZES_AVISO = 6;
-  const dic = () => { const s = G.save; if (!s) return null; s.futDicas = s.futDicas || { ataque: 0, passe: 0, defesa: 0, penalti: 0, fintas: 0, botes: 0 }; return s.futDicas; };
+  const dic = () => { const s = G.save; if (!s) return null; s.futDicas = s.futDicas || { ataque: 0, passe: 0, defesa: 0, penalti: 0, fintas: 0, botes: 0, chutes: 0 }; return s.futDicas; };
   const cel = () => document.body.classList.contains('cel3');
   const tecla = (pc, bt) => cel() ? bt : pc;
   const TEXTOS = {
@@ -50,6 +50,8 @@
     try { if (pronta && F.atores.some(a => a.time === 'eles' && a.tonto > G.agora)) { const d = dic(); d.fintas++; } } catch (e) { }
     return r;
   };
+  const _chuteDica = futChutar;
+  futChutar = function () { const tinha = futTemBola(); const r = _chuteDica.apply(this, arguments); try { if (tinha && !futTemBola()) { const d = dic(); d.chutes = (d.chutes || 0) + 1; } } catch (e) { } return r; };
   const _boteDica = futBote;
   futBote = function () {
     const r = _boteDica.apply(this, arguments);
@@ -72,7 +74,9 @@
     try {
       const F = G.fut; if (e !== G.p || !F || F.acabou || F.tipo === 'penalti') return r;
       const d = dic(); if (!d) return r;
-      if (F.tipo !== 'defesa' && d.fintas < VEZES_AVISO && futTemBola() && G.agora >= (F.fintaCd || 0)
+      const naArea = futTemBola() && Math.hypot(FUT.gx - G.p.x, FUT.cy - G.p.y) < 11;
+      if (F.tipo !== 'defesa' && naArea && (d.chutes || 0) < VEZES_AVISO) aviso(ctx, e, tecla('ESPAÇO · CHUTE!', '⚽ CHUTE!'));
+      else if (F.tipo !== 'defesa' && d.fintas < VEZES_AVISO && futTemBola() && G.agora >= (F.fintaCd || 0)
         && F.atores.some(a => a.time === 'eles' && a.papel !== 'gol' && a.tonto <= G.agora && Math.hypot(a.x - G.p.x, a.y - G.p.y) < 2.3)) aviso(ctx, e, tecla('F · DRIBLE!', '🌀 DRIBLE!'));
       else if (F.tipo === 'defesa' && d.botes < VEZES_AVISO && G.agora >= (F.boteCd || 0)) {
         const dono = F.bola.dono; if (dono && dono !== 'p' && dono.time === 'eles' && dono.papel !== 'gol' && Math.hypot(dono.x - G.p.x, dono.y - G.p.y) < 1.6) aviso(ctx, e, tecla('ESPAÇO · BOTE!', '🦶 BOTE!'));

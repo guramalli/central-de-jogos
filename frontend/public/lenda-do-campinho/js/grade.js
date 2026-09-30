@@ -26,7 +26,9 @@ function grApertou(tok) {
 { const T0 = G.teclas, _add = T0.add.bind(T0); T0.add = function (v) { if (!T0.has(v)) try { grApertou(v); } catch (e) { } return _add(v); }; }
 
 function grTile(e) { const s = e.pas; return s ? { x: s.tx, y: s.ty } : { x: Math.floor(e.x), y: Math.floor(e.y) }; }
-function grOcupa(e) { return e && !(e.d && e.d.look && (e.d.look.tipo === 'gaivota' || e.d.look.voa || e.d.voa)); }
+// v294: quem VOA também ocupa o quadrado (morcegos, fantasmas, ETs flutuantes se empilhavam e passavam de 8 em volta
+// de você). Só a gaivota da praia fica de fora: é enfeite, não briga.
+function grOcupa(e) { return e && !(e.d && e.d.look && e.d.look.tipo === 'gaivota'); }
 function grOcupado(tx, ty, eu) {
   for (const o of [G.p, ...G.mons, ...G.npcs]) {
     if (!o || o === eu || !grOcupa(o)) continue; const t = grTile(o);
@@ -154,7 +156,7 @@ function grVizinho(e, dx, dy, deLado) {
   const _atualiza = atualiza;
   atualiza = function (dt) {
     GRADE.dt = dt || 16;
-    if (GRADE.on && G.mapa && !G.pausado) try { grAvanca(dt || 16); if (G.p && !G.p.pas && !G.jogada) separaJogador(); } catch (e) { }
+    if (GRADE.on && G.mapa && !G.pausado) try { grAvanca(dt || 16); if (G.p && !G.p.pas && !G.jogada) separaJogador(); if (!G.fut) grDesempilha(); } catch (e) { }
     const r = _atualiza.apply(this, arguments);
     const p = G.p;
     if (GRADE.on && p && !G.pausado) {
@@ -165,6 +167,27 @@ function grVizinho(e, dx, dy, deLado) {
     }
     return r;
   };
+}
+// v294: ninguém divide quadrado. Quem nasceu, voltou para casa ou foi parar em cima de outro (ou de você) e não tinha
+// vizinho livre (a sua "box" de 8 cheia) ficava ali preso; agora procura o quadrado livre mais perto, até 3 de distância.
+let grDesempilhaEm = 0;
+function grDesempilha() {
+  if (G.agora < grDesempilhaEm) return; grDesempilhaEm = G.agora + 200;
+  const ocup = new Map(), tile = e => Math.floor(e.x) + ',' + Math.floor(e.y);
+  if (G.p) ocup.set(tile(G.p), G.p);
+  for (const n of G.npcs) if (n) ocup.set(tile(n), n);
+  for (const m of G.mons) {
+    if (!m || !grOcupa(m) || m.hp <= 0) continue;
+    if (m.pas) { ocup.set(m.pas.tx + ',' + m.pas.ty, m); continue; }
+    const k = tile(m); if (!ocup.has(k)) { ocup.set(k, m); continue; }
+    // esse quadrado já tem dono: vai para o livre mais perto
+    const x0 = Math.floor(m.x), y0 = Math.floor(m.y); let foi = false;
+    for (let r = 1; r <= 3 && !foi; r++) for (let dy = -r; dy <= r && !foi; dy++) for (let dx = -r; dx <= r && !foi; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const tx = x0 + dx, ty = y0 + dy;
+      if (tileBloq(tx, ty) || ocup.has(tx + ',' + ty) || grOcupado(tx, ty, m)) continue;
+      grPasso(m, tx, ty, 4 + r); ocup.set(tx + ',' + ty, m); foi = true;
+    }
+  }
 }
 // o jogador também não pode ficar em cima de ninguém (ex.: chegou por uma porta onde havia alguém)
 function separaJogador() {

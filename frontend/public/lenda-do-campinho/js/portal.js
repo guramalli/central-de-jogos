@@ -20,6 +20,24 @@ const PORTAL = (() => {
   if (!contaId && token) try { contaId = String(JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).id || '') || null; } catch (e) { }
   return { ativo: producao || local, api: producao ? 'https://api.educacaogamer.com.br' : 'http://localhost:4000', token, user, contaId };
 })();
+// v293: login que se renova sozinho. O login do site dura 7 dias; quem continua jogando troca o login ainda
+// válido por um novo (POST /api/auth/renovar) ao abrir o jogo e a cada 6 h — só se ele já tiver mais de 12 h.
+// Antes, quem jogava todo dia caía a cada 7 dias e o jogo parava de salvar online (e de mandar o ranking).
+function lerTokenPortal(t) { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return null; } }
+async function renovaLoginPortal() {
+  if (!PORTAL.ativo || !PORTAL.token) return false;
+  const p = lerTokenPortal(PORTAL.token), agora = Date.now();
+  if (!p || !p.exp || !p.iat || p.exp * 1000 <= agora || agora - p.iat * 1000 < 12 * 3600e3) return false;
+  try {
+    const antes = PORTAL.token;
+    const r = await fetch(PORTAL.api + '/api/auth/renovar', { method: 'POST', headers: { Authorization: 'Bearer ' + antes } });
+    if (!r.ok) return false;
+    const j = await r.json(); if (!j || !j.token || PORTAL.token !== antes) return false;
+    PORTAL.token = j.token; try { localStorage.setItem('eg_token', j.token); if (j.user) localStorage.setItem('eg_user', JSON.stringify(j.user)); } catch (e) { }
+    return true;
+  } catch (e) { return false; }
+}
+if (PORTAL.ativo && PORTAL.token) { setTimeout(renovaLoginPortal, 4000); setInterval(renovaLoginPortal, 6 * 3600e3); }
 // v290: login e cadastro do site VOLTAM para o jogo depois (?volta=): antes a pessoa caía na página inicial do site
 function urlConta(tipo, extra) { return (tipo === 'cadastro' ? '/registrar' : '/login') + '?' + (extra ? extra + '&' : '') + 'volta=' + encodeURIComponent(location.pathname + location.search); }
 // o personagem aberto é desta conta? (save sem dono ainda = sim; o contas.js marca o dono)

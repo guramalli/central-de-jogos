@@ -17,7 +17,7 @@ const FUT = { x0: 5.05, x1: 34.95, y0: 5.1, y1: 21.9, gy0: 12.15, gy1: 14.85, gx
 const FUT_NOMES_EXTRA = ['Tuca', 'Bebel', 'Didi', 'Zico Jr.', 'Pipoca', 'Bolinha', 'Foguete', 'Tatu', 'Gordo', 'Magrão'];
 let FUT_UID = 900000;
 
-function futSkill(k) { const s = stats(), exp = 12 + (G.save.nivel || 1) * 0.55; const v = s[k] || 10; return v / (v + exp); } // ~0,5 para quem treina normal
+function futSkill(k) { const s = stats(), exp = 12 + (G.save.nivel || 1) * 0.25; const v = s[k] || 10; return v / (v + exp); } // v295: ~0,45 para quem treina normal (antes o nível alto derrubava para ~0,3)
 function futDif() { const t = cjTemp(); return t ? t.tier : 1; }
 // um ator (jogador de mentira): usa o desenho de boneco do jogo, sem IA de adversário
 function futAtor(nome, look, time, papel, x, y) {
@@ -111,9 +111,9 @@ function futChutar() {
   const b = F.bola, gk = F.golEles, tier = futDif();
   const dist = Math.hypot(FUT.gx - b.x, FUT.cy - b.y);
   // mira no canto longe do goleiro; o erro depende do chute e da distância
-  const canto = gk && gk.y < FUT.cy ? 14.55 : gk && gk.y > FUT.cy ? 12.45 : (Math.random() < 0.5 ? 12.45 : 14.55);
+  const canto = gk && gk.y < FUT.cy ? 14.3 : gk && gk.y > FUT.cy ? 12.7 : (Math.random() < 0.5 ? 12.7 : 14.3); // v295: mira mais para dentro da trave
   const q = futSkill('chute');
-  const erro = (0.72 - q * 0.5 + Math.max(0, dist - 8) * 0.07) * (Math.random() * 2 - 1);
+  const erro = (0.5 - q * 0.4 + Math.max(0, dist - 10) * 0.06) * (Math.random() * 2 - 1); // v295: antes 0.72 − q·0.5 (+ de longe)
   let alvoY = canto + erro;
   const forca = dist > 17 ? 11 : 16;
   // o goleiro vai conseguir? (decidido na hora do chute, o desenho acompanha)
@@ -121,7 +121,7 @@ function futChutar() {
   let res = noGol ? 'gol' : 'fora';
   if (noGol && gk) {
     const alcance = 1.05 + tier * 0.02, reacao = Math.abs(alvoY - gk.y);
-    let p = (0.6 + tier * 0.02) + (dist > 14 ? 0.22 : dist > 10 ? 0.1 : dist < 6 ? -0.14 : 0) - q * 0.22;
+    let p = (0.32 + tier * 0.012) + (dist > 14 ? 0.22 : dist > 10 ? 0.1 : dist < 6 ? -0.12 : 0) - q * 0.25; // v295: goleiro menos paredão (antes 0.6 + tier·0.02)
     if (reacao > alcance) p *= 0.55;
     if (Math.random() < Math.max(0.05, Math.min(0.85, p))) res = Math.random() < 0.7 ? 'defesa' : 'rebote';
   }
@@ -323,8 +323,8 @@ function futDisputa(dt) {
     // o bote: de tempos em tempos (não é contínuo) — quem corre e ginga escapa
     r.boteEm = agora + 1000; r.golpe = agora;
     const q = b.dono === 'p' ? futSkill('drible') : 0.5;
-    const chance = Math.max(0.06, Math.min(0.45, 0.30 - q * 0.25 + tier * 0.006 + (b.dono === 'p' && G.p.mov ? 0 : 0.12))); // v292: antes 0.42 − q·0.28 + tier·0.012
-    if (Math.random() < chance) { b.dono = r; r.dir = { x: -1, y: 0 }; texto(r, 'Roubou!', '#ff9a8a', 800); som('erro'); if (timeDono === 'nos') F.perdeuAte = agora + 700; return; }
+    const chance = Math.max(0.05, Math.min(0.4, 0.22 - q * 0.2 + tier * 0.005 + (b.dono === 'p' && G.p.mov ? 0 : 0.12))); // v295: antes (v292) 0.30 − q·0.25 + tier·0.006
+    if (Math.random() < chance) { b.dono = r; r.dir = { x: -1, y: 0 }; texto(r, 'Roubou!', '#ff9a8a', 800); som('erro'); if (timeDono === 'nos') { F.perdeuAte = agora + 2500; if (b.dono && dono === G.p) setTimeout(() => { try { if (G.fut === F && !F.acabou) texto(G.p, 'Recupera! (ESPAÇO colado nele)', '#ffe14a', 1400); } catch (e) { } }, 250); } return; } // v295: 2,5 s para recuperar (antes o lance acabava em 0,7 s)
     else if (b.dono === 'p') { texto(r, 'Errou o bote!', '#ffe14a', 600); r.tonto = agora + 450; } // quem erra o bote fica um instante parado: dá para escapar
   }
 }
@@ -349,6 +349,10 @@ function futTick(dt) {
   futIA(s); futDisputa(s); futFisica(s);
   if (F.acabou) return;
   const b = F.bola;
+  // v295: CHUTE AUTOMÁTICO — chegou na área com a bola e não chutou em ~1 s: o seu jogador chuta sozinho
+  if (F.tipo !== 'defesa' && b.dono === 'p' && Math.hypot(FUT.gx - p.x, FUT.cy - p.y) < 8.5) {
+    if (!F.naArea) F.naArea = agora; else if (agora - F.naArea > 1000) { F.naArea = 0; futChutar(); futMsg('Chutou sozinho!'); if (F.acabou || !G.fut) return; }
+  } else F.naArea = 0;
   // fim por posse
   if (F.tipo === 'defesa') {
     if (b.dono === 'p' || (b.dono && b.dono.time === 'nos')) return futFimLance('recuperou');
