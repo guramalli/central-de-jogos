@@ -817,7 +817,7 @@ function atualizaMonstro(m, dt) {
   if (m.d.treino) return;
   const p = G.p; const d = dist(m, p); const vivo = G.save.hp > 0;
   const casa = { x: m.sp.x + 0.5, y: m.sp.y + 0.5 };
-  const longe = dist(m, casa) > m.sp.raio + 10;
+  const longe = dist(m, casa) > m.sp.raio + 18; // v297: persegue mais longe (antes raio + 10)
   const v = tpsDeVel(velMonstro(m.d)) * dt / 1000; // v254: mesma curva do jogador
   const aggro = Math.max(1, m.d.aggro + (m.d.grupo && G.save.carreira && G.save.carreira.satTorcida < 40 ? 2 : 0) + (G.climaAggro || 0));
   if (m.bravo) m.voltando = false; // levou drible/chute no caminho de volta: encara de novo
@@ -829,7 +829,7 @@ function atualizaMonstro(m, dt) {
   if (!m.bravo) m.avisouGrupo = false;
   // desistiu (você foi longe, ele se afastou demais de casa, ou não acha caminho até você): volta pro lugar dele
   const desiste = () => { m.bravo = false; if (m.ar) return; /* chefão de arena tem a regra dele (arenas.js) */ m.voltando = true; m.volta0 = G.agora; m.cam = null; m.dest = null; m.tParado = 0; if (G.alvo === m) G.alvo = null; };
-  if (m.bravo && (d > 11 || longe || !vivo)) desiste();
+  if (m.bravo && (d > 18 || longe || !vivo)) desiste(); // v297: antes desistia a 11 quadrados de você
   if (m.voltando) {
     if (dist(m, casa) <= Math.max(1, m.sp.raio)) { // chegou: recupera o fôlego e volta a passear
       m.voltando = false; m.hp = m.d.hp; m.prox = G.agora + rnd(800, 2000);
@@ -861,7 +861,7 @@ function atualizaMonstro(m, dt) {
     if (r) { if (d > r.alcance - 0.3) andaAte(m, p, v); else if (d < 2) andaAte(m, p, v * 0.8, true); else m.flip = p.x < m.x; }
     else if (d > alcance - 0.15) andaAte(m, p, v); else m.flip = p.x < m.x;
     // parado longe de você (sem caminho até você) por uns segundos: desiste e volta
-    if (!m.mov && d > (r ? r.alcance + 0.5 : alcance + 1)) { if (!m.tParado) m.tParado = G.agora; else if (G.agora - m.tParado > 2500) desiste(); }
+    if (!m.mov && d > (r ? r.alcance + 0.5 : alcance + 1)) { if (!m.tParado) m.tParado = G.agora; else if (G.agora - m.tParado > 4000) desiste(); } // v297: 2,5 s → 4 s
     else m.tParado = 0;
   } else {
     if (!m.dest) {
@@ -1561,8 +1561,23 @@ function atualizaBotaoAlvo() {
   box.querySelectorAll('button').forEach(b => b.classList.toggle('ativo', b.dataset.modo === atual));
   const velho = document.getElementById('btnAlvo'); if (velho) velho.remove(); // o botão antigo da barra de ações sai
 }
+// v297: no modo PERTO, o Espaço só marca quem está perto (até 5 quadrados a pé) e, apertando de novo, alterna SÓ entre
+// esses — nunca pula para um adversário longe. Ninguém perto: o mais próximo até 8 quadrados; nem isso: não marca.
+const ALVO_PERTO = 5, ALVO_PERTO_MAX = 8;
 function alvoMaisProximo() {
-  const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && naTela(m))); // v255: a tela toda (antes até 8 quadradinhos)
+  const p = G.p;
+  if ((G.save.modoAlvo || 'perto') === 'perto') {
+    const cand = G.mons.filter(m => !m.d.treino && naTela(m));
+    if (cand.length) {
+      const dd = distanciasAPe(), ok = m => dd(m) < 1000;
+      const perto = cand.filter(m => ok(m) && dd(m) <= ALVO_PERTO).sort((a, b) => dd(a) - dd(b));
+      if (perto.length) { const i = perto.indexOf(G.alvo); G.alvo = perto[i < 0 ? 0 : (i + 1) % perto.length]; G.uiSujo = true; return; }
+      const m = cand.filter(m => ok(m) && dd(m) <= ALVO_PERTO_MAX).sort((a, b) => dd(a) - dd(b))[0];
+      if (m) { G.alvo = m; G.uiSujo = true; } else if (typeof texto === 'function') texto(p, 'Ninguém perto', '#ffe14a', 700);
+      return;
+    }
+  }
+  const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && naTela(m))); // v255: a tela toda (antes até 8 quadradinhos)
   if (!vis.length) { const t = G.mons.filter(m => m.d.treino && dist(m, p) < 6 && naTela(m)).sort((a, b) => dist(a, p) - dist(b, p)); if (t.length) { G.alvo = t[0]; G.uiSujo = true; } return; }
   const i = vis.indexOf(G.alvo); G.alvo = vis[(i + 1) % vis.length]; G.uiSujo = true;
 }
