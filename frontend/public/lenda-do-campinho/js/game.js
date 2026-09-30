@@ -961,7 +961,15 @@ function atualiza(dt) {
 let CTX, CV;
 function loop(ts) {
   const dt = Math.min(50, ts - (G.ult || ts)); G.ult = ts; G.agora = ts;
-  if (G.rodando) { if (!G.pausado) atualiza(dt); desenha(dt); }
+  if (G.rodando) {
+    if (!G.pausado) {
+      // v292: com uma janela aberta o jogo para, mas o relógio seguia: ao fechar, todos os adversários derrotados
+      // voltavam de uma vez (na dungeon, cada um volta em 40–60 s). Agora a contagem do renascimento fica parada junto.
+      if (G.pausaDesde) { const d = ts - G.pausaDesde; G.pausaDesde = 0; if (d > 0 && G.respawns) for (const r of G.respawns) r.em += d; }
+      atualiza(dt);
+    } else if (!G.pausaDesde) G.pausaDesde = ts;
+    desenha(dt);
+  }
   requestAnimationFrame(loop);
 }
 

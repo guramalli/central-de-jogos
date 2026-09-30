@@ -145,22 +145,22 @@ function futPassar() {
 }
 function futDriblar() {
   const F = G.fut; if (!F || F.acabou || F.tipo === 'penalti') return;
-  if (G.agora < F.fintaCd) return; F.fintaCd = G.agora + 1600;
+  if (G.agora < F.fintaCd) return; F.fintaCd = G.agora + 1100; // v292: 1600 → 1100
   if (!futTemBola()) return;
-  const perto = F.atores.filter(a => a.time === 'eles' && a.papel !== 'gol' && Math.hypot(a.x - G.p.x, a.y - G.p.y) < 1.9);
-  F.fintaAte = G.agora + 650; G.p.golpe = G.agora;
+  const perto = F.atores.filter(a => a.time === 'eles' && a.papel !== 'gol' && Math.hypot(a.x - G.p.x, a.y - G.p.y) < 2.3);
+  F.fintaAte = G.agora + 800; G.p.golpe = G.agora;
   if (typeof efeito === 'function') efeito('aura', G.p.x, G.p.y, '#ffd23f');
   if (!perto.length) { futMsg('Firula!'); return; }
   const q = futSkill('drible'), tier = futDif();
   for (const a of perto) {
-    if (Math.random() < 0.45 + q * 0.5 - tier * 0.012) { a.tonto = G.agora + 1300; texto(a, 'Caiu na finta!', '#ffe14a', 900); efeito('estrelas', a.x, a.y, '#ffe14a'); }
+    if (Math.random() < 0.58 + q * 0.45 - tier * 0.008) { a.tonto = G.agora + 1600; texto(a, 'Caiu na finta!', '#ffe14a', 900); efeito('estrelas', a.x, a.y, '#ffe14a'); }
     else texto(a, 'Não caiu!', '#ff9a8a', 800);
   }
   som('toque'); if (typeof treinaSkill === 'function') treinaSkill('drible', 1);
 }
 function futBote() {
   const F = G.fut; if (!F || F.acabou) return;
-  if (G.agora < F.boteCd || G.agora < F.tontoP) return; F.boteCd = G.agora + 1100;
+  if (G.agora < F.boteCd || G.agora < F.tontoP) return; F.boteCd = G.agora + 900;
   const b = F.bola, dono = b.dono;
   G.p.golpe = G.agora;
   if (!dono || dono === 'p' || dono.time !== 'eles' || dono.papel === 'gol') {
@@ -168,9 +168,9 @@ function futBote() {
     if (!dono && Math.hypot(b.x - G.p.x, b.y - G.p.y) < 1.1) { futChutaPara('p', b.x + 8, b.y + (Math.random() * 4 - 2), 12, true); futMsg('Chutão!'); som('chute'); }
     return;
   }
-  const d = Math.hypot(dono.x - G.p.x, dono.y - G.p.y); if (d > 1.35) { futMsg('Longe demais!'); return; }
+  const d = Math.hypot(dono.x - G.p.x, dono.y - G.p.y); if (d > 1.6) { futMsg('Longe demais!'); return; }
   const q = futSkill('defesa'), tier = futDif();
-  if (Math.random() < 0.5 + q * 0.4 - tier * 0.012) {
+  if (Math.random() < 0.58 + q * 0.35 - tier * 0.008) { // v292: antes 0.5 + q·0.4 − tier·0.012
     b.dono = null; futChutaPara('p', b.x + (F.tipo === 'defesa' ? 3 : 2), b.y + (Math.random() * 2 - 1), 5, false); b.livreAte = G.agora + 120;
     dono.tonto = G.agora + 900; texto(dono, 'Desarmado!', '#9ad0ff', 900); efeito('escudo', G.p.x, G.p.y, '#7ab8ff'); som('toque');
     if (typeof treinaSkill === 'function') treinaSkill('defesa', 1);
@@ -214,7 +214,7 @@ function futIA(dt) {
   const dono = b.dono, pos = dono === 'p' ? p : dono;
   for (const a of F.atores) {
     if (a.tonto > agora) { a.mov = false; continue; }
-    const vel = v * (a.papel === 'gol' ? 0.7 : a.time === 'eles' ? 0.8 + tier * 0.008 : 0.86);
+    const vel = v * (a.papel === 'gol' ? 0.7 : a.time === 'eles' ? 0.74 + tier * 0.004 : 0.86); // v292: marcadores mais lentos (antes 0.8 + tier·0.008 ≈ 89% da sua velocidade)
     const temBola = dono === a;
     if (a.papel === 'gol') {
       const linha = a.time === 'eles' ? 34.1 : 5.9;
@@ -321,11 +321,11 @@ function futDisputa(dt) {
   for (const r of rivais) {
     const d = Math.hypot(r.x - dono.x, r.y - dono.y); if (d > 0.7 || agora < (r.boteEm || 0)) continue;
     // o bote: de tempos em tempos (não é contínuo) — quem corre e ginga escapa
-    r.boteEm = agora + 800; r.golpe = agora;
+    r.boteEm = agora + 1000; r.golpe = agora;
     const q = b.dono === 'p' ? futSkill('drible') : 0.5;
-    const chance = Math.max(0.08, Math.min(0.6, 0.42 - q * 0.28 + tier * 0.012 + (b.dono === 'p' && G.p.mov ? 0 : 0.12)));
+    const chance = Math.max(0.06, Math.min(0.45, 0.30 - q * 0.25 + tier * 0.006 + (b.dono === 'p' && G.p.mov ? 0 : 0.12))); // v292: antes 0.42 − q·0.28 + tier·0.012
     if (Math.random() < chance) { b.dono = r; r.dir = { x: -1, y: 0 }; texto(r, 'Roubou!', '#ff9a8a', 800); som('erro'); if (timeDono === 'nos') F.perdeuAte = agora + 700; return; }
-    else if (b.dono === 'p') texto(r, 'Errou o bote!', '#ffe14a', 600);
+    else if (b.dono === 'p') { texto(r, 'Errou o bote!', '#ffe14a', 600); r.tonto = agora + 450; } // quem erra o bote fica um instante parado: dá para escapar
   }
 }
 
