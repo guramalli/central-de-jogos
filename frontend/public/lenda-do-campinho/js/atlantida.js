@@ -141,7 +141,7 @@ function criaAtlantida() {
   b.m.submarino = true;
   return b.m;
 }
-MAPAS_DEF.atlantida = criaAtlantida;
+MAPAS_DEF.atlantida = () => criaAtlantida(); // v288: espaco_novo.js troca o desenho
 
 /* ---------- os 16 portais (áreas de caça) ---------- */
 const lkAtl = (pele, cor, extra) => lkGuia(pele, cor, Object.assign({ chapeu: null }, extra || {}));

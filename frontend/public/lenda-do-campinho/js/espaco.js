@@ -149,7 +149,7 @@ function criaEstacao() {
   b.m.espaco = { tinta: 'rgba(90,120,255,0.06)' };
   return b.m;
 }
-MAPAS_DEF.estacao = criaEstacao;
+MAPAS_DEF.estacao = () => criaEstacao(); // v288: espaco_novo.js troca o desenho
 
 /* ---------- planetas ---------- */
 function criaPlaneta(p) {

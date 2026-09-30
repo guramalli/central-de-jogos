@@ -22,6 +22,8 @@ const CN_AR = { b_cairo1: 1.071, b_cairo2: 0.849, b_doha1: 0.739, b_doha2: 0.97,
   b_cairo3: 1.494, b_cairo4: 1.01, b_cairo5: 1.0, b_cairo6: 0.966, b_doha3: 0.987, b_doha4: 1.016, b_doha5: 0.86, b_doha6: 0.968, b_toquio3: 1.445, b_toquio4: 1.016, b_toquio5: 0.841, b_toquio6: 1.022,
   b_miami3: 1.026, b_miami4: 0.809, b_miami5: 0.91, b_miami6: 0.962, b_buenos3: 1.049, b_buenos4: 1.311, b_buenos5: 1.251, b_buenos6: 0.9, b_rio3: 1.51, b_rio4: 1.186, b_rio5: 1.342, b_rio6: 1.329,
   b_lisboa3: 1.777, b_lisboa4: 1.374, b_lisboa5: 1.307, b_lisboa6: 1.683, b_paris3: 1.514, b_paris4: 1.322, b_paris5: 1.382, b_paris6: 1.344,
+  b_madri1: 1.032, b_madri2: 1.447, b_madri3: 1.287, b_madri4: 1.296, b_madri5: 1.087, b_madri6: 1.556,
+  b_londres1: 1.236, b_londres2: 1.01, b_londres3: 1.137, b_londres4: 1.088, b_londres5: 1.186, b_londres6: 1.251,
   b_munique3: 1.203, b_munique4: 1.04, b_munique5: 0.955, b_munique6: 1.118, b_milao3: 1.144, b_milao4: 1.183, b_milao5: 1.059, b_milao6: 1.165 };
 const larguraPredio = spr => Math.max(3, Math.min(6, Math.round(6.6 / (CN_AR[spr] || 1) - 0.5)));
 for (const n of Object.keys(CN_AR)) { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } if (!PORTAS[n]) PORTAS[n] = { x: 0.5, y: 0.93 }; }
@@ -773,6 +775,166 @@ CIDADES_NOVAS.milao = function (b, c, K) {
   m.inicio = { x: 85, y: 59 }; m.renasce = { x: 86, y: 59 };
   K.fila(73, 97, 70);
 };
+
+/* ============================================================
+   MADRI (v288) — a Gran Vía cortando a cidade, a PLAZA MAYOR no centro (lojas e missões),
+   a Puerta de Alcalá no Paseo del Prado, o Bernabéo e o Campo del Barrio no norte,
+   o Parque del Retiro com o lago no sudeste e a Casa de Campo (a fazenda dos toureiros) no sudoeste.
+   ============================================================ */
+CIDADES_NOVAS.madri = function (b, c, K) {
+  const m = b.m, P = CH.PEDRA, C = CH.CALCADA, G = CH.GRAMA;
+  /* --- ruas: Gran Vía e Calle de Alcalá (leste–oeste), três ruas norte–sul --- */
+  K.rua(2, 20, 96, 4); K.rua(2, 46, 96, 4);
+  K.rua(24, 2, 3, 70); K.rua(50, 2, 4, 70); K.rua(74, 2, 3, 44);
+  /* --- BAIRRO RIVAL (noroeste) --- */
+  bairroHostil(b, 2, 2, 22, 17, c.zona, c.fanatico, 9);
+  b.placa(3, 19, `${c.zona.toUpperCase()} — cuidado: os fanáticos andam em grupo. Rivalidade é dentro de campo!`);
+  /* --- GRAN VÍA (norte): os prédios --- */
+  K.chao(27, 2, 23, 18, C); K.quintal(28, 3, 21, 3);
+  K.fila(27, 49, 11, { sprs: ['b_madri1', 'b_madri6', 'b_madri3'] }); K.fila(27, 49, 19, { sprs: ['b_madri4', 'b_madri5', 'b_madri6'] });
+  /* --- o Bernabéo --- */
+  K.chao(54, 2, 20, 18, C); K.estadio(63, 17);
+  for (const [x, y] of [[55, 3], [72, 3], [55, 18], [72, 18]]) K.poe(x, y, 'arvore');
+  /* --- CAMPO DEL BARRIO (nordeste): o chefão --- */
+  K.chao(77, 2, 21, 18, C);
+  b.campo(79, 4, 17, 11, CH.CAMPO);
+  for (const [x, y] of [[78, 3], [96, 3], [78, 16], [96, 16]]) K.poe(x, y, 'poste3');
+  b.spawn(c.chefe, 87, 9, 1, 1); b.placa(80, 17, `⚽ CAMPO DEL BARRIO — território de ${MONSTROS[c.chefe].nome.toUpperCase()}`);
+  /* --- PLAZA MAYOR (centro): lojas e missões --- */
+  K.praca(27, 24, 23, 13, CH.PARALELO, { arvores: false });
+  objLargo(b, 38, 29, 'estatua', 1);
+  b.npc('lojista_madri', 31, 28); b.obj(30, 27, 'mesa_cafe'); b.obj(32, 27, 'carrinho_flores');
+  b.npc('lider_madri', 45, 28); b.obj(46, 27, 'banca_jornal'); b.npc('quadro', 38, 33);
+  b.placa(28, 35, '⭐ PLAZA MAYOR — os churros do Don Paco, a professora Carmen e o quadro de desafios.');
+  K.quintal(28, 38, 21, 3); K.fila(27, 49, 45, { sprs: ['b_madri5', 'b_madri3', 'b_madri6'] });
+  /* --- PASEO DEL PRADO: a Puerta de Alcalá e os pivôs --- */
+  K.chao(54, 24, 20, 22, P);
+  K.mon('mon_alcala', 63, 30);
+  for (const [x, y] of [[56, 26], [71, 26], [56, 31], [71, 31]]) K.poe(x, y, 'roseira');
+  for (let x = 55; x <= 72; x += 4) { K.poe(x, 34, 'arvore'); K.poe(x, 44, 'arvore'); }
+  K.caça(c.meia, [[59, 39], [68, 39]], 4, 2);
+  K.zona(54, 35, 20, 11, 'Paseo del Prado');
+  b.placa(53, 36, '🎨 PASEO DEL PRADO — a avenida dos museus. Os Pivotes Maestros trocam passes debaixo das árvores!');
+  /* --- CT (oeste) --- */
+  K.chao(2, 24, 22, 22, C); K.ct(4, 26);
+  K.quintal(3, 34, 20, 3); K.fila(2, 23, 45, { max: 3, sprs: ['b_madri3', 'b_madri1', 'b_madri6'] });
+  /* --- leste: prédios e as casas à venda --- */
+  K.chao(77, 24, 21, 22, C); K.quintal(78, 25, 19, 3);
+  K.fila(77, 97, 33, { sprs: ['b_madri5', 'b_madri4', 'b_madri1'] });
+  K.quintal(78, 36, 19, 3);
+  m.casasLote = K.fila(77, 97, 45, { w: 5, max: 3, sprs: ['b_madri3', 'b_madri5', 'b_madri4'] });
+  /* --- CASA DE CAMPO (sudoeste): os toureiros e a fazenda --- */
+  K.chao(2, 50, 22, 22, G);
+  for (const [x, y] of [[3, 51], [12, 51], [22, 51], [3, 61], [22, 60], [3, 70], [12, 70], [22, 70], [15, 56], [8, 65]]) K.poe(x, y, x % 2 ? 'pinheiro' : 'arvore');
+  K.caca('caca_fazenda', 9, 56);
+  K.caça(c.zagueiro, [[18, 55], [16, 66], [6, 67]], 3, 2);
+  K.zona(2, 50, 22, 22, 'Casa de Campo');
+  b.placa(23, 53, '🐂 CASA DE CAMPO — o parque enorme de Madri. Os Toureiros da Zaga treinam por aqui!');
+  /* --- AEROPORTO (sul) --- */
+  K.chao(27, 50, 23, 22, C);
+  b.predio('b_aeroporto', 34, 52, 8, 4); b.npc('comissaria', 36, 57);
+  m.inicio = { x: 38, y: 58 }; m.renasce = { x: 39, y: 58 };
+  for (const [x, y] of [[28, 51], [48, 51], [28, 63], [48, 63]]) K.poe(x, y, 'arvore');
+  objLargo(b, 38, 63, 'chafariz', 3); K.poe(33, 64, 'banco'); K.poe(43, 64, 'banco');
+  K.fila(27, 49, 71, { max: 3, sprs: ['b_madri6', 'b_madri1', 'b_madri4'] });
+  /* --- PARQUE DEL RETIRO (sudeste): o lago e os flamencos --- */
+  K.chao(54, 50, 44, 22, G);
+  K.chao(64, 54, 26, 14, P); K.chao(66, 56, 22, 10, CH.AGUA);
+  b.obj(71, 59, 'barquinho'); b.obj(82, 62, 'barquinho');
+  objLargo(b, 77, 54, 'estatua', 1);
+  for (const [x, y] of [[55, 51], [96, 51], [55, 70], [96, 70], [62, 60], [92, 60], [70, 70], [84, 51]]) K.poe(x, y, 'arvore');
+  K.caça(c.rapido, [[58, 54], [93, 55], [59, 67], [92, 67]], 4, 2);
+  K.zona(54, 50, 44, 22, 'Parque del Retiro');
+  b.placa(55, 60, '🚣 PARQUE DEL RETIRO — o jardim mais famoso de Madri, com barquinhos no lago. Os Flamencos Velozes correm em volta!');
+};
+
+/* ============================================================
+   LONDRES (v288) — o rio TÂMISA atravessando a cidade com três pontes.
+   Margem norte: o Hyde Park, Camden Town, Trafalgar Square (lojas e missões), o Big Ben e o East End.
+   Margem sul: Stamford Brydge, o centro de treino, a Torre dos Guardas, as Docas (os esgotos),
+   o aeroporto e o campo de Wembley, onde o Lorde guarda a Bola de Ouro.
+   ============================================================ */
+CIDADES_NOVAS.londres = function (b, c, K) {
+  const m = b.m, P = CH.PEDRA, C = CH.CALCADA, T = CH.TIJOLO, G = CH.GRAMA;
+  /* --- o Tâmisa e as margens --- */
+  K.chao(1, 29, 98, 8, CH.AGUA); K.chao(1, 27, 98, 2, P); K.chao(1, 37, 98, 2, P);
+  /* --- ruas (as de x 24 e x 74 atravessam o rio: são as pontes) --- */
+  K.rua(2, 24, 96, 3); K.rua(2, 39, 96, 3); K.rua(24, 12, 50, 3); K.rua(2, 56, 96, 4);
+  K.rua(24, 2, 3, 70); K.rua(74, 2, 3, 70); K.rua(50, 2, 3, 25); K.rua(50, 39, 3, 33);
+  /* --- HYDE PARK (noroeste): o lago Serpentine e os box-to-box --- */
+  K.chao(2, 2, 22, 22, G); K.chao(6, 10, 13, 4, CH.AGUA);
+  for (const [x, y] of [[3, 3], [11, 3], [21, 3], [3, 16], [21, 17], [3, 22], [12, 22], [21, 22], [15, 6], [8, 18]]) K.poe(x, y, x % 3 ? 'arvore' : 'arbusto');
+  b.obj(9, 11, 'barquinho');
+  K.caça(c.meia, [[7, 6], [17, 18], [6, 19]], 3, 2);
+  K.zona(2, 2, 22, 22, 'Hyde Park');
+  b.placa(23, 8, '🦢 HYDE PARK — o maior parque do centro de Londres, com o lago Serpentine. Os Box-to-Box treinam aqui!');
+  /* --- CAMDEN TOWN (norte): o mercado e os roqueiros --- */
+  K.chao(27, 2, 23, 10, T);
+  for (const [x, y, t] of [[28, 3, 'tenda_mercado'], [34, 3, 'banca_jornal'], [41, 3, 'tenda_mercado'], [48, 3, 'banca_livros'], [28, 10, 'muro_grafite'], [47, 10, 'arara_roupas']]) K.poe(x, y, t);
+  K.caça(c.rapido, [[32, 7], [44, 7]], 4, 2);
+  K.zona(27, 2, 23, 10, 'Camden Town');
+  b.placa(38, 11, '🎸 CAMDEN TOWN — o mercado dos roqueiros. Os Roqueiros de Camden são rápidos como o metrô!');
+  K.chao(53, 2, 21, 10, C); K.quintal(54, 3, 19, 3); K.fila(53, 73, 11, { sprs: ['b_londres1', 'b_londres4', 'b_londres6'] });
+  /* --- TRAFALGAR SQUARE: lojas e missões --- */
+  K.praca(27, 15, 23, 9, P, { fonte: 'chafariz' });
+  b.npc('lojista_londres', 30, 17); b.obj(29, 16, 'mesa_cafe'); b.obj(31, 16, 'cabine');
+  b.npc('lider_londres', 46, 17); b.obj(47, 16, 'banca_jornal'); b.npc('quadro', 38, 22);
+  b.placa(28, 22, '⭐ TRAFALGAR SQUARE — o fish & chips do Sr. Wallace, o treinador Oliver e o quadro de desafios.');
+  /* --- WESTMINSTER: o Big Ben na beira do rio --- */
+  K.chao(53, 15, 21, 9, P);
+  K.mon('mon_bigben', 58, 22);
+  K.chao(64, 16, 9, 5, G); for (const [x, y] of [[65, 17], [71, 17], [65, 19], [71, 19]]) K.poe(x, y, 'roseira');
+  objLargo(b, 68, 22, 'onibus2', 3);
+  /* --- EAST END (nordeste) --- */
+  bairroHostil(b, 77, 2, 21, 21, c.zona, c.fanatico, 9);
+  b.placa(78, 23, `${c.zona.toUpperCase()} — o rival não é inimigo. Cuidado: os fanáticos andam em grupo!`);
+  /* --- margem norte: postes no calçadão --- */
+  for (let x = 4; x < 97; x += 8) if (x < 23 || x > 27) if (x < 73 || x > 77) K.poe(x, 28, 'poste3');
+  /* --- STAMFORD BRYDGE (sudoeste) --- */
+  K.chao(2, 42, 22, 14, C); K.estadio(12, 54);
+  for (const [x, y] of [[3, 43], [22, 43]]) K.poe(x, y, 'arvore');
+  /* --- casas à venda (sudoeste) --- */
+  K.chao(2, 60, 22, 12, C); K.quintal(3, 61, 20, 3);
+  m.casasLote = K.fila(2, 23, 70, { w: 5, max: 3, sprs: ['b_londres3', 'b_londres5', 'b_londres4'] });
+  /* --- CT (South Bank) --- */
+  K.chao(27, 42, 23, 14, C); K.ct(31, 44);
+  K.fila(27, 49, 55, { max: 3, sprs: ['b_londres5', 'b_londres6', 'b_londres1'] });
+  /* --- A TORRE DOS GUARDAS: os zagueiros de ferro --- */
+  K.chao(53, 42, 21, 14, P); K.chao(56, 45, 15, 8, G);
+  for (const [x, y] of [[54, 43], [72, 43], [54, 54], [72, 54]]) K.poe(x, y, 'torre');
+  K.caça(c.zagueiro, [[59, 48], [67, 50]], 4, 2);
+  K.zona(53, 42, 21, 14, 'Torre dos Guardas');
+  b.placa(52, 47, '🏰 TORRE DOS GUARDAS — o castelo mais antigo de Londres. Os Guardas da Torre são a zaga mais dura do mundo!');
+  /* --- AS DOCAS (sudeste): a entrada dos esgotos --- */
+  K.chao(77, 42, 21, 14, P);
+  for (const [x, y, t] of [[78, 43, 'barris'], [96, 43, 'caixotes_porto'], [78, 54, 'caixotes_porto'], [96, 54, 'barris'], [92, 49, 'corda_ancora']]) K.poe(x, y, t);
+  K.caca('caca_esgoto', 84, 47); K.poe(93, 45, 'guindaste_porto');
+  b.obj(12, 32, 'barquinho'); b.obj(62, 33, 'barquinho'); b.obj(88, 31, 'barquinho');
+  /* --- AEROPORTO --- */
+  K.chao(27, 60, 23, 12, C);
+  b.predio('b_aeroporto', 34, 61, 8, 4); b.npc('comissaria', 36, 66);
+  m.inicio = { x: 38, y: 67 }; m.renasce = { x: 39, y: 67 };
+  for (const [x, y] of [[28, 61], [48, 61], [28, 70], [48, 70]]) K.poe(x, y, 'arvore');
+  /* --- WEMBLEY: o campo do chefão --- */
+  K.chao(53, 60, 21, 12, C);
+  b.campo(55, 61, 17, 9, CH.CAMPO);
+  for (let x = 55; x <= 71; x++) K.poe(x, 71, 'arquibancada');
+  b.spawn(c.chefe, 63, 65, 1, 1); b.placa(54, 59, `🏆 CAMPO DE WEMBLEY — território de ${MONSTROS[c.chefe].nome.toUpperCase()}, o dono da Bola de Ouro`);
+  /* --- sudeste: prédios --- */
+  K.chao(77, 60, 21, 12, C); K.quintal(78, 61, 19, 3); K.fila(77, 97, 70, { sprs: ['b_londres4', 'b_londres3', 'b_londres6'] });
+};
+const MADRI_C = { id: 'madri', nome: 'Madri — Plaza e Barrio', base: CH.CALCADA, seed: 707, arvores: ['arvore'], poste: 'poste3', zona: 'Bairro Rival',
+  rapido: 'extremo_madri', meia: 'pivote_madri', zagueiro: 'zagueiro_toureiro', fanatico: 'ultra_madri', chefe: 'galactico' };
+const LONDRES_C = { id: 'londres', nome: 'Londres — Camden e East End', base: CH.CALCADA, seed: 808, arvores: ['arvore'], poste: 'poste3', zona: 'East End',
+  rapido: 'ponta_camden', meia: 'box2box', zagueiro: 'zagueiro_ferro', fanatico: 'fanatico_eastend', chefe: 'lorde' };
+mapaMadri = function () { return criaCidadeNova(MADRI_C); };
+mapaLondres = function () { return criaCidadeNova(LONDRES_C); };
+{ // as missões diziam onde ficava cada um no desenho antigo
+  const q = id => MISSOES.find(k => k.id === id);
+  if (q('m_extremos')) q('m_extremos').texto = 'Os Flamencos Velozes correm em volta do lago do Parque del Retiro. Passe por 35.';
+  if (q('m_chefe')) q('m_chefe').texto = 'O GALÁCTICO treina no Campo del Barrio, no nordeste da cidade (depois do Bernabéo). Ele acha que ninguém é do nível dele.';
+  if (q('o_lorde')) q('o_lorde').texto = 'O LORDE DO FUTEBOL guarda a Bola de Ouro no Campo de Wembley, na margem sul do Tâmisa. Só uma lenda pode tirá-la dele.';
+}
 
 const LISBOA_C = { id: 'lisboa', nome: 'Lisboa — Bairro Alto', base: CH.CALCADA_PT, seed: 606, arvores: ['arvore'], poste: 'poste3',
   rapido: 'ponta_alfama', meia: 'medio_chiado', zagueiro: 'central_belem', fanatico: 'ultra_lisboa', chefe: 'capitao_tejo' };
