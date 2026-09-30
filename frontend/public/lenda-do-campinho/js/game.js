@@ -950,7 +950,8 @@ function atualiza(dt) {
   atualizaTutorial();
   G.tCarr = (G.tCarr || 0) + dt; if (G.tCarr > 1000) { G.tCarr = 0; if (typeof checaCarreira === 'function') checaCarreira(); }
   { const z = (G.mapa.zonas || []).find(z => G.p.x >= z.x && G.p.x < z.x + z.w && G.p.y >= z.y && G.p.y < z.y + z.h);
-    if (z && G.zonaAtual !== z) { banner(z.nome, 'Bairro de torcida rival — os fanáticos andam em GRUPO!'); log(`Você entrou no ${z.nome}. Torcer é festa: vença no jogo limpo!`, 'l-dano'); som('apito'); }
+    // v286: só os bairros de torcida rival (hostil) avisam no chat; as outras áreas só mostram o nome. Nenhuma apita (pedido do dono)
+    if (z && G.zonaAtual !== z) { if (z.hostil) { banner(z.nome, 'Bairro de torcida rival — os fanáticos andam em GRUPO!'); log(`Você entrou no ${z.nome}. Torcer é festa: vença no jogo limpo!`, 'l-dano'); } else banner(z.nome, ''); }
     G.zonaAtual = z || null; }
   G.tUI += dt; if (G.tUI > 120) { G.tUI = 0; atualizaBarras(); }
   G.tBatalha += dt; if (G.tBatalha > 350) { G.tBatalha = 0; atualizaBatalha(); atualizaHotbarCd(); }

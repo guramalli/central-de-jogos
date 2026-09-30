@@ -31,7 +31,7 @@ function renderMiniHD(m, S = MINI_S) { // S = pixels por quadro (o mapa grande u
     for (let k = 0; k < 2; k++) { x.fillStyle = r() < 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)'; x.fillRect(xx * S + r() * S, y * S + r() * S, 1.5, 1.5); }
   }
   // 2) zonas de torcida
-  for (const z of (m.zonas || [])) {
+  for (const z of (m.zonas || [])) { if (!z.hostil) continue; // v287: só os bairros de torcida rival ficam listrados (as outras áreas são só nomes)
     x.save(); x.fillStyle = 'rgba(220,40,40,0.16)'; x.fillRect(z.x * S, z.y * S, z.w * S, z.h * S);
     x.beginPath(); x.rect(z.x * S, z.y * S, z.w * S, z.h * S); x.clip(); x.strokeStyle = 'rgba(200,30,30,0.28)'; x.lineWidth = 2;
     for (let d = -z.h * S; d < z.w * S; d += 9) { x.beginPath(); x.moveTo(z.x * S + d, z.y * S + z.h * S); x.lineTo(z.x * S + d + z.h * S, z.y * S); x.stroke(); }
@@ -183,6 +183,13 @@ function rotuloMini(x, txt, cx, cy, e, cor) {
 
 /* ---------- minimapa lateral: acompanha você ---------- */
 let MINI_T = 0, MINI_CAM = null, MINI_VIEW = null; // câmera do minimapa desliza atrás do jogador
+// v287: zoom do minimapa do canto com a rodinha do mouse (quantos quadros cabem na largura); o jogo lembra a escolha
+let MINI_ZOOM = (() => { try { return +localStorage.getItem('rac_minivista') || MINI_VISTA; } catch (e) { return MINI_VISTA; } })();
+document.addEventListener('wheel', ev => {
+  if (!ev.target || ev.target.id !== 'mini' || !G.mapa) return; ev.preventDefault();
+  const max = Math.max(G.mapa.w, G.mapa.h); MINI_ZOOM = clamp(Math.round(MINI_ZOOM * (ev.deltaY < 0 ? 0.8 : 1.25)), 10, Math.max(12, max));
+  try { localStorage.setItem('rac_minivista', MINI_ZOOM); } catch (e) { }
+}, { passive: false });
 desenhaMini = function () {
   const mc = $('#mini'); if (!mc || !G.mapa || !G.p) return;
   const agora = performance.now(); const dt = Math.min(100, agora - (MINI_T || agora)); MINI_T = agora;
@@ -192,7 +199,7 @@ desenhaMini = function () {
   if (mc.width !== larg || mc.height !== alt) { mc.width = larg; mc.height = alt; }
   const x = mc.getContext('2d');
   // janela de tiles centrada no jogador (ou o mapa inteiro, se couber)
-  let vw = Math.min(m.w, MINI_VISTA), vh = vw * alt / larg; if (vh > m.h) { vh = m.h; vw = Math.min(m.w, vh * larg / alt); }
+  let vw = Math.min(m.w, MINI_ZOOM), vh = vw * alt / larg; if (vh > m.h) { vh = m.h; vw = Math.min(m.w, vh * larg / alt); }
   if (!MINI_CAM || MINI_CAM.mapa !== m.id || Math.hypot(MINI_CAM.x - G.p.x, MINI_CAM.y - G.p.y) > 12) MINI_CAM = { mapa: m.id, x: G.p.x, y: G.p.y }; // mapa novo/teleporte: pula direto
   const k0 = 1 - Math.exp(-dt / 110); MINI_CAM.x += (G.p.x - MINI_CAM.x) * k0; MINI_CAM.y += (G.p.y - MINI_CAM.y) * k0;
   let x0 = clamp(MINI_CAM.x - vw / 2, 0, Math.max(0, m.w - vw)), y0 = clamp(MINI_CAM.y - vh / 2, 0, Math.max(0, m.h - vh));
@@ -234,7 +241,7 @@ modalMapa = function () {
       const gente = gentePredio(b); // v223: quem está lá dentro
       if (gente.length) rotuloMini(x, '👤 ' + gente.slice(0, 2).map(g => g.d.nome + (marcaMissaoNPC(g) === '?' ? ' ✔' : marcaMissaoNPC(g) === '!' ? ' ❗' : '')).join(', ') + (gente.length > 2 ? ` +${gente.length - 2}` : ''), fx(b.porta.x + 0.5), fy(b.porta.y + 2.9), e * 0.78, '#ffffff');
     }
-    for (const z of (m.zonas || [])) rotuloMini(x, '\u26a0 ' + z.nome, fx(z.x + z.w / 2), fy(z.y + 1), e * 0.9, '#ffb0b0');
+    for (const z of (m.zonas || [])) rotuloMini(x, (z.hostil ? '⚠ ' : '') + z.nome, fx(z.x + z.w / 2), fy(z.y + 1), e * 0.9, z.hostil ? '#ffb0b0' : '#e8ffd8');
     desenhaMarcadores(x, fx, fy, e, true); ROTULOS = null;
     c._mapaView = { x0: V.x0, y0: V.y0, k }; c.style.cursor = V.z > 1 ? 'grab' : 'zoom-in';
     rotZoom.textContent = (Math.round(V.z * 10) / 10) + '×';
@@ -246,13 +253,18 @@ modalMapa = function () {
   };
   const noDesenho = ev => { const r = c.getBoundingClientRect(); return { px: (ev.clientX - r.left) * W / r.width, py: (ev.clientY - r.top) * H / r.height }; };
   c.addEventListener('wheel', ev => { ev.preventDefault(); const p = noDesenho(ev); zoomEm(ev.deltaY < 0 ? 1.25 : 0.8, p.px, p.py); }, { passive: false });
-  c.addEventListener('dblclick', ev => { const p = noDesenho(ev); zoomEm(1.8, p.px, p.py); });
+  // v287: um CLIQUE marca o lugar no mapa (seta turquesa no jogo leva até lá); clicar perto da marca tira; duplo clique = zoom
+  let tMarca = null;
+  const marcaEm = ev => { const p = noDesenho(ev), k = kBase * V.z, wx = V.x0 + p.px / k, wy = V.y0 + p.py / k; if (typeof marcaMapaToggle === 'function') marcaMapaToggle(m.id, wx, wy); desenhaTudo(); };
+  c.addEventListener('click', ev => { if (c._arrastou) return; clearTimeout(tMarca); const e2 = { clientX: ev.clientX, clientY: ev.clientY }; tMarca = setTimeout(() => marcaEm(e2), 260); });
+  c.addEventListener('dblclick', ev => { clearTimeout(tMarca); const p = noDesenho(ev); zoomEm(1.8, p.px, p.py); });
   // arrastar (mouse ou 1 dedo) e pinça (2 dedos)
   const toques = new Map(); let pinca = null;
-  c.addEventListener('pointerdown', ev => { try { c.setPointerCapture(ev.pointerId); } catch (e) { } toques.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); if (toques.size === 1 && V.z > 1) c.style.cursor = 'grabbing'; pinca = null; });
+  c.addEventListener('pointerdown', ev => { try { c.setPointerCapture(ev.pointerId); } catch (e) { } c._arrastou = false; c._ini = { x: ev.clientX, y: ev.clientY }; toques.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); if (toques.size === 1 && V.z > 1) c.style.cursor = 'grabbing'; pinca = null; });
   c.addEventListener('pointermove', ev => {
     const ant = toques.get(ev.pointerId); if (!ant) return;
     const agora = { x: ev.clientX, y: ev.clientY }; toques.set(ev.pointerId, agora);
+    if (c._ini && Math.hypot(agora.x - c._ini.x, agora.y - c._ini.y) > 6) c._arrastou = true;
     if (toques.size >= 2) {
       const [a, b] = [...toques.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
       if (pinca) { const r = c.getBoundingClientRect(); zoomEm(d / pinca, ((a.x + b.x) / 2 - r.left) * W / r.width, ((a.y + b.y) / 2 - r.top) * H / r.height); }
@@ -270,11 +282,12 @@ modalMapa = function () {
     bt('\u2796', 'Afastar', () => zoomEm(0.7)), rotZoom, bt('\u2795', 'Aproximar', () => zoomEm(1.4)),
     bt('\ud83d\udccd Eu', 'Aproximar em você', () => { V.z = Math.max(V.z, 2.5); const k = kBase * V.z; V.x0 = G.p.x - W / k / 2; V.y0 = G.p.y - H / k / 2; limita(); desenhaTudo(); }),
     bt('\u2922 Inteiro', 'Ver o mapa inteiro', () => { V.z = 1; V.x0 = V.y0 = 0; desenhaTudo(); }),
-    el('small', { class: 'mz-dica' }, 'Rodinha do mouse / pinça = zoom · arraste para andar pelo mapa'));
+    bt('❌ Tirar marca', 'Tirar a sua marca do mapa', () => { if (typeof marcaMapaTira === 'function') marcaMapaTira(); desenhaTudo(); }),
+    el('small', { class: 'mz-dica' }, 'Rodinha do mouse / pinça = zoom · arraste para andar · CLIQUE para marcar um lugar (a seta turquesa te leva até lá)'));
   c.className = 'mapa-grande'; desenhaTudo();
   const L = (html, txt) => el('span', { class: 'leg-item' }, el('span', { class: 'leg-ic ' + html[0] }, html[1]), txt);
   const legenda = el('div', { class: 'legenda-mapa' },
-    L(['leg-voce', '➤'], 'Você'), L(['leg-alvo', '◯'], 'Objetivo (seta amarela)'), L(['leg-saida', '▶'], 'Saída'),
+    L(['leg-voce', '➤'], 'Você'), L(['leg-alvo', '◯'], 'Objetivo (seta amarela)'), L(['leg-marca', '📍'], 'Sua marca (seta turquesa)'), L(['leg-saida', '▶'], 'Saída'),
     L(['leg-npc', ''], 'Pessoa'), L(['leg-miss', '!'], 'Missão nova'), L(['leg-pronta', '?'], 'Missão pronta'),
     L(['leg-bravo', ''], 'Rival que vem te desafiar'), L(['leg-calmo', ''], 'Rival (só se você desafiar)'), L(['leg-chefe', '♛'], 'Chefão'),
     el('span', { class: 'leg-item' }, '🛒 loja · 🔨 forja · ✈️ voos · 🚌 ônibus · ❤️ cura · 🎓 dribles · 📰 quiz · 📘 aula · 💼 empresário · 📋 desafios'));
@@ -300,6 +313,7 @@ modalMapa = function () {
   .leg-ic { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; font: 800 10px Fredoka, Nunito, sans-serif; color: #1a1026; border: 2px solid #1a1026; }
   .leg-voce { background: #ff3aff; color: #fff; border-color: #fff; box-shadow: 0 0 0 1px #1a1026; }
   .leg-alvo { background: transparent; border-color: #ffd23f; color: #ffd23f; }
+  .leg-marca { background: #3ae8e0; border-color: #0a4a4a; font-size: 9px; }
   .leg-saida { background: #ffd23f; border-radius: 3px; }
   .leg-npc { background: #3aa0ff; border-color: #fff; box-shadow: 0 0 0 1px #1a1026; }
   .leg-miss { background: #ffd23f; } .leg-pronta { background: #5ad86a; }
@@ -336,7 +350,7 @@ function oQueTemNoMapa(wx, wy, raio) {
       if (nm) achados.push({ d: raio * 0.9, txt: nm });
     }
   }
-  for (const z of (m.zonas || [])) if (wx >= z.x && wx <= z.x + z.w && wy >= z.y && wy <= z.y + z.h) achados.push({ d: raio, txt: '⚠ ' + z.nome });
+  for (const z of (m.zonas || [])) if (wx >= z.x && wx <= z.x + z.w && wy >= z.y && wy <= z.y + z.h) achados.push({ d: raio, txt: (z.hostil ? '⚠ ' : '📍 ') + z.nome });
   achados.sort((a, b) => a.d - b.d);
   const vistos = new Set(); return achados.filter(a => !vistos.has(a.txt) && vistos.add(a.txt)).slice(0, 3).map(a => a.txt);
 }

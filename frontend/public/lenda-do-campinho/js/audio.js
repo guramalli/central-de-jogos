@@ -26,6 +26,10 @@
   // v277: músicas de AVENTURA nas dungeons, pelo clima do lugar (Pixabay Music); a música antiga das caçadas vira a 2ª opção
   const MUS_DG = { dg_caverna: 188.32, dg_vulcao: 183.86, dg_gelo: 176.74, dg_deserto: 248.58, dg_floresta: 171.53, dg_subterraneo: 172.47, dg_piratas: 194.04, dg_espaco: 225.46, dg_oriental: 131.94 };
   Object.assign(MUSICAS, MUS_DG);
+  // v287: fundo do mar (Atlântida), galáxia (Estação, planetas e Copa Intergaláctica) e o Vale das Pedras Celestiais (Pixabay Music)
+  const MUS_FIM = { atlantida: 150.59, atlantida2: 176.25, galaxia: 140.79, galaxia2: 335.16, celeste: 110.32 };
+  Object.assign(MUSICAS, MUS_FIM);
+  const MAPA_FIM = { atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
   // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
   Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
   const DG_TEMA = { catacumba: 'dg_caverna', cristal: 'dg_caverna', mina: 'dg_caverna', tunel: 'dg_caverna', lava: 'dg_vulcao', gelo: 'dg_gelo',
@@ -328,6 +332,7 @@
   for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca']; // v277
   Object.assign(ALTERNA, { vila: ['vila3', 'vila2'], cidade: ['cidade3', 'cidade2', 'cidade', 'vila2'], praia3: ['praia3', 'vila2', 'vila'], ct3: ['ct3', 'cidade2', 'cidade'] }); // v278: a nova primeiro
   for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
+  Object.assign(ALTERNA, { atlantida: ['atlantida', 'atlantida2'], galaxia: ['galaxia', 'galaxia2'], celeste: ['celeste', 'galaxia'] }); // v287
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
   function sessao(base) {
@@ -391,6 +396,7 @@
   const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres', 'paris'];
   function faixaDoMapa(id) {
     if (MUS_CIDADE[id]) return id; // v276: a cidade tem música própria
+    if (MAPA_FIM[id]) return MAPA_FIM[id]; // v287
     if (id === 'praia') return 'praia3'; if (id === 'ct') return 'ct3'; // v278
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';
