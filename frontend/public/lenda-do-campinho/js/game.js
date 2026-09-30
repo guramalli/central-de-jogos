@@ -1118,7 +1118,7 @@ function desenha(dt) {
   const px = G.dpr;
   // v178: letreiros organizados, como no Tibia. Adversário: UMA linha com o nome (a cor diz a força:
   // cinza/verde = fraco, branco = parelho, laranja/vermelho = forte) e a barra de vida embaixo na briga;
-  // o nível aparece no alvo marcado e com o mouse em cima. Nada encavala: quem importa mais aparece
+  // v282: o nível de todo adversário fica sempre à vista (antes: só no alvo marcado e com o mouse em cima). Nada encavala: quem importa mais aparece
   // (o seu nome e barras, o alvo, quem está brigando, os mais perto) e os outros nomes somem enquanto cobririam.
   const ocupados = [], cruzaR = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
   const cabe = r => !ocupados.some(o => cruzaR(r, o)), naoCobreEu = r => !ocupados.length || !cruzaR(r, ocupados[0]); // [0] = o seu nome e barras
@@ -1142,7 +1142,7 @@ function desenha(dt) {
     }
     if (e.d.treino) { const w = larguraTxt(e.d.nome, 11) / 2 + 2 * px, r = [topo.x - w, topo.y - 16 * px, topo.x + w, topo.y]; if (cabe(r)) { rotulo(ctx, e.d.nome, topo.x, topo.y - 4 * px, '#e8e8e8', 11); ocupados.push(r); } continue; }
     const nv = nivelMonstro(e.d), marcado = e === G.alvo || hover;
-    const txt = marcado ? `Nv ${nv} · ${e.d.nome}` : e.d.nome, cor = e.d.chefe ? '#ff8a7a' : corNivel(nv);
+    const txt = `Nv ${nv} · ${e.d.nome}`, cor = e.d.chefe ? '#ff8a7a' : corNivel(nv);
     // v224: como no Tibia, nome e vida NÃO somem quando os adversários se juntam em volta de você (box):
     // a vida aparece em quem briga ou está perto (até 7 passos); o nome, se não couber, fica menor em vez de sumir
     const comBarra = briga || d <= 7;
