@@ -26,6 +26,8 @@
   // v277: músicas de AVENTURA nas dungeons, pelo clima do lugar (Pixabay Music); a música antiga das caçadas vira a 2ª opção
   const MUS_DG = { dg_caverna: 188.32, dg_vulcao: 183.86, dg_gelo: 176.74, dg_deserto: 248.58, dg_floresta: 171.53, dg_subterraneo: 172.47, dg_piratas: 194.04, dg_espaco: 225.46, dg_oriental: 131.94 };
   Object.assign(MUSICAS, MUS_DG);
+  // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
+  Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
   const DG_TEMA = { catacumba: 'dg_caverna', cristal: 'dg_caverna', mina: 'dg_caverna', tunel: 'dg_caverna', lava: 'dg_vulcao', gelo: 'dg_gelo',
     tumba: 'dg_deserto', deserto: 'dg_deserto', bazar: 'dg_deserto', palacio: 'dg_deserto',
     mata: 'dg_floresta', campo: 'dg_floresta', pantano: 'dg_floresta', fazenda: 'dg_floresta', labirinto: 'dg_floresta',
@@ -34,7 +36,13 @@
     lunar: 'dg_espaco', marciano: 'dg_espaco', anel: 'dg_espaco', nebular: 'dg_espaco', bambu: 'dg_oriental', dojo: 'dg_oriental',
     barracao: 'rio', academia: 'miami' }; // o barracão de samba e a academia da praia tocam a música da cidade
   function musicaDaCaca(id) { const c = typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[id]; const f = c && DG_TEMA[c.tema]; return f && MUSICAS[f] ? f : 'caca'; }
-  const AMBIENTE = { torcida: 11.65 };
+  const AMBIENTE = { torcida: 11.65,
+    // v278: torcida com o jeito de cada país (gravação real de estádio + a percussão típica; Pixabay)
+    torcida_br: 179.324, torcida_de: 147.5, torcida_ar: 153.86, torcida_jp: 153.86, torcida_arabe: 153.86, torcida_eu: 153.86, torcida_palmas: 153.86 };
+  const TORCIDA_HOST = { estadio: 'br', rio: 'br', santos: 'br', munique: 'de', buenos: 'ar', toquio: 'jp', cairo: 'arabe', doha: 'arabe',
+    milao: 'eu', lisboa: 'eu', paris: 'eu', londres: 'palmas', madri: 'palmas', miami: 'palmas' };
+  const TORCIDA_PAIS = { brasil: 'br', alemanha: 'de', argentina: 'ar', uruguai: 'ar', colombia: 'ar', mexico: 'palmas', japao: 'jp', china: 'jp', egito: 'arabe', catar: 'arabe', arabia: 'arabe', turquia: 'arabe',
+    italia: 'eu', portugal: 'eu', franca: 'eu', belgica: 'eu', holanda: 'eu', inglaterra: 'palmas', escocia: 'palmas', espanha: 'palmas', eua: 'palmas' };
 
   // tipo do jogo -> [arquivo, volume, variação de pitch, intervalo mínimo (ms), vozes máx.]
   const SFX = {
@@ -303,11 +311,13 @@
       A.atual = f;
     });
   }
-  function ambiente(ligado) {
+  function ambiente(ligado, qual) {
     const c = A.ctx; if (!c) return;
+    const nome = qual && AMBIENTE[qual] ? qual : 'torcida';
+    if (ligado && A.amb && A.amb.nome !== 'sfx_' + nome) { try { A.amb.s.stop(); } catch (e) { } A.amb = null; } // mudou de estádio: troca a torcida
     if (ligado && !A.amb) {
-      if (A.buf.sfx_torcida) A.amb = tocaLoop('sfx_torcida', AMBIENTE.torcida, A.ambGain, 1);
-      else carrega('sfx_torcida');
+      if (A.buf['sfx_' + nome]) A.amb = tocaLoop('sfx_' + nome, AMBIENTE[nome], A.ambGain, 1);
+      else { carrega('sfx_' + nome); if (nome !== 'torcida' && A.buf.sfx_torcida && A.falhou['sfx_' + nome]) A.amb = tocaLoop('sfx_torcida', AMBIENTE.torcida, A.ambGain, 1); }
     }
     A.ambGain.gain.setTargetAtTime(ligado ? 0.45 : 0, c.currentTime, 0.6);
   }
@@ -316,6 +326,7 @@
   // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
   const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
   for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca']; // v277
+  Object.assign(ALTERNA, { vila: ['vila3', 'vila2', 'vila', 'titulo'], cidade: ['cidade3', 'cidade2', 'cidade', 'vila2'], praia3: ['praia3', 'vila2', 'vila'], ct3: ['ct3', 'cidade2', 'cidade'] }); // v278: a nova primeiro
   for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
@@ -380,6 +391,7 @@
   const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres', 'paris'];
   function faixaDoMapa(id) {
     if (MUS_CIDADE[id]) return id; // v276: a cidade tem música própria
+    if (id === 'praia') return 'praia3'; if (id === 'ct') return 'ct3'; // v278
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';
     if (MUNDO.includes(id)) return 'mundo';
@@ -393,12 +405,14 @@
     if (hist && hist.isConnected && getComputedStyle(hist).display !== 'none') return { musica: 'titulo', torcida: false };
     const modal = document.getElementById('modal');
     const partida = modal && !modal.hidden && modal.querySelector('.placar-ao-vivo');
-    if (partida) return { musica: 'cidade', torcida: true };
+    if (partida) { const p = G.save && G.save.time && G.save.time.pais; return { musica: 'cidade', torcida: true, qual: 'torcida_' + (TORCIDA_PAIS[p] || 'br') }; }
     if (typeof G !== 'undefined' && G.rodando && G.mapa) {
       const id = G.mapa.id;
       let f = G.mapa.caca ? musicaDaCaca(G.mapa.caca) : (G.mapa.estadio || G.mapa.arena) ? 'estadio' : faixaDoMapa(id); // v155: caçadas e estádios/arenas têm música própria
       if (!f && G.mapa.interior && A.faixa) f = A.faixa;   // interiores desconhecidos: mantém a faixa
-      return { musica: f || A.faixa || 'vila', torcida: id === 'estadio' };
+      const est = G.mapa.estadio && typeof ESTADIOS !== 'undefined' && ESTADIOS.find(e => e.id === G.mapa.estadio);
+      const host = id === 'estadio' ? 'estadio' : est && est.host;
+      return { musica: f || A.faixa || 'vila', torcida: !!host, qual: host ? 'torcida_' + (TORCIDA_HOST[host] || 'br') : null }; // v278: todo estádio tem a torcida do seu país
     }
     if (vis('#inicio')) return { musica: 'titulo', torcida: false };
     return { musica: A.faixa, torcida: false };
@@ -417,7 +431,7 @@
     let faixa = cx.musica;
     if (noMapa) faixa = sessao(cx.musica); else if (A.ses) A.ses.base = null; // fora do mapa: próxima volta começa com música
     trocaMusica(on ? faixa : A.faixa);
-    ambiente(on && cx.torcida);
+    ambiente(on && cx.torcida, cx.qual);
     if (on && typeof G !== 'undefined' && G.rodando && G.mapa && G.save) { const h = G.save.hora / 60 % 24; natureza(G.mapa.id, !!G.mapa.interior, h >= 19 || h < 6, !!faixa); }
     else if (NAT.ok) natureza('', true, false, false);
   }
