@@ -629,7 +629,7 @@ model LendaRanking {
   userId       String   @id
   apelido      String
   nivel        Int
-  xp           Int
+  xp           Float // XP total do personagem: passa de 2 bilhões por volta do nível 355 (Int estourava e o ranking parava de atualizar)
   posicao      String?
   fase         String
   time         Json?

@@ -13,6 +13,7 @@
 export const LIMITES = {
   saveMaxChars: 90_000, // save comprimido em base64 (o express.json aceita até 100 kB)
   nivelMax: 999,
+  xpMax: 1_000_000_000_000_000, // 10^15 (o nível 999 fica bem abaixo disso)
   moveisMax: 150,
   itensMax: 150,
   vitrineMax: 3,
@@ -89,7 +90,8 @@ const RE_POSICAO = /^[a-z_]{2,20}$/;
 export function validarRanking(body) {
   const { nivel, xp, posicao, fase, time, chefes = 0, figs = 0 } = body || {};
   if (!inteiro(nivel, 1, LIMITES.nivelMax)) return { erro: "Nível inválido." };
-  if (!inteiro(xp, 0, 2_000_000_000)) return { erro: "XP inválido." };
+  // o XP total passa de 2 bilhões por volta do nível 355 (no 481 são ~7,2 bilhões): limite folgado e ainda exato em número JS
+  if (!inteiro(xp, 0, LIMITES.xpMax)) return { erro: "XP inválido." };
   if (posicao != null && (typeof posicao !== "string" || !RE_POSICAO.test(posicao))) return { erro: "Posição inválida." };
   if (!FASES_VALIDAS.has(fase)) return { erro: "Fase inválida." };
   if (!inteiro(chefes, 0, 100_000) || !inteiro(figs, 0, 100_000)) return { erro: "Números inválidos." };

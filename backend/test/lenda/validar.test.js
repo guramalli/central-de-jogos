@@ -88,3 +88,10 @@ test("ranking: aceita exatamente o que o jogo manda (posicao e time nulos, fase 
   assert.equal(v.ranking.time, null);
   for (const fase of ["Criança", "Juvenil", "Sub-20", "Profissional", "Lenda"]) assert.ok(validarRanking({ nivel: 1, xp: 0, fase }).ok, fase);
 });
+
+test("ranking: aceita o XP dos níveis altos (passa de 2 bilhões por volta do nível 355)", () => {
+  const v = validarRanking({ nivel: 481, xp: 7_189_595_200, posicao: "atacante", fase: "Lenda", chefes: 900, figs: 200 });
+  assert.ok(v.ok);
+  assert.equal(v.ranking.xp, 7_189_595_200);
+  assert.ok(!validarRanking({ nivel: 481, xp: 1e16, fase: "Lenda" }).ok);
+});
