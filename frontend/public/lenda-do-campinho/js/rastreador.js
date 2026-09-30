@@ -4,27 +4,28 @@
    📜 RASTREADOR DE MISSÕES RECOLHIDO (v155)
    Os cartões de missão/desafio ocupavam muito da tela. Agora:
    - fica só uma etiqueta "📜 Missões (3) · ✔ 1 pronta";
-   - quando o progresso muda, a lista abre sozinha por alguns segundos e recolhe;
+   - v291: a lista NÃO abre mais sozinha (abria a cada adversário vencido ou item pego e cobria a tela):
+     quando o progresso muda, só a etiqueta dá uma piscada; a pessoa abre se quiser;
    - clicar na etiqueta abre/fecha (a escolha fica guardada neste aparelho).
    Dica e tutorial continuam aparecendo normalmente.
    Carregar DEPOIS de ui.js.
    ============================================================ */
-const RAST_MOSTRA_MS = 6000;
+const RAST_PISCA_MS = 1600;
 let RAST_FIXO = false; try { RAST_FIXO = localStorage.getItem('rac_rast_aberto_v1') === '1'; } catch (e) { }
-let RAST_ASSIN = null, RAST_ATE = 0;
+let RAST_ASSIN = null, RAST_ATE = 0; // RAST_ATE: até quando a etiqueta pisca
 {
   const _atualizaRastreadorR = atualizaRastreador;
   atualizaRastreador = function () {
     const r = _atualizaRastreadorR.apply(this, arguments);
     const R = $('#rastreador'); if (!R) return r;
     const cartoes = [...R.querySelectorAll(':scope > .rast')]; if (!cartoes.length) { RAST_ASSIN = null; return r; }
-    // mudou algum número? mostra a lista um pouquinho
+    // mudou algum número? a etiqueta pisca (a lista só abre se a pessoa clicar)
     const assin = cartoes.map(c => { const o = c.querySelector('.rast-onde'); return o ? c.textContent.replace(o.textContent, '') : c.textContent; }).join('|'); // v238: trocar de mapa ("aqui neste mapa") não abre a lista
-    if (RAST_ASSIN !== null && assin !== RAST_ASSIN) RAST_ATE = (G.agora || 0) + RAST_MOSTRA_MS;
+    if (RAST_ASSIN !== null && assin !== RAST_ASSIN) RAST_ATE = (G.agora || 0) + RAST_PISCA_MS;
     RAST_ASSIN = assin;
     const prontas = cartoes.filter(c => c.classList.contains('pronta')).length;
-    const aberto = RAST_FIXO || (G.agora || 0) < RAST_ATE;
-    const etiqueta = el('button', { class: 'btn mini rast-etiqueta' + (prontas ? ' tem-pronta' : ''), type: 'button', title: aberto ? 'Esconder as missões' : 'Mostrar as missões',
+    const aberto = RAST_FIXO, pisca = !aberto && (G.agora || 0) < RAST_ATE;
+    const etiqueta = el('button', { class: 'btn mini rast-etiqueta' + (prontas ? ' tem-pronta' : '') + (pisca ? ' pisca' : ''), type: 'button', title: aberto ? 'Esconder as missões' : 'Mostrar as missões',
       onclick: ev => { ev.stopPropagation(); RAST_FIXO = !aberto; RAST_ATE = 0; try { localStorage.setItem('rac_rast_aberto_v1', RAST_FIXO ? '1' : '0'); } catch (e) { } G.uiSujo = true; } },
       `📜 Missões (${cartoes.length})${prontas ? ` · ✔ ${prontas} pronta${prontas > 1 ? 's' : ''}` : ''} ${aberto ? '▾' : '▸'}`);
     if (!aberto) cartoes.forEach(c => c.remove());
@@ -33,7 +34,7 @@ let RAST_ASSIN = null, RAST_ATE = 0;
     if (getComputedStyle(R).flexDirection === 'column-reverse') R.insertBefore(etiqueta, primeiro || null); else R.append(etiqueta);
     return r;
   };
-  // recolhe sozinho quando o tempo de mostrar acaba
+  // a piscada acaba: redesenha a etiqueta
   const _atualizaR = atualiza;
   atualiza = function () { const r = _atualizaR.apply(this, arguments); if (RAST_ATE && (G.agora || 0) >= RAST_ATE) { RAST_ATE = 0; G.uiSujo = true; } return r; };
 }
@@ -41,6 +42,8 @@ let RAST_ASSIN = null, RAST_ATE = 0;
   const st = document.createElement('style');
   st.textContent = `#rastreador .rast-etiqueta { pointer-events: auto; align-self: flex-start; margin: 3px 0; opacity: .92; font-size: 13px; padding: 4px 10px; }
   #rastreador .rast-etiqueta.tem-pronta { background: #3aa04a; color: #fff; box-shadow: 0 0 0 2px #ffe14a; }
+  #rastreador .rast-etiqueta.pisca { animation: rastPisca .8s ease-in-out 2; }
+  @keyframes rastPisca { 0%, 100% { transform: scale(1); filter: none; } 50% { transform: scale(1.07); filter: brightness(1.25); box-shadow: 0 0 0 3px #ffe14a; } }
   #rastreador .rast-q { pointer-events: auto; cursor: pointer; }
   #rastreador .rast-q:hover { filter: brightness(1.06); box-shadow: 0 0 0 2px #ffe14a, 0 2px 0 rgba(0,0,0,.3); }
   #rastreador .rast-onde { font-size: 11.5px; opacity: .85; margin-top: 2px; }`;
