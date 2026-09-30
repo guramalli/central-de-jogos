@@ -36,8 +36,9 @@
   const TECIDO = { negra_ouro: 'tex_negra_ouro', dourado: 'tex_dourado', chamas: 'tex_chamas', galaxia: 'tex_galaxia', ondas: 'tex_oceano', petalas: 'tex_sakura', raio: 'tex_raio', estrelas: 'tex_estrelas' };
   const RESERVA = { negra_ouro: 'gola', dourado: 'gola' };
   const TEX_PX = {};
+  const nomeTecido = t => TECIDO[t] || (/^tx_/.test(t || '') ? t : null); // v306: tx_<camisa> = tecido próprio de cada camisa (roupas_tecidos.js)
   function pixelsTecido(tipo) {
-    const nome = TECIDO[tipo]; if (!nome) return null; if (TEX_PX[nome]) return TEX_PX[nome];
+    const nome = nomeTecido(tipo); if (!nome) return null; if (TEX_PX[nome]) return TEX_PX[nome];
     const im = typeof aSprite === 'function' ? aSprite(nome) : null; if (!im) return null;
     const c = mkCanvas(256, 256), x = c.getContext('2d'); x.drawImage(im, 0, 0, 256, 256);
     TEX_PX[nome] = x.getImageData(0, 0, 256, 256).data;
@@ -52,9 +53,10 @@
     const L = _lookEst.apply(this, arguments);
     try {
       const s = G.save, id = s && s.equip && s.equip.camisa, it = id && ITENS[id];
-      if (L && !L.folha && !G.jogoC && it && L.roupa === 'roupa-futebol' && id !== 'camisa_vila') {
-        const e = estampaDo(id);
-        if (e && !L.corRoupa) { if (!TECIDO[e]) return L; L.corRoupa = it.cor || '#22306a'; delete L._kb; } // camisa sem cor própria (ex.: das quests lendárias): o tecido dá a cor
+      const e0 = it ? estampaDo(id) : null, proprio = /^tx_/.test(e0 || '');
+      if (L && !L.folha && !G.jogoC && it && (L.roupa === 'roupa-futebol' || proprio) && id !== 'camisa_vila') {
+        const e = e0;
+        if (e && !L.corRoupa) { if (!nomeTecido(e)) return L; L.corRoupa = it.cor || '#22306a'; delete L._kb; } // camisa sem cor própria (ex.: das quests lendárias): o tecido dá a cor
         if (e && (L.estampa !== e || !L.cor2)) { L.estampa = e; L.cor2 = it.cor2 || (escura(L.corRoupa) ? '#e8b848' : '#ffffff'); delete L._kb; }
       }
     } catch (err) { }
