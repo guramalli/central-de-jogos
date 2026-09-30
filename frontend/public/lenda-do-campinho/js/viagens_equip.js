@@ -8,7 +8,8 @@
    - A Capitã e a Dra. Estela agora ficam na praça do aeroporto do Rio (antes, escondidas na areia), e o
      AEROPORTO de qualquer cidade mostra Atlântida e a Estação Espacial com o nível mínimo e o que falta.
    - Quem já esteve em Atlântida/no espaço antes disso recebe o equipamento automaticamente.
-   Carregar NO FIM (depois de atlantida.js, espaco.js, montarias.js e europa.js).
+   v310: em Atlântida o boneco usa o capacete e no espaço a roupa inteira, sozinho.
+   Carregar NO FIM (depois de atlantida.js, espaco.js, montarias.js, europa.js, roupas_tecidos.js e chapeus_arte.js).
    ============================================================ */
 {
   Object.assign(ITENS, {
@@ -92,6 +93,52 @@
       };
       linha('🌊', 'Atlântida (submarino da Capitã Iara)', 195, 'capacete_mergulho', Q_CAP, 'capita_iara', modalSubmarino);
       linha('🚀', 'Estação Espacial (foguete da Dra. Estela)', 298, 'traje_astronauta', Q_TRAJE, 'estela', modalViagemEspaco);
+    } catch (e) { }
+    return r;
+  };
+
+  /* ---------- v310: vestido automaticamente ----------
+     No fundo do mar (Atlântida) o boneco põe o Capacete de Mergulho; no espaço (Estação, planetas e as
+     caças de lá), a Roupa de Astronauta inteira: capacete de vidro, macacão branco e laranja e botas.
+     Ao voltar, tira sozinho. (Os portais de Atlântida levam a mundos perdidos em terra: lá não precisa.) */
+  const FUNDO_DO_MAR = new Set(['atlantida']);
+  let ESPACO = null; const espaco = () => ESPACO || (ESPACO = mapasDe(['estacao', ...(typeof PLANETAS !== 'undefined' ? PLANETAS.map(p => p.id) : []), 'copa_intergalactica']));
+  if (typeof CHAPEUS_ARTE !== 'undefined') Object.assign(CHAPEUS_ARTE, { capacete_mergulho: 'elmo', capacete_astro: 'elmo' });
+  for (const n of ['ch_capacete_mergulho_f', 'ch_capacete_mergulho_l', 'ch_capacete_mergulho_c', 'ch_capacete_astro_f', 'ch_capacete_astro_l', 'ch_capacete_astro_c', 'tx_traje_corpo', 'tx_traje_calca', 'tx_traje_meia']) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
+  function vestindo() {
+    if (!G.mapa || !G.save) return null;
+    if (FUNDO_DO_MAR.has(G.mapa.id) && tem('capacete_mergulho')) return 'mar';
+    if (espaco().has(G.mapa.id) && tem('traje_astronauta')) return 'espaco';
+    return null;
+  }
+  const _lookVeste = lookJogador;
+  lookJogador = function (retrato) {
+    const L = _lookVeste.apply(this, arguments);
+    try {
+      const v = retrato ? null : vestindo(); if (!L || !v || L.folha) return L;
+      L.chapeu = 'chapeu-cartola'; // (o recorte do boneco reserva espaço de chapéu alto)
+      if (v === 'mar') L.chapeuVar = 'capacete_mergulho';
+      else {
+        L.chapeuVar = 'capacete_astro'; L.roupa = 'roupa-futebol'; L.corRoupa = '#f4f4f8'; L.estampa = 'tx_traje_corpo'; L.cor2 = '#ff8a2a';
+        L.txCalcao = 'tx_traje_calca'; L.txCanel = 'tx_traje_meia'; L.corPe = '#ff7a1a'; delete L.pescoco;
+      }
+      delete L._kb;
+    } catch (e) { }
+    return L;
+  };
+  let vestiu = null;
+  const _entrarVeste = entrarMapa;
+  entrarMapa = function () {
+    const r = _entrarVeste.apply(this, arguments);
+    try {
+      const v = vestindo();
+      if (v !== vestiu) {
+        if (v === 'mar') log('🤿 Você colocou o Capacete de Mergulho para respirar no fundo do mar.', 'l-sis');
+        else if (v === 'espaco') log('👩‍🚀 Você vestiu a Roupa de Astronauta: nada de frio nem de falta de ar no espaço!', 'l-sis');
+        else if (vestiu === 'mar') log('🤿 De volta à terra firme: você tirou o Capacete de Mergulho.', 'l-sis');
+        else if (vestiu === 'espaco') log('👩‍🚀 De volta à Terra: você tirou a Roupa de Astronauta.', 'l-sis');
+        vestiu = v;
+      }
     } catch (e) { }
     return r;
   };
