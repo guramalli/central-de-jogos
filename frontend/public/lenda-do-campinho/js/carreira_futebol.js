@@ -39,12 +39,26 @@ function futNome(time, k) {
   const l = P.jog.concat(FUT_NOMES_EXTRA); return l[(hashTxt(T0.nome + k) >>> 0) % l.length];
 }
 
+/* ---------- movimento livre durante o lance ----------
+   O jogo anda em QUADRADINHOS (grade.js, igual ao Tibia) e cada quadrado comporta uma criatura: no futebol isso travava
+   você atrás do marcador. Durante o lance o movimento fica LIVRE (corrida contínua) e volta ao normal quando o lance acaba. */
+function futGradeLivre(on) {
+  if (typeof GRADE === 'undefined') return;
+  if (on) { if (G._gradeAntes == null) G._gradeAntes = GRADE.on; GRADE.on = false; }
+  else if (G._gradeAntes != null) { GRADE.on = G._gradeAntes; G._gradeAntes = null; }
+  if (G.p) { delete G.p.pas; G.p.fila = null; G.p.dirDesde = 0; } G.caminho = null;
+}
+
+// o jogo afasta você de qualquer criatura encostada (separa): no futebol o marcador cola em você e isso te empurrava para trás
+{ const _separaFut = separa; separa = function (e) { if (G.fut && (e === G.p || (e && e.fut))) return; return _separaFut.apply(this, arguments); }; }
+
 /* ---------- montar o lance ---------- */
 function futComeca(L) {
   const J = G.jogoC, tier = futDif();
   G.mons = G.mons.filter(m => !m.fut && !(m.d && m.d.cj)); G.alvo = null; G.caminho = null; G.acaoChegar = null; G.projs = [];
   const poeP = (x, y) => { G.p.x = x + 0.5; G.p.y = y + 0.5; G.p.mov = false; G.p.flip = false; G.p.vista = 'lado'; G.p.tVista = G.agora; };
   const st = stats(); G.save.hp = st.maxHp;
+  futGradeLivre(true);
   const F = G.fut = { tipo: L.tipo, L, t0: G.agora, fim: G.agora + ({ ataque: 26, passe: 26, defesa: 22, penalti: 60 })[L.tipo] * 1000, atores: [], bola: { x: 0, y: 0, vx: 0, vy: 0, z: 0, vz: 0, dono: null, giro: 0, livreDe: null, livreAte: 0, chute: null }, dirP: { x: 1, y: 0 }, pAnt: { x: 0, y: 0 }, fintaAte: 0, fintaCd: 0, boteCd: 0, tontoP: 0, acabou: null, perdeuAte: 0, passeDe: null, msgAte: 0 };
   const add = (nome, time, papel, pos, k, x, y) => { const a = futAtor(nome, futLook(time, pos, k), time, papel, x, y); F.atores.push(a); return a; };
   const vel = velJogador();
@@ -321,7 +335,7 @@ function futTick(dt) {
   const agora = G.agora, s = dt / 1000, p = G.p;
   if (F.acabou) { // a bola ainda rola um pouquinho (entra na rede) e o lance acaba
     const b = F.bola; if (!b.dono) { b.x += b.vx * s * 0.5; b.y += b.vy * s * 0.5; b.vx *= 0.9; b.vy *= 0.9; b.x = Math.min(b.x, 36); b.x = Math.max(b.x, 4); }
-    if (agora >= F.fimEm) { G.mons = G.mons.filter(m => !m.fut); G.fut = null; futBotoes(); cjFimLanceFut(F.res); }
+    if (agora >= F.fimEm) { G.mons = G.mons.filter(m => !m.fut); G.fut = null; futGradeLivre(false); futBotoes(); cjFimLanceFut(F.res); }
     return;
   }
   G.alvo = null; // aqui é futebol: nada de atacar ninguém
@@ -377,9 +391,7 @@ function futFimLance(motivo) {
     const F = G.fut; if (!F || !G.cam || !G.zoom) return r;
     try {
       const ctx = CTX, z = G.zoom; ctx.setTransform(z, 0, 0, z, -G.cam.x * z, -G.cam.y * z);
-      const b = F.bola, x = b.x * T, y = b.y * T;
-      ctx.fillStyle = 'rgba(20,30,20,0.3)'; ctx.beginPath(); ctx.ellipse(x, y + 2, 7, 3.2, 0, 0, 7); ctx.fill();
-      desenhaBola(ctx, x, y - 5 - b.z * T * 0.35, 7, b.giro);
+      if (F._bolaQuadro !== G.agora) futDesenhaBola(ctx); // ninguém estava na frente dela
       // seta em cima de você quando está com a bola / pênalti: a mira
       if (F.tipo === 'penalti' && F.penalti.fase === 'mira') { ctx.fillStyle = 'rgba(255,225,74,0.9)'; ctx.font = 'bold 16px Nunito'; ctx.textAlign = 'center'; ctx.fillText('⬆ alto · ⏺ meio · ⬇ baixo', 31 * T, 10.4 * T); }
     } catch (e) { }
@@ -388,10 +400,18 @@ function futFimLance(motivo) {
   // anel colorido no pé de cada jogador (amarelo = seu time, vermelho = adversário)
   const _entFut = desenhaEnt;
   desenhaEnt = function (ctx, e) {
+    // a bola entra na ordem certa: antes de quem está mais "para baixo" (na frente) do que ela
+    const F = G.fut; if (F && e && (e.fut || e === G.p) && F._bolaQuadro !== G.agora && e.y > F.bola.y) futDesenhaBola(ctx);
     if (e && e.fut) { ctx.save(); ctx.strokeStyle = e.time === 'nos' ? 'rgba(255,225,74,.9)' : 'rgba(255,90,80,.85)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(e.x * T, e.y * T, 17, 6.5, 0, 0, 7); ctx.stroke(); ctx.restore(); }
     if (e === G.p && G.fut) { ctx.save(); ctx.strokeStyle = 'rgba(90,255,140,.95)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(e.x * T, e.y * T, 19, 7, 0, 0, 7); ctx.stroke(); ctx.restore(); const f = G.save.flags, tinha = f.pegou_bola; f.pegou_bola = false; try { return _entFut.apply(this, arguments); } finally { f.pegou_bola = tinha; } }
     return _entFut.apply(this, arguments);
   };
+}
+function futDesenhaBola(ctx) {
+  const F = G.fut; if (!F) return; F._bolaQuadro = G.agora;
+  const b = F.bola, x = b.x * T, y = b.y * T;
+  ctx.fillStyle = 'rgba(20,30,20,0.3)'; ctx.beginPath(); ctx.ellipse(x, y + 2, 7, 3.2, 0, 0, 7); ctx.fill();
+  desenhaBola(ctx, x, y - 5 - b.z * T * 0.35, 7, b.giro);
 }
 function futBotoes() {
   let box = document.getElementById('futBtns'); const F = G.fut;

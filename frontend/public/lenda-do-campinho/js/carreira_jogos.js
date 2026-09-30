@@ -326,7 +326,7 @@ function cjTick(dt) {
       else cjFimJogo();
     }
   } else if (J.fase === 'lance') {
-    if (!G.fut) { J.lance = null; J.fase = 'pos'; J.proxFase = agora + 800; return; } // (segurança: o lance sumiu)
+    if (!G.fut) { J.lance = null; J.fase = 'pos'; J.proxFase = agora + 800; if (typeof futGradeLivre === 'function') futGradeLivre(false); return; } // (segurança: o lance sumiu)
     futTick(dt);
     if (!J._tp || agora - J._tp > 200) { J._tp = agora; cjPlacar(); }
   }
@@ -362,14 +362,14 @@ function cjFimJogo() {
 }
 function cjSaiDoCampo() {
   const J = G.jogoC, t = J && J.t; G.jogoC = null;
-  G.mons = G.mons.filter(m => !m.fut); G.fut = null; if (typeof futBotoes === 'function') futBotoes(); G.alvo = null; if (J) G.caca = J.caca;
+  G.mons = G.mons.filter(m => !m.fut); G.fut = null; if (typeof futGradeLivre === 'function') futGradeLivre(false); if (typeof futBotoes === 'function') futBotoes(); G.alvo = null; if (J) G.caca = J.caca;
   cjPlacar();
   const v = t && t.retorno; if (t) t.retorno = null;
   if (G.mapa && G.mapa.id === CJ_MAPA) { if (v && v.mapa && MAPAS_DEF[v.mapa] && v.mapa !== CJ_MAPA) trocaMapa(v.mapa, v.x, v.y); else trocaMapa('cidade'); }
   const st = stats(); G.save.hp = Math.max(G.save.hp, st.maxHp);
 }
 function cjAbandona() { // saiu do campo no meio do jogo (não deveria acontecer): o jogo não conta, dá para jogar de novo hoje
-  const J = G.jogoC; if (!J) return; G.jogoC = null; G.mons = G.mons.filter(m => !m.fut); G.fut = null; if (typeof futBotoes === 'function') futBotoes(); G.caca = J.caca; cjPlacar();
+  const J = G.jogoC; if (!J) return; G.jogoC = null; G.mons = G.mons.filter(m => !m.fut); G.fut = null; if (typeof futGradeLivre === 'function') futGradeLivre(false); if (typeof futBotoes === 'function') futBotoes(); G.caca = J.caca; cjPlacar();
   carrLog('⚠️ O jogo foi interrompido. Você pode jogar a rodada de novo hoje (U → Jogar a rodada).', 'l-sis');
 }
 
