@@ -1,0 +1,162 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   ✨ ITENS MAIS BONITOS NO BONECO (v296)
+   1) ESTAMPA NA CAMISA: a camisa de futebol era pintada numa cor só. O boneco sabe exatamente quais pixels
+      são a camisa (a cor-chave da folha), então a estampa é desenhada DENTRO dela, com a sombra de sempre:
+      cada camisa ganha a do seu tema (Dracônica = chamas, Galáxia = galáxia, Abissal = ondas, Negra e Ouro =
+      gola dourada...) na 2ª cor do item (antes ignorada); sem tema, a estampa vem da raridade.
+   2) BRILHO POR RARIDADE (o item mais raro que você está usando): épico = faíscas piscando no corpo;
+      lendário = brilho dourado no chão + faíscas; mítico = aura colorida girando.
+   3) CHUTEIRA: correndo, a chuteira rara deixa um rastro de faíscas na cor da raridade dela.
+   A camisa do clube nas partidas da carreira e as fantasias (skins) continuam como são.
+   Carregar NO FIM.
+   ============================================================ */
+{
+  /* ---------- 1) estampa ---------- */
+  const TEMAS = [
+    [/dracon|fogo|lava|vulc|inferno|chama|flamen|dragao/, 'chamas'],
+    [/galax|estel|cosm|nebul|lunar|marcian|orbit|espac|anel/, 'galaxia'],
+    [/abiss|mare|coral|atlant|onda|ocean|surf|praia/, 'ondas'],
+    [/sakura|flor|primav|tango/, 'petalas'],
+    [/lenda|negra|ouro|imortal|campe|craque|\brei\b|lorde/, 'gola'],
+    [/raio|trov|eletr|sonic|relamp/, 'raio'],
+    [/tita|mundo|\bct\b|clube|copa|time|vila/, 'listras'],
+  ];
+  const POR_RARIDADE = { incomum: 'gola', raro: 'faixa', epico: 'raio', lendario: 'estrelas', mitico: 'galaxia' };
+  function estampaDo(id) {
+    const it = ITENS[id]; if (!it) return null; if (it.estampa !== undefined) return it.estampa;
+    const txt = (id + ' ' + (it.nome || '')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    for (const [re, e] of TEMAS) if (re.test(txt)) return e;
+    return POR_RARIDADE[typeof raridadeItem === 'function' ? raridadeItem(id) : 'comum'] || null;
+  }
+  const escura = c => { const [r, g, b] = bRgb(c); return r * 0.3 + g * 0.59 + b * 0.11 < 110; };
+  const _lookEst = lookJogador;
+  lookJogador = function (retrato) {
+    const L = _lookEst.apply(this, arguments);
+    try {
+      const s = G.save, id = s && s.equip && s.equip.camisa, it = id && ITENS[id];
+      if (L && !L.folha && !G.jogoC && it && L.roupa === 'roupa-futebol' && id !== 'camisa_vila' && L.corRoupa) {
+        const e = estampaDo(id);
+        if (e && (L.estampa !== e || !L.cor2)) { L.estampa = e; L.cor2 = it.cor2 || (escura(L.corRoupa) ? '#e8b848' : '#ffffff'); delete L._kb; }
+      }
+    } catch (err) { }
+    return L;
+  };
+  // o boneco é pintado célula a célula: durante a pintura do boneco com estampa, a camisa ganha o desenho
+  let EST = null;
+  const _sprEst = spriteBoneco;
+  spriteBoneco = function (look, vista = 'frente', q = 0) {
+    if (!look || !look.estampa) return _sprEst.apply(this, arguments);
+    try {
+      const sp = specDe(look), nome = folhaDoLook(sp, look), v = vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f';
+      const idx = (v === 'f' ? 0 : v === 'l' ? 1 : 2) * 4 + (q % 4);
+      EST = { tipo: look.estampa, cor2: look.cor2, meta: (META_BONECOS[nome] || [])[idx] || null, v };
+      return _sprEst.apply(this, arguments);
+    } finally { EST = null; }
+  };
+  const _tingeEst = tingeCelula;
+  tingeCelula = function (base, cores) {
+    const out = _tingeEst.apply(this, arguments);
+    if (!EST || (typeof MODO_AGORA !== 'undefined' && MODO_AGORA === 'skin') || !cores || !cores[2]) return out;
+    try { pintaEstampa(out, base, cores[2], EST); } catch (e) { }
+    return out;
+  };
+  const estrela5 = (u, v, cx, cy, r) => { // ponto (u,v) dentro de uma estrelinha de 5 pontas?
+    const dx = u - cx, dy = v - cy, d = Math.hypot(dx, dy); if (d > r) return false;
+    const a = Math.atan2(dy, dx) + Math.PI / 2, k = Math.cos(Math.PI / 5) / Math.cos((a % (2 * Math.PI / 5) + 2 * Math.PI / 5) % (2 * Math.PI / 5) - Math.PI / 5);
+    return d < r * 0.5 * k + r * 0.02;
+  };
+  function pintaEstampa(out, base, corA, E) {
+    const x = out.getContext('2d'), W = FOLHA_CW, H = FOLHA_CH, img = x.getImageData(0, 0, W, H), o = img.data;
+    const { rot, lum, ref } = base, tr = (E.meta && E.meta.tronco) || null; if (!tr) return;
+    const tx0 = tr[0], ty0 = tr[1], tw = Math.max(1, tr[2] - tr[0]), th = Math.max(1, (tr[3] || tr[1] + 60) - tr[1]);
+    const A = bRgb(corA), B = bRgb(E.cor2), BR = [255, 255, 255], t = E.tipo, lado = E.v === 'l';
+    for (let i = 0; i < rot.length; i++) {
+      if (rot[i] !== 2) continue;
+      const px = i % W, py = (i / W) | 0, u = (px - tx0) / tw, v = (py - ty0) / th;
+      let p = 0, cor = B;
+      if (t === 'listras') p = Math.floor(u * (lado ? 5 : 7)) % 2 === 0 ? 1 : 0;
+      else if (t === 'faixa') p = Math.abs((u - 0.15) - v * 0.9) < 0.13 ? 1 : 0;
+      else if (t === 'raio') { const f = u * 6 % 1, z = 0.45 + 0.12 * ((Math.floor(u * 6) % 2) ? f : 1 - f); p = Math.abs(v - z) < 0.065 ? 1 : 0; }
+      else if (t === 'chamas') { const h = 0.6 + 0.13 * Math.sin(u * 22) + 0.06 * Math.sin(u * 51); if (v > h) { p = 1; cor = v > h + 0.13 ? [255, 214, 70] : [255, 110, 30]; } }
+      else if (t === 'ondas') { const w = Math.sin(u * 14 + v * 3) * 0.05; const f = (v + w) * 5 % 1; p = f < 0.28 ? 1 : 0; }
+      else if (t === 'estrelas') { const cx = (Math.floor(u * 4) + 0.5) / 4, cy = (Math.floor(v * 3) + 0.5) / 3 + (Math.floor(u * 4) % 2 ? 0.08 : -0.08); p = estrela5(u, v, cx, cy, 0.13) ? 1 : 0; }
+      else if (t === 'petalas') { const cx = (Math.floor(u * 4) + 0.5) / 4, cy = (Math.floor(v * 3) + 0.5) / 3; const d = Math.hypot(u - cx, (v - cy) * 1.4); if (d < 0.07) { p = 1; cor = d < 0.03 ? [255, 230, 120] : [255, 150, 200]; } }
+      else if (t === 'galaxia') { const h = Math.abs(Math.sin(px * 12.9898 + py * 78.233) * 43758.5453 % 1); p = 0.4 * (0.5 + 0.5 * Math.sin(u * 5 + v * 7)); cor = B; if (h > 0.982) { p = 1; cor = BR; } }
+      else if (t === 'gola') { // gola e mangas na 2ª cor + um V no peito (só de frente)
+        for (const [dx, dy] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) { const j = (py + dy) * W + px + dx; if (j < 0 || j >= rot.length || rot[j] !== 2) { p = 1; break; } }
+        if (!p && E.v === 'f' && Math.abs(v - (0.2 + Math.abs(u - 0.5) * 0.55)) < 0.05) p = 1;
+      }
+      if (!p) continue;
+      const c = [0, 1, 2].map(j => A[j] * (1 - p) + cor[j] * p), fl = lum[i] / (ref[2] || 0.5);
+      for (let j = 0; j < 3; j++) o[i * 4 + j] = fl <= 1 ? c[j] * fl : Math.min(255, c[j] + (255 - c[j]) * (fl - 1) * 0.9);
+    }
+    x.putImageData(img, 0, 0);
+  }
+
+  /* ---------- 2) brilho por raridade e 3) rastro da chuteira ---------- */
+  const NIVEL = { comum: 0, incomum: 1, raro: 2, epico: 3, lendario: 4, mitico: 5 };
+  const COR_RAR = { raro: ['#bfe6ff', '#ffffff'], epico: ['#c58cff', '#f0d8ff'], lendario: ['#ffd23f', '#fff4b0'], mitico: ['#ff5ad8', '#5ae0ff', '#ffe14a', '#7aff8a'] };
+  let chaveEq = '', rarCorpo = null, rarChut = null;
+  function confere() {
+    const s = G.save; if (!s || !s.equip) { rarCorpo = rarChut = null; return; }
+    const k = JSON.stringify(s.equip); if (k === chaveEq) return; chaveEq = k;
+    let melhor = null;
+    for (const [slot, id] of Object.entries(s.equip)) { if (!id || !ITENS[id]) continue; const r = raridadeItem(id); if (!melhor || (NIVEL[r] || 0) > (NIVEL[melhor] || 0)) melhor = r; }
+    rarCorpo = (NIVEL[melhor] || 0) >= 3 ? melhor : null;
+    const ch = s.equip.chuteira; const rc = ch && ITENS[ch] ? raridadeItem(ch) : null; rarChut = (NIVEL[rc] || 0) >= 2 ? rc : null;
+  }
+  const rastro = []; let ultimoRastro = 0;
+  const hash = n => { const v = Math.sin(n * 91.7 + 13.1) * 43758.5453; return v - Math.floor(v); };
+  function faisca(ctx, x, y, r, cor, a) {
+    ctx.globalAlpha = a; ctx.fillStyle = cor; ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.28, y - r * 0.28); ctx.lineTo(x + r, y); ctx.lineTo(x + r * 0.28, y + r * 0.28);
+    ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.28, y + r * 0.28); ctx.lineTo(x - r, y); ctx.lineTo(x - r * 0.28, y - r * 0.28); ctx.closePath(); ctx.fill();
+  }
+  const _entVis = desenhaEnt;
+  desenhaEnt = function (ctx, e) {
+    if (e !== G.p || !G.save || G.p.morto) return _entVis.apply(this, arguments);
+    try { confere(); } catch (err) { }
+    const agora = G.agora || 0, px = e.x * T, py = e.y * T, altura = (typeof alturaEnt === 'function' ? alturaEnt(e) : 1.4) * T;
+    const sobe = typeof alturaPonte === 'function' ? alturaPonte(e) : 0;
+    // atrás do boneco: rastro da chuteira e o brilho no chão
+    try {
+      if (rarChut) {
+        const anda = !!(e.pas || e.mov);
+        if (anda && agora - ultimoRastro > 40) { ultimoRastro = agora; rastro.push({ x: px + (Math.random() - 0.5) * 16, y: py - sobe - 2 + (Math.random() - 0.5) * 6, t0: agora, c: COR_RAR[rarChut][(Math.random() * COR_RAR[rarChut].length) | 0] }); if (rastro.length > 40) rastro.shift(); }
+        ctx.save();
+        for (let i = rastro.length - 1; i >= 0; i--) { const f = rastro[i], k = (agora - f.t0) / 650; if (k >= 1) { rastro.splice(i, 1); continue; } faisca(ctx, f.x, f.y - k * 18, (rarChut === 'raro' ? 5 : 7) * (1 - k * 0.5), f.c, 0.9 * (1 - k)); }
+        ctx.restore();
+      }
+      if (rarCorpo === 'lendario' || rarCorpo === 'mitico') {
+        const pul = 0.75 + 0.25 * Math.sin(agora / 380);
+        const g = ctx.createRadialGradient(px, py - sobe, 2, px, py - sobe, 30 * pul);
+        g.addColorStop(0, rarCorpo === 'mitico' ? 'rgba(255,90,216,0.45)' : 'rgba(255,210,63,0.5)'); g.addColorStop(1, 'rgba(255,210,63,0)');
+        ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, py - sobe, 30 * pul, 11 * pul, 0, 0, 7); ctx.fill(); ctx.restore();
+      }
+    } catch (err) { }
+    const r = _entVis.apply(this, arguments);
+    // na frente: faíscas no corpo (épico/lendário) e a aura girando (mítico)
+    try {
+      if (rarCorpo) {
+        const cores = COR_RAR[rarCorpo]; ctx.save();
+        const n = rarCorpo === 'epico' ? 4 : 5, ciclo = rarCorpo === 'epico' ? 1800 : 1500;
+        for (let i = 0; i < n; i++) {
+          const fase = ((agora / ciclo) + i / n) % 1, lote = Math.floor(agora / ciclo + i / n);
+          const a = Math.sin(fase * Math.PI); if (a < 0.05) continue;
+          const fx = px + (hash(lote * 7 + i) - 0.5) * 34, fy = py - sobe - 8 - hash(lote * 13 + i) * (altura - 14);
+          faisca(ctx, fx, fy, 8 * a, cores[i % cores.length], 0.95 * a);
+        }
+        if (rarCorpo === 'mitico') for (let i = 0; i < 6; i++) {
+          const ang = agora / 700 + i * Math.PI / 3, rx = 26, ry = 9;
+          const ox = px + Math.cos(ang) * rx, oy = py - sobe - altura * 0.45 + Math.sin(ang) * ry;
+          ctx.globalAlpha = 0.8; ctx.fillStyle = cores[i % cores.length]; ctx.beginPath(); ctx.arc(ox, oy, 4.5, 0, 7); ctx.fill();
+        }
+        ctx.restore();
+      }
+    } catch (err) { }
+    return r;
+  };
+  window.estampaDoItem = estampaDo; // (para os testes e a wiki)
+}
