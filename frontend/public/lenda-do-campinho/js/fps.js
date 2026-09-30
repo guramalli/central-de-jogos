@@ -2,7 +2,7 @@
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
    🖥️ CONTADOR DE FPS (v301): quadros por segundo do jogo, num selinho no canto da tela.
-   - liga/desliga no menu 🎵 ("Mostrar FPS"); começa desligado e a escolha fica salva neste navegador;
+   - fica no canto de baixo, à direita, da tela do jogo; liga/desliga no menu 🎵 ("Mostrar FPS"); começa desligado e a escolha fica salva neste navegador;
    - conta os quadros de verdade do laço do jogo (loop) e atualiza 2 vezes por segundo;
    - verde = liso (50+), amarelo = 30 a 49, vermelho = abaixo de 30.
    Carregar DEPOIS de game.js e audio.js.
@@ -22,7 +22,7 @@
 
   function posiciona() {
     const cv = document.getElementById('cv'); if (!selo || !cv) return; const r = cv.getBoundingClientRect();
-    selo.style.left = (r.left + 8) + 'px'; selo.style.top = (r.bottom - 30) + 'px';
+    selo.style.left = (r.right - (selo.offsetWidth || 70) - 8) + 'px'; selo.style.top = (r.bottom - (selo.offsetHeight || 24) - 8) + 'px'; // v304: canto de baixo, à direita (à esquerda cobria o botão das missões)
   }
   function mostra(on) {
     ligado = on; try { localStorage.setItem(CHAVE, on ? '1' : '0'); } catch (e) { }
