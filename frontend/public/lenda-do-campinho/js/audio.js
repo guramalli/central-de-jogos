@@ -326,7 +326,7 @@
   // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
   const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
   for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca']; // v277
-  Object.assign(ALTERNA, { vila: ['vila3', 'vila2', 'vila', 'titulo'], cidade: ['cidade3', 'cidade2', 'cidade', 'vila2'], praia3: ['praia3', 'vila2', 'vila'], ct3: ['ct3', 'cidade2', 'cidade'] }); // v278: a nova primeiro
+  Object.assign(ALTERNA, { vila: ['vila3', 'vila2'], cidade: ['cidade3', 'cidade2', 'cidade', 'vila2'], praia3: ['praia3', 'vila2', 'vila'], ct3: ['ct3', 'cidade2', 'cidade'] }); // v278: a nova primeiro
   for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);

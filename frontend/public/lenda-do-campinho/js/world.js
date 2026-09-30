@@ -381,7 +381,7 @@ function mapaEstadio() {
   return b.m;
 }
 
-const MAPAS_DEF = { vila: mapaVila, praia: mapaPraia, cidade: mapaCidade, ct: mapaCT, estadio: mapaEstadio, casa: mapaCasa, bazar: mapaBazar, escola: mapaEscola, loja: mapaLoja, refeitorio: mapaRefeitorio };
+const MAPAS_DEF = { vila: () => mapaVila(), praia: mapaPraia, cidade: mapaCidade, ct: mapaCT, estadio: mapaEstadio, casa: mapaCasa, bazar: mapaBazar, escola: mapaEscola, loja: mapaLoja, refeitorio: mapaRefeitorio };
 const MAPAS_ORDEM = ['vila', 'praia', 'cidade', 'ct', 'estadio'];
 const MAPAS_FLAG = { vila: null, praia: 'libera_praia', cidade: 'libera_cidade', ct: 'libera_ct', estadio: 'libera_estadio' };
 const MAPAS = {};

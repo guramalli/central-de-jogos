@@ -173,7 +173,7 @@ if (GRAVANDO) (function () {
 
   /* ---------- as cenas ---------- */
   async function cenaLambreta() {
-    vaiMapa('vila', 9.5, 12.5); if (!montadoAgora()) montar();
+    vaiMapa('vila', 12.5, 13.5); if (!montadoAgora()) montar();
     await clareia();
     legendaFixa('🛵 Passeie de lambreta pelo bairro', 'skate, bicicleta, lambreta, carro...');
     await andaAte(22.5, 12.5, 4500);
@@ -242,7 +242,7 @@ if (GRAVANDO) (function () {
   }
   function podeAndarNo(m, x, y) { const ch = m.chao[y * m.w + x]; return typeof CH_ANDA === 'function' ? CH_ANDA(ch) : true; }
   async function cenaForja() {
-    await escurece(); vaiMapa('vila', 31.5, 13.5); await clareia();
+    await escurece(); vaiMapa('vila', 33.5, 13.5); await clareia();
     legendaFixa('🔨 Forje seus itens até +10', 'quanto mais alto, mais difícil!');
     await andaAte(31.5, 10.4, 4000);
     const n = npc('remendo'); if (!n) return;
