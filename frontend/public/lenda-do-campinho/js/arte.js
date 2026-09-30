@@ -895,12 +895,16 @@ function pintaAparencia(canvas, look, opts = {}) {
     }
     const comp = compoe(look, !opts.inteiro);
     if (!comp) { desenhaSilhueta(x, look, canvas.width / 2, canvas.height * 0.95, canvas.height * 0.9); return false; }
+    // v298: a arte nova do boneco ainda não carregou: desenha o de reserva (o desenho antigo) mas continua tentando
+    // (antes o retrato ficava com o boneco ANTIGO para sempre — janela do NPC, ficha, lista de batalha, carreira...)
+    let pronto = true;
+    try { if (typeof folhaDoLook === 'function' && typeof FOLHAS !== 'undefined') { const f = FOLHAS[folhaDoLook(specDe(look), look)]; if (f && !f.ok) pronto = false; } } catch (e) { }
     const ar = comp.c.width / comp.c.height; let h = canvas.height * (opts.inteiro ? 1 : 0.94), w = h * ar;
     if (w > canvas.width) { w = canvas.width; h = w / ar; }
     x.imageSmoothingQuality = 'high';
     x.drawImage(comp.c, (canvas.width - w) / 2, canvas.height - h - (opts.inteiro ? 0 : canvas.height * 0.03), w, h);
-    return true;
+    return pronto;
   };
-  if (!tenta()) { let n = 0; const iv = setInterval(() => { if (tenta() || ++n > 60) clearInterval(iv); }, 150); }
+  if (!tenta()) { let n = 0; const iv = setInterval(() => { if (tenta() || ++n > 200) clearInterval(iv); }, 150); } // até ~30 s
   return canvas;
 }
