@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../db.js";
 import { signToken } from "../utils/jwt.js";
+import { requireAuth } from "../middleware/auth.js";
 import { sendPasswordResetEmail } from "../utils/mailer.js";
 import { verificarTurnstile } from "../turnstile.js";
 import { autoBanirIP, registrarRejeicao, registrarCriacaoConta } from "../ipBan.js";
@@ -422,6 +423,32 @@ router.post("/guest", visitanteLimiterCurto, visitanteLimiterDiario, contaNovaLi
     console.error("Falha ao criar visitante:", err.message);
     res.status(500).json({ error: "Não foi possível entrar agora. Tenta de novo?" });
   }
+});
+
+// ---------- renovar a sessão (login que se renova sozinho) ----------
+// O token dura 7 dias. Quem continua usando o site troca o token ainda válido
+// por um novo de mais 7 dias — o site e a Lenda do Campinho pedem isso ao abrir
+// e a cada poucas horas. Antes, quem jogava todo dia caía a cada 7 dias e o
+// jogo parava de salvar online sem a pessoa perceber. Quem some por mais de
+// 7 dias continua precisando entrar de novo. O requireAuth já barra token
+// vencido, conta banida e conta apagada; o apelido e o papel saem do banco.
+const renovarLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 30,
+  message: { error: "Muitas renovações seguidas. Tenta de novo mais tarde." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+router.post("/renovar", renovarLimiter, requireAuth, async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { id: true, nickname: true, role: true, isGuest: true },
+  });
+  if (!user) return res.status(401).json({ error: "Sessão encerrada." });
+  res.json({
+    token: signToken(user),
+    user: { id: user.id, nickname: user.nickname, role: user.role, ...(user.isGuest ? { isGuest: true } : {}) },
+  });
 });
 
 export default router;

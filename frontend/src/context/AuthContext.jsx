@@ -1,7 +1,8 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { registrarConversaoCadastro } from "../utils/analytics.js";
 import { obterTokenTurnstile } from "../utils/turnstile.js";
+import { renovarSessao, INTERVALO_RENOVA_MS } from "../utils/renovaSessao.js";
 
 const AuthContext = createContext(null);
 
@@ -10,6 +11,15 @@ export function AuthProvider({ children }) {
     const raw = localStorage.getItem("eg_user");
     return raw ? JSON.parse(raw) : null;
   });
+
+  // Login que se renova sozinho: ao abrir o site e a cada 6 h (utils/renovaSessao.js)
+  useEffect(() => {
+    if (!user) return undefined;
+    const renova = () => renovarSessao((u) => u && setUser(u));
+    renova();
+    const id = setInterval(renova, INTERVALO_RENOVA_MS);
+    return () => clearInterval(id);
+  }, [user?.id]);
 
   async function login(email, password) {
     const { data } = await api.post("/auth/login", { email, password });
