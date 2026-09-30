@@ -86,6 +86,7 @@ function renderChao(m) {
     x.save(); x.clip(corpo);
     if (t === CH.AREIA_MOLHADA) { x.fillStyle = 'rgba(120,90,40,0.2)'; x.fillRect(0, 0, W, H); }
     if (t === CH.CONCRETO) { x.fillStyle = 'rgba(90,90,120,0.16)'; x.fillRect(0, 0, W, H); }
+    if (est.tinta) { x.fillStyle = est.tinta; x.fillRect(0, 0, W, H); } // v272: paredes e pisos das dungeons novas (textura existente tingida)
     if (t === CH.QUADRA_AZUL) { x.globalCompositeOperation = 'color'; x.fillStyle = '#3a6ae0'; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
     if (t === CH.CAMPO) for (const [i, j] of tiles) if (Math.floor(i / 2) % 2) { x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * T, j * T, T, T); }
     // (antes: contorno escuro em CADA quadrado de água — era isso que fazia a grade)

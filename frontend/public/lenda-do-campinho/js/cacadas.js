@@ -192,6 +192,15 @@ function poeEntradaCaca(m, c) {
     m.obj[(y + 1) * m.w + x + 1] = null; m.predios.push({ spr: c.ent, x, y, w: 3, h: 2, porta: { x: x + 1, y: y + 1 }, interior: c.id }); m.saidas.push({ x: x + 1, y: y + 1, para: c.id, porta: true });
     c.porta = { x: x + 1, y: y + 1 }; return true;
   }
+  const lt = m.lotes && m.lotes[c.id];
+  if (lt) { // v272: lote desenhado no mapa da cidade (cidades_novas.js)
+    const { x, y } = lt, L = m.w;
+    for (let j = y; j < y + 2; j++) for (let i = x; i < x + 3; i++) m.obj[j * L + i] = { t: 'x', v: 0, predio: true };
+    for (let i = x - 1; i <= x + 3; i++) if (m.obj[(y + 2) * L + i] && !m.obj[(y + 2) * L + i].predio) m.obj[(y + 2) * L + i] = null;
+    m.obj[(y + 1) * L + x + 1] = null; m.predios.push({ spr: c.ent, x, y, w: 3, h: 2, porta: { x: x + 1, y: y + 1 }, interior: c.id }); m.saidas.push({ x: x + 1, y: y + 1, para: c.id, porta: true });
+    m.obj[(y + 1) * L + x + 3] = { t: 'placa', v: 1 }; m.placas.push({ x: x + 3, y: y + 1, texto: `🎯 ÁREA DE CAÇA: ${c.nome} — só ${MONSTROS[c.m] ? MONSTROS[c.m].nome : ''} (nível ${nivelCaca(c)}), em grande quantidade. Missões lá dentro!` });
+    c.porta = { x: x + 1, y: y + 1 }; return true;
+  }
   const W = m.w, H = m.h; const bloq = (x, y) => { if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) return true; const o = m.obj[y * W + x]; return m.chao[y * W + x] === CH.AGUA || !CH_ANDA(m.chao[y * W + x]) || (o && OBJ_BLOQUEIA.has(o.t)); };
   const ini = m.inicio || { x: W >> 1, y: H >> 1 }, centro = c.ancora || ini, r0 = c.ancora ? 0 : 6; // v263: ancora = procura o lugar perto dali (e não perto da chegada)
   // o que dá para alcançar a partir da chegada

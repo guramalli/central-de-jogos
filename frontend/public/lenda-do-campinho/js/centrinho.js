@@ -15,6 +15,7 @@ function vaiProCentrinho(n) {
   return !!(d.loja || d.refino || d.cura || d.quiz || d.empresario || d.quadro || /^(lider_|loja_|lojista_)/.test(n.id) || MISSOES.some(q => q.npc === n.id));
 }
 function montaCentrinho(m) {
+  if (m.semCentrinho) return; // v272: a cidade nova já tem a praça das lojas desenhada
   const mov = m.npcs.filter(vaiProCentrinho); if (mov.length < 2) return;
   const porLinha = 4, linhas = Math.ceil(mov.length / porLinha);
   const W = 1 + porLinha * 3, H = 2 + linhas * 3; // barraca + NPC a cada 3 quadros; linhas de 3 de altura

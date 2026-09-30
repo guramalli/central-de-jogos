@@ -79,6 +79,7 @@ function poeMonumento(m, d) {
     }
   }
   cands.sort((a, b) => a.d - b.d);
+  if (m.lotes && m.lotes[d.spr]) cands.unshift({ x: m.lotes[d.spr].x, y: m.lotes[d.spr].y }); // v272: lote desenhado no mapa (cidades_novas.js)
   const inicio = m.renasce || m.inicio || { x: m.w >> 1, y: m.h >> 1 };
   const antes = alcancaveis(m, inicio), importantes = pontosImportantes(m).filter(pt => antes[pt.y * m.w + pt.x]);
   for (const { x, y } of cands.slice(0, 40)) {

@@ -14,6 +14,7 @@
 const CIDADES_MOLDE = ['cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao'];
 function sementeTexto(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 function espalhaAdversarios(m) {
+  if (m.huntsProprios) return; // v272: a cidade nova já tem um bairro de caça para cada adversário
   const W = m.w, H = m.h, r = mulberry(sementeTexto(m.id + ':v263'));
   const bloq = (x, y) => { if (x < 1 || y < 1 || x >= W - 1 || y >= H - 1) return true; const i = y * W + x, o = m.obj[i]; return m.chao[i] === CH.AGUA || !CH_ANDA(m.chao[i]) || !!(o && (o.predio || OBJ_BLOQUEIA.has(o.t))); };
   // o que dá para alcançar andando a partir da chegada

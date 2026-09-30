@@ -226,7 +226,7 @@ function mapaLondres() {
   b.espalha(['lixeira2', 'banca_jornal', 'cabine'], 6, 1, 5, 22, 12);
   return b.m;
 }
-Object.assign(MAPAS_DEF, { lisboa: mapaLisboa, madri: mapaMadri, londres: mapaLondres });
+Object.assign(MAPAS_DEF, { lisboa: () => mapaLisboa(), /* v272: cidades_novas.js troca o desenho */ madri: mapaMadri, londres: mapaLondres });
 Object.assign(DESAFIOS, {
   lisboa: [['ponta_alfama', 150], ['central_belem', 150], ['ultra_lisboa', 150]],
   madri: [['extremo_madri', 180], ['zagueiro_toureiro', 180], ['ultra_madri', 180]],

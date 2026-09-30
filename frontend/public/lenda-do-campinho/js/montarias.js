@@ -45,6 +45,7 @@ Object.assign(NPCS, {
 // [npc, mapa, perto de qual NPC (opcional)]
 const NPCS_MONT_ONDE = [['pedal', 'vila', 'remendo'], ['rita', 'cidade'], ['vera', 'cidade'], ['johnny', 'miami', 'loja_miami']];
 function poeNpcPerto(m, id, perto) {
+  if (m.npcs.some(n => n.id === id)) return; // v272: já tem lugar desenhado no mapa
   const livre = (x, y) => x > 1 && y > 1 && x < m.w - 2 && y < m.h - 2 && !m.obj[y * m.w + x] && CH_ANDA(m.chao[y * m.w + x]) && m.chao[y * m.w + x] !== CH.AGUA
     && !m.saidas.some(s => Math.abs(s.x - x) < 2 && Math.abs(s.y - y) < 2) && !m.npcs.some(n => Math.abs(n.x - x) < 3 && Math.abs(n.y - y) < 3)
     && !m.campos.some(c => x >= c.x - 1 && x <= c.x + c.w && y >= c.y - 1 && y <= c.y + c.h);

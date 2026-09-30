@@ -137,7 +137,8 @@ function criaCasasNoMapa(m, local) {
   const saidaLivre = p => { const x = p.porta.x, y = p.porta.y + 1; return y < m.h && !m.obj[y * m.w + x] && CH_ANDA(m.chao[y * m.w + x]) && m.chao[y * m.w + x] !== CH.AGUA; };
   const ref = m.inicio || { x: m.w / 2, y: m.h / 2 };
   let cand = m.predios.filter(p => !p.interior && p.porta && !/aeroporto|sede/.test(p.spr) && p.w >= 4 && p.h >= 3 && saidaLivre(p));
-  cand.sort((a, b) => Math.hypot(a.porta.x - ref.x, a.porta.y - ref.y) - Math.hypot(b.porta.x - ref.x, b.porta.y - ref.y));
+  if (m.casasLote) cand = m.casasLote.filter(p => cand.includes(p)).concat(cand.filter(p => !m.casasLote.includes(p))); // v272: a rua das casas desenhada no mapa vem primeiro
+  if (!m.casasLote) cand.sort((a, b) => Math.hypot(a.porta.x - ref.x, a.porta.y - ref.y) - Math.hypot(b.porta.x - ref.x, b.porta.y - ref.y));
   cand = cand.slice(0, CASA_MAX_POR_MAPA);
   const casaRef = m.predios.find(p => p.spr === 'b_casa') || ref;
   while (cand.length < CASA_MIN_POR_MAPA) { const p = constroiCasinha(m, casaRef.porta || casaRef); if (!p) break; cand.push(p); }

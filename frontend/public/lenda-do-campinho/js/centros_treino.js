@@ -87,6 +87,7 @@ function poeCentroTreino(m, refProj) {
       cands.push({ X, Y, d: Math.hypot(X + F.W / 2 - ref.x, Y + F.H / 2 - ref.y) });
     }
     cands.sort((a, b) => a.d - b.d);
+    if (m.lotes && m.lotes.ct && F === CT_FORMATOS[0]) cands.unshift({ X: m.lotes.ct.x, Y: m.lotes.ct.y }); // v272: lote desenhado no mapa (cidades_novas.js)
     for (const { X, Y } of cands.slice(0, 30)) {
       const guarda = [], marca = (k, o) => { guarda.push([k, m.obj[k]]); m.obj[k] = o; };
       for (let j = Y - 1; j <= Y + F.H; j++) for (let k = X - 1; k <= X + F.W; k++) if (m.obj[i(k, j)]) marca(i(k, j), null); // tira os enfeites soltos de dentro e da volta (árvore/guarda-sol colado cobria os aparelhos)

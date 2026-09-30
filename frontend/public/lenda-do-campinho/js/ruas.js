@@ -96,6 +96,29 @@ function pintaRuas(x, m) {
       if (dy === -1) x.fillRect(X, Y + g, T, 2); else if (dy === 1) x.fillRect(X, Y + T - g - 2, T, 2); else if (dx === -1) x.fillRect(X + g, Y, 2, T); else x.fillRect(X + T - g - 2, Y, 2, T);
     }
   }
+  // v272: ESQUINAS ARREDONDADAS — o canto do quarteirão (asfalto dos dois lados e na diagonal) vira curva:
+  // o asfalto (copiado do cruzamento, que é liso) entra no canto e o meio-fio acompanha a curva
+  const R = T * 0.55, cv = x.canvas, pad = g + 3, bw = R + pad;
+  const chaoOk = k => !asf(k) && m.chao[k] !== CH.AGUA && CH_ANDA(m.chao[k]);
+  for (let j = 1; j < H - 1; j++) for (let i = 1; i < W - 1; i++) {
+    const k = j * W + i; if (!chaoOk(k)) continue;
+    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      if (!asf(j * W + i + sx) || !asf((j + sy) * W + i) || !asf((j + sy) * W + i + sx)) continue;
+      const Px = i * T + (sx > 0 ? T : 0), Py = j * T + (sy > 0 ? T : 0), Cx = Px - sx * R, Cy = Py - sy * R;
+      const bx = sx > 0 ? Cx : Px - pad, by = sy > 0 ? Cy : Py - pad;
+      const TX = (i + sx) * T + (T - bw) / 2, TY = (j + sy) * T + (T - bw) / 2;
+      x.save();
+      x.beginPath(); x.rect(bx, by, bw, bw); x.clip();
+      x.beginPath(); x.rect(bx - 2, by - 2, bw + 4, bw + 4); x.arc(Cx, Cy, R, 0, Math.PI * 2); x.clip('evenodd');
+      x.drawImage(cv, TX, TY, bw, bw, bx, by, bw, bw);
+      x.restore();
+      const a1 = sx > 0 ? 0 : Math.PI, a2 = sy > 0 ? Math.PI / 2 : -Math.PI / 2, anti = sx * sy < 0;
+      x.save(); x.lineCap = 'butt';
+      x.strokeStyle = 'rgba(60,55,50,0.55)'; x.lineWidth = 2; x.beginPath(); x.arc(Cx, Cy, R + g + 1, a1, a2, anti); x.stroke();
+      x.strokeStyle = '#d9d4ca'; x.lineWidth = g; x.beginPath(); x.arc(Cx, Cy, R + g / 2, a1, a2, anti); x.stroke();
+      x.restore();
+    }
+  }
 }
 {
   const _renderChaoRua = renderChao;
