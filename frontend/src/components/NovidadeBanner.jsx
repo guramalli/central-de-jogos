@@ -10,7 +10,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 // ID novo = banner reaparece pra todo mundo, inclusive pra quem fechou o
 // anterior. É o comportamento certo aqui: quem já joga Quiz não vai descobrir
 // sozinho que agora vale prêmio.
-const NOVIDADE_ID = "novidade-premiacao-quiz-set2026";
+const NOVIDADE_ID = "aviso-fim-premiacao-out2026";
 
 export default function NovidadeBanner() {
   const { user } = useAuth();
@@ -36,12 +36,11 @@ export default function NovidadeBanner() {
   return (
     <div className="novidade-banner">
       <div className="novidade-banner-texto">
-        <span className="novidade-banner-tag">NOVIDADE</span>
+        <span className="novidade-banner-tag">AVISO</span>
         <span>
-          🏆 <strong>Agora o Quiz também paga!</strong> Premiação mensal com os mesmos valores do
-          Stop: <strong>1º R$ 200 · 2º R$ 100 · 3º R$ 50</strong>. Vale para setembro, e os pontos
-          que você já fez este mês <strong>já estão contando</strong>. São dois rankings separados —
-          dá para ganhar nos dois.
+          📢 <strong>Setembro é o último mês com premiação em Pix.</strong> A partir de outubro, o
+          Stop e o Quiz não pagam mais prêmio em dinheiro. Os rankings mensais continuam, com
+          patentes, títulos e a coroa e o troféu de campeão do mês.
         </span>
       </div>
       <div className="novidade-banner-acoes">

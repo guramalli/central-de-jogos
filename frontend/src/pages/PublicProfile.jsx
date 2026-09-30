@@ -242,7 +242,7 @@ export default function PublicProfile() {
           <div>
             <h2 className="perfil-admin-titulo">Administrador do Site</h2>
             <p className="perfil-admin-sub">
-              Conta oficial do Educação Gamer. Não participa dos rankings nem da premiação.
+              Conta oficial do Educação Gamer. Não participa dos rankings.
             </p>
           </div>
         </div>

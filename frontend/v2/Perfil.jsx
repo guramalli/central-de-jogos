@@ -165,7 +165,7 @@ export default function Perfil({ usuario, userId }) {
             {admin ? (
               <section className="v2-cartao v2-perfil-admin">
                 <img src="/ranks/admin.png" alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                <div><h2>Administrador do Site</h2><p>Conta oficial do Educação Gamer. Não participa dos rankings nem da premiação.</p></div>
+                <div><h2>Administrador do Site</h2><p>Conta oficial do Educação Gamer. Não participa dos rankings.</p></div>
               </section>
             ) : (
               <>

@@ -34,18 +34,14 @@ const DICAS_GERAIS = [
 
 // Uma por jogo, sobre a mecânica que a pessoa costuma descobrir tarde.
 const DICAS_POR_JOGO = {
-  // A premiação em Pix existe SÓ no Stop e no Quiz. Antes esta dica estava na
-  // lista geral dizendo "de cada jogo", e saía também no Acromania —
-  // prometendo dinheiro que aquele jogo não paga.
+  // Sem dica de prêmio em Pix: a premiação acabou em setembro/2026.
   stop: [
     "💡 No Stop dá pra criar sala privada e chamar só os seus amigos.",
     "💡 Pedir STOP rápido conta pros títulos de raio.",
-    "💡 Os três primeiros do ranking mensal do Stop levam prêmio em Pix.",
   ],
   quiz: [
     "💡 No Quiz só o PRIMEIRO a acertar pontua — vale arriscar antes de ter certeza.",
     "💡 Achou uma pergunta errada ou fora do tema? Dá pra denunciar na própria pergunta.",
-    "💡 Os três primeiros do ranking mensal do Quiz levam prêmio em Pix.",
   ],
   acromania: [
     "💡 No Acromania votar na frase vencedora também dá pontos: preste atenção no que a sala curte.",

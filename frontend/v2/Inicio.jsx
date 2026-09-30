@@ -165,15 +165,12 @@ export default function Inicio({ usuario }) {
         </section>
 
         <div className="v2-inicio-duas">
+          {/* Fim da premiação em Pix (30/09/2026): setembro foi o último mês pago.
+              O cartão ficou no mesmo lugar, agora como aviso. */}
           <section className="v2-cartao v2-premiacao">
-            <span className="v2-premiacao-selo">Premiação</span>
-            <p>O <b>Stop</b> e o <b>Quiz</b> têm rankings mensais que premiam de verdade — cada um com os valores abaixo.</p>
-            <div className="v2-premios">
-              <div className="p1"><b>1º</b><span>R$ 200</span></div>
-              <div className="p2"><b>2º</b><span>R$ 100</span></div>
-              <div className="p3"><b>3º</b><span>R$ 50</span></div>
-            </div>
-            <p className="v2-cartao-nota">Os dois rankings são separados — dá para ganhar nos dois. Pagamento via Pix, e tudo zera no dia 1º.</p>
+            <span className="v2-premiacao-selo">Aviso</span>
+            <p><b>Setembro é o último mês com premiação em Pix.</b> A partir de outubro, o Stop e o Quiz não pagam mais prêmio em dinheiro.</p>
+            <p className="v2-cartao-nota">Os rankings mensais continuam: patentes, títulos, a coroa e o troféu de campeão do mês. Tudo zera no dia 1º.</p>
             <a className="v2-link" href={linkDaPagina("ranking")} onClick={(e) => { e.preventDefault(); irParaPagina("ranking"); }}>Ver ranking →</a>
           </section>
 

@@ -13,8 +13,7 @@ export default function GuestBanner() {
     <div className="guest-banner">
       <span className="guest-banner-icon">👤</span>
       <span className="guest-banner-text">
-        Você está jogando como <strong>visitante</strong> — sua pontuação não conta pro ranking nem
-        pra premiação do mês.
+        Você está jogando como <strong>visitante</strong> — sua pontuação não conta pro ranking.
       </span>
       <Link to="/registrar" className="guest-banner-cta">
         Criar conta grátis

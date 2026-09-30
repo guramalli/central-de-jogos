@@ -45,7 +45,7 @@ export default function PainelDoJogador({ userId }) {
       <div className="lobby-hero-benefits">
         <div className="lobby-benefit">
           <span className="material-symbols-outlined lobby-benefit-icon">emoji_events</span>
-          <span>Ranking mensal com premiação</span>
+          <span>Ranking mensal e títulos</span>
         </div>
         <div className="lobby-benefit">
           <span className="material-symbols-outlined lobby-benefit-icon">star</span>

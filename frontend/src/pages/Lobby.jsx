@@ -48,7 +48,7 @@ export default function Lobby() {
     <div className="lobby-page">
       <NovidadeBanner />
 
-      <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e premiação." />
+      <Seo title="Início" description="Jogue Stop, Quiz e Acromania com a galera — a nostalgia da Central de Jogos, de volta, com ranking, patentes e títulos." />
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
 
       {/* Painel de boas-vindas */}
@@ -65,7 +65,7 @@ export default function Lobby() {
             </p>
           )}
           <p className="lobby-hero-subtitle">
-            Escolha um jogo, suba de patente e dispute a premiação mensal.
+            Escolha um jogo, suba de patente e dispute o ranking mensal.
           </p>
           <div style={{ marginTop: 14 }}>
             <InviteButton message="Vem jogar comigo na Educação Gamer! 🎮 Stop, Quiz e muito mais:" />
@@ -183,35 +183,18 @@ export default function Lobby() {
         </a>
       </div>
 
-      {/* Premiação do mês */}
+      {/* Fim da premiação em Pix (30/09/2026): setembro foi o último mês pago. */}
       <div className="prize-banner">
         <div className="prize-banner-header">
-          <span className="prize-badge">🏆 PREMIAÇÃO</span>
+          <span className="prize-badge">📢 AVISO</span>
           <span className="prize-banner-intro">
-            O <strong>Stop</strong> e o <strong>Quiz</strong> têm rankings mensais que premiam de
-            verdade — cada um com os valores abaixo.
+            <strong>Setembro é o último mês com premiação em Pix.</strong> A partir de outubro, o
+            Stop e o Quiz não pagam mais prêmio em dinheiro.
           </span>
         </div>
-        <div className="prize-list">
-          <div className="prize-row">
-            <span className="prize-medal">🥇</span>
-            <span className="prize-place">1º lugar</span>
-            <span className="prize-value">R$ 200</span>
-          </div>
-          <div className="prize-row">
-            <span className="prize-medal">🥈</span>
-            <span className="prize-place">2º lugar</span>
-            <span className="prize-value">R$ 100</span>
-          </div>
-          <div className="prize-row">
-            <span className="prize-medal">🥉</span>
-            <span className="prize-place">3º lugar</span>
-            <span className="prize-value">R$ 50</span>
-          </div>
-        </div>
         <p className="prize-banner-note">
-          Os dois rankings são separados — dá para ganhar nos dois. Pagamento via Pix,
-          e tudo zera no dia 1º.
+          Os rankings mensais continuam: patentes, títulos, a coroa e o troféu de campeão do mês.
+          Tudo zera no dia 1º.
         </p>
         <Link to="/ranking" className="prize-banner-link">Ver ranking →</Link>
       </div>

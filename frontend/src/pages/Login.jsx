@@ -58,7 +58,7 @@ export default function Login() {
       <div className="auth-brand-panel">
         <img src={theme === "light" ? "/educacao-gamer-logo-light.png" : "/educacao-gamer-logo.png"} alt="Educação Gamer" className="auth-logo-img" />
         <h2>Educação Gamer</h2>
-        <p>Jogue, pontue e suba de patente. Cadastro grátis, premiação mensal de verdade.</p>
+        <p>Jogue, pontue e suba de patente. Cadastro grátis, ranking mensal e títulos.</p>
       </div>
       <div className="auth-form-panel">
         <div className="card auth-card">
@@ -118,8 +118,7 @@ export default function Login() {
                 Jogar agora
               </button>
               <p className="guest-warning-note">
-                Visitantes podem jogar e conhecer o site, mas <strong>não pontuam no ranking</strong> nem
-                concorrem à premiação mensal. Dá pra criar uma conta a qualquer momento.
+                Visitantes podem jogar e conhecer o site, mas <strong>não pontuam no ranking</strong>. Dá pra criar uma conta a qualquer momento.
               </p>
             </form>
           )}

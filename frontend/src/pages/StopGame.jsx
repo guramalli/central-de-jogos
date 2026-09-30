@@ -674,8 +674,7 @@ export default function StopGame({ salaFixa = null, socketProprio = false, compa
         <div className="sc-sem-pontuacao">
           <span className="sc-sem-pontuacao-icone">🎲</span>
           <span>
-            Esta sala <strong>não conta pontos</strong> para o ranking mensal, vitalício ou para a
-            premiação. O placar aqui é só da partida.
+            Esta sala <strong>não conta pontos</strong> para o ranking mensal ou vitalício. O placar aqui é só da partida.
           </span>
         </div>
       )}

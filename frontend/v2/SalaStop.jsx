@@ -411,7 +411,7 @@ export default function SalaStop({ roomId, usuario, compacto = false, ativo = fa
         </button>
       </header>
 
-      {semPontos && <div className="v2-faixa-zoeira">Esta sala é só resenha: <b>não conta pontos</b> pro ranking nem pra premiação.</div>}
+      {semPontos && <div className="v2-faixa-zoeira">Esta sala é só resenha: <b>não conta pontos</b> pro ranking.</div>}
 
       <div className="v2-sala-corpo">
         <aside className="v2-placar" aria-label="Jogadores na sala">
