@@ -108,6 +108,7 @@ function climaParticulas(dt) {
     else if (c.estacao === 'Outono' && (c.tempo === 'sol' || c.tempo === 'nublado' || c.tempo === 'neblina') && CLIMA_CIDADE[G.mapa.id] !== 'deserto') { tipo = 'folha'; n = 26; }
     else if (c.estacao === 'Primavera' && (c.tempo === 'sol' || c.tempo === 'nublado') && CLIMA_CIDADE[G.mapa.id] !== 'deserto') { tipo = 'petala'; n = G.mapa.id === 'toquio' ? 60 : 22; }
   }
+  if (G.leve) n = n >> 1; // v279: modo leve = metade das gotas/flocos/folhas
   const s = G.dpr || 1;
   if (tipo !== PART.tipo) { PART.lista = []; PART.tipo = tipo; }
   while (PART.lista.length < n) PART.lista.push(novaParticula(tipo, W, H, true));
