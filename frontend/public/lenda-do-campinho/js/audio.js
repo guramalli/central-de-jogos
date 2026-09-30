@@ -23,6 +23,17 @@
   const MUS_CIDADE = { rio: 173.76, santos: 137.32, buenos: 146.45, madri: 156.5, paris: 142.08, munique: 202.76, toquio: 171.35,
     cairo: 150.43, doha: 143.31, miami: 179.97, lisboa: 220.52, milao: 135.07, londres: 165.08 };
   Object.assign(MUSICAS, MUS_CIDADE);
+  // v277: músicas de AVENTURA nas dungeons, pelo clima do lugar (Pixabay Music); a música antiga das caçadas vira a 2ª opção
+  const MUS_DG = { dg_caverna: 188.32, dg_vulcao: 183.86, dg_gelo: 176.74, dg_deserto: 248.58, dg_floresta: 171.53, dg_subterraneo: 172.47, dg_piratas: 194.04, dg_espaco: 225.46, dg_oriental: 131.94 };
+  Object.assign(MUSICAS, MUS_DG);
+  const DG_TEMA = { catacumba: 'dg_caverna', cristal: 'dg_caverna', mina: 'dg_caverna', tunel: 'dg_caverna', lava: 'dg_vulcao', gelo: 'dg_gelo',
+    tumba: 'dg_deserto', deserto: 'dg_deserto', bazar: 'dg_deserto', palacio: 'dg_deserto',
+    mata: 'dg_floresta', campo: 'dg_floresta', pantano: 'dg_floresta', fazenda: 'dg_floresta', labirinto: 'dg_floresta',
+    metro: 'dg_subterraneo', esgoto: 'dg_subterraneo', metro_paris: 'dg_subterraneo', armazem: 'dg_subterraneo', relogio: 'dg_subterraneo', moda: 'dg_subterraneo',
+    praia: 'dg_piratas', cais: 'dg_piratas', estaleiro: 'dg_piratas', caravela: 'dg_piratas', recife: 'dg_piratas',
+    lunar: 'dg_espaco', marciano: 'dg_espaco', anel: 'dg_espaco', nebular: 'dg_espaco', bambu: 'dg_oriental', dojo: 'dg_oriental',
+    barracao: 'rio', academia: 'miami' }; // o barracão de samba e a academia da praia tocam a música da cidade
+  function musicaDaCaca(id) { const c = typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[id]; const f = c && DG_TEMA[c.tema]; return f && MUSICAS[f] ? f : 'caca'; }
   const AMBIENTE = { torcida: 11.65 };
 
   // tipo do jogo -> [arquivo, volume, variação de pitch, intervalo mínimo (ms), vozes máx.]
@@ -304,6 +315,7 @@
   /* ---------- sessões de música: toca um pouco, dá um tempo, volta (às vezes outra faixa) ---------- */
   // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
   const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
+  for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca']; // v277
   for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
@@ -384,7 +396,7 @@
     if (partida) return { musica: 'cidade', torcida: true };
     if (typeof G !== 'undefined' && G.rodando && G.mapa) {
       const id = G.mapa.id;
-      let f = G.mapa.caca ? 'caca' : (G.mapa.estadio || G.mapa.arena) ? 'estadio' : faixaDoMapa(id); // v155: caçadas e estádios/arenas têm música própria
+      let f = G.mapa.caca ? musicaDaCaca(G.mapa.caca) : (G.mapa.estadio || G.mapa.arena) ? 'estadio' : faixaDoMapa(id); // v155: caçadas e estádios/arenas têm música própria
       if (!f && G.mapa.interior && A.faixa) f = A.faixa;   // interiores desconhecidos: mantém a faixa
       return { musica: f || A.faixa || 'vila', torcida: id === 'estadio' };
     }

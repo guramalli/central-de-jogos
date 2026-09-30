@@ -56,7 +56,40 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   if (bm) { bandeja.append(bm); bm.addEventListener('click', () => setTimeout(fechaBandeja, 150)); }
   if (tm) { bandeja.append(tm); tm.addEventListener('click', () => setTimeout(fechaBandeja, 150)); }
   bandeja.append(el('button', { class: 'btn', type: 'button', onclick: () => { fechaBandeja(); if (typeof alternaEdicaoBarra === 'function') alternaEdicaoBarra(); } }, '✏️ Editar barra'));
-  $id('app').append(mais, bandeja);
+  { const ba = $id('barraAcoes'); if (ba) ba.prepend(mais); else $id('app').append(mais); $id('app').append(bandeja); }
+  mais.addEventListener('click', () => { if (bandeja.hidden) return; const r = mais.getBoundingClientRect(); bandeja.style.left = Math.max(6, Math.min(innerWidth - 200, r.left)) + 'px'; bandeja.style.right = 'auto'; bandeja.style.bottom = (innerHeight - r.top + 8) + 'px'; });
+
+  /* ---------- 2b) v277: ATALHOS — deitado, a fileira ocupa o espaço livre de baixo; em pé, 2 fileiras de 5 ---------- */
+  const TOTAL_AT = typeof HOTBAR_N !== 'undefined' ? HOTBAR_N : 20;
+  let porPag = 5, colunas = 5;
+  function calculaAtalhos() {
+    const deitado = innerWidth > innerHeight;
+    if (!deitado) { porPag = 10; colunas = 5; return; }
+    const joy = $id('joy'), alvo = $id('tAlvo'); if (!joy || !alvo) return;
+    const jr = joy.getBoundingClientRect().right, al = alvo.getBoundingClientRect().left;
+    const passo = innerHeight <= 380 ? 46 : 52;            // atalho + espaço
+    const livre = al - 8 - (jr + 12) - 44 - 46;            // tira o ▦ e o ⋯
+    porPag = Math.max(5, Math.min(10, Math.floor(livre / passo))); colunas = porPag;
+  }
+  function aplicaAtalhos() {
+    const hb = $id('hotbar'); if (!hb) return;
+    const slots = [...hb.querySelectorAll(':scope > .slot')]; if (!slots.length) return;
+    const pags = Math.max(1, Math.ceil(Math.min(TOTAL_AT, slots.length) / porPag));
+    let p = +hb.dataset.pag || 0; if (p >= pags) p = 0; hb.dataset.pag = String(p);
+    slots.forEach((sl, i) => sl.classList.toggle('c3-vis', i >= p * porPag && i < (p + 1) * porPag));
+    hb.style.setProperty("grid-template-columns", `repeat(${colunas}, var(--c3-at))`, "important");
+    const pg = $id('celPag'); if (pg) { const a = p * porPag + 1, b = Math.min(slots.length, (p + 1) * porPag); pg.textContent = `▦ ${a}-${b}`; pg.hidden = pags < 2; }
+  }
+  { // o ▦ troca de página do jeito novo (o de antes só conhecia páginas de 5)
+    const pg = $id('celPag');
+    if (pg) { const novo = pg.cloneNode(false); pg.replaceWith(novo); novo.addEventListener('click', () => { const hb = $id('hotbar'); if (!hb) return; const n = hb.querySelectorAll(':scope > .slot').length; const pags = Math.max(1, Math.ceil(Math.min(TOTAL_AT, n) / porPag)); hb.dataset.pag = String(((+hb.dataset.pag || 0) + 1) % pags); aplicaAtalhos(); }); }
+  }
+  const refazAtalhos = () => { calculaAtalhos(); aplicaAtalhos(); };
+  addEventListener('resize', () => setTimeout(refazAtalhos, 80)); addEventListener('orientationchange', () => setTimeout(refazAtalhos, 300));
+  { const hb = $id('hotbar'); if (hb) new MutationObserver(() => aplicaAtalhos()).observe(hb, { childList: true }); }
+  setTimeout(refazAtalhos, 300);
+  const _iniciarJogoC3 = iniciarJogo;
+  iniciarJogo = async function () { const r = await _iniciarJogoC3.apply(this, arguments); setTimeout(refazAtalhos, 200); return r; };
 
   /* ---------- 3) missões: uma etiqueta pequena, que só abre quando você toca ---------- */
   if (typeof atualizaRastreador === 'function') {
@@ -201,12 +234,15 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   /* a fileira de atalhos: à esquerda do Alvo, colada embaixo */
   body.cel3 #barraAcoes { right: calc(96px + ${SR}) !important; bottom: calc(8px + ${SB}) !important; width: auto !important; max-width: none !important; gap: 4px !important; flex-wrap: nowrap !important; align-items: flex-end !important; transform: none !important; }
   body.cel3 #barraAcoes > #btnModo, body.cel3 #barraAcoes > #btnCaca, body.cel3 #barraAcoes > #btnClasse { order: 0; }
-  body.cel3 #hotbar { grid-template-columns: repeat(5, 48px) !important; grid-auto-rows: 48px !important; gap: 4px !important; }
-  body.cel3 #hotbar .slot { width: 48px !important; height: 48px !important; }
+  body.cel3 #hotbar { --c3-at: 48px; grid-auto-rows: var(--c3-at) !important; gap: 4px !important; }
+  body.cel3 #hotbar .slot { width: var(--c3-at) !important; height: var(--c3-at) !important; }
+  body.cel3 #hotbar[data-pag] .slot:not(.c3-vis) { display: none !important; }
+  body.cel3 #hotbar[data-pag] .slot.c3-vis { display: flex !important; }
+  body.cel3 #celPag[hidden] { display: none !important; }
   body.cel3 #celPag { min-height: 48px !important; width: 38px !important; font-size: 10px !important; padding: 0 !important; }
-  body.cel3 #c3Mais { right: calc(${SR} + 96px + 5 * 52px + 42px + 6px); bottom: calc(8px + ${SB}); width: 40px; height: 48px; border-radius: 12px !important; font-size: 22px !important; font-weight: 900; }
+  body.cel3 #c3Mais { position: static !important; order: -1; width: 40px; height: 48px; border-radius: 12px !important; font-size: 22px !important; font-weight: 900; align-self: flex-end; margin-right: 2px !important; }
   body.cel3 #c3Mais.c3-aberto { background: #ffd23f !important; }
-  #c3Bandeja { position: fixed; z-index: 9; right: calc(${SR} + 96px + 5 * 52px + 42px + 6px); bottom: calc(66px + ${SB}); display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(20,10,40,.85); border: 2px solid #b8733a; border-radius: 14px; }
+  #c3Bandeja { position: fixed; z-index: 9; left: 50%; bottom: calc(66px + ${SB}); display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(20,10,40,.85); border: 2px solid #b8733a; border-radius: 14px; }
   #c3Bandeja[hidden] { display: none; }
   #c3Bandeja .btn { position: static !important; display: block !important; width: auto !important; min-width: 170px !important; min-height: 42px; padding: 6px 12px !important; font-size: 13.5px !important; text-align: left; opacity: 1; }
   body.cel3 #toque { left: calc(8px + ${SL}) !important; bottom: calc(8px + ${SB}) !important; }
@@ -215,28 +251,25 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
   body.cel3 .joy-bot { left: 34px !important; top: 34px !important; width: 48px !important; height: 48px !important; opacity: .9; }
   /* ===== celular EM PÉ ===== */
   @media (orientation: portrait) {
-    body.cel3 #c3Avisos { top: auto; bottom: calc(214px + ${SB}); width: 88vw; flex-direction: column-reverse; }
-    body.cel3 #banner { top: auto !important; bottom: calc(250px + ${SB}); width: 90vw; }
+    body.cel3 #c3Avisos { top: auto; bottom: calc(268px + ${SB}); width: 88vw; flex-direction: column-reverse; }
+    body.cel3 #banner { top: auto !important; bottom: calc(304px + ${SB}); width: 90vw; }
     body.cel3 .cartao-dica { max-width: 62vw !important; }
-    body.cel3 #rastreador { top: calc(80px + ${ST}) !important; max-width: 62vw !important; max-height: calc(100dvh - 80px - 230px - ${ST} - ${SB}); }
+    body.cel3 #rastreador { top: calc(80px + ${ST}) !important; max-width: 62vw !important; max-height: calc(100dvh - 80px - 290px - ${ST} - ${SB}); }
     body.cel3 #btnClasse { right: calc(104px + ${SR}); bottom: calc(26px + ${SB}); }
     body.cel3 #btnCaca { right: calc(180px + ${SR}); bottom: calc(28px + ${SB}); }
     body.cel3 #barraAcoes { right: 50% !important; transform: translateX(50%) !important; bottom: calc(150px + ${SB}) !important; }
-    body.cel3 #tFalar { right: calc(14px + ${SR}); bottom: calc(210px + ${SB}); }
-    body.cel3 #c3Mais { right: calc(14px + ${SR}); bottom: calc(100px + ${SB}); width: 40px; height: 40px; }
-    #c3Bandeja { right: calc(14px + ${SR}); bottom: calc(260px + ${SB}); }
+    body.cel3 #tFalar { right: calc(14px + ${SR}); bottom: calc(262px + ${SB}); }
+    body.cel3 #hotbar { --c3-at: 50px; }
   }
   /* ===== telas bem baixas (celular pequeno deitado) ===== */
   @media (max-height: 380px) and (orientation: landscape) {
-    body.cel3 #hotbar { grid-template-columns: repeat(5, 42px) !important; grid-auto-rows: 42px !important; }
-    body.cel3 #hotbar .slot { width: 42px !important; height: 42px !important; }
+    body.cel3 #hotbar { --c3-at: 42px; }
     body.cel3 #celPag { min-height: 42px !important; }
     body.cel3 #tAlvo { width: 70px; height: 70px; }
     body.cel3 #btnClasse { bottom: calc(88px + ${SB}); height: 44px; }
     body.cel3 #btnCaca { bottom: calc(138px + ${SB}); width: 40px; height: 40px; }
     body.cel3 #barraAcoes { right: calc(90px + ${SR}) !important; }
-    body.cel3 #c3Mais { right: calc(${SR} + 90px + 5 * 46px + 38px + 6px); height: 42px; }
-    #c3Bandeja { right: calc(${SR} + 90px + 5 * 46px + 38px + 6px); bottom: calc(60px + ${SB}); }
+    body.cel3 #c3Mais { height: 42px; }
     body.cel3 #chMini { width: 70px !important; height: 70px !important; }
     body.cel3 #rastreador { top: calc(72px + ${ST}) !important; max-height: calc(100dvh - 72px - 138px - ${ST} - ${SB}); }
     body.cel3 .cartao-dica p, body.cel3 .cartao-dica b { font-size: 11px !important; line-height: 1.25; }
