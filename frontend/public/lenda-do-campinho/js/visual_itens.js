@@ -6,9 +6,9 @@
       são a camisa (a cor-chave da folha), então a estampa é desenhada DENTRO dela, com a sombra de sempre:
       cada camisa ganha a do seu tema (Dracônica = chamas, Galáxia = galáxia, Abissal = ondas, Negra e Ouro =
       gola dourada...) na 2ª cor do item (antes ignorada); sem tema, a estampa vem da raridade.
-   2) BRILHO POR RARIDADE (o item mais raro que você está usando): épico = faíscas piscando no corpo;
-      lendário = brilho dourado no chão + faíscas; mítico = aura colorida girando.
-   3) CHUTEIRA: correndo, a chuteira rara deixa um rastro de faíscas na cor da raridade dela.
+   2) BRILHO POR RARIDADE (v298, refeito a pedido do dono): em vez de faíscas/aura, a SILHUETA da própria peça
+      (camisa, calção, chuteira) ganha um contorno brilhando na cor da raridade dela, pulsando devagar:
+      raro = azul, épico = roxo, lendário = dourado, mítico = rosa e ciano se alternando.
    A camisa do clube nas partidas da carreira e as fantasias (skins) continuam como são.
    Carregar NO FIM.
    ============================================================ */
@@ -45,8 +45,8 @@
     try { if (typeof SPR_CACHE !== 'undefined') SPR_CACHE.clear(); } catch (e) { } // redesenha os bonecos com o tecido
     return TEX_PX[nome];
   }
-  for (const n of [...Object.values(TECIDO), 'fx_brilho_ouro', 'fx_brilho_roxo', 'fx_brilho_azul', 'fx_brilho_arco']) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
-  setTimeout(() => { for (const n of [...Object.values(TECIDO), 'fx_brilho_ouro', 'fx_brilho_roxo', 'fx_brilho_azul', 'fx_brilho_arco']) try { spr(n); } catch (e) { } }, 1500); // já começa a carregar
+  for (const n of Object.values(TECIDO)) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
+  setTimeout(() => { for (const n of Object.values(TECIDO)) try { spr(n); } catch (e) { } }, 1500); // já começa a carregar
   const escura = c => { const [r, g, b] = bRgb(c); return r * 0.3 + g * 0.59 + b * 0.11 < 110; };
   const _lookEst = lookJogador;
   lookJogador = function (retrato) {
@@ -119,72 +119,100 @@
     x.putImageData(img, 0, 0);
   }
 
-  /* ---------- 2) brilho por raridade e 3) rastro da chuteira ---------- */
+  /* ---------- 2) brilho por raridade: a silhueta da peça ---------- */
   const NIVEL = { comum: 0, incomum: 1, raro: 2, epico: 3, lendario: 4, mitico: 5 };
-  const COR_RAR = { raro: ['#bfe6ff', '#ffffff'], epico: ['#c58cff', '#f0d8ff'], lendario: ['#ffd23f', '#fff4b0'], mitico: ['#ff5ad8', '#5ae0ff', '#ffe14a', '#7aff8a'] };
-  let chaveEq = '', rarCorpo = null, rarChut = null;
+  const COR_RAR = { raro: ['#4aa6ff'], epico: ['#c07aff'], lendario: ['#ffc83a'], mitico: ['#ff5ad8', '#5ae0ff'] };
+  const PECA = { camisa: 2, calcao: 3, chuteira: 'pe' }; // 2 = pixels da camisa, 3 = do calção (cores-chave da folha)
+  let chaveEq = '', brilhos = [];
   function confere() {
-    const s = G.save; if (!s || !s.equip) { rarCorpo = rarChut = null; return; }
-    const k = JSON.stringify(s.equip); if (k === chaveEq) return; chaveEq = k;
-    let melhor = null;
-    for (const [slot, id] of Object.entries(s.equip)) { if (!id || !ITENS[id]) continue; const r = raridadeItem(id); if (!melhor || (NIVEL[r] || 0) > (NIVEL[melhor] || 0)) melhor = r; }
-    rarCorpo = (NIVEL[melhor] || 0) >= 3 ? melhor : null;
-    const ch = s.equip.chuteira; const rc = ch && ITENS[ch] ? raridadeItem(ch) : null; rarChut = (NIVEL[rc] || 0) >= 2 ? rc : null;
+    const s = G.save; if (!s || !s.equip) { brilhos = []; return; }
+    const k = JSON.stringify(s.equip); if (k === chaveEq) return; chaveEq = k; brilhos = [];
+    for (const slot in PECA) { const id = s.equip[slot]; if (!id || !ITENS[id]) continue; const r = raridadeItem(id); if ((NIVEL[r] || 0) >= 2 && COR_RAR[r]) brilhos.push({ peca: PECA[slot], rar: r }); }
   }
-  const rastro = []; let ultimoRastro = 0;
-  const hash = n => { const v = Math.sin(n * 91.7 + 13.1) * 43758.5453; return v - Math.floor(v); };
-  const FX_RAR = { raro: 'fx_brilho_azul', epico: 'fx_brilho_roxo', lendario: 'fx_brilho_ouro', mitico: 'fx_brilho_arco' };
-  let FX_AGORA = null; // a raridade da faísca que está sendo desenhada (escolhe a arte)
-  function faisca(ctx, x, y, r, cor, a) {
-    const im = FX_AGORA && typeof aSprite === 'function' ? aSprite(FX_RAR[FX_AGORA]) : null;
-    if (im) { const h = r * 3.2, w = h * im.width / im.height; ctx.globalAlpha = a; ctx.drawImage(im, x - w / 2, y - h / 2, w, h); return; }
-    ctx.globalAlpha = a; ctx.fillStyle = cor; ctx.beginPath();
-    ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.28, y - r * 0.28); ctx.lineTo(x + r, y); ctx.lineTo(x + r * 0.28, y + r * 0.28);
-    ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.28, y + r * 0.28); ctx.lineTo(x - r, y); ctx.lineTo(x - r * 0.28, y - r * 0.28); ctx.closePath(); ctx.fill();
+  // cada boneco pronto guarda de qual folha/célula veio (para achar a peça depois)
+  const _sprSil = spriteBoneco;
+  spriteBoneco = function (look, vista = 'frente', q = 0) {
+    const res = _sprSil.apply(this, arguments);
+    try {
+      if (res && res.c && !res.c._cel && look && !look.folha) {
+        const sp = specDe(look), nome = folhaDoLook(sp, look), f = FOLHAS[nome], v = vista === 'costas' ? 2 : vista === 'lado' ? 1 : 0;
+        if (f && f.ok) res.c._cel = { nome, idx: v * 4 + (q % 4) };
+      }
+    } catch (e) { }
+    return res;
+  };
+  function mascara(cv, peca) {
+    const cel = cv._cel, f = FOLHAS[cel.nome]; if (!f || !f.ok) return null;
+    const b = rotulaCelula(f, cel.idx), W = FOLHA_CW, H = FOLHA_CH, cw = cv.width, ch = cv.height, topo = H - ch;
+    let lim = 0;
+    if (peca === 'pe') { // a chuteira: a faixa de baixo do boneco (sem a pele e o calção)
+      let y0 = -1, y1 = -1;
+      for (let y = 0; y < H; y++) { let tem = false; for (let x = 0; x < W; x += 2) if (b.d[(y * W + x) * 4 + 3] > 20) { tem = true; break; } if (tem) { if (y0 < 0) y0 = y; y1 = y; } }
+      if (y0 < 0) return null; lim = y1 - (y1 - y0) * 0.085;
+    }
+    const m = new Uint8Array(cw * ch); let n = 0;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+      const i = (y + topo) * W + x + 10, k = b.rot[i];
+      if (peca === 'pe' ? (y + topo >= lim && b.d[i * 4 + 3] > 20 && k !== 4 && k !== 3) : k === peca) { m[y * cw + x] = 1; n++; }
+    }
+    return n > 30 ? m : null;
+  }
+  function dilata(m, w, h, R) { // cresce a máscara R pixels, com um disco (cantos redondos)
+    const o = new Uint8Array(w * h), disco = [];
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) if (dx * dx + dy * dy <= R * R + R * 0.6) disco.push([dx, dy]);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; if (!m[i]) continue; o[i] = 1;
+      if (x > 0 && x < w - 1 && y > 0 && y < h - 1 && m[i - 1] && m[i + 1] && m[i - w] && m[i + w]) continue; // só a borda carimba
+      for (const [dx, dy] of disco) { const X = x + dx, Y = y + dy; if (X >= 0 && X < w && Y >= 0 && Y < h) o[Y * w + X] = 1; }
+    }
+    return o;
+  }
+  // o contorno brilhante da peça (feito 1 vez por pose e por cor)
+  function contorno(cv, peca, cor) {
+    const key = peca + cor; cv._silh = cv._silh || {}; if (key in cv._silh) return cv._silh[key];
+    cv._silh[key] = null;
+    const m = mascara(cv, peca); if (!m) return null;
+    const w = cv.width, h = cv.height, fora = dilata(m, w, h, 4), inv = new Uint8Array(w * h);
+    for (let i = 0; i < inv.length; i++) inv[i] = m[i] ? 0 : 1;
+    const dentro = dilata(inv, w, h, 3); // perto da borda, por dentro
+    const anel = mkCanvas(w, h), ax = anel.getContext('2d'), img = ax.createImageData(w, h), o = img.data, [r, g, bb] = bRgb(cor);
+    for (let i = 0; i < m.length; i++) {
+      let a = 0, br = 0;
+      if (fora[i] && !m[i]) a = 255; else if (m[i] && dentro[i]) { a = 150; br = 0.55; } // a borda de dentro, mais clara
+      if (!a) continue;
+      o[i * 4] = r + (255 - r) * br; o[i * 4 + 1] = g + (255 - g) * br; o[i * 4 + 2] = bb + (255 - bb) * br; o[i * 4 + 3] = a;
+    }
+    ax.putImageData(img, 0, 0);
+    const c = mkCanvas(w, h), x = c.getContext('2d');
+    x.filter = 'blur(5px)'; x.drawImage(anel, 0, 0); x.drawImage(anel, 0, 0); x.filter = 'none'; // o halo
+    x.globalAlpha = 0.9; x.drawImage(anel, 0, 0);                                                // e a linha nítida
+    return cv._silh[key] = c;
+  }
+  function brilhaPecas(ctx, desenha, cv, args) {
+    const agora = G.agora || 0;
+    brilhos.forEach(b => {
+      const cores = COR_RAR[b.rar], pulso = 0.5 + 0.5 * Math.sin(agora / 420); // todas as peças pulsam juntas
+      cores.forEach((cor, j) => {
+        const c = contorno(cv, b.peca, cor); if (!c) return;
+        let a = b.rar === 'raro' ? 0.45 + 0.35 * pulso : b.rar === 'epico' ? 0.55 + 0.4 * pulso : 0.6 + 0.4 * pulso;
+        if (cores.length > 1) a *= 0.65 + 0.35 * Math.sin(agora / 700 + j * Math.PI); // mítico: uma cor dá lugar à outra
+        ctx.save(); ctx.globalAlpha *= a; desenha.call(ctx, c, ...args); ctx.restore();
+      });
+    });
   }
   const _entVis = desenhaEnt;
   desenhaEnt = function (ctx, e) {
     if (e !== G.p || !G.save || G.p.morto) return _entVis.apply(this, arguments);
     try { confere(); } catch (err) { }
-    const agora = G.agora || 0, px = e.x * T, py = e.y * T, altura = (typeof alturaEnt === 'function' ? alturaEnt(e) : 1.4) * T;
-    const sobe = typeof alturaPonte === 'function' ? alturaPonte(e) : 0;
-    // atrás do boneco: rastro da chuteira e o brilho no chão
-    try {
-      if (rarChut) {
-        const anda = !!(e.pas || e.mov);
-        if (anda && agora - ultimoRastro > 40) { ultimoRastro = agora; rastro.push({ x: px + (Math.random() - 0.5) * 16, y: py - sobe - 2 + (Math.random() - 0.5) * 6, t0: agora, c: COR_RAR[rarChut][(Math.random() * COR_RAR[rarChut].length) | 0] }); if (rastro.length > 40) rastro.shift(); }
-        ctx.save(); FX_AGORA = rarChut;
-        for (let i = rastro.length - 1; i >= 0; i--) { const f = rastro[i], k = (agora - f.t0) / 650; if (k >= 1) { rastro.splice(i, 1); continue; } faisca(ctx, f.x, f.y - k * 18, (rarChut === 'raro' ? 5 : 7) * (1 - k * 0.5), f.c, 0.9 * (1 - k)); }
-        ctx.restore();
-      }
-      if (rarCorpo === 'lendario' || rarCorpo === 'mitico') {
-        const pul = 0.75 + 0.25 * Math.sin(agora / 380);
-        const g = ctx.createRadialGradient(px, py - sobe, 2, px, py - sobe, 30 * pul);
-        g.addColorStop(0, rarCorpo === 'mitico' ? 'rgba(255,90,216,0.45)' : 'rgba(255,210,63,0.5)'); g.addColorStop(1, 'rgba(255,210,63,0)');
-        ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, py - sobe, 30 * pul, 11 * pul, 0, 0, 7); ctx.fill(); ctx.restore();
-      }
-    } catch (err) { }
-    const r = _entVis.apply(this, arguments);
-    // na frente: faíscas no corpo (épico/lendário) e a aura girando (mítico)
-    try {
-      if (rarCorpo) {
-        const cores = COR_RAR[rarCorpo]; ctx.save(); FX_AGORA = rarCorpo;
-        const n = rarCorpo === 'epico' ? 4 : 5, ciclo = rarCorpo === 'epico' ? 1800 : 1500;
-        for (let i = 0; i < n; i++) {
-          const fase = ((agora / ciclo) + i / n) % 1, lote = Math.floor(agora / ciclo + i / n);
-          const a = Math.sin(fase * Math.PI); if (a < 0.05) continue;
-          const fx = px + (hash(lote * 7 + i) - 0.5) * 34, fy = py - sobe - 8 - hash(lote * 13 + i) * (altura - 14);
-          faisca(ctx, fx, fy, 8 * a, cores[i % cores.length], 0.95 * a);
-        }
-        if (rarCorpo === 'mitico') for (let i = 0; i < 6; i++) {
-          const ang = agora / 700 + i * Math.PI / 3, rx = 26, ry = 9;
-          const ox = px + Math.cos(ang) * rx, oy = py - sobe - altura * 0.45 + Math.sin(ang) * ry;
-          ctx.globalAlpha = 0.8; ctx.fillStyle = cores[i % cores.length]; ctx.beginPath(); ctx.arc(ox, oy, 4.5, 0, 7); ctx.fill();
-        }
-        ctx.restore();
-      }
-    } catch (err) { }
-    return r;
+    if (!brilhos.length) return _entVis.apply(this, arguments);
+    // o boneco é desenhado lá dentro (com o gingado e a inclinação): o contorno vai junto, logo por cima dele
+    const desenha = ctx.drawImage; let feito = false;
+    ctx.drawImage = function (im, ...args) {
+      const r = desenha.call(this, im, ...args);
+      if (!feito && im && im._cel) { feito = true; try { brilhaPecas(this, desenha, im, args); } catch (err) { } }
+      return r;
+    };
+    try { return _entVis.apply(this, arguments); } finally { delete ctx.drawImage; }
   };
   window.estampaDoItem = estampaDo; // (para os testes e a wiki)
 }

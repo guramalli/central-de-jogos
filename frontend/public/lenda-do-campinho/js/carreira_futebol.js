@@ -460,7 +460,7 @@ window.addEventListener('keydown', ev => {
 }, true);
 {
   const st = document.createElement('style');
-  st.textContent = `#futBtns{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);pointer-events:auto;z-index:60;display:flex;gap:10px;align-items:flex-end}
+  st.textContent = `#futBtns{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);pointer-events:auto;z-index:45;display:flex;gap:10px;align-items:flex-end}
 .fut-bt{min-width:92px;padding:8px 12px;border-radius:16px;border:3px solid #5e2f14;background:linear-gradient(#fff4c8,#ffd23f);color:#3a1a08;font:900 16px Nunito,sans-serif;box-shadow:0 4px 0 #8a4a14,0 6px 14px rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;cursor:pointer;touch-action:none}
 .fut-bt .ic{font-size:17px}.fut-bt small{font-size:10px;opacity:.7;font-weight:800}
 .fut-bt.grande{min-width:120px;padding:12px 16px;font-size:19px;background:linear-gradient(#b8ffcf,#3ad86a);border-color:#1a5a2a;box-shadow:0 4px 0 #1a6a3a,0 6px 14px rgba(0,0,0,.35)}

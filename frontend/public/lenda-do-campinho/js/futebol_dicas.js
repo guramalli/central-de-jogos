@@ -85,7 +85,7 @@
     return r;
   };
   const st = document.createElement('style');
-  st.textContent = `#futDica { position: fixed; z-index: 60; transform: translateX(-50%); width: min(460px, 86vw); background: rgba(255,246,214,.97); color: #4a2a10;
+  st.textContent = `#futDica { position: fixed; z-index: 45; transform: translateX(-50%); width: min(460px, 86vw); background: rgba(255,246,214,.97); color: #4a2a10;
     border: 3px solid #e0a020; border-radius: 14px; padding: 10px 34px 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.35); animation: fdEntra .35s ease-out; pointer-events: auto; }
   #futDica b { display: block; font-size: 17px; margin-bottom: 3px; }
   #futDica p { margin: 0; font-size: 14.5px; line-height: 1.35; }

@@ -549,7 +549,7 @@ Object.assign(ITENS, {
 /* ---------- estilo ---------- */
 {
   const st = document.createElement('style');
-  st.textContent = `#placarCj{position:fixed;left:50%;top:108px;transform:translateX(-50%);z-index:56;background:rgba(20,12,34,.92);color:#fff;border:3px solid #ffd23f;border-radius:14px;padding:6px 16px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.45);pointer-events:none;max-width:92vw}
+  st.textContent = `#placarCj{position:fixed;left:50%;top:108px;transform:translateX(-50%);z-index:45;background:rgba(20,12,34,.92);color:#fff;border:3px solid #ffd23f;border-radius:14px;padding:6px 16px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.45);pointer-events:none;max-width:92vw}
 #placarCj .l1{font:900 20px Nunito,sans-serif;color:#ffe14a;letter-spacing:.5px}
 #placarCj .l2{font:800 13px Nunito,sans-serif;color:#e8e0ff;margin-top:2px}
 #placarCj.lance{border-color:#3ad86a;animation:cjPulsa 1s infinite}

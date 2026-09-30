@@ -210,7 +210,7 @@ function placarEstadio() {
   const txt = `⏱️ ${min}'  ·  ${D.e.time}: ${D.vencidos}/${D.total} vencidos`;
   if (p.textContent !== txt) p.textContent = txt;
 }
-{ const st = document.createElement('style'); st.textContent = `#placarEst { position: fixed; left: 50%; top: 116px; transform: translateX(-50%); z-index: 55; background: rgba(26,16,38,.88); color: #ffe14a; font: 800 16px Nunito, "Segoe UI", sans-serif; padding: 6px 14px; border-radius: 12px; border: 2px solid #ffe14a; pointer-events: none; white-space: nowrap; } .est-escal { font-size: 14px; line-height: 1.5; margin-bottom: 8px; }`; document.head.append(st); }
+{ const st = document.createElement('style'); st.textContent = `#placarEst { position: fixed; left: 50%; top: 116px; transform: translateX(-50%); z-index: 45; background: rgba(26,16,38,.88); color: #ffe14a; font: 800 16px Nunito, "Segoe UI", sans-serif; padding: 6px 14px; border-radius: 12px; border: 2px solid #ffe14a; pointer-events: none; white-space: nowrap; } .est-escal { font-size: 14px; line-height: 1.5; margin-bottom: 8px; }`; document.head.append(st); }
 // ganchos: contar quem foi vencido, relógio, fôlego, sair do estádio
 {
   const _matarEst = matar;
