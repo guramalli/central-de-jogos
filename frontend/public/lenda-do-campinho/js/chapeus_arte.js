@@ -50,9 +50,11 @@
     const fr = aSprite('ch_' + id + '_f'), im = vis === 'f' ? fr : aSprite('ch_' + id + '_' + vis);
     if (!fr || !im) { faltou = true; return _chapeuVetor.apply(this, arguments); } // enquanto a arte chega: o desenho de antes
     const [larg, base] = TIPO[tipo], s = larg / fr.width; // mesma escala nas 3 vistas (a arte foi feita junto)
-    const w = im.width * s, cx = CAB.cx + (vis === 'l' ? 1.5 : 0);
+    // v309: o que cobre a cabeça toda (máscara, elmo, nemes), de lado, fica um pouco maior e mais para trás: senão o cabelo aparecia na nuca
+    const cobre = vis === 'l' && (tipo === 'mascara' || tipo === 'elmo' || tipo === 'nemes'), k = cobre ? 1.14 : 1;
+    const w = im.width * s * k, cx = CAB.cx + (vis === 'l' ? (cobre ? -2.5 : 1.5) : 0);
     const corte = tipo !== 'faixa' ? 0 : id === 'faixa_trovao' ? 0.18 : 0.48; // faixa: a arte é o anel inteiro; na cabeça só aparece a frente dele
-    const sy = im.height * corte, sh = im.height - sy, h = sh * s;
+    const sy = im.height * corte, sh = im.height - sy, h = sh * s * k;
     x.save(); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, sy, im.width, sh, cx - w / 2, base - h, w, h); x.restore();
   };
   window.CHAPEUS_ARTE = CHAPEU; // (para os testes)

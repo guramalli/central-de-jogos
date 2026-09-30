@@ -29,11 +29,19 @@
   const tem = id => (typeof contaItem === 'function' ? contaItem(id) : 0) > 0 || !!(G.save && G.save.equipViagem && G.save.equipViagem[id]);
 
   // quem já foi antes desta versão ganha o equipamento
-  function jaFoi(mapas) {
+  // v309: só contam os personagens que existem SÓ lá. Antes entrava o Quadro de Caças (que existe em quase todo mapa):
+  // quem fez missão do Quadro em qualquer cidade "já tinha ido" e ganhava o capacete sem a missão.
+  function soDeLa(mapas) {
+    const la = new Set(), fora = new Set(['quadro']);
+    for (const id of mapas) { try { for (const n of getMapa(id).npcs) la.add(n.id); } catch (e) { } }
+    for (const id of Object.keys(MAPAS_DEF)) { if (mapas.has(id) || /^caca_|^casa_|^interior/.test(id)) continue; const m = MAPAS[id]; if (m) for (const n of m.npcs || []) fora.add(n.id); }
+    for (const n of fora) la.delete(n); return la;
+  }
+  function jaFoi(mapas, contaMapaAtual = true) {
     const s = G.save; if (!s) return false;
-    if (G.mapa && mapas.has(G.mapa.id)) return true;
-    const npcs = new Set(); for (const id of mapas) { try { for (const n of getMapa(id).npcs) npcs.add(n.id); } catch (e) { } }
-    return MISSOES.some(q => npcs.has(q.npc) && s.quests[q.id]);
+    if (contaMapaAtual && G.mapa && mapas.has(G.mapa.id)) return true;
+    const npcs = soDeLa(mapas), deViagem = new Set(['iara_capacete', 'estela_traje']);
+    return MISSOES.some(q => npcs.has(q.npc) && !deViagem.has(q.id) && s.quests[q.id]);
   }
   function mapasDe(raiz) { const set = new Set(raiz); for (const id of raiz) { try { for (const sd of getMapa(id).saidas || []) if (sd.para) set.add(sd.para); } catch (e) { } } return set; }
   let conferido = false;
