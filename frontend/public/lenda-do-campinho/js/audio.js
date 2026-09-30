@@ -18,6 +18,9 @@
   // duração exata do corpo do loop (o arquivo tem +0,5 s repetindo o começo, para emenda perfeita)
   const MUSICAS = { titulo: 18.5388, vila: 18.5388, cidade: 18.5388, mundo: 16.5788, europa: 18.5388,
     vila2: 58.0236, cidade2: 58.0236, mundo2: 58.0236, europa2: 58.0236, caca: 58.0236, estadio: 58.0236 }; // v155: faixas longas (1 min) — as de 18 s repetiam demais
+  // v276: música própria de cada cidade (2 minutos, com a cara do lugar); as outras cidades continuam com a da região
+  const MUS_CIDADE = { cairo: 119.9, rio: 119.9, buenos: 119.9, toquio: 119.9, paris: 119.9, munique: 119.9, madri: 119.9 }; // tocam inteiras (2 min), uma vez, e dão lugar a uma pausa
+  Object.assign(MUSICAS, MUS_CIDADE);
   const AMBIENTE = { torcida: 11.65 };
 
   // tipo do jogo -> [arquivo, volume, variação de pitch, intervalo mínimo (ms), vozes máx.]
@@ -299,6 +302,7 @@
   /* ---------- sessões de música: toca um pouco, dá um tempo, volta (às vezes outra faixa) ---------- */
   // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
   const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
+  for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
   function sessao(base) {
@@ -361,6 +365,7 @@
   const MUNDO = ['cairo', 'toquio', 'doha', 'miami', 'buenos'];
   const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres', 'paris'];
   function faixaDoMapa(id) {
+    if (MUS_CIDADE[id]) return id; // v276: a cidade tem música própria
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';
     if (MUNDO.includes(id)) return 'mundo';
