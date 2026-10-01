@@ -80,7 +80,8 @@ function seloFimCarreira() {
   .modo-fim-txt { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
   .modo-fim-txt b { font-size: 17px; color: #5a3a08; }
   .modo-fim-txt small { color: #5a3a08; }
-  .modo-zerado::after { content: '✅'; font-size: 11px; margin-left: 3px; vertical-align: top; }
+  .modo-zerado { position: relative; }
+  .modo-zerado::after { content: '✓'; position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%; background: #2aa84a; color: #fff; font-size: 10px; font-weight: 900; line-height: 13px; text-align: center; border: 1.5px solid #fff; box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,.4); pointer-events: none; }
   @media (max-width: 560px) { .modo-fim { flex-direction: column; align-items: flex-start; } .modo-fim-selo { font-size: 16px; } }
   @media (prefers-reduced-motion: reduce) { .modo-fim::after { animation: none; } }
   `;

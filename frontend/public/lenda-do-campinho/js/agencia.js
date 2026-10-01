@@ -120,7 +120,7 @@ function agHist(j, txt) { j.hist.unshift(`T${G.save.agencia.nPer || 0}: ${txt}`)
 
 /* ---------- acontecimentos ---------- */
 function agEvento(ev) { const a = agDados(); if (!a) return; ev.id = 'e' + (a.seq++); ev.quando = Date.now(); a.eventos.unshift(ev); a.eventos = a.eventos.slice(0, 24); agAvisa(); }
-function agAvisa() { try { const a = agDados(); const n = a ? a.eventos.filter(e => !e.visto).length : 0; for (const b of document.querySelectorAll('.btn-agencia')) b.dataset.n = n || ''; } catch (e) { } }
+function agAvisa() { try { const a = agDados(); const n = a ? a.eventos.filter(e => !e.visto).length : 0; for (const b of document.querySelectorAll('.btn-agencia')) b.dataset.n = n || ''; const tb = document.getElementById('tbAgencia'); if (tb) tb.hidden = !(G.save && agLiberada()); } catch (e) { } }
 const agJog = id => agDados().jogadores.find(j => j.id === id);
 function agClube(nivel) { const c = AG_CLUBES[clamp(nivel, 0, 4)]; const [nome, pais, cor] = agPega(c.nomes); return { nome, pais, cor, nivel: c.nivel }; }
 
@@ -566,6 +566,9 @@ if (typeof telaMercado === 'function') {
 /* ---------- botão no menu, aviso de novidades e relógio ---------- */
 (function () {
   const poe = () => {
+    // v326: botão na barra de cima (versão web), ao lado de Arenas — só para quem já liberou a Agência
+    const nav = document.querySelector('#topo .topo-nav'), mais = nav && nav.querySelector('.tb-mais');
+    if (mais && !document.getElementById('tbAgencia')) mais.before(el('button', { class: 'btn mini roxo btn-agencia', id: 'tbAgencia', type: 'button', title: 'Agência: o modo Empresário', hidden: 'hidden', onclick: () => abreAgencia() }, '💼 ', el('span', { class: 'tb-rot' }, 'Agência')));
     const lista = document.querySelector('#topo .tb-lista');
     if (lista && !document.getElementById('btnAgencia')) lista.prepend(el('button', { class: 'btn btn-agencia', id: 'btnAgencia', type: 'button', role: 'menuitem', onclick: () => abreAgencia() }, '🕴️ Agência (empresário)'));
     const grade = document.querySelector('#celMenu .cm-grade');
@@ -575,7 +578,7 @@ if (typeof telaMercado === 'function') {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(poe, 0)); else setTimeout(poe, 0);
   const _iniAg = iniciarJogo;
   iniciarJogo = async function (...a) { const r = await _iniAg.apply(this, a); poe(); setTimeout(() => { try { const n0 = agDados() ? agDados().eventos.filter(e => !e.visto).length : 0; agTick(); const n = agDados() ? agDados().eventos.filter(e => !e.visto).length : 0; if (n > 0 && n !== n0 || n > 2) log(`🕴️ Agência: ${n} novidade(s) esperando por você (☰ Mais → Agência).`, 'l-xp'); } catch (e) { } }, 3000); return r; };
-  setInterval(() => { try { if (G.rodando && agDados()) { const n0 = agDados().eventos.length; agTick(); if (agDados().eventos.length > n0) { const ev = agDados().eventos[0]; log('🕴️ ' + ev.txt, 'l-xp'); } } } catch (e) { } }, 15000);
+  setInterval(() => { try { agAvisa(); if (G.rodando && agDados()) { const n0 = agDados().eventos.length; agTick(); if (agDados().eventos.length > n0) { const ev = agDados().eventos[0]; log('🕴️ ' + ev.txt, 'l-xp'); } } } catch (e) { } }, 15000);
   // liberou (nível 400, ou zerou Carreira + Clube): a novidade
   const _subiuAg = subiuNivel;
   const agConfereLibera = () => { try { const s = G.save; if (s && s.flags && agLiberada() && !s.flags.agencia_avisada) { s.flags.agencia_avisada = true; setTimeout(() => { banner('⭐ LENDAS FC — AGÊNCIA', 'O modo Empresário foi liberado!'); log('🕴️ AGÊNCIA LIBERADA! Agora você pode ser EMPRESÁRIO: ☰ Mais → 🕴️ Agência.', 'l-lvl'); }, 2500); } } catch (e) { } };
@@ -584,6 +587,8 @@ if (typeof telaMercado === 'function') {
   const st = document.createElement('style');
   st.textContent = `
   .btn-agencia[data-n]:not([data-n=""])::after { content: attr(data-n); margin-left: 6px; background: #e0302a; color: #fff; border-radius: 9px; padding: 0 6px; font-size: 11px; font-weight: 800; }
+  #tbAgencia { position: relative; }
+  #tbAgencia[data-n]:not([data-n=""])::after { position: absolute; top: -6px; right: -6px; margin: 0; min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; font-size: 10px; text-align: center; border: 1.5px solid #fff; box-sizing: border-box; }
   .ag-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: linear-gradient(135deg, #2a1a5e, #4a2a8a); color: #fff6e0; border-radius: 12px; padding: 8px 12px; }
   .ag-cab small { display: block; opacity: .85; }
   .ag-nome { font-size: 18px; letter-spacing: .04em; }
