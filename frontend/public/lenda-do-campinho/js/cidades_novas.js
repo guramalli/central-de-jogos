@@ -528,10 +528,11 @@ CIDADES_NOVAS.rio = function (b, c, K) {
   K.mon('mon_paodeacucar', 91, 64);
   // v308: a Capitã Iara (submarino) e a Dra. Estela (foguete) ficam na praça do aeroporto, do lado da chegada
   // (na areia ninguém achava). O submarino e o foguete continuam na praia, como enfeite.
-  b.npc('capita_iara', 18, 48); b.npc('estela', 22, 48);
+  // v316: o submarino e o foguete também vêm para a praça, cada um ao lado da sua dona
+  b.npc('capita_iara', 20, 48); b.npc('estela', 26, 48);
   b.placa(18, 46, '🌊 SUBMARINO PARA ATLÂNTIDA — fale com a Capitã Iara. A partir do nível 195.');
-  b.placa(22, 46, '🚀 FOGUETE PARA O ESPAÇO — fale com a Dra. Estela. A partir do nível 298.');
-  b.obj(8, 60, 'submarino'); b.obj(9, 60, 'x'); b.obj(16, 60, 'foguete'); b.m.veiculosProprios = true;
+  b.placa(24, 46, '🚀 FOGUETE PARA O ESPAÇO — fale com a Dra. Estela. A partir do nível 298.');
+  b.obj(20, 45, 'submarino'); b.obj(19, 45, 'x'); b.obj(21, 45, 'x'); b.obj(26, 45, 'foguete'); b.m.veiculosProprios = true;
 };
 
 /* ============================================================
