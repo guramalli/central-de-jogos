@@ -671,12 +671,15 @@ function alternaCaca() { G.caca = !G.caca; log(G.caca ? 'Caça contínua LIGADA:
 function contaItem(id) { return G.save.mochila.filter(i => i.id === id).reduce((a, i) => a + i.q, 0); }
 // v152: bolsas (itens tipo 'bolsa' com .espacos) aumentam a mochila; contam até 4 bolsas, as maiores
 function capMochila(s = G.save) { if (!s) return 30; const b = s.mochila.filter(i => ITENS[i.id] && ITENS[i.id].tipo === 'bolsa').map(i => ITENS[i.id].espacos || 0).sort((a, b) => b - a).slice(0, 4); return 30 + b.reduce((a, x) => a + x, 0); }
-function empilha(id) { const t = ITENS[id].tipo; return t === 'consumivel' || t === 'loot' || t === 'comida'; }
+// v326: equipamento igual e SEM refino também empilha (mochila e armazém); o refinado (+N) fica sempre separado (.r)
+function empilha(id) { const t = ITENS[id].tipo; return t === 'consumivel' || t === 'loot' || t === 'comida' || t === 'equip'; }
+// devolve 1 equipamento para a mochila: sem refino entra na pilha que já existe
+function voltaParaMochila(id, r) { const s = G.save; const ex = !r && empilha(id) && s.mochila.find(i => i.id === id && !i.r); if (ex) ex.q += 1; else s.mochila.push(r ? { id, q: 1, r } : { id, q: 1 }); }
 function addItem(id, q = 1) {
   const s = G.save; if (!ITENS[id]) return false;
   if (ITENS[id].tipo === 'chave' && contaItem(id)) return true; // item único (chave/troféu): já tem, não ocupa outro espaço
   if (empilha(id)) {
-    const ex = s.mochila.find(i => i.id === id);
+    const ex = s.mochila.find(i => i.id === id && !i.r);
     if (ex) ex.q += q; else { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa.', 'l-dano'); return false; } s.mochila.push({ id, q }); }
   } else {
     for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push({ id, q: 1 }); }
@@ -717,22 +720,23 @@ function usarItem(id) {
   if (it.efeito.foco) { if (s.foco >= st.maxFoco) { log('Seu foco já está cheio.', 'l-sis'); return; } s.foco = Math.min(st.maxFoco, s.foco + it.efeito.foco); texto(p, '+' + it.efeito.foco, '#8ac8ff'); efeito('cura', p.x, p.y, '#7ab8ff'); }
   removeItem(id); G.cds.pocao = G.agora + 1000; som('gole'); G.uiSujo = true;
 }
-function removeEquipR(id, r) { const s = G.save; let i = s.mochila.findIndex(x => x.id === id && (x.r || 0) === (r || 0)); if (i < 0) i = s.mochila.findIndex(x => x.id === id); if (i >= 0) s.mochila.splice(i, 1); G.uiSujo = true; }
+function removeEquipR(id, r) { const s = G.save; let i = s.mochila.findIndex(x => x.id === id && (x.r || 0) === (r || 0)); if (i < 0) i = s.mochila.findIndex(x => x.id === id); if (i >= 0) { if (s.mochila[i].q > 1) s.mochila[i].q--; else s.mochila.splice(i, 1); } G.uiSujo = true; }
 function equipar(id, r) {
   const it = ITENS[id]; const s = G.save;
   if (it.lvl && s.nivel < it.lvl) { log(`Você precisa do nível ${it.lvl} para usar ${it.nome}.`, 'l-sis'); return; }
   s.equipR = s.equipR || {};
   let i = s.mochila.findIndex(x => x.id === id && (r == null || (x.r || 0) === r)); if (i < 0) i = s.mochila.findIndex(x => x.id === id); if (i < 0) return;
-  const rNovo = s.mochila[i].r || 0; s.mochila.splice(i, 1);
+  const rNovo = s.mochila[i].r || 0; if (s.mochila[i].q > 1) s.mochila[i].q--; else s.mochila.splice(i, 1);
   const antigo = s.equip[it.slot]; const rAntigo = s.equipR[it.slot] || 0;
-  s.equip[it.slot] = id; s.equipR[it.slot] = rNovo; if (antigo) s.mochila.push(rAntigo ? { id: antigo, q: 1, r: rAntigo } : { id: antigo, q: 1 });
+  s.equip[it.slot] = id; s.equipR[it.slot] = rNovo; if (antigo) voltaParaMochila(antigo, rAntigo);
   const st = stats(); s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
   log(`Você equipou ${it.nome}.`, 'l-info'); som('equip'); atualizaRetrato(); preCarregaMapa(); G.uiSujo = true;
 }
 function desequipar(slot) {
   const s = G.save; const id = s.equip[slot]; if (!id) return;
-  if (s.mochila.length >= capMochila()) { log('Mochila cheia!', 'l-dano'); return; }
-  const r = (s.equipR || {})[slot] || 0; s.equip[slot] = null; if (s.equipR) s.equipR[slot] = 0; s.mochila.push(r ? { id, q: 1, r } : { id, q: 1 });
+  const r = (s.equipR || {})[slot] || 0;
+  if (s.mochila.length >= capMochila() && (r || !s.mochila.some(i => i.id === id && !i.r))) { log('Mochila cheia!', 'l-dano'); return; }
+  s.equip[slot] = null; if (s.equipR) s.equipR[slot] = 0; voltaParaMochila(id, r);
   const st = stats(); s.hp = Math.min(s.hp, st.maxHp); s.foco = Math.min(s.foco, st.maxFoco);
   log(`Você tirou ${ITENS[id].nome}.`, 'l-info'); atualizaRetrato(); preCarregaMapa(); G.uiSujo = true;
 }

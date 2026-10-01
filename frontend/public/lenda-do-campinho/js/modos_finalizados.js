@@ -24,6 +24,31 @@ function fimDicaAgencia() {
   if (!(zerouModoClube() && zerouModoCarreira())) return '';
   return el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => { if (typeof abreAgencia === 'function') { fechaModal(); abreAgencia(); } } }, '🕴️ Próximo desafio: a Agência (modo Empresário)');
 }
+/* ---------- 🏖️ Pendurar as chuteiras (v326, pedido do dono): com a Carreira finalizada, dá para PARAR os chamados
+   de jogo. A Carreira fica congelada (sem jogos, reuniões, avisos, multas nem salário) até você voltar; ao voltar,
+   as datas do contrato, das reuniões e da temporada andam junto, então nada se acumula. ---------- */
+function carrPausada() { const c = G.save && G.save.carreira; return !!(c && c.ativa && c.pausada); }
+function carrPendura() {
+  const c = carrDados(); if (!c.ativa || c.pausada) return;
+  c.pausada = { dia: carrDia() }; c.reuniaoPendente = false;
+  log('🏖️ Você pendurou as chuteiras: a Carreira ficou congelada (sem jogos, reuniões nem salário). Para voltar: ⭐ Carreira → "Voltar a jogar".', 'l-sis');
+  salvar(); abrirCarreira();
+}
+function carrVoltaAJogar() {
+  const c = carrDados(); if (!c.pausada) return;
+  const d = carrDia(), delta = Math.max(0, d - (c.pausada.dia || d)), k = c.clube, t = c.temporada;
+  if (k) for (const f of ['inicioDia', 'fimDia', 'proxReuniao']) if (typeof k[f] === 'number') k[f] += delta;
+  if (t && typeof t.dia0 === 'number') t.dia0 += delta;
+  if (typeof c.proximaTemporadaDia === 'number') c.proximaTemporadaDia += delta;
+  c.ultimoPagamento = d; c.ultimaMulta = null; delete c.pausada;
+  log('⚽ De volta aos gramados! A Carreira voltou a andar de onde parou.', 'l-xp');
+  salvar(); abrirCarreira();
+}
+(function () {
+  const _checaPausa = checaCarreira;
+  checaCarreira = function () { if (carrPausada()) { G.save.carreira.ultimoPagamento = carrDia(); return; } return _checaPausa.apply(this, arguments); };
+  if (typeof cjHojeTemJogo === 'function') { const _hojePausa = cjHojeTemJogo; cjHojeTemJogo = function () { return carrPausada() ? false : _hojePausa.apply(this, arguments); }; }
+})();
 function seloFimClube() {
   const t = G.save.time; const mundiais = (t.trofeus || []).filter(x => /Mundial/i.test(x.nome)).length || 1;
   return el('div', { class: 'modo-fim' }, el('div', { class: 'modo-fim-selo' }, 'FINALIZADO'),
@@ -35,8 +60,15 @@ function seloFimCarreira() {
   const c = G.save.carreira, como = fimCarreiraComo();
   return el('div', { class: 'modo-fim' }, el('div', { class: 'modo-fim-selo' }, 'FINALIZADA'),
     el('div', { class: 'modo-fim-txt' }, el('b', {}, '👑 Carreira zerada!'),
-      el('small', {}, `${como.charAt(0).toUpperCase() + como.slice(1)}. ${(c.titulosLiga || []).length} título(s) de liga e ${(c.paises || []).length} país(es) na carreira. Pode continuar jogando pelos títulos.`),
-      fimDicaAgencia()));
+      el('small', {}, `${como.charAt(0).toUpperCase() + como.slice(1)}. ${(c.titulosLiga || []).length} título(s) de liga e ${(c.paises || []).length} país(es) na carreira.`),
+      c.pausada
+        ? el('small', { class: 'modo-fim-pausa' }, `🏖️ Chuteiras penduradas desde o dia ${c.pausada.dia}: nada de jogos, reuniões nem avisos.`)
+        : el('small', {}, 'Pode continuar jogando pelos títulos — ou pendurar as chuteiras e parar de receber os chamados de jogo.'),
+      el('div', { class: 'modo-fim-bts' },
+        c.pausada
+          ? el('button', { class: 'btn verde mini', type: 'button', onclick: carrVoltaAJogar }, '⚽ Voltar a jogar')
+          : el('button', { class: 'btn mini', type: 'button', onclick: carrPendura }, '🏖️ Pendurar as chuteiras (parar os jogos)'),
+        fimDicaAgencia())));
 }
 (function () {
   // o selo no topo das janelas dos modos
@@ -80,6 +112,8 @@ function seloFimCarreira() {
   .modo-fim-txt { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
   .modo-fim-txt b { font-size: 17px; color: #5a3a08; }
   .modo-fim-txt small { color: #5a3a08; }
+  .modo-fim-bts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .modo-fim-pausa { font-weight: 700; }
   .modo-zerado { position: relative; }
   .modo-zerado::after { content: '✓'; position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%; background: #2aa84a; color: #fff; font-size: 10px; font-weight: 900; line-height: 13px; text-align: center; border: 1.5px solid #fff; box-sizing: border-box; box-shadow: 0 1px 2px rgba(0,0,0,.4); pointer-events: none; }
   @media (max-width: 560px) { .modo-fim { flex-direction: column; align-items: flex-start; } .modo-fim-selo { font-size: 16px; } }

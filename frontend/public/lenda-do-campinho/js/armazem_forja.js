@@ -54,7 +54,8 @@
     } finally { naForja = false; }
     let msg;
     if (Math.random() < c.chance) {
-      const novo = o.r + 1; alvo.r = novo; alvo.q = 1;
+      const novo = o.r + 1;
+      if (!alvo.r && alvo.q > 1) { alvo.q--; s.armazem.push({ id: alvo.id, q: 1, r: novo }); } else { alvo.r = novo; alvo.q = 1; } // v326: refina 1 da pilha
       msg = `✨ SUCESSO! ${nomeItem(o.id, novo)} ficou mais forte! (ele continua guardado no armazém)`; som('nivel'); banner(nomeItem(o.id, novo), 'Refino bem-sucedido!'); log(msg, 'l-lvl'); contaEvento('refino');
     } else if (c.cai) {
       const volta = Math.max(0, o.r - 1); if (volta) alvo.r = volta; else delete alvo.r;

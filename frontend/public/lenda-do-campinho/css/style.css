@@ -444,3 +444,8 @@ body.modo-celular #lugarTela { display: none; } /* no celular o lugar já aparec
 .prio-alvo .prio-rot { margin-right: 2px; }
 .prio-alvo .btn { padding: 3px 8px; font-size: 12px; opacity: .75; }
 .prio-alvo .btn.ativo { opacity: 1; background: #ffd23f; color: #3a2400; box-shadow: 0 0 0 2px #fff4b0 inset; }
+/* v326: venda com raridade à vista e forjado em destaque */
+.venda-tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+.tag-forjado { font: 800 10px/1 Nunito, sans-serif; letter-spacing: .5px; padding: 3px 7px; border-radius: 8px; background: linear-gradient(#ff9a3a, #e8621a); color: #fff; border: 1px solid #a8420a; text-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.linha-item.venda-forjado { border: 2px solid #ff8a2a !important; background: #fff0dc !important; box-shadow: 0 0 0 2px rgba(255,138,42,.22); }
+.linha-item.venda-valioso { border: 2px solid #c79a2a !important; }

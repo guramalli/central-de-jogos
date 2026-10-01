@@ -396,13 +396,19 @@ function modalLoja(npc, aba = 'comprar') {
     const vendaveis = s.mochila.map((m, i) => ({ ...m, i })).filter(m => ITENS[m.id].venda);
     if (!vendaveis.length) lista.append(el('p', {}, 'Você não tem nada para vender.'));
     const vistos = new Set();
+    // v326: etiqueta de raridade em cada linha, forjado com destaque laranja, e confirmação para o que é valioso
+    const rarDe = id => (typeof raridadeItem === 'function' ? raridadeItem(id) : 'comum');
+    const rarTag = id => { const r = rarDe(id); return el('span', { class: 'tag-rar rar-' + r }, String((RARIDADE[r] || { nome: r }).nome).toUpperCase()); };
+    const valioso = id => ['epico', 'lendario', 'mitico'].includes(rarDe(id)) || !!(ITENS[id] && (ITENS[id].mitico || ITENS[id].lenda));
+    const comDica = (row, id, r) => { if (typeof comTip === 'function' && typeof tipItem === 'function') comTip(row, () => tipItem(id, r || 0)); return row; };
     for (const m of vendaveis) {
       const chave = m.id + '|' + (m.r || 0); if (vistos.has(chave)) continue; vistos.add(chave);
-      if (m.r) { const itR = ITENS[m.id]; const v = Math.round(itR.venda * (1 + 0.5 * m.r)); lista.append(el('div', { class: 'linha-item' }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', {}, nomeItem(m.id, m.r)), el('small', {}, 'Refinado')), precoTag(v), el('button', { class: 'btn mini', onclick: async () => { if (!(await perguntaJogo('Vender ' + nomeItem(m.id, m.r) + '?', { sim: 'Vender' }))) return; removeEquipR(m.id, m.r); s.ouro += v; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender'))); continue; }
+      if (m.r) { const itR = ITENS[m.id]; const v = Math.round(itR.venda * (1 + 0.5 * m.r)); lista.append(comDica(el('div', { class: 'linha-item venda-forjado' }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', { class: 'txt-' + rarDe(m.id) }, nomeItem(m.id, m.r)), el('span', { class: 'venda-tags' }, rarTag(m.id), el('span', { class: 'tag-forjado' }, `⚒️ FORJADO +${m.r}`))), precoTag(v), el('button', { class: 'btn mini vermelho', onclick: async () => { if (!(await perguntaJogo(`⚠️ ${nomeItem(m.id, m.r)} está FORJADO (+${m.r}). O refino se perde se você vender. Vender mesmo assim?`, { sim: 'Vender', perigo: true }))) return; removeEquipR(m.id, m.r); s.ouro += v; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender')), m.id, m.r)); continue; }
       const it = ITENS[m.id]; const n = s.mochila.filter(x => x.id === m.id && !x.r).reduce((a, x) => a + x.q, 0);
-      lista.append(el('div', { class: 'linha-item' }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', {}, it.nome), el('small', {}, `Você tem ${n}`)), precoTag(it.venda),
-        el('button', { class: 'btn mini', onclick: () => { removeItem(m.id, 1); s.ouro += it.venda; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender 1'),
-        n > 1 ? el('button', { class: 'btn mini', onclick: () => { removeItem(m.id, n); s.ouro += it.venda * n; som('moeda'); log(`Vendeu ${n}x ${it.nome} por ${fmt(it.venda * n)} tostões.`, 'l-loot'); modalLoja(npc, 'vender'); } }, `Todos (${fmt(it.venda * n)})`) : ''));
+      const confirma = async q => !valioso(m.id) || await perguntaJogo(`${it.nome} é ${String((RARIDADE[rarDe(m.id)] || { nome: rarDe(m.id) }).nome).toUpperCase()}. Vender ${q > 1 ? q + ' unidades' : '1 unidade'} por ${fmt(it.venda * q)} tostões?`, { sim: 'Vender', perigo: true });
+      lista.append(comDica(el('div', { class: 'linha-item' + (valioso(m.id) ? ' venda-valioso' : '') }, iconeClone(iconeItem(m.id)), el('div', { class: 'nm' }, el('b', { class: 'txt-' + rarDe(m.id) }, it.nome), el('span', { class: 'venda-tags' }, rarTag(m.id), el('small', {}, `Você tem ${n}`))), precoTag(it.venda),
+        el('button', { class: 'btn mini', onclick: async () => { if (!(await confirma(1))) return; removeItem(m.id, 1); s.ouro += it.venda; som('moeda'); modalLoja(npc, 'vender'); } }, 'Vender 1'),
+        n > 1 ? el('button', { class: 'btn mini', onclick: async () => { if (!(await confirma(n))) return; removeItem(m.id, n); s.ouro += it.venda * n; som('moeda'); log(`Vendeu ${n}x ${it.nome} por ${fmt(it.venda * n)} tostões.`, 'l-loot'); modalLoja(npc, 'vender'); } }, `Todos (${fmt(it.venda * n)})`) : ''), m.id, 0));
     }
   }
   abreModal(el('h2', {}, d.nome), el('p', {}, 'Seus tostões: ', precoTag(s.ouro)), tabs, lista);
@@ -955,12 +961,14 @@ function modalRefino(npc, msg) {
 function refinar(o, npc) {
   const s = G.save; const c = custoRefino(o.id, o.r);
   if (s.ouro < c.tostoes || !c.mats.every(([m, n]) => contaItem(m) >= n)) return;
-  const alvoM = o.onde === 'mochila' ? s.mochila[o.i] : null; // pega o item ANTES de gastar o material (a mochila anda quando uma pilha acaba)
+  let alvoM = o.onde === 'mochila' ? s.mochila[o.i] : null; // pega o item ANTES de gastar o material (a mochila anda quando uma pilha acaba)
+  // v326: o item está numa pilha (equipamentos iguais sem refino empilham): o refino vale só para UM, que sai da pilha
+  const separa = () => { if (alvoM && !alvoM.r && alvoM.q > 1) { alvoM.q--; alvoM = { id: alvoM.id, q: 1 }; s.mochila.push(alvoM); } };
   s.ouro -= c.tostoes; c.mats.forEach(([m, n]) => removeItem(m, n));
   let msg;
   if (Math.random() < c.chance) {
     const novo = o.r + 1;
-    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = novo; } else if (alvoM) alvoM.r = novo;
+    if (o.onde === 'equip') { s.equipR = s.equipR || {}; s.equipR[o.slot] = novo; } else if (alvoM) { separa(); alvoM.r = novo; }
     msg = `✨ SUCESSO! ${nomeItem(o.id, novo)} ficou mais forte!`; som('nivel'); banner(nomeItem(o.id, novo), 'Refino bem-sucedido!'); log(msg, 'l-lvl'); contaEvento('refino');
   } else if (c.cai) { // refino alto: falhou, o item volta 1 nível (nunca quebra)
     const volta = Math.max(0, o.r - 1);
