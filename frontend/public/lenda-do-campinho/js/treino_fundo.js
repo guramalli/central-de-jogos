@@ -38,7 +38,12 @@
   function escondeu() {
     try {
       const s = G.save; if (!s || s.treinoOff || s.treinoBg || !treinandoAgora()) return;
-      const taxa = ritmo(); if (!taxa) return;
+      const r = ritmo(); if (!r) return;
+      // v334 (pedido do dono): só conta a habilidade que você está treinando — a do aparelho, ou a mais treinada
+      // no boneco (a Visão, que sobe sozinha ao gastar foco, não entra de carona)
+      const foco = G.estTreino && G.estTreino.d ? G.estTreino.d.sk : Object.keys(r).filter(k => k !== 'visao').sort((x, y) => r[y] - r[x])[0];
+      if (!foco || !r[foco]) return;
+      const taxa = { [foco]: r[foco] };
       s.treinoBg = { desde: Date.now(), taxa }; duranteFundo = {};
       try { salvar(); } catch (e) { }
     } catch (e) { }

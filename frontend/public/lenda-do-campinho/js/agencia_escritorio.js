@@ -547,3 +547,14 @@ function agFalaOlheiro() {
   `;
   document.head.append(st);
 }
+
+/* ---------- v334: o Modo Treino também pausa a agência (agTick empurra o relógio dela) ---------- */
+if (typeof alternaModoTreino === 'function') {
+  const _modoTreinoAg = alternaModoTreino;
+  alternaModoTreino = function () {
+    try { agTick(); } catch (e) { } // fecha a conta do tempo até agora (correndo ou pausado)
+    const r = _modoTreinoAg.apply(this, arguments);
+    try { agTick(); if (agLiberada() && agDados()) log(G.save.treinoOn ? '🕴️ A Agência também ficou PAUSADA (olheiros e períodos param até você desligar o Modo Treino).' : '🕴️ A Agência voltou a funcionar.', 'l-sis'); } catch (e) { }
+    return r;
+  };
+}

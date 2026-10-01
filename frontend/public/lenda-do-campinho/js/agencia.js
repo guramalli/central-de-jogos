@@ -163,6 +163,10 @@ function agClube(nivel) { const c = AG_CLUBES[clamp(nivel, 0, 4)]; const [nome, 
 function agTick() {
   const s = G.save, a = agDados(); if (!s || !a || !agLiberada()) return;
   const agora = Date.now();
+  // v334: com o Modo Treino ligado a agência fica PAUSADA (pedido do dono): o relógio dela e as viagens dos olheiros
+  // são empurrados para frente pelo tempo pausado — inclusive o tempo com o jogo fechado no Modo Treino
+  if (s.treinoOn) { const d = agora - (a.pausaUlt || agora); if (d > 0) { a.ultimo += d; for (const m of a.missoes) { m.fim += d; if (m.ini) m.ini += d; } } a.pausaUlt = agora; return; }
+  a.pausaUlt = null;
   // missões dos olheiros que terminaram
   for (const m of a.missoes.slice()) if (agora >= m.fim) {
     a.missoes.splice(a.missoes.indexOf(m), 1);
@@ -394,7 +398,7 @@ function agCabecalho() {
   const a = agDados(); const prox = Math.max(0, AG_PERIODO - (Date.now() - a.ultimo));
   return el('div', { class: 'ag-cab' },
     el('div', { class: 'ag-cab-id' }, agImg('ag_brasao', 'ag-brasao'), el('div', {}, el('b', { class: 'ag-nome' }, a.nome), el('small', {}, `${agRepTxt()} · ${fmt(a.rep)} pts de reputação`))),
-    el('div', { class: 'ag-num' }, el('span', {}, `👤 ${a.jogadores.length}/${agMaxJogadores()} jogadores`), el('span', {}, `💼 ${agFmt(a.totais.transf)} em transferências`), el('span', {}, `💰 ${agFmt(a.totais.comissao)} de comissões`), el('span', {}, `🔎 ${a.totais.descobertas} descobertos`), el('span', { title: 'Cada período = 3 meses na vida dos jogadores' }, `⏳ próximo período em ${Math.ceil(prox / 60000)} min`)));
+    el('div', { class: 'ag-num' }, el('span', {}, `👤 ${a.jogadores.length}/${agMaxJogadores()} jogadores`), el('span', {}, `💼 ${agFmt(a.totais.transf)} em transferências`), el('span', {}, `💰 ${agFmt(a.totais.comissao)} de comissões`), el('span', {}, `🔎 ${a.totais.descobertas} descobertos`), el('span', { title: 'Cada período = 3 meses na vida dos jogadores' }, G.save.treinoOn ? '⏸️ pausada: Modo Treino ligado' : `⏳ próximo período em ${Math.ceil(prox / 60000)} min`)));
 }
 function abreAgencia(aba) {
   const s = G.save; if (!s) return;
