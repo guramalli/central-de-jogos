@@ -35,7 +35,8 @@ spriteBoneco = function (look, ...r) {
   try {
     if (f && MODO_FOLHA[f]) {
       // chefão/skin: tudo já está no desenho; corpos/roupas novos: o chapéu é o do desenho (o vetorial não assenta nessas cabeças)
-      const tira = MODO_AGORA === 'chave' ? (FOLHA_COM_CHAPEU.has(f) ? { chapeu: null, rosto: null } : { chapeu: null }) : SEM_ACESS;
+      let tira = MODO_AGORA === 'chave' ? (FOLHA_COM_CHAPEU.has(f) ? { chapeu: null, rosto: null } : { chapeu: null }) : SEM_ACESS;
+      if (look.mvManterChapeu && look.chapeuVar) { tira = Object.assign({}, tira); delete tira.chapeu; } // v322: coroa de ARTE (chapeus_arte.js mede a cabeça da folha) nos reis/rainhas do Multiverso
       // v240: a cópia guardada fica escondida (não enumerável): quem copia um look (traje regional, variação) não leva junto
       // a cópia antiga com a folha de antes — os zagueiros do Cairo renasciam sem turbante — e a chave do cache (JSON) não a vê
       const o = look;
