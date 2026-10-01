@@ -78,6 +78,7 @@
   }
   const _modalArmazemRar = modalArmazem;
   modalArmazem = function (filtro) {
+    if (filtro === undefined) filtroRar = null; // v330: abriu o baú de novo → mostra TODOS (antes o filtro da última vez escondia itens)
     _modalArmazemRar.apply(this, arguments);
     const grades = document.querySelectorAll('#modalConteudo .arm-grade'), gArm = grades[1]; if (!gArm) return;
     // quantos de cada raridade tem no armazém
