@@ -26,6 +26,7 @@ let AGM_GANHO_BASE = 0.6, AGM_AUTO = 0.75, AGM_FADIGA_LIMITE = 70, AGM_ESPERA_CA
 const AGM_TREINA = new Set(['treino', 'fisico', 'jogo']); // não dá com lesão
 const AGM_GANCHOS_SEMANA = []; // funções (a, lin) que rodam na virada de cada semana
 const AGM_ACAO_TELA = {};      // ações com tela própria (peneira, teste...): id → função(j)
+function agmMaxOlheiros(a) { return a.nivel + 1; } // v345: função (a versão Steam pode aumentar)
 
 /* ---------- uma ação num garoto ---------- */
 // manual: rende 100% e gasta uma ação da semana; auto (rotina): rende 75% e tem a proteção do dono
@@ -320,7 +321,7 @@ function agmMercadoOl(a) {
   return a.mercadoOl;
 }
 function agmTelaOlheiros(a) {
-  const s = G.save, box = el('div'), maxOl = a.nivel + 1;
+  const s = G.save, box = el('div'), maxOl = agmMaxOlheiros(a);
   box.append(el('h3', {}, `🔎 Seus olheiros (${a.olheiros.length}/${maxOl})`));
   if (!a.olheiros.length) box.append(el('p', { class: 'vazio' }, 'Sem olheiros, ninguém descobre talentos. Contrate um no mercado logo abaixo.'));
   for (const o of a.olheiros) {

@@ -10,6 +10,7 @@
    Carregar ANTES de casas.js.
    ============================================================ */
 const ARMAZEM_MAX = 150, MOCHILA_MAX = 30;
+function armazemMax() { return ARMAZEM_MAX; } // v345: função (a versão Steam pode aumentar)
 const ARMAZEM_LOCAIS = ['vila', 'praia', 'cidade', 'ct', 'estadio', 'cairo', 'doha', 'toquio', 'miami', 'buenos', 'rio', 'lisboa', 'paris', 'munique', 'milao', 'madri', 'londres', 'santos'];
 
 function armazem() {
@@ -20,7 +21,7 @@ function armazem() {
 function guardaNoArmazem(id, q = 1, r = 0) { // true se coube
   const a = G.save.armazem || (G.save.armazem = []);
   if (!r && empilha(id)) { const ex = a.find(e => e.id === id && !e.r); if (ex) { ex.q += q; return true; } }
-  if (a.length >= ARMAZEM_MAX) return false;
+  if (a.length >= armazemMax()) return false;
   if (!r && empilha(id)) a.push({ id, q }); else for (let i = 0; i < q; i++) a.push(r ? { id, q: 1, r } : { id, q: 1 });
   return true;
 }
@@ -68,14 +69,14 @@ function modalArmazem(filtro) {
   busca.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') modalArmazem(busca.value.trim()); });
   abreModal.largo = true;
   abreModal(el('h2', {}, '📦 Armazém'),
-    el('p', { class: 'arm-dica' }, `É um armazém só: o que você guarda aqui aparece em qualquer baú de armazém (e no baú da sua casa). Clique num item para passar de um lado para o outro. Espaços: ${a.length}/${ARMAZEM_MAX}.`),
+    el('p', { class: 'arm-dica' }, `É um armazém só: o que você guarda aqui aparece em qualquer baú de armazém (e no baú da sua casa). Clique num item para passar de um lado para o outro. Espaços: ${a.length}/${armazemMax()}.`),
     el('div', { class: 'opcoes arm-atalhos' },
       el('button', { class: 'btn mini', type: 'button', onclick: guardaTipo(it => it.tipo === 'loot', 'materiais/loot') }, 'Guardar materiais e loot'),
       el('button', { class: 'btn mini', type: 'button', onclick: guardaTipo(it => it.tipo === 'equip', 'equipamentos') }, 'Guardar equipamentos'),
       el('button', { class: 'btn mini', type: 'button', onclick: guardaTipo(it => it.tipo === 'movel', 'móveis') }, 'Guardar móveis')),
     el('div', { class: 'arm-cols' },
       el('div', {}, el('h3', {}, `🎒 Mochila (${s.mochila.length}/${capMochila()})`), gMoch),
-      el('div', {}, el('h3', {}, `📦 Armazém (${a.length}/${ARMAZEM_MAX})`), busca, gArm)));
+      el('div', {}, el('h3', {}, `📦 Armazém (${a.length}/${armazemMax()})`), busca, gArm)));
 }
 
 /* ---------- baús do armazém nos mapas ---------- */

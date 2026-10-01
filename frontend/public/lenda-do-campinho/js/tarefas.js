@@ -23,6 +23,7 @@ function tarCandidatos(min = 3, semLimite = false) {
   const s = G.save, nv = s.nivel, idx = indice();
   const todos = Object.entries(MONSTROS).filter(([id, d]) => d && !d.chefe && !d.treino && !d.pedra && !d.arena && d.xp > 0 && idx.spawn[id] && !/^est_/.test(id)).map(([id, d]) => ({ id, d, nv: nivelMonstro(d) }));
   const alcanca = x => {
+    if (typeof tarMapaBloqueado === 'function' && tarMapaBloqueado(idx.spawn[x.id].mapa)) return false; // v345: mapa travado (ex.: Expansão da versão Steam)
     if ((s.kills[x.id] || 0) > 0) return true; // já enfrentou: sabe chegar lá
     const mapa = idx.spawn[x.id].mapa; const caca = typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[mapa]; const casa = caca ? caca.host : mapa;
     // v251: cidades do mundo (voo liberado: nível + contrato/fama) e Atlântida também contam — antes só o Brasil contava
