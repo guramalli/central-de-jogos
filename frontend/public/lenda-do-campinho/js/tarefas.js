@@ -141,7 +141,7 @@ function modalTarefas(aba = 'vez') {
     if (sem.bonus) corpo.append(el('p', { class: 'dica' }, '🏆 Semana completa! Volte na segunda para novas tarefas.'));
   } else {
     corpo.append(el('p', {}, `Você tem ${t.pts} pontos de tarefa.${t.bonusXpMs > 0 ? ` Bônus de XP ativo: faltam ${Math.ceil(t.bonusXpMs / 60000)} min.` : ''}`));
-    for (const o of TAR_LOJA) corpo.append(el('div', { class: 'tar-card' }, el('b', {}, o.nome()), el('button', { class: 'btn amarelo mini', type: 'button', disabled: t.pts < o.pts ? 'disabled' : null, onclick: () => { if (t.pts < o.pts) return; t.pts -= o.pts; o.da(); log(`🛒 Trocou ${o.pts} pontos por: ${o.nome()}.`, 'l-loot'); som('moeda'); salvar(); G.uiSujo = true; modalTarefas('loja'); } }, `${o.pts} pontos`)));
+    for (const o of TAR_LOJA) if (!o.mostra || o.mostra()) corpo.append(el('div', { class: 'tar-card' }, el('b', {}, o.nome()), el('button', { class: 'btn amarelo mini', type: 'button', disabled: t.pts < o.pts ? 'disabled' : null, onclick: () => { if (t.pts < o.pts) return; t.pts -= o.pts; o.da(); log(`🛒 Trocou ${o.pts} pontos por: ${o.nome()}.`, 'l-loot'); som('moeda'); salvar(); G.uiSujo = true; modalTarefas('loja'); } }, `${o.pts} pontos`)));
   }
   abreModal.largo = true;
   abreModal(el('h2', {}, '🎯 Tarefas de caça'), abas, corpo, el('div', { class: 'opcoes' }, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Fechar')));

@@ -206,7 +206,7 @@ canvas { image-rendering: auto; }
 .linha-item .preco { white-space: nowrap; display: flex; align-items: center; gap: 4px; font-weight: 700; }
 .linha-item input { width: 52px; font: inherit; padding: 2px 4px; border: 2px solid var(--madeira3); border-radius: 4px; }
 .linha-item.bloq { opacity: .55; }
-.tabs-modal { display: flex; gap: 6px; margin-bottom: 8px; }
+.tabs-modal { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .progresso { height: 10px; background: #c8b088; border-radius: 5px; overflow: hidden; margin: 4px 0; }
 .progresso i { display: block; height: 100%; background: linear-gradient(#8ae05a, #3a9a2a); }
 .quiz-op { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
