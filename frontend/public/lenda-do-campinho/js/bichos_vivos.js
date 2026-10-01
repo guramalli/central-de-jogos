@@ -12,6 +12,8 @@
 {
   // v313: pedaços soltos de arte vizinha apagados (o dono viu um pedaço sobrando do lado da Aranha Goleira)
   if (typeof ASSET_VER !== 'undefined') for (const n of ['bicho_aranha', 'bicho_dragao', 'bicho_escorpiao', 'bicho_gargula', 'bicho_polvo', 'bicho_rato2', 'et_cristal', 'pombo2']) ASSET_VER[n] = 313;
+  // v317: a arte parada do Tanuki, do Touro e do Jacaré (rabo) e do Morcego (asa) vinha cortada na borda: refeitas inteiras
+  if (typeof ASSET_VER !== 'undefined') for (const n of ['bicho_tanuki', 'bicho_touro', 'bicho_jacare', 'bicho_morcego']) ASSET_VER[n] = 317;
   const ARRASTA = new Set(['bicho_mumia']); // brigando parado: passos no lugar
   const _quadroVivo = quadroBicho;
   quadroBicho = function (e, nome, look) {
