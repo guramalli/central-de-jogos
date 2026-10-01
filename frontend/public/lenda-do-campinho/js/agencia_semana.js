@@ -25,6 +25,7 @@ const AGM_ACOES = { // [nome, custo, fadiga, efeito, vai na rotina?]
 let AGM_GANHO_BASE = 0.6, AGM_AUTO = 0.75, AGM_FADIGA_LIMITE = 70, AGM_ESPERA_CANDIDATO = 8;
 const AGM_TREINA = new Set(['treino', 'fisico', 'jogo']); // não dá com lesão
 const AGM_GANCHOS_SEMANA = []; // funções (a, lin) que rodam na virada de cada semana
+const AGM_ACAO_TELA = {};      // ações com tela própria (peneira, teste...): id → função(j)
 
 /* ---------- uma ação num garoto ---------- */
 // manual: rende 100% e gasta uma ação da semana; auto (rotina): rende 75% e tem a proteção do dono
@@ -47,7 +48,7 @@ function agmAplicaAcao(a, j, acao, at, auto) {
     const g = agmGanho(j, 'fis', AGM_GANHO_BASE * 0.8 * agRnd(0.8, 1.2), mClube) * mult; j.atr.fis = Math.min(agmTeto(j.P), j.atr.fis + g);
     j.preparo = Math.min(30, (j.preparo || 0) + 3 * mult); e.fadiga += 15; txt = `Físico +${agmN(g)}, preparo ${Math.round(j.preparo)}%`;
   } else if (acao === 'descanso') { e.fadiga -= 40; e.moral += 5 * mult; txt = 'descansou'; }
-  else if (acao === 'visita') { j.confianca = Math.min(100, (j.confianca || 0) + 8 * mult); e.moral += 10 * mult; txt = `confiança ${Math.round(j.confianca)}`; }
+  else if (acao === 'visita') { j.visitaSem = a.semana; j.confianca = Math.min(100, (j.confianca || 0) + 8 * mult); e.moral += 10 * mult; txt = `confiança ${Math.round(j.confianca)}`; }
   else if (acao === 'jogo') {
     const v = agRnd(2, 4) * mult + (j.especiais.includes('pe_quente') ? 1 : 0) + (Math.random() < 0.1 ? 4 : 0); j.visib = Math.min(100, j.visib + v);
     e.forma = Math.min(100, e.forma + 5); e.fadiga += 10; txt = `visibilidade +${v.toFixed(0)}`;
@@ -247,7 +248,7 @@ function agmEscolheAcao(j) {
   const ops = Object.entries(AGM_ACOES).map(([id, A]) => {
     const fadiga = j.estado.fadiga + Math.max(0, A[2]), risco = fadiga > AGM_FADIGA_LIMITE && A[2] > 0;
     const off = j.lesao && AGM_TREINA.has(id) ? '🤕 machucado(a)' : s.ouro < A[1] ? '💸 sem tostões' : null;
-    return el('button', { class: 'btn agc-op' + (risco ? ' risco' : ''), type: 'button', disabled: off ? 'disabled' : null, onclick: () => id === 'treino' ? agmEscolheAtr(j, usa) : usa(id) },
+    return el('button', { class: 'btn agc-op' + (risco ? ' risco' : ''), type: 'button', disabled: off ? 'disabled' : null, onclick: () => AGM_ACAO_TELA[id] ? AGM_ACAO_TELA[id](j) : id === 'treino' ? agmEscolheAtr(j, usa) : usa(id) },
       el('span', {}, A[0] + (A[1] ? ` · 💰 ${agFmt(A[1])}` : ' · grátis')), el('small', {}, off || `${A[3]}${A[2] > 0 ? ` · fadiga +${A[2]}` : ''}${risco ? ` ⚠️ vai a ${Math.min(100, fadiga)}: risco de lesão ${Math.round(agmRiscoLesao(Math.min(100, fadiga)) * 100)}%/semana` : ''}`));
   });
   abreModal.largo = true;
@@ -271,7 +272,7 @@ function agmTelaJogadores(a) {
   for (const j of a.jogadores) box.append(el('div', { class: 'linha-item ag-jog' }, agRetrato(j, 72), el('div', { class: 'nm' },
     el('b', {}, `${j.nome} — ${agmIdade(j) | 0} anos · ${AGM_POS[j.pos][0]} · overall ${agmN(agmOverall(j))}`),
     el('small', {}, `${agmEstrelasTxt(j.faixa)} · 👁️ visibilidade ${Math.round(j.visib)} · 🤝 confiança ${Math.round(j.confianca)} · ${j.clube ? `${j.clube.tipo === 'pro' ? '⚽' : '🧒'} ${j.clube.nome}` : '🏘️ sem clube'}${j.fam ? ` · 👪 ${j.fam.nome}` : ''}`),
-    agmFichaAtr(j), agmTracosEl(j), agmEstadoEl(j), j.hist.length ? el('small', { class: 'ag-hist' }, '📜 ' + j.hist.slice(0, 3).join(' · ')) : '',
+    agmFichaAtr(j), agmTracosEl(j), agmEstadoEl(j), typeof agmClubeEl === 'function' ? agmClubeEl(j) : '', j.hist.length ? el('small', { class: 'ag-hist' }, '📜 ' + j.hist.slice(0, 3).join(' · ')) : '',
     el('div', { class: 'ag-acoes' }, el('button', { class: 'btn mini', type: 'button', onclick: () => { if (!confirm(`Encerrar a representação de ${j.nome}?`)) return; if (j.fase === 'carreira') { j.ovr = agmOverall(j); agHall(j, 'saiu da agência'); } a.jogadores.splice(a.jogadores.indexOf(j), 1); a.rotina = (a.rotina || []).filter(r => r.jog !== j.id); agmGanhaRep(a, AGM_REP_GANHO.familiaInsatisfeita); salvar(); abreAgencia3('jogadores'); } }, 'Encerrar')))));
   return box;
 }
