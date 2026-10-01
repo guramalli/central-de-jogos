@@ -30,7 +30,7 @@
   function pixels(nome) {
     if (PX[nome]) return PX[nome];
     const im = typeof aSprite === 'function' ? aSprite(nome) : null; if (!im) { faltou = true; return null; }
-    const c = mkCanvas(256, 256), x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, 256, 256);
+    const c = mkCanvas(256, 256), x = c.getContext('2d'); x.drawImage(im, 0, 0, 256, 256);
     return PX[nome] = x.getImageData(0, 0, 256, 256).data;
   }
   setInterval(() => { if (faltou) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 800); // chegou um tecido: redesenha

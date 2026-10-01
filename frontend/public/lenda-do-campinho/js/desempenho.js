@@ -33,7 +33,8 @@
       for (const n in FOLHAS) {
         const f = FOLHAS[n]; if (!f || f._dec) continue; f._dec = true; const im = f.im;
         const pronto = () => { f.ok = true; };
-        const decodifica = () => (im.decode ? im.decode() : Promise.resolve()).then(pronto, pronto);
+        // v315: com tempo-limite (no Safari do iPhone o decode() pode não responder): a folha é usada assim mesmo
+        const decodifica = () => { setTimeout(pronto, 2500); (im.decode ? im.decode() : Promise.resolve()).then(pronto, pronto); };
         if (im.complete && im.naturalWidth) { if (!f.ok) decodifica(); else if (im.decode) im.decode().catch(() => { }); }
         else im.onload = decodifica;
       }
@@ -51,5 +52,20 @@
     const ag = performance.now();
     if (noLaco && ag - ultPaineis < 250) { G.uiSujo = true; return; } // fica para daqui a pouco
     ultPaineis = ag; return _paineisDes.apply(this, arguments);
+  };
+
+  // v315: leitura da folha que voltou VAZIA (aconteceu no iPhone: o retrato mostrava só óculos/faixa/apito, sem o boneco)
+  // não fica guardada: a célula é refeita logo depois, e o boneco usa o desenho de reserva enquanto isso
+  const _rotulaVazia = rotulaCelula;
+  rotulaCelula = function (f, idx) {
+    const r = _rotulaVazia.apply(this, arguments);
+    try {
+      const d = r && r.d; let opaco = 0; if (d) for (let i = 3; i < d.length && !opaco; i += 4 * 23) if (d[i] > 20) opaco = 1;
+      if (d && !opaco && f && f.ok) {
+        if (f.rot) delete f.rot[idx]; f.ok = false;
+        setTimeout(() => { f.ok = true; try { SPR_CACHE.clear(); } catch (e) { } }, 500);
+      }
+    } catch (e) { }
+    return r;
   };
 }

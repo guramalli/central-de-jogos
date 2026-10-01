@@ -109,7 +109,7 @@
   const ALFA = new WeakMap(); // canal alfa de cada arte (para saber o que o capacete cobre)
   function alfaDe(im) {
     let A = ALFA.get(im); if (A) return A;
-    const c = mkCanvas(im.width, im.height), x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0);
+    const c = mkCanvas(im.width, im.height), x = c.getContext('2d'); x.drawImage(im, 0, 0);
     const W = im.width, H = im.height, dd = x.getImageData(0, 0, W, H).data; A = new Uint8Array(W * H);
     // dentro do contorno conta como coberto (vidro do capacete, abertura do rosto): enche cada linha entre a 1ª e a última parte opaca
     for (let y = 0; y < H; y++) {
