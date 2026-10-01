@@ -24,7 +24,10 @@
     elmo_negro: 'elmo', capacete_dragao: 'elmo', capacete_estelar: 'elmo',
   };
   // v310: artes refeitas com o mesmo nome (o navegador guardava a antiga): nemes/faixa do faraó fechados atrás, dragão com o rosto aberto
-  if (typeof ASSET_VER !== 'undefined') Object.assign(ASSET_VER, { ch_nemes_dourado_c: 310, ch_faixa_farao_c: 310, ch_capacete_dragao_f: 310, ch_capacete_dragao_l: 310 });
+  if (typeof ASSET_VER !== 'undefined') Object.assign(ASSET_VER, { ch_nemes_dourado_c: 310, ch_faixa_farao_c: 310, ch_capacete_dragao_f: 311, ch_capacete_dragao_l: 311 });
+  // v311: pedaços soltos de arte vizinha (da grade do Higgsfield) recortados junto saíram (ex.: um risco acima do capacete de astronauta)
+  if (typeof ASSET_VER !== 'undefined') for (const n of ['ch_capacete_astro_c', 'ch_capacete_astro_f', 'ch_capacete_astro_l', 'ch_capacete_dragao_c', 'ch_chapeu_capitao_c', 'ch_chapeu_capitao_f', 'ch_chapeu_capitao_l',
+    'ch_coroa_dragao_f', 'ch_faixa_trovao_c', 'ch_faixa_trovao_f', 'ch_nemes_dourado_l', 'pg_estrela', 'pg_lua', 'pg_medalha_copa', 'pg_perola']) ASSET_VER[n] = 311;
   const ALTO = new Set(['faixa', 'tricorne', 'elmo', 'mascara', 'nemes', 'fone', 'aba', 'louros']);
   let faltou = false;
   setInterval(() => { if (faltou) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 800);
@@ -55,7 +58,7 @@
     // v311: o que cobre a cabeça toda é medido pela "cabeça virtual" (abaixo), igual para qualquer penteado
     const cobre = COBRE_TUDO.has(tipo), k = 1;
     const w = im.width * s * k, cx = CAB.cx + (aj.dx || 0) + (vis === 'l' ? (cobre ? (aj.dxl || 0) : 1.5) : 0);
-    const corte = tipo !== 'faixa' ? 0 : id === 'faixa_trovao' ? 0.18 : 0.48; // faixa: a arte é o anel inteiro; na cabeça só aparece a frente dele
+    const corte = tipo !== 'faixa' ? 0 : id === 'faixa_trovao' ? 0.4 : 0.48; // faixa: a arte é o anel inteiro; na cabeça só aparece a frente dele
     const sy = im.height * corte, sh = im.height - sy, h = sh * s * k;
     return { im, sy, sh, x0: cx - w / 2, y0: base - h, w, h, tipo };
   }
@@ -128,9 +131,9 @@
     const x = out.getContext('2d'), img = x.getImageData(0, 0, W, H), o = img.data, apagou = new Uint8Array(W * H);
     for (let i = 0; i < rot.length; i++) if (rot[i] === 1 && fora(i % W, (i / W) | 0)) { o[i * 4 + 3] = 0; apagou[i] = 1; }
     // o contorno escuro do cabelo apagado (não tem a cor-chave): some também, se estiver fora do capacete
-    for (let pass = 0; pass < 2; pass++) for (let i = 0; i < rot.length; i++) {
+    for (let pass = 0; pass < 5; pass++) for (let i = 0; i < rot.length; i++) { // (em ondas: o contorno grosso do topo do cabelo também some)
       if (apagou[i] || rot[i] || o[i * 4 + 3] < 20) continue; const px = i % W, py = (i / W) | 0; if (!fora(px, py)) continue;
-      if (Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) > 110) continue;
+      if (Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) > 130) continue;
       let viz = false; for (let dy = -2; dy <= 2 && !viz; dy++) for (let dx = -2; dx <= 2 && !viz; dx++) { const j = i + dy * W + dx; if (j >= 0 && j < apagou.length && apagou[j]) viz = true; }
       if (viz) { o[i * 4 + 3] = 0; apagou[i] = 1; }
     }

@@ -142,4 +142,21 @@
     } catch (e) { }
     return r;
   };
+
+  /* ---------- v311: personagens temáticos ----------
+     A Capitã Iara usa o traje de mergulhador completo; a Dra. Estela e todo mundo da Estação e dos planetas,
+     a roupa de astronauta. Quem MORA em Atlântida (respira no fundo do mar) veste roupas do mar. */
+  for (const n of ['tx_mergulho_corpo', 'tx_mergulho_cinto', 'tx_mergulho_calca', 'tx_camisa_mare', 'tx_calcao_tsunami', 'tx_camisa_coral', 'tx_camisa_abissal']) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
+  const TRAJE = {
+    mergulho: { chapeu: 'chapeu-cartola', chapeuVar: 'capacete_mergulho', roupa: 'roupa-futebol', corRoupa: '#c8902a', estampa: 'tx_mergulho_cinto', cor2: '#6a3a1a', baixo: 'baixo-shorts', txCalcao: 'tx_mergulho_calca', txCanel: 'tx_mergulho_corpo', corPe: '#b8862a' },
+    astronauta: { chapeu: 'chapeu-cartola', chapeuVar: 'capacete_astro', roupa: 'roupa-futebol', corRoupa: '#f4f4f8', estampa: 'tx_traje_corpo', cor2: '#ff8a2a', baixo: 'baixo-shorts', txCalcao: 'tx_traje_calca', txCanel: 'tx_traje_meia', corPe: '#ff7a1a' },
+  };
+  const veste = (id, extra) => { const d = NPCS[id]; if (!d || !d.look) return; Object.assign(d.look, extra); delete d.look.pescoco; delete d.look.mao; delete d.look._kb; };
+  ['capita_iara', 'capita_atl'].forEach(id => veste(id, TRAJE.mergulho));
+  ['estela', 'estela_estacao', 'torre_esp', 'loja_esp', 'lider_esp', 'piloto_lua', 'lider_lua', 'lider_marte', 'piloto_marte', 'piloto_saturno', 'lider_saturno', 'lider_nebulosa', 'piloto_nebulosa', 'piloto_copa'].forEach(id => veste(id, TRAJE.astronauta));
+  // Atlântida: roupas do mar
+  const mar = (id, x) => { const d = NPCS[id]; if (!d || !d.look) return; Object.assign(d.look, x); delete d.look._kb; };
+  mar('lider_atl', { roupa: 'roupa-futebol', corRoupa: '#2ab8c8', estampa: 'tx_camisa_mare', cor2: '#ffffff', txCalcao: 'tx_calcao_tsunami', chapeu: 'chapeu-coroa', chapeuVar: 'coroa_estelar', pescoco: 'pescoco-havaiano', pescocoVar: 'colar_perolas', corPe: '#e8c060' });
+  mar('loja_atl', { roupa: 'roupa-futebol', corRoupa: '#e05a3a', estampa: 'tx_camisa_coral', cor2: '#ffd0a0', pescoco: 'pescoco-medalha', pescocoVar: 'colar_perola' });
+  mar('prof_coral', { corRoupa: '#1a5a6a', estampa: 'tx_camisa_abissal', cor2: '#7af0ff', pescoco: 'pescoco-medalha', pescocoVar: 'amuleto_lunar' });
 }
