@@ -11,7 +11,7 @@
   const versaoDe = txt => { const m = /assets\.js\?v=(\d+)/.exec(txt); return m ? +m[1] : 0; };
   const minha = versaoDe((document.querySelector('script[src*="assets.js"]') || {}).src || '');
   let avisou = false, ultima = 0;
-  function aviso(v) {
+  function avisoVersao(v) {
     if (avisou) return; avisou = true;
     const d = document.createElement('button');
     d.type = 'button'; d.id = 'versaoNova';
@@ -25,7 +25,7 @@
     if (avisou || !minha || location.protocol === 'file:' || Date.now() - ultima < 60000) return; ultima = Date.now();
     try {
       const r = await fetch('index.html?nv=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
-      const v = versaoDe(await r.text()); if (v > minha) aviso(v);
+      const v = versaoDe(await r.text()); if (v > minha) avisoVersao(v);
     } catch (e) { }
   }
   setInterval(confere, 180000);

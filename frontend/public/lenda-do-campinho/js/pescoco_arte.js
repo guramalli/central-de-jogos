@@ -33,7 +33,8 @@
   for (const n of ARTES) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   setTimeout(() => { for (const n of ARTES) try { spr(n); } catch (e) { } }, 1200);
   let faltou = false; // desenhou sem a arte (ainda carregando): quando chegar, redesenha os bonecos
-  setInterval(() => { if (faltou && ARTES.every(n => aSprite(n))) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 700);
+  // v319: quem falhou de vez (sem internet) não segura os outros; o cache só é refeito quando tudo chegou ou desistiu
+  setInterval(() => { if (faltou && ARTES.every(n => { const e = SPR[n]; return !e || e.ok || e.err; })) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 700);
 
   /* ---------- chuteira: a cor do calçado ---------- */
   const COR_PE = {
@@ -97,7 +98,8 @@
   }
   const PG_META = { apito_prata: [0.752], apito_ouro: [0.748], apito_trovao: [0.73], apito_metro: [0.55] };
 
-  function flor(x, cx, cy, r, cor, miolo) {
+  // v319: nome próprio — "flor" vazava para o global e trocava o flor() do arte.js (florzinhas dos desenhos)
+  function florColar(x, cx, cy, r, cor, miolo) {
     x.save(); x.fillStyle = cor; x.strokeStyle = LINHA; x.lineWidth = 0.55;
     for (let i = 0; i < 5; i++) { const a = i * 1.2566 - 1.57; x.beginPath(); x.arc(cx + Math.cos(a) * r * 0.62, cy + Math.sin(a) * r * 0.62, r * 0.52, 0, 7); x.fill(); x.stroke(); }
     x.fillStyle = miolo; x.beginPath(); x.arc(cx, cy, r * 0.36, 0, 7); x.fill(); x.restore();
@@ -117,7 +119,7 @@
     if (tipo === 'perolas') { risco(x, () => { x.moveTo(...A); x.quadraticCurveTo(...B, ...C); }, '#c8c0d0', 0.5, false); }
     for (let i = 0; i < n; i++) {
       const t = t0 + (t1 - t0) * (n === 1 ? 0.5 : i / (n - 1)), [px, py] = qpt(t, A, B, C);
-      if (tipo === 'perolas') perola(x, px, py, 1.45); else { const [c, m] = CORES[i % CORES.length]; flor(x, px, py, 2.15, c, m); }
+      if (tipo === 'perolas') perola(x, px, py, 1.45); else { const [c, m] = CORES[i % CORES.length]; florColar(x, px, py, 2.15, c, m); }
     }
   }
   function cachecol(x, var_, v, lx) {

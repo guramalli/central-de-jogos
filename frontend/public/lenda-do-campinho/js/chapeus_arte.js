@@ -29,8 +29,6 @@
   if (typeof ASSET_VER !== 'undefined') for (const n of ['ch_capacete_astro_c', 'ch_capacete_astro_f', 'ch_capacete_astro_l', 'ch_capacete_dragao_c', 'ch_chapeu_capitao_c', 'ch_chapeu_capitao_f', 'ch_chapeu_capitao_l',
     'ch_coroa_dragao_f', 'ch_faixa_trovao_c', 'ch_faixa_trovao_f', 'ch_nemes_dourado_l', 'pg_estrela', 'pg_lua', 'pg_medalha_copa', 'pg_perola']) ASSET_VER[n] = 311;
   const ALTO = new Set(['faixa', 'tricorne', 'elmo', 'mascara', 'nemes', 'fone', 'aba', 'louros']);
-  let faltou = false;
-  setInterval(() => { if (faltou) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 800);
 
   const _lookCh = lookJogador;
   lookJogador = function () {
@@ -68,7 +66,7 @@
     const id = sp && sp.chapeuVar, tipo = id && CHAPEU[id];
     if (!tipo) return _chapeuVetor.apply(this, arguments);
     const vis = v === 'l' ? 'l' : v === 'c' ? 'c' : 'f', g = geometria(id, vis);
-    if (!g) { faltou = true; return _chapeuVetor.apply(this, arguments); } // enquanto a arte chega: o desenho de antes
+    if (!g) { esperaArte('ch_' + id + '_f'); if (vis !== 'f') esperaArte('ch_' + id + '_' + vis); return _chapeuVetor.apply(this, arguments); } // enquanto a arte chega: o desenho de antes (v319: redesenha quando chegar)
     x.save(); x.imageSmoothingQuality = 'high';
     if (COBRE_TUDO.has(tipo) && CORTE && CORTE.V) { // sai da caixa da cabeça (que cresce com o cabelo) e vai para a cabeça virtual
       const cab = CORTE.cab, kc = (cab[2] - cab[0]) / 54, cxc = (cab[0] + cab[2]) / 2 + (v === 'l' ? -2 * kc : 0), V = CORTE.V;

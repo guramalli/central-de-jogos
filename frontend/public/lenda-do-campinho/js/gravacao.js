@@ -79,7 +79,7 @@ if (GRAVANDO) (function () {
   if (typeof climaAtual === 'function') { const _ca = climaAtual; climaAtual = function () { const c = _ca(); return c ? Object.assign({}, c, { tempo: 'sol' }) : c; }; }
 
   /* ---------- o personagem de teste ---------- */
-  function melhorItem(slot) {
+  function melhorItemSlot(slot) {
     const ord = { comum: 0, incomum: 1, raro: 2, epico: 3, lendario: 4, mitico: 5 };
     let best = null, bv = -1;
     for (const [id, it] of Object.entries(ITENS)) {
@@ -94,7 +94,7 @@ if (GRAVANDO) (function () {
     s.nivel = NIVEL; s.xp = xpPara(NIVEL) + Math.round((xpPara(NIVEL + 1) - xpPara(NIVEL)) * 0.6);
     s.atr = { defesa: 25, habilidade: 55, inteligencia: 30, folego: 45 };
     for (const k of ['drible', 'chute', 'defesa', 'visao']) s.sk[k] = { lv: k === 'chute' ? 58 : 48, t: 0 };
-    for (const slot of Object.keys(s.equip)) { const id = melhorItem(slot); if (id) s.equip[slot] = id; }
+    for (const slot of Object.keys(s.equip)) { const id = melhorItemSlot(slot); if (id) s.equip[slot] = id; }
     s.equipR = { chuteira: 6, camisa: 4, calcao: 3, cabeca: 3 };
     s.ouro = 48000; s.tut = 99; s.dia = 3; s.hora = 10 * 60;
     Object.assign(s.flags, { cena_adulto: true, paredao: true, mundo: true });

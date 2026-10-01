@@ -16,11 +16,23 @@ const SPR = {};
 // v296: imagem que foi REFEITA com o mesmo nome ganha uma versão no endereço (senão o navegador continua mostrando a
 // antiga por até 1 dia — foi o que aconteceu com as pontes com rampa). Só as que mudaram: as outras seguem no cache.
 const ASSET_VER = {};
+// v319: arte que faltou ao montar um boneco. O cache dos bonecos só é refeito quando ela CHEGA de verdade
+// (antes: a cada 0,8 s enquanto carregava — e para sempre se a imagem falhasse, o jogo ficava pesado sem parar)
+const ARTE_ESPERA = new Set();
+function esperaArte(nome) { const e = SPR[nome]; if (!e || !e.err) ARTE_ESPERA.add(nome); }
+setInterval(() => {
+  if (!ARTE_ESPERA.size) return; let chegou = false;
+  for (const n of ARTE_ESPERA) { const e = SPR[n]; if (!e) continue; if (e.ok) { chegou = true; ARTE_ESPERA.delete(n); } else if (e.err) ARTE_ESPERA.delete(n); }
+  if (chegou) try { SPR_CACHE.clear(); } catch (e) { }
+}, 800);
 function spr(nome) {
   let e = SPR[nome];
   if (!e) {
     e = SPR[nome] = { im: new Image(), ok: false, err: false };
-    e.im.onload = () => { e.ok = true; }; e.im.onerror = () => { e.err = true; };
+    // v319: a imagem só entra em uso depois de DECODIFICADA em segundo plano (antes o 1º desenho de um prédio/árvore
+    // decodificava na hora, ~8 ms num quadro só = travadinha ao andar). Com tempo-limite (Safari pode não responder).
+    e.im.onload = () => { const ok = () => { e.ok = true; }; if (!e.im.decode) return ok(); setTimeout(ok, 2500); e.im.decode().then(ok, ok); };
+    e.im.onerror = () => { e.err = true; };
     e.im.src = ASSET_DIR + nome + '.webp' + (ASSET_VER[nome] ? '?v=' + ASSET_VER[nome] : '');
   }
   return e;

@@ -456,7 +456,10 @@ function comAcessorios(x, sp, v, meta, fase) {
     chapeu(x, sp, v); x.restore();
   }
 }
-const SPR_CACHE = new Map(); const SPR_MAX = 220; // celular: cada sprite pronto ocupa ~180 kB
+const SPR_CACHE = new Map(); // celular: cada sprite pronto ocupa ~180 kB
+// v319: computador com memória de sobra (navigator.deviceMemory ≥ 8 GB) guarda 400 poses prontas (cidades cheias de NPC não
+// ficam refazendo bonecos); celular/iPhone (sem essa informação) segue com 220
+const SPR_MAX = (navigator.deviceMemory || 4) >= 8 ? 400 : 220;
 function spriteBoneco(look, vista = 'frente', q = 0) {
   const sp = specDe(look); const nome = folhaDoLook(sp, look); const f = FOLHAS[nome];
   if (!f || !f.ok) { carregaFolhas(); return spriteVetor(look, vista, q); }

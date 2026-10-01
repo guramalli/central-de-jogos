@@ -30,11 +30,19 @@ function grTile(e) { const s = e.pas; return s ? { x: s.tx, y: s.ty } : { x: Mat
 // de você). Só a gaivota da praia fica de fora: é enfeite, não briga.
 function grOcupa(e) { return e && !(e.d && e.d.look && e.d.look.tipo === 'gaivota'); }
 function grOcupado(tx, ty, eu) {
-  for (const o of [G.p, ...G.mons, ...G.npcs]) {
-    if (!o || o === eu || !grOcupa(o)) continue; const t = grTile(o);
-    if (t.x === tx && t.y === ty) return true;
-  }
+  // v319: mesma conta sem montar listas/objetos novos a cada pergunta (é chamada milhares de vezes por quadro na hunt)
+  const um = o => { if (!o || o === eu || !grOcupa(o)) return false; const s = o.pas; return s ? s.tx === tx && s.ty === ty : Math.floor(o.x) === tx && Math.floor(o.y) === ty; };
+  if (um(G.p)) return true;
+  const ms = G.mons, ns = G.npcs;
+  for (let i = 0; i < ms.length; i++) if (um(ms[i])) return true;
+  for (let i = 0; i < ns.length; i++) if (um(ns[i])) return true;
   return false;
+}
+// v319: os quadrados ocupados agora (mesma regra de grOcupado), para buscas que perguntam centenas de vezes
+function grMapaOcupacao(eu) {
+  const S = new Set(), poe = o => { if (!o || o === eu || !grOcupa(o)) return; const s = o.pas; if (s) S.add(s.ty * 65536 + s.tx); else S.add(Math.floor(o.y) * 65536 + Math.floor(o.x)); };
+  poe(G.p); for (const o of G.mons) poe(o); for (const o of G.npcs) poe(o);
+  return S;
 }
 function grLivre(tx, ty, eu) { return !tileBloq(tx, ty) && !grOcupado(tx, ty, eu); }
 function grPasso(e, tx, ty, velTiles) {
@@ -110,7 +118,10 @@ function grVizinho(e, dx, dy, deLado) {
   const passoAteJogador = (m, comGente) => {
     const p = grTile(G.p), o = grTile(m), R = 12, W = 2 * R + 1, x0 = o.x - R, y0 = o.y - R;
     const visto = new Int16Array(W * W).fill(-1), fila = [o.x, o.y]; visto[R * W + R] = R * W + R;
-    const bloq = (x, y) => tileBloq(x, y) || (comGente && grOcupado(x, y, m));
+    // v319: quem ocupa cada quadrado é anotado UMA vez por busca (nada se mexe durante ela) — antes cada quadrado
+    // visitado varria todos os personagens do mapa (com a box cheia, 20 ms+ por quadro nas hunts cheias)
+    const ocup = comGente ? grMapaOcupacao(m) : null;
+    const bloq = (x, y) => tileBloq(x, y) || (comGente && ocup.has(y * 65536 + x));
     for (let k = 0; k < fila.length; k += 2) {
       const x = fila[k], y = fila[k + 1];
       if (Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) === 1) { // chegou do lado do jogador: volta até o 1º passo
@@ -148,8 +159,13 @@ function grVizinho(e, dx, dy, deLado) {
   separa = function (e) {
     if (!GRADE.on) return _separa.apply(this, arguments);
     // dois no mesmo quadrado (nasceu junto, jogada que atravessou): o adversário dá um passo para um vizinho livre
-    if (!e || e.pas || e === G.p || !G.mons.includes(e) || !grOcupa(e)) return;
-    const t = grTile(e); const outro = [G.p, ...G.mons, ...G.npcs].some(o => o && o !== e && grOcupa(o) && !o.pas && Math.floor(o.x) === t.x && Math.floor(o.y) === t.y && (o === G.p || G.mons.indexOf(o) < G.mons.indexOf(e) || G.npcs.includes(o)));
+    if (!e || e.pas || e === G.p || !grOcupa(e)) return;
+    const ie = G.mons.indexOf(e); if (ie < 0) return;
+    // v319: mesma regra, sem listas novas e sem indexOf dentro do laço
+    const t = grTile(e), aqui = o => o && o !== e && grOcupa(o) && !o.pas && Math.floor(o.x) === t.x && Math.floor(o.y) === t.y;
+    let outro = aqui(G.p);
+    for (let i = 0; i < ie && !outro; i++) if (aqui(G.mons[i])) outro = true;
+    for (let i = 0; i < G.npcs.length && !outro; i++) if (aqui(G.npcs[i])) outro = true;
     if (!outro) return;
     for (const [sx, sy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) if (grLivre(t.x + sx, t.y + sy, e)) { grPasso(e, t.x + sx, t.y + sy, 3); return; }
   };

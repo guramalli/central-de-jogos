@@ -250,10 +250,16 @@ function naArea(c, m, raio) {
 function corpos() { return [G.p, ...G.mons.filter(m => m.d.look.tipo !== 'gaivota'), ...G.npcs]; }
 function separa(e) {
   const r = e.r || R_ENT;
-  for (const o of corpos()) {
-    if (o === e) continue; const dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy), min = r + (o.r || R_ENT);
+  // v319: mesma ordem de corpos(), sem montar a lista nova para cada um (era 1 lista por adversário por quadro)
+  const um = o => {
+    if (o === e) return; const dx = e.x - o.x, dy = e.y - o.y, min = r + (o.r || R_ENT);
+    if (dx > min || dx < -min || dy > min || dy < -min) return; const d = Math.hypot(dx, dy);
     if (d < min) { const k = min - d + 0.001; const ux = d > 1e-4 ? dx / d : 1, uy = d > 1e-4 ? dy / d : 0; const nx = e.x + ux * k, ny = e.y + uy * k; if (!colide(nx, ny, r)) { e.x = nx; e.y = ny; } }
-  }
+  };
+  um(G.p);
+  const ms = G.mons, ns = G.npcs;
+  for (let i = 0; i < ms.length; i++) if (ms[i].d.look.tipo !== 'gaivota') um(ms[i]);
+  for (let i = 0; i < ns.length; i++) um(ns[i]);
 }
 function segLivre(ax, ay, bx, by, r = R_ENT) {
   const d = Math.hypot(bx - ax, by - ay); const n = Math.ceil(d / 0.2);
@@ -261,19 +267,30 @@ function segLivre(ax, ay, bx, by, r = R_ENT) {
   return true;
 }
 // BFS nos tiles (ignora entidades); retorna centros dos tiles
+// v319 (otimização): mesma busca e mesmo resultado, sem lixo de memória — fila e "visitados" em vetores
+// reaproveitados (antes: fila.shift() + Map + varrer todos os NPCs a cada vizinho)
+const CAM_BUF = { n: 0, gen: 0, vis: null, ant: null, fila: null };
 function caminho(sx, sy, objetivo, max = 4000) {
   if (objetivo(sx, sy)) return [];
-  const m = G.mapa; const vis = new Map(); const fila = [[sx, sy]]; vis.set(sy * m.w + sx, -1); let n = 0;
-  while (fila.length && n++ < max) {
-    const [x, y] = fila.shift();
-    for (const [dx, dy] of DIRS) {
-      const nx = x + dx, ny = y + dy, k = ny * m.w + nx;
-      if (vis.has(k) || tileBloq(nx, ny)) continue;
+  const m = G.mapa, W = m.w, tot = m.w * m.h, B = CAM_BUF;
+  if (B.n !== tot) { B.n = tot; B.gen = 0; B.vis = new Int32Array(tot); B.ant = new Int32Array(tot); B.fila = new Int32Array(tot); }
+  if (++B.gen > 2e9) { B.gen = 1; B.vis.fill(0); }
+  const g = B.gen, vis = B.vis, ant = B.ant, fila = B.fila, ini = sy * W + sx;
+  const npc = new Set(); for (const o of G.npcs) npc.add(Math.floor(o.y) * W + Math.floor(o.x));
+  const marca = k => { if (k >= 0 && k < tot) vis[k] = g; };
+  const visto = k => k >= 0 && k < tot && vis[k] === g;
+  marca(ini); if (ini >= 0 && ini < tot) ant[ini] = -1;
+  let ca = 0, fi = 0, n = 0; fila[fi++] = ini; const xs0 = sx, ys0 = sy;
+  while (ca < fi && n++ < max) {
+    const c0 = fila[ca++]; const x = c0 === ini ? xs0 : c0 % W, y = c0 === ini ? ys0 : (c0 / W) | 0;
+    for (let d = 0; d < 4; d++) {
+      const nx = x + DIRS[d][0], ny = y + DIRS[d][1], k = ny * W + nx;
+      if (visto(k) || tileBloq(nx, ny)) continue;
       const fim = objetivo(nx, ny);
-      if (!fim && G.npcs.some(n => Math.floor(n.x) === nx && Math.floor(n.y) === ny)) continue;
-      vis.set(k, y * m.w + x);
-      if (fim) { const out = []; let c = k; while (c !== sy * m.w + sx) { out.unshift({ x: c % m.w + 0.5, y: Math.floor(c / m.w) + 0.5 }); c = vis.get(c); } return out; }
-      fila.push([nx, ny]);
+      if (!fim && npc.has(k)) continue;
+      vis[k] = g; ant[k] = c0;
+      if (fim) { const out = []; let c = k; while (c !== ini) { out.push({ x: c % W + 0.5, y: Math.floor(c / W) + 0.5 }); c = ant[c]; } return out.reverse(); }
+      if (fi < tot) fila[fi++] = k;
     }
   }
   return null;
@@ -839,7 +856,8 @@ function atualizaMonstro(m, dt) {
     } else {
       if (segLivre(m.x, m.y, casa.x, casa.y, m.r)) andaAte(m, casa, v);
       else {
-        if (!m.cam || !m.cam.length || G.agora > (m.tCam || 0)) { m.tCam = G.agora + 1500; m.cam = caminho(Math.floor(m.x), Math.floor(m.y), (x, y) => Math.hypot(x + 0.5 - casa.x, y + 0.5 - casa.y) <= Math.max(1, m.sp.raio), 5000) || []; }
+        // v319: sem caminho para casa, tenta de novo só daqui a 1,5 s (antes refazia a busca de 5.000 quadrados a CADA quadro — engasgava a hunt)
+        if (!m.cam || (!m.cam.length && G.agora > (m.tCamV || 0)) || G.agora > (m.tCam || 0)) { m.tCam = G.agora + 1500; m.cam = caminho(Math.floor(m.x), Math.floor(m.y), (x, y) => Math.hypot(x + 0.5 - casa.x, y + 0.5 - casa.y) <= Math.max(1, m.sp.raio), 5000); if (!m.cam) { m.cam = []; m.tCamV = G.agora + 1500; } }
         if (m.cam.length) segue(m, m.cam, v, m.r);
       }
       separa(m); return;

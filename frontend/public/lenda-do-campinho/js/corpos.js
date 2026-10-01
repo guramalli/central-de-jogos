@@ -171,7 +171,7 @@ lookDoMonstro = function (m, mapa) {
 /* ---------- memória (celular): as células de trabalho das folhas ficam num limite ----------
    Cada célula guardada (recorte + rótulos + brilho) ocupa ~0,9 MB; com 64 folhas, uma sessão longa
    passava de 700 MB e o iPhone pode apagar os desenhos. Guarda só as usadas por último. */
-const CEL_LRU = new Map(); const CEL_MAX = 60;
+const CEL_LRU = new Map(); const CEL_MAX = (navigator.deviceMemory || 4) >= 8 ? 120 : 60; // v319: computador com memória de sobra guarda o dobro
 const _rotulaCelulaCp = rotulaCelula;
 rotulaCelula = function (f, idx) {
   const r = _rotulaCelulaCp.apply(this, arguments);

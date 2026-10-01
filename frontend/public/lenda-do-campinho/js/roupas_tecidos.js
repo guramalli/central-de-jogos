@@ -29,11 +29,10 @@
   const PX = {}; let faltou = false;
   function pixels(nome) {
     if (PX[nome]) return PX[nome];
-    const im = typeof aSprite === 'function' ? aSprite(nome) : null; if (!im) { faltou = true; return null; }
+    const im = typeof aSprite === 'function' ? aSprite(nome) : null; if (!im) { esperaArte(nome); return null; } // v319: redesenha quando chegar (assets.js)
     const c = mkCanvas(256, 256), x = c.getContext('2d'); x.drawImage(im, 0, 0, 256, 256);
     return PX[nome] = x.getImageData(0, 0, 256, 256).data;
   }
-  setInterval(() => { if (faltou) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 800); // chegou um tecido: redesenha
 
   const _lookTx = lookJogador;
   lookJogador = function () {
@@ -59,7 +58,8 @@
     return out;
   };
   // pinta os pixels escolhidos com o tecido, esticado na caixa deles, mantendo a luz e a sombra do desenho
-  function aplica(o, idx, lumDe, ref, tex, W) {
+  // v319: nome próprio — "aplica" dentro do bloco vazava para o global e quebrava o aplica() do layout.js (botões de layout da Ajuda)
+  function aplicaTecido(o, idx, lumDe, ref, tex, W) {
     let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
     for (const i of idx) { const x = i % W, y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
@@ -78,7 +78,7 @@
     const lumDe = i => lum[i] || Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) / 255;
     if (texCal) { // calção: os pixels da cor-chave azul
       const idx = []; for (let i = 0; i < rot.length; i++) if (rot[i] === 3) idx.push(i);
-      if (idx.length > 20) aplica(o, idx, lumDe, ref[3], texCal, W);
+      if (idx.length > 20) aplicaTecido(o, idx, lumDe, ref[3], texCal, W);
     }
     if (texCan) { // caneleira: a meia (branca) entre o calção e a chuteira
       let y0 = -1, y1 = -1;
@@ -90,7 +90,7 @@
           const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
           if (mx > 158 && (mx - mn) < 0.22 * mx) idx.push(i); // branco/cinza claro = meia
         }
-        if (idx.length > 12) { const v = idx.map(lumDe).sort((a, b) => a - b); aplica(o, idx, lumDe, v[v.length >> 1], texCan, W); }
+        if (idx.length > 12) { const v = idx.map(lumDe).sort((a, b) => a - b); aplicaTecido(o, idx, lumDe, v[v.length >> 1], texCan, W); }
       }
     }
     x.putImageData(img, 0, 0);
