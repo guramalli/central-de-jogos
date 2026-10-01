@@ -10,10 +10,13 @@
 //
 // O registro nunca atrapalha o jogo: roda sem esperar e engole erro.
 
-export const PAUSA_MS = 10 * 60 * 1000;      // mais que isso sem sinal = sessão nova
-export const JOGANDO_AGORA_MS = 3 * 60 * 1000; // sinal mais recente que isso = "jogando agora"
+// O que interessa é saber QUEM ENTROU, não acompanhar minuto a minuto: com o
+// jogo minimizado o navegador congela a aba e só acorda de vez em quando, e
+// com 10 min isso picava uma tarde de jogo em várias sessões de 1 min.
+export const PAUSA_MS = 30 * 60 * 1000;      // mais que isso sem sinal = sessão nova
+export const JOGANDO_AGORA_MS = 5 * 60 * 1000; // sinal mais recente que isso = "jogando agora"
 export const GUARDAR_DIAS = 90;               // histórico mais velho que isso é apagado
-const INTERVALO_MIN_MS = 20 * 1000;           // no máximo 1 escrita por pessoa a cada 20 s
+const INTERVALO_MIN_MS = 2 * 60 * 1000;       // no máximo 1 escrita por pessoa a cada 2 min
 
 // Celular ou computador, pelo navegador. O app do Windows abre o site num
 // WebView2 (Edge) e aparece como computador.

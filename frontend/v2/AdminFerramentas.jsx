@@ -411,7 +411,7 @@ export function CadastrosPorDia() {
 
 // Lenda do Campinho: quem está jogando agora e o histórico de sessões (só
 // quem joga LOGADO — o jogo sem conta não fala com o servidor). Horários em
-// Brasília. Atualiza sozinho a cada minuto.
+// Brasília. Atualiza sozinho a cada 2 minutos.
 const horaBR = (iso) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const soHoraBR = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 const duracao = (min) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`);
@@ -430,7 +430,7 @@ export function LendaSessoes() {
       .catch((e) => vivo && setErro(e.response?.data?.error || "Erro ao carregar as sessões."));
     setDados(null);
     carregar();
-    const t = setInterval(() => { if (!document.hidden) carregar(); }, 60000);
+    const t = setInterval(() => { if (!document.hidden) carregar(); }, 120000);
     return () => { vivo = false; clearInterval(t); };
   }, [dias, busca]);
 
@@ -451,7 +451,7 @@ export function LendaSessoes() {
             ))}
           </ul>
         )}
-        <p className="v2-cartao-nota">Conta quem está logado no site. Quem joga sem conta não aparece. Atualiza a cada minuto.</p>
+        <p className="v2-cartao-nota">Conta quem está logado no site (sinal nos últimos 5 min). Quem joga sem conta não aparece.</p>
       </section>
 
       <section className="v2-cartao">
@@ -490,7 +490,7 @@ export function LendaSessoes() {
                 </table>
               </div>
             )}
-            <p className="v2-cartao-nota">Horários de Brasília. Uma sessão termina depois de 10 min sem sinal do jogo. Guardado por 90 dias (mostra até 500 sessões).</p>
+            <p className="v2-cartao-nota">Horários de Brasília. Uma sessão termina depois de 30 min sem sinal do jogo (jogo minimizado continua na mesma sessão). Guardado por 90 dias (mostra até 500 sessões).</p>
           </>
         )}
       </section>
