@@ -12,7 +12,7 @@
    - O POTENCIAL de verdade fica escondido: o olheiro dá uma faixa (ex.: 80–90) e uma avaliação paga aperta
      a faixa. Dá para errar: o "craque" pode parar no 63 e o que você quase ignorou chegar no 94.
    - O tempo anda no relógio de verdade: 1 período = 20 minutos (3 meses na vida dos garotos), e continua
-     enquanto o jogo está fechado (até 10 horas). As missões dos olheiros também levam tempo real.
+     enquanto o jogo está fechado (até 10 horas; Agência 3.0: 30 min por semana ou o botão ⏩). As missões dos olheiros também levam tempo real.
    - O dinheiro é o tostão do jogo: comissões de contratos, transferências e patrocínios vão para o seu bolso.
    - Conexão com o resto do jogo: os profissionais que você representa aparecem no Mercado do seu clube.
    Telas: ☀️ Hoje · 🔎 Talentos · 👤 Meus jogadores · 💼 Negociações · 🏢 Agência.
@@ -500,7 +500,7 @@ function agTelaJogadores() {
     }
     if (j.fase === 'base' && j.idade >= 16.5 && !a.eventos.some(e => e.jog === j.id && e.tipo === 'contrato' && !e.feito)) acoes.append(el('button', { class: 'btn mini amarelo', onclick: () => { agPropostaContrato(j, j.clube, false); abreAgencia('negocios'); } }, '📑 Pedir o contrato profissional'));
     if (j.fase === 'pro') acoes.append(el('small', {}, `Salário ${agFmt(j.salario)}/mês · comissão ${j.comissao}% · contrato: ${Math.max(0, Math.ceil((j.contratoAte - (a.nPer || 0)) / 4))} ano(s) · valor ${agFmt(agValor(j))}`));
-    acoes.append(el('button', { class: 'btn mini', onclick: () => { if (!confirm(`Encerrar a representação de ${j.nome}?`)) return; if (j.fase === 'pro') agHall(j, 'saiu da agência'); a.jogadores.splice(a.jogadores.indexOf(j), 1); salvar(); abreAgencia('jogadores'); } }, 'Encerrar'));
+    acoes.append(el('button', { class: 'btn mini', onclick: async () => { if (!(await perguntaJogo(`Encerrar a representação de ${j.nome}?`, { sim: 'Encerrar', perigo: true })) || !a.jogadores.includes(j)) return; if (j.fase === 'pro') agHall(j, 'saiu da agência'); a.jogadores.splice(a.jogadores.indexOf(j), 1); salvar(); abreAgencia('jogadores'); } }, 'Encerrar'));
     box.append(el('div', { class: 'linha-item ag-jog' }, agRetrato(j, 72),
       el('div', { class: 'nm' }, el('b', {}, `${j.nome} — ${Math.floor(j.idade)} anos · ${AG_POS[j.pos][0]} · Overall ${j.ovr}`), el('small', {}, `${agFaseTxt(j)} · ${agEstrelasPot(j)} · ${AG_PERS[j.pers].nome} · moral ${Math.round(j.moral)} · fama ${Math.round(j.fama || 0)}${j.parado ? ' · 🤕 parado' : ''}`),
         atr, acoes, j.hist.length ? el('small', { class: 'ag-hist' }, '📜 ' + j.hist.slice(0, 3).join(' · ')) : '')));

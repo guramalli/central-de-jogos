@@ -2,7 +2,7 @@
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
    📅 AGÊNCIA 3.0 — ETAPA 2: O CICLO SEMANAL (v336). Decisões do dono:
-   - 1 semana = 5 min de relógio de verdade (com o jogo fechado conta até 10 h = 120 semanas; o Modo Treino pausa);
+   - 1 semana = 30 min de relógio de verdade, ou antes pelo botão ⏩ Passar a semana (v346; com o jogo fechado conta até 10 h = 20 semanas; o Modo Treino pausa);
    - 3 ações por semana para a AGÊNCIA inteira (+1 por nível), divididas entre os garotos;
    - ROTINA MONTADA: você monta os slots da semana uma vez (jogador + ação); nas semanas em que você não usar as
      ações, a rotina roda sozinha rendendo 75%; com fadiga acima de 70 ou sem tostões, o slot vira Descanso;
@@ -215,8 +215,18 @@ function agmCabecalho(a) {
   atual(); const iv = setInterval(() => { if (!relogio.isConnected) return clearInterval(iv); atual(); if (Date.now() - a.relogio.ultimo >= AGM_SEMANA_MS && !G.save.treinoOn) { clearInterval(iv); abreAgencia3(AGM_ABA); } }, 1000);
   return el('div', { class: 'ag-cab' },
     el('div', { class: 'ag-cab-id' }, agImg('ag_brasao', 'ag-brasao'), el('div', {}, el('b', { class: 'ag-nome' }, a.nome), el('small', {}, `${'⭐'.repeat(a.nivel)} ${N[1]} · reputação ${agmN(a.rep)}/100`))),
-    el('div', { class: 'ag-num' }, el('span', {}, `📅 Semana ${a.semana}`), el('span', { class: 'agm-acoes-n' + (a.acoes ? '' : ' zero') }, `⚡ ${a.acoes}/${agmAcoesSemana(a.nivel)} ações`), relogio,
+    el('div', { class: 'ag-num' }, el('span', {}, `📅 Semana ${a.semana}`), el('span', { class: 'agm-acoes-n' + (a.acoes ? '' : ' zero') }, `⚡ ${a.acoes}/${agmAcoesSemana(a.nivel)} ações`), relogio, G.save.treinoOn ? '' : el('button', { class: 'btn mini amarelo agm-passa', type: 'button', title: 'Vira a semana agora (sem esperar o relógio)', onclick: () => agmPassaSemana(a) }, '⏩ Passar a semana'),
       el('span', {}, `👤 ${a.jogadores.length}/${agmMaxJogadores(a.nivel)}`), el('span', {}, `💰 ${agFmt(G.save.ouro)}`)));
+}
+// v346: o jogador vira a semana quando terminar (avisa se ainda sobram ações ou decisões)
+async function agmPassaSemana(a) {
+  const av = [], pend = (a.cartas || []).length;
+  if (a.acoes > 0) av.push(`ainda sobra${a.acoes > 1 ? 'm' : ''} ${a.acoes} aç${a.acoes > 1 ? 'ões' : 'ão'} desta semana (vira${a.acoes > 1 ? 'm' : ''} 🔁 Rotina, que rende só 75%)`);
+  if (pend) av.push(`${pend} decis${pend > 1 ? 'ões esperam' : 'ão espera'} a sua resposta`);
+  if (av.length && !(await perguntaJogo(`Passar para a próxima semana? Atenção: ${av.join(' e ')}.`, { sim: '⏩ Passar a semana' }))) return;
+  if (G.save.treinoOn || agDados() !== a) return;
+  a.relogio.ultimo = Math.min(a.relogio.ultimo, Date.now() - AGM_SEMANA_MS);
+  abreAgencia3('semana');
 }
 function agmBarra(rot, v, cor, max = 100) { return el('div', { class: 'agm-bar', title: `${rot}: ${Math.round(v)}` }, el('small', {}, rot), el('div', { class: 'agc-barra' }, el('i', { style: `width:${clamp(v / max * 100, 0, 100)}%;background:${cor}` })), el('b', {}, Math.round(v))); }
 function agmEstadoEl(j) {
@@ -275,7 +285,7 @@ function agmTelaJogadores(a) {
     el('b', {}, `${j.nome} — ${agmIdade(j) | 0} anos · ${AGM_POS[j.pos][0]} · overall ${agmN(agmOverall(j))}`),
     el('small', {}, `${agmEstrelasTxt(j.faixa)} · 👁️ visibilidade ${Math.round(j.visib)} · 🤝 confiança ${Math.round(j.confianca)} · ${j.clube ? `${j.clube.tipo === 'pro' ? '⚽' : '🧒'} ${j.clube.nome}` : '🏘️ sem clube'}${j.fam ? ` · 👪 ${j.fam.nome}` : ''}`),
     agmFichaAtr(j), agmTracosEl(j), agmEstadoEl(j), typeof agmClubeEl === 'function' ? agmClubeEl(j) : '', j.hist.length ? el('small', { class: 'ag-hist' }, '📜 ' + j.hist.slice(0, 3).join(' · ')) : '',
-    el('div', { class: 'ag-acoes' }, el('button', { class: 'btn mini', type: 'button', onclick: () => { if (!confirm(`Encerrar a representação de ${j.nome}?`)) return; if (j.fase === 'carreira') { j.ovr = agmOverall(j); agHall(j, 'saiu da agência'); } a.jogadores.splice(a.jogadores.indexOf(j), 1); a.rotina = (a.rotina || []).filter(r => r.jog !== j.id); agmGanhaRep(a, AGM_REP_GANHO.familiaInsatisfeita); salvar(); abreAgencia3('jogadores'); } }, 'Encerrar')))));
+    el('div', { class: 'ag-acoes' }, el('button', { class: 'btn mini', type: 'button', onclick: async () => { if (!(await perguntaJogo(`Encerrar a representação de ${j.nome}?`, { sim: 'Encerrar', perigo: true })) || !a.jogadores.includes(j)) return; if (j.fase === 'carreira') { j.ovr = agmOverall(j); agHall(j, 'saiu da agência'); } a.jogadores.splice(a.jogadores.indexOf(j), 1); a.rotina = (a.rotina || []).filter(r => r.jog !== j.id); agmGanhaRep(a, AGM_REP_GANHO.familiaInsatisfeita); salvar(); abreAgencia3('jogadores'); } }, 'Encerrar')))));
   return box;
 }
 function agmTelaRotina(a) {
@@ -340,8 +350,8 @@ function agmTelaOlheiros(a) {
       } }, '🧳 Mandar'), info));
     }
     acoes.append(el('div', { class: 'ag-acoes' },
-      el('button', { class: 'btn mini', type: 'button', onclick: () => { const c = Math.round(o.salario * 0.25); if (!confirm(`Dar aumento para ${o.nome}? O salário vai de ${agFmt(o.salario)} para ${agFmt(o.salario + c)} por semana (lealdade +30).`)) return; o.salario += c; o.lealdade = Math.min(100, o.lealdade + 30); log(`💰 ${o.nome} ganhou aumento: lealdade ${o.lealdade}.`, 'l-xp'); salvar(); abreAgencia3('olheiros'); } }, '💰 Dar aumento'),
-      el('button', { class: 'btn mini', type: 'button', onclick: () => { if (!confirm(`Demitir ${o.nome}?${o.missao ? ' A missão em andamento se perde.' : ''}`)) return; a.olheiros.splice(a.olheiros.indexOf(o), 1); log(`👋 ${o.nome} saiu da agência.`, 'l-sis'); salvar(); abreAgencia3('olheiros'); } }, '👋 Demitir')));
+      el('button', { class: 'btn mini', type: 'button', onclick: async () => { const c = Math.round(o.salario * 0.25); if (!(await perguntaJogo(`Dar aumento para ${o.nome}? O salário vai de ${agFmt(o.salario)} para ${agFmt(o.salario + c)} por semana (lealdade +30).`, { sim: '💰 Dar aumento' })) || !a.olheiros.includes(o)) return; o.salario += c; o.lealdade = Math.min(100, o.lealdade + 30); log(`💰 ${o.nome} ganhou aumento: lealdade ${o.lealdade}.`, 'l-xp'); salvar(); abreAgencia3('olheiros'); } }, '💰 Dar aumento'),
+      el('button', { class: 'btn mini', type: 'button', onclick: async () => { if (!(await perguntaJogo(`Demitir ${o.nome}?${o.missao ? ' A missão em andamento se perde.' : ''}`, { sim: '👋 Demitir', perigo: true })) || !a.olheiros.includes(o)) return; a.olheiros.splice(a.olheiros.indexOf(o), 1); log(`👋 ${o.nome} saiu da agência.`, 'l-sis'); salvar(); abreAgencia3('olheiros'); } }, '👋 Demitir')));
     box.append(agmOlheiroEl(o, a, acoes));
   }
   // mercado
@@ -413,7 +423,7 @@ if (AGM_ATIVO) {
   agCria = function () {
     const s = G.save; s.agencia = agmNovaAgencia((s.nome || 'Lenda').split(' ')[0].toUpperCase() + ' SPORTS');
     s.agencia.relatorios = [{ de: 0, ate: 0, visto: false, linhas: [ // boas-vindas: o ciclo da agência em 6 linhas
-      { txt: '☀️ Bem-vindo(a) à sua agência! Aqui o tempo anda em SEMANAS: uma a cada 5 minutos (e até 10 h com o jogo fechado).', imp: true },
+      { txt: '☀️ Bem-vindo(a) à sua agência! Aqui o tempo anda em SEMANAS: uma a cada 30 minutos (e até 10 h com o jogo fechado). Terminou o que queria fazer? Use o botão ⏩ Passar a semana.', imp: true },
       { txt: '🔎 1) Mande o seu olheiro numa missão (aba 🔎 Olheiros). Ele volta com candidatos e um relatório com a faixa de potencial em estrelas.', imp: true },
       { txt: '👪 2) Visite a família do candidato (gasta 1 ação): descubra o que ela precisa e monte o contrato certo.', imp: true },
       { txt: '⚡ 3) Toda semana você tem ações para treinar, mostrar e cuidar dos garotos. O que sobrar vira a sua 🔁 Rotina (75%).', imp: true },
@@ -474,6 +484,7 @@ if (AGM_ATIVO) {
   .agm-ol-ic { font-size: 30px; width: 44px; text-align: center; flex-shrink: 0; }
   .agm-rep { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; } .agm-rep .agc-barra { height: 14px; } .agm-rep .agc-barra i { background: linear-gradient(90deg, #e0a000, #ffd23f); }
   .agm-acoes-n.zero { color: #ffb0a0; }
+  .ag-num .agm-passa { padding: 1px 9px; font-size: 12px; line-height: 1.4; }
   .agc-op.risco { border-color: #d8382a; }
   .agm-ol-atr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; margin: 2px 0; }
   .agm-ol.desleal { border-left: 4px solid #d8382a; }

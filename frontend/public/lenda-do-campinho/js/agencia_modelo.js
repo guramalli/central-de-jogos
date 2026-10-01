@@ -7,7 +7,7 @@
    - escala do design: atributos 1–20, potencial P de 0,5 a 5 estrelas (escondido), 6 traços 0–100;
    - olheiros com atributos (olho técnico, leitura de caráter, rede de contatos, especialidade, salário, lealdade);
    - famílias com arquétipo e 2 necessidades ocultas (principal peso 2, secundária peso 1);
-   - agência com reputação 0–100, 5 níveis (pontos + metas, decisão do dono) e semanas de 5 min no relógio;
+   - agência com reputação 0–100, 5 níveis (pontos + metas, decisão do dono) e semanas de 30 min no relógio (ou no botão ⏩);
    - a conversão das agências antigas (v323–v334) para o formato novo, sem perder jogador, Hall nem álbum.
    ATENÇÃO: nesta etapa NADA é ligado no jogo (AGM_ATIVO = false): a tela continua a da v333/v334.
    A conversão só roda quando a tela nova entrar (Etapa 2). Carregar DEPOIS de agencia.js.
@@ -15,7 +15,7 @@
 // v344: ligada para todo mundo (as 9 etapas prontas). localStorage rac_agencia3 = '0' volta para a agência antiga (só para testes)
 const AGM_ATIVO = (() => { try { return localStorage.getItem('rac_agencia3') !== '0'; } catch (e) { return true; } })();
 const AGM_VERSAO = 2;
-const AGM_SEMANA_MS = 5 * 60000, AGM_MAX_SEMANAS = 120; // decisão do dono: 1 semana = 5 min de relógio; fechado conta até 10 h
+const AGM_SEMANA_MS = 30 * 60000, AGM_MAX_SEMANAS = 20; // v346 (dono): 1 semana = 30 min de relógio (5 min não deixava fazer mais nada) + botão ⏩ Passar a semana; fechado conta até 10 h
 const AGM_VALOR_BASE = 3000000; // v344: ×3 (venda à Europa ~60 milhões; a taxa paga a agência) // o design usa 50.000 (R$); ajustado à economia de tostões do jogo
 
 /* ---------- tabelas ---------- */
