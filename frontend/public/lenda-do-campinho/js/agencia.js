@@ -136,6 +136,7 @@ function agTick() {
     a.totais.descobertas += n; agGanhaRep(n * 4, 'descoberta');
     const melhor = novos.reduce((x, y) => (y.potV[1] > x.potV[1] ? y : x));
     agEvento({ tipo: 'achado', txt: `🔎 ${ol[1]} voltou de ${reg.nome}: ${n} talento(s)! O melhor: ${melhor.nome}, ${melhor.idade} anos, ${AG_POS[melhor.pos][0]}, potencial estimado ${melhor.potV[0]}–${melhor.potV[1]}.` });
+    if (melhor.potV[1] >= 88) agFila('descoberta', '💎 JOIA ENCONTRADA!', `${ol[1]} viu ${melhor.nome} (${melhor.idade} anos) jogando em ${reg.nome}: potencial estimado ${melhor.potV[0]}–${melhor.potV[1]}! Corra para a aba 🔎 Talentos.`, 'confete');
     agTitulos();
   }
   // períodos (3 meses cada)
@@ -168,6 +169,7 @@ function agPeriodoJogador(j) {
     for (const at of k) if (Math.random() < 0.4) sobe(at, passo * agRnd(0.2, 0.9));
     j.ovr = Math.min(j.pot, agOvr(j));
   }
+  j.ovrMax = Math.max(j.ovrMax || 0, j.ovr);
   if (j.ovr > antes + 1) { agHist(j, `evoluiu +${j.ovr - antes} (overall ${j.ovr})`); if (j.ovr - antes >= 3) agEvento({ tipo: 'evolucao', jog: j.id, txt: `📈 ${j.nome} evoluiu +${j.ovr - antes}! Overall agora: ${j.ovr}.` }); }
   // salário e comissão do período
   if (j.fase === 'pro' || j.fase === 'base') { const c = Math.round(j.salario * 3 * j.comissao / 100); if (c > 0) { G.save.ouro += c; a.totais.comissao += c; } }
@@ -177,7 +179,7 @@ function agPeriodoJogador(j) {
   // contrato acabando: o clube quer renovar (ou ele fica livre)
   if (j.fase === 'pro' && a.nPer >= j.contratoAte && !a.eventos.some(e => e.jog === j.id && e.tipo === 'contrato' && !e.feito)) { agPropostaContrato(j, j.clube, true); }
   // aposentadoria
-  if (j.idade >= 35) { a.jogadores.splice(a.jogadores.indexOf(j), 1); agEvento({ tipo: 'info', txt: `👋 ${j.nome} pendurou as chuteiras aos 35 anos. Obrigado por tudo, craque!` }); return; }
+  if (j.idade >= 35) { agHall(j, 'aposentou-se'); a.jogadores.splice(a.jogadores.indexOf(j), 1); agEvento({ tipo: 'info', txt: `👋 ${j.nome} pendurou as chuteiras aos 35 anos. Obrigado por tudo, craque!` }); return; }
   // acontecimentos (um de cada vez por jogador)
   if (a.eventos.some(e => e.jog === j.id && !e.feito && e.acoes)) return;
   const r = Math.random();
@@ -272,7 +274,7 @@ function agFechaContrato(j, ev, p) {
 }
 function agVende(j, ev, valor) {
   const a = agDados(), com = Math.round(valor * Math.max(5, j.comissao || 10) / 100);
-  G.save.ouro += com; a.totais.transf += valor; a.totais.comissao += com; a.totais.vendaMax = Math.max(a.totais.vendaMax, valor);
+  G.save.ouro += com; a.totais.transf += valor; a.totais.comissao += com; a.totais.vendaMax = Math.max(a.totais.vendaMax, valor); j.vendaMax = Math.max(j.vendaMax || 0, valor);
   j.clube = ev.clube; j.look.corRoupa = ev.clube.cor; j.fama = (j.fama || 0) + 10; j.salario = Math.round(AG_CLUBES[ev.clube.nivel].salario * (0.8 + Math.max(0, j.ovr - AG_CLUBES[ev.clube.nivel].ovr) * 0.05)); j.contratoAte = a.nPer + 12;
   (a.paises = a.paises || {})[ev.clube.pais] = 1;
   ev.feito = true; ev.resultado = `💼 TRANSFERÊNCIA FECHADA: ${j.nome} → ${ev.clube.nome} por ${agFmt(valor)}. Sua comissão: 💰 ${agFmt(com)} tostões!`;
@@ -292,7 +294,61 @@ const AG_TITULOS = [
   ['lendas', '🌟 Descobridor de Lendas', 'Tenha um jogador que chegue a overall 95.', a => a.jogadores.some(j => j.ovr >= 95)],
 ];
 function agTitulos() {
-  const a = agDados(); for (const [id, nome, , ok] of AG_TITULOS) if (!a.titulos[id] && ok(a)) { a.titulos[id] = Date.now(); banner(nome, 'Título de empresário conquistado!'); som('nivel'); log(`🏆 Título da Agência: ${nome}!`, 'l-lvl'); agGanhaRep(150); }
+  const a = agDados(); for (const [id, nome, , ok] of AG_TITULOS) if (!a.titulos[id] && ok(a)) { a.titulos[id] = Date.now(); if (id === 'superagente') agFila('superagente', '👑 SUPERAGENTE!', 'Sua agência chegou ao topo do mundo do futebol. Os craques que você descobriu vieram aplaudir!', 'confete'); banner(nome, 'Título de empresário conquistado!'); som('nivel'); log(`🏆 Título da Agência: ${nome}!`, 'l-lvl'); agGanhaRep(150); }
+}
+
+/* ---------- arte e animações (v324: 9 créditos do Higgsfield) ----------
+   Cenas em tela cheia nos grandes momentos (com confete, moedas, flashes ou carimbo), olheiros e regiões desenhados,
+   ícones dos acontecimentos, medalhas dos títulos, o olheiro "viajando" até a região e o garoto da embaixadinha.
+   Conteúdo novo: 📸 Álbum da Agência (as cenas que você já viveu) e 🏛️ Hall da Fama (quem passou pela sua agência). */
+const agImg = (id, cls) => el('img', { src: `a/${id}.webp`, class: cls || '', alt: '', draggable: 'false' });
+const AG_OL_ARTE = { base: 'ag_ol_base', especialista: 'ag_ol_especialista', internacional: 'ag_ol_internacional', lendario: 'ag_ol_lendario' };
+const AG_REG_ARTE = { bairro: 'ag_r_bairro', estado: 'ag_r_estado', brasil: 'ag_r_brasil', america: 'ag_r_america', europa: 'ag_r_europa' };
+const AG_EV_ARTE = { achado: 'ag_ev_achado', teste: 'ag_ev_teste', decisao: 'ag_ev_teste', contrato: 'ag_ev_contrato', transferencia: 'ag_ev_transferencia', patrocinio: 'ag_ev_patrocinio', problema: 'ag_ev_problema' };
+const AG_TIT_ARTE = { cacador: 'ag_t_cacador', empresario: 'ag_t_empresario', fifa: 'ag_t_fifa', superagente: 'ag_t_superagente', lendas: 'ag_t_lendas' };
+// [id da cena, legenda no álbum, como liberar]
+const AG_ALBUM = [
+  ['escritorio', 'A agência abriu as portas', 'Abra a sua agência.'],
+  ['descoberta', 'Uma joia na várzea', 'Um olheiro encontra um talento com potencial estimado de 88 ou mais.'],
+  ['teste', 'Aprovado no teste!', 'Um jogador seu passa num teste de clube.'],
+  ['contrato', 'O primeiro contrato', 'Um jogador seu assina o primeiro contrato profissional.'],
+  ['transferencia', 'A grande transferência', 'Feche uma transferência.'],
+  ['patrocinio', 'Estrela da propaganda', 'Feche um patrocínio.'],
+  ['saudade', 'A família chegou!', 'Ajude um jogador com saudade de casa.'],
+  ['superagente', 'O Superagente', 'Conquiste o título de Superagente.'],
+];
+function agEmbaixadinha(alt = 110) { const d = el('div', { class: 'ag-embx', role: 'img', 'aria-label': 'Garoto fazendo embaixadinha' }); d.style.setProperty('--alt', alt + 'px'); return d; }
+// fila de comemorações que aconteceram longe da tela (o olheiro voltou com uma joia, título conquistado...)
+function agFila(cena, titulo, texto, efeito) { const a = agDados(); if (!a) return; (a.fila = a.fila || []).push([cena, titulo, texto, efeito]); a.fila = a.fila.slice(-3); }
+function agCelebra(cena, titulo, texto, efeito = 'confete', j = null) {
+  const a = agDados(); if (a) { a.album = a.album || {}; if (!a.album[cena]) a.album[cena] = Date.now(); }
+  document.querySelectorAll('.ag-show').forEach(x => x.remove());
+  const ov = el('div', { class: 'ag-show ag-ef-' + efeito, role: 'dialog', 'aria-label': titulo });
+  const fecha = () => { ov.classList.add('sai'); setTimeout(() => ov.remove(), 260); document.removeEventListener('keydown', tecla, true); };
+  const tecla = e => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); fecha(); } };
+  ov.addEventListener('click', fecha); document.addEventListener('keydown', tecla, true);
+  const quadro = el('div', { class: 'ag-show-quadro' }, el('div', { class: 'ag-show-moldura' }, agImg('cap_ag_' + cena, 'ag-show-img')),
+    el('div', { class: 'ag-show-txt' }, el('b', {}, titulo), texto ? el('p', {}, texto) : '', el('small', {}, 'toque para continuar')));
+  ov.append(quadro);
+  if (efeito === 'carimbo') quadro.append(el('div', { class: 'ag-carimbo' }, 'APROVADO!'));
+  if (j && j.look) quadro.append(el('div', { class: 'ag-show-ret' }, agRetrato(j, 104), el('b', {}, j.nome.split(' ')[0]))); // o craque de verdade, num medalhão
+  const n = efeito === 'flash' ? 14 : 34;
+  for (let i = 0; i < n; i++) {
+    const p = el('i', { class: 'ag-p' }); p.style.left = (Math.random() * 100) + '%'; p.style.animationDelay = (Math.random() * (efeito === 'flash' ? 3 : 1.6)).toFixed(2) + 's';
+    p.style.animationDuration = (efeito === 'flash' ? agRnd(0.5, 0.9) : agRnd(2.2, 3.6)).toFixed(2) + 's';
+    if (efeito === 'flash') p.style.top = (Math.random() * 80) + '%';
+    if (efeito === 'confete' || efeito === 'carimbo') p.style.background = agPega(['#ffd23f', '#ff5a5f', '#3ad0c0', '#6a8aff', '#7ad84a', '#ff9a3a']);
+    ov.append(p);
+  }
+  document.body.append(ov); try { som(efeito === 'moedas' ? 'moeda' : 'nivel'); } catch (e) { }
+  return ov;
+}
+function agMostraFila() { const a = agDados(); if (!a || !a.fila || !a.fila.length) return; const c = a.fila.shift(); setTimeout(() => agCelebra(...c), 350); }
+function agHall(j, como) {
+  const a = agDados(); a.hall = a.hall || [];
+  if (a.hall.some(h => h.id === j.id)) return;
+  a.hall.unshift({ id: j.id, nome: j.nome, pos: j.pos, ovr: Math.max(j.ovr, j.ovrMax || 0), venda: j.vendaMax || 0, clube: j.clube ? j.clube.nome : '', como, look: j.look });
+  a.hall.sort((x, y) => y.ovr - x.ovr || y.venda - x.venda); a.hall = a.hall.slice(0, 12);
 }
 
 /* ---------- telas ---------- */
@@ -307,58 +363,80 @@ const agFaseTxt = j => ({ achado: 'Descoberto', treino: 'Treinando', escolinha: 
 function agCabecalho() {
   const a = agDados(); const prox = Math.max(0, AG_PERIODO - (Date.now() - a.ultimo));
   return el('div', { class: 'ag-cab' },
-    el('div', {}, el('b', { class: 'ag-nome' }, `⭐ ${a.nome}`), el('small', {}, `${agRepTxt()} · ${fmt(a.rep)} pts de reputação`)),
+    el('div', { class: 'ag-cab-id' }, agImg('ag_brasao', 'ag-brasao'), el('div', {}, el('b', { class: 'ag-nome' }, a.nome), el('small', {}, `${agRepTxt()} · ${fmt(a.rep)} pts de reputação`))),
     el('div', { class: 'ag-num' }, el('span', {}, `👤 ${a.jogadores.length}/${agMaxJogadores()} jogadores`), el('span', {}, `💼 ${agFmt(a.totais.transf)} em transferências`), el('span', {}, `💰 ${agFmt(a.totais.comissao)} de comissões`), el('span', {}, `🔎 ${a.totais.descobertas} descobertos`), el('span', { title: 'Cada período = 3 meses na vida dos jogadores' }, `⏳ próximo período em ${Math.ceil(prox / 60000)} min`)));
 }
 function abreAgencia(aba) {
   const s = G.save; if (!s) return;
-  if (!agLiberada()) { abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('p', {}, `🔒 A Agência abre no nível ${AG_NIVEL}... ou antes, se você zerar os outros modos:`), el('ul', {}, el('li', {}, `${agZerouCarreira() ? '✅' : '⬜'} Carreira: ser campeão da ${CARR_TIERS[CARR_TIER_MAX].liga}`), el('li', {}, `${agZerouClube() ? '✅' : '⬜'} Clube: ser campeão do Mundial Interclubes`)), el('p', { class: 'dica' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima." Aqui você vira EMPRESÁRIO: descobre garotos e garotas talentosos, cuida da carreira deles, negocia contratos e transferências.'), el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Ok'))); return; }
+  if (!agLiberada()) { abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('div', { class: 'ag-capa trava' }, agImg('cap_ag_escritorio'), el('span', {}, '🔒')), el('p', {}, `🔒 A Agência abre no nível ${AG_NIVEL}... ou antes, se você zerar os outros modos:`), el('ul', {}, el('li', {}, `${agZerouCarreira() ? '✅' : '⬜'} Carreira: ser campeão da ${CARR_TIERS[CARR_TIER_MAX].liga}`), el('li', {}, `${agZerouClube() ? '✅' : '⬜'} Clube: ser campeão do Mundial Interclubes`)), el('p', { class: 'dica' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima." Aqui você vira EMPRESÁRIO: descobre garotos e garotas talentosos, cuida da carreira deles, negocia contratos e transferências.'), el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Ok'))); return; }
   let a = agDados();
   if (!a) {
-    abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('p', { style: 'font-size:17px' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima."'),
+    abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('div', { class: 'ag-capa' }, agImg('cap_ag_escritorio'), agEmbaixadinha(90)), el('p', { style: 'font-size:17px' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima."'),
       el('p', {}, 'Monte sua rede de olheiros, descubra talentos na várzea e nas escolinhas, coloque os garotos em testes, negocie contratos, venda para clubes do mundo inteiro... e construa a reputação de SUPERAGENTE.'),
       el('p', { class: 'dica' }, 'O tempo da agência anda no relógio de verdade: a cada 20 minutos passa um período (3 meses na vida dos jogadores), até com o jogo fechado.'),
-      el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', onclick: () => { agCria(); salvar(); abreAgencia('hoje'); } }, '🕴️ Abrir minha agência'), el('button', { class: 'btn', onclick: fechaModal }, 'Agora não')));
+      el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', onclick: () => { agCria(); salvar(); abreAgencia('hoje'); agCelebra('escritorio', `⭐ ${agDados().nome} ABRIU AS PORTAS!`, 'Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima.', 'confete'); } }, '🕴️ Abrir minha agência'), el('button', { class: 'btn', onclick: fechaModal }, 'Agora não')));
     return;
   }
   agTick(); AG_ABA = aba || AG_ABA;
   const abas = [['hoje', '☀️ Hoje'], ['talentos', '🔎 Talentos'], ['jogadores', '👤 Meus jogadores'], ['negocios', '💼 Negociações'], ['agencia', '🏢 Agência']];
-  const nav = el('div', { class: 'ag-abas' }, ...abas.map(([id, nome]) => { const n = id === 'hoje' ? a.eventos.filter(e => !e.visto).length : id === 'negocios' ? a.eventos.filter(e => e.acoes && !e.feito).length : 0; return el('button', { class: 'btn mini' + (AG_ABA === id ? ' amarelo' : ''), onclick: () => abreAgencia(id) }, nome + (n ? ` (${n})` : '')); }));
+  const nav = el('div', { class: 'ag-abas' }, ...abas.map(([id, nome]) => { const n = id === 'hoje' ? a.eventos.filter(e => !e.visto).length : id === 'negocios' ? a.eventos.filter(e => e.acoes === true && !e.feito).length : 0; return el('button', { class: 'btn mini' + (AG_ABA === id ? ' amarelo' : ''), onclick: () => abreAgencia(id) }, nome + (n ? ` (${n})` : '')); }));
   const corpo = el('div', { class: 'ag-corpo' }, ({ hoje: agTelaHoje, talentos: agTelaTalentos, jogadores: agTelaJogadores, negocios: agTelaNegocios, agencia: agTelaAgencia })[AG_ABA]());
   abreModal.largo = true; abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), agCabecalho(), nav, corpo, el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Fechar')));
   if (AG_ABA === 'hoje') { for (const e of a.eventos) e.visto = true; agAvisa(); }
+  agMostraFila();
 }
 function agTelaHoje() {
   const a = agDados(); const n = a.eventos.filter(e => !e.visto).length;
   const box = el('div', {}, el('h3', {}, `☀️ BOM DIA, EMPRESÁRIO${n ? ` — ${n} acontecimento(s) novo(s)` : ''}`));
-  if (!a.eventos.length) box.append(el('p', { class: 'vazio' }, 'Nada de novo por enquanto. Mande um olheiro procurar talentos!'));
+  if (!a.eventos.length) box.append(el('div', { class: 'ag-vazio' }, agEmbaixadinha(), el('p', {}, 'Nada de novo por enquanto. Mande um olheiro procurar talentos!')));
   const lista = el('div', { class: 'lista' });
   for (const e of a.eventos.slice(0, 14)) {
     const j = e.jog && agJog(e.jog);
     const acoes = e.feito ? el('small', { class: 'ag-res' }, e.resultado || '✔ resolvido') : e.acoes === true ? el('button', { class: 'btn amarelo mini', onclick: () => abreAgencia('negocios') }, 'Ver proposta') :
-      Array.isArray(e.acoes) ? el('div', { class: 'ag-acoes' }, ...e.acoes.map(([nome, custo], k) => el('button', { class: 'btn mini', onclick: () => { agResolveProblema(e, k); abreAgencia('hoje'); } }, nome + (custo ? ` (${agFmt(custo)})` : '')))) : '';
-    lista.append(el('div', { class: 'linha-item ag-ev' + (e.visto ? '' : ' novo') }, j ? agRetrato(j, 44) : el('span', { class: 'ag-ic' }, '🕴️'), el('div', { class: 'nm' }, el('span', {}, e.txt), acoes)));
+      Array.isArray(e.acoes) ? el('div', { class: 'ag-acoes' }, ...e.acoes.map(([nome, custo], k) => el('button', { class: 'btn mini', onclick: () => { agResolveProblema(e, k); abreAgencia('hoje'); if (e.feito && k === 0 && /saudade/.test(e.txt) && j) agCelebra('saudade', '🏠 A família chegou!', `${j.nome} ganhou a visita da família e voltou a sorrir.`, 'confete', j); } }, nome + (custo ? ` (${agFmt(custo)})` : '')))) : '';
+        const ic = AG_EV_ARTE[e.tipo] || (e.tipo === 'evolucao' ? null : 'ag_brasao');
+    const fig = j ? el('div', { class: 'ag-fig' }, agRetrato(j, 44), ic ? agImg(ic, 'ag-selo') : '') : el('div', { class: 'ag-fig' }, agImg(ic || 'ag_brasao', 'ag-ic-img'));
+    lista.append(el('div', { class: 'linha-item ag-ev' + (e.visto ? '' : ' novo') }, fig, el('div', { class: 'nm' }, el('span', {}, e.txt), acoes)));
   }
   box.append(lista); return box;
 }
+const AG_ESCOLHA = { reg: 'bairro' };
 function agTelaTalentos() {
   const a = agDados(), s = G.save, k = agNivelRep();
   const box = el('div');
   box.append(el('h3', {}, '🔎 Mandar um olheiro'));
-  const regSel = el('select', {}, ...AG_REGIOES.map(r => el('option', { value: r.id, disabled: k < r.rep ? 'disabled' : null }, `${r.nome}${k < r.rep ? ` (🔒 ${AG_REP[r.rep][1]})` : ''}`)));
-  const ols = AG_OLHEIROS.filter(o => a.olheiros[o[0]]);
-  const olSel = el('select', {}, ...ols.map(o => el('option', { value: o[0] }, `${o[1]} — ${agFmt(o[4])} tostões, ${o[5]} min`)));
   const ocupados = new Set(a.missoes.map(m => m.olheiro));
-  box.append(el('div', { class: 'ag-linha' }, 'Região: ', regSel, ' Olheiro: ', olSel, el('button', { class: 'btn amarelo', onclick: () => {
-    const ol = AG_OLHEIROS.find(o => o[0] === olSel.value), reg = AG_REGIOES.find(r => r.id === regSel.value);
-    if (!ol || !reg) return; if (ocupados.has(ol[0])) { log('Esse olheiro já está viajando.', 'l-sis'); return; }
-    if (reg.fora && ol[0] !== 'internacional' && ol[0] !== 'lendario') { log('Para fora do Brasil, mande o olheiro internacional (ou o lendário).', 'l-sis'); return; }
-    if (s.ouro < ol[4]) { log('Tostões insuficientes.', 'l-dano'); return; }
-    s.ouro -= ol[4]; a.missoes.push({ olheiro: ol[0], regiao: reg.id, fim: Date.now() + ol[5] * 60000 }); log(`🔎 ${ol[1]} partiu para ${reg.nome}. Volta em ${ol[5]} minutos.`, 'l-xp'); salvar(); abreAgencia('talentos');
-  } }, 'Enviar')));
-  if (a.missoes.length) box.append(el('ul', { class: 'dica' }, ...a.missoes.map(m => el('li', {}, `${AG_OLHEIROS.find(o => o[0] === m.olheiro)[1]} em ${AG_REGIOES.find(r => r.id === m.regiao).nome}: volta em ${Math.max(1, Math.ceil((m.fim - Date.now()) / 60000))} min`))));
+  // escolha por cartões: primeiro a REGIÃO, depois o OLHEIRO (os que não podem ir ficam apagados com o motivo)
+  const pode = (o, r) => !r.fora || o[0] === 'internacional' || o[0] === 'lendario';
+  if (!AG_REGIOES.some(r => r.id === AG_ESCOLHA.reg && k >= r.rep)) AG_ESCOLHA.reg = 'bairro';
+  const regs = el('div', { class: 'ag-cartoes ag-regs' }, ...AG_REGIOES.map(r => {
+    const trava = k < r.rep;
+    return el('button', { class: 'ag-cartao' + (trava ? ' trava' : '') + (AG_ESCOLHA.reg === r.id ? ' sel' : ''), type: 'button', disabled: trava ? 'disabled' : null, onclick: () => { AG_ESCOLHA.reg = r.id; abreAgencia('talentos'); } },
+      agImg(AG_REG_ARTE[r.id], 'ag-cartao-img'), el('b', {}, r.nome.replace(/^\S+\s/, '')), el('small', {}, trava ? `🔒 ${AG_REP[r.rep][1]}` : `potencial até ~${r.pot[1]}${r.fora ? ' · ✈️' : ''}`));
+  }));
+  const regSel = AG_REGIOES.find(r => r.id === AG_ESCOLHA.reg);
+  const ols = el('div', { class: 'ag-cartoes ag-ols' }, ...AG_OLHEIROS.filter(o => a.olheiros[o[0]]).map(o => {
+    const viajando = ocupados.has(o[0]), naoVai = !pode(o, regSel), pobre = s.ouro < o[4];
+    const motivo = viajando ? '🧳 viajando' : naoVai ? '✈️ só no Brasil' : pobre ? '💸 sem tostões' : `${agFmt(o[4])} · ${o[5]} min`;
+    return el('button', { class: 'ag-cartao ag-ol' + (viajando || naoVai || pobre ? ' trava' : ''), type: 'button', title: o[1], onclick: () => {
+      if (viajando) { log('Esse olheiro já está viajando.', 'l-sis'); return; }
+      if (naoVai) { log('Para fora do Brasil, mande o olheiro internacional (ou o lendário).', 'l-sis'); return; }
+      if (s.ouro < o[4]) { log('Tostões insuficientes.', 'l-dano'); return; }
+      s.ouro -= o[4]; a.missoes.push({ olheiro: o[0], regiao: regSel.id, fim: Date.now() + o[5] * 60000, ini: Date.now() }); log(`🔎 ${o[1]} partiu para ${regSel.nome}. Volta em ${o[5]} minutos.`, 'l-xp'); try { som('moeda'); } catch (e) { } salvar(); abreAgencia('talentos');
+    } }, agImg(AG_OL_ARTE[o[0]], 'ag-ol-img'), el('b', {}, o[1].replace(/^\S+\s/, '')), el('small', {}, motivo));
+  }));
+  box.append(el('p', { class: 'ag-passo' }, '1️⃣ Escolha a região:'), regs, el('p', { class: 'ag-passo' }, `2️⃣ Toque no olheiro para mandá-lo a ${regSel.nome}:`), ols);
+  // olheiros na estrada: o bonequinho anda até a região (a animação continua sozinha até a hora de voltar)
+  if (a.missoes.length) box.append(el('div', { class: 'ag-viagens' }, ...a.missoes.map(m => {
+    const o = AG_OLHEIROS.find(x => x[0] === m.olheiro), r = AG_REGIOES.find(x => x.id === m.regiao);
+    const total = Math.max(1, m.fim - (m.ini || m.fim - o[5] * 60000)), falta = Math.max(0, m.fim - Date.now()), feito = clamp(1 - falta / total, 0, 1);
+    const anda = el('div', { class: 'ag-anda' }, agImg(AG_OL_ARTE[o[0]], 'ag-anda-img'));
+    anda.style.setProperty('--de', (feito * 100).toFixed(1) + '%'); anda.style.animationDuration = Math.max(1, falta / 1000).toFixed(0) + 's';
+    return el('div', { class: 'ag-viagem' }, el('div', { class: 'ag-estrada' }, anda, agImg(AG_REG_ARTE[r.id], 'ag-destino')),
+      el('small', {}, `${o[1]} → ${r.nome} · volta em ${Math.max(1, Math.ceil(falta / 60000))} min`));
+  })));
   box.append(el('h3', {}, `🧒 Talentos encontrados (${a.achados.length})`));
-  if (!a.achados.length) box.append(el('p', { class: 'vazio' }, 'Nenhum talento esperando. Os olheiros trazem garotos e garotas de 14 a 16 anos.'));
+  if (!a.achados.length) box.append(el('div', { class: 'ag-vazio' }, agEmbaixadinha(), el('p', {}, 'Nenhum talento esperando. Os olheiros trazem garotos e garotas de 14 a 16 anos.')));
   const lista = el('div', { class: 'lista' });
   for (const j of a.achados) {
     const custoAval = Math.max(80000, Math.round(agValor(j) * 0.4)), custoAss = Math.max(50000, Math.round(agValor(j) * 0.6));
@@ -373,7 +451,7 @@ function agTelaTalentos() {
 }
 function agTelaJogadores() {
   const a = agDados(), s = G.save; const box = el('div');
-  if (!a.jogadores.length) { box.append(el('p', { class: 'vazio' }, 'Você ainda não representa ninguém. Encontre talentos na aba 🔎 Talentos.')); return box; }
+  if (!a.jogadores.length) { box.append(el('div', { class: 'ag-vazio' }, agEmbaixadinha(), el('p', {}, 'Você ainda não representa ninguém. Encontre talentos na aba 🔎 Talentos.'))); return box; }
   for (const j of a.jogadores) {
     const atr = el('div', { class: 'ag-atr' }, ...Object.entries(AG_ATR).map(([k, n]) => el('span', {}, `${n}: ${j.atr[k]}`)));
     const acoes = el('div', { class: 'ag-acoes' });
@@ -381,17 +459,23 @@ function agTelaJogadores() {
       const custoEsc = Math.max(150000, Math.round(agValor(j) * 0.5));
       acoes.append(el('button', { class: 'btn mini', onclick: () => { if (s.ouro < custoEsc) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= custoEsc; j.fase = 'escolinha'; j.escolinha = 4; agHist(j, 'entrou numa escolinha (1 ano)'); salvar(); abreAgencia('jogadores'); } }, `🏫 Escolinha por 1 ano (${agFmt(custoEsc)})`));
       if (j.idade >= 15 && j.testePer === a.nPer) acoes.append(el('small', {}, '🏟️ Já fez um teste neste período. Próximo teste no próximo período.'));
-      else if (j.idade >= 15) for (const c of agClubesParaTeste(j)) acoes.append(el('button', { class: 'btn mini amarelo', onclick: () => { agFazTeste(j, c); abreAgencia('jogadores'); } }, `🏟️ Teste no ${c.nome} (${c.chance}%)`));
+      else if (j.idade >= 15) for (const c of agClubesParaTeste(j)) acoes.append(el('button', { class: 'btn mini amarelo', onclick: () => { agFazTeste(j, c); abreAgencia('jogadores'); if (j.fase === 'base') agCelebra('teste', `✅ ${j.nome} foi aprovado(a)!`, `Vai jogar na base do ${j.clube.nome}. Agora é treinar e esperar o primeiro contrato profissional.`, 'carimbo', j); } }, `🏟️ Teste no ${c.nome} (${c.chance}%)`));
       else acoes.append(el('small', {}, 'Testes em clubes a partir dos 15 anos.'));
     }
     if (j.fase === 'base' && j.idade >= 16.5 && !a.eventos.some(e => e.jog === j.id && e.tipo === 'contrato' && !e.feito)) acoes.append(el('button', { class: 'btn mini amarelo', onclick: () => { agPropostaContrato(j, j.clube, false); abreAgencia('negocios'); } }, '📑 Pedir o contrato profissional'));
     if (j.fase === 'pro') acoes.append(el('small', {}, `Salário ${agFmt(j.salario)}/mês · comissão ${j.comissao}% · contrato: ${Math.max(0, Math.ceil((j.contratoAte - (a.nPer || 0)) / 4))} ano(s) · valor ${agFmt(agValor(j))}`));
-    acoes.append(el('button', { class: 'btn mini', onclick: () => { if (!confirm(`Encerrar a representação de ${j.nome}?`)) return; a.jogadores.splice(a.jogadores.indexOf(j), 1); salvar(); abreAgencia('jogadores'); } }, 'Encerrar'));
+    acoes.append(el('button', { class: 'btn mini', onclick: () => { if (!confirm(`Encerrar a representação de ${j.nome}?`)) return; if (j.fase === 'pro') agHall(j, 'saiu da agência'); a.jogadores.splice(a.jogadores.indexOf(j), 1); salvar(); abreAgencia('jogadores'); } }, 'Encerrar'));
     box.append(el('div', { class: 'linha-item ag-jog' }, agRetrato(j, 72),
       el('div', { class: 'nm' }, el('b', {}, `${j.nome} — ${Math.floor(j.idade)} anos · ${AG_POS[j.pos][0]} · Overall ${j.ovr}`), el('small', {}, `${agFaseTxt(j)} · ${agEstrelasPot(j)} · ${AG_PERS[j.pers].nome} · moral ${Math.round(j.moral)} · fama ${Math.round(j.fama || 0)}${j.parado ? ' · 🤕 parado' : ''}`),
         atr, acoes, j.hist.length ? el('small', { class: 'ag-hist' }, '📜 ' + j.hist.slice(0, 3).join(' · ')) : '')));
   }
   return box;
+}
+function agComemoraNegocio(e, j) {
+  if (!e.feito || !e.resultado || !j) return;
+  if (e.tipo === 'contrato' && !e.renova && j.fase === 'pro' && e.resultado.startsWith('🤝')) agCelebra('contrato', `📑 ${j.nome} virou PROFISSIONAL!`, `Contrato assinado com o ${e.clube.nome}. A família inteira veio comemorar!`, 'confete', j);
+  else if (e.tipo === 'transferencia' && e.resultado.startsWith('💼')) agCelebra('transferencia', `💼 ${j.nome} → ${e.clube.nome}!`, e.resultado.replace(/^💼 TRANSFERÊNCIA FECHADA: /, ''), 'moedas', j);
+  else if (e.tipo === 'patrocinio' && e.resultado.startsWith('📣')) agCelebra('patrocinio', `📣 ${j.nome} é garoto(a)-propaganda!`, e.resultado.replace(/^📣 /, ''), 'flash', j);
 }
 function agTelaNegocios() {
   const a = agDados(); const box = el('div'); const abertas = a.eventos.filter(e => e.acoes === true && !e.feito);
@@ -406,16 +490,16 @@ function agTelaNegocios() {
       const com = el('select', {}, ...[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(n => el('option', { value: n, selected: n === o.com ? 'selected' : null }, `${n}%`)));
       nm.append(el('div', { class: 'ag-linha' }, 'Salário/mês: ', sal, ' Duração: ', anos, ' Sua comissão: ', com),
         el('div', { class: 'ag-acoes' },
-          el('button', { class: 'btn amarelo mini', onclick: () => { agFechaContrato(j, e, { salario: o.salario, anos: o.anos, com: o.com }); salvar(); abreAgencia('negocios'); } }, '✅ Aceitar'),
-          el('button', { class: 'btn mini', onclick: () => { agNegocia(e, { salario: +sal.value || o.salario, anos: +anos.value, com: +com.value }); abreAgencia('negocios'); } }, '💬 Contraproposta'),
+          el('button', { class: 'btn amarelo mini', onclick: () => { agFechaContrato(j, e, { salario: o.salario, anos: o.anos, com: o.com }); salvar(); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '✅ Aceitar'),
+          el('button', { class: 'btn mini', onclick: () => { agNegocia(e, { salario: +sal.value || o.salario, anos: +anos.value, com: +com.value }); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '💬 Contraproposta'),
           el('button', { class: 'btn mini', onclick: () => { e.feito = true; e.resultado = 'Você recusou a proposta.'; if (e.renova) { j.fase = 'treino'; j.clube = null; j.salario = 0; } salvar(); abreAgencia('negocios'); } }, '❌ Recusar')));
     } else {
       const val = el('input', { type: 'number', value: Math.round(o.valor * 1.2), step: Math.max(1000, Math.round(o.valor / 20)), style: 'width:140px' });
-      const aceitar = () => { if (e.tipo === 'transferencia') agVende(j, e, o.valor); else agPatrocinioFecha(j, e, o.valor); salvar(); abreAgencia('negocios'); };
+      const aceitar = () => { if (e.tipo === 'transferencia') agVende(j, e, o.valor); else agPatrocinioFecha(j, e, o.valor); salvar(); abreAgencia('negocios'); agComemoraNegocio(e, j); };
       nm.append(el('small', {}, e.tipo === 'transferencia' ? `Valor de mercado estimado: ${agFmt(agValor(j))} · comissão ${Math.max(5, j.comissao || 10)}%` : 'Sua parte: 20% do patrocínio.'),
         el('div', { class: 'ag-acoes' },
           el('button', { class: 'btn amarelo mini', onclick: aceitar }, e.tipo === 'transferencia' ? '✅ Vender' : '✅ Aceitar'),
-          el('span', {}, ' Pedir: '), val, el('button', { class: 'btn mini', onclick: () => { agNegocia(e, { valor: +val.value || o.valor }); abreAgencia('negocios'); } }, '💬 Negociar'),
+          el('span', {}, ' Pedir: '), val, el('button', { class: 'btn mini', onclick: () => { agNegocia(e, { valor: +val.value || o.valor }); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '💬 Negociar'),
           el('button', { class: 'btn mini', onclick: () => { e.feito = true; e.resultado = 'Você recusou.'; salvar(); abreAgencia('negocios'); } }, '❌ Recusar')));
     }
     box.append(card);
@@ -430,11 +514,23 @@ function agTelaAgencia() {
   const lo = el('div', { class: 'lista' });
   for (const o of AG_OLHEIROS) {
     const tem = a.olheiros[o[0]], trava = k < o[2];
-    lo.append(el('div', { class: 'linha-item' + (trava ? ' bloq' : '') }, el('div', { class: 'nm' }, el('b', {}, o[1]), el('small', {}, `Missão: ${agFmt(o[4])} tostões, ${o[5]} min · ${o[0] === 'base' ? 'encontra jogadores comuns' : o[0] === 'especialista' ? 'mais chance de achar talentos' : o[0] === 'internacional' ? 'vai à América do Sul e à Europa' : 'chance pequena de achar um FENÔMENO'}`)),
+    lo.append(el('div', { class: 'linha-item' + (trava ? ' bloq' : '') }, agImg(AG_OL_ARTE[o[0]], 'ag-ol-mini'), el('div', { class: 'nm' }, el('b', {}, o[1]), el('small', {}, `Missão: ${agFmt(o[4])} tostões, ${o[5]} min · ${o[0] === 'base' ? 'encontra jogadores comuns' : o[0] === 'especialista' ? 'mais chance de achar talentos' : o[0] === 'internacional' ? 'vai à América do Sul e à Europa' : 'chance pequena de achar um FENÔMENO'}`)),
       tem ? el('b', {}, '✔ Contratado') : trava ? el('small', {}, `🔒 ${AG_REP[o[2]][1]}`) : el('button', { class: 'btn amarelo mini', onclick: () => { if (s.ouro < o[3]) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= o[3]; a.olheiros[o[0]] = 1; log(`🕴️ ${o[1]} contratado!`, 'l-loot'); salvar(); abreAgencia('agencia'); } }, `Contratar (${agFmt(o[3])})`)));
   }
   box.append(lo, el('h3', {}, '🏆 Títulos'));
-  box.append(el('div', { class: 'lista' }, ...AG_TITULOS.map(([id, nome, desc]) => el('div', { class: 'linha-item' + (a.titulos[id] ? '' : ' bloq') }, el('div', { class: 'nm' }, el('b', {}, `${a.titulos[id] ? '✅' : '⬜'} ${nome}`), el('small', {}, desc))))));
+  box.append(el('div', { class: 'ag-medalhas' }, ...AG_TITULOS.map(([id, nome, desc]) => el('div', { class: 'ag-medalha' + (a.titulos[id] ? ' tem' : ''), title: desc }, agImg(AG_TIT_ARTE[id], 'ag-med-img'), el('b', {}, nome.replace(/^\S+\s/, '')), el('small', {}, a.titulos[id] ? '✅ conquistado' : desc)))));
+  // 📸 álbum: as cenas que você já viveu (toque para ver de novo)
+  const alb = a.album || {}, nAlb = AG_ALBUM.filter(([c]) => alb[c]).length;
+  box.append(el('h3', {}, `📸 Álbum da Agência (${nAlb}/${AG_ALBUM.length})`));
+  box.append(el('div', { class: 'ag-album' }, ...AG_ALBUM.map(([c, leg, como]) => alb[c]
+    ? el('button', { class: 'ag-foto', type: 'button', onclick: () => agCelebra(c, leg, '', 'confete') }, agImg('cap_ag_' + c), el('span', {}, leg))
+    : el('div', { class: 'ag-foto trava', title: como }, el('div', { class: 'ag-foto-vazia' }, '❔'), el('span', {}, como)))));
+  // 🏛️ hall da fama: quem já passou pela agência (aposentados e quem saiu), pelo melhor overall
+  const hall = a.hall || [];
+  box.append(el('h3', {}, '🏛️ Hall da Fama'));
+  if (!hall.length) box.append(el('p', { class: 'vazio' }, 'Quando um craque seu se aposentar (ou sair da agência como profissional), ele ganha um lugar aqui.'));
+  else box.append(el('div', { class: 'lista' }, ...hall.map((h, i) => el('div', { class: 'linha-item' }, el('b', { class: 'pos-tag' }, i + 1), agRetrato(h, 44),
+    el('div', { class: 'nm' }, el('b', {}, `${h.nome} · ${AG_POS[h.pos] ? AG_POS[h.pos][0] : ''} · overall máximo ${h.ovr}`), el('small', {}, `${h.como}${h.clube ? ' · último clube: ' + h.clube : ''}${h.venda ? ' · maior venda: ' + agFmt(h.venda) : ''}`))))));
   box.append(el('p', { class: 'dica' }, 'Os profissionais que você representa aparecem no Mercado do seu clube (modo Time) — dá para contratar os seus próprios craques! (Cada craque só aceita um clube à altura dele.)'));
   return box;
 }
@@ -502,6 +598,94 @@ if (typeof telaMercado === 'function') {
   .ag-ic { font-size: 28px; width: 44px; text-align: center; }
   .ag-res { color: #2a7a3a; font-weight: 700; }
   .ag-hist { opacity: .75; }
+  /* v324: arte e animações */
+  .ag-cab { background: linear-gradient(90deg, rgba(34,18,80,.94), rgba(60,30,120,.78)), url(a/cap_ag_escritorio.webp) center 35% / cover; }
+  .ag-cab-id { display: flex; align-items: center; gap: 10px; }
+  .ag-brasao { width: 46px; height: auto; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); animation: agBrilha 4s ease-in-out infinite; }
+  @keyframes agBrilha { 0%,100% { transform: rotate(-4deg) scale(1); } 50% { transform: rotate(4deg) scale(1.06); } }
+  .ag-fig { position: relative; flex-shrink: 0; width: 48px; display: flex; justify-content: center; }
+  .ag-selo { position: absolute; right: -8px; bottom: -6px; width: 26px; height: auto; filter: drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
+  .ag-ic-img { width: 42px; height: auto; }
+  .ag-ev.novo .ag-selo, .ag-ev.novo .ag-ic-img { animation: agPula 1.2s ease-in-out infinite; }
+  @keyframes agPula { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .ag-embx { --alt: 110px; width: calc(var(--alt) / 2); height: var(--alt); flex-shrink: 0; background: url(a/a_embaixadinha.webp) 0 0 / calc(var(--alt) * 2) var(--alt) no-repeat; animation: agEmbx .95s steps(4) infinite; }
+  @keyframes agEmbx { to { background-position: calc(var(--alt) * -2) 0; } }
+  .ag-vazio { display: flex; align-items: center; gap: 14px; padding: 6px 4px; }
+  .ag-vazio p { margin: 0; opacity: .85; }
+  .ag-passo { margin: 6px 0 4px; font-weight: 700; }
+  .ag-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+  .ag-cartao { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; border-radius: 12px; border: 2px solid #c8a46a; background: #fff8e6; cursor: pointer; font: inherit; color: inherit; transition: transform .12s, box-shadow .12s; }
+  .ag-cartao:hover:not([disabled]) { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,.18); }
+  .ag-cartao.sel { border-color: #e0a000; background: #fff0b8; box-shadow: 0 0 0 3px rgba(255,200,40,.55); }
+  .ag-cartao.trava { opacity: .55; filter: grayscale(.7); }
+  .ag-cartao b { font-size: 13px; text-align: center; }
+  .ag-cartao small { font-size: 11px; text-align: center; opacity: .85; }
+  .ag-cartao-img { width: 92px; height: 80px; object-fit: contain; }
+  .ag-ol-img { width: 70px; height: 96px; object-fit: contain; }
+  .ag-ol:not(.trava):hover .ag-ol-img { animation: agPula .5s ease-in-out infinite; }
+  .ag-ol-mini { width: 40px; height: 54px; object-fit: contain; flex-shrink: 0; }
+  .ag-viagens { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .ag-viagem small { display: block; text-align: center; font-weight: 700; }
+  .ag-estrada { position: relative; height: 64px; border-radius: 32px; background: repeating-linear-gradient(90deg, #d8b878 0 18px, #c9a35e 18px 22px); border: 2px solid #a8844a; overflow: hidden; }
+  .ag-estrada::after { content: ''; position: absolute; left: 0; right: 60px; top: 50%; border-top: 3px dashed rgba(255,255,255,.75); }
+  .ag-anda { position: absolute; bottom: 2px; left: 0; width: 44px; z-index: 1; animation-name: agViaja; animation-timing-function: linear; animation-fill-mode: forwards; }
+  .ag-anda-img { width: 44px; height: 58px; object-fit: contain; display: block; animation: agPasso .45s ease-in-out infinite alternate; }
+  @keyframes agViaja { from { left: calc(var(--de) * 0.85); } to { left: calc(100% - 104px); } }
+  @keyframes agPasso { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-4px) rotate(3deg); } }
+  .ag-destino { position: absolute; right: 4px; top: 2px; width: 58px; height: 58px; object-fit: contain; }
+  .ag-medalhas { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .ag-medalha { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding: 8px 6px; border-radius: 12px; background: #fff8e6; border: 2px solid #d8c090; }
+  .ag-medalha:not(.tem) .ag-med-img { filter: grayscale(1) brightness(.75); opacity: .55; }
+  .ag-medalha.tem { border-color: #e0a000; background: linear-gradient(#fff6c8, #ffe9a0); }
+  .ag-medalha.tem .ag-med-img { animation: agBrilha 3s ease-in-out infinite; }
+  .ag-med-img { width: 64px; height: 72px; object-fit: contain; }
+  .ag-medalha small { font-size: 11px; opacity: .85; }
+  .ag-album { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .ag-foto { display: flex; flex-direction: column; gap: 3px; padding: 4px; border-radius: 10px; border: 2px solid #c8a46a; background: #fff; font: inherit; font-size: 12px; font-weight: 700; color: inherit; cursor: pointer; text-align: center; }
+  .ag-foto img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 7px; }
+  .ag-foto.trava { cursor: default; font-weight: 400; opacity: .75; }
+  .ag-foto-vazia { aspect-ratio: 16 / 9; border-radius: 7px; background: repeating-linear-gradient(45deg, #e8dcc0 0 10px, #ddd0b0 10px 20px); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .ag-capa { position: relative; display: flex; align-items: flex-end; justify-content: flex-end; border-radius: 12px; overflow: hidden; margin: 6px 0; }
+  .ag-capa > img { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; display: block; }
+  .ag-capa .ag-embx { position: absolute; right: 14px; bottom: 6px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
+  .ag-capa.trava > img { filter: grayscale(.85) brightness(.7); }
+  .ag-capa.trava span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 54px; }
+  /* tela cheia das comemorações */
+  .ag-show { position: fixed; inset: 0; z-index: 9000; background: rgba(8,4,24,.82); display: flex; align-items: center; justify-content: center; padding: 14px; overflow: hidden; cursor: pointer; animation: agEntra .35s ease-out; }
+  .ag-show.sai { animation: agSai .26s ease-in forwards; }
+  @keyframes agEntra { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes agSai { to { opacity: 0; } }
+  .ag-show-quadro { position: relative; width: min(860px, 100%); animation: agSobe .55s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes agSobe { from { transform: translateY(40px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+  .ag-show-moldura { border-radius: 16px; overflow: hidden; border: 4px solid #ffd23f; box-shadow: 0 0 0 4px #7a4a10, 0 14px 40px rgba(0,0,0,.6); }
+  .ag-show-img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; animation: agZoom 9s ease-out forwards; }
+  @keyframes agZoom { from { transform: scale(1.12); } to { transform: scale(1); } }
+  .ag-show-txt { margin: -26px auto 0; position: relative; width: min(92%, 640px); background: #fff6e0; border: 3px solid #7a4a10; border-radius: 14px; padding: 10px 14px; text-align: center; color: #3a2210; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+  .ag-show-txt b { font-size: clamp(17px, 3.4vw, 24px); display: block; }
+  .ag-show-txt p { margin: 4px 0; }
+  .ag-show-txt small { opacity: .6; }
+  .ag-show-ret { position: absolute; left: 3%; top: 5%; display: flex; flex-direction: column; align-items: center; animation: agMedalhao .5s .3s cubic-bezier(.3,1.6,.5,1) both; }
+  @keyframes agMedalhao { from { transform: scale(2.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .ag-show-ret canvas { width: clamp(64px, 13vw, 104px); height: auto; aspect-ratio: 4 / 5; border-radius: 50% 50% 14px 14px; border: 4px solid #ffd23f; box-shadow: 0 0 0 3px #7a4a10, 0 6px 14px rgba(0,0,0,.5); background: radial-gradient(circle at 50% 35%, #8ae88a, #2e8a3a 70%); }
+  .ag-show-ret b { margin-top: -10px; background: #7a4a10; color: #fff6e0; border-radius: 8px; padding: 1px 8px; font-size: 13px; position: relative; }
+  .ag-carimbo { position: absolute; top: 12%; right: 6%; padding: 6px 18px; border: 6px solid #2aa84a; border-radius: 12px; color: #2aa84a; font-weight: 900; font-size: clamp(26px, 6vw, 54px); letter-spacing: .06em; background: rgba(255,255,255,.88); transform: rotate(-14deg); animation: agCarimbo .5s .45s cubic-bezier(.3,1.6,.5,1) both; }
+  @keyframes agCarimbo { from { transform: rotate(-14deg) scale(3); opacity: 0; } to { transform: rotate(-14deg) scale(1); opacity: 1; } }
+  .ag-p { position: absolute; top: -20px; width: 10px; height: 14px; border-radius: 2px; pointer-events: none; animation-name: agCai; animation-timing-function: linear; animation-iteration-count: infinite; }
+  @keyframes agCai { from { transform: translateY(0) rotate(0); } to { transform: translateY(110vh) rotate(720deg); } }
+  .ag-ef-moedas .ag-p { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff6a0, #ffc21a 45%, #b07a00); border: 2px solid #8a5a00; }
+  .ag-ef-flash .ag-p { width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,0) 65%); animation-name: agFlash; animation-iteration-count: infinite; }
+  @keyframes agFlash { 0%, 70%, 100% { opacity: 0; transform: scale(.4); } 80% { opacity: 1; transform: scale(1); } }
+  @media (max-width: 560px) {
+    .ag-cartoes { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .ag-cartao { padding: 4px 2px 6px; }
+    .ag-cartao-img { width: 60px; height: 52px; }
+    .ag-ol-img { width: 48px; height: 66px; }
+    .ag-cartao b { font-size: 11.5px; } .ag-cartao small { font-size: 10px; }
+    .ag-medalhas { grid-template-columns: repeat(2, 1fr); } .ag-album { grid-template-columns: repeat(2, 1fr); }
+    .ag-estrada { height: 54px; } .ag-destino { width: 48px; height: 48px; }
+    .ag-brasao { width: 38px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ag-p, .ag-embx, .ag-anda, .ag-anda-img, .ag-brasao, .ag-show-img { animation: none !important; } }
   `;
   document.head.append(st);
 })();
