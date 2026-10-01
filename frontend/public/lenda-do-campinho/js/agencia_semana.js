@@ -14,13 +14,13 @@
    Carregar DEPOIS de agencia_modelo.js.
    ============================================================ */
 const AGM_ACOES = { // [nome, custo, fadiga, efeito, vai na rotina?]
-  treino: ['🎯 Treino específico', 80000, 20, '+1 a +2 no atributo escolhido (rende menos perto do teto)', 1],
-  fisico: ['🏃 Treino físico', 30000, 15, '+Físico e menos risco de lesão no futuro', 1],
+  treino: ['🎯 Treino específico', 40000, 20, '+1 a +2 no atributo escolhido (rende menos perto do teto)', 1],
+  fisico: ['🏃 Treino físico', 15000, 15, '+Físico e menos risco de lesão no futuro', 1],
   descanso: ['😴 Descanso', 0, -40, 'Fadiga −40, Moral +5', 1],
   visita: ['🏠 Visita à família', 0, 0, 'Confiança +8, Moral +10', 1],
   jogo: ['⚽ Jogo de campeonato', 0, 10, '+Visibilidade e forma', 1],
   redes: ['📱 Conteúdo para redes', 0, 0, '+Visibilidade (repetir em menos de 4 semanas: −Disciplina)', 1],
-  mentor: ['🧠 Mentor / psicólogo esportivo', 150000, 0, '+Estabilidade emocional, −Temperamento', 1],
+  mentor: ['🧠 Mentor / psicólogo esportivo', 60000, 0, '+Estabilidade emocional, −Temperamento', 1],
 };
 let AGM_GANHO_BASE = 0.6, AGM_AUTO = 0.75, AGM_FADIGA_LIMITE = 70, AGM_ESPERA_CANDIDATO = 8;
 const AGM_TREINA = new Set(['treino', 'fisico', 'jogo']); // não dá com lesão
@@ -144,6 +144,7 @@ const AGM_CARTAS = {
 function agmCarta(a, tipo, dados, lin) { (a.cartas = a.cartas || []).push({ id: 'c' + a.seq++, tipo, dados, sem: a.semana }); a.cartas = a.cartas.slice(-6); if (lin) lin(`🃏 Decisão para você: ${AGM_CARTAS[tipo].titulo}`, 1); }
 function agmResolveCarta(a, id, k) { // k = índice da escolha; −1 = o padrão (esqueceu)
   const c = (a.cartas || []).find(x => x.id === id); if (!c) return null; const C = AGM_CARTAS[c.tipo]; a.cartas.splice(a.cartas.indexOf(c), 1);
+  if (k >= 0 && c.tipo.startsWith('ev_')) a.marcos.bons = (a.marcos.bons || 0) + 1; // v344: acontecimento resolvido por você conta na meta
   return C ? (k < 0 ? C.padrao(a, c.dados) : C.ops[k][1](a, c.dados)) : null;
 }
 function agmCartasEl(a) {
@@ -407,7 +408,19 @@ function agmTelaAgencia(a) {
 if (AGM_ATIVO) {
   const _agDadosV1 = agDados;
   agDados = function () { const s = G.save; if (!s) return null; if (s.agencia && typeof s.agencia === 'object' && s.agencia.v !== AGM_VERSAO) agmMigraSave(s); return s.agencia && typeof s.agencia === 'object' ? s.agencia : null; };
-  agCria = function () { const s = G.save; s.agencia = agmNovaAgencia((s.nome || 'Lenda').split(' ')[0].toUpperCase() + ' SPORTS'); return s.agencia; };
+  window.agCriaV1 = agCria; // (para os testes)
+  agCria = function () {
+    const s = G.save; s.agencia = agmNovaAgencia((s.nome || 'Lenda').split(' ')[0].toUpperCase() + ' SPORTS');
+    s.agencia.relatorios = [{ de: 0, ate: 0, visto: false, linhas: [ // boas-vindas: o ciclo da agência em 6 linhas
+      { txt: '☀️ Bem-vindo(a) à sua agência! Aqui o tempo anda em SEMANAS: uma a cada 5 minutos (e até 10 h com o jogo fechado).', imp: true },
+      { txt: '🔎 1) Mande o seu olheiro numa missão (aba 🔎 Olheiros). Ele volta com candidatos e um relatório com a faixa de potencial em estrelas.', imp: true },
+      { txt: '👪 2) Visite a família do candidato (gasta 1 ação): descubra o que ela precisa e monte o contrato certo.', imp: true },
+      { txt: '⚡ 3) Toda semana você tem ações para treinar, mostrar e cuidar dos garotos. O que sobrar vira a sua 🔁 Rotina (75%).', imp: true },
+      { txt: '🏟️ 4) Peneiras e testes levam à base de um clube; aos 17 vem o contrato profissional, depois patrocínios e transferências.', imp: true },
+      { txt: '🌍 5) O sonho: vender um garoto para a Europa. Ele vira Lenda da agência e passa a visitar o escritório na Vila!', imp: true },
+    ] }];
+    return s.agencia;
+  };
   agNivelRep = function () { const a = agDados(); return a ? a.nivel - 1 : 0; }; // (os troféus do escritório: nível 1 = nenhum)
   agTick = agmTick;
   const _abreV1 = abreAgencia;

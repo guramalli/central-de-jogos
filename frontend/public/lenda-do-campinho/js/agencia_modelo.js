@@ -12,11 +12,11 @@
    ATENÇÃO: nesta etapa NADA é ligado no jogo (AGM_ATIVO = false): a tela continua a da v333/v334.
    A conversão só roda quando a tela nova entrar (Etapa 2). Carregar DEPOIS de agencia.js.
    ============================================================ */
-// Etapa 2: liga SÓ no modo de teste (localStorage rac_agencia3 = '1') até todas as etapas ficarem prontas; no fim vira true
-const AGM_ATIVO = (() => { try { return localStorage.getItem('rac_agencia3') === '1'; } catch (e) { return false; } })();
+// v344: ligada para todo mundo (as 9 etapas prontas). localStorage rac_agencia3 = '0' volta para a agência antiga (só para testes)
+const AGM_ATIVO = (() => { try { return localStorage.getItem('rac_agencia3') !== '0'; } catch (e) { return true; } })();
 const AGM_VERSAO = 2;
 const AGM_SEMANA_MS = 5 * 60000, AGM_MAX_SEMANAS = 120; // decisão do dono: 1 semana = 5 min de relógio; fechado conta até 10 h
-const AGM_VALOR_BASE = 1000000; // o design usa 50.000 (R$); ajustado à economia de tostões do jogo
+const AGM_VALOR_BASE = 3000000; // v344: ×3 (venda à Europa ~60 milhões; a taxa paga a agência) // o design usa 50.000 (R$); ajustado à economia de tostões do jogo
 
 /* ---------- tabelas ---------- */
 const AGM_ATR = { fin: '🎯 Finalização', pas: '🎽 Passe', dri: '🌀 Drible', mar: '🛡️ Marcação', fis: '💪 Físico', vel: '⚡ Velocidade', ref: '🧤 Reflexos', psc: '📍 Posicionamento' };
@@ -165,7 +165,7 @@ function agmNovoCandidato(a, regiao, ol, filtro = {}) {
   // potencial real P (0,5–5): a maioria é comum; a "joia" (4★+) sai com a chance da região
   const P = Math.random() < reg[2] ? agmMeia(agRnd(4, 5)) : clamp(agmMeia(reg[6] + Math.pow(Math.random(), 1.4) * (3.5 - reg[6])), 0.5, 3.5);
   const anos = filtro.idade ? clamp(filtro.idade, 13, 16) : agRi(13, 16);
-  const j = { id: 'ag' + (a ? a.seq++ : Date.now()), v: AGM_VERSAO, nome: `${agPega(menina ? AG_NOMES_F : AG_NOMES_M)} ${agPega(AG_SOBRENOMES)}`, menina, pos, idadeSem: anos * 52 + agRi(0, 51), regiao,
+  const j = { id: 'ag' + (a ? a.seq++ : Date.now()), v: AGM_VERSAO, nome: `${agPega(menina ? AG_NOMES_F : AG_NOMES_M)} ${agPega(AG_SOBRENOMES)}`, menina, pos, idadeSem: anos * 52 + agRi(0, filtro.idade ? 40 : 51) /* (com filtro: não faz aniversário logo na chegada) */, regiao,
     P, atr: {}, faixa: null, pers: {}, revelados: [], especiais: [], estado: { moral: 70, forma: 60, fadiga: 0 }, lesao: 0, visib: 0, confianca: 0,
     fase: 'descoberta', clube: null, contrato: null, salario: 0, patrocinios: [], rotina: [], hist: [], ovrMax: 0, vendaMax: 0, achadoSem: a ? a.semana : 0,
     look: { tipo: 'humano', corpo: menina ? 'f' : 'm', alt: 1.55, pele: agPega(['pele-clara', 'pele-media', 'pele-morena', 'pele-negra', 'pele-retinta']), cabelo: agPega(menina ? CABELOS_F : CABELOS_M),
@@ -199,7 +199,7 @@ function agmObserva(j, ol, regiao) {
   for (const t of agEmbM(Object.keys(AGM_TRACOS))) { if (j.revelados.length >= n + Math.min(reobs, 3)) break; if (!j.revelados.includes(t)) j.revelados.push(t); }
   return j.faixa;
 }
-function agmSalarioOl(o) { const t = o.olho + o.carater + o.rede; return Math.round(t * 1500 * (1 + t / 30)); } // cresce com os atributos
+function agmSalarioOl(o) { const t = o.olho + o.carater + o.rede; return Math.round(t * 900 * (1 + t / 30)); } // v344: 1500 → 900 // cresce com os atributos
 const AGM_REGIOES_OBS = { varzea: 'Muita variação, famílias simples', interior: 'Pouca concorrência de rivais', nordeste: 'Famílias resistem a mudar de cidade', escolinhas: 'Piso alto, famílias exigentes', campeonatos: 'Rivais aparecem com mais frequência' };
 const agEmbM = l => { l = l.slice(); for (let i = l.length - 1; i > 0; i--) { const k = (Math.random() * (i + 1)) | 0; [l[i], l[k]] = [l[k], l[i]]; } return l; };
 function agmNovaAgencia(nome) {
