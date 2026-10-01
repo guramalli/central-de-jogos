@@ -408,3 +408,92 @@ export function CadastrosPorDia() {
     </section>
   );
 }
+
+// Lenda do Campinho: quem está jogando agora e o histórico de sessões (só
+// quem joga LOGADO — o jogo sem conta não fala com o servidor). Horários em
+// Brasília. Atualiza sozinho a cada minuto.
+const horaBR = (iso) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const soHoraBR = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+const duracao = (min) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`);
+const niveis = (s) => (s.nivelInicio == null ? "—" : s.nivelFim > s.nivelInicio ? `${s.nivelInicio} → ${s.nivelFim}` : String(s.nivelInicio));
+
+export function LendaSessoes() {
+  const [dados, setDados] = useState(null);
+  const [dias, setDias] = useState(7);
+  const [jogador, setJogador] = useState("");
+  const [busca, setBusca] = useState("");
+  const [erro, setErro] = useState("");
+  useEffect(() => {
+    let vivo = true;
+    const carregar = () => api.get("/lenda/admin/sessoes", { params: { dias, jogador: busca } })
+      .then(({ data }) => { if (vivo) { setDados(data); setErro(""); } })
+      .catch((e) => vivo && setErro(e.response?.data?.error || "Erro ao carregar as sessões."));
+    setDados(null);
+    carregar();
+    const t = setInterval(() => { if (!document.hidden) carregar(); }, 60000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [dias, busca]);
+
+  return (
+    <>
+      <section className="v2-cartao">
+        <div className="v2-cartao-cabeca">
+          <h2>Lenda do Campinho — jogando agora</h2>
+          {dados && <span className="v2-cartao-nota">{dados.jogandoAgora.length} {dados.jogandoAgora.length === 1 ? "pessoa" : "pessoas"}</span>}
+        </div>
+        {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
+        {!dados && !erro && <div className="v2-carregando">Carregando…</div>}
+        {dados && dados.jogandoAgora.length === 0 && <div className="v2-vazio">Ninguém jogando logado neste momento.</div>}
+        {dados && dados.jogandoAgora.length > 0 && (
+          <ul className="v2-admin-lista-simples">
+            {dados.jogandoAgora.map((s) => (
+              <li key={s.id}><b>{s.apelido}</b> · desde {soHoraBR(s.inicio)} ({duracao(s.minutos)}) · nível {niveis(s)}{s.plataforma ? ` · ${s.plataforma}` : ""}</li>
+            ))}
+          </ul>
+        )}
+        <p className="v2-cartao-nota">Conta quem está logado no site. Quem joga sem conta não aparece. Atualiza a cada minuto.</p>
+      </section>
+
+      <section className="v2-cartao">
+        <div className="v2-cartao-cabeca">
+          <h2>Histórico de sessões</h2>
+          <div className="v2-admin-filtros">{[1, 7, 30, 90].map((n) => <button key={n} className={dias === n ? "ativo" : ""} onClick={() => setDias(n)}>{n === 1 ? "24h" : `${n}d`}</button>)}</div>
+        </div>
+        <form className="v2-admin-busca" onSubmit={(e) => { e.preventDefault(); setBusca(jogador.trim()); }}>
+          <input className="v2-campo" placeholder="Filtrar por jogador (apelido)" value={jogador} onChange={(e) => setJogador(e.target.value)} maxLength={30} />
+          <button className="v2-botao-pequeno" type="submit">Filtrar</button>
+          {busca && <button className="v2-botao-pequeno" type="button" onClick={() => { setJogador(""); setBusca(""); }}>Limpar</button>}
+        </form>
+        {dados && (
+          <>
+            <div className="v2-admin-numeros">
+              <div><b>{dados.resumo.sessoes}</b><span>sessões</span></div>
+              <div><b>{dados.resumo.jogadores}</b><span>jogadores</span></div>
+              <div><b>{duracao(dados.resumo.minutos)}</b><span>tempo somado</span></div>
+            </div>
+            {dados.sessoes.length === 0 ? <div className="v2-vazio">Nenhuma sessão no período.</div> : (
+              <div className="v2-tabela-rolagem">
+                <table className="v2-tabela-admin">
+                  <thead><tr><th>Jogador</th><th>Entrou</th><th>Último sinal</th><th>Tempo</th><th>Nível</th><th>Aparelho</th></tr></thead>
+                  <tbody>
+                    {dados.sessoes.map((s) => (
+                      <tr key={s.id}>
+                        <td>{s.apelido}{s.jogandoAgora && " 🟢"}</td>
+                        <td>{horaBR(s.inicio)}</td>
+                        <td>{s.jogandoAgora ? "jogando agora" : horaBR(s.ultimoSinal)}</td>
+                        <td>{duracao(s.minutos)}</td>
+                        <td>{niveis(s)}</td>
+                        <td>{s.plataforma || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="v2-cartao-nota">Horários de Brasília. Uma sessão termina depois de 10 min sem sinal do jogo. Guardado por 90 dias (mostra até 500 sessões).</p>
+          </>
+        )}
+      </section>
+    </>
+  );
+}

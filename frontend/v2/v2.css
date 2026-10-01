@@ -1238,6 +1238,11 @@ a { color: inherit; text-decoration: none; }
 .v2-admin-numeros div { flex: 1; min-width: 120px; background: var(--roxo); border-radius: 16px; padding: 10px 14px; display: flex; flex-direction: column; }
 .v2-admin-numeros b { font-family: var(--titulo); font-size: 26px; color: var(--amarelo); }
 .v2-admin-numeros span { font-size: 12px; font-weight: 800; color: var(--lilas); }
+/* Admin › Lenda: lista de quem está jogando e a busca por apelido. */
+.v2-admin-lista-simples { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.v2-admin-lista-simples li { background: var(--roxo); border-radius: 14px; padding: 8px 12px; font-weight: 700; }
+.v2-admin-busca { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.v2-admin-busca .v2-campo { flex: 1; min-width: 180px; }
 .v2-admin-numeros .alerta b { color: var(--vermelho); }
 .v2-admin-numeros .apagado b { color: var(--lilas-2); }
 .v2-admin-nick { font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
