@@ -82,7 +82,7 @@ function agDialogo(o) {
     onclick: () => { clearInterval(iv); op.fn(); } }, el('span', {}, op.txt), op.sub || op.off ? el('small', {}, op.off || op.sub) : '')));
   abreModal.largo = true;
   abreModal(el('h2', {}, o.titulo), el('div', { class: 'agc' }, el('div', { class: 'agc-quem' }, ret, el('b', {}, o.quem.nome)),
-    el('div', { class: 'agc-fala' }, o.voce ? el('p', { class: 'agc-voce' }, '🗨️ Você: “' + o.voce.replace(/^\S+\s/, '').replace(/^"|"$/g, '') + '”') : '', bolha, o.info ? el('div', { class: 'agc-info' }, o.info) : '', med)), ops);
+    el('div', { class: 'agc-fala' }, o.voce ? el('p', { class: 'agc-voce' }, '🗨️ Você: “' + o.voce.replace(/^\S+\s/, '').replace(/^["“]+|["”]+$/g, '') + '”') : '', bolha, o.info ? el('div', { class: 'agc-info' }, o.info) : '', med)), ops);
 }
 
 /* ---------- 1) CONTRATAR: a conversa com a família ---------- */

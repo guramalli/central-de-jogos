@@ -90,6 +90,7 @@ const AGM_PATROCINIOS = { // [nome, visibilidade mínima, pagamento por semana, 
 const AGM_TERMOS = { // termo do contrato com a família → necessidades que ele atende
   comissao: ['dinheiro'], duracao: ['transparencia'], adiantamento: ['dinheiro'], ajuda: ['dinheiro', 'seguranca'],
   bolsa: ['estudo'], saida: ['transparencia'], restricao: ['proximidade'], acompanhante: ['seguranca'],
+  plano: ['status'], // v339: o documento não tinha termo para Status — vale o plano de carreira apresentado (ou agência de nível 3+)
 };
 
 /* ---------- utilidades ---------- */

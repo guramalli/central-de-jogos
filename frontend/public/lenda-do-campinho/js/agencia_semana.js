@@ -24,6 +24,7 @@ const AGM_ACOES = { // [nome, custo, fadiga, efeito, vai na rotina?]
 };
 let AGM_GANHO_BASE = 0.6, AGM_AUTO = 0.75, AGM_FADIGA_LIMITE = 70, AGM_ESPERA_CANDIDATO = 8;
 const AGM_TREINA = new Set(['treino', 'fisico', 'jogo']); // não dá com lesão
+const AGM_GANCHOS_SEMANA = []; // funções (a, lin) que rodam na virada de cada semana
 
 /* ---------- uma ação num garoto ---------- */
 // manual: rende 100% e gasta uma ação da semana; auto (rotina): rende 75% e tem a proteção do dono
@@ -114,6 +115,7 @@ function agmViraSemana(a) {
   // 7) próxima semana
   a.semana++; a.acoes = agmAcoesSemana(a.nivel);
   for (const c of (a.cartas || []).slice()) if (a.semana - c.sem >= 4) { const r = agmResolveCarta(a, c.id, -1); if (r) lin(`🃏 Sem resposta sua: ${r}`, 1); } // decisão esquecida: o padrão
+  for (const g of AGM_GANCHOS_SEMANA) try { g(a, lin); } catch (e) { } // outras etapas penduram aqui o que acontece toda semana
   if (typeof agmEventosSemana === 'function') try { agmEventosSemana(a, lin); } catch (e) { }
   agmConfereNivel(a, lin);
   return L;
@@ -359,7 +361,7 @@ function agmTelaOlheiros(a) {
     box.append(el('div', { class: 'linha-item' }, agRetrato(j, 56), el('div', { class: 'nm' },
       el('b', {}, `${j.nome} — ${agmIdade(j) | 0} anos · ${AGM_POS[j.pos][0]} · overall ${agmN(agmOverall(j))}`),
       el('small', { class: 'agm-relat' }, `📋 ${agmEstrelasTxt(j.faixa)}${f.olNome ? ` · relatório de ${f.olNome} (olho ${f.olho})` : ''}${f.reobs ? ` · 🔍 observado ${f.reobs + 1} vezes` : ''}`),
-      el('small', {}, `${AGM_REGIOES[j.regiao][0]} · 👪 ${j.fam.nome} (${(AG_PARENTES[j.fam.par] || [])[1] || 'família'}) · desiste em ${AGM_ESPERA_CANDIDATO + 1 - (j.espera || 0)} semana(s)`),
+      el('small', {}, `${AGM_REGIOES[j.regiao][0]} · 👪 ${j.fam.nome} (${(AG_PARENTES[j.fam.par] || [])[1] || 'família'})${agmFamResumo(j)} · desiste em ${AGM_ESPERA_CANDIDATO + 1 - (j.espera || 0)} semana(s)`),
       j.fam.rival ? el('small', { class: 'agm-rival' }, `😬 Uma agência rival também está de olho — talvez ${j.menina ? 'ela' : 'ele'} seja melhor do que o relatório diz.`) : '',
       agmFichaAtr(j), agmTracosEl(j),
       el('div', { class: 'ag-acoes' },
@@ -368,7 +370,7 @@ function agmTelaOlheiros(a) {
               if (s.ouro < custoR) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= custoR; o.missao = { tipo: 'reobs', cand: j.id, fim: a.semana + 1 }; salvar(); abreAgencia3('olheiros');
             } }, `${agmOlIc(o)} ${o.nome.split(' ').slice(-1)[0]} (olho ${Math.min(20, o.olho + (o.especialidade === j.regiao ? 3 : 0))})`)))
           : el('small', {}, '🔍 Para reobservar, precisa de um olheiro livre.'),
-        el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => agmAssinaProvisorio(j) }, '✍️ Assinar'),
+        el('button', { class: 'btn amarelo mini', type: 'button', disabled: (j.fam.voltaSem != null && a.semana < j.fam.voltaSem) || !a.acoes ? 'disabled' : null, onclick: () => agmVisitaFamilia(j) }, j.fam.voltaSem != null && a.semana < j.fam.voltaSem ? `👪 A família pediu para voltar na semana ${j.fam.voltaSem}` : a.acoes ? `👪 Visitar a família (1 ação)${j.fam.visitas ? ` · ${j.fam.visitas}ª visita` : ''}` : '👪 Sem ações nesta semana'),
         el('button', { class: 'btn mini', type: 'button', onclick: () => { a.candidatos.splice(a.candidatos.indexOf(j), 1); salvar(); abreAgencia3('olheiros'); } }, 'Dispensar')))));
   }
   return box;
