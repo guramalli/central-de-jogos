@@ -10,6 +10,8 @@
    Carregar DEPOIS de corrida.js.
    ============================================================ */
 {
+  // v313: pedaços soltos de arte vizinha apagados (o dono viu um pedaço sobrando do lado da Aranha Goleira)
+  if (typeof ASSET_VER !== 'undefined') for (const n of ['bicho_aranha', 'bicho_dragao', 'bicho_escorpiao', 'bicho_gargula', 'bicho_polvo', 'bicho_rato2', 'et_cristal', 'pombo2']) ASSET_VER[n] = 313;
   const ARRASTA = new Set(['bicho_mumia']); // brigando parado: passos no lugar
   const _quadroVivo = quadroBicho;
   quadroBicho = function (e, nome, look) {
