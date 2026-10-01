@@ -14,6 +14,7 @@
   if (typeof ASSET_VER !== 'undefined') for (const n of ['bicho_aranha', 'bicho_dragao', 'bicho_escorpiao', 'bicho_gargula', 'bicho_polvo', 'bicho_rato2', 'et_cristal', 'pombo2']) ASSET_VER[n] = 313;
   // v317: a arte parada do Tanuki, do Touro e do Jacaré (rabo) e do Morcego (asa) vinha cortada na borda: refeitas inteiras
   if (typeof ASSET_VER !== 'undefined') for (const n of ['bicho_tanuki', 'bicho_touro', 'bicho_jacare', 'bicho_morcego']) ASSET_VER[n] = 317;
+  if (typeof ASSET_VER !== 'undefined') ASSET_VER.bicho_dragao_anciao = 331; // v331: a pose parada tinha o focinho cortado (refeita do quadro de corrida inteiro)
   const ARRASTA = new Set(['bicho_mumia']); // brigando parado: passos no lugar
   const _quadroVivo = quadroBicho;
   quadroBicho = function (e, nome, look) {
