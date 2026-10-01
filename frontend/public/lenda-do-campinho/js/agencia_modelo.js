@@ -61,7 +61,7 @@ const AGM_REGIOES = { // [nome, custo por semana de missão, chance de joia (4�
   campeonatos: ['🏆 Campeonatos de base', 80000, 0.08, 1.8, 3, ['pai_ambicioso', 'estruturada', 'tio', 'desconfiada'], 1.0],
 };
 const AGM_OLHEIRO_NIVEIS = { // [nome, faixa dos atributos, nível da agência para contratar, preço para contratar]
-  iniciante: ['🧢 Iniciante', [4, 8], 1, 0], regional: ['🎯 Regional', [8, 12], 2, 2500000],
+  iniciante: ['🧢 Iniciante', [4, 8], 1, 50000], regional: ['🎯 Regional', [8, 12], 2, 2500000],
   nacional: ['🌎 Nacional', [12, 16], 4, 20000000], lendario: ['👑 Lendário', [16, 20], 5, 120000000],
 };
 // níveis da agência (reputação 0–100) — o design + as metas concretas (decisão do dono: pontos E metas)
@@ -105,7 +105,7 @@ function agmOvrMax(a) { return Math.max(0, ...a.jogadores.map(j => Math.max(j.ov
 // margem de erro do olheiro (estrelas); reobservar multiplica por 0,6
 function agmMargem(olho, reobs = 0) { return (0.25 + (20 - clamp(olho, 1, 20)) * 0.1) * Math.pow(0.6, reobs); }
 // relatório: centro (P + ruído de −m/2 a +m/2) ± m, arredondado para meia estrela
-function agmFaixa(P, m) { const c = P + agRnd(-m / 2, m / 2); return { c: clamp(agmMeia(c), 0.5, 5), m: Math.max(0.5, agmMeia(m)), lo: clamp(agmMeia(c - m), 0.5, 5), hi: clamp(agmMeia(c + m), 0.5, 5) }; }
+function agmFaixa(P, m) { const c = P + agRnd(-m / 2, m / 2); return { c: clamp(agmMeia(c), 0.5, 5), m: Math.max(0.5, agmMeia(m)), mr: m, lo: clamp(agmMeia(c - m), 0.5, 5), hi: clamp(agmMeia(c + m), 0.5, 5) }; } // mr = margem de verdade (sem arredondar)
 function agmTeto(P) { return 8 + P * 2.4; }                     // 5★ chega a 20; 2★ para em 12,8
 function agmOverall(j) { const p = AGM_POS[j.pos][1]; let s = 0, t = 0; for (const k of agmAtrDe(j.pos)) { s += (j.atr[k] || 0) * (p[k] || 0.5); t += p[k] || 0.5; } return agmUm(s / t); }
 function agmFIdadeTreino(anos) { return anos < 16 ? 1.3 : anos < 19 ? 1.0 : anos < 22 ? 0.7 : anos < 30 ? 0.3 : 0; }
@@ -144,7 +144,7 @@ function agmNovoOlheiro(nivel, a) {
   const [, [lo, hi]] = AGM_OLHEIRO_NIVEIS[nivel], at = () => agRi(lo, hi), menina = Math.random() < 0.4;
   const o = { id: 'ol' + (a ? a.seq++ : Date.now()), nivel, nome: `${menina ? 'Dona' : 'Seu'} ${agPega(menina ? ['Rita', 'Bete', 'Cida', 'Nice', 'Vera', 'Lena'] : ['Tonho', 'Jair', 'Baiano', 'Zico', 'Dedé', 'Bira', 'Nenê'])}`, menina,
     olho: at(), carater: at(), rede: at(), especialidade: agPega(Object.keys(AGM_REGIOES)), lealdade: agRi(55, 90), missao: null };
-  o.salario = Math.round((o.olho + o.carater + o.rede) * 1500 * (1 + (o.olho + o.carater + o.rede) / 30)); // cresce com os atributos
+  o.salario = agmSalarioOl(o); o.exp = 0;
   return o;
 }
 function agmNovaFamilia(j, regiao, arqForcado) {
@@ -190,12 +190,16 @@ function agmNovoCandidato(a, regiao, ol, filtro = {}) {
 }
 // o olheiro observa (ou reobserva) o garoto: estreita a faixa e lê o caráter
 function agmObserva(j, ol, regiao) {
-  const olho = Math.min(20, ol.olho + (ol.especialidade === regiao ? 3 : 0)), reobs = j.faixa && j.faixa.ol === ol.id ? (j.faixa.reobs || 0) + 1 : 0;
-  j.faixa = { ...agmFaixa(j.P, agmMargem(olho, reobs)), ol: ol.id, reobs };
+  // v337: reobservar (com o mesmo ou outro olheiro) multiplica a margem por 0,6 — e um olheiro melhor pode apertar ainda mais
+  const olho = Math.min(20, ol.olho + (ol.especialidade === regiao ? 3 : 0)), reobs = j.faixa ? (j.faixa.reobs || 0) + 1 : 0;
+  const m = j.faixa ? Math.min(agmMargem(olho), (j.faixa.mr || j.faixa.m) * 0.6) : agmMargem(olho);
+  j.faixa = { ...agmFaixa(j.P, m), ol: ol.id, olNome: ol.nome, olho, reobs };
   const n = ol.carater >= 16 ? 3 : ol.carater >= 10 ? 2 : ol.carater >= 6 ? 1 : 0;
-  for (const t of agEmbM(Object.keys(AGM_TRACOS))) { if (j.revelados.length >= n + (reobs ? 1 : 0)) break; if (!j.revelados.includes(t)) j.revelados.push(t); }
+  for (const t of agEmbM(Object.keys(AGM_TRACOS))) { if (j.revelados.length >= n + Math.min(reobs, 3)) break; if (!j.revelados.includes(t)) j.revelados.push(t); }
   return j.faixa;
 }
+function agmSalarioOl(o) { const t = o.olho + o.carater + o.rede; return Math.round(t * 1500 * (1 + t / 30)); } // cresce com os atributos
+const AGM_REGIOES_OBS = { varzea: 'Muita variação, famílias simples', interior: 'Pouca concorrência de rivais', nordeste: 'Famílias resistem a mudar de cidade', escolinhas: 'Piso alto, famílias exigentes', campeonatos: 'Rivais aparecem com mais frequência' };
 const agEmbM = l => { l = l.slice(); for (let i = l.length - 1; i > 0; i--) { const k = (Math.random() * (i + 1)) | 0; [l[i], l[k]] = [l[k], l[i]]; } return l; };
 function agmNovaAgencia(nome) {
   const a = { v: AGM_VERSAO, nome, rep: 0, nivel: 1, semana: 0, acoes: agmAcoesSemana(1), relogio: { ultimo: Date.now(), pausaUlt: null },

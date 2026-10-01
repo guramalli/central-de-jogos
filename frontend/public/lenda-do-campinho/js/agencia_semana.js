@@ -74,7 +74,7 @@ function agmViraSemana(a) {
   const s = G.save, L = []; const lin = (txt, imp, jog) => L.push({ txt, imp: !!imp, jog });
   // 1) salário dos olheiros (sem dinheiro: não recebem e a lealdade cai)
   const folha = a.olheiros.reduce((t, o) => t + o.salario, 0);
-  if (folha) { if (s.ouro >= folha) s.ouro -= folha; else { a.olheiros.forEach(o => { o.lealdade = Math.max(0, o.lealdade - 10); }); lin(`💸 Faltaram tostões para o salário dos olheiros (${agFmt(folha)}). A lealdade deles caiu.`, 1); } }
+  if (folha) { if (s.ouro >= folha) { s.ouro -= folha; a.olheiros.forEach(o => { if (o.lealdade < 80) o.lealdade++; }); } else { a.olheiros.forEach(o => { o.lealdade = Math.max(0, o.lealdade - 10); }); lin(`💸 Faltaram tostões para o salário dos olheiros (${agFmt(folha)}). A lealdade deles caiu.`, 1); } }
   // 2) a rotina ocupa as ações que sobraram (75%)
   let livres = a.acoes;
   for (const sl of a.rotina || []) {
@@ -90,12 +90,22 @@ function agmViraSemana(a) {
     j.idadeSem++;
     if (j.idadeSem % 52 === 0) { const an = j.idadeSem / 52; lin(`🎂 ${agPrimeiro(j)} fez ${an} anos!${an === 17 ? ' Idade do primeiro contrato profissional.' : ''}`, 1, j.id); }
   }
-  // 4) missões dos olheiros que voltaram
+  // 4) missões dos olheiros que voltaram (v337: reobservar também ocupa o olheiro por 1 semana)
+  for (const o of a.olheiros) if (o.missao && o.missao.tipo === 'reobs' && a.semana + 1 >= o.missao.fim) {
+    const j = a.candidatos.find(x => x.id === o.missao.cand); o.missao = null; agmExpOlheiro(o, 1, lin);
+    if (j) { agmObserva(j, o, j.regiao); lin(`🔍 ${o.nome} reobservou ${j.nome}: ${agmEstrelasTxt(j.faixa)}.`, 1); }
+  }
   for (const o of a.olheiros) if (o.missao && a.semana + 1 >= o.missao.fim) {
     const m = o.missao, n = agmCandidatos(o.rede, m.semanas), novos = Array.from({ length: n }, () => agmNovoCandidato(a, m.regiao, o, m.filtro || {}));
     a.candidatos.push(...novos); a.totais.descobertas += n; o.missao = null;
     const melhor = novos.reduce((x, y) => (y.faixa.hi > x.faixa.hi ? y : x));
     lin(`🔎 ${o.nome} voltou de ${AGM_REGIOES[m.regiao][0]} com ${n} candidato(s). O que mais promete: ${melhor.nome} (${agmIdade(melhor) | 0} anos, ${AGM_POS[melhor.pos][0]}), ${agmEstrelasTxt(melhor.faixa)}.`, 1);
+    agmExpOlheiro(o, m.semanas, lin);
+  }
+  // 4b) olheiro com lealdade baixa pode vender um relatório a uma agência rival (vira uma decisão sua)
+  for (const o of a.olheiros) if (o.lealdade < 30 && Math.random() < 0.15 && !(a.cartas || []).some(c => c.tipo === 'olheiro_vendido' && c.dados.ol === o.id)) {
+    const alvo = agPega(a.candidatos.filter(c => !c.fam.rival)); if (alvo) alvo.fam.rival = true;
+    agmCarta(a, 'olheiro_vendido', { ol: o.id, cand: alvo ? alvo.id : null }, lin);
   }
   // 5) reobservações pedidas na semana
   for (const j of a.candidatos) if (j.reobsPend) { const o = a.olheiros.find(x => x.id === j.reobsPend) || a.olheiros[0]; j.reobsPend = null; if (o) { agmObserva(j, o, j.regiao); lin(`🔍 ${o.nome} reobservou ${j.nome}: ${agmEstrelasTxt(j.faixa)}.`, 1); } }
@@ -103,9 +113,41 @@ function agmViraSemana(a) {
   for (const j of a.candidatos.slice()) { j.espera = (j.espera || 0) + 1; j.idadeSem++; if (j.espera > AGM_ESPERA_CANDIDATO) { a.candidatos.splice(a.candidatos.indexOf(j), 1); lin(j.fam && j.fam.rival ? `😬 ${j.nome} fechou com uma agência rival.` : `👋 A família de ${j.nome} cansou de esperar e seguiu outro caminho.`, 1); } }
   // 7) próxima semana
   a.semana++; a.acoes = agmAcoesSemana(a.nivel);
+  for (const c of (a.cartas || []).slice()) if (a.semana - c.sem >= 4) { const r = agmResolveCarta(a, c.id, -1); if (r) lin(`🃏 Sem resposta sua: ${r}`, 1); } // decisão esquecida: o padrão
   if (typeof agmEventosSemana === 'function') try { agmEventosSemana(a, lin); } catch (e) { }
   agmConfereNivel(a, lin);
   return L;
+}
+// experiência: a cada 12 semanas de trabalho, +1 num atributo (até 2 acima da faixa do nível dele)
+function agmExpOlheiro(o, sem, lin) {
+  const antes = Math.floor((o.exp || 0) / 12); o.exp = (o.exp || 0) + sem; if (Math.floor(o.exp / 12) <= antes) return;
+  const teto = Math.min(20, AGM_OLHEIRO_NIVEIS[o.nivel][1][1] + 2), ats = ['olho', 'carater', 'rede'].filter(k => o[k] < teto); if (!ats.length) return;
+  const k = agPega(ats), nome = { olho: 'olho técnico', carater: 'leitura de caráter', rede: 'rede de contatos' }[k];
+  const s0 = agmSalarioOl(o); o[k]++; o.salario += agmSalarioOl(o) - s0; /* soma só a diferença: não apaga um aumento dado antes */ if (lin) lin(`📈 ${o.nome} ganhou experiência: ${nome} ${o[k] - 1} → ${o[k]} (salário agora ${agFmt(o.salario)}/semana).`, 1);
+}
+/* ---------- cartas de decisão (2 escolhas) — a Etapa 7 reaproveita para os eventos ---------- */
+// cada carta guarda só dados (tipo + ids): o texto e o efeito vêm daqui, então sobrevivem a recarregar o jogo
+const AGM_CARTAS = {
+  olheiro_vendido: {
+    titulo: '🕵️ Olheiro vendido',
+    txt: (a, d) => { const o = a.olheiros.find(x => x.id === d.ol), j = a.candidatos.find(x => x.id === d.cand); return `${o ? o.nome : 'Um olheiro seu'} (lealdade baixa) passou ${j ? `o relatório de ${j.nome}` : 'seus relatórios'} para uma agência rival!${j ? ` Agora tem rival na disputa por ${agPrimeiro(j)}.` : ''}`; },
+    ops: [
+      ['👋 Demitir', (a, d) => { const o = a.olheiros.find(x => x.id === d.ol); if (!o) return 'O olheiro já tinha saído.'; a.olheiros.splice(a.olheiros.indexOf(o), 1); return `${o.nome} foi demitido(a).`; }],
+      ['💰 Dar aumento (+25% de salário, lealdade +30)', (a, d) => { const o = a.olheiros.find(x => x.id === d.ol); if (!o) return 'O olheiro já tinha saído.'; o.salario = Math.round(o.salario * 1.25); o.lealdade = Math.min(100, o.lealdade + 30); return `${o.nome} ganhou aumento e prometeu fidelidade (lealdade ${o.lealdade}).`; }],
+    ],
+    padrao: (a, d) => { const o = a.olheiros.find(x => x.id === d.ol); if (o) o.lealdade = Math.max(0, o.lealdade - 5); return `${o ? o.nome : 'O olheiro'} continua na agência, mas ninguém confia muito nele(a).`; },
+  },
+};
+function agmCarta(a, tipo, dados, lin) { (a.cartas = a.cartas || []).push({ id: 'c' + a.seq++, tipo, dados, sem: a.semana }); a.cartas = a.cartas.slice(-6); if (lin) lin(`🃏 Decisão para você: ${AGM_CARTAS[tipo].titulo}`, 1); }
+function agmResolveCarta(a, id, k) { // k = índice da escolha; −1 = o padrão (esqueceu)
+  const c = (a.cartas || []).find(x => x.id === id); if (!c) return null; const C = AGM_CARTAS[c.tipo]; a.cartas.splice(a.cartas.indexOf(c), 1);
+  return C ? (k < 0 ? C.padrao(a, c.dados) : C.ops[k][1](a, c.dados)) : null;
+}
+function agmCartasEl(a) {
+  if (!(a.cartas || []).length) return '';
+  return el('div', { class: 'agm-cartas' }, ...a.cartas.map(c => { const C = AGM_CARTAS[c.tipo]; if (!C) return '';
+    return el('div', { class: 'agm-carta' }, el('b', {}, C.titulo), el('p', {}, C.txt(a, c.dados)), el('small', {}, `Responda em até ${Math.max(1, 4 - (a.semana - c.sem))} semana(s).`),
+      el('div', { class: 'ag-acoes' }, ...C.ops.map(([txt], k) => el('button', { class: 'btn mini' + (k ? '' : ' amarelo'), type: 'button', onclick: () => { const r = agmResolveCarta(a, c.id, k); log('🃏 ' + r, 'l-xp'); salvar(); abreAgencia3(AGM_ABA); } }, txt)))); }));
 }
 // o relógio: semanas inteiras que passaram desde a última; com o Modo Treino ligado, o relógio fica parado
 function agmTick() {
@@ -145,7 +187,7 @@ function agmGanhaRep(a, n) { a.rep = clamp(Math.round((a.rep + n) * 10) / 10, 0,
 
 /* ---------- textos ---------- */
 function agmEstrelas(v) { let t = ''; for (let i = 1; i <= 5; i++) t += v >= i ? '★' : v >= i - 0.5 ? '⯪' : '☆'; return t; }
-function agmEstrelasTxt(f) { return f ? `potencial ${agmEstrelas(f.c)} (${String(f.lo).replace('.', ',')}–${String(f.hi).replace('.', ',')}★)` : 'potencial ❔'; }
+function agmEstrelasTxt(f) { return f ? `potencial ${agmEstrelas(f.c)} ${agmN(f.c)}★ ± ${agmN(f.m)} (de ${agmN(f.lo)} a ${agmN(f.hi)}★)` : 'potencial ❔'; }
 const agmN = v => String(Math.round(v * 10) / 10).replace('.', ',');
 function agmProxSemana(a) { const ms = Math.max(0, AGM_SEMANA_MS - (Date.now() - a.relogio.ultimo)); return `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`; }
 
@@ -186,7 +228,7 @@ function agmTelaSemana(a) {
       rel.linhas.length ? el('ul', {}, ...rel.linhas.map(l => el('li', { class: l.imp ? 'imp' : '' }, l.txt))) : el('p', {}, 'Semana tranquila: nada de especial.')));
     for (const r of a.relatorios) r.visto = true;
   }
-  box.append(el('h3', {}, `⚡ Esta semana: ${a.acoes} de ${agmAcoesSemana(a.nivel)} ações livres`));
+  box.append(agmCartasEl(a), el('h3', {}, `⚡ Esta semana: ${a.acoes} de ${agmAcoesSemana(a.nivel)} ações livres`));
   box.append(el('p', { class: 'dica' }, `Toque num garoto para usar uma ação (rende 100%). O que sobrar quando a semana virar vira a sua 🔁 Rotina (rende ${AGM_AUTO * 100}%).`));
   if (!a.jogadores.length) { box.append(el('div', { class: 'ag-vazio' }, agEmbaixadinha(), el('p', {}, 'Você ainda não representa ninguém. Mande um olheiro na aba 🔎 Olheiros.'))); return box; }
   const lista = el('div', { class: 'lista' });
@@ -254,42 +296,78 @@ function agmTelaRotina(a) {
   if (a.rotina.length) box.append(el('small', {}, `Custo da rotina por semana: 💰 ${agFmt(custo)} + salário dos olheiros 💰 ${agFmt(a.olheiros.reduce((t, o) => t + o.salario, 0))}.`));
   return box;
 }
+const agmOlIc = o => o.nivel === 'lendario' ? '👑' : o.nivel === 'nacional' ? '🌎' : o.nivel === 'regional' ? '🎯' : '🧢';
 function agmOlheiroEl(o, a, extra) {
-  return el('div', { class: 'linha-item' }, el('div', { class: 'agm-ol-ic' }, o.nivel === 'lendario' ? '👑' : o.nivel === 'nacional' ? '🌎' : o.nivel === 'regional' ? '🎯' : '🧢'),
+  const ex = (o.exp || 0) % 12;
+  return el('div', { class: 'linha-item agm-ol' + (o.lealdade < 30 ? ' desleal' : '') }, el('div', { class: 'agm-ol-ic' }, agmOlIc(o)),
     el('div', { class: 'nm' }, el('b', {}, `${o.nome} · ${AGM_OLHEIRO_NIVEIS[o.nivel][0]}`),
-      el('small', {}, `👁️ olho técnico ${o.olho} · 🧠 leitura de caráter ${o.carater} · 📇 rede ${o.rede} · 📍 ${AGM_REGIOES[o.especialidade][0]} (+3 de olho lá) · 💰 ${agFmt(o.salario)}/semana · lealdade ${o.lealdade}`),
-      o.missao ? el('small', { class: 'agm-missao' }, `🧳 Em missão em ${AGM_REGIOES[o.missao.regiao][0]} · volta na semana ${o.missao.fim} (faltam ${Math.max(1, o.missao.fim - a.semana)})`) : '', extra || ''));
+      el('div', { class: 'agm-ol-atr' }, agmBarra('👁️ Olho técnico', o.olho, '#3a8ad8', 20), agmBarra('🧠 Leitura de caráter', o.carater, '#9a5ad8', 20), agmBarra('📇 Rede de contatos', o.rede, '#3aa070', 20)),
+      el('small', {}, `📍 especialidade: ${AGM_REGIOES[o.especialidade][0]} (+3 de olho lá) · 💰 ${agFmt(o.salario)}/semana · ${o.lealdade < 30 ? '⚠️' : '🤝'} lealdade ${o.lealdade}${o.lealdade < 30 ? ' — pode vender informação a rivais!' : ''}${a ? ` · 📈 experiência ${ex}/12` : ''}`),
+      o.missao ? el('small', { class: 'agm-missao' }, o.missao.tipo === 'reobs' ? `🔍 Reobservando um candidato · volta na semana ${o.missao.fim}` : `🧳 Em missão em ${AGM_REGIOES[o.missao.regiao][0]} · volta na semana ${o.missao.fim} (faltam ${Math.max(1, o.missao.fim - a.semana)})`) : '', extra || ''));
+}
+// o mercado de olheiros: ofertas com os atributos à mostra, renovadas a cada 4 semanas
+function agmMercadoOl(a) {
+  const m = a.mercadoOl;
+  if (!m || a.semana - m.sem >= 4 || m.nivel !== a.nivel) {
+    const nivs = Object.keys(AGM_OLHEIRO_NIVEIS).filter(k => a.nivel >= AGM_OLHEIRO_NIVEIS[k][2]);
+    const ofertas = nivs.map(k => agmNovoOlheiro(k, a)); while (ofertas.length < 3) ofertas.push(agmNovoOlheiro(agPega(nivs), a));
+    a.mercadoOl = { sem: a.semana, nivel: a.nivel, ofertas };
+  }
+  return a.mercadoOl;
 }
 function agmTelaOlheiros(a) {
-  const s = G.save, box = el('div');
-  box.append(el('h3', {}, '🔎 Seus olheiros'));
+  const s = G.save, box = el('div'), maxOl = a.nivel + 1;
+  box.append(el('h3', {}, `🔎 Seus olheiros (${a.olheiros.length}/${maxOl})`));
+  if (!a.olheiros.length) box.append(el('p', { class: 'vazio' }, 'Sem olheiros, ninguém descobre talentos. Contrate um no mercado logo abaixo.'));
   for (const o of a.olheiros) {
-    let form = '';
+    const acoes = el('div', { class: 'ag-acoes' });
     if (!o.missao) {
-      const sr = el('select', {}, ...Object.entries(AGM_REGIOES).map(([id, R]) => el('option', { value: id, disabled: a.nivel < R[4] ? 'disabled' : null }, `${R[0]}${a.nivel < R[4] ? ` 🔒 ${AGM_NIVEIS[R[4]][1]}` : ` · ${agFmt(R[1])}/sem · joia ${R[2] * 100}%`}`)));
+      const sr = el('select', {}, ...Object.entries(AGM_REGIOES).map(([id, R]) => el('option', { value: id, disabled: a.nivel < R[4] ? 'disabled' : null, selected: id === o.especialidade && a.nivel >= R[4] ? 'selected' : null }, `${R[0]}${a.nivel < R[4] ? ` 🔒 ${AGM_NIVEIS[R[4]][1]}` : ` · ${agFmt(R[1])}/sem · joia ${R[2] * 100}%`}`)));
       const ss = el('select', {}, ...[2, 4, 6].map(n => el('option', { value: n }, `${n} semanas`)));
       const sp = el('select', {}, el('option', { value: '' }, 'qualquer posição'), ...Object.entries(AGM_POS).map(([id, [nome]]) => el('option', { value: id }, nome)));
       const si = el('select', {}, el('option', { value: '' }, 'qualquer idade'), ...[13, 14, 15, 16].map(n => el('option', { value: n }, `${n} anos`)));
-      const info = el('small', {}); const calc = () => { const R = AGM_REGIOES[sr.value], n = +ss.value; info.textContent = `Custa ${agFmt(R[1] * n)} · traz ${agmCandidatos(o.rede, n)} candidato(s) · volta na semana ${a.semana + n}`; };
+      const info = el('small', {}); const calc = () => { const R = AGM_REGIOES[sr.value], n = +ss.value; info.textContent = `${AGM_REGIOES_OBS[sr.value]}.${sr.value === o.especialidade ? ' 📍 É a especialidade deste olheiro: +3 de olho técnico!' : ''} Custa ${agFmt(R[1] * n)} · traz ${agmCandidatos(o.rede, n)} candidato(s) · volta na semana ${a.semana + n}.`; };
       sr.onchange = ss.onchange = calc; calc();
-      form = el('div', { class: 'agm-form' }, sr, ss, sp, si, el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => {
+      acoes.append(el('div', { class: 'agm-form' }, sr, ss, sp, si, el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => {
         const R = AGM_REGIOES[sr.value], n = +ss.value, custo = R[1] * n; if (a.nivel < R[4]) return; if (s.ouro < custo) { log('Tostões insuficientes.', 'l-dano'); return; }
         s.ouro -= custo; o.missao = { regiao: sr.value, semanas: n, fim: a.semana + n, filtro: { pos: sp.value || null, idade: si.value ? +si.value : null } };
         log(`🔎 ${o.nome} partiu para ${R[0]} (${n} semanas).`, 'l-xp'); try { som('moeda'); } catch (e) { } salvar(); abreAgencia3('olheiros');
-      } }, '🧳 Mandar'), info);
+      } }, '🧳 Mandar'), info));
     }
-    box.append(agmOlheiroEl(o, a, form));
+    acoes.append(el('div', { class: 'ag-acoes' },
+      el('button', { class: 'btn mini', type: 'button', onclick: () => { const c = Math.round(o.salario * 0.25); if (!confirm(`Dar aumento para ${o.nome}? O salário vai de ${agFmt(o.salario)} para ${agFmt(o.salario + c)} por semana (lealdade +30).`)) return; o.salario += c; o.lealdade = Math.min(100, o.lealdade + 30); log(`💰 ${o.nome} ganhou aumento: lealdade ${o.lealdade}.`, 'l-xp'); salvar(); abreAgencia3('olheiros'); } }, '💰 Dar aumento'),
+      el('button', { class: 'btn mini', type: 'button', onclick: () => { if (!confirm(`Demitir ${o.nome}?${o.missao ? ' A missão em andamento se perde.' : ''}`)) return; a.olheiros.splice(a.olheiros.indexOf(o), 1); log(`👋 ${o.nome} saiu da agência.`, 'l-sis'); salvar(); abreAgencia3('olheiros'); } }, '👋 Demitir')));
+    box.append(agmOlheiroEl(o, a, acoes));
   }
+  // mercado
+  const m = agmMercadoOl(a);
+  box.append(el('h3', {}, '🧢 Mercado de olheiros'), el('small', {}, `Ofertas novas a cada 4 semanas (próximas na semana ${m.sem + 4}). No seu nível dá para ter até ${maxOl} olheiros.`));
+  for (const o of m.ofertas) {
+    const preco = AGM_OLHEIRO_NIVEIS[o.nivel][3];
+    box.append(agmOlheiroEl(o, null, el('div', { class: 'ag-acoes' }, el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => {
+      if (a.olheiros.length >= maxOl) { log(`No seu nível dá para ter até ${maxOl} olheiros. Suba de nível ou demita alguém.`, 'l-sis'); return; }
+      if (s.ouro < preco) { log('Tostões insuficientes.', 'l-dano'); return; }
+      s.ouro -= preco; m.ofertas.splice(m.ofertas.indexOf(o), 1); o.exp = 0; a.olheiros.push(o); log(`🧢 ${o.nome} (${AGM_OLHEIRO_NIVEIS[o.nivel][0]}) entrou para a agência!`, 'l-loot'); try { som('moeda'); } catch (e) { } salvar(); abreAgencia3('olheiros');
+    } }, `Contratar (${agFmt(preco)})`))));
+  }
+  // candidatos
   box.append(el('h3', {}, `🧒 Candidatos (${a.candidatos.length})`));
   if (!a.candidatos.length) box.append(el('div', { class: 'ag-vazio' }, agEmbaixadinha(), el('p', {}, 'Nenhum candidato agora. Os olheiros trazem garotos e garotas de 13 a 16 anos.')));
+  const livres = a.olheiros.filter(o => !o.missao), reobsDe = new Map(a.olheiros.filter(o => o.missao && o.missao.tipo === 'reobs').map(o => [o.missao.cand, o]));
   for (const j of a.candidatos) {
-    const ol = a.olheiros.find(o => o.id === (j.faixa && j.faixa.ol)) || a.olheiros[0], custoR = AGM_REGIOES[j.regiao][1];
+    const custoR = AGM_REGIOES[j.regiao][1], f = j.faixa || {}, emReobs = reobsDe.get(j.id);
     box.append(el('div', { class: 'linha-item' }, agRetrato(j, 56), el('div', { class: 'nm' },
       el('b', {}, `${j.nome} — ${agmIdade(j) | 0} anos · ${AGM_POS[j.pos][0]} · overall ${agmN(agmOverall(j))}`),
-      el('small', {}, `${agmEstrelasTxt(j.faixa)} · ${AGM_REGIOES[j.regiao][0]} · 👪 ${j.fam.nome} (${(AG_PARENTES[j.fam.par] || [])[1] || 'família'})${j.fam.rival ? ' · 😬 uma agência rival também está de olho' : ''} · desiste em ${AGM_ESPERA_CANDIDATO + 1 - (j.espera || 0)} semana(s)`),
+      el('small', { class: 'agm-relat' }, `📋 ${agmEstrelasTxt(j.faixa)}${f.olNome ? ` · relatório de ${f.olNome} (olho ${f.olho})` : ''}${f.reobs ? ` · 🔍 observado ${f.reobs + 1} vezes` : ''}`),
+      el('small', {}, `${AGM_REGIOES[j.regiao][0]} · 👪 ${j.fam.nome} (${(AG_PARENTES[j.fam.par] || [])[1] || 'família'}) · desiste em ${AGM_ESPERA_CANDIDATO + 1 - (j.espera || 0)} semana(s)`),
+      j.fam.rival ? el('small', { class: 'agm-rival' }, `😬 Uma agência rival também está de olho — talvez ${j.menina ? 'ela' : 'ele'} seja melhor do que o relatório diz.`) : '',
       agmFichaAtr(j), agmTracosEl(j),
       el('div', { class: 'ag-acoes' },
-        j.reobsPend ? el('small', {}, '🔍 reobservação marcada: o relatório chega na próxima semana') : el('button', { class: 'btn mini', type: 'button', onclick: () => { if (s.ouro < custoR) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= custoR; j.reobsPend = ol.id; salvar(); abreAgencia3('olheiros'); } }, `🔍 Reobservar (${agFmt(custoR)} e 1 semana)`),
+        emReobs ? el('small', {}, `🔍 ${emReobs.nome} está reobservando: o relatório chega na semana ${emReobs.missao.fim}`)
+          : livres.length ? el('span', { class: 'agm-reobs' }, `🔍 Reobservar (${agFmt(custoR)}, 1 semana) com: `, ...livres.map(o => el('button', { class: 'btn mini', type: 'button', title: `olho técnico ${o.olho}${o.especialidade === j.regiao ? ' (+3: especialidade)' : ''}`, onclick: () => {
+              if (s.ouro < custoR) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= custoR; o.missao = { tipo: 'reobs', cand: j.id, fim: a.semana + 1 }; salvar(); abreAgencia3('olheiros');
+            } }, `${agmOlIc(o)} ${o.nome.split(' ').slice(-1)[0]} (olho ${Math.min(20, o.olho + (o.especialidade === j.regiao ? 3 : 0))})`)))
+          : el('small', {}, '🔍 Para reobservar, precisa de um olheiro livre.'),
         el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => agmAssinaProvisorio(j) }, '✍️ Assinar'),
         el('button', { class: 'btn mini', type: 'button', onclick: () => { a.candidatos.splice(a.candidatos.indexOf(j), 1); salvar(); abreAgencia3('olheiros'); } }, 'Dispensar')))));
   }
@@ -310,15 +388,7 @@ function agmTelaAgencia(a) {
       ...ms.map(([t, v, alvo, ok]) => el('div', { class: 'ag-meta' + (ok ? ' ok' : '') }, el('span', {}, (ok ? '✅ ' : '⬜ ') + t), el('div', { class: 'agc-barra' }, el('i', { style: `width:${Math.round(v / alvo * 100)}%` })), el('small', {}, `${agmN(v)}/${agmN(alvo)}`))),
       el('small', { class: 'ag-libera' }, `🔓 Ao subir: ${AGM_NIVEIS[k][3]}, até ${AGM_NIVEIS[k][2]} garotos, ${agmAcoesSemana(k)} ações por semana`))); }
   else box.append(el('div', { class: 'ag-metas topo' }, el('b', {}, '👑 Agência internacional: o topo!')));
-  box.append(el('h3', {}, '🧢 Contratar olheiros'));
-  for (const [nv, O] of Object.entries(AGM_OLHEIRO_NIVEIS)) {
-    const trava = a.nivel < O[2];
-    box.append(el('div', { class: 'linha-item' + (trava ? ' bloq' : '') }, el('div', { class: 'agm-ol-ic' }, O[0].split(' ')[0]), el('div', { class: 'nm' }, el('b', {}, O[0]), el('small', {}, `atributos ${O[1][0]}–${O[1][1]} · salário semanal cresce com os atributos`)),
-      trava ? el('small', {}, `🔒 ${AGM_NIVEIS[O[2]][1]}`) : el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => {
-        if (a.olheiros.length >= a.nivel + 1) { log(`No seu nível dá para ter até ${a.nivel + 1} olheiros.`, 'l-sis'); return; }
-        if (s.ouro < O[3]) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= O[3]; const o = agmNovoOlheiro(nv, a); a.olheiros.push(o); log(`🧢 ${o.nome} (${O[0]}) entrou para a agência!`, 'l-loot'); salvar(); abreAgencia3('olheiros');
-      } }, O[3] ? `Contratar (${agFmt(O[3])})` : 'Contratar')));
-  }
+  box.append(el('p', { class: 'dica' }, '🧢 Para contratar olheiros, veja o Mercado de olheiros na aba 🔎 Olheiros.'));
   const hall = a.hall || [];
   box.append(el('h3', {}, '🏛️ Hall da Fama'));
   if (!hall.length) box.append(el('p', { class: 'vazio' }, 'Quando um craque seu se aposentar ou virar Lenda da agência, ele ganha um lugar aqui.'));
@@ -388,7 +458,14 @@ if (AGM_ATIVO) {
   .agm-rep { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; } .agm-rep .agc-barra { height: 14px; } .agm-rep .agc-barra i { background: linear-gradient(90deg, #e0a000, #ffd23f); }
   .agm-acoes-n.zero { color: #ffb0a0; }
   .agc-op.risco { border-color: #d8382a; }
-  @media (max-width: 560px) { .agm-estado { grid-template-columns: 1fr; } .agm-atrs { grid-template-columns: 1fr; } .agm-atr, .agm-atr-bt { grid-template-columns: 112px 1fr 30px; } }
+  .agm-ol-atr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; margin: 2px 0; }
+  .agm-ol.desleal { border-left: 4px solid #d8382a; }
+  .agm-rival { color: #b0302a; font-weight: 700; } .agm-relat { font-weight: 700; }
+  .agm-reobs { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; }
+  .agm-cartas { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .agm-carta { background: linear-gradient(#fff3d0, #ffe6a8); border: 2px solid #e0a000; border-radius: 12px; padding: 8px 12px; animation: agPula 1.6s ease-in-out 2; }
+  .agm-carta p { margin: 4px 0; }
+  @media (max-width: 560px) { .agm-estado, .agm-ol-atr { grid-template-columns: 1fr; } .agm-atrs { grid-template-columns: 1fr; } .agm-atr, .agm-atr-bt { grid-template-columns: 112px 1fr 30px; } }
   `;
   document.head.append(st);
 }
