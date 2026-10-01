@@ -1603,7 +1603,7 @@ function instalaEntrada() {
   window.addEventListener('keydown', ev => {
     if (!G.rodando) return;
     const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-    if (ev.key === 'Escape') { if (!$('#modal').hidden) { if (!$('#modal .fechar').hidden) fechaModal(); } else { G.alvo = null; G.caminho = null; G.uiSujo = true; } return; }
+    if (ev.key === 'Escape') { if (!$('#modal').hidden) { if (!$('#modal .fechar').hidden) fechaModalX(); } else { G.alvo = null; G.caminho = null; G.uiSujo = true; } return; }
     if (G.pausado) { if (window.teclaModal) window.teclaModal(ev); return; }
     if (ev.key in TECLA_DIR) { ev.preventDefault(); if (!ev.repeat) { G.teclas.delete(TECLA_DIR[ev.key]); G.teclas.add(TECLA_DIR[ev.key]); } return; }
     if (ev.key === 'e' || ev.key === 'E' || ev.key === 'Enter') { ev.preventDefault(); interagir(); return; }

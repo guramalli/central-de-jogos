@@ -268,6 +268,7 @@ function abreModal(...conteudo) {
   M.hidden = false; G.pausado = true; G.teclas.clear(); M.querySelector('.fechar').hidden = false;
   M.querySelector('.modal-caixa').classList.toggle('largo', !!abreModal.largo); abreModal.largo = false;
 }
+function fechaModalX() { if ($('#modal .fechar').hidden) return; const morto = !!(G.save && G.save.hp <= 0); fechaModal(); if (morto && typeof renascer === 'function') renascer(); }
 function fechaModal() {
   $('#modal').hidden = true; G.pausado = false; window.teclaModal = null;
   if (window.pararPenalti) window.pararPenalti(); if (window.pararQuiz) window.pararQuiz(); if (window.pararPartida) window.pararPartida();
@@ -719,8 +720,10 @@ function telaInicial() {
     if (k === 'ranking') modalRanking(); else if (k === 'ajuda') modalAjuda(); else if (!G.save) return;
     else if (k === 'missoes') modalMissoes(); else if (k === 'album') modalAlbum(); else if (k === 'time') abrirTime(); else if (k === 'mapa') modalMapa(); else if (k === 'carreira') { if (typeof abrirCarreira === 'function') abrirCarreira(); } else if (k === 'atalhos') modalAtalhos();
   }));
-  $('#modal .fechar').onclick = () => { if (G.save && G.save.hp <= 0) return; fechaModal(); };
-  $('#modal').addEventListener('mousedown', ev => { if (ev.target.id === 'modal' && !(G.save && G.save.hp <= 0) && !$('#modal .fechar').hidden) fechaModal(); }); // sem ✕ = não fecha clicando fora
+  // v324: antes o ✕ não fazia NADA com o fôlego em 0 (quem desmaiava e abria outra janela, como a Carreira, ficava preso nela).
+  // Agora, desmaiado(a), fechar a janela também levanta o boneco — igual ao "Levantar e continuar" (a tela do desmaio continua sem ✕).
+  $('#modal .fechar').onclick = () => fechaModalX();
+  $('#modal').addEventListener('mousedown', ev => { if (ev.target.id === 'modal' && !$('#modal .fechar').hidden) fechaModalX(); }); // sem ✕ = não fecha clicando fora
 }
 function abrirCriacao() {
   $('#inicioMenu').hidden = true; $('#criacao').hidden = false;
