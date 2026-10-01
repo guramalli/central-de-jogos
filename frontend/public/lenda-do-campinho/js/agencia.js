@@ -20,8 +20,17 @@
    ============================================================ */
 const AG_NIVEL = 400, AG_PERIODO = 20 * 60000, AG_MAX_ATRASO = 30;
 const AG_REP = [ // [pontos, título, estrelas]
-  [0, 'Empresário desconhecido', ''], [100, 'Empresário local', '⭐'], [450, 'Empresário regional', '⭐⭐'], [1600, 'Empresário nacional', '⭐⭐⭐'],
-  [5000, 'Empresário internacional', '⭐⭐⭐⭐'], [15000, 'Superagente', '⭐⭐⭐⭐⭐']];
+  [0, 'Empresário desconhecido', ''], [100, 'Empresário local', '⭐'], [500, 'Empresário regional', '⭐⭐'], [1800, 'Empresário nacional', '⭐⭐⭐'],
+  [6000, 'Empresário internacional', '⭐⭐⭐⭐'], [18000, 'Superagente', '⭐⭐⭐⭐⭐']];
+// v333 (Agência 2.0): subir de nível pede METAS concretas além dos pontos — o dono achou rápido demais chegar à fase 2
+const agOvrMax = a => Math.max(0, ...a.jogadores.map(j => j.ovrMax || j.ovr), ...(a.hall || []).map(h => h.ovr));
+const AG_METAS = [null,
+  [['Assine com 2 talentos', a => [a.marcos.assinados, 2]], ['Tenha 1 jogador aprovado num teste de clube', a => [a.marcos.aprovados, 1]]],
+  [['Consiga 1 contrato profissional', a => [a.marcos.contratos, 1]], ['Resolva bem 2 problemas dos seus jogadores', a => [a.marcos.bons, 2]], ['Represente 3 jogadores ao mesmo tempo', a => [a.jogadores.length, 3]]],
+  [['Consiga 3 contratos profissionais', a => [a.marcos.contratos, 3]], ['Feche 1 transferência', a => [a.marcos.transf, 1]], ['Feche 1 patrocínio', a => [a.marcos.patroc, 1]]],
+  [['Feche 3 transferências', a => [a.marcos.transf, 3]], ['Venda 1 jogador para um clube de fora do Brasil', a => [a.marcos.fora, 1]], ['Tenha um jogador com overall 75 ou mais', a => [agOvrMax(a), 75]]],
+  [['Feche uma venda de 30 milhões de tostões', a => [a.totais.vendaMax, 30000000]], ['Venda jogadores para clubes de 3 países', a => [Object.keys(a.paises || {}).length, 3]], ['Tenha um jogador com overall 85 ou mais', a => [agOvrMax(a), 85]]],
+];
 const AG_REGIOES = [
   { id: 'bairro', nome: '🏘️ Bairro', rep: 0, pot: [48, 80], ovr: [30, 44] },
   { id: 'estado', nome: '🗺️ Estado', rep: 1, pot: [54, 85], ovr: [34, 48] },
@@ -70,21 +79,47 @@ function agLiberada() { const s = G.save; return !!s && ((s.nivel || 1) >= AG_NI
 function agDados() {
   const s = G.save; if (!s) return null;
   if (!s.agencia || typeof s.agencia !== 'object') s.agencia = null;
-  return s.agencia;
+  const a = s.agencia;
+  if (a && !a.marcos) { // v333: agências antigas — conta o que já foi feito (e mantém o nível que já tinham)
+    const pros = a.jogadores.filter(j => j.fase === 'pro').length;
+    a.marcos = { assinados: a.jogadores.length + (a.hall || []).length, aprovados: a.jogadores.filter(j => j.fase === 'base' || j.fase === 'pro').length, contratos: pros, transf: Object.keys(a.paises || {}).length, fora: Object.keys(a.paises || {}).filter(p => p !== 'Brasil').length, patroc: 0, bons: 0 };
+    if (a.nivel == null) { let k = 0; for (let i = 0; i < AG_REP.length; i++) if (a.rep >= AG_REP[i][0]) k = i; a.nivel = k; }
+  }
+  return a;
+}
+// as metas do próximo nível: [[texto, atual, alvo, feito]] (a 1ª é sempre a dos pontos de reputação)
+function agMetas(a, k) {
+  a = a || agDados(); k = k == null ? agNivelRep(a) + 1 : k; if (!AG_METAS[k]) return [];
+  return [[`Junte ${fmt(AG_REP[k][0])} pontos de reputação`, a => [a.rep, AG_REP[k][0]]], ...AG_METAS[k]].map(([t, f]) => { const [v, alvo] = f(a); return [t, Math.min(v, alvo), alvo, v >= alvo]; });
+}
+function agMarco(chave, n = 1) { const a = agDados(); if (!a) return; a.marcos[chave] = (a.marcos[chave] || 0) + n; agConfereNivel(); }
+// o que cada nível libera (para mostrar na hora de subir e na lista de metas)
+function agLibera(k) {
+  const l = AG_REGIOES.filter(r => r.rep === k).map(r => `região ${r.nome}`).concat(AG_OLHEIROS.filter(o => o[2] === k).map(o => `${o[1]} para contratar`));
+  l.push(`👤 até ${agMaxJogadores(null, k)} jogadores`); return l.join(' · ');
+}
+function agConfereNivel() {
+  const a = agDados(); if (!a) return;
+  while (a.nivel + 1 < AG_REP.length && agMetas(a).every(m => m[3])) {
+    const k = ++a.nivel;
+    banner('⭐ ' + AG_REP[k][1].toUpperCase(), 'Sua agência subiu de nível!'); som('nivel');
+    log(`🕴️ Agência: agora você é ${AG_REP[k][1]}! Liberado: ${agLibera(k)}.`, 'l-lvl');
+    agEvento({ tipo: 'nivel', txt: `🎖️ SUA AGÊNCIA SUBIU DE NÍVEL: ${AG_REP[k][2]} ${AG_REP[k][1]}! Liberado: ${agLibera(k)}.` });
+    agFila('escritorio', `🎖️ ${AG_REP[k][1].toUpperCase()}!`, `Liberado: ${agLibera(k)}. O escritório na Vila ganhou um troféu novo!`, 'confete');
+    if (typeof agDecoraEscritorio === 'function') agDecoraEscritorio();
+  }
 }
 function agCria() {
   const s = G.save; const nome = (s.nome || 'Lenda').split(' ')[0].toUpperCase() + ' SPORTS';
-  s.agencia = { nome, rep: 0, olheiros: { base: 1 }, missoes: [], achados: [], jogadores: [], eventos: [], titulos: {}, totais: { transf: 0, comissao: 0, descobertas: 0, vendaMax: 0 }, ultimo: Date.now(), seq: 1 };
-  agEvento({ tipo: 'boasvindas', txt: '☀️ Bem-vindo(a) à sua agência! Mande o seu Olheiro de base procurar talentos no Bairro (aba 🔎 Talentos).' });
+  s.agencia = { nome, rep: 0, nivel: 0, olheiros: { base: 1 }, missoes: [], achados: [], jogadores: [], eventos: [], titulos: {}, totais: { transf: 0, comissao: 0, descobertas: 0, vendaMax: 0 },
+    marcos: { assinados: 0, aprovados: 0, contratos: 0, transf: 0, fora: 0, patroc: 0, bons: 0 }, ultimo: Date.now(), seq: 1 };
+  agEvento({ tipo: 'boasvindas', txt: '☀️ Bem-vindo(a) à sua agência! Comece pequeno: mande o seu Olheiro de base procurar talentos no Bairro (aba 🔎 Talentos) e converse com as famílias. O escritório fica na Vila do Campinho, na rua de cima.' });
   return s.agencia;
 }
-function agNivelRep(a) { let k = 0; for (let i = 0; i < AG_REP.length; i++) if ((a || agDados()).rep >= AG_REP[i][0]) k = i; return k; }
+function agNivelRep(a) { a = a || agDados(); return a ? a.nivel || 0 : 0; }
 function agRepTxt(a) { const k = agNivelRep(a); return `${AG_REP[k][2] || '☆'} ${AG_REP[k][1]}`; }
-function agMaxJogadores(a) { return 3 + agNivelRep(a) * 2; }
-function agGanhaRep(n, motivo) {
-  const a = agDados(); const k0 = agNivelRep(a); a.rep = Math.round(a.rep + n);
-  const k1 = agNivelRep(a); if (k1 > k0) { banner('⭐ ' + AG_REP[k1][1].toUpperCase(), 'Sua agência subiu de nível!'); som('nivel'); log(`🕴️ Agência: agora você é ${AG_REP[k1][1]}! Novas regiões e olheiros liberados.`, 'l-lvl'); }
-}
+function agMaxJogadores(a, k) { return [2, 3, 5, 7, 9, 12][k != null ? k : agNivelRep(a)] || 12; } // v333: começo modesto
+function agGanhaRep(n, motivo) { const a = agDados(); a.rep = Math.round(a.rep + n); agConfereNivel(); }
 // valor de mercado (tostões): cresce muito com o overall; jovem com potencial vale mais
 function agValor(j) {
   const base = 50000 * Math.exp((j.ovr - 45) / 7);
@@ -190,17 +225,11 @@ function agPeriodoJogador(j) {
   else if (j.fase === 'pro' && r > 0.8 && j.ovr > AG_CLUBES[j.clube.nivel].ovr + 4) { j.fama += 5; agEvento({ tipo: 'info', jog: j.id, txt: `⭐ ${j.nome} foi o destaque da rodada pelo ${j.clube.nome}! A fama dele cresceu.` }); }
   else if ((j.fase === 'treino' || j.fase === 'escolinha') && j.idade >= 15.5 && r > 0.75) agEvento({ tipo: 'decisao', jog: j.id, txt: `🧒 ${j.nome} (${Math.floor(j.idade)} anos, overall ${j.ovr}) está pronto para o próximo passo. Que tal um TESTE num clube? (aba 👤 Meus jogadores)` });
 }
-// problemas pessoais (eventos pequenos, cada um com 2–3 escolhas)
+// problemas pessoais: v333 viraram CONVERSAS (agencia_escritorio.js, AG_CONVERSAS) — cada uma com 2 etapas de escolhas,
+// e o resultado depende da personalidade do jogador. (Eventos antigos com botões continuam funcionando abaixo.)
 function agProblema(j) {
-  const valor = Math.max(30000, Math.round(agValor(j) * 0.01));
-  const tipos = [
-    { txt: `🚨 ${j.nome} faltou a três treinos e o clube está irritado.`, acoes: [['Conversar com ele', valor, () => { j.moral = Math.min(100, j.moral + 10); return 'Boa conversa: ele prometeu caprichar.'; }], ['Multar', 0, () => { j.moral -= 15; return 'Multado. Ficou chateado, mas foi treinar.'; }], ['Ignorar', 0, () => Math.random() < 0.5 ? (j.parado += 2, j.moral -= 10, 'Piorou: ficou 2 períodos sem evoluir.') : 'Passou. Desta vez.']] },
-    { txt: `📱 ${j.nome} publicou uma foto polêmica nas redes sociais.`, acoes: [['Controlar a situação', valor, () => 'Tudo resolvido com um pedido de desculpas.'], ['Deixar passar', 0, () => Math.random() < 0.5 ? (j.fama = Math.max(0, (j.fama || 0) - 10), 'Pegou mal: a fama caiu.') : (j.fama = (j.fama || 0) + 6, 'Virou meme... e a fama subiu!')]] },
-    { txt: `🏠 ${j.nome} está com saudade da família e quer voltar para casa.`, acoes: [['Ajudar (passagens para a família)', valor * 2, () => { j.moral = Math.min(100, j.moral + 20); return 'A família veio visitar. Ele está feliz de novo!'; }], ['Convencer a ficar', 0, () => Math.random() < 0.6 ? (j.moral -= 5, 'Ele ficou, meio tristinho.') : (j.moral -= 20, j.parado += 1, 'Ficou, mas desanimado.')], ['Ignorar', 0, () => { j.moral -= 25; return 'Ele ficou muito chateado com você.'; }]] },
-    { txt: `🤕 ${j.nome} sentiu uma lesão leve no treino.`, acoes: [['Fisioterapia completa', valor * 1.5, () => 'Recuperação rápida, já está treinando!'], ['Esperar sarar', 0, () => { j.parado += 2; return 'Vai ficar 2 períodos parado.'; }]] },
-  ];
-  if (j.fase === 'pro' && (j.pers === 'ganancioso' || Math.random() < 0.3)) tipos.push({ txt: `💰 ${j.nome} quer um aumento de salário no ${j.clube.nome}.`, acoes: [['Negociar com o clube', 0, () => Math.random() < 0.55 ? (j.salario = Math.round(j.salario * 1.25), j.moral += 10, `O clube aceitou: salário agora ${agFmt(j.salario)} por mês.`) : (j.moral -= 10, 'O clube recusou o aumento.')], ['Pedir paciência', 0, () => { j.moral -= 12; return 'Ele aceitou esperar, contrariado.'; }]] });
-  const t = agPega(tipos); agEvento({ tipo: 'problema', jog: j.id, txt: t.txt, acoes: t.acoes.map(([nome, custo]) => [nome, custo]), _fns: t.acoes.map(x => x[2]) });
+  const tipos = Object.keys(AG_CONVERSAS).filter(k => AG_CONVERSAS[k].quando(j)), k = agPega(tipos);
+  agEvento({ tipo: 'problema', jog: j.id, conv: k, txt: AG_CONVERSAS[k].txt(j), acoes: 'conversa' });
 }
 const AG_FNS = new Map(); // (as escolhas dos problemas não vão para o save: são refeitas se o jogo recarregar)
 {
@@ -229,7 +258,7 @@ function agFazTeste(j, c) {
   const a = agDados(); if (j.testePer === a.nPer) return; j.testePer = a.nPer;
   const ok = Math.random() * 100 < c.chance;
   if (ok) { j.fase = 'base'; j.clube = { nome: c.nome, pais: c.pais, cor: c.cor, nivel: c.nivel }; j.look.corRoupa = c.cor; j.salario = Math.round(AG_CLUBES[c.nivel].salario * 0.25); j.comissao = 10; j.contratoAte = agDados().nPer + 8;
-    agHist(j, `aprovado no teste do ${c.nome}!`); agGanhaRep(15 + c.nivel * 10); banner('✅ APROVADO!', `${j.nome} → ${c.nome}`); som('nivel'); }
+    agHist(j, `aprovado no teste do ${c.nome}!`); agGanhaRep(15 + c.nivel * 10); agMarco('aprovados'); banner('✅ APROVADO!', `${j.nome} → ${c.nome}`); som('nivel'); }
   else { agHist(j, `recusado no teste do ${c.nome}`); j.moral = Math.max(0, j.moral - 8); som('erro'); }
   agEvento({ tipo: 'teste', jog: j.id, txt: ok ? `🔔 RESULTADO DO TESTE: ${j.nome} foi APROVADO(A) no ${c.nome}! Vai jogar na base do clube.` : `🔔 RESULTADO DO TESTE: ${j.nome} foi recusado(a) pelo ${c.nome}. Dá para tentar outro clube.`, feito: true });
   salvar();
@@ -271,7 +300,7 @@ function agNegocia(ev, pedido) {
 function agFechaContrato(j, ev, p) {
   const a = agDados(); j.fase = 'pro'; j.clube = ev.clube; j.look.corRoupa = ev.clube.cor; j.salario = p.salario; j.comissao = p.com; j.contratoAte = a.nPer + p.anos * 4;
   ev.feito = true; ev.resultado = `🤝 Contrato assinado: ${agFmt(p.salario)}/mês, ${p.anos} anos, ${p.com}% para você.`;
-  agHist(j, `${ev.renova ? 'renovou' : 'assinou'} com o ${ev.clube.nome}`); agGanhaRep(ev.renova ? 10 : 30 + ev.clube.nivel * 15); som('moeda'); agTitulos();
+  agHist(j, `${ev.renova ? 'renovou' : 'assinou'} com o ${ev.clube.nome}`); agGanhaRep(ev.renova ? 10 : 30 + ev.clube.nivel * 15); if (!ev.renova) agMarco('contratos'); som('moeda'); agTitulos();
 }
 function agVende(j, ev, valor) {
   const a = agDados(), com = Math.round(valor * Math.max(5, j.comissao || 10) / 100);
@@ -279,11 +308,11 @@ function agVende(j, ev, valor) {
   j.clube = ev.clube; j.look.corRoupa = ev.clube.cor; j.fama = (j.fama || 0) + 10; j.salario = Math.round(AG_CLUBES[ev.clube.nivel].salario * (0.8 + Math.max(0, j.ovr - AG_CLUBES[ev.clube.nivel].ovr) * 0.05)); j.contratoAte = a.nPer + 12;
   (a.paises = a.paises || {})[ev.clube.pais] = 1;
   ev.feito = true; ev.resultado = `💼 TRANSFERÊNCIA FECHADA: ${j.nome} → ${ev.clube.nome} por ${agFmt(valor)}. Sua comissão: 💰 ${agFmt(com)} tostões!`;
-  agHist(j, `vendido ao ${ev.clube.nome} por ${agFmt(valor)}`); agGanhaRep(20 + valor / 1e6 * 1.5); banner('💼 TRANSFERÊNCIA!', `${j.nome} → ${ev.clube.nome}`); som('moeda'); log('🕴️ ' + ev.resultado, 'l-loot'); agTitulos();
+  agHist(j, `vendido ao ${ev.clube.nome} por ${agFmt(valor)}`); agGanhaRep(20 + valor / 1e6 * 1.5); agMarco('transf'); if (ev.clube.pais !== 'Brasil') agMarco('fora'); banner('💼 TRANSFERÊNCIA!', `${j.nome} → ${ev.clube.nome}`); som('moeda'); log('🕴️ ' + ev.resultado, 'l-loot'); agTitulos();
 }
 function agPatrocinioFecha(j, ev, valor) {
   const com = Math.round(valor * 0.2); G.save.ouro += com; agDados().totais.comissao += com; j.fama = (j.fama || 0) + 4;
-  ev.feito = true; ev.resultado = `📣 Patrocínio fechado com ${ev.oferta.marca}: ${agFmt(valor)}. Sua parte: 💰 ${agFmt(com)} tostões.`; agHist(j, `patrocínio da ${ev.oferta.marca}`); agGanhaRep(8); som('moeda'); log('🕴️ ' + ev.resultado, 'l-loot');
+  ev.feito = true; ev.resultado = `📣 Patrocínio fechado com ${ev.oferta.marca}: ${agFmt(valor)}. Sua parte: 💰 ${agFmt(com)} tostões.`; agHist(j, `patrocínio da ${ev.oferta.marca}`); agGanhaRep(8); agMarco('patroc'); som('moeda'); log('🕴️ ' + ev.resultado, 'l-loot');
 }
 
 /* ---------- títulos (o objetivo final não é "ficar rico") ---------- */
@@ -388,12 +417,13 @@ function abreAgencia(aba) {
 }
 function agTelaHoje() {
   const a = agDados(); const n = a.eventos.filter(e => !e.visto).length;
-  const box = el('div', {}, el('h3', {}, `☀️ BOM DIA, EMPRESÁRIO${n ? ` — ${n} acontecimento(s) novo(s)` : ''}`));
+  const box = el('div', {}, el('h3', {}, `☀️ BOM DIA, EMPRESÁRIO${n ? ` — ${n} acontecimento(s) novo(s)` : ''}`), agMetasMini());
   if (!a.eventos.length) box.append(el('div', { class: 'ag-vazio' }, agEmbaixadinha(), el('p', {}, 'Nada de novo por enquanto. Mande um olheiro procurar talentos!')));
   const lista = el('div', { class: 'lista' });
   for (const e of a.eventos.slice(0, 14)) {
     const j = e.jog && agJog(e.jog);
     const acoes = e.feito ? el('small', { class: 'ag-res' }, e.resultado || '✔ resolvido') : e.acoes === true ? el('button', { class: 'btn amarelo mini', onclick: () => abreAgencia('negocios') }, 'Ver proposta') :
+      e.acoes === 'conversa' ? el('button', { class: 'btn amarelo mini', onclick: () => agConversaProblema(e) }, '💬 Conversar') :
       Array.isArray(e.acoes) ? el('div', { class: 'ag-acoes' }, ...e.acoes.map(([nome, custo], k) => el('button', { class: 'btn mini', onclick: () => { agResolveProblema(e, k); abreAgencia('hoje'); if (e.feito && k === 0 && /saudade/.test(e.txt) && j) agCelebra('saudade', '🏠 A família chegou!', `${j.nome} ganhou a visita da família e voltou a sorrir.`, 'confete', j); } }, nome + (custo ? ` (${agFmt(custo)})` : '')))) : '';
         const ic = AG_EV_ARTE[e.tipo] || (e.tipo === 'evolucao' ? null : 'ag_brasao');
     const fig = j ? el('div', { class: 'ag-fig' }, agRetrato(j, 44), ic ? agImg(ic, 'ag-selo') : '') : el('div', { class: 'ag-fig' }, agImg(ic || 'ag_brasao', 'ag-ic-img'));
@@ -442,10 +472,11 @@ function agTelaTalentos() {
   for (const j of a.achados) {
     const custoAval = Math.max(80000, Math.round(agValor(j) * 0.4)), custoAss = Math.max(50000, Math.round(agValor(j) * 0.6));
     lista.append(el('div', { class: 'linha-item' }, agRetrato(j, 56),
-      el('div', { class: 'nm' }, el('b', {}, `${j.nome} — ${j.idade} anos · ${AG_POS[j.pos][0]}`), el('small', {}, `Overall ${j.ovr} · ${agEstrelasPot(j)} · ${AG_PERS[j.pers].nome} · vai embora em ${7 - (j.espera || 0)} períodos`),
+      el('div', { class: 'nm' }, el('b', {}, `${j.nome} — ${j.idade} anos · ${AG_POS[j.pos][0]}`), el('small', {}, `Overall ${j.ovr} · ${agEstrelasPot(j)} · ${AG_PERS[j.pers].nome} · vai embora em ${7 - (j.espera || 0)} períodos`), j.fam ? el('small', { class: 'ag-fam' }, agFamTxt(j)) : '',
         el('div', { class: 'ag-acoes' },
           el('button', { class: 'btn mini', disabled: j.avaliado ? 'disabled' : null, onclick: () => { if (s.ouro < custoAval) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= custoAval; j.avaliado = true; const l2 = 2; j.potV = [clamp(j.pot - agRi(0, l2), 40, 99), clamp(j.pot + agRi(0, l2), 40, 99)]; log(`🔬 Avaliação de ${j.nome}: potencial ${j.potV[0]}–${j.potV[1]}.`, 'l-xp'); salvar(); abreAgencia('talentos'); } }, j.avaliado ? '🔬 Avaliado' : `🔬 Avaliação detalhada (${agFmt(custoAval)})`),
-          el('button', { class: 'btn amarelo mini', onclick: () => { if (a.jogadores.length >= agMaxJogadores()) { log(`Sua agência só representa ${agMaxJogadores()} jogadores agora (suba a reputação).`, 'l-sis'); return; } if (s.ouro < custoAss) { log('Tostões insuficientes.', 'l-dano'); return; } s.ouro -= custoAss; a.achados.splice(a.achados.indexOf(j), 1); j.fase = 'treino'; agHist(j, 'assinou com a sua agência'); a.jogadores.push(j); agGanhaRep(6 + Math.max(0, j.pot - 75)); log(`✍️ ${j.nome} agora é representado(a) pela ${a.nome}!`, 'l-loot'); som('moeda'); salvar(); abreAgencia('jogadores'); } }, `✍️ Representar (${agFmt(custoAss)})`),
+          j.pensa != null && j.pensa === (a.nPer || 0) ? el('small', { class: 'ag-pensa' }, '⏳ A família está pensando. Volte no próximo período.') :
+            el('button', { class: 'btn amarelo mini', onclick: () => { if (a.jogadores.length >= agMaxJogadores()) { log(`Sua agência só representa ${agMaxJogadores()} jogadores agora (suba de nível: 🎯 metas na aba 🏢 Agência).`, 'l-sis'); return; } agConversaFamilia(j); } }, `💬 Conversar com a família (a partir de ${agFmt(custoAss)})`),
           el('button', { class: 'btn mini', onclick: () => { a.achados.splice(a.achados.indexOf(j), 1); salvar(); abreAgencia('talentos'); } }, 'Dispensar')))));
   }
   box.append(lista); return box;
@@ -486,21 +517,17 @@ function agTelaNegocios() {
     const card = el('div', { class: 'linha-item ag-neg' }, agRetrato(j, 64)); const nm = el('div', { class: 'nm' }, el('b', {}, e.txt)); card.append(nm);
     const o = e.oferta;
     if (e.tipo === 'contrato') {
-      const sal = el('input', { type: 'number', value: o.salario, step: Math.max(1000, Math.round(o.salario / 20)), style: 'width:120px' });
-      const anos = el('select', {}, ...[1, 2, 3, 4, 5].map(n => el('option', { value: n, selected: n === o.anos ? 'selected' : null }, `${n} anos`)));
-      const com = el('select', {}, ...[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(n => el('option', { value: n, selected: n === o.com ? 'selected' : null }, `${n}%`)));
-      nm.append(el('div', { class: 'ag-linha' }, 'Salário/mês: ', sal, ' Duração: ', anos, ' Sua comissão: ', com),
+      nm.append(el('small', {}, j.pers === 'ganancioso' ? '💰 Ele(a) é ganancioso(a): vai ficar chateado(a) se você aceitar sem negociar.' : 'Dá para aceitar agora ou sentar com o diretor e tentar melhorar.'),
         el('div', { class: 'ag-acoes' },
-          el('button', { class: 'btn amarelo mini', onclick: () => { agFechaContrato(j, e, { salario: o.salario, anos: o.anos, com: o.com }); salvar(); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '✅ Aceitar'),
-          el('button', { class: 'btn mini', onclick: () => { agNegocia(e, { salario: +sal.value || o.salario, anos: +anos.value, com: +com.value }); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '💬 Contraproposta'),
+          el('button', { class: 'btn amarelo mini', onclick: () => agConversaNegocio(e, j) }, '💬 Negociar com o diretor'),
+          el('button', { class: 'btn mini', onclick: () => { agFechaContrato(j, e, { salario: o.salario, anos: o.anos, com: o.com }); if (j.pers === 'ganancioso') { j.moral = Math.max(0, j.moral - 8); agHist(j, 'queria que você negociasse mais'); } salvar(); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '✅ Aceitar como está'),
           el('button', { class: 'btn mini', onclick: () => { e.feito = true; e.resultado = 'Você recusou a proposta.'; if (e.renova) { j.fase = 'treino'; j.clube = null; j.salario = 0; } salvar(); abreAgencia('negocios'); } }, '❌ Recusar')));
     } else {
-      const val = el('input', { type: 'number', value: Math.round(o.valor * 1.2), step: Math.max(1000, Math.round(o.valor / 20)), style: 'width:140px' });
       const aceitar = () => { if (e.tipo === 'transferencia') agVende(j, e, o.valor); else agPatrocinioFecha(j, e, o.valor); salvar(); abreAgencia('negocios'); agComemoraNegocio(e, j); };
       nm.append(el('small', {}, e.tipo === 'transferencia' ? `Valor de mercado estimado: ${agFmt(agValor(j))} · comissão ${Math.max(5, j.comissao || 10)}%` : 'Sua parte: 20% do patrocínio.'),
         el('div', { class: 'ag-acoes' },
-          el('button', { class: 'btn amarelo mini', onclick: aceitar }, e.tipo === 'transferencia' ? '✅ Vender' : '✅ Aceitar'),
-          el('span', {}, ' Pedir: '), val, el('button', { class: 'btn mini', onclick: () => { agNegocia(e, { valor: +val.value || o.valor }); abreAgencia('negocios'); agComemoraNegocio(e, j); } }, '💬 Negociar'),
+          el('button', { class: 'btn amarelo mini', onclick: () => agConversaNegocio(e, j) }, e.tipo === 'transferencia' ? '💬 Negociar com o diretor' : '💬 Negociar com a marca'),
+          el('button', { class: 'btn mini', onclick: aceitar }, e.tipo === 'transferencia' ? '✅ Vender como está' : '✅ Aceitar como está'),
           el('button', { class: 'btn mini', onclick: () => { e.feito = true; e.resultado = 'Você recusou.'; salvar(); abreAgencia('negocios'); } }, '❌ Recusar')));
     }
     box.append(card);
@@ -510,7 +537,7 @@ function agTelaNegocios() {
 function agTelaAgencia() {
   const a = agDados(), s = G.save, k = agNivelRep(); const box = el('div');
   const prox = AG_REP[k + 1];
-  box.append(el('p', {}, `${agRepTxt()}${prox ? ` — faltam ${fmt(prox[0] - a.rep)} pontos para ${prox[1]}` : ' — o topo!'} · Representa até ${agMaxJogadores()} jogadores.`));
+  box.append(el('p', {}, `${agRepTxt()} · ${fmt(a.rep)} pontos · Representa até ${agMaxJogadores()} jogadores.`), agMetasBox(a));
   box.append(el('h3', {}, '🔎 Olheiros'));
   const lo = el('div', { class: 'lista' });
   for (const o of AG_OLHEIROS) {
@@ -532,7 +559,7 @@ function agTelaAgencia() {
   if (!hall.length) box.append(el('p', { class: 'vazio' }, 'Quando um craque seu se aposentar (ou sair da agência como profissional), ele ganha um lugar aqui.'));
   else box.append(el('div', { class: 'lista' }, ...hall.map((h, i) => el('div', { class: 'linha-item' }, el('b', { class: 'pos-tag' }, i + 1), agRetrato(h, 44),
     el('div', { class: 'nm' }, el('b', {}, `${h.nome} · ${AG_POS[h.pos] ? AG_POS[h.pos][0] : ''} · overall máximo ${h.ovr}`), el('small', {}, `${h.como}${h.clube ? ' · último clube: ' + h.clube : ''}${h.venda ? ' · maior venda: ' + agFmt(h.venda) : ''}`))))));
-  box.append(el('p', { class: 'dica' }, 'Os profissionais que você representa aparecem no Mercado do seu clube (modo Time) — dá para contratar os seus próprios craques! (Cada craque só aceita um clube à altura dele.)'));
+  box.append(el('p', { class: 'dica' }, '📍 O escritório da agência fica na Vila do Campinho, na rua de cima: a secretária, o chefe dos olheiros e o quadro de talentos estão lá. Os profissionais que você representa aparecem no Mercado do seu clube (modo Time) — dá para contratar os seus próprios craques! (Cada craque só aceita um clube à altura dele.)'));
   return box;
 }
 
