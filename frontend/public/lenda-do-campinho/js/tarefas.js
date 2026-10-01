@@ -29,6 +29,10 @@ function tarCandidatos(min = 3, semLimite = false) {
     // e quem estava no nível 120 recebia tarefas do Estádio (nível 36–57), sempre as mesmas
     if (typeof VOOS !== 'undefined' && VOOS[casa] && casa !== 'cidade') { try { return s.nivel >= VOOS[casa].lvl && (typeof podeViajar !== 'function' || podeViajar(casa).ok); } catch (e) { return false; } }
     if (casa === 'atlantida') return s.nivel >= (typeof ATL_NIVEL !== 'undefined' ? ATL_NIVEL : 195);
+    // v338: os planetas (Lua, Marte, Saturno, Nebulosa) e o Multiverso também contam — antes ficavam de fora e quem estava
+    // no nível 355 recebia sempre Yeti e Touro (Atlântida, ~270), os mais "próximos" que o jogo achava
+    if (typeof PLANETAS !== 'undefined') { const p = PLANETAS.find(x => x.id === casa); if (p) return s.nivel >= p.req; }
+    if (['pedraforte', 'picos_nublados', 'torre_infinita', 'multiverso'].includes(casa) && typeof mvPodeIr === 'function') return !mvPodeIr();
     return Object.prototype.hasOwnProperty.call(MAPAS_FLAG, casa) && (!MAPAS_FLAG[casa] || s.flags[MAPAS_FLAG[casa]]);
   };
   let l = [];
@@ -60,6 +64,14 @@ function tarConfereSemana() {
     t.semana = { id, bonus: false, lista: tipos.map((tp, i) => { const n = [25, 30, 40, 50, 60, 80][i] || 40; return { tipo: tp, n, p: 0, feita: false }; }) };
   }
   if (!t.bounty && (!t.opcoes || !t.opcoes.length)) t.opcoes = tarSorteia(3);
+  // v338 (uma vez): tarefas sorteadas antes da correção dos planetas, muito abaixo do seu nível, são trocadas
+  // (só as que ainda não começaram — nada de perder progresso)
+  if (!t.revisaPlanetas) {
+    t.revisaPlanetas = true; const nv = G.save.nivel, baixo = id => MONSTROS[id] && nivelMonstro(MONSTROS[id]) < nv - 30;
+    const nivelOk = new Set(tarCandidatos(3).map(x => x.id)); if (!nivelOk.size || [...nivelOk].every(baixo)) return; // nada melhor para oferecer
+    if (!t.bounty && (t.opcoes || []).some(baixo)) t.opcoes = tarSorteia(3);
+    if (t.semana) { const usados = t.semana.lista.map(q => q.tipo); for (const q of t.semana.lista) if (!q.feita && !q.p && baixo(q.tipo)) { const [novo] = tarSorteia(1, usados); if (novo && !baixo(novo)) { usados.push(novo); q.tipo = novo; } } }
+  }
 }
 // vitórias contam para as tarefas
 {
