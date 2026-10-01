@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { prisma } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
 import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 import { validarSave, validarCasa, escolherCasas, validarRanking } from "../lenda/validar.js";
 import { abrirSave, fichaPublica } from "../lenda/ficha.js";
+import { registrarSinal, JOGANDO_AGORA_MS, GUARDAR_DIAS } from "../lenda/sessoes.js";
 
 // ===== Lenda do Campinho (RPG de futebol, em public/lenda-do-campinho/) =====
 //
@@ -34,6 +35,8 @@ function quemPede(req) {
 router.get("/save", requireAuth, async (req, res) => {
   const s = await prisma.lendaSave.findUnique({ where: { userId: req.user.id } });
   if (!s) return res.status(404).json({ error: "Nenhum save na nuvem ainda." });
+  // O jogo confere o save a cada ~30 s enquanto roda (sessao_unica.js): vale como sinal de "está jogando".
+  registrarSinal(prisma, req.user.id, s.nivel, req.headers["user-agent"]);
   res.json({ dados: s.dados, nivel: s.nivel, atualizadoEm: s.atualizadoEm });
 });
 
@@ -50,6 +53,7 @@ router.put("/save", requireAuth, async (req, res) => {
     update: { dados: v.dados, nivel: v.nivel, tamanho: v.dados.length },
     select: { atualizadoEm: true },
   });
+  registrarSinal(prisma, req.user.id, v.nivel, req.headers["user-agent"]);
   res.json({ ok: true, atualizadoEm: s.atualizadoEm });
 });
 
@@ -121,7 +125,53 @@ router.put("/ranking", requireAuth, async (req, res) => {
   // Limpa a lista guardada: quem acabou de entrar aparece na hora (antes
   // esperava até 1 min, e a janela aberta logo em seguida vinha vazia).
   cacheInvalidar("lenda:ranking");
+  registrarSinal(prisma, req.user.id, v.ranking.nivel, req.headers["user-agent"]);
   res.json({ ok: true });
+});
+
+// ---------- painel admin: quem está jogando e histórico de sessões ----------
+// Só ADMIN (é o histórico de quando cada pessoa jogou). ?dias=1..90 e ?jogador=trecho do apelido.
+router.get("/admin/sessoes", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  const dias = Math.min(GUARDAR_DIAS, Math.max(1, parseInt(req.query.dias, 10) || 7));
+  const busca = String(req.query.jogador || "").trim().slice(0, 30);
+  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+  let filtroUser = {};
+  if (busca) {
+    const achados = await prisma.user.findMany({ where: { nickname: { contains: busca, mode: "insensitive" } }, select: { id: true }, take: 200 });
+    filtroUser = { userId: { in: achados.map((u) => u.id) } };
+  }
+  const sessoes = await prisma.lendaSessao.findMany({
+    where: { ultimoSinal: { gte: desde }, ...filtroUser },
+    orderBy: { inicio: "desc" },
+    take: 500,
+  });
+  const nomes = new Map((await prisma.user.findMany({
+    where: { id: { in: [...new Set(sessoes.map((s) => s.userId))] } },
+    select: { id: true, nickname: true },
+  })).map((u) => [u.id, u.nickname]));
+  const agora = Date.now();
+  const linhas = sessoes.map((s) => ({
+    id: s.id,
+    userId: s.userId,
+    apelido: nomes.get(s.userId) || "(conta apagada)",
+    inicio: s.inicio,
+    ultimoSinal: s.ultimoSinal,
+    minutos: Math.max(1, Math.round((new Date(s.ultimoSinal) - new Date(s.inicio)) / 60000)),
+    nivelInicio: s.nivelInicio,
+    nivelFim: s.nivelFim,
+    plataforma: s.plataforma,
+    jogandoAgora: agora - new Date(s.ultimoSinal).getTime() <= JOGANDO_AGORA_MS,
+  }));
+  res.json({
+    dias,
+    jogandoAgora: linhas.filter((l) => l.jogandoAgora),
+    sessoes: linhas,
+    resumo: {
+      sessoes: linhas.length,
+      jogadores: new Set(linhas.map((l) => l.userId)).size,
+      minutos: linhas.reduce((t, l) => t + l.minutos, 0),
+    },
+  });
 });
 
 // Top dos jogadores por XP. Público; guardado 1 min (o banco não acorda a

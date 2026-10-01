@@ -5,7 +5,7 @@ import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import { ModalConversa } from "./Amigos.jsx";
 import { nomeDoTema } from "./temas.js";
-import { GlossarioStop, IndicePerguntas, RespostasRepetidas, PerguntasParecidas, CadastrosPorDia, Paginacao } from "./AdminFerramentas.jsx";
+import { GlossarioStop, IndicePerguntas, RespostasRepetidas, PerguntasParecidas, CadastrosPorDia, Paginacao, LendaSessoes } from "./AdminFerramentas.jsx";
 
 // PAINEL ADMIN da v2 — mesmas abas, rotas e regras do clássico
 // (src/pages/Admin.jsx). Moderador vê tudo menos Jogadores e as
@@ -100,7 +100,7 @@ export default function Admin({ usuario }) {
     { id: "denuncias", rotulo: "Denúncias", n: denuncias.length },
     { id: "quiz", rotulo: "Quiz", n: pendentesQuiz.length },
     { id: "stop", rotulo: "Stop", n: pendentesStop.length },
-    ...(ehAdmin ? [{ id: "jogadores", rotulo: "Jogadores", n: 0 }] : []),
+    ...(ehAdmin ? [{ id: "jogadores", rotulo: "Jogadores", n: 0 }, { id: "lenda", rotulo: "Lenda", n: 0 }] : []),
   ];
 
   return (
@@ -143,6 +143,7 @@ export default function Admin({ usuario }) {
             {ehAdmin && <Suspeitos falhou={falhas.suspeitos} lista={suspeitos} recarregar={carregar.suspeitos} recarregarUsuarios={carregar.usuarios} falha={falha} />}
           </>
         )}
+        {aba === "lenda" && ehAdmin && <LendaSessoes />}
         {aba === "jogadores" && ehAdmin && <Jogadores usuarios={usuarios} plataformas={plataformas} recarregar={carregar.usuarios} recarregarSuspeitos={carregar.suspeitos} abrirConversa={setConversa} falha={falha} />}
       </main>
       <Rodape />
