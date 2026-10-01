@@ -628,7 +628,7 @@ model LendaCasa {
 // Sessões de jogo do Lenda do Campinho (painel admin: "jogando agora" e
 // histórico). Uma linha por vez que alguém jogou LOGADO: começa no 1º sinal e
 // vai sendo estendida enquanto o jogo fala com o servidor (save, ranking).
-// Mais de 10 min sem sinal = sessão nova. Guardado por 90 dias (src/lenda/sessoes.js).
+// Mais de 30 min sem sinal = sessão nova. Guardado por 90 dias (src/lenda/sessoes.js).
 model LendaSessao {
   id          String   @id @default(cuid())
   userId      String
