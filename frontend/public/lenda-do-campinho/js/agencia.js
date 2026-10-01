@@ -63,7 +63,8 @@ const AG_SOBRENOMES = ['Silva', 'Souza', 'Santos', 'Oliveira', 'Pereira', 'Costa
 const agRnd = (a, b) => a + Math.random() * (b - a), agRi = (a, b) => Math.floor(agRnd(a, b + 1)), agPega = l => l[(Math.random() * l.length) | 0];
 const agFmt = n => fmt(Math.round(n));
 // zerou a Carreira (campeão da liga do topo, a Liga da Coroa) e o Clube (campeão do Mundial Interclubes)?
-function agZerouCarreira() { try { const c = G.save.carreira; return !!(c && (c.titulosLiga || []).some(t => t.liga === CARR_TIERS[CARR_TIER_MAX].liga)); } catch (e) { return false; } }
+// v325: também vale chegar à fama máxima (Lenda Mundial 3.000/3.000, "o topo do mundo") — o dono chegou lá e esperava a Agência
+function agZerouCarreira() { try { const c = G.save.carreira; return !!(c && ((c.fama || 0) >= CARR_FAMA_MAX || (c.titulosLiga || []).some(t => t.liga === CARR_TIERS[CARR_TIER_MAX].liga))); } catch (e) { return false; } }
 function agZerouClube() { return !!(G.save && G.save.flags && G.save.flags.campeao_mundial_interclubes); }
 function agLiberada() { const s = G.save; return !!s && ((s.nivel || 1) >= AG_NIVEL || (agZerouCarreira() && agZerouClube())); }
 function agDados() {
@@ -368,7 +369,7 @@ function agCabecalho() {
 }
 function abreAgencia(aba) {
   const s = G.save; if (!s) return;
-  if (!agLiberada()) { abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('div', { class: 'ag-capa trava' }, agImg('cap_ag_escritorio'), el('span', {}, '🔒')), el('p', {}, `🔒 A Agência abre no nível ${AG_NIVEL}... ou antes, se você zerar os outros modos:`), el('ul', {}, el('li', {}, `${agZerouCarreira() ? '✅' : '⬜'} Carreira: ser campeão da ${CARR_TIERS[CARR_TIER_MAX].liga}`), el('li', {}, `${agZerouClube() ? '✅' : '⬜'} Clube: ser campeão do Mundial Interclubes`)), el('p', { class: 'dica' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima." Aqui você vira EMPRESÁRIO: descobre garotos e garotas talentosos, cuida da carreira deles, negocia contratos e transferências.'), el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Ok'))); return; }
+  if (!agLiberada()) { abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('div', { class: 'ag-capa trava' }, agImg('cap_ag_escritorio'), el('span', {}, '🔒')), el('p', {}, `🔒 A Agência abre no nível ${AG_NIVEL}... ou antes, se você zerar os outros modos:`), el('ul', {}, el('li', {}, `${agZerouCarreira() ? '✅' : '⬜'} Carreira: chegar à fama máxima (👑 Lenda Mundial, ${fmt(CARR_FAMA_MAX)}) ou ser campeão da ${CARR_TIERS[CARR_TIER_MAX].liga}`), el('li', {}, `${agZerouClube() ? '✅' : '⬜'} Clube: ser campeão do Mundial Interclubes`)), el('p', { class: 'dica' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima." Aqui você vira EMPRESÁRIO: descobre garotos e garotas talentosos, cuida da carreira deles, negocia contratos e transferências.'), el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Ok'))); return; }
   let a = agDados();
   if (!a) {
     abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), el('div', { class: 'ag-capa' }, agImg('cap_ag_escritorio'), agEmbaixadinha(90)), el('p', { style: 'font-size:17px' }, '"Você já foi uma lenda dentro de campo. Agora descubra quem será a próxima."'),

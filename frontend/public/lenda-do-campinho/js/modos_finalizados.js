@@ -4,15 +4,21 @@
    🏁 MODOS FINALIZADOS (v324, pedido do dono: "fui campeão do mundo no clube, não tem mais o que fazer,
    coloque como finalizado; faça o mesmo na carreira").
    - Clube FINALIZADO: campeão do Mundial Interclubes (flag campeao_mundial_interclubes).
-   - Carreira FINALIZADA: campeão da Liga da Coroa, a liga do topo (titulosLiga).
+   - Carreira FINALIZADA: fama máxima (👑 Lenda Mundial 3.000) OU campeão da Liga da Coroa, a liga do topo (v325).
    O que muda: selo dourado "FINALIZADO" no topo da janela do modo (com o resumo da conquista), ✅ nos botões do menu
    e, na primeira vez, uma tela de comemoração. O modo continua jogável para quem quiser colecionar mais títulos.
    Zerou os dois → lembra que a 🕴️ Agência (modo Empresário) está liberada.
    Carregar DEPOIS de agencia.js.
    ============================================================ */
 function zerouModoClube() { return !!(G.save && G.save.flags && G.save.flags.campeao_mundial_interclubes); }
+// Carreira zerada: fama máxima (👑 Lenda Mundial 3.000/3.000) OU campeão da Liga da Coroa (mesma regra da Agência)
 function zerouModoCarreira() {
-  try { const c = G.save && G.save.carreira; return !!(c && (c.titulosLiga || []).some(t => t.liga === CARR_TIERS[CARR_TIER_MAX].liga)); } catch (e) { return false; }
+  try { const c = G.save && G.save.carreira; return !!(c && ((c.fama || 0) >= CARR_FAMA_MAX || (c.titulosLiga || []).some(t => t.liga === CARR_TIERS[CARR_TIER_MAX].liga))); } catch (e) { return false; }
+}
+function fimCarreiraComo() {
+  const c = G.save.carreira, coroa = CARR_TIERS[CARR_TIER_MAX].liga, n = (c.titulosLiga || []).filter(t => t.liga === coroa).length;
+  const fama = (c.fama || 0) >= CARR_FAMA_MAX;
+  return [fama ? `👑 Lenda Mundial com a fama máxima (${fmt(CARR_FAMA_MAX)})` : '', n ? `campeão(ã) da ${coroa}${n > 1 ? ` (${n}×)` : ''}` : ''].filter(Boolean).join(' e ');
 }
 function fimDicaAgencia() {
   if (!(zerouModoClube() && zerouModoCarreira())) return '';
@@ -26,10 +32,10 @@ function seloFimClube() {
       fimDicaAgencia()));
 }
 function seloFimCarreira() {
-  const c = G.save.carreira, coroa = CARR_TIERS[CARR_TIER_MAX].liga, n = (c.titulosLiga || []).filter(t => t.liga === coroa).length || 1;
+  const c = G.save.carreira, como = fimCarreiraComo();
   return el('div', { class: 'modo-fim' }, el('div', { class: 'modo-fim-selo' }, 'FINALIZADA'),
     el('div', { class: 'modo-fim-txt' }, el('b', {}, '👑 Carreira zerada!'),
-      el('small', {}, `Campeão(ã) da ${coroa}, a maior liga do mundo${n > 1 ? ` (${n}×)` : ''}. ${(c.titulosLiga || []).length} título(s) de liga e ${(c.paises || []).length} país(es) na carreira. Pode continuar jogando pela fama e pelos títulos.`),
+      el('small', {}, `${como.charAt(0).toUpperCase() + como.slice(1)}. ${(c.titulosLiga || []).length} título(s) de liga e ${(c.paises || []).length} país(es) na carreira. Pode continuar jogando pelos títulos.`),
       fimDicaAgencia()));
 }
 (function () {
@@ -61,7 +67,7 @@ function seloFimCarreira() {
       const foto = (id, titulo, txt) => (typeof cmFoto === 'function' ? cmFoto(id, titulo, txt) : banner(titulo, txt));
       const extra = cl && ca ? ' E agora que você zerou o Clube e a Carreira, a 🕴️ Agência (modo Empresário) está liberada: ☰ Mais → Agência!' : '';
       if (cl && !s.flags.fim_clube_visto) { s.flags.fim_clube_visto = true; salvar(); foto('cap_clube_mundial', '🏁 MODO CLUBE FINALIZADO!', 'Do campinho de terra ao título mundial: você zerou o modo Clube! A janela do seu time agora mostra o selo FINALIZADO. Dá para continuar jogando para colecionar mais troféus.' + extra); try { som('nivel'); } catch (e) { } return; }
-      if (ca && !s.flags.fim_carreira_visto) { s.flags.fim_carreira_visto = true; salvar(); foto('cap_carreira_fim', '👑 CARREIRA FINALIZADA!', `Campeão(ã) da ${CARR_TIERS[CARR_TIER_MAX].liga}: não existe liga maior no mundo. Você zerou a Carreira! Dá para continuar jogando pela fama e por mais títulos.` + extra); try { som('nivel'); } catch (e) { } }
+      if (ca && !s.flags.fim_carreira_visto) { s.flags.fim_carreira_visto = true; salvar(); foto('cap_carreira_fim', '👑 CARREIRA FINALIZADA!', `${fimCarreiraComo().replace(/^./, x => x.toUpperCase())}: não existe nada acima disso. Você zerou a Carreira! Dá para continuar jogando por mais títulos.` + extra); try { som('nivel'); } catch (e) { } }
     } catch (e) { }
   }
   setInterval(confere, 4000);
