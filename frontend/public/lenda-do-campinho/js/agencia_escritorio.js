@@ -485,7 +485,13 @@ function agFalaOlheiro() {
       const a = agLiberada() && agDados();
       if (!agLiberada()) poe(bt('🔒 Como liberar a agência', () => abreAgencia(), 'amarelo'));
       else if (!a) poe(bt('🕴️ Abrir minha agência', () => abreAgencia(), 'amarelo'));
-      else if (d.agEsc === 'secretaria') {
+      else if (a.v === 2 && d.agEsc === 'secretaria') { // Agência 3.0 (agencia_semana.js)
+        poe(bt('📅 Relatório e ações da semana', () => abreAgencia('semana'), 'amarelo'));
+        poe(bt('🔁 Rotina da semana', () => abreAgencia('rotina')));
+        poe(bt('🎯 Metas da agência', () => abreAgencia('agencia')));
+      } else if (a.v === 2) {
+        poe(bt('🔎 Olheiros e candidatos', () => abreAgencia('olheiros'), 'amarelo'));
+      } else if (d.agEsc === 'secretaria') {
         const prop = a.eventos.filter(e => e.acoes === true && !e.feito).length;
         poe(bt('☀️ Agenda do dia', () => abreAgencia('hoje'), 'amarelo'));
         poe(bt(`💼 Propostas na mesa${prop ? ` (${prop})` : ''}`, () => abreAgencia('negocios')));

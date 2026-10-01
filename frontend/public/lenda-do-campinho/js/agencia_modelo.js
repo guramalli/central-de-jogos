@@ -12,7 +12,8 @@
    ATENÇÃO: nesta etapa NADA é ligado no jogo (AGM_ATIVO = false): a tela continua a da v333/v334.
    A conversão só roda quando a tela nova entrar (Etapa 2). Carregar DEPOIS de agencia.js.
    ============================================================ */
-const AGM_ATIVO = false;      // Etapa 2 liga
+// Etapa 2: liga SÓ no modo de teste (localStorage rac_agencia3 = '1') até todas as etapas ficarem prontas; no fim vira true
+const AGM_ATIVO = (() => { try { return localStorage.getItem('rac_agencia3') === '1'; } catch (e) { return false; } })();
 const AGM_VERSAO = 2;
 const AGM_SEMANA_MS = 5 * 60000, AGM_MAX_SEMANAS = 120; // decisão do dono: 1 semana = 5 min de relógio; fechado conta até 10 h
 const AGM_VALOR_BASE = 1000000; // o design usa 50.000 (R$); ajustado à economia de tostões do jogo
@@ -258,7 +259,7 @@ function agmConverte(a1) {
   a.candidatos = (a1.achados || []).map(o => agmConverteJogador(o, a1, a));
   a.jogadores = (a1.jogadores || []).map(o => agmConverteJogador(o, a1, a));
   // acontecimentos: os de informação ficam; propostas abertas ficam marcadas (a Etapa 6 trata) — nada se perde
-  a.eventos = (a1.eventos || []).map(e => ({ ...e, v1: true }));
+  a.eventos = (a1.eventos || []).map(e => ({ ...e, v1: true, visto: true }));
   return a;
 }
 // guarda a agência antiga uma vez (cópia de segurança) e converte — só roda quando AGM_ATIVO
