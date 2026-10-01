@@ -131,11 +131,18 @@
     const x = out.getContext('2d'), img = x.getImageData(0, 0, W, H), o = img.data, apagou = new Uint8Array(W * H);
     for (let i = 0; i < rot.length; i++) if (rot[i] === 1 && fora(i % W, (i / W) | 0)) { o[i * 4 + 3] = 0; apagou[i] = 1; }
     // o contorno escuro do cabelo apagado (não tem a cor-chave): some também, se estiver fora do capacete
-    for (let pass = 0; pass < 5; pass++) for (let i = 0; i < rot.length; i++) { // (em ondas: o contorno grosso do topo do cabelo também some)
-      if (apagou[i] || rot[i] || o[i * 4 + 3] < 20) continue; const px = i % W, py = (i / W) | 0; if (!fora(px, py)) continue;
-      if (Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) > 130) continue;
-      let viz = false; for (let dy = -2; dy <= 2 && !viz; dy++) for (let dx = -2; dx <= 2 && !viz; dx++) { const j = i + dy * W + dx; if (j >= 0 && j < apagou.length && apagou[j]) viz = true; }
-      if (viz) { o[i * 4 + 3] = 0; apagou[i] = 1; }
+    // v312: só na cabeça (acima do pescoço) e em ondas de verdade — cada passada usa só o que a anterior apagou.
+    // (antes, apagar dentro da própria passada encadeava pelo contorno do corpo inteiro e sumia com os sapatos)
+    const yPescoco = V.y0 + 52 * k + 4;
+    for (let pass = 0; pass < 5; pass++) {
+      const novos = [];
+      for (let i = 0; i < rot.length; i++) {
+        if (apagou[i] || rot[i] || o[i * 4 + 3] < 20) continue; const px = i % W, py = (i / W) | 0; if (py > yPescoco || !fora(px, py)) continue;
+        if (Math.max(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) > 130) continue;
+        let viz = false; for (let dy = -2; dy <= 2 && !viz; dy++) for (let dx = -2; dx <= 2 && !viz; dx++) { const j = i + dy * W + dx; if (j >= 0 && j < apagou.length && apagou[j]) viz = true; }
+        if (viz) novos.push(i);
+      }
+      if (!novos.length) break; for (const i of novos) { o[i * 4 + 3] = 0; apagou[i] = 1; }
     }
     x.putImageData(img, 0, 0);
   }
