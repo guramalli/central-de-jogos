@@ -29,7 +29,8 @@
   // v287: fundo do mar (Atlântida), galáxia (Estação, planetas e Copa Intergaláctica) e o Vale das Pedras Celestiais (Pixabay Music)
   const MUS_FIM = { atlantida: 150.59, atlantida2: 176.25, galaxia: 140.79, galaxia2: 335.16, celeste: 110.32 };
   Object.assign(MUSICAS, MUS_FIM);
-  const MAPA_FIM = { atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
+  const MAPA_FIM = { multiverso: 'galaxia', pedraforte: 'dg_caverna', picos_nublados: 'celeste', torre_infinita: 'galaxia2', // v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
+    atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
   // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
   Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
   const DG_TEMA = { catacumba: 'dg_caverna', cristal: 'dg_caverna', mina: 'dg_caverna', tunel: 'dg_caverna', lava: 'dg_vulcao', gelo: 'dg_gelo',
@@ -38,7 +39,8 @@
     metro: 'dg_subterraneo', esgoto: 'dg_subterraneo', metro_paris: 'dg_subterraneo', armazem: 'dg_subterraneo', relogio: 'dg_subterraneo', moda: 'dg_subterraneo',
     praia: 'dg_piratas', cais: 'dg_piratas', estaleiro: 'dg_piratas', caravela: 'dg_piratas', recife: 'dg_piratas',
     lunar: 'dg_espaco', marciano: 'dg_espaco', anel: 'dg_espaco', nebular: 'dg_espaco', bambu: 'dg_oriental', dojo: 'dg_oriental',
-    barracao: 'rio', academia: 'miami' }; // o barracão de samba e a academia da praia tocam a música da cidade
+    barracao: 'rio', academia: 'miami', // o barracão de samba e a academia da praia tocam a música da cidade
+    mv_mina: 'dg_caverna', mv_grutas: 'dg_caverna', mv_lava: 'dg_vulcao', mv_trono: 'dg_vulcao', mv_nuvens: 'celeste', mv_pico: 'celeste', mv_floresta: 'dg_floresta', mv_ponte: 'dg_floresta' }; // v352: caçadas do Multiverso (antes caíam na música genérica)
   function musicaDaCaca(id) { const c = typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[id]; const f = c && DG_TEMA[c.tema]; return f && MUSICAS[f] ? f : 'caca'; }
   const AMBIENTE = { torcida: 11.65,
     // v278: torcida com o jeito de cada país (gravação real de estádio + a percussão típica; Pixabay)
@@ -417,6 +419,7 @@
     for (const lista of [MUNDO, EUROPA]) for (const c of lista) if (id && id.indexOf(c) === 0) return lista === MUNDO ? 'mundo' : 'europa';
     return null;
   }
+  A.faixaDoMapa = id => { let m = null; try { m = getMapa(id); } catch (e) { } return m && m.caca ? musicaDaCaca(m.caca) : m && (m.estadio || m.arena) ? 'estadio' : faixaDoMapa(id); }; // (para os testes)
   function contexto() {
     const vis = sel => { const e = document.querySelector(sel); return !!(e && !e.hidden && getComputedStyle(e).display !== 'none'); };
     const hist = document.getElementById('historia');
