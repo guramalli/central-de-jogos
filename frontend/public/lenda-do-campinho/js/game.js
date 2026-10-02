@@ -677,8 +677,32 @@ function alternaCaca() { G.caca = !G.caca; log(G.caca ? 'Caça contínua LIGADA:
 const CHAVE_DE_USO = new Set(['passaporte', 'capacete_mergulho', 'traje_astronauta', 'bola']);
 const fixoNaMochila = id => ITENS[id] && ITENS[id].tipo === 'chave' && CHAVE_DE_USO.has(id);
 function contaItem(id) { return G.save.mochila.filter(i => i.id === id).reduce((a, i) => a + i.q, 0); }
-// v152: bolsas (itens tipo 'bolsa' com .espacos) aumentam a mochila; contam até 4 bolsas, as maiores
-function capMochila(s = G.save) { if (!s) return 30; const b = s.mochila.filter(i => ITENS[i.id] && ITENS[i.id].tipo === 'bolsa').map(i => ITENS[i.id].espacos || 0).sort((a, b) => b - a).slice(0, 4); return 30 + b.reduce((a, x) => a + x, 0); }
+/* v361 MOCHILA COMO NO TIBIA (dono: "bolsas dentro de bolsas para fazer lootbags"; limite = PESO, como no Tibia).
+   A lista G.save.mochila continua uma lista só (o resto do jogo não muda); cada item diz em que bolsa está (.c = .u da
+   bolsa; sem .c = mochila principal). Cada item ocupa 1 espaço de onde está; cada bolsa dá os espaços dela. Total de
+   espaços = mochila principal + todas as bolsas. O limite de verdade é a CARGA (peso), que cresce com o nível.
+   Janelas das bolsas, arrastar e a bolsa de loot: mochilas.js. */
+const MOCHILA_SLOTS = 30;
+function mochilaSlots(s = G.save) { return MOCHILA_SLOTS; } // (a versão Steam aumenta)
+const ehBolsa = id => !!(ITENS[id] && ITENS[id].tipo === 'bolsa');
+function capMochila(s = G.save) { if (!s) return MOCHILA_SLOTS; return mochilaSlots(s) + s.mochila.reduce((a, e) => a + (ehBolsa(e.id) ? (ITENS[e.id].espacos || 0) : 0), 0); }
+const PESO_TIPO = { loot: 1, consumivel: 0.4, comida: 0.6, bolsa: 3, movel: 20, chave: 0 };
+const PESO_SLOT = { cabeca: 4, camisa: 7, calcao: 5, perna: 4, chuteira: 5, acessorio: 1 };
+function pesoItem(id) { const it = ITENS[id]; if (!it) return 0; if (it.peso != null) return it.peso; if (it.tipo === 'equip') return PESO_SLOT[it.slot] || 5; if (it.tipo === 'bolsa') return 2 + Math.round((it.espacos || 8) / 8); return PESO_TIPO[it.tipo] ?? 1; }
+function pesoMochila(s = G.save) { return Math.round(s.mochila.reduce((a, e) => a + pesoItem(e.id) * (e.q || 1), 0) * 10) / 10; }
+function capPeso(s = G.save) { const f = (s.atr && s.atr.folego) || 5; return Math.round(250 + (s.nivel || 1) * 12 + f * 2); }
+let AVISO_PESO = 0;
+function avisaPeso() { if (G.agora - AVISO_PESO < 6000) return; AVISO_PESO = G.agora; log(`⚖️ Peso demais! Você carrega ${fmt(pesoMochila())} de ${fmt(capPeso())}. Venda ou guarde coisas no armazém para pegar mais.`, 'l-dano'); }
+// onde um item NOVO entra: a bolsa de loot (para loot), depois a mochila principal, depois as bolsas (na ordem)
+function espacosLivres(u, s = G.save) { const cap = u == null ? mochilaSlots(s) : ((ITENS[(s.mochila.find(e => e.u === u) || {}).id] || {}).espacos || 0); return cap - s.mochila.filter(e => (e.c ?? null) === (u ?? null)).length; }
+function bolsaParaNovo(id, s = G.save) {
+  const lootBag = s.bolsaLoot != null && s.mochila.some(e => e.u === s.bolsaLoot) ? s.bolsaLoot : null;
+  if (lootBag != null && ITENS[id] && ITENS[id].tipo === 'loot' && espacosLivres(lootBag, s) > 0) return lootBag;
+  if (espacosLivres(null, s) > 0) return null;
+  for (const e of s.mochila) if (e.u != null && espacosLivres(e.u, s) > 0) return e.u;
+  return null;
+}
+function poeNaBolsa(ent, s = G.save) { const u = bolsaParaNovo(ent.id, s); if (u != null) ent.c = u; if (ehBolsa(ent.id) && ent.u == null) ent.u = s.uidBolsa = (s.uidBolsa || 0) + 1; return ent; }
 // v326: equipamento igual e SEM refino também empilha (mochila e armazém); o refinado (+N) fica sempre separado (.r)
 function empilha(id) { const t = ITENS[id].tipo; return t === 'consumivel' || t === 'loot' || t === 'comida' || t === 'equip'; }
 // devolve 1 equipamento para a mochila: sem refino entra na pilha que já existe
@@ -686,11 +710,12 @@ function voltaParaMochila(id, r) { const s = G.save; const ex = !r && empilha(id
 function addItem(id, q = 1) {
   const s = G.save; if (!ITENS[id]) return false;
   if (ITENS[id].tipo === 'chave' && contaItem(id)) return true; // item único (chave/troféu): já tem, não ocupa outro espaço
+  const p = pesoItem(id) * q; if (p > 0 && pesoMochila(s) + p > capPeso(s)) { avisaPeso(); return false; } // v361: o limite é a carga
   if (empilha(id)) {
     const ex = s.mochila.find(i => i.id === id && !i.r);
-    if (ex) ex.q += q; else { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa.', 'l-dano'); return false; } s.mochila.push({ id, q }); }
+    if (ex) ex.q += q; else { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa (ou ponha mais bolsas nela).', 'l-dano'); return false; } s.mochila.push(poeNaBolsa({ id, q }, s)); }
   } else {
-    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push({ id, q: 1 }); }
+    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push(poeNaBolsa({ id, q: 1 }, s)); }
   }
   if ((ITENS[id].tipo === 'consumivel' || ITENS[id].tipo === 'comida') && id !== 'pacotinho' && !s.hotbar.some(h => h && h.t === 'i' && h.id === id)) poeNaHotbar('i', id, true);
   if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (até 3 comidas diferentes ao mesmo tempo: os bônus somam). Use pela barra de atalhos ou pela mochila.`, '#hotbar');
@@ -700,7 +725,9 @@ function addItem(id, q = 1) {
 }
 function removeItem(id, q = 1) {
   const s = G.save;
-  while (q > 0) { let i = s.mochila.findIndex(x => x.id === id && !x.r); if (i < 0) i = s.mochila.findIndex(x => x.id === id); if (i < 0) return false; const it = s.mochila[i]; const tira = Math.min(q, it.q); it.q -= tira; q -= tira; if (it.q <= 0) s.mochila.splice(i, 1); }
+  // (bolsa: tira primeiro uma VAZIA — bolsa com coisas dentro não sai: mochilas.js/luxo.js avisam antes)
+  const vazia = x => !ehBolsa(x.id) || x.u == null || !s.mochila.some(e => e.c === x.u);
+  while (q > 0) { let i = s.mochila.findIndex(x => x.id === id && !x.r && vazia(x)); if (i < 0) i = s.mochila.findIndex(x => x.id === id && vazia(x)); if (i < 0) i = s.mochila.findIndex(x => x.id === id); if (i < 0) return false; const it = s.mochila[i]; const tira = Math.min(q, it.q); it.q -= tira; q -= tira; if (it.q <= 0) s.mochila.splice(i, 1); }
   G.uiSujo = true; return true;
 }
 function usarItem(id) {

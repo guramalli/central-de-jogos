@@ -168,7 +168,7 @@ function instalaArrastoEquip() {
   const mo = $('#mochila'), eq = $('#equip'); if (!mo || !eq || mo._layEq) return; mo._layEq = true;
   mo.addEventListener('dragstart', ev => {
     const b = ev.target.closest && ev.target.closest('.mochila-grade .slot'); if (!b || !G.save) return;
-    const i = [...b.parentNode.children].indexOf(b); const it = G.save.mochila[i];
+    if (b.dataset.i == null) return; const i = +b.dataset.i; const it = G.save.mochila[i]; // v361: índice real (bolsas)
     if (!it || !ITENS[it.id] || ITENS[it.id].tipo !== 'equip') return;
     ev.dataTransfer.setData(MIME_EQUIP, String(i)); ev.dataTransfer.setData('text/plain', 'e:' + i); ev.dataTransfer.effectAllowed = 'move';
     if (typeof escondeTip === 'function') escondeTip();
@@ -203,8 +203,8 @@ const _atualizaPaineisLay = atualizaPaineis;
 atualizaPaineis = function () {
   _atualizaPaineisLay();
   const s = G.save; if (!s) return;
-  document.querySelectorAll('#mochila .mochila-grade .slot').forEach((b, i) => {
-    const it = s.mochila[i]; if (!it || !ITENS[it.id] || ITENS[it.id].tipo !== 'equip') return;
+  document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => {
+    const it = s.mochila[+b.dataset.i]; if (!it || !ITENS[it.id] || ITENS[it.id].tipo !== 'equip') return;
     b.draggable = true; b.classList.add('arrasta-equip');
   });
   document.querySelectorAll('#equip .eq-slot.cheio').forEach(b => { b.draggable = true; });
@@ -218,13 +218,16 @@ atualizaPaineis = function () {
 // com 2+ abas = grupo com barra de abas. Os 4 botões e os 4 painéis originais (do index.html) só mudam
 // de lugar: nunca são recriados (ui.js e itens.js continuam ligados neles).
 const LAY_IND = el('div', { class: 'indicador-painel' });
-const colunas = () => [$('#lateralEsq'), $('#lateral')].filter(Boolean);
+const LAY_COLS = { esq2: 'lateralEsq2', esq: 'lateralEsq', dir: 'lateral', dir2: 'lateral2' }; // v361: 2 colunas de cada lado
+const LAY_KEYS = Object.keys(LAY_COLS);
+const colunas = () => LAY_KEYS.map(k => document.getElementById(LAY_COLS[k])).filter(Boolean);
 const BOTOES = {}, PAINEIS = {};
 let LAY = null;        // layout escolhido (salvo)
 let LAY_VISTO = null;  // layout desenhado agora (LAY; no celular, o padrão)
 const ehAbas = it => !!(it && typeof it === 'object' && Array.isArray(it.g));
-const padraoLayout = () => ({ esq: [], dir: ['perfil', 'mini', { g: ['batalha'], a: 'batalha', m: false }, { g: ['mochila', 'equip', 'skills'], a: 'mochila', m: false }], min: {} }); // v211: Batalha sempre à vista, como no Tibia
-const listasDe = L => [L.esq, L.dir];
+const padraoLayout = () => ({ esq2: [], esq: [], dir: ['perfil', 'mini', { g: ['batalha'], a: 'batalha', m: false }, { g: ['mochila', 'equip', 'skills'], a: 'mochila', m: false }, 'bolsas'], dir2: [], min: {} }); // v211: Batalha sempre à vista, como no Tibia
+const listasDe = L => LAY_KEYS.map(k => L[k] || (L[k] = []));
+const LAY_FIXOS = ['perfil', 'mini', 'bolsas'];
 function itemDaAba(n, L = LAY_VISTO) { if (!L) return null; for (const l of listasDe(L)) for (const it of l) if (ehAbas(it) && it.g.includes(n)) return it; return null; }
 const promovida = n => { const it = itemDaAba(n); return !!(it && it.g.length === 1); };
 const podeMexer = () => !LAY_ESTREITO.matches && LAY_VISTO === LAY;
@@ -232,11 +235,12 @@ const podeMexer = () => !LAY_ESTREITO.matches && LAY_VISTO === LAY;
 /* ---------- salvar / ler (lê também o formato antigo v1) ---------- */
 function normalizaLayout(L) {
   if (!L || !Array.isArray(L.esq) || !Array.isArray(L.dir)) return null;
+  for (const k of LAY_KEYS) if (!Array.isArray(L[k])) L[k] = [];
   const fixos = new Set(), usadas = new Set(); let resto = null;
   const conv = lista => {
     const out = [];
     for (const x of lista) {
-      if (x === 'perfil' || x === 'mini') { if (!fixos.has(x)) { fixos.add(x); out.push(x); } continue; }
+      if (LAY_FIXOS.includes(x)) { if (!fixos.has(x)) { fixos.add(x); out.push(x); } continue; }
       if (x === 'abas') { if (!resto) { resto = { g: null, a: 'batalha', m: false }; out.push(resto); } continue; } // v1: grupo com as abas que sobraram
       let g = null, a = null, m = false;
       if (typeof x === 'string' && x.startsWith('aba:')) g = [x.slice(4)];          // v1: aba solta
@@ -247,22 +251,23 @@ function normalizaLayout(L) {
     }
     return out;
   };
-  const esq = conv(L.esq), dir = conv(L.dir);
+  const esq2 = conv(L.esq2), esq = conv(L.esq), dir = conv(L.dir), dir2 = conv(L.dir2);
   if (resto) { resto.g = LAY_ABAS.filter(t => !usadas.has(t)); resto.g.forEach(t => usadas.add(t)); }
-  const N = { esq, dir, min: { perfil: !!(L.min && L.min.perfil), mini: !!(L.min && L.min.mini) } }; limpaVazios(N);
+  const N = { esq2, esq, dir, dir2, min: { perfil: !!(L.min && L.min.perfil), mini: !!(L.min && L.min.mini), bolsas: !!(L.min && L.min.bolsas) } }; limpaVazios(N);
   for (const f of ['mini', 'perfil']) if (!fixos.has(f)) N.dir.unshift(f);
+  if (!fixos.has('bolsas')) N.dir.push('bolsas'); // v361: painel das bolsas abertas
   const faltam = LAY_ABAS.filter(t => !usadas.has(t));
-  if (faltam.length) { const g = [...N.dir, ...N.esq].find(it => ehAbas(it) && it.g.length > 1); if (g) g.g.push(...faltam); else N.dir.push({ g: faltam, a: faltam[0], m: false }); }
+  if (faltam.length) { const g = listasDe(N).flat().find(it => ehAbas(it) && it.g.length > 1); if (g) g.g.push(...faltam); else N.dir.push({ g: faltam, a: faltam[0], m: false }); }
   limpaVazios(N); return N;
 }
 function limpaVazios(L) {
-  for (const k of ['esq', 'dir']) L[k] = L[k].filter(it => !ehAbas(it) || it.g.length);
+  for (const k of LAY_KEYS) L[k] = (L[k] || []).filter(it => !ehAbas(it) || it.g.length);
   for (const l of listasDe(L)) for (const it of l) if (ehAbas(it) && !it.g.includes(it.a)) it.a = it.g[0];
   L.min = L.min || {};
 }
 function leLayout() { try { return normalizaLayout(JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null')); } catch (e) { return null; } }
-function salvaLayout() { try { if (LAY) localStorage.setItem(LAYOUT_KEY, JSON.stringify({ v: 2, esq: LAY.esq, dir: LAY.dir, min: LAY.min || {} })); } catch (e) { } }
-const clona = L => JSON.parse(JSON.stringify({ v: 2, esq: L.esq, dir: L.dir, min: L.min || {} }));
+function salvaLayout() { try { if (LAY) localStorage.setItem(LAYOUT_KEY, JSON.stringify({ v: 2, esq2: LAY.esq2 || [], esq: LAY.esq, dir: LAY.dir, dir2: LAY.dir2 || [], min: LAY.min || {} })); } catch (e) { } }
+const clona = L => JSON.parse(JSON.stringify({ v: 2, esq2: L.esq2 || [], esq: L.esq, dir: L.dir, dir2: L.dir2 || [], min: L.min || {} }));
 function layoutAtual() { return clona(LAY_VISTO || LAY || padraoLayout()); }
 
 /* ---------- minimizar ---------- */
@@ -423,7 +428,10 @@ function renderLayout(L) {
   const E = $('#lateralEsq'), D = $('#lateral'); if (!E || !D) return;
   limpaArrasto();
   document.querySelectorAll('.bloco-abas, .bloco[data-painel=abas]').forEach(b => b.remove()); // botões e painéis voltam logo abaixo
-  for (const [col, lista] of [[E, L.esq], [D, L.dir]]) for (const it of lista) {
+  // tela sem espaço para 4 colunas: as colunas extras se juntam às normais (o layout salvo não muda)
+  const larga = window.innerWidth >= 1400;
+  const listaDa = k => larga ? (L[k] || []) : k === 'esq' ? [...(L.esq2 || []), ...(L.esq || [])] : k === 'dir' ? [...(L.dir || []), ...(L.dir2 || [])] : [];
+  for (const [col, lista] of LAY_KEYS.map(k => [document.getElementById(LAY_COLS[k]), listaDa(k)])) if (col) for (const it of lista) {
     const b = ehAbas(it) ? mkBlocoAbas(it) : blocoFixo(it);
     if (!b) continue;
     b._item = it; col.append(b);
@@ -467,8 +475,9 @@ function soltaNaColuna(col) {
   const lista = []; let pos = false;
   for (const c of seq) { if (c === LAY_IND) { lista.push(novo); pos = true; } else if (c._item !== novo) lista.push(c._item); }
   if (!pos) lista.push(novo);
-  const k = col.id === 'lateralEsq' ? 'esq' : 'dir', o = k === 'esq' ? 'dir' : 'esq';
-  L[k] = lista; L[o] = L[o].filter(it => it !== novo);
+  const k = col.dataset.coluna || (col.id === 'lateralEsq' ? 'esq' : 'dir');
+  for (const o of LAY_KEYS) if (o !== k) L[o] = (L[o] || []).filter(it => it !== novo && !lista.includes(it)); // (tela estreita: a coluna mostrava também a extra)
+  L[k] = lista;
   limpaArrasto(); aplica(L);
 }
 // juntar abas num bloco (grupo ou painel solto); "antes" = aba que fica logo depois das novas
@@ -482,16 +491,16 @@ function juntaEm(T, tabs, antes) {
 // ⇕: cada aba do grupo vira um painel solto, no mesmo lugar
 function empilhaGrupo(it) {
   if (!podeMexer()) return; const L = LAY;
-  for (const k of ['esq', 'dir']) { const i = L[k].indexOf(it); if (i >= 0) L[k].splice(i, 1, ...it.g.map(t => ({ g: [t], a: t, m: false }))); }
+  for (const k of LAY_KEYS) { const i = (L[k] || []).indexOf(it); if (i >= 0) L[k].splice(i, 1, ...it.g.map(t => ({ g: [t], a: t, m: false }))); }
   aplica(L);
 }
 // ↩: a aba solta volta para o grupo principal (o primeiro grupo; sem grupo, junta com o painel de aba mais perto)
 function voltaParaGrupo(t) {
   if (!podeMexer()) return; const L = LAY; const src = itemDaAba(t, L); if (!src) return;
-  let alvo = [...L.dir, ...L.esq].find(it => ehAbas(it) && it.g.length > 1 && it !== src);
+  let alvo = listasDe(L).flat().find(it => ehAbas(it) && it.g.length > 1 && it !== src);
   if (!alvo) {
-    const k = L.esq.includes(src) ? 'esq' : 'dir', l = L[k], i = l.indexOf(src);
-    alvo = l.slice(i + 1).find(ehAbas) || l.slice(0, i).reverse().find(ehAbas) || [...L.dir, ...L.esq].find(it => ehAbas(it) && it !== src);
+    const k = LAY_KEYS.find(kk => (L[kk] || []).includes(src)) || 'dir', l = L[k], i = l.indexOf(src);
+    alvo = l.slice(i + 1).find(ehAbas) || l.slice(0, i).reverse().find(ehAbas) || listasDe(L).flat().find(it => ehAbas(it) && it !== src);
   }
   if (!alvo) return;
   tiraAbas(L, [t]);
@@ -503,8 +512,8 @@ function voltaParaGrupo(t) {
 function presetAbas(juntas) {
   const L = clona(LAY || padraoLayout());
   let k = 'dir', i = -1;
-  for (const kk of ['dir', 'esq']) { const j = L[kk].findIndex(ehAbas); if (j >= 0) { k = kk; i = j; break; } }
-  for (const kk of ['esq', 'dir']) L[kk] = L[kk].filter(it => !ehAbas(it));
+  for (const kk of ['dir', 'esq', 'dir2', 'esq2']) { const j = (L[kk] || []).findIndex(ehAbas); if (j >= 0) { k = kk; i = j; break; } }
+  for (const kk of LAY_KEYS) L[kk] = (L[kk] || []).filter(it => !ehAbas(it));
   if (i < 0 || i > L[k].length) i = L[k].length;
   const novos = juntas ? [{ g: LAY_ABAS.slice(), a: 'batalha', m: false }] : LAY_ABAS.map(t => ({ g: [t], a: t, m: false }));
   L[k].splice(i, 0, ...novos);
@@ -545,6 +554,12 @@ function preparaFixos() {
       el('span', { class: 'pr-barras' }, el('span', { class: 'pr-hp' }, el('i')), el('span', { class: 'pr-foco' }, el('i'))));
     r.addEventListener('click', () => minimiza(p, false));
     p.prepend(r); p.append(mkBtMin(p), mkGrip(p));
+  }
+  const bo = blocoFixo('bolsas');
+  if (bo && !bo.querySelector(':scope > .cab-min')) {
+    const r = el('div', { class: 'cab-min', title: 'Clique para expandir' }, el('span', {}, '🎒 Bolsas abertas'));
+    r.addEventListener('click', () => minimiza(bo, false));
+    bo.prepend(r); bo.append(mkBtMin(bo), mkGrip(bo));
   }
   const m = blocoFixo('mini');
   if (m && !m.querySelector(':scope > .cab-min')) {
@@ -590,7 +605,8 @@ function iniciaLayout() {
   if (!LAY_OK) {
     LAY_OK = true;
     // tela estreita <-> larga: troca entre o layout padrão e o escolhido
-    const mudou = () => { if (G.rodando && LAY_ESTREITO.matches !== LAY_EST_ULT) desenhaLayout(); };
+    let largaUlt = window.innerWidth >= 1400;
+    const mudou = () => { const larga = window.innerWidth >= 1400; if (G.rodando && (LAY_ESTREITO.matches !== LAY_EST_ULT || larga !== largaUlt)) { largaUlt = larga; desenhaLayout(); } };
     if (LAY_ESTREITO.addEventListener) LAY_ESTREITO.addEventListener('change', mudou); else if (LAY_ESTREITO.addListener) LAY_ESTREITO.addListener(mudou);
     window.addEventListener('resize', mudou);
   }
@@ -623,18 +639,28 @@ modalAjuda = function () {
   /* colunas de painéis dos dois lados do jogo */
   .bloco { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .bloco.arrastado, .abas button.arrastado { opacity: .45; }
-  #lateral.vazia, #lateralEsq.vazia { display: none; }
+  #lateral.vazia, #lateralEsq.vazia, #lateral2.vazia, #lateralEsq2.vazia { display: none; }
   @media (min-width: 901px) {
-    #principal { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 0; }
+    #principal { grid-template-columns: auto auto minmax(420px, 1fr) auto auto; column-gap: 0; } /* o jogo nunca fica menor que 420 px */
     #principal:has(#lateralEsq:not(.vazia)) { max-width: 1680px; } /* painéis dos dois lados: o jogo não encolhe tanto em tela grande */
-    #lateralEsq { grid-column: 1; grid-row: 1; margin-right: 7px; }
-    #colJogo { grid-column: 2; grid-row: 1; }
-    #lateral { grid-column: 3; grid-row: 1; margin-left: 7px; }
+    #principal:has(#lateralEsq2:not(.vazia)), #principal:has(#lateral2:not(.vazia)), body.colunas-extras #principal { max-width: 2100px; }
+    #lateralEsq2 { grid-column: 1; grid-row: 1; margin-right: 7px; }
+    #lateralEsq { grid-column: 2; grid-row: 1; margin-right: 7px; }
+    #colJogo { grid-column: 3; grid-row: 1; justify-self: center; width: 100%; max-width: var(--tela-jogo, none); }
+    #lateral { grid-column: 4; grid-row: 1; margin-left: 7px; }
+    #lateral2 { grid-column: 5; grid-row: 1; margin-left: 7px; }
+    /* colunas extras ligadas: as vazias ficam à vista como lugar para soltar painéis */
+  }
+  @media (min-width: 1500px) { /* colunas extras vazias só aparecem quando a tela é larga o bastante */
+    body.colunas-extras #lateralEsq2.vazia, body.colunas-extras #lateralEsq.vazia, body.colunas-extras #lateral.vazia, body.colunas-extras #lateral2.vazia { display: flex; width: 120px; min-height: 220px; align-items: center; justify-content: center; border: 2px dashed rgba(255,210,63,.45); border-radius: 10px; }
+    body.colunas-extras .coluna-paineis.vazia::before { content: 'Arraste um painel (⠿) para cá'; color: var(--amarelo); opacity: .7; font-weight: 700; font-size: 12px; text-align: center; padding: 6px; pointer-events: none; }
+  }
+  @media (min-width: 901px) {
     /* muitos painéis empilhados: a coluna rola sozinha e fica sempre à vista */
     .coluna-paineis { width: 306px; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 5px 3px; align-self: start; position: sticky; top: 6px;
       max-height: calc(100vh - 12px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--madeira3) transparent; }
     body.arrastando-painel .coluna-paineis { outline: 2px dashed rgba(255,210,63,.5); outline-offset: 2px; border-radius: 8px; }
-    body.arrastando-painel #lateral.vazia, body.arrastando-painel #lateralEsq.vazia { display: flex; width: 120px; min-height: 280px; align-items: center; justify-content: center; border: 3px dashed var(--amarelo); border-radius: 10px; background: rgba(255,210,63,.1); outline: none; }
+    body.arrastando-painel #lateral.vazia, body.arrastando-painel #lateralEsq.vazia, body.arrastando-painel #lateral2.vazia, body.arrastando-painel #lateralEsq2.vazia { display: flex; width: 120px; min-height: 280px; align-items: center; justify-content: center; border: 3px dashed var(--amarelo); border-radius: 10px; background: rgba(255,210,63,.1); outline: none; }
     body.arrastando-painel .coluna-paineis.vazia::before { content: 'Solte o painel aqui'; color: var(--amarelo); font-weight: 700; font-size: 13px; text-align: center; padding: 6px; pointer-events: none; }
   }
   @media (max-width: 900px) { .bloco { display: contents; } .grip, .bloco-volta, .bt-min, .abas-ferr, .cab-min { display: none !important; } }
@@ -646,8 +672,8 @@ modalAjuda = function () {
   .grip:active { cursor: grabbing; }
   .bt-min { cursor: pointer; user-select: none; -webkit-user-select: none; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1; color: var(--madeira2); background: var(--papel2); border: 2px solid var(--madeira3); border-radius: 5px; min-width: 19px; height: 19px; opacity: .85; }
   .bt-min:hover { opacity: 1; background: var(--amarelo); border-color: var(--madeira2); }
-  .bloco[data-painel=perfil] > .grip, .bloco[data-painel=mini] > .grip { position: absolute; top: 6px; right: 6px; z-index: 2; }
-  .bloco[data-painel=perfil] > .bt-min, .bloco[data-painel=mini] > .bt-min { position: absolute; top: 6px; right: 30px; z-index: 2; }
+  .bloco[data-painel=perfil] > .grip, .bloco[data-painel=mini] > .grip, .bloco[data-painel=bolsas] > .grip { position: absolute; top: 6px; right: 6px; z-index: 2; }
+  .bloco[data-painel=perfil] > .bt-min, .bloco[data-painel=mini] > .bt-min, .bloco[data-painel=bolsas] > .bt-min { position: absolute; top: 6px; right: 30px; z-index: 2; }
   .abas { display: flex; }
   .abas button { flex: 1 1 auto; min-width: 0; padding-left: 2px; padding-right: 2px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .abas-ferr { flex: none; display: grid; grid-template-columns: auto auto; grid-template-rows: 1fr 1fr; gap: 1px; align-self: center; margin-left: 1px; }

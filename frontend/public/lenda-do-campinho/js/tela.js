@@ -60,7 +60,7 @@ ajustaCanvas = function () {
   const st = document.createElement('style');
   st.textContent = `
   @media (min-width: 901px) {
-    body.tela-larga #principal, body.tela-larga #principal:has(#lateralEsq:not(.vazia)) { max-width: none; }
+    body.tela-larga #principal, body.tela-larga #principal:has(#lateralEsq:not(.vazia)), body.tela-larga #principal:has(#lateralEsq2:not(.vazia)), body.tela-larga #principal:has(#lateral2:not(.vazia)), body.tela-larga.colunas-extras #principal { max-width: none; }
   }
   `;
   document.head.append(st);

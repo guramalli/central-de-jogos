@@ -163,7 +163,7 @@ if (CEL) (function () {
   body.modo-celular #principal { display: block !important; padding: 0 !important; max-width: none !important; }
   body.modo-celular #colJogo { container-type: normal !important; display: block !important; }
   body.modo-celular #tela { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100dvh !important; aspect-ratio: auto !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; z-index: 1; }
-  body.modo-celular #lateral, body.modo-celular #lateralEsq { display: none !important; }
+  body.modo-celular #lateral, body.modo-celular #lateralEsq, body.modo-celular #lateral2, body.modo-celular #lateralEsq2 { display: none !important; }
   /* HUD */
   body.modo-celular #celHud { position: fixed; z-index: 6; top: calc(6px + env(safe-area-inset-top)); left: calc(6px + env(safe-area-inset-left)); right: calc(6px + env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
   #celHud .ch-esq { width: 190px; background: rgba(20,10,40,.62); border: 2px solid rgba(184,115,58,.8); border-radius: 10px; padding: 4px 6px 5px; pointer-events: auto; }

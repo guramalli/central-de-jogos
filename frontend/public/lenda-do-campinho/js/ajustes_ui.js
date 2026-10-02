@@ -103,7 +103,7 @@ document.addEventListener('dblclick', ev => {
    "(HP)"/"(mana)" nos textos das janelas, dos painéis laterais e das dicas de itens — os NOMES
    (negrito/títulos: "Garrafa de Fôlego", "Fôlego de Campeão") ficam como estão. O chat (log) não muda. */
 const HPMANA_RE = /(?<!Segundo[\s\u00a0])\b(f[oô]lego|foco)(?![\s\u00a0]*\()(?![\s\u00a0]+de[\s\u00a0]+Campe)(?!\w)/gi;
-const HPMANA_ONDE = '#modalConteudo, .tip-item, #lateral, #lateralEsq, .cj-caixa, #celMenu';
+const HPMANA_ONDE = '#modalConteudo, .tip-item, #lateral, #lateralEsq, #lateral2, #lateralEsq2, .cj-caixa, #celMenu';
 const HPMANA_FORA = 'b, strong, h1, h2, h3, h4, .nm > b, .bloco-titulo, .abas, button.btn, input, textarea, select, .kbd, #tHp, #tFoco';
 function hpManaTexto(t) { return t.replace(HPMANA_RE, (m, w) => /^f[oô]lego$/i.test(w) ? `${w} (HP)` : `${w} (mana)`); }
 function hpManaNo(n) {

@@ -94,7 +94,7 @@ function alternaTrava(id) {
   const _paineisTv = atualizaPaineis;
   atualizaPaineis = function () {
     const out = _paineisTv.apply(this, arguments); const s = G.save; if (!s || !s.travados) return out;
-    document.querySelectorAll('#mochila .mochila-grade .slot').forEach((b, i) => { const m = s.mochila[i]; if (m && s.travados[m.id]) { b.classList.add('travado'); b.append(el('span', { class: 'trava' + (m.r ? ' com-ref' : '') }, '🔒')); b.title += ' (travado)'; } });
+    document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { const m = s.mochila[+b.dataset.i]; if (m && s.travados[m.id]) { b.classList.add('travado'); b.append(el('span', { class: 'trava' + (m.r ? ' com-ref' : '') }, '🔒')); b.title += ' (travado)'; } });
     return out;
   };
   const css = document.createElement('style');

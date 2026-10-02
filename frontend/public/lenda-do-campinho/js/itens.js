@@ -166,8 +166,8 @@ atualizaPaineis = function () {
   if (tinhaTip) setTimeout(() => { let e = document.elementFromPoint(MOUSE.x, MOUSE.y); while (e && !e._tip) e = e.parentElement; if (e) mostraTip({ clientX: MOUSE.x, clientY: MOUSE.y }, e._tip()); }, 0);
   const s = G.save; if (!s) return;
   // mochila
-  document.querySelectorAll('#mochila .mochila-grade .slot').forEach((b, i) => {
-    const it = s.mochila[i]; if (!it || !ITENS[it.id]) return;
+  document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { // v361: data-i = índice em s.mochila (bolsas abertas)
+    const it = s.mochila[+b.dataset.i]; if (!it || !ITENS[it.id]) return;
     const r = it.r || 0; const def = ITENS[it.id];
     seloItem(b, it.id, r); marcaRaridade(b, it.id);
     const acao = def.tipo === 'equip' ? 'Botão direito: EQUIPAR' : def.tipo === 'comida' ? 'Botão direito: COMER · arraste para a barra' : def.tipo === 'consumivel' ? 'Botão direito: USAR · arraste para a barra' : '';
