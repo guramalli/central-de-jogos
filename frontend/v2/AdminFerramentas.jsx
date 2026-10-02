@@ -497,3 +497,74 @@ export function LendaSessoes() {
     </>
   );
 }
+
+// Estatísticas ANÔNIMAS do Lenda (só contagens por dia — ninguém é identificado).
+const FUNIL = [
+  ["abriu:novo", "Abriram o jogo pela 1ª vez"], ["personagem", "Criaram personagem"], ["tutorial:fim", "Terminaram o tutorial"],
+  ["nivel:5", "Nível 5"], ["nivel:10", "Nível 10"], ["nivel:20", "Nível 20"], ["nivel:50", "Nível 50"], ["nivel:100", "Nível 100"],
+  ["nivel:200", "Nível 200"], ["nivel:300", "Nível 300"], ["nivel:400", "Nível 400"], ["nivel:500", "Nível 500"],
+];
+const RETORNO = [["retorno:d1", "Voltaram depois de 1 dia"], ["retorno:d7", "… de 7 dias"], ["retorno:d30", "… de 30 dias"]];
+const SESSAO = [["sessao:m0_5", "até 5 min"], ["sessao:m5_15", "5–15 min"], ["sessao:m15_30", "15–30 min"], ["sessao:m30_60", "30–60 min"], ["sessao:m60", "mais de 1 h"]];
+
+export function LendaEstatisticas() {
+  const [dados, setDados] = useState(null);
+  const [dias, setDias] = useState(30);
+  const [erro, setErro] = useState("");
+  useEffect(() => {
+    let vivo = true;
+    setDados(null);
+    api.get("/lenda/admin/contagens", { params: { dias } })
+      .then(({ data }) => vivo && (setDados(data), setErro("")))
+      .catch((e) => vivo && setErro(e.response?.data?.error || "Erro ao carregar as estatísticas."));
+    return () => { vivo = false; };
+  }, [dias]);
+  const t = dados?.total || {};
+  const soma = (pref) => Object.entries(t).filter(([k]) => k === pref || k.startsWith(pref + ":")).reduce((a, [, n]) => a + n, 0);
+  const base = t["abriu:novo"] || 0;
+  const mapas = Object.entries(t).filter(([k]) => k.startsWith("mapa:")).sort((a, b) => b[1] - a[1]).slice(0, 25);
+  const linha = ([k, nome], ref) => {
+    const n = k.includes(":") ? t[k] || 0 : soma(k);
+    return <tr key={k}><td>{nome}</td><td>{n}</td><td>{ref ? `${Math.round((n / ref) * 100)}%` : "—"}</td></tr>;
+  };
+  return (
+    <section className="v2-cartao">
+      <div className="v2-cartao-cabeca">
+        <h2>Lenda do Campinho — funil do jogo (anônimo)</h2>
+        <div className="v2-admin-filtros">{[7, 30, 90, 365].map((n) => <button key={n} className={dias === n ? "ativo" : ""} onClick={() => setDias(n)}>{`${n}d`}</button>)}</div>
+      </div>
+      {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
+      {!dados && !erro && <div className="v2-carregando">Carregando…</div>}
+      {dados && (
+        <>
+          <div className="v2-admin-numeros">
+            <div><b>{soma("jogou")}</b><span>partidas abertas</span></div>
+            <div><b>{base}</b><span>jogadores novos</span></div>
+            <div><b>{soma("derrota")}</b><span>1ª derrota</span></div>
+          </div>
+          <div className="v2-tabela-rolagem">
+            <table className="v2-tabela-admin">
+              <thead><tr><th>Marco</th><th>Quantos</th><th>dos novos</th></tr></thead>
+              <tbody>{FUNIL.map((l) => linha(l, base))}{RETORNO.map((l) => linha(l, base))}</tbody>
+            </table>
+          </div>
+          <div className="v2-tabela-rolagem">
+            <table className="v2-tabela-admin">
+              <thead><tr><th>Tempo de jogo por vez</th><th>Vezes</th><th></th></tr></thead>
+              <tbody>{SESSAO.map((l) => linha(l, soma("sessao")))}</tbody>
+            </table>
+          </div>
+          {mapas.length > 0 && (
+            <div className="v2-tabela-rolagem">
+              <table className="v2-tabela-admin">
+                <thead><tr><th>Lugar (1ª visita de cada personagem)</th><th>Quantos</th><th></th></tr></thead>
+                <tbody>{mapas.map(([k, n]) => <tr key={k}><td>{k.slice(5)}</td><td>{n}</td><td></td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+          <p className="v2-cartao-nota">Só contagens somadas por dia: não existe registro de quem fez o quê (sem conta, sem aparelho, sem IP). Conta quem joga com ou sem conta, no site (a Steam não envia). Quem desligou em ☰ Mais › 📊 ou usa "Não rastrear" não entra.</p>
+        </>
+      )}
+    </section>
+  );
+}
