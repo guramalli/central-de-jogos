@@ -128,10 +128,11 @@ function atualizaHotbarCd() {
     const h = s.hotbar[i]; let cd = b.querySelector('.cd');
     if (!h) { if (cd) cd.remove(); return; }
     let fim = 0, dur = 1;
-    if (h.t === 'd') { const dr = DRIBLES[h.id]; const g = grupoDrible(dr); const fimG = G.cds[g] || 0, fimP = G.cds[h.id] || 0; fim = Math.max(fimG, fimP); dur = fimP >= fimG ? Math.max(dr.cd, 1000) : CD_GRUPO[g]; b.classList.toggle('off', s.nivel < dr.lvl || s.foco < Math.ceil(dr.foco * (st.custoFoco || 1))); }
+    let grupo = false;
+    if (h.t === 'd') { const dr = DRIBLES[h.id]; const g = grupoDrible(dr); const fimG = G.cds[g] || 0, fimP = G.cds[h.id] || 0; fim = Math.max(fimG, fimP); grupo = fimG > fimP; dur = !grupo ? Math.max(dr.cd, 1000) : CD_GRUPO[g]; b.classList.toggle('off', s.nivel < dr.lvl || s.foco < Math.ceil(dr.foco * (st.custoFoco || 1))); }
     else { fim = G.cds.pocao || 0; dur = 1000; const q = b.querySelector('.qtd'); const n = contaItem(h.id); if (q) q.textContent = n; b.classList.toggle('off', !n); }
     const rest = fim - G.agora;
-    if (rest > 0) { if (!cd) { cd = el('i', { class: 'cd' }); b.append(cd); } cd.style.height = clamp(rest / dur * 100, 0, 100) + '%'; } else if (cd) cd.remove();
+    if (rest > 0) { if (!cd) { cd = el('i', { class: 'cd' }); b.append(cd); } cd.classList.toggle('grupo', grupo); cd.style.height = clamp(rest / dur * 100, 0, 100) + '%'; } else if (cd) cd.remove();
   });
 }
 function atualizaPaineis() {
@@ -152,6 +153,7 @@ function atualizaPaineis() {
     if (h.t === 'd') { const dr = DRIBLES[h.id]; b.prepend(iconeClone(iconeDrible(h.id))); const tj = typeof tipoJogada === 'function' ? tipoJogada(dr) : null; if (tj) { b.classList.add('tj'); b.style.setProperty('--tj', tj.cor); b.append(el('span', { class: 'faixa-tj' }, (typeof TJ_FAIXA !== 'undefined' && TJ_FAIXA[tj.k]) || tj.rot)); } /* v267: faixa colorida com o tipo */ b.title = `${dr.nome} — ${dr.desc}${tj ? ' ' + textoJogada(dr) : ''} (nível ${dr.lvl}, ${dr.foco} de foco). Botão direito remove.`; }
     else { b.prepend(iconeClone(iconeItem(h.id))); b.append(el('span', { class: 'qtd' }, contaItem(h.id))); b.title = ITENS[h.id].nome + ' — botão direito remove.'; }
   });
+  atualizaHotbarCd(); // v358: o redesenho apagava o escurecido do cooldown até a próxima checagem (0,35 s): os botões piscavam
   // equipamento: boneco com cada peça no seu lugar do corpo (desenho, posições e linhas em layout.js)
   const eq = $('#equip'); eq.innerHTML = '';
   const g = el('div', { class: 'equip-grade equip-boneco' });

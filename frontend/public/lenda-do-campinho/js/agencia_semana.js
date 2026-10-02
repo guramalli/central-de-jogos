@@ -212,6 +212,7 @@ function abreAgencia3(aba) {
   const nav = el('div', { class: 'ag-abas' }, ...abas.map(([id, nome]) => el('button', { class: 'btn mini' + (AGM_ABA === id ? ' amarelo' : ''), type: 'button', onclick: () => abreAgencia3(id) }, nome)));
   const corpo = el('div', { class: 'ag-corpo' }, ({ semana: agmTelaSemana, jogadores: agmTelaJogadores, rotina: agmTelaRotina, olheiros: agmTelaOlheiros, agencia: agmTelaAgencia })[AGM_ABA](a));
   abreModal.largo = true; abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), agmCabecalho(a), nav, corpo, el('div', { class: 'opcoes' }, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Fechar')));
+  try { agmEnfeitaEstrelas(document.querySelector('#modal .ag-corpo')); } catch (e) { }
   if (rolagem && abaAntes === AGM_ABA) { const c = document.querySelector('#modal .ag-corpo'), k = $('#modalConteudo'); if (c) c.scrollTop = rolagem.corpo; if (k) k.scrollTop = rolagem.cont; }
   agAvisa(); agMostraFila();
 }
@@ -509,3 +510,25 @@ if (AGM_ATIVO) {
 // v355: candidato acompanhado (📌) fica dourado
 { const css = document.createElement('style'); css.textContent = `.linha-item.agm-fixado { background: linear-gradient(90deg, rgba(255,214,90,.35), rgba(255,240,190,.25)); border: 2px solid #e8b030; box-shadow: 0 0 0 2px rgba(232,176,48,.25); }
   .linha-item.agm-fixado .nm > b::before { content: '📌 '; }`; document.head.append(css); }
+
+// v358 (dono: o "½" ficou feio): na tela, cada sequência de 5 estrelas vira estrelas desenhadas — a meia é uma ★ pintada só
+// pela metade (dourada à esquerda, cinza à direita). Nos textos do registro continua ★★½☆☆.
+function agmEnfeitaEstrelas(raiz) {
+  if (!raiz) return;
+  const w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT), nos = [];
+  while (w.nextNode()) if (/[★½☆]{5}/.test(w.currentNode.nodeValue)) nos.push(w.currentNode);
+  for (const no of nos) {
+    const frag = document.createDocumentFragment(); let resto = no.nodeValue;
+    for (let m; (m = /[★½☆]{5}/.exec(resto));) {
+      frag.append(resto.slice(0, m.index));
+      const caixa = document.createElement('span'); caixa.className = 'agm-estrelas';
+      for (const c of m[0]) { const e = document.createElement('span'); e.className = c === '★' ? 'cheia' : c === '½' ? 'meia' : 'vazia'; e.textContent = '★'; caixa.append(e); }
+      frag.append(caixa); resto = resto.slice(m.index + 5);
+    }
+    frag.append(resto); no.replaceWith(frag);
+  }
+}
+{ const css = document.createElement('style'); css.textContent = `.agm-estrelas { letter-spacing: 1px; white-space: nowrap; font-size: 1.25em; line-height: 1; vertical-align: -1px; }
+  .agm-estrelas .cheia { color: #f5b301; text-shadow: 0 0 1px #8a5a00; }
+  .agm-estrelas .vazia { color: #cfc6b4; }
+  .agm-estrelas .meia { background: linear-gradient(90deg, #f5b301 50%, #cfc6b4 50%); -webkit-background-clip: text; background-clip: text; color: transparent; }`; document.head.append(css); }

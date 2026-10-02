@@ -131,7 +131,8 @@ canvas { image-rendering: auto; }
 .slot canvas { width: 80%; height: 80%; }
 .slot .tecla { position: absolute; left: 3px; top: 1px; font-size: 11px; color: var(--amarelo); text-shadow: 1px 1px 0 #000; }
 .slot .qtd { position: absolute; right: 3px; bottom: 1px; font-size: 12px; color: #fff; text-shadow: 1px 1px 0 #000; }
-.slot .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); }
+.slot .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); transition: height .35s linear; pointer-events: none; }
+.slot .cd.grupo { background: rgba(0,0,0,.3); } /* v358: trava curta do grupo (usou outra habilidade do mesmo tipo): mais clara */
 .slot.off canvas { filter: grayscale(1) brightness(.6); }
 .slot:hover { border-color: var(--amarelo); }
 
