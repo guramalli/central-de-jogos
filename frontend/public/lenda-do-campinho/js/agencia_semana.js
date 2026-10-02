@@ -203,12 +203,16 @@ let AGM_ABA = 'semana';
 const AGM_ABA_V1 = { hoje: 'semana', negocios: 'semana', talentos: 'olheiros' };
 function abreAgencia3(aba) {
   const a = agDados(); agmTick();
+  // v357 (dono: "clico em dispensar e a página sobe pro topo"): na MESMA aba, o redesenho guarda a posição da rolagem
+  const abaAntes = AGM_ABA, corpo0 = !$('#modal').hidden && document.querySelector('#modal .ag-corpo'), cont0 = $('#modalConteudo');
+  const rolagem = corpo0 ? { corpo: corpo0.scrollTop, cont: cont0 ? cont0.scrollTop : 0 } : null;
   AGM_ABA = AGM_ABA_V1[aba] || aba || AGM_ABA;
   const novRel = (a.relatorios || []).filter(r => !r.visto).length;
   const abas = [['semana', `📅 Semana${novRel ? ' 🔴' : ''}`], ['jogadores', '👤 Jogadores'], ['rotina', '🔁 Rotina'], ['olheiros', `🔎 Olheiros${a.candidatos.length ? ` (${a.candidatos.length})` : ''}`], ['agencia', '🏢 Agência']];
   const nav = el('div', { class: 'ag-abas' }, ...abas.map(([id, nome]) => el('button', { class: 'btn mini' + (AGM_ABA === id ? ' amarelo' : ''), type: 'button', onclick: () => abreAgencia3(id) }, nome)));
   const corpo = el('div', { class: 'ag-corpo' }, ({ semana: agmTelaSemana, jogadores: agmTelaJogadores, rotina: agmTelaRotina, olheiros: agmTelaOlheiros, agencia: agmTelaAgencia })[AGM_ABA](a));
   abreModal.largo = true; abreModal(el('h2', {}, '⭐ LENDAS FC — AGÊNCIA'), agmCabecalho(a), nav, corpo, el('div', { class: 'opcoes' }, el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Fechar')));
+  if (rolagem && abaAntes === AGM_ABA) { const c = document.querySelector('#modal .ag-corpo'), k = $('#modalConteudo'); if (c) c.scrollTop = rolagem.corpo; if (k) k.scrollTop = rolagem.cont; }
   agAvisa(); agMostraFila();
 }
 function agmCabecalho(a) {
