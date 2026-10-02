@@ -254,6 +254,18 @@
       acorde(t + 0.5, [523, 659, 784, 1047], 'triangle', 0.9, 0.07, 0.04, { eco: true }); if (typeof duck === 'function') duck('raro'); } },
     dr_relampago: { ms: 400, f(t) { for (let i = 0; i < 6; i++) { nota('sawtooth', [1800 + Math.random() * 1600, 300], t + i * 0.045, 0.06, 0.05, { passaBaixa: 6000, pan: Math.random() * 1.6 - 0.8 }); ruido(t + i * 0.045, 0.04, 0.12, 'highpass', 3000, 8000, 0.7); }
       nota('sine', [90, 40], t + 0.28, 0.8, 0.35, { glide: 0.7 }); ruido(t + 0.28, 0.9, 0.12, 'lowpass', 400, 120, 0.7); acorde(t + 0.3, [1568, 2093, 2637], 'sine', 0.6, 0.04, 0.05, { eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    // v350 (dono: "tem skills sem som"): Holofote (antes tocava a moeda) e as 4 magias do Multiverso não tinham som próprio
+    dr_utevo_lux: { ms: 400, f(t) { nota('square', [95, 70], t, 0.08, 0.16, { passaBaixa: 900 }); ruido(t, 0.04, 0.12, 'highpass', 2500, 4000, 1); // "clac" do refletor
+      nota('sine', [400, 1600], t + 0.07, 0.45, 0.07, { glide: 0.4 }); acorde(t + 0.25, [1319, 1760, 2349], 'sine', 0.6, 0.04, 0.06, { eco: true }); } },
+    dr_muralha_titas: { ms: 600, f(t) { baque(t, 0.6, [110, 38]); ruido(t, 0.5, 0.25, 'lowpass', 600, 120, 0.8); baque(t + 0.18, 0.55, [95, 34]); baque(t + 0.36, 0.7, [80, 30]); // pedras caindo
+      nota('square', [73, 55], t + 0.36, 0.7, 0.1, { passaBaixa: 500 }); acorde(t + 0.42, [196, 247, 294], 'triangle', 0.9, 0.05, 0.02, { eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    dr_chute_tempestade: { ms: 500, f(t) { ruido(t, 0.35, 0.18, 'bandpass', 400, 2600, 1.2, false, -0.5); baque(t + 0.3, 0.55, [200, 60]); // vento + chute
+      for (let i = 0; i < 5; i++) ruido(t + 0.34 + i * 0.035, 0.05, 0.16, 'highpass', 2500, 7000, 0.7, false, Math.random() * 1.4 - 0.7); // estalo do raio
+      nota('sine', [70, 32], t + 0.42, 1.1, 0.4, { glide: 0.9 }); ruido(t + 0.42, 1.2, 0.14, 'lowpass', 300, 90, 0.7); if (typeof duck === 'function') duck('raro'); } }, // trovão
+    dr_jogada_multiverso: { ms: 500, f(t) { nota('sine', [180, 1500], t, 0.55, 0.24, { glide: 0.5, vib: [9, 30], pan: -0.7 }); nota('sine', [270, 2200], t + 0.05, 0.55, 0.16, { glide: 0.5, vib: [11, 40], pan: 0.7 });
+      ruido(t, 0.6, 0.16, 'bandpass', 300, 4500, 2, true); [659, 831, 988, 1319, 1661].forEach((f, i) => nota('triangle', f, t + 0.45 + i * 0.06, 0.25, 0.09, { pan: -0.8 + i * 0.4, eco: true })); } },
+    dr_fonte_runica: { ms: 600, f(t) { [0, 0.07, 0.15, 0.22].forEach((d, i) => gole(t + d, 0.55 + i * 0.1)); ruido(t, 0.4, 0.05, 'bandpass', 1800, 3200, 1.5); // água borbulhando
+      acorde(t + 0.25, [523, 659, 784], 'sine', 0.5, 0.035, 0.05, { eco: true }); } }, // cura leve (é usada muitas vezes)
     cl_muralha: { ms: 500, f(t) { nota('square', [110, 90], t, 0.35, 0.12, { passaBaixa: 700 }); [880, 1245, 1760].forEach(f => nota('sine', f, t + 0.02, 1.0, 0.06, { eco: true })); ruido(t, 0.08, 0.12, 'bandpass', 1500, 900, 1.5); } },
     cl_firula: { ms: 500, f(t) { [784, 880, 1047, 1175, 1319, 1568].forEach((f, i) => nota('triangle', f, t + i * 0.045, 0.2, 0.05, { pan: -0.6 + i * 0.24 })); ruido(t + 0.25, 0.5, 0.035, 'highpass', 7000, 10000, 0.7, true); nota('sine', 2093, t + 0.3, 0.4, 0.05, { eco: true }); } },
     cl_leitura: { ms: 500, f(t) { acorde(t, [220, 330, 494, 587], 'sine', 1.4, 0.06, 0, { ataque: 0.35 }); nota('triangle', 1760, t + 0.4, 0.9, 0.05, { eco: true }); nota('triangle', 1319, t + 0.6, 0.9, 0.04, { eco: true }); } },

@@ -34,7 +34,7 @@ function corEscuro(ctx, rgb, a, emTela) {
     const custo = Math.ceil(dr.foco * st.custoFoco);
     if (s.foco < custo) { log(`Foco insuficiente para ${dr.nome} (precisa de ${custo}).`, 'l-sis'); som('erro'); return; }
     s.foco -= custo; G.cds[id] = G.agora + dr.cd; G.buffs.luz = G.agora + dr.dur; G.luzAvisou = false;
-    efeito('estrelas', p.x, p.y, dr.cor); tituloSkill(p, dr.nome, dr.cor); som('moeda');
+    efeito('estrelas', p.x, p.y, dr.cor); tituloSkill(p, dr.nome, dr.cor); som('dr_utevo_lux'); // v350: som próprio (antes era o da moeda)
     log('💡 Holofote! As luzes do estádio acompanham você por 6 minutos.', 'l-info'); G.uiSujo = true;
   };
   // avisa quando a luz apaga
