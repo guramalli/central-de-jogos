@@ -6,6 +6,7 @@ import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 import { validarSave, validarCasa, escolherCasas, validarRanking } from "../lenda/validar.js";
 import { abrirSave, fichaPublica } from "../lenda/ficha.js";
 import { registrarSinal, JOGANDO_AGORA_MS, GUARDAR_DIAS } from "../lenda/sessoes.js";
+import { TORCIDAS, validarTorcida, amigosDe, podeTorcer, GUARDAR_DIAS as TORCIDA_DIAS } from "../lenda/torcida.js";
 import { validarContagens, podeContar, somarContagens, resumir, GUARDAR_DIAS as CONTAGEM_DIAS } from "../lenda/contagens.js";
 
 // ===== Lenda do Campinho (RPG de futebol, em public/lenda-do-campinho/) =====
@@ -128,6 +129,41 @@ router.put("/ranking", requireAuth, async (req, res) => {
   cacheInvalidar("lenda:ranking");
   registrarSinal(prisma, req.user.id, v.ranking.nivel, req.headers["user-agent"]);
   res.json({ ok: true });
+});
+
+// ---------- amigos e torcida (ver lenda/torcida.js) ----------
+// Meus amigos do site que jogam o Lenda: só apelido, nível, fase e a casa publicada.
+router.get("/amigos", requireAuth, async (req, res) => {
+  const ids = await amigosDe(prisma, req.user.id);
+  if (!ids.length) return res.json({ amigos: [], torcidas: TORCIDAS });
+  const [users, ranks, casas] = await Promise.all([
+    prisma.user.findMany({ where: { id: { in: ids }, banned: false }, select: { id: true, nickname: true } }),
+    prisma.lendaRanking.findMany({ where: { userId: { in: ids } }, select: { userId: true, nivel: true, fase: true, posicao: true, atualizadoEm: true } }),
+    prisma.lendaCasa.findMany({ where: { userId: { in: ids } }, select: { userId: true, casaId: true } }),
+  ]);
+  const rk = new Map(ranks.map((r) => [r.userId, r])), cs = new Map(casas.map((c) => [c.userId, c.casaId]));
+  const amigos = users.filter((u) => rk.has(u.id)).map((u) => ({
+    id: u.id, apelido: u.nickname, nivel: rk.get(u.id).nivel, fase: rk.get(u.id).fase, posicao: rk.get(u.id).posicao,
+    ultimoJogo: rk.get(u.id).atualizadoEm, casaId: cs.get(u.id) || null,
+  })).sort((a, b) => b.nivel - a.nivel);
+  res.json({ amigos, torcidas: TORCIDAS });
+});
+router.post("/torcida", requireAuth, async (req, res) => {
+  const v = validarTorcida(req.body);
+  if (!v.ok) return res.status(400).json({ error: v.erro });
+  const p = await podeTorcer(prisma, req.user.id, v.para);
+  if (!p.ok) return res.status(p.cedo ? 429 : 403).json({ error: p.erro });
+  await prisma.lendaTorcida.create({ data: { de: req.user.id, para: v.para, tipo: v.tipo } });
+  res.json({ ok: true });
+});
+// Torcidas recebidas e ainda não vistas (marca como vistas). Limpa as velhas de vez em quando.
+router.get("/torcidas", requireAuth, async (req, res) => {
+  const desde = new Date(Date.now() - TORCIDA_DIAS * 864e5);
+  const lista = await prisma.lendaTorcida.findMany({ where: { para: req.user.id, vista: false, criadoEm: { gte: desde } }, orderBy: { criadoEm: "asc" }, take: 20 });
+  if (lista.length) await prisma.lendaTorcida.updateMany({ where: { id: { in: lista.map((t) => t.id) } }, data: { vista: true } });
+  const nomes = new Map((await prisma.user.findMany({ where: { id: { in: [...new Set(lista.map((t) => t.de))] } }, select: { id: true, nickname: true } })).map((u) => [u.id, u.nickname]));
+  res.json({ torcidas: lista.map((t) => ({ de: nomes.get(t.de) || "Um amigo", texto: TORCIDAS[t.tipo] || "⚽", quando: t.criadoEm })) });
+  if (Math.random() < 0.02) prisma.lendaTorcida.deleteMany({ where: { criadoEm: { lt: desde } } }).catch(() => {});
 });
 
 // ---------- estatísticas anônimas (só contagens por dia; ver lenda/contagens.js) ----------

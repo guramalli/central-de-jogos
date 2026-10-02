@@ -670,3 +670,16 @@ model LendaContagem {
   @@id([dia, evento, valor, plataforma, versao])
   @@index([dia])
 }
+
+// Lenda do Campinho — "torcida" entre amigos: só frases prontas (src/lenda/torcida.js).
+model LendaTorcida {
+  id       String   @id @default(cuid())
+  de       String
+  para     String
+  tipo     String
+  vista    Boolean  @default(false)
+  criadoEm DateTime @default(now())
+
+  @@index([para, vista])
+  @@index([de, para, criadoEm])
+}
