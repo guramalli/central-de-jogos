@@ -169,7 +169,7 @@ function stats() {
     bloqueio: Math.min(0.35, (cl === 'paredao' ? 0.12 : 0) + a.defesa * 0.001),
     poderMult: 1 + a.inteligencia * 0.008, curaMult: 1 + a.inteligencia * 0.012,
     custoFoco: cl === 'cerebro' ? 0.8 : 1,
-    xpEstudo: 1 + a.inteligencia * 0.004 + (cl === 'cerebro' ? 0.25 : 0),
+    xpEstudo: 1 + Math.min(0.4, a.inteligencia * 0.004) + (cl === 'cerebro' ? 0.25 : 0), // v359: teto de +40% (as comidas crescem com o nível e chegavam a ×3)
   };
 }
 function precisaTentativas(sk, lv) {
@@ -525,7 +525,7 @@ function matar(m) {
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
   let melhor = null; const ordemR = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
   for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * (daMissao ? 1 : pen.drop)) { // item que uma missão (aceita ou disponível) ainda pede: chance cheia, mesmo em adversário fraco
-    const q = rndi(mn, mx); if (!addItem(id, q)) continue;
+    const q = rndi(mn, mx); if (d.chefe ? !recebeItem(id, q) : !addItem(id, q)) continue; // v359: prêmio de chefão nunca some (mochila cheia → armazém)
     if (daMissao && !itemPedidoEmMissao(id)) log(`✔ Você já juntou todos os ${ITENS[id].nome} que a missão pede!${pen.drop < 1 ? ' (Daqui pra frente eles voltam a cair pouco de adversários fracos.)' : ''}`, 'l-xp');
     const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}`); caidos.push([id, q, rar]);
     if (!melhor || ordemR.indexOf(rar) > ordemR.indexOf(melhor.rar)) melhor = { id, rar };
@@ -668,6 +668,10 @@ function bebeMelhor(tipo) { // tipo: 'hp' | 'foco'
   usarItem(escolha.id);
 }
 function alternaCaca() { G.caca = !G.caca; log(G.caca ? 'Caça contínua LIGADA: ao vencer um adversário, você já marca o próximo (tecla G desliga).' : 'Caça contínua desligada.', 'l-info'); G.uiSujo = true; }
+// v359: itens "chave" que o jogo USA e por isso ficam na mochila (os de coleção — troféus, flâmulas, medalhas — podem ir
+// para o armazém e para a vitrine da casa)
+const CHAVE_DE_USO = new Set(['passaporte', 'capacete_mergulho', 'traje_astronauta', 'bola']);
+const fixoNaMochila = id => ITENS[id] && ITENS[id].tipo === 'chave' && CHAVE_DE_USO.has(id);
 function contaItem(id) { return G.save.mochila.filter(i => i.id === id).reduce((a, i) => a + i.q, 0); }
 // v152: bolsas (itens tipo 'bolsa' com .espacos) aumentam a mochila; contam até 4 bolsas, as maiores
 function capMochila(s = G.save) { if (!s) return 30; const b = s.mochila.filter(i => ITENS[i.id] && ITENS[i.id].tipo === 'bolsa').map(i => ITENS[i.id].espacos || 0).sort((a, b) => b - a).slice(0, 4); return 30 + b.reduce((a, x) => a + x, 0); }

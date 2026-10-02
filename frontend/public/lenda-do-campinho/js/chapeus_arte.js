@@ -24,7 +24,7 @@
     elmo_negro: 'elmo', capacete_dragao: 'elmo', capacete_estelar: 'elmo',
   };
   // v310: artes refeitas com o mesmo nome (o navegador guardava a antiga): nemes/faixa do faraó fechados atrás, dragão com o rosto aberto
-  if (typeof ASSET_VER !== 'undefined') Object.assign(ASSET_VER, { ch_nemes_dourado_c: 310, ch_faixa_farao_c: 310, ch_capacete_dragao_f: 311, ch_capacete_dragao_l: 311 });
+  if (typeof ASSET_VER !== 'undefined') Object.assign(ASSET_VER, { ch_nemes_dourado_c: 310, ch_faixa_farao_c: 310, ch_capacete_dragao_f: 359, ch_capacete_dragao_l: 359 });
   // v311: pedaços soltos de arte vizinha (da grade do Higgsfield) recortados junto saíram (ex.: um risco acima do capacete de astronauta)
   if (typeof ASSET_VER !== 'undefined') for (const n of ['ch_capacete_astro_c', 'ch_capacete_astro_f', 'ch_capacete_astro_l', 'ch_capacete_dragao_c', 'ch_chapeu_capitao_c', 'ch_chapeu_capitao_f', 'ch_chapeu_capitao_l',
     'ch_coroa_dragao_f', 'ch_faixa_trovao_c', 'ch_faixa_trovao_f', 'ch_nemes_dourado_l', 'pg_estrela', 'pg_lua', 'pg_medalha_copa', 'pg_perola']) ASSET_VER[n] = 311;

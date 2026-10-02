@@ -60,7 +60,7 @@ function modalArmazem(filtro) {
   const s = G.save, a = armazem(); filtro = filtro || '';
   const passa = e => !filtro || ITENS[e.id].nome.toLowerCase().includes(filtro.toLowerCase());
   const gMoch = el('div', { class: 'arm-grade' }), gArm = el('div', { class: 'arm-grade' });
-  s.mochila.forEach((e, i) => { if (ITENS[e.id] && ITENS[e.id].tipo !== 'chave') gMoch.append(slotArm(e, () => { if (guardaDaMochila(i)) { som('equip'); salvar(); modalArmazem(filtro); } }, 'Clique para GUARDAR no armazém')); });
+  s.mochila.forEach((e, i) => { if (ITENS[e.id] && !fixoNaMochila(e.id)) gMoch.append(slotArm(e, () => { if (guardaDaMochila(i)) { som('equip'); salvar(); modalArmazem(filtro); } }, 'Clique para GUARDAR no armazém')); });
   a.forEach((e, j) => { if (ITENS[e.id] && passa(e)) gArm.append(slotArm(e, () => { if (retiraDoArmazem(j)) { som('equip'); salvar(); modalArmazem(filtro); } }, 'Clique para PEGAR de volta')); });
   if (!gMoch.children.length) gMoch.append(el('p', { class: 'vazio' }, 'Nada para guardar.'));
   if (!gArm.children.length) gArm.append(el('p', { class: 'vazio' }, filtro ? 'Nada com esse nome.' : 'O armazém está vazio.'));

@@ -9,6 +9,21 @@
    pesados e pagam muito bem — esses sim são o caminho do topo.
    Carregar NO FIM (depois de balanco_xp.js).
    ============================================================ */
+// v359 (dono: "pulei 12 níveis com uma missão só... acaba rápido"): o teto do balanco_xp.js rodava ANTES do
+// Multiverso/Torre/relíquias criarem as missões delas (lendárias davam de 4 a 13 níveis). Agora o teto passa
+// de novo aqui, no fim: Desafio Lendário e relíquia final no máximo 3 níveis; chefão/final 2; comum 1,2.
+{
+  const xpNivel = L => Math.max(1, xpPara(L + 1) - xpPara(L));
+  const lendaria = q => /^⭐/.test(q.titulo || '') || /^rel_.*_2$/.test(q.id);
+  const grande = q => { const k = q.req && q.req.kill && MONSTROS[q.req.kill]; return !!(k && k.chefe) || /_m[45]$|_rei5$|_lorde$|_chefe$|esp_m[2-6]$|atl_m4$|_final$|^mv_[agl]\d$/.test(q.id) || !!(q.rec && q.rec.flag); };
+  let n = 0;
+  for (const q of MISSOES) {
+    const L = q.lvl || 1; if (L < 20 || !q.rec || typeof q.rec.xp !== 'number') continue;
+    const teto = Math.round(xpNivel(L) * (lendaria(q) ? 3 : grande(q) ? 2 : 1.2));
+    if (q.rec.xp > teto) { q.rec.xp = teto; n++; }
+  }
+  window.XP_MISSOES_AJUSTADAS = (window.XP_MISSOES_AJUSTADAS || 0) + n;
+}
 function fatorXpMissao(q, nivel) {
   const L = (q && q.lvl) || 1, n = nivel || (G.save && G.save.nivel) || 1, dif = n - L;
   if (dif <= 10) return 1;

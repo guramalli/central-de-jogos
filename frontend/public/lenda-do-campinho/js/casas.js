@@ -246,7 +246,7 @@ function colocaMovel(id) {
 function exporItem(id, r) {
   const s = G.save, it = ITENS[id];
   if (!minhaCasaAqui()) { log('Só dá para expor itens dentro da SUA casa.', 'l-sis'); return; }
-  if (it.tipo === 'chave') { log('Itens de missão não podem ser expostos.', 'l-sis'); return; }
+  if (fixoNaMochila(id)) { log('Esse item você usa na aventura: ele não pode ser exposto.', 'l-sis'); return; }
   const lugar = lugaresNaFrente().find(l => podeColocar(l.x, l.y, 'item'));
   if (!lugar) { log('Não tem espaço livre perto de você para expor. (Dá para expor em cima de mesas, balcões, estantes e baús!)', 'l-sis'); return; }
   if (it.tipo === 'equip') removeEquipR(id, r || 0); else removeItem(id, 1);
@@ -278,7 +278,7 @@ modalItem = function (id, r = 0) {
   _modalItemCs(id, r);
   const ops = document.querySelector('#modalConteudo .opcoes'); const it = ITENS[id]; if (!ops || !it) return;
   if (it.tipo === 'movel') ops.prepend(el('button', { class: 'btn amarelo', type: 'button', onclick: () => { fechaModal(); colocaMovel(id); } }, '🪑 Colocar na minha casa'));
-  else if (it.tipo !== 'chave' && minhaCasaAqui()) ops.prepend(el('button', { class: 'btn amarelo', type: 'button', onclick: () => exporItem(id, r) }, '🏠 Expor na casa'));
+  else if (!fixoNaMochila(id) && minhaCasaAqui()) ops.prepend(el('button', { class: 'btn amarelo', type: 'button', onclick: () => exporItem(id, r) }, '🏠 Expor na casa'));
 };
 
 /* ---------- interagir (E) com móveis e itens da casa ---------- */
