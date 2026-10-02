@@ -129,7 +129,7 @@ function torreEntra(n) {
   delete MAPAS.torre_infinita; // cada andar é montado de novo
   fechaModal(); som('porta'); trocaMapa('torre_infinita', 17.5, 24.5);
   const rel = RELIQUIA_ANDAR[n];
-  banner(`🗼 Andar ${n}`, rel ? `⚠️ O GUARDIÃO DA RELÍQUIA está aqui!` : n % 10 === 0 ? 'Andar de chefão!' : `Nível ${torreNivel(n)}`);
+  banner(`🗼 Andar ${n}`, rel ? `⚠️ O GUARDIÃO DA RELÍQUIA está aqui!` : n % 10 === 0 ? 'Andar de chefão!' : `Nível ${torreNivel(n)} · 🗿 Quebre a Pedra da Torre!`);
   G.torreDesde = G.agora; G.torreLimpo = false;
 }
 function torreVoltaHub() { fechaModal(); som('porta'); const p = getMapa('multiverso'); trocaMapa('multiverso', 50.5, 23.5); }

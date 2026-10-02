@@ -7,6 +7,7 @@
    - ONDAS: além das criaturas do começo, mais duas ondas entram pelas bordas (no tempo marcado ou quando sobram
      poucas) — inclusive uma versão VELOZ que vem direto em você. O andar só termina quando TODAS as ondas saírem.
    - PEDRA DA TORRE (andares comuns): muita vida, não anda e, enquanto não quebra, chama um reforço a cada 6 s.
+     v355: QUEBRAR A PEDRA VENCE O ANDAR na hora (é a meta); as criaturas que sobraram somem.
    - CHEFÃO e GUARDIÃO perigosos: ONDA DE CHOQUE (aviso de ~0,9 s; tira uma parte do fôlego MÁXIMO — a defesa
      não zera), INVESTIDA até você e FÚRIA na metade da vida (mais rápido e mais forte). Cada golpe comum dele
      também tira 3% do fôlego máximo.
@@ -93,6 +94,23 @@ function tdChefe(m, dt) {
     if (d > 2.5) { m._dash = { dx: dx / d, dy: dy / d, fim: TD.t + 350 }; texto(m, 'INVESTIDA!', '#ffb03a', 700, -0.6); m.flip = dx < 0; }
   }
 }
+// v355 (dono: "a meta é matar a pedra"): quebrou a PEDRA DA TORRE = andar vencido na hora (as criaturas que sobraram somem)
+{
+  const _matarTD = matar;
+  matar = function (m) {
+    const r = _matarTD.apply(this, arguments);
+    try {
+      if (m && m.d && m.d.pedraTorre && G.mapa && G.mapa.torre && !G.torreLimpo && !TD.acabou) {
+        for (const o of G.mons) efeito('puff', o.x, o.y);
+        G.mons = []; G.respawns = []; G.projs = [];
+        const cfg = G.mapa.torreCfg; if (cfg) TD.onda = cfg.ondas.length; // nenhuma onda a caminho
+        banner('🗿 Pedra quebrada!', 'Andar vencido!'); som('chefe_queda');
+        G.torreLimpo = true; torreLimpou();
+      }
+    } catch (e) { }
+    return r;
+  };
+}
 // pedra não anda nem ataca (como as Pedras Celestiais do Vale)
 {
   const _amTD = atualizaMonstro;
@@ -128,7 +146,7 @@ function tdHud(on) {
   if (!v) { v = el('div', { id: 'torreVinheta' }); document.body.append(v); }
   const seg = Math.ceil(Math.max(0, TD.resta) / 1000), mm = Math.floor(seg / 60), ss = String(seg % 60).padStart(2, '0');
   const pedra = G.mons.find(m => m.d.pedraTorre), cfg = (G.mapa && G.mapa.torreCfg) || { ondas: [] };
-  const txt = `🗼 Andar ${TD.n} · ⏳ ${mm}:${ss} · 👾 ${tdVivos(true)}` + (TD.onda < cfg.ondas.length ? ` · 🌊 ${cfg.ondas.length - TD.onda} onda(s) a caminho` : '') + (pedra ? ` · 🗿 Pedra ${Math.ceil(pedra.hp / pedra.d.hp * 100)}%` : '');
+  const txt = `🗼 Andar ${TD.n} · ⏳ ${mm}:${ss} · 👾 ${tdVivos(true)}` + (TD.onda < cfg.ondas.length ? ` · 🌊 ${cfg.ondas.length - TD.onda} onda(s) a caminho` : '') + (pedra ? ` · 🗿 Quebre a Pedra: ${Math.ceil(pedra.hp / pedra.d.hp * 100)}%` : '');
   if (h.textContent !== txt) h.textContent = txt;
   const urg = seg <= 10 && !TD.acabou && !G.torreLimpo;
   h.classList.toggle('urgente', urg); v.classList.toggle('urgente', urg);
