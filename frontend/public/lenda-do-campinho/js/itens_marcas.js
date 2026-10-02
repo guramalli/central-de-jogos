@@ -6,6 +6,8 @@
       parecidos. Agora o ÍCONE já sai com um disco colorido atrás e um selo no canto: ❤ branco no vermelho = fôlego (HP),
       ⚡ branco no azul = foco (mana). Vale em todo lugar que usa iconeItem (barra, mochila, loja, dica, armazém).
       A Recompensa Diária troca os emojis 🧃/🥤 (também parecidos) por ❤️/⚡.
+      v349 (dono): os 7 TAMANHOS de cada linha também se confundiam (a mesma garrafa, só um pouco maior) — agora o ícone
+      leva o NÚMERO do tamanho (1 a 7; Multiverso = 8) num selo colorido no canto de baixo à esquerda, cada número com a sua cor.
    2) CADEADO: "🔒 Travar" na janela do item. Item travado não aparece para venda (nem no "Vender todo o loot"),
       não pode ser jogado fora e mostra 🔒 na mochila. Fica no save (s.travados[id]) e vale para todas as unidades.
    Carregar DEPOIS de luxo.js/pocoes.js/padrao_itens.js.
@@ -16,7 +18,13 @@ for (const [id, it] of Object.entries(ITENS)) {
   const e = it.tipo === 'consumivel' && it.efeito; if (!e) continue;
   if (e.hp && !e.foco) PM_TIPO[id] = 'hp'; else if (e.foco && !e.hp) PM_TIPO[id] = 'foco';
 }
-function pmDesenha(base, tipo) {
+const PM_TAM = {}; // id -> tamanho 1..8
+if (typeof LINHAS_RECUP !== 'undefined') for (const L of LINHAS_RECUP) L.ids.forEach((id, k) => { PM_TAM[id] = k + 1; });
+PM_TAM.elixir_multiverso = 8; PM_TAM.foco_multiverso = 8;
+// as do Multiverso não tinham desenho (saía um copo genérico): usam a garrafa mais caprichada da linha + o selo 8
+if (typeof ICON_ALIAS !== 'undefined') { if (ITENS.elixir_multiverso && !ICON_ALIAS.elixir_multiverso) ICON_ALIAS.elixir_multiverso = 'pc_f7'; if (ITENS.foco_multiverso && !ICON_ALIAS.foco_multiverso) ICON_ALIAS.foco_multiverso = 'pc_c7'; }
+const PM_COR_TAM = ['#7d838c', '#2f9e44', '#1f7ae0', '#8a3fd1', '#e07b0c', '#d42a46', '#c99a06', '#1a1a1a']; // 1 cinza · 2 verde · 3 azul · 4 roxo · 5 laranja · 6 vermelho · 7 ouro · 8 preto
+function pmDesenha(base, tipo, tam) {
   const c = mkCanvas(96, 96), x = c.getContext('2d'), hp = tipo === 'hp';
   const g = x.createRadialGradient(48, 52, 6, 48, 52, 47);
   g.addColorStop(0, hp ? 'rgba(255,110,110,0.75)' : 'rgba(110,180,255,0.75)'); g.addColorStop(1, hp ? 'rgba(210,30,40,0)' : 'rgba(30,90,220,0)');
@@ -29,6 +37,14 @@ function pmDesenha(base, tipo) {
   if (hp) { x.moveTo(cx, cy + 10); x.bezierCurveTo(cx - 15, cy - 1, cx - 7, cy - 13, cx, cy - 5); x.bezierCurveTo(cx + 7, cy - 13, cx + 15, cy - 1, cx, cy + 10); }
   else { const p = [[3, -13], [-8, 2], [-1, 2], [-4, 13], [8, -3], [1, -3], [4, -13]]; p.forEach(([a, b], i) => i ? x.lineTo(cx + a, cy + b) : x.moveTo(cx + a, cy + b)); x.closePath(); }
   x.fill();
+  if (tam) { // selo do tamanho, canto de baixo à esquerda (a quantidade fica à direita)
+    const bx = 3, by = 59, bw = 34, bh = 34;
+    x.beginPath(); x.roundRect ? x.roundRect(bx, by, bw, bh, 9) : x.rect(bx, by, bw, bh);
+    x.fillStyle = PM_COR_TAM[tam - 1]; x.fill(); x.lineWidth = 4; x.strokeStyle = tam === 8 ? '#ffd23f' : '#fff'; x.stroke();
+    x.font = '900 27px Fredoka, Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.lineWidth = 5; x.strokeStyle = 'rgba(0,0,0,.45)'; x.strokeText(String(tam), bx + bw / 2, by + bh / 2 + 2);
+    x.fillStyle = '#fff'; x.fillText(String(tam), bx + bw / 2, by + bh / 2 + 2);
+  }
   return c;
 }
 {
@@ -36,7 +52,7 @@ function pmDesenha(base, tipo) {
   iconeItem = function (id) {
     const base = _iconePM.apply(this, arguments); const t = PM_TIPO[id]; if (!t || !base) return base;
     const h = cache.get(id); if (h && h.base === base) return h.c;   // a arte ainda carregando devolve outro desenho: refaz quando chegar
-    const c = pmDesenha(base, t); cache.set(id, { base, c }); return c;
+    const c = pmDesenha(base, t, PM_TAM[id]); cache.set(id, { base, c }); return c;
   };
 }
 if (typeof DIARIA !== 'undefined') { if (DIARIA[1]) DIARIA[1].ic = '❤️'; if (DIARIA[2]) DIARIA[2].ic = '⚡'; }
