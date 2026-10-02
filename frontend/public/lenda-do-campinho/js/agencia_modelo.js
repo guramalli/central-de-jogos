@@ -155,7 +155,7 @@ function agmNovaFamilia(j, regiao, arqForcado) {
   const sec = agPega([...prov, ...todas].filter(n => n !== principal));
   const par = agPega(A[4]), P = (typeof AG_PARENTES !== 'undefined' && AG_PARENTES[par]) || ['Dona', 'mãe', 1], f = !!P[2], idoso = par.startsWith('avo');
   return { arq, par, need: [principal, sec], sabe: {}, confianca: 0, paciencia: 5, rival: false,
-    nome: `${P[0]} ${agPega(f ? ['Cida', 'Rosa', 'Fátima', 'Lúcia', 'Graça', 'Márcia', 'Sônia', 'Zezé', 'Lourdes', 'Neusa'] : ['Zé', 'Antônio', 'Carlos', 'Jorge', 'Tião', 'Raimundo', 'Valdir', 'Edson', 'Nonato'])}`,
+    nome: `${P[0]} ${agPega(f ? ['Cida', /*pt-en*/'Rosa', 'Fátima', 'Lúcia', 'Graça', 'Márcia', 'Sônia', 'Zezé', 'Lourdes', 'Neusa'] : ['Zé', 'Antônio', 'Carlos', 'Jorge', 'Tião', 'Raimundo', 'Valdir', 'Edson', 'Nonato'])}`,
     look: { tipo: 'humano', corpo: f ? 'f' : 'm', alt: 1.7, pele: j.look.pele, cabelo: agPega(f ? ['cabelo-coque', 'cabelo-liso-longo', 'cabelo-cacheado', 'cabelo-rabo'] : ['cabelo-curto', 'cabelo-raspado', 'cabelo-cacheado']),
       corCabelo: idoso ? 'grisalho' : j.look.corCabelo, roupa: agPega(['roupa-camiseta', 'roupa-xadrez', 'roupa-moletom', 'roupa-regata']), corRoupa: agPega(['#d8603a', '#3a8ad8', '#e0b030', '#7a4ab0', '#3aa070', '#c03a5a']), baixo: f ? 'baixo-saia' : 'baixo-jeans' } };
 }

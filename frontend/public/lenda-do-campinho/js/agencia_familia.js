@@ -40,7 +40,7 @@ const AGM_TONS = { // [fala, {arquétipo: [confiança, irrita?, resposta]}]
 };
 // perguntas da sondagem: [texto, necessidade que ela testa (ou 'principal'), respostas]
 const AGM_PERGUNTAS = [
-  ['futuro', '🔮 “O que vocês esperam para o futuro d$DELE?”', 'principal'],
+  ['futuro', '🔮 “O que vocês esperam para o futuro $DELE?”', 'principal'],
   ['escola', '📚 “E a escola, como vai?”', 'estudo'],
   ['longe', '🏠 “E se um dia $ELE precisar morar longe?”', 'proximidade'],
   ['casa', '💰 “Como está a situação aí em casa?”', 'dinheiro'],
@@ -50,7 +50,7 @@ const AGM_PERGUNTAS = [
 ];
 const AGM_RESP = { // [é a principal, é a secundária, não é]
   estudo: ['A escola é tudo! Sem estudo, nada de bola.', 'Escola é importante também, né...', 'Vai bem, $ELE se vira.'],
-  proximidade: ['Longe?! Nem pensar, ainda é muito novinh$O.', 'Ia doer o coração, mas a gente aguenta se precisar.', 'Se for pro bem d$DELE, a gente apoia.'],
+  proximidade: ['Longe?! Nem pensar, ainda é muito novinh$O.', 'Ia doer o coração, mas a gente aguenta se precisar.', 'Se for pro bem $DELE, a gente apoia.'],
   dinheiro: ['Tá apertado... qualquer ajuda faz diferença aqui.', 'Dá pra levar, mas uma ajuda viria bem.', 'Graças a Deus, a gente se vira bem.'],
   seguranca: ['Saber que tem um adulto de confiança com $ELE em todo teste, todo treino.', 'Alguém acompanhando seria bom.', '$ELE é espert$O, sabe se cuidar.'],
   status: ['Clube grande, televisão, fama... é isso que $ELE merece!', 'Seria lindo ver $ELE num clube grande.', 'O importante é $ELE ser feliz jogando.'],
@@ -180,7 +180,7 @@ function agmAvaliaProposta(j, T) {
   if (!ok0) pede = { estudo: 'e a escola?', dinheiro: 'precisamos de uma ajuda em dinheiro', proximidade: 'não queremos clube longe tão cedo', seguranca: 'queremos alguém acompanhando', status: 'queremos ver o plano para um clube grande', transparencia: 'contrato curto e com saída' }[f.need[0]];
   else if (!ok1) pede = { estudo: 'uma ajuda com os estudos', dinheiro: 'um adiantamento ajudaria', proximidade: 'que fique perto de casa no começo', seguranca: 'alguém de confiança nos testes', status: 'mostrar que dá para chegar longe', transparencia: 'um contrato mais curto' }[f.need[1]];
   else if (T.comissao > 10) pede = 'essa comissão está alta';
-  if (decisao === 'aceita') fala = { pai_ambicioso: 'Fechado! Agora é com você: quero ver resultado.', mae_protetora: `Tá bom... cuida bem d${agmDele(j)}, viu? Confio em você.`, avo: 'Que Deus abençoe essa parceria. Pode contar com a gente pra sempre.', desconfiada: 'Contrato claro, do jeito certo. Assim dá. Vou falar bem de você por aí.', tio: 'Negócio fechado, sócio! A gente se fala... depois.', estruturada: 'Excelente. Plano aprovado.' }[f.arq];
+  if (decisao === 'aceita') fala = { pai_ambicioso: 'Fechado! Agora é com você: quero ver resultado.', mae_protetora: `Tá bom... cuida bem ${agmDele(j)}, viu? Confio em você.`, avo: 'Que Deus abençoe essa parceria. Pode contar com a gente pra sempre.', desconfiada: 'Contrato claro, do jeito certo. Assim dá. Vou falar bem de você por aí.', tio: 'Negócio fechado, sócio! A gente se fala... depois.', estruturada: 'Excelente. Plano aprovado.' }[f.arq];
   else if (decisao === 'contraproposta') fala = `${f.rival ? 'A outra agência ofereceu condições boas também... ' : ''}Quase lá. Mas ${pede || 'dá pra melhorar um pouco'}.`;
   else fala = `${f.rival ? 'A outra agência ofereceu mais. ' : ''}Não, assim não dá. ${pede ? pede[0].toUpperCase() + pede.slice(1) + '.' : ''}`;
   return { nota, decisao, bem, pede, fala };
