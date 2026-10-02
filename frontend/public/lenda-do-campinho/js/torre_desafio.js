@@ -63,6 +63,7 @@ function tdPasso(dt) {
   if (TD.resta <= 0) {
     TD.acabou = true; G.torreLimpo = true; TD.resta = 0;
     banner('⏰ Tempo esgotado!', 'A Torre te expulsou... tente de novo!'); som('erro');
+    if (typeof coFimHost === 'function') coFimHost('tempo');
     log(`⏰ O tempo do andar ${M.torre} acabou e a Torre te teletransportou para fora. O seu recorde continua.`, 'l-dano');
     setTimeout(() => { if (G.mapa && G.mapa.torre) torreVoltaHub(); }, 1600);
   }
@@ -75,10 +76,11 @@ function tdChefe(m, dt) {
     banner(`😡 ${m.d.nome} ficou FURIOSO!`, 'Mais rápido e mais forte!'); // som e brilho da fúria: chefes_vivos.js
   }
   // onda de choque, com aviso
-  if (TD.t >= T.onda && !T.aviso) { T.aviso = TD.t + 900; texto(m, '⚠️ ONDA DE CHOQUE!', '#ff5a5a', 900, -0.6); efeito('area', m.x, m.y, '#ff3a3a', 3.5); som('chefe_aviso'); }
+  if (TD.t >= T.onda && !T.aviso) { T.aviso = TD.t + 900; texto(m, '⚠️ ONDA DE CHOQUE!', '#ff5a5a', 900, -0.6); efeito('area', m.x, m.y, '#ff3a3a', 3.5); som('chefe_aviso'); if (typeof coFx === 'function') coFx({ k: 'aviso', x: m.x, y: m.y }); }
   if (T.aviso && TD.t >= T.aviso) {
     T.aviso = 0; T.onda = TD.t + (T.bravo ? 5000 : 7000); efeito('impacto', m.x, m.y, '#ff5a2a', 3.5); efeito('area', m.x, m.y, '#ffb03a', 3.5); som('chefe_choque'); if (typeof tremeTela === 'function') tremeTela(400, 6);
     if (G.p && Math.hypot(G.p.x - m.x, G.p.y - m.y) <= 3.5) recebeDano(Math.round(s.maxHp * pct), m);
+    if (typeof coFx === 'function') coFx({ k: 'choque', x: m.x, y: m.y, r: 3.5, p: pct, u: m.uid }); // Torre em grupo: os colegas perto também levam
   }
   // investida até o jogador
   if (m._dash) {
