@@ -9,7 +9,7 @@
 // "conversa" são 8 emojis fixos. Limite de mensagens por segundo e de tamanho.
 //
 // Eventos (todos com prefixo "torre-"; os que pedem resposta usam callback { ok } / { erro }):
-//   criar {perfil} · entrar {codigo, perfil} · convidar {amigoId} · sair · comecar {andar}
+//   criar {perfil} · entrar {codigo, perfil} · convidar {amigoId} · sair · comecar {andar} · perfil {perfil} (recorde novo)
 //   eu {...} (cada um → os outros) · mundo {...} (anfitrião → os outros) · dano {uid, dano} (→ anfitrião)
 //   fx {...} (anfitrião → os outros) · emote {i} · fim {res} (anfitrião → os outros)
 import { amigosDe } from "./torcida.js";
@@ -119,6 +119,12 @@ export function registrarTorre(io, socket) {
   });
 
   socket.on("torre-sair", (_d, cb) => { sai("saiu"); responde(cb, { ok: true }); });
+  // depois de vencer um andar o recorde de cada um muda (e com ele o andar máximo do grupo)
+  socket.on("torre-perfil", (dados) => {
+    const s = sala(); if (!s || !podeMandar()) return;
+    const m = s.membros.get(eu); if (!m) return;
+    Object.assign(m, limpaPerfil(dados?.perfil, m.apelido)); avisa(s);
+  });
 
   socket.on("torre-comecar", (dados, cb) => {
     const s = sala(); if (!s || s.host !== eu) return responde(cb, { erro: "Só quem criou a sala começa." });

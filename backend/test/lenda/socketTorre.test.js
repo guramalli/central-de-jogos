@@ -70,6 +70,10 @@ test("sala ponta a ponta: criar, convidar, entrar só amigo, começar, repassar,
   assert.equal(recebeu(ana, "torre-emote").length, 1); assert.equal(recebeu(ana, "torre-emote")[0].i, 3);
   // fim: volta para o lobby
   ana.emit("torre-fim", { res: "limpou" }); await espera(100);
+  // a bia bateu o recorde (agora 10): o grupo pode ir ao 11
+  bia.emit("torre-perfil", { perfil: { nivel: 300, max: 10 } }); await espera(100);
+  assert.equal(andarMaximo(__salasTorre.get(cod)), 11);
+  assert.equal(recebeu(bia, "torre-sala").at(-1).membros.find((m) => m.id === "bia").max, 10);
   assert.deepEqual(recebeu(bia, "torre-fim")[0], { res: "limpou", andar: 10 });
   assert.equal(__salasTorre.get(cod).fase, "lobby");
   // anfitrião sai: a sala acaba para todos
