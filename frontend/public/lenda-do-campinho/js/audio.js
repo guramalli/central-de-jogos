@@ -29,7 +29,7 @@
   // v287: fundo do mar (Atlântida), galáxia (Estação, planetas e Copa Intergaláctica) e o Vale das Pedras Celestiais (Pixabay Music)
   const MUS_FIM = { atlantida: 150.59, atlantida2: 176.25, galaxia: 140.79, galaxia2: 335.16, celeste: 110.32 };
   Object.assign(MUSICAS, MUS_FIM);
-  const MAPA_FIM = { multiverso: 'galaxia', pedraforte: 'dg_caverna', picos_nublados: 'celeste', torre_infinita: 'galaxia2', // v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
+  const MAPA_FIM = { multiverso: 'galaxia', pedraforte: 'dg_caverna', picos_nublados: 'celeste', torre_infinita: 'dg_vulcao', // v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
     atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
   // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
   Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
@@ -272,6 +272,15 @@
     cl_firula: { ms: 500, f(t) { [784, 880, 1047, 1175, 1319, 1568].forEach((f, i) => nota('triangle', f, t + i * 0.045, 0.2, 0.05, { pan: -0.6 + i * 0.24 })); ruido(t + 0.25, 0.5, 0.035, 'highpass', 7000, 10000, 0.7, true); nota('sine', 2093, t + 0.3, 0.4, 0.05, { eco: true }); } },
     cl_leitura: { ms: 500, f(t) { acorde(t, [220, 330, 494, 587], 'sine', 1.4, 0.06, 0, { ataque: 0.35 }); nota('triangle', 1760, t + 0.4, 0.9, 0.05, { eco: true }); nota('triangle', 1319, t + 0.6, 0.9, 0.04, { eco: true }); } },
     cl_segundo_folego: { ms: 500, f(t) { ruido(t, 0.5, 0.08, 'bandpass', 600, 1300, 1.2); acorde(t + 0.35, [392, 494, 587, 784], 'triangle', 0.5, 0.08, 0.08); acorde(t + 0.7, [784, 988, 1175], 'sine', 0.8, 0.05, 0.03, { eco: true }); } },
+    // v353 (dono: "os chefões estão pouco animados"): entrada, fúria, onda de choque e queda dos chefões (chefes_vivos.js)
+    chefe_rugido: { ms: 1500, f(t) { nota('sawtooth', [95, 60], t, 1.1, 0.16, { passaBaixa: 600, vib: [7, 9], ataque: 0.12 }); nota('sawtooth', [142, 88], t + 0.03, 1.0, 0.1, { passaBaixa: 900, vib: [6, 12] });
+      ruido(t, 1.1, 0.22, 'lowpass', 700, 160, 0.9); baque(t + 0.05, 0.55, [90, 32]); acorde(t + 0.15, [110, 131, 156], 'square', 1.1, 0.035, 0, { passaBaixa: 500, eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    chefe_furia: { ms: 1500, f(t) { nota('sawtooth', [120, 240], t, 0.5, 0.14, { passaBaixa: 1400, vib: [14, 20], glide: 0.45 }); ruido(t, 0.6, 0.2, 'bandpass', 300, 1600, 1.4); baque(t + 0.45, 0.5, [120, 40]);
+      acorde(t + 0.45, [147, 175, 208], 'sawtooth', 0.7, 0.05, 0.05, { passaBaixa: 900 }); } },
+    chefe_aviso: { ms: 600, f(t) { nota('square', [880, 660], t, 0.16, 0.07, { passaBaixa: 2500 }); nota('square', [880, 660], t + 0.2, 0.16, 0.07, { passaBaixa: 2500 }); ruido(t, 0.6, 0.08, 'lowpass', 200, 800, 0.8); } },
+    chefe_choque: { ms: 400, f(t) { baque(t, 0.7, [100, 30]); ruido(t, 0.7, 0.3, 'lowpass', 1600, 120, 0.8); ruido(t, 0.12, 0.15, 'highpass', 2000, 5000, 0.7); } },
+    chefe_queda: { ms: 2000, f(t) { baque(t, 0.7, [130, 30]); ruido(t, 1.2, 0.25, 'lowpass', 1800, 100, 0.8); acorde(t + 0.5, [523, 659, 784, 1047, 1319], 'triangle', 0.9, 0.07, 0.07, { eco: true });
+      ruido(t + 0.5, 1.0, 0.04, 'highpass', 6000, 9000, 0.7, true); if (typeof duck === 'function') duck('raro'); } },
   });
   function tocaSint(tipo) {
     const s = SINT[tipo]; if (!s || !A.ctx) return false;

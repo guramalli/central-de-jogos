@@ -31,7 +31,7 @@ const RELIQUIA_ANDAR = {}; RELIQUIAS.forEach(r => RELIQUIA_ANDAR[r[4]] = r);
 Object.assign(ITENS, {
   ficha_torre: { nome: 'Ficha da Torre', tipo: 'loot', venda: 25000, desc: 'Ganha a cada andar vencido da Torre Infinita. O Mestre da Torre troca por prêmios.' },
   taca_multiverso: { nome: 'Taça do Multiverso', tipo: 'loot', venda: 3000000, desc: 'Troféu dos chefões da Torre Infinita (a cada 10 andares).' },
-  bau_torre: { nome: 'Baú da Torre', tipo: 'consumivel', efeito: { bau: 1 }, lvl: 400, venda: 0, desc: 'Abra para ganhar poções, banquetes... e, muito raramente, uma peça de equipamento do Multiverso.' },
+  bau_torre: { nome: 'Baú da Torre', tipo: 'consumivel', efeito: { bau: 1 }, lvl: 400, venda: 0, desc: 'Abra para 3 prêmios sorteados: poções, cristais de foco, banquetes, tostões, fichas, materiais das relíquias... e, raramente, uma peça de equipamento do Multiverso.' },
 });
 for (const [id, nome, slot, L, andar, x] of RELIQUIAS) {
   ITENS[id] = Object.assign({ nome, tipo: 'equip', slot, lvl: L, venda: L * L * 30, reliquia: true, desc: `🏺 RELÍQUIA (única): só sai da missão do Guardião do andar ${andar} da Torre Infinita.` }, x);
@@ -47,6 +47,7 @@ function torrePool() {
   const comuns = [], chefes = [];
   for (const [id, d] of Object.entries(MONSTROS)) {
     const l = d.look; if (!l || !l.spr || l.tipo === 'humano' || d.treino || /^tr_/.test(id)) continue;
+    if (d.pedra || d.pedraTorre || d.vel === 0) continue; // v353 (dono: "as pedras/metins andavam na Torre"): pedra não vira criatura que anda
     if ((d.nivel || 0) < 200) continue;
     (d.chefe ? chefes : comuns).push(id);
   }
@@ -59,7 +60,7 @@ function torreClone(base, n, papel) {
   const rel = papel === 'guardiao' ? RELIQUIA_ANDAR[n] : null;
   const nome = rel ? `Guardião da Relíquia (${ITENS[rel[0]].nome})` : papel === 'chefe' ? `${b.nome}, Senhor do Andar ${n}` : `${b.nome} da Torre`;
   const m = montaMonstro(id, nome, arq, L, { falas: b.falas || ['Vem!'], proj: (b.ranged && b.ranged.proj) || 'bola' });
-  m.look = Object.assign({}, b.look); m.torre = true; m.respawn = 999999999;
+  m.look = Object.assign({}, b.look); m.torre = true; m.respawn = 999999999; m.base = base;
   m.ouro = [Math.round(0.8 * L ** 1.5), Math.round(1.2 * L ** 1.5)];
   // calibrado na s18 (melhor equipamento + 3 comidas + habilidades ~90): comum = peso dos mundos do Multiverso; chefe = 1,5–3 min;
   // GUARDIÃO = 5–10 min tomando 600–900% do fôlego por minuto: sem as melhores poções, comidas e itens, não passa
@@ -72,31 +73,54 @@ function torreClone(base, n, papel) {
   return id;
 }
 
+// v353: versão VELOZ de uma criatura do andar (vem direto em você: não dá para ficar só de longe)
+function torreRapido(id) {
+  const nid = id + '_r'; if (MONSTROS[nid]) return nid;
+  const b = MONSTROS[id]; const m = MONSTROS[nid] = Object.assign({}, b, { nome: `${MONSTROS[b.base] ? MONSTROS[b.base].nome : b.nome} Veloz`, vel: Math.max(b.vel || 0, 300) * 1.45, hp: Math.round(b.hp * 0.7), aggro: 99, look: Object.assign({}, b.look) });
+  delete m.ranged; return nid;
+}
+// v353 (ideia do dono): a PEDRA DA TORRE — muita vida, não anda; enquanto não quebra, chama reforços (torre_desafio.js)
+if (typeof ALTURA_BICHO !== 'undefined') ALTURA_BICHO.torre_pedra = 2.3;
+if (typeof ASSET_SET !== 'undefined' && !ASSET_SET.has('torre_pedra')) { ASSETS.push('torre_pedra'); ASSET_SET.add('torre_pedra'); }
+function torrePedra(n) {
+  const id = `tr_pedra_${n}`; if (MONSTROS[id]) return id;
+  const L = torreNivel(n), m = montaMonstro(id, 'Pedra da Torre', 'zagueiro', L, { falas: ['Ninguém sai daqui!', 'Venham, meus guardas!', 'Hahaha!'] });
+  m.hp = Math.round(m.hp * 2.2 * 9); m.def = Math.round(m.def * 1.5); m.atk = 0; m.vel = 0; m.aggro = 0; m.atkCd = 1e12; delete m.ranged;
+  m.xp = Math.round(m.xp * 4); m.ouro = [Math.round(2 * L ** 1.5), Math.round(3 * L ** 1.5)]; m.torre = true; m.respawn = 999999999; m.pedraTorre = true;
+  m.look = { tipo: 'torre_pedra', spr: 'torre_pedra', voa: false, grande: true };
+  m.loot = [['ficha_torre', 1, 1, 2], ['elixir_multiverso', 0.5, 1, 1]];
+  return id;
+}
+
 /* ---------- o andar (arena redonda flutuando no espaço) ---------- */
 function criaAndarTorre() {
   const n = Math.max(1, (G.save && torreDados().andar) || 1), L = torreNivel(n), r = mulberry(7777 + n * 131); // (sem jogo carregado: o índice dos mapas monta o andar 1)
   const W = TORRE_W, H = TORRE_H, cx = 17, cy = 14; const b = new Construtor('torre_infinita', `🗼 Torre Infinita — andar ${n} (nível ${L})`, W, H, CH.ESTRELAS, 7000 + n);
+  // v353 (dono: "o mapa é muito cru e não transmite medo"): arena de pedra escura com borda de lava e tochas
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const d = Math.hypot(x - cx, (y - cy) * 1.1);
-    if (d <= 12.5) b.chao(x, y, d >= 11 ? CH.METAL : CH.MV_PRACA); else b.obj(x, y, 'x');
+    if (d <= 12.5) b.chao(x, y, d >= 11 ? CH.ROCHA_LAVA : d >= 9.6 && r() < 0.18 ? CH.ROCHA_LAVA : CH.CAVERNA); else b.obj(x, y, 'x');
   }
-  b.campo(11, 10, 13, 9, CH.CAMPO, null, false);
-  for (const [x, y] of [[8, 6], [26, 6], [8, 22], [26, 22]]) b.obj(x, y, 'holofote');
+  // (sem gramado: o chão da Torre é pedra escura — o campo verde deixava o andar "alegre" demais)
+  for (let k = 0; k < 10; k++) { const ang = k / 10 * Math.PI * 2 + 0.3; const x = Math.round(cx + Math.cos(ang) * 11.6), y = Math.round(cy + Math.sin(ang) * 11.6 / 1.1); if (y !== 24 && y !== 25) b.obj(x, y, k % 3 === 0 ? 'rocha_lava' : 'tocha'); }
   b.npc('porteiro_torre', 14, 24); b.m.inicio = { x: 17, y: 24 }; b.m.renasce = { x: 17, y: 24 };
   const { comuns, chefes } = torrePool(), pega = l => l[(r() * l.length) | 0];
   const rel = RELIQUIA_ANDAR[n];
-  if (rel) {
-    b.spawn(torreClone(pega(chefes), n, 'guardiao'), 17, 9, 1, 1);
-    const g = torreClone(pega(comuns), n, 'comum'); b.spawn(g, 11, 12, 3, 2); b.spawn(g, 23, 12, 3, 2);
-  } else if (n % 10 === 0) {
-    b.spawn(torreClone(pega(chefes), n, 'chefe'), 17, 9, 1, 1);
-    const g = torreClone(pega(comuns), n, 'comum'); b.spawn(g, 12, 12, 2, 2); b.spawn(g, 22, 12, 2, 2);
+  // v353 (dono: "poucas criaturas, dá para matar tudo de longe"): ondas que entram pelas bordas durante o andar
+  const borda = (k, tot) => { const ang = Math.PI * 1.15 + (k / Math.max(1, tot - 1)) * Math.PI * 0.7 + (r() - 0.5) * 0.3; return [Math.round(cx + Math.cos(ang) * 9), Math.round(cy + Math.sin(ang) * 9 / 1.1)]; };
+  const a = torreClone(pega(comuns), n, 'comum'), c = torreClone(pega(comuns), n, 'comum'), rap = torreRapido(torreClone(pega(comuns), n, 'comum'));
+  const ids = [a, c, rap];
+  let cfg;
+  if (rel || n % 10 === 0) {
+    b.spawn(rel ? torreClone(pega(chefes), n, 'guardiao') : torreClone(pega(chefes), n, 'chefe'), 17, 9, 1, 1);
+    for (let k = 0; k < 6; k++) { const [x, y] = borda(k, 6); b.spawn(ids[k % 3], x, y, 1, 1); }
+    cfg = { ids, ondas: [5, 6], ondaEm: [35000, 75000] };
   } else {
-    const a = torreClone(pega(comuns), n, 'comum'), c = torreClone(pega(comuns), n, 'comum'), q = Math.min(12, 6 + Math.floor(n / 10));
-    const pos = [[11, 8], [23, 8], [9, 14], [25, 14], [17, 7], [17, 16]];
-    for (let k = 0; k < q; k++) { const [x, y] = pos[k % pos.length]; b.spawn(k % 2 ? c : a, x, y, 1, 2); }
+    b.spawn(torrePedra(n), 17, 11, 1, 0);
+    const q1 = 8; for (let k = 0; k < q1; k++) { const [x, y] = borda(k, q1); b.spawn(ids[k % 3], x, y, 1, 1); }
+    cfg = { ids, ondas: [8, Math.min(14, 6 + Math.floor(n / 8))], ondaEm: [22000, 45000], pedra: `tr_pedra_${n}` };
   }
-  Object.assign(b.m, { torre: n, espaco: { tinta: rel ? 'rgba(255,80,80,0.08)' : n % 10 === 0 ? 'rgba(255,200,60,0.08)' : 'rgba(140,90,255,0.07)' } });
+  Object.assign(b.m, { torre: n, torreCfg: cfg, fechado: true, luzes: ['tocha', 'rocha_lava'], luzCor: rel ? '255,60,70' : '255,110,50', espaco: { tinta: rel ? 'rgba(200,20,40,0.2)' : n % 10 === 0 ? 'rgba(200,90,20,0.18)' : 'rgba(150,20,60,0.16)' } });
   return b.m;
 }
 MAPAS_DEF.torre_infinita = criaAndarTorre;
@@ -204,9 +228,20 @@ function modalTorre(npc) {
   if (_usaTorre) usarItem = function (id) {
     if (id !== 'bau_torre') return _usaTorre.apply(this, arguments);
     if (!removeItem('bau_torre', 1)) return;
-    const ganhos = [['elixir_multiverso', 6], ['foco_multiverso', 6], ['banquete_anao', 2]]; ganhos.forEach(([i, n]) => recebeItem(i, n));
-    let msg = '6 Elixires, 6 Cristais de Foco e 2 Banquetes';
-    if (Math.random() < 0.02 && typeof MV_ITENS_EQUIP !== 'undefined') { const p = MV_ITENS_EQUIP[(Math.random() * MV_ITENS_EQUIP.length) | 0]; recebeItem(p, 1); msg += ` e... ${ITENS[p].nome}!!!`; banner('🎁 Baú da Torre', ITENS[p].nome); som('raro'); }
+    // v353 (dono: "o baú dá sempre as mesmas coisas"): 3 sorteios numa tabela variada + chance de peça do Multiverso
+    const rnd = (a, b) => a + ((Math.random() * (b - a + 1)) | 0), L = Math.max(400, G.save.nivel || 400);
+    const extras = Object.keys(ITENS).filter(i => { const it = ITENS[i]; return (it.tipo === 'consumivel' || it.tipo === 'comida') && it.preco && it.lvl >= 250 && it.lvl <= L && !/bau|elixir_multiverso|foco_multiverso|banquete_anao/.test(i); });
+    const TAB = [[30, () => ['elixir_multiverso', rnd(3, 8)]], [25, () => ['foco_multiverso', rnd(3, 8)]], [14, () => ['banquete_anao', rnd(1, 3)]],
+      [14, () => ['$', rnd(4, 9) * L * 400]], [9, () => ['ficha_torre', rnd(2, 5)]], [14, () => extras.length ? [extras[(Math.random() * extras.length) | 0], rnd(2, 5)] : ['elixir_multiverso', 3]],
+      [5, () => ['brasa_eterna', rnd(2, 6)]], [5, () => ['gelo_eterno', rnd(2, 6)]], [2, () => ['coroa_raios', 1]], [2, () => ['caco_coroa_cristal', 1]]];
+    const tot = TAB.reduce((t, x) => t + x[0], 0), soma = {};
+    for (let k = 0; k < 3; k++) {
+      let r = Math.random() * tot, e = TAB[0]; for (const x of TAB) { r -= x[0]; if (r <= 0) { e = x; break; } }
+      const [i, n] = e[1](); if (i === '$' || ITENS[i]) soma[i] = (soma[i] || 0) + n;
+    }
+    const partes = Object.entries(soma).map(([i, n]) => { if (i === '$') { G.save.ouro += n; return `${n.toLocaleString('pt-BR')} tostões`; } recebeItem(i, n); return `${n}x ${ITENS[i].nome}`; });
+    let msg = partes.join(', ');
+    if (Math.random() < 0.04 && typeof MV_ITENS_EQUIP !== 'undefined' && MV_ITENS_EQUIP.length) { const p = MV_ITENS_EQUIP[(Math.random() * MV_ITENS_EQUIP.length) | 0]; recebeItem(p, 1); msg += ` e... ${ITENS[p].nome}!!!`; banner('🎁 Baú da Torre', ITENS[p].nome); som('raro'); }
     log(`🎁 Baú da Torre: ${msg}`, 'l-loot'); G.uiSujo = true; salvar();
   };
 }

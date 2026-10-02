@@ -135,7 +135,7 @@ Object.assign(ITENS, {
 });
 for (const [id, , L, , , , item, nomeItem, descItem] of MV_BICHOS) ITENS[item] = { nome: nomeItem, tipo: 'loot', venda: Math.round(L * 16), desc: descItem };
 for (const [id, , L, , item, nomeItem, descItem] of MV_CHEFES) ITENS[item] = { nome: nomeItem, tipo: 'loot', venda: Math.round(L * 600), desc: descItem };
-const MV_ASSETS = ['mv_portal_anoes', 'mv_portal_gigantes', 'mv_portal_selado', 'mv_torre_infinita', 'b_anao_casa', 'b_anao_forja', 'b_anao_taverna', 'b_anao_salao', 'b_gig_cabana', 'b_gig_castelo', 'b_gig_moinho', 'b_gig_casa_pedra',
+const MV_ASSETS = ['mv_portal_anoes', 'mv_portal_gigantes', 'mv_portal_selado', 'mv_torre_infinita2', 'b_anao_casa', 'b_anao_forja', 'b_anao_taverna', 'b_anao_salao', 'b_gig_cabana', 'b_gig_castelo', 'b_gig_moinho', 'b_gig_casa_pedra',
   'carrinho_mina', 'bigorna_runica', 'lampiao_cristal', 'barris_anao', 'pinheiro_gigante', 'toco_machado', 'pedra_runica', 'nuvem_arbusto', ...MV_ID,
   ...MV_BICHOS.map(b => 'i_' + b[6]), ...MV_CHEFES.map(c => 'i_' + c[4]), ...MV_ITENS_EQUIP.map(id => 'i_' + id)];
 MV_ASSETS.forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
@@ -241,7 +241,7 @@ function criaMultiverso() {
   b.placa(ps1.x + 2, ps1.y + 1, '🔒 PORTAL SELADO — ainda ninguém sabe que mundo existe do outro lado... Em breve!');
   b.placa(ps2.x + 2, ps2.y + 1, '🔒 PORTAL SELADO — dizem que lá os dinossauros jogam bola. Em breve!');
   // a Torre Infinita (à direita)
-  b.predio('mv_torre_infinita', 47, 18, 6, 4); b.ret(41, 22, 9, 2, CH.METAL); b.ret(49, 22, 2, 3, CH.METAL);
+  b.predio('mv_torre_infinita2', 46, 18, 7, 4); b.ret(41, 22, 9, 2, CH.METAL); b.ret(49, 22, 2, 3, CH.METAL); // v353 (dono: "mais amedrontadora e maior"): obsidiana, correntes, portão-bocarra
   b.npc('mestre_torre', 53, 23);
   b.placa(46, 24, '🗼 TORRE INFINITA — cada andar é mais difícil que o anterior, do nível 406 até o 1000... e além. Fale com o Mestre da Torre.');
   // o Guardião, a loja e o quadro (embaixo do campo)
