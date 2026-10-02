@@ -656,3 +656,17 @@ model LendaRanking {
 
   @@index([xp])
 }
+
+// Lenda do Campinho — estatísticas ANÔNIMAS: um contador por dia/evento/valor.
+// Não tem userId nem nada de quem jogou (ver src/lenda/contagens.js).
+model LendaContagem {
+  dia        String // "2026-10-02" (horário de Brasília)
+  evento     String // abriu, nivel, mapa, sessao...
+  valor      String @default("")
+  plataforma String @default("?")
+  versao     String @default("?")
+  n          Int    @default(0)
+
+  @@id([dia, evento, valor, plataforma, versao])
+  @@index([dia])
+}

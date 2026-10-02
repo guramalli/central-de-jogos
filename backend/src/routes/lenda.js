@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { prisma } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
@@ -6,6 +6,7 @@ import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
 import { validarSave, validarCasa, escolherCasas, validarRanking } from "../lenda/validar.js";
 import { abrirSave, fichaPublica } from "../lenda/ficha.js";
 import { registrarSinal, JOGANDO_AGORA_MS, GUARDAR_DIAS } from "../lenda/sessoes.js";
+import { validarContagens, podeContar, somarContagens, resumir, GUARDAR_DIAS as CONTAGEM_DIAS } from "../lenda/contagens.js";
 
 // ===== Lenda do Campinho (RPG de futebol, em public/lenda-do-campinho/) =====
 //
@@ -127,6 +128,24 @@ router.put("/ranking", requireAuth, async (req, res) => {
   cacheInvalidar("lenda:ranking");
   registrarSinal(prisma, req.user.id, v.ranking.nivel, req.headers["user-agent"]);
   res.json({ ok: true });
+});
+
+// ---------- estatísticas anônimas (só contagens por dia; ver lenda/contagens.js) ----------
+// Sem login e sem cookie; o corpo vem como texto (o navegador manda sem pedir licença antes).
+// Responde na hora e soma depois: nunca atrasa o jogo.
+router.post("/contagens", express.text({ type: "text/plain", limit: "4kb" }), (req, res) => {
+  if (!podeContar(req.ip)) return res.status(429).end();
+  const v = validarContagens(req.body);
+  if (!v.ok) return res.status(400).json({ error: v.erro });
+  res.status(204).end();
+  if (v.itens.length) somarContagens(prisma, v.itens).catch(() => {});
+});
+// Painel do dono: ?dias=1..400
+router.get("/admin/contagens", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  const dias = Math.min(CONTAGEM_DIAS, Math.max(1, parseInt(req.query.dias, 10) || 30));
+  const desde = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
+  const linhas = await prisma.lendaContagem.findMany({ where: { dia: { gte: desde } }, orderBy: { dia: "asc" } });
+  res.json({ dias, ...resumir(linhas) });
 });
 
 // ---------- painel admin: quem está jogando e histórico de sessões ----------
