@@ -151,19 +151,23 @@ router.get("/amigos", requireAuth, async (req, res) => {
 router.post("/torcida", requireAuth, async (req, res) => {
   const v = validarTorcida(req.body);
   if (!v.ok) return res.status(400).json({ error: v.erro });
-  const p = await podeTorcer(prisma, req.user.id, v.para);
-  if (!p.ok) return res.status(p.cedo ? 429 : 403).json({ error: p.erro });
-  await prisma.lendaTorcida.create({ data: { de: req.user.id, para: v.para, tipo: v.tipo } });
-  res.json({ ok: true });
+  try {
+    const p = await podeTorcer(prisma, req.user.id, v.para);
+    if (!p.ok) return res.status(p.cedo ? 429 : 403).json({ error: p.erro });
+    await prisma.lendaTorcida.create({ data: { de: req.user.id, para: v.para, tipo: v.tipo } });
+    res.json({ ok: true });
+  } catch { res.status(503).json({ error: "A torcida volta em instantes." }); } // (ex.: tabela ainda não criada)
 });
 // Torcidas recebidas e ainda não vistas (marca como vistas). Limpa as velhas de vez em quando.
 router.get("/torcidas", requireAuth, async (req, res) => {
+  try {
   const desde = new Date(Date.now() - TORCIDA_DIAS * 864e5);
   const lista = await prisma.lendaTorcida.findMany({ where: { para: req.user.id, vista: false, criadoEm: { gte: desde } }, orderBy: { criadoEm: "asc" }, take: 20 });
   if (lista.length) await prisma.lendaTorcida.updateMany({ where: { id: { in: lista.map((t) => t.id) } }, data: { vista: true } });
   const nomes = new Map((await prisma.user.findMany({ where: { id: { in: [...new Set(lista.map((t) => t.de))] } }, select: { id: true, nickname: true } })).map((u) => [u.id, u.nickname]));
   res.json({ torcidas: lista.map((t) => ({ de: nomes.get(t.de) || "Um amigo", texto: TORCIDAS[t.tipo] || "⚽", quando: t.criadoEm })) });
   if (Math.random() < 0.02) prisma.lendaTorcida.deleteMany({ where: { criadoEm: { lt: desde } } }).catch(() => {});
+  } catch { if (!res.headersSent) res.json({ torcidas: [] }); }
 });
 
 // ---------- estatísticas anônimas (só contagens por dia; ver lenda/contagens.js) ----------
@@ -180,8 +184,10 @@ router.post("/contagens", express.text({ type: "text/plain", limit: "4kb" }), (r
 router.get("/admin/contagens", requireAuth, requireRole("ADMIN"), async (req, res) => {
   const dias = Math.min(CONTAGEM_DIAS, Math.max(1, parseInt(req.query.dias, 10) || 30));
   const desde = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
-  const linhas = await prisma.lendaContagem.findMany({ where: { dia: { gte: desde } }, orderBy: { dia: "asc" } });
-  res.json({ dias, ...resumir(linhas) });
+  try {
+    const linhas = await prisma.lendaContagem.findMany({ where: { dia: { gte: desde } }, orderBy: { dia: "asc" } });
+    res.json({ dias, ...resumir(linhas) });
+  } catch { res.status(503).json({ error: "Estatísticas ainda não ativadas no banco (rodar prisma db push)." }); }
 });
 
 // ---------- painel admin: quem está jogando e histórico de sessões ----------
