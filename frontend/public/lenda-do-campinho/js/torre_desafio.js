@@ -78,7 +78,7 @@ function tdChefe(m, dt) {
   // onda de choque, com aviso
   if (TD.t >= T.onda && !T.aviso) { T.aviso = TD.t + 900; texto(m, '⚠️ ONDA DE CHOQUE!', '#ff5a5a', 900, -0.6); efeito('area', m.x, m.y, '#ff3a3a', 3.5); som('chefe_aviso'); if (typeof coFx === 'function') coFx({ k: 'aviso', x: m.x, y: m.y }); }
   if (T.aviso && TD.t >= T.aviso) {
-    T.aviso = 0; T.onda = TD.t + (T.bravo ? 5000 : 7000); efeito('impacto', m.x, m.y, '#ff5a2a', 3.5); efeito('area', m.x, m.y, '#ffb03a', 3.5); som('chefe_choque'); if (typeof tremeTela === 'function') tremeTela(400, 6);
+    T.aviso = 0; T.onda = TD.t + (T.bravo ? 5000 : 7000); efeito('impacto', m.x, m.y, '#ff5a2a', 3.5); efeito('area', m.x, m.y, '#ffb03a', 3.5); som('chefe_choque'); if (typeof tremeTela === 'function') tremeTela(6, 400);
     if (G.p && Math.hypot(G.p.x - m.x, G.p.y - m.y) <= 3.5) recebeDano(Math.round(s.maxHp * pct), m);
     if (typeof coFx === 'function') coFx({ k: 'choque', x: m.x, y: m.y, r: 3.5, p: pct, u: m.uid }); // Torre em grupo: os colegas perto também levam
   }

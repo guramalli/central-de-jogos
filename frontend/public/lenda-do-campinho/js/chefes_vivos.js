@@ -10,9 +10,11 @@
    - QUEDA: som de vitória + explosão de estrelas + tremida.
    Carregar DEPOIS de game.js/audio.js (embrulha desenhaEnt, desenha, matar).
    ============================================================ */
-const CV_CHEFE = { treme: 0, forca: 0, barra: null };
+const CV_CHEFE = { barra: null };
 const MENOS_MOVIMENTO = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })(); // acessibilidade: sem tremida
-function tremeTela(ms, forca) { if (MENOS_MOVIMENTO) return; CV_CHEFE.treme = Math.max(CV_CHEFE.treme, G.agora + ms); CV_CHEFE.forca = Math.max(CV_CHEFE.treme > G.agora ? CV_CHEFE.forca : 0, forca); }
+// v354: usa o tremeTela(força, duração) do fx.js. (Na v353 havia aqui OUTRO tremeTela(duração, força) com o mesmo
+// nome: ele substituía o do fx.js e toda explosão tremia com força 260 em vez de 6 — dono: "a tela tremeu de maneira maluca")
+{ const _tremeCV = tremeTela; tremeTela = function () { if (MENOS_MOVIMENTO) return; return _tremeCV.apply(this, arguments); }; }
 function corChefe(m) {
   if (m._cv && m._cv.furia) return [255, 50, 40];
   if (/_g$/.test(m.tipo || '')) return [255, 40, 70];
@@ -69,12 +71,12 @@ function passoChefes() {
     const d = Math.hypot(m.x - G.p.x, m.y - G.p.y), cv = m._cv || (m._cv = { brasas: [], visto: false, furia: false, ult: G.agora });
     if (d < dPerto) { dPerto = d; perto = m; }
     if (!cv.visto && d < 9) {
-      cv.visto = true; som('chefe_rugido'); tremeTela(650, 7); efeito('area', m.x, m.y, `rgb(${corChefe(m)})`, 3);
+      cv.visto = true; som('chefe_rugido'); tremeTela(7, 650); efeito('area', m.x, m.y, `rgb(${corChefe(m)})`, 3);
       if (typeof texto === 'function') texto(m, '👑 ' + (m.d.falas && m.d.falas[0] || 'GRRR!'), '#ffd27a', 1400, -0.9);
       CV_CHEFE.entrou = G.agora;
     }
     if (!cv.furia && m.hp < m.d.hp * 0.5) {
-      cv.furia = true; som('chefe_furia'); tremeTela(450, 5); efeito('aura', m.x, m.y, '#ff2a2a');
+      cv.furia = true; som('chefe_furia'); tremeTela(5, 450); efeito('aura', m.x, m.y, '#ff2a2a');
       if (!(G.mapa && G.mapa.torre) && typeof texto === 'function') texto(m, '😡 FÚRIA!', '#ff5a4a', 1200, -0.9);
     }
   }
@@ -98,24 +100,13 @@ function barraChefe(m) {
   const pc = `${Math.ceil(k * 100)}%`, qt = b.querySelector('.cb-txt'); if (qt.textContent !== pc) qt.textContent = pc;
   b.classList.toggle('furia', !!(m._cv && m._cv.furia));
 }
-// ---- tremida de tela (só a câmera; o jogo não muda) ----
-{
-  const _desCV = desenha;
-  desenha = function () {
-    if (CV_CHEFE.treme > G.agora && G.cam) {
-      const f = CV_CHEFE.forca * Math.min(1, (CV_CHEFE.treme - G.agora) / 300), ox = (Math.random() - 0.5) * f * 2, oy = (Math.random() - 0.5) * f * 2;
-      G.cam.x += ox; G.cam.y += oy; const r = _desCV.apply(this, arguments); G.cam.x -= ox; G.cam.y -= oy; return r;
-    }
-    return _desCV.apply(this, arguments);
-  };
-}
 // ---- queda do chefão ----
 {
   const _matCV = matar;
   matar = function (m) {
     const chefe = m && m.d && m.d.chefe && !m.d.treino;
     const r = _matCV.apply(this, arguments);
-    if (chefe) { try { som('chefe_queda'); tremeTela(700, 8); efeito('explosao', m.x, m.y, `rgb(${corChefe(m)})`); efeito('estrelas', m.x, m.y, '#ffe14a'); efeito('nivel', m.x, m.y); } catch (e) { } }
+    if (chefe) { try { som('chefe_queda'); tremeTela(8, 700); efeito('explosao', m.x, m.y, `rgb(${corChefe(m)})`); efeito('estrelas', m.x, m.y, '#ffe14a'); efeito('nivel', m.x, m.y); } catch (e) { } }
     return r;
   };
 }
