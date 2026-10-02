@@ -110,7 +110,7 @@ async function montaCartao(o = {}) {
   // o mascote (adornos) do lado
   try {
     const m = !r.mont && window.ADORNOS2 && ADORNOS2.atual('mascote'), voa = m === 'arara' || m === 'dragao';
-    const im = m && (aSprite(`pet_${m}_c1`) || await carregaImg(ASSET_DIR + `pet_${m}_c1.webp`)); // a arte pode ainda não ter carregado
+    const pn = m && (ADORNOS2.petNome ? ADORNOS2.petNome(m) : `pet_${m}`), im = m && (aSprite(`${pn}_c1`) || await carregaImg(ASSET_DIR + `${pn}_c1.webp`)); // a arte pode ainda não ter carregado
     if (im) { const ph = F.corpoH * (voa ? 0.3 : 0.26), pw = ph * im.width / im.height; x.drawImage(im, W / 2 + F.corpoH * 0.3, F.corpoY + F.corpoH * (voa ? 0.6 : 0.97) - ph, pw, ph); }
   } catch (e) { }
   // nome, nível, conquista, números e o convite

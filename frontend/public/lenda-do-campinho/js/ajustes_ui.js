@@ -52,6 +52,20 @@ function tileDoMini(ev) {
 }
 function andaPeloMini(tx, ty) {
   const m = G.mapa; if (!m || !G.p) return false;
+  // v360 (dono: "clicando no NPC pelo minimapa o boneco fica circulando o NPC"): o destino era o quadrado do próprio NPC,
+  // que o boneco nunca ocupa. Agora faz como o clique no mundo: vai até o lado dele e abre a conversa.
+  const npc = G.npcs.filter(e => e.hp === undefined && !e.coop && Math.hypot(e.x - (tx + 0.5), e.y - (ty + 0.5)) <= 1.25).sort((a, b) => Math.hypot(a.x - tx - 0.5, a.y - ty - 0.5) - Math.hypot(b.x - tx - 0.5, b.y - ty - 0.5))[0];
+  if (npc) {
+    const perto = (i, j) => Math.hypot(i + 0.5 - npc.x, j + 0.5 - npc.y) <= 1.6 && !(Math.floor(npc.x) === i && Math.floor(npc.y) === j);
+    if (Math.hypot(G.p.x - npc.x, G.p.y - npc.y) <= 1.35) { abrirNPC(npc); return true; }
+    const c = caminho(Math.floor(G.p.x), Math.floor(G.p.y), perto, 40000);
+    if (!c) { log('Não consigo chegar lá pelo minimapa.', 'l-sis'); return false; }
+    G.caminho = c.length ? c : null; G.alvo = null; G.uiSujo = true;
+    G.acaoChegar = () => { if (Math.hypot(G.p.x - npc.x, G.p.y - npc.y) <= 2) abrirNPC(npc); };
+    if (!c.length) { const a = G.acaoChegar; G.acaoChegar = null; a(); }
+    if (typeof efeito === 'function') efeito('toque', npc.x, npc.y, '#ffe14a');
+    return true;
+  }
   let alvo = null; // o lugar clicado pode ser parede/água: vai para o chão livre mais perto
   for (let r = 0; r <= 4 && !alvo; r++) for (let dy = -r; dy <= r && !alvo; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const x = tx + dx, y = ty + dy; if (x >= 0 && y >= 0 && x < m.w && y < m.h && podeAndar(x, y)) { alvo = { x, y }; break; } }
   if (!alvo) return false;

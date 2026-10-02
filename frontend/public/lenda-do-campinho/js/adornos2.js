@@ -16,7 +16,9 @@
    Carregar DEPOIS de adornos.js.
    ============================================================ */
 {
-  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['caramelo', 'arara', 'robo', 'dragao'].flatMap(p => [1, 2, 3, 4].map(k => `pet_${p}_c${k}`))];
+  const PET_ARTE = { caramelo: 'pet_caramelo2' }; // v360: caramelo refeito (o 1º tinha patas a mais)
+  const petNome = id => PET_ARTE[id] || `pet_${id}`;
+  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['caramelo', 'arara', 'robo', 'dragao'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
   for (const n of ART) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   const premium = () => typeof prem === 'function' && prem('lendario'); // (jogo_extra/premium.js, só na Steam)
   const nv = () => (G.save && G.save.nivel) || 1;
@@ -49,7 +51,7 @@
       ['prancha', 'Prancha Flutuante', '🛹', PREM, 'Você anda flutuando numa prancha (só visual).'],
       ['moldura', 'Moldura Lendária', '🏅', PREM, 'Seu nome numa placa dourada brilhante.']],
   };
-  const IMG = { caramelo: 'pet_caramelo_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
+  const IMG = { caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
   const UNICO = { rastro: true, mascote: true, coroa: true, comemora: true }; // escolhe um (ou nenhum)
   const cfg = () => { const s = G.save; if (!s) return {}; if (!s.adornos2 || typeof s.adornos2 !== 'object') s.adornos2 = {}; return s.adornos2; };
   const acha = (g, id) => (OPCOES[g] || []).find(o => o[0] === id);
@@ -60,7 +62,7 @@
     return OPCOES.extra.filter(o => c[o[0]] && liberado('extra', o[0])).map(o => o[0]);
   }
   const ligado = id => atual('extra').includes(id);
-  window.ADORNOS2 = { OPCOES, atual, liberado, cfg, get PET() { return PET; }, festa: (t, x, y) => festa(t, x, y) }; // (testes)
+  window.ADORNOS2 = { OPCOES, atual, liberado, cfg, get PET() { return PET; }, petNome, festa: (t, x, y) => festa(t, x, y) }; // (testes)
 
   /* ---------- partículas (rastro, pegadas, comemoração) ---------- */
   const P = [], PEG = []; let ultT = 0, ultPeg = null, ladoPeg = 1;
@@ -117,7 +119,7 @@
   }
   function desenhaPet(ctx, id) {
     const voa = PET_VOA.has(id), q = voa || PET.mov ? 1 + Math.floor(voa ? G.agora / 130 : PET.fase) % 4 : 1;
-    const im = aSprite(`pet_${id}_c${q}`); if (!im) return;
+    const im = aSprite(`${petNome(id)}_c${q}`); if (!im) return;
     const h = PET_ALT[id] * T * (voa ? 1.2 : 1), w = h * im.width / im.height, x = PET.x * T, y = PET.y * T - (voa ? T * 0.55 + Math.sin(G.agora / 300) * 4 : 0);
     if (!voa) { ctx.save(); ctx.globalAlpha *= 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, PET.y * T, w * 0.3, 4, 0, 0, 7); ctx.fill(); ctx.restore(); }
     else { ctx.save(); ctx.globalAlpha *= 0.18; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, PET.y * T, w * 0.22, 3, 0, 0, 7); ctx.fill(); ctx.restore(); }

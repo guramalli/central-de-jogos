@@ -407,7 +407,11 @@ function atualizaJogador(dt) {
     p.mov = mov > 0.0005; p.fase += mov * 7; G.andou += mov;
   } else if (G.caminho) {
     const fim = segue(p, G.caminho, v); G.andou += p.mov ? v : 0;
-    if (fim || (p.preso || 0) > 40) { G.caminho = null; p.preso = 0; if (G.acaoChegar) { const a = G.acaoChegar; G.acaoChegar = null; a(); } }
+    // v360: perto do fim, se não chega mais perto em ~1,5 s (algo ocupando o destino, ex.: um NPC), desiste em vez de ficar girando
+    const ult = G.caminho[G.caminho.length - 1], dFim = ult ? Math.hypot(p.x - ult.x, p.y - ult.y) : 0;
+    if (dFim < 2.2) { if (!G.camVigia || dFim < G.camVigia.d - 0.08) G.camVigia = { d: dFim, t: G.agora }; } else G.camVigia = null;
+    const girando = G.camVigia && G.agora - G.camVigia.t > 1500;
+    if (fim || (p.preso || 0) > 40 || girando) { G.camVigia = null; G.caminho = null; p.preso = 0; if (G.acaoChegar) { const a = G.acaoChegar; G.acaoChegar = null; a(); } }
   } else {
     const a = G.alvo; // perseguir o alvo
     if (a && G.mons.includes(a)) {
