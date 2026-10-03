@@ -1,7 +1,7 @@
 /* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
-   ⚖️ MISSÃO FÁCIL NÃO DÁ XP DE GRAÇA (v322), pedido do dono: "nos níveis altos, não ter tanta XP fazendo
+   ⚖️ MISSÃO FÁCIL NÃO DÁ XP DE GRAÇA (v322 — desde a v369 só nas missões REPETÍVEIS, ver fatorXpMissao), pedido do dono: "nos níveis altos, não ter tanta XP fazendo
    missões fáceis; quem quer ser top level tem que jogar bastante". A XP de uma missão cai conforme você
    está ACIMA do nível dela (o ouro e os itens continuam iguais):
      até 10 níveis acima → 100% · 35 acima → 50% · 60 acima → 25% · 85 acima → 12% · bem mais → no mínimo 3%
@@ -24,7 +24,12 @@
   }
   window.XP_MISSOES_AJUSTADAS = (window.XP_MISSOES_AJUSTADAS || 0) + n;
 }
+// v369 (dono: "existem missões que a gente acaba passando de nível e não faz; quando fazemos, a XP deve ser 100%; as que
+// se repetem é que devem ser diminuídas"): missão de UMA VEZ só dá a XP cheia, em qualquer nível. A queda vale só para
+// missão repetível (q.repete). (O que se repete hoje — Caçada da Vez, tarefas da semana, Ecos — já paga pelo nível dos
+// adversários.) O teto de XP acima continua: uma missão antiga não dá vários níveis de uma vez.
 function fatorXpMissao(q, nivel) {
+  if (!q || !q.repete) return 1;
   const L = (q && q.lvl) || 1, n = nivel || (G.save && G.save.nivel) || 1, dif = n - L;
   if (dif <= 10) return 1;
   return Math.max(0.03, Math.pow(0.5, (dif - 10) / 25));

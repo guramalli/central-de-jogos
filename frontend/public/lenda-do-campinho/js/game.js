@@ -1643,7 +1643,13 @@ function alvoMaisProximo() {
 function instalaEntrada() {
   window.addEventListener('keydown', ev => {
     if (!G.rodando) return;
-    const tag = (ev.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    const tag = (ev.target.tagName || '').toLowerCase(), campo = tag === 'input' || tag === 'textarea' || tag === 'select';
+    // v369 (dono: "o Esc não fecha a aba Missões"): com o cursor na busca ou no "Ordenar por" de uma janela, o Esc era ignorado.
+    // Agora fecha a janela; numa busca com texto, o 1º Esc só apaga o texto (como em todo site) e o 2º fecha.
+    if (campo && ev.key === 'Escape' && ev.target.closest && ev.target.closest('#modal')) {
+      if (tag === 'input' && ev.target.type === 'search' && ev.target.value) { ev.preventDefault(); ev.target.value = ''; ev.target.dispatchEvent(new Event('input', { bubbles: true })); return; }
+      ev.target.blur();
+    } else if (campo) return;
     if (ev.key === 'Escape') { if (!$('#modal').hidden) { if (!$('#modal .fechar').hidden) fechaModalX(); } else { G.alvo = null; G.caminho = null; G.uiSujo = true; } return; }
     if (G.pausado) { if (window.teclaModal) window.teclaModal(ev); return; }
     if (ev.key in TECLA_DIR) { ev.preventDefault(); if (!ev.repeat) { G.teclas.delete(TECLA_DIR[ev.key]); G.teclas.add(TECLA_DIR[ev.key]); } return; }

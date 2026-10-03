@@ -33,7 +33,7 @@
   // Multiverso, Pedraforte, Picos Nublados e Torre com faixa própria; luta de CHEFÃO; o labirinto jurássico (mapas jur_*) e o T-Rex
   const MUS_V364 = { multiverso: 122.1, pedraforte: 125.3, picos: 144.3, torre: 137.5, chefe: 142.5, aventura: 141.7, dino: 95.95, dino2: 119.9, dino_boss: 164.3 };
   Object.assign(MUSICAS, MUS_V364);
-  const MAPA_FIM = { multiverso: 'multiverso', pedraforte: 'pedraforte', picos_nublados: 'picos', torre_infinita: 'torre', // v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
+  const MAPA_FIM = { multiverso: 'multiverso', pedraforte: 'pedraforte', picos_nublados: 'picos', torre_infinita: 'torre', arena_ecos: 'torre', // (v369: Arena dos Ecos) v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
     atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
   // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
   Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
