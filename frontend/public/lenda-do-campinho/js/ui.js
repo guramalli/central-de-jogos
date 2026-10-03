@@ -6,12 +6,16 @@
    ============================================================ */
 
 /* ---------------- log, banner ---------------- */
+// v366 (dono: "o horário no chat está sempre o mesmo"): a hora de cada mensagem é a HORA DE VERDADE (como num chat).
+// Antes era o relógio do jogo, que fica parado com o Modo Treino ligado e dentro de casas/prédios. Guarda 400 mensagens
+// (o histórico grande está em historico.js) e só desce sozinho se você não estiver lendo mais em cima.
 function log(msg, cls = 'l-info') {
   const L = $('#log'); if (!L) return;
-  const h = G.save ? String(Math.floor(G.save.hora / 60) % 24).padStart(2, '0') + ':' + String(Math.floor(G.save.hora % 60)).padStart(2, '0') : '';
-  L.append(el('div', { class: cls }, (h ? h + ' ' : '') + msg));
-  while (L.children.length > 120) L.firstChild.remove();
-  L.scrollTop = L.scrollHeight;
+  const d = new Date(), h = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const fundo = L.scrollHeight - L.scrollTop - L.clientHeight < 40;
+  L.append(el('div', { class: cls, title: G.save ? `Dia ${G.save.dia || 1} do jogo` : '' }, h + ' ' + msg));
+  while (L.children.length > 400) L.firstChild.remove();
+  if (fundo || !document.body.classList.contains('log-grande')) L.scrollTop = L.scrollHeight;
 }
 let bannerT;
 function banner(t1, t2 = '') {
