@@ -46,6 +46,8 @@ function mascBonus(tipo) {
 }
 const pct = v => `${Math.round(v * 1000) / 10}%`.replace('.', ',');
 // arte e tamanho da fase (usados no desenho do mascote em adornos2.js)
+// v373 (dono: "o gato adulto está com 5 patas"): filhote e adulto do Sortudo redesenhados EM PÉ (4 patas) — versão nova da arte
+if (typeof ASSET_VER !== 'undefined') for (const suf of ['_f', '_a']) for (let k = 1; k <= 4; k++) ASSET_VER[`pet_sortudo${suf}_c${k}`] = 373;
 const PET_ARTE_BASE = { caramelo: 'pet_caramelo2' };
 window.petArte = id => { if (!MASC[id] || !G.save) return null; const f = mascFase(mascDados(id).nv); return f.suf ? `pet_${id}${f.suf}` : (PET_ARTE_BASE[id] || `pet_${id}`); };
 window.petEscala = id => { if (!MASC[id] || !G.save) return 1; return mascFase(mascDados(id).nv).esc; };

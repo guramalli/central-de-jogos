@@ -92,7 +92,37 @@
     if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = (t % per) / per; if (k < 0.35) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7 * Math.sin(k / 0.35 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(tam * (0.2 + k * 2), -tam * 0.05, tam * 0.14, tam * 0.08, 0, 0, 7); ctx.fill(); } }
     ctx.restore();
   }
+  // as pernas na altura da canela (segmentos de pixels sólidos entre 84,5% e 88,5% da altura: só ali as pernas se separam) — por canvas
+  const CANELA = new WeakMap();
+  function canelas(c) {
+    let r = CANELA.get(c); if (r) return r;
+    const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.845), yb = Math.floor(cx.y0 + H * 0.885), W = c.width; let seg = [];
+    try {
+      const d = k.getContext('2d').getImageData(0, ya, W, yb - ya + 1).data, rows = yb - ya + 1, col = new Uint16Array(W);
+      for (let y = 0; y < rows; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 170) col[x]++;
+      let ini = -1; for (let x = 0; x <= W; x++) { if (x < W && col[x] >= rows * 0.5) { if (ini < 0) ini = x; } else if (ini >= 0) { if (x - ini >= 2) seg.push([ini, x - 1]); ini = -1; } }
+    } catch (e) { }
+    r = { seg, y: (ya + yb) / 2 }; CANELA.set(c, r); return r;
+  }
+  // o símbolo ∞, desenhado com uma linha só
+  function infinito(ctx, x, y, tam, r, t, fase) {
+    const brilho = r >= 9 ? (r >= 10 ? 1 : 0.55) : 0, pulso = 0.5 + 0.5 * Math.sin(t / 380 + fase);
+    const traco = () => { ctx.beginPath(); for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2, d = 1 + Math.sin(a) ** 2; ctx.lineTo(x + tam * Math.cos(a) / d, y + tam * Math.sin(a) * Math.cos(a) / d); } ctx.closePath(); };
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (brilho) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(120,220,255,${(0.35 + 0.35 * pulso) * brilho})`; ctx.lineWidth = tam * 0.55; traco(); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; }
+    ctx.strokeStyle = 'rgba(10,40,80,0.85)'; ctx.lineWidth = tam * 0.34; traco(); ctx.stroke(); // contorno escuro (aparece em qualquer meião)
+    ctx.strokeStyle = r >= 8 ? (r >= 10 ? '#e8fbff' : '#9ae8ff') : '#7ac8f0'; ctx.lineWidth = tam * 0.18; traco(); ctx.stroke();
+    if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = ((t + fase * 300) % per) / per; if (k < 0.4) { const a = k / 0.4 * Math.PI * 2, d = 1 + Math.sin(a) ** 2; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.9 * Math.sin(k / 0.4 * Math.PI); ctx.beginPath(); ctx.arc(x + tam * Math.cos(a) / d, y + tam * Math.sin(a) * Math.cos(a) / d, tam * 0.2, 0, 7); ctx.fill(); } }
+    ctx.restore();
+  }
   const MARCA = {
+    // 🦵 Caneleiras do Infinito: um ∞ azul-gelo em cada canela; no +7 em diante uma luz percorre o ∞, no +9/+10 ele brilha
+    caneleira_infinito(ctx, comp, w, h, vista, e, r, t) {
+      const c = comp.c, C = canelas(c); if (!C.seg.length) return;
+      const sx = w / c.width, Y = -h + C.y * (h / c.height), tam = h * 0.032;
+      const pernas = vista === 'lado' ? C.seg.slice(0, 2) : [C.seg[0], C.seg[C.seg.length - 1]].filter((v, i, a) => i === 0 || v !== a[0]);
+      pernas.forEach(([a, b], i) => infinito(ctx, -w / 2 + (a + b) / 2 * sx, Y, tam, r, t, i * 1.7));
+    },
     // 👟 Chuteiras dos Deuses: asinhas nos calcanhares (como as sandálias aladas). Parado batem devagar; correndo, rápido.
     chuteira_deuses(ctx, comp, w, h, vista, e, r, t) {
       const c = comp.c, P = pes(c); if (!P.seg.length) return;
