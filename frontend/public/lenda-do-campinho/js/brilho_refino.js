@@ -61,19 +61,70 @@
     return { alfa, ya, yb };
   }
   /* ---------- marcas das relíquias ---------- */
-  // onde estão os pés no desenho (pixels sólidos no rodapé do boneco), em segmentos — guardado por canvas
-  const PES = new WeakMap();
-  function pes(c) {
-    let r = PES.get(c); if (r) return r;
-    const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.9), W = c.width; r = [];
+  // v375: o ESQUELETO do boneco, lido do próprio desenho (corpo-base: sem chapéu, sem cabelo e sem item de costas), de baixo
+  // para cima — vale para corpo masculino/feminino, criança/adulto (cada um tem proporções diferentes):
+  //   sapato (as linhas mais largas lá embaixo) → TORNOZELO (a largura cai) → canela/perna → CALÇÃO → CINTURA (onde as mãos
+  //   encostam, o trecho do meio alarga de repente) → camisa. Guardado por canvas.
+  // linhas de um canvas (máscara do corpo): os segmentos de cada linha e o "trecho do meio"
+  const LIN = new WeakMap();
+  function linhas(c) {
+    let L = LIN.get(c); if (L) return L;
+    const k = corpo(c), W = c.width, d = k.getContext('2d').getImageData(0, 0, W, c.height).data, meio = W / 2, cache = {};
+    const segs = y => { if (cache[y]) return cache[y]; const out = []; let ini = -1; if (y >= 0 && y < c.height) for (let x = 0; x <= W; x++) { const on = x < W && d[(y * W + x) * 4 + 3] > 170; if (on) { if (ini < 0) ini = x; } else if (ini >= 0) { if (x - ini >= 2) out.push([ini, x - 1]); ini = -1; } } return cache[y] = out; };
+    const centro = (y, folga = 30) => { const sg = segs(y).filter(q => q[1] >= meio - folga && q[0] <= meio + folga); if (!sg.length) return null; return { x0: Math.min(...sg.map(q => q[0])), x1: Math.max(...sg.map(q => q[1])), sg }; };
+    L = { segs, centro, W, Hc: c.height }; LIN.set(c, L); return L;
+  }
+  // as ALTURAS (tornozelo, cintura) lidas no boneco de FRENTE e PARADO — onde aparecem claras; valem para todas as vistas e
+  // quadros (o corpo tem a mesma altura em todos). Guardado por canvas de referência.
+  const ESQ = new WeakMap();
+  function esqueleto(ref) {
+    let r = ESQ.get(ref); if (r !== undefined) return r; r = null;
     try {
-      const d = k.getContext('2d').getImageData(0, ya, W, cx.y1 - ya + 1).data, rows = cx.y1 - ya + 1, col = new Uint8Array(W);
-      for (let y = 0; y < rows; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 120) col[x] = 1;
-      let ini = -1; for (let x = 0; x <= W; x++) { if (x < W && col[x]) { if (ini < 0) ini = x; } else if (ini >= 0) { if (x - ini >= 2) r.push([ini, x - 1]); ini = -1; } }
-      // segmentos muito perto viram um só (sola com buraquinho)
-      for (let i = r.length - 1; i > 0; i--) if (r[i][0] - r[i - 1][1] <= 2) { r[i - 1][1] = r[i][1]; r.splice(i, 1); }
+      const cx = caixa(ref), L = linhas(ref), y1 = cx.y1, H = cx.y1 - cx.y0 + 1, larg = y => { const C = L.centro(y); return C ? C.x1 - C.x0 : 0; };
+      // sapato: a linha mais larga lá embaixo; tornozelo: subindo dali, a 1ª linha bem mais estreita
+      let ySap = y1, wSap = 0; for (let y = y1; y >= y1 - Math.round(H * 0.12); y--) { const w = larg(y); if (w > wSap) { wSap = w; ySap = y; } }
+      let tornozelo = null; for (let y = ySap - 1; y >= y1 - Math.round(H * 0.3); y--) if (larg(y) < wSap * 0.92) { tornozelo = y; break; }
+      if (tornozelo == null) return (ESQ.set(ref, null), null);
+      const pernaW = larg(tornozelo - 3) || wSap * 0.85;
+      // cintura: subindo pela perna e pelo calção, onde o trecho do meio alarga de repente (as mãos encostam)
+      let cintura = null; for (let y = tornozelo - 3; y >= cx.y0 + H * 0.3; y--) { if (larg(y) > pernaW * 1.38) { cintura = y + 1; break; } }
+      if (cintura == null) return (ESQ.set(ref, null), null);
+      const C = L.centro(cintura); r = { y1, H, tornozelo, cintura, cintW: C ? C.x1 - C.x0 : pernaW * 1.2, cintX: C ? (C.x0 + C.x1) / 2 : ref.width / 2 };
+    } catch (e) { r = null; }
+    ESQ.set(ref, r); return r;
+  }
+  // os pés (entre o tornozelo e o chão), no quadro atual
+  function pes(c, E) {
+    const yy = Math.round(E.tornozelo + (E.y1 - E.tornozelo) * 0.45), C = linhas(c).centro(yy, 60);
+    return { seg: C ? (C.sg.length >= 2 ? C.sg : [[C.x0, C.x1]]) : [], y: yy };
+  }
+  // as canelas (logo acima do tornozelo), no quadro atual; se as pernas estão juntas no desenho, divide ao meio
+  function canelas(c, E, lado) {
+    const L = linhas(c), ya = Math.round(E.tornozelo - E.H * 0.075), yb = Math.round(E.tornozelo - E.H * 0.02), W = c.width, col = new Uint16Array(W), rows = yb - ya + 1;
+    for (let y = ya; y <= yb; y++) { const C = L.centro(y, 60); if (C) for (const [a, b] of C.sg) for (let x = a; x <= b; x++) col[x]++; }
+    let seg = [], ini = -1; for (let x = 0; x <= W; x++) { if (x < W && col[x] >= rows * 0.5) { if (ini < 0) ini = x; } else if (ini >= 0) { if (x - ini >= 2) seg.push([ini, x - 1]); ini = -1; } }
+    if (seg.length === 1 && !lado) { const [a, b] = seg[0], mid = (a + b) / 2; seg = [[a, mid - 1], [mid + 1, b]]; } // pernas juntas: uma de cada lado
+    return { seg, y: (ya + yb) / 2 };
+  }
+  // pontos fixos dentro do tronco (acima da cintura), sorteados uma vez por canvas: onde as estrelinhas piscam
+  const PONTOS_CAMISA = new WeakMap();
+  function pontosCamisa(c, E) {
+    let r = PONTOS_CAMISA.get(c); if (r) return r; r = [];
+    try {
+      const k = corpo(c), ya = Math.round(E.cintura - E.H * 0.2), yb = Math.round(E.cintura - E.H * 0.05), W = c.width, L = linhas(c);
+      const d = k.getContext('2d').getImageData(0, ya, W, yb - ya + 1).data, cand = [];
+      for (let y = 0; y <= yb - ya; y += 2) {
+        const C = L.centro(ya + y); if (!C) continue; const m = (C.x0 + C.x1) / 2, meia = (C.x1 - C.x0) / 2 * 0.62; // longe da borda e dos braços
+        for (let x = 0; x < W; x += 2) {
+          if (Math.abs(x - m) > meia) continue;
+          const ok = [[0, 0], [4, 0], [-4, 0], [0, 4], [0, -4]].every(([dx, dy]) => { const xx = x + dx, yy = y + dy; return xx >= 0 && xx < W && yy >= 0 && yy <= yb - ya && d[(yy * W + xx) * 4 + 3] > 200; });
+          if (ok) cand.push([x, ya + y]);
+        }
+      }
+      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 7 && cand.length; i++) r.push(cand.splice((rnd() * cand.length) | 0, 1)[0]);
     } catch (e) { }
-    r = { seg: r, y: (cx.y1 - (cx.y1 - ya) * 0.45), H }; PES.set(c, r); return r;
+    PONTOS_CAMISA.set(c, r); return r;
   }
   // uma asinha de 3 penas; lado = -1 abre para a esquerda, +1 para a direita
   function asinha(ctx, x, y, tam, lado, bate, r, t) {
@@ -92,18 +143,6 @@
     if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = (t % per) / per; if (k < 0.35) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7 * Math.sin(k / 0.35 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(tam * (0.2 + k * 2), -tam * 0.05, tam * 0.14, tam * 0.08, 0, 0, 7); ctx.fill(); } }
     ctx.restore();
   }
-  // as pernas na altura da canela (no corpo sem chapéu as pernas só se separam entre 81% e 87% da altura) — por canvas
-  const CANELA = new WeakMap();
-  function canelas(c) {
-    let r = CANELA.get(c); if (r) return r;
-    const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.81), yb = Math.floor(cx.y0 + H * 0.87), W = c.width; let seg = [];
-    try {
-      const d = k.getContext('2d').getImageData(0, ya, W, yb - ya + 1).data, rows = yb - ya + 1, col = new Uint16Array(W);
-      for (let y = 0; y < rows; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 170) col[x]++;
-      let ini = -1; for (let x = 0; x <= W; x++) { if (x < W && col[x] >= rows * 0.5) { if (ini < 0) ini = x; } else if (ini >= 0) { if (x - ini >= 2) seg.push([ini, x - 1]); ini = -1; } }
-    } catch (e) { }
-    r = { seg, y: (ya + yb) / 2 }; CANELA.set(c, r); return r;
-  }
   // o símbolo ∞, desenhado com uma linha só
   function infinito(ctx, x, y, tam, r, t, fase) {
     const brilho = r >= 9 ? (r >= 10 ? 1 : 0.55) : 0, pulso = 0.5 + 0.5 * Math.sin(t / 380 + fase);
@@ -115,23 +154,6 @@
     if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = ((t + fase * 300) % per) / per; if (k < 0.4) { const a = k / 0.4 * Math.PI * 2, d = 1 + Math.sin(a) ** 2; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.9 * Math.sin(k / 0.4 * Math.PI); ctx.beginPath(); ctx.arc(x + tam * Math.cos(a) / d, y + tam * Math.sin(a) * Math.cos(a) / d, tam * 0.2, 0, 7); ctx.fill(); } }
     ctx.restore();
   }
-  // pontos fixos dentro do tronco (faixa da camisa), sorteados uma vez por canvas: onde as estrelinhas piscam
-  const PONTOS_CAMISA = new WeakMap();
-  function pontosCamisa(c) {
-    let r = PONTOS_CAMISA.get(c); if (r) return r; r = [];
-    try {
-      const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.53), yb = Math.floor(cx.y0 + H * 0.68), W = c.width;
-      const d = k.getContext('2d').getImageData(0, ya, W, yb - ya + 1).data, cand = [];
-      for (let y = 0; y <= yb - ya; y += 2) for (let x = 0; x < W; x += 2) {
-        // só bem dentro do tronco (os 4 vizinhos a 4 px também são corpo): nunca na borda nem no braço fino
-        const ok = [[0, 0], [4, 0], [-4, 0], [0, 4], [0, -4]].every(([dx, dy]) => { const xx = x + dx, yy = y + dy; return xx >= 0 && xx < W && yy >= 0 && yy <= yb - ya && d[(yy * W + xx) * 4 + 3] > 200; });
-        if (ok) cand.push([x, ya + y]);
-      }
-      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-      for (let i = 0; i < 7 && cand.length; i++) r.push(cand.splice((rnd() * cand.length) | 0, 1)[0]);
-    } catch (e) { }
-    PONTOS_CAMISA.set(c, r); return r;
-  }
   function estrelinha(ctx, x, y, tam, a, cor, cruz) {
     ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = cor; ctx.beginPath();
     for (let i = 0; i < 8; i++) { const ang = i * Math.PI / 4 - Math.PI / 2, rd = i % 2 ? tam * 0.3 : tam; ctx.lineTo(x + Math.cos(ang) * rd, y + Math.sin(ang) * rd); }
@@ -142,7 +164,7 @@
   const MARCA = {
     // 👕 Camisa do Multiverso: estrelinhas que piscam na estampa de galáxia (mais estrelas e mais brilho com o refino)
     camisa_multiverso(ctx, B, vista, e, r, t) {
-      const P = pontosCamisa(B.c); if (!P.length) return;
+      if (!B.E) return; const P = pontosCamisa(B.c, B.E); if (!P.length) return;
       const h = B.h, n = r >= 10 ? 7 : r >= 9 ? 6 : r >= 8 ? 5 : r >= 7 ? 4 : 3;
       for (let i = 0; i < Math.min(n, P.length); i++) {
         const [px, py] = P[i], per = 1600 + i * 370, k = ((t + i * 911) % per) / per; if (k > 0.5) continue; // cada uma pisca no seu tempo
@@ -152,14 +174,14 @@
     },
     // 🦵 Caneleiras do Infinito: um ∞ azul-gelo em cada canela; no +7 em diante uma luz percorre o ∞, no +9/+10 ele brilha
     caneleira_infinito(ctx, B, vista, e, r, t) {
-      const C = canelas(B.c); if (!C.seg.length) return;
+      if (!B.E) return; const C = canelas(B.c, B.E, vista === 'lado'); if (!C.seg.length) return;
       const Y = B.Y(C.y), tam = B.h * 0.032;
       const pernas = vista === 'lado' ? C.seg.slice(0, 2) : [C.seg[0], C.seg[C.seg.length - 1]].filter((v, i, a) => i === 0 || v !== a[0]);
       pernas.forEach(([a, b], i) => infinito(ctx, B.X((a + b) / 2), Y, tam, r, t, i * 1.7));
     },
     // 👟 Chuteiras dos Deuses: asinhas nos calcanhares (como as sandálias aladas). Parado batem devagar; correndo, rápido.
     chuteira_deuses(ctx, B, vista, e, r, t) {
-      const P = pes(B.c); if (!P.seg.length) return;
+      if (!B.E) return; const P = pes(B.c, B.E); if (!P.seg.length) return;
       const h = B.h, X = B.X, Y = B.Y(P.y), tam = h * (0.1 + Math.min(10, r) * 0.003);
       const bate = 0.5 + 0.5 * Math.sin(t / (e.mov ? 70 : 260));
       if (vista === 'lado') { // de lado: uma asa atrás de cada calcanhar (o boneco olha para a direita no desenho)
@@ -169,8 +191,100 @@
         asinha(ctx, X(L[0]) + tam * 0.08, Y, tam, -1, bate, r, t); asinha(ctx, X(R[1]) - tam * 0.08, Y, tam, 1, bate, r, t);
       }
     },
+    // 🩳 Calção Cósmico: um anel fino de poeira de estrelas girando na cintura (a metade de trás passa por trás do corpo)
+    calcao_cosmico(ctx, B, vista, e, r, t) { anelCosmico(ctx, B, vista, r, t, true); },
+    // 🏅 Amuleto da Lenda Suprema: a medalha solta raios curtos de luz, girando devagar
+    amuleto_lenda(ctx, B, vista, e, r, t) {
+      if (vista === 'costas') return; // de costas o pingente não aparece (só o cordão na nuca)
+      const M = pecaDif(B.c, B.semPescoco); if (!M) return;
+      const cx = B.X(M.x), cy = B.Y(M.y), n = Math.min(10, 6 + Math.floor(r / 2.5)), L0 = B.h * (0.03 + Math.min(10, r) * 0.0016), giro = t / 2600, forte = r >= 9 ? 1 : r >= 7 ? 0.75 : 0.55;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < n; i++) {
+        const ang = giro + i * Math.PI * 2 / n, pul = 0.5 + 0.5 * Math.sin(t / 340 + i * 1.3), L = L0 * (0.75 + 0.45 * pul), a0 = B.h * 0.012;
+        const g = ctx.createLinearGradient(cx + Math.cos(ang) * a0, cy + Math.sin(ang) * a0, cx + Math.cos(ang) * (a0 + L), cy + Math.sin(ang) * (a0 + L));
+        g.addColorStop(0, `rgba(255,236,150,${0.75 * forte})`); g.addColorStop(1, 'rgba(255,200,80,0)');
+        ctx.strokeStyle = g; ctx.lineWidth = Math.max(1, B.h * (i % 2 ? 0.006 : 0.009)); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(cx + Math.cos(ang) * a0, cy + Math.sin(ang) * a0); ctx.lineTo(cx + Math.cos(ang) * (a0 + L), cy + Math.sin(ang) * (a0 + L)); ctx.stroke();
+      }
+      if (r >= 7) { const k = 0.5 + 0.5 * Math.sin(t / 300), gg = ctx.createRadialGradient(cx, cy, 0, cx, cy, B.h * 0.03); gg.addColorStop(0, `rgba(255,245,200,${(r >= 10 ? 0.7 : 0.45) * (0.6 + 0.4 * k)})`); gg.addColorStop(1, 'rgba(255,220,120,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, B.h * 0.03, 0, 7); ctx.fill(); }
+      ctx.restore();
+    },
+    // 👑 Coroa Eterna: as joias da coroa cintilam (mais joias e mais brilho com o refino)
+    coroa_eterna(ctx, B, vista, e, r, t) {
+      const J = joiasCoroa(B.cComChapeu, B.cSemChapeu, B.dHc); if (!J.length) return;
+      const n = Math.min(J.length, r >= 10 ? 6 : r >= 8 ? 5 : r >= 7 ? 4 : 3);
+      for (let i = 0; i < n; i++) {
+        const per = 1500 + i * 410, k = ((t + i * 733) % per) / per; if (k > 0.45) continue;
+        const a = Math.sin(k / 0.45 * Math.PI), tam = B.h * (r >= 9 ? 0.024 : 0.018) * (0.6 + 0.4 * a);
+        estrelinha(ctx, B.X(J[i][0]), B.Y0(J[i][1]), tam, a, i % 2 ? '#fff2a8' : '#ffffff', r >= 9);
+      }
+    },
   };
-  window.brilhoRefino.MARCA = MARCA;
+  const MARCA_ATRAS = { calcao_cosmico(ctx, B, vista, e, r, t) { anelCosmico(ctx, B, vista, r, t, false); } };
+  function anelCosmico(ctx, B, vista, r, t, frente) {
+    const E = B.E; if (!E) return; // a cintura: logo abaixo de onde as mãos encostam; a largura: o calção, no quadro atual
+    const yc = Math.round(E.cintura + E.H * 0.03), C = linhas(B.c).centro(yc) || { x0: E.cintX - E.cintW / 2, x1: E.cintX + E.cintW / 2 }, larg = Math.min(C.x1 - C.x0, E.cintW * 1.15);
+    const cx = B.X((C.x0 + C.x1) / 2), cy = B.Y(E.cintura + E.H * 0.012), rx = (B.X(larg) - B.X(0)) / 2 * (vista === 'lado' ? 1.7 : 1.55), ry = rx * (vista === 'lado' ? 0.34 : 0.25);
+    const n = Math.min(18, 10 + r), vel = r >= 9 ? 1.35 : 1, CORES = ['#b48cff', '#5ac8ff', '#ffffff', '#ff8ad8'];
+    ctx.save();
+    { // a faixa fina do anel (só a metade certa); fica mais forte com o refino
+      ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = `rgba(170,120,255,${r >= 10 ? 0.5 : r >= 8 ? 0.38 : 0.26})`; ctx.lineWidth = Math.max(1, B.h * 0.006);
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, frente ? 0 : Math.PI, frente ? Math.PI : Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < n; i++) {
+      const th = t / 1150 * vel + i * Math.PI * 2 / n + Math.sin(i * 7.3) * 0.25, sn = Math.sin(th);
+      if ((sn > 0) !== frente) continue; // metade da frente (embaixo na tela) ou de trás
+      const tw = 0.6 + 0.4 * Math.sin(t / 210 + i * 2.1), rr = B.h * (0.008 + (i % 3 === 0 ? 0.005 : 0)) * (0.75 + 0.25 * tw) * (r >= 10 ? 1.2 : 1);
+      ctx.globalAlpha = (frente ? 1 : 0.75) * (r >= 7 ? 1 : 0.85) * tw; ctx.fillStyle = CORES[i % CORES.length];
+      const x = cx + Math.cos(th) * rx, y = cy + sn * ry;
+      if (r >= 7) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= r >= 10 ? 0.4 : 0.28; ctx.beginPath(); ctx.arc(x, y, rr * 1.7, 0, 7); ctx.fill(); ctx.restore(); }
+      if (i % 3 === 0) { ctx.beginPath(); for (let j = 0; j < 8; j++) { const a = j * Math.PI / 4, d = j % 2 ? rr * 0.38 : rr * 1.6; ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); } ctx.closePath(); ctx.fill(); }
+      else { ctx.beginPath(); ctx.arc(x, y, rr, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+  // onde está a peça: os pixels que mudam entre o desenho COM e SEM ela (o pingente é a parte de baixo) — por canvas
+  const DIF = new WeakMap();
+  function pecaDif(cCom, cSem) {
+    if (!cSem) return null; let r = DIF.get(cCom); if (r !== undefined) return r; r = null;
+    try {
+      if (cCom.width === cSem.width && cCom.height === cSem.height) {
+        const W = cCom.width, H = cCom.height, a = cCom.getContext('2d').getImageData(0, 0, W, H).data, b = cSem.getContext('2d').getImageData(0, 0, W, H).data, pts = [];
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (a[i + 3] > 150 && (b[i + 3] < 60 || Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 90)) pts.push([x, y]); }
+        if (pts.length >= 25) {
+          let y0 = H, y1 = 0; for (const q of pts) { if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1]; }
+          const corte = y1 - (y1 - y0) * 0.45, baixo = pts.filter(q => q[1] >= corte);
+          r = { x: baixo.reduce((s, q) => s + q[0], 0) / baixo.length, y: baixo.reduce((s, q) => s + q[1], 0) / baixo.length };
+        }
+      }
+    } catch (e) { }
+    DIF.set(cCom, r); return r;
+  }
+  // as joias da coroa: pixels coloridos (não dourados) que só existem no desenho COM a coroa — agrupados em pontos
+  const JOIAS = new WeakMap();
+  function joiasCoroa(cCom, cSem, dH) {
+    if (!cCom || !cSem) return []; let r = JOIAS.get(cCom); if (r) return r; r = [];
+    try {
+      const W = cCom.width, H = cCom.height, a = cCom.getContext('2d').getImageData(0, 0, W, H).data, b = cSem.getContext('2d').getImageData(0, 0, cSem.width, cSem.height).data;
+      const coroa = [], joia = [];
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4; if (a[i + 3] < 150) continue;
+        const yb = y - dH, j = (yb * cSem.width + x) * 4, igual = yb >= 0 && yb < cSem.height && b[j + 3] > 150 && Math.abs(a[i] - b[j]) + Math.abs(a[i + 1] - b[j + 1]) + Math.abs(a[i + 2] - b[j + 2]) < 60;
+        if (igual) continue; coroa.push([x, y]);
+        const R = a[i] / 255, G2 = a[i + 1] / 255, Bb = a[i + 2] / 255, mx = Math.max(R, G2, Bb), mn = Math.min(R, G2, Bb), sat = mx ? (mx - mn) / mx : 0;
+        let hue = 0; if (mx !== mn) { hue = mx === R ? ((G2 - Bb) / (mx - mn)) % 6 : mx === G2 ? (Bb - R) / (mx - mn) + 2 : (R - G2) / (mx - mn) + 4; hue = (hue * 60 + 360) % 360; }
+        if (sat > 0.45 && mx > 0.35 && (hue < 22 || hue > 290 || (hue > 95 && hue < 270))) joia.push([x, y]); // vermelho, verde, azul, roxo (não o dourado)
+      }
+      const fonte = joia.length >= 12 ? joia : coroa, grade = {};
+      for (const [x, y] of fonte) { const k = ((x / 9) | 0) + ',' + ((y / 9) | 0); (grade[k] = grade[k] || []).push([x, y]); }
+      r = Object.values(grade).filter(g => g.length >= (fonte === joia ? 4 : 10)).sort((p, q) => q.length - p.length).slice(0, 6).map(g => [g.reduce((s, p) => s + p[0], 0) / g.length, g.reduce((s, p) => s + p[1], 0) / g.length]);
+      if (fonte === coroa && r.length) { let topo = H, fundo = 0; for (const q of coroa) { if (q[1] < topo) topo = q[1]; if (q[1] > fundo) fundo = q[1]; } r = r.filter(q => q[1] < topo + (fundo - topo) * 0.6); } // sem joia: as pontas de cima
+      window.brilhoRefino.joiasInfo = { joias: joia.length, coroa: coroa.length, fonte: fonte === joia ? 'joias' : 'coroa' };
+    } catch (e) { }
+    JOIAS.set(cCom, r); return r;
+  }
+  window.brilhoRefino.MARCA = MARCA; window.brilhoRefino.medidas = { esqueleto, canelas, pes, pontosCamisa, linhas, corpo, caixa }; // (testes)
   function desenhaBrilho(ctx, e, atras) {
     const s = G.save, pecas = refinos(), mrc = marcas(), completo = SLOTS.every(sl => s.equip[sl] && ((s.equipR && s.equipR[sl]) || 0) >= 10);
     if (!pecas.length && !mrc.length && !completo) return;
@@ -222,12 +336,18 @@
       if (p.sl === 'chuteira' && p.r >= 10 && e.mov && Math.random() < 0.6) FAISCAS.push({ x: e.x * T + (Math.random() - 0.5) * 8, y: e.y * T - 3, vy: -0.05, t0: t, dur: 600, cor, r: 3 });
     }
     // as marcas das relíquias (por cima do boneco)
-    if (!atras && mrc.length) {
+    if (mrc.length && (!atras || mrc.some(p => MARCA_ATRAS[p.id]))) {
       // as marcas medem o CORPO sem chapéu (o chapéu/capacete aumenta o desenho para cima e mudaria as alturas); o corpo
       // fica sempre preso pelos pés, então a linha py do corpo-base é a linha py + (diferença de altura) do desenho
-      let cb = comp; try { if (look.chapeu || look.chapeuVar) { const c3 = spriteBoneco(Object.assign({}, look, { costas: null, chapeu: null, chapeuVar: null }), vista, quadro); if (c3 && c3.c && c3.c.width === comp0.c.width) cb = c3; } } catch (err) { }
-      const off = comp0.c.height - cb.c.height, B = { c: cb.c, X: px => -w / 2 + px * w / comp0.c.width, Y: py => -h + (py + off) * h / comp0.c.height, h };
-      for (const p of mrc) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; try { MARCA[p.id](ctx, B, vista, e, p.r, t); } catch (err) { } }
+      // corpo-base SEM chapéu e SEM cabelo (os dois aumentam o desenho para cima); para a coroa, a base COM cabelo
+      const lkBase = Object.assign({}, look, { costas: null, chapeu: null, chapeuVar: null, cabelo: null }), lkCab = Object.assign({}, look, { costas: null, chapeu: null, chapeuVar: null });
+      let cb = comp, cc = comp; try { const c3 = spriteBoneco(lkBase, vista, quadro); if (c3 && c3.c && c3.c.width === comp0.c.width) cb = c3; } catch (err) { }
+      if (mrc.some(p => p.id === 'coroa_eterna')) { try { const c5 = spriteBoneco(lkCab, vista, quadro); if (c5 && c5.c && c5.c.width === comp0.c.width) cc = c5; } catch (err) { } }
+      let ref = cb.c; try { const c6 = spriteBoneco(lkBase, 'frente', 0); if (c6 && c6.c && c6.c.height === cb.c.height) ref = c6.c; } catch (err) { }
+      const dH = comp0.c.height - cb.c.height, B = { E: esqueleto(ref), c: cb.c, cComChapeu: comp.c, cSemChapeu: cc.c, dHc: comp0.c.height - cc.c.height, dH, h, X: px => -w / 2 + px * w / comp0.c.width, Y: py => -h + (py + dH) * h / comp0.c.height, Y0: py => -h + py * h / comp0.c.height };
+      if (mrc.some(p => p.id === 'amuleto_lenda')) { try { const c4 = spriteBoneco(Object.assign({}, lkBase, { pescoco: null, pescocoVar: null }), vista, quadro); B.semPescoco = c4 && c4.c; } catch (err) { } }
+      const tabela = atras ? MARCA_ATRAS : MARCA;
+      for (const p of mrc) { if (!tabela[p.id]) continue; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; try { tabela[p.id](ctx, B, vista, e, p.r, t); } catch (err) { if (!window._marcaErr) { window._marcaErr = err; console.warn('marca', p.id, err); } } }
     }
     ctx.restore();
     if (atras) return;
