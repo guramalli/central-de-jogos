@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v379', '🗺️ Mapas repaginados de Atlântida em diante: chão novo desenhado à mão, bordas lisas, penhascos e enfeites variados (água e lava com beirada lisa). E as entradas/saídas das caças agora são LARGAS: sai por qualquer ponto do portal.'],
     ['v378', '🌟 O Despertar das Relíquias: 10.000 vitórias, 40 Fragmentos e o Guardião Desperto — e você FIXA um bônus no seu boneco. Relíquia desperta = marca dourada.'],
     ['v377', '🐾 Mascotes com POSE PARADA própria (não ficam mais "correndo" parados) e evolução 3x mais difícil (Jovem ~1.250 vitórias, Adulto ~23.500).'],
     ['v376', '📖 Wiki com abas: Mascotes, Caçada Épica, Refino e relíquias e Novidades.'],
