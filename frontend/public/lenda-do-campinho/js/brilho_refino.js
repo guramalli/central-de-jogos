@@ -144,13 +144,13 @@
     ctx.restore();
   }
   // o símbolo ∞, desenhado com uma linha só
-  function infinito(ctx, x, y, tam, r, t, fase) {
+  function infinito(ctx, x, y, tam, r, t, fase, ouro) {
     const brilho = r >= 9 ? (r >= 10 ? 1 : 0.55) : 0, pulso = 0.5 + 0.5 * Math.sin(t / 380 + fase);
     const traco = () => { ctx.beginPath(); for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2, d = 1 + Math.sin(a) ** 2; ctx.lineTo(x + tam * Math.cos(a) / d, y + tam * Math.sin(a) * Math.cos(a) / d); } ctx.closePath(); };
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (brilho) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(120,220,255,${(0.35 + 0.35 * pulso) * brilho})`; ctx.lineWidth = tam * 0.55; traco(); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; }
+    if (brilho) { ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = ouro ? `rgba(255,210,90,${(0.4 + 0.35 * pulso) * brilho})` : `rgba(120,220,255,${(0.35 + 0.35 * pulso) * brilho})`; ctx.lineWidth = tam * 0.55; traco(); ctx.stroke(); ctx.globalCompositeOperation = 'source-over'; }
     ctx.strokeStyle = 'rgba(10,40,80,0.85)'; ctx.lineWidth = tam * 0.34; traco(); ctx.stroke(); // contorno escuro (aparece em qualquer meião)
-    ctx.strokeStyle = r >= 8 ? (r >= 10 ? '#e8fbff' : '#9ae8ff') : '#7ac8f0'; ctx.lineWidth = tam * 0.18; traco(); ctx.stroke();
+    ctx.strokeStyle = ouro ? '#ffe680' : r >= 8 ? (r >= 10 ? '#e8fbff' : '#9ae8ff') : '#7ac8f0'; ctx.lineWidth = tam * 0.18; traco(); ctx.stroke();
     if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = ((t + fase * 300) % per) / per; if (k < 0.4) { const a = k / 0.4 * Math.PI * 2, d = 1 + Math.sin(a) ** 2; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.9 * Math.sin(k / 0.4 * Math.PI); ctx.beginPath(); ctx.arc(x + tam * Math.cos(a) / d, y + tam * Math.sin(a) * Math.cos(a) / d, tam * 0.2, 0, 7); ctx.fill(); } }
     ctx.restore();
   }
@@ -169,7 +169,7 @@
       for (let i = 0; i < Math.min(n, P.length); i++) {
         const [px, py] = P[i], per = 1600 + i * 370, k = ((t + i * 911) % per) / per; if (k > 0.5) continue; // cada uma pisca no seu tempo
         const a = Math.sin(k / 0.5 * Math.PI), tam = h * (r >= 9 ? 0.026 : 0.02) * (0.6 + 0.4 * a);
-        estrelinha(ctx, B.X(px), B.Y(py), tam, a * (r >= 8 ? 1 : 0.85), r >= 8 && i % 2 ? '#fff2a8' : '#ffffff', r >= 9);
+        estrelinha(ctx, B.X(px), B.Y(py), tam * (B.desp ? 1.2 : 1), a * (r >= 8 ? 1 : 0.85), B.desp ? (i % 2 ? '#ffd23f' : '#fff2a8') : r >= 8 && i % 2 ? '#fff2a8' : '#ffffff', r >= 9); // desperta: estrelas douradas
       }
     },
     // 🦵 Caneleiras do Infinito: um ∞ azul-gelo em cada canela; no +7 em diante uma luz percorre o ∞, no +9/+10 ele brilha
@@ -177,12 +177,12 @@
       if (!B.E) return; const C = canelas(B.c, B.E, vista === 'lado'); if (!C.seg.length) return;
       const Y = B.Y(C.y), tam = B.h * 0.032;
       const pernas = vista === 'lado' ? C.seg.slice(0, 2) : [C.seg[0], C.seg[C.seg.length - 1]].filter((v, i, a) => i === 0 || v !== a[0]);
-      pernas.forEach(([a, b], i) => infinito(ctx, B.X((a + b) / 2), Y, tam, r, t, i * 1.7));
+      pernas.forEach(([a, b], i) => infinito(ctx, B.X((a + b) / 2), Y, tam * (B.desp ? 1.15 : 1), r, t, i * 1.7, B.desp)); // desperta: ∞ dourado
     },
     // 👟 Chuteiras dos Deuses: asinhas nos calcanhares (como as sandálias aladas). Parado batem devagar; correndo, rápido.
     chuteira_deuses(ctx, B, vista, e, r, t) {
       if (!B.E) return; const P = pes(B.c, B.E); if (!P.seg.length) return;
-      const h = B.h, X = B.X, Y = B.Y(P.y), tam = h * (0.1 + Math.min(10, r) * 0.003);
+      const h = B.h, X = B.X, Y = B.Y(P.y), tam = h * (0.1 + Math.min(10, r) * 0.003) * (B.desp ? 1.3 : 1); // desperta: asas maiores
       const bate = 0.5 + 0.5 * Math.sin(t / (e.mov ? 70 : 260));
       if (vista === 'lado') { // de lado: uma asa atrás de cada calcanhar (o boneco olha para a direita no desenho)
         for (const [a] of P.seg.slice(0, 2)) asinha(ctx, X(a) + tam * 0.1, Y, tam, -1, bate, r, t);
@@ -192,12 +192,12 @@
       }
     },
     // 🩳 Calção Cósmico: um anel fino de poeira de estrelas girando na cintura (a metade de trás passa por trás do corpo)
-    calcao_cosmico(ctx, B, vista, e, r, t) { anelCosmico(ctx, B, vista, r, t, true); },
+    calcao_cosmico(ctx, B, vista, e, r, t) { anelCosmico(ctx, B, vista, r, t, true); if (B.desp) anelCosmico(ctx, B, vista, r, t + 5000, true, true); },
     // 🏅 Amuleto da Lenda Suprema: a medalha solta raios curtos de luz, girando devagar
     amuleto_lenda(ctx, B, vista, e, r, t) {
       if (vista === 'costas') return; // de costas o pingente não aparece (só o cordão na nuca)
       const M = pecaDif(B.c, B.semPescoco); if (!M) return;
-      const cx = B.X(M.x), cy = B.Y(M.y), n = Math.min(10, 6 + Math.floor(r / 2.5)), L0 = B.h * (0.03 + Math.min(10, r) * 0.0016), giro = t / 2600, forte = r >= 9 ? 1 : r >= 7 ? 0.75 : 0.55;
+      const cx = B.X(M.x), cy = B.Y(M.y), n = Math.min(10, 6 + Math.floor(r / 2.5)) + (B.desp ? 2 : 0), L0 = B.h * (0.03 + Math.min(10, r) * 0.0016) * (B.desp ? 1.4 : 1), giro = t / 2600, forte = r >= 9 ? 1 : r >= 7 ? 0.75 : 0.55;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       for (let i = 0; i < n; i++) {
         const ang = giro + i * Math.PI * 2 / n, pul = 0.5 + 0.5 * Math.sin(t / 340 + i * 1.3), L = L0 * (0.75 + 0.45 * pul), a0 = B.h * 0.012;
@@ -206,12 +206,17 @@
         ctx.strokeStyle = g; ctx.lineWidth = Math.max(1, B.h * (i % 2 ? 0.006 : 0.009)); ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(cx + Math.cos(ang) * a0, cy + Math.sin(ang) * a0); ctx.lineTo(cx + Math.cos(ang) * (a0 + L), cy + Math.sin(ang) * (a0 + L)); ctx.stroke();
       }
+      if (B.desp) { const k = 0.5 + 0.5 * Math.sin(t / 420); ctx.strokeStyle = `rgba(255,215,90,${0.45 + 0.35 * k})`; ctx.lineWidth = Math.max(1, B.h * 0.006); ctx.beginPath(); ctx.arc(cx, cy, B.h * (0.034 + 0.004 * k), 0, 7); ctx.stroke(); } // desperta: anel dourado
       if (r >= 7) { const k = 0.5 + 0.5 * Math.sin(t / 300), gg = ctx.createRadialGradient(cx, cy, 0, cx, cy, B.h * 0.03); gg.addColorStop(0, `rgba(255,245,200,${(r >= 10 ? 0.7 : 0.45) * (0.6 + 0.4 * k)})`); gg.addColorStop(1, 'rgba(255,220,120,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx, cy, B.h * 0.03, 0, 7); ctx.fill(); }
       ctx.restore();
     },
     // 👑 Coroa Eterna: as joias da coroa cintilam (mais joias e mais brilho com o refino)
     coroa_eterna(ctx, B, vista, e, r, t) {
       const J = joiasCoroa(B.cComChapeu, B.cSemChapeu, B.dHc); if (!J.length) return;
+      if (B.desp) { // desperta: uma estrela dourada flutuando acima da coroa
+        const k = 0.5 + 0.5 * Math.sin(t / 500), topo = J.topo != null ? J.topo : Math.min(...J.map(q => q[1])), x0 = J.topoX != null ? J.topoX : J.reduce((a, q) => a + q[0], 0) / J.length;
+        estrelinha(ctx, B.X(x0), B.Y0(topo) - B.h * (0.045 + 0.012 * k), B.h * (0.03 + 0.006 * k), 0.85 + 0.15 * k, '#ffd23f', true);
+      }
       const n = Math.min(J.length, r >= 10 ? 6 : r >= 8 ? 5 : r >= 7 ? 4 : 3);
       for (let i = 0; i < n; i++) {
         const per = 1500 + i * 410, k = ((t + i * 733) % per) / per; if (k > 0.45) continue;
@@ -220,15 +225,15 @@
       }
     },
   };
-  const MARCA_ATRAS = { calcao_cosmico(ctx, B, vista, e, r, t) { anelCosmico(ctx, B, vista, r, t, false); } };
-  function anelCosmico(ctx, B, vista, r, t, frente) {
+  const MARCA_ATRAS = { calcao_cosmico(ctx, B, vista, e, r, t) { anelCosmico(ctx, B, vista, r, t, false); if (B.desp) anelCosmico(ctx, B, vista, r, t + 5000, false, true); } };
+  function anelCosmico(ctx, B, vista, r, t, frente, segundo) { // segundo: o anel extra da relíquia desperta (inclinado, dourado)
     const E = B.E; if (!E) return; // a cintura: logo abaixo de onde as mãos encostam; a largura: o calção, no quadro atual
     const yc = Math.round(E.cintura + E.H * 0.03), C = linhas(B.c).centro(yc) || { x0: E.cintX - E.cintW / 2, x1: E.cintX + E.cintW / 2 }, larg = Math.min(C.x1 - C.x0, E.cintW * 1.15);
     const cx = B.X((C.x0 + C.x1) / 2), cy = B.Y(E.cintura + E.H * 0.012), rx = (B.X(larg) - B.X(0)) / 2 * (vista === 'lado' ? 1.7 : 1.55), ry = rx * (vista === 'lado' ? 0.34 : 0.25);
-    const n = Math.min(18, 10 + r), vel = r >= 9 ? 1.35 : 1, CORES = ['#b48cff', '#5ac8ff', '#ffffff', '#ff8ad8'];
-    ctx.save();
+    const n = Math.min(18, 10 + r), vel = (r >= 9 ? 1.35 : 1) * (segundo ? -0.8 : 1), CORES = segundo ? ['#ffd23f', '#fff2a8', '#ffffff', '#ffb84a'] : ['#b48cff', '#5ac8ff', '#ffffff', '#ff8ad8'];
+    ctx.save(); if (segundo) { ctx.translate(cx, cy); ctx.rotate(-0.28); ctx.translate(-cx, -cy - B.h * 0.012); }
     { // a faixa fina do anel (só a metade certa); fica mais forte com o refino
-      ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = `rgba(170,120,255,${r >= 10 ? 0.5 : r >= 8 ? 0.38 : 0.26})`; ctx.lineWidth = Math.max(1, B.h * 0.006);
+      ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = segundo ? 'rgba(255,200,70,0.5)' : `rgba(170,120,255,${r >= 10 ? 0.5 : r >= 8 ? 0.38 : 0.26})`; ctx.lineWidth = Math.max(1, B.h * 0.006);
       ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, frente ? 0 : Math.PI, frente ? Math.PI : Math.PI * 2); ctx.stroke();
     }
     ctx.globalCompositeOperation = 'source-over';
@@ -281,6 +286,7 @@
       r = Object.values(grade).filter(g => g.length >= (fonte === joia ? 4 : 10)).sort((p, q) => q.length - p.length).slice(0, 6).map(g => [g.reduce((s, p) => s + p[0], 0) / g.length, g.reduce((s, p) => s + p[1], 0) / g.length]);
       if (fonte === coroa && r.length) { let topo = H, fundo = 0; for (const q of coroa) { if (q[1] < topo) topo = q[1]; if (q[1] > fundo) fundo = q[1]; } r = r.filter(q => q[1] < topo + (fundo - topo) * 0.6); } // sem joia: as pontas de cima
       window.brilhoRefino.joiasInfo = { joias: joia.length, coroa: coroa.length, fonte: fonte === joia ? 'joias' : 'coroa' };
+      { let tp = H, sx = 0, n = 0; for (const q of coroa) if (q[1] < tp) tp = q[1]; for (const q of coroa) if (q[1] < tp + 12) { sx += q[0]; n++; } r.topo = tp; r.topoX = n ? sx / n : W / 2; } // o alto da coroa (para a estrela da desperta)
     } catch (e) { }
     JOIAS.set(cCom, r); return r;
   }
@@ -347,7 +353,7 @@
       const dH = comp0.c.height - cb.c.height, B = { E: esqueleto(ref), c: cb.c, cComChapeu: comp.c, cSemChapeu: cc.c, dHc: comp0.c.height - cc.c.height, dH, h, X: px => -w / 2 + px * w / comp0.c.width, Y: py => -h + (py + dH) * h / comp0.c.height, Y0: py => -h + py * h / comp0.c.height };
       if (mrc.some(p => p.id === 'amuleto_lenda')) { try { const c4 = spriteBoneco(Object.assign({}, lkBase, { pescoco: null, pescocoVar: null }), vista, quadro); B.semPescoco = c4 && c4.c; } catch (err) { } }
       const tabela = atras ? MARCA_ATRAS : MARCA;
-      for (const p of mrc) { if (!tabela[p.id]) continue; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; try { tabela[p.id](ctx, B, vista, e, p.r, t); } catch (err) { if (!window._marcaErr) { window._marcaErr = err; console.warn('marca', p.id, err); } } }
+      for (const p of mrc) { if (!tabela[p.id]) continue; ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; const D = typeof despDesperta === 'function' && despDesperta(p.id); B.desp = D; try { tabela[p.id](ctx, B, vista, e, D ? Math.max(p.r, 10) : p.r, t); } catch (err) { if (!window._marcaErr) { window._marcaErr = err; console.warn('marca', p.id, err); } } }
     }
     ctx.restore();
     if (atras) return;

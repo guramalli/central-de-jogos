@@ -80,11 +80,18 @@
     out.push(el('div', { class: 'wx-grade' }, ...RELIQUIAS.map(([id, nome, slot, L, andar]) => { const it = ITENS[id]; const ic = (typeof iconeItem === 'function' && typeof iconeClone === 'function') ? iconeClone(iconeItem(id)) : el('span', {}, '🏺'); ic.className = 'wk-ic';
       return el('div', { class: 'wx-card' }, el('div', { class: 'wx-cab' }, ic, el('b', {}, nome)), el('div', { class: 'wx-small' }, `Nível ${L} · Guardião do andar ${andar} da Torre Infinita (nível ${typeof torreNivel === 'function' ? torreNivel(andar) : '?'})`),
         el('div', { class: 'wx-bonus' }, '✨ ' + (MARCA_TXT[id] || 'marca própria no boneco')), temSave() && G.save.flags && G.save.flags['guardiao_' + id] ? el('div', { class: 'wx-meu' }, '✅ Você já venceu este Guardião') : ''); })));
+    if (typeof DESPERTAR !== 'undefined') {
+      const D = DESPERTAR;
+      out.push(secao('🌟 O Despertar das Relíquias', el('div', { class: 'wk-nota' }, el('b', {}, 'Com a Mestra Altina (Torre Infinita): '), `1) use a relíquia em ${fmt(D.DESP_KILLS)} vitórias (do seu nível); 2) ofereça ${D.DESP_FRAG} Fragmentos do Despertar (caem de chefões de nível 400+ e dos Ecos da semana); 3) vença o Guardião Desperto (8 minutos, na Arena dos Ecos); 4) ESCOLHA um dos 3 bônus para fixar no seu boneco, para sempre. A relíquia desperta ganha a versão dourada da marca.`),
+        el('div', { class: 'wx-grade' }, ...RELIQUIAS.map(([id, nome]) => { const c = D.DESP[id]; if (!c) return ''; const dd = temSave() && G.save.despertar && G.save.despertar[id]; const b = dd && dd.bonus && c.bonus.find(x => x[0] === dd.bonus);
+          return el('div', { class: 'wx-card' }, el('b', {}, nome), el('div', { class: 'wx-small' }, `Guardião Desperto: ${String((MONSTROS[c.base] || {}).nome || c.base).split(',')[0]} · ${CE_AFIXOS[c.afixo].nome}`), el('div', { class: 'wx-bonus' }, 'Escolha 1: ' + c.bonus.map(x => x[2]).join(' · ')), dd && dd.desperta ? el('div', { class: 'wx-meu' }, `🌟 Desperta${b ? ' — ' + b[2] : ''}`) : ''); }))));
+    }
     return out;
   }
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v378', '🌟 O Despertar das Relíquias: 10.000 vitórias, 40 Fragmentos e o Guardião Desperto — e você FIXA um bônus no seu boneco. Relíquia desperta = marca dourada.'],
     ['v377', '🐾 Mascotes com POSE PARADA própria (não ficam mais "correndo" parados) e evolução 3x mais difícil (Jovem ~1.250 vitórias, Adulto ~23.500).'],
     ['v376', '📖 Wiki com abas: Mascotes, Caçada Épica, Refino e relíquias e Novidades.'],
     ['v375', 'Marcas das 6 relíquias no boneco (asinhas, ∞, estrelinhas, anel cósmico, raios do amuleto, joias da coroa).'],

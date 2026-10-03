@@ -88,8 +88,9 @@ function criaArenaEcos() {
   b.campo(8, 7, 19, 14, CH.CAMPO);
   for (let k = 0; k < 12; k++) { const ang = k / 12 * Math.PI * 2 + 0.2; const x = Math.round(cx + Math.cos(ang) * 11.7), y = Math.round(cy + Math.sin(ang) * 11.7 / 1.1); if (y < 23) b.obj(x, y, k % 3 === 0 ? 'holofote' : 'cristal_flutuante'); }
   b.npc('porteiro_ecos', 14, 24); b.m.inicio = { x: 17, y: 24 }; b.m.renasce = { x: 17, y: 24 };
-  const e = G.save ? ceEcosDaSemana()[CE.idx] : null;
-  if (e && MONSTROS[e.base]) b.spawn(ceEco(e.base, e.afixo, ceNivel()), cx, 9, 1, 1);
+  // v378: a arena também recebe LUTAS ESPECIAIS (ex.: o Guardião Desperto, despertar.js) — window.ceEspecial() diz qual
+  const esp = ceEsp(), e = esp || (G.save ? ceEcosDaSemana()[CE.idx] : null);
+  if (e && MONSTROS[e.base]) { const id = ceEco(e.base, e.afixo, esp ? esp.L : ceNivel()); if (esp && esp.ajusta) esp.ajusta(MONSTROS[id]); b.spawn(id, cx, 9, 1, 1); }
   Object.assign(b.m, { ecos: true, fechado: true, luzes: ['holofote', 'cristal_flutuante'], luzCor: '190,120,255', espaco: { tinta: 'rgba(120,60,220,0.18)' } });
   return b.m;
 }
@@ -101,13 +102,14 @@ function ceEntra(i) {
   fechaModal(); trocaMapa('arena_ecos', 17.5, 24.5);
   banner(`👑 ${ceCurto(e.base)}, Eco do Multiverso`, `${CE_AFIXOS[e.afixo].nome} — ${CE_AFIXOS[e.afixo].dica}`);
 }
+const ceEsp = () => { try { return typeof window.ceEspecial === 'function' ? window.ceEspecial() : null; } catch (e) { return null; } };
 function ceVoltaHub() { fechaModal(); som('porta'); trocaMapa('multiverso', 30.5, 39.5); }
 
 /* ---------- a luta: poder da semana + onda de choque + investida ---------- */
 function cePasso(dt) {
   const M = G.mapa;
-  if (!M || !M.ecos) { if (CE.mapa) { CE.mapa = null; ceHud(false); } return; }
-  if (CE.mapa !== M) Object.assign(CE, { mapa: M, t: 0, resta: CE_TEMPO, acabou: false, venceu: false, onda: 7000, aviso: 0, dash: 9000, meteoros: 6000, pisos: null, chama: 12000, tp: 8000, tpGolpe: 0, fogos: [], fogoT: 0, fogoDano: 0, furia: 0, brilho: 0 });
+  if (!M || !M.ecos) { if (CE.mapa) { CE.mapa = null; ceHud(false); try { if (window.ceEspecialFim) window.ceEspecialFim(); } catch (e) { } } return; }
+  if (CE.mapa !== M) Object.assign(CE, { mapa: M, t: 0, resta: (ceEsp() && ceEsp().tempo) || CE_TEMPO, acabou: false, venceu: false, onda: 7000, aviso: 0, dash: 9000, meteoros: 6000, pisos: null, chama: 12000, tp: 8000, tpGolpe: 0, fogos: [], fogoT: 0, fogoDano: 0, furia: 0, brilho: 0 });
   const eco = G.mons.find(m => m.d.ceEco && m.hp > 0);
   if (CE.acabou || CE.venceu || !eco) { ceHud(true, eco); return; }
   const p = G.p, st = stats(), af = eco.d.ceAfixo;
@@ -188,7 +190,7 @@ function cePasso(dt) {
     // tempo esgotado
     if (CE.resta <= 0) {
       CE.acabou = true; CE.resta = 0; banner('⏰ Tempo esgotado!', 'O Eco voltou para o Multiverso... tente de novo!'); som('erro');
-      log(`⏰ O tempo da luta contra o Eco acabou. Tente de novo quando quiser: o Eco continua lá até segunda-feira.`, 'l-dano');
+      log(ceEsp() ? `⏰ O tempo da luta acabou. Tente de novo quando quiser (a oferenda já foi feita).` : `⏰ O tempo da luta contra o Eco acabou. Tente de novo quando quiser: o Eco continua lá até segunda-feira.`, 'l-dano');
       setTimeout(() => { if (G.mapa && G.mapa.ecos) ceVoltaHub(); }, 1600);
     }
   }
@@ -223,6 +225,12 @@ function cePasso(dt) {
 
 /* ---------- vitória e prêmios ---------- */
 function ceVenceu(m) {
+  const esp = ceEsp();
+  if (esp) { // luta especial: o prêmio é dela (sem mexer nos Ecos da semana)
+    CE.venceu = true; G.mons = G.mons.filter(o => o === m || !o.d.ceLacaio); G.respawns = []; CE.fogos = []; CE.pisos = null;
+    try { esp.aoVencer(m); } catch (e) { console.warn('luta especial', e); }
+    return;
+  }
   const c = ceDados(), i = CE.idx, e = ceEcosDaSemana()[i], L = m.d.nivel || ceNivel(), s = G.save;
   const xpNivel = x => Math.max(1, xpPara(x + 1) - xpPara(x));
   CE.venceu = true; c.vitorias = (c.vitorias || 0) + 1;
@@ -279,9 +287,9 @@ function ceHud(on, eco) {
   if (!on) { if (h) h.remove(); return; }
   if (!h) { h = el('div', { id: 'ceHud' }); document.body.append(h); }
   const seg = Math.ceil(Math.max(0, CE.resta) / 1000), mm = Math.floor(seg / 60), ss = String(seg % 60).padStart(2, '0');
-  const e = ceEcosDaSemana()[CE.idx], af = e ? CE_AFIXOS[e.afixo].nome : '';
+  const esp = ceEsp(), e = esp || ceEcosDaSemana()[CE.idx], af = e ? CE_AFIXOS[e.afixo].nome : '';
   const esc = G.mons.filter(m => m.d.ceLacaio && m.hp > 0).length;
-  const txt = CE.venceu ? '👑 Eco vencido!' : `👑 Eco ${CE.idx + 1}/3 · ⏳ ${mm}:${ss} · ${af}` + (eco ? ` · ❤️ ${Math.ceil(eco.hp / eco.d.hp * 100)}%` : '') + (esc ? ` · 🛡️ ${esc} Escudeiro(s)` : '');
+  const txt = CE.venceu ? (esp ? `🌟 ${esp.titulo}: vencido!` : '👑 Eco vencido!') : `${esp ? '🌟 ' + esp.titulo : `👑 Eco ${CE.idx + 1}/3`} · ⏳ ${mm}:${ss} · ${af}` + (eco ? ` · ❤️ ${Math.ceil(eco.hp / eco.d.hp * 100)}%` : '') + (esc ? ` · 🛡️ ${esc} Escudeiro(s)` : '');
   if (h.textContent !== txt) h.textContent = txt;
   h.classList.toggle('urgente', seg <= 15 && !CE.acabou && !CE.venceu);
 }
