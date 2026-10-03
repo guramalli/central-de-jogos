@@ -18,7 +18,7 @@
 {
   const PET_ARTE = { caramelo: 'pet_caramelo2' }; // v360: caramelo refeito (o 1º tinha patas a mais)
   const petNome = id => PET_ARTE[id] || `pet_${id}`;
-  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['pipoca', 'caramelo', 'arara', 'robo', 'dragao', 'tricerinho', 'polvinho', 'corujinha'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
+  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['sortudo', 'pipoca', 'caramelo', 'arara', 'robo', 'dragao', 'tricerinho', 'polvinho', 'corujinha'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
   for (const n of ART) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   const premium = () => typeof prem === 'function' && prem('lendario'); // (jogo_extra/premium.js, só na Steam)
   const nv = () => (G.save && G.save.nivel) || 1;
@@ -35,6 +35,7 @@
       ['estrelas', 'Rastro de Estrelas', '⭐', porNivel(500), 'Estrelinhas brilhando por onde você passa.'],
       ['arcoiris', 'Rastro Arco-íris', '🌈', PREM, 'Uma faixa de arco-íris atrás de você.']],
     mascote: [['pipoca', 'Pipoca, o Vira-latinha', '🐕', { ok: () => !!(G.save && G.save.flags && G.save.flags.pet_pipoca), txt: '🔒 Missão da Tia Zuzu (Vila, nível 12)' }, 'Um filhote de vira-lata que adora pipoca. Traz tostões a mais das caçadas.'], // v370
+      ['sortudo', 'Sortudo, o Gatinho da Sorte', '🐱', { ok: () => !!(G.save && G.save.flags && G.save.flags.pet_sortudo), txt: '🔒 Missão da Dona Yuki (Tóquio, nível 72)' }, 'Um gatinho da sorte japonês. Faz cair mais itens dos adversários.'], // v372
       ['caramelo', 'Caramelo', '🐶', { ok: () => torreMax() >= 25, txt: '🔒 Andar 25 da Torre' }, 'O caramelo mais fiel do campinho.'],
       ['arara', 'Arara Craque', '🦜', { ok: () => miticos() >= 10, txt: '🔒 10 itens míticos' }, 'Voa do seu lado com a faixa da torcida.'],
       ['robo', 'Mini-Robô', '🤖', { ok: () => !!(G.save && G.save.flags && G.save.flags.venceu_ch_supremo), txt: '🔒 Vencer o Supremo da Galáxia' }, 'Cabeça de bola, coração de goleador.'],
@@ -53,7 +54,7 @@
       ['prancha', 'Prancha Flutuante', '🛹', PREM, 'Você anda flutuando numa prancha (só visual).'],
       ['moldura', 'Moldura Lendária', '🏅', PREM, 'Seu nome numa placa dourada brilhante.']],
   };
-  const IMG = { pipoca: 'pet_pipoca_c1', polvinho: 'pet_polvinho_c1', corujinha: 'pet_corujinha_c1', tricerinho: 'pet_tricerinho_c1', caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
+  const IMG = { sortudo: 'pet_sortudo_c1', pipoca: 'pet_pipoca_c1', polvinho: 'pet_polvinho_c1', corujinha: 'pet_corujinha_c1', tricerinho: 'pet_tricerinho_c1', caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
   const UNICO = { rastro: true, mascote: true, coroa: true, comemora: true }; // escolhe um (ou nenhum)
   const cfg = () => { const s = G.save; if (!s) return {}; if (!s.adornos2 || typeof s.adornos2 !== 'object') s.adornos2 = {}; return s.adornos2; };
   const acha = (g, id) => (OPCOES[g] || []).find(o => o[0] === id);
@@ -110,7 +111,7 @@
 
   /* ---------- mascote ---------- */
   const PET = { x: null, y: null, fase: 0, mov: false, flip: false };
-  const PET_VOA = new Set(['arara', 'dragao', 'corujinha']), PET_ALT = { pipoca: 0.58, caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56, polvinho: 0.55, corujinha: 0.55 };
+  const PET_VOA = new Set(['arara', 'dragao', 'corujinha']), PET_ALT = { sortudo: 0.6, pipoca: 0.58, caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56, polvinho: 0.55, corujinha: 0.55 };
   function atualizaPet(e, dt) {
     const id = atual('mascote'); if (!id) { PET.x = null; return null; }
     const lado = e.flip ? 1 : -1, ax = e.x + lado * 0.9, ay = e.y + 0.15;

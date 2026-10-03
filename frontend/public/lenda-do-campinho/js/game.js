@@ -528,7 +528,8 @@ function matar(m) {
   const ouro = Math.round(rndi(d.ouro[0], d.ouro[1]) * pen.drop); const ganhos = []; const caidos = [];
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
   let melhor = null; const ordemR = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
-  for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * (daMissao ? 1 : pen.drop)) { // item que uma missão (aceita ou disponível) ainda pede: chance cheia, mesmo em adversário fraco
+  const mDrop = typeof multDrop === 'function' ? multDrop() : 1; // v372: 🐱 Sortudo, o mascote da sorte (mascotes.js)
+  for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * mDrop * (daMissao ? 1 : pen.drop)) { // item que uma missão (aceita ou disponível) ainda pede: chance cheia, mesmo em adversário fraco
     const q = rndi(mn, mx); if (d.chefe ? !recebeItem(id, q) : !addItem(id, q)) continue; // v359: prêmio de chefão nunca some (mochila cheia → armazém)
     if (daMissao && !itemPedidoEmMissao(id)) log(`✔ Você já juntou todos os ${ITENS[id].nome} que a missão pede!${pen.drop < 1 ? ' (Daqui pra frente eles voltam a cair pouco de adversários fracos.)' : ''}`, 'l-xp');
     const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}`); caidos.push([id, q, rar]);

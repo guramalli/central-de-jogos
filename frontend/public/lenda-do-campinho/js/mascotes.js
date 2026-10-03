@@ -9,7 +9,7 @@
      filhote 1/3, jovem 2/3, adulto o bônus cheio.
    - Cada mascote dá UM bônus ao jogador (só o que está com você):
        🐕 Pipoca +15% tostões · 🐶 Caramelo +8% fôlego · 🤖 Mini-Robô +10% foco · 🦕 Tricerinho +8% defesa
-       🦉 Corujinha +10% XP · 🦜 Arara +6% dano · 🐙 Polvinho +15% recuperação · 🐉 Dragãozinho +6% dano (o mesmo da Arara)
+       🐱 Sortudo +12% chance de item (v372) · 🦉 Corujinha +10% XP · 🦜 Arara +6% dano · 🐙 Polvinho +15% recuperação · 🐉 Dragãozinho +6% dano (o mesmo da Arara)
    - PIPOCA, o Vira-latinha: o mascote de começo de jogo (missões da Tia Zuzu, na Vila, a partir do nível 12).
    - Quem já tinha um mascote antes da v370 começa com ele JOVEM (nível 10, a arte de sempre).
    Pontos para passar do nível n: 25·1,18^(n−1) → jovem ~480 vitórias, adulto ~7.200, nível 30 ~16.700.
@@ -18,6 +18,7 @@
 const MASC_MAX = 30;
 const MASC = {
   pipoca: { bonus: 'ouro', v: 0.15, txt: 'tostões' },
+  sortudo: { bonus: 'drop', v: 0.12, txt: 'chance de cair item' }, // v372
   caramelo: { bonus: 'hp', v: 0.08, txt: 'fôlego' },
   robo: { bonus: 'foco', v: 0.10, txt: 'foco' },
   tricerinho: { bonus: 'def', v: 0.08, txt: 'defesa' },
@@ -100,6 +101,9 @@ function mascGanha(pts) {
     } catch (e) { }
     return st;
   };
+  // 🐱 Sortudo: a chance de cada item dos adversários fica maior (proporcional: 1 em 1.000 vira ~1 em 890 no adulto).
+  // Não mexe em tostões (Pipoca), figurinhas nem nas contagens garantidas (ovo do Vale, Museu): essas não usam d.loot.
+  window.multDrop = () => 1 + mascBonus('drop');
   const _gxM = ganhaXp;
   ganhaXp = function (n) { try { const b = mascBonus('xp'); if (b && n > 0) arguments[0] = Math.round(n * (1 + b)); } catch (e) { } return _gxM.apply(this, arguments); };
 }
@@ -139,6 +143,14 @@ function mascGanha(pts) {
   if (NPCS.zuzu) MISSOES.push(
     { id: 'pipoca1', npc: 'zuzu', lvl: 12, titulo: '🐕 O filhote da pipoca', texto: 'Tem um filhotinho de vira-lata que aparece aqui TODO DIA pedindo pipoca! Mas os moleques da rua ficam correndo atrás dele e ele morre de medo. Vença 15 Moleques da Vila para ele ficar tranquilo?', req: { kill: 'moleque', n: 15 }, rec: { xp: Math.round(xpNivel(12) * 0.8), ouro: 2500 }, fim: 'Olha só, ele já está abanando o rabo pra você! Acho que ele gostou de você...' },
     { id: 'pipoca2', npc: 'zuzu', lvl: 14, pre: 'pipoca1', titulo: '🐕 Um lar para o Pipoca', texto: 'O Tonhão vive chutando a bola em cima do coitadinho! Dê uma lição nele (vença o Tonhão 3 vezes) e o filhote é SEU. Eu já até dei um nome: Pipoca!', req: { kill: 'tonhao', n: 3 }, rec: { xp: Math.round(xpNivel(14) * 1), ouro: 4000, flag: 'pet_pipoca' }, fim: 'O Pipoca agora é o seu MASCOTE! Coloque ele com você em Equipamento → ✨ Adornos. Caçando juntos, ele cresce e traz tostões a mais. Cuida bem dele, viu?' },
+  );
+}
+// 🐱 Sortudo: as missões da Dona Yuki do Onigiri (Tóquio)
+{
+  const xpNivel = L => Math.max(1, xpPara(L + 1) - xpPara(L));
+  if (NPCS.loja_toquio) MISSOES.push(
+    { id: 'sortudo1', npc: 'loja_toquio', lvl: 72, titulo: '🐱 O gatinho que fugiu', texto: 'Ai, ai! O gatinho da sorte da minha loja fugiu! Ele é doido pelos Gatos da Sorte de cerâmica, aqueles que acenam. Se você juntar 8 deles, ele vem atrás, tenho certeza!', req: { item: 'lr_toquio_2', n: 8 }, rec: { xp: Math.round(xpNivel(72) * 0.8), ouro: 72 * 300 }, fim: 'Ouvi um "miau" lá perto da arena... Acho que ele está chegando!' },
+    { id: 'sortudo2', npc: 'loja_toquio', lvl: 76, pre: 'sortudo1', titulo: '🐱 Sortudo, o Gatinho da Sorte', texto: 'Ele foi visto perto do Sensei do Drible, mas o Sensei não deixa ninguém chegar perto! Vença o Sensei 3 vezes e traga o gatinho de volta.', req: { kill: 'toquio_chefe', n: 3 }, rec: { xp: Math.round(xpNivel(76) * 1), ouro: 76 * 400, flag: 'pet_sortudo' }, fim: 'Ele não quer sair do seu lado! Fica com ele: o nome dele é SORTUDO. Coloque ele com você em Equipamento → ✨ Adornos — com ele, cai mais item dos adversários!' },
   );
 }
 window.MASCOTES = { MASC, MASC_FASES, mascDados, mascGanha, mascBonus, mascPontosNivel };
