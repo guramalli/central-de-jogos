@@ -123,7 +123,8 @@
   function desenhaPet(ctx, id) {
     const voa = PET_VOA.has(id), q = voa || PET.mov ? 1 + Math.floor(voa ? G.agora / 130 : PET.fase) % 4 : 1;
     const arte = (window.petArte && window.petArte(id)) || petNome(id), esc = (window.petEscala && window.petEscala(id)) || 1;
-    const im = aSprite(`${arte}_c${q}`) || aSprite(`${petNome(id)}_c${q}`); if (!im) return;
+    // v377 (dono: "o caramelo parado fica em posição de correr"): parado, os mascotes do chão usam a POSE PARADA (_p)
+    const im = (!voa && !PET.mov && (aSprite(`${arte}_p`) || aSprite(`${petNome(id)}_p`))) || aSprite(`${arte}_c${q}`) || aSprite(`${petNome(id)}_c${q}`); if (!im) return;
     const h = PET_ALT[id] * T * (voa ? 1.2 : 1) * esc, w = h * im.width / im.height, x = PET.x * T, y = PET.y * T - (voa ? T * 0.55 + Math.sin(G.agora / 300) * 4 : 0);
     if (!voa) { ctx.save(); ctx.globalAlpha *= 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, PET.y * T, w * 0.3, 4, 0, 0, 7); ctx.fill(); ctx.restore(); }
     else { ctx.save(); ctx.globalAlpha *= 0.18; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, PET.y * T, w * 0.22, 3, 0, 0, 7); ctx.fill(); ctx.restore(); }
@@ -247,7 +248,7 @@
           amostra(id, emo), el('b', {}, nome), el('small', {}, ok ? (on ? 'Usando (clique para tirar)' : 'Usar') : regra.txt), el('i', {}, desc));
       };
       const amostra = (id, emo) => { // a arte (mascotes, coroas, prancha) ou o emoji
-        const im = (PET_ALT[id] && window.petArte && aSprite(window.petArte(id) + '_c1')) || (IMG[id] && aSprite(IMG[id])); if (!im) return el('span', { class: 'ad-img ad-emo' }, emo);
+        const im = (PET_ALT[id] && window.petArte && (aSprite(window.petArte(id) + '_p') || aSprite(window.petArte(id) + '_c1'))) || (IMG[id] && aSprite(IMG[id])); if (!im) return el('span', { class: 'ad-img ad-emo' }, emo);
         const c = document.createElement('canvas'), h = 56, w = Math.round(h * im.width / im.height); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); c.className = 'ad-img'; return c;
       };
       const secao = (titulo, g) => [el('h3', {}, titulo), el('div', { class: 'ad-grade' }, ...OPCOES[g].map(o => botao(g, o)))];

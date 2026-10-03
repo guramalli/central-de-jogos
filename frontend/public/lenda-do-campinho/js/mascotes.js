@@ -12,7 +12,7 @@
        🐱 Sortudo +12% chance de item (v372) · 🦉 Corujinha +10% XP · 🦜 Arara +6% dano · 🐙 Polvinho +15% recuperação · 🐉 Dragãozinho +6% dano (o mesmo da Arara)
    - PIPOCA, o Vira-latinha: o mascote de começo de jogo (missões da Tia Zuzu, na Vila, a partir do nível 12).
    - Quem já tinha um mascote antes da v370 começa com ele JOVEM (nível 10, a arte de sempre).
-   Pontos para passar do nível n: 25·1,18^(n−1) → jovem ~480 vitórias, adulto ~7.200, nível 30 ~16.700.
+   Pontos para passar do nível n: 60·1,2^(n−1) (v377; antes 25·1,18^(n−1)) → jovem ~1.250 vitórias, adulto ~23.500, nível 30 ~59.000.
    Carregar DEPOIS de adornos2.js e museu.js.
    ============================================================ */
 const MASC_MAX = 30;
@@ -28,7 +28,8 @@ const MASC = {
   polvinho: { bonus: 'regen', v: 0.15, txt: 'recuperação de fôlego e foco' },
 };
 const MASC_FASES = [{ nv: 1, nome: 'Filhote', k: 1 / 3, suf: '_f', esc: 0.78 }, { nv: 10, nome: 'Jovem', k: 2 / 3, suf: '', esc: 1 }, { nv: 25, nome: 'Adulto', k: 1, suf: '_a', esc: 1.18 }];
-const mascPontosNivel = n => Math.round(25 * Math.pow(1.18, n - 1));
+// v377 (dono: "deve ser mais difícil upar o mascote"): 3x mais difícil — quem já tinha subido mantém o nível
+const mascPontosNivel = n => Math.round(60 * Math.pow(1.2, n - 1));
 function mascDados(id) {
   const s = G.save; if (!s) return null;
   if (!s.mascotes) s.mascotes = {};

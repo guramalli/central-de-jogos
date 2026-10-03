@@ -30,7 +30,7 @@
     const grade = el('div', { class: 'wx-grade' });
     for (const o of (ADORNOS2.OPCOES.mascote || [])) {
       const [id, nome, emo, regra, desc] = o, M = MASC[id]; if (!M) continue;
-      const base = (id === 'caramelo' ? 'pet_caramelo2' : `pet_${id}`), artes = [`pet_${id}_f_c1`, `${base}_c1`, `pet_${id}_a_c1`];
+      const base = (id === 'caramelo' ? 'pet_caramelo2' : `pet_${id}`), q = ['arara', 'dragao', 'corujinha'].includes(id) ? '_c1' : '_p', artes = [`pet_${id}_f${q}`, `${base}${q}`, `pet_${id}_a${q}`]; // (parados; os que voam, batendo asa)
       let meu = null; if (temSave()) { try { if (ADORNOS2.liberado('mascote', id)) { const d = mascDados(id); meu = `Seu: nível ${d.nv} (${MASC_FASES.filter(f => d.nv >= f.nv).pop().nome})`; } } catch (e) { } }
       grade.append(el('div', { class: 'wx-card' },
         el('div', { class: 'wx-figs' }, ...artes.map((a, i) => el('div', {}, figura(a, [40, 52, 62][i]), el('small', {}, MASC_FASES[i].nome)))),
@@ -85,6 +85,8 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v377', '🐾 Mascotes com POSE PARADA própria (não ficam mais "correndo" parados) e evolução 3x mais difícil (Jovem ~1.250 vitórias, Adulto ~23.500).'],
+    ['v376', '📖 Wiki com abas: Mascotes, Caçada Épica, Refino e relíquias e Novidades.'],
     ['v375', 'Marcas das 6 relíquias no boneco (asinhas, ∞, estrelinhas, anel cósmico, raios do amuleto, joias da coroa).'],
     ['v372', '🐱 Sortudo, o Gatinho da Sorte: mais chance de cair item (missões da Dona Yuki, Tóquio, nível 72).'],
     ['v370', '🐾 Mascotes que evoluem (filhote → jovem → adulto) e dão bônus; 🐕 Pipoca, o mascote da Vila (nível 12). Molduras de nome nos Adornos.'],
