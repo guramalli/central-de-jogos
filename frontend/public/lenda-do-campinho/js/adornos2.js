@@ -18,7 +18,7 @@
 {
   const PET_ARTE = { caramelo: 'pet_caramelo2' }; // v360: caramelo refeito (o 1º tinha patas a mais)
   const petNome = id => PET_ARTE[id] || `pet_${id}`;
-  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['caramelo', 'arara', 'robo', 'dragao', 'tricerinho', 'polvinho', 'corujinha'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
+  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['pipoca', 'caramelo', 'arara', 'robo', 'dragao', 'tricerinho', 'polvinho', 'corujinha'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
   for (const n of ART) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   const premium = () => typeof prem === 'function' && prem('lendario'); // (jogo_extra/premium.js, só na Steam)
   const nv = () => (G.save && G.save.nivel) || 1;
@@ -34,7 +34,8 @@
       ['fogo', 'Rastro de Fogo', '🔥', porNivel(250), 'Chamas que ficam no caminho quando você corre.'],
       ['estrelas', 'Rastro de Estrelas', '⭐', porNivel(500), 'Estrelinhas brilhando por onde você passa.'],
       ['arcoiris', 'Rastro Arco-íris', '🌈', PREM, 'Uma faixa de arco-íris atrás de você.']],
-    mascote: [['caramelo', 'Caramelo', '🐶', { ok: () => torreMax() >= 25, txt: '🔒 Andar 25 da Torre' }, 'O caramelo mais fiel do campinho.'],
+    mascote: [['pipoca', 'Pipoca, o Vira-latinha', '🐕', { ok: () => !!(G.save && G.save.flags && G.save.flags.pet_pipoca), txt: '🔒 Missão da Tia Zuzu (Vila, nível 12)' }, 'Um filhote de vira-lata que adora pipoca. Traz tostões a mais das caçadas.'], // v370
+      ['caramelo', 'Caramelo', '🐶', { ok: () => torreMax() >= 25, txt: '🔒 Andar 25 da Torre' }, 'O caramelo mais fiel do campinho.'],
       ['arara', 'Arara Craque', '🦜', { ok: () => miticos() >= 10, txt: '🔒 10 itens míticos' }, 'Voa do seu lado com a faixa da torcida.'],
       ['robo', 'Mini-Robô', '🤖', { ok: () => !!(G.save && G.save.flags && G.save.flags.venceu_ch_supremo), txt: '🔒 Vencer o Supremo da Galáxia' }, 'Cabeça de bola, coração de goleador.'],
       ['dragao', 'Dragãozinho', '🐉', PREM, 'Um filhote de dragão com a ponta do rabo de bola.'],
@@ -52,7 +53,7 @@
       ['prancha', 'Prancha Flutuante', '🛹', PREM, 'Você anda flutuando numa prancha (só visual).'],
       ['moldura', 'Moldura Lendária', '🏅', PREM, 'Seu nome numa placa dourada brilhante.']],
   };
-  const IMG = { polvinho: 'pet_polvinho_c1', corujinha: 'pet_corujinha_c1', tricerinho: 'pet_tricerinho_c1', caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
+  const IMG = { pipoca: 'pet_pipoca_c1', polvinho: 'pet_polvinho_c1', corujinha: 'pet_corujinha_c1', tricerinho: 'pet_tricerinho_c1', caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
   const UNICO = { rastro: true, mascote: true, coroa: true, comemora: true }; // escolhe um (ou nenhum)
   const cfg = () => { const s = G.save; if (!s) return {}; if (!s.adornos2 || typeof s.adornos2 !== 'object') s.adornos2 = {}; return s.adornos2; };
   const acha = (g, id) => (OPCOES[g] || []).find(o => o[0] === id);
@@ -109,7 +110,7 @@
 
   /* ---------- mascote ---------- */
   const PET = { x: null, y: null, fase: 0, mov: false, flip: false };
-  const PET_VOA = new Set(['arara', 'dragao', 'corujinha']), PET_ALT = { caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56, polvinho: 0.55, corujinha: 0.55 };
+  const PET_VOA = new Set(['arara', 'dragao', 'corujinha']), PET_ALT = { pipoca: 0.58, caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56, polvinho: 0.55, corujinha: 0.55 };
   function atualizaPet(e, dt) {
     const id = atual('mascote'); if (!id) { PET.x = null; return null; }
     const lado = e.flip ? 1 : -1, ax = e.x + lado * 0.9, ay = e.y + 0.15;
@@ -120,8 +121,9 @@
   }
   function desenhaPet(ctx, id) {
     const voa = PET_VOA.has(id), q = voa || PET.mov ? 1 + Math.floor(voa ? G.agora / 130 : PET.fase) % 4 : 1;
-    const im = aSprite(`${petNome(id)}_c${q}`); if (!im) return;
-    const h = PET_ALT[id] * T * (voa ? 1.2 : 1), w = h * im.width / im.height, x = PET.x * T, y = PET.y * T - (voa ? T * 0.55 + Math.sin(G.agora / 300) * 4 : 0);
+    const arte = (window.petArte && window.petArte(id)) || petNome(id), esc = (window.petEscala && window.petEscala(id)) || 1;
+    const im = aSprite(`${arte}_c${q}`) || aSprite(`${petNome(id)}_c${q}`); if (!im) return;
+    const h = PET_ALT[id] * T * (voa ? 1.2 : 1) * esc, w = h * im.width / im.height, x = PET.x * T, y = PET.y * T - (voa ? T * 0.55 + Math.sin(G.agora / 300) * 4 : 0);
     if (!voa) { ctx.save(); ctx.globalAlpha *= 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, PET.y * T, w * 0.3, 4, 0, 0, 7); ctx.fill(); ctx.restore(); }
     else { ctx.save(); ctx.globalAlpha *= 0.18; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(x, PET.y * T, w * 0.22, 3, 0, 0, 7); ctx.fill(); ctx.restore(); }
     ctx.save(); ctx.translate(x, y); if (PET.flip) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
@@ -244,13 +246,13 @@
           amostra(id, emo), el('b', {}, nome), el('small', {}, ok ? (on ? 'Usando (clique para tirar)' : 'Usar') : regra.txt), el('i', {}, desc));
       };
       const amostra = (id, emo) => { // a arte (mascotes, coroas, prancha) ou o emoji
-        const im = IMG[id] && aSprite(IMG[id]); if (!im) return el('span', { class: 'ad-img ad-emo' }, emo);
+        const im = (PET_ALT[id] && window.petArte && aSprite(window.petArte(id) + '_c1')) || (IMG[id] && aSprite(IMG[id])); if (!im) return el('span', { class: 'ad-img ad-emo' }, emo);
         const c = document.createElement('canvas'), h = 56, w = Math.round(h * im.width / im.height); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); c.className = 'ad-img'; return c;
       };
       const secao = (titulo, g) => [el('h3', {}, titulo), el('div', { class: 'ad-grade' }, ...OPCOES[g].map(o => botao(g, o)))];
       box.append(el('div', { class: 'ad2' }, ...secao('🔥 Rastro ao correr', 'rastro'), ...secao('🐾 Mascote', 'mascote'), ...secao('👑 Coroa', 'coroa'),
         ...secao('🎉 Comemoração (ao derrubar um chefão)', 'comemora'), ...secao('✨ Mais adornos', 'extra'),
-        el('p', { class: 'dica' }, '⭐ = Pacote Lendário, só na versão Steam. Tudo aqui é só visual: não muda força, velocidade nem prêmios.')));
+        el('p', { class: 'dica' }, '⭐ = Pacote Lendário, só na versão Steam. Tudo aqui é só visual, MENOS os mascotes: cada mascote dá um bônus ao seu jogador, que cresce quando ele evolui caçando com você (filhote → jovem → adulto).')));
     } catch (e) { console.warn('adornos2', e); }
   };
   const st = document.createElement('style');

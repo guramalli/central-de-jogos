@@ -238,7 +238,8 @@ function ceVenceu(m) {
     if (!c.selo && c.feitos.length >= 3) {
       c.selo = true; c.selos = (c.selos || 0) + 1; recebeItem('ficha_torre', CE_FICHAS_SELO); if (ITENS.bau_torre) recebeItem('bau_torre', 1);
       txt += ` 🏅 OS 3 ECOS DA SEMANA! +1 Selo do Caçador Épico (você tem ${c.selos}), +${CE_FICHAS_SELO} Fichas e um Baú da Torre.`;
-      const nova = CE_MOLDURAS.find(f => f.selos === c.selos); if (nova) { txt += ` 🖼️ Nova moldura de nome liberada: ${nova.nome}!`; if (!c.moldura || CE_MOLDURAS.findIndex(f => f.id === c.moldura) < CE_MOLDURAS.indexOf(nova)) c.moldura = nova.id; }
+      // v370 (dono: "a moldura podia ser escolhida nos Adornos, assim não confunde"): não entra sozinha no nome
+      const nova = CE_MOLDURAS.find(f => f.selos === c.selos); if (nova) txt += ` 🖼️ Nova moldura de nome liberada: ${nova.nome}! Escolha em Equipamento → ✨ Adornos.`;
       banner('🏅 SELO DO CAÇADOR ÉPICO!', 'Você venceu os 3 Ecos da semana!');
     }
   } else { recebeItem('ficha_torre', 1); txt = 'Este Eco você já tinha vencido nesta semana: +1 Ficha da Torre.'; }
@@ -319,15 +320,10 @@ function modalEcos(npc) {
         el('div', { class: 'tar-premio' }, feito ? 'Vencido nesta semana (lutar de novo: +1 Ficha).' : `Prêmio: XP, tostões e ${CE_FICHAS} Fichas da Torre.`)),
       el('button', { class: 'btn ' + (feito ? '' : 'verde ') + 'mini', type: 'button', disabled: pode ? 'disabled' : null, onclick: () => ceEntra(i) }, feito ? 'Lutar de novo' : '⚔️ Lutar')));
   });
-  const fr = CE_MOLDURAS.map(f => {
-    const ok = (c.selos || 0) >= f.selos, usa = c.moldura === f.id;
-    return el('button', { class: 'btn mini' + (usa ? ' amarelo' : ''), type: 'button', disabled: ok ? null : 'disabled', title: ok ? (usa ? 'Tirar a moldura' : 'Usar esta moldura no seu nome') : `Libera com ${f.selos} selo(s)`, onclick: () => { c.moldura = usa ? null : f.id; salvar(); modalEcos(npc); } }, `${ok ? '' : '🔒 '}${f.nome} (${f.selos})`);
-  });
   const corpo = [el('p', {}, `Toda segunda-feira, 3 chefões lendários voltam como ECOS, com a força do seu nível e um poder da semana. Você tem 6 minutos para vencer cada um na Arena dos Ecos.`),
     pode ? el('p', { class: 'dica' }, pode) : '', lista,
     el('p', {}, `🏅 Nesta semana: ${c.feitos.length}/3 Ecos ${c.selo ? '— SELO GANHO!' : '— vença os 3 para ganhar o Selo do Caçador Épico (+' + CE_FICHAS_SELO + ' Fichas e um Baú da Torre).'}`),
-    el('h3', {}, `🖼️ Molduras de nome · você tem ${c.selos || 0} selo(s)`), el('div', { class: 'opcoes ce-molduras' }, ...fr),
-    el('p', { class: 'dica' }, 'As molduras aparecem em volta do seu nome no campo. Só se ganham caçando: não estão à venda.')];
+    el('p', { class: 'dica' }, `🖼️ Você tem ${c.selos || 0} selo(s). Os selos liberam MOLDURAS DE NOME (com ${CE_MOLDURAS.map(f => f.selos).join(', ')} selos) — escolha a sua em Equipamento → ✨ Adornos.`)];
   return { corpo, npc };
 }
 function abreModalEcos(npc) {
@@ -377,21 +373,16 @@ function abreModalEcos(npc) {
   };
 }
 
-/* ---------- molduras de nome ---------- */
-{
-  const _rotCE = rotulo;
-  rotulo = function (ctx, txt, x, y, cor, tam) {
-    try {
-      const s = G.save, c = s && s.cacEpica, f = c && c.moldura && CE_MOLDURAS.find(q => q.id === c.moldura);
-      if (f && (c.selos || 0) >= f.selos && txt === `Nv ${s.nivel} ${s.nome}`) {
-        const px = tam * G.dpr; ctx.font = `700 ${px}px Fredoka, Nunito, sans-serif`;
+/* ---------- molduras de nome (escolhidas em Equipamento → ✨ Adornos) ---------- */
+function ceDesenhaMoldura(ctx, f, txt, x, y, px, dpr) {
+        ctx.font = `700 ${px}px Fredoka, Nunito, sans-serif`;
         const w = ctx.measureText(txt).width + px * 1.4, h = px * 1.5, x0 = x - w / 2, y0 = y - px * 1.05, k = (G.agora / 1700) % 1;
         const g = ctx.createLinearGradient(x0, y0, x0 + w, y0);
         if (f.arcoiris) { for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, `hsl(${(i * 60 + G.agora / 12) % 360},95%,65%)`); }
         else { g.addColorStop(0, f.c[0]); g.addColorStop(Math.max(0, k - 0.12), f.c[1]); g.addColorStop(k, f.c[2]); g.addColorStop(Math.min(1, k + 0.12), f.c[1]); g.addColorStop(1, f.c[0]); }
         ctx.save();
         ctx.fillStyle = f.arcoiris ? 'rgba(30,10,60,0.8)' : 'rgba(20,12,4,0.75)'; ctx.beginPath(); ctx.roundRect(x0 - 2, y0 - 2, w + 4, h + 4, h / 2); ctx.fill();
-        ctx.strokeStyle = g; ctx.lineWidth = (f.selos >= 6 ? 3 : 2.5) * G.dpr; ctx.beginPath(); ctx.roundRect(x0, y0, w, h, h / 2); ctx.stroke();
+        ctx.strokeStyle = g; ctx.lineWidth = (f.selos >= 6 ? 3 : 2.5) * dpr; ctx.beginPath(); ctx.roundRect(x0, y0, w, h, h / 2); ctx.stroke();
         if (f.estrelas) { // estrelinhas nas pontas, piscando
           for (const [sx, fase] of [[x0, 0], [x0 + w, Math.PI]]) {
             const a = 0.55 + 0.45 * Math.sin(G.agora / 260 + fase), rr = px * 0.32 * (0.8 + 0.2 * a), cy = y0 + h / 2;
@@ -402,6 +393,14 @@ function abreModalEcos(npc) {
           ctx.globalAlpha = 1;
         }
         ctx.restore();
+}
+{
+  const _rotCE = rotulo;
+  rotulo = function (ctx, txt, x, y, cor, tam) {
+    try {
+      const s = G.save, c = s && s.cacEpica, f = c && c.moldura && CE_MOLDURAS.find(q => q.id === c.moldura);
+      if (f && (c.selos || 0) >= f.selos && txt === `Nv ${s.nivel} ${s.nome}`) {
+        ceDesenhaMoldura(ctx, f, txt, x, y, tam * G.dpr, G.dpr);
         // (o texto vai com um caractere invisível no fim: assim a Moldura Lendária do adornos2 não desenha por cima)
         return _rotCE.call(this, ctx, txt + '​', x, y, f.txt, tam);
       }
@@ -414,7 +413,29 @@ function abreModalEcos(npc) {
   css.textContent = `#ceHud { position: fixed; top: 58px; left: 50%; transform: translateX(-50%); z-index: 60; pointer-events: none; padding: 6px 14px; border-radius: 12px;
     background: rgba(24,8,48,.88); color: #ecdcff; border: 2px solid #9a5aff; font: 800 15px Nunito, 'Segoe UI', sans-serif; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.45); max-width: 96vw; overflow: hidden; text-overflow: ellipsis; }
   #ceHud.urgente { color: #fff; background: rgba(140,20,60,.92); }
-  .ce-molduras { flex-wrap: wrap; }`;
+  .ad-op .ce-amostra { width: 100%; max-width: 150px; height: 40px; }`;
   document.head.append(css);
 }
 window.CACADA_EPICA = { CE, ceEcosDaSemana, ceDados, ceEco, ceEntra, cePool, CE_AFIXOS, CE_MOLDURAS };
+
+// a seção "🖼️ Moldura do nome" na janela de Adornos (Equipamento → ✨ Adornos), junto com os outros visuais
+{
+  const _modalCE = abreModal;
+  abreModal = function () {
+    const r = _modalCE.apply(this, arguments);
+    try {
+      const box = document.querySelector('#modalConteudo .adornos .ad2'); if (!box || box.querySelector('.ce-mold') || !G.save) return r;
+      const c = ceDados();
+      const amostra = f => { const cv = document.createElement('canvas'); cv.width = 300; cv.height = 80; cv.className = 'ad-img ce-amostra'; const x = cv.getContext('2d'); ceDesenhaMoldura(x, f, `Nv ${G.save.nivel}`, 150, 50, 26, 2); x.fillStyle = f.txt; x.textAlign = 'center'; x.fillText(`Nv ${G.save.nivel}`, 150, 50); return cv; };
+      const botoes = CE_MOLDURAS.map(f => {
+        const ok = (c.selos || 0) >= f.selos, on = c.moldura === f.id;
+        return el('button', { type: 'button', class: 'ad-op' + (on ? ' on' : '') + (ok ? '' : ' fechado'), disabled: !ok, onclick: () => { c.moldura = on ? null : f.id; G.uiSujo = true; try { salvar(); } catch (e) { } if (window.abreAdornos) window.abreAdornos(); } },
+          amostra(f), el('b', {}, f.nome), el('small', {}, ok ? (on ? 'Usando (clique para tirar)' : 'Usar') : `🔒 ${f.selos} Selo(s) do Caçador Épico`), el('i', {}, 'Ganha vencendo os 3 Ecos do Multiverso de uma semana (nível 400+).'));
+      });
+      const dica = [...box.querySelectorAll(':scope > p.dica')].pop(); // (a última: a do Pacote Lendário)
+      const sec = [el('h3', { class: 'ce-mold' }, `🖼️ Moldura do nome · ${c.selos || 0} selo(s)`), el('div', { class: 'ad-grade' }, ...botoes)];
+      if (dica) dica.before(...sec); else box.append(...sec);
+    } catch (e) { console.warn('molduras', e); }
+    return r;
+  };
+}
