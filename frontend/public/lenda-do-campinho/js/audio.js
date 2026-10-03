@@ -426,6 +426,7 @@
     if (MUS_CIDADE[id]) return id; // v276: a cidade tem música própria
     if (MAPA_FIM[id]) return MAPA_FIM[id]; // v287
     if (id && id.indexOf('jur_') === 0) return id === 'jur_trex' ? 'dino_boss' : 'dino'; // v364: labirinto jurássico
+    if (id && /^vale_z\d$/.test(id)) return 'celeste'; // v367: as ilhas do Vale das Pedras Celestiais
     if (id === 'praia') return 'praia3'; if (id === 'ct') return 'ct3'; // v278
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';
