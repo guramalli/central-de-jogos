@@ -67,6 +67,9 @@ function torreClone(base, n, papel) {
   if (papel === 'comum') { m.hp = Math.round(m.hp * 2.2); m.xp = Math.round(m.xp * 1.4); m.atk = Math.round(m.atk * 1.8); if (m.ranged) m.ranged.dano = Math.round(m.ranged.dano * 1.8); }
   else if (papel === 'chefe') { m.hp = Math.round(m.hp * 6); m.xp = Math.round(m.xp * 2.4); m.atk = Math.round(m.atk * 2.4); if (m.ranged) m.ranged.dano = Math.round(m.ranged.dano * 2.2); m.ouro = m.ouro.map(v => v * 3); }
   else { m.hp = Math.round(m.hp * 14); m.xp = Math.round(m.xp * 4); m.atk = Math.round(m.atk * 4.2); m.def = Math.round(m.def * 1.3); m.ouro = m.ouro.map(v => v * 6); if (m.ranged) m.ranged.dano = Math.round(m.ranged.dano * 3.8); }
+  // v362 (teste s28: o Guardião acertava 40–60% do fôlego máximo num golpe só e derrubava qualquer classe nos primeiros
+  // segundos, menos o Paredão): cada golpe do chefão/Guardião tira no máximo 28% do fôlego máximo (recebeDano em game.js)
+  if (papel !== 'comum') m.tetoGolpe = 0.28;
   const faixa = typeof mvFaixaDe === 'function' ? mvFaixaDe(Math.min(L, 545)) : null, pecas = faixa ? Object.keys(faixa.pecas) : [];
   m.loot = papel === 'comum' ? [['ficha_torre', 0.06, 1, 1], ['elixir_multiverso', 0.06, 1, 1], ...pecas.slice(0, 2).map(p => [p, 0.0006, 1, 1])]
     : [['taca_multiverso', 1, 1, 1], ['ficha_torre', 1, 3, 6], ['bau_torre', 1, 1, 2], ...pecas.map(p => [p, papel === 'guardiao' ? 0.05 : 0.015, 1, 1])];

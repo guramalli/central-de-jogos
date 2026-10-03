@@ -591,6 +591,8 @@ function monstroAtaca(m) {
 }
 function recebeDano(dano, m) {
   const s = G.save; if (s.hp <= 0) return;
+  // v362: teto por golpe (chefões e Guardiões da Torre): batem forte e sem parar, mas não derrubam de uma vez só
+  if (m && m.d && m.d.tetoGolpe) dano = Math.min(dano, Math.max(1, Math.round(stats().maxHp * m.d.tetoGolpe)));
   if ((G.buffs.muralha || 0) > G.agora) dano = Math.max(1, Math.round(dano * 0.5));
   s.hp -= dano; texto(G.p, '-' + dano, '#ff5a5a'); G.p.hitT = G.agora; som('ai');
   G.uiSujo = true;
