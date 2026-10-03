@@ -64,7 +64,7 @@ const CHAO2 = {
 // quais mapas: os principais de Atlântida em diante e as caças que se entra por eles (pelo TEMA de cada caça)
 {
   const M = CHAO2.mapas;
-  Object.assign(M, { atlantida: 'atl', lua: 'lua', marte: 'marte', saturno: 'anel', nebulosa: 'neb', estacao: 'estacao', copa_intergalactica: 'estacao', multiverso: 'mv', arena_ecos: 'mv',
+  Object.assign(M, { atlantida: 'atl', lua: 'lua', marte: 'marte', saturno: 'anel', nebulosa: 'neb', estacao: 'estacao', copa_intergalactica: 'estacao', multiverso: 'mv', arena_ecos: 'mv', torre_infinita: 'caverna',
     pedraforte: 'anao', picos_nublados: 'neve', vale_celeste: 'vale' });
   for (const k of Object.keys(MAPAS_DEF)) { if (/^vale_z\d$/.test(k)) M[k] = 'vale'; if (/^jur_/.test(k)) M[k] = 'jur'; }
   const TEMA_BIOMA = { lunar: 'lua', marciano: 'marte', anel: 'anel', nebular: 'neb', recife: 'atl', deserto: 'deserto', bambu: 'floresta', fazenda: 'floresta', mv_floresta: 'floresta',
@@ -312,3 +312,37 @@ function elipseChao(b, cx, cy, rx, ry, ch, so) { const m = b.m; for (let j = Mat
 }
 if (typeof MAPAS !== 'undefined') for (const k of Object.keys(CHAO2.mapas)) delete MAPAS[k];
 window.CHAO2 = CHAO2;
+
+/* ---------- v380: o Escritório da Agência (dono: "os pontos que ficaram sem atualizar") ----------
+   antes: o mesmo azulejo das casinhas. Agora: taco de madeira em espinha de peixe, tapete azul com friso dourado no meio
+   da sala e sombra suave junto das paredes (as paredes, janelas e quadros continuam os de sempre) */
+{
+  const ESC = { id: 'agencia_escritorio', piso: 't2_parquet_esc', tapete: 't2_tapete_esc' };
+  const _rcEsc = renderChao;
+  renderChao = function (m) {
+    if (!m || m.id !== ESC.id || m._chao) return _rcEsc.apply(this, arguments);
+    const p = spr(ESC.piso), t = spr(ESC.tapete);
+    if (!(p.ok && t.ok)) { // (a arte ainda carregando: chão antigo agora, o novo assim que chegar)
+      if (!p.err && !t.err && !m._esperaEsc) m._esperaEsc = setInterval(() => { const a = spr(ESC.piso), b = spr(ESC.tapete); if ((a.ok || a.err) && (b.ok || b.err)) { clearInterval(m._esperaEsc); m._esperaEsc = null; delete m._chao; } }, 300);
+      return _rcEsc.apply(this, arguments);
+    }
+    const W = m.w * T, H = m.h * T, c = mkCanvas(W, H), x = c.getContext('2d');
+    const pad = (e, tiles) => { const q = x.createPattern(e.im, 'repeat'), k = (tiles * T) / e.im.width; q.setTransform(new DOMMatrix([k, 0, 0, k, 0, 0])); return q; };
+    x.fillStyle = pad(p, 4); x.fillRect(0, 0, W, H);
+    x.save(); x.globalCompositeOperation = 'soft-light'; const brilho = x.createRadialGradient(W / 2, H * 0.55, T, W / 2, H * 0.55, W * 0.6); brilho.addColorStop(0, 'rgba(255,240,210,0.55)'); brilho.addColorStop(1, 'rgba(0,0,0,0.5)'); x.fillStyle = brilho; x.fillRect(0, 0, W, H); x.restore();
+    // o tapete (entre a recepção e a saída, sem passar por baixo dos móveis da parede)
+    const tx = 3.55 * T, ty = 5.2 * T, tw = 5.9 * T, th = 2.5 * T;
+    x.save(); x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = T * 0.18; x.shadowOffsetY = T * 0.06; x.fillStyle = '#1d2a5a'; x.beginPath(); x.roundRect(tx, ty, tw, th, T * 0.18); x.fill(); x.restore();
+    x.save(); x.beginPath(); x.roundRect(tx, ty, tw, th, T * 0.18); x.clip(); x.fillStyle = pad(t, 3); x.fillRect(tx, ty, tw, th); x.restore();
+    x.save(); x.strokeStyle = '#d9b45a'; x.lineWidth = T * 0.05; x.beginPath(); x.roundRect(tx + T * 0.16, ty + T * 0.16, tw - T * 0.32, th - T * 0.32, T * 0.1); x.stroke();
+    x.globalAlpha = 0.55; x.lineWidth = T * 0.025; x.beginPath(); x.roundRect(tx + T * 0.26, ty + T * 0.26, tw - T * 0.52, th - T * 0.52, T * 0.07); x.stroke();
+    // a estrela da agência no meio
+    x.globalAlpha = 0.85; x.fillStyle = '#d9b45a'; x.beginPath(); const cx = tx + tw / 2, cy = ty + th / 2; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr2 = i % 2 ? T * 0.17 : T * 0.4; x.lineTo(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2); } x.closePath(); x.fill(); x.restore();
+    // sombra junto das paredes
+    x.save(); const s1 = x.createLinearGradient(0, 2 * T, 0, 2.9 * T); s1.addColorStop(0, 'rgba(30,15,5,0.45)'); s1.addColorStop(1, 'rgba(30,15,5,0)'); x.fillStyle = s1; x.fillRect(0, 2 * T, W, 0.9 * T);
+    for (const [x0, dir] of [[0, 1], [W, -1]]) { const g = x.createLinearGradient(x0, 0, x0 + dir * 0.9 * T, 0); g.addColorStop(0, 'rgba(30,15,5,0.4)'); g.addColorStop(1, 'rgba(30,15,5,0)'); x.fillStyle = g; x.fillRect(dir > 0 ? 0 : W - 0.9 * T, 0, 0.9 * T, H); }
+    x.restore();
+    desenhaParedes(x, m);
+    m._chao = c; return c;
+  };
+}

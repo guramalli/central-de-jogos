@@ -39,7 +39,7 @@
       ['caramelo', 'Caramelo', '🐶', { ok: () => torreMax() >= 25, txt: '🔒 Andar 25 da Torre' }, 'O caramelo mais fiel do campinho.'],
       ['arara', 'Arara Craque', '🦜', { ok: () => miticos() >= 10, txt: '🔒 10 itens míticos' }, 'Voa do seu lado com a faixa da torcida.'],
       ['robo', 'Mini-Robô', '🤖', { ok: () => !!(G.save && G.save.flags && G.save.flags.venceu_ch_supremo), txt: '🔒 Vencer o Supremo da Galáxia' }, 'Cabeça de bola, coração de goleador.'],
-      ['dragao', 'Dragãozinho', '🐉', PREM, 'Um filhote de dragão com a ponta do rabo de bola.'],
+      ['dragao', 'Dragãozinho', '🐉', PREM, 'Um filhote de dragão com a ponta do rabo de bola. Dá +dano como a Arara, depois que você libera a Arara jogando.'],
       ['tricerinho', 'Tricerinho', '🦕', { ok: () => !!(G.save && G.save.flags && G.save.flags.pet_tricerinho), txt: '🔒 Chocar um ovo do Vale Jurássico' }, 'Um filhote de tricerátops chocado no Vale Jurássico. Raríssimo!']], // v364
     coroa: [['chamas', 'Coroa de Chamas Azuis', '🔵', porNivel(600), 'Fogo azul em cima da cabeça (no lugar do halo).'],
       ['raios', 'Auréola de Raios', '⚡', porNivel(800), 'Um anel de raios estalando sobre você.']],

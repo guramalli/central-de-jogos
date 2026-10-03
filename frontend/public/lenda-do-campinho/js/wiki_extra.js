@@ -34,7 +34,7 @@
       let meu = null; if (temSave()) { try { if (ADORNOS2.liberado('mascote', id)) { const d = mascDados(id); meu = `Seu: nível ${d.nv} (${MASC_FASES.filter(f => d.nv >= f.nv).pop().nome})`; } } catch (e) { } }
       grade.append(el('div', { class: 'wx-card' },
         el('div', { class: 'wx-figs' }, ...artes.map((a, i) => el('div', {}, figura(a, [40, 52, 62][i]), el('small', {}, MASC_FASES[i].nome)))),
-        el('b', {}, `${emo} ${nome}`), el('div', { class: 'wx-bonus' }, `Bônus: +${pctW(M.v)} de ${M.txt} (adulto)`),
+        el('b', {}, `${emo} ${nome}`), el('div', { class: 'wx-bonus' }, `Bônus: +${pctW(M.v)} de ${M.txt} (adulto)` + (id === 'dragao' ? ' — vale depois de liberar a Arara' : '')),
         el('div', { class: 'wx-small' }, MASC_FASES.map(f => `${f.nome} +${pctW(M.v * f.k)}`).join(' · ')),
         el('div', { class: 'wx-small' }, '🔓 ' + String(regra.txt || '').replace(/^🔒\s*/, '')), el('i', { class: 'wx-small' }, desc),
         meu ? el('div', { class: 'wx-meu' }, meu) : ''));
@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v380', '🗼 Torre Infinita repaginada: uma ilha de pedra flutuando no espaço, com anel de rocha e lava. 🏢 O Escritório da Agência ganhou piso de taco e tapete com a estrela da agência. 🐉 Dragãozinho: o bônus de dano vale depois que você libera a Arara.'],
     ['v379', '🗺️ Mapas repaginados de Atlântida em diante: chão novo desenhado à mão, bordas lisas, penhascos e enfeites variados (água e lava com beirada lisa). E as entradas/saídas das caças agora são LARGAS: sai por qualquer ponto do portal.'],
     ['v378', '🌟 O Despertar das Relíquias: 10.000 vitórias, 40 Fragmentos e o Guardião Desperto — e você FIXA um bônus no seu boneco. Relíquia desperta = marca dourada.'],
     ['v377', '🐾 Mascotes com POSE PARADA própria (não ficam mais "correndo" parados) e evolução 3x mais difícil (Jovem ~1.250 vitórias, Adulto ~23.500).'],

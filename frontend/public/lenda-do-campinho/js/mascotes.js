@@ -41,8 +41,12 @@ function mascDados(id) {
 const mascFase = nv => MASC_FASES.filter(f => nv >= f.nv).pop();
 function mascAtual() { try { const id = ADORNOS2.atual('mascote'); return id && MASC[id] ? id : null; } catch (e) { return null; } }
 // o bônus que o mascote dá agora (fração: 0.05 = 5%)
+function mascDragaoBonus() { try { return ADORNOS2.liberado('mascote', 'arara'); } catch (e) { return false; } }
 function mascBonus(tipo) {
   const id = mascAtual(); if (!id || MASC[id].bonus !== tipo) return 0;
+  // v380 (Steam, RISCOS 4.11 — o dono: "pode fazer com sua opinião"): o Dragãozinho é COMPRADO (Pacote Lendário), então o
+  // bônus dele só vale depois que a Arara (mesmo bônus, ganha jogando) estiver liberada: quem paga leva o visual, não força
+  if (id === 'dragao' && !mascDragaoBonus()) return 0;
   const d = mascDados(id); return MASC[id].v * mascFase(d.nv).k;
 }
 const pct = v => `${Math.round(v * 1000) / 10}%`.replace('.', ',');
@@ -125,7 +129,7 @@ function mascGanha(pts) {
         const lib = ADORNOS2.liberado('mascote', id), M = MASC[id];
         if (!lib) { bt.append(el('span', { class: 'masc-info' }, `Bônus: ${M.txt} (até +${pct(M.v)})`)); return; }
         const d = mascDados(id), f = mascFase(d.nv), prox = MASC_FASES.find(x => x.nv > d.nv), need = mascPontosNivel(d.nv);
-        bt.append(el('span', { class: 'masc-info' }, el('b', {}, `Nv ${d.nv} · ${f.nome}`), ` · +${pct(M.v * f.k)} de ${M.txt}`,
+        bt.append(el('span', { class: 'masc-info' }, el('b', {}, `Nv ${d.nv} · ${f.nome}`), (id === 'dragao' && !mascDragaoBonus()) ? ` · bônus de ${M.txt} quando liberar a Arara` : ` · +${pct(M.v * f.k)} de ${M.txt}`,
           d.nv < MASC_MAX ? el('span', { class: 'masc-bar', title: `${d.pts}/${need} pontos para o nível ${d.nv + 1}` }, el('i', { style: `width:${Math.round(d.pts / need * 100)}%` })) : el('span', {}, ' · MÁXIMO!'),
           prox ? el('small', {}, `${prox.nome} no nível ${prox.nv}`) : ''));
       });
