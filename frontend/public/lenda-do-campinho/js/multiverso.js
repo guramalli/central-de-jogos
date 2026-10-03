@@ -36,11 +36,11 @@ if (typeof chaoSuaviza === 'function') { const _chaoSuavizaMv = chaoSuaviza; cha
 Object.assign(OBJ_INFO, {
   carrinho_mina: { w: 1.3, b: 1 }, bigorna_runica: { w: 0.95, b: 1 }, lampiao_cristal: { w: 0.55, b: 1 }, barris_anao: { w: 1.05, b: 1 },
   pinheiro_gigante: { w: 2.2, b: 1 }, toco_machado: { w: 1.3, b: 1 }, pedra_runica: { w: 1.4, b: 1 }, nuvem_arbusto: { w: 1.7, b: 1 },
-  mv_portal_selado: { w: 2.3, b: 1 },
+  mv_portal_selado: { w: 2.3, b: 1 }, mv_portal_rio: { w: 2.3, b: 1 }, // v362: o portal da praça do Rio, aberto
 });
-['carrinho_mina', 'bigorna_runica', 'lampiao_cristal', 'barris_anao', 'pinheiro_gigante', 'toco_machado', 'pedra_runica', 'nuvem_arbusto', 'mv_portal_selado'].forEach(k => OBJ_BLOQUEIA.add(k));
-Object.assign(OBJ_MINI, { carrinho_mina: '#8a5a2a', pinheiro_gigante: '#2a6a3a', pedra_runica: '#7a8a7a', nuvem_arbusto: '#ffffff', lampiao_cristal: '#ffd23f', mv_portal_selado: '#6a3ad9' });
-['pinheiro_gigante', 'pedra_runica', 'mv_portal_selado'].forEach(t => OBJ_VISAO.add(t));
+['carrinho_mina', 'bigorna_runica', 'lampiao_cristal', 'barris_anao', 'pinheiro_gigante', 'toco_machado', 'pedra_runica', 'nuvem_arbusto', 'mv_portal_selado', 'mv_portal_rio'].forEach(k => OBJ_BLOQUEIA.add(k));
+Object.assign(OBJ_MINI, { carrinho_mina: '#8a5a2a', pinheiro_gigante: '#2a6a3a', pedra_runica: '#7a8a7a', nuvem_arbusto: '#ffffff', lampiao_cristal: '#ffd23f', mv_portal_selado: '#6a3ad9', mv_portal_rio: '#8a4ae0' });
+['pinheiro_gigante', 'pedra_runica', 'mv_portal_selado', 'mv_portal_rio'].forEach(t => OBJ_VISAO.add(t));
 
 /* ---------- as criaturas ---------- */
 // [id, nome, nível, arquétipo, altura (tiles), voa, item que derruba, nome do item, descrição, falas, mundo]
@@ -135,7 +135,7 @@ Object.assign(ITENS, {
 });
 for (const [id, , L, , , , item, nomeItem, descItem] of MV_BICHOS) ITENS[item] = { nome: nomeItem, tipo: 'loot', venda: Math.round(L * 16), desc: descItem };
 for (const [id, , L, , item, nomeItem, descItem] of MV_CHEFES) ITENS[item] = { nome: nomeItem, tipo: 'loot', venda: Math.round(L * 600), desc: descItem };
-const MV_ASSETS = ['mv_portal_anoes', 'mv_portal_gigantes', 'mv_portal_selado', 'mv_torre_infinita2', 'b_anao_casa', 'b_anao_forja', 'b_anao_taverna', 'b_anao_salao', 'b_gig_cabana', 'b_gig_castelo', 'b_gig_moinho', 'b_gig_casa_pedra',
+const MV_ASSETS = ['mv_portal_anoes', 'mv_portal_gigantes', 'mv_portal_selado', 'mv_portal_rio', 'mv_torre_infinita2', 'b_anao_casa', 'b_anao_forja', 'b_anao_taverna', 'b_anao_salao', 'b_gig_cabana', 'b_gig_castelo', 'b_gig_moinho', 'b_gig_casa_pedra',
   'carrinho_mina', 'bigorna_runica', 'lampiao_cristal', 'barris_anao', 'pinheiro_gigante', 'toco_machado', 'pedra_runica', 'nuvem_arbusto', ...MV_ID,
   ...MV_BICHOS.map(b => 'i_' + b[6]), ...MV_CHEFES.map(c => 'i_' + c[4]), ...MV_ITENS_EQUIP.map(id => 'i_' + id)];
 MV_ASSETS.forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
@@ -470,11 +470,16 @@ function modalViagemMv(npc) {
   const base = MAPAS_DEF.rio;
   MAPAS_DEF.rio = function () {
     const m = base(); const W = m.w; const livre = (x, y) => !m.obj[y * W + x] && CH_ANDA(m.chao[y * W + x]) && !m.npcs.some(n => n.x === x && n.y === y);
-    const [px, py, nx, ny, lx, ly] = [30, 45, 30, 48, 28, 46];
+    // v362: o portal fica DENTRO da calçada (antes, em x 30, invadia a rua) e está ABERTO (arte nova mv_portal_rio)
+    // o baú do armazém e a massagista vão para o canto esquerdo da praça (ficavam no meio da fila dos transportes)
+    { const bauPt = m.pontos.find(p => p.tipo === 'armazem' && p.x >= 12 && p.x <= 30 && p.y >= 43 && p.y <= 50), mas = m.npcs.find(n => n.id === 'massagista_rio');
+      if (bauPt && (bauPt.x !== 12 || bauPt.y !== 45) && !m.obj[45 * W + 12]) { m.obj[45 * W + 12] = m.obj[bauPt.y * W + bauPt.x]; m.obj[bauPt.y * W + bauPt.x] = null; bauPt.x = 12; bauPt.y = 45; }
+      if (mas && !m.obj[45 * W + 13]) { mas.x = 13; mas.y = 45; } }
+    const [px, py, nx, ny, lx, ly] = [28, 45, 28, 48, 26, 46];
     if (livre(px, py) && livre(px + 1, py) && livre(nx, ny)) {
-      m.obj[py * W + px] = { t: 'mv_portal_selado', v: 1 }; m.obj[py * W + px + 1] = { t: 'x', v: 0 }; if (livre(px - 1, py)) m.obj[py * W + px - 1] = { t: 'x', v: 0 };
+      m.obj[py * W + px] = { t: 'mv_portal_rio', v: 1 }; m.obj[py * W + px + 1] = { t: 'x', v: 0 }; if (livre(px - 1, py)) m.obj[py * W + px - 1] = { t: 'x', v: 0 };
       m.npcs.push({ id: 'guardiao_rio', x: nx, y: ny }); MV_VOLTA_RIO = { x: nx, y: ny };
-      if (livre(lx, ly)) { m.obj[ly * W + lx] = { t: 'placa', v: 1 }; m.placas.push({ x: lx, y: ly, texto: '🌀 PORTAL DO MULTIVERSO — selado há mil anos. Fale com o Guardião. A partir do nível 400, para quem venceu a Copa Intergaláctica.' }); }
+      if (livre(lx, ly)) { m.obj[ly * W + lx] = { t: 'placa', v: 1 }; m.placas.push({ x: lx, y: ly, texto: '🌀 PORTAL DO MULTIVERSO — aberto para os craques! Fale com o Guardião. A partir do nível 400, para quem venceu a Copa Intergaláctica.' }); }
     } else poeNpcPerto(m, 'guardiao_rio', 'estela');
     return m;
   };

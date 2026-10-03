@@ -1004,7 +1004,7 @@ function atualiza(dt) {
   ataqueAutomatico();
   for (const m of G.mons) atualizaMonstro(m, dt);
   for (let i = G.respawns.length - 1; i >= 0; i--) { const r = G.respawns[i]; if (G.agora >= r.em) { const m = criaMonstro(r.sp); if (m) { G.mons.push(m); G.respawns.splice(i, 1); } else r.em = G.agora + 3000; } }
-  for (let i = G.projs.length - 1; i >= 0; i--) { const pr = G.projs[i]; if (G.agora - pr.t0 >= pr.dur) { G.projs.splice(i, 1); pr.cb && pr.cb(); } }
+  for (let i = G.projs.length - 1; i >= 0; i--) { const pr = G.projs[i]; if (!pr) continue; /* v362: o golpe de um projétil pode trocar de mapa (vitória/derrota) e esvaziar a lista no meio da volta */ if (G.agora - pr.t0 >= pr.dur) { G.projs.splice(i, 1); pr.cb && pr.cb(); } }
   G.fx = G.fx.filter(f => G.agora - f.t0 < f.dur);
   G.textos = G.textos.filter(t => G.agora - t.t0 < t.dur);
   G.falas = G.falas.filter(f => G.agora - f.t0 < f.dur);

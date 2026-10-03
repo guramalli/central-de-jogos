@@ -529,10 +529,12 @@ CIDADES_NOVAS.rio = function (b, c, K) {
   // v308: a Capitã Iara (submarino) e a Dra. Estela (foguete) ficam na praça do aeroporto, do lado da chegada
   // (na areia ninguém achava). O submarino e o foguete continuam na praia, como enfeite.
   // v316: o submarino e o foguete também vêm para a praça, cada um ao lado da sua dona
-  b.npc('capita_iara', 20, 48); b.npc('estela', 26, 48);
-  b.placa(18, 46, '🌊 SUBMARINO PARA ATLÂNTIDA — fale com a Capitã Iara. A partir do nível 195.');
-  b.placa(24, 46, '🚀 FOGUETE PARA O ESPAÇO — fale com a Dra. Estela. A partir do nível 298.');
-  b.obj(20, 45, 'submarino'); b.obj(19, 45, 'x'); b.obj(21, 45, 'x'); b.obj(26, 45, 'foguete'); b.m.veiculosProprios = true;
+  // v362 (dono: "organize os npcs e suas entradas"): submarino (x 16), foguete (x 22) e portal do Multiverso (x 28, multiverso.js)
+  // em fila, com o mesmo espaço entre eles; cada um com a sua dona embaixo e a placa à esquerda
+  b.npc('capita_iara', 16, 48); b.npc('estela', 22, 48);
+  b.placa(14, 46, '🌊 SUBMARINO PARA ATLÂNTIDA — fale com a Capitã Iara. A partir do nível 195.');
+  b.placa(20, 46, '🚀 FOGUETE PARA O ESPAÇO — fale com a Dra. Estela. A partir do nível 298.');
+  b.obj(16, 45, 'submarino'); b.obj(15, 45, 'x'); b.obj(17, 45, 'x'); b.obj(22, 45, 'foguete'); b.m.veiculosProprios = true;
 };
 
 /* ============================================================

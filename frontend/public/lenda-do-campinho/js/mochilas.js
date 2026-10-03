@@ -139,6 +139,9 @@ for (const it of Object.values(ITENS)) if (it.tipo === 'bolsa' && it.desc) it.de
   const st = document.createElement('style');
   st.textContent = `
   :is(#mochila, #bolsasAbertas) .mochila-org .carga { font-size: 12px; font-weight: 700; margin-left: 4px; }
+  /* v362 (dono: "onde mostra a capacidade de peso?"): espaços e carga nunca encolhem; com o painel estreito os botões descem de linha */
+  #mochila .mochila-org > span { flex: 1 0 auto; white-space: nowrap; }
+  #mochila .mochila-org > .btn { flex: 1 1 auto; }
   :is(#mochila, #bolsasAbertas) .mochila-org .carga.pesada { color: #d23a2a; }
   :is(#mochila, #bolsasAbertas) .slot.bolsa { box-shadow: inset 0 0 0 2px rgba(168,116,58,.55); }
   :is(#mochila, #bolsasAbertas) .slot.bolsa.aberta { box-shadow: inset 0 0 0 2px #ffd23f; background: #fff3c8; }

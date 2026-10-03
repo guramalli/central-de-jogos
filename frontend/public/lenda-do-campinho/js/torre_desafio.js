@@ -2,7 +2,7 @@
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
    🗼🔥 TORRE INFINITA — DESAFIO (v353, pedido do dono: "a torre está muito fácil")
-   - TEMPO por andar: 90 s (comum) / 180 s (chefão e Guardião). Acabou: a Torre te teletransporta para fora
+   - TEMPO por andar: 90 s (comum) / 180 s (chefão) / 480 s (Guardião, v362). Acabou: a Torre te teletransporta para fora
      (sem prêmio; o recorde continua). O tempo para junto com o jogo (janela aberta).
    - ONDAS: além das criaturas do começo, mais duas ondas entram pelas bordas (no tempo marcado ou quando sobram
      poucas) — inclusive uma versão VELOZ que vem direto em você. O andar só termina quando TODAS as ondas saírem.
@@ -15,7 +15,9 @@
    O mapa (lava, tochas, Pedra no centro, ondas) é montado em torre_infinita.js. Carregar DEPOIS dele.
    ============================================================ */
 const TD = { mapa: null };
-function tdTempoTotal(n) { return (RELIQUIA_ANDAR[n] || n % 10 === 0 ? 180 : 90) * 1000; }
+// v362 (dono, nível 555: "mesmo não morrendo, não consigo matar a tempo"): o Guardião foi calibrado (v322) para 5–10 min de luta
+// e o limite de 180 s da v353 o deixava quase impossível na mão (o robô da s18, perfeito, leva ~150 s). Guardião: 8 min.
+function tdTempoTotal(n) { return (RELIQUIA_ANDAR[n] ? 480 : n % 10 === 0 ? 180 : 90) * 1000; }
 function tdVivos(semPedra) { return G.mons.filter(m => !(semPedra && m.d.pedraTorre)).length; }
 function tdSpawn(id, x, y) {
   const sp = { m: id, x, y, raio: 2 }; const m = criaMonstro(sp); if (!m) return null;
