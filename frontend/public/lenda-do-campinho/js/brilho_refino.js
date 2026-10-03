@@ -16,7 +16,11 @@
   const FAIXA = { cabeca: [0, 0.31], acessorio: [0.27, 0.37], camisa: [0.33, 0.6], calcao: [0.57, 0.72], perna: [0.7, 0.9], chuteira: [0.87, 1.01] };
   const SLOTS = Object.keys(FAIXA);
   const corDe = id => { try { return RARIDADE[raridadeItem(id)].cor || '#ffd23f'; } catch (e) { return '#ffd23f'; } };
-  const refinos = () => { const s = G.save; if (!s || !s.equip) return []; return SLOTS.map(sl => ({ sl, id: s.equip[sl], r: (s.equipR && s.equipR[sl]) || 0 })).filter(p => p.id && p.r >= 7); };
+  // v371 (dono: "imagina esses itens +10... ficará muita coisa"): RELÍQUIA não usa o brilho do refino — tem a marca própria
+  // dela (relíquias, abaixo), que cresce com o refino. Cada peça tem UM efeito só.
+  const ehReliquia = id => !!(ITENS[id] && ITENS[id].reliquia);
+  const refinos = () => { const s = G.save; if (!s || !s.equip) return []; return SLOTS.map(sl => ({ sl, id: s.equip[sl], r: (s.equipR && s.equipR[sl]) || 0 })).filter(p => p.id && p.r >= 7 && !ehReliquia(p.id)); };
+  const marcas = () => { const s = G.save; if (!s || !s.equip) return []; return SLOTS.map(sl => ({ sl, id: s.equip[sl], r: (s.equipR && s.equipR[sl]) || 0 })).filter(p => p.id && MARCA[p.id]); };
   window.brilhoRefino = { FAIXA, refinos };
   // caixa opaca do desenho (para as faixas pegarem o corpo, e não a folga em volta) — guardada por canvas
   const CAIXA = new WeakMap();
@@ -56,8 +60,56 @@
     oc.restore();
     return { alfa, ya, yb };
   }
+  /* ---------- marcas das relíquias ---------- */
+  // onde estão os pés no desenho (pixels sólidos no rodapé do boneco), em segmentos — guardado por canvas
+  const PES = new WeakMap();
+  function pes(c) {
+    let r = PES.get(c); if (r) return r;
+    const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.9), W = c.width; r = [];
+    try {
+      const d = k.getContext('2d').getImageData(0, ya, W, cx.y1 - ya + 1).data, rows = cx.y1 - ya + 1, col = new Uint8Array(W);
+      for (let y = 0; y < rows; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 120) col[x] = 1;
+      let ini = -1; for (let x = 0; x <= W; x++) { if (x < W && col[x]) { if (ini < 0) ini = x; } else if (ini >= 0) { if (x - ini >= 2) r.push([ini, x - 1]); ini = -1; } }
+      // segmentos muito perto viram um só (sola com buraquinho)
+      for (let i = r.length - 1; i > 0; i--) if (r[i][0] - r[i - 1][1] <= 2) { r[i - 1][1] = r[i][1]; r.splice(i, 1); }
+    } catch (e) { }
+    r = { seg: r, y: (cx.y1 - (cx.y1 - ya) * 0.45), H }; PES.set(c, r); return r;
+  }
+  // uma asinha de 3 penas; lado = -1 abre para a esquerda, +1 para a direita
+  function asinha(ctx, x, y, tam, lado, bate, r, t) {
+    const ouro = r >= 8, brilho = r >= 9 ? (r >= 10 ? 1 : 0.55) : 0;
+    ctx.save(); ctx.translate(x, y); ctx.scale(lado, 1); ctx.rotate(-0.15 - bate * 0.3);
+    if (brilho) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(tam * 0.5, -tam * 0.2, 0, tam * 0.5, -tam * 0.2, tam * 1.3); g.addColorStop(0, `rgba(255,220,90,${0.55 * brilho})`); g.addColorStop(1, 'rgba(255,220,90,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tam * 0.5, -tam * 0.2, tam * 1.3, 0, 7); ctx.fill(); ctx.restore(); }
+    const penas = [[-0.8, 1], [-0.42, 0.86], [-0.06, 0.7]]; // a de cima é a maior, como numa asa
+    for (const [ang, comp] of penas) {
+      ctx.save(); ctx.rotate(ang); const L = tam * comp, E = tam * 0.24;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(L * 0.5, -E, L, 0); ctx.quadraticCurveTo(L * 0.5, E * 0.75, 0, 0); ctx.closePath();
+      ctx.fillStyle = ouro ? (r >= 10 ? '#ffe680' : '#f6d878') : '#fbf6ea'; ctx.fill();
+      ctx.lineWidth = Math.max(1, tam * 0.07); ctx.strokeStyle = ouro ? '#b07a10' : '#c8a050'; ctx.stroke();
+      ctx.restore();
+    }
+    // reflexo de luz passando (+7 em diante, cada vez mais vezes)
+    if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = (t % per) / per; if (k < 0.35) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7 * Math.sin(k / 0.35 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(tam * (0.2 + k * 2), -tam * 0.05, tam * 0.14, tam * 0.08, 0, 0, 7); ctx.fill(); } }
+    ctx.restore();
+  }
+  const MARCA = {
+    // 👟 Chuteiras dos Deuses: asinhas nos calcanhares (como as sandálias aladas). Parado batem devagar; correndo, rápido.
+    chuteira_deuses(ctx, comp, w, h, vista, e, r, t) {
+      const c = comp.c, P = pes(c); if (!P.seg.length) return;
+      const sx = w / c.width, sy = h / c.height, X = px => -w / 2 + px * sx, Y = -h + P.y * sy, tam = h * (0.1 + Math.min(10, r) * 0.003);
+      const bate = 0.5 + 0.5 * Math.sin(t / (e.mov ? 70 : 260));
+      if (vista === 'lado') { // de lado: uma asa atrás de cada calcanhar (o boneco olha para a direita no desenho)
+        for (const [a] of P.seg.slice(0, 2)) asinha(ctx, X(a) + tam * 0.1, Y, tam, -1, bate, r, t);
+      } else { // de frente/costas: uma asa para fora de cada pé
+        const L = P.seg[0], R = P.seg[P.seg.length - 1];
+        asinha(ctx, X(L[0]) + tam * 0.08, Y, tam, -1, bate, r, t); asinha(ctx, X(R[1]) - tam * 0.08, Y, tam, 1, bate, r, t);
+      }
+    },
+  };
+  window.brilhoRefino.MARCA = MARCA;
   function desenhaBrilho(ctx, e, atras) {
-    const s = G.save, pecas = refinos(); if (!pecas.length) return;
+    const s = G.save, pecas = refinos(), mrc = marcas(), completo = SLOTS.every(sl => s.equip[sl] && ((s.equipR && s.equipR[sl]) || 0) >= 10);
+    if (!pecas.length && !mrc.length && !completo) return;
     if (typeof montadoAgora === 'function' && montadoAgora()) return; // montado: o desenho é outro
     const look = lookJogador(); let vista = e.vista || 'frente';
     if (!e.mov && G.agora - (e.tVista || 0) > 2500) vista = 'frente';
@@ -73,7 +125,7 @@
     const dir = e.flip ? -1 : 1, lado = e.mov && vista === 'lado', passo = Math.abs(Math.sin(e.fase)), bob = e.mov ? passo * h * 0.03 : 0;
     const rot = lado ? dir * 0.04 : e.mov ? Math.sin(e.fase) * 0.035 : 0, sy = e.mov ? 1 - (1 - passo) * 0.02 : 1 + Math.sin(G.agora / 450 + (e.uid || 0)) * 0.012;
     let dy = 0; try { if (typeof ADORNOS2 !== 'undefined' && ADORNOS2.atual('extra').includes('prancha') && !(G.mapa && G.mapa.interior)) dy = -T * 0.16 + Math.sin(G.agora / 350) * 1.5; } catch (err) { }
-    const t = G.agora || 0, completo = SLOTS.every(sl => s.equip[sl] && ((s.equipR && s.equipR[sl]) || 0) >= 10);
+    const t = G.agora || 0;
     ctx.save(); ctx.translate(x + hit + dir * golpe * 7, y - bob + dy); ctx.rotate(rot + dir * golpe * 0.12); ctx.scale(dir, sy);
     // aura do conjunto completo: contorno dourado do boneco inteiro, por trás
     if (completo && atras) {
@@ -105,6 +157,8 @@
       }
       if (p.sl === 'chuteira' && p.r >= 10 && e.mov && Math.random() < 0.6) FAISCAS.push({ x: e.x * T + (Math.random() - 0.5) * 8, y: e.y * T - 3, vy: -0.05, t0: t, dur: 600, cor, r: 3 });
     }
+    // as marcas das relíquias (por cima do boneco)
+    if (!atras) for (const p of mrc) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; try { MARCA[p.id](ctx, comp, w, h, vista, e, p.r, t); } catch (err) { } }
     ctx.restore();
     if (atras) return;
     // faíscas
@@ -130,6 +184,6 @@
   // a Ficha e a dica do item contam o efeito
   if (typeof statsItemTxt === 'function') {
     const _sit = statsItemTxt;
-    statsItemTxt = function (id, r) { const t = _sit.apply(this, arguments); if (!r || r < 7 || !ITENS[id] || ITENS[id].tipo !== 'equip') return t; const efeito = r >= 10 ? '✨ +10: a peça fica ACESA no seu boneco!' : r === 9 ? '✨ +9: brilho forte e faíscas no boneco' : r === 8 ? '✨ +8: a peça brilha no boneco' : '✨ +7: um reflexo de luz passa pela peça'; return Array.isArray(t) ? [...t, efeito] : typeof t === 'string' ? t + ' · ' + efeito : t; };
+    statsItemTxt = function (id, r) { const t = _sit.apply(this, arguments); if (!r || r < 7 || !ITENS[id] || ITENS[id].tipo !== 'equip' || ehReliquia(id)) return t; const efeito = r >= 10 ? '✨ +10: a peça fica ACESA no seu boneco!' : r === 9 ? '✨ +9: brilho forte e faíscas no boneco' : r === 8 ? '✨ +8: a peça brilha no boneco' : '✨ +7: um reflexo de luz passa pela peça'; return Array.isArray(t) ? [...t, efeito] : typeof t === 'string' ? t + ' · ' + efeito : t; };
   }
 }
