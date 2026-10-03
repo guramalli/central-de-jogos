@@ -92,11 +92,11 @@
     if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = (t % per) / per; if (k < 0.35) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7 * Math.sin(k / 0.35 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(tam * (0.2 + k * 2), -tam * 0.05, tam * 0.14, tam * 0.08, 0, 0, 7); ctx.fill(); } }
     ctx.restore();
   }
-  // as pernas na altura da canela (segmentos de pixels sólidos entre 84,5% e 88,5% da altura: só ali as pernas se separam) — por canvas
+  // as pernas na altura da canela (no corpo sem chapéu as pernas só se separam entre 81% e 87% da altura) — por canvas
   const CANELA = new WeakMap();
   function canelas(c) {
     let r = CANELA.get(c); if (r) return r;
-    const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.845), yb = Math.floor(cx.y0 + H * 0.885), W = c.width; let seg = [];
+    const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.81), yb = Math.floor(cx.y0 + H * 0.87), W = c.width; let seg = [];
     try {
       const d = k.getContext('2d').getImageData(0, ya, W, yb - ya + 1).data, rows = yb - ya + 1, col = new Uint16Array(W);
       for (let y = 0; y < rows; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 170) col[x]++;
@@ -115,18 +115,52 @@
     if (r >= 7) { const per = r >= 10 ? 900 : r === 9 ? 1400 : r === 8 ? 2000 : 2800, k = ((t + fase * 300) % per) / per; if (k < 0.4) { const a = k / 0.4 * Math.PI * 2, d = 1 + Math.sin(a) ** 2; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.9 * Math.sin(k / 0.4 * Math.PI); ctx.beginPath(); ctx.arc(x + tam * Math.cos(a) / d, y + tam * Math.sin(a) * Math.cos(a) / d, tam * 0.2, 0, 7); ctx.fill(); } }
     ctx.restore();
   }
+  // pontos fixos dentro do tronco (faixa da camisa), sorteados uma vez por canvas: onde as estrelinhas piscam
+  const PONTOS_CAMISA = new WeakMap();
+  function pontosCamisa(c) {
+    let r = PONTOS_CAMISA.get(c); if (r) return r; r = [];
+    try {
+      const k = corpo(c), cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.floor(cx.y0 + H * 0.53), yb = Math.floor(cx.y0 + H * 0.68), W = c.width;
+      const d = k.getContext('2d').getImageData(0, ya, W, yb - ya + 1).data, cand = [];
+      for (let y = 0; y <= yb - ya; y += 2) for (let x = 0; x < W; x += 2) {
+        // só bem dentro do tronco (os 4 vizinhos a 4 px também são corpo): nunca na borda nem no braço fino
+        const ok = [[0, 0], [4, 0], [-4, 0], [0, 4], [0, -4]].every(([dx, dy]) => { const xx = x + dx, yy = y + dy; return xx >= 0 && xx < W && yy >= 0 && yy <= yb - ya && d[(yy * W + xx) * 4 + 3] > 200; });
+        if (ok) cand.push([x, ya + y]);
+      }
+      let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 7 && cand.length; i++) r.push(cand.splice((rnd() * cand.length) | 0, 1)[0]);
+    } catch (e) { }
+    PONTOS_CAMISA.set(c, r); return r;
+  }
+  function estrelinha(ctx, x, y, tam, a, cor, cruz) {
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = cor; ctx.beginPath();
+    for (let i = 0; i < 8; i++) { const ang = i * Math.PI / 4 - Math.PI / 2, rd = i % 2 ? tam * 0.3 : tam; ctx.lineTo(x + Math.cos(ang) * rd, y + Math.sin(ang) * rd); }
+    ctx.closePath(); ctx.fill();
+    if (cruz) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * 0.6; ctx.strokeStyle = cor; ctx.lineWidth = tam * 0.16; ctx.beginPath(); ctx.moveTo(x - tam * 2.2, y); ctx.lineTo(x + tam * 2.2, y); ctx.moveTo(x, y - tam * 2.2); ctx.lineTo(x, y + tam * 2.2); ctx.stroke(); }
+    ctx.restore();
+  }
   const MARCA = {
+    // 👕 Camisa do Multiverso: estrelinhas que piscam na estampa de galáxia (mais estrelas e mais brilho com o refino)
+    camisa_multiverso(ctx, B, vista, e, r, t) {
+      const P = pontosCamisa(B.c); if (!P.length) return;
+      const h = B.h, n = r >= 10 ? 7 : r >= 9 ? 6 : r >= 8 ? 5 : r >= 7 ? 4 : 3;
+      for (let i = 0; i < Math.min(n, P.length); i++) {
+        const [px, py] = P[i], per = 1600 + i * 370, k = ((t + i * 911) % per) / per; if (k > 0.5) continue; // cada uma pisca no seu tempo
+        const a = Math.sin(k / 0.5 * Math.PI), tam = h * (r >= 9 ? 0.026 : 0.02) * (0.6 + 0.4 * a);
+        estrelinha(ctx, B.X(px), B.Y(py), tam, a * (r >= 8 ? 1 : 0.85), r >= 8 && i % 2 ? '#fff2a8' : '#ffffff', r >= 9);
+      }
+    },
     // 🦵 Caneleiras do Infinito: um ∞ azul-gelo em cada canela; no +7 em diante uma luz percorre o ∞, no +9/+10 ele brilha
-    caneleira_infinito(ctx, comp, w, h, vista, e, r, t) {
-      const c = comp.c, C = canelas(c); if (!C.seg.length) return;
-      const sx = w / c.width, Y = -h + C.y * (h / c.height), tam = h * 0.032;
+    caneleira_infinito(ctx, B, vista, e, r, t) {
+      const C = canelas(B.c); if (!C.seg.length) return;
+      const Y = B.Y(C.y), tam = B.h * 0.032;
       const pernas = vista === 'lado' ? C.seg.slice(0, 2) : [C.seg[0], C.seg[C.seg.length - 1]].filter((v, i, a) => i === 0 || v !== a[0]);
-      pernas.forEach(([a, b], i) => infinito(ctx, -w / 2 + (a + b) / 2 * sx, Y, tam, r, t, i * 1.7));
+      pernas.forEach(([a, b], i) => infinito(ctx, B.X((a + b) / 2), Y, tam, r, t, i * 1.7));
     },
     // 👟 Chuteiras dos Deuses: asinhas nos calcanhares (como as sandálias aladas). Parado batem devagar; correndo, rápido.
-    chuteira_deuses(ctx, comp, w, h, vista, e, r, t) {
-      const c = comp.c, P = pes(c); if (!P.seg.length) return;
-      const sx = w / c.width, sy = h / c.height, X = px => -w / 2 + px * sx, Y = -h + P.y * sy, tam = h * (0.1 + Math.min(10, r) * 0.003);
+    chuteira_deuses(ctx, B, vista, e, r, t) {
+      const P = pes(B.c); if (!P.seg.length) return;
+      const h = B.h, X = B.X, Y = B.Y(P.y), tam = h * (0.1 + Math.min(10, r) * 0.003);
       const bate = 0.5 + 0.5 * Math.sin(t / (e.mov ? 70 : 260));
       if (vista === 'lado') { // de lado: uma asa atrás de cada calcanhar (o boneco olha para a direita no desenho)
         for (const [a] of P.seg.slice(0, 2)) asinha(ctx, X(a) + tam * 0.1, Y, tam, -1, bate, r, t);
@@ -188,7 +222,13 @@
       if (p.sl === 'chuteira' && p.r >= 10 && e.mov && Math.random() < 0.6) FAISCAS.push({ x: e.x * T + (Math.random() - 0.5) * 8, y: e.y * T - 3, vy: -0.05, t0: t, dur: 600, cor, r: 3 });
     }
     // as marcas das relíquias (por cima do boneco)
-    if (!atras) for (const p of mrc) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; try { MARCA[p.id](ctx, comp, w, h, vista, e, p.r, t); } catch (err) { } }
+    if (!atras && mrc.length) {
+      // as marcas medem o CORPO sem chapéu (o chapéu/capacete aumenta o desenho para cima e mudaria as alturas); o corpo
+      // fica sempre preso pelos pés, então a linha py do corpo-base é a linha py + (diferença de altura) do desenho
+      let cb = comp; try { if (look.chapeu || look.chapeuVar) { const c3 = spriteBoneco(Object.assign({}, look, { costas: null, chapeu: null, chapeuVar: null }), vista, quadro); if (c3 && c3.c && c3.c.width === comp0.c.width) cb = c3; } } catch (err) { }
+      const off = comp0.c.height - cb.c.height, B = { c: cb.c, X: px => -w / 2 + px * w / comp0.c.width, Y: py => -h + (py + off) * h / comp0.c.height, h };
+      for (const p of mrc) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; try { MARCA[p.id](ctx, B, vista, e, p.r, t); } catch (err) { } }
+    }
     ctx.restore();
     if (atras) return;
     // faíscas
