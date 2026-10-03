@@ -165,7 +165,7 @@ function stats() {
     regenHp: (0.6 + nivel * 0.06 + b.regen * 0.5 + (s.posicao === 'zagueiro' ? 0.6 : 0) + a.folego * 0.04 + ((com && com.regen) || 0) * mc) * (cl === 'motorzinho' ? 2 : 1),
     regenFoco: 0.8 + nivel * 0.07 + b.regen * 0.5 + (s.posicao === 'meia' ? 1.2 : 0) + a.inteligencia * 0.03 + ((com && com.regenFoco) || 0) * mc,
     danoMult: (pos ? pos.dano : 1) * (1 + a.habilidade * 0.006),
-    crit: Math.min(0.45, 0.03 + a.habilidade * 0.0015 + (cl === 'driblador' ? 0.08 : 0)),
+    crit: Math.min(0.45, 0.03 + a.habilidade * 0.0015 + (cl === 'driblador' ? 0.04 : 0)), // v364: passiva do Artilheiro era +8% (reequilíbrio das classes)
     bloqueio: Math.min(0.35, (cl === 'paredao' ? 0.12 : 0) + a.defesa * 0.001),
     poderMult: 1 + a.inteligencia * 0.008, curaMult: 1 + a.inteligencia * 0.012,
     custoFoco: cl === 'cerebro' ? 0.8 : 1,

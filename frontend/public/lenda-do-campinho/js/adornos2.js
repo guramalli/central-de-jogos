@@ -18,7 +18,7 @@
 {
   const PET_ARTE = { caramelo: 'pet_caramelo2' }; // v360: caramelo refeito (o 1º tinha patas a mais)
   const petNome = id => PET_ARTE[id] || `pet_${id}`;
-  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['caramelo', 'arara', 'robo', 'dragao'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
+  const ART = ['ad_coroa_chamas', 'ad_aureola_raios', 'ad_prancha', ...['caramelo', 'arara', 'robo', 'dragao', 'tricerinho'].flatMap(p => [1, 2, 3, 4].map(k => `${petNome(p)}_c${k}`))];
   for (const n of ART) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   const premium = () => typeof prem === 'function' && prem('lendario'); // (jogo_extra/premium.js, só na Steam)
   const nv = () => (G.save && G.save.nivel) || 1;
@@ -37,7 +37,8 @@
     mascote: [['caramelo', 'Caramelo', '🐶', { ok: () => torreMax() >= 25, txt: '🔒 Andar 25 da Torre' }, 'O caramelo mais fiel do campinho.'],
       ['arara', 'Arara Craque', '🦜', { ok: () => miticos() >= 10, txt: '🔒 10 itens míticos' }, 'Voa do seu lado com a faixa da torcida.'],
       ['robo', 'Mini-Robô', '🤖', { ok: () => !!(G.save && G.save.flags && G.save.flags.venceu_ch_supremo), txt: '🔒 Vencer o Supremo da Galáxia' }, 'Cabeça de bola, coração de goleador.'],
-      ['dragao', 'Dragãozinho', '🐉', PREM, 'Um filhote de dragão com a ponta do rabo de bola.']],
+      ['dragao', 'Dragãozinho', '🐉', PREM, 'Um filhote de dragão com a ponta do rabo de bola.'],
+      ['tricerinho', 'Tricerinho', '🦕', { ok: () => !!(G.save && G.save.flags && G.save.flags.pet_tricerinho), txt: '🔒 Chocar um ovo do Vale Jurássico' }, 'Um filhote de tricerátops chocado no Vale Jurássico. Raríssimo!']], // v364
     coroa: [['chamas', 'Coroa de Chamas Azuis', '🔵', porNivel(600), 'Fogo azul em cima da cabeça (no lugar do halo).'],
       ['raios', 'Auréola de Raios', '⚡', porNivel(800), 'Um anel de raios estalando sobre você.']],
     comemora: [['confete', 'Confete', '🎊', porNivel(300), 'Chuva de confete quando você derruba um chefão.'],
@@ -51,7 +52,7 @@
       ['prancha', 'Prancha Flutuante', '🛹', PREM, 'Você anda flutuando numa prancha (só visual).'],
       ['moldura', 'Moldura Lendária', '🏅', PREM, 'Seu nome numa placa dourada brilhante.']],
   };
-  const IMG = { caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
+  const IMG = { tricerinho: 'pet_tricerinho_c1', caramelo: 'pet_caramelo2_c1', arara: 'pet_arara_c1', robo: 'pet_robo_c1', dragao: 'pet_dragao_c1', chamas: 'ad_coroa_chamas', raios: 'ad_aureola_raios', prancha: 'ad_prancha' };
   const UNICO = { rastro: true, mascote: true, coroa: true, comemora: true }; // escolhe um (ou nenhum)
   const cfg = () => { const s = G.save; if (!s) return {}; if (!s.adornos2 || typeof s.adornos2 !== 'object') s.adornos2 = {}; return s.adornos2; };
   const acha = (g, id) => (OPCOES[g] || []).find(o => o[0] === id);
@@ -108,7 +109,7 @@
 
   /* ---------- mascote ---------- */
   const PET = { x: null, y: null, fase: 0, mov: false, flip: false };
-  const PET_VOA = new Set(['arara', 'dragao']), PET_ALT = { caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62 };
+  const PET_VOA = new Set(['arara', 'dragao']), PET_ALT = { caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56 };
   function atualizaPet(e, dt) {
     const id = atual('mascote'); if (!id) { PET.x = null; return null; }
     const lado = e.flip ? 1 : -1, ax = e.x + lado * 0.9, ay = e.y + 0.15;

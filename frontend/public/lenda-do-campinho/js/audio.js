@@ -29,7 +29,11 @@
   // v287: fundo do mar (Atlântida), galáxia (Estação, planetas e Copa Intergaláctica) e o Vale das Pedras Celestiais (Pixabay Music)
   const MUS_FIM = { atlantida: 150.59, atlantida2: 176.25, galaxia: 140.79, galaxia2: 335.16, celeste: 110.32 };
   Object.assign(MUSICAS, MUS_FIM);
-  const MAPA_FIM = { multiverso: 'galaxia', pedraforte: 'dg_caverna', picos_nublados: 'celeste', torre_infinita: 'dg_vulcao', // v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
+  // v364 (dono: "músicas novas onde não temos, com tema de exploração, excitação, descoberta... ação"; Pixabay Music, mesma licença):
+  // Multiverso, Pedraforte, Picos Nublados e Torre com faixa própria; luta de CHEFÃO; o labirinto jurássico (mapas jur_*) e o T-Rex
+  const MUS_V364 = { multiverso: 122.1, pedraforte: 125.3, picos: 144.3, torre: 137.5, chefe: 142.5, aventura: 141.7, dino: 95.95, dino2: 119.9, dino_boss: 164.3 };
+  Object.assign(MUSICAS, MUS_V364);
+  const MAPA_FIM = { multiverso: 'multiverso', pedraforte: 'pedraforte', picos_nublados: 'picos', torre_infinita: 'torre', // v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
     atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
   // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
   Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
@@ -352,10 +356,11 @@
   /* ---------- sessões de música: toca um pouco, dá um tempo, volta (às vezes outra faixa) ---------- */
   // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
   const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
-  for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca']; // v277
+  for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca', 'aventura']; // v277 (v364: + aventura)
   Object.assign(ALTERNA, { vila: ['vila3', 'vila2'], cidade: ['cidade3', 'cidade2', 'cidade', 'vila2'], praia3: ['praia3', 'vila2', 'vila'], ct3: ['ct3', 'cidade2', 'cidade'] }); // v278: a nova primeiro
   for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
   Object.assign(ALTERNA, { atlantida: ['atlantida', 'atlantida2'], galaxia: ['galaxia', 'galaxia2'], celeste: ['celeste', 'galaxia'] }); // v287
+  Object.assign(ALTERNA, { multiverso: ['multiverso', 'galaxia2'], pedraforte: ['pedraforte', 'dg_caverna'], picos: ['picos', 'celeste'], torre: ['torre', 'dg_vulcao'], dino: ['dino', 'dino2', 'aventura'], dino_boss: ['dino_boss'], chefe: ['chefe'] }); // v364
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
   function sessao(base) {
@@ -420,6 +425,7 @@
   function faixaDoMapa(id) {
     if (MUS_CIDADE[id]) return id; // v276: a cidade tem música própria
     if (MAPA_FIM[id]) return MAPA_FIM[id]; // v287
+    if (id && id.indexOf('jur_') === 0) return id === 'jur_trex' ? 'dino_boss' : 'dino'; // v364: labirinto jurássico
     if (id === 'praia') return 'praia3'; if (id === 'ct') return 'ct3'; // v278
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';
@@ -440,6 +446,8 @@
       const id = G.mapa.id;
       let f = G.mapa.caca ? musicaDaCaca(G.mapa.caca) : (G.mapa.estadio || G.mapa.arena) ? 'estadio' : faixaDoMapa(id); // v155: caçadas e estádios/arenas têm música própria
       if (!f && G.mapa.interior && A.faixa) f = A.faixa;   // interiores desconhecidos: mantém a faixa
+      // v364: chefão bravo por perto = música de batalha (o T-Rex tem a dele); acabou a luta, volta a música do lugar
+      try { if (!G.mapa.estadio && G.p && G.mons && G.mons.some(m => m.d && m.d.chefe && !m.d.pedraTorre && !m.d.pedra && m.bravo && m.hp > 0 && Math.hypot(m.x - G.p.x, m.y - G.p.y) < 11)) return { musica: id.indexOf('jur_') === 0 ? 'dino_boss' : 'chefe', torcida: false, luta: true }; } catch (e) { }
       const est = G.mapa.estadio && typeof ESTADIOS !== 'undefined' && ESTADIOS.find(e => e.id === G.mapa.estadio);
       const host = id === 'estadio' ? 'estadio' : est && est.host;
       return { musica: f || A.faixa || 'vila', torcida: !!host, qual: host ? 'torcida_' + (TORCIDA_HOST[host] || 'br') : null }; // v278: todo estádio tem a torcida do seu país
@@ -457,7 +465,7 @@
     if (!A.gesto || !A.ctx) return;
     const cx = contexto();
     // no mapa (fora de partida/história/tela inicial) a música vem em sessões, com intervalos de ambiente
-    const noMapa = typeof G !== 'undefined' && G.rodando && G.mapa && cx.musica !== 'titulo' && !cx.torcida;
+    const noMapa = typeof G !== 'undefined' && G.rodando && G.mapa && cx.musica !== 'titulo' && !cx.torcida && !cx.luta; // v364: na luta de chefão, a música toca direto (sem pausas)
     let faixa = cx.musica;
     if (noMapa) faixa = sessao(cx.musica); else if (A.ses) A.ses.base = null; // fora do mapa: próxima volta começa com música
     trocaMusica(on ? faixa : A.faixa);

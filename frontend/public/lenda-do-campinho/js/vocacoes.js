@@ -12,15 +12,19 @@
    joga continua com a mesma classe, só com as regras novas.
    Carregar DEPOIS de lances.js (envolve stats, usarDrible, danoMaxJogador...).
    ============================================================ */
+// v364 (dono: "vamos reequilibrar as classes"): medido com o jogador preparado contra um alvo de vida enorme (dano por minuto, níveis
+// 50–450): o Artilheiro causava +48% a +68% da média e Paredão/Motorzinho −24% a −37%. Agora: 1 alvo ≈ Artilheiro +10%, Cérebro ±,
+// Paredão −10% (é o tanque: toma 3–4× menos dano), Motorzinho −5%; em grupo de 3 todos ficam em ±15%.
+// dano = fator em TODO ataque da classe; area = jogadas de área de perto (antes usavam o 'perto')
 const VOCACAO = {
-  paredao: { papel: 'Knight', hp: 1.35, foco: 0.8, perto: 1.2, longe: 0.7, alcance: 0, cura: 1, colado: 1,
-    forte: 'Corpo a corpo e muito fôlego (+35%).', fraco: 'Chute de longe fraco (−30%).', magias: ['carrinho', 'tranco', 'chamar_marcacao'] },
-  driblador: { papel: 'Paladino', hp: 0.9, foco: 1, perto: 0.7, longe: 1.4, alcance: 2, cura: 1, colado: 1.25,
-    forte: 'Chute de longe (+40% de dano e +2 de alcance).', fraco: 'Colado no adversário: drible −30% e toma +25% de dano.', magias: ['trivela', 'chuva_bolas', 'canhao'] },
-  cerebro: { papel: 'Mago', hp: 0.75, foco: 1.5, perto: 0.8, longe: 0.9, alcance: 0, cura: 1, colado: 1, magia: 1.35,
-    forte: 'Muito foco (+50%) e jogadas de longe/em área (+35%).', fraco: 'Pouco fôlego (−25%).', magias: ['lancamento', 'hipnose', 'toque_mestre'] },
-  motorzinho: { papel: 'Druida', hp: 1, foco: 1.25, perto: 1, longe: 1, alcance: 0, cura: 1.6, colado: 1,
-    forte: 'Curas 60% mais fortes, +25% de foco, regeneração e magia que prende em área.', fraco: 'Não tem golpe forte de um alvo só (as magias dele são de cura e área).', magias: ['agua_gelada', 'grito_torcida', 'raiz'] },
+  paredao: { papel: 'Knight', hp: 1.35, foco: 0.8, perto: 1.85, area: 1.2, longe: 0.7, alcance: 0, cura: 1, colado: 1, dano: 1.05,
+    forte: 'Golpe de perto muito forte (+85%) e muito fôlego (+35%).', fraco: 'Chute de longe fraco (−30%).', magias: ['carrinho', 'tranco', 'chamar_marcacao'] },
+  driblador: { papel: 'Paladino', hp: 0.9, foco: 1, perto: 0.7, longe: 1.1, alcance: 2, cura: 1, colado: 1.25, dano: 0.9,
+    forte: 'Chute de longe (+2 de alcance) e mais crítico.', fraco: 'Colado no adversário: drible −30% e toma +25% de dano.', magias: ['trivela', 'chuva_bolas', 'canhao'] },
+  cerebro: { papel: 'Mago', hp: 0.75, foco: 1.5, perto: 0.8, longe: 1, alcance: 0, cura: 1, colado: 1, magia: 1.55,
+    forte: 'Muito foco (+50%) e jogadas de longe/em área (+55%).', fraco: 'Pouco fôlego (−25%).', magias: ['lancamento', 'hipnose', 'toque_mestre'] },
+  motorzinho: { papel: 'Druida', hp: 1, foco: 1.25, perto: 1.3, longe: 1.3, alcance: 0, cura: 1.6, colado: 1, dano: 1.02,
+    forte: 'Curas 60% mais fortes, +25% de foco, regeneração, magia que prende em área e +30% no drible e no chute.', fraco: 'Não tem golpe forte de um alvo só (as magias dele são de cura e área).', magias: ['agua_gelada', 'grito_torcida', 'raiz'] },
 };
 const vocDe = () => (G.save && VOCACAO[G.save.classe]) || null;
 
@@ -41,7 +45,7 @@ const MAGIAS = {
   // Artilheiro (Paladino)
   trivela: { nome: 'Trivela', tipo: 'dist', lvl: 10, foco: 25, cd: 2500, alcance: 6, poder: 2.2, skill: 'chute', fx: 'bola', cor: '#ffd23f', classe: 'driblador', atravessa: true, desc: 'Chute de três dedos que faz curva e acerta também quem está atrás.' },
   chuva_bolas: { nome: 'Chuva de Bolas', tipo: 'dist', lvl: 25, foco: 60, cd: 4000, alcance: 6, poder: 2.0, skill: 'chute', fx: 'explosao', cor: '#ffb03a', classe: 'driblador', areaAlvo: 1.6, desc: 'Várias bolas caem em volta do alvo, de longe.' },
-  canhao: { nome: 'Canhão', tipo: 'dist', lvl: 45, foco: 110, cd: 5000, alcance: 7, poder: 6.5, skill: 'chute', fx: 'explosao', cor: '#ff7a3a', classe: 'driblador', desc: 'A bomba mais forte do jogo, de muito longe.' },
+  canhao: { nome: 'Canhão', tipo: 'dist', lvl: 45, foco: 110, cd: 5000, alcance: 7, poder: 5.5, skill: 'chute', fx: 'explosao', cor: '#ff7a3a', classe: 'driblador', desc: 'A bomba mais forte do jogo, de muito longe.' }, // v364: era 6,5
   // Cérebro (Mago)
   lancamento: { nome: 'Lançamento', tipo: 'dist', lvl: 10, foco: 35, cd: 2000, alcance: 7, poder: 2.6, skill: 'drible', fx: 'bolaforte', cor: '#b07aff', classe: 'cerebro', desc: 'Um lançamento de 40 metros que acerta em cheio.' },
   hipnose: { nome: 'Hipnose', tipo: 'dist', lvl: 25, foco: 50, cd: 10000, alcance: 6, poder: 0.8, skill: 'drible', fx: 'estrelas', cor: '#d07aff', classe: 'cerebro', atordoa: 4000, desc: 'O adversário fica parado, hipnotizado, por 4 s.' },
@@ -65,13 +69,15 @@ function aprendeMagiasDaVocacao() {
 })();
 
 // ---------- números: fôlego, foco, cura e dano de perto x de longe ----------
-let VOC_MODO = null; // 'perto' | 'longe' | 'magia' enquanto um ataque está sendo calculado
+let VOC_MODO = null; // 'perto' | 'area' | 'longe' | 'magia' enquanto um ataque está sendo calculado
 (function () {
   const _stats = stats;
   stats = function () {
     const st = _stats(); const v = vocDe(); if (!v) return st;
     st.maxHp = Math.round(st.maxHp * v.hp); st.maxFoco = Math.round(st.maxFoco * v.foco); st.curaMult *= v.cura;
+    st.danoMult *= v.dano || 1;
     if (VOC_MODO === 'perto') st.danoMult *= v.perto;
+    else if (VOC_MODO === 'area') st.danoMult *= (v.area || v.perto);
     else if (VOC_MODO === 'longe') st.danoMult *= v.longe;
     else if (VOC_MODO === 'magia') st.danoMult *= (v.magia || v.longe);
     return st;
@@ -119,7 +125,7 @@ function danoMagia(dr, m) {
     if (dr.classe && dr.classe !== s.classe) { log(`${dr.nome} é uma magia de outra vocação.`, 'l-sis'); return; }
     const v = vocDe();
     // o que conta como "de perto" e "de longe" para o dano da vocação
-    VOC_MODO = dr.tipo === 'dist' ? (s.classe === 'cerebro' ? 'magia' : 'longe') : (dr.tipo === 'area' || dr.tipo === 'melee') ? 'perto' : null;
+    VOC_MODO = dr.tipo === 'dist' ? (s.classe === 'cerebro' ? 'magia' : 'longe') : dr.tipo === 'area' ? 'area' : dr.tipo === 'melee' ? 'perto' : null;
     const alcanceAntes = dr.alcance; if (dr.tipo === 'dist' && v && v.alcance) dr.alcance = (dr.alcance || 5) + v.alcance; // Artilheiro chuta de mais longe
     const a = G.alvo && G.mons.includes(G.alvo) ? G.alvo : null, cdAntes = G.cds[id];
     try { _ud(id); } finally { dr.alcance = alcanceAntes; }
