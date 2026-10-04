@@ -7,7 +7,8 @@ import { registrarMundo, __configurarMundoParaTestes, __resetMundoParaTestes, __
 
 // Amizades de mentira: ana é amiga de bia.
 const AMIGOS = { ana: ["bia"], bia: ["ana"] };
-__configurarMundoParaTestes({ amigosDe: async (id) => AMIGOS[id] || [] });
+const GUILDAS = { ana: { id: "g1", nome: "Os Leões de Fogo", escudo: "🦁", cor: "#e74c3c" }, bia: { id: "g1", nome: "Os Leões de Fogo", escudo: "🦁", cor: "#e74c3c" } };
+__configurarMundoParaTestes({ amigosDe: async (id) => AMIGOS[id] || [], guildaDe: async (id) => GUILDAS[id] || null });
 
 const http = createServer();
 const io = new Server(http);
@@ -90,4 +91,18 @@ test("caiu: sai do canal e avisa", async () => {
   assert.deepEqual(recebeu(a, "mundo-saiu"), [{ id: "dani" }]);
   const c = [...__canaisMundo.values()].find((k) => k.mapa === "paris");
   assert.equal(c.membros.size, 1);
+});
+
+test("guilda: escudo em cima do nome e frases para a guilda", async () => {
+  const ana = cliente("ana"), bia = cliente("bia"), caio = cliente("caio");
+  await espera(150);
+  await pede(ana, "mundo-entrar", { mapa: "lisboa", perfil: perfil(10) });
+  const rb = await pede(bia, "mundo-entrar", { mapa: "lisboa", perfil: perfil(10) });
+  assert.equal(rb.membros[0].guilda.escudo, "🦁");
+  assert.equal((await pede(ana, "guilda-ligar", {})).guilda.id, "g1");
+  await pede(bia, "guilda-ligar", {}); await pede(caio, "guilda-ligar", {});
+  ana.emit("guilda-frase", { i: 2 }); ana.emit("guilda-frase", { i: 3 }); caio.emit("guilda-frase", { i: 1 });
+  await espera(150);
+  assert.deepEqual(recebeu(bia, "guilda-frase"), [{ de: "ana", apelido: "ANA", i: 2 }]);
+  assert.equal(recebeu(caio, "guilda-frase").length, 0, "quem não é da guilda não recebe");
 });

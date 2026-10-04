@@ -16,6 +16,7 @@ import { amigosDe } from "./torcida.js";
 import { prisma } from "../db.js";
 import { limpaPerfil } from "./socketTorre.js";
 import { mapaValido } from "./socketMundo.js";
+import { colegasDeGuilda } from "./guilda.js";
 
 export const MAX_GRUPO = 4;
 // dono: "deve existir uma diferença mínima entre os players para poder fazer party" → o nível mais alto pode ser
@@ -30,9 +31,11 @@ const TAM_MAX = { mundo: 14000, eu: 600, dano: 120 };
 const grupos = new Map();           // codigo -> grupo
 const grupoDe = new Map();          // userId -> codigo
 
-const deps = { amigosDe: (id) => amigosDe(prisma, id) };
+// amigo OU colega de guilda pode entrar no grupo
+const amigosOuGuilda = async (id) => [...new Set([...(await amigosDe(prisma, id)), ...(await colegasDeGuilda(prisma, id))])];
+const deps = { amigosDe: amigosOuGuilda };
 export function __configurarGrupoParaTestes(n) { Object.assign(deps, n); }
-export function __resetGrupoParaTestes() { grupos.clear(); grupoDe.clear(); deps.amigosDe = (id) => amigosDe(prisma, id); }
+export function __resetGrupoParaTestes() { grupos.clear(); grupoDe.clear(); deps.amigosDe = amigosOuGuilda; }
 export const __grupos = grupos;
 
 const LETRAS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -91,7 +94,7 @@ export function registrarGrupo(io, socket) {
       if (g.membros.has(eu)) { socket.join(quarto(g)); grupoDe.set(eu, codigo); return responde(cb, { ok: true, grupo: resumoGrupo(g) }); } // voltou depois de cair
       if (g.membros.size >= MAX_GRUPO) return responde(cb, { erro: `O grupo já tem ${MAX_GRUPO} jogadores.` });
       const amigos = await deps.amigosDe(g.lider);
-      if (!amigos.includes(eu)) return responde(cb, { erro: "Só amigos de quem criou o grupo podem entrar (adicione no site, menu Amigos)." });
+      if (!amigos.includes(eu)) return responde(cb, { erro: "Só amigos ou colegas de guilda de quem criou o grupo podem entrar (peça amizade no jogo: ☰ Mais › 🤝 Amigos)." });
       const perfil = limpaPerfil(dados?.perfil, apelido);
       const longe = [...g.membros.values()].find((m) => !faixaOk(m.nivel, perfil.nivel));
       if (longe) { const f = faixaDe(longe.nivel); return responde(cb, { erro: `A diferença de nível é grande demais: ${longe.apelido} (nível ${longe.nivel}) só caça em grupo com quem está entre os níveis ${f.de} e ${f.ate}.` }); }
@@ -108,7 +111,7 @@ export function registrarGrupo(io, socket) {
       if (g.lider !== eu) return responde(cb, { erro: "Só o líder chama amigos." });
       const amigo = String(dados?.amigoId || "");
       const amigos = await deps.amigosDe(eu);
-      if (!amigos.includes(amigo)) return responde(cb, { erro: "Só dá para chamar amigos." });
+      if (!amigos.includes(amigo)) return responde(cb, { erro: "Só dá para chamar amigos e colegas de guilda." });
       io.to(`user:${amigo}`).emit("grupo-convite", { codigo: g.codigo, de: apelido });
       responde(cb, { ok: true });
     } catch { responde(cb, { erro: "Não deu para chamar agora." }); }

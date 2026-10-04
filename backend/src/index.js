@@ -36,6 +36,7 @@ import platformStatsRoutes from "./routes/platformStats.js";
 import quizRanksRoutes from "./routes/quizRanks.js";
 import avatarRoutes from "./routes/avatar.js";
 import lendaRoutes from "./routes/lenda.js";
+import lendaGuildaRoutes from "./routes/lendaGuilda.js";
 import { setupSocket } from "./socket/index.js";
 import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 
@@ -133,6 +134,7 @@ app.use("/api/mentira-ranks", mentiraRanksRoutes); // Mentira Sincera: patentes
 app.use("/api/tribunal-rooms", tribunalRoomsRoutes); // O Tribunal: salas abertas (em teste)
 app.use("/api/newsletter", newsletterRoutes); // descadastro pelo link do e-mail (sem login)
 app.use("/api/avatar", avatarRoutes); // avatar montado: catálogo, minha montagem, salvar
+app.use("/api/lenda/guilda", lendaGuildaRoutes); // Lenda do Campinho: guildas (nome de listas prontas, meta semanal, ranking)
 app.use("/api/lenda", lendaRoutes); // Lenda do Campinho (RPG): save na nuvem e casas dos jogadores
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém

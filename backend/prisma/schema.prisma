@@ -683,3 +683,44 @@ model LendaTorcida {
   @@index([para, vista])
   @@index([de, para, criadoEm])
 }
+
+// Lenda do Campinho — GUILDAS (src/lenda/guilda.js + src/routes/lendaGuilda.js). Nome montado com partes de listas
+// fixas (sem texto livre): "partes" = "<nome>.<complemento>" (índices). Escudo e cor = índices das listas.
+model LendaGuilda {
+  id           String   @id @default(cuid())
+  numero       Int      @unique @default(autoincrement())
+  partes       String
+  escudo       Int
+  cor          Int
+  liderId      String
+  criadaEm     DateTime @default(now())
+  semana       String   @default("")
+  pontosSemana Int      @default(0)
+  pontosTotal  Float    @default(0)
+
+  @@index([semana, pontosSemana])
+}
+
+model LendaGuildaMembro {
+  userId       String    @id
+  guildaId     String
+  papel        String    @default("membro") // lider, vice, membro
+  entrouEm     DateTime  @default(now())
+  semana       String    @default("")
+  pontosSemana Int       @default(0)
+  premios      Int       @default(0) // faixas da meta já resgatadas na semana (bits)
+  ultimoEnvio  DateTime?
+
+  @@index([guildaId])
+}
+
+model LendaGuildaConvite {
+  id       String   @id @default(cuid())
+  guildaId String
+  userId   String
+  deId     String
+  criadoEm DateTime @default(now())
+
+  @@unique([guildaId, userId])
+  @@index([userId])
+}

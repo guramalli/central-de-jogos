@@ -99,7 +99,7 @@ export function registrarTorre(io, socket) {
       if (s.fase !== "lobby") return responde(cb, { erro: "O grupo já está subindo. Espere o andar acabar." });
       if (s.membros.size >= MAX_MEMBROS) return responde(cb, { erro: `A sala já tem ${MAX_MEMBROS} jogadores.` });
       const amigos = await deps.amigosDe(s.host);
-      if (!amigos.includes(eu)) return responde(cb, { erro: "Só amigos de quem criou a sala podem entrar (adicione no site, menu Amigos)." });
+      if (!amigos.includes(eu)) return responde(cb, { erro: "Só amigos de quem criou a sala podem entrar (peça amizade no jogo: ☰ Mais › 🤝 Amigos)." });
       if (sala() && sala() !== s) sai("trocou");
       s.membros.set(eu, { id: eu, ...limpaPerfil(dados?.perfil, apelido) });
       salaDoUsuario.set(eu, codigo); socket.join(quarto(s));

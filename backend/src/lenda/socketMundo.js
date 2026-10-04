@@ -15,10 +15,12 @@
 import { amigosDe } from "./torcida.js";
 import { prisma } from "../db.js";
 import { limpaPerfil } from "./socketTorre.js";
+import { guildaDe } from "./guilda.js";
 
 export const MAX_POR_CANAL = 25;
 export const EMOTES = 8;
 export const FRASES = 16;
+export const FRASES_GUILDA = 12;
 const MAX_JOGADORES = 5000;
 const TICK_MS = 150;
 const LIMITE_POR_SEG = 15;            // posições por segundo, por conexão (o jogo manda ~7)
@@ -28,14 +30,15 @@ const AMIGOS_CACHE_MS = 5 * 60 * 1000;
 const canais = new Map();             // "mapa#n" -> { chave, mapa, n, membros: Map(id -> membro), mudou: Set(id) }
 const ondeEsta = new Map();           // userId -> chave do canal
 const amigosCache = new Map();        // userId -> { ate, lista }
+const guildaCache = new Map();        // userId -> { ate, g } (escudo da guilda em cima do nome)
 let tick = null;
 
-const deps = { amigosDe: (id) => amigosDe(prisma, id) };
+const deps = { amigosDe: (id) => amigosDe(prisma, id), guildaDe: (id) => guildaDe(prisma, id) };
 export function __configurarMundoParaTestes(n) { Object.assign(deps, n); }
 export function __resetMundoParaTestes() {
   canais.clear(); ondeEsta.clear(); amigosCache.clear();
   if (tick) { clearInterval(tick); tick = null; }
-  deps.amigosDe = (id) => amigosDe(prisma, id);
+  deps.amigosDe = (id) => amigosDe(prisma, id); deps.guildaDe = (id) => guildaDe(prisma, id); guildaCache.clear();
 }
 export const __canaisMundo = canais;
 
@@ -45,7 +48,14 @@ const quarto = (chave) => `mundo:${chave}`;
 export function limpaPos(d) {
   return { x: +num(d?.x, 0, 1000).toFixed(2), y: +num(d?.y, 0, 1000).toFixed(2), f: d?.f ? 1 : 0, m: d?.m ? 1 : 0, fa: +num(d?.fa, 0, 1e6).toFixed(2), v: [0, 1, 2].includes(d?.v) ? d.v : 0 };
 }
-const publico = (mb) => ({ id: mb.id, apelido: mb.apelido, nivel: mb.nivel, look: mb.look, x: mb.x, y: mb.y, f: mb.f, m: mb.m, fa: mb.fa, v: mb.v });
+const publico = (mb) => ({ id: mb.id, apelido: mb.apelido, nivel: mb.nivel, look: mb.look, x: mb.x, y: mb.y, f: mb.f, m: mb.m, fa: mb.fa, v: mb.v, guilda: mb.guilda || null });
+async function guildaCom(id, forcar) {
+  const c = guildaCache.get(id), agora = Date.now();
+  if (c && c.ate > agora && !forcar) return c.g;
+  let g = null; try { g = await deps.guildaDe(id); } catch { g = c?.g || null; }
+  const tag = g ? { id: g.id, nome: g.nome, escudo: g.escudo, cor: g.cor } : null;
+  guildaCache.set(id, { ate: agora + AMIGOS_CACHE_MS, g: tag }); return tag;
+}
 
 async function amigosCom(id) {
   const c = amigosCache.get(id), agora = Date.now();
@@ -111,11 +121,11 @@ export function registrarMundo(io, socket) {
         return responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico) });
       }
       if (ondeEsta.size >= MAX_JOGADORES && !atual) return responde(cb, { erro: "O mundo está lotado agora. Tente daqui a pouco." });
-      const amigos = await amigosCom(eu);
+      const [amigos, guilda] = await Promise.all([amigosCom(eu), guildaCom(eu)]);
       if (minha !== entrando) return responde(cb, { erro: "trocou" }); // mudou de mapa de novo enquanto esperava
       sai();
       const c = escolheCanal(mapa, amigos);
-      const mb = { id: eu, ...limpaPerfil(dados?.perfil, apelido), ...limpaPos(dados), sid: socket.id };
+      const mb = { id: eu, ...limpaPerfil(dados?.perfil, apelido), ...limpaPos(dados), sid: socket.id, guilda };
       c.membros.set(eu, mb); ondeEsta.set(eu, c.chave); socket.join(quarto(c.chave));
       socket.to(quarto(c.chave)).emit("mundo-chegou", publico(mb));
       ligaTick(io);
@@ -146,6 +156,22 @@ export function registrarMundo(io, socket) {
   });
   fala("mundo-emote", EMOTES);
   fala("mundo-frase", FRASES);
+
+  // ---- guilda: frases prontas para a guilda inteira (quem está online) ----
+  let salaGuilda = null, ultimaGuilda = 0;
+  socket.on("guilda-ligar", async (_d, cb) => {
+    const g = await guildaCom(eu, true); // (entrou/saiu de guilda: confere de novo)
+    if (salaGuilda && (!g || salaGuilda !== `guilda:${g.id}`)) { socket.leave(salaGuilda); salaGuilda = null; }
+    if (g) { salaGuilda = `guilda:${g.id}`; socket.join(salaGuilda); }
+    const c = meuCanal(), mb = c?.membros.get(eu); if (mb) { mb.guilda = g; socket.to(quarto(c.chave)).emit("mundo-perfil", publico(mb)); }
+    responde(cb, { ok: true, guilda: g });
+  });
+  socket.on("guilda-frase", (dados) => {
+    if (!salaGuilda) return;
+    const t = Date.now(); if (t - ultimaGuilda < 2000) return; ultimaGuilda = t;
+    const i = Math.round(Number(dados?.i)); if (!(i >= 0 && i < FRASES_GUILDA)) return;
+    io.to(salaGuilda).emit("guilda-frase", { de: eu, apelido, i });
+  });
 
   socket.on("disconnect", () => {
     const c = meuCanal(); if (!c) return;
