@@ -2,7 +2,9 @@
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
    🤝 AMIGOS NO JOGO + 📣 TORCIDA (v353 — item 5 do pacote: social seguro para crianças)
-   - Só com a conta do Educação Gamer e só os AMIGOS aceitos no site (quem adiciona amigo é o site).
+   - Só com a conta do Educação Gamer e só os AMIGOS aceitos (v382, dono: "amigos apenas pelo site não é legal, não dá
+     para adicionar pelo jogo?": agora dá — por apelido, ou ➕ em quem está perto no mundo compartilhado; pedidos recebidos
+     e enviados aqui mesmo. Usa as rotas de amizade do site: /api/friends).
    - Lista: apelido, nível, fase; 👤 ver a ficha; 🏠 visitar a casa publicada.
    - 📣 Torcer: uma de 6 frases PRONTAS (nada de texto livre), 1 por amigo por dia.
      O amigo vê "📣 FULANO torceu por você: 👏 Mandou bem!" quando abrir o jogo (ou em até 5 min).
@@ -16,10 +18,41 @@ async function amgPede(metodo, caminho, corpo) {
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, dados: j };
 }
+// amizade (as mesmas rotas do site): GET /api/friends · POST /api/friends/request · POST /api/friends/:id/accept · DELETE /api/friends/:id
+async function amgSite(metodo, caminho, corpo) {
+  const r = await fetch(PORTAL.api + '/api/friends' + caminho, { method: metodo, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: corpo ? JSON.stringify(corpo) : undefined });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, dados: j };
+}
+async function amgPedeAmizade(alvo, depois) { // alvo: { targetUserId } ou { nickname }
+  let r; try { r = await amgSite('POST', '/request', alvo); } catch (e) { r = { ok: false, dados: {} }; }
+  if (r.ok) { som('moeda'); avisoJogo(`🤝 Pedido de amizade enviado para ${r.dados.nickname || alvo.nickname || 'o jogador'}! Quando aceitar, vocês podem caçar em grupo.`); }
+  else avisoJogo('🤝 ' + ((r.dados && r.dados.error) || 'Não deu para enviar o pedido agora.'));
+  if (typeof depois === 'function') depois(r.ok);
+  return r.ok;
+}
+window.amgPedeAmizade = amgPedeAmizade;
+// pedidos de amizade: recebidos (aceitar/recusar), enviados (cancelar) e adicionar por apelido
+async function amgPedidos() {
+  const caixa = el('div', { class: 'amg-pedidos' });
+  const ap = el('input', { maxlength: 30, placeholder: 'Apelido no Educação Gamer', style: 'flex:1;min-width:150px' });
+  const manda = () => { const n = ap.value.trim(); if (n) amgPedeAmizade({ nickname: n }, ok => { if (ok) modalAmigos(); }); };
+  ap.addEventListener('keydown', e => { if (e.key === 'Enter') manda(); e.stopPropagation(); });
+  caixa.append(el('div', { class: 'opcoes', style: 'align-items:center' }, '➕ Adicionar amigo:', ap, el('button', { class: 'btn amarelo', type: 'button', onclick: manda }, 'Enviar pedido')));
+  let r; try { r = await amgSite('GET', ''); } catch (e) { r = { ok: false }; }
+  if (!r.ok) return caixa;
+  const rec = r.dados.receivedPending || [], env = r.dados.sentPending || [];
+  for (const p of rec) caixa.append(el('div', { class: 'amg-linha amg-novo' }, el('span', {}, `📨 ${p.nickname} quer ser seu amigo`), el('div', { class: 'amg-botoes' },
+    el('button', { class: 'btn mini amarelo', type: 'button', onclick: async () => { const x = await amgSite('POST', `/${p.friendshipId}/accept`); avisoJogo(x.ok ? `🤝 Agora você e ${p.nickname} são amigos!` : '🤝 Não deu para aceitar agora.'); modalAmigos(); } }, '✅ Aceitar'),
+    el('button', { class: 'btn mini', type: 'button', onclick: async () => { await amgSite('DELETE', `/${p.friendshipId}`); modalAmigos(); } }, '❌ Recusar'))));
+  if (env.length) caixa.append(el('details', {}, el('summary', {}, `⏳ Pedidos que você enviou (${env.length})`), ...env.map(p => el('div', { class: 'amg-linha' }, el('span', {}, `${p.nickname} ainda não respondeu`),
+    el('button', { class: 'btn mini', type: 'button', onclick: async () => { await amgSite('DELETE', `/${p.friendshipId}`); modalAmigos(); } }, 'Cancelar')))));
+  return caixa;
+}
 async function modalAmigos() {
   if (!PORTAL.token) {
     abreModal(el('h2', {}, '🤝 Amigos'), el('p', {}, 'Entre com a sua conta do Educação Gamer para ver aqui os seus amigos que jogam o Lenda do Campinho e mandar torcida para eles.'),
-      el('p', { class: 'vazio' }, 'Os amigos são adicionados no site (menu Amigos).'));
+      el('p', { class: 'vazio' }, 'Com a conta, você adiciona amigos aqui mesmo no jogo.'));
     return;
   }
   abreModal(el('h2', {}, '🤝 Amigos'), el('p', { class: 'vazio' }, 'Carregando...'));
@@ -40,7 +73,8 @@ async function modalAmigos() {
         el('button', { class: 'btn mini amg-torcer', type: 'button', onclick: () => amgEscolheTorcida(a) }, '📣 Torcer')));
     lista.append(linha);
   }
-  abreModal(el('h2', {}, '🤝 Amigos'), el('p', { class: 'vazio' }, 'Seus amigos do Educação Gamer que jogam o Lenda. Torcida = frases prontas, 1 por amigo por dia.'), lista);
+  const pedidos = await amgPedidos();
+  abreModal(el('h2', {}, '🤝 Amigos'), pedidos, el('p', { class: 'vazio' }, 'Seus amigos do Educação Gamer que jogam o Lenda. Torcida = frases prontas, 1 por amigo por dia.'), lista);
 }
 function amgEscolheTorcida(a) {
   const caixa = el('div', { class: 'amg-frases' });
@@ -64,6 +98,15 @@ async function amgRecebe() {
   if ((r.dados.torcidas || []).length) som('raro');
 }
 if (amgLigado()) { setTimeout(amgRecebe, 15000); setInterval(amgRecebe, 5 * 60000); }
+// pedidos de amizade novos: avisa ao entrar e a cada 5 min (só quando muda)
+async function amgPedidosNovos() {
+  if (!amgLigado() || !PORTAL.token || !G.rodando) return;
+  let r; try { r = await amgSite('GET', '/pending-count'); } catch (e) { return; }
+  const n = r.ok ? (+r.dados.count || +r.dados.pending || +r.dados.total || 0) : 0;
+  if (n > (AMG.pedidosVistos || 0)) { log(`📨 Você tem ${n} pedido(s) de amizade! Abra ☰ Mais › 🤝 Amigos para aceitar.`, 'l-xp'); banner('📨 Pedido de amizade!', '☰ Mais › 🤝 Amigos'); }
+  AMG.pedidosVistos = n;
+}
+if (amgLigado()) { setTimeout(amgPedidosNovos, 20000); setInterval(amgPedidosNovos, 5 * 60000); }
 (function poeBotaoAmg(t = 0) {
   if (!amgLigado()) return;
   const lista = document.querySelector('.tb-lista'); if (!lista) { if (t < 40) setTimeout(() => poeBotaoAmg(t + 1), 500); return; }
@@ -76,6 +119,7 @@ if (amgLigado()) { setTimeout(amgRecebe, 15000); setInterval(amgRecebe, 5 * 6000
   css.textContent = `.amg-lista { display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow: auto; }
   .amg-linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgba(0,0,0,.06); flex-wrap: wrap; }
   .amg-info small { opacity: .7; } .amg-botoes { display: flex; gap: 4px; }
+  .amg-pedidos { margin-bottom: 8px; } .amg-novo { background: rgba(255,200,40,.18); }
   .amg-frases { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin: 8px 0; }`;
   document.head.append(css);
 }

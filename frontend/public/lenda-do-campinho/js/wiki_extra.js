@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v382', '🛡️ GUILDAS! Crie a sua (nome e escudo de listas prontas) ou entre a convite de um amigo: até 30 membros, meta da semana (contam adversários com pelo menos 60% do seu nível) com prêmios para quem ajuda, ranking das guildas e frases para a guilda. 🤝 Amigos agora se adicionam no próprio jogo (por apelido ou ➕ em quem está perto na cidade). 💬 A conversa com quem está perto fica no ☰ Mais (ou tecla Y).'],
     ['v381', '🌐 Jogue junto! Nas cidades você vê os outros jogadores andando (emotes e frases prontas no 💬 ou na tecla Y; dá para silenciar e esconder). 👥 Caça em grupo com até 3 amigos (☰ Mais › Caçar em grupo): todos enfrentam os mesmos adversários; cada um ganha o que ajudou a derrubar, com prêmio menor por adversário (2: 65%, 3: 50%, 4: 40%) porque o grupo derruba muito mais. Diferença de nível: o mais alto pode ser até 50% maior que o mais baixo.'],
     ['v380', '🗼 Torre Infinita repaginada: uma ilha de pedra flutuando no espaço, com anel de rocha e lava. 🏢 O Escritório da Agência ganhou piso de taco e tapete com a estrela da agência. 🐉 Dragãozinho: o bônus de dano vale depois que você libera a Arara.'],
     ['v379', '🗺️ Mapas repaginados de Atlântida em diante: chão novo desenhado à mão, bordas lisas, penhascos e enfeites variados (água e lava com beirada lisa). E as entradas/saídas das caças agora são LARGAS: sai por qualquer ponto do portal.'],

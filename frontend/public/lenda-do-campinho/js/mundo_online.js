@@ -4,7 +4,8 @@
    🌐 MUNDO COMPARTILHADO — "MMO leve", etapa 1 (v381; dono: "um MMO leve seria legal")
    Nas cidades e centros (não nas caças, casas, arenas e Torre) você vê os outros jogadores que estão no mesmo mapa, andando
    com o personagem deles. Cada mapa tem "canais" de até 25 (os amigos caem no mesmo canal).
-   - Sem texto livre (público infantil): a conversa são 8 EMOTES e 16 FRASES PRONTAS (botão 💬 ou tecla Y).
+   - Sem texto livre (público infantil): a conversa são 8 EMOTES e 16 FRASES PRONTAS (☰ Mais › 💬 Falar, ou tecla Y;
+     v382, dono: "não deixe o botão fixo"). Na lista de quem está aqui: ➕ pedir amizade.
    - Ninguém atrapalha ninguém: os outros não bloqueiam o caminho, não dá para clicar neles nem brigar.
    - 🔇 silenciar alguém (só para você) e "🙈 esconder os outros" no painel 💬.
    - Só com a conta do site (o servidor confere o login). Steam: desligado (lá não tem conta do site).
@@ -49,7 +50,8 @@ async function moConecta() {
 function moEscuta(s) {
   s.on('mundo-chegou', mb => moPoe(mb));
   s.on('mundo-saiu', ({ id }) => moTira(id));
-  s.on('mundo-perfil', mb => { const o = MO.outros.get(mb.id); if (o) { o.ent.d.look = moLook(mb.look); o.ent.d.nome = moNome(mb); try { preCarrega(o.ent.d.look); } catch (e) { } } });
+  s.on('mundo-top', ids => { MO.top = (ids || []).map(String); moRenomeia(); });
+  s.on('mundo-perfil', mb => { const o = MO.outros.get(mb.id); if (o) { o.guilda = mb.guilda; o.nivel = mb.nivel; o.ent.d.look = moLook(mb.look); o.ent.d.nome = moNome(mb); try { preCarrega(o.ent.d.look); } catch (e) { } } });
   s.on('mundo-pos', lista => { for (const [id, x, y, f, m, fa, v] of lista || []) { const o = MO.outros.get(id); if (!o) continue; o.ent.alvo = { x, y }; o.ent.flip = !!f; o.ent.mov = !!m; o.ent.fase = fa; o.ent.vista = MO_VISTAS[v] || 'frente'; o.ent.tVista = G.agora; o.t = Date.now(); } });
   s.on('mundo-emote', ({ de, i }) => moMostra(de, MO_EMOTES[i], true));
   s.on('mundo-frase', ({ de, i }) => moMostra(de, MO_FRASES[i], false));
@@ -60,13 +62,18 @@ function moEscuta(s) {
 /* ---------- os outros na tela ---------- */
 const moLook = l => l && l.tipo === 'humano' ? l : { tipo: 'humano', corpo: 'm', pele: 'pele-morena', cabelo: 'cabelo-curto', roupa: 'roupa-camiseta', baixo: 'baixo-shorts' };
 const MO_VISTAS = ['frente', 'costas', 'lado'];
-const moNome = mb => `Nv ${mb.nivel} · ${mb.apelido}`;
+// v382: escudo da guilda na frente; e os 3 primeiros do ranking de XP ganham a medalha com o número (dono: "um número do
+// rank do lado do nickname como sinal de poder")
+const MO_MEDALHAS = ['🥇1', '🥈2', '🥉3'];
+const moMedalha = id => { const i = (MO.top || []).indexOf(String(id)); return i >= 0 ? MO_MEDALHAS[i] + ' ' : ''; };
+const moNome = mb => `${moMedalha(mb.id)}${mb.guilda && mb.guilda.escudo ? mb.guilda.escudo + ' ' : ''}Nv ${mb.nivel} · ${mb.apelido}`;
+function moRenomeia() { for (const [id, o] of MO.outros) o.ent.d.nome = moNome({ id, apelido: o.apelido, nivel: o.nivel, guilda: o.guilda }); }
 function moPoe(mb) {
   if (!mb || !mb.id || mb.id === PORTAL.contaId) return;
   const look = moLook(mb.look); try { preCarrega(look); } catch (e) { }
   const x = +mb.x || (G.p ? G.p.x : 0), y = +mb.y || (G.p ? G.p.y : 0);
   const ent = { id: 'mundo_' + mb.id, mundo: mb.id, coop: 'mundo', d: { nome: moNome(mb), look, ola: '' }, x, y, alvo: { x, y }, flip: !!mb.f, r: 0.32, fase: +mb.fa || 0, mov: !!mb.m, vista: MO_VISTAS[mb.v] || 'frente', tVista: G.agora };
-  MO.outros.set(mb.id, { ent, apelido: mb.apelido, nivel: mb.nivel, t: Date.now() });
+  MO.outros.set(mb.id, { ent, apelido: mb.apelido, nivel: mb.nivel, guilda: mb.guilda, t: Date.now() });
 }
 function moTira(id) { MO.outros.delete(id); }
 function moLimpa() { MO.outros.clear(); }
@@ -92,7 +99,8 @@ async function moEntra(id) {
   const p = G.p, r = await new Promise(ok => { const t = setTimeout(() => ok({ erro: 'tempo' }), 8000); MO.sock.emit('mundo-entrar', { mapa: id, perfil: moPerfil(), x: p.x, y: p.y, f: p.flip ? 1 : 0, m: 0, fa: 0 }, r2 => { clearTimeout(t); ok(r2 || {}); }); });
   if (MO.mapa !== id) return;
   if (!r.ok) { MO.mapa = null; return; }
-  MO.canal = r.canal; moLimpa(); for (const mb of r.membros || []) moPoe(mb);
+  MO.canal = r.canal; if (r.top) MO.top = r.top.map(String); moLimpa(); for (const mb of r.membros || []) moPoe(mb);
+  if (MO.outros.size && !MO.avisou) { MO.avisou = true; log('🌐 Tem outros jogadores aqui! Para mandar um emote ou uma frase pronta: tecla Y ou ☰ Mais › 💬 Falar. Lá também dá para pedir amizade.', 'l-sis'); }
   MO.perfilTxt = JSON.stringify(moPerfil());
   moBotao();
 }
@@ -135,6 +143,11 @@ function moPasso(dt) {
 {
   const _desMo = desenha;
   desenha = function () {
+    const med = MO.mapa && G.save && PORTAL.contaId ? moMedalha(PORTAL.contaId) : '';
+    if (med && G.save.nome) { const nome0 = G.save.nome; G.save.nome = med + nome0; try { return moDesenha.apply(this, arguments); } finally { G.save.nome = nome0; } }
+    return moDesenha.apply(this, arguments);
+  };
+  const moDesenha = function () {
     if (!MO.mapa || !MO.outros.size || !G.mapa || G.mapa.id !== MO.mapa) return _desMo.apply(this, arguments);
     const extra = moVisiveis(); if (!extra.length) return _desMo.apply(this, arguments);
     const antes = G.npcs; G.npcs = antes.concat(extra);
@@ -169,11 +182,19 @@ function moFala(tipo, i) {
   const agora = Date.now(); if (agora - (MO.tFala || 0) < 1200) return; MO.tFala = agora;
   MO.sock.emit(tipo === 'e' ? 'mundo-emote' : 'mundo-frase', { i });
 }
-function moPainel() {
+async function moAmigosIds() { // quem já é amigo (ou tem pedido), para o botão ➕ (guardado 1 min)
+  if (MO.amigos && Date.now() - MO.amigos.t < 60000) return MO.amigos.ids;
+  const ids = new Set();
+  try { const r = await fetch(PORTAL.api + '/api/friends', { headers: { Authorization: 'Bearer ' + PORTAL.token } }); const j = await r.json(); for (const k of ['friends', 'receivedPending', 'sentPending']) for (const a of j[k] || []) ids.add(String(a.userId)); } catch (e) { }
+  MO.amigos = { t: Date.now(), ids }; return ids;
+}
+async function moPainel() {
+  const amigos = MO.mapa ? await moAmigosIds() : new Set();
   if (!MO.mapa) return avisoJogo('🌐 Aqui é só seu: os outros jogadores aparecem nas cidades e nos centros (não nas caças, casas e arenas).');
   const n = MO.outros.size;
   const lista = [...MO.outros].sort((a, b) => a[1].apelido.localeCompare(b[1].apelido)).map(([id, o]) => el('div', { class: 'mo-pessoa' },
     el('span', {}, `${o.apelido} · Nv ${o.nivel}`),
+    amigos.has(String(id)) ? el('small', {}, '🤝 amigo') : el('button', { class: 'btn mini', type: 'button', onclick: ev => { ev.target.disabled = true; typeof amgPedeAmizade === 'function' && amgPedeAmizade({ targetUserId: id }, ok => { if (ok) { MO.amigos = null; ev.target.textContent = '✅ Pedido enviado'; } else ev.target.disabled = false; }); } }, '➕ Amigo'),
     el('button', { class: 'btn mini', type: 'button', onclick: () => { MO_MUDOS.has(id) ? MO_MUDOS.delete(id) : MO_MUDOS.add(id); moGrava('rac_mundo_mudos', [...MO_MUDOS].slice(-300)); moPainel(); } }, MO_MUDOS.has(id) ? '🔈 Mostrar' : '🔇 Silenciar')));
   abreModal(el('h2', {}, '💬 Falar com quem está aqui'),
     el('p', { class: 'dica' }, `🌐 ${n} ${n === 1 ? 'jogador' : 'jogadores'} neste lugar (canal ${MO.canal}). Sem chat livre: escolha um emote ou uma frase.`),
@@ -182,16 +203,17 @@ function moPainel() {
     el('label', { class: 'mo-esconde' }, el('input', { type: 'checkbox', checked: MO_ESCONDE, onchange: e => { MO_ESCONDE = e.target.checked; moGrava('rac_mundo_esconde', MO_ESCONDE); } }), ' 🙈 Esconder os outros jogadores'),
     n ? el('details', {}, el('summary', {}, `👥 Quem está aqui (${n})`), el('div', { class: 'mo-lista' }, ...lista)) : el('p', { class: 'vazio' }, 'Ninguém por aqui agora.'));
 }
+// v382 (dono: "esse botão de chat, não deixe ele fixo"): a conversa fica no ☰ Mais (e na tecla Y); o item diz quantos estão aqui
 function moBotao() {
-  if (document.getElementById('moBtn')) return;
-  const b = el('button', { id: 'moBtn', type: 'button', title: 'Emotes e frases para quem está aqui (Y)' }, '💬'); b.onclick = moPainel;
-  document.body.append(b);
+  if (document.getElementById('btnFalar')) return;
+  const lista = document.querySelector('.tb-lista'); if (!lista) return;
+  const b = el('button', { class: 'btn', id: 'btnFalar', type: 'button', role: 'menuitem' }, '💬 Falar com quem está aqui · Y'); b.onclick = moPainel;
+  lista.append(b);
 }
-setInterval(() => { // o botão só aparece onde tem mundo compartilhado; o número mostra quantos estão aqui
-  const b = document.getElementById('moBtn'); if (!b) return;
+setInterval(() => {
+  const b = document.getElementById('btnFalar'); if (!b) return;
   const on = !!(MO.mapa && G.rodando); b.style.display = on ? '' : 'none';
-  if (on && typeof CV !== 'undefined') { const r = CV.getBoundingClientRect(); const cel = document.body.classList.contains('cel3'); b.style.left = Math.round(cel ? r.left + 10 : r.right - 58) + 'px'; b.style.top = Math.round(cel ? r.top + r.height * 0.42 : r.top + 44) + 'px'; } // canto do mapa (celular: na lateral)
-  b.dataset.n = MO.outros.size ? String(MO.outros.size) : '';
+  b.textContent = `💬 Falar com quem está aqui${MO.outros.size ? ` (${MO.outros.size})` : ''} · Y`;
 }, 1000);
 document.addEventListener('keydown', e => {
   if (e.code !== 'KeyY' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !MO.mapa || !G.rodando) return;
@@ -201,9 +223,7 @@ document.addEventListener('keydown', e => {
 });
 {
   const css = document.createElement('style');
-  css.textContent = `#moBtn { position: fixed; left: 12px; top: 50%; z-index: 60; width: 46px; height: 46px; border-radius: 50%; border: 2px solid #5ad8ff; background: rgba(10,25,45,.85); font-size: 22px; cursor: pointer; }
-  #moBtn[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 9px; background: #2a9df4; color: #fff; font: 700 11px/18px Fredoka, sans-serif; }
-  .mo-emotes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; } .mo-emotes button { font-size: 24px; width: 46px; height: 42px; border: 0; border-radius: 10px; background: rgba(0,0,0,.07); cursor: pointer; }
+  css.textContent = `.mo-emotes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; } .mo-emotes button { font-size: 24px; width: 46px; height: 42px; border: 0; border-radius: 10px; background: rgba(0,0,0,.07); cursor: pointer; }
   .mo-frases { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-bottom: 8px; }
   .mo-esconde { display: block; margin: 6px 0; font-weight: 700; } .mo-lista { display: flex; flex-direction: column; gap: 4px; max-height: 30vh; overflow: auto; }
   .mo-pessoa { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 8px; background: rgba(0,0,0,.05); font-weight: 700; }`;

@@ -281,7 +281,7 @@ async function cgRedesenhaPainel(forcar) {
       conv.length ? el('div', { class: 'opcoes' }, ...conv.map(c => el('button', { class: 'btn amarelo', onclick: () => cgEntrar(c.codigo) }, `📨 Entrar no grupo de ${c.de}`))) : '',
       el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', onclick: cgCriar }, '➕ Criar um grupo (eu sou o líder)')),
       el('div', { class: 'opcoes', style: 'align-items:center' }, 'Tem um código?', cod, el('button', { class: 'btn', onclick: () => cgEntrar(cod.value) }, 'Entrar')),
-      regra, el('p', { class: 'dica' }, 'Só amigos de quem criou o grupo podem entrar (amizades no site, menu Amigos). Para falar com o grupo há 8 emojis — nada de chat.'));
+      regra, el('p', { class: 'dica' }, 'Só amigos de quem criou o grupo podem entrar (☰ Mais › 🤝 Amigos: dá para adicionar pelo apelido ou pedir amizade a quem está perto na cidade). Para falar com o grupo há 8 emojis — nada de chat.'));
     return;
   }
   const souLider = g.lider === cgEu();
@@ -300,6 +300,7 @@ async function cgRedesenhaPainel(forcar) {
     const r = await amgPede('GET', '/amigos'); const lista = (r.ok && r.dados.amigos) || [];
     chamar.innerHTML = '';
     if (!lista.length) chamar.append(el('p', { class: 'vazio' }, 'Nenhum amigo seu joga o Lenda ainda.'));
+    chamar.append(el('button', { class: 'btn mini', type: 'button', onclick: () => typeof modalAmigos === 'function' && modalAmigos() }, '➕ Adicionar amigos'));
     for (const a of lista.filter(a => !g.membros.some(m => m.id === a.id)).slice(0, 12))
       chamar.append(el('div', { class: 'amg-linha' }, el('span', {}, `${a.apelido} · Nv ${a.nivel}`), el('button', { class: 'btn mini', onclick: async ev => { const r2 = await cgPede('grupo-convidar', { amigoId: a.id }); ev.target.textContent = r2.ok ? '✅ Chamado' : '❌'; ev.target.disabled = true; } }, '📨 Chamar')));
   } catch (e) { chamar.innerHTML = ''; chamar.append(el('p', { class: 'vazio' }, 'Passe o código para os amigos.')); }
