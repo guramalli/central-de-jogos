@@ -418,7 +418,7 @@
     if (noite && (vila || praia) && Math.random() < 0.6) grilo(t + Math.random() * 0.5);
   }
 
-  const VILA = ['vila', 'praia', 'casa', 'bazar', 'escola'];
+  const VILA = ['vila', 'praia', 'casa', 'bazar', 'escola', 'praca_feira']; // (v383: a Praça da Feira tem a música alegre da Vila)
   const CIDADE = ['cidade', 'ct', 'estadio', 'loja', 'refeitorio', 'rio', 'arena_copa', 'santos', 'est_santos'];
   const MUNDO = ['cairo', 'toquio', 'doha', 'miami', 'buenos'];
   const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres', 'paris'];
