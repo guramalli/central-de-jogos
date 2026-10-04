@@ -65,7 +65,18 @@ const MO_VISTAS = ['frente', 'costas', 'lado'];
 // v382: escudo da guilda na frente do nome. Os 3 primeiros do ranking de XP: v384 (dono: "o emblema ficou ruim... um louro
 // acima do nick e do jogador e o número do ranking... levemente translúcido") → coroa de louros (ouro/prata/bronze, arte
 // a/louro_1..3) em cima do nome, com o número no meio (moLouro)
-const moRank = id => (MO.top || []).indexOf(String(id)) + 1; // 0 = fora do top 3
+const moRank = id => (MO.top || []).indexOf(String(id).replace(/^grupo_/, '')) + 1; // 0 = fora do top 3 (colega de grupo: "grupo_<id>")
+// v384b (dono: "apareceu na praia mas em outros mapas não"): o top 3 vem do ranking público (ao abrir e a cada 5 min), não
+// só ao entrar numa cidade — e o SEU louro aparece em qualquer mapa (caças, casas, arenas)
+async function moBuscaTop() {
+  if (typeof PORTAL === 'undefined' || !PORTAL.ativo || window.LENDA_STEAM) return;
+  try {
+    const r = await fetch(PORTAL.api + '/api/lenda/ranking'); if (!r.ok) return;
+    const lista = await r.json(); if (!Array.isArray(lista)) return;
+    MO.top = lista.slice(0, 3).map(x => String(x.userId)); for (let k = 1; k <= 3; k++) spr('louro_' + k);
+  } catch (e) { }
+}
+setTimeout(moBuscaTop, 8000); setInterval(moBuscaTop, 5 * 60000);
 const moNome = mb => `${mb.guilda && mb.guilda.escudo ? mb.guilda.escudo + ' ' : ''}Nv ${mb.nivel} · ${mb.apelido}`;
 const MO_LOURO_COR = ['#ffe27a', '#eef3fa', '#ffb27a'];
 function moLouro(ctx, rank, x, yBase) { // yBase = em cima do nome (coordenadas de tela)
@@ -206,7 +217,7 @@ function moPasso(dt) {
   const _rotMo = rotulo;
   rotulo = function (ctx, txt, x, y, cor, tam) {
     const r = _rotMo.apply(this, arguments);
-    try { if (MO.mapa && G.save && PORTAL.contaId && tam === 12.5 && txt === `Nv ${G.save.nivel} ${G.save.nome}`) { const rk = moRank(PORTAL.contaId), topo = y - tam * G.dpr - 2 * G.dpr; if (rk) moLouro(ctx, rk, x, topo); moBalaoDesenha(ctx, 'eu', x, topo - (rk ? 34 * G.dpr * 0.96 : 0)); } } catch (e) { }
+    try { if (G.save && PORTAL.contaId && !window.LENDA_STEAM && tam === 12.5 && txt === `Nv ${G.save.nivel} ${G.save.nome}`) { const rk = moRank(PORTAL.contaId), topo = y - tam * G.dpr - 2 * G.dpr; if (rk) moLouro(ctx, rk, x, topo); moBalaoDesenha(ctx, 'eu', x, topo - (rk ? 34 * G.dpr * 0.96 : 0)); } } catch (e) { }
     return r;
   };
 }

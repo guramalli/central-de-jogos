@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v385', '🏆 O louro do top 3 agora aparece em TODOS os mapas (caças, casas e arenas também), não só nas cidades.'],
     ['v384', '🏆 Os 3 primeiros do ranking agora têm uma COROA DE LOUROS (ouro, prata e bronze) com o número em cima do nome nas cidades. 💬 Botão de falar fixo no canto do chat, e as frases aparecem num balão em cima do nome (dá para ler). 🖱️ Botão direito em cima de um jogador (no celular: segure o dedo): chamar para o grupo, pedir amizade, convidar para a guilda ou silenciar.'],
     ['v383', '🏪 FEIRA DOS JOGADORES! Anuncie itens da mochila (a partir do nível 30) e venda para outros jogadores, só com tostões. Monte a sua BARRACA numa das 36 vagas da nova PRAÇA DA FEIRA (☰ Mais › 🏪 Feira › Ir à Praça da Feira; chegue perto de uma barraca e aperte E) ou procure no mercado central. Item refinado vai com o refino. A feira fica com 5% e o anúncio dura 3 dias.'],
     ['v382', '🛡️ GUILDAS! Crie a sua (nome e escudo de listas prontas) ou entre a convite de um amigo: até 30 membros, meta da semana (contam adversários com pelo menos 60% do seu nível) com prêmios para quem ajuda, ranking das guildas e frases para a guilda. 🤝 Amigos agora se adicionam no próprio jogo (por apelido ou ➕ em quem está perto na cidade). 💬 A conversa com quem está perto fica no ☰ Mais (ou tecla Y).'],
