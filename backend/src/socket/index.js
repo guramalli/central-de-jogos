@@ -4,6 +4,7 @@ import { registrarImpostor } from "../impostor/socketImpostor.js";
 import { registrarFila } from "../fila/socketFila.js";
 import { registrarTorre } from "../lenda/socketTorre.js";
 import { registrarMundo } from "../lenda/socketMundo.js";
+import { registrarGrupo } from "../lenda/socketGrupo.js";
 import { podeFalar } from "../utils/antiFlood.js";
 import { chamarBotsNoStop, dispensarBotsDoStop } from "../game/stopBots.js";
 import { verifyToken } from "../utils/jwt.js";
@@ -178,6 +179,7 @@ export function setupSocket(io) {
     registrarFila(io, socket); // Fila de espera "Jogar agora" (Impostor, Tribunal, Acromania)
     registrarTorre(io, socket); // Lenda do Campinho: Torre Infinita em grupo (só repasse, em memória)
     registrarMundo(io, socket); // Lenda do Campinho: mundo compartilhado (ver os outros nas cidades; emotes e frases prontas)
+    registrarGrupo(io, socket); // Lenda do Campinho: caça em grupo (2 a 4 amigos; o líder roda os adversários)
 
     // Toda conexão autenticada conta como "no site" — independente da
     // página. É daqui que o painel admin tira quem está online.
