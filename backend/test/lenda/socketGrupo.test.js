@@ -31,8 +31,9 @@ test("grupo: criar, convidar, só amigo entra, onde, repasse só no mesmo mapa, 
   const r = await pede(ana, "grupo-criar", { perfil: { nivel: 250 }, mapa: "rio" });
   assert.equal(r.ok, true); const cod = r.grupo.codigo;
   assert.equal((await pede(ana, "grupo-convidar", { amigoId: "bia" })).ok, true);
+  await espera(3100); // (um convite a cada 3 s)
   await espera(80); assert.equal(recebeu(bia, "grupo-convite")[0].codigo, cod);
-  assert.match((await pede(davi, "grupo-entrar", { codigo: cod })).erro, /amigos/);
+  assert.match((await pede(davi, "grupo-entrar", { codigo: cod })).erro, /chamou/);
   assert.equal((await pede(bia, "grupo-entrar", { codigo: cod.toLowerCase(), perfil: { nivel: 200 }, mapa: "rio" })).ok, true);
   assert.equal((await pede(caio, "grupo-entrar", { codigo: cod, perfil: { nivel: 180 }, mapa: "vila" })).ok, true);
   // líder e bia entram na caça; caio fica na vila
@@ -80,4 +81,16 @@ test("diferença de nível do grupo", async () => {
   const r = await pede(bia, "grupo-entrar", { codigo: cod, perfil: { nivel: 150 } });
   assert.match(r.erro, /entre os níveis 200 e 450/);
   assert.equal((await pede(bia, "grupo-entrar", { codigo: cod, perfil: { nivel: 210 } })).ok, true);
+});
+
+test("chamar qualquer jogador (botão direito): o chamado entra mesmo sem ser amigo; limite contra spam", async () => {
+  const ana = cliente("ana"), davi = cliente("davi"), edu = cliente("edu");
+  await espera(150);
+  const cod = (await pede(ana, "grupo-criar", { perfil: { nivel: 100 } })).grupo.codigo;
+  assert.match((await pede(davi, "grupo-entrar", { codigo: cod, perfil: { nivel: 100 } })).erro, /chamou/);
+  assert.equal((await pede(ana, "grupo-convidar", { amigoId: "davi" })).ok, true);
+  assert.match((await pede(ana, "grupo-convidar", { amigoId: "edu" })).erro, /Calma/, "um convite a cada 3 s");
+  await espera(100);
+  assert.equal(recebeu(davi, "grupo-convite")[0].codigo, cod);
+  assert.equal((await pede(davi, "grupo-entrar", { codigo: cod, perfil: { nivel: 100 } })).ok, true);
 });

@@ -1,7 +1,7 @@
 // ===== Lenda do Campinho — CAÇA EM GRUPO (2 a 4 amigos, tempo real) — "MMO leve", etapa 2 =====
 //
 // Igual à Torre em grupo, mas o grupo dura enquanto os amigos jogam e vale para qualquer área de caça:
-//   - o grupo tem um LÍDER (quem criou); só entram amigos dele (código de 5 letras ou convite);
+//   - o grupo tem um LÍDER (quem criou); entram amigos/colegas de guilda dele, ou quem ele CHAMOU (botão direito no jogador);
 //   - cada um conta em que mapa está ("onde"); quando o líder entra numa caça, os outros recebem o aviso;
 //   - na caça, o navegador do LÍDER roda os adversários e manda o "retrato" (mundo) para quem está no mesmo
 //     mapa; o dano dos outros vai para o líder; cada um ganha XP e prêmios no próprio jogo.
@@ -26,6 +26,9 @@ export const faixaDe = (nivel) => ({ de: Math.max(1, Math.min(nivel - 10, Math.c
 const MAX_GRUPOS = 1000;
 const EMOTES = 8;
 const LIMITE_POR_SEG = 40;
+// v384 (dono: "botão direito em cima do jogador... chamar para party"): o líder chama QUALQUER jogador que viu (não só amigo);
+// quem foi chamado pode entrar por CONVITE_MS. Contra spam: um convite a cada CONVITE_CADA_MS e no máximo CONVITES_MIN por minuto.
+const CONVITE_MS = 10 * 60 * 1000, CONVITE_CADA_MS = 3000, CONVITES_MIN = 12;
 const TAM_MAX = { mundo: 14000, eu: 600, dano: 120 };
 
 const grupos = new Map();           // codigo -> grupo
@@ -53,7 +56,7 @@ export function resumoGrupo(g) {
 export function registrarGrupo(io, socket) {
   const eu = socket.user?.id; if (!eu) return;
   const apelido = socket.user.nickname;
-  let janela = 0, conta = 0, ultimoEmote = 0;
+  let janela = 0, conta = 0, ultimoEmote = 0, convites = [];
   const podeMandar = () => { const t = Date.now(); if (t - janela > 1000) { janela = t; conta = 0; } return ++conta <= LIMITE_POR_SEG; };
   const grupo = () => grupos.get(grupoDe.get(eu));
   const quarto = (g) => `grupo:${g.codigo}`;
@@ -80,7 +83,7 @@ export function registrarGrupo(io, socket) {
     if (grupo()) sai("trocou");
     if (grupos.size >= MAX_GRUPOS) return responde(cb, { erro: "Muitos grupos agora. Tente daqui a pouco." });
     const codigo = novoCodigo(); if (!codigo) return responde(cb, { erro: "Tente de novo." });
-    const g = { codigo, lider: eu, membros: new Map(), criadoEm: Date.now() };
+    const g = { codigo, lider: eu, membros: new Map(), criadoEm: Date.now(), convidados: new Map() };
     g.membros.set(eu, { id: eu, ...limpaPerfil(dados?.perfil, apelido), mapa: mapaValido(dados?.mapa) ? dados.mapa : null });
     grupos.set(codigo, g); grupoDe.set(eu, codigo); socket.join(quarto(g));
     responde(cb, { ok: true, grupo: resumoGrupo(g) });
@@ -93,8 +96,8 @@ export function registrarGrupo(io, socket) {
       if (!g) return responde(cb, { erro: "Grupo não encontrado. Confira o código." });
       if (g.membros.has(eu)) { socket.join(quarto(g)); grupoDe.set(eu, codigo); return responde(cb, { ok: true, grupo: resumoGrupo(g) }); } // voltou depois de cair
       if (g.membros.size >= MAX_GRUPO) return responde(cb, { erro: `O grupo já tem ${MAX_GRUPO} jogadores.` });
-      const amigos = await deps.amigosDe(g.lider);
-      if (!amigos.includes(eu)) return responde(cb, { erro: "Só amigos ou colegas de guilda de quem criou o grupo podem entrar (peça amizade no jogo: ☰ Mais › 🤝 Amigos)." });
+      const chamado = (g.convidados?.get(eu) || 0) > Date.now();
+      if (!chamado && !(await deps.amigosDe(g.lider)).includes(eu)) return responde(cb, { erro: "Só entra quem o líder chamou, ou amigos e colegas de guilda dele." });
       const perfil = limpaPerfil(dados?.perfil, apelido);
       const longe = [...g.membros.values()].find((m) => !faixaOk(m.nivel, perfil.nivel));
       if (longe) { const f = faixaDe(longe.nivel); return responde(cb, { erro: `A diferença de nível é grande demais: ${longe.apelido} (nível ${longe.nivel}) só caça em grupo com quem está entre os níveis ${f.de} e ${f.ate}.` }); }
@@ -108,10 +111,14 @@ export function registrarGrupo(io, socket) {
   socket.on("grupo-convidar", async (dados, cb) => {
     try {
       const g = grupo(); if (!g) return responde(cb, { erro: "Crie um grupo primeiro." });
-      if (g.lider !== eu) return responde(cb, { erro: "Só o líder chama amigos." });
+      if (g.lider !== eu) return responde(cb, { erro: "Só o líder chama para o grupo." });
       const amigo = String(dados?.amigoId || "");
-      const amigos = await deps.amigosDe(eu);
-      if (!amigos.includes(amigo)) return responde(cb, { erro: "Só dá para chamar amigos e colegas de guilda." });
+      if (!amigo || amigo === eu) return responde(cb, { erro: "Jogador inválido." });
+      if (g.membros.has(amigo)) return responde(cb, { erro: "Já está no grupo." });
+      const t = Date.now(); convites = convites.filter((x) => t - x < 60000);
+      if ((convites.length && t - convites[convites.length - 1] < CONVITE_CADA_MS) || convites.length >= CONVITES_MIN) return responde(cb, { erro: "Calma! Espere um pouquinho para chamar de novo." });
+      convites.push(t);
+      g.convidados ||= new Map(); g.convidados.set(amigo, t + CONVITE_MS);
       io.to(`user:${amigo}`).emit("grupo-convite", { codigo: g.codigo, de: apelido });
       responde(cb, { ok: true });
     } catch { responde(cb, { erro: "Não deu para chamar agora." }); }
