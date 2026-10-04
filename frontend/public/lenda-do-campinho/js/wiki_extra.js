@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v381', '🌐 Jogue junto! Nas cidades você vê os outros jogadores andando (emotes e frases prontas no 💬 ou na tecla Y; dá para silenciar e esconder). 👥 Caça em grupo com até 3 amigos (☰ Mais › Caçar em grupo): todos enfrentam os mesmos adversários; cada um ganha o que ajudou a derrubar, com prêmio menor por adversário (2: 65%, 3: 50%, 4: 40%) porque o grupo derruba muito mais. Diferença de nível: o mais alto pode ser até 50% maior que o mais baixo.'],
     ['v380', '🗼 Torre Infinita repaginada: uma ilha de pedra flutuando no espaço, com anel de rocha e lava. 🏢 O Escritório da Agência ganhou piso de taco e tapete com a estrela da agência. 🐉 Dragãozinho: o bônus de dano vale depois que você libera a Arara.'],
     ['v379', '🗺️ Mapas repaginados de Atlântida em diante: chão novo desenhado à mão, bordas lisas, penhascos e enfeites variados (água e lava com beirada lisa). E as entradas/saídas das caças agora são LARGAS: sai por qualquer ponto do portal.'],
     ['v378', '🌟 O Despertar das Relíquias: 10.000 vitórias, 40 Fragmentos e o Guardião Desperto — e você FIXA um bônus no seu boneco. Relíquia desperta = marca dourada.'],
