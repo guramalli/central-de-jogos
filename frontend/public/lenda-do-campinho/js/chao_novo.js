@@ -204,6 +204,18 @@ const CHAO2 = {
     FOLHA = null;
     return c;
   }
+  // v385 (dono: "quando entro nos mapas atualizados, mostra o antigo e depois pula para o novo"): enquanto a arte do chão
+  // novo baixa, uma CORTINA escura com o nome do lugar cobre o mapa (no lugar do chão antigo); abre quando o chão novo fica
+  // pronto. Demorou demais (3,5 s, internet lenta): mostra o chão antigo e abre a cortina, como antes.
+  const cortina = (on, m) => {
+    let c = document.getElementById('chaoCortina');
+    if (!c) { c = el('div', { id: 'chaoCortina' }, el('span', {})); document.body.append(c); }
+    if (on) {
+      const r = typeof CV !== 'undefined' && CV ? CV.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: innerHeight };
+      Object.assign(c.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+      c.firstChild.textContent = m && m.nome ? '📍 ' + m.nome : ''; c.classList.add('on');
+    } else c.classList.remove('on');
+  };
   const _rcN = renderChao;
   renderChao = function (m) {
     if (m._chao) return m._chao;
@@ -211,13 +223,41 @@ const CHAO2 = {
     if (!bio) return _rcN.apply(this, arguments);
     const artes = artesDoMapa(m); artes.forEach(n => spr(n));
     if (!artes.every(n => pronto(n) || spr(n).err) || !spr('t_grama').ok) {
-      const r = _rcN.apply(this, arguments);
-      if (!m._esperaChao2) { m._esperaChao2 = setInterval(() => { if (artes.every(n => pronto(n) || spr(n).err)) { clearInterval(m._esperaChao2); m._esperaChao2 = null; delete m._chao; } }, 300); }
-      return r;
+      if (m._chaoDesistiu) { const r = _rcN.apply(this, arguments); return r; }
+      // enquanto espera: um chão liso da cor do bioma, coberto pela cortina
+      const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438';
+      const ph = mkCanvas(m.w * T, m.h * T), px = ph.getContext('2d'); px.fillStyle = cor; px.fillRect(0, 0, ph.width, ph.height);
+      m._chao = ph; cortina(true, m);
+      if (!m._esperaChao2) {
+        const t0 = Date.now();
+        m._esperaChao2 = setInterval(() => {
+          const pr = artes.every(n => pronto(n) || spr(n).err);
+          if (pr || Date.now() - t0 > 3500) { clearInterval(m._esperaChao2); m._esperaChao2 = null; if (!pr) { m._chaoDesistiu = true; cortina(false); setTimeout(() => { m._chaoDesistiu = false; delete m._chao; }, 4000); } delete m._chao; }
+        }, 120);
+      }
+      return m._chao;
     }
     try { m._chao = renderChao2(m, bio); m._chao2 = true; } catch (e) { console.warn('chão novo', m.id, e); FOLHA = null; delete m._chao; m._chao = _rcN.apply(this, arguments); }
+    cortina(false);
     return m._chao;
   };
+  // saiu do mapa antes de terminar: a cortina não fica presa
+  const _entCortina = entrarMapa;
+  entrarMapa = function () { const r = _entCortina.apply(this, arguments); try { if (!(G.mapa && CHAO2.mapas[G.mapa.id] && !G.mapa.interior && !G.mapa._chao2)) cortina(false); } catch (e) { } return r; };
+  // e já vai baixando a arte dos mapas vizinhos (pelas saídas do mapa onde você está), sem pressa
+  const vizinhos = () => {
+    try {
+      const m = G.mapa; if (!m) return;
+      const ids = [...new Set((m.saidas || []).map(s => s.para))].filter(id => CHAO2.mapas[id]).slice(0, 4);
+      ids.forEach((id, i) => setTimeout(() => { try { const v = getMapa(id); if (!v.interior) artesDoMapa(v).forEach(n => spr(n)); } catch (e) { } }, 1500 + i * 900));
+    } catch (e) { }
+  };
+  const _entViz = entrarMapa;
+  entrarMapa = function () { const r = _entViz.apply(this, arguments); setTimeout(vizinhos, 800); return r; };
+  const css = document.createElement('style');
+  css.textContent = `#chaoCortina { position: fixed; z-index: 55; pointer-events: none; display: flex; align-items: center; justify-content: center; background: #0d0a18; opacity: 0; transition: opacity .25s; }
+  #chaoCortina.on { opacity: 1; transition: opacity .12s; } #chaoCortina span { color: #ffe3a0; font: 800 22px Fredoka, Nunito, sans-serif; text-shadow: 0 2px 6px #000; }`;
+  document.head.append(css);
 }
 
 /* ---------- Atlântida: ruas curvas, praças e plataformas redondas (só o CHÃO muda) ---------- */
