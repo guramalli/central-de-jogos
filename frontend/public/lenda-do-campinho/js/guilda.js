@@ -50,7 +50,7 @@ async function gldLigaSocket() {
     s.on('guilda-frase', ({ de, apelido, i }) => {
       const f = GLD_FRASES[i]; if (!f) return; const eu = de === PORTAL.contaId;
       log(`🛡️ ${eu ? 'Você' : apelido}: ${f}`, 'l-xp');
-      const o = MO.outros.get(de); if (eu && G.p) fala(G.p, f, '#ffe37a'); else if (o && !MO_ESCONDE && !MO_MUDOS.has(de)) fala(o.ent, f, '#ffd27a');
+      const o = MO.outros.get(de); if (eu) moBalao('eu', f); else if (o && !MO_ESCONDE && !MO_MUDOS.has(de)) moBalao(de, f);
     });
     s.on('guilda-convite', () => gldCarrega());
     s.on('connect', () => s.emit('guilda-ligar', {}, () => { }));
