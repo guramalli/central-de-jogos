@@ -8,7 +8,7 @@ import { registrarMundo, __configurarMundoParaTestes, __resetMundoParaTestes, __
 // Amizades de mentira: ana é amiga de bia.
 const AMIGOS = { ana: ["bia"], bia: ["ana"] };
 const GUILDAS = { ana: { id: "g1", nome: "Os Leões de Fogo", escudo: "🦁", cor: "#e74c3c" }, bia: { id: "g1", nome: "Os Leões de Fogo", escudo: "🦁", cor: "#e74c3c" } };
-__configurarMundoParaTestes({ amigosDe: async (id) => AMIGOS[id] || [], guildaDe: async (id) => GUILDAS[id] || null });
+__configurarMundoParaTestes({ amigosDe: async (id) => AMIGOS[id] || [], guildaDe: async (id) => GUILDAS[id] || null, top3: async () => ["bia", "ana", "x9"] });
 
 const http = createServer();
 const io = new Server(http);
@@ -105,4 +105,10 @@ test("guilda: escudo em cima do nome e frases para a guilda", async () => {
   await espera(150);
   assert.deepEqual(recebeu(bia, "guilda-frase"), [{ de: "ana", apelido: "ANA", i: 2 }]);
   assert.equal(recebeu(caio, "guilda-frase").length, 0, "quem não é da guilda não recebe");
+});
+
+test("top 3 do ranking vem junto ao entrar", async () => {
+  const z = cliente("zeca"); await espera(120);
+  const r = await pede(z, "mundo-entrar", { mapa: "madri", perfil: perfil(1) });
+  assert.deepEqual(r.top, ["bia", "ana", "x9"]);
 });

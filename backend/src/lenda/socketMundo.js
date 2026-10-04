@@ -31,14 +31,23 @@ const canais = new Map();             // "mapa#n" -> { chave, mapa, n, membros: 
 const ondeEsta = new Map();           // userId -> chave do canal
 const amigosCache = new Map();        // userId -> { ate, lista }
 const guildaCache = new Map();        // userId -> { ate, g } (escudo da guilda em cima do nome)
+const topo = { ids: [], ate: 0, buscando: null };   // os 3 primeiros do ranking (guardado TOPO_MS)
+const TOPO_MS = 2 * 60 * 1000;
 let tick = null;
 
-const deps = { amigosDe: (id) => amigosDe(prisma, id), guildaDe: (id) => guildaDe(prisma, id) };
+// os 3 primeiros do ranking de XP (o mesmo do jogo: fora conta banida ou oculta dos rankings) — dono: "colocarmos no
+// primeiro, segundo e terceiro do ranking um número do rank do lado do nickname como sinal de poder"
+async function top3Real() {
+  const topo = await prisma.lendaRanking.findMany({ orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 10, select: { userId: true } });
+  const bloq = new Set((await prisma.user.findMany({ where: { id: { in: topo.map((t) => t.userId) }, OR: [{ banned: true }, { ocultoNoRanking: true }] }, select: { id: true } })).map((u) => u.id));
+  return topo.map((t) => t.userId).filter((id) => !bloq.has(id)).slice(0, 3);
+}
+const deps = { amigosDe: (id) => amigosDe(prisma, id), guildaDe: (id) => guildaDe(prisma, id), top3: top3Real };
 export function __configurarMundoParaTestes(n) { Object.assign(deps, n); }
 export function __resetMundoParaTestes() {
   canais.clear(); ondeEsta.clear(); amigosCache.clear();
   if (tick) { clearInterval(tick); tick = null; }
-  deps.amigosDe = (id) => amigosDe(prisma, id); deps.guildaDe = (id) => guildaDe(prisma, id); guildaCache.clear();
+  deps.amigosDe = (id) => amigosDe(prisma, id); deps.guildaDe = (id) => guildaDe(prisma, id); deps.top3 = top3Real; guildaCache.clear(); topo.ids = []; topo.ate = 0;
 }
 export const __canaisMundo = canais;
 
@@ -78,6 +87,18 @@ export function escolheCanal(mapa, amigos) {
   return c;
 }
 
+// confere o top 3 (no máximo a cada TOPO_MS); mudou → avisa quem está no mundo
+async function atualizaTopo(io) {
+  if (topo.ate > Date.now()) return topo.ids;
+  if (topo.buscando) return topo.buscando;
+  topo.buscando = (async () => {
+    let ids = topo.ids; try { ids = await deps.top3(); } catch { /* sem banco: fica o que tinha */ }
+    topo.ate = Date.now() + TOPO_MS;
+    if (JSON.stringify(ids) !== JSON.stringify(topo.ids)) { topo.ids = ids; for (const c of canais.values()) io.to(quarto(c.chave)).emit("mundo-top", ids); }
+    topo.buscando = null; return topo.ids;
+  })();
+  return topo.buscando;
+}
 function ligaTick(io) {
   if (tick) return;
   tick = setInterval(() => {
@@ -118,10 +139,10 @@ export function registrarMundo(io, socket) {
       const atual = ondeEsta.get(eu);
       if (atual && canais.get(atual)?.mapa === mapa) { // já está neste mapa (outra aba ou reconexão)
         const c = canais.get(atual); socket.join(quarto(atual)); const mb = c.membros.get(eu); Object.assign(mb, limpaPerfil(dados?.perfil, apelido), limpaPos(dados), { sid: socket.id });
-        return responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico) });
+        return responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico), top: topo.ids });
       }
       if (ondeEsta.size >= MAX_JOGADORES && !atual) return responde(cb, { erro: "O mundo está lotado agora. Tente daqui a pouco." });
-      const [amigos, guilda] = await Promise.all([amigosCom(eu), guildaCom(eu)]);
+      const [amigos, guilda, top] = await Promise.all([amigosCom(eu), guildaCom(eu), atualizaTopo(io)]);
       if (minha !== entrando) return responde(cb, { erro: "trocou" }); // mudou de mapa de novo enquanto esperava
       sai();
       const c = escolheCanal(mapa, amigos);
@@ -129,7 +150,7 @@ export function registrarMundo(io, socket) {
       c.membros.set(eu, mb); ondeEsta.set(eu, c.chave); socket.join(quarto(c.chave));
       socket.to(quarto(c.chave)).emit("mundo-chegou", publico(mb));
       ligaTick(io);
-      responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico) });
+      responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico), top });
     } catch { responde(cb, { erro: "Não deu para entrar no mundo agora." }); }
   });
 
