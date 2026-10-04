@@ -756,17 +756,16 @@ model LendaVenda {
   @@index([vendedorId, coletado])
 }
 
+// barraca na PRAÇA DA FEIRA (mapa só das vendinhas): cada uma numa VAGA (0..VAGAS-1)
 model LendaBarraca {
   vendedorId String   @id
-  mapa       String
-  x          Float
-  y          Float
+  vaga       Int
   titulo     Int
   cor        Int
   abertaEm   DateTime @default(now())
   expiraEm   DateTime
 
-  @@index([mapa, expiraEm])
+  @@index([vaga, expiraEm])
 }
 
 // quantos anúncios cada um criou no dia (o limite diário não volta quando o anúncio é cancelado)

@@ -60,6 +60,8 @@ const chave = Object.keys(CATALOGO).find((id) => CATALOGO[id].t === "chave");
 test("regras: o que vende, faixa de preço, anúncio, taxa, busca, barraca", () => {
   assert.ok(empilhavel && equip && chave);
   assert.equal(vendavel(chave), false); assert.equal(vendavel("nao_existe"), false);
+  assert.equal(vendavel("lemb_camisa"), false, "lembrança (vale 1) não vende"); assert.equal(vendavel("fragmento_desperto"), true);
+  assert.equal(faixaPreco("fragmento_desperto").min, 10000); assert.ok(faixaPreco("lr_caca_mv_pico_1").max > 4700, "loot de caça com o valor de verdade");
   const f = faixaPreco(empilhavel), f5 = faixaPreco(equip, 5);
   assert.ok(f.min >= 1 && f.max > f.min); assert.ok(f5.max > faixaPreco(equip).max);
   assert.ok(validaAnuncio({ itemId: empilhavel, qtd: 10, preco: f.min, nivel: NIVEL_VENDER }).ok);
@@ -71,8 +73,9 @@ test("regras: o que vende, faixa de preço, anúncio, taxa, busca, barraca", () 
   assert.equal(recebeVendedor(1000), 950);
   assert.ok(idsDaBusca(CATALOGO[empilhavel].n.toUpperCase()).includes(empilhavel));
   assert.equal(idsDaBusca(""), null);
-  assert.ok(validaBarraca({ mapa: "rio", x: 10.2, y: 5, titulo: 1, cor: 2 }).ok);
-  assert.ok(validaBarraca({ mapa: "rio", x: 10, y: 5, titulo: 99, cor: 2 }).erro);
+  assert.ok(validaBarraca({ vaga: 3, titulo: 1, cor: 2 }).ok);
+  assert.ok(validaBarraca({ vaga: 99, titulo: 1, cor: 2 }).erro);
+  assert.ok(validaBarraca({ vaga: 3, titulo: 99, cor: 2 }).erro);
 });
 
 test("feira ponta a ponta: anunciar, buscar, comprar em partes, não vender duas vezes, recolher, vencer, barraca", async () => {
@@ -97,12 +100,12 @@ test("feira ponta a ponta: anunciar, buscar, comprar em partes, não vender duas
   const fe = faixaPreco(equip, 3);
   const a2 = await chama("ana", "POST", "/anunciar", { itemId: equip, refino: 3, qtd: 1, preco: fe.max, nivel: 50 });
   assert.equal(a2.ok, true);
-  assert.equal((await chama("bia", "POST", "/barraca", { mapa: "rio", x: 10, y: 10, titulo: 0, cor: 0 })).status, 400, "sem anúncio não monta");
-  assert.equal((await chama("ana", "POST", "/barraca", { mapa: "rio", x: 10, y: 10, titulo: 3, cor: 1 })).ok, true);
+  assert.equal((await chama("bia", "POST", "/barraca", { vaga: 5, titulo: 0, cor: 0 })).status, 400, "sem anúncio não monta");
+  assert.equal((await chama("ana", "POST", "/barraca", { vaga: 5, titulo: 3, cor: 1 })).ok, true);
   await chama("bia", "POST", "/anunciar", { itemId: empilhavel, qtd: 1, preco: f.min, nivel: 50 });
-  assert.equal((await chama("bia", "POST", "/barraca", { mapa: "rio", x: 11, y: 10, titulo: 0, cor: 0 })).status, 409, "perto demais");
-  assert.equal((await chama("bia", "POST", "/barraca", { mapa: "rio", x: 15, y: 10, titulo: 0, cor: 0 })).ok, true);
-  const bs = await chama("caio", "GET", "/barracas?mapa=rio");
+  assert.equal((await chama("bia", "POST", "/barraca", { vaga: 5, titulo: 0, cor: 0 })).status, 409, "vaga ocupada");
+  assert.equal((await chama("bia", "POST", "/barraca", { vaga: 6, titulo: 0, cor: 0 })).ok, true);
+  const bs = await chama("caio", "GET", "/barracas");
   assert.equal(bs.barracas.length, 2); assert.equal(bs.barracas.find((b) => b.vendedor === "Ana").itens, 1);
   const loja = await chama("caio", "GET", "/loja/ana");
   assert.equal(loja.anuncios[0].refino, 3);
@@ -113,7 +116,7 @@ test("feira ponta a ponta: anunciar, buscar, comprar em partes, não vender duas
   const volta = await chama("ana", "POST", `/cancelar/${a2.anuncio.id}`);
   assert.deepEqual(volta.item, { itemId: equip, refino: 3, qtd: 1 });
   assert.equal((await chama("ana", "POST", `/cancelar/${a2.anuncio.id}`)).status, 404, "não devolve duas vezes");
-  assert.equal((await chama("caio", "GET", "/barracas?mapa=rio")).barracas.length, 0, "sem anúncio ativo a barraca some");
+  assert.equal((await chama("caio", "GET", "/barracas")).barracas.filter((b) => b.vendedor === "Ana").length, 0, "sem anúncio ativo a barraca some (e a vaga fica livre)");
 });
 
 test("limites: anúncios ativos e por dia", async () => {

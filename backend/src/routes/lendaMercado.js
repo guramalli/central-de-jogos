@@ -4,8 +4,8 @@ import { Router } from "express";
 import { prisma as prismaReal } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
 import {
-  CATALOGO, MAX_ATIVOS, MAX_POR_DIA, DURACAO_MS, TAXA, TITULOS, BARRACA_MS, BARRACAS_POR_MAPA, NIVEL_VENDER,
-  validaAnuncio, faixaPreco, vendavel, recebeVendedor, inicioDoDia, idsDaBusca, validaBarraca, pertoDemais,
+  CATALOGO, MAX_ATIVOS, MAX_POR_DIA, DURACAO_MS, TAXA, TITULOS, BARRACA_MS, VAGAS, NIVEL_VENDER,
+  validaAnuncio, faixaPreco, vendavel, recebeVendedor, inicioDoDia, idsDaBusca, validaBarraca,
 } from "../lenda/mercado.js";
 
 export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agora = () => Date.now() } = {}) {
@@ -23,7 +23,7 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
   const publico = (a, nomes) => ({ id: a.id, itemId: a.itemId, nome: CATALOGO[a.itemId]?.n || a.itemId, refino: a.refino || 0, qtd: a.qtd, preco: a.preco,
     vendedorId: a.vendedorId, vendedor: nomes?.get(a.vendedorId) || "Jogador", expiraEm: a.expiraEm });
 
-  r.get("/opcoes", (_req, res) => res.json({ titulos: TITULOS, taxa: TAXA, nivelVender: NIVEL_VENDER, maxAtivos: MAX_ATIVOS, maxPorDia: MAX_POR_DIA, duracaoMs: DURACAO_MS }));
+  r.get("/opcoes", (_req, res) => res.json({ vagas: VAGAS, titulos: TITULOS, taxa: TAXA, nivelVender: NIVEL_VENDER, maxAtivos: MAX_ATIVOS, maxPorDia: MAX_POR_DIA, duracaoMs: DURACAO_MS }));
   // faixa de preço de um item (o jogo mostra antes de anunciar)
   r.get("/faixa/:itemId", (req, res) => {
     if (!vendavel(req.params.itemId)) return res.status(400).json({ error: "Esse item não pode ser vendido." });
@@ -109,23 +109,26 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
     res.json({ ok: true, tostoes: vendas.reduce((s, v) => s + recebeVendedor(v.total), 0), vendas: vendas.length });
   }));
 
-  // ---- barraca na cidade ----
-  r.get("/barracas", rota(async (req, res) => {
-    const mapa = String(req.query.mapa || ""), t = new Date(agora());
-    const bs = await db().lendaBarraca.findMany({ where: { mapa, expiraEm: { gt: t } }, take: BARRACAS_POR_MAPA });
-    if (!bs.length) return res.json({ barracas: [] });
+  // ---- barraca na PRAÇA DA FEIRA (vagas fixas) ----
+  // barracas ativas com pelo menos 1 anúncio (sem anúncio, a vaga fica livre)
+  const barracasAtivas = async (t) => {
+    const bs = await db().lendaBarraca.findMany({ where: { expiraEm: { gt: t } } });
+    if (!bs.length) return [];
     const ativos = await db().lendaAnuncio.findMany({ where: { vendedorId: { in: bs.map((b) => b.vendedorId) }, expiraEm: { gt: t } } });
+    return bs.map((b) => ({ ...b, itens: ativos.filter((a) => a.vendedorId === b.vendedorId).length })).filter((b) => b.itens > 0);
+  };
+  r.get("/barracas", rota(async (_req, res) => {
+    const bs = await barracasAtivas(new Date(agora()));
     const nomes = await apelidos(bs.map((b) => b.vendedorId));
-    res.json({ barracas: bs.map((b) => ({ vendedorId: b.vendedorId, vendedor: nomes.get(b.vendedorId) || "Jogador", x: b.x, y: b.y, titulo: b.titulo, cor: b.cor, itens: ativos.filter((a) => a.vendedorId === b.vendedorId).length })).filter((b) => b.itens > 0) });
+    res.json({ vagas: VAGAS, barracas: bs.map((b) => ({ vendedorId: b.vendedorId, vendedor: nomes.get(b.vendedorId) || "Jogador", vaga: b.vaga, titulo: b.titulo, cor: b.cor, itens: b.itens })) });
   }));
   r.post("/barraca", rota(async (req, res) => {
     const eu = req.user.id, v = validaBarraca(req.body || {}), t = agora();
     if (v.erro) return res.status(400).json({ error: v.erro });
     if (!(await db().lendaAnuncio.count({ where: { vendedorId: eu, expiraEm: { gt: new Date(t) } } }))) return res.status(400).json({ error: "Anuncie pelo menos um item antes de montar a barraca." });
-    const outras = (await db().lendaBarraca.findMany({ where: { mapa: v.mapa, expiraEm: { gt: new Date(t) } } })).filter((b) => b.vendedorId !== eu);
-    if (outras.length >= BARRACAS_POR_MAPA) return res.status(409).json({ error: "Este lugar já está cheio de barracas. Tente outra cidade!" });
-    if (outras.some((b) => pertoDemais(b, v))) return res.status(409).json({ error: "Tem uma barraca muito perto. Ande um pouco e tente de novo." });
-    const dados = { mapa: v.mapa, x: v.x, y: v.y, titulo: v.titulo, cor: v.cor, abertaEm: new Date(t), expiraEm: new Date(t + BARRACA_MS) };
+    const ocupada = (await barracasAtivas(new Date(t))).find((b) => b.vaga === v.vaga && b.vendedorId !== eu);
+    if (ocupada) return res.status(409).json({ error: "Essa vaga já tem barraca. Escolha outra vaga livre." });
+    const dados = { vaga: v.vaga, titulo: v.titulo, cor: v.cor, abertaEm: new Date(t), expiraEm: new Date(t + BARRACA_MS) };
     await db().lendaBarraca.upsert({ where: { vendedorId: eu }, create: { vendedorId: eu, ...dados }, update: dados });
     res.json({ ok: true, barraca: { vendedorId: eu, ...dados } });
   }));

@@ -6,7 +6,7 @@
 //   tostões; o vendedor recolhe os tostões depois (menos TAXA). Anúncio vence em DURACAO_MS: o item volta ao vendedor.
 // - O inventário mora no aparelho de cada um, então aqui ficam os LIMITES: só itens do catálogo, preço entre
 //   PRECO_MIN e PRECO_MAX × o valor de referência, nível mínimo para vender, anúncios ativos e por dia.
-// - Barraca: o vendedor monta na cidade (posição, título de uma lista e cor); aparece para todo mundo naquele mapa.
+// - Barraca: o vendedor monta numa VAGA da Praça da Feira (título de uma lista e cor); aparece para todo mundo lá.
 // O catálogo (itens_mercado.json) é exportado do jogo: { id: { n: nome, v: venda, p: preço, l: nível, t: tipo, e: empilha, r: raridade } }.
 import { readFileSync } from "node:fs";
 
@@ -18,19 +18,23 @@ export const MAX_QTD = 999;
 export const DURACAO_MS = 3 * 24 * 3600e3;
 export const TAXA = 0.05;                 // tostões que somem a cada venda (segura a inflação)
 export const PRECO_MIN = 0.5, PRECO_MAX = 25;
-export const BARRACA_MS = 24 * 3600e3, BARRACAS_POR_MAPA = 40, BARRACA_DIST = 2;
+// dono: "crie um espaço específico onde ficarão concentradas as vendinhas" → PRAÇA DA FEIRA com VAGAS fixas
+export const BARRACA_MS = 24 * 3600e3, VAGAS = 36;
 export const TITULOS = ["Promoção!", "Itens raros", "Poções e comidas", "Equipamentos", "Materiais", "Tudo barato!", "Novidades",
   "Para iniciantes", "Para o Multiverso", "Relíquias e tesouros", "Itens refinados", "Leve 2!"];
 export const CORES_BARRACA = 4;
 
-// pode vender? (itens únicos, troféus, chaves, bolsas e o que não tem valor ficam de fora)
+// itens que a loja da cidade não compra (valem 1) mas que vale a pena trocar entre jogadores: valor de referência próprio
+export const REF_ESPECIAL = { fragmento_desperto: 20000 };
+// pode vender? (itens únicos, troféus, chaves, bolsas e o que não tem valor — lembranças, medalhas — ficam de fora)
 export function vendavel(id) {
   const c = CATALOGO[id];
   if (!c) return false;
+  if (REF_ESPECIAL[id]) return true;
   if (c.t === "chave" || c.t === "bolsa") return false;
-  return c.v > 0 || c.p > 0;
+  return c.v > 1 || c.p > 0;
 }
-export const refItem = (id) => { const c = CATALOGO[id]; return c ? Math.max(c.v || 0, Math.round((c.p || 0) * 0.4), 1) : 0; };
+export const refItem = (id) => { const c = CATALOGO[id]; return c ? Math.max(REF_ESPECIAL[id] || 0, c.v || 0, Math.round((c.p || 0) * 0.4), 1) : 0; };
 export function faixaPreco(id, refino = 0) {
   const r = Math.max(0, Math.min(15, Math.floor(Number(refino) || 0)));
   const base = refItem(id) * (1 + r); // refinado vale mais (cada +1 soma o valor do item)
@@ -59,12 +63,10 @@ export function idsDaBusca(q) {
   const b = simples(q).trim(); if (!b) return null;
   return Object.keys(CATALOGO).filter((id) => simples(CATALOGO[id].n).includes(b)).slice(0, 300);
 }
-export function validaBarraca({ mapa, x, y, titulo, cor } = {}) {
-  if (!(typeof mapa === "string" && /^[a-z0-9_]{1,40}$/.test(mapa))) return { erro: "Lugar inválido." };
-  const X = Number(x), Y = Number(y), t = inteiro(titulo), c = inteiro(cor);
-  if (!(X >= 0 && X < 1000 && Y >= 0 && Y < 1000)) return { erro: "Posição inválida." };
+export function validaBarraca({ vaga, titulo, cor } = {}) {
+  const v = inteiro(vaga), t = inteiro(titulo), c = inteiro(cor);
+  if (!(v >= 0 && v < VAGAS)) return { erro: "Escolha uma vaga da Praça da Feira." };
   if (!(t >= 0 && t < TITULOS.length)) return { erro: "Escolha um título." };
   if (!(c >= 0 && c < CORES_BARRACA)) return { erro: "Escolha uma cor." };
-  return { ok: true, mapa, x: Math.floor(X) + 0.5, y: Math.floor(Y) + 0.5, titulo: t, cor: c };
+  return { ok: true, vaga: v, titulo: t, cor: c };
 }
-export const pertoDemais = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < BARRACA_DIST;
