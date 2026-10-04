@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { io as conectar } from "socket.io-client";
-import { registrarGrupo, __configurarGrupoParaTestes, __resetGrupoParaTestes, __grupos } from "../../src/lenda/socketGrupo.js";
+import { registrarGrupo, __configurarGrupoParaTestes, __resetGrupoParaTestes, __grupos, faixaOk, faixaDe } from "../../src/lenda/socketGrupo.js";
 
 // ana (líder) é amiga de bia, caio, edu e fabi; davi não é amigo de ninguém.
 const AMIGOS = { ana: ["bia", "caio", "edu", "fabi"], bia: ["ana"], caio: ["ana"], davi: [], edu: ["ana"], fabi: ["ana"] };
@@ -28,13 +28,13 @@ const recebeu = (s, ev) => s.got.filter(([e]) => e === ev).map(([, d]) => d);
 test("grupo: criar, convidar, só amigo entra, onde, repasse só no mesmo mapa, dano para o líder, líder sai = fim", async () => {
   const ana = cliente("ana"), bia = cliente("bia"), caio = cliente("caio"), davi = cliente("davi");
   await espera(150);
-  const r = await pede(ana, "grupo-criar", { perfil: { nivel: 300 }, mapa: "rio" });
+  const r = await pede(ana, "grupo-criar", { perfil: { nivel: 250 }, mapa: "rio" });
   assert.equal(r.ok, true); const cod = r.grupo.codigo;
   assert.equal((await pede(ana, "grupo-convidar", { amigoId: "bia" })).ok, true);
   await espera(80); assert.equal(recebeu(bia, "grupo-convite")[0].codigo, cod);
   assert.match((await pede(davi, "grupo-entrar", { codigo: cod })).erro, /amigos/);
   assert.equal((await pede(bia, "grupo-entrar", { codigo: cod.toLowerCase(), perfil: { nivel: 200 }, mapa: "rio" })).ok, true);
-  assert.equal((await pede(caio, "grupo-entrar", { codigo: cod, perfil: { nivel: 150 }, mapa: "vila" })).ok, true);
+  assert.equal((await pede(caio, "grupo-entrar", { codigo: cod, perfil: { nivel: 180 }, mapa: "vila" })).ok, true);
   // líder e bia entram na caça; caio fica na vila
   ana.emit("grupo-onde", { mapa: "caca_jacares" }); bia.emit("grupo-onde", { mapa: "caca_jacares" });
   await espera(100);
@@ -68,4 +68,16 @@ test("no máximo 4", async () => {
   const cod = (await pede(ana, "grupo-criar", {})).grupo.codigo;
   for (const o of outros.slice(0, 3)) assert.equal((await pede(o, "grupo-entrar", { codigo: cod })).ok, true);
   assert.match((await pede(outros[3], "grupo-entrar", { codigo: cod })).erro, /4/);
+});
+
+test("diferença de nível do grupo", async () => {
+  assert.equal(faixaOk(100, 150), true); assert.equal(faixaOk(100, 151), false);
+  assert.equal(faixaOk(5, 15), true); assert.equal(faixaOk(5, 16), false);
+  assert.deepEqual(faixaDe(300), { de: 200, ate: 450 });
+  const ana = cliente("ana"), bia = cliente("bia");
+  await espera(150);
+  const cod = (await pede(ana, "grupo-criar", { perfil: { nivel: 300 } })).grupo.codigo;
+  const r = await pede(bia, "grupo-entrar", { codigo: cod, perfil: { nivel: 150 } });
+  assert.match(r.erro, /entre os níveis 200 e 450/);
+  assert.equal((await pede(bia, "grupo-entrar", { codigo: cod, perfil: { nivel: 210 } })).ok, true);
 });

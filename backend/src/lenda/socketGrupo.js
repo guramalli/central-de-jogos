@@ -18,6 +18,10 @@ import { limpaPerfil } from "./socketTorre.js";
 import { mapaValido } from "./socketMundo.js";
 
 export const MAX_GRUPO = 4;
+// dono: "deve existir uma diferença mínima entre os players para poder fazer party" → o nível mais alto pode ser
+// no máximo 50% maior que o mais baixo (folga mínima de 10 níveis para quem está começando). O jogo usa a mesma conta.
+export const faixaOk = (a, b) => { const lo = Math.min(a, b), hi = Math.max(a, b); return hi <= Math.max(lo * 1.5, lo + 10); };
+export const faixaDe = (nivel) => ({ de: Math.max(1, Math.min(nivel - 10, Math.ceil(nivel / 1.5))), ate: Math.max(nivel + 10, Math.floor(nivel * 1.5)) });
 const MAX_GRUPOS = 1000;
 const EMOTES = 8;
 const LIMITE_POR_SEG = 40;
@@ -88,8 +92,11 @@ export function registrarGrupo(io, socket) {
       if (g.membros.size >= MAX_GRUPO) return responde(cb, { erro: `O grupo já tem ${MAX_GRUPO} jogadores.` });
       const amigos = await deps.amigosDe(g.lider);
       if (!amigos.includes(eu)) return responde(cb, { erro: "Só amigos de quem criou o grupo podem entrar (adicione no site, menu Amigos)." });
+      const perfil = limpaPerfil(dados?.perfil, apelido);
+      const longe = [...g.membros.values()].find((m) => !faixaOk(m.nivel, perfil.nivel));
+      if (longe) { const f = faixaDe(longe.nivel); return responde(cb, { erro: `A diferença de nível é grande demais: ${longe.apelido} (nível ${longe.nivel}) só caça em grupo com quem está entre os níveis ${f.de} e ${f.ate}.` }); }
       if (grupo() && grupo() !== g) sai("trocou");
-      g.membros.set(eu, { id: eu, ...limpaPerfil(dados?.perfil, apelido), mapa: mapaValido(dados?.mapa) ? dados.mapa : null });
+      g.membros.set(eu, { id: eu, ...perfil, mapa: mapaValido(dados?.mapa) ? dados.mapa : null });
       grupoDe.set(eu, codigo); socket.join(quarto(g));
       responde(cb, { ok: true, grupo: resumoGrupo(g) }); avisa(g);
     } catch { responde(cb, { erro: "Não deu para entrar agora." }); }
