@@ -724,3 +724,56 @@ model LendaGuildaConvite {
   @@unique([guildaId, userId])
   @@index([userId])
 }
+
+// Lenda do Campinho — LOJAS DOS JOGADORES (src/lenda/mercado.js + src/routes/lendaMercado.js). Só tostões.
+// O item anunciado sai do jogo do vendedor e fica aqui até alguém comprar (ou vencer/cancelar: volta para ele).
+model LendaAnuncio {
+  id         String   @id @default(cuid())
+  vendedorId String
+  itemId     String
+  refino     Int      @default(0)
+  qtd        Int
+  preco      Float // tostões por unidade
+  criadoEm   DateTime @default(now())
+  expiraEm   DateTime
+
+  @@index([itemId, preco])
+  @@index([vendedorId])
+  @@index([expiraEm])
+}
+
+model LendaVenda {
+  id          String   @id @default(cuid())
+  vendedorId  String
+  compradorId String
+  itemId      String
+  refino      Int      @default(0)
+  qtd         Int
+  total       Float
+  coletado    Boolean  @default(false)
+  criadoEm    DateTime @default(now())
+
+  @@index([vendedorId, coletado])
+}
+
+model LendaBarraca {
+  vendedorId String   @id
+  mapa       String
+  x          Float
+  y          Float
+  titulo     Int
+  cor        Int
+  abertaEm   DateTime @default(now())
+  expiraEm   DateTime
+
+  @@index([mapa, expiraEm])
+}
+
+// quantos anúncios cada um criou no dia (o limite diário não volta quando o anúncio é cancelado)
+model LendaMercadoCota {
+  userId String
+  dia    String
+  n      Int    @default(0)
+
+  @@id([userId, dia])
+}
