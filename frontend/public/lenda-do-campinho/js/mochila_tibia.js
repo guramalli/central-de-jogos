@@ -122,9 +122,45 @@ function mtMoveParte(i, dest, n, j) {
   const _pMT = atualizaPaineis;
   atualizaPaineis = function () {
     const r = _pMT.apply(this, arguments);
-    try { instala(document.getElementById('mochila')); mtPosiciona(); mtCostasNoEquip(); } catch (e) { console.warn('mochila tibia', e); }
+    try { instala(document.getElementById('mochila')); mtPosiciona(); mtCostasNoEquip(); mtAlcas(); } catch (e) { console.warn('mochila tibia', e); }
     return r;
   };
+}
+// ---------- v403 (dono: "faltou a opção de reduzirmos o tamanho da janela das backpacks... cada backpack pode ser diminuída"):
+// uma alça no rodapé de CADA janela, como no Tibia. Arrastar encaixa em fileiras inteiras; o resto rola por dentro.
+// O tamanho de cada janela fica no save (s.bolsasAlt: { 'raiz' | uid: fileiras }); a rolagem é lembrada entre os redesenhos.
+const MT_ROLA = {};
+function mtAlcas() {
+  const s = G.save; if (!s) return;
+  document.querySelectorAll('#mochila .bolsa-janela:not(.mini)').forEach(j => {
+    const g = j.querySelector(':scope > .mochila-grade'); if (!g || j.querySelector(':scope > .mt-alca')) return;
+    const ch = j.dataset.janela, cs = getComputedStyle(g);
+    const gap = parseFloat(cs.rowGap) || 4, cols = () => Math.max(1, getComputedStyle(g).gridTemplateColumns.split(' ').length);
+    const passo = () => { const sl = g.querySelector('.slot'), h = sl ? sl.getBoundingClientRect().height : 0; return h > 8 ? h + gap : 0; };
+    const total = () => Math.ceil(g.children.length / cols());
+    const aplica = f => {
+      const p = passo();
+      if (f == null || !p || f >= total()) { g.style.maxHeight = ''; g.classList.remove('mt-rola'); return; }
+      g.style.maxHeight = (f * p - gap) + 'px'; g.classList.add('mt-rola');
+    };
+    aplica((s.bolsasAlt || {})[ch]);
+    if (MT_ROLA[ch]) g.scrollTop = MT_ROLA[ch];
+    g.addEventListener('scroll', () => { MT_ROLA[ch] = g.scrollTop; }, { passive: true });
+    const a = el('div', { class: 'mt-alca', title: 'Arraste para diminuir ou aumentar esta janela (duplo clique: tamanho todo)' }, el('i'));
+    a.addEventListener('pointerdown', ev => {
+      const p = passo(); if (!p || ev.button > 0) return;
+      ev.preventDefault(); try { a.setPointerCapture(ev.pointerId); } catch (e) { }
+      const y0 = ev.clientY, h0 = g.getBoundingClientRect().height; document.body.classList.add('mt-puxando');
+      const mv = e => {
+        const f = Math.max(1, Math.min(total(), Math.round((h0 + e.clientY - y0 + gap) / p)));
+        const l = { ...(s.bolsasAlt || {}) }; if (f >= total()) delete l[ch]; else l[ch] = f; s.bolsasAlt = l; aplica(f);
+      };
+      const up = () => { document.body.classList.remove('mt-puxando'); a.removeEventListener('pointermove', mv); a.removeEventListener('pointerup', up); a.removeEventListener('pointercancel', up); };
+      a.addEventListener('pointermove', mv); a.addEventListener('pointerup', up); a.addEventListener('pointercancel', up);
+    });
+    a.addEventListener('dblclick', () => { const l = { ...(s.bolsasAlt || {}) }; delete l[ch]; s.bolsasAlt = l; aplica(null); });
+    j.append(a);
+  });
 }
 // ---------- a coluna: no computador, as janelas ficam no painel da direita ----------
 function mtPosiciona() {
@@ -209,6 +245,12 @@ function mtEscolheCostas() {
   #mochila .bolsa-janela.mini { padding-bottom: 0; } #mochila .bolsa-janela.mini > .bolsa-tit { margin-bottom: 0; border-radius: 5px; }
   .bolsas-painel #mochila .mochila-grade { grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); }
   .bolsas-painel #mochila > .vazio { font-size: 11px; opacity: .7; }
+  /* v403: alça para diminuir cada janela de mochila */
+  #mochila .mochila-grade.mt-rola { overflow-y: auto; scrollbar-width: thin; padding-right: 2px; }
+  #mochila .bolsa-janela > .mt-alca { height: 9px; margin: 3px -4px -4px; cursor: ns-resize; display: grid; place-items: center; border-radius: 0 0 6px 6px; touch-action: none; }
+  #mochila .bolsa-janela > .mt-alca i { width: 34px; height: 3px; border-radius: 2px; background: rgba(90,64,32,.35); }
+  #mochila .bolsa-janela > .mt-alca:hover { background: rgba(138,90,42,.15); } #mochila .bolsa-janela > .mt-alca:hover i { background: rgba(90,64,32,.7); }
+  body.mt-puxando, body.mt-puxando * { cursor: ns-resize !important; user-select: none; }
   .bolsas-painel #bolsasAbertas { display: none; }
   body.modo-celular [data-painel="bolsas"] { display: none !important; }
   #mtAviso { margin: 4px 0 6px; font-size: 13px; }
