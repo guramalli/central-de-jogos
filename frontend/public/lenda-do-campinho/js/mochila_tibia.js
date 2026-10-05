@@ -12,20 +12,9 @@
      soltar uma pilha em cima de outra igual junta as duas (até 999).
    Carregar DEPOIS de mochilas.js, armazem.js e luxo.js.
    ============================================================ */
+if (typeof ASSETS !== 'undefined' && !ASSET_SET.has('i_mochila_campo')) { ASSETS.push('i_mochila_campo'); ASSET_SET.add('i_mochila_campo'); } // v402: arte da Mochila de Campo
 ITENS.mochila_campo = { nome: 'Mochila de Campo', tipo: 'bolsa', espacos: 30, lvl: 1, preco: 2000, venda: 0, desc: 'A mochila de todo jogador: 30 espaços. Use nas costas ou guarde dentro de outra mochila.', icon: { k: 'pacote', c: '#7a5a2a' } };
-// o ícone: a arte da Mochila de Viagem pintada de verde (campo)
-{
-  let ic = null;
-  const _icMT = iconeItem;
-  iconeItem = function (id) {
-    if (id !== 'mochila_campo') return _icMT.apply(this, arguments);
-    if (ic) return ic;
-    const base = _icMT('mochila_viagem'); if (!base || !base.width) return _icMT.apply(this, arguments);
-    if (base.width < 40) return base; // (a arte ainda não chegou: o desenho simples por enquanto)
-    const c = mkCanvas(base.width, base.height), x = c.getContext('2d'); x.filter = 'hue-rotate(70deg) saturate(0.85)'; x.drawImage(base, 0, 0);
-    return (ic = c);
-  };
-}
+// o ícone: arte própria (a/i_mochila_campo.webp, v402), registrada acima
 const mtNovoU = s => (s.uidBolsa = (s.uidBolsa || 0) + 1);
 const mtFilhos = (s, u) => s.mochila.filter(e => (e.c ?? null) === (u ?? null));
 // mochila das costas: todo save tem uma (os antigos ganham a Mochila de Campo, com os mesmos 30 espaços de antes)
@@ -236,19 +225,19 @@ function mtEscolheCostas() {
   .bloco.minimizado .mt-status { display: none; }
   #equip .eq-slot[data-slot="costas"] { background: radial-gradient(circle at 50% 45%, #fffaf0 0 50%, #ead7b0 100%) !important; border: 2px solid #b8925a !important; cursor: pointer; }
   #equip .eq-slot[data-slot="costas"].alvo-equip { border-color: #e0b020 !important; box-shadow: 0 0 0 3px rgba(224,176,32,.5); }
-  /* v400: Habilidades em cartões */
-  #skills .skv, #skills .skv-nivel { margin: 6px 0; padding: 6px 8px 7px; border-radius: 9px; background: rgba(255,248,230,.75); border: 2px solid rgba(138,75,36,.28); }
-  #skills .skv-nivel { background: linear-gradient(#fff3c8, #ffe79a); border-color: #c9a46a; }
-  #skills .skv-cab { display: flex; align-items: center; gap: 6px; }
-  #skills .skv-ic { width: 26px; height: 26px; flex: none; display: grid; place-items: center; font-size: 16px; border-radius: 7px; background: rgba(138,75,36,.15); }
-  #skills .skv-nome { flex: 1; font-weight: 700; font-size: 14px; }
-  #skills .skv-lv { font: 800 20px Fredoka, Nunito, sans-serif; color: var(--madeira2, #5e2f14); font-variant-numeric: tabular-nums; }
-  #skills .skv-bonus { font-size: 11px; font-weight: 800; color: #1f7a2e; background: rgba(58,194,106,.18); border-radius: 6px; padding: 1px 5px; }
-  #skills .skv-barra { position: relative; height: 13px; margin-top: 5px; border-radius: 7px; background: #3a2a1a; box-shadow: inset 0 1px 2px rgba(0,0,0,.5); overflow: hidden; }
-  #skills .skv-barra i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; background: linear-gradient(#7ad85a, #3a9a2a); }
-  #skills .skv-barra.xp i { background: linear-gradient(#ffe27a, #e0a020); }
-  #skills .skv-barra span { position: relative; display: block; text-align: center; font: 800 10px/13px Nunito, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
-  #skills .sk-info { margin-top: 8px; padding: 6px 8px; border-radius: 9px; background: rgba(138,75,36,.08); }`;
+  /* v402: Habilidades no estilo da janela de Skills do Tibia: linhas finas, barrinha embaixo */
+  #skills .skt { padding: 3px 4px 4px; border-bottom: 1px solid rgba(138,75,36,.14); }
+  #skills .skt-l { display: flex; align-items: baseline; gap: 5px; font-size: 12.5px; line-height: 1.25; }
+  #skills .skt-l span { flex: 1; }
+  #skills .skt-l b { font-variant-numeric: tabular-nums; color: var(--madeira2, #5e2f14); }
+  #skills .skt-l small { font-size: 10.5px; font-weight: 700; color: #1f8a35; }
+  #skills .skt-b { height: 4px; margin-top: 2px; background: #3a2a1a; border-radius: 2px; overflow: hidden; }
+  #skills .skt-b i { display: block; height: 100%; background: #3fb34a; }
+  #skills .skt.xp .skt-b i { background: #e0a020; }
+  #skills .skt.xp .skt-l { font-size: 13.5px; }
+  #skills .skt.sub { padding-top: 0; }
+  #skills .skt.sub .skt-l { font-size: 11px; opacity: .8; }
+  #skills .sk-info { margin-top: 6px; padding: 2px 4px; font-size: 11.5px; }`;
   document.head.append(st);
 }
 // ---------- status do personagem (v399; dono: "a capacidade de carregar peso deve ficar no status do jogador, que também pode

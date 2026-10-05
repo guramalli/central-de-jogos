@@ -235,19 +235,17 @@ function atualizaPaineis() {
   // habilidades
   const sk = $('#skills'); sk.innerHTML = '';
   const a = xpPara(s.nivel), bxp = xpPara(s.nivel + 1);
-  // v400 (dono: "a barra de skills também quero que fique melhor desenhada, refaça"): cartões com ícone, nível grande,
-  // bônus em destaque e barra de progresso com a porcentagem
+  // v402 (dono: "faça no estilo do Tibia... pequeno, menos é mais"): uma linha por habilidade (nome à esquerda, valor à
+  // direita) e uma barrinha fina embaixo com o quanto falta; o bônus (equipamentos, comidas) aparece pequeno em verde
   const pcN = Math.floor((s.xp - a) / (bxp - a) * 100);
-  sk.append(el('div', { class: 'skv-nivel', title: `Faltam ${fmt(bxp - s.xp)} XP para o nível ${s.nivel + 1}` },
-    el('div', { class: 'skv-cab' }, el('span', { class: 'skv-ic' }, '⭐'), el('span', { class: 'skv-nome' }, 'Nível'), el('b', { class: 'skv-lv' }, fmt(s.nivel))),
-    el('div', { class: 'skv-barra xp' }, el('i', { style: `width:${pcN}%` }), el('span', {}, `${pcN}% · faltam ${fmt(bxp - s.xp)} XP`))));
-  const SK_IC = { drible: '🌀', chute: '🥅', defesa: '🛡️', visao: '🧠' };
+  const linha = (nome, valor, pc, dica, bonus, cls) => el('div', { class: 'skt' + (cls ? ' ' + cls : ''), title: dica },
+    el('div', { class: 'skt-l' }, el('span', {}, nome), bonus ? el('small', {}, `+${num1(bonus)}`) : '', el('b', {}, valor)),
+    pc === null ? '' : el('div', { class: 'skt-b' }, el('i', { style: `width:${pc}%` })));
+  sk.append(linha('Nível', fmt(s.nivel), pcN, `${pcN}% do nível — faltam ${fmt(bxp - s.xp)} XP para o nível ${s.nivel + 1}`, 0, 'xp'),
+    linha('Experiência', fmt(s.xp), null, `Faltam ${fmt(bxp - s.xp)} XP para o nível ${s.nivel + 1}`, 0, 'sub'));
   for (const k of ['drible', 'chute', 'defesa', 'visao']) {
     const o = s.sk[k]; const bonus = st[k] - o.lv, pc = Math.min(99, Math.floor(o.t / precisaTentativas(k, o.lv) * 100));
-    sk.append(el('div', { class: 'skv', title: SKILLS[k].desc + (bonus ? ` — ${o.lv} treinado + ${num1(bonus)} de bônus (equipamentos, comidas...) = ${num1(st[k])} no jogo. O treino sobe o ${o.lv}.` : '') },
-      el('div', { class: 'skv-cab' }, el('span', { class: 'skv-ic' }, SK_IC[k]), el('span', { class: 'skv-nome' }, SKILLS[k].nome),
-        bonus ? el('span', { class: 'skv-bonus' }, `+${num1(bonus)}`) : '', el('b', { class: 'skv-lv' }, String(o.lv))),
-      el('div', { class: 'skv-barra' }, el('i', { style: `width:${pc}%` }), el('span', {}, `${pc}%`))));
+    sk.append(linha(SKILLS[k].nome, String(o.lv), pc, `${SKILLS[k].desc} — ${pc}% para o ${o.lv + 1}` + (bonus ? `. ${o.lv} treinado + ${num1(bonus)} de bônus (equipamentos, comidas...) = ${num1(st[k])} no jogo` : ''), bonus));
   }
   const hh = Math.floor(s.st.tempo / 3600), mm = Math.floor(s.st.tempo / 60) % 60;
   sk.append(el('div', { class: 'sk-info' },

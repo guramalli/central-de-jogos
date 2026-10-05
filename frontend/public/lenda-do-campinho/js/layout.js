@@ -82,7 +82,7 @@ function silhuetaEquip(x, X, Y, W, H) {
   x.restore();
 }
 const EQ_REG = { x: 26, y: 5, w: 48, h: 90 }; // área do boneco no quadro (%)
-const EQ_TAM = 21;                              // tamanho de cada quadro (% da largura)
+const EQ_TAM = 18;                              // tamanho de cada quadro (% da largura) (v402: 18 = 4 quadros + nomes num lado, sem sobrepor)
 // chamado por atualizaPaineis (ui.js) depois de criar os quadros .eq-slot[data-slot]
 function montaBonecoEquip(g) {
   const N = 360, cv = mkCanvas(N, N); cv.className = 'eq-corpo'; const x = cv.getContext('2d');
@@ -92,6 +92,9 @@ function montaBonecoEquip(g) {
   if (spr && spr.width && spr.height) {
     const k = Math.min(R.w / spr.width, R.h / spr.height); bw = spr.width * k; bh = spr.height * k;
     bx = R.x + (R.w - bw) / 2; by = R.y + R.h - bh; anc = ancorasSprite(spr);
+    // v402: capa, asas e mochila enganam a leitura do corpo (o "quadril" ia parar no pé e a Chuteira subia acima do Calção):
+    // a parte que foge muito da altura normal, ou fica larga demais, volta para a posição padrão
+    anc = { ...anc }; for (const p in EQ_ANC_PADRAO) { const d = EQ_ANC_PADRAO[p], v = anc[p]; if (!v || Math.abs(v[0] - d[0]) > 0.1 || v[2] - v[1] > (d[2] - d[1]) + 0.3) anc[p] = d; }
   } else { bw = R.w * 0.62; bh = R.h * 0.92; bx = R.x + (R.w - bw) / 2; by = R.y + R.h - bh; anc = EQ_ANC_PADRAO; }
   const P = v => v * N / 100;
   // luz de fundo e sombra no chão
@@ -102,7 +105,7 @@ function montaBonecoEquip(g) {
   if (spr) { x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(spr, P(bx), P(by), P(bw), P(bh)); }
   else silhuetaEquip(x, P(bx), P(by), P(bw), P(bh));
   // posição de cada quadro: na altura da sua parte do corpo, sem encostar nos vizinhos
-  const D = EQ_TAM + 7, MIN = EQ_TAM / 2 + 1.5, MAX = 100 - EQ_TAM / 2 - 6.5;
+  const D = EQ_TAM + 7.5, MIN = EQ_TAM / 2 + 1.5, MAX = 100 - EQ_TAM / 2 - 6.5;
   const lados = { e: [], d: [] };
   for (const slot in EQ_POS) {
     const [lado, parte] = EQ_POS[slot]; const [fy, f0, f1] = anc[parte] || EQ_ANC_PADRAO[parte]; const k = EQ_K[parte];
