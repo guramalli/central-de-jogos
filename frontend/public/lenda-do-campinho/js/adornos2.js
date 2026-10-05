@@ -162,7 +162,7 @@
       if (ligado('bola')) desenhaBolaSat(ctx, e, agora, true);
       if (petId && PET.y > e.y) desenhaPet(ctx, petId);
       const coroa = atual('coroa');
-      if (coroa && !montado) { const im = aSprite(coroa === 'chamas' ? 'ad_coroa_chamas' : 'ad_aureola_raios'); if (im) { const w = T * (coroa === 'chamas' ? 0.74 : 0.82), h = w * im.height / im.width, sobe = prancha ? T * 0.16 : 0, bob = Math.sin(agora / 420) * 2.2; const topo = e.y * T - sobe - alturaEnt(e) * T + bob, y0 = coroa === 'chamas' ? topo - h * 0.42 : topo - h * 0.38; ctx.save(); if (coroa === 'raios') ctx.globalAlpha *= 0.85 + 0.15 * Math.sin(agora / 70); ctx.drawImage(im, e.x * T - w / 2, y0, w, h); ctx.restore(); } }
+      if (coroa && !montado) { const im = aSprite(coroa === 'chamas' ? 'ad_coroa_chamas' : 'ad_aureola_raios'); if (im && !(typeof coroaNaCabeca === 'function' && e === G.p && coroaNaCabeca(ctx, e, im, coroa, prancha, agora))) { const w = T * (coroa === 'chamas' ? 0.74 : 0.82), h = w * im.height / im.width, sobe = prancha ? T * 0.16 : 0, bob = Math.sin(agora / 420) * 2.2; const topo = e.y * T - sobe - alturaEnt(e) * T + bob, y0 = coroa === 'chamas' ? topo - h * 0.42 : topo - h * 0.38; ctx.save(); if (coroa === 'raios') ctx.globalAlpha *= 0.85 + 0.15 * Math.sin(agora / 70); ctx.drawImage(im, e.x * T - w / 2, y0, w, h); ctx.restore(); } }
     } catch (err) { if (!window._a2err) { window._a2err = err; console.warn('adornos2', err); } }
     return res;
   };

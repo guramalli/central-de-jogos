@@ -447,3 +447,16 @@ window.CACADA_EPICA = { CE, ceEcosDaSemana, ceDados, ceEco, ceEntra, cePool, CE_
     return r;
   };
 }
+// v391 (dono: "o tamanho do boss está muito pequeno"): o Eco copiava o desenho do bicho comum (um dragãozinho do tamanho de
+// qualquer adversário). Agora ele é GRANDE como os Guardiões das Lendas (bicho ×1,75, gente ×1,45), entre 1,5× e 2× a
+// altura do seu personagem.
+{
+  const _altEco = alturaEnt;
+  alturaEnt = function (e) {
+    const h = _altEco.apply(this, arguments);
+    const d = e && e !== G.p && e.d; if (!d || !d.ceEco) return h;
+    const eu = G.save ? ALT_FASE[faseIdx(G.save.nivel)] : 1.6;
+    const k = d.look && d.look.tipo && d.look.tipo !== 'humano' ? 1.75 : 1.45;
+    return Math.max(h, Math.min(eu * 2, Math.max(eu * 1.5, h * k))); // entre 1,5× e 2× o seu personagem (nunca menor que o original)
+  };
+}

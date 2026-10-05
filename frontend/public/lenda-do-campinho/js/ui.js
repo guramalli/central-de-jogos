@@ -415,14 +415,15 @@ function modalLoja(npc, aba = 'comprar') {
   if (aba === 'comprar') {
     for (const id of d.loja) {
       const it = ITENS[id]; if (!it.preco) continue;
-      const qtd = el('input', { type: 'number', min: 1, max: 100, value: 1 });
+      const qtd = el('input', { type: 'number', min: 1, max: 1000, value: 1 }); // v391 (dono: "tentei comprar 200 bolinhos de alga, o máximo é 100"): até 1.000 de uma vez
       const bloq = it.lvl && s.nivel < it.lvl;
       lista.append(el('div', { class: 'linha-item' + (bloq ? ' bloq' : '') }, iconeClone(iconeItem(id)),
         el('div', { class: 'nm' }, el('b', {}, it.nome), el('small', {}, it.desc + (it.lvl > 1 ? ` (nível ${it.lvl})` : ''))),
         precoTag(it.preco), empilha(id) ? qtd : '',
         el('button', { class: 'btn verde mini', onclick: () => {
-          const q = empilha(id) ? clamp(parseInt(qtd.value) || 1, 1, 100) : 1; const total = q * it.preco;
-          if (s.ouro < total) { log('Tostões insuficientes!', 'l-dano'); som('erro'); return; }
+          const q = empilha(id) ? clamp(parseInt(qtd.value) || 1, 1, 1000) : 1; const total = q * it.preco;
+          if (s.ouro < total) { const da = Math.floor(s.ouro / it.preco); log(da > 0 ? `Tostões insuficientes! Dá para comprar até ${da}x ${it.nome}.` : 'Tostões insuficientes!', 'l-dano'); som('erro'); return; }
+          { const pe = typeof pesoItem === 'function' ? pesoItem(id) : 0; if (pe > 0 && q > 1 && pesoMochila(s) + pe * q > capPeso(s)) { const cabe = Math.max(0, Math.floor((capPeso(s) - pesoMochila(s)) / pe)); log(cabe > 0 ? `Pesado demais para levar ${q} de uma vez: cabem ${cabe}x ${it.nome} na sua carga.` : 'Sua carga está cheia!', 'l-dano'); som('erro'); return; } }
           if (addItem(id, q)) { s.ouro -= total; log(`Você comprou ${q}x ${it.nome} por ${fmt(total)} tostões.`, 'l-loot'); som('moeda'); modalLoja(npc, 'comprar'); }
         } }, 'Comprar')));
     }
