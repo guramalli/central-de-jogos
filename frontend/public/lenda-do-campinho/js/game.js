@@ -1696,7 +1696,7 @@ function alvoAnterior() {
   const p = G.p; const vis = ordenaAlvos(G.mons.filter(m => !m.d.treino && naTela(m))); if (!vis.length) return;
   const i = vis.indexOf(G.alvo); G.alvo = vis[(i - 1 + vis.length) % vis.length]; G.uiSujo = true;
 }
-function trocaModo() { G.modo = G.modo === 'drible' ? 'chute' : 'drible'; log(G.modo === 'drible' ? 'Modo DRIBLE: ataca colado no adversário (treina Drible).' : 'Modo CHUTE: ataca de longe (treina Chute).', 'l-info'); G.uiSujo = true; }
+function trocaModo() { G.modo = G.modo === 'drible' ? 'chute' : 'drible'; if (G.save) G.save.modoAtq = G.modo; log(G.modo === 'drible' ? 'Modo DRIBLE: ataca colado no adversário (treina Drible).' : 'Modo CHUTE: ataca de longe (treina Chute).', 'l-info'); G.uiSujo = true; }
 // 20 atalhos: fileira de números do teclado = 1..0 (0-9); teclado numérico = N1..N0 (10-19)
 const HOTBAR_N = 20;
 function slotDaTecla(ev) {
@@ -1755,6 +1755,7 @@ function normalizaSave(s) {
 async function iniciarJogo(save) {
   normalizaSave(save);
   G.save = save;
+  G.modo = save.modoAtq === 'chute' ? 'chute' : 'drible'; // v404 (dono: "deixe salvo sempre o que ficou por último"): volta no modo que você usava
   save.st = Object.assign({ mortes: 0, gols: 0, quiz: 0, prof: 0, tempo: 0, chefes: 0, abates: 0 }, save.st);
   save.dicas = save.dicas || {}; if (save.tut == null) save.tut = 99;
   if (save.xp < xpPara(save.nivel)) save.xp = xpPara(save.nivel);

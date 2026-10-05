@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v404', '💾 O jogo agora lembra se você joga no modo DRIBLE ou CHUTE (tecla X): ao voltar, continua no último que você usou. (A prioridade do alvo — Perto, Forte, Fraco, Fôlego — já ficava salva.)'],
     ['v403', '🎒 Cada janela de mochila agora pode ser DIMINUÍDA, como no Tibia: puxe a alcinha no rodapé da janela para cima ou para baixo (ela encaixa em fileiras inteiras e o resto rola por dentro). Cada mochila guarda o seu tamanho. Duplo clique na alcinha volta ao tamanho todo.'],
     ['v402', '🎒 A Mochila de Campo ganhou arte própria. 🎽 Equipamento: os quadros ficaram um pouquinho menores e os nomes não ficam mais por baixo do quadro seguinte; a ordem do lado direito voltou a ser Pescoço, Mochila, Calção e Chuteira (a capa e as asas confundiam). ⚽ Habilidades no estilo do Tibia: uma linha fininha por habilidade, com o valor à direita, o bônus pequeno em verde e uma barrinha do quanto falta.'],
     ['v401', '🔊 Sons novos nos chefões: eles entram RUGINDO (os chefões gente entram com a torcida gritando), cada golpe do chefão que te acerta faz um BAQUE, a fúria (quando ele fica bravo), o pisão que treme o chão e a queda do chefão ganharam sons gravados de verdade. O Rei Rex do Vale dos Dinossauros também ruge quando acorda.'],
