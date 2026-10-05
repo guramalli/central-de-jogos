@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v386', '🏋️ Treino offline de VISÃO DE JOGO corrigido: rendia sempre 4.000/h (em nível alto, mais de 100 horas por nível!). Agora rende metade da sua recuperação de foco — e a janela de Treino mostra quanto tempo falta para o próximo nível de cada habilidade.'],
     ['v385', '🏆 O louro do top 3 agora aparece em TODOS os mapas (caças, casas e arenas também), não só nas cidades. 🌊 O mar do Rio e de Santos virou mar aberto de verdade (fundo, com jangadas e boias). 🗺️ Ao entrar num mapa repaginado, uma cortina rapidinha com o nome do lugar no lugar do chão antigo "pulando" para o novo.'],
     ['v384', '🏆 Os 3 primeiros do ranking agora têm uma COROA DE LOUROS (ouro, prata e bronze) com o número em cima do nome nas cidades. 💬 Botão de falar fixo no canto do chat, e as frases aparecem num balão em cima do nome (dá para ler). 🖱️ Botão direito em cima de um jogador (no celular: segure o dedo): chamar para o grupo, pedir amizade, convidar para a guilda ou silenciar.'],
     ['v383', '🏪 FEIRA DOS JOGADORES! Anuncie itens da mochila (a partir do nível 30) e venda para outros jogadores, só com tostões. Monte a sua BARRACA numa das 36 vagas da nova PRAÇA DA FEIRA (☰ Mais › 🏪 Feira › Ir à Praça da Feira; chegue perto de uma barraca e aperte E) ou procure no mercado central. Item refinado vai com o refino. A feira fica com 5% e o anúncio dura 3 dias.'],

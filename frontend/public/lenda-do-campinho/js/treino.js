@@ -45,9 +45,20 @@ function pertoDeBoneco() {
   if (s.casa && G.mapa && G.mapa.id === s.casa.id) return true;
   return G.mons.some(m => m.d.treino && dist(m, G.p) < 5);
 }
+// v386 (dono: "deixei treinando Visão de Jogo a noite toda, não subiu nada"): a Visão offline rendia 4.000/h fixos, mas ela
+// sobe gastando FOCO e cada nível pede muito mais lá em cima (Visão 66→67 de atacante: ~700 mil) — eram 175 h por nível.
+// Agora a Visão offline rende METADE da recuperação de foco do personagem (como as físicas rendem metade do boneco),
+// medida na hora de começar e sem as comidas (que acabam durante a noite). Nunca menos que os 4.000/h de antes.
+function porHoraOffline(sk) {
+  const base = TREINO.porHora[sk] || 0, s = G.save;
+  if (sk !== 'visao' || !s) return base;
+  const orig = s.comidas; let reg = 0;
+  try { s.comidas = []; reg = Math.max(0, stats().regenFoco || 0); } catch (e) { } finally { s.comidas = orig; }
+  return Math.max(base, Math.round(reg * 3600 * 0.5));
+}
 function comecaTreinoOffline(sk) {
   const s = G.save; if (!pertoDeBoneco()) return;
-  s.treinoOff = { sk, desde: Date.now() }; s.treinoOn = false; salvar();
+  s.treinoOff = { sk, desde: Date.now(), porHora: porHoraOffline(sk) }; s.treinoOn = false; salvar();
   try { if (typeof enviaSave === 'function') enviaSave(); } catch (e) { }
   abreModal(el('h2', {}, '🌙 Treino offline começou!'),
     el('p', {}, `Seu personagem ficou treinando ${SKILLS[sk].nome}. Pode fechar o jogo tranquilo(a).`),
@@ -60,7 +71,7 @@ function resgataTreinoOffline() {
   s.treinoOff = null;
   const ms = Math.min(TREINO.offMax, Math.max(0, Date.now() - t.desde));
   if (ms < TREINO.offMin || !SKILLS[t.sk]) { log('🌙 O treino offline foi curtinho demais (menos de 10 minutos) e não contou.', 'l-sis'); salvar(); return; }
-  const antes = s.sk[t.sk].lv; const n = Math.round(ms / 3600000 * TREINO.porHora[t.sk]);
+  const antes = s.sk[t.sk].lv; const n = Math.round(ms / 3600000 * (t.porHora || porHoraOffline(t.sk))); // (treino começado antes da v386: a conta nova também)
   treinaSkill(t.sk, n); const depois = s.sk[t.sk].lv;
   const h = Math.floor(ms / 3600000), min = Math.round(ms % 3600000 / 60000);
   const tempo = h ? `${h}h${min ? String(min).padStart(2, '0') : ''}` : `${min} min`;
@@ -82,7 +93,12 @@ function modalTreino() {
   const s = G.save; if (!s) return;
   const on = !!s.treinoOn; const perto = pertoDeBoneco();
   const escolha = el('div', { class: 'opcoes treino-sk' },
-    ...['drible', 'chute', 'defesa', 'visao'].map(sk => el('button', { class: 'btn', type: 'button', disabled: perto ? null : 'disabled', onclick: () => comecaTreinoOffline(sk) }, `${SKILLS[sk].nome} ${s.sk[sk].lv}`)));
+    ...['drible', 'chute', 'defesa', 'visao'].map(sk => {
+      // quanto falta para o próximo nível, no ritmo offline (até 12 h por vez)
+      const falta = Math.max(0, precisaTentativas(sk, s.sk[sk].lv) - s.sk[sk].t), h = falta / Math.max(1, porHoraOffline(sk));
+      const quando = h < 1 ? `~${Math.max(1, Math.round(h * 60))} min` : `~${h < 10 ? h.toFixed(1).replace('.', ',') : Math.round(h)} h`;
+      return el('button', { class: 'btn', type: 'button', disabled: perto ? null : 'disabled', onclick: () => comecaTreinoOffline(sk), title: `Offline: ${porHoraOffline(sk).toLocaleString('pt-BR')} tentativas por hora` }, `${SKILLS[sk].nome} ${s.sk[sk].lv}`, el('small', { class: 'treino-falta' }, ` · próximo nível ${quando}`));
+    }));
   abreModal(el('h2', {}, '🏋️ Treino'),
     el('h3', {}, 'Modo Treino (com o jogo aberto)'),
     el('p', {}, 'Vai deixar o personagem treinando (no boneco ou caçando)? Ligue o Modo Treino: o calendário do jogo para, então nenhuma reunião do clube passa enquanto você está longe da tela. Enquanto ele estiver ligado, também não passa dia de salário e o seu time não descansa.'),
