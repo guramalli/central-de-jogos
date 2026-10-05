@@ -2,14 +2,14 @@
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
    🎒 MOCHILAS IGUAIS AO TIBIA (v396; dono: "refaça a mecânica das backpacks, está muito ruim... quero algo igual o Tibia";
-   escolhas do dono: coluna à direita, mochila equipada nas costas, pilhas de até 100 com divisão).
+   escolhas do dono: coluna à direita, mochila equipada nas costas, pilhas com divisão; v399: até 999 por espaço).
    - COSTAS: a mochila principal é um item equipado (s.costas = { id, u }); os espaços dela são os espaços do item.
      Quem já jogava ganhou a Mochila de Campo (30 espaços = os 30 de antes, com tudo dentro). Trocar: arraste uma bolsa
      para o quadro "Costas" (ou "🎒 Usar nas costas" na bolsa) — a mochila antiga, com tudo o que tinha, vai para dentro da nova.
    - COLUNA: no computador as janelas (mochila das costas + bolsas abertas) ficam no painel da direita; cada janela
      minimiza (–), a das bolsas também fecha (✕), volta para a bolsa de fora (↑) e muda de ordem arrastando o título.
-   - PILHAS: até 100 por espaço (game.js addItem). Shift + arrastar (ou "✂️ Dividir" na janela do item) pergunta quantos;
-     soltar uma pilha em cima de outra igual junta as duas (até 100).
+   - PILHAS: até PILHA_MAX (999) por espaço (game.js addItem). Shift + arrastar (ou "✂️ Dividir" na janela do item) pergunta quantos;
+     soltar uma pilha em cima de outra igual junta as duas (até 999).
    Carregar DEPOIS de mochilas.js, armazem.js e luxo.js.
    ============================================================ */
 ITENS.mochila_campo = { nome: 'Mochila de Campo', tipo: 'bolsa', espacos: 30, lvl: 1, preco: 2000, venda: 0, desc: 'A mochila de todo jogador: 30 espaços. Use nas costas ou guarde dentro de outra mochila.', icon: { k: 'pacote', c: '#7a5a2a' } };
@@ -91,12 +91,12 @@ function mtMoveParte(i, dest, n, j) {
   const s = G.save, e = s.mochila[i]; if (!e) return false; n = Math.max(1, Math.min(e.q, n | 0));
   const alvo = j != null ? s.mochila[j] : null;
   if (alvo && alvo !== e && alvo.id === e.id && !alvo.r && !e.r && empilha(e.id)) { // em cima de uma pilha igual: junta
-    const p = Math.min(n, PILHA_MAX - alvo.q); if (p <= 0) { log('Essa pilha já está cheia (100).', 'l-sis'); som('erro'); return false; }
+    const p = Math.min(n, PILHA_MAX - alvo.q); if (p <= 0) { log(`Essa pilha já está cheia (${PILHA_MAX}).`, 'l-sis'); som('erro'); return false; }
     alvo.q += p; e.q -= p; if (e.q <= 0) s.mochila.splice(i, 1); som('equip'); G.uiSujo = true; return true;
   }
   if (n >= e.q) return moveNaMochila(i, dest); // a pilha inteira: só muda de lugar
   if (espacosLivres(dest, s) <= 0) { log(dest == null ? 'A mochila está cheia.' : `Não cabe: a ${ITENS[s.mochila.find(x => x.u === dest).id].nome} está cheia.`, 'l-sis'); som('erro'); return false; }
-  const nova = { id: e.id, q: n }; if (dest != null) nova.c = dest; e.q -= n; s.mochila.push(nova);
+  const nova = { id: e.id, q: n }; if (dest != null) nova.c = dest; e.q -= n; s.mochila.unshift(nova); // (na primeira posição)
   som('equip'); G.uiSujo = true; return true;
 }
 // arrastar: Shift divide; soltar em cima de uma pilha igual junta (antes do arrasto de mochilas.js, que só muda de lugar)
@@ -219,7 +219,42 @@ function mtEscolheCostas() {
   .mt-costas { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 6px; border: 2px dashed #c9a46a; border-radius: 8px; font-size: 12px; }
   .mt-costas .eq-slot { position: relative; width: 38px; height: 38px; flex: none; }
   .mt-costas > span:nth-of-type(2) { flex: 1; } .mt-costas .rot { font-weight: 700; }
-  .mt-costas.alvo { border-color: #e0b020; background: #fff3c8; }`;
+  .mt-costas.alvo { border-color: #e0b020; background: #fff3c8; }
+  #mochila .mt-peso { font-weight: 800; font-size: 11px; background: rgba(0,0,0,.18); border-radius: 6px; padding: 0 5px; white-space: nowrap; } #mochila .mt-peso.pesada { background: #c0392b; }
+  [data-painel="perfil"] .barra span { display: flex; justify-content: space-between; align-items: center; padding: 0 6px; gap: 6px; }
+  [data-painel="perfil"] .barra span em { font-style: normal; font-weight: 700; opacity: .95; } [data-painel="perfil"] .barra span b { font-variant-numeric: tabular-nums; }
+  .mt-status { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; padding: 6px 8px; font-size: 12px; }
+  .mt-st { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px; border-radius: 6px; background: rgba(138,75,36,.1); }
+  .mt-st span { opacity: .85; } .mt-st b { font-variant-numeric: tabular-nums; } .mt-st.pesada { background: rgba(210,58,42,.25); }
+  .bloco.minimizado .mt-status { display: none; }`;
   document.head.append(st);
+}
+// ---------- status do personagem (v399; dono: "a capacidade de carregar peso deve ficar no status do jogador, que também pode
+// ser repaginado de uma maneira mais profissional"): barras com nome à esquerda e número à direita + quadro de status ----------
+{
+  const _abMT = atualizaBarras;
+  atualizaBarras = function () {
+    const r = _abMT.apply(this, arguments);
+    try {
+      const s = G.save; if (!s) return r; const st = stats();
+      const poe = (id, nome, val) => { const e = document.getElementById(id); if (!e) return; const v = `${nome}|${val}`; if (e.dataset.v === v && e.firstElementChild && e.firstElementChild.tagName === 'EM') return; /* (o jogo reescreve o texto: refaz) */ e.dataset.v = v; e.innerHTML = ''; e.append(el('em', {}, nome), el('b', {}, val)); };
+      const a = xpPara(s.nivel), b = xpPara(s.nivel + 1);
+      poe('tHp', '❤️ Fôlego', `${fmt(Math.round(s.hp))} / ${fmt(st.maxHp)}`); poe('tFoco', '💧 Foco', `${fmt(Math.round(s.foco))} / ${fmt(st.maxFoco)}`);
+      poe('tXp', '⭐ XP', `${Math.floor((s.xp - a) / Math.max(1, b - a) * 100)}%`);
+      let q = document.getElementById('mtStatus');
+      if (!q) { const barras = document.querySelector('[data-painel="perfil"] .painel.barras'); if (!barras) return r; q = el('div', { class: 'painel mt-status', id: 'mtStatus' }); barras.after(q); }
+      const peso = pesoMochila(s), cap = capPeso(s), livre = Math.max(0, cap - peso);
+      const linha = (ic, nome, val, dica, cls) => el('div', { class: 'mt-st' + (cls ? ' ' + cls : ''), title: dica }, el('span', {}, ic + ' ' + nome), el('b', {}, val));
+      const chave = [cap, Math.round(livre), Math.round(st.atk || 0), Math.round(st.armadura || 0), Math.round(st.vel || 0)].join('|');
+      if (q.dataset.v !== chave) {
+        q.dataset.v = chave; q.innerHTML = '';
+        q.append(linha('⚖️', 'Cap', fmt(cap), `Quanto peso você aguenta carregar (aumenta com o nível e o fôlego). Livre agora: ${fmt(Math.round(livre))}.`, livre < cap * 0.1 ? 'pesada' : ''),
+          linha('⚔️', 'Ataque', fmt(Math.round(st.atk || 0)), 'Força dos seus golpes'),
+          linha('🛡️', 'Defesa', fmt(Math.round(st.armadura || 0)), 'Quanto você aguenta dos golpes'),
+          linha('💨', 'Velocidade', fmt(Math.round(st.vel || 0)), 'Velocidade de andar'));
+      }
+    } catch (e) { }
+    return r;
+  };
 }
 window.MOCHILA_TIBIA = { mtTrocaCostas, mtMoveParte, mtDividePilhas, mtGaranteCostas, mtPosiciona, mtSobe };

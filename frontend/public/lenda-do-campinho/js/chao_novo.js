@@ -264,7 +264,12 @@ const CHAO2 = {
     'Dica: na caça em grupo, todo mundo ganha experiência pelo bicho de cada um.', 'Dica: o Quadro de cada área de caça tem desafios com prêmio.',
     'Dica: itens +7 ou mais brilham no seu boneco!', 'Dica: o Centro de Treinamento treina as habilidades sozinho, até você andar.'];
   let cortinaDica = '', cortinaMapa = null;
+  // v399 (dono: "a animação de transição de mapas ainda está aparecendo, acho que é desnecessária"): a tela de entrada SAIU.
+  // O jogo não pausa mais; enquanto o chão novo não fica pronto aparece um chão liso da cor do lugar (o pré-desenho dos
+  // vizinhos faz isso ser raro). A função continua (só esconde) para quem ainda a chama.
+  const CORTINA_LIGADA = false;
   const cortina = (on, m, prog) => {
+    if (!CORTINA_LIGADA) on = false;
     let c = document.getElementById('chaoCortina');
     if (!c) {
       c = el('div', { id: 'chaoCortina' }, el('div', { class: 'cc-caixa' }, el('span', { class: 'cc-nome' }), el('div', { class: 'cc-pista' }, el('div', { class: 'cc-barra' }, el('i', {})), el('div', { class: 'cc-bola' }, el('b', {}, '⚽'))), el('small', { class: 'cc-pct' }), el('p', { class: 'cc-dica' })));
@@ -329,7 +334,7 @@ const CHAO2 = {
       if (velho) m._chaoTemp = velho;
       else { const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438'; const ph = mkCanvas(m.w * T, m.h * T), px = ph.getContext('2d'); px.fillStyle = cor; px.fillRect(0, 0, ph.width, ph.height); m._chaoTemp = ph; }
     }
-    if (!m._chaoVelho && G.mapa === m) { cortina(true, m, f.p); G.carregandoChao = true; }
+    if (!m._chaoVelho && G.mapa === m && CORTINA_LIGADA) { cortina(true, m, f.p); G.carregandoChao = true; }
     return m._chaoTemp; // (sem guardar em m._chao: o renderChao volta aqui a cada quadro)
   }
   function passoDesenho(m, f, orc) {
@@ -357,7 +362,7 @@ const CHAO2 = {
   const _loopChao = loop;
   loop = function (ts) {
     let frente = false;
-    for (const [m, f] of FAZENDO) { if (m === G.mapa) { frente = true; passoDesenho(m, f, m._chaoVelho ? 8 : 28); } } // (com a tela de entrada o jogo está parado)
+    for (const [m, f] of FAZENDO) { if (m === G.mapa) { frente = true; passoDesenho(m, f, m._chaoVelho ? 8 : CORTINA_LIGADA ? 28 : 14); } } // (sem a tela de entrada o jogo continua andando: um pouco por quadro)
     for (const [m, f] of FAZENDO) { if (m === G.mapa) continue; if (!f.fundo) { FAZENDO.delete(m); m._chaoTemp = null; continue; } if (!frente) passoDesenho(m, f, G.pausado ? 12 : 6); } // (com uma janela aberta o jogo está parado: dá para adiantar mais)
     if (G.carregandoChao && !(G.mapa && FAZENDO.has(G.mapa))) { G.carregandoChao = false; cortina(false); }
     if (!G.carregandoChao) return _loopChao.apply(this, arguments);

@@ -689,7 +689,7 @@ function contaItem(id) { return G.save.mochila.filter(i => i.id === id).reduce((
 const MOCHILA_SLOTS = 30;
 // v396 (dono: "refaça a mecânica das backpacks... quero algo igual o Tibia"): a mochila principal é a que está nas COSTAS
 // (s.costas = { id, u }); os espaços dela vêm do item. Cada espaço guarda uma pilha de até PILHA_MAX (mochila_tibia.js)
-const PILHA_MAX = 100;
+const PILHA_MAX = 999; // (v399: dono pediu 999 por espaço)
 function mochilaSlots(s = G.save) { const c = s && s.costas && ITENS[s.costas.id]; return c && c.espacos ? c.espacos : MOCHILA_SLOTS; } // (a versão Steam aumenta)
 const ehBolsa = id => !!(ITENS[id] && ITENS[id].tipo === 'bolsa');
 function capMochila(s = G.save) { if (!s) return MOCHILA_SLOTS; return mochilaSlots(s) + s.mochila.reduce((a, e) => a + (ehBolsa(e.id) ? (ITENS[e.id].espacos || 0) : 0), 0); }
@@ -702,18 +702,19 @@ let AVISO_PESO = 0;
 function avisaPeso() { if (G.agora - AVISO_PESO < 6000) return; AVISO_PESO = G.agora; log(`⚖️ Peso demais! Você carrega ${fmt(pesoMochila())} de ${fmt(capPeso())}. Venda ou guarde coisas no armazém para pegar mais.`, 'l-dano'); }
 // onde um item NOVO entra: a bolsa de loot (para loot), depois a mochila principal, depois as bolsas (na ordem)
 function espacosLivres(u, s = G.save) { const cap = u == null ? mochilaSlots(s) : ((ITENS[(s.mochila.find(e => e.u === u) || {}).id] || {}).espacos || 0); return cap - s.mochila.filter(e => (e.c ?? null) === (u ?? null)).length; }
+// v399 (dono: "a backpack de dentro serve de slot quando a primeira ficar cheia, e assim sucessivamente"): a mochila das
+// costas primeiro; cheia, a primeira mochila que está dentro dela; cheia também, a de dentro dessa... (como no Tibia)
 function bolsaParaNovo(id, s = G.save) {
-  const lootBag = s.bolsaLoot != null && s.mochila.some(e => e.u === s.bolsaLoot) ? s.bolsaLoot : null;
-  if (lootBag != null && ITENS[id] && ITENS[id].tipo === 'loot' && espacosLivres(lootBag, s) > 0) return lootBag;
   if (espacosLivres(null, s) > 0) return null;
-  for (const e of s.mochila) if (e.u != null && espacosLivres(e.u, s) > 0) return e.u;
+  const fila = s.mochila.filter(e => e.c == null && e.u != null).map(e => e.u), vistos = new Set();
+  while (fila.length) { const u = fila.shift(); if (vistos.has(u)) continue; vistos.add(u); if (espacosLivres(u, s) > 0) return u; for (const e of s.mochila) if (e.c === u && e.u != null) fila.push(e.u); }
   return null;
 }
 function poeNaBolsa(ent, s = G.save) { const u = bolsaParaNovo(ent.id, s); if (u != null) ent.c = u; if (ehBolsa(ent.id) && ent.u == null) ent.u = s.uidBolsa = (s.uidBolsa || 0) + 1; return ent; }
 // v326: equipamento igual e SEM refino também empilha (mochila e armazém); o refinado (+N) fica sempre separado (.r)
 function empilha(id) { const t = ITENS[id].tipo; return t === 'consumivel' || t === 'loot' || t === 'comida' || t === 'equip'; }
 // devolve 1 equipamento para a mochila: sem refino entra na pilha que já existe
-function voltaParaMochila(id, r) { const s = G.save; const ex = !r && empilha(id) && s.mochila.find(i => i.id === id && !i.r && i.q < PILHA_MAX); if (ex) ex.q += 1; else s.mochila.push(poeNaBolsa(r ? { id, q: 1, r } : { id, q: 1 }, s)); }
+function voltaParaMochila(id, r) { const s = G.save; const ex = !r && empilha(id) && s.mochila.find(i => i.id === id && !i.r && i.q < PILHA_MAX); if (ex) ex.q += 1; else s.mochila.unshift(poeNaBolsa(r ? { id, q: 1, r } : { id, q: 1 }, s)); }
 function addItem(id, q = 1) {
   const s = G.save; if (!ITENS[id]) return false;
   if (ITENS[id].tipo === 'chave' && contaItem(id)) return true; // item único (chave/troféu): já tem, não ocupa outro espaço
@@ -723,9 +724,9 @@ function addItem(id, q = 1) {
     const novas = Math.ceil(Math.max(0, q - cabe) / PILHA_MAX);
     if (novas && s.mochila.length + novas > capMochila()) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa (ou ponha mais bolsas nela).', 'l-dano'); return false; }
     let resto = q; for (const ex of pilhas) { if (resto <= 0) break; const p = Math.min(resto, PILHA_MAX - ex.q); ex.q += p; resto -= p; }
-    while (resto > 0) { const p = Math.min(resto, PILHA_MAX); s.mochila.push(poeNaBolsa({ id, q: p }, s)); resto -= p; }
+    while (resto > 0) { const p = Math.min(resto, PILHA_MAX); s.mochila.unshift(poeNaBolsa({ id, q: p }, s)); resto -= p; } // (v399: item novo na primeira posição)
   } else {
-    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.push(poeNaBolsa({ id, q: 1 }, s)); }
+    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.unshift(poeNaBolsa({ id, q: 1 }, s)); }
   }
   if ((ITENS[id].tipo === 'consumivel' || ITENS[id].tipo === 'comida') && id !== 'pacotinho' && !s.hotbar.some(h => h && h.t === 'i' && h.id === id)) poeNaHotbar('i', id, true);
   if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (até 3 comidas diferentes ao mesmo tempo: os bônus somam). Use pela barra de atalhos ou pela mochila.`, '#hotbar');

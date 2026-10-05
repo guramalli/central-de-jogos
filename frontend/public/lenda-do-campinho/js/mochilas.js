@@ -64,6 +64,7 @@ function moveNaMochila(i, dest) {
   if (e.u != null && dest != null && (dest === e.u || bolsaDescendeDe(s, dest, e.u))) { log('Não dá para pôr uma bolsa dentro dela mesma!', 'l-sis'); som('erro'); return false; }
   if (espacosLivres(dest, s) <= 0) { log(dest == null ? 'A mochila principal está cheia.' : `Não cabe: a ${ITENS[s.mochila.find(x => x.u === dest).id].nome} está cheia.`, 'l-sis'); som('erro'); return false; }
   if (dest == null) delete e.c; else e.c = dest;
+  s.mochila.splice(i, 1); s.mochila.unshift(e); // v399: o item que entra numa mochila vai para a PRIMEIRA posição dela
   som('equip'); G.uiSujo = true; return true;
 }
 // arrastar dentro da mochila (um tipo próprio no dataTransfer: não mistura com o arrasto de equipar nem com a barra)
@@ -126,8 +127,7 @@ if (typeof modalItem === 'function') {
         const bag = s.mochila.find(e => e.id === id); const n = bag ? s.mochila.filter(e => e.c === bag.u).length : 0;
         box.append(el('p', { class: 'dica' }, `🎒 ${it.espacos} espaços${bag ? ` · ${n} itens dentro` : ''}. Clique na bolsa (na mochila) para abrir; arraste itens para cima dela para guardar dentro. Bolsas podem ficar dentro de outras bolsas.`));
         if (bag) box.append(el('div', { class: 'opcoes' },
-          el('button', { class: 'btn', type: 'button', onclick: () => { fechaModal(); if (!(s.bolsasAbertas || []).includes(bag.u)) abreBolsa(bag.u); } }, '📂 Abrir'),
-          el('button', { class: 'btn' + (s.bolsaLoot === bag.u ? ' amarelo' : ''), type: 'button', onclick: () => { marcaBolsaLoot(bag.u); fechaModal(); } }, s.bolsaLoot === bag.u ? '🎯 Deixar de ser a bolsa de loot' : '🎯 Usar como bolsa de loot')));
+          el('button', { class: 'btn', type: 'button', onclick: () => { fechaModal(); if (!(s.bolsasAbertas || []).includes(bag.u)) abreBolsa(bag.u); } }, '📂 Abrir (botão direito)')));
       }
     } catch (e) { }
     return r;

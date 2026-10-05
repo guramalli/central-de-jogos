@@ -183,10 +183,8 @@ function atualizaPaineis() {
   const peso = pesoMochila(s), cap = capPeso(s);
   const abertas = (s.bolsasAbertas = (s.bolsasAbertas || []).filter(u => s.mochila.some(e => e.u === u)));
   const minis = new Set(s.bolsasMin || []);
-  if (typeof organizaMochila === 'function') mo.append(el('div', { class: 'mochila-org' },
-    el('span', { class: 'carga' + (peso > cap * 0.9 ? ' pesada' : ''), title: 'Carga: o quanto você aguenta carregar (aumenta com o nível). Cada item tem um peso.' }, `⚖️ ${fmt(Math.round(peso))}/${fmt(cap)}`),
-    el('button', { class: 'btn mini', type: 'button', title: 'Organizar: os mais raros primeiro (mítico → comum)', onclick: () => organizaMochila('raridade') }, '⭐ Raridade'),
-    el('button', { class: 'btn mini', type: 'button', title: 'Organizar: juntos por função: bebidas, comidas, equipamentos (cabeça → chuteira), materiais...', onclick: () => organizaMochila('funcao') }, '🧩 Função')));
+  // v399 (dono: "vamos simplificar"): sem a linha de cima; o PESO que você carrega fica no título da primeira mochila e o
+  // CAP (quanto aguenta) no status do personagem. Botão direito numa mochila abre; item que entra vai para a 1ª posição.
   const grade = (u, espacos) => {
     const gm = el('div', { class: 'mochila-grade', 'data-bolsa': u == null ? '' : String(u) });
     const dentro = []; s.mochila.forEach((e, i) => { if ((e.c ?? null) === (u ?? null)) dentro.push(i); });
@@ -197,9 +195,9 @@ function atualizaPaineis() {
         b.append(iconeClone(iconeItem(it.id))); if (it.q > 1) b.append(el('span', { class: 'qtd' }, it.q));
         if (it.r) b.append(el('span', { class: 'ref' }, '+' + it.r));
         b.title = nomeItem(it.id, it.r) + (it.q > 1 ? ` (${it.q})` : '');
-        if (ehBolsa(it.id)) { // bolsa: clique abre/fecha a janela dela; botão direito mostra a bolsa
-          b.classList.add('bolsa'); if (abertas.includes(it.u)) b.classList.add('aberta'); if (s.bolsaLoot === it.u) b.classList.add('loot');
-          b.onclick = () => abreBolsa(it.u); b.oncontextmenu = ev => { ev.preventDefault(); modalItem(it.id, 0); };
+        if (ehBolsa(it.id)) { // mochila: BOTÃO DIREITO abre/fecha a janela dela (como no Tibia); clique mostra a mochila
+          b.classList.add('bolsa'); if (abertas.includes(it.u)) b.classList.add('aberta');
+          b.title += ' — botão direito abre'; b.onclick = () => modalItem(it.id, 0); b.oncontextmenu = ev => { ev.preventDefault(); abreBolsa(it.u); };
         } else {
           b.onclick = () => modalItem(it.id, it.r || 0);
           b.oncontextmenu = ev => { ev.preventDefault(); if (ITENS[it.id].tipo === 'equip') equipar(it.id, it.r || 0); else usarItem(it.id); };
@@ -211,7 +209,7 @@ function atualizaPaineis() {
   };
   const janela = (u, iconeId, nome, n, espacos, botoes) => {
     const chave = u == null ? 'raiz' : String(u), mini = minis.has(chave);
-    const j = el('div', { class: 'bolsa-janela' + (u == null ? ' mt-raiz' : '') + (s.bolsaLoot === u && u != null ? ' loot' : '') + (mini ? ' mini' : ''), 'data-bolsa': u == null ? '' : String(u), 'data-janela': chave },
+    const j = el('div', { class: 'bolsa-janela' + (u == null ? ' mt-raiz' : '') + (mini ? ' mini' : ''), 'data-bolsa': u == null ? '' : String(u), 'data-janela': chave },
       el('div', { class: 'bolsa-tit', draggable: u == null ? null : 'true', title: u == null ? '' : 'Arraste para mudar a ordem das janelas' },
         iconeClone(iconeItem(iconeId)), el('b', {}, nome), el('small', {}, `${n}/${espacos}`), ...botoes,
         el('button', { class: 'btn mini', type: 'button', title: mini ? 'Mostrar' : 'Minimizar', onclick: () => { const l = new Set(s.bolsasMin || []); l.has(chave) ? l.delete(chave) : l.add(chave); s.bolsasMin = [...l]; G.uiSujo = true; } }, mini ? '▢' : '–')));
@@ -220,16 +218,17 @@ function atualizaPaineis() {
   };
   { // a mochila das costas
     const c = s.costas && ITENS[s.costas.id] ? s.costas.id : null, n = s.mochila.filter(e => e.c == null).length;
-    mo.append(janela(null, c || 'mochila_viagem', c ? ITENS[c].nome : 'Mochila', n, mochilaSlots(), [el('button', { class: 'btn mini', type: 'button', title: 'Trocar a mochila das costas (a antiga vai para dentro da nova)', onclick: () => { if (typeof mtEscolheCostas === 'function') mtEscolheCostas(); } }, '⇄')]));
+    mo.append(janela(null, c || 'mochila_viagem', c ? ITENS[c].nome : 'Mochila', n, mochilaSlots(), [
+      el('span', { class: 'mt-peso' + (peso > cap * 0.9 ? ' pesada' : ''), title: `Peso que você carrega (seu cap é ${fmt(cap)})` }, `⚖️ ${fmt(Math.round(peso))}`),
+      typeof organizaMochila === 'function' ? el('button', { class: 'btn mini', type: 'button', title: 'Organizar a mochila (por tipo: bebidas, comidas, equipamentos, materiais...)', onclick: () => organizaMochila('funcao') }, '⇅') : '']));
   }
   for (const u of abertas) {
     const bag = s.mochila.find(e => e.u === u); const def = ITENS[bag.id]; const n = s.mochila.filter(e => e.c === u).length;
     mo.append(janela(u, bag.id, def.nome, n, def.espacos, [
       el('button', { class: 'btn mini', type: 'button', title: 'Voltar para a bolsa de fora', onclick: () => { if (typeof mtSobe === 'function') mtSobe(u); } }, '↑'),
-      el('button', { class: 'btn mini' + (s.bolsaLoot === u ? ' amarelo' : ''), type: 'button', title: 'Bolsa de loot: o que você ganha dos adversários vai primeiro para esta bolsa', onclick: () => marcaBolsaLoot(u) }, '🎯'),
       el('button', { class: 'btn mini', type: 'button', title: 'Fechar a bolsa', onclick: () => abreBolsa(u) }, '✕')]));
   }
-  mo.append(el('div', { class: 'vazio' }, 'Clique num item para ver; numa bolsa, para abrir. Arraste itens para dentro das bolsas (Shift + arrastar divide a pilha). Botão direito usa/equipa.'));
+  mo.append(el('div', { class: 'vazio' }, 'Botão direito: abre a mochila / usa ou equipa o item. Arraste itens para dentro das mochilas (entram na 1ª posição; Shift divide a pilha). Mochila cheia: o resto vai para a mochila que está dentro dela.'));
   { const bp = document.getElementById('bolsasAbertas'); if (bp) bp.innerHTML = ''; }
   // habilidades
   const sk = $('#skills'); sk.innerHTML = '';
