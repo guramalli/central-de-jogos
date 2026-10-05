@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v392', '🦖 Labirinto Jurássico mais curto e mais cheio: o caminho entre as salas ficou bem menor (a sala mais funda está na metade da distância), há mais atalhos, os becos são curtinhos e tem o DOBRO de dinossauros (mais em cada sala e uns grupinhos nos cruzamentos).'],
     ['v391', '🦸👑 A Capa do Herói balança a cada passo e a Coroa (Chamas Azuis / Auréola de Raios) fica presa à cabeça: vira, inclina e chuta junto com o personagem. 👑 Os Ecos do Multiverso agora têm tamanho de chefão. 🛒 Nas lojas dá para comprar até 1.000 de uma vez (antes 100), e o aviso diz quantos cabem no seu dinheiro ou na sua carga.'],
     ['v390', '🧠 Visão de Jogo: no Quadro Tático e no treino offline ela agora sobe no mesmo ritmo das outras habilidades (cada nível leva o mesmo tempo que um nível de Chute do mesmo número), sem ficar rápida demais para quem tem muito foco.'],
     ['v389', '🏋️ TREINOS DO CENTRO REVISTOS: no Chute a bola sai do pé, entra no gol, balança a rede e volta rolando; nos Cones o personagem faz zigue-zague em cima do tapete; na Academia faz rosca com halteres; no Quadro Tático fica de costas estudando. Sem bola duplicada (nem no chute de verdade).'],

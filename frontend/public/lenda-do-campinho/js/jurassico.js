@@ -180,7 +180,9 @@
   MAPAS_DEF.jur_acampamento = criaAcampamento;
 
   /* ---------- o Labirinto ---------- */
-  const LAB = { W: 150, H: 110, COLS: 6, ROWS: 5 };
+  // v392 (dono: "precisa de muito mais criaturas e o caminho entre as salas está muito grande... precisa ser mais curto"):
+  // labirinto mais compacto (5×4 blocos em vez de 6×5: menos corredores vazios), mais atalhos, becos curtos e o DOBRO de dinossauros
+  const LAB = { W: 120, H: 90, COLS: 5, ROWS: 4 };
   const TEMA_SALA = {
     samambaias: { chao: CH.JUR_CHAO, props: ['samambaia_gig', 'samambaia_gig', 'flor_gigante', 'arbusto_cipo'] },
     clareira: { chao: CH.TERRA, props: ['tronco_musgo', 'osso_gigante', 'arbusto_cipo', 'samambaia_gig'] },
@@ -208,7 +210,7 @@
     const lig = new Map(), liga = (a, z) => { (lig.get(a) || lig.set(a, new Set()).get(a)).add(z); (lig.get(z) || lig.set(z, new Set()).get(z)).add(a); };
     const fora = new Set([B, R10]), vis = new Set([E]), pilha = [E];
     while (pilha.length) { const k = pilha[pilha.length - 1], op = viz(k).filter(v => !vis.has(v) && !fora.has(v)); if (!op.length) { pilha.pop(); continue; } const v = op[(rng() * op.length) | 0]; liga(k, v); vis.add(v); pilha.push(v); }
-    for (let n = 0, t = 0; n < 6 && t < 200; t++) { const k = (rng() * COLS * ROWS) | 0; if (fora.has(k)) continue; const op = viz(k).filter(v => !fora.has(v) && !(lig.get(k) || new Set()).has(v)); if (!op.length) continue; liga(k, op[(rng() * op.length) | 0]); n++; }
+    for (let n = 0, t = 0; n < 9 && t < 300; t++) { const k = (rng() * COLS * ROWS) | 0; if (fora.has(k)) continue; const op = viz(k).filter(v => !fora.has(v) && !(lig.get(k) || new Set()).has(v)); if (!op.length) continue; liga(k, op[(rng() * op.length) | 0]); n++; }
     const dist = (de, sem) => { const d = new Map([[de, 0]]), q = [de]; while (q.length) { const k = q.shift(); for (const v of lig.get(k) || []) if (!d.has(v) && !(sem && sem.has(v))) { d.set(v, d.get(k) + 1); q.push(v); } } return d; };
     let D = dist(E); const vz10 = viz(R10).filter(v => v !== B && D.has(v)); const ant10 = vz10.sort((a, z) => D.get(z) - D.get(a))[0]; liga(R10, ant10); liga(R10, B);
     D = dist(E);
@@ -228,12 +230,12 @@
     for (let k = 0; k < COLS * ROWS; k++) {
       if (SALAS.includes(k) || k === B || k === E) continue;
       pincel(C[k].x, C[k].y, 2.2, CH.JUR_CHAO); // clareirinha no cruzamento
-      for (let n = 0; n < 2; n++) { let x = C[k].x, y = C[k].y; const ang = rng() * Math.PI * 2, L = 5 + rng() * 6; for (let s = 0; s < L; s++) { x += Math.cos(ang) + r2(rng, -0.4, 0.4); y += Math.sin(ang) * 0.8 + r2(rng, -0.4, 0.4); pincel(x, y, 1.1); } becos.push({ x: Math.round(x), y: Math.round(y) }); }
+      for (let n = 0; n < 1; n++) { let x = C[k].x, y = C[k].y; const ang = rng() * Math.PI * 2, L = 3 + rng() * 4; for (let s = 0; s < L; s++) { x += Math.cos(ang) + r2(rng, -0.4, 0.4); y += Math.sin(ang) * 0.8 + r2(rng, -0.4, 0.4); pincel(x, y, 1.1); } becos.push({ x: Math.round(x), y: Math.round(y) }); }
     }
     // as salas (formato orgânico)
     const salasInfo = [];
     SALAS.forEach((k, i) => {
-      const esp = JUR[i], tema = TEMA_SALA[esp[11]], { x: cx, y: cy } = C[k], rx = 10.4 + rng() * 1.3, ry = 8 + rng() * 1.1, fase = rng() * 6;
+      const esp = JUR[i], tema = TEMA_SALA[esp[11]], { x: cx, y: cy } = C[k], rx = 9.4 + rng() * 1.0, ry = 7.2 + rng() * 0.9, fase = rng() * 6;
       for (let y = Math.floor(cy - ry - 2); y <= cy + ry + 2; y++) for (let x = Math.floor(cx - rx - 2); x <= cx + rx + 2; x++) {
         const a = Math.atan2(y - cy, x - cx), ruido = 1 + 0.16 * Math.sin(a * 3 + fase) + 0.08 * Math.sin(a * 5 + fase * 2);
         if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= ruido) cava(x, y, tema.chao);
@@ -263,11 +265,17 @@
     for (const s of salasInfo) {
       const [idE, nomeE, L] = s.esp, grande = (ALTURA_BICHO[idE] || 1) >= 1.5;
       const sy = s.tema.lago || s.tema.lava ? Math.round(s.cy + s.ry * 0.55) : s.cy; // lago/lava no meio: nascem mais embaixo
-      b.spawn(idE, s.cx, sy, grande ? 6 : 8, 5);
+      b.spawn(idE, s.cx, sy, grande ? 11 : 15, 7);
       // plaquinha com o nome da sala: no chão livre mais perto de embaixo-à-esquerda do centro (com chão na frente para ler)
       let melhor = null;
       for (let y = Math.round(s.cy); y <= s.cy + s.ry; y++) for (let x = Math.round(s.cx - s.rx); x <= s.cx; x++) { const k = y * W + x; if (piso[k] && !m.obj[k] && piso[k + W] && !m.obj[k + W] && m.chao[k] !== CH.AGUA && m.chao[k + W] !== CH.AGUA && Math.hypot(x - s.cx, y - sy) > 3) { const sc = (s.cy + s.ry - y) + (x - (s.cx - s.rx)) * 0.5; if (!melhor || sc < melhor[2]) melhor = [x, y, sc]; } }
       if (melhor) b.placa(melhor[0], melhor[1], `🦖 ${s.esp[10].toUpperCase()} — ${nomeE} (nível ${L})`);
+    }
+    // v392: uns dinossauros também nos cruzamentos do caminho (da espécie da sala mais perto), para o caminho não ficar vazio
+    for (let k = 0; k < COLS * ROWS; k++) {
+      if (SALAS.includes(k) || k === B || k === E || !(lig.get(k) || new Set()).size) continue;
+      const perto = salasInfo.reduce((a, s) => !a || Math.hypot(s.cx - C[k].x, s.cy - C[k].y) < Math.hypot(a.cx - C[k].x, a.cy - C[k].y) ? s : a, null);
+      if (perto) b.spawn(perto.esp[0], C[k].x, C[k].y, 3, 2);
     }
     // enfeites: nas salas (pelo tema) e no fim dos becos
     const P = protegidos(m);
