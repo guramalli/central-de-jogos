@@ -164,10 +164,18 @@ function paraEstacao(msg) {
 // v387 (dono: "coloquei para treinar e não apareceu o tempo e não está movendo um %"): o Quadro Tático dava 3 tentativas de
 // Visão a cada 1,2 s fixas (9 mil/h) e lá em cima a Visão pede muito mais (atacante 66→67: ~700 mil = 78 h). Agora a Visão
 // rende a RECUPERAÇÃO DE FOCO inteira do personagem (o dobro do treino offline), nunca menos que antes.
+// v390 (dono: "por que apenas 5 minutos para subir?"): render a recuperação de foco inteira ficou rápido demais para quem tem
+// muito foco (equipamento/bônus: Visão 66→67 em ~17 min). Agora a Visão no quadro sobe no MESMO RITMO das outras
+// habilidades nos aparelhos: cada nível leva o mesmo tempo que um nível de Drible/Chute/Defesa do mesmo número (a média das
+// três, já com a posição do jogador) — ritmoVisao.
+function ritmoVisao(lv) { // quantas tentativas de Visão valem 1 tentativa de habilidade física, no mesmo nível
+  const fis = (precisaTentativas('drible', lv) + precisaTentativas('chute', lv) + precisaTentativas('defesa', lv)) / 3;
+  return Math.max(1, precisaTentativas('visao', lv) / Math.max(1, fis));
+}
 function nEstacao(d) {
   if (d.sk !== 'visao') return d.n;
-  let reg = 0; try { reg = Math.max(0, stats().regenFoco || 0); } catch (e) { }
-  return Math.max(d.n, Math.round(reg * EST_CD / 1000));
+  const lv = (G.save && G.save.sk.visao && G.save.sk.visao.lv) || 1;
+  return Math.max(d.n, Math.round(ritmoVisao(lv)));
 }
 function tickEstacao() {
   const t = G.estTreino, p = G.p, b = t.b, d = t.d, alvo = d.sk === 'chute' ? { x: b.x + GOL_CHUTE.x, y: b.y } : { x: b.x + 1, y: b.y + 0.6 };

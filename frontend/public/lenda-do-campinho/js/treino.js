@@ -49,12 +49,13 @@ function pertoDeBoneco() {
 // sobe gastando FOCO e cada nível pede muito mais lá em cima (Visão 66→67 de atacante: ~700 mil) — eram 175 h por nível.
 // Agora a Visão offline rende METADE da recuperação de foco do personagem (como as físicas rendem metade do boneco),
 // medida na hora de começar e sem as comidas (que acabam durante a noite). Nunca menos que os 4.000/h de antes.
+// v390: a metade da recuperação de foco também ficou rápida demais para quem tem muito foco. Agora a Visão offline sobe no
+// mesmo ritmo das físicas offline (1 nível de Visão = o tempo de 1 nível de Chute do mesmo número). Nunca menos de 4.000/h.
 function porHoraOffline(sk) {
   const base = TREINO.porHora[sk] || 0, s = G.save;
   if (sk !== 'visao' || !s) return base;
-  const orig = s.comidas; let reg = 0;
-  try { s.comidas = []; reg = Math.max(0, stats().regenFoco || 0); } catch (e) { } finally { s.comidas = orig; }
-  return Math.max(base, Math.round(reg * 3600 * 0.5));
+  const fis = TREINO.porHora.chute || 1200, lv = (s.sk.visao && s.sk.visao.lv) || 1;
+  return Math.max(base, Math.round(fis * (typeof ritmoVisao === 'function' ? ritmoVisao(lv) : 1)));
 }
 function comecaTreinoOffline(sk) {
   const s = G.save; if (!pertoDeBoneco()) return;
@@ -71,7 +72,7 @@ function resgataTreinoOffline() {
   s.treinoOff = null;
   const ms = Math.min(TREINO.offMax, Math.max(0, Date.now() - t.desde));
   if (ms < TREINO.offMin || !SKILLS[t.sk]) { log('🌙 O treino offline foi curtinho demais (menos de 10 minutos) e não contou.', 'l-sis'); salvar(); return; }
-  const antes = s.sk[t.sk].lv; const n = Math.round(ms / 3600000 * (t.porHora || porHoraOffline(t.sk))); // (treino começado antes da v386: a conta nova também)
+  const antes = s.sk[t.sk].lv; const n = Math.round(ms / 3600000 * (t.sk === 'visao' ? porHoraOffline('visao') : (t.porHora || porHoraOffline(t.sk)))); // (treino começado antes da v386: a conta nova também; v390: a Visão sempre na conta nova)
   treinaSkill(t.sk, n); const depois = s.sk[t.sk].lv;
   const h = Math.floor(ms / 3600000), min = Math.round(ms % 3600000 / 60000);
   const tempo = h ? `${h}h${min ? String(min).padStart(2, '0') : ''}` : `${min} min`;
