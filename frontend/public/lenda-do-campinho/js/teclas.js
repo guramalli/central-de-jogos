@@ -18,7 +18,7 @@ const ACOES_TECLA = [
   ['modo', 'Modo Drible / Chute', 'KeyX'], ['classe', 'Habilidade especial da classe', 'ShiftLeft'], ['folego', 'Beber a melhor bebida de FÔLEGO', 'KeyF'], ['foco', 'Beber a melhor bebida de FOCO', 'KeyR'],
   ['caca', 'Caça contínua', 'KeyG'], ['montar', 'Subir / descer da montaria', 'KeyP'],
   ['ficha', 'Ficha do personagem', 'KeyC'], ['mochila', 'Mochila', 'KeyI'], ['habilidades', 'Habilidades', 'KeyK'], ['batalha', 'Lista de batalha', 'KeyL'],
-  ['mapa', 'Mapa grande', 'KeyM'], ['missoes', 'Missões', 'KeyJ'], ['time', 'Meu Time', 'KeyT'], ['carreira', 'Carreira', 'KeyU'], ['album', 'Álbum de figurinhas', 'KeyB'], ['atalhos', 'Teclas (esta janela)', 'KeyH'],
+  ['mapa', 'Mapa grande', 'KeyM'], ['missoes', 'Missões', 'KeyJ'], ['time', 'Meu Time', 'KeyT'], ['carreira', 'Carreira', 'KeyU'], ['album', 'Álbum de figurinhas', 'KeyB'], ['bestiario', 'Bestiário', 'KeyN'], ['atalhos', 'Teclas (esta janela)', 'KeyH'],
   ...Array.from({ length: 10 }, (_, i) => ['slot' + i, `Barra de atalhos: espaço ${(i + 1) % 10}`, 'Digit' + ((i + 1) % 10)]),
   ...Array.from({ length: 10 }, (_, i) => ['slot' + (10 + i), `Barra de atalhos (2ª fileira): F${i + 1}`, 'F' + (i + 1)]),
 ];
@@ -75,7 +75,7 @@ function executaAcao(a) {
     folego: () => bebeMelhor('hp'), foco: () => bebeMelhor('foco'), caca: () => alternaCaca(), montar: () => { if (typeof montar === 'function') montar(); },
     ficha: () => abreFicha(), mochila: () => abreAba('mochila'), habilidades: () => abreAba('skills'), batalha: () => abreAba('batalha'),
     mapa: () => modalMapa(), missoes: () => modalMissoes(), time: () => abrirTime(), carreira: () => { if (typeof abrirCarreira === 'function') abrirCarreira(); },
-    album: () => modalAlbum(), atalhos: () => modalAtalhos(),
+    album: () => modalAlbum(), atalhos: () => modalAtalhos(), bestiario: () => { if (typeof modalBestiario === 'function') modalBestiario(); },
   }[a];
   if (f) f();
 }

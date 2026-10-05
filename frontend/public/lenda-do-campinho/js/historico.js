@@ -51,6 +51,7 @@
   #btnLogGrande { padding: 1px 7px; font-size: 14px; line-height: 1.2; opacity: .85; }
   #btnLogGrande:hover { opacity: 1; }
   body.log-grande #log { box-shadow: 0 -6px 24px rgba(0,0,0,.45); }
-  body.modo-celular #btnLogGrande, body.cel3 #btnLogGrande { display: none !important; }`;
+  body.modo-celular #btnLogGrande, body.cel3 #btnLogGrande { display: none !important; }
+  body:has(#modal:not([hidden])) #btnLogGrande { visibility: hidden; } /* v405: o ⤢ ficava por cima das janelas */`;
   document.head.append(css);
 }

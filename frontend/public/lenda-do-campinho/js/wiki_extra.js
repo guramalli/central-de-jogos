@@ -8,7 +8,7 @@
    Carregar NO FIM (depois de wiki.js, mascotes.js, cacada_epica.js, brilho_refino.js e torre_infinita.js).
    ============================================================ */
 {
-  const ABAS = [['drops', '👾 Adversários e drops'], ['mascotes', '🐾 Mascotes'], ['epica', '👑 Caçada Épica'], ['reliquias', '✨ Refino e relíquias'], ['novo', '📰 Novidades']];
+  const ABAS = [['drops', '📚 Bestiário'], ['mascotes', '🐾 Mascotes'], ['epica', '👑 Caçada Épica'], ['reliquias', '✨ Refino e relíquias'], ['novo', '📰 Novidades']];
   const pctW = v => `${Math.round(v * 1000) / 10}%`.replace('.', ',');
   const temSave = () => !!(G && G.save);
   // uma arte do jogo (sprite) num canvas pequeno; se ainda não carregou, tenta de novo depois
@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v405', '📚 BESTIÁRIO (tecla N, ou Menu → Coleção): cada criatura tem 3 etapas liberadas pelas suas vitórias — 1ª vitória: nome e onde vive (com o caminho); 25: fôlego, ataque, XP e os itens que deixa cair; 250: as chances dos itens e Pontos de Bestiário (chefões: 1 / 3 / 5 vitórias). Com os pontos você compra bônus contra a criatura completa: +5% de dano, +5% de XP e +10% de chance de item. As vitórias que você já tinha contam! O Bestiário substitui a lista de adversários da Wiki. Shift + clique numa criatura mostra o seu progresso.'],
     ['v404', '💾 O jogo agora lembra se você joga no modo DRIBLE ou CHUTE (tecla X): ao voltar, continua no último que você usou. (A prioridade do alvo — Perto, Forte, Fraco, Fôlego — já ficava salva.)'],
     ['v403', '🎒 Cada janela de mochila agora pode ser DIMINUÍDA, como no Tibia: puxe a alcinha no rodapé da janela para cima ou para baixo (ela encaixa em fileiras inteiras e o resto rola por dentro). Cada mochila guarda o seu tamanho. Duplo clique na alcinha volta ao tamanho todo.'],
     ['v402', '🎒 A Mochila de Campo ganhou arte própria. 🎽 Equipamento: os quadros ficaram um pouquinho menores e os nomes não ficam mais por baixo do quadro seguinte; a ordem do lado direito voltou a ser Pescoço, Mochila, Calção e Chuteira (a capa e as asas confundiam). ⚽ Habilidades no estilo do Tibia: uma linha fininha por habilidade, com o valor à direita, o bônus pequeno em verde e uma barrinha do quanto falta.'],

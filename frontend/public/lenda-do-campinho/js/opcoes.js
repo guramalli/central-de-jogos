@@ -172,7 +172,7 @@ const OPC_GRUPOS = [
   ['personagem', '🧍 Personagem', /classe|jogadas|visual|montaria|treino|analisador/i],
   ['aventura', '🗺️ Aventura', /miss|tarefa|saga|origem|lendas|agência|agencia|recompensa|diária|diaria/i],
   ['social', '👥 Social', /amigo|grupo|guilda|feira|torre em grupo/i],
-  ['colecao', '🏅 Coleção', /álbum|album|conquista|museu|ranking|personagens/i],
+  ['colecao', '🏅 Coleção', /álbum|album|conquista|museu|ranking|personagens|bestiário|bestiario/i],
   ['ajuda', '📚 Ajuda', /wiki|ajuda|como jogar|bug/i],
 ];
 function opcEhConfig(b) { if (OPC_SAI_DO_MENU.includes(b.id)) return true; if (b.dataset && b.dataset.abre === 'atalhos') return true; return /tela e pain|gráficos leves|estatísticas|fôlego e foco no boneco|distância dos arcos|interface (clássica|compacta)|exportar/i.test(b.textContent); }
