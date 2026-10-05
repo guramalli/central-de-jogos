@@ -71,7 +71,7 @@ function passoChefes() {
     const d = Math.hypot(m.x - G.p.x, m.y - G.p.y), cv = m._cv || (m._cv = { brasas: [], visto: false, furia: false, ult: G.agora });
     if (d < dPerto) { dPerto = d; perto = m; }
     if (!cv.visto && d < 9) {
-      cv.visto = true; som('chefe_rugido'); tremeTela(7, 650); efeito('area', m.x, m.y, `rgb(${corChefe(m)})`, 3);
+      cv.visto = true; som(m.d.look && m.d.look.tipo === 'humano' ? 'chefe_entrada' : 'chefe_rugido'); tremeTela(7, 650); // (v401: chefão gente entra com a torcida; bicho, rugindo) efeito('area', m.x, m.y, `rgb(${corChefe(m)})`, 3);
       if (typeof texto === 'function') texto(m, '👑 ' + (m.d.falas && m.d.falas[0] || 'GRRR!'), '#ffd27a', 1400, -0.9);
       CV_CHEFE.entrou = G.agora;
     }
@@ -126,3 +126,6 @@ function barraChefe(m) {
   @keyframes cbFuria { from { box-shadow: 0 0 8px rgba(255,40,40,.6); } to { box-shadow: 0 0 22px rgba(255,40,40,1); } }`;
   document.head.append(css);
 }
+
+// v401: o golpe do chefão acertando você tem um som de pancada (os outros adversários continuam com o som normal)
+if (typeof monstroAtaca === 'function') { const _maCh = monstroAtaca; monstroAtaca = function (m) { const hp0 = G.save && G.save.hp; const r = _maCh.apply(this, arguments); try { if (m && m.d && m.d.chefe && !m.d.treino && G.save && G.save.hp < hp0) som('chefe_golpe'); } catch (e) { } return r; }; }

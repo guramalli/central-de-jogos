@@ -62,6 +62,14 @@
     apito: ['apito', 0.5, 0.02, 250, 1],
     gol: ['gol', 0.8, 0.02, 600, 1],
     // moeda, cura, gole, erro e raro saíam com voz/"narração" do gerador: agora são sintetizados (SINT, abaixo)
+    // v401 (dono: "sonoplastia nos chefões... um rugido, barulho de golpes"): sons GRAVADOS (Higgsfield Mirelo) no lugar dos
+    // sintetizados; a duração máxima (último número) corta o silêncio do começo, iguala o volume e usa só o trecho bom
+    chefe_rugido: ['chefe_rugido', 0.95, 0.05, 900, 1, 1, 2.3],
+    chefe_entrada: ['chefe_entrada_humano', 0.8, 0.02, 900, 1, 1, 2.6],
+    chefe_furia: ['chefe_furia', 0.95, 0.04, 900, 1, 1, 2.4],
+    chefe_choque: ['chefe_choque', 1, 0.05, 300, 2, 1, 0.95],
+    chefe_queda: ['chefe_queda', 1, 0.02, 900, 1, 1, 1.9],
+    chefe_golpe: ['chefe_golpe', 0.8, 0.08, 280, 2, 1, 0.5],
   };
   // v226: sons gravados das habilidades (Seed Audio): dr_<drible> e cl_<especial>. [arquivo, vol, pitch, intervalo, vozes, rate, duração máx. (s)]
   const SONS_HAB = { dr_pedalada: 2.6, dr_respiro: 1.5, dr_chute_colocado: 2.2, dr_arrancada: 1.5, dr_chapeu: 2.6, dr_voleio: 1.5, dr_elastico: 2.8, dr_tabela: 1.5, dr_caneta: 3.2,
@@ -299,6 +307,7 @@
     if (c) {
       if (c.state === 'suspended' && A.gesto && !document.hidden) c.resume().catch(() => { });
       if (SONS_HAB[tipo] && A.buf['sfx_' + tipo]) { try { if (tocaAmostra(tipo)) return; } catch (e) { } } // v226: habilidade com som gravado: ele primeiro
+      if (SFX[tipo] && SINT[tipo] && A.buf['sfx_' + SFX[tipo][0]]) { try { if (tocaAmostra(tipo)) return; } catch (e) { } } // v401: chefão com som gravado: ele primeiro (o sintetizado fica de reserva)
       try { if (tocaSint(tipo)) { if (SONS_HAB[tipo] && !A.falhou['sfx_' + tipo]) carrega('sfx_' + tipo); return; } } catch (e) { /* cai no sintetizador antigo */ }
       if (SFX[tipo] && !A.buf['sfx_' + SFX[tipo][0]] && !A.falhou['sfx_' + SFX[tipo][0]]) carrega('sfx_' + SFX[tipo][0]);
       try { if (tocaAmostra(tipo)) return; } catch (e) { /* cai no sintetizador */ }

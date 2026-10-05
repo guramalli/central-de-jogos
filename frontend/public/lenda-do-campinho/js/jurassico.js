@@ -437,7 +437,7 @@
     }
     if (JR.aviso && JR.t >= JR.aviso) {
       JR.aviso = 0; JR.rugido = JR.t + (JR.furia ? 11000 : 14000);
-      fala(rx, 'GRRROOOOAAARRR!'); efeito('area', rx.x, rx.y, '#ffb03a', 9); if (typeof tremeTela === 'function') tremeTela(10, 700);
+      fala(rx, 'GRRROOOOAAARRR!'); som('chefe_furia'); efeito('area', rx.x, rx.y, '#ffb03a', 9); if (typeof tremeTela === 'function') tremeTela(10, 700);
       const pedra = pedraNoCaminho(rx, p);
       if (!pedra) { recebeDano(Math.round(st.maxHp * 0.22), rx); p.tontoAte = G.agora + 2500; texto(p, 'TONTO COM O RUGIDO!', '#ffcf3a', 1300, -0.6); }
       else {
