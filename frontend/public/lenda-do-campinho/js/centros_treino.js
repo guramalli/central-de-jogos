@@ -156,9 +156,17 @@ function paraEstacao(msg) {
   if (!G.estTreino) return;
   G.estTreino = null; if (msg) log(msg, 'l-sis'); chipEstacao();
 }
+// v387 (dono: "coloquei para treinar e não apareceu o tempo e não está movendo um %"): o Quadro Tático dava 3 tentativas de
+// Visão a cada 1,2 s fixas (9 mil/h) e lá em cima a Visão pede muito mais (atacante 66→67: ~700 mil = 78 h). Agora a Visão
+// rende a RECUPERAÇÃO DE FOCO inteira do personagem (o dobro do treino offline), nunca menos que antes.
+function nEstacao(d) {
+  if (d.sk !== 'visao') return d.n;
+  let reg = 0; try { reg = Math.max(0, stats().regenFoco || 0); } catch (e) { }
+  return Math.max(d.n, Math.round(reg * EST_CD / 1000));
+}
 function tickEstacao() {
   const t = G.estTreino, p = G.p, b = t.b, d = t.d, alvo = { x: b.x + 1, y: b.y + 0.6 };
-  treinaSkill(d.sk, d.n); p.flip = alvo.x < p.x; t.anim = G.agora;
+  treinaSkill(d.sk, nEstacao(d)); p.flip = alvo.x < p.x; t.anim = G.agora;
   if (d.sk === 'chute') { p.golpe = G.agora; som('chute'); projetil(p, { x: b.x + 0.55, y: b.y + 0.55 }, 'bola', () => { b.hitT = G.agora; efeito('toque', b.x + 0.55, b.y + 0.2); }); }
   else if (d.sk === 'drible') { som('toque'); efeito('toque', p.x + (Math.random() < 0.5 ? -0.3 : 0.3), p.y); }
   else if (d.sk === 'defesa') { if (Math.random() < 0.35) texto(p, '💪', '#ffd24a', 700); }
@@ -264,7 +272,10 @@ function chipEstacao() {
   c.innerHTML = ''; c.title = 'Clique (ou ande) para parar';
   const r = CV.getBoundingClientRect(); c.style.left = (r.left + r.width / 2) + 'px'; c.style.top = (r.top + (innerWidth <= 600 ? 34 : 42)) + 'px'; // logo abaixo do nome do mapa
   const tot = typeof stats === 'function' ? stats()[t.d.sk] : o.lv; const bon = tot - o.lv; /* v249: deixa claro o treinado x o total com bônus */
-  c.append(el('b', {}, `${t.d.ic} Treinando ${SKILLS[t.d.sk].nome} ${o.lv} → ${o.lv + 1} `), el('span', { class: 'ce-bar' }, el('i', { style: `width:${pc}%` })), el('small', {}, `${pc}%${bon > 0.05 ? ` · com bônus: ${num1(tot)}` : ''} · ande para parar`));
+  // quanto falta para o próximo nível neste ritmo
+  const falta = Math.max(0, precisaTentativas(t.d.sk, o.lv) - o.t), h = falta / Math.max(1, nEstacao(t.d)) * EST_CD / 3600000;
+  const quando = h < 1 ? `~${Math.max(1, Math.round(h * 60))} min` : `~${h < 10 ? h.toFixed(1).replace('.', ',') : Math.round(h)} h`;
+  c.append(el('b', {}, `${t.d.ic} Treinando ${SKILLS[t.d.sk].nome} ${o.lv} → ${o.lv + 1} `), el('span', { class: 'ce-bar' }, el('i', { style: `width:${pc}%` })), el('small', {}, `${pc}% · próximo nível ${quando}${bon > 0.05 ? ` · com bônus: ${num1(tot)}` : ''} · ande para parar`));
 }
 {
   const st = document.createElement('style');
