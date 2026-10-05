@@ -130,8 +130,8 @@ function montaBonecoEquip(g) {
 let ARR = null; // { tipo: 'equip', i, id, r, slot } | { tipo: 'tira', slot } | { tipo: 'painel', item, tabs, bloco }
 function limpaArrasto() {
   ARR = null;
-  document.body.classList.remove('arrastando-equip', 'arrastando-painel');
-  const cls = ['alvo-equip', 'nivel-baixo', 'alvo-tira', 'alvo-abas', 'arrastado', 'alvo-junta', 'insere-antes', 'insere-fim'];
+  document.body.classList.remove('arrastando-equip', 'arrastando-painel', 'arrastando-abas');
+  const cls = ['alvo-equip', 'nivel-baixo', 'alvo-tira', 'alvo-abas', 'arrastado', 'alvo-junta', 'insere-antes', 'insere-fim', 'chip-alvo'];
   document.querySelectorAll(cls.map(c => '.' + c).join(', ')).forEach(e => e.classList.remove(...cls));
   document.querySelectorAll('.eq-lig.alvo').forEach(e => e.classList.remove('alvo'));
   if (LAY_IND.parentNode) LAY_IND.remove();
@@ -326,7 +326,7 @@ function iniciaArrastoBloco(ev, bloco) {
   const r = bloco.getBoundingClientRect(); try { ev.dataTransfer.setDragImage(bloco, ev.clientX - r.left, Math.min(ev.clientY - r.top, 60)); } catch (e) { }
   if (typeof escondeTip === 'function') escondeTip();
   ARR = { tipo: 'painel', item, tabs: ehAbas(item) ? item.g.slice() : null, bloco };
-  setTimeout(() => { if (ARR && ARR.bloco === bloco) { document.body.classList.add('arrastando-painel'); bloco.classList.add('arrastado'); } }, 0);
+  setTimeout(() => { if (ARR && ARR.bloco === bloco) { document.body.classList.add('arrastando-painel'); if (ARR.tabs) document.body.classList.add('arrastando-abas'); bloco.classList.add('arrastado'); } }, 0);
 }
 function mkGrip(bloco) {
   const g = el('span', { class: 'grip', title: 'Arraste para mudar este painel de lugar', 'aria-label': 'Mover painel', role: 'button' }, '⠿');
@@ -338,7 +338,21 @@ function mkGrip(bloco) {
   return g;
 }
 // alvo de "juntar": barra de abas de um grupo (com posição) ou título de um painel solto
-const aceitaJuntar = it => !!(ARR && ARR.tipo === 'painel' && ARR.tabs && ARR.item !== it && podeMexer());
+// v398 (dono: "colocar uma abaixo da outra janela sem ter que juntar 2... mais liberdade para organizar a tela"): soltar em
+// cima de outro painel = colocar ACIMA ou ABAIXO dele (a linha amarela mostra onde); juntar como aba só pelo ⊕ que aparece
+// no meio dos painéis durante o arrasto (antes a barra de abas e o título inteiros juntavam sem querer)
+const aceitaJuntar = it => !!(ARR && ARR.tipo === 'painel' && ARR.tabs && ARR.item !== it && podeMexer() && ARR.juntar === it);
+function mkChipJuntar(b) {
+  const c = el('div', { class: 'chip-juntar', title: 'Solte aqui para juntar como aba neste painel' }, '⊕ Juntar como aba');
+  const sobre = ev => {
+    const it = b._item; if (!ARR || ARR.tipo !== 'painel' || !ARR.tabs || ARR.item === it || !podeMexer()) return;
+    ev.preventDefault(); ev.stopPropagation(); ev.dataTransfer.dropEffect = 'move'; ARR.juntar = it; c.classList.add('chip-alvo'); if (LAY_IND.parentNode) LAY_IND.remove();
+  };
+  c.addEventListener('dragenter', sobre); c.addEventListener('dragover', sobre);
+  c.addEventListener('dragleave', () => { c.classList.remove('chip-alvo'); if (ARR) ARR.juntar = null; });
+  c.addEventListener('drop', ev => { const it = b._item; if (!aceitaJuntar(it)) return; ev.preventDefault(); ev.stopPropagation(); const tabs = ARR.tabs; limpaArrasto(); juntaEm(it, tabs, null); });
+  return c;
+}
 function ligaBarra(bar, it) {
   const marca = x => {
     bar.querySelectorAll('.insere-antes').forEach(b => b.classList.remove('insere-antes'));
@@ -391,7 +405,7 @@ function mkBlocoAbas(it) {
   const bar = el('div', { class: 'abas' }); it.g.forEach(t => bar.append(BOTOES[t]));
   if (solto) {
     bar.hidden = true; // o botão continua existindo (abreAba e o tutorial clicam nele)
-    const cab = el('div', { class: 'bloco-cab', 'data-aba': t0, title: 'Arraste para mudar de lugar ou juntar com outras abas · duplo clique minimiza · ↩ volta para as abas' },
+    const cab = el('div', { class: 'bloco-cab', 'data-aba': t0, title: 'Arraste para mudar de lugar (acima ou abaixo de outro painel; para juntar como aba, solte no ⊕) · duplo clique minimiza · ↩ volta para as abas' },
       el('span', { class: 'bloco-titulo' }, LAY_NOMES[t0] || t0), mkBtMin(b),
       el('button', { class: 'bloco-volta', type: 'button', title: 'Voltar para as abas' }, '↩'));
     cab.prepend(mkGrip(b));
@@ -413,6 +427,7 @@ function mkBlocoAbas(it) {
     b.append(bar);
   }
   it.g.forEach(t => b.append(PAINEIS[t]));
+  b.append(mkChipJuntar(b));
   b.classList.toggle('minimizado', !!it.m); atualizaBtMin(b);
   return b;
 }
@@ -542,7 +557,7 @@ function ligaBotoes() {
       if (LAY_ESTREITO.matches) { ev.preventDefault(); return; }
       ev.dataTransfer.setData(MIME_PAINEL, 'aba:' + n); ev.dataTransfer.setData('text/plain', 'p:aba:' + n); ev.dataTransfer.effectAllowed = 'move';
       ARR = { tipo: 'painel', item: null, tabs: [n], bloco: null };
-      setTimeout(() => { if (ARR && ARR.tabs && ARR.tabs[0] === n && !ARR.item) { document.body.classList.add('arrastando-painel'); b.classList.add('arrastado'); } }, 0);
+      setTimeout(() => { if (ARR && ARR.tabs && ARR.tabs[0] === n && !ARR.item) { document.body.classList.add('arrastando-painel', 'arrastando-abas'); b.classList.add('arrastado'); } }, 0);
     });
     b.addEventListener('dragend', () => { if (ARR && ARR.tipo === 'painel') limpaArrasto(); });
   }
@@ -665,6 +680,10 @@ modalAjuda = function () {
   }
   @media (max-width: 900px) { .bloco { display: contents; } .grip, .bloco-volta, .bt-min, .abas-ferr, .cab-min { display: none !important; } }
   .indicador-painel { position: relative; height: 0; margin-bottom: -8px; pointer-events: none; }
+  .chip-juntar { display: none; }
+  body.arrastando-abas .bloco-abas:not(.arrastado) > .chip-juntar { display: flex; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; align-items: center; justify-content: center; padding: 8px 14px; border-radius: 10px; border: 2px dashed var(--madeira2); background: rgba(255,246,220,.92); color: var(--madeira2); font: 800 13px Fredoka, Nunito, sans-serif; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+  body.arrastando-abas .bloco-abas > .chip-juntar.chip-alvo { background: var(--amarelo); border-style: solid; transform: translate(-50%, -50%) scale(1.08); }
+  body.arrastando-abas .bloco-abas.minimizado > .chip-juntar { top: 0; transform: translate(-50%, 0); padding: 3px 10px; }
   .indicador-painel::after { content: ''; position: absolute; left: 0; right: 0; top: -7px; height: 6px; border-radius: 3px; background: var(--amarelo); box-shadow: 0 0 0 2px var(--madeira2), 0 0 12px 3px rgba(255,210,63,.8); }
   .coluna-paineis.vazia .indicador-painel { display: none; }
   .grip { cursor: grab; user-select: none; -webkit-user-select: none; font-size: 15px; line-height: 1; color: var(--madeira2); background: var(--papel2); border: 2px solid var(--madeira3); border-radius: 5px; padding: 2px 3px 1px; opacity: .8; }
