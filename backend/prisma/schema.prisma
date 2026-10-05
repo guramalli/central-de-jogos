@@ -652,9 +652,18 @@ model LendaRanking {
   time         Json?
   chefes       Int      @default(0)
   figs         Int      @default(0)
+  // v388: ranking de habilidades (o nível TREINADO de cada uma, sem os bônus de itens)
+  drible       Int      @default(0)
+  chute        Int      @default(0)
+  defesa       Int      @default(0)
+  visao        Int      @default(0)
   atualizadoEm DateTime @updatedAt
 
   @@index([xp])
+  @@index([drible])
+  @@index([chute])
+  @@index([defesa])
+  @@index([visao])
 }
 
 // Lenda do Campinho — estatísticas ANÔNIMAS: um contador por dia/evento/valor.

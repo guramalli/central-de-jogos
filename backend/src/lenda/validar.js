@@ -101,8 +101,17 @@ export function validarRanking(body) {
     if (!nome || !inteiro(time.div, 0, 50) || !inteiro(time.titulos ?? 0, 0, 100_000)) return { erro: "Time inválido." };
     timeOk = { nome, div: time.div, titulos: time.titulos ?? 0 };
   }
-  return { ok: true, ranking: { nivel, xp, posicao: posicao ?? null, fase, time: timeOk, chefes, figs } };
+  // v388: as habilidades treinadas (opcional; jogo antigo não manda) — números de 0 a SKILL_MAX
+  let skills = null;
+  const sk = body?.skills;
+  if (sk != null) {
+    if (typeof sk !== "object" || !SKILLS_RANK.every((k) => inteiro(sk[k] ?? 0, 0, SKILL_MAX))) return { erro: "Habilidades inválidas." };
+    skills = Object.fromEntries(SKILLS_RANK.map((k) => [k, sk[k] ?? 0]));
+  }
+  return { ok: true, ranking: { nivel, xp, posicao: posicao ?? null, fase, time: timeOk, chefes, figs }, skills };
 }
+export const SKILLS_RANK = ["drible", "chute", "defesa", "visao"];
+export const SKILL_MAX = 1000;
 
 // Quais casas mostrar num lugar: algumas das mais prestigiadas (as "vitrines"
 // que valem a visita) + um sorteio entre as outras, pra todo mundo ter chance

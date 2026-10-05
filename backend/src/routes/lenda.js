@@ -3,7 +3,7 @@ import { prisma } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
 import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
-import { validarSave, validarCasa, escolherCasas, validarRanking } from "../lenda/validar.js";
+import { validarSave, validarCasa, escolherCasas, validarRanking, SKILLS_RANK } from "../lenda/validar.js";
 import { abrirSave, fichaPublica } from "../lenda/ficha.js";
 import { registrarSinal, JOGANDO_AGORA_MS, GUARDAR_DIAS } from "../lenda/sessoes.js";
 import { TORCIDAS, validarTorcida, amigosDe, podeTorcer, GUARDAR_DIAS as TORCIDA_DIAS } from "../lenda/torcida.js";
@@ -124,6 +124,8 @@ router.put("/ranking", requireAuth, async (req, res) => {
   const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true } });
   const dados = { apelido: eu?.nickname || req.user.nickname || "Jogador", ...v.ranking };
   await prisma.lendaRanking.upsert({ where: { userId: req.user.id }, create: { userId: req.user.id, ...dados }, update: dados });
+  // v388: as habilidades vão À PARTE — se as colunas ainda não existem no banco (antes do prisma db push), o ranking de nível segue normal
+  if (v.skills) { try { await prisma.lendaRanking.update({ where: { userId: req.user.id }, data: v.skills }); cacheInvalidar("lenda:rankskill:"); } catch { /* sem as colunas ainda */ } }
   // Limpa a lista guardada: quem acabou de entrar aparece na hora (antes
   // esperava até 1 min, e a janela aberta logo em seguida vinha vazia).
   cacheInvalidar("lenda:ranking");
@@ -255,6 +257,23 @@ router.get("/ranking", async (_req, res) => {
     return topo.filter((t) => !bloqueados.has(t.userId)).slice(0, 50);
   });
   res.json(lista);
+});
+
+// v388: top 50 de cada HABILIDADE (o nível treinado). Público; guardado 1 min. Fora conta banida ou oculta.
+router.get("/ranking/skill/:sk", async (req, res) => {
+  const sk = req.params.sk;
+  if (!SKILLS_RANK.includes(sk)) return res.status(400).json({ error: "Habilidade inválida." });
+  try {
+    const lista = await cacheOuBuscar("lenda:rankskill:" + sk, 60, async () => {
+      const topo = await prisma.lendaRanking.findMany({
+        where: { [sk]: { gt: 0 } }, orderBy: [{ [sk]: "desc" }, { xp: "desc" }], take: 80,
+        select: { userId: true, apelido: true, nivel: true, posicao: true, [sk]: true },
+      });
+      const bloq = await contasBloqueadas(topo.map((t) => t.userId));
+      return topo.filter((t) => !bloq.has(t.userId)).slice(0, 50).map((t) => ({ userId: t.userId, apelido: t.apelido, nivel: t.nivel, posicao: t.posicao, valor: t[sk] }));
+    });
+    res.json(lista);
+  } catch { res.status(503).json({ error: "O ranking de habilidades está chegando ao servidor." }); }
 });
 
 // ---------- personagens (página tipo Tibia) ----------

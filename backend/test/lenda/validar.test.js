@@ -95,3 +95,12 @@ test("ranking: aceita o XP dos níveis altos (passa de 2 bilhões por volta do n
   assert.equal(v.ranking.xp, 7_189_595_200);
   assert.ok(!validarRanking({ nivel: 481, xp: 1e16, fase: "Lenda" }).ok);
 });
+
+test("ranking: habilidades (v388) — opcionais, números de 0 a 1000", () => {
+  const ok = validarRanking({ nivel: 600, xp: 10, fase: "Lenda", skills: { drible: 68, chute: 79, defesa: 69, visao: 66 } });
+  assert.equal(ok.ok, true); assert.deepEqual(ok.skills, { drible: 68, chute: 79, defesa: 69, visao: 66 });
+  assert.equal(validarRanking({ nivel: 5, xp: 10, fase: "Criança" }).skills, null, "jogo antigo sem habilidades continua valendo");
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", skills: { drible: 5000 } }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", skills: { visao: 2.5 } }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", skills: "muito" }).ok);
+});
