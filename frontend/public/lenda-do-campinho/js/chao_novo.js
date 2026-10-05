@@ -54,7 +54,7 @@ const CHAO2 = {
     atl: { base: CH.AREIA_MAR, luz: true }, lua: { base: CH.REGOLITO }, marte: { base: CH.MARTE }, anel: { base: CH.ANEL }, neb: { base: CH.NEBULOSA },
     estacao: { base: CH.METAL }, mv: { base: CH.MV_PRACA }, anao: { base: CH.CAVERNA }, neve: { base: CH.MV_NEVE }, vale: {}, jur: {},
     deserto: { base: CH.AREIA }, floresta: { base: CH.GRAMA }, pantano: { base: CH.LODO }, montanha: { base: CH.PEDRA },
-    caverna: { base: CH.CAVERNA }, lava: { base: CH.ROCHA_LAVA }, gelo: { base: CH.GELO }, catacumba: { base: CH.PARALELO }, tumba: { base: CH.ARENITO }, esgoto: { base: CH.CONCRETO_ESC }, tunel: { base: CH.CONCRETO },
+    caverna: { base: CH.CAVERNA }, lava: { base: CH.CAVERNA, paredeCru: [CH.ROCHA_LAVA] }, /* v394: a rocha (parede) por cima, no quadradinho exato — com a rocha de fundo, a terra arredondada cobria as paredes fininhas e virava parede invisível (dono: "não tem nada no mapa porém não dá para passar", no Rio de Lava) */ gelo: { base: CH.GELO }, catacumba: { base: CH.PARALELO }, tumba: { base: CH.ARENITO }, esgoto: { base: CH.CONCRETO_ESC }, tunel: { base: CH.CONCRETO },
   },
   // planalto de cada tema de caça aberta
   planalto: { lunar: CH.PLANALTO_LUA, marciano: CH.PLANALTO_MARTE, anel: CH.PLANALTO_ANEL, nebular: CH.PLANALTO_NEB, deserto: CH.PLANALTO_DESERTO, bambu: CH.PLANALTO_FLORESTA, fazenda: CH.PLANALTO_FLORESTA,
@@ -163,6 +163,17 @@ const CHAO2 = {
       if (t === CH.AGUA && typeof pintaAgua === 'function') { // a água de sempre, com a beirada lisa
         const msk = mascara(tiles, true, 0.45)(v => ss(0.42, 0.56, v)), tudo = new Path2D(); tudo.rect(0, 0, W, H);
         yield* aplicaDepois(msk, q => pintaAgua(q, m, tudo)); continue;
+      }
+      if (B.paredeCru && B.paredeCru.includes(t)) { // parede do bioma no quadradinho exato, com a arte nova e uma sombra suave em volta
+        const p = new Path2D(); for (const [i, j] of tiles) p.rect(i * T, j * T, T, T);
+        x.save(); x.filter = `blur(${Math.round(T * 0.12)}px)`; x.globalAlpha = 0.55; x.fillStyle = '#120a08'; x.translate(0, T * 0.08); x.fill(p); x.restore();
+        x.fillStyle = padrao2(t) || padrao(x, TEX_CHAO[t], (2 * T) / 256) || est.cor; x.fill(p);
+        { // a beirada: só onde a parede encontra o chão (não em volta de cada quadradinho)
+          const bd = new Path2D(), eP = (i, j) => i < 0 || j < 0 || i >= m.w || j >= m.h || junta(m.chao[j * m.w + i]) === t;
+          for (const [i, j] of tiles) { if (!eP(i, j + 1)) bd.rect(i * T, (j + 1) * T - T * 0.1, T, T * 0.1); if (!eP(i, j - 1)) bd.rect(i * T, j * T, T, T * 0.06); if (!eP(i - 1, j)) bd.rect(i * T, j * T, T * 0.06, T); if (!eP(i + 1, j)) bd.rect((i + 1) * T - T * 0.06, j * T, T * 0.06, T); }
+          x.fillStyle = 'rgba(0,0,0,0.38)'; x.fill(bd);
+        }
+        yield; continue;
       }
       if (CHAO2.cru.has(t)) { // como sempre foi: o quadradinho certo, com a textura e a tinta de antes
         const p = new Path2D(); for (const [i, j] of tiles) p.rect(i * T, j * T, T, T);

@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v394', '📍 Toda missão agora explica ONDE achar e COMO CHEGAR: quem é o adversário (e o nível), o lugar, a viagem (avião, submarino, foguete, portal), o caminho de mapa em mapa e em que parte do mapa ele fica. A seta amarela aponta o mesmo lugar. 🌋 Rio de Lava, Vulcão dos Dragões e Covil do Dragão: as paredes de rocha agora aparecem exatamente onde bloqueiam (antes havia paredes invisíveis ao lado das passagens).'],
     ['v393', '⚽ Tela de entrada nos mapas grandes (Vale Jurássico, Atlântida, espaço, Multiverso...): o nome do lugar, uma bola rolando numa barra que enche e uma dica, enquanto o mapa fica pronto. O jogo não congela mais ao entrar no Labirinto Jurássico (o chão é desenhado aos pouquinhos).'],
     ['v392', '🦖 Labirinto Jurássico mais curto e mais cheio: o caminho entre as salas ficou bem menor (a sala mais funda está na metade da distância), há mais atalhos, os becos são curtinhos e tem o DOBRO de dinossauros (mais em cada sala e uns grupinhos nos cruzamentos).'],
     ['v391', '🦸👑 A Capa do Herói balança a cada passo e a Coroa (Chamas Azuis / Auréola de Raios) fica presa à cabeça: vira, inclina e chuta junto com o personagem. 👑 Os Ecos do Multiverso agora têm tamanho de chefão. 🛒 Nas lojas dá para comprar até 1.000 de uma vez (antes 100), e o aviso diz quantos cabem no seu dinheiro ou na sua carga.'],

@@ -1,0 +1,220 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   📍 COMO CHEGAR (v394; dono: "tem muita quest vaga, não fala onde fica tal adversário, nem como chegar lá... crie um padrão
+   fixo para quests, elas precisam ser explicativas em termos de onde achar os adversários requisitados").
+   PADRÃO FIXO de toda missão (calculado dos próprios mapas: missão nova já nasce explicada):
+     👾 Quem: o adversário e o nível dele (⚠️ se ainda está forte demais para você)
+     🗺️ Onde: o lugar (área de caça, arena, estádio ou mapa) e a região (Brasil, Cairo, Atlântida, Lua...)
+     🧭 Como chegar: a viagem até a região (avião, submarino, foguete, portal) + o caminho de mapa em mapa
+     📌 Lá dentro: em que parte do mapa ele fica (norte, sul, leste, oeste, centro)
+   Missão de itens: o mesmo, para o adversário que mais deixa cair o item. Missão de falar/gols/quiz: onde fica quem procurar.
+   Aparece quando o personagem oferece a missão, na conversa (missão em andamento) e na janela Missões (resumido).
+   Carregar DEPOIS de ondeachar.js e objetivo_agora.js.
+   ============================================================ */
+// como entrar em cada região que não se chega andando (a chave é o mapa de chegada da região)
+const CC_VIAGEM = {
+  atlantida: () => '🌊 No Rio de Janeiro, fale com a Capitã Iara (no porto) e desça de submarino — precisa do Capacete de Mergulho.',
+  estacao: () => '🚀 No Rio de Janeiro, fale com a Dra. Estela e decole para a Estação Espacial — precisa do Traje de Astronauta.',
+  multiverso: () => '🌀 No Rio de Janeiro, fale com o Guardião do Multiverso.',
+  torre_infinita: () => '🗼 No Multiverso, fale com a Mestra Altina (Torre Infinita).',
+};
+['lua', 'marte', 'saturno', 'nebulosa', 'copa_intergalactica'].forEach(id => { CC_VIAGEM[id] = () => `🚀 Vá até a Estação Espacial (no Rio, com a Dra. Estela — precisa do Traje de Astronauta) e lá a Torre de Controle leva até ${ccNome(id)}.`; });
+const ccNome = id => { try { return typeof nomeLugarCurto === 'function' ? nomeLugarCurto(id) : getMapa(id).nome.split(' —')[0]; } catch (e) { return id; } };
+// as regiões: grupos de mapas ligados por saídas (andando)
+let CC_REG = null;
+function ccRegioes() {
+  if (CC_REG) return CC_REG;
+  const g = indice().grafo, und = {};
+  for (const [a, es] of Object.entries(g)) for (const e of es) { if (!MAPAS_DEF[e.para]) continue; (und[a] = und[a] || new Set()).add(e.para); (und[e.para] = und[e.para] || new Set()).add(a); }
+  const de = {}, grupos = [];
+  for (const id of Object.keys(MAPAS_DEF)) {
+    if (de[id] != null) continue; const c = [], q = [id]; de[id] = grupos.length;
+    while (q.length) { const a = q.shift(); c.push(a); for (const b of und[a] || []) if (de[b] == null) { de[b] = grupos.length; q.push(b); } }
+    grupos.push(c);
+  }
+  // a porta de entrada de cada região: a vila (Brasil), a cidade do voo, ou o mapa de chegada da viagem especial
+  const voos = typeof VOOS !== 'undefined' ? VOOS : {};
+  const hub = grupos.map(c => c.includes('vila') ? 'vila' : c.find(m => CC_VIAGEM[m]) || c.find(m => voos[m]) || null);
+  return (CC_REG = { de, grupos, hub });
+}
+function ccViagem(hubId) {
+  if (!hubId || hubId === 'vila') return '';
+  if (CC_VIAGEM[hubId]) return CC_VIAGEM[hubId]();
+  const v = typeof VOOS !== 'undefined' && VOOS[hubId];
+  if (hubId === 'cidade') return '✈️ Pegue o avião de volta para o Brasil (desce na Cidade).';
+  if (v) return `✈️ Pegue o avião para ${v.nome}${v.lvl > 1 ? ` (a partir do nível ${v.lvl})` : ''} — no Brasil, o aeroporto fica na Cidade, com a Comissária Luana.`;
+  return '';
+}
+// o caminho andando, de mapa em mapa (saídas), sem contar as casas por dentro
+function ccCaminho(de, para) {
+  if (de === para) return [para];
+  const g = indice().grafo, vis = { [de]: null }, fila = [de];
+  while (fila.length) { const a = fila.shift(); if (a === para) break; for (const e of g[a] || []) if (MAPAS_DEF[e.para] && !(e.para in vis)) { vis[e.para] = a; fila.push(e.para); } }
+  if (!(para in vis)) return null;
+  const l = []; for (let c = para; c != null; c = vis[c]) l.unshift(c);
+  return l;
+}
+// em que parte do mapa
+function ccParte(mapa, x, y) {
+  try {
+    const m = getMapa(mapa), fx = x / m.w, fy = y / m.h;
+    const v = fy < 0.34 ? 'n' : fy > 0.66 ? 's' : '', h = fx < 0.34 ? 'o' : fx > 0.66 ? 'l' : '';
+    if (!v && !h) return 'no meio do mapa';
+    const tela = [v === 'n' ? 'em cima' : v === 's' ? 'embaixo' : '', h === 'l' ? 'à direita' : h === 'o' ? 'à esquerda' : ''].filter(Boolean).join(', ');
+    const rosa = { n: 'norte', s: 'sul', l: 'leste', o: 'oeste', nl: 'nordeste', no: 'noroeste', sl: 'sudeste', so: 'sudoeste' }[v + h];
+    return `${tela} no mapa (${rosa})`;
+  } catch (e) { return ''; }
+}
+// a plaquinha mais perto do ponto (o nome da sala/área, quando a placa diz quem mora ali ou fica bem perto)
+function ccPlaca(mapa, x, y, quem) {
+  try {
+    const m = getMapa(mapa); let melhor = null;
+    for (const p of m.placas || []) {
+      const d = Math.hypot(p.x - x, p.y - y), fala = quem && p.texto.toLowerCase().includes(quem.split(' ')[0].toLowerCase());
+      if (d > (fala ? 12 : 6)) continue; const sc = d - (fala ? 8 : 0); if (!melhor || sc < melhor.sc) melhor = { sc, p };
+    }
+    if (!melhor) return '';
+    const t = melhor.p.texto.split(' — ')[0].trim(); return t.length <= 42 ? t : '';
+  } catch (e) { return ''; }
+}
+// onde um adversário aparece: mapa + ponto (da tabela dos mapas; arena/estádio pelo dado do adversário)
+// todos os lugares onde cada adversário aparece (o índice do jogo guarda só o primeiro)
+let CC_SP = null;
+function ccSpawns(tipo) {
+  if (!CC_SP) { CC_SP = {}; for (const id of Object.keys(MAPAS_DEF)) { let m; try { m = getMapa(id); } catch (e) { continue; } for (const sp of m.spawns || []) (CC_SP[sp.m] = CC_SP[sp.m] || []).push({ mapa: id, x: sp.x + 0.5, y: sp.y + 0.5 }); } }
+  return CC_SP[tipo] || [];
+}
+// o lugar certo para a missão: o mapa do nome da missão (ex.: caca_barracao_m1 → caca_barracao), senão o mapa de quem deu
+// a missão, senão a mesma região de quem deu, senão o primeiro
+function ccOndeMonstro(tipo, q) {
+  const d = MONSTROS[tipo]; if (!d) return null;
+  const l = ccSpawns(tipo);
+  if (l.length) {
+    if (q) {
+      const doNome = l.find(o => q.id && q.id.startsWith(o.mapa + '_')); if (doNome) return doNome;
+      const quem = q.npc && indice().npc[q.npc];
+      if (quem) { const mesmo = l.find(o => o.mapa === quem.mapa); if (mesmo) return mesmo; const R = ccRegioes(); const reg = l.find(o => R.de[o.mapa] === R.de[quem.mapa]); if (reg) return reg; }
+    }
+    return l[0];
+  }
+  for (const id of [d.arena, d.arena && 'arena_' + d.arena, d.estadio, d.estadio && 'est_' + d.estadio]) if (id && MAPAS_DEF[id]) { const m = getMapa(id); return { mapa: id, x: m.w / 2, y: m.h / 2, arena: !!d.arena, estadio: !!d.estadio }; }
+  return null;
+}
+// o texto completo de "como chegar" a um mapa (a partir de onde você está, se der para ir andando)
+function ccRota(mapa) {
+  const R = ccRegioes(), r = R.de[mapa]; if (r == null) return null;
+  const aqui = G.mapa && !G.mapa.interior ? G.mapa.id : (G.save && G.save.ultimoMapaFora) || 'vila';
+  const limpa = c => c && c.filter(id => !getMapa(id).interior || id === mapa);
+  const regiao = R.hub[r] && R.hub[r] !== 'vila' ? ccNome(R.hub[r]) : 'Brasil';
+  // 1) dá para ir andando daqui
+  const direto = ccCaminho(aqui, mapa);
+  if (direto) return { viagem: '', caminho: limpa(direto), mesma: true, aqui, regiao, jaAqui: aqui === mapa };
+  // 2) senão: a porta de chegada (avião, submarino, foguete, portal) que leva até lá pelo caminho mais curto
+  let melhor = null;
+  const portas = [...Object.keys(typeof VOOS !== 'undefined' ? VOOS : {}), ...Object.keys(CC_VIAGEM)];
+  if (R.de[aqui] === R.de.vila) portas.push('vila'); // (no Brasil dá para voltar andando até a vila)
+  for (const p of new Set(portas)) { if (!MAPAS_DEF[p]) continue; const c = ccCaminho(p, mapa); if (c && (!melhor || c.length < melhor.c.length)) melhor = { p, c }; }
+  if (!melhor) return { viagem: '', caminho: null, mesma: false, aqui, regiao, jaAqui: false };
+  return { viagem: ccViagem(melhor.p), caminho: limpa(melhor.c), mesma: false, aqui, regiao, jaAqui: false };
+}
+// o bloco do padrão fixo, para uma missão (null se a missão não tem um lugar)
+function ccInfo(q) {
+  const r = q.req || {}; let tipo = r.kill, porItem = null;
+  if (!tipo && (r.item || r.itens) && typeof fontesDoItem === 'function') {
+    const id = r.item || (r.itens && r.itens[0] && r.itens[0][0]); const f = id && fontesDoItem(id);
+    if (f && f.drops && f.drops.length) { tipo = f.drops[0].tipo; porItem = id; }
+  }
+  if (tipo) {
+    const o = ccOndeMonstro(tipo, porItem ? null : q); if (!o) return null; const d = MONSTROS[tipo];
+    const nv = d.nivel || (typeof nivelMonstro === 'function' ? nivelMonstro(d) : 0) || 0, eu = (G.save && G.save.nivel) || 1;
+    return { quem: d.nome.split(',')[0], nivel: nv, forte: nv > eu + 15, chefe: !!d.chefe, porItem, mapa: o.mapa, onde: ccNome(o.mapa), parte: o.arena || o.estadio ? '' : ccParte(o.mapa, o.x, o.y), placa: ccPlaca(o.mapa, o.x, o.y, d.nome), rota: ccRota(o.mapa) };
+  }
+  // falar com alguém, gols, quiz...: onde fica quem procurar
+  let alvo = null, quem = '';
+  try {
+    if (r.gols) { alvo = alvoPonto('penalti'); quem = 'a marca do pênalti'; }
+    else if (r.quiz) { alvo = indice().npc.juca; quem = (NPCS.juca || {}).nome; }
+    else if (r.prof) { alvo = indice().npc.lucia; quem = (NPCS.lucia || {}).nome; }
+    else if (r.flag === 'pegou_bola') { alvo = alvoPonto('bau_bola'); quem = 'o baú da bola'; }
+    else if (r.fala && NPCS[r.fala]) { alvo = indice().npc[r.fala]; quem = NPCS[r.fala].nome; }
+  } catch (e) { }
+  if (!alvo || !alvo.mapa) return null;
+  return { quem, mapa: alvo.mapa, onde: ccNome(alvo.mapa), parte: ccParte(alvo.mapa, alvo.x, alvo.y), rota: ccRota(alvo.mapa), lugarDe: true };
+}
+function ccCaminhoTxt(rota) {
+  if (!rota || !rota.caminho) return '';
+  const c = rota.caminho; if (c.length <= 1) return rota.jaAqui ? 'você já está aqui!' : rota.viagem ? 'a viagem já deixa você lá.' : '';
+  const nomes = c.map(ccNome), cortado = nomes.length > 7 ? [...nomes.slice(0, 3), '…', ...nomes.slice(-3)] : nomes;
+  return (rota.mesma ? 'daqui: ' : 'de lá: ') + cortado.join(' → ');
+}
+function blocoComoChegar(q, compacto) {
+  let I = null; try { I = ccInfo(q); } catch (e) { console.warn('como chegar', q.id, e); }
+  if (!I) return null;
+  const linhas = [];
+  if (!I.lugarDe) linhas.push(['👾', 'Quem', `${I.quem}${I.chefe ? ' (chefão)' : ''} — nível ${I.nivel}${I.porItem && ITENS[I.porItem] ? ` (é quem mais deixa cair ${ITENS[I.porItem].nome})` : ''}${I.forte ? ' ⚠️ ainda forte para você' : ''}`]);
+  else if (I.quem) linhas.push(['🙋', 'Procure', I.quem]);
+  linhas.push(['🗺️', 'Onde', `${I.onde}${I.rota && I.rota.regiao && I.rota.regiao !== I.onde ? ` (${I.rota.regiao})` : ''}`]);
+  const viagem = I.rota && I.rota.viagem, cam = ccCaminhoTxt(I.rota);
+  if (viagem) linhas.push(['🧭', 'Viagem', viagem]);
+  if (cam) linhas.push(['🧭', 'Caminho', cam]);
+  if (I.parte && !compacto) linhas.push(['📌', 'Lá dentro', I.parte + (I.placa ? `, perto da placa “${I.placa}”` : '')]);
+  const box = el('div', { class: 'como-chegar' + (compacto ? ' compacto' : '') }, compacto ? null : el('b', {}, '📍 Onde achar e como chegar'));
+  if (compacto) box.append(el('div', {}, linhas.map(([ic, k, v]) => `${ic} ${v}`).join(' · ')));
+  else for (const [ic, k, v] of linhas) box.append(el('div', {}, el('span', { class: 'cc-ic' }, ic), el('span', {}, el('b', {}, k + ': '), v)));
+  return box;
+}
+// 1) quando o personagem oferece a missão
+{
+  const _mmCC = modalMissao;
+  modalMissao = function (npc, q) {
+    const r = _mmCC.apply(this, arguments);
+    try { const fala = document.querySelector('#modalConteudo .fala'), b = blocoComoChegar(q, false); if (fala && b) { const ref = fala.querySelector('.onde-achar') || [...fala.querySelectorAll('p')].find(p => /Objetivo/.test(p.textContent)); if (ref) ref.after(b); else fala.append(b); } } catch (e) { }
+    return r;
+  };
+}
+// 2) na conversa, a missão em andamento; 3) na janela Missões (resumido)
+{
+  const poe = (compacto) => {
+    for (const li of document.querySelectorAll('#modalConteudo .linha-item')) {
+      if (li.classList.contains('bloq') || li.querySelector('.como-chegar')) continue;
+      const titulo = (li.querySelector('.nm b') || {}).textContent; const q = titulo && MISSOES.find(x => x.titulo === titulo); if (!q) continue;
+      const st = statusMissao(q); if (st !== 'ativa' && st !== 'disponivel') continue;
+      const b = blocoComoChegar(q, compacto); if (b) (li.querySelector('.nm') || li).append(b);
+    }
+  };
+  const _abCC = abrirNPC; abrirNPC = function () { const r = _abCC.apply(this, arguments); try { poe(false); } catch (e) { } return r; };
+  const _mmsCC = modalMissoes; modalMissoes = function () { const r = _mmsCC.apply(this, arguments); try { poe(true); } catch (e) { } return r; };
+}
+// a seta amarela e a etiqueta "🎯 Agora" apontam o MESMO lugar do bloco (o adversário que aparece em vários mapas: o da missão)
+{
+  const ativaKill = () => { if (MISSOES.some(q => statusMissao(q) === 'pronta')) return null; const q = MISSOES.find(q => statusMissao(q) === 'ativa'); return q && q.req && q.req.kill ? q : null; };
+  const _oaCC = objetivoAtual;
+  objetivoAtual = function () {
+    const r = _oaCC.apply(this, arguments);
+    try {
+      if (!r || r.ent || !G.save || (typeof TUTORIAL !== 'undefined' && G.save.tut < TUTORIAL.length)) return r;
+      const q = ativaKill(); if (!q || G.mons.some(m => m.tipo === q.req.kill)) return r;
+      const o = ccOndeMonstro(q.req.kill, q); if (o && o.mapa !== r.mapa) return { mapa: o.mapa, x: o.x, y: o.y };
+    } catch (e) { }
+    return r;
+  };
+  if (typeof objetivoTexto === 'function') {
+    const _otCC = objetivoTexto;
+    objetivoTexto = function () {
+      const r = _otCC.apply(this, arguments);
+      try { const q = ativaKill(); if (r && q && !r.pronta) { const o = ccOndeMonstro(q.req.kill, q); if (o) { const [a, b] = progressoMissao(q); r.txt = `${descMissao(q) || q.titulo} (${a}/${b}) — ${ccNome(o.mapa)}`; } } } catch (e) { }
+      return r;
+    };
+  }
+}
+// a região muda quando você viaja (o caminho é "daqui")
+{ const _entCC = entrarMapa; entrarMapa = function () { const r = _entCC.apply(this, arguments); try { if (G.mapa && !G.mapa.interior && G.save) G.save.ultimoMapaFora = G.mapa.id; } catch (e) { } return r; }; }
+{
+  const st = document.createElement('style');
+  st.textContent = `.como-chegar { margin: 6px 0; padding: 6px 8px; border-radius: 8px; background: rgba(60,190,110,.12); border-left: 3px solid #2e9e5a; font-size: 14px; line-height: 1.35; }
+  .como-chegar > div { display: flex; gap: 6px; align-items: flex-start; margin-top: 3px; } .como-chegar .cc-ic { flex: none; width: 20px; text-align: center; }
+  .como-chegar.compacto { font-size: 12px; padding: 4px 6px; margin-top: 4px; } .como-chegar.compacto > div { display: block; }`;
+  document.head.append(st);
+}
+window.COMO_CHEGAR = { ccInfo, ccRota, ccRegioes, ccOndeMonstro, blocoComoChegar };
