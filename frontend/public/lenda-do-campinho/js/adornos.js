@@ -136,7 +136,7 @@
   const _painAd = atualizaPaineis;
   atualizaPaineis = function () {
     const r = _painAd.apply(this, arguments);
-    try { const eq = document.getElementById('equip'); if (eq && !eq.querySelector('.btn-adornos')) eq.append(el('button', { type: 'button', class: 'btn mini btn-adornos', title: 'Asas, aura e halo que você liberou', onclick: abreAdornos }, '✨ Adornos')); } catch (e) { }
+    try { if (!document.getElementById('btnAdornosTopo')) { const nav = document.querySelector('#topo nav') || document.querySelector('#topo'); const antes = document.getElementById('btnOpc') || (nav && nav.querySelector('.tb-mais')); const bt = el('button', { type: 'button', class: 'btn mini', id: 'btnAdornosTopo', title: 'Adornos: asas, aura, halo, mascotes e mais que você liberou', onclick: abreAdornos }, '✨ Adornos'); if (antes && antes.parentElement) antes.parentElement.insertBefore(bt, antes); else if (nav) nav.append(bt); } } catch (e) { } // v400 (dono: "o adorno passe para o topo da página, ao lado dos demais")
     return r;
   };
   const st = document.createElement('style');

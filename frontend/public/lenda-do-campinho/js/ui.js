@@ -161,18 +161,20 @@ function atualizaPaineis() {
   // equipamento: boneco com cada peça no seu lugar do corpo (desenho, posições e linhas em layout.js)
   const eq = $('#equip'); eq.innerHTML = '';
   const g = el('div', { class: 'equip-grade equip-boneco' });
-  const rot = { cabeca: 'Cabeça', acessorio: 'Pescoço', camisa: 'Camisa', calcao: 'Calção', perna: 'Caneleira', chuteira: 'Chuteira' };
-  for (const slot of ['cabeca', 'camisa', 'acessorio', 'perna', 'calcao', 'chuteira']) {
-    const id = s.equip[slot]; const b = el('div', { class: 'eq-slot ' + (id ? 'cheio' : 'eq-vazio'), 'data-slot': slot, title: id ? `${ITENS[id].nome} — ${ITENS[id].desc} (clique para tirar)` : `${rot[slot]}: vazio. Arraste um item da Mochila para cá.` });
+  // v400 (dono: "a mochila deve ficar igual os itens, do lado do jogador"): a mochila das costas é um quadro do boneco (Mochila)
+  const rot = { cabeca: 'Cabeça', acessorio: 'Pescoço', camisa: 'Camisa', calcao: 'Calção', perna: 'Caneleira', chuteira: 'Chuteira', costas: 'Mochila' };
+  for (const slot of ['cabeca', 'camisa', 'acessorio', 'perna', 'calcao', 'chuteira', 'costas']) {
+    const id = slot === 'costas' ? (s.costas && ITENS[s.costas.id] ? s.costas.id : null) : s.equip[slot]; const b = el('div', { class: 'eq-slot ' + (id ? 'cheio' : 'eq-vazio'), 'data-slot': slot, title: id ? `${ITENS[id].nome} — ${ITENS[id].desc} (clique para tirar)` : `${rot[slot]}: vazio. Arraste um item da Mochila para cá.` });
     if (id) b.append(iconeClone(iconeItem(id)));
     else if (typeof fantasmaSlot === 'function') b.append(fantasmaSlot(slot));
     const rq = (s.equipR || {})[slot]; if (id && rq) { b.append(el('span', { class: 'ref' }, '+' + rq)); b.title = nomeItem(id, rq) + ' — clique para tirar'; }
     b.append(el('span', { class: 'rot' }, rot[slot]));
     b.onclick = () => id && desequipar(slot);
+    if (slot === 'costas') { b.title = id ? `${ITENS[id].nome} (${mochilaSlots()} espaços) — arraste outra mochila para cá para trocar` : 'Mochila'; b.onclick = () => { if (typeof abreAba === 'function') abreAba('mochila'); }; }
     g.append(b);
   }
   if (typeof montaBonecoEquip === 'function') montaBonecoEquip(g);
-  eq.append(g, el('div', { class: 'eq-tot' }, el('span', {}, 'Ataque ', el('b', {}, st.atk)), el('span', {}, 'Defesa ', el('b', {}, st.armadura)), el('span', {}, 'Veloc. ', el('b', {}, Math.round(st.vel)))));
+  eq.append(g); // (v400: Ataque, Defesa e Velocidade ficam no status, perto do fôlego e do foco)
   // mochila
   // v396 (dono: "refaça a mecânica das backpacks... quero algo igual o Tibia"): uma COLUNA de janelas, como no Tibia:
   // a mochila das costas (sempre a primeira; minimiza, não fecha) e uma janela para cada bolsa aberta (↑ volta para a de
@@ -228,15 +230,24 @@ function atualizaPaineis() {
       el('button', { class: 'btn mini', type: 'button', title: 'Voltar para a bolsa de fora', onclick: () => { if (typeof mtSobe === 'function') mtSobe(u); } }, '↑'),
       el('button', { class: 'btn mini', type: 'button', title: 'Fechar a bolsa', onclick: () => abreBolsa(u) }, '✕')]));
   }
-  mo.append(el('div', { class: 'vazio' }, 'Botão direito: abre a mochila / usa ou equipa o item. Arraste itens para dentro das mochilas (entram na 1ª posição; Shift divide a pilha). Mochila cheia: o resto vai para a mochila que está dentro dela.'));
+  mo.append(el('div', { class: 'vazio' }, 'Botão direito: abre a mochila / usa ou equipa o item. Arraste itens para dentro das mochilas (entram na 1ª posição; Shift divide a pilha). Mochila cheia: o resto vai para a mochila que está dentro dela. Shift + clique descreve o item.'));
   { const bp = document.getElementById('bolsasAbertas'); if (bp) bp.innerHTML = ''; }
   // habilidades
   const sk = $('#skills'); sk.innerHTML = '';
   const a = xpPara(s.nivel), bxp = xpPara(s.nivel + 1);
-  sk.append(el('div', { class: 'sk-linha' }, el('div', { class: 'top' }, el('b', {}, 'Nível ' + s.nivel), el('span', {}, `faltam ${fmt(bxp - s.xp)} XP · ${Math.floor((s.xp - a) / (bxp - a) * 100)}%`)), el('div', { class: 'sk-bar' }, barraI((s.xp - a) / (bxp - a)))));
+  // v400 (dono: "a barra de skills também quero que fique melhor desenhada, refaça"): cartões com ícone, nível grande,
+  // bônus em destaque e barra de progresso com a porcentagem
+  const pcN = Math.floor((s.xp - a) / (bxp - a) * 100);
+  sk.append(el('div', { class: 'skv-nivel', title: `Faltam ${fmt(bxp - s.xp)} XP para o nível ${s.nivel + 1}` },
+    el('div', { class: 'skv-cab' }, el('span', { class: 'skv-ic' }, '⭐'), el('span', { class: 'skv-nome' }, 'Nível'), el('b', { class: 'skv-lv' }, fmt(s.nivel))),
+    el('div', { class: 'skv-barra xp' }, el('i', { style: `width:${pcN}%` }), el('span', {}, `${pcN}% · faltam ${fmt(bxp - s.xp)} XP`))));
+  const SK_IC = { drible: '🌀', chute: '🥅', defesa: '🛡️', visao: '🧠' };
   for (const k of ['drible', 'chute', 'defesa', 'visao']) {
-    const o = s.sk[k]; const bonus = st[k] - o.lv;
-    sk.append(el('div', { class: 'sk-linha', title: SKILLS[k].desc + (bonus ? ` — ${o.lv} treinado + ${num1(bonus)} de bônus (equipamentos, comidas...) = ${num1(st[k])} no jogo. O treino sobe o ${o.lv}.` : '') }, el('div', { class: 'top' }, el('span', {}, SKILLS[k].nome), el('b', {}, String(o.lv), bonus ? el('span', { class: 'sk-bonus' }, ` +${num1(bonus)}`) : null, /* v250: treinado + bônus em verde */ el('small', { class: 'sk-pc' }, ` · ${Math.min(99, Math.floor(o.t / precisaTentativas(k, o.lv) * 100))}%`))), el('div', { class: 'sk-bar' }, barraI(o.t / precisaTentativas(k, o.lv)))));
+    const o = s.sk[k]; const bonus = st[k] - o.lv, pc = Math.min(99, Math.floor(o.t / precisaTentativas(k, o.lv) * 100));
+    sk.append(el('div', { class: 'skv', title: SKILLS[k].desc + (bonus ? ` — ${o.lv} treinado + ${num1(bonus)} de bônus (equipamentos, comidas...) = ${num1(st[k])} no jogo. O treino sobe o ${o.lv}.` : '') },
+      el('div', { class: 'skv-cab' }, el('span', { class: 'skv-ic' }, SK_IC[k]), el('span', { class: 'skv-nome' }, SKILLS[k].nome),
+        bonus ? el('span', { class: 'skv-bonus' }, `+${num1(bonus)}`) : '', el('b', { class: 'skv-lv' }, String(o.lv))),
+      el('div', { class: 'skv-barra' }, el('i', { style: `width:${pc}%` }), el('span', {}, `${pc}%`))));
   }
   const hh = Math.floor(s.st.tempo / 3600), mm = Math.floor(s.st.tempo / 60) % 60;
   sk.append(el('div', { class: 'sk-info' },

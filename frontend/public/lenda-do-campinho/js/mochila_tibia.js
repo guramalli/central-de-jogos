@@ -145,30 +145,37 @@ function mtPosiciona() {
   const visivel = !cel && !!(bloco && bloco.offsetParent !== null && getComputedStyle(bloco).display !== 'none' && bloco.getBoundingClientRect().width >= 150);
   let aviso = document.getElementById('mtAviso');
   if (!aviso) { aviso = el('div', { id: 'mtAviso', class: 'vazio' }); aba.prepend(aviso); }
+  // v400 (dono: "retire essa box 'Mochila', não tem usabilidade"): com as mochilas na coluna da direita, a aba/painel
+  // "Mochila" some (a tecla I e o tutorial levam para a coluna 🎒 Mochilas)
+  const bt = document.querySelector('.abas button[data-aba="mochila"]'), blocoSolto = document.querySelector('.bloco-solto[data-painel="aba:mochila"]');
+  aviso.hidden = true; aviso.textContent = '';
   if (visivel) {
     if (mo.parentElement !== painel) painel.append(mo);
     const tit = painel.querySelector('.bolsas-tit'); if (tit && tit.textContent !== '🎒 Mochilas') tit.textContent = '🎒 Mochilas';
-    const s = G.save; aviso.hidden = false;
-    aviso.textContent = s ? `🎒 Suas mochilas estão na coluna 🎒 Mochilas (à direita). ⚖️ Carga ${fmt(Math.round(pesoMochila(s)))}/${fmt(capPeso(s))}.` : '';
+    if (bt && !bt.hidden) { bt.hidden = true; if (bt.classList.contains('ativa')) { const outro = bt.parentElement && [...bt.parentElement.querySelectorAll('button[data-aba]')].find(x => x !== bt && !x.hidden); if (outro) outro.click(); } }
+    if (blocoSolto) blocoSolto.hidden = true;
   } else {
     if (mo.parentElement !== aba) aba.append(mo);
-    aviso.hidden = true;
+    if (bt) bt.hidden = false; if (blocoSolto) blocoSolto.hidden = false;
   }
 }
 window.addEventListener('resize', () => { try { mtPosiciona(); } catch (e) { } });
+// tecla I / tutorial abrindo a aba Mochila: com a coluna à direita, mostra a coluna (rola até ela e pisca)
+if (typeof abreAba === 'function') {
+  const _abaMT = abreAba;
+  abreAba = function (n) {
+    const p = n === 'mochila' && document.querySelector('[data-painel="bolsas"] .bolsas-painel #mochila');
+    if (p) { const bl = p.closest('.bloco'); if (bl) { if (bl.classList.contains('minimizado') && typeof minimiza === 'function') minimiza(bl, false); try { bl.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { } bl.classList.remove('pisca'); void bl.offsetWidth; bl.classList.add('pisca'); } return; }
+    return _abaMT.apply(this, arguments);
+  };
+}
 // ---------- o quadro "Costas" no Equipamento ----------
-function mtCostasNoEquip() {
-  const eq = document.getElementById('equip'), s = G.save; if (!eq || !s || !s.costas) return;
-  let c = eq.querySelector('.mt-costas'); if (c) c.remove();
-  const it = ITENS[s.costas.id];
-  c = el('div', { class: 'mt-costas', title: 'Mochila das costas: arraste uma bolsa para cá para trocar (a antiga vai para dentro da nova)' },
-    el('span', { class: 'rot' }, '🎒 Costas'), el('div', { class: 'eq-slot cheio' }, iconeClone(iconeItem(s.costas.id))),
-    el('span', {}, el('b', {}, it.nome), el('br'), el('small', {}, `${mochilaSlots(s)} espaços`)),
-    el('button', { class: 'btn mini', type: 'button', onclick: mtEscolheCostas }, 'Trocar'));
-  c.addEventListener('dragover', ev => { if (ev.dataTransfer && [...ev.dataTransfer.types].includes('text/x-lenda-mochila')) { ev.preventDefault(); c.classList.add('alvo'); } });
-  c.addEventListener('dragleave', () => c.classList.remove('alvo'));
-  c.addEventListener('drop', ev => { c.classList.remove('alvo'); const dt = ev.dataTransfer; if (!dt || ![...dt.types].includes('text/x-lenda-mochila')) return; ev.preventDefault(); ev.stopPropagation(); const i = +dt.getData('text/x-lenda-mochila'); const e = G.save.mochila[i]; if (e && ehBolsa(e.id)) mtTrocaCostas(i); else { log('Nas costas só vai mochila ou bolsa.', 'l-sis'); som('erro'); } });
-  const tot = eq.querySelector('.eq-tot'); if (tot) tot.before(c); else eq.append(c); // (logo abaixo do boneco, antes do Ataque/Defesa)
+function mtCostasNoEquip() { // v400: a mochila é um quadro do boneco (ui.js); aqui só o soltar outra mochila nele
+  const b = document.querySelector('#equip .eq-slot[data-slot="costas"]'); if (!b || b._mt) return; b._mt = true;
+  const tem = ev => ev.dataTransfer && [...ev.dataTransfer.types].includes('text/x-lenda-mochila');
+  b.addEventListener('dragover', ev => { if (tem(ev)) { ev.preventDefault(); ev.stopPropagation(); b.classList.add('alvo-equip'); } }, true);
+  b.addEventListener('dragleave', () => b.classList.remove('alvo-equip'));
+  b.addEventListener('drop', ev => { b.classList.remove('alvo-equip'); if (!tem(ev)) return; ev.preventDefault(); ev.stopPropagation(); const i = +ev.dataTransfer.getData('text/x-lenda-mochila'); const e = G.save.mochila[i]; if (e && ehBolsa(e.id)) mtTrocaCostas(i); else { log('Aqui só vai mochila ou bolsa.', 'l-sis'); som('erro'); } }, true);
 }
 function mtEscolheCostas() {
   const s = G.save, bolsas = s.mochila.map((e, i) => ({ e, i })).filter(x => ehBolsa(x.e.id));
@@ -216,7 +223,7 @@ function mtEscolheCostas() {
   .bolsas-painel #bolsasAbertas { display: none; }
   body.modo-celular [data-painel="bolsas"] { display: none !important; }
   #mtAviso { margin: 4px 0 6px; font-size: 13px; }
-  .mt-costas { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 6px; border: 2px dashed #c9a46a; border-radius: 8px; font-size: 12px; }
+  .mt-costas-velho { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 6px; border: 2px dashed #c9a46a; border-radius: 8px; font-size: 12px; }
   .mt-costas .eq-slot { position: relative; width: 38px; height: 38px; flex: none; }
   .mt-costas > span:nth-of-type(2) { flex: 1; } .mt-costas .rot { font-weight: 700; }
   .mt-costas.alvo { border-color: #e0b020; background: #fff3c8; }
@@ -226,7 +233,22 @@ function mtEscolheCostas() {
   .mt-status { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; padding: 6px 8px; font-size: 12px; }
   .mt-st { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px; border-radius: 6px; background: rgba(138,75,36,.1); }
   .mt-st span { opacity: .85; } .mt-st b { font-variant-numeric: tabular-nums; } .mt-st.pesada { background: rgba(210,58,42,.25); }
-  .bloco.minimizado .mt-status { display: none; }`;
+  .bloco.minimizado .mt-status { display: none; }
+  #equip .eq-slot[data-slot="costas"] { background: radial-gradient(circle at 50% 45%, #fffaf0 0 50%, #ead7b0 100%) !important; border: 2px solid #b8925a !important; cursor: pointer; }
+  #equip .eq-slot[data-slot="costas"].alvo-equip { border-color: #e0b020 !important; box-shadow: 0 0 0 3px rgba(224,176,32,.5); }
+  /* v400: Habilidades em cartões */
+  #skills .skv, #skills .skv-nivel { margin: 6px 0; padding: 6px 8px 7px; border-radius: 9px; background: rgba(255,248,230,.75); border: 2px solid rgba(138,75,36,.28); }
+  #skills .skv-nivel { background: linear-gradient(#fff3c8, #ffe79a); border-color: #c9a46a; }
+  #skills .skv-cab { display: flex; align-items: center; gap: 6px; }
+  #skills .skv-ic { width: 26px; height: 26px; flex: none; display: grid; place-items: center; font-size: 16px; border-radius: 7px; background: rgba(138,75,36,.15); }
+  #skills .skv-nome { flex: 1; font-weight: 700; font-size: 14px; }
+  #skills .skv-lv { font: 800 20px Fredoka, Nunito, sans-serif; color: var(--madeira2, #5e2f14); font-variant-numeric: tabular-nums; }
+  #skills .skv-bonus { font-size: 11px; font-weight: 800; color: #1f7a2e; background: rgba(58,194,106,.18); border-radius: 6px; padding: 1px 5px; }
+  #skills .skv-barra { position: relative; height: 13px; margin-top: 5px; border-radius: 7px; background: #3a2a1a; box-shadow: inset 0 1px 2px rgba(0,0,0,.5); overflow: hidden; }
+  #skills .skv-barra i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; background: linear-gradient(#7ad85a, #3a9a2a); }
+  #skills .skv-barra.xp i { background: linear-gradient(#ffe27a, #e0a020); }
+  #skills .skv-barra span { position: relative; display: block; text-align: center; font: 800 10px/13px Nunito, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+  #skills .sk-info { margin-top: 8px; padding: 6px 8px; border-radius: 9px; background: rgba(138,75,36,.08); }`;
   document.head.append(st);
 }
 // ---------- status do personagem (v399; dono: "a capacidade de carregar peso deve ficar no status do jogador, que também pode

@@ -25,9 +25,10 @@ const LAY_ESTREITO = window.matchMedia ? window.matchMedia('(max-width: 900px)')
 
 /* ================= BONECO DE EQUIPAMENTO ================= */
 // lado do quadro (e = esquerda, d = direita) e parte do corpo de cada peça
-const EQ_POS = { cabeca: ['e', 'cabeca'], camisa: ['e', 'peito'], perna: ['e', 'canela'], acessorio: ['d', 'pescoco'], calcao: ['d', 'quadril'], chuteira: ['d', 'pe'] };
+const EQ_POS = { cabeca: ['e', 'cabeca'], camisa: ['e', 'peito'], perna: ['e', 'canela'], acessorio: ['d', 'pescoco'], calcao: ['d', 'quadril'], chuteira: ['d', 'pe'], costas: ['d', 'peito'] }; // (v400: costas = a mochila)
 // ícones "fantasma" dos lugares vazios (contorno)
 const EQ_SVG = {
+  costas: '<path d="M8 6.5V5a4 4 0 0 1 8 0v1.5"/><rect x="4.5" y="6.5" width="15" height="15" rx="3.5"/><path d="M8 12.5h8v4.5H8z"/><path d="M4.5 10.5h15"/>',
   cabeca: '<path d="M4 15.5C4 10 7.6 7 12 7s8 3 8 8.5z"/><path d="M20 15.5h2.6c0 1.4-1.1 2.3-2.6 2.3H4.2"/><path d="M12 7v8.5M8 8.4c-.9 2-1.2 4.4-1.2 7.1M16 8.4c.9 2 1.2 4.4 1.2 7.1"/><circle cx="12" cy="6.2" r=".9"/>',
   acessorio: '<path d="M4.5 3c.8 5.4 3.6 8.6 7.5 9.4 3.9-.8 6.7-4 7.5-9.4"/><path d="M6.4 6.2l1.2-.5M8.6 9.2l1-.8M17.6 6.2l-1.2-.5M15.4 9.2l-1-.8"/><circle cx="12" cy="17" r="4"/><path d="M12 14.6l.8 1.6 1.7.2-1.3 1.2.3 1.7-1.5-.8-1.5.8.3-1.7-1.3-1.2 1.7-.2z"/>',
   camisa: '<path d="M8.5 3L4 5.2 1.6 10.4l3.6 1.5 1.3-2.2V21h11V9.7l1.3 2.2 3.6-1.5L20 5.2 15.5 3c-.6 1.6-1.9 2.5-3.5 2.5S9.1 4.6 8.5 3z"/><path d="M12 9.5v3M10.5 11h3"/>',
@@ -109,9 +110,9 @@ function montaBonecoEquip(g) {
   }
   const eqp = (G.save && G.save.equip) || {}; const svg = [];
   for (const lado of ['e', 'd']) {
-    const L = lados[lado].sort((a, b) => a.ay - b.ay);
-    for (let i = 0; i < L.length; i++) L[i].c = Math.max(L[i].ay, MIN, i ? L[i - 1].c + D : -1e9);
-    for (let i = L.length - 1; i >= 0; i--) L[i].c = Math.min(L[i].c, MAX, i < L.length - 1 ? L[i + 1].c - D : 1e9);
+    const L = lados[lado].sort((a, b) => a.ay - b.ay), Dl = L.length > 1 ? Math.min(D, (MAX - MIN) / (L.length - 1)) : D; // (4 quadros num lado: chegam mais perto)
+    for (let i = 0; i < L.length; i++) L[i].c = Math.max(L[i].ay, MIN, i ? L[i - 1].c + Dl : -1e9);
+    for (let i = L.length - 1; i >= 0; i--) L[i].c = Math.min(L[i].c, MAX, i < L.length - 1 ? L[i + 1].c - Dl : 1e9);
     const esq = 2.5, left = lado === 'e' ? esq : 100 - esq - EQ_TAM;
     for (const o of L) {
       const b = g.querySelector(`.eq-slot[data-slot="${o.slot}"]`);
