@@ -1,0 +1,225 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   🎒 MOCHILAS IGUAIS AO TIBIA (v396; dono: "refaça a mecânica das backpacks, está muito ruim... quero algo igual o Tibia";
+   escolhas do dono: coluna à direita, mochila equipada nas costas, pilhas de até 100 com divisão).
+   - COSTAS: a mochila principal é um item equipado (s.costas = { id, u }); os espaços dela são os espaços do item.
+     Quem já jogava ganhou a Mochila de Campo (30 espaços = os 30 de antes, com tudo dentro). Trocar: arraste uma bolsa
+     para o quadro "Costas" (ou "🎒 Usar nas costas" na bolsa) — a mochila antiga, com tudo o que tinha, vai para dentro da nova.
+   - COLUNA: no computador as janelas (mochila das costas + bolsas abertas) ficam no painel da direita; cada janela
+     minimiza (–), a das bolsas também fecha (✕), volta para a bolsa de fora (↑) e muda de ordem arrastando o título.
+   - PILHAS: até 100 por espaço (game.js addItem). Shift + arrastar (ou "✂️ Dividir" na janela do item) pergunta quantos;
+     soltar uma pilha em cima de outra igual junta as duas (até 100).
+   Carregar DEPOIS de mochilas.js, armazem.js e luxo.js.
+   ============================================================ */
+ITENS.mochila_campo = { nome: 'Mochila de Campo', tipo: 'bolsa', espacos: 30, lvl: 1, preco: 2000, venda: 0, desc: 'A mochila de todo jogador: 30 espaços. Use nas costas ou guarde dentro de outra mochila.', icon: { k: 'pacote', c: '#7a5a2a' } };
+// o ícone: a arte da Mochila de Viagem pintada de verde (campo)
+{
+  let ic = null;
+  const _icMT = iconeItem;
+  iconeItem = function (id) {
+    if (id !== 'mochila_campo') return _icMT.apply(this, arguments);
+    if (ic) return ic;
+    const base = _icMT('mochila_viagem'); if (!base || !base.width) return _icMT.apply(this, arguments);
+    if (base.width < 40) return base; // (a arte ainda não chegou: o desenho simples por enquanto)
+    const c = mkCanvas(base.width, base.height), x = c.getContext('2d'); x.filter = 'hue-rotate(70deg) saturate(0.85)'; x.drawImage(base, 0, 0);
+    return (ic = c);
+  };
+}
+const mtNovoU = s => (s.uidBolsa = (s.uidBolsa || 0) + 1);
+const mtFilhos = (s, u) => s.mochila.filter(e => (e.c ?? null) === (u ?? null));
+// mochila das costas: todo save tem uma (os antigos ganham a Mochila de Campo, com os mesmos 30 espaços de antes)
+function mtGaranteCostas(s = G.save) {
+  if (!s) return; if (!s.costas || !ITENS[s.costas.id] || ITENS[s.costas.id].tipo !== 'bolsa') s.costas = { id: 'mochila_campo', u: mtNovoU(s) };
+  if (s.costas.u == null || s.mochila.some(e => e.u === s.costas.u)) s.costas.u = mtNovoU(s);
+}
+// pilhas maiores que PILHA_MAX (saves antigos, item que voltou do armazém): divide onde tiver espaço
+function mtDividePilhas(s = G.save) {
+  if (!s || !Array.isArray(s.mochila)) return;
+  for (const e of [...s.mochila]) {
+    if (!e || e.r || !ITENS[e.id] || !empilha(e.id)) continue;
+    while (e.q > PILHA_MAX && s.mochila.length < capMochila(s)) {
+      const dest = espacosLivres(e.c ?? null, s) > 0 ? (e.c ?? null) : bolsaParaNovo(e.id, s);
+      if (espacosLivres(dest, s) <= 0) break;
+      const p = Math.min(e.q - PILHA_MAX, PILHA_MAX), n = { id: e.id, q: p }; if (dest != null) n.c = dest;
+      s.mochila.push(n); e.q -= p;
+    }
+  }
+}
+{ const _arrMT = arrumaBolsas; arrumaBolsas = function (s = G.save) { const r = _arrMT.apply(this, arguments); try { mtGaranteCostas(s); mtDividePilhas(s); } catch (e) { } return r; }; }
+{ const _iniMT = iniciarJogo; iniciarJogo = async function () { const r = await _iniMT.apply(this, arguments); try { mtGaranteCostas(G.save); arrumaBolsas(G.save); G.uiSujo = true; } catch (e) { } return r; }; }
+
+// ---------- trocar a mochila das costas ----------
+function mtTrocaCostas(i) {
+  const s = G.save, X = s.mochila[i]; if (!X || !ehBolsa(X.id)) return false; mtGaranteCostas(s);
+  const velho = s.costas, extra = mochilaSlots(s) - (ITENS[velho.id].espacos || 0); // (espaços a mais da versão Steam continuam valendo)
+  const novoCap = (ITENS[X.id].espacos || 0) + extra, dentroX = mtFilhos(s, X.u).length;
+  if (dentroX + 1 > novoCap) { log(`A ${ITENS[X.id].nome} precisa de 1 espaço livre para guardar a ${ITENS[velho.id].nome}.`, 'l-sis'); som('erro'); return false; }
+  const xU = X.u, xC = X.c ?? null;
+  for (const e of s.mochila) if (e !== X && e.c == null) e.c = velho.u; // o que estava na mochila antiga continua nela
+  for (const e of s.mochila) if (e.c === xU) delete e.c; // o que estava na bolsa nova vira o "de cima"
+  s.mochila.splice(s.mochila.indexOf(X), 1);
+  const antiga = { id: velho.id, q: 1, u: velho.u }; s.mochila.push(antiga); // a mochila antiga entra na nova (1 espaço)
+  if (xC != null && xC !== velho.u && s.mochila.some(e => e.u === xC)) { /* (a bolsa nova estava dentro de outra bolsa: tudo bem, ela saiu de lá) */ }
+  s.costas = { id: X.id, u: xU };
+  s.bolsasAbertas = (s.bolsasAbertas || []).filter(u => u !== xU);
+  if (s.bolsaLoot === xU) delete s.bolsaLoot;
+  arrumaBolsas(s);
+  log(`🎒 Agora você usa a ${ITENS[X.id].nome} nas costas (${mochilaSlots(s)} espaços). A ${ITENS[velho.id].nome} foi para dentro dela, com tudo o que tinha.`, 'l-info');
+  som('equip'); G.uiSujo = true; return true;
+}
+// ↑: a janela da bolsa volta para a bolsa de fora (se a de fora é a mochila das costas, a janela só fecha)
+function mtSobe(u) {
+  const s = G.save, bag = s.mochila.find(e => e.u === u); if (!bag) return;
+  const l = s.bolsasAbertas || [], k = l.indexOf(u); if (k < 0) return;
+  if (bag.c != null && !l.includes(bag.c)) l.splice(k, 1, bag.c); else l.splice(k, 1);
+  som('equip'); G.uiSujo = true;
+}
+// ---------- dividir e juntar pilhas ----------
+function mtPerguntaQtd(max, titulo, cb) {
+  const n = el('input', { type: 'number', min: 1, max, value: Math.max(1, Math.floor(max / 2)), style: 'width:90px;font-size:18px' });
+  const r = el('input', { type: 'range', min: 1, max, value: n.value, style: 'width:100%' });
+  r.oninput = () => { n.value = r.value; }; n.oninput = () => { r.value = n.value; };
+  const ok = () => { const v = Math.max(1, Math.min(max, parseInt(n.value) || 1)); fechaModal(); cb(v); };
+  n.onkeydown = ev => { if (ev.key === 'Enter') ok(); };
+  abreModal(el('h2', {}, titulo), el('p', {}, `Quantos? (1 a ${max})`), r, el('div', { class: 'opcoes', style: 'align-items:center' }, n,
+    el('button', { class: 'btn amarelo', type: 'button', onclick: ok }, 'OK'), el('button', { class: 'btn', type: 'button', onclick: fechaModal }, 'Cancelar')));
+  setTimeout(() => { try { n.focus(); n.select(); } catch (e) { } }, 50);
+}
+// leva n itens da pilha i para a bolsa dest (null = mochila das costas) ou para cima da pilha j
+function mtMoveParte(i, dest, n, j) {
+  const s = G.save, e = s.mochila[i]; if (!e) return false; n = Math.max(1, Math.min(e.q, n | 0));
+  const alvo = j != null ? s.mochila[j] : null;
+  if (alvo && alvo !== e && alvo.id === e.id && !alvo.r && !e.r && empilha(e.id)) { // em cima de uma pilha igual: junta
+    const p = Math.min(n, PILHA_MAX - alvo.q); if (p <= 0) { log('Essa pilha já está cheia (100).', 'l-sis'); som('erro'); return false; }
+    alvo.q += p; e.q -= p; if (e.q <= 0) s.mochila.splice(i, 1); som('equip'); G.uiSujo = true; return true;
+  }
+  if (n >= e.q) return moveNaMochila(i, dest); // a pilha inteira: só muda de lugar
+  if (espacosLivres(dest, s) <= 0) { log(dest == null ? 'A mochila está cheia.' : `Não cabe: a ${ITENS[s.mochila.find(x => x.u === dest).id].nome} está cheia.`, 'l-sis'); som('erro'); return false; }
+  const nova = { id: e.id, q: n }; if (dest != null) nova.c = dest; e.q -= n; s.mochila.push(nova);
+  som('equip'); G.uiSujo = true; return true;
+}
+// arrastar: Shift divide; soltar em cima de uma pilha igual junta (antes do arrasto de mochilas.js, que só muda de lugar)
+{
+  const MIME_MOVE_MT = 'text/x-lenda-mochila', MIME_JAN = 'text/x-lenda-janela';
+  const instala = mo => {
+    if (!mo || mo._mt) return; mo._mt = true;
+    mo.addEventListener('drop', ev => {
+      const dt = ev.dataTransfer; if (!dt || ![...dt.types].includes(MIME_MOVE_MT)) return;
+      const s = G.save, i = +dt.getData(MIME_MOVE_MT), e = s && s.mochila[i]; if (!e) return;
+      const alvoB = ev.target.closest && ev.target.closest('.slot[data-i]'), j = alvoB ? +alvoB.dataset.i : null, alvo = j != null ? s.mochila[j] : null;
+      const g = ev.target.closest && ev.target.closest('.mochila-grade');
+      const dest = alvo && ehBolsa(alvo.id) && j !== i ? alvo.u : g ? (g.dataset.bolsa === '' ? null : +g.dataset.bolsa) : null;
+      const junta = alvo && j !== i && alvo.id === e.id && !alvo.r && !e.r && empilha(e.id);
+      if (!ev.shiftKey && !junta) return; // (o resto: mochilas.js)
+      ev.preventDefault(); ev.stopImmediatePropagation(); document.body.classList.remove('movendo-item');
+      if (ev.shiftKey && e.q > 1) mtPerguntaQtd(e.q, `✂️ Dividir: ${ITENS[e.id].nome}`, n => mtMoveParte(i, dest, n, junta ? j : null));
+      else mtMoveParte(i, dest, e.q, junta ? j : null);
+    }, true);
+    // a ordem das janelas: arraste o título de uma bolsa para cima de outra janela
+    mo.addEventListener('dragstart', ev => {
+      const t = ev.target.closest && ev.target.closest('.bolsa-janela:not(.mt-raiz) > .bolsa-tit'); if (!t) return;
+      try { ev.dataTransfer.setData(MIME_JAN, t.parentElement.dataset.bolsa); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { }
+    });
+    ['dragenter', 'dragover'].forEach(tp => mo.addEventListener(tp, ev => { if (ev.dataTransfer && [...ev.dataTransfer.types].includes(MIME_JAN)) ev.preventDefault(); }));
+    mo.addEventListener('drop', ev => {
+      const dt = ev.dataTransfer; if (!dt || ![...dt.types].includes(MIME_JAN)) return; ev.preventDefault();
+      const s = G.save, u = +dt.getData(MIME_JAN), j = ev.target.closest && ev.target.closest('.bolsa-janela'); if (!s || !j) return;
+      const l = s.bolsasAbertas || [], de = l.indexOf(u); if (de < 0) return; l.splice(de, 1);
+      const para = j.dataset.bolsa === '' ? 0 : l.indexOf(+j.dataset.bolsa) + (j.getBoundingClientRect().top + j.offsetHeight / 2 < ev.clientY ? 1 : 0);
+      l.splice(Math.max(0, para), 0, u); G.uiSujo = true;
+    });
+  };
+  const _pMT = atualizaPaineis;
+  atualizaPaineis = function () {
+    const r = _pMT.apply(this, arguments);
+    try { instala(document.getElementById('mochila')); mtPosiciona(); mtCostasNoEquip(); } catch (e) { console.warn('mochila tibia', e); }
+    return r;
+  };
+}
+// ---------- a coluna: no computador, as janelas ficam no painel da direita ----------
+function mtPosiciona() {
+  const mo = document.getElementById('mochila'), aba = document.getElementById('aba-mochila'); if (!mo || !aba) return;
+  const painel = document.querySelector('[data-painel="bolsas"] .bolsas-painel'), bloco = painel && painel.closest('[data-painel]');
+  const cel = document.body.classList.contains('modo-celular'); // (no celular tudo fica na aba Mochila, que abre pelo 🎒)
+  const visivel = !cel && !!(bloco && bloco.offsetParent !== null && getComputedStyle(bloco).display !== 'none' && bloco.getBoundingClientRect().width >= 150);
+  let aviso = document.getElementById('mtAviso');
+  if (!aviso) { aviso = el('div', { id: 'mtAviso', class: 'vazio' }); aba.prepend(aviso); }
+  if (visivel) {
+    if (mo.parentElement !== painel) painel.append(mo);
+    const tit = painel.querySelector('.bolsas-tit'); if (tit && tit.textContent !== '🎒 Mochilas') tit.textContent = '🎒 Mochilas';
+    const s = G.save; aviso.hidden = false;
+    aviso.textContent = s ? `🎒 Suas mochilas estão na coluna 🎒 Mochilas (à direita). ⚖️ Carga ${fmt(Math.round(pesoMochila(s)))}/${fmt(capPeso(s))}.` : '';
+  } else {
+    if (mo.parentElement !== aba) aba.append(mo);
+    aviso.hidden = true;
+  }
+}
+window.addEventListener('resize', () => { try { mtPosiciona(); } catch (e) { } });
+// ---------- o quadro "Costas" no Equipamento ----------
+function mtCostasNoEquip() {
+  const eq = document.getElementById('equip'), s = G.save; if (!eq || !s || !s.costas) return;
+  let c = eq.querySelector('.mt-costas'); if (c) c.remove();
+  const it = ITENS[s.costas.id];
+  c = el('div', { class: 'mt-costas', title: 'Mochila das costas: arraste uma bolsa para cá para trocar (a antiga vai para dentro da nova)' },
+    el('span', { class: 'rot' }, '🎒 Costas'), el('div', { class: 'eq-slot cheio' }, iconeClone(iconeItem(s.costas.id))),
+    el('span', {}, el('b', {}, it.nome), el('br'), el('small', {}, `${mochilaSlots(s)} espaços`)),
+    el('button', { class: 'btn mini', type: 'button', onclick: mtEscolheCostas }, 'Trocar'));
+  c.addEventListener('dragover', ev => { if (ev.dataTransfer && [...ev.dataTransfer.types].includes('text/x-lenda-mochila')) { ev.preventDefault(); c.classList.add('alvo'); } });
+  c.addEventListener('dragleave', () => c.classList.remove('alvo'));
+  c.addEventListener('drop', ev => { c.classList.remove('alvo'); const dt = ev.dataTransfer; if (!dt || ![...dt.types].includes('text/x-lenda-mochila')) return; ev.preventDefault(); ev.stopPropagation(); const i = +dt.getData('text/x-lenda-mochila'); const e = G.save.mochila[i]; if (e && ehBolsa(e.id)) mtTrocaCostas(i); else { log('Nas costas só vai mochila ou bolsa.', 'l-sis'); som('erro'); } });
+  const tot = eq.querySelector('.eq-tot'); if (tot) tot.before(c); else eq.append(c); // (logo abaixo do boneco, antes do Ataque/Defesa)
+}
+function mtEscolheCostas() {
+  const s = G.save, bolsas = s.mochila.map((e, i) => ({ e, i })).filter(x => ehBolsa(x.e.id));
+  const lista = el('div', { class: 'lista' });
+  if (!bolsas.length) lista.append(el('p', {}, 'Você não tem outra mochila ou bolsa. Compre nas lojas (Bolsinha, Mochila de Viagem...) ou com o Barão Diamante.'));
+  for (const { e, i } of bolsas) {
+    const d = ITENS[e.id], n = mtFilhos(s, e.u).length;
+    lista.append(el('div', { class: 'linha-item' }, iconeClone(iconeItem(e.id)), el('div', { class: 'nm' }, el('b', {}, d.nome), el('small', {}, `${d.espacos} espaços${n ? ` · ${n} itens dentro` : ''}`)),
+      el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => { if (mtTrocaCostas(i)) fechaModal(); } }, '🎒 Usar nas costas')));
+  }
+  abreModal(el('h2', {}, '🎒 Mochila das costas'), el('p', {}, `Agora: ${ITENS[s.costas.id].nome} (${mochilaSlots(s)} espaços). A que você usar nas costas vira a sua mochila principal; a antiga vai para dentro dela, com tudo o que tinha.`), lista);
+}
+// ---------- na janela do item: dividir pilha e usar a bolsa nas costas ----------
+{
+  const _modMT = modalItem;
+  modalItem = function (id) {
+    const r = _modMT.apply(this, arguments);
+    try {
+      const box = document.getElementById('modalConteudo'), s = G.save; if (!box || !ITENS[id]) return r;
+      const ops = el('div', { class: 'opcoes' });
+      const i = s.mochila.findIndex(e => e.id === id && !e.r && e.q > 1);
+      if (i >= 0 && empilha(id)) ops.append(el('button', { class: 'btn', type: 'button', title: 'Separa uma parte da pilha num espaço novo', onclick: () => { const e = s.mochila[i]; mtPerguntaQtd(e.q - 1, `✂️ Dividir: ${ITENS[id].nome}`, n => mtMoveParte(i, e.c ?? null, n)); } }, '✂️ Dividir pilha'));
+      if (ehBolsa(id)) { const k = s.mochila.findIndex(e => e.id === id); if (k >= 0) ops.append(el('button', { class: 'btn', type: 'button', onclick: () => { if (mtTrocaCostas(k)) fechaModal(); } }, '🎒 Usar nas costas')); }
+      if (ops.children.length) box.append(ops);
+    } catch (e) { }
+    return r;
+  };
+}
+{
+  const st = document.createElement('style');
+  st.textContent = `
+  .bolsas-painel #mochila { margin: 0; }
+  #mochila .bolsa-janela { margin-top: 6px; border: 2px solid #8a6a3a; border-radius: 8px; padding: 0 4px 4px; background: rgba(255,248,232,.75); }
+  #mochila .bolsa-janela.mt-raiz { border-color: #5a4020; }
+  #mochila .bolsa-janela.loot { border-color: #e0b020; }
+  #mochila .bolsa-janela > .bolsa-tit { margin: 0 -4px 4px; padding: 3px 4px; background: linear-gradient(#a8743a, #8a5a2a); color: #fff3d6; border-radius: 5px 5px 0 0; display: flex; align-items: center; gap: 4px; font-size: 12px; }
+  #mochila .bolsa-janela > .bolsa-tit[draggable="true"] { cursor: grab; }
+  #mochila .bolsa-janela > .bolsa-tit b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #mochila .bolsa-janela > .bolsa-tit small { opacity: .9; }
+  #mochila .bolsa-janela > .bolsa-tit canvas, #mochila .bolsa-janela > .bolsa-tit img { width: 18px; height: 18px; }
+  #mochila .bolsa-janela > .bolsa-tit .btn.mini { padding: 0 5px; min-width: 20px; line-height: 16px; font-size: 11px; }
+  #mochila .bolsa-janela.mini { padding-bottom: 0; } #mochila .bolsa-janela.mini > .bolsa-tit { margin-bottom: 0; border-radius: 5px; }
+  .bolsas-painel #mochila .mochila-grade { grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); }
+  .bolsas-painel #mochila > .vazio { font-size: 11px; opacity: .7; }
+  .bolsas-painel #bolsasAbertas { display: none; }
+  body.modo-celular [data-painel="bolsas"] { display: none !important; }
+  #mtAviso { margin: 4px 0 6px; font-size: 13px; }
+  .mt-costas { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 6px; border: 2px dashed #c9a46a; border-radius: 8px; font-size: 12px; }
+  .mt-costas .eq-slot { position: relative; width: 38px; height: 38px; flex: none; }
+  .mt-costas > span:nth-of-type(2) { flex: 1; } .mt-costas .rot { font-weight: 700; }
+  .mt-costas.alvo { border-color: #e0b020; background: #fff3c8; }`;
+  document.head.append(st);
+}
+window.MOCHILA_TIBIA = { mtTrocaCostas, mtMoveParte, mtDividePilhas, mtGaranteCostas, mtPosiciona, mtSobe };

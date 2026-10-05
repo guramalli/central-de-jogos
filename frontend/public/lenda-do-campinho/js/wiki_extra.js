@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v396', '🎒 Mochilas iguais ao Tibia: a mochila principal fica nas COSTAS (quadro novo no Equipamento — arraste outra mochila para lá para trocar; a antiga vai para dentro da nova com tudo). No computador as mochilas abertas ficam numa coluna à direita (minimizar, fechar, voltar ↑ e mudar a ordem arrastando o título). Pilhas de até 100 por espaço: Shift + arrastar (ou ✂️ Dividir) separa uma parte; soltar uma pilha em cima de outra igual junta as duas. Quem já jogava ganhou a Mochila de Campo (30 espaços) com tudo dentro.'],
     ['v395', '⚡ Entrada nos mapas mais rápida: o chão dos mapas vizinhos é preparado enquanto você joga (ao passar pela porta ele já está pronto) e a tela de entrada só aparece em mapa pesado que ainda não ficou pronto — nada de espera à toa.'],
     ['v394', '📍 Toda missão agora explica ONDE achar e COMO CHEGAR: quem é o adversário (e o nível), o lugar, a viagem (avião, submarino, foguete, portal), o caminho de mapa em mapa e em que parte do mapa ele fica. A seta amarela aponta o mesmo lugar. 🌋 Rio de Lava, Vulcão dos Dragões e Covil do Dragão: as paredes de rocha agora aparecem exatamente onde bloqueiam (antes havia paredes invisíveis ao lado das passagens).'],
     ['v393', '⚽ Tela de entrada nos mapas grandes (Vale Jurássico, Atlântida, espaço, Multiverso...): o nome do lugar, uma bola rolando numa barra que enche e uma dica, enquanto o mapa fica pronto. O jogo não congela mais ao entrar no Labirinto Jurássico (o chão é desenhado aos pouquinhos).'],

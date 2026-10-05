@@ -27,12 +27,16 @@ function guardaNoArmazem(id, q = 1, r = 0) { // true se coube
   if (!r && empilha(id)) a.push({ id, q }); else for (let i = 0; i < q; i++) a.push(r ? { id, q: 1, r } : { id, q: 1 });
   return true;
 }
-function juntaPilhas(lista) { // v326
+function juntaPilhas(lista, max = Infinity) { // v326 (v396: na mochila, até PILHA_MAX por espaço e só na mesma bolsa)
   if (!Array.isArray(lista)) return;
-  for (let j = lista.length - 1; j >= 0; j--) { const e = lista[j]; if (!e || e.r || !ITENS[e.id] || !empilha(e.id)) continue; const k = lista.findIndex(x => x !== e && x.id === e.id && !x.r); if (k >= 0 && k < j) { lista[k].q += e.q; lista.splice(j, 1); } }
+  for (let j = lista.length - 1; j >= 0; j--) {
+    const e = lista[j]; if (!e || e.r || !ITENS[e.id] || !empilha(e.id)) continue;
+    const k = lista.findIndex(x => x !== e && x.id === e.id && !x.r && x.q < max && (max === Infinity || (x.c ?? null) === (e.c ?? null)));
+    if (k >= 0 && k < j) { const p = Math.min(e.q, max - lista[k].q); lista[k].q += p; e.q -= p; if (e.q <= 0) lista.splice(j, 1); }
+  }
 }
-{ const _iniPilha = iniciarJogo; iniciarJogo = async function () { const r = await _iniPilha.apply(this, arguments); try { juntaPilhas(G.save.mochila); juntaPilhas(G.save.armazem); G.uiSujo = true; } catch (e) { } return r; }; }
-function cabeNaMochila(id, r) { const s = G.save; return s.mochila.length < capMochila() || (!r && empilha(id) && s.mochila.some(i => i.id === id && !i.r)); }
+{ const _iniPilha = iniciarJogo; iniciarJogo = async function () { const r = await _iniPilha.apply(this, arguments); try { juntaPilhas(G.save.mochila, typeof PILHA_MAX !== 'undefined' ? PILHA_MAX : Infinity); juntaPilhas(G.save.armazem); G.uiSujo = true; } catch (e) { } return r; }; }
+function cabeNaMochila(id, r) { const s = G.save; return s.mochila.length < capMochila() || (!r && empilha(id) && s.mochila.some(i => i.id === id && !i.r && i.q < PILHA_MAX)); }
 // v361: uma bolsa e tudo o que está dentro dela (e dentro das bolsas de dentro): índices na lista
 function subarvoreBolsa(lista, i) {
   const out = [i], raiz = lista[i]; if (!raiz || raiz.u == null) return out;
