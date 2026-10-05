@@ -89,12 +89,16 @@ const CHAO2 = {
     x.putImageData(img, 0, 0); return c;
   }
   let FOLHA = null;
-  function renderChao2(m, bio) {
+  // v393 (dono: "o jogo está travando muito quando entro no Vale dos Dinossauros"): o chão do labirinto levava ~2,6 s de uma
+  // vez só (o navegador congelava). Agora o desenho é feito em ETAPAS (renderChao2G, um gerador): um pouquinho por quadro,
+  // atrás da tela de entrada (bola rolando + barra). renderChao2 continua existindo e faz tudo de uma vez (para quem precisa).
+  function renderChao2(m, bio) { const g = renderChao2G(m, bio); let r; while (!(r = g.next()).done); return r.value; }
+  function* renderChao2G(m, bio) {
     const B = CHAO2.biomas[bio] || {}, W = m.w * T, H = m.h * T, c = mkCanvas(W, H), x = c.getContext('2d'), r = mulberry(m.w * 977 + m.h * 13 + m.id.length * 7);
     // tela de trabalho em FAIXAS de 1024 px de altura (o Labirinto Jurássico tem 9600×7040 px: uma tela inteira a mais
     // seriam 270 MB — no celular derrubava o jogo)
-    const FX = Math.min(H, 1024); { const fc = mkCanvas(W, FX); FOLHA = { c: fc, x: fc.getContext('2d') }; }
-    const F = FOLHA, at = (i, j) => (i >= 0 && j >= 0 && i < m.w && j < m.h) ? m.chao[j * m.w + i] : -1;
+    const FX = Math.min(H, 1024), F = (() => { const fc = mkCanvas(W, FX); return { c: fc, x: fc.getContext('2d') }; })(); // (de cada desenho: dois mapas podem estar sendo feitos ao mesmo tempo)
+    const at = (i, j) => (i >= 0 && j >= 0 && i < m.w && j < m.h) ? m.chao[j * m.w + i] : -1;
     const padrao2 = t => { const d = CHAO2.tex[t]; if (d && pronto(d[0])) { const e = spr(d[0]); const p = x.createPattern(e.im, 'repeat'); const k = (d[1] * T) / e.im.width; p.setTransform(new DOMMatrix([k, 0, 0, k, (t * 97) % 300, (t * 53) % 300])); return p; } return padrao(x, TEX_CHAO[t], (2 * T) / 256) || (ESTILO_CHAO[t] || {}).cor || '#888'; };
     const cont = {}; for (const t of m.chao) cont[t] = (cont[t] || 0) + 1;
     const VAZIO = CH.ESTRELAS, temVazio = !!cont[VAZIO];
@@ -111,50 +115,54 @@ const CHAO2 = {
       return fn => { const c2 = mkCanvas(w4, h4), q = c2.getContext('2d'), im = q.createImageData(w4, h4); for (let k = 0; k < w4 * h4; k++) im.data[k * 4 + 3] = Math.round(255 * fn(A[k * 4 + 3] / 255)); q.putImageData(im, 0, 0); return c2; };
     }
     // pinta "pinta" através da máscara e desenha no mapa (deslocado dy, com o modo de mistura "modo"), faixa por faixa
-    const aplica = (msk, pinta, dy = 0, modo) => {
+    function* aplica(msk, pinta, dy = 0, modo) {
       for (let y0 = 0; y0 < H; y0 += FX) {
         const fh = Math.min(FX, H - y0);
         F.x.globalCompositeOperation = 'source-over'; F.x.clearRect(0, 0, W, FX); F.x.imageSmoothingEnabled = true; F.x.imageSmoothingQuality = 'high';
         F.x.drawImage(msk, 0, y0 / Q, w4, fh / Q, 0, 0, W, fh);
         F.x.globalCompositeOperation = 'source-in'; F.x.save(); F.x.translate(0, -y0); pinta(F.x, y0, fh); F.x.restore(); F.x.globalCompositeOperation = 'source-over';
         x.save(); if (modo) x.globalCompositeOperation = modo; x.drawImage(F.c, 0, 0, W, fh, 0, y0 + dy, W, fh); x.restore();
+        yield;
       }
-    };
+    }
     // desenha livre (ex.: a água, que tem o seu próprio desenho) e depois recorta pela máscara lisa
-    const aplicaDepois = (msk, pintaLivre) => {
+    function* aplicaDepois(msk, pintaLivre) {
       for (let y0 = 0; y0 < H; y0 += FX) {
         const fh = Math.min(FX, H - y0);
         F.x.globalCompositeOperation = 'source-over'; F.x.clearRect(0, 0, W, FX); F.x.save(); F.x.translate(0, -y0); pintaLivre(F.x); F.x.restore();
         F.x.globalCompositeOperation = 'destination-in'; F.x.imageSmoothingEnabled = true; F.x.imageSmoothingQuality = 'high'; F.x.drawImage(msk, 0, y0 / Q, w4, fh / Q, 0, 0, W, fh); F.x.globalCompositeOperation = 'source-over';
         x.drawImage(F.c, 0, 0, W, fh, 0, y0, W, fh);
+        yield;
       }
-    };
+    }
     const cor = c0 => (q, y0, fh) => { q.fillStyle = c0; q.fillRect(0, y0, W, fh); }, tex = t => (q, y0, fh) => { q.fillStyle = padrao2(t); q.fillRect(0, y0, W, fh); };
     // forma "construída" ou "alta": sombra, borda escura (e parede de penhasco), textura, filete de luz
-    function desenhaPiso(camada, pintaDentro, alto, flutua) {
-      const borda = camada(v => ss(0.3, 0.4, v)), dentro = camada(v => ss(0.47, 0.53, v)), filete = camada(v => Math.max(0, ss(0.47, 0.53, v) - ss(0.6, 0.72, v)));
+    function* desenhaPiso(camada, pintaDentro, alto, flutua) {
+      const borda = camada(v => ss(0.3, 0.4, v)); yield; const dentro = camada(v => ss(0.47, 0.53, v)); yield; const filete = camada(v => Math.max(0, ss(0.47, 0.53, v) - ss(0.6, 0.72, v))); yield;
       x.save(); x.filter = `blur(${Math.round(T * (alto ? 0.25 : 0.12))}px)`; x.globalAlpha = alto ? 0.7 : 0.45; x.imageSmoothingEnabled = true; x.drawImage(borda, 0, T * (alto ? 0.28 : 0.06), W, H); x.restore();
-      if (alto) aplica(borda, cor(flutua ? 'rgba(40,30,60,0.95)' : 'rgba(20,20,30,0.9)'), T * (flutua ? 0.32 : 0.18));
-      aplica(borda, cor('rgba(28,42,52,0.85)'));
-      aplica(dentro, pintaDentro);
-      aplica(filete, cor(alto ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)'), 0, 'soft-light');
+      if (alto) yield* aplica(borda, cor(flutua ? 'rgba(40,30,60,0.95)' : 'rgba(20,20,30,0.9)'), T * (flutua ? 0.32 : 0.18));
+      yield* aplica(borda, cor('rgba(28,42,52,0.85)'));
+      yield* aplica(dentro, pintaDentro);
+      yield* aplica(filete, cor(alto ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)'), 0, 'soft-light');
     }
     const tilesDe = pred => { const l = []; for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if (pred(m.chao[j * m.w + i])) l.push([i, j]); return l; };
     // 1) o fundo: o vazio do espaço (e o chão vira plataforma flutuante) ou o chão de baixo do bioma
     if (temVazio) {
       x.fillStyle = padrao2(VAZIO); x.fillRect(0, 0, W, H);
-      const ilha = tilesDe(t => t !== VAZIO); if (ilha.length) desenhaPiso(mascara(ilha, false, 0.45), tex(base), true, true);
+      const ilha = tilesDe(t => t !== VAZIO); if (ilha.length) yield* desenhaPiso(mascara(ilha, false, 0.45), tex(base), true, true);
     } else { x.fillStyle = padrao2(base); x.fillRect(0, 0, W, H); }
+    yield { p: 0.08 };
     // 2) os outros chãos, na ordem das camadas
     // chão que se desenha JUNTO com outro (a parede de pedra fininha da arena do Rex vira parte da mata alta em volta:
     // sozinha, uma fileira de 1 quadradinho na diagonal, ficava uma faixa em escadinha)
     const junta = t => { const a = CHAO2.junta[t]; return (a != null && cont[a]) ? a : t; };
     const tipos = naoVazio.filter(t => t !== base && ESTILO_CHAO[t] && junta(t) === t).sort((a, b) => ESTILO_CHAO[a].o - ESTILO_CHAO[b].o);
-    for (const t of tipos) {
+    for (const [it, t] of tipos.entries()) {
+      yield { p: 0.08 + 0.74 * it / Math.max(1, tipos.length) };
       const tiles = tilesDe(v => v !== VAZIO && junta(v) === t), est = ESTILO_CHAO[t];
       if (t === CH.AGUA && typeof pintaAgua === 'function') { // a água de sempre, com a beirada lisa
         const msk = mascara(tiles, true, 0.45)(v => ss(0.42, 0.56, v)), tudo = new Path2D(); tudo.rect(0, 0, W, H);
-        aplicaDepois(msk, q => pintaAgua(q, m, tudo)); continue;
+        yield* aplicaDepois(msk, q => pintaAgua(q, m, tudo)); continue;
       }
       if (CHAO2.cru.has(t)) { // como sempre foi: o quadradinho certo, com a textura e a tinta de antes
         const p = new Path2D(); for (const [i, j] of tiles) p.rect(i * T, j * T, T, T);
@@ -163,18 +171,19 @@ const CHAO2 = {
         continue;
       }
       const alto = CHAO2.alto.has(t), piso = CHAO2.piso.has(t) || alto;
-      const camada = mascara(tiles, !piso, t === CH.METAL ? 0.22 : piso ? 0.48 : 0.45);
-      if (piso) desenhaPiso(camada, tex(t), alto, false);
+      const camada = mascara(tiles, !piso, t === CH.METAL ? 0.22 : piso ? 0.48 : 0.45); yield;
+      if (piso) yield* desenhaPiso(camada, tex(t), alto, false);
       else { // (a lava: pedra quente + a tinta laranja de antes + um brilho que vaza para fora da beirada)
         const msk = camada(v => ss(0.32, 0.62, v));
         if (t === CH.MV_LAVA) {
-          aplica(camada(v => ss(0.08, 0.45, v) * 0.35), cor('rgba(255,120,30,1)'), 0, 'screen'); // brilho no chão em volta
-          aplica(msk, tex(t)); // a lava derretida (arte própria, v379)
-          aplica(camada(v => ss(0.7, 1, v) * 0.28), cor('rgba(255,220,120,1)'), 0, 'screen'); // o miolo mais quente
-          aplica(camada(v => Math.max(0, ss(0.32, 0.46, v) - ss(0.5, 0.64, v))), cor('rgba(52,22,14,0.9)')); // beirada de rocha esfriada
-        } else { aplica(msk, tex(t)); if (est.tinta) aplica(msk, cor(est.tinta)); }
+          yield* aplica(camada(v => ss(0.08, 0.45, v) * 0.35), cor('rgba(255,120,30,1)'), 0, 'screen'); // brilho no chão em volta
+          yield* aplica(msk, tex(t)); // a lava derretida (arte própria, v379)
+          yield* aplica(camada(v => ss(0.7, 1, v) * 0.28), cor('rgba(255,220,120,1)'), 0, 'screen'); // o miolo mais quente
+          yield* aplica(camada(v => Math.max(0, ss(0.32, 0.46, v) - ss(0.5, 0.64, v))), cor('rgba(52,22,14,0.9)')); // beirada de rocha esfriada
+        } else { yield* aplica(msk, tex(t)); if (est.tinta) yield* aplica(msk, cor(est.tinta)); }
       }
     }
+    yield { p: 0.84 };
     // 3) manchas largas de tom (claro e escuro)
     { const n1 = manchas(W, H, T * 5, m.w * 31 + 1), n2 = manchas(W, H, T * 12, m.h * 17 + 3);
       x.save(); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.globalCompositeOperation = 'soft-light';
@@ -182,8 +191,9 @@ const CHAO2 = {
       x.globalAlpha = 0.36; x.drawImage(n2, -T * 6, -T * 6, n2.width * T * 12, n2.height * T * 12); x.restore(); }
     // 4) enfeites em grupinhos, pelo tipo de chão de cada lugar
     const livreDc = (i, j, t) => { if (i < 0 || j < 0 || i >= m.w || j >= m.h) return false; const k = j * m.w + i; if (m.chao[k] !== t || m.obj[k]) return false; for (const s of m.saidas) if (Math.abs(s.x - i) <= 1 && Math.abs(s.y - j) <= 1) return false; for (const n of m.npcs) if (Math.abs(n.x - i) <= 1 && Math.abs(n.y - j) <= 1) return false; return true; };
+    yield { p: 0.9 };
     for (const [tS, D] of Object.entries(CHAO2.dc)) {
-      const t = +tS; if (!cont[t]) continue;
+      const t = +tS; if (!cont[t]) continue; yield;
       const nG = Math.round(cont[t] * D[1]);
       for (let g = 0, tent = 0; g < nG && tent < nG * 6; tent++) {
         const gi = (r() * m.w) | 0, gj = (r() * m.h) | 0; if (!livreDc(gi, gj, t)) continue; g++;
@@ -201,20 +211,38 @@ const CHAO2 = {
     // 5) luz do fundo do mar (Atlântida)
     if (B.luz) { x.save(); x.globalCompositeOperation = 'soft-light'; for (let k = 0; k < Math.ceil(W / (T * 6)); k++) { const x0 = k * T * 6 + r() * T * 3; const g = x.createLinearGradient(x0, 0, x0 + T * 4, H); g.addColorStop(0, 'rgba(255,255,230,0.0)'); g.addColorStop(0.5, 'rgba(255,255,230,0.18)'); g.addColorStop(1, 'rgba(255,255,230,0.0)'); x.fillStyle = g; x.beginPath(); x.moveTo(x0, 0); x.lineTo(x0 + T * 2.2, 0); x.lineTo(x0 + T * 2.2 + H * 0.35, H); x.lineTo(x0 + H * 0.35, H); x.closePath(); x.fill(); } x.restore(); }
     m.campos.forEach(f => drawLinhasCampo(x, f));
-    FOLHA = null;
+    yield { p: 1 };
     return c;
   }
   // v385 (dono: "quando entro nos mapas atualizados, mostra o antigo e depois pula para o novo"): enquanto a arte do chão
   // novo baixa, uma CORTINA escura com o nome do lugar cobre o mapa (no lugar do chão antigo); abre quando o chão novo fica
   // pronto. Demorou demais (3,5 s, internet lenta): mostra o chão antigo e abre a cortina, como antes.
-  const cortina = (on, m) => {
+  // v393 (dono escolheu "bola rolando + barra"): a tela de entrada mostra o nome do lugar, uma bola rolando em cima de uma
+  // barra que enche conforme o mapa fica pronto, a porcentagem e uma dica. A bola gira por CSS (continua girando mesmo
+  // se o navegador estiver ocupado).
+  const DICAS_ENTRADA = ['Dica: segure o clique para andar sem parar.', 'Dica: comida dá bônus por vários minutos — até 3 ao mesmo tempo!',
+    'Dica: a tecla Y abre os emotes e as frases prontas.', 'Dica: clique com o botão direito em outro jogador para chamar para o grupo.',
+    'Dica: na caça em grupo, todo mundo ganha experiência pelo bicho de cada um.', 'Dica: o Quadro de cada área de caça tem desafios com prêmio.',
+    'Dica: itens +7 ou mais brilham no seu boneco!', 'Dica: o Centro de Treinamento treina as habilidades sozinho, até você andar.'];
+  let cortinaDica = '', cortinaMapa = null;
+  const cortina = (on, m, prog) => {
     let c = document.getElementById('chaoCortina');
-    if (!c) { c = el('div', { id: 'chaoCortina' }, el('span', {})); document.body.append(c); }
+    if (!c) {
+      c = el('div', { id: 'chaoCortina' }, el('div', { class: 'cc-caixa' }, el('span', { class: 'cc-nome' }), el('div', { class: 'cc-pista' }, el('div', { class: 'cc-barra' }, el('i', {})), el('div', { class: 'cc-bola' }, el('b', {}, '⚽'))), el('small', { class: 'cc-pct' }), el('p', { class: 'cc-dica' })));
+      document.body.append(c);
+      // a bola do próprio jogo (a mesma do pé do personagem), desenhada uma vez
+      try { if (typeof desenhaBola === 'function') { const bc = mkCanvas(52, 52); desenhaBola(bc.getContext('2d'), 26, 26, 22, 0); const bb = c.querySelector('.cc-bola b'); bb.textContent = ''; bb.style.background = `url(${bc.toDataURL()}) center/contain no-repeat`; } } catch (e) { }
+    }
     if (on) {
       const r = typeof CV !== 'undefined' && CV ? CV.getBoundingClientRect() : { left: 0, top: 0, width: innerWidth, height: innerHeight };
       Object.assign(c.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
-      c.firstChild.textContent = m && m.nome ? '📍 ' + m.nome : ''; c.classList.add('on');
-    } else c.classList.remove('on');
+      if (cortinaMapa !== m) { cortinaMapa = m; cortinaDica = DICAS_ENTRADA[(Math.random() * DICAS_ENTRADA.length) | 0]; c.querySelector('.cc-barra i').style.width = '0%'; c.querySelector('.cc-bola').style.left = '0%'; }
+      const pct = Math.round(Math.max(0, Math.min(1, prog == null ? 0.02 : prog)) * 100);
+      c.querySelector('.cc-nome').textContent = m && m.nome ? (/^\p{Extended_Pictographic}/u.test(m.nome) ? '' : '📍 ') + m.nome : ''; // (o nome que já começa com emoji não ganha o 📍)
+      c.querySelector('.cc-barra i').style.width = pct + '%'; c.querySelector('.cc-bola').style.left = pct + '%';
+      c.querySelector('.cc-pct').textContent = pct + '%'; c.querySelector('.cc-dica').textContent = cortinaDica;
+      c.classList.add('on');
+    } else { c.classList.remove('on'); cortinaMapa = null; }
   };
   const _rcN = renderChao;
   renderChao = function (m) {
@@ -227,7 +255,7 @@ const CHAO2 = {
       // enquanto espera: um chão liso da cor do bioma, coberto pela cortina
       const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438';
       const ph = mkCanvas(m.w * T, m.h * T), px = ph.getContext('2d'); px.fillStyle = cor; px.fillRect(0, 0, ph.width, ph.height);
-      m._chao = ph; cortina(true, m);
+      m._chao = ph; cortina(true, m, 0.02 + 0.2 * artes.filter(n => pronto(n) || spr(n).err).length / Math.max(1, artes.length));
       if (!m._esperaChao2) {
         const t0 = Date.now();
         m._esperaChao2 = setInterval(() => {
@@ -237,10 +265,46 @@ const CHAO2 = {
       }
       return m._chao;
     }
-    try { m._chao = renderChao2(m, bio); m._chao2 = true; } catch (e) { console.warn('chão novo', m.id, e); FOLHA = null; delete m._chao; m._chao = _rcN.apply(this, arguments); }
-    cortina(false);
-    return m._chao;
+    return comecaDesenho(m, bio, arguments);
   };
+  // o desenho em etapas: começa já (até ~40 ms); se não terminar, o chão de antes (ou um chão liso) fica no lugar, a tela de
+  // entrada aparece com a barra, o jogo fica parado (como numa pausa) e o resto vai sendo feito ~28 ms por quadro (8 ms quando é um redesenho no meio do jogo)
+  const FAZENDO = new Map(); // mapa -> { g, p, args, t0 }
+  function comecaDesenho(m, bio, args) {
+    let f = FAZENDO.get(m);
+    if (!f) { f = { g: renderChao2G(m, bio), p: 0.02, args, t0: performance.now() }; FAZENDO.set(m, f); passoDesenho(m, f, 40); }
+    if (!FAZENDO.has(m)) return m._chao; // terminou de uma vez
+    if (!m._chaoTemp) {
+      const velho = m._chaoVelho; // (redesenho no meio do jogo: fica o chão de antes, sem tela de entrada)
+      if (velho) m._chaoTemp = velho;
+      else { const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438'; const ph = mkCanvas(m.w * T, m.h * T), px = ph.getContext('2d'); px.fillStyle = cor; px.fillRect(0, 0, ph.width, ph.height); m._chaoTemp = ph; }
+    }
+    if (!m._chaoVelho && G.mapa === m) { cortina(true, m, f.p); G.carregandoChao = true; }
+    return m._chaoTemp; // (sem guardar em m._chao: o renderChao volta aqui a cada quadro)
+  }
+  function passoDesenho(m, f, orc) {
+    const t0 = performance.now();
+    try {
+      while (performance.now() - t0 < orc) {
+        const r = f.g.next();
+        if (r.done) { FAZENDO.delete(m); m._chao = r.value; m._chao2 = true; m._chaoVelho = r.value; m._chaoTemp = null; if (G.mapa === m) { G.carregandoChao = false; cortina(false); } return true; }
+        if (r.value && r.value.p != null) { f.p = r.value.p; if (G.mapa === m && !m._chaoVelho) cortina(true, m, f.p); }
+      }
+    } catch (e) {
+      console.warn('chão novo', m.id, e); FAZENDO.delete(m); m._chaoTemp = null;
+      try { m._chao = _rcN.apply(null, f.args); } catch (e2) { } if (G.mapa === m) { G.carregandoChao = false; cortina(false); }
+    }
+    return false;
+  }
+  // a cada quadro: continua o desenho do mapa onde você está (os outros param e recomeçam quando você voltar)
+  const _loopChao = loop;
+  loop = function (ts) {
+    for (const [m, f] of FAZENDO) { if (m !== G.mapa) { FAZENDO.delete(m); m._chaoTemp = null; continue; } passoDesenho(m, f, m._chaoVelho ? 8 : 28); } // (com a tela de entrada o jogo está parado: dá para usar quase o quadro todo)
+    if (G.carregandoChao && !FAZENDO.size) { G.carregandoChao = false; cortina(false); }
+    if (!G.carregandoChao) return _loopChao.apply(this, arguments);
+    const pz = G.pausado; G.pausado = true; try { return _loopChao.apply(this, arguments); } finally { G.pausado = pz; } // (carregando: parado como numa pausa)
+  };
+  window.CHAO2_FAZENDO = FAZENDO;
   // saiu do mapa antes de terminar: a cortina não fica presa
   const _entCortina = entrarMapa;
   entrarMapa = function () { const r = _entCortina.apply(this, arguments); try { if (!(G.mapa && CHAO2.mapas[G.mapa.id] && !G.mapa.interior && !G.mapa._chao2)) cortina(false); } catch (e) { } return r; };
@@ -255,8 +319,18 @@ const CHAO2 = {
   const _entViz = entrarMapa;
   entrarMapa = function () { const r = _entViz.apply(this, arguments); setTimeout(vizinhos, 800); return r; };
   const css = document.createElement('style');
-  css.textContent = `#chaoCortina { position: fixed; z-index: 55; pointer-events: none; display: flex; align-items: center; justify-content: center; background: #0d0a18; opacity: 0; transition: opacity .25s; }
-  #chaoCortina.on { opacity: 1; transition: opacity .12s; } #chaoCortina span { color: #ffe3a0; font: 800 22px Fredoka, Nunito, sans-serif; text-shadow: 0 2px 6px #000; }`;
+  css.textContent = `#chaoCortina { position: fixed; z-index: 49; pointer-events: none; display: flex; align-items: center; justify-content: center; background: #0d0a18; opacity: 0; transition: opacity .25s; }
+  #chaoCortina.on { opacity: 1; transition: opacity .12s; }
+  #chaoCortina .cc-caixa { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(78%, 420px); }
+  #chaoCortina .cc-nome { color: #ffe3a0; font: 800 22px Fredoka, Nunito, sans-serif; text-shadow: 0 2px 6px #000; text-align: center; }
+  #chaoCortina .cc-pista { position: relative; width: 100%; height: 34px; margin-top: 14px; }
+  #chaoCortina .cc-barra { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; border-radius: 8px; background: #2a2340; border: 2px solid #4a3f6a; overflow: hidden; }
+  #chaoCortina .cc-barra i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3ac26a, #b8f05a); transition: width .25s linear; }
+  #chaoCortina .cc-bola { position: absolute; bottom: 9px; left: 0; width: 26px; height: 26px; margin-left: -13px; transition: left .25s linear; animation: ccPula .42s ease-in-out infinite alternate; }
+  #chaoCortina .cc-bola b { display: block; width: 26px; height: 26px; font-size: 24px; line-height: 26px; text-align: center; animation: ccGira .5s linear infinite; } /* (abaixo das janelas: z 50) */
+  #chaoCortina .cc-pct { color: #cfc4ff; font: 700 13px Nunito, sans-serif; }
+  #chaoCortina .cc-dica { margin: 4px 0 0; color: #a99fd0; font: 600 13px Nunito, sans-serif; text-align: center; }
+  @keyframes ccGira { to { transform: rotate(360deg); } } @keyframes ccPula { from { transform: translateY(0); } to { transform: translateY(-9px); } }`;
   document.head.append(css);
 }
 
