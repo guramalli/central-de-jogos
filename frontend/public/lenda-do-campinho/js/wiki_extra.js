@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v395', '⚡ Entrada nos mapas mais rápida: o chão dos mapas vizinhos é preparado enquanto você joga (ao passar pela porta ele já está pronto) e a tela de entrada só aparece em mapa pesado que ainda não ficou pronto — nada de espera à toa.'],
     ['v394', '📍 Toda missão agora explica ONDE achar e COMO CHEGAR: quem é o adversário (e o nível), o lugar, a viagem (avião, submarino, foguete, portal), o caminho de mapa em mapa e em que parte do mapa ele fica. A seta amarela aponta o mesmo lugar. 🌋 Rio de Lava, Vulcão dos Dragões e Covil do Dragão: as paredes de rocha agora aparecem exatamente onde bloqueiam (antes havia paredes invisíveis ao lado das passagens).'],
     ['v393', '⚽ Tela de entrada nos mapas grandes (Vale Jurássico, Atlântida, espaço, Multiverso...): o nome do lugar, uma bola rolando numa barra que enche e uma dica, enquanto o mapa fica pronto. O jogo não congela mais ao entrar no Labirinto Jurássico (o chão é desenhado aos pouquinhos).'],
     ['v392', '🦖 Labirinto Jurássico mais curto e mais cheio: o caminho entre as salas ficou bem menor (a sala mais funda está na metade da distância), há mais atalhos, os becos são curtinhos e tem o DOBRO de dinossauros (mais em cada sala e uns grupinhos nos cruzamentos).'],
