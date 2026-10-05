@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v389', '🏋️ TREINOS DO CENTRO REVISTOS: no Chute a bola sai do pé, entra no gol, balança a rede e volta rolando; nos Cones o personagem faz zigue-zague em cima do tapete; na Academia faz rosca com halteres; no Quadro Tático fica de costas estudando. Sem bola duplicada (nem no chute de verdade).'],
     ['v388', '🏆 RANKING DE HABILIDADES: na janela Ranking, abas de Drible, Chute, Defesa e Visão de Jogo com o top 50 de quem mais treinou cada uma.'],
     ['v387', '🧠 Quadro Tático (Centro de Treinamento): a Visão de Jogo agora rende a sua recuperação de foco inteira (antes era fixo e, em nível alto, levava dias por nível). A barra de treino mostra quanto falta para o próximo nível.'],
     ['v386', '🏋️ Treino offline de VISÃO DE JOGO corrigido: rendia sempre 4.000/h (em nível alto, mais de 100 horas por nível!). Agora rende metade da sua recuperação de foco — e a janela de Treino mostra quanto tempo falta para o próximo nível de cada habilidade.'],

@@ -136,7 +136,11 @@ if (typeof oQueTemNoMapa === 'function') {
   };
 }
 /* ---------- treinar ---------- */
-const frenteEst = b => ({ x: b.x + 1, y: b.y + 1.5 });
+// v389: cada aparelho tem o SEU lugar de treino, de lado, para o personagem não tampar o desenho
+// (chute: na frente do boneco, chutando no gol; academia: na frente do supino, com o suporte de halteres à mostra;
+// cones: o personagem é desenhado em cima do tapete; quadro: no canto esquerdo, olhando o quadro)
+const LUGAR_EST = { chute: { x: 0.2, y: 1.5 }, defesa: { x: 0.45, y: 1.45 }, drible: { x: 1, y: 1.5 }, visao: { x: 0.45, y: 1.4 } };
+const frenteEst = b => { const l = LUGAR_EST[(APARELHOS[b.estacao] || {}).sk] || { x: 1, y: 1.5 }; return { x: b.x + l.x, y: b.y + l.y }; };
 function estacaoPerto(raio = 1.3) {
   if (!G.mapa || !G.p) return null;
   let melhor = null, md = raio;
@@ -146,6 +150,7 @@ function estacaoPerto(raio = 1.3) {
 function comecaEstacao(b) {
   const d = APARELHOS[b.estacao]; if (!d || !G.save || G.save.hp <= 0) return;
   G.alvo = null; G.caminho = null; G.teclas && G.teclas.clear();
+  { const f = frenteEst(b); if (dist(f, G.p) < 1.8) { G.p.x = f.x; G.p.y = f.y; } } // (pela tecla E: vai para o lugar certo)
   G.estTreino = { b, d, x0: G.p.x, y0: G.p.y, prox: G.agora + 400 };
   G.p.flip = b.x + 1 < G.p.x;
   log(`${d.ic} Treinando ${SKILLS[d.sk].nome} no ${d.nome}. Ande para parar.`, 'l-xp');
@@ -165,10 +170,10 @@ function nEstacao(d) {
   return Math.max(d.n, Math.round(reg * EST_CD / 1000));
 }
 function tickEstacao() {
-  const t = G.estTreino, p = G.p, b = t.b, d = t.d, alvo = { x: b.x + 1, y: b.y + 0.6 };
+  const t = G.estTreino, p = G.p, b = t.b, d = t.d, alvo = d.sk === 'chute' ? { x: b.x + GOL_CHUTE.x, y: b.y } : { x: b.x + 1, y: b.y + 0.6 };
   treinaSkill(d.sk, nEstacao(d)); p.flip = alvo.x < p.x; t.anim = G.agora;
-  if (d.sk === 'chute') { p.golpe = G.agora; som('chute'); projetil(p, { x: b.x + 0.55, y: b.y + 0.55 }, 'bola', () => { b.hitT = G.agora; efeito('toque', b.x + 0.55, b.y + 0.2); }); }
-  else if (d.sk === 'drible') { som('toque'); efeito('toque', p.x + (Math.random() < 0.5 ? -0.3 : 0.3), p.y); }
+  if (d.sk === 'chute') { p.golpe = G.agora; som('chute'); t.chuteT = G.agora; t.redeOk = false; }
+  else if (d.sk === 'drible') { if (Math.random() < 0.5) som('toque'); }
   else if (d.sk === 'defesa') { if (Math.random() < 0.35) texto(p, '💪', '#ffd24a', 700); }
   else if (Math.random() < 0.35) texto(p, '💡', '#ffe98a', 700);
   chipEstacao();
@@ -222,14 +227,23 @@ function tickEstacao() {
     return _desenhaPredioEst.apply(this, arguments);
   };
   // animação do personagem: academia (levanta a barra), cones (bola no zigue-zague), quadro (fica olhando)
+  // v389 (dono: "reveja a arte do treino online, ele fica com a bola duplicada, chuta e a bola não sai... reveja todos"):
+  // o personagem sempre desenha a bola DELE no pé; nos aparelhos o jogo desenhava OUTRA por cima (duas bolas) e o chute
+  // voava menos de 1 quadradinho. Agora cada aparelho tem a sua cena, com UMA bola só:
+  //   🎯 chute: a bola sai do pé em curva até o GOL do aparelho, a rede balança e ela volta rolando para o pé;
+  //   🔶 cones: o personagem sobe no tapete e faz zigue-zague entre os cones com a bola no pé;
+  //   🏋️ academia: rosca com os halteres (sem bola); 🧠 quadro: de costas, estudando o quadro (sem bola).
   const _desenhaEntEst = desenhaEnt;
+  const semBolaDoPe = (fn, ctx, e) => { const fl = G.save.flags, tem = fl.pegou_bola; fl.pegou_bola = false; try { return fn.call(this, ctx, e); } finally { fl.pegou_bola = tem; } };
   desenhaEnt = function (ctx, e) {
     const t = G.estTreino;
-    if (e !== G.p || !t || t.d.sk === 'chute' || t.d.sk === 'visao') return _desenhaEntEst.apply(this, arguments);
-    const alt = alturaEnt(e) * T, fase = (G.agora % EST_CD) / EST_CD;
-    if (t.d.sk === 'defesa') {
+    if (e !== G.p || !t) return _desenhaEntEst.apply(this, arguments);
+    const alt = alturaEnt(e) * T, fase = (G.agora % EST_CD) / EST_CD, sk = t.d.sk;
+    if (sk === 'chute') return semBolaDoPe(_desenhaEntEst, ctx, e); // (a bola é a do chuteBola, desenhada por cima)
+    if (sk === 'visao') { const v = e.vista, tv = e.tVista; e.vista = 'costas'; e.tVista = G.agora; try { return semBolaDoPe(_desenhaEntEst, ctx, e); } finally { e.vista = v; e.tVista = tv; } }
+    if (sk === 'defesa') {
       const sobe = Math.sin(fase * Math.PI * 2) * 0.5 + 0.5; // sobe e desce uma vez por repetição
-      _desenhaEntEst.apply(this, arguments);
+      { const v = e.vista, tv = e.tVista; e.vista = 'frente'; e.tVista = G.agora; try { semBolaDoPe(_desenhaEntEst, ctx, e); } finally { e.vista = v; e.tVista = tv; } }
       // um halter em cada mão, subindo do quadril até o ombro (rosca)
       const y = e.y * T - alt * (0.3 + 0.26 * sobe), x = e.x * T, hw = 0.13 * T;
       ctx.save(); ctx.lineCap = 'round';
@@ -240,13 +254,55 @@ function tickEstacao() {
       }
       ctx.restore(); return;
     }
-    // drible: o personagem gira de um lado para o outro com a bola no pé
-    const lado = Math.sin(fase * Math.PI * 2), ox = lado * 0.22;
-    const g = { x: e.x, mov: e.mov, fase: e.fase }; e.x = g.x + ox; e.flip = lado < 0; e.mov = true; e.fase = G.agora / 90;
-    _desenhaEntEst.apply(this, arguments); e.x = g.x; e.mov = g.mov; e.fase = g.fase; const x0 = g.x;
-    if (typeof desenhaProjetil === 'function') desenhaProjetil(ctx, 'bola', (x0 + ox + (lado < 0 ? -0.28 : 0.28)) * T, (e.y - 0.05) * T, fase);
+    // cones: o personagem ANDA de verdade em zigue-zague no tapete (ver o atualiza abaixo) com a bola dele no pé
+    if (G.save.flags.pegou_bola) return _desenhaEntEst.apply(this, arguments);
+    const r = _desenhaEntEst.apply(this, arguments), dir = e.flip ? -1 : 1;
+    if (typeof desenhaBola === 'function') desenhaBola(ctx, (e.x + dir * 0.32) * T, e.y * T - 5, 6.5, G.agora / 60 * dir);
+    return r;
+  };
+  // cones: vai e volta entre os cones e as barreirinhas (uma volta a cada 4 repetições), em cima do tapete. A posição é a de
+  // verdade (as asas, o nome, o louro e quem está vendo online acompanham); andar com o controle continua parando o treino.
+  const _atualizaCones = atualiza;
+  atualiza = function (dt) {
+    const r = _atualizaCones.apply(this, arguments);
+    const t = G.estTreino, e = G.p;
+    if (t && t.d.sk === 'drible' && e && !G.pausado) {
+      const b = t.b, ida = (G.agora % (EST_CD * 4)) / (EST_CD * 4), k = ida < 0.5 ? ida * 2 : 2 - ida * 2, dirX = ida < 0.5 ? 1 : -1;
+      e.x = b.x + 0.5 + k * 1.8; e.y = b.y + 1.12 + Math.sin(k * Math.PI * 5) * 0.1;
+      e.flip = dirX < 0; e.mov = true; e.vista = 'lado'; e.tVista = G.agora; e.fase = (e.fase || 0) + dt / 85;
+      t.x0 = e.x; t.y0 = e.y;
+    }
+    return r;
   };
 })();
+// 🎯 a bola do chute: pé → GOL (curva) → rede balança → volta rolando para o pé
+const GOL_CHUTE = { x: 1.45, y: -0.1 }; // (relativo ao aparelho: o meio da rede do gol no desenho ct_chute)
+function chuteBola(ctx, t) {
+  const p = G.p, b = t.b, ag = G.agora, k = Math.min(1, (ag - (t.chuteT || -1e9)) / EST_CD);
+  const pe = { x: p.x + (p.flip ? -0.2 : 0.2), y: p.y - 0.05 }, gol = { x: b.x + GOL_CHUTE.x, y: b.y + GOL_CHUTE.y };
+  let x, y, alto = 0;
+  if (k < 0.32) { const u = k / 0.32; x = pe.x + (gol.x - pe.x) * u; y = pe.y + (gol.y - pe.y) * u; alto = Math.sin(u * Math.PI) * 0.55; }
+  else if (k < 0.5) { const u = (k - 0.32) / 0.18; x = gol.x + Math.sin(u * 9) * 0.04 * (1 - u); y = gol.y + u * 0.35; if (!t.redeOk) { t.redeOk = true; b.hitT = ag; efeito('toque', gol.x, gol.y); } }
+  else if (k < 0.92) { const u = (k - 0.5) / 0.42, e2 = u * u * (3 - 2 * u); x = gol.x + (pe.x - gol.x) * e2; y = gol.y + 0.35 + (pe.y - gol.y - 0.35) * e2; }
+  else { x = pe.x; y = pe.y; }
+  const z = G.zoom, sx = (x * T - G.cam.x) * z, sy = ((y - alto) * T - G.cam.y) * z - 5 * z;
+  ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse((x * T - G.cam.x) * z, (y * T - G.cam.y) * z, 5 * z, 2.2 * z, 0, 0, 7); ctx.fill(); ctx.restore();
+  if (typeof desenhaBola === 'function') desenhaBola(ctx, sx, sy, 6.5 * z, ag / 70);
+}
+// chute de verdade (boneco de treino, adversários): enquanto a bola voa, ela não aparece também no pé
+{
+  const _projBolaPe = projetil;
+  projetil = function (de, para, tipo, cb) {
+    const r = _projBolaPe.apply(this, arguments);
+    try { if (de === G.p && (tipo === 'bola' || tipo === 'bolaforte')) { const pr = G.projs[G.projs.length - 1]; if (pr) G.p.bolaForaAte = Math.max(G.p.bolaForaAte || 0, pr.t0 + pr.dur + 60); } } catch (e) { }
+    return r;
+  };
+  const _entBolaPe = desenhaEnt;
+  desenhaEnt = function (ctx, e) {
+    if (e === G.p && G.save && (G.p.bolaForaAte || 0) > G.agora && !G.estTreino) { const fl = G.save.flags, tem = fl.pegou_bola; fl.pegou_bola = false; try { return _entBolaPe.apply(this, arguments); } finally { fl.pegou_bola = tem; } }
+    return _entBolaPe.apply(this, arguments);
+  };
+}
 
 // nome do aparelho e o que ele treina, só quando o jogador está perto (sem poluir a cidade)
 {
@@ -255,6 +311,7 @@ function tickEstacao() {
     const r = _desenhaEst.apply(this, arguments);
     const m = G.mapa, p = G.p; if (!m || !p || !m.centroTreino || Math.abs(p.y - m.centroTreino.y) > 6) return r;
     const ctx = CTX, z = G.zoom; ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (G.estTreino && G.estTreino.d.sk === 'chute') chuteBola(ctx, G.estTreino);
     for (const b of m.predios) {
       if (!b.estacao) continue; const f = frenteEst(b); const df = dist(f, p); if (df > 3.2 || df <= 1.3) continue; // bem perto, a dica do E já mostra
       const d = APARELHOS[b.estacao], x = ((b.x + 1) * T - G.cam.x) * z, y = ((b.y - b.alto + 0.3) * T - G.cam.y) * z;
