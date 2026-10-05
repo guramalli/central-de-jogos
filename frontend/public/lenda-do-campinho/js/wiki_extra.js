@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v388', '🏆 RANKING DE HABILIDADES: na janela Ranking, abas de Drible, Chute, Defesa e Visão de Jogo com o top 50 de quem mais treinou cada uma.'],
     ['v387', '🧠 Quadro Tático (Centro de Treinamento): a Visão de Jogo agora rende a sua recuperação de foco inteira (antes era fixo e, em nível alto, levava dias por nível). A barra de treino mostra quanto falta para o próximo nível.'],
     ['v386', '🏋️ Treino offline de VISÃO DE JOGO corrigido: rendia sempre 4.000/h (em nível alto, mais de 100 horas por nível!). Agora rende metade da sua recuperação de foco — e a janela de Treino mostra quanto tempo falta para o próximo nível de cada habilidade.'],
     ['v385', '🏆 O louro do top 3 agora aparece em TODOS os mapas (caças, casas e arenas também), não só nas cidades. 🌊 O mar do Rio e de Santos virou mar aberto de verdade (fundo, com jangadas e boias). 🗺️ Ao entrar num mapa repaginado, uma cortina rapidinha com o nome do lugar no lugar do chão antigo "pulando" para o novo.'],

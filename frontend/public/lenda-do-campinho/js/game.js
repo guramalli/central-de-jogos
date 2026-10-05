@@ -114,6 +114,7 @@ function enviaRankingOnline(r) {
   if (typeof saveDaConta === 'function' && !saveDaConta()) return; // personagem de outra conta: não entra no ranking desta
   const agora = Date.now(); if (agora - ultimoEnvioRanking < 60000) return; ultimoEnvioRanking = agora;
   const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time, chefes: r.chefes || 0, figs: r.figs || 0 };
+  try { const sk = G.save && G.save.sk; if (sk) corpo.skills = { drible: sk.drible.lv | 0, chute: sk.chute.lv | 0, defesa: sk.defesa.lv | 0, visao: sk.visao.lv | 0 }; } catch (e) { } // v388: ranking de habilidades
   fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) })
     .then(async res => { // guarda o resultado: a janela do Ranking mostra se entrou ou por que não entrou
       let msg = ''; if (!res.ok) { try { msg = (await res.json()).error || ''; } catch (e) { } console.warn('[ranking] envio recusado', res.status, msg); }
