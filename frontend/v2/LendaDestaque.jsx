@@ -29,10 +29,10 @@ export default function LendaDestaque({ publico = false }) {
           até o Mundial.
         </p>
         <ul className="v2-lenda-lista">
-          <li>Mais de 150 níveis</li>
-          <li>Arenas de chefões</li>
-          <li>Casa própria</li>
-          <li>Joga no celular</li>
+          <li>Chegue ao nível 1000</li>
+          <li>Missões diárias</li>
+          <li>Skins exclusivas</li>
+          <li>Gerencie seu time</li>
         </ul>
         <div className="v2-lenda-acoes">
           <a className="v2-lenda-jogar" href="/lenda-do-campinho/?jogar=1">
