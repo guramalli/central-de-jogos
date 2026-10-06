@@ -113,8 +113,10 @@ function enviaRankingOnline(r) {
   if (typeof PORTAL === 'undefined' || !PORTAL.ativo || !PORTAL.token || !r) return;
   if (typeof saveDaConta === 'function' && !saveDaConta()) return; // personagem de outra conta: não entra no ranking desta
   const agora = Date.now(); if (agora - ultimoEnvioRanking < 60000) return; ultimoEnvioRanking = agora;
-  // v407 (Raio-X U1): do time vão só as PARTES das listas, a divisão e os títulos (o nome digitado fica no aparelho)
-  const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time ? { partes: r.time.partes || null, div: r.time.div, titulos: r.time.titulos || 0 } : null, chefes: r.chefes || 0, figs: r.figs || 0 };
+  // v408 (dono: "deixe o skalzinho escolher um nick"): o nome DIGITADO do time vai de novo — só se passar no filtro
+  // (online_seguro.js; o servidor filtra outra vez) —, junto com as partes da lista (v407), a divisão e os títulos
+  const nomeT = r.time && r.time.nome && (typeof osgConfereNome !== 'function' || osgConfereNome(r.time.nome).ok) ? String(r.time.nome).slice(0, 24) : null;
+  const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time ? { nome: nomeT, partes: r.time.partes || null, div: r.time.div, titulos: r.time.titulos || 0 } : null, chefes: r.chefes || 0, figs: r.figs || 0 };
   try { const sk = G.save && G.save.sk; if (sk) corpo.skills = { drible: sk.drible.lv | 0, chute: sk.chute.lv | 0, defesa: sk.defesa.lv | 0, visao: sk.visao.lv | 0 }; } catch (e) { } // v388: ranking de habilidades
   fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) })
     .then(async res => { // guarda o resultado: a janela do Ranking mostra se entrou ou por que não entrou

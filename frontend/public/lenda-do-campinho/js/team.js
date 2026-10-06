@@ -860,14 +860,15 @@ function fimTemporada() {
 }
 function modalFundar() {
   const s = G.save; let c1 = '#f8d838', c2 = '#2a8a3a';
-  // v407 (Raio-X U1: nada de texto livre público): o nome do time é escolhido em DUAS LISTAS (como as guildas) — é ele que
-  // aparece no ranking e na ficha do site. As listas e o seletor moram em online_seguro.js (as mesmas do servidor).
-  const nomeT = typeof osgSeletorTime === 'function' ? osgSeletorTime() : { el: el('span', {}, 'Esporte Clube Campinho'), nome: () => 'Esporte Clube Campinho', partes: () => '0.0' };
+  // v408 (dono: "Deixe o skalzinho escolher um nick, não uma lista"): o nome do time é ESCRITO pelo jogador (até 24 letras),
+  // com filtro de palavrões e o botão 🎲 Sugerir (as listas da v407). O campo e o filtro moram em online_seguro.js.
+  const inpT = el('input', { maxlength: 24, placeholder: 'Ex.: Leões da Vila', value: `${s.nome} FC`.slice(0, 24) });
+  const nomeT = typeof osgSeletorTime === 'function' ? osgSeletorTime(`${s.nome} FC`.slice(0, 24)) : { el: inpT, nome: () => { const n = inpT.value.trim().replace(/[<>]/g, ''); return n.length >= 3 ? n : null; }, partes: () => null, erro: () => 'Use pelo menos 3 letras. 🙂' };
   const prev = el('div', { class: 'prev-escudo' });
   const render = () => { prev.innerHTML = ''; prev.append(escudo(c1, c2, 64)); };
   const paleta = (qual) => el('div', { class: 'chips' }, ...CORES_TIME.map(c => { const b = el('button', { class: 'chip', type: 'button' }); const i = el('i'); i.style.background = c; b.append(i); b.onclick = () => { if (qual === 1) c1 = c; else c2 = c; render(); }; return b; }));
   render();
   abreModal(el('h2', {}, 'Fundar meu time'), el('p', {}, 'Você é adulto(a) e já tem nome no futebol. Hora de montar seu próprio clube! Você será o craque do time e vai começar na Várzea, com amigos da vila. Contrate reforços, cuide do caixa e da estrutura, suba de divisão até a Série A — e depois leve o clube para as ligas do Egito, Japão, Europa... até o Mundial de Clubes.'),
     el('div', { class: 'npc-topo' }, prev, el('div', { style: 'flex:1' }, el('label', {}, 'Nome do time', nomeT.el), el('p', {}, 'Cor principal'), paleta(1), el('p', {}, 'Cor secundária'), paleta(2))),
-    el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo grande', onclick: () => { const n = nomeT.nome(); if (!n) return; if (s.ouro < 500) { log('Fundar o time custa 500 tostões.', 'l-dano'); return; } s.ouro -= 500; fundarTime(n, c1, c2); s.time.partes = nomeT.partes(); abrirTime('elenco'); } }, 'Fundar (500 tostões)')));
+    el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo grande', onclick: () => { const n = nomeT.nome(); if (!n) { avisoJogo(nomeT.erro ? nomeT.erro() : 'Esse nome não pode. Escolha outro! 🙂'); return; } if (s.ouro < 500) { log('Fundar o time custa 500 tostões.', 'l-dano'); return; } s.ouro -= 500; fundarTime(n, c1, c2); const p = nomeT.partes(); if (p) s.time.partes = p; abrirTime('elenco'); } }, 'Fundar (500 tostões)')));
 }

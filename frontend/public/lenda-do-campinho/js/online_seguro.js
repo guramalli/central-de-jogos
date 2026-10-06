@@ -3,9 +3,9 @@
 /* ============================================================
    🛡️ ONLINE SEGURO (v407 — Raio-X U1, U5, U6, I8; dono: "faça tudo menos I1")
    Para as crianças conviverem com segurança no mundo compartilhado:
-   - U1 NOME DO TIME DE LISTAS: o nome que aparece no ranking e na ficha do site é montado de DUAS LISTAS (prefixo + lugar),
-     como as guildas. As listas são as MESMAS do servidor (backend src/lenda/times.js): só acrescente nomes no FIM.
-     Quem já tinha time com nome digitado escolhe um da lista (o jogo oferece ao abrir o time); até escolher, o site mostra "Time".
+   - U1 NOME DO TIME (v408): o jogador ESCREVE o nome (até 24 letras), com um FILTRO de palavrões igual ao do servidor
+     (backend src/lenda/filtroNome.js); as listas da v407 viraram sugestões (🎲). Nome reprovado: o site mostra só "Time"
+     e o jogo convida a escrever outro ao abrir o time.
    - U5 CONVITES SÓ DE AMIGOS (ligado por padrão): convite de caça em grupo só chega de amigos e colegas de guilda
      (guilda e torcida já eram só de amigos). Dá para liberar em ⚙️ › 🌐 Online.
    - U5 FICAR INVISÍVEL no mundo: você continua vendo os outros, mas ninguém vê você nem os seus emotes.
@@ -18,7 +18,12 @@
    Prefixo osg*. Carregar DEPOIS de menu_jogador.js (usa mundo_online.js, menu_jogador.js e, na hora do clique, como_chegar.js).
    ============================================================ */
 
-/* ---------- U1: nome do time escolhido em listas ---------- */
+/* ---------- U1 (v408): nome do time DIGITADO, com filtro ----------
+   Dono (v408): "Deixe o skalzinho escolher um nick, não uma lista". O nome do time volta a ser escrito pelo jogador (até 24
+   letras), mas passa por um FILTRO (palavrões com leetspeak — p1k4, piiika, p.i.k.a —, símbolos, contato, nomes da equipe).
+   O mesmo filtro está no servidor (backend src/lenda/filtroNome.js): o que não passa nunca aparece para os outros.
+   As listas da v407 viraram SUGESTÕES (botão 🎲) e continuam valendo para quem já escolheu delas (s.time.partes).
+   Vale também fora do site e na Steam (o filtro roda aqui no jogo). */
 const OSG_TIME_PREF = ['Esporte Clube', 'Grêmio', 'Atlético', 'Unidos do', 'Sociedade Esportiva', 'Real', 'Independente', 'Juventude do', 'Estrela do', 'Operário', 'Ferroviário', 'Associação', 'Clube Atlético', 'União do'];
 const OSG_TIME_LUGAR = ['Campinho', 'Poeirão', 'Morro Alto', 'Ladeira', 'Pombal', 'Coqueiral', 'Areia Branca', 'Serra Azul', 'Rio Seco', 'Pedra Lisa', 'Lagoa Verde', 'Cajueiro', 'Mangueiral', 'Ventania', 'Trovão', 'Beira-Mar', 'Vale Verde', 'Alto da Colina', 'Barro Vermelho', 'Pau-Brasil', 'Sol Nascente', 'Quebra-Canela', 'Boa Vista', 'Porto Alegre do Norte', 'Ribeirão Fundo', 'Chapadão', 'Maracujá', 'Bananal', 'Jatobá', 'Ipê Amarelo', 'Buriti', 'Cachoeirinha', 'Pedra Branca', 'Vila Nova', 'Canoas', 'Monte Verde', 'Três Coqueiros', 'Carnaubal', 'Sertãozinho', 'Mangue Seco', 'Arraial', 'Ponte Velha', 'Siriema', 'Tucano', 'Jabuticabal', 'Morro do Sabiá', 'Lajedo', 'Aroeira'];
 function osgNomeTime(partes) {
@@ -26,24 +31,98 @@ function osgNomeTime(partes) {
   const p = OSG_TIME_PREF[+m[1]], l = OSG_TIME_LUGAR[+m[2]];
   return p && l ? `${p} ${l}` : null;
 }
-// o seletor (duas listas + como fica): { el, nome(), partes() }
-function osgSeletorTime(partesIni) {
-  const m = /^(\d{1,3})\.(\d{1,3})$/.exec(String(partesIni || '')) || [null, '0', String(Math.floor(Math.random() * OSG_TIME_LUGAR.length))];
-  const sel = (lista, ini) => { const s = el('select', { class: 'osg-sel' }, ...lista.map((n, i) => el('option', { value: String(i) }, n))); s.value = String(Math.min(lista.length - 1, +ini || 0)); s.addEventListener('keydown', e => e.stopPropagation()); return s; };
-  const a = sel(OSG_TIME_PREF, m[1]), b = sel(OSG_TIME_LUGAR, m[2]);
-  const partes = () => `${a.value}.${b.value}`, nome = () => osgNomeTime(partes());
-  const ver = el('b', { class: 'osg-nome-time' }, nome());
-  a.onchange = b.onchange = () => { ver.textContent = nome(); };
-  return { el: el('span', { class: 'osg-seletor' }, a, b, el('small', {}, 'Vai ficar assim: '), ver), nome, partes };
+// ---- o filtro (cópia EXATA do servidor; não edite só aqui: mude em backend src/lenda/filtroNome.js e copie) ----
+/* FILTRO-NOME-INICIO */
+// palavras proibidas INTEIRAS (comparadas palavra por palavra: "cu" não barra "Cupim", "puta" não barra "Disputa")
+const NF_PALAVRAS = ["pica", "pinto", "rola", "bunda", "peido", "piroca", "pau no", "xota", "xana", "teta", "tetas", "bct", "pnc", "crl", "fdm", "bosta", "mijo", "gay", "lesbica", "traveco", "chupa", "mama", "safado", "safada", "gostosa", "gostoso", "tesao", "transa", "sexo"];
+// trechos proibidos em QUALQUER lugar (também com as palavras grudadas: "skalzinhopika")
+const NF_TRECHOS = ["porra", "caralh", "karalh", "krlh", "buceta", "boceta", "bucet", "xoxot", "xerec", "piroc", "pirok", "pika", "punhet", "siriric",
+  "putari", "foda", "foder", "fodid", "fudid", "fuder", "merda", "cacete", "arromb", "vagabund", "babaca", "otari", "retardad", "cuzao", "cusao",
+  "cuzinh", "porno", "sexy", "nazi", "hitler", "xvideo", "pqp", "vsf", "fdp", "vtnc", "tnc", "viad", "boiola", "baitola", "punheta", "fodase",
+  "pornô", "estupr", "drogad", "maconh", "cocain", "suicid", "matar", "assassin"];
+// equipe do site (o apelido de conta também não pode)
+const NF_RESERVADOS = ["admin", "administrador", "moderador", "moderator", "staff", "suporte", "support", "sistema", "system", "root", "equipe", "oficial", "official", "educacaogamer"];
+const NF_LEET = { 0: "o", 1: "i", 2: "z", 3: "e", 4: "a", 5: "s", 6: "g", 7: "t", 8: "b", 9: "g", "@": "a", $: "s", "!": "i", "|": "i", "€": "e" };
+function nfSimples(s) { // minúsculas, sem acento, leetspeak trocado, v → u
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ç/g, "c").replace(/[0-9@$!|€]/g, (c) => NF_LEET[c] || c).replace(/v/g, "u"); // ("pvta": v vale u — nas duas pontas)
 }
-// time antigo (nome digitado): escolher um nome das listas para aparecer no site
-function osgModalNomeTime() {
+// "pika" → /p+i+k+a+/ (letras repetidas não escapam); "porra" → /p+o+r+r+a+/
+const nfRx = (w, inteira) => new RegExp((inteira ? "^" : "") + [...nfSimples(w).replace(/[^a-z ]/g, "")].map((c) => (c === " " ? "" : c + "+")).join("") + (inteira ? "s*$" : ""));
+let NF_RX = null;
+function nfRegras(extras) {
+  if (NF_RX) return NF_RX;
+  const palavras = [...new Set([...NF_PALAVRAS.filter((p) => !p.includes(" ")), ...(extras || [])])];
+  NF_RX = {
+    palavras: palavras.map((w) => nfRx(w, true)),
+    trechos: NF_TRECHOS.map((w) => nfRx(w, false)),
+    pares: NF_PALAVRAS.filter((p) => p.includes(" ")).map((p) => nfRx(p, false)), // ("pau no", "coco de"...: grudadas)
+    reservados: NF_RESERVADOS.map((w) => nfRx(w, false)),
+  };
+  return NF_RX;
+}
+// confere um nome digitado. Devolve { ok: true, nome } (já limpo) ou { ok: false, motivo }
+function nfConfere(texto, extras) {
+  const nome = String(texto == null ? "" : texto).replace(/\s+/g, " ").trim();
+  if (nome.length < 3) return { ok: false, motivo: "curto" };
+  if (nome.length > 24) return { ok: false, motivo: "longo" };
+  if (!/^[\p{L}\p{N} _'.-]+$/u.test(nome)) return { ok: false, motivo: "simbolo" };
+  if ((nome.match(/\p{L}/gu) || []).length < 2) return { ok: false, motivo: "letras" };
+  if ((nome.match(/\d/g) || []).length >= 6 || /(www|http|\.com|\.br|insta|zap|whats|tiktok|discord|telegram|facebook)/i.test(nome)) return { ok: false, motivo: "contato" };
+  const R = nfRegras(extras), s = nfSimples(nome);
+  const junto = s.replace(/[^a-z]/g, "");
+  const pedacos = s.split(/[^a-z]+/).filter(Boolean);
+  // letras soltas seguidas viram uma palavra só ("C U", "p u t a")
+  for (let i = 0; i < pedacos.length; i++) if (pedacos[i].length === 1) { let j = i, w = ""; while (j < pedacos.length && pedacos[j].length === 1) w += pedacos[j++]; if (j - i > 1) pedacos.push(w); i = j - 1; }
+  if (R.reservados.some((rx) => rx.test(junto))) return { ok: false, motivo: "reservado" };
+  if (R.trechos.some((rx) => rx.test(junto)) || R.pares.some((rx) => rx.test(junto))) return { ok: false, motivo: "palavrao" };
+  if (pedacos.some((p) => R.palavras.some((rx) => rx.test(p)))) return { ok: false, motivo: "palavrao" };
+  return { ok: true, nome };
+}
+/* FILTRO-NOME-FIM */
+// palavrões do site (a lista do Impostor, backend src/impostor/filtroPalavroes.js), como palavras inteiras
+const NF_SITE = ["porra","caralho","cacete","buceta","boceta","xoxota","piroca","cu","cuzao","foda","fodase","foder","fodido","merda","puta","puto","putaria","vadia","vagabunda","vagabundo","arrombado","arrombada","viado","bicha","sapatao","otario","otaria","babaca","corno","punheta","siririca","prr","krl","vsf","pqp","fdp","tnc","vtnc","retardado"];
+function osgConfereNome(texto) { return nfConfere(texto, NF_SITE); }
+const OSG_NOME_RUIM = { curto: 'Use pelo menos 3 letras. 🙂', longo: 'Use no máximo 24 letras. 🙂', simbolo: 'Use só letras, números e espaço. 🙂', letras: 'Use pelo menos 2 letras. 🙂' };
+const osgMsgNome = r => OSG_NOME_RUIM[r.motivo] || 'Esse nome não pode. Escolha outro! 🙂';
+// uma sugestão das listas que cabe e passa no filtro: { nome, partes }
+function osgSugereTime() {
+  for (let k = 0; k < 60; k++) {
+    const p = Math.floor(Math.random() * OSG_TIME_PREF.length), l = Math.floor(Math.random() * OSG_TIME_LUGAR.length), nome = osgNomeTime(p + '.' + l);
+    if (nome && nome.length <= 24 && osgConfereNome(nome).ok) return { nome, partes: p + '.' + l };
+  }
+  return { nome: 'Esporte Clube Campinho', partes: '0.0' };
+}
+// o campo do nome (texto livre + 🎲 Sugerir + aviso gentil na hora): { el, nome(), partes(), confere() }
+function osgSeletorTime(nomeIni) {
+  let sug = null;
+  const inp = el('input', { class: 'osg-inp', maxlength: 24, placeholder: 'Ex.: Leões da Vila', value: nomeIni || '' });
+  const aviso = el('small', { class: 'osg-aviso' });
+  const confere = () => osgConfereNome(inp.value);
+  const mostra = () => { const v = inp.value.trim(), r = confere(); aviso.textContent = !v || r.ok ? '' : osgMsgNome(r); };
+  inp.addEventListener('keydown', e => e.stopPropagation()); inp.addEventListener('input', mostra);
+  const dado = el('button', { class: 'btn mini', type: 'button', title: 'Sugerir um nome' }, '🎲 Sugerir');
+  dado.onclick = () => { sug = osgSugereTime(); inp.value = sug.nome; mostra(); };
+  if (!inp.value || !confere().ok) { sug = osgSugereTime(); inp.value = sug.nome; } // (começa com algo que passa)
+  return {
+    el: el('span', { class: 'osg-seletor' }, inp, dado, aviso),
+    confere, nome: () => { const r = confere(); return r.ok ? r.nome : null; },
+    partes: () => (sug && inp.value.trim() === sug.nome ? sug.partes : null),
+    erro: () => { const r = confere(); return r.ok ? '' : osgMsgNome(r); },
+  };
+}
+// escrever um nome novo para o time (também para quem tem um nome que não passa no filtro)
+function osgModalNomeTime(motivo) {
   const t = G.save && G.save.time; if (!t) return;
-  const sel = osgSeletorTime(t.partes);
+  const ok0 = osgConfereNome(t.nome).ok, campo = osgSeletorTime(ok0 ? t.nome : '');
+  const salva = () => {
+    const n = campo.nome(); if (!n) return avisoJogo(campo.erro());
+    t.nome = n; const p = campo.partes(); if (p) t.partes = p; else delete t.partes;
+    salvar(); fechaModal(); log(`⚽ Seu time agora se chama ${t.nome}!`, 'l-xp'); if (typeof abrirTime === 'function') abrirTime();
+  };
   abreModal(el('h2', {}, '⚽ Nome do seu time'),
-    el('p', {}, 'No ranking e na sua ficha do site, o nome do time é escolhido nestas listas (assim ninguém vê palavras feias). Escolha o seu:'),
-    sel.el,
-    el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', type: 'button', onclick: () => { t.partes = sel.partes(); t.nome = sel.nome(); salvar(); fechaModal(); log(`⚽ Seu time agora se chama ${t.nome}!`, 'l-xp'); if (typeof abrirTime === 'function') abrirTime(); } }, 'Usar este nome'),
+    el('p', {}, motivo || 'Escreva o nome do seu time (até 24 letras). Ele aparece no ranking e na sua ficha do site.'),
+    campo.el,
+    el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo', type: 'button', onclick: salva }, 'Usar este nome'),
       el('button', { class: 'btn', type: 'button', onclick: () => { fechaModal(); if (typeof abrirTime === 'function') abrirTime(); } }, 'Agora não')));
 }
 if (typeof abrirTime === 'function') {
@@ -51,8 +130,12 @@ if (typeof abrirTime === 'function') {
   abrirTime = function () {
     const r = _abrirTimeOsg.apply(this, arguments);
     try {
-      const t = G.save && G.save.time;
-      if (t && !t.partes && !perguntou && osgOnline()) { perguntou = true; setTimeout(() => perguntaJogo('Seu time precisa de um nome das listas para aparecer no ranking e na ficha do site. Escolher agora?', { sim: 'Escolher', nao: 'Depois' }).then(ok => { if (ok) osgModalNomeTime(); }), 300); }
+      const t = G.save && G.save.time; if (!t) return r;
+      // ✏️ ao lado do nome do time, para trocar quando quiser
+      const h = document.querySelector('#modalConteudo .time-cab h2');
+      if (h && !h.querySelector('.osg-renomeia')) { const b = el('button', { class: 'btn mini osg-renomeia', type: 'button', title: 'Mudar o nome do time' }, '✏️'); b.onclick = () => osgModalNomeTime(); h.append(' ', b); }
+      // nome que não passa no filtro (ex.: de antes da v408): convite para escrever outro (uma vez por vez que abre o jogo)
+      if (!perguntou && t.nome && !osgConfereNome(t.nome).ok) { perguntou = true; setTimeout(() => perguntaJogo('O nome do seu time não pode aparecer para os outros jogadores. Quer escrever um nome novo?', { sim: 'Escrever', nao: 'Depois' }).then(ok => { if (ok) osgModalNomeTime('Esse nome não pode. Escolha outro! 🙂 Escreva um nome novo (até 24 letras):'); }), 300); }
     } catch (e) { }
     return r;
   };
@@ -188,7 +271,7 @@ async function osgApagaDados() {
 {
   const css = document.createElement('style');
   css.textContent = `.osg-seletor { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 8px; } .osg-sel { font: inherit; padding: 4px 6px; border-radius: 8px; max-width: 100%; }
-  .osg-nome-time { color: #2a6a1a; } .osg-motivos { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; } .osg-motivos .btn { text-align: left; justify-content: flex-start; }
+  .osg-nome-time { color: #2a6a1a; } .osg-inp { font: inherit; padding: 4px 8px; border-radius: 8px; min-width: 0; flex: 1 1 160px; } .osg-aviso { flex-basis: 100%; color: #c0392b; font-weight: 700; min-height: 1em; } .osg-motivos { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; } .osg-motivos .btn { text-align: left; justify-content: flex-start; }
   .osg-quem { margin-top: 8px; } .osg-quem summary { cursor: pointer; font-weight: 800; } .osg-inv { background: rgba(120,80,200,.12); border-radius: 8px; padding: 4px 8px; }`;
   document.head.append(css);
 }
