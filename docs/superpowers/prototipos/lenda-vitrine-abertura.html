@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lenda do Campinho — RPG de futebol (PRÉVIA)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --indigo-950: #1e1b4b; --indigo-900: #312e81; --indigo-800: #3730a3; --indigo-700: #4338ca;
+  --indigo-500: #6366f1; --indigo-300: #a5b4fc; --indigo-100: #e0e7ff;
+  --noite: #0d0b26; --ouro: #ffc928; --ouro-escuro: #c98a00; --branco: #fff;
+  --titulo: "Fredoka", system-ui, sans-serif; --texto: "Nunito", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--noite); color: var(--branco); font-family: var(--texto); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+/* ---------- Barra do topo ---------- */
+.nav { position: fixed; inset: 0 0 auto 0; z-index: 50; display: flex; align-items: center; gap: 28px; padding: 14px clamp(16px, 4vw, 48px); transition: background .4s, backdrop-filter .4s, padding .4s; }
+.nav.solida { background: rgba(13, 11, 38, .72); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); padding-top: 10px; padding-bottom: 10px; box-shadow: 0 1px 0 rgba(165, 180, 252, .12); }
+.nav-logo { transition: opacity .3s; }
+.nav-logo img { height: 38px; width: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+.nav-links { display: flex; gap: 26px; margin-left: 8px; font-weight: 800; font-size: 15px; }
+.nav-links a { opacity: .82; position: relative; }
+.nav-links a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; background: var(--ouro); transform: scaleX(0); transition: transform .25s; transform-origin: left; }
+.nav-links a:hover { opacity: 1; }
+.nav-links a:hover::after { transform: scaleX(1); }
+.nav-cta { margin-left: auto; }
+@media (max-width: 860px) { .nav-links { display: none; } }
+
+/* ---------- Botões ---------- */
+.btn { position: relative; display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 26px; border-radius: 16px; font-family: var(--titulo); font-weight: 600; font-size: 18px; letter-spacing: .2px; border: 0; cursor: pointer; overflow: hidden; transition: transform .18s ease, box-shadow .18s ease; white-space: nowrap; }
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(1px); }
+.btn-ouro { background: linear-gradient(180deg, #ffe066, var(--ouro) 55%, #f2a900); color: #2a1600; box-shadow: 0 6px 0 var(--ouro-escuro), 0 14px 30px rgba(255, 201, 40, .35); }
+.btn-ouro:hover { box-shadow: 0 8px 0 var(--ouro-escuro), 0 20px 40px rgba(255, 201, 40, .45); }
+.btn-ouro::before { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.75) 48%, transparent 66%); transform: translateX(-120%); animation: brilhoBotao 4.5s ease-in-out 2.6s infinite; }
+@keyframes brilhoBotao { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.btn-vidro { background: rgba(255,255,255,.1); color: var(--branco); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.btn-vidro:hover { background: rgba(255,255,255,.18); }
+.btn-pequeno { height: 42px; padding: 0 18px; font-size: 16px; border-radius: 13px; }
+.btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+/* ---------- Abertura (hero) ---------- */
+.hero { position: relative; height: 100svh; min-height: 640px; overflow: hidden; isolation: isolate; }
+.palco { position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78svh); aspect-ratio: 16 / 9; transform: translate(-50%, -50%); will-change: transform; }
+.palco-vertical { display: none; aspect-ratio: 2 / 3; width: max(100vw, 66.67svh); }
+@media (max-aspect-ratio: 4/5) { .palco-horizontal { display: none; } .palco-vertical { display: block; } }
+.camera { position: absolute; inset: 0; transform-origin: 62% 40%; animation: entrada 2.6s cubic-bezier(.16, 1, .3, 1) both, respira 22s ease-in-out 2.6s infinite alternate; }
+@keyframes entrada { from { transform: scale(1.16); filter: brightness(.35) saturate(.6) blur(6px); } to { transform: scale(1); filter: none; } }
+@keyframes respira { from { transform: scale(1); } to { transform: scale(1.045) translate(-.6%, .4%); } }
+.camera img { width: 100%; height: 100%; object-fit: cover; }
+.brilho-bola { position: absolute; width: 22%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(255, 236, 160, .85) 0%, rgba(255, 196, 64, .45) 22%, rgba(255, 160, 40, 0) 62%); mix-blend-mode: screen; animation: pulsa 2.2s ease-in-out infinite; pointer-events: none; }
+@keyframes pulsa { 0%, 100% { opacity: .55; transform: translate(-50%, -50%) scale(.92); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } }
+.raios { position: absolute; width: 140%; aspect-ratio: 1; transform: translate(-50%, -50%); background: repeating-conic-gradient(from 0deg, rgba(255, 220, 150, .16) 0deg 4deg, transparent 4deg 13deg); -webkit-mask: radial-gradient(circle, #000 0%, transparent 55%); mask: radial-gradient(circle, #000 0%, transparent 55%); mix-blend-mode: screen; animation: gira 90s linear infinite; pointer-events: none; }
+@keyframes gira { to { transform: translate(-50%, -50%) rotate(360deg); } }
+#faiscas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
+.veu { position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(13, 11, 38, .82) 0%, rgba(13, 11, 38, .55) 28%, rgba(13, 11, 38, 0) 55%),
+    linear-gradient(0deg, var(--noite) 0%, rgba(13, 11, 38, .55) 14%, rgba(13, 11, 38, 0) 34%),
+    linear-gradient(180deg, rgba(13, 11, 38, .55) 0%, rgba(13, 11, 38, 0) 16%); }
+@media (max-aspect-ratio: 4/5) {
+  .veu { background:
+    linear-gradient(180deg, rgba(13, 11, 38, .7) 0%, rgba(13, 11, 38, .15) 30%, rgba(13, 11, 38, 0) 45%),
+    linear-gradient(0deg, var(--noite) 0%, rgba(13, 11, 38, .92) 22%, rgba(13, 11, 38, .4) 42%, rgba(13, 11, 38, 0) 58%); }
+}
+.hero-conteudo { position: absolute; z-index: 2; left: clamp(16px, 6vw, 96px); top: 50%; transform: translateY(-46%); width: min(640px, 48vw); will-change: transform, opacity; }
+@media (max-aspect-ratio: 4/5) {
+  /* Celular: logo no céu, lá em cima; frase e botões embaixo. O garoto fica livre no meio. */
+  .hero-conteudo { left: 18px; right: 18px; width: auto; top: 72px; bottom: 26px; transform: none; text-align: center; display: flex; flex-direction: column; align-items: center; }
+  .hero-conteudo .selo-topo { display: none; }
+  .hero-conteudo .frase .so-largo { display: none; }
+  .nav:not(.solida) .nav-logo { opacity: 0; pointer-events: none; }
+  .hero-conteudo .logo-grande { order: 1; }
+  .hero-conteudo .frase { order: 3; font-size: 15px; margin: auto 0 16px; }
+  .hero-conteudo .acoes { order: 4; width: 100%; }
+  .hero-conteudo .plataformas { order: 5; margin-top: 14px; font-size: 12px; }
+  .btn { height: 50px; font-size: 17px; }
+}
+.selo-topo { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 999px; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); backdrop-filter: blur(8px); font-size: 13px; font-weight: 900; letter-spacing: .6px; text-transform: uppercase; }
+.selo-topo b { background: var(--ouro); color: #2a1600; padding: 3px 9px; border-radius: 999px; font-size: 11px; }
+.logo-grande { position: relative; width: min(500px, 88%); margin: 18px 0 6px -2%; }
+.logo-grande img { width: 100%; height: auto; filter: drop-shadow(0 18px 30px rgba(0,0,0,.55)); }
+.logo-grande::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.85) 50%, transparent 65%); background-size: 250% 100%; background-position: 150% 0; -webkit-mask: url(a/logo.webp) center / contain no-repeat; mask: url(a/logo.webp) center / contain no-repeat; mix-blend-mode: overlay; animation: reflexo 6s ease-in-out 3.4s infinite; }
+@keyframes reflexo { 0%, 60% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+@media (max-aspect-ratio: 4/5) { .logo-grande { margin: 0 auto; width: min(300px, 78%); } }
+.frase { font-size: clamp(17px, 1.45vw, 21px); line-height: 1.55; font-weight: 700; color: #eef0ff; margin: 6px 0 26px; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+.frase strong { color: var(--ouro); font-weight: 900; }
+.acoes { display: flex; flex-wrap: wrap; gap: 14px; }
+@media (max-aspect-ratio: 4/5) { .acoes { justify-content: center; } .acoes .btn { width: 100%; justify-content: center; } }
+.plataformas { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 22px; font-size: 14px; font-weight: 800; color: var(--indigo-100); opacity: .9; }
+@media (max-aspect-ratio: 4/5) { .plataformas { justify-content: center; } }
+.plataformas span { display: inline-flex; align-items: center; gap: 7px; }
+.plataformas svg { width: 18px; height: 18px; opacity: .85; }
+.steam-breve { padding: 5px 12px; border-radius: 999px; background: rgba(99, 102, 241, .25); box-shadow: inset 0 0 0 1px rgba(165, 180, 252, .45); color: #fff; }
+.desce { position: absolute; z-index: 2; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; opacity: .8; }
+.desce i { width: 26px; height: 42px; border-radius: 14px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); position: relative; }
+.desce i::after { content: ""; position: absolute; left: 50%; top: 8px; width: 4px; height: 8px; margin-left: -2px; border-radius: 2px; background: #fff; animation: rolinho 1.8s ease-in-out infinite; }
+@keyframes rolinho { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(14px); opacity: 0; } 100% { opacity: 0; } }
+@media (max-aspect-ratio: 4/5) { .desce { display: none; } }
+
+/* Entrada em sequência dos elementos da abertura */
+.entra { opacity: 0; transform: translateY(26px); animation: sobe .9s cubic-bezier(.16, 1, .3, 1) forwards; }
+@keyframes sobe { to { opacity: 1; transform: none; } }
+.logo-grande.entra { transform: translateY(-30px) scale(.86); animation: logoCai 1.15s cubic-bezier(.34, 1.56, .64, 1) forwards; }
+@keyframes logoCai { 0% { opacity: 0; transform: translateY(-40px) scale(.8) rotate(-3deg); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+
+/* ---------- Jornada (rolagem presa, cartões andando de lado) ---------- */
+.jornada { position: relative; height: 520vh; background: var(--noite); }
+.jornada-fixa { position: sticky; top: 0; height: 100svh; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+.jornada-fundo { position: absolute; inset: 0; transition: background 1.2s ease; z-index: 0; }
+.jornada-fundo::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 120%, rgba(13,11,38,0) 0%, var(--noite) 70%); }
+.jornada-cabeca { position: relative; z-index: 1; padding: 0 clamp(16px, 6vw, 96px); margin-bottom: 4vh; }
+.sobretitulo { font-size: 13px; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase; color: var(--ouro); }
+.jornada-cabeca h2 { font-family: var(--titulo); font-weight: 700; font-size: clamp(32px, 4.4vw, 64px); line-height: 1.02; margin: 8px 0 0; letter-spacing: -.5px; }
+.jornada-cabeca h2 em { font-style: normal; background: linear-gradient(90deg, var(--ouro), #ff9f43); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.trilho { position: relative; z-index: 1; display: flex; gap: clamp(18px, 2.4vw, 36px); padding: 0 clamp(16px, 6vw, 96px); will-change: transform; }
+.etapa { position: relative; flex: 0 0 clamp(290px, 46vw, 720px); border-radius: 26px; overflow: hidden; background: #1a1740; box-shadow: 0 30px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(165,180,252,.14); transform-origin: center; transition: transform .5s cubic-bezier(.16,1,.3,1), opacity .5s; }
+.etapa img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transform: scale(1.08); transition: transform 1.2s cubic-bezier(.16,1,.3,1); }
+.etapa.ativa img { transform: scale(1); }
+.etapa:not(.ativa) { opacity: .55; transform: scale(.94); }
+.etapa-texto { position: absolute; inset: auto 0 0 0; padding: 60px 26px 22px; background: linear-gradient(0deg, rgba(13,11,38,.95) 0%, rgba(13,11,38,.7) 55%, transparent); }
+.etapa-num { font-family: var(--titulo); font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: var(--ouro); }
+.etapa h3 { font-family: var(--titulo); font-weight: 600; font-size: clamp(22px, 2.2vw, 32px); margin: 4px 0 6px; }
+.etapa p { margin: 0; font-weight: 700; color: #d9dcff; font-size: clamp(14px, 1.1vw, 17px); line-height: 1.5; max-width: 52ch; }
+.regua { position: relative; z-index: 1; margin: 5vh clamp(16px, 6vw, 96px) 0; height: 4px; border-radius: 4px; background: rgba(255,255,255,.12); }
+.regua i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--ouro), #ff9f43); box-shadow: 0 0 18px rgba(255,201,40,.6); }
+.regua-marcos { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; font-weight: 900; letter-spacing: .8px; text-transform: uppercase; color: rgba(255,255,255,.45); }
+.regua-marcos span.feito { color: #fff; }
+
+.fim-previa { min-height: 60vh; display: grid; place-items: center; text-align: center; padding: 80px 20px; background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,.25), transparent 60%), var(--noite); }
+.fim-previa h2 { font-family: var(--titulo); font-size: clamp(28px, 3.5vw, 48px); margin: 0 0 10px; }
+.fim-previa p { color: var(--indigo-100); font-weight: 700; margin: 0 0 28px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+  #faiscas { display: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <a class="nav-logo" href="#topo"><img src="a/logo.webp" alt="Lenda do Campinho"></a>
+  <div class="nav-links">
+    <a href="#jornada">A jornada</a>
+    <a href="#">Trailer</a>
+    <a href="#">O jogo</a>
+    <a href="#">Expansão</a>
+    <a href="#">Imprensa</a>
+  </div>
+  <a class="btn btn-ouro btn-pequeno nav-cta" href="#">Jogar grátis</a>
+</nav>
+
+<header class="hero" id="topo">
+  <div class="palco palco-horizontal" data-bola="76,19" data-sol="45,77">
+    <div class="camera">
+      <img src="a/capa.webp" alt="Garoto dá uma bicicleta na bola enquanto chefões e um mundo fantástico aparecem ao fundo">
+      <div class="raios"></div>
+      <div class="brilho-bola"></div>
+    </div>
+  </div>
+  <div class="palco palco-vertical" data-bola="70,40.5" data-sol="50,70">
+    <div class="camera">
+      <img src="a/capa_vertical.webp" alt="">
+      <div class="raios"></div>
+      <div class="brilho-bola"></div>
+    </div>
+  </div>
+  <canvas id="faiscas"></canvas>
+  <div class="veu"></div>
+
+  <div class="hero-conteudo" id="heroConteudo">
+    <span class="selo-topo entra" style="animation-delay:.9s"><b>Grátis</b> RPG de futebol para toda a família</span>
+    <div class="logo-grande entra" style="animation-delay:1.25s"><img src="a/logo.webp" alt="Lenda do Campinho"></div>
+    <p class="frase entra" style="animation-delay:1.85s">Do campinho de terra da vila até a <strong>Torre Infinita do Multiverso</strong>.<span class="so-largo"> Drible criaturas, vença chefões nas arenas e transforme um garoto do bairro em <strong>lenda do futebol</strong>.</span></p>
+    <div class="acoes entra" style="animation-delay:2.1s">
+      <a class="btn btn-ouro" href="#">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.98-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></svg>
+        Jogar grátis no navegador
+      </a>
+      <a class="btn btn-vidro" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Baixar para Windows
+      </a>
+    </div>
+    <div class="plataformas entra" style="animation-delay:2.35s">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Navegador</span>
+      <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10 4.5v7H3zM11 4.3 21 3v8.5H11zM3 12.5h7v7l-7-1zM11 12.5h10V21l-10-1.3z"/></svg>Windows</span>
+      <span>Português · English</span>
+      <span class="steam-breve">Em breve na Steam</span>
+    </div>
+  </div>
+  <a class="desce" href="#jornada"><i></i>Role para a jornada</a>
+</header>
+
+<section class="jornada" id="jornada">
+  <div class="jornada-fixa">
+    <div class="jornada-fundo" id="jornadaFundo"></div>
+    <div class="jornada-cabeca">
+      <span class="sobretitulo">A jornada</span>
+      <h2>Do campinho da vila<br>até <em>o mundo inteiro</em></h2>
+    </div>
+    <div class="trilho" id="trilho">
+      <article class="etapa" data-cor="#6b3a12"><img src="a/cap_07_vila.webp" alt=""><div class="etapa-texto"><span class="etapa-num">CAPÍTULO 1</span><h3>A Vila do Campinho</h3><p>Nasça na vila, faça amigos e dê os primeiros dribles no campinho de terra.</p></div></article>
+      <article class="etapa" data-cor="#3b2a8f"><img src="a/cap_04_historia.webp" alt=""><div class="etapa-texto"><span class="etapa-num">CAPÍTULO 2</span><h3>Uma história de verdade</h3><p>Capítulos com personagens, escolhas e missões que contam como um garoto vira craque.</p></div></article>
+      <article class="etapa" data-cor="#0f5a3d"><img src="a/cap_05_clube.webp" alt=""><div class="etapa-texto"><span class="etapa-num">CAPÍTULO 3</span><h3>Seu clube, sua carreira</h3><p>Funde o seu time, monte o elenco e suba da Várzea até a Primeirona.</p></div></article>
+      <article class="etapa" data-cor="#7a1f5c"><img src="a/cap_01_toquio.webp" alt=""><div class="etapa-texto"><span class="etapa-num">CAPÍTULO 4</span><h3>Volta ao mundo</h3><p>Tóquio, Cairo, Londres, Paris, Buenos Aires — dezenas de cidades e áreas de caça.</p></div></article>
+      <article class="etapa" data-cor="#8a2410"><img src="a/cap_02_lava.webp" alt=""><div class="etapa-texto"><span class="etapa-num">CAPÍTULO 5</span><h3>Chefões nas arenas</h3><p>Terras de lava, guardiões gigantes e chefões que exigem time, equipamento e estratégia.</p></div></article>
+      <article class="etapa" data-cor="#1b3f8f"><img src="a/cap_03_guardiao.webp" alt=""><div class="etapa-texto"><span class="etapa-num">CAPÍTULO 6</span><h3>Além do mundo</h3><p>Atlântida, a Área Interestelar e o Multiverso esperam quem chegar ao topo.</p></div></article>
+    </div>
+    <div class="regua"><i id="regua"></i>
+      <div class="regua-marcos" id="marcos"><span>Vila</span><span>História</span><span>Clube</span><span>Mundo</span><span>Arenas</span><span>Multiverso</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="fim-previa">
+  <div>
+    <h2>(Fim da prévia)</h2>
+    <p>Daqui pra baixo entram trailer, destaques, galeria, Expansão e kit de imprensa.</p>
+    <a class="btn btn-ouro" href="#topo">Voltar ao topo</a>
+  </div>
+</section>
+
+<script>
+(() => {
+  const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const nav = document.getElementById("nav");
+  const hero = document.getElementById("topo");
+  const conteudo = document.getElementById("heroConteudo");
+  const palcos = [...document.querySelectorAll(".palco")];
+
+  // Posições da bola e do sol em cada arte (em % do palco).
+  for (const p of palcos) {
+    const [bx, by] = p.dataset.bola.split(",");
+    const [sx, sy] = p.dataset.sol.split(",");
+    Object.assign(p.querySelector(".brilho-bola").style, { left: bx + "%", top: by + "%" });
+    Object.assign(p.querySelector(".raios").style, { left: sx + "%", top: sy + "%" });
+  }
+  const palcoVisivel = () => palcos.find((p) => getComputedStyle(p).display !== "none");
+
+  // Paralaxe do mouse + rolagem da abertura.
+  let mx = 0, my = 0, alvoX = 0, alvoY = 0;
+  addEventListener("pointermove", (e) => { alvoX = e.clientX / innerWidth - .5; alvoY = e.clientY / innerHeight - .5; });
+
+  function quadro() {
+    mx += (alvoX - mx) * .06; my += (alvoY - my) * .06;
+    const rol = Math.min(1, scrollY / innerHeight);
+    const p = palcoVisivel();
+    if (p && !reduz) p.style.transform = `translate(calc(-50% + ${-mx * 22}px), calc(-50% + ${-my * 14 + rol * 120}px)) scale(${1 + rol * .08})`;
+    if (!reduz && innerWidth / innerHeight > .8) conteudo.style.transform = `translate(${mx * 10}px, calc(-46% + ${my * 6 - rol * 160}px))`;
+    conteudo.style.opacity = String(1 - rol * 1.4);
+    nav.classList.toggle("solida", scrollY > 40);
+    jornada();
+    requestAnimationFrame(quadro);
+  }
+
+  // Faíscas douradas saindo da bola + poeira de luz subindo.
+  const cv = document.getElementById("faiscas"), cx = cv.getContext("2d");
+  let W, H, dpr; const parts = [];
+  function medir() { dpr = Math.min(2, devicePixelRatio || 1); W = cv.width = hero.clientWidth * dpr; H = cv.height = hero.clientHeight * dpr; }
+  addEventListener("resize", medir); medir();
+  function bolaNaTela() {
+    const p = palcoVisivel(); if (!p) return null;
+    const r = p.getBoundingClientRect(), h = hero.getBoundingClientRect();
+    const [bx, by] = p.dataset.bola.split(",").map(Number);
+    return { x: (r.left - h.left + r.width * bx / 100) * dpr, y: (r.top - h.top + r.height * by / 100) * dpr, raio: r.width * .03 * dpr };
+  }
+  function nasce(tipo) {
+    if (tipo === "faisca") {
+      const b = bolaNaTela(); if (!b) return;
+      const ang = Math.PI * (.62 + Math.random() * .28); // rastro para baixo-esquerda
+      const v = (1.2 + Math.random() * 2.6) * dpr;
+      parts.push({ x: b.x + (Math.random() - .5) * b.raio, y: b.y + (Math.random() - .5) * b.raio, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v * .7 - .4 * dpr, vida: 1, dec: .012 + Math.random() * .018, t: (1 + Math.random() * 2.2) * dpr, cor: Math.random() < .7 ? "255,214,102" : "255,255,255" });
+    } else {
+      parts.push({ x: Math.random() * W, y: H + 10, vx: (Math.random() - .5) * .3 * dpr, vy: -(.3 + Math.random() * .7) * dpr, vida: 1, dec: .002 + Math.random() * .003, t: (1 + Math.random() * 2.5) * dpr, cor: Math.random() < .5 ? "165,180,252" : "255,226,150", poeira: true });
+    }
+  }
+  // Tudo em "passos de 60 quadros por segundo": em tela de 120/144/360 Hz a
+  // quantidade e a velocidade das faíscas ficam iguais.
+  let antes = performance.now(), acFaisca = 0, acPoeira = 0;
+  function desenha(agora) {
+    const k = Math.min(3, (agora - antes) / (1000 / 60)); antes = agora;
+    cx.clearRect(0, 0, W, H);
+    if (scrollY < innerHeight * 1.1) {
+      acFaisca += 3 * k; acPoeira += .35 * k;
+      while (acFaisca >= 1) { nasce("faisca"); acFaisca--; }
+      while (acPoeira >= 1) { nasce("poeira"); acPoeira--; }
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i];
+      q.x += q.vx * k; q.y += q.vy * k; q.vida -= q.dec * k;
+      if (!q.poeira) { q.vy += .03 * dpr * k; q.vx *= Math.pow(.99, k); }
+      else q.x += Math.sin((q.y + i) * .01) * .3 * dpr * k;
+      if (q.vida <= 0) { parts.splice(i, 1); continue; }
+      const a = q.poeira ? Math.sin(q.vida * Math.PI) * .7 : q.vida;
+      cx.beginPath(); cx.fillStyle = `rgba(${q.cor},${a})`;
+      cx.shadowColor = `rgba(${q.cor},${a})`; cx.shadowBlur = 8 * dpr;
+      cx.arc(q.x, q.y, q.t * (q.poeira ? 1 : q.vida + .3), 0, Math.PI * 2); cx.fill();
+    }
+    requestAnimationFrame(desenha);
+  }
+
+  // Jornada: a rolagem vertical anda os cartões de lado.
+  const secao = document.getElementById("jornada"), trilho = document.getElementById("trilho");
+  const etapas = [...trilho.children], fundo = document.getElementById("jornadaFundo");
+  const regua = document.getElementById("regua"), marcos = [...document.getElementById("marcos").children];
+  let ativaAntes = -1;
+  function jornada() {
+    const r = secao.getBoundingClientRect();
+    const total = secao.offsetHeight - innerHeight;
+    const prog = Math.min(1, Math.max(0, -r.top / total));
+    const distancia = trilho.scrollWidth - innerWidth;
+    trilho.style.transform = `translateX(${-prog * Math.max(0, distancia)}px)`;
+    regua.style.width = (prog * 100) + "%";
+    const ativa = Math.min(etapas.length - 1, Math.round(prog * (etapas.length - 1)));
+    if (ativa !== ativaAntes) {
+      ativaAntes = ativa;
+      etapas.forEach((e, i) => e.classList.toggle("ativa", i === ativa));
+      marcos.forEach((m, i) => m.classList.toggle("feito", i <= ativa));
+      fundo.style.background = `radial-gradient(ellipse at 70% 30%, ${etapas[ativa].dataset.cor}, transparent 70%)`;
+    }
+  }
+
+  requestAnimationFrame(quadro);
+  if (!reduz) requestAnimationFrame(desenha);
+})();
+</script>
+</body>
+</html>
