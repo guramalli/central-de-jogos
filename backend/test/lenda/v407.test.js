@@ -88,19 +88,25 @@ function tabela() {
 }
 const banco = () => Object.fromEntries([...MODELOS_LENDA, "user", "suspiciousActivity"].map((m) => [m, tabela()]));
 
-test("U7: fora do ranking — banido, oculto, ADMIN e suspeitos; suspeito gravado sem repetir", async () => {
+test("U7/v409: fora do ranking — banido, oculto e suspeito de trapaça (admin aparece; envio só 'rápido' não esconde)", async () => {
   const db = banco();
   for (const u of [{ id: "ok" }, { id: "ban", banned: true }, { id: "oc", ocultoNoRanking: true }, { id: "adm", role: "ADMIN" }, { id: "sus" }]) db.user.linhas.push({ banned: false, ocultoNoRanking: false, role: "PLAYER", ...u });
   // o fake não entende OR de booleanos do User: simula a consulta do Prisma
-  db.user.findMany = async ({ where }) => db.user.linhas.filter((u) => where.id.in.includes(u.id) && (u.banned || u.ocultoNoRanking || u.role === "ADMIN"));
+  db.user.findMany = async ({ where }) => db.user.linhas.filter((u) => where.id.in.includes(u.id) && (u.banned || u.ocultoNoRanking));
   const t = Date.UTC(2026, 9, 6, 15);
   assert.equal(await registrarSuspeito(db, "sus", "lenda_xp_rapido_demais", "teste", t), true);
   db.suspiciousActivity.linhas.forEach((l) => { l.createdAt = new Date(t); }); // (o banco põe a data sozinho)
   assert.equal(await registrarSuspeito(db, "sus", "lenda_xp_rapido_demais", "de novo", t + 60e3), false, "não repete em 6 h");
   assert.equal(await registrarSuspeito(db, "sus", "lenda_xp_rapido_demais", "depois", t + 7 * 3600e3), true, "depois de 6 h grava de novo");
   assert.equal(db.suspiciousActivity.linhas[0].gameKey, GAME_KEY);
-  const fora = await contasForaDoRanking(db, ["ok", "ban", "oc", "adm", "sus"]);
-  assert.deepEqual([...fora].sort(), ["adm", "ban", "oc", "sus"]);
+  // só "rápido demais": aparece no painel, mas NÃO esconde (v409)
+  let fora = await contasForaDoRanking(db, ["ok", "ban", "oc", "adm", "sus"]);
+  assert.deepEqual([...fora].sort(), ["ban", "oc"], "admin aparece; 'rápido demais' não esconde");
+  assert.equal(await ehSuspeito(db, "sus"), false);
+  // XP fora da curva (ou absurdo) esconde e trava a feira
+  await registrarSuspeito(db, "sus", "lenda_xp_fora_da_curva", "x", t);
+  fora = await contasForaDoRanking(db, ["ok", "ban", "oc", "adm", "sus"]);
+  assert.deepEqual([...fora].sort(), ["ban", "oc", "sus"]);
   assert.equal(await ehSuspeito(db, "sus"), true);
   assert.equal(await ehSuspeito(db, "ok"), false);
 });

@@ -45,7 +45,7 @@ let tick = null;
 // primeiro, segundo e terceiro do ranking um número do rank do lado do nickname como sinal de poder"
 async function top3Real() {
   const topo = await prisma.lendaRanking.findMany({ orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 20, select: { userId: true } });
-  const bloq = await contasForaDoRanking(prisma, topo.map((t) => t.userId)); // v407: fora também admin e suspeitos
+  const bloq = await contasForaDoRanking(prisma, topo.map((t) => t.userId)); // (fora: banido, oculto e suspeito de trapaça; v409: admin aparece)
   return topo.map((t) => t.userId).filter((id) => !bloq.has(id)).slice(0, 3);
 }
 const deps = { amigosDe: (id) => amigosDe(prisma, id), guildaDe: (id) => guildaDe(prisma, id), top3: top3Real };

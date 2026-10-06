@@ -131,7 +131,12 @@ export const xpDoNivel = (L) => Math.max(1, xpPara(L + 1) - xpPara(L));
 // folgas: bem largas para o jogo normal (missões, chefões, prêmios de guilda e eventos dão XP de uma vez)
 export const PROGRESSO = {
   niveisPorHora: 30,      // ganho máximo por hora até o nível 100: o XP de 30 níveis do nível em que estava
-  niveisPorHoraMin: 5,    // ... e cai com o nível (no 300: 10; no 600 ou mais: 5) — no 600 o jogo dá uns 0,15 nível/hora
+  // v409 (dono: "eu e o Skal não aparecemos no ranking"): no alto o 5/hora era apertado demais — com o balanço v407 cada
+  // andar NOVO da Torre dá 0,35 (de 10 em 10: 0,8) do XP do nível, repetir andar dá XP 3×/dia, Ecos e missões também
+  // vêm em lotes. Agora nunca menos de 20 níveis/hora, mais um LOTE de 5 níveis por envio.
+  niveisPorHoraMin: 20,
+  loteNiveis: 5,          // + o XP de 5 níveis de uma vez (prêmio grande que cai entre dois envios)
+  absurdo: 10,            // ganho 10× acima do máximo = impossível jogando (só este, e XP fora da curva, escondem a conta)
   folgaHoras: 0.25,       // + 15 min de folga (relógios, salvamento atrasado)
   xpFolga: 2000,          // + um tanto fixo (os primeiros níveis)
   nivelLivre: 50,         // personagem sem linha no ranking: até este nível entra sem conferir a idade da conta
@@ -159,9 +164,10 @@ export function conferirProgresso({ nivel, xp }, antes, contaDesde, agora = Date
   const base = ref;
   if (xp <= base.xp) return { ok: true }; // ficou igual ou começou outro personagem
   const horas = Math.max(0, (agora - (Number.isFinite(base.t) ? base.t : agora)) / 3600e3);
-  const maxGanho = xpDoNivel(Math.max(1, base.nivel)) * niveisPorHora(base.nivel) * (horas + PROGRESSO.folgaHoras) + PROGRESSO.xpFolga;
+  const maxGanho = xpDoNivel(Math.max(1, base.nivel)) * (niveisPorHora(base.nivel) * (horas + PROGRESSO.folgaHoras) + PROGRESSO.loteNiveis) + PROGRESSO.xpFolga;
   if (xp - base.xp > maxGanho) {
-    return { ok: false, motivo: "xp_rapido_demais", detalhe: `+${Math.round(xp - base.xp)} de XP em ${horas.toFixed(2)} h (máximo ${Math.round(maxGanho)}), nível ${base.nivel} → ${nivel}` };
+    const detalhe = `+${Math.round(xp - base.xp)} de XP em ${horas.toFixed(2)} h (máximo ${Math.round(maxGanho)}), nível ${base.nivel} → ${nivel}`;
+    return { ok: false, motivo: xp - base.xp > maxGanho * PROGRESSO.absurdo ? "xp_absurdo" : "xp_rapido_demais", detalhe };
   }
   if (ref && nivel - ref.nivel > PROGRESSO.niveisPorEnvio) {
     return { ok: false, motivo: "nivel_pulou", detalhe: `nível ${ref.nivel} → ${nivel} de uma vez` };

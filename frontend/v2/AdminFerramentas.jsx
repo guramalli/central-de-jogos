@@ -596,7 +596,8 @@ export function LendaEstatisticas() {
 // v407 (Raio-X U7): Lenda do Campinho — SUSPEITOS do ranking (envio reprovado: XP fora da curva, rápido demais,
 // nível que pulou) e PARES da feira que se repetem (vendedor ↔ comprador, possível troca entre contas do mesmo dono).
 // Suspeito fica fora dos rankings e não vende na feira até "Descartar" (alarme falso). Nada aqui bane ninguém.
-const MOTIVO_LENDA = { lenda_xp_fora_da_curva: "XP não bate com o nível", lenda_xp_rapido_demais: "Ganhou XP rápido demais", lenda_nivel_pulou: "Nível pulou de uma vez" };
+// v409: só "XP não bate" e "ganho absurdo" escondem a conta; "rápido demais" e "nível pulou" são só aviso para olhar
+const MOTIVO_LENDA = { lenda_xp_fora_da_curva: "🚫 XP não bate com o nível (escondido)", lenda_xp_absurdo: "🚫 Ganho de XP impossível (escondido)", lenda_xp_rapido_demais: "⚠️ Ganhou XP rápido (só aviso)", lenda_nivel_pulou: "⚠️ Nível pulou de uma vez (só aviso)" };
 export function LendaSuspeitos() {
   const [sus, setSus] = useState(null);
   const [pares, setPares] = useState(null);
@@ -651,7 +652,7 @@ export function LendaSuspeitos() {
           </table>
         </div>
       )}
-      <p className="v2-cartao-nota">Suspeito: some dos rankings e não vende na feira até você descartar; continua jogando normalmente. Pares repetidos só mostram o padrão (pode ser irmão comprando do irmão) — nada é bloqueado.</p>
+      <p className="v2-cartao-nota">🚫 some dos rankings e não vende na feira até você descartar; ⚠️ é só aviso (continua no ranking). Em todos os casos a pessoa continua jogando normalmente. Pares repetidos só mostram o padrão (pode ser irmão comprando do irmão) — nada é bloqueado.</p>
     </section>
   );
 }

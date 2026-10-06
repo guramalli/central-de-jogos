@@ -152,3 +152,17 @@ test("ranking confere: primeiro envio compara com a idade da conta (até o níve
   assert.ok(conferirProgresso({ nivel: 300, xp: xpPara(300) }, null, new Date(agora - 30 * 864e5), agora).ok, "jogou sem conta e entrou depois");
   assert.ok(xpDoNivel(1) >= 1);
 });
+
+test("v409: no nível alto a folga aguenta Torre/Ecos/missões (Skal 853, dono 633); absurdo é separado", () => {
+  const agora = Date.UTC(2026, 9, 7, 20);
+  for (const nv of [633, 853]) {
+    const antes = { nivel: nv, xp: xpPara(nv) + 10, atualizadoEm: new Date(agora - 60e3) };
+    // 1 minuto depois: 2 níveis de uma vez (andares novos da Torre, prêmio de missão) passa
+    assert.ok(conferirProgresso({ nivel: nv + 2, xp: xpPara(nv + 2) + 5 }, antes, null, agora).ok, "nível " + nv);
+    // 1 hora depois: 15 níveis passa
+    assert.ok(conferirProgresso({ nivel: nv + 15, xp: xpPara(nv + 15) }, { ...antes, atualizadoEm: new Date(agora - 3600e3) }, null, agora).ok);
+    // 1 minuto depois: 30 níveis = rápido demais (só vai para a lista do painel); 140 níveis = absurdo (esconde)
+    assert.equal(conferirProgresso({ nivel: nv + 30, xp: xpPara(nv + 30) }, antes, null, agora).motivo, "xp_rapido_demais");
+    assert.equal(conferirProgresso({ nivel: nv + 140, xp: xpPara(nv + 140) }, antes, null, agora).motivo, "xp_absurdo");
+  }
+});

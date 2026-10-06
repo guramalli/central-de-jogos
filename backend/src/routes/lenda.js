@@ -10,7 +10,7 @@ import { TORCIDAS, validarTorcida, amigosDe, podeTorcer, GUARDAR_DIAS as TORCIDA
 import { validarContagens, podeContar, somarContagens, resumir, GUARDAR_DIAS as CONTAGEM_DIAS } from "../lenda/contagens.js";
 import { conferirProgresso } from "../lenda/validar.js";
 import { timePublico } from "../lenda/times.js";
-import { contasForaDoRanking, registrarSuspeito, GAME_KEY } from "../lenda/suspeitos.js";
+import { contasForaDoRanking, registrarSuspeito, GAME_KEY, MOTIVOS_QUE_ESCONDEM } from "../lenda/suspeitos.js";
 import { apagarDadosLenda, tabelasLenda } from "../lenda/apagar.js";
 import { sendFeedbackEmail } from "../utils/mailer.js";
 import { contaVisita, validarDenuncia, podeDenunciar, MOTIVOS_DENUNCIA } from "../lenda/limites.js";
@@ -138,8 +138,8 @@ router.put("/ranking", requireAuth, async (req, res) => {
   }
   const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true, createdAt: true } });
   // v407 (Raio-X U7): o XP bate com o nível pela curva do jogo? ganhou rápido demais desde o último envio? o nível pulou?
-  // Reprovado: a linha é guardada mesmo assim (para o admin ver o que chegou), mas a conta fica FORA dos rankings
-  // e entra na lista de suspeitos do painel até o admin descartar (lenda/suspeitos.js).
+  // Reprovado: a linha é guardada mesmo assim e o envio entra na lista do painel. Só XP fora da curva ou ganho
+  // absurdo (MOTIVOS_QUE_ESCONDEM) tiram a conta dos rankings até o admin descartar (v409, lenda/suspeitos.js).
   const conf = conferirProgresso(v.ranking, antes, eu?.createdAt);
   if (!conf.ok) registrarSuspeito(prisma, req.user.id, "lenda_" + conf.motivo, conf.detalhe).then((novo) => { if (novo) cacheInvalidar("lenda:"); });
   const dados = { apelido: eu?.nickname || req.user.nickname || "Jogador", ...v.ranking };
@@ -150,7 +150,7 @@ router.put("/ranking", requireAuth, async (req, res) => {
   // esperava até 1 min, e a janela aberta logo em seguida vinha vazia).
   cacheInvalidar("lenda:ranking");
   registrarSinal(prisma, req.user.id, v.ranking.nivel, req.headers["user-agent"]);
-  res.json(conf.ok ? { ok: true } : { ok: true, emRevisao: true });
+  res.json(conf.ok || !MOTIVOS_QUE_ESCONDEM.includes("lenda_" + conf.motivo) ? { ok: true } : { ok: true, emRevisao: true });
 });
 
 // ---------- amigos e torcida (ver lenda/torcida.js) ----------
@@ -259,7 +259,7 @@ router.get("/admin/sessoes", requireAuth, requireRole("ADMIN"), async (req, res)
 
 // Top dos jogadores por XP. Público; guardado 1 min (o banco não acorda a
 // cada abertura da janela). Fica de fora conta banida ou oculta dos rankings.
-// v407 (Raio-X U7): fora também conta de ADMIN e os SUSPEITOS (envio reprovado; ver lenda/suspeitos.js).
+// v407 (Raio-X U7): fora também os SUSPEITOS de trapaça (ver lenda/suspeitos.js). v409: conta de admin aparece.
 // O nome do time sai sempre montado das listas (times.js), nunca o que foi digitado.
 router.get("/ranking", async (_req, res) => {
   const lista = await cacheOuBuscar("lenda:ranking", 60, async () => {
