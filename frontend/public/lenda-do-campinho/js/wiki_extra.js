@@ -91,6 +91,7 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    ['v406', '🪟 Arrastar painéis ficou mais fácil: durante o arraste, a coluna vazia vira um alvo da altura da tela inteira (antes era só um quadradinho no topo, e quem soltava no meio da tela não conseguia levar os painéis de volta para a direita). Também dá para soltar abaixo do último painel de uma coluna.'],
     ['v405', '📚 BESTIÁRIO (tecla N, ou Menu → Coleção): cada criatura tem 3 etapas liberadas pelas suas vitórias — 1ª vitória: nome e onde vive (com o caminho); 25: fôlego, ataque, XP e os itens que deixa cair; 250: as chances dos itens e Pontos de Bestiário (chefões: 1 / 3 / 5 vitórias). Com os pontos você compra bônus contra a criatura completa: +5% de dano, +5% de XP e +10% de chance de item. As vitórias que você já tinha contam! O Bestiário substitui a lista de adversários da Wiki. Shift + clique numa criatura mostra o seu progresso.'],
     ['v404', '💾 O jogo agora lembra se você joga no modo DRIBLE ou CHUTE (tecla X): ao voltar, continua no último que você usou. (A prioridade do alvo — Perto, Forte, Fraco, Fôlego — já ficava salva.)'],
     ['v403', '🎒 Cada janela de mochila agora pode ser DIMINUÍDA, como no Tibia: puxe a alcinha no rodapé da janela para cima ou para baixo (ela encaixa em fileiras inteiras e o resto rola por dentro). Cada mochila guarda o seu tamanho. Duplo clique na alcinha volta ao tamanho todo.'],

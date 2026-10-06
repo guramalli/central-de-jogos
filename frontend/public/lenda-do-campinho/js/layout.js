@@ -655,7 +655,8 @@ modalAjuda = function () {
   const st = document.createElement('style'); st.id = 'layout-css';
   const liga = Object.keys(EQ_POS).map(s => `.equip-boneco:has(.eq-slot[data-slot=${s}]:hover) [data-lig=${s}] polyline`).join(', ');
   st.textContent = `
-  /* colunas de painéis dos dois lados do jogo */
+  /* colunas de painéis dos dois lados do jogo (v406: a coluna vazia, durante o arraste, vira um alvo da altura da tela; antes
+     tinha 280 px no topo e quem soltava no meio da tela não acertava — dono: "não consigo repassar as janelas para a direita") */
   .bloco { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .bloco.arrastado, .abas button.arrastado { opacity: .45; }
   #lateral.vazia, #lateralEsq.vazia, #lateral2.vazia, #lateralEsq2.vazia { display: none; }
@@ -671,15 +672,15 @@ modalAjuda = function () {
     /* colunas extras ligadas: as vazias ficam à vista como lugar para soltar painéis */
   }
   @media (min-width: 1500px) { /* colunas extras vazias só aparecem quando a tela é larga o bastante */
-    body.colunas-extras #lateralEsq2.vazia, body.colunas-extras #lateralEsq.vazia, body.colunas-extras #lateral.vazia, body.colunas-extras #lateral2.vazia { display: flex; width: 120px; min-height: 220px; align-items: center; justify-content: center; border: 2px dashed rgba(255,210,63,.45); border-radius: 10px; }
+    body.colunas-extras #lateralEsq2.vazia, body.colunas-extras #lateralEsq.vazia, body.colunas-extras #lateral.vazia, body.colunas-extras #lateral2.vazia { display: flex; width: 120px; min-height: calc(100vh - var(--topoH, 50px) - 24px); align-items: center; justify-content: center; border: 2px dashed rgba(255,210,63,.45); border-radius: 10px; }
     body.colunas-extras .coluna-paineis.vazia::before { content: 'Arraste um painel (⠿) para cá'; color: var(--amarelo); opacity: .7; font-weight: 700; font-size: 12px; text-align: center; padding: 6px; pointer-events: none; }
   }
   @media (min-width: 901px) {
     /* muitos painéis empilhados: a coluna rola sozinha e fica sempre à vista */
     .coluna-paineis { width: 306px; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 5px 3px; align-self: start; position: sticky; top: 6px;
       max-height: calc(100vh - 12px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--madeira3) transparent; }
-    body.arrastando-painel .coluna-paineis { outline: 2px dashed rgba(255,210,63,.5); outline-offset: 2px; border-radius: 8px; }
-    body.arrastando-painel #lateral.vazia, body.arrastando-painel #lateralEsq.vazia, body.arrastando-painel #lateral2.vazia, body.arrastando-painel #lateralEsq2.vazia { display: flex; width: 120px; min-height: 280px; align-items: center; justify-content: center; border: 3px dashed var(--amarelo); border-radius: 10px; background: rgba(255,210,63,.1); outline: none; }
+    body.arrastando-painel .coluna-paineis { outline: 2px dashed rgba(255,210,63,.5); outline-offset: 2px; border-radius: 8px; min-height: calc(100vh - var(--topoH, 50px) - 24px); }
+    body.arrastando-painel #lateral.vazia, body.arrastando-painel #lateralEsq.vazia, body.arrastando-painel #lateral2.vazia, body.arrastando-painel #lateralEsq2.vazia { display: flex; width: 120px; min-height: calc(100vh - var(--topoH, 50px) - 24px); align-items: center; justify-content: center; border: 3px dashed var(--amarelo); border-radius: 10px; background: rgba(255,210,63,.1); outline: none; }
     body.arrastando-painel .coluna-paineis.vazia::before { content: 'Solte o painel aqui'; color: var(--amarelo); font-weight: 700; font-size: 13px; text-align: center; padding: 6px; pointer-events: none; }
   }
   @media (max-width: 900px) { .bloco { display: contents; } .grip, .bloco-volta, .bt-min, .abas-ferr, .cab-min { display: none !important; } }
