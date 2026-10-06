@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
-import Moldura from "./Moldura.jsx";
+import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania", geral: "Geral" };
@@ -11,7 +12,7 @@ const mes = (k) => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
-export default function Cla({ usuario, claId, embutido = false }) {
+export default function Cla({ usuario, claId }) {
   const [cla, setCla] = useState(null);
   const [erro, setErro] = useState("");
 
@@ -20,7 +21,9 @@ export default function Cla({ usuario, claId, embutido = false }) {
   }, [claId]);
 
   return (
-    <Moldura usuario={usuario} embutido={embutido}>
+    <div className="v2-app v2-com-menu">
+      <Topo usuario={usuario} ativo="clas" />
+      <main className="v2-pagina">
         <a className="v2-link" href={linkDaPagina("clas")} onClick={(e) => { e.preventDefault(); irParaPagina("clas"); }}>← Clãs</a>
         {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
         {!cla && !erro && <div className="v2-carregando">Carregando…</div>}
@@ -74,6 +77,8 @@ export default function Cla({ usuario, claId, embutido = false }) {
             </section>
           </>
         )}
-    </Moldura>
+      </main>
+      <Rodape />
+    </div>
   );
 }

@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test \"v2/**/*.test.js\""
+    "preview": "vite preview"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.1",

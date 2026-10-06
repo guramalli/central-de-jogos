@@ -2,8 +2,7 @@ import DicaNova from "./DicaNova.jsx";
 import { versaoTexto } from "./versoes.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
-import { irPara, irParaPagina, irParaStop, irParaAcro, linkDaPagina } from "./App.jsx";
-import { armazenamento, escolherSalaQuiz, escolherSalaStop, lembrarSala, ultimaSalaDo } from "./navegacao.js";
+import { irPara, irParaPagina, irParaStop, irParaAcro } from "./App.jsx";
 import { REGRAS_ACRO } from "./SalaAcro.jsx";
 import { corDoTema, nomeDoTema } from "./temas.js";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
@@ -86,11 +85,11 @@ export default function Lobby({ usuario, jogoInicial }) {
     ? Math.max(4, Math.min(100, Math.round((mensal.points / (mensal.points + mensal.nextRank.pointsNeeded)) * 100)))
     : mensal ? 100 : 0;
 
-  const entrar = (e, id, nome) => { e.preventDefault(); lembrarSala(armazenamento(), { jogo: "quiz", sala: id, nome }); irPara(id); };
+  const entrar = (e, id) => { e.preventDefault(); irPara(id); };
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} />
+      <Topo usuario={usuario} ativo={jogo} />
 
       <div className="v2-lobby">
         <section className="v2-saudacao">
@@ -122,19 +121,22 @@ export default function Lobby({ usuario, jogoInicial }) {
         </section>
 
 
-        <JogarAgora
-          jogo={jogo}
-          salasStop={salasStop}
-          salasQuiz={salas}
-          nivel={nivel}
-          pontosVitalicios={vitalicio?.points || 0}
-          acroAtivo={acro ? acro.ativo : null}
-        />
+        <Top3 jogo={jogo} />
 
-        {!(jogo === "acromania" && acro && !acro.ativo) && <h2 className="v2-bloco-titulo v2-escolha-titulo">Ou escolha a sala</h2>}
+        {(jogo === "stop" || jogo === "quiz") && (
+          <a className="v2-chamada-multi" href={`/v2/?pagina=varias&jogo=${jogo}`} onClick={(e) => { e.preventDefault(); irParaPagina("varias", { jogo }); }}>
+            <span className="v2-chamada-multi-icone" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="8" height="8" rx="2" /><rect x="13" y="3" width="8" height="8" rx="2" /><rect x="3" y="13" width="8" height="8" rx="2" /><rect x="13" y="13" width="8" height="8" rx="2" /></svg>
+            </span>
+            <span className="v2-chamada-multi-texto"><b>Jogar em várias salas ao mesmo tempo</b><span>Abra até 4 partidas na mesma tela, sem trocar de aba</span></span>
+            <span aria-hidden="true">→</span>
+          </a>
+        )}
 
-        {jogo === "stop" && <LobbyStop salas={salasStop} jogando={jogandoStop} />}
-        {jogo === "acromania" && <LobbyAcro dados={acro} jogando={jogandoAcro} />}
+        {jogo === "stop" && <LobbyStop salas={salasStop} privadas={privadas} jogando={jogandoStop} />}
+        {jogo === "acromania" && <PartidaRapida jogo="acromania" />}
+        {jogo === "acromania" && <LobbyAcro dados={acro} privadas={privadasAcro} jogando={jogandoAcro} />}
+
 
         {jogo === "quiz" && (<>
         <div className="v2-filtros">
@@ -155,7 +157,7 @@ export default function Lobby({ usuario, jogoInicial }) {
               <a
                 key={s.roomId}
                 href={`/v2/?sala=${s.roomId}`}
-                onClick={(e) => entrar(e, s.roomId, nomeDoTema(s.label))}
+                onClick={(e) => entrar(e, s.roomId)}
                 className="v2-card"
                 title={s.description || undefined}
                 style={{ "--cor": cor, "--sombra": sombra, animationDelay: `${i * 35}ms` }}
@@ -183,7 +185,7 @@ export default function Lobby({ usuario, jogoInicial }) {
           <section className="v2-arenas">
             <div className="v2-bloco-titulo v2-arenas-titulo">Arenas</div>
             {arenas.map((a) => (
-              <a key={a.roomId} href={`/v2/?sala=${a.roomId}`} onClick={(e) => entrar(e, a.roomId, a.label.replace(/^[^\p{L}\d]+/u, ""))} className="v2-arena">
+              <a key={a.roomId} href={`/v2/?sala=${a.roomId}`} onClick={(e) => entrar(e, a.roomId)} className="v2-arena">
                 <span className="v2-arena-raio" aria-hidden="true">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h8l-1 8 9-12h-8z" /></svg>
                 </span>
@@ -198,11 +200,7 @@ export default function Lobby({ usuario, jogoInicial }) {
         )}
         </>)}
 
-        {!(jogo === "acromania" && acro && !acro.ativo) && <OutrasFormas jogo={jogo} />}
-        {jogo === "stop" && <SalasDosJogadores jogo="stop" privadas={privadas} />}
-        {jogo === "acromania" && acro?.ativo !== false && <SalasDosJogadores jogo="acromania" privadas={privadasAcro} />}
-
-        <Top3 jogo={jogo} />
+        <EscadaPatentes jogo={jogo} mensal={mensal} />
       </div>
       <Rodape />
     </div>
@@ -216,8 +214,8 @@ const DIFICULDADE = {
   advanced: { rotulo: "Difícil", arte: "dificil", cor: "#FF8A7F", sombra: "#C7493F" },
 };
 
-function LobbyStop({ salas, jogando }) {
-  const entrar = (e, id, nome) => { e.preventDefault(); lembrarSala(armazenamento(), { jogo: "stop", sala: id, nome }); irParaStop(id); };
+function LobbyStop({ salas, privadas, jogando }) {
+  const entrar = (e, id) => { e.preventDefault(); irParaStop(id); };
   return (
     <>
       <div className="v2-filtros">
@@ -236,7 +234,7 @@ function LobbyStop({ salas, jogando }) {
             <a
               key={s.roomId}
               href={`/v2/?stop=${s.roomId}`}
-              onClick={(e) => entrar(e, s.roomId, s.label)}
+              onClick={(e) => entrar(e, s.roomId)}
               className={`v2-card v2-card-stop ${cheia ? "cheia" : ""}`}
               style={{ "--cor": d.cor, "--sombra": d.sombra, animationDelay: `${i * 35}ms` }}
               title={s.description || undefined}
@@ -254,12 +252,36 @@ function LobbyStop({ salas, jogando }) {
         })}
       </div>
 
+      <section className="v2-privadas">
+        <div className="v2-privadas-cabeca">
+          <div>
+            <h2>Salas dos jogadores</h2>
+            <p>Criadas pela galera, com a mesa validando as palavras. Não contam pro ranking.</p>
+          </div>
+          <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=privadas&jogo=stop" onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "stop" }); }}>+ Criar sala</a>
+        </div>
+        {privadas.length === 0 ? (
+          <p className="v2-privadas-vazio">Nenhuma sala aberta agora.</p>
+        ) : (
+          <div className="v2-privadas-lista">
+            {privadas.map((p) => (
+              <a key={p.roomId} className="v2-privada" href={`/v2/?pagina=privadas&jogo=stop&privada=${p.roomId}`} onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "stop", privada: p.roomId }); }}>
+                <div className="v2-privada-topo">
+                  <b>{p.temSenha ? "🔒 " : ""}{p.nome}</b>
+                  <span>{p.jogadores === 0 ? "esperando" : `${p.jogadores}/${p.maxPlayers}`}</span>
+                </div>
+                <div className="v2-privada-info">por {p.criador} · {p.answerSeconds}s por rodada · {p.temas.length} temas</div>
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
     </>
   );
 }
 
-function LobbyAcro({ dados, jogando }) {
-  const entrar = (e, id, nome) => { e.preventDefault(); lembrarSala(armazenamento(), { jogo: "acromania", sala: id, nome }); irParaAcro(id); };
+function LobbyAcro({ dados, privadas, jogando }) {
+  const entrar = (e, id) => { e.preventDefault(); irParaAcro(id); };
   if (dados && !dados.ativo) {
     return (
       <section className="v2-cartao v2-manutencao">
@@ -280,7 +302,7 @@ function LobbyAcro({ dados, jogando }) {
           {(dados?.rooms || []).map((r, i) => {
             const cheia = r.onlineCount >= r.maxPlayers;
             return (
-              <a key={r.roomId} href={`/v2/?acro=${r.roomId}`} onClick={(e) => entrar(e, r.roomId, r.label)} className={`v2-card v2-card-stop ${cheia ? "cheia" : ""}`} style={{ "--cor": i % 2 ? "#FF9ED2" : "#C3A6FF", "--sombra": i % 2 ? "#C75A96" : "#8465D1", animationDelay: `${i * 35}ms` }} title={r.description || undefined}>
+              <a key={r.roomId} href={`/v2/?acro=${r.roomId}`} onClick={(e) => entrar(e, r.roomId)} className={`v2-card v2-card-stop ${cheia ? "cheia" : ""}`} style={{ "--cor": i % 2 ? "#FF9ED2" : "#C3A6FF", "--sombra": i % 2 ? "#C75A96" : "#8465D1", animationDelay: `${i * 35}ms` }} title={r.description || undefined}>
                 <div className="v2-card-topo">
                   <span className="v2-card-icone"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2B1B5E" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" /></svg></span>
                   {r.onlineCount > 0 && <span className="v2-card-selo">{cheia ? "lotada" : `${r.onlineCount}/${r.maxPlayers}`}</span>}
@@ -300,6 +322,28 @@ function LobbyAcro({ dados, jogando }) {
         </section>
       </div>
 
+      <section className="v2-privadas">
+        <div className="v2-privadas-cabeca">
+          <div>
+            <h2>Salas dos jogadores</h2>
+            <p>Com tempos e número de rodadas escolhidos por quem abriu. Não contam pro ranking.</p>
+          </div>
+          <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=privadas&jogo=acromania" onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "acromania" }); }}>+ Criar sala</a>
+        </div>
+        {privadas.length === 0 ? <p className="v2-privadas-vazio">Nenhuma sala aberta agora.</p> : (
+          <div className="v2-privadas-lista">
+            {privadas.map((p) => (
+              <a key={p.roomId} className="v2-privada" href={`/v2/?pagina=privadas&jogo=acromania&privada=${p.roomId}`} onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo: "acromania", privada: p.roomId }); }}>
+                <div className="v2-privada-topo">
+                  <b>{p.temSenha ? "🔒 " : ""}{p.nome}</b>
+                  <span>{p.jogadores === 0 ? "esperando" : `${p.jogadores}/${p.maxPlayers}`}</span>
+                </div>
+                {p.criador && <div className="v2-privada-info">por {p.criador}</div>}
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
     </>
   );
 }
@@ -391,88 +435,6 @@ export function EscadaPatentes({ jogo, mensal, semLink = false, rodape = null })
         })}
       </div>
       {rodape && <p className="v2-cartao-nota">{rodape}</p>}
-    </section>
-  );
-}
-
-// JOGAR AGORA — o caminho principal da página de cada jogo. Stop e Quiz
-// escolhem uma sala (regras em navegacao.js) e dizem qual antes do clique;
-// na Acromania o caminho principal é a fila de espera.
-function JogarAgora({ jogo, salasStop, salasQuiz, nivel, pontosVitalicios, acroAtivo }) {
-  if (jogo === "acromania") return acroAtivo === false ? null : <PartidaRapida jogo="acromania" />;
-  const mem = armazenamento();
-  const lista = jogo === "stop" ? salasStop : salasQuiz;
-  const escolha = jogo === "stop"
-    ? escolherSalaStop(lista, { ultimaSala: ultimaSalaDo(mem, "stop"), pontosVitalicios })
-    : escolherSalaQuiz(lista, { ultimaSala: ultimaSalaDo(mem, "quiz"), nivel });
-  const nome = escolha ? (jogo === "quiz" ? nomeDoTema(escolha.sala.label) : escolha.sala.label) : "";
-  const texto = lista === null ? "Procurando a melhor sala…"
-    : !escolha ? "Nenhuma sala com vaga agora. Escolha uma abaixo."
-    : escolha.motivo === "mais-gente" ? `Sala com mais gente agora: ${nome} (${escolha.sala.onlineCount} jogando)`
-    : escolha.motivo === "ultima" ? `Voltar pra sua última sala: ${nome}`
-    : `Comece por aqui: ${nome}`;
-  const entrar = () => {
-    if (!escolha) return;
-    lembrarSala(mem, { jogo, sala: escolha.sala.roomId, nome });
-    (jogo === "stop" ? irParaStop : irPara)(escolha.sala.roomId);
-  };
-  return (
-    <section className="v2-jogar-agora" aria-label="Jogar agora">
-      <p>{texto}</p>
-      <button type="button" className="v2-botao v2-botao-amarelo" onClick={entrar} disabled={!escolha}>Jogar agora</button>
-    </section>
-  );
-}
-
-// OUTRAS FORMAS DE JOGAR — sala privada e várias salas, juntas. No celular
-// ficam atrás de um botão (abre/fecha); no computador, sempre à mostra.
-function OutrasFormas({ jogo }) {
-  const [aberto, setAberto] = useState(false);
-  const itens = [];
-  if (jogo === "stop" || jogo === "acromania") itens.push({ pagina: "privadas", rotulo: "Criar sala privada", dica: "Com seus temas e seu tempo, pra jogar com a galera" });
-  if (jogo === "stop" || jogo === "quiz") itens.push({ pagina: "varias", rotulo: "Várias salas ao mesmo tempo", dica: "Até 4 partidas na mesma tela" });
-  return (
-    <section className={`v2-outras-formas ${aberto ? "aberto" : ""}`}>
-      <button type="button" className="v2-outras-formas-abrir" aria-expanded={aberto} onClick={() => setAberto((a) => !a)}>
-        Outras formas de jogar <span aria-hidden="true">{aberto ? "▴" : "▾"}</span>
-      </button>
-      <h2 className="v2-bloco-titulo v2-outras-formas-titulo">Outras formas de jogar</h2>
-      <div className="v2-outras-formas-lista">
-        {itens.map((it) => (
-          <a key={it.pagina} className="v2-outra-forma" href={linkDaPagina(it.pagina, { jogo })} onClick={(e) => { e.preventDefault(); irParaPagina(it.pagina, { jogo }); }}>
-            <b>{it.rotulo}</b><span>{it.dica}</span>
-          </a>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// SALAS DOS JOGADORES — as privadas abertas agora (Stop e Acromania). Antes
-// eram duas cópias quase iguais dentro de LobbyStop e LobbyAcro.
-function SalasDosJogadores({ jogo, privadas }) {
-  if (privadas.length === 0) return null;
-  return (
-    <section className="v2-privadas">
-      <div className="v2-privadas-cabeca">
-        <div>
-          <h2>Salas dos jogadores</h2>
-          <p>{jogo === "stop" ? "Criadas pela galera, com a mesa validando as palavras. Não contam pro ranking." : "Com tempos e número de rodadas escolhidos por quem abriu. Não contam pro ranking."}</p>
-        </div>
-      </div>
-      <div className="v2-privadas-lista">
-        {privadas.map((p) => (
-          <a key={p.roomId} className="v2-privada" href={`/v2/?pagina=privadas&jogo=${jogo}&privada=${p.roomId}`} onClick={(e) => { e.preventDefault(); irParaPagina("privadas", { jogo, privada: p.roomId }); }}>
-            <div className="v2-privada-topo">
-              <b>{p.temSenha ? "🔒 " : ""}{p.nome}</b>
-              <span>{p.jogadores === 0 ? "esperando" : `${p.jogadores}/${p.maxPlayers}`}</span>
-            </div>
-            {jogo === "stop"
-              ? <div className="v2-privada-info">por {p.criador} · {p.answerSeconds}s por rodada · {p.temas.length} temas</div>
-              : p.criador && <div className="v2-privada-info">por {p.criador}</div>}
-          </a>
-        ))}
-      </div>
     </section>
   );
 }

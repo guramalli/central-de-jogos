@@ -137,7 +137,7 @@ export default function EditarPerfil({ usuario }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} />
+      <Topo usuario={usuario} ativo={null} />
       <main className="v2-pagina">
         <div className="v2-pagina-cabeca">
           <h1>Meu perfil</h1>

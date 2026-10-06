@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, sair } from "./api.js";
-import Moldura from "./Moldura.jsx";
+import Topo from "./Topo.jsx";
 import JornadaTitulos from "./JornadaTitulos.jsx";
+import Rodape from "./Rodape.jsx";
 import { irParaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarBoneco from "./AvatarBoneco.jsx";
@@ -46,7 +47,7 @@ function mesPorExtenso(k) {
 
 const nivelDaMedalha = (logo) => (typeof logo === "string" && logo.match(/-(bronze|prata|ouro)\.png$/i)?.[1]?.toLowerCase()) || "";
 
-export default function Perfil({ usuario, userId, embutido = false }) {
+export default function Perfil({ usuario, userId }) {
   const [perfil, setPerfil] = useState(null);
   const [erro, setErro] = useState("");
   const [titulos, setTitulos] = useState([]);
@@ -93,7 +94,9 @@ export default function Perfil({ usuario, userId, embutido = false }) {
   const visto = vistoPorUltimo(perfil?.ultimoAcesso);
 
   return (
-    <Moldura usuario={usuario} embutido={embutido}>
+    <div className="v2-app v2-com-menu">
+      <Topo usuario={usuario} ativo={souEu ? "jogador" : null} />
+      <main className="v2-pagina">
         {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
         {!perfil && !erro && <div className="v2-carregando">Carregando perfil…</div>}
 
@@ -122,13 +125,12 @@ export default function Perfil({ usuario, userId, embutido = false }) {
                 </div>
                 {convite && !["ok", "enviando"].includes(convite) && <div className="v2-erro-pequeno">{convite}</div>}
                 <div className="v2-perfil-acoes">
-                  {/* Dentro de Eu (embutido) os atalhos da conta já estão logo acima. */}
-                  {souEu ? (embutido ? null : (
+                  {souEu ? (
                     <div className="v2-perfil-meus-botoes">
                       <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Editar meu perfil</a>
                       <button className="v2-botao v2-botao-contorno" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.replace("/v2/"); } }}>Sair</button>
                     </div>
-                  )) : amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? (
+                  ) : amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? (
                     <span className="v2-selo-ok">Pedido de amizade enviado</span>
                   ) : perfil.friendshipStatus === "friends" ? (
                     <button className="v2-botao v2-botao-amarelo" onClick={() => irParaPagina("amigos", { id: userId })}>Mandar mensagem</button>
@@ -229,6 +231,8 @@ export default function Perfil({ usuario, userId, embutido = false }) {
             )}
           </>
         )}
-    </Moldura>
+      </main>
+      <Rodape />
+    </div>
   );
 }

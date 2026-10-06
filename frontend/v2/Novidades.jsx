@@ -11,7 +11,7 @@ function data(iso) {
 export default function Novidades({ usuario }) {
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} />
+      <Topo usuario={usuario} ativo={null} />
       <main className="v2-pagina">
         <div className="v2-pagina-cabeca"><h1>Novidades</h1></div>
         <p className="v2-pagina-nota">O que mudou no site, da mais recente pra mais antiga.</p>

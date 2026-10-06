@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
-import Moldura from "./Moldura.jsx";
+import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 
 const irCla = (e, id) => { e.preventDefault(); irParaPagina("cla", { id }); };
 const irJogador = (e, id) => { e.preventDefault(); irParaPagina("jogador", { id }); };
 
-export default function Clas({ usuario, embutido = false }) {
+export default function Clas({ usuario }) {
   const [meu, setMeu] = useState(null);
   const [convites, setConvites] = useState([]);
   const [todos, setTodos] = useState([]);
@@ -47,7 +48,9 @@ export default function Clas({ usuario, embutido = false }) {
   const cla = meu?.clan;
 
   return (
-    <Moldura usuario={usuario} embutido={embutido}>
+    <div className="v2-app v2-com-menu">
+      <Topo usuario={usuario} ativo="clas" />
+      <main className="v2-pagina">
         <div className="v2-pagina-cabeca"><h1>Clãs</h1></div>
         <p className="v2-pagina-nota">Junte a galera num clã: os pontos do mês de todos os membros somam no ranking de clãs.</p>
         {aviso && <div className={`v2-faixa-aviso ${aviso.ok ? "ok" : "erro"}`} role="status">{aviso.texto}</div>}
@@ -156,6 +159,8 @@ export default function Clas({ usuario, embutido = false }) {
             })}
           </div>
         </section>
-    </Moldura>
+      </main>
+      <Rodape />
+    </div>
   );
 }

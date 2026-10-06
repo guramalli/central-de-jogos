@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
-import Moldura from "./Moldura.jsx";
+import Topo from "./Topo.jsx";
+import Rodape from "./Rodape.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarBoneco, { BonecoDoJogador } from "./AvatarBoneco.jsx";
 
@@ -21,7 +22,7 @@ const Jogador = ({ id, nick }) => (
   <a href={linkDaPagina("jogador", { id })} onClick={(e) => { e.preventDefault(); irParaPagina("jogador", { id }); }}>{nick}</a>
 );
 
-export default function HallFama({ usuario, embutido = false }) {
+export default function HallFama({ usuario }) {
   const [meses, setMeses] = useState(null);
   const [mes, setMes] = useState(null);
   const [jogo, setJogo] = useState("stop");
@@ -43,7 +44,9 @@ export default function HallFama({ usuario, embutido = false }) {
   const m = stats?.marcas;
 
   return (
-    <Moldura usuario={usuario} embutido={embutido}>
+    <div className="v2-app v2-com-menu">
+      <Topo usuario={usuario} ativo="hall" />
+      <main className="v2-pagina">
         <a className="v2-link" href={linkDaPagina("ranking")} onClick={(e) => { e.preventDefault(); irParaPagina("ranking"); }}>← Ranking</a>
         <div className="v2-pagina-cabeca"><h1>Hall da Fama</h1></div>
         <p className="v2-pagina-nota">Os campeões de cada mês já encerrado — e as marcas que ficam pra sempre.</p>
@@ -161,6 +164,8 @@ export default function HallFama({ usuario, embutido = false }) {
             </div>
           </>
         )}
-    </Moldura>
+      </main>
+      <Rodape />
+    </div>
   );
 }

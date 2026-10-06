@@ -219,7 +219,7 @@ export default function Impostor({ usuario, salaDoLink }) {
     // motion corta deslocamentos e escalas e deixa só os fades.
     <MotionConfig reducedMotion="user">
       <div className="v2-app v2-com-menu imp-app">
-        <Topo usuario={usuario} />
+        <Topo usuario={usuario} ativo={null} />
         <main className={estado ? "imp com-chat" : "imp"}>
           <div className="imp-barra">
             {/* Tela inicial: um jeito claro de desistir e voltar pro lobby.
