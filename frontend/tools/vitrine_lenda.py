@@ -132,6 +132,8 @@ def main():
     L = a.loja
     webp(os.path.join(L, "arte", "capa_horizontal.png"), os.path.join(JOGO_A, "capa.webp"), 2560, 440)
     webp(os.path.join(L, "arte", "capa_vertical.png"), os.path.join(JOGO_A, "capa_vertical.webp"), 1200, 250)
+    # card da Lenda no Início do site (v2/LendaDestaque.jsx): a capa num tamanho de card
+    webp(os.path.join(L, "arte", "capa_horizontal.png"), os.path.join(VIT, "a", "capa_card.webp"), 1400, 210)
     webp(os.path.join(L, "steam", "library_logo_1280x720.png"), os.path.join(VIT, "a", "logo.webp"), 1006, 115, q=90, corte=LOGO_CORTE)
     webp(os.path.join(L, "previa_pagina", "trailer_poster.jpg"), os.path.join(VIT, "a", "poster.webp"), 1280, 140)
     og(os.path.join(L, "arte", "capa_horizontal.png"), os.path.join(VIT, "a", "og.jpg"))
