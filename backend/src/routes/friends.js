@@ -6,6 +6,7 @@ import { getAllOnlineUserIds as getQuizOnline } from "../game/quizGameManager.js
 import { getAllOnlineUserIds as getAcromaniaOnline } from "../game/acromaniaGameManager.js";
 import { cacheInvalidar } from "../utils/cache.js";
 import { getOnlineList } from "../game/presence.js";
+import { podePedirAmizade, PEDIDOS_DIA } from "../lenda/limites.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -220,6 +221,11 @@ router.post("/request", async (req, res) => {
     return res.status(409).json({ error: "Já existe um pedido de amizade pendente entre vocês." });
   }
 
+  // v407 (Raio-X U5, Lenda do Campinho): no máximo PEDIDOS_DIA pedidos NOVOS por dia por conta (no jogo dá para pedir
+  // amizade a qualquer um que passa; sem teto, uma conta podia mandar pedido para todo mundo). Admin e moderador fora.
+  if (req.user.role !== "ADMIN" && req.user.role !== "MODERATOR" && !podePedirAmizade(userId)) {
+    return res.status(429).json({ error: `Você já pediu ${PEDIDOS_DIA} amizades hoje. Amanhã tem mais!` });
+  }
   // Novo pedido: o avisinho de quem recebeu precisa atualizar.
   const friendship = await prisma.friendship.create({
     data: { userAId: userId, userBId: target.id, status: "pending" },

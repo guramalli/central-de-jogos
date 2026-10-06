@@ -40,6 +40,7 @@ import lendaGuildaRoutes from "./routes/lendaGuilda.js";
 import lendaMercadoRoutes from "./routes/lendaMercado.js";
 import { setupSocket } from "./socket/index.js";
 import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
+import { verifyToken } from "./utils/jwt.js";
 
 const app = express();
 const server = createServer(app);
@@ -99,14 +100,39 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 // rotas). Serve pra impedir que um script maluco ou um bug de front
 // derrube o servidor inteiro pedindo dados em laço — importante quando
 // muita gente chega de uma vez.
+//
+// v407 (Raio-X A9, Lenda do Campinho): numa ESCOLA, a sala inteira sai pelo
+// mesmo IP — 30 crianças jogando o Lenda logadas estouravam o teto do IP e
+// todo mundo levava "muitas requisições". Por isso as rotas /api/lenda COM
+// login contam por CONTA (limiteLendaConta, abaixo) e não entram no teto do
+// IP; sem login (ranking público, estatísticas anônimas) continuam por IP.
+const contaDoToken = (req) => {
+  if (req._contaLenda !== undefined) return req._contaLenda;
+  const h = req.headers.authorization;
+  let id = null;
+  if (h && h.startsWith("Bearer ")) { try { id = verifyToken(h.slice(7)).id || null; } catch { id = null; } }
+  return (req._contaLenda = id);
+};
+const ehLendaComConta = (req) => req.originalUrl.startsWith("/api/lenda") && !!contaDoToken(req);
 const limiteGlobal = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
   max: 300, // 300 requisições por minuto por IP
   standardHeaders: true,
   legacyHeaders: false,
+  skip: ehLendaComConta,
   message: { error: "Muitas requisições. Aguarde um instante e tente de novo." },
 });
 app.use("/api", limiteGlobal);
+const limiteLendaConta = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240, // por CONTA (o jogo faz bem menos: save, ranking, guilda e feira de minuto em minuto)
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !contaDoToken(req),
+  keyGenerator: (req) => "conta:" + contaDoToken(req),
+  message: { error: "Muitas requisições. Aguarde um instante e tente de novo." },
+});
+app.use("/api/lenda", limiteLendaConta);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

@@ -14,6 +14,11 @@ export const MIN_AJUDA = 50;                       // pontos na semana para pode
 export const METAS = [2000, 10000, 30000, 80000];  // adversários derrotados pela guilda na semana
 export const TETO_POR_ENVIO = 400;                 // pontos por envio
 export const ENVIO_MIN_MS = 45 * 1000;             // intervalo mínimo entre envios do mesmo jogador
+// v407 (Raio-X U7): teto da SEMANA por membro (ninguém carrega a guilda sozinho com envios forjados). Quem caça muito
+// ainda chega lá: 12 mil adversários numa semana é bem mais do que uma criança derrota jogando todo dia.
+export const TETO_SEMANA_MEMBRO = 12000;
+// quanto do envio ainda cabe na semana do membro
+export const cabeNaSemana = (n, jaNaSemana) => Math.max(0, Math.min(n, TETO_SEMANA_MEMBRO - (jaNaSemana || 0)));
 
 // [plural, gênero]
 export const NOMES = [

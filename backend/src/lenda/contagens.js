@@ -18,7 +18,13 @@ export const EVENTOS = {
   derrota: /^primeira$/,
   sessao: /^m(0_5|5_15|15_30|30_60|60)$/,
   retorno: /^d(1|7|30)$/,
+  // v407 (Raio-X I7): onde as crianças param
+  missao: /^[a-z0-9_]{1,40}$/,           // missão concluída (só o ID da missão, uma vez por personagem)
+  desistiu: /^criacao$/,                  // fechou o jogo na tela de criar personagem
+  primeira: /^(caca|chefe)$/,             // primeira área de caça / primeiro chefão vencido
 };
+// v407 (Raio-X I7): no painel, número com menos de MIN_PESSOAS não aparece (com tão pouca gente daria para adivinhar quem é)
+export const MIN_PESSOAS = 5;
 export const PLATAFORMAS = new Set(["celular", "computador"]);
 export const MAX_EVENTOS = 20;
 export const GUARDAR_DIAS = 400;
@@ -73,12 +79,16 @@ export async function somarContagens(prisma, itens, agora = Date.now()) {
 }
 
 // Resumo para o painel do dono: soma por evento/valor no período (e por dia).
-export function resumir(linhas) {
+// v407 (Raio-X I7): o que tem menos de MIN_PESSOAS sai do resultado (a chave vai para `poucos`, o painel mostra "menos de 5").
+export function resumir(linhas, minimo = MIN_PESSOAS) {
   const total = {}, porDia = {};
   for (const l of linhas) {
     const k = l.evento + (l.valor ? ":" + l.valor : "");
     total[k] = (total[k] || 0) + l.n;
     (porDia[l.dia] ||= {})[k] = ((porDia[l.dia] || {})[k] || 0) + l.n;
   }
-  return { total, porDia };
+  const poucos = [];
+  for (const k of Object.keys(total)) if (total[k] < minimo) { poucos.push(k); delete total[k]; }
+  for (const d of Object.keys(porDia)) for (const k of Object.keys(porDia[d])) if (porDia[d][k] < minimo) delete porDia[d][k];
+  return { total, porDia, poucos, minimo };
 }

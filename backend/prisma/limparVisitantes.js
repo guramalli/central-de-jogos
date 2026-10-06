@@ -10,6 +10,7 @@
 //   npm run limpar-visitantes -- --go      -> apaga de verdade
 //   npm run limpar-visitantes -- --dias=30 -> muda o prazo (padrão: 7 dias)
 import { PrismaClient } from "@prisma/client";
+import { apagarDadosLenda, tabelasLenda } from "../src/lenda/apagar.js";
 
 const prisma = new PrismaClient();
 
@@ -81,6 +82,8 @@ async function main() {
     ["denúncias de pergunta", () => prisma.quizQuestionReport.deleteMany({ where: { userId: { in: ids } } })],
     ["atividades suspeitas", () => prisma.suspiciousActivity.deleteMany({ where: { userId: { in: ids } } })],
     ["feedbacks", () => prisma.feedback.deleteMany({ where: { userId: { in: ids } } })],
+    // v407 (Raio-X U6): os dados do Lenda do Campinho (save, ranking, casa, guilda, feira...) saem junto
+    ["Lenda do Campinho", async () => { const t = await tabelasLenda(prisma); let n = 0; for (const id of ids) { await prisma.$transaction((tx) => apagarDadosLenda(tx, id, t)); n++; } return { count: n }; }],
   ];
 
   for (const [nome, fn] of etapas) {

@@ -17,6 +17,7 @@ import { prisma } from "../db.js";
 import { limpaPerfil } from "./socketTorre.js";
 import { mapaValido } from "./socketMundo.js";
 import { colegasDeGuilda } from "./guilda.js";
+import { prefsDe } from "./prefs.js";
 
 export const MAX_GRUPO = 4;
 // dono: "deve existir uma diferença mínima entre os players para poder fazer party" → o nível mais alto pode ser
@@ -115,6 +116,9 @@ export function registrarGrupo(io, socket) {
       const amigo = String(dados?.amigoId || "");
       if (!amigo || amigo === eu) return responde(cb, { erro: "Jogador inválido." });
       if (g.membros.has(amigo)) return responde(cb, { erro: "Já está no grupo." });
+      // v407 (Raio-X U5): por padrão cada um só recebe convite de AMIGOS e colegas de guilda (prefs.js); quem quiser
+      // liga "aceitar convites de todos" em ⚙️ › 🌐 Online
+      if (!prefsDe(amigo).convitesTodos && !(await deps.amigosDe(eu)).includes(amigo)) return responde(cb, { erro: "Esse jogador só aceita convites de amigos. Peça amizade primeiro (botão direito › ➕ Pedir amizade)!" });
       const t = Date.now(); convites = convites.filter((x) => t - x < 60000);
       if ((convites.length && t - convites[convites.length - 1] < CONVITE_CADA_MS) || convites.length >= CONVITES_MIN) return responde(cb, { erro: "Calma! Espere um pouquinho para chamar de novo." });
       convites.push(t);

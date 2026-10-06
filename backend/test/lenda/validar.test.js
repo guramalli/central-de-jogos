@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validarSave, validarCasa, escolherCasas, LIMITES, validarRanking } from "../../src/lenda/validar.js";
+import { validarSave, validarCasa, escolherCasas, LIMITES, validarRanking, xpPara, xpDoNivel, conferirProgresso, PROGRESSO } from "../../src/lenda/validar.js";
 
 // Nada aqui toca o banco: só as regras do que o jogo pode mandar.
 
@@ -63,11 +63,14 @@ test("escolherCasas: tira a própria pessoa, põe as mais prestigiadas primeiro 
   assert.deepEqual(escolherCasas([], { limite: 3 }), []);
 });
 
-test("ranking: aceita o resumo do progresso e limpa o nome do time", () => {
+test("ranking: aceita o resumo do progresso; o nome do time só vem das listas (v407, U1)", () => {
   const v = validarRanking({ nivel: 27, xp: 15400, posicao: "atacante", fase: "Sub-20", time: { nome: " <b>Campinho</b> FC ", div: 3, titulos: 1 }, chefes: 4, figs: 30 });
   assert.equal(v.ok, true);
-  assert.equal(v.ranking.time.nome, "bCampinho/b FC");
+  assert.equal(v.ranking.time.nome, null, "nome livre é ignorado");
   assert.equal(v.ranking.nivel, 27);
+  const l = validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { nome: "qualquer coisa", partes: "3.0", div: 3 } });
+  assert.deepEqual(l.ranking.time, { partes: "3.0", nome: "Unidos do Campinho", div: 3, titulos: 0 });
+  assert.equal(validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { partes: "3.999", div: 3 } }).ranking.time.nome, null);
 });
 
 test("ranking: recusa números absurdos, fase inventada e posição estranha", () => {
@@ -76,7 +79,8 @@ test("ranking: recusa números absurdos, fase inventada e posição estranha", (
   assert.ok(!validarRanking({ nivel: 5, xp: 1.5, fase: "Criança" }).ok);
   assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Deus" }).ok);
   assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", posicao: "<script>" }).ok);
-  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", time: { nome: "", div: 1 } }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", time: { nome: "", div: 99 } }).ok);
+  assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", time: "Meu time" }).ok);
   assert.ok(validarRanking({ nivel: 5, xp: 10, fase: "Criança" }).ok);
 });
 
@@ -103,4 +107,45 @@ test("ranking: habilidades (v388) — opcionais, números de 0 a 1000", () => {
   assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", skills: { drible: 5000 } }).ok);
   assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", skills: { visao: 2.5 } }).ok);
   assert.ok(!validarRanking({ nivel: 5, xp: 10, fase: "Criança", skills: "muito" }).ok);
+});
+
+// ---------- v407 (Raio-X U7): o ranking confere o progresso ----------
+import { readFileSync, existsSync } from "node:fs";
+test("a curva de XP do servidor é a MESMA do jogo publicado (js/game.js, xpPara)", (t) => {
+  const arq = new URL("../../../frontend/public/lenda-do-campinho/js/game.js", import.meta.url);
+  if (!existsSync(arq)) return t.skip("jogo não está nesta cópia");
+  const m = readFileSync(arq, "utf8").match(/function xpPara\(L\) \{[^\n]*\}/);
+  assert.ok(m, "achei a xpPara do jogo");
+  const xpJogo = new Function(m[0] + "; return xpPara;")();
+  for (let L = 1; L <= 1000; L++) assert.equal(xpPara(L), xpJogo(L), "nível " + L);
+});
+
+test("ranking confere: XP precisa bater com o nível", () => {
+  assert.ok(conferirProgresso({ nivel: 10, xp: xpPara(10) + 5 }, null, new Date()).ok);
+  assert.equal(conferirProgresso({ nivel: 10, xp: xpPara(12) }, null, new Date()).motivo, "xp_fora_da_curva");
+  assert.equal(conferirProgresso({ nivel: 10, xp: xpPara(9) }, null, new Date()).motivo, "xp_fora_da_curva");
+  assert.ok(conferirProgresso({ nivel: 481, xp: 7_189_595_200 }, { nivel: 481, xp: 7_189_000_000, atualizadoEm: new Date(Date.now() - 60e3) }, new Date(0)).ok, "save real do nível 481");
+});
+
+test("ranking confere: ganho de XP por hora contra o envio anterior, e nível que pula", () => {
+  const agora = Date.UTC(2026, 9, 6, 15);
+  const antes = { nivel: 100, xp: xpPara(100) + 10, atualizadoEm: new Date(agora - 60e3) };
+  // 1 minuto depois: subir 1 nível é normal
+  assert.ok(conferirProgresso({ nivel: 101, xp: xpPara(101) + 1 }, antes, null, agora).ok);
+  // 1 minuto depois: subir 15 níveis não dá
+  assert.equal(conferirProgresso({ nivel: 115, xp: xpPara(115) }, antes, null, agora).motivo, "xp_rapido_demais");
+  // 3 dias sem mandar: subir 40 níveis é possível (jogou sem internet, ou com o ranking parado)
+  assert.ok(conferirProgresso({ nivel: 140, xp: xpPara(140) }, { ...antes, atualizadoEm: new Date(agora - 3 * 864e5) }, null, agora).ok);
+  // muito tempo depois, mas pulando de vez mais do que o teto por envio
+  assert.equal(conferirProgresso({ nivel: 100 + PROGRESSO.niveisPorEnvio + 1, xp: xpPara(100 + PROGRESSO.niveisPorEnvio + 1) }, { ...antes, atualizadoEm: new Date(agora - 400 * 864e5) }, null, agora).motivo, "nivel_pulou");
+  // começou outro personagem (nível menor): tudo bem
+  assert.ok(conferirProgresso({ nivel: 3, xp: xpPara(3) }, antes, null, agora).ok);
+});
+
+test("ranking confere: primeiro envio compara com a idade da conta (até o nível livre passa direto)", () => {
+  const agora = Date.UTC(2026, 9, 6, 15);
+  assert.ok(conferirProgresso({ nivel: PROGRESSO.nivelLivre, xp: xpPara(PROGRESSO.nivelLivre) }, null, new Date(agora - 60e3), agora).ok);
+  assert.equal(conferirProgresso({ nivel: 300, xp: xpPara(300) }, null, new Date(agora - 3600e3), agora).motivo, "xp_rapido_demais");
+  assert.ok(conferirProgresso({ nivel: 300, xp: xpPara(300) }, null, new Date(agora - 30 * 864e5), agora).ok, "jogou sem conta e entrou depois");
+  assert.ok(xpDoNivel(1) >= 1);
 });

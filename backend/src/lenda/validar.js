@@ -7,6 +7,7 @@
 //     veem ao passar na porta e ao visitar.
 //
 // Tudo aqui é função pura (sem banco), pra ser testado em test/lenda/.
+import { lePartesTime, montaNomeTime } from "./times.js";
 // Os limites são folgados pro jogo normal e apertados pra quem tentar
 // mandar lixo.
 
@@ -97,9 +98,10 @@ export function validarRanking(body) {
   if (!inteiro(chefes, 0, 100_000) || !inteiro(figs, 0, 100_000)) return { erro: "Números inválidos." };
   let timeOk = null;
   if (time != null) {
-    const nome = typeof time.nome === "string" ? time.nome.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 30) : "";
-    if (!nome || !inteiro(time.div, 0, 50) || !inteiro(time.titulos ?? 0, 0, 100_000)) return { erro: "Time inválido." };
-    timeOk = { nome, div: time.div, titulos: time.titulos ?? 0 };
+    // v407 (Raio-X U1): o nome do time vem só das LISTAS (partes "p.l"); um nome livre que chegue é ignorado
+    if (typeof time !== "object" || !inteiro(time.div, 0, 50) || !inteiro(time.titulos ?? 0, 0, 100_000)) return { erro: "Time inválido." };
+    const partes = lePartesTime(time.partes) ? time.partes : null;
+    timeOk = { partes, nome: montaNomeTime(partes), div: time.div, titulos: time.titulos ?? 0 };
   }
   // v388: as habilidades treinadas (opcional; jogo antigo não manda) — números de 0 a SKILL_MAX
   let skills = null;
@@ -112,6 +114,57 @@ export function validarRanking(body) {
 }
 export const SKILLS_RANK = ["drible", "chute", "defesa", "visao"];
 export const SKILL_MAX = 1000;
+
+// ---------- v407 (Raio-X U7): o ranking confere se o progresso é possível ----------
+// A MESMA curva do jogo (js/game.js, xpPara): XP total para ESTAR no nível L. Se o jogo mudar a curva, mude aqui também
+// (senão todo mundo vira "suspeito" — o painel mostra o motivo, e nada é apagado).
+export function xpPara(L) {
+  if (L <= 1) return 0;
+  const base = (50 / 9) * (L * L * L - 6 * L * L + 17 * L - 12);
+  const extra = L > 50 ? 1 + (L - 50) / 40 : 1;
+  return Math.round(base * extra);
+}
+export const xpDoNivel = (L) => Math.max(1, xpPara(L + 1) - xpPara(L));
+// folgas: bem largas para o jogo normal (missões, chefões, prêmios de guilda e eventos dão XP de uma vez)
+export const PROGRESSO = {
+  niveisPorHora: 30,      // ganho máximo por hora até o nível 100: o XP de 30 níveis do nível em que estava
+  niveisPorHoraMin: 5,    // ... e cai com o nível (no 300: 10; no 600 ou mais: 5) — no 600 o jogo dá uns 0,15 nível/hora
+  folgaHoras: 0.25,       // + 15 min de folga (relógios, salvamento atrasado)
+  xpFolga: 2000,          // + um tanto fixo (os primeiros níveis)
+  nivelLivre: 50,         // personagem sem linha no ranking: até este nível entra sem conferir a idade da conta
+  niveisPorEnvio: 60,     // nunca sobe mais que isto de um envio para o outro
+};
+export const niveisPorHora = (nivel) => Math.max(PROGRESSO.niveisPorHoraMin, (PROGRESSO.niveisPorHora * 100) / Math.max(100, nivel));
+// primeiro envio de um personagem já crescido (jogou sem conta e depois entrou): a conta precisa ter pelo menos
+// estas horas de vida (bem menos do que o jogo leva de verdade: nível 100 → 2 h; 300 → 18 h; 600 → 72 h)
+export const horasMinimas = (nivel) => 0.5 * (nivel / 50) ** 2;
+// Confere um envio do ranking contra a curva e contra o envio anterior (ou a idade da conta, no primeiro).
+// `antes` = { nivel, xp, atualizadoEm } | null; `contaDesde` = criação da conta. Devolve { ok } ou { ok: false, motivo, detalhe }.
+export function conferirProgresso({ nivel, xp }, antes, contaDesde, agora = Date.now()) {
+  // 1) o XP bate com o nível?
+  if (xp < xpPara(nivel) - 1 || (nivel < LIMITES.nivelMax && xp > xpPara(nivel + 1))) {
+    return { ok: false, motivo: "xp_fora_da_curva", detalhe: `nível ${nivel} com ${xp} de XP (esse nível vai de ${xpPara(nivel)} a ${xpPara(nivel + 1) - 1})` };
+  }
+  // 2) ganhou rápido demais desde o último envio (ou, no primeiro, desde que a conta foi criada)?
+  const ref = antes && Number.isFinite(Number(antes.xp)) ? { nivel: antes.nivel, xp: Number(antes.xp), t: new Date(antes.atualizadoEm).getTime() } : null;
+  if (!ref) {
+    if (nivel <= PROGRESSO.nivelLivre) return { ok: true };
+    const idade = contaDesde ? (agora - new Date(contaDesde).getTime()) / 3600e3 : 0;
+    if (idade < horasMinimas(nivel)) return { ok: false, motivo: "xp_rapido_demais", detalhe: `primeiro envio já no nível ${nivel} com a conta criada há ${idade.toFixed(1)} h (mínimo ${horasMinimas(nivel).toFixed(1)} h)` };
+    return { ok: true };
+  }
+  const base = ref;
+  if (xp <= base.xp) return { ok: true }; // ficou igual ou começou outro personagem
+  const horas = Math.max(0, (agora - (Number.isFinite(base.t) ? base.t : agora)) / 3600e3);
+  const maxGanho = xpDoNivel(Math.max(1, base.nivel)) * niveisPorHora(base.nivel) * (horas + PROGRESSO.folgaHoras) + PROGRESSO.xpFolga;
+  if (xp - base.xp > maxGanho) {
+    return { ok: false, motivo: "xp_rapido_demais", detalhe: `+${Math.round(xp - base.xp)} de XP em ${horas.toFixed(2)} h (máximo ${Math.round(maxGanho)}), nível ${base.nivel} → ${nivel}` };
+  }
+  if (ref && nivel - ref.nivel > PROGRESSO.niveisPorEnvio) {
+    return { ok: false, motivo: "nivel_pulou", detalhe: `nível ${ref.nivel} → ${nivel} de uma vez` };
+  }
+  return { ok: true };
+}
 
 // Quais casas mostrar num lugar: algumas das mais prestigiadas (as "vitrines"
 // que valem a visita) + um sorteio entre as outras, pra todo mundo ter chance

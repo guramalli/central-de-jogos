@@ -112,3 +112,44 @@ test("top 3 do ranking vem junto ao entrar", async () => {
   const r = await pede(z, "mundo-entrar", { mapa: "madri", perfil: perfil(1) });
   assert.deepEqual(r.top, ["bia", "ana", "x9"]);
 });
+
+// ---------- v407 (Raio-X U5/I8) ----------
+test("invisível: entra e vê os outros, mas ninguém vê nem ouve; voltar a aparecer avisa o canal", async () => {
+  const gil = cliente("gil"), hugo = cliente("hugo");
+  await espera(150);
+  assert.equal((await pede(gil, "mundo-entrar", { mapa: "praia_inv", perfil: perfil(10), x: 1, y: 1 })).ok, true);
+  const p = await pede(hugo, "lenda-prefs", { invisivel: true, convitesTodos: "lixo" });
+  assert.deepEqual(p.prefs, { convitesTodos: false, invisivel: true });
+  const r = await pede(hugo, "mundo-entrar", { mapa: "praia_inv", perfil: perfil(20), x: 2, y: 2 });
+  assert.equal(r.invisivel, true); assert.equal(r.membros.length, 1, "o invisível vê o gil");
+  hugo.emit("mundo-eu", { x: 5, y: 5 }); hugo.emit("mundo-emote", { i: 1 });
+  await espera(400);
+  assert.equal(recebeu(gil, "mundo-chegou").length, 0, "ninguém soube da chegada");
+  assert.ok(!recebeu(gil, "mundo-pos").flat().some((x) => x[0] === "hugo"), "nem da posição");
+  assert.equal(recebeu(gil, "mundo-emote").length, 0, "nem do emote");
+  const q = await pede(gil, "mundo-quem");
+  assert.ok(!q.lista.some((x) => x.id === "hugo"), "fora do 'jogando agora'");
+  // aparece de novo
+  await pede(hugo, "lenda-prefs", { invisivel: false });
+  await espera(100);
+  assert.equal(recebeu(gil, "mundo-chegou").at(-1).id, "hugo");
+  // e some de novo no meio do mapa
+  await pede(hugo, "lenda-prefs", { invisivel: true });
+  await espera(100);
+  assert.equal(recebeu(gil, "mundo-saiu").at(-1).id, "hugo");
+  await pede(hugo, "lenda-prefs", { invisivel: false });
+});
+
+test("👥 jogando agora: todos os mapas, sem você, com limite de pedidos", async () => {
+  const ivo = cliente("ivo"), juca = cliente("juca");
+  await espera(150);
+  await pede(ivo, "mundo-entrar", { mapa: "cidade_quem", perfil: perfil(7), x: 1, y: 1 });
+  await pede(juca, "mundo-entrar", { mapa: "rio_quem", perfil: perfil(9), x: 1, y: 1 });
+  const q = await pede(ivo, "mundo-quem");
+  assert.equal(q.ok, true);
+  const j = q.lista.find((x) => x.id === "juca");
+  assert.deepEqual(j, { id: "juca", apelido: "JUCA", nivel: 9, mapa: "rio_quem" });
+  assert.ok(!q.lista.some((x) => x.id === "ivo"));
+  assert.equal(q.total, q.lista.length);
+  assert.match((await pede(ivo, "mundo-quem")).erro, /Calma/, "um pedido a cada 2 s");
+});

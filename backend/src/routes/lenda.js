@@ -8,6 +8,12 @@ import { abrirSave, fichaPublica } from "../lenda/ficha.js";
 import { registrarSinal, JOGANDO_AGORA_MS, GUARDAR_DIAS } from "../lenda/sessoes.js";
 import { TORCIDAS, validarTorcida, amigosDe, podeTorcer, GUARDAR_DIAS as TORCIDA_DIAS } from "../lenda/torcida.js";
 import { validarContagens, podeContar, somarContagens, resumir, GUARDAR_DIAS as CONTAGEM_DIAS } from "../lenda/contagens.js";
+import { conferirProgresso } from "../lenda/validar.js";
+import { timePublico } from "../lenda/times.js";
+import { contasForaDoRanking, registrarSuspeito, GAME_KEY } from "../lenda/suspeitos.js";
+import { apagarDadosLenda, tabelasLenda } from "../lenda/apagar.js";
+import { sendFeedbackEmail } from "../utils/mailer.js";
+import { contaVisita, validarDenuncia, podeDenunciar, MOTIVOS_DENUNCIA } from "../lenda/limites.js";
 
 // ===== Lenda do Campinho (RPG de futebol, em public/lenda-do-campinho/) =====
 //
@@ -40,6 +46,15 @@ router.get("/save", requireAuth, async (req, res) => {
   // O jogo confere o save a cada ~30 s enquanto roda (sessao_unica.js): vale como sinal de "está jogando".
   registrarSinal(prisma, req.user.id, s.nivel, req.headers["user-agent"]);
   res.json({ dados: s.dados, nivel: s.nivel, atualizadoEm: s.atualizadoEm });
+});
+
+// v407 (Raio-X A9): só QUANDO o save mudou e o nível, sem os ~90 kB do save. O jogo confere isto a cada ~30 s
+// (sessao_unica.js: "abriram este personagem em outro aparelho?") e só baixa o save inteiro quando a data mudou.
+router.get("/save/meta", requireAuth, async (req, res) => {
+  const s = await prisma.lendaSave.findUnique({ where: { userId: req.user.id }, select: { nivel: true, atualizadoEm: true } });
+  if (!s) return res.status(404).json({ error: "Nenhum save na nuvem ainda." });
+  registrarSinal(prisma, req.user.id, s.nivel, req.headers["user-agent"]);
+  res.json({ nivel: s.nivel, atualizadoEm: s.atualizadoEm });
 });
 
 router.put("/save", requireAuth, async (req, res) => {
@@ -117,11 +132,16 @@ router.get("/casas-ranking", async (_req, res) => {
 router.put("/ranking", requireAuth, async (req, res) => {
   const v = validarRanking(req.body);
   if (!v.ok) return res.status(400).json({ error: v.erro });
-  const antes = await prisma.lendaRanking.findUnique({ where: { userId: req.user.id }, select: { atualizadoEm: true } });
+  const antes = await prisma.lendaRanking.findUnique({ where: { userId: req.user.id }, select: { atualizadoEm: true, nivel: true, xp: true } });
   if (antes && Date.now() - new Date(antes.atualizadoEm).getTime() < RANKING_INTERVALO_MS) {
     return res.status(429).json({ error: "Atualizando rápido demais." });
   }
-  const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true } });
+  const eu = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true, createdAt: true } });
+  // v407 (Raio-X U7): o XP bate com o nível pela curva do jogo? ganhou rápido demais desde o último envio? o nível pulou?
+  // Reprovado: a linha é guardada mesmo assim (para o admin ver o que chegou), mas a conta fica FORA dos rankings
+  // e entra na lista de suspeitos do painel até o admin descartar (lenda/suspeitos.js).
+  const conf = conferirProgresso(v.ranking, antes, eu?.createdAt);
+  if (!conf.ok) registrarSuspeito(prisma, req.user.id, "lenda_" + conf.motivo, conf.detalhe).then((novo) => { if (novo) cacheInvalidar("lenda:"); });
   const dados = { apelido: eu?.nickname || req.user.nickname || "Jogador", ...v.ranking };
   await prisma.lendaRanking.upsert({ where: { userId: req.user.id }, create: { userId: req.user.id, ...dados }, update: dados });
   // v388: as habilidades vão À PARTE — se as colunas ainda não existem no banco (antes do prisma db push), o ranking de nível segue normal
@@ -130,7 +150,7 @@ router.put("/ranking", requireAuth, async (req, res) => {
   // esperava até 1 min, e a janela aberta logo em seguida vinha vazia).
   cacheInvalidar("lenda:ranking");
   registrarSinal(prisma, req.user.id, v.ranking.nivel, req.headers["user-agent"]);
-  res.json({ ok: true });
+  res.json(conf.ok ? { ok: true } : { ok: true, emRevisao: true });
 });
 
 // ---------- amigos e torcida (ver lenda/torcida.js) ----------
@@ -239,22 +259,17 @@ router.get("/admin/sessoes", requireAuth, requireRole("ADMIN"), async (req, res)
 
 // Top dos jogadores por XP. Público; guardado 1 min (o banco não acorda a
 // cada abertura da janela). Fica de fora conta banida ou oculta dos rankings.
-// Admin ENTRA: este ranking não vale prêmio (os rankings com premiação do
-// site é que tiram admin) — e tirar deixava a lista vazia pra quem testava.
+// v407 (Raio-X U7): fora também conta de ADMIN e os SUSPEITOS (envio reprovado; ver lenda/suspeitos.js).
+// O nome do time sai sempre montado das listas (times.js), nunca o que foi digitado.
 router.get("/ranking", async (_req, res) => {
   const lista = await cacheOuBuscar("lenda:ranking", 60, async () => {
     const topo = await prisma.lendaRanking.findMany({
       orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }],
-      take: 80,
+      take: 100,
       select: { userId: true, apelido: true, nivel: true, xp: true, posicao: true, fase: true, time: true },
     });
-    const bloqueados = new Set(
-      (await prisma.user.findMany({
-        where: { id: { in: topo.map((t) => t.userId) }, OR: [{ banned: true }, { ocultoNoRanking: true }] },
-        select: { id: true },
-      })).map((u) => u.id)
-    );
-    return topo.filter((t) => !bloqueados.has(t.userId)).slice(0, 50);
+    const fora = await contasForaDoRanking(prisma, topo.map((t) => t.userId));
+    return topo.filter((t) => !fora.has(t.userId)).slice(0, 50).map((t) => ({ ...t, time: timePublico(t.time) }));
   });
   res.json(lista);
 });
@@ -269,30 +284,30 @@ router.get("/ranking/skill/:sk", async (req, res) => {
         where: { [sk]: { gt: 0 } }, orderBy: [{ [sk]: "desc" }, { xp: "desc" }], take: 80,
         select: { userId: true, apelido: true, nivel: true, posicao: true, [sk]: true },
       });
-      const bloq = await contasBloqueadas(topo.map((t) => t.userId));
+      const bloq = await contasForaDoRanking(prisma, topo.map((t) => t.userId));
       return topo.filter((t) => !bloq.has(t.userId)).slice(0, 50).map((t) => ({ userId: t.userId, apelido: t.apelido, nivel: t.nivel, posicao: t.posicao, valor: t[sk] }));
     });
     res.json(lista);
   } catch { res.status(503).json({ error: "O ranking de habilidades está chegando ao servidor." }); }
 });
 
-// ---------- personagens (página tipo Tibia) ----------
-// Contas que não aparecem em lugar nenhum: banida ou oculta dos rankings.
-async function contasBloqueadas(ids) {
-  if (!ids.length) return new Set();
-  return new Set((await prisma.user.findMany({ where: { id: { in: ids }, OR: [{ banned: true }, { ocultoNoRanking: true }] }, select: { id: true } })).map((u) => u.id));
-}
+// ---------- personagens (página de cada jogador) ----------
+// (as contas que ficam fora das listas: lenda/suspeitos.js, contasForaDoRanking)
+// v407 (Raio-X U5): a ficha pública diz só se a pessoa "jogou esta semana" (sem dia e hora de quando joga)
+const SEMANA_MS = 7 * 864e5;
+const jogouSemana = (quando, agora = Date.now()) => !!quando && agora - new Date(quando).getTime() <= SEMANA_MS;
 // Lista (com busca pelo apelido). Público; 1 min de cache por busca.
 router.get("/personagens", async (req, res) => {
   const busca = String(req.query.busca || "").trim().slice(0, 30);
   const lista = await cacheOuBuscar("lenda:personagens:" + busca.toLowerCase(), 60, async () => {
     const achados = await prisma.lendaRanking.findMany({
       where: busca ? { apelido: { contains: busca, mode: "insensitive" } } : {},
-      orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 60,
+      orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 70,
       select: { userId: true, apelido: true, nivel: true, xp: true, posicao: true, fase: true, time: true, atualizadoEm: true },
     });
-    const bloq = await contasBloqueadas(achados.map((a) => a.userId));
-    return achados.filter((a) => !bloq.has(a.userId)).slice(0, 50).map(({ userId, ...r }) => r);
+    const bloq = await contasForaDoRanking(prisma, achados.map((a) => a.userId));
+    return achados.filter((a) => !bloq.has(a.userId)).slice(0, 50)
+      .map(({ userId, atualizadoEm, time, ...r }) => ({ ...r, time: timePublico(time), jogouSemana: jogouSemana(atualizadoEm) }));
   });
   res.json(lista);
 });
@@ -312,11 +327,13 @@ router.get("/personagem/:apelido", async (req, res) => {
       prisma.lendaRanking.findUnique({ where: { userId: u.id }, select: { nivel: true, xp: true, fase: true, posicao: true, time: true, atualizadoEm: true } }),
     ]);
     if (!save && !rank) return { naoAchou: true };
+    // v407 (Raio-X U5): sem o horário do último jogo (só "jogou esta semana") e "membro desde" só com mês e ano
+    const desde = new Date(u.createdAt);
     return {
-      apelido: u.nickname, membroDesde: u.createdAt, visitante: !!u.isGuest,
-      ultimoJogo: (save || rank).atualizadoEm,
+      apelido: u.nickname, membroDesde: new Date(Date.UTC(desde.getUTCFullYear(), desde.getUTCMonth(), 1)), visitante: !!u.isGuest,
+      jogouSemana: jogouSemana((save || rank).atualizadoEm),
       ficha: save ? fichaPublica(abrirSave(save.dados)) : null,
-      resumo: rank ? { nivel: rank.nivel, xp: rank.xp, fase: rank.fase, posicao: rank.posicao, time: rank.time } : null,
+      resumo: rank ? { nivel: rank.nivel, xp: rank.xp, fase: rank.fase, posicao: rank.posicao, time: timePublico(rank.time) } : null,
     };
   });
   if (r.naoAchou) return res.status(404).json({ error: "Personagem não encontrado." });
@@ -328,10 +345,72 @@ router.get("/casa/:userId", async (req, res) => {
   const c = await prisma.lendaCasa.findUnique({ where: { userId: String(req.params.userId) } });
   if (!c) return res.status(404).json({ error: "Casa não encontrada." });
   const quem = quemPede(req);
-  if (quem && quem !== c.userId) {
+  if (quem && quem !== c.userId && contaVisita(quem, c.userId)) { // v407 (Raio-X U7): 1 visita por visitante por dia
     prisma.lendaCasa.update({ where: { userId: c.userId }, data: { visitas: { increment: 1 } } }).catch(() => {});
   }
   res.json({ userId: c.userId, apelido: c.apelido, casaId: c.casaId, mapa: c.mapa, moveis: c.moveis, itens: c.itens, prestigio: c.prestigio, visitas: c.visitas });
+});
+
+// ---------- 🚩 denunciar um jogador (v407, Raio-X U5) ----------
+// Sem texto livre: o jogo manda o ID do jogador e o NÚMERO de um motivo pronto. Vira um feedback (a lista de
+// feedbacks do painel do admin, tipo "outro") e um e-mail para a equipe, com o apelido e o ID de quem foi denunciado.
+router.get("/denunciar/motivos", (_req, res) => res.json({ motivos: MOTIVOS_DENUNCIA }));
+router.post("/denunciar", requireAuth, async (req, res) => {
+  const v = validarDenuncia(req.body);
+  if (!v.ok) return res.status(400).json({ error: v.erro });
+  if (v.alvoId === req.user.id) return res.status(400).json({ error: "Não dá para denunciar você mesmo." });
+  const [eu, alvo] = await Promise.all([
+    prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true, email: true } }),
+    prisma.user.findUnique({ where: { id: v.alvoId }, select: { id: true, nickname: true } }),
+  ]);
+  if (!alvo) return res.status(404).json({ error: "Jogador não encontrado." });
+  const p = podeDenunciar(req.user.id, v.alvoId);
+  if (!p.ok) return res.status(429).json({ error: p.erro });
+  const message = `🚩 DENÚNCIA no Lenda do Campinho\nJogador denunciado: ${alvo.nickname} (id ${alvo.id})\nMotivo: ${MOTIVOS_DENUNCIA[v.motivo]}${v.onde ? `\nOnde: ${v.onde}` : ""}`;
+  await prisma.feedback.create({ data: { userId: req.user.id, type: "outro", message } });
+  sendFeedbackEmail({ nickname: eu?.nickname || "?", email: eu?.email || "?", type: "denúncia (Lenda)", message }).catch(() => {});
+  res.json({ ok: true });
+});
+
+// ---------- 🗑️ apagar MEUS dados do jogo (v407, Raio-X U6) ----------
+// Só o Lenda do Campinho (save na nuvem, ranking, casa, guilda, feira, torcidas, sessões); a conta do site continua.
+// O personagem que está no aparelho não é apagado (o jogo avisa). Pede { confirmar: "APAGAR" } para não sair sem querer.
+router.delete("/meus-dados", requireAuth, async (req, res) => {
+  if (req.body?.confirmar !== "APAGAR") return res.status(400).json({ error: "Confirme para apagar." });
+  try {
+    const tabelas = await tabelasLenda(prisma);
+    const feito = await prisma.$transaction((tx) => apagarDadosLenda(tx, req.user.id, tabelas));
+    try { await prisma.suspiciousActivity.deleteMany({ where: { userId: req.user.id, gameKey: GAME_KEY } }); } catch { /* ok */ }
+    cacheInvalidar("lenda:");
+    res.json({ ok: true, apagado: feito });
+  } catch (e) {
+    console.error("Lenda: falha ao apagar os dados de", req.user.id, e.message);
+    res.status(500).json({ error: "Não deu para apagar agora. Tente de novo daqui a pouco." });
+  }
+});
+
+// ---------- painel do admin: SUSPEITOS do ranking (v407, Raio-X U7) ----------
+// Quem teve um envio do ranking reprovado: fica fora dos rankings até o admin olhar. "Descartar" tira da lista.
+router.get("/admin/suspeitos", requireAuth, requireRole("ADMIN"), async (_req, res) => {
+  try {
+    const regs = await prisma.suspiciousActivity.findMany({ where: { gameKey: GAME_KEY }, orderBy: { createdAt: "desc" }, take: 500 });
+    const ids = [...new Set(regs.map((r) => r.userId))];
+    const [users, ranks] = await Promise.all([
+      prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, nickname: true, createdAt: true, isGuest: true, banned: true } }),
+      prisma.lendaRanking.findMany({ where: { userId: { in: ids } }, select: { userId: true, nivel: true, xp: true, atualizadoEm: true } }),
+    ]);
+    const u = new Map(users.map((x) => [x.id, x])), rk = new Map(ranks.map((x) => [x.userId, x]));
+    res.json({ suspeitos: ids.map((id) => ({
+      userId: id, apelido: u.get(id)?.nickname || "(conta apagada)", contaDesde: u.get(id)?.createdAt, visitante: !!u.get(id)?.isGuest, banido: !!u.get(id)?.banned,
+      ranking: rk.get(id) || null,
+      registros: regs.filter((r) => r.userId === id).slice(0, 10).map((r) => ({ motivo: r.reason, detalhe: r.detail, quando: r.createdAt })),
+    })) });
+  } catch { res.status(503).json({ error: "Lista indisponível agora." }); }
+});
+router.delete("/admin/suspeitos/:userId", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  const r = await prisma.suspiciousActivity.deleteMany({ where: { userId: String(req.params.userId), gameKey: GAME_KEY } });
+  cacheInvalidar("lenda:");
+  res.json({ ok: true, removidos: r.count });
 });
 
 export default router;

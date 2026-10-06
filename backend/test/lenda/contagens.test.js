@@ -55,5 +55,17 @@ test("resumo por evento e por dia", () => {
   const r = resumir([{ dia: "2026-10-01", evento: "nivel", valor: "10", n: 3 }, { dia: "2026-10-02", evento: "nivel", valor: "10", n: 2 }, { dia: "2026-10-02", evento: "jogou", valor: "", n: 7 }]);
   assert.equal(r.total["nivel:10"], 5);
   assert.equal(r.total.jogou, 7);
-  assert.equal(r.porDia["2026-10-02"]["nivel:10"], 2);
+  assert.equal(r.porDia["2026-10-02"].jogou, 7);
+  // v407 (I7): menos de 5 pessoas não aparece (no total do período nem no dia)
+  assert.equal(r.porDia["2026-10-02"]["nivel:10"], undefined);
+  const r2 = resumir([{ dia: "2026-10-01", evento: "missao", valor: "q_pombos", n: 4 }, { dia: "2026-10-01", evento: "abriu", valor: "novo", n: 9 }]);
+  assert.equal(r2.total["missao:q_pombos"], undefined);
+  assert.deepEqual(r2.poucos, ["missao:q_pombos"]);
+  assert.equal(r2.total["abriu:novo"], 9);
+});
+
+test("eventos novos da v407 (I7): missão por ID, desistiu na criação, primeira caça/chefão", () => {
+  const v = validarContagens({ v: 407, p: "celular", ev: [{ e: "missao", v: "q_tonhao_2" }, { e: "desistiu", v: "criacao" }, { e: "primeira", v: "caca" }, { e: "primeira", v: "chefe" },
+    { e: "missao", v: "Nome Livre!" }, { e: "desistiu", v: "outra" }, { e: "primeira", v: "beijo" }] });
+  assert.deepEqual(v.itens.map((i) => i.evento + ":" + i.valor), ["missao:q_tonhao_2", "desistiu:criacao", "primeira:caca", "primeira:chefe"]);
 });

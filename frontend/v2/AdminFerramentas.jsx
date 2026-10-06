@@ -499,12 +499,19 @@ export function LendaSessoes() {
 }
 
 // Estatísticas ANÔNIMAS do Lenda (só contagens por dia — ninguém é identificado).
+// v407 (Raio-X I7): o funil principal é abriu → tutorial → nível 5 → 10 → 20 → voltou no dia seguinte (D1) → em 7 dias (D7).
+// Número com menos de 5 pessoas não vem do servidor (aparece "menos de 5"): com tão pouca gente daria para saber quem é.
 const FUNIL = [
-  ["abriu:novo", "Abriram o jogo pela 1ª vez"], ["personagem", "Criaram personagem"], ["tutorial:fim", "Terminaram o tutorial"],
-  ["nivel:5", "Nível 5"], ["nivel:10", "Nível 10"], ["nivel:20", "Nível 20"], ["nivel:50", "Nível 50"], ["nivel:100", "Nível 100"],
-  ["nivel:200", "Nível 200"], ["nivel:300", "Nível 300"], ["nivel:400", "Nível 400"], ["nivel:500", "Nível 500"],
+  ["abriu:novo", "Abriram o jogo pela 1ª vez"], ["tutorial:fim", "Terminaram o tutorial"],
+  ["nivel:5", "Nível 5"], ["nivel:10", "Nível 10"], ["nivel:20", "Nível 20"],
+  ["retorno:d1", "Voltaram no dia seguinte (D1)"], ["retorno:d7", "Voltaram depois de 7 dias (D7)"],
 ];
-const RETORNO = [["retorno:d1", "Voltaram depois de 1 dia"], ["retorno:d7", "… de 7 dias"], ["retorno:d30", "… de 30 dias"]];
+const FUNIL_MAIS = [
+  ["personagem", "Criaram personagem"], ["desistiu:criacao", "Fecharam na tela de criar personagem"],
+  ["primeira:caca", "Entraram na 1ª área de caça"], ["primeira:chefe", "Venceram o 1º chefão"],
+  ["nivel:50", "Nível 50"], ["nivel:100", "Nível 100"], ["nivel:200", "Nível 200"], ["nivel:300", "Nível 300"], ["nivel:400", "Nível 400"], ["nivel:500", "Nível 500"],
+];
+const RETORNO = [["retorno:d30", "Voltaram depois de 30 dias"]];
 const SESSAO = [["sessao:m0_5", "até 5 min"], ["sessao:m5_15", "5–15 min"], ["sessao:m15_30", "15–30 min"], ["sessao:m30_60", "30–60 min"], ["sessao:m60", "mais de 1 h"]];
 
 export function LendaEstatisticas() {
@@ -520,11 +527,14 @@ export function LendaEstatisticas() {
     return () => { vivo = false; };
   }, [dias]);
   const t = dados?.total || {};
+  const poucos = new Set(dados?.poucos || []);
   const soma = (pref) => Object.entries(t).filter(([k]) => k === pref || k.startsWith(pref + ":")).reduce((a, [, n]) => a + n, 0);
   const base = t["abriu:novo"] || 0;
   const mapas = Object.entries(t).filter(([k]) => k.startsWith("mapa:")).sort((a, b) => b[1] - a[1]).slice(0, 25);
+  const missoes = Object.entries(t).filter(([k]) => k.startsWith("missao:")).sort((a, b) => b[1] - a[1]).slice(0, 40);
   const linha = ([k, nome], ref) => {
     const n = k.includes(":") ? t[k] || 0 : soma(k);
+    if (!n && poucos.has(k)) return <tr key={k}><td>{nome}</td><td>menos de 5</td><td>—</td></tr>;
     return <tr key={k}><td>{nome}</td><td>{n}</td><td>{ref ? `${Math.round((n / ref) * 100)}%` : "—"}</td></tr>;
   };
   return (
@@ -545,9 +555,23 @@ export function LendaEstatisticas() {
           <div className="v2-tabela-rolagem">
             <table className="v2-tabela-admin">
               <thead><tr><th>Marco</th><th>Quantos</th><th>dos novos</th></tr></thead>
-              <tbody>{FUNIL.map((l) => linha(l, base))}{RETORNO.map((l) => linha(l, base))}</tbody>
+              <tbody>{FUNIL.map((l) => linha(l, base))}</tbody>
             </table>
           </div>
+          <div className="v2-tabela-rolagem">
+            <table className="v2-tabela-admin">
+              <thead><tr><th>Outros marcos</th><th>Quantos</th><th>dos novos</th></tr></thead>
+              <tbody>{FUNIL_MAIS.map((l) => linha(l, base))}{RETORNO.map((l) => linha(l, base))}</tbody>
+            </table>
+          </div>
+          {missoes.length > 0 && (
+            <div className="v2-tabela-rolagem">
+              <table className="v2-tabela-admin">
+                <thead><tr><th>Missão concluída (ID)</th><th>Quantos</th><th></th></tr></thead>
+                <tbody>{missoes.map(([k, n]) => <tr key={k}><td>{k.slice(7)}</td><td>{n}</td><td></td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
           <div className="v2-tabela-rolagem">
             <table className="v2-tabela-admin">
               <thead><tr><th>Tempo de jogo por vez</th><th>Vezes</th><th></th></tr></thead>
@@ -562,9 +586,72 @@ export function LendaEstatisticas() {
               </table>
             </div>
           )}
-          <p className="v2-cartao-nota">Só contagens somadas por dia: não existe registro de quem fez o quê (sem conta, sem aparelho, sem IP). Conta quem joga com ou sem conta, no site (a Steam não envia). Quem desligou em ☰ Mais › 📊 ou usa "Não rastrear" não entra.</p>
+          <p className="v2-cartao-nota">Números com menos de 5 pessoas ficam escondidos ("menos de 5"). Só contagens somadas por dia: não existe registro de quem fez o quê (sem conta, sem aparelho, sem IP). Conta quem joga com ou sem conta, no site (a Steam não envia). Quem desligou em ☰ Mais › 📊 ou usa "Não rastrear" não entra.</p>
         </>
       )}
+    </section>
+  );
+}
+
+// v407 (Raio-X U7): Lenda do Campinho — SUSPEITOS do ranking (envio reprovado: XP fora da curva, rápido demais,
+// nível que pulou) e PARES da feira que se repetem (vendedor ↔ comprador, possível troca entre contas do mesmo dono).
+// Suspeito fica fora dos rankings e não vende na feira até "Descartar" (alarme falso). Nada aqui bane ninguém.
+const MOTIVO_LENDA = { lenda_xp_fora_da_curva: "XP não bate com o nível", lenda_xp_rapido_demais: "Ganhou XP rápido demais", lenda_nivel_pulou: "Nível pulou de uma vez" };
+export function LendaSuspeitos() {
+  const [sus, setSus] = useState(null);
+  const [pares, setPares] = useState(null);
+  const [erro, setErro] = useState("");
+  const carregar = () => {
+    api.get("/lenda/admin/suspeitos").then(({ data }) => setSus(data.suspeitos || [])).catch((e) => setErro(e.response?.data?.error || "Erro ao carregar os suspeitos."));
+    api.get("/lenda/mercado/admin/pares", { params: { dias: 30, minimo: 3 } }).then(({ data }) => setPares(data.pares || [])).catch(() => setPares([]));
+  };
+  useEffect(carregar, []);
+  const descartar = async (s) => {
+    if (!window.confirm(`Tirar ${s.apelido} da lista de suspeitos? A conta volta aos rankings e à feira.`)) return;
+    try { await api.delete(`/lenda/admin/suspeitos/${s.userId}`); carregar(); } catch { setErro("Não deu para descartar agora."); }
+  };
+  return (
+    <section className="v2-cartao">
+      <div className="v2-cartao-cabeca">
+        <h2>Lenda do Campinho — suspeitos e feira</h2>
+        <button className="v2-botao-pequeno" onClick={carregar}>Atualizar</button>
+      </div>
+      {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
+      <h3>Ranking: envios reprovados ({sus ? sus.length : "…"})</h3>
+      {sus && sus.length === 0 && <div className="v2-vazio">Ninguém na lista.</div>}
+      {sus && sus.length > 0 && (
+        <div className="v2-tabela-rolagem">
+          <table className="v2-tabela-admin">
+            <thead><tr><th>Jogador</th><th>Conta desde</th><th>Ranking agora</th><th>O que aconteceu</th><th></th></tr></thead>
+            <tbody>
+              {sus.map((s) => (
+                <tr key={s.userId}>
+                  <td>{s.apelido}{s.visitante ? " (visitante)" : ""}{s.banido ? " 🚫" : ""}</td>
+                  <td>{s.contaDesde ? new Date(s.contaDesde).toLocaleDateString("pt-BR") : "—"}</td>
+                  <td>{s.ranking ? `nível ${s.ranking.nivel}` : "—"}</td>
+                  <td>{s.registros.map((r, i) => <div key={i}><b>{MOTIVO_LENDA[r.motivo] || r.motivo}</b> — {r.detalhe} <small>({horaBR(r.quando)})</small></div>)}</td>
+                  <td><button className="v2-botao-pequeno" onClick={() => descartar(s)}>Descartar</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <h3>Feira: pares que se repetem (30 dias, 3+ vendas)</h3>
+      {pares && pares.length === 0 && <div className="v2-vazio">Nenhum par repetido.</div>}
+      {pares && pares.length > 0 && (
+        <div className="v2-tabela-rolagem">
+          <table className="v2-tabela-admin">
+            <thead><tr><th>Vendedor</th><th>Comprador</th><th>Vendas</th><th>Tostões</th><th>Última</th></tr></thead>
+            <tbody>
+              {pares.map((p) => (
+                <tr key={p.vendedorId + p.compradorId}><td>{p.vendedor}</td><td>{p.comprador}</td><td>{p.vendas}</td><td>{Math.round(p.tostoes).toLocaleString("pt-BR")}</td><td>{p.ultima ? horaBR(p.ultima) : "—"}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="v2-cartao-nota">Suspeito: some dos rankings e não vende na feira até você descartar; continua jogando normalmente. Pares repetidos só mostram o padrão (pode ser irmão comprando do irmão) — nada é bloqueado.</p>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import express from "express";
-import { montaNome, validaCriacao, semanaId, faixasAtingidas, podeMexer, pontosDoEnvio, normalizaSemana, METAS, MIN_AJUDA, TETO_POR_ENVIO, ENVIO_MIN_MS } from "../../src/lenda/guilda.js";
+import { montaNome, validaCriacao, semanaId, faixasAtingidas, podeMexer, pontosDoEnvio, normalizaSemana, METAS, MIN_AJUDA, TETO_POR_ENVIO, ENVIO_MIN_MS, TETO_SEMANA_MEMBRO, cabeNaSemana } from "../../src/lenda/guilda.js";
 // (as rotas importam o middleware de login, que exige JWT_SECRET; nos testes o login é de mentira)
 process.env.JWT_SECRET ||= "teste-guilda";
 const { criaRotasGuilda } = await import("../../src/routes/lendaGuilda.js");
@@ -9,7 +9,10 @@ const { criaRotasGuilda } = await import("../../src/routes/lendaGuilda.js");
 // ---------- banco de mentira (só o que as rotas usam) ----------
 function tabela(chave, defaults = () => ({})) {
   const linhas = []; let seq = 0;
-  const casa = (l, w = {}) => Object.entries(w).every(([k, v]) => v && typeof v === "object" && "in" in v ? v.in.includes(l[k]) : l[k] === v);
+  const igual = (a, b) => (a instanceof Date || b instanceof Date ? a != null && b != null && new Date(a).getTime() === new Date(b).getTime() : (a ?? null) === (b ?? null));
+  const casa = (l, w = {}) => Object.entries(w).every(([k, v]) => v && typeof v === "object" && !(v instanceof Date) && "in" in v ? v.in.includes(l[k]) : igual(l[k], v));
+  // v407: "increment" no update (como o Prisma)
+  const aplica = (l, data) => { for (const [k, v] of Object.entries(data)) l[k] = v && typeof v === "object" && "increment" in v ? (l[k] || 0) + v.increment : v; };
   const acha = (where) => {
     const k = Object.keys(where)[0], v = where[k];
     if (v && typeof v === "object" && !Array.isArray(v)) return linhas.find((l) => Object.entries(v).every(([a, b]) => l[a] === b));
@@ -25,7 +28,8 @@ function tabela(chave, defaults = () => ({})) {
     },
     count: async ({ where = {} } = {}) => linhas.filter((l) => casa(l, where)).length,
     create: async ({ data }) => { seq++; const l = { ...defaults(seq), ...data }; if (chave === "id" && !l.id) l.id = "id" + seq; linhas.push(l); return { ...l }; },
-    update: async ({ where, data }) => { const l = acha(where); if (!l) throw new Error("não achou"); Object.assign(l, data); return { ...l }; },
+    update: async ({ where, data }) => { const l = acha(where); if (!l) throw new Error("não achou"); aplica(l, data); return { ...l }; },
+    updateMany: async ({ where = {}, data }) => { let n = 0; for (const l of linhas) if (casa(l, where)) { aplica(l, data); n++; } return { count: n }; },
     delete: async ({ where }) => { const l = acha(where); const i = linhas.indexOf(l); if (i < 0) throw new Error("não achou"); linhas.splice(i, 1); return l; },
     deleteMany: async ({ where = {} } = {}) => { let n = 0; for (let i = linhas.length - 1; i >= 0; i--) if (casa(linhas[i], where)) { linhas.splice(i, 1); n++; } return { count: n }; },
     upsert: async ({ where, create, update }) => { const l = acha(where); if (l) { Object.assign(l, update); return { ...l }; } seq++; const n = { id: "c" + seq, ...create }; linhas.push(n); return { ...n }; },
@@ -36,6 +40,7 @@ const prisma = {
   lendaGuilda: tabela("id", (n) => ({ numero: n, semana: "", pontosSemana: 0, pontosTotal: 0 })),
   lendaGuildaMembro: tabela("userId", () => ({ entrouEm: new Date(Date.now() + Math.random()), semana: "", pontosSemana: 0, premios: 0, papel: "membro" })),
   lendaGuildaConvite: tabela("id"),
+  lendaRanking: tabela("userId"),
   user: { findMany: async ({ where }) => where.id.in.map((id) => ({ id, nickname: NOMES[id] || id })) },
 };
 const AMIGOS = { ana: ["bia", "caio", "edu"], bia: ["ana", "davi"], caio: ["ana"], davi: ["bia"], edu: ["ana"] };
@@ -67,8 +72,12 @@ test("regras: nome com concordância, validação, semana, faixas, cargos, envio
 });
 
 test("guilda ponta a ponta: criar, convidar só amigo, aceitar, cargos, pontos, prêmio, ranking, sair", async () => {
-  assert.match((await chama("ana", "POST", "/criar", { nome: 0, complemento: 0, escudo: 0, cor: 0, nivel: 5 })).error, /nível 20/);
-  const c = await chama("ana", "POST", "/criar", { nome: 0, complemento: 0, escudo: 0, cor: 0, nivel: 50 });
+  // v407 (U7): o nível vem do RANKING do servidor; o "nivel" que o jogo manda no corpo é ignorado
+  assert.match((await chama("ana", "POST", "/criar", { nome: 0, complemento: 0, escudo: 0, cor: 0, nivel: 50 })).error, /nível 20/);
+  await prisma.lendaRanking.create({ data: { userId: "ana", nivel: 5 } });
+  assert.match((await chama("ana", "POST", "/criar", { nome: 0, complemento: 0, escudo: 0, cor: 0, nivel: 50 })).error, /nível 20/);
+  prisma.lendaRanking.linhas[0].nivel = 50;
+  const c = await chama("ana", "POST", "/criar", { nome: 0, complemento: 0, escudo: 0, cor: 0, nivel: 1 });
   assert.equal(c.ok, true); assert.equal(c.guilda.nome, "Os Leões de Fogo");
   assert.equal((await chama("ana", "POST", "/criar", { nome: 1, complemento: 1, escudo: 1, cor: 1, nivel: 50 })).status, 409);
   // convite: só amigo; davi não é amigo da ana
@@ -88,6 +97,15 @@ test("guilda ponta a ponta: criar, convidar só amigo, aceitar, cargos, pontos, 
   const p1 = await chama("bia", "POST", "/pontos", { n: 99999 });
   assert.equal(p1.pontos, TETO_POR_ENVIO);
   assert.equal((await chama("bia", "POST", "/pontos", { n: 50 })).pontos, 0, "envio rápido demais não conta");
+  // v407 (U7): soma por increment na guilda e no membro; teto da SEMANA por membro
+  const mbBia = prisma.lendaGuildaMembro.linhas.find((m) => m.userId === "bia");
+  assert.equal(mbBia.pontosSemana, TETO_POR_ENVIO);
+  assert.equal(prisma.lendaGuilda.linhas[0].pontosSemana, TETO_POR_ENVIO);
+  mbBia.pontosSemana = TETO_SEMANA_MEMBRO - 10; mbBia.ultimoEnvio = new Date(Date.now() - ENVIO_MIN_MS - 5);
+  assert.equal((await chama("bia", "POST", "/pontos", { n: 300 })).pontos, 10, "só o que cabe no teto da semana");
+  mbBia.ultimoEnvio = new Date(Date.now() - ENVIO_MIN_MS - 5);
+  assert.equal((await chama("bia", "POST", "/pontos", { n: 300 })).pontos, 0, "teto da semana cheio");
+  assert.equal(cabeNaSemana(500, TETO_SEMANA_MEMBRO - 100), 100);
   // a guilda chega na 1ª meta (forçando os pontos da guilda) e a bia (ajudou) resgata 1 vez; a ana (0 pontos) não
   const g = prisma.lendaGuilda.linhas[0]; g.pontosSemana = METAS[0] + 1;
   assert.equal((await chama("bia", "POST", "/premio", { faixa: 0 })).ok, true);

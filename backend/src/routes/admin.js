@@ -11,6 +11,7 @@ import { getOnlineList as getGeneralChatOnline } from "../game/generalChat.js";
 import { getOnlineList as getPresenceOnline } from "../game/presence.js";
 import { requireAuth, requireRole, esquecerSessao } from "../middleware/auth.js";
 import { encerrarSessoesDoUsuario } from "../socket/index.js";
+import { apagarDadosLenda, tabelasLenda } from "../lenda/apagar.js";
 
 const router = Router();
 
@@ -688,7 +689,11 @@ router.delete("/users/:id", requireRole("ADMIN"), async (req, res) => {
   }
 
   try {
+    // v407 (Raio-X U6): o Lenda do Campinho sai junto (save, ranking, casa, sessões, guilda, feira, torcidas)
+    const tabelas = await tabelasLenda(prisma);
     await prisma.$transaction(async (tx) => {
+      await apagarDadosLenda(tx, userId, tabelas);
+      await tx.suspiciousActivity.deleteMany({ where: { userId } }); // (tem chave estrangeira: sem isto a conta não saía)
       if (target.ownedClan) {
         const clanId = target.ownedClan.id;
         await tx.user.updateMany({ where: { clanId }, data: { clanId: null } });

@@ -6,6 +6,7 @@
 // Tudo é escolhido campo a campo (lista branca): nada de mochila, missões,
 // tostões, posição exata etc. Funções puras (sem banco) — testadas em test/lenda/.
 import { gunzipSync } from "node:zlib";
+import { timePublico } from "./times.js";
 
 // Teto de 2 MB aberto: o save guardado tem no máximo 90 kB comprimido, mas
 // um gzip malfeito poderia inflar muito mais (e esta rota é pública).
@@ -20,7 +21,8 @@ export function abrirSave(dados) {
 }
 
 const num = (v, max = 1e12) => (Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0);
-const txt = (v, max = 40) => (typeof v === "string" ? v.replace(/[<>]/g, "").slice(0, max) : null);
+// só o dia (meia-noite UTC daquele dia), sem a hora
+const soDia = (t) => { const n = num(t, 1e13); return n ? Math.floor(n / 864e5) * 864e5 : 0; };
 const id = (v) => (typeof v === "string" && /^[a-z0-9_]{1,40}$/.test(v) ? v : null);
 
 export function fichaPublica(s) {
@@ -41,14 +43,16 @@ export function fichaPublica(s) {
     .filter(([k]) => id(k))
     .map(([k, a]) => ({ id: k, vitorias: num(a && a.vitorias), miticos: Array.isArray(a && a.itens) ? a.itens.filter(id).length : 0 }))
     .filter((a) => a.vitorias > 0);
+  // v407 (Raio-X U1/U5): nada de texto livre nem de onde/quando a pessoa está. A exaustão mostra só o nível e o DIA
+  // (sem o adversário, o lugar e a hora); o nome do personagem, o clube da carreira e o mapa atual não saem mais;
+  // o nome do time é montado das listas (times.js) — o nome digitado no jogo fica só no aparelho do jogador.
   const exaustoes = (Array.isArray(s.exaustoes) ? s.exaustoes : []).slice(0, 10).map((e) => ({
-    nivel: num(e && e.nivel, 999), por: txt(e && e.por, 60), mapa: id(e && e.mapa), em: num(e && e.em),
+    nivel: num(e && e.nivel, 999), em: soDia(e && e.em),
   }));
   const c = s.carreira || {};
-  const clube = c.clube && typeof c.clube === "object" ? { nome: txt(c.clube.nome, 60), cidade: txt(c.clube.cidadeNome, 60), tier: num(c.clube.tier, 9) } : null;
-  const time = s.time && typeof s.time === "object" ? { nome: txt(s.time.nome, 40), div: num(s.time.div, 9), titulos: num(s.time.titulos, 999) } : null;
+  const tp = s.time && typeof s.time === "object" ? timePublico({ partes: s.time.partes, div: num(s.time.div, 9), titulos: num(s.time.titulos, 999) }) : null;
+  const time = tp ? { nome: tp.nome, div: tp.div, titulos: tp.titulos } : null;
   return {
-    nome: txt(s.nome, 20),
     genero: s.corpo === "f" ? "f" : "m",
     nivel: num(s.nivel, 999) || 1,
     xp: num(s.xp),
@@ -63,10 +67,8 @@ export function fichaPublica(s) {
       defesa: num((sk.defesa || {}).lv, 9999), visao: num((sk.visao || {}).lv, 9999),
     },
     equip,
-    mapa: id(s.mapa),
     casa: s.casa && id(s.casa.id) ? id(s.casa.id) : null,
     time,
-    clube,
     fama: num(c.fama),
     estatisticas: {
       abates: num(st.abates), chefes: num(st.chefes), gols: num(st.gols), mortes: num(st.mortes),
@@ -78,7 +80,7 @@ export function fichaPublica(s) {
     montarias: Array.isArray(s.montarias) ? s.montarias.filter(id).slice(0, 20) : [],
     skins: Array.isArray(s.skins) ? s.skins.filter(id).slice(0, 20) : [],
     exaustoes,
-    criado: num(s.criado),
+    criado: soDia(s.criado),
     dia: num(s.dia),
   };
 }

@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { io as conectar } from "socket.io-client";
 import { registrarGrupo, __configurarGrupoParaTestes, __resetGrupoParaTestes, __grupos, faixaOk, faixaDe } from "../../src/lenda/socketGrupo.js";
+import { definePrefs } from "../../src/lenda/prefs.js";
 
 // ana (líder) é amiga de bia, caio, edu e fabi; davi não é amigo de ninguém.
 const AMIGOS = { ana: ["bia", "caio", "edu", "fabi"], bia: ["ana"], caio: ["ana"], davi: [], edu: ["ana"], fabi: ["ana"] };
@@ -83,11 +84,15 @@ test("diferença de nível do grupo", async () => {
   assert.equal((await pede(bia, "grupo-entrar", { codigo: cod, perfil: { nivel: 210 } })).ok, true);
 });
 
-test("chamar qualquer jogador (botão direito): o chamado entra mesmo sem ser amigo; limite contra spam", async () => {
+test("chamar qualquer jogador (botão direito): só quem LIGOU 'aceitar convites de todos' (v407, U5); limite contra spam", async () => {
   const ana = cliente("ana"), davi = cliente("davi"), edu = cliente("edu");
   await espera(150);
   const cod = (await pede(ana, "grupo-criar", { perfil: { nivel: 100 } })).grupo.codigo;
   assert.match((await pede(davi, "grupo-entrar", { codigo: cod, perfil: { nivel: 100 } })).erro, /chamou/);
+  // padrão: convite só de amigos — o davi não é amigo da ana
+  assert.match((await pede(ana, "grupo-convidar", { amigoId: "davi" })).erro, /amigos/);
+  assert.equal(recebeu(davi, "grupo-convite").length, 0);
+  definePrefs("davi", { convitesTodos: true }); // (o jogo manda "lenda-prefs" — ver socketMundo)
   assert.equal((await pede(ana, "grupo-convidar", { amigoId: "davi" })).ok, true);
   assert.match((await pede(ana, "grupo-convidar", { amigoId: "edu" })).erro, /Calma/, "um convite a cada 3 s");
   await espera(100);

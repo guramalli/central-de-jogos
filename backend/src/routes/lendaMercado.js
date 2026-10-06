@@ -6,7 +6,10 @@ import { requireAuth } from "../middleware/auth.js";
 import {
   CATALOGO, MAX_ATIVOS, MAX_POR_DIA, DURACAO_MS, TAXA, TITULOS, BARRACA_MS, VAGAS, NIVEL_VENDER,
   validaAnuncio, faixaPreco, vendavel, recebeVendedor, inicioDoDia, idsDaBusca, validaBarraca,
+  podeVender, tetoColetaDia, vendasQueCabem, quantosNoSave, CONTA_DIAS_VENDER,
 } from "../lenda/mercado.js";
+import { abrirSave } from "../lenda/ficha.js";
+import { ehSuspeito, paresRepetidos } from "../lenda/suspeitos.js";
 
 export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agora = () => Date.now() } = {}) {
   const r = Router();
@@ -20,10 +23,11 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
     const us = await db().user.findMany({ where: { id: { in: u } }, select: { id: true, nickname: true } });
     return new Map(us.map((x) => [x.id, x.nickname]));
   };
+  const ehAdmin = async (id) => (await db().user.findUnique({ where: { id }, select: { role: true } }))?.role === "ADMIN";
   const publico = (a, nomes) => ({ id: a.id, itemId: a.itemId, nome: CATALOGO[a.itemId]?.n || a.itemId, refino: a.refino || 0, qtd: a.qtd, preco: a.preco,
     vendedorId: a.vendedorId, vendedor: nomes?.get(a.vendedorId) || "Jogador", expiraEm: a.expiraEm });
 
-  r.get("/opcoes", (_req, res) => res.json({ vagas: VAGAS, titulos: TITULOS, taxa: TAXA, nivelVender: NIVEL_VENDER, maxAtivos: MAX_ATIVOS, maxPorDia: MAX_POR_DIA, duracaoMs: DURACAO_MS }));
+  r.get("/opcoes", (_req, res) => res.json({ vagas: VAGAS, titulos: TITULOS, taxa: TAXA, nivelVender: NIVEL_VENDER, maxAtivos: MAX_ATIVOS, maxPorDia: MAX_POR_DIA, duracaoMs: DURACAO_MS, contaDiasVender: CONTA_DIAS_VENDER }));
   // faixa de preço de um item (o jogo mostra antes de anunciar)
   r.get("/faixa/:itemId", (req, res) => {
     if (!vendavel(req.params.itemId)) return res.status(400).json({ error: "Esse item não pode ser vendido." });
@@ -61,10 +65,27 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
     });
   }));
 
+  // v407 (Raio-X U7): quem anuncia — conta do site com 7+ dias, nível do RANKING do servidor (não o que o jogo manda),
+  // fora da lista de suspeitos; e o item precisa aparecer no último save na nuvem (mochila + armazém).
   r.post("/anunciar", rota(async (req, res) => {
-    const eu = req.user.id, v = validaAnuncio(req.body || {});
-    if (v.erro) return res.status(400).json({ error: v.erro });
-    const t = agora();
+    const eu = req.user.id, t = agora();
+    const [conta, rank] = await Promise.all([
+      db().user.findUnique({ where: { id: eu }, select: { isGuest: true, createdAt: true } }),
+      db().lendaRanking.findUnique({ where: { userId: eu }, select: { nivel: true } }),
+    ]);
+    const pv = podeVender(conta, t);
+    if (pv.erro) return res.status(403).json({ error: pv.erro });
+    const v = validaAnuncio({ ...(req.body || {}), nivel: rank?.nivel || 0 });
+    if (v.erro) return res.status(400).json({ error: v.erro + (rank ? "" : " (jogue um pouquinho com a conta do site para o servidor ver o seu nível)") });
+    if (await ehSuspeito(db(), eu)) return res.status(403).json({ error: "A sua loja está em revisão. Fale com a equipe do site pelo botão de ajuda." });
+    const save = await db().lendaSave.findUnique({ where: { userId: eu }, select: { dados: true, atualizadoEm: true } });
+    if (!save) return res.status(409).json({ error: "Salve o jogo online primeiro (o jogo salva sozinho a cada minuto) e tente de novo." });
+    const aberto = abrirSave(save.dados);
+    if (aberto) { // (save que não abre: não bloqueia — fica o registro de pares para o admin)
+      const depois = await db().lendaAnuncio.findMany({ where: { vendedorId: eu, itemId: v.itemId, refino: v.refino, criadoEm: { gt: save.atualizadoEm } }, select: { qtd: true } });
+      const tem = quantosNoSave(aberto, v.itemId, v.refino) - depois.reduce((s, a) => s + a.qtd, 0);
+      if (tem < v.qtd) return res.status(409).json({ error: "Esse item ainda não apareceu no seu jogo salvo online. Espere um minutinho (o jogo salva sozinho) e tente de novo." });
+    }
     if ((await db().lendaAnuncio.count({ where: { vendedorId: eu, expiraEm: { gt: new Date(t) } } })) >= MAX_ATIVOS) return res.status(409).json({ error: `Você já tem ${MAX_ATIVOS} anúncios ativos. Espere vender (ou cancele algum).` });
     const dia = inicioDoDia(t).toISOString().slice(0, 10);
     const cota = await db().lendaMercadoCota.findUnique({ where: { userId_dia: { userId: eu, dia } } });
@@ -75,6 +96,16 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
   }));
 
   // cancelar (ou recolher o vencido): o item volta para o vendedor (o jogo põe na mochila)
+  // v407 (Raio-X U7) — o que o servidor GARANTE aqui, sem guardar o inventário de ninguém:
+  //   - só devolve um anúncio que existe, é da pessoa e ainda não foi vendido; e no máximo UMA vez (deleteMany atômico);
+  //   - devolve exatamente o que foi anunciado (item, refino, quantidade) — nunca mais;
+  //   - o anúncio só nasceu se o item estava no último save na nuvem, descontado o que já foi anunciado depois dele
+  //     (anunciar → cancelar não "cria" item do nada), e só de conta com 7+ dias, nível 30 pelo ranking, fora dos suspeitos,
+  //     com 20 anúncios por dia no máximo.
+  // LIMITE (documentado): o save na nuvem também é escrito pelo jogo. Quem altera o próprio save (jogo modificado) pode
+  // "ter" o item; isso só se resolve com o inventário morando no servidor. O que segura esse caso: a lista de pares
+  // repetidos vendedor↔comprador e os suspeitos do ranking no painel do admin, o teto de tostões recolhidos por dia e
+  // míticos/troféus de arena fora da feira.
   r.post("/cancelar/:id", rota(async (req, res) => {
     const a = await db().lendaAnuncio.findUnique({ where: { id: req.params.id } });
     if (!a || a.vendedorId !== req.user.id) return res.status(404).json({ error: "Anúncio não encontrado." });
@@ -99,14 +130,36 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
     res.json({ ok: true, item: { itemId: a.itemId, refino: a.refino || 0, qtd: q }, total });
   }));
 
-  // recolher os tostões das vendas
+  // recolher os tostões das vendas — v407 (Raio-X U7): até o teto do dia (pelo nível do ranking); o resto fica para amanhã.
+  // O que já saiu hoje fica em LendaMercadoCota com o dia "t:AAAA-MM-DD" (a mesma tabela da cota de anúncios, sem schema novo).
   r.post("/coletar", rota(async (req, res) => {
-    const eu = req.user.id;
+    const eu = req.user.id, t = agora();
     const vendas = await db().lendaVenda.findMany({ where: { vendedorId: eu, coletado: false } });
     if (!vendas.length) return res.json({ ok: true, tostoes: 0 });
-    const marcou = await db().lendaVenda.updateMany({ where: { id: { in: vendas.map((v) => v.id) }, coletado: false }, data: { coletado: true } });
-    if (marcou.count !== vendas.length) return res.status(409).json({ error: "Tente de novo." });
-    res.json({ ok: true, tostoes: vendas.reduce((s, v) => s + recebeVendedor(v.total), 0), vendas: vendas.length });
+    const diaT = "t:" + inicioDoDia(t).toISOString().slice(0, 10);
+    const [cotaT, rank] = await Promise.all([
+      db().lendaMercadoCota.findUnique({ where: { userId_dia: { userId: eu, dia: diaT } } }),
+      db().lendaRanking.findUnique({ where: { userId: eu }, select: { nivel: true } }),
+    ]);
+    const teto = tetoColetaDia(rank?.nivel || 1), jaHoje = cotaT?.n || 0;
+    const sai = vendasQueCabem(vendas, jaHoje, teto);
+    if (!sai.length) return res.json({ ok: true, tostoes: 0, vendas: 0, faltam: vendas.length, teto, aviso: `Hoje você já recolheu o máximo do dia (${teto.toLocaleString("pt-BR")} tostões). O resto fica guardado para amanhã!` });
+    const marcou = await db().lendaVenda.updateMany({ where: { id: { in: sai.map((v) => v.id) }, coletado: false }, data: { coletado: true } });
+    if (marcou.count !== sai.length) return res.status(409).json({ error: "Tente de novo." });
+    const tostoes = sai.reduce((s, v) => s + recebeVendedor(v.total), 0);
+    await db().lendaMercadoCota.upsert({ where: { userId_dia: { userId: eu, dia: diaT } }, create: { userId: eu, dia: diaT, n: Math.min(2e9, tostoes) }, update: { n: { increment: Math.min(2e9, tostoes) } } }).catch(() => {});
+    const faltam = vendas.length - sai.length;
+    res.json({ ok: true, tostoes, vendas: sai.length, faltam, teto, ...(faltam ? { aviso: `Você chegou no máximo de hoje (${teto.toLocaleString("pt-BR")} tostões). ${faltam} venda(s) ficam guardadas para amanhã.` } : {}) });
+  }));
+
+  // ---- painel do admin: pares vendedor ↔ comprador que se repetem (v407, Raio-X U7) ----
+  r.get("/admin/pares", rota(async (req, res) => {
+    if (!(await ehAdmin(req.user.id))) return res.status(403).json({ error: "Só admin." });
+    const dias = Math.min(90, Math.max(1, parseInt(req.query.dias, 10) || 30));
+    const vendas = await db().lendaVenda.findMany({ where: { criadoEm: { gte: new Date(agora() - dias * 864e5) } }, select: { vendedorId: true, compradorId: true, total: true, criadoEm: true }, take: 20000 });
+    const pares = paresRepetidos(vendas, Math.max(2, parseInt(req.query.minimo, 10) || 3)).slice(0, 100);
+    const nomes = await apelidos(pares.flatMap((p) => [p.vendedorId, p.compradorId]));
+    res.json({ dias, pares: pares.map((p) => ({ ...p, vendedor: nomes.get(p.vendedorId) || p.vendedorId, comprador: nomes.get(p.compradorId) || p.compradorId })) });
   }));
 
   // ---- barraca na PRAÇA DA FEIRA (vagas fixas) ----

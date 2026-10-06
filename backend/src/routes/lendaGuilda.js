@@ -7,7 +7,9 @@ import { amigosDe as amigosDeReal } from "../lenda/torcida.js";
 import {
   MAX_MEMBROS, NIVEL_CRIAR, MIN_AJUDA, METAS, NOMES, COMPLEMENTOS, ESCUDOS, CORES,
   validaCriacao, semanaId, faixasAtingidas, podeMexer, podeConvidar, pontosDoEnvio, normalizaSemana, resumoGuilda, montaNome,
+  TETO_SEMANA_MEMBRO, cabeNaSemana,
 } from "../lenda/guilda.js";
+import { sairDaGuilda } from "../lenda/apagar.js";
 
 export function criaRotasGuilda({ prisma = prismaReal, amigosDe = (id) => amigosDeReal(prismaReal, id), auth = requireAuth } = {}) {
   const r = Router();
@@ -23,6 +25,7 @@ export function criaRotasGuilda({ prisma = prismaReal, amigosDe = (id) => amigos
     return new Map(us.map((u) => [u.id, u.nickname]));
   };
   const meuMembro = (id) => db().lendaGuildaMembro.findUnique({ where: { userId: id } });
+  const nivelDe = async (id) => (await db().lendaRanking.findUnique({ where: { userId: id }, select: { nivel: true } }))?.nivel || 0;
   const guildaPorId = (id) => db().lendaGuilda.findUnique({ where: { id } });
   const avisa = (req, userId, evento, dados) => { try { req.app?.get?.("io")?.to(`user:${userId}`).emit(evento, dados); } catch { /* sem socket: tudo bem */ } };
 
@@ -52,7 +55,8 @@ export function criaRotasGuilda({ prisma = prismaReal, amigosDe = (id) => amigos
   r.post("/criar", rota(async (req, res) => {
     const eu = req.user.id, v = validaCriacao(req.body || {});
     if (v.erro) return res.status(400).json({ error: v.erro });
-    if (!(Number(req.body?.nivel) >= NIVEL_CRIAR)) return res.status(400).json({ error: `Para criar uma guilda é preciso estar no nível ${NIVEL_CRIAR}.` });
+    // v407 (Raio-X U7): o nível vem do ranking guardado no servidor, não do que o jogo diz
+    if (!((await nivelDe(eu)) >= NIVEL_CRIAR)) return res.status(400).json({ error: `Para criar uma guilda é preciso estar no nível ${NIVEL_CRIAR} (jogue um pouquinho com a conta do site para o servidor ver o seu nível).` });
     if (await meuMembro(eu)) return res.status(409).json({ error: "Você já está numa guilda. Saia dela antes de criar outra." });
     const g = await db().lendaGuilda.create({ data: { partes: v.partes, escudo: v.escudo, cor: v.cor, liderId: eu, semana: semanaId() } });
     await db().lendaGuildaMembro.create({ data: { userId: eu, guildaId: g.id, papel: "lider", semana: semanaId() } });
@@ -95,22 +99,8 @@ export function criaRotasGuilda({ prisma = prismaReal, amigosDe = (id) => amigos
 
   // sair: o líder passa a liderança (vice mais antigo, senão o membro mais antigo); último a sair apaga a guilda
   r.post("/sair", rota(async (req, res) => {
-    const eu = req.user.id, m = await meuMembro(eu);
-    if (!m) return res.json({ ok: true });
-    await db().lendaGuildaMembro.delete({ where: { userId: eu } });
-    const resto = await db().lendaGuildaMembro.findMany({ where: { guildaId: m.guildaId } });
-    if (!resto.length) {
-      await db().lendaGuildaConvite.deleteMany({ where: { guildaId: m.guildaId } });
-      await db().lendaGuilda.delete({ where: { id: m.guildaId } });
-      return res.json({ ok: true, apagada: true });
-    }
-    if (m.papel === "lider") {
-      const antigo = (l) => l.sort((a, b) => new Date(a.entrouEm) - new Date(b.entrouEm))[0];
-      const novo = antigo(resto.filter((x) => x.papel === "vice")) || antigo(resto);
-      await db().lendaGuildaMembro.update({ where: { userId: novo.userId }, data: { papel: "lider" } });
-      await db().lendaGuilda.update({ where: { id: m.guildaId }, data: { liderId: novo.userId } });
-    }
-    res.json({ ok: true });
+    const r2 = await sairDaGuilda(db(), req.user.id); // (a mesma regra de quando a conta é apagada: lenda/apagar.js)
+    res.json(r2 === "apagada" ? { ok: true, apagada: true } : { ok: true });
   }));
 
   r.post("/expulsar", rota(async (req, res) => {
@@ -144,16 +134,27 @@ export function criaRotasGuilda({ prisma = prismaReal, amigosDe = (id) => amigos
   }));
 
   // o jogo manda os adversários derrotados (de tempos em tempos, com teto)
+  // v407 (Raio-X U7): soma com INCREMENT no banco (dois envios ao mesmo tempo não se apagam mais um ao outro) e com
+  // teto da semana por membro. A virada de semana zera com um "set" só se o registro ainda está na semana velha.
   r.post("/pontos", rota(async (req, res) => {
     const eu = req.user.id, agora = Date.now(), m0 = await meuMembro(eu);
     if (!m0) return res.json({ ok: true, pontos: 0 });
-    const m = normalizaSemana(m0, agora);
-    const n = pontosDoEnvio(req.body?.n, m0.ultimoEnvio ? new Date(m0.ultimoEnvio).getTime() : 0, agora);
-    if (!n) return res.json({ ok: true, pontos: 0 });
-    const g = normalizaSemana(await guildaPorId(m.guildaId), agora);
-    await db().lendaGuildaMembro.update({ where: { userId: eu }, data: { semana: m.semana, pontosSemana: m.pontosSemana + n, premios: m.premios || 0, ultimoEnvio: new Date(agora) } });
-    await db().lendaGuilda.update({ where: { id: g.id }, data: { semana: g.semana, pontosSemana: g.pontosSemana + n, pontosTotal: (g.pontosTotal || 0) + n } });
-    res.json({ ok: true, pontos: n, guildaSemana: g.pontosSemana + n, meusSemana: m.pontosSemana + n });
+    const m = normalizaSemana(m0, agora), sem = m.semana;
+    const n = cabeNaSemana(pontosDoEnvio(req.body?.n, m0.ultimoEnvio ? new Date(m0.ultimoEnvio).getTime() : 0, agora), m.pontosSemana);
+    if (!n) return res.json({ ok: true, pontos: 0, teto: m.pontosSemana >= TETO_SEMANA_MEMBRO });
+    // o envio anterior precisa ser o mesmo que eu li (senão outro envio passou na frente: este não conta)
+    const marca = { userId: eu, ultimoEnvio: m0.ultimoEnvio ?? null };
+    if (m0.semana !== sem) {
+      const virou = await db().lendaGuildaMembro.updateMany({ where: { ...marca, semana: m0.semana }, data: { semana: sem, pontosSemana: n, premios: 0, ultimoEnvio: new Date(agora) } });
+      if (!virou.count) return res.json({ ok: true, pontos: 0 });
+    } else {
+      const somou = await db().lendaGuildaMembro.updateMany({ where: { ...marca, semana: sem }, data: { pontosSemana: { increment: n }, ultimoEnvio: new Date(agora) } });
+      if (!somou.count) return res.json({ ok: true, pontos: 0 });
+    }
+    const g0 = await guildaPorId(m.guildaId);
+    if (g0.semana !== sem) await db().lendaGuilda.updateMany({ where: { id: g0.id, semana: g0.semana }, data: { semana: sem, pontosSemana: 0 } });
+    const g = await db().lendaGuilda.update({ where: { id: g0.id }, data: { pontosSemana: { increment: n }, pontosTotal: { increment: n } } });
+    res.json({ ok: true, pontos: n, guildaSemana: g.pontosSemana, meusSemana: m.pontosSemana + n });
   }));
 
   // resgatar o prêmio de uma faixa da meta (1 vez por semana, para quem ajudou)

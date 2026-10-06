@@ -16,7 +16,13 @@ import { amigosDe } from "./torcida.js";
 import { prisma } from "../db.js";
 import { limpaPerfil } from "./socketTorre.js";
 import { guildaDe } from "./guilda.js";
-
+import { contasForaDoRanking } from "./suspeitos.js";
+import { prefsDe, definePrefs } from "./prefs.js";
+// v407 (Raio-X U5/I8):
+//   lenda-prefs {convitesTodos, invisivel} → {ok, prefs}   (preferências; ver prefs.js)
+//   - INVISÍVEL: a pessoa entra no canal e vê os outros, mas ninguém recebe a chegada, a posição, o perfil nem as falas dela;
+//   mundo-quem → {ok, total, lista: [{id, apelido, nivel, mapa}]}   ("👥 X jogando agora" em todas as cidades; sem os invisíveis)
+export const QUEM_MAX = 200;
 export const MAX_POR_CANAL = 25;
 export const EMOTES = 8;
 export const FRASES = 16;
@@ -38,8 +44,8 @@ let tick = null;
 // os 3 primeiros do ranking de XP (o mesmo do jogo: fora conta banida ou oculta dos rankings) — dono: "colocarmos no
 // primeiro, segundo e terceiro do ranking um número do rank do lado do nickname como sinal de poder"
 async function top3Real() {
-  const topo = await prisma.lendaRanking.findMany({ orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 10, select: { userId: true } });
-  const bloq = new Set((await prisma.user.findMany({ where: { id: { in: topo.map((t) => t.userId) }, OR: [{ banned: true }, { ocultoNoRanking: true }] }, select: { id: true } })).map((u) => u.id));
+  const topo = await prisma.lendaRanking.findMany({ orderBy: [{ xp: "desc" }, { atualizadoEm: "asc" }], take: 20, select: { userId: true } });
+  const bloq = await contasForaDoRanking(prisma, topo.map((t) => t.userId)); // v407: fora também admin e suspeitos
   return topo.map((t) => t.userId).filter((id) => !bloq.has(id)).slice(0, 3);
 }
 const deps = { amigosDe: (id) => amigosDe(prisma, id), guildaDe: (id) => guildaDe(prisma, id), top3: top3Real };
@@ -58,6 +64,15 @@ export function limpaPos(d) {
   return { x: +num(d?.x, 0, 1000).toFixed(2), y: +num(d?.y, 0, 1000).toFixed(2), f: d?.f ? 1 : 0, m: d?.m ? 1 : 0, fa: +num(d?.fa, 0, 1e6).toFixed(2), v: [0, 1, 2].includes(d?.v) ? d.v : 0 };
 }
 const publico = (mb) => ({ id: mb.id, apelido: mb.apelido, nivel: mb.nivel, look: mb.look, x: mb.x, y: mb.y, f: mb.f, m: mb.m, fa: mb.fa, v: mb.v, guilda: mb.guilda || null });
+// os outros do canal que aparecem (sem a própria pessoa e sem os invisíveis)
+const visiveis = (c, eu) => [...c.membros.values()].filter((m) => m.id !== eu && !m.inv).map(publico);
+// v407 (Raio-X I8): quem está jogando nas cidades, em todos os mapas (sem os invisíveis e sem `eu`)
+export function quemEstaJogando(eu) {
+  const lista = [];
+  for (const c of canais.values()) for (const m of c.membros.values()) if (m.id !== eu && !m.inv) lista.push({ id: m.id, apelido: m.apelido, nivel: m.nivel, mapa: c.mapa });
+  lista.sort((a, b) => a.apelido.localeCompare(b.apelido));
+  return { total: lista.length, lista: lista.slice(0, QUEM_MAX) };
+}
 async function guildaCom(id, forcar) {
   const c = guildaCache.get(id), agora = Date.now();
   if (c && c.ate > agora && !forcar) return c.g;
@@ -105,7 +120,7 @@ function ligaTick(io) {
     for (const c of canais.values()) {
       if (!c.mudou.size) continue;
       const pos = [];
-      for (const id of c.mudou) { const mb = c.membros.get(id); if (mb) pos.push([id, mb.x, mb.y, mb.f, mb.m, mb.fa, mb.v]); }
+      for (const id of c.mudou) { const mb = c.membros.get(id); if (mb && !mb.inv) pos.push([id, mb.x, mb.y, mb.f, mb.m, mb.fa, mb.v]); }
       c.mudou.clear();
       if (pos.length) io.to(quarto(c.chave)).volatile.emit("mundo-pos", pos);
     }
@@ -139,18 +154,19 @@ export function registrarMundo(io, socket) {
       const atual = ondeEsta.get(eu);
       if (atual && canais.get(atual)?.mapa === mapa) { // já está neste mapa (outra aba ou reconexão)
         const c = canais.get(atual); socket.join(quarto(atual)); const mb = c.membros.get(eu); Object.assign(mb, limpaPerfil(dados?.perfil, apelido), limpaPos(dados), { sid: socket.id });
-        return responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico), top: topo.ids });
+        return responde(cb, { ok: true, canal: c.n, membros: visiveis(c, eu), top: topo.ids, invisivel: !!mb.inv });
       }
+      if (typeof dados?.invisivel === "boolean") definePrefs(eu, { invisivel: dados.invisivel }); // (v407: o jogo já manda junto)
       if (ondeEsta.size >= MAX_JOGADORES && !atual) return responde(cb, { erro: "O mundo está lotado agora. Tente daqui a pouco." });
       const [amigos, guilda, top] = await Promise.all([amigosCom(eu), guildaCom(eu), atualizaTopo(io)]);
       if (minha !== entrando) return responde(cb, { erro: "trocou" }); // mudou de mapa de novo enquanto esperava
       sai();
       const c = escolheCanal(mapa, amigos);
-      const mb = { id: eu, ...limpaPerfil(dados?.perfil, apelido), ...limpaPos(dados), sid: socket.id, guilda };
+      const mb = { id: eu, ...limpaPerfil(dados?.perfil, apelido), ...limpaPos(dados), sid: socket.id, guilda, inv: !!prefsDe(eu).invisivel };
       c.membros.set(eu, mb); ondeEsta.set(eu, c.chave); socket.join(quarto(c.chave));
-      socket.to(quarto(c.chave)).emit("mundo-chegou", publico(mb));
+      if (!mb.inv) socket.to(quarto(c.chave)).emit("mundo-chegou", publico(mb));
       ligaTick(io);
-      responde(cb, { ok: true, canal: c.n, membros: [...c.membros.values()].filter((m) => m.id !== eu).map(publico), top });
+      responde(cb, { ok: true, canal: c.n, membros: visiveis(c, eu), top, invisivel: mb.inv });
     } catch { responde(cb, { erro: "Não deu para entrar no mundo agora." }); }
   });
 
@@ -166,11 +182,31 @@ export function registrarMundo(io, socket) {
     const c = meuCanal(); if (!c || !podeMandar()) return;
     const mb = c.membros.get(eu); if (!mb) return;
     Object.assign(mb, limpaPerfil(dados?.perfil, mb.apelido));
-    socket.to(quarto(c.chave)).emit("mundo-perfil", publico(mb));
+    if (!mb.inv) socket.to(quarto(c.chave)).emit("mundo-perfil", publico(mb));
+  });
+
+  // v407 (Raio-X U5): preferências (convites só de amigos / invisível). Ficar invisível no meio do mapa: os outros
+  // recebem "saiu"; voltar a aparecer: recebem "chegou".
+  socket.on("lenda-prefs", (dados, cb) => {
+    const p = definePrefs(eu, dados);
+    const c = meuCanal(), mb = c?.membros.get(eu);
+    if (mb && !!mb.inv !== p.invisivel) {
+      mb.inv = p.invisivel;
+      if (mb.inv) socket.to(quarto(c.chave)).emit("mundo-saiu", { id: eu });
+      else socket.to(quarto(c.chave)).emit("mundo-chegou", publico(mb));
+    }
+    responde(cb, { ok: true, prefs: p });
+  });
+  // v407 (Raio-X I8): "👥 X jogando agora" — quem está nas cidades e centros, de TODOS os mapas (sem os invisíveis)
+  let ultimoQuem = 0;
+  socket.on("mundo-quem", (_d, cb) => {
+    const t = Date.now(); if (t - ultimoQuem < 2000) return responde(cb, { erro: "Calma!" }); ultimoQuem = t;
+    responde(cb, { ok: true, ...quemEstaJogando(eu) });
   });
 
   const fala = (evento, max) => socket.on(evento, (dados) => {
     const c = meuCanal(); if (!c) return;
+    if (c.membros.get(eu)?.inv) return; // (invisível não fala com ninguém)
     const t = Date.now(); if (t - ultimaFala < FALA_CADA_MS) return; ultimaFala = t;
     const i = Math.round(Number(dados?.i)); if (!(i >= 0 && i < max)) return;
     io.to(quarto(c.chave)).emit(evento, { de: eu, i });
@@ -184,7 +220,7 @@ export function registrarMundo(io, socket) {
     const g = await guildaCom(eu, true); // (entrou/saiu de guilda: confere de novo)
     if (salaGuilda && (!g || salaGuilda !== `guilda:${g.id}`)) { socket.leave(salaGuilda); salaGuilda = null; }
     if (g) { salaGuilda = `guilda:${g.id}`; socket.join(salaGuilda); }
-    const c = meuCanal(), mb = c?.membros.get(eu); if (mb) { mb.guilda = g; socket.to(quarto(c.chave)).emit("mundo-perfil", publico(mb)); }
+    const c = meuCanal(), mb = c?.membros.get(eu); if (mb) { mb.guilda = g; if (!mb.inv) socket.to(quarto(c.chave)).emit("mundo-perfil", publico(mb)); }
     responde(cb, { ok: true, guilda: g });
   });
   socket.on("guilda-frase", (dados) => {

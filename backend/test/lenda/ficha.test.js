@@ -32,7 +32,7 @@ test("abrirSave abre o gzip+base64 do jogo", () => {
 
 test("fichaPublica mostra só o que é público", () => {
   const f = fichaPublica(saveExemplo);
-  assert.equal(f.nome, "GubFreestyle/b"); // sem < >
+  assert.equal(f.nome, undefined); // v407 (U1): o nome do personagem é texto livre — não sai mais
   assert.equal(f.nivel, 31);
   assert.equal(f.skills.drible, 40);
   assert.deepEqual(f.equip.camisa, { id: "camisa_vila", r: 4 });
@@ -40,12 +40,24 @@ test("fichaPublica mostra só o que é público", () => {
   assert.equal(f.kills[0].id, "skatista");
   assert.equal(f.estatisticas.figurinhas, 2);
   assert.equal(f.arenas[0].vitorias, 2);
-  assert.equal(f.exaustoes[0].por, "Salva-vidas");
+  // v407 (U1/U5): exaustão só com o nível e o DIA (sem quem, onde e a hora); sem clube, sem mapa atual
+  assert.deepEqual(f.exaustoes[0], { nivel: 30, em: Math.floor(1700000000000 / 864e5) * 864e5 });
   assert.equal(f.casa, "casa_vila_1");
-  assert.equal(f.clube.nome, "Vila FC");
+  assert.equal(f.clube, undefined);
+  assert.equal(f.mapa, undefined);
+  // time: o nome digitado ("Os Craques") nunca sai; sem as partes das listas, fica sem nome
+  assert.deepEqual(f.time, { nome: null, div: 3, titulos: 1 });
   // nada de privado
   const json = JSON.stringify(f);
-  for (const campo of ["ouro", "mochila", "quests", "flags", "salario", "segredo", "x", "y", "hotbar"]) assert.ok(!json.includes(`"${campo}":`), campo);
+  for (const campo of ["ouro", "mochila", "quests", "flags", "salario", "segredo", "x", "y", "hotbar", "por", "cidade"]) assert.ok(!json.includes(`"${campo}":`), campo);
+  for (const txt of ["Freestyle", "Salva-vidas", "Vila FC", "Os Craques", "praia"]) assert.ok(!json.includes(txt), txt);
+});
+
+test("fichaPublica: o nome do time vem das listas (v407, U1)", () => {
+  const f = fichaPublica({ ...saveExemplo, time: { nome: "palavrão livre", partes: "0.0", div: 2, titulos: 0 } });
+  assert.equal(f.time.nome, "Esporte Clube Campinho");
+  const g = fichaPublica({ ...saveExemplo, time: { nome: "x", partes: "99.0", div: 2 } });
+  assert.equal(g.time.nome, null);
 });
 
 test("fichaPublica aguenta save quebrado", () => {
