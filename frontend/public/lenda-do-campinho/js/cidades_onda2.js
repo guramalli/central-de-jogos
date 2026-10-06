@@ -21,7 +21,7 @@
 const O2C_PISOS = [ // [nome do CH, id, textura, quadros que a textura t2 cobre, cor média]
   ['BALDOSA_BA', 141, 'baldosa_v408', 2.6, '#d2bf9c'], ['LAJE_LONDRES', 142, 'laje_londres_v408', 3.6, '#b5b0aa'],
   ['MARMORE_DOHA', 143, 'marmore_doha_v408', 4, '#d2cdc1'], ['LAJE_TOQUIO', 144, 'laje_toquio_v408', 4.2, '#b8b5b3'],
-  ['MOSAICO_MILAO', 145, 'mosaico_milao_v408', 3.6, '#dacabc'], ['TIJOLO_MADRI', 146, 'tijolo_madri_v408', 3.4, '#b18877'],
+  ['MOSAICO_MILAO', 145, 'mosaico_milao_v4081', 3.6, '#d4b194'] /* v408.1 (dono: "piso de Milão claro demais"): mais quente e com contraste médio */, ['TIJOLO_MADRI', 146, 'tijolo_madri_v408', 3.4, '#b18877'],
   ['LEQUE_MUNIQUE', 147, 'leque_munique_v408', 3, '#b0a8a2'], ['TERRAZZO_MIAMI', 148, 'terrazzo_miami_v408', 4, '#e6dfd5'],
 ];
 for (const [k, id, tex, n, cor] of O2C_PISOS) {
@@ -281,6 +281,8 @@ function o2cArruma(m, id) {
       m.obj[i(x, y)] = null; m.placas.pop();
     }
   }
+  // v408.1: as praças sem nada ganham grupinhos (o2cPreenche, no fim do arquivo)
+  try { o2cPreenche(m, C, (m._o2cPracas || []).map(r => r.slice(1).concat(r[0] === 'zona' ? [1] : [])), id); } catch (e) { console.error('praças cheias', id, e); }
   delete m._chao; delete m._chaoV; // o chão mudou
 }
 
@@ -295,5 +297,81 @@ function o2cArruma(m, id) {
       }
     } catch (e) { console.warn('cidades onda 2: posição', e); }
     return _iniciarJogoO2c.call(this, save, ...resto);
+  };
+}
+
+/* ============================================================
+   🧺 PRAÇAS CHEIAS (v408.1, dono: "melhore as praças vazias" — a pior era Milão, um branco enorme com pouca coisa).
+   Depois de tudo pronto, cada praça (a das lojas, o largo do terminal e as pracinhas novas) é varrida: todo pedaço de
+   4×4 quadros sem nada nas praças pequenas, 5×5 nas grandes (6×6 no resto da calçada, 7×7 nas zonas de caça calmas) ganha um GRUPINHO de 3 quadros numa fileira só (sobra sempre corredor para andar):
+   mesinhas de café com gente, jardim (canteiros + estátua ou árvore), feirinha local com freguês, banca/poste/bicicletário,
+   vizinhos conversando perto de um banco. Crivo: nada perto de NPC/porta/placa/saída/ponto/spawn/chegada, nada na
+   frente das portas nem no desenho dos prédios; se algum caminho fechar, o grupinho sai (alcancaveis).
+   ============================================================ */
+const O2C_CAFE = { milao: 'mesa_italiana', munique: 'mesa_bavara' };
+function o2cPreenche(m, C, rects, id) {
+  if (typeof vbmFigurante !== 'function') return 0; rects = rects || [];
+  const W = m.w, H = m.h, i = (x, y) => y * W + x, dentro = (x, y) => x > 0 && y > 0 && x < W - 1 && y < H - 1;
+  const PAV = new Set([CH.CALCADA, CH.PEDRA, CH.PARALELO, CH.CONCRETO, CH.CALCADA_PT, CH.CALCADA_PT_SUAVE, CH.ARENITO, CH.CALCADA_SANTOS, C.piso]);
+  const inicio = m.renasce || m.inicio || { x: W >> 1, y: H >> 1 };
+  const antes = alcancaveis(m, inicio), importantes = pontosImportantes(m).filter(pt => antes[pt.y * W + pt.x]);
+  const mask = new Uint8Array(W * H);
+  const marca = (x0, y0, x1, y1) => { for (let y = Math.max(0, y0); y <= Math.min(H - 1, y1); y++) for (let x = Math.max(0, x0); x <= Math.min(W - 1, x1); x++) mask[i(x, y)] = 1; };
+  for (const n of m.npcs) marca(n.x - 2, n.y - 2, n.x + 2, n.y + 2);
+  for (const s of m.saidas) marca(s.x - 2, s.y - 2, s.x + 2, s.y + 2);
+  for (const p of m.placas) marca(p.x - 1, p.y - 1, p.x + 1, p.y + 1);
+  for (const p of m.pontos) marca(p.x - 2, p.y - 2, p.x + 2, p.y + 2);
+  for (const s of m.spawns) { const r = (s.raio || 1) + 2; marca(s.x - r, s.y - r, s.x + r, s.y + r); }
+  for (const z of (m.zonas || [])) if (z.hostil || /torcida|arquibancada/i.test(z.nome || '')) marca(z.x - 1, z.y - 1, z.x + z.w, z.y + z.h);
+  for (const c of m.campos) marca(c.x - 1, c.y - 1, c.x + c.w, c.y + c.h);
+  marca(inicio.x - 2, inicio.y - 2, inicio.x + 2, inicio.y + 2);
+  for (const p of m.predios) {
+    const alto = p.alto != null ? p.alto : Math.max(2, Math.round(p.w * 1.1 - p.h));
+    marca(p.x - 1, p.y - alto, p.x + p.w, p.y + p.h);
+    if (p.porta) marca(p.porta.x - 1, p.porta.y, p.porta.x + 1, p.porta.y + 4);
+  }
+  if (m.lotes && m.lotes.ct) marca(m.lotes.ct.x - 1, m.lotes.ct.y - 1, m.lotes.ct.x + 12, m.lotes.ct.y + 5);
+  const vazio = (x, y) => dentro(x, y) && !mask[i(x, y)] && !m.obj[i(x, y)] && PAV.has(m.chao[i(x, y)]);
+  const postos = [];
+  const poe = (x, y, t) => { if (!vazio(x, y)) return false; m.obj[i(x, y)] = { t, v: (hash2(x, y) * 1000) | 0 }; postos.push([i(x, y)]); return true; };
+  const gente = (x, y, o) => { if (!vazio(x, y)) return false; vbmFigurante(m, x, y, Object.assign({ semente: x * 97 + y * 13 + id.length }, o)); postos.push([i(x, y)]); return true; };
+  const confere = () => { let d = alcancaveis(m, inicio); while (postos.length && !importantes.every(pt => d[pt.y * W + pt.x])) { for (const k of postos.pop()) m.obj[k] = null; d = alcancaveis(m, inicio); } postos.length = 0; };
+  const feira = C.feira || ['carrinho_flores'], cafe = O2C_CAFE[id] || 'mesa_cafe', arv = C.arv || 'arvore', banco = C.banco || 'banco_jardim';
+  let nf = 0, n = 0;
+  const GRUPOS = [
+    (x, y) => { poe(x - 1, y, cafe); gente(x, y, { lado: true, vira: true }); poe(x + 1, y, cafe); },                          // café na calçada
+    (x, y) => { poe(x - 1, y, 'canteiro'); poe(x, y, hash2(x, y) < 0.5 ? 'estatua_jardim' : arv); poe(x + 1, y, 'canteiro'); }, // jardinzinho
+    (x, y) => { poe(x - 1, y, feira[nf++ % feira.length]); gente(x, y, {}); poe(x + 1, y, feira[nf++ % feira.length]); },        // feirinha com freguês
+    (x, y) => { poe(x - 1, y, 'banca_jornal'); poe(x, y, 'poste3'); poe(x + 1, y, 'bicicletario'); },                            // banca, poste e bicicletas
+    (x, y) => { gente(x - 1, y, { lado: true }); gente(x, y, { lado: true, vira: true }); poe(x + 1, y, banco); },               // vizinhos conversando
+    (x, y) => { poe(x - 1, y, banco); poe(x, y, arv); gente(x + 1, y, { crianca: true }); },                                    // sombra e banco
+  ];
+  // as praças anotadas primeiro; depois o mapa inteiro (todo pedaço de calçada/praça de 5×5 sem nada, fora das ruas e campos)
+  const naZona = (x, y) => (m.zonas || []).some(z => x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h);
+  const c = m.centroTreino; if (c && c.X != null) marca(c.X - 2, c.Y - 2, c.X + c.W + 1, c.Y + c.H + 1);
+  for (const s of m.spawns) if (s.qtd === 1) marca(s.x - 6, s.y - 6, s.x + 6, s.y + 6); // (o chefão precisa de espaço)
+  for (const [x0, y0, w, h, zona, geral] of rects.concat([[3, 3, W - 6, H - 6, 0, 1]])) { // (o mapa inteiro fica longe da beirada: nada nos fundos encostados na cerca)
+    for (let volta = 0; volta < 2; volta++) for (let cy = y0 + 2; cy <= y0 + h - 3; cy++) for (let cx = x0 + 2; cx <= x0 + w - 3; cx++) {
+      const z = zona || naZona(cx, cy), peq = w * h <= 320, A = z ? 3 : geral ? 2 : peq ? 1 : 2, B = z ? 3 : geral ? 3 : 2; // vão de 4×4 nas praças pequenas e 5×5 nas grandes (com 4×4 a de Milão ficava entupida); 6×6 no resto da calçada; 7×7 nas zonas de caça calmas (os adversários precisam de espaço)
+      // o pedaço 5×5 está sem nada? (o que fica perto de gente/porta conta como vazio, mas ali nada é posto: o grupinho
+      // tenta a fileira do meio, a de cima e a de baixo, e cada peça confere o seu quadro)
+      let livre = true;
+      for (let y = cy - A; y <= cy + B && livre; y++) for (let x = cx - A; x <= cx + B; x++) if (!dentro(x, y) || m.obj[i(x, y)] || !PAV.has(m.chao[i(x, y)])) { livre = false; break; }
+      if (!livre) continue;
+      const g = GRUPOS[Math.floor(hash2(cx, cy, 5) * GRUPOS.length) % GRUPOS.length];
+      for (const yy of [cy, cy - 1, cy + 1, cy - 2, cy + 2]) { const p0 = postos.length; g(cx, yy); if (postos.length > p0) { n++; break; } }
+      confere();
+    }
+  }
+  delete m._chao; delete m._chaoV;
+  return n;
+}
+// o Rio (piloto da onda 1) também: o terminal e a Praça Tiradentes
+if (MAPAS_DEF.rio) {
+  const _rioO2c = MAPAS_DEF.rio;
+  MAPAS_DEF.rio = function () {
+    const m = _rioO2c.apply(this, arguments);
+    try { if (!m._o2cRio) { m._o2cRio = true; o2cPreenche(m, { piso: CH.CALCADA_PT_SUAVE, arv: 'coqueiro', banco: 'banco_jardim', feira: ['carrinho_mate', 'carrinho_acai', 'banca_coco', 'carrinho_flores'] }, [[2, 43, 29, 8], [34, 31, 20, 9]], 'rio'); } } catch (e) { console.error('rio praças', e); }
+    return m;
   };
 }

@@ -23,6 +23,7 @@ if (typeof OBJ_MINI !== 'undefined') OBJ_MINI.barco_pesca = '#f0f0f0';
   mapaVila = function () {
     const m = _mapaVilaVbm.apply(this, arguments);
     try { vbmArruma(m); } catch (e) { console.error('vila beira-mar', e); }
+    try { vbmVila4081(m); } catch (e) { console.error('vila beira-mar v408.1', e); }
     return m;
   };
 }
@@ -35,7 +36,8 @@ function vbmArruma(m) {
   const antes = alcancaveis(m, inicio);
   // ---------- 1) o mar a leste: o rio desce até a altura da avenida e se abre no mar ----------
   // linha da praia (primeiro quadro de mar) em cada fileira, do y 31 para baixo
-  const praia = y => y <= 32 ? 72 : y <= 36 ? 68 : y <= 39 ? 69 : y <= 42 ? 70 : 71 + Math.round(Math.sin(y / 3.2) * 1.2);
+  // v408.1 (dono: "o mar pode avançar mais"): a praia chega mais perto do campinho
+  const praia = y => y <= 32 ? 72 : y <= 34 ? 69 : y <= 51 ? 66 + Math.round(Math.sin(y / 3.2) * 0.8) : 68;
   for (let y = 30; y < H; y++) {
     const xs = praia(y);
     for (let x = 0; x < W; x++) {
@@ -102,5 +104,156 @@ function vbmArruma(m) {
   if (falta.length) console.warn('vila beira-mar: pontos sem caminho', JSON.stringify(falta));
   // a placa do trapiche agora fala do mar
   const pl = m.placas.find(p => /TRAPICHE/.test(p.texto)); if (pl) pl.texto = '🎣 PÍER DA VILA — aqui o rio Campinho encontra o mar... e o mar vai até o mundo todo!';
+  delete m._chao; delete m._chaoV;
+}
+
+/* ============================================================
+   👥 GENTE NAS PRAÇAS E NAS PORTAS (v408.1, dono: "melhore as praças vazias ... e a vila").
+   Figurantes: pessoas paradas, SEM conversa (são enfeites do mapa, não NPCs: não entram na zona segura nem nas missões),
+   desenhadas com o mesmo boneco dos personagens (spriteBoneco), de frente ou de lado, com a "respiração" de quem está
+   parado (a mesma conta do desenhaEnt: sy = 1 + sen·0,012, a base fica no chão). Criança pode estar soltando PIPA
+   (a pipa é desenhada por código, presa na mão dela pela linha, balançando com o vento).
+   Uso: vbmFigurante(m, x, y, { crianca, pipa, lado, vira, semente }) — ocupa 1 quadro e bloqueia a passagem.
+   ============================================================ */
+OBJ_INFO.figurante = { w: 0.8, b: 1 }; OBJ_BLOQUEIA.add('figurante');
+if (typeof OBJ_MINI !== 'undefined') OBJ_MINI.figurante = '#e0a070';
+const VBM_PELES = ['pele-clara', 'pele-media', 'pele-morena', 'pele-negra', 'pele-retinta'];
+const VBM_CAB_M = ['cabelo-curto', 'cabelo-curto', 'cabelo-black-power', 'cabelo-raspado', 'cabelo-topete', 'cabelo-cacheado'];
+const VBM_CAB_F = ['cabelo-coque', 'cabelo-liso-longo', 'cabelo-cacheado', 'cabelo-rabo', 'cabelo-black-power'];
+const VBM_COR_CAB = ['preto', 'castanho', 'preto', 'loiro', 'ruivo', 'grisalho'];
+const VBM_ROUPA = ['roupa-camiseta', 'roupa-regata', 'roupa-xadrez', 'roupa-moletom', 'roupa-camiseta'];
+const VBM_CORES = ['#e04a4a', '#3a7ae0', '#f0b030', '#3aa860', '#c050c0', '#f07a3a', '#2ab0b0', '#f4f4f4', '#ff7aa8', '#6a5ae0'];
+function vbmLook(sem, crianca) {
+  const r = k => hash2(sem, k, 77), pega = (l, k) => l[Math.floor(r(k) * l.length) % l.length];
+  const f = r(1) < 0.5;
+  return { tipo: 'humano', corpo: f ? 'f' : 'm', pele: pega(VBM_PELES, 2), cabelo: pega(f ? VBM_CAB_F : VBM_CAB_M, 3), corCabelo: crianca ? pega(['preto', 'castanho', 'loiro'], 4) : pega(VBM_COR_CAB, 4),
+    roupa: pega(VBM_ROUPA, 5), corRoupa: pega(VBM_CORES, 6), baixo: f && r(7) < 0.4 ? 'baixo-saia' : pega(['baixo-shorts', 'baixo-jeans', 'baixo-moletom', 'baixo-shorts'], 8), corBaixo: pega(['#2a3a6a', '#5a4a3a', '#3a3a3a', '#7a8aa0'], 9),
+    alt: crianca ? 1.22 + r(10) * 0.08 : 1.58 + r(10) * 0.16 };
+}
+function vbmFigurante(m, x, y, o = {}) {
+  const k = y * m.w + x; if (m.obj[k]) return false;
+  const sem = o.semente != null ? o.semente : x * 131 + y * 17 + (m.id || '').length;
+  m.obj[k] = { t: 'figurante', v: sem % 1000, meta: { look: vbmLook(sem, o.crianca), lado: !!o.lado, vira: !!o.vira, pipa: !!o.pipa, sem } };
+  return true;
+}
+{
+  const _desenhaObjVbm = desenhaObj;
+  desenhaObj = function (ctx, o, x, y) {
+    if (!o || o.t !== 'figurante' || !o.meta) return _desenhaObjVbm.apply(this, arguments);
+    const md = o.meta, comp = typeof spriteBoneco === 'function' ? spriteBoneco(md.look, md.lado ? 'lado' : 'frente', 0) : null;
+    if (!comp) return;
+    const h = md.look.alt * T, w = h * comp.c.width / comp.c.height, cx = (x + 0.5) * T, base = (y + 0.86) * T;
+    ctx.fillStyle = 'rgba(30,20,40,0.22)'; ctx.beginPath(); ctx.ellipse(cx, base, Math.min(h * 0.2, 22), 7, 0, 0, 7); ctx.fill();
+    const sy = 1 + Math.sin(G.agora / 450 + md.sem) * 0.012; // parado: só a respiração (a base fica no chão)
+    ctx.save(); ctx.translate(cx, base); ctx.scale(md.vira ? -1 : 1, sy); ctx.drawImage(comp.c, -w / 2, -h, w, h); ctx.restore();
+    if (md.pipa) { // a pipa: no alto, à direita, balançando; a linha sai da mão da criança
+      const t = G.agora / 1000 + md.sem, dir = md.vira ? -1 : 1;
+      const px = cx + dir * (1.3 * T + Math.sin(t * 0.9) * 0.25 * T), py = base - h - 1.9 * T + Math.sin(t * 1.3) * 0.18 * T, mx = cx + dir * w * 0.3, my = base - h * 0.55;
+      ctx.strokeStyle = 'rgba(60,50,60,0.8)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo((mx + px) / 2 + dir * 8, (my + py) / 2 + 14, px, py + 10); ctx.stroke();
+      const cor = VBM_CORES[md.sem % VBM_CORES.length], rot = Math.sin(t * 1.7) * 0.18;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+      ctx.fillStyle = cor; ctx.strokeStyle = '#3d2b3a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, 0); ctx.lineTo(0, 12); ctx.lineTo(-9, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.stroke();
+      ctx.strokeStyle = '#3d2b3a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, 12); for (let k = 1; k <= 4; k++) ctx.lineTo(Math.sin(t * 3 + k) * 4, 12 + k * 6); ctx.stroke();
+      for (let k = 1; k <= 3; k++) { ctx.fillStyle = k % 2 ? '#ffd23f' : '#ff5a5a'; ctx.beginPath(); ctx.arc(Math.sin(t * 3 + k * 1.5) * 4, 12 + k * 7, 2.4, 0, 7); ctx.fill(); }
+      ctx.restore();
+    }
+  };
+}
+
+/* ============================================================
+   🏖️ A VILA MAIS VIVA (v408.1, dono: "aproximar BEM MAIS da arte da abertura — vila à beira-mar viva").
+   - o MAR também no SUL: atrás da Rua das Mangueiras vem a areia e o mar (as casas coloridas ficam de frente para a praia);
+   - mais uma casa colorida na rua de cima (as casas ficam juntinhas, formando rua);
+   - varais de roupa nos quintais, mesinha de café na frente da padaria, árvores e bancos em volta do campinho;
+   - GENTE: vizinhos nas portas, banhistas e pescador no píer, crianças soltando pipa na praia;
+   - a orla com quiosque, carrinho de açaí, pranchas, guarda-sóis, jangada e barcos de pesca.
+   Tudo o que o tutorial usa fica no lugar (casa, os 2 baús, Seu Zé, pombos, ônibus, quadro, saídas); se algo fechar caminho, sai.
+   ============================================================ */
+function vbmVila4081(m) {
+  if (m._vbm4081 || m.w !== 90 || m.h !== 64) return; m._vbm4081 = true;
+  const W = m.w, H = m.h, i = (x, y) => y * W + x, dentro = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+  const AG = CH.AGUA, AR = CH.AREIA, MAD = CH.MADEIRA, inicio = m.renasce || m.inicio;
+  const antes = alcancaveis(m, inicio), importantes0 = pontosImportantes(m).filter(pt => antes[pt.y * W + pt.x]);
+  // ---------- 1) o mar no sul ----------
+  for (let x = 24; x < W; x++) for (let y = 60; y < H; y++) {
+    const k = i(x, y), o = m.obj[k]; if (o && o.predio) continue;
+    if (m.chao[k] === AG || m.chao[k] === MAD) continue;
+    const mar = y >= 62 && x >= 28;
+    if (mar) { m.chao[k] = AG; m.obj[k] = null; }
+    else if (y >= 61 || (y === 60 && x >= 26)) { m.chao[k] = AR; if (o && o.t !== 'poste') m.obj[k] = null; }
+  }
+  for (let y = 60; y < H; y++) for (const x of [24, 25]) { const k = i(x, y); if (!m.obj[k] && m.chao[k] === AR) m.obj[k] = { t: 'coqueiro', v: 1 }; }
+  // ---------- 2) mais uma casa na rua de cima (entre a bicicletaria e a escola) ----------
+  {
+    const x0 = 42, y0 = 9; let ok = true; // (x 42–46: colada na bicicletaria, como as casas da abertura)
+    for (let y = y0; y <= y0 + 2; y++) for (let x = x0; x < x0 + 5; x++) {
+      const o = m.obj[i(x, y)], c = m.chao[i(x, y)];
+      if ((o && (o.predio || !/^(bicicleta|arbusto|arvore|mangueira|pedra|vaso)$/.test(o.t))) || (c !== CH.GRAMA && c !== CH.GRAMA_FLOR)) ok = false;
+    }
+    if (ok && !m.npcs.some(n => n.x >= x0 - 1 && n.x <= x0 + 5 && n.y >= y0 && n.y <= y0 + 3)) {
+      for (let y = y0; y <= y0 + 2; y++) for (let x = x0; x < x0 + 5; x++) m.obj[i(x, y)] = { t: 'x', v: 0, predio: true };
+      m.predios.push({ spr: 'b_casa_rosa', x: x0, y: y0, w: 5, h: 3, porta: { x: x0 + 2, y: y0 + 2 } }); m.obj[i(x0 + 2, y0 + 2)] = null;
+    }
+  }
+  // ---------- o kit: só em quadro livre, longe de gente/porta/placa/saída/ponto, e sem fechar caminho ----------
+  const postos = [];
+  const pertoDe = (x, y) => m.npcs.some(n => Math.abs(n.x - x) <= 1 && Math.abs(n.y - y) <= 1) || m.placas.some(p => Math.abs(p.x - x) <= 1 && Math.abs(p.y - y) <= 1)
+    || m.pontos.some(p => Math.abs(p.x - x) <= 2 && Math.abs(p.y - y) <= 2) || m.saidas.some(s => Math.abs(s.x - x) <= 2 && Math.abs(s.y - y) <= 2)
+    || m.predios.some(p => p.porta && Math.abs(p.porta.x - x) <= 1 && y > p.porta.y && y <= p.porta.y + 2)
+    || m.campos.some(c => x >= c.x - 1 && x <= c.x + c.w && y >= c.y - 1 && y <= c.y + c.h)
+    || m.spawns.some(s => Math.abs(s.x - x) <= (s.raio || 1) + 1 && Math.abs(s.y - y) <= (s.raio || 1) + 1)
+    || (Math.abs(inicio.x - x) <= 1 && Math.abs(inicio.y - y) <= 1);
+  const RUA = new Set([CH.TERRA, CH.PEDRA]); // (rua e calçada ficam livres)
+  const livre = (x, y, chaos) => {
+    if (!dentro(x, y) || x < 1 || y < 1 || x >= W - 1 || m.obj[i(x, y)] || pertoDe(x, y)) return false;
+    const c = m.chao[i(x, y)];
+    return chaos ? chaos.includes(c) : (CH_ANDA(c) && c !== AG && !RUA.has(c) && c !== MAD);
+  };
+  const poe = (x, y, t, larg = 1, chaos = null) => {
+    const meia = larg >> 1; for (let k = -meia; k <= meia; k++) if (!livre(x + k, y, chaos)) return false;
+    m.obj[i(x, y)] = { t, v: (hash2(x, y) * 1000) | 0 }; const tiles = [i(x, y)];
+    for (let k = 1; k <= meia; k++) { m.obj[i(x - k, y)] = { t: 'x', v: 0 }; m.obj[i(x + k, y)] = { t: 'x', v: 0 }; tiles.push(i(x - k, y), i(x + k, y)); }
+    postos.push(tiles); return true;
+  };
+  const gente = (x, y, o = {}, chaos = null) => { if (!livre(x, y, chaos)) return false; vbmFigurante(m, x, y, o); postos.push([i(x, y)]); return true; };
+  const tenta = (lista, f) => { for (const a of lista) if (f(...a)) return true; return false; };
+  // ---------- 3) a praia do sul: quiosque, guarda-sóis, banhistas, pipas, barcos ----------
+  const SUL = [AR];
+  poe(33, 61, 'quiosque', 1, SUL); poe(52, 61, 'carrinho_acai', 1, SUL); poe(58, 61, 'rack_pranchas', 1, SUL);
+  for (const x of [38, 45, 62]) { poe(x, 61, 'guarda_sol', 1, SUL); poe(x + 1, 61, 'cadeira_praia', 1, SUL); }
+  poe(29, 61, 'jangada', 1, SUL); poe(66, 61, 'covos_pesca', 1, SUL);
+  for (const x of [36, 49, 56]) if (!m.obj[i(x, 61)] && m.chao[i(x, 61)] === AR) m.obj[i(x, 61)] = { t: 'toalha_praia', v: x };
+  gente(41, 61, { crianca: true, pipa: true, semente: 11 }, SUL); gente(55, 61, { crianca: true, pipa: true, vira: true, semente: 23 }, SUL);
+  gente(47, 61, { semente: 31 }, SUL); gente(60, 61, { lado: true, semente: 37 }, SUL);
+  for (const [x, t] of [[35, 'barco_pesca'], [50, 'barquinho'], [61, 'barco_pesca']]) if (m.chao[i(x, 62)] === AG && !m.obj[i(x, 62)]) m.obj[i(x, 62)] = { t, v: x };
+  // ---------- 4) a praia do leste (perto do píer) ----------
+  const LESTE = [AR];
+  tenta([[63, 37], [63, 38], [64, 36]], (x, y) => poe(x, y, 'quiosque', 1, LESTE));
+  tenta([[64, 47], [63, 46], [64, 49]], (x, y) => poe(x, y, 'carrinho_acai', 1, LESTE));
+  tenta([[64, 44], [63, 45]], (x, y) => gente(x, y, { crianca: true, pipa: true, semente: 41 }, LESTE));
+  tenta([[63, 52], [64, 53]], (x, y) => gente(x, y, { semente: 43, lado: true }, LESTE));
+  tenta([[63, 49], [62, 50]], (x, y) => poe(x, y, 'kit_praia', 1, LESTE));
+  // o pescador na ponta do píer (a fileira de baixo do píer continua livre)
+  { let px = 0; for (let x = 62; x < W - 1; x++) if (m.chao[i(x, 41)] === MAD) px = x; if (px) gente(px, 41, { lado: true, semente: 53 }, [MAD]); }
+  // ---------- 5) vizinhos nas portas (do lado da porta, nunca na frente) e varais nos quintais ----------
+  for (const p of m.predios) {
+    if (!p.porta || p.monumento || (p.spr === 'b_casa' && p.y < 20) || !/casa|padaria|quitanda|sorveteria|barbearia|bicicletaria/.test(p.spr)) continue;
+    const y = p.porta.y + 1, lado = hash2(p.x, p.y, 3) < 0.5 ? 1 : -1;
+    tenta([[p.porta.x + 2 * lado, y], [p.porta.x - 2 * lado, y], [p.porta.x + 3 * lado, p.porta.y], [p.porta.x - 3 * lado, p.porta.y]], (x, yy) => gente(x, yy, { lado: true, vira: x < p.porta.x, semente: p.x * 7 + p.y }));
+  }
+  for (const [x, y] of [[31, 53], [40, 53], [57, 53], [52, 18], [36, 6]]) poe(x, y, 'varal', 3);
+  // ---------- 6) padaria: mesinha de café na calçada; quitanda: caixotes de frutas ----------
+  tenta([[46, 26], [45, 26]], (x, y) => poe(x, y, 'mesa_cafe'));
+  tenta([[53, 26], [59, 26]], (x, y) => poe(x, y, 'caixotes_frutas'));
+  // ---------- 7) árvores e bancos em volta do campinho ----------
+  for (const [x, y] of [[25, 33], [57, 33], [25, 51], [57, 51], [59, 38], [59, 44], [59, 50], [33, 52], [42, 52], [49, 52]]) poe(x, y, hash2(x, y) < 0.5 ? 'mangueira' : 'arvore');
+  for (const [x, y] of [[27, 52], [39, 52], [55, 52]]) poe(x, y, 'banco');
+  tenta([[58, 41], [58, 47]], (x, y) => gente(x, y, { crianca: true, lado: true, vira: true, semente: 61 }));
+  // ---------- confere: se algum caminho fechou, tira o que foi posto por último ----------
+  const importantes = importantes0.concat(m.predios.filter(p => p.spr === 'b_casa_rosa' && p.y === 9).map(p => ({ x: p.porta.x, y: p.porta.y + 1 })));
+  let d = alcancaveis(m, inicio);
+  while (postos.length && !importantes.every(pt => d[pt.y * W + pt.x])) { for (const k of postos.pop()) m.obj[k] = null; d = alcancaveis(m, inicio); }
+  const falta = importantes.filter(pt => !d[pt.y * W + pt.x]); if (falta.length) console.warn('vila v408.1: pontos sem caminho', JSON.stringify(falta));
   delete m._chao; delete m._chaoV;
 }
