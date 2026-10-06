@@ -26,7 +26,9 @@ const CHAO_BLOCOS = (() => {
   const MG = 128;                                   // margem extra quando o desenho copia dele mesmo (esquinas das ruas)
   const PE = 1 / 8;                                 // prévia: 1/8 do tamanho
   const TETO = (CEL ? 28 : DM >= 8 ? 160 : 112) * 1048576; // memória máxima dos blocos guardados
-  const ORC_TELA = 12, ORC_OCIO = 4;                // ms por quadro: blocos que faltam na tela / adiantar os de perto
+  // v408.6 (desempenho, dono: "está travando ao entrar no mapa e andando"): no computador, menos tempo por quadro (12 → 6 ms; 4 → 2 ms)
+  // e a conferência do tempo a cada 4 passos (era a cada 16): um bloco que custa 20–50 ms fica dividido em vários quadros
+  const ORC_TELA = CEL ? 12 : 6, ORC_OCIO = CEL ? 4 : 2;                // ms por quadro: blocos que faltam na tela / adiantar os de perto
   const GUARDADOS = new Map();                      // chave -> { S, k, c, bytes, q }  (todos os mapas juntos)
   let bytes = 0, quadro = 0, seq = 0, job = null; const DBG = { l: null }; // (testes: DBG.l = [] anota cada etapa)
   const pendPrevia = new Set();                     // lousas que querem a prévia pronta (vizinho pré-desenhado)
@@ -121,10 +123,22 @@ const CHAO_BLOCOS = (() => {
               if (a.length !== 9) continue;
               a = [alvo, (a[1] - info.x0) * e, (a[2] - info.y0) * e, a[3] * e, a[4] * e, a[5], a[6], a[7], a[8]];
             }
+            else if (k === 'fillRect' && a.length === 4 && Math.abs(a[2] * a[3]) * e * e > 250000) {
+              // v408.6 (desempenho): o chão de fundo é UM fillRect do mapa inteiro com textura — sozinho custava 15–136 ms por
+              // bloco (travada ao andar). Com a posição de sempre, é pintado em faixas de 96 px (o mesmo resultado, pixel a
+              // pixel: a textura fica presa ao mapa, não ao retângulo) e o trabalho pode parar entre uma faixa e outra.
+              const tm = ctx.getTransform();
+              if (tm.a === e && tm.d === e && !tm.b && !tm.c && Math.abs(tm.e + info.x0 * e) < 1e-6 && Math.abs(tm.f + info.y0 * e) < 1e-6) {
+                let [rx, ry, rw, rh] = a; if (rw < 0) { rx += rw; rw = -rw; } if (rh < 0) { ry += rh; rh = -rh; }
+                const ix0 = Math.max(rx, info.x0), iy0 = Math.max(ry, info.y0), ix1 = Math.min(rx + rw, info.x0 + info.w), iy1 = Math.min(ry + rh, info.y0 + info.h), hs = 96 / e;
+                if (ix1 > ix0 && iy1 > iy0) for (let y = iy0; y < iy1; y += hs) { ctx.fillRect(ix0, y, ix1 - ix0, Math.min(hs, iy1 - y)); if (performance.now() - t0 > orc.ms) { yield; t0 = performance.now(); } }
+                continue;
+              }
+            }
             ctx[k](...a);
           }
         } catch (er) { if (!S._avisou) { S._avisou = true; console.warn('chão em blocos', o[0], er); } }
-        if ((o[0] === 'f' || (n & 15) === 15) && performance.now() - t0 > orc.ms) { yield; t0 = performance.now(); } // (passo especial pesa: confere depois de cada um)
+        if ((o[0] === 'f' || (n & 3) === 3) && performance.now() - t0 > orc.ms) { yield; t0 = performance.now(); } // (passo especial pesa: confere depois de cada um)
       }
       } finally { while (prof-- > 0) ctx.restore(); ctx.restore(); }
     }
@@ -209,6 +223,7 @@ const CHAO_BLOCOS = (() => {
     const viz = S.blocosEm(sx - B * 0.6, sy - B * 0.6, sw + B * 1.2, sh + B * 1.2).filter(([i, j]) => !S.fresco(i, j));
     if (viz.length) return trabalha(S, viz, sx + sw / 2, sy + sh / 2, ORC_OCIO);
     if (job) return continua(ORC_OCIO);
+    if (typeof G !== 'undefined' && G.p && (G.p.mov || (G.caminho && G.caminho.length))) return; // v408.6 (desempenho): a prévia dos VIZINHOS só com o jogador parado (andando, ela dava travadas de 15–30 ms)
     for (const P of pendPrevia) { if (P.prev && P.prevVer === P.ver) { pendPrevia.delete(P); continue; } const orc = { ms: ORC_OCIO }; job = { S: P, k: 'previa', orc, g: P.fazPrevia(orc) }; return continua(ORC_OCIO); }
   }
   return {

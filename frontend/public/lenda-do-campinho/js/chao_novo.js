@@ -420,7 +420,7 @@ const CHAO2 = {
   loop = function (ts) {
     let frente = false;
     for (const [m, f] of FAZENDO) { if (m === G.mapa) { frente = true; passoDesenho(m, f, m._chaoVelho ? 8 : CORTINA_LIGADA ? 28 : 14); } } // (sem a tela de entrada o jogo continua andando: um pouco por quadro)
-    for (const [m, f] of FAZENDO) { if (m === G.mapa) continue; if (!f.fundo) { FAZENDO.delete(m); m._chaoTemp = null; continue; } if (!frente) passoDesenho(m, f, G.pausado ? 12 : 6); } // (com uma janela aberta o jogo está parado: dá para adiantar mais)
+    for (const [m, f] of FAZENDO) { if (m === G.mapa) continue; if (!f.fundo) { FAZENDO.delete(m); m._chaoTemp = null; continue; } if (!frente && (G.pausado || !(G.p && (G.p.mov || (G.caminho && G.caminho.length))))) passoDesenho(m, f, G.pausado ? 12 : 6); } // v408.6 (desempenho): o pré-desenho do VIZINHO só anda com o jogador parado (ou com o jogo pausado) // (com uma janela aberta o jogo está parado: dá para adiantar mais)
     if (G.carregandoChao && !(G.mapa && FAZENDO.has(G.mapa))) { G.carregandoChao = false; cortina(false); }
     if (!G.carregandoChao) return _loopChao.apply(this, arguments);
     const pz = G.pausado; G.pausado = true; try { return _loopChao.apply(this, arguments); } finally { G.pausado = pz; } // (carregando: parado como numa pausa)
