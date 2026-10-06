@@ -46,7 +46,10 @@ if (typeof ASSETS !== 'undefined' && typeof ASSET_SET !== 'undefined') for (cons
     // Pão de Açúcar: sai do MAR no fim da praia — a base 14×5 (x 83–96, y 68–72) fica numa ilha (o desenho já tem as pedras
     // e a água em volta); uma prainha estreita (x 81–82) leva da areia até a placa, no pé do morro, como a Praia Vermelha
     K.chao(81, 67, 17, 7, CH.AGUA); K.chao(81, 65, 2, 8, CH.AREIA); // (debaixo da base fica água: o desenho já traz as pedras)
-    limpa(80, 60, 98, 73); K.mon('mon_paodeacucar', 90, 72);
+    // v408.2 (dono): a placa e a frente do morro ficavam dentro da água (não dava para chegar). O morro sobe 1 fileira
+    // (base y 67–71) e na frente dele fica a PRAIA VERMELHA, uma faixa de areia (y 72) que liga a prainha até o pé do morro.
+    K.chao(81, 72, 13, 1, CH.AREIA);
+    limpa(80, 60, 98, 73); K.mon('mon_paodeacucar', 90, 71);
     return r;
   };
   // ---------- 2) depois de tudo (monumentos, ambiente, Atlântida, espaço, Multiverso): pisos e enfeites ----------

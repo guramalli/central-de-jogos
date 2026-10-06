@@ -129,15 +129,62 @@
   window.OFI_MISSOES = OFI;
 
   /* ---------- quem já passou da região: a pista vira lembrança (vai para o diário, sem prêmio) ---------- */
+  // v408.2 (dono aprovou): também vira lembrança a pista que ficou 30+ níveis para trás (OFI_LEMBRA_ACIMA).
+  // Missão já aceita (em andamento) não é tocada: o jogador escolheu fazer.
+  const OFI_LEMBRA_ACIMA = 30;
   function ofiLembra(s) {
-    if (!s || !s.quests) return;
-    const sagaComecou = !!s.quests.sg_p1;
+    if (!s || !s.quests) return 0;
+    const sagaComecou = !!s.quests.sg_p1, nv = s.nivel || 1; let n = 0;
     for (const q of OFI) {
-      const e = s.quests[q.id]; if (e && e.s === 'feita') continue;
-      if ((s.nivel || 1) >= q.passou || (q.reg === 'mv' && sagaComecou)) s.quests[q.id] = { s: 'feita', lembranca: 1 };
+      const e = s.quests[q.id]; if (e && (e.s === 'feita' || e.s === 'ativa')) continue;
+      if (nv >= q.passou || nv >= q.lvl + OFI_LEMBRA_ACIMA || (q.reg === 'mv' && sagaComecou)) { s.quests[q.id] = { s: 'feita', lembranca: 1 }; n++; }
     }
+    return n;
   }
   { const _ijOfi = iniciarJogo; iniciarJogo = function (save) { try { ofiLembra(save); } catch (e) { console.warn('fio da origem', e); } return _ijOfi.apply(this, arguments); }; }
+  // durante o jogo: ao subir de nível, a pista que ficou longe vira lembrança (vai para o diário)
+  {
+    let ofiNv = 0;
+    setInterval(() => {
+      try {
+        const s = G.save; if (!s || !G.rodando || s.nivel === ofiNv) return; ofiNv = s.nivel;
+        if (ofiLembra(s)) { G.uiSujo = true; salvar(); }
+      } catch (e) { }
+    }, 4000);
+  }
+  /* v408.2 (dono aprovou): pista aberta que ficou para trás (10+ níveis abaixo de você) é "pista antiga, opcional":
+     não puxa a seta nem o "🎯 Agora" se houver outra missão principal mais perto do seu nível. Continua no diário e em Missões. */
+  const OFI_ANTIGA = 10;
+  const ofiAntiga = q => ehFio(q) && G.save && (G.save.nivel || 1) - (q.lvl || 1) >= OFI_ANTIGA && ['disponivel', 'ativa', 'pronta'].includes(statusMissao(q));
+  // a missão disponível que a seta deve mostrar (null = deixa como estava)
+  function ofiDisponivelPreferida() {
+    const s = G.save; if (!s) return null;
+    if (MISSOES.some(q => { const st = statusMissao(q); return st === 'pronta' || st === 'ativa'; })) return null;
+    const disp = MISSOES.filter(q => statusMissao(q) === 'disponivel'); if (!disp.length || !ofiAntiga(disp[0])) return null;
+    const nv = s.nivel || 1, perto = q => Math.abs(nv - (q.lvl || 1));
+    for (const q of disp) {
+      if (!ofiAntiga(q)) return q;
+      if (!disp.some(p => p !== q && !ehFio(p) && mrxEhPrincipal(p) && perto(p) < perto(q))) return q;
+    }
+    return null;
+  }
+  const mrxEhPrincipal = q => (typeof mrxPrincipal === 'function' ? mrxPrincipal(q) : !!q.principal);
+  {
+    const _oaAnt = objetivoAtual;
+    objetivoAtual = function () {
+      const r = _oaAnt.apply(this, arguments);
+      try { if (!G.guiaOn || (typeof TUTORIAL !== 'undefined' && G.save.tut < TUTORIAL.length)) return r; const q = ofiDisponivelPreferida(); if (q) { const a = alvoNpc(q.npc); if (a) return a; } } catch (e) { }
+      return r;
+    };
+    if (typeof objetivoTexto === 'function') {
+      const _otAnt = objetivoTexto;
+      objetivoTexto = function () {
+        const r = _otAnt.apply(this, arguments);
+        try { const q = ofiDisponivelPreferida(); if (q && r && !r.pronta) return { txt: `Fale com ${(NPCS[q.npc] || {}).nome || 'quem deu a missão'}: missão nova "${q.titulo}"` }; } catch (e) { }
+        return r;
+      };
+    }
+  }
 
   /* ---------- conversas: chegar em quem a missão manda, enigma, botões ---------- */
   const agora = () => Date.now();
@@ -240,6 +287,7 @@
         ag = st === 'nivel' || st === 'bloqueada' ? `🔒 Próxima pista a partir do nível ${atual.lvl}${quem ? ` (${quem})` : ''}.`
           : st === 'disponivel' ? `👉 Fale com ${nm}${quem ? ` (${quem})` : ''}: ${atual.titulo.replace(/^\S+ /, '')}.`
           : st === 'pronta' ? `✅ Pronto! Volte a falar com ${nm}.` : `👉 ${descMissao(atual)}${atual.req.fala ? '' : ` (${progressoMissao(atual).join('/')})`}.`;
+        if (ofiAntiga(atual)) ag += ' (pista antiga, opcional)';
       }
       const ic = nFeitas === qs.length ? '✅' : nFeitas || (atual && statusMissao(atual) !== 'nivel' && statusMissao(atual) !== 'bloqueada') ? '🔎' : '🔒';
       return el('details', { class: 'sg-cap', open: atual && ['disponivel', 'ativa', 'pronta'].includes(statusMissao(atual)) ? 'open' : null },
@@ -258,6 +306,11 @@
         if (h && h.textContent === '📜 A Bola de Origem' && !box.querySelector('.ofi-pistas')) {
           const b = blocoPistas(), dica = box.querySelector('p.dica');
           if (b) { if (dica) dica.after(b); else h.after(b); }
+        }
+        // v408.2: na janela Missões (e nas conversas), a pista que ficou para trás ganha a etiqueta "pista antiga, opcional"
+        if (box && G.save) for (const tb of box.querySelectorAll('.linha-item .nm b, .opcoes .btn')) {
+          if (tb.querySelector('.ofi-antiga')) continue;
+          const q = OFI.find(x => tb.textContent.includes(x.titulo)); if (q && ofiAntiga(ofiQ(q.id) || q)) tb.append(el('span', { class: 'ofi-antiga' }, 'pista antiga, opcional'));
         }
       } catch (e) { console.warn('diário das pistas', e); }
       return r;
@@ -315,6 +368,7 @@
   css.textContent = `
   .ofi-pistas { margin: 4px 0 8px; }
   .ofi-tit { margin: 10px 0 2px; font-size: 16px; }
+  .ofi-antiga { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; background: rgba(120,90,60,.15); font-size: 11px; font-weight: 700; color: #7a5a3a; vertical-align: middle; }
   .hist .hist-cena .h-img[src*="mv_portal_jur"] { object-fit: contain; }
   .hist .hist-cena:has(.h-img[src*="mv_portal_jur"]) { background: radial-gradient(circle at 50% 45%, #7ad08a, #1a5a3a 70%, #0a2a1a); }`;
   document.head.append(css);

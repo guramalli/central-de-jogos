@@ -140,15 +140,17 @@ function vbmFigurante(m, x, y, o = {}) {
   const _desenhaObjVbm = desenhaObj;
   desenhaObj = function (ctx, o, x, y) {
     if (!o || o.t !== 'figurante' || !o.meta) return _desenhaObjVbm.apply(this, arguments);
-    const md = o.meta, comp = typeof spriteBoneco === 'function' ? spriteBoneco(md.look, md.lado ? 'lado' : 'frente', 0) : null;
+    const md = o.meta, fa = md.falaT ? G.agora - md.falaT : 1e9, falando = fa < 2600 && !md.pipa; // v408.2: falando, vira para o jogador
+    const lado = falando ? true : md.lado, vira = falando ? md.olhaVira : md.vira, pulo = fa < 380 ? Math.sin(Math.PI * fa / 380) * 0.22 * T : 0;
+    const comp = typeof spriteBoneco === 'function' ? spriteBoneco(md.look, lado ? 'lado' : 'frente', 0) : null;
     if (!comp) return;
     const h = md.look.alt * T, w = h * comp.c.width / comp.c.height, cx = (x + 0.5) * T, base = (y + 0.86) * T;
     ctx.fillStyle = 'rgba(30,20,40,0.22)'; ctx.beginPath(); ctx.ellipse(cx, base, Math.min(h * 0.2, 22), 7, 0, 0, 7); ctx.fill();
     const sy = 1 + Math.sin(G.agora / 450 + md.sem) * 0.012; // parado: só a respiração (a base fica no chão)
-    ctx.save(); ctx.translate(cx, base); ctx.scale(md.vira ? -1 : 1, sy); ctx.drawImage(comp.c, -w / 2, -h, w, h); ctx.restore();
+    ctx.save(); ctx.translate(cx, base - pulo); ctx.scale(vira ? -1 : 1, sy); ctx.drawImage(comp.c, -w / 2, -h, w, h); ctx.restore(); // (o pulinho leva o corpo inteiro; a sombra fica no chão)
     if (md.pipa) { // a pipa: no alto, à direita, balançando; a linha sai da mão da criança
       const t = G.agora / 1000 + md.sem, dir = md.vira ? -1 : 1;
-      const px = cx + dir * (1.3 * T + Math.sin(t * 0.9) * 0.25 * T), py = base - h - 1.9 * T + Math.sin(t * 1.3) * 0.18 * T, mx = cx + dir * w * 0.3, my = base - h * 0.55;
+      const px = cx + dir * (1.3 * T + Math.sin(t * 0.9) * 0.25 * T), py = base - h - 1.9 * T + Math.sin(t * 1.3) * 0.18 * T, mx = cx + dir * w * 0.3, my = base - pulo - h * 0.55;
       ctx.strokeStyle = 'rgba(60,50,60,0.8)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo((mx + px) / 2 + dir * 8, (my + py) / 2 + 14, px, py + 10); ctx.stroke();
       const cor = VBM_CORES[md.sem % VBM_CORES.length], rot = Math.sin(t * 1.7) * 0.18;
       ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
@@ -256,4 +258,120 @@ function vbmVila4081(m) {
   while (postos.length && !importantes.every(pt => d[pt.y * W + pt.x])) { for (const k of postos.pop()) m.obj[k] = null; d = alcancaveis(m, inicio); }
   const falta = importantes.filter(pt => !d[pt.y * W + pt.x]); if (falta.length) console.warn('vila v408.1: pontos sem caminho', JSON.stringify(falta));
   delete m._chao; delete m._chaoV;
+}
+
+/* ============================================================
+   💬 FIGURANTES QUE DÃO OI (v408.2, dono: "uma criança clica num figurante e nada acontece").
+   Clicar/tocar num figurante (ou apertar E / o botão Falar perto dele) mostra um BALÃOZINHO curto acima da cabeça
+   (2,6 s, sem janela, sem missão), com uma frase pronta e gentil do jeito dele (café, banhista, pipa, vizinho, feira,
+   pescador, criança) — e nas cidades do mundo, às vezes, um "olá" no idioma do lugar com a tradução.
+   Ao falar ele dá um pulinho e vira para o jogador (o pulinho e a virada mexem no corpo inteiro, como o desenhaEnt).
+   Não atrapalha: clique em NPC/adversário continua indo para eles (o figurante só responde quando não há ninguém ali),
+   e o E só fala com figurante quando não tem pessoa, placa, baú nem adversário colado.
+   ============================================================ */
+const VBM_FRASES = {
+  cafe: ['Que café gostoso!', 'Aceita um suco?', 'Hoje tem jogo?', 'Que bolo delicioso!'],
+  banhista: ['A água tá ótima!', 'Passou protetor solar?', 'Que sol bonito!', 'Bora fazer um castelo de areia?'],
+  pipa: ['Olha minha pipa!', 'Ela tá voando alto!', 'O vento hoje tá bom!', 'Quer ver ela dar uma volta?'],
+  vizinho: ['Bom dia, craque!', 'Vai ter pelada hoje?', 'Capricha no treino!', 'Manda um abraço pra sua mãe!'],
+  feira: ['Tudo fresquinho!', 'Que cheirinho bom!', 'Vou levar dois!', 'Hoje a feira tá cheia!'],
+  pescador: ['Hoje o mar tá calmo.', 'Peguei um peixinho!', 'Os barcos já voltaram.', 'Paciência é tudo na pesca!'],
+  crianca: ['Me ensina um drible?', 'Quero ser craque igual você!', 'Bora jogar bola?', 'Você é muito bom!'],
+  gente: ['Olá!', 'Que dia lindo!', 'Boa sorte no jogo!', 'Gosto de ver você jogar!'],
+};
+const VBM_OLA = { santos: ['E aí, beleza?'], rio: ['E aí, beleza?'], buenos: ['¡Hola! (Olá!)', '¡Buen día! (Bom dia!)'], madri: ['¡Hola! (Olá!)', '¡Buenos días! (Bom dia!)'],
+  lisboa: ['Olá! Tudo bem?', 'Bom dia, miúdo!'], paris: ['Bonjour ! (Bom dia!)', 'Salut ! (Oi!)'], milao: ['Ciao! (Oi!)', 'Buongiorno! (Bom dia!)'], munique: ['Guten Tag! (Bom dia!)', 'Hallo! (Oi!)'],
+  londres: ['Hello! (Olá!)', 'Good morning! (Bom dia!)'], cairo: ['Marhaba! (Olá!)'], doha: ['Marhaba! (Olá!)'], toquio: ['Konnichiwa! (Olá!)'], miami: ['Hi! (Oi!)', 'Hello! (Olá!)'] };
+const VBM_FALA = { lista: [], n: 0 };
+function vbmTipoFig(m, x, y, md) {
+  if (md.pipa) return 'pipa';
+  const i = (a, b) => b * m.w + a, perto = re => { for (let dy = -1; dy <= 1; dy++) for (let dx = -2; dx <= 2; dx++) { const o = m.obj[i(x + dx, y + dy)]; if (o && re.test(o.t)) return true; } return false; };
+  if (perto(/^mesa/)) return 'cafe';
+  if (perto(/^(carrinho|banca|barraca|tenda|pilha|caixotes|arara)/)) return 'feira';
+  const c = m.chao[i(x, y)]; if (c === CH.MADEIRA) return 'pescador'; if (c === CH.AREIA) return 'banhista';
+  if (md.look.alt < 1.4) return 'crianca';
+  if (m.predios.some(p => p.porta && Math.abs(p.porta.x - x) <= 3 && Math.abs(p.porta.y - y) <= 1)) return 'vizinho';
+  return 'gente';
+}
+function vbmFala(x, y) {
+  const m = G.mapa, o = m && m.obj[y * m.w + x]; if (!o || o.t !== 'figurante' || !o.meta) return false;
+  const md = o.meta, tipo = vbmTipoFig(m, x, y, md), n = VBM_FALA.n++;
+  const ola = VBM_OLA[m.id], lista = ola && (n + md.sem) % 2 === 0 ? ola : VBM_FRASES[tipo];
+  const txt = lista[(md.sem + (md.falou || 0)) % lista.length]; md.falou = (md.falou || 0) + 1;
+  md.falaT = G.agora; md.olhaVira = G.p ? G.p.x < x + 0.5 : md.vira;
+  VBM_FALA.lista = VBM_FALA.lista.filter(f => f.o !== o); VBM_FALA.lista.push({ o, x, y, txt, t0: performance.now(), dur: 2600 }); // (o balão conta o tempo de verdade)
+  if (typeof som === 'function') try { som('toque'); } catch (e) { }
+  return true;
+}
+// o figurante (tile) debaixo do clique: a caixa do desenho dele (largura ~0,9 quadro, altura do boneco)
+function vbmFigNoPonto(w) {
+  const m = G.mapa; if (!m) return null; let melhor = null;
+  for (let ty = Math.floor(w.y); ty <= Math.floor(w.y) + 2; ty++) for (let tx = Math.floor(w.x) - 1; tx <= Math.floor(w.x) + 1; tx++) {
+    if (tx < 0 || ty < 0 || tx >= m.w || ty >= m.h) continue; const o = m.obj[ty * m.w + tx]; if (!o || o.t !== 'figurante' || !o.meta) continue;
+    const base = ty + 0.9, alt = o.meta.look.alt;
+    if (Math.abs(w.x - (tx + 0.5)) < 0.45 && w.y > base - alt - 0.1 && w.y < base + 0.15 && (!melhor || ty > melhor.y)) melhor = { x: tx, y: ty };
+  }
+  return melhor;
+}
+{
+  const _cliqueVbm = cliqueTela;
+  cliqueTela = function (ev) {
+    try {
+      if (G.rodando && !G.pausado && G.mapa && G.p) {
+        const w = mundoDoMouse(ev);
+        if (!entNoPonto(w)) { // gente de verdade e adversários primeiro
+          const f = vbmFigNoPonto(w);
+          if (f) { if (Math.hypot(G.p.x - f.x - 0.5, G.p.y - f.y - 0.5) <= 7) vbmFala(f.x, f.y); else irE(f.x + 0.5, f.y + 0.5, 1.4, () => vbmFala(f.x, f.y)); return; }
+        }
+      }
+    } catch (e) { console.warn('figurante: clique', e); }
+    return _cliqueVbm.apply(this, arguments);
+  };
+  const _pertoVbm = interacaoPerto;
+  interacaoPerto = function () {
+    const it = _pertoVbm.apply(this, arguments);
+    if (it || !G.p || !G.mapa || G.mons.some(mo => dist(mo, G.p) < 2.5)) return it; // (perto de adversário o E continua marcando alvo)
+    const m = G.mapa, px = Math.floor(G.p.x), py = Math.floor(G.p.y); let melhor = null, md = 1.7;
+    for (let y = py - 2; y <= py + 2; y++) for (let x = px - 2; x <= px + 2; x++) {
+      if (x < 0 || y < 0 || x >= m.w || y >= m.h) continue; const o = m.obj[y * m.w + x]; if (!o || o.t !== 'figurante' || !o.meta) continue;
+      const d = Math.hypot(G.p.x - x - 0.5, G.p.y - y - 0.5); if (d < md) { md = d; melhor = { tipo: 'figurante', fx: x, fy: y, x: x + 0.5, y: y + 0.9, alt: o.meta.look.alt, txt: 'Dar oi' }; }
+    }
+    return melhor;
+  };
+  const _interagirVbm = interagir;
+  interagir = function () {
+    const it = interacaoPerto();
+    if (it && it.tipo === 'figurante') { vbmFala(it.fx, it.fy); return; }
+    return _interagirVbm.apply(this, arguments);
+  };
+  // o balãozinho: desenhado por cima de tudo (depois do mundo), preso na cabeça do figurante
+  const _desenhaVbm = desenha;
+  desenha = function () {
+    const r = _desenhaVbm.apply(this, arguments);
+    try { vbmDesenhaBaloes(); } catch (e) { }
+    return r;
+  };
+  // passar o mouse por cima mostra a mãozinha
+  if (typeof CV !== 'undefined' && CV) CV.addEventListener('mousemove', ev => setTimeout(() => {
+    try { if (!G.rodando || !G.mapa || (G.mouse && G.mouse.ent)) return; if (vbmFigNoPonto(mundoDoMouse(ev))) CV.style.cursor = 'pointer'; } catch (e) { }
+  }, 0));
+}
+function vbmDesenhaBaloes() {
+  const L = VBM_FALA.lista; if (!L.length) return;
+  const agora = performance.now(); VBM_FALA.lista = L.filter(f => G.mapa && f.o === G.mapa.obj[f.y * G.mapa.w + f.x] && agora - f.t0 < f.dur);
+  if (!VBM_FALA.lista.length) return;
+  const ctx = CTX, z = G.zoom, cam = G.cam, px = G.dpr || 1;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (const f of VBM_FALA.lista) {
+    const k = Math.max(0, (agora - f.t0) / f.dur), alfa = k < 0.08 ? k / 0.08 : k > 0.85 ? (1 - k) / 0.15 : 1;
+    const alt = f.o.meta.look.alt, sx = ((f.x + 0.5) * T - cam.x) * z, sy = ((f.y + 0.86 - alt - 0.12) * T - cam.y) * z;
+    const s = 13.5 * px; ctx.font = `700 ${s}px Fredoka, Nunito, sans-serif`; const tw = ctx.measureText(f.txt).width, w = tw + 18 * px, h = s + 12 * px;
+    const bx = sx - w / 2, by = sy - h - 9 * px - (1 - Math.min(1, k * 8)) * 6 * px;
+    ctx.globalAlpha = Math.max(0, alfa);
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#3d2b3a'; ctx.lineWidth = 2.2 * px;
+    ctx.beginPath(); ctx.roundRect(bx, by, w, h, 9 * px); ctx.moveTo(sx - 6 * px, by + h); ctx.lineTo(sx, by + h + 8 * px); ctx.lineTo(sx + 6 * px, by + h); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fffaf0'; ctx.fillRect(sx - 5 * px, by + h - 2.5 * px, 10 * px, 3.5 * px); // (apaga o traço entre o balão e a pontinha)
+    ctx.fillStyle = '#3d2b3a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(f.txt, sx, by + h / 2 + 1 * px);
+  }
+  ctx.restore();
 }
