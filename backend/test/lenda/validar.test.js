@@ -63,12 +63,15 @@ test("escolherCasas: tira a própria pessoa, põe as mais prestigiadas primeiro 
   assert.deepEqual(escolherCasas([], { limite: 3 }), []);
 });
 
-test("ranking: aceita o resumo do progresso; o nome do time só vem das listas (v407, U1)", () => {
+test("ranking: aceita o resumo do progresso; nome do time digitado só se passar no filtro (v408)", () => {
   const v = validarRanking({ nivel: 27, xp: 15400, posicao: "atacante", fase: "Sub-20", time: { nome: " <b>Campinho</b> FC ", div: 3, titulos: 1 }, chefes: 4, figs: 30 });
   assert.equal(v.ok, true);
-  assert.equal(v.ranking.time.nome, null, "nome livre é ignorado");
+  assert.equal(v.ranking.time.nome, null, "com < > não passa");
+  assert.equal(validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { nome: "  Skal   FC ", div: 3 } }).ranking.time.nome, "Skal FC");
+  assert.equal(validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { nome: "Skalzinho pika FC", div: 3 } }).ranking.time.nome, null);
+  assert.ok(validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { nome: "x".repeat(500), div: 3 } }).ok, "nome enorme não derruba o envio");
   assert.equal(v.ranking.nivel, 27);
-  const l = validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { nome: "qualquer coisa", partes: "3.0", div: 3 } });
+  const l = validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { nome: "p1k4", partes: "3.0", div: 3 } });
   assert.deepEqual(l.ranking.time, { partes: "3.0", nome: "Unidos do Campinho", div: 3, titulos: 0 });
   assert.equal(validarRanking({ nivel: 27, xp: 15400, fase: "Sub-20", time: { partes: "3.999", div: 3 } }).ranking.time.nome, null);
 });

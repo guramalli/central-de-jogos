@@ -7,7 +7,7 @@
 //
 // FICARAM DE FORA palavras que são dica legítima em algum tema: veado e
 // macaco (Animais), rabo, pica-pau, rola(-bosta), pau(-brasil), bunda.
-const LISTA = [
+export const LISTA = [ // (v408: o filtro de nomes do Lenda do Campinho também usa esta lista — src/lenda/filtroNome.js)
   "porra", "caralho", "cacete", "buceta", "boceta", "xoxota", "piroca",
   "cu", "cuzao", "foda", "fodase", "foder", "fodido", "merda",
   "puta", "puto", "putaria", "vadia", "vagabunda", "vagabundo", "arrombado",

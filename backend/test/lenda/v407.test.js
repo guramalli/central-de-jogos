@@ -12,8 +12,10 @@ test("U1: nome do time só das listas", () => {
   assert.equal(montaNomeTime(`${TIME_PREFIXOS.length - 1}.${TIME_LUGARES.length - 1}`), "União do Aroeira");
   for (const ruim of ["", "1", "1.1.1", "a.b", "99.0", "0.999", null, 3, "-1.0"]) assert.equal(montaNomeTime(ruim), null, String(ruim));
   assert.deepEqual(lePartesTime("2.5"), { p: 2, l: 5 });
-  assert.deepEqual(timePublico({ nome: "palavrão", partes: "1.1", div: 2, titulos: 3 }), { nome: "Grêmio Poeirão", partes: "1.1", div: 2, titulos: 3 });
-  assert.deepEqual(timePublico({ nome: "palavrão", div: 2 }), { nome: null, partes: null, div: 2, titulos: 0 }, "o nome guardado (antigo, livre) nunca sai");
+  // v408: o nome digitado vale se passar no filtro; senão o das partes; senão nenhum
+  assert.deepEqual(timePublico({ nome: "caralho", partes: "1.1", div: 2, titulos: 3 }), { nome: "Grêmio Poeirão", partes: "1.1", div: 2, titulos: 3 });
+  assert.deepEqual(timePublico({ nome: "Skalzinho pika FC", div: 2 }), { nome: null, partes: null, div: 2, titulos: 0 }, "o nome guardado feio não sai");
+  assert.equal(timePublico({ nome: "Skal FC", partes: "1.1", div: 2 }).nome, "Skal FC");
   assert.equal(timePublico(null), null);
 });
 

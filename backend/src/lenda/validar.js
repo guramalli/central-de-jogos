@@ -7,7 +7,7 @@
 //     veem ao passar na porta e ao visitar.
 //
 // Tudo aqui é função pura (sem banco), pra ser testado em test/lenda/.
-import { lePartesTime, montaNomeTime } from "./times.js";
+import { lePartesTime, nomeTimePublico } from "./times.js";
 // Os limites são folgados pro jogo normal e apertados pra quem tentar
 // mandar lixo.
 
@@ -98,10 +98,13 @@ export function validarRanking(body) {
   if (!inteiro(chefes, 0, 100_000) || !inteiro(figs, 0, 100_000)) return { erro: "Números inválidos." };
   let timeOk = null;
   if (time != null) {
-    // v407 (Raio-X U1): o nome do time vem só das LISTAS (partes "p.l"); um nome livre que chegue é ignorado
+    // v408 (dono: "deixe o skalzinho escolher um nick"): o nome DIGITADO vale se passar no filtro (filtroNome.js);
+    // reprovado (ou grande demais) fica sem nome — o envio do ranking não é recusado por causa do nome.
+    // As partes da lista (v407) continuam valendo para quem escolheu da lista.
     if (typeof time !== "object" || !inteiro(time.div, 0, 50) || !inteiro(time.titulos ?? 0, 0, 100_000)) return { erro: "Time inválido." };
     const partes = lePartesTime(time.partes) ? time.partes : null;
-    timeOk = { partes, nome: montaNomeTime(partes), div: time.div, titulos: time.titulos ?? 0 };
+    const digitado = typeof time.nome === "string" && time.nome.length <= 60 ? time.nome : null;
+    timeOk = { partes, nome: nomeTimePublico({ nome: digitado, partes }), div: time.div, titulos: time.titulos ?? 0 };
   }
   // v388: as habilidades treinadas (opcional; jogo antigo não manda) — números de 0 a SKILL_MAX
   let skills = null;

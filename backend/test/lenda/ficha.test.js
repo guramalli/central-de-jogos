@@ -46,19 +46,20 @@ test("fichaPublica mostra só o que é público", () => {
   assert.equal(f.casa, "casa_vila_1");
   assert.equal(f.clube, undefined);
   assert.equal(f.mapa, undefined);
-  // time: o nome digitado ("Os Craques") nunca sai; sem as partes das listas, fica sem nome
-  assert.deepEqual(f.time, { nome: null, div: 3, titulos: 1 });
+  // time (v408): o nome digitado sai se passar no filtro
+  assert.deepEqual(f.time, { nome: "Os Craques", div: 3, titulos: 1 });
   // nada de privado
   const json = JSON.stringify(f);
   for (const campo of ["ouro", "mochila", "quests", "flags", "salario", "segredo", "x", "y", "hotbar", "por", "cidade"]) assert.ok(!json.includes(`"${campo}":`), campo);
-  for (const txt of ["Freestyle", "Salva-vidas", "Vila FC", "Os Craques", "praia"]) assert.ok(!json.includes(txt), txt);
+  for (const txt of ["Freestyle", "Salva-vidas", "Vila FC", "praia"]) assert.ok(!json.includes(txt), txt);
 });
 
-test("fichaPublica: o nome do time vem das listas (v407, U1)", () => {
-  const f = fichaPublica({ ...saveExemplo, time: { nome: "palavrão livre", partes: "0.0", div: 2, titulos: 0 } });
-  assert.equal(f.time.nome, "Esporte Clube Campinho");
-  const g = fichaPublica({ ...saveExemplo, time: { nome: "x", partes: "99.0", div: 2 } });
-  assert.equal(g.time.nome, null);
+test("fichaPublica: nome do time digitado só se passar no filtro; senão o das listas (v408)", () => {
+  assert.equal(fichaPublica({ ...saveExemplo, time: { nome: "Skal FC", div: 2 } }).time.nome, "Skal FC");
+  assert.equal(fichaPublica({ ...saveExemplo, time: { nome: "Skalzinho pika FC", div: 2 } }).time.nome, null, "save antigo com nome feio continua escondido");
+  assert.equal(fichaPublica({ ...saveExemplo, time: { nome: "p1k4 fc", partes: "0.0", div: 2, titulos: 0 } }).time.nome, "Esporte Clube Campinho", "reprovado com partes: o da lista");
+  assert.equal(fichaPublica({ ...saveExemplo, time: { partes: "0.0", div: 2 } }).time.nome, "Esporte Clube Campinho", "quem escolheu da lista na v407");
+  assert.equal(fichaPublica({ ...saveExemplo, time: { nome: "x", partes: "99.0", div: 2 } }).time.nome, null);
 });
 
 test("fichaPublica aguenta save quebrado", () => {

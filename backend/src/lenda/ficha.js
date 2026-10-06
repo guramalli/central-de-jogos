@@ -46,12 +46,12 @@ export function fichaPublica(s) {
     .filter((a) => a.vitorias > 0);
   // v407 (Raio-X U1/U5): nada de texto livre nem de onde/quando a pessoa está. A exaustão mostra só o nível e o DIA
   // (sem o adversário, o lugar e a hora); o nome do personagem, o clube da carreira e o mapa atual não saem mais;
-  // o nome do time é montado das listas (times.js) — o nome digitado no jogo fica só no aparelho do jogador.
+  // o nome do time: o digitado só se passar no filtro (v408, times.js/filtroNome.js); senão o das listas; senão nenhum.
   const exaustoes = (Array.isArray(s.exaustoes) ? s.exaustoes : []).slice(0, 10).map((e) => ({
     nivel: num(e && e.nivel, 999), em: soDia(e && e.em),
   }));
   const c = s.carreira || {};
-  const tp = s.time && typeof s.time === "object" ? timePublico({ partes: s.time.partes, div: num(s.time.div, 9), titulos: num(s.time.titulos, 999) }) : null;
+  const tp = s.time && typeof s.time === "object" ? timePublico({ nome: s.time.nome, partes: s.time.partes, div: num(s.time.div, 9), titulos: num(s.time.titulos, 999) }) : null;
   const time = tp ? { nome: tp.nome, div: tp.div, titulos: tp.titulos } : null;
   return {
     genero: s.corpo === "f" ? "f" : "m",
