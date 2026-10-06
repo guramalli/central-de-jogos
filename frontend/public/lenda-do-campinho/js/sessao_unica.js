@@ -15,14 +15,23 @@ if (typeof NUVEM !== 'undefined' && NUVEM.ativa) {
   // outro aparelho entrou com este personagem DEPOIS deste?
   // (cada conferência pede a nuvem de novo: reaproveitar uma consulta antiga, feita antes do outro
   // aparelho entrar, deixava este aparelho salvar por cima uma vez)
+  // v407 (Raio-X A9): primeiro pergunta só QUANDO o save online mudou (GET /save/meta, poucos bytes); o save inteiro
+  // (~90 kB) só desce se mudou desde a última conferida ou desde o último envio deste aparelho. Servidor antigo (sem a
+  // rota): baixa como antes.
   const outroAparelho = async function () {
     try {
+      const m = await nuvemPede('GET', '/save/meta');
+      if (m.ok && m.dados && m.dados.atualizadoEm && m.dados.atualizadoEm === SESSAO.metaVisto) return false;
       const r = await nuvemPede('GET', '/save'); if (!r.ok || !r.dados || !r.dados.dados) return false;
       const s = JSON.parse(await descomprime(r.dados.dados));
-      return !!(s.sessao && s.sessao !== SESSAO.id && (s.sessaoInicio || 0) > SESSAO.inicio);
+      const outro = !!(s.sessao && s.sessao !== SESSAO.id && (s.sessaoInicio || 0) > SESSAO.inicio);
+      if (!outro) SESSAO.metaVisto = r.dados.atualizadoEm; // (é o meu save: não precisa baixar de novo até mudar)
+      return outro;
     } catch (e) { return false; } // sem conexão: não derruba ninguém
     finally { SESSAO.ultimaConferida = Date.now(); }
   };
+  // o save que ESTE aparelho acabou de mandar: a data dele já é conhecida (não precisa baixar para conferir)
+  { const _pedeSes = nuvemPede; nuvemPede = async function (metodo, caminho) { const r = await _pedeSes.apply(this, arguments); try { if (metodo === 'PUT' && caminho === '/save' && r.ok && r.dados && r.dados.atualizadoEm) SESSAO.metaVisto = r.dados.atualizadoEm; } catch (e) { } return r; }; }
   const derrubado = function () {
     if (SESSAO.caiu) return; SESSAO.caiu = true; NUVEM.parada = true;
     try { if (G.estTreino && typeof paraEstacao === 'function') paraEstacao(); } catch (e) { }

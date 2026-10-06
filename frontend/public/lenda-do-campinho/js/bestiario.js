@@ -9,16 +9,18 @@
        etapa 2: fôlego, ataque, defesa, XP, tostões e QUAIS itens deixa cair;
        etapa 3 (completa): a chance de cada item, as falas e os Pontos de Bestiário.
      Normal: 1 / 25 / 250 vitórias. Chefão: 1 / 3 / 5.
-   - Pontos de Bestiário (de cada criatura completa) compram bônus PARA AQUELA criatura: +5% de dano, +5% de XP e
-     +10% de chance de item. Não dá para comprar pontos: só caçando.
+   - Pontos de Bestiário (de cada criatura completa) compram ENFEITES para o cartão daquela criatura (v407, Raio-X T1;
+     antes eram +5% de dano, +5% de XP e +10% de chance de item). Não dá para comprar pontos: só caçando.
    Save: s.bestiario = { b: { tipo: ['dano', 'xp', 'loot'] } }. Carregar DEPOIS de olhar.js (o Shift + clique mostra o
    progresso).
    ============================================================ */
 const BST_ETAPAS = { normal: [1, 25, 250], chefe: [1, 3, 5] };
 const BST_BONUS = {
-  dano: { ic: '⚔️', nome: 'Dano', txt: '+5% de dano contra ela', custo: 10 },
-  xp: { ic: '⭐', nome: 'XP', txt: '+5% de XP ao vencê-la', custo: 10 },
-  loot: { ic: '🎁', nome: 'Itens', txt: '+10% de chance de cada item dela', custo: 15 },
+  // v407 (Raio-X T1: o jogo parou de criar fontes de poder): os pontos compram ENFEITES para o cartão da criatura (antes:
+  // +5% de dano, +5% de XP e +10% de itens contra ela). Os ids continuam os mesmos: quem já tinha comprado fica com o enfeite.
+  dano: { ic: '🏅', nome: 'Medalha', txt: 'Medalha no cartão dela', custo: 10 },
+  xp: { ic: '⭐', nome: 'Estrela', txt: 'Estrela dourada no cartão dela', custo: 10 },
+  loot: { ic: '👑', nome: 'Coroa', txt: 'Coroa no cartão dela', custo: 15 },
 };
 const BST_FORA = /^(est_|pedra_|ce_guard_)/; // jogadores de estádio, pedras do Vale e os guardas gerados da Caçada Épica não são criaturas
 const bstEtapas = d => (d && d.chefe ? BST_ETAPAS.chefe : BST_ETAPAS.normal);
@@ -59,11 +61,12 @@ function bstCompra(k, b) {
 let BST_ATUAL = null; // quem você está vencendo agora (para a XP e os itens)
 {
   const _apB = aplicaDano;
-  aplicaDano = function (m, dano) { if (dano > 0 && m && m.tipo && bstTem(m.tipo, 'dano')) dano = Math.ceil(dano * 1.05); return _apB.call(this, m, dano); };
+  // v407 (Raio-X T1): os bônus viraram só enfeite — sem +5% de dano, +5% de XP e +10% de itens (os embrulhos ficam, sem efeito)
+  aplicaDano = function (m, dano) { return _apB.call(this, m, dano); };
   const _xpB = ganhaXp;
-  ganhaXp = function (n) { if (n > 0 && BST_ATUAL && bstTem(BST_ATUAL, 'xp')) n = Math.round(n * 1.05); return _xpB.call(this, n); };
+  ganhaXp = function (n) { return _xpB.call(this, n); };
   const _mdB = typeof multDrop === 'function' ? multDrop : () => 1;
-  window.multDrop = () => _mdB() * (BST_ATUAL && bstTem(BST_ATUAL, 'loot') ? 1.1 : 1);
+  window.multDrop = () => _mdB();
   // avisos de etapa nova
   const _mtB = matar;
   matar = function (m) {
@@ -78,7 +81,7 @@ function bstAvisa(k, e) {
   const d = MONSTROS[k];
   if (e === 1) log(`📚 Bestiário: você descobriu ${d.nome}! (tecla ${typeof nomeTecla === 'function' ? nomeTecla(teclaDe('bestiario'), true) : 'N'})`, 'l-info');
   else if (e === 2) log(`📚 Bestiário: a ficha de ${d.nome} abriu (fôlego, ataque, XP e os itens que deixa cair).`, 'l-info');
-  else { log(`📚 Bestiário COMPLETO: ${d.nome}! +${bstPontosDe(k)} Pontos de Bestiário para comprar bônus contra ela.`, 'l-xp'); banner('📚 Bestiário completo!', d.nome); som('raro'); }
+  else { log(`📚 Bestiário COMPLETO: ${d.nome}! +${bstPontosDe(k)} Pontos de Bestiário para enfeitar o cartão dela.`, 'l-xp'); banner('📚 Bestiário completo!', d.nome); som('raro'); }
 }
 
 /* ---------- a janela ---------- */
@@ -107,7 +110,7 @@ function bstCartao(k) {
   const d = MONSTROS[k], e = bstEtapa(k), b = bstBarra(k);
   const c = el('button', { type: 'button', class: 'bst-c' + (d.chefe ? ' chefe' : '') + (e === 3 ? ' completa' : '') + (e === 0 ? ' nova' : ''), title: e ? d.nome : 'Ainda não enfrentou', onclick: () => { BST_F.sel = k; modalBestiario(); } },
     bstRetrato(k, 48, e === 0),
-    el('span', { class: 'bst-nm' }, e ? (d.chefe ? '♛ ' : '') + d.nome : '???'),
+    el('span', { class: 'bst-nm' }, e ? (d.chefe ? '♛ ' : '') + d.nome + Object.keys(BST_BONUS).filter(b => bstTem(k, b)).map(b => ' ' + BST_BONUS[b].ic).join('') : '???'), // v407: os enfeites comprados aparecem no cartão
     el('span', { class: 'bst-et' }, ...[1, 2, 3].map(i => el('i', { class: i <= e ? 'on' : '' }))),
     el('span', { class: 'bst-b' }, el('i', { style: `width:${b.pc}%` }), el('small', {}, b.txt)));
   return c;
@@ -153,11 +156,11 @@ function bstFicha(k) {
   } else corpo.push(el('p', { class: 'bst-dica' }, `Fôlego, ataque, XP e os itens que deixa cair aparecem na etapa 2 (${fmt(et[1])} vitórias).`));
   if (e >= 3) {
     if (d.falas && d.falas.length) corpo.push(el('div', { class: 'bst-sec' }, el('b', {}, '💬 Costuma dizer: '), d.falas.slice(0, 4).map(f => `“${f}”`).join(' ')));
-    corpo.push(el('div', { class: 'bst-sec bst-bonus' }, el('b', {}, `🏅 Bônus contra ${d.nome}`), el('small', {}, ` (você tem ${R.livres} pontos; esta criatura deu ${bstPontosDe(k)})`),
+    corpo.push(el('div', { class: 'bst-sec bst-bonus' }, el('b', {}, `🏅 Enfeites de ${d.nome}`), el('small', {}, ` (você tem ${R.livres} pontos; esta criatura deu ${bstPontosDe(k)})`),
       el('div', { class: 'bst-bt' }, ...Object.entries(BST_BONUS).map(([b, c]) => bstTem(k, b)
         ? el('span', { class: 'bst-tem' }, `${c.ic} ${c.txt} ✔`)
         : el('button', { class: 'btn mini' + (R.livres >= c.custo ? ' amarelo' : ''), type: 'button', onclick: () => { bstCompra(k, b); modalBestiario(); } }, `${c.ic} ${c.txt} — ${c.custo} pts`)))));
-  } else corpo.push(el('p', { class: 'bst-dica' }, `Complete (${fmt(et[2])} vitórias) para ganhar ${bstPontosDe(k)} Pontos de Bestiário e comprar bônus contra ela.`));
+  } else corpo.push(el('p', { class: 'bst-dica' }, `Complete (${fmt(et[2])} vitórias) para ganhar ${bstPontosDe(k)} Pontos de Bestiário e enfeitar o cartão dela.`));
   return corpo;
 }
 function modalBestiario() {
@@ -193,7 +196,7 @@ function modalBestiario() {
     bstObserva(grade);
   };
   busca.addEventListener('input', monta); busca.addEventListener('keydown', ev => ev.stopPropagation()); lugar.addEventListener('change', monta);
-  const nota = el('details', { class: 'wk-nota bst-como' }, el('summary', {}, 'Como funciona?'), `cada vitória conta. Etapa 1 (1ª vitória): nome e onde vive. Etapa 2 (${BST_ETAPAS.normal[1]}): fôlego, ataque, XP e os itens. Etapa 3 (${BST_ETAPAS.normal[2]}): as chances dos itens e Pontos de Bestiário para comprar bônus contra a criatura. Chefões: ${BST_ETAPAS.chefe.join(' / ')} vitórias.`);
+  const nota = el('details', { class: 'wk-nota bst-como' }, el('summary', {}, 'Como funciona?'), `cada vitória conta. Etapa 1 (1ª vitória): nome e onde vive. Etapa 2 (${BST_ETAPAS.normal[1]}): fôlego, ataque, XP e os itens. Etapa 3 (${BST_ETAPAS.normal[2]}): as chances dos itens e Pontos de Bestiário para enfeitar o cartão da criatura (medalha, estrela e coroa). Chefões: ${BST_ETAPAS.chefe.join(' / ')} vitórias.`);
   abreModal.largo = true;
   abreModal(el('h2', {}, '📚 Bestiário'), topo, nota, el('div', { class: 'bst-filtros' }, busca, lugar), chips, grade);
   monta(); bstAbas();

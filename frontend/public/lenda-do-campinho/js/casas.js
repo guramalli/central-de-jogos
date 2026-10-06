@@ -313,7 +313,7 @@ function abreCasaPorta(id) {
   abreModal(el('h2', {}, '🏠 Casa à venda'),
     el('p', {}, el('b', {}, def.nome), ` — ${def.local}`),
     el('ul', { class: 'casa-info' }, el('li', {}, `Tamanho: ${def.iw - 2} × ${def.ih - 3} quadradinhos para decorar`), el('li', {}, `Preço: ${fmt(def.preco)} tostões (você tem ${fmt(s.ouro)})`),
-      el('li', {}, 'Uma casa por pessoa (como no Tibia). Dentro dela você coloca móveis e expõe seus itens para todo mundo ver.')),
+      el('li', {}, 'Uma casa por pessoa. Dentro dela você coloca móveis e expõe seus itens para todo mundo ver.')), // v407 (Raio-X U4): sem a comparação com o Tibia no texto do jogador
     tem ? el('p', { class: 'casa-aviso' }, `Você já tem a casa ${CASAS[tem.id].nome}. Para trocar, venda a sua com a Dona Sônia.`) : '',
     el('div', { class: 'opcoes' },
       el('button', { class: 'btn amarelo', type: 'button', disabled: sim ? null : 'disabled', onclick: () => { comprarCasa(id); fechaModal(); } }, sim ? `Comprar por ${fmt(def.preco)}` : tem ? 'Você já tem casa' : `Faltam ${fmt(def.preco - s.ouro)}`),

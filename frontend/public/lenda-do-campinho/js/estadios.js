@@ -243,7 +243,7 @@ Object.assign(META_BONECOS, EST_META_CAP);
 for (const e of ESTADIOS) {
   const f = 'cap_' + e.host, cap = e.jog.find(j => j.cap); if (!EST_META_CAP[f]) continue;
   CORPOS_MODO[f] = 'fixo';
-  if (typeof FOLHAS !== 'undefined' && !FOLHAS[f]) { const im = new Image(); const fo = FOLHAS[f] = { im, ok: false, rot: null }; im.onload = () => { fo.ok = true; }; im.src = `a/boneco_${f}.webp?v=154`; }
+  if (typeof FOLHAS !== 'undefined' && !FOLHAS[f]) FOLHAS[f] = folhaSobDemanda(f, '154'); // v407 (Raio-X A2): baixa só quando aparecer
   MONSTROS[cap.id].look = Object.assign({}, MONSTROS[cap.id].look, { folha: f }); delete MONSTROS[cap.id].look._kb;
 }
 

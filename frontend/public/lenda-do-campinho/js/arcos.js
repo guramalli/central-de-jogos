@@ -47,9 +47,10 @@ const MSG_USO_MS = 2500;
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
     const alt = alturaEnt(p), sx = (p.x * T - G.cam.x) * z, pe = (p.y * T - G.cam.y) * z;
     if (ARCOS_ON && s.hp > 0) {
-      const st = maximos(), cy = pe - alt * T * z * 0.46, raio = Math.max(alt * 0.62, 0.95) * T * z * ARCOS_DISTS[ARCOS_DIST], larg = Math.max(4.5 * px, T * z * 0.11);
-      const ab = 0.62 * Math.PI / 2; // meia-abertura de cada arco (em volta de 180° e de 0°)
-      ctx.globalAlpha = 0.78;
+      // v407 (Raio-X A1): arcos menores, mais finos e semitransparentes (antes cobriam metade do boneco e do chão em volta)
+      const st = maximos(), cy = pe - alt * T * z * 0.46, raio = Math.max(alt * 0.5, 0.78) * T * z * ARCOS_DISTS[ARCOS_DIST], larg = Math.max(3 * px, T * z * 0.065);
+      const ab = 0.5 * Math.PI / 2; // meia-abertura de cada arco (em volta de 180° e de 0°)
+      ctx.globalAlpha = 0.55;
       const pcH = s.hp / Math.max(1, st.maxHp), pcF = s.foco / Math.max(1, st.maxFoco);
       arco(ctx, sx, cy, raio, Math.PI - ab, Math.PI + ab, pcH, corFolego(pcH), larg); // esquerda: de baixo (180°−, a tela tem y para baixo) para cima (180°+)
       arco(ctx, sx, cy, raio, ab, -ab, pcF, '#3a8cff', larg);                           // direita: de baixo (+) para cima (−)
@@ -76,7 +77,7 @@ const MSG_USO_MS = 2500;
   const rotuloBt = () => `◐ Fôlego e foco no boneco: ${NOMES_HUD[HUD_BONECO]}`;
   const poe = () => {
     const lista = document.querySelector('#topo .tb-lista');
-    if (lista && !document.getElementById('btnArcos')) lista.append(el('button', { class: 'btn', id: 'btnArcos', type: 'button', role: 'menuitem', title: 'Clique para trocar: arcos em volta do boneco (como no Tibia), barrinhas em cima da cabeça, ou os dois',
+    if (lista && !document.getElementById('btnArcos')) lista.append(el('button', { class: 'btn', id: 'btnArcos', type: 'button', role: 'menuitem', title: 'Clique para trocar: arcos em volta do boneco, barrinhas em cima da cabeça, ou os dois', // v407 (Raio-X U4): sem a comparação com o Tibia no texto do jogador
       onclick: ev => { HUD_BONECO = PROX_HUD[HUD_BONECO]; ARCOS_ON = HUD_BONECO !== 'barras'; guardaHud(); ev.currentTarget.textContent = rotuloBt(); } }, rotuloBt()));
     const NOMES_DIST = { perto: 'perto', media: 'média', longe: 'longe' }, PROX_DIST = { perto: 'media', media: 'longe', longe: 'perto' };
     const rotuloDist = () => `◐ Distância dos arcos: ${NOMES_DIST[ARCOS_DIST]}`;

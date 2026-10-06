@@ -196,7 +196,8 @@ const METAS = {
 };
 
 const CORES_TIME = ['#e03a3a', '#f8d838', '#2a4ad9', '#2ad96a', '#ffffff', '#1a1a1a', '#ff7a1a', '#7a2ad9', '#3aa0e0', '#8a1010', '#ff5ad0', '#5a3a1a'];
-const NOMES_J = ['Zeca', 'Tonho', 'Luan', 'Biel', 'Caio', 'Davi', 'Rafa', 'Gui', 'Nando', 'Tuca', 'Neném', 'Pipoca', 'Foguinho', 'Carlinhos', 'Miltinho', 'Jajá', 'Lelê', 'Nina', 'Bia', 'Duda', 'Mari', 'Juju', 'Lari', 'Tati', 'Gabi', 'Téo', 'Kadu', 'Vini', 'Leco', 'Dedé', 'Fumaça', 'Tatu', 'Paçoca', 'Magrão', 'Baixinho', 'Alemão', 'Cabeção', 'Formiga', 'Bolinha', 'Russo', 'Ceará', 'Paraíba', 'Tchê', 'Mineiro', 'Carioca', 'Branco', 'Pretinho', 'Sorriso', 'Canela', 'Faísca', 'Sabiá', 'Tiziu', 'Bambu', 'Jacaré', 'Xodó', 'Pingo', 'Taco', 'Toquinho', 'Lampião', 'Marreco'];
+// v407 (Raio-X U3): apelido 'Cabeção' virou 'Cometa' (não caçoar da aparência)
+const NOMES_J = ['Zeca', 'Tonho', 'Luan', 'Biel', 'Caio', 'Davi', 'Rafa', 'Gui', 'Nando', 'Tuca', 'Neném', 'Pipoca', 'Foguinho', 'Carlinhos', 'Miltinho', 'Jajá', 'Lelê', 'Nina', 'Bia', 'Duda', 'Mari', 'Juju', 'Lari', 'Tati', 'Gabi', 'Téo', 'Kadu', 'Vini', 'Leco', 'Dedé', 'Fumaça', 'Tatu', 'Paçoca', 'Magrão', 'Baixinho', 'Alemão', 'Cometa', 'Formiga', 'Bolinha', 'Russo', 'Ceará', 'Paraíba', 'Tchê', 'Mineiro', 'Carioca', 'Branco', 'Pretinho', 'Sorriso', 'Canela', 'Faísca', 'Sabiá', 'Tiziu', 'Bambu', 'Jacaré', 'Xodó', 'Pingo', 'Taco', 'Toquinho', 'Lampião', 'Marreco'];
 // nomes por gênero (menino/menina), para o visual combinar com o nome
 const NOMES_J_F = ['Nina', 'Bia', 'Duda', 'Mari', 'Juju', 'Lari', 'Tati', 'Gabi', 'Lelê', 'Ana', 'Júlia', 'Clara', 'Malu', 'Manu', 'Isa', 'Lara', 'Bela', 'Jade', 'Luna', 'Maya', 'Cris', 'Dani', 'Marta'];
 const NOMES_J_M = NOMES_J.filter(n => !NOMES_J_F.includes(n));
@@ -784,82 +785,7 @@ function nomeLance(esc, pesos) {
   const lista = esc.filter(x => x.j); const tot = lista.reduce((a, x) => a + (pesos[x.slot] || 0.2), 0); let r = Math.random() * tot;
   for (const x of lista) { r -= pesos[x.slot] || 0.2; if (r <= 0) return x.j; } return lista[0].j;
 }
-function jogarPartida(pj, nos, eles) {
-  const s = G.save; const t = s.time; const escN = escalacaoAtual(); const escE = timeIA(pj.adv);
-  const minutos = Array.from({ length: 16 }, () => rndi(1, 90)).sort((a, b) => a - b);
-  let i = 0, gn = 0, ge = 0, pausa = false, vel = 1200, timer = null, fim = false;
-  const eu = escN.find(x => x.j && x.j.eu); const euJ = eu ? eu.j : null;
-  let decisoes = 0;
-  const narr = el('div', { class: 'narracao' });
-  const placar = el('div', { class: 'placar-ao-vivo' });
-  const cv = el('canvas', { width: 320, height: 150, class: 'campinho' }); const cx = cv.getContext('2d');
-  const escolha = el('div', { class: 'escolha' });
-  const ctl = el('div', { class: 'opcoes', style: 'justify-content:center' });
-  let bola = { x: 160, y: 75, tx: 160, ty: 75 };
-  const atualizaPlacar = (min) => { placar.innerHTML = ''; placar.append(el('span', {}, t.nome), el('b', {}, `${gn} × ${ge}`), el('span', {}, pj.adv.nome), el('small', {}, min != null ? `${min}'` : '')); };
-  const diz = (txt, cls = '') => { narr.prepend(el('div', { class: cls }, txt)); };
-  function desenhaCampo() {
-    cx.fillStyle = '#3fa34a'; cx.fillRect(0, 0, 320, 150); for (let x = 0; x < 320; x += 32) { cx.fillStyle = (x / 32) % 2 ? '#48b052' : '#3fa34a'; cx.fillRect(x, 0, 32, 150); }
-    cx.strokeStyle = '#f4f4f4'; cx.lineWidth = 2; cx.strokeRect(6, 6, 308, 138); cx.beginPath(); cx.moveTo(160, 6); cx.lineTo(160, 144); cx.stroke(); cx.beginPath(); cx.arc(160, 75, 20, 0, 7); cx.stroke();
-    cx.strokeRect(6, 40, 40, 70); cx.strokeRect(274, 40, 40, 70);
-    bola.x += (bola.tx - bola.x) * 0.08; bola.y += (bola.ty - bola.y) * 0.08;
-    const dots = (esc, c1, c2, lado) => esc.forEach((x, k) => { const col = { GOL: 0.05, ZAG: 0.2, LAT: 0.28, VOL: 0.38, MEI: 0.5, ATA: 0.66 }[x.slot]; const px = lado ? 320 - col * 300 - 10 : col * 300 + 10; const py = 20 + ((k * 37) % 110) + Math.sin(performance.now() / 600 + k) * 3; cx.fillStyle = '#140c24'; cx.fillRect(px - 4, py - 4, 8, 8); cx.fillStyle = x.slot === 'GOL' ? '#2ad96a' : c1; cx.fillRect(px - 3, py - 3, 6, 6); if (x.j && x.j.eu) { cx.fillStyle = '#ffe14a'; cx.fillRect(px - 1, py - 8, 2, 3); } });
-    dots(escN, t.cor1, t.cor2, false); dots(escE, pj.adv.cor1, pj.adv.cor2, true);
-    cx.fillStyle = '#140c24'; cx.fillRect(bola.x - 3, bola.y - 3, 6, 6); cx.fillStyle = '#fff'; cx.fillRect(bola.x - 2, bola.y - 2, 4, 4);
-    if (!fim) raf = requestAnimationFrame(desenhaCampo);
-  }
-  let raf = requestAnimationFrame(desenhaCampo);
-  const ATQ_P = { ATA: 3, MEI: 2, LAT: 1, VOL: 0.5, ZAG: 0.2, GOL: 0 };
-  function proximo() {
-    if (pausa || fim) return;
-    if (i >= minutos.length) return terminar();
-    const min = minutos[i++]; atualizaPlacar(min);
-    if (i === 9) diz("45' Fim do primeiro tempo.", 'n-sis');
-    const r = lance(nos, eles);
-    const X = r.atacaA ? escN : escE, Y = r.atacaA ? escE : escN; const nomeT = r.atacaA ? t.nome : pj.adv.nome;
-    const atac = nomeLance(X, ATQ_P); const zag = nomeLance(Y, { ZAG: 3, VOL: 2, LAT: 1 }); const gk = Y.find(x => x.slot === 'GOL'); const gkN = gk && gk.j ? gk.j.nome : 'O goleiro';
-    bola.tx = r.atacaA ? rndi(200, 300) : rndi(20, 120); bola.ty = rndi(25, 125);
-    // lance decisivo SEU
-    if (r.atacaA && euJ && r.tipo !== 'desarme' && decisoes < 3 && (atac.eu || Math.random() < 0.28)) { decisoes++; return decisao(min); }
-    if (r.tipo === 'desarme') diz(`${min}' ${atac.nome} tenta passar, mas ${zag.nome} desarma.`);
-    else if (r.tipo === 'fora') diz(`${min}' ${atac.nome} (${nomeT}) finaliza... pra fora!`);
-    else if (r.tipo === 'defesa') diz(`${min}' ${atac.nome} chuta forte e ${gkN} faz uma defesaça!`, 'n-def');
-    else { if (r.atacaA) gn++; else ge++; bola.tx = r.atacaA ? 312 : 8; bola.ty = 75; diz(`${min}' GOOOOL do ${nomeT}! ${atac.nome} manda pra rede!`, r.atacaA ? 'n-gol' : 'n-golc'); som(r.atacaA ? 'gol' : 'ai'); }
-    atualizaPlacar(min);
-    timer = setTimeout(proximo, vel);
-  }
-  function decisao(min) {
-    pausa = true; const defMed = eles.def / 4.3; const gol = eles.gol;
-    bola.tx = 250; bola.ty = 75;
-    diz(`${min}' A bola chega em VOCÊ, ${s.nome}, perto da área!`, 'n-eu');
-    const pChute = clamp(0.25 + (euJ.chu - gol) * 0.012, 0.05, 0.8);
-    const pDrible = clamp(0.5 + (euJ.drb - defMed) * 0.015, 0.1, 0.9);
-    const pPasse = clamp(0.6 + (euJ.pas - defMed) * 0.012, 0.2, 0.92);
-    const res = (ok, txt) => { escolha.innerHTML = ''; pausa = false; diz(`${min}' ${txt}`, ok === 'gol' ? 'n-gol' : ''); if (ok === 'gol') { gn++; bola.tx = 312; som('gol'); } atualizaPlacar(min); timer = setTimeout(proximo, vel); };
-    const b = (rot, p, fn) => el('button', { class: 'btn amarelo', onclick: fn }, `${rot} (${Math.round(p * 100)}%)`);
-    escolha.innerHTML = '';
-    escolha.append(el('p', {}, 'O que você faz?'), el('div', { class: 'opcoes', style: 'justify-content:center' },
-      b('Chutar', pChute, () => { treinaSkill('chute', 3); Math.random() < pChute ? res('gol', `GOLAÇO DE ${s.nome.toUpperCase()}! Que chute!`) : res(0, `${s.nome} chuta e ${escE[0].j.nome} defende!`); }),
-      b('Driblar', pDrible, () => { treinaSkill('drible', 3); if (Math.random() < pDrible) { const p2 = clamp(0.45 + (euJ.chu - gol) * 0.01, 0.15, 0.85); Math.random() < p2 ? res('gol', `${s.nome} dá um drible desconcertante e marca! GOOOL!`) : res(0, `${s.nome} passa pelo zagueiro, mas o goleiro salva!`); } else res(0, `${s.nome} tenta o drible e perde a bola.`); }),
-      b('Tocar', pPasse, () => { treinaSkill('visao', 20); if (Math.random() < pPasse) { const comp = nomeLance(escN.filter(x => x.j && !x.j.eu), ATQ_P); Math.random() < 0.42 ? res('gol', `${s.nome} dá um passe açucarado e ${comp.nome} marca! GOOOL!`) : res(0, `${s.nome} toca para ${comp.nome}, que chuta por cima.`); } else res(0, `O passe de ${s.nome} é interceptado.`); })));
-  }
-  function terminar() {
-    fim = true; clearTimeout(timer); escolha.innerHTML = '';
-    const r = concluiJogo(pj, gn, ge, escN, false, nos, eles);
-    diz(`Fim de jogo! ${r.txt}`, 'n-sis');
-    som(r.venceu ? 'nivel' : 'apito');
-    ctl.innerHTML = ''; ctl.append(botaoContinuar());
-  }
-  ctl.append(el('button', { class: 'btn', onclick: () => { vel = vel === 1200 ? 450 : 1200; } }, 'Velocidade'), el('button', { class: 'btn', onclick: () => { vel = 30; } }, 'Pular'));
-  window.pararPartida = () => { if (!fim) { clearTimeout(timer); fim = true; } cancelAnimationFrame(raf); window.pararPartida = null; };
-  abreModal.largo = true;
-  abreModal(el('h2', {}, pj.tipo === 'copa' ? `${t.copa.nome} — ${FASES_COPA[pj.fase]}` : 'Partida'), placar, cv, escolha, ctl, narr);
-  $('#modal .fechar').hidden = true;
-  atualizaPlacar(0); diz("0' Rola a bola!", 'n-sis'); som('apito');
-  timer = setTimeout(proximo, 900);
-  // o botão de fechar só volta no fim
-  const vigia = setInterval(() => { if (fim) { $('#modal .fechar').hidden = false; clearInterval(vigia); } }, 300);
-}
+// v407 (Raio-X T4): jogarPartida saiu daqui — partida.js declara a mesma função depois e só a de lá rodava.
 
 /* ---------------- fim de temporada ---------------- */
 function fimTemporada() {
@@ -934,12 +860,14 @@ function fimTemporada() {
 }
 function modalFundar() {
   const s = G.save; let c1 = '#f8d838', c2 = '#2a8a3a';
-  const inp = el('input', { maxlength: 24, placeholder: 'Ex.: Esporte Clube Campinho', value: `${s.nome} FC` });
+  // v407 (Raio-X U1: nada de texto livre público): o nome do time é escolhido em DUAS LISTAS (como as guildas) — é ele que
+  // aparece no ranking e na ficha do site. As listas e o seletor moram em online_seguro.js (as mesmas do servidor).
+  const nomeT = typeof osgSeletorTime === 'function' ? osgSeletorTime() : { el: el('span', {}, 'Esporte Clube Campinho'), nome: () => 'Esporte Clube Campinho', partes: () => '0.0' };
   const prev = el('div', { class: 'prev-escudo' });
   const render = () => { prev.innerHTML = ''; prev.append(escudo(c1, c2, 64)); };
   const paleta = (qual) => el('div', { class: 'chips' }, ...CORES_TIME.map(c => { const b = el('button', { class: 'chip', type: 'button' }); const i = el('i'); i.style.background = c; b.append(i); b.onclick = () => { if (qual === 1) c1 = c; else c2 = c; render(); }; return b; }));
   render();
   abreModal(el('h2', {}, 'Fundar meu time'), el('p', {}, 'Você é adulto(a) e já tem nome no futebol. Hora de montar seu próprio clube! Você será o craque do time e vai começar na Várzea, com amigos da vila. Contrate reforços, cuide do caixa e da estrutura, suba de divisão até a Série A — e depois leve o clube para as ligas do Egito, Japão, Europa... até o Mundial de Clubes.'),
-    el('div', { class: 'npc-topo' }, prev, el('div', { style: 'flex:1' }, el('label', {}, 'Nome do time', inp), el('p', {}, 'Cor principal'), paleta(1), el('p', {}, 'Cor secundária'), paleta(2))),
-    el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo grande', onclick: () => { const n = inp.value.trim().replace(/[<>]/g, ''); if (n.length < 3) return; if (s.ouro < 500) { log('Fundar o time custa 500 tostões.', 'l-dano'); return; } s.ouro -= 500; fundarTime(n, c1, c2); abrirTime('elenco'); } }, 'Fundar (500 tostões)')));
+    el('div', { class: 'npc-topo' }, prev, el('div', { style: 'flex:1' }, el('label', {}, 'Nome do time', nomeT.el), el('p', {}, 'Cor principal'), paleta(1), el('p', {}, 'Cor secundária'), paleta(2))),
+    el('div', { class: 'opcoes' }, el('button', { class: 'btn amarelo grande', onclick: () => { const n = nomeT.nome(); if (!n) return; if (s.ouro < 500) { log('Fundar o time custa 500 tostões.', 'l-dano'); return; } s.ouro -= 500; fundarTime(n, c1, c2); s.time.partes = nomeT.partes(); abrirTime('elenco'); } }, 'Fundar (500 tostões)')));
 }

@@ -5,6 +5,14 @@
    missões, NPCs, quiz). Tudo que é "balanceamento" mora aqui.
    ============================================================ */
 
+// v407 (Raio-X R8): artigo certo antes do nome do lugar nos textos-molde ("ao Rio", "ao Cairo", "à Lua", "a Tóquio")
+// prepLugar('a'|'em'|'de', nome) → 'ao Rio de Janeiro', 'na Lua', 'de Tóquio'...
+const LUGAR_ARTIGO = { 'Rio de Janeiro': 'o', 'Rio': 'o', 'Cairo': 'o', 'Lua': 'a', 'Nebulosa': 'a', 'Nebulosa de Órion': 'a', 'Estação Espacial': 'a', 'Vila Belmiro': 'a', 'Vila do Campinho': 'a', 'Cidade': 'a', 'Praia': 'a' };
+function prepLugar(prep, nome) {
+  const art = LUGAR_ARTIGO[nome] || '';
+  const t = { a: { o: 'ao', a: 'à', '': 'a' }, em: { o: 'no', a: 'na', '': 'em' }, de: { o: 'do', a: 'da', '': 'de' } }[prep] || { o: prep, a: prep, '': prep };
+  return `${t[art]} ${nome}`;
+}
 // Onde ficam as peças de avatar do Educação Gamer (CORS liberado)
 const ASSET_BASE = 'https://www.educacaogamer.com.br';
 
@@ -387,7 +395,7 @@ const MISSOES = [
   { id: 'q_pombos', npc: 'ze', titulo: 'Aquecimento', lvl: 1, pre: 'q_bola',
     texto: 'Então você quer jogar bola? Primeiro aquece. Esses pombos folgados vivem sentados no campinho. Dribla 6 deles!',
     req: { kill: 'pombo', n: 6 }, rec: { xp: 60, ouro: 20, drible: 'pedalada' },
-    fim: 'Boa! Vou te ensinar a PEDALADA. Use no hotbar (tecla 1) quando estiver colado num adversário.' },
+    fim: 'Boa! Aqueceu bem. Os dribles vêm com a experiência: a cada nível novo você aprende sozinho (a PEDALADA chega no nível 2 — use na barra de atalhos quando estiver colado num adversário).' }, // v407 (Raio-X): era "Vou te ensinar a PEDALADA (tecla 1)"; o drible chega sozinho no nível 2 (dribles_nivel.js)
   { id: 'q_moleques', npc: 'ze', titulo: 'Os Fominhas', lvl: 3, pre: 'q_pombos',
     texto: 'Tem uns moleques fominhas que não passam a bola pra ninguém. Mostra pra 10 deles como se joga!',
     req: { kill: 'moleque', n: 10 }, rec: { xp: 160, ouro: 40, itens: [['chuteira_pano', 1]] },
@@ -395,7 +403,7 @@ const MISSOES = [
   { id: 'q_penaltis', npc: 'ze', titulo: 'Treino de pênalti', lvl: 4, pre: 'q_moleques',
     texto: 'Craque de verdade não treme no pênalti. Vai na marca do pênalti do campinho e faz 5 gols.',
     req: { gols: 5, desc: 'Marque 5 gols na marca do pênalti' }, rec: { xp: 140, drible: 'chute_colocado' },
-    fim: 'Que batida! Aprendeu o CHUTE COLOCADO: ataca de longe.' },
+    fim: 'Que batida! Craque de pênalti. (O CHUTE COLOCADO, que ataca de longe, chega sozinho no nível 6.)' }, // v407 (Raio-X): o drible vem pelo nível, não pela missão
   { id: 'q_escola', npc: 'lucia', titulo: 'Craque na escola', lvl: 1,
     texto: 'Jogador bom também é bom aluno! Responda 5 perguntas certas comigo e te ensino a respirar como atleta.',
     req: { prof: 5, desc: 'Acerte 5 perguntas da Professora Lúcia' }, rec: { xp: 150, drible: 'respiro', itens: [['munhequeira', 1]] },
@@ -405,8 +413,9 @@ const MISSOES = [
     req: { quiz: 8, desc: 'Acerte 8 perguntas no quiz do Seu Juca' }, rec: { xp: 250, itens: [['pacotinho', 2]] },
     fim: 'Toma dois pacotinhos! Complete o álbum e ganhe um prêmio especial.' },
   { id: 'q_caramelo', npc: 'ze', titulo: 'Caramelo fujão', lvl: 5, pre: 'q_penaltis',
-    texto: 'Os caramelos do mato vivem roubando nossas bolas. Dribla 8 deles, com carinho!',
-    req: { kill: 'caramelo', n: 8 }, rec: { xp: 320, ouro: 60, itens: [['faixa_suor', 1]] },
+    // v407 (Raio-X A3): no começo quase tudo era "vença N"; esta virou "recupere e entregue" (item que cai dos caramelos)
+    texto: 'Os caramelos do mato levaram bolas do campinho! Dribla eles com carinho, aqui na Vila, e me traga de volta 2 Bolas Murchas.',
+    req: { item: 'bola_murcha', n: 2, de: 'caramelo', desc: 'Recupere 2 Bolas Murchas com os Cachorros Caramelo' }, rec: { xp: 320, ouro: 60, itens: [['faixa_suor', 1]] },
     fim: 'Eles só queriam brincar... Toma essa faixa!' },
   { id: 'q_zagueiros', npc: 'ze', titulo: 'A muralha da rua', lvl: 7, pre: 'q_caramelo',
     texto: 'Os zagueiros da rua lá do mato leste batem mais que jogam. Passa por 10 deles.',
@@ -415,7 +424,7 @@ const MISSOES = [
   { id: 'q_tonhao', npc: 'ze', titulo: 'O desafio do capitão', lvl: 8, pre: 'q_zagueiros',
     texto: 'Chegou a hora. O TONHÃO, capitão do time rival, tomou o lado leste do campinho. Vence ele e você vai longe!',
     req: { kill: 'tonhao', n: 1 }, rec: { xp: 1100, ouro: 150, drible: 'arrancada', flag: 'libera_praia' },
-    fim: 'Você venceu o Tonhão! Aprendeu a ARRANCADA. A estrada pra PRAIA (leste) está liberada. No nível 10, volte aqui pra peneira!' },
+    fim: 'Você venceu o Tonhão! A estrada pra PRAIA (leste) está liberada. No nível 10, volte aqui pra peneira!' }, // v407 (Raio-X): a ARRANCADA já chegou sozinha no nível 8
   { id: 'q_peneira', npc: 'ze', titulo: 'A peneira', lvl: 10, pre: 'q_tonhao',
     texto: 'Tá na hora da peneira! Vou ver você jogar e dizer em que posição você joga (ela combina com a sua classe).',
     req: { flag: 'escolheu_posicao', desc: 'Faça a peneira com o Seu Zé' }, rec: { xp: 400, itens: [['apito', 1]] },
@@ -469,7 +478,7 @@ const MISSOES = [
   { id: 't_volantes', npc: 'aurelio', titulo: 'Marcação cerrada', lvl: 26,
     texto: 'Aqui no CT é profissional. Primeira lição: passa por 20 volantes carrinho.',
     req: { kill: 'volante', n: 20 }, rec: { xp: 18000, ouro: 1000, drible: 'caneta' },
-    fim: 'Aprendeu a CANETA (nível 28). O drible mais humilhante do futebol.' },
+    fim: 'Aprendeu a CANETA (nível 28). O drible mais ousado do futebol.' }, // v407 (Raio-X U3): era "mais humilhante"
   { id: 't_laterais', npc: 'aurelio', titulo: 'Sobe e desce', lvl: 28, pre: 't_volantes',
     texto: 'Os laterais não cansam nunca. Vence 20 deles.',
     req: { kill: 'lateral', n: 20 }, rec: { xp: 20000, ouro: 1100, itens: [['chuteira_travas', 1]] },
@@ -507,7 +516,7 @@ const MISSOES = [
   { id: 'e_paredao', npc: 'dada', titulo: 'O Paredão', lvl: 50, pre: 'e_xerifes',
     texto: 'Ninguém nunca fez gol no PAREDÃO, o goleiro lendário que guarda o gol oeste do estádio. Ninguém... até agora?',
     req: { kill: 'paredao', n: 1 }, rec: { xp: 250000, ouro: 12000, drible: 'relampago', itens: [['camisa10', 1]], flag: 'craque' },
-    fim: 'GOOOOL! Você é o CRAQUE! Toma a CAMISA 10 DE OURO e a PEDALADA RELÂMPAGO (nível 55). Agora... rumo à Lenda (nível 60)!' },
+    fim: 'GOOOOL! Você é o CRAQUE! Toma a CAMISA 10 DE OURO e a PEDALADA RELÂMPAGO (nível 55). Agora o mundo te espera: fale com a Comissária Luana, no aeroporto da Cidade!' }, // v407 (Raio-X R8): era "rumo à Lenda (nível 60)", como se o jogo acabasse ali
 ];
 
 /* ---------- NPCs ---------- */
@@ -581,7 +590,7 @@ const QUIZ = [
   ['Qual a cor do cartão de advertência?', ['Amarelo', 'Vermelho', 'Branco', 'Laranja']],
   ['Qual clube inglês é chamado de "Red Devils"?', ['Manchester United', 'Liverpool', 'Arsenal', 'Chelsea']],
   ['Qual é a principal competição de clubes da América do Sul?', ['Copa Libertadores', 'Copa Sul-Americana', 'Recopa', 'Copa América']],
-  ['Qual o apelido mais famoso da Seleção Brasileira?', ['Canarinho', 'Albiceleste', 'Furia', 'Tricolor']],
+  ['Qual o apelido mais famoso da Seleção Brasileira?', ['Canarinho', 'Albiceleste', 'Fúria', 'Tricolor']], // v407 (Raio-X R8): "Furia" sem acento
   ['Quantos gols Pelé marcou em Copas do Mundo?', ['12', '8', '15', '10']],
   ['Quem é o maior artilheiro da história das Copas, com 16 gols?', ['Miroslav Klose', 'Ronaldo', 'Pelé', 'Messi']],
   ['O que é um "gol olímpico"?', ['Gol direto de escanteio', 'Gol de bicicleta', 'Gol do meio de campo', 'Gol nas Olimpíadas']],

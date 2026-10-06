@@ -37,6 +37,10 @@
     atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
   // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
   Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
+  // v407 (Raio-X R10): tema novo de ~2 min (Higgsfield Sonilo) na tela inicial, abertura e criação; as 5 faixas curtas de 18,5 s
+  // (titulo, vila, cidade, mundo, europa) saem do rodízio — quem pedir uma delas toca a longa da mesma região
+  MUSICAS.tema_v407 = 117.81;
+  const AUD_CURTAS = { titulo: 'tema_v407', vila: 'vila3', cidade: 'cidade2', mundo: 'mundo2', europa: 'europa2' };
   const DG_TEMA = { catacumba: 'dg_caverna', cristal: 'dg_caverna', mina: 'dg_caverna', tunel: 'dg_caverna', lava: 'dg_vulcao', gelo: 'dg_gelo',
     tumba: 'dg_deserto', deserto: 'dg_deserto', bazar: 'dg_deserto', palacio: 'dg_deserto',
     mata: 'dg_floresta', campo: 'dg_floresta', pantano: 'dg_floresta', fazenda: 'dg_floresta', labirinto: 'dg_floresta',
@@ -70,6 +74,10 @@
     chefe_choque: ['chefe_choque', 1, 0.05, 300, 2, 1, 0.95],
     chefe_queda: ['chefe_queda', 1, 0.02, 900, 1, 1, 1.9],
     chefe_golpe: ['chefe_golpe', 0.8, 0.08, 280, 2, 1, 0.5],
+    // v407 (Raio-X, sons de interface): gravados (Higgsfield Mirelo, recortados e com o volume igualado) no lugar dos bipes;
+    // o sintetizado continua de reserva enquanto o arquivo não carregou
+    moeda: ['ui_moeda_v407', 0.6, 0.04, 60, 3], equip: ['ui_equip_v407', 0.65, 0.05, 120, 2], erro: ['ui_erro_v407', 0.55, 0.02, 150, 1],
+    cura: ['ui_cura_v407', 0.6, 0.03, 150, 1], bolsa: ['ui_bolsa_v407', 0.6, 0.05, 150, 1],
   };
   // v226: sons gravados das habilidades (Seed Audio): dr_<drible> e cl_<especial>. [arquivo, vol, pitch, intervalo, vozes, rate, duração máx. (s)]
   const SONS_HAB = { dr_pedalada: 2.6, dr_respiro: 1.5, dr_chute_colocado: 2.2, dr_arrancada: 1.5, dr_chapeu: 2.6, dr_voleio: 1.5, dr_elastico: 2.8, dr_tabela: 1.5, dr_caneta: 3.2,
@@ -152,8 +160,10 @@
     const d = b.getChannelData(0), sr = b.sampleRate; let ini = 0; const lim = 0.02;
     while (ini < d.length && Math.abs(d[ini]) < lim) ini++;
     ini = Math.max(0, ini - Math.round(sr * 0.01)); const fim = Math.min(d.length, ini + Math.round(sr * durMax));
-    let q = 0; for (let i = ini; i < fim; i++) q += d[i] * d[i]; const rms = Math.sqrt(q / Math.max(1, fim - ini));
-    return { off: ini / sr, ganho: Math.max(0.35, Math.min(4, 0.13 / Math.max(1e-4, rms))) };
+    let q = 0, pk = 0; for (let i = ini; i < fim; i++) { q += d[i] * d[i]; const v = Math.abs(d[i]); if (v > pk) pk = v; } const rms = Math.sqrt(q / Math.max(1, fim - ini));
+    // v407 (Raio-X, volume das magias): o teto era 4× (+12 dB) e a Pedalada (−47 dB), o Toque de Mestre e o Carrinho continuavam
+    // quase mudos perto do Canhão (37 dB de diferença). Agora até 16× (+24 dB), mas sem passar do pico (nada estoura): ~7 dB entre todas
+    return { off: ini / sr, ganho: Math.max(0.35, Math.min(16, 0.13 / Math.max(1e-4, rms), 0.9 / Math.max(1e-4, pk))) };
   }
 
   /* ---------- efeitos ---------- */
@@ -248,6 +258,7 @@
     morte: { ms: 800, f(t) { [392, 370, 349, 294].forEach((fq, i) => nota('triangle', [fq, fq * (i === 3 ? 0.9 : 1)], t + i * 0.2, i === 3 ? 0.7 : 0.22, 0.14, { passaBaixa: 2500 })); } },
     porta: { ms: 150, f(t) { nota('sine', [140, 90], t, 0.09, 0.3); ruido(t, 0.05, 0.1, 'lowpass', 1200, 400, 1); nota('sine', [120, 80], t + 0.12, 0.08, 0.2); } },
   };
+  SINT.bolsa = SINT.equip; // v407: reserva do som de abrir a bolsa (o gravado entra quando carregar)
   // ---- dribles (dr_<id>) e habilidades de classe (cl_<id>): cada um com a sua cara ----
   const acorde = (t, fs, onda, dur, vol, passo = 0, opc = {}) => fs.forEach((f, i) => nota(onda, f, t + i * passo, dur, vol, opc));
   const whoosh = (t, dur, de, para, vol = 0.14, pan) => ruido(t, dur, vol, 'bandpass', de, para, 1.6, false, pan);
@@ -328,8 +339,12 @@
     return { nome, s, g };
   }
   function trocaMusica(id) {
+    if (id && AUD_CURTAS[id]) id = AUD_CURTAS[id]; // v407 (Raio-X R10)
     if (A.faixa === id) return;
     A.faixa = id;
+    // v407 (Raio-X A8): só a música ATUAL e a ANTERIOR ficam decodificadas na memória (cada uma ocupa ~10–20 MB depois de
+    // decodificada; antes todas as que tocaram ficavam para sempre). A que ainda está sumindo segue tocando normalmente.
+    if (id) { A.musRec = [id].concat((A.musRec || []).filter(x => x !== id)).slice(0, 2); for (const k in A.buf) if (k.startsWith('musica_') && !A.musRec.includes(k.slice(7))) delete A.buf[k]; }
     const c = garanteCtx(); if (!c) return;
     const t = c.currentTime;
     // nunca empilha: o que já estava sumindo para agora
@@ -370,6 +385,7 @@
   for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
   Object.assign(ALTERNA, { atlantida: ['atlantida', 'atlantida2'], galaxia: ['galaxia', 'galaxia2'], celeste: ['celeste', 'galaxia'] }); // v287
   Object.assign(ALTERNA, { multiverso: ['multiverso', 'galaxia2'], pedraforte: ['pedraforte', 'dg_caverna'], picos: ['picos', 'celeste'], torre: ['torre', 'dg_vulcao'], dino: ['dino', 'dino2', 'aventura'], dino_boss: ['dino_boss'], chefe: ['chefe'] }); // v364
+  for (const k in ALTERNA) { const l = ALTERNA[k].filter(f => !AUD_CURTAS[f]); ALTERNA[k] = l.length ? l : [AUD_CURTAS[ALTERNA[k][0]] || ALTERNA[k][0]]; } // v407 (Raio-X R10): sem as faixas curtas
   const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
   const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
   function sessao(base) {

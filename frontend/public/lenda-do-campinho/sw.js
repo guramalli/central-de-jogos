@@ -4,9 +4,26 @@
    - Imagens e sons: da cópia na hora e atualiza por trás. */
 const VERSAO = new URL(self.location).searchParams.get('v') || '1';
 const CACHE_CODIGO = 'lenda-codigo-' + VERSAO, CACHE_MIDIA = 'lenda-midia';
+// v407 (Raio-X): a cópia das imagens/sons ("lenda-midia") nunca era limpa — cada ?v= novo de uma imagem ficava ao lado do
+// antigo, para sempre. Agora: de cada arquivo fica só a cópia mais recente, e no máximo MIDIA_MAX arquivos
+// (saem os usados há mais tempo: cada uso põe o arquivo no fim da fila, porque a cópia é regravada ao atualizar por trás).
+const MIDIA_MAX = 1500;
+let arrumando = null, gravacoes = 0;
+function arrumaMidia() {
+  if (arrumando) return arrumando;
+  arrumando = caches.open(CACHE_MIDIA).then(async c => {
+    const ks = await c.keys(); // na ordem em que foram gravados (o mais antigo primeiro)
+    const ultimo = new Map(); ks.forEach((r, i) => ultimo.set(new URL(r.url).pathname, i));
+    const fora = ks.filter((r, i) => ultimo.get(new URL(r.url).pathname) !== i); // versões velhas do mesmo arquivo
+    const ficam = ks.filter((r, i) => ultimo.get(new URL(r.url).pathname) === i);
+    if (ficam.length > MIDIA_MAX) fora.push(...ficam.slice(0, ficam.length - MIDIA_MAX));
+    for (const r of fora) await c.delete(r);
+  }).catch(() => { }).finally(() => { arrumando = null; });
+  return arrumando;
+}
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('lenda-codigo-') && k !== CACHE_CODIGO).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('lenda-codigo-') && k !== CACHE_CODIGO).map(k => caches.delete(k)))).then(arrumaMidia).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
@@ -14,7 +31,7 @@ self.addEventListener('fetch', e => {
   if (/\.(webp|png|jpe?g|gif|mp3|ogg|wav|m4a)$/i.test(url.pathname)) {
     e.respondWith(caches.open(CACHE_MIDIA).then(async c => {
       const copia = await c.match(req);
-      const rede = fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); return r; }).catch(() => copia);
+      const rede = fetch(req).then(r => { if (r.ok) { c.put(req, r.clone()).then(() => { if (++gravacoes % 100 === 0) arrumaMidia(); }).catch(() => { }); } return r; }).catch(() => copia);
       return copia || rede;
     }));
     return;

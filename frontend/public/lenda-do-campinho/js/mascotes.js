@@ -129,7 +129,7 @@ function mascGanha(pts) {
         const lib = ADORNOS2.liberado('mascote', id), M = MASC[id];
         if (!lib) { bt.append(el('span', { class: 'masc-info' }, `Bônus: ${M.txt} (até +${pct(M.v)})`)); return; }
         const d = mascDados(id), f = mascFase(d.nv), prox = MASC_FASES.find(x => x.nv > d.nv), need = mascPontosNivel(d.nv);
-        bt.append(el('span', { class: 'masc-info' }, el('b', {}, `Nv ${d.nv} · ${f.nome}`), (id === 'dragao' && !mascDragaoBonus()) ? ` · bônus de ${M.txt} quando liberar a Arara` : ` · +${pct(M.v * f.k)} de ${M.txt}`,
+        bt.append(el('span', { class: 'masc-info' }, el('b', {}, `Nv ${d.nv} · ${f.nome}`), id === 'dragao' ? ` · só visual: vale o bônus da sua Arara${mascDragaoBonus() ? ` (+${pct(MASC.arara.v * mascFase(mascDados('arara').nv).k)} de ${M.txt})` : ' (libere a Arara jogando)'}` : ` · +${pct(M.v * f.k)} de ${M.txt}`, /* v407 (Raio-X T3) */
           d.nv < MASC_MAX ? el('span', { class: 'masc-bar', title: `${d.pts}/${need} pontos para o nível ${d.nv + 1}` }, el('i', { style: `width:${Math.round(d.pts / need * 100)}%` })) : el('span', {}, ' · MÁXIMO!'),
           prox ? el('small', {}, `${prox.nome} no nível ${prox.nv}`) : ''));
       });
@@ -147,9 +147,10 @@ function mascGanha(pts) {
 /* ---------- 🐕 Pipoca: as missões da Tia Zuzu (Vila) ---------- */
 {
   const xpNivel = L => Math.max(1, xpPara(L + 1) - xpPara(L));
+  // v407 (Raio-X R8): caixa alta só para nome de chefão (palavras de ênfase e nomes de cidade voltaram ao normal)
   if (NPCS.zuzu) MISSOES.push(
-    { id: 'pipoca1', npc: 'zuzu', lvl: 12, titulo: '🐕 O filhote da pipoca', texto: 'Tem um filhotinho de vira-lata que aparece aqui TODO DIA pedindo pipoca! Mas os moleques da rua ficam correndo atrás dele e ele morre de medo. Vença 15 Moleques da Vila para ele ficar tranquilo?', req: { kill: 'moleque', n: 15 }, rec: { xp: Math.round(xpNivel(12) * 0.8), ouro: 2500 }, fim: 'Olha só, ele já está abanando o rabo pra você! Acho que ele gostou de você...' },
-    { id: 'pipoca2', npc: 'zuzu', lvl: 14, pre: 'pipoca1', titulo: '🐕 Um lar para o Pipoca', texto: 'O Tonhão vive chutando a bola em cima do coitadinho! Dê uma lição nele (vença o Tonhão 3 vezes) e o filhote é SEU. Eu já até dei um nome: Pipoca!', req: { kill: 'tonhao', n: 3 }, rec: { xp: Math.round(xpNivel(14) * 1), ouro: 4000, flag: 'pet_pipoca' }, fim: 'O Pipoca agora é o seu MASCOTE! Coloque ele com você em Equipamento → ✨ Adornos. Caçando juntos, ele cresce e traz tostões a mais. Cuida bem dele, viu?' },
+    { id: 'pipoca1', npc: 'zuzu', lvl: 12, titulo: '🐕 O filhote da pipoca', texto: 'Tem um filhotinho de vira-lata que aparece aqui todo dia pedindo pipoca! Mas os moleques da rua ficam correndo atrás dele e ele morre de medo. Vença 15 Moleques da Vila para ele ficar tranquilo?', req: { kill: 'moleque', n: 15 }, rec: { xp: Math.round(xpNivel(12) * 0.8), ouro: 2500 }, fim: 'Olha só, ele já está abanando o rabo pra você! Acho que ele gostou de você...' },
+    { id: 'pipoca2', npc: 'zuzu', lvl: 14, pre: 'pipoca1', titulo: '🐕 Um lar para o Pipoca', texto: 'O Tonhão vive chutando a bola em cima do coitadinho! Dê uma lição nele (vença o Tonhão 3 vezes) e o filhote é seu. Eu já até dei um nome: Pipoca!', req: { kill: 'tonhao', n: 3 }, rec: { xp: Math.round(xpNivel(14) * 1), ouro: 4000, flag: 'pet_pipoca' }, fim: 'O Pipoca agora é o seu MASCOTE! Coloque ele com você em Equipamento → ✨ Adornos. Caçando juntos, ele cresce e traz tostões a mais. Cuida bem dele, viu?' },
   );
 }
 // 🐱 Sortudo: as missões da Dona Yuki do Onigiri (Tóquio)

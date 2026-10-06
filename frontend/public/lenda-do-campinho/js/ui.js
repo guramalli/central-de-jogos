@@ -45,22 +45,7 @@ function camadasRetrato(cfg) {
   if (cfg.mao) L.push({ src: url('mao/' + cfg.mao) });
   return L;
 }
-function montaRetrato(alvo, cfg, aura) {
-  alvo.innerHTML = '';
-  if (aura) alvo.append(el('span', { class: 'aura' }));
-  for (const c of camadasRetrato(cfg)) {
-    if (c.tinta) {
-      const w = el('span', { class: 'pintado' });
-      w.append(el('img', { src: c.tinta, alt: '', draggable: 'false' }));
-      const t = el('span', { class: 'tinta' }); t.style.backgroundColor = c.cor; t.style.maskImage = `url("${c.tinta}")`; t.style.webkitMaskImage = `url("${c.tinta}")`;
-      w.append(t); alvo.append(w);
-    } else {
-      const img = el('img', { src: c.src, alt: '', draggable: 'false' });
-      img.onerror = () => img.remove();
-      alvo.append(img);
-    }
-  }
-}
+// v407 (Raio-X T4): montaRetrato saiu daqui — boneco.js declara a mesma função depois e só a de lá rodava.
 function cfgRetratoJogador() {
   const s = G.save; const eq = s.equip; const fase = faseIdx(s.nivel);
   const av = id => id && ITENS[id] && ITENS[id].avatar;
@@ -296,7 +281,8 @@ function atualizaRastreador() {
     } else {
       const ops = el('div', { class: 'tut-ops' });
       if (st.ok) ops.append(el('button', { class: 'btn amarelo mini', onclick: avancaTutorial }, 'Entendi'));
-      else ops.append(el('button', { class: 'btn amarelo mini', title: 'Esconde a dica; o tutorial continua quando você fizer o que ela pede', onclick: () => { G.tutMin = s.tut; G.uiSujo = true; } }, 'Ok'));
+      // v407 (Raio-X R2b): "Ok" parecia "feito" mas só escondia; agora diz o que faz (o passo avança quando você faz o que ele pede)
+      else ops.append(el('button', { class: 'btn mini', title: 'Esconde a dica; o tutorial continua quando você fizer o que ela pede', onclick: () => { G.tutMin = s.tut; G.uiSujo = true; } }, 'Esconder dica'));
       ops.append(el('button', { class: 'btn mini', onclick: async () => { if (await perguntaJogo('Pular o tutorial? As dicas continuam aparecendo.', { sim: 'Pular' })) pularTutorial(); } }, 'Pular tutorial'));
       R.append(el('div', { class: 'cartao-tut' }, el('div', { class: 'tut-topo' }, el('b', {}, `Tutorial ${s.tut + 1}/${TUTORIAL.length}`), st.tecla ? el('span', { class: 'kbd' }, st.tecla) : ''), el('p', {}, st.txt), ops));
       if (st.destaque) document.querySelectorAll(st.destaque).forEach(e => e.classList.add('destaque'));
@@ -524,19 +510,24 @@ function modalQuadro() {
 
 /* ---------------- quiz de futebol e matemática ---------------- */
 function perguntaMat() {
+  /* v407 (Raio-X R8): a aula saía com "287 gols no primeiro tempo", "940 minutos", "1 gols" e desconto em % já no nível 6.
+     Agora os números ficam na faixa da escola (até ~100, divisões e porcentagens exatas), a dificuldade sobe com as
+     respostas certas (s.st.prof) e não com o nível do boneco, e porcentagem só a partir do nível 15. */
   const n = G.save.nivel; const r = (a, b) => rndi(a, b);
+  const D = Math.min(5, Math.floor(((G.save.st && G.save.st.prof) || 0) / 8) + (n >= 15 ? 1 : 0) + (n >= 40 ? 1 : 0)); // 0..5
+  const pl = (k, um, varios) => `${k} ${k === 1 ? um : varios}`;
   const tipos = [
-    () => { const a = r(1, 5 + n), b = r(1, 5 + n); return [`Seu time fez ${a} gols no primeiro tempo e ${b} no segundo. Quantos gols no total?`, a + b]; },
-    () => { const t = r(20, 40 + n * 3), f = r(1, t - 1); return [`Uma partida tem ${t} minutos de treino. Já passaram ${f}. Quantos minutos faltam?`, t - f]; },
-    () => { const v = r(1, 6 + Math.floor(n / 2)), e = r(0, 5); return [`Vitória vale 3 pontos e empate vale 1. Com ${v} vitórias e ${e} empates, quantos pontos?`, v * 3 + e]; },
-    () => { const a = r(2, 9 + Math.floor(n / 3)), b = r(2, 9); return [`Você fez ${a} embaixadinhas por dia durante ${b} dias. Quantas no total?`, a * b]; },
-    () => { const k = r(2, 6), q = r(2, 8 + Math.floor(n / 4)); return [`O treinador dividiu ${k * q} bolas igualmente entre ${k} grupos. Quantas bolas cada grupo recebeu?`, q]; },
-    () => { const c = r(2, 12) * 10, p = [10, 20, 25, 50][r(0, 3)]; return [`Uma chuteira custa ${c} tostões e está com ${p}% de desconto. Quanto você paga?`, c - c * p / 100]; },
-    () => { const lug = r(2, 9) * 1000, p = [10, 20, 25, 50, 75][r(0, 4)]; return [`O estádio tem ${fmt(lug)} lugares e ${p}% estão ocupados. Quantas pessoas estão lá?`, lug * p / 100]; },
+    () => { const a = r(1, 5 + D * 8), b = r(1, 5 + D * 8); return [`Seu time fez ${pl(a, 'gol', 'gols')} no primeiro tempo e ${pl(b, 'gol', 'gols')} no segundo. Quantos gols no total?`, a + b]; },
+    () => { const t = r(20, 40 + D * 12), f = r(2, t - 2); return [`Um treino tem ${t} minutos. Já se passaram ${f} minutos. Quantos minutos faltam?`, t - f]; },
+    () => { const v = r(1, 4 + D * 2), e = r(0, 5); return [`Vitória vale 3 pontos e empate vale 1. Com ${pl(v, 'vitória', 'vitórias')} e ${pl(e, 'empate', 'empates')}, quantos pontos?`, v * 3 + e]; },
+    () => { const a = r(2, 5 + D), b = r(2, 9); return [`Você fez ${a} embaixadinhas por dia durante ${b} dias. Quantas no total?`, a * b]; },
+    () => { const k = r(2, 4 + Math.floor(D / 2)), q = r(2, 5 + D); return [`O treinador dividiu ${k * q} bolas igualmente entre ${k} grupos. Quantas bolas cada grupo recebeu?`, q]; },
     () => { const g = r(2, 6), j = r(3, 8); return [`Um atacante faz em média ${g} gols a cada ${j} jogos. Em ${j * 3} jogos, quantos gols ele deve fazer?`, g * 3]; },
-    () => { const a = r(10, 60), b = r(10, 60); return [`No primeiro jogo vieram ${a} torcedores e no segundo ${b}. Qual a diferença entre os dois jogos?`, Math.abs(a - b)]; },
+    () => { const a = r(10, 30 + D * 14), b = r(10, 30 + D * 14); return [`No primeiro jogo vieram ${a} torcedores e no segundo ${b}. Qual a diferença entre os dois jogos?`, Math.abs(a - b)]; },
+    () => { const p = [10, 20, 25, 50][r(0, 3)], c = p === 25 ? r(1, 5) * 20 : r(1, 10) * 10; return [`Uma chuteira custa ${c} tostões e está com ${p}% de desconto. Quanto você paga?`, c - c * p / 100]; },
+    () => { const lug = r(1, 5) * 20, p = [10, 25, 50, 75][r(0, 3)]; return [`O campinho tem ${lug} lugares e ${p}% estão ocupados. Quantas pessoas estão lá?`, lug * p / 100]; },
   ];
-  const lim = n < 5 ? 5 : n < 12 ? 7 : tipos.length;
+  const lim = n < 5 ? 5 : n < 15 ? 7 : tipos.length; // a porcentagem (os 2 últimos) só a partir do nível 15
   const [q, resp] = tipos[r(0, lim - 1)]();
   const ops = new Set([resp]);
   while (ops.size < 4) { const d = resp + r(-Math.max(3, Math.round(resp * 0.3)), Math.max(3, Math.round(resp * 0.3))); if (d >= 0 && d !== resp) ops.add(d); }
@@ -609,63 +600,7 @@ function modalQuiz(tipo) {
 }
 
 /* ---------------- minijogo: pênalti ---------------- */
-function abrirPenalti() {
-  const s = G.save;
-  const cv = el('canvas', { id: 'cvPenalti', width: 360, height: 240 });
-  const msg = el('p', { style: 'text-align:center;font-size:18px;margin:4px' }, 'Espere a mira passar onde você quer e aperte ESPAÇO (ou toque no campo).');
-  const placar = el('p', { style: 'text-align:center;margin:0' });
-  let gols = 0, chutes = 0;
-  const ctx = cv.getContext('2d');
-  const gol = { x: 60, y: 40, w: 240, h: 100 };
-  const goleiro = { tipo: 'humano', corpo: 'm', pele: 'pele-negra', cabelo: 'cabelo-curto', corCabelo: 'preto', roupa: 'roupa-futebol', corRoupa: '#2ad96a', baixo: 'baixo-shorts' }; preCarrega(goleiro);
-  let estado = 'mira', t0 = performance.now(), chute = null, anim = null, raf;
-  const mira = (t) => ({ x: gol.x + gol.w / 2 + Math.sin(t / 520) * (gol.w / 2 + 14), y: gol.y + gol.h / 2 + Math.sin(t / 330 + 1) * (gol.h / 2 + 8) });
-  function desenhar(t) {
-    ctx.fillStyle = '#3fa34a'; ctx.fillRect(0, 0, 360, 240);
-    for (let x = 0; x < 360; x += 40) { ctx.fillStyle = (x / 40) % 2 ? '#48b052' : '#3fa34a'; ctx.fillRect(x, 0, 40, 240); }
-    ctx.fillStyle = '#e8e8f0'; ctx.fillRect(0, gol.y + gol.h, 360, 2); ctx.fillRect(100, 170, 160, 2); ctx.fillRect(176, 205, 8, 4);
-    ctx.fillStyle = 'rgba(230,235,245,0.35)';
-    for (let x = gol.x; x < gol.x + gol.w; x += 8) ctx.fillRect(x, gol.y, 1, gol.h);
-    for (let y = gol.y; y < gol.y + gol.h; y += 8) ctx.fillRect(gol.x, y, gol.w, 1);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(gol.x - 5, gol.y - 5, gol.w + 10, 5); ctx.fillRect(gol.x - 5, gol.y, 5, gol.h); ctx.fillRect(gol.x + gol.w, gol.y, 5, gol.h);
-    // goleiro
-    let gx = 180, gy = gol.y + gol.h - 70, rot = 0;
-    if (anim) { const k = Math.min(1, (t - anim.t0) / 450); gx = 180 + (anim.gx - 180) * k; gy = gol.y + gol.h - 70 + (anim.gy - (gol.y + gol.h - 70)) * k; rot = anim.lado * k * 1.2; }
-    ctx.save(); ctx.translate(gx, gy + 80); ctx.rotate(rot); { const gc = compoe(goleiro); if (gc) { const hh = 92, ww = hh * gc.c.width / gc.c.height; ctx.drawImage(gc.c, -ww / 2, -hh, ww, hh); } } ctx.restore();
-    // bola
-    let bx = 180, by = 206, br = 7;
-    if (anim) { const k = Math.min(1, (t - anim.t0) / 420); bx = 180 + (anim.bx - 180) * k; by = 206 + (anim.by - 206) * k - Math.sin(k * Math.PI) * 20; br = 7 - 3 * k; }
-    ctx.fillStyle = '#140c24'; ctx.beginPath(); ctx.arc(bx, by, br + 1, 0, 7); ctx.fill(); ctx.fillStyle = '#f4f4f4'; ctx.beginPath(); ctx.arc(bx, by, br, 0, 7); ctx.fill(); ctx.fillStyle = '#1a1a2a'; ctx.fillRect(bx - 1, by - 1, 3, 3);
-    if (estado === 'mira') { const m = mira(t); ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(m.x, m.y, 8, 0, 7); ctx.stroke(); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(m.x - 1, m.y - 12, 2, 24); ctx.fillRect(m.x - 12, m.y - 1, 24, 2); }
-    if (anim && anim.txt && t - anim.t0 > 450) { ctx.font = "700 30px 'Pixelify Sans'"; ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.strokeStyle = '#000'; ctx.strokeText(anim.txt, 180, 120); ctx.fillStyle = anim.cor; ctx.fillText(anim.txt, 180, 120); }
-  }
-  function chutar() {
-    if (estado !== 'mira') return;
-    const t = performance.now(); const m = mira(t); const st = stats();
-    const erro = Math.max(3, 28 - st.chute * 0.45);
-    const bx = m.x + rnd(-erro, erro), by = m.y + rnd(-erro, erro);
-    const dentro = bx > gol.x + 3 && bx < gol.x + gol.w - 3 && by > gol.y + 3 && by < gol.y + gol.h;
-    const lado = bx < 180 ? -1 : 1;
-    const leu = Math.random() < clamp(0.5 - st.chute * 0.004, 0.18, 0.5);
-    const gxAlvo = leu ? bx : 180 + (lado * -1) * rnd(40, 90), gyAlvo = leu ? Math.max(gol.y + 20, by - 10) : gol.y + gol.h - 60;
-    const alcance = Math.hypot(bx - gxAlvo, by - (gyAlvo + 30)) < 44;
-    const canto = (bx < gol.x + 30 || bx > gol.x + gol.w - 30) && by < gol.y + 30;
-    let txt, cor;
-    chutes++; treinaSkill('chute', 4); som('chute');
-    if (!dentro) { txt = 'PRA FORA!'; cor = '#ffb03a'; }
-    else if (leu && alcance && !(canto && Math.random() < 0.6)) { txt = 'DEFENDEU!'; cor = '#8ad8ff'; }
-    else { txt = 'GOOOL!'; cor = '#ffe14a'; gols++; s.st.gols++; contaEvento('gols'); if (s.nivel < 10) ganhaXp(3); setTimeout(() => som('gol'), 420); }
-    estado = 'anim'; anim = { t0: t, bx, by, gx: gxAlvo, gy: gyAlvo, lado: leu ? (bx < 180 ? -1 : 1) : lado * -1, txt, cor };
-    placar.textContent = `Gols: ${gols} de ${chutes} chutes`;
-    setTimeout(() => { estado = 'mira'; anim = null; }, 1500);
-  }
-  function quadro(t) { desenhar(t); raf = requestAnimationFrame(quadro); }
-  raf = requestAnimationFrame(quadro);
-  cv.addEventListener('click', chutar); cv.addEventListener('touchstart', e => { e.preventDefault(); chutar(); }, { passive: false });
-  window.teclaModal = ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); chutar(); } };
-  window.pararPenalti = () => { cancelAnimationFrame(raf); window.pararPenalti = null; };
-  abreModal(el('h2', {}, 'Treino de pênalti'), el('div', { class: 'penalti-wrap' }, cv, msg, placar), el('p', { class: 'vazio' }, 'Cada chute treina sua habilidade Chute. Quanto maior o Chute, mais precisa a batida.'));
-}
+// v407 (Raio-X T4): abrirPenalti saiu daqui — penalti.js declara a mesma função depois e só a de lá rodava.
 
 /* ---------------- morte ---------------- */
 function modalMorte(perda, m) {
@@ -725,13 +660,14 @@ async function modalRanking() {
       if (r.ok) {
         const on = await r.json(); const euId = PORTAL.user && PORTAL.user.id;
         const tabOn = el('table', { class: 'rank-tab' }, el('tr', {}, el('th', {}, '#'), el('th', {}, 'Jogador'), el('th', {}, 'Nível'), el('th', {}, 'Fase'), el('th', {}, 'Time'), el('th', {}, 'XP')));
-        on.forEach((x, i) => tabOn.append(el('tr', { class: x.userId === euId ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, typeof linkPers === 'function' ? linkPers(x.apelido) : x.apelido), el('td', {}, x.nivel), el('td', {}, x.fase + (x.posicao && POSICOES[x.posicao] ? ' · ' + POSICOES[x.posicao].nome : '')), el('td', {}, x.time ? `${x.time.nome} (${nomeDivisao(x.time.div)})` : '—'), el('td', {}, fmt(x.xp)))));
+        on.forEach((x, i) => tabOn.append(el('tr', { class: x.userId === euId ? 'eu' : '' }, el('td', {}, i + 1), el('td', {}, typeof linkPers === 'function' ? linkPers(x.apelido) : x.apelido), el('td', {}, x.nivel), el('td', {}, x.fase + (x.posicao && POSICOES[x.posicao] ? ' · ' + POSICOES[x.posicao].nome : '')), el('td', {}, x.time ? `${x.time.nome || 'Time'} (${nomeDivisao(x.time.div)})` :'—'), el('td', {}, fmt(x.xp)))));
         const avisoOn = PORTAL.token ? 'Ranking de todos os jogadores do Educação Gamer. Seu progresso entra sozinho enquanto você joga.' : 'Ranking de todos os jogadores do Educação Gamer. Entre na sua conta do site para aparecer aqui.';
         // logado mas fora da lista: diz o que aconteceu com o último envio (e deixa mandar de novo)
         let estado = null;
         if (PORTAL.token && G.save && !on.some(x => x.userId === euId)) {
           const R = typeof RANK_ONLINE !== 'undefined' ? RANK_ONLINE : null;
           const txt = !R ? 'Seu progresso vai para o ranking em até 1 minuto de jogo.'
+            : R.ok && R.revisao ? 'Seu lugar no ranking está em revisão pela equipe do site (seu jogo continua salvo normalmente). Logo, logo ele volta!' // v407 (Raio-X U7)
             : R.ok ? 'Seu progresso foi enviado! Pode levar até 1 minuto para aparecer aqui.'
             : R.status === 401 ? 'Sua sessão do site expirou: entre de novo na sua conta do Educação Gamer para aparecer no ranking.'
             : `Não deu para entrar no ranking agora (${R.status ? 'erro ' + R.status : 'sem conexão'}${R.msg ? ': ' + R.msg : ''}).`;
@@ -765,7 +701,7 @@ function modalAjuda() {
       el('div', {}, 'Fôlego = sua vida. Foco = energia dos dribles. Os dois voltam com o tempo.'),
     ),
     el('h3', {}, 'Como ficar bom'),
-    el('p', {}, '• Habilidades (Drible, Chute, Defesa, Visão) sobem com USO, igual no Tibia: quanto mais você dribla, melhor fica. • Nível sobe com XP: adversários, missões, desafios e quiz. • Equipamentos melhores (chuteira = ataque) vêm das lojas, missões e chefões. • O Quadro de Desafios dá bônus repetíveis. • Os bonecos de treino sobem habilidade sem risco.'),
+    el('p', {}, '• Habilidades (Drible, Chute, Defesa, Visão) sobem com USO: quanto mais você dribla, melhor fica. • Nível sobe com XP: adversários, missões, desafios e quiz. • Equipamentos melhores (chuteira = ataque) vêm das lojas, missões e chefões. • O Quadro de Desafios dá bônus repetíveis. • Os bonecos de treino sobem habilidade sem risco.'), // v407 (Raio-X U4): sem a comparação com o Tibia no texto do jogador
     el('p', {}, 'O jogo salva sozinho no seu navegador.'));
 }
 
@@ -828,7 +764,15 @@ function abrirCriacao() {
   const gira = setInterval(() => { if ($('#criacao').hidden) return clearInterval(gira); const cv = $('#pixelCriacao'); if (!cv) return; }, 1000);
   $('#btnNascer').onclick = () => {
     const nome = $('#inpNome').value.trim().replace(/[<>]/g, '');
-    if (nome.length < 2) { $('#inpNome').focus(); $('#inpNome').style.borderColor = 'red'; return; }
+    if (nome.length < 2) {
+      $('#inpNome').focus(); $('#inpNome').style.borderColor = 'red';
+      // v407 (Raio-X R2g): só a borda vermelha não explicava nada; agora diz o que falta, colado no campo do nome
+      let av = document.getElementById('avisoNome');
+      if (!av) { av = el('div', { id: 'avisoNome', role: 'alert', style: 'color:#d62828;font-weight:700;font-size:14px;margin:4px 0 2px' }); $('#inpNome').after(av); $('#inpNome').addEventListener('input', () => { av.textContent = ''; $('#inpNome').style.borderColor = ''; }); }
+      av.textContent = nome.length ? '✏️ O nome precisa ter pelo menos 2 letras.' : '✏️ Escreva seu nome aqui para nascer!';
+      try { $('#inpNome').scrollIntoView({ block: 'center' }); } catch (e) { }
+      return;
+    }
     const save = novoSave({ nome, ...d });
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { }
     if (typeof mostraHistoria === 'function') mostraHistoria(save.nome, () => iniciarJogo(save)); else iniciarJogo(save);
@@ -967,7 +911,7 @@ function modalMapa() {
 }
 function modalAtalhos() {
   const L = [
-    ['W A S D / Setas', 'Andar (duas juntas = diagonal)'], ['Num 7 9 1 3', 'Andar na diagonal, como no Tibia (Num 8 2 4 6 = reto)'], ['Home PgUp End PgDn', 'Diagonais também'], ['Clique no chão', 'Andar até lá'], ['Clique no adversário', 'Marcar alvo e driblar'],
+    ['W A S D / Setas', 'Andar (duas juntas = diagonal)'], ['Num 7 9 1 3', 'Andar na diagonal (Num 8 2 4 6 = reto)'], ['Home PgUp End PgDn', 'Diagonais também'], ['Clique no chão', 'Andar até lá'], ['Clique no adversário', 'Marcar alvo e driblar'], // v407 (Raio-X U4): sem a comparação com o Tibia no texto do jogador
     ['Espaço / Tab', 'Próximo adversário (segue o modo de alvo)'], ['V', 'Modo de alvo: mais perto / mais forte / mais fraco / menos fôlego'], ['Shift + Tab', 'Adversário anterior'], ['Esc', 'Desmarcar alvo / fechar janela'],
     ['E', 'Falar, abrir baú, ler placa, pênalti'], ['1 … 0', 'Dribles e itens da barra (fileira de cima)'], ['F1 … F10', 'Segunda fileira da barra'], ['Shift', 'Habilidade especial da classe'],
     ['F', 'Beber a melhor bebida de FÔLEGO'], ['R', 'Beber a melhor bebida de FOCO'], ['G', 'Caça contínua (marca o próximo sozinho)'],

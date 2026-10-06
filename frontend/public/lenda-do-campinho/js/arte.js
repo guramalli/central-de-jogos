@@ -153,7 +153,7 @@ function flor(x, cx, cy, cor, s = 1) {
 }
 function renderChaoVetor(m) {
   if (m._chaoV) return m._chaoV;
-  const W = m.w * T, H = m.h * T; const c = mkCanvas(W, H); const x = c.getContext('2d');
+  const W = m.w * T, H = m.h * T; const c = typeof novoChaoBlocos === 'function' ? novoChaoBlocos(W, H, m) : mkCanvas(W, H); const x = c.getContext('2d'); // v407 (Raio-X A8): chão em blocos
   const r = mulberry(m.w * 131 + m.h * 7 + m.id.length);
   x.fillStyle = '#86c75a'; x.fillRect(0, 0, W, H);
   for (let i = 0; i < m.w * m.h * 1.3; i++) { x.fillStyle = r() < 0.5 ? 'rgba(170,225,115,0.25)' : 'rgba(85,150,60,0.16)'; x.beginPath(); x.ellipse(r() * W, r() * H, 10 + r() * 30, 7 + r() * 16, r() * 3, 0, 7); x.fill(); }
@@ -585,20 +585,7 @@ function pegaImg(url) {
 }
 function pecaUrl(pasta, id) { return `${ASSET_BASE}/avatar/${pasta}/${id}-v2.webp`; }
 function corCabeloHex(id) { if (!id) return null; if (id[0] === '#') return id; const c = AVATAR.coresCabelo.find(c => c.id === id); return c ? c.cor : null; }
-function camadasDe(look) {
-  const L = [];
-  if (look.fundo) L.push({ url: pecaUrl('fundo', look.fundo) });
-  if (look.costas) L.push({ url: pecaUrl('costas', look.costas) });
-  L.push({ url: pecaUrl('pele', (look.pele || 'pele-media') + (look.corpo === 'f' ? '-f' : '')) });
-  if (look.baixo) L.push({ url: pecaUrl('parteDeBaixo', look.baixo), recolor: look.corBaixo });
-  if (look.roupa) L.push({ url: pecaUrl('roupa', look.roupa), recolor: look.corRoupa });
-  if (look.pescoco) L.push({ url: pecaUrl('pescoco', look.pescoco) });
-  if (look.cabelo) { const cor = corCabeloHex(look.corCabelo); L.push(cor ? { url: pecaUrl('cabelo', look.cabelo + '-cinza'), tinta: cor } : { url: pecaUrl('cabelo', look.cabelo) }); }
-  if (look.rosto) L.push({ url: pecaUrl('rosto', look.rosto) });
-  if (look.chapeu) L.push({ url: pecaUrl('chapeu', look.chapeu) });
-  if (look.mao) L.push({ url: pecaUrl('mao', look.mao) });
-  return L;
-}
+// v407 (Raio-X T4): camadasDe, compoe, compoeVista e preCarrega daqui saíram — boneco.js declara as mesmas funções depois e só as dele rodavam (as daqui nunca eram chamadas).
 function tingir(im, cor) {
   const c = mkCanvas(AV_W, AV_H); const x = c.getContext('2d');
   x.drawImage(im, 0, 0, AV_W, AV_H); x.globalCompositeOperation = 'multiply'; x.fillStyle = cor; x.fillRect(0, 0, AV_W, AV_H);
@@ -630,24 +617,6 @@ function recolorir(im, cor, url) {
 }
 const COMP = new Map();
 function chaveLook(look) { return look._k || (look._k = JSON.stringify(look)); }
-// Monta o personagem. Retorna null enquanto as imagens carregam.
-function compoe(look, recorta = true) {
-  const key = chaveLook(look) + (recorta ? '|c' : '');
-  const hit = COMP.get(key); if (hit) return hit;
-  const L = camadasDe(look); const es = L.map(l => pegaImg(l.url));
-  if (es.some(e => !e.ok && !e.err)) return null;
-  const c = mkCanvas(AV_W, AV_H); const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
-  L.forEach((l, i) => { const e = es[i]; if (!e.ok) return; if (l.tinta) x.drawImage(tingir(e.im, l.tinta), 0, 0); else if (l.recolor) x.drawImage(recolorir(e.im, l.recolor, l.url), 0, 0); else x.drawImage(e.im, 0, 0, AV_W, AV_H); });
-  let res = { c };
-  if (recorta) {
-    try {
-      const d = x.getImageData(0, 0, AV_W, AV_H).data; let x0 = AV_W, y0 = AV_H, x1 = 0, y1 = 0;
-      for (let y = 0; y < AV_H; y += 2) for (let xx = 0; xx < AV_W; xx += 2) if (d[(y * AV_W + xx) * 4 + 3] > 40) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-      if (x1 > x0) { const cc = mkCanvas(x1 - x0 + 4, y1 - y0 + 3); cc.getContext('2d').drawImage(c, x0 - 2, y0 - 1, cc.width, cc.height, 0, 0, cc.width, cc.height); res = { c: cc, box: [x0 - 2, y0 - 1, cc.width, cc.height] }; }
-    } catch (e) { res = { c, sem: true }; }
-  }
-  COMP.set(key, res); return res;
-}
 
 /* ---- vistas de costas e de lado ----
    As peças do site só existem de frente e o rosto vem desenhado na própria pele.
@@ -662,98 +631,6 @@ function corMediaImg(im) {
     return n ? `rgb(${r / n | 0},${g / n | 0},${b / n | 0})` : null;
   } catch (e) { return null; }
 }
-function compoeVista(look, vista) {
-  const frente = compoe(look); if (!frente || vista === 'frente' || !frente.box) return frente;
-  const key = chaveLook(look) + '|' + vista; const hit = COMP.get(key); if (hit) return hit;
-  const L = camadasDe(look); const es = L.map(l => pegaImg(l.url));
-  const pasta = l => l.url.split('/avatar/')[1].split('/')[0];
-  const img = (l, e) => l.tinta ? tingir(e.im, l.tinta) : l.recolor ? recolorir(e.im, l.recolor, l.url) : e.im;
-  const iPele = L.findIndex(l => pasta(l) === 'pele'), iCab = L.findIndex(l => pasta(l) === 'cabelo');
-  const pele = (AVATAR.peles.find(p => p.id === look.pele) || AVATAR.peles[1]).cor;
-  const corCab = iCab >= 0 && es[iCab].ok ? (L[iCab].tinta || corMediaImg(es[iCab].im) || '#3a2a20') : null;
-  const C = CABECA;
-  const c = mkCanvas(AV_W, AV_H); const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
-  // máscara da cabeça (formato real da pele, sem as orelhas)
-  const mascara = (ctx, fn, folga = 0) => { ctx.save(); ctx.beginPath(); ctx.ellipse(C.cx, C.cy - folga / 2, C.rx + folga, C.ry + folga, 0, 0, 7); ctx.clip(); fn(); ctx.restore(); };
-  const sombra = (ctx, cor) => { const g = ctx.createLinearGradient(0, C.cy - C.ry, 0, C.cy + C.ry); g.addColorStop(0, 'rgba(255,255,255,0.10)'); g.addColorStop(1, 'rgba(0,0,0,0.22)'); ctx.fillStyle = cor; ctx.fillRect(0, 0, AV_W, C.pescoco); ctx.fillStyle = g; ctx.fillRect(0, 0, AV_W, C.pescoco); };
-  // Várias peças do site (roupa, faixa, chapéu...) trazem o rosto desenhado junto. Por isso a cabeça
-  // só é tratada depois de montar o boneco INTEIRO; assim nenhuma peça "devolve" o rosto por cima.
-  const desenha = (i, dx = 0) => { const e = es[i]; if (e.ok) x.drawImage(img(L[i], e), dx, 0, AV_W, AV_H); };
-  const tipo = n => L.map((l, i) => i).filter(i => pasta(L[i]) === n);
-  const todos = L.map((l, i) => i);
-  const foraDaCabeca = (fn, folga = 3) => { x.save(); x.beginPath(); x.rect(0, 0, AV_W, AV_H); x.ellipse(C.cx, C.cy - folga / 2, C.rx + folga, C.ry + folga, 0, 0, 7); x.clip('evenodd'); fn(); x.restore(); };
-  if (vista === 'costas') {
-    // 1) boneco inteiro (colar e item de mão ficam atrás; mochila vem no fim)
-    todos.filter(i => ['mao', 'pescoco'].includes(pasta(L[i]))).forEach(i => desenha(i));
-    todos.filter(i => !['mao', 'pescoco', 'costas', 'rosto', 'chapeu'].includes(pasta(L[i]))).forEach(i => desenha(i));
-    // as imagens de chapéu/faixa trazem a cabeça inteira: isola só o acessório (o que muda ao colocá-lo)
-    const acessorios = tipo('chapeu').filter(i => es[i].ok).map(i => {
-      const antes = x.getImageData(0, 0, AV_W, AV_H);
-      const t = mkCanvas(AV_W, AV_H), tx = t.getContext('2d'); tx.putImageData(antes, 0, 0); tx.drawImage(img(L[i], es[i]), 0, 0, AV_W, AV_H);
-      const depois = tx.getImageData(0, 0, AV_W, AV_H); const a = antes.data, d = depois.data;
-      const [pr, pg, pb] = hexRgb(pele);
-      for (let k = 0; k < d.length; k += 4) {
-        const dif = Math.abs(d[k] - a[k]) + Math.abs(d[k + 1] - a[k + 1]) + Math.abs(d[k + 2] - a[k + 2]) + Math.abs(d[k + 3] - a[k + 3]);
-        const pareceP = Math.abs(d[k] - pr) + Math.abs(d[k + 1] - pg) + Math.abs(d[k + 2] - pb) < 90; // contorno/rosto da cabeça que vem junto
-        if (dif < 60 || pareceP) d[k + 3] = 0;
-      }
-      tx.putImageData(depois, 0, 0); return t;
-    });
-    // 2) nuca cobre a cabeça toda (com folga para entrar por baixo do cabelo)
-    const corNuca = corCab || pele;
-    mascara(x, () => sombra(x, corNuca), 6);
-    mascara(x, () => {
-      const r = mulberry(7);
-      const brilho = x.createRadialGradient(C.cx - 18, C.cy - 30, 4, C.cx - 18, C.cy - 30, 55); brilho.addColorStop(0, 'rgba(255,255,255,0.16)'); brilho.addColorStop(1, 'rgba(255,255,255,0)');
-      x.fillStyle = brilho; x.fillRect(0, 0, AV_W, C.pescoco);
-      if (!corCab) return;
-      const rgbCab = corCab[0] === '#' ? hexRgb(corCab) : (corCab.match(/\d+/g) || [60, 40, 30]).map(Number);
-      const mistura = (alvo, k) => `rgba(${rgbCab.map((v, j) => Math.round(v + (alvo[j] - v) * k)).join(',')},0.6)`;
-      const claro = mistura([255, 240, 220], 0.18), escuro = mistura([0, 0, 0], 0.35);
-      if (/cacheado|black|crespo|afro/.test(look.cabelo || '')) {
-        for (let k = 0; k < 70; k++) { const a = r() * 7, d = Math.sqrt(r()); const px = C.cx + Math.cos(a) * C.rx * d, py = C.cy + Math.sin(a) * C.ry * d; const rr = 5 + r() * 5;
-          x.strokeStyle = r() < 0.5 ? escuro : claro; x.lineWidth = 2.2; x.beginPath(); x.arc(px, py, rr, r() * 7, r() * 7 + 3.6); x.stroke(); }
-      } else {
-        const topo = [C.cx + 4, C.cy - C.ry * 0.62];
-        for (let k = 0; k <= 12; k++) { const u = k / 12 * 2 - 1; const ex = C.cx + u * C.rx * 0.95, ey = C.cy + C.ry * (0.9 - 0.35 * Math.abs(u)); // fios do redemoinho até a nuca
-          x.strokeStyle = k % 2 ? escuro : claro; x.lineWidth = 2.4; x.beginPath(); x.moveTo(topo[0], topo[1]); x.quadraticCurveTo((topo[0] + ex) / 2 + (ex - C.cx) * 0.35, (topo[1] + ey) / 2, ex, ey); x.stroke(); }
-        x.strokeStyle = 'rgba(0,0,0,0.25)'; x.lineWidth = 2.4; x.beginPath(); x.arc(topo[0], topo[1] + 4, 6, 0.5, 5.2); x.stroke(); // redemoinho
-      }
-      const g = x.createLinearGradient(0, C.cy + C.ry * 0.35, 0, C.cy + C.ry); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.25)'); x.fillStyle = g; x.fillRect(0, 0, AV_W, C.pescoco);
-    }, 6);
-    // 3) só a parte de FORA da cabeça volta: contorno do cabelo (sem a moldura do rosto) e as pontas do acessório
-    tipo('cabelo').forEach(i => {
-      if (!es[i].ok || !corCab) return;
-      const sc = mkCanvas(AV_W, AV_H), sx = sc.getContext('2d'); sx.drawImage(img(L[i], es[i]), 0, 0, AV_W, AV_H);
-      sx.globalCompositeOperation = 'source-in'; sx.fillStyle = corCab; sx.fillRect(0, 0, AV_W, AV_H);
-      foraDaCabeca(() => { x.drawImage(sc, 0, 0); x.globalAlpha = 0.45; desenha(i); x.globalAlpha = 1; });
-    });
-    acessorios.forEach(t => x.drawImage(t, 0, 0)); // faixa/boné/coroa vistos de trás
-    // 4) mochila/capa por cima do corpo, mas não da cabeça
-    tipo('costas').forEach(i => foraDaCabeca(() => desenha(i), 6));
-  } else { // lado (3/4 para a direita)
-    const dx = 11;
-    // 1) mochila um pouco para trás; depois o boneco inteiro
-    tipo('costas').forEach(i => desenha(i, -dx));
-    todos.filter(i => pasta(L[i]) !== 'costas').forEach(i => desenha(i));
-    // 2) a cabeça pronta (rosto + cabelo + acessório) desliza para a direita dentro do formato da cabeça
-    const t = mkCanvas(AV_W, AV_H), tx = t.getContext('2d'); tx.drawImage(c, 0, 0);
-    tx.globalCompositeOperation = 'destination-in'; tx.fillRect(0, 0, AV_W, C.pescoco - 6);
-    mascara(x, () => { x.fillStyle = pele; x.fillRect(0, 0, AV_W, C.pescoco); x.drawImage(t, dx, 0); });
-    // 3) atrás do rosto, a nuca com cabelo (ou pele, para quem não tem cabelo)
-    mascara(x, () => { x.save(); x.beginPath(); x.ellipse(C.cx - C.rx * 1.2, C.cy - 8, C.rx * 0.62, C.ry * 0.98, 0, 0, 7); x.clip(); sombra(x, corCab || pele); x.restore(); });
-    // 4) o corpo inteiro vira: tronco, braços e pernas estreitam (de perfil ocupam menos largura),
-    //    a cabeça estreita um pouco menos, e o corpo se desloca de leve para trás
-    const f = mkCanvas(AV_W, AV_H), fx = f.getContext('2d'); fx.imageSmoothingQuality = 'high';
-    const corte = C.pescoco + 5; // logo abaixo do queixo
-    fx.save(); fx.translate(C.cx - 4, 0); fx.scale(0.7, 1); fx.translate(-C.cx, 0); fx.drawImage(c, 0, corte, AV_W, AV_H - corte, 0, corte, AV_W, AV_H - corte); fx.restore();
-    fx.save(); fx.translate(C.cx, 0); fx.scale(0.93, 1); fx.translate(-C.cx, 0); fx.drawImage(c, 0, 0, AV_W, corte, 0, 0, AV_W, corte); fx.restore();
-    x.clearRect(0, 0, AV_W, AV_H); x.drawImage(f, 0, 0);
-  }
-  const [bx, by, bw, bh] = frente.box; const cc = mkCanvas(bw, bh); cc.getContext('2d').drawImage(c, bx, by, bw, bh, 0, 0, bw, bh);
-  const res = { c: cc }; COMP.set(key, res); return res;
-}
-function preCarrega(look) { camadasDe(look).forEach(l => pegaImg(l.url)); }
 
 // Silhueta simples enquanto carrega (ou se o site estiver fora do ar)
 function desenhaSilhueta(x, look, px, py, h) {

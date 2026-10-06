@@ -16,10 +16,18 @@
    ============================================================ */
 const FX = { img: {}, tremor: null, clarao: null };
 const FX_NOMES = ['impacto', 'explosao', 'raio', 'redemoinho', 'onda', 'cura', 'escudo', 'tontura', 'corte', 'meteoro', 'gelo', 'poeira', 'raizes', 'nivel', 'fogo_bola'];
-(function () {
-  const v = ((document.querySelector('script[src*="fx.js"]') || {}).src || '').split('v=')[1] || '1';
-  for (const n of FX_NOMES) { const im = new Image(); const o = FX.img[n] = { im, ok: false }; im.onload = () => { o.ok = true; }; im.src = `a/fx/fx_${n}.webp?v=${v}`; }
-})();
+// v407 (Raio-X R5): versão PRÓPRIA das folhas de efeito (antes era o ?v= do jogo: tudo baixava de novo a cada versão).
+// Só aumente quando REDESENHAR algum efeito. (406 = o endereço que os jogadores já têm guardado.)
+const FX_VER = '406';
+// v407 (Raio-X A2): o efeito só baixa na 1ª vez que o jogo pergunta se ele está pronto (o.ok); até chegar, sai o desenho simples
+function fxSobDemanda(n, versao) {
+  const im = new Image(); let ok = false, pedida = false;
+  const o = { im, get ok() { if (!pedida) o.pede(); return ok; }, set ok(v) { ok = !!v; }, get pedida() { return pedida; },
+    pede() { if (pedida) return; pedida = true; im.src = `a/fx/fx_${n}.webp?v=${versao || FX_VER}`; } };
+  im.onload = () => { o.ok = true; };
+  return o;
+}
+for (const n of FX_NOMES) FX.img[n] = fxSobDemanda(n);
 
 // um efeito desenhado: tamanho em quadrados do mapa; dy sobe/desce o centro; atraso em ms
 function fxAnim(nome, x, y, o = {}) {

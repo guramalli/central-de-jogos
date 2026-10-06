@@ -148,11 +148,11 @@ if (typeof CEL !== 'undefined' && CEL) (function () {
     const T = [
       ['Use o JOYSTICK (o círculo embaixo, à esquerda) para andar. Também dá pra tocar no chão.', 'Joystick'],
       ['Fale com a sua MÃE: chegue perto dela e toque em FALAR / USAR.', 'Falar'],
-      ['Saia de casa pela porta (embaixo) e abra o BAÚ do quintal: chegue perto e toque em FALAR / USAR.', 'Falar'],
+      ['Saia de casa pela porta (embaixo) e abra o BAÚ do quintal, o que tem a ⚽ e a seta amarela: chegue perto e toque em FALAR / USAR.', 'Falar'], // v407 (Raio-X R2f)
       ['Achou sua bola! Volte para casa e ENTREGUE a missão para a Mãe (FALAR / USAR).', 'Falar'],
       ['Sua bola e os tostões foram para a MOCHILA (botão 🎒 embaixo do mapinha). Tudo que você ganha fica lá.', null, '#chMochila'],
       [null, 'Falar'],
-      ['TOQUE num Pombo Folgado para desafiá-lo (ou use o botão 🎯 ALVO). Você corre até ele e dribla sozinho!', 'Toque'],
+      ['Siga a SETA AMARELA até um Pombo Folgado longe das pessoas e TOQUE nele para desafiá-lo (ou use o botão 🎯 ALVO). Você corre até ele e dribla sozinho!', 'Toque'], // v407 (Raio-X R2d): perto das pessoas é zona segura
     ];
     T.forEach(([txt, tecla, dest], i) => { const st = TUTORIAL[i]; if (!st) return; if (txt) st.txt = txt; if (tecla && st.tecla) st.tecla = tecla; if (dest) st.destaque = dest; });
   }

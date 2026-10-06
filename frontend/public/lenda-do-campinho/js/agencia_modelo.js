@@ -30,7 +30,7 @@ const AGM_POS = { // [nome, pesos do overall]
   ATA: ['Atacante', { fin: 3, vel: 2, dri: 2, fis: 1, pas: 1, mar: 0.5 }],
 };
 const AGM_TRACOS = { // [nome, quando alto, quando baixo]
-  disciplina: ['Disciplina', 'evolui mais rápido no treino', 'falta treino, cai em eventos de balada'],
+  disciplina: ['Disciplina', 'evolui mais rápido no treino', 'falta treino, dorme tarde no videogame'],
   ambicao: ['Ambição', 'aceita desafios, quer ir para a Europa cedo', 'prefere ficar perto de casa'],
   temperamento: ['Temperamento', 'expulsões, brigas, polêmicas', 'calmo sob provocação'],
   estabilidade: ['Estabilidade emocional', 'rende bem em peneiras e jogos grandes', 'trava sob pressão'],
@@ -42,7 +42,7 @@ const AGM_ESPECIAIS = {
   filho_ex: ['👨‍👦 Filho de ex-jogador', 'família exigente, +visibilidade'],
   pe_quente: ['🔥 Pé quente', '+chance em jogos decisivos'],
   estudioso: ['📚 Estudioso', 'família valoriza escola, +disciplina'],
-  baladeiro: ['🌙 Baladeiro', 'eventos noturnos frequentes'],
+  baladeiro: ['🎮 Viciado em videogame', 'dorme tarde jogando, cai em eventos de madrugada'], // v407 (Raio-X U2): era "Baladeiro" (o id fica, por causa dos saves)
 };
 const AGM_NECESSIDADES = { dinheiro: '💰 Dinheiro', estudo: '📚 Estudo', proximidade: '🏠 Proximidade', seguranca: '🛡️ Segurança', status: '⭐ Status', transparencia: '📄 Transparência' };
 const AGM_ARQUETIPOS = { // [nome, necessidades prováveis, o que irrita, se bem atendido, parentes possíveis]
@@ -111,7 +111,10 @@ function agmTeto(P) { return 8 + P * 2.4; }                     // 5★ chega a 
 function agmOverall(j) { const p = AGM_POS[j.pos][1]; let s = 0, t = 0; for (const k of agmAtrDe(j.pos)) { s += (j.atr[k] || 0) * (p[k] || 0.5); t += p[k] || 0.5; } return agmUm(s / t); }
 function agmFIdadeTreino(anos) { return anos < 16 ? 1.3 : anos < 19 ? 1.0 : anos < 22 ? 0.7 : anos < 30 ? 0.3 : 0; }
 // ganho de um treino: base × Disciplina/50 × f(idade) × (1 − atributo/teto)
-function agmGanho(j, at, base, mult = 1) { return Math.max(0, base * (j.pers.disciplina / 50) * agmFIdadeTreino(agmIdade(j)) * (1 - (j.atr[at] || 0) / agmTeto(j.P)) * mult); }
+// v407 (dono: "mesmo com potencial muito alto demora demais para ganhar overall, a meta de 16 fica praticamente impossível"):
+// perto do teto o ganho cai pela curva ao quadrado (antes caía em linha reta e travava muito antes do potencial)
+function agmFalta(j, at) { return Math.max(0, 1 - Math.pow((j.atr[at] || 0) / agmTeto(j.P), 2)); }
+function agmGanho(j, at, base, mult = 1) { return Math.max(0, base * (j.pers.disciplina / 50) * agmFIdadeTreino(agmIdade(j)) * agmFalta(j, at) * mult); }
 function agmCandidatos(rede, semanas) { return 1 + Math.floor(rede / 5) + Math.floor(semanas / 2); }
 // decisão da família: Confiança + Σ(termo atende × peso × 10) − (comissão − 10) × 2 → >70 aceita, 50–70 contraproposta, <50 recusa (+15 com rival)
 function agmNotaFamilia(f, termos) {

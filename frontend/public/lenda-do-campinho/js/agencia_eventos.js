@@ -2,7 +2,7 @@
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
    🃏 AGÊNCIA 3.0 — ETAPA 7: EVENTOS (v342). Do documento do dono: no início de cada semana, 0 a 2 eventos entre os
-   jogadores agenciados, pesados pelos traços deles (Baladeiro puxa eventos de noite, Temperamento alto puxa brigas...).
+   jogadores agenciados, pesados pelos traços deles (Viciado em videogame — antes "Baladeiro", v407 U2 — puxa eventos de madrugada, Temperamento alto puxa brigas...).
    Cada evento é uma CARTA com duas escolhas (sistema de cartas da etapa 3), com 2–3 variações de texto e os nomes do
    garoto e do familiar. Sem resposta em 4 semanas, vale o "padrão". As 14 cartas do documento + o tio que volta para
    cobrar (Etapa 4). Escolhas que custam "1 ação" usam uma ação desta semana (ou da próxima, se acabaram).
@@ -28,16 +28,17 @@ const AGM_EVENTOS = [
     ['💰 Cobrir a oferta (−100 mil)', (a, j) => { if (G.save.ouro < 100000) return AGM_EVENTOS_POR.agente_rival[6][1](a, j); G.save.ouro -= 100000; agmMuda(j, 'confianca', 5); return `Você cobriu a oferta. ${agmNome(j)} fica.`; }],
     ['❤️ Confiar na relação', (a, j) => { agmRevela(j, 'lealdade'); if (j.pers.lealdade < 40) { agmRompe(a, j); return `${agmNome(j)} (lealdade baixa) foi embora com o rival. Reputação ${AGM_REP_GANHO.rompeu}.`; } agmMuda(j, 'confianca', 5); return `${agmNome(j)} recusou o rival: "Meu empresário é você!"`; }], 1],
   ['polemica_redes', j => agmIdade(j) >= 15, j => 1 + (j.especiais.includes('baladeiro') ? 3 : 0) + (j.pers.disciplina < 35 ? 1 : 0), '📱 Polêmica nas redes',
-    j => agmVar(`Um vídeo de ${agmNome(j)} numa festa viralizou e a torcida não gostou.`, `${agmNome(j)} postou um vídeo da balada de madrugada e virou assunto na internet.`),
+    j => agmVar(`Uma live de ${agmNome(j)} jogando videogame até as 3 da manhã viralizou e a torcida não gostou.`, `${agmNome(j)} postou um vídeo de madrugada, véspera de jogo, e virou assunto na internet.`), // v407 (Raio-X U2): sem festa/balada
     ['📝 Nota oficial (Visibilidade −10)', (a, j) => { agmMuda(j, 'visib', -10); return 'A nota oficial acalmou as coisas.'; }],
     ['🙈 Ignorar (30% de um patrocinador cancelar)', (a, j) => { if (j.patrocinios.length && Math.random() < 0.3) { const p = j.patrocinios.splice((Math.random() * j.patrocinios.length) | 0, 1)[0]; return `A ${p.marca} cancelou o patrocínio.`; } return 'A poeira baixou sozinha.'; }], 1],
   ['lesao_leve', j => j.estado.fadiga > 40, j => 1 + j.estado.fadiga / 40, '🤕 Lesão leve',
     j => agmVar(`${agmNome(j)} sente dores na coxa${(j.convites || []).length ? ' bem antes do teste' : ''}.`, `${agmNome(j)} terminou o treino mancando um pouco.`),
     ['⚡ Jogar assim mesmo (25% de lesão grave)', (a, j) => { if (Math.random() < 0.25) { j.lesao = Math.max(j.lesao, agRi(6, 10)); agmMuda(j, 'moral', -10); return `Lesão grave: ${j.lesao} semanas parad${agmO(j)}.`; } return 'Jogou e não sentiu nada. Ufa!'; }],
     ['🧊 Adiar (perde o próximo teste, Moral −5)', (a, j) => { j.convites = []; agmMuda(j, 'moral', -5); agmMuda(j, 'fadiga', -20); return 'Descansou. O teste vai ficar para outra vez.'; }], 1],
-  ['namorada', j => agmIdade(j) >= 15, j => 1, '💌 Namoro',
-    j => agmVar(`A namorada de ${agmNome(j)} quer que ${agmEle(j)} recuse clubes em outra cidade.`, `${agmNome(j)} está namorando e não quer nem ouvir falar de jogar longe.`),
-    ['💞 Apoiar o relacionamento (Moral +10, Ambição −5)', (a, j) => { agmMuda(j, 'moral', 10); agmMuda(j, 'ambicao', -5); agmRevela(j, 'ambicao'); return `${agmNome(j)} ficou feliz.`; }],
+  // v407 (Raio-X U2): o evento de namoro virou "saudade da família" (o id 'namorada' fica, por causa dos saves)
+  ['namorada', j => agmIdade(j) >= 15, j => 1, '🏠 Saudade da família',
+    j => agmVar(`${agmNome(j)} está com muita saudade de casa e pede para recusar clubes em outra cidade.`, `${agmNome(j)} ligou chorando de saudade da família e não quer nem ouvir falar de jogar longe.`),
+    ['💞 Apoiar e ficar perto de casa (Moral +10, Ambição −5)', (a, j) => { agmMuda(j, 'moral', 10); agmMuda(j, 'ambicao', -5); agmRevela(j, 'ambicao'); return `${agmNome(j)} ficou feliz.`; }],
     ['🗣️ Conversar sobre carreira (Moral −10)', (a, j) => { agmMuda(j, 'moral', -10); return 'A conversa foi difícil, mas foi sincera.'; }], 0],
   ['escola', j => agmIdade(j) < 18, j => 1 + (j.fam && j.fam.need.includes('estudo') ? 1 : 0), '📚 Notas baixas',
     j => agmVar(`As notas de ${agmNome(j)} caíram e ${agmFam(j)} está preocupad${j.fam && AG_PARENTES[j.fam.par] && !AG_PARENTES[j.fam.par][2] ? 'o' : 'a'}.`, `A escola chamou ${agmFam(j)}: ${agmNome(j)} está indo mal em matemática.`),
@@ -99,3 +100,19 @@ AGM_GANCHOS_SEMANA.push(function (a, lin) {
   }
 });
 function agmCriaEvento(a, j, id, lin) { const e = AGM_EVENTOS_POR[id]; agmCarta(a, 'ev_' + id, { jog: j.id, txt: e[4](j) }, lin); }
+// v407 (Raio-X U2): saves antigos — patrocínio de aposta/cerveja, "Baladeiro" e namoro que já estavam no save viram as
+// versões para criança (marca refri/joguinho, carta de saudade da família, polêmica do videogame de madrugada).
+function agmAtualizaTextosInfantis(s = G.save) {
+  const a = s && s.agencia; if (!a || typeof a !== 'object' || !Array.isArray(a.jogadores)) return;
+  const troca = m => typeof m !== 'string' ? m : /Aposta Certa/i.test(m) ? AGM_PATRO_POLEMICAS[1] : /Cerveja/i.test(m) ? AGM_PATRO_POLEMICAS[0] : m;
+  for (const j of a.jogadores) {
+    for (const p of [...(j.patrocinios || []), ...(j.ofertasPatro || [])]) p.marca = troca(p.marca);
+    if (Array.isArray(j.hist)) j.hist = j.hist.map(t => typeof t !== 'string' ? t : t.replace('💌 Namoro', '🏠 Saudade da família').replace(/Aposta Certa \(site de apostas\)/g, 'Joguinho Mil Anúncios').replace(/Cerveja Gelada/g, 'Refri Mega Açúcar'));
+  }
+  for (const c of a.cartas || []) {
+    const j = a.jogadores.find(x => x.id === (c.dados && c.dados.jog)); if (!j || !c.dados) continue;
+    if (c.tipo === 'ev_namorada' && /namor/i.test(c.dados.txt || '')) c.dados.txt = AGM_EVENTOS_POR.namorada[4](j);
+    if (c.tipo === 'ev_polemica_redes' && /festa|balada/i.test(c.dados.txt || '')) c.dados.txt = AGM_EVENTOS_POR.polemica_redes[4](j);
+  }
+}
+{ const _iniAgmU2 = iniciarJogo; iniciarJogo = async function () { try { if (arguments[0]) agmAtualizaTextosInfantis(arguments[0]); } catch (e) { } return _iniAgmU2.apply(this, arguments); }; }

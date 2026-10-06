@@ -8,8 +8,8 @@
    - A agência passa a ganhar de verdade: comissão sobre o salário (a do contrato com a família), patrocínios e a
      taxa de intermediação (5% a 10%, pela reputação) em cada transferência.
    - PATROCÍNIOS por nível de visibilidade (loja local 20, regional 45, nacional 70, global 90), com obrigação de
-     ações (1 ação a cada 4/3/2/1 semanas). A agência fica com 10% a 20% (negociado). Marca de aposta ou bebida paga
-     o dobro, mas famílias que precisam de Segurança perdem 15 de confiança.
+     ações (1 ação a cada 4/3/2/1 semanas). A agência fica com 10% a 20% (negociado). Marca polêmica (refrigerante muito doce ou jogo
+     cheio de anúncios — v407 U2; antes era aposta/bebida) paga o dobro, mas famílias que precisam de Segurança perdem 15 de confiança.
    - Decisões de carreira (cartas): renovação, empréstimo, convocação para a seleção de base; e as propostas de
      transferência, que dá para negociar com o diretor.
    - Valor de mercado do documento (agmValor). A VENDA PARA A EUROPA é o clímax: cena especial, o maior pagamento,
@@ -18,7 +18,9 @@
    ============================================================ */
 const AGM_SAL_BASE = { pequeno: 30000, medio: 100000, grande: 300000 }; // v344: ×2 (a agência dava prejuízo) // salário semanal de profissional por porte do clube
 const AGM_PATRO_MARCAS = { loja: ['Loja do Seu Bené', 'Esportes da Esquina', 'Chuteiraria Gol'], regional: ['Refri Gol', 'Lanche do Craque', 'Isotônico Raio'], nacional: ['Chuteiras Foguete', 'Celular Drible', 'Banco Bola de Ouro'], global: ['Tênis Pulo Alto Mundial', 'Galáxia Sports', 'Planeta Bola'] };
-const AGM_PATRO_POLEMICAS = ['🎲 Aposta Certa (site de apostas)', '🍺 Cerveja Gelada'];
+// v407 (Raio-X U2): o dono trocou aposta e cerveja por marcas que uma criança entende — a "polêmica" agora é
+// se a marca faz bem para a saúde do jogador e o que a torcida pensa (famílias de Segurança continuam não gostando).
+const AGM_PATRO_POLEMICAS = ['🥤 Refri Mega Açúcar (refrigerante muito doce)', '📱 Joguinho Mil Anúncios (jogo de celular cheio de propaganda)'];
 const AGM_LEMBRANCAS = {
   lemb_contrato: { nome: 'Primeiro Contrato Profissional (emoldurado)', tipo: 'loot', venda: 1, desc: 'Lembrança da sua agência: o primeiro contrato profissional de um garoto seu. Não venda!', iconeBase: 'i_contrato' },
   lemb_patrocinio: { nome: 'Chuteira do Primeiro Patrocinador', tipo: 'loot', venda: 1, desc: 'Lembrança da sua agência: a chuteira do primeiro patrocínio. Não venda!', iconeBase: 'i_chuteira_elite' },
@@ -235,7 +237,7 @@ AGM_GANCHOS_SEMANA.push(function (a, lin) {
       el('div', { class: 'ag-acoes' }, el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => agmNegociaTransf(j, p) }, '💬 Negociar com o diretor'),
         el('button', { class: 'btn mini', type: 'button', onclick: () => agmVende(j, p, p.valor) }, '✅ Vender como está'),
         el('button', { class: 'btn mini', type: 'button', onclick: () => { j.propostas = j.propostas.filter(x => x !== p); salvar(); abreAgencia3('jogadores'); } }, '❌ Recusar'))));
-    for (const o of j.ofertasPatro || []) box.append(el('div', { class: 'agm-proposta' }, el('b', {}, `📣 ${o.marca} · ${AGM_PATROCINIOS[o.tier][0]} · ${o.pagto ? agFmt(o.pagto) + '/semana' : 'chuteiras e material'}${o.polemica ? ' · ⚠️ marca polêmica (paga o dobro)' : ''} · até a semana ${o.ate}`),
+    for (const o of j.ofertasPatro || []) box.append(el('div', { class: 'agm-proposta' }, el('b', {}, `📣 ${o.marca} · ${AGM_PATROCINIOS[o.tier][0]} · ${o.pagto ? agFmt(o.pagto) + '/semana' : 'chuteiras e material'}${o.polemica ? ' · ⚠️ marca polêmica: paga o dobro, mas faz bem para a saúde e para a torcida?' : ''} · até a semana ${o.ate}`),
       el('small', {}, `Obrigação: 1 ação a cada ${AGM_PATROCINIOS[o.tier][3]} semana(s).${o.polemica && j.fam && j.fam.sabe && j.fam.sabe.seguranca ? ' A família, que preza Segurança, não vai gostar (−15 de confiança).' : ''}`),
       el('div', { class: 'ag-acoes' }, el('button', { class: 'btn amarelo mini', type: 'button', onclick: () => agmAceitaPatro(j, o, 10) }, '✅ Aceitar (sua parte: 10%)'),
         el('button', { class: 'btn mini', type: 'button', onclick: () => agmAceitaPatro(j, o, 20) }, '💬 Pedir 20% (podem desistir)'),

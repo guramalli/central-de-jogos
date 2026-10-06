@@ -49,7 +49,7 @@ function arrumaBolsas(s = G.save) {
 function abreBolsa(u) {
   const s = G.save; s.bolsasAbertas = s.bolsasAbertas || [];
   const k = s.bolsasAbertas.indexOf(u); if (k >= 0) s.bolsasAbertas.splice(k, 1); else s.bolsasAbertas.push(u);
-  som('equip'); G.uiSujo = true;
+  som(k >= 0 ? 'equip' : 'bolsa'); G.uiSujo = true; // v407 (Raio-X): abrir a bolsa tem som próprio (gravado)
 }
 function marcaBolsaLoot(u) {
   const s = G.save; const bag = s.mochila.find(e => e.u === u); if (!bag) return;

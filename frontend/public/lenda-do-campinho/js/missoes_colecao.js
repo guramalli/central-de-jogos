@@ -4,7 +4,7 @@
    🧺 MISSÕES DE COLEÇÃO (v287): os itens que os adversários deixam cair agora são PEDIDOS em missões.
    Antes, 41 dos 67 itens de drop só serviam para vender (quase todos das cavernas de Atlântida e do espaço,
    que acabavam "passando batido"). Agora cada um tem DUAS missões:
-   - COLEÇÃO: 20 unidades · ENCOMENDA GRANDE: 50 unidades (libera depois da primeira), com prêmio maior + fios de ouro.
+   - COLEÇÃO: 10 unidades · ENCOMENDA GRANDE: 25 unidades (v407 Raio-X A3; eram 20 e 50) (libera depois da primeira), com prêmio maior + fios de ouro.
    Quem pede: em Atlântida, o PROFESSOR CORAL (colecionador, novo); nos planetas, o técnico de cada um;
    nas cidades, o líder do bairro (Paris, Buenos Aires, Rio e Santos).
    O texto de cada missão diz quem deixa cair o item e em que caverna.
@@ -45,10 +45,10 @@
     const fala = FALA[npc] || ['Preciso de', 'Traga'];
     const base = `col_${id}`;
     MISSOES.push(
-      { id: base + '_1', npc, titulo: `Coleção: ${it.nome}`, lvl: Math.max(1, L - 3), texto: `${fala[0]} 20× ${it.nome}. ${onde}`, req: { itens: [[id, 20]] },
-        rec: { xp: Math.round(xpNv(L) * 0.6), ouro: L * 300 }, fim: `Que beleza! Minha coleção de ${it.nome} está crescendo. Se trouxer MAIS, tenho uma encomenda grande!` },
-      { id: base + '_2', npc, titulo: `Encomenda grande: ${it.nome}`, lvl: Math.max(1, L - 3), pre: base + '_1', texto: `${fala[1]} 50× ${it.nome} — é uma encomenda grande, mas o prêmio é à altura! ${onde}`, req: { itens: [[id, 50]] },
-        rec: { xp: Math.round(xpNv(L) * 1.5), ouro: L * 800, itens: [['fio_ouro', Math.max(1, Math.round(L / 60))]] }, fim: `INCRÍVEL! 50× ${it.nome}! Você é o maior caçador que eu já conheci. Leve estes fios de ouro para a Forja!` });
+      { id: base + '_1', npc, titulo: `Coleção: ${it.nome}`, lvl: Math.max(1, L - 3), texto: `${fala[0]} 10× ${it.nome}. ${onde}`, req: { itens: [[id, 10]] }, /* v407 (Raio-X A3): eram 20 */
+        rec: { xp: Math.round(xpNv(L) * 0.6), ouro: L * 300 }, fim: `Que beleza! Minha coleção de ${it.nome} está crescendo. Se trouxer mais, tenho uma encomenda grande!` },
+      { id: base + '_2', npc, titulo: `Encomenda grande: ${it.nome}`, lvl: Math.max(1, L - 3), pre: base + '_1', texto: `${fala[1]} 25× ${it.nome} — é uma encomenda grande, mas o prêmio é à altura! ${onde}`, req: { itens: [[id, 25]] }, /* v407 (Raio-X A3): eram 50 */
+        rec: { xp: Math.round(xpNv(L) * 1.5), ouro: L * 800, itens: [['fio_ouro', Math.max(1, Math.round(L / 60))]] }, fim: `Incrível! 25× ${it.nome}! Ninguém nunca trouxe tanto para mim. Leve estes fios de ouro para a Forja!` });
     n += 2;
   }
   window.COLECAO_MISSOES = n; // (para os testes)

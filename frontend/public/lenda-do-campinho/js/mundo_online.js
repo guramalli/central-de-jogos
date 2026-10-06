@@ -41,7 +41,7 @@ async function moConecta() {
   if (MO.sock && MO.sock.connected) return MO.sock;
   await moCarregaCliente();
   if (!MO.sock) {
-    MO.sock = window.io(moApi(), { auth: { token: PORTAL.token }, transports: ['websocket'] });
+    MO.sock = typeof lendaSock === 'function' ? lendaSock(moApi()) : window.io(moApi(), { auth: { token: PORTAL.token }, transports: ['websocket'] }); // v407 (Raio-X A9): conexão compartilhada (torre_coop.js)
     moEscuta(MO.sock);
   }
   if (!MO.sock.connected) await new Promise((ok, erro) => { const t = setTimeout(() => erro(new Error('tempo')), 8000); MO.sock.once('connect', () => { clearTimeout(t); ok(); }); MO.sock.once('connect_error', e => { clearTimeout(t); erro(e); }); });
@@ -135,7 +135,7 @@ async function moEntra(id) {
   MO.mapa = id;
   try { await moConecta(); } catch (e) { MO.mapa = null; return; }
   if (MO.mapa !== id) return; // trocou de mapa enquanto conectava
-  const p = G.p, r = await new Promise(ok => { const t = setTimeout(() => ok({ erro: 'tempo' }), 8000); MO.sock.emit('mundo-entrar', { mapa: id, perfil: moPerfil(), x: p.x, y: p.y, f: p.flip ? 1 : 0, m: 0, fa: 0 }, r2 => { clearTimeout(t); ok(r2 || {}); }); });
+  const p = G.p, r = await new Promise(ok => { const t = setTimeout(() => ok({ erro: 'tempo' }), 8000); MO.sock.emit('mundo-entrar', { mapa: id, perfil: moPerfil(), x: p.x, y: p.y, f: p.flip ? 1 : 0, m: 0, fa: 0, invisivel: typeof osgInvisivel === 'function' && osgInvisivel() }, r2 => { clearTimeout(t); ok(r2 || {}); }); }); // v407 (Raio-X U5): "ficar invisível" (online_seguro.js)
   if (MO.mapa !== id) return;
   if (!r.ok) { MO.mapa = null; return; }
   MO.canal = r.canal; if (r.top) { MO.top = r.top.map(String); for (let k = 1; k <= 3; k++) spr('louro_' + k); } moLimpa(); for (const mb of r.membros || []) moPoe(mb);
@@ -241,7 +241,8 @@ async function moPainel() {
   const lista = [...MO.outros].sort((a, b) => a[1].apelido.localeCompare(b[1].apelido)).map(([id, o]) => el('div', { class: 'mo-pessoa' },
     el('span', {}, `${o.apelido} · Nv ${o.nivel}`),
     amigos.has(String(id)) ? el('small', {}, '🤝 amigo') : el('button', { class: 'btn mini', type: 'button', onclick: ev => { ev.target.disabled = true; typeof amgPedeAmizade === 'function' && amgPedeAmizade({ targetUserId: id }, ok => { if (ok) { MO.amigos = null; ev.target.textContent = '✅ Pedido enviado'; } else ev.target.disabled = false; }); } }, '➕ Amigo'),
-    el('button', { class: 'btn mini', type: 'button', onclick: () => { MO_MUDOS.has(id) ? MO_MUDOS.delete(id) : MO_MUDOS.add(id); moGrava('rac_mundo_mudos', [...MO_MUDOS].slice(-300)); moPainel(); } }, MO_MUDOS.has(id) ? '🔈 Mostrar' : '🔇 Silenciar')));
+    el('button', { class: 'btn mini', type: 'button', onclick: () => { MO_MUDOS.has(id) ? MO_MUDOS.delete(id) : MO_MUDOS.add(id); moGrava('rac_mundo_mudos', [...MO_MUDOS].slice(-300)); moPainel(); } }, MO_MUDOS.has(id) ? '🔈 Mostrar' : '🔇 Silenciar'),
+    typeof osgDenuncia === 'function' ? el('button', { class: 'btn mini', type: 'button', title: 'Denunciar: avisa a equipe do site', onclick: () => osgDenuncia({ id, apelido: o.apelido }) }, '🚩') : '')); // v407 (Raio-X U5)
   abreModal(el('h2', {}, '💬 Falar com quem está aqui'),
     el('p', { class: 'dica' }, `🌐 ${n} ${n === 1 ? 'jogador' : 'jogadores'} neste lugar (canal ${MO.canal}). Sem chat livre: escolha um emote ou uma frase.`),
     el('div', { class: 'mo-emotes' }, ...MO_EMOTES.map((e, i) => el('button', { type: 'button', onclick: () => { moFala('e', i); fechaModal(); } }, e))),

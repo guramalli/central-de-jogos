@@ -51,8 +51,19 @@ function ctrlPasso() {
   faz(9, () => modalMapa()); faz(8, () => modalMissoes());
   faz(11, () => alvoMaisProximo());
 }
-setInterval(ctrlPasso, 33);
+// v407 (Raio-X): o controle só é conferido DEPOIS que ele aparece (evento gamepadconnected) — antes eram 30 conferências
+// por segundo para sempre, mesmo em quem nunca ligou um controle. Desligou o último controle: para de conferir.
+CTRL.timer = null;
+function ctrlLiga() { if (!CTRL.timer) CTRL.timer = setInterval(ctrlPasso, 33); }
+try { if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) ctrlLiga(); } catch (e) { } // já estava ligado (ex.: Steam)
+addEventListener('gamepaddisconnected', () => {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  if (pads.length || !CTRL.timer) return;
+  clearInterval(CTRL.timer); CTRL.timer = null; CTRL.ant = [];
+  if (CTRL.pad && typeof G !== 'undefined') { G.joy = null; CTRL.pad = false; }
+});
 addEventListener('gamepadconnected', () => {
+  ctrlLiga();
   if (Date.now() - CTRL.ultimoAviso < 60000) return; CTRL.ultimoAviso = Date.now();
   try { banner('🎮 Controle conectado!', 'Analógico anda · A fala · X drible/chute · Y marca · LT/RT poções'); } catch (e) { }
 });

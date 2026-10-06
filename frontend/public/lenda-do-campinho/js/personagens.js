@@ -65,22 +65,24 @@ function paginaFicha(dados) {
   const pos = f.posicao && POSICOES[f.posicao] ? POSICOES[f.posicao].nome : '—';
   const cl = f.classe && CLASSES[f.classe] ? `${CLASSES[f.classe].emoji || ''} ${CLASSES[f.classe].nome}` : '—';
   const casa = f.casa && typeof CASAS !== 'undefined' && CASAS[f.casa] ? `${CASAS[f.casa].nome} (${CASAS[f.casa].local})` : '—';
-  const time = f.time ? `${f.time.nome} — ${typeof nomeDivisao === 'function' ? nomeDivisao(f.time.div) : 'divisão ' + f.time.div}${f.time.titulos ? ` · ${f.time.titulos} título(s)` : ''}` : '—';
-  const clube = f.clube ? `${f.clube.nome}${f.clube.cidade ? ' (' + f.clube.cidade + ')' : ''}` : 'Sem clube';
+  const time = f.time ? `${f.time.nome || 'Time'} — ${typeof nomeDivisao === 'function' ? nomeDivisao(f.time.div) : 'divisão ' + f.time.div}${f.time.titulos ? ` · ${f.time.titulos} título(s)` : ''}` : '—';
+  const clube = f.clube ? `${f.clube.nome}${f.clube.cidade ? ' (' + f.clube.cidade + ')' : ''}` : null;
+  // v407 (Raio-X U1/U5): a ficha do site não traz mais o nome do personagem, o clube, o lugar onde a pessoa está nem a
+  // hora do último jogo (só "jogou esta semana"). A ficha deste aparelho (fora do site) continua mostrando tudo.
   const info = [
     ['Nome:', el('b', {}, dados.apelido)],
-    ['Personagem:', f.nome || '—'],
+    f.nome ? ['Personagem:', f.nome] : null,
     ['Sexo:', f.genero === 'f' ? 'feminino' : 'masculino'],
     ['Posição:', pos], ['Classe:', cl],
     ['Nível:', String(f.nivel)], ['Experiência:', fmt(f.xp)],
     ['Fase:', FASES[faseIdx(f.nivel)].nome],
-    ['Onde está:', nomeLugarPers(f.mapa)],
+    f.mapa ? ['Onde está:', nomeLugarPers(f.mapa)] : null,
     ['Casa:', casa],
     ['Meu Time:', time],
-    ['Clube:', clube], ['Fama:', fmt(f.fama || 0)],
-    ['Último jogo:', dataPers(new Date(dados.ultimoJogo).getTime(), true)],
+    clube ? ['Clube:', clube] : null, ['Fama:', fmt(f.fama || 0)],
+    dados.ultimoJogo ? ['Último jogo:', dataPers(new Date(dados.ultimoJogo).getTime(), true)] : ['Jogou esta semana:', dados.jogouSemana ? 'Sim ⚽' : 'Não'],
     ['Conta:', dados.visitante ? 'Visitante' : 'Conta Educação Gamer'],
-  ];
+  ].filter(Boolean);
   const sk = f.skills || {}, a = f.atr || {};
   const habil = [['Drible', sk.drible], ['Chute', sk.chute], ['Defesa', sk.defesa], ['Visão de jogo', sk.visao]].map(([n, v]) => [n, String(v ?? '—')]);
   const atrib = [['Defesa', a.defesa], ['Habilidade', a.habilidade], ['Inteligência', a.inteligencia], ['Fôlego', a.folego]].map(([n, v]) => [n, String(v ?? '—')]);
@@ -96,8 +98,10 @@ function paginaFicha(dados) {
   ];
   const arenas = (f.arenas || []).map(ar => { const d = typeof ARENAS !== 'undefined' && ARENAS.find(x => x.id === ar.id); return [d ? d.nome : ar.id, `${ar.vitorias} vitória(s)`, `${ar.miticos} mítico(s)`]; });
   const kills = (f.kills || []).map(k => [MONSTROS[k.id] ? MONSTROS[k.id].nome : k.id, fmt(k.n)]);
-  const exaus = (f.exaustoes || []).map(x => [dataPers(x.em, true), `Ficou sem fôlego no nível ${x.nivel}${x.por ? ' contra ' + x.por : ''}${x.mapa ? ' (' + nomeLugarPers(x.mapa) + ')' : ''}.`]);
-  const conta = [['Apelido:', dados.apelido], ['Membro desde:', dataPers(new Date(dados.membroDesde).getTime())], ['Personagem criado:', dataPers(f.criado)], ['Dia no jogo:', String(f.dia || '—')]];
+  // v407 (Raio-X U5): do site vêm só o nível e o DIA da exaustão (sem hora, adversário e lugar), e "membro desde" com mês e ano
+  const exaus = (f.exaustoes || []).map(x => [dataPers(x.em, !!(x.por || x.mapa)), `Ficou sem fôlego no nível ${x.nivel}${x.por ? ' contra ' + x.por : ''}${x.mapa ? ' (' + nomeLugarPers(x.mapa) + ')' : ''}.`]);
+  const desde = new Date(dados.membroDesde), desdeTxt = dados.ultimoJogo ? dataPers(desde.getTime()) : desde.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }); // (ultimoJogo só existe na ficha deste aparelho)
+  const conta = [['Apelido:', dados.apelido], ['Membro desde:', desdeTxt], ['Personagem criado:', dataPers(f.criado)], ['Dia no jogo:', String(f.dia || '—')]];
   return [
     caixaPers('Informações do personagem', info),
     el('div', { class: 'tbia-duas' }, caixaPers('Habilidades', habil), caixaPers('Atributos', atrib)),
@@ -110,7 +114,7 @@ function paginaFicha(dados) {
   ];
 }
 function paginaLista(lista, busca) {
-  const linhas = lista.map((x, i) => [String(i + 1), linkPers(x.apelido), String(x.nivel), x.posicao && POSICOES[x.posicao] ? POSICOES[x.posicao].nome : '—', x.fase || '—', x.time ? x.time.nome : '—']);
+  const linhas = lista.map((x, i) => [String(i + 1), linkPers(x.apelido), String(x.nivel), x.posicao && POSICOES[x.posicao] ? POSICOES[x.posicao].nome : '—', x.fase || '—', x.time ? (x.time.nome || 'Time') : '—']);
   return [caixaPers(busca ? `Jogadores com "${busca}"` : 'Jogadores', linhas, { cabecalho: ['#', 'Nome', 'Nível', 'Posição', 'Fase', 'Meu Time'], vazio: busca ? 'Nenhum jogador com esse nome.' : 'Ninguém ainda.' })];
 }
 

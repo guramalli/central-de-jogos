@@ -14,7 +14,7 @@
    Carregar DEPOIS de carreira_jogos.js.
    ============================================================ */
 const FUT = { x0: 5.05, x1: 34.95, y0: 5.1, y1: 21.9, gy0: 12.15, gy1: 14.85, gx: 34.95, gxN: 5.05, cy: 13.5 };
-const FUT_NOMES_EXTRA = ['Tuca', 'Bebel', 'Didi', 'Zico Jr.', 'Pipoca', 'Bolinha', 'Foguete', 'Tatu', 'Gordo', 'Magrão'];
+const FUT_NOMES_EXTRA = ['Tuca', 'Bebel', 'Didi', 'Zico Jr.', 'Pipoca', 'Bolinha', 'Foguete', 'Tatu', 'Trovão', 'Magrão']; // v407 (Raio-X U3): 'Gordo' saiu (apelido que caçoa do corpo)
 let FUT_UID = 900000;
 
 function futSkill(k) { const s = stats(), exp = 12 + (G.save.nivel || 1) * 0.25; const v = s[k] || 10; return v / (v + exp); } // v295: ~0,45 para quem treina normal (antes o nível alto derrubava para ~0,3)

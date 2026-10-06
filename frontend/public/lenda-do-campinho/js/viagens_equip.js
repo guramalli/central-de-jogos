@@ -18,12 +18,13 @@
   });
   for (const n of ['i_capacete_mergulho', 'i_traje_astronauta']) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   const xpDe = L => Math.round((xpPara(L + 1) - xpPara(L)) * 0.6);
+  // v407 (Raio-X, textos longos): pedido curto + "📖 Saiba mais" (campo mais)
   const Q_CAP = { id: 'iara_capacete', npc: 'capita_iara', titulo: 'O Capacete de Mergulho', lvl: 190,
-    texto: 'Lá embaixo não tem ar, craque! Para descer comigo até Atlântida você precisa de um CAPACETE DE MERGULHO. Eu monto um pra você: me traga 15 Pedaços de Couro para a vedação, 10 Retalhos de Tecido para o forro e 30.000 tostões para as peças de latão. Couro e retalhos caem dos adversários de Londres (Camden e East End) e de Santos.',
+    texto: 'Lá embaixo não tem ar, craque! Para descer comigo até Atlântida, me traga 15 Pedaços de Couro, 10 Retalhos de Tecido e 30.000 tostões, e eu monto um Capacete de Mergulho.', mais: 'O couro serve para a vedação, os retalhos para o forro e os tostões para as peças de latão. Couro e retalhos caem dos adversários de Santos e de Londres (Camden e East End).',
     req: { itens: [['couro', 15], ['retalho', 10]], ouro: 30000 }, rec: { xp: xpDe(190), itens: [['capacete_mergulho', 1]] },
     fim: 'Prontinho, bem vedado! Com esse capacete você respira no fundo do mar. Quando quiser, é só embarcar no submarino!' };
   const Q_TRAJE = { id: 'estela_traje', npc: 'estela', titulo: 'A Roupa de Astronauta', lvl: 290,
-    texto: 'No espaço faz um frio de congelar e não tem ar nenhum! Para decolar comigo você precisa de uma ROUPA DE ASTRONAUTA. Eu costuro uma: me traga 20 Tufos de Pelo de Yeti (isolamento), 10 Lençóis de Fantasma (tecido leve), 5 Escamas de Dragão (placas contra o calor da decolagem) e 150.000 tostões. Tudo isso cai nos portais de Atlântida.',
+    texto: 'No espaço não tem ar! Para decolar comigo, traga 20 Tufos de Pelo de Yeti, 10 Lençóis de Fantasma, 5 Escamas de Dragão e 150.000 tostões: eu costuro uma Roupa de Astronauta.', mais: 'No espaço faz um frio de congelar. O pelo de yeti é o isolamento, o lençol de fantasma é o tecido leve e as escamas de dragão protegem do calor da decolagem. Tudo isso cai nos portais de Atlântida.',
     req: { itens: [['pelo_yeti', 20], ['lencol_fantasma', 10], ['escama_dragao', 5]], ouro: 150000 }, rec: { xp: xpDe(290), itens: [['traje_astronauta', 1]] },
     fim: 'Sob medida! Com essa roupa você aguenta o frio e o vácuo. Os extraterrestres que se preparem!' };
   MISSOES.push(Q_CAP, Q_TRAJE);

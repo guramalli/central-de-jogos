@@ -60,6 +60,26 @@ const CHAO2 = {
   planalto: { lunar: CH.PLANALTO_LUA, marciano: CH.PLANALTO_MARTE, anel: CH.PLANALTO_ANEL, nebular: CH.PLANALTO_NEB, deserto: CH.PLANALTO_DESERTO, bambu: CH.PLANALTO_FLORESTA, fazenda: CH.PLANALTO_FLORESTA,
     mv_floresta: CH.PLANALTO_FLORESTA, pantano: CH.PLANALTO_PANTANO, recife: CH.PLANALTO_RECIFE, mv_nuvens: CH.PLANALTO_NEVE, mv_pico: CH.PLANALTO_NEVE, mv_ponte: CH.PLANALTO_NEVE },
   mapas: {},
+  // v407 (Raio-X: "Lua, Atlântida e Multiverso vazios e chapados"): COMPOSIÇÕES em grupos nos lugares vazios, só com os
+  // enfeites que já existem (a/dc2_*). Cada tema: peças [artes, quantas, tamanho mín, máx (quadradinhos), distância do meio].
+  // n = composições por quadradinho livre. Só enfeite de chão: não muda onde se anda.
+  grupos: {
+    lua: { n: 0.006, temas: [
+      [[['dc2_lua_1', 'dc2_lua_2', 'dc2_lua_3', 'dc2_lua_14'], 1, 1.7, 2.3, 0], [['dc2_lua_6', 'dc2_lua_12', 'dc2_lua_4'], 3, 0.45, 0.7, 1.6], [['dc2_lua_8', 'dc2_lua_16'], 1, 0.55, 0.75, 1.3]], // cratera
+      [[['dc2_lua_9', 'dc2_lua_13'], 3, 0.65, 1.05, 0.6], [['dc2_lua_6', 'dc2_lua_5'], 2, 0.5, 0.75, 1.4], [['dc2_lua_16', 'dc2_lua_8'], 1, 0.6, 0.8, 0.7]], // cristais
+      [[['dc2_lua_5', 'dc2_lua_15', 'dc2_lua_11'], 2, 1, 1.4, 0.6], [['dc2_lua_7', 'dc2_lua_12', 'dc2_lua_6'], 3, 0.5, 0.8, 1.5], [['dc2_lua_10'], 1, 0.9, 1.2, 1.1]], // rochedo
+    ] },
+    atlantida: { n: 0.006, temas: [
+      [[['dc2_atl_6', 'dc2_atl_11', 'dc2_atl_16'], 3, 0.8, 1.2, 0.7], [['dc2_atl_5', 'dc2_atl_15'], 2, 0.6, 0.9, 1.4], [['dc2_atl_2', 'dc2_atl_3', 'dc2_atl_1', 'dc2_atl_8'], 2, 0.35, 0.5, 1.6]], // recife de coral
+      [[['dc2_atl_10'], 1, 0.8, 1, 0.3], [['dc2_atl_4', 'dc2_atl_13', 'dc2_atl_7'], 3, 0.6, 0.95, 1.2], [['dc2_atl_14', 'dc2_atl_9', 'dc2_atl_12'], 2, 0.4, 0.6, 1.6]], // ruína (ânfora, pedras, conchas)
+      [[['dc2_atl_5', 'dc2_atl_15'], 4, 0.7, 1.05, 0.9], [['dc2_atl_13', 'dc2_atl_4'], 1, 0.7, 0.95, 0.6], [['dc2_atl_12', 'dc2_atl_3'], 1, 0.45, 0.6, 1.5]], // jardim de algas
+    ] },
+    multiverso: { n: 0.012, temas: [
+      [[['dc2_nebulosa_1', 'dc2_nebulosa_9', 'dc2_anel_1', 'dc2_anel_7'], 3, 0.7, 1.05, 0.6], [['dc2_nebulosa_4', 'dc2_nebulosa_12', 'dc2_anel_3'], 2, 0.45, 0.65, 1.4], [['dc2_nebulosa_2', 'dc2_anel_5', 'dc2_nebulosa_11'], 1, 0.6, 0.8, 0.9]], // cristais
+      [[['dc2_anel_6'], 1, 1, 1.3, 0], [['dc2_anel_2', 'dc2_anel_11', 'dc2_anel_9'], 3, 0.55, 0.85, 1.3], [['dc2_anel_16', 'dc2_nebulosa_11'], 1, 0.6, 0.8, 1.5]], // geodo
+      [[['dc2_nebulosa_14', 'dc2_nebulosa_8', 'dc2_nebulosa_5'], 1, 0.8, 1.1, 0.3], [['dc2_nebulosa_16', 'dc2_nebulosa_4'], 3, 0.4, 0.6, 1.3], [['dc2_nebulosa_2', 'dc2_nebulosa_11'], 1, 0.7, 0.9, 1.2]], // estrelas caídas
+    ] },
+  },
 };
 // quais mapas: os principais de Atlântida em diante e as caças que se entra por eles (pelo TEMA de cada caça)
 {
@@ -80,7 +100,8 @@ const CHAO2 = {
   // as artes que um mapa usa: as texturas dos chãos dele e os enfeites
   function artesDoMapa(m) {
     const usados = new Set(m.chao), l = new Set();
-    for (const t of usados) { const d = CHAO2.tex[t]; if (d) l.add(d[0]); const dc = CHAO2.dc[t]; if (dc) for (let i = 1; i <= 16; i++) l.add(`${dc[0]}_${i}`); }
+    for (const t of usados) { const d = CHAO2.tex[t]; if (d) l.add(d[0]); else if (TEX_CHAO[t]) l.add(TEX_CHAO[t]); /* v407: a textura antiga também (sem ela o chão do Labirinto Jurássico ficava pintado de uma cor só, para sempre) */ const dc = CHAO2.dc[t]; if (dc) for (let i = 1; i <= 16; i++) l.add(`${dc[0]}_${i}`); }
+    const gr = CHAO2.grupos[m.id]; if (gr) for (const tm of gr.temas) for (const pc of tm) for (const n of pc[0]) l.add(n); // (v407: as composições)
     return [...l];
   }
   function manchas(W, H, cel, seed) {
@@ -89,15 +110,19 @@ const CHAO2 = {
     x.putImageData(img, 0, 0); return c;
   }
   let FOLHA = null;
+  // v407: tela de trabalho dos passos "aplica"/"água" (uma só para todos os mapas: os blocos são pintados um de cada vez)
+  let FT = null; const telaF = (w, h) => { if (!FT || FT.width < w || FT.height < h) FT = mkCanvas(Math.max(w, FT ? FT.width : 0), Math.max(h, FT ? FT.height : 0)); return FT; };
   // v393 (dono: "o jogo está travando muito quando entro no Vale dos Dinossauros"): o chão do labirinto levava ~2,6 s de uma
   // vez só (o navegador congelava). Agora o desenho é feito em ETAPAS (renderChao2G, um gerador): um pouquinho por quadro,
   // atrás da tela de entrada (bola rolando + barra). renderChao2 continua existindo e faz tudo de uma vez (para quem precisa).
   function renderChao2(m, bio) { const g = renderChao2G(m, bio); let r; while (!(r = g.next()).done); return r.value; }
+  // v407 (Raio-X A8): o desenho não pinta mais uma imagem do tamanho do mapa. Aqui só se PREPARAM as máscaras (em 1/4,
+  // guardadas só como "quanto" de cada pixel — 1 byte) e se ANOTAM os passos na lousa do chão (chao_blocos.js); cada
+  // bloco de 1024 px é pintado depois, só perto da câmera, com os mesmos passos (passos especiais "aplica", "sombra",
+  // "água" recortam a máscara do pedaço do bloco com margem — sem emenda).
   function* renderChao2G(m, bio) {
-    const B = CHAO2.biomas[bio] || {}, W = m.w * T, H = m.h * T, c = mkCanvas(W, H), x = c.getContext('2d'), r = mulberry(m.w * 977 + m.h * 13 + m.id.length * 7);
-    // tela de trabalho em FAIXAS de 1024 px de altura (o Labirinto Jurássico tem 9600×7040 px: uma tela inteira a mais
-    // seriam 270 MB — no celular derrubava o jogo)
-    const FX = Math.min(H, 256), F = (() => { const fc = mkCanvas(W, FX); return { c: fc, x: fc.getContext('2d') }; })(); // (de cada desenho: dois mapas podem estar sendo feitos ao mesmo tempo)
+    const B = CHAO2.biomas[bio] || {}, W = m.w * T, H = m.h * T, r = mulberry(m.w * 977 + m.h * 13 + m.id.length * 7);
+    const c = novoChaoBlocos(W, H, m), x = c.getContext('2d');
     const at = (i, j) => (i >= 0 && j >= 0 && i < m.w && j < m.h) ? m.chao[j * m.w + i] : -1;
     const padrao2 = t => { const d = CHAO2.tex[t]; if (d && pronto(d[0])) { const e = spr(d[0]); const p = x.createPattern(e.im, 'repeat'); const k = (d[1] * T) / e.im.width; p.setTransform(new DOMMatrix([k, 0, 0, k, (t * 97) % 300, (t * 53) % 300])); return p; } return padrao(x, TEX_CHAO[t], (2 * T) / 256) || (ESTILO_CHAO[t] || {}).cor || '#888'; };
     const cont = {}; for (const t of m.chao) cont[t] = (cont[t] || 0) + 1;
@@ -112,65 +137,72 @@ const CHAO2 = {
       if (!organico) for (const [i, j] of tiles) sx.fillRect(i * tq, j * tq, tq, tq);
       else for (let n = 0; n < tiles.length; n++) { const [i, j] = tiles[n]; const rr = tq * (0.66 + r() * 0.12); sx.beginPath(); sx.arc((i + 0.5 + (r() - 0.5) * 0.2) * tq, (j + 0.5 + (r() - 0.5) * 0.2) * tq, rr, 0, 7); sx.fill(); if (n % 3000 === 2999) yield; }
       yield;
-      const bl = mkCanvas(w4, h4), bx = bl.getContext('2d'), mg = Math.ceil(tq * desf * 3) + 2, FB = 192;
+      const bl = mkCanvas(w4, h4), bx = bl.getContext('2d', { willReadFrequently: true }), mg = Math.ceil(tq * desf * 3) + 2, FB = 192;
       for (let y0 = 0; y0 < h4; y0 += FB) {
         const sy = Math.max(0, y0 - mg), sh = Math.min(h4, y0 + FB + mg) - sy;
         bx.save(); bx.beginPath(); bx.rect(0, y0, w4, FB); bx.clip(); bx.filter = `blur(${tq * desf}px)`; bx.drawImage(sm, 0, sy, w4, sh, 0, sy, w4, sh); bx.restore();
         yield;
       }
-      const A = bx.getImageData(0, 0, w4, h4).data; yield;
-      return function* (fn) {
-        const c2 = mkCanvas(w4, h4), q = c2.getContext('2d'), im = q.createImageData(w4, h4), D = im.data, N = w4 * h4;
-        for (let k0 = 0; k0 < N; k0 += 300000) { const k1 = Math.min(N, k0 + 300000); for (let k = k0; k < k1; k++) D[k * 4 + 3] = Math.round(255 * fn(A[k * 4 + 3] / 255)); yield; }
-        q.putImageData(im, 0, 0); return c2;
-      };
+      sm.width = sm.height = 0;
+      // (só o "quanto" de cada pixel fica guardado: 1 byte por pixel)
+      const al = new Uint8Array(w4 * h4);
+      for (let y0 = 0; y0 < h4; y0 += FB) { const fh = Math.min(FB, h4 - y0), A = bx.getImageData(0, y0, w4, fh).data, o = y0 * w4; for (let k = 0, n = w4 * fh; k < n; k++) al[o + k] = A[k * 4 + 3]; yield; }
+      bl.width = bl.height = 0;
+      return function* (fn) { const lut = new Uint8Array(256); for (let v = 0; v < 256; v++) lut[v] = Math.round(255 * fn(v / 255)); return { al, lut }; };
     }
-    // pinta "pinta" através da máscara e desenha no mapa (deslocado dy, com o modo de mistura "modo"), faixa por faixa
-    function* aplica(msk, pinta, dy = 0, modo) {
-      for (let y0 = 0; y0 < H; y0 += FX) {
-        const fh = Math.min(FX, H - y0);
-        F.x.globalCompositeOperation = 'source-over'; F.x.clearRect(0, 0, W, FX); F.x.imageSmoothingEnabled = true; F.x.imageSmoothingQuality = 'high';
-        F.x.drawImage(msk, 0, y0 / Q, w4, fh / Q, 0, 0, W, fh);
-        F.x.globalCompositeOperation = 'source-in'; F.x.save(); F.x.translate(0, -y0); pinta(F.x, y0, fh); F.x.restore(); F.x.globalCompositeOperation = 'source-over';
-        x.save(); if (modo) x.globalCompositeOperation = modo; x.drawImage(F.c, 0, 0, W, fh, 0, y0 + dy, W, fh); x.restore();
-        yield;
-      }
+    // o pedaço (x0..x1, y0..y1 em pixels do mapa) de uma camada, como imagem pequena (1 pixel = Q·st pixels do mapa)
+    function regiao(cam, X0, Y0, X1, Y1, st) {
+      const u0 = Math.max(0, Math.floor(X0 / Q / st) * st), v0 = Math.max(0, Math.floor(Y0 / Q / st) * st), u1 = Math.min(w4, Math.ceil(X1 / Q)), v1 = Math.min(h4, Math.ceil(Y1 / Q));
+      const rw = Math.max(1, Math.ceil((u1 - u0) / st)), rh = Math.max(1, Math.ceil((v1 - v0) / st)), cv = mkCanvas(rw, rh), q = cv.getContext('2d'), im = q.createImageData(rw, rh), D = im.data, al = cam.al, lut = cam.lut;
+      for (let j = 0; j < rh; j++) { const vv = Math.min(h4 - 1, v0 + j * st) * w4; for (let i = 0; i < rw; i++) D[(j * rw + i) * 4 + 3] = lut[al[vv + Math.min(w4 - 1, u0 + i * st)]]; }
+      q.putImageData(im, 0, 0);
+      return { c: cv, x: u0 * Q, y: v0 * Q, w: rw * st * Q, h: rh * st * Q };
+    }
+    const passoMasc = esc => esc * Q < 1 ? Math.max(1, Math.floor(1 / (esc * Q))) : 1;
+    // pinta "pinta" através da camada e desenha no bloco (deslocado dy, com o modo de mistura "modo")
+    function aplica(cam, pinta, dy = 0, modo) {
+      x.passo((ctx, inf) => {
+        const e = inf.esc, st = passoMasc(e), mg = Q * st * 3, ry = inf.y0 - dy, fw = Math.ceil(inf.w * e), fh = Math.ceil(inf.h * e);
+        const R = regiao(cam, inf.x0 - mg, ry - mg, inf.x0 + inf.w + mg, ry + inf.h + mg, st), F = telaF(fw, fh), f = F.getContext('2d');
+        f.save(); f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'source-over'; f.clearRect(0, 0, fw, fh);
+        f.setTransform(e, 0, 0, e, -inf.x0 * e, -ry * e); f.imageSmoothingEnabled = true; f.imageSmoothingQuality = 'high'; f.drawImage(R.c, R.x, R.y, R.w, R.h);
+        f.globalCompositeOperation = 'source-in'; pinta(f, ry, inf.h); f.restore();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); if (modo) ctx.globalCompositeOperation = modo; ctx.drawImage(F, 0, 0, fw, fh, 0, 0, fw, fh);
+      });
     }
     // desenha livre (ex.: a água, que tem o seu próprio desenho) e depois recorta pela máscara lisa
-    function* aplicaDepois(msk, pintaLivre) {
-      for (let y0 = 0; y0 < H; y0 += FX) {
-        const fh = Math.min(FX, H - y0);
-        F.x.globalCompositeOperation = 'source-over'; F.x.clearRect(0, 0, W, FX); F.x.save(); F.x.translate(0, -y0); pintaLivre(F.x); F.x.restore();
-        F.x.globalCompositeOperation = 'destination-in'; F.x.imageSmoothingEnabled = true; F.x.imageSmoothingQuality = 'high'; F.x.drawImage(msk, 0, y0 / Q, w4, fh / Q, 0, 0, W, fh); F.x.globalCompositeOperation = 'source-over';
-        x.drawImage(F.c, 0, 0, W, fh, 0, y0, W, fh);
-        yield;
-      }
+    function aplicaDepois(cam, pintaLivre) {
+      x.passo((ctx, inf) => {
+        const e = inf.esc, st = passoMasc(e), mg = Q * st * 3, fw = Math.ceil(inf.w * e), fh = Math.ceil(inf.h * e);
+        const R = regiao(cam, inf.x0 - mg, inf.y0 - mg, inf.x0 + inf.w + mg, inf.y0 + inf.h + mg, st), F = telaF(fw, fh), f = F.getContext('2d');
+        f.save(); f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'source-over'; f.clearRect(0, 0, fw, fh);
+        f.setTransform(e, 0, 0, e, -inf.x0 * e, -inf.y0 * e); f.save(); pintaLivre(f); f.restore();
+        f.globalCompositeOperation = 'destination-in'; f.imageSmoothingEnabled = true; f.imageSmoothingQuality = 'high'; f.drawImage(R.c, R.x, R.y, R.w, R.h); f.restore();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(F, 0, 0, fw, fh, 0, 0, fw, fh);
+      });
     }
-    const cor = c0 => (q, y0, fh) => { q.fillStyle = c0; q.fillRect(0, y0, W, fh); }, tex = t => (q, y0, fh) => { q.fillStyle = padrao2(t); q.fillRect(0, y0, W, fh); };
+    const cor = c0 => (q, y0, fh) => { q.fillStyle = c0; q.fillRect(0, y0, W, fh); }, tex = t => { const p = padrao2(t); return (q, y0, fh) => { q.fillStyle = p; q.fillRect(0, y0, W, fh); }; };
     // forma "construída" ou "alta": sombra, borda escura (e parede de penhasco), textura, filete de luz
     function* desenhaPiso(camada, pintaDentro, alto, flutua) {
       const borda = yield* camada(v => ss(0.3, 0.4, v)); const dentro = yield* camada(v => ss(0.47, 0.53, v)); const filete = yield* camada(v => Math.max(0, ss(0.47, 0.53, v) - ss(0.6, 0.72, v)));
-      { // a sombra desfocada, em faixas (só o pedaço da máscara que cai na faixa, com margem para o desfoque)
-        const bz = Math.round(T * (alto ? 0.25 : 0.12)), dy = T * (alto ? 0.28 : 0.06), mg = bz * 3 + Q;
-        for (let y0 = 0; y0 < H; y0 += 512) {
-          const a = Math.max(dy, y0 - mg), b = Math.min(H + dy, y0 + 512 + mg); if (b <= a) continue;
-          const s0 = (a - dy) / Q, s1 = (b - dy) / Q;
-          x.save(); x.beginPath(); x.rect(0, y0, W, 512); x.clip(); x.filter = `blur(${bz}px)`; x.globalAlpha = alto ? 0.7 : 0.45; x.imageSmoothingEnabled = true;
-          x.drawImage(borda, 0, s0, w4, s1 - s0, 0, a, W, b - a); x.restore();
-          yield;
-        }
+      { // a sombra desfocada (só o pedaço da máscara que cai no bloco, com margem para o desfoque)
+        const bz = Math.round(T * (alto ? 0.25 : 0.12)), dy = T * (alto ? 0.28 : 0.06), mg = bz * 3 + Q * 4;
+        x.passo((ctx, inf) => {
+          const e = inf.esc, st = passoMasc(e), R = regiao(borda, inf.x0 - mg, inf.y0 - dy - mg, inf.x0 + inf.w + mg, inf.y0 - dy + inf.h + mg, st);
+          ctx.filter = `blur(${bz * e}px)`; ctx.globalAlpha = alto ? 0.7 : 0.45; ctx.imageSmoothingEnabled = true; ctx.drawImage(R.c, R.x, R.y + dy, R.w, R.h);
+        });
       }
-      if (alto) yield* aplica(borda, cor(flutua ? 'rgba(40,30,60,0.95)' : 'rgba(20,20,30,0.9)'), T * (flutua ? 0.32 : 0.18));
-      yield* aplica(borda, cor('rgba(28,42,52,0.85)'));
-      yield* aplica(dentro, pintaDentro);
-      yield* aplica(filete, cor(alto ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)'), 0, 'soft-light');
+      if (alto) aplica(borda, cor(flutua ? 'rgba(40,30,60,0.95)' : 'rgba(20,20,30,0.9)'), T * (flutua ? 0.32 : 0.18));
+      aplica(borda, cor('rgba(28,42,52,0.85)'));
+      aplica(dentro, pintaDentro);
+      aplica(filete, cor(alto ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.5)'), 0, 'soft-light');
     }
     const tilesDe = pred => { const l = []; for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if (pred(m.chao[j * m.w + i])) l.push([i, j]); return l; };
     // 1) o fundo: o vazio do espaço (e o chão vira plataforma flutuante) ou o chão de baixo do bioma
     if (temVazio) {
-      x.fillStyle = padrao2(VAZIO); for (let y0 = 0; y0 < H; y0 += 1024) { x.fillRect(0, y0, W, Math.min(1024, H - y0)); yield; }
+      x.fillStyle = padrao2(VAZIO); x.fillRect(0, 0, W, H); yield;
       const ilha = tilesDe(t => t !== VAZIO); if (ilha.length) { const cm = yield* mascara(ilha, false, 0.45); yield* desenhaPiso(cm, tex(base), true, true); }
-    } else { x.fillStyle = padrao2(base); for (let y0 = 0; y0 < H; y0 += 1024) { x.fillRect(0, y0, W, Math.min(1024, H - y0)); yield; } }
+    } else { x.fillStyle = padrao2(base); x.fillRect(0, 0, W, H); yield; }
     yield { p: 0.08 };
     // 2) os outros chãos, na ordem das camadas
     // chão que se desenha JUNTO com outro (a parede de pedra fininha da arena do Rex vira parte da mata alta em volta:
@@ -182,16 +214,16 @@ const CHAO2 = {
       const tiles = tilesDe(v => v !== VAZIO && junta(v) === t), est = ESTILO_CHAO[t];
       if (t === CH.AGUA && typeof pintaAgua === 'function') { // a água de sempre, com a beirada lisa
         const cmA = yield* mascara(tiles, true, 0.45); const msk = yield* cmA(v => ss(0.42, 0.56, v)), tudo = new Path2D(); tudo.rect(0, 0, W, H);
-        yield* aplicaDepois(msk, q => pintaAgua(q, m, tudo)); continue;
+        aplicaDepois(msk, q => pintaAgua(q, m, tudo)); continue;
       }
       if (B.paredeCru && B.paredeCru.includes(t)) { // parede do bioma no quadradinho exato, com a arte nova e uma sombra suave em volta
         const p = new Path2D(); for (const [i, j] of tiles) p.rect(i * T, j * T, T, T);
-        for (let j0 = 0; j0 < m.h; j0 += 8) { // (a sombra em faixas de 8 fileiras: o desfoque no mapa inteiro de uma vez travava)
-          const pf = new Path2D(); let tem = false; for (const [i, j] of tiles) if (j >= j0 - 1 && j < j0 + 9) { pf.rect(i * T, j * T, T, T); tem = true; }
-          if (!tem) continue;
-          x.save(); x.beginPath(); x.rect(0, j0 * T, W, 8 * T); x.clip(); x.filter = `blur(${Math.round(T * 0.12)}px)`; x.globalAlpha = 0.55; x.fillStyle = '#120a08'; x.translate(0, T * 0.08); x.fill(pf); x.restore();
-          yield;
-        }
+        x.passo((ctx, inf) => { // (a sombra só com as pedras perto do bloco: desfocar o mapa inteiro de uma vez travava)
+          const mg = T * 0.6, pf = new Path2D(); let tem = false;
+          for (const [i, j] of tiles) if ((i + 1) * T > inf.x0 - mg && i * T < inf.x0 + inf.w + mg && (j + 1) * T > inf.y0 - mg && j * T < inf.y0 + inf.h + mg) { pf.rect(i * T, j * T, T, T); tem = true; }
+          if (!tem) return;
+          ctx.filter = `blur(${Math.round(T * 0.12) * inf.esc}px)`; ctx.globalAlpha = 0.55; ctx.fillStyle = '#120a08'; ctx.translate(0, T * 0.08); ctx.fill(pf);
+        });
         x.fillStyle = padrao2(t) || padrao(x, TEX_CHAO[t], (2 * T) / 256) || est.cor; x.fill(p);
         { // a beirada: só onde a parede encontra o chão (não em volta de cada quadradinho)
           const bd = new Path2D(), eP = (i, j) => i < 0 || j < 0 || i >= m.w || j >= m.h || junta(m.chao[j * m.w + i]) === t;
@@ -212,22 +244,20 @@ const CHAO2 = {
       else { // (a lava: pedra quente + a tinta laranja de antes + um brilho que vaza para fora da beirada)
         const msk = yield* camada(v => ss(0.32, 0.62, v));
         if (t === CH.MV_LAVA) {
-          { const c1 = yield* camada(v => ss(0.08, 0.45, v) * 0.35); yield* aplica(c1, cor('rgba(255,120,30,1)'), 0, 'screen'); } // brilho no chão em volta
-          yield* aplica(msk, tex(t)); // a lava derretida (arte própria, v379)
-          { const c2 = yield* camada(v => ss(0.7, 1, v) * 0.28); yield* aplica(c2, cor('rgba(255,220,120,1)'), 0, 'screen'); } // o miolo mais quente
-          { const c3 = yield* camada(v => Math.max(0, ss(0.32, 0.46, v) - ss(0.5, 0.64, v))); yield* aplica(c3, cor('rgba(52,22,14,0.9)')); } // beirada de rocha esfriada
-        } else { yield* aplica(msk, tex(t)); if (est.tinta) yield* aplica(msk, cor(est.tinta)); }
+          { const c1 = yield* camada(v => ss(0.08, 0.45, v) * 0.35); aplica(c1, cor('rgba(255,120,30,1)'), 0, 'screen'); } // brilho no chão em volta
+          aplica(msk, tex(t)); // a lava derretida (arte própria, v379)
+          { const c2 = yield* camada(v => ss(0.7, 1, v) * 0.28); aplica(c2, cor('rgba(255,220,120,1)'), 0, 'screen'); } // o miolo mais quente
+          { const c3 = yield* camada(v => Math.max(0, ss(0.32, 0.46, v) - ss(0.5, 0.64, v))); aplica(c3, cor('rgba(52,22,14,0.9)')); } // beirada de rocha esfriada
+        } else { aplica(msk, tex(t)); if (est.tinta) aplica(msk, cor(est.tinta)); }
       }
     }
     yield { p: 0.84 };
     // 3) manchas largas de tom (claro e escuro)
     { const n1 = manchas(W, H, T * 5, m.w * 31 + 1), n2 = manchas(W, H, T * 12, m.h * 17 + 3);
-      for (let y0 = 0; y0 < H; y0 += 768) { // (em faixas)
-        x.save(); x.beginPath(); x.rect(0, y0, W, 768); x.clip(); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.globalCompositeOperation = 'soft-light';
-        x.globalAlpha = 0.3; x.drawImage(n1, -T * 2.5, -T * 2.5, n1.width * T * 5, n1.height * T * 5);
-        x.globalAlpha = 0.36; x.drawImage(n2, -T * 6, -T * 6, n2.width * T * 12, n2.height * T * 12); x.restore();
-        yield;
-      } }
+      x.save(); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.globalCompositeOperation = 'soft-light';
+      x.globalAlpha = 0.3; x.drawImage(n1, -T * 2.5, -T * 2.5, n1.width * T * 5, n1.height * T * 5);
+      x.globalAlpha = 0.36; x.drawImage(n2, -T * 6, -T * 6, n2.width * T * 12, n2.height * T * 12); x.restore();
+      yield; }
     // 4) enfeites em grupinhos, pelo tipo de chão de cada lugar
     const livreDc = (i, j, t) => { if (i < 0 || j < 0 || i >= m.w || j >= m.h) return false; const k = j * m.w + i; if (m.chao[k] !== t || m.obj[k]) return false; for (const s of m.saidas) if (Math.abs(s.x - i) <= 1 && Math.abs(s.y - j) <= 1) return false; for (const n of m.npcs) if (Math.abs(n.x - i) <= 1 && Math.abs(n.y - j) <= 1) return false; return true; };
     yield { p: 0.9 };
@@ -249,6 +279,30 @@ const CHAO2 = {
     }
     // 5) luz do fundo do mar (Atlântida)
     if (B.luz) { x.save(); x.globalCompositeOperation = 'soft-light'; for (let k = 0; k < Math.ceil(W / (T * 6)); k++) { const x0 = k * T * 6 + r() * T * 3; const g = x.createLinearGradient(x0, 0, x0 + T * 4, H); g.addColorStop(0, 'rgba(255,255,230,0.0)'); g.addColorStop(0.5, 'rgba(255,255,230,0.18)'); g.addColorStop(1, 'rgba(255,255,230,0.0)'); x.fillStyle = g; x.beginPath(); x.moveTo(x0, 0); x.lineTo(x0 + T * 2.2, 0); x.lineTo(x0 + T * 2.2 + H * 0.35, H); x.lineTo(x0 + H * 0.35, H); x.closePath(); x.fill(); } x.restore(); }
+    // 6) v407 (Raio-X): composições em grupos nos lugares vazios (crateras, cristais, recifes, ruínas...)
+    const GR = CHAO2.grupos[m.id];
+    if (GR) {
+      yield;
+      const livre = (i, j) => { if (i < 1 || j < 1 || i >= m.w - 1 || j >= m.h - 1) return false; const k = j * m.w + i; if (m.chao[k] !== base || m.obj[k]) return false; for (const s of m.saidas) if (Math.abs(s.x - i) <= 2 && Math.abs(s.y - j) <= 2) return false; for (const n of m.npcs) if (Math.abs(n.x - i) <= 2 && Math.abs(n.y - j) <= 2) return false; return true; };
+      let nLivre = 0; for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if (livre(i, j)) nLivre++;
+      const centros = [], nC = Math.min(60, Math.round(nLivre * GR.n));
+      for (let tent = 0; centros.length < nC && tent < nC * 40; tent++) {
+        const gi = 2 + ((r() * (m.w - 4)) | 0), gj = 2 + ((r() * (m.h - 4)) | 0);
+        if (centros.some(([a, b2]) => Math.abs(a - gi) + Math.abs(b2 - gj) < 8)) continue;
+        let ok = true; for (let dj = -2; dj <= 2 && ok; dj++) for (let di = -2; di <= 2 && ok; di++) if (di * di + dj * dj <= 5 && !livre(gi + di, gj + dj)) ok = false;
+        if (!ok) continue; centros.push([gi, gj]);
+        const tema = GR.temas[(r() * GR.temas.length) | 0], cx0 = (gi + 0.5) * T, cy0 = (gj + 0.5) * T, pecas = [];
+        for (const [artes, q, t0, t1, dist] of tema) for (let k = 0; k < q; k++) {
+          const ang = r() * Math.PI * 2, d = dist * (0.65 + r() * 0.55), cx = cx0 + Math.cos(ang) * d * T, cy = cy0 + Math.sin(ang) * d * T * 0.8;
+          const e = spr(artes[(r() * artes.length) | 0]), w = T * (t0 + r() * (t1 - t0)), flip = r() < 0.5, rot = (r() - 0.5) * 0.35;
+          if (!e.ok || !livre(Math.floor(cx / T), Math.floor(cy / T))) continue;
+          pecas.push({ e, w, h: w * e.im.height / e.im.width, cx, cy, flip, rot });
+        }
+        pecas.sort((a, b2) => a.cy - b2.cy); // (de trás para a frente)
+        for (const pc of pecas) { x.save(); x.globalAlpha = 0.2; x.fillStyle = '#000'; x.beginPath(); x.ellipse(pc.cx, pc.cy + pc.h * 0.32, pc.w * 0.44, pc.h * 0.17, 0, 0, 7); x.fill(); x.restore(); }
+        for (const pc of pecas) { x.save(); x.translate(pc.cx, pc.cy); if (pc.flip) x.scale(-1, 1); x.rotate(pc.rot); x.drawImage(pc.e.im, -pc.w / 2, -pc.h / 2, pc.w, pc.h); x.restore(); }
+      }
+    }
     m.campos.forEach(f => drawLinhasCampo(x, f));
     yield { p: 1 };
     return c;
@@ -298,7 +352,7 @@ const CHAO2 = {
       if (m._chaoDesistiu) { const r = _rcN.apply(this, arguments); return r; }
       // enquanto espera: um chão liso da cor do bioma, coberto pela cortina
       const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438';
-      const ph = mkCanvas(m.w * T, m.h * T), px = ph.getContext('2d'); px.fillStyle = cor; px.fillRect(0, 0, ph.width, ph.height);
+      const ph = novoChaoBlocos(m.w * T, m.h * T, m, { soPrevia: true, cor }); // v407 (Raio-X A8): as cores dos quadradinhos (sem imagem do tamanho do mapa: no iPhone ela nem existia)
       m._chao = ph; cortina(true, m, 0.02 + 0.2 * artes.filter(n => pronto(n) || spr(n).err).length / Math.max(1, artes.length));
       if (!m._esperaChao2) {
         const t0 = Date.now();
@@ -318,21 +372,24 @@ const CHAO2 = {
   //  3) só mapa PESADO (ex.: Labirinto Jurássico) ainda não pronto usa a tela de entrada, e ela só aparece se demorar
   //     mais de 0,25 s (não pisca). O tempo de cada mapa é medido e guardado por aparelho (rac_chao_ms).
   //  4) memória: ficam guardados só os chãos do mapa atual, dos 2 anteriores e o pré-desenhado (celular agradece).
-  const LEVE = 450;
-  const TEMPOS = (() => { try { return JSON.parse(localStorage.getItem('rac_chao_ms') || '{}') || {}; } catch (e) { return {}; } })();
-  const estima = m => TEMPOS[m.id] != null ? TEMPOS[m.id] : Math.round(m.w * m.h * 0.1);
+  // v407 (Raio-X A8): com os blocos, o desenho aqui é só o PREPARO (máscaras + passos anotados); a pintura é por bloco, perto
+  // da câmera (chao_blocos.js). "Leve" agora é até 60 ms — nada pode congelar o jogo (antes: 450 ms de uma vez). Os tempos
+  // novos ficam em rac_chao_ms2 (os antigos mediam o mapa inteiro pintado).
+  const LEVE = 60;
+  const TEMPOS = (() => { try { return JSON.parse(localStorage.getItem('rac_chao_ms2') || '{}') || {}; } catch (e) { return {}; } })();
+  const estima = m => TEMPOS[m.id] != null ? TEMPOS[m.id] : Math.round(m.w * m.h * 0.03);
   const FAZENDO = new Map(); // mapa -> { g, p, args, trab (ms de trabalho), fundo (pré-desenho) }
   let preFeito = null; // o último mapa pré-desenhado (fica guardado até você entrar nele)
   function novoDesenho(m, bio, args, fundo) { const f = { g: renderChao2G(m, bio), p: 0.02, args, trab: 0, fundo }; FAZENDO.set(m, f); return f; }
   function comecaDesenho(m, bio, args) {
     let f = FAZENDO.get(m);
     if (f) f.fundo = false; // (vinha sendo pré-desenhado: continua de onde parou, agora com pressa)
-    else { f = novoDesenho(m, bio, args, false); passoDesenho(m, f, m._chaoVelho ? 8 : estima(m) <= LEVE ? Infinity : 40); }
+    else { f = novoDesenho(m, bio, args, false); passoDesenho(m, f, m._chaoVelho ? 8 : estima(m) <= LEVE ? Infinity : 14); } // (v407: 14 ms, era 40)
     if (!FAZENDO.has(m)) return m._chao; // terminou de uma vez
     if (!m._chaoTemp) {
       const velho = m._chaoVelho; // (redesenho no meio do jogo: fica o chão de antes, sem tela de entrada)
       if (velho) m._chaoTemp = velho;
-      else { const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438'; const ph = mkCanvas(m.w * T, m.h * T), px = ph.getContext('2d'); px.fillStyle = cor; px.fillRect(0, 0, ph.width, ph.height); m._chaoTemp = ph; }
+      else { const B = CHAO2.biomas[bio] || {}, cor = (ESTILO_CHAO[B.base] || ESTILO_CHAO[m.chao[0]] || {}).cor || '#2a2438'; m._chaoTemp = novoChaoBlocos(m.w * T, m.h * T, m, { soPrevia: true, cor }); } // v407: prévia com as cores dos quadradinhos (não mais o chão chapado)
     }
     if (!m._chaoVelho && G.mapa === m && CORTINA_LIGADA) { cortina(true, m, f.p); G.carregandoChao = true; }
     return m._chaoTemp; // (sem guardar em m._chao: o renderChao volta aqui a cada quadro)
@@ -344,8 +401,8 @@ const CHAO2 = {
         const r = f.g.next();
         if (r.done) {
           f.trab += performance.now() - t0; FAZENDO.delete(m); m._chao = r.value; m._chao2 = true; m._chaoVelho = r.value; m._chaoTemp = null;
-          TEMPOS[m.id] = Math.round(f.trab); try { localStorage.setItem('rac_chao_ms', JSON.stringify(TEMPOS)); } catch (e) { }
-          if (f.fundo) preFeito = m;
+          TEMPOS[m.id] = Math.round(f.trab); try { localStorage.setItem('rac_chao_ms2', JSON.stringify(TEMPOS)); } catch (e) { }
+          if (f.fundo) { preFeito = m; try { MEM_MAPAS.pre = m; CHAO_BLOCOS.querPrevia(r.value); } catch (e) { } } // (o vizinho pré-desenhado: já faz a prévia)
           if (G.mapa === m) { G.carregandoChao = false; cortina(false); }
           return true;
         }
@@ -377,7 +434,7 @@ const CHAO2 = {
       const cands = [];
       for (const id of ids) {
         let v = null; try { v = getMapa(id); } catch (e) { continue; }
-        if (!v || v.interior || v._chao2 || FAZENDO.has(v) || estima(v) < 120) continue;
+        if (!v || v.interior || v._chao2 || FAZENDO.has(v) || estima(v) < 30) continue; // (v407: o preparo ficou leve; pré-desenha tudo que não é instantâneo)
         if (!artesDoMapa(v).every(n => pronto(n) || spr(n).err) || !spr('t_grama').ok) continue;
         cands.push(v);
       }
@@ -387,19 +444,11 @@ const CHAO2 = {
   }
   setInterval(preDesenha, 1500);
   function vizinhosArte(m) { try { for (const id of new Set((m.saidas || []).map(s => s.para))) if (CHAO2.mapas[id] && MAPAS_DEF[id]) { const v = getMapa(id); if (!v.interior) artesDoMapa(v).forEach(n => spr(n)); } } catch (e) { } }
-  // memória: solta o chão dos mapas que ficaram para trás (fica o atual, os 2 anteriores e o pré-desenhado)
-  const recentes = [];
-  function soltaChaos() {
-    try {
-      if (!G.mapa || typeof MAPAS === 'undefined') return;
-      const id = G.mapa.id; const k = recentes.indexOf(id); if (k >= 0) recentes.splice(k, 1); recentes.unshift(id); recentes.length = Math.min(recentes.length, 3);
-      if (preFeito === G.mapa) preFeito = null;
-      for (const [mid, mm] of Object.entries(MAPAS)) {
-        if (!mm || !mm._chao2 || recentes.includes(mid) || mm === preFeito || FAZENDO.has(mm)) continue;
-        mm._chao = null; mm._chaoVelho = null; mm._chao2 = false; mm._chaoTemp = null;
-      }
-    } catch (e) { }
-  }
+  // memória — v407 (Raio-X A8): havia DUAS regras brigando (memoria_mapas.js guardava 1–2 chãos, esta aqui 3 + o pré-desenhado;
+  // medido: 4–5 chãos guardados, 333 MB). Agora a regra é UMA só, em memoria_mapas.js (o atual, os 2 anteriores e o vizinho
+  // pré-desenhado; a imagem pesada — os blocos — tem um teto único em chao_blocos.js). Aqui só se avisa quem é o pré-desenhado.
+  const recentes = (typeof MEM_MAPAS !== 'undefined' && MEM_MAPAS.ordem) || [];
+  function soltaChaos() { try { if (preFeito === G.mapa) preFeito = null; MEM_MAPAS.pre = preFeito; } catch (e) { } }
   window.CHAO2_FAZENDO = FAZENDO; window.CHAO2_PRE = { TEMPOS, estima, preDesenha, recentes, gerador: renderChao2G }; // (testes)
   // saiu do mapa antes de terminar: a cortina não fica presa
   const _entCortina = entrarMapa;
@@ -519,6 +568,65 @@ function elipseChao(b, cx, cy, rx, ry, ch, so) { const m = b.m; for (let j = Mat
     } catch (e) { console.warn('planalto', c.id, e); }
     return m;
   };
+}
+/* ---------- v407 (Raio-X: "criar caminhos entre as entradas"): passarelas até as entradas soltas ----------
+   Na Lua (e em Marte, que tem o mesmo traçado) o largo da entrada de cada área de caça e o mirante ficavam soltos no meio do
+   chão, sem caminho até as avenidas; no Multiverso, o Guardião, a loja e o quadro ficavam fora da passarela. Aqui cada pedaço
+   solto de piso (e cada NPC fora dele) ganha uma passarela RETA de 2 quadradinhos até a rede principal (a que sai da chegada).
+   Só troca chão por chão onde já se anda (nunca passa por objeto, parede ou o vazio): ninguém fica preso, nada novo bloqueia. */
+function ligaEntradas(m, piso, base) {
+  const W = m.w, H = m.h, N = W * H, k0 = m.inicio ? m.inicio.y * W + m.inicio.x : -1;
+  const anda = k => CH_ANDA(m.chao[k]) && m.chao[k] !== CH.ESTRELAS && !(m.obj[k] && OBJ_BLOQUEIA.has(m.obj[k].t));
+  const pode = k => m.chao[k] === base && !m.obj[k]; // (onde a passarela pode ser pintada)
+  const comp = new Int32Array(N).fill(-1), grupos = [];
+  for (let s = 0; s < N; s++) {
+    if (comp[s] >= 0 || m.chao[s] !== piso) continue;
+    const id = grupos.length, pil = [s], l = []; comp[s] = id;
+    while (pil.length) { const k = pil.pop(); l.push(k); const i = k % W, j = (k / W) | 0; for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= W || jj >= H) continue; const q = jj * W + ii; if (comp[q] < 0 && m.chao[q] === piso) { comp[q] = id; pil.push(q); } } }
+    grupos.push(l);
+  }
+  if (!grupos.length) return 0;
+  // a rede principal começa no pedaço da chegada (ou no maior) e cresce a cada passarela feita
+  const rede = new Uint8Array(N), poeRede = l => { for (const k of l) rede[k] = 1; };
+  let g0 = k0 >= 0 && comp[k0] >= 0 ? comp[k0] : grupos.reduce((a, l, id) => l.length > grupos[a].length ? id : a, 0); poeRede(grupos[g0]);
+  const alvos = []; // pedaços soltos de piso (4+ quadradinhos) e NPCs fora do piso
+  grupos.forEach((l, id) => { if (id !== g0 && l.length >= 4) alvos.push({ l, piso: true }); });
+  for (const n of m.npcs) { const k = n.y * W + n.x; if (m.chao[k] !== piso) alvos.push({ l: [k] }); }
+  alvos.sort((a, b) => b.l.length - a.l.length);
+  let feitos = 0;
+  for (let volta = 0; volta < 4; volta++) {
+    let mudou = false;
+    for (const al of alvos) {
+      if (al.feito) continue;
+      if (al.l.some(k => rede[k])) { al.feito = true; continue; }
+      let melhor = null;
+      for (const k of al.l) {
+        const i = k % W, j = (k / W) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const px = dy ? 1 : 0, py = dx ? 1 : 0; // a segunda faixa da passarela (ao lado)
+          const caminho = []; let x = i + dx, y = j + dy, ok = false;
+          for (let d = 0; d < 30; d++, x += dx, y += dy) {
+            if (x < 0 || y < 0 || x + px >= W || y + py >= H) break;
+            const a = y * W + x, b = (y + py) * W + (x + px);
+            if (rede[a] || rede[b]) { ok = true; break; } // (encostou na rede; vazio = já estava do lado)
+            if (!anda(a) || !anda(b) || !pode(a) || !pode(b)) break;
+            caminho.push(a, b);
+          }
+          if (ok && (!melhor || caminho.length < melhor.length)) melhor = caminho;
+        }
+      }
+      if (melhor) { for (const k of melhor) m.chao[k] = piso; poeRede(melhor); poeRede(al.l); al.feito = true; feitos++; mudou = true; }
+    }
+    if (!mudou) break;
+  }
+  return feitos;
+}
+{
+  const LIGA = { lua: [CH.METAL, CH.REGOLITO], marte: [CH.METAL, CH.MARTE], multiverso: [CH.METAL, CH.MV_PRACA] };
+  for (const id of Object.keys(LIGA)) {
+    const base = MAPAS_DEF[id]; if (typeof base !== 'function') continue;
+    MAPAS_DEF[id] = function () { const m = base.apply(this, arguments); try { m._passarelas = ligaEntradas(m, LIGA[id][0], LIGA[id][1]); } catch (e) { console.warn('passarelas', id, e); } return m; };
+  }
 }
 if (typeof MAPAS !== 'undefined') for (const k of Object.keys(CHAO2.mapas)) delete MAPAS[k];
 window.CHAO2 = CHAO2;

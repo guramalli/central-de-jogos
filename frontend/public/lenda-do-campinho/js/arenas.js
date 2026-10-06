@@ -195,7 +195,7 @@ function criaArena(a) {
   const px = a.porta ? a.porta.x : 1, py = a.porta ? a.porta.y + 1 : 1;
   b.saida(16, H - 1, a.host, px, py);
   b.m.inicio = { x: 16, y: H - 3 }; b.m.renasce = { x: 16, y: H - 3 };
-  b.placa(13, H - 3, `${a.nome.toUpperCase()} — o chefão ${a.chefe.nome} entra em campo em horários especiais. Fuja dos círculos vermelhos!`);
+  b.placa(13, H - 3, `${a.nome.toUpperCase()} — o chefão ${a.chefe.nome} fica em campo o dia todo. Fuja dos círculos vermelhos!`);
   b.m.arena = a.id;
   return b.m;
 }
@@ -223,10 +223,12 @@ for (const a of ARENAS) {
 
 /* ---------- horário, dia e registro ---------- */
 function hojeArena() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+// v407 (Raio-X R11): o chefão fica em campo o DIA TODO (antes: 30 min a cada 2 h no relógio real — "medo de perder").
+// A 1ª vitória do dia dá o prêmio grande (chance de mítico); as outras, um prêmio pequeno. ARENA_CICLO/JANELA ficam por compatibilidade.
+const ARENA_VOLTA_MS = 90000; // depois de vencido, o chefão volta a campo em 1 min e meio (para quem quer treinar contra ele)
 function janelaArena(a) {
   const d = new Date(); const min = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
-  const pos = ((min - a.offset) % ARENA_CICLO + ARENA_CICLO) % ARENA_CICLO;
-  return pos < ARENA_JANELA ? { aberta: true, resta: ARENA_JANELA - pos, abre: 0 } : { aberta: false, resta: 0, abre: ARENA_CICLO - pos };
+  return { aberta: true, resta: 24 * 60 - min, abre: 0 };
 }
 function regArena(id) { // sempre o MESMO objeto salvo (só completa o que faltar)
   const s = G.save; s.arenas = s.arenas || {};
@@ -239,14 +241,14 @@ function regArena(id) { // sempre o MESMO objeto salvo (só completa o que falta
   return r;
 }
 function venceuHoje(a) { return regArena(a.id).dia === hojeArena(); }
-function chefeEmCampo(a) { return janelaArena(a).aberta && !venceuHoje(a); }
+function chefeEmCampo(a) { return janelaArena(a).aberta && Date.now() - (regArena(a.id).ultVit || 0) > ARENA_VOLTA_MS; } // v407 (R11): aberto o dia todo, mesmo depois da vitória
 function fmtMin(min) { min = Math.max(0, Math.ceil(min)); const h = Math.floor(min / 60), m = min % 60; return h ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`; }
 function horaAbre(a) { const d = new Date(Date.now() + janelaArena(a).abre * 60000); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 function chanceMitico(a) { return Math.min(ARENA_MITICO_MAX, ARENA_MITICO_BASE + ARENA_MITICO_SORTE * regArena(a.id).sorte); }
 function statusArenaTxt(a) {
-  if (venceuHoje(a)) return { txt: '✅ Você já venceu hoje. Volte amanhã!', cls: 'ar-ok' };
+  if (venceuHoje(a)) return { txt: '✅ Prêmio grande de hoje já é seu! Pode jogar de novo (prêmio pequeno) ou voltar amanhã.', cls: 'ar-ok' }; // v407 (R11)
   const j = janelaArena(a);
-  if (j.aberta) return { txt: `🔥 CHEFÃO EM CAMPO AGORA! Sai em ${fmtMin(j.resta)}`, cls: 'ar-aberta' };
+  if (j.aberta) return { txt: '🔥 Chefão em campo o dia todo! A 1ª vitória de hoje vale o prêmio grande.', cls: 'ar-aberta' };
   return { txt: `⏳ Entra em campo às ${horaAbre(a)} (daqui a ${fmtMin(j.abre)})`, cls: 'ar-fechada' };
 }
 
@@ -274,8 +276,8 @@ function modalPorteiro(npc) {
       el('p', {}, el('b', {}, a.chefe.nome), ` · Nível ${a.L}`),
       el('p', { class: 'ar-status ' + st.cls }, st.txt),
       el('ul', { class: 'ar-regras' },
-        el('li', {}, `O chefão só entra em campo ${ARENA_JANELA} minutos a cada ${ARENA_CICLO / 60} horas (horário do seu relógio).`),
-        el('li', {}, 'Só dá para vencê-lo UMA vez por dia. Se você ficar sem fôlego, pode tentar de novo enquanto ele estiver em campo.'),
+        el('li', {}, 'O chefão fica em campo o dia todo: venha quando puder!'), // v407 (Raio-X R11)
+        el('li', {}, 'A 1ª vitória de cada dia dá o prêmio grande (chance de item MÍTICO). As outras vitórias do dia dão um prêmio pequeno. Ficou sem fôlego? Tente de novo!'),
         el('li', {}, 'Ele tem golpes especiais: quando aparecer um CÍRCULO VERMELHO no chão, saia de dentro!'),
         el('li', {}, 'Com pouco fôlego ele chama reservas, levanta um escudo e entra no MODO FINAL.'),
         el('li', {}, `Vitórias: ${reg.vitorias}. Chance de item mítico na próxima vitória: ${Math.round(chanceMitico(a) * 100)}% (sobe a cada vitória sem mítico).`)))),
@@ -290,7 +292,7 @@ function modalArenas() {
       el('div', { class: 'nm' }, el('b', {}, `🏟️ ${a.nome} — ${a.chefe.nome}`), el('small', {}, `Nível ${a.req}+ · entrada em ${host} · míticos: ${reg.itens.length}/3`), el('small', { class: 'ar-status ' + st.cls }, pode ? st.txt : `🔒 Libera no nível ${a.req}`))));
   }
   abreModal(el('h2', {}, '🏟️ Arenas dos Chefões'),
-    el('p', {}, `Cada arena tem um chefão muito difícil que entra em campo ${ARENA_JANELA} minutos a cada ${ARENA_CICLO / 60} horas, e só pode ser vencido uma vez por dia. Eles deixam cair itens MÍTICOS que nenhum outro adversário tem.`), lista,
+    el('p', {}, 'Cada arena tem um chefão muito difícil que fica em campo o dia todo. A 1ª vitória de cada dia vale o prêmio grande: itens MÍTICOS que nenhum outro adversário tem. As outras vitórias do dia dão um prêmio pequeno.'), lista,
     el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Fechar')));
 }
 function getNomeMapa(id) { try { return (MAPAS[id] && MAPAS[id].nome) || ({ cidade: 'Cidade', praia: 'Praia', cairo: 'Cairo', toquio: 'Tóquio', munique: 'Munique', londres: 'Londres', buenos: 'Buenos Aires', rio: 'Rio de Janeiro' })[id] || id; } catch (e) { return id; } }
@@ -312,6 +314,7 @@ function entraChefe(a) {
   const sp = { m: a.chefe.id, x: ARENA_CHEFE_POS.x, y: ARENA_CHEFE_POS.y, qtd: 1, raio: 0, arena: true };
   const m = criaMonstro(sp); if (!m) return;
   m.d = Object.assign({}, MONSTROS[a.chefe.id]); // cópia: o modo final muda os números só deste chefão
+  if (venceuHoje(a)) { m.d.xp = Math.round((m.d.xp || 0) * 0.2); m.d.ouro = (m.d.ouro || [0, 0]).map(v => Math.round(v * 0.2)); m.d.loot = []; m.d.fig = null; } // v407 (Raio-X R11): revanche do dia = prêmio pequeno
   m.ar = { prox: G.agora + 5000, fase: 0, escudoAte: 0 };
   G.mons.push(m); efeito('nivel', m.x, m.y); efeito('impacto', m.x, m.y, a.cor);
   banner(`${a.chefe.nome.toUpperCase()}!`, 'O chefão entrou em campo!'); som('apito'); fala(m, a.chefe.falas[0]);
@@ -432,11 +435,13 @@ matar = function (m) {
   G.respawns = G.respawns.filter(r => !(r.sp && (r.sp.arena || r.sp.invocado)));
   if (!a) return;
   const s = G.save; const reg = regArena(a.id);
-  reg.dia = hojeArena(); reg.vitorias++;
+  const jaHoje = reg.dia === hojeArena(); // v407 (Raio-X R11): 2ª vitória do dia em diante = prêmio pequeno
+  reg.dia = hojeArena(); reg.vitorias++; reg.ultVit = Date.now();
   G.teleArena = [];
   for (const o of G.mons.filter(o => o.invocado)) { efeito('puff', o.x, o.y); }
   G.mons = G.mons.filter(o => !o.invocado);
   const primeira = !s.flags['arena_' + a.id]; s.flags['arena_' + a.id] = true;
+  if (jaHoje) { const pq = 50 + s.nivel * 10; s.ouro += pq; log(`🏟️ ${a.chefe.nome} vencido(a) de novo! Prêmio pequeno: ${fmt(pq)} tostões. O prêmio grande volta amanhã.`, 'l-loot'); salvar(); return; }
   const chance = chanceMitico(a); // a mesma que o porteiro mostra (a arena já é 1x por dia)
   if (Math.random() < chance) {
     const id = a.miticos[rndi(0, a.miticos.length - 1)];
@@ -449,7 +454,7 @@ matar = function (m) {
     reg.sorte++;
     log(`Nenhum item mítico desta vez... A sua sorte na ${a.nome} aumentou: ${Math.round(chanceMitico(a) * 100)}% na próxima vitória.`, 'l-sis');
   }
-  log(`🏟️ ${a.chefe.nome} vencido(a)! Volte amanhã para enfrentá-lo(a) de novo.${primeira ? ' Primeira vitória nesta arena!' : ''}`, 'l-lendario');
+  log(`🏟️ ${a.chefe.nome} vencido(a)! Prêmio grande de hoje garantido. Ele(a) volta a campo daqui a pouco para quem quiser treinar (prêmio pequeno).${primeira ? ' Primeira vitória nesta arena!' : ''}`, 'l-lendario');
   salvar();
 };
 // ficar sem fôlego perto do chefão: ele recupera tudo
@@ -536,7 +541,7 @@ setInterval(() => {
   for (const a of ARENAS) {
     if (G.save.nivel < a.req) continue;
     const j = janelaArena(a); const hoje = venceuHoje(a); const antes = ARENA_AVISO[a.id];
-    if (antes === undefined) { ARENA_AVISO[a.id] = { aberta: j.aberta, logo: false }; if (j.aberta && !hoje) log(`🏟️ ${a.chefe.nome} está em campo na ${a.nome} (entrada em ${getNomeMapa(a.host)}) por mais ${fmtMin(j.resta)}!`, 'l-lendario'); continue; }
+    if (antes === undefined) { ARENA_AVISO[a.id] = { aberta: j.aberta, logo: false }; continue; } // v407 (R11): aberta o dia todo — sem aviso de "corre que vai fechar"
     if (j.aberta && !antes.aberta && !hoje) { log(`🏟️ ${a.chefe.nome} entrou em campo na ${a.nome} (entrada em ${getNomeMapa(a.host)})! Fica ${ARENA_JANELA} min.`, 'l-lendario'); if (!arenaAtual()) banner('🏟️ Chefão em campo!', a.nome); }
     if (!j.aberta && j.abre <= 5 && !antes.logo && !hoje) { antes.logo = true; log(`⏰ Daqui a ${fmtMin(j.abre)} ${a.chefe.nome} entra em campo na ${a.nome}.`, 'l-sis'); }
     if (j.aberta) antes.logo = false;

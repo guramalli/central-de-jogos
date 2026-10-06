@@ -46,7 +46,7 @@ function cgCarregaCliente() {
 async function cgConecta() {
   if (CG.sock && CG.sock.connected) return CG.sock;
   await cgCarregaCliente();
-  if (!CG.sock) { CG.sock = window.io(cgApi(), { auth: { token: PORTAL.token }, transports: ['websocket'] }); cgEscuta(CG.sock); }
+  if (!CG.sock) { CG.sock = typeof lendaSock === 'function' ? lendaSock(cgApi()) : window.io(cgApi(), { auth: { token: PORTAL.token }, transports: ['websocket'] }); cgEscuta(CG.sock); } // v407 (Raio-X A9): conexão compartilhada (torre_coop.js)
   if (!CG.sock.connected) await new Promise((ok, erro) => { const t = setTimeout(() => erro(new Error('tempo')), 8000); CG.sock.once('connect', () => { clearTimeout(t); ok(); }); CG.sock.once('connect_error', e => { clearTimeout(t); erro(e); }); });
   return CG.sock;
 }

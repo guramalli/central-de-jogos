@@ -22,7 +22,7 @@ const AGM_ACOES = { // [nome, custo, fadiga, efeito, vai na rotina?]
   redes: ['📱 Conteúdo para redes', 0, 0, '+Visibilidade (repetir em menos de 4 semanas: −Disciplina)', 1],
   mentor: ['🧠 Mentor / psicólogo esportivo', 60000, 0, '+Estabilidade emocional, −Temperamento', 1],
 };
-let AGM_GANHO_BASE = 0.6, AGM_AUTO = 0.75, AGM_FADIGA_LIMITE = 70, AGM_ESPERA_CANDIDATO = 8;
+let AGM_GANHO_BASE = 1.5, /* v407: era 0.6 (o texto prometia +1 a +2 e dava 0,3–0,8) */ AGM_AUTO = 0.75, AGM_FADIGA_LIMITE = 70, AGM_ESPERA_CANDIDATO = 8;
 const AGM_TREINA = new Set(['treino', 'fisico', 'jogo']); // não dá com lesão
 const AGM_GANCHOS_SEMANA = []; // funções (a, lin) que rodam na virada de cada semana
 const AGM_ACAO_TELA = {};      // ações com tela própria (peneira, teste...): id → função(j)
@@ -63,7 +63,7 @@ function agmAplicaAcao(a, j, acao, at, auto) {
   return { acao, virou, custo, txt: `${nome}${txt ? ': ' + txt : ''}${virou ? ` (a rotina virou Descanso: ${virou})` : ''}`, dOvr: agmOverall(j) - antes.ovr };
 }
 // treino automático: o fundamento que mais faz o overall subir agora (peso da posição × espaço até o teto)
-function agmPiorAtr(j) { const p = AGM_POS[j.pos][1], t = agmTeto(j.P), rende = k => (p[k] || 0.5) * Math.max(0, 1 - j.atr[k] / t); return agmAtrDe(j.pos).slice().sort((x, y) => rende(y) - rende(x))[0]; }
+function agmPiorAtr(j) { const p = AGM_POS[j.pos][1], t = agmTeto(j.P), rende = k => (p[k] || 0.5) * agmFalta(j, k); void t; return agmAtrDe(j.pos).slice().sort((x, y) => rende(y) - rende(x))[0]; }
 // ação escolhida na hora (gasta 1 das ações da semana)
 function agmUsaAcao(j, acao, at) {
   const a = agDados(); if (!a || a.acoes <= 0) return { erro: 'Acabaram as ações desta semana.' };
@@ -87,7 +87,10 @@ function agmViraSemana(a) {
   // 3) cada garoto: recupera um pouco, lesões, idade
   for (const j of a.jogadores) {
     const e = j.estado;
-    e.fadiga = Math.max(0, e.fadiga - 10); e.forma += e.forma > 50 ? -2 : e.forma < 50 ? 2 : 0; e.moral += e.moral > 60 ? -1 : e.moral < 60 ? 1 : 0;
+    e.fadiga = Math.max(0, e.fadiga - 20); /* v407: era 10 */
+    // v407: quem está num clube (base ou profissional) e não está machucado evolui um pouco jogando, toda semana
+    if (j.clube && !(j.lesao > 0)) { const mC = j.clube.degrau && AGM_CLUBES_BASE[j.clube.degrau] ? AGM_CLUBES_BASE[j.clube.degrau][4] : 1; for (const k of agmAtrDe(j.pos)) j.atr[k] = Math.min(agmTeto(j.P), j.atr[k] + 0.08 * agmFIdadeTreino(agmIdade(j)) * agmFalta(j, k) * mC); j.ovrMax = Math.max(j.ovrMax || 0, agmOverall(j)); }
+    e.forma += e.forma > 50 ? -2 : e.forma < 50 ? 2 : 0; e.moral += e.moral > 60 ? -1 : e.moral < 60 ? 1 : 0;
     if (j.lesao > 0) { j.lesao--; if (!j.lesao) lin(`💚 ${agPrimeiro(j)} se recuperou da lesão e já pode treinar.`, 1, j.id); }
     else if (Math.random() < agmRiscoLesao(e.fadiga) * (1 - (j.preparo || 0) / 100)) { j.lesao = agRi(1, 4); e.moral = Math.max(0, e.moral - 10); agmHist(j, `lesão (${j.lesao} semanas)`); lin(`🤕 ${agPrimeiro(j)} se machucou de tanto cansaço (fadiga ${e.fadiga}): ${j.lesao} semana(s) parad${j.menina ? 'a' : 'o'}.`, 1, j.id); }
     j.idadeSem++;

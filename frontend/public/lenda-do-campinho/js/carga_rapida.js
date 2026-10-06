@@ -25,14 +25,50 @@ const CR = { simult: 6, fila: [], rodando: 0, gravando: null, iniciou: false };
       setTimeout(espera, 80);
     }
   }
+  // v407 (Raio-X A2): a fila NÃO começa mais na tela inicial (lá ela baixava dezenas de MB antes de o jogador clicar).
+  // Começa depois que o jogo abre: primeiro as artes do MAPA ATUAL e dos vizinhos já montados, depois o resto.
+  // No celular, ou com "economia de dados" ligada no aparelho, baixa SÓ o do mapa atual e vizinhos (a cada troca de mapa).
+  CR.economia = (typeof CEL !== 'undefined' && CEL) || !!(navigator.connection && navigator.connection.saveData);
+  const crArtesMapa = new WeakMap();
+  function crDoMapa(m) {
+    if (!m) return [];
+    let l = crArtesMapa.get(m); if (l) return l;
+    const s = new Set(); const poe = n => { if (n && ASSET_SET.has(n)) s.add(n); };
+    try {
+      for (const o of m.obj || []) if (o && o.t) poe(o.t);
+      for (const b of m.predios || []) poe(b.spr);
+      if (m.chao && typeof TEX_CHAO !== 'undefined') { const vistos = new Set(); for (let i = 0; i < m.chao.length; i += 7) vistos.add(m.chao[i]); for (const c of vistos) poe(TEX_CHAO[c]); }
+      for (const sp of m.spawns || []) { const l2 = MONSTROS[sp.m] && MONSTROS[sp.m].look; const t = l2 && l2.tipo; if (t && t !== 'humano') { poe(t); poe(t + '2'); for (let k = 1; k <= 4; k++) poe(t + '_c' + k); } }
+    } catch (e) { }
+    l = [...s]; crArtesMapa.set(m, l); return l;
+  }
+  function crPrioridade() {
+    const m = typeof G !== 'undefined' && G.mapa; if (!m) return [];
+    const l = [...crDoMapa(m)];
+    for (const sa of m.saidas || []) { const v = sa && sa.para && MAPAS[sa.para]; if (v && v !== m) l.push(...crDoMapa(v)); }
+    return l.filter(n => !SPR[n]);
+  }
+  CR.prioridade = crPrioridade;
   CR.comeca = function () {
     if (CR.iniciou) return; CR.iniciou = true;
-    // primeiro o que quase toda tela usa (chão, bonecos, prédios da Vila), depois o resto
-    const prio = n => /^t_|^boneco_(curto|cacheado|longo|coque|black|moicano|rabo|adulto|gordinho|grandao|careca|goleiro)/.test(n) ? 0 : /^(b_|arvore|arbusto|banca|banco)/.test(n) ? 1 : 2;
-    CR.fila = ASSETS.filter(n => !SPR[n]).sort((a, b) => prio(a) - prio(b)); proximo();
+    const frente = crPrioridade();
+    if (CR.economia) { CR.fila = frente; proximo(); return; }
+    // depois do mapa atual: o que quase toda tela usa (chão, prédios da Vila), depois o resto
+    const prio = n => /^t_/.test(n) ? 0 : /^(b_|arvore|arbusto|banca|banco)/.test(n) ? 1 : 2;
+    const ja = new Set(frente);
+    CR.fila = frente.concat(ASSETS.filter(n => !SPR[n] && !ja.has(n)).sort((a, b) => prio(a) - prio(b))); proximo();
+    // efeitos das lutas (~2,6 MB): no computador, baixam logo no começo (no celular, na 1ª vez que aparecem)
+    setTimeout(() => { try { for (const k in FX.img) void FX.img[k].ok; } catch (e) { } }, 6000);
   };
-  const inicia = () => setTimeout(CR.comeca, 400);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicia); else inicia();
+  // trocou de mapa: as artes dele (e dos vizinhos) passam para a frente da fila
+  if (typeof entrarMapa === 'function') {
+    const _entrarCR = entrarMapa;
+    entrarMapa = function () {
+      const r = _entrarCR.apply(this, arguments);
+      try { if (CR.iniciou) { const f = crPrioridade(); if (f.length) { const s = new Set(f); CR.fila = f.concat(CR.fila.filter(n => !s.has(n))); proximo(); } } } catch (e) { }
+      return r;
+    };
+  }
 
   // ---- grava o que o mapa pede (para saber o que a 1ª tela precisa) ----
   spr = function (nome) { if (CR.gravando && !CR.gravando.has(nome)) CR.gravando.add(nome); return sprCru.apply(this, arguments); };
@@ -42,8 +78,10 @@ const CR = { simult: 6, fila: [], rodando: 0, gravando: null, iniciou: false };
     const box = $('#inicioMenu'); $('#criacao').hidden = true; box.hidden = false; box.innerHTML = '';
     const barra = el('i'); barra.style.width = '0%';
     box.append(el('p', { class: 'resumo' }, 'Carregando o mundo...'), el('div', { class: 'progresso', style: 'width:min(360px,80vw)' }, barra));
-    CR.comeca();
+    // v407 (Raio-X A2): a fila de segundo plano só começa depois da 1ª tela (não disputa a internet com ela)
     const imgs = [...camadasDe(lookJogador(true)), ...camadasDe(lookJogador())].map(l => pegaImg(l.url));
+    // v407 (Raio-X A2): a folha do boneco do jogador já começa a baixar aqui (as folhas agora só baixam quando usadas)
+    try { for (const l of [lookJogador(true), lookJogador()]) { const f = FOLHAS[folhaDoLook(specDe(l), l)]; if (f) void f.ok; } } catch (e) { }
     return new Promise(res => {
       const t0 = performance.now();
       const tick = () => {
@@ -59,20 +97,23 @@ const CR = { simult: 6, fila: [], rodando: 0, gravando: null, iniciou: false };
   iniciarJogo = async function () {
     CR.gravando = new Set();
     const r = await _iniciarCR.apply(this, arguments);
-    if (document.hidden) { CR.gravando = null; return r; } // aba escondida: o navegador não desenha, não há o que esperar
+    if (document.hidden) { CR.gravando = null; CR.comeca(); return r; } // aba escondida: o navegador não desenha, não há o que esperar
     const cort = el('div', { id: 'cargaMundo' }, el('div', { class: 'cm-caixa' }, el('p', {}, 'Carregando o mundo...'), el('div', { class: 'progresso' }, el('i', { style: 'width:40%' }))));
     document.body.append(cort); const barra = cort.querySelector('.progresso i');
     const t0 = performance.now();
     await new Promise(res => {
       const tick = () => {
         const dt = performance.now() - t0, pedidos = [...CR.gravando].map(n => SPR[n]).filter(Boolean);
-        const ok = pedidos.filter(pronto).length; barra.style.width = Math.round(40 + 60 * ok / Math.max(1, pedidos.length)) + '%';
+        // v407 (Raio-X A2): conta também as folhas de boneco que a 1ª tela pediu (jogador, NPCs e adversários à vista)
+        const fol = typeof FOLHAS !== 'undefined' ? Object.values(FOLHAS).filter(f => f.pedida) : [];
+        const ok = pedidos.filter(pronto).length + fol.filter(f => f.ok).length; barra.style.width = Math.round(40 + 60 * ok / Math.max(1, pedidos.length + fol.length)) + '%';
         // espera ao menos 3 quadros de desenho (para o mapa pedir as artes) e depois que tudo o que foi pedido chegue
-        if ((dt > 250 && ok >= pedidos.length) || dt > 6000) res(); else setTimeout(tick, 60);
+        if ((dt > 250 && ok >= pedidos.length + fol.length) || dt > 6000) res(); else setTimeout(tick, 60);
       };
       setTimeout(tick, 120);
     });
     CR.ultimaTela = [...CR.gravando]; CR.esperou = Math.round(performance.now() - t0); CR.gravando = null; cort.classList.add('some'); setTimeout(() => cort.remove(), 350);
+    CR.comeca(); // v407 (Raio-X A2): agora sim, o resto em segundo plano (mapa atual e vizinhos primeiro)
     return r;
   };
   const css = document.createElement('style');

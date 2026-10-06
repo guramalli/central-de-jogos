@@ -46,7 +46,7 @@
     return TEX_PX[nome];
   }
   for (const n of [...Object.values(TECIDO), 'fx_brilho_ouro', 'fx_brilho_roxo', 'fx_brilho_azul', 'fx_brilho_arco']) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
-  setTimeout(() => { for (const n of [...Object.values(TECIDO), 'fx_brilho_ouro', 'fx_brilho_roxo', 'fx_brilho_azul', 'fx_brilho_arco']) try { spr(n); } catch (e) { } }, 1500); // já começa a carregar
+  { const vai = () => (typeof G !== 'undefined' && G.rodando) ? [...Object.values(TECIDO), 'fx_brilho_ouro', 'fx_brilho_roxo', 'fx_brilho_azul', 'fx_brilho_arco'].forEach(n => { try { spr(n); } catch (e) { } }) : setTimeout(vai, 2000); setTimeout(vai, 1500); } // v407 (Raio-X A2): só depois que o jogo abre (não na tela inicial) // já começa a carregar
   const escura = c => { const [r, g, b] = bRgb(c); return r * 0.3 + g * 0.59 + b * 0.11 < 110; };
   const _lookEst = lookJogador;
   lookJogador = function (retrato) {

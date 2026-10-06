@@ -112,5 +112,5 @@ for (const [id, lista] of Object.entries(MONUMENTOS)) {
 /* ---------- Paris: o chefão com desenho próprio ---------- */
 Object.assign(META_BONECOS, { ch_paris: [{"cabeca":[38,40,159,142],"tronco":[82,142,118,205]},{"cabeca":[39,41,159,143],"tronco":[82,143,118,206]},{"cabeca":[41,45,161,145],"tronco":[82,145,118,207]},{"cabeca":[39,41,159,143],"tronco":[82,143,118,206]},{"cabeca":[48,52,158,149],"tronco":[82,149,118,209]},{"cabeca":[48,52,158,149],"tronco":[82,149,118,209]},{"cabeca":[50,52,158,149],"tronco":[82,149,118,209]},{"cabeca":[49,52,158,149],"tronco":[82,149,118,209]},{"cabeca":[42,41,158,143],"tronco":[82,143,118,206]},{"cabeca":[41,48,158,147],"tronco":[82,147,118,208]},{"cabeca":[42,49,158,147],"tronco":[82,147,118,208]},{"cabeca":[41,46,159,145],"tronco":[82,145,118,207]}] });
 CORPOS_MODO.ch_paris = 'fixo';
-if (typeof FOLHAS !== 'undefined' && !FOLHAS.ch_paris) { const im = new Image(); const fo = FOLHAS.ch_paris = { im, ok: false, rot: null }; im.onload = () => { fo.ok = true; }; im.src = 'a/boneco_ch_paris.webp?v=153'; }
+if (typeof FOLHAS !== 'undefined' && !FOLHAS.ch_paris) FOLHAS.ch_paris = folhaSobDemanda('ch_paris', '153'); // v407 (Raio-X A2): baixa só quando aparecer
 if (MONSTROS.paris_chefe) { MONSTROS.paris_chefe.look = Object.assign({}, MONSTROS.paris_chefe.look, { folha: 'ch_paris' }); delete MONSTROS.paris_chefe.look._kb; }

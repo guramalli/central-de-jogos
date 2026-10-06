@@ -93,13 +93,13 @@ function salvar() {
   const s = G.save; if (!s || !G.mapa) return;
   if (s.pendentes && s.pendentes.length) entregaPendentes();
   s.mapa = G.mapa.id; if (Number.isFinite(G.p.x) && Number.isFinite(G.p.y)) { s.x = G.p.x; s.y = G.p.y; }
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) { if (typeof salvarFalhou === 'function') salvarFalhou(e, SAVE_KEY, s); } // v407 (Raio-X A8): não falha mais calado (raiox_codigo.js)
   atualizaRanking();
 }
 function lerRanking() { try { return JSON.parse(localStorage.getItem(RANK_KEY) || '[]'); } catch { return []; } }
 function atualizaRanking() {
   const s = G.save; const lista = lerRanking().filter(r => r.id !== s.criado);
-  const time = s.time ? { nome: s.time.nome, div: s.time.div, titulos: s.time.titulos || 0 } : null;
+  const time = s.time ? { nome: s.time.nome, partes: s.time.partes || null, div: s.time.div, titulos: s.time.titulos || 0 } : null; // v407 (Raio-X U1): o servidor só usa as partes das listas (o nome fica só aqui)
   lista.push({ id: s.criado, nome: s.nome, nivel: s.nivel, xp: s.xp, posicao: s.posicao, fase: FASES[faseIdx(s.nivel)].nome, chefes: s.st.chefes, figs: Object.keys(s.figs).length, time, data: Date.now() });
   lista.sort((a, b) => b.xp - a.xp);
   try { localStorage.setItem(RANK_KEY, JSON.stringify(lista.slice(0, 50))); } catch { }
@@ -113,12 +113,14 @@ function enviaRankingOnline(r) {
   if (typeof PORTAL === 'undefined' || !PORTAL.ativo || !PORTAL.token || !r) return;
   if (typeof saveDaConta === 'function' && !saveDaConta()) return; // personagem de outra conta: não entra no ranking desta
   const agora = Date.now(); if (agora - ultimoEnvioRanking < 60000) return; ultimoEnvioRanking = agora;
-  const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time, chefes: r.chefes || 0, figs: r.figs || 0 };
+  // v407 (Raio-X U1): do time vão só as PARTES das listas, a divisão e os títulos (o nome digitado fica no aparelho)
+  const corpo = { nivel: r.nivel, xp: Math.floor(r.xp || 0), posicao: r.posicao || null, fase: r.fase, time: r.time ? { partes: r.time.partes || null, div: r.time.div, titulos: r.time.titulos || 0 } : null, chefes: r.chefes || 0, figs: r.figs || 0 };
   try { const sk = G.save && G.save.sk; if (sk) corpo.skills = { drible: sk.drible.lv | 0, chute: sk.chute.lv | 0, defesa: sk.defesa.lv | 0, visao: sk.visao.lv | 0 }; } catch (e) { } // v388: ranking de habilidades
   fetch(PORTAL.api + '/api/lenda/ranking', { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify(corpo) })
     .then(async res => { // guarda o resultado: a janela do Ranking mostra se entrou ou por que não entrou
-      let msg = ''; if (!res.ok) { try { msg = (await res.json()).error || ''; } catch (e) { } console.warn('[ranking] envio recusado', res.status, msg); }
-      RANK_ONLINE = { quando: Date.now(), ok: res.ok, status: res.status, msg };
+      let msg = '', revisao = false; if (!res.ok) { try { msg = (await res.json()).error || ''; } catch (e) { } console.warn('[ranking] envio recusado', res.status, msg); }
+      else { try { revisao = !!(await res.json()).emRevisao; } catch (e) { } } // v407 (Raio-X U7): o servidor achou o progresso estranho
+      RANK_ONLINE = { quando: Date.now(), ok: res.ok, status: res.status, msg, revisao };
     })
     .catch(() => { RANK_ONLINE = { quando: Date.now(), ok: false, status: 0, msg: 'sem conexão com o site' }; });
 }
@@ -438,8 +440,24 @@ function atualizaJogador(dt) {
   // (andando para a frente ao sair da dungeon, a pessoa entrava de novo sem querer)
   if (G.travaSaida) {
     const tr = G.travaSaida, solto = !G.teclas.size && !G.joy && !G.caminho, longe = Math.hypot(p.x - tr.x, p.y - tr.y) > 1.8;
-    if (!s && G.agora > tr.t && (solto || longe)) G.travaSaida = null;
-    else if (s) { p.x = antes.x; p.y = antes.y; return; } // porta travada = parede
+    // v407 (Raio-X R1): no celular o jogador ficava PRESO em cima da porta de casa. Na grade o passo segue sozinho
+    // (grAvanca roda antes daqui), então "voltar para antes" não segurava: o passo levava o boneco para cima da porta
+    // travada e lá a trava nunca soltava (ela só soltava fora da porta). Agora:
+    // (1) tocar NA porta (caminho que termina nela) é querer passar: solta a trava;
+    const fimCam = G.caminho && G.caminho[G.caminho.length - 1], tocouPorta = fimCam && G.mapa.saidas.some(q => q.x === Math.floor(fimCam.x) && q.y === Math.floor(fimCam.y));
+    if (tocouPorta && G.agora > tr.t) G.travaSaida = null;
+    else {
+      // (2) passo da grade que começa para cima da porta travada = parede (desfaz o passo antes de andar);
+      if (p.pas && G.mapa.saidas.some(q => q.x === p.pas.tx && q.y === p.pas.ty)) { p.x = p.pas.x0; p.y = p.pas.y0; p.pas = null; }
+      // (3) se mesmo assim ficou parado EM CIMA da porta, sem controle, longe do ponto onde chegou: solta (a porta funciona).
+      //     Não reabre a v150 (sair da dungeon andando e entrar de novo em 0,1 s): segurando o controle, a porta continua parede,
+      //     e quem chega em cima de uma porta (ponto de chegada) não volta sozinho.
+      const naPortaParado = s && solto && !p.pas && Math.hypot(p.x - tr.x, p.y - tr.y) > 0.5;
+      if (naPortaParado) { if (!tr.parado) tr.parado = G.agora; } else tr.parado = 0;
+      if (!s && G.agora > tr.t && (solto || longe)) G.travaSaida = null;
+      else if (naPortaParado && G.agora > tr.t && G.agora - tr.parado > 300) G.travaSaida = null;
+      else if (s) { p.x = antes.x; p.y = antes.y; return; } // porta travada = parede
+    }
   }
   if (s) {
     if (s.req && s.req.flag && !G.save.flags[s.req.flag]) {
@@ -730,7 +748,7 @@ function addItem(id, q = 1) {
   }
   if ((ITENS[id].tipo === 'consumivel' || ITENS[id].tipo === 'comida') && id !== 'pacotinho' && !s.hotbar.some(h => h && h.t === 'i' && h.id === id)) poeNaHotbar('i', id, true);
   if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (até 3 comidas diferentes ao mesmo tempo: os bônus somam). Use pela barra de atalhos ou pela mochila.`, '#hotbar');
-  if (ITENS[id].tipo === 'equip') dica('equip', `Você ganhou um equipamento: ${ITENS[id].nome}! Abra a aba MOCHILA (à direita, ou tecla I), clique nele e escolha "Equipar". Equipamentos deixam você mais forte.`, '[data-aba=mochila]');
+  if (ITENS[id].tipo === 'equip') dica('equip', typeof CEL !== 'undefined' && CEL ? `Você ganhou um equipamento: ${ITENS[id].nome}! Toque no botão 🎒, toque nele e escolha "Equipar". Equipamentos deixam você mais forte.` : `Você ganhou um equipamento: ${ITENS[id].nome}! Na 🎒 MOCHILA (o quadro "Mochilas", ou tecla I), clique nele e escolha "Equipar". Equipamentos deixam você mais forte.`, typeof CEL !== 'undefined' && CEL ? '#chMochila' : '[data-painel="bolsas"], [data-aba=mochila]') /* v407 (Raio-X R2a): sem a "aba Mochila", que não existe mais no PC */;
   if (id === 'bola') atualizaRetrato();
   G.uiSujo = true; return true;
 }
@@ -1047,13 +1065,15 @@ function loop(ts) {
 
 /* ================= TUTORIAL, DICAS E GUIA ================= */
 const TUTORIAL = [
-  { txt: 'Use as teclas W A S D (ou as setas) para andar. Também dá pra clicar no chão.', feito: () => G.andou > 3, tecla: 'W A S D' },
+  { txt: 'Use as teclas W A S D (ou as setas) para andar. Também dá pra clicar no chão.', feito: () => { const p = G.p; if (!G.tut0 || G.tut0.m !== G.mapa) G.tut0 = { m: G.mapa, x: p.x, y: p.y }; return G.andou > 0.5 || Math.hypot(p.x - G.tut0.x, p.y - G.tut0.y) > 0.9; }, tecla: 'W A S D' }, // v407 (Raio-X R2b): qualquer passo de verdade já avança (antes pedia 3 quadradinhos segurando; um toque na tecla contava só 0,04)
   { txt: 'Fale com a sua MÃE: chegue perto dela e aperte E.', alvo: () => alvoNpc('mae'), feito: s => !!s.quests.q_bola, tecla: 'E' },
-  { txt: 'Saia de casa pela porta (embaixo) e abra o BAÚ do quintal: chegue perto e aperte E.', alvo: () => alvoPonto('bau_bola'), feito: s => !!s.flags.pegou_bola, tecla: 'E' },
+  { txt: 'Saia de casa pela porta (embaixo) e abra o BAÚ do quintal, o que tem a ⚽ e a seta amarela: chegue perto e aperte E.', /* v407 (Raio-X R2f): há 2 baús perto de casa */ alvo: () => alvoPonto('bau_bola'), feito: s => !!s.flags.pegou_bola, tecla: 'E' },
   { txt: 'Achou sua bola! Volte para casa e ENTREGUE a missão para a Mãe (E).', alvo: () => alvoNpc('mae'), feito: s => s.quests.q_bola && s.quests.q_bola.s === 'feita', tecla: 'E' },
-  { txt: 'Sua bola e os tostões foram para a MOCHILA (aba Mochila, à direita, ou tecla I). Tudo que você ganha fica lá.', ok: true, destaque: '[data-aba=mochila]' },
+  // v407 (Raio-X R2a): a "aba Mochila" some no PC desde a v400 (as mochilas ficam na coluna 🎒 Mochilas, à direita)
+  { txt: 'Sua bola e os tostões foram para a 🎒 MOCHILA (o quadro "Mochilas", piscando na tela; a tecla I mostra ela). Tudo que você ganha fica lá.', ok: true, destaque: '[data-painel="bolsas"], [data-aba=mochila]' },
   { txt: 'Agora vá ao CAMPINHO (ao sul da vila) e fale com o SEU ZÉ, o treinador.', alvo: () => alvoNpc('ze'), feito: s => !!s.quests.q_pombos, tecla: 'E' },
-  { txt: 'CLIQUE num Pombo Folgado para desafiá-lo (aparece um círculo vermelho). Você corre até ele e dribla sozinho!', alvo: () => alvoMonstro('pombo'), feito: s => (s.kills.pombo || 0) >= 1, tecla: 'Clique' },
+  // v407 (Raio-X R2d): perto das pessoas é zona segura (ninguém desafia ninguém): a seta leva a um pombo LONGE delas (tutorial_v407.js)
+  { txt: 'Siga a SETA AMARELA até um Pombo Folgado longe das pessoas e CLIQUE nele para desafiá-lo (aparece um círculo vermelho). Você corre até ele e dribla sozinho!', alvo: () => (typeof tvPomboLivre === 'function' && tvPomboLivre()) || alvoMonstro('pombo'), feito: s => (s.kills.pombo || 0) >= 1, tecla: 'Clique' },
   { txt: 'Isso! Continue: passe por 6 pombos e volte ao Seu Zé. Siga sempre a SETA AMARELA para achar o próximo objetivo.', ok: true },
 ];
 function atualizaTutorial() {
@@ -1160,7 +1180,7 @@ function desenha(dt) {
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   const chao = renderChao(m);
   const sx = Math.max(0, cam.x), sy = Math.max(0, cam.y), sw = Math.min(m.w * T - sx, vw + 2), sh = Math.min(m.h * T - sy, vh + 2);
-  if (sw > 0 && sh > 0) ctx.drawImage(chao, sx, sy, sw, sh, sx, sy, sw, sh);
+  if (sw > 0 && sh > 0) { if (chao.desenhaEm) chao.desenhaEm(ctx, sx, sy, sw, sh); else ctx.drawImage(chao, sx, sy, sw, sh, sx, sy, sw, sh); } // v407 (Raio-X A8): chão em blocos (chao_blocos.js)
   if (typeof desenhaChaoClima === 'function') desenhaChaoClima(ctx, sx, sy, sw, sh);
   const x0 = Math.max(0, Math.floor(cam.x / T) - 2), y0 = Math.max(0, Math.floor(cam.y / T) - 1), x1 = Math.min(m.w, Math.ceil((cam.x + vw) / T) + 2), y1 = Math.min(m.h, Math.ceil((cam.y + vh) / T) + 4);
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (m.chao[y * m.w + x] === CH.AGUA) drawAguaBrilho(ctx, x, y, G.agora);
@@ -1226,12 +1246,12 @@ function desenha(dt) {
     const txt = `Nv ${nv} · ${e.d.nome}`, cor = e.d.chefe ? '#ff8a7a' : corNivel(nv);
     // v224: como no Tibia, nome e vida NÃO somem quando os adversários se juntam em volta de você (box):
     // a vida aparece em quem briga ou está perto (até 7 passos); o nome, se não couber, fica menor em vez de sumir
-    const comBarra = briga || d <= 7;
+    const comBarra = briga; // v407 (Raio-X A1): barrinha só em quem está na briga (antes: todos até 7 passos, empilhava)
     const yNome = comBarra ? topo.y - 11 * px : topo.y - 4 * px;
     let tam = 11.5, w = larguraTxt(txt, tam) / 2 + 2 * px, rNome = [topo.x - w, yNome - 12 * px, topo.x + w, yNome + 2 * px];
     if (!(marcado ? naoCobreEu(rNome) : cabe(rNome))) { tam = 9; w = larguraTxt(txt, tam) / 2 + 2 * px; rNome = [topo.x - w, yNome - 9 * px, topo.x + w, yNome + 2 * px]; }
     const rBarra = [topo.x - 24 * px, topo.y - 9 * px, topo.x + 24 * px, topo.y - 2 * px];
-    if (tam === 11.5 || comBarra || d <= 9) { rotulo(ctx, txt, topo.x, yNome, cor, tam); ocupados.push(rNome); }
+    if (marcado || (e.d.chefe && d <= 9)) { rotulo(ctx, txt, topo.x, yNome, cor, tam); ocupados.push(rNome); } // v407 (Raio-X A1): "Nv · nome" só no alvo, com o mouse em cima, ou chefão perto (sem pilha de nomes)
     if (comBarra) { barraVida(ctx, topo.x, topo.y - 5.5 * px, e.hp / e.d.hp, undefined, 5); ocupados.push(rBarra); }
   }
   for (const n of G.npcs) {

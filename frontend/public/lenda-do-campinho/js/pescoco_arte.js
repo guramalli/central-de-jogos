@@ -31,7 +31,7 @@
 
   const ARTES = [...new Set(Object.values(PING).map(p => 'pg_' + p[0]))];
   for (const n of ARTES) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
-  setTimeout(() => { for (const n of ARTES) try { spr(n); } catch (e) { } }, 1200);
+  { const vai = () => (typeof G !== 'undefined' && G.rodando) ? ARTES.forEach(n => { try { spr(n); } catch (e) { } }) : setTimeout(vai, 2000); setTimeout(vai, 1200); } // v407 (Raio-X A2): só depois que o jogo abre (não na tela inicial)
   let faltou = false; // desenhou sem a arte (ainda carregando): quando chegar, redesenha os bonecos
   // v319: quem falhou de vez (sem internet) não segura os outros; o cache só é refeito quando tudo chegou ou desistiu
   setInterval(() => { if (faltou && ARTES.every(n => { const e = SPR[n]; return !e || e.ok || e.err; })) { faltou = false; try { SPR_CACHE.clear(); } catch (e) { } } }, 700);

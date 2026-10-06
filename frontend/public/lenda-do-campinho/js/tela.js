@@ -12,6 +12,10 @@ const TELA_KEY = 'rac_tela_v1';
 const TELA_MODOS = { normal: ['🔲', 'Tela normal'], larga: ['⬛', 'Tela larga'], cheia: ['⛶', 'Tela cheia'] };
 let TELA_MODO = 'normal';
 try { const v = localStorage.getItem(TELA_KEY); if (v === 'larga') TELA_MODO = 'larga'; } catch (e) { } // "cheia" não volta sozinha (o navegador pede um clique)
+// v407 (Raio-X R7): no computador com 1600 px ou mais a tela LARGA é o padrão (antes sobrava uma faixa roxa vazia dos
+// dois lados do jogo). Quem já escolheu "normal" no botão continua com a normal.
+const TELA_PC_LARGO = 1600;
+try { if (localStorage.getItem(TELA_KEY) == null && innerWidth >= TELA_PC_LARGO && !matchMedia('(pointer: coarse)').matches) TELA_MODO = 'larga'; } catch (e) { }
 
 function aplicaTela() {
   document.body.classList.toggle('tela-larga', TELA_MODO !== 'normal');
@@ -53,6 +57,19 @@ ajustaCanvas = function () {
   const r = CV.getBoundingClientRect(); if (r.width < 640) return;
   G.zoom = Math.min(G.zoom, 66 * G.dpr * (15.5 / (G.zoomVis || 15.5)) / T); // a rodinha do mouse continua aproximando/afastando
 };
+
+// v407 (Raio-X R7): computador (1280 px ou mais) sem layout salvo → painéis dos DOIS lados. Numa coluna só (1902×907) o Equipamento ficava
+// cortado e a Mochila/bolsas saíam da tela. Direita: retrato, minimapa e Batalha; esquerda: Mochila/Equipamento/Habilidades
+// e as bolsas abertas. Não grava nada: se o jogador arrastar um painel, aí sim vira o layout dele.
+const telaPadraoDoisLados = () => ({ esq2: [], esq: [{ g: ['mochila', 'equip', 'skills'], a: 'equip', m: false }, 'bolsas'], dir: ['perfil', 'mini', { g: ['batalha'], a: 'batalha', m: false }], dir2: [], min: {} });
+if (typeof leLayout === 'function') {
+  const _leLayoutTl = leLayout;
+  leLayout = function () {
+    const L = _leLayoutTl.apply(this, arguments); if (L) return L;
+    if (innerWidth >= 1280 && !matchMedia('(pointer: coarse)').matches && typeof normalizaLayout === 'function') return normalizaLayout(telaPadraoDoisLados()); // (de 1280 a 1599 px também: numa coluna só a Mochila ficava lá embaixo)
+    return null;
+  };
+}
 
 (function () {
   const grupo =document.querySelector('#topo .tb-som') || document.querySelector('#topo .topo-nav');

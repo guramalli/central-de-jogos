@@ -4,8 +4,8 @@
    🏛️ MUSEU DOS COLECIONÁVEIS (v365, dono: "esses colecionáveis servem para quê? a sensação é que são só para guardar
    no armazém" → escolheu "Museu + trocas com o Professor Coral" e a sorte acumulada).
    - ☰ Mais › 🏛️ Museu: os colecionáveis de cada região (lr_<região>_4), em 7 coleções. DOAR (da mochila ou do
-     armazém) deixa o item exposto para sempre. Coleção completa → troféu para a casa + BÔNUS PERMANENTE de +5% de XP
-     e +5% de tostões contra os adversários daquele mundo. Museu completo → Troféu de Ouro + mascote Corujinha Curadora.
+     armazém) deixa o item exposto para sempre. Coleção completa → troféu para a casa + título (v407, Raio-X T1: antes dava +5% de XP
+     e +5% de tostões contra os adversários daquele mundo; o jogo parou de criar fontes de poder). Museu completo → Troféu de Ouro + mascote Corujinha Curadora.
    - SORTE ACUMULADA: cada região conta os adversários vencidos desde o último colecionável dela; em 6.000 ele cai
      garantido (antes disso vale a chance normal, ~1 em 5.000).
    - PROFESSOR CORAL (Atlântida): colecionável REPETIDO vira pontos de coleção (1 a 5, pelo nível da região) e os pontos
@@ -27,7 +27,7 @@
   for (const c of MU_COLECOES) c[2] = c[2].filter(r => typeof LOOT_REG !== 'undefined' && LOOT_REG[r]);
   const MU_REGIOES = MU_COLECOES.flatMap(c => c[2]), MU_TOTAL = MU_REGIOES.length;
   const MU_COL_DE = {}; for (const [k, , regs] of MU_COLECOES) for (const r of regs) MU_COL_DE[r] = k;
-  const MU_GARANTIA = 6000, MU_BONUS = 0.05;
+  const MU_GARANTIA = 6000, MU_BONUS = 0; // v407 (Raio-X T1): coleção completa dá troféu e TÍTULO, não mais +5% de XP/tostões (era 0.05)
   const colItem = r => `lr_${r}_4`;
   window.MU_COLECOES = MU_COLECOES;
 
@@ -62,8 +62,8 @@
     if (k && colecaoCompleta(k) && !m.colecoes[k]) {
       m.colecoes[k] = 1; const c = MU_COLECOES.find(x => x[0] === k);
       recebeItem('trofeu_museu_' + k, 1);
-      banner(`🏆 Coleção ${c[1]} completa!`, `Bônus para sempre: +5% de XP e +5% de tostões contra os adversários de lá.`);
-      log(`🏆 Coleção ${c[1]} completa! Você ganhou um troféu para expor na casa e +5% de XP e tostões para sempre contra os adversários desse mundo.`, 'l-lvl');
+      banner(`🏆 Coleção ${c[1]} completa!`, `Troféu para a casa e o título "Curador(a) de ${c[1]}" na sua Ficha!`);
+      log(`🏆 Coleção ${c[1]} completa! Você ganhou um troféu para expor na casa e o título "Curador(a) de ${c[1]}" (aparece na sua Ficha).`, 'l-lvl');
     }
     if (doados() >= MU_TOTAL && !m.premios.museu_ouro) {
       m.premios.museu_ouro = 1; G.save.flags.museu_completo = true; recebeItem('trofeu_museu_ouro', 1);
@@ -87,10 +87,10 @@
           !doou && tem ? el('button', { class: 'btn mini amarelo', type: 'button', onclick: () => doar(r) }, 'Doar') : '');
       });
       return el('details', { class: 'mu-col', open: !completa && feitos ? 'open' : null },
-        el('summary', {}, `${completa ? '🏆' : '🏛️'} ${nome} (${feitos}/${regs.length})${completa ? ' · +5% XP e tostões lá' : ''}`), el('div', { class: 'mu-grade' }, ...itens));
+        el('summary', {}, `${completa ? '🏆' : '🏛️'} ${nome} (${feitos}/${regs.length})${completa ? ' · troféu e título' : ''}`), el('div', { class: 'mu-grade' }, ...itens));
     });
     abreModal(el('h2', {}, `🏛️ Museu dos Colecionáveis (${doados()}/${MU_TOTAL})`),
-      el('p', { class: 'dica' }, 'Cada região do jogo esconde UM colecionável raríssimo. Doe para o museu: completando uma coleção você ganha um troféu e +5% de XP e tostões PARA SEMPRE contra os adversários daquele mundo. Repetidos? O Professor Coral, em Atlântida, troca por prêmios.'),
+      el('p', { class: 'dica' }, 'Cada região do jogo esconde UM colecionável raríssimo. Doe para o museu: completando uma coleção você ganha um troféu para a casa e um título de Curador(a) na sua Ficha. Repetidos? O Professor Coral, em Atlântida, troca por prêmios.'),
       ...blocos, el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Fechar')));
   }
   window.modalMuseu = modalMuseu;

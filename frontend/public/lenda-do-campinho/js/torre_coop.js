@@ -22,6 +22,15 @@ const coEu = () => PORTAL.contaId;
 function coPerfil() { const t = torreDados(); let look = null; try { look = lookJogador(); } catch (e) { } return { nivel: G.save.nivel, max: t.max || 0, look }; }
 
 /* ---------- conexão (só quando alguém usa o modo em grupo) ---------- */
+// v407 (Raio-X A9): UMA conexão só (window.LENDA_SOCK) para a Torre, o mundo compartilhado e a caça em grupo — antes
+// cada um abria a sua (até 3 por jogador). Cada parte continua escutando os próprios eventos (torre-*, mundo-*, grupo-*).
+function lendaSock(api) {
+  const s = window.LENDA_SOCK;
+  if (s && s._api === api && s._token === PORTAL.token) return s;
+  const n = window.io(api, { auth: { token: PORTAL.token, plataforma: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop' }, transports: ['websocket'] });
+  n._api = api; n._token = PORTAL.token; window.LENDA_SOCK = n;
+  return n;
+}
 function coCarregaCliente() {
   if (window.io) return Promise.resolve();
   if (CO.carregando) return CO.carregando;
@@ -31,7 +40,7 @@ async function coConecta() {
   if (CO.sock && CO.sock.connected) return CO.sock;
   await coCarregaCliente();
   if (!CO.sock) {
-    CO.sock = window.io(PORTAL.api, { auth: { token: PORTAL.token, plataforma: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop' }, transports: ['websocket'] });
+    CO.sock = lendaSock(PORTAL.api); // v407 (Raio-X A9): a conexão compartilhada
     coEscuta(CO.sock);
   }
   if (!CO.sock.connected) await new Promise((ok, erro) => { const t = setTimeout(() => erro(new Error('tempo')), 8000); CO.sock.once('connect', () => { clearTimeout(t); ok(); }); CO.sock.once('connect_error', e => { clearTimeout(t); erro(e); }); });

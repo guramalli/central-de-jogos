@@ -57,9 +57,10 @@
   /* ---------- os capítulos ---------- */
   // cada passo: [id, npc que dá, nível, título, texto (o pedido), pedido, recompensa {k: níveis de XP, o: tostões por nível, it: itens}, fim (fala depois), extras]
   const R = (L, k, o, it) => ({ xp: Math.round(xpNivel(L) * k), ouro: Math.round(L * o * 0.5), itens: it || [] }); // tostões: metade do número escrito (a saga inteira ≈ 1 bilhão)
+  // v407 (Raio-X R8): caixa alta só para nome de chefão (palavras de ênfase e nomes de cidade voltaram ao normal)
   const CAP = [
     { n: 0, nome: 'Prólogo — O mapa do satélite', passos: [
-      ['p1', 'estela_estacao', 420, 'O sinal estranho', 'Craque, preciso de você! Meu radar pegou um sinal estranho vindo de um satélite velhinho... e dentro dele tinha ISTO: um mapa das estrelas costurado como uma bola de futebol! Leve para o Grão-Guardião Orbitto, no Estádio do Multiverso. Ele conhece as lendas mais antigas.',
+      ['p1', 'estela_estacao', 420, 'O sinal estranho', 'Craque, preciso de você! Meu radar pegou um sinal estranho vindo de um satélite velhinho... e dentro dele tinha isto: um mapa das estrelas costurado como uma bola de futebol! Leve para o Grão-Guardião Orbitto, no Estádio do Multiverso. Ele conhece as lendas mais antigas.',
         { fala: 'guardiao_mv' }, R(420, 0.4, 20000, [['mapa_estelar', 1]]), null,
         { chegada: 'Orbitto arregala os olhos: "Onde... onde você achou isso? Sente aí, craque. Vou te contar a lenda mais antiga de todas. No começo de tudo, alguém deu o PRIMEIRO CHUTE da história. A bola voou tão forte que as faíscas viraram as estrelas... e a bola se partiu em 7 gomos, espalhados pelos mundos. A Bola de Origem!"' }],
       ['p2', 'guardiao_mv', 420, 'Digno da lenda', 'Os 7 gomos só se mostram para quem tem coração de campeão. Prove que você é digno: vença o Imperador Nebular 3 vezes. Ele sabe perder com classe, não se preocupe.',

@@ -141,13 +141,24 @@ function torreVoltaHub() { fechaModal(); som('porta'); const p = getMapa('multiv
 function torreLimpou() {
   const t = torreDados(), n = G.mapa.torre, L = torreNivel(n), s = G.save, primeira = n > t.max;
   const xpNivel = x => xpPara(x + 1) - xpPara(x);
+  // v407 (Raio-X A4): a XP do andar conta o nível do andar, mas NO MÁXIMO o seu nível + 10 (andares muito acima davam
+  // +20 a +30 níveis em 1–2 horas)
+  const Lxp = Math.min(L, (s.nivel || 1) + 10);
   let txt;
   if (primeira) {
-    t.max = n; const xp = Math.round(xpNivel(L) * (n % 10 === 0 ? 0.8 : 0.35)), ouro = L * (n % 10 === 0 ? 4000 : 1500), fichas = 1 + Math.floor(n / 10);
+    t.max = n; const xp = Math.round(xpNivel(Lxp) * (n % 10 === 0 ? 0.8 : 0.35)), ouro = L * (n % 10 === 0 ? 4000 : 1500), fichas = 1 + Math.floor(n / 10);
     ganhaXp(xp); s.ouro += ouro; recebeItem('ficha_torre', fichas);
     for (const k of [10, 25, 50, 75, 100]) if (n >= k) s.flags['torre_' + k] = true;
     txt = `Recorde novo! +${fmt(xp)} XP, +${fmt(ouro)} tostões e ${fichas} Ficha(s) da Torre.`;
-  } else { recebeItem('ficha_torre', 1); txt = 'Andar já vencido antes: +1 Ficha da Torre.'; }
+  } else {
+    // v407 (Raio-X: conteúdo que se repete acima do 700): repetir um andar dá XP (35% de um nível do andar, com o mesmo
+    // teto de "seu nível + 10") nas 3 primeiras repetições de cada dia; depois, 5% disso. Antes: só 1 Ficha.
+    const hoje = typeof diaHoje === 'function' ? diaHoje() : new Date().toDateString();
+    if (t.repDia !== hoje) { t.repDia = hoje; t.rep = 0; } t.rep = (t.rep || 0) + 1;
+    const cheia = t.rep <= 3, xp = Math.round(xpNivel(Lxp) * 0.35 * (cheia ? 1 : 0.05));
+    ganhaXp(xp); recebeItem('ficha_torre', 1);
+    txt = `Andar já vencido antes: +${fmt(xp)} XP e +1 Ficha da Torre. ${cheia ? `(Repetição ${t.rep} de 3 com XP cheia hoje.)` : '(As 3 repetições com XP cheia de hoje já foram: amanhã tem mais!)'}`;
+  }
   const rel = RELIQUIA_ANDAR[n]; if (rel) { s.flags['guardiao_' + rel[0]] = true; txt += ` 🏺 Você venceu o Guardião da Relíquia! Volte ao Mestre da Torre.`; }
   log(`🗼 Andar ${n} vencido! ${txt}`, 'l-lvl'); som('nivel'); salvar(); G.uiSujo = true;
   abreModal(el('h2', {}, `🗼 Andar ${n} vencido!`), el('p', {}, txt), el('p', { class: 'dica' }, `Seu recorde: andar ${t.max} (nível ${torreNivel(t.max)}).`),

@@ -540,10 +540,10 @@ if (typeof materialRaroRefino === 'function') {
   materialRaroRefino = function (lvl) { return lvl >= 525 ? 'gelo_eterno' : lvl >= 478 ? 'la_nuvem' : lvl >= 440 ? 'brasa_eterna' : lvl >= 400 ? 'pepita_runica' : _matMv(lvl); };
 }
 
-/* ---------- história: Capítulo 10 ---------- */
+/* ---------- história: Capítulo 11 (v407 Raio-X R12: era 10, igual à Galáxia) ---------- */
 if (typeof CAPITULOS !== 'undefined') {
   CAPITULOS.multiverso = {
-    rotulo: 'Capítulo 10', titulo: 'O Multiverso da Bola', emoji: '🌀', implica: ['galaxia'],
+    rotulo: 'Capítulo 11', titulo: 'O Multiverso da Bola', emoji: '🌀', implica: ['galaxia'],
     cond: (s, mapa) => MAPAS_MV.has(mapa) || /^caca_mv_|^torre_infinita/.test(mapa || ''),
     cenas: [
       { img: 'cap_mv_1', kb: 'kb-a', cor: ['#140a40', '#ffb04a'], txt: n => 'Depois da Copa Intergaláctica, um portal selado havia mil anos começou a brilhar na praça do aeroporto do Rio. Do outro lado: um estádio flutuando entre as galáxias.' },
@@ -551,7 +551,7 @@ if (typeof CAPITULOS !== 'undefined') {
       { img: 'cap_mv_2', kb: 'kb-b', cor: ['#3a1a0a', '#7ab8ff'], txt: n => 'Num portal, os anões de Pedraforte jogando bola dentro da montanha, entre forjas e rios de lava. No outro, os gigantes dos Picos Nublados, acima das nuvens.' },
       { img: 'cap_mv_2', kb: 'kb-zoom', foco: '70% 30%', cor: ['#3a1a0a', '#7ab8ff'], txt: n => 'Cada mundo com seus times, seus craques e seus campeões. E todos querendo saber se a lenda da Terra era mesmo tudo isso...' },
     ],
-    final: { emoji: '🌀', titulo: 'O Multiverso da Bola', sub: n => 'Capítulo 10 começou! Pedraforte (níveis 405–470), Picos Nublados (482–560) e a Torre Infinita, até o nível 1000.', botao: 'Atravessar! 🌀' },
+    final: { emoji: '🌀', titulo: 'O Multiverso da Bola', sub: n => 'Capítulo 11 começou! Pedraforte (níveis 405–470), Picos Nublados (482–560) e a Torre Infinita, até o nível 1000.', botao: 'Atravessar! 🌀' },
   };
   const ord = CAPITULOS_ORDEM; const ig = ord.indexOf('gloria'); if (!ord.includes('multiverso')) ord.splice(ig >= 0 ? ig : ord.length, 0, 'multiverso');
 }

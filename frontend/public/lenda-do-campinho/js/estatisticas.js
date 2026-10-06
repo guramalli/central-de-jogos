@@ -46,6 +46,7 @@ setInterval(() => estEnvia(false), 60000);
 addEventListener('pagehide', () => {
   const min = (Date.now() - EST.inicio) / 60000;
   if (G.save) estConta('sessao', min < 5 ? 'm0_5' : min < 15 ? 'm5_15' : min < 30 ? 'm15_30' : min < 60 ? 'm30_60' : 'm60');
+  try { const cr = document.getElementById('criacao'); if (!G.save && cr && !cr.hidden) estConta('desistiu', 'criacao'); } catch (e) { } // v407 (Raio-X I7): fechou na tela de criar personagem
   estEnvia(true);
 });
 // abriu o jogo (tela de título)
@@ -78,6 +79,12 @@ try {
     if (G.mapa && G.mapa.id !== mapa) { mapa = G.mapa.id; if (!G.mapa.interior && !/^(casa|int_|tr_)/.test(mapa)) estUmaVez('mapa', mapa.replace(/_\d+$/, '')); }
   }, 5000);
   if (typeof renascer === 'function') { const _renEst = renascer; renascer = function () { try { estUmaVez('derrota', 'primeira'); } catch (e) { } return _renEst.apply(this, arguments); }; }
+  // v407 (Raio-X I7): missão concluída (só o ID, uma vez por personagem), primeira área de caça e primeiro chefão
+  if (typeof entregaMissao === 'function') { const _entEst = entregaMissao; entregaMissao = function (q) { const r = _entEst.apply(this, arguments); try { if (q && q.id) estUmaVez('missao', q.id); } catch (e) { } return r; }; }
+  setInterval(() => {
+    const s = G.save; if (!s || !G.rodando) return;
+    try { if (G.mapa && typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[G.mapa.id]) estUmaVez('primeira', 'caca'); if (s.st && s.st.chefes >= 1) estUmaVez('primeira', 'chefe'); } catch (e) { }
+  }, 5000);
 }
 // botão para desligar (Mais ›)
 function estAlterna() {

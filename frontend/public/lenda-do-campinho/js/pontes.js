@@ -78,7 +78,7 @@
     const base = MAPAS_DEF[id]; if (!base) continue;
     MAPAS_DEF[id] = function () {
       const m = base.apply(this, arguments);
-      try { const d = PONTE_ARTE[id]; m.pontes = achaPontes(m).filter(p => p.eixo === d.eixo).map(p => Object.assign(p, { arte: id })); m.pontes.forEach(p => limpaCabeceiras(m, p)); if (m.pontes.length) spr(d.spr); /* já começa a carregar a arte */ } catch (e) { console.error('pontes', e); }
+      try { const d = PONTE_ARTE[id]; m.pontes = achaPontes(m).filter(p => p.eixo === d.eixo).map(p => Object.assign(p, { arte: id })); m.pontes.forEach(p => limpaCabeceiras(m, p)); if (m.pontes.length && typeof G !== 'undefined' && G.rodando) spr(d.spr); /* já começa a carregar a arte (v407 Raio-X A2: não na tela inicial) */ } catch (e) { console.error('pontes', e); }
       return m;
     };
   }

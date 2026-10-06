@@ -40,6 +40,7 @@ const MAG_BICHO = {
 };
 ['chamas', 'veneno', 'energia', 'areia', 'tinta', 'sonico', 'confete', 'bolhas'].forEach(n => {
   if (typeof FX === 'undefined' || FX.img[n]) return;
+  if (typeof fxSobDemanda === 'function') { FX.img[n] = fxSobDemanda(n, '231'); return; } // v407 (Raio-X A2): baixa só quando a magia aparecer
   const im = new Image(); const o = FX.img[n] = { im, ok: false }; im.onload = () => { o.ok = true; }; im.src = `a/fx/fx_${n}.webp?v=231`;
 });
 // a magia de cada tipo (calculada uma vez)

@@ -52,12 +52,14 @@ async function mktAbre(aba) {
   if (!mktLigado()) return avisoJogo('🏪 A feira só funciona no site (educacaogamer.com.br), com a sua conta.');
   if (!mktNaCidade()) return avisoJogo('🏪 Abra a feira numa cidade ou centro (Vila, Rio, Tóquio, Estação, Multiverso...): de lá dá para ir à Praça da Feira.');
   await mktResolvePendente();
+  // v407 (Raio-X I8): quantas barracas tem na praça (vazia: o botão avisa "seja o primeiro")
+  try { const b = await mktPede('GET', '/barracas'); if (b.ok) MKT.qtdPraca = (b.dados.barracas || []).length; } catch (e) { }
   (aba === 'minha' ? mktMinhaLoja : mktComprar)();
 }
 const mktAbas = ativa => el('div', { class: 'mkt-abas' },
   el('button', { class: 'btn' + (ativa === 'comprar' ? ' amarelo' : ''), type: 'button', onclick: () => mktComprar() }, '🛒 Comprar'),
   el('button', { class: 'btn' + (ativa === 'minha' ? ' amarelo' : ''), type: 'button', onclick: () => mktMinhaLoja() }, '🏪 Minha loja'),
-  mktNaFeira() ? '' : el('button', { class: 'btn', type: 'button', onclick: mktVaiFeira }, '🚶 Ir à Praça da Feira'));
+  mktNaFeira() ? '' : el('button', { class: 'btn', type: 'button', onclick: mktVaiFeira, title: MKT.qtdPraca === 0 ? 'Ainda não tem barraca na praça: monte a primeira!' : '' }, MKT.qtdPraca === 0 ? '🚶 Praça da Feira (vazia: seja o primeiro!)' : '🚶 Ir à Praça da Feira'));
 function mktLinhaAnuncio(a, depois) {
   const total = el('b', {}, `${mktFmt(a.preco)} 🪙`);
   const qIn = a.qtd > 1 ? el('input', { type: 'number', min: 1, max: a.qtd, value: 1, style: 'width:64px', oninput: e => { const q = Math.max(1, Math.min(a.qtd, e.target.value | 0)); total.textContent = `${mktFmt(a.preco * q)} 🪙`; } }) : null;
@@ -166,6 +168,8 @@ function mktFormAnuncio(d) {
 // anunciar: tira da mochila ANTES (e devolve se o servidor recusar); sem resposta, guarda para conferir depois
 async function mktAnuncia(id, r, q, p) {
   const s = G.save;
+  // v407 (Raio-X U7): o servidor confere se o item está no save ONLINE — salva antes de tirar da mochila
+  try { if (typeof enviaSave === 'function' && typeof NUVEM !== 'undefined' && NUVEM.ativa && !NUVEM.parada) { NUVEM.sujo = true; await enviaSave(true); } } catch (e) { }
   if (!mktTira(id, q, r)) return avisoJogo('🏪 Esse item não está mais na sua mochila.');
   s.mktPend = { itemId: id, refino: r, qtd: q, preco: p, t: Date.now() }; salvar();
   let res; try { res = await mktPede('POST', '/anunciar', { itemId: id, refino: r, qtd: q, preco: p, nivel: s.nivel }); } catch (e) { res = null; }
@@ -192,6 +196,7 @@ async function mktColeta() {
   const r = await mktPede('POST', '/coletar');
   if (!r.ok) return avisoJogo('🏪 ' + mktErro(r));
   if (r.dados.tostoes > 0) { G.save.ouro += r.dados.tostoes; som('moeda'); banner('🏪 Vendas recolhidas!', `+${mktFmt(r.dados.tostoes)} tostões`); log(`🏪 Você recolheu ${mktFmt(r.dados.tostoes)} tostões de ${r.dados.vendas} venda(s) na feira.`, 'l-xp'); G.uiSujo = true; salvar(); }
+  if (r.dados.aviso) log('🏪 ' + r.dados.aviso, 'l-sis'); // v407 (Raio-X U7): teto de tostões recolhidos por dia
   mktMinhaLoja();
 }
 // a loja de alguém (ao chegar perto da barraca)
@@ -287,7 +292,8 @@ async function mktCarregaBarracas(forca) {
   MKT.mapaB = FEIRA_ID; MKT.tB = Date.now();
   let r; try { r = await mktPede('GET', '/barracas'); } catch (e) { return; }
   if (!r.ok || !mktNaFeira()) return;
-  MKT.barracas = (r.dados.barracas || []).filter(b => FEIRA_VAGAS[b.vaga]);
+  MKT.barracas = (r.dados.barracas || []).filter(b => FEIRA_VAGAS[b.vaga]); MKT.qtdPraca = MKT.barracas.length;
+  if (forca && !MKT.barracas.length) log('🏪 A Praça da Feira ainda está vazia: seja o primeiro a montar uma barraca! (☰ Menu › 🏪 Feira › Minha loja)', 'l-sis'); // v407 (Raio-X I8)
   MKT.ents = MKT.barracas.map(b => { const v = FEIRA_VAGAS[b.vaga]; return { id: 'barraca_' + b.vendedorId, barraca: b, d: { nome: `🏪 ${b.vendedor} · ${b.itens} ${b.itens === 1 ? 'item' : 'itens'}`, look: { tipo: 'barraca_loja' }, ola: '' }, x: v.x + 0.5, y: v.y + 0.5, r: 0.6, flip: false, fase: 0, mov: false }; });
   for (let k = 1; k <= 4; k++) spr('barraca_jog_' + k);
 }

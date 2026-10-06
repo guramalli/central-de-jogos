@@ -17,11 +17,12 @@ const MODO_FOLHA = typeof CORPOS_MODO !== 'undefined' ? CORPOS_MODO : {};
 const FOLHA_COM_CHAPEU = new Set(['bone_reta', 'bone_f', 'boina_m', 'touca_m', 'panama_m', 'chef', 'capuz_f', 'colete_m']);
 
 /* ---------- carregar as folhas novas (com versão no endereço: imagem nova nunca fica presa no cache) ---------- */
-const VERSAO_FOLHAS = ((document.querySelector('script[src*="corpos.js"]') || {}).src || '').split('v=')[1] || '1';
-for (const nome of Object.keys(MODO_FOLHA)) if (!FOLHAS[nome]) {
-  const im = new Image(); const f = FOLHAS[nome] = { im, ok: false, rot: null };
-  im.onload = () => { f.ok = true; }; im.src = `a/boneco_${nome}.webp?v=${VERSAO_FOLHAS}`;
-}
+// v407 (Raio-X R5): a versão das folhas é um número PRÓPRIO (antes era o ?v= do jogo: a cada versão nova os jogadores
+// baixavam de novo as ~200 folhas, mesmo sem nenhuma arte mudar). Só aumente quando REDESENHAR alguma folha.
+// (406 = o endereço que os jogadores já têm guardado.)
+const VERSAO_FOLHAS = '406';
+// v407 (Raio-X A2): cada folha só baixa quando for desenhada pela 1ª vez (folhaSobDemanda, boneco.js)
+for (const nome of Object.keys(MODO_FOLHA)) if (!FOLHAS[nome]) FOLHAS[nome] = folhaSobDemanda(nome, VERSAO_FOLHAS);
 
 /* ---------- escolher e pintar a folha ---------- */
 const _folhaDoLookCp = folhaDoLook;

@@ -40,8 +40,13 @@ async function enviaSave(forcar) {
   NUVEM.enviando = true;
   try {
     const dados = await comprime(JSON.stringify(G.save));
+    // v407 (Raio-X A8): o site recusa save maior que 90.000 letras ("Save grande demais") — antes o jogador via só
+    // "Não deu para salvar online agora" e achava que era a internet. Agora a mensagem diz o que é e o que fazer.
+    const grande = () => { nuvemStatus('⚠️ Seu progresso ficou grande demais para a nuvem: ele continua salvo NESTE aparelho. Guarde uma cópia em 💾 Save → Exportar.'); if (!NUVEM.avisouGrande) { NUVEM.avisouGrande = true; try { log('☁️ Seu progresso ficou grande demais para salvar online. Ele continua salvo neste aparelho — guarde uma cópia em 💾 Save → Exportar.', 'l-dano'); } catch (e) { } } };
+    if (dados.length > 90000) { grande(); NUVEM.enviando = false; return; }
     const r = await nuvemPede('PUT', '/save', { dados, nivel: Math.max(1, Math.min(999, G.save.nivel | 0)) });
-    if (r.ok) { NUVEM.sujo = false; NUVEM.ultimoEnvio = Date.now(); if (NUVEM.pacote) NUVEM.pacote.pendente = false; nuvemStatus('☁️ Salvo online'); }
+    if (!r.ok && r.status === 400 && /grande demais/i.test((r.dados && r.dados.error) || '')) grande();
+    else if (r.ok) { NUVEM.sujo = false; NUVEM.ultimoEnvio = Date.now(); if (NUVEM.pacote) NUVEM.pacote.pendente = false; nuvemStatus('☁️ Salvo online'); }
     else if (r.status !== 429 && r.status !== 401) nuvemStatus('☁️ Não deu para salvar online agora');
   } catch (e) { nuvemStatus('☁️ Sem conexão: salvo só neste aparelho'); }
   NUVEM.enviando = false;

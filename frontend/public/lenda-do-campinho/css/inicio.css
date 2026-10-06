@@ -1,97 +1,174 @@
 /* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
 /* ============================================================
-   TELA INICIAL v137 (js/inicio.js): arte aparecendo, logo à esquerda,
-   painel à direita (avisos, cartão do jogador, blocos de atalho)
+   TELA INICIAL (js/inicio.js) no padrão da vitrine /lenda/: capa viva ao
+   fundo, logo à esquerda, painel de vidro à direita (avisos, cartão do
+   jogador, blocos "Explore") e a criação de personagem em vidro.
+   Cores, botões e capa viva: css/marca.css. Os estilos de .chip e
+   .card-classe só mudam dentro de #criacao (as mesmas classes aparecem
+   dentro do jogo e lá ficam como estão).
    ============================================================ */
-#inicio.ini-v2 {
-  align-items: center; padding: 14px 18px 18px;
-  background:
-    linear-gradient(90deg, rgba(24,12,56,.10) 0%, rgba(24,12,56,.05) 40%, rgba(24,12,56,.55) 70%, rgba(24,12,56,.75) 100%),
-    linear-gradient(180deg, rgba(24,12,56,.35) 0%, rgba(24,12,56,0) 22%, rgba(24,12,56,0) 60%, rgba(24,12,56,.8) 100%),
-    url('../a/titulo.webp') center / cover no-repeat, var(--roxo);
-}
+/* Antes do JS pôr .ini-v2: troca o fundo de #inicio (style.css) pra arte antiga (titulo.webp) não ser baixada à toa. */
+#inicio { background: var(--lc-noite); }
+#inicio.ini-v2 { position: relative; isolation: isolate; align-items: center; padding: 14px 18px 18px; background: var(--lc-noite); font-family: var(--lc-texto); }
+.ini-v2 .ini-capa.capa-viva { position: fixed; inset: 0; z-index: -2; }
+#inicio.ini-v2::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; transition: background .6s ease;
+  background: linear-gradient(90deg, rgba(13, 11, 38, 0) 28%, rgba(13, 11, 38, .5) 60%, rgba(13, 11, 38, .82) 100%),
+              linear-gradient(0deg, rgba(13, 11, 38, .85) 0%, rgba(13, 11, 38, 0) 30%),
+              linear-gradient(180deg, rgba(13, 11, 38, .5) 0%, rgba(13, 11, 38, 0) 18%); }
 #inicio.ini-v2 .inicio-caixa {
-  width: min(1200px, 100%); padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 460px); grid-template-areas: "barra barra" "topo menu" "rodape rodape";
-  gap: 14px 40px; align-items: center;
+  width: min(1240px, 100%); padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 460px); grid-template-areas: "barra barra" "topo menu" "rodape rodape";
+  gap: 14px 44px; align-items: center;
 }
+/* barra do portal (Voltar ao Educação Gamer · Entrar na conta) em vidro */
 .ini-v2 .ini-barra { grid-area: barra; min-height: 8px; }
 .ini-v2 .ini-barra .portal-barra { margin: 0; }
-.ini-v2 .ini-barra .portal-barra .btn { box-shadow: 0 2px 8px rgba(0,0,0,.35); }
-.ini-v2 .ini-barra .portal-quem { background: rgba(255,246,224,.92); padding: 5px 12px; border-radius: 999px; border: 2px solid var(--madeira3); color: var(--madeira2); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-.ini-v2 .inicio-topo { grid-area: topo; text-align: center; align-self: center; }
-.ini-v2 .logo-eg { height: 46px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
-.ini-v2 .logo-jogo { width: min(620px, 96%) !important; margin: 4px auto 10px !important; filter: drop-shadow(0 8px 14px rgba(20,8,40,.55)); animation: iniFlutua 5s ease-in-out infinite; }
-@keyframes iniFlutua { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-.ini-v2 .sub { display: inline-block; max-width: 560px; margin: 0 auto 8px; padding: 8px 16px; border-radius: 14px; background: rgba(24,12,56,.62); color: #fff6e0; font-size: 15.5px; line-height: 1.35; text-shadow: 0 1px 2px rgba(0,0,0,.5); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-.ini-v2 .aviso-beta { display: inline-block; max-width: 520px; margin: 4px auto 0; font-size: 12px; padding: 4px 12px; border-radius: 999px; border-style: solid; background: rgba(255,232,216,.93); }
+.ini-v2 .ini-barra .portal-barra .btn, .ini-v2 .ini-barra .portal-quem { background: rgba(13, 11, 38, .55); color: #fff; border: 1px solid rgba(165, 180, 252, .3); border-radius: 999px; padding: 6px 14px; font-family: var(--lc-texto); font-weight: 800; font-size: 13px; text-shadow: none; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.ini-v2 .ini-barra .portal-quem b { color: var(--lc-ouro); }
+/* logo e frase */
+/* logo à esquerda (no computador): o garoto da capa aparece entre o logo e o painel */
+.ini-v2 .inicio-topo { grid-area: topo; text-align: left; align-self: center; justify-self: start; width: min(600px, 100%); }
+.ini-v2 .logo-eg { height: 44px; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .6)); }
+.ini-v2 .logo-jogo { position: relative; width: min(520px, 92%) !important; margin: 4px 0 12px !important; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .55)); animation: iniLogoCai 1.15s cubic-bezier(.34, 1.56, .64, 1) .3s both; }
+.ini-v2 .logo-jogo img { width: 100%; height: auto; display: block; }
+.ini-v2 .logo-jogo::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .85) 50%, transparent 65%); background-size: 250% 100%; background-position: 150% 0; -webkit-mask: url(../a/logo_jogo.webp) center / contain no-repeat; mask: url(../a/logo_jogo.webp) center / contain no-repeat; mix-blend-mode: overlay; animation: iniReflexo 6s ease-in-out 2.4s infinite; }
+@keyframes iniLogoCai { 0% { opacity: 0; transform: translateY(-40px) scale(.8) rotate(-3deg); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes iniReflexo { 0%, 60% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+.ini-v2 .sub { display: block; max-width: 560px; margin: 0 0 8px; padding: 0; background: none; box-shadow: none; color: #eef0ff; font-size: 18px; font-weight: 700; line-height: 1.5; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); }
+.ini-v2 .aviso-beta { display: inline-block; max-width: 520px; margin: 6px 0 0; font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(255, 201, 40, .45); background: rgba(13, 11, 38, .55); color: var(--lc-indigo-100); }
+/* painel de vidro */
 .ini-v2 .inicio-menu {
-  grid-area: menu; display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 16px;
-  background: linear-gradient(180deg, rgba(250,236,200,.97), rgba(240,218,170,.97)); color: var(--tinta);
-  border: 3px solid var(--madeira); border-radius: 18px; box-shadow: 0 0 0 3px var(--madeira2), inset 0 0 0 2px rgba(255,255,255,.35), 0 18px 40px rgba(10,4,30,.55);
+  grid-area: menu; display: flex; flex-direction: column; align-items: stretch; gap: 14px; padding: 18px;
+  background: var(--lc-vidro); color: #fff; border: 1px solid var(--lc-vidro-borda); border-radius: 24px;
+  backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08);
+  animation: iniSobe .9s var(--lc-mola) .5s both;
 }
+@keyframes iniSobe { from { opacity: 0; translate: 0 24px; } to { opacity: 1; translate: 0 0; } }
 .ini-v2 .inicio-menu .btn { min-width: 0; }
 .ini-v2 .inicio-menu[hidden] { display: none; }
+/* avisos (conta, nuvem, escolha de save) */
 .ini-avisos { display: flex; flex-direction: column; gap: 8px; }
 .ini-avisos[hidden] { display: none; }
-.ini-avisos .cad-cartao, .ini-avisos .nuvem-caixa { margin: 0; }
+.ini-v2 .ini-avisos .cad-cartao, .ini-v2 .ini-avisos .nuvem-caixa { margin: 0; background: rgba(255, 201, 40, .1); border: 1px solid rgba(255, 201, 40, .38); border-radius: 16px; color: #fff; box-shadow: none; }
+.ini-v2 .ini-avisos .btn { background: rgba(255, 255, 255, .12); color: #fff; border: 1px solid rgba(255, 255, 255, .3); border-radius: 12px; text-shadow: none; box-shadow: none; }
 /* cartão do jogador */
-.ini-cartao { display: flex; flex-direction: column; gap: 8px; background: linear-gradient(135deg, #3a2780, #2b1b5e); color: #fff6e0; border-radius: 14px; padding: 12px; border: 2px solid #1c1140; box-shadow: inset 0 1px 0 rgba(255,255,255,.15); }
-.ini-cartao-topo { display: flex; gap: 12px; align-items: center; }
-.ini-retrato { position: relative; width: 78px; height: 104px; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at 50% 35%, #6ad86a, #2e8a3a 70%); border: 3px solid var(--amarelo); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.ini-cartao { display: flex; flex-direction: column; gap: 10px; padding: 14px; color: #fff; border-radius: 18px; background: linear-gradient(135deg, rgba(79, 70, 229, .55), rgba(49, 46, 129, .72)); border: 1px solid rgba(165, 180, 252, .35); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); }
+.ini-cartao-topo { display: flex; gap: 14px; align-items: center; }
+.ini-retrato { position: relative; width: 82px; height: 110px; flex-shrink: 0; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 35%, #6ad86a, #2e8a3a 70%); border: 3px solid var(--lc-ouro); box-shadow: 0 0 24px rgba(255, 201, 40, .35); }
 .ini-retrato canvas { width: 100%; height: 100%; object-fit: contain; }
 .ini-bola { font-size: 44px; animation: iniQuica 1.4s ease-in-out infinite; }
 @keyframes iniQuica { 0%, 100% { transform: translateY(6px) rotate(0); } 50% { transform: translateY(-8px) rotate(180deg); } }
-.ini-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-family: Nunito, sans-serif; font-weight: 700; font-size: 13.5px; }
-.ini-info small { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #cbb8ff; }
-.ini-info .ini-nome { font-family: Fredoka, sans-serif; font-size: 22px; line-height: 1.1; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ini-info .ini-nivel { color: var(--amarelo); font-size: 15px; }
-.ini-cartao #btnContinuar { font-size: 22px; padding: 12px 18px; width: 100%; animation: iniBrilho 2.6s ease-in-out infinite; }
-@keyframes iniBrilho { 0%, 100% { box-shadow: 0 0 0 rgba(255,210,63,0); } 50% { box-shadow: 0 0 18px rgba(255,210,63,.75); } }
-.ini-cartao #btnNovo { width: 100%; font-size: 14px; padding: 7px 12px; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.35); }
-.ini-cartao:not(.tem-save) #btnNovo { font-size: 21px; padding: 12px 18px; background: linear-gradient(#ffe070, #f0a81a); color: #3b2410; border-color: #9a5a0a; text-shadow: none; animation: iniBrilho 2.6s ease-in-out infinite; }
-/* blocos de atalho */
-.ini-titulo { margin: 2px 0 -4px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--madeira); }
-.ini-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ini-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-weight: 700; font-size: 13.5px; color: var(--lc-indigo-100); }
+.ini-info small { font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: var(--lc-ouro); }
+.ini-info .ini-nome { font-family: var(--lc-titulo); font-weight: 600; font-size: 24px; line-height: 1.1; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ini-info .ini-nivel { color: var(--lc-ouro-claro); font-size: 15px; }
+.ini-cartao .lc-btn { width: 100%; }
+.ini-cartao #btnContinuar { height: 58px; font-size: 22px; }
+.ini-cartao.tem-save #btnNovo { height: 40px; font-size: 15px; }
+.ini-cartao:not(.tem-save) #btnNovo { height: 58px; font-size: 21px; }
+/* blocos "Explore" */
+.ini-titulo { margin: 2px 0 -4px; font-size: 12px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: var(--lc-indigo-300); }
+.ini-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; perspective: 700px; }
 .ini-tiles #btnHistoria { grid-column: span 2; }
-.btn.ini-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 8px 6px 7px; min-height: 76px; border-radius: 12px; background: linear-gradient(180deg, #fffaf0, #f3dfb4); color: var(--tinta); border: 2px solid var(--madeira3); text-shadow: none; box-shadow: 0 3px 0 var(--madeira3); transition: transform .12s, box-shadow .12s; }
-.btn.ini-tile:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--madeira3), 0 6px 14px rgba(90,40,10,.25); filter: none; }
-.btn.ini-tile:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--madeira3); }
+.btn.ini-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 9px 6px 8px; min-height: 80px; border-radius: 16px; color: #fff; text-shadow: none; background: rgba(255, 255, 255, .07); border: 1px solid rgba(165, 180, 252, .2); box-shadow: none;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s ease, border-color .2s, background .2s, translate .2s;
+  animation: iniSobe .7s var(--lc-mola) backwards; animation-delay: calc(var(--i, 0) * 70ms + .7s); }
+.btn.ini-tile:hover { translate: 0 -3px; filter: none; border-color: rgba(255, 201, 40, .6); background: rgba(255, 201, 40, .1); }
+.btn.ini-tile:active { translate: 0 1px; }
 .ini-tile .ini-ic { font-size: 24px; line-height: 1.1; }
-.ini-tile b { font-size: 14px; }
-.ini-tile small { font-family: Nunito, sans-serif; font-size: 11px; font-weight: 700; color: #8a6a44; line-height: 1.15; text-align: center; }
-.ini-v2 .copyright-inicio { grid-area: rodape; color: rgba(255,246,224,.85); text-shadow: 0 1px 2px rgba(0,0,0,.7); margin: 0; }
-.ini-v2 .copyright-inicio a { color: var(--amarelo); }
-/* criando o jogador: uma coluna, logo menor, formulário no papel */
-#inicio.ini-v2.modo-criacao .inicio-caixa { grid-template-columns: minmax(0, 1fr); grid-template-areas: "barra" "topo" "criacao" "rodape"; width: min(960px, 100%); }
-.ini-v2.modo-criacao .logo-jogo { width: min(320px, 70%) !important; animation: none; }
-.ini-v2.modo-criacao .sub, .ini-v2.modo-criacao .aviso-beta { display: none; }
-.ini-v2 .criacao { grid-area: criacao; background: rgba(247,227,181,.97); color: var(--tinta); border: 3px solid var(--madeira); border-radius: 16px; padding: 16px; box-shadow: 0 0 0 3px var(--madeira2), 0 18px 40px rgba(10,4,30,.5); }
-/* telas estreitas (celular / janela pequena) */
-@media (max-width: 860px) {
-  #inicio.ini-v2 { padding: 10px 10px 14px; background: linear-gradient(180deg, rgba(24,12,56,.25), rgba(24,12,56,.15) 30%, rgba(24,12,56,.8)), url('../a/titulo.webp') 30% center / cover no-repeat, var(--roxo); }
-  #inicio.ini-v2 .inicio-caixa { grid-template-columns: minmax(0, 1fr); grid-template-areas: "barra" "topo" "menu" "rodape"; gap: 10px; }
-  .ini-v2 .logo-jogo { width: min(420px, 88%) !important; margin-bottom: 4px !important; }
-  .ini-v2 .sub { font-size: 13.5px; padding: 6px 12px; }
-  .ini-v2 .inicio-menu { padding: 12px; }
-  .ini-tiles { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .btn.ini-tile { min-height: 68px; padding: 6px 4px; }
-  .ini-tile small { display: none; }
-  .ini-v2 .logo-eg { height: 30px; }
-  .ini-v2 .logo-jogo { width: min(300px, 72%) !important; margin: 0 auto 2px !important; }
-  .ini-v2 .sub { font-size: 12.5px; }
-  .ini-v2 .aviso-beta { display: none; }
-  .ini-v2 .ini-cartao { order: -1; }
-  .ini-v2 .ini-barra .portal-barra { flex-wrap: nowrap; gap: 6px; min-width: 0; }
-  .ini-v2 .ini-barra .portal-barra > * { min-width: 0; flex: 0 1 auto; }
-  .ini-v2 .ini-barra .portal-barra .btn, .ini-v2 .ini-barra .portal-quem { font-size: 11.5px; padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ini-info .ini-nome { font-size: 20px; }
-  .ini-cartao #btnContinuar { font-size: 20px; padding: 10px 14px; }
-}
+/* "Conheça o jogo" (vitrine): linha inteira, como o "Jogar no Windows", com destaque dourado */
+#btnConhecaJogo.ini-tile { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: center; gap: 8px; min-height: 0; padding: 10px; border-color: rgba(255, 201, 40, .55); background: rgba(255, 201, 40, .12); }
+#btnConhecaJogo.ini-tile .ini-ic { margin: 0; }
+.ini-tile b { font-family: var(--lc-titulo); font-weight: 600; font-size: 14px; }
+.ini-tile small { font-size: 11px; font-weight: 700; color: var(--lc-indigo-200); line-height: 1.15; text-align: center; }
+/* rodapé */
+.ini-v2 .copyright-inicio { grid-area: rodape; color: var(--lc-indigo-100); text-shadow: 0 1px 3px rgba(0, 0, 0, .8); margin: 0; }
+.ini-v2 .copyright-inicio a { color: var(--lc-ouro); }
 /* escolhendo qual save usar: a pergunta ocupa o lugar do Continuar */
 .ini-cartao.escolhendo #btnContinuar, .ini-cartao.escolhendo #btnNovo { display: none; }
-.ini-cartao #contaEscolha { margin: 0; background: #fff6e0; color: var(--tinta); border: 3px solid var(--amarelo); animation: iniBrilho 2.6s ease-in-out infinite; }
+.ini-cartao #contaEscolha { margin: 0; background: rgba(13, 11, 38, .7); color: #fff; border: 2px solid var(--lc-ouro); border-radius: 16px; box-shadow: 0 0 24px rgba(255, 201, 40, .35); }
 .ini-cartao #contaEscolha .conta-bts { flex-direction: column; align-items: stretch; }
 .ini-cartao #contaEscolha .btn { width: 100%; }
 .inicio-menu.escolhendo .ini-avisos .nuvem-caixa { display: none; }
+
+/* ---------- Criação de personagem ---------- */
+#inicio.ini-v2.modo-criacao::before { background: rgba(13, 11, 38, .72); }
+#inicio.ini-v2.modo-criacao .inicio-caixa { grid-template-columns: minmax(0, 1fr); grid-template-areas: "barra" "topo" "criacao" "rodape"; width: min(1040px, 100%); }
+.ini-v2.modo-criacao .logo-jogo { width: min(300px, 64%) !important; animation: none; }
+.ini-v2.modo-criacao .sub, .ini-v2.modo-criacao .aviso-beta { display: none; }
+.ini-v2 .criacao { grid-area: criacao; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; padding: 22px; color: #fff; background: var(--lc-vidro); border: 1px solid var(--lc-vidro-borda); border-radius: 24px; backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); box-shadow: 0 24px 60px rgba(0, 0, 0, .45); animation: iniSobe .7s var(--lc-mola) both; }
+.ini-v2 .criacao-preview { position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px; border-radius: 20px; background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, .5), rgba(13, 11, 38, .25) 72%); border: 1px solid rgba(165, 180, 252, .25); }
+.ini-v2 #retratoCriacao { width: 200px; height: 266px; border-radius: 18px; border: 3px solid var(--lc-ouro); background: radial-gradient(circle at 50% 35%, #6ad86a, #2e8a3a 70%); box-shadow: 0 0 44px rgba(255, 201, 40, .35); animation: iniBalanca 4s ease-in-out infinite; }
+@keyframes iniBalanca { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-6px) rotate(1deg); } }
+.ini-v2 .criacao .dica { margin: 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--lc-indigo-200); }
+.ini-v2 .criacao-opcoes label, .ini-v2 #criacao .opc > span { display: block; color: var(--lc-indigo-200); font-weight: 900; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.ini-v2 #inpNome { margin-top: 6px; width: 100%; padding: 12px 14px; font: 700 18px var(--lc-texto); color: #fff; background: rgba(255, 255, 255, .08); border: 1.5px solid rgba(165, 180, 252, .35); border-radius: 14px; }
+.ini-v2 #inpNome::placeholder { color: var(--lc-indigo-300); }
+.ini-v2 #inpNome:focus { outline: none; border-color: var(--lc-ouro); box-shadow: 0 0 0 4px rgba(255, 201, 40, .2); }
+.ini-v2 #criacao .opc { margin: 12px 0; }
+.ini-v2 #criacao .chips { gap: 7px; margin-top: 7px; }
+.ini-v2 #criacao .chip { padding: 7px 13px; border-radius: 999px; font: 700 13px var(--lc-texto); color: #fff; background: rgba(255, 255, 255, .07); border: 1px solid rgba(165, 180, 252, .25); cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+.ini-v2 #criacao .chip:hover { border-color: rgba(255, 201, 40, .6); transform: translateY(-1px); }
+.ini-v2 #criacao .chip.sel { color: var(--lc-tinta-ouro); background: linear-gradient(180deg, var(--lc-ouro-claro), var(--lc-ouro)); border-color: transparent; box-shadow: 0 4px 14px rgba(255, 201, 40, .35); }
+.ini-v2 #criacao .chip i { border: 2px solid rgba(255, 255, 255, .75); }
+.ini-v2 #criacao .grade-classes { gap: 10px; margin-top: 8px; }
+.ini-v2 #criacao .card-classe { padding: 12px 14px; border-radius: 16px; color: #fff; background: rgba(255, 255, 255, .06); border: 1px solid rgba(165, 180, 252, .22); transition: transform .2s, border-color .2s, box-shadow .2s; }
+.ini-v2 #criacao .card-classe:hover { transform: translateY(-3px); border-color: var(--cor); }
+.ini-v2 #criacao .card-classe.sel { background: rgba(255, 201, 40, .1); border-color: var(--lc-ouro); box-shadow: inset 0 0 0 2px var(--lc-ouro), 0 10px 28px rgba(255, 201, 40, .22); }
+.ini-v2 #criacao .card-classe b { color: #fff; font-family: var(--lc-titulo); font-weight: 600; }
+.ini-v2 #criacao .card-classe p { color: var(--lc-indigo-100); }
+.ini-v2 #criacao .card-classe .cc-attr { color: var(--lc-ouro); }
+/* barra de Voltar/Nascer! presa embaixo, com fundo de vidro firme (as opções rolam por trás sem aparecer) */
+.ini-v2 .criacao-acoes { position: sticky; bottom: 10px; z-index: 2; margin-top: 18px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: rgba(13, 11, 38, .9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--lc-vidro-borda); border-radius: 18px; box-shadow: 0 -12px 30px rgba(13, 11, 38, .65); }
+.ini-v2 .criacao-acoes #btnNascer { height: 58px; font-size: 22px; flex: 1; max-width: 340px; }
+
+/* ---------- Telas estreitas (celular / janela pequena) ---------- */
+@media (max-width: 860px) {
+  #inicio.ini-v2 { padding: 10px 10px 14px; }
+  #inicio.ini-v2::before { background: linear-gradient(180deg, rgba(13, 11, 38, .55) 0%, rgba(13, 11, 38, .1) 26%, rgba(13, 11, 38, .55) 55%, rgba(13, 11, 38, .9) 100%); }
+  #inicio.ini-v2 .inicio-caixa { grid-template-columns: minmax(0, 1fr); grid-template-areas: "barra" "topo" "menu" "rodape"; gap: 10px; }
+  .ini-v2 .inicio-topo { text-align: center; justify-self: stretch; width: auto; }
+  .ini-v2 .sub { margin: 0 auto 8px; }
+  .ini-v2 .logo-eg { height: 30px; }
+  .ini-v2 .logo-jogo { width: min(300px, 72%) !important; margin: 0 auto 2px !important; }
+  .ini-v2 .sub { font-size: 13.5px; }
+  .ini-v2 .aviso-beta { display: none; }
+  .ini-v2 .inicio-menu { padding: 12px; }
+  .ini-v2 .ini-cartao { order: -1; }
+  .ini-tiles { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .btn.ini-tile { min-height: 68px; padding: 6px 4px; }
+  .ini-tile small { display: none; }
+  .ini-v2 .ini-barra .portal-barra { flex-wrap: nowrap; gap: 6px; min-width: 0; }
+  .ini-v2 .ini-barra .portal-barra > * { min-width: 0; flex: 0 1 auto; }
+  .ini-v2 .ini-barra .portal-barra .btn, .ini-v2 .ini-barra .portal-quem { font-size: 11.5px; padding: 4px 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ini-info .ini-nome { font-size: 20px; }
+  .ini-cartao #btnContinuar { font-size: 20px; height: 52px; }
+  .ini-v2 .criacao { grid-template-columns: minmax(0, 1fr); padding: 14px; gap: 14px; }
+  .ini-v2 .criacao-preview { position: static; flex-direction: row; justify-content: center; }
+  .ini-v2 #retratoCriacao { width: 120px; height: 160px; }
+  .ini-v2 .criacao .dica { text-align: left; }
+  .ini-v2 .criacao-acoes #btnNascer { height: 52px; font-size: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ini-v2 .logo-jogo, .ini-v2 .logo-jogo::after, .ini-v2 .inicio-menu, .btn.ini-tile, .ini-bola, .ini-v2 #retratoCriacao, .ini-v2 .criacao { animation: none !important; }
+  .btn.ini-tile { transform: none !important; }
+}
+
+/* ---------- v407 (Raio-X, frente ARTE), no padrão novo ---------- */
+/* logo do Educação Gamer: arquivo local, pequeno, fixo no rodapé (antes: link externo, solto no topo) */
+.copyright-inicio .logo-eg { height: 30px; width: auto; vertical-align: middle; margin: 0 8px 0 0; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+.ini-v2 .copyright-inicio { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 4px; }
+@media (max-width: 860px) { .ini-v2 .copyright-inicio .logo-eg { height: 24px; } }
+/* criação: logo menor e centralizado, menos espaço em cima (a prévia e o "Nascer!" já ficam presos ao rolar) */
+.ini-v2.modo-criacao .inicio-topo { text-align: center; justify-self: center; }
+.ini-v2.modo-criacao .logo-jogo { width: min(210px, 50%) !important; margin: 0 auto 2px !important; }
+#inicio.ini-v2.modo-criacao { padding-top: 6px; }
+#inicio.ini-v2.modo-criacao .inicio-caixa { gap: 6px 40px; }
+@media (min-width: 861px) { .ini-v2 #criacao .opc { margin: 6px 0; } }
+/* cartões das classes (v407): ícone, nome e uma frase; o "ver mais" abre só aquele cartão */
+.grade-classes { align-items: start; }
+.card-classe .cc-magias b { font-size: 12.5px; color: inherit; }
+@media (min-width: 861px) { .ini-v2 .criacao #opClasse { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

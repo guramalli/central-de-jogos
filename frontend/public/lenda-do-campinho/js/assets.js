@@ -72,10 +72,30 @@ function padrao(ctx, nome, escala) {
   if (p && p.setTransform) p.setTransform(new DOMMatrix([escala, 0, 0, escala, 0, 0]));
   return p;
 }
+// v407 (Raio-X A8): as texturas e enfeites que o desenho do chão deste mapa usa
+function texturasDoChao(m) {
+  const l = new Set([m.interior ? 't_madeira' : 't_grama']), vistos = new Set(m.chao);
+  for (const t of vistos) if (TEX_CHAO[t]) l.add(TEX_CHAO[t]);
+  if (!m.interior && (vistos.has(CH.GRAMA) || vistos.has(CH.GRAMA_FLOR))) ['dc_tufo1', 'dc_tufo2', 'dc_tufo3', 'dc_tufo4', 'dc_flor1', 'dc_flor2', 'dc_flor3', 'dc_flor4', 'dc_margarida', 'dc_dente', 'dc_trevo', 'dc_cogumelo', 'dc_folhas', 'dc_pedra1'].forEach(n => l.add(n));
+  if (!m.interior && (vistos.has(CH.TERRA) || vistos.has(CH.CAMPO_TERRA))) ['dc_pedra1', 'dc_pedra2'].forEach(n => l.add(n));
+  return [...l].filter(n => typeof ASSET_SET === 'undefined' || ASSET_SET.has(n));
+}
 function renderChao(m) {
   if (m._chao) return m._chao;
   if (!spr('t_grama').ok) return renderChaoVetor(m);
-  const W = m.w * T, H = m.h * T; const c = mkCanvas(W, H); const x = c.getContext('2d');
+  { // v407 (Raio-X A8): o desenho fica guardado — só desenha quando as texturas DESTE mapa chegaram (sem elas o chão ficava
+    // de uma cor só até sair do mapa; agora as artes baixam depois que o jogo abre). Enquanto isso: a prévia com as cores dos
+    // quadradinhos. Desiste de esperar em 4 s (e refaz quando elas chegarem).
+    const usa = texturasDoChao(m), falta = usa.filter(n => { const e = spr(n); return !e.ok && !e.err; });
+    if (falta.length && typeof novoChaoBlocos === 'function') {
+      if (!m._chaoEspera) { m._chaoEspera = novoChaoBlocos(m.w * T, m.h * T, m, { soPrevia: true }); m._chaoEsperaT = Date.now(); }
+      if (Date.now() - m._chaoEsperaT < 4000) return m._chaoEspera;
+      if (!m._chaoRefaz) m._chaoRefaz = setInterval(() => { if (usa.every(n => spr(n).ok || spr(n).err)) { clearInterval(m._chaoRefaz); m._chaoRefaz = null; delete m._chao; } }, 1000);
+    }
+    m._chaoEspera = null;
+  }
+  // v407 (Raio-X A8): o chão vai para a "lousa" em blocos (chao_blocos.js), não mais numa imagem do tamanho do mapa
+  const W = m.w * T, H = m.h * T; const c = typeof novoChaoBlocos === 'function' ? novoChaoBlocos(W, H, m) : mkCanvas(W, H); const x = c.getContext('2d');
   const r = mulberry(m.w * 131 + m.h * 7 + m.id.length);
   const esc = (2 * T) / 256;
   x.fillStyle = padrao(x, m.interior ? 't_madeira' : 't_grama', esc) || '#86c75a'; x.fillRect(0, 0, W, H);

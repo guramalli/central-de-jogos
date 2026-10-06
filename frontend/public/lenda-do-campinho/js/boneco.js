@@ -385,9 +385,23 @@ function montaRetrato(alvo, cfg, aura) {
    ============================================================ */
 const FOLHA_CW = 200, FOLHA_CH = 290;
 const FOLHAS = {};
+// v407 (Raio-X A2): a folha só BAIXA na primeira vez que o jogo pergunta se ela está pronta (f.ok) — antes as ~200 folhas
+// (~21 MB) vinham todas já na tela inicial. Quem pergunta é sempre quem vai desenhar (spriteBoneco, retrato, aquece...);
+// enquanto ela chega, o boneco sai no desenho de reserva (spriteVetor), como sempre foi.
+function folhaSobDemanda(nome, versao) {
+  const im = new Image(); let ok = false, pedida = false;
+  const f = {
+    im, rot: null,
+    get ok() { if (!pedida) f.pede(); return ok; }, set ok(v) { ok = !!v; },
+    get pedida() { return pedida; },
+    pede() { if (pedida) return; pedida = true; im.src = `a/boneco_${nome}.webp` + (versao ? '?v=' + versao : ''); },
+  };
+  im.onload = () => { f.ok = true; };
+  return f;
+}
 function carregaFolhas() {
   if (typeof META_BONECOS === 'undefined') return;
-  for (const nome in META_BONECOS) { if (FOLHAS[nome]) continue; const im = new Image(); const f = FOLHAS[nome] = { im, ok: false, rot: null }; im.onload = () => { f.ok = true; }; im.src = `a/boneco_${nome}.webp`; }
+  for (const nome in META_BONECOS) { if (FOLHAS[nome]) continue; FOLHAS[nome] = folhaSobDemanda(nome); }
 }
 carregaFolhas();
 function folhaDoLook(sp, look) {

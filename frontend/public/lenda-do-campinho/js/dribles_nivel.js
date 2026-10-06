@@ -19,10 +19,10 @@ const FIM_DRIBLE_NIVEL = {
   p_futevolei: 'Nenhuma bola caiu! (O VOLEIO, chute forte à distância, chega sozinho no nível 15.)',
   c_skate: 'A quadra está livre! (O ELÁSTICO chega sozinho no nível 20: pra lá, pra cá... e passou.)',
   c_alas: 'Minhas prateleiras agradecem! Meu falecido marido era preparador e dizia que o FÔLEGO DE CAMPEÃO vem com o tempo: no nível 22 ele é seu.',
-  t_volantes: 'Primeira lição cumprida! (A CANETA, o drible mais humilhante do futebol, chega sozinha no nível 28.)',
+  t_volantes: 'Primeira lição cumprida! (A CANETA, o drible mais ousado do futebol, chega sozinha no nível 28.)', // v407 (Raio-X U3): era "mais humilhante"
   t_preparadores: 'Os preparadores agradecem o descanso! (A TABELINHA chega sozinha no nível 32.)',
   e_meias: 'O segredo do meu golaço? Treino! A BICICLETA, o golaço mais bonito do mundo, chega sozinha no nível 40.',
-  e_paredao: 'GOOOOL! Você é o CRAQUE! Toma a CAMISA 10 DE OURO. (A PEDALADA RELÂMPAGO chega sozinha no nível 55.) Agora... rumo à Lenda (nível 60)!',
+  e_paredao: 'GOOOOL! Você é o CRAQUE! Toma a CAMISA 10 DE OURO. (A PEDALADA RELÂMPAGO chega sozinha no nível 55.) Agora o mundo te espera: fale com a Comissária Luana, no aeroporto da Cidade!', // v407 (Raio-X R8): era "rumo à Lenda (nível 60)"
 };
 const TEXTO_DRIBLE_NIVEL = {
   q_escola: 'Jogador bom também é bom aluno! Responda 5 perguntas certas comigo e ganhe um presente.',

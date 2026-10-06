@@ -3,7 +3,7 @@
 /* ============================================================
    🎁 RECOMPENSA DIÁRIA (v209), como a Daily Reward do Tibia:
    entrou no dia, ganha um presente. Dias seguidos formam uma sequência de 7
-   (o 7º é o melhor); faltou mais de um dia, a sequência recomeça.
+   (o 7º é o melhor); faltou um dia, a sequência PAUSA e continua de onde parou (v407, Raio-X R11).
    Os presentes crescem com o nível. Carregar DEPOIS de tarefas.js.
    ============================================================ */
 function diaHoje() { return tarHoje(); }
@@ -23,8 +23,9 @@ function diariaEstado() {
   const s = G.save; if (!s.diaria) s.diaria = { ult: '', seq: 0 };
   const d = s.diaria, hoje = diaHoje();
   if (d.ult === hoje) return { pegou: true, dia: d.seq };
-  const seguido = d.ult && diasEntre(d.ult, hoje) === 1;
-  return { pegou: false, dia: seguido ? d.seq % 7 + 1 : 1, perdeu: !!d.ult && !seguido && d.seq > 1 };
+  // v407 (Raio-X R11): faltou um dia (ou vários)? A sequência PAUSA e continua de onde parou — nada de "medo de perder".
+  const pausou = !!d.ult && diasEntre(d.ult, hoje) > 1 && d.seq >= 1;
+  return { pegou: false, dia: d.ult ? d.seq % 7 + 1 : 1, perdeu: false, pausou };
 }
 function modalDiaria() {
   const s = G.save; if (!s) return; const st = diariaEstado();
@@ -40,7 +41,7 @@ function modalDiaria() {
   };
   abreModal.largo = true;
   abreModal(el('h2', {}, '🎁 Recompensa diária'),
-    el('p', {}, st.pegou ? 'Você já pegou o presente de hoje. Volte amanhã para continuar a sequência!' : (st.perdeu ? 'Você ficou um tempo fora e a sequência recomeçou. ' : '') + 'Entre todo dia: quanto mais dias seguidos, melhor o presente. O 7º dia é o maior!'),
+    el('p', {}, st.pegou ? 'Você já pegou o presente de hoje. Volte outro dia para continuar a sequência (ela não some se você faltar)!' : (st.pausou ? 'Que bom que você voltou! A sua sequência ficou guardada esperando você. ' : '') + 'Entre todo dia: quanto mais dias seguidos, melhor o presente. O 7º dia é o maior!'),
     trilha,
     el('div', { class: 'opcoes' }, st.pegou ? null : el('button', { class: 'btn verde', type: 'button', onclick: pegar }, `Pegar o presente do dia ${st.dia}`), el('button', { class: 'btn', type: 'button', onclick: fechaModal }, st.pegou ? 'Fechar' : 'Depois')));
 }
@@ -64,9 +65,11 @@ function atualizaBotaoDiaria() {
     const r = await _iniDr.apply(this, arguments); poe();
     clearInterval(espera); const t0 = Date.now();
     espera = setInterval(() => {
-      if (!G.save || Date.now() - t0 > 600000) { clearInterval(espera); return; }
+      if (!G.save || Date.now() - t0 > 1800000) { clearInterval(espera); return; } // v407: 30 min (o tutorial pode levar mais de 10)
       if (diariaEstado().pegou) { clearInterval(espera); return; }
-      const livre = G.rodando && !G.pausado && $('#modal').hidden && !(typeof HIST !== 'undefined' && HIST) && !G.jogoC && !G.fut && (G.save.st.tempo > 60 || G.save.nivel > 1); // v295: nunca no meio de uma partida da carreira
+      if (typeof hjAssumeDiaria === 'function' && hjAssumeDiaria()) { clearInterval(espera); return; } // v407 (Raio-X I2): quem volta num dia novo vê o cartão "Hoje" (com o presente dentro), uma janela só
+      const tutFeito = typeof TUTORIAL === 'undefined' || G.save.tut >= TUTORIAL.length; // v407 (Raio-X R2c): o presente abria no meio do tutorial (passo 7); agora só depois dele
+      const livre = tutFeito && G.rodando && !G.pausado && $('#modal').hidden && !(typeof HIST !== 'undefined' && HIST) && !G.jogoC && !G.fut && (G.save.st.tempo > 60 || G.save.nivel > 1) && (typeof rvQuieto !== 'function' || rvQuieto()); // v295: nunca no meio de uma partida da carreira · v407 (Raio-X A1): nem junto da faixa de nível
       if (livre && Date.now() - t0 > 2500) { clearInterval(espera); modalDiaria(); }
     }, 1000);
     return r;

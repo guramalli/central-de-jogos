@@ -111,7 +111,7 @@ function opcConteudo(aba) {
     c.append(opcTit('🧩 Interface'));
     if (typeof aplicaVisual === 'function') c.append(opcEscolha('Visual', 'Compacto dá mais espaço para o jogo; clássico deixa tudo maior.', [['compacto', 'Compacto'], ['classico', 'Clássico']], visualCompacto() ? 'compacto' : 'classico', v => aplicaVisual(v === 'compacto')));
     if (typeof HUD_BONECO !== 'undefined' && typeof guardaHud === 'function') {
-      c.append(opcEscolha('Fôlego e foco no boneco', 'Arcos em volta do personagem (como no Tibia), barrinhas em cima da cabeça, ou os dois.', [['ambos', 'Os dois'], ['arcos', 'Só arcos'], ['barras', 'Só barrinhas']], HUD_BONECO, v => { HUD_BONECO = v; ARCOS_ON = v !== 'barras'; guardaHud(); }));
+      c.append(opcEscolha('Fôlego e foco no boneco', 'Arcos em volta do personagem, barrinhas em cima da cabeça, ou os dois.', [['ambos', 'Os dois'], ['arcos', 'Só arcos'], ['barras', 'Só barrinhas']], HUD_BONECO, v => { HUD_BONECO = v; ARCOS_ON = v !== 'barras'; guardaHud(); })); // v407 (Raio-X U4): sem a comparação com o Tibia no texto do jogador
       if (HUD_BONECO !== 'barras') c.append(opcEscolha('Distância dos arcos', '', [['perto', 'Perto'], ['media', 'Média'], ['longe', 'Longe']], ARCOS_DIST, v => { ARCOS_DIST = v; guardaHud(); }));
     }
     c.append(opcTit('👀 Mostrar na tela'),
@@ -138,6 +138,12 @@ function opcConteudo(aba) {
       c.append(opcLinha('Silenciados', MO_MUDOS.size ? 'Toque para mostrar de novo.' : 'Ninguém (botão direito num jogador → Silenciar).', l));
     }
     if (typeof estAlterna === 'function' && typeof estLigado === 'function') c.append(opcChave('Estatísticas anônimas', 'Só contagens (sem nome nem conta) para melhorar o jogo.', estLigado(), () => estAlterna()));
+    // v407 (Raio-X U5): convites só de amigos (ligado por padrão) e ficar invisível no mundo (online_seguro.js)
+    if (typeof osgMudaPref === 'function') {
+      const P = window.ONLINE_SEGURO.OSG_PREFS();
+      c.append(opcChave('Convites só de amigos', 'Convite para caçar em grupo só chega de amigos e colegas de guilda. Desligado: qualquer jogador pode chamar você.', !P.convitesTodos, v => osgMudaPref('convitesTodos', !v)),
+        opcChave('Ficar invisível no mundo', 'Você continua vendo os outros jogadores, mas ninguém vê você nem os seus emotes.', !!P.invisivel, v => osgMudaPref('invisivel', v)));
+    }
   } else if (aba === 'acess') {
     c.append(opcTit('♿ Acessibilidade'),
       opcEscolha('Tamanho do texto', 'Painéis, janelas e menus (o mapa não muda).', [['pequeno', 'A−'], ['normal', 'A'], ['grande', 'A+'], ['enorme', 'A++']], OPC.texto || 'normal', v => { OPC.texto = v; opcGrava(); opcAplicaAcess(); }),
@@ -152,6 +158,8 @@ function opcConteudo(aba) {
     }));
     if (typeof modalSair === 'function') c.append(opcLinha('Sair', 'Sair do jogo (e da conta, se estiver logado).', el('button', { class: 'btn mini', type: 'button', onclick: () => { fechaModal(); modalSair(); } }, '🚪 Sair')));
     if (typeof modalBackup === 'function') { const box = el('div', { class: 'opc-emb' }); c.append(opcTit('💾 Cópia do save'), box); setTimeout(() => opcEmbute('modalBackup', box), 0); }
+    // v407 (Raio-X U6): apagar do SITE os dados do jogo (o personagem deste aparelho continua) — online_seguro.js
+    if (typeof osgApagaDados === 'function' && opcOnline()) c.append(opcLinha('Apagar meus dados do jogo', 'Apaga do site o save online, o ranking, a casa, a guilda, a feira e as torcidas. A conta do site continua.', el('button', { class: 'btn mini vermelho', type: 'button', onclick: () => osgApagaDados() }, '🗑️ Apagar')));
   }
   return c;
 }
@@ -171,7 +179,7 @@ const OPC_SAI_DO_MENU = ['btnLevePC', 'btnArcos', 'btnArcosDist', 'btnInterface'
 const OPC_GRUPOS = [
   ['personagem', '🧍 Personagem', /classe|jogadas|visual|montaria|treino|analisador/i],
   ['aventura', '🗺️ Aventura', /miss|tarefa|saga|origem|lendas|agência|agencia|recompensa|diária|diaria/i],
-  ['social', '👥 Social', /amigo|grupo|guilda|feira|torre em grupo/i],
+  ['social', '👥 Social', /amigo|grupo|guilda|feira|torre em grupo|jogando agora/i], // (v407: "👥 Jogando agora", online_seguro.js)
   ['colecao', '🏅 Coleção', /álbum|album|conquista|museu|ranking|personagens|bestiário|bestiario/i],
   ['ajuda', '📚 Ajuda', /wiki|ajuda|como jogar|bug/i],
 ];

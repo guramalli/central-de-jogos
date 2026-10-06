@@ -35,7 +35,9 @@ const VANTAGENS_CONTA = () => el('ul', { class: 'cad-lista' },
 
 // janela de convite (antes de jogar, e nos marcos de nível)
 function modalConvite(titulo, texto, aoJogar) {
-  const jogar = el('button', { class: 'btn', type: 'button', onclick: () => { fechaModal(); if (aoJogar) aoJogar(); } }, aoJogar ? 'Jogar sem conta' : 'Agora não');
+  // v407 (Raio-X): "Jogar sem conta" era o botão menos visível; agora é verde, grande e vem primeiro
+  const jogar = el('button', { class: aoJogar ? 'btn verde cad-jogar' : 'btn', type: 'button', style: aoJogar ? 'font-size:17px;padding:10px 22px' : '', onclick: () => { fechaModal(); if (aoJogar) aoJogar(); } }, aoJogar ? '▶ Jogar sem conta' : 'Agora não');
+  if (aoJogar) { abreModal(el('h2', {}, titulo), el('p', {}, texto), el('div', { class: 'opcoes' }, jogar), VANTAGENS_CONTA(), botoesConta(), el('p', { class: 'dica' }, 'É grátis e rapidinho. Peça ajuda para um adulto se precisar.')); if (!G.rodando) $('#modal').onclick = null; return; }
   abreModal(el('h2', {}, titulo), el('p', {}, texto), VANTAGENS_CONTA(), botoesConta(jogar),
     el('p', { class: 'dica' }, 'É grátis e rapidinho. Peça ajuda para um adulto se precisar.'));
   if (!G.rodando) $('#modal').onclick = null;
@@ -54,9 +56,12 @@ if (CADASTRO.semConta) (function () {
 
   // ---------- antes de começar: pergunta uma vez por sessão ----------
   let perguntou = false; try { perguntou = sessionStorage.getItem('rac_convite_conta') === '1'; } catch (e) { }
+  // v407 (Raio-X): o convite vinha ANTES da 1ª partida. Agora: "Novo jogador" entra direto; o convite só aparece no
+  // "Continuar" de quem já terminou o tutorial (e nos marcos de nível, logo abaixo)
+  const tutFeitoSave = () => { try { const s = typeof lerSave === 'function' && lerSave(); return !!s && typeof TUTORIAL !== 'undefined' && (s.tut | 0) >= TUTORIAL.length; } catch (e) { return false; } };
   document.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest && ev.target.closest('#btnNovo, #btnContinuar');
-    if (!b || perguntou) return;
+    const b = ev.target && ev.target.closest && ev.target.closest('#btnContinuar');
+    if (!b || perguntou || !tutFeitoSave()) return;
     ev.preventDefault(); ev.stopImmediatePropagation();
     perguntou = true; try { sessionStorage.setItem('rac_convite_conta', '1'); } catch (e) { }
     modalConvite('Antes de entrar em campo...', 'Sem conta você joga normalmente, mas NÃO aparece no Ranking e o progresso fica só neste aparelho.', () => b.click());

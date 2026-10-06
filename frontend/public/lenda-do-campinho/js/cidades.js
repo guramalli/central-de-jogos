@@ -248,15 +248,15 @@ for (const c of CIDADES) {
   NPCS['lider_' + id] = { nome: c.lider.nome, ola: c.lider.ola, look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, c.lider.look) };
   MAPAS_DEF[id] = () => (c.cria || criaCidade)(c); // v234: Santos tem mapa próprio (santos_mapa.js)
   DESAFIOS[id] = [[c.rapido, 150], [c.meia, 150], [c.zagueiro, 150]].concat(c.fanatico ? [[c.fanatico, 150]] : []);
-  // missões
+  // missões (v407 Raio-X R8: artigo certo com prepLugar — "ao Rio", "ao Cairo" — e sem "Quem joga como Mestra do Origami lê")
   const xpNivel = x => xpPara(x + 1) - xpPara(x);
   const cidadeCurta = c.nome.split(' —')[0];
   MISSOES.push(
-    { id: id + '_m1', npc: 'loja_' + id, titulo: `Bem-vindo a ${cidadeCurta}`, lvl: L - 6, texto: `Os adversários do tipo ${c.nomes.rapido} correm por toda a cidade. Mostre o futebol brasileiro: passe por 30 deles.`, req: { kill: c.rapido, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 0.9), ouro: L * 120, itens: [[c.comida, 5]] }, fim: `${cidadeCurta} já sabe o seu nome!` },
-    { id: id + '_m2', npc: 'loja_' + id, titulo: 'A muralha local', lvl: L - 3, pre: id + '_m1', texto: `O ${c.nomes.zagueiro} é a defesa mais dura daqui. Vença 30 deles.`, req: { kill: c.zagueiro, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 160, itens: [[GEAR_POR_CIDADE[id][0], 1]] }, fim: 'Toma um equipamento digno de você!' },
+    { id: id + '_m1', npc: 'loja_' + id, titulo: `Bem-vindo(a) ${prepLugar('a', cidadeCurta)}`, lvl: L - 6, texto: `Os adversários do tipo ${c.nomes.rapido} correm pelas ruas ${prepLugar('de', cidadeCurta)}. Mostre o futebol brasileiro: passe por 30 deles.`, req: { kill: c.rapido, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 0.9), ouro: L * 120, itens: [[c.comida, 5]] }, fim: `${cidadeCurta} já sabe o seu nome!` },
+    { id: id + '_m2', npc: 'loja_' + id, titulo: 'A muralha local', lvl: L - 3, pre: id + '_m1', texto: `Os adversários do tipo ${c.nomes.zagueiro} são a defesa mais dura ${prepLugar('de', cidadeCurta)}. Vença 30 deles pela cidade.`, req: { kill: c.zagueiro, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 160, itens: [[GEAR_POR_CIDADE[id][0], 1]] }, fim: 'Toma um equipamento digno de você!' },
     c.fanatico
       ? { id: id + '_m3', npc: 'lider_' + id, titulo: `Missão da Paz: ${c.zona}`, lvl: L - 4, texto: `Os fanáticos da ${c.zona} intimidam quem passa. Vença 25 no jogo limpo e mostre que rivalidade é dentro de campo.`, req: { kill: c.fanatico, n: 25 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 150, evento: 'paz', itens: [[L < 100 ? 'pulseira' : 'cachecol', 1]] }, fim: 'Hoje eles cantaram em vez de vaiar. Torcer é festa!' }
-      : { id: id + '_m3', npc: 'lider_' + id, titulo: `Treino em ${cidadeCurta}`, lvl: L - 4, texto: `Quem joga como ${c.nomes.meia} lê o jogo como ninguém. Vença 30 deles para aprender.`, req: { kill: c.meia, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 150, itens: [['pulseira', 1]] }, fim: 'Você aprendeu muito aqui!' },
+      : { id: id + '_m3', npc: 'lider_' + id, titulo: `Treino ${prepLugar('em', cidadeCurta)}`, lvl: L - 4, texto: `Os adversários do tipo ${c.nomes.meia} leem o jogo como ninguém. Vença 30 deles pelas ruas ${prepLugar('de', cidadeCurta)} para aprender.`, req: { kill: c.meia, n: 30 }, rec: { xp: Math.round(xpNivel(L) * 1.1), ouro: L * 150, itens: [['pulseira', 1]] }, fim: 'Você aprendeu muito aqui!' },
     { id: id + '_m4', npc: 'lider_' + id, titulo: c.nomes.chefe, lvl: L + 2, pre: id + '_m3', texto: `${c.nomes.chefe.toUpperCase()} manda no canto sudeste da cidade. Vença e a próxima liga vai te chamar.`, req: { kill: c.chefe, n: 1 }, rec: { xp: Math.round(xpNivel(L) * 3), ouro: L * 400, flag: 'venceu_' + id }, fim: `LENDÁRIO! ${cidadeCurta} conquistada. Fale com o Empresário Rodrigues sobre a próxima liga!` },
   );
 }

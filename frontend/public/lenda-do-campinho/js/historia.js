@@ -137,7 +137,7 @@ const CAPITULOS = {
       botao: 'Rumo a Atlântida! 🌊' },
   },
   gloria: {
-    rotulo: 'Epílogo', titulo: 'Glória Eterna', emoji: '👑', implica: ['adulto', 'paredao', 'mundo', 'europa'],
+    rotulo: 'Capítulo extra', titulo: 'O Clube Campeão', emoji: '👑', implica: ['adulto', 'paredao', 'mundo', 'europa'], // v407 (Raio-X R12): era 'Epílogo · Glória Eterna' e aparecia antes de Atlântida
     cond: s => !!s.flags.campeao_pais_mundo,
     cenas: [
       { img: 'cap_gloria_1', kb: 'kb-b', cor: ['#1a1450', '#7a4aff'],

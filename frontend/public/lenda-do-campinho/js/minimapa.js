@@ -210,7 +210,7 @@ desenhaMini = function () {
   x.drawImage(base, x0 * MINI_S, y0 * MINI_S, vw * MINI_S, vh * MINI_S, ox, oy, vw * k, vh * k);
   // noite escurece um pouco o minimapa também
   const h = G.save.hora / 60; if (!m.interior && (h >= 19 || h < 6)) { x.fillStyle = 'rgba(20,24,80,0.25)'; x.fillRect(0, 0, larg, alt); }
-  const e = Math.max(0.9, k / 9); // ícones acompanham o zoom
+  const e = Math.min(Math.max(0.9, k / 9), Math.max(0.9, larg / (MINI_VISTA * 9)) * 1.25); // ícones acompanham o zoom (v407 Raio-X A1: com teto — dentro da casa, mapa pequeno, os ícones ficavam enormes)
   desenhaMarcadores(x, wx => ox + (wx - x0) * k, wy => oy + (wy - y0) * k, e, false);
   // moldura
   x.strokeStyle = 'rgba(255,233,168,0.55)'; x.lineWidth = 2 * dpr; x.strokeRect(1, 1, larg - 2, alt - 2);

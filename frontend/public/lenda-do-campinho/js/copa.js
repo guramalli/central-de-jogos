@@ -111,7 +111,8 @@ const COPA_ELENCOS = COPA_ELENCOS_BRUTO.map(e => ({
 }));
 
 // times dos sonhos da IA
-const COPA_NOMES_IA = ['Zeca', 'Tonho', 'Luan', 'Biel', 'Caio', 'Davi', 'Rafa', 'Gui', 'Nando', 'Tuca', 'Neném', 'Pipoca', 'Foguinho', 'Carlinhos', 'Jajá', 'Lelê', 'Nina', 'Bia', 'Duda', 'Mari', 'Juju', 'Lari', 'Tati', 'Gabi', 'Téo', 'Kadu', 'Vini', 'Leco', 'Dedé', 'Fumaça', 'Tatu', 'Paçoca', 'Magrão', 'Baixinho', 'Alemão', 'Cabeção', 'Formiga', 'Bolinha', 'Russo', 'Ceará', 'Paraíba', 'Tchê', 'Mineiro', 'Canela', 'Faísca', 'Sabiá', 'Tiziu', 'Bambu', 'Jacaré', 'Xodó', 'Pingo', 'Taco', 'Toquinho', 'Marreco', 'Cacau', 'Lulu', 'Maju', 'Tetê', 'Kiki', 'Dandara', 'Pitoco', 'Chumbinho', 'Trovão', 'Parafuso', 'Batata', 'Quiabo', 'Pimpão', 'Bochecha', 'Tampinha', 'Vavá'];
+// v407 (Raio-X U3): apelido 'Cabeção' virou 'Cometa' (não caçoar da aparência)
+const COPA_NOMES_IA = ['Zeca', 'Tonho', 'Luan', 'Biel', 'Caio', 'Davi', 'Rafa', 'Gui', 'Nando', 'Tuca', 'Neném', 'Pipoca', 'Foguinho', 'Carlinhos', 'Jajá', 'Lelê', 'Nina', 'Bia', 'Duda', 'Mari', 'Juju', 'Lari', 'Tati', 'Gabi', 'Téo', 'Kadu', 'Vini', 'Leco', 'Dedé', 'Fumaça', 'Tatu', 'Paçoca', 'Magrão', 'Baixinho', 'Alemão', 'Cometa', 'Formiga', 'Bolinha', 'Russo', 'Ceará', 'Paraíba', 'Tchê', 'Mineiro', 'Canela', 'Faísca', 'Sabiá', 'Tiziu', 'Bambu', 'Jacaré', 'Xodó', 'Pingo', 'Taco', 'Toquinho', 'Marreco', 'Cacau', 'Lulu', 'Maju', 'Tetê', 'Kiki', 'Dandara', 'Pitoco', 'Chumbinho', 'Trovão', 'Parafuso', 'Batata', 'Quiabo', 'Pimpão', 'Bochecha', 'Tampinha', 'Vavá'];
 const COPA_TIMES_PRE = ['Esquadrão', 'Galácticos', 'Dinastia', 'Lendas', 'Máquina', 'Relâmpagos', 'Titãs', 'Feras', 'Magos', 'Guerreiros', 'Furacões', 'Astros', 'Tubarões', 'Dragões', 'Leões', 'Onças'];
 const COPA_TIMES_SUF = ['do Cajueiro', 'da Ventania', 'do Trovão', 'do Sertão', 'da Serra', 'do Litoral', 'da Colina', 'do Pantanal', 'da Garoa', 'do Mangue', 'do Poeirão', 'da Lagoa', 'do Pombal', 'do Coqueiral', 'da Ladeira', 'do Cerrado', 'da Chapada', 'do Vale Verde', 'da Pedra Lisa', 'do Rio Seco', 'da Areia Branca', 'do Sol Nascente'];
 const COPA_EMOJIS_IA = ['🦁', '🐯', '🦈', '🐉', '🦅', '🐺', '🐆', '🦂', '🐍', '🦏', '🐗', '🦬', '🐊', '🦉', '🐝', '🔥', '⚡', '🌋', '🌊', '☄️', '🌵', '🍀', '🎯', '💎'];
@@ -916,6 +917,7 @@ const NPC_COPA = {
   ola: 'Opa, craque! Eu sei a escalação de TODOS os grandes times da história, desde 1958! Quer montar um time dos sonhos com Pelê, Zicu, Romáriu, Martta, Maradonna e Messy? Role o dado e vamos ver se você conquista a Copa... quem sabe até um 7 a 0 perfeito!',
   copa: true,
 };
+// v407 (Raio-X R8): caixa alta só para nome de chefão (palavras de ênfase e nomes de cidade voltaram ao normal)
 const MISSOES_COPA = [
   { id: 'q_copa1', npc: 'almanaque', titulo: 'Sonhar não custa nada', lvl: 3,
     texto: 'Já ouviu falar da Copa dos Sonhos? Você monta um time com craques de todas as épocas, um sorteio de cada vez. Dispute uma Copa inteira, do primeiro jogo até o fim, e me conte como foi!',
@@ -923,12 +925,12 @@ const MISSOES_COPA = [
     rec: { xp: 150, ouro: 40, itens: [['pacotinho', 1]] },
     fim: 'Viu só? Escolher o time é metade do jogo! Toma um pacotinho pra começar sua coleção de lendas.' },
   { id: 'q_copa2', npc: 'almanaque', titulo: 'Levanta essa taça!', lvl: 6,
-    texto: 'Participar é bom, mas levantar a taça é MUITO melhor. Seja campeão da Copa dos Sonhos: passe do grupo e ganhe oitavas, quartas, semi e final!',
+    texto: 'Participar é bom, mas levantar a taça é muito melhor. Seja campeão da Copa dos Sonhos: passe do grupo e ganhe oitavas, quartas, semi e final!',
     req: { copaTitulo: 1, desc: 'Seja campeão da Copa dos Sonhos' },
     rec: { xp: 500, ouro: 150, itens: [['pacotinho', 2]] },
     fim: 'CAMPEÃO! Vou anotar seu nome aqui no meu almanaque, do lado do Pelê e do Garrinxa!' },
   { id: 'q_copa3', npc: 'almanaque', titulo: 'O 7 a 0 perfeito', lvl: 10,
-    texto: 'Agora o desafio dos desafios: ganhar os 7 jogos da Copa SEM SOFRER NENHUM GOL. Só os maiores times da história conseguiram. Dica de quem sabe: goleiro bom e zaga forte!',
+    texto: 'Agora o desafio dos desafios: ganhar os 7 jogos da Copa sem sofrer nenhum gol. Só os maiores times da história conseguiram. Dica de quem sabe: goleiro bom e zaga forte!',
     req: { copa7a0: 1, desc: 'Vença os 7 jogos da Copa dos Sonhos sem sofrer gol' },
     rec: { xp: 2000, ouro: 500, itens: [['pacotinho', 3]] },
     fim: 'Eu nunca tinha visto isso nesses 50 anos de almanaque! 7 a 0 PERFEITO! Você é lenda, craque!' },

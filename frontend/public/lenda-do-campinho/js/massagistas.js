@@ -11,7 +11,7 @@ const MASSAGISTAS = {
   vila: ['Massagista Bené', 'm'], praia: ['Massagista Dora', 'f'], cidade: ['Massagista Juca', 'm'], ct: ['Massagista Lúcia', 'f'], estadio: ['Massagista Tonho', 'm'],
   cairo: ['Massagista Samir', 'm'], toquio: ['Massagista Aiko', 'f'], doha: ['Massagista Nadia', 'f'], miami: ['Massagista Joe', 'm'], lisboa: ['Massagista Inês', 'f'],
   madri: ['Massagista Paco', 'm'], milao: ['Massagista Giulia', 'f'], munique: ['Massagista Hans', 'm'], londres: ['Massagista Olivia', 'f'], paris: ['Massagista Amélie', 'f'],
-  buenos: ['Massagista Tito', 'm'], rio: ['Massagista Glória', 'f'], santos: ['Massagista Zeca', 'm'],
+  buenos: ['Massagista Tito', 'm'], rio: ['Massagista Dalva', 'f'] /* v407 (Raio-X): era Glória, igual à técnica da seleção */, santos: ['Massagista Zeca', 'm'],
 };
 const LOJA_BATALHA = ['agua', 'isotonico', 'acai', 'suco_verde', 'vitamina', 'agua_coco', 'energetico', 'guarana', 'kit_massagista', 'isotonico_pro', 'elixir_mar', 'perola_azul', 'soro_estelar', 'cristal_foco'];
 const PELES_MASS = ['pele-morena', 'pele-negra', 'pele-clara', 'pele-media'];
@@ -19,8 +19,10 @@ Object.entries(MASSAGISTAS).forEach(([mapa, [nome, corpo]], k) => {
   NPCS['massagista_' + mapa] = {
     nome, ola: 'Vai caçar? Leva estoque! Tenho Garrafas de Fôlego e Isotônicos de Foco de todos os tamanhos. E compro o que você trouxer da caçada.',
     loja: LOJA_BATALHA.filter(id => ITENS[id]),
-    look: { tipo: 'humano', corpo, alt: corpo === 'f' ? 1.64 : 1.72, pele: PELES_MASS[k % PELES_MASS.length], cabelo: corpo === 'f' ? 'cabelo-rabo' : 'cabelo-curto', corCabelo: k % 3 ? 'preto' : 'castanho',
-      roupa: 'roupa-camiseta', corRoupa: '#2aa86a', baixo: 'baixo-shorts' },
+    // v407 (Raio-X, NPCs distintos): antes de camiseta e shorts, iguais ao boneco do jogador iniciante; agora com o uniforme
+    // do departamento médico (jaleco branco, calça de agasalho verde e apito) e penteados variados
+    look: { tipo: 'humano', corpo, alt: corpo === 'f' ? 1.64 : 1.72, pele: PELES_MASS[k % PELES_MASS.length], cabelo: corpo === 'f' ? ['cabelo-rabo', 'cabelo-coque', 'cabelo-cacheado'][k % 3] : ['cabelo-curto', 'cabelo-black-power', 'cabelo-topete'][k % 3], corCabelo: k % 3 ? 'preto' : 'castanho',
+      roupa: 'roupa-jaleco', corRoupa: '#f4f7fb', baixo: 'baixo-moletom', corBaixo: '#2aa86a', pescoco: 'pescoco-apito' },
   };
 });
 function poeMassagista(m, id) {

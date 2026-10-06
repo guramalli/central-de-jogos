@@ -98,7 +98,7 @@ function criaSantos(c) {
 
   /* ---------- os Meninos da Vila ---------- */
   b.spawn(c.zagueiro, 5, 17, 3, 2); b.spawn(c.meia, 9, 17, 3, 2);                 // no campinho
-  for (const x of [5, 27, 36]) b.spawn('santos_turista', x, 35, 3, 2);            // os turistas branquelos, jogando gol caixote na areia
+  for (const x of [5, 27, 36]) b.spawn('santos_turista', x, 35, 3, 2);            // os turistas sem protetor, jogando gol caixote na areia
   b.spawn(c.rapido, 4, 31, 3, 1); b.spawn(c.rapido, 35, 31, 3, 1);              // os Meninos da Vila no jardim da orla
   b.spawn(c.rapido, 30, 5, 3, 1); b.spawn(c.zagueiro, 44, 11, 3, 2);             // no centro
   b.spawn(c.meia, 8, 22, 3, 1);                                                  // na rua de trás da orla
@@ -111,14 +111,15 @@ function criaSantos(c) {
   return b.m;
 }
 { const c = CIDADES.find(k => k.id === 'santos'); if (c) c.cria = criaSantos; }
-// os TURISTAS BRANQUELOS: meninos de sunga, vermelhos de sol, jogando gol caixote na praia
+// os TURISTAS SEM PROTETOR: meninos de sunga, vermelhos de sol, jogando gol caixote na praia
+// v407 (Raio-X U3): era "Turista Branquelo" — nome que caçoa da aparência; agora "Turista Sem Protetor"
 {
-  const t = montaMonstro('santos_turista', 'Turista Branquelo', 'rapido', 186, { falas: ['Gol caixote!', 'Tá ardendo!', 'Cadê o protetor?', 'Passa a bola!'], look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-regata', corRoupa: '#e03a3a', baixo: 'baixo-praia' } });
+  const t = montaMonstro('santos_turista', 'Turista Sem Protetor', 'rapido', 186, { falas: ['Gol caixote!', 'Tá ardendo!', 'Cadê o protetor?', 'Passa a bola!'], look: { pele: 'pele-clara', cabelo: 'cabelo-curto', corCabelo: 'loiro', roupa: 'roupa-regata', corRoupa: '#e03a3a', baixo: 'baixo-praia' } });
   t.loot = [['couro', 0.3, 1, 2], ['pastel_caldo', 0.05, 1, 1], ['saca_cafe', 0.05, 1, 1], ['medalha_copa', 0.002, 1, 1]];
   Object.assign(OBJ_INFO, { gol_caixote_d: { w: 2.1, b: 1 }, gol_caixote_e: { w: 2.1, b: 1 }, toalha_praia: { w: 1.2, b: 0 }, isopor_praia: { w: 0.8, b: 1 } });
   ['gol_caixote_d', 'gol_caixote_e', 'isopor_praia'].forEach(k => OBJ_BLOQUEIA.add(k));
   ['gol_caixote_d', 'gol_caixote_e', 'toalha_praia', 'isopor_praia', 'boneco_turista_a', 'boneco_turista_b'].forEach(n => { if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
   MISSOES.push({ id: 'santos_turistas', npc: 'loja_santos', titulo: 'Gol Caixote na Areia', lvl: 184,
-    texto: 'Os turistas branquelos tomaram conta da praia com o gol caixote... e esqueceram o protetor solar! Vença 30 deles no jogo limpo e mostre como se joga na areia de Santos.',
+    texto: 'Os turistas tomaram conta da praia com o gol caixote... e esqueceram o protetor solar! Vença 30 Turistas Sem Protetor no jogo limpo, na areia da praia de Santos.',
     req: { kill: 'santos_turista', n: 30 }, rec: { xp: Math.round((xpPara(187) - xpPara(186)) * 1.1), ouro: 186 * 150, itens: [['pastel_caldo', 5]] }, fim: 'Agora eles querem aprender a pedalada... e comprar protetor! Toma um pastel por conta da casa.' });
 }

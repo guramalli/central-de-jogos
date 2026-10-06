@@ -29,12 +29,13 @@ const VOCACAO = {
 const vocDe = () => (G.save && VOCACAO[G.save.classe]) || null;
 
 // ---------- as classes com a cara nova ----------
-Object.assign(CLASSES.paredao, { nome: 'Paredão', emoji: '🛡️', desc: 'O Knight do futebol: joga colado, aguenta pancada e protege a área. Fraco de longe.' });
-Object.assign(CLASSES.driblador, { nome: 'Artilheiro', emoji: '🎯', cor: '#ff9a3a', desc: 'O arqueiro do futebol: chuta de longe com força e precisão, mas sofre quando o adversário chega colado.',
+// v407 (Raio-X, criação enxuta): UMA frase por classe, sem comparar com outro jogo (os detalhes ficam no "ver mais")
+Object.assign(CLASSES.paredao, { nome: 'Paredão', emoji: '🛡️', desc: 'Joga de perto e aguenta firme.' });
+Object.assign(CLASSES.driblador, { nome: 'Artilheiro', emoji: '🎯', cor: '#ff9a3a', desc: 'Chuta de longe com força e pontaria.',
   passiva: 'Pontaria: chance de crítico maior (dano x1,8 — "GOLAÇO!").' });
 CLASSES.driblador.especial = Object.assign({}, CLASSES.driblador.especial, { nome: 'Olho no Alvo', desc: 'Seus próximos 3 ataques são críticos garantidos.' });
-Object.assign(CLASSES.cerebro, { desc: 'O Mago do futebol: enxerga o jogo e faz jogadas de longe, em área. Tem pouco fôlego.' });
-Object.assign(CLASSES.motorzinho, { emoji: '💚', desc: 'O Druida do futebol: cura, corre e aguenta o jogo inteiro. Prende os adversários no gramado.' });
+Object.assign(CLASSES.cerebro, { desc: 'Enxerga o jogo e faz jogadas que pegam vários de uma vez.' });
+Object.assign(CLASSES.motorzinho, { emoji: '💚', desc: 'Cuida do time: cura, corre e não cansa nunca.' });
 
 // ---------- as magias de cada vocação ----------
 const MAGIAS = {
@@ -187,16 +188,29 @@ function danoMagia(dr, m) {
 // ---------- janela de escolha de classe: mostra o papel, forte/fraco e as magias ----------
 (function () {
   const _carta = cartaClasse;
+  window.VOC_VER_MAIS = window.VOC_VER_MAIS || new Set(); // classes com o "ver mais" aberto (vale enquanto a tela está aberta)
   cartaClasse = function (id, sel, onclick) {
     const b = _carta(id, sel, onclick); const v = VOCACAO[id]; if (!v) return b;
-    b.insertBefore(el('small', { class: 'cc-papel' }, `Como o ${v.papel} do Tibia`), b.children[2]);
-    b.append(el('p', { class: 'cc-forte' }, '💪 ', v.forte), el('p', { class: 'cc-fraco' }, '⚠️ ', v.fraco),
+    // v407 (Raio-X, criação enxuta): o cartão mostra ícone, nome e UMA frase; o resto (atributo, passiva, especial, forte/fraco,
+    // magias) fica dentro do "ver mais". Saiu o "Como o Knight/Paladino/Mago/Druida do Tibia".
+    const det = el('div', { class: 'cc-detalhe' });
+    [...b.querySelectorAll('.cc-attr, .cc-pass, .cc-esp')].forEach(e => det.append(e));
+    det.append(el('p', { class: 'cc-forte' }, '💪 ', v.forte), el('p', { class: 'cc-fraco' }, '⚠️ ', v.fraco),
       el('div', { class: 'cc-magias' }, el('b', {}, 'Magias: '), v.magias.map(m => `${DRIBLES[m].nome} (nv ${DRIBLES[m].lvl})`).join(' · ')));
+    const aberto = VOC_VER_MAIS.has(id); if (aberto) b.classList.add('cc-aberto');
+    const mais = el('span', { class: 'cc-vermais', role: 'button', tabindex: '0' }, aberto ? 'ver menos ▴' : 'ver mais ▾');
+    const troca = ev => { ev.stopPropagation(); ev.preventDefault(); const ab = !b.classList.contains('cc-aberto'); if (ab) VOC_VER_MAIS.add(id); else VOC_VER_MAIS.delete(id); b.classList.toggle('cc-aberto', ab); mais.textContent = ab ? 'ver menos ▴' : 'ver mais ▾'; };
+    mais.addEventListener('click', troca); mais.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') troca(ev); });
+    b.append(mais, det);
     return b;
   };
   const st = document.createElement('style');
   st.textContent = `
-  .card-classe .cc-papel { display: block; font-weight: 800; color: var(--cor, #555); font-size: 11.5px; margin: 1px 0 3px; }
+  .card-classe { position: relative; }
+  .card-classe .cc-detalhe { display: none; }
+  .card-classe.cc-aberto .cc-detalhe { display: block; }
+  .card-classe .cc-vermais { align-self: flex-start; margin-top: 2px; font: 800 12px Nunito, sans-serif; color: var(--cor, #555); text-decoration: underline; cursor: pointer; padding: 2px 0; }
+  .card-classe .cc-vermais:hover { filter: brightness(.8); }
   .card-classe .cc-forte { color: #1a6a2a; font-weight: 700; font-size: 12px; margin: 3px 0 0; }
   .card-classe .cc-fraco { color: #9a3a1a; font-weight: 700; font-size: 12px; margin: 2px 0 0; }
   .card-classe .cc-magias { font-size: 11.5px; margin-top: 4px; background: rgba(0,0,0,.05); border-radius: 6px; padding: 3px 5px; }

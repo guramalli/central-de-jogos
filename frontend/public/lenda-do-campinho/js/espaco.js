@@ -285,11 +285,11 @@ if (typeof velJogador === 'function') { const _velEsp = velJogador; velJogador =
     { id: 'esp_m5', npc: 'lider_esp', titulo: 'O Imperador Nebular', lvl: 396, pre: 'esp_m4', texto: 'O último guardião antes da final: o Imperador Nebular, na Nebulosa de Órion.', req: { kill: 'ch_imperador_nebular', n: 1 }, rec: { xp: Math.round(xpNivel(398) * 3), ouro: 6000000, flag: 'venceu_imperador' }, fim: 'O caminho está livre: a COPA INTERGALÁCTICA te espera! Fale com a Torre de Controle.' },
     { id: 'esp_m6', npc: 'lider_esp', titulo: 'A Copa Intergaláctica', lvl: 398, pre: 'esp_m5', texto: 'É a final das finais. No estádio entre as estrelas, O SUPREMO DA GALÁXIA espera. Vença e a Terra será campeã do universo!', req: { kill: 'ch_supremo', n: 1 }, rec: { xp: Math.round(xpNivel(400) * 6), ouro: 15000000, itens: [['coroa_galactica', 1]], flag: 'campeao_galaxia' }, fim: 'CAMPEÃ(O) DA GALÁXIA! Da Vila do Campinho para o universo inteiro.' },
   );
-  for (const p of PLANETAS) {
+  for (const p of PLANETAS) { // v407 (Raio-X R8): "Desafio na Lua", "O melhor time da Nebulosa" (prepLugar em data.js)
     const [a, , c] = p.ets;
     MISSOES.push(
-      { id: p.id + '_esp1', npc: 'lider_' + p.id, titulo: `Desafio em ${p.nomeCurto}`, lvl: a[2] - 4, texto: `O time "${a[1]}" quer medir forças com um humano. Passe por 60 deles!`, req: { kill: a[0], n: 60 }, rec: { xp: Math.round(xpNivel(a[2]) * 1.2), ouro: a[2] * 3000, itens: [[GEAR_ESP(a[2])[1], 1]] }, fim: 'Eles pediram revanche... mas já sabem quem manda!' },
-      { id: p.id + '_esp2', npc: 'lider_' + p.id, titulo: `O melhor time de ${p.nomeCurto}`, lvl: c[2] - 3, pre: p.id + '_esp1', texto: `Agora o time mais forte daqui: "${c[1]}". Vença 60 deles.`, req: { kill: c[0], n: 60 }, rec: { xp: Math.round(xpNivel(c[2]) * 1.5), ouro: c[2] * 4000, itens: [[GEAR_ESP(c[2])[0], 1]] }, fim: `${p.nomeCurto} inteiro está falando de você!` },
+      { id: p.id + '_esp1', npc: 'lider_' + p.id, titulo: `Desafio ${prepLugar('em', p.nomeCurto)}`, lvl: a[2] - 4, texto: `O time "${a[1]}" quer medir forças com um humano. Passe por 60 deles!`, req: { kill: a[0], n: 60 }, rec: { xp: Math.round(xpNivel(a[2]) * 1.2), ouro: a[2] * 3000, itens: [[GEAR_ESP(a[2])[1], 1]] }, fim: 'Eles pediram revanche... mas já sabem quem manda!' },
+      { id: p.id + '_esp2', npc: 'lider_' + p.id, titulo: `O melhor time ${prepLugar('de', p.nomeCurto)}`, lvl: c[2] - 3, pre: p.id + '_esp1', texto: `Agora o time mais forte daqui: "${c[1]}". Vença 60 deles.`, req: { kill: c[0], n: 60 }, rec: { xp: Math.round(xpNivel(c[2]) * 1.5), ouro: c[2] * 4000, itens: [[GEAR_ESP(c[2])[0], 1]] }, fim: `${p.nomeCurto} inteiro está falando de você!` },
     );
   }
 }

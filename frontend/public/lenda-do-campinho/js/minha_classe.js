@@ -40,7 +40,7 @@ function modalMinhaClasse() {
   abreModal.largo = true;
   abreModal(el('h2', {}, `${c.emoji} Minha classe: ${c.nome}`),
     el('div', { class: 'mc-topo', style: `--cor:${c.cor}` },
-      el('p', {}, el('b', {}, v.papel ? `Como o ${v.papel} do Tibia. ` : ''), c.desc),
+      el('p', {}, c.desc), // v407 (Raio-X U4): saiu o "Como o ... do Tibia" (o jogador não precisa conhecer outro jogo)
       el('div', { class: 'mc-duas' },
         el('div', { class: 'mc-bom' }, el('b', {}, '💪 Especialidade'), el('p', {}, v.forte || '—'), el('p', {}, el('small', {}, '✨ ' + c.passiva))),
         el('div', { class: 'mc-ruim' }, el('b', {}, '⚠️ Deficiência'), el('p', {}, v.fraco || '—'))),

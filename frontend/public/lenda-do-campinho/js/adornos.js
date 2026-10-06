@@ -23,7 +23,7 @@
   ];
   const ARTES = ['ac_asas_ouro', 'ac_asa_lado_ouro', 'ac_asas_cosmo', 'ac_asa_lado_cosmo', 'ad_aura', 'ad_halo'];
   for (const n of ARTES) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
-  setTimeout(() => { for (const n of ARTES) try { spr(n); } catch (e) { } }, 1500);
+  { const vai = () => (typeof G !== 'undefined' && G.rodando) ? ARTES.forEach(n => { try { spr(n); } catch (e) { } }) : setTimeout(vai, 2000); setTimeout(vai, 1500); } // v407 (Raio-X A2): só depois que o jogo abre (não na tela inicial)
 
   const nivel = () => (G.save && G.save.nivel) || 1;
   const cfg = () => { const s = G.save; if (!s) return {}; if (!s.adornos || typeof s.adornos !== 'object') s.adornos = {}; return s.adornos; };

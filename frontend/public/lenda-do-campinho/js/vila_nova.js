@@ -206,7 +206,8 @@ mapaVila = function () {
 
 /* ---------- a Agência de Turismo: cartões-postais das cidades ---------- */
 {
-  NPCS.agente_turismo = { nome: 'Dona Glória, da Agência de Turismo', turismo: true,
+  // v407 (Raio-X, nomes repetidos): era "Dona Glória", o mesmo nome da técnica da seleção no Rio
+  NPCS.agente_turismo = { nome: 'Dona Zuleide, da Agência de Turismo', turismo: true,
     look: { tipo: 'humano', corpo: 'f', pele: 'pele-morena', cabelo: 'cabelo-coque', corCabelo: 'castanho', roupa: 'roupa-camiseta', corRoupa: '#2a7ad0', baixo: 'baixo-saia', alt: 1.68 },
     ola: 'Bem-vindo(a) à Agência de Turismo da Vila! Olha só os cartões-postais: cada cidade dessas tem adversários, estádio, música e segredos só dela.' };
   const POSTAIS = {
