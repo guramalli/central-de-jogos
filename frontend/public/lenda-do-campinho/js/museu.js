@@ -114,7 +114,7 @@
           if (M.sorte[r] >= MU_GARANTIA) {
             M.sorte[r] = 0; recebeItem(id, 1);
             banner('🍀 SORTE ACUMULADA!', `${ITENS[id].nome} — o colecionável de ${nomeReg(r)}!`); som('nivel');
-            log(`🍀 Depois de ${fmt(MU_GARANTIA)} adversários, a sorte acumulada trouxe: ${ITENS[id].nome}! Doe ao Museu (☰ Mais › 🏛️ Museu).`, 'l-lvl');
+            log(`🍀 Depois de ${fmt(MU_GARANTIA)} adversários, a sorte acumulada trouxe: ${ITENS[id].nome}! Doe ao Museu (☰ Menu › 📒 Caderno do Craque › Museu).`, 'l-lvl'); // v408 (Raio-X I6): o Museu agora é uma aba do Caderno
           }
         }
       } catch (e) { }
@@ -183,7 +183,7 @@
     lista.append(b);
   })();
   // a descrição dos colecionáveis passa a falar do museu
-  for (const r of MU_REGIOES) { const it = ITENS[colItem(r)]; if (it) it.desc = `⭐ COLECIONÁVEL de ${nomeReg(r)}: muito, muito raro. DOE ao Museu dos Colecionáveis (☰ Mais › 🏛️ Museu) para completar a coleção — ou, se for repetido, troque com o Professor Coral, em Atlântida.`; }
+  for (const r of MU_REGIOES) { const it = ITENS[colItem(r)]; if (it) it.desc = `⭐ COLECIONÁVEL de ${nomeReg(r)}: muito, muito raro. DOE ao Museu dos Colecionáveis (☰ Menu › 📒 Caderno do Craque › Museu; v408) para completar a coleção — ou, se for repetido, troque com o Professor Coral, em Atlântida.`; }
 
   const css = document.createElement('style');
   css.textContent = `

@@ -24,7 +24,7 @@
    Saves antigos: nada é tirado; preços e XP novos valem daqui para frente.
    Carregar NO FIM: depois de bestiario.js (e de todos os arquivos que criam missões, adversários e itens).
    ============================================================ */
-const BZ = { PEDIDO_ATE: 200, K_XP: 220, K_REFINO: 12, V_LUXO: 8000, MIS_OURO: { comum: 150, grande: 400, lendaria: 1000 }, MIS_OURO_DESDE: 400,
+const BZ = { PEDIDO_ATE: 200, K_XP: 220, K_REFINO: 12, REFINO_RELIQUIA: 5, REFINO_400: 2, /* v408 */ V_LUXO: 8000, MIS_OURO: { comum: 150, grande: 400, lendaria: 1000 }, MIS_OURO_DESDE: 400,
   TETO_100_200: { comum: 0.8, grande: 1.4 }, EST_FRAC: 0.75, ARENA_FRAC: 0.5 };
 window.BZ = BZ;
 const bzXpNivel = L => Math.max(1, xpPara(L + 1) - xpPara(L));
@@ -157,6 +157,9 @@ function bzRaiz() {
   custoRefino = function (id, r) {
     const c = _custoRefinoBz.apply(this, arguments); const it = ITENS[id];
     try { if (it && c) { const novo = Math.round(BZ.K_REFINO * bzRenda(it.lvl || 1) * Math.pow(r + 1, 1.7)) + 20; if (novo < c.tostoes) c.tostoes = novo; } } catch (e) { }
+    // v408 (dono: "os valores para forjar os itens mais altos do jogo estão muito baixos" → "pode ser assim"):
+    // relíquias custam 5× (topo do jogo, preço de prestígio); itens do nível 400+ custam 2× do +7 em diante
+    try { if (it && c) { const f = it.reliquia ? BZ.REFINO_RELIQUIA : ((it.lvl || 0) >= 400 && r + 1 >= 7 ? BZ.REFINO_400 : 1); if (f !== 1) c.tostoes = Math.round(c.tostoes * f); } } catch (e) { }
     return c;
   };
   // luxo: no máximo 8.000 vitórias do nível

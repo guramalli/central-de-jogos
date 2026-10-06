@@ -199,7 +199,7 @@ function modalLendas() {
   const _entrarLenda = entrarMapa;
   entrarMapa = function (id) {
     const r = _entrarLenda.apply(this, arguments);
-    try { const m = G.mapa, L = m && m.lenda && QLENDA_POR_ID[m.lenda]; if (L && G.save) { const ld = lendaDados(L.id); if (!ld.avisou && !ld.aberto) { ld.avisou = true; setTimeout(() => log(`📜 Dizem que no fundo desta caverna há um BAÚ LENDÁRIO: "${L.nome}" (nível ${L.lvl}). Leia o Livro das Lendas (☰ Mais → 📜 Lendas).`, 'l-lendario'), 1500); } } } catch (e) { }
+    try { const m = G.mapa, L = m && m.lenda && QLENDA_POR_ID[m.lenda]; if (L && G.save) { const ld = lendaDados(L.id); if (!ld.avisou && !ld.aberto) { ld.avisou = true; setTimeout(() => log(`📜 Dizem que no fundo desta caverna há um BAÚ LENDÁRIO: "${L.nome}" (nível ${L.lvl}). Leia o Livro das Lendas (☰ Menu → 📒 Caderno do Craque → Lendas).` /* v408 (Raio-X I6) */, 'l-lendario'), 1500); } } } catch (e) { }
     return r;
   };
   const st = document.createElement('style');

@@ -21,6 +21,9 @@ if (typeof ESTILO_CHAO !== 'undefined' && ESTILO_CHAO[CH.CALCADA_PT]) ESTILO_CHA
 if (typeof TEX_CHAO !== 'undefined') TEX_CHAO[CH.CALCADA_PT_SUAVE] = 't_calcada_pt_suave_v407'; // (as cidades usam esta: 320 px = 2,5 quadros, com o desenho 2×2 dentro — ondas ~37% menores)
 if (typeof CH_MINI !== 'undefined') CH_MINI[CH.CALCADA_PT_SUAVE] = '#d6ccb8';
 if (typeof CHAO2 !== 'undefined') { CHAO2.tex[CH.CALCADA_PT_SUAVE] = ['t2_calcada_pt_suave_v407', 4]; CHAO2.piso.add(CH.CALCADA_PT_SUAVE); }
+// v407.2 (dono: "essa praça em Copacabana era para ficar com o piso assim mesmo?" — cinza liso): as texturas novas precisam
+// estar na lista de artes; desde a v407 (A2/A8) o chão só baixa e desenha texturas que estão em ASSET_SET
+if (typeof ASSETS !== 'undefined' && typeof ASSET_SET !== 'undefined') for (const n of ['t_calcada_pt_suave_v407', 't2_calcada_pt_suave_v407']) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
 (function () {
   if (typeof MONUMENTOS === 'undefined' || !MONUMENTOS.rio || typeof CIDADES_NOVAS === 'undefined' || !CIDADES_NOVAS.rio) return;
   for (const d of MONUMENTOS.rio) {
