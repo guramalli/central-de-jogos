@@ -5,17 +5,22 @@
    login no site e sem ter visto a vitrine) vai pra vitrine (/lenda/), que
    mostra o jogo antes. Quem já joga entra direto, como sempre.
    Carregado no <head>, antes de tudo (não pisca a tela do jogo).
-   Nunca redireciona fora do site (versão Steam, arquivo local) nem com
-   parâmetros na URL (?jogar vem da vitrine; os outros, de dentro do site).
+   Nunca redireciona fora do site (versão Steam, app do Windows, servidores
+   locais da bateria de testes e do gravador de trailer, que servem só a pasta
+   do jogo) nem com parâmetros na URL (?jogar vem da vitrine; os outros, de
+   dentro do site). Pra testar localmente: localStorage.lenda_vitrine_teste = '1'.
    Qualquer erro (armazenamento bloqueado...) = fica no jogo.
    ============================================================ */
 (function (w) {
   'use strict';
   try {
+    if (w.LENDA_APP) return; // app do Windows: quem abriu já tem o jogo
     var l = w.location;
-    var naWeb = /^https?:$/.test(l.protocol) && /^(www\.)?educacaogamer\.com\.br$|^localhost$|^127\.0\.0\.1$/.test(l.hostname);
-    if (!naWeb) return;
+    if (!/^https?:$/.test(l.protocol)) return;
     var ls = w.localStorage;
+    var site = /^(www\.)?educacaogamer\.com\.br$/.test(l.hostname);
+    var testeLocal = /^(localhost|127\.0\.0\.1)$/.test(l.hostname) && ls.getItem('lenda_vitrine_teste') === '1';
+    if (!site && !testeLocal) return;
     if (l.search) {
       if (/[?&]jogar(=|&|$)/.test(l.search)) ls.setItem('lenda_vitrine_vista', '1');
       return;

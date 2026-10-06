@@ -4,7 +4,7 @@ import { carrega } from "./util.js";
 
 // Roda o próprio vitrine_entrada.js num "navegador de mentira" e devolve pra
 // onde ele mandou (ou null) e o que ficou guardado.
-function roda({ protocol = "https:", hostname = "www.educacaogamer.com.br", search = "", guardado = {}, armazenamentoQuebrado = false } = {}) {
+function roda({ protocol = "https:", hostname = "www.educacaogamer.com.br", search = "", guardado = {}, armazenamentoQuebrado = false, app = false } = {}) {
   const dados = { ...guardado };
   const ls = {
     getItem: (k) => (k in dados ? dados[k] : null),
@@ -15,16 +15,27 @@ function roda({ protocol = "https:", hostname = "www.educacaogamer.com.br", sear
   let destino = null;
   const location = { protocol, hostname, search, replace: (u) => { destino = u; } };
   const window = { location };
+  if (app) window.LENDA_APP = { versao: "1" };
   Object.defineProperty(window, "localStorage", { get() { if (armazenamentoQuebrado) throw new Error("bloqueado"); return ls; } });
   carrega("public/lenda-do-campinho/js/vitrine_entrada.js", { window });
   return { destino, dados };
 }
 
-test("quem chega pela primeira vez vai pra vitrine", () => {
-  for (const hostname of ["www.educacaogamer.com.br", "educacaogamer.com.br", "localhost", "127.0.0.1"]) {
+test("quem chega pela primeira vez ao site vai pra vitrine", () => {
+  for (const hostname of ["www.educacaogamer.com.br", "educacaogamer.com.br"]) {
     assert.equal(roda({ hostname }).destino, "/lenda/", hostname);
   }
-  assert.equal(roda({ protocol: "http:", hostname: "localhost" }).destino, "/lenda/");
+});
+
+test("servidor local (bateria de testes, gravador de trailer) só desvia com a chave de teste", () => {
+  for (const hostname of ["localhost", "127.0.0.1"]) {
+    assert.equal(roda({ protocol: "http:", hostname }).destino, null, hostname);
+    assert.equal(roda({ protocol: "http:", hostname, guardado: { lenda_vitrine_teste: "1" } }).destino, "/lenda/", hostname);
+  }
+});
+
+test("o app do Windows (window.LENDA_APP) nunca desvia", () => {
+  assert.equal(roda({ app: true }).destino, null);
 });
 
 test("quem já tem jogador salvo entra direto no jogo", () => {
