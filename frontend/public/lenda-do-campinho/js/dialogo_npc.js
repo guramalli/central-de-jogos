@@ -40,8 +40,8 @@ function bustoNPC(id) {
   #modal.dlg-npc .fala p { font-size: 17px; line-height: 1.5; }
   #modal.dlg-npc .npc-topo canvas.dlg-busto { background: radial-gradient(circle at 50% 40%, #fff6dc, #ecd09a 70%); }
   @media (min-width: 901px) {
-    #modal.dlg-npc { align-items: flex-end; background: rgba(10,4,24,.32); padding-bottom: 14px; }
-    #modal.dlg-npc .modal-caixa { width: min(1040px, 96vw); max-height: 62vh; padding: 14px 20px 16px; }
+    /* v408.5 (dono: "voltar para o meio"): a conversa fica no MEIO da tela de novo; o retrato em busto e o texto maior continuam */
+    #modal.dlg-npc .modal-caixa { width: min(820px, 94vw); max-height: 80vh; padding: 14px 20px 16px; }
     #modal.dlg-npc #modalConteudo h2 { font-size: 22px; margin-bottom: 6px; }
     #modal.dlg-npc .npc-topo { gap: 18px; align-items: stretch; }
     #modal.dlg-npc .npc-topo canvas { width: 150px; height: 150px; object-fit: contain; border-width: 3px; border-radius: 12px; }
