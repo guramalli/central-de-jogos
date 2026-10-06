@@ -2579,3 +2579,9 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
   .v2-abas, .v2-social-topo .v2-abas { align-self: stretch; flex: 1 1 100%; }
   .v2-abas a { flex: 1; justify-content: center; padding: 0 10px; }
 }
+
+/* Eu: atalhos da conta em lista. */
+.v2-eu-atalhos { display: flex; flex-direction: column; padding: 8px; gap: 2px; }
+.v2-eu-atalhos a, .v2-eu-atalhos button { min-height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border: none; background: transparent; border-radius: 14px; color: #fff; font-family: var(--titulo); font-weight: 600; font-size: 17px; text-align: left; }
+.v2-eu-atalhos a:hover, .v2-eu-atalhos button:hover { background: var(--roxo-fundo); }
+.v2-eu-atalhos .v2-eu-sair { color: var(--laranja); }

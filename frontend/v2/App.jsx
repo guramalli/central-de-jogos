@@ -7,6 +7,7 @@ import Perfil from "./Perfil.jsx";
 import Inicio from "./Inicio.jsx";
 import Competir from "./Competir.jsx";
 import Social from "./Social.jsx";
+import Eu from "./Eu.jsx";
 import Novidades from "./Novidades.jsx";
 import Impostor from "./ImpostorSobDemanda.jsx";
 import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
@@ -122,7 +123,12 @@ function Pagina({ local, usuario }) {
     case "cla":
       return <Social usuario={usuario} pagina={local.pagina} id={local.id} />;
     case "missoes": return <Missoes usuario={usuario} />;
-    case "jogador": return <Perfil key={local.id} usuario={usuario} userId={local.id || usuario.id} />;
+    // Meu perfil (sem id ou com o meu id) é a seção Eu; o de outra pessoa
+    // continua sendo o Perfil público.
+    case "jogador":
+      return !local.id || local.id === usuario.id
+        ? <Eu usuario={usuario} />
+        : <Perfil key={local.id} usuario={usuario} userId={local.id} />;
     case "jogar": return <Lobby key={local.jogo || "l"} usuario={usuario} jogoInicial={local.jogo} />;
     case "novidades": return <Novidades usuario={usuario} />;
     case "editar-perfil": return <EditarPerfil usuario={usuario} />;
