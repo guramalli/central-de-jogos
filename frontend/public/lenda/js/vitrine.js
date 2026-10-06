@@ -59,7 +59,8 @@
   // ---------- Jornada ----------
   const secao = $('#jornada'), trilho = $('#trilho'), etapas = $$('.etapa', trilho);
   const fundo = $('#jornadaFundo'), regua = $('#regua'), marcos = $$('#marcos span');
-  const presa = () => win.innerWidth >= 700 && !reduz;
+  // Prende a tela só em telas largas E altas o bastante (celular deitado vira faixa de arrastar).
+  const presa = () => win.innerWidth >= 700 && win.innerHeight >= 520 && !reduz;
   let ativaAntes = -1;
   function marcaEtapa(prog) {
     regua.style.width = (prog * 100).toFixed(2) + '%';

@@ -83,6 +83,16 @@ h1, h2, h3 { margin: 0; }
   .nav:not(.solida) .nav-logo { opacity: 0; pointer-events: none; }
 }
 
+/* Tela baixa e larga (celular deitado, janela curta): abertura compacta, botões à vista */
+@media (max-height: 519px) and (min-aspect-ratio: 4/5) {
+  .hero { min-height: 0; }
+  .hero-conteudo { top: 56%; width: min(560px, 56vw); }
+  .selo-topo, .plataformas, .desce, .frase .so-largo { display: none; }
+  .logo-grande { width: min(240px, 34vw); margin: 0 0 4px; }
+  .frase { font-size: 15px; margin: 2px 0 12px; }
+  .acoes .lc-btn { height: 46px; font-size: 16px; padding: 0 18px; }
+}
+
 /* ---------- Seções (cabeçalho comum) ---------- */
 .secao { position: relative; padding: clamp(80px, 12vh, 140px) clamp(16px, 6vw, 96px); }
 .secao-cabeca { position: relative; z-index: 1; margin-bottom: clamp(28px, 5vh, 56px); }
@@ -110,8 +120,8 @@ h1, h2, h3 { margin: 0; }
 .regua i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 4px; background: linear-gradient(90deg, var(--lc-ouro), #ff9f43); box-shadow: 0 0 18px rgba(255, 201, 40, .6); }
 .regua-marcos { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; font-weight: 900; letter-spacing: .8px; text-transform: uppercase; color: rgba(255, 255, 255, .45); }
 .regua-marcos span.feito { color: #fff; }
-/* Celular: sem prender a tela — faixa que se arrasta com o dedo */
-@media (max-width: 699px) {
+/* Celular (ou tela baixa, como celular deitado): sem prender a tela — faixa que se arrasta com o dedo */
+@media (max-width: 699px), (max-height: 519px) {
   .jornada { height: auto; }
   .jornada-fixa { position: relative; height: auto; padding: 90px 0 70px; }
   .trilho { overflow-x: auto; scroll-snap-type: x mandatory; transform: none !important; scrollbar-width: none; padding-bottom: 6px; }

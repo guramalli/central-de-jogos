@@ -34,3 +34,20 @@ test("o link pra vitrine só aparece na web (a versão Steam não tem /lenda/)",
   assert.match(inicioJs, /btnConhecaJogo/);
   assert.match(inicioJs, /naWeb\s*&&/);
 });
+
+test("o link pra vitrine não aparece no app do Windows nem em servidor local sem a chave de teste", () => {
+  assert.match(inicioJs, /LENDA_APP/, "o app do Windows (window.LENDA_APP) tem de ficar de fora");
+  assert.match(inicioJs, /lenda_vitrine_teste/, "localhost só com a chave lenda_vitrine_teste");
+  assert.doesNotMatch(inicioJs, /\|\^localhost\$\|\^127/, "localhost não pode valer sozinho");
+});
+
+test("a arte antiga do fundo (titulo.webp) não é mais baixada", () => {
+  const css = le("public/lenda-do-campinho/css/inicio.css");
+  assert.match(css, /^#inicio \{ background: var\(--lc-noite\); \}/m, "inicio.css tem de trocar o fundo de #inicio antes do JS");
+});
+
+test("a vitrine pede os arquivos compartilhados do jogo com versão (cache longo)", () => {
+  const vit = le("public/lenda/index.html");
+  assert.match(vit, /lenda-do-campinho\/css\/marca\.css\?v=\d+/);
+  assert.match(vit, /lenda-do-campinho\/js\/capa_viva\.js\?v=\d+/);
+});
