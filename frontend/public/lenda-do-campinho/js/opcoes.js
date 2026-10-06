@@ -141,8 +141,7 @@ function opcConteudo(aba) {
     // v407 (Raio-X U5): convites só de amigos (ligado por padrão) e ficar invisível no mundo (online_seguro.js)
     if (typeof osgMudaPref === 'function') {
       const P = window.ONLINE_SEGURO.OSG_PREFS();
-      c.append(opcChave('Convites só de amigos', 'Convite para caçar em grupo só chega de amigos e colegas de guilda. Desligado: qualquer jogador pode chamar você.', !P.convitesTodos, v => osgMudaPref('convitesTodos', !v)),
-        opcChave('Ficar invisível no mundo', 'Você continua vendo os outros jogadores, mas ninguém vê você nem os seus emotes.', !!P.invisivel, v => osgMudaPref('invisivel', v)));
+      c.append(opcChave('Convites só de amigos', 'Convite para caçar em grupo só chega de amigos e colegas de guilda. Desligado: qualquer jogador pode chamar você.', !P.convitesTodos, v => osgMudaPref('convitesTodos', !v)));
     }
   } else if (aba === 'acess') {
     c.append(opcTit('♿ Acessibilidade'),

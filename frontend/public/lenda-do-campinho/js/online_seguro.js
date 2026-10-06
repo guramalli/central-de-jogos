@@ -159,7 +159,8 @@ if (typeof abrirTime === 'function') {
 const osgOnline = () => typeof PORTAL !== 'undefined' && PORTAL.ativo && !!PORTAL.token && !window.LENDA_STEAM;
 const OSG_PREFS_KEY = 'rac_online_prefs';
 let OSG_PREFS = Object.assign({ convitesTodos: false, invisivel: false }, (() => { try { return JSON.parse(localStorage.getItem(OSG_PREFS_KEY) || '{}') || {}; } catch (e) { return {}; } })());
-const osgInvisivel = () => !!OSG_PREFS.invisivel;
+OSG_PREFS.invisivel = false; // v408.4 (dono: "retire isso"): a opção de ficar invisível saiu; quem tinha ligado volta a aparecer
+const osgInvisivel = () => false;
 function osgMandaPrefs() { const s = window.LENDA_SOCK; if (s && s.connected) s.emit('lenda-prefs', { convitesTodos: !!OSG_PREFS.convitesTodos, invisivel: !!OSG_PREFS.invisivel }, () => { }); }
 function osgMudaPref(k, v) {
   OSG_PREFS[k] = !!v; try { localStorage.setItem(OSG_PREFS_KEY, JSON.stringify(OSG_PREFS)); } catch (e) { }

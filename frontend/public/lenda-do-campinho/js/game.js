@@ -1248,12 +1248,12 @@ function desenha(dt) {
     const txt = `Nv ${nv} · ${e.d.nome}`, cor = e.d.chefe ? '#ff8a7a' : corNivel(nv);
     // v224: como no Tibia, nome e vida NÃO somem quando os adversários se juntam em volta de você (box):
     // a vida aparece em quem briga ou está perto (até 7 passos); o nome, se não couber, fica menor em vez de sumir
-    const comBarra = briga; // v407 (Raio-X A1): barrinha só em quem está na briga (antes: todos até 7 passos, empilhava)
+    const comBarra = briga || d <= 7; // v408.4 (dono: "o nome dos adversários e level não estão fixos"): volta a regra da v224/v406
     const yNome = comBarra ? topo.y - 11 * px : topo.y - 4 * px;
     let tam = 11.5, w = larguraTxt(txt, tam) / 2 + 2 * px, rNome = [topo.x - w, yNome - 12 * px, topo.x + w, yNome + 2 * px];
     if (!(marcado ? naoCobreEu(rNome) : cabe(rNome))) { tam = 9; w = larguraTxt(txt, tam) / 2 + 2 * px; rNome = [topo.x - w, yNome - 9 * px, topo.x + w, yNome + 2 * px]; }
     const rBarra = [topo.x - 24 * px, topo.y - 9 * px, topo.x + 24 * px, topo.y - 2 * px];
-    if (marcado || (e.d.chefe && d <= 9)) { rotulo(ctx, txt, topo.x, yNome, cor, tam); ocupados.push(rNome); } // v407 (Raio-X A1): "Nv · nome" só no alvo, com o mouse em cima, ou chefão perto (sem pilha de nomes)
+    if (tam === 11.5 || comBarra || d <= 9) { rotulo(ctx, txt, topo.x, yNome, cor, tam); ocupados.push(rNome); } // v408.4 (dono): nome e nível fixos de novo (a v407 mostrava só no alvo/mouse)
     if (comBarra) { barraVida(ctx, topo.x, topo.y - 5.5 * px, e.hp / e.d.hp, undefined, 5); ocupados.push(rBarra); }
   }
   for (const n of G.npcs) {

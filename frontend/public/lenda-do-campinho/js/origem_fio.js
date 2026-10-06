@@ -137,7 +137,7 @@
     const sagaComecou = !!s.quests.sg_p1, nv = s.nivel || 1; let n = 0;
     for (const q of OFI) {
       const e = s.quests[q.id]; if (e && (e.s === 'feita' || e.s === 'ativa')) continue;
-      if (nv >= q.passou || nv >= q.lvl + OFI_LEMBRA_ACIMA || (q.reg === 'mv' && sagaComecou)) { s.quests[q.id] = { s: 'feita', lembranca: 1 }; n++; }
+      if (nv >= q.passou || nv >= q.lvl + OFI_LEMBRA_ACIMA || (q.reg === 'mv' && sagaComecou)) { s.quests[q.id] = { s: 'feita', lembranca: 1 }; if (q.id === 'of_vila1') { s.flags = s.flags || {}; s.flags.cena_origem = true; } n++; }
     }
     return n;
   }
@@ -323,7 +323,9 @@
     const feita = (s, id) => !!(s.quests && s.quests[id] && s.quests[id].s === 'feita');
     CAPITULOS.origem = {
       rotulo: 'Um mistério', titulo: 'O começo do mistério', emoji: '✨',
-      cond: s => feita(s, 'of_vila1'),
+      // v408.4 (dono, nível 622: "entrei no jogo e abriu o vídeo de início"): a pista recebida como LEMBRANÇA (quem já passou da Vila)
+      // não toca o capítulo — ele só aparece para quem faz a pista de verdade
+      cond: s => feita(s, 'of_vila1') && !(s.quests && s.quests.of_vila1 && s.quests.of_vila1.lembranca),
       cenas: [
         { img: 'historia_4', kb: 'kb-a', cor: ['#f0c060', '#5ab85a'], txt: n => 'Lembra da sua bola de capotão, a do baú do quintal? Uma noite, a Mãe viu uma coisa estranha: sete pontinhos brilhando no couro, como estrelas.' },
         { img: 'historia_2', kb: 'kb-b', cor: ['#c89a5a', '#6a4a2a'], txt: n => 'O Seu Zé contou que, quando era moleque, viu uma estrela cair atrás do campinho. No outro dia, aquela bola estava no meio do mato.' },
