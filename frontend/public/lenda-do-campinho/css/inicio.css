@@ -118,7 +118,8 @@
 .ini-v2 #criacao .card-classe b { color: #fff; font-family: var(--lc-titulo); font-weight: 600; }
 .ini-v2 #criacao .card-classe p { color: var(--lc-indigo-100); }
 .ini-v2 #criacao .card-classe .cc-attr { color: var(--lc-ouro); }
-.ini-v2 .criacao-acoes { position: sticky; bottom: 0; margin-top: 16px; padding-top: 14px; display: flex; justify-content: space-between; gap: 12px; background: linear-gradient(0deg, rgba(13, 11, 38, .92) 60%, rgba(13, 11, 38, 0)); }
+/* barra de Voltar/Nascer! presa embaixo, com fundo de vidro firme (as opções rolam por trás sem aparecer) */
+.ini-v2 .criacao-acoes { position: sticky; bottom: 10px; z-index: 2; margin-top: 18px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: rgba(13, 11, 38, .9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--lc-vidro-borda); border-radius: 18px; box-shadow: 0 -12px 30px rgba(13, 11, 38, .65); }
 .ini-v2 .criacao-acoes #btnNascer { height: 58px; font-size: 22px; flex: 1; max-width: 340px; }
 
 /* ---------- Telas estreitas (celular / janela pequena) ---------- */
