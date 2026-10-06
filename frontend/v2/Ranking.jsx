@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
-import Topo from "./Topo.jsx";
-import Rodape from "./Rodape.jsx";
+import Moldura from "./Moldura.jsx";
 import Avatar from "./Avatar.jsx";
 
 const JOGOS = { stop: "Stop", quiz: "Quiz", acromania: "Acromania" };
 const LOGO = { stop: "/stop-logo.png", quiz: "/quiz-logo.png", acromania: "/acromania-logo.png" };
 const fmt = (n) => (n ?? 0).toLocaleString("pt-BR");
 
-export default function Ranking({ usuario, jogoInicial }) {
+export default function Ranking({ usuario, jogoInicial, embutido = false }) {
   const [jogo, setJogo] = useState(JOGOS[jogoInicial] ? jogoInicial : "quiz");
   const [aba, setAba] = useState("monthly"); // monthly | lifetime | clans
   const [linhas, setLinhas] = useState(null);
@@ -37,9 +36,7 @@ export default function Ranking({ usuario, jogoInicial }) {
     : <a href={linkDaPagina("jogador", { id: r.userId })} onClick={(e) => abrirJogador(e, r.userId)}>{nome(r)}</a>;
 
   return (
-    <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} />
-      <main className="v2-pagina">
+    <Moldura usuario={usuario} embutido={embutido}>
         <div className="v2-pagina-cabeca">
           <h1>Ranking</h1>
           <a className="v2-link" href="/v2/?pagina=hall" onClick={(e) => { e.preventDefault(); irParaPagina("hall"); }}>Hall da Fama</a>
@@ -110,8 +107,6 @@ export default function Ranking({ usuario, jogoInicial }) {
             )}
           </div>
         )}
-      </main>
-      <Rodape />
-    </div>
+    </Moldura>
   );
 }

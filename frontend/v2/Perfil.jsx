@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, sair } from "./api.js";
-import Topo from "./Topo.jsx";
+import Moldura from "./Moldura.jsx";
 import JornadaTitulos from "./JornadaTitulos.jsx";
-import Rodape from "./Rodape.jsx";
 import { irParaPagina } from "./App.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarBoneco from "./AvatarBoneco.jsx";
@@ -47,7 +46,7 @@ function mesPorExtenso(k) {
 
 const nivelDaMedalha = (logo) => (typeof logo === "string" && logo.match(/-(bronze|prata|ouro)\.png$/i)?.[1]?.toLowerCase()) || "";
 
-export default function Perfil({ usuario, userId }) {
+export default function Perfil({ usuario, userId, embutido = false }) {
   const [perfil, setPerfil] = useState(null);
   const [erro, setErro] = useState("");
   const [titulos, setTitulos] = useState([]);
@@ -94,9 +93,7 @@ export default function Perfil({ usuario, userId }) {
   const visto = vistoPorUltimo(perfil?.ultimoAcesso);
 
   return (
-    <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} />
-      <main className="v2-pagina">
+    <Moldura usuario={usuario} embutido={embutido}>
         {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
         {!perfil && !erro && <div className="v2-carregando">Carregando perfil…</div>}
 
@@ -231,8 +228,6 @@ export default function Perfil({ usuario, userId }) {
             )}
           </>
         )}
-      </main>
-      <Rodape />
-    </div>
+    </Moldura>
   );
 }

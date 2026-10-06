@@ -2562,3 +2562,7 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
 .v2-menu-celular a.ativo .v2-menu-icone > :first-child:not(svg) { box-shadow: 0 0 0 2px var(--amarelo); border-radius: 50%; }
 /* No celular o "Eu" já está na barra de baixo. */
 @media (max-width: 999px) { .v2-topo .v2-topo-avatar { display: none; } }
+
+/* Página dentro de outra (abas de Competir e Social, perfil em Eu): sem a
+   margem e a largura máxima da página — quem embute já tem as suas. */
+.v2-embutido.v2-pagina { max-width: none; margin: 0; padding: 0; }
