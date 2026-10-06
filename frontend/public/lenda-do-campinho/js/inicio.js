@@ -112,8 +112,12 @@
     avisos.hidden = !avisos.children.length;
     atualizaCartao();
   };
-  // "Conheça o jogo" → vitrine (/lenda/). Só no site: a versão Steam não tem essa página.
-  const naWeb = /^https?:$/.test(location.protocol) && /^(www\.)?educacaogamer\.com\.br$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
+  // "Conheça o jogo" → vitrine (/lenda/). Só no site de verdade: a versão Steam
+  // e o app do Windows (window.LENDA_APP) não têm essa página, e os servidores
+  // locais (bateria de testes, gravador de trailer) servem só a pasta do jogo.
+  // Pra ver localmente: localStorage.lenda_vitrine_teste = '1'.
+  let testeLocal = false; try { testeLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && localStorage.getItem('lenda_vitrine_teste') === '1'; } catch (e) { }
+  const naWeb = !window.LENDA_APP && /^https?:$/.test(location.protocol) && (/^(www\.)?educacaogamer\.com\.br$/.test(location.hostname) || testeLocal);
   if (naWeb && !document.getElementById('btnConhecaJogo')) menu.append(el('button', { class: 'btn', id: 'btnConhecaJogo', type: 'button', onclick: () => { location.href = '/lenda/'; } }, '🌟 Conheça o jogo'));
   // Blocos que inclinam seguindo o mouse (só com mouse e sem "reduzir movimento").
   if (matchMedia('(pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {

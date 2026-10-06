@@ -8,6 +8,8 @@
    .card-classe só mudam dentro de #criacao (as mesmas classes aparecem
    dentro do jogo e lá ficam como estão).
    ============================================================ */
+/* Antes do JS pôr .ini-v2: troca o fundo de #inicio (style.css) pra arte antiga (titulo.webp) não ser baixada à toa. */
+#inicio { background: var(--lc-noite); }
 #inicio.ini-v2 { position: relative; isolation: isolate; align-items: center; padding: 14px 18px 18px; background: var(--lc-noite); font-family: var(--lc-texto); }
 .ini-v2 .ini-capa.capa-viva { position: fixed; inset: 0; z-index: -2; }
 #inicio.ini-v2::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; transition: background .6s ease;
