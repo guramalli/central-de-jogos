@@ -106,6 +106,71 @@
     $$('.lc-entra').forEach((el) => el.classList.add('lc-visivel'));
   }
 
-  // Tarefa 4 completa daqui pra baixo (destaques, trailer, galeria, copiar).
-  raiz.Vitrine.interno = { doc, win, $, $$, idioma, texto, reduz, mouseFino };
+  // ---------- Destaques: inclinam seguindo o mouse ----------
+  if (mouseFino && !reduz) {
+    $$('.destaque').forEach((c) => {
+      const corpo = $('.destaque-corpo', c);
+      c.addEventListener('pointermove', (e) => {
+        const r = c.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+        corpo.style.setProperty('--rx', (-y * 8).toFixed(2) + 'deg');
+        corpo.style.setProperty('--ry', (x * 10).toFixed(2) + 'deg');
+        corpo.style.setProperty('--gx', ((x + 0.5) * 100).toFixed(1) + '%');
+        corpo.style.setProperty('--gy', ((y + 0.5) * 100).toFixed(1) + '%');
+      });
+      c.addEventListener('pointerleave', () => { corpo.style.setProperty('--rx', '0deg'); corpo.style.setProperty('--ry', '0deg'); });
+    });
+  }
+
+  // ---------- Trailer: o vídeo só é baixado no clique ----------
+  const quadroTrailer = $('#trailerQuadro');
+  const fonteTrailer = () => `video/trailer_${idioma()}.mp4`;
+  $('#trailerPlay').addEventListener('click', () => {
+    const v = doc.createElement('video');
+    v.controls = true; v.playsInline = true; v.preload = 'auto'; v.poster = 'a/poster.webp'; v.src = fonteTrailer();
+    quadroTrailer.replaceChildren(v);
+    v.play().catch(() => { /* navegador bloqueou o play automático: fica o botão do player */ });
+  });
+  // Trocou o idioma com o vídeo parado: troca o trailer também.
+  doc.addEventListener('idioma', () => { const v = $('video', quadroTrailer); if (v && v.paused) v.src = fonteTrailer(); });
+
+  // ---------- Galeria em tela cheia ----------
+  const fotos = $$('.galeria-item'), caixa = $('#caixaFoto'), imgGrande = $('#caixaFotoImg'), legenda = $('#caixaFotoLegenda');
+  let atual = 0;
+  function mostra(i) {
+    atual = proximoIndice(i, 0, fotos.length);
+    const f = fotos[atual];
+    imgGrande.src = f.dataset.grande;
+    imgGrande.alt = $('img', f).alt;
+    legenda.textContent = $('.galeria-legenda', f).textContent;
+  }
+  fotos.forEach((f, i) => f.addEventListener('click', () => { mostra(i); caixa.showModal(); }));
+  $('#caixaAnterior').addEventListener('click', () => mostra(atual - 1));
+  $('#caixaProxima').addEventListener('click', () => mostra(atual + 1));
+  $('#caixaFechar').addEventListener('click', () => caixa.close());
+  caixa.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); mostra(atual - 1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); mostra(atual + 1); }
+  });
+  caixa.addEventListener('click', (e) => { if (e.target === caixa) caixa.close(); });
+  let x0 = null;
+  imgGrande.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
+  imgGrande.addEventListener('pointerup', (e) => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) mostra(atual + (dx < 0 ? 1 : -1));
+  });
+
+  // ---------- Copiar descrições (kit de imprensa) ----------
+  $$('[data-copia]').forEach((b) => b.addEventListener('click', async () => {
+    const alvo = doc.getElementById(b.dataset.copia);
+    const txt = alvo.innerText.trim();
+    try { await win.navigator.clipboard.writeText(txt); }
+    catch (e) {
+      const r = doc.createRange(); r.selectNodeContents(alvo);
+      const s = win.getSelection(); s.removeAllRanges(); s.addRange(r); doc.execCommand('copy'); s.removeAllRanges();
+    }
+    b.textContent = texto('imp.copiado') || 'Copiado!';
+    setTimeout(() => { b.textContent = texto('imp.copiar') || 'Copiar'; }, 1600);
+  }));
 })(typeof window !== 'undefined' ? window : globalThis);
