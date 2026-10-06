@@ -96,6 +96,25 @@
   aoRolar();
   if (!presa()) marcaEtapa(0);
 
+  // ---------- Imagens que só são pedidas perto da tela ----------
+  // loading="lazy" busca até ~1.250 px abaixo; aqui a jornada (trilho que anda
+  // de lado), o pôster do trailer e o fundo da chamada final esperam a seção
+  // chegar perto — o carregamento inicial fica só com a abertura.
+  const carrega = (raizEl) => $$('img[data-src]', raizEl).forEach((img) => { img.src = img.dataset.src; img.removeAttribute('data-src'); });
+  if ('IntersectionObserver' in win) {
+    const perto = new IntersectionObserver((ents) => {
+      for (const e of ents) if (e.isIntersecting) { carrega(e.target); e.target.classList.add('perto'); perto.unobserve(e.target); }
+    }, { rootMargin: '400px 0px' });
+    [$('#trailer'), $('#comecar')].forEach((el) => perto.observe(el));
+  } else {
+    carrega(doc); $('#comecar').classList.add('perto');
+  }
+  // A jornada começa colada na abertura: as fotos dela vêm quando a pessoa começa a rolar.
+  let jornadaCarregada = false;
+  const carregaJornada = () => { if (jornadaCarregada || win.scrollY < win.innerHeight * 0.2) return; jornadaCarregada = true; carrega(secao); };
+  win.addEventListener('scroll', carregaJornada, { passive: true });
+  carregaJornada();
+
   // ---------- Entradas em cascata ----------
   if ('IntersectionObserver' in win) {
     const io = new IntersectionObserver((ents) => {
