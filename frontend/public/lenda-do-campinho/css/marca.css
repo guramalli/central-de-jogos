@@ -42,8 +42,9 @@
 
 /* ---------- Capa viva (js/capa_viva.js) ---------- */
 .capa-viva { position: absolute; inset: 0; overflow: hidden; isolation: isolate; container-type: size; background: var(--lc-noite); }
-.cv-palco { position: absolute; left: 50%; top: 50%; width: max(100cqw, 177.78cqh); aspect-ratio: 16 / 9; transform: translate(-50%, -50%); will-change: transform; }
-.cv-palco.cv-vertical { width: max(100cqw, 66.67cqh); aspect-ratio: 2 / 3; }
+/* vw/vh antes de cqw/cqh: reserva pra navegador sem unidades de container (Safari < 16) */
+.cv-palco { position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78vh); width: max(100cqw, 177.78cqh); aspect-ratio: 16 / 9; transform: translate(-50%, -50%); will-change: transform; }
+.cv-palco.cv-vertical { width: max(100vw, 66.67vh); width: max(100cqw, 66.67cqh); aspect-ratio: 2 / 3; }
 .cv-camera { position: absolute; inset: 0; transform-origin: 62% 40%; animation: cvEntrada 2.6s var(--lc-mola) both, cvRespira 22s ease-in-out 2.6s infinite alternate; }
 @keyframes cvEntrada { from { transform: scale(1.16); filter: brightness(.35) saturate(.6) blur(6px); } to { transform: scale(1); filter: none; } }
 @keyframes cvRespira { from { transform: scale(1); } to { transform: scale(1.045) translate(-.6%, .4%); } }

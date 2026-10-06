@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { carrega } from "./util.js";
+import { carrega, le } from "./util.js";
 
 const { CapaViva } = carrega("public/lenda-do-campinho/js/capa_viva.js");
 
@@ -27,4 +27,10 @@ test("usaVertical: arte em pé quando largura/altura ≤ 0,8 e existe a vertical
   assert.equal(CapaViva.usaVertical(1440, 900, true), false);
   assert.equal(CapaViva.usaVertical(390, 844, false), false);
   assert.equal(CapaViva.usaVertical(390, 0, true), false);
+});
+
+test("marca.css tem tamanho de reserva pra navegador sem unidades de container (Safari < 16)", () => {
+  const css = le("public/lenda-do-campinho/css/marca.css");
+  assert.match(css, /width: max\(100vw, 177\.78vh\); width: max\(100cqw, 177\.78cqh\);/);
+  assert.match(css, /width: max\(100vw, 66\.67vh\); width: max\(100cqw, 66\.67cqh\);/);
 });
