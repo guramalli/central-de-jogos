@@ -649,7 +649,7 @@ function modalAlbum() {
   const ops = el('div', { class: 'opcoes' });
   if (completo && !s.flags.album_premio) ops.append(el('button', { class: 'btn amarelo grande', onclick: () => { s.flags.album_premio = true; recebeItem('medalha_colecionador'); log('ÁLBUM COMPLETO! Você ganhou a Medalha do Colecionador!', 'l-lvl'); banner('ÁLBUM COMPLETO!', 'Medalha do Colecionador'); salvar(); modalAlbum(); } }, 'Resgatar prêmio do álbum!'));
   abreModal.largo = true;
-  abreModal(el('h2', {}, `Álbum de figurinhas (${n}/${FIGURINHAS.length})`), el('p', {}, 'Figurinhas caem raramente dos adversários (chefões dão mais), vêm em pacotinhos do Seu Juca e nos desafios. Repetidas viram 25 tostões. Complete o álbum para ganhar a Medalha do Colecionador!'), ops, g);
+  abreModal(el('h2', {}, `Álbum de figurinhas (${n}/${FIGURINHAS.length})`), el('p', {}, /* v408.3 (ECA Digital): a banca vende a figurinha À VISTA */ 'Figurinhas caem raramente dos adversários (chefões dão mais), vêm de presente em pacotinhos (desafios, Copa, recompensa do dia) e na banca do Seu Juca você escolhe a que quer na vitrine. Repetidas viram 25 tostões. Complete o álbum para ganhar a Medalha do Colecionador!'), ops, g);
 }
 async function modalRanking() {
   // Online: o top de todos os jogadores do site (GET /api/lenda/ranking).

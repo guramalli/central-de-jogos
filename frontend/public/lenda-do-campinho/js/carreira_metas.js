@@ -87,7 +87,7 @@ carrGeraMetas = function (k) {
       case 'tarefa': return 'Complete a Caçada da vez (🎯 Tarefas de caça)';
       case 'semana': return `Complete ${n} tarefas da semana (🎯 Tarefas de caça)`;
       case 'treino': return `Treine ${n} vezes nos aparelhos de um Centro de Treinamento`;
-      case 'figurinha': return (n === 1 ? 'Consiga 1 figurinha NOVA para o álbum' : `Consiga ${n} figurinhas NOVAS para o álbum`) + ' (pacotinhos na banca do Seu Juca)';
+      case 'figurinha': return (n === 1 ? 'Consiga 1 figurinha NOVA para o álbum' : `Consiga ${n} figurinhas NOVAS para o álbum`) + ' (escolha na vitrine da banca do Seu Juca)'; // v408.3 (ECA Digital): o pacotinho não se compra mais
       case 'xp': return `Ganhe ${fmt(n)} de XP`;
       case 'dribles': return `Use ${n} dribles em adversários`;
       case 'missoes': return n === 1 ? 'Conclua 1 missão do seu nível' : `Conclua ${n} missões do seu nível`;

@@ -91,6 +91,8 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    // v408.3 (ECA Digital, Lei 15.211/2025): nada de pagar por sorteio (js/figurinha_vista.js)
+    ['v408.3', '🃏 FIGURINHA À VISTA! Na banca do Seu Juca agora tem uma VITRINE com 3 figurinhas que faltam no seu álbum: você vê qual é antes de comprar (120 tostões cada). O pacotinho surpresa não se vende mais; ele continua vindo de PRESENTE (Copa, desafios, recompensa do dia) e, ao abrir, a figurinha aparece na hora. Na loja das Tarefas, as figurinhas da troca também aparecem antes.'],
     // v408 (Raio-X I3, frente MISSÕES/TEXTOS): Passaporte do Craque (js/passaporte.js)
     ['v408', '🛂 PASSAPORTE DO CRAQUE! Em 29 lugares (da Vila ao Vale Jurássico, passando pelas cidades do mundo, Atlântida e os planetas), um morador faz 3 perguntas sobre o lugar: monumentos, países, oceanos, planetas, dinossauros e as regras do futebol. Acertou as 3? Ganha um carimbo e alguns tostões! Errou? Veja a explicação e tente de novo em 1 minuto. Com 5, 15 e todos os carimbos você ganha títulos, e no fim a Moldura do Viajante. Procure o botão 🛂 nas conversas, abra o passaporte no ☰ Menu e comece com a Dona Zuleide, na Agência de Turismo da Vila (nível 8). ⚽ O quiz do Seu Juca ganhou perguntas de regras e jogo limpo.'],
     // v408 (Raio-X I5, frente MISSÕES): a Bola de Origem como fio da história desde o nível 1 (js/origem_fio.js)

@@ -118,7 +118,7 @@ const ITENS = {
   suco_verde: { nome: 'Suco Verde', tipo: 'consumivel', efeito: { foco: 160 }, lvl: 20, preco: 70, venda: 15, desc: 'Recupera 160 de foco. Nível 20.', icon: { k: 'copo', c: '#7ad04a' } },
   vitamina: { nome: 'Vitamina de Banana', tipo: 'consumivel', efeito: { hp: 520 }, lvl: 35, preco: 160, venda: 30, desc: 'Recupera 520 de fôlego. Nível 35.', icon: { k: 'copo', c: '#f8e27a' } },
   agua_coco: { nome: 'Água de Coco Gelada', tipo: 'consumivel', efeito: { foco: 380 }, lvl: 38, preco: 170, venda: 32, desc: 'Recupera 380 de foco. Nível 38.', icon: { k: 'coco', c: '#5a9a3a' } },
-  pacotinho: { nome: 'Pacotinho de Figurinhas', tipo: 'consumivel', efeito: { figurinha: 1 }, preco: 120, venda: 20, desc: 'Abra para ganhar uma figurinha aleatória do álbum.', icon: { k: 'pacote', c: '#ffcc33' } },
+  pacotinho: { nome: 'Pacotinho de Figurinhas', tipo: 'consumivel', efeito: { figurinha: 1 }, venda: 20, desc: 'Presente do jogo: abra e a figurinha aparece na hora! Pacotinho não se vende nas lojas: na banca do Seu Juca você escolhe a figurinha que quer, vendo antes.', icon: { k: 'pacote', c: '#ffcc33' } }, // v408.3 (ECA Digital): sem preço = não se compra (era 120 tostões por uma figurinha sorteada); vitrine em figurinha_vista.js
 
   // --- loot para vender
   pena: { nome: 'Pena de Pombo', tipo: 'loot', venda: 2, desc: 'Leve e inútil. Dona Cida compra.', icon: { k: 'pena', c: '#b0b0c0' } },
@@ -530,7 +530,7 @@ const NPCS = {
   cida: { nome: 'Dona Cida', look: { tipo: 'humano', pele: '#fcdccc', cabelo: '#a0a0a0', estilo: 'coque', camisa: '#d84848', calcao: '#4a3a5a', meia: null, chuteira: '#3a2a2a', fase: 4, fem: true },
     ola: 'Bazar da Cida! Tem de tudo e compro suas tralhas também.', loja: ['agua', 'isotonico', 'tenis_velho', 'bone', 'caneleira_papelao', 'shorts_rasgado', 'camiseta', 'calcao_tactel', 'chuteira_couro', 'camisa_vila', 'munhequeira'] },
   juca: { nome: 'Seu Juca da Banca', look: { tipo: 'humano', pele: '#cc8464', cabelo: '#3a2a1a', estilo: 'curto', camisa: '#f0f0f0', calcao: '#5a4a3a', meia: null, chuteira: '#3a2a2a', fase: 4, oculos: true },
-    ola: 'Jornal, revista e FIGURINHA! Topa um quiz de futebol?', quiz: true, loja: ['pacotinho'] },
+    ola: 'Jornal, revista e FIGURINHA! Topa um quiz de futebol?', quiz: true, loja: [] }, // v408.3 (ECA Digital): no lugar do pacotinho às cegas, a vitrine de figurinhas à vista (figurinha_vista.js)
   motorista: { nome: 'Motorista Valdir', look: { tipo: 'humano', pele: '#a4644c', cabelo: '#1a1a1a', estilo: 'curto', camisa: '#3a6ad9', calcao: '#2a2a3a', meia: null, chuteira: '#1a1a1a', fase: 4, bone: '#3a6ad9' },
     ola: 'Ônibus circular! Levo você pra qualquer lugar que você já conhece.', onibus: true },
   quadro: { nome: 'Quadro de Desafios', quadro: true, ola: 'Desafios repetíveis: derrote adversários e ganhe XP e tostões extras.' },
@@ -557,7 +557,7 @@ const NPCS = {
   dada: { nome: 'Seu Dadá', look: { tipo: 'humano', pele: '#643c3c', cabelo: '#e0e0e0', estilo: 'black', camisa: '#f0c030', calcao: '#1a1a1a', meia: '#f0c030', chuteira: '#1a1a1a', fase: 4 },
     ola: 'Hehe, joguei 20 anos nesse estádio. 312 gols!', professor: ['bicicleta', 'relampago'] },
   presidente: { nome: 'Presidente Almeida', look: { tipo: 'humano', pele: '#fcdccc', cabelo: '#c0c0c0', estilo: 'curto', camisa: '#2a2a3a', calcao: '#2a2a3a', meia: null, chuteira: '#101010', fase: 4, gravata: true },
-    ola: 'O clube precisa de craques. Você é um?', loja: ['vitamina', 'agua_coco', 'suco_verde', 'acai', 'pacotinho'] },
+    ola: 'O clube precisa de craques. Você é um?', loja: ['vitamina', 'agua_coco', 'suco_verde', 'acai'] }, // v408.3 (ECA Digital): saiu o pacotinho (sorteio pago); a vitrine de figurinhas à vista entra aqui também
 };
 
 /* ---------- Custo para aprender dribles com professores ---------- */
