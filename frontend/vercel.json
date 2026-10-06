@@ -1,9 +1,11 @@
 {
   "redirects": [
-    { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false }
+    { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false },
+    { "source": "/lenda", "destination": "/lenda/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
+    { "source": "/lenda/", "destination": "/lenda/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -14,7 +16,7 @@
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
     },
     {
-      "source": "/(.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|mp3|ogg|wav|woff|woff2))",
+      "source": "/(.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|mp3|ogg|wav|woff|woff2|mp4|zip))",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }]
     },
     {
