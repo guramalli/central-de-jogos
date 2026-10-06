@@ -1,0 +1,62 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   MARCA — base visual compartilhada entre a tela inicial do jogo e a
+   vitrine (/lenda/): cores (Indigo do Tailwind + dourado), botões dourado e
+   vidro, painel de vidro, selos, entrada em cascata e a capa viva
+   (js/capa_viva.js). Prefixo lc- pra não esbarrar nas classes do jogo.
+   Não importa fontes nem nada da internet (a versão Steam é offline).
+   ============================================================ */
+:root {
+  --lc-indigo-50: #eef2ff; --lc-indigo-100: #e0e7ff; --lc-indigo-200: #c7d2fe; --lc-indigo-300: #a5b4fc;
+  --lc-indigo-400: #818cf8; --lc-indigo-500: #6366f1; --lc-indigo-600: #4f46e5; --lc-indigo-700: #4338ca;
+  --lc-indigo-800: #3730a3; --lc-indigo-900: #312e81; --lc-indigo-950: #1e1b4b;
+  --lc-noite: #0d0b26; --lc-ouro: #ffc928; --lc-ouro-claro: #ffe066; --lc-ouro-fundo: #f2a900; --lc-ouro-escuro: #c98a00; --lc-tinta-ouro: #2a1600;
+  --lc-titulo: "Fredoka", system-ui, sans-serif; --lc-texto: "Nunito", system-ui, sans-serif;
+  --lc-vidro: rgba(13, 11, 38, .62); --lc-vidro-borda: rgba(165, 180, 252, .22);
+  --lc-mola: cubic-bezier(.16, 1, .3, 1);
+}
+
+/* ---------- Botões ---------- */
+.lc-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 54px; padding: 0 26px; border-radius: 16px; font-family: var(--lc-titulo); font-weight: 600; font-size: 18px; letter-spacing: .2px; border: 0; cursor: pointer; overflow: hidden; text-decoration: none; white-space: nowrap; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+.lc-btn:hover { transform: translateY(-2px); }
+.lc-btn:active { transform: translateY(1px); }
+.lc-btn:focus-visible { outline: 3px solid var(--lc-ouro); outline-offset: 3px; }
+.lc-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+.lc-btn-ouro, .btn.lc-btn-ouro { background: linear-gradient(180deg, var(--lc-ouro-claro), var(--lc-ouro) 55%, var(--lc-ouro-fundo)); color: var(--lc-tinta-ouro); border: 0; text-shadow: none; box-shadow: 0 6px 0 var(--lc-ouro-escuro), 0 14px 30px rgba(255, 201, 40, .35); }
+.lc-btn-ouro:hover, .btn.lc-btn-ouro:hover { filter: none; box-shadow: 0 8px 0 var(--lc-ouro-escuro), 0 20px 40px rgba(255, 201, 40, .45); }
+.lc-btn-ouro::before, .btn.lc-btn-ouro::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .75) 48%, transparent 66%); transform: translateX(-120%); animation: lcReflexoBotao 4.5s ease-in-out 2.6s infinite; }
+@keyframes lcReflexoBotao { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.lc-btn-vidro, .btn.lc-btn-vidro { background: rgba(255, 255, 255, .1); color: #fff; border: 0; text-shadow: none; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.lc-btn-vidro:hover, .btn.lc-btn-vidro:hover { filter: none; background: rgba(255, 255, 255, .18); }
+.lc-btn-pequeno { height: 42px; padding: 0 18px; font-size: 16px; border-radius: 13px; }
+
+/* ---------- Vidro, selos, sobretítulo ---------- */
+.lc-vidro { background: var(--lc-vidro); border: 1px solid var(--lc-vidro-borda); border-radius: 22px; backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); box-shadow: 0 24px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.lc-selo { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: rgba(99, 102, 241, .25); box-shadow: inset 0 0 0 1px rgba(165, 180, 252, .45); color: #fff; font-family: var(--lc-texto); font-weight: 800; font-size: 13px; }
+.lc-sobretitulo { font-family: var(--lc-texto); font-size: 13px; font-weight: 900; letter-spacing: 2.2px; text-transform: uppercase; color: var(--lc-ouro); }
+
+/* ---------- Entrada em cascata (o JS põe .lc-visivel; --i = posição) ---------- */
+.lc-entra { opacity: 0; transform: translateY(26px); transition: opacity .8s var(--lc-mola), transform .8s var(--lc-mola); transition-delay: calc(var(--i, 0) * 90ms); }
+.lc-entra.lc-visivel { opacity: 1; transform: none; }
+
+/* ---------- Capa viva (js/capa_viva.js) ---------- */
+.capa-viva { position: absolute; inset: 0; overflow: hidden; isolation: isolate; container-type: size; background: var(--lc-noite); }
+.cv-palco { position: absolute; left: 50%; top: 50%; width: max(100cqw, 177.78cqh); aspect-ratio: 16 / 9; transform: translate(-50%, -50%); will-change: transform; }
+.cv-palco.cv-vertical { width: max(100cqw, 66.67cqh); aspect-ratio: 2 / 3; }
+.cv-camera { position: absolute; inset: 0; transform-origin: 62% 40%; animation: cvEntrada 2.6s var(--lc-mola) both, cvRespira 22s ease-in-out 2.6s infinite alternate; }
+@keyframes cvEntrada { from { transform: scale(1.16); filter: brightness(.35) saturate(.6) blur(6px); } to { transform: scale(1); filter: none; } }
+@keyframes cvRespira { from { transform: scale(1); } to { transform: scale(1.045) translate(-.6%, .4%); } }
+.cv-camera img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cv-brilho { position: absolute; width: 22%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; mix-blend-mode: screen; background: radial-gradient(circle, rgba(255, 236, 160, .85) 0%, rgba(255, 196, 64, .45) 22%, rgba(255, 160, 40, 0) 62%); animation: cvPulsa 2.2s ease-in-out infinite; }
+@keyframes cvPulsa { 0%, 100% { opacity: .55; transform: translate(-50%, -50%) scale(.92); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } }
+.cv-raios { position: absolute; width: 140%; aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; mix-blend-mode: screen; background: repeating-conic-gradient(from 0deg, rgba(255, 220, 150, .16) 0deg 4deg, transparent 4deg 13deg); -webkit-mask: radial-gradient(circle, #000 0%, transparent 55%); mask: radial-gradient(circle, #000 0%, transparent 55%); animation: cvGira 90s linear infinite; }
+@keyframes cvGira { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.cv-faiscas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-camera, .cv-brilho, .cv-raios, .lc-btn-ouro::before, .btn.lc-btn-ouro::before { animation: none !important; }
+  .cv-faiscas { display: none; }
+  .lc-entra { opacity: 1; transform: none; transition: none; }
+  .lc-btn { transition: none; }
+}
