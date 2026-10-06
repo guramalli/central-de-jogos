@@ -2,19 +2,19 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { usuarioAtual } from "./api.js";
 import Lobby from "./Lobby.jsx";
 import SalaAcro from "./SalaAcro.jsx";
-import Ranking from "./Ranking.jsx";
 import Missoes from "./Missoes.jsx";
-import Patentes from "./Patentes.jsx";
 import Perfil from "./Perfil.jsx";
 import Inicio from "./Inicio.jsx";
-import Amigos from "./Amigos.jsx";
-import Cla from "./Cla.jsx";
+import Competir from "./Competir.jsx";
+import Social from "./Social.jsx";
+import Eu from "./Eu.jsx";
 import Novidades from "./Novidades.jsx";
 import Impostor from "./ImpostorSobDemanda.jsx";
 import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "./Publicas.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import ErroNaPagina from "./ErroNaPagina.jsx";
+import { armazenamento, lembrarSala } from "./navegacao.js";
 
 // Páginas pesadas ou pouco visitadas carregam sob demanda (mesma ideia do
 // ImpostorSobDemanda): quem só abre o Início não baixa o painel admin nem as
@@ -29,13 +29,11 @@ const Mentira = lazy(() => import("./Mentira.jsx"));
 const Tribunal = lazy(() => import("./Tribunal.jsx"));
 const EditarPerfil = lazy(() => import("./EditarPerfil.jsx"));
 const SalasPrivadas = lazy(() => import("./SalasPrivadas.jsx"));
-const HallFama = lazy(() => import("./HallFama.jsx"));
-const Clas = lazy(() => import("./Clas.jsx"));
 
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
 // site clássico por engano.
-function lerLocal() {
+export function lerLocal() {
   const p = new URLSearchParams(window.location.search);
   return { mesa: p.get("mesa"), token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
@@ -70,6 +68,13 @@ export default function App() {
     return () => window.removeEventListener("popstate", aoVoltar);
   }, []);
 
+  // Memória do último jogo (bloco "Continuar" e "Jogar agora"): toda sala que
+  // abre fica guardada. O nome da sala vem de quem clicou (Lobby); aqui só o id.
+  useEffect(() => {
+    const jogo = local.sala ? "quiz" : local.stop ? "stop" : local.acro ? "acromania" : null;
+    if (jogo) lembrarSala(armazenamento(), { jogo, sala: local.sala || local.stop || local.acro });
+  }, [local.sala, local.stop, local.acro]);
+
   // Erro numa página mostra a tela de erro SÓ nela (e não tela em branco no
   // site todo). A `key` muda quando troca de página e zera o erro — sem ela,
   // a tela de erro ficaria presa nas páginas seguintes. Só a página (não os
@@ -92,7 +97,7 @@ function Pagina({ local, usuario }) {
     const qual = local.pagina;
     if (!usuario) return <Legal key={qual} qual={qual} />;
     return <Legal key={qual} qual={qual} comTopo={(c) => (
-      <div className="v2-app v2-com-menu"><Topo usuario={usuario} ativo={null} /><main className="v2-pagina v2-pagina-estreita">{c}</main><Rodape /></div>
+      <div className="v2-app v2-com-menu"><Topo usuario={usuario} /><main className="v2-pagina v2-pagina-estreita">{c}</main><Rodape /></div>
     )} />;
   }
   if (local.pagina === "redefinir-senha") return <RedefinirSenha token={local.token} />;
@@ -116,15 +121,23 @@ function Pagina({ local, usuario }) {
   if (local.stop) return <SalaStop key={local.stop} roomId={local.stop} usuario={usuario} />;
   if (local.acro) return <SalaAcro key={local.acro} roomId={local.acro} usuario={usuario} />;
   switch (local.pagina) {
-    case "ranking": return <Ranking usuario={usuario} jogoInicial={local.jogo} />;
+    // Competir e Social: a aba é o próprio ?pagina= (links antigos valem).
+    case "ranking":
+    case "hall":
+    case "patentes":
+      return <Competir key={local.jogo || "-"} usuario={usuario} aba={local.pagina} jogo={local.jogo} />;
+    case "amigos":
+    case "clas":
+    case "cla":
+      return <Social usuario={usuario} pagina={local.pagina} id={local.id} />;
     case "missoes": return <Missoes usuario={usuario} />;
-    case "patentes": return <Patentes key={local.jogo || "q"} usuario={usuario} jogoInicial={local.jogo} />;
-    case "jogador": return <Perfil key={local.id} usuario={usuario} userId={local.id || usuario.id} />;
+    // Meu perfil (sem id ou com o meu id) é a seção Eu; o de outra pessoa
+    // continua sendo o Perfil público.
+    case "jogador":
+      return !local.id || local.id === usuario.id
+        ? <Eu usuario={usuario} />
+        : <Perfil key={local.id} usuario={usuario} userId={local.id} />;
     case "jogar": return <Lobby key={local.jogo || "l"} usuario={usuario} jogoInicial={local.jogo} />;
-    case "amigos": return <Amigos usuario={usuario} conversaInicial={local.id} />;
-    case "clas": return <Clas usuario={usuario} />;
-    case "cla": return <Cla key={local.id} usuario={usuario} claId={local.id} />;
-    case "hall": return <HallFama usuario={usuario} />;
     case "novidades": return <Novidades usuario={usuario} />;
     case "editar-perfil": return <EditarPerfil usuario={usuario} />;
     case "admin": return <Admin usuario={usuario} />;

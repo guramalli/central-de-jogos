@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import Topo from "./Topo.jsx";
-import Rodape from "./Rodape.jsx";
+import Moldura from "./Moldura.jsx";
 import { buscarPerfil, dadosDoJogo } from "./perfil.js";
 
 // Patentes dos três jogos (Quiz, Stop e Acromania).
-export default function Patentes({ usuario, jogoInicial }) {
+export default function Patentes({ usuario, jogoInicial, embutido = false }) {
   const [jogo, setJogo] = useState(["stop", "acromania"].includes(jogoInicial) ? jogoInicial : "quiz");
   const [patentes, setPatentes] = useState(null);
   const [meus, setMeus] = useState(null);
@@ -20,9 +19,7 @@ export default function Patentes({ usuario, jogoInicial }) {
   const atual = meus?.rank?.name;
 
   return (
-    <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo={null} />
-      <main className="v2-pagina">
+    <Moldura usuario={usuario} embutido={embutido}>
         <div className="v2-pagina-cabeca"><h1>Patentes</h1></div>
         <div className="v2-segmentado" role="group" aria-label="Jogo">
           <button className={jogo === "quiz" ? "ativo" : ""} onClick={() => setJogo("quiz")}>Quiz</button>
@@ -59,8 +56,6 @@ export default function Patentes({ usuario, jogoInicial }) {
             );
           })}
         </div>
-      </main>
-      <Rodape />
-    </div>
+    </Moldura>
   );
 }

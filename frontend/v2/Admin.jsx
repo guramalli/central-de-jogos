@@ -88,7 +88,7 @@ export default function Admin({ usuario }) {
   if (!podeEntrar) {
     return (
       <div className="v2-app v2-com-menu">
-        <Topo usuario={usuario} ativo={null} />
+        <Topo usuario={usuario} />
         <main className="v2-pagina"><div className="v2-vazio-grande">Acesso restrito a moderadores e administradores.</div></main>
         <Rodape />
       </div>
@@ -105,7 +105,7 @@ export default function Admin({ usuario }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="admin" />
+      <Topo usuario={usuario} />
       <main className="v2-pagina v2-admin">
         <div className="v2-pagina-cabeca">
           <h1>Painel Admin</h1>

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, novoSocket } from "./api.js";
 import { irParaPagina, linkDaPagina } from "./App.jsx";
-import Topo from "./Topo.jsx";
-import Rodape from "./Rodape.jsx";
+import Moldura from "./Moldura.jsx";
 import Avatar from "./Avatar.jsx";
 import { CampoChat } from "./Chat.jsx";
 
@@ -15,7 +14,7 @@ const quando = (t) => {
     : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 };
 
-export default function Amigos({ usuario, conversaInicial }) {
+export default function Amigos({ usuario, conversaInicial, embutido = false }) {
   const [dados, setDados] = useState(null);
   const [conversas, setConversas] = useState([]);
   const [aberta, setAberta] = useState(null); // amigo com a conversa aberta
@@ -88,9 +87,7 @@ export default function Amigos({ usuario, conversaInicial }) {
   const totalNaoLidas = lista.reduce((n, f) => n + (f.naoLidas || 0), 0);
 
   return (
-    <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="amigos" />
-      <main className={`v2-pagina v2-mensageiro ${aberta ? "com-conversa" : ""}`}>
+    <Moldura usuario={usuario} embutido={embutido} classeMain={`v2-pagina v2-mensageiro ${aberta ? "com-conversa" : ""}`}>
         <aside className="v2-cartao v2-msg-lista">
           <div className="v2-cartao-cabeca">
             <h2>Mensagens {totalNaoLidas > 0 && <span className="v2-bolinha-contador">{totalNaoLidas}</span>}</h2>
@@ -175,9 +172,7 @@ export default function Amigos({ usuario, conversaInicial }) {
             </div>
           )}
         </section>
-      </main>
-      <Rodape />
-    </div>
+    </Moldura>
   );
 }
 
