@@ -452,6 +452,7 @@
     if (MAPA_FIM[id]) return MAPA_FIM[id]; // v287
     if (id && id.indexOf('jur_') === 0) return id === 'jur_trex' ? 'dino_boss' : 'dino'; // v364: labirinto jurássico
     if (id && /^vale_z\d$/.test(id)) return 'celeste'; // v367: as ilhas do Vale das Pedras Celestiais
+    if (id && id.indexOf('cq_') === 0) return { cq_estadio: 'estadio', cq_vestiario: 'dg_subterraneo', cq_tunel: 'dg_caverna', cq_arquibancada: 'estadio', cq_gramado: 'aventura' }[id] || 'aventura'; // v410: Copa dos Esquecidos (dono: "coloque a música nas alas")
     if (id === 'praia') return 'praia3'; if (id === 'ct') return 'ct3'; // v278
     if (VILA.includes(id)) return 'vila';
     if (CIDADE.includes(id)) return 'cidade';

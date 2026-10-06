@@ -111,7 +111,7 @@
 
   /* ---------- mascote ---------- */
   const PET = { x: null, y: null, fase: 0, mov: false, flip: false };
-  const PET_VOA = new Set(['arara', 'dragao', 'corujinha']), PET_ALT = { sortudo: 0.6, pipoca: 0.58, caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56, polvinho: 0.55, corujinha: 0.55 };
+  const PET_VOA = new Set(['arara', 'dragao', 'corujinha', 'bolinha_esquecida']), PET_ALT = { sortudo: 0.6, pipoca: 0.58, caramelo: 0.62, arara: 0.55, robo: 0.7, dragao: 0.62, tricerinho: 0.56, polvinho: 0.55, corujinha: 0.55, bolinha_esquecida: 0.45 }; // v410: Bolinha Esquecida (copa_esquecidos.js) flutua
   function atualizaPet(e, dt) {
     const id = atual('mascote'); if (!id) { PET.x = null; return null; }
     const lado = e.flip ? 1 : -1, ax = e.x + lado * 0.9, ay = e.y + 0.15;

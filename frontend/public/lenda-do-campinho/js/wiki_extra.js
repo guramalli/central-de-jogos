@@ -91,6 +91,8 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    // v410 (aprovado pelo dono, frente MISSÕES/TEXTOS): Copa dos Esquecidos (js/copa_historia.js e as outras frentes copa_*)
+    ['v410', '🎟️ A COPA DOS ESQUECIDOS! No nível 700, o Orbitto acha um ingresso antigo e o portal selado do Estádio do Multiverso se abre. Do outro lado, um estádio fora do tempo onde os times que nunca ganharam nada ainda jogam a Copa de Origem. São fantasmas simpáticos! Com o Seu Saudade e a Dona Memória, ajude cada time a lembrar por que jogava, em 4 alas (níveis 700 a 950), com perguntas sobre as regras do futebol. Depois da Bola de Origem, a final dos Onze Esquecidos volta toda semana. E tem o Álbum dos Esquecidos no Caderno do Craque. Também: tocando numa missão (no canto da tela ou na janela Missões), aparece onde achar o adversário e como chegar lá.'],
     // v408.3 (ECA Digital, Lei 15.211/2025): nada de pagar por sorteio (js/figurinha_vista.js)
     ['v408.3', '🃏 FIGURINHA À VISTA! Na banca do Seu Juca agora tem uma VITRINE com 3 figurinhas que faltam no seu álbum: você vê qual é antes de comprar (120 tostões cada). O pacotinho surpresa não se vende mais; ele continua vindo de PRESENTE (Copa, desafios, recompensa do dia) e, ao abrir, a figurinha aparece na hora. Na loja das Tarefas, as figurinhas da troca também aparecem antes.'],
     // v408 (Raio-X I3, frente MISSÕES/TEXTOS): Passaporte do Craque (js/passaporte.js)
