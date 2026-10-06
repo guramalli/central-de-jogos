@@ -41,7 +41,8 @@ test("fichaPublica mostra só o que é público", () => {
   assert.equal(f.estatisticas.figurinhas, 2);
   assert.equal(f.arenas[0].vitorias, 2);
   // v407 (U1/U5): exaustão só com o nível e o DIA (sem quem, onde e a hora); sem clube, sem mapa atual
-  assert.deepEqual(f.exaustoes[0], { nivel: 30, em: Math.floor(1700000000000 / 864e5) * 864e5 });
+  assert.deepEqual(f.exaustoes[0], { nivel: 30, em: Math.floor((1700000000000 - 3 * 3600e3) / 864e5) * 864e5 + 3 * 3600e3 }); // meia-noite de Brasília
+  assert.equal(new Date(f.exaustoes[0].em).getUTCHours(), 3);
   assert.equal(f.casa, "casa_vila_1");
   assert.equal(f.clube, undefined);
   assert.equal(f.mapa, undefined);

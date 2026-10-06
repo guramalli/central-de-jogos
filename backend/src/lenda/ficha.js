@@ -21,8 +21,9 @@ export function abrirSave(dados) {
 }
 
 const num = (v, max = 1e12) => (Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0);
-// só o dia (meia-noite UTC daquele dia), sem a hora
-const soDia = (t) => { const n = num(t, 1e13); return n ? Math.floor(n / 864e5) * 864e5 : 0; };
+// só o dia (meia-noite de Brasília daquele dia), sem a hora
+const BR = 3 * 3600e3;
+const soDia = (t) => { const n = num(t, 1e13); return n ? Math.floor((n - BR) / 864e5) * 864e5 + BR : 0; };
 const id = (v) => (typeof v === "string" && /^[a-z0-9_]{1,40}$/.test(v) ? v : null);
 
 export function fichaPublica(s) {
