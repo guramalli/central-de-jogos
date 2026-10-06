@@ -35,7 +35,7 @@ const Clas = lazy(() => import("./Clas.jsx"));
 // Navegação por parâmetro (?sala=ID, ?pagina=ranking, ?pagina=jogador&id=X)
 // em vez de rotas: /v2/ é sempre o mesmo arquivo, e recarregar nunca cai no
 // site clássico por engano.
-function lerLocal() {
+export function lerLocal() {
   const p = new URLSearchParams(window.location.search);
   return { mesa: p.get("mesa"), token: p.get("token"), salaPrivada: p.get("privada"), sala: p.get("sala"), stop: p.get("stop"), acro: p.get("acro"), pagina: p.get("pagina"), id: p.get("id"), jogo: p.get("jogo") };
 }
@@ -92,7 +92,7 @@ function Pagina({ local, usuario }) {
     const qual = local.pagina;
     if (!usuario) return <Legal key={qual} qual={qual} />;
     return <Legal key={qual} qual={qual} comTopo={(c) => (
-      <div className="v2-app v2-com-menu"><Topo usuario={usuario} ativo={null} /><main className="v2-pagina v2-pagina-estreita">{c}</main><Rodape /></div>
+      <div className="v2-app v2-com-menu"><Topo usuario={usuario} /><main className="v2-pagina v2-pagina-estreita">{c}</main><Rodape /></div>
     )} />;
   }
   if (local.pagina === "redefinir-senha") return <RedefinirSenha token={local.token} />;

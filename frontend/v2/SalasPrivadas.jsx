@@ -52,7 +52,7 @@ export default function SalasPrivadas({ usuario, jogo, salaDoLink }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo={jogo} />
+      <Topo usuario={usuario} />
       <main className="v2-pagina">
         <a className="v2-link" href={linkDaPagina("jogar", { jogo })} onClick={(e) => { e.preventDefault(); irParaPagina("jogar", { jogo }); }}>← salas do {ehStop ? "Stop" : "Acromania"}</a>
         <div className="v2-pagina-cabeca"><h1>Salas dos jogadores</h1><img className="v2-privadas-logo" src={ehStop ? "/stop-logo.png" : "/acromania-logo.png"} alt={ehStop ? "Stop" : "Acromania"} /></div>

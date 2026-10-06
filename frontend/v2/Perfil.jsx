@@ -95,7 +95,7 @@ export default function Perfil({ usuario, userId }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo={souEu ? "jogador" : null} />
+      <Topo usuario={usuario} />
       <main className="v2-pagina">
         {erro && <div className="v2-faixa-aviso erro">{erro}</div>}
         {!perfil && !erro && <div className="v2-carregando">Carregando perfil…</div>}

@@ -1083,14 +1083,6 @@ a { color: inherit; text-decoration: none; }
   .v2-confete { display: none; }
 }
 
-/* Barra de baixo: botão "Mais" e a folha com as outras páginas. */
-.v2-menu-celular button { flex: 1; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: none; background: transparent; color: var(--lilas-2); font-size: 11px; font-weight: 900; }
-.v2-menu-celular button.ativo { color: var(--amarelo); }
-.v2-mais-fundo { position: fixed; inset: 0; z-index: 39; background: rgba(29,18,66,.6); animation: v2-fundo-in .15s ease-out both; }
-.v2-mais { position: absolute; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--creme); color: var(--roxo); border-radius: 22px; padding: 8px; display: flex; flex-direction: column; box-shadow: 0 6px 0 #d8cbb2; animation: v2-pop .2s ease-out both; }
-.v2-mais a, .v2-mais button { min-height: 48px; display: flex; align-items: center; padding: 0 14px; border: none; background: transparent; border-radius: 14px; font-family: var(--titulo); font-weight: 600; font-size: 18px; color: var(--roxo); text-align: left; }
-.v2-mais a:hover, .v2-mais button:hover { background: #ede3d0; }
-.v2-mais button { color: #a3362c; }
 /* A busca continua no topo do celular (os outros botões redondos somem). */
 @media (max-width: 699px) {
   .v2-topo .v2-busca .v2-sair { display: flex; width: 40px; height: 40px; }
@@ -1137,17 +1129,11 @@ a { color: inherit; text-decoration: none; }
 .v2-logo { position: relative; gap: 6px; }
 .v2-topo-nick { flex-direction: column; line-height: 1.1; }
 .v2-topo-nick small { font-size: 11px; font-weight: 800; color: var(--lilas-2); }
-.v2-mais a { justify-content: space-between; }
-/* O menu tem até 10 itens: ele só cabe inteiro a partir de ~1180px. Abaixo
-   disso vale a barra de baixo (com "Mais"), também no notebook pequeno. */
+/* O menu tem 4 seções + o avatar (Eu): cabe inteiro a partir de 1000px.
+   Abaixo disso vale a barra de baixo, com as mesmas 5 seções. */
 .v2-menu a { white-space: nowrap; }
 @media (min-width: 1000px) {
   .v2-topo-nick { display: flex; }
-}
-@media (min-width: 1000px) and (max-width: 1179px) {
-  .v2-menu { display: none !important; }
-  .v2-menu-celular { display: flex !important; }
-  .v2-com-menu { padding-bottom: 84px !important; }
 }
 @media (min-width: 1180px) and (max-width: 1440px) {
   .v2-topo { padding-left: 24px; padding-right: 24px; gap: 8px; }
@@ -1670,7 +1656,6 @@ a.v2-botao-pequeno { display: inline-flex; align-items: center; }
 /* Botão do topo: volta pro site clássico. */
 .v2-troca-versao { height: 40px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--borda); background: transparent; color: var(--lilas); font-weight: 900; font-size: 13px; white-space: nowrap; }
 .v2-troca-versao:hover { border-color: var(--amarelo); color: var(--amarelo); }
-.v2-mais button.v2-mais-classico { color: var(--roxo); }
 @media (max-width: 999px) { .v2-topo .v2-troca-versao { display: none; } }
 @media (min-width: 1180px) and (max-width: 1440px) { .v2-troca-versao { padding: 0 10px; font-size: 12px; } }
 
@@ -2567,3 +2552,13 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
   .v2-lenda { grid-template-columns: minmax(240px, 42%) 1fr; gap: 22px; padding: 24px 28px 26px; }
   .v2-lenda h2 { font-size: 38px; }
 }
+
+/* ---------- Navegação em 5 seções (2026-10) ---------- */
+.v2-menu a { font-family: var(--titulo); font-weight: 600; font-size: 17px; padding: 0 16px; }
+.v2-topo-avatar { align-items: center; gap: 8px; padding: 3px 12px 3px 3px; border-radius: 999px; }
+.v2-topo-avatar:hover, .v2-topo-avatar.ativo { background: var(--roxo-2); }
+.v2-topo-avatar.ativo .v2-topo-nick { color: var(--amarelo); }
+.v2-menu-celular a { min-width: 0; }
+.v2-menu-celular a.ativo .v2-menu-icone > :first-child:not(svg) { box-shadow: 0 0 0 2px var(--amarelo); border-radius: 50%; }
+/* No celular o "Eu" já está na barra de baixo. */
+@media (max-width: 999px) { .v2-topo .v2-topo-avatar { display: none; } }

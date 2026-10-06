@@ -349,7 +349,7 @@ export default function Mentira({ usuario, salaDoLink }) {
 export function Moldura({ usuario, children, classe = "v2-mentira" }) {
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo={null} />
+      <Topo usuario={usuario} />
       <main className={`v2-pagina ${classe}`}>{children}</main>
     </div>
   );

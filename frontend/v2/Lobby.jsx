@@ -89,7 +89,7 @@ export default function Lobby({ usuario, jogoInicial }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo={jogo} />
+      <Topo usuario={usuario} />
 
       <div className="v2-lobby">
         <section className="v2-saudacao">

@@ -22,7 +22,7 @@ export default function Cla({ usuario, claId }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="clas" />
+      <Topo usuario={usuario} />
       <main className="v2-pagina">
         <a className="v2-link" href={linkDaPagina("clas")} onClick={(e) => { e.preventDefault(); irParaPagina("clas"); }}>← Clãs</a>
         {erro && <div className="v2-faixa-aviso erro">{erro}</div>}

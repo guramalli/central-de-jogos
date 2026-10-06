@@ -49,7 +49,7 @@ export default function Clas({ usuario }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="clas" />
+      <Topo usuario={usuario} />
       <main className="v2-pagina">
         <div className="v2-pagina-cabeca"><h1>Clãs</h1></div>
         <p className="v2-pagina-nota">Junte a galera num clã: os pontos do mês de todos os membros somam no ranking de clãs.</p>

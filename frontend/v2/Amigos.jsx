@@ -89,7 +89,7 @@ export default function Amigos({ usuario, conversaInicial }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="amigos" />
+      <Topo usuario={usuario} />
       <main className={`v2-pagina v2-mensageiro ${aberta ? "com-conversa" : ""}`}>
         <aside className="v2-cartao v2-msg-lista">
           <div className="v2-cartao-cabeca">

@@ -66,7 +66,7 @@ export default function Inicio({ usuario }) {
 
   return (
     <div className="v2-app v2-com-menu">
-      <Topo usuario={usuario} ativo="inicio" />
+      <Topo usuario={usuario} />
       <main className="v2-pagina v2-inicio">
         <section className="v2-cartao v2-boas-vindas">
           <div className="v2-boas-vindas-texto">
