@@ -115,6 +115,17 @@ test("escolherSalaQuiz: ignora arenas; sala sem nível vale nos dois", () => {
   assert.equal(escolherSalaQuiz(salas, { ultimaSala: "arena" }).sala.roomId, "direito");
 });
 
+test("escolherSalaQuiz: pula a última sala se estiver lotada", () => {
+  const salas = [quiz("cheia", { onlineCount: 15, maxPlayers: 15 }), quiz("outra", { onlineCount: 2, maxPlayers: 15 })];
+  assert.deepEqual(escolherSalaQuiz(salas, { ultimaSala: "cheia" }), { sala: salas[1], motivo: "mais-gente" });
+});
+
+test("escolherSalaQuiz: a sala com mais gente lotada não é escolhida", () => {
+  const salas = [quiz("lotada", { onlineCount: 15, maxPlayers: 15 }), quiz("vaga", { onlineCount: 6, maxPlayers: 15 })];
+  assert.equal(escolherSalaQuiz(salas).sala.roomId, "vaga");
+  assert.equal(escolherSalaQuiz([quiz("lotada", { onlineCount: 15, maxPlayers: 15 })]), null);
+});
+
 test("escolherSalaQuiz: lista vazia → null", () => {
   assert.equal(escolherSalaQuiz([]), null);
   assert.equal(escolherSalaQuiz(null), null);
@@ -144,6 +155,16 @@ test("memória: ignora jogo desconhecido e sala vazia", () => {
   lembrarSala(s, { jogo: "tribunal", sala: "x" });
   lembrarSala(s, { jogo: "stop", sala: "" });
   assert.equal(ultimoJogo(s), null);
+});
+
+test("memória: sala privada não entra (não aparece nas listas públicas)", () => {
+  const s = storageFalso();
+  lembrarSala(s, { jogo: "stop", sala: "s1", nome: "Iniciante" }, 1);
+  lembrarSala(s, { jogo: "stop", sala: "stop-privada-ab12cd34" }, 2);
+  lembrarSala(s, { jogo: "acromania", sala: "acromania-privada-99aa88bb" }, 3);
+  assert.deepEqual(ultimoJogo(s), { jogo: "stop", sala: "s1", nome: "Iniciante", quando: 1 });
+  assert.equal(ultimaSalaDo(s, "stop"), "s1");
+  assert.equal(ultimaSalaDo(s, "acromania"), null);
 });
 
 test("memória: JSON corrompido, storage nulo ou que lança erro não quebram", () => {

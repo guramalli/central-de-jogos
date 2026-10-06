@@ -122,12 +122,13 @@ export default function Perfil({ usuario, userId, embutido = false }) {
                 </div>
                 {convite && !["ok", "enviando"].includes(convite) && <div className="v2-erro-pequeno">{convite}</div>}
                 <div className="v2-perfil-acoes">
-                  {souEu ? (
+                  {/* Dentro de Eu (embutido) os atalhos da conta já estão logo acima. */}
+                  {souEu ? (embutido ? null : (
                     <div className="v2-perfil-meus-botoes">
                       <a className="v2-botao v2-botao-amarelo" href="/v2/?pagina=editar-perfil" onClick={(e) => { e.preventDefault(); irParaPagina("editar-perfil"); }}>Editar meu perfil</a>
                       <button className="v2-botao v2-botao-contorno" onClick={() => { if (confirm("Sair da conta?")) { sair(); window.location.replace("/v2/"); } }}>Sair</button>
                     </div>
-                  ) : amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? (
+                  )) : amizade === "ok" || perfil.friendshipStatus === "pending_sent" ? (
                     <span className="v2-selo-ok">Pedido de amizade enviado</span>
                   ) : perfil.friendshipStatus === "friends" ? (
                     <button className="v2-botao v2-botao-amarelo" onClick={() => irParaPagina("amigos", { id: userId })}>Mandar mensagem</button>

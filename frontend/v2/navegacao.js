@@ -66,8 +66,9 @@ export function escolherSalaStop(salas, { ultimaSala = null, pontosVitalicios = 
 // "Jogar agora" do Quiz: o tema importa mais que a lotação, então a última
 // sala vem primeiro. Arenas ficam de fora (são um modo à parte). Sala sem
 // nível (ex.: Direito) vale nos dois níveis, igual ao filtro da página.
+// Sala lotada nunca (o Quiz também tem limite: QuizRoom recusa quem chega).
 export function escolherSalaQuiz(salas, { ultimaSala = null, nivel = "padrao" } = {}) {
-  const normais = (salas || []).filter((s) => !s.arena);
+  const normais = (salas || []).filter((s) => !s.arena && !lotada(s));
   const ultima = ultimaSala ? normais.find((s) => String(s.roomId) === String(ultimaSala)) : null;
   if (ultima) return { sala: ultima, motivo: "ultima" };
   const doNivel = normais.filter((s) => !s.tier || s.tier === nivel);
@@ -100,8 +101,13 @@ function lerMemoria(storage) {
   }
 }
 
+// Sala privada (stop-privada-…, acromania-privada-…) não entra: ela não está
+// nas listas públicas, então o "Continuar" acharia que ela sumiu e o "Jogar
+// agora" perderia a última sala pública da pessoa.
+const ehPrivada = (sala) => /-privada-/.test(String(sala));
+
 export function lembrarSala(storage, { jogo, sala, nome = null }, agora = Date.now()) {
-  if (!storage || !JOGOS_COM_SALA.includes(jogo) || !sala) return;
+  if (!storage || !JOGOS_COM_SALA.includes(jogo) || !sala || ehPrivada(sala)) return;
   try {
     const m = lerMemoria(storage);
     const antes = m.porJogo[jogo];
