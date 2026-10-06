@@ -13,21 +13,31 @@
 import { LISTA as PALAVROES_SITE } from "../impostor/filtroPalavroes.js";
 
 /* FILTRO-NOME-INICIO */
+const NF_VERSAO = 2; // (suba a cada mudança do filtro: o teste confere que o jogo publicado tem a mesma)
 // palavras proibidas INTEIRAS (comparadas palavra por palavra: "cu" não barra "Cupim", "puta" não barra "Disputa")
-const NF_PALAVRAS = ["pica", "pinto", "rola", "bunda", "peido", "piroca", "pau no", "xota", "xana", "teta", "tetas", "bct", "pnc", "crl", "fdm", "bosta", "mijo", "gay", "lesbica", "traveco", "chupa", "mama", "safado", "safada", "gostosa", "gostoso", "tesao", "transa", "sexo"];
+const NF_PALAVRAS = ["pica", "pinto", "rola", "bunda", "peido", "piroca", "pau no", "xota", "xana", "teta", "tetas", "bct", "pnc", "crl", "fdm", "bosta", "mijo", "gay", "lesbica", "traveco", "chupa", "mama", "safado", "safada", "gostosa", "gostoso", "tesao", "transa", "sexo", "matar"];
 // trechos proibidos em QUALQUER lugar (também com as palavras grudadas: "skalzinhopika")
 const NF_TRECHOS = ["porra", "caralh", "karalh", "krlh", "buceta", "boceta", "bucet", "xoxot", "xerec", "piroc", "pirok", "pika", "punhet", "siriric",
   "putari", "foda", "foder", "fodid", "fudid", "fuder", "merda", "cacete", "arromb", "vagabund", "babaca", "otari", "retardad", "cuzao", "cusao",
   "cuzinh", "porno", "sexy", "nazi", "hitler", "xvideo", "pqp", "vsf", "fdp", "vtnc", "tnc", "viad", "boiola", "baitola", "punheta", "fodase",
-  "pornô", "estupr", "drogad", "maconh", "cocain", "suicid", "matar", "assassin"];
-// equipe do site (o apelido de conta também não pode)
-const NF_RESERVADOS = ["admin", "administrador", "moderador", "moderator", "staff", "suporte", "support", "sistema", "system", "root", "equipe", "oficial", "official", "educacaogamer"];
+  "pornô", "estupr", "drogad", "maconh", "cocain", "suicid", "assassin"];
+// equipe do site (o apelido de conta também não pode): estes em qualquer lugar...
+const NF_RESERVADOS = ["admin", "moderador", "moderator", "staff", "educacaogamer"];
+// ...e estes só como palavra inteira (v408.2: "Ecossistema", "Suboficial", "Groot" são inocentes)
+const NF_RESERVADOS_PALAVRA = ["administrador", "suporte", "support", "sistema", "system", "root", "equipe", "oficial", "official"];
+// v408.2 (dono aprovou): palavras INOCENTES que contêm um trecho proibido. Só valem escritas certinho, como palavra
+// inteira (sem leetspeak, sem letra repetida, sem estar grudada em outra): "Pikachu" passa, "p1kachu"/"pikachupika" não.
+// Hífen, espaço, ponto ou nada entre as partes ("Pica-Pau", "Pica Pau", "Picapau"). Só acrescente palavra comum e inocente.
+const NF_EXCECOES = ["pica pau", "pica paus", "pikachu", "pikachus", "picachu", "enviado", "enviados", "enviada", "enviadas", "reenviado",
+  "desviado", "desviados", "desviada", "desviadas", "abreviado", "abreviada", "abreviados", "abreviadas", "abreviador", "abreviadores", "aviador", "aviadores", "aviadora", "aviadoras",
+  "viaduto", "viadutos", "percussao", "percussoes", "repercussao", "discussao", "discussoes", "concussao", "notario", "notarios", "notaria",
+  "protonotario", "lotaringia", "disputaria", "computaria", "reputaria", "internazionale", "internazionalle", "badminton",
+  "matarazzo", "picaro", "picaros", "picara", "picaras", "chupa cabra", "chupa cabras"];
 const NF_LEET = { 0: "o", 1: "i", 2: "z", 3: "e", 4: "a", 5: "s", 6: "g", 7: "t", 8: "b", 9: "g", "@": "a", $: "s", "!": "i", "|": "i", "€": "e" };
-function nfSimples(s) { // minúsculas, sem acento, leetspeak trocado, v → u
-  return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ç/g, "c").replace(/[0-9@$!|€]/g, (c) => NF_LEET[c] || c).replace(/v/g, "u"); // ("pvta": v vale u — nas duas pontas)
-}
-// "pika" → /p+i+k+a+/ (letras repetidas não escapam); "porra" → /p+o+r+r+a+/
-const nfRx = (w, inteira) => new RegExp((inteira ? "^" : "") + [...nfSimples(w).replace(/[^a-z ]/g, "")].map((c) => (c === " " ? "" : c + "+")).join("") + (inteira ? "s*$" : ""));
+const nfBase = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ç/g, "c"); // minúsculas, sem acento
+function nfSimples(s) { return nfBase(s).replace(/[0-9@$!|€]/g, (c) => NF_LEET[c] || c); } // + leetspeak trocado
+// "pika" → /p+i+k+a+/ (letras repetidas não escapam); "porra" → /p+o+r+r+a+/; "puta" → /p+[uv]+t+a+/ ("pvta")
+const nfRx = (w, inteira) => new RegExp((inteira ? "^" : "") + [...nfSimples(w).replace(/[^a-z ]/g, "")].map((c) => (c === " " ? "" : c === "u" ? "[uv]+" : c + "+")).join("") + (inteira ? "s*$" : ""));
 let NF_RX = null;
 function nfRegras(extras) {
   if (NF_RX) return NF_RX;
@@ -37,6 +47,8 @@ function nfRegras(extras) {
     trechos: NF_TRECHOS.map((w) => nfRx(w, false)),
     pares: NF_PALAVRAS.filter((p) => p.includes(" ")).map((p) => nfRx(p, false)), // ("pau no", "coco de"...: grudadas)
     reservados: NF_RESERVADOS.map((w) => nfRx(w, false)),
+    reservadosPalavra: NF_RESERVADOS_PALAVRA.map((w) => nfRx(w, true)),
+    excecoes: new RegExp("(^|[^a-z0-9])(" + NF_EXCECOES.map((w) => w.split(" ").join("[ _.'-]?")).join("|") + ")(?=$|[^a-z0-9])", "g"),
   };
   return NF_RX;
 }
@@ -48,12 +60,14 @@ function nfConfere(texto, extras) {
   if (!/^[\p{L}\p{N} _'.-]+$/u.test(nome)) return { ok: false, motivo: "simbolo" };
   if ((nome.match(/\p{L}/gu) || []).length < 2) return { ok: false, motivo: "letras" };
   if ((nome.match(/\d/g) || []).length >= 6 || /(www|http|\.com|\.br|insta|zap|whats|tiktok|discord|telegram|facebook)/i.test(nome)) return { ok: false, motivo: "contato" };
-  const R = nfRegras(extras), s = nfSimples(nome);
+  const R = nfRegras(extras);
+  // tira as palavras inocentes da lista de exceções (escritas certinho) antes de procurar os trechos proibidos
+  const s = nfSimples(nfBase(nome).replace(R.excecoes, "$1 "));
   const junto = s.replace(/[^a-z]/g, "");
   const pedacos = s.split(/[^a-z]+/).filter(Boolean);
   // letras soltas seguidas viram uma palavra só ("C U", "p u t a")
   for (let i = 0; i < pedacos.length; i++) if (pedacos[i].length === 1) { let j = i, w = ""; while (j < pedacos.length && pedacos[j].length === 1) w += pedacos[j++]; if (j - i > 1) pedacos.push(w); i = j - 1; }
-  if (R.reservados.some((rx) => rx.test(junto))) return { ok: false, motivo: "reservado" };
+  if (R.reservados.some((rx) => rx.test(junto)) || pedacos.some((p) => R.reservadosPalavra.some((rx) => rx.test(p)))) return { ok: false, motivo: "reservado" };
   if (R.trechos.some((rx) => rx.test(junto)) || R.pares.some((rx) => rx.test(junto))) return { ok: false, motivo: "palavrao" };
   if (pedacos.some((p) => R.palavras.some((rx) => rx.test(p)))) return { ok: false, motivo: "palavrao" };
   return { ok: true, nome };
