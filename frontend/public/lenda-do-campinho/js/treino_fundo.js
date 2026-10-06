@@ -29,7 +29,9 @@
     if (G.estTreino) return true; // aparelho do Centro de Treinamento
     const a = G.alvo; if (a && a.d && a.d.treino) return true; // boneco de treino
     // v354: "treino de mana" — gastando foco (curas, habilidades) sem nenhum adversário por perto, mesmo sem mirar o boneco
-    const ag = Date.now(); return ev.some(e => e[1] === 'visao' && ag - e[0] < 30000) && G.mons.every(m => m.d.treino || m.d.pedra || Math.hypot(m.x - G.p.x, m.y - G.p.y) > 8);
+    // v408.6 (dono: "minimizei e disse que continuei treinando Chute, e eu não estava treinando"): o treino de mana
+    // pede uso REPETIDO de foco (3+ jogadas de Visão em 30 s), não uma cura solta depois de caçar
+    const ag = Date.now(); return ev.filter(e => e[1] === 'visao' && ag - e[0] < 30000).length >= 3 && G.mons.every(m => m.d.treino || m.d.pedra || Math.hypot(m.x - G.p.x, m.y - G.p.y) > 8);
   }
   function ritmo() { // tentativas por milissegundo de cada habilidade, medido nos últimos 90 s
     const ag = Date.now(), rec = ev.filter(e => ag - e[0] <= JANELA); if (rec.length < 3) return null;
@@ -46,7 +48,10 @@
       // não pega carona); só gastando foco, sem bater (o "treino de mana") = a Visão.
       const fis = Object.keys(r).filter(k => k !== 'visao' && s.sk && s.sk[k]).sort((x, y) => r[y] - r[x])[0];
       const batendo = fis && r[fis] * 60000 >= 6; // 6+ golpes por minuto no boneco = treino físico
-      const foco = G.estTreino && G.estTreino.d ? G.estTreino.d.sk : batendo ? fis : r.visao ? 'visao' : fis;
+      // v408.6: habilidade física só com o BONECO de treino como alvo (ou num aparelho); sem isso, só o treino de mana (Visão).
+      // Antes, os chutes dados CAÇANDO no último minuto viravam "treino de Chute" ao minimizar.
+      const noBoneco = !!(G.alvo && G.alvo.d && G.alvo.d.treino);
+      const foco = G.estTreino && G.estTreino.d ? G.estTreino.d.sk : (noBoneco && batendo) ? fis : r.visao ? 'visao' : (noBoneco ? fis : null);
       if (!foco || !r[foco]) return;
       const taxa = { [foco]: r[foco] };
       // Visão = foco gasto. Escondido, o máximo é o quanto o foco REGENERA (como o treino de mana do Tibia),
