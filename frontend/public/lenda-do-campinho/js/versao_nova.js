@@ -8,8 +8,11 @@
    Nunca recarrega sozinho (ninguém perde o que está fazendo).
    ============================================================ */
 {
-  const versaoDe = txt => { const m = /assets\.js\?v=(\d+)/.exec(txt); return m ? +m[1] : 0; };
-  const minha = versaoDe((document.querySelector('script[src*="assets.js"]') || {}).src || '');
+  // v409 (dono: "a mensagem de atualize seu jogo lá em cima verde não está mais aparecendo"): desde a v408 as correções sobem
+  // só os arquivos mudados (?v=408.1, 408.2...) e o assets.js ficava em 408 → o aviso nunca via a versão nova.
+  // Agora vale o MAIOR ?v= de todos os scripts (com ponto). Atenção: depois de 408.9 vem 409 (408.10 seria lido como 408.1).
+  const versaoDe = txt => { let mx = 0; for (const m of String(txt).matchAll(/\.js\?v=(\d+(?:\.\d+)?)/g)) mx = Math.max(mx, parseFloat(m[1])); return mx; };
+  const minha = versaoDe([...document.querySelectorAll('script[src]')].map(s => s.getAttribute('src')).join(' '));
   let avisou = false, ultima = 0;
   function avisoVersao(v) {
     if (avisou) return; avisou = true;
