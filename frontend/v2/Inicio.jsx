@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { irParaPagina, linkDaPagina } from "./App.jsx";
+import { irPara, irParaAcro, irParaPagina, irParaStop, linkDaPagina } from "./App.jsx";
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import Praca from "./Praca.jsx";
@@ -9,7 +9,7 @@ import { NOMES_FILA } from "./fila.js";
 import { ModalFeedback } from "./Modais.jsx";
 import { NOVIDADES, ROTULO_TIPO } from "../src/data/novidades.js";
 import LendaDestaque from "./LendaDestaque.jsx";
-import { NOMES_JOGOS as NOMES } from "./navegacao.js";
+import { NOMES_JOGOS as NOMES, ROTA_SALAS, armazenamento, linkDaSala, ultimoJogo } from "./navegacao.js";
 
 // Jogos com página própria (não usam a lobby de salas do Stop/Quiz/Acromania).
 const PAGINA_PROPRIA = { mentira: "mentira", tribunal: "tribunal", impostor: "impostor" };
@@ -42,8 +42,7 @@ export default function Inicio({ usuario }) {
     <div className="v2-app v2-com-menu">
       <Topo usuario={usuario} />
       <main className="v2-pagina v2-inicio">
-        {/* Carro-chefe: o RPG Lenda do Campinho, em destaque acima dos outros jogos */}
-        <LendaDestaque />
+        <Continuar />
 
         {/* Duas fileiras: SALAS (Stop, Quiz) e FILA DE ESPERA (os jogos com
             fila — a pessoa deixa o nome no rodapé do card). */}
@@ -81,6 +80,11 @@ export default function Inicio({ usuario }) {
           </div>
         </section>
 
+        {/* Carro-chefe: o RPG Lenda do Campinho, logo depois dos jogos do portal */}
+        <LendaDestaque />
+
+        <Praca usuario={usuario} />
+
         <div className="v2-inicio-duas">
           {/* Fim da premiação em Pix (30/09/2026): setembro foi o último mês pago.
               O cartão ficou no mesmo lugar, agora como aviso. */}
@@ -117,8 +121,6 @@ export default function Inicio({ usuario }) {
           </section>
         </div>
 
-        <Praca usuario={usuario} />
-
 
         <section className="v2-cartao v2-sobre">
           <h2>Sobre o projeto</h2>
@@ -135,5 +137,43 @@ export default function Inicio({ usuario }) {
       <Rodape />
       {feedback && <ModalFeedback aoFechar={() => setFeedback(false)} />}
     </div>
+  );
+}
+
+// CONTINUAR — volta pra última sala aberta. Confere uma vez se a sala ainda
+// existe; se sumiu, leva pra página do jogo. Sem rede, tenta a sala mesmo
+// assim (a própria sala avisa se der errado). Sem memória, não aparece.
+// As funções de App.jsx só são lidas no clique: Inicio e App importam um ao
+// outro, e no carregamento do módulo elas ainda não existem.
+function Continuar() {
+  const [ultimo] = useState(() => ultimoJogo(armazenamento()));
+  const [existe, setExiste] = useState(null); // null = ainda conferindo
+
+  useEffect(() => {
+    if (!ultimo) return;
+    let vivo = true;
+    api.get(ROTA_SALAS[ultimo.jogo])
+      .then(({ data }) => {
+        const lista = Array.isArray(data) ? data : data?.rooms || [];
+        if (vivo) setExiste(lista.some((s) => String(s.roomId) === ultimo.sala));
+      })
+      .catch(() => vivo && setExiste(true));
+    return () => { vivo = false; };
+  }, [ultimo]);
+
+  if (!ultimo) return null;
+  const jogo = JOGOS.find((j) => j.chave === ultimo.jogo);
+  const sumiu = existe === false;
+  const href = sumiu ? linkDaPagina("jogar", { jogo: ultimo.jogo }) : linkDaSala(ultimo.jogo, ultimo.sala);
+  const ir = (e) => { e.preventDefault(); if (sumiu) irParaPagina("jogar", { jogo: ultimo.jogo }); else ({ quiz: irPara, stop: irParaStop, acromania: irParaAcro })[ultimo.jogo](ultimo.sala); };
+  return (
+    <a className="v2-continuar" href={href} onClick={ir} style={{ "--cor": jogo?.cor, "--sombra": jogo?.sombra }}>
+      {jogo?.logo && <img src={jogo.logo} alt="" />}
+      <span className="v2-continuar-texto">
+        <small>Continuar de onde parou</small>
+        <b>{sumiu ? `${NOMES[ultimo.jogo]}: escolher outra sala` : ultimo.nome ? `${NOMES[ultimo.jogo]} · ${ultimo.nome}` : NOMES[ultimo.jogo]}</b>
+      </span>
+      <span className="v2-botao v2-botao-amarelo v2-continuar-botao">{sumiu ? "Ver salas" : "Continuar"}</span>
+    </a>
   );
 }

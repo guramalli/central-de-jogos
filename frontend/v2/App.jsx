@@ -14,6 +14,7 @@ import { Entrada, Entrar, Cadastro, EsqueciSenha, RedefinirSenha, Legal } from "
 import Topo from "./Topo.jsx";
 import Rodape from "./Rodape.jsx";
 import ErroNaPagina from "./ErroNaPagina.jsx";
+import { armazenamento, lembrarSala } from "./navegacao.js";
 
 // Páginas pesadas ou pouco visitadas carregam sob demanda (mesma ideia do
 // ImpostorSobDemanda): quem só abre o Início não baixa o painel admin nem as
@@ -66,6 +67,13 @@ export default function App() {
     window.addEventListener("popstate", aoVoltar);
     return () => window.removeEventListener("popstate", aoVoltar);
   }, []);
+
+  // Memória do último jogo (bloco "Continuar" e "Jogar agora"): toda sala que
+  // abre fica guardada. O nome da sala vem de quem clicou (Lobby); aqui só o id.
+  useEffect(() => {
+    const jogo = local.sala ? "quiz" : local.stop ? "stop" : local.acro ? "acromania" : null;
+    if (jogo) lembrarSala(armazenamento(), { jogo, sala: local.sala || local.stop || local.acro });
+  }, [local.sala, local.stop, local.acro]);
 
   // Erro numa página mostra a tela de erro SÓ nela (e não tela em branco no
   // site todo). A `key` muda quando troca de página e zera o erro — sem ela,

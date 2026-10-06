@@ -2585,3 +2585,15 @@ h1 .v2-versao-jogo { font-size: 13px; vertical-align: middle; margin-left: 6px; 
 .v2-eu-atalhos a, .v2-eu-atalhos button { min-height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border: none; background: transparent; border-radius: 14px; color: #fff; font-family: var(--titulo); font-weight: 600; font-size: 17px; text-align: left; }
 .v2-eu-atalhos a:hover, .v2-eu-atalhos button:hover { background: var(--roxo-fundo); }
 .v2-eu-atalhos .v2-eu-sair { color: var(--laranja); }
+
+/* Início: "Continuar de onde parou". */
+.v2-continuar { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 22px; background: var(--roxo-2); border: 3px solid var(--cor, var(--borda)); animation: v2-entra .35s ease-out both; }
+.v2-continuar img { width: 84px; height: 44px; object-fit: contain; flex-shrink: 0; }
+.v2-continuar-texto { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.v2-continuar-texto small { font-size: 12px; font-weight: 800; color: var(--lilas); }
+.v2-continuar-texto b { font-family: var(--titulo); font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-continuar-botao { min-height: 46px; padding: 0 20px; font-size: 17px; flex-shrink: 0; }
+@media (max-width: 459px) {
+  .v2-continuar { flex-wrap: wrap; }
+  .v2-continuar-botao { width: 100%; }
+}
