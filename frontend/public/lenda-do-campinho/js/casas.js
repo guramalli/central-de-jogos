@@ -202,7 +202,9 @@ function comprarCasa(id) {
 function devolve(id, r) { // tenta pôr na mochila; se não couber, vai para o armazém
   const s = G.save;
   if (cabeNaMochila(id, r)) { if (r) { s.mochila.push({ id, q: 1, r }); G.uiSujo = true; return true; } if (addItem(id, 1)) return true; }
-  armazem(); if (!guardaNoArmazem(id, 1, r || 0)) G.save.armazem.push(r ? { id, q: 1, r } : { id, q: 1 }); return false; // armazém cheio: passa do limite, mas nada se perde
+  // armazém cheio: passa do limite, mas nada se perde. Bug 06/10/2026: agora AVISA (e fica no 📜 Histórico do armazém)
+  const pesado = cabeNaMochila(id, r), passou = guardaArmazemSempre(id, 1, r || 0);
+  armHistorico(id, 1, r || 0, 'devolvido da sua casa'); avisaArmazem([[id, 1, r || 0, passou]], pesado ? 'peso' : 'espaco'); return false;
 }
 async function venderCasa() {
   const s = G.save, c = minhaCasa(); if (!c) return;

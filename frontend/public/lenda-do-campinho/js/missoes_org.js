@@ -33,6 +33,21 @@
     const linhas = [...lista.querySelectorAll(':scope > .linha-item')]; if (linhas.length !== qs.length) return r;
     const itens = qs.map((x, i) => ({ ...x, li: linhas[i], npc: (NPCS[x.q.npc] || {}).nome || '', busca: sem(x.q.titulo + ' ' + descMissao(x.q)) }));
     for (const it of itens) { const b = it.li.querySelector('.nm b'); if (b && !b.querySelector('.mo-nv')) b.prepend(el('span', { class: 'mo-nv' }, `Nv ${it.q.lvl || 1}`)); }
+    // v410 (dono: "não achei onde fica o Titã do Trovão"): tocar na linha de uma missão de vencer / juntar / falar abre o
+    // bloco completo "📍 Onde achar e como chegar" (no lugar do resumo de uma linha); tocar de novo volta ao resumo
+    for (const it of itens) {
+      const rq = it.q.req || {}; if (it.st === 'feita' || !(rq.kill || rq.item || rq.itens || rq.fala)) continue;
+      it.li.classList.add('mo-cc'); it.li.title = 'Toque para ver onde achar e como chegar';
+      it.li.addEventListener('click', ev => {
+        if (ev.target.closest('button, a, input, select, details')) return;
+        if (typeof blocoComoChegar !== 'function') return;
+        const nm = it.li.querySelector('.nm') || it.li, cheio = nm.querySelector('.como-chegar:not(.compacto)'), curto = nm.querySelector('.como-chegar.compacto');
+        if (cheio) { cheio.remove(); if (curto) curto.hidden = false; return; }
+        const b = blocoComoChegar(it.q, false);
+        if (!b) { nm.append(el('div', { class: 'como-chegar' }, 'Fale com quem deu a missão: ' + it.npc)); return; }
+        if (curto) curto.hidden = true; nm.append(b);
+      });
+    }
     const barra = el('div', { class: 'mo-barra' }), btnsF = el('div', { class: 'mo-filtros' }), btnsC = el('div', { class: 'mo-filtros mo-cats' });
     // o "X de 411 concluídas" assustava quem acabou de chegar: fica só a conta do que já foi feito
     try { const p = [...box.children].find(x => x.tagName === 'P' && / de \d+ concluídas/.test(x.textContent)); if (p) { const nf = itens.filter(it => it.st === 'feita').length; p.textContent = nf ? `✅ Você já concluiu ${nf} ${nf === 1 ? 'missão' : 'missões'}.` : 'Fale com quem tem ❗ na cabeça para pegar missões.'; } } catch (e) { }
@@ -84,6 +99,7 @@
   .mo-busca { flex: 1; min-width: 160px; }
   .mo-grupo { font-weight: 800; font-size: 14px; color: #6a4a2a; margin: 10px 2px 2px; padding-bottom: 2px; border-bottom: 2px solid rgba(106,74,42,.25); }
   .mo-nv { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 8px; background: #6a4a2a; color: #fff; font-size: 11px; font-weight: 700; vertical-align: 1px; }
-  .mo-vazio { color: #7a6048; font-style: italic; }`;
+  .mo-vazio { color: #7a6048; font-style: italic; }
+  .linha-item.mo-cc { cursor: pointer; } .linha-item.mo-cc:hover { box-shadow: inset 0 0 0 2px rgba(46,158,90,.45); }`;
   document.head.append(css);
 }

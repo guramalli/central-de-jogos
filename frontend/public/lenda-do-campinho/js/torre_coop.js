@@ -31,6 +31,58 @@ function lendaSock(api) {
   n._api = api; n._token = PORTAL.token; window.LENDA_SOCK = n;
   return n;
 }
+
+/* ---------- v409: movimento SUAVE dos outros jogadores (e dos adversários espelhados) ----------
+   Dono: "jogamos juntos na Torre e bugou tudo... ele teletransportando na tela". Na internet de verdade os pacotes de
+   posição chegam em RAJADAS (vários juntos depois de uma pausa): o boneco do outro parava e depois corria/pulava.
+   Agora cada pacote leva a hora de quem mandou (t) e aqui o outro é mostrado um pouquinho no passado (o "atraso de
+   exibição": ~2 pacotes + o tremor da rede, 220–500 ms), andando entre dois pacotes — sem parar e sem pular; se o
+   próximo pacote atrasa, continua um pouquinho na mesma direção (até 120 ms) em vez de parar e depois pular.
+   Pacote sem t (jogo antigo do outro lado): continua o jeito antigo. Também usado pela caça em grupo (caca_grupo.js). */
+const SUAV = { min: 220, max: 500, pontos: 24, segue: 120 };
+const suavCanal = () => ({ off: null, jit: 60 });
+// registra a chegada de um pacote com a hora de quem mandou; devolve false se não dá para usar
+function suavRecebe(c, t) {
+  if (!c || !Number.isFinite(t)) return false;
+  const off = performance.now() - t;
+  if (c.off == null || Math.abs(off - c.off) > 8000) { c.off = off; c.jit = 60; c.nova = true; return true; } // (o outro recarregou a página)
+  if (off < c.off) c.off += (off - c.off) * 0.25; else c.off += 0.3; // o pacote mais rápido marca o relógio (aos poucos: sem pulo); devagar se adapta a uma rede que ficou mais lenta
+  c.jit = Math.max(off - c.off, c.jit * 0.985);
+  return true;
+}
+const suavAtraso = c => Math.min(SUAV.max, Math.max(SUAV.min, c.jit + 120)); // (o jogo manda ~1 pacote a cada 110 ms)
+function suavPoe(obj, c, t, x, y) {
+  let am = obj._suav;
+  if (!am || c.nova || (am.length && Math.hypot(am[am.length - 1].x - x, am[am.length - 1].y - y) > 6)) { am = obj._suav = []; c.nova = false; } // teletransporte de verdade: vai direto
+  if (am.length && t <= am[am.length - 1].t) return; // (chegou fora de ordem)
+  am.push({ t, x, y }); if (am.length > SUAV.pontos) am.shift();
+  obj._suavC = c;
+}
+// posição para mostrar agora (ou null: sem pacotes com hora — usa o jeito antigo)
+function suavPos(obj) {
+  const am = obj._suav, c = obj._suavC; if (!am || !am.length || !c || c.off == null) return null;
+  const alvo = performance.now() - c.off - suavAtraso(c);
+  if (alvo <= am[0].t) return am[0];
+  for (let i = am.length - 1; i > 0; i--) {
+    const a = am[i - 1], b = am[i];
+    if (alvo >= a.t) {
+      if (alvo >= b.t) { // passou do último pacote: segue na mesma direção por um instante (sem parar e depois pular)
+        const dt = Math.min(alvo - b.t, SUAV.segue), base = b.t - a.t;
+        if (i !== am.length - 1 || base <= 0 || base > 600) return b;
+        return { x: b.x + (b.x - a.x) * dt / base, y: b.y + (b.y - a.y) * dt / base };
+      }
+      const k = (alvo - a.t) / ((b.t - a.t) || 1); return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }; }
+  }
+  return am[am.length - 1];
+}
+// anda um boneco/adversário do outro jogo: suave quando tem as horas; senão, o jeito antigo (k = dt/90)
+function suavAnda(obj, dt, ax, ay) {
+  const p = suavPos(obj);
+  if (p) { obj.x = p.x; obj.y = p.y; return; }
+  if (!Number.isFinite(obj.x) || !Number.isFinite(obj.y) || Math.hypot(ax - obj.x, ay - obj.y) > 6) { obj.x = ax; obj.y = ay; return; }
+  const k = Math.min(1, dt / 90); obj.x += (ax - obj.x) * k; obj.y += (ay - obj.y) * k;
+}
+const suavT = () => Math.round(performance.now());
 function coCarregaCliente() {
   if (window.io) return Promise.resolve();
   if (CO.carregando) return CO.carregando;
@@ -118,7 +170,7 @@ async function coLobby() {
 /* ---------- começar o andar ---------- */
 function coInicia(andar) {
   CO.jogando = true; CO.host = CO.sala.host === coEu(); CO.andar = andar; CO.snap = null; CO.liberaFim = false;
-  CO.espelhos.clear(); CO.danei.clear(); CO.remotos.clear(); CO.lobbyAberto = false;
+  CO.espelhos.clear(); CO.danei.clear(); CO.remotos.clear(); CO.lobbyAberto = false; CO.canalMundo = suavCanal(); CO.ultSnap = null; // (v409: movimento suave)
   fechaModal(); torreEntra(andar);
   const idx = CO.sala.membros.findIndex(m => m.id === coEu()); if (G.p) { G.p.x = 17.5 + (idx - 1.5) * 1.1; G.p.y = 24.5; }
   if (!CO.host) { G.mons = []; G.respawns = []; } // o convidado vê o espelho do anfitrião
@@ -154,18 +206,20 @@ function coPasso(dt) {
     coParaJogo(); return;
   }
   const agora = Date.now(), p = G.p, st = stats();
-  if (agora - CO.tEu > 100 && CO.sock) { CO.tEu = agora; CO.sock.emit('torre-eu', { x: +p.x.toFixed(2), y: +p.y.toFixed(2), f: p.flip ? 1 : 0, m: p.mov ? 1 : 0, fa: +(p.fase || 0).toFixed(2), h: Math.round(G.save.hp / st.maxHp * 100) }); }
-  for (const { ent } of CO.remotos.values()) { const k = Math.min(1, dt / 90); ent.x += (ent.alvo.x - ent.x) * k; ent.y += (ent.alvo.y - ent.y) * k; }
+  if (agora - CO.tEu > 100 && CO.sock) { CO.tEu = agora; CO.sock.emit('torre-eu', { t: suavT(), x: +p.x.toFixed(2), y: +p.y.toFixed(2), f: p.flip ? 1 : 0, m: p.mov ? 1 : 0, fa: +(p.fase || 0).toFixed(2), h: Math.round(G.save.hp / st.maxHp * 100) }); }
+  for (const { ent } of CO.remotos.values()) suavAnda(ent, dt, ent.alvo.x, ent.alvo.y); // v409: entre os pacotes, sem parar e sem pular
   if (CO.host) {
     if (agora - CO.tMundo > 100 && CO.sock) {
       CO.tMundo = agora;
-      CO.sock.emit('torre-mundo', { r: Math.round(TD.resta), o: TD.onda, n: TD.n, m: G.mons.slice(0, 40).map(m => [m.uid, m.tipo, +m.x.toFixed(2), +m.y.toFixed(2), Math.max(0, Math.round(m.hp)), m.flip ? 1 : 0, m.mov ? 1 : 0, m._cv && m._cv.furia ? 1 : 0]) });
+      CO.sock.emit('torre-mundo', { t: suavT(), r: Math.round(TD.resta), o: TD.onda, n: TD.n, m: G.mons.slice(0, 40).map(m => [m.uid, m.tipo, +m.x.toFixed(2), +m.y.toFixed(2), Math.max(0, Math.round(m.hp)), m.flip ? 1 : 0, m.mov ? 1 : 0, m._cv && m._cv.furia ? 1 : 0]) });
     }
   } else coAplicaMundo(dt);
 }
 // convidado: o andar é o espelho do anfitrião
 function coAplicaMundo(dt) {
   const S = CO.snap; if (!S) return;
+  const novo = S !== CO.ultSnap; CO.ultSnap = S; // (o mesmo retrato é usado em vários quadros: só o novo vira ponto do caminho)
+  const comHora = novo && suavRecebe(CO.canalMundo || (CO.canalMundo = suavCanal()), S.t);
   const vivos = new Set();
   for (const [uid, tipo, x, y, hp, flip, mov, furia] of S.m) {
     vivos.add(uid);
@@ -176,6 +230,7 @@ function coAplicaMundo(dt) {
       m.x = x; m.y = y; m.espelho = true; m.coopUid = uid; m.bravo = true; CO.espelhos.set(uid, m); G.mons.push(m);
     }
     m.alvoX = x; m.alvoY = y; m.hp = hp; m.flip = !!flip; m.movRemoto = !!mov;
+    if (comHora) suavPoe(m, CO.canalMundo, S.t, x, y);
     if (furia && m._cv) m._cv.furia = true;
   }
   for (const [uid, m] of CO.espelhos) if (!vivos.has(uid)) { // caiu lá no anfitrião
@@ -184,7 +239,7 @@ function coAplicaMundo(dt) {
     else { efeito('puff', m.x, m.y); G.mons = G.mons.filter(x => x !== m); }
   }
   const k = Math.min(1, dt / 90);
-  for (const m of CO.espelhos.values()) { m.x += (m.alvoX - m.x) * k; m.y += (m.alvoY - m.y) * k; if (m.movRemoto) { m.mov = true; m.fase = (m.fase || 0) + dt / 90; } }
+  for (const m of CO.espelhos.values()) { suavAnda(m, dt, m.alvoX, m.alvoY); if (m.movRemoto) { m.mov = true; m.fase = (m.fase || 0) + dt / 90; } } // v409: suave
   // painel do andar com os números do anfitrião
   Object.assign(TD, { mapa: G.mapa, n: S.n || CO.andar, resta: S.r, onda: S.o });
   tdHud(true);
@@ -192,7 +247,8 @@ function coAplicaMundo(dt) {
 function coRecebeEu(de, d) {
   const r = CO.remotos.get(de); if (!r || !d) return;
   if (d.saiu || d.h === 0) { if (d.saiu) log(`👥 ${r.ent.d.nome} saiu do andar.`, 'l-sis'); coTiraRemoto(de); return; }
-  r.ent.alvo = { x: +d.x || r.ent.x, y: +d.y || r.ent.y }; r.ent.flip = !!d.f; r.ent.mov = !!d.m; r.ent.fase = +d.fa || 0; r.ent.coHp = d.h; r.t = Date.now();
+  r.ent.alvo = { x: +d.x || r.ent.x, y: +d.y || r.ent.y }; r.ent.flip = !!d.f;
+  if (Number.isFinite(d.t) && suavRecebe(r.canal || (r.canal = suavCanal()), d.t)) suavPoe(r.ent, r.canal, d.t, r.ent.alvo.x, r.ent.alvo.y); r.ent.mov = !!d.m; r.ent.fase = +d.fa || 0; r.ent.coHp = d.h; r.t = Date.now(); // v409
   r.ent.d.nome = r.ent.d.nome.replace(/ · \d+%$/, '') + (d.h < 100 ? ` · ${d.h}%` : '');
 }
 

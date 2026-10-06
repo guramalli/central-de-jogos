@@ -92,11 +92,13 @@ function cgPoeRemoto(id) {
 function cgTiraRemoto(id) { CG.remotos.delete(id); }
 function cgRecebeEu(de, mapa, d) {
   if (!d || !G.mapa || mapa !== G.mapa.id) return;
+  if (typeof CO !== 'undefined' && CO.jogando) return; // v409: na Torre em grupo quem mostra o colega é a Torre (antes aparecia DOBRADO)
   if (d.saiu || !cgPerto(de)) { cgTiraRemoto(de); return; } // (fora da faixa de nível: na caça cada um fica no seu jogo)
   const r = CG.remotos.get(de) || cgPoeRemoto(de); if (!r) return;
   const e = r.ent, nx = Number.isFinite(+d.x) ? +d.x : e.x, ny = Number.isFinite(+d.y) ? +d.y : e.y;
   if (!r.novo) { r.novo = true; e.x = nx; e.y = ny; }
-  e.alvo = { x: nx, y: ny }; e.flip = !!d.f; e.mov = !!d.m; e.fase = +d.fa || 0; e.vista = ['frente', 'costas', 'lado'][d.v] || 'frente'; e.tVista = G.agora; e.coHp = +d.h; r.t = Date.now();
+  e.alvo = { x: nx, y: ny }; e.flip = !!d.f;
+  if (typeof suavRecebe === 'function' && Number.isFinite(d.t) && suavRecebe(r.canal || (r.canal = suavCanal()), d.t)) suavPoe(e, r.canal, d.t, nx, ny); e.mov = !!d.m; e.fase = +d.fa || 0; e.vista = ['frente', 'costas', 'lado'][d.v] || 'frente'; e.tVista = G.agora; e.coHp = +d.h; r.t = Date.now(); // v409: movimento suave (torre_coop.js)
   const m = cgMembro(de); e.d.nome = `👥 ${m ? m.apelido : ''}` + (d.h < 100 ? ` · ${d.h}%` : '');
 }
 {
@@ -144,27 +146,30 @@ function cgPasso(dt) {
   }
   if (CG.nivelEnviado !== G.save.nivel && CG.sock.connected) { CG.nivelEnviado = G.save.nivel; CG.sock.emit('grupo-perfil', { perfil: cgPerfil() }); const eu = cgMembro(cgEu()); if (eu) eu.nivel = G.save.nivel; }
   cgDecideModo();
+  if (typeof CO !== 'undefined' && CO.jogando) { if (CG.remotos.size) CG.remotos.clear(); return; } // v409: na Torre em grupo, só a Torre manda a posição (sem tráfego dobrado)
   if (agora - CG.tEu > 110 && CG.sock.connected) {
     CG.tEu = agora; const st = stats();
-    CG.sock.emit('grupo-eu', { x: +p.x.toFixed(2), y: +p.y.toFixed(2), f: p.flip ? 1 : 0, m: p.mov ? 1 : 0, fa: +(p.fase || 0).toFixed(2), v: Math.max(0, ['frente', 'costas', 'lado'].indexOf(p.vista || 'frente')), h: Math.round(G.save.hp / st.maxHp * 100) });
+    CG.sock.emit('grupo-eu', { t: typeof suavT === 'function' ? suavT() : undefined, x: +p.x.toFixed(2), y: +p.y.toFixed(2), f: p.flip ? 1 : 0, m: p.mov ? 1 : 0, fa: +(p.fase || 0).toFixed(2), v: Math.max(0, ['frente', 'costas', 'lado'].indexOf(p.vista || 'frente')), h: Math.round(G.save.hp / st.maxHp * 100) });
   }
   const k = Math.min(1, dt / 90);
   for (const [id, r] of CG.remotos) {
     if (agora - r.t > 6000 || (cgMembro(id) || {}).mapa !== mapa) { CG.remotos.delete(id); continue; }
-    const e = r.ent; if (!Number.isFinite(e.x) || !Number.isFinite(e.y) || Math.hypot(e.alvo.x - e.x, e.alvo.y - e.y) > 6) { e.x = e.alvo.x; e.y = e.alvo.y; } else { e.x += (e.alvo.x - e.x) * k; e.y += (e.alvo.y - e.y) * k; }
+    const e = r.ent; if (typeof suavAnda === 'function') { suavAnda(e, dt, e.alvo.x, e.alvo.y); continue; } // v409: suave (torre_coop.js)
+    if (!Number.isFinite(e.x) || !Number.isFinite(e.y) || Math.hypot(e.alvo.x - e.x, e.alvo.y - e.y) > 6) { e.x = e.alvo.x; e.y = e.alvo.y; } else { e.x += (e.alvo.x - e.x) * k; e.y += (e.alvo.y - e.y) * k; }
   }
   if (CG.modo === 'lider' && agora - CG.tMundo > 120) {
     CG.tMundo = agora;
     const perto = [G.p, ...[...CG.remotos.values()].map(r => r.ent)];
     const lista = G.mons.filter(m => m.uid && perto.some(q => Math.abs(m.x - q.x) < 13 && Math.abs(m.y - q.y) < 10)).slice(0, 70)
       .map(m => [m.uid, m.tipo, +m.x.toFixed(1), +m.y.toFixed(1), Math.max(0, Math.round(m.hp)), m.flip ? 1 : 0, m.mov ? 1 : 0]);
-    CG.sock.emit('grupo-mundo', { m: lista, k: CG.mortos.splice(0) });
+    CG.sock.emit('grupo-mundo', { t: typeof suavT === 'function' ? suavT() : undefined, m: lista, k: CG.mortos.splice(0) });
   } else if (CG.modo === 'convidado') cgAplicaMundo(dt);
 }
 // convidado: a caça é o espelho do líder
 function cgAplicaMundo(dt) {
   G.respawns = [];
   const S = CG.snap; if (!S) return; CG.snap = null;
+  const comHora = typeof suavRecebe === 'function' && suavRecebe(CG.canalMundo || (CG.canalMundo = suavCanal()), S.t); // v409
   const vistos = new Set();
   for (const uid of S.k || []) { // caíram lá no líder
     const m = CG.espelhos.get(uid); if (!m) continue; CG.espelhos.delete(uid);
@@ -180,6 +185,7 @@ function cgAplicaMundo(dt) {
       m.x = x; m.y = y; m.espelho = true; m.cgUid = uid; CG.espelhos.set(uid, m); G.mons.push(m);
     }
     m.alvoX = x; m.alvoY = y; m.hp = hp; m.flip = !!flip; m.movRemoto = !!mov;
+    if (comHora) suavPoe(m, CG.canalMundo, S.t, x, y);
   }
   for (const [uid, m] of CG.espelhos) if (!vistos.has(uid)) { CG.espelhos.delete(uid); G.mons = G.mons.filter(x => x !== m); } // longe de todos: some (continua vivo lá)
   G.mons = G.mons.filter(m => m.espelho || m.d.treino); // nada de adversário "só seu" no meio do grupo
@@ -188,7 +194,7 @@ function cgAplicaMundo(dt) {
   const _atuGr2 = atualiza;
   atualiza = function (dt) {
     const r = _atuGr2.apply(this, arguments);
-    try { if (CG.modo === 'convidado') { const k = Math.min(1, (dt || 16) / 90); for (const m of CG.espelhos.values()) { if (m.alvoX == null) continue; m.x += (m.alvoX - m.x) * k; m.y += (m.alvoY - m.y) * k; if (m.movRemoto) { m.mov = true; m.fase = (m.fase || 0) + (dt || 16) / 90; } } } } catch (e) { }
+    try { if (CG.modo === 'convidado') { const k = Math.min(1, (dt || 16) / 90); for (const m of CG.espelhos.values()) { if (m.alvoX == null) continue; if (typeof suavAnda === 'function') suavAnda(m, dt || 16, m.alvoX, m.alvoY); else { m.x += (m.alvoX - m.x) * k; m.y += (m.alvoY - m.y) * k; } if (m.movRemoto) { m.mov = true; m.fase = (m.fase || 0) + (dt || 16) / 90; } } } } catch (e) { }
     return r;
   };
 }

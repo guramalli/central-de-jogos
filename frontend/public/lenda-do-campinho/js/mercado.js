@@ -34,9 +34,12 @@ const mktIcone = id => { try { return el('span', { class: 'mkt-ic' }, iconeClone
 function mktRecebe(it) {
   const s = G.save, id = it.itemId, q = it.qtd || 1, r = it.refino || 0;
   if (!ITENS[id]) return;
-  if (!r) { recebeItem(id, q); return; }
-  if (s.mochila.length < capMochila()) s.mochila.push({ id, q: 1, r });
-  else if (!(typeof guardaNoArmazem === 'function' && (armazem(), guardaNoArmazem(id, 1, r)))) (s.pendentes = s.pendentes || []).push([id, 1]);
+  const o0 = RECEBE_ORIGEM; RECEBE_ORIGEM = 'Feira dos Jogadores'; // (bug 06/10/2026: o 📜 Histórico do armazém diz de onde veio)
+  try {
+    if (!r) { recebeItem(id, q); return; }
+    if (s.mochila.length < capMochila() && pesoMochila(s) + pesoItem(id) <= capPeso(s)) s.mochila.unshift(poeNaBolsa({ id, q: 1, r }, s));
+    else { const pesado = s.mochila.length < capMochila(), passou = guardaArmazemSempre(id, 1, r); armHistorico(id, 1, r); avisaArmazem([[id, 1, r, passou]], pesado ? 'peso' : 'espaco'); } // (antes: armazém cheio → "pendente" sem o refino e sem aparecer em lugar nenhum)
+  } finally { RECEBE_ORIGEM = o0; }
   G.uiSujo = true;
 }
 // tira da mochila exatamente o que vai ser anunciado (o refinado: aquela peça)

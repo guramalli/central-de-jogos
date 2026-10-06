@@ -22,7 +22,8 @@ function armazem() {
 }
 function guardaNoArmazem(id, q = 1, r = 0) { // true se coube
   const a = G.save.armazem || (G.save.armazem = []);
-  if (!r && empilha(id)) { const ex = a.find(e => e.id === id && !e.r); if (ex) { ex.q += q; return true; } }
+  // (bug 06/10/2026: a pilha SOLTA primeiro — somar numa pilha que está dentro de uma bolsa do armazém escondia o prêmio)
+  if (!r && empilha(id)) { const ex = a.find(e => e.id === id && !e.r && e.c == null) || a.find(e => e.id === id && !e.r); if (ex) { ex.q += q; return true; } }
   if (noTopoArm(a) >= armazemMax()) return false;
   if (!r && empilha(id)) a.push({ id, q }); else for (let i = 0; i < q; i++) a.push(r ? { id, q: 1, r } : { id, q: 1 });
   return true;

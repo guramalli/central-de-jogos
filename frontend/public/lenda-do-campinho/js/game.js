@@ -65,29 +65,57 @@ function lerSave() {
     return s && s.v ? s : null;
   } catch { return null; }
 }
-// prêmio (missão, álbum, baú, desafio...): nunca se perde. Mochila → armazém → guardado até abrir espaço
+// prêmio (missão, álbum, baú, desafio, drop de chefão...): nunca se perde. Mochila (e as bolsas dela) → ARMAZÉM, sempre com aviso.
+// Bug 06/10/2026 (dono, nível 633, Torre andar 50 em grupo): o drop dizia "Ganhou: 2x Baú da Torre, 1x Caneleira de Gelo
+// Eterno", mas eles foram para o armazém (mochila sem espaço ou PESADA DEMAIS — a regra estava certa) e o aviso do armazém
+// se perdia no meio de vários "Sua mochila está cheia!" (e dizia "Mochila cheia" até quando o motivo era o peso). Agora:
+// - um aviso só, com o MOTIVO (espaço ou peso), no registro E na faixa do topo; no drop, a linha "Ganhou" marca "(→ 📦 armazém)";
+// - armazém cheio também recebe (passa do limite): nada mais fica "guardado para depois" num lugar que o jogador não vê;
+// - 📜 Histórico do armazém (s.armHist, últimos 30): o que entrou sozinho, quando e de onde (armazem_aviso.js mostra).
+let RECEBE_QUIETO = false, RECEBE_LOTE = null, RECEBE_ORIGEM = '';
+function armHistorico(id, q, r, origem) {
+  const s = G.save; if (!s || !ITENS[id]) return;
+  const h = s.armHist = Array.isArray(s.armHist) ? s.armHist : [];
+  h.unshift({ t: Date.now(), id, q, r: r || 0, de: String(origem || RECEBE_ORIGEM || 'prêmio').slice(0, 90) }); if (h.length > 30) h.length = 30;
+}
+// guarda no armazém mesmo cheio (devolve true se passou do limite)
+function guardaArmazemSempre(id, q = 1, r = 0) {
+  if (typeof guardaNoArmazem === 'function') { if (typeof armazem === 'function') armazem(); if (guardaNoArmazem(id, q, r)) return false; }
+  const a = G.save.armazem || (G.save.armazem = []);
+  if (!r && empilha(id)) a.push({ id, q }); else for (let i = 0; i < q; i++) a.push(r ? { id, q: 1, r } : { id, q: 1 });
+  return true;
+}
+// lista: [[id, q, r, passouDoLimite]]; motivo: 'peso' | 'espaco'. Dentro de um drop (RECEBE_LOTE) junta tudo numa linha só.
+function avisaArmazem(lista, motivo) {
+  if (RECEBE_LOTE) { RECEBE_LOTE.push(...lista); if (motivo === 'peso') RECEBE_LOTE.motivo = 'peso'; return; }
+  if (!lista || !lista.length) return;
+  const txt = lista.map(([id, q, r]) => `${q}x ${ITENS[id].nome}${r ? ' +' + r : ''}`).join(', ');
+  const porque = motivo === 'peso' ? `⚖️ Mochila pesada demais (carga ${fmt(Math.round(pesoMochila()))} de ${fmt(capPeso())})` : '🎒 Mochila cheia';
+  log(`${porque} — guardei no ARMAZÉM: ${txt}. Pegue em qualquer baú de armazém (lá, o 📜 Histórico mostra tudo o que entrou sozinho).${lista.some(x => x[3]) ? ' O armazém passou do limite: tire umas coisas de lá.' : ''}`, 'l-dano');
+  if (typeof banner === 'function') banner(motivo === 'peso' ? '⚖️ Mochila pesada: guardei no armazém' : '🎒 Mochila cheia: guardei no armazém', txt.length > 90 ? txt.slice(0, 88) + '…' : txt);
+}
 function recebeItem(id, n = 1) {
   const s = G.save; if (!ITENS[id]) return null;
-  const c0 = contaItem(id);
-  if (addItem(id, n)) return 'mochila';
+  const c0 = contaItem(id), pesado = pesoItem(id) > 0 && pesoMochila(s) + pesoItem(id) * n > capPeso(s);
+  let ok; RECEBE_QUIETO = true; try { ok = addItem(id, n); } finally { RECEBE_QUIETO = false; } // (sem o "Sua mochila está cheia!" repetido)
+  if (ok) return 'mochila';
   const falta = n - Math.max(0, contaItem(id) - c0); if (falta <= 0) return 'mochila';
-  if (typeof guardaNoArmazem === 'function' && (armazem(), guardaNoArmazem(id, falta))) { log(`🎒 Mochila cheia: ${falta}x ${ITENS[id].nome} ${falta > 1 ? 'foram guardados' : 'foi guardado'} no seu ARMAZÉM.`, 'l-loot'); return 'armazem'; }
-  (s.pendentes = s.pendentes || []).push([id, falta]);
-  log(`🎒 Mochila e armazém cheios: ${falta}x ${ITENS[id].nome} fica guardado para você — libere espaço e ele chega sozinho.`, 'l-dano'); return 'pendente';
+  const passou = guardaArmazemSempre(id, falta);
+  armHistorico(id, falta, 0); avisaArmazem([[id, falta, 0, passou]], pesado ? 'peso' : 'espaco');
+  G.uiSujo = true; return 'armazem';
 }
-// prêmios que não couberam em lugar nenhum: chegam quando abrir espaço
+// prêmios que ficaram "guardados para depois" (saves antigos, Feira): entram na mochila; o que não couber vai para o armazém
 function entregaPendentes() {
   const s = G.save; if (!s || !Array.isArray(s.pendentes) || !s.pendentes.length) return;
-  const ficam = [];
-  for (const [id, n] of s.pendentes) {
-    if (!ITENS[id]) continue;
-    const cabe = s.mochila.length < capMochila() || (empilha(id) && s.mochila.some(i => i.id === id));
-    if (!cabe) { ficam.push([id, n]); continue; }
-    const c0 = contaItem(id); addItem(id, n); const veio = contaItem(id) - c0;
+  const lista = s.pendentes; s.pendentes = []; const arm = []; let pesado = false;
+  for (const [id, n] of lista) {
+    if (!ITENS[id] || !(n > 0)) continue;
+    const c0 = contaItem(id); RECEBE_QUIETO = true; try { addItem(id, n); } finally { RECEBE_QUIETO = false; }
+    const veio = Math.max(0, contaItem(id) - c0);
     if (veio > 0) log(`📦 Chegou o prêmio que estava guardado: ${veio}x ${ITENS[id].nome}.`, 'l-loot');
-    if (veio < n) ficam.push([id, n - veio]);
+    if (veio < n) { const q = n - veio; if (pesoMochila(s) + pesoItem(id) * q > capPeso(s)) pesado = true; arm.push([id, q, 0, guardaArmazemSempre(id, q)]); armHistorico(id, q, 0, 'prêmio que estava guardado para você'); }
   }
-  s.pendentes = ficam;
+  if (arm.length) avisaArmazem(arm, pesado ? 'peso' : 'espaco');
 }
 function salvar() {
   const s = G.save; if (!s || !G.mapa) return;
@@ -550,18 +578,25 @@ function matar(m) {
   if (ouro > 0) { s.ouro += ouro; ganhos.push(`${ouro} tostões`); caidos.push(['tostao', ouro, 'comum']); }
   let melhor = null; const ordemR = ['comum', 'incomum', 'raro', 'epico', 'lendario'];
   const mDrop = typeof multDrop === 'function' ? multDrop() : 1; // v372: 🐱 Sortudo, o mascote da sorte (mascotes.js)
+  // bug 06/10/2026 (Baú da Torre foi para o armazém sem o drop dizer): o que foi para o armazém aparece marcado na linha
+  // "Ganhou" e num aviso só (registro + faixa do topo) logo depois dela; o 📜 Histórico do armazém guarda de onde veio
+  const loteAnt = RECEBE_LOTE, origAnt = RECEBE_ORIGEM, lote = d.chefe && !loteAnt ? [] : null; // (já há um lote aberto — armazem_aviso.js junta a vitória inteira: ele avisa no fim)
+  if (d.chefe) { if (lote) RECEBE_LOTE = lote; RECEBE_ORIGEM = `drop de ${d.nome}${G.mapa && G.mapa.torre ? ` (Torre Infinita, andar ${G.mapa.torre})` : G.mapa && G.mapa.nome ? ` (${G.mapa.nome})` : ''}`; }
+  try {
   for (const [id, ch, mn, mx] of d.loot) { const daMissao = itemPedidoEmMissao(id); if (Math.random() < ch * mDrop * (daMissao ? 1 : pen.drop)) { // item que uma missão (aceita ou disponível) ainda pede: chance cheia, mesmo em adversário fraco
-    const q = rndi(mn, mx); if (d.chefe ? !recebeItem(id, q) : !addItem(id, q)) continue; // v359: prêmio de chefão nunca some (mochila cheia → armazém)
+    const q = rndi(mn, mx); const onde = d.chefe ? recebeItem(id, q) : (addItem(id, q) ? 'mochila' : null); if (!onde) continue; // v359: prêmio de chefão nunca some (mochila cheia → armazém)
     if (daMissao && !itemPedidoEmMissao(id)) log(`✔ Você já juntou todos os ${ITENS[id].nome} que a missão pede!${pen.drop < 1 ? ' (Daqui pra frente eles voltam a cair pouco de adversários fracos.)' : ''}`, 'l-xp');
-    const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}`); caidos.push([id, q, rar]);
+    const rar = typeof raridadeItem === 'function' ? raridadeItem(id) : raridadeDe(id, ch, d.chefe); ganhos.push(`${q}x ${ITENS[id].nome}${onde === 'armazem' ? ' (→ 📦 armazém)' : ''}`); caidos.push([id, q, rar]);
     if (!melhor || ordemR.indexOf(rar) > ordemR.indexOf(melhor.rar)) melhor = { id, rar };
     if (ordemR.indexOf(rar) >= 2) log(`★ Item ${RARIDADE[rar].nome.toUpperCase()}: ${ITENS[id].nome}!`, RARIDADE[rar].log);
   } }
+  } finally { RECEBE_LOTE = loteAnt; RECEBE_ORIGEM = origAnt; }
   caidos.forEach(([id, q, rar], i) => soltaDrop(m, id, q, rar, i, caidos.length));
   if (melhor && ordemR.indexOf(melhor.rar) >= 2) { som('raro'); if (ordemR.indexOf(melhor.rar) >= 3) { const mb = melhor; setTimeout(() => banner(`ITEM ${RARIDADE[mb.rar].nome.toUpperCase()}!`, ITENS[mb.id].nome), 1800); } }
   if (d.fig && Math.random() < (d.chefe ? 0.5 : 1 / 110) * pen.drop) ganhaFigurinha(d.fig);
   const aviso = ['', ' (fraco para o seu nível: XP −40%)', ' (bem mais fraco que você: XP −75%)', ' (muito mais fraco: quase nada de XP)', ' (fraco demais: sem XP)'][pen.faixa];
   log(`Você passou por ${d.nome}.${ganhos.length ? ' Ganhou: ' + ganhos.join(', ') + '.' : ''}${aviso}`, pen.faixa >= 3 ? 'l-sis' : 'l-loot');
+  if (lote && lote.length) avisaArmazem(lote, lote.motivo || 'espaco'); // "🎒 Mochila cheia — guardei no ARMAZÉM: 2x Baú da Torre, ..."
   if (pen.faixa >= 2) dica('nivel_baixo', `Adversários muito mais fracos que você (nível em CINZA) dão pouca ou nenhuma XP (tostões e itens caem normalmente, mas os fracos dão pouco). Para evoluir, procure rivais do seu nível (branco) ou mais fortes (laranja/vermelho)!`);
   for (const q of MISSOES) { const e = s.quests[q.id]; if (e && e.s === 'ativa' && q.req.kill === m.tipo) { e.p = (e.p || 0) + 1; if (e.p === q.req.n) { log(`Missão "${q.titulo}" pronta! Volte para falar com ${NPCS[q.npc].nome}.`, 'l-xp'); banner('Missão pronta!', `Fale com ${NPCS[q.npc].nome}`); } } }
   if (s.tarefa && s.tarefa.m === m.tipo && s.tarefa.p < s.tarefa.n) { s.tarefa.p++; if (s.tarefa.p === s.tarefa.n) log('Desafio completo! Resgate a recompensa em qualquer Quadro de Desafios.', 'l-xp'); }
@@ -738,15 +773,15 @@ function voltaParaMochila(id, r) { const s = G.save; const ex = !r && empilha(id
 function addItem(id, q = 1) {
   const s = G.save; if (!ITENS[id]) return false;
   if (ITENS[id].tipo === 'chave' && contaItem(id)) return true; // item único (chave/troféu): já tem, não ocupa outro espaço
-  const p = pesoItem(id) * q; if (p > 0 && pesoMochila(s) + p > capPeso(s)) { avisaPeso(); return false; } // v361: o limite é a carga
+  const p = pesoItem(id) * q; if (p > 0 && pesoMochila(s) + p > capPeso(s)) { if (!RECEBE_QUIETO) avisaPeso(); return false; } // v361: o limite é a carga (prêmio: recebeItem avisa)
   if (empilha(id)) { // v396: completa as pilhas que já existem (até PILHA_MAX) e abre pilhas novas; confere o espaço ANTES de mexer
     const pilhas = s.mochila.filter(i => i.id === id && !i.r && i.q < PILHA_MAX), cabe = pilhas.reduce((a, i) => a + PILHA_MAX - i.q, 0);
     const novas = Math.ceil(Math.max(0, q - cabe) / PILHA_MAX);
-    if (novas && s.mochila.length + novas > capMochila()) { log('Sua mochila está cheia! Venda ou jogue fora alguma coisa (ou ponha mais bolsas nela).', 'l-dano'); return false; }
+    if (novas && s.mochila.length + novas > capMochila()) { if (!RECEBE_QUIETO) log('Sua mochila está cheia! Venda ou jogue fora alguma coisa (ou ponha mais bolsas nela).', 'l-dano'); return false; }
     let resto = q; for (const ex of pilhas) { if (resto <= 0) break; const p = Math.min(resto, PILHA_MAX - ex.q); ex.q += p; resto -= p; }
     while (resto > 0) { const p = Math.min(resto, PILHA_MAX); s.mochila.unshift(poeNaBolsa({ id, q: p }, s)); resto -= p; } // (v399: item novo na primeira posição)
   } else {
-    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.unshift(poeNaBolsa({ id, q: 1 }, s)); }
+    for (let i = 0; i < q; i++) { if (s.mochila.length >= capMochila()) { if (!RECEBE_QUIETO) log('Sua mochila está cheia!', 'l-dano'); return false; } s.mochila.unshift(poeNaBolsa({ id, q: 1 }, s)); }
   }
   if ((ITENS[id].tipo === 'consumivel' || ITENS[id].tipo === 'comida') && id !== 'pacotinho' && !s.hotbar.some(h => h && h.t === 'i' && h.id === id)) poeNaHotbar('i', id, true);
   if (ITENS[id].tipo === 'comida') dica('comida', `Você ganhou comida: ${ITENS[id].nome}! Comer dá um BÔNUS por alguns minutos (até 3 comidas diferentes ao mesmo tempo: os bônus somam). Use pela barra de atalhos ou pela mochila.`, '#hotbar');

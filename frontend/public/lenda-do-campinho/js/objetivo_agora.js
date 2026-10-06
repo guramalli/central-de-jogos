@@ -44,3 +44,37 @@ function objetivoTexto() {
   #rastreador .obj-agora.pronta { border-color: #7dff9a; box-shadow: 0 0 0 2px rgba(125,255,154,.35); }`;
   document.head.append(css);
 }
+/* v410 (dono: "não achei onde fica o Titã do Trovão"): tocar no cartão de uma missão de VENCER (ou de juntar item / falar com
+   alguém) no rastreador abre ali mesmo o bloco "📍 Onde achar e como chegar" (como_chegar.js); tocar de novo fecha.
+   Missão pronta continua como antes (a seta leva até quem entrega). A escolha fica aberta enquanto a missão estiver ativa. */
+const OA_CC_ABERTO = new Set();
+{
+  const _rastOaCC = atualizaRastreador;
+  atualizaRastreador = function () {
+    const r = _rastOaCC.apply(this, arguments);
+    try {
+      const R = $('#rastreador'); if (!R || !G.save || typeof blocoComoChegar !== 'function') return r;
+      for (const card of [...R.querySelectorAll(':scope > .rast-q')]) {
+        if (card.classList.contains('pronta')) continue;
+        const tit = (card.querySelector('b') || {}).textContent; const q = tit && MISSOES.find(x => x.titulo === tit && statusMissao(x) === 'ativa'); if (!q) continue;
+        const rq = q.req || {}; if (!(rq.kill || rq.item || rq.itens || rq.fala)) continue;
+        // o cartão do ui.js leva a seta até quem deu a missão; aqui o toque mostra onde achar (cópia sem o clique antigo)
+        const novo = card.cloneNode(true); card.replaceWith(novo);
+        novo.title = 'Toque para ver onde achar e como chegar';
+        const onde = novo.querySelector('.rast-onde'); if (onde) onde.textContent = onde.textContent.replace(/ · clique para ir$/, '') + (OA_CC_ABERTO.has(q.id) ? ' · toque para fechar' : ' · toque: onde achar e como chegar');
+        if (OA_CC_ABERTO.has(q.id)) { const b = blocoComoChegar(q, false); if (b) { b.classList.add('oa-cc'); novo.append(b); } }
+        novo.addEventListener('click', ev => {
+          ev.stopPropagation();
+          if (OA_CC_ABERTO.has(q.id)) OA_CC_ABERTO.delete(q.id); else { OA_CC_ABERTO.clear(); OA_CC_ABERTO.add(q.id); }
+          G.uiSujo = true;
+        });
+      }
+      for (const id of [...OA_CC_ABERTO]) { const e = G.save.quests[id]; if (!e || e.s !== 'ativa') OA_CC_ABERTO.delete(id); }
+    } catch (e) { console.warn('rastreador como chegar', e); }
+    return r;
+  };
+  const css = document.createElement('style');
+  css.textContent = `#rastreador .rast-q .como-chegar.oa-cc { font-size: 12px; margin: 4px 0 0; padding: 4px 6px; background: rgba(255,255,255,.12); color: inherit; max-width: 330px; }
+  #rastreador .rast-q .como-chegar.oa-cc > b { font-size: 12.5px; }`;
+  document.head.append(css);
+}
