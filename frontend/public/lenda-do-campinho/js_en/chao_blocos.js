@@ -166,7 +166,7 @@ const CHAO_BLOCOS = (() => {
       const vis = this.soPrevia ? [] : this.blocosEm(sx, sy, sw, sh);
       for (const [i, j] of vis) { const g = GUARDADOS.get(this.chave(i, j)); if (g) g.q = quadro; }
       const falta = vis.filter(([i, j]) => !this.fresco(i, j));
-      if (falta.length) trabalha(this, falta.slice(), sx + sw / 2, sy + sh / 2, ORC_TELA);
+      if (falta.length) trabalha(this, falta.slice(), sx + sw / 2, sy + sh / 2, Math.max(ORC_TELA, +window.CB_ORC_ENTRADA || 0)); // (v410.9: logo depois de entrar no mapa, mais tempo por quadro — ver desempenho_v408.js pintaEntrada)
       const semBloco = this.soPrevia || vis.some(([i, j]) => !GUARDADOS.has(this.chave(i, j)));
       if (semBloco) { // o fundo: a prévia (ou as cores dos quadradinhos)
         const p = this.prev || null, fx = Math.max(0, sx), fy = Math.max(0, sy), fw = Math.min(this.width - fx, sw), fh = Math.min(this.height - fy, sh);

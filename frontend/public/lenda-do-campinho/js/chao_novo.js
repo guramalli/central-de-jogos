@@ -166,7 +166,7 @@ const CHAO2 = {
         const R = regiao(cam, inf.x0 - mg, ry - mg, inf.x0 + inf.w + mg, ry + inf.h + mg, st), F = telaF(fw, fh), f = F.getContext('2d');
         f.save(); f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = 'source-over'; f.clearRect(0, 0, fw, fh);
         f.setTransform(e, 0, 0, e, -inf.x0 * e, -ry * e); f.imageSmoothingEnabled = true; f.imageSmoothingQuality = 'high'; f.drawImage(R.c, R.x, R.y, R.w, R.h);
-        f.globalCompositeOperation = 'source-in'; pinta(f, ry, inf.h); f.restore();
+        f.globalCompositeOperation = 'source-in'; pinta(f, ry, inf.h, inf.x0 - mg, inf.w + mg * 2); f.restore();
         ctx.setTransform(1, 0, 0, 1, 0, 0); if (modo) ctx.globalCompositeOperation = modo; ctx.drawImage(F, 0, 0, fw, fh, 0, 0, fw, fh);
       });
     }
@@ -181,7 +181,9 @@ const CHAO2 = {
         ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(F, 0, 0, fw, fh, 0, 0, fw, fh);
       });
     }
-    const cor = c0 => (q, y0, fh) => { q.fillStyle = c0; q.fillRect(0, y0, W, fh); }, tex = t => { const p = padrao2(t); return (q, y0, fh) => { q.fillStyle = p; q.fillRect(0, y0, W, fh); }; };
+    // v410.9 (desempenho): pinta só a largura do bloco (era a do mapa inteiro: um fillRect de ~50 ms andando no rio/cidade).
+    // O resultado é o mesmo: a textura continua presa ao mapa (a posição vem da transformação), só não pinta o que fica fora.
+    const cor = c0 => (q, y0, fh, x0 = 0, w = W) => { q.fillStyle = c0; q.fillRect(x0, y0, w, fh); }, tex = t => { const p = padrao2(t); return (q, y0, fh, x0 = 0, w = W) => { q.fillStyle = p; q.fillRect(x0, y0, w, fh); }; };
     // forma "construída" ou "alta": sombra, borda escura (e parede de penhasco), textura, filete de luz
     function* desenhaPiso(camada, pintaDentro, alto, flutua) {
       const borda = yield* camada(v => ss(0.3, 0.4, v)); const dentro = yield* camada(v => ss(0.47, 0.53, v)); const filete = yield* camada(v => Math.max(0, ss(0.47, 0.53, v) - ss(0.6, 0.72, v)));

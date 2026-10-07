@@ -14,7 +14,7 @@
       economia de dados, continuam sob demanda).
    Prefixo dsp. Carregar NO FIM (depois de vila_beiramar.js, cidades_onda2.js, chao_blocos.js, raiox_codigo.js).
    ============================================================ */
-const DSP = { gasto: 0, noDesenho: false, ult: new Map(), entrou: null, ultQuadro: 0, ORC_BONECO: 4, ORC_ENTRADA: 100 };
+const DSP = { gasto: 0, noDesenho: false, ult: new Map(), entrou: null, ultQuadro: 0, ORC_BONECO: 4, ORC_ENTRADA: 100, ORC_ENTRADA_Q: 25 }; // (v410.9: ORC_ENTRADA_Q = ms por quadro para o chão da tela logo depois de entrar)
 DSP.economia = (typeof CEL !== 'undefined' && CEL) || !!(navigator.connection && navigator.connection.saveData);
 {
   const vazio = { c: mkCanvas(1, 1) }; // (nada por um instante, quando não existe pose anterior)
@@ -61,16 +61,17 @@ DSP.economia = (typeof CEL !== 'undefined' && CEL) || !!(navigator.connection &&
     if (typeof CHAO_BLOCOS === 'undefined' || !CV || !G.cam || !G.zoom) return;
     const S = m._chao; if (!S || !(S instanceof CHAO_BLOCOS.ChaoBlocos) || S.soPrevia || !S.ops || !S.ops.length) return;
     if (window.CHAO2_FAZENDO && CHAO2_FAZENDO.has(m)) return; // (o desenho do chão ainda está sendo preparado)
-    DSP.entrou = null;
-    const B = CHAO_BLOCOS.B, vw = CV.width / G.zoom, vh = CV.height / G.zoom;
-    const l = S.blocosEm(G.cam.x - B * 0.15, G.cam.y - B * 0.15, vw + B * 0.3, vh + B * 0.3).filter(([i, j]) => !S.fresco(i, j));
-    const cx = G.cam.x + vw / 2, cy = G.cam.y + vh / 2;
-    l.sort((a, b) => Math.hypot((a[0] + 0.5) * B - cx, (a[1] + 0.5) * B - cy) - Math.hypot((b[0] + 0.5) * B - cx, (b[1] + 0.5) * B - cy));
-    const t0 = performance.now();
-    for (const [i, j] of l) {
-      if (performance.now() - t0 > DSP.ORC_ENTRADA) break; // (o resto: aos poucos, como antes)
-      try { const g = S.fazBloco(i, j, { ms: 1e9 }); while (!g.next().done); } catch (er) { console.warn('floor: entry', er); break; }
-    }
+    // v410.9 (desempenho, rastro da viagem 07/10): antes pintava os blocos da tela de uma vez (até 100 ms + o bloco que
+    // estivesse no meio, sem parar = quadros de 150–400 ms ao entrar no Multiverso/Jurássico/Rio). Agora o chão da tela
+    // ganha até 25 ms por quadro (o bloco pode parar no meio e continuar no quadro seguinte) até a tela ficar pronta
+    // (no máximo 2 s; enquanto isso aparece a prévia do chão, como sempre apareceu fora da tela).
+    const vw = CV.width / G.zoom, vh = CV.height / G.zoom;
+    if (!e.t2) e.t2 = performance.now();
+    if (S.prontoNaTela(G.cam.x, G.cam.y, vw, vh) || performance.now() - e.t2 > 2000) { DSP.entrou = null; window.CB_ORC_ENTRADA = 0; return; }
+    // (a placa de vídeo pode ficar para trás: mandar os comandos é rápido, pintar não. Se o quadro anterior demorou,
+    //  dá 2 quadros de folga com o orçamento normal — senão a página fica parada esperando a placa, como no rio)
+    if (DSP.ivAnt > 30) DSP.folgaGpu = 2;
+    window.CB_ORC_ENTRADA = DSP.folgaGpu > 0 ? (DSP.folgaGpu--, 0) : DSP.ORC_ENTRADA_Q;
   }
 
   /* ---------- folhas dos bonecos: no computador, todas em segundo plano; as do mapa novo primeiro ---------- */
@@ -105,7 +106,8 @@ DSP.economia = (typeof CEL !== 'undefined' && CEL) || !!(navigator.connection &&
   /* ---------- no laço: entrada do mapa + folgas ---------- */
   const _loopDsp = loop;
   loop = function () {
-    try { if (DSP.entrou) pintaEntrada(); } catch (e) { DSP.entrou = null; }
+    { const ag = performance.now(); DSP.ivAnt = DSP.iniQ ? ag - DSP.iniQ : 0; DSP.iniQ = ag; } // (intervalo do quadro anterior: ver pintaEntrada)
+    try { if (DSP.entrou) pintaEntrada(); else if (window.CB_ORC_ENTRADA) window.CB_ORC_ENTRADA = 0; } catch (e) { DSP.entrou = null; window.CB_ORC_ENTRADA = 0; }
     const a = performance.now();
     const r = _loopDsp.apply(this, arguments);
     const d = performance.now() - a; DSP.ultQuadro = d;
