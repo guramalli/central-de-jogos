@@ -446,7 +446,10 @@ function rotulaCelula(f, idx) {
   return f.rot[idx] = { c, d, rot, lum, ref };
 }
 function tingeCelula(base, cores) {
-  const { c, d, rot, lum, ref } = base; const out = mkCanvas(FOLHA_CW, FOLHA_CH), x = out.getContext('2d');
+  // v410.2 (desempenho): a tela de trabalho é "willReadFrequently" (fica na memória comum, não na placa de vídeo): os embrulhos
+  // (tecidos, estampa, pé, cabelo cortado, variedade) LEEM os pixels dela de novo — no PC com placa de vídeo, cada leitura
+  // esperava a placa (vários ms por boneco novo: as travadinhas quando muitos bonecos são montados de uma vez)
+  const { c, d, rot, lum, ref } = base; const out = mkCanvas(FOLHA_CW, FOLHA_CH), x = out.getContext('2d', { willReadFrequently: true });
   const img = x.createImageData(FOLHA_CW, FOLHA_CH), o = img.data; o.set(d);
   const alvo = cores.map(cc => cc ? bRgb(cc) : null);
   for (let i = 0; i < rot.length; i++) {

@@ -12,10 +12,14 @@
 function log(msg, cls = 'l-info') {
   const L = $('#log'); if (!L) return;
   const d = new Date(), h = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-  const fundo = L.scrollHeight - L.scrollTop - L.clientHeight < 40;
+  // v410.2 (desempenho, dono: "pequenas travadas que atrapalham" nas vitórias): antes cada linha lia o tamanho do registro
+  // ANTES e DEPOIS de escrever — cada leitura obrigava o navegador a refazer o layout da página inteira no meio do quadro
+  // (uma vitória escreve 2–7 linhas). Agora "está no fim?" é anotado quando a pessoa rola (evento scroll) e a descida até
+  // o fim acontece UMA vez, no próximo quadro. O que aparece é o mesmo.
+  if (!L._lgOk) { L._lgOk = true; L._lgFim = true; L.addEventListener('scroll', () => { L._lgFim = L.scrollHeight - L.scrollTop - L.clientHeight < 40; }, { passive: true }); }
   L.append(el('div', { class: cls, title: G.save ? `Dia ${G.save.dia || 1} do jogo` : '' }, h + ' ' + msg));
   while (L.children.length > 400) L.firstChild.remove();
-  if (fundo || !document.body.classList.contains('log-grande')) L.scrollTop = L.scrollHeight;
+  if (!L._lgRola) { L._lgRola = true; requestAnimationFrame(() => { L._lgRola = false; if (L._lgFim || !document.body.classList.contains('log-grande')) { L.scrollTop = L.scrollHeight; L._lgFim = true; } }); }
 }
 let bannerT;
 function banner(t1, t2 = '') {
@@ -247,7 +251,24 @@ function atualizaPaineis() {
   atualizaRastreador(); atualizaBatalha(); atualizaBarras();
 }
 function barraI(p) { const i = el('i'); i.style.width = clamp(p * 100, 0, 100) + '%'; return i; }
-function iconeClone(c) { const n = mkCanvas(c.width, c.height); n.getContext('2d').drawImage(c, 0, 0); return n; }
+// v410.2 (desempenho): cada redesenho dos painéis (barra de atalhos, mochila, equipamento) criava ~60 telinhas novas e
+// jogava fora as de antes — memória que o navegador precisa limpar depois (travadinha). Agora, SÓ durante o redesenho dos
+// painéis (ICONE_POOL.ger > 0, ligado em desempenho_v410.js), a cópia do redesenho anterior que saiu da tela é
+// reaproveitada para o MESMO ícone: limpa os enfeites que alguém pôs nela e redesenha igual. Fora dele: como sempre.
+const ICONE_POOL = { m: new WeakMap(), ger: 0, on: false };
+function iconeClone(c) {
+  if (!ICONE_POOL.on || !c) { const n = mkCanvas(c.width, c.height); n.getContext('2d').drawImage(c, 0, 0); return n; }
+  let l = ICONE_POOL.m.get(c); if (!l) ICONE_POOL.m.set(c, l = []);
+  let n = null;
+  for (let i = 0; i < l.length; i++) if (!l[i].isConnected && l[i]._icGer !== ICONE_POOL.ger) { n = l[i]; break; }
+  if (n) {
+    for (const a of [...n.attributes]) if (a.name !== 'width' && a.name !== 'height') n.removeAttribute(a.name);
+    if (n.width !== c.width || n.height !== c.height) { n.width = c.width; n.height = c.height; } else n.getContext('2d').clearRect(0, 0, n.width, n.height);
+  } else { n = mkCanvas(c.width, c.height); if (l.length < 24) l.push(n); }
+  n._icGer = ICONE_POOL.ger; // (pedido 2x no mesmo redesenho: cada um ganha a sua)
+  n.getContext('2d').drawImage(c, 0, 0);
+  return n;
+}
 
 function atualizaBatalha() {
   const L = $('#listaBatalha'); if (!L || !G.p) return;

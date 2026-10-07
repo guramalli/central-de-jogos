@@ -1,0 +1,101 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   🏎️ DESEMPENHO v410.2 (dono, vídeo de 06/10: "pequenas travadas que atrapalham a jogabilidade" — em rajadas nas
+   vitórias, no chefão e na subida de nível). Medido numa caçada no CT (nível 50, 13 missões ativas): cada vitória
+   escrevia 2–7 linhas no registro (cada uma refazia o layout da página: ui.js) e refazia os painéis (8–13 ms:
+   rastreador de missões, barra de atalhos, mochila, equipamento — com ~60 telinhas de ícone novas a cada vez).
+   Aqui, sem mudar o que aparece:
+   1) ícones dos painéis: as telinhas do redesenho anterior são reaproveitadas (ICONE_POOL, ui.js);
+   2) rastreador de missões: dentro do laço do jogo, só é refeito quando algo que ele MOSTRA mudou (missões e
+      progresso, tutorial, dicas, "🎯 Agora", 📅 Hoje, avisos, mapa...) — e de qualquer jeito a cada 2 s;
+   3) retrato do jogador: só é refeito quando o boneco muda (antes: a cada subida de nível, ~8 ms).
+   Prefixo dsq. Carregar NO FIM (depois de todos os embrulhos de atualizaPaineis, atualizaRastreador e atualizaRetrato).
+   ============================================================ */
+const DSQ = { noLaco: false, rastSig: null, rastT: 0, rastN: -1, retSig: null, pulos: 0 };
+{
+  const _atDsq = atualiza;
+  atualiza = function () { DSQ.noLaco = true; try { return _atDsq.apply(this, arguments); } finally { DSQ.noLaco = false; } };
+
+  /* ---------- 1) ícones reaproveitados durante o redesenho dos painéis ---------- */
+  const _apDsq = atualizaPaineis;
+  atualizaPaineis = function () {
+    if (typeof ICONE_POOL === 'undefined' || ICONE_POOL.on) return _apDsq.apply(this, arguments);
+    ICONE_POOL.on = true; ICONE_POOL.ger++;
+    try { return _apDsq.apply(this, arguments); } finally { ICONE_POOL.on = false; }
+  };
+
+  /* ---------- 2) rastreador: refaz só quando o que ele mostra mudou ---------- */
+  const porId = new Map(); let nMis = -1;
+  const missao = id => { if (MISSOES.length !== nMis) { porId.clear(); for (const q of MISSOES) porId.set(q.id, q); nMis = MISSOES.length; } return porId.get(id); };
+  const js = v => { try { return JSON.stringify(v); } catch (e) { return String(Math.random()); } };
+  function assinatura() {
+    const s = G.save; if (!s) return null;
+    let q = '';
+    for (const id in s.quests) {
+      const e = s.quests[id]; if (!e || e.s === 'feita') continue;
+      const m = missao(id); let pr = '';
+      try { if (m) pr = progressoMissao(m).join('/') + (m.req && m.req.espera ? descMissao(m) : ''); } catch (er) { pr = 'x'; }
+      q += id + js(e) + pr + ';';
+    }
+    const extra = [];
+    try { if (typeof objetivoTexto === 'function') extra.push(js(objetivoTexto())); } catch (e) { extra.push('x'); }
+    try { if (typeof hjEtiqueta === 'function') { const b = hjEtiqueta(); extra.push(b ? b.className + b.textContent : '-'); } } catch (e) { extra.push('x'); } // (o que a etiqueta 📅 Hoje mostra)
+    try { if (typeof alertasAtuais === 'function') extra.push(alertasAtuais().map(a => a.id + a.txt).join(',')); } catch (e) { extra.push('x'); }
+    try { if (typeof OA_CC_ABERTO !== 'undefined') extra.push([...OA_CC_ABERTO].join(',')); } catch (e) { }
+    const d0 = G.dicasFila && G.dicasFila[0];
+    return [q, s.tut, G.tutMin, G.dicasFila ? G.dicasFila.length : 0, d0 ? d0.txt : '', js(s.tarefa || null), s.nivel, s.pontos, G.mapa && G.mapa.id,
+      js(G.guiaPedido || null), G.guiaOn, typeof RAST_FIXO !== 'undefined' ? RAST_FIXO : '', typeof RAST_ATE !== 'undefined' ? RAST_ATE > (G.agora || 0) : '',
+      Object.keys(s.flags || {}).length, s.dia, new Date().getDate(), document.body.className, ...extra].join('|');
+  }
+  DSQ.assinatura = assinatura; // (testes)
+  const _rastDsq = atualizaRastreador;
+  atualizaRastreador = function () {
+    const R = document.getElementById('rastreador');
+    let sig = null;
+    if (DSQ.noLaco && R) {
+      try { sig = assinatura(); } catch (e) { sig = null; }
+      if (sig && sig === DSQ.rastSig && R.childElementCount === DSQ.rastN && performance.now() - DSQ.rastT < 2000) { DSQ.pulos++; return; } // nada mudou: fica como está
+    }
+    const r = _rastDsq.apply(this, arguments);
+    if (R) { DSQ.rastN = R.childElementCount; DSQ.rastT = performance.now(); try { DSQ.rastSig = sig || assinatura(); } catch (e) { DSQ.rastSig = null; } }
+    return r;
+  };
+
+  /* ---------- 4) seta-guia: o objetivo (que passa por TODAS as missões) é calculado 2x por quadro (seta e minimapa),
+     ~1,5 ms por quadro. Agora fica guardado por até 1/4 de segundo enquanto nada muda (mapa, vitórias, missões,
+     painéis refeitos); o adversário seguido continua com a posição de agora. ---------- */
+  if (typeof objetivoAtual === 'function') {
+    const _oaDsq = objetivoAtual; let memo = null;
+    objetivoAtual = function () {
+      const s = G.save; if (!s || !G.mapa) return _oaDsq.apply(this, arguments);
+      const k = [G.mapa.id, s.tut, G.guiaOn, JSON.stringify(G.guiaPedido || null), (s.st && s.st.abates) || 0, G.mons ? G.mons.length : 0, G.respawns ? G.respawns.length : 0,
+        typeof ICONE_POOL !== 'undefined' ? ICONE_POOL.ger : 0, s.nivel].join('|');
+      const ag = G.agora || 0;
+      if (memo && memo.k === k && ag >= memo.t && ag - memo.t < 250) {
+        const r = memo.r; if (!r) return r;
+        if (r.ent) { if (!G.mons.includes(r.ent)) { memo = null; return objetivoAtual.apply(this, arguments); } return Object.assign({}, r, { x: r.ent.x, y: r.ent.y }); }
+        if (r.espera != null) return Object.assign({}, r, { espera: r.espera - (ag - memo.t) }); // (a contagem "volta em…" continua andando)
+        return Object.assign({}, r);
+      }
+      const r = _oaDsq.apply(this, arguments);
+      memo = { k, t: ag, r: r ? Object.assign({}, r) : r };
+      return r;
+    };
+  }
+
+  /* ---------- 3) retrato: só quando o boneco muda ---------- */
+  const _retDsq = atualizaRetrato;
+  atualizaRetrato = function () {
+    let sig = null;
+    try {
+      const s = G.save, r = document.getElementById('retrato'), l = lookJogador(true);
+      const f = typeof FOLHAS !== 'undefined' && typeof folhaDoLook === 'function' ? FOLHAS[folhaDoLook(specDe(l), l)] : null;
+      if (s && r && f && f.ok) sig = JSON.stringify(l) + '|' + (faseIdx(s.nivel) >= 3) + '|' + r.childElementCount; // (folha ainda chegando: refaz sempre, como antes)
+      if (sig && sig === DSQ.retSig && r.querySelector('canvas')) return;
+    } catch (e) { sig = null; }
+    const res = _retDsq.apply(this, arguments);
+    try { const r = document.getElementById('retrato'); DSQ.retSig = sig ? sig.replace(/\|\d+$/, '|' + (r ? r.childElementCount : 0)) : null; } catch (e) { DSQ.retSig = null; }
+    return res;
+  };
+}
