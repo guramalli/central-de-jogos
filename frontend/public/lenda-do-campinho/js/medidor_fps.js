@@ -11,7 +11,8 @@
 const MFP = { on: false };
 function mfpComeca(seg = 60) {
   if (MFP.on) return;
-  Object.assign(MFP, { on: true, t0: performance.now(), dur: seg * 1000, ultimo: 0, inter: [], gasto: [], longas: [], vitorias: [], mapas: new Set(), janelas: 0, quadrosJanela: 0 });
+  window.__MFP_ON = true; for (const k in (window.__MFP_AG || {})) delete window.__MFP_AG[k];
+  Object.assign(MFP, { on: true, t0: performance.now(), dur: seg * 1000, ultimo: 0, inter: [], gasto: [], pain: 0, painMs: [], ultPain: false, aposPain: 0, longas: [], vitorias: [], mapas: new Set(), janelas: 0, quadrosJanela: 0 });
   try {
     MFP.obs = new PerformanceObserver(l => { for (const e of l.getEntries()) MFP.longas.push([e.startTime, e.duration]); });
     MFP.obs.observe({ type: 'longtask', buffered: false });
@@ -23,21 +24,24 @@ function mfpComeca(seg = 60) {
   const _loopMf = loop;
   loop = function (ts) {
     if (!MFP.on) return _loopMf.apply(this, arguments);
-    const a = performance.now();
-    if (MFP.ultimo) MFP.inter.push(a - MFP.ultimo);
-    MFP.ultimo = a;
+    const a = performance.now(), antes = G.ult;
     const r = _loopMf.apply(this, arguments);
-    MFP.gasto.push(performance.now() - a);
+    if (G.ult !== antes) { // v410.5: quadro de verdade (com o limite de FPS, as chamadas puladas não contam)
+      if (MFP.ultimo) { const iv = a - MFP.ultimo; MFP.inter.push(iv); if (iv > 33 && MFP.ultPain) MFP.aposPain++; } // (o quadro lento "paga" o redesenho da página do quadro anterior)
+      MFP.ultimo = a; MFP.gasto.push(performance.now() - a); MFP.ultPain = MFP.pain > 0; MFP.pain = 0;
+    }
     try { if (G.mapa) MFP.mapas.add(G.mapa.id); const m = document.getElementById('modal'); if (m && !m.hidden) MFP.quadrosJanela++; } catch (e) { }
     if (a - MFP.t0 >= MFP.dur) mfpTermina();
     return r;
   };
+  const _apMf = atualizaPaineis; // v410.5: quantas vezes os painéis (mochila, barras, registro) foram refeitos
+  atualizaPaineis = function () { if (!MFP.on) return _apMf.apply(this, arguments); const a = performance.now(); try { return _apMf.apply(this, arguments); } finally { MFP.pain++; MFP.painMs.push(performance.now() - a); } };
   const _matarMf = typeof matar === 'function' ? matar : null;
   if (_matarMf) matar = function () { if (MFP.on) MFP.vitorias.push(performance.now()); return _matarMf.apply(this, arguments); };
 }
 function mfpPct(arr, p) { if (!arr.length) return 0; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p / 100 * s.length))]; }
 function mfpTermina() {
-  MFP.on = false; try { MFP.obs && MFP.obs.disconnect(); } catch (e) { }
+  MFP.on = false; window.__MFP_ON = false; try { MFP.obs && MFP.obs.disconnect(); } catch (e) { }
   const I = MFP.inter, Gt = MFP.gasto, n = I.length || 1, seg = (MFP.dur / 1000);
   const alvo = (typeof LFPS_MAX !== 'undefined' && LFPS_MAX > 0) ? 1000 / LFPS_MAX : mfpPct(I, 50);
   const eng = I.filter(x => x > Math.max(alvo * 1.8, 12)).length, eng33 = I.filter(x => x > 33).length, eng50 = I.filter(x => x > 50).length;
@@ -60,10 +64,14 @@ function mfpTermina() {
     'Vitórias durante a medição': MFP.vitorias.length,
     'Quadros > 33 ms logo depois de uma vitória': perto,
     'Quadros com janela aberta': MFP.quadrosJanela,
+    'Painéis refeitos: vezes / típico / pior (ms)': `${MFP.painMs.length} / ${mfpPct(MFP.painMs, 50).toFixed(1)} / ${Math.max(0, ...MFP.painMs).toFixed(1)}`,
+    'Quadros > 33 ms logo depois de refazer os painéis': MFP.aposPain,
     'Mapas': [...MFP.mapas].join(', '),
     'Tela': `${innerWidth}×${innerHeight} · ${devicePixelRatio}x`,
   };
-  const txt = 'Lenda do Campinho — medição de desempenho (' + seg + ' s)\n' + Object.entries(R).map(([k, v]) => `${k}: ${v}`).join('\n');
+  const ag = Object.entries(window.__MFP_AG || {}).sort((x, y) => y[1].max - x[1].max).slice(0, 6);
+  const fora = ag.length ? '\nFora do quadro (≥4 ms), os mais pesados:\n' + ag.map(([k, v]) => `- ${k} → ${v.n}x, pior ${v.max.toFixed(1)} ms, total ${Math.round(v.total)} ms`).join('\n') : '\nFora do quadro: nada passou de 4 ms.';
+  const txt = 'Lenda do Campinho — medição de desempenho (' + seg + ' s)\n' + Object.entries(R).map(([k, v]) => `${k}: ${v}`).join('\n') + fora;
   // leitura simples para o jogador
   const codigoPesa = mfpPct(Gt, 99) > alvo * 0.8;
   const veredito = eng33 <= 2 ? '✅ Está liso: quase nenhum quadro passou do tempo.' :
