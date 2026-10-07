@@ -150,7 +150,7 @@ function atualizaPaineis() {
   // equipamento: boneco com cada peça no seu lugar do corpo (desenho, posições e linhas em layout.js)
   // v410.7: equipamento (com o boneco desenhado) só é refeito no laço quando as peças mudaram
   const parcial = typeof DSQ !== 'undefined' && DSQ.noLaco;
-  const sigEq = JSON.stringify([s.equip, s.equipR || {}, s.costas && s.costas.id, mochilaSlots(), s.nivel, s.classe]);
+  const sigEq = JSON.stringify([s.equip, s.equipR || {}, s.costas && s.costas.id, mochilaSlots(), s.nivel, s.classe, G.icoGer || 0]); // (v411: G.icoGer = arte de ícone que chegou depois → refaz)
   const eq = $('#equip');
   G.eqIntacto = !!(parcial && eq._sig === sigEq && eq.firstChild); // (avisa itens.js para não pôr o selo de novo)
   if (!G.eqIntacto) {

@@ -22,7 +22,7 @@
   };
   // os painéis que se desenham sozinhos (mochila, atalhos) são refeitos quando alguma arte que faltava chega
   const FALTAM = new Set();
-  setInterval(() => { if (!FALTAM.size) return; let chegou = false; for (const nome of FALTAM) if (pronta(nome)) { FALTAM.delete(nome); chegou = true; } if (chegou && typeof G !== 'undefined') G.uiSujo = true; }, 400);
+  setInterval(() => { if (!FALTAM.size) return; let chegou = false; for (const nome of FALTAM) if (pronta(nome)) { FALTAM.delete(nome); chegou = true; } if (chegou && typeof G !== 'undefined') { G.icoGer = (G.icoGer || 0) + 1; G.uiSujo = true; } }, 400); // (v411: icoGer entra na assinatura da mochila/equipamento em ui.js — sem ele, a mochila não era refeita e o item ficava sem arte)
   const _iconeCloneViva = iconeClone;
   iconeClone = function (c) {
     const n = _iconeCloneViva.apply(this, arguments);
@@ -32,7 +32,7 @@
       const tenta = () => {
         if (++voltas > 120) return; // 30 s: desiste (arte com erro)
         if (!pronta(nome)) { setTimeout(tenta, 250); return; }
-        try { const novo = iconeItem(id); n.width = novo.width; n.height = novo.height; n.getContext('2d').drawImage(novo, 0, 0); G.uiSujo = true; } catch (e) { } // mesmo tamanho da arte (nítido); o CSS cuida do tamanho na tela
+        try { const novo = iconeItem(id); n.width = novo.width; n.height = novo.height; n.getContext('2d').drawImage(novo, 0, 0); G.icoGer = (G.icoGer || 0) + 1; G.uiSujo = true; } catch (e) { } // mesmo tamanho da arte (nítido); o CSS cuida do tamanho na tela
       };
       setTimeout(tenta, 250);
     }
