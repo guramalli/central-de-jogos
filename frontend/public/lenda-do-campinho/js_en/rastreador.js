@@ -1,5 +1,13 @@
 /* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
    Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+// v410.8 (desempenho): getComputedStyle aqui obrigava o navegador a recalcular o estilo da página a cada redesenho do
+// rastreador (~2 ms numa vitória). A direção da lista só muda com o layout: guarda e confere de novo só se ele mudou (ou a cada 2 s).
+let RAST_DIR = { sig: '', t: 0, rev: false };
+function rastColRev(R) {
+  const sig = innerWidth + 'x' + innerHeight + '|' + document.body.className + '|' + R.className + '|' + (R.parentElement ? R.parentElement.className : ''), ag = performance.now();
+  if (sig !== RAST_DIR.sig || ag - RAST_DIR.t > 2000) RAST_DIR = { sig, t: ag, rev: getComputedStyle(R).flexDirection === 'column-reverse' };
+  return RAST_DIR.rev;
+}
 /* ============================================================
    📜 RASTREADOR DE MISSÕES RECOLHIDO (v155)
    Os cartões de missão/desafio ocupavam muito da tela. Agora:
@@ -31,7 +39,7 @@ let RAST_ASSIN = null, RAST_ATE = 0; // RAST_ATE: até quando a etiqueta pisca
     if (!aberto) cartoes.forEach(c => c.remove());
     // a etiqueta fica colada na lista (a lista cresce "para cima" no computador: column-reverse)
     const primeiro = R.querySelector(':scope > .rast');
-    if (getComputedStyle(R).flexDirection === 'column-reverse') R.insertBefore(etiqueta, primeiro || null); else R.append(etiqueta);
+    if (rastColRev(R)) R.insertBefore(etiqueta, primeiro || null); else R.append(etiqueta);
     return r;
   };
   // a piscada acaba: redesenha a etiqueta

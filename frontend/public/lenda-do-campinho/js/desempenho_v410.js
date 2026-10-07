@@ -116,11 +116,13 @@ const DSQ = { noLaco: false, rastSig: null, rastT: 0, rastN: -1, retSig: null, p
   };
 
   let cvSujo = true, cvSig = '';
-  try { new ResizeObserver(() => { cvSujo = true; }).observe(CV); } catch (e) { DSQ.semRO = true; }
+  let cvObs = null; // v410.8: o CV só existe depois de iniciarJogo (no carregamento ele era undefined e o atalho nunca ligava)
+  const vigia = () => { if (cvObs || DSQ.semRO || typeof CV === 'undefined' || !CV) return; try { cvObs = new ResizeObserver(() => { cvSujo = true; }); cvObs.observe(CV); cvSujo = true; } catch (e) { DSQ.semRO = true; } };
   addEventListener('resize', () => { cvSujo = true; });
   const _ajDsq = ajustaCanvas;
   ajustaCanvas = function () {
-    if (DSQ.noDesenho && !DSQ.semRO) {
+    vigia();
+    if (DSQ.noDesenho && cvObs) {
       const m = G.mapa, sig = (m && m.id) + '|' + (m && m.interior ? 1 : 0) + '|' + G.zoomVis + '|' + devicePixelRatio + '|' + G.dprMax + '|' + document.body.classList.contains('tela-larga');
       if (!cvSujo && sig === cvSig) return;
       cvSig = sig;
@@ -129,4 +131,31 @@ const DSQ = { noLaco: false, rastSig: null, rastT: 0, rastN: -1, retSig: null, p
   };
   const _desDsq = desenha;
   desenha = function () { DSQ.noDesenho = true; try { return _desDsq.apply(this, arguments); } finally { DSQ.noDesenho = false; } };
+}
+
+/* ---------- 5) v410.8: o quadro da vitória (rastro no Labirinto Jurássico, 07/10/2026) ----------
+   - vitória e mochila refeita (o loot entrou) caíam no MESMO quadro em quase metade das vezes → o redesenho dos
+     painéis espera o quadro seguinte (no máximo 3 quadros seguidos; ninguém percebe 1 quadro);
+   - mtPosiciona (mochila_tibia.js) media a coluna da direita (offsetParent/getComputedStyle/getBoundingClientRect) a
+     cada redesenho, obrigando o navegador a recalcular a página na hora (~4 ms) → no laço, só mede de novo se a
+     janela, as classes da página ou o painel das bolsas mudaram (e a cada 2 s, por garantia). */
+{
+  DSQ.vitAgora = false; DSQ.adiou = 0;
+  const _atVit = atualiza;
+  atualiza = function () { DSQ.vitAgora = false; return _atVit.apply(this, arguments); };
+  if (typeof matar === 'function') { const _matVit = matar; matar = function () { DSQ.vitAgora = true; return _matVit.apply(this, arguments); }; }
+  const _apVit = atualizaPaineis;
+  atualizaPaineis = function () {
+    if (DSQ.noLaco && DSQ.vitAgora && DSQ.adiou < 3) { DSQ.adiou++; G.uiSujo = true; return; } // fica para o próximo quadro
+    DSQ.adiou = 0; return _apVit.apply(this, arguments);
+  };
+  if (typeof mtPosiciona === 'function') {
+    const _mtp = mtPosiciona; let sigP = '', tP = 0;
+    mtPosiciona = function () {
+      const painel = document.querySelector('[data-painel="bolsas"] .bolsas-painel'), bloco = painel && painel.closest('[data-painel]'), mo = document.getElementById('mochila'), ag = performance.now();
+      const sig = innerWidth + 'x' + innerHeight + '|' + document.body.className + '|' + (bloco ? bloco.className + '|' + bloco.hidden + '|' + bloco.style.cssText + '|' + (bloco.parentElement ? bloco.parentElement.className + '|' + bloco.parentElement.hidden : '') : '-') + '|' + (mo && mo.parentElement ? mo.parentElement.id || mo.parentElement.className : '');
+      if (DSQ.noLaco && sig === sigP && ag - tP < 2000) return;
+      sigP = sig; tP = ag; return _mtp.apply(this, arguments);
+    };
+  }
 }

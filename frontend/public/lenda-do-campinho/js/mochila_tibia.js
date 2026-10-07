@@ -130,18 +130,30 @@ function mtMoveParte(i, dest, n, j) {
 // uma alça no rodapé de CADA janela, como no Tibia. Arrastar encaixa em fileiras inteiras; o resto rola por dentro.
 // O tamanho de cada janela fica no save (s.bolsasAlt: { 'raiz' | uid: fileiras }); a rolagem é lembrada entre os redesenhos.
 const MT_ROLA = {};
+const MT_MED = {}; // v410.8: medidas da grade de cada janela (ver mtAlcas)
 function mtAlcas() {
   const s = G.save; if (!s) return;
   document.querySelectorAll('#mochila .bolsa-janela:not(.mini)').forEach(j => {
     const g = j.querySelector(':scope > .mochila-grade'); if (!g || j.querySelector(':scope > .mt-alca')) return;
-    const ch = j.dataset.janela, cs = getComputedStyle(g);
-    const gap = parseFloat(cs.rowGap) || 4, cols = () => Math.max(1, getComputedStyle(g).gridTemplateColumns.split(' ').length);
-    const passo = () => { const sl = g.querySelector('.slot'), h = sl ? sl.getBoundingClientRect().height : 0; return h > 8 ? h + gap : 0; };
-    const total = () => Math.ceil(g.children.length / cols());
+    // v410.8 (desempenho): medir a grade (getComputedStyle/getBoundingClientRect) obriga o navegador a montar a página na
+    // hora; a mochila é refeita quando o loot entra, então isso pesava no quadro da vitória. Agora só mede se a janela
+    // tem tamanho escolhido pelo jogador, e guarda a medida (vale enquanto a tela e o layout não mudam, até 3 s).
+    const ch = j.dataset.janela;
+    const med = () => {
+      const sig = innerWidth + 'x' + innerHeight + '|' + document.body.className + '|' + g.children.length, ag = performance.now(), m = MT_MED[ch];
+      if (m && m.sig === sig && ag - m.t < 3000) return m;
+      const cs = getComputedStyle(g), gap = parseFloat(cs.rowGap) || 4, cols = Math.max(1, cs.gridTemplateColumns.split(' ').length);
+      const sl = g.querySelector('.slot'), h = sl ? sl.getBoundingClientRect().height : 0;
+      return (MT_MED[ch] = { sig, t: ag, gap, cols, p: h > 8 ? h + gap : 0 });
+    };
+    const gap0 = () => med().gap;
+    const passo = () => med().p;
+    const total = () => Math.ceil(g.children.length / med().cols);
     const aplica = f => {
+      if (f == null) { g.style.maxHeight = ''; g.classList.remove('mt-rola'); return; }
       const p = passo();
-      if (f == null || !p || f >= total()) { g.style.maxHeight = ''; g.classList.remove('mt-rola'); return; }
-      g.style.maxHeight = (f * p - gap) + 'px'; g.classList.add('mt-rola');
+      if (!p || f >= total()) { g.style.maxHeight = ''; g.classList.remove('mt-rola'); return; }
+      g.style.maxHeight = (f * p - gap0()) + 'px'; g.classList.add('mt-rola');
     };
     aplica((s.bolsasAlt || {})[ch]);
     if (MT_ROLA[ch]) g.scrollTop = MT_ROLA[ch];
@@ -152,7 +164,7 @@ function mtAlcas() {
       ev.preventDefault(); try { a.setPointerCapture(ev.pointerId); } catch (e) { }
       const y0 = ev.clientY, h0 = g.getBoundingClientRect().height; document.body.classList.add('mt-puxando');
       const mv = e => {
-        const f = Math.max(1, Math.min(total(), Math.round((h0 + e.clientY - y0 + gap) / p)));
+        const f = Math.max(1, Math.min(total(), Math.round((h0 + e.clientY - y0 + gap0()) / p)));
         const l = { ...(s.bolsasAlt || {}) }; if (f >= total()) delete l[ch]; else l[ch] = f; s.bolsasAlt = l; aplica(f);
       };
       const up = () => { document.body.classList.remove('mt-puxando'); a.removeEventListener('pointermove', mv); a.removeEventListener('pointerup', up); a.removeEventListener('pointercancel', up); };

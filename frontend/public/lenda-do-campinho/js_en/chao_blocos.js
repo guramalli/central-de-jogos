@@ -25,7 +25,7 @@ const CHAO_BLOCOS = (() => {
   const AP = 2;                                     // pixels a mais em volta de cada bloco (sem emenda)
   const MG = 128;                                   // margem extra quando o desenho copia dele mesmo (esquinas das ruas)
   const PE = 1 / 8;                                 // prévia: 1/8 do tamanho
-  const TETO = (CEL ? 28 : DM >= 8 ? 160 : 112) * 1048576; // memória máxima dos blocos guardados
+  const TETO = (CEL ? 28 : DM >= 8 ? 256 : 112) * 1048576; // memória máxima dos blocos guardados · v410.8: 160 → 256 MB no computador (o Labirinto Jurássico tem 48 blocos = 192 MB: andando, descartava e repintava o chão)
   // v408.6 (desempenho, dono: "está travando ao entrar no mapa e andando"): no computador, menos tempo por quadro (12 → 6 ms; 4 → 2 ms)
   // e a conferência do tempo a cada 4 passos (era a cada 16): um bloco que custa 20–50 ms fica dividido em vários quadros
   const ORC_TELA = CEL ? 12 : 6, ORC_OCIO = CEL ? 4 : 2;                // ms por quadro: blocos que faltam na tela / adiantar os de perto
