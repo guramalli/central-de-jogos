@@ -101,6 +101,8 @@ function opcConteudo(aba) {
     c.append(opcTit('🖥️ Video'));
     if (leveBt) c.append(opcChave('Light graphics', 'For simpler computers or phones: less glow and animation, so the game runs smoother.', !!G.leve, () => { leveBt.click(); opcAplicaClima(); }));
     if (fpsCx) c.append(opcChave('Show FPS', 'How many frames per second the game is running (corner of the screen).', fpsCx.checked, () => fpsCx.click()));
+    // v410.3 (dono: "coloque um limitador de fps nas configurações"): limite de quadros por segundo (limite_fps.js)
+    if (typeof LFPS_OPCOES !== 'undefined') c.append(opcEscolha('FPS limit', 'On a fast monitor (144/240/360 Hz), a limit makes movement steadier and free of hitches. Use a number that divides your monitor\'s refresh rate (360 Hz: 120 or 180; 144 Hz: 144; 60 Hz: 60).', LFPS_OPCOES.map(([v, n]) => [String(v), n]), String(LFPS_MAX), v => lfpsMuda(v)));
     if (typeof TELA_MODO !== 'undefined' && typeof trocaTela === 'function' && !document.body.classList.contains('modo-celular'))
       c.append(opcEscolha('Screen', 'Wide uses the whole width of the window; Full hides the browser (Esc exits).', [['normal', '🔲 Normal'], ['larga', '⬛ Wide'], ['cheia', '⛶ Full']], TELA_MODO, async v => { for (let k = 0; k < 3 && TELA_MODO !== v; k++) await trocaTela(); opcAbre('video'); }));
     if (typeof CV !== 'undefined' && CV && CV.getBoundingClientRect().width >= 640) c.append(opcBarra('Map zoom', 'Closer or farther (also with the mouse wheel and the + and − keys). It stays saved.', Math.round(31 - (G.zoomVis || 15.5)), 9, 22, 0.5, v => (v >= 15.5 ? '+' : '') + Math.round((v - 15.5) * 10) / 10, v => { G.zoomVis = 31 - v; OPC.zoom = G.zoomVis; opcGrava(); }));
