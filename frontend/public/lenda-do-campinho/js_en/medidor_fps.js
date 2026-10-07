@@ -11,8 +11,8 @@
 const MFP = { on: false };
 function mfpComeca(seg = 60) {
   if (MFP.on) return;
-  window.__MFP_ON = true; for (const k in (window.__MFP_AG || {})) delete window.__MFP_AG[k];
-  Object.assign(MFP, { on: true, t0: performance.now(), dur: seg * 1000, ultimo: 0, inter: [], gasto: [], pain: 0, painMs: [], ultPain: false, aposPain: 0, longas: [], vitorias: [], mapas: new Set(), janelas: 0, quadrosJanela: 0 });
+  window.__MFP_ON = true; window.__MFP_MARCA = (k, ms) => { if (MFP.on) MFP.tag.add(k.slice(0, 60) + ' ' + ms.toFixed(0) + ' ms'); }; for (const k in (window.__MFP_AG || {})) delete window.__MFP_AG[k];
+  Object.assign(MFP, { on: true, t0: performance.now(), dur: seg * 1000, ultimo: 0, inter: [], gasto: [], pain: 0, painMs: [], ultPain: false, aposPain: 0, tag: new Set(), piores: [], modalAntes: false, mapaUlt: G.mapa && G.mapa.id, longas: [], vitorias: [], mapas: new Set(), janelas: 0, quadrosJanela: 0 });
   try {
     MFP.obs = new PerformanceObserver(l => { for (const e of l.getEntries()) MFP.longas.push([e.startTime, e.duration]); });
     MFP.obs.observe({ type: 'longtask', buffered: false });
@@ -25,20 +25,28 @@ function mfpComeca(seg = 60) {
   loop = function (ts) {
     if (!MFP.on) return _loopMf.apply(this, arguments);
     const a = performance.now(), antes = G.ult;
+    mfpMapa(); const prev = MFP.tag; MFP.tag = new Set(); // v410.6: o que aconteceu desde o quadro anterior (o quadro lento "paga" por isso)
     const r = _loopMf.apply(this, arguments);
+    mfpMapa();
     if (G.ult !== antes) { // v410.5: quadro de verdade (com o limite de FPS, as chamadas puladas não contam)
-      if (MFP.ultimo) { const iv = a - MFP.ultimo; MFP.inter.push(iv); if (iv > 33 && MFP.ultPain) MFP.aposPain++; } // (o quadro lento "paga" o redesenho da página do quadro anterior)
-      MFP.ultimo = a; MFP.gasto.push(performance.now() - a); MFP.ultPain = MFP.pain > 0; MFP.pain = 0;
-    }
-    try { if (G.mapa) MFP.mapas.add(G.mapa.id); const m = document.getElementById('modal'); if (m && !m.hidden) MFP.quadrosJanela++; } catch (e) { }
+      if (MFP.ultimo) {
+        const iv = a - MFP.ultimo; MFP.inter.push(iv); if (iv > 33 && MFP.ultPain) MFP.aposPain++; // (o quadro lento "paga" o redesenho da página do quadro anterior)
+        if (iv > 33) MFP.piores.push([iv, MFP.ultimo, a, [...prev]]);
+      }
+      const g = performance.now() - a;
+      MFP.ultimo = a; MFP.gasto.push(g); MFP.ultPain = MFP.pain > 0; MFP.pain = 0;
+      if (g > 8) MFP.tag.add('game code ' + g.toFixed(1) + ' ms');
+    } else for (const x of prev) MFP.tag.add(x); // (chamada pulada pelo limite: guarda para o próximo quadro)
+    try { if (G.mapa) MFP.mapas.add(G.mapa.id); const m = document.getElementById('modal'), ab = !!(m && !m.hidden); if (ab) MFP.quadrosJanela++; if (ab !== MFP.modalAntes) { MFP.tag.add(ab ? 'abriu janela' : 'fechou janela'); MFP.modalAntes = ab; } } catch (e) { }
     if (a - MFP.t0 >= MFP.dur) mfpTermina();
     return r;
   };
   const _apMf = atualizaPaineis; // v410.5: quantas vezes os painéis (mochila, barras, registro) foram refeitos
-  atualizaPaineis = function () { if (!MFP.on) return _apMf.apply(this, arguments); const a = performance.now(); try { return _apMf.apply(this, arguments); } finally { MFP.pain++; MFP.painMs.push(performance.now() - a); } };
+  atualizaPaineis = function () { if (!MFP.on) return _apMf.apply(this, arguments); const a = performance.now(); try { return _apMf.apply(this, arguments); } finally { const d = performance.now() - a; MFP.pain++; MFP.painMs.push(d); if (d > 2) MFP.tag.add('panels redrawn ' + d.toFixed(1) + ' ms'); } };
   const _matarMf = typeof matar === 'function' ? matar : null;
-  if (_matarMf) matar = function () { if (MFP.on) MFP.vitorias.push(performance.now()); return _matarMf.apply(this, arguments); };
+  if (_matarMf) matar = function () { if (MFP.on) { MFP.vitorias.push(performance.now()); MFP.tag.add('vitória'); } return _matarMf.apply(this, arguments); };
 }
+function mfpMapa() { const id = G.mapa && G.mapa.id; if (id !== MFP.mapaUlt) { if (MFP.mapaUlt) MFP.tag.add('changed map → ' + id); MFP.mapaUlt = id; } } // (a troca pode vir de fora do quadro: porta, viagem, janela)
 function mfpPct(arr, p) { if (!arr.length) return 0; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p / 100 * s.length))]; }
 function mfpTermina() {
   MFP.on = false; window.__MFP_ON = false; try { MFP.obs && MFP.obs.disconnect(); } catch (e) { }
@@ -71,7 +79,14 @@ function mfpTermina() {
   };
   const ag = Object.entries(window.__MFP_AG || {}).sort((x, y) => y[1].max - x[1].max).slice(0, 6);
   const fora = ag.length ? '\nOutside the frame (≥4 ms), the heaviest:\n' + ag.map(([k, v]) => `- ${k} → ${v.n}x, worst ${v.max.toFixed(1)} ms, total ${Math.round(v.total)} ms`).join('\n') : '\nOutside the frame: nothing went over 4 ms.';
-  const txt = 'Lenda do Campinho — performance measurement (' + seg + ' s)\n' + Object.entries(R).map(([k, v]) => `${k}: ${v}`).join('\n') + fora;
+  // v410.6: os 8 piores quadros e o que veio logo antes de cada um (tarefa longa = trabalho do navegador no meio)
+  const piores = MFP.piores.sort((x, y) => y[0] - x[0]).slice(0, 8).map(([iv, de, ate, tags]) => {
+    const tl = longas.filter(([s, d]) => s < ate && s + d > de).map(([, d]) => 'tarefa longa ' + Math.round(d) + ' ms');
+    const o = [...tags, ...tl];
+    return `- ${iv.toFixed(1)} ms ← ` + (o.length ? o.join(', ') : 'nothing from the game (the browser: drawing, memory or another program)');
+  });
+  const lista = piores.length ? '\nThe worst frames and what came right before:\n' + piores.join('\n') : '';
+  const txt = 'Lenda do Campinho — performance measurement (' + seg + ' s)\n' + Object.entries(R).map(([k, v]) => `${k}: ${v}`).join('\n') + fora + lista;
   // leitura simples para o jogador
   const codigoPesa = mfpPct(Gt, 99) > alvo * 0.8;
   const veredito = eng33 <= 2 ? '✅ It\'s smooth: almost no frame went over time.' :

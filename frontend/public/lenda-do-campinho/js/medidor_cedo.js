@@ -17,6 +17,7 @@
     if (ms < 4) return; // só o que pesa
     const k = rotulo(fn, tipo), a = AG[k] || (AG[k] = { n: 0, total: 0, max: 0 });
     a.n++; a.total += ms; if (ms > a.max) a.max = ms;
+    if (window.__MFP_MARCA) window.__MFP_MARCA(k, ms); // (v410.6: marca no quadro, para a lista dos piores)
   };
   const embrulha = (fn, tipo) => function () {
     if (!window.__MFP_ON) return fn.apply(this, arguments);
