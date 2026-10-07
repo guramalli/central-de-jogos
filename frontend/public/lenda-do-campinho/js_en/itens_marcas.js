@@ -93,8 +93,8 @@ function alternaTrava(id) {
   // 🔒 na mochila
   const _paineisTv = atualizaPaineis;
   atualizaPaineis = function () {
-    const out = _paineisTv.apply(this, arguments); const s = G.save; if (!s || !s.travados) return out;
-    document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { const m = s.mochila[+b.dataset.i]; if (m && s.travados[m.id]) { b.classList.add('travado'); b.append(el('span', { class: 'trava' + (m.r ? ' com-ref' : '') }, '🔒')); b.title += ' (locked)'; } });
+    const out = _paineisTv.apply(this, arguments); const s = G.save; if (!s || !s.travados || G.moIntacta) return out; // v410.7: mochila intacta já tem o 🔒
+    document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { const m = s.mochila[+b.dataset.i]; if (m && s.travados[m.id] && !b.querySelector('.trava')) { b.classList.add('travado'); b.append(el('span', { class: 'trava' + (m.r ? ' com-ref' : '') }, '🔒')); b.title += ' (locked)'; } });
     return out;
   };
   const css = document.createElement('style');

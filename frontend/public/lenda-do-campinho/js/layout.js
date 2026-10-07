@@ -207,7 +207,7 @@ const _atualizaPaineisLay = atualizaPaineis;
 atualizaPaineis = function () {
   _atualizaPaineisLay();
   const s = G.save; if (!s) return;
-  document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => {
+  if (!G.moIntacta) document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { // v410.7: só na mochila refeita
     const it = s.mochila[+b.dataset.i]; if (!it || !ITENS[it.id] || ITENS[it.id].tipo !== 'equip') return;
     b.draggable = true; b.classList.add('arrasta-equip');
   });

@@ -99,3 +99,34 @@ const DSQ = { noLaco: false, rastSig: null, rastT: 0, rastN: -1, retSig: null, p
     return res;
   };
 }
+
+/* ---------- 4) v410.7: travadinhas em combate (rastro do navegador, 07/10/2026) ----------
+   O medidor do dono mostrou o código leve e as pausas FORA dele; o rastro do navegador achou o porquê:
+   - os embrulhos de atualizaPaineis carregados depois do limitador de 250 ms (desempenho.js) rodavam em TODA chamada
+     (~70/s em combate): mtPosiciona forçava o navegador a recalcular a página, o 🔒 dos travados se acumulava...
+     → o limite de 250 ms agora fica por FORA de todos (este embrulho é o último antes do medidor);
+   - ajustaCanvas() lia o tamanho da tela em todo quadro (getBoundingClientRect), o que obriga o navegador a refazer
+     o layout da página na hora se algo mudou → só refaz quando a tela muda de tamanho (ResizeObserver) ou o zoom/mapa muda. */
+{
+  const _apFora = atualizaPaineis; let ultFora = 0;
+  atualizaPaineis = function () {
+    const ag = performance.now();
+    if (DSQ.noLaco && ag - ultFora < 250) { G.uiSujo = true; return; } // fica para daqui a pouco
+    ultFora = ag; return _apFora.apply(this, arguments);
+  };
+
+  let cvSujo = true, cvSig = '';
+  try { new ResizeObserver(() => { cvSujo = true; }).observe(CV); } catch (e) { DSQ.semRO = true; }
+  addEventListener('resize', () => { cvSujo = true; });
+  const _ajDsq = ajustaCanvas;
+  ajustaCanvas = function () {
+    if (DSQ.noDesenho && !DSQ.semRO) {
+      const m = G.mapa, sig = (m && m.id) + '|' + (m && m.interior ? 1 : 0) + '|' + G.zoomVis + '|' + devicePixelRatio + '|' + G.dprMax + '|' + document.body.classList.contains('tela-larga');
+      if (!cvSujo && sig === cvSig) return;
+      cvSig = sig;
+    }
+    cvSujo = false; return _ajDsq.apply(this, arguments);
+  };
+  const _desDsq = desenha;
+  desenha = function () { DSQ.noDesenho = true; try { return _desDsq.apply(this, arguments); } finally { DSQ.noDesenho = false; } };
+}

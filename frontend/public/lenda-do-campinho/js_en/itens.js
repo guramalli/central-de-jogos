@@ -166,7 +166,7 @@ atualizaPaineis = function () {
   if (tinhaTip) setTimeout(() => { let e = document.elementFromPoint(MOUSE.x, MOUSE.y); while (e && !e._tip) e = e.parentElement; if (e) mostraTip({ clientX: MOUSE.x, clientY: MOUSE.y }, e._tip()); }, 0);
   const s = G.save; if (!s) return;
   // mochila
-  document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { // v361: data-i = índice em s.mochila (bolsas abertas)
+  if (!G.moIntacta) document.querySelectorAll('.mochila-grade .slot[data-i]').forEach(b => { // v361: data-i = índice em s.mochila (bolsas abertas) · v410.7: só quando a mochila foi refeita (o selo e o arrastar não podem entrar 2x)
     const it = s.mochila[+b.dataset.i]; if (!it || !ITENS[it.id]) return;
     const r = it.r || 0; const def = ITENS[it.id];
     seloItem(b, it.id, r); marcaRaridade(b, it.id);
@@ -175,7 +175,7 @@ atualizaPaineis = function () {
     if (def.tipo === 'comida' || def.tipo === 'consumivel') arrastavel(b, 'i:' + it.id);
   });
   // equipamento (cada quadro diz o seu lugar do corpo em data-slot)
-  document.querySelectorAll('#equip .eq-slot[data-slot]').forEach(b => {
+  if (!G.eqIntacto) document.querySelectorAll('#equip .eq-slot[data-slot]').forEach(b => { // v410.7: só no equipamento refeito
     const slot = b.dataset.slot; const id = s.equip[slot]; if (!id || !ITENS[id]) return;
     const r = (s.equipR || {})[slot] || 0; const p = statPrincipal(id, r); marcaRaridade(b, id);
     if (p) b.append(el('span', { class: 'selo-st' }, `${ICONE_ST[p[0]] || ''}${fmtN(p[1])}`));

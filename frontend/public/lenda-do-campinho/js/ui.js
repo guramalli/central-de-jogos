@@ -148,7 +148,13 @@ function atualizaPaineis() {
   });
   atualizaHotbarCd(); // v358: o redesenho apagava o escurecido do cooldown até a próxima checagem (0,35 s): os botões piscavam
   // equipamento: boneco com cada peça no seu lugar do corpo (desenho, posições e linhas em layout.js)
-  const eq = $('#equip'); eq.innerHTML = '';
+  // v410.7: equipamento (com o boneco desenhado) só é refeito no laço quando as peças mudaram
+  const parcial = typeof DSQ !== 'undefined' && DSQ.noLaco;
+  const sigEq = JSON.stringify([s.equip, s.equipR || {}, s.costas && s.costas.id, mochilaSlots(), s.nivel, s.classe]);
+  const eq = $('#equip');
+  G.eqIntacto = !!(parcial && eq._sig === sigEq && eq.firstChild); // (avisa itens.js para não pôr o selo de novo)
+  if (!G.eqIntacto) {
+  eq._sig = sigEq; eq.innerHTML = '';
   const g = el('div', { class: 'equip-grade equip-boneco' });
   // v400 (dono: "a mochila deve ficar igual os itens, do lado do jogador"): a mochila das costas é um quadro do boneco (Mochila)
   const rot = { cabeca: 'Cabeça', acessorio: 'Pescoço', camisa: 'Camisa', calcao: 'Calção', perna: 'Caneleira', chuteira: 'Chuteira', costas: 'Mochila' };
@@ -164,12 +170,20 @@ function atualizaPaineis() {
   }
   if (typeof montaBonecoEquip === 'function') montaBonecoEquip(g);
   eq.append(g); // (v400: Ataque, Defesa e Velocidade ficam no status, perto do fôlego e do foco)
+  } // (fim do equipamento)
   // mochila
   // v396 (dono: "refaça a mecânica das backpacks... quero algo igual o Tibia"): uma COLUNA de janelas, como no Tibia:
   // a mochila das costas (sempre a primeira; minimiza, não fecha) e uma janela para cada bolsa aberta (↑ volta para a de
   // fora, 🎯 loot, – minimiza, ✕ fecha). Cada quadro guarda em data-i o índice do item em s.mochila (os enfeites de
   // itens.js/layout.js/itens_marcas.js usam o data-i). Arrastar, dividir pilhas e trocar a mochila das costas: mochila_tibia.js
-  const mo = $('#mochila'); mo.innerHTML = '';
+  // v410.7 (desempenho, rastro do navegador 07/10): no laço do jogo, a mochila só é refeita quando o que ela mostra mudou
+  // (uma vitória que só mexe em ouro/XP não refaz 105 quadros). G.moIntacta avisa os enfeites (itens.js, itens_marcas.js, layout.js)
+  // para não enfeitar de novo os mesmos quadros. Fora do laço (clique, arrastar, janela) refaz sempre.
+  const mo = $('#mochila');
+  const sigMo = sigEq + JSON.stringify([s.mochila.map(e => [e.id, e.q, e.r || 0, e.c ?? null, e.u ?? null]), s.bolsasAbertas, s.bolsasMin, Object.keys(s.travados || {}), Math.round(pesoMochila(s)), capPeso(s), document.body.classList.contains('modo-celular')]);
+  G.moIntacta = !!(parcial && mo._sig === sigMo && mo.firstChild);
+  if (!G.moIntacta) {
+  mo._sig = sigMo; mo.innerHTML = '';
   if (typeof arrumaBolsas === 'function') arrumaBolsas(s);
   const peso = pesoMochila(s), cap = capPeso(s);
   const abertas = (s.bolsasAbertas = (s.bolsasAbertas || []).filter(u => s.mochila.some(e => e.u === u)));
@@ -220,6 +234,7 @@ function atualizaPaineis() {
       el('button', { class: 'btn mini', type: 'button', title: 'Fechar a bolsa', onclick: () => abreBolsa(u) }, '✕')]));
   }
   mo.append(el('div', { class: 'vazio' }, 'Botão direito: abre a mochila / usa ou equipa o item. Arraste itens para dentro das mochilas (entram na 1ª posição; Shift divide a pilha). Mochila cheia: o resto vai para a mochila que está dentro dela. Shift + clique descreve o item.'));
+  } // (fim da mochila)
   { const bp = document.getElementById('bolsasAbertas'); if (bp) bp.innerHTML = ''; }
   // habilidades
   const sk = $('#skills'); sk.innerHTML = '';
