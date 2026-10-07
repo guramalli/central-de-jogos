@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<!-- Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados. Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. Termos: direitos.html -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script src="js_en/idioma.js?v=410"></script>
+<script src="js_en/vitrine_entrada.js?v=410.1"></script>
+<title>Lenda do Campinho</title>
+<meta name="copyright" content="© 2026 Educação Gamer. Todos os direitos reservados.">
+<meta name="author" content="Educação Gamer">
+<meta name="description" content="RPG de futebol em pixel art do Educação Gamer: nasça, treine desde criança e vire uma lenda.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=408">
+<link rel="stylesheet" href="css/marca.css?v=408">
+<link rel="stylesheet" href="css/inicio.css?v=408">
+<link rel="icon" href="a/eg_favicon_v407.png"><!-- v407 (Raio-X): favicon e logos locais (antes vinham do site) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="a/icone_192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lenda">
+</head>
+<body>
+
+<!-- ============ TELA INICIAL / CRIAÇÃO ============ -->
+<div id="inicio">
+  <div class="inicio-caixa madeira">
+    <div class="inicio-topo">
+      <h1 class="logo-jogo"><img src="a/logo_jogo.webp" alt="Lenda do Campinho"></h1>
+      <p class="sub">The soccer RPG from Educação Gamer. Be born in Campinho Village, train from childhood and become a LEGEND.</p>
+    </div>
+    <div id="inicioMenu" class="inicio-menu">
+      <button class="btn amarelo grande" id="btnContinuar" hidden>Continue</button>
+      <button class="btn grande" id="btnNovo">New player</button>
+      <button class="btn" id="btnHistoria">📖 Story and chapters</button>
+      <button class="btn" data-abre="ranking">Leaderboard</button>
+      <button class="btn" data-abre="ajuda">How to Play</button>
+      <p id="resumoSave" class="resumo"></p>
+    </div>
+    <p class="copyright-inicio"><img class="logo-eg" src="a/eg_logo_v407.webp" alt="Educação Gamer" width="72" height="48"><!-- v407 (Raio-X): logo local, fixo no rodapé --> © 2026 <a href="https://www.educacaogamer.com.br" target="_blank" rel="noopener">Educação Gamer</a>. All rights reserved. · <a href="direitos.html" target="_blank">Copyright and privacy</a></p>
+    <div id="criacao" class="criacao" hidden>
+      <div class="criacao-preview">
+        <div id="retratoCriacao" class="retrato grande"></div>
+        <p class="dica">This is you! Your clothes and accessories change as you level up.</p>
+      </div>
+      <div class="criacao-opcoes">
+        <label>Player name
+          <input id="inpNome" maxlength="14" placeholder="E.g.: Joãozinho10" autocomplete="off">
+        </label>
+        <div class="opc"><span>Body</span><div id="opCorpo" class="chips"></div></div>
+        <div class="opc"><span>Skin</span><div id="opPele" class="chips"></div></div>
+        <div class="opc"><span>Hair</span><div id="opCabelo" class="chips"></div></div>
+        <div class="opc"><span>Hair color</span><div id="opCorCabelo" class="chips"></div></div>
+        <div class="opc"><span>T-shirt color</span><div id="opRoupa" class="chips"></div></div>
+        <div class="opc"><span>Bottoms</span><div id="opBaixo" class="chips"></div></div>
+        <div class="opc"><span>Glasses</span><div id="opRosto" class="chips"></div></div>
+        <div class="opc"><span>Class (your play style)</span><div id="opClasse" class="grade-classes"></div></div>
+        <div class="criacao-acoes">
+          <button class="btn" id="btnVoltar">Back</button>
+          <button class="btn amarelo grande" id="btnNascer">Be born!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ JOGO ============ -->
+<div id="app" hidden>
+  <header id="topo">
+    <div class="marca"><img src="a/eg_logo_v407.webp" alt=""><b>Lenda do Campinho</b></div>
+    <div class="topo-info">
+      <span id="nomeMapa" class="tag"></span>
+      <span id="relogio" class="tag"></span>
+      <span class="tag moeda"><i class="coin"></i><b id="ouro">0</b></span>
+    </div>
+    <nav class="topo-nav">
+      <button class="btn mini verde" id="btnFicha" title="Player profile: attributes and equipment (C key)">📋 Profile</button>
+      <button class="btn mini" data-abre="mapa" title="World map (M key)">🗺️ <span class="tb-rot">Map</span></button>
+      <button class="btn mini roxo" data-abre="carreira" title="Career: club, leagues and fame (U key)">⭐ <span class="tb-rot">Career</span></button>
+      <button class="btn mini amarelo" data-abre="time" title="My Team">👥 <span class="tb-rot">Team</span></button>
+      <button class="btn mini" data-abre="missoes" title="Missions">❗ <span class="tb-rot">Missions</span></button>
+      <button class="btn mini" data-abre="album" title="Sticker album">📒 Album</button>
+      <button class="btn mini" data-abre="ranking" title="Player rankings">🏆 Ranking</button>
+      <button class="btn mini" data-abre="atalhos" title="Keyboard shortcuts (H key)">⌨️ Shortcuts</button>
+      <button class="btn mini" data-abre="ajuda" title="How to Play">❓ Help</button>
+      <button class="btn mini" id="btnSom" title="Sound on (click to turn off)">🔊</button>
+    </nav>
+  </header>
+
+  <main id="principal">
+    <aside id="lateralEsq2" class="coluna-paineis vazia" data-coluna="esq2"></aside>
+    <aside id="lateralEsq" class="coluna-paineis vazia" data-coluna="esq"></aside>
+    <section id="colJogo">
+      <div id="tela">
+        <canvas id="cv"></canvas>
+        <div id="rastreador"></div>
+        <div id="banner"></div>
+        <div id="lugarTela"></div>
+      </div>
+      <div id="toque">
+        <div id="joy"><div class="joy-base"><div class="joy-bot"></div></div></div>
+        <div class="toque-acoes">
+          <button id="tAlvo" class="btn">Target</button>
+          <button id="tFalar" class="btn amarelo">Talk / Use</button>
+        </div>
+      </div>
+      <div id="barraAcoes">
+        <button id="btnModo" class="btn mini modo" title="Switch attack mode (X key)">X · Dribble</button>
+        <button id="btnClasse" class="btn mini roxo btn-classe" title="Class skill (Shift)">⇧</button>
+        <button id="btnCaca" class="btn mini btn-caca" title="Auto hunt (G)">G · Hunt: off</button>
+        <div id="hotbar"></div>
+      </div>
+      <div id="log" aria-live="polite"></div>
+    </section>
+
+    <aside id="lateral" class="coluna-paineis" data-coluna="dir">
+      <div class="bloco" data-painel="perfil">
+        <div class="painel perfil">
+          <div id="retrato" class="retrato"></div>
+          <div class="perfil-info">
+            <div id="pNome" class="p-nome"></div>
+            <div id="pFase" class="p-fase"></div>
+            <div id="pNivel" class="p-nivel"></div>
+          </div>
+        </div>
+        <div class="painel barras">
+          <div class="barra hp"><i id="bHp"></i><span id="tHp"></span></div>
+          <div class="barra foco"><i id="bFoco"></i><span id="tFoco"></span></div>
+          <div class="barra xp"><i id="bXp"></i><span id="tXp"></span></div>
+        </div>
+      </div>
+      <div class="bloco" data-painel="mini"><div class="painel mini-wrap"><canvas id="mini"></canvas></div></div>
+      <div class="bloco" data-painel="abas">
+        <div class="abas">
+          <button data-aba="batalha" class="ativa">Battle</button>
+          <button data-aba="equip">Equipment</button>
+          <button data-aba="mochila">Backpack</button>
+          <button data-aba="skills">Skills</button>
+        </div>
+        <div class="painel aba ativa" id="aba-batalha"><div id="listaBatalha"></div></div>
+        <div class="painel aba" id="aba-equip"><div id="equip"></div></div>
+        <div class="painel aba" id="aba-mochila"><div id="mochila"></div></div>
+        <div class="painel aba" id="aba-skills"><div id="skills"></div></div>
+      </div>
+      <div class="bloco" data-painel="bolsas"><div class="painel bolsas-painel"><div class="bolsas-tit">🎒 Open bags</div><div id="bolsasAbertas"></div></div></div>
+    </aside>
+    <aside id="lateral2" class="coluna-paineis vazia" data-coluna="dir2"></aside>
+  </main>
+
+</div>
+
+<!-- ============ MODAL ============ -->
+<div id="modal" hidden>
+  <div class="modal-caixa madeira">
+    <button class="fechar" aria-label="Close">×</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<script src="js_en/confirma.js?v=408"></script>
+<script src="js_en/data.js?v=408.3"></script>
+<script src="js_en/arte.js?v=408"></script>
+<script src="js_en/assets.js?v=409"></script>
+<script src="js_en/chao_blocos.js?v=408.7"></script>
+<script src="js_en/world.js?v=408"></script>
+<script src="js_en/game.js?v=409.1"></script>
+<script src="js_en/roupas.js?v=408"></script>
+<script src="js_en/europa.js?v=408"></script>
+<script src="js_en/cidades.js?v=408"></script>
+<script src="js_en/santos_mapa.js?v=408"></script>
+<script src="js_en/espalha.js?v=408"></script>
+<script src="js_en/centrinho.js?v=408"></script>
+<script src="js_en/team.js?v=408"></script>
+<script src="js_en/copa.js?v=408"></script>
+<script src="js_en/carreira.js?v=408"></script>
+<script src="js_en/historia.js?v=408"></script>
+<script src="js_en/ui.js?v=408.3"></script>
+<script src="js_en/penalti.js?v=408"></script>
+<script src="js_en/bonecos_meta.js?v=408"></script>
+<script src="js_en/boneco.js?v=408"></script>
+<script src="js_en/clima.js?v=408"></script>
+<script src="js_en/itens.js?v=408"></script>
+<script src="js_en/layout.js?v=408"></script>
+<script src="js_en/backup.js?v=408"></script>
+<script src="js_en/minimapa.js?v=408"></script>
+<script src="js_en/audio.js?v=410"></script>
+<script src="js_en/jogadas.js?v=408"></script>
+<script src="js_en/arenas.js?v=408"></script>
+<script src="js_en/montarias.js?v=408"></script>
+<script src="js_en/armazem.js?v=409.1"></script>
+<script src="js_en/casas.js?v=409.1"></script>
+<script src="js_en/celular.js?v=408"></script>
+<script src="js_en/celular2.js?v=408"></script>
+<script src="js_en/beta.js?v=408"></script>
+<script src="js_en/portal.js?v=408"></script>
+<script src="js_en/nuvem.js?v=408"></script>
+<script src="js_en/contas.js?v=408"></script><script src="js_en/sessao_unica.js?v=408"></script>
+<script src="js_en/protege.js?v=408"></script>
+<script src="js_en/topo.js?v=408"></script>
+<script src="js_en/sair.js?v=408"></script>
+<script src="js_en/lances.js?v=408"></script>
+<script src="js_en/vocacoes.js?v=408"></script>
+<script src="js_en/tela.js?v=408"></script>
+<script src="js_en/agua.js?v=408"></script>
+<script src="js_en/vento.js?v=408"></script>
+<script src="js_en/wiki.js?v=408"></script>
+<script src="js_en/personagens.js?v=408"></script>
+<script src="js_en/teclas.js?v=408"></script>
+<script src="js_en/variedade.js?v=408"></script>
+<script src="js_en/bonecos_meta2.js?v=408"></script>
+<script src="js_en/bonecos_meta3.js?v=408"></script>
+<script src="js_en/bonecos_meta4.js?v=408"></script>
+<script src="js_en/corpos.js?v=408"></script>
+<script src="js_en/fx.js?v=408"></script>
+<script src="js_en/cacadas.js?v=408"></script>
+<script src="js_en/atlantida.js?v=408"></script>
+<script src="js_en/espaco.js?v=408"></script>
+<script src="js_en/vale.js?v=408"></script>
+<script src="js_en/treino.js?v=408"></script>
+<script src="js_en/cadastro.js?v=408"></script>
+<script src="js_en/montaria_arte.js?v=408"></script>
+<script src="js_en/luxo.js?v=408"></script>
+<script src="js_en/divulgar.js?v=408"></script>
+<script src="js_en/corrida.js?v=408"></script><script src="js_en/estadios.js?v=408"></script><script src="js_en/monumentos.js?v=408"></script><script src="js_en/ruas.js?v=408"></script><script src="js_en/ambiente.js?v=408"></script><script src="js_en/conquistas.js?v=408"></script><script src="js_en/rastreador.js?v=408"></script><script src="js_en/alertas.js?v=408"></script><script src="js_en/ondeachar.js?v=408"></script><script src="js_en/time_guia.js?v=408"></script><script src="js_en/jogadas_info.js?v=408"></script><script src="js_en/dribles_nivel.js?v=408"></script><script src="js_en/pocoes.js?v=408"></script><script src="js_en/analisador.js?v=408"></script><script src="js_en/tarefas.js?v=408"></script><script src="js_en/diaria.js?v=408"></script><script src="js_en/avisos.js?v=408"></script><script src="js_en/saida_trancada.js?v=408"></script><script src="js_en/cidade_arrumada.js?v=408"></script><script src="js_en/partida.js?v=408"></script><script src="js_en/centros_treino.js?v=408"></script><script src="js_en/grade.js?v=408"></script><script src="js_en/zona_segura.js?v=408"></script><script src="js_en/minha_classe.js?v=408"></script>
+<script src="js_en/app_windows.js?v=408"></script>
+<script src="js_en/capa_viva.js?v=408"></script>
+<script src="js_en/inicio.js?v=408"></script>
+<script src="js_en/top3.js?v=408"></script>
+<script src="js_en/gravacao.js?v=408"></script>
+<script src="js_en/massagistas.js?v=408"></script>
+<script src="js_en/arquibancadas.js?v=408"></script>
+<script src="js_en/asas.js?v=408"></script>
+<script src="js_en/carreira_metas.js?v=408.3"></script>
+<script src="js_en/arquetipos.js?v=408"></script>
+<script src="js_en/magias_adv.js?v=408"></script>
+<script src="js_en/santos.js?v=408"></script>
+<script src="js_en/arcos.js?v=408.4"></script>
+<script src="js_en/luz.js?v=408"></script>
+<script src="js_en/clube_mais.js?v=408"></script>
+<script src="js_en/compacto.js?v=408"></script>
+<script src="js_en/ajustes_ui.js?v=408"></script>
+<script src="js_en/cidades_vivas.js?v=408"></script>
+<script src="js_en/cidades_novas.js?v=408"></script>
+<script src="js_en/dungeons_novas.js?v=408"></script>
+<script src="js_en/vila_nova.js?v=408"></script>
+<script src="js_en/vila_beiramar.js?v=408.2"></script>
+<script src="js_en/brasil_vivo.js?v=408"></script>
+<script src="js_en/armazem_forja.js?v=408"></script>
+<script src="js_en/tarefas_loja.js?v=408"></script>
+<script src="js_en/carreira_jogos.js?v=408"></script>
+<script src="js_en/carreira_futebol.js?v=408"></script>
+<script src="js_en/lendas.js?v=408"></script>
+<script src="js_en/mapa_marca.js?v=408"></script>
+<script src="js_en/missoes_colecao.js?v=408"></script>
+<script src="js_en/espaco_novo.js?v=408"></script>
+<script src="js_en/pontes.js?v=408"></script>
+<script src="js_en/futebol_dicas.js?v=408"></script>
+<script src="js_en/visual_itens.js?v=408"></script>
+<script src="js_en/balanco_xp.js?v=408"></script>
+<script src="js_en/santos_jogadores.js?v=408"></script>
+<script src="js_en/pescoco_arte.js?v=408"></script>
+<script src="js_en/fps.js?v=408"></script>
+<script src="js_en/adornos.js?v=408"></script>
+<script src="js_en/adornos2.js?v=410"></script>
+<script src="js_en/desempenho.js?v=408"></script>
+<script src="js_en/roupas_tecidos.js?v=408"></script>
+<script src="js_en/chapeus_arte.js?v=408"></script>
+<script src="js_en/cacas_calmas.js?v=408"></script>
+<script src="js_en/viagens_equip.js?v=408"></script>
+<script src="js_en/bichos_vivos.js?v=408"></script>
+<script src="js_en/economia_ouro.js?v=408"></script>
+<script src="js_en/multiverso.js?v=410"></script>
+<script src="js_en/bichos_malvados.js?v=408"></script>
+<script src="js_en/torre_infinita.js?v=408"></script>
+<script src="js_en/torre_desafio.js?v=408"></script>
+<script src="js_en/xp_alto_nivel.js?v=408"></script>
+<script src="js_en/carreira_simula.js?v=408"></script>
+<script src="js_en/celular3.js?v=408"></script>
+<script src="js_en/graficos.js?v=408"></script>
+<script src="js_en/treino_fundo.js?v=408.6"></script>
+<script src="js_en/aquece.js?v=408"></script>
+<script src="js_en/memoria_mapas.js?v=408"></script>
+<script src="js_en/agencia.js?v=408"></script>
+<script src="js_en/modos_finalizados.js?v=408"></script>
+<script src="js_en/guardioes_lenda.js?v=408"></script>
+<script src="js_en/icones_vivos.js?v=408"></script>
+<script src="js_en/retratos_bichos.js?v=408"></script>
+<script src="js_en/portas_ima.js?v=408"></script>
+<script src="js_en/agencia_escritorio.js?v=408"></script>
+<script src="js_en/agencia_modelo.js?v=408"></script>
+<script src="js_en/agencia_semana.js?v=408"></script>
+<script src="js_en/agencia_familia.js?v=408"></script>
+<script src="js_en/agencia_desenvolvimento.js?v=408"></script>
+<script src="js_en/agencia_carreira.js?v=408"></script>
+<script src="js_en/agencia_eventos.js?v=408"></script>
+<script src="js_en/agencia_reputacao.js?v=408"></script>
+<script src="js_en/padrao_itens.js?v=408"></script>
+<script src="js_en/itens_marcas.js?v=408"></script>
+<script src="js_en/mochilas.js?v=408"></script>
+<script src="js_en/loot_regioes.js?v=408"></script>
+<script src="js_en/tela_paineis.js?v=408"></script>
+<script src="js_en/forja_previa.js?v=408"></script>
+<script src="js_en/chefes_missoes.js?v=408"></script>
+<script src="js_en/missoes_org.js?v=410"></script>
+<script src="js_en/saga_origem.js?v=408"></script>
+<script src="js_en/jurassico.js?v=408"></script>
+<script src="js_en/museu.js?v=408"></script>
+<script src="js_en/missoes_sonhadores.js?v=408"></script>
+<script src="js_en/historico.js?v=408"></script>
+<script src="js_en/brilho_refino.js?v=408"></script>
+<script src="js_en/mascotes.js?v=408"></script>
+<script src="js_en/cacada_epica.js?v=408"></script>
+<script src="js_en/despertar.js?v=408"></script>
+<script src="js_en/chao_novo.js?v=408.7"></script>
+<script src="js_en/portas_largas.js?v=408"></script>
+<script src="js_en/wiki_extra.js?v=410"></script>
+<script src="js_en/carga_rapida.js?v=408"></script>
+<script src="js_en/fila_avisos.js?v=408"></script>
+<script src="js_en/objetivo_agora.js?v=410"></script>
+<script src="js_en/chefes_vivos.js?v=408"></script>
+<script src="js_en/estatisticas.js?v=408"></script>
+<script src="js_en/amigos_lenda.js?v=408"></script>
+<script src="js_en/controle.js?v=408"></script>
+<script src="js_en/torre_coop.js?v=410"></script>
+<script src="js_en/mundo_online.js?v=408"></script>
+<script src="js_en/caca_grupo.js?v=410"></script>
+<script src="js_en/guilda.js?v=408"></script>
+<script src="js_en/mercado.js?v=409.1"></script>
+<script src="js_en/menu_jogador.js?v=408"></script>
+<!-- v407 (Raio-X U1/U5/U6/I8, frente ONLINE): nome do time de listas, convites só de amigos, invisível, denunciar, apagar meus dados, jogando agora -->
+<script src="js_en/online_seguro.js?v=408.4"></script>
+<script src="js_en/arenas_predios.js?v=408"></script>
+<script src="js_en/mar_aberto.js?v=408"></script>
+<script src="js_en/ranking_skills.js?v=408"></script>
+<script src="js_en/capa_coroa.js?v=408"></script>
+<script src="js_en/como_chegar.js?v=408"></script>
+<script src="js_en/mochila_tibia.js?v=408"></script>
+<script src="js_en/opcoes.js?v=408.4"></script>
+<script src="js_en/olhar.js?v=408"></script>
+<script src="js_en/bestiario.js?v=408"></script>
+<!-- v407 (Raio-X R4/R8/R12/A3, frente MISSÕES): história principal primeiro, menino/menina nos textos, Saiba mais, falas dos guias -->
+<script src="js_en/missoes_raiox.js?v=408"></script>
+<script src="js_en/balanco_v407.js?v=408"></script>
+<script src="js_en/versao_nova.js?v=409"></script>
+<script src="js_en/raiox_codigo.js?v=408"></script>
+<!-- v407 (Raio-X, frente ARTE): HUD mais limpo, bandeiras desenhadas (R9), placas temáticas, diálogo com busto, Rio piloto (A7) -->
+<script src="js_en/hud_v407.js?v=408"></script>
+<script src="js_en/bandeiras.js?v=408"></script>
+<script src="js_en/placas_tema.js?v=408"></script>
+<script src="js_en/dialogo_npc.js?v=408.5"></script>
+<script src="js_en/rio_piloto.js?v=408.2"></script>
+<script src="js_en/cidades_onda2.js?v=408.1"></script>
+<!-- v407 (Raio-X R2, frente TESTES): tutorial sem beco (pombo fora da zona segura, baú certo, como comer) -->
+<script src="js_en/tutorial_v407.js?v=408"></script>
+<!-- v407 (Raio-X, frente DESIGN): A1 liberar por nível + fila de dicas, I2 cartão Hoje, dicas da mochila (no lugar do D1, decisão do dono) -->
+<script src="js_en/revela_nivel.js?v=408"></script>
+<script src="js_en/hoje.js?v=408"></script>
+<script src="js_en/dicas_mochila.js?v=408"></script>
+<!-- v408 (Raio-X I5, frente MISSÕES): a Bola de Origem como fio da história desde o nível 1 (pistas, Atlântida/Espaço, capítulos, diário) -->
+<script src="js_en/origem_fio.js?v=408.4"></script>
+<!-- v408 (Raio-X I4, frente FUTEBOL): "GOOOL!" no chefão, Hora do lance 1×1 a 15% do fôlego, placar nas caçadas — depois de opcoes/objetivo_agora/missoes_org/chefes_vivos -->
+<script src="js_en/lance_chefe.js?v=408"></script>
+<!-- v408 (Raio-X I3, frente MISSÕES/TEXTOS): 🛂 Passaporte do Craque — 3 perguntas por lugar, carimbos, títulos, perguntas de regras no quiz do Seu Juca (depois de como_chegar, adornos2 e de todo embrulho de abrirNPC; antes do caderno.js) -->
+<script src="js_en/passaporte.js?v=408"></script>
+<!-- v408 (Raio-X I6): 📒 Caderno do Craque — figurinhas, conquistas, Bestiário, Museu, coleções, lendas e Passaporte numa janela só (depois de todos eles e do revela_nivel.js) -->
+<script src="js_en/caderno.js?v=408"></script>
+<!-- v408.3 (ECA Digital, Lei 15.211/2025): 🃏 vitrine de figurinhas à vista no lugar do pacotinho pago; pacotinho de presente mostra a figurinha; Feira sem itens-sorteio (depois de todos os embrulhos de modalLoja, game.js, carreira_metas, tarefas_loja, mercado e caderno) -->
+<script src="js_en/figurinha_vista.js?v=408.3"></script>
+<!-- bug 06/10/2026 (dono, Torre andar 50): prêmio que vai sozinho para o armazém avisa (registro + faixa) e fica no 📜 Histórico do armazém (depois de game.js, armazem.js, balanco_v407.js, torre_infinita.js e de todo embrulho de matar/usarItem/entregaMissao/modalArmazem) -->
+<script src="js_en/armazem_aviso.js?v=409.1"></script>
+<!-- v410 Copa dos Esquecidos, frente MECÂNICAS (núcleo): 12 fantasmas + 4 capitães + a Final dos Onze, pressões das alas e as 3 comidas, troca de Ingressos com o Seu Saudade, cq_mat no refino, Bolinha Esquecida (depois de lance_chefe, balanco_v407, mascotes, adornos2, saga_origem, arenas e de todo embrulho de matar/aplicaDano/atualizaMonstro; ANTES de copa_arte/copa_mapas/copa_historia) -->
+<script src="js_en/copa_esquecidos.js?v=410"></script>
+<!-- v410 Copa dos Esquecidos, frente ARTE: efeito fantasma, props do estádio, taça, uniforme, escudos, bustos, capítulos -->
+<script src="js_en/copa_arte.js?v=410"></script>
+<!-- v410 Copa dos Esquecidos — ordem: copa_esquecidos → copa_arte → copa_mapas → copa_historia. copa_mapas: estádio + 4 alas, portal no Multiverso (depois de multiverso.js, jurassico.js, chao_novo.js, missoes_raiox.js; ANTES de desempenho_v408.js, porque embrulha entrarMapa) -->
+<script src="js_en/copa_mapas.js?v=410"></script>
+<!-- v410 Copa dos Esquecidos, frente MISSÕES: corrente de missões, capítulos, Álbum dos Esquecidos -->
+<script src="js_en/copa_historia.js?v=410"></script>
+<!-- v408.6 (desempenho): travadas ao entrar no mapa e andando — chão da tela pintado na entrada, bonecos novos com orçamento por quadro, folhas em segundo plano no PC (NO FIM: depois de todos os embrulhos de desenha, spriteBoneco, entrarMapa e loop) -->
+<script src="js_en/desempenho_v408.js?v=408.7"></script>
+</body>
+</html>

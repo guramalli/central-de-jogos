@@ -1,0 +1,164 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   🐾 MASCOTES QUE EVOLUEM (v370, dono: "cada mascote pode ter atributos a adicionar ao boneco: um dá mais XP, outro mais
+   defesa, outro mais fôlego, outro mais foco").
+   - O mascote que está com você (Equipamento → ✨ Adornos) ganha pontos a cada adversário vencido (chefão vale 10) e sobe
+     do nível 1 ao 30. Só contam adversários do seu nível (até 30 níveis abaixo): nada de evoluir batendo em pombo.
+   - FASES com arte própria: FILHOTE (nível 1) → JOVEM (nível 10) → ADULTO (nível 25). O bônus também cresce:
+     filhote 1/3, jovem 2/3, adulto o bônus cheio.
+   - Cada mascote dá UM bônus ao jogador (só o que está com você):
+       🐕 Pipoca +15% tostões · 🐶 Caramelo +8% fôlego · 🤖 Mini-Robô +10% foco · 🦕 Tricerinho +8% defesa
+       🐱 Sortudo +12% chance de item (v372) · 🦉 Corujinha +10% XP · 🦜 Arara +6% dano · 🐙 Polvinho +15% recuperação · 🐉 Dragãozinho +6% dano (o mesmo da Arara)
+   - PIPOCA, o Vira-latinha: o mascote de começo de jogo (missões da Tia Zuzu, na Vila, a partir do nível 12).
+   - Quem já tinha um mascote antes da v370 começa com ele JOVEM (nível 10, a arte de sempre).
+   Pontos para passar do nível n: 60·1,2^(n−1) (v377; antes 25·1,18^(n−1)) → jovem ~1.250 vitórias, adulto ~23.500, nível 30 ~59.000.
+   Carregar DEPOIS de adornos2.js e museu.js.
+   ============================================================ */
+const MASC_MAX = 30;
+const MASC = {
+  pipoca: { bonus: 'ouro', v: 0.15, txt: 'coins' },
+  sortudo: { bonus: 'drop', v: 0.12, txt: 'item drop chance' }, // v372
+  caramelo: { bonus: 'hp', v: 0.08, txt: 'stamina' },
+  robo: { bonus: 'foco', v: 0.10, txt: 'focus' },
+  tricerinho: { bonus: 'def', v: 0.08, txt: 'defense' },
+  corujinha: { bonus: 'xp', v: 0.10, txt: 'XP' },
+  arara: { bonus: 'dano', v: 0.06, txt: 'damage' },
+  dragao: { bonus: 'dano', v: 0.06, txt: 'damage' },
+  polvinho: { bonus: 'regen', v: 0.15, txt: 'stamina and focus recovery' },
+};
+const MASC_FASES = [{ nv: 1, nome: 'Baby', k: 1 / 3, suf: '_f', esc: 0.78 }, { nv: 10, nome: 'Young', k: 2 / 3, suf: '', esc: 1 }, { nv: 25, nome: 'Adult', k: 1, suf: '_a', esc: 1.18 }];
+// v377 (dono: "deve ser mais difícil upar o mascote"): 3x mais difícil — quem já tinha subido mantém o nível
+const mascPontosNivel = n => Math.round(60 * Math.pow(1.2, n - 1));
+function mascDados(id) {
+  const s = G.save; if (!s) return null;
+  if (!s.mascotes) s.mascotes = {};
+  // (uma vez) quem já tinha mascotes liberados antes da v370 fica com eles JOVENS — a arte que já conhecia
+  if (!s.mascotesV370) { s.mascotesV370 = true; for (const k of Object.keys(MASC)) { try { if (ADORNOS2.liberado('mascote', k) && !s.mascotes[k]) s.mascotes[k] = { nv: 10, pts: 0 }; } catch (e) { } } }
+  if (!id) return s.mascotes;
+  return s.mascotes[id] || (s.mascotes[id] = { nv: 1, pts: 0 });
+}
+const mascFase = nv => MASC_FASES.filter(f => nv >= f.nv).pop();
+function mascAtual() { try { const id = ADORNOS2.atual('mascote'); return id && MASC[id] ? id : null; } catch (e) { return null; } }
+// o bônus que o mascote dá agora (fração: 0.05 = 5%)
+function mascDragaoBonus() { try { return ADORNOS2.liberado('mascote', 'arara'); } catch (e) { return false; } }
+function mascBonus(tipo) {
+  const id = mascAtual(); if (!id || MASC[id].bonus !== tipo) return 0;
+  // v380 (Steam, RISCOS 4.11 — o dono: "pode fazer com sua opinião"): o Dragãozinho é COMPRADO (Pacote Lendário), então o
+  // bônus dele só vale depois que a Arara (mesmo bônus, ganha jogando) estiver liberada: quem paga leva o visual, não força
+  if (id === 'dragao' && !mascDragaoBonus()) return 0;
+  const d = mascDados(id); return MASC[id].v * mascFase(d.nv).k;
+}
+const pct = v => `${Math.round(v * 1000) / 10}%`;
+// arte e tamanho da fase (usados no desenho do mascote em adornos2.js)
+// v373 (dono: "o gato adulto está com 5 patas"): filhote e adulto do Sortudo redesenhados EM PÉ (4 patas) — versão nova da arte
+if (typeof ASSET_VER !== 'undefined') for (const suf of ['_f', '_a']) for (let k = 1; k <= 4; k++) ASSET_VER[`pet_sortudo${suf}_c${k}`] = 373;
+const PET_ARTE_BASE = { caramelo: 'pet_caramelo2' };
+window.petArte = id => { if (!MASC[id] || !G.save) return null; const f = mascFase(mascDados(id).nv); return f.suf ? `pet_${id}${f.suf}` : (PET_ARTE_BASE[id] || `pet_${id}`); };
+window.petEscala = id => { if (!MASC[id] || !G.save) return 1; return mascFase(mascDados(id).nv).esc; };
+// (as artes de filhote/adulto NÃO entram na carga inicial — são 3 MB: cada uma carrega quando aparece pela 1ª vez;
+// enquanto isso o desenho usa a arte de sempre)
+
+/* ---------- o mascote ganha pontos caçando com você ---------- */
+function mascGanha(pts) {
+  const id = mascAtual(); if (!id) return;
+  const d = mascDados(id); if (d.nv >= MASC_MAX) return;
+  d.pts += pts; let subiu = false;
+  while (d.nv < MASC_MAX && d.pts >= mascPontosNivel(d.nv)) { d.pts -= mascPontosNivel(d.nv); d.nv++; subiu = true;
+    const nome = (ADORNOS2.OPCOES.mascote.find(o => o[0] === id) || [])[1] || id, f = mascFase(d.nv);
+    if (f.nv === d.nv && d.nv > 1) {
+      banner(`🐾 ${nome} evolved!`, `Now it's ${f.nome.toUpperCase()}: +${pct(MASC[id].v * f.k)} ${MASC[id].txt}`); som('nivel');
+      log(`🐾 ${nome} EVOLVED into ${f.nome}! New look, and the bonus went up to +${pct(MASC[id].v * f.k)} ${MASC[id].txt}.`, 'l-lvl');
+      try { const P = ADORNOS2.PET; if (P && P.x != null) { efeito('area', P.x, P.y, '#ffd23f', 1.4); efeito('puff', P.x, P.y); } } catch (e) { }
+    } else log(`🐾 ${nome} reached level ${d.nv}${d.nv >= MASC_MAX ? ' (the max!)' : ''}.`, 'l-xp');
+  }
+  if (subiu) { G.uiSujo = true; try { salvar(); } catch (e) { } }
+}
+{
+  const _mtM = matar;
+  matar = function (m) {
+    const r = _mtM.apply(this, arguments);
+    try {
+      const s = G.save; if (!s || !m || !m.d || m.d.treino || m.d.pedra || !(m.d.xp > 0)) return r;
+      const id = mascAtual(); if (!id) return r;
+      if (nivelMonstro(m.d) >= s.nivel - 30) mascGanha(m.d.chefe ? 10 : 1);
+      // 🐕 tostões a mais
+      const b = mascBonus('ouro');
+      if (b && m.d.ouro && m.d.ouro[1] > 0) { const extra = Math.max(1, Math.round((m.d.ouro[0] + m.d.ouro[1]) / 2 * b)); s.ouro += extra; G.uiSujo = true; }
+    } catch (e) { }
+    return r;
+  };
+}
+
+/* ---------- os bônus ---------- */
+{
+  const _stM = stats;
+  stats = function () {
+    const st = _stM.apply(this, arguments);
+    try {
+      const id = mascAtual(); if (!id) return st;
+      const b = mascBonus(MASC[id].bonus); if (!b) return st;
+      switch (MASC[id].bonus) {
+        case 'hp': st.maxHp = Math.round(st.maxHp * (1 + b)); break;
+        case 'foco': st.maxFoco = Math.round(st.maxFoco * (1 + b)); break;
+        case 'def': st.def = Math.round(st.def * (1 + b)); break;
+        case 'dano': st.danoMult = (st.danoMult || 1) * (1 + b); break;
+        case 'regen': st.regenHp = st.regenHp * (1 + b); st.regenFoco = st.regenFoco * (1 + b); break;
+      }
+    } catch (e) { }
+    return st;
+  };
+  // 🐱 Sortudo: a chance de cada item dos adversários fica maior (proporcional: 1 em 1.000 vira ~1 em 890 no adulto).
+  // Não mexe em tostões (Pipoca), figurinhas nem nas contagens garantidas (ovo do Vale, Museu): essas não usam d.loot.
+  window.multDrop = () => 1 + mascBonus('drop');
+  const _gxM = ganhaXp;
+  ganhaXp = function (n) { try { const b = mascBonus('xp'); if (b && n > 0) arguments[0] = Math.round(n * (1 + b)); } catch (e) { } return _gxM.apply(this, arguments); };
+}
+
+/* ---------- na janela de Adornos: nível, fase, bônus e barra de cada mascote ---------- */
+{
+  const _amM = abreModal;
+  abreModal = function () {
+    const r = _amM.apply(this, arguments);
+    try {
+      const box = document.querySelector('#modalConteudo .adornos .ad2'); if (!box || box.querySelector('.masc-info') || !G.save) return r;
+      const h3 = [...box.querySelectorAll('h3')].find(h => /Mascote|Pet/.test(h.textContent)); const grade = h3 && h3.nextElementSibling; if (!grade) return r;
+      const ops = ADORNOS2.OPCOES.mascote, bts = [...grade.children];
+      ops.forEach((o, i) => {
+        const id = o[0], bt = bts[i]; if (!bt || !MASC[id]) return;
+        const lib = ADORNOS2.liberado('mascote', id), M = MASC[id];
+        if (!lib) { bt.append(el('span', { class: 'masc-info' }, `Bonus: ${M.txt} (up to +${pct(M.v)})`)); return; }
+        const d = mascDados(id), f = mascFase(d.nv), prox = MASC_FASES.find(x => x.nv > d.nv), need = mascPontosNivel(d.nv);
+        bt.append(el('span', { class: 'masc-info' }, el('b', {}, `Lv ${d.nv} · ${f.nome}`), id === 'dragao' ? ` · just for looks: it gives your Macaw’s bonus${mascDragaoBonus() ? ` (+${pct(MASC.arara.v * mascFase(mascDados('arara').nv).k)} ${M.txt})` : ' (unlock the Macaw by playing)'}` : ` · +${pct(M.v * f.k)} ${M.txt}`, /* v407 (Raio-X T3) */
+          d.nv < MASC_MAX ? el('span', { class: 'masc-bar', title: `${d.pts}/${need} points to level ${d.nv + 1}` }, el('i', { style: `width:${Math.round(d.pts / need * 100)}%` })) : el('span', {}, ' · MAX!'),
+          prox ? el('small', {}, `${prox.nome} at level ${prox.nv}`) : ''));
+      });
+      h3.after(el('p', { class: 'dica masc-dica' }, '🐾 The pet with you evolves by hunting (each opponent of your level = 1 point, boss = 10) and gives your player a BONUS. Baby → Young (level 10) → Adult (level 25): new look and a bigger bonus.'));
+    } catch (e) { console.warn('mascotes', e); }
+    return r;
+  };
+  const css = document.createElement('style');
+  css.textContent = `.masc-info { display: block; font-size: 11.5px; line-height: 1.3; margin-top: 4px; color: #5a3a1a; }
+  .masc-info small { display: block; opacity: .75; } .masc-bar { display: block; height: 6px; margin: 3px 0 1px; border-radius: 3px; background: rgba(0,0,0,.15); overflow: hidden; }
+  .masc-bar i { display: block; height: 100%; background: linear-gradient(90deg, #3aa84a, #9ae05a); }`;
+  document.head.append(css);
+}
+
+/* ---------- 🐕 Pipoca: as missões da Tia Zuzu (Vila) ---------- */
+{
+  const xpNivel = L => Math.max(1, xpPara(L + 1) - xpPara(L));
+  // v407 (Raio-X R8): caixa alta só para nome de chefão (palavras de ênfase e nomes de cidade voltaram ao normal)
+  if (NPCS.zuzu) MISSOES.push(
+    { id: 'pipoca1', npc: 'zuzu', lvl: 12, titulo: '🐕 The popcorn puppy', texto: 'There’s a little mutt puppy who shows up here every day begging for popcorn! But the street kids keep chasing him, and he’s scared to death. Can you beat 15 Village Kids so he can feel safe?', req: { kill: 'moleque', n: 15 }, rec: { xp: Math.round(xpNivel(12) * 0.8), ouro: 2500 }, fim: 'Look, he\'s already wagging his tail at you! I think he likes you...' },
+    { id: 'pipoca2', npc: 'zuzu', lvl: 14, pre: 'pipoca1', titulo: '🐕 A home for Pipoca', texto: 'Tonhão keeps kicking the ball at the poor little guy! Teach him a lesson (beat Tonhão 3 times) and the puppy is yours. I already gave him a name: Pipoca!', req: { kill: 'tonhao', n: 3 }, rec: { xp: Math.round(xpNivel(14) * 1), ouro: 4000, flag: 'pet_pipoca' }, fim: 'Pipoca is now your PET! Bring him along in Equipment → ✨ Cosmetics. Hunting together, he grows and brings extra coins. Take good care of him, okay?' },
+  );
+}
+// 🐱 Sortudo: as missões da Dona Yuki do Onigiri (Tóquio)
+{
+  const xpNivel = L => Math.max(1, xpPara(L + 1) - xpPara(L));
+  if (NPCS.loja_toquio) MISSOES.push(
+    { id: 'sortudo1', npc: 'loja_toquio', lvl: 72, titulo: '🐱 The runaway kitty', texto: 'Oh no! The lucky kitty from my shop ran away! He\'s crazy about the ceramic Lucky Cats, the waving ones. If you collect 8 of them, he\'ll come after them, I\'m sure of it!', req: { item: 'lr_toquio_2', n: 8 }, rec: { xp: Math.round(xpNivel(72) * 0.8), ouro: 72 * 300 }, fim: 'I heard a "meow" near the arena... I think he\'s coming!' },
+    { id: 'sortudo2', npc: 'loja_toquio', lvl: 76, pre: 'sortudo1', titulo: '🐱 Sortudo, the Lucky Kitty', texto: 'He was seen near the Dribble Sensei, but the Sensei won\'t let anyone get close! Beat the Sensei 3 times and bring the kitty back.', req: { kill: 'toquio_chefe', n: 3 }, rec: { xp: Math.round(xpNivel(76) * 1), ouro: 76 * 400, flag: 'pet_sortudo' }, fim: 'He doesn\'t want to leave your side! Keep him: his name is SORTUDO. Bring him along in Equipment → ✨ Cosmetics — with him, opponents drop more items!' },
+  );
+}
+window.MASCOTES = { MASC, MASC_FASES, mascDados, mascGanha, mascBonus, mascPontosNivel };

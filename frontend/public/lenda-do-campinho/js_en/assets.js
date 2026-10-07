@@ -1,0 +1,181 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   RUMO AO CRAQUE — artes geradas (pasta a/)
+   carregamento, chão texturizado, interiores e ícones
+   ============================================================ */
+const ASSET_DIR = 'a/';
+const ASSETS = 'arbusto arquibancada arvore b_ap1 b_ap2 b_bazar b_casa b_ct b_escola b_loja b_padaria balcao banca banco banco_reservas barra barreiras bau bebedouro bicicletario boia boneco cachorro cachorro2 cachorro_c1 cachorro_c2 cachorro_c3 cachorro_c4 cadeira_praia caixa_correio cama canteiro caranguejo carro carro2 carteira castelo cone_deco cones coqueiro coqueiro2 d_arrancada d_caneta d_chapeu d_chute_colocado d_elastico d_pedalada d_respiro d_voleio dc_cogumelo dc_dente dc_flor1 dc_flor2 dc_flor3 dc_flor4 dc_folhas dc_margarida dc_pedra1 dc_pedra2 dc_poca dc_trevo dc_tufo1 dc_tufo2 dc_tufo3 dc_tufo4 estante gaivota geladeira grade guarda_roupa guarda_sol hidrante holofote i_acai i_agua i_agua_coco i_apito_velho i_bola i_bola_murcha i_bola_praia i_bone i_calcao_camuflado i_calcao_praia i_calcao_pro i_calcao_tactel i_camisa10 i_camisa_ct i_camisa_futsal i_camisa_listrada i_camisa_vila i_camiseta i_caneleira_carbono i_caneleira_papelao i_caneleira_plastico i_cartao i_cartao_vermelho i_chuteira_couro i_chuteira_ouro i_chuteira_pano i_chuteira_pro i_chuteira_society i_chuteira_travas i_colar_havaiano i_concha i_cone i_coroa i_cronometro i_faixa_capitao i_faixa_suor i_headset i_isotonico i_louros i_luva i_medalha_bronze i_medalha_colecionador i_medalha_ouro i_medalha_prata i_munhequeira i_oculos_sol i_osso i_pacotinho i_pe_descalco i_pena i_prancheta i_roda_skate i_shorts_rasgado i_suco_verde i_tenis_velho i_vitamina isopor lixeira lousa mangueira maquina mesa palmeira_vaso pedra placa placar pombo pombo2 ponto_onibus poste poste2 prancha prancheta_cav quadro quiosque rampa rede sacola_bolas sofa t_agua t_areia t_asfalto t_barro t_calcada t_campo t_grama t_madeira t_pedra t_piso t_pista t_quadra t_terra tapete titulo toalha torre trofeu tv vaso i_pao_queijo i_coxinha i_pastel i_tapioca i_banana i_sanduiche i_feijoada i_brigadeiro i_prato_feito i_melancia i_retalho i_couro i_fio_ouro i_oficina i_gema i_tostao'.split(' ');
+const ASSET_SET = new Set(ASSETS);
+// v271: ícones desenhados (Higgsfield) das magias de classe e dos dribles que ainda eram emoji
+['carrinho', 'tranco', 'chamar_marcacao', 'folego_campeao', 'trivela', 'chuva_bolas', 'canhao', 'bicicleta', 'lancamento', 'hipnose', 'toque_mestre', 'tabela', 'agua_gelada', 'grito_torcida', 'raiz', 'relampago', 'utevo_lux'].forEach(k => { const n = 'd_' + k; if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); } });
+const PORTAS = { b_casa: { x: 0.46, y: 0.86 }, b_bazar: { x: 0.49, y: 0.81 }, b_escola: { x: 0.475, y: 0.87 }, b_loja: { x: 0.54, y: 0.9 }, b_ct: { x: 0.52, y: 0.89 }, b_ap1: { x: 0.5, y: 0.93 }, b_ap2: { x: 0.55, y: 0.92 }, b_padaria: { x: 0.5, y: 0.9 } };
+const FACE_BICHO = { pombo: 'e', pombo2: 'e', cachorro: 'e', cachorro2: 'e', gaivota: 'e', caranguejo: 'f', boneco: 'f' };
+
+const SPR = {};
+// v296: imagem que foi REFEITA com o mesmo nome ganha uma versão no endereço (senão o navegador continua mostrando a
+// antiga por até 1 dia — foi o que aconteceu com as pontes com rampa). Só as que mudaram: as outras seguem no cache.
+const ASSET_VER = {};
+// v319: arte que faltou ao montar um boneco. O cache dos bonecos só é refeito quando ela CHEGA de verdade
+// (antes: a cada 0,8 s enquanto carregava — e para sempre se a imagem falhasse, o jogo ficava pesado sem parar)
+const ARTE_ESPERA = new Set();
+function esperaArte(nome) { const e = SPR[nome]; if (!e || !e.err) ARTE_ESPERA.add(nome); }
+setInterval(() => {
+  if (!ARTE_ESPERA.size) return; let chegou = false;
+  for (const n of ARTE_ESPERA) { const e = SPR[n]; if (!e) continue; if (e.ok) { chegou = true; ARTE_ESPERA.delete(n); } else if (e.err) ARTE_ESPERA.delete(n); }
+  if (chegou) try { SPR_CACHE.clear(); } catch (e) { }
+}, 800);
+function spr(nome) {
+  let e = SPR[nome];
+  if (!e) {
+    e = SPR[nome] = { im: new Image(), ok: false, err: false };
+    // v319: a imagem só entra em uso depois de DECODIFICADA em segundo plano (antes o 1º desenho de um prédio/árvore
+    // decodificava na hora, ~8 ms num quadro só = travadinha ao andar). Com tempo-limite (Safari pode não responder).
+    e.im.onload = () => { const ok = () => { e.ok = true; }; if (!e.im.decode) return ok(); setTimeout(ok, 2500); e.im.decode().then(ok, ok); };
+    e.im.onerror = () => { e.err = true; };
+    e.im.src = ASSET_DIR + nome + '.webp' + (ASSET_VER[nome] ? '?v=' + ASSET_VER[nome] : '');
+  }
+  return e;
+}
+// Carrega tudo (sprites + peças do avatar do jogador) mostrando progresso
+function carregaAssets(extras = [], onProg) {
+  const lista = ASSETS.map(n => spr(n));
+  const imgs = extras.map(u => pegaImg(u));
+  return new Promise(res => {
+    const t0 = performance.now();
+    const tick = () => {
+      const tot = lista.length + imgs.length;
+      const ok = lista.filter(e => e.ok || e.err).length + imgs.filter(e => e.ok || e.err).length;
+      onProg && onProg(ok / tot);
+      if (ok >= tot || performance.now() - t0 > 15000) res(); else setTimeout(tick, 80);
+    };
+    tick();
+  });
+}
+
+/* ---------------- chão com texturas ---------------- */
+const TEX_CHAO = {
+  [CH.GRAMA]: 't_grama', [CH.GRAMA_FLOR]: 't_grama', [CH.TERRA]: 't_terra', [CH.AREIA]: 't_areia', [CH.AREIA_MOLHADA]: 't_areia', [CH.AGUA]: 't_agua',
+  [CH.PEDRA]: 't_pedra', [CH.MADEIRA]: 't_madeira', [CH.CAMPO]: 't_campo', [CH.QUADRA]: 't_quadra', [CH.PISO]: 't_piso', [CH.PISTA]: 't_pista',
+  [CH.ASFALTO]: 't_asfalto', [CH.CALCADA]: 't_calcada', [CH.CAMPO_TERRA]: 't_barro', [CH.CONCRETO]: 't_calcada', [CH.QUADRA_AZUL]: 't_quadra',
+};
+const TEMA_PAREDE = {
+  casa: { papel: '#f3d9b1', listra: '#e9c996', rodape: '#8a5a32' },
+  bazar: { papel: '#c99a62', listra: '#b8854e', rodape: '#5e3a20' },
+  escola: { papel: '#e4eef8', listra: '#d6e4f2', rodape: '#4f8a5a' },
+  loja: { papel: '#fbe7c6', listra: '#f4d6a6', rodape: '#d0602e' },
+  ct: { papel: '#e8f0f6', listra: '#d8e6f0', rodape: '#3a6ad9' },
+};
+function padrao(ctx, nome, escala) {
+  const e = spr(nome); if (!e.ok) return null;
+  const p = ctx.createPattern(e.im, 'repeat');
+  if (p && p.setTransform) p.setTransform(new DOMMatrix([escala, 0, 0, escala, 0, 0]));
+  return p;
+}
+// v407 (Raio-X A8): as texturas e enfeites que o desenho do chão deste mapa usa
+function texturasDoChao(m) {
+  const l = new Set([m.interior ? 't_madeira' : 't_grama']), vistos = new Set(m.chao);
+  for (const t of vistos) if (TEX_CHAO[t]) l.add(TEX_CHAO[t]);
+  if (!m.interior && (vistos.has(CH.GRAMA) || vistos.has(CH.GRAMA_FLOR))) ['dc_tufo1', 'dc_tufo2', 'dc_tufo3', 'dc_tufo4', 'dc_flor1', 'dc_flor2', 'dc_flor3', 'dc_flor4', 'dc_margarida', 'dc_dente', 'dc_trevo', 'dc_cogumelo', 'dc_folhas', 'dc_pedra1'].forEach(n => l.add(n));
+  if (!m.interior && (vistos.has(CH.TERRA) || vistos.has(CH.CAMPO_TERRA))) ['dc_pedra1', 'dc_pedra2'].forEach(n => l.add(n));
+  return [...l].filter(n => typeof ASSET_SET === 'undefined' || ASSET_SET.has(n));
+}
+function renderChao(m) {
+  if (m._chao) return m._chao;
+  if (!spr('t_grama').ok) return renderChaoVetor(m);
+  { // v407 (Raio-X A8): o desenho fica guardado — só desenha quando as texturas DESTE mapa chegaram (sem elas o chão ficava
+    // de uma cor só até sair do mapa; agora as artes baixam depois que o jogo abre). Enquanto isso: a prévia com as cores dos
+    // quadradinhos. Desiste de esperar em 4 s (e refaz quando elas chegarem).
+    const usa = texturasDoChao(m), falta = usa.filter(n => { const e = spr(n); return !e.ok && !e.err; });
+    if (falta.length && typeof novoChaoBlocos === 'function') {
+      if (!m._chaoEspera) { m._chaoEspera = novoChaoBlocos(m.w * T, m.h * T, m, { soPrevia: true }); m._chaoEsperaT = Date.now(); }
+      if (Date.now() - m._chaoEsperaT < 4000) return m._chaoEspera;
+      if (!m._chaoRefaz) m._chaoRefaz = setInterval(() => { if (usa.every(n => spr(n).ok || spr(n).err)) { clearInterval(m._chaoRefaz); m._chaoRefaz = null; delete m._chao; } }, 1000);
+    }
+    m._chaoEspera = null;
+  }
+  // v407 (Raio-X A8): o chão vai para a "lousa" em blocos (chao_blocos.js), não mais numa imagem do tamanho do mapa
+  const W = m.w * T, H = m.h * T; const c = typeof novoChaoBlocos === 'function' ? novoChaoBlocos(W, H, m) : mkCanvas(W, H); const x = c.getContext('2d');
+  const r = mulberry(m.w * 131 + m.h * 7 + m.id.length);
+  const esc = (2 * T) / 256;
+  x.fillStyle = padrao(x, m.interior ? 't_madeira' : 't_grama', esc) || '#86c75a'; x.fillRect(0, 0, W, H);
+  // camadas por tipo de chão
+  const tipos = Object.keys(ESTILO_CHAO).map(Number).sort((a, b) => ESTILO_CHAO[a].o - ESTILO_CHAO[b].o);
+  for (const t of tipos) {
+    const est = ESTILO_CHAO[t]; const tiles = [];
+    for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if (m.chao[j * m.w + i] === t) tiles.push([i, j]);
+    if (!tiles.length) continue;
+    const e = est.e * T, rad = est.r * T, suave = typeof chaoSuaviza === 'function' && chaoSuaviza(t);
+    if (!suave && (e > 0 || rad > 0)) { x.fillStyle = t === CH.AGUA ? 'rgba(240,250,255,0.95)' : est.borda; x.globalAlpha = t === CH.AGUA ? 1 : 0.75; x.fill(caminhoTiles(tiles, e + (t === CH.AGUA ? 7 : 3), rad + 3)); x.globalAlpha = 1; }
+    const corpo = suave ? caminhoSuave(m, t, tiles) : caminhoTiles(tiles, e, rad);
+    if (suave && corpo.pre) for (const [px, py, pw, ph, n] of corpo.pre) { // o canto arredondado mostra a areia/terra do lado
+      x.fillStyle = padrao(x, TEX_CHAO[n], esc) || (ESTILO_CHAO[n] || {}).cor || '#f7e2a9'; x.fillRect(px, py, pw, ph);
+      if (n === CH.AREIA_MOLHADA) { x.fillStyle = 'rgba(120,90,40,0.2)'; x.fillRect(px, py, pw, ph); }
+    }
+    if (suave && (e > 0 || rad > 0)) { // terra/areia/pedra: a borda macia e o "inchadinho" seguem a curva (o traço de dentro some embaixo do preenchimento)
+      x.save(); x.lineJoin = 'round'; x.globalAlpha = 0.75; x.strokeStyle = est.borda; x.lineWidth = 2 * (e + 3); x.stroke(corpo); x.globalAlpha = 1;
+      if (e > 0) { x.strokeStyle = padrao(x, TEX_CHAO[t], esc) || est.cor; x.lineWidth = 2 * e; x.stroke(corpo); } x.restore();
+    }
+    if (t === CH.AGUA && typeof pintaAgua === 'function') pintaAgua(x, m, corpo); // água lisa, sem quadriculado (agua.js)
+    else { x.fillStyle = padrao(x, TEX_CHAO[t], esc) || est.cor; x.fill(corpo); }
+    x.save(); x.clip(corpo);
+    if (t === CH.AREIA_MOLHADA) { x.fillStyle = 'rgba(120,90,40,0.2)'; x.fillRect(0, 0, W, H); }
+    if (t === CH.CONCRETO) { x.fillStyle = 'rgba(90,90,120,0.16)'; x.fillRect(0, 0, W, H); }
+    if (est.tinta) { x.fillStyle = est.tinta; x.fillRect(0, 0, W, H); } // v272: paredes e pisos das dungeons novas (textura existente tingida)
+    if (t === CH.QUADRA_AZUL) { x.globalCompositeOperation = 'color'; x.fillStyle = '#3a6ae0'; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
+    if (t === CH.CAMPO) for (const [i, j] of tiles) if (Math.floor(i / 2) % 2) { x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * T, j * T, T, T); }
+    // (antes: contorno escuro em CADA quadrado de água — era isso que fazia a grade)
+    x.restore();
+  }
+  // enfeites no chão (tufos, flores, pedrinhas)
+  const decal = (nome, cx, cy, tam) => { const e = spr(nome); if (!e.ok) return; const w = tam, h = w * e.im.height / e.im.width; x.drawImage(e.im, cx - w / 2, cy - h / 2, w, h); };
+  if (!m.interior) for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) {
+    const t = m.chao[j * m.w + i]; const o = m.obj[j * m.w + i];
+    if (t === CH.GRAMA || t === CH.GRAMA_FLOR) {
+      if (r() < 0.4) decal('dc_tufo' + (1 + ((r() * 4) | 0)), i * T + r() * T, j * T + r() * T, T * (0.3 + r() * 0.15));
+      if (t === CH.GRAMA_FLOR || r() < 0.08) decal(['dc_flor1', 'dc_flor2', 'dc_flor3', 'dc_flor4', 'dc_margarida', 'dc_dente', 'dc_trevo'][(r() * 7) | 0], i * T + 10 + r() * (T - 20), j * T + 10 + r() * (T - 20), T * (0.32 + r() * 0.12));
+      if (!o && r() < 0.02) decal(['dc_cogumelo', 'dc_folhas', 'dc_pedra1'][(r() * 3) | 0], i * T + r() * T, j * T + r() * T, T * 0.35);
+    } else if ((t === CH.TERRA || t === CH.CAMPO_TERRA) && r() < 0.08) decal(r() < 0.5 ? 'dc_pedra1' : 'dc_pedra2', i * T + r() * T, j * T + r() * T, T * 0.28);
+  }
+  m.campos.forEach(f => drawLinhasCampo(x, f));
+  if (m.interior) desenhaParedes(x, m);
+  m._chao = c; return c;
+}
+function desenhaParedes(x, m) {
+  const tp = TEMA_PAREDE[m.tema] || TEMA_PAREDE.casa; const W = m.w * T;
+  // parede do fundo (2 tiles de altura)
+  x.fillStyle = tp.papel; x.fillRect(0, 0, W, 2 * T);
+  x.fillStyle = tp.listra; for (let i = 0; i < W; i += 28) x.fillRect(i, 0, 12, 2 * T - 18);
+  x.fillStyle = tp.rodape; x.fillRect(0, 2 * T - 18, W, 18); x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(0, 2 * T, W, 8);
+  x.fillStyle = shade(tp.rodape, -0.3); x.fillRect(0, 0, W, 10);
+  // janelas e quadros
+  const jan = (cx) => { rr(x, cx - 34, 26, 68, 58, 8, '#fffaf0', 3); rr(x, cx - 28, 32, 56, 46, 5, grad(x, 0, 32, 0, 78, '#bfe8ff', '#7ac0f0'), 2); x.fillStyle = '#fffaf0'; x.fillRect(cx - 2, 32, 4, 46); x.fillRect(cx - 28, 53, 56, 4); };
+  const quadro = (cx) => { rr(x, cx - 22, 30, 44, 36, 4, '#8a5a32', 3); rr(x, cx - 16, 36, 32, 24, 2, '#7ad0a0', 0); x.fillStyle = '#ffe37a'; x.beginPath(); x.arc(cx + 6, 44, 5, 0, 7); x.fill(); };
+  for (let i = 2; i < m.w - 2; i += 4) (i / 4) % 2 < 1 ? jan((i + 0.5) * T) : quadro((i + 0.5) * T);
+  // laterais e frente
+  x.fillStyle = '#4a2e1a'; x.fillRect(0, 0, T * 0.35, m.h * T); x.fillRect(W - T * 0.35, 0, T * 0.35, m.h * T);
+  x.fillRect(0, (m.h - 1) * T + T * 0.55, W, T * 0.45);
+  const porta = m.saidas.find(s => s.volta);
+  if (porta) { x.fillStyle = '#2a1a10'; x.fillRect(porta.x * T + 6, (m.h - 1) * T + T * 0.5, T - 12, T * 0.5); rr(x, porta.x * T + 4, (m.h - 1) * T + 4, T - 8, T * 0.42, 8, '#c0503a', 2); x.fillStyle = 'rgba(255,255,255,0.5)'; x.font = `700 ${T * 0.2}px Fredoka`; x.textAlign = 'center'; x.fillText('EXIT', (porta.x + 0.5) * T, (m.h - 1) * T + T * 0.32); }
+}
+
+/* ---------------- ícones de item/drible com as artes ---------------- */
+const ICON_ALIAS = { apito: 'i_apito_velho' };
+const ICONES_ARTE = new Map();
+function iconeDeArte(nome) {
+  if (ICONES_ARTE.has(nome)) return ICONES_ARTE.get(nome);
+  const e = spr(nome); if (!e.ok) return null;
+  const c = mkCanvas(96, 96); const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+  const s = Math.min(88 / e.im.width, 88 / e.im.height); const w = e.im.width * s, h = e.im.height * s;
+  x.drawImage(e.im, (96 - w) / 2, (96 - h) / 2, w, h);
+  ICONES_ARTE.set(nome, c); return c;
+}
+function iconeItem(id) {
+  const nome = ICON_ALIAS[id] || 'i_' + id;
+  return (ASSET_SET.has(nome) && iconeDeArte(nome)) || iconeItemVetor(id);
+}
+function iconeDrible(id) {
+  const nome = 'd_' + id;
+  if (ASSET_SET.has(nome)) { const c = iconeDeArte(nome); if (c) return c; }
+  return iconeDribleVetor(id);
+}

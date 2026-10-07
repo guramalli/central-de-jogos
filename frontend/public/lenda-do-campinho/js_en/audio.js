@@ -1,0 +1,559 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   RUMO AO CRAQUE — áudio: trilha sonora + efeitos gravados
+   - Envolve o som(tipo) sintetizado de game.js: se existe amostra
+     para o tipo, toca a amostra (WebAudio); senão usa o sintetizador.
+   - Gerenciador de música por contexto (tela inicial, mapa, partida),
+     com crossfade, loop sem emenda e "duck" em nível/gol.
+   - Volumes separados de música e efeitos (salvos em localStorage).
+   Arquivos em a/som/ (gerados com Higgsfield: Sonilo Music + Seed Audio).
+   ============================================================ */
+(function () {
+  const PASTA = 'a/som/';
+  const CHAVE = 'rac_audio_v1';
+  const CROSS = 1.8;      // segundos de crossfade entre músicas
+  const PRE = 0.05;       // início do loop dentro do arquivo (folga para atraso do decodificador mp3)
+
+  // duração exata do corpo do loop (o arquivo tem +0,5 s repetindo o começo, para emenda perfeita)
+  const MUSICAS = { titulo: 18.5388, vila: 18.5388, cidade: 18.5388, mundo: 16.5788, europa: 18.5388,
+    vila2: 58.0236, cidade2: 58.0236, mundo2: 58.0236, europa2: 58.0236, caca: 58.0236, estadio: 58.0236 }; // v155: faixas longas (1 min) — as de 18 s repetiam demais
+  // v276: música própria de cada cidade (faixas prontas da Pixabay Music — licença livre para usar no jogo, sem crédito obrigatório),
+  // com a cara do lugar (samba, tango, flamenco, acordeão, polca, koto...). Toca inteira ao chegar, depois alterna com a da região.
+  const MUS_CIDADE = { rio: 173.76, santos: 137.32, buenos: 146.45, madri: 156.5, paris: 142.08, munique: 202.76, toquio: 171.35,
+    cairo: 150.43, doha: 143.31, miami: 179.97, lisboa: 220.52, milao: 135.07, londres: 165.08 };
+  Object.assign(MUSICAS, MUS_CIDADE);
+  // v277: músicas de AVENTURA nas dungeons, pelo clima do lugar (Pixabay Music); a música antiga das caçadas vira a 2ª opção
+  const MUS_DG = { dg_caverna: 188.32, dg_vulcao: 183.86, dg_gelo: 176.74, dg_deserto: 248.58, dg_floresta: 171.53, dg_subterraneo: 172.47, dg_piratas: 194.04, dg_espaco: 225.46, dg_oriental: 131.94 };
+  Object.assign(MUSICAS, MUS_DG);
+  // v287: fundo do mar (Atlântida), galáxia (Estação, planetas e Copa Intergaláctica) e o Vale das Pedras Celestiais (Pixabay Music)
+  const MUS_FIM = { atlantida: 150.59, atlantida2: 176.25, galaxia: 140.79, galaxia2: 335.16, celeste: 110.32 };
+  Object.assign(MUSICAS, MUS_FIM);
+  // v364 (dono: "músicas novas onde não temos, com tema de exploração, excitação, descoberta... ação"; Pixabay Music, mesma licença):
+  // Multiverso, Pedraforte, Picos Nublados e Torre com faixa própria; luta de CHEFÃO; o labirinto jurássico (mapas jur_*) e o T-Rex
+  const MUS_V364 = { multiverso: 122.1, pedraforte: 125.3, picos: 144.3, torre: 137.5, chefe: 142.5, aventura: 141.7, dino: 95.95, dino2: 119.9, dino_boss: 164.3 };
+  Object.assign(MUSICAS, MUS_V364);
+  const MAPA_FIM = { multiverso: 'multiverso', pedraforte: 'pedraforte', picos_nublados: 'picos', torre_infinita: 'torre', arena_ecos: 'torre', // (v369: Arena dos Ecos) v352: o Multiverso não tinha música (seguia a faixa de antes — o forró da Vila)
+    atlantida: 'atlantida', estacao: 'galaxia', lua: 'galaxia', marte: 'galaxia', saturno: 'galaxia', nebulosa: 'galaxia', copa_intergalactica: 'galaxia', vale_celeste: 'celeste' };
+  // v278: Brasil — forró de São João na Vila, samba de praia na Praia, sambinha na Cidade, "Atlas Brazil" no CT (Pixabay)
+  Object.assign(MUSICAS, { vila3: 156.9, praia3: 159.9, cidade3: 179.01, ct3: 180.18 });
+  // v407 (Raio-X R10): tema novo de ~2 min (Higgsfield Sonilo) na tela inicial, abertura e criação; as 5 faixas curtas de 18,5 s
+  // (titulo, vila, cidade, mundo, europa) saem do rodízio — quem pedir uma delas toca a longa da mesma região
+  MUSICAS.tema_v407 = 117.81;
+  const AUD_CURTAS = { titulo: 'tema_v407', vila: 'vila3', cidade: 'cidade2', mundo: 'mundo2', europa: 'europa2' };
+  const DG_TEMA = { catacumba: 'dg_caverna', cristal: 'dg_caverna', mina: 'dg_caverna', tunel: 'dg_caverna', lava: 'dg_vulcao', gelo: 'dg_gelo',
+    tumba: 'dg_deserto', deserto: 'dg_deserto', bazar: 'dg_deserto', palacio: 'dg_deserto',
+    mata: 'dg_floresta', campo: 'dg_floresta', pantano: 'dg_floresta', fazenda: 'dg_floresta', labirinto: 'dg_floresta',
+    metro: 'dg_subterraneo', esgoto: 'dg_subterraneo', metro_paris: 'dg_subterraneo', armazem: 'dg_subterraneo', relogio: 'dg_subterraneo', moda: 'dg_subterraneo',
+    praia: 'dg_piratas', cais: 'dg_piratas', estaleiro: 'dg_piratas', caravela: 'dg_piratas', recife: 'dg_piratas',
+    lunar: 'dg_espaco', marciano: 'dg_espaco', anel: 'dg_espaco', nebular: 'dg_espaco', bambu: 'dg_oriental', dojo: 'dg_oriental',
+    barracao: 'rio', academia: 'miami', // o barracão de samba e a academia da praia tocam a música da cidade
+    mv_mina: 'dg_caverna', mv_grutas: 'dg_caverna', mv_lava: 'dg_vulcao', mv_trono: 'dg_vulcao', mv_nuvens: 'celeste', mv_pico: 'celeste', mv_floresta: 'dg_floresta', mv_ponte: 'dg_floresta' }; // v352: caçadas do Multiverso (antes caíam na música genérica)
+  function musicaDaCaca(id) { const c = typeof CACA_POR_ID !== 'undefined' && CACA_POR_ID[id]; const f = c && DG_TEMA[c.tema]; return f && MUSICAS[f] ? f : 'caca'; }
+  const AMBIENTE = { torcida: 11.65,
+    // v278: torcida com o jeito de cada país (gravação real de estádio + a percussão típica; Pixabay)
+    torcida_br: 179.324, torcida_de: 147.5, torcida_ar: 153.86, torcida_jp: 153.86, torcida_arabe: 153.86, torcida_eu: 153.86, torcida_palmas: 153.86 };
+  const TORCIDA_HOST = { estadio: 'br', rio: 'br', santos: 'br', munique: 'de', buenos: 'ar', toquio: 'jp', cairo: 'arabe', doha: 'arabe',
+    milao: 'eu', lisboa: 'eu', paris: 'eu', londres: 'palmas', madri: 'palmas', miami: 'palmas' };
+  const TORCIDA_PAIS = { brasil: 'br', alemanha: 'de', argentina: 'ar', uruguai: 'ar', colombia: 'ar', mexico: 'palmas', japao: 'jp', china: 'jp', egito: 'arabe', catar: 'arabe', arabia: 'arabe', turquia: 'arabe',
+    italia: 'eu', portugal: 'eu', franca: 'eu', belgica: 'eu', holanda: 'eu', inglaterra: 'palmas', escocia: 'palmas', espanha: 'palmas', eua: 'palmas' };
+
+  // tipo do jogo -> [arquivo, volume, variação de pitch, intervalo mínimo (ms), vozes máx.]
+  const SFX = {
+    chute: ['chute', 0.75, 0.05, 70, 3],
+    toque: ['drible', 0.45, 0.06, 90, 2],
+    nivel: ['nivel', 0.75, 0, 400, 1],
+    apito: ['apito', 0.5, 0.02, 250, 1],
+    gol: ['gol', 0.8, 0.02, 600, 1],
+    // moeda, cura, gole, erro e raro saíam com voz/"narração" do gerador: agora são sintetizados (SINT, abaixo)
+    // v401 (dono: "sonoplastia nos chefões... um rugido, barulho de golpes"): sons GRAVADOS (Higgsfield Mirelo) no lugar dos
+    // sintetizados; a duração máxima (último número) corta o silêncio do começo, iguala o volume e usa só o trecho bom
+    chefe_rugido: ['chefe_rugido', 0.95, 0.05, 900, 1, 1, 2.3],
+    chefe_entrada: ['chefe_entrada_humano', 0.8, 0.02, 900, 1, 1, 2.6],
+    chefe_furia: ['chefe_furia', 0.95, 0.04, 900, 1, 1, 2.4],
+    chefe_choque: ['chefe_choque', 1, 0.05, 300, 2, 1, 0.95],
+    chefe_queda: ['chefe_queda', 1, 0.02, 900, 1, 1, 1.9],
+    chefe_golpe: ['chefe_golpe', 0.8, 0.08, 280, 2, 1, 0.5],
+    // v407 (Raio-X, sons de interface): gravados (Higgsfield Mirelo, recortados e com o volume igualado) no lugar dos bipes;
+    // o sintetizado continua de reserva enquanto o arquivo não carregou
+    moeda: ['ui_moeda_v407', 0.6, 0.04, 60, 3], equip: ['ui_equip_v407', 0.65, 0.05, 120, 2], erro: ['ui_erro_v407', 0.55, 0.02, 150, 1],
+    cura: ['ui_cura_v407', 0.6, 0.03, 150, 1], bolsa: ['ui_bolsa_v407', 0.6, 0.05, 150, 1],
+  };
+  // v226: sons gravados das habilidades (Seed Audio): dr_<drible> e cl_<especial>. [arquivo, vol, pitch, intervalo, vozes, rate, duração máx. (s)]
+  const SONS_HAB = { dr_pedalada: 2.6, dr_respiro: 1.5, dr_chute_colocado: 2.2, dr_arrancada: 1.5, dr_chapeu: 2.6, dr_voleio: 1.5, dr_elastico: 2.8, dr_tabela: 1.5, dr_caneta: 3.2,
+    dr_bicicleta: 2.4, dr_relampago: 1.8, dr_carrinho: 1.8, dr_chamar_marcacao: 2.2, dr_tranco: 1.6, dr_trivela: 1.8, dr_chuva_bolas: 2.8, dr_canhao: 2.4,
+    dr_lancamento: 2, dr_hipnose: 2.2, dr_toque_mestre: 1.8, dr_agua_gelada: 1.8, dr_grito_torcida: 3, dr_raiz: 2.2, cl_muralha: 2.2, cl_firula: 2.6, cl_leitura: 2.2, cl_segundo_folego: 2.2 };
+  for (const [k, dur] of Object.entries(SONS_HAB)) SFX[k] = [k, 0.8, 0.03, 180, 2, 1, dur];
+  const DUCK = { nivel: [0.35, 2.2], gol: [0.3, 3.2], raro: [0.6, 1.2] };
+
+  const A = {
+    ctx: null, master: null, sfxBus: null, musBus: null, duck: null, ambGain: null,
+    buf: {}, carregando: {}, falhou: {},
+    atual: null, fading: [], faixa: null, amb: null,
+    vozes: {}, ultimo: {},
+    vol: { musica: 0.45, sfx: 0.8, ambiente: 0.7 },
+    gesto: false, somOnAnt: true,
+  };
+  window.RAC_AUDIO = A; // para depuração
+
+  try { const v = JSON.parse(localStorage.getItem(CHAVE) || 'null'); if (v) { if (isFinite(v.musica)) A.vol.musica = Math.min(1, Math.max(0, v.musica)); if (isFinite(v.ambiente)) A.vol.ambiente = Math.min(1, Math.max(0, v.ambiente)); if (isFinite(v.sfx)) A.vol.sfx = Math.min(1, Math.max(0, v.sfx)); } } catch (e) { /* sem storage */ }
+  function salvaVol() { try { localStorage.setItem(CHAVE, JSON.stringify(A.vol)); } catch (e) { /* sem storage */ } }
+  const somLigado = () => typeof G === 'undefined' || G.somOn !== false;
+
+  /* ---------- contexto e barramentos ---------- */
+  function garanteCtx() {
+    if (A.ctx) return A.ctx;
+    try {
+      // reaproveita o AudioContext do sintetizador (let AC em game.js), criando se preciso
+      if (typeof AC !== 'undefined' && AC) A.ctx = AC;
+      else { A.ctx = new (window.AudioContext || window.webkitAudioContext)(); try { AC = A.ctx; } catch (e) { /* sem AC global */ } }
+    } catch (e) { return null; }
+    const c = A.ctx;
+    const saida = c.destination;
+    A.master = c.createGain(); A.master.connect(saida);
+    A.sfxBus = c.createGain(); A.sfxBus.connect(A.master);
+    A.duck = c.createGain(); A.duck.connect(A.master);
+    A.musBus = c.createGain(); A.musBus.connect(A.duck);
+    A.ambBus = c.createGain(); A.ambBus.connect(A.master);   // chuva, praia, passarinhos, torcida: volume próprio
+    A.ambGain = c.createGain(); A.ambGain.gain.value = 0; A.ambGain.connect(A.ambBus);
+    // o sintetizador antigo liga direto em AC.destination: redireciona para o barramento de efeitos
+    try { Object.defineProperty(c, 'destination', { value: A.sfxBus, configurable: true }); } catch (e) { /* navegador antigo: segue sem volume no sintetizador */ }
+    aplicaVolumes(true);
+    return c;
+  }
+  function aplicaVolumes(ja) {
+    if (!A.ctx) return;
+    const t = A.ctx.currentTime, on = somLigado();
+    const alvo = (g, v) => { if (ja) g.gain.value = v; else g.gain.setTargetAtTime(v, t, 0.05); };
+    alvo(A.master, on ? 1 : 0);
+    alvo(A.sfxBus, A.vol.sfx);
+    alvo(A.musBus, A.vol.musica);
+    if (A.ambBus) alvo(A.ambBus, A.vol.ambiente);
+  }
+
+  /* ---------- carregamento ---------- */
+  function carrega(nome) {
+    if (A.buf[nome]) return Promise.resolve(A.buf[nome]);
+    if (A.falhou[nome]) return Promise.resolve(null);
+    if (A.carregando[nome]) return A.carregando[nome];
+    const c = garanteCtx(); if (!c) return Promise.resolve(null);
+    const p = fetch(PASTA + nome + '.mp3')
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(ab => new Promise((ok, erro) => { const pr = c.decodeAudioData(ab, ok, erro); if (pr && pr.catch) pr.catch(erro); }))
+      .then(b => { A.buf[nome] = b; return b; })
+      .catch(() => { A.falhou[nome] = true; return null; })
+      .finally(() => { delete A.carregando[nome]; });
+    A.carregando[nome] = p;
+    return p;
+  }
+  function carregaEfeitos() { const vistos = new Set(); for (const k in SFX) { if (SONS_HAB[k]) continue; const f = SFX[k][0]; if (!vistos.has(f)) { vistos.add(f); carrega('sfx_' + f); } } }
+  // v226: dos sons de habilidade, baixa só os que o jogador já tem (os outros, no 1º uso)
+  function carregaHabilidades() {
+    const s = typeof G !== 'undefined' && G.save; if (!s) return;
+    const lista = (s.dribles || []).map(id => 'dr_' + id); const cl = typeof CLASSES !== 'undefined' && CLASSES[s.classe]; if (cl && cl.especial) lista.push('cl_' + cl.especial.id);
+    lista.filter(k => SONS_HAB[k]).forEach((k, i) => setTimeout(() => carrega('sfx_' + k), 300 * i));
+  }
+  A.carregaHabilidades = carregaHabilidades;
+  if (typeof iniciarJogo === 'function') { const _iniAu = iniciarJogo; iniciarJogo = async function () { const r = await _iniAu.apply(this, arguments); setTimeout(carregaHabilidades, 3000); return r; }; }
+  // corta o silêncio do começo e iguala o volume (os arquivos gerados vêm com volumes diferentes)
+  function medeAmostra(b, durMax) {
+    const d = b.getChannelData(0), sr = b.sampleRate; let ini = 0; const lim = 0.02;
+    while (ini < d.length && Math.abs(d[ini]) < lim) ini++;
+    ini = Math.max(0, ini - Math.round(sr * 0.01)); const fim = Math.min(d.length, ini + Math.round(sr * durMax));
+    let q = 0, pk = 0; for (let i = ini; i < fim; i++) { q += d[i] * d[i]; const v = Math.abs(d[i]); if (v > pk) pk = v; } const rms = Math.sqrt(q / Math.max(1, fim - ini));
+    // v407 (Raio-X, volume das magias): o teto era 4× (+12 dB) e a Pedalada (−47 dB), o Toque de Mestre e o Carrinho continuavam
+    // quase mudos perto do Canhão (37 dB de diferença). Agora até 16× (+24 dB), mas sem passar do pico (nada estoura): ~7 dB entre todas
+    return { off: ini / sr, ganho: Math.max(0.35, Math.min(16, 0.13 / Math.max(1e-4, rms), 0.9 / Math.max(1e-4, pk))) };
+  }
+
+  /* ---------- efeitos ---------- */
+  function duck(tipo) {
+    const d = DUCK[tipo]; if (!d || !A.ctx) return;
+    const g = A.duck.gain, t = A.ctx.currentTime;
+    if (A.duckFim > t && A.duckNivel < d[0]) return;   // já há um duck mais forte rolando
+    A.duckFim = t + d[1]; A.duckNivel = d[0];
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(d[0], t + 0.08);
+    g.setValueAtTime(d[0], t + d[1] * 0.6);
+    g.linearRampToValueAtTime(1, t + d[1]);
+  }
+  function tocaAmostra(tipo) {
+    const cf = SFX[tipo]; if (!cf) return false;
+    const b = A.buf['sfx_' + cf[0]]; if (!b) return false;
+    const c = A.ctx, agora = performance.now();
+    if (agora - (A.ultimo[tipo] || 0) < cf[3]) return true;          // spam: ignora
+    const vivas = (A.vozes[tipo] || []).filter(v => !v.acabou);
+    if (vivas.length >= cf[4]) { const v = vivas.shift(); try { v.g.gain.setTargetAtTime(0, c.currentTime, 0.02); v.s.stop(c.currentTime + 0.1); } catch (e) { /* já parou */ } v.acabou = true; }
+    A.ultimo[tipo] = agora;
+    const s = c.createBufferSource(), g = c.createGain();
+    s.buffer = b;
+    s.playbackRate.value = (cf[5] || 1) * (1 + (Math.random() * 2 - 1) * cf[2]);
+    g.gain.value = cf[1];
+    s.connect(g); g.connect(A.sfxBus);
+    const voz = { s, g, acabou: false }; s.onended = () => { voz.acabou = true; };
+    vivas.push(voz); A.vozes[tipo] = vivas;
+    if (cf[6]) { // v226: som de habilidade: sem o silêncio do começo, volume igualado e fim suave na duração máxima
+      const m = b._med || (b._med = medeAmostra(b, cf[6])), t = c.currentTime, v = cf[1] * m.ganho;
+      g.gain.setValueAtTime(v, t); g.gain.setValueAtTime(v, t + cf[6] - 0.35); g.gain.linearRampToValueAtTime(0.0001, t + cf[6]);
+      s.start(t, m.off); s.stop(t + cf[6] + 0.05);
+    } else s.start();
+    duck(tipo);
+    return true;
+  }
+
+  /* ---------- efeitos sintetizados (camadas + eco), sem arquivos ---------- */
+  let ECO = null;
+  function eco() { // eco curto e suave para brilhos
+    if (ECO) return ECO; const c = A.ctx;
+    const ent = c.createGain(), d = c.createDelay(0.5), fb = c.createGain(), filtro = c.createBiquadFilter(), sai = c.createGain();
+    d.delayTime.value = 0.11; fb.gain.value = 0.32; filtro.type = 'lowpass'; filtro.frequency.value = 5000; sai.gain.value = 0.35;
+    ent.connect(d); d.connect(filtro); filtro.connect(fb); fb.connect(d); filtro.connect(sai); sai.connect(A.sfxBus);
+    return ECO = ent;
+  }
+  // nota com envelope: tipo de onda, frequência (ou [de, para]), início, duração, volume
+  function nota(onda, f, t0, dur, vol, opc = {}) {
+    const c = A.ctx, o = c.createOscillator(), g = c.createGain(); o.type = onda;
+    const [fa, fb] = Array.isArray(f) ? f : [f, f];
+    o.frequency.setValueAtTime(fa, t0); if (fb !== fa) o.frequency.exponentialRampToValueAtTime(fb, t0 + (opc.glide || dur));
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + (opc.ataque || 0.005)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    let saida = g;
+    if (opc.passaBaixa) { const fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = opc.passaBaixa; g.connect(fl); saida = fl; }
+    if (opc.pan != null && c.createStereoPanner) { const pn = c.createStereoPanner(); pn.pan.value = opc.pan; saida.connect(pn); saida = pn; }
+    if (opc.vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = opc.vib[0]; lg.gain.value = opc.vib[1]; l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur + 0.03); }
+    o.connect(g); saida.connect(A.sfxBus); if (opc.eco) saida.connect(eco());
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  // ruído filtrado (chiado, brilho, "fwip")
+  let RUIDO = null;
+  function ruido(t0, dur, vol, tipoF, freq, freqFim, q = 1, comEco, pan) {
+    const c = A.ctx;
+    if (!RUIDO) { RUIDO = c.createBuffer(1, c.sampleRate, c.sampleRate); const d = RUIDO.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = RUIDO; s.loop = true;
+    f.type = tipoF; f.Q.value = q; f.frequency.setValueAtTime(freq, t0); if (freqFim) f.frequency.exponentialRampToValueAtTime(freqFim, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + Math.min(0.02, dur / 3)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    let saida = g; if (pan != null && c.createStereoPanner) { const pn = c.createStereoPanner(); pn.pan.value = pan; g.connect(pn); saida = pn; }
+    s.connect(f); f.connect(g); saida.connect(A.sfxBus); if (comEco) saida.connect(eco());
+    s.start(t0, Math.random() * 0.5); s.stop(t0 + dur + 0.03);
+  }
+  const var_ = (k = 0.04) => 1 + (Math.random() * 2 - 1) * k; // variação para repetições não soarem iguais
+  function gole(t, v = 1) { // "glup": bolha que sobe
+    nota('sine', [260 * v, 520 * v], t, 0.09, 0.32, { glide: 0.07, passaBaixa: 1800 });
+    ruido(t, 0.06, 0.05, 'bandpass', 700 * v, 1400 * v, 3);
+  }
+  const SINT = {
+    moeda: { ms: 60, f(t) { const k = var_(0.02); nota('square', 1319 * k, t, 0.09, 0.07, { passaBaixa: 6000 }); nota('triangle', 1319 * k, t, 0.09, 0.14);
+      nota('square', 1976 * k, t + 0.075, 0.32, 0.06, { passaBaixa: 7000, eco: true }); nota('triangle', 1976 * k, t + 0.075, 0.35, 0.14, { eco: true }); nota('sine', 3951 * k, t + 0.075, 0.2, 0.03); } },
+    gole: { ms: 150, f(t) { const k = var_(0.06); gole(t, k); gole(t + 0.13, k * 1.08); } },
+    cura: { ms: 150, f(t) { // poção: dois goles + brilho mágico subindo
+      const k = var_(0.04); gole(t, k); gole(t + 0.12, k * 1.1); gole(t + 0.24, k * 1.2);
+      [1568, 2093, 2637, 3136, 4186].forEach((fq, i) => nota('sine', fq * k, t + 0.36 + i * 0.055, 0.45, 0.07, { eco: true }));
+      ruido(t + 0.36, 0.6, 0.035, 'highpass', 6000, 9000, 0.7, true); } },
+    erro: { ms: 150, f(t) { nota('square', [240, 200], t, 0.11, 0.07, { passaBaixa: 1100 }); nota('square', [200, 160], t + 0.13, 0.16, 0.07, { passaBaixa: 1000 }); } },
+    raro: { ms: 200, f(t) { // item raro: arpejo de sininhos com eco e brilho
+      [1047, 1319, 1568, 2093, 2637, 3136].forEach((fq, i) => { nota('triangle', fq, t + i * 0.07, 0.6, 0.1, { eco: true }); nota('sine', fq * 2, t + i * 0.07, 0.25, 0.025); });
+      ruido(t + 0.1, 0.9, 0.03, 'highpass', 7000, 10000, 0.7, true); duck('raro'); } },
+    ai: { ms: 120, f(t) { nota('sine', [170, 70], t, 0.18, 0.35, { glide: 0.14 }); ruido(t, 0.08, 0.12, 'lowpass', 900, 300, 0.8); } },
+    skill: { ms: 150, f(t) { ruido(t, 0.28, 0.12, 'bandpass', 500, 4000, 2); nota('triangle', [660, 1320], t + 0.05, 0.25, 0.08, { eco: true }); } },
+    equip: { ms: 120, f(t) { ruido(t, 0.12, 0.14, 'bandpass', 1800, 700, 1.5); nota('square', 180, t + 0.1, 0.05, 0.05, { passaBaixa: 900 }); } },
+    morte: { ms: 800, f(t) { [392, 370, 349, 294].forEach((fq, i) => nota('triangle', [fq, fq * (i === 3 ? 0.9 : 1)], t + i * 0.2, i === 3 ? 0.7 : 0.22, 0.14, { passaBaixa: 2500 })); } },
+    porta: { ms: 150, f(t) { nota('sine', [140, 90], t, 0.09, 0.3); ruido(t, 0.05, 0.1, 'lowpass', 1200, 400, 1); nota('sine', [120, 80], t + 0.12, 0.08, 0.2); } },
+  };
+  SINT.bolsa = SINT.equip; // v407: reserva do som de abrir a bolsa (o gravado entra quando carregar)
+  // ---- dribles (dr_<id>) e habilidades de classe (cl_<id>): cada um com a sua cara ----
+  const acorde = (t, fs, onda, dur, vol, passo = 0, opc = {}) => fs.forEach((f, i) => nota(onda, f, t + i * passo, dur, vol, opc));
+  const whoosh = (t, dur, de, para, vol = 0.14, pan) => ruido(t, dur, vol, 'bandpass', de, para, 1.6, false, pan);
+  const baque = (t, vol = 0.4, f = [150, 55]) => { nota('sine', f, t, 0.22, vol, { glide: 0.16 }); ruido(t, 0.05, vol * 0.3, 'lowpass', 2500, 600, 0.7); };
+  Object.assign(SINT, {
+    dr_pedalada: { ms: 200, f(t) { whoosh(t, 0.12, 900, 2600, 0.45, -0.6); whoosh(t + 0.13, 0.12, 900, 2600, 0.45, 0.6); nota('triangle', 880, t + 0.26, 0.1, 0.14); } },
+    dr_respiro: { ms: 300, f(t) { ruido(t, 0.55, 0.16, 'bandpass', 700, 1100, 1.2); ruido(t + 0.55, 0.6, 0.13, 'bandpass', 1100, 600, 1.2); acorde(t + 0.5, [784, 988, 1175], 'sine', 0.7, 0.05, 0.06, { eco: true }); } },
+    dr_chute_colocado: { ms: 200, f(t) { whoosh(t, 0.1, 600, 1800, 0.1); baque(t + 0.08, 0.35, [240, 90]); nota('sine', 1760, t + 0.12, 0.25, 0.05, { eco: true }); } },
+    dr_arrancada: { ms: 300, f(t) { ruido(t, 0.5, 0.4, 'bandpass', 300, 5000, 1.4); nota('sawtooth', [220, 880], t, 0.45, 0.08, { passaBaixa: 2400, glide: 0.4 }); nota('triangle', [440, 1760], t + 0.05, 0.4, 0.12, { glide: 0.35 }); } },
+    dr_chapeu: { ms: 250, f(t) { whoosh(t, 0.15, 500, 1500, 0.1); nota('sine', [330, 990], t + 0.05, 0.22, 0.2, { glide: 0.2 }); nota('sine', [990, 440], t + 0.27, 0.22, 0.16, { glide: 0.2 }); nota('triangle', 1320, t + 0.5, 0.15, 0.05); } },
+    dr_voleio: { ms: 250, f(t) { whoosh(t, 0.14, 400, 2200, 0.13); baque(t + 0.12, 0.5, [180, 50]); ruido(t + 0.12, 0.09, 0.14, 'highpass', 3000, 6000, 0.8); } },
+    dr_elastico: { ms: 250, f(t) { nota('sine', [420, 720], t, 0.16, 0.18, { vib: [28, 40], pan: -0.5 }); nota('sine', [720, 380], t + 0.17, 0.2, 0.18, { vib: [28, 40], pan: 0.5 }); nota('triangle', [300, 150], t + 0.4, 0.2, 0.12); } },
+    dr_folego_campeao: { ms: 600, f(t) { nota('sine', 659, t, 0.22, 0.03); nota('sine', 988, t + 0.09, 0.3, 0.025, { eco: true }); } }, // v237: som leve (o gravado de 2,2 s cansava — é a cura mais usada)
+    dr_caneta: { ms: 250, f(t) { ruido(t, 0.22, 0.4, 'bandpass', 2400, 600, 2); nota('square', 523, t + 0.2, 0.08, 0.09, { passaBaixa: 3000 }); nota('square', 1047, t + 0.29, 0.16, 0.09, { passaBaixa: 4000, eco: true }); } },
+    dr_tabela: { ms: 300, f(t) { baque(t, 0.25, [320, 140]); ruido(t, 0.05, 0.05, 'highpass', 2000, 3000, 1, false, -0.7); baque(t + 0.16, 0.25, [360, 150]); ruido(t + 0.16, 0.05, 0.05, 'highpass', 2000, 3000, 1, false, 0.7);
+      whoosh(t + 0.28, 0.35, 700, 2800, 0.12); acorde(t + 0.35, [659, 880, 1109], 'triangle', 0.35, 0.06, 0.04, { eco: true }); } },
+    dr_bicicleta: { ms: 400, f(t) { ruido(t, 0.45, 0.16, 'bandpass', 300, 3500, 1.3); baque(t + 0.45, 0.65, [140, 40]); ruido(t + 0.45, 0.14, 0.2, 'highpass', 2500, 7000, 0.8);
+      acorde(t + 0.5, [523, 659, 784, 1047], 'triangle', 0.9, 0.07, 0.04, { eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    dr_relampago: { ms: 400, f(t) { for (let i = 0; i < 6; i++) { nota('sawtooth', [1800 + Math.random() * 1600, 300], t + i * 0.045, 0.06, 0.05, { passaBaixa: 6000, pan: Math.random() * 1.6 - 0.8 }); ruido(t + i * 0.045, 0.04, 0.12, 'highpass', 3000, 8000, 0.7); }
+      nota('sine', [90, 40], t + 0.28, 0.8, 0.35, { glide: 0.7 }); ruido(t + 0.28, 0.9, 0.12, 'lowpass', 400, 120, 0.7); acorde(t + 0.3, [1568, 2093, 2637], 'sine', 0.6, 0.04, 0.05, { eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    // v350 (dono: "tem skills sem som"): Holofote (antes tocava a moeda) e as 4 magias do Multiverso não tinham som próprio
+    dr_utevo_lux: { ms: 400, f(t) { nota('square', [95, 70], t, 0.08, 0.16, { passaBaixa: 900 }); ruido(t, 0.04, 0.12, 'highpass', 2500, 4000, 1); // "clac" do refletor
+      nota('sine', [400, 1600], t + 0.07, 0.45, 0.07, { glide: 0.4 }); acorde(t + 0.25, [1319, 1760, 2349], 'sine', 0.6, 0.04, 0.06, { eco: true }); } },
+    dr_muralha_titas: { ms: 600, f(t) { baque(t, 0.6, [110, 38]); ruido(t, 0.5, 0.25, 'lowpass', 600, 120, 0.8); baque(t + 0.18, 0.55, [95, 34]); baque(t + 0.36, 0.7, [80, 30]); // pedras caindo
+      nota('square', [73, 55], t + 0.36, 0.7, 0.1, { passaBaixa: 500 }); acorde(t + 0.42, [196, 247, 294], 'triangle', 0.9, 0.05, 0.02, { eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    dr_chute_tempestade: { ms: 500, f(t) { ruido(t, 0.35, 0.18, 'bandpass', 400, 2600, 1.2, false, -0.5); baque(t + 0.3, 0.55, [200, 60]); // vento + chute
+      for (let i = 0; i < 5; i++) ruido(t + 0.34 + i * 0.035, 0.05, 0.16, 'highpass', 2500, 7000, 0.7, false, Math.random() * 1.4 - 0.7); // estalo do raio
+      nota('sine', [70, 32], t + 0.42, 1.1, 0.4, { glide: 0.9 }); ruido(t + 0.42, 1.2, 0.14, 'lowpass', 300, 90, 0.7); if (typeof duck === 'function') duck('raro'); } }, // trovão
+    dr_jogada_multiverso: { ms: 500, f(t) { nota('sine', [180, 1500], t, 0.55, 0.24, { glide: 0.5, vib: [9, 30], pan: -0.7 }); nota('sine', [270, 2200], t + 0.05, 0.55, 0.16, { glide: 0.5, vib: [11, 40], pan: 0.7 });
+      ruido(t, 0.6, 0.16, 'bandpass', 300, 4500, 2, true); [659, 831, 988, 1319, 1661].forEach((f, i) => nota('triangle', f, t + 0.45 + i * 0.06, 0.25, 0.09, { pan: -0.8 + i * 0.4, eco: true })); } },
+    dr_fonte_runica: { ms: 600, f(t) { [0, 0.07, 0.15, 0.22].forEach((d, i) => gole(t + d, 0.55 + i * 0.1)); ruido(t, 0.4, 0.05, 'bandpass', 1800, 3200, 1.5); // água borbulhando
+      acorde(t + 0.25, [523, 659, 784], 'sine', 0.5, 0.035, 0.05, { eco: true }); } }, // cura leve (é usada muitas vezes)
+    cl_muralha: { ms: 500, f(t) { nota('square', [110, 90], t, 0.35, 0.12, { passaBaixa: 700 }); [880, 1245, 1760].forEach(f => nota('sine', f, t + 0.02, 1.0, 0.06, { eco: true })); ruido(t, 0.08, 0.12, 'bandpass', 1500, 900, 1.5); } },
+    cl_firula: { ms: 500, f(t) { [784, 880, 1047, 1175, 1319, 1568].forEach((f, i) => nota('triangle', f, t + i * 0.045, 0.2, 0.05, { pan: -0.6 + i * 0.24 })); ruido(t + 0.25, 0.5, 0.035, 'highpass', 7000, 10000, 0.7, true); nota('sine', 2093, t + 0.3, 0.4, 0.05, { eco: true }); } },
+    cl_leitura: { ms: 500, f(t) { acorde(t, [220, 330, 494, 587], 'sine', 1.4, 0.06, 0, { ataque: 0.35 }); nota('triangle', 1760, t + 0.4, 0.9, 0.05, { eco: true }); nota('triangle', 1319, t + 0.6, 0.9, 0.04, { eco: true }); } },
+    cl_segundo_folego: { ms: 500, f(t) { ruido(t, 0.5, 0.08, 'bandpass', 600, 1300, 1.2); acorde(t + 0.35, [392, 494, 587, 784], 'triangle', 0.5, 0.08, 0.08); acorde(t + 0.7, [784, 988, 1175], 'sine', 0.8, 0.05, 0.03, { eco: true }); } },
+    // v353 (dono: "os chefões estão pouco animados"): entrada, fúria, onda de choque e queda dos chefões (chefes_vivos.js)
+    chefe_rugido: { ms: 1500, f(t) { nota('sawtooth', [95, 60], t, 1.1, 0.16, { passaBaixa: 600, vib: [7, 9], ataque: 0.12 }); nota('sawtooth', [142, 88], t + 0.03, 1.0, 0.1, { passaBaixa: 900, vib: [6, 12] });
+      ruido(t, 1.1, 0.22, 'lowpass', 700, 160, 0.9); baque(t + 0.05, 0.55, [90, 32]); acorde(t + 0.15, [110, 131, 156], 'square', 1.1, 0.035, 0, { passaBaixa: 500, eco: true }); if (typeof duck === 'function') duck('raro'); } },
+    chefe_furia: { ms: 1500, f(t) { nota('sawtooth', [120, 240], t, 0.5, 0.14, { passaBaixa: 1400, vib: [14, 20], glide: 0.45 }); ruido(t, 0.6, 0.2, 'bandpass', 300, 1600, 1.4); baque(t + 0.45, 0.5, [120, 40]);
+      acorde(t + 0.45, [147, 175, 208], 'sawtooth', 0.7, 0.05, 0.05, { passaBaixa: 900 }); } },
+    chefe_aviso: { ms: 600, f(t) { nota('square', [880, 660], t, 0.16, 0.07, { passaBaixa: 2500 }); nota('square', [880, 660], t + 0.2, 0.16, 0.07, { passaBaixa: 2500 }); ruido(t, 0.6, 0.08, 'lowpass', 200, 800, 0.8); } },
+    chefe_choque: { ms: 400, f(t) { baque(t, 0.7, [100, 30]); ruido(t, 0.7, 0.3, 'lowpass', 1600, 120, 0.8); ruido(t, 0.12, 0.15, 'highpass', 2000, 5000, 0.7); } },
+    chefe_queda: { ms: 2000, f(t) { baque(t, 0.7, [130, 30]); ruido(t, 1.2, 0.25, 'lowpass', 1800, 100, 0.8); acorde(t + 0.5, [523, 659, 784, 1047, 1319], 'triangle', 0.9, 0.07, 0.07, { eco: true });
+      ruido(t + 0.5, 1.0, 0.04, 'highpass', 6000, 9000, 0.7, true); if (typeof duck === 'function') duck('raro'); } },
+  });
+  function tocaSint(tipo) {
+    const s = SINT[tipo]; if (!s || !A.ctx) return false;
+    const agora = performance.now(); if (agora - (A.ultimo['s_' + tipo] || 0) < s.ms) return true; A.ultimo['s_' + tipo] = agora;
+    s.f(A.ctx.currentTime + 0.01); return true;
+  }
+
+  const _somSynth = som;
+  som = function (tipo) {
+    if (!somLigado()) return;
+    const c = garanteCtx();
+    if (c) {
+      if (c.state === 'suspended' && A.gesto && !document.hidden) c.resume().catch(() => { });
+      if (SONS_HAB[tipo] && A.buf['sfx_' + tipo]) { try { if (tocaAmostra(tipo)) return; } catch (e) { } } // v226: habilidade com som gravado: ele primeiro
+      if (SFX[tipo] && SINT[tipo] && A.buf['sfx_' + SFX[tipo][0]]) { try { if (tocaAmostra(tipo)) return; } catch (e) { } } // v401: chefão com som gravado: ele primeiro (o sintetizado fica de reserva)
+      try { if (tocaSint(tipo)) { if (SONS_HAB[tipo] && !A.falhou['sfx_' + tipo]) carrega('sfx_' + tipo); return; } } catch (e) { /* cai no sintetizador antigo */ }
+      if (SFX[tipo] && !A.buf['sfx_' + SFX[tipo][0]] && !A.falhou['sfx_' + SFX[tipo][0]]) carrega('sfx_' + SFX[tipo][0]);
+      try { if (tocaAmostra(tipo)) return; } catch (e) { /* cai no sintetizador */ }
+    }
+    if (tipo === 'nivel' || tipo === 'gol') duck(tipo);
+    _somSynth(tipo);
+  };
+
+  /* ---------- música ---------- */
+  function tocaLoop(nome, corpo, gainDest, volIni) {
+    const c = A.ctx, b = A.buf[nome];
+    const s = c.createBufferSource(), g = c.createGain();
+    s.buffer = b; s.loop = true;
+    const ini = Math.min(PRE, Math.max(0, b.duration - corpo - 0.01));
+    s.loopStart = ini; s.loopEnd = Math.min(b.duration, ini + corpo);
+    g.gain.value = volIni; s.connect(g); g.connect(gainDest);
+    s.start(c.currentTime + 0.02, ini);
+    return { nome, s, g };
+  }
+  function trocaMusica(id) {
+    if (id && AUD_CURTAS[id]) id = AUD_CURTAS[id]; // v407 (Raio-X R10)
+    if (A.faixa === id) return;
+    A.faixa = id;
+    // v407 (Raio-X A8): só a música ATUAL e a ANTERIOR ficam decodificadas na memória (cada uma ocupa ~10–20 MB depois de
+    // decodificada; antes todas as que tocaram ficavam para sempre). A que ainda está sumindo segue tocando normalmente.
+    if (id) { A.musRec = [id].concat((A.musRec || []).filter(x => x !== id)).slice(0, 2); for (const k in A.buf) if (k.startsWith('musica_') && !A.musRec.includes(k.slice(7))) delete A.buf[k]; }
+    const c = garanteCtx(); if (!c) return;
+    const t = c.currentTime;
+    // nunca empilha: o que já estava sumindo para agora
+    for (const f of A.fading) { try { f.s.stop(); } catch (e) { /* ok */ } }
+    A.fading = [];
+    if (A.atual) {
+      const f = A.atual; A.atual = null;
+      f.g.gain.cancelScheduledValues(t); f.g.gain.setValueAtTime(f.g.gain.value, t); f.g.gain.linearRampToValueAtTime(0, t + CROSS);
+      try { f.s.stop(t + CROSS + 0.05); } catch (e) { /* ok */ }
+      f.s.onended = () => { A.fading = A.fading.filter(x => x !== f); };
+      A.fading.push(f);
+    }
+    if (!id) return;
+    const nome = 'musica_' + id;
+    carrega(nome).then(b => {
+      if (!b || A.faixa !== id || A.atual) return;
+      const f = tocaLoop(nome, MUSICAS[id], A.musBus, 0);
+      const t2 = c.currentTime; f.g.gain.setValueAtTime(0, t2); f.g.gain.linearRampToValueAtTime(1, t2 + CROSS);
+      A.atual = f;
+    });
+  }
+  function ambiente(ligado, qual) {
+    const c = A.ctx; if (!c) return;
+    const nome = qual && AMBIENTE[qual] ? qual : 'torcida';
+    if (ligado && A.amb && A.amb.nome !== 'sfx_' + nome) { try { A.amb.s.stop(); } catch (e) { } A.amb = null; } // mudou de estádio: troca a torcida
+    if (ligado && !A.amb) {
+      if (A.buf['sfx_' + nome]) A.amb = tocaLoop('sfx_' + nome, AMBIENTE[nome], A.ambGain, 1);
+      else { carrega('sfx_' + nome); if (nome !== 'torcida' && A.buf.sfx_torcida && A.falhou['sfx_' + nome]) A.amb = tocaLoop('sfx_torcida', AMBIENTE.torcida, A.ambGain, 1); }
+    }
+    A.ambGain.gain.setTargetAtTime(ligado ? 0.45 : 0, c.currentTime, 0.6);
+  }
+
+  /* ---------- sessões de música: toca um pouco, dá um tempo, volta (às vezes outra faixa) ---------- */
+  // v155: cada região tem várias faixas; toca UMA vez (as curtas, 2 voltas), dá um tempo só com o ambiente e vem OUTRA faixa (nunca a mesma de antes)
+  const ALTERNA = { vila: ['vila2', 'vila', 'titulo'], cidade: ['cidade2', 'cidade', 'vila2'], mundo: ['mundo2', 'mundo', 'titulo'], europa: ['europa2', 'europa', 'mundo2'], caca: ['caca', 'mundo2'], estadio: ['estadio', 'cidade2'] };
+  for (const k of Object.keys(MUS_DG)) ALTERNA[k] = [k, 'caca', 'aventura']; // v277 (v364: + aventura)
+  Object.assign(ALTERNA, { vila: ['vila3', 'vila2'], cidade: ['cidade3', 'cidade2', 'cidade', 'vila2'], praia3: ['praia3', 'vila2', 'vila'], ct3: ['ct3', 'cidade2', 'cidade'] }); // v278: a nova primeiro
+  for (const c of Object.keys(MUS_CIDADE)) ALTERNA[c] = [c, ['lisboa', 'paris', 'munique', 'milao', 'madri', 'londres'].includes(c) ? 'europa2' : 'mundo2']; // v276: a da cidade primeiro, depois alterna com a da região
+  Object.assign(ALTERNA, { atlantida: ['atlantida', 'atlantida2'], galaxia: ['galaxia', 'galaxia2'], celeste: ['celeste', 'galaxia'] }); // v287
+  Object.assign(ALTERNA, { multiverso: ['multiverso', 'galaxia2'], pedraforte: ['pedraforte', 'dg_caverna'], picos: ['picos', 'celeste'], torre: ['torre', 'dg_vulcao'], dino: ['dino', 'dino2', 'aventura'], dino_boss: ['dino_boss'], chefe: ['chefe'] }); // v364
+  for (const k in ALTERNA) { const l = ALTERNA[k].filter(f => !AUD_CURTAS[f]); ALTERNA[k] = l.length ? l : [AUD_CURTAS[ALTERNA[k][0]] || ALTERNA[k][0]]; } // v407 (Raio-X R10): sem as faixas curtas
+  const PAUSA = [60, 140];   // segundos de intervalo (só ambiente)
+  const duracaoSessao = f => (MUSICAS[f] || 18) * ((MUSICAS[f] || 18) > 40 ? 1 : 2);
+  function sessao(base) {
+    const S = A.ses || (A.ses = { base: null });
+    const agora = performance.now() / 1000;
+    const op = ALTERNA[base] || [base];
+    if (S.base !== base) { S.base = base; S.fase = 'toca'; S.faixa = op[0]; S.ate = agora + duracaoSessao(S.faixa); } // lugar novo: a faixa longa da região, na hora
+    if (agora > S.ate) {
+      if (S.fase === 'toca') { S.fase = 'pausa'; S.ate = agora + PAUSA[0] + Math.random() * (PAUSA[1] - PAUSA[0]); }
+      else { const outras = op.filter(f => f !== S.faixa); S.faixa = (outras.length ? outras : op)[Math.floor(Math.random() * (outras.length || op.length))]; S.fase = 'toca'; S.ate = agora + duracaoSessao(S.faixa); }
+    }
+    return S.fase === 'toca' ? S.faixa : null;
+  }
+
+  /* ---------- ambiente natural sintetizado (vento, ondas, cidade, passarinhos, grilos) ---------- */
+  const NAT = { ok: false };
+  function montaNatureza() {
+    if (NAT.ok || !A.ctx) return; const c = A.ctx;
+    const n = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = n.getChannelData(0); let marrom = 0;
+    for (let i = 0; i < d.length; i++) { marrom = (marrom + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = marrom * 3.5; }
+    const camada = (tipo, freq, q) => { const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = n; s.loop = true; f.type = tipo; f.frequency.value = freq; f.Q.value = q; g.gain.value = 0; s.connect(f); f.connect(g); g.connect(A.ambBus); s.start(0, Math.random() * 2); return g; };
+    const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), bd = b.getChannelData(0); for (let i = 0; i < bd.length; i++) bd[i] = Math.random() * 2 - 1;
+    { const s = c.createBufferSource(), f = c.createBiquadFilter(), f2 = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; s.loop = true; f.type = 'highpass'; f.frequency.value = 900; f2.type = 'lowpass'; f2.frequency.value = 7000; g.gain.value = 0; s.connect(f); f.connect(f2); f2.connect(g); g.connect(A.ambBus); s.start(); NAT.chuva = g; }
+    NAT.vento = camada('lowpass', 500, 0.5); NAT.ondas = camada('bandpass', 700, 0.6); NAT.cidade = camada('lowpass', 180, 0.7);
+    // ondas: volume sobe e desce devagar
+    const lfo = c.createOscillator(), prof = c.createGain(); lfo.frequency.value = 0.11; prof.gain.value = 0.06; lfo.connect(prof); prof.connect(NAT.ondas.gain); lfo.start();
+    NAT.ok = true;
+  }
+  function piado(t) { // passarinho: 2 a 4 assobios rápidos
+    const c = A.ctx, pan = c.createStereoPanner ? c.createStereoPanner() : null; if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; pan.connect(A.ambBus); }
+    const base = 2400 + Math.random() * 1600, n = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < n; i++) { const o = c.createOscillator(), g = c.createGain(), t0 = t + i * (0.09 + Math.random() * 0.05);
+      o.type = 'sine'; o.frequency.setValueAtTime(base, t0); o.frequency.exponentialRampToValueAtTime(base * (1.25 + Math.random() * 0.3), t0 + 0.06);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.035, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+      o.connect(g); g.connect(pan || A.ambBus); o.start(t0); o.stop(t0 + 0.1); }
+  }
+  function grilo(t) { // grilos à noite: pulsos agudos
+    const c = A.ctx; for (let i = 0; i < 3; i++) { const o = c.createOscillator(), g = c.createGain(), t0 = t + i * 0.055; o.type = 'triangle'; o.frequency.value = 4300 + Math.random() * 200;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.012, t0 + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.04); o.connect(g); g.connect(A.ambBus); o.start(t0); o.stop(t0 + 0.05); }
+  }
+  function natureza(mapa, interior, noite, tocandoMusica) {
+    montaNatureza(); if (!NAT.ok) return; const c = A.ctx, t = c.currentTime;
+    const praia = mapa === 'praia', vila = mapa === 'vila', cidadeGrande = CIDADE.includes(mapa) || MUNDO.includes(mapa) || EUROPA.includes(mapa);
+    const k = interior ? 0 : tocandoMusica ? 0.6 : 1; // com música, o ambiente fica um pouco mais baixo
+    const tempo = (mapa && typeof G !== 'undefined' && G.climaCache && G.climaCache.tempo) || 'sol'; // fora do jogo: sem chuva
+    const chove = tempo === 'chuva' ? 0.1 : tempo === 'tempestade' ? 0.18 : 0;
+    NAT.chuva.gain.setTargetAtTime(interior ? chove * 0.25 : chove, t, 1.2); // dentro de casa, a chuva fica abafada
+    if (chove && !interior && Math.random() < 0.8) for (let i = 0; i < 3; i++) { const o = c.createOscillator(), g = c.createGain(), t0 = t + Math.random(); o.type = 'sine'; o.frequency.setValueAtTime(1800 + Math.random() * 1800, t0); o.frequency.exponentialRampToValueAtTime(600, t0 + 0.04); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.02, t0 + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05); o.connect(g); g.connect(A.ambBus); o.start(t0); o.stop(t0 + 0.06); } // pingos
+    const ventoExtra = tempo === 'neve' ? 0.07 : tempo === 'areia' ? 0.12 : tempo === 'tempestade' ? 0.05 : 0;
+    NAT.vento.gain.setTargetAtTime(((vila || praia || cidadeGrande ? 0.05 : 0) + ventoExtra) * k, t, 1.5);
+    NAT.ondas.gain.setTargetAtTime((praia ? 0.09 : 0) * k, t, 1.5);
+    NAT.cidade.gain.setTargetAtTime((cidadeGrande && mapa !== 'estadio' ? 0.07 : 0) * k, t, 1.5);
+    if (interior || !k) return;
+    if (!noite && !chove && tempo !== 'neve' && (vila || praia || cidadeGrande) && Math.random() < (vila ? 0.35 : 0.15)) piado(t + Math.random() * 0.8);
+    if (noite && (vila || praia) && Math.random() < 0.6) grilo(t + Math.random() * 0.5);
+  }
+
+  const VILA = ['vila', 'praia', 'casa', 'bazar', 'escola', 'praca_feira']; // (v383: a Praça da Feira tem a música alegre da Vila)
+  const CIDADE = ['cidade', 'ct', 'estadio', 'loja', 'refeitorio', 'rio', 'arena_copa', 'santos', 'est_santos'];
+  const MUNDO = ['cairo', 'toquio', 'doha', 'miami', 'buenos'];
+  const EUROPA = ['lisboa', 'madri', 'milao', 'munique', 'londres', 'paris'];
+  function faixaDoMapa(id) {
+    if (MUS_CIDADE[id]) return id; // v276: a cidade tem música própria
+    if (MAPA_FIM[id]) return MAPA_FIM[id]; // v287
+    if (id && id.indexOf('jur_') === 0) return id === 'jur_trex' ? 'dino_boss' : 'dino'; // v364: labirinto jurássico
+    if (id && /^vale_z\d$/.test(id)) return 'celeste'; // v367: as ilhas do Vale das Pedras Celestiais
+    if (id && id.indexOf('cq_') === 0) return { cq_estadio: 'estadio', cq_vestiario: 'dg_subterraneo', cq_tunel: 'dg_caverna', cq_arquibancada: 'estadio', cq_gramado: 'aventura' }[id] || 'aventura'; // v410: Copa dos Esquecidos (dono: "coloque a música nas alas")
+    if (id === 'praia') return 'praia3'; if (id === 'ct') return 'ct3'; // v278
+    if (VILA.includes(id)) return 'vila';
+    if (CIDADE.includes(id)) return 'cidade';
+    if (MUNDO.includes(id)) return 'mundo';
+    if (EUROPA.includes(id)) return 'europa';
+    for (const lista of [MUNDO, EUROPA]) for (const c of lista) if (id && id.indexOf(c) === 0) return lista === MUNDO ? 'mundo' : 'europa';
+    return null;
+  }
+  A.faixaDoMapa = id => { let m = null; try { m = getMapa(id); } catch (e) { } return m && m.caca ? musicaDaCaca(m.caca) : m && (m.estadio || m.arena) ? 'estadio' : faixaDoMapa(id); }; // (para os testes)
+  function contexto() {
+    const vis = sel => { const e = document.querySelector(sel); return !!(e && !e.hidden && getComputedStyle(e).display !== 'none'); };
+    const hist = document.getElementById('historia');
+    if (hist && hist.isConnected && getComputedStyle(hist).display !== 'none') return { musica: 'titulo', torcida: false };
+    const modal = document.getElementById('modal');
+    const partida = modal && !modal.hidden && modal.querySelector('.placar-ao-vivo');
+    if (partida) { const p = G.save && G.save.time && G.save.time.pais; return { musica: 'cidade', torcida: true, qual: 'torcida_' + (TORCIDA_PAIS[p] || 'br') }; }
+    if (typeof G !== 'undefined' && G.rodando && G.mapa) {
+      const id = G.mapa.id;
+      let f = G.mapa.caca ? musicaDaCaca(G.mapa.caca) : (G.mapa.estadio || G.mapa.arena) ? 'estadio' : faixaDoMapa(id); // v155: caçadas e estádios/arenas têm música própria
+      if (!f && G.mapa.interior && A.faixa) f = A.faixa;   // interiores desconhecidos: mantém a faixa
+      // v364: chefão bravo por perto = música de batalha (o T-Rex tem a dele); acabou a luta, volta a música do lugar
+      try { if (!G.mapa.estadio && G.p && G.mons && G.mons.some(m => m.d && m.d.chefe && !m.d.pedraTorre && !m.d.pedra && m.bravo && m.hp > 0 && Math.hypot(m.x - G.p.x, m.y - G.p.y) < 11)) return { musica: id.indexOf('jur_') === 0 ? 'dino_boss' : 'chefe', torcida: false, luta: true }; } catch (e) { }
+      const est = G.mapa.estadio && typeof ESTADIOS !== 'undefined' && ESTADIOS.find(e => e.id === G.mapa.estadio);
+      const host = id === 'estadio' ? 'estadio' : est && est.host;
+      return { musica: f || A.faixa || 'vila', torcida: !!host, qual: host ? 'torcida_' + (TORCIDA_HOST[host] || 'br') : null }; // v278: todo estádio tem a torcida do seu país
+    }
+    if (vis('#inicio')) return { musica: 'titulo', torcida: false };
+    return { musica: A.faixa, torcida: false };
+  }
+
+  function tick() {
+    const on = somLigado();
+    if (on !== A.somOnAnt) {
+      A.somOnAnt = on; aplicaVolumes();
+      if (A.ctx) { if (on && A.gesto && !document.hidden) A.ctx.resume().catch(() => { }); else if (!on) setTimeout(() => { if (!somLigado() && A.ctx) A.ctx.suspend().catch(() => { }); }, 120); }
+    }
+    if (!A.gesto || !A.ctx) return;
+    const cx = contexto();
+    // no mapa (fora de partida/história/tela inicial) a música vem em sessões, com intervalos de ambiente
+    const noMapa = typeof G !== 'undefined' && G.rodando && G.mapa && cx.musica !== 'titulo' && !cx.torcida && !cx.luta; // v364: na luta de chefão, a música toca direto (sem pausas)
+    let faixa = cx.musica;
+    if (noMapa) faixa = sessao(cx.musica); else if (A.ses) A.ses.base = null; // fora do mapa: próxima volta começa com música
+    trocaMusica(on ? faixa : A.faixa);
+    ambiente(on && cx.torcida, cx.qual);
+    if (on && typeof G !== 'undefined' && G.rodando && G.mapa && G.save) { const h = G.save.hora / 60 % 24; natureza(G.mapa.id, !!G.mapa.interior, h >= 19 || h < 6, !!faixa); }
+    else if (NAT.ok) natureza('', true, false, false);
+  }
+
+  /* ---------- primeiro gesto (autoplay) ---------- */
+  function primeiroGesto() {
+    if (A.gesto) return;
+    A.gesto = true;
+    const c = garanteCtx(); if (!c) return;
+    if (somLigado()) c.resume().catch(() => { });
+    carregaEfeitos();
+    tick();
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, primeiroGesto, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => {
+    if (!A.ctx) return;
+    if (document.hidden) A.ctx.suspend().catch(() => { });
+    else if (A.gesto && somLigado()) A.ctx.resume().catch(() => { });
+  });
+  setInterval(tick, 1000);
+
+  /* ---------- interface: botão 🎵 com volumes ---------- */
+  const css = `
+  .rac-audio-pop { position: fixed; z-index: 60; width: 230px; background: var(--papel, #f7e3b5); color: var(--tinta, #3b2410);
+    border: 3px solid var(--madeira, #8a4b24); border-radius: 8px; box-shadow: 0 0 0 2px var(--madeira2, #5e2f14), 0 8px 18px rgba(0,0,0,.35);
+    padding: 10px 12px; font-family: 'Fredoka', 'Nunito', sans-serif; font-size: 14px; }
+  .rac-audio-pop h4 { margin: 0 0 8px; font-size: 16px; color: var(--madeira2, #5e2f14); }
+  .rac-audio-pop label { display: grid; grid-template-columns: 62px 1fr 38px; align-items: center; gap: 6px; margin: 6px 0; font-weight: 600; }
+  .rac-audio-pop output { text-align: right; font-variant-numeric: tabular-nums; }
+  .rac-audio-pop input[type=range] { width: 100%; accent-color: var(--madeira, #8a4b24); cursor: pointer; }
+  .rac-audio-pop small { display: block; margin-top: 6px; opacity: .75; font-size: 12px; }
+  #btnAudio { min-width: 30px; }`;
+  function montaUI() {
+    const bs = document.getElementById('btnSom'); if (!bs || document.getElementById('btnAudio')) return;
+    const st = document.createElement('style'); st.id = 'rac-audio-css'; st.textContent = css; document.head.append(st);
+    const b = document.createElement('button');
+    b.className = 'btn mini'; b.id = 'btnAudio'; b.type = 'button'; b.title = 'Music and sound effects volume'; b.textContent = '🎵';
+    bs.after(b);
+    const pop = document.createElement('div'); pop.className = 'rac-audio-pop'; pop.hidden = true;
+    const linha = (rot, chave) => {
+      const l = document.createElement('label'); const s = document.createElement('span'); s.textContent = rot;
+      const r = document.createElement('input'); r.type = 'range'; r.min = 0; r.max = 100; r.step = 5; r.value = Math.round(A.vol[chave] * 100);
+      const o = document.createElement('output'); o.textContent = r.value + '%';
+      r.addEventListener('input', () => { A.vol[chave] = r.value / 100; o.textContent = r.value + '%'; aplicaVolumes(); salvaVol(); if (chave === 'sfx') som('moeda'); });
+      l.append(s, r, o); return l;
+    };
+    const h = document.createElement('h4'); h.textContent = 'Game sound';
+    const dica = document.createElement('small'); dica.textContent = 'Ambient = rain, waves, birds and crowd. The "Sound" button turns everything on and off.';
+    pop.append(h, linha('Music', 'musica'), linha('Ambient', 'ambiente'), linha('Effects', 'sfx'), dica);
+    document.body.append(pop);
+    const posiciona = () => { const r = b.getBoundingClientRect(); pop.style.top = (r.bottom + 6) + 'px'; pop.style.left = Math.max(8, Math.min(window.innerWidth - 238, r.right - 230)) + 'px'; };
+    b.addEventListener('click', ev => { ev.stopPropagation(); pop.hidden = !pop.hidden; if (!pop.hidden) posiciona(); });
+    document.addEventListener('pointerdown', ev => { if (!pop.hidden && !pop.contains(ev.target) && ev.target !== b) pop.hidden = true; }, true);
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape') pop.hidden = true; });
+    window.addEventListener('resize', () => { if (!pop.hidden) posiciona(); });
+    // o botão Som (ui.js) muda G.somOn: aplica na hora
+    bs.addEventListener('click', () => setTimeout(tick, 0));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montaUI); else montaUI();
+})();

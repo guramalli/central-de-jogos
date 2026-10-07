@@ -1,0 +1,200 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* ============================================================
+   CORPOS, ROUPAS, CHEFÕES E SKINS (folhas novas do Higgsfield)
+   Três tipos de folha (a/boneco_<nome>.webp, caixas em bonecos_meta2.js):
+   - "chave": corpos e roupas com as cores-chave de sempre (cabelo magenta,
+     parte de cima verde, de baixo azul): cada um pinta com as suas cores —
+     o uniforme do time continua valendo;
+   - "fixo": chefões, desenhados com as próprias cores (nada é trocado);
+   - "skin": fantasias do jogador; só o cabelo e a pele seguem os dele.
+   look.folha escolhe a folha. Adversários e NPCs ganham corpo/roupa pelo
+   tipo (zagueiro = grandão, goleiro de luvas, torcedor de moletom...) e
+   cada um varia dentro do grupo. Carregar DEPOIS de variedade.js.
+   ============================================================ */
+const MODO_FOLHA = typeof CORPOS_MODO !== 'undefined' ? CORPOS_MODO : {};
+// folhas que já têm chapéu/boné/capuz desenhado: o acessório vetorial não entra por cima
+const FOLHA_COM_CHAPEU = new Set(['bone_reta', 'bone_f', 'boina_m', 'touca_m', 'panama_m', 'chef', 'capuz_f', 'colete_m']);
+
+/* ---------- carregar as folhas novas (com versão no endereço: imagem nova nunca fica presa no cache) ---------- */
+// v407 (Raio-X R5): a versão das folhas é um número PRÓPRIO (antes era o ?v= do jogo: a cada versão nova os jogadores
+// baixavam de novo as ~200 folhas, mesmo sem nenhuma arte mudar). Só aumente quando REDESENHAR alguma folha.
+// (406 = o endereço que os jogadores já têm guardado.)
+const VERSAO_FOLHAS = '406';
+// v407 (Raio-X A2): cada folha só baixa quando for desenhada pela 1ª vez (folhaSobDemanda, boneco.js)
+for (const nome of Object.keys(MODO_FOLHA)) if (!FOLHAS[nome]) FOLHAS[nome] = folhaSobDemanda(nome, VERSAO_FOLHAS);
+
+/* ---------- escolher e pintar a folha ---------- */
+const _folhaDoLookCp = folhaDoLook;
+folhaDoLook = function (sp, look) { const f = look && look.folha; return f && META_BONECOS[f] ? f : _folhaDoLookCp(sp, look); };
+let MODO_AGORA = null;
+const SEM_ACESS = { chapeu: null, rosto: null, pescoco: null, costas: null, mao: null };
+const _spriteBonecoCp = spriteBoneco;
+spriteBoneco = function (look, ...r) {
+  const f = look && look.folha && META_BONECOS[look.folha] ? look.folha : null;
+  MODO_AGORA = f ? MODO_FOLHA[f] || 'chave' : null;
+  try {
+    if (f && MODO_FOLHA[f]) {
+      // chefão/skin: tudo já está no desenho; corpos/roupas novos: o chapéu é o do desenho (o vetorial não assenta nessas cabeças)
+      let tira = MODO_AGORA === 'chave' ? (FOLHA_COM_CHAPEU.has(f) ? { chapeu: null, rosto: null } : { chapeu: null }) : SEM_ACESS;
+      if (look.mvManterChapeu && look.chapeuVar) { tira = Object.assign({}, tira); delete tira.chapeu; } // v322: coroa de ARTE (chapeus_arte.js mede a cabeça da folha) nos reis/rainhas do Multiverso
+      // v240: a cópia guardada fica escondida (não enumerável): quem copia um look (traje regional, variação) não leva junto
+      // a cópia antiga com a folha de antes — os zagueiros do Cairo renasciam sem turbante — e a chave do cache (JSON) não a vê
+      const o = look;
+      if (!(o._semAc && o._semAcDono === o && o._semAcDe === o._kb && o._semAc.folha === o.folha)) {
+        const sa = Object.assign({}, o, tira, { _kb: undefined });
+        for (const [k, v] of [['_semAc', sa], ['_semAcDono', o], ['_semAcDe', o._kb]]) Object.defineProperty(o, k, { value: v, writable: true, configurable: true, enumerable: false });
+      }
+      look = o._semAc;
+    }
+    return _spriteBonecoCp.call(this, look, ...r);
+  } finally { MODO_AGORA = null; }
+};
+// skin: a pele é só a cor da pele do rosto desenhado (não confunde dourado/vermelho da roupa com pele)
+function peleExata(base) {
+  if (base._peleOk) return; base._peleOk = true;
+  const { d, rot } = base; const W = FOLHA_CW; const hs = [], ss = [];
+  const hsv = i => { const r = d[i * 4] / 255, g = d[i * 4 + 1] / 255, b = d[i * 4 + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), dd = mx - mn + 1e-6; let h = mx === r ? ((g - b) / dd) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4; h *= 60; if (h < 0) h += 360; return [h, mx ? (mx - mn) / mx : 0]; };
+  const n = rot.length, alto = n * 0.45; // o rosto fica na metade de cima
+  for (let i = 0; i < alto; i += 2) if (rot[i] === 4) { const [h, s] = hsv(i); hs.push(h); ss.push(s); }
+  if (hs.length < 30) return;
+  hs.sort((a, b) => a - b); ss.sort((a, b) => a - b); const h0 = hs[hs.length >> 1], s0 = ss[ss.length >> 1];
+  for (let i = 0; i < n; i++) if (rot[i] === 4) { const [h, s] = hsv(i); if (Math.abs(h - h0) > 9 || Math.abs(s - s0) > 0.2) rot[i] = 0; }
+}
+const _tingeCelulaCp = tingeCelula;
+tingeCelula = function (base, cores) {
+  if (MODO_AGORA === 'fixo') return base.c;
+  if (MODO_AGORA === 'skin') { peleExata(base); return _tingeCelulaCp.call(this, base, [null, cores[1], null, null, cores[4]]); }
+  return _tingeCelulaCp.apply(this, arguments);
+};
+
+/* ---------- chefões: cada um com o seu desenho ---------- */
+const FOLHA_CHEFE = {
+  tonhao: 'ch_tonhao', rei_areia: 'ch_rei_areia', rei_quadra: 'ch_rei_quadra', capitao_sub20: 'ch_capitao_sub20', paredao: 'ch_paredao', capitao_tejo: 'ch_capitao_tejo',
+  galactico: 'ch_galactico', lorde: 'ch_lorde', cairo_chefe: 'ch_farao', toquio_chefe: 'ch_sensei', doha_chefe: 'ch_falcao', miami_chefe: 'ch_showman', milao_chefe: 'ch_maestro',
+  munique_chefe: 'ch_general', ch_trovao: 'ch_trovao', ch_rainha_ondas: 'ch_rainha_ondas', ch_esfinge: 'ch_esfinge', ch_ronin: 'ch_ronin', ch_nevasca: 'ch_nevasca', ch_imortal: 'ch_imortal',
+  buenos_chefe: 'ch_tango', rio_chefe: 'ch_maracana', ch_lenda_copa: 'ch_lenda_copa',
+};
+for (const [id, f] of Object.entries(FOLHA_CHEFE)) if (MONSTROS[id] && MONSTROS[id].look && META_BONECOS[f]) { MONSTROS[id].look = Object.assign({}, MONSTROS[id].look, { folha: f }); delete MONSTROS[id].look._kb; }
+
+/* ---------- adversários: corpo pelo tipo, e cada um varia no grupo ---------- */
+const GRUPOS_CORPO = {
+  goleiro: { m: ['goleiro'], f: ['goleiro'] },
+  grande: { m: ['grandao', 'grandao', 'barbudo', 'careca', 'gordinho', 'adulto'], f: ['adulta', 'gordinha', 'trancas'] },
+  torcida: { m: ['moletom_m', 'jaqueta_m', 'bone_reta', 'touca_m', 'barbudo', 'gordinho'], f: ['capuz_f', 'bone_f', 'jaqueta_f', 'gordinha'] },
+  arbitro: { m: ['careca', 'adulto', 'barbudo', 'social_m'], f: ['adulta', 'golalta_f'] },
+  praia: { m: ['regata_m', 'grandao', 'adulto', 'magrelo', 'colete_m'], f: ['adulta', 'bone_f', 'trancas', 'vestido_f'] },
+  rua: { m: ['jaqueta_m', 'bone_reta', 'moletom_m', 'magrelo'], f: ['capuz_f', 'bone_f', 'jaqueta_f', 'trancas'] },
+  jogador: { m: ['adulto', 'magrelo', 'barbudo', 'careca', 'adulto', 'grandao'], f: ['adulta', 'trancas', 'gordinha', 'adulta', 'bone_f'] },
+};
+function grupoDoTipo(id, d) {
+  const L = d.look || {}, nm = (d.nome || '') + ' ' + id;
+  if (/moleque|boneco/.test(id)) return null; // as crianças da Vila continuam crianças
+  if (/goleiro/i.test(nm) && !/paredao/.test(id)) return 'goleiro';
+  if (/fan[aá]tico|ultra|rowdy|superfan/i.test(nm)) return 'torcida';
+  if (/arbitro|árbitro|referee|linesman/i.test(nm)) return 'arbitro';
+  if (/futevol|salva|surfista|gd_ondas/i.test(nm)) return 'praia';
+  if (/skatista|zagueiro_rua/.test(id)) return 'rua';
+  if (L.grande || /zagueiro|central|xerife|centroavante|l[ií]bero|muralha|sum[oô]|fisiculturista|guardi|defender|cent(?:er|re)-back|sheriff|striker|forward|sumo|bodybuilder/i.test(nm)) return 'grande';
+  if (L.roupa === 'roupa-futebol') return 'jogador';
+  return null;
+}
+const CORPO_TIPO = {}; // o corpo "oficial" de cada tipo (o da wiki): o 1º do grupo que combina
+for (const [id, d] of Object.entries(MONSTROS)) {
+  const L = d.look; if (!L || (L.tipo && L.tipo !== 'humano') || d.chefe || FOLHA_CHEFE[id]) continue;
+  const g = grupoDoTipo(id, d); if (!g) continue;
+  const lista = GRUPOS_CORPO[g][L.corpo === 'f' ? 'f' : 'm'].filter(f => META_BONECOS[f]); if (!lista.length) continue;
+  CORPO_TIPO[id] = { g, lista };
+  const oficial = lista[hashTxt(id) % Math.min(2, lista.length)];
+  d.look = Object.assign({}, L, { folha: oficial }); delete d.look._kb;
+}
+const _lookDoMonstroCp = lookDoMonstro;
+lookDoMonstro = function (m, mapa) {
+  const L = _lookDoMonstroCp(m, mapa); const ct = CORPO_TIPO[m.tipo]; const v = (m.uid || 0) % VAR_N;
+  if (!ct || !v) return L;
+  const novo = L || Object.assign({}, m.d.look); delete novo._kb;
+  novo.folha = ct.lista[(hashTxt(m.tipo) + v * 3) % ct.lista.length];
+  return novo;
+};
+
+/* ---------- NPCs: roupa e corpo pelo papel de cada um ---------- */
+(function () {
+  const FRIO = /londres|munique|nevasca|klaus/, PRAIA = /praia|marinho|iara|surf|coco|quiosque/, LOJA = /^loja|lojista|padeir|cozinh|sorvet|feirant|barraca|quiosque|pastel|lanch/;
+  const pega = (id, lista) => lista.filter(f => META_BONECOS[f])[hashTxt(id) % lista.filter(f => META_BONECOS[f]).length];
+  // cada NPC com a roupa do seu papel (quem não está aqui cai nas regras gerais abaixo)
+  const PAPEL = {
+    ze: 'vovo', lucia: 'golalta_f', cida: 'vova', juca: 'colete_m', motorista: 'social_m', tata: 'anciao', marinho: 'regata_m', bene: 'avental',
+    ginga: 'barbudo', neide: 'gordinha', aurelio: 'boina_m', bia: 'adulta', dada: 'panama_m', remendo: 'avental', zuzu: 'gordinha',
+    lojista_lisboa: 'vestido_f', lojista_madri: 'chef', lojista_londres: 'avental', lider_lisboa: 'ancia', lider_madri: 'jaqueta_f', lider_londres: 'sobretudo_m',
+    loja_cairo: 'vovo', lider_cairo: 'adulta', loja_toquio: 'golalta_f', lider_toquio: 'anciao', loja_doha: 'social_m', lider_doha: 'bone_f',
+    loja_miami: 'bone_reta', lider_miami: 'jaqueta_f', loja_milao: 'vova', lider_milao: 'sobretudo_m', loja_munique: 'gordinha', lider_munique: 'touca_m',
+    almanaque: 'vovo', loja_buenos: 'vova', lider_buenos: 'barbudo', loja_rio: 'avental', lider_rio: 'adulta', loja_paris: 'vestido_f', lider_paris: 'boina_m', pedal: 'jaqueta_m', rita: 'jaqueta_f', johnny: 'social_m', vera: 'golalta_f', tonico: 'barbudo',
+  };
+  const IDOSO = new Set(['vovo', 'vova', 'anciao', 'ancia']);
+  for (const [id, fo] of Object.entries(PAPEL)) { const n = NPCS[id]; if (n && n.look && META_BONECOS[fo]) { n.look = Object.assign({}, n.look, { folha: fo }, IDOSO.has(fo) ? { corCabelo: 'grisalho' } : {}); delete n.look._kb; } }
+  for (const [id, n] of Object.entries(NPCS)) {
+    const L = n.look; if (!L || (L.tipo && L.tipo !== 'humano') || L.folha) continue;
+    if (/^port_/.test(id)) continue; // porteiros das arenas: de terno, é o uniforme deles
+    const f = L.corpo === 'f', nm = (id + ' ' + (n.nome || '')).toLowerCase();
+    if ((L.alt || 1.5) < 1.58) continue;                                   // crianças continuam crianças
+    if (/terno|smoking/.test(L.roupa || '')) continue;                    // de terno: a folha do terno já é própria
+    let lista;
+    if (/grisalho/.test(L.corCabelo || '') || /\bvov|nonna/.test(nm)) lista = f ? ['vova', 'golalta_f'] : ['vovo', 'panama_m', 'boina_m', 'social_m'];
+    else if (LOJA.test(id) || LOJA.test(nm)) lista = f ? ['golalta_f', 'vestido_f'] : ['avental', 'chef', 'avental'];
+    else if (PRAIA.test(nm)) lista = f ? ['vestido_f', 'bone_f', 'adulta'] : ['regata_m', 'colete_m'];
+    else if (FRIO.test(nm)) lista = f ? ['jaqueta_f', 'golalta_f', 'capuz_f'] : ['sobretudo_m', 'touca_m', 'jaqueta_m'];
+    else if (L.baixo === 'baixo-saia') lista = ['vestido_f', 'golalta_f', 'saia'];
+    else lista = f ? ['adulta', 'gordinha', 'trancas', 'vestido_f', 'jaqueta_f', 'golalta_f'] : ['adulto', 'barbudo', 'careca', 'gordinho', 'magrelo', 'jaqueta_m', 'social_m', 'sobretudo_m'];
+    const esc = pega(id, lista); if (!esc) continue;
+    n.look = Object.assign({}, L, { folha: esc }); delete n.look._kb;
+  }
+})();
+
+/* ---------- skins do jogador: fantasias desenhadas ---------- */
+(function () {
+  const FOLHA_SKIN = { camuflado: 'sk_camuflado', ouro: 'sk_ouro', farao: 'sk_farao', neon: 'sk_neon', gelo: 'sk_gelo', lenda: 'sk_lenda' };
+  for (const [id, f] of Object.entries(FOLHA_SKIN)) if (SKINS[id] && META_BONECOS[f]) SKINS[id].look = Object.assign({}, SKINS[id].look, { folha: f });
+  const NOVAS = [
+    ['dino', 'Dinosaur Costume', 8, 'sk_dino', 'folhas', '#5ac83a', 'A cute T-rex, tail and all!', 'I\'m going to sew a DINOSAUR costume! I need a few little things from the Village and the beach.', [['pena', 20], ['concha', 15]], 400],
+    ['heroi', 'Super Star', 15, 'sk_heroi', 'brilho', '#ff3a3a', 'Cape in the wind and a lightning bolt on the chest: hero of the little pitch!', 'Every star player is a hero! Bring me materials for the cape and the uniform.', [['bola_praia', 20], ['roda_skate', 15]], 1500],
+    ['pirata', 'Pickup Game Pirate', 25, 'sk_pirata', 'areia', '#e8c048', 'Pirate hat, eye patch and treasure at your feet.', 'Arrr! A real PIRATE costume. I want treasure!', [['concha', 40], ['oculos_sol', 20], ['cone', 15]], 4000],
+    ['astronauta', 'Soccer Astronaut', 35, 'sk_astronauta', 'neve', '#bfe8ff', 'Straight from space to the little pitch!', 'My space collection! I need some really hard-to-find pieces.', [['cronometro', 12], ['luva', 12], ['couro', 10]], 12000],
+  ];
+  for (const [id, nome, lvl, folha, efeito, cor, desc, texto, itens, ouro] of NOVAS) {
+    if (!META_BONECOS[folha] || SKINS[id]) continue;
+    const req = { itens: itens.filter(([i]) => ITENS[i]) };
+    if (!req.itens.length) continue;
+    SKINS[id] = { nome, lvl, efeito, cor, look: { folha }, desc };
+    const q = { id: 'sk_' + id, npc: 'vera', titulo: 'Costume: ' + nome, lvl, texto, req: Object.assign(req, { ouro }), rec: { xp: Math.round(lvl * lvl * 40), skin: id }, fim: 'It looks awesome! Put it on with the ✨ Look button.' };
+    MISSOES_MONT.push(q); MISSOES.push(q);
+  }
+})();
+
+/* ---------- memória (celular): as células de trabalho das folhas ficam num limite ----------
+   Cada célula guardada (recorte + rótulos + brilho) ocupa ~0,9 MB; com 64 folhas, uma sessão longa
+   passava de 700 MB e o iPhone pode apagar os desenhos. Guarda só as usadas por último. */
+const CEL_LRU = new Map(); const CEL_MAX = (navigator.deviceMemory || 4) >= 8 ? 120 : 60; // v319: computador com memória de sobra guarda o dobro
+const _rotulaCelulaCp = rotulaCelula;
+rotulaCelula = function (f, idx) {
+  const r = _rotulaCelulaCp.apply(this, arguments);
+  const k = f.im.src + '#' + idx;
+  CEL_LRU.delete(k); CEL_LRU.set(k, [f, idx]);
+  while (CEL_LRU.size > CEL_MAX) { const [kk, [ff, ii]] = CEL_LRU.entries().next().value; CEL_LRU.delete(kk); if (ff.rot) delete ff.rot[ii]; }
+  return r;
+};
+
+/* ---------- sem engasgo ao entrar num mapa: no máximo ~12 ms pintando bonecos novos por quadro ----------
+   (só durante o desenho do jogo; retratos e janelas sempre saem na hora) */
+let ORC_DESENHO = false, ORC_MS = 0; const ORC_LIMITE = 12; const ORC_VAZIO = { c: mkCanvas(2, 2) };
+const _desenhaOrc = desenha;
+desenha = function () { ORC_DESENHO = true; ORC_MS = 0; try { return _desenhaOrc.apply(this, arguments); } finally { ORC_DESENHO = false; } };
+const _spriteBonecoOrc = spriteBoneco;
+spriteBoneco = function (look, vista = 'frente', q = 0) {
+  if (!ORC_DESENHO) return _spriteBonecoOrc.apply(this, arguments);
+  if (ORC_MS > ORC_LIMITE) { // já gastou o orçamento do quadro: se não está pronto, aparece no próximo
+    const L = look && look.folha && MODO_FOLHA[look.folha] && look._semAc && look._semAcDono === look ? look._semAc : look;
+    const v = vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f';
+    if (L && !SPR_CACHE.has(chaveBoneco(L) + '|S' + v + q)) return ORC_VAZIO;
+  }
+  const t0 = performance.now(); const r = _spriteBonecoOrc.apply(this, arguments); ORC_MS += performance.now() - t0; return r;
+};
