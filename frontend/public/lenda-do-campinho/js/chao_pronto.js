@@ -107,6 +107,7 @@ const CP = (() => {
   function entrada(S) {
     if (S.soPrevia || !S.m) return null;
     const e = IDX[S.m.id]; if (!e || e._ruim || !formatoOk(e)) return null;
+    if (S._cpAtalho) return e; // (lousa vazia do atalho: já conferida pela assinatura barata — ver "atalho" abaixo)
     if (S._cpOkVer !== S.ver) {
       S._cpOkVer = S.ver; const sg = assinatura(S); S._cpOk = !!sg && sg === e.sig;
       EST.assinaturas[S.m.id] = { ok: S._cpOk, sig: sg, esperada: e.sig };
@@ -189,6 +190,7 @@ const CP = (() => {
   P.fresco = function (i, j) { if (this._cpEsc && this._cpEsc.has(i + ':' + j)) return true; return _fresco.call(this, i, j); }; // (só durante o desenhaEm: o bloco cuja imagem está chegando não é pintado)
   function prepara(S, sx, sy, sw, sh) {
     const e = entrada(S);
+    if (!e && S._cpAtalho) return desiste(S, sx, sy, sw, sh);
     if (!e) {
       // as pontes chegam um pouco depois (a arte delas): por ~1 s espera a lousa ficar completa em vez de pintar o que vai mudar
       const m = S.m, ie = m && IDX[m.id];
@@ -207,8 +209,11 @@ const CP = (() => {
         if (!naTela && fora++ >= 1) { esc.add(kk); continue; } // (um vizinho por quadro: a placa de vídeo recebe a imagem quando ela aparece)
         CB.guarda(S, i, j, toma(c), S.ver); EST.usados++; continue;
       }
-      if (c.st === 'falhou') continue;                                   // (a imagem falhou: o jogo pinta, como antes)
-      if (naTela && agora - c.tq > ESPERA) { if (!c.demorou) { c.demorou = true; EST.esperouDemais++; } continue; } // (demorou demais: pinta)
+      if (c.st === 'falhou' || (naTela && agora - c.tq > ESPERA)) {
+        if (S._cpAtalho) return desiste(S, sx, sy, sw, sh);              // (a lousa do atalho não tem passos para pintar: volta ao caminho completo)
+        if (c.st === 'falhou') continue;                                 // (a imagem falhou: o jogo pinta, como antes)
+        if (!c.demorou) { c.demorou = true; EST.esperouDemais++; } continue; // (demorou demais: pinta)
+      }
       esc.add(kk);
     }
     return esc;
@@ -259,6 +264,83 @@ const CP = (() => {
     } catch (er) { }
   }, 1000);
 
-  return { IDX, EST, CACHE, assinatura, entrada, quadradinhos, desligado, pede, toma, acum, avif: () => avifOk };
+  /* ---------- v411.7 ATALHO do chão novo (etapa 2 do chão pronto, dono: "se isso for otimizar a fluidez do jogo") ----------
+     Nos mapas do chão novo que estão no índice, nem as camadas do chão são preparadas (máscaras, desfoques, texturas grandes
+     baixadas e decodificadas, prévia dos vizinhos pintada no tempo livre): o mapa ganha uma lousa VAZIA que só mostra as
+     imagens prontas. Vale só se a ASSINATURA BARATA bater com a do índice: os quadradinhos e os objetos do mapa, as saídas e
+     os personagens (os enfeites desviam deles), os estilos/texturas/enfeites de cada chão usado (com a versão de cada arte),
+     o tema do mapa, o texto do desenhador do chão novo e as versões (?v=) dos arquivos que desenham o chão. Qualquer
+     diferença — ou imagem que falhe/demore — e o mapa volta ao caminho completo (prepara as camadas, confere a assinatura
+     completa e usa as imagens se ela bater; senão pinta na hora, como antes). Mapas com rua, ponte ou a Feira: sempre o
+     caminho completo (outros arquivos pintam por cima). */
+  const ARQ_CHAO = ['arte.js', 'assets.js', 'agua.js', 'chao_blocos.js', 'chao_novo.js', 'chao_pronto.js'];
+  let CODIGO = null;
+  function codigoBase() {
+    if (CODIGO) return CODIGO;
+    const H = [0x3b9aca07, 0x1f123bb5];
+    for (const n of ARQ_CHAO) { let v = '-'; try { const el = document.querySelector('script[src*="/' + n + '?"]') /* (js/ ou js_en/: o inglês usa os mesmos ?v=) */; if (el) v = (el.getAttribute('src').split('?v=')[1] || ''); } catch (e) { } acum(H, n + '@' + v, 0); }
+    for (const f of [window.CHAO2_PRE && CHAO2_PRE.gerador, typeof pintaAgua === 'function' && pintaAgua, typeof drawLinhasCampo === 'function' && drawLinhasCampo, typeof padrao === 'function' && padrao, typeof mulberry === 'function' && mulberry, P.pinta, P.fazBloco, P.fazPrevia]) acum(H, f ? String(f) : '-', 0);
+    acum(H, T, 0); acum(H, B, 0); acum(H, CB.PE, 0);
+    return (CODIGO = hex(H[0]) + hex(H[1]));
+  }
+  // a assinatura barata de um mapa do chão novo (null = este mapa não pode usar o atalho)
+  function atalhoAssina(m, cache) { // (cache: só para a pergunta dos vizinhos; ao entrar a conta é refeita — ex.: o portal da Copa entra no Multiverso na hora)
+    if (!m || m.interior || !window.CHAO2 || !CHAO2.mapas[m.id] || m.id === 'praca_feira' || m.id === 'agencia_escritorio' || (m.pontes && m.pontes.length) || (typeof mapaDeRua === 'function' && mapaDeRua(m.id))) return null;
+    const agora = performance.now(); if (cache && m._cpAt && m._cpAt.chao === m.chao && agora - m._cpAt.t < 20000) return m._cpAt.h;
+    const bio = CHAO2.mapas[m.id], H = [0x7f4a7c15, 0x2545f491], c = m.chao, presentes = new Set();
+    acum(H, codigoBase(), 0); acum(H, m.id, 0); acum(H, bio, 0); acum(H, m.w, 0); acum(H, m.h, 0);
+    for (let k = 0; k < c.length; k++) { const t = c[k] | 0; presentes.add(t); H[0] = mA(H[0], t); H[1] = mB(H[1], t); }
+    const ob = m.obj || []; for (let k = 0; k < ob.length; k++) { const o = ob[k]; if (o) { acum(H, k, 0); acum(H, o.t, 0); } }
+    for (const s2 of m.saidas || []) { acum(H, s2.x, 0); acum(H, s2.y, 0); }
+    for (const n of m.npcs || []) { acum(H, n.x, 0); acum(H, n.y, 0); }
+    acum(H, m.campos || [], 0);
+    const artes = new Set(['t_grama']);
+    for (const t of [...presentes].sort((a, b) => a - b)) {
+      const d = CHAO2.tex[t], dc = CHAO2.dc[t];
+      acum(H, t, 0); acum(H, ESTILO_CHAO[t] || 0, 0); acum(H, TEX_CHAO[t] || 0, 0); acum(H, d || 0, 0); acum(H, dc || 0, 0); acum(H, CHAO2.junta[t] == null ? -1 : CHAO2.junta[t], 0);
+      acum(H, (CHAO2.piso.has(t) ? 1 : 0) + (CHAO2.alto.has(t) ? 2 : 0) + (CHAO2.cru.has(t) ? 4 : 0), 0);
+      if (d) artes.add(d[0]); if (TEX_CHAO[t]) artes.add(TEX_CHAO[t]); if (dc) for (let i = 1; i <= 16; i++) artes.add(dc[0] + '_' + i);
+    }
+    const gr = CHAO2.grupos[m.id]; acum(H, gr || 0, 0); if (gr) for (const tm of gr.temas) for (const pc of tm) for (const n of pc[0]) artes.add(n);
+    acum(H, CHAO2.biomas[bio] || 0, 0); acum(H, [CH.ESTRELAS, CH.AGUA], 0);
+    for (const n of [...artes].sort()) acum(H, n + '?' + (typeof ASSET_VER !== 'undefined' && ASSET_VER[n] || ''), 0);
+    const h = hex(H[0]) + hex(H[1]); m._cpAt = { h, t: agora, chao: m.chao }; return h;
+  }
+  // o mapa pode usar o atalho agora? (índice com a assinatura barata, formato suportado, nada desligado)
+  function atalhoOk(m, cache) {
+    if (!m || m._cpSemAtalho || desligado()) return false;
+    const e = IDX[m.id]; if (!e || !e.cod || e._ruim || !formatoOk(e)) return false;
+    const h = atalhoAssina(m, cache); if (h !== e.cod) { if (h && !cache && !m._cpAvisou) { m._cpAvisou = true; EST.atalhoRecusado = (EST.atalhoRecusado || 0) + 1; } return false; }
+    return true;
+  }
+  function atalhoLousa(m) {
+    try { const F = window.CHAO2_FAZENDO; if (F && F.has(m)) F.delete(m); } catch (e) { } // (o preparo que estava em andamento não é mais preciso)
+    if (m._chaoTemp && m._chaoTemp.solta) try { m._chaoTemp.solta(); } catch (e) { }
+    m._chaoTemp = null;
+    const S = novoChaoBlocos(m.w * T, m.h * T, m, {}); S._cpAtalho = true;
+    m._chao = S; m._chao2 = true; EST.atalhos = (EST.atalhos || 0) + 1;
+    return S;
+  }
+  // a imagem falhou ou demorou: o atalho é largado (o próximo renderChao faz o caminho completo); nada é pintado com a lousa vazia
+  function desiste(S, sx, sy, sw, sh) {
+    const m = S.m, esc = new Set();
+    for (const [i, j] of S.blocosEm(sx - B * 0.6, sy - B * 0.6, sw + B * 1.2, sh + B * 1.2)) esc.add(i + ':' + j);
+    if (m && !m._cpSemAtalho) { m._cpSemAtalho = true; EST.desistiu = (EST.desistiu || 0) + 1; if (m._chao === S) { delete m._chao; m._chao2 = false; } }
+    return esc;
+  }
+  const _rcCp = renderChao;
+  renderChao = function (m) {
+    if (m && !m._chao) { let ok = false; try { ok = atalhoOk(m); } catch (e) { } if (ok) return atalhoLousa(m); }
+    return _rcCp.apply(this, arguments);
+  };
+  // o chão novo pergunta antes de pré-desenhar um vizinho ou baixar as artes dele (chao_novo.js: window.CHAO2_PULA)
+  window.CHAO2_PULA = m => { try { return atalhoOk(m, true); } catch (e) { return false; } };
+  // fotos e testes (fotoInteira pinta tudo na hora): a lousa do atalho não tem passos — faz o desenho completo ali mesmo
+  { const _foto = CB.fotoInteira; CB.fotoInteira = function (S) {
+    if (S && S._cpAtalho && S.m && window.CHAO2_PRE) { try { const g = CHAO2_PRE.gerador(S.m, CHAO2.mapas[S.m.id]); let r; while (!(r = g.next()).done); const a = [...arguments]; a[0] = r.value; return _foto.apply(this, a); } catch (e) { } }
+    return _foto.apply(this, arguments);
+  }; }
+
+  return { IDX, EST, CACHE, assinatura, entrada, quadradinhos, desligado, pede, toma, acum, avif: () => avifOk, atalhoAssina, atalhoOk, codigoBase };
 })();
 window.CP = CP; // (ferramenta _teste/chao_pronto/gera.js e testes)

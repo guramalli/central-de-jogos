@@ -346,7 +346,10 @@ const CHAO2 = {
   };
   const _rcN = renderChao;
   renderChao = function (m) {
-    if (m._chao) return m._chao;
+    // v411.7 (achado do chão pronto): com o chão já feito, este atalho devolvia a lousa SEM passar pelas pontes (pontes.js) — se a
+    // arte da ponte chegava um instante depois do chão, as pontes de Cairo/Tóquio/Munique nunca eram pintadas (o rio aparecia
+    // por baixo de onde se anda). Enquanto houver ponte por pintar, o pedido segue para dentro.
+    if (m._chao) return (m.pontes && m.pontes.length && m._pontesEm !== m._chao) ? _rcN.apply(this, arguments) : m._chao;
     const bio = m && !m.interior && CHAO2.mapas[m.id];
     if (!bio) return _rcN.apply(this, arguments);
     const artes = artesDoMapa(m); artes.forEach(n => spr(n));
@@ -437,6 +440,7 @@ const CHAO2 = {
       for (const id of ids) {
         let v = null; try { v = getMapa(id); } catch (e) { continue; }
         if (!v || v.interior || v._chao2 || FAZENDO.has(v) || estima(v) < 30) continue; // (v407: o preparo ficou leve; pré-desenha tudo que não é instantâneo)
+        if (window.CHAO2_PULA && CHAO2_PULA(v)) continue; // v411.7: chão pronto em imagem (chao_pronto.js) — nada a preparar nem a baixar
         if (!artesDoMapa(v).every(n => pronto(n) || spr(n).err) || !spr('t_grama').ok) continue;
         cands.push(v);
       }
@@ -445,7 +449,7 @@ const CHAO2 = {
     } catch (e) { }
   }
   setInterval(preDesenha, 1500);
-  function vizinhosArte(m) { try { for (const id of new Set((m.saidas || []).map(s => s.para))) if (CHAO2.mapas[id] && MAPAS_DEF[id]) { const v = getMapa(id); if (!v.interior) artesDoMapa(v).forEach(n => spr(n)); } } catch (e) { } }
+  function vizinhosArte(m) { try { for (const id of new Set((m.saidas || []).map(s => s.para))) if (CHAO2.mapas[id] && MAPAS_DEF[id]) { const v = getMapa(id); if (!v.interior && !(window.CHAO2_PULA && CHAO2_PULA(v))) artesDoMapa(v).forEach(n => spr(n)); } } catch (e) { } }
   // memória — v407 (Raio-X A8): havia DUAS regras brigando (memoria_mapas.js guardava 1–2 chãos, esta aqui 3 + o pré-desenhado;
   // medido: 4–5 chãos guardados, 333 MB). Agora a regra é UMA só, em memoria_mapas.js (o atual, os 2 anteriores e o vizinho
   // pré-desenhado; a imagem pesada — os blocos — tem um teto único em chao_blocos.js). Aqui só se avisa quem é o pré-desenhado.
@@ -460,7 +464,7 @@ const CHAO2 = {
     try {
       const m = G.mapa; if (!m) return;
       const ids = [...new Set((m.saidas || []).map(s => s.para))].filter(id => CHAO2.mapas[id]).slice(0, 4);
-      ids.forEach((id, i) => setTimeout(() => { try { const v = getMapa(id); if (!v.interior) artesDoMapa(v).forEach(n => spr(n)); } catch (e) { } }, 1500 + i * 900));
+      ids.forEach((id, i) => setTimeout(() => { try { const v = getMapa(id); if (!v.interior && !(window.CHAO2_PULA && CHAO2_PULA(v))) artesDoMapa(v).forEach(n => spr(n)); } catch (e) { } }, 1500 + i * 900));
     } catch (e) { }
   };
   const _entViz = entrarMapa;
