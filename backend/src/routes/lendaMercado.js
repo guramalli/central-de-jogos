@@ -10,9 +10,12 @@ import {
 } from "../lenda/mercado.js";
 import { abrirSave } from "../lenda/ficha.js";
 import { ehSuspeito, paresRepetidos } from "../lenda/suspeitos.js";
+import { criaPedidos } from "../lenda/pedidos.js";
 
-export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agora = () => Date.now() } = {}) {
+export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agora = () => Date.now(), pedidos = criaPedidos() } = {}) {
   const r = Router();
+  // v411.4: compra/cancelamento/recolha com `pedido` — repetir o mesmo pedido (internet caiu) devolve a mesma resposta (lenda/pedidos.js)
+  const umaVez = pedidos.umaVez;
   r.use(auth);
   const db = () => prisma;
   const rota = (fn) => async (req, res) => {
@@ -106,7 +109,7 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
   // "ter" o item; isso só se resolve com o inventário morando no servidor. O que segura esse caso: a lista de pares
   // repetidos vendedor↔comprador e os suspeitos do ranking no painel do admin, o teto de tostões recolhidos por dia e
   // míticos/troféus de arena fora da feira.
-  r.post("/cancelar/:id", rota(async (req, res) => {
+  r.post("/cancelar/:id", umaVez("cancelar"), rota(async (req, res) => {
     const a = await db().lendaAnuncio.findUnique({ where: { id: req.params.id } });
     if (!a || a.vendedorId !== req.user.id) return res.status(404).json({ error: "Anúncio não encontrado." });
     const apagou = await db().lendaAnuncio.deleteMany({ where: { id: a.id, vendedorId: req.user.id } });
@@ -115,24 +118,31 @@ export function criaRotasMercado({ prisma = prismaReal, auth = requireAuth, agor
   }));
 
   // comprar: tira do anúncio (sem vender duas vezes a mesma coisa) e registra a venda para o vendedor recolher
-  r.post("/comprar/:id", rota(async (req, res) => {
+  r.post("/comprar/:id", umaVez("comprar"), rota(async (req, res) => {
     const eu = req.user.id, t = new Date(agora());
     const a = await db().lendaAnuncio.findUnique({ where: { id: req.params.id } });
     if (!a || a.expiraEm <= t) return res.status(404).json({ error: "Esse anúncio não está mais na feira." });
     if (a.vendedorId === eu) return res.status(400).json({ error: "Esse anúncio é seu." });
     const q = Math.floor(Number(req.body?.qtd) || 1);
     if (!(q >= 1 && q <= a.qtd)) return res.status(400).json({ error: `Dá para comprar de 1 a ${a.qtd}.` });
-    const tirou = await db().lendaAnuncio.updateMany({ where: { id: a.id, qtd: { gte: q }, expiraEm: { gt: t } }, data: { qtd: { decrement: q } } });
-    if (!tirou.count) return res.status(409).json({ error: "Alguém comprou antes de você!" });
-    await db().lendaAnuncio.deleteMany({ where: { id: a.id, qtd: { lte: 0 } } });
     const total = a.preco * q;
-    await db().lendaVenda.create({ data: { vendedorId: a.vendedorId, compradorId: eu, itemId: a.itemId, refino: a.refino || 0, qtd: q, total, criadoEm: t } });
+    // v411.4: tirar do anúncio, apagar o anúncio zerado e registrar a venda numa TRANSAÇÃO só — se algo falhar no
+    // meio, nada acontece (antes o item podia sumir do anúncio sem virar venda). O updateMany com qtd >= q continua
+    // sendo a trava contra vender duas vezes a mesma unidade (duas compras ao mesmo tempo: só uma passa).
+    const vendeu = await db().$transaction(async (tx) => {
+      const tirou = await tx.lendaAnuncio.updateMany({ where: { id: a.id, qtd: { gte: q }, expiraEm: { gt: t } }, data: { qtd: { decrement: q } } });
+      if (!tirou.count) return false;
+      await tx.lendaAnuncio.deleteMany({ where: { id: a.id, qtd: { lte: 0 } } });
+      await tx.lendaVenda.create({ data: { vendedorId: a.vendedorId, compradorId: eu, itemId: a.itemId, refino: a.refino || 0, qtd: q, total, criadoEm: t } });
+      return true;
+    });
+    if (!vendeu) return res.status(409).json({ error: "Alguém comprou antes de você!" });
     res.json({ ok: true, item: { itemId: a.itemId, refino: a.refino || 0, qtd: q }, total });
   }));
 
   // recolher os tostões das vendas — v407 (Raio-X U7): até o teto do dia (pelo nível do ranking); o resto fica para amanhã.
   // O que já saiu hoje fica em LendaMercadoCota com o dia "t:AAAA-MM-DD" (a mesma tabela da cota de anúncios, sem schema novo).
-  r.post("/coletar", rota(async (req, res) => {
+  r.post("/coletar", umaVez("coletar"), rota(async (req, res) => {
     const eu = req.user.id, t = agora();
     const vendas = await db().lendaVenda.findMany({ where: { vendedorId: eu, coletado: false } });
     if (!vendas.length) return res.json({ ok: true, tostoes: 0 });

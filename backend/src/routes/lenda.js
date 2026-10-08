@@ -3,12 +3,13 @@ import { prisma } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
 import { cacheOuBuscar, cacheInvalidar } from "../utils/cache.js";
-import { validarSave, validarCasa, escolherCasas, validarRanking, SKILLS_RANK } from "../lenda/validar.js";
+import { validarCasa, escolherCasas, validarRanking, SKILLS_RANK } from "../lenda/validar.js";
 import { abrirSave, fichaPublica } from "../lenda/ficha.js";
 import { registrarSinal, JOGANDO_AGORA_MS, GUARDAR_DIAS } from "../lenda/sessoes.js";
 import { TORCIDAS, validarTorcida, amigosDe, podeTorcer, GUARDAR_DIAS as TORCIDA_DIAS } from "../lenda/torcida.js";
 import { validarContagens, podeContar, somarContagens, resumir, GUARDAR_DIAS as CONTAGEM_DIAS } from "../lenda/contagens.js";
 import { conferirProgresso } from "../lenda/validar.js";
+import { criaPutSave } from "../lenda/saveNuvem.js";
 import { timePublico } from "../lenda/times.js";
 import { contasForaDoRanking, registrarSuspeito, GAME_KEY, MOTIVOS_QUE_ESCONDEM } from "../lenda/suspeitos.js";
 import { apagarDadosLenda, tabelasLenda } from "../lenda/apagar.js";
@@ -25,9 +26,7 @@ import { contaVisita, validarDenuncia, podeDenunciar, MOTIVOS_DENUNCIA } from ".
 
 const router = Router();
 
-// Salvar muito seguido não ajuda ninguém: o jogo manda no máximo a cada
-// minuto; o limite aqui só barra abuso.
-const SAVE_INTERVALO_MS = 10_000;
+// Salvar muito seguido não ajuda ninguém: o limite do save (10 s; 1,5 s ao fechar a página) está em lenda/saveNuvem.js.
 const CASA_INTERVALO_MS = 5_000;
 const RANKING_INTERVALO_MS = 30_000;
 
@@ -57,22 +56,8 @@ router.get("/save/meta", requireAuth, async (req, res) => {
   res.json({ nivel: s.nivel, atualizadoEm: s.atualizadoEm });
 });
 
-router.put("/save", requireAuth, async (req, res) => {
-  const v = validarSave(req.body);
-  if (!v.ok) return res.status(400).json({ error: v.erro });
-  const antes = await prisma.lendaSave.findUnique({ where: { userId: req.user.id }, select: { atualizadoEm: true } });
-  if (antes && Date.now() - new Date(antes.atualizadoEm).getTime() < SAVE_INTERVALO_MS) {
-    return res.status(429).json({ error: "Salvando rápido demais. Tente em alguns segundos." });
-  }
-  const s = await prisma.lendaSave.upsert({
-    where: { userId: req.user.id },
-    create: { userId: req.user.id, dados: v.dados, nivel: v.nivel, tamanho: v.dados.length },
-    update: { dados: v.dados, nivel: v.nivel, tamanho: v.dados.length },
-    select: { atualizadoEm: true },
-  });
-  registrarSinal(prisma, req.user.id, v.nivel, req.headers["user-agent"]);
-  res.json({ ok: true, atualizadoEm: s.atualizadoEm });
-});
+// v411.4: as regras do envio (intervalo, "fechando a página", ordem dos envios) ficam em lenda/saveNuvem.js
+router.put("/save", requireAuth, criaPutSave({ prisma, sinal: registrarSinal }));
 
 // ---------- casas ----------
 // Publicar (ou atualizar) a minha casa.

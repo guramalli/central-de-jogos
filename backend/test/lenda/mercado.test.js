@@ -53,6 +53,7 @@ const prisma = {
   lendaRanking: { findUnique: async ({ where }) => (NIVEIS[where.userId] ? { nivel: NIVEIS[where.userId] } : null) },
   lendaSave: tabela("userId"),
   suspiciousActivity: { findFirst: async ({ where }) => (where.userId === "sus" ? { id: "s1" } : null) },
+  $transaction: async (fn) => fn(prisma), // (v411.4: a compra roda numa transação; o teste de desfazer está em saveFeira.test.js)
   user: {
     findMany: async ({ where }) => where.id.in.map((id) => ({ id, nickname: NOMES[id] || id })),
     findUnique: async ({ where }) => { const c = CONTAS[where.id]; return c ? { isGuest: !!c.guest, createdAt: new Date(relogio - (c.dias ?? 30) * 864e5), role: where.id === "ana" ? "ADMIN" : "PLAYER" } : null; },
