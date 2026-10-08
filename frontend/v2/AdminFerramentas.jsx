@@ -552,6 +552,18 @@ export function LendaEstatisticas() {
             <div><b>{base}</b><span>jogadores novos</span></div>
             <div><b>{soma("derrota")}</b><span>1ª derrota</span></div>
           </div>
+          {/* v411.8: o jogo funciona sem login — quem joga sem conta não aparece em Sessões/ranking, só aqui (1x por dia por aparelho) */}
+          {(() => {
+            const com = t["conta:com"] || 0, sem = t["conta:sem"] || 0, tot = com + sem;
+            const cel = (k, n, txt) => <div key={k}><b>{!n && poucos.has(k) ? "< 5" : n}</b><span>{txt}{tot ? ` (${Math.round((n / tot) * 100)}%)` : ""}</span></div>;
+            return (
+              <div className="v2-admin-numeros">
+                {cel("conta:com", com, "jogaram COM conta")}
+                {cel("conta:sem", sem, "jogaram SEM conta")}
+                <div><b>{tot}</b><span>aparelhos-dia que jogaram</span></div>
+              </div>
+            );
+          })()}
           <div className="v2-tabela-rolagem">
             <table className="v2-tabela-admin">
               <thead><tr><th>Marco</th><th>Quantos</th><th>dos novos</th></tr></thead>

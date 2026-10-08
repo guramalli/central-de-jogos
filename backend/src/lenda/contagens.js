@@ -22,6 +22,7 @@ export const EVENTOS = {
   missao: /^[a-z0-9_]{1,40}$/,           // missão concluída (só o ID da missão, uma vez por personagem)
   desistiu: /^criacao$/,                  // fechou o jogo na tela de criar personagem
   primeira: /^(caca|chefe)$/,             // primeira área de caça / primeiro chefão vencido
+  conta: /^(com|sem)$/,                   // v411.8: jogou hoje neste aparelho COM conta do site ou SEM (1x por dia por aparelho)
 };
 // v407 (Raio-X I7): no painel, número com menos de MIN_PESSOAS não aparece (com tão pouca gente daria para adivinhar quem é)
 export const MIN_PESSOAS = 5;

@@ -66,6 +66,9 @@ try {
     const novo = sv && !sv.est && (sv.nivel || 1) <= 1;
     const r = await _iniEst.apply(this, arguments);
     try { if (novo) estUmaVez('personagem', G.save.classe || ''); estConta('jogou', ''); } catch (e) { }
+    // v411.8 (dono: "jogadores sem cadastro jogam e eu não vejo no painel?"): uma vez por DIA neste aparelho, se jogou
+    // com conta ou sem conta (o jogo funciona sem login, com o save só no navegador). Continua anônimo: só +1 em "com" ou "sem".
+    try { const dia = String(Math.floor(Date.now() / 864e5)); if (localStorage.getItem('rac_estatisticas_conta') !== dia) { localStorage.setItem('rac_estatisticas_conta', dia); estConta('conta', PORTAL.token ? 'com' : 'sem'); } } catch (e) { }
     return r;
   };
 }

@@ -69,3 +69,10 @@ test("eventos novos da v407 (I7): missão por ID, desistiu na criação, primeir
     { e: "missao", v: "Nome Livre!" }, { e: "desistiu", v: "outra" }, { e: "primeira", v: "beijo" }] });
   assert.deepEqual(v.itens.map((i) => i.evento + ":" + i.valor), ["missao:q_tonhao_2", "desistiu:criacao", "primeira:caca", "primeira:chefe"]);
 });
+
+test("v411.8: conta com/sem conta é aceita; outro valor não", () => {
+  const r = validarContagens({ v: "1", p: "computador", ev: [{ e: "conta", v: "com" }, { e: "conta", v: "sem" }, { e: "conta", v: "talvez" }] });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.itens.map((i) => i.valor ?? i.v ?? i[1]).filter(Boolean).length >= 2, true);
+  assert.equal(r.itens.length, 2);
+});
