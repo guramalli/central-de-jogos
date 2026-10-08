@@ -246,7 +246,7 @@ function blocoComoChegar(q, compacto) {
   const poe = (compacto) => {
     for (const li of document.querySelectorAll('#modalConteudo .linha-item')) {
       if (li.classList.contains('bloq') || li.querySelector('.como-chegar')) continue;
-      const titulo = (li.querySelector('.nm b') || {}).textContent; const q = titulo && MISSOES.find(x => x.titulo === titulo); if (!q) continue;
+      const qid = li.getAttribute('data-qid'), titulo = (li.querySelector('.nm b') || {}).textContent; const q = (qid && MISSOES.find(x => x.id === qid)) || (titulo && MISSOES.find(x => x.titulo === titulo)); if (!q) continue; // v412: pelo data-qid (a janela põe "Nv 18" antes do título e o título nunca batia)
       const st = statusMissao(q); if (st !== 'ativa' && st !== 'disponivel') continue;
       const b = blocoComoChegar(q, compacto); if (b) (li.querySelector('.nm') || li).append(b);
     }

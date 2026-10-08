@@ -326,13 +326,18 @@ function atualizaRastreador() {
   }
   if (s.tut >= TUTORIAL.length) {
     let n = 0;
-    for (const q of MISSOES) {
-      const e = s.quests[q.id]; if (!e || e.s !== 'ativa') continue; if (n++ >= 2) break;
+    // v412 (dono: "opção de ticar a quest que você quer acompanhar"): as 📌 acompanhadas (missao_fixa.js) vêm primeiro,
+    // e todas elas aparecem (até 3); sem nenhuma, fica como antes (as 2 primeiras ativas)
+    const fix = typeof qfLista === 'function' ? qfLista() : [], qsFix = fix.map(id => qfMissao(id)).filter(Boolean);
+    const lim = Math.max(2, qsFix.length);
+    for (const q of qsFix.length ? qsFix.concat(MISSOES.filter(m => !fix.includes(m.id))) : MISSOES) {
+      const e = s.quests[q.id]; if (!e || e.s !== 'ativa') continue; if (n++ >= lim) break;
+      const fixa = fix.includes(q.id);
       const [a, b] = progressoMissao(q); const pronta = a >= b;
       // v238: diz com quem entregar e onde; clicar faz a seta amarela levar até a pessoa
       const nNpc = (NPCS[q.npc] || {}).nome || 'quem te deu', onde = typeof ondeFica === 'function' ? ondeFica(q.npc) : '';
       const leva = ev => { ev.stopPropagation(); G.guiaPedido = { npc: q.npc, quest: q.id, entregar: true }; G.guiaOn = true; G.uiSujo = true; log(`📍 A seta amarela agora leva até ${nNpc}${onde ? ` (${onde})` : ''}.`, 'l-xp'); if (typeof avisoTela === 'function') avisoTela(`📍 Siga a seta amarela até ${nNpc}`, 'l-xp'); };
-      R.append(el('div', { class: 'rast rast-q' + (pronta ? ' pronta' : ''), title: `Clique e a seta amarela te leva até ${nNpc}`, onclick: leva }, el('b', {}, q.titulo), el('br'), pronta ? `✔ Pronta! Entregue para ${nNpc}` : `${descMissao(q)}: ${a}/${b}`,
+      R.append(el('div', { class: 'rast rast-q' + (pronta ? ' pronta' : '') + (fixa ? ' fixa' : ''), title: `Clique e a seta amarela te leva até ${nNpc}`, onclick: leva }, fixa ? el('span', { class: 'rast-pin', title: 'Missão que você está acompanhando' }, '📌 ') : null, el('b', {}, q.titulo), el('br'), pronta ? `✔ Pronta! Entregue para ${nNpc}` : `${descMissao(q)}: ${a}/${b}`,
         el('div', { class: 'rast-onde' }, `📍 ${pronta ? '' : 'Entregar para: ' + nNpc + ' · '}${onde || 'veja no mapa'} · clique para ir`)));
     }
     if (s.tarefa) R.append(el('div', { class: 'rast' + (s.tarefa.p >= s.tarefa.n ? ' pronta' : '') }, el('b', {}, 'Desafio: '), `${MONSTROS[s.tarefa.m].nome} ${s.tarefa.p}/${s.tarefa.n}`));
@@ -665,7 +670,7 @@ function modalMissoes() {
         el('button', { class: 'btn mini', type: 'button', onclick: () => caixa.replaceWith(bt) }, 'Não'));
       bt.replaceWith(caixa);
     } }, 'Desistir') : null;
-    lista.append(el('div', { class: 'linha-item' + (st === 'feita' || st === 'nivel' ? ' bloq' : '') }, el('div', { class: 'nm' }, el('b', {}, q.titulo), el('small', {}, descMissao(q) + ' — ' + rot), st === 'ativa' ? el('div', { class: 'progresso' }, barraI(a / b)) : ''), desiste));
+    lista.append(el('div', { class: 'linha-item' + (st === 'feita' || st === 'nivel' ? ' bloq' : ''), 'data-qid': q.id }, el('div', { class: 'nm' }, el('b', {}, q.titulo), el('small', {}, descMissao(q) + ' — ' + rot), st === 'ativa' ? el('div', { class: 'progresso' }, barraI(a / b)) : ''), desiste));
   }
   const feitas = MISSOES.filter(q => statusMissao(q) === 'feita').length;
   abreModal(el('h2', {}, 'Missões'), el('p', {}, `${feitas} de ${MISSOES.length} concluídas.`), lista);

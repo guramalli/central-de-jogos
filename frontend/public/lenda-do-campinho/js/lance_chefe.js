@@ -351,7 +351,8 @@ if (typeof objetivoTexto === 'function') { // o "🎯 Agora:" (objetivo_agora.js
   const _objLch = objetivoTexto;
   objetivoTexto = function () {
     const o = _objLch.apply(this, arguments);
-    try { if (o && !o.pronta) { const q = lchAtivasCaca()[0]; if (q && MISSOES.find(x => statusMissao(x) === 'ativa') === q) { const [a, n] = progressoMissao(q), p = lchPlacar(a, n); if (p) o.txt += ` · ${p.txt}`; } } } catch (e) { }
+    // v412: a 1ª missão ativa pelo statusMissao (com uma 📌 acompanhada, é ela — missao_fixa.js), e só se for de vencer
+    try { if (o && !o.pronta) { const q = MISSOES.find(x => statusMissao(x) === 'ativa'); if (q && q.req && q.req.kill) { const [a, n] = progressoMissao(q), p = lchPlacar(a, n); if (p) o.txt += ` · ${p.txt}`; } } } catch (e) { }
     return o;
   };
 }

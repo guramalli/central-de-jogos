@@ -91,6 +91,8 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    // v412 (pedido do dono, 08/10/2026): missões acompanhadas (js/missao_fixa.js)
+    ['v412', '📌 ACOMPANHE SUAS MISSÕES! Na janela Missões, toque em "📌 Acompanhar" numa missão em andamento (até 3). Ela fica sempre no topo da lista, aparece primeiro na lista de missões da tela, e a seta amarela e o "🎯 Agora" levam até ela. A última que você marcou é a que a seta segue (ou toque em "🎯 Seta nesta"). Quando você entrega a missão, ela sai da lista sozinha.'],
     // v410 (aprovado pelo dono, frente MISSÕES/TEXTOS): Copa dos Esquecidos (js/copa_historia.js e as outras frentes copa_*)
     ['v410', '🎟️ A COPA DOS ESQUECIDOS! No nível 700, o Orbitto acha um ingresso antigo e o portal selado do Estádio do Multiverso se abre. Do outro lado, um estádio fora do tempo onde os times que nunca ganharam nada ainda jogam a Copa de Origem. São fantasmas simpáticos! Com o Seu Saudade e a Dona Memória, ajude cada time a lembrar por que jogava, em 4 alas (níveis 700 a 950), com perguntas sobre as regras do futebol. Depois da Bola de Origem, a final dos Onze Esquecidos volta toda semana. E tem o Álbum dos Esquecidos no Caderno do Craque. Também: tocando numa missão (no canto da tela ou na janela Missões), aparece onde achar o adversário e como chegar lá.'],
     // v408.3 (ECA Digital, Lei 15.211/2025): nada de pagar por sorteio (js/figurinha_vista.js)

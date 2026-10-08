@@ -91,6 +91,8 @@
 
   /* ---------- 📰 Novidades ---------- */
   const NOVIDADES = [
+    // v412 (pedido do dono, 08/10/2026): missões acompanhadas (js/missao_fixa.js)
+    ['v412', '📌 TRACK YOUR QUESTS! In the Quests window, tap "📌 Track" on a quest in progress (up to 3). It always stays at the top of the list, shows first in the on-screen quest list, and the yellow arrow and "🎯 Now" lead to it. The arrow follows the last one you marked (or tap "🎯 Arrow on this"). When you deliver the quest, it leaves the list by itself.'],
     // v410 (aprovado pelo dono, frente MISSÕES/TEXTOS): Copa dos Esquecidos (js/copa_historia.js e as outras frentes copa_*)
     ['v410', '🎟️ THE FORGOTTEN CUP! At level 700, Orbitto finds an old ticket and the sealed portal of the Multiverse Stadium opens. On the other side is a stadium outside of time, where the teams that never won anything still play the Origin Cup. They’re friendly ghosts! With Seu Saudade and Dona Memória, help each team remember why they played, across 4 wings (levels 700 to 950), with questions about the rules of soccer. After the Origin Ball, the Final of the Forgotten Eleven comes back every week. And there’s the Forgotten Album in the Star’s Notebook. Also: tapping a mission (in the corner of the screen or in the Missions window) shows where to find the opponent and how to get there.'],
     // v408.3 (ECA Digital, Lei 15.211/2025): nada de pagar por sorteio (js/figurinha_vista.js)

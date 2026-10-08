@@ -67,13 +67,21 @@
         const n = daCat.filter(it => fn(it.st)).length;
         btnsF.append(el('button', { class: 'btn mini' + (MO.filtro === id ? ' amarelo' : ''), type: 'button', onclick: () => { MO.filtro = id; guarda(); aplica(); } }, `${nome} (${n})`));
       }
-      const vis = daCat.filter(it => f[2](it.st) && (!termo || it.busca.includes(termo)));
+      // v412 (dono: "ticar a quest que você quer acompanhar, para não ter que ficar procurando"): as 📌 acompanhadas
+      // (missao_fixa.js) ficam SEMPRE no topo, num grupo só delas, em qualquer filtro, categoria ou busca
+      const fix = typeof qfLista === 'function' ? qfLista() : [];
+      const fixos = fix.map(id => itens.find(it => it.q.id === id && (it.st === 'ativa' || it.st === 'pronta'))).filter(Boolean);
+      const vis = daCat.filter(it => f[2](it.st) && (!termo || it.busca.includes(termo)) && !fixos.includes(it));
       const lv = it => it.q.lvl || 1;
       const cmp = { situacao: (a, b) => ORD_ST[a.st] - ORD_ST[b.st] || ehPrincipal(b.q) - ehPrincipal(a.q) || lv(a) - lv(b), nivel: (a, b) => lv(a) - lv(b) || ORD_ST[a.st] - ORD_ST[b.st],
         nivel_desc: (a, b) => lv(b) - lv(a) || ORD_ST[a.st] - ORD_ST[b.st], npc: (a, b) => a.npc.localeCompare(b.npc, 'pt') || lv(a) - lv(b) }[MO.ordem];
       vis.sort(cmp);
       const grupo = { situacao: it => NOME_ST[it.st], nivel: it => faixa(lv(it)), nivel_desc: it => faixa(lv(it)), npc: it => '👤 ' + (it.npc || 'Others') }[MO.ordem];
       for (const it of itens) it.li.style.display = 'none';
+      if (fixos.length) {
+        lista.append(el('div', { class: 'mo-grupo qf-grupo' }, `📌 Tracking (${fixos.length} of ${typeof QF_MAX !== 'undefined' ? QF_MAX : 3})`));
+        for (const it of fixos) { it.li.style.display = ''; lista.append(it.li); }
+      }
       let ult = null;
       for (const it of vis) {
         const g = grupo(it); if (g !== ult) { lista.append(el('div', { class: 'mo-grupo' }, g)); ult = g; }
@@ -84,6 +92,7 @@
       const nProx = daCat.filter(it => it.st === 'nivel').length;
       if (MO.filtro === 'todas' && nProx) lista.append(el('p', { class: 'mo-vazio' }, `🔒 ${nProx} more ${nProx === 1 ? 'mission arrives' : 'missions arrive'} in the next levels. `, el('button', { class: 'btn mini', type: 'button', onclick: () => { MO.filtro = 'proximas'; guarda(); aplica(); } }, 'See the next ones')));
     }
+    lista._moAplica = aplica; // (missao_fixa.js reordena ao ticar/desticar, sem fechar a janela)
     sel.onchange = () => { MO.ordem = sel.value; guarda(); aplica(); };
     busca.oninput = () => { MO.busca = busca.value; aplica(); };
     barra.append(btnsC, btnsF, el('div', { class: 'mo-linha2' }, el('label', {}, 'Sort by ', sel), busca));

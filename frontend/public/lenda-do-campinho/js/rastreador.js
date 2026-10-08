@@ -32,10 +32,11 @@ let RAST_ASSIN = null, RAST_ATE = 0; // RAST_ATE: até quando a etiqueta pisca
     if (RAST_ASSIN !== null && assin !== RAST_ASSIN) RAST_ATE = (G.agora || 0) + RAST_PISCA_MS;
     RAST_ASSIN = assin;
     const prontas = cartoes.filter(c => c.classList.contains('pronta')).length;
+    const fixas = cartoes.filter(c => c.classList.contains('fixa')).length; // v412: 📌 acompanhadas (missao_fixa.js)
     const aberto = RAST_FIXO, pisca = !aberto && (G.agora || 0) < RAST_ATE;
     const etiqueta = el('button', { class: 'btn mini rast-etiqueta' + (prontas ? ' tem-pronta' : '') + (pisca ? ' pisca' : ''), type: 'button', title: aberto ? 'Esconder as missões' : 'Mostrar as missões',
       onclick: ev => { ev.stopPropagation(); RAST_FIXO = !aberto; RAST_ATE = 0; try { localStorage.setItem('rac_rast_aberto_v1', RAST_FIXO ? '1' : '0'); } catch (e) { } G.uiSujo = true; } },
-      `📜 Missões (${cartoes.length})${prontas ? ` · ✔ ${prontas} pronta${prontas > 1 ? 's' : ''}` : ''} ${aberto ? '▾' : '▸'}`);
+      `📜 Missões (${cartoes.length})${fixas ? ` · 📌 ${fixas}` : ''}${prontas ? ` · ✔ ${prontas} pronta${prontas > 1 ? 's' : ''}` : ''} ${aberto ? '▾' : '▸'}`);
     if (!aberto) cartoes.forEach(c => c.remove());
     // a etiqueta fica colada na lista (a lista cresce "para cima" no computador: column-reverse)
     const primeiro = R.querySelector(':scope > .rast');

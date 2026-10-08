@@ -43,6 +43,7 @@ const DSQ = { noLaco: false, rastSig: null, rastT: 0, rastN: -1, retSig: null, p
     try { if (typeof hjEtiqueta === 'function') { const b = hjEtiqueta(); extra.push(b ? b.className + b.textContent : '-'); } } catch (e) { extra.push('x'); } // (o que a etiqueta 📅 Hoje mostra)
     try { if (typeof alertasAtuais === 'function') extra.push(alertasAtuais().map(a => a.id + a.txt).join(',')); } catch (e) { extra.push('x'); }
     try { if (typeof OA_CC_ABERTO !== 'undefined') extra.push([...OA_CC_ABERTO].join(',')); } catch (e) { }
+    extra.push(Array.isArray(s.questFixas) ? s.questFixas.join(',') : ''); // v412: 📌 missões acompanhadas (missao_fixa.js)
     const d0 = G.dicasFila && G.dicasFila[0];
     return [q, s.tut, G.tutMin, G.dicasFila ? G.dicasFila.length : 0, d0 ? d0.txt : '', js(s.tarefa || null), s.nivel, s.pontos, G.mapa && G.mapa.id,
       js(G.guiaPedido || null), G.guiaOn, typeof RAST_FIXO !== 'undefined' ? RAST_FIXO : '', typeof RAST_ATE !== 'undefined' ? RAST_ATE > (G.agora || 0) : '',
@@ -70,7 +71,7 @@ const DSQ = { noLaco: false, rastSig: null, rastT: 0, rastN: -1, retSig: null, p
     objetivoAtual = function () {
       const s = G.save; if (!s || !G.mapa) return _oaDsq.apply(this, arguments);
       const k = [G.mapa.id, s.tut, G.guiaOn, JSON.stringify(G.guiaPedido || null), (s.st && s.st.abates) || 0, G.mons ? G.mons.length : 0, G.respawns ? G.respawns.length : 0,
-        typeof ICONE_POOL !== 'undefined' ? ICONE_POOL.ger : 0, s.nivel].join('|');
+        typeof ICONE_POOL !== 'undefined' ? ICONE_POOL.ger : 0, s.nivel, Array.isArray(s.questFixas) ? s.questFixas.join(',') : ''].join('|'); // (v412: + as 📌 acompanhadas)
       const ag = G.agora || 0;
       if (memo && memo.k === k && ag >= memo.t && ag - memo.t < 250) {
         const r = memo.r; if (!r) return r;
