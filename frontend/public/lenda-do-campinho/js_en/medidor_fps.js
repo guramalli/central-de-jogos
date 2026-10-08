@@ -12,7 +12,8 @@ const MFP = { on: false };
 function mfpComeca(seg = 60) {
   if (MFP.on) return;
   window.__MFP_ON = true; window.__MFP_MARCA = (k, ms) => { if (MFP.on) MFP.tag.add(k.slice(0, 60) + ' ' + ms.toFixed(0) + ' ms'); }; for (const k in (window.__MFP_AG || {})) delete window.__MFP_AG[k];
-  Object.assign(MFP, { on: true, t0: performance.now(), dur: seg * 1000, ultimo: 0, inter: [], gasto: [], pain: 0, painMs: [], ultPain: false, aposPain: 0, tag: new Set(), piores: [], modalAntes: false, mapaUlt: G.mapa && G.mapa.id, longas: [], vitorias: [], mapas: new Set(), janelas: 0, quadrosJanela: 0 });
+  Object.assign(MFP, { on: true, t0: performance.now(), dur: seg * 1000, ultimo: 0, inter: [], gasto: [], pain: 0, painMs: [], ultPain: false, aposPain: 0, tag: new Set(), piores: [], modalAntes: false, mapaUlt: G.mapa && G.mapa.id, longas: [], vitorias: [], mapas: new Set(), janelas: 0, quadrosJanela: 0, partesAnt: null, partesTot: {} });
+  mfpInstalaPartes(); // v411.2: tempo por parte (chão, bonecos, efeitos...) — só durante a medição
   try {
     MFP.obs = new PerformanceObserver(l => { for (const e of l.getEntries()) MFP.longas.push([e.startTime, e.duration]); });
     MFP.obs.observe({ type: 'longtask', buffered: false });
@@ -25,16 +26,17 @@ function mfpComeca(seg = 60) {
   loop = function (ts) {
     if (!MFP.on) return _loopMf.apply(this, arguments);
     const a = performance.now(), antes = G.ult;
-    mfpMapa(); const prev = MFP.tag; MFP.tag = new Set(); // v410.6: o que aconteceu desde o quadro anterior (o quadro lento "paga" por isso)
+    MFPP.cur = {}; mfpMapa(); const prev = MFP.tag; MFP.tag = new Set(); // v410.6: o que aconteceu desde o quadro anterior (o quadro lento "paga" por isso)
     const r = _loopMf.apply(this, arguments);
     mfpMapa();
     if (G.ult !== antes) { // v410.5: quadro de verdade (com o limite de FPS, as chamadas puladas não contam)
       if (MFP.ultimo) {
         const iv = a - MFP.ultimo; MFP.inter.push(iv); if (iv > 33 && MFP.ultPain) MFP.aposPain++; // (o quadro lento "paga" o redesenho da página do quadro anterior)
-        if (iv > 33) MFP.piores.push([iv, MFP.ultimo, a, [...prev]]);
+        if (iv > 33) MFP.piores.push([iv, MFP.ultimo, a, [...prev], MFP.partesAnt]);
       }
       const g = performance.now() - a;
       MFP.ultimo = a; MFP.gasto.push(g); MFP.ultPain = MFP.pain > 0; MFP.pain = 0;
+      { const P = MFPP.cur || {}; let soma = 0; for (const k in P) soma += P[k]; P['outros'] = Math.max(0, g - soma); for (const k in P) MFP.partesTot[k] = (MFP.partesTot[k] || 0) + P[k]; MFP.partesAnt = P; }
       if (g > 8) MFP.tag.add('game code ' + g.toFixed(1) + ' ms');
     } else for (const x of prev) MFP.tag.add(x); // (chamada pulada pelo limite: guarda para o próximo quadro)
     try { if (G.mapa) MFP.mapas.add(G.mapa.id); const m = document.getElementById('modal'), ab = !!(m && !m.hidden); if (ab) MFP.quadrosJanela++; if (ab !== MFP.modalAntes) { MFP.tag.add(ab ? 'abriu janela' : 'fechou janela'); MFP.modalAntes = ab; } } catch (e) { }
@@ -47,9 +49,51 @@ function mfpComeca(seg = 60) {
   if (_matarMf) matar = function () { if (MFP.on) { MFP.vitorias.push(performance.now()); MFP.tag.add('vitória'); } return _matarMf.apply(this, arguments); };
 }
 function mfpMapa() { const id = G.mapa && G.mapa.id; if (id !== MFP.mapaUlt) { if (MFP.mapaUlt) MFP.tag.add('changed map → ' + id); MFP.mapaUlt = id; } } // (a troca pode vir de fora do quadro: porta, viagem, janela)
+/* v411.2 — TEMPO POR PARTE. Durante a medição (e só nela), as funções de desenho e de lógica são embrulhadas com um
+   cronômetro que conta o tempo PRÓPRIO de cada parte (o tempo de uma função chamada por dentro vai para a parte dela, não
+   para a de fora). No fim da medição tudo volta a ser como era (fora da medição não custa nada). */
+const MFPP = { cur: null, pilha: [], inst: [] };
+const MFP_PARTES = [
+  ['floor', [[() => typeof CHAO_BLOCOS !== 'undefined' && CHAO_BLOCOS.ChaoBlocos.prototype, 'desenhaEm'], 'renderChao', 'desenhaChaoClima', 'drawAguaBrilho']],
+  ['characters and buildings', ['desenhaEnt', 'desenhaObj', 'desenhaPredio', 'desenhaSaida']],
+  ['efeitos', ['desenhaEfeito', 'desenhaProjetil', 'desenhaDrops', 'desenhaNoite']],
+  ['names and numbers', ['rotulo', 'placaNPC', 'barraVida', 'balao', 'desenhaTitulos']],
+  ['minimapa', ['desenhaMini']],
+  ['guide and buffs', ['desenhaGuia', 'desenhaBuffs']],
+  ['panels', ['atualizaPaineis']],
+  ['logic', ['atualiza']],
+  ['rest of drawing', ['desenha']],
+];
+function mfpEmbrulha(obj, nome, parte) {
+  const orig = obj && obj[nome]; if (typeof orig !== 'function') return;
+  const w = function () {
+    const t0 = performance.now(); MFPP.pilha.push(0);
+    try { return orig.apply(this, arguments); }
+    finally {
+      const filhos = MFPP.pilha.pop(), d = performance.now() - t0, P = MFPP.cur;
+      if (P) P[parte] = (P[parte] || 0) + Math.max(0, d - filhos);
+      if (MFPP.pilha.length) MFPP.pilha[MFPP.pilha.length - 1] += d;
+    }
+  };
+  obj[nome] = w; MFPP.inst.push([obj, nome, orig, w]);
+}
+function mfpInstalaPartes() {
+  if (MFPP.inst.length) return;
+  for (const [parte, fns] of MFP_PARTES) for (const f of fns) {
+    try {
+      if (Array.isArray(f)) mfpEmbrulha(f[0](), f[1], parte); // (CHAO_BLOCOS é const: não fica em window)
+      else mfpEmbrulha(window, f, parte);
+    } catch (e) { }
+  }
+}
+function mfpTiraPartes() { // (só desfaz se ninguém embrulhou de novo por cima durante a medição)
+  for (const [obj, nome, orig, w] of MFPP.inst.reverse()) { try { if (obj[nome] === w) obj[nome] = orig; } catch (e) { } }
+  MFPP.inst = []; MFPP.cur = null; MFPP.pilha = [];
+}
 function mfpPct(arr, p) { if (!arr.length) return 0; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p / 100 * s.length))]; }
 function mfpTermina() {
   MFP.on = false; window.__MFP_ON = false; try { MFP.obs && MFP.obs.disconnect(); } catch (e) { }
+  mfpTiraPartes();
   const I = MFP.inter, Gt = MFP.gasto, n = I.length || 1, seg = (MFP.dur / 1000);
   const alvo = (typeof LFPS_MAX !== 'undefined' && LFPS_MAX > 0) ? 1000 / LFPS_MAX : mfpPct(I, 50);
   const eng = I.filter(x => x > Math.max(alvo * 1.8, 12)).length, eng33 = I.filter(x => x > 33).length, eng50 = I.filter(x => x > 50).length;
@@ -74,16 +118,18 @@ function mfpTermina() {
     'Frames with a window open': MFP.quadrosJanela,
     'Panels redrawn: times / typical / worst (ms)': `${MFP.painMs.length} / ${mfpPct(MFP.painMs, 50).toFixed(1)} / ${Math.max(0, ...MFP.painMs).toFixed(1)}`,
     'Frames > 33 ms right after redrawing the panels': MFP.aposPain,
+    'Time per part in the minute (ms)': Object.entries(MFP.partesTot).sort((x, y) => y[1] - x[1]).map(([k, v]) => `${k} ${Math.round(v)}`).join(', '),
     'Maps': [...MFP.mapas].join(', '),
     'Screen': `${innerWidth}×${innerHeight} · ${devicePixelRatio}x`,
   };
   const ag = Object.entries(window.__MFP_AG || {}).sort((x, y) => y[1].max - x[1].max).slice(0, 6);
   const fora = ag.length ? '\nOutside the frame (≥4 ms), the heaviest:\n' + ag.map(([k, v]) => `- ${k} → ${v.n}x, worst ${v.max.toFixed(1)} ms, total ${Math.round(v.total)} ms`).join('\n') : '\nOutside the frame: nothing went over 4 ms.';
   // v410.6: os 8 piores quadros e o que veio logo antes de cada um (tarefa longa = trabalho do navegador no meio)
-  const piores = MFP.piores.sort((x, y) => y[0] - x[0]).slice(0, 8).map(([iv, de, ate, tags]) => {
+  const piores = MFP.piores.sort((x, y) => y[0] - x[0]).slice(0, 8).map(([iv, de, ate, tags, P]) => {
     const tl = longas.filter(([s, d]) => s < ate && s + d > de).map(([, d]) => 'tarefa longa ' + Math.round(d) + ' ms');
     const o = [...tags, ...tl];
-    return `- ${iv.toFixed(1)} ms ← ` + (o.length ? o.join(', ') : 'nothing from the game (the browser: drawing, memory or another program)');
+    const pt = P ? Object.entries(P).filter(([, v]) => v >= 1).sort((x, y) => y[1] - x[1]).slice(0, 4).map(([k, v]) => `${k} ${v.toFixed(1)}`).join(', ') : ''; // (v411.2: onde o código do quadro gastou)
+    return `- ${iv.toFixed(1)} ms ← ` + (o.length ? o.join(', ') : 'nothing from the game (the browser: drawing, memory or another program)') + (pt ? ' · parts: ' + pt : '');
   });
   const lista = piores.length ? '\nThe worst frames and what came right before:\n' + piores.join('\n') : '';
   const txt = 'Lenda do Campinho — performance measurement (' + seg + ' s)\n' + Object.entries(R).map(([k, v]) => `${k}: ${v}`).join('\n') + fora + lista;

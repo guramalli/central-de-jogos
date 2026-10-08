@@ -28,6 +28,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url); if (url.origin !== self.location.origin) return;
+  // v411.6: o chão pronto (a/chao/, blocos de 1024 px de até ~0,5 MB) fica só no cache normal do navegador — na cópia de
+  // mídia ele empurraria as outras artes para fora (limite de arquivos) e o .avif cairia na cópia de código.
+  if (url.pathname.includes('/a/chao/')) return;
   if (/\.(webp|png|jpe?g|gif|mp3|ogg|wav|m4a)$/i.test(url.pathname)) {
     e.respondWith(caches.open(CACHE_MIDIA).then(async c => {
       const copia = await c.match(req);

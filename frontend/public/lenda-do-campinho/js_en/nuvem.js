@@ -10,10 +10,19 @@
    Rotas: /api/lenda/save, /api/lenda/casa, /api/lenda/casas, /api/lenda/casa/:id
    Carregar DEPOIS de portal.js.
    ============================================================ */
-const NUVEM = { ativa: !!(typeof PORTAL !== 'undefined' && PORTAL.ativo && PORTAL.token), sujo: false, ultimoEnvio: 0, enviando: false, parada: false, vizinhos: {}, status: '' };
+const NUVEM = { ativa: !!(typeof PORTAL !== 'undefined' && PORTAL.ativo && PORTAL.token), sujo: false, ultimoEnvio: 0, enviando: false, parada: false, vizinhos: {}, status: '', ver: 0, // ver: sobe a cada salvamento (v411.1: ver enviaSave)
+  // v411.4 (revisão 07/10/2026 — ordem dos envios): `marca` = hora do último salvamento, SEMPRE crescente nesta página (vai como
+  // salvoEm); `sessao` = código desta página aberta. O servidor recusa (409 "velho") um envio mais velho da mesma sessão que
+  // chegue depois de um mais novo — antes ele sobrescrevia o progresso mais novo.
+  marca: 0, sessao: Date.now().toString(36) + Math.random().toString(36).slice(2, 10) };
+// v411.4: o navegador só aceita fetch com keepalive até 64 KB (somando o que ainda está no caminho); o save pode ter até 90.000
+// letras. Corpo maior que isto vai SEM keepalive (com keepalive o navegador recusaria na hora e nada subiria).
+const NUVEM_KEEPALIVE_MAX = 60000;
+const nuvemMarca = () => NUVEM.marca || (NUVEM.marca = Date.now());
 
 async function nuvemPede(metodo, caminho, corpo) {
-  const r = await fetch(PORTAL.api + '/api/lenda' + caminho, { method: metodo, keepalive: metodo !== 'GET', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: corpo ? JSON.stringify(corpo) : undefined });
+  const txt = corpo ? JSON.stringify(corpo) : undefined;
+  const r = await fetch(PORTAL.api + '/api/lenda' + caminho, { method: metodo, keepalive: metodo !== 'GET' && (!txt || txt.length < NUVEM_KEEPALIVE_MAX), headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: txt });
   if (r.status === 401) { NUVEM.parada = true; nuvemStatus('⚠️ Log in to the site again to save online'); }
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, dados: j };
@@ -38,29 +47,52 @@ async function enviaSave(forcar) {
   if (!saveDaConta()) { nuvemStatus(typeof CONTA_SEM_CONFERIR !== 'undefined' && CONTA_SEM_CONFERIR ? '☁️ Couldn\'t check your online save: this time it\'s saved only on this device' : '⚠️ This character belongs to another account: not saved online'); return; }
   if (!forcar && (!NUVEM.sujo || Date.now() - NUVEM.ultimoEnvio < 60000)) return;
   NUVEM.enviando = true;
+  // v411.1 (condição de corrida): se o jogo salvar DE NOVO enquanto este envio está a caminho, a resposta "ok" deste
+  // envio não pode apagar o "sujo" nem o pacote de fechamento — senão o progresso mais novo ficava sem subir.
+  const ver = NUVEM.ver, marca = nuvemMarca(); let recusado = false;
   try {
     const dados = await comprime(JSON.stringify(G.save));
     // v407 (Raio-X A8): o site recusa save maior que 90.000 letras ("Save grande demais") — antes o jogador via só
     // "Não deu para salvar online agora" e achava que era a internet. Agora a mensagem diz o que é e o que fazer.
     const grande = () => { nuvemStatus('⚠️ Your progress got too big for the cloud: it’s still saved on THIS device. Keep a copy in 💾 Save → Export.'); if (!NUVEM.avisouGrande) { NUVEM.avisouGrande = true; try { log('☁️ Your progress got too big to save online. It’s still saved on this device — keep a copy in 💾 Save → Export.', 'l-dano'); } catch (e) { } } };
     if (dados.length > 90000) { grande(); NUVEM.enviando = false; return; }
-    const r = await nuvemPede('PUT', '/save', { dados, nivel: Math.max(1, Math.min(999, G.save.nivel | 0)) });
+    // v411.4: aba escondida (sessao_unica.js manda por aqui ao esconder) = a página pode ser fechada a qualquer momento:
+    // vai como `fechando` (o servidor aceita com 1,5 s do último envio, com teto por conta)
+    const r = await nuvemPede('PUT', '/save', { dados, nivel: Math.max(1, Math.min(999, G.save.nivel | 0)), salvoEm: marca, sessao: NUVEM.sessao, fechando: !!document.hidden });
     if (!r.ok && r.status === 400 && /grande demais/i.test((r.dados && r.dados.error) || '')) grande();
-    else if (r.ok) { NUVEM.sujo = false; NUVEM.ultimoEnvio = Date.now(); if (NUVEM.pacote) NUVEM.pacote.pendente = false; nuvemStatus('☁️ Saved online'); }
-    else if (r.status !== 429 && r.status !== 401) nuvemStatus('☁️ Couldn\'t save online right now');
+    else if (r.ok || (r.status === 409 && r.dados && r.dados.velho)) { /* v411.4: 409 "velho" = a nuvem já tem um save MAIS NOVO desta página — tudo certo */ if (NUVEM.ver === ver) NUVEM.sujo = false; NUVEM.ultimoEnvio = Date.now(); if (NUVEM.pacote && NUVEM.pacote.ver <= ver) NUVEM.pacote.pendente = false; nuvemStatus('☁️ Saved online'); }
+    else if (r.status === 429) recusado = true; // (v411.4: rápido demais — tenta de novo daqui a 11 s, abaixo)
+    else if (r.status !== 401) nuvemStatus('☁️ Couldn\'t save online right now');
   } catch (e) { nuvemStatus('☁️ No connection: saved on this device only'); }
   NUVEM.enviando = false;
+  // (salvou de novo durante o envio, ou o servidor disse "rápido demais": manda o mais novo assim que o servidor deixar —
+  // ele aceita 1 save a cada 10 s; um timer só)
+  if (NUVEM.sujo && (NUVEM.ver !== ver || recusado) && !NUVEM.parada && !NUVEM.reenvio) NUVEM.reenvio = setTimeout(() => { NUVEM.reenvio = null; enviaSave(true); }, 11000);
 }
 // save já comprimido de reserva: ao FECHAR a página não dá tempo de comprimir,
 // então manda na hora o último pacote pronto (fetch com keepalive).
 async function preparaPacote() {
   if (!G.save) return;
-  try { NUVEM.pacote = { dados: await comprime(JSON.stringify(G.save)), nivel: Math.max(1, Math.min(999, G.save.nivel | 0)), pendente: true }; } catch (e) { }
+  const ver = NUVEM.ver; // (v411.1: a compressão é assíncrona — um pacote mais velho que termina depois não substitui o mais novo)
+  const marca = nuvemMarca();
+  try { const dados = await comprime(JSON.stringify(G.save)); if (!NUVEM.pacote || !(NUVEM.pacote.ver > ver)) NUVEM.pacote = { dados, nivel: Math.max(1, Math.min(999, G.save.nivel | 0)), pendente: true, ver, marca }; } catch (e) { }
 }
-function enviaPacoteAgora() {
+// v411.4 (revisão 07/10/2026): o envio de fechamento vai marcado `fechando: true` — o servidor aceita com 1,5 s do último
+// envio (o normal precisa de 10 s; antes este caía quase sempre no 429 e o último progresso se perdia).
+// `vivo` = a página continua aberta (aba escondida/minimizada): dá para ver a resposta e tentar de novo se falhar.
+// Pacote grande (> NUVEM_KEEPALIVE_MAX, limite de 64 KB do keepalive): com a página viva vai num fetch normal; ao FECHAR
+// (pagehide) tenta mesmo assim sem keepalive — pode não chegar, por isso o jogo também manda ao esconder a aba e a cada
+// salvamento (20 s).
+function enviaPacoteAgora(vivo) {
   const p = NUVEM.pacote; if (!p || !p.pendente || NUVEM.parada || !saveDaConta()) return;
   p.pendente = false;
-  try { fetch(PORTAL.api + '/api/lenda/save', { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: JSON.stringify({ dados: p.dados, nivel: p.nivel }) }).catch(() => { }); } catch (e) { }
+  const corpo = JSON.stringify({ dados: p.dados, nivel: p.nivel, salvoEm: p.marca, sessao: NUVEM.sessao, fechando: true });
+  const deNovo = () => { if (vivo && NUVEM.pacote === p && !NUVEM.parada) p.pendente = true; };
+  try {
+    fetch(PORTAL.api + '/api/lenda/save', { method: 'PUT', keepalive: corpo.length < NUVEM_KEEPALIVE_MAX, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PORTAL.token }, body: corpo })
+      .then(r => { if (r.ok || r.status === 409) { if (NUVEM.ver === p.ver) NUVEM.sujo = false; nuvemStatus('☁️ Saved online'); } else if (r.status === 429 || r.status >= 500) deNovo(); })
+      .catch(deNovo);
+  } catch (e) { deNovo(); }
 }
 if (NUVEM.ativa && typeof CompressionStream === 'function') {
   const _salvarNv = salvar;
@@ -70,16 +102,16 @@ if (NUVEM.ativa && typeof CompressionStream === 'function') {
   salvar = function () {
     const r = _salvarNv.apply(this, arguments);
     if (G.save) {
-      G.save.salvoEm = Date.now(); NUVEM.sujo = true; preparaPacote();
+      G.save.salvoEm = Date.now(); NUVEM.marca = Math.max(G.save.salvoEm, NUVEM.marca + 1); NUVEM.ver++; NUVEM.sujo = true; preparaPacote();
       if (!enviaTimer) enviaTimer = setTimeout(() => { enviaTimer = null; enviaSave(true); }, Math.max(1500, 20000 - (Date.now() - NUVEM.ultimoEnvio)));
     }
     return r;
   };
   setInterval(() => enviaSave(false), 30000);
   // trocou de aba / minimizou: a página continua viva, dá tempo de salvar e mandar o mais recente
-  addEventListener('visibilitychange', () => { if (document.hidden && G.rodando) { if (NUVEM.sujo) enviaPacoteAgora(); try { salvar(); } catch (e) { } } });
+  addEventListener('visibilitychange', () => { if (document.hidden && G.rodando) { if (NUVEM.sujo) enviaPacoteAgora(true); try { salvar(); } catch (e) { } } });
   // fechou / recarregou: manda o pacote que já estava pronto
-  addEventListener('pagehide', () => { if (NUVEM.sujo) enviaPacoteAgora(); });
+  addEventListener('pagehide', () => { if (NUVEM.sujo) enviaPacoteAgora(false); });
   // tela inicial: oferecer o save da nuvem
   (async function () {
     const menu = document.getElementById('inicioMenu'); if (!menu) return;

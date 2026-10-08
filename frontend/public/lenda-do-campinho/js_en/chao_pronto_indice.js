@@ -1,0 +1,5 @@
+/* Lenda do Campinho — © 2026 Educação Gamer (www.educacaogamer.com.br). Todos os direitos reservados.
+   Proibida a cópia, redistribuição ou modificação sem autorização por escrito. Lei 9.610/98 e Lei 9.609/98. */
+/* 🖼️ CHÃO PRONTO (v411.3) — ÍNDICE GERADO pela ferramenta _teste/chao_pronto (gera.js + codifica.py). NÃO EDITAR À MÃO.
+   Cada mapa: sig = assinatura da lousa do chão (js/chao_pronto.js); W×H em pixels; blocos de 1024 px em a/chao/<mapa>/<i>_<j>.webp. */
+const CP_INDICE = /*JSON*/{"dir":"a/chao/","mapas":{"rio":{"sig":"8509fa5527bd5044-16545-04bc654275cdae4f-6400x5248","W":6400,"H":5248,"nx":7,"ny":6,"ap":2,"prev":1,"q":"sem","ext":"webp","kb":3748},"multiverso":{"sig":"751f88eeb07de7fe-559-59fc272c978f5fde-3840x2944","W":3840,"H":2944,"nx":4,"ny":3,"ap":2,"prev":1,"q":"a90","ext":"avif","kb":4217},"cq_tunel":{"sig":"76630cd079e6f448-29-7921c25c0258a0bc-4224x3200","W":4224,"H":3200,"nx":5,"ny":4,"ap":2,"prev":1,"q":"a90","ext":"avif","kb":2895},"jur_labirinto":{"sig":"ab97bb1b83935f0f-625-7eccc432252adcc6-7680x5760","W":7680,"H":5760,"nx":8,"ny":6,"ap":2,"prev":1,"q":"a90","ext":"avif","kb":24398}}}/*FIM*/;

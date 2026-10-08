@@ -197,7 +197,7 @@ const CHAO_BLOCOS = (() => {
     }
   }
   function larga() { if (job) { try { job.g.return(); } catch (e) { } job = null; } }
-  function tira(k) { const g = GUARDADOS.get(k); if (!g) return; bytes -= g.bytes; g.c.width = g.c.height = 0; GUARDADOS.delete(k); }
+  function tira(k) { const g = GUARDADOS.get(k); if (!g) return; bytes -= g.bytes; if (typeof g.c.close === 'function') g.c.close(); else g.c.width = g.c.height = 0; GUARDADOS.delete(k); } // (v411.3: o bloco pode ser uma imagem pronta — ImageBitmap, chao_pronto.js)
   // trabalho com orçamento: termina o que está fazendo; depois o bloco que falta mais perto do meio da tela
   function trabalha(S, falta, cx, cy, ms) {
     const t0 = performance.now();
@@ -227,7 +227,7 @@ const CHAO_BLOCOS = (() => {
     for (const P of pendPrevia) { if (P.prev && P.prevVer === P.ver) { pendPrevia.delete(P); continue; } const orc = { ms: ORC_OCIO }; job = { S: P, k: 'previa', orc, g: P.fazPrevia(orc) }; return continua(ORC_OCIO); }
   }
   return {
-    ChaoBlocos, B, ESC, PE, TETO, CEL, GUARDADOS, DBG,
+    ChaoBlocos, B, ESC, PE, TETO, CEL, GUARDADOS, DBG, guarda, // (v411.3: guarda — o chao_pronto.js guarda as imagens prontas com a mesma regra de memória)
     nova: (W, H, m, opc) => new ChaoBlocos(W, H, m, opc),
     querPrevia: S => { if (S && S.grande && !S.soPrevia) pendPrevia.add(S); },
     usoMB: () => Math.round(bytes / 1048576),

@@ -28,6 +28,20 @@ async function mktPede(metodo, caminho, corpo) {
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, dados: j };
 }
+// v411.4 (revisão 07/10/2026 — "a internet caiu depois que o servidor já fez"): compra, cancelamento e recolha levam um
+// `pedido` (código aleatório). Se a requisição falhar pela rede (ou o servidor estiver reiniciando: 502/504), o jogo REPETE
+// até 2 vezes com o MESMO pedido — o servidor devolve a mesma resposta sem fazer de novo (backend lenda/pedidos.js).
+// Antes: o item comprado não chegava, o item cancelado sumia e os tostões recolhidos não entravam.
+const mktNovoPedido = () => { try { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, b => b.toString(16).padStart(2, '0')).join(''); } catch (e) { return Date.now().toString(36) + Math.random().toString(36).slice(2, 12); } };
+async function mktPedeUmaVez(caminho, corpo) {
+  const pedido = mktNovoPedido(); let ultima = null;
+  for (let i = 0; i < 3; i++) {
+    if (i) await new Promise(ok => setTimeout(ok, 1500 * i));
+    try { const r = await mktPede('POST', caminho, Object.assign({}, corpo || {}, { pedido })); if (r.status !== 502 && r.status !== 504) return r; ultima = r; } catch (e) { ultima = null; }
+  }
+  if (ultima) return ultima;
+  throw new Error('sem conexão com a feira');
+}
 const mktErro = r => (r && r.dados && r.dados.error) || (r && r.status === 503 ? 'A feira ainda está chegando ao servidor. Tente mais tarde!' : 'Não deu agora. Tente de novo em instantes.');
 const mktIcone = id => { try { return el('span', { class: 'mkt-ic' }, iconeClone(iconeItem(id))); } catch (e) { return el('span', { class: 'mkt-ic' }, '📦'); } };
 // um item que voltou ou foi comprado entra na mochila (refinado: separado; cheia: armazém)
@@ -93,7 +107,7 @@ async function mktCompra(a, q, depois) {
   const total = a.preco * q;
   if (G.save.ouro < total) return avisoJogo(`🏪 Faltam ${mktFmt(total - G.save.ouro)} tostões.`);
   if (!(await perguntaJogo(`Comprar ${q > 1 ? q + 'x ' : ''}${mktNomeItem(a.itemId, a.refino)} de ${a.vendedor} por ${mktFmt(total)} tostões?`, { sim: 'Comprar', nao: 'Cancelar' }))) return depois && depois();
-  let r; try { r = await mktPede('POST', `/comprar/${a.id}`, { qtd: q }); } catch (e) { r = { ok: false }; }
+  let r; try { r = await mktPedeUmaVez(`/comprar/${a.id}`, { qtd: q }); } catch (e) { r = { ok: false }; }
   if (!r.ok) { avisoJogo('🏪 ' + mktErro(r)); return depois && depois(); }
   G.save.ouro -= r.dados.total; mktRecebe(r.dados.item); som('moeda');
   log(`🏪 Você comprou ${q > 1 ? q + 'x ' : ''}${mktNomeItem(a.itemId, a.refino)} de ${a.vendedor} por ${mktFmt(r.dados.total)} tostões.`, 'l-loot');
@@ -191,12 +205,12 @@ async function mktResolvePendente() {
   delete s.mktPend; salvar();
 }
 async function mktCancela(a, verbo) {
-  const r = await mktPede('POST', `/cancelar/${a.id}`);
+  let r; try { r = await mktPedeUmaVez(`/cancelar/${a.id}`); } catch (e) { r = { ok: false }; }
   if (!r.ok) { avisoJogo('🏪 ' + mktErro(r)); return mktMinhaLoja(); }
   mktRecebe(r.dados.item); som('moeda'); log(`🏪 ${verbo === 'Recolher' ? 'Recolhido' : 'Cancelado'}: ${mktNomeItem(a.itemId, a.refino)} voltou para você.`, 'l-loot'); salvar(); MKT.tB = 0; mktMinhaLoja();
 }
 async function mktColeta() {
-  const r = await mktPede('POST', '/coletar');
+  let r; try { r = await mktPedeUmaVez('/coletar'); } catch (e) { r = { ok: false }; }
   if (!r.ok) return avisoJogo('🏪 ' + mktErro(r));
   if (r.dados.tostoes > 0) { G.save.ouro += r.dados.tostoes; som('moeda'); banner('🏪 Vendas recolhidas!', `+${mktFmt(r.dados.tostoes)} tostões`); log(`🏪 Você recolheu ${mktFmt(r.dados.tostoes)} tostões de ${r.dados.vendas} venda(s) na feira.`, 'l-xp'); G.uiSujo = true; salvar(); }
   if (r.dados.aviso) log('🏪 ' + r.dados.aviso, 'l-sis'); // v407 (Raio-X U7): teto de tostões recolhidos por dia

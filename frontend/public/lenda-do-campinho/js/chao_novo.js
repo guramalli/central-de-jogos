@@ -100,7 +100,7 @@ const CHAO2 = {
   // as artes que um mapa usa: as texturas dos chãos dele e os enfeites
   function artesDoMapa(m) {
     const usados = new Set(m.chao), l = new Set();
-    for (const t of usados) { const d = CHAO2.tex[t]; if (d) l.add(d[0]); else if (TEX_CHAO[t]) l.add(TEX_CHAO[t]); /* v407: a textura antiga também (sem ela o chão do Labirinto Jurássico ficava pintado de uma cor só, para sempre) */ const dc = CHAO2.dc[t]; if (dc) for (let i = 1; i <= 16; i++) l.add(`${dc[0]}_${i}`); }
+    for (const t of usados) { const d = CHAO2.tex[t]; if (d) l.add(d[0]); if (TEX_CHAO[t] && (!d || CHAO2.cru.has(t))) l.add(TEX_CHAO[t]); /* v407: a textura antiga também (sem ela o chão do Labirinto Jurássico ficava pintado de uma cor só, para sempre) — v411.3: e a do chão 'cru' que também tem arte nova (o alto da parede da Copa: na 1ª visita ficava de uma cor só) */ const dc = CHAO2.dc[t]; if (dc) for (let i = 1; i <= 16; i++) l.add(`${dc[0]}_${i}`); }
     const gr = CHAO2.grupos[m.id]; if (gr) for (const tm of gr.temas) for (const pc of tm) for (const n of pc[0]) l.add(n); // (v407: as composições)
     return [...l];
   }

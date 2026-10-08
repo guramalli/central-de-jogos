@@ -28,7 +28,32 @@
   // v311: pedaços soltos de arte vizinha (da grade do Higgsfield) recortados junto saíram (ex.: um risco acima do capacete de astronauta)
   if (typeof ASSET_VER !== 'undefined') for (const n of ['ch_capacete_astro_c', 'ch_capacete_astro_f', 'ch_capacete_astro_l', 'ch_capacete_dragao_c', 'ch_chapeu_capitao_c', 'ch_chapeu_capitao_f', 'ch_chapeu_capitao_l',
     'ch_coroa_dragao_f', 'ch_faixa_trovao_c', 'ch_faixa_trovao_f', 'ch_nemes_dourado_l', 'pg_estrela', 'pg_lua', 'pg_medalha_copa', 'pg_perola']) ASSET_VER[n] = 311;
-  const ALTO = new Set(['faixa', 'tricorne', 'elmo', 'mascara', 'nemes', 'fone', 'aba', 'louros']);
+  // v411.5: a faixa saiu daqui — agora ela fica na TESTA (abaixo), não sobe acima do cabelo e não precisa de espaço de chapéu alto
+  const ALTO = new Set(['tricorne', 'elmo', 'mascara', 'nemes', 'fone', 'aba', 'louros']);
+  /* ---------- v411.5: FAIXA NA TESTA ----------
+     Jogador (Reddit, 08/10/2026): "A faixa de suor, quando equipada, fica posicionada acima da cabeça, parecendo um chapéu."
+     Causa: a faixa era encaixada na caixa da cabeça, que inclui o VOLUME do cabelo (coque, black power, moicano) — a base
+     dela ficava no alto do cabelo. Agora ela vai para a "cabeça virtual" (medida pelo tronco, igual para qualquer penteado,
+     a mesma dos capacetes) e a borda de baixo da faixa fica logo acima das sobrancelhas.
+     y = linha da borda de baixo da faixa (unidades da cabeça virtual; 56 = logo acima dos olhos — medido nas fotos);
+     larg/largL = largura de frente/de lado; dxl = deslocamento de lado; sy = achata a faixa (a arte é um anel alto); inclL = inclinação de lado.
+     FAIXA_ARTE: por arte, onde começa a parte visível (corte: o anel de cima/de trás some atrás da cabeça) e onde fica a
+     borda de baixo da faixa (fundo), em fração da altura da imagem — a Faixa do Ronin tem as pontas do laço penduradas
+     ABAIXO da faixa (de lado e de costas): antes o corte fixo apagava a faixa e só sobravam as pontas. */
+  const FAIXA_TESTA = { y: 56, larg: 50, largL: 46, dxl: -1, sy: 0.78, inclL: 3 };
+  // rot = graus para endireitar a arte de lado (o anel foi desenhado inclinado; de perfil a faixa fica quase reta)
+  // (medidas da própria arte: borda de cima/de baixo na coluna do meio, inclinação da borda)
+  const FAIXA_ARTE = {
+    faixa_suor_f: { fundo: 0.97 }, faixa_suor_l: { fundo: 0.92, rot: 14 }, faixa_suor_c: { fundo: 0.98 },
+    faixa_capitao_f: { fundo: 0.98 }, faixa_capitao_l: { fundo: 0.96, rot: 8.5 }, faixa_capitao_c: { fundo: 0.98 },
+    faixa_saibro_f: { fundo: 0.97 }, faixa_saibro_l: { fundo: 0.89, rot: -19 }, faixa_saibro_c: { fundo: 0.98 },
+    faixa_trovao_f: { corte: 0.25, fundo: 0.91 }, faixa_trovao_l: { corte: 0.4, fundo: 0.94, rot: 12 }, faixa_trovao_c: { corte: 0.4, fundo: 0.97 },
+    faixa_ronin_f: { corte: 0.22, fundo: 0.82 }, faixa_ronin_l: { corte: 0.16, fundo: 0.44, rot: 9 }, faixa_ronin_c: { corte: 0.14, fundo: 0.46 },
+  };
+  window.CHAPEUS_FAIXA = FAIXA_TESTA; window.CHAPEUS_FAIXA_ARTE = FAIXA_ARTE; // (para os testes e as fotos de conferência)
+  // NPCs e adversários com a faixa de sempre ('chapeu-faixa' sem arte própria) usam a arte da Faixa de Suor
+  const FAIXA_PADRAO = 'faixa_suor';
+  const idChapeu = (look) => look && (look.chapeuVar || (look.chapeu === 'chapeu-faixa' && !look.folha ? FAIXA_PADRAO : null));
 
   const _lookCh = lookJogador;
   lookJogador = function () {
@@ -43,7 +68,7 @@
     return L;
   };
   const _specCh = specDe;
-  specDe = function (look) { const sp = _specCh.apply(this, arguments); if (look && look.chapeuVar) sp.chapeuVar = look.chapeuVar; return sp; };
+  specDe = function (look) { const sp = _specCh.apply(this, arguments); const id = idChapeu(look); if (id && sp) sp.chapeuVar = id; return sp; };
 
   // v311: ajuste fino por item (largura, base e deslocamento), medido com todos os penteados
   const AJ = { capacete_mergulho: { larg: 76, base: CAB.cy + CAB.ry + 22, dx: 4.5, dxl: -15 }, capacete_astro: { larg: 62, base: CAB.cy + CAB.ry + 15 }, elmo_negro: { dx: 4 } };
@@ -55,6 +80,11 @@
     const aj = AJ[id] || {}, [larg0, base0] = TIPO[tipo], larg = aj.larg || larg0, base = aj.base || base0, s = larg / fr.width;
     // v311: o que cobre a cabeça toda é medido pela "cabeça virtual" (abaixo), igual para qualquer penteado
     const cobre = COBRE_TUDO.has(tipo), k = 1;
+    if (tipo === 'faixa') { // v411.5: na testa (cabeça virtual), pela borda de baixo da faixa (desenho em chapeu(), abaixo)
+      const F = FAIXA_TESTA, A = FAIXA_ARTE[id + '_' + vis] || {}, sF = (aj.larg || (vis === 'l' ? F.largL : F.larg)) / fr.width;
+      return { im, tipo, s: sF, corte: A.corte != null ? A.corte : 0.48, fundo: A.fundo != null ? A.fundo : 0.96,
+        rot: ((A.rot || 0) + (vis === 'l' ? F.inclL : 0)) * Math.PI / 180, cx: CAB.cx + (aj.dx || 0) + (vis === 'l' ? F.dxl : 0), y: F.y, sy: F.sy };
+    }
     const w = im.width * s * k, cx = CAB.cx + (aj.dx || 0) + (vis === 'l' ? (cobre ? (aj.dxl || 0) : 1.5) : 0);
     const corte = tipo !== 'faixa' ? 0 : id === 'faixa_trovao' ? 0.4 : 0.48; // faixa: a arte é o anel inteiro; na cabeça só aparece a frente dele
     const sy = im.height * corte, sh = im.height - sy, h = sh * s * k;
@@ -62,17 +92,30 @@
   }
   let CORTE = null; // (cabeça da célula sendo desenhada, para os capacetes fechados)
   const _chapeuVetor = chapeu;
+  // sai da caixa da cabeça (que cresce com o cabelo) e vai para a cabeça virtual
+  function vaiCabecaVirtual(x, v) {
+    const cab = CORTE.cab, kc = (cab[2] - cab[0]) / 54, cxc = (cab[0] + cab[2]) / 2 + (v === 'l' ? -2 * kc : 0), V = CORTE.V;
+    x.translate(50, 27); x.scale(1 / kc, 1 / kc); x.translate(-cxc, -cab[1]);
+    x.translate(V.cx, V.y0); x.scale(V.k, V.k); x.translate(-50, -27);
+  }
   chapeu = function (x, sp, v) {
     const id = sp && sp.chapeuVar, tipo = id && CHAPEU[id];
     if (!tipo) return _chapeuVetor.apply(this, arguments);
     const vis = v === 'l' ? 'l' : v === 'c' ? 'c' : 'f', g = geometria(id, vis);
+    if (tipo === 'faixa' && !CORTE && PEDE && PEDE.tipo === 'faixa') { try { montaCorte(); } catch (e) { } }
+    if (tipo === 'faixa' && CORTE && CORTE.V) { // v411.5: a faixa na testa (com ou sem a arte já carregada)
+      x.save(); vaiCabecaVirtual(x, v);
+      if (g) { // o ponto (meio da arte, borda de baixo da faixa) vai para a testa; acima do "corte" (o anel de trás) não aparece
+        const W = g.im.width, H = g.im.height; x.imageSmoothingQuality = 'high'; x.translate(g.cx, g.y);
+        x.beginPath(); x.rect(-W * g.s, -(g.fundo - g.corte) * H * g.s * g.sy, W * g.s * 2, H * g.s * 2); x.clip();
+        x.scale(g.s, g.s * g.sy); x.rotate(g.rot); x.drawImage(g.im, -W / 2, -g.fundo * H);
+      }
+      else { esperaArte('ch_' + id + '_f'); if (vis !== 'f') esperaArte('ch_' + id + '_' + vis); x.translate(0, FAIXA_TESTA.y - 47); _chapeuVetor.call(this, x, Object.assign({}, sp, { chapeu: 'faixa' }), v); }
+      x.restore(); return;
+    }
     if (!g) { esperaArte('ch_' + id + '_f'); if (vis !== 'f') esperaArte('ch_' + id + '_' + vis); return _chapeuVetor.apply(this, arguments); } // enquanto a arte chega: o desenho de antes (v319: redesenha quando chegar)
     x.save(); x.imageSmoothingQuality = 'high';
-    if (COBRE_TUDO.has(tipo) && CORTE && CORTE.V) { // sai da caixa da cabeça (que cresce com o cabelo) e vai para a cabeça virtual
-      const cab = CORTE.cab, kc = (cab[2] - cab[0]) / 54, cxc = (cab[0] + cab[2]) / 2 + (v === 'l' ? -2 * kc : 0), V = CORTE.V;
-      x.translate(50, 27); x.scale(1 / kc, 1 / kc); x.translate(-cxc, -cab[1]);
-      x.translate(V.cx, V.y0); x.scale(V.k, V.k); x.translate(-50, -27);
-    }
+    if (COBRE_TUDO.has(tipo) && CORTE && CORTE.V) vaiCabecaVirtual(x, v);
     x.drawImage(g.im, 0, g.sy, g.im.width, g.sh, g.x0, g.y0, g.w, g.h); x.restore();
   };
   // a cabeça "de verdade" (sem o volume do cabelo): pelo tronco, que não muda com o penteado
@@ -87,20 +130,26 @@
      liso longo) aparecia em volta. Antes de pôr o capacete, o cabelo (e o contorno dele) que fica FORA da
      forma do capacete é apagado; o de dentro continua (nos capacetes de vidro ele aparece lá dentro). */
   const _sprCorte = spriteBoneco;
+  let PEDE = null; // v411.5: (a faixa mede a cabeça só quando o boneco é desenhado de verdade — não a cada quadro, já pronto no cache)
+  function montaCorte() {
+    const { look, vista, q, id, tipo } = PEDE;
+    const sp = specDe(look), nome = folhaDoLook(sp, look), v = vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f';
+    const meta = (META_BONECOS[nome] || [])[(v === 'f' ? 0 : v === 'l' ? 1 : 2) * 4 + (q % 4)], g = geometria(id, v);
+    if (meta && meta.cabeca && (g || tipo === 'faixa')) CORTE = { cab: meta.cabeca, v, g, tipo, V: cabecaVirtual(meta, v, (META_BONECOS[nome] || [])[q % 4]) };
+  }
   spriteBoneco = function (look, vista = 'frente', q = 0) {
-    const id = look && look.chapeuVar, tipo = id && CHAPEU[id];
-    if (!tipo || !COBRE_TUDO.has(tipo)) return _sprCorte.apply(this, arguments);
+    const id = idChapeu(look), tipo = id && CHAPEU[id];
+    if (!tipo || !(COBRE_TUDO.has(tipo) || tipo === 'faixa')) return _sprCorte.apply(this, arguments); // v411.5: a faixa também usa a cabeça virtual
+    const pede0 = PEDE, corte0 = CORTE; PEDE = { look, vista, q, id, tipo }; CORTE = null;
     try {
-      const sp = specDe(look), nome = folhaDoLook(sp, look), v = vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f';
-      const meta = (META_BONECOS[nome] || [])[(v === 'f' ? 0 : v === 'l' ? 1 : 2) * 4 + (q % 4)], g = geometria(id, v);
-      if (meta && meta.cabeca && g) CORTE = { cab: meta.cabeca, v, g, V: cabecaVirtual(meta, v, (META_BONECOS[nome] || [])[q % 4]) };
+      if (COBRE_TUDO.has(tipo)) montaCorte(); // (os capacetes precisam da medida antes: apagam o cabelo de fora ao tingir)
       return _sprCorte.apply(this, arguments);
-    } finally { CORTE = null; }
+    } finally { CORTE = corte0; PEDE = pede0; }
   };
   const _tingeCorte = tingeCelula;
   tingeCelula = function (base, cores) {
     const out = _tingeCorte.apply(this, arguments);
-    if (!CORTE || !base || !base.rot) return out;
+    if (!CORTE || !CORTE.g || !COBRE_TUDO.has(CORTE.tipo) || !base || !base.rot) return out; // (a faixa não apaga cabelo)
     try { cortaCabelo(out, base, CORTE); } catch (e) { }
     return out;
   };
