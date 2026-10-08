@@ -2,11 +2,15 @@
   "redirects": [
     { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false },
     { "source": "/lenda", "destination": "/lenda/", "permanent": false },
+    { "source": "/lenda/wiki", "destination": "/lenda/wiki/", "permanent": false },
+    { "source": "/lenda/wiki/en", "destination": "/lenda/wiki/en/", "permanent": false },
     { "source": "/jocelino", "destination": "/jocelino/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
     { "source": "/lenda/", "destination": "/lenda/index.html" },
+    { "source": "/lenda/wiki/", "destination": "/lenda/wiki/index.html" },
+    { "source": "/lenda/wiki/en/", "destination": "/lenda/wiki/en/index.html" },
     { "source": "/jocelino/", "destination": "/jocelino/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },

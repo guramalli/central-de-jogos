@@ -7,7 +7,7 @@
   raiz.TEXTOS = {
     pt: {
       'meta.titulo': 'Lenda do Campinho — RPG de futebol grátis para toda a família',
-      'nav.jornada': 'A jornada', 'nav.trailer': 'Trailer', 'nav.jogo': 'O jogo', 'nav.expansao': 'Expansão', 'nav.imprensa': 'Imprensa',
+      'nav.jornada': 'A jornada', 'nav.trailer': 'Trailer', 'nav.jogo': 'O jogo', 'nav.expansao': 'Expansão', 'nav.imprensa': 'Imprensa', 'nav.wiki': 'Wiki',
       'nav.jogar': 'Jogar grátis', 'nav.menu': 'Abrir menu',
       'hero.alt': 'Garoto dá uma bicicleta na bola enquanto chefões e um mundo fantástico aparecem ao fundo',
       'hero.gratis': 'Grátis', 'hero.selo': 'RPG de futebol para toda a família',
@@ -54,7 +54,7 @@
     },
     en: {
       'meta.titulo': 'Lenda do Campinho — a free soccer RPG for the whole family',
-      'nav.jornada': 'The journey', 'nav.trailer': 'Trailer', 'nav.jogo': 'The game', 'nav.expansao': 'Expansion', 'nav.imprensa': 'Press',
+      'nav.jornada': 'The journey', 'nav.trailer': 'Trailer', 'nav.jogo': 'The game', 'nav.expansao': 'Expansion', 'nav.imprensa': 'Press', 'nav.wiki': 'Wiki',
       'nav.jogar': 'Play free', 'nav.menu': 'Open menu',
       'hero.alt': 'A kid does a bicycle kick while bosses and a fantastic world appear in the background',
       'hero.gratis': 'Free', 'hero.selo': 'A soccer RPG for the whole family',
