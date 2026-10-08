@@ -1,11 +1,13 @@
 {
   "redirects": [
     { "source": "/lenda-do-campinho", "destination": "/lenda-do-campinho/", "permanent": false },
-    { "source": "/lenda", "destination": "/lenda/", "permanent": false }
+    { "source": "/lenda", "destination": "/lenda/", "permanent": false },
+    { "source": "/jocelino", "destination": "/jocelino/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
     { "source": "/lenda/", "destination": "/lenda/index.html" },
+    { "source": "/jocelino/", "destination": "/jocelino/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -30,6 +32,14 @@
     {
       "source": "/lenda-do-campinho/sw.js",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/jocelino/(.*\\.wasm)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+    },
+    {
+      "source": "/jocelino/(.*\\.(?:pck|js|html))",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     }
   ]
 }
