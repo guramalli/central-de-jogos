@@ -163,6 +163,10 @@ function ccDoNpc(f, porItem) {
   const a = indice().npc[f.npc]; if (!a || !a.mapa) return null;
   return { quem: f.nome, npc: f.npc, como: f.como, porItem, mapa: a.mapa, onde: ccNome(a.mapa), parte: ccParte(a.mapa, a.x, a.y), rota: ccRota(a.mapa), lugarDe: true };
 }
+// quem pediu a missão e onde essa pessoa fica (para a entrega)
+function ccEntrega(q) {
+  try { const a = q.npc && indice().npc[q.npc]; if (!a || !a.mapa) return null; return { quem: (NPCS[q.npc] || {}).nome || '', npc: q.npc, mapa: a.mapa, onde: ccNome(a.mapa), parte: ccParte(a.mapa, a.x, a.y), rota: ccRota(a.mapa), lugarDe: true }; } catch (e) { return null; }
+}
 // o bloco do padrão fixo, para uma missão (null se a missão não tem um lugar)
 function ccInfo(q) {
   const r = q.req || {};
@@ -171,6 +175,10 @@ function ccInfo(q) {
     const fontes = lista.filter(([id]) => ITENS[id]).map(([id, n]) => ({ id, n, f: ccFontesItem(id, ref) }));
     // req.de: a missão diz de quem o item deve vir (ex.: q_caramelo → as Bolas Murchas dos caramelos)
     if (r.de && fontes[0]) { const d = fontes[0].f.drops.find(o => o.tipo === r.de); if (d) fontes[0].f.melhor = d; }
+    // v411.9 (amigo do dono: "a missão indica que a Nina está em Miami"): com tudo na mochila, o bloco passa a mostrar ONDE
+    // ENTREGAR (quem pediu e o lugar dela) — antes continuava mostrando onde o item cai, e parecia que a pessoa estava lá
+    const ent = ccEntrega(q), temTudo = fontes.length && fontes.every(x => (typeof contaItem === 'function' ? contaItem(x.id) : 0) >= x.n);
+    if (temTudo && ent && G.save && G.save.quests && G.save.quests[q.id] && G.save.quests[q.id].s === 'ativa') return Object.assign({}, ent, { entregar: true });
     // o item que falta primeiro manda no "Onde" (e na seta); os outros aparecem na linha das fontes
     const falta = fontes.find(x => (typeof contaItem === 'function' ? contaItem(x.id) : 0) < x.n && (x.f.melhor || x.f.npc)) || fontes.find(x => x.f.melhor || x.f.npc);
     if (falta) {
@@ -179,6 +187,7 @@ function ccInfo(q) {
         I.fontes = fontes.length > 1 ? fontes.map(x => ({ item: x.id, quem: x.f.melhor ? MONSTROS[x.f.melhor.tipo].nome.split(',')[0] : x.f.npc ? x.f.npc.nome : '', nivel: x.f.melhor ? x.f.melhor.nivel : 0, chefe: x.f.melhor ? x.f.melhor.chefe : false, onde: x.f.melhor ? ccNome(ccOndeMonstro(x.f.melhor.tipo, null).mapa) : '' })) : null;
         const outroNpc = falta.f.melhor && falta.f.npcs.find(n => n.como !== 'vende') || (!falta.f.melhor ? falta.f.npcs[1] : null);
         if (outroNpc) I.tambem = outroNpc;
+        if (ent && ent.mapa !== I.mapa) I.depois = ent; // (e para quem levar depois)
         return I;
       }
     }
@@ -207,6 +216,7 @@ function blocoComoChegar(q, compacto) {
   if (!I) return null;
   const linhas = [];
   if (!I.lugarDe) linhas.push(['👾', 'Quem', `${I.quem}${I.chefe ? ' (chefão)' : ''} — nível ${I.nivel}${I.porItem && ITENS[I.porItem] ? ` (é quem mais deixa cair ${ITENS[I.porItem].nome})` : ''}${I.forte ? ' ⚠️ ainda forte para você' : ''}`]);
+  else if (I.entregar) linhas.push(['✔', 'Entregar', `Você já tem tudo! Leve para ${I.quem}`]);
   else if (I.quem) linhas.push(['🙋', 'Procure', I.quem + (I.como ? ` (${I.como}${I.porItem && ITENS[I.porItem] && I.como === 'vende' ? ' ' + ITENS[I.porItem].nome : ''})` : '')]);
   // v407 (Raio-X R3): pedido de vários itens = uma fonte por item; e quem mais ajuda (troca, baú, loja)
   if (I.fontes) { const fs = I.fontes.filter(x => x.quem && ITENS[x.item]), mx = compacto ? 2 : 5; if (fs.length) linhas.push(['🎒', 'Cada item', fs.slice(0, mx).map(x => `${ITENS[x.item].nome}: ${x.quem}${x.nivel ? ` (nível ${x.nivel}${x.chefe ? ', chefão' : ''}${x.onde ? ', ' + x.onde : ''})` : ''}`).join(' · ') + (fs.length > mx ? ` · e mais ${fs.length - mx}` : '')]); }
@@ -216,6 +226,7 @@ function blocoComoChegar(q, compacto) {
   if (viagem) linhas.push(['🧭', 'Viagem', viagem]);
   if (cam) linhas.push(['🧭', 'Caminho', cam]);
   if (I.parte && !compacto) linhas.push(['📌', 'Lá dentro', I.parte + (I.placa ? `, perto da placa “${I.placa}”` : '')]);
+  if (I.depois && I.depois.quem && !compacto) linhas.push(['🙋', 'Depois, entregue para', `${I.depois.quem} (${I.depois.onde}${I.depois.parte ? ', ' + I.depois.parte : ''})`]);
   const box = el('div', { class: 'como-chegar' + (compacto ? ' compacto' : '') }, compacto ? null : el('b', {}, '📍 Onde achar e como chegar'));
   if (compacto) box.append(el('div', {}, linhas.map(([ic, k, v]) => `${ic} ${v}`).join(' · ')));
   else for (const [ic, k, v] of linhas) box.append(el('div', {}, el('span', { class: 'cc-ic' }, ic), el('span', {}, el('b', {}, k + ': '), v)));

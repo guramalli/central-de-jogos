@@ -6,6 +6,8 @@
    - nível 150: ASAS DOURADAS;
    - nível 200: HALO DE CAMPEÃO — uma coroa de louros dourada flutuando acima da cabeça;
    - nível 300: ASAS CÓSMICAS (com estrelinhas piscando).
+   - nível 1000: AURA LENDÁRIA (v411.9; dono: "acho que uma aura bem denotada no chão ficaria legal") — desenho em
+     aura_lendaria.js. As duas auras não aparecem juntas: ligar uma desliga a outra (a Lendária fica no lugar da de Craque).
    Artes do Higgsfield (a/ac_asas_ouro, ac_asa_lado_ouro, ac_asas_cosmo, ac_asa_lado_cosmo, ad_aura, ad_halo).
    O jogador escolhe o que mostrar em Equipamento → ✨ Adornos (asas: nenhuma/anjo/douradas/cósmicas;
    aura e halo: liga/desliga). Sem escolha, usa o melhor que já liberou. Fica salvo em save.adornos.
@@ -20,8 +22,9 @@
   const EXTRAS = [
     { id: 'aura', nome: 'Star Aura', nv: 100, img: 'ad_aura', desc: 'A circle of light spinning on the ground beneath you.' },
     { id: 'halo', nome: 'Champion’s Halo', nv: 200, img: 'ad_halo', desc: 'A golden laurel crown floating above your head.' },
+    { id: 'lenda', nome: 'Legendary Aura', nv: 1000, img: 'ad_lenda_icone', desc: 'A large golden seal on the ground, with spinning rings, a beam of light and rising sparks. It replaces the Star Aura.' }, // v411.9
   ];
-  const ARTES = ['ac_asas_ouro', 'ac_asa_lado_ouro', 'ac_asas_cosmo', 'ac_asa_lado_cosmo', 'ad_aura', 'ad_halo'];
+  const ARTES = ['ac_asas_ouro', 'ac_asa_lado_ouro', 'ac_asas_cosmo', 'ac_asa_lado_cosmo', 'ad_aura', 'ad_halo', 'ad_lenda_icone'];
   for (const n of ARTES) if (!ASSET_SET.has(n)) { ASSETS.push(n); ASSET_SET.add(n); }
   { const vai = () => (typeof G !== 'undefined' && G.rodando) ? ARTES.forEach(n => { try { spr(n); } catch (e) { } }) : setTimeout(vai, 2000); setTimeout(vai, 1500); } // v407 (Raio-X A2): só depois que o jogo abre (não na tela inicial)
 
@@ -35,6 +38,9 @@
     return ok[ok.length - 1].id; // sem escolha: a melhor que já liberou
   }
   const extraOn = id => { const x = EXTRAS.find(a => a.id === id); if (!x || nivel() < x.nv) return false; const v = cfg()[id]; return v === undefined ? true : !!v; };
+  // v411.9: só uma aura por vez — a Lendária (nv 1000), quando ligada, fica no lugar da de Craque
+  const auraCraqueOn = () => extraOn('aura') && !extraOn('lenda');
+  window.adAuraLendaria = () => extraOn('lenda'); // (aura_lendaria.js pergunta)
   // asas.js pergunta qual arte usar
   window.asaEscolhida = lado => { const a = ASAS.find(x => x.id === asaAtual()); return a ? (lado ? a.lado : a.frente) : null; };
   window.asaAlfa = () => asaAtual() === 'anjo' ? ASAS_ALFA : 0.75; // as douradas e cósmicas aparecem mais (translúcidas deixavam o ouro "sujo")
@@ -63,7 +69,7 @@
     const montado = typeof montadoAgora === 'function' && montadoAgora();
     const agora = G.agora || 0, sobe = typeof alturaPonte === 'function' ? alturaPonte(e) : 0;
     try { // aura no chão
-      if (extraOn('aura')) {
+      if (auraCraqueOn()) {
         const im = aSprite('ad_aura');
         if (im) { const r = T * 0.56 * (1 + 0.04 * Math.sin(agora / 500)); ctx.save(); ctx.globalAlpha *= 0.72; ctx.translate(e.x * T, e.y * T - sobe - 2); ctx.scale(1, 0.42); ctx.rotate(agora / 2600); ctx.drawImage(im, -r, -r, r * 2, r * 2); ctx.restore(); }
       }
@@ -121,9 +127,10 @@
     const nenhuma = el('button', { type: 'button', class: 'ad-op' + (atual === 'nenhuma' ? ' on' : '') + (n >= ASAS[0].nv ? '' : ' fechado'), disabled: n < ASAS[0].nv, onclick: () => muda(() => { c.asas = 'nenhuma'; }) },
       el('span', { class: 'ad-img ad-nada' }, '🚫'), el('b', {}, 'No wings'), el('small', {}, atual === 'nenhuma' ? 'In use' : 'Use'));
     const linhaExtra = (x) => {
-      const liberada = n >= x.nv, on = extraOn(x.id);
-      return el('button', { type: 'button', class: 'ad-op' + (on ? ' on' : '') + (liberada ? '' : ' fechado'), disabled: !liberada, onclick: () => muda(() => { c[x.id] = !on; }) },
-        amostra(x.img), el('b', {}, x.nome), el('small', {}, liberada ? (on ? 'On (click to turn off)' : 'Off (click to turn on)') : '🔒 Level ' + x.nv), el('i', {}, x.desc));
+      const liberada = n >= x.nv, on = x.id === 'aura' ? auraCraqueOn() : extraOn(x.id);
+      const troca = x.id === 'aura' && !on && extraOn('lenda'); // ligar a de Craque desliga a Lendária (uma aura por vez)
+      return el('button', { type: 'button', class: 'ad-op' + (on ? ' on' : '') + (liberada ? '' : ' fechado'), disabled: !liberada, onclick: () => muda(() => { c[x.id] = !on; if (!on && x.id === 'aura') c.lenda = false; }) },
+        amostra(x.img), el('b', {}, x.nome), el('small', {}, liberada ? (on ? 'On (click to turn off)' : troca ? 'The Legendary Aura is showing instead (click to switch)' : 'Off (click to turn on)') : '🔒 Level ' + x.nv), el('i', {}, x.desc));
     };
     abreModal(el('div', { class: 'adornos' },
       el('h2', {}, '✨ Cosmetics'),

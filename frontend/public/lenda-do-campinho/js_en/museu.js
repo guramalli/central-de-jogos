@@ -89,11 +89,20 @@
       return el('details', { class: 'mu-col', open: !completa && feitos ? 'open' : null },
         el('summary', {}, `${completa ? '🏆' : '🏛️'} ${nome} (${feitos}/${regs.length})${completa ? ' · trophy and title' : ''}`), el('div', { class: 'mu-grade' }, ...itens));
     });
+    // v411.9 (dono: "o sistema do museu está meio confuso"): no topo, o que fazer agora — repetidos para trocar e as regiões
+    // mais perto do colecionável garantido (antes só dava para ver abrindo coleção por coleção)
+    const rep = repetidos(), nRep = rep.reduce((a, x) => a + x.q, 0);
+    const perto = MU_REGIOES.filter(r => !m.doados[r] && (m.sorte[r] || 0) > 0).sort((a, b) => (m.sorte[b] || 0) - (m.sorte[a] || 0)).slice(0, 3);
+    const topo = el('div', { class: 'mu-topo' },
+      el('div', {}, el('b', {}, `🔁 Duplicates: ${nRep}`), el('small', {}, ` · collection points: ${m.pts}`), ' ',
+        el('button', { class: 'btn mini' + (nRep || m.pts ? ' amarelo' : ''), type: 'button', onclick: () => modalTrocaCoral(null) }, 'Trade with Professor Coral')),
+      perto.length ? el('div', {}, el('b', {}, '🍀 Closest to a guaranteed drop: '), perto.map(r => `${nomeReg(r)} (${fmt(m.sorte[r] || 0)}/${fmt(MU_GARANTIA)})`).join(' · ')) : '');
     abreModal(el('h2', {}, `🏛️ Collectibles Museum (${doados()}/${MU_TOTAL})`),
-      el('p', { class: 'dica' }, 'Every region of the game hides ONE super-rare collectible. Donate it to the museum: complete a collection to get a trophy for your house and a Curator title on your Profile. Got duplicates? Professor Coral, in Atlantis, trades them for prizes.'),
-      ...blocos, el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Close')));
+      el('p', { class: 'dica' }, `Each region of the game hides ONE super-rare collectible (about a 1 in 5,000 chance per opponent; after ${fmt(MU_GARANTIA)} opponents in that region without finding it, it drops guaranteed). Donate it to the museum (from your backpack or storage): completing a collection gives you a trophy for your house and a Curator title on your Profile. Duplicates become collection points with Professor Coral — right here, with the button below, or with him in Atlantis.`),
+      topo, ...blocos, el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: fechaModal }, 'Close')));
   }
   window.modalMuseu = modalMuseu;
+  window.muTrocaCoral = () => modalTrocaCoral(null); // v411.9: as trocas também pelo Museu (o Professor Coral manda os pontos por carta)
 
   /* ---------- sorte acumulada + bônus das coleções completas ---------- */
   let BONUS_AGORA = 1;
@@ -132,14 +141,15 @@
     { id: 'polvinho', nome: () => '🐙 Juggler Octopus Pet', pts: 30, uma: true, da: () => { G.save.flags.pet_polvinho = true; } },
     { id: 'corujinha', nome: () => '🦉 Curator Owlet Pet', pts: 60, uma: true, da: () => { G.save.flags.pet_corujinha = true; } },
   ];
-  function repetidos() { // colecionáveis que já estão no museu (os da mochila)
-    const m = mu(); return MU_REGIOES.filter(r => m.doados[r] && contaItem(colItem(r)) > 0).map(r => ({ r, q: contaItem(colItem(r)), pts: ptsReg(r) }));
+  function repetidos() { // colecionáveis que já estão no museu (v411.9, dono: "o museu está confuso": mochila E armazém, como na doação)
+    const m = mu(); return MU_REGIOES.filter(r => m.doados[r] && contaItem(colItem(r)) + noArmazem(colItem(r)) > 0).map(r => ({ r, q: contaItem(colItem(r)) + noArmazem(colItem(r)), pts: ptsReg(r) }));
   }
+  const entregaUm = r => { const id = colItem(r); if (contaItem(id)) { removeItem(id, 1); return true; } return tiraDoArmazem(id); };
   function modalTrocaCoral(npc) {
     const m = mu(), s = G.save, rep = repetidos();
     const entrega = rep.length ? el('div', { class: 'mu-grade' }, ...rep.map(({ r, q, pts }) => el('div', { class: 'mu-item doou' }, icone(colItem(r), 40), el('div', { class: 'mu-txt' }, el('b', {}, `${ITENS[colItem(r)].nome} ×${q}`), el('small', {}, `${pts} point(s) each`)),
-      el('button', { class: 'btn mini amarelo', type: 'button', onclick: () => { removeItem(colItem(r), 1); m.pts += pts; som('moeda'); log(`🔁 Professor Coral took ${ITENS[colItem(r)].nome}: +${pts} collection point(s) (${m.pts}).`, 'l-loot'); salvar(); modalTrocaCoral(npc); } }, 'Hand in 1'))))
-      : el('p', { class: 'vazio' }, 'You don\'t have any duplicate collectibles in your backpack. (Only the ones ALREADY in the museum turn into points: the first one from each region goes to the museum!)');
+      el('button', { class: 'btn mini amarelo', type: 'button', onclick: () => { if (!entregaUm(r)) return; m.pts += pts; som('moeda'); log(`🔁 Professor Coral took ${ITENS[colItem(r)].nome}: +${pts} collection point(s) (${m.pts}).`, 'l-loot'); salvar(); modalTrocaCoral(npc); } }, 'Hand in 1'))))
+      : el('p', { class: 'vazio' }, 'You have no duplicate collectibles (not in your backpack or storage). Only ones ALREADY in the museum become points: the first one from each region goes to the museum!');
     const premios = el('div', { class: 'opcoes' }, ...MU_PREMIOS.map(p => {
       const pegou = p.uma && m.premios[p.id], trava = p.lvl && s.nivel < p.lvl;
       return el('button', { class: 'btn' + (m.pts >= p.pts && !pegou && !trava ? ' amarelo' : ''), type: 'button', disabled: pegou || trava || m.pts < p.pts ? 'disabled' : null,
@@ -147,10 +157,10 @@
         `${p.nome()} — ${p.pts} pts${pegou ? ' (already yours)' : trava ? ` (level ${p.lvl})` : ''}`);
     }));
     abreModal(el('h2', {}, '🔁 Professor Coral\'s Trades'),
-      el('div', { class: 'npc-topo' }, retratoNPC(npc), el('div', { class: 'fala' }, el('p', {}, '"A duplicate collectible? How wonderful! The museum only needs one of each... I\'ll trade the others for collection points, and you can trade the points for whatever you want."'),
+      el('div', { class: 'npc-topo' }, npc ? retratoNPC(npc) : '', el('div', { class: 'fala' }, el('p', {}, '"A duplicate collectible? How wonderful! The museum only needs one of each... I\'ll trade the others for collection points, and you can trade the points for whatever you want."'),
         el('p', {}, el('b', {}, `Your collection points: ${m.pts}`)))),
       el('h3', {}, 'Hand in duplicates'), entrega, el('h3', {}, 'Trade points'), premios,
-      el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: () => modalMuseu() }, '🏛️ See the Museum'), el('button', { class: 'btn', onclick: () => abrirNPC(npc) }, 'Back')));
+      el('div', { class: 'opcoes' }, el('button', { class: 'btn', onclick: () => modalMuseu() }, '🏛️ See the Museum'), el('button', { class: 'btn', onclick: () => npc ? abrirNPC(npc) : modalMuseu() }, 'Back')));
   }
   {
     const _ab = abrirNPC;
@@ -189,6 +199,7 @@
   css.textContent = `
   .mu-col { border: 1px solid rgba(120,80,40,.25); border-radius: 8px; padding: 6px 10px; margin: 6px 0; background: rgba(255,255,255,.35); }
   .mu-col summary { cursor: pointer; font-weight: 800; }
+  .mu-topo { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; margin: 4px 0 8px; border-radius: 8px; background: rgba(255,210,63,.18); border: 1px solid rgba(160,110,20,.35); font-size: 13px; }
   .mu-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; margin-top: 6px; }
   .mu-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,.05); }
   .mu-item.doou { background: rgba(255,210,63,.18); }
