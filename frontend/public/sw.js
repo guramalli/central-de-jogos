@@ -40,7 +40,11 @@
 // primeiro" daqui, a arte nova nunca chegaria e o cache cresceria a cada
 // versão. O próprio jogo cuida do que precisa (e o vercel.json já dá o
 // cache certo às imagens).
-const VERSAO = "eg-v15";
+// eg-v16: o Jocelino (/jocelino/) também fica FORA deste SW. É um jogo Godot
+// com arquivos de nome fixo (index.pck, index.js) que mudam a cada versão;
+// no "cache primeiro" daqui, quem abriu uma vez ficava preso na versão velha
+// (nem Ctrl+Shift+R resolvia). A subida de versão apaga a cópia guardada.
+const VERSAO = "eg-v16";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
 // Só o essencial pra a casca do app abrir offline. Nada de dado de jogo.
@@ -110,6 +114,9 @@ self.addEventListener("fetch", (evento) => {
 
   // ===== Lenda do Campinho: fica de fora (ver eg-v15) =====
   if (url.pathname === "/lenda-do-campinho" || url.pathname.startsWith("/lenda-do-campinho/")) return;
+
+  // ===== Jocelino: fica de fora (ver eg-v16) =====
+  if (url.pathname === "/jocelino" || url.pathname.startsWith("/jocelino/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos
