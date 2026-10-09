@@ -292,8 +292,8 @@ const CP = (() => {
      os personagens (os enfeites desviam deles), os estilos/texturas/enfeites de cada chão usado (com a versão de cada arte),
      o tema do mapa, o texto do desenhador do chão novo e as versões (?v=) dos arquivos que desenham o chão. Qualquer
      diferença — ou imagem que falhe/demore — e o mapa volta ao caminho completo (prepara as camadas, confere a assinatura
-     completa e usa as imagens se ela bater; senão pinta na hora, como antes). Mapas com rua, ponte ou a Feira: sempre o
-     caminho completo (outros arquivos pintam por cima). */
+     completa e usa as imagens se ela bater; senão pinta na hora, como antes). Mapas do chão novo com rua, ponte ou a Feira:
+     sempre o caminho completo (outros arquivos pintam por cima). v412.5: o chão ANTIGO também tem atalho (ver codigoAntigo). */
   const ARQ_CHAO = ['arte.js', 'assets.js', 'agua.js', 'chao_blocos.js', 'chao_novo.js', 'chao_pronto.js'];
   let CODIGO = null;
   function codigoBase() {
@@ -302,12 +302,61 @@ const CP = (() => {
     for (const n of ARQ_CHAO) { let v = '-'; try { const el = document.querySelector('script[src*="/' + n + '?"]') /* (js/ ou js_en/: o inglês usa os mesmos ?v=) */; if (el) v = (el.getAttribute('src').split('?v=')[1] || ''); } catch (e) { } acum(H, n + '@' + v, 0); }
     for (const f of [window.CHAO2_PRE && CHAO2_PRE.gerador, typeof pintaAgua === 'function' && pintaAgua, typeof drawLinhasCampo === 'function' && drawLinhasCampo, typeof padrao === 'function' && padrao, typeof mulberry === 'function' && mulberry, P.pinta, P.fazBloco, P.fazPrevia]) acum(H, f ? String(f) : '-', 0);
     acum(H, T, 0); acum(H, B, 0); acum(H, CB.PE, 0);
-    return (CODIGO = hex(H[0]) + hex(H[1]));
+    CODIGO = hex(H[0]) + hex(H[1]); codigoAntigo(); // (as duas contas agora: o chao_recorte.js embrulha caminhoTiles/caminhoSuave logo depois)
+    return CODIGO;
   }
-  // a assinatura barata de um mapa do chão novo (null = este mapa não pode usar o atalho)
+  /* v412.5 ATALHO do chão ANTIGO (opção 2 = C + D aprovada pelo dono em 09/10: "travadinhas andando nas cidades e trocando de
+     cidade, com nível alto e rápido"). As cidades de chão antigo (Vila, Praia, Cidade, CT, Estádio, Paris, Tóquio, Milão...)
+     anotavam ~13–16 mil passos do chão a cada entrada (assets.js renderChao + ruas.js pintaRuas + pontes.js), faziam a conta
+     da assinatura completa de cada passo e esperavam as texturas (baixar + decodificar) — tudo no quadro da troca de cidade.
+     Agora, com a assinatura barata batendo, a lousa nasce VAZIA (só as imagens prontas). A conta barata cobre tudo o que
+     esses desenhos leem: os quadradinhos (m.chao — as ruas arrumadas, as pontes achadas e os enfeites espalhados já mudaram
+     o mapa quando ele foi montado), ONDE há objeto (os enfeites do chão — tufos, flores, cogumelos — saltam os quadrados com
+     objeto e isso muda a sequência do sorteio), os campos (linhas), as pontes (lugar e arte), se é mapa de rua (meio-fio,
+     faixas, esquinas), o estilo/textura/suavização de cada chão usado, as artes usadas (com a versão de cada uma: ASSET_VER),
+     o texto das funções que desenham e as versões (?v=) dos arquivos que desenham (arte, assets, água, chão em blocos, chão
+     pronto, ruas, pontes). O que NÃO pinta continua rodando: arrumaRuas/achaPontes/limpaCabeceiras mexem no mapa quando ele
+     é montado (antes de tudo isto) e as pontes continuam calculando a rampa e o brilho da água (pontes.js) — só que a pintura
+     delas vai para uma lousa muda (a imagem pronta já tem a ponte). Reserva igual à do chão novo: imagem que falha/demora →
+     caminho completo (anota, confere a assinatura completa, usa a imagem se bater, senão pinta na hora). */
+  const ARQ_ANT = ARQ_CHAO.concat(['ruas.js', 'pontes.js']);
+  let CODIGO_ANT = null;
+  function codigoAntigo() {
+    if (CODIGO_ANT) return CODIGO_ANT;
+    const H = [0x6a09e667, 0x3c6ef372];
+    for (const n of ARQ_ANT) { let v = '-'; try { const el = document.querySelector('script[src*="/' + n + '?"]'); if (el) v = (el.getAttribute('src').split('?v=')[1] || ''); } catch (e) { } acum(H, n + '@' + v, 0); }
+    const fn = f => typeof f === 'function' ? String(f) : '-'; // (o texto das funções que desenham o chão antigo, como estão AGORA — antes do chao_recorte.js embrulhar)
+    for (const f of [typeof texturasDoChao !== 'undefined' && texturasDoChao, typeof padrao !== 'undefined' && padrao, typeof mulberry !== 'undefined' && mulberry,
+      typeof chaoSuaviza !== 'undefined' && chaoSuaviza, typeof caminhoSuave !== 'undefined' && caminhoSuave, typeof caminhoTiles !== 'undefined' && caminhoTiles,
+      typeof pintaAgua !== 'undefined' && pintaAgua, typeof infoAgua !== 'undefined' && infoAgua, typeof drawLinhasCampo !== 'undefined' && drawLinhasCampo,
+      typeof pintaRuas !== 'undefined' && pintaRuas, typeof faixasRua !== 'undefined' && faixasRua, typeof mapaDeRua !== 'undefined' && mapaDeRua,
+      typeof CH_ANDA !== 'undefined' && CH_ANDA, typeof aSprite !== 'undefined' && aSprite]) acum(H, fn(f), 0);
+    for (const f of [P.pinta, P.fazBloco, P.fazPrevia]) acum(H, f ? String(f) : '-', 0);
+    acum(H, T, 0); acum(H, B, 0); acum(H, CB.PE, 0);
+    return (CODIGO_ANT = hex(H[0]) + hex(H[1]));
+  }
+  const chaoNovoDe = m => !!(window.CHAO2 && CHAO2.mapas[m.id]);
+  function assinaAntigo(m) {
+    const H = [0x510e527f, 0x9b05688c], c = m.chao, presentes = new Set();
+    acum(H, codigoAntigo(), 0); acum(H, 'antigo', 0); acum(H, m.id, 0); acum(H, m.w, 0); acum(H, m.h, 0);
+    for (let k = 0; k < c.length; k++) { const t = c[k] | 0; presentes.add(t); H[0] = mA(H[0], t); H[1] = mB(H[1], t); }
+    const ob = m.obj || []; let n = 0; for (let k = 0; k < ob.length; k++) if (ob[k]) { n++; H[0] = mA(H[0], k); H[1] = mB(H[1], k ^ 0x5bd1); } acum(H, n, 0);
+    acum(H, m.campos || [], 0);
+    acum(H, (m.pontes || []).map(p => [p.eixo, p.x0, p.x1, p.y0, p.y1, p.arte]), 0);
+    acum(H, typeof mapaDeRua === 'function' && mapaDeRua(m.id) ? 1 : 0, 0);
+    for (const t of [...presentes].sort((a, b) => a - b)) { acum(H, t, 0); acum(H, ESTILO_CHAO[t] || 0, 0); acum(H, TEX_CHAO[t] || 0, 0); acum(H, typeof chaoSuaviza === 'function' && chaoSuaviza(t) ? 1 : 0, 0); }
+    const artes = new Set(typeof texturasDoChao === 'function' ? texturasDoChao(m) : ['?']);
+    for (const p of m.pontes || []) artes.add('ponte_' + p.arte);
+    for (const n of [...artes].sort()) acum(H, n + '?' + (typeof ASSET_VER !== 'undefined' && ASSET_VER[n] || '') + (typeof ASSET_SET !== 'undefined' && ASSET_SET.has(n) ? '' : '!'), 0);
+    return hex(H[0]) + hex(H[1]);
+  }
+  // a assinatura barata de um mapa (null = este mapa não pode usar o atalho). v412.5: também os de chão ANTIGO (acima).
   function atalhoAssina(m, cache) { // (cache: só para a pergunta dos vizinhos; ao entrar a conta é refeita — ex.: o portal da Copa entra no Multiverso na hora)
-    if (!m || m.interior || !window.CHAO2 || !CHAO2.mapas[m.id] || m.id === 'praca_feira' || m.id === 'agencia_escritorio' || (m.pontes && m.pontes.length) || (typeof mapaDeRua === 'function' && mapaDeRua(m.id))) return null;
+    if (!m || m.interior || !m.chao || m.id === 'praca_feira' || m.id === 'agencia_escritorio') return null;
+    const novo = chaoNovoDe(m);
+    if (novo && ((m.pontes && m.pontes.length) || (typeof mapaDeRua === 'function' && mapaDeRua(m.id)))) return null; // (chão novo com rua/ponte: outros arquivos pintam por cima — caminho completo)
     const agora = performance.now(); if (cache && m._cpAt && m._cpAt.chao === m.chao && agora - m._cpAt.t < 20000) return m._cpAt.h;
+    if (!novo) { const h = assinaAntigo(m); m._cpAt = { h, t: agora, chao: m.chao }; return h; }
     const bio = CHAO2.mapas[m.id], H = [0x7f4a7c15, 0x2545f491], c = m.chao, presentes = new Set();
     acum(H, codigoBase(), 0); acum(H, m.id, 0); acum(H, bio, 0); acum(H, m.w, 0); acum(H, m.h, 0);
     for (let k = 0; k < c.length; k++) { const t = c[k] | 0; presentes.add(t); H[0] = mA(H[0], t); H[1] = mB(H[1], t); }
@@ -339,9 +388,15 @@ const CP = (() => {
     if (m._chaoTemp && m._chaoTemp.solta) try { m._chaoTemp.solta(); } catch (e) { }
     m._chaoTemp = null;
     const S = novoChaoBlocos(m.w * T, m.h * T, m, {}); S._cpAtalho = true;
-    m._chao = S; m._chao2 = true; EST.atalhos = (EST.atalhos || 0) + 1;
+    m._chao = S; EST.atalhos = (EST.atalhos || 0) + 1;
+    if (chaoNovoDe(m)) m._chao2 = true;
+    else { // v412.5 chão antigo: quem ainda "pinta" nesta lousa (as pontes, a cada renderChao até a arte delas chegar) pinta numa lousa muda
+      S._cpMuda = true; S.getContext = () => MUDA; EST.atalhosAntigo = (EST.atalhosAntigo || 0) + 1;
+    }
     return S;
   }
+  // (a lousa muda: aceita qualquer passo e não anota nada — a imagem pronta já tem tudo, e a versão da lousa não muda)
+  const MUDA = new Proxy({}, { get: (o, k) => k === 'canvas' ? null : () => undefined, set: () => true });
   // a imagem falhou ou demorou: o atalho é largado (o próximo renderChao faz o caminho completo); nada é pintado com a lousa vazia
   function desiste(S, sx, sy, sw, sh) {
     const m = S.m, esc = new Set();
@@ -358,6 +413,11 @@ const CP = (() => {
   window.CHAO2_PULA = m => { try { return atalhoOk(m, true); } catch (e) { return false; } };
   // fotos e testes (fotoInteira pinta tudo na hora): a lousa do atalho não tem passos — faz o desenho completo ali mesmo
   { const _foto = CB.fotoInteira; CB.fotoInteira = function (S) {
+    if (S && S._cpAtalho && S.m && !chaoNovoDe(S.m)) { // v412.5 chão antigo: a lousa completa (anotada na hora, sem guardar) e devolve a do atalho
+      const m = S.m, K = ['_chao', '_pontesEm', '_semBrilho', '_pontesDes', '_cpSemAtalho', '_chaoEspera', '_chaoEsperaT'], g = {}; for (const k of K) g[k] = m[k];
+      let R = null; try { delete m._chao; m._chaoEspera = null; m._cpSemAtalho = true; R = renderChao(m); } catch (e) { } finally { for (const k of K) { if (g[k] === undefined) delete m[k]; else m[k] = g[k]; } }
+      if (R && R !== S && !R.soPrevia && R.ops && R.ops.length) { const a = [...arguments]; a[0] = R; return _foto.apply(this, a); }
+    }
     if (S && S._cpAtalho && S.m && window.CHAO2_PRE) { try { const g = CHAO2_PRE.gerador(S.m, CHAO2.mapas[S.m.id]); let r; while (!(r = g.next()).done); const a = [...arguments]; a[0] = r.value; return _foto.apply(this, a); } catch (e) { } }
     return _foto.apply(this, arguments);
   }; }
