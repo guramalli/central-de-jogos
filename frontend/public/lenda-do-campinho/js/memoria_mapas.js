@@ -15,7 +15,9 @@
    Aqui ficam as lousas do mapa atual, dos 2 anteriores e do vizinho pré-desenhado (MEM_MAPAS.pre, avisado pelo
    chao_novo.js); as outras são soltas (lousa, prévia e blocos). */
 {
-  const GUARDA = (navigator.deviceMemory || 4) >= 4 ? 3 : 2; // o mapa atual + os anteriores (só as lousas: leves)
+  // v412.4 (desempenho): no computador guarda 6 (voltar a uma cidade recente: entrada de 40–75 ms → 10–19 ms; as lousas são
+  // leves e os blocos já têm teto próprio de memória). Celular continua 3 (ou 2 com pouca memória).
+  const GUARDA = !(typeof CEL !== 'undefined' && CEL) && (navigator.deviceMemory || 4) >= 8 ? 6 : (navigator.deviceMemory || 4) >= 4 ? 3 : 2; // o mapa atual + os anteriores (só as lousas: leves)
   const ordem = []; // mapas (objetos), do mais recente para o mais antigo
   function solta(m) {
     if (!m) return;
