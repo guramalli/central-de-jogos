@@ -168,9 +168,23 @@ const CP = (() => {
     } else vai = createImageBitmap(c.blob);
     vai.then(bm => {
       decodificando--; if (CACHE.get(c.k) !== c) { bm.close(); return anda(); }
+      if (furada(bm)) { bm.close(); EST.buracos = (EST.buracos || 0) + 1; const e = IDX[c.id]; if (e) e._ruim = true; falhou(c, new Error('image with a transparent area')); return anda(); } // v412.2: o mapa inteiro volta a ser pintado na hora
       bytesBlob -= c.blob.size; c.blob = null; c.bm = bm; nBm++; c.st = 'pronto'; if (EST.decodMs.length < 400) EST.decodMs.push(Math.round(performance.now() - t0));
       limpa(); anda();
     }).catch(er => { decodificando--; falhou(c, er); anda(); });
+  }
+  // v412.2 (BUG da v411.7: Paris/Doha com buracos roxos — imagens geradas com áreas transparentes): defesa no jogo. Logo depois de
+  // decodificar (fora do quadro, ~0,2 ms), 256 pontos da imagem (grade 16×16) são lidos numa telinha da memória (sem a placa de
+  // vídeo): chão não tem transparência — se algum ponto for transparente, a imagem não é usada e o mapa volta a ser pintado na hora.
+  let AMO = null;
+  function furada(bm) {
+    try {
+      if (!AMO) { const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; AMO = cv.getContext('2d', { willReadFrequently: true }); }
+      const w = bm.width, h = bm.height; AMO.clearRect(0, 0, 16, 16);
+      for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) AMO.drawImage(bm, Math.min(w - 1, ((i + 0.5) * w / 16) | 0), Math.min(h - 1, ((j + 0.5) * h / 16) | 0), 1, 1, i, j, 1, 1);
+      const d = AMO.getImageData(0, 0, 16, 16).data; for (let k = 3; k < d.length; k += 4) if (d[k] < 10) return true;
+    } catch (e) { }
+    return false;
   }
   function falhou(c, er) {
     c.st = 'falhou'; c.blob = null; EST.falhas++;
@@ -258,6 +272,13 @@ const CP = (() => {
         if (e.prev) pede(s.para, 'previa', e, 0, false);
         for (const [i, j] of blocosDaVista(e, (s.tx + 0.5) * T, (s.ty + 0.5) * T, 0)) pede(s.para, i + '_' + j, e, 0, false);
       }
+      // v412.2: o mapa mudou DEPOIS da entrada e agora bate com o índice (ex.: o portal da Copa aparece no Multiverso até 3 s
+      // depois de abrir o jogo, para quem tem nível 700) — troca para o atalho quando as imagens da tela já estão prontas (sem piscar)
+      { const S0 = m._chao, e = IDX[m.id];
+        if (S0 && e && e.cod && !S0._cpAtalho && !S0.soPrevia && S0._cpOkVer === S0.ver && !S0._cpOk && window.CHAO2 && CHAO2.mapas[m.id] && !(window.CHAO2_FAZENDO && CHAO2_FAZENDO.has(m)) && atalhoOk(m)) {
+          const l = blocosDaVista(e, G.p.x * T, G.p.y * T, 0).map(([i, j]) => pede(m.id, i + '_' + j, e, 2, true));
+          if (l.every(c => c.st === 'pronto')) { try { S0.solta(); } catch (er) { } if (m._chao === S0) { delete m._chao; m._chao2 = false; } EST.trocouAtalho = (EST.trocouAtalho || 0) + 1; }
+        } }
       // o vizinho pré-desenhado (chao_novo.js): a prévia dele vem da imagem pronta, sem pintar
       const pre = typeof MEM_MAPAS !== 'undefined' && MEM_MAPAS.pre, S = pre && pre._chao;
       if (S && S instanceof CB.ChaoBlocos && !S.soPrevia && (!S.prev || S.prevVer !== S.ver)) { const e = entrada(S); if (e && e.prev) { const c = pede(pre.id, 'previa', e, 0, true); if (c.st === 'pronto') { S.prev = toma(c); S.prevVer = S.ver; EST.previas++; } } }
@@ -341,6 +362,6 @@ const CP = (() => {
     return _foto.apply(this, arguments);
   }; }
 
-  return { IDX, EST, CACHE, assinatura, entrada, quadradinhos, desligado, pede, toma, acum, avif: () => avifOk, atalhoAssina, atalhoOk, codigoBase };
+  return { IDX, EST, CACHE, assinatura, entrada, quadradinhos, desligado, pede, toma, acum, avif: () => avifOk, atalhoAssina, atalhoOk, codigoBase, furada };
 })();
 window.CP = CP; // (ferramenta _teste/chao_pronto/gera.js e testes)
