@@ -115,7 +115,7 @@ for (const a of ARENAS) {
       { desc: `MÍTICO. ${descMitico(it)}. Só o chefão da ${a.nome} deixa cair — e é raríssimo.` });
   }
   a.trofeu = 'trofeu_' + a.tema;
-  ITENS[a.trofeu] = { nome: `Troféu da ${a.nome}`, tipo: 'loot', venda: a.L * 250 /* v222: era L*60, valia menos que um épico comum */, trofeuArena: true, desc: `Prova de que você venceu ${a.chefe.nome}. Peça de colecionador (vende bem).` };
+  ITENS[a.trofeu] = { nome: `Troféu da ${a.nome}`, tipo: 'loot', venda: a.L * 250 /* v222: era L*60, valia menos que um épico comum */, trofeuArena: true, desc: `Prova de que você venceu ${a.chefe.nome}. Só cai na 1ª vitória de cada dia: 1 troféu por dia. Peça de colecionador (vende bem).` }; // v412.1: avisa 1 por dia (feedback do dono 08/10)
   ICON_ALIAS[a.trofeu] = a.id === 'arena_copa' ? 'i_bola_coroa' : 'trofeu';
 }
 
@@ -163,7 +163,7 @@ for (const a of ARENAS) {
   };
   montaMonstro(a.guarda.id, a.guarda.nome, a.guarda.arq, a.L - 3, { falas: ['Ninguém chega no chefão!', 'Volta pro vestiário!', 'Arena fechada pra você!'], look: a.guarda.look });
   MONSTROS[a.guarda.id].loot = [['couro', 0.3, 1, 2], ['retalho', 0.3, 1, 2], ['fio_ouro', 0.012, 1, 1]];
-  NPCS[a.porteiro.id] = { nome: a.porteiro.nome, arenaId: a.id, ola: `Bem-vindo(a) à ${a.nome}! Aqui o chefão só aparece de vez em quando, e só dá para vencê-lo uma vez por dia.`, look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, a.porteiro.look) };
+  NPCS[a.porteiro.id] = { nome: a.porteiro.nome, arenaId: a.id, ola: `Bem-vindo(a) à ${a.nome}! O chefão fica em campo o dia todo. A 1ª vitória de cada dia dá o prêmio grande, com o Troféu da arena: só 1 troféu por dia!`, look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, a.porteiro.look) };
   if (typeof CLIMA_CIDADE !== 'undefined' && CLIMA_CIDADE[a.host]) CLIMA_CIDADE[a.id] = CLIMA_CIDADE[a.host];
 }
 
@@ -277,7 +277,7 @@ function modalPorteiro(npc) {
       el('p', { class: 'ar-status ' + st.cls }, st.txt),
       el('ul', { class: 'ar-regras' },
         el('li', {}, 'O chefão fica em campo o dia todo: venha quando puder!'), // v407 (Raio-X R11)
-        el('li', {}, 'A 1ª vitória de cada dia dá o prêmio grande (chance de item MÍTICO). As outras vitórias do dia dão um prêmio pequeno. Ficou sem fôlego? Tente de novo!'),
+        el('li', {}, 'A 1ª vitória de cada dia dá o prêmio grande: o Troféu da arena (só 1 por dia) e chance de item MÍTICO. As outras vitórias do dia dão um prêmio pequeno. Ficou sem fôlego? Tente de novo!'),
         el('li', {}, 'Ele tem golpes especiais: quando aparecer um CÍRCULO VERMELHO no chão, saia de dentro!'),
         el('li', {}, 'Com pouco fôlego ele chama reservas, levanta um escudo e entra no MODO FINAL.'),
         el('li', {}, `Vitórias: ${reg.vitorias}. Chance de item mítico na próxima vitória: ${Math.round(chanceMitico(a) * 100)}% (sobe a cada vitória sem mítico).`)))),

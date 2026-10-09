@@ -115,7 +115,7 @@ for (const a of ARENAS) {
       { desc: `MYTHIC. ${descMitico(it)}. Only the boss of ${a.nome} drops it — and it's super rare.` });
   }
   a.trofeu = 'trofeu_' + a.tema;
-  ITENS[a.trofeu] = { nome: `${a.nome} Trophy`, tipo: 'loot', venda: a.L * 250 /* v222: era L*60, valia menos que um épico comum */, trofeuArena: true, desc: `Proof that you beat ${a.chefe.nome}. A collector's item (sells well).` };
+  ITENS[a.trofeu] = { nome: `${a.nome} Trophy`, tipo: 'loot', venda: a.L * 250 /* v222: era L*60, valia menos que um épico comum */, trofeuArena: true, desc: `Proof that you beat ${a.chefe.nome}. It only drops on your 1st win of each day: 1 trophy per day. A collector's piece (sells well).` }; // v412.1: avisa 1 por dia (feedback do dono 08/10)
   ICON_ALIAS[a.trofeu] = a.id === 'arena_copa' ? 'i_bola_coroa' : 'trofeu';
 }
 
@@ -163,7 +163,7 @@ for (const a of ARENAS) {
   };
   montaMonstro(a.guarda.id, a.guarda.nome, a.guarda.arq, a.L - 3, { falas: ['Nobody gets to the boss!', 'Back to the locker room!', 'This arena is closed to you!'], look: a.guarda.look });
   MONSTROS[a.guarda.id].loot = [['couro', 0.3, 1, 2], ['retalho', 0.3, 1, 2], ['fio_ouro', 0.012, 1, 1]];
-  NPCS[a.porteiro.id] = { nome: a.porteiro.nome, arenaId: a.id, ola: `Welcome to ${a.nome}! Here the boss only shows up once in a while, and you can only beat them once a day.`, look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, a.porteiro.look) };
+  NPCS[a.porteiro.id] = { nome: a.porteiro.nome, arenaId: a.id, ola: `Welcome to ${a.nome}! The boss is on the field all day. Your 1st win of each day gives the big prize, with the arena Trophy: only 1 trophy per day!`, look: Object.assign({ tipo: 'humano', corpo: 'm', alt: 1.72 }, a.porteiro.look) };
   if (typeof CLIMA_CIDADE !== 'undefined' && CLIMA_CIDADE[a.host]) CLIMA_CIDADE[a.id] = CLIMA_CIDADE[a.host];
 }
 
@@ -277,7 +277,7 @@ function modalPorteiro(npc) {
       el('p', { class: 'ar-status ' + st.cls }, st.txt),
       el('ul', { class: 'ar-regras' },
         el('li', {}, 'The boss stays on the field all day: come whenever you can!'), // v407 (Raio-X R11)
-        el('li', {}, 'The 1st win each day gives the big prize (chance of a MYTHIC item). Your other wins that day give a small prize. Ran out of stamina? Try again!'),
+        el('li', {}, 'Your 1st win of each day gives the big prize: the arena Trophy (only 1 per day) and a chance of a MYTHIC item. Other wins that day give a small prize. Out of stamina? Try again!'),
         el('li', {}, 'They have special moves: when a RED CIRCLE shows up on the ground, get out of it!'),
         el('li', {}, 'When low on stamina, they call in subs, raise a shield and go into FINAL MODE.'),
         el('li', {}, `Wins: ${reg.vitorias}. Chance of a mythic item on your next win: ${Math.round(chanceMitico(a) * 100)}% (goes up with every win without a mythic).`)))),

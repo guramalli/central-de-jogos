@@ -215,11 +215,11 @@ function blocoComoChegar(q, compacto) {
   let I = null; try { I = ccInfo(q); } catch (e) { console.warn('como chegar', q.id, e); }
   if (!I) return null;
   const linhas = [];
-  if (!I.lugarDe) linhas.push(['👾', 'Quem', `${I.quem}${I.chefe ? ' (chefão)' : ''} — nível ${I.nivel}${I.porItem && ITENS[I.porItem] ? ` (é quem mais deixa cair ${ITENS[I.porItem].nome})` : ''}${I.forte ? ' ⚠️ ainda forte para você' : ''}`]);
+  if (!I.lugarDe) linhas.push(['👾', 'Quem', `${I.quem}${I.chefe ? ' (chefão)' : ''} — nível ${I.nivel}${I.porItem && ITENS[I.porItem] ? ` (é quem mais deixa cair ${ITENS[I.porItem].nome})` : ''}${I.porItem && ITENS[I.porItem] && ITENS[I.porItem].trofeuArena ? ' — só 1 troféu por dia (1ª vitória)' : ''}${I.forte ? ' ⚠️ ainda forte para você' : ''}`]);
   else if (I.entregar) linhas.push(['✔', 'Entregar', `Você já tem tudo! Leve para ${I.quem}`]);
   else if (I.quem) linhas.push(['🙋', 'Procure', I.quem + (I.como ? ` (${I.como}${I.porItem && ITENS[I.porItem] && I.como === 'vende' ? ' ' + ITENS[I.porItem].nome : ''})` : '')]);
   // v407 (Raio-X R3): pedido de vários itens = uma fonte por item; e quem mais ajuda (troca, baú, loja)
-  if (I.fontes) { const fs = I.fontes.filter(x => x.quem && ITENS[x.item]), mx = compacto ? 2 : 5; if (fs.length) linhas.push(['🎒', 'Cada item', fs.slice(0, mx).map(x => `${ITENS[x.item].nome}: ${x.quem}${x.nivel ? ` (nível ${x.nivel}${x.chefe ? ', chefão' : ''}${x.onde ? ', ' + x.onde : ''})` : ''}`).join(' · ') + (fs.length > mx ? ` · e mais ${fs.length - mx}` : '')]); }
+  if (I.fontes) { const fs = I.fontes.filter(x => x.quem && ITENS[x.item]), mx = compacto ? 2 : 5; if (fs.length) linhas.push(['🎒', 'Cada item', fs.slice(0, mx).map(x => `${ITENS[x.item].nome}: ${x.quem}${x.nivel ? ` (nível ${x.nivel}${x.chefe ? ', chefão' : ''}${x.onde ? ', ' + x.onde : ''})` : ''}${ITENS[x.item].trofeuArena ? ' — 1 por dia' : ''}`).join(' · ') + (fs.length > mx ? ` · e mais ${fs.length - mx}` : '')]); }
   if (I.tambem && !compacto) linhas.push(['🙋', 'Também', `${I.tambem.nome} (${I.tambem.como})`]);
   linhas.push(['🗺️', 'Onde', `${I.onde}${I.rota && I.rota.regiao && I.rota.regiao !== I.onde ? ` (${I.rota.regiao})` : ''}`]);
   const viagem = I.rota && I.rota.viagem, cam = ccCaminhoTxt(I.rota);
