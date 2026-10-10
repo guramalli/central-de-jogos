@@ -58,7 +58,9 @@ class Pensao {
   progresso() {
     const p = this.proximoDegrau(); if (!p) return 1;
     const a = this.degrau(), d = p.d, f = (v, x0, x1) => x1 <= x0 ? 1 : clamp((v - x0) / (x1 - x0), 0, 1);
-    return (f(this.curtidas, a.curtidas, d.curtidas) + f(this.melhorSabor(), a.sabor, d.sabor) + f(this.pesquisadas(), a.pesquisadas, d.pesquisadas)) / 3;
+    const partes = [f(this.curtidas, a.curtidas, d.curtidas), f(this.melhorSabor(), a.sabor, d.sabor), f(this.pesquisadas(), a.pesquisadas, d.pesquisadas)];
+    if (d.garfos) partes.push(clamp((this.garfos || 0) / d.garfos, 0, 1));
+    return partes.reduce((s, x) => s + x, 0) / partes.length;
   }
   // Compatibilidade (textos antigos): pontos que faltam = curtidas que faltam.
   faltaParaSubir() { const p = this.proximoDegrau(); return p ? Math.max(1, p.falta.curtidas) : 0; }
@@ -229,6 +231,7 @@ class Pensao {
     this.curtidas += Math.max(0, curtidas);
     this.ultimaJanta = dia;
     if (estrelas > 0) this.pitadas += Math.max(1, Math.floor(estrelas / 4));   // as estrelas viram pitadas de tempero (a "Artisan's Flame")
+    this.grauMinimo = Math.max(this.grauMinimo || 1, this.grau());             // a pensão nunca desce de degrau
     return this.grau() > antes ? this.grau() : 0;
   }
   // Pratos da noite: os marcados no quadro de giz que rendem; se nenhum rende, o que a despensa rende.
@@ -298,5 +301,7 @@ class Pensao {
     this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {}); this.chef = Object.assign({ nivel: 1, xp: 0 }, d.chef || {});
     this.premios = (d.premios || []).slice(); this.garfos = d.garfos || 0; this.paladarNotas = JSON.parse(JSON.stringify(d.paladarNotas || [])); this.concursos = Object.assign({}, d.concursos || {});
     this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
+    // Save de antes dos garfos do Doutor Paladar: o degrau que já tinha não cai (os garfos só valem daqui para a frente).
+    if (d.garfos == null) { this.garfos = 99; const g = this.grau(); this.garfos = 0; this.grauMinimo = Math.max(this.grauMinimo || 1, g); }
   }
 }

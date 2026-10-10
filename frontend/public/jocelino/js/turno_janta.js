@@ -147,12 +147,12 @@ class TurnoJanta {
     let opcoes = m.cliente.prato ? [m.cliente.prato] : this.pensao.cardapioDaNoite();
     const quer = m.cliente.favorito || m.cliente.pedeTema;
     if (!m.cliente.prato && quer && p.receitas.includes(quer) && disp(quer)) { m.prato = quer; opcoes = null; }
-    if (balcao && !m.cliente.prato) {
+    if (balcao && !m.cliente.prato && opcoes) {
       // No balcão vale o que está na panela ou o que a Rosa ainda consegue cozinhar.
       const base = (p.cardapio.length ? p.cardapio : p.receitas).filter(id => p.receitas.includes(id) && disp(id)).slice(0, p.vagas());
       opcoes = base.length ? base : p.receitas.filter(disp).slice(0, p.vagas());
     }
-    if (!opcoes.length) {
+    if (opcoes && !opcoes.length) {
       // Sem nada que renda: um cafezinho e a promessa de voltar. Registra o que faltou.
       this.relatorio.cafes++;
       if (m.cliente.mania === 'paladar') this.relatorio.paladar = 1;

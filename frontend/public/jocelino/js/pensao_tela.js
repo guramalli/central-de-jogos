@@ -203,17 +203,19 @@ function encerrarJanta() {
     for (const e of r.pedidosFeitos) { G.dinheiro += e.premio; r.curtidas += 2; }
   }
   const pit0 = G.pensao.pitadas;
-  r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
-  // A Rosa ganha experiência com cada prato que saiu.
-  if (typeof Chef !== 'undefined') { const c = Chef.ganhar(G.pensao, r.servidos); r.chef = c;
-    if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
-    for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
-  r.pitadasGanhas = G.pensao.pitadas - pit0;
+  const grauAntes = G.pensao.grau();   // antes dos garfos: se eles completam o degrau, a subida aparece hoje
   if (r.paladar && typeof Paladar !== 'undefined') {
     const p = G.pensao; p.garfos = Math.max(p.garfos || 0, r.paladar); p.paladarNotas.push({ dia: G.dia, nota: r.paladar });
     CARTAS['paladar_' + G.dia] = { de: 'Gazeta de Santos', dia: G.dia + 1, texto: Paladar.materia(r.paladar) };
     avisar(`O cliente de chapéu-coco era o Doutor Paladar, da Gazeta! Nota: ${r.paladar} ${r.paladar === 1 ? 'garfo' : 'garfos'}. A matéria sai amanhã.`); sons.tocar(r.paladar >= 4 ? 'fanfarra' : 'cliente_hmpf', 1, 0, -4);
   }
+  r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
+  if (!r.subiu && G.pensao.grau() > grauAntes) r.subiu = G.pensao.grau();
+  // A Rosa ganha experiência com cada prato que saiu.
+  if (typeof Chef !== 'undefined') { const c = Chef.ganhar(G.pensao, r.servidos); r.chef = c;
+    if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
+    for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
+  r.pitadasGanhas = G.pensao.pitadas - pit0;
   if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), r.favoritos);
   r.aprendidas.push(...G.pensao.liberarDoDegrau());
   for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); sons.tocar('fanfarra', 1.15, 0, -6); }

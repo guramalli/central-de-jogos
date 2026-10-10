@@ -24,7 +24,7 @@ const Metas = {
     if (!tem('caprichar')) { const soma = p.receitas.reduce((n, id) => n + p.nivel(id), 0); c.push({ tipo: 'caprichar', alvo: soma + 1, texto: 'Caprichar em qualquer prato (+1 nível)', prio: 1 }); }
     if (typeof Equipe !== 'undefined' && ['salao', 'cozinha', 'compras'].some(k => Equipe.vagasLivres(p, k) > 0) && !tem('contratar')) c.push({ tipo: 'contratar', alvo: p.equipe.length + 1, texto: 'Contrate um ajudante (tela Equipe)', prio: 2 });
     if (typeof MELHORIAS !== 'undefined' && !tem('melhoria')) {
-      const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau).sort((a, b) => a[1].preco - b[1].preco)[0];
+      const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio && !(id === 'banqueta_extra' && p.mesasDaNoite() >= p.maxMesas())).sort((a, b) => a[1].preco - b[1].preco)[0];
       if (m) c.push({ tipo: 'melhoria', melhoria: m[0], alvo: 1, texto: `Compre a melhoria "${m[1].nome}" (Cr$ ${m[1].preco})`, prio: 2 });
     }
     return c;

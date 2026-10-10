@@ -43,13 +43,13 @@ const LAYOUT_PALCO = {
     ({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE }))(PALCO),
   grande: {
     ASSENTOS: [400, 537, 674, 811, 948, 1085, 1222, 1359].map(x => ({ x, y: 856 })),
-    BEBEDOURO: { x: 300, y: 774, w: 84, h: 126, escala: 0.42 },
+    BEBEDOURO: { x: 372, y: 774, w: 84, h: 126, escala: 0.42 },
     PASSE: { cx: 1597, base: 905, escala: 0.8, topo: 832, vagas: [1545, 1579, 1612, 1646] },
     PASSE_AREA: { x: 1525, y: 790, w: 145, h: 118 },
-    BACIA: { x: 392, y: 825, w: 64, h: 80, escala: 1 },
-    LIXO: { x: 462, y: 842, w: 39, h: 60, escala: 1 },
+    BACIA: { x: 464, y: 825, w: 64, h: 80, escala: 1 },
+    LIXO: { x: 534, y: 842, w: 39, h: 60, escala: 1 },
     FARINHEIRA: { x: 1440, y: 730, w: 70, h: 62, cx: 1475, base: 786, escala: 0.36 },
-    BALCAO_ARTE: 'balcao_grande', TOALHA_W: 1240, ROSA_PASSE: 1600, RITINHA_X: 560, CASA_ZE: 520, CASA_AJUDANTE: 1480,
+    BALCAO_ARTE: 'balcao_grande', TOALHA_W: 1240, ROSA_PASSE: 1600, RITINHA_X: 630, CASA_ZE: 600, CASA_AJUDANTE: 1480,
   },
 };
 function aplicaLayoutPalco() { Object.assign(PALCO, LAYOUT_PALCO[typeof temAmpliacao === 'function' && temAmpliacao('salao_maior') ? 'grande' : 'pequeno']); }

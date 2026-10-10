@@ -36,7 +36,7 @@ const Clientela = {
   // Põe os moradores do dia na fila do turno (além dos clientes da noite), sem repetir quem já vinha por acaso.
   porNaFila(t, p, dia) {
     const vem = Clientela.daNoite(p, dia), n = vem.length;
-    t._fila = t._fila.filter(f => !vem.some(c => c.id === f.cliente.id));
+    t._fila = t._fila.filter(f => f.cliente.convidado || !vem.some(c => c.id === f.cliente.id));
     vem.forEach((c, k) => t._fila.push({ minuto: Clientela.CHEGA_DE + Math.round((Clientela.CHEGA_ATE - Clientela.CHEGA_DE) * (k + 0.5) / n), cliente: c }));
     t._fila.sort((a, b) => a.minuto - b.minuto);
     return vem;
