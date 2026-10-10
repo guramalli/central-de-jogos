@@ -153,7 +153,7 @@ function desenhaBaloesPalco(ctx, b) {
     desenhaFx(ctx, pronto ? 'balao' : 'balao_pensamento', x, y);
     ctx.save(); ctx.globalAlpha = pronto ? 1 : 0.55; desenhaPe(ctx, iconePrato(m.prato), x, y + 18, 1, 0.8); ctx.restore();
     if (bebe) { desenhaFx(ctx, 'balao', x + 44, y + 14, { escala: 0.62 }); desenhaPe(ctx, 'salao/bebida_' + m.bebida, x + 44, y + 28, 1, 0.5); }
-    const f = clamp(1 - m.espera / TurnoJanta.PACIENCIA_PRATO, 0, 1);
+    const f = clamp(1 - m.espera / (TurnoJanta.PACIENCIA_PRATO * (t.paciencia || 1)), 0, 1);
     if (spr('fx/barra_moldura')) {
       desenhaFx(ctx, 'barra_moldura', x, y + 42);   // a moldura tem o miolo escuro: a cor vai por cima
       ctx.fillStyle = f > 0.5 ? '#5ec43a' : f > 0.25 ? '#e8c22c' : '#e8452c'; ctx.fillRect(x - 26, y + 40, 52 * f, 4);
@@ -254,7 +254,7 @@ function palcoAgir(a) {
   if (a.tipo === 'farinheira') {
     const r = t.reporFarinha();
     if (r === 'ok') { avisar('Farinheira cheia de novo!'); sons.tocar('farinha', 1, 0.05, -4); }
-    else avisar(r === 'cheia' ? `A farinheira ainda tem ${t.farinha}. Repõe quando baixar de ${TurnoJanta.REPOR_ATE + 1}.` : 'Acabou a farinha na despensa! Compre na Mercearia do Seu Ananias.');
+    else avisar(r === 'cheia' ? `A farinheira ainda tem ${t.farinha}. Repõe quando baixar de ${(t.farinhaMax || TurnoJanta.FARINHA_MAX) - (TurnoJanta.FARINHA_MAX - TurnoJanta.REPOR_ATE) + 1}.` : 'Acabou a farinha na despensa! Compre na Mercearia do Seu Ananias.');
     return;
   }
   if (a.tipo === 'bacia') {
@@ -379,7 +379,7 @@ function palcoAdiantar() {
   }
   if (t.mesas.some(m => ['pedido', 'prato'].includes(m.estado))) { avisar('Ainda tem gente esperando.'); return false; }
   const prox = t.proximaChegada();
-  if (prox < 0) { avisar('Não vem mais ninguém hoje.'); return false; }
+  if (prox < 0) { if (t.mesas.some(m => m.estado === 'comendo')) { avisar('Ainda tem gente comendo.'); return false; } G.minutos = TurnoJanta.FECHA; relogio._acum = 0; return true; }
   if (!t.mesas.some(m => m.estado === 'livre')) { avisar('Recolha a louça: tem gente esperando banqueta.'); return false; }
   if (prox <= G.minutos) { avisar('O próximo cliente já está chegando.'); return false; }
   G.minutos = prox; relogio._acum = 0;
@@ -505,7 +505,9 @@ function abrirEquipe() {
     }
     // Anunciar.
     caixa.append(el('div', { class: 'cad-sub' }, p.anuncio ? `Anúncio feito: ${Equipe.ANUNCIOS[p.anuncio].nome}. Os candidatos aparecem amanhã.` : 'Pôr anúncio (os candidatos aparecem amanhã)'));
-    if (!p.anuncio) caixa.append(el('div', { class: 'eq-anuncios' }, Object.entries(Equipe.ANUNCIOS).map(([k, a]) => el('button', { class: 'botao eq-anuncio', onclick: ev => { ev.stopPropagation();
+    const temVaga = ['salao', 'cozinha', 'compras'].some(k => Equipe.vagasLivres(p, k) > 0);
+    if (!p.anuncio && !temVaga) caixa.append(el('div', { class: 'rodape', style: 'text-align:left' }, 'Sem vaga agora: a fama abre mais.'));
+    if (!p.anuncio && temVaga) caixa.append(el('div', { class: 'eq-anuncios' }, Object.entries(Equipe.ANUNCIOS).map(([k, a]) => el('button', { class: 'botao eq-anuncio', onclick: ev => { ev.stopPropagation();
       if (G.dinheiro < a.preco) { avisar(`${a.nome} custa Cr$ ${a.preco}.`); return; }
       G.dinheiro -= a.preco; Equipe.anunciar(p, k); sons.tocar('moedas', 1, 0.05, -6); hudSujo(); desenha(); } },
       spr('ui/' + { cartaz: 'cartaz_padaria', radio: 'radio_anuncio', jornal: 'jornal_anuncio' }[k]) ? el('img', { src: `a/ui/${{ cartaz: 'cartaz_padaria', radio: 'radio_anuncio', jornal: 'jornal_anuncio' }[k]}.webp` }) : null,

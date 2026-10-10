@@ -23,6 +23,7 @@ function abrirCorreio() {
   const id = G.correio.caixa.shift();
   G.correio.lidas.push(id);
   const c = CARTAS[id];
+  if (!c) return abrirCorreio();   // carta de um evento que já passou
   sons.tocar('letra', 1, 0.03, -4);
   abrirPlaca(c.texto, { quem: 'Carta de ' + c.de });
   return true;

@@ -23,14 +23,15 @@ const FESTAS = [
   { nome: 'Jogo do Santos na Rádio', pratos: ['caldo_caranguejo', 'pf_peao', 'sopa_pedra'] },
 ];
 const QUEM_PEDE = ['Dona Zélia', 'Mestre Bira', 'o Zé da masseira', 'Seu Ananias', 'Seu Tonico', 'a Ritinha'];
-const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+const DIAS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
 
 const Eventos = {
   // Planeja os eventos do dia seguinte (chamado de manhã): VIP a cada ~5 dias, festa a cada 7, até 2 pedidos abertos.
   planejar(p, dia, rng) {
     if (p.estado !== 'aberta' && p.estado !== 'pronta') return [];
     p.agenda = p.agenda || [];
-    const novos = [], desde = dia - (p.abreDia > 0 ? p.abreDia : dia), amanha = dia + 1;
+    const novos = [], desde = dia - (p.abreDia > 0 ? p.abreDia : dia);
+    let amanha = dia + 1; if ((amanha - 1) % 7 === 6) amanha++;   // domingo a pensão fecha: fica para segunda
     const marcado = tipo => p.agenda.some(e => e.tipo === tipo && e.dia === amanha);
     if (desde >= 2 && desde % 5 === 2 && !marcado('vip')) {
       const v = VIPS[Math.floor(desde / 5) % VIPS.length], ok = v.gosta.filter(id => p.receitas.includes(id));
@@ -67,6 +68,7 @@ const vipDe = id => VIPS.find(v => v.id === id);
 MANHA.push(() => {
   const p = G.pensao;
   if (!p) return;
+  for (const e of p.agenda || []) if (!e.fim && ((e.tipo === 'pedido' && G.dia > e.ate) || (e.tipo !== 'pedido' && e.dia < G.dia))) e.fim = e.tipo === 'pedido' ? 'venceu' : 'passou';
   const f = mulberry(G.dia * 433), rng = { randf: f, randi: () => Math.floor(f() * 4294967296) };
   for (const e of Eventos.planejar(p, G.dia, rng)) {
     if (e.tipo === 'vip') { const v = vipDe(e.id); CARTAS['vip_' + G.dia] = { de: v.nome, dia: 1e9, texto: v.carta + `\n\n(Ele vai pedir: ${Pratos.PRATOS[e.prato].nome}.)` }; G.correio.caixa.push('vip_' + G.dia); }

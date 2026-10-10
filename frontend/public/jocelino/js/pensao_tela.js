@@ -107,7 +107,7 @@ function pensaoQuadro() {
     const melhorRar = id => { const pr = Pratos.PRATOS[id].principal; if (pr !== 'peixe') return Pratos.raridade(pr); return Math.max(1, ...Pratos.PEIXES.filter(x => p.despensa[x] > 0 && p.aceita(x)).map(Pratos.raridade)); };
     caixa.append(el('div', { class: 'lousa-titulo' }, '~ Pensão da Rosa ~'));
     const esq = el('div', { class: 'lousa-esq' }, el('div', { class: 'giz-am' }, 'Sempre tem'),
-      Object.values(Pratos.BEBIDAS).map(b => el('div', {}, '- ' + b)), el('div', { class: 'giz-mi' }, '(vem com o prato)'),
+      (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => el('div', {}, '- ' + Pratos.BEBIDAS[b])), el('div', { class: 'giz-mi' }, '(vem com o prato)'),
       el('div', { class: 'lousa-fama' }, el('div', { class: 'giz-am' }, p.nomeGrau(p.grau())),
         el('div', {}, `${p.curtidas} curtidas`),
         el('div', {}, `Pratos: ${p.cardapio.length} de ${p.vagas()}`)));
@@ -170,8 +170,9 @@ function encerrarJanta() {
   }
   r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
-  r.despesa = G.pensao.despesa(); G.dinheiro -= r.despesa; G.ganhoHoje -= r.despesa;
-  r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0; G.dinheiro -= r.salarios; G.ganhoHoje -= r.salarios;
+  r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;
+  const custo = Math.min(r.despesa + r.salarios, Math.max(0, G.dinheiro));   // nunca deixa o bolso negativo
+  G.dinheiro -= custo; G.ganhoHoje -= custo;
   if (r.subiu) { G.correio.caixa.push('fama_' + r.subiu); sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão subiu: agora é "${G.pensao.nomeGrau(r.subiu)}"!`); }
   G.relatorioPensao = r;
   G.turno = null;
@@ -190,7 +191,7 @@ ATUALIZADORES.push(dt => {
   t.tick(dt, G.minutos);
   const noSalao = noSalaoDaPensao();
   for (const ev of t.eventos) {
-    if (ev.tipo === 'pronto' && noSalao) { mostrarCenaRosa(ev.prato); sons.tocar('prato_tchan', 1, 0.05, -4); }
+    if (ev.tipo === 'pronto' && noSalao) { if (!noPalco()) mostrarCenaRosa(ev.prato); sons.tocar('prato_tchan', 1, 0.05, -4); }
     else if (ev.tipo === 'pagou' && noSalao) sons.tocar(SONS_LISTA.some(n => n.startsWith('moedas')) ? 'moedas' : 'dinheiro', 1.1, 0.05, -6);
     else if (ev.tipo === 'embora') {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
@@ -271,7 +272,7 @@ function abrirMontar(i) {
   const escolhidos = new Set(); let bebida = '';
   const caixa = el('div', { class: 'painel montar' },
     el('div', { class: 'quem' }, `Bilhete da banqueta ${i + 1} (${m.cliente.nome})`),
-    el('div', { class: 'bilhete' }, el('img', { src: urlItem('prato_' + m.prato) }),
+    el('div', { class: 'bilhete' }, el('img', { src: 'a/' + iconePrato(m.prato) + '.webp' }),
       el('div', {}, el('b', {}, pr.nome + ': '), pr.montar.map(c => Pratos.COMPONENTES[c].toLowerCase()).join(', '), el('br'), 'Para beber: ' + Pratos.BEBIDAS[m.bebida])),
     el('div', { class: 'comps' }, comps.map(c => el('button', { class: 'botao comp', 'data-comp': c, onclick: e => { e.stopPropagation(); escolhidos.has(c) ? escolhidos.delete(c) : escolhidos.add(c); e.currentTarget.classList.toggle('forte'); sons.tocar('pegar', 1.3, 0.1, -8); } }, Pratos.COMPONENTES[c]))),
     el('div', { class: 'bebidas' }, Object.keys(Pratos.BEBIDAS).map(b => el('button', { class: 'botao', 'data-bebida': b, onclick: e => { e.stopPropagation(); bebida = bebida === b ? '' : b; caixa.querySelectorAll('[data-bebida]').forEach(x => x.classList.toggle('forte', x.dataset.bebida === bebida)); sons.tocar('agua', 1.4, 0.1, -10); } }, Pratos.BEBIDAS[b]))),
@@ -281,11 +282,12 @@ function abrirMontar(i) {
 
 // ---------- a cena da Rosa (o show de faca do Bancho): não pausa ----------
 function mostrarCenaRosa(prato) {
+  if (typeof noPalco === 'function' && noPalco()) return;   // no palco a Rosa já cozinha à vista
   let c = $('#cena');
   if (!c) { c = el('div', { id: 'cena', hidden: true }); document.body.append(c); }
   c.innerHTML = '';
   c.append(el('div', { class: 'cena-som' }, sorteio(SONS_ROSA)), el('img', { class: 'cena-rosa', src: 'a/retratos/rosa_cozinha_normal.webp' }),
-    el('img', { class: 'cena-prato', src: urlItem('prato_' + prato) }));
+    el('img', { class: 'cena-prato', src: 'a/' + iconePrato(prato) + '.webp' }));
   c.hidden = false;
   c.classList.remove('entra'); void c.offsetWidth; c.classList.add('entra');
   sons.tocar('agua', 0.6, 0.1, -4);

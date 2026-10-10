@@ -225,3 +225,5 @@ button { font-family: inherit; }
 .mel-item.tem { outline: 2px solid var(--verde); } .mel-item.trancado { opacity: .55; }
 .mel-arte { width: 84px; height: 64px; background: center / contain no-repeat; border-radius: 8px; background-color: rgba(60,30,10,.15); }
 .mel-arte.vazio { display: grid; place-items: center; font-weight: 900; font-size: 26px; color: #6b3f22; }
+
+.placa .texto { white-space: pre-line; }

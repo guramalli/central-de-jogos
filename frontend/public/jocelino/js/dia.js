@@ -22,7 +22,7 @@ function dormir(desmaiou = false) {
   _dormindo = true;
   const linhas = [];
   if (desmaiou) {
-    const perde = Math.min(100, Math.floor(G.dinheiro / 10));
+    const perde = Math.max(0, Math.min(100, Math.floor(G.dinheiro / 10)));
     G.dinheiro -= perde;
     linhas.push(`O Jocelino desmaiou de cansaço às 2h. Acharam ele no meio do caminho e levaram para casa${perde ? `; sumiram Cr$ ${perde} do bolso` : ''}.`);
   }

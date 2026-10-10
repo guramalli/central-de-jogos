@@ -260,7 +260,7 @@ class TurnoJanta {
     const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || m.bebidaServida);
     const est = Pensao.estrelas(m.rapido, m.certo, sabor, bebida, gostaSalada);
     const preco = Math.round(this.pensao.preco(m.prato, m.raridade) * (this.pratoTema && m.prato === this.pratoTema ? 1.5 : 1));
-    const gorj = Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + Math.round(preco * (this.gorjetaExtra || 0) * est / 5);
+    const gorj = Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + (this.gorjetaExtra > 0 ? Math.ceil(preco * this.gorjetaExtra * est / 5) : 0);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.gorjeta += gorj; r.estrelas += est;
     if (est >= 4) r.curtidas++;

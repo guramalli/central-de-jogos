@@ -20,6 +20,7 @@ const Melhorias = {
     if (!m) return 'nao';
     if (p.melhorias.includes(id)) return 'ja_tem';
     if (p.grau() < m.grau) return 'degrau';
+    if (id === 'banqueta_extra' && p.mesasDaNoite() >= TurnoJanta.MAX_MESAS) return 'max';
     if (dinheiro < m.preco) return 'dinheiro';
     p.melhorias.push(id);
     if (m.mesas) p.extraMesas = (p.extraMesas || 0) + m.mesas;
@@ -72,7 +73,7 @@ function abrirMelhorias() {
         tem || tranca ? null : el('button', { class: 'botao forte' + (G.dinheiro >= m.preco ? '' : ' desligado'), onclick: e => { e.stopPropagation();
           const r = Melhorias.comprar(p, id, G.dinheiro);
           if (r === 'ok') { G.dinheiro -= m.preco; sons.tocar('carimbo', 0.9, 0.05, -4); sons.tocar('rosa_animada', 1, 0.05, -6); avisar(`${m.nome}: instalado!`); hudSujo(); desenha(); }
-          else avisar(r === 'dinheiro' ? `Custa Cr$ ${m.preco}.` : 'Ainda não dá.'); } }, 'Comprar')));
+          else avisar(r === 'dinheiro' ? `Custa Cr$ ${m.preco}.` : r === 'max' ? 'O balcão já está com todas as banquetas que cabem.' : 'Ainda não dá.'); } }, 'Comprar')));
     }
     caixa.append(g, el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };

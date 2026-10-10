@@ -64,8 +64,10 @@ function avisar(texto) {
 function teclaNoModal(e) {
   if ($('#modal').hidden) return false;
   // Enter/Espaço acionam o botão principal: "Pronto!" no montar, a opção destacada numa pergunta, o botão forte de um painel.
+  if (e.repeat) return true;   // segurar a tecla não repete nada dentro de uma janela
+  // Enter/Espaço acionam só o "Pronto!" ou a opção destacada de uma pergunta; numa tela de compra/treino, fecham.
   if (['Space', 'Enter'].includes(e.code)) {
-    const b = $('#modal .pronto') || $('#modal .opcoes .forte') || (!$('#modal .placa') && $('#modal .botao.forte'));
+    const b = $('#modal .pronto') || $('#modal .opcoes .forte');
     if (b) { b.click(); return true; }
   }
   if (['Escape', 'KeyE', 'Space', 'Enter', 'KeyX'].includes(e.code)) {

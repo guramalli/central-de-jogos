@@ -9,14 +9,14 @@ const Equipe = {
     jornal: { nome: 'Classificado no jornal', preco: 400, base: 45, variacao: 25 } },
   // Gente da Vila e de fora que procura trabalho (as folhas de andar e os retratos já existem).
   PESSOAS: [['neide', 'Neide'], ['lurdes', 'Dona Lurdes'], ['nena', 'Nena'], ['rosinete', 'Rosinete'], ['tonha', 'Tonha'], ['dona_cida', 'Dona Cida'],
-    ['aurelio', 'Aurélio'], ['calixto', 'Calixto'], ['orlando', 'Orlando'], ['paulo', 'Paulo'], ['santos', 'Santos']],
+    ['paulo', 'Paulo'], ['nenem', 'Neném']],
   // Vagas por degrau da fama: [salão, cozinha, compras].
   VAGAS: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [2, 1, 0], [2, 1, 1], [2, 1, 1]],
   POSTOS: { salao: 'Salão', cozinha: 'Cozinha', compras: 'Compras' },
   // Habilidades (nível 3 e 7), por posto.
   HABILIDADES: {
-    salao: [['bebida', 'Serve a bebida sozinho(a)'], ['louca', 'Recolhe a louça sozinho(a)'], ['farinha', 'Repõe a farinheira'], ['charme', 'Gorjeta caprichada']],
-    cozinha: [['fogo', 'Uma boca a mais no fogão'], ['tempero', 'Prato sai com mais sabor']],
+    salao: [['louca', 'Recolhe a louça sozinho(a)'], ['bebida', 'Serve a bebida sozinho(a)'], ['farinha', 'Repõe a farinheira'], ['charme', 'Gorjeta caprichada']],
+    cozinha: [['fogo', 'Uma boca a mais no fogão'], ['pressa', 'A Rosa cozinha ainda mais rápido']],
     compras: [['feira', 'Traz o dobro da feira'], ['raro', 'Traz ingrediente mais raro']],
   },
   SALARIO_BASE: 4,
@@ -46,6 +46,7 @@ const Equipe = {
     if (Equipe.vagasLivres(p, posto) <= 0) return 'sem_vaga';
     p.candidatos.splice(i, 1);
     p.equipe.push(Object.assign(c, { posto }));
+    if (posto === 'salao' && !c.habilidades.includes('louca')) c.habilidades.push('louca');   // começa recolhendo a louça
     return 'ok';
   },
   demitir(p, i) { p.equipe.splice(i, 1); },
@@ -67,7 +68,7 @@ const Equipe = {
   salarios(p) { return p.equipe.reduce((n, e) => n + Equipe.salario(e), 0); },
   tem(p, hab, posto) { return p.equipe.some(e => (!posto || e.posto === posto) && e.habilidades.includes(hab)); },
   // Efeitos na janta.
-  preparo(p) { const c = p.equipe.filter(e => e.posto === 'cozinha'); return c.length ? Math.max(0.55, 1 - c.reduce((n, e) => n + e.cozinha, 0) / 200) : 1; },
+  preparo(p) { const c = p.equipe.filter(e => e.posto === 'cozinha'); return c.length ? Math.max(0.5, 1 - c.reduce((n, e) => n + e.cozinha, 0) / 200 - (Equipe.tem(p, 'pressa', 'cozinha') ? 0.1 : 0)) : 1; },
   bocasExtra(p) { return Equipe.tem(p, 'fogo', 'cozinha') ? 1 : 0; },
   gorjetaExtra(p) { const s = p.equipe.filter(e => e.posto === 'salao').reduce((n, e) => n + e.simpatia, 0); return Math.min(0.5, s / 300) + (Equipe.tem(p, 'charme') ? 0.15 : 0); },
   // A ida à feira de manhã (posto de compras): ingredientes da fase da pensão, mais com Compras alto.
