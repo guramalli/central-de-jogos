@@ -385,7 +385,7 @@ function interativoSob(px, py) {
     const w = img ? img.naturalWidth : TILE, h = img ? img.naturalHeight : TILE;
     const dentro = px > o.x - w / 2 && px < o.x + w / 2 && py > o.y - Math.max(h, o.alvoAlto || 0) && py < o.y + 4;
     const noTile = o.tiles.some(t => Math.floor(px / TILE) === t.x && Math.floor(py / TILE) === t.y);
-    if (!dentro && !noTile) continue;
+    if (o.id === 'planta' ? !noTile : !dentro && !noTile) continue;   // a planta alta não rouba o clique da cova de cima
     const dist = Math.hypot(o.x - px, o.y - py);
     if (dist < d) { d = dist; melhor = o; }
   }

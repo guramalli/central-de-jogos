@@ -10,7 +10,10 @@ function podeColocar(b, x, y) {
   if (b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA) return 'Na trilha não: o caminho até a Vila fica livre.';
   if (b.ocupado.has(chaveT(x, y))) return 'Já tem coisa aí.';
   const c = Horta.cova(x, y); if (c && c.planta) return 'Tem planta aí.';
-  const p = G.jog.ladrilho(); if (p.x === x && p.y === y) return 'O Jocelino está em cima.';
+  // A caixa sólida do objeto (ladrilho inteiro de largura) não pode encostar no pé do Jocelino nem de um morador: prenderia.
+  const cx = b._caixa((x + 0.5) * TILE, (y + 1) * TILE, 48, 30), sobre = (a, d) => a.x < d.x + d.w && a.x + a.w > d.x && a.y < d.y + d.h && a.y + a.h > d.y;
+  if (sobre(cx, G.jog.caixa())) return 'O Jocelino está em cima.';
+  if (b.moradores.some(m => m.visivel !== false && sobre(cx, { x: m.x - 14, y: m.y - 14, w: 28, h: 14 }))) return 'Tem gente aí.';
   return '';
 }
 // A cerca do Stardew: um mourão por ladrilho; duas ripas ligam o mourão ao da direita e uma ripa (vista de cima) ao de

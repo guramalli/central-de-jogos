@@ -96,6 +96,7 @@ function colherPlanta(o) {
 }
 function ferramentaNaPlanta(o, id) {
   if (id === 'regador') { regarCova(o.covaX, o.covaY); return; }
+  if (id === 'foice' && Horta.madura(Horta.cova(o.covaX, o.covaY))) { colherPlanta(o); return; }   // a foice do Stardew colhe a madura
   if (id === 'foice') { const p = Horta.arrancar(o.covaX, o.covaY); if (p) { sons.tocar('foice', 1, 0.08, -4); lascas(o.x, o.y - 20, 'mato'); sincronizaHorta(G.mapa); } }
 }
 AO_MONTAR.push(b => { if (b.id === 'quintal') { b.desenhaChao = desenhaCovas; sincronizaHorta(b); } });
