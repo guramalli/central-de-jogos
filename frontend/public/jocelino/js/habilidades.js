@@ -73,14 +73,21 @@ COLETORES.push(s => { s.hab = { xp: Object.assign({}, G.hab.xp), vantagens: G.ha
 NOITE.push(linhas => { for (const [h, n] of G.hab.subiuHoje) linhas.push(`${NOMES_HAB[h]} subiu para o nível ${n}.`); G.hab.subiuHoje = []; });
 
 // Depois do resumo da noite (dormindo ou desmaiado): as vantagens pendentes, uma por vez.
+// A escolha é para sempre: janela própria, sem opção destacada (Espaço/Enter não escolhem), os botões só respondem
+// depois de meio segundo (o clique que fechou o resumo não cai neles) e fechar sem escolher deixa a vantagem pendente
+// (ela volta na próxima noite).
 function escolherVantagens() {
   const o = Habilidades.opcoes()[0];
   if (!o) return;
-  perguntar(`Nível ${o.nivel} de ${NOMES_HAB[o.h]}! Escolha uma vantagem:`, o.ids.map(id => `${VANTAGENS[id][0]}: ${VANTAGENS[id][1]}`), i => {
-    Habilidades.escolher(o.h, o.nivel, o.ids[i]);
-    avisar(`Vantagem nova: ${VANTAGENS[o.ids[i]][0]}.`);
-    setTimeout(escolherVantagens, 50);
-  });
+  const t0 = performance.now();
+  const caixa = el('div', { class: 'painel vantagem' },
+    el('div', { class: 'titulo', style: 'font-size:26px' }, `Nível ${o.nivel} de ${NOMES_HAB[o.h]}!`),
+    el('div', { class: 'rodape', style: 'text-align:left;margin-bottom:10px' }, 'Escolha uma vantagem (é para sempre). Se fechar sem escolher, ela espera a próxima noite.'),
+    ...o.ids.map(id => el('button', { class: 'botao vantagem-op', onclick: e => { e.stopPropagation();
+      if (performance.now() - t0 < 500) return;
+      Habilidades.escolher(o.h, o.nivel, id); avisar(`Vantagem nova: ${VANTAGENS[id][0]}.`); sons.tocar('fanfarra', 1.1, 0, -6);
+      fecharModal(); setTimeout(escolherVantagens, 50); } }, el('b', {}, VANTAGENS[id][0]), el('div', {}, VANTAGENS[id][1]))));
+  abrirModal(caixa);
 }
 
 // ---------- a tela das habilidades (H) ----------
