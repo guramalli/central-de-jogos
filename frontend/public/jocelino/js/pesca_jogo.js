@@ -11,6 +11,7 @@ COLETORES.push(s => { s.pesca = JSON.parse(JSON.stringify(G.pesca)); });
 const dentroMapa = (b, x, y) => x >= 0 && y >= 0 && x < b.larg && y < b.alt;
 function naPonte(b, x, y) {
   if (b.id === 'praia' && typeof PRAIA !== 'undefined') return x >= PRAIA.PIER_X && x < PRAIA.PIER_X + 2 && y >= PRAIA.MAR_Y && y <= PRAIA.PIER_FIM;
+  if (b.id === 'alto_mar' && typeof ALTO !== 'undefined') { const C = ALTO.CONVES; return x >= C.x && x < C.x + C.w && y >= C.y && y < C.y + C.h; }
   if (b.id === 'mata' && typeof MATA !== 'undefined') return x >= MATA.PONTE_X && x < MATA.PONTE_X + 2 && y >= MATA.RIO_Y && y < MATA.RIO_Y + MATA.RIO_ALTURA;
   return false;
 }
