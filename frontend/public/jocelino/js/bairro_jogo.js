@@ -10,8 +10,8 @@ MAPAS_DEF.bairro = () => {
   const b = new Construtor('bairro', BAIRRO.LARG, BAIRRO.ALT, 1978);
   b.livre = { x: 1, y: 1, w: BAIRRO.LARG - 2, h: BAIRRO.ALT - 2 }; b.inicio = { x: 2, y: 10 };
   // A rua em L (linhas 9–10 e coluna 48–49) ainda é só mato baixo: a Prefeitura abre a rua de terra e depois as calçadas.
-  const naRua = (x, y) => (y >= 9 && y <= 10 && x < 50) || (x >= 48 && x <= 49 && y >= 9);
-  b.saida(1, 9, 1, 2, 'vila', 44, 6);
+  const naRua = (x, y) => RUAS_BAIRRO.linhas.some(l => y >= l - 1 && y <= l + 2 && x <= 50) || (x >= 47 && x <= 50 && y >= 8 && y <= 33);
+  b.saida(1, 9, 1, 2, 'vila', 44, 14);
   for (let x = 0; x < b.larg; x += 2) { b.enfeite('objetos/arvore_mata', x, 0, false); b.enfeite('objetos/arvore_mata', x, b.alt - 1, false); }
   for (let y = 2; y < b.alt - 1; y += 2) { if (y < 8 || y > 11) b.enfeite('objetos/arvore_mata', 0, y, false); b.enfeite('objetos/arvore_mata', b.larg - 1, y, false); }
   // O loteamento ainda no mato: mato e pedra espalhados (fora da rua; nos terrenos, somem quando o dono chega).
@@ -34,7 +34,7 @@ function poeBairro(b) {
   for (const t in TERRENOS) {
     const T = TERRENOS[t], w = T.tipo === 'casa' ? 5 : 6, dono = T.tipo === 'casa' ? Bairro.donoDe(t) : null;
     // Com dono (ou obra), o terreno fica limpo.
-    if (dono) for (let y = T.y; y < T.y + 7; y++) for (let x = T.x; x < T.x + w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+    if (dono) for (let y = T.y; y < T.y + 6; y++) for (let x = T.x; x < T.x + w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
     const marca = (o, extra) => Object.assign(o, { doBairro: true }, extra || {});
     if (T.tipo === 'casa') {
       const arte = arteDaCasa(t);
@@ -44,26 +44,26 @@ function poeBairro(b) {
       const x = G.bairro.terrenos[t];
       // Varanda (fase 5): o piso na frente da porta (textura recortada); fase 6: a calçada na frente da porta e o muro do lado
       // direito (o muro nunca tampa a porta, que fica no meio da casa).
-      const piso = (id, tx, ty, w2, tex) => { const o = marca(b.interativo(id, 'objetos/alicerce', tx, ty, w2, 1, null, false)); o.y = ty * TILE; o.desenha = ctx => { const img = spr(tex); if (img) ctx.drawImage(img, 0, 0, w2 * TILE, TILE, tx * TILE, ty * TILE, w2 * TILE, TILE); }; return o; };
+      const piso = (id, tx, ty, w2, tex) => { const o = marca(b.interativo(id, 'objetos/alicerce', tx, ty, w2, 1, null, false)); o.y = ty * TILE; o.desenha = ctx => desenhaPiso(ctx, tex, tx, ty, w2, 1); return o; };
       if (x.fase >= 5) piso('varanda_' + t, T.x, T.y + 5, 3, TIPOS_CASA[DONOS.find(d => d.terreno === t).casa].varanda.ladrilho ? 'texturas/piso_ladrilho' : 'texturas/piso_cimento');
-      if (x.fase >= 6) { marca(b.interativo('muro_' + t, 'objetos/muro', T.x + 3, T.y + 6, 3, 1)); piso('calcada_' + t, T.x, T.y + 6, 3, 'texturas/calcada'); }
-      if (x.mudou && Bairro.caprichada(t)) marca(b.interativo('placa_jocelino_' + t, 'objetos/placa_jocelino', T.x + 4, T.y + 5, 1, 1, null, false), { acao: () => { abrirPlaca('"Construída por Jocelino" — casa caprichada do começo ao fim.'); return true; } });
+      if (x.fase >= 6) marca(b.interativo('muro_' + t, 'objetos/muro', T.x + 3, T.y + 5, 3, 1));   // o muro no recuo, ao lado da varanda (nunca na frente da porta)
+      if (x.mudou && Bairro.caprichada(t)) marca(b.interativo('placa_jocelino_' + t, 'objetos/placa_jocelino', T.x + 5, T.y + 4, 1, 1, null, false), { acao: () => { abrirPlaca('"Construída por Jocelino" — casa caprichada do começo ao fim.'); return true; } });
     }
     if (T.tipo === 'comercio') {
       const c = G.bairro.comercios[t], K = COMERCIOS[t];
-      if (c.fase >= 1) { for (let y = T.y; y < T.y + 7; y++) for (let x2 = T.x; x2 < T.x + 6; x2++) { const o = b.ocupado.get(chaveT(x2, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+      if (c.fase >= 1) { for (let y = T.y; y < T.y + 6; y++) for (let x2 = T.x; x2 < T.x + 6; x2++) { const o = b.ocupado.get(chaveT(x2, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
         marca(b.interativo('predio_' + t, c.fase >= 4 ? K.arte : 'objetos/predio_obra_' + Math.min(3, c.fase), T.x, T.y + 4, 6, 3, [90, 62]), { acao: () => abrirComercio(t) }); }
       else marca(b.interativo('placa_' + t, 'objetos/placa_terreno', T.x + 2, T.y + 3, 1, 1, [10, 6]), { acao: () => { abrirPlaca(Bairro.casasProntas() >= K.libera ? `Terreno da ${K.nome}: o pedido está no quadro de Serviços.` : `Terreno reservado: a ${K.nome}. (Vem com ${K.libera} casa${K.libera > 1 ? 's' : ''} pronta${K.libera > 1 ? 's' : ''} no bairro.)`); return true; } });
-      if (c.fase >= 5) { const o = marca(b.interativo('calcada_' + t, 'objetos/alicerce', T.x + 1, T.y + 6, 4, 1, null, false)); o.y = (T.y + 6) * TILE; o.desenha = ctx => { const img = spr('texturas/calcada'); if (img) ctx.drawImage(img, 0, 0, 4 * TILE, TILE, (T.x + 1) * TILE, (T.y + 6) * TILE, 4 * TILE, TILE); }; }
+      if (c.fase >= 5) { const o = marca(b.interativo('entrada_' + t, 'objetos/alicerce', T.x + 1, T.y + 5, 4, 1, null, false)); o.y = (T.y + 5) * TILE; o.desenha = ctx => { const img = spr('texturas/calcada'); if (img) ctx.drawImage(img, 0, 0, 4 * TILE, TILE, (T.x + 1) * TILE, (T.y + 5) * TILE, 4 * TILE, TILE); }; }
       // O dono no balcão (a frente do prédio) no horário.
       let m = b.moradores.find(p => p.id === 'balcao_' + t);
       if (Bairro.comercioPronto(t) && !m) { m = b.morador('balcao_' + t, CLIENTE_NOME[K.dono], T.x + 3, T.y + 5, DIR.BAIXO); m.pele = K.dono; m.aoConversar = () => abrirComercio(t); }
     }
     if (T.tipo === 'publico') {
       const n = Bairro.publico(t), P = PUBLICOS[t];
-      if (n >= 1) { for (let y = T.y; y < T.y + 7; y++) for (let x2 = T.x; x2 < T.x + 6; x2++) { const o = b.ocupado.get(chaveT(x2, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+      if (n >= 1) { for (let y = T.y; y < T.y + 6; y++) for (let x2 = T.x; x2 < T.x + 6; x2++) { const o = b.ocupado.get(chaveT(x2, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
         marca(b.interativo('predio_' + t, n >= 2 ? P.arte : 'objetos/predio_obra_2', T.x, T.y + 4, 6, 3, [90, 62]), { acao: () => { abrirPlaca(n >= 2 ? `${P.nome} do Bairro Novo.` : `${P.nome}: falta o acabamento (pedido da Prefeitura).`); return true; } });
-        if (t === 'praca' && n >= 2) for (const [bx, by] of [[T.x, T.y + 6], [T.x + 4, T.y + 6]]) marca(b.enfeite('objetos/banco_praca', bx, by, true, 20, 8)); }
+        if (t === 'praca' && n >= 2) for (const [bx, by] of [[T.x, T.y + 5], [T.x + 4, T.y + 5]]) marca(b.enfeite('objetos/banco_praca', bx, by, true, 20, 8)); }
       else for (const [ex, ey] of [[T.x, T.y + 1], [T.x + 5, T.y + 1], [T.x, T.y + 4], [T.x + 5, T.y + 4]]) marca(b.enfeite('objetos/estaca_terreno', ex, ey, false));
     }
   }
@@ -71,8 +71,8 @@ function poeBairro(b) {
   for (const d of DONOS.slice(0, G.bairro.chegados)) {
     const T = TERRENOS[d.terreno], x = G.bairro.terrenos[d.terreno], id = 'dono_' + d.id;
     let m = b.moradores.find(p => p.id === id);
-    if (!m) { m = b.morador(id, d.nome, T.x + 2, T.y + 8, DIR.BAIXO); m.pele = d.id; m.aoConversar = () => conversarDono(d); }
-    m.mora = x.mudou; m.vagueia = x.mudou; m.area = x.mudou ? { x: T.x * TILE, y: (T.y + 7) * TILE + 30, w: 5 * TILE, h: TILE } : null;
+    if (!m) { m = b.morador(id, d.nome, T.x + 2, T.y + 6, DIR.BAIXO); m.pele = d.id; m.aoConversar = () => conversarDono(d); }
+    m.mora = x.mudou; m.vagueia = x.mudou; m.area = x.mudou ? { x: T.x * TILE, y: (T.y + 6) * TILE + 30, w: 5 * TILE, h: TILE } : null;
   }
 }
 // De dia na rua; de noite em casa (some); o dono que ainda não se mudou só aparece das 8h às 17h.
@@ -94,14 +94,21 @@ MANHA.push(() => { if (MAPAS.bairro) poeBairro(MAPAS.bairro); });
 LUZES['objetos/poste'] = [[24, 22, 70]];
 function aplicarRuas(b) {
   if (!b || b.id !== 'bairro') return;
-  const n = Bairro.ruas();
-  if (n >= 1) { b.pinta(1, 9, 49, 2, CH.CAMINHO); b.pinta(48, 9, 2, 25, CH.CAMINHO); }   // a rua aberta: terra batida
-  if (n >= 2) { b.pinta(1, 8, 47, 1, CH.CALCADA); b.pinta(1, 11, 47, 1, CH.CALCADA); }
-  // A rua e a calçada prontas ficam limpas (sem mato nem pedra em cima).
-  if (n >= 1) for (let x = 1; x < 50; x++) for (const y of n >= 2 ? [8, 9, 10, 11] : [9, 10]) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+  const n = Bairro.ruas(), R = RUAS_BAIRRO;
+  if (n >= 1) {
+    for (const l of R.linhas) { b.pinta(1, l - 1, 50, 1, CH.CALCADA); b.pinta(1, l + 2, 50, 1, CH.CALCADA); }
+    b.pinta(R.coluna - 1, R.linhas[0] - 1, 1, R.linhas[2] + 3 - (R.linhas[0] - 1), CH.CALCADA); b.pinta(R.fim + 1, R.linhas[0] - 1, 1, R.linhas[2] + 3 - (R.linhas[0] - 1), CH.CALCADA);
+    for (const l of R.linhas) b.pinta(1, l, R.fim, 2, CH.CAMINHO);
+    b.pinta(R.coluna, R.linhas[0], 2, R.linhas[2] + 2 - R.linhas[0], CH.CAMINHO);
+    // A rua e a calçada prontas ficam limpas (sem mato nem pedra em cima).
+    for (let y = R.linhas[0] - 1; y <= R.linhas[2] + 2; y++) for (let x = 1; x <= R.fim + 1; x++) { const c = b.chaoEm(x, y); if (c !== CH.CAMINHO && c !== CH.CALCADA) continue; const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+  }
   b.chaoCanvas = null;   // o chão é remontado com as texturas novas
-  for (const o of b.objs.filter(o => o.id === 'poste')) b.tirar(o);
-  if (n >= 3) for (let x = 8; x < 48; x += 7) { const o = b.interativo('poste', 'objetos/poste', x, 8, 1, 1, [8, 6]); o.acao = () => { abrirPlaca('Poste de luz do Bairro Novo.'); return true; }; }
+  for (const o of b.objs.filter(o => o.id === 'poste' || o.id === 'muda')) b.tirar(o);
+  // Mudas e postes na calçada de cima de cada rua, nos vãos entre os terrenos (nunca na frente de uma porta).
+  const vaos = [10, 17, 24, 31, 40];
+  if (n >= 2) for (const l of R.linhas) for (const x of vaos) { const o = b.interativo('muda', 'objetos/muda_arvore', x - 1, l + 2, 1, 1, null, false); o.acao = () => { abrirPlaca('Uma muda de árvore da Prefeitura. Daqui a uns anos vai dar sombra.'); return true; }; }
+  if (n >= 3) for (const l of R.linhas) for (const x of vaos) { const o = b.interativo('poste', 'objetos/poste', x, l - 1, 1, 1, [8, 6]); o.acao = () => { abrirPlaca('Poste de luz do Bairro Novo.'); return true; }; }
 }
 
 // A lojinha (o modelo da carroça do mascate): o que o comércio vende, com o preço; fora do horário, a placa.
@@ -129,7 +136,7 @@ ATUALIZADORES.push(() => {
   if (G.mapaId !== 'bairro' || !G.bairro) return;
   for (const t in COMERCIOS) { const m = G.mapa.moradores.find(p => p.id === 'balcao_' + t); if (m) m.visivel = Bairro.aberto(t); }
   const sextaNoBar = (G.dia - 1) % 7 === 4 && G.minutos >= 19 * 60 && G.minutos < 23 * 60 && Bairro.aberto('bar'), T = TERRENOS.bar;
-  for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) { if (sextaNoBar) { m.area = { x: T.x * TILE, y: (T.y + 7) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true; } else if (m._areaCasa) m.area = m._areaCasa; if (!m._areaCasa && m.area && !sextaNoBar) m._areaCasa = m.area; }
+  for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) { if (sextaNoBar) { m.area = { x: T.x * TILE, y: (T.y + 6) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true; } else if (m._areaCasa) m.area = m._areaCasa; if (!m._areaCasa && m.area && !sextaNoBar) m._areaCasa = m.area; }
 });
 
 // Com a escola pronta: segunda a sexta, das 8h ao meio-dia, a Ritinha e o Zezinho estão na escola (somem do quintal e
@@ -142,7 +149,7 @@ ATUALIZADORES.push(() => {
     const T = TERRENOS.escola;
     for (const [id, nome, dx] of [['zezinho', 'Zezinho', 1], ['ritinha', 'Ritinha', 4]]) {
       let m = G.mapa.moradores.find(p => p.id === 'escola_' + id);
-      if (!m && Bairro.publico('escola') >= 2) { m = G.mapa.morador('escola_' + id, nome, T.x + dx, T.y + 6, DIR.BAIXO); m.pele = id; m.aoConversar = () => { abrirConversa(nome, urlArte('retratos/' + id + '_normal'), ['Pai! A professora deixou a gente brincar no recreio!']); return true; }; }
+      if (!m && Bairro.publico('escola') >= 2) { m = G.mapa.morador('escola_' + id, nome, T.x + dx, T.y + 5, DIR.BAIXO); m.pele = id; m.aoConversar = () => { abrirConversa(nome, urlArte('retratos/' + id + '_normal'), ['Pai! A professora deixou a gente brincar no recreio!']); return true; }; }
       if (m) m.visivel = naEscola();
     }
   }
@@ -157,12 +164,12 @@ ATUALIZADORES.push(() => {
   const T = TERRENOS.capela;
   let k = 0;
   for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) {
-    m.area = { x: T.x * TILE, y: (T.y + 7) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true;
-    if (Math.abs(m.y - (T.y + 7) * TILE) > 2 * TILE) { m.x = (T.x + 0.5 + (k % 6)) * TILE; m.y = (T.y + 7) * TILE + 42; }   // já na porta da capela
+    m.area = { x: T.x * TILE, y: (T.y + 6) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true;
+    if (Math.abs(m.y - (T.y + 6) * TILE) > 2 * TILE) { m.x = (T.x + 0.5 + (k % 6)) * TILE; m.y = (T.y + 6) * TILE + 42; }   // já na porta da capela
     k++;
   }
   if (G.bairro.missa === G.dia || !G.jog) return;
-  const perto = Math.abs(G.jog.x / TILE - (T.x + 3)) < 5 && Math.abs(G.jog.y / TILE - (T.y + 7)) < 3;
+  const perto = Math.abs(G.jog.x / TILE - (T.x + 3)) < 5 && Math.abs(G.jog.y / TILE - (T.y + 6)) < 3;
   if (!perto) return;
   G.bairro.missa = G.dia;
   const ids = DONOS.filter(d => G.bairro.terrenos[d.terreno].mudou).map(d => d.id);

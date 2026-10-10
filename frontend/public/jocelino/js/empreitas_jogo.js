@@ -14,6 +14,17 @@ function lugarLivre(b, x, y) {
 const LIMPEZA = { limpar_trilha: 'mato', desentulhar_ananias: 'entulho' };
 const TEXTO_RESULTADO = { material: 'Falta material: ', ferramenta: 'Isso pede ', feito_hoje: 'Por hoje chega: amanhã continua.' };
 
+// O piso pronto: a textura (arte pronta) recortada na área, na escala de verdade. O ladrilho hidráulico: peças de
+// meio metro (a arte de 384 px tem 2×2 peças: cada peça vira 24 px), repetido; o cimento e a calçada,
+// recortados como antes.
+function desenhaPiso(ctx, tex, x, y, w, h) {
+  const img = spr(tex); if (!img) return;
+  if (tex !== 'texturas/piso_ladrilho') { ctx.drawImage(img, 0, 0, w * TILE, h * TILE, x * TILE, y * TILE, w * TILE, h * TILE); return; }
+  const lado = TILE;   // um ladrilho do mapa = a arte inteira (2×2 peças de uns 50 cm)
+  ctx.save(); ctx.beginPath(); ctx.rect(x * TILE, y * TILE, w * TILE, h * TILE); ctx.clip();
+  for (let py = y * TILE; py < (y + h) * TILE; py += lado) for (let px = x * TILE; px < (x + w) * TILE; px += lado) ctx.drawImage(img, px, py, lado, lado);
+  ctx.restore();
+}
 // O terreno do lote fica limpo (o cliente tirou o mato e o toco do lugar da obra).
 function limparLote(b, E) { for (const t of tilesDoLote(E)) { const o = b.ocupado.get(chaveT(t.x, t.y)); if (o && o.tipo === 'detrito') b.tirar(o); } }
 // A capina: o mato nasce no terreno do Ananias no aceite e a cada 3 dias (6 matos, completando os que ficaram).
@@ -45,7 +56,7 @@ function poeEmpreitasNoMapa(b) {
     const arte = E.artes[E.artes.length - 1], q = G.empreitas.feitas[id], h = E.area ? E.area.h : 1;
     const o = b.interativo('feita_' + id, ARTE_LISTA.includes(arte) ? arte : 'objetos/alicerce', E.x, E.y + h - 1, larguraLote(E), h, null, !E.piso);
     // O piso pronto: a textura de piso recortada na área (por baixo de quem pisa).
-    if (E.area) { o.y = E.y * TILE; o.desenha = ctx => { const img = spr(E.area.textura); if (img) ctx.drawImage(img, 0, 0, E.area.w * TILE, E.area.h * TILE, E.x * TILE, E.y * TILE, E.area.w * TILE, E.area.h * TILE); }; }
+    if (E.area) { o.y = E.y * TILE; o.desenha = ctx => desenhaPiso(ctx, E.area.textura, E.x, E.y, E.area.w, E.area.h); }
     o.feita = id; o.acao = () => { abrirPlaca(`${E.nome}, para ${CLIENTE_NOME[E.cliente] || ''}: obra do Jocelino${q > 1 ? ' (' + ({ 1.25: 'bom', 1.5: 'caprichado', 2: 'impecável' }[q] || '') + ')' : ''}.`); return true; };
   }
   for (const id in G.empreitas.aceitas) {

@@ -9,7 +9,7 @@ MAPAS_DEF.praia = () => {
   b.fundo = 'texturas/areia';
   b.livre = { x: 2, y: 2, w: 36, h: 21 };          // a areia (y 2..15) e o píer (até y 22)
   b.inicio = { x: 22, y: 3 };
-  b.saida(22, 2, 2, 1, 'vila', 23, 22);
+  b.saida(22, 2, 2, 1, 'vila', 23, 26);
   // O mar, recortado no píer (andável por cima das tábuas).
   const { MAR_Y, PIER_X, PIER_FIM } = PRAIA;
   b.agua(0, MAR_Y, PIER_X, b.alt - MAR_Y, CH.MAR);

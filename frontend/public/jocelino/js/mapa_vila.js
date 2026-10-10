@@ -3,23 +3,25 @@
 // Pensão da Rosa (a casa da Dona Cotinha, entre o depósito e a ferraria) e as saídas.
 
 MAPAS_DEF.vila = () => {
-  const b = new Construtor('vila', 48, 26, 1976);
-  b.livre = { x: 2, y: 2, w: 44, h: 22 };
+  const b = new Construtor('vila', 48, 30, 1976);
+  b.livre = { x: 2, y: 2, w: 44, h: 26 };
   b.inicio = { x: 23, y: 3 };
   b.saida(23, 2, 2, 1, 'quintal', 20, 26);
-  b.saida(23, 23, 2, 1, 'praia', 22, 3);         // sul: o caminho que já vinha pintado até a borda de baixo
+  b.saida(23, 27, 2, 1, 'praia', 22, 3);         // sul: a rua do meio desce até a borda de baixo
   b.saida(2, 12, 1, 3, 'mata', 39, 13);          // oeste: a borda sem árvore
   b.saida(45, 12, 1, 2, 'pedreira', 4, 7);       // leste: a estrada da pedreira
-  b.saida(45, 6, 1, 2, 'bairro', 2, 10);         // leste, ao norte da estrada da pedreira: a rua nova do Bairro Novo
-  b.pinta(2, 12, 2, 3); b.pinta(44, 12, 2, 2); b.pinta(44, 6, 2, 2);
-  b.pinta(23, 0, 2, 10);      // o caminho do quintal vem da borda de cima, sem mato no meio
+  b.saida(45, 14, 1, 1, 'bairro', 2, 10);        // leste, a pista de baixo da rua principal: a rua do Bairro Novo
+  b.pinta(2, 12, 2, 3); b.pinta(44, 12, 2, 3);
+  // O padrão da cidade: toda rua com calçada dos dois lados; todo prédio de frente para uma calçada, com 1 ladrilho de recuo.
+  b.pinta(23, 0, 2, 10); b.pinta(22, 2, 1, 8, CH.CALCADA); b.pinta(25, 2, 1, 8, CH.CALCADA);   // a rua do quintal (de cima)
   b.pinta(2, 10, 44, 2, CH.CALCADA); b.pinta(2, 12, 44, 3); b.pinta(2, 15, 44, 1, CH.CALCADA);
-  b.pinta(23, 16, 2, 8);
+  b.pinta(23, 16, 2, 14); b.pinta(22, 16, 1, 8, CH.CALCADA); b.pinta(25, 16, 1, 8, CH.CALCADA);   // a rua do meio, até a praia
+  b.pinta(2, 24, 44, 1, CH.CALCADA); b.pinta(2, 25, 44, 2); b.pinta(2, 27, 44, 1, CH.CALCADA); b.pinta(23, 25, 2, 5);   // a rua de baixo
   for (let x = 0; x <= b.larg; x += 2) {
     if (x < 22 || x > 25) b.enfeite('objetos/arvore', x, 1, false);
     if (x < 21 || x > 25) { b.enfeite('objetos/arvore', x, b.alt - 1, false); b.enfeite('objetos/arbusto_' + (1 + x % 3), x + 1, b.alt - 2, false); }
   }
-  for (let y = 2; y < b.alt - 1; y += 2) { if (y < 11 || y > 15) b.enfeite('objetos/arvore', 0, y, false); b.enfeite('objetos/arvore', b.larg - 1, y, false); }
+  for (let y = 2; y < b.alt - 1; y += 2) { if (y < 11 || y > 15) b.enfeite('objetos/arvore', 0, y, false); if (y < 11 || y > 15) b.enfeite('objetos/arvore', b.larg - 1, y, false); }
   // Depósito do Seu Ananias.
   const dep = b.interativo('deposito', 'objetos/deposito', 4, 8, 6, 5);
   dep.acao = () => (typeof entrarDeposito === 'function' ? entrarDeposito() : abrirPlaca('O depósito do Seu Ananias.'));
@@ -51,23 +53,23 @@ MAPAS_DEF.vila = () => {
   };
   b.morador('zelia', 'Dona Zélia', 38, 11, DIR.CIMA, { vagueia: true, area: { x: 30 * TILE, y: 10 * TILE + 42, w: 14 * TILE, h: 1 * TILE } });   // pela calçada
   b.interativo('orelhao', 'objetos/orelhao', 19, 9, 1, 1, [8, 6]).acao = () => (typeof abrirOrelhao === 'function' ? abrirOrelhao() : abrirPlaca('O orelhão da Vila.'));
-  b.enfeite('objetos/fusca', 44, 21, true, 44);   // estacionado no canto de baixo (a estrada da pedreira passa em y 12–13)
-  b.interativo('mercado', 'objetos/mercado_0', 36, 21, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
-  b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 33, 18, 2, 1, [28, 6]).acao = () => (typeof abrirPrefeitura === 'function' ? abrirPrefeitura() : abrirPlaca('O quadro da Prefeitura: editais e avisos.'));
-  b.interativo('oficina', 'objetos/oficina_sem_fumaca', 12, 20, 6, 5).acao = () => (typeof abrirFerraria === 'function' ? abrirFerraria() : abrirPlaca('A ferraria do Seu Tonico.'));
-  b.morador('tonico', 'Seu Tonico', 19, 17, DIR.BAIXO, { vagueia: true, area: { x: 18 * TILE, y: 16 * TILE + 42, w: 3 * TILE, h: 3 * TILE } });   // na porta da ferraria
+  b.enfeite('objetos/fusca', 44, 22, true, 44);   // estacionado no canto, ao lado do Mercado
+  b.interativo('mercado', 'objetos/mercado_0', 37, 22, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
+  b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 28, 22, 2, 1, [28, 6]).acao = () => (typeof abrirPrefeitura === 'function' ? abrirPrefeitura() : abrirPlaca('O quadro da Prefeitura: editais e avisos.'));
+  b.interativo('oficina', 'objetos/oficina_sem_fumaca', 10, 22, 6, 5).acao = () => (typeof abrirFerraria === 'function' ? abrirFerraria() : abrirPlaca('A ferraria do Seu Tonico.'));
+  b.morador('tonico', 'Seu Tonico', 13, 24, DIR.BAIXO, { vagueia: true, area: { x: 10 * TILE, y: 24 * TILE + 42, w: 6 * TILE, h: 1 * TILE } });   // na calçada da ferraria
   // As placas de serviço juntas, à direita do caminho de quem chega do quintal (como o quadro e o calendário do Pierre).
-  b.interativo('calendario', 'objetos/calendario', 25, 5, 2, 1, [12, 6]).acao = () => abrirPlaca('O calendário da Vila: festas e aniversários.');
-  b.interativo('quadro_pedidos', 'objetos/quadro_pedidos', 25, 8, 2, 1, [28, 6]).acao = () => (typeof abrirQuadro === 'function' ? abrirQuadro() : abrirPlaca('O quadro de pedidos dos clientes da Vila.'));
-  for (const t of [[10, 22], [26, 21], [21, 22]]) b.enfeite('objetos/coqueiro', t[0], t[1], true, 10);
-  for (const t of [[2, 9], [44, 16]]) b.interativo('latao_lixo', 'objetos/latao_lixo', t[0], t[1], 1, 1, [10, 6]).acao = () => abrirPlaca('Um latão de lixo. Nada de útil hoje.');
-  b.interativo('roda_samba', 'objetos/roda_samba', 29, 19, 1, 1, [12, 6], false).acao = () => abrirPlaca('Roda de samba da praça. Toda sexta, das 7 da noite às 10 e meia!');
-  b.interativo('museu', 'objetos/museu', 3, 20, 6, 4).acao = () => (typeof abrirMuseu === 'function' ? abrirMuseu() : abrirPlaca('O Museu da Vila.'));
-  for (const t of [[21, 18], [31, 22], [9, 17], [2, 22], [18, 22]]) b.enfeite('objetos/arbusto_' + (1 + t[0] % 3), t[0], t[1], false);
+  b.interativo('calendario', 'objetos/calendario', 26, 5, 2, 1, [12, 6]).acao = () => abrirPlaca('O calendário da Vila: festas e aniversários.');
+  b.interativo('quadro_pedidos', 'objetos/quadro_pedidos', 26, 8, 2, 1, [28, 6]).acao = () => (typeof abrirQuadro === 'function' ? abrirQuadro() : abrirPlaca('O quadro de pedidos dos clientes da Vila.'));
+  for (const t of [[21, 21], [30, 17], [44, 17]]) b.enfeite('objetos/coqueiro', t[0], t[1], true, 10);
+  for (const t of [[2, 9], [42, 16]]) b.interativo('latao_lixo', 'objetos/latao_lixo', t[0], t[1], 1, 1, [10, 6]).acao = () => abrirPlaca('Um latão de lixo. Nada de útil hoje.');
+  b.interativo('roda_samba', 'objetos/roda_samba', 30, 19, 1, 1, [12, 6], false).acao = () => abrirPlaca('Roda de samba da praça. Toda sexta, das 7 da noite às 10 e meia!');
+  b.interativo('museu', 'objetos/museu', 2, 22, 6, 4).acao = () => (typeof abrirMuseu === 'function' ? abrirMuseu() : abrirPlaca('O Museu da Vila.'));
+  for (const t of [[21, 18], [27, 16], [9, 18], [8, 17], [16, 17]]) b.enfeite('objetos/arbusto_' + (1 + t[0] % 3), t[0], t[1], false);
   // A Pensão da Rosa (a casa da Dona Cotinha), ao lado do depósito, com folga dos dois lados.
   b.pensao = b.interativo('pensao', 'objetos/pensao_fechada', 13, 8, 5, 4);
   b.pensao.acao = () => (typeof pensaoFachada === 'function' ? pensaoFachada() : abrirPlaca('Uma pensão abandonada.'));
-  b.interativo('placa_loteamento_vila', 'objetos/placa_loteamento', 44, 8, 1, 1, [10, 6]).acao = () => { abrirPlaca(G.bairro && G.bairro.aberto ? 'Loteamento Bairro Novo: siga a rua nova, a leste.' : 'Em breve: Loteamento Bairro Novo.'); return true; };
+  b.interativo('placa_loteamento_vila', 'objetos/placa_loteamento', 44, 16, 1, 1, [10, 6]).acao = () => { abrirPlaca(G.bairro && G.bairro.aberto ? 'Loteamento Bairro Novo: siga a pista de baixo da rua, para o leste.' : 'Em breve: Loteamento Bairro Novo.'); return true; };
   b.paredesDaBorda();
   return b;
 };

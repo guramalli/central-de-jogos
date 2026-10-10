@@ -3,13 +3,16 @@
 // 5 fases; quem ganha a casa se muda no dia seguinte e traz o próximo dono. O mundo está em bairro_jogo.js.
 
 const BAIRRO = { LARG: 56, ALT: 36 };
-// Os terrenos (canto de cima à esquerda). Casa: 5×7 (a casa com a base na linha y+4, a varanda em y+5, o muro e a calçada
-// em y+6); comércio e público: 6×7. A rua corre nas linhas 9–10 e na coluna 48–49 (em L).
+// Os terrenos (canto de cima à esquerda): 6 linhas — o prédio com a base em y+4, o recuo em y+5 (varanda, muro, a
+// plaquinha da obra) — e a calçada da rua logo na frente, em y+6 (o padrão da cidade: toda frente dá para uma calçada).
+// Casa: 5 de largura; comércio e público: 6. Três ruas paralelas (pistas em y 9–10, 20–21 e 31–32, calçadas dos dois
+// lados) ligadas pela rua do fundo (pista em x 48–49, calçadas em x 47 e 50).
+const RUAS_BAIRRO = { linhas: [9, 20, 31], coluna: 48, fim: 49 };
 const TERRENOS = {
-  t1: { tipo: 'casa', x: 4, y: 1 }, t2: { tipo: 'casa', x: 11, y: 1 }, t3: { tipo: 'casa', x: 18, y: 1 }, t4: { tipo: 'casa', x: 25, y: 1 },
-  t5: { tipo: 'casa', x: 4, y: 12 }, t6: { tipo: 'casa', x: 11, y: 12 }, t7: { tipo: 'casa', x: 18, y: 12 }, t8: { tipo: 'casa', x: 25, y: 12 },
-  padaria: { tipo: 'comercio', x: 33, y: 1 }, bar: { tipo: 'comercio', x: 41, y: 1 },
-  escola: { tipo: 'publico', x: 33, y: 12 }, posto: { tipo: 'publico', x: 41, y: 12 }, capela: { tipo: 'publico', x: 33, y: 22 }, praca: { tipo: 'publico', x: 41, y: 22 },
+  t1: { tipo: 'casa', x: 4, y: 2 }, t2: { tipo: 'casa', x: 11, y: 2 }, t3: { tipo: 'casa', x: 18, y: 2 }, t4: { tipo: 'casa', x: 25, y: 2 },
+  t5: { tipo: 'casa', x: 4, y: 13 }, t6: { tipo: 'casa', x: 11, y: 13 }, t7: { tipo: 'casa', x: 18, y: 13 }, t8: { tipo: 'casa', x: 25, y: 13 },
+  padaria: { tipo: 'comercio', x: 33, y: 2 }, bar: { tipo: 'comercio', x: 41, y: 2 },
+  escola: { tipo: 'publico', x: 33, y: 13 }, posto: { tipo: 'publico', x: 41, y: 13 }, capela: { tipo: 'publico', x: 33, y: 24 }, praca: { tipo: 'publico', x: 41, y: 24 },
 };
 // Os donos, na ordem de chegada (os 2 primeiros já estão quando o bairro abre).
 const DONOS = [
@@ -29,7 +32,7 @@ const FASES_CASA = [
   { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 20, telha: 40 }, paga: 200 },
   { nome: 'Reboco e pintura', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 2, tinta: 2 }, paga: 300, pintura: true, reforma: true },
   { nome: 'Varanda', etapas: ['pa', 'colher', 'regador'], paga: 150, concreto: true },
-  { nome: 'Muro e calçada', etapas: ['pa', 'colher', 'colher', 'regador'], material: { tijolo: 30, cimento: 4, pedra: 6 }, paga: 200 },
+  { nome: 'Muro da frente', etapas: ['pa', 'colher', 'colher', 'regador'], material: { tijolo: 30, cimento: 4, pedra: 6 }, paga: 200 },
 ];
 const COMERCIOS = {
   padaria: { dono: 'cida', nome: 'Padaria da Dona Cida', arte: 'objetos/padaria', libera: 1, abre: 6 * 60, fecha: 12 * 60, folga: 0, vende: { pao: 4, cafe: 2, rabanada: 6, bolo: 8 } },
@@ -40,7 +43,7 @@ const FASES_COMERCIO = [
   { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 120, cimento: 8 }, paga: 450 },
   { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 30, telha: 60 }, paga: 350 },
   { nome: 'Acabamento e balcão', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 2, tinta: 3, madeira: 10 }, paga: 500, pintura: true },
-  { nome: 'Calçada', etapas: ['pa', 'colher', 'regador'], material: { cimento: 4, pedra: 10 }, paga: 200, concreto: true },
+  { nome: 'Entrada', etapas: ['pa', 'colher', 'regador'], material: { cimento: 4, pedra: 10 }, paga: 200, concreto: true },
 ];
 Object.assign(CLIENTE_NOME, { nena: 'Dona Nena', neide: 'Neide', valdir: 'Valdir Baiano', rosinete: 'Rosinete', lurdes: 'Dona Lurdes', tonha: 'Tonha', nenem: 'Neném', orlando: 'Seu Orlando', tonhao: 'Tonhão' });
 const idFase = (t, f) => (TERRENOS[t].tipo === 'comercio' ? 'loja_' : 'casa_') + t + '_' + f;
@@ -114,10 +117,10 @@ COLETORES.push(s => Bairro.salvar(s));
 AO_ENTREGAR.push((id, q) => Bairro.faseEntregue(id, q));
 MANHA.push(() => { if (G.bairro) for (const l of Bairro.manha()) G.feitosHoje.push(l); });
 
-// As ruas do Bairro Novo (pedidos da Prefeitura, na ordem): abrir a rua de terra, as calçadas, os postes.
+// As ruas do Bairro Novo (pedidos da Prefeitura, na ordem): abrir as ruas já com as calçadas, a arborização, os postes.
 Object.assign(PREFEITURA_OBRAS, {
-  pref_rua_1: { nome: 'Abrir a rua do Bairro Novo', texto: 'A rua do loteamento ainda é só mato: precisa abrir, nivelar e cascalhar.', material: { pedra: 40, cimento: 6 }, etapas: ['pa', 'pa', 'colher', 'regador'], paga: 600, premio: { itens: { cimento: 5 } }, x: 6, y: 11, bairro: { rua: 1 }, libera: () => !!(G.bairro && G.bairro.aberto) },
-  pref_rua_2: { nome: 'Calçadas do Bairro Novo', texto: 'Calçada dos dois lados da rua, para o povo andar.', material: { cimento: 8, pedra: 20 }, etapas: ['pa', 'colher', 'colher', 'regador'], paga: 550, premio: { itens: { cal: 4 } }, x: 14, y: 11, bairro: { rua: 2 }, libera: () => !!(G.bairro && G.bairro.aberto) && G.empreitas.prefeitura.feitos.includes('pref_rua_1') },
+  pref_rua_1: { nome: 'Abrir as ruas do Bairro Novo', texto: 'O loteamento ainda é só mato: abrir as ruas, cascalhar e fazer as calçadas dos dois lados.', material: { pedra: 50, cimento: 10 }, etapas: ['pa', 'pa', 'colher', 'regador'], paga: 600, premio: { itens: { cimento: 5 } }, x: 6, y: 11, bairro: { rua: 1 }, libera: () => !!(G.bairro && G.bairro.aberto) },
+  pref_rua_2: { nome: 'Arborização do Bairro Novo', texto: 'Mudas de árvore nas calçadas, para dar sombra.', material: { madeira: 10, esterco: 6 }, etapas: ['pa', 'pa', 'regador', 'regador'], paga: 550, premio: { itens: { cal: 4 } }, x: 14, y: 11, bairro: { rua: 2 }, libera: () => !!(G.bairro && G.bairro.aberto) && G.empreitas.prefeitura.feitos.includes('pref_rua_1') },
   pref_rua_3: { nome: 'Postes de luz do Bairro Novo', texto: 'De noite o bairro é um breu: postes de madeira com luminária.', material: { madeira: 20, vergalhao: 6 }, etapas: ['machado', 'machado', 'colher'], paga: 500, premio: { itens: { impermeabilizante: 2 } }, x: 22, y: 11, bairro: { rua: 3 }, libera: () => !!(G.bairro && G.bairro.aberto) && G.empreitas.prefeitura.feitos.includes('pref_rua_2') },
 });
 for (const id of ['pref_rua_1', 'pref_rua_2', 'pref_rua_3']) Object.assign(PREFEITURA_OBRAS[id], { cliente: 'prefeitura', mapa: 'bairro', funcaoMin: 0, tipo: 'longa', dias: PREFEITURA_OBRAS[id].etapas.length, vezesDia: 3, ferramenta: PREFEITURA_OBRAS[id].etapas[0], artes: ['objetos/vala', 'objetos/alicerce'] });

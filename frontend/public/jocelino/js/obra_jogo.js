@@ -88,7 +88,7 @@ function poeObraNoMapa(b) {
   if (casa) { casa.acao = () => acaoNaObra(casa); casa.ferramenta = (o, id) => ferramentaNaObra(o, id); }
   const bira = b.moradores.find(m => m.id === 'bira'); if (bira) bira.aoConversar = () => conversarBira();
   // A escola e o Edifício Maré nos lotes livres da Vila (a escola ao lado da praça; o prédio ao lado da ferraria).
-  for (const [obraId, idx, x, y, w, h] of [['escola', 2, 30, 23, 6, 4], ['predio', 3, 18, 21, 5, 4]]) {
+  for (const [obraId, idx, x, y, w, h] of [['escola', 2, 31, 22, 6, 4], ['predio', 3, 16, 22, 5, 4]]) {
     let ob = b.objs.find(o => o.obraId === obraId);
     const daVez = Obra.obra().id === obraId;
     if ((daVez || G.obra.indice > idx) && !ob) { ob = b.interativo('obra_' + obraId, 'objetos/alicerce', x, y, w, h); ob.obraId = obraId; }
