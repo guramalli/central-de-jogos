@@ -52,6 +52,8 @@ class Personagem {
     // No palco de lado a gente aparece maior (como no Bancho); a arte é a mesma.
     const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1;
     ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
+    // O "!" do Mestre Bira: lista nova, pagamento ou gratificação esperando.
+    if (this.id === 'bira' && typeof biraTemNovidade === 'function' && biraTemNovidade()) desenhaFx(ctx, 'balao', this.x, this.y - qh * e - 18);
     // Coração subindo (carinho no Caramelo).
     if (this._coracao > 0) {
       this._coracao -= 1 / 60;
@@ -62,6 +64,8 @@ class Personagem {
 }
 
 class Jogador extends Personagem {
+  // Com carga nos braços (tijolo, pedra, telha...), a folha de carregar; o prato da pensão vai na mão de sempre.
+  get folha() { return this.carga && this.carga.id && this.carga.id !== 'prato' ? 'personagens/jocelino_carregar/andar' : 'personagens/jocelino/andar'; }
   constructor() { super('jocelino', '', 0, 0); this.carga = {}; this.golpe = 0; this.golpeItem = ''; this.travado = 0; }
   static VEL = 240;
   static VEL_CORRENDO = 336;

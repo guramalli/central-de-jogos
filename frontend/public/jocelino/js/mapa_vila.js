@@ -31,7 +31,8 @@ MAPAS_DEF.vila = () => {
   b.interativo('monte_tijolos', 'objetos/monte_tijolos', 32, 8, 2, 1).acao = () => abrirPlaca('Um monte de tijolos da obra.');
   b.interativo('masseira', 'objetos/masseira', 32, 4, 2, 1).acao = () => abrirPlaca('A masseira do Zé.');
   // O terreno da obra é chato (sem telhado para passar atrás): bloqueia a arte toda, para ninguém pisar na cerca de trás.
-  b.interativo('casa_zelia', 'objetos/casa_zelia_1', 36, 8, 5, 3, [78, 62]).acao = () => abrirPlaca('A obra da casa da Dona Zélia. O Mestre Bira toca o serviço.');
+  const casaZ = b.interativo('casa_zelia', 'objetos/casa_zelia_1', 36, 8, 5, 3, [78, 62]); casaZ.obraId = 'casa_zelia';   // a arte e as ações vêm de obra_jogo.js
+  casaZ.acao = () => abrirPlaca('A obra da casa da Dona Zélia. O Mestre Bira toca o serviço.');
   b.interativo('pilha_ripas', 'objetos/pilha_ripas', 37, 3, 1, 1).acao = () => abrirPlaca('Ripas para o telhado.');
   b.enfeite('objetos/carrinho', 40, 3, true, 22);
   b.interativo('peneira', 'objetos/peneira', 43, 8, 2, 1).acao = () => abrirPlaca('A peneira de areia.');
