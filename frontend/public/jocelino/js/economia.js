@@ -14,4 +14,9 @@ const ECO = {
   porcoesPadrao: 4,
   marmitasMax: 3,          // a sobra vira marmita (a família come o resto)
   cafeBoasVindas: 1.3,     // cafezinho na medida antes do prato: +30% no preço
+  // Caprichar (o Enhance do Bancho): +30% do preço base por nível; porções +50% no nível 10.
+  precoPorNivel: 0.30, porcoesNivel10: 0.5,
+  // A Rosa como chef: experiência por prato que sai, que sobe 1,35× por nível; preparo 4% mais rápido por nível.
+  chef: { xpBase: 40, xpCresce: 1.35, preparoPorNivel: 0.04 },
+  taxaContratacao: 0.5,    // taxa de contratação = soma dos atributos × isto
 };

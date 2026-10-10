@@ -152,7 +152,7 @@ function iniciarJanta() {
   if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Equipe !== 'undefined') {
     const t = G.turno, p = G.pensao, b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0 };
-    t.fatorPreparo = Equipe.preparo(p) * b.preparo; t.bocas = TurnoJanta.BOCAS + Equipe.bocasExtra(p) + b.bocas;
+    t.fatorPreparo = Equipe.preparo(p) * b.preparo * Chef.preparo(p); t.bocas = Chef.bocas(p) + Equipe.bocasExtra(p) + b.bocas;
     t.gorjetaExtra = Equipe.gorjetaExtra(p) + b.gorjeta; t.paciencia = b.paciencia; t.farinhaMax = TurnoJanta.FARINHA_MAX + b.farinha; t.farinha = t.farinhaMax;
   }
   G.pensao.ultimaJanta = G.dia;
@@ -177,6 +177,10 @@ function encerrarJanta() {
   }
   const pit0 = G.pensao.pitadas;
   r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
+  // A Rosa ganha experiência com cada prato que saiu.
+  if (typeof Chef !== 'undefined') { const c = Chef.ganhar(G.pensao, r.servidos); r.chef = c;
+    if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
+    for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
   r.pitadasGanhas = G.pensao.pitadas - pit0;
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
   r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;

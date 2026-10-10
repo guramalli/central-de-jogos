@@ -18,7 +18,7 @@ const PALCO = {
   ROSA: { x: 1542, y: 757, escala: 0.493 },   // o pé da Rosa no fogão (quadro de 200x300 reduzido)
   PASSA: { x: 590, y: 505 },
   FRENTE_ESQ: { x: -190, y: 0 }, FRENTE_DIR: { x: 1702, y: 0 },
-  ASSENTOS: [400, 540, 680, 820, 960, 1100].map(x => ({ x, y: 812 })),    // o pé (escondido) de cada cliente: cabeça e tronco acima do tampo
+  ASSENTOS: [400, 540, 680, 820, 960, 1100].map(x => ({ x, y: 856 })),    // o pé (escondido) de cada cliente: cabeça e tronco acima do tampo
   VAGAS: [672, 786, 895, 1005, 1114, 1224].map(x => ({ x, y: 570 })),     // o centro de cada nicho do passa-prato
   PRATO_Y: 602,                   // onde o prato assenta no nicho
   BEBEDOURO: { x: 1576, y: 774, w: 84, h: 126, escala: 0.42 },
@@ -31,7 +31,7 @@ const PALCO = {
   PORTA: { x: 250, y: 680, w: 110, h: 300 },
   FARINHEIRA: { x: 1185, y: 730, w: 70, h: 62, cx: 1218, base: 786, escala: 0.36 },
   LOUCA: { base: 786, escala: 0.38 },
-  ESCALA_GENTE: 1.3,
+  ESCALA_GENTE: 1.65,             // gente grande como no Dave: o balcão bate na cintura do Jocelino
 };
 const noPalco = () => !!(G.mapa && G.mapa.palco);
 const noSalaoDaPensao = () => G.mapaId === 'pensao_dentro' || G.mapaId === 'pensao_palco';
@@ -54,7 +54,7 @@ MAPAS_DEF.pensao_palco = () => {
     { tipo: 'camada', y: 300, desenha(ctx) { const img = spr(typeof temMelhoria === 'function' && temMelhoria('fogao_4bocas') ? 'salao/cozinha_melhor' : 'salao/cozinha'); if (img) ctx.drawImage(img, P.COZINHA.x, P.COZINHA.y); } },
     camadaPalco('passa_prato', P.PASSA.x, P.PASSA.y, 400),
     camadaPalco('balcao', P.BALCAO.x, P.BALCAO.y, P.TAMPO_Y + 80),
-    camadaPalco('bebedouro', P.BEBEDOURO.x, P.BEBEDOURO.y, P.BEBEDOURO.y + P.BEBEDOURO.h, P.BEBEDOURO.escala),
+    camadaPalco('bebedouro', P.BEBEDOURO.x, P.BEBEDOURO.y, 880, P.BEBEDOURO.escala),
     camadaPalco('frente_esquerda', P.FRENTE_ESQ.x, P.FRENTE_ESQ.y, 99999),
     camadaPalco('frente_direita', P.FRENTE_DIR.x, P.FRENTE_DIR.y, 99999));
   b.paredesDaBorda();
@@ -78,7 +78,7 @@ function clientesDoPalco(b) {
     if (!['pedido', 'prato', 'comendo'].includes(m.estado) || i >= PALCO.ASSENTOS.length) return null;
     const ja = b._clientes && b._clientes[i];
     const p = ja && ja.id === m.cliente.id ? ja : new Personagem(m.cliente.id, m.cliente.nome, PALCO.ASSENTOS[i].x, PALCO.ASSENTOS[i].y, DIR.BAIXO);
-    p.y = PALCO.ASSENTOS[i].y + (m.estado === 'comendo' ? Math.abs(Math.sin(G.agora * 7 + i)) * 3 : 0);
+    p.y = PALCO.ASSENTOS[i].y - (m.estado === 'comendo' ? Math.abs(Math.sin(G.agora * 7 + i)) * 3 : 0);   // nunca passa da linha do balcão
     return p;
   });
   return b._clientes.filter(Boolean);
@@ -119,12 +119,12 @@ function camadasDaJanta() {
       desenhaPe(ctx, gr ? 'salao/farinheira_grande' : 'salao/farinheira', gr ? 1231 : F.cx, gr ? 788 : F.base, 1, gr ? 0.55 : F.escala);
     }),
     // O passe da cozinha (a bancada), os pratos prontos em cima dele, a bacia e o lixo.
-    camadaViva(P.PASSE.base, ctx => {
+    camadaViva(878, ctx => {
       desenhaPe(ctx, 'salao/passe', P.PASSE.cx, P.PASSE.base, 1, P.PASSE.escala);
       if (t) t.passaPrato().forEach((x, k) => desenhaPe(ctx, iconePrato(x.prato), P.PASSE.vagas[k], P.PASSE.topo, 1, 0.8));
     }),
-    camadaViva(P.BACIA.y + P.BACIA.h, ctx => { desenhaPe(ctx, 'salao/bacia', P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + P.BACIA.h, 1, P.BACIA.escala); }),
-    camadaViva(P.LIXO.y + P.LIXO.h, ctx => { desenhaPe(ctx, 'salao/lixo', P.LIXO.x + P.LIXO.w / 2, P.LIXO.y + P.LIXO.h, 1, P.LIXO.escala); }),
+    camadaViva(879, ctx => { desenhaPe(ctx, 'salao/bacia', P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + P.BACIA.h, 1, P.BACIA.escala); }),
+    camadaViva(878.5, ctx => { desenhaPe(ctx, 'salao/lixo', P.LIXO.x + P.LIXO.w / 2, P.LIXO.y + P.LIXO.h, 1, P.LIXO.escala); }),
   ];
 }
 MAPAS_DEF.pensao_palco = (orig => () => {
@@ -509,10 +509,11 @@ function abrirEquipe() {
       caixa.append(el('div', { class: 'cad-sub' }, 'Candidatos'));
       const cl = el('div', { class: 'eq-lista' });
       p.candidatos.forEach((c, i) => cl.append(el('div', { class: 'eq-pessoa' }, el('img', { src: `a/retratos/${c.id}_normal.webp` }),
-        el('div', {}, el('b', {}, c.nome), el('div', { class: 'eq-at' }, `Serviço ${c.servico} · Cozinha ${c.cozinha} · Compras ${c.compras} · Simpatia ${c.simpatia}`)),
+        el('div', {}, el('b', {}, c.nome), el('div', { class: 'eq-at' }, `Serviço ${c.servico} · Cozinha ${c.cozinha} · Compras ${c.compras} · Simpatia ${c.simpatia}`), el('div', { class: 'eq-hab' }, `Taxa de contratação: Cr$ ${Equipe.taxaContratacao(c)}`)),
         el('div', { class: 'eq-bts' }, ['salao', 'cozinha', 'compras'].map(k => el('button', { class: 'botao' + (Equipe.vagasLivres(p, k) > 0 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
-          const r = Equipe.contratar(p, i, k);
-          if (r === 'ok') { sons.tocar('feito', 1, 0.03, -4); avisar(`${c.nome} vai trabalhar na ${Equipe.POSTOS[k].toLowerCase()}!`); desenha(); }
+          const tx = Equipe.taxaContratacao(c), r = Equipe.contratar(p, i, k, G.dinheiro);
+          if (r === 'dinheiro') { avisar(`A taxa de contratação é Cr$ ${tx}.`); return; }
+          if (r === 'ok') { G.dinheiro -= tx; hudSujo(); sons.tocar('feito', 1, 0.03, -4); avisar(`${c.nome} vai trabalhar na ${Equipe.POSTOS[k].toLowerCase()}!`); desenha(); }
           else avisar('Não tem vaga nesse posto (a fama abre mais).'); } }, Equipe.POSTOS[k]))))));
       caixa.append(cl);
     }

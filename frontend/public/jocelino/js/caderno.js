@@ -21,11 +21,13 @@ function abrirCaderno(sel) {
   // O que está na mochila também conta como "já vi" (a receita fica disponível para pesquisar).
   if (G.mochila) for (const id in Pratos.INGREDIENTES) if (G.mochila.total(id) > 0) p.veIngrediente(id);
   _cadernoSel = sel || _cadernoSel || p.receitas[0];
-  const caixa = el('div', { class: 'caderno' + (spr('ui/caderno_aberto') ? ' com-arte' : '') });
+  const caixa = el('div', { class: 'caderno com-arte' });
   const desenha = () => {
     caixa.innerHTML = '';
     const esq = el('div', { class: 'pagina esq' }), dir = el('div', { class: 'pagina dir' });
-    esq.append(el('div', { class: 'cad-titulo' }, 'Receitas da Rosa'), el('div', { class: 'cad-pitadas' }, `Pitadas de tempero: ${p.pitadas}`));
+    const ch = p.chef || { nivel: 1, xp: 0 }, prox = Chef.NIVEIS_INVENTA.find(x => x > ch.nivel);
+    esq.append(el('div', { class: 'cad-titulo' }, 'Receitas da Rosa'), el('div', { class: 'cad-pitadas' }, `Pitadas de tempero: ${p.pitadas}`),
+      el('div', { class: 'cad-chef' }, `Rosa, chef nível ${ch.nivel}` + (ch.nivel < Chef.NIVEL_MAX ? ` · ${ch.xp}/${Chef.xpPara(ch.nivel)} pratos para o próximo` : ' (máximo)') + ` · ${Chef.bocas(p)} bocas no fogão` + (prox ? ` · no nível ${prox} ela inventa uma receita` : '')));
     for (const id of p.receitas) {
       const pr = Pratos.PRATOS[id], n = p.nivel(id);
       esq.append(el('div', { class: 'cad-linha' + (id === _cadernoSel ? ' sel' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
@@ -53,18 +55,19 @@ function abrirCaderno(sel) {
     }
     dir.append(el('div', { class: 'cad-sub' }, 'Ingredientes por prato'), ings);
     if (tem) {
-      const n = p.nivel(id), c = p.custoCaprichar(id), princ = pr.principal;
+      const n = p.nivel(id), c = p.custoCaprichar(id);
       dir.append(el('div', { class: 'cad-nivelzao' }, '★'.repeat(n) + '☆'.repeat(Pensao.NIVEL_MAX - n)),
-        el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · Sabor ${p.sabor(id)}`));
+        el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · Sabor ${p.sabor(id)} · ${p.porcoesPorPanela(id)} porções por panela`));
       if (n < Pensao.NIVEL_MAX) {
-        const pode = p._tem(princ) >= c;
+        const pode = Object.keys(c).every(ing => p._tem(ing) >= c[ing]), custo = Object.entries(c).map(([ing, q]) => `${q} ${nomeIngrediente(ing).toLowerCase()}`).join(', ');
+        const ef = efeitoCaprichar(p, id); p.niveis[id] = n + 1; const porDepois = p.porcoesPorPanela(id); if (n === 1) delete p.niveis[id]; else p.niveis[id] = n;
         dir.append(el('button', { class: 'botao forte cad-capricho' + (pode ? '' : ' desligado'), onclick: e => {
           e.stopPropagation();
           const r = p.caprichar(id);
-          if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -2); carimbar(caixa); avisar(`${pr.nome} subiu para o nível ${p.nivel(id)}! Mais preço e mais sabor.`); desenha(); }
-          else avisar(r === 'falta' ? `Precisa de ${c} ${nomeIngrediente(princ).toLowerCase()} na despensa.` : 'Esse prato já está no capricho máximo.');
-        } }, `Caprichar (${c} ${nomeIngrediente(princ).toLowerCase()})`),
-          el('div', { class: 'cad-dica' }, `Próximo nível: Cr$ ${Math.round(Pratos.PRATOS[id].preco * (1 + Pensao.PRECO_POR_NIVEL * n))} de base, sabor ${p.sabor(id) + Pensao.SABOR_POR_NIVEL}.`));
+          if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -2); carimbar(caixa); avisar(`${pr.nome} subiu para o nível ${p.nivel(id)}! Mais preço, mais sabor e mais porções.`); desenha(); }
+          else avisar(r === 'falta' ? `Para caprichar precisa de: ${custo}.` : 'Esse prato já está no capricho máximo.');
+        } }, `Caprichar: ${custo}`),
+          el('div', { class: 'cad-dica' }, `▸ Nível ${n} → ${n + 1}: preço Cr$ ${ef.preco[0]} → ${ef.preco[1]} · sabor ${ef.sabor[0]} → ${ef.sabor[1]} · porções ${p.porcoesPorPanela(id)} → ${porDepois}`));
       } else dir.append(el('div', { class: 'cad-dica' }, 'No capricho máximo! A Rosa não tem mais o que ensinar desse prato.'));
     } else if (descobrir) {
       if (descobrir.conhecida) dir.append(el('button', { class: 'botao forte cad-capricho' + (p.pitadas >= descobrir.custo ? '' : ' desligado'), onclick: e => {

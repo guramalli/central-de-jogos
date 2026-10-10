@@ -146,7 +146,12 @@ button { font-family: inherit; }
 /* O caderno de receitas da Rosa: duas páginas por cima da arte a/ui/caderno_aberto (sem a arte, um painel de papel). */
 .caderno { position: relative; width: min(94vw, 1400px); aspect-ratio: 14 / 9; max-height: 92vh; color: #3b2a1a; font-family: Nunito, sans-serif;
   background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4%; padding: 3% 4%; box-sizing: border-box; }
-.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp) center / 100% 100% no-repeat; border: 0; padding: var(--cad-pad, 5% 7% 5% 7%); }
+.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
+/* As páginas dentro do papel desenhado (retângulos úteis medidos em a/ui/LEIA.txt, em % de 1400x878). */
+.caderno.com-arte .pagina { position: absolute; overflow-y: auto; }
+.caderno.com-arte .pagina.esq { left: 18.5%; top: 5.5%; width: 30%; height: 74%; }
+.caderno.com-arte .pagina.dir { left: 52%; top: 5.5%; width: 31%; height: 76%; }
+.caderno.com-arte .cad-fechar { right: 3%; bottom: 3%; }
 .caderno .pagina { overflow-y: auto; padding: 4px 10px; }
 .cad-titulo { font-family: Fredoka, sans-serif; font-weight: 700; font-size: 30px; color: #8a2f1a; margin: 4px 0 8px; }
 .cad-pitadas { font-weight: 900; font-size: 18px; margin-bottom: 8px; }
@@ -241,3 +246,8 @@ button { font-family: inherit; }
 
 .panela-linha { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; margin: -4px 0 6px 84px; font-size: 15px; color: var(--giz-amarelo); }
 .panela-linha img { width: 40px; height: 40px; }
+
+.cad-chef { font-weight: 800; font-size: 15px; color: #8a2f1a; margin-bottom: 8px; }
+
+/* Todo elemento escondido some de verdade (o display de uma classe não vence o atributo hidden). */
+[hidden] { display: none !important; }

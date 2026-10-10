@@ -24,9 +24,7 @@ class Pensao {
   static PEDRA_MAX = 2;
   static RECEITAS_INICIAIS = ['pf_peao', 'peixe_frito', 'sopa_pedra', 'cocada_tijolinho'];
   // Caprichar (o Enhance do Bancho): cópias do ingrediente principal para subir do nível n para n+1 (1 → 10).
-  static CUSTO_CAPRICHAR = [3, 3, 4, 4, 5, 5, 6, 6, 7];
   static NIVEL_MAX = 10;
-  static PRECO_POR_NIVEL = 0.15;     // +15% do preço base a cada nível
   static SABOR_POR_NIVEL = 12;
 
   constructor() {
@@ -34,7 +32,7 @@ class Pensao {
     this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.mesas = 2; this.fama = 0;
     this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
-    this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {};
+    this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {}; this.chef = { nivel: 1, xp: 0 };
   }
   melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
   pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
@@ -112,10 +110,10 @@ class Pensao {
     for (const id of Object.keys(this.despensa)) if (this.despensa[id] <= 0) delete this.despensa[id];
     return rar;
   }
-  preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + Pensao.PRECO_POR_NIVEL * (this.nivel(prato) - 1))); }
+  preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + ECO.precoPorNivel * (this.nivel(prato) - 1))); }
 
   // ---------------- a panela da noite: a Rosa prepara as porções antes (ou na hora, se faltar)
-  porcoesPorPanela(prato) { return (ECO.porcoes[prato] || ECO.porcoesPadrao); }
+  porcoesPorPanela(prato) { const b = ECO.porcoes[prato] || ECO.porcoesPadrao; return b + Math.floor(b * ECO.porcoesNivel10 * (this.nivel(prato) - 1) / 9); }
   porcoes(prato) { return this.panela[prato] || 0; }
   // Prepara n panelas do prato com o que a despensa tem. Devolve {feitas, faltou: [ingredientes]}.
   prepararPanela(prato, n, rng) {
@@ -142,15 +140,25 @@ class Pensao {
   // ---------------- o caderno da Rosa: nível do prato, pitadas de tempero, receitas a descobrir
   nivel(prato) { return this.niveis[prato] || 1; }
   sabor(prato) { return this.nivel(prato) * Pensao.SABOR_POR_NIVEL; }
-  custoCaprichar(prato) { const n = this.nivel(prato); return n >= Pensao.NIVEL_MAX ? 0 : Pensao.CUSTO_CAPRICHAR[n - 1]; }
-  // Sobe o nível do prato gastando cópias do ingrediente principal: 'ok', 'falta' ou 'max'.
+  // Caprichar (o Enhance do Bancho): gasta TODOS os ingredientes da receita, cada um floor((qtd+1)·1,5^(nível−1)).
+  custoCaprichar(prato) {
+    const n = this.nivel(prato);
+    if (n >= Pensao.NIVEL_MAX) return {};
+    const c = {}, por = Pratos.PRATOS[prato].porcao;
+    for (const id in por) c[id] = Math.floor((por[id] + 1) * Math.pow(1.5, n - 1));
+    return c;
+  }
+  // Sobe o nível do prato: 'ok', 'falta' ou 'max'.
   caprichar(prato) {
     const n = this.nivel(prato);
     if (n >= Pensao.NIVEL_MAX) return 'max';
-    const princ = Pratos.PRATOS[prato].principal, c = this.custoCaprichar(prato);
-    if (this._tem(princ) < c) return 'falta';
-    if (princ === 'peixe') { let q = c; for (const px of Pratos.PEIXES) while (q > 0 && this.aceita(px) && (this.despensa[px] || 0) > 0) { this.despensa[px]--; q--; } }
-    else this.despensa[princ] -= c;
+    const c = this.custoCaprichar(prato);
+    for (const id in c) if (this._tem(id) < c[id]) return 'falta';
+    for (const id in c) {
+      let q = c[id];
+      if (id === 'peixe') { for (const px of Pratos.PEIXES) while (q > 0 && this.aceita(px) && (this.despensa[px] || 0) > 0) { this.despensa[px]--; q--; } }
+      else this.despensa[id] -= q;
+    }
     for (const id of Object.keys(this.despensa)) if (this.despensa[id] <= 0) delete this.despensa[id];
     this.niveis[prato] = n + 1;
     return 'ok';
@@ -238,7 +246,7 @@ class Pensao {
     return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, mesas: this.mesas, fama: this.fama,
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
-      equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar) };
+      equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef) };
   }
   deDict(d) {
     d = d || {};
@@ -249,6 +257,6 @@ class Pensao {
     this.curtidas = d.curtidas != null ? d.curtidas | 0 : Math.floor(this.fama / 4);   // save velho: as estrelas viram curtidas
     // Save de antes dos 6 degraus: o grau que a fama antiga dava não se perde (0, 40, 120, 300, 600 pontos).
     this.grauMinimo = d.grauMinimo || (d.curtidas == null ? [0, 40, 120, 300, 600].filter(x => this.fama >= x).length : 1);
-    this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {});
+    this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {}); this.chef = Object.assign({ nivel: 1, xp: 0 }, d.chef || {});
   }
 }

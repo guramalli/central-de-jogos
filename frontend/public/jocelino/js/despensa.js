@@ -92,7 +92,7 @@ function guardarNaDespensa(silencioso) {
 // A tela da despensa: as prateleiras com cada ingrediente, quanto tem, a raridade e de onde vem.
 function abrirDespensa() {
   const p = G.pensao;
-  const caixa = el('div', { class: 'despensa' + (spr('ui/despensa_prateleiras') ? ' com-arte' : '') });
+  const caixa = el('div', { class: 'despensa com-arte' });
   const ids = Object.keys(Pratos.INGREDIENTES).filter(id => (p.despensa[id] || 0) > 0 || (G.mochila && G.mochila.total(id) > 0) || p.aceita(id));
   const prat = el('div', { class: 'desp-prateleiras' });
   for (const id of ids) {

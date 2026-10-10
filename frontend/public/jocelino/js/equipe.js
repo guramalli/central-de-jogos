@@ -40,10 +40,12 @@ const Equipe = {
     const k = ['salao', 'cozinha', 'compras'].indexOf(posto), tot = Equipe.VAGAS[p.grau() - 1][k];
     return tot - p.equipe.filter(e => e.posto === posto).length;
   },
-  contratar(p, i, posto) {
+  taxaContratacao(c) { return Math.round((c.servico + c.cozinha + c.compras + c.simpatia) * ECO.taxaContratacao); },
+  contratar(p, i, posto, dinheiro = Infinity) {
     const c = p.candidatos[i];
     if (!c) return 'nao';
     if (Equipe.vagasLivres(p, posto) <= 0) return 'sem_vaga';
+    if (dinheiro < Equipe.taxaContratacao(c)) return 'dinheiro';
     p.candidatos.splice(i, 1);
     p.equipe.push(Object.assign(c, { posto }));
     if (posto === 'salao' && !c.habilidades.includes('louca')) c.habilidades.push('louca');   // começa recolhendo a louça
@@ -58,6 +60,8 @@ const Equipe = {
     e.nivel++;
     const forte = { salao: 'servico', cozinha: 'cozinha', compras: 'compras' }[e.posto] || 'servico';
     e[forte] += 12; e.simpatia += 4; e.servico += 3; e.cozinha += 3; e.compras += 3;
+    // O ajudante de cozinha ensina uma receita nos níveis 5 e 10 (como os funcionários do Bancho).
+    if (e.posto === 'cozinha' && (e.nivel === 5 || e.nivel === 10) && typeof Chef !== 'undefined') { const id = Chef.receitaNova(p, 'ajudante'); if (id) { p.receitas.push(id); e.ensinou = (e.ensinou || []).concat(id); } }
     if (e.nivel === 3 || e.nivel === 7) {
       const hs = (Equipe.HABILIDADES[e.posto] || Equipe.HABILIDADES.salao).map(h => h[0]).filter(h => !e.habilidades.includes(h));
       if (hs.length) e.habilidades.push(hs[0]);
