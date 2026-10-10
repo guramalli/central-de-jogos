@@ -22,7 +22,7 @@ const Prefeitura = {
   // Os pedidos que podem sair: os ainda não feitos (os de pré-moldado só com a betoneira no quintal).
   disponiveis() {
     const P = G.empreitas.prefeitura, bet = !!(G.horta && G.horta.colocados && G.horta.colocados.some(c => c.id === 'betoneira'));
-    return Object.keys(PREFEITURA_OBRAS).filter(id => !P.feitos.includes(id) && (bet || !PREFEITURA_OBRAS[id].betoneira));
+    return Object.keys(PREFEITURA_OBRAS).filter(id => !P.feitos.includes(id) && (bet || !PREFEITURA_OBRAS[id].betoneira) && (!PREFEITURA_OBRAS[id].libera || PREFEITURA_OBRAS[id].libera()));
   },
   oferta(dia) {
     const P = G.empreitas.prefeitura;

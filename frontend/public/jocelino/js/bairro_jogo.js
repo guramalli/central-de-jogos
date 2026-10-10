@@ -29,6 +29,7 @@ function arteDaCasa(t) {
 // Redesenha os terrenos: estacas e placa; a casa da fase; (Task 4) a varanda, o muro, a calçada; os donos.
 function poeBairro(b) {
   if (!b || b.id !== 'bairro' || !G.bairro) return;
+  aplicarRuas(b);
   for (const o of b.objs.filter(o => o.doBairro)) b.tirar(o);
   for (const t in TERRENOS) {
     const T = TERRENOS[t], w = T.tipo === 'casa' ? 5 : 6, dono = T.tipo === 'casa' ? Bairro.donoDe(t) : null;
@@ -46,6 +47,7 @@ function poeBairro(b) {
       const piso = (id, tx, ty, w2, tex) => { const o = marca(b.interativo(id, 'objetos/alicerce', tx, ty, w2, 1, null, false)); o.y = ty * TILE; o.desenha = ctx => { const img = spr(tex); if (img) ctx.drawImage(img, 0, 0, w2 * TILE, TILE, tx * TILE, ty * TILE, w2 * TILE, TILE); }; return o; };
       if (x.fase >= 5) piso('varanda_' + t, T.x, T.y + 5, 3, TIPOS_CASA[DONOS.find(d => d.terreno === t).casa].varanda.ladrilho ? 'texturas/piso_ladrilho' : 'texturas/piso_cimento');
       if (x.fase >= 6) { marca(b.interativo('muro_' + t, 'objetos/muro', T.x + 3, T.y + 6, 3, 1)); piso('calcada_' + t, T.x, T.y + 6, 3, 'texturas/calcada'); }
+      if (x.mudou && Bairro.caprichada(t)) marca(b.interativo('placa_jocelino_' + t, 'objetos/placa_jocelino', T.x + 4, T.y + 5, 1, 1, null, false), { acao: () => { abrirPlaca('"Construída por Jocelino" — casa caprichada do começo ao fim.'); return true; } });
     }
   }
   // Os donos: esperam de pé na frente do terreno (8h–17h) até a mudança; depois moram (passeiam perto de casa de dia).
@@ -70,3 +72,17 @@ function conversarDono(d) {
 }
 AO_ENTRAR_MAPA.push(id => { if (id === 'bairro') poeBairro(G.mapa); });
 MANHA.push(() => { if (MAPAS.bairro) poeBairro(MAPAS.bairro); });
+
+// As ruas entregues mudam o chão (texturas que já existem) e põem os postes (arte pronta; a luz é a de LUZES).
+LUZES['objetos/poste'] = [[24, 22, 70]];
+function aplicarRuas(b) {
+  if (!b || b.id !== 'bairro') return;
+  const n = Bairro.ruas();
+  if (n >= 1) { b.pinta(1, 9, 49, 2, CH.CAMINHO); b.pinta(48, 9, 2, 25, CH.CAMINHO); }   // a rua aberta: terra batida
+  if (n >= 2) { b.pinta(1, 8, 47, 1, CH.CALCADA); b.pinta(1, 11, 47, 1, CH.CALCADA); }
+  // A rua e a calçada prontas ficam limpas (sem mato nem pedra em cima).
+  if (n >= 1) for (let x = 1; x < 50; x++) for (const y of n >= 2 ? [8, 9, 10, 11] : [9, 10]) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+  b.chaoCanvas = null;   // o chão é remontado com as texturas novas
+  for (const o of b.objs.filter(o => o.id === 'poste')) b.tirar(o);
+  if (n >= 3) for (let x = 8; x < 48; x += 7) { const o = b.interativo('poste', 'objetos/poste', x, 8, 1, 1, [8, 6]); o.acao = () => { abrirPlaca('Poste de luz do Bairro Novo.'); return true; }; }
+}

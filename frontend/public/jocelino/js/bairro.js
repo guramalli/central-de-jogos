@@ -74,6 +74,8 @@ const Bairro = {
   },
   salvar(s) { s.bairro = JSON.parse(JSON.stringify(G.bairro)); },
   donoDe(t) { const i = DONOS.findIndex(d => d.terreno === t); return i >= 0 && i < G.bairro.chegados ? DONOS[i] : null; },
+  // A casa toda caprichada (as 6 fases com qualidade 1,5 ou mais): ganha a placa "Construída por Jocelino".
+  caprichada(t) { const x = G.bairro.terrenos[t]; return !!x && x.fase >= 6 && x.quals.length >= 6 && x.quals.slice(0, 6).every(q => q >= 1.5); },
   casasProntas() { return Object.values(G.bairro.terrenos).filter(x => x.mudou).length; },
   // A próxima fase de cada terreno com dono e de cada comércio liberado (se não está aceita nem acabou).
   pedidos() {
@@ -105,3 +107,13 @@ INICIADORES.push(s => Bairro.iniciar(s));
 COLETORES.push(s => Bairro.salvar(s));
 AO_ENTREGAR.push((id, q) => Bairro.faseEntregue(id, q));
 MANHA.push(() => { if (G.bairro) for (const l of Bairro.manha()) G.feitosHoje.push(l); });
+
+// As ruas do Bairro Novo (pedidos da Prefeitura, na ordem): abrir a rua de terra, as calçadas, os postes.
+Object.assign(PREFEITURA_OBRAS, {
+  pref_rua_1: { nome: 'Abrir a rua do Bairro Novo', texto: 'A rua do loteamento ainda é só mato: precisa abrir, nivelar e cascalhar.', material: { pedra: 40, cimento: 6 }, etapas: ['pa', 'pa', 'colher', 'regador'], paga: 600, premio: { itens: { cimento: 5 } }, x: 6, y: 11, bairro: { rua: 1 }, libera: () => !!(G.bairro && G.bairro.aberto) },
+  pref_rua_2: { nome: 'Calçadas do Bairro Novo', texto: 'Calçada dos dois lados da rua, para o povo andar.', material: { cimento: 8, pedra: 20 }, etapas: ['pa', 'colher', 'colher', 'regador'], paga: 550, premio: { itens: { cal: 4 } }, x: 14, y: 11, bairro: { rua: 2 }, libera: () => !!(G.bairro && G.bairro.aberto) && G.empreitas.prefeitura.feitos.includes('pref_rua_1') },
+  pref_rua_3: { nome: 'Postes de luz do Bairro Novo', texto: 'De noite o bairro é um breu: postes de madeira com luminária.', material: { madeira: 20, vergalhao: 6 }, etapas: ['machado', 'machado', 'colher'], paga: 500, premio: { itens: { impermeabilizante: 2 } }, x: 22, y: 11, bairro: { rua: 3 }, libera: () => !!(G.bairro && G.bairro.aberto) && G.empreitas.prefeitura.feitos.includes('pref_rua_2') },
+});
+for (const id of ['pref_rua_1', 'pref_rua_2', 'pref_rua_3']) Object.assign(PREFEITURA_OBRAS[id], { cliente: 'prefeitura', mapa: 'bairro', funcaoMin: 0, tipo: 'longa', dias: PREFEITURA_OBRAS[id].etapas.length, vezesDia: 3, ferramenta: PREFEITURA_OBRAS[id].etapas[0], artes: ['objetos/vala', 'objetos/alicerce'] });
+Object.assign(EMPREITAS_EXTRAS, { pref_rua_1: PREFEITURA_OBRAS.pref_rua_1, pref_rua_2: PREFEITURA_OBRAS.pref_rua_2, pref_rua_3: PREFEITURA_OBRAS.pref_rua_3 });
+Bairro.ruas = () => ['pref_rua_1', 'pref_rua_2', 'pref_rua_3'].filter(id => G.empreitas && G.empreitas.prefeitura && G.empreitas.prefeitura.feitos.includes(id)).length;
