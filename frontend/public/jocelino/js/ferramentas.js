@@ -62,7 +62,7 @@ function usarItemDaMao(peloTeclado) {
   if (typeof varaNaMao === 'function' && varaNaMao(id)) return;   // a vara de pescar tem o seu jeito (pesca_jogo.js)
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
-  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id));
+  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1);
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
   j.dir = alvo.dir;
@@ -111,6 +111,7 @@ function quebrar(o) {
   if (o.det === 'entulho' && Math.random() < (typeof Habilidades !== 'undefined' && Habilidades.tem('limpinho') ? 0.25 : 0.15)) soltar('ferro_velho', 1, o.x, o.y - 10);
   if (typeof quebrouNaObra === 'function') quebrouNaObra(o);
   if (typeof quebrouEmpreita === 'function') quebrouEmpreita(o);
+  if (typeof quebrouNaMina === 'function') quebrouNaMina(o);
   if (typeof Habilidades !== 'undefined') {
     const limpeza = ['mato', 'galho', 'entulho'].includes(o.det) && Habilidades.tem('faxineiro') ? 2 : 1;
     Habilidades.ganhar(o.det === 'entulho' ? 'alvenaria' : 'folego', limpeza * (o.det === 'entulho' ? 2 : 1));

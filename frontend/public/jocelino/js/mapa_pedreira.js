@@ -18,8 +18,8 @@ MAPAS_DEF.pedreira = () => {
   }
   for (let y = 3; y < b.alt - 2; y++) { if (y < 7 || y > 8) b.enfeite('objetos/rocha_mina_1', 1, y, false); b.enfeite('objetos/rocha_mina_1', b.larg - 2, y, false); }
   const fechado = () => { abrirPlaca('Fechado até o Seu Tonico liberar as bancadas. ("Primeiro a gente arruma a escada", diz ele.)'); return true; };
-  b.interativo('escada_mina', 'objetos/escada_mina', 11, 8, 1, 1, [10, 6]).acao = fechado;
-  b.interativo('elevador_mina', 'objetos/elevador_mina', 6, 4, 2, 1, [28, 8]).acao = fechado;
+  b.interativo('escada_mina', 'objetos/escada_mina', 11, 8, 1, 1, [10, 6]).acao = () => (typeof entrarNaMina === 'function' ? entrarNaMina() : fechado());
+  b.interativo('elevador_mina', 'objetos/elevador_mina', 6, 4, 2, 1, [28, 8]).acao = () => (typeof abrirElevador === 'function' ? abrirElevador() : fechado());
   b.paredesDaBorda();
   b.aoMontar = () => rochasDaEntrada(b);
   return b;

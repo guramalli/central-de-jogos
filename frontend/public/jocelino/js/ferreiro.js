@@ -72,6 +72,18 @@ COLETORES.push(s => Ferreiro.salvar(s));
 MANHA.push(() => { if (Ferreiro.pronta(G.dia) && G.dia === G.ferreiro.oficina.pronta) G.feitosHoje.push(`O Seu Tonico terminou ${NOME_FERRAMENTA[G.ferreiro.oficina.id] || G.ferreiro.oficina.id} reforçada: passe na ferraria.`); });
 TAREFAS.push(() => G.ferreiro && Ferreiro.pronta(G.dia) ? [{ texto: 'Buscar a ferramenta na ferraria do Tonico' }] : []);
 
+// O que o Tonico faz na hora (com dinheiro e material); as entregas seguintes acrescentam forja, irrigador bom e betoneira.
+const RECEITAS_TONICO = { lampiao: { dinheiro: 50, barra_ferro: 1 } };
+Ferreiro.fazer = function (id, mochila, dinheiro) {
+  const r = RECEITAS_TONICO[id]; if (!r) return { ok: false, gasto: 0, motivo: 'Isso o Tonico não faz.' };
+  const preco = Math.round(r.dinheiro * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
+  for (const m in r) if (m !== 'dinheiro' && mochila.total(m) < r[m]) return { ok: false, gasto: 0, motivo: `Falta ${Itens.qtd(r[m], m)}.` };
+  if (dinheiro < preco) return { ok: false, gasto: 0, motivo: `O dinheiro não dá (Cr$ ${preco}).` };
+  if (!mochila.cabe(id)) return { ok: false, gasto: 0, motivo: 'A mochila está cheia.' };
+  for (const m in r) if (m !== 'dinheiro') mochila.remover(m, r[m]);
+  mochila.adicionar(id, 1); return { ok: true, gasto: preco, motivo: '' };
+};
+
 // ---------- a tela da ferraria ----------
 function abrirFerraria() {
   if (!Ferreiro.aberta()) { abrirConversa('Seu Tonico', urlArte('retratos/tonico_normal'), [relogio.domingo() ? 'Domingo a ferraria fecha, Jocelino.' : 'A ferraria abre das 8h às 18h.']); return true; }
@@ -95,6 +107,8 @@ function abrirFerraria() {
       el('div', { style: 'font-weight:800' }, `Ferro velho: ${G.mochila.total('ferro_velho')} · Barras: ${G.mochila.total('barra_ferro')} · Cr$ ${G.dinheiro}`),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.irrigador(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um irrigador: coloque no quintal, perto das covas.'); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fazer irrigador: Cr$ 80 + 2 barras'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.molinete(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um molinete!'); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fazer molinete: Cr$ 600 + 3 barras'),
+      ...Object.keys(RECEITAS_TONICO).map(id => el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.fazer(id, G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar(`O Tonico fez ${Itens.qtd(1, id)}.`); hudSujo(); desenha(); } else avisar(r.motivo); } },
+        `Fazer ${Itens.nome(id).toLowerCase()}: Cr$ ${RECEITAS_TONICO[id].dinheiro}` + Object.entries(RECEITAS_TONICO[id]).filter(([m]) => m !== 'dinheiro').map(([m, q]) => ' + ' + Itens.qtd(q, m)).join(''))),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.fundir(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fundir ferro velho em barra'),
       el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };
