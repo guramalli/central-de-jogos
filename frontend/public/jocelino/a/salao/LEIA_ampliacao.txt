@@ -1,0 +1,56 @@
+AMPLIAÇÃO DA PENSÃO E MELHORIAS EM NÍVEIS — arte do Higgsfield (ferramentas_arte/produzir_ampliacao.sh),
+recortada por ferramentas_arte/web_ampliacao.py (brutos em ferramentas_arte/_bruto/ampliacao/). Tudo já está na ARTE_LISTA.
+
+================ FACHADAS NA VILA (a/objetos/, visão de cima, mesmo traço e escala da pensao.webp)
+O jogo desenha o objeto com o meio da BASE da imagem no pé (desenhaPe). A pensão hoje: interativo(13, 8, 5, 4) = 240 px.
+pensao_obra.webp ....... 276x288 — a pensão com andaime, escada, sacos de cimento, tijolos no palete, areia e carrinho.
+   A casa é a MESMA da pensao.webp, no mesmo tamanho (encaixada pela metade esquerda, escala 0.1430 do bruto).
+   A tela cresceu 18 px para cada lado (o centro não muda) e 48 px (1 ladrilho) para baixo, onde ficam o carrinho, os
+   tijolos e a areia. Para a casa ficar exatamente no lugar: o pé 1 ladrilho mais abaixo -> interativo(13, 9, 5, 5)
+   (mesmo bx, by + 1; a caixa de colisão passa a cobrir também o material da frente).
+   Letreiro: x 135, y 105, w 78, h 16 (estilo creme, a tábua é a mesma da pensão). Luzes: [(135, 165, 95), (80, 150, 45)]
+   (a janela da direita fica atrás do andaime: sem luz nela).
+pensao_ampliada.webp ... 336x178 — anexo à direita + varanda coberta na frente toda, 4 mesinhas de toalha xadrez, bandeirinhas.
+   7 ladrilhos de largura: pé no MESMO by, uma coluna a mais de cada lado -> interativo(12, 8, 7, 4).
+   O pé é a base da varanda (o degrau). A porta fica em x = 161 da arte (7 px à esquerda do meio) e o telhado
+   principal tem ~215 px (o da pensão tem 227): a casa velha continua quase do mesmo tamanho; a porta que a IA desenhou
+   ficou menor (toldo ~72% do da pensão) e o prédio mais baixo (o telhado da varanda cobre a parede).
+   Letreiro: x 159.5, y 61.5, w 58, h 12 (tábua menor: cabe o texto curto "PENSÃO"). Luzes: [(161, 118, 60), (95, 112, 30), (215, 112, 30), (283, 112, 30)]
+pensao_sobrado.webp .... 330x288 — 2º andar com três janelas de quarto e sacada de ferro no meio; varanda e mesinhas embaixo.
+   Pé no mesmo lugar da ampliada -> interativo(12, 8, 7, 4) (o desenho tem 6 ladrilhos de altura: só a base bloqueia).
+   O anexo da ampliada virou parte do térreo (a IA juntou os telhados); toldo ~82% do da pensão.
+   Letreiro: x 165, y 156, w 64, h 12. Luzes: [(161, 215, 60), (95, 210, 30), (215, 210, 30), (272, 210, 30), (94, 95, 30), (165, 95, 30), (236, 95, 30)]
+   (as três últimas luzes são do 2º andar: quartos acesos.)
+Cópias em PNG em jogo/arte/topo/objetos/ (o web_converte.py mantém os nomes na lista).
+
+================ PALCO DE LADO (a/salao/, 1920x1080; posições = canto de cima à esquerda, salvo "pé")
+Escala: gente no palco com ESCALA_GENTE 1.65. Linhas: rodapé da parede y = 760; tampo do balcão y = 778; pé do Jocelino y = 900.
+balcao_grande.webp ..... 1225x125 — o mesmo balcão de azulejo alongado (web_salao.balcao, trechos inteiros repetidos, sem
+   geração); mesma altura e tampo na linha 21 da camada (igual ao balcao.webp). Em (290, 757): vai de x 290 a 1515.
+   8 banquetas: ASSENTOS x = 400, 537, 674, 811, 948, 1085, 1222, 1359 (137 px entre elas; hoje são 6 com 140).
+   O alongamento anda de ~82 em ~82 px: dá 1225 ou 1307 (1225 é o mais perto de 1250).
+   ATENÇÃO: com ele o balcão passa por cima do canto de serviço atual (passe 1285–1465, bacia 1466, lixo 1528, bebedouro
+   1576). Sugestão: o passe, a bacia e o lixo vão para a ponta direita, depois de x = 1515 (até a planta da frente em
+   1702 cabem o passe a 0.8 + bacia + lixo) e o bebedouro para a esquerda, ao lado da geladeira. A toalha_balcao tem
+   995 px: no balcão grande, desenhar a toalha esticada para 1240 (ou duas).
+fogao_industrial.webp .. 440x221 — a cozinha inteira com fogão industrial de 6 bocas (inox e ferro, chama azul), coifa de inox,
+   botijão vermelho; substitui cozinha.webp / cozinha_melhor.webp no mesmo lugar (1300, 545). O tampo do fogão fica
+   na mesma altura do de 4 bocas: a Rosa continua em (1493, 609) mexendo a panela da esquerda.
+ventilador_pe.webp ..... folha 130x150 = 2 quadros de 65x150 lado a lado (3 pás: Y e Y de ponta-cabeça = 60°; ~10 quadros/s;
+   parado = quadro 1). Pé no meio da base. Sugestão: encostado na parede atrás do balcão, centro x = 470, pé y = 760
+   (entre o 1º e o 2º banco; a grade aparece acima das cabeças). Desenhar antes dos clientes.
+ar_janela.webp ......... 120x71 — ar-condicionado de janela antigo com fitinhas voando. Na parede em (1000, 312) (no alto, entre a
+   luminária do meio e a da direita, acima do relógio). Para as fitas "baterem": balançar 1 px ou piscar a opacidade.
+vitrola.webp ........... folha 220x160 = 2 quadros de 110x160 (as notinhas mudam de lugar; ~3 quadros/s). Pé no meio da base.
+   No palco escala 0.75, no tampo: centro x = 1462, pé y = 786 (ponta direita do balcão grande, depois do 8º banco).
+   (com o balcão de hoje: no tampo, centro x = 1215 no lugar da farinheira, ou na prateleira tapando o rádio pintado.)
+caixa_som.webp ......... 73x140 — caixa de baile de madeira com 2 alto-falantes e corneta. Encostada na parede, centro x = 1250,
+   pé y = 760 (entre o passa-prato e a cozinha). Para "pulsar" com a música: escala 1.0 a 1.03 a partir do pé.
+farinheira_barril.webp . 81x125 — barril de farinha com concha e pano (o nível acima da farinheira grande).
+   No chão, centro x = 1600, pé y = 900 (na ponta direita do balcão grande, onde o Jocelino passa); ou no tampo a 0.5.
+varanda_fundo.webp ..... 300x174 — porta de varanda aberta para a rua à noite (mesinha, bandeirinhas, lampião, casinha, mar).
+   Em (276, 424): tapa a janela do mar pintada no fundo (a ampliação abre a parede para a varanda).
+
+Ordem de desenho sugerida (de trás para a frente): fundo, bandeirinhas, varanda_fundo, ar_janela, cozinha (fogao_industrial),
+Rosa, passa-prato, geladeira, ventilador_pe, caixa_som, clientes, balcao_grande, toalha, vitrola/farinheira, farinheira_barril,
+Jocelino, plantas da frente.

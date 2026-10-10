@@ -161,17 +161,21 @@ function iniciarJanta() {
   if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
   avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
 }
+MANHA.push(() => { const p = G.pensao; if (p && p.estado === 'aberta') for (const id of p.liberarDoDegrau()) G.feitosHoje.push(`A Rosa aprendeu uma receita nova: ${Pratos.PRATOS[id].nome}.`); });
 function encerrarJanta() {
   if (!G.turno) return;
   const r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
   G.dinheiro += total; G.ganhoHoje += total;
-  // O cliente especial e os pedidos da Vila.
+  // O cliente especial e os pedidos da Vila. Receitas novas da noite: a do VIP bem servido, a da festa e as do degrau.
+  r.aprendidas = [];
   if (typeof Eventos !== 'undefined') {
     const vip = Eventos.hoje(G.pensao, G.dia, 'vip');
     if (vip) { vip.fim = r.vip === 'servido' ? 'servido' : 'faltou';
-      if (r.vip === 'servido') { const pr = vipDe(vip.id).premio; G.dinheiro += pr.dinheiro; r.curtidas += pr.curtidas; G.pensao.pitadas += pr.pitadas; r.premioVip = pr; } }
-    const fe = Eventos.hoje(G.pensao, G.dia, 'festa'); if (fe) fe.fim = 'feita';
+      if (r.vip === 'servido') { const pr = vipDe(vip.id).premio; G.dinheiro += pr.dinheiro; r.curtidas += pr.curtidas; G.pensao.pitadas += pr.pitadas; r.premioVip = pr;
+        const rv = receitaDoVip(vip.id); if (rv && G.pensao.liberarReceita(rv)) r.aprendidas.push(rv); } }
+    const fe = Eventos.hoje(G.pensao, G.dia, 'festa');
+    if (fe) { fe.fim = 'feita'; const f = FESTAS.find(x => x.nome === fe.nome); if (f && f.ensina && G.pensao.liberarReceita(f.ensina)) r.aprendidas.push(f.ensina); }
     r.pedidosFeitos = Eventos.depoisDaJanta(G.pensao, r, G.dia);
     for (const e of r.pedidosFeitos) { G.dinheiro += e.premio; r.curtidas += 2; }
   }
@@ -182,6 +186,8 @@ function encerrarJanta() {
     if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
     for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
   r.pitadasGanhas = G.pensao.pitadas - pit0;
+  r.aprendidas.push(...G.pensao.liberarDoDegrau());
+  for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); sons.tocar('fanfarra', 1.15, 0, -6); }
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
   r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;
   const custo = Math.min(r.despesa + r.salarios, Math.max(0, G.dinheiro));   // nunca deixa o bolso negativo

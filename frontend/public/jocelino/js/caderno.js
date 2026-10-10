@@ -15,6 +15,9 @@ const nomeIngrediente = id => id === 'peixe' ? 'Peixe' : (Itens.nome ? Itens.nom
 const iconeIngrediente = id => urlItem(id === 'peixe' ? 'sardinha' : id);
 
 let _cadernoSel = null;
+// Os caminhos das receitas a descobrir, na ordem do caderno (receitas.js explica cada um).
+const CAMINHOS_CADERNO = [['ingrediente', 'Pesquisar com a Rosa'], ['degrau', 'Quando a Pensão subir'], ['chef', 'A Rosa inventa'],
+  ['ajudante', 'Os ajudantes ensinam'], ['vip', 'Os clientes especiais ensinam'], ['festa', 'Nas festas da Vila'], ['viajante', 'O Viajante da Capital vende']];
 function abrirCaderno(sel) {
   const p = G.pensao;
   if (!p || p.estado !== 'aberta') { abrirPlaca('O caderno da Rosa fica na pensão. Ela começa a escrever quando a pensão abrir.'); return true; }
@@ -35,18 +38,26 @@ function abrirCaderno(sel) {
     }
     const novas = p.receitasADescobrir();
     if (novas.length) {
-      esq.append(el('div', { class: 'cad-sub' }, 'A descobrir'));
-      for (const r of novas) esq.append(el('div', { class: 'cad-linha descobrir' + (r.id === _cadernoSel ? ' sel' : '') + (r.conhecida ? ' pode' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = r.id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
-        el('img', { src: urlArte(iconePratoGrande(r.id)), class: 'silhueta' }), el('div', { class: 'cad-nome' }, r.conhecida ? Pratos.PRATOS[r.id].nome : '???'),
-        el('div', { class: 'cad-nivel' }, r.conhecida ? `${r.custo} pitadas` : 'precisa de ' + nomeIngrediente(r.principal).toLowerCase())));
+      // Agrupadas pelo caminho, em grade de silhuetas (clique para ver como liberar).
+      esq.append(el('div', { class: 'cad-sub' }, `A descobrir (${novas.length})`));
+      for (const [cam, titulo] of CAMINHOS_CADERNO) {
+        const doCam = novas.filter(r => r.caminho === cam);
+        if (!doCam.length) continue;
+        const g = el('div', { class: 'cad-grade' });
+        for (const r of doCam) g.append(el('div', { class: 'cad-icone' + (r.id === _cadernoSel ? ' sel' : '') + (r.conhecida ? ' pode' : ''),
+          title: cam !== 'ingrediente' || r.conhecida ? Pratos.PRATOS[r.id].nome : '???', onclick: e => { e.stopPropagation(); _cadernoSel = r.id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
+          el('img', { src: urlArte(iconePratoGrande(r.id)), class: 'silhueta' })));
+        esq.append(el('div', { class: 'cad-cam' }, titulo), g);
+      }
     }
     // Página da direita: o prato escolhido.
     const id = _cadernoSel, pr = Pratos.PRATOS[id], tem = p.receitas.includes(id);
     if (!pr) { caixa.append(esq, dir); return; }
     const descobrir = !tem ? novas.find(r => r.id === id) : null;
+    const segredo = descobrir && descobrir.caminho === 'ingrediente' && !descobrir.conhecida;   // ingrediente nunca visto: nome escondido
     dir.append(el('img', { class: 'cad-prato' + (descobrir && !descobrir.conhecida ? ' silhueta' : ''), src: urlArte(iconePratoGrande(id)) }),
-      el('div', { class: 'cad-titulo' }, descobrir && !descobrir.conhecida ? 'Receita a descobrir' : pr.nome),
-      el('div', { class: 'cad-desc' }, descobrir && !descobrir.conhecida ? `A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
+      el('div', { class: 'cad-titulo' }, segredo ? 'Receita a descobrir' : pr.nome),
+      el('div', { class: 'cad-desc' }, segredo ? `A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
     const ings = el('div', { class: 'cad-ings' });
     for (const ing in pr.porcao) {
       const t = p._tem(ing), q = pr.porcao[ing];
@@ -76,7 +87,7 @@ function abrirCaderno(sel) {
         if (r === 'ok') { sons.tocar('carimbo', 1.1, 0.05, -2); sons.tocar('rosa_animada', 1, 0.05, -4); carimbar(caixa); avisar(`Receita nova no caderno: ${pr.nome}! Marque no quadro de giz.`); desenha(); }
         else avisar(r === 'sem_pitadas' ? `Faltam pitadas: precisa de ${descobrir.custo} (tem ${p.pitadas}). As estrelas da janta viram pitadas.` : 'A Rosa ainda não conhece o ingrediente.');
       } }, `Pesquisar com a Rosa (${descobrir.custo} pitadas)`));
-      else dir.append(el('div', { class: 'cad-dica' }, `Onde achar: ${origemDe(pr.principal)}.`));
+      else dir.append(el('div', { class: 'cad-como' }, el('b', {}, 'Como liberar: '), p.comoLiberar(id)));
     }
     caixa.append(esq, dir, el('button', { class: 'botao cad-fechar', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar'));
   };

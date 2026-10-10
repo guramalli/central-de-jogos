@@ -21,7 +21,7 @@ const Chef = {
   },
   // A próxima receita que alguém (a Rosa ou um ajudante) ensina: a de menor raridade que ainda não está no caderno.
   receitaNova(p, quem) {
-    const lista = Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? RECEITAS_NOVAS : {}).filter(id => !p.receitas.includes(id) && (!RECEITAS_NOVAS[id].caminho || RECEITAS_NOVAS[id].caminho === quem || RECEITAS_NOVAS[id].caminho === 'ingrediente'));
+    const lista = Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? RECEITAS_NOVAS : {}).filter(id => !p.receitas.includes(id) && RECEITAS_NOVAS[id].caminho === quem);
     lista.sort((a, b) => (RECEITAS_NOVAS[a].raridade || Pratos.PRATOS[a].fase || 1) - (RECEITAS_NOVAS[b].raridade || Pratos.PRATOS[b].fase || 1));
     return lista[0] || '';
   },

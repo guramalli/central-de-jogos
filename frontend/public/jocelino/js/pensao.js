@@ -166,15 +166,45 @@ class Pensao {
   // O ingrediente passou pela mão do Jocelino: a receita que usa ele fica disponível para pesquisar.
   veIngrediente(id) { if (Pratos.INGREDIENTES[id] && !this.vistos.includes(id)) this.vistos.push(id); }
   _visto(princ) { return princ === 'peixe' ? Pratos.PEIXES.some(px => this.vistos.includes(px)) : this.vistos.includes(princ); }
-  // As receitas que ainda não estão no caderno: {id, principal, conhecida (já viu o ingrediente), custo}.
+  // As receitas que ainda não estão no caderno: {id, principal, caminho, conhecida (dá para pesquisar agora), custo}.
+  // Só as do caminho 'ingrediente' se pesquisam; as outras chegam pelo degrau, pela Rosa, pelo ajudante, pelo VIP, pela
+  // festa ou pelo Viajante (o caderno mostra como).
   receitasADescobrir() {
     return Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? RECEITAS_NOVAS : {}).filter(id => !this.receitas.includes(id))
-      .map(id => ({ id, principal: Pratos.PRATOS[id].principal, conhecida: this._visto(Pratos.PRATOS[id].principal), custo: Pratos.PRATOS[id].pitadas }));
+      .map(id => { const r = Pratos.PRATOS[id], cam = r.caminho || 'ingrediente';
+        return { id, principal: r.principal, caminho: cam, conhecida: cam === 'ingrediente' && this._visto(r.principal), custo: r.pitadas }; });
+  }
+  // As que dá para pesquisar agora (ingrediente já visto).
+  receitasLiberadas() { return this.receitasADescobrir().filter(r => r.conhecida).map(r => r.id); }
+  // Põe a receita no caderno (VIP, festa, Viajante, degrau): true se era nova.
+  liberarReceita(id) { if (!Pratos.PRATOS[id] || this.receitas.includes(id)) return false; this.receitas.push(id); return true; }
+  // As receitas do degrau atual e dos de baixo que ainda faltam: entram no caderno. Devolve as novas.
+  liberarDoDegrau() {
+    const g = this.grau();
+    return Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? RECEITAS_NOVAS : {})
+      .filter(id => RECEITAS_NOVAS[id].caminho === 'degrau' && RECEITAS_NOVAS[id].grau <= g && this.liberarReceita(id));
+  }
+  // O texto de como a receita entra no caderno (o caderno mostra no lugar do botão).
+  comoLiberar(id) {
+    const r = Pratos.PRATOS[id];
+    if (!r) return 'Receita desconhecida.';
+    if (this.receitas.includes(id)) return 'Já está no caderno da Rosa.';
+    const ing = n => (n === 'peixe' ? 'um peixe' : Itens.nome(n).toLowerCase());
+    switch (r.caminho || 'ingrediente') {
+      case 'degrau': return `A Rosa aprende quando a Pensão chegar em "${this.nomeGrau(r.grau)}" (degrau ${r.grau}).`;
+      case 'chef': return 'A Rosa inventa sozinha quando subir de nível como chef (nos níveis 3, 6 e 9).';
+      case 'ajudante': return 'Um ajudante de cozinha ensina quando chegar ao nível 5 ou 10 de treino.';
+      case 'vip': { const v = typeof vipDe === 'function' && vipDe(r.vip); return `${v ? v.nome : 'Um cliente especial'} ensina quando jantar na pensão e for bem servido.`; }
+      case 'festa': { const f = typeof FESTAS !== 'undefined' && FESTAS.find(x => x.ensina === id); return `A Rosa aprende na festa "${f ? f.nome : 'da Vila'}", servindo o prato da festa.`; }
+      case 'viajante': return `O Viajante da Capital vende por Cr$ ${typeof Viajante !== 'undefined' ? Viajante.RECEITAS[id] : '?'}, às quintas na Vila (a partir do degrau ${typeof Viajante !== 'undefined' ? Viajante.GRAU : 3}).`;
+      default: return this._visto(r.principal) ? `Pesquise com a Rosa: ${r.pitadas} pitadas de tempero.` : `Traga ${ing(r.principal)} para a Rosa ver (${typeof origemDe === 'function' ? origemDe(r.principal) : ''}).`;
+    }
   }
   // Pesquisa uma receita: 'ok', 'falta_ingrediente' ou 'sem_pitadas'.
   pesquisar(id) {
     const r = this.receitasADescobrir().find(x => x.id === id);
     if (!r) return 'ja_tem';
+    if (r.caminho !== 'ingrediente') return 'outro_caminho';
     if (!r.conhecida) return 'falta_ingrediente';
     if (this.pitadas < r.custo) return 'sem_pitadas';
     this.pitadas -= r.custo; this.receitas.push(id);

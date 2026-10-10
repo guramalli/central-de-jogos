@@ -18,7 +18,7 @@ const VIPS = [
 const FESTAS = [
   { nome: 'Noite do PF em Dobro', pratos: ['pf_peao', 'marmita_peao'] },
   { nome: 'Festa do Peixe Frito', pratos: ['peixe_frito', 'moqueca'] },
-  { nome: 'Arraiá da Pensão', pratos: ['pamonha', 'bolo_milho', 'cocada_tijolinho'] },
+  { nome: 'Arraiá da Pensão', pratos: ['pamonha', 'bolo_milho', 'cocada_tijolinho'], ensina: 'canjica' },
   { nome: 'Noite dos Doces da Vó', pratos: ['rabanada', 'goiabada', 'cocada_tijolinho'] },
   { nome: 'Jogo do Santos na Rádio', pratos: ['caldo_caranguejo', 'pf_peao', 'sopa_pedra'] },
 ];
@@ -63,8 +63,96 @@ const Eventos = {
   },
 };
 const vipDe = id => VIPS.find(v => v.id === id);
+// A receita com o nome do VIP (ele ensina quando é bem servido).
+const receitaDoVip = id => Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? RECEITAS_NOVAS : {}).find(r => RECEITAS_NOVAS[r].caminho === 'vip' && RECEITAS_NOVAS[r].vip === id) || '';
+
+// ---------- o Viajante da Capital ----------
+// O "Viajante" do Stardew e os mercadores do Dave, do nosso jeito: seu Nonato vem de São Paulo de caminhonete às quintas
+// (a partir do degrau 3) e vende receita secreta e ingrediente raro, tudo caro.
+const Viajante = {
+  DIA: 3,                 // quinta (0 = segunda)
+  GRAU: 3,
+  RECEITAS: { arroz_polvo: 300 },
+  INGREDIENTES: { polvo: 40, camarao: 18, lagosta: 70, pimenta_cheiro: 35, dende: 12 },
+  presente(p, dia) { return !!p && (p.estado === 'aberta' || p.estado === 'pronta') && p.grau() >= Viajante.GRAU && (dia - 1) % 7 === Viajante.DIA; },
+  comprarReceita(p, id, dinheiro) {
+    if (!(id in Viajante.RECEITAS)) return 'nao';
+    if (p.receitas.includes(id)) return 'ja_tem';
+    if (dinheiro < Viajante.RECEITAS[id]) return 'dinheiro';
+    p.liberarReceita(id); return 'ok';
+  },
+  comprarIngrediente(p, id, qtd, dinheiro) {
+    if (!(id in Viajante.INGREDIENTES)) return 'nao';
+    if (!p.aceita(id)) return 'trancado';
+    if (dinheiro < Viajante.INGREDIENTES[id] * qtd) return 'dinheiro';
+    p.despensa[id] = (p.despensa[id] || 0) + qtd; p.veIngrediente(id); return 'ok';
+  },
+};
 
 // ---------- no jogo ----------
+// O Viajante na Vila: a carroça (e o seu Nonato ao lado, quando a folha dele existir) na praça, às quintas.
+const VIAJANTE_LUGAR = { x: 26, y: 18 };
+function poeViajante(b) {
+  const vem = Viajante.presente(G.pensao, G.dia), car = b.objs.find(o => o.id === 'viajante'), gente = b.moradores.find(m => m.id === 'viajante');
+  if (vem && !car) {
+    const o = b.interativo('viajante', 'objetos/carroca_mascate', VIAJANTE_LUGAR.x, VIAJANTE_LUGAR.y, 4, 2, [56, 18]);
+    o.acao = () => conversaViajante();
+    if (ARTE_LISTA.includes('personagens/viajante/andar') && !gente) {
+      const m = b.morador('viajante', 'Seu Nonato, o Viajante', VIAJANTE_LUGAR.x + 4, VIAJANTE_LUGAR.y - 1, DIR.ESQUERDA);
+      m.aoConversar = () => conversaViajante();
+    }
+  } else if (!vem && car) {
+    b.tirar(car);
+    if (gente) b.moradores = b.moradores.filter(m => m !== gente);
+  }
+}
+AO_MONTAR.push(b => { if (b.id === 'vila') poeViajante(b); });
+AO_ENTRAR_MAPA.push(id => { if (id === 'vila') poeViajante(G.mapa); });   // o mapa da Vila fica montado de um dia para o outro
+MANHA.push(() => {
+  if (MAPAS.vila) poeViajante(MAPAS.vila);
+  if (Viajante.presente(G.pensao, G.dia)) G.feitosHoje.push('O Viajante da Capital chegou na praça da Vila: receita secreta e ingrediente raro, só hoje!');
+});
+TAREFAS.push(() => Viajante.presente(G.pensao, G.dia) ? [{ texto: 'O Viajante da Capital está na praça (só hoje)' }] : []);
+function conversaViajante() {
+  const r = ARTE_LISTA.includes('retratos/viajante_normal') ? urlArte('retratos/viajante_normal') : null;
+  abrirPlaca(['Seu Nonato: "Bom dia, freguês! Trago da Capital o que não se acha na Vila: receita de restaurante fino e ingrediente de primeira. Barato não é, mas vale cada cruzeiro!"'],
+    { quem: 'Seu Nonato, o Viajante', retrato: r, depois: () => abrirViajante() });
+  return true;
+}
+// A loja do Viajante: as receitas secretas e os ingredientes raros (o que a pensão ainda não aceita fica trancado).
+function abrirViajante() {
+  const p = G.pensao, caixa = el('div', { class: 'painel orelhao viajante' });
+  const desenha = () => {
+    caixa.innerHTML = '';
+    caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'O Viajante da Capital'),
+      el('div', { class: 'rodape', style: 'text-align:left;margin-bottom:8px' }, 'Só às quintas, na praça. Receita comprada vai direto para o caderno da Rosa; ingrediente vai para a despensa.'));
+    const grade = el('div', { class: 'orel-grade' });
+    for (const id in Viajante.RECEITAS) {
+      const tem = p.receitas.includes(id), preco = Viajante.RECEITAS[id];
+      grade.append(el('div', { class: 'orel-item' + (tem ? ' trancado' : '') }, el('img', { src: urlArte(iconePratoGrande(id)) }),
+        el('div', {}, el('b', {}, 'Receita: ' + Pratos.PRATOS[id].nome), el('div', { class: 'orel-preco' }, tem ? 'Já está no caderno' : `Cr$ ${preco} · ★★★★`)),
+        tem ? null : el('div', { class: 'orel-bts' }, el('button', { class: 'botao', onclick: ev => { ev.stopPropagation();
+          const r = Viajante.comprarReceita(p, id, G.dinheiro);
+          if (r === 'ok') { G.dinheiro -= preco; hudSujo(); sons.tocar('moedas', 1, 0.05, -4); sons.tocar('fanfarra', 1.1, 0, -6); avisar(`Receita nova no caderno: ${Pratos.PRATOS[id].nome}!`); desenha(); }
+          else avisar(r === 'dinheiro' ? 'Não dá: falta dinheiro.' : 'Não deu.'); } }, 'Comprar'))));
+    }
+    for (const id in Viajante.INGREDIENTES) {
+      const pode = p.aceita(id), preco = Viajante.INGREDIENTES[id], ing = Pratos.INGREDIENTES[id];
+      grade.append(el('div', { class: 'orel-item' + (pode ? '' : ' trancado') }, el('img', { src: urlItem(id) }),
+        el('div', {}, el('b', {}, Itens.nome(id)), el('div', { class: 'orel-preco' }, `Cr$ ${preco} cada · ${'★'.repeat(ing ? ing.raridade : 1)} · tem ${p.despensa[id] || 0}`),
+          pode ? null : el('div', { class: 'orel-preco' }, '🔒 a pensão precisa de mais fama')),
+        pode ? el('div', { class: 'orel-bts' }, [1, 3].map(n => el('button', { class: 'botao', onclick: ev => { ev.stopPropagation();
+          const r = Viajante.comprarIngrediente(p, id, n, G.dinheiro);
+          if (r === 'ok') { G.dinheiro -= preco * n; hudSujo(); sons.tocar('moedas', 1, 0.05, -6); desenha(); } else avisar('Não dá: falta dinheiro.'); } }, '+' + n))) : null));
+    }
+    caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px' },
+      el('div', { style: 'font-weight:900' }, `Cr$ ${G.dinheiro}`), el('button', { class: 'botao forte', onclick: ev => { ev.stopPropagation(); fecharModal(); } }, 'Até quinta!')));
+  };
+  desenha();
+  abrirModal(caixa);
+  sons.tocar('abrir', 0.9, 0.03, -6);
+  return true;
+}
 MANHA.push(() => {
   const p = G.pensao;
   if (!p) return;

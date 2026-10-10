@@ -34,6 +34,7 @@ function abrirFechamento(r) {
     el('div', { class: 'fx-col' },
       linha('Curtidas', `+${r.curtidas || 0} (total ${p.curtidas})`), linha('Pitadas de tempero', `+${r.pitadasGanhas || 0} (total ${p.pitadas})`),
       ...(r.metasFeitas || []).map(m => linha('Meta cumprida', m.texto, 'lucro')),
+      ...(r.aprendidas || []).map(id => linha('Receita nova', Pratos.PRATOS[id].nome, 'lucro')),
       r.subiu ? linha('A pensão subiu!', `agora é "${p.nomeGrau(r.subiu)}"`, 'lucro') : px ? linha(`Para "${px.nome}"`, textoFalta(px.falta)) : null),
     el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar a pensão')));
   abrirModal(caixa);
