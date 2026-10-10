@@ -1,0 +1,43 @@
+Jocelino usando ferramentas — folhas golpe_<ferramenta>.webp (machado, picareta, pa, foice, regador)
+Gerado por ferramentas_arte/produzir_golpe.sh (Higgsfield) + ferramentas_arte/web_golpe.py (alinhamento).
+
+Folha: 528x816 px = 4 colunas x 4 linhas; QUADRO 132x204 px.
+COLUNAS = direção, mesma ordem do andar: 0 baixo/de frente, 1 cima/de costas, 2 esquerda, 3 direita.
+  A coluna 2 (esquerda) é a coluna 3 (direita) espelhada.
+LINHAS = quadros do golpe: 0 preparo, 1 ferramenta no alto, 2 descendo (foice: meio da varrida; regador: derramando),
+  3 impacto (foice: fim da varrida; regador: inclinado máximo com a água caindo).
+
+PÉ: em todos os quadros a sola da bota fica em y=162 e o meio das botas em x=66. Abaixo do pé sobram 41 px: de frente a
+  ferramenta bate no chão ABAIXO dos pés (no ladrilho da frente) e precisa desse espaço; o quadro é mais alto que os 168 sugeridos por isso.
+  Para desenhar: canto do quadro = (pé.x - 66, pé.y - 162), em escala 1 (mesma escala do andar.webp).
+  No andar.webp (quadro 66x114) a sola fica em y=113 e o meio em x~33: altura chapéu-até-sola do andar por direção = 98, 97, 99, 98 px;
+  o golpe foi escalado para ter exatamente essa altura no quadro de preparo.
+
+ONDE A CABEÇA DA FERRAMENTA TOCA no quadro de impacto (linha 3), em (x, y) dentro do quadro e relativo ao pé (dx, dy):
+  machado:
+    baixo (de frente)              ( 72, 177)   pé  +6, +15   gume da cabeça encostando no chão
+    cima (de costas)               ( 66, 149)   pé  +0, -13   a cabeça fica escondida pelo corpo (bate no chão além dele, longe da câmera); este é o pé do cabo que aparece entre as pernas
+    esquerda (direita espelhada)   ( 36, 158)   pé -30,  -4   gume da cabeça encostando no chão
+    direita                        ( 95, 158)   pé +29,  -4   gume da cabeça encostando no chão
+  picareta:
+    baixo (de frente)              ( 67, 178)   pé  +1, +16   gume da cabeça encostando no chão
+    cima (de costas)               ( 66, 153)   pé  +0,  -9   a cabeça fica escondida pelo corpo (bate no chão além dele, longe da câmera); este é o pé do cabo que aparece entre as pernas
+    esquerda (direita espelhada)   ( 40, 153)   pé -26,  -9   gume da cabeça encostando no chão
+    direita                        ( 91, 153)   pé +25,  -9   gume da cabeça encostando no chão
+  pa:
+    baixo (de frente)              ( 64, 190)   pé  -2, +28   gume da cabeça encostando no chão
+    cima (de costas)               ( 66, 150)   pé  +0, -12   a cabeça fica escondida pelo corpo (bate no chão além dele, longe da câmera); este é o pé do cabo que aparece entre as pernas
+    esquerda (direita espelhada)   ( 41, 164)   pé -25,  +2   gume da cabeça encostando no chão
+    direita                        ( 90, 164)   pé +24,  +2   gume da cabeça encostando no chão
+  foice:
+    baixo (de frente)              ( 97, 155)   pé +31,  -7   ponta da lâmina no fim da varrida
+    cima (de costas)               ( 35, 150)   pé -31, -12   ponta da lâmina no fim da varrida
+    esquerda (direita espelhada)   (  9, 152)   pé -57, -10   ponta da lâmina no fim da varrida
+    direita                        (122, 152)   pé +56, -10   ponta da lâmina no fim da varrida
+  regador:
+    baixo (de frente)              ( 76, 167)   pé +10,  +5   onde a água cai no chão
+    cima (de costas)               ( 95, 160)   pé +29,  -2   onde a água cai no chão
+    esquerda (direita espelhada)   ( 20, 161)   pé -46,  -1   onde a água cai no chão
+    direita                        (111, 161)   pé +45,  -1   onde a água cai no chão
+
+Ladrilho do jogo = 48 px (TILE em js/base.js).

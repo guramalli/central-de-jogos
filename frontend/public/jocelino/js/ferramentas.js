@@ -249,6 +249,24 @@ function desenhaFerramenta(ctx, j, atras) {
     for (let k = 0; k < 6; k++) { const u = (t * 5 + k / 6) % 1; desenhaFx(ctx, 'gota', _suave(bx, cx, u) + Math.sin(k * 7) * 6, _suave(by, cy, u)); }
   }
 }
+// O quadro da folha de golpe desenhada (a/personagens/jocelino/golpe_<ferramenta>, 4 direções × 4 quadros:
+// 0 preparo, 1 no alto, 2 descendo, 3 impacto), pelo tempo do golpe. Quadro de 132x204 com o pé em (66, 162).
+const GOLPE_QUADRO = { w: 132, h: 204, peX: 66, peY: 162 };
+function quadroGolpe(j) {
+  const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)], t = j.golpeT || 0;
+  if (t < pf.subida * 0.4) return 0;
+  if (t < pf.subida) return 1;
+  if (t < pf.acerto) return 2;
+  return t < pf.dur - 0.05 ? 3 : 0;
+}
+function desenhaGolpeDesenhado(ctx, j) {
+  const img = spr('personagens/jocelino/golpe_' + j.golpeItem);
+  if (!img) return false;
+  const q = quadroGolpe(j), Q = GOLPE_QUADRO;
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(j.x, j.y - 2, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.drawImage(img, j.dir * Q.w, q * Q.h, Q.w, Q.h, j.x - Q.peX, j.y + 2 - Q.peY, Q.w, Q.h);
+  return true;
+}
 // As lascas (sempre) e a ferramenta da frente (chamado depois do corpo).
 function desenhaGolpe(ctx, j) {
   for (const l of LASCAS) desenhaFx(ctx, l.fx, l.x, l.y, { ang: l.t * 9, alfa: Math.max(0, 1 - l.t * 1.6) });

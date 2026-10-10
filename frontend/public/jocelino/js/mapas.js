@@ -45,6 +45,30 @@ function desenhaFumaca(ctx, o, alfa) {
     desenhaFx(ctx, 'fumaca_' + n, bx + p.x, by + p.y, { alfa: alfa * p.alfa, escala: p.r / [0, 8, 13, 19][n] * 0.9 });
   }
 }
+// Luzes da noite: brilho quente nas portas e janelas acesas (posição e raio em px da arte). Só luz, nada desenhado.
+const LUZES = {
+  'objetos/pensao': [[117, 165, 95], [62, 150, 45], [178, 150, 45]],
+  'objetos/oficina_sem_fumaca': [[145, 200, 110]],
+  'objetos/deposito': [[139, 215, 85]],
+  'objetos/casa_juca': [[150, 205, 70]],
+  'objetos/orelhao': [[24, 30, 40]],
+  'objetos/museu': [[142, 230, 60]],
+};
+function desenhaLuzes(ctx, m, esc) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const o of m.objs) {
+    const L = LUZES[o.nome], img = L && spr(o.nome);
+    if (!img) continue;
+    for (const [lx, ly, r] of L) {
+      const x = o.x - img.naturalWidth / 2 + lx, y = o.y - img.naturalHeight + ly;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(255,175,80,${0.42 * esc})`); g.addColorStop(1, 'rgba(255,175,80,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }
+  ctx.restore();
+}
 // O texto que cabe na plaquinha e o tamanho da letra.
 function ajustaLetreiro(ctx, L) {
   let r = null;

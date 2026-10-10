@@ -1,0 +1,43 @@
+SERVIÇO DA PENSÃO (palco v2) — peças novas do salão de lado, tela 1920x1080
+Arte do Higgsfield (ferramentas_arte/produzir_servico.sh), recortada por ferramentas_arte/web_servico.py.
+Posições = canto de cima à esquerda na tela 1920x1080 (as da prévia), salvo quando diz "base".
+Escala: gente de pé ~148 px (quadro 66x114 x 1.3); ~80 px por metro.
+
+NO PALCO (ordem: depois do balcão e da farinheira, antes do Jocelino e das plantas da frente)
+  passe.webp ......... 180x105 em (1285, 800)  (base no chão em y = 905; vai de x = 1285 a 1465)
+     face de cima do tampo começa em y = 800; os pratos prontos assentam com o fundo em y = 814.
+     4 vagas, centro x na tela: 1310, 1352, 1394, 1436 (tampo de x 1289 a 1457). Prato de lado (prato_servido) a 0.7 = 41 px:
+     os 4 cabem encostadinhos (na prévia: 2 pratos a 0.8).
+     O pano xadrez pendurado fica na ponta direita (decoração).
+  bacia.webp .......  64x80 em (1466, 825)  (base em y = 905)
+  lixo.webp ........  39x60 em (1528, 842)  (base em y = 902)
+  bebedouro.webp ..... escala 0.42 (84x126) em (1576, 774)  (base em y = 900; antes ficava em (1275, 758))
+  Jocelino ........... pé em y = 900 (quadro 86x148 com o topo em y = 754), anda colado na frente do balcão.
+  pilha_louca.webp ... 70x38; no palco escala 0.8 (56x30): na cabeça do Jocelino, centro x no meio do chapéu,
+     base 8 px abaixo do topo do chapéu (apoiada nele). Bandeja de 3 itens: empilhar subindo ~24 px por item.
+  prato_servido.webp . 59x30; no palco escala 0.8: no tampo do balcão na frente do cliente que come, centro x = centro do
+     cliente, fundo do prato em y = 786 (como a farinheira); desenhar depois do balcão.
+
+O COPO GRANDE DO BEBEDOURO (minijogo de encher), tela de 260x340, coordenadas dentro da tela do copo
+  café = xícara de vidro com pires (a caneca esmaltada não deixa ver o nível; bruto em _bruto/salao/copos.png),
+  guaraná = copo americano alto, caldo de cana = copo alto cônico.
+  Montagem: (1) líquido com o topo da textura no nível; (2) espuma_topo reduzida para a largura do líquido, com
+  o meio no nível (só guaraná e caldo; o café já tem a crema no topo da textura); (3) recortar (1)+(2) pela
+  máscara copo_X_dentro (destination-in); (4) desenhar copo_X por cima (o vidro é translúcido).
+  nível (y) = fundo - cheio * (fundo - topo), com cheio de 0 a 1. Linha de medida = "Na medida!".
+  cafe:
+     dentro (máscara) x 43..211, topo y = 157 (boca), fundo y = 295 (ponto mais baixo do fundo de dentro); altura útil 138
+     linha de medida: y = 187 (risco branco de x 106 a 146, y 186..189) = 78% da altura útil
+     cheio na linha = 0.783; sugestão de faixa "Na medida!": nível entre y = 183 e 193
+     liquido_cafe.webp: textura na mesma tela, líquido de x 39 a 215, altura 340 (desenhar em (0, nível))
+  guarana:
+     dentro (máscara) x 46..215, topo y = 17 (boca), fundo y = 307 (ponto mais baixo do fundo de dentro); altura útil 290
+     linha de medida: y = 67 (risco branco de x 108 a 156, y 65..69) = 83% da altura útil
+     cheio na linha = 0.828; sugestão de faixa "Na medida!": nível entre y = 63 e 73
+     liquido_guarana.webp: textura na mesma tela, líquido de x 42 a 219, altura 340 (desenhar em (0, nível))
+  caldo:
+     dentro (máscara) x 47..218, topo y = 19 (boca), fundo y = 304 (ponto mais baixo do fundo de dentro); altura útil 285
+     linha de medida: y = 74 (risco branco de x 104 a 158, y 72..76) = 81% da altura útil
+     cheio na linha = 0.807; sugestão de faixa "Na medida!": nível entre y = 70 e 80
+     liquido_caldo.webp: textura na mesma tela, líquido de x 43 a 222, altura 340 (desenhar em (0, nível))
+  espuma_topo.webp ... 260x96 (bolhas redondas: reduzir sem distorcer para a largura do líquido).

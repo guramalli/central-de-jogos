@@ -97,6 +97,11 @@ class Jogador extends Personagem {
   desenha(ctx) {
     // No golpe, o corpo na pose de golpe (folha jocelino/golpe: as 4 direções na vertical; mãos vazias, a ferramenta
     // é desenhada por cima girando).
+    // A animação desenhada quadro a quadro (o Jocelino segurando a ferramenta de verdade).
+    if (this.golpe > 0 && typeof desenhaGolpeDesenhado === 'function' && desenhaGolpeDesenhado(ctx, this)) {
+      for (const l of LASCAS) desenhaFx(ctx, l.fx, l.x, l.y, { ang: l.t * 9, alfa: Math.max(0, 1 - l.t * 1.6) });
+      return;
+    }
     const pose = this.golpe > 0 ? spr('personagens/jocelino/golpe') : null;
     if (pose) {
       const qw = pose.naturalWidth, qh = pose.naturalHeight / 4;

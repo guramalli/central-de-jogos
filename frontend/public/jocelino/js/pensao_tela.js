@@ -124,12 +124,12 @@ function pensaoQuadro() {
           else if (p.cardapio.length < p.vagas()) p.cardapio.push(id);
           else avisar(`Só cabem ${p.vagas()} pratos no quadro (a fama abre mais).`);
           sons.tocar('cursor', 1, 0.04, -8); desenha(); } },
-        el('img', { src: urlItem('prato_' + id) }),
+        el('img', { src: 'a/' + iconePrato(id) + '.webp' }),
         el('div', { class: 'prato-meio' }, el('div', { class: 'faixa', style: `background:${['#c4473a', '#d48a2c', '#3f8a5a', '#3a6ea5', '#8a4fa0', '#b0476e'][i % 6]}` }, pr.nome),
           el('div', { class: rende > 0 ? '' : 'falta' }, '★'.repeat(melhorRar(id)) + '   ' + (rende > 0 ? 'rende ' + rende : 'falta ingrediente'))),
-        el('div', { class: 'prato-preco' }, 'Cr$ ' + pr.preco, marcado ? el('div', { class: 'giz-mi' }, 'no quadro') : null)));
+        el('div', { class: 'prato-preco' }, 'Cr$ ' + p.preco(id, 1), el('div', { class: 'giz-mi' }, 'Nv ' + p.nivel(id) + (marcado ? ' · no quadro' : '')))));
     });
-    dir.append(desc);
+    dir.append(desc, el('button', { class: 'botao', style: 'align-self:flex-end', onclick: e => { e.stopPropagation(); fecharModal(); abrirCaderno(); } }, 'Caderno de receitas ▸'));
     caixa.append(el('div', { class: 'lousa-corpo' }, esq, dir));
   };
   desenha();
@@ -144,7 +144,7 @@ function iniciarJanta() {
   G.turno.iniciar(G.pensao, G.dia, 6 + 4 * (G.pensao.grau() - 1));
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
-  avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passa-prato: clique no prato e depois em quem pediu.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
+  avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
 }
 function encerrarJanta() {
   if (!G.turno) return;
@@ -169,8 +169,8 @@ ATUALIZADORES.push(dt => {
   t.tick(dt, G.minutos);
   const noSalao = noSalaoDaPensao();
   for (const ev of t.eventos) {
-    if (ev.tipo === 'pronto' && noSalao) { mostrarCenaRosa(ev.prato); }
-    else if (ev.tipo === 'pagou' && noSalao) sons.tocar('dinheiro', 1.2, 0.05, -6);
+    if (ev.tipo === 'pronto' && noSalao) { mostrarCenaRosa(ev.prato); sons.tocar('prato_tchan', 1, 0.05, -4); }
+    else if (ev.tipo === 'pagou' && noSalao) sons.tocar(SONS_LISTA.some(n => n.startsWith('moedas')) ? 'moedas' : 'dinheiro', 1.1, 0.05, -6);
     else if (ev.tipo === 'embora') {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
@@ -235,7 +235,7 @@ function pensaoBalcao() {
 function pensaoMontou(i, componentes, bebida) {
   const t = G.turno;
   if (!t || !t.montar(i, componentes, bebida)) return;
-  G.jog.carga = { id: 'prato', mesa: i, icone: 'itens/prato_' + t.mesas[i].prato };
+  G.jog.carga = { id: 'prato', mesa: i, icone: iconePrato(t.mesas[i].prato) };
   avisar(`Prato da banqueta ${i + 1} na mão.`);
 }
 
@@ -276,7 +276,7 @@ function desenhaBaloes(ctx, b) {
   const t = G.turno;
   if (!t) return;
   let k = 0;
-  t.mesas.forEach(m => { if (m.estado === 'prato' && m.pronto && !m.montado) { desenhaPe(ctx, 'itens/prato_' + m.prato, (SALAO.COZINHA[0] - 0.6 - k) * TILE, SALAO.COZINHA[1] * TILE + 8, 1, 0.7); k++; } });
+  t.mesas.forEach(m => { if (m.estado === 'prato' && m.pronto && !m.montado) { desenhaPe(ctx, iconePrato(m.prato), (SALAO.COZINHA[0] - 0.6 - k) * TILE, SALAO.COZINHA[1] * TILE + 8, 1, 0.7); k++; } });
   t.mesas.forEach((m, i) => {
     if (m.estado === 'livre' || i >= SALAO.ASSENTOS.length) return;
     const a = SALAO.ASSENTOS[i];
@@ -292,7 +292,7 @@ function desenhaBaloes(ctx, b) {
     // Balão branco com o pedido (cinza enquanto a Rosa prepara), rabicho e paciência.
     desenhaFx(ctx, m.estado === 'prato' && !m.pronto ? 'balao_pensamento' : 'balao', x, y + 6);
     if (m.estado === 'pedido') texto(ctx, '!', x, y + 12, 34, '#e8452c', '900');
-    else { ctx.globalAlpha = m.pronto ? 1 : 0.45; desenhaPe(ctx, 'itens/prato_' + m.prato, x, y + 20, 1, 0.82); ctx.globalAlpha = 1; }
+    else { ctx.globalAlpha = m.pronto ? 1 : 0.45; desenhaPe(ctx, iconePrato(m.prato), x, y + 20, 1, 0.82); ctx.globalAlpha = 1; }
     const lim = m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO;
     const f = clamp(1 - m.espera / lim, 0, 1);
     // Paciência: o miolo colorido dentro da moldura de madeira (a/fx/barra_moldura).

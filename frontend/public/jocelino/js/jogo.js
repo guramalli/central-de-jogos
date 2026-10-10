@@ -62,10 +62,17 @@ function desenha(dt) {
   const tr = G.tremor > 0 ? G.tremor * 22 : 0;
   ctx.setTransform(z, 0, 0, z, (-G.cam.x + rnd(-tr, tr)) * z, (-G.cam.y + rnd(-tr, tr)) * z);
   if (G.mapa && typeof desenhaMapa === 'function') desenhaMapa(ctx);
-  // Noite: o mundo escurece aos poucos das 18h às 21h (dentro de casa, menos).
-  const esc = relogio.escuridao() * (G.mapa && G.mapa.dentro ? 0.25 : 0.62);
+  // Noite: o mundo escurece aos poucos das 18h às 21h, multiplicando por um azul (escurece sem lavar as cores, como
+  // a noite do Stardew); dentro de casa, menos; o palco da pensão já é arte de noite. Depois, as luzes quentes acesas.
+  const esc = relogio.escuridao() * (G.mapa && G.mapa.palco ? 0 : G.mapa && G.mapa.dentro ? 0.35 : 1);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (esc > 0) { ctx.fillStyle = `rgba(20,24,70,${esc})`; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); }
+  if (esc > 0) {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `rgb(${Math.round(255 - esc * 150)},${Math.round(255 - esc * 138)},${Math.round(255 - esc * 72)})`;
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+    if (G.mapa && typeof desenhaLuzes === 'function') { ctx.setTransform(z, 0, 0, z, -G.cam.x * z, -G.cam.y * z); desenhaLuzes(ctx, G.mapa, esc); ctx.setTransform(1, 0, 0, 1, 0, 0); }
+  }
   ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
   for (const f of DESENHOS_TELA) f(ctx);
 }
@@ -127,7 +134,7 @@ addEventListener('load', () => {
 // Atalho de conferência (?pensao=1): a pensão aberta e limpa, despensa cheia, 16h40 dentro do salão. Marcado soTeste:
 // salvar() não grava nada (nem ao dormir), para não apagar o save de verdade.
 function saveDaPensao() {
-  return Object.assign(novoSave(), { dia: 3, minutos: 16 * 60 + 40, dinheiro: 300, mapa: 'pensao_palco', tile: [3, 20], boasVindas: true, soTeste: true,
+  return Object.assign(novoSave(), { dia: 3, minutos: 16 * 60 + 40, dinheiro: 300, mapa: 'pensao_palco', tile: [8, 18], boasVindas: true, soTeste: true,
     pensao: { estado: 'aberta', abreDia: 3, mesas: 2, despensa: { arroz: 10, feijao: 10, ovo: 10, farinha: 5 }, cardapio: ['pf_peao'] },
     mapas: { pensao_dentro: { detritos: [] } } });
 }

@@ -83,7 +83,7 @@ function migraSave(s) {
   if (!s || typeof s !== 'object') return n;
   for (const k in n) if (!(k in s)) s[k] = n[k];
   // A pensão aberta virou o palco de lado (10/10/2026): quem salvou no salão antigo com ela aberta acorda no palco.
-  if (s.mapa === 'pensao_dentro' && s.pensao && ['aberta', 'pronta'].includes(s.pensao.estado)) { s.mapa = 'pensao_palco'; s.tile = [3, 20]; }
+  if (s.mapa === 'pensao_dentro' && s.pensao && ['aberta', 'pronta'].includes(s.pensao.estado)) { s.mapa = 'pensao_palco'; s.tile = [8, 18]; }
   s.versao = VERSAO_SAVE;
   return s;
 }

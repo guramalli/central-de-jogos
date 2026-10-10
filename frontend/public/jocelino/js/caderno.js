@@ -1,0 +1,90 @@
+// Jocelino — caderno.js — o caderno de receitas da Rosa (o Menu + Enhance + Research do Bancho, do nosso jeito):
+// página da esquerda com as receitas da Rosa (nível) e as receitas a descobrir (silhueta e dica); página da direita com
+// o prato escolhido: a fala da Rosa, os ingredientes (quanto tem, quanto precisa e de onde vem), nível, preço e sabor,
+// e o botão Caprichar (gasta cópias do ingrediente principal) ou Pesquisar (gasta pitadas de tempero).
+// A arte do caderno é a/ui/caderno_aberto (Higgsfield); o texto é escrito por cima.
+
+const ORIGEM_ENCOMENDA = 'Encomenda pelo orelhão da Vila';
+function origemDe(id) {
+  const ing = Pratos.INGREDIENTES[id];
+  const o = ing ? ing.origem : (id === 'peixe' ? 'Pesca (qualquer peixe)' : '?');
+  const enc = typeof ENCOMENDA !== 'undefined' && ENCOMENDA[id];
+  return enc && !/Mercearia/.test(o) ? `${o} · ou ${ORIGEM_ENCOMENDA}` : o;
+}
+const nomeIngrediente = id => id === 'peixe' ? 'Peixe' : (Itens.nome ? Itens.nome(id) : id);
+const iconeIngrediente = id => urlItem(id === 'peixe' ? 'sardinha' : id);
+
+let _cadernoSel = null;
+function abrirCaderno(sel) {
+  const p = G.pensao;
+  if (!p || p.estado !== 'aberta') { abrirPlaca('O caderno da Rosa fica na pensão. Ela começa a escrever quando a pensão abrir.'); return true; }
+  // O que está na mochila também conta como "já vi" (a receita fica disponível para pesquisar).
+  if (G.mochila) for (const id in Pratos.INGREDIENTES) if (G.mochila.total(id) > 0) p.veIngrediente(id);
+  _cadernoSel = sel || _cadernoSel || p.receitas[0];
+  const caixa = el('div', { class: 'caderno' + (spr('ui/caderno_aberto') ? ' com-arte' : '') });
+  const desenha = () => {
+    caixa.innerHTML = '';
+    const esq = el('div', { class: 'pagina esq' }), dir = el('div', { class: 'pagina dir' });
+    esq.append(el('div', { class: 'cad-titulo' }, 'Receitas da Rosa'), el('div', { class: 'cad-pitadas' }, `Pitadas de tempero: ${p.pitadas}`));
+    for (const id of p.receitas) {
+      const pr = Pratos.PRATOS[id], n = p.nivel(id);
+      esq.append(el('div', { class: 'cad-linha' + (id === _cadernoSel ? ' sel' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
+        el('img', { src: 'a/' + iconePrato(id) + '.webp' }), el('div', { class: 'cad-nome' }, pr.nome), el('div', { class: 'cad-nivel' }, 'Nv ' + n)));
+    }
+    const novas = p.receitasADescobrir();
+    if (novas.length) {
+      esq.append(el('div', { class: 'cad-sub' }, 'A descobrir'));
+      for (const r of novas) esq.append(el('div', { class: 'cad-linha descobrir' + (r.id === _cadernoSel ? ' sel' : '') + (r.conhecida ? ' pode' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = r.id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
+        el('img', { src: 'a/' + iconePrato(r.id) + '.webp', class: 'silhueta' }), el('div', { class: 'cad-nome' }, r.conhecida ? Pratos.PRATOS[r.id].nome : '???'),
+        el('div', { class: 'cad-nivel' }, r.conhecida ? `${r.custo} pitadas` : 'precisa de ' + nomeIngrediente(r.principal).toLowerCase())));
+    }
+    // Página da direita: o prato escolhido.
+    const id = _cadernoSel, pr = Pratos.PRATOS[id], tem = p.receitas.includes(id);
+    if (!pr) { caixa.append(esq, dir); return; }
+    const descobrir = !tem ? novas.find(r => r.id === id) : null;
+    dir.append(el('img', { class: 'cad-prato' + (descobrir && !descobrir.conhecida ? ' silhueta' : ''), src: 'a/' + iconePrato(id) + '.webp' }),
+      el('div', { class: 'cad-titulo' }, descobrir && !descobrir.conhecida ? 'Receita a descobrir' : pr.nome),
+      el('div', { class: 'cad-desc' }, descobrir && !descobrir.conhecida ? `A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
+    const ings = el('div', { class: 'cad-ings' });
+    for (const ing in pr.porcao) {
+      const t = p._tem(ing), q = pr.porcao[ing];
+      ings.append(el('div', { class: 'cad-ing' + (t >= q ? '' : ' falta') }, el('img', { src: iconeIngrediente(ing) }),
+        el('div', {}, el('b', {}, `${nomeIngrediente(ing)} ×${q}`), el('span', {}, ` (tenho ${t})`), el('div', { class: 'cad-origem' }, origemDe(ing)))));
+    }
+    dir.append(el('div', { class: 'cad-sub' }, 'Ingredientes por prato'), ings);
+    if (tem) {
+      const n = p.nivel(id), c = p.custoCaprichar(id), princ = pr.principal;
+      dir.append(el('div', { class: 'cad-nivelzao' }, '★'.repeat(n) + '☆'.repeat(Pensao.NIVEL_MAX - n)),
+        el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · Sabor ${p.sabor(id)}`));
+      if (n < Pensao.NIVEL_MAX) {
+        const pode = p._tem(princ) >= c;
+        dir.append(el('button', { class: 'botao forte cad-capricho' + (pode ? '' : ' desligado'), onclick: e => {
+          e.stopPropagation();
+          const r = p.caprichar(id);
+          if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -2); carimbar(caixa); avisar(`${pr.nome} subiu para o nível ${p.nivel(id)}! Mais preço e mais sabor.`); desenha(); }
+          else avisar(r === 'falta' ? `Precisa de ${c} ${nomeIngrediente(princ).toLowerCase()} na despensa.` : 'Esse prato já está no capricho máximo.');
+        } }, `Caprichar (${c} ${nomeIngrediente(princ).toLowerCase()})`),
+          el('div', { class: 'cad-dica' }, `Próximo nível: Cr$ ${Math.round(Pratos.PRATOS[id].preco * (1 + Pensao.PRECO_POR_NIVEL * n))} de base, sabor ${p.sabor(id) + Pensao.SABOR_POR_NIVEL}.`));
+      } else dir.append(el('div', { class: 'cad-dica' }, 'No capricho máximo! A Rosa não tem mais o que ensinar desse prato.'));
+    } else if (descobrir) {
+      if (descobrir.conhecida) dir.append(el('button', { class: 'botao forte cad-capricho' + (p.pitadas >= descobrir.custo ? '' : ' desligado'), onclick: e => {
+        e.stopPropagation();
+        const r = p.pesquisar(id);
+        if (r === 'ok') { sons.tocar('carimbo', 1.1, 0.05, -2); sons.tocar('rosa_animada', 1, 0.05, -4); carimbar(caixa); avisar(`Receita nova no caderno: ${pr.nome}! Marque no quadro de giz.`); desenha(); }
+        else avisar(r === 'sem_pitadas' ? `Faltam pitadas: precisa de ${descobrir.custo} (tem ${p.pitadas}). As estrelas da janta viram pitadas.` : 'A Rosa ainda não conhece o ingrediente.');
+      } }, `Pesquisar com a Rosa (${descobrir.custo} pitadas)`));
+      else dir.append(el('div', { class: 'cad-dica' }, `Onde achar: ${origemDe(pr.principal)}.`));
+    }
+    caixa.append(esq, dir, el('button', { class: 'botao cad-fechar', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar'));
+  };
+  desenha();
+  abrirModal(caixa);
+  sons.tocar('pagina', 1, 0.05, -4);
+  return true;
+}
+// O carimbo de "caprichado" batendo na página (arte a/ui/carimbo_caprichado).
+function carimbar(caixa) {
+  if (!spr('ui/carimbo_caprichado')) return;
+  const c = el('img', { class: 'carimbo', src: 'a/ui/carimbo_caprichado.webp' });
+  caixa.append(c); setTimeout(() => c.remove(), 900);
+}

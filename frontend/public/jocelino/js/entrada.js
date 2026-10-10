@@ -19,12 +19,13 @@ function instalaEntrada() {
     if (ehTecla(e, 'opcoes') && typeof abrirOpcoes === 'function') { abrirOpcoes(); return; }
     if (ehTecla(e, 'mochila') && typeof abrirMochila === 'function') { abrirMochila(); return; }
     if (ehTecla(e, 'fileira') && G.mochila) { G.mochila.girarFileiras(e.shiftKey ? -1 : 1); hudSujo(); return; }
+    if (G.copo && (e.code === 'Space' || ehTecla(e, 'usar') || ehTecla(e, 'acao'))) { if (!e.repeat) copoSegura(true); return; }
     if (ehTecla(e, 'acao')) { if (typeof noPalco === 'function' && noPalco()) palcoAgirNaFrente(); else acaoNaFrente(); return; }
-    if (ehTecla(e, 'usar')) { usarItemDaMao(true); return; }
+    if (ehTecla(e, 'usar')) { if (typeof noPalco === 'function' && noPalco()) return; usarItemDaMao(true); return; }
     const n = e.code.startsWith('Digit') ? Number(e.code.slice(5)) : NaN;
     if (!isNaN(n)) { G.sel = n === 0 ? 9 : n - 1; hudSujo(); }
   });
-  addEventListener('keyup', e => G.teclas.delete(e.code));
+  addEventListener('keyup', e => { G.teclas.delete(e.code); if (G.copo && (e.code === 'Space' || ehTecla(e, 'usar') || ehTecla(e, 'acao'))) copoSegura(false); });
   addEventListener('blur', () => { G.teclas.clear(); G.mouse.segura = false; });
   const cv = $('#tela');
   cv.addEventListener('mousemove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY; });
@@ -33,11 +34,11 @@ function instalaEntrada() {
   cv.addEventListener('mousedown', e => {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
-    if (typeof noPalco === 'function' && noPalco()) { const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
+    if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
     if (e.button === 0) { G.mouse.segura = true; usarItemDaMao(); }
     else if (e.button === 2) acaoNoMouse();
   });
-  addEventListener('mouseup', e => { if (e.button === 0) G.mouse.segura = false; });
+  addEventListener('mouseup', e => { if (e.button === 0) G.mouse.segura = false; if (G.copo) copoSegura(false); });
   cv.addEventListener('wheel', e => { if (!menuAberto() && G.mochila) { G.sel = (G.sel + (e.deltaY > 0 ? 1 : 11)) % 12; hudSujo(); } }, { passive: true });
 }
 
