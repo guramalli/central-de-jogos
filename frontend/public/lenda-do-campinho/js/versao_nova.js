@@ -12,7 +12,11 @@
   // só os arquivos mudados (?v=408.1, 408.2...) e o assets.js ficava em 408 → o aviso nunca via a versão nova.
   // Agora vale o MAIOR ?v= de todos os scripts (com ponto). Atenção: depois de 408.9 vem 409 (408.10 seria lido como 408.1).
   const versaoDe = txt => { let mx = 0; for (const m of String(txt).matchAll(/\.js\?v=(\d+(?:\.\d+)?)/g)) mx = Math.max(mx, parseFloat(m[1])); return mx; };
-  const minha = versaoDe([...document.querySelectorAll('script[src]')].map(s => s.getAttribute('src')).join(' '));
+  // v412.6 (BUG, dono: "não estamos fazendo nada no game e ele fica pedindo para atualizar o tempo todo"): a conta era feita
+  // quando ESTE arquivo carregava — os scripts que vêm depois dele no index.html ainda não existiam na página. Quando o ?v= mais
+  // alto estava num arquivo do fim (v412.5: chao_pronto, entrada_leve), "minha" ficava menor que a do site → aviso para sempre.
+  // Agora a conta é feita na hora de conferir (a página já carregou tudo).
+  let minhaC = 0; const minhaV = () => minhaC || (minhaC = versaoDe([...document.querySelectorAll('script[src]')].map(s => s.getAttribute('src')).join(' ')));
   let avisou = false, ultima = 0;
   function avisoVersao(v) {
     if (avisou) return; avisou = true;
@@ -25,10 +29,10 @@
     document.body.append(d);
   }
   async function confere() {
-    if (avisou || !minha || location.protocol === 'file:' || Date.now() - ultima < 60000) return; ultima = Date.now();
+    if (avisou || document.readyState === 'loading' || !minhaV() || location.protocol === 'file:' || Date.now() - ultima < 60000) return; ultima = Date.now();
     try {
       const r = await fetch('index.html?nv=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
-      const v = versaoDe(await r.text()); if (v > minha) avisoVersao(v);
+      const v = versaoDe(await r.text()); if (v > minhaV()) avisoVersao(v);
     } catch (e) { }
   }
   setInterval(confere, 180000);
