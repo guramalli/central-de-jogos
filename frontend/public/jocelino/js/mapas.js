@@ -9,9 +9,55 @@ const MAPAS_DEF = {};          // id -> função (construtor) que monta o mapa
 const MAPAS = {};              // id -> mapa já montado (fica na memória: guarda o estado do dia)
 const ALCANCE_ACAO = 2.2 * TILE;
 
-// Nome discreto em cima de cada estabelecimento (o objeto pode trocar com o.placa = '...').
-const PLACAS = { deposito: 'Depósito do Seu Ananias', oficina: 'Ferraria do Seu Tonico', mercado: 'Mercado Municipal', museu: 'Museu da Vila',
-  casa_juca: 'Casa do Tio Juca', pensao: 'Pensão da Rosa', casa_zelia: 'Obra da Dona Zélia' };
+// Nome discreto em cima do que não tem plaquinha na arte (a casa, a obra). Os estabelecimentos têm o nome escrito na
+// plaquinha da própria arte (LETREIROS).
+const PLACAS = { casa_juca: 'Casa do Tio Juca', casa_zelia: 'Obra da Dona Zélia' };
+// Letreiros: onde fica a plaquinha em cada arte (centro, largura e altura em pixels da arte; ângulo se a tábua é torta),
+// os textos do mais completo ao mais curto (fica o primeiro que cabe com letra boa) e o estilo: 'creme' (letra clara
+// pintada na madeira escura) ou 'tinta' (tinta escura na tábua clara). tabua: a arte não tem plaquinha, desenha uma.
+const LETREIROS = {
+  'objetos/deposito': { x: 139, y: 141, w: 144, h: 24, textos: ['Depósito do Ananias', 'DEPÓSITO'], estilo: 'creme' },
+  'objetos/pensao': { x: 117.5, y: 105.5, w: 84, h: 17, textos: ['Pensão da Rosa', 'PENSÃO'], estilo: 'creme' },
+  'objetos/pensao_fechada': { x: 118, y: 142, w: 52, h: 16, ang: -7, textos: ['Pensão', 'PENSÃO'], estilo: 'tinta' },
+  'objetos/pensao_reforma': { x: 122, y: 129, w: 64, h: 16, tabua: true, textos: ['Pensão', 'PENSÃO'], estilo: 'creme' },
+  'objetos/oficina': { x: 145, y: 113, w: 78, h: 18, tabua: true, textos: ['Ferraria', 'FERRARIA'], estilo: 'creme' },
+  'objetos/museu': { x: 142.5, y: 142.5, w: 66, h: 22, textos: ['Museu da Vila', 'Museu'], estilo: 'creme' },
+  'objetos/mercado_0': { x: 166.5, y: 174.5, w: 78, h: 22, textos: ['Mercado Municipal', 'Mercado'], estilo: 'creme' },
+};
+// O texto que cabe na plaquinha e o tamanho da letra.
+function ajustaLetreiro(ctx, L) {
+  let r = null;
+  for (const texto of L.textos) {
+    ctx.font = `700 100px Fredoka`;
+    const w100 = ctx.measureText(texto).width;
+    const tam = Math.min(L.h * 0.74, (L.w - 8) * 100 / w100);
+    r = { texto, tam, largura: w100 * tam / 100 };
+    if (tam >= 10) break;
+  }
+  return r;
+}
+function desenhaLetreiro(ctx, o, alfa) {
+  const L = LETREIROS[o.nome], img = spr(o.nome);
+  if (!L || !img) return;
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  ctx.translate(o.x - img.naturalWidth / 2 + L.x, o.y - img.naturalHeight + L.y);
+  if (L.ang) ctx.rotate(L.ang * Math.PI / 180);
+  if (L.tabua) {
+    // Tábua pintada no mesmo traço da arte: madeira com contorno preto, um brilho em cima e dois pregos.
+    const w = L.w, h = L.h;
+    ctx.fillStyle = '#9a6534'; ctx.strokeStyle = '#2a1608'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,220,160,.25)'; ctx.fillRect(-w / 2 + 3, -h / 2 + 2, w - 6, 2);
+    ctx.fillStyle = '#2a1608'; for (const px of [-w / 2 + 5, w / 2 - 5]) { ctx.beginPath(); ctx.arc(px, 0, 1.6, 0, Math.PI * 2); ctx.fill(); }
+  }
+  const f = ajustaLetreiro(ctx, L);
+  ctx.font = `700 ${f.tam}px Fredoka`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  if (L.estilo === 'tinta') { ctx.fillStyle = 'rgba(70,40,18,.85)'; ctx.fillText(f.texto, 0, 1); }
+  else { ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,20,8,.9)'; ctx.strokeText(f.texto, 0, 1); ctx.fillStyle = '#ffeec8'; ctx.fillText(f.texto, 0, 1); }
+  ctx.restore();
+}
 const DICAS_OBJ = {
   casa_juca: ['Casa do Tio Juca', 'Botão direito na porta: dormir (salva o jogo).'],
   caixa_correio: ['Caixa de correio', 'Botão direito: ler as cartas.'],
@@ -225,6 +271,7 @@ function desenhaMapa(ctx) {
     let dx = 0;
     if (o.treme > 0) { o.treme = Math.max(0, o.treme - 0.016); dx = Math.sin(o.treme * 60) * 3; }
     desenhaPe(ctx, o.nome, o.x + dx, o.y, alfa);
+    if (LETREIROS[o.nome]) desenhaLetreiro(ctx, o, alfa);
     if (o.realce) desenhaRealce(ctx, o);
   }
   if (m.desenhaPorCima) m.desenhaPorCima(ctx);
@@ -246,7 +293,7 @@ function desenhaNomes(ctx, m) {
   ctx.lineJoin = 'round';
   for (const o of m.objs) {
     const n = o.placa || PLACAS[o.id];
-    if (!n) continue;
+    if (!n || LETREIROS[o.nome]) continue;
     const img = spr(o.nome);
     if (!img) continue;
     const y = o.y - img.naturalHeight + (o.margemTopo || 10) - 4;

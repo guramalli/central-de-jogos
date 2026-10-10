@@ -58,7 +58,9 @@ function desenha(dt) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#120d0a';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.setTransform(z, 0, 0, z, -G.cam.x * z, -G.cam.y * z);
+  // Tremidinho no acerto forte (picareta na pedra, machado no toco).
+  const tr = G.tremor > 0 ? G.tremor * 22 : 0;
+  ctx.setTransform(z, 0, 0, z, (-G.cam.x + rnd(-tr, tr)) * z, (-G.cam.y + rnd(-tr, tr)) * z);
   if (G.mapa && typeof desenhaMapa === 'function') desenhaMapa(ctx);
   // Noite: o mundo escurece aos poucos das 18h às 21h (dentro de casa, menos).
   const esc = relogio.escuridao() * (G.mapa && G.mapa.dentro ? 0.25 : 0.62);

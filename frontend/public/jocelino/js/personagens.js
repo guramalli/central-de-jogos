@@ -80,9 +80,13 @@ class Jogador extends Personagem {
     if (pose) {
       const qw = pose.naturalWidth, qh = pose.naturalHeight / 4;
       ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(this.x, this.y - 2, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
-      if (this.dir === DIR.CIMA && typeof desenhaGolpe === 'function') desenhaGolpe(ctx, this);
-      ctx.drawImage(pose, 0, this.dir * qh, qw, qh, this.x - qw / 2, this.y - qh + 2, qw, qh);
-      if (this.dir !== DIR.CIMA && typeof desenhaGolpe === 'function') desenhaGolpe(ctx, this);
+      desenhaFerramenta(ctx, this, true);
+      const c = poseCorpo(this);
+      ctx.save();
+      ctx.translate(this.x, this.y + 2 + c.dy); ctx.rotate(c.inc); ctx.scale(c.sx, c.sy);
+      ctx.drawImage(pose, 0, this.dir * qh, qw, qh, -qw / 2, -qh, qw, qh);
+      ctx.restore();
+      desenhaGolpe(ctx, this);
       return;
     }
     super.desenha(ctx);

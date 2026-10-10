@@ -10,7 +10,7 @@ MAPAS_DEF.quintal = () => {
   b.livre = { x: 2, y: 3, w: 36, h: 25 };
   b.inicio = { x: 7, y: 10 };
   b.saida(20, 27, 2, 1, 'vila', 23, 3);
-  b.pinta(7, 9, 2, 5); b.pinta(7, 12, 15, 2); b.pinta(20, 12, 2, 16);
+  b.pinta(7, 9, 2, 5); b.pinta(7, 12, 15, 2); b.pinta(20, 12, 2, 18);      // até a borda de baixo (a Vila continua do outro lado)
   // Bordas: árvores e arbustos em volta (abertura embaixo, na saída).
   for (let x = 0; x <= b.larg; x += 2) {
     b.enfeite('objetos/arvore', x, 1, false); b.enfeite('objetos/arvore', x + 1, 2, false);

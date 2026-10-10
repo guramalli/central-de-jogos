@@ -20,12 +20,12 @@ function instalaEntrada() {
     if (ehTecla(e, 'mochila') && typeof abrirMochila === 'function') { abrirMochila(); return; }
     if (ehTecla(e, 'fileira') && G.mochila) { G.mochila.girarFileiras(e.shiftKey ? -1 : 1); hudSujo(); return; }
     if (ehTecla(e, 'acao')) { acaoNaFrente(); return; }
-    if (ehTecla(e, 'usar')) { usarItemDaMao(); return; }
+    if (ehTecla(e, 'usar')) { usarItemDaMao(true); return; }
     const n = e.code.startsWith('Digit') ? Number(e.code.slice(5)) : NaN;
     if (!isNaN(n)) { G.sel = n === 0 ? 9 : n - 1; hudSujo(); }
   });
   addEventListener('keyup', e => G.teclas.delete(e.code));
-  addEventListener('blur', () => G.teclas.clear());
+  addEventListener('blur', () => { G.teclas.clear(); G.mouse.segura = false; });
   const cv = $('#tela');
   cv.addEventListener('mousemove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY; });
   // O botão direito é do jogo em qualquer lugar da página (conversa, mochila, loja): nunca abre o menu do navegador.
@@ -33,9 +33,10 @@ function instalaEntrada() {
   cv.addEventListener('mousedown', e => {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
-    if (e.button === 0) usarItemDaMao();
+    if (e.button === 0) { G.mouse.segura = true; usarItemDaMao(); }
     else if (e.button === 2) acaoNoMouse();
   });
+  addEventListener('mouseup', e => { if (e.button === 0) G.mouse.segura = false; });
   cv.addEventListener('wheel', e => { if (!menuAberto() && G.mochila) { G.sel = (G.sel + (e.deltaY > 0 ? 1 : 11)) % 12; hudSujo(); } }, { passive: true });
 }
 

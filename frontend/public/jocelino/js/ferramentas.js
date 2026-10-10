@@ -1,9 +1,9 @@
 // Jocelino — ferramentas.js — o item da mão: ferramentas (foice, machado, picareta, pá, regador) golpeiam o ladrilho
-// alvo (o do mouse, se estiver colado no Jocelino; senão o da frente), como no Stardew. Cada golpe dura 0,32 s, acerta
-// no meio (0,15 s) e gasta 2 de energia (de 270). O detrito certo treme, perde vida e, quando quebra, solta os itens no
+// alvo como no Stardew: o ladrilho do clique se for um dos 8 em volta do Jocelino (clicar no desenho de uma pedra ou na
+// copa de uma árvore mira nela); clique longe faz ele virar para o lado do clique e bater na frente; a tecla C bate na
+// frente. Segurar o botão repete o golpe. Gasta 2 de energia (de 270). O detrito certo treme, perde vida e, quando quebra, solta os itens no
 // chão, que pulam e vêm para a mochila quando o Jocelino passa perto. Comida na mão: botão direito come.
 
-const DURACAO_GOLPE = 0.32, MOMENTO_ACERTO = 0.15;
 const ENERGIA_MAX = 270, CUSTO_GOLPE = 2;
 const NOME_FERRAMENTA = { foice: 'a foice', machado: 'o machado', picareta: 'a picareta', pa: 'a pá', regador: 'o regador' };
 
@@ -20,27 +20,52 @@ COLETORES.push(s => { s.mochila = G.mochila.paraDict(); s.sel = G.sel; });
 
 const itemDaMao = () => G.mochila ? G.mochila.idEm(G.sel) : '';
 
-// Ladrilho alvo: o do mouse, se estiver a 1 ladrilho do Jocelino; senão o da frente.
-function ladrilhoAlvo() {
-  const m = ladrilhoDoMouse(), p = G.jog.ladrilho();
-  if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1 && (m.x !== p.x || m.y !== p.y)) return m;
-  const v = DIR_VET[G.jog.dir];
-  return { x: p.x + v[0], y: p.y + v[1] };
+// O detrito cujo desenho está sob o ponto (a copa da árvore, o alto da pedra), não só o ladrilho do pé.
+function detritoSob(px, py) {
+  let melhor = null, d = 1e9;
+  for (const o of G.mapa.objs) {
+    if (o.tipo !== 'detrito') continue;
+    const img = spr(o.nome);
+    const w = img ? img.naturalWidth : TILE, h = img ? img.naturalHeight : TILE;
+    if (px < o.x - w / 2 || px > o.x + w / 2 || py < o.y - h || py > o.y + 4) continue;
+    const dist = Math.hypot(o.x - px, o.y - 20 - py);
+    if (dist < d) { d = dist; melhor = o; }
+  }
+  return melhor;
+}
+// O alvo do golpe e a direção em que o Jocelino vira.
+function alvoDoGolpe(peloTeclado) {
+  const j = G.jog, p = j.ladrilho();
+  const frente = dir => ({ dir, x: p.x + DIR_VET[dir][0], y: p.y + DIR_VET[dir][1] });
+  if (peloTeclado) return frente(j.dir);
+  const mm = mouseMundo();
+  let t = { x: Math.floor(mm.x / TILE), y: Math.floor(mm.y / TILE) };
+  const o = detritoSob(mm.x, mm.y);
+  const cheb = a => Math.max(Math.abs(a.x - p.x), Math.abs(a.y - p.y));
+  if (o) t = o.tiles.reduce((a, b) => cheb(b) < cheb(a) ? b : a);
+  const perto = cheb(t) <= 1 && (t.x !== p.x || t.y !== p.y);
+  // Vira pelo vetor do Jocelino até o alvo (ou até o clique, quando é longe).
+  const ax = perto ? (t.x + 0.5) * TILE : mm.x, ay = perto ? (t.y + 0.5) * TILE : mm.y;
+  const dx = ax - j.x, dy = ay - (j.y - 18);
+  const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? DIR.ESQUERDA : DIR.DIREITA) : (dy < 0 ? DIR.CIMA : DIR.BAIXO);
+  if (perto) return { dir, x: t.x, y: t.y };
+  if (Math.hypot(dx, dy) < TILE * 0.5) return frente(j.dir);      // clique em cima do próprio Jocelino
+  return frente(dir);
 }
 
-function usarItemDaMao() {
+function usarItemDaMao(peloTeclado) {
   const j = G.jog;
   if (!j || menuAberto() || j.golpe > 0 || j.travado > 0) return;
   const id = itemDaMao();
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
   if (G.energia < CUSTO_GOLPE) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
-  const alvo = ladrilhoAlvo();
-  const dx = alvo.x - j.ladrilho().x, dy = alvo.y - j.ladrilho().y;
-  if (dx || dy) j.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? DIR.ESQUERDA : DIR.DIREITA) : (dy < 0 ? DIR.CIMA : DIR.BAIXO);
-  j.golpe = DURACAO_GOLPE; j.golpeItem = id; j.golpeT = 0; j.golpeAlvo = alvo; j.acertou = false;
+  const alvo = alvoDoGolpe(peloTeclado);
+  j.dir = alvo.dir;
+  const pf = PERFIL_GOLPE[perfilDe(id)];
+  j.golpe = pf.dur; j.golpeItem = id; j.golpeT = 0; j.golpeAlvo = { x: alvo.x, y: alvo.y }; j.acertou = false; j._somSubida = false;
   G.energia = Math.max(0, G.energia - CUSTO_GOLPE);
-  sons.tocar('golpe', id === 'foice' ? 1.15 : 0.95, 0.08, -8);
+  if (id === 'foice') sons.tocar('golpe', 1.2, 0.08, -8);
   hudSujo();
 }
 
@@ -53,6 +78,7 @@ function acertar(id, alvo) {
     const certa = D.ferramenta === id || (D.aceita || []).includes(id);
     if (!certa) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -10); avisar('Isso sai com ' + (NOME_FERRAMENTA[D.ferramenta] || D.ferramenta) + '.'); return; }
     o.vida -= 1; o.treme = 0.3;
+    if (id !== 'foice') G.tremor = Math.max(G.tremor || 0, D.material === 'pedra' ? 0.14 : 0.1);
     lascas(o.x, o.y - 20, D.material);
     sons.tocar(D.material === 'pedra' ? 'pedra' : D.material === 'mato' ? 'foice' : 'madeira', 1, 0.08, -4);
     if (o.vida <= 0) quebrar(o);
@@ -80,9 +106,14 @@ ATUALIZADORES.push(dt => {
   if (!m || !j) return;
   // Golpe: a ferramenta gira e acerta no meio.
   if (j.golpe > 0) {
+    const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)];
     j.golpeT = (j.golpeT || 0) + dt;
-    if (!j.acertou && j.golpeT >= MOMENTO_ACERTO) { j.acertou = true; acertar(j.golpeItem, j.golpeAlvo); }
+    if (!j._somSubida && j.golpeItem !== 'foice' && j.golpeT >= pf.subida - 0.06) { j._somSubida = true; sons.tocar('golpe', j.golpeItem === 'picareta' ? 0.9 : 1, 0.08, -10); }
+    if (!j.acertou && j.golpeT >= pf.acerto) { j.acertou = true; acertar(j.golpeItem, j.golpeAlvo); }
   }
+  // Segurar o botão repete o golpe (como no Stardew).
+  if (G.mouse.segura && !(j.golpe > 0) && !menuAberto()) usarItemDaMao();
+  if (G.tremor > 0) G.tremor = Math.max(0, G.tremor - dt);
   for (const it of m.itens) {
     it.t += dt;
     if (it.z > 0 || it.vz > 0) { it.vz -= 900 * dt; it.z = Math.max(0, it.z + it.vz * dt); if (it.z === 0) { it.vz = it.vz < -60 ? -it.vz * 0.35 : 0; it.vx *= 0.6; } it.x += it.vx * dt; it.y += it.vy * dt; }
@@ -104,24 +135,124 @@ const LASCAS = [];
 const COR_LASCA = { pedra: '#8a8a8a', madeira: '#8a5a2b', mato: '#5e9a3a', agua: '#8cc8ff' };
 function lascas(x, y, tipo) { for (let k = 0; k < 7; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, cor: COR_LASCA[tipo] || '#a07850' }); }
 
-// O desenho do golpe: o corpo na pose de golpe (folha jocelino/golpe, 4 direções na vertical) e a ferramenta girando
-// na mão (de -150° a 45°, como no Godot).
-function desenhaGolpe(ctx, j) {
-  for (const l of LASCAS) { ctx.fillStyle = l.cor; ctx.fillRect(l.x - 3, l.y - 3, 6, 6); }
-  if (!(j.golpe > 0)) return;
-  const t = clamp((j.golpeT || 0) / MOMENTO_ACERTO, 0, 1);
-  const ini = { [DIR.BAIXO]: -150, [DIR.CIMA]: 30, [DIR.ESQUERDA]: -100, [DIR.DIREITA]: -100 }[j.dir];
-  const fim = { [DIR.BAIXO]: 45, [DIR.CIMA]: -95, [DIR.ESQUERDA]: 45, [DIR.DIREITA]: 45 }[j.dir];
-  const ang = (ini + (fim - ini) * t * t + 45) * Math.PI / 180;
-  const mao = { [DIR.BAIXO]: [-3, -60], [DIR.CIMA]: [0, -63], [DIR.ESQUERDA]: [-18, -63], [DIR.DIREITA]: [18, -63] }[j.dir];
+// ---------- a animação do golpe ----------
+// Como o Stardew: o golpe pesado (picareta, machado, pá) sobe a ferramenta por cima da cabeça, segura um instante e desce
+// rápido até o ladrilho alvo (no acerto, a ponta está em cima dele); a foice varre em arco na frente; o regador inclina e
+// derrama. Cada quadro-chave: tempo, ângulo da ferramenta (graus, 0 = para a direita, 90 = para baixo), a mão (relativa ao
+// pé do Jocelino), tamanho, encurtamento (quando aponta para a câmera ou para longe) e se fica atrás do corpo.
+// O lado esquerdo é o direito espelhado.
+const K = (t, ang, hx, hy, esc = 1, enc = 1, atras = false) => ({ t, ang, hx, hy, esc, enc, atras });
+const PERFIL_GOLPE = {
+  pesada: { dur: 0.40, subida: 0.17, acerto: 0.22, quadros: {
+    [DIR.BAIXO]: [K(0, -84, 6, -74, 1, 1, true), K(0.15, -96, 2, -100, 1, 1, true), K(0.19, -100, 2, -104, 1, 1, true), K(0.205, 90, 1, -86, 1.05, 0.35),
+      K(0.22, 90, 0, -45, 1.15), K(0.30, 86, 0, -44, 1.15), K(0.40, -84, 6, -74, 1, 1, true)],
+    [DIR.CIMA]: [K(0, -70, 6, -64, 1, 1, true), K(0.15, -90, 0, -104), K(0.19, -92, 0, -108), K(0.205, -90, 0, -84, 1, 0.5, true),
+      K(0.22, -90, 0, -50, 1.05, 0.2, true), K(0.30, -90, 0, -50, 1.05, 0.22, true), K(0.40, -70, 6, -64, 1, 1, true)],
+    [DIR.DIREITA]: [K(0, -110, 6, -74, 1, 1, true), K(0.15, -150, -2, -96, 1, 1, true), K(0.19, -158, -4, -98, 1, 1, true), K(0.205, -40, 14, -84, 1.05),
+      K(0.22, 50, 20, -54, 1.15), K(0.30, 46, 20, -53, 1.15), K(0.40, -110, 6, -74, 1, 1, true)],
+  } },
+  pa: { dur: 0.38, subida: 0.15, acerto: 0.21, quadros: {
+    [DIR.BAIXO]: [K(0, -84, 6, -74, 1, 1, true), K(0.14, -84, 4, -88, 1, 1, true), K(0.18, -86, 4, -90, 1, 1, true), K(0.195, 90, 2, -76, 1, 0.4), K(0.21, 92, 0, -48, 1.15),
+      K(0.29, 88, 0, -50, 1.15), K(0.38, -84, 6, -74, 1, 1, true)],
+    [DIR.CIMA]: [K(0, -70, 6, -64, 1, 1, true), K(0.14, -90, 0, -96), K(0.18, -90, 0, -98), K(0.21, -90, 0, -50, 1.05, 0.2, true),
+      K(0.29, -90, 0, -52, 1.05, 0.24, true), K(0.38, -70, 6, -64, 1, 1, true)],
+    [DIR.DIREITA]: [K(0, -110, 6, -74, 1, 1, true), K(0.14, -120, 2, -88, 1, 1, true), K(0.18, -126, 0, -90, 1, 1, true), K(0.21, 52, 20, -54, 1.15),
+      K(0.29, 48, 18, -56, 1.15), K(0.38, -110, 6, -74, 1, 1, true)],
+  } },
+  foice: { dur: 0.30, subida: 0.06, acerto: 0.13, quadros: {
+    [DIR.BAIXO]: [K(0, -10, 10, -58, 1.1), K(0.06, 10, 8, -56, 1.1), K(0.13, 90, 0, -48, 1.15), K(0.20, 170, -8, -56, 1.1), K(0.30, 190, -10, -58, 1.1)],
+    [DIR.CIMA]: [K(0, 190, -10, -66, 1.1, 1, true), K(0.06, 210, -8, -68, 1.1, 1, true), K(0.13, 270, 0, -52, 1.1, 0.17, true), K(0.20, 330, 8, -68, 1.1, 1, true), K(0.30, 350, 10, -66, 1.1, 1, true)],
+    [DIR.DIREITA]: [K(0, -100, 12, -64, 1.1, 1, true), K(0.06, -70, 14, -62, 1.1), K(0.13, 30, 20, -54, 1.15), K(0.20, 80, 16, -52, 1.1), K(0.30, 95, 14, -54, 1.1)],
+  } },
+  regador: { dur: 0.55, subida: 0.12, acerto: 0.22, quadros: {
+    [DIR.BAIXO]: [K(0, -45, 0, -54), K(0.12, -45, 0, -50), K(0.22, -10, 0, -48), K(0.45, -10, 0, -48), K(0.55, -45, 0, -54)],
+    [DIR.CIMA]: [K(0, -45, 0, -70, 1, 1, true), K(0.12, -45, 0, -74, 1, 1, true), K(0.22, -80, 0, -78, 1, 1, true), K(0.45, -80, 0, -78, 1, 1, true), K(0.55, -45, 0, -70, 1, 1, true)],
+    [DIR.DIREITA]: [K(0, -45, 18, -58), K(0.12, -45, 20, -56), K(0.22, 0, 24, -52), K(0.45, 0, 24, -52), K(0.55, -45, 18, -58)],
+  } },
+};
+function perfilDe(id) { return id === 'foice' ? 'foice' : id === 'regador' ? 'regador' : id === 'pa' ? 'pa' : 'pesada'; }
+const _suave = (a, b, u) => a + (b - a) * u;
+// A pose da ferramenta no instante t (interpolada entre os quadros-chave; a subida desacelera, a descida acelera).
+function poseFerramenta(j) {
+  const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)];
+  const esq = j.dir === DIR.ESQUERDA;
+  const ks = pf.quadros[esq ? DIR.DIREITA : j.dir];
+  const t = clamp(j.golpeT || 0, 0, pf.dur);
+  let i = 0;
+  while (i < ks.length - 2 && t > ks[i + 1].t) i++;
+  const a = ks[i], b = ks[i + 1];
+  let u = clamp((t - a.t) / Math.max(0.001, b.t - a.t), 0, 1);
+  u = b.t <= pf.subida ? 1 - (1 - u) * (1 - u) : b.t <= pf.acerto ? u * u : u * u * (3 - 2 * u);
+  const r = { ang: _suave(a.ang, b.ang, u), hx: _suave(a.hx, b.hx, u), hy: _suave(a.hy, b.hy, u), esc: _suave(a.esc, b.esc, u), enc: _suave(a.enc, b.enc, u), atras: u < 0.5 ? a.atras : b.atras };
+  // Alvo na diagonal: na descida a mão puxa para o lado do alvo.
+  const p = j.ladrilho(), al = j.golpeAlvo || p;
+  const ddx = clamp(al.x - p.x, -1, 1), ddy = clamp(al.y - p.y, -1, 1);
+  const k = t > pf.acerto + 0.1 ? 0 : clamp((t - pf.subida) / Math.max(0.001, pf.acerto - pf.subida), 0, 1);
+  if (j.dir === DIR.BAIXO || j.dir === DIR.CIMA) { r.hx += ddx * 30 * k; r.ang += ddx * (j.dir === DIR.BAIXO ? -28 : 28) * k; }
+  else r.hy += ddy * 26 * k;
+  if (esq) { r.ang = 180 - r.ang; r.hx = -r.hx; }
+  return r;
+}
+const COMPR_FERRAMENTA = 50;           // da mão até a cabeça da ferramenta (pixels, no tamanho 1)
+function pontaDaFerramenta(j) {
+  const q = poseFerramenta(j), L = COMPR_FERRAMENTA * q.esc * q.enc, a = q.ang * Math.PI / 180;
+  return { x: j.x + q.hx + Math.cos(a) * L, y: j.y + q.hy + Math.sin(a) * L };
+}
+// O corpo acompanha: estica na subida, encolhe e inclina para a frente no impacto.
+function poseCorpo(j) {
+  const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)], t = j.golpeT || 0;
+  if (j.golpeItem === 'regador') return { sx: 1, sy: 1, inc: 0, dy: 0 };
+  const sobe = t < pf.subida ? Math.sin(Math.PI / 2 * t / pf.subida) : t < pf.acerto ? 1 - (t - pf.subida) / (pf.acerto - pf.subida) : 0;
+  const bate = t >= pf.acerto - 0.015 ? Math.max(0, 1 - (t - pf.acerto) / (pf.dur - pf.acerto)) : 0;
+  const lado = j.dir === DIR.DIREITA ? 1 : j.dir === DIR.ESQUERDA ? -1 : 0;
+  return { sx: 1 - 0.02 * sobe + 0.05 * bate, sy: 1 + 0.045 * sobe - 0.07 * bate, inc: (-4 * sobe + 6 * bate) * lado * Math.PI / 180, dy: 2 * bate };
+}
+function _desenhaFerr(ctx, j, q, img, alfa) {
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  ctx.translate(j.x + q.hx, j.y + q.hy);
+  if (j.golpeItem === 'regador') {
+    // O regador fica de pé e inclina para o lado em que o Jocelino olha.
+    ctx.scale(j.dir === DIR.ESQUERDA ? -1 : 1, 1);
+    ctx.rotate((q.ang + 45) * Math.PI / 180 * 0.9);
+    ctx.drawImage(img, -21, -30, 42, 42);
+  } else {
+    // Gira para o ângulo, encurta ao longo do cabo e desenha o ícone (cabo embaixo à esquerda, cabeça em cima à direita).
+    ctx.rotate(q.ang * Math.PI / 180);
+    ctx.scale(q.esc * q.enc, q.esc * (j.dir === DIR.ESQUERDA ? -1 : 1));
+    ctx.rotate(Math.PI / 4);
+    ctx.drawImage(img, -9, -39, 42, 42);
+  }
+  ctx.restore();
+}
+// Desenha a ferramenta: atras = antes do corpo (erguida atrás da cabeça, ou virado para cima); senão, depois do corpo.
+function desenhaFerramenta(ctx, j, atras) {
+  if (!(j.golpe > 0) || !j.golpeItem) return;
+  const q = poseFerramenta(j);
+  if (q.atras !== atras) return;
   const img = spr('itens/' + j.golpeItem);
   if (!img) return;
-  ctx.save();
-  ctx.translate(j.x + mao[0], j.y + mao[1]);
-  if (j.dir === DIR.ESQUERDA) ctx.scale(-1, 1);
-  ctx.rotate(ang);
-  ctx.drawImage(img, -9, -39, 42, 42);
-  ctx.restore();
+  const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)], t = j.golpeT || 0;
+  // Rastro na descida rápida (e na varrida da foice): duas sombras um pouco atrás no tempo.
+  if (j.golpeItem !== 'regador' && t > pf.subida && t < pf.acerto + 0.04) {
+    for (const [antes, alfa] of [[0.03, 0.18], [0.015, 0.32]]) {
+      const sombra = { x: j.x, y: j.y, dir: j.dir, golpeItem: j.golpeItem, golpeAlvo: j.golpeAlvo, golpeT: t - antes, ladrilho: () => j.ladrilho() };
+      _desenhaFerr(ctx, j, poseFerramenta(sombra), img, alfa);
+    }
+  }
+  _desenhaFerr(ctx, j, q, img, 1);
+  // Água do regador: gotas da bica até o ladrilho.
+  if (j.golpeItem === 'regador' && t > 0.18 && t < 0.47 && j.golpeAlvo) {
+    const bx = j.x + q.hx + (j.dir === DIR.ESQUERDA ? -16 : j.dir === DIR.DIREITA ? 16 : 0), by = j.y + q.hy;
+    const cx = (j.golpeAlvo.x + 0.5) * TILE, cy = (j.golpeAlvo.y + 0.5) * TILE;
+    ctx.fillStyle = 'rgba(140,200,255,.9)';
+    for (let k = 0; k < 6; k++) { const u = (t * 5 + k / 6) % 1; ctx.fillRect(_suave(bx, cx, u) + Math.sin(k * 7) * 6 - 2, _suave(by, cy, u) - 2, 4, 5); }
+  }
+}
+// As lascas (sempre) e a ferramenta da frente (chamado depois do corpo).
+function desenhaGolpe(ctx, j) {
+  for (const l of LASCAS) { ctx.fillStyle = l.cor; ctx.fillRect(l.x - 3, l.y - 3, 6, 6); }
+  desenhaFerramenta(ctx, j, false);
 }
 
 // ---------- comer (botão direito com comida na mão) ----------
