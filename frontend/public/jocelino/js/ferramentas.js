@@ -61,7 +61,7 @@ function usarItemDaMao(peloTeclado) {
   const id = itemDaMao();
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
-  const custo = typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE;
+  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id));
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
   j.dir = alvo.dir;
@@ -73,15 +73,21 @@ function usarItemDaMao(peloTeclado) {
 }
 
 // O acerto (no meio do golpe).
+// O acerto: o ladrilho do alvo e, com a ferramenta reforçada (pá, regador, colher), os seguintes em linha.
 function acertar(id, alvo) {
+  acertarUm(id, alvo);
+  const area = typeof areaDaFerramenta === 'function' ? areaDaFerramenta(id) : 1, v = DIR_VET[G.jog ? G.jog.dir : 0];
+  for (let k = 1; k < area; k++) acertarUm(id, { x: alvo.x + v[0] * k, y: alvo.y + v[1] * k });
+}
+function acertarUm(id, alvo) {
   const m = G.mapa;
   const o = m.ocupado.get(chaveT(alvo.x, alvo.y));
   if (o && o.tipo === 'detrito') {
     const D = DETRITOS[o.det];
     const certa = D.ferramenta === id || (D.aceita || []).includes(id);
     if (!certa) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -10); avisar('Isso sai com ' + (NOME_FERRAMENTA[D.ferramenta] || D.ferramenta) + '.'); return; }
-    if (D.nivel && nivelFerramenta(id) < D.nivel) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -10); avisar(`Precisa de ${NOME_FERRAMENTA[id] || id} mais forte (o Seu Tonico melhora).`); return; }
-    o.vida -= 1; o.treme = 0.3;
+    if (D.nivel && nivelFerramenta(id) < D.nivel) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -10); avisar(`Isso pede ${NOME_FERRAMENTA[id] || id} mais forte (o Seu Tonico melhora).`); return; }
+    o.vida -= typeof danoDaFerramenta === 'function' ? danoDaFerramenta(id) : 1; o.treme = 0.3;
     if (id !== 'foice') G.tremor = Math.max(G.tremor || 0, D.material === 'pedra' ? 0.14 : 0.1);
     lascas(o.x, o.y - 20, D.material);
     sons.tocar(D.material === 'pedra' ? 'pedra' : D.material === 'mato' ? 'foice' : 'madeira', 1, 0.08, -4);
@@ -96,6 +102,7 @@ function quebrar(o) {
   const m = G.mapa, D = DETRITOS[o.det];
   m.tirar(o);
   for (const id in D.solta) soltar(id, D.solta[id], o.x, o.y - 10);
+  if (o.det === 'entulho' && Math.random() < (typeof Habilidades !== 'undefined' && Habilidades.tem('limpinho') ? 0.25 : 0.15)) soltar('ferro_velho', 1, o.x, o.y - 10);
   if (typeof quebrouNaObra === 'function') quebrouNaObra(o);
   if (typeof quebrouEmpreita === 'function') quebrouEmpreita(o);
   if (typeof Habilidades !== 'undefined') {

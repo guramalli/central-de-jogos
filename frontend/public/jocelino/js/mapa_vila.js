@@ -53,7 +53,7 @@ MAPAS_DEF.vila = () => {
   b.enfeite('objetos/fusca', 44, 21, true, 44);   // estacionado no canto de baixo (a estrada da pedreira passa em y 12–13)
   b.interativo('mercado', 'objetos/mercado_0', 36, 21, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
   b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 33, 18, 2, 1, [28, 6]).acao = () => abrirPlaca('O quadro da Prefeitura: editais e avisos.');
-  b.interativo('oficina', 'objetos/oficina_sem_fumaca', 12, 20, 6, 5).acao = () => abrirPlaca('A ferraria do Seu Tonico. "Ferramenta boa é meio caminho andado."');
+  b.interativo('oficina', 'objetos/oficina_sem_fumaca', 12, 20, 6, 5).acao = () => (typeof abrirFerraria === 'function' ? abrirFerraria() : abrirPlaca('A ferraria do Seu Tonico.'));
   b.morador('tonico', 'Seu Tonico', 19, 17, DIR.BAIXO, { vagueia: true, area: { x: 18 * TILE, y: 16 * TILE + 42, w: 3 * TILE, h: 3 * TILE } });   // na porta da ferraria
   // As placas de serviço juntas, à direita do caminho de quem chega do quintal (como o quadro e o calendário do Pierre).
   b.interativo('calendario', 'objetos/calendario', 25, 5, 2, 1, [12, 6]).acao = () => abrirPlaca('O calendário da Vila: festas e aniversários.');

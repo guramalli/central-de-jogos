@@ -51,7 +51,7 @@ function golpeEmpreita(id, ferr) {
   if (r === 'ok') { sons.tocar(E.ferramenta === 'machado' ? 'madeira' : 'terra', 1.1, 0.05, -6); return; }
   if (r === 'pronta') { sons.tocar('moedas', 1, 0.05, -4); sons.tocar('feito', 1, 0.03, -6); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${E.paga}.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return; }
   if (r === 'material') avisar(TEXTO_RESULTADO.material + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + '.');
-  else if (r === 'ferramenta') avisar(TEXTO_RESULTADO.ferramenta + (NOME_FERRAMENTA[E.ferramenta] || E.ferramenta) + '.');
+  else if (r === 'ferramenta') avisar(G.ferreiro && G.ferreiro.oficina && G.ferreiro.oficina.id === E.ferramenta ? `Isso pede ${NOME_FERRAMENTA[E.ferramenta]}, que está com o Seu Tonico na ferraria.` : TEXTO_RESULTADO.ferramenta + (NOME_FERRAMENTA[E.ferramenta] || E.ferramenta) + '.');
   else if (r === 'feito_hoje') avisar(TEXTO_RESULTADO.feito_hoje);
 }
 function acaoEmpreita(id) {

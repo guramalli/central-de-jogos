@@ -25,12 +25,12 @@ MAPAS_DEF.pedreira = () => {
 };
 // As rochas comuns da entrada: 12 sorteadas pelo dia (refazem toda manhã).
 function rochasDaEntrada(b) {
-  for (const o of b.objs.filter(o => o.det === 'rocha')) b.tirar(o);
+  for (const o of b.objs.filter(o => o.det === 'rocha' || o.det === 'ferro')) b.tirar(o);
   const f = mulberry(G.dia * 211 + 5);
   for (let k = 0, n = 0; k < 120 && n < 12; k++) {
     const x = b.livre.x + 2 + Math.floor(f() * (b.livre.w - 3)), y = b.livre.y + Math.floor(f() * b.livre.h);
     if (b.saidaEm(x, y) || (x <= b.inicio.x + 1 && Math.abs(y - b.inicio.y) <= 1)) continue;
-    if (b.detrito('rocha', x, y)) n++;
+    if (b.detrito(f() < 0.1 ? 'ferro' : 'rocha', x, y)) n++;
   }
 }
 // O Seu Tonico recebe o Jocelino no primeiro dia em que ele entra na pedreira.
