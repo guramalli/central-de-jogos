@@ -115,7 +115,7 @@ class Pensao {
     for (const id of Object.keys(this.despensa)) if (this.despensa[id] <= 0) delete this.despensa[id];
     return rar;
   }
-  preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + ECO.precoPorNivel * (this.nivel(prato) - 1))); }
+  preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + ECO.precoPorNivel * (this.nivel(prato) - 1)) * (typeof temperoDaRoca === 'function' ? temperoDaRoca(prato) : 1)); }
 
   // ---------------- a panela da noite: a Rosa prepara as porções antes (ou na hora, se faltar)
   porcoesPorPanela(prato) {

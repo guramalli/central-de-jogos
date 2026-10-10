@@ -25,7 +25,7 @@ const CaixaVenda = {
     if (G.caixaVenda[id] <= 0) delete G.caixaVenda[id];
     return n;
   },
-  bruto() { let t = 0; for (const id in G.caixaVenda) t += CaixaVenda.preco(id) * G.caixaVenda[id]; return t; },
+  bruto() { let t = 0; for (const id in G.caixaVenda) t += CaixaVenda.preco(id) * G.caixaVenda[id] * (typeof fatorFeira === 'function' ? fatorFeira(id) : 1); return Math.round(t); },   // Feirante/Atacadista na colheita
   total() { return Math.round(CaixaVenda.bruto() * (typeof Habilidades !== 'undefined' ? Habilidades.bonusVenda() : 1)); },
   madrugada() {
     const total = CaixaVenda.total(), itens = Object.assign({}, G.caixaVenda);

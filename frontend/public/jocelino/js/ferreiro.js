@@ -46,7 +46,7 @@ const Ferreiro = {
 };
 // Machado e picareta batem com 1 + nível; pá, regador e colher cobrem 3 ladrilhos em linha no nível reforçado.
 const danoDaFerramenta = id => ['machado', 'picareta'].includes(id) ? 1 + nivelFerramenta(id) : 1;
-const areaDaFerramenta = id => ['pa', 'regador', 'colher'].includes(id) ? (nivelFerramenta(id) >= 1 ? 3 : 1) : 1;
+const areaDaFerramenta = id => ['pa', 'regador', 'colher'].includes(id) ? (nivelFerramenta(id) >= 1 || (id === 'regador' && typeof Habilidades !== 'undefined' && Habilidades.tem('rega_de_mestre')) ? 3 : 1) : 1;
 INICIADORES.push(s => Ferreiro.iniciar(s));
 COLETORES.push(s => Ferreiro.salvar(s));
 MANHA.push(() => { if (Ferreiro.pronta(G.dia) && G.dia === G.ferreiro.oficina.pronta) G.feitosHoje.push(`O Seu Tonico terminou ${NOME_FERRAMENTA[G.ferreiro.oficina.id] || G.ferreiro.oficina.id} reforçada: passe na ferraria.`); });

@@ -30,7 +30,7 @@ const Horta = {
   },
   cova(x, y) { return G.horta.covas[chaveH(x, y)]; },
   aguaMax() { return AGUA_REGADOR[nivelFerramenta('regador') >= 1 ? 1 : 0]; },
-  diasPara(id) { return CULTURAS[id].dias; },
+  diasPara(id) { const d = CULTURAS[id].dias; return typeof Habilidades !== 'undefined' && Habilidades.tem('agronomo') ? d - Math.ceil(d * 0.1) : d; },
   madura(c) { return !!(c && c.planta && c.dias >= Horta.diasPara(c.planta)); },
   estagio(c) { if (!c || !c.planta) return 0; if (Horta.madura(c)) return 4; if (c.colhida) return 3; return 1 + Math.min(2, Math.floor(c.dias * 3 / Horta.diasPara(c.planta))); },
   molhada(c, dia) { return !!c && (c.regada || (typeof Clima !== 'undefined' && Clima.chove(dia))); },
@@ -47,8 +47,16 @@ const Horta = {
     G.horta.agua--; c.regada = true; return 'ok';
   },
   encher() { G.horta.agua = Horta.aguaMax(); },
-  // A qualidade da colheita: 0 normal, 1 boa (+1 unidade), 2 caprichada (+2). A Roça e o esterco entram na entrega B.
-  qualidade(rng, adubo) { return 0; },
+  // A qualidade da colheita: 0 normal, 1 boa (+1 unidade), 2 caprichada (+2). A fórmula do Stardew com o nível L da Roça e
+  // o adubo F (o esterco; a Mão verde soma 1): caprichada 0,2·L/10 + 0,2·F·(L+2)/12 + 0,01; boa min(0,75, 2× caprichada).
+  qualidade(rng = Math.random, adubo = 0) {
+    const L = typeof Habilidades !== 'undefined' ? Habilidades.nivel('roca') : 0;
+    const F = (adubo ? 1 : 0) + (typeof Habilidades !== 'undefined' && Habilidades.tem('mao_verde') ? 1 : 0);
+    const cap = 0.2 * (L / 10) + 0.2 * F * ((L + 2) / 12) + 0.01;
+    if (rng() < cap) return 2;
+    return rng() < Math.min(0.75, cap * 2) ? 1 : 0;
+  },
+  adubar(x, y) { const c = Horta.cova(x, y); if (!c) return 'sem_cova'; if (c.planta) return 'ocupado'; if (c.adubo) return 'ja'; c.adubo = 1; return 'ok'; },
   colher(x, y, rng = Math.random) {
     const c = Horta.cova(x, y); if (!Horta.madura(c)) return null;
     const id = c.planta, q = Horta.qualidade(rng, c.adubo), C = CULTURAS[id];
@@ -73,3 +81,7 @@ const Horta = {
 };
 INICIADORES.push(s => Horta.iniciar(s));
 COLETORES.push(s => Horta.salvar(s));
+// Os itens da horta e as vantagens da Roça que mexem no dinheiro (a caixa e o preço do prato na pensão).
+Object.assign(ITENS, { esterco: { nome: 'Esterco curtido', pilha: 99, ferramenta: false, descricao: 'Adubo: na cova vazia, antes de plantar. Mais colheita boa e caprichada.' } });
+const fatorFeira = id => !CULTURAS[id] || typeof Habilidades === 'undefined' ? 1 : Habilidades.tem('atacadista') ? 1.25 : Habilidades.tem('feirante') ? 1.1 : 1;
+const temperoDaRoca = prato => typeof Habilidades !== 'undefined' && Habilidades.tem('tempero_da_roca') && Pratos.PRATOS[prato] && Object.keys(Pratos.PRATOS[prato].porcao || {}).some(i => CULTURAS[i]) ? 1.1 : 1;

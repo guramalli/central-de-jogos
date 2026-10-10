@@ -2,6 +2,7 @@
 // cavada e molhada), as plantas como objetos (a arte da fase), a pá cavando a grama, a semente plantando com o botão
 // direito, o regador molhando (a água acaba e o barril enche), a colheita, a foice arrancando, a noite e as tarefas.
 
+const xpColheita = id => Math.max(2, Math.round(CULTURAS[id].venda / 4));   // colher dá Roça pelo valor
 const ALCANCE_HORTA = 1;   // ladrilhos em volta do Jocelino (o alvo do Stardew)
 const perto1 = t => { const p = G.jog.ladrilho(); return Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) <= ALCANCE_HORTA; };
 function podeCavar(b, x, y) {
@@ -47,12 +48,21 @@ function chaoAcertado(id, alvo) {
 function regarCova(x, y) {
   const r = Horta.regar(x, y);
   if (r === 'vazio') { avisar('O regador está vazio: encha no barril d\'água.'); return; }
+  if (r === 'ok') Habilidades.ganhar('roca', 1);
   lascas((x + 0.5) * TILE, (y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); hudSujo();
 }
 // O botão direito no chão: a semente planta na cova (e o esterco aduba, na entrega B).
 function acaoNoChao(t) {
   if (!G.mapa || G.mapa.id !== 'quintal' || !G.jog) return false;
   const id = itemDaMao();
+  if (id === 'esterco') {
+    if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
+    if (!perto1(t)) { avisar('Chegue mais perto.'); return true; }
+    const r = Horta.adubar(t.x, t.y);
+    if (r === 'ok') { G.mochila.remover('esterco', 1); sons.tocar('terra', 0.8, 0.05, -8); hudSujo(); }
+    else avisar(r === 'sem_cova' ? 'O esterco vai na cova cavada.' : r === 'ocupado' ? 'O esterco vai antes de plantar.' : 'Essa cova já está adubada.');
+    return true;
+  }
   if (!culturaDaSemente(id)) return false;
   if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
   if (!perto1(t)) { avisar('Chegue mais perto.'); return true; }
@@ -60,7 +70,7 @@ function acaoNoChao(t) {
   if (r === 'sem_cova') { avisar('Primeiro cave a terra com a pá.'); return true; }
   if (r === 'ocupado') return false;
   if (r === 'fora_de_estacao') { avisar('Essa não dá nesta estação.'); return true; }
-  G.mochila.remover(id, 1); sons.tocar('terra', 1.4, 0.05, -8); sincronizaHorta(G.mapa); hudSujo();
+  G.mochila.remover(id, 1); Habilidades.ganhar('roca', 1); sons.tocar('terra', 1.4, 0.05, -8); sincronizaHorta(G.mapa); hudSujo();
   return true;
 }
 function colherPlanta(o) {
@@ -70,7 +80,12 @@ function colherPlanta(o) {
   if (!G.mochila.cabe(c.planta)) { avisar('A mochila está cheia.'); return true; }
   const r = Horta.colher(o.covaX, o.covaY);
   const sobra = G.mochila.adicionar(r.id, r.qtd); if (sobra) soltar(r.id, sobra, G.jog.x, G.jog.y);
-  sons.tocar('pegar', 1, 0.05, -4); avisar('+ ' + Itens.qtd(r.qtd, r.id)); hudSujo();
+  Habilidades.ganhar('roca', xpColheita(r.id));
+  sons.tocar('pegar', 1, 0.05, -4);
+  if (r.qual === 2) { avisar(`Colheita caprichada! ${Itens.qtd(r.qtd, r.id)}.`); sons.tocar('carimbo', 1, 0.05, -4); CARIMBOS.push({ x: o.x, y: o.y - 30, t: 0 }); }
+  else if (r.qual === 1) avisar(`Colheita boa! ${Itens.qtd(r.qtd, r.id)}.`);
+  else avisar('+ ' + Itens.qtd(r.qtd, r.id));
+  hudSujo();
   sincronizaHorta(G.mapa);
   return true;
 }
@@ -103,3 +118,8 @@ TAREFAS.push(() => {
   if (prontas) r.push({ texto: `Horta: ${prontas} ${prontas === 1 ? 'pronta' : 'prontas'} para colher` });
   return r;
 });
+PRECO_HORTA.esterco = 5;
+// O carimbo de caprichado sobe por cima da planta colhida e some (a arte ui/carimbo_caprichado, só posição e transparência).
+const CARIMBOS = [];
+ATUALIZADORES.push(dt => { for (const c of CARIMBOS) c.t += dt; for (let i = CARIMBOS.length - 1; i >= 0; i--) if (CARIMBOS[i].t > 1.2) CARIMBOS.splice(i, 1); });
+AO_MONTAR.push(b => { if (b.id === 'quintal') b.desenhaPorCima = ctx => { for (const c of CARIMBOS) desenhaPe(ctx, 'ui/carimbo_caprichado', c.x, c.y - c.t * 40, Math.max(0, 1 - c.t / 1.2), 0.5); }; });
