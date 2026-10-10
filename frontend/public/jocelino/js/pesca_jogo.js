@@ -27,9 +27,10 @@ function ehFundo(b, tx, ty) {
   return true;
 }
 const segurandoPesca = () => G.mouse.segura || G.teclas.has('Space') || G.teclas.has(TECLAS.usar);
+let _esperaSoltar = false;   // a linha acabou com o botão apertado: só lança de novo depois de soltar (como no Stardew)
 function varaNaMao(id) {
   if (!VARAS.includes(id)) return false;
-  if (G.linha) return true;   // o ATUALIZADOR cuida do resto (soltar, fisgar, recolher)
+  if (G.linha || _esperaSoltar) return true;   // o ATUALIZADOR cuida do resto (soltar, fisgar, recolher)
   if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
   const custo = LINHA.CUSTO * (typeof Habilidades !== 'undefined' ? Habilidades.custo('vara') / CUSTO_GOLPE : 1);
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return true; }
@@ -39,6 +40,7 @@ function varaNaMao(id) {
 }
 function recolherLinha(motivo) {
   if (!G.linha) return;
+  _esperaSoltar = segurandoPesca();
   G.linha = null; if (G.jog) G.jog.pescando = false;
   if (motivo) avisar(motivo);
 }
@@ -80,6 +82,7 @@ let _segurouAntes = false;
 ATUALIZADORES.push(dt => {
   const L = G.linha, seg = segurandoPesca(), aperta = seg && !_segurouAntes, solta = !seg && _segurouAntes;
   _segurouAntes = seg;
+  if (!seg) _esperaSoltar = false;
   if (!L) { if (G.jog && G.jog.pescando) G.jog.pescando = false; return; }
   // Saídas que recolhem: menu aberto, outro item na mão, andar (fora do minijogo e da força).
   if (menuAberto()) { recolherLinha(); return; }
@@ -142,3 +145,32 @@ DESENHOS_TELA.push(ctx => {
   if (e.bau && e.bau.visivel && !e.bau.pego) { const b = spr('ui/pesca_bau'); if (b) ctx.drawImage(b, TR.x + TR.w / 2 - 16, TR.y + TR.h * (1 - e.bau.y) - 16, 32, 32); }
   const pe = spr('ui/pesca_peixe'); if (pe) ctx.drawImage(pe, TR.x + TR.w / 2 - 16, TR.y + TR.h * (1 - e.pos) - 16, 32, 32);
 });
+
+// ---------- a banca do Seu Lourival (o Willy): vende peixe; compra isca, covo e a vara boa ----------
+const PRECO_BANCA = { isca: 5, covo: 50, vara_boa: 250 };
+const PEDE_PESCA = { vara_boa: 2 };
+let _abaBanca = 0;
+function abrirBanca() {
+  if (relogio.domingo() || G.minutos < 7 * 60 || G.minutos >= 17 * 60) { abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), [relogio.domingo() ? 'Domingo a banca descansa, compadre.' : 'A banca abre das 7h às 17h.']); return true; }
+  if (!G.pesca.varaDada && G.mochila.total('vara') < 1 && G.mochila.cabe('vara')) { G.mochila.adicionar('vara', 1); G.pesca.varaDada = true; hudSujo(); avisar('O Lourival te deu uma vara de bambu!'); }
+  const caixa = el('div', { class: 'painel' });
+  const desenha = () => {
+    caixa.innerHTML = '';
+    caixa.append(el('div', { class: 'titulo', style: 'font-size:26px;display:flex;justify-content:space-between' }, el('span', {}, 'Banca do Seu Lourival'), el('span', {}, 'Cr$ ' + G.dinheiro)));
+    caixa.append(el('div', { class: 'abas' }, ['Vender', 'Comprar'].map((n, i) => el('div', { class: 'aba' + (i === _abaBanca ? ' ativa' : ''), onclick: e => { e.stopPropagation(); _abaBanca = i; desenha(); } }, n))));
+    let linhas;
+    if (_abaBanca === 0) {
+      const ids = [...new Set(G.mochila.slots.filter(Boolean).map(s => s.id))].filter(id => DADOS_PEIXE[id]);
+      linhas = ids.map(id => el('div', { class: 'linha', onclick: e => { e.stopPropagation(); const n = e.shiftKey ? G.mochila.total(id) : 1; G.mochila.remover(id, n); const v = n * precoPeixe(id); G.dinheiro += v; G.ganhoHoje += v; sons.tocar('dinheiro', 1.1, 0.05, -4); avisar(`Vendeu ${Itens.qtd(n, id)} por Cr$ ${v}.`); hudSujo(); desenha(); } },
+        el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + precoPeixe(id))));
+      if (!linhas.length) linhas = [el('div', { class: 'rodape' }, 'Nenhum peixe na mochila.')];
+    } else {
+      linhas = Object.keys(PRECO_BANCA).map(id => { const pede = PEDE_PESCA[id], trava = pede && Habilidades.nivel('pesca') < pede, preco = Math.max(1, Math.round(PRECO_BANCA[id] * descontoHab()));
+        return el('div', { class: 'linha' + (trava ? ' trancado' : ''), onclick: e => { e.stopPropagation(); if (trava) { avisar(`Isso pede Pesca ${pede}.`); return; } _comprar(id, e.shiftKey && id === 'isca' ? 5 : 1, preco); desenha(); } },
+          el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), trava ? el('div', { class: 'tem' }, `pede Pesca ${pede}`) : el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco)); });
+    }
+    caixa.append(el('div', { class: 'grade' }, ...linhas), el('div', { class: 'rodape' }, 'Clique: 1 · Shift+clique: tudo (vender) ou 5 iscas'));
+  };
+  desenha(); abrirModal(caixa); sons.tocar('abrir', 1.1, 0.03, -6); return true;
+}
+

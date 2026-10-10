@@ -95,3 +95,25 @@ const Pescaria = {
     return e.fim;
   },
 };
+
+Object.assign(ITENS, {
+  cavala: { nome: 'Cavala', pilha: 99, ferramenta: false, energia: 35, descricao: 'Do alto-mar. Vende na banca ou vai para a despensa da Rosa.' },
+  garoupa: { nome: 'Garoupa', pilha: 99, ferramenta: false, energia: 45, descricao: 'Do alto-mar, gorda e saborosa.' },
+  dourado: { nome: 'Dourado', pilha: 99, ferramenta: false, energia: 50, descricao: 'Do alto-mar, na primavera e no verão.' },
+  tainha_rainha: { nome: 'Tainha-Rainha', pilha: 9, ferramenta: false, descricao: 'Lendária da praia. Leve para a Rosa ver!' },
+  robalo_flecha: { nome: 'Robalo-Flecha', pilha: 9, ferramenta: false, descricao: 'Lendário da ponta do píer. Leve para a Rosa ver!' },
+  bagre_assombrado: { nome: 'Bagre-Assombrado', pilha: 9, ferramenta: false, descricao: 'Lendário do rio, de madrugada. Leve para a Rosa ver!' },
+  traira_velha: { nome: 'Traíra-Velha', pilha: 9, ferramenta: false, descricao: 'Lendária do poço da cachoeira. Leve para a Rosa ver!' },
+  mero: { nome: 'Mero do Lourival', pilha: 9, ferramenta: false, descricao: 'O peixe que o Lourival caça há 30 anos. Leve para a Rosa ver!' },
+  isca: { nome: 'Isca', pilha: 99, ferramenta: false, descricao: 'Da banca do Lourival. Com a vara boa ou o molinete, o peixe morde mais rápido e o raro aparece mais.' },
+  minhoca: { nome: 'Minhoca', pilha: 99, ferramenta: false, descricao: 'Achada cavando a grama. Serve de isca.' },
+  covo: { nome: 'Covo de siri', pilha: 9, ferramenta: false, descricao: 'Ponha na água da margem com isca: de manhã tem siri, caranguejo ou camarão.' },
+  vara_boa: { nome: 'Vara boa', pilha: 1, ferramenta: true, descricao: 'Da banca do Lourival. Aceita isca.' },
+  molinete: { nome: 'Molinete', pilha: 1, ferramenta: true, descricao: 'Do Seu Tonico. Barra de pesca maior e aceita isca.' },
+});
+for (const id of ['cavala', 'garoupa', 'dourado']) Pratos.INGREDIENTES[id] = { raridade: 3, fase: 3, origem: 'Alto-mar com o Lourival' };
+for (const id of ['camarao', 'polvo']) if (Pratos.INGREDIENTES[id]) Pratos.INGREDIENTES[id].origem += ' e alto-mar com o Lourival';
+for (const id in DADOS_PEIXE) PRECO_CAIXA[id] = DADOS_PEIXE[id].preco;
+const fatorPeixe = id => !DADOS_PEIXE[id] || typeof Habilidades === 'undefined' ? 1 : Habilidades.tem('mestre_do_pier') ? 1.5 : Habilidades.tem('pescador') ? 1.25 : 1;
+const precoPeixe = id => Math.round(DADOS_PEIXE[id].preco * fatorPeixe(id) * (typeof Habilidades !== 'undefined' ? Habilidades.bonusVenda() : 1));
+

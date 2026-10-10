@@ -22,11 +22,7 @@ MAPAS_DEF.praia = () => {
   for (let x = 0; x <= b.larg; x += 3) if (x < 21 || x > 24) b.enfeite('objetos/coqueiro', x, 1, false);
   for (let y = 3; y < MAR_Y; y += 3) { b.enfeite('objetos/coqueiro', 0, y, false); b.enfeite('objetos/coqueiro', b.larg - 1, y, false); }
   // A banca e o barco do Seu Lourival.
-  b.interativo('banca_peixe', 'objetos/banca_peixe', 7, 7, 3, 1, [44, 8]).acao = () => {
-    const chove = typeof Clima !== 'undefined' && Clima.chove(G.dia);
-    abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), [chove ? 'Com chuva o peixe raro aparece, compadre! Quando eu te arranjar a vara, vem pescar na ponta do píer.' : 'Bom dia, compadre! A banca abre quando tiver peixe. Logo, logo te ensino a pescar no píer: a vara eu arranjo.']);
-    return true;
-  };
+  b.interativo('banca_peixe', 'objetos/banca_peixe', 7, 7, 3, 1, [44, 8]).acao = () => (typeof abrirBanca === 'function' ? abrirBanca() : abrirPlaca('A banca do Lourival.'));
   b.enfeite('objetos/barco_lourival', 14, 14, true, 44, 12);
   b.morador('lourival', 'Seu Lourival', 9, 9, DIR.BAIXO);
   // O lote à beira-mar (a barraca da Rosa, um dia).
