@@ -129,10 +129,15 @@ function comerDaMao() {
   const id = itemDaMao(), e = Itens.energia(id);
   if (!e) return false;
   if (G.energia >= G.energiaMax) { avisar('Jocelino está sem fome agora.'); return true; }
+  // Como o Stardew: pergunta antes (um clique errado não come o ovo da pensão).
+  perguntar(`Comer ${Itens.nome(id).toLowerCase()}? (+${e} de energia)`, ['Comer', 'Agora não'], i => { if (i === 0) comer(id, e); });
+  return true;
+}
+function comer(id, e) {
+  if (G.mochila.total(id) < 1) return;
   G.mochila.remover(id, 1);
   G.energia = Math.min(G.energiaMax, G.energia + e);
   sons.tocar('pegar', 0.7, 0.05, -4);
   avisar(`Comeu ${Itens.nome(id).toLowerCase()}: +${e} de energia.`);
   hudSujo();
-  return true;
 }

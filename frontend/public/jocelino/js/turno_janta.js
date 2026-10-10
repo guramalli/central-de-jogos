@@ -82,7 +82,8 @@ class TurnoJanta {
   anotar(i) {
     const m = this.mesas[i];
     if (!m || m.estado !== 'pedido') return false;
-    const opcoes = this._cardapio.filter(id => this.pensao.rende(id) > 0);
+    // O cardápio é o de agora (não o do começo da janta): o que o jogador guardou ou marcou depois já vale.
+    const opcoes = this.pensao.cardapioDaNoite();
     if (!opcoes.length) {
       // Sem nada que renda: um cafezinho e a promessa de voltar. Registra o que faltou.
       this.relatorio.cafes++;

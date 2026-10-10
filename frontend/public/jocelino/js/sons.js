@@ -9,7 +9,7 @@ const sons = {
   ctx: null, bus: {}, buffers: new Map(), musicaAtual: '', _fonteMusica: null, _ganhoMusica: null,
   volumes: { musica: 70, ambiente: 80, efeitos: 80, interface: 60 },
   iniciar() {
-    if (this.ctx) return;
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); return; }
     try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     const mestre = this.ctx.createGain(); mestre.connect(this.ctx.destination);
     for (const b of ['musica', 'ambiente', 'efeitos', 'interface']) { const g = this.ctx.createGain(); g.connect(mestre); this.bus[b] = g; }
@@ -54,7 +54,7 @@ const sons = {
     this._fonteMusica = f; this._ganhoMusica = g;
   },
 };
-for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
+for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
 
 // Música: de dia a do dia, da noite a da noite (a partir das 18h); na pensão, a calma da Vila.
 setInterval(() => {

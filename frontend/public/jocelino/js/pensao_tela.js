@@ -36,6 +36,7 @@ function atualizarPensaoMundo(so) {
     const i = sal.banquetas.length, a = SALAO.ASSENTOS[i];
     const b = sal.interativo('banqueta_' + i, 'objetos/banqueta', a[0], a[1], 1, 1, [10, 6]);
     b.acao = () => pensaoMesa(i);
+    b.alvoAlto = 170;   // o clique pega o cliente inteiro (cabeça e balão), não só a banqueta
     sal.banquetas.push(b);
   }
   if (e === 'aberta' && !sal.rosa) sal.rosa = sal.morador('rosa', 'Rosa', SALAO.COZINHA[0] + 1, SALAO.COZINHA[1] - 1, DIR.BAIXO);
@@ -216,9 +217,9 @@ function pensaoMesa(i) {
   sincronizaClientes();
   return true;
 }
-// Clique no balcão corrido: o cliente da banqueta na frente do mouse; senão, o balcão (montar).
-function pensaoBalcaoCorrido() {
-  const x = ladrilhoDoMouse().x;
+// Clique (ou X) no balcão corrido: o cliente da banqueta naquela coluna; senão, o balcão (montar).
+function pensaoBalcaoCorrido(px) {
+  const x = Math.floor((px ?? mouseMundo().x) / TILE);
   const i = SALAO.ASSENTOS.findIndex((a, k) => a[0] === x && G.turno && k < G.turno.mesas.length && G.turno.mesas[k].estado !== 'livre');
   return i >= 0 ? pensaoMesa(i) : pensaoBalcao();
 }

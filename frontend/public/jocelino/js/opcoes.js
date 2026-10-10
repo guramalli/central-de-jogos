@@ -8,7 +8,34 @@ G.opcoes = { nomes: 1, zoom: 100 };
 })();
 function salvarOpcoes() { try { localStorage.setItem(CHAVE_OPCOES, JSON.stringify({ volumes: sons.volumes, nomes: G.opcoes.nomes, zoom: G.opcoes.zoom })); } catch (e) {} }
 
-const NOMES_VOLUME = { musica: 'Música', ambiente: 'Sons do ambiente', efeitos: 'Efeitos', interface: 'Sons da interface' };
+// (O volume do ambiente volta quando houver sons de ambiente: chuva, mar, vento.)
+const NOMES_VOLUME = { musica: 'Música', efeitos: 'Efeitos', interface: 'Sons da interface' };
+// O save em arquivo: o navegador guarda o jogo sozinho, mas limpar os dados do navegador apaga tudo. Baixar o save
+// guarda uma cópia (o último dormir); carregar põe o arquivo de volta e abre o jogo dele.
+function textoDoSave() {
+  let t = null; try { t = localStorage.getItem(CHAVE_SAVE); } catch (e) {}
+  if (t) return t;
+  coletarSave(); return JSON.stringify(G.save);
+}
+function importarSave(texto) {
+  let s; try { s = JSON.parse(texto); } catch (e) { return false; }
+  if (!s || typeof s !== 'object' || typeof s.dia !== 'number') return false;
+  s = migraSave(s); delete s.soTeste;
+  try { localStorage.setItem(CHAVE_SAVE, JSON.stringify(s)); } catch (e) { return false; }
+  fecharModal(); iniciarJogo(lerSave());
+  return true;
+}
+function baixarSave() {
+  const t = textoDoSave(), dia = (() => { try { return JSON.parse(t).dia; } catch (e) { return G.dia; } })();
+  const a = el('a', { href: URL.createObjectURL(new Blob([t], { type: 'application/json' })), download: `jocelino_dia_${dia}.json` });
+  document.body.append(a); a.click(); a.remove();
+}
+function escolherSave() {
+  const inp = el('input', { type: 'file', accept: '.json,application/json', style: 'display:none' });
+  inp.onchange = () => { const f = inp.files[0]; if (!f) return; f.text().then(t => { if (!importarSave(t)) avisar('Esse arquivo não é um save do Jocelino.'); else avisar('Save carregado.'); }); };
+  document.body.append(inp); inp.click(); setTimeout(() => inp.remove(), 60000);
+}
+
 const NOMES_MODO_NOMES = ['Nunca', 'Perto', 'Sempre'];
 function abrirOpcoes() {
   const caixa = el('div', { class: 'painel', style: 'min-width:min(86vw,560px)' });
@@ -24,6 +51,9 @@ function abrirOpcoes() {
     caixa.append(linha('Zoom', el('button', { class: 'botao', onclick: zoom(-10) }, '−'), el('div', { style: 'width:64px;text-align:center' }, G.opcoes.zoom + '%'), el('button', { class: 'botao', onclick: zoom(10) }, '+')));
     caixa.append(linha('Tela cheia (F)', el('button', { class: 'botao', style: 'min-width:150px', onclick: e => { e.stopPropagation(); alternaTelaCheia(); setTimeout(desenha, 300); } }, document.fullscreenElement ? 'Ligada' : 'Desligada')));
     caixa.append(linha('Nomes no mapa', el('button', { class: 'botao', style: 'min-width:150px', onclick: e => { e.stopPropagation(); G.opcoes.nomes = (G.opcoes.nomes + 1) % 3; salvarOpcoes(); desenha(); } }, NOMES_MODO_NOMES[G.opcoes.nomes])));
+    caixa.append(linha('Save em arquivo',
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); baixarSave(); } }, 'Baixar o save'),
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); escolherSave(); } }, 'Carregar save')));
     caixa.append(el('div', { class: 'rodape', style: 'text-align:left;line-height:1.6' },
       'WASD ou setas: andar · Shift: correr · clique: usar a ferramenta · botão direito ou X: conversar, abrir, entregar, comer · E: mochila · Tab: trocar a fileira · 1–0: escolher na barra · F: tela cheia · Esc: opções'));
     caixa.append(el('div', { style: 'display:flex;gap:10px;justify-content:flex-end;margin-top:10px' },

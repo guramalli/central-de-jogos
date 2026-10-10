@@ -274,7 +274,7 @@ function interativoSob(px, py) {
     if (o.tipo !== 'inter' || !o.acao) continue;
     const img = spr(o.nome);
     const w = img ? img.naturalWidth : TILE, h = img ? img.naturalHeight : TILE;
-    const dentro = px > o.x - w / 2 && px < o.x + w / 2 && py > o.y - h && py < o.y + 4;
+    const dentro = px > o.x - w / 2 && px < o.x + w / 2 && py > o.y - Math.max(h, o.alvoAlto || 0) && py < o.y + 4;
     const noTile = o.tiles.some(t => Math.floor(px / TILE) === t.x && Math.floor(py / TILE) === t.y);
     if (!dentro && !noTile) continue;
     const dist = Math.hypot(o.x - px, o.y - py);
@@ -295,7 +295,9 @@ function acaoEm(px, py) {
   const p = moradorSob(px, py);
   if (p && Math.hypot(p.x - G.jog.x, p.y - G.jog.y) < 2.2 * TILE) { G.jog.virarPara(p.x, p.y); conversar(p); return true; }
   const o = interativoSob(px, py);
-  if (o && pertoDoJogador(o)) { G.jog.virarPara(o.x, o.y - 20); return o.acao(o) !== false; }
+  if (o && pertoDoJogador(o)) { G.jog.virarPara(o.x, o.y - 20); return o.acao(o, px, py) !== false; }
+  // Acertou alguém ou alguma coisa, mas de longe: avisa (e não cai no "comer").
+  if (p || o) { avisar('Chegue mais perto.'); return true; }
   return false;
 }
 function acaoNoMouse() {

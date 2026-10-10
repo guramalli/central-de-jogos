@@ -1,7 +1,7 @@
 // Jocelino — entrada.js — teclado e mouse.
 // WASD/setas andam; Shift corre; clique esquerdo usa o item da mão no ladrilho-alvo; clique direito (ou X) age
 // (conversa, abre, colhe, entrega); E abre a mochila; Tab troca a fileira da barra; 1-0 escolhem o espaço;
-// Esc abre as opções; F alterna a tela cheia. As teclas de ação podem ser trocadas nas opções (TECLAS).
+// Esc abre as opções; F alterna a tela cheia. As teclas ficam em TECLAS (trocar pelas opções: fase 2).
 
 const TECLAS_PADRAO = { cima: 'KeyW', baixo: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', usar: 'KeyC', acao: 'KeyX', mochila: 'KeyE',
   fileira: 'Tab', correr: 'ShiftLeft', opcoes: 'Escape', telacheia: 'KeyF' };

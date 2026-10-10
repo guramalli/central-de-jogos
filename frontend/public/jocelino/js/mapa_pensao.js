@@ -20,7 +20,7 @@ MAPAS_DEF.pensao_dentro = () => {
   b.saida(14, 13, 2, 1, 'vila', 13, 8);
   const S = SALAO;
   b.corrido = b.interativo('balcao_corrido', 'objetos/balcao_corrido', S.BALCAO[0], S.BALCAO[1], 10, 1, [156, 8]);
-  b.corrido.acao = () => (typeof pensaoBalcaoCorrido === 'function' ? pensaoBalcaoCorrido() : false);
+  b.corrido.acao = (o, px) => (typeof pensaoBalcaoCorrido === 'function' ? pensaoBalcaoCorrido(px) : false);
   b.cozinha = b.interativo('balcao_pensao', 'objetos/balcao_pensao', S.COZINHA[0], S.COZINHA[1], 4, 1, [60, 8]);
   b.cozinha.acao = () => (typeof pensaoBalcao === 'function' ? pensaoBalcao() : abrirPlaca('O fogão da Rosa.'));
   b.interativo('quadro_giz', 'objetos/quadro_giz', S.QUADRO[0], S.QUADRO[1], 2, 1, [28, 6]).acao = () => (typeof pensaoQuadro === 'function' ? pensaoQuadro() : false);

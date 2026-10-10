@@ -90,7 +90,7 @@ function lerSave() {
   catch (e) { console.warn('save ilegível, começando outro', e); return null; }
 }
 function salvar() {
-  if (!G.save) return false;
+  if (!G.save || G.save.soTeste) return false;   // o atalho ?pensao=1 nunca grava por cima do save de verdade
   try { coletarSave(); localStorage.setItem(CHAVE_SAVE, JSON.stringify(G.save)); return true; }
   catch (e) { console.error('salvar falhou', e); if (typeof avisar === 'function') avisar('Não deu para salvar (memória do navegador cheia?).'); return false; }
 }
