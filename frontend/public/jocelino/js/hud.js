@@ -8,7 +8,7 @@ const HUD = {};
 
 function montaHud() {
   const h = $('#hud');
-  h.innerHTML = '';
+  h.innerHTML = ''; HUD.forca = null;
   HUD.quadro = el('div', { class: 'painel quadro' });
   HUD.relogio = el('div', { class: 'painel relogio' }, HUD.dia = el('div', { class: 'dia' }), HUD.estacao = el('div', { class: 'estacao' }),
     HUD.hora = el('div', { class: 'hora' }), HUD.dinheiro = el('div', { class: 'dinheiro' }));

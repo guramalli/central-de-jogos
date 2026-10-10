@@ -5,6 +5,7 @@ let _aoFecharModal = null;
 function menuAberto() { return !$('#modal').hidden || !$('#capa').hidden; }
 
 function abrirModal(conteudo, aoFechar) {
+  if (typeof recolherLinha === 'function') recolherLinha();   // menu aberto recolhe a linha de pesca (o jogo pausa)
   const m = $('#modal');
   m.innerHTML = '';
   m.append(conteudo);

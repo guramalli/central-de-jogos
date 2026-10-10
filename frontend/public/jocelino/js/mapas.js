@@ -297,6 +297,7 @@ function caminhoArredondado(g, m, x, y, tipo) {
 }
 
 // ---------- desenho ----------
+const EXTRAS_MUNDO = [];   // coisas da hora desenhadas na ordem do chão (a boia e a linha da pesca)
 function desenhaMapa(ctx) {
   const m = G.mapa;
   if (m.cenario) {
@@ -312,6 +313,7 @@ function desenhaMapa(ctx) {
   const lista = [...m.objs, ...m.moradores.filter(p => p.visivel !== false), ...m.itens];
   if (G.jog) lista.push(G.jog);
   if (m.extras) lista.push(...m.extras());
+  for (const f of EXTRAS_MUNDO) lista.push(...f(m));
   if (typeof vidaNoChao === 'function') lista.push(...vidaNoChao(m));
   lista.sort((a, b) => a.y - b.y);
   const jx = G.jog ? G.jog.x : 0, jy = G.jog ? G.jog.y : 0;

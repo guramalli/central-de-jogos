@@ -59,6 +59,7 @@ function usarItemDaMao(peloTeclado) {
   const j = G.jog;
   if (!j || menuAberto() || j.golpe > 0 || j.travado > 0) return;
   const id = itemDaMao();
+  if (typeof varaNaMao === 'function' && varaNaMao(id)) return;   // a vara de pescar tem o seu jeito (pesca_jogo.js)
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
   const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id));
@@ -81,6 +82,7 @@ function acertar(id, alvo) {
   for (let k = 1; k < area; k++) acertarUm(id, { x: alvo.x + v[0] * k, y: alvo.y + v[1] * k }, vistos);
 }
 function acertarUm(id, alvo, vistos) {
+  if (typeof VARAS !== 'undefined' && VARAS.includes(id)) return;   // a vara não bate em nada
   const m = G.mapa;
   const o = m.ocupado.get(chaveT(alvo.x, alvo.y));
   if (o && vistos) { if (vistos.has(o)) return; vistos.add(o); }

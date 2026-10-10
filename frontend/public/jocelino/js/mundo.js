@@ -4,7 +4,7 @@
 
 const LUGARES_CARTA = { praia: 'lourival_praia', pedreira: 'tonico_pedreira' };
 Object.assign(CARTAS, {
-  lourival_praia: { de: 'Seu Lourival', dia: 2, texto: 'Compadre Jocelino! Vem conhecer a praia: é só descer pela rua da Vila, sentido sul. A banca de peixe é minha, do lado do píer. Um dia te ensino a pescar.' },
+  lourival_praia: { de: 'Seu Lourival', dia: 2, anexo: { vara: 1 }, aoLer: () => { if (G.pesca) G.pesca.varaDada = true; }, texto: 'Compadre Jocelino! Vem conhecer a praia: é só descer pela rua da Vila, sentido sul. A banca de peixe é minha, do lado do píer. Toma uma vara de bambu, compadre: vira para a água, segura e solta. Da ponta do píer sai peixe melhor.' },
   tonico_pedreira: { de: 'Seu Tonico', dia: 5, texto: 'Jocelino, a pedreira da Serra abriu: é seguir a estrada a leste da Vila. Pedra boa vale na obra e na caixa de venda, e lá embaixo tem ferro. Passa na ferraria quando quiser.' },
 });
 const Mundo = {

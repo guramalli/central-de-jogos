@@ -78,6 +78,7 @@ class Jogador extends Personagem {
     this.t += dt;
     if (this.travado > 0) this.travado -= dt;
     if (this._avisouFechado > 0) this._avisouFechado -= dt;
+    if (this.pescando) { this.andando = false; return; }   // segurando a força ou no minijogo da pesca
     if (this.golpe > 0) { this.golpe -= dt; this.andando = false; return; }
     let vx = 0, vy = 0;
     const k = G.teclas;
