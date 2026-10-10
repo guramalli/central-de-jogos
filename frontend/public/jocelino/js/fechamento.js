@@ -29,6 +29,7 @@ function abrirFechamento(r) {
       r.cafes ? linha('Só cafezinho (faltou ingrediente)', `${r.cafes}`) : null,
       linha('Despesa da noite (gás, gelo, luz)', `− Cr$ ${r.despesa || 0}`, 'menos'), r.salarios ? linha('Salários', `− Cr$ ${r.salarios}`, 'menos') : null,
       r.desperdicio ? linha('Foi para o lixo', `${r.desperdicio} prato(s)`, 'menos') : null,
+      r.sobra && r.sobra.total ? linha('Sobra da panela', `${r.sobra.total} porções (${r.sobra.marmitas} viraram marmita)`) : null,
       linha('Lucro da noite', `Cr$ ${lucro}`, lucro >= 0 ? 'lucro' : 'menos')),
     el('div', { class: 'fx-col' },
       linha('Curtidas', `+${r.curtidas || 0} (total ${p.curtidas})`), linha('Pitadas de tempero', `+${r.pitadasGanhas || 0} (total ${p.pitadas})`),

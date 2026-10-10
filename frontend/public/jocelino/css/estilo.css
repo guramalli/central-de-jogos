@@ -238,3 +238,6 @@ button { font-family: inherit; }
 .fx-nota { font-size: 30px; color: #d48a2c; margin: 4px 0 10px; } .fx-nota span { font-size: 18px; color: #5b3a1c; font-weight: 900; }
 .fx-col { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.05); }
 .fx-linha { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; } .fx-linha.menos b { color: #b0301c; } .fx-linha.lucro b { color: #2e7d32; }
+
+.panela-linha { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; margin: -4px 0 6px 84px; font-size: 15px; color: var(--giz-amarelo); }
+.panela-linha img { width: 40px; height: 40px; }

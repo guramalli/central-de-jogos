@@ -107,7 +107,7 @@ function pensaoQuadro() {
     const melhorRar = id => { const pr = Pratos.PRATOS[id].principal; if (pr !== 'peixe') return Pratos.raridade(pr); return Math.max(1, ...Pratos.PEIXES.filter(x => p.despensa[x] > 0 && p.aceita(x)).map(Pratos.raridade)); };
     caixa.append(el('div', { class: 'lousa-titulo' }, '~ Pensão da Rosa ~'));
     const esq = el('div', { class: 'lousa-esq' }, el('div', { class: 'giz-am' }, 'Sempre tem'),
-      (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => el('div', {}, '- ' + Pratos.BEBIDAS[b])), el('div', { class: 'giz-mi' }, '(vem com o prato)'),
+      (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => el('div', {}, '- ' + Pratos.BEBIDAS[b])), el('div', { class: 'giz-mi' }, '(cafezinho antes do prato, na medida: +30%)'),
       el('div', { class: 'lousa-fama' }, el('div', { class: 'giz-am' }, p.nomeGrau(p.grau())),
         el('div', {}, `${p.curtidas} curtidas`),
         el('div', {}, `Pratos: ${p.cardapio.length} de ${p.vagas()}`)));
@@ -124,8 +124,15 @@ function pensaoQuadro() {
           sons.tocar('cursor', 1, 0.04, -8); desenha(); } },
         el('img', { src: 'a/' + iconePrato(id) + '.webp' }),
         el('div', { class: 'prato-meio' }, el('div', { class: 'faixa', style: `background:${['#c4473a', '#d48a2c', '#3f8a5a', '#3a6ea5', '#8a4fa0', '#b0476e'][i % 6]}` }, pr.nome),
-          el('div', { class: rende > 0 ? '' : 'falta' }, '★'.repeat(melhorRar(id)) + '   ' + (rende > 0 ? 'rende ' + rende : 'falta ingrediente'))),
+          el('div', { class: rende > 0 ? '' : 'falta' }, '★'.repeat(melhorRar(id)) + '   ' + (rende > 0 ? 'a despensa dá ' + rende + (rende === 1 ? ' panela' : ' panelas') : 'falta ingrediente'))),
         el('div', { class: 'prato-preco' }, 'Cr$ ' + p.preco(id, 1), el('div', { class: 'giz-mi' }, 'Nv ' + p.nivel(id) + (marcado ? ' · no quadro' : '')))));
+      if (marcado) dir.append(el('div', { class: 'panela-linha' }, el('img', { src: 'a/salao/panela_cheia.webp' }),
+        el('div', {}, `Na panela: ${p.porcoes(id)} porções · uma panela rende ${p.porcoesPorPanela(id)} (a Rosa repõe sozinha se acabar)`),
+        el('button', { class: 'botao' + (rende > 0 ? '' : ' desligado'), onclick: e => { e.stopPropagation();
+          const f = mulberry(G.dia * 53 + p.porcoes(id)), r = p.prepararPanela(id, 1, { randf: f, randi: () => Math.floor(f() * 4294967296) });
+          if (r.feitas) { sons.tocar('prato_tchan', 0.9, 0.05, -4); avisar(`A Rosa preparou uma panela de ${pr.nome}: ${p.porcoes(id)} porções prontas.`); }
+          else avisar(`Falta ${r.faltou.map(x => nomeIngrediente(x).toLowerCase()).join(', ')} na despensa.`);
+          desenha(); } }, '+ Panela')));
     });
     dir.append(desc, el('button', { class: 'botao', style: 'align-self:flex-end', onclick: e => { e.stopPropagation(); fecharModal(); abrirCaderno(); } }, 'Caderno de receitas ▸'));
     caixa.append(el('div', { class: 'lousa-corpo' }, esq, dir));
@@ -178,6 +185,9 @@ function encerrarJanta() {
   // As metas da noite (servir, bebida na medida, nota) e as de estado.
   if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); }
   if (r.subiu) { G.correio.caixa.push('fama_' + r.subiu); sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão subiu: agora é "${G.pensao.nomeGrau(r.subiu)}"!`); }
+  // A sobra da panela vira marmita (a família janta o resto).
+  const sobra = G.pensao.sobraVira(); r.sobra = sobra;
+  if (sobra.marmitas && G.mochila) { G.mochila.adicionar('marmita', sobra.marmitas); avisar(`Sobrou comida: ${sobra.marmitas} marmita(s) para o almoço da obra; a família jantou o resto.`); }
   G.relatorioPensao = r;
   G.turno = null;
   if (G.jog && G.jog.carga && G.jog.carga.id === 'prato') G.jog.carga = {};

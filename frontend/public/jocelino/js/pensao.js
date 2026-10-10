@@ -34,7 +34,7 @@ class Pensao {
     this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.mesas = 2; this.fama = 0;
     this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
-    this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = [];
+    this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {};
   }
   melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
   pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
@@ -113,6 +113,31 @@ class Pensao {
     return rar;
   }
   preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + Pensao.PRECO_POR_NIVEL * (this.nivel(prato) - 1))); }
+
+  // ---------------- a panela da noite: a Rosa prepara as porções antes (ou na hora, se faltar)
+  porcoesPorPanela(prato) { return (ECO.porcoes[prato] || ECO.porcoesPadrao); }
+  porcoes(prato) { return this.panela[prato] || 0; }
+  // Prepara n panelas do prato com o que a despensa tem. Devolve {feitas, faltou: [ingredientes]}.
+  prepararPanela(prato, n, rng) {
+    let feitas = 0;
+    for (let k = 0; k < n; k++) {
+      if (this.rende(prato) <= 0) break;
+      const rar = this.consumir(prato, rng);
+      this.panelaRar[prato] = Math.max(this.panelaRar[prato] || 1, rar);
+      this.panela[prato] = this.porcoes(prato) + this.porcoesPorPanela(prato);
+      feitas++;
+    }
+    const faltou = feitas < n ? Object.keys(Pratos.PRATOS[prato].porcao).filter(id => this._tem(id) < Pratos.PRATOS[prato].porcao[id]) : [];
+    return { feitas, faltou };
+  }
+  // Tira uma porção (para o pedido). Devolve a raridade da panela.
+  servirPorcao(prato) { if (this.porcoes(prato) <= 0) return 0; this.panela[prato]--; if (!this.panela[prato]) delete this.panela[prato]; return this.panelaRar[prato] || 1; }
+  // No fim da noite, a sobra vira marmita (até ECO.marmitasMax); o resto a família janta.
+  sobraVira() {
+    const total = Object.values(this.panela).reduce((a, b) => a + b, 0), marmitas = Math.min(total, ECO.marmitasMax);
+    this.panela = {}; this.panelaRar = {};
+    return { marmitas, total };
+  }
 
   // ---------------- o caderno da Rosa: nível do prato, pitadas de tempero, receitas a descobrir
   nivel(prato) { return this.niveis[prato] || 1; }
@@ -213,7 +238,7 @@ class Pensao {
     return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, mesas: this.mesas, fama: this.fama,
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
-      equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])) };
+      equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar) };
   }
   deDict(d) {
     d = d || {};
@@ -224,6 +249,6 @@ class Pensao {
     this.curtidas = d.curtidas != null ? d.curtidas | 0 : Math.floor(this.fama / 4);   // save velho: as estrelas viram curtidas
     // Save de antes dos 6 degraus: o grau que a fama antiga dava não se perde (0, 40, 120, 300, 600 pontos).
     this.grauMinimo = d.grauMinimo || (d.curtidas == null ? [0, 40, 120, 300, 600].filter(x => this.fama >= x).length : 1);
-    this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || []));
+    this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {});
   }
 }

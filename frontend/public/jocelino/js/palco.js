@@ -91,7 +91,7 @@ function camadasDaJanta() {
     camadaViva(401, ctx => {
       const ids = (G.pensao && (G.pensao.cardapio.length ? G.pensao.cardapio : G.pensao.receitas)) || [];
       ids.slice(0, P.VAGAS.length).forEach((id, k) => {
-        const v = P.VAGAS[k], n = G.pensao.rende(id);
+        const v = P.VAGAS[k], n = G.pensao.porcoes(id) || G.pensao.rende(id) * G.pensao.porcoesPorPanela(id);
         ctx.save(); ctx.globalAlpha = n > 0 ? 1 : 0.35; desenhaPe(ctx, iconePrato(id), v.x, P.PRATO_Y, 1, 1.35); ctx.restore();
         texto(ctx, n > 0 ? String(n) : '0', v.x, P.PRATO_Y + 26, 18, n > 0 ? '#fff' : '#e8452c', '900');
         if (t && t.pratoTema === id) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);
@@ -106,6 +106,8 @@ function camadasDaJanta() {
       const rx = typeof temMelhoria === 'function' && temMelhoria('fogao_4bocas') ? 1470 : P.ROSA.x;
       ctx.drawImage(img, q * w, 0, w, h, rx - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
     }),
+    // As moedas da gorjeta no tampo (o Jocelino recolhe ao passar).
+    camadaViva(P.TAMPO_Y + 82, ctx => { if (t) for (const x of t.moedas) if (P.ASSENTOS[x.mesa]) desenhaPe(ctx, 'salao/moedas_balcao', P.ASSENTOS[x.mesa].x + 34, P.LOUCA.base + 1, 1, 1.2); }),
     // No tampo: o prato de quem está comendo, a louça de quem já foi, e a farinheira.
     camadaViva(P.TAMPO_Y + 81, ctx => {
       if (t) t.mesas.forEach((m, i) => {
@@ -361,6 +363,15 @@ ATUALIZADORES.push(dt => {
   _mastiga = rnd(1.4, 3);
   const comendo = t.mesas.map((m, i) => ({ m, i })).filter(x => x.m.estado === 'comendo' && x.i < PALCO.ASSENTOS.length);
   if (comendo.length) sons.tocar('mastigar', 1 + rnd(-0.08, 0.08), 0.05, -12);
+});
+// Recolher as moedas da gorjeta: basta o Jocelino passar perto (como o Dave pegando a gorjeta).
+ATUALIZADORES.push(() => {
+  const t = G.turno, j = G.jog;
+  if (!t || !noPalco() || !j || !t.moedas.length) return;
+  for (const x of [...t.moedas]) {
+    const A = PALCO.ASSENTOS[x.mesa];
+    if (A && Math.abs(A.x + 34 - j.x) < 44) { const v = t.recolherMoedas(x.mesa); if (v) { sons.tocar('moedas', 1.2, 0.05, -6); flutuar(j.x, j.y - 170, `+Cr$ ${v} gorjeta`, '#ffd34d'); } }
+  }
 });
 // O que acontece na janta e o jogador precisa ver (a farinheira acabou).
 ATUALIZADORES.push(() => {

@@ -9,4 +9,9 @@ const ECO = {
     caprichar: { pitadas: 1 }, contratar: { dinheiro: 20 }, melhoria: { pitadas: 2 },
   },
   metasAtivas: 3,
+  // Panela da noite: quantas porções rende uma panela de cada prato (o "postar no cardápio" do Bancho).
+  porcoes: { pf_peao: 4, peixe_frito: 4, sopa_pedra: 6, cocada_tijolinho: 6, rabanada: 4, marmita_peao: 4, pamonha: 4, goiabada: 6, bolo_milho: 6, caldo_caranguejo: 4, moqueca: 4 },
+  porcoesPadrao: 4,
+  marmitasMax: 3,          // a sobra vira marmita (a família come o resto)
+  cafeBoasVindas: 1.3,     // cafezinho na medida antes do prato: +30% no preço
 };
