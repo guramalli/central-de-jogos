@@ -10,8 +10,9 @@ function entrarDeposito() {
   abrirLoja();
   return true;
 }
-function precoLoja(id) { return Math.max(1, Math.round(LOJA.PRECOS[id] * (G.fatorPreco || 1))); }
-function precoMercearia(id) { return Math.max(1, Math.round(Pratos.MERCEARIA[id] * (G.fatorPreco || 1))); }
+const descontoHab = () => (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1);
+function precoLoja(id) { return Math.max(1, Math.round(LOJA.PRECOS[id] * (G.fatorPreco || 1) * descontoHab())); }
+function precoMercearia(id) { return Math.max(1, Math.round(Pratos.MERCEARIA[id] * (G.fatorPreco || 1) * descontoHab())); }
 
 function _comprar(id, qtd, preco) {
   const pode = Math.min(qtd, Math.floor(G.dinheiro / preco), G.mochila.espacoPara(id));

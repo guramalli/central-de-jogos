@@ -7,6 +7,10 @@ MAPAS_DEF.vila = () => {
   b.livre = { x: 2, y: 2, w: 44, h: 22 };
   b.inicio = { x: 23, y: 3 };
   b.saida(23, 2, 2, 1, 'quintal', 20, 26);
+  b.saida(23, 23, 2, 1, 'praia', 22, 3);         // sul: o caminho que já vinha pintado até a borda de baixo
+  b.saida(2, 12, 1, 3, 'mata', 39, 13);          // oeste: a borda sem árvore
+  b.saida(45, 12, 1, 2, 'pedreira', 4, 7);       // leste: a estrada da pedreira
+  b.pinta(2, 12, 2, 3); b.pinta(44, 12, 2, 2);
   b.pinta(23, 0, 2, 10);      // o caminho do quintal vem da borda de cima, sem mato no meio
   b.pinta(2, 10, 44, 2, CH.CALCADA); b.pinta(2, 12, 44, 3); b.pinta(2, 15, 44, 1, CH.CALCADA);
   b.pinta(23, 16, 2, 8);
@@ -45,7 +49,7 @@ MAPAS_DEF.vila = () => {
   };
   b.morador('zelia', 'Dona Zélia', 38, 11, DIR.CIMA, { vagueia: true, area: { x: 30 * TILE, y: 10 * TILE + 42, w: 14 * TILE, h: 1 * TILE } });   // pela calçada
   b.interativo('orelhao', 'objetos/orelhao', 19, 9, 1, 1, [8, 6]).acao = () => (typeof abrirOrelhao === 'function' ? abrirOrelhao() : abrirPlaca('O orelhão da Vila.'));
-  b.enfeite('objetos/fusca', 44, 13, true, 44);   // estacionado no fim da rua, no canto
+  b.enfeite('objetos/fusca', 44, 21, true, 44);   // estacionado no canto de baixo (a estrada da pedreira passa em y 12–13)
   b.interativo('mercado', 'objetos/mercado_0', 36, 21, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
   b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 33, 18, 2, 1, [28, 6]).acao = () => abrirPlaca('O quadro da Prefeitura: editais e avisos.');
   b.interativo('oficina', 'objetos/oficina_sem_fumaca', 12, 20, 6, 5).acao = () => abrirPlaca('A ferraria do Seu Tonico. "Ferramenta boa é meio caminho andado."');

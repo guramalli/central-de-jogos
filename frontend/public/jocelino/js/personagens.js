@@ -73,6 +73,7 @@ class Jogador extends Personagem {
   atualiza(dt) {
     this.t += dt;
     if (this.travado > 0) this.travado -= dt;
+    if (this._avisouFechado > 0) this._avisouFechado -= dt;
     if (this.golpe > 0) { this.golpe -= dt; this.andando = false; return; }
     let vx = 0, vy = 0;
     const k = G.teclas;
@@ -86,13 +87,19 @@ class Jogador extends Personagem {
     if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
     this.dir = vx < 0 ? DIR.ESQUERDA : vx > 0 ? DIR.DIREITA : vy < 0 ? DIR.CIMA : DIR.BAIXO;
     if (Math.abs(vy) > Math.abs(vx) + 0.01) this.dir = vy < 0 ? DIR.CIMA : DIR.BAIXO;
-    const v = (k.has(TECLAS.correr) || k.has('ShiftRight') ? Jogador.VEL_CORRENDO : Jogador.VEL) * (this.velExtra || 1) * dt;
+    const v = (k.has(TECLAS.correr) || k.has('ShiftRight') ? Jogador.VEL_CORRENDO : Jogador.VEL) * (this.velExtra || 1) * (this === G.jog && typeof Habilidades !== 'undefined' ? Habilidades.velocidade() : 1) * dt;
     // Eixo por eixo: escorrega na parede em vez de grudar.
+    const x0 = this.x, y0 = this.y;
     if (vx && !bate(this.caixa(this.x + vx * v, this.y))) this.x += vx * v;
     if (vy && !bate(this.caixa(this.x, this.y + vy * v))) this.y += vy * v;
     const t = this.ladrilho();
     const s = G.mapa.saidaEm(t.x, t.y);
-    if (s) entrarMapa(s.destino, s.chegada);
+    if (s) {
+      // Lugar que ainda não abriu (a carta não chegou): explica e não deixa passar.
+      const nao = typeof Mundo !== 'undefined' ? Mundo.fechado(s.destino) : '';
+      if (nao) { this.x = x0; this.y = y0; if (!(this._avisouFechado > 0)) { avisar(nao); this._avisouFechado = 3; } }
+      else entrarMapa(s.destino, s.chegada);
+    }
   }
   desenha(ctx) {
     // No golpe, o corpo na pose de golpe (folha jocelino/golpe: as 4 direções na vertical; mãos vazias, a ferramenta

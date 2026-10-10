@@ -17,7 +17,8 @@ function montaHud() {
   HUD.dicaBarra = el('div', { class: 'dica-barra' });
   HUD.selo = el('div', { class: 'selo', hidden: true });
   HUD.botaoTela = el('button', { class: 'botao botao-tela', title: 'Tela cheia (F)', onclick: () => alternaTelaCheia() }, '⛶');
-  h.append(HUD.quadro, HUD.relogio, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela);
+  HUD.botaoHab = el('button', { class: 'botao botao-hab', title: 'Habilidades (H)', onclick: () => abrirHabilidades() }, '★');
+  h.append(HUD.quadro, HUD.relogio, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab);
 }
 
 function atualizaHud() {

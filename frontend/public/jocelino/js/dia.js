@@ -35,7 +35,7 @@ function dormir(desmaiou = false) {
   const diaQueAcabou = G.dia;
   // Vira o dia.
   relogio.novoDia();
-  G.energia = desmaiou ? Math.round(G.energiaMax * 0.6) : G.energiaMax;
+  G.energia = desmaiou && !(typeof Habilidades !== 'undefined' && Habilidades.tem('incansavel')) ? Math.round(G.energiaMax * 0.6) : G.energiaMax;
   G.ganhoHoje = 0; G.gastoHoje = 0; G.feitosHoje = [];
   for (const f of MANHA) { try { f(); } catch (e) { console.error(e); } }
   // Acorda na porta de casa.
@@ -43,14 +43,14 @@ function dormir(desmaiou = false) {
   G.jog.dir = DIR.BAIXO;
   salvar();
   _dormindo = false;
-  mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas);
+  mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof escolherVantagens === 'function' ? escolherVantagens : null);
 }
 
 // Ficou acordado até as 2h: desmaia.
 ATUALIZADORES.push(() => { if (G.minutos >= relogio.FIM && !_dormindo) dormir(true); });
 
 // O resumo da noite: um cartão com o céu da noite e as linhas em páginas de 7.
-function mostrarResumo(titulo, linhas) {
+function mostrarResumo(titulo, linhas, depois) {
   const paginas = [];
   for (let i = 0; i < linhas.length; i += 7) paginas.push(linhas.slice(i, i + 7));
   let p = 0;
@@ -66,5 +66,5 @@ function mostrarResumo(titulo, linhas) {
   caixa._avancar = () => caixa.onclick({ stopPropagation() {} });
   caixa.classList.add('placa');
   desenha();
-  abrirModal(caixa);
+  abrirModal(caixa, depois);
 }

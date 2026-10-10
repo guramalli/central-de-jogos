@@ -20,6 +20,9 @@ Object.assign(FALAS, {
   zelia: () => _porDia([['Ai, meu filho, cuidado com as minhas plantas, viu?', 'Essa casa é pra minha filha que vem da capital. Capricha!'], ['Dizem que a pensão da Cotinha vai abrir de novo. Que saudade de um caldo verde!']]),
   ananias: ['Pois não, freguês? Ananias, às ordens.', 'Telha é dois cruzeiros. E pra pensão da sua patroa eu tenho a Mercearia: arroz, feijão, farinha e ovo.'],
   tonico: ['Ferramenta boa é meio caminho andado. Quando precisar reforçar, me procura.'],
+  lourival: () => typeof Clima !== 'undefined' && Clima.chove(G.dia)
+    ? ['Chuva boa, compadre! Com chuva o peixe raro aparece, ainda mais na ponta do píer.', 'Quando eu te arranjar a vara, você vai ver.']
+    : _porDia([['O mar hoje tá bom pra tainha... quando eu te arranjar a vara, a gente pesca no píer!'], ['Pescador de verdade acorda antes do sol, compadre.', 'O peixe frito da Rosa? Esse eu vendo de olho fechado.']]),
 });
 // Depois da conversa: o Ananias abre o depósito (como o Pierre).
 const FALAS_DEPOIS = { ananias: () => entrarDeposito() };

@@ -19,6 +19,8 @@ INICIADORES.push(s => {
 COLETORES.push(s => { s.mochila = G.mochila.paraDict(); s.sel = G.sel; });
 
 const itemDaMao = () => G.mochila ? G.mochila.idEm(G.sel) : '';
+// O nível da ferramenta (0 = comum; o Seu Tonico melhora na etapa 5).
+const nivelFerramenta = id => (G.nivelFerr && G.nivelFerr[id]) || 0;
 
 // O detrito cujo desenho está sob o ponto (a copa da árvore, o alto da pedra), não só o ladrilho do pé.
 function detritoSob(px, py) {
@@ -59,12 +61,13 @@ function usarItemDaMao(peloTeclado) {
   const id = itemDaMao();
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
-  if (G.energia < CUSTO_GOLPE) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
+  const custo = typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE;
+  if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
   j.dir = alvo.dir;
   const pf = PERFIL_GOLPE[perfilDe(id)];
   j.golpe = pf.dur; j.golpeItem = id; j.golpeT = 0; j.golpeAlvo = { x: alvo.x, y: alvo.y }; j.acertou = false; j._somSubida = false;
-  G.energia = Math.max(0, G.energia - CUSTO_GOLPE);
+  G.energia = Math.max(0, G.energia - custo);
   if (id === 'foice') sons.tocar('golpe', 1.2, 0.08, -8);
   hudSujo();
 }
@@ -77,6 +80,7 @@ function acertar(id, alvo) {
     const D = DETRITOS[o.det];
     const certa = D.ferramenta === id || (D.aceita || []).includes(id);
     if (!certa) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -10); avisar('Isso sai com ' + (NOME_FERRAMENTA[D.ferramenta] || D.ferramenta) + '.'); return; }
+    if (D.nivel && nivelFerramenta(id) < D.nivel) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -10); avisar(`Precisa de ${NOME_FERRAMENTA[id] || id} mais forte (o Seu Tonico melhora).`); return; }
     o.vida -= 1; o.treme = 0.3;
     if (id !== 'foice') G.tremor = Math.max(G.tremor || 0, D.material === 'pedra' ? 0.14 : 0.1);
     lascas(o.x, o.y - 20, D.material);
@@ -85,13 +89,17 @@ function acertar(id, alvo) {
     return;
   }
   if (o && o.tipo === 'inter' && o.ferramenta) { o.ferramenta(o, id, alvo); return; }
-  if (id === 'regador') { lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); }
+  if (id === 'regador') { lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); if (typeof Habilidades !== 'undefined') Habilidades.ganhar('acabamento', 1); }
   else sons.tocar('terra', 1.3, 0.1, -10);
 }
 function quebrar(o) {
   const m = G.mapa, D = DETRITOS[o.det];
   m.tirar(o);
   for (const id in D.solta) soltar(id, D.solta[id], o.x, o.y - 10);
+  if (typeof Habilidades !== 'undefined') {
+    const limpeza = ['mato', 'galho', 'entulho'].includes(o.det) && Habilidades.tem('faxineiro') ? 2 : 1;
+    Habilidades.ganhar(o.det === 'entulho' ? 'alvenaria' : 'folego', limpeza * (o.det === 'entulho' ? 2 : 1));
+  }
   if (D.vira) m.detrito(D.vira, o.tiles[0].x, o.tiles[0].y);
   sons.tocar('quebra', 1, 0.1, -4);
 }
@@ -283,6 +291,7 @@ function comerDaMao() {
   return true;
 }
 function comer(id, e) {
+  if (typeof Habilidades !== 'undefined' && Habilidades.tem('cafe_no_sangue')) e *= 2;
   if (G.mochila.total(id) < 1) return;
   G.mochila.remover(id, 1);
   G.energia = Math.min(G.energiaMax, G.energia + e);

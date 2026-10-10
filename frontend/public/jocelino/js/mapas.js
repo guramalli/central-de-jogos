@@ -4,7 +4,7 @@
 // Objetos: enfeites, interativos (botão direito / ferramenta) e detritos; cada um com a caixa do pé (só a base
 // bloqueia, como no Stardew), desenhados em ordem de altura; quem cobre o Jocelino fica transparente.
 
-const CH = { GRAMA: 0, CAMINHO: 1, CALCADA: 2, TERRA: 3 };
+const CH = { GRAMA: 0, CAMINHO: 1, CALCADA: 2, TERRA: 3, MAR: 4, RIO: 5 };
 const MAPAS_DEF = {};          // id -> função (construtor) que monta o mapa
 const MAPAS = {};              // id -> mapa já montado (fica na memória: guarda o estado do dia)
 const ALCANCE_ACAO = 2.2 * TILE;
@@ -110,7 +110,7 @@ function desenhaLetreiro(ctx, o, alfa) {
 const DICAS_OBJ = {
   casa_juca: ['Casa do Tio Juca', 'Botão direito na porta: dormir (salva o jogo).'],
   caixa_correio: ['Caixa de correio', 'Botão direito: ler as cartas.'],
-  caixa_venda: ['Caixa de venda', 'Com um item na mão, botão direito: vende de madrugada.'],
+  caixa_venda: ['Caixa de venda', 'Botão direito: abrir a caixa (o carroceiro passa de madrugada).'],
   radio: ['Rádio', 'Botão direito: a previsão do tempo de amanhã.'],
   deposito: ['Depósito do Seu Ananias', 'Botão direito: entrar e comprar (das 9h às 17h).'],
   pensao: ['Pensão da Rosa', 'Botão direito: entrar. Janta das 17h às 21h.'],
@@ -124,6 +124,9 @@ class Construtor {
   }
   pinta(x, y, w, h, tipo = CH.CAMINHO) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (i >= 0 && j >= 0 && i < this.larg && j < this.alt) this.chao[j * this.larg + i] = tipo; }
   chaoEm(x, y) { return (x < 0 || y < 0 || x >= this.larg || y >= this.alt) ? CH.GRAMA : this.chao[y * this.larg + x]; }
+  // Água (mar ou rio): pinta o chão e bloqueia o pé, em ladrilhos inteiros. A pesca (etapa 4) pergunta ehAgua.
+  agua(x, y, w, h, tipo = CH.MAR) { this.pinta(x, y, w, h, tipo); this.solidos.push({ x: x * TILE, y: y * TILE, w: w * TILE, h: h * TILE }); }
+  ehAgua(tx, ty) { const c = this.chaoEm(tx, ty); return c === CH.MAR || c === CH.RIO; }
   // Enfeite com o pé no ladrilho (tx, ty); sólido = a caixa do pé bloqueia (larguraPe/alturaPe em px do Godot).
   enfeite(nome, tx, ty, solido = true, larguraPe = 12, alturaPe = 8) {
     const o = { tipo: 'enfeite', nome, x: (tx + 0.5) * TILE, y: (ty + 1) * TILE, solido };
@@ -192,6 +195,9 @@ const VISUAL_DETRITO = {
   toco: { nomes: ['objetos/toco_1', 'objetos/toco_2'] }, pedra: { nomes: ['objetos/pedra_1', 'objetos/pedra_2', 'objetos/pedra_3'] },
   pedregulho: { nomes: ['objetos/pedregulho'], tam: 2 }, arvore: { nomes: ['objetos/arvore'] },
   entulho: { nomes: ['objetos/entulho_1', 'objetos/entulho_2', 'objetos/entulho_3'] },
+  rocha: { nomes: ['objetos/rocha_mina_1'] }, ferro: { nomes: ['objetos/rocha_mina_2'] }, aco: { nomes: ['objetos/rocha_mina_3'] },
+  bronze: { nomes: ['objetos/rocha_mina_4'] }, pigmento: { nomes: ['objetos/rocha_mina_5'] }, cristal: { nomes: ['objetos/rocha_mina_6'] },
+  toco_lei: { nomes: ['objetos/toco_lei'] },
 };
 
 function getMapa(id) {
@@ -247,14 +253,14 @@ function bate(caixa, m = G.mapa) {
 
 // ---------- chão (pintado uma vez) ----------
 function montaChao(m) {
-  const texs = { grama: spr(m.fundo), [CH.CAMINHO]: spr('texturas/caminho'), [CH.CALCADA]: spr('texturas/calcada'), [CH.TERRA]: spr('texturas/terra') };
+  const texs = { grama: spr(m.fundo), [CH.CAMINHO]: spr('texturas/caminho'), [CH.CALCADA]: spr('texturas/calcada'), [CH.TERRA]: spr('texturas/terra'), [CH.MAR]: spr('texturas/mar'), [CH.RIO]: spr('texturas/rio') };
   if (Object.values(texs).some(t => !t)) return null;
   const c = document.createElement('canvas');
   c.width = m.larg * TILE; c.height = m.alt * TILE;
   const g = c.getContext('2d');
   g.fillStyle = g.createPattern(texs.grama, 'repeat');
   g.fillRect(0, 0, c.width, c.height);
-  for (const tipo of [CH.TERRA, CH.CAMINHO, CH.CALCADA]) {
+  for (const tipo of [CH.TERRA, CH.CAMINHO, CH.CALCADA, CH.RIO, CH.MAR]) {
     const pat = g.createPattern(texs[tipo], 'repeat');
     g.save();
     g.beginPath();
@@ -264,7 +270,7 @@ function montaChao(m) {
     g.fillStyle = pat; g.fill();
     g.restore();
     // Contorno só na borda de fora (onde o vizinho não é do mesmo tipo).
-    g.save(); g.lineWidth = 3; g.strokeStyle = tipo === CH.CALCADA ? 'rgba(60,60,64,.55)' : 'rgba(90,62,30,.5)'; g.beginPath();
+    g.save(); g.lineWidth = 3; g.strokeStyle = tipo === CH.CALCADA ? 'rgba(60,60,64,.55)' : tipo === CH.MAR || tipo === CH.RIO ? 'rgba(30,50,70,.5)' : 'rgba(90,62,30,.5)'; g.beginPath();
     for (let y = 0; y < m.alt; y++) for (let x = 0; x < m.larg; x++) {
       if (m.chaoEm(x, y) !== tipo) continue;
       const X = x * TILE, Y = y * TILE;
