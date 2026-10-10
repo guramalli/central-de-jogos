@@ -46,7 +46,7 @@ function bebidasDaPensao(p) { return Object.keys(Pratos.BEBIDAS).filter(b => b !
 function camadasMelhorias() {
   const P = PALCO, cam = (y, f) => ({ tipo: 'camada', y, desenha: f }), img = n => spr(n);
   const r = [];
-  if (temMelhoria('bandeirinhas')) r.push(cam(2, ctx => { const a = img('salao/bandeirinhas_festa'), b = img('salao/balao_junino'); if (a) ctx.drawImage(a, 0, 185); if (b) { ctx.drawImage(b, 679, 262 + Math.sin(G.agora * 1.3) * 3); ctx.drawImage(b, 1440, 262 + Math.sin(G.agora * 1.1 + 1) * 3); } }));
+  if (temMelhoria('bandeirinhas') || (G.turno && G.turno.festa)) r.push(cam(2, ctx => { const a = img('salao/bandeirinhas_festa'), b = img('salao/balao_junino'); if (a) ctx.drawImage(a, 0, 185); if (b) { ctx.drawImage(b, 679, 262 + Math.sin(G.agora * 1.3) * 3); ctx.drawImage(b, 1440, 262 + Math.sin(G.agora * 1.1 + 1) * 3); } }));
   if (temMelhoria('neon')) r.push(cam(3, ctx => { const a = img('salao/neon_novo'); if (!a) return; const pisca = (G.agora % 7) < 0.08 ? 0.3 : 0.88 + Math.sin(G.agora * 9) * 0.06; ctx.save(); ctx.globalAlpha = pisca; ctx.drawImage(a, 463, 296); ctx.restore(); }));
   if (temMelhoria('flamula')) r.push(cam(4, ctx => { const a = img('salao/flamula_santos'); if (a) ctx.drawImage(a, 1206, 392, a.naturalWidth * 0.8, a.naturalHeight * 0.8); }));
   if (temMelhoria('radio')) r.push(cam(5, ctx => { const a = img('salao/radio_tocando'); if (!a) return; const q = Math.floor(G.agora * 3) % 2; ctx.drawImage(a, q * 96, 0, 96, 96, 700, 343, 96, 96); }));

@@ -129,8 +129,16 @@ class TurnoJanta {
     const m = this.mesas[i];
     if (!m || m.estado !== 'pedido') return false;
     m.lendo = 0;
+    // Cliente especial: pede o prato dele; sem ele na despensa, vai embora decepcionado.
+    if (m.cliente.prato) {
+      if (this.pensao.rende(m.cliente.prato) <= 0) {
+        this.relatorio.vip = 'faltou'; m.estado = 'suja';
+        this.eventos.push({ tipo: 'vip_faltou', mesa: i, cliente: m.cliente, prato: m.cliente.prato });
+        return true;
+      }
+    }
     // O cardápio é o de agora (não o do começo da janta): o que o jogador guardou ou marcou depois já vale.
-    const opcoes = this.pensao.cardapioDaNoite();
+    const opcoes = m.cliente.prato ? [m.cliente.prato] : this.pensao.cardapioDaNoite();
     if (!opcoes.length) {
       // Sem nada que renda: um cafezinho e a promessa de voltar. Registra o que faltou.
       this.relatorio.cafes++;
@@ -251,13 +259,14 @@ class TurnoJanta {
     const sabor = Pratos.RARIDADE_SABOR[clamp(m.raridade, 1, 4)];
     const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || m.bebidaServida);
     const est = Pensao.estrelas(m.rapido, m.certo, sabor, bebida, gostaSalada);
-    const preco = this.pensao.preco(m.prato, m.raridade);
+    const preco = Math.round(this.pensao.preco(m.prato, m.raridade) * (this.pratoTema && m.prato === this.pratoTema ? 1.5 : 1));
     const gorj = Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + Math.round(preco * (this.gorjetaExtra || 0) * est / 5);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.gorjeta += gorj; r.estrelas += est;
     if (est >= 4) r.curtidas++;
     r.pratos[m.prato] = (r.pratos[m.prato] || 0) + 1;
     this.eventos.push({ tipo: 'pagou', mesa: i, valor: preco + gorj, estrelas: est });
+    if (m.cliente.mania === 'vip') { r.vip = 'servido'; this.eventos.push({ tipo: 'vip_servido', mesa: i, cliente: m.cliente }); }
     m.vezes++;
     // Tonhão pede de novo até 3 vezes (e a banqueta nem chega a sujar).
     if (m.cliente.mania === 'tres' && m.vezes < 3) {

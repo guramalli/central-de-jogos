@@ -94,6 +94,7 @@ function camadasDaJanta() {
         const v = P.VAGAS[k], n = G.pensao.rende(id);
         ctx.save(); ctx.globalAlpha = n > 0 ? 1 : 0.35; desenhaPe(ctx, iconePrato(id), v.x, P.PRATO_Y, 1, 1.35); ctx.restore();
         texto(ctx, n > 0 ? String(n) : '0', v.x, P.PRATO_Y + 26, 18, n > 0 ? '#fff' : '#e8452c', '900');
+        if (t && t.pratoTema === id) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);
       });
     }),
     // A Rosa mexendo a panela enquanto tem prato no fogo (parada no primeiro quadro quando não tem).
@@ -139,6 +140,7 @@ function desenhaBaloesPalco(ctx, b) {
     if (i >= PALCO.ASSENTOS.length || !['pedido', 'prato', 'comendo'].includes(m.estado)) return;
     const A = PALCO.ASSENTOS[i], x = A.x, y = A.y - 114 * PALCO.ESCALA_GENTE - 34;
     const bebe = m.querBebida && !m.bebidaServida;
+    if (m.cliente.mania === 'vip') texto(ctx, '★ ' + m.cliente.nome.split(',')[0], x, y - 42, 18, '#ffd34d', '900');
     if (m.estado === 'comendo') {
       const fr = FRASES_CLIENTE[m.reacao] || ['Hmm!'];
       texto(ctx, fr[(i + m.vezes) % fr.length], x, y + 20, 20, '#fff');

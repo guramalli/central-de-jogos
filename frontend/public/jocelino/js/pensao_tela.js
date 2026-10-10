@@ -139,7 +139,10 @@ function pensaoQuadro() {
 // ---------- a janta ----------
 function iniciarJanta() {
   G.turno = new TurnoJanta();
-  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0));
+  const festa = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'festa') : null, vip = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'vip') : null;
+  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0) + (festa ? 3 : 0));
+  if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome; }
+  if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Equipe !== 'undefined') {
     const t = G.turno, p = G.pensao, b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0 };
     t.fatorPreparo = Equipe.preparo(p) * b.preparo; t.bocas = TurnoJanta.BOCAS + Equipe.bocasExtra(p) + b.bocas;
@@ -147,6 +150,8 @@ function iniciarJanta() {
   }
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
+  if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome} vale 50% mais.`);
+  if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
   avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
 }
 function encerrarJanta() {
@@ -154,6 +159,15 @@ function encerrarJanta() {
   const r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
   G.dinheiro += total; G.ganhoHoje += total;
+  // O cliente especial e os pedidos da Vila.
+  if (typeof Eventos !== 'undefined') {
+    const vip = Eventos.hoje(G.pensao, G.dia, 'vip');
+    if (vip) { vip.fim = r.vip === 'servido' ? 'servido' : 'faltou';
+      if (r.vip === 'servido') { const pr = vipDe(vip.id).premio; G.dinheiro += pr.dinheiro; r.curtidas += pr.curtidas; G.pensao.pitadas += pr.pitadas; r.premioVip = pr; } }
+    const fe = Eventos.hoje(G.pensao, G.dia, 'festa'); if (fe) fe.fim = 'feita';
+    r.pedidosFeitos = Eventos.depoisDaJanta(G.pensao, r, G.dia);
+    for (const e of r.pedidosFeitos) { G.dinheiro += e.premio; r.curtidas += 2; }
+  }
   r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
   r.despesa = G.pensao.despesa(); G.dinheiro -= r.despesa; G.ganhoHoje -= r.despesa;
@@ -183,6 +197,8 @@ ATUALIZADORES.push(dt => {
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
       else if (noSalao) { avisar(`${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); sons.tocar('cliente_hmpf', 1, 0.08, -4); }
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
+    else if (ev.tipo === 'vip_faltou' && noSalao) { avisar(`${ev.cliente.nome} queria ${Pratos.PRATOS[ev.prato].nome} e não tinha! Foi embora decepcionado.`); sons.tocar('cliente_hmpf', 0.9, 0.05, -2); }
+    else if (ev.tipo === 'vip_servido' && noSalao) { avisar(`${ev.cliente.nome}: "${vipDe(ev.cliente.id).frase}"`); sons.tocar('fanfarra', 1.1, 0, -6); }
   }
   t.eventos = [];
   sincronizaClientes();
@@ -376,6 +392,9 @@ NOITE.push(linhas => {
     if (r.embora) linhas.push(`   ${r.embora} ${r.embora === 1 ? 'foi' : 'foram'} embora sem comer.`);
     if (r.faltou.length) linhas.push(`   Faltou ingrediente para: ${r.faltou.map(id => Pratos.PRATOS[id] ? Pratos.PRATOS[id].nome : id).join(', ')}. ${r.cafes} ${r.cafes === 1 ? 'cliente tomou' : 'clientes tomaram'} só café.`);
     linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${r.despesa}${r.salarios ? ` · salários Cr$ ${r.salarios}` : ''} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`);
+    if (G.relatorioPensao.premioVip) linhas.push(`   O cliente especial adorou! Prêmio: Cr$ ${r.premioVip.dinheiro}, ${r.premioVip.curtidas} curtidas e ${r.premioVip.pitadas} pitadas.`);
+    else if (r.vip === 'faltou') linhas.push('   O cliente especial foi embora decepcionado: faltou o prato que ele queria.');
+    for (const e of r.pedidosFeitos || []) linhas.push(`   Pedido cumprido: ${e.quem} recebeu ${e.qtd} ${Pratos.PRATOS[e.prato].nome}. Prêmio: Cr$ ${e.premio}.`);
     if (r.subiu) linhas.push(`A pensão subiu de degrau: agora é "${p.nomeGrau(r.subiu)}"! Mais pratos no quadro, mais banquetas e mais clientes.`);
     else { const px = p.proximoDegrau(); if (px) linhas.push(`   Para "${px.nome}": ${textoFalta(px.falta)}.`); }
     linhas.push('   A Rosa: "' + ['Hoje até o Tonhão pediu bis!', 'Amanhã eu faço mais feijão.', 'O Severino lambeu o prato, Jocelino!', 'A pedra da sopa tá cansada.'][G.dia % 4] + '"');
