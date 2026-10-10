@@ -81,7 +81,8 @@ function pegouPeixe(id, est, lendario) {
 }
 let _segurouAntes = false;
 ATUALIZADORES.push(dt => {
-  const L = G.linha, seg = segurandoPesca(), aperta = seg && !_segurouAntes, solta = !seg && _segurouAntes;
+  const L = G.linha, seg = segurandoPesca(), aperta = (seg && !_segurouAntes) || !!G.mouse.apertou, solta = !seg && _segurouAntes;
+  G.mouse.apertou = false;   // o aperto guardado vale para um quadro
   _segurouAntes = seg;
   if (!seg) _esperaSoltar = false;
   if (!L) { if (G.jog && G.jog.pescando) G.jog.pescando = false; return; }
@@ -120,7 +121,7 @@ EXTRAS_MUNDO.push(m => {
   const L = G.linha; if (!L || L.tx == null || G.mapa !== m) return [];
   const bx = (L.tx + 0.5) * TILE, by = (L.ty + 0.6) * TILE + (L.fase === 'mordeu' ? 6 : Math.sin(L.t * 3) * 2);
   return [{ y: by, desenha(ctx) {
-    const v = DIR_VET[G.jog.dir], px = G.jog.x + v[0] * 30, py = G.jog.y - 70, lin = spr('fx/linha_pesca');
+    const pt = poseDaVara(G.jog).ponta, px = pt.x, py = pt.y, lin = spr('fx/linha_pesca');
     if (lin) { const dx = bx - px, dy = by - py; ctx.save(); ctx.translate(px, py); ctx.rotate(Math.atan2(dy, dx)); ctx.drawImage(lin, 0, -2, Math.hypot(dx, dy), 4); ctx.restore(); }
     desenhaPe(ctx, 'fx/boia', bx, by, 1);
     if (L.fase === 'mordeu') desenhaPe(ctx, 'fx/exclamacao', bx, by - 26, 1);
@@ -180,7 +181,7 @@ function abrirBanca() {
 function minhocaAoCavar(alvo) { if (Math.random() < 0.08) soltar('minhoca', 1, (alvo.x + 0.5) * TILE, (alvo.y + 0.7) * TILE); }
 
 // ---------- o covo de siri: na água da margem, com isca; de manhã tem coisa ----------
-const margem = (b, x, y) => b.ehAgua(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !b.ehAgua(x + dx, y + dy));
+const margem = (b, x, y) => aguaDePesca(b, x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => dentroMapa(b, x + dx, y + dy) && !b.ehAgua(x + dx, y + dy));
 function covoNoChao(t) {
   const b = G.mapa; if (!b || itemDaMao() !== 'covo') return false;
   if (!['praia', 'mata'].includes(b.id)) { avisar('O covo vai na água da praia ou do rio.'); return true; }
@@ -223,7 +224,7 @@ function entregarLendarioARosa() {
   abrirConversa('Rosa', urlArte('retratos/rosa_alegre'), [`Jocelino! Um ${Itens.nome(id)}?! A Vila inteira vai querer ver!`, 'Vou contar pra todo freguês. A pensão ficou mais famosa (+10 curtidas).']);
   return true;
 }
-AO_MONTAR.push(b => { const r = b.moradores.find(m => m.id === 'rosa'); if (!r) return; const antes = r.aoConversar; r.aoConversar = () => entregarLendarioARosa() || (antes ? antes() : (conversaPadrao(r), true)); });
+ANTES_DE_CONVERSAR.push(p => p.id === 'rosa' && entregarLendarioARosa());   // a Rosa do quintal e a do salão
 function conversaPadrao(p) { const f = FALAS[p.id], pg = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']); abrirConversa(p.nome, urlArte('retratos/' + p.id + '_normal'), Array.isArray(pg[0]) ? pg[0] : pg); }
 // O Lourival dá a dica de um lendário que falta, um por semana.
 const DICAS_LENDARIO = { tainha_rainha: 'Dizem que no inverno, com chuva, a Tainha-Rainha passa no fundo da praia.', robalo_flecha: 'O Robalo-Flecha só aparece no verão, no fim da tarde, lá da ponta do píer.',
@@ -238,3 +239,19 @@ function conversarLourival(p) {
   return true;
 }
 
+
+// ---------- a vara na mão (a arte do item, só posicionada e girada): para trás na força, apontando para a boia depois ----------
+function poseDaVara(j) {
+  const L = G.linha, v = DIR_VET[j.dir], lado = j.dir === DIR.ESQUERDA ? -1 : 1;
+  const base = Math.atan2(v[1], v[0]) * 180 / Math.PI;
+  const ang = L.fase === 'carregando' ? base - lado * (35 + 70 * L.forca) : base - lado * 35;
+  const mao = { x: j.x + (j.dir === DIR.ESQUERDA ? -14 : j.dir === DIR.DIREITA ? 14 : 8), y: j.y - 46 };
+  const R = 62, r = ang * Math.PI / 180;
+  return { mao, ang, ponta: { x: mao.x + Math.cos(r) * R, y: mao.y + Math.sin(r) * R } };
+}
+function desenhaVara(ctx, j) {
+  if (j !== G.jog || !G.linha) return;
+  const img = spr('itens/' + (G.linha.vara || 'vara')); if (!img) return;
+  const p = poseDaVara(j);
+  ctx.save(); ctx.translate(p.mao.x, p.mao.y); ctx.rotate((p.ang + 45) * Math.PI / 180); ctx.drawImage(img, -6, -50, 56, 56); ctx.restore();
+}

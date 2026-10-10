@@ -36,7 +36,7 @@ function instalaEntrada() {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
     if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
-    if (e.button === 0) { G.mouse.segura = true; usarItemDaMao(); }
+    if (e.button === 0) { G.mouse.segura = true; G.mouse.apertou = true; usarItemDaMao(); }
     else if (e.button === 2) acaoNoMouse();
   });
   addEventListener('mouseup', e => { if (e.button === 0) G.mouse.segura = false; if (G.copo) copoSegura(false); });

@@ -427,8 +427,10 @@ function acaoNaFrente() {
 
 // Conversa: as falas do morador (FALAS) ou uma frase de bom dia.
 const FALAS = {};
+const ANTES_DE_CONVERSAR = [];   // ganchos que tomam a conversa (a Rosa com o lendário da pesca)
 function conversar(p) {
   p.virarPara(G.jog.x, G.jog.y);
+  for (const f of ANTES_DE_CONVERSAR) if (f(p)) return;
   if (p.aoConversar) return p.aoConversar();
   const f = FALAS[p.id];
   const paginas = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']);

@@ -78,7 +78,7 @@ const Pesca = {
 const Pescaria = {
   novo(id, { faixa, bau }, rng = Math.random) {
     const D = DADOS_PEIXE[id];
-    return { id, dif: D.dif, jeito: D.jeito, pos: 0.3, alvo: 0.5, faixaY: 0, faixaV: 0, faixaH: faixa, medidor: 0.3, perfeita: true,
+    return { id, dif: D.dif, jeito: D.jeito, pos: faixa / 2, alvo: 0.5, faixaY: 0, faixaV: 0, faixaH: faixa, medidor: 0.3, perfeita: true,
       bau: bau ? { y: 0.15 + rng() * 0.7, prog: 0, visivel: false, pego: false } : null, t: 0, fim: null };
   },
   _alvo(e, rng) {

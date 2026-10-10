@@ -130,6 +130,7 @@ class Jogador extends Personagem {
     super.desenha(ctx);
     // Carga nos braços (o prato da pensão, o tijolo da obra...).
     if (this.carga && this.carga.icone) { const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1; desenhaPe(ctx, this.carga.icone, this.x, this.y - 112 * e, 1, 0.7 * e + (e > 1 ? 0.3 : 0)); }
+    if (typeof desenhaVara === 'function') desenhaVara(ctx, this);   // pescando, a vara na mão
     if (typeof desenhaGolpe === 'function') desenhaGolpe(ctx, this);
   }
 }
