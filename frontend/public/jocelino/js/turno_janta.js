@@ -28,7 +28,7 @@ class TurnoJanta {
   static MAX_MESAS = 6;         // banquetas no balcão do palco
   static GORJETA_MEDIDA = 0.15; // bebida na medida: 15% do preço a mais de gorjeta
 
-  static relatorioVazio() { return { clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0 }; }
+  static relatorioVazio() { return { clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0 }; }
 
   constructor() { this.pensao = null; this.mesas = []; this.relatorio = TurnoJanta.relatorioVazio(); this.eventos = []; this._fila = []; this._cardapio = []; this._rng = null; this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; }
 
@@ -38,7 +38,7 @@ class TurnoJanta {
     this._rng = { randf: f, randi: () => Math.floor(f() * 4294967296) };
     this._cardapio = p.cardapioDaNoite();
     this.mesas = [];
-    for (let i = 0; i < Math.min(p.mesas, TurnoJanta.MAX_MESAS); i++) this.mesas.push(this._mesaLivre());
+    for (let i = 0; i < Math.min(p.mesasDaNoite ? p.mesasDaNoite() : p.mesas, TurnoJanta.MAX_MESAS); i++) this.mesas.push(this._mesaLivre());
     this.relatorio = TurnoJanta.relatorioVazio();
     this._fila = [];
     this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = [];
@@ -246,6 +246,7 @@ class TurnoJanta {
     const gorj = Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.gorjeta += gorj; r.estrelas += est;
+    if (est >= 4) r.curtidas++;
     r.pratos[m.prato] = (r.pratos[m.prato] || 0) + 1;
     this.eventos.push({ tipo: 'pagou', mesa: i, valor: preco + gorj, estrelas: est });
     m.vezes++;

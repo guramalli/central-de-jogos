@@ -43,7 +43,7 @@ MAPAS_DEF.vila = () => {
     avisar('Você fez carinho no Caramelo. Ele abanou o rabo todo feliz!');
   };
   b.morador('zelia', 'Dona Zélia', 38, 11, DIR.CIMA, { vagueia: true, area: { x: 30 * TILE, y: 10 * TILE + 42, w: 14 * TILE, h: 1 * TILE } });   // pela calçada
-  b.enfeite('objetos/orelhao', 19, 10, true, 8);
+  b.interativo('orelhao', 'objetos/orelhao', 19, 9, 1, 1, [8, 6]).acao = () => (typeof abrirOrelhao === 'function' ? abrirOrelhao() : abrirPlaca('O orelhão da Vila.'));
   b.enfeite('objetos/fusca', 44, 13, true, 44);   // estacionado no fim da rua, no canto
   b.interativo('mercado', 'objetos/mercado_0', 36, 21, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
   b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 33, 18, 2, 1, [28, 6]).acao = () => abrirPlaca('O quadro da Prefeitura: editais e avisos.');

@@ -64,6 +64,7 @@ MAPAS_DEF.pensao_palco = () => {
 function entrarPalco() {
   entrarMapa('pensao_palco', { x: 8, y: PALCO.LINHA_CHAO });
   G.jog.dir = DIR.DIREITA; G.jog.alvoPalco = null; G.jog.servindo = 0; G.copo = null;
+  if (typeof rosaPerguntaGuardar === 'function') rosaPerguntaGuardar();
   sons.tocar('porta', 1, 0.05, -4);
 }
 
@@ -346,6 +347,17 @@ DESENHOS_TELA.push(ctx => {
 });
 let _copoTela = null;
 
+// Quem está comendo mastiga (de vez em quando, um de cada vez, baixinho).
+let _mastiga = 1.5;
+ATUALIZADORES.push(dt => {
+  const t = G.turno;
+  if (!t || !noPalco()) return;
+  _mastiga -= dt;
+  if (_mastiga > 0) return;
+  _mastiga = rnd(1.4, 3);
+  const comendo = t.mesas.map((m, i) => ({ m, i })).filter(x => x.m.estado === 'comendo' && x.i < PALCO.ASSENTOS.length);
+  if (comendo.length) sons.tocar('mastigar', 1 + rnd(-0.08, 0.08), 0.05, -12);
+});
 // O que acontece na janta e o jogador precisa ver (a farinheira acabou).
 ATUALIZADORES.push(() => {
   const t = G.turno;
@@ -377,7 +389,8 @@ function rodapePalco() {
     r = el('div', { id: 'rodape-palco', class: 'painel rodape-palco', hidden: true },
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); pensaoQuadro(); } }, 'Cardápio'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirCaderno(); } }, 'Receitas'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); guardarNaDespensa(); } }, 'Despensa'),
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirPainelPensao(); } }, 'A Pensão'),
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
       el('div', { class: 'farinha' }, el('img', { src: 'a/salao/farinheira.webp' }), el('span', {}, '')),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));

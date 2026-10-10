@@ -1,0 +1,29 @@
+MELHORIAS DO SALÃO (palco de lado 1920x1080) — arte do Higgsfield (ferramentas_arte/produzir_telas.sh), recortada por ferramentas_arte/web_telas.py
+Posições = canto de cima à esquerda na tela 1920x1080 (as da prévia), salvo quando diz "pé/base". Escala: gente de pé ~148 px.
+Linhas do palco: frechal (fim do teto) y ~ 300; rodapé da parede y = 760; tampo do balcão y = 778; pé do Jocelino y = 900.
+
+ventilador_teto.webp ..... folha 604x104 = 4 quadros de 151x104 lado a lado (giro: 0°, 22°, 45°, 67°; ~12 quadros/s; parado = quadro 1).
+   em (1175, 298) (a canopla encosta no frechal); desenhar antes do passa-prato. Efeito: paciência dura mais.
+   Outro lugar bom: centro x = 1260 (entre a luminária do meio e o neon), mesmo y.
+radio_tocando.webp ....... folha 192x96 = 2 quadros de 96x96 (pulando na batida, ~3 quadros/s), base no pé do quadro.
+   em (700, 343): em cima da prateleira da parede, por cima do rádio pintado do fundo (base em y = 439, centro x = 748).
+toalha_balcao.webp ....... 995x59 — toalha xadrez cobrindo o tampo do balcão (o balcão vai de x 290 a 1269).
+   em (282, 790), desenhar logo depois do balcão e ANTES da farinheira, dos pratos e da louça (que ficam por cima dela).
+geladeira.webp ........... 80x175 — geladeira anos 60 com garrafas em cima. Libera cerveja gelada.
+   pé em y = 900, centro x = 380 (canto esquerdo, perto da porta): em (290, 585); entra na ordem por altura com o Jocelino (y = 900).
+cozinha_melhor.webp ...... 440x221 — a cozinha inteira com o fogão de 4 bocas (substitui cozinha.webp, mesmo enquadramento).
+   em (1300, 545), igual à cozinha.webp. O fogão começa mais à esquerda (~45% da largura): a Rosa fica na frente da
+   panela de barro da esquerda; se quiser ela ao lado do fogão, pé em x ~ 1470 em vez de 1542.
+farinheira_grande.webp ... 92x120 — gamela grande de farinha no suporte de madeira (capacidade 25).
+   no palco escala 0.42, no tampo no lugar da farinheira (x = 1185), fundo em y = 788: em (1185, 722).
+flamula_santos.webp ...... 42x90 — flâmula preta e branca com escudo listrado, sem letras.
+   na parede em (1206, 392) (entre o relógio e o oratório pintados).
+neon_novo.webp ........... 130x130 — panela de neon com fumaça (alfa do próprio brilho: desenhar normal; para piscar,
+   variar a opacidade entre 0,85 e 1, e de vez em quando 0,3 por 0,08 s). Na parede em (463, 296).
+bandeirinhas_festa.webp .. 1920x120 — varal de festa junina de ponta a ponta, em (0, 185) (logo abaixo do frechal).
+balao_junino.webp ........ 43x110 — balão de papel pendurado, em (679, 262) (pendurar 1 a 3, x entre 400 e 1500).
+fita_tema.webp ........... 64x18 — fitinha do prato do dia: no nicho do cardápio, logo abaixo do prato (na prévia em (640, 521), nicho 1).
+
+Ordem de desenho sugerida (de trás para a frente): fundo, bandeirinhas, balão, ventilador, neon, flâmula, rádio,
+cozinha(_melhor), Rosa, passa-prato (e a fita), clientes, balcão, toalha, farinheira(_grande), pratos, passe, lixo, bacia,
+bebedouro, Jocelino e geladeira (por altura do pé), plantas da frente.

@@ -70,7 +70,7 @@ function pensaoPlaquinha() {
     const k = Object.keys(falta)[0];
     abrirPlaca(k && falta[k] > 0 ? `${txt} Falta: ${Itens.qtd(falta[k], k)}.` : txt);
   } else if (p.estado === 'pronta') abrirPlaca('Tudo pronto! A Pensão da Rosa abre amanhã. A janta é das 17h às 21h.');
-  else if (p.estado === 'aberta') { const f = p.faltaParaSubir(); abrirPlaca(`${p.nomeGrau(p.grau())}: ${p.fama} pontos de fama.` + (f > 0 ? ` Faltam ${f} para "${p.nomeGrau(p.grau() + 1)}".` : '')); }
+  else if (p.estado === 'aberta') abrirPainelPensao();
   return true;
 }
 TAREFAS.push(() => {
@@ -83,21 +83,7 @@ TAREFAS.push(() => {
   return [];
 });
 
-// ---------- despensa ----------
-function guardarNaDespensa() {
-  const p = G.pensao;
-  if (p.estado !== 'aberta') { abrirPlaca('A despensa ainda está vazia e empoeirada. Primeiro a reforma.'); return true; }
-  const recusados = p.recusados(G.mochila).filter(id => id !== 'pedra');
-  const g = p.guardar(G.mochila);
-  const linhas = [];
-  const partes = Object.keys(g).map(id => Itens.qtd(g[id], id));
-  if (partes.length) { linhas.push('Guardou: ' + partes.join(', ') + '.'); sons.tocar('pegar', 1, 0.05, -4); }
-  if (recusados.length) linhas.push(`A Rosa ainda não sabe o que fazer com ${recusados.map(id => Itens.nome(id).toLowerCase()).join(', ')} (só quando a pensão ficar mais famosa).`);
-  linhas.push('Rende: ' + p.receitas.map(id => `${Pratos.PRATOS[id].nome} ${p.rende(id)}`).join(', ') + '.');
-  hudSujo();
-  abrirPlaca(linhas.join(' '));
-  return true;
-}
+// (a despensa está em despensa.js)
 
 // ---------- quadro de giz (Today's Menu) ----------
 function pensaoQuadro() {
@@ -111,7 +97,7 @@ function pensaoQuadro() {
     const esq = el('div', { class: 'lousa-esq' }, el('div', { class: 'giz-am' }, 'Sempre tem'),
       Object.values(Pratos.BEBIDAS).map(b => el('div', {}, '- ' + b)), el('div', { class: 'giz-mi' }, '(vem com o prato)'),
       el('div', { class: 'lousa-fama' }, el('div', { class: 'giz-am' }, p.nomeGrau(p.grau())),
-        el('div', {}, 'Fama ' + p.fama + (p.faltaParaSubir() > 0 ? ' / ' + (p.fama + p.faltaParaSubir()) : '')),
+        el('div', {}, `${p.curtidas} curtidas`),
         el('div', {}, `Pratos: ${p.cardapio.length} de ${p.vagas()}`)));
     const dir = el('div', { class: 'lousa-dir' }, el('div', { class: 'giz-am' }, 'Pratos de hoje'));
     const desc = el('div', { class: 'giz-mi lousa-desc' }, 'Clique para pôr ou tirar do quadro. Ingrediente vai na despensa.');
@@ -141,7 +127,7 @@ function pensaoQuadro() {
 // ---------- a janta ----------
 function iniciarJanta() {
   G.turno = new TurnoJanta();
-  G.turno.iniciar(G.pensao, G.dia, 6 + 4 * (G.pensao.grau() - 1));
+  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (G.pensao.extraClientes || 0));
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
   avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
@@ -151,7 +137,10 @@ function encerrarJanta() {
   const r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
   G.dinheiro += total; G.ganhoHoje += total;
-  r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia);
+  r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
+  // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
+  r.despesa = G.pensao.despesa(); G.dinheiro -= r.despesa; G.ganhoHoje -= r.despesa;
+  if (r.subiu) { G.correio.caixa.push('fama_' + r.subiu); sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão subiu: agora é "${G.pensao.nomeGrau(r.subiu)}"!`); }
   G.relatorioPensao = r;
   G.turno = null;
   if (G.jog && G.jog.carga && G.jog.carga.id === 'prato') G.jog.carga = {};
@@ -174,7 +163,7 @@ ATUALIZADORES.push(dt => {
     else if (ev.tipo === 'embora') {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
-      else if (noSalao) avisar(`${ev.cliente.nome} cansou de esperar e foi embora resmungando.`);
+      else if (noSalao) { avisar(`${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); sons.tocar('cliente_hmpf', 1, 0.08, -4); }
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
   }
   t.eventos = [];
@@ -312,16 +301,45 @@ function texto(ctx, s, x, y, tam, cor, peso = '800') {
 function atualizaSeloPensao(selo, noSalao) {
   selo.hidden = !noSalao;
   if (!noSalao) return;
-  const p = G.pensao, f = p.faltaParaSubir();
+  const p = G.pensao, g = p.grau(), px = p.proximoDegrau();
   const r = G.turno ? G.turno.relatorio : null;
-  const linha2 = (f > 0 ? `Fama ${p.fama}/${p.fama + f}` : `Fama ${p.fama}`) + (r ? `  ·  Hoje: Cr$ ${r.ganho + r.gorjeta}  ·  ${r.servidos} servidos` : '');
-  const chave = p.nomeGrau(p.grau()) + linha2;
+  const linha2 = `${p.curtidas} curtidas` + (r ? `  ·  Hoje: Cr$ ${r.ganho + r.gorjeta}  ·  ${r.servidos} servidos` : '');
+  const chave = g + linha2 + p.progresso().toFixed(2);
   if (selo._k === chave) return;
   selo._k = chave;
-  const base = p.pontosDoGrau(p.grau());
   selo.innerHTML = '';
-  selo.append(el('div', { class: 'grau' }, 'Pensão da Rosa · ' + p.nomeGrau(p.grau())), el('div', {}, linha2),
-    f > 0 ? el('div', { class: 'progresso' }, el('div', { style: `width:${clamp((p.fama - base) / (p.fama + f - base), 0, 1) * 100}%` })) : null);
+  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: `a/ui/selo_${g}.webp`, class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeGrau(g)), el('div', {}, linha2),
+    px ? el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })) : null);
+}
+// O que falta para o próximo degrau, em texto.
+function textoFalta(f) {
+  const t = [];
+  if (f.curtidas) t.push(`${f.curtidas} ${f.curtidas === 1 ? 'curtida' : 'curtidas'}`);
+  if (f.sabor) t.push(`melhor sabor +${f.sabor} (caprichar no caderno)`);
+  if (f.pesquisadas) t.push(`${f.pesquisadas} ${f.pesquisadas === 1 ? 'receita pesquisada' : 'receitas pesquisadas'}`);
+  return t.length ? 'faltam ' + t.join(', ') : 'quase lá';
+}
+// ---------- A Pensão: os 6 degraus da fama, o que cada um pede e libera (a tela do Cooksta) ----------
+function abrirPainelPensao() {
+  const p = G.pensao, g = p.grau();
+  const caixa = el('div', { class: 'painel painel-pensao' });
+  caixa.append(el('div', { class: 'titulo', style: 'font-size:28px' }, 'A Pensão da Rosa'),
+    el('div', { class: 'pp-resumo' }, `${p.curtidas} curtidas · melhor sabor ${p.melhorSabor()} · ${p.pesquisadas()} receitas pesquisadas · ${p.pitadas} pitadas · despesa da noite Cr$ ${p.despesa()}`));
+  const lista = el('div', { class: 'pp-lista' });
+  Pensao.DEGRAUS.forEach((d, i) => {
+    const n = i + 1, atual = n === g, feito = n < g;
+    const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : ''].filter(Boolean).join(' · ');
+    lista.append(el('div', { class: 'pp-degrau' + (atual ? ' atual' : feito ? ' feito' : '') },
+      spr('ui/selo_' + n) ? el('img', { src: `a/ui/selo_${n}.webp` }) : el('div', { class: 'pp-num' }, n),
+      el('div', {}, el('b', {}, d.nome + (atual ? '  ← agora' : feito ? '  ✓' : '')), el('div', { class: 'pp-req' }, req),
+        el('div', { class: 'pp-libera' }, `${d.vagas} pratos no quadro · ${d.mesas} banquetas · ${d.clientes} clientes por noite · despesa Cr$ ${d.despesa}`))));
+  });
+  const px = p.proximoDegrau();
+  caixa.append(lista, el('div', { class: 'pp-falta' }, px ? `Para "${px.nome}": ${textoFalta(px.falta)}.` : 'A pensão é Patrimônio da Vila! Não tem mais degrau para subir.'),
+    el('div', { style: 'text-align:right;margin-top:8px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+  abrirModal(caixa);
+  sons.tocar('abrir', 1, 0.03, -6);
+  return true;
 }
 
 // ---------- a noite: fecha a janta ou a Rosa serve sozinha; o relatório no resumo ----------
@@ -330,7 +348,7 @@ NOITE.push(linhas => {
   if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia) {
     const f = mulberry(G.dia * 77);
     const rs = TurnoJanta.rosaSozinha(G.pensao, { randf: f, randi: () => Math.floor(f() * 4294967296) });
-    G.pensao.registrarNoite(rs.estrelas, G.dia);
+    G.pensao.registrarNoite(rs.estrelas, G.dia, 0);
     G.dinheiro += rs.ganho; G.ganhoHoje += rs.ganho;
     linhas.push(rs.servidos > 0 ? `A Rosa se virou sozinha na pensão: ${rs.servidos} PFs, Cr$ ${rs.ganho}.` : 'A pensão abriu, mas a despensa estava vazia: a Rosa só passou café.');
   } else if (G.relatorioPensao) {
@@ -339,8 +357,9 @@ NOITE.push(linhas => {
     linhas.push(`Pensão da Rosa: ${r.clientes} clientes, ${r.servidos} pratos, Cr$ ${r.ganho} + Cr$ ${r.gorjeta} de gorjeta (${media.toFixed(1)} estrelas de média).`);
     if (r.embora) linhas.push(`   ${r.embora} ${r.embora === 1 ? 'foi' : 'foram'} embora sem comer.`);
     if (r.faltou.length) linhas.push(`   Faltou ingrediente para: ${r.faltou.map(id => Pratos.PRATOS[id] ? Pratos.PRATOS[id].nome : id).join(', ')}. ${r.cafes} ${r.cafes === 1 ? 'cliente tomou' : 'clientes tomaram'} só café.`);
-    if (r.subiu) linhas.push(`A pensão agora é "${p.nomeGrau(r.subiu)}"! Mais pratos no quadro e ingredientes novos.`);
-    else if (p.faltaParaSubir() > 0) linhas.push(`   Fama: ${p.fama} (faltam ${p.faltaParaSubir()} para "${p.nomeGrau(p.grau() + 1)}").`);
+    linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${r.despesa} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`);
+    if (r.subiu) linhas.push(`A pensão subiu de degrau: agora é "${p.nomeGrau(r.subiu)}"! Mais pratos no quadro, mais banquetas e mais clientes.`);
+    else { const px = p.proximoDegrau(); if (px) linhas.push(`   Para "${px.nome}": ${textoFalta(px.falta)}.`); }
     linhas.push('   A Rosa: "' + ['Hoje até o Tonhão pediu bis!', 'Amanhã eu faço mais feijão.', 'O Severino lambeu o prato, Jocelino!', 'A pedra da sopa tá cansada.'][G.dia % 4] + '"');
   }
   G.relatorioPensao = null;

@@ -4,13 +4,18 @@
 // Regras puras; a janta passo a passo fica em turno_janta.js.
 
 class Pensao {
-  static GRAUS = [
-    { nome: 'Marmita de Esquina', pontos: 0, vagas: 2 },
-    { nome: 'Parada dos Peões', pontos: 40, vagas: 3 },
-    { nome: 'Falada na Vila', pontos: 120, vagas: 4 },
-    { nome: 'Famosa em Praia Grande', pontos: 300, vagas: 5 },
-    { nome: 'Saiu na Gazeta', pontos: 600, vagas: 6 },
+  // A fama em 6 degraus (os ranks do Cooksta no Dave): cada um pede curtidas (clientes que deram 4 estrelas ou mais),
+  // melhor sabor (o prato mais caprichado) e receitas pesquisadas; libera vagas no cardápio, banquetas e clientes, e
+  // cobra uma despesa por noite (gás, gelo, luz).
+  static DEGRAUS = [
+    { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, vagas: 2, mesas: 2, clientes: 6, despesa: 0 },
+    { nome: 'Boteco Conhecido', curtidas: 10, sabor: 0, pesquisadas: 0, vagas: 3, mesas: 3, clientes: 8, despesa: 5 },
+    { nome: 'Pensão Falada', curtidas: 30, sabor: 0, pesquisadas: 2, vagas: 4, mesas: 4, clientes: 10, despesa: 12 },
+    { nome: 'Pensão Famosa', curtidas: 80, sabor: 36, pesquisadas: 3, vagas: 5, mesas: 5, clientes: 12, despesa: 25 },
+    { nome: 'Casa Tradicional', curtidas: 160, sabor: 60, pesquisadas: 5, vagas: 6, mesas: 6, clientes: 14, despesa: 45 },
+    { nome: 'Patrimônio da Vila', curtidas: 300, sabor: 96, pesquisadas: 7, vagas: 7, mesas: 6, clientes: 16, despesa: 70 },
   ];
+  static GRAUS = Pensao.DEGRAUS;
   static TELHAS = 10;
   static MADEIRA = 20;
   static DESPENSA_INICIAL = { arroz: 5, feijao: 5, ovo: 5 };
@@ -28,14 +33,33 @@ class Pensao {
     this.estado = 'fechada';   // fechada, limpar, telhas, mesas, pronta, aberta
     this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.mesas = 2; this.fama = 0;
     this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
-    this.niveis = {}; this.pitadas = 0; this.vistos = [];
+    this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
   }
-  grau() { let g = 1; Pensao.GRAUS.forEach((x, i) => { if (this.fama >= x.pontos) g = i + 1; }); return g; }
-  nomeGrau(g) { return Pensao.GRAUS[clamp(g, 1, Pensao.GRAUS.length) - 1].nome; }
-  vagas() { return Pensao.GRAUS[this.grau() - 1].vagas; }
-  pontosDoGrau(g) { return Pensao.GRAUS[clamp(g, 1, Pensao.GRAUS.length) - 1].pontos; }
-  // Pontos que faltam para o próximo grau (0 no último).
-  faltaParaSubir() { const g = this.grau(); return g >= Pensao.GRAUS.length ? 0 : Pensao.GRAUS[g].pontos - this.fama; }
+  melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
+  pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
+  _cumpre(d) { return this.curtidas >= d.curtidas && this.melhorSabor() >= d.sabor && this.pesquisadas() >= d.pesquisadas; }
+  grau() { let g = 1; for (let i = 1; i < Pensao.DEGRAUS.length && this._cumpre(Pensao.DEGRAUS[i]); i++) g = i + 1; return g; }
+  degrau(g = this.grau()) { return Pensao.DEGRAUS[clamp(g, 1, Pensao.DEGRAUS.length) - 1]; }
+  nomeGrau(g) { return this.degrau(g).nome; }
+  vagas() { return this.degrau().vagas; }
+  mesasDaNoite() { return Math.max(this.mesas, this.degrau().mesas) + (this.extraMesas || 0); }
+  clientesDaNoite() { return this.degrau().clientes; }
+  despesa() { return this.degrau().despesa; }
+  // O próximo degrau e o que falta de cada coisa (null no último).
+  proximoDegrau() {
+    const g = this.grau();
+    if (g >= Pensao.DEGRAUS.length) return null;
+    const d = Pensao.DEGRAUS[g];
+    return { grau: g + 1, nome: d.nome, d, falta: { curtidas: Math.max(0, d.curtidas - this.curtidas), sabor: Math.max(0, d.sabor - this.melhorSabor()), pesquisadas: Math.max(0, d.pesquisadas - this.pesquisadas()) } };
+  }
+  // Progresso para o próximo degrau (0 a 1), pela média das três exigências.
+  progresso() {
+    const p = this.proximoDegrau(); if (!p) return 1;
+    const a = this.degrau(), d = p.d, f = (v, x0, x1) => x1 <= x0 ? 1 : clamp((v - x0) / (x1 - x0), 0, 1);
+    return (f(this.curtidas, a.curtidas, d.curtidas) + f(this.melhorSabor(), a.sabor, d.sabor) + f(this.pesquisadas(), a.pesquisadas, d.pesquisadas)) / 3;
+  }
+  // Compatibilidade (textos antigos): pontos que faltam = curtidas que faltam.
+  faltaParaSubir() { const p = this.proximoDegrau(); return p ? Math.max(1, p.falta.curtidas) : 0; }
   aceita(id) { return !!Pratos.INGREDIENTES[id] && Pratos.fase(id) <= this.grau(); }
 
   // Guarda na despensa tudo o que a fase aceita. Devolve {id: qtd}.
@@ -129,9 +153,10 @@ class Pensao {
   }
   static gorjeta(preco, estrelas) { return Math.round(preco * 0.3 * (estrelas - 1) / 4); }
   // Soma as estrelas da noite na fama. Devolve o grau novo (0 se não subiu).
-  registrarNoite(estrelas, dia) {
+  registrarNoite(estrelas, dia, curtidas = 0) {
     const antes = this.grau();
     this.fama += Math.max(0, estrelas);
+    this.curtidas += Math.max(0, curtidas);
     this.ultimaJanta = dia;
     if (estrelas > 0) this.pitadas += Math.max(1, Math.floor(estrelas / 4));   // as estrelas viram pitadas de tempero (a "Artisan's Flame")
     return this.grau() > antes ? this.grau() : 0;
@@ -186,7 +211,7 @@ class Pensao {
   paraDict() {
     return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, mesas: this.mesas, fama: this.fama,
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
-      niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice() };
+      niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas };
   }
   deDict(d) {
     d = d || {};
@@ -194,5 +219,6 @@ class Pensao {
     this.mesas = d.mesas || 2; this.fama = d.fama | 0; this.despensa = Object.assign({}, d.despensa || {});
     this.cardapio = (d.cardapio || []).slice(); this.receitas = (d.receitas || Pensao.RECEITAS_INICIAIS).slice(); this.ultimaJanta = d.ultimaJanta ?? -1;
     this.niveis = Object.assign({}, d.niveis || {}); this.pitadas = d.pitadas | 0; this.vistos = (d.vistos || Object.keys(this.despensa)).slice();
+    this.curtidas = d.curtidas != null ? d.curtidas | 0 : Math.floor(this.fama / 4);   // save velho: as estrelas viram curtidas
   }
 }
