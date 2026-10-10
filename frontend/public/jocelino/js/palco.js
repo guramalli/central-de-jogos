@@ -32,8 +32,29 @@ const PALCO = {
   FARINHEIRA: { x: 1185, y: 730, w: 70, h: 62, cx: 1218, base: 786, escala: 0.36 },
   LOUCA: { base: 786, escala: 0.38 },
   ESCALA_GENTE: 1.65,             // gente grande como no Dave: o balcão bate na cintura do Jocelino
+  BALCAO_ARTE: 'balcao', TOALHA_W: 995,
+  ROSA_PASSE: 1430,               // até onde a Rosa anda para largar o prato no passe
+  RITINHA_X: 336, CASA_ZE: 1240, CASA_AJUDANTE: 1536,
 };
+// O salão maior (ampliação): o balcão comprido de 8 banquetas vai até x 1515; o passe passa para a ponta direita (80%)
+// e o bebedouro, a bacia e o lixo para a frente da ponta esquerda do balcão (a/salao/LEIA_ampliacao.txt).
+const LAYOUT_PALCO = {
+  pequeno: (({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE }) =>
+    ({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE }))(PALCO),
+  grande: {
+    ASSENTOS: [400, 537, 674, 811, 948, 1085, 1222, 1359].map(x => ({ x, y: 856 })),
+    BEBEDOURO: { x: 300, y: 774, w: 84, h: 126, escala: 0.42 },
+    PASSE: { cx: 1597, base: 905, escala: 0.8, topo: 832, vagas: [1545, 1579, 1612, 1646] },
+    PASSE_AREA: { x: 1525, y: 790, w: 145, h: 118 },
+    BACIA: { x: 392, y: 825, w: 64, h: 80, escala: 1 },
+    LIXO: { x: 462, y: 842, w: 39, h: 60, escala: 1 },
+    FARINHEIRA: { x: 1440, y: 730, w: 70, h: 62, cx: 1475, base: 786, escala: 0.36 },
+    BALCAO_ARTE: 'balcao_grande', TOALHA_W: 1240, ROSA_PASSE: 1600, RITINHA_X: 560, CASA_ZE: 520, CASA_AJUDANTE: 1480,
+  },
+};
+function aplicaLayoutPalco() { Object.assign(PALCO, LAYOUT_PALCO[typeof temAmpliacao === 'function' && temAmpliacao('salao_maior') ? 'grande' : 'pequeno']); }
 const noPalco = () => !!(G.mapa && G.mapa.palco);
+ATUALIZADORES.push(() => { if (noPalco()) aplicaLayoutPalco(); });
 ATUALIZADORES.push(() => document.body.classList.toggle('no-palco', noPalco()));
 const noSalaoDaPensao = () => G.mapaId === 'pensao_dentro' || G.mapaId === 'pensao_palco';
 // A pensão aberta (ou pronta para abrir) usa o palco; na reforma, o salão antigo de cima.
@@ -52,10 +73,11 @@ MAPAS_DEF.pensao_palco = () => {
   b.saida(6, PALCO.LINHA_CHAO, 1, 1, 'vila', 15, 9);
   const P = PALCO;
   b.objs.push(
-    { tipo: 'camada', y: 300, desenha(ctx) { const img = spr(typeof temMelhoria === 'function' && temMelhoria('fogao_4bocas') ? 'salao/cozinha_melhor' : 'salao/cozinha'); if (img) ctx.drawImage(img, P.COZINHA.x, P.COZINHA.y); } },
+    { tipo: 'camada', y: 300, desenha(ctx) { const n = typeof Melhorias !== 'undefined' && G.pensao ? Melhorias.nivel(G.pensao, 'fogao_4bocas') : 0;
+      const img = spr(n >= 2 ? 'salao/fogao_industrial' : n === 1 ? 'salao/cozinha_melhor' : 'salao/cozinha'); if (img) ctx.drawImage(img, P.COZINHA.x, P.COZINHA.y); } },
     camadaPalco('passa_prato', P.PASSA.x, P.PASSA.y, 400),
-    camadaPalco('balcao', P.BALCAO.x, P.BALCAO.y, P.TAMPO_Y + 80),
-    camadaPalco('bebedouro', P.BEBEDOURO.x, P.BEBEDOURO.y, 880, P.BEBEDOURO.escala),
+    { tipo: 'camada', y: P.TAMPO_Y + 80, desenha(ctx) { const img = spr('salao/' + P.BALCAO_ARTE); if (img) ctx.drawImage(img, P.BALCAO.x, P.BALCAO.y); } },
+    { tipo: 'camada', y: 880, desenha(ctx) { const B = P.BEBEDOURO, img = spr('salao/bebedouro'); if (img) ctx.drawImage(img, B.x, B.y, img.naturalWidth * B.escala, img.naturalHeight * B.escala); } },
     camadaPalco('frente_esquerda', P.FRENTE_ESQ.x, P.FRENTE_ESQ.y, 99999),
     camadaPalco('frente_direita', P.FRENTE_DIR.x, P.FRENTE_DIR.y, 99999));
   b.paredesDaBorda();
@@ -63,6 +85,7 @@ MAPAS_DEF.pensao_palco = () => {
 };
 
 function entrarPalco() {
+  aplicaLayoutPalco();
   entrarMapa('pensao_palco', { x: 8, y: PALCO.LINHA_CHAO });
   G.jog.dir = DIR.DIREITA; G.jog.alvoPalco = null; G.jog.servindo = 0; G.copo = null;
   if (typeof rosaPerguntaGuardar === 'function') rosaPerguntaGuardar();
@@ -88,11 +111,12 @@ const camadaViva = (y, desenha) => ({ tipo: 'camada', y, desenha });
 // A Rosa na cozinha, como o Bancho: mexe a panela o tempo todo (rápido com prato no fogo, devagar e com pausa à toa) e,
 // quando um prato fica pronto, anda até o passe, larga o prato e volta para o fogão (quadros de lado da folha de andar dela).
 const ROSA_COZ = { x: PALCO.ROSA.x, casa: PALCO.ROSA.x, estado: 'mexe', t: 0, quadro: 0, fila: 0, vistos: 0 };
-const ROSA_PASSE_X = 1430, ROSA_VEL = 230, ROSA_LARGA = 0.45, ROSA_ESCALA_ANDAR = 1.25;
+const ROSA_VEL = 230, ROSA_LARGA = 0.45, ROSA_ESCALA_ANDAR = 1.25;
 ATUALIZADORES.push(dt => {
   if (!noPalco()) return;
   const R = ROSA_COZ, t = G.turno;
-  R.casa = typeof temMelhoria === 'function' && temMelhoria('fogao_4bocas') ? 1470 : PALCO.ROSA.x;
+  R.casa = typeof Melhorias !== 'undefined' && G.pensao && Melhorias.nivel(G.pensao, 'fogao_4bocas') === 1 ? 1470 : PALCO.ROSA.x;
+  const lado = Math.sign(PALCO.ROSA_PASSE - R.casa) || -1;   // -1: o passe fica à esquerda do fogão; +1: à direita (salão maior)
   const saidos = t ? (t.saidos || 0) : 0;
   if (saidos < R.vistos) R.vistos = saidos;                        // janta nova: o contador recomeça
   if (saidos > R.vistos) { R.fila = Math.min(2, R.fila + saidos - R.vistos); R.vistos = saidos; }
@@ -104,14 +128,14 @@ ATUALIZADORES.push(dt => {
     else { const c = R.t % 2.4; R.quadro = c < 1.2 ? Math.floor(c / 0.3) % 4 : 0; }   // à toa: uma mexida e uma pausa
     if (R.fila > 0) { R.fila--; R.estado = 'vai'; R.t = 0; }
   } else if (R.estado === 'vai') {
-    R.x -= ROSA_VEL * dt; R.quadro = 10 + Math.floor(R.t / 0.13) % 4;
-    if (R.x <= ROSA_PASSE_X) { R.x = ROSA_PASSE_X; R.estado = 'larga'; R.t = 0; sons.tocar('louca', 1.2, 0.05, -12); }
+    R.x += lado * ROSA_VEL * dt; R.quadro = 10 + Math.floor(R.t / 0.13) % 4; R.lado = lado;
+    if ((R.x - PALCO.ROSA_PASSE) * lado >= 0) { R.x = PALCO.ROSA_PASSE; R.estado = 'larga'; R.t = 0; sons.tocar('louca', 1.2, 0.05, -12); }
   } else if (R.estado === 'larga') {
     R.quadro = 20;
     if (R.t >= ROSA_LARGA) { R.estado = 'volta'; R.t = 0; }
   } else {
-    R.x += ROSA_VEL * dt; R.quadro = 30 + Math.floor(R.t / 0.13) % 4;
-    if (R.x >= R.casa) { R.x = R.casa; R.estado = R.fila > 0 ? 'vai' : 'mexe'; if (R.fila > 0) R.fila--; R.t = 0; }
+    R.x -= lado * ROSA_VEL * dt; R.quadro = 30 + Math.floor(R.t / 0.13) % 4;
+    if ((R.x - R.casa) * lado <= 0) { R.x = R.casa; R.estado = R.fila > 0 ? 'vai' : 'mexe'; if (R.fila > 0) R.fila--; R.t = 0; }
   }
 });
 function desenhaRosaCozinha(ctx) {
@@ -127,7 +151,7 @@ function desenhaRosaCozinha(ctx) {
   const img = spr('personagens/rosa/andar');
   if (!img) return;
   const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_ESCALA_ANDAR;
-  const col = R.estado === 'volta' ? 3 : 2, lin = R.estado === 'larga' ? 1 : R.quadro % 10;
+  const esq = (R.lado || -1) < 0, col = (R.estado === 'volta') === esq ? 3 : 2, lin = R.estado === 'larga' ? 1 : R.quadro % 10;
   ctx.drawImage(img, col * w, lin * h, w, h, R.x - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
 }
 function camadasDaJanta() {
@@ -154,8 +178,9 @@ function camadasDaJanta() {
         if (m.estado === 'comendo') desenhaPrato(ctx, m.prato, P.ASSENTOS[i].x, P.LOUCA.base + 2, 1, 0.9);
         if (m.estado === 'suja') desenhaPe(ctx, 'salao/louca_suja', P.ASSENTOS[i].x, P.LOUCA.base, 1, P.LOUCA.escala);
       });
-      const F = P.FARINHEIRA, gr = typeof temMelhoria === 'function' && temMelhoria('farinheira_grande');
-      desenhaPe(ctx, gr ? 'salao/farinheira_grande' : 'salao/farinheira', gr ? 1231 : F.cx, gr ? 788 : F.base, 1, gr ? 0.55 : F.escala);
+      const F = P.FARINHEIRA, nf = typeof Melhorias !== 'undefined' && G.pensao ? Melhorias.nivel(G.pensao, 'farinheira_grande') : 0;
+      if (nf >= 2) desenhaPe(ctx, 'salao/farinheira_barril', F.cx + 10, 790, 1, 0.5);
+      else desenhaPe(ctx, nf ? 'salao/farinheira_grande' : 'salao/farinheira', nf ? F.cx + 13 : F.cx, nf ? 788 : F.base, 1, nf ? 0.55 : F.escala);
     }),
     // O passe da cozinha (a bancada), os pratos prontos em cima dele, a bacia e o lixo.
     camadaViva(878, ctx => {
@@ -470,20 +495,20 @@ ATUALIZADORES.push(() => {
 // A Ritinha na porta, cuidando do caixa (a gorjeta da noite sai 10% maior); o Zezinho na faixa do chão, devagarinho,
 // recolhendo a louça que ninguém pegou (e de olho nas cocadas). A arte é a deles do quintal (folha de criança).
 const FILHOS = { ritinha: null, zezinho: null };
-const FILHO_RITINHA_X = 336, FILHO_ZE_CASA = 1240, FILHO_ZE_VEL = 85;
+const FILHO_ZE_VEL = 85;
 function filhosDoPalco() {
   const t = G.turno;
   if (!t || !noPalco() || !t.filho) { FILHOS.ritinha = FILHOS.zezinho = null; return []; }
   if (t.filho === 'ritinha') {
-    if (!FILHOS.ritinha) FILHOS.ritinha = new Personagem('ritinha', 'Ritinha', FILHO_RITINHA_X, PALCO.CHAO_Y - 4, DIR.BAIXO);
+    if (!FILHOS.ritinha) FILHOS.ritinha = new Personagem('ritinha', 'Ritinha', PALCO.RITINHA_X, PALCO.CHAO_Y - 4, DIR.BAIXO);
     return [FILHOS.ritinha];
   }
-  if (!FILHOS.zezinho) { const z = FILHOS.zezinho = new Personagem('zezinho', 'Zezinho', FILHO_ZE_CASA, PALCO.CHAO_Y - 6, DIR.ESQUERDA); z.tarefa = null; z.espera = 5; }
+  if (!FILHOS.zezinho) { const z = FILHOS.zezinho = new Personagem('zezinho', 'Zezinho', PALCO.CASA_ZE, PALCO.CHAO_Y - 6, DIR.ESQUERDA); z.tarefa = null; z.espera = 5; }
   return [FILHOS.zezinho];
 }
 ATUALIZADORES.push(dt => {
   const t = G.turno, z = FILHOS.zezinho;
-  if (FILHOS.ritinha) { FILHOS.ritinha.t += dt; FILHOS.ritinha.andando = false; }
+  if (FILHOS.ritinha) { FILHOS.ritinha.t += dt; FILHOS.ritinha.andando = false; FILHOS.ritinha.x = PALCO.RITINHA_X; }
   if (!t || !noPalco() || !z) return;
   z.t += dt;
   if (!z.tarefa) {
@@ -491,7 +516,7 @@ ATUALIZADORES.push(dt => {
     if (z.espera > 0) return;
     z.espera = 6;                                                  // criança: faz uma coisa e para um pouco
     const i = t.mesas.findIndex((m, k) => k < PALCO.ASSENTOS.length && m.estado === 'suja' && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === k));
-    z.tarefa = i >= 0 ? { tipo: 'louca', i, x: PALCO.ASSENTOS[i].x } : (Math.abs(z.x - FILHO_ZE_CASA) > 4 ? { tipo: 'casa', x: FILHO_ZE_CASA } : null);
+    z.tarefa = i >= 0 ? { tipo: 'louca', i, x: PALCO.ASSENTOS[i].x } : (Math.abs(z.x - PALCO.CASA_ZE) > 4 ? { tipo: 'casa', x: PALCO.CASA_ZE } : null);
     if (!z.tarefa) return;
   }
   const dx = z.tarefa.x - z.x;
@@ -514,7 +539,7 @@ function ajudantesDoPalco() {
   [...salao, ...cozinha].forEach((e, k) => {
     let a = AJUDANTES[k];
     if (!a || a.id !== e.id) {
-      a = AJUDANTES[k] = new Personagem(e.id, e.nome, e.posto === 'cozinha' ? PALCO.ROSA.x - 90 : PALCO.BEBEDOURO.x - 40 - k * 60, e.posto === 'cozinha' ? PALCO.ROSA.y : PALCO.CHAO_Y - 4, DIR.BAIXO);
+      a = AJUDANTES[k] = new Personagem(e.id, e.nome, e.posto === 'cozinha' ? PALCO.ROSA.x - 90 : PALCO.CASA_AJUDANTE - k * 60, e.posto === 'cozinha' ? PALCO.ROSA.y : PALCO.CHAO_Y - 4, DIR.BAIXO);
       a.equipe = e; a.casa = a.x; a.tarefa = null; a.espera = 0;
     }
   });

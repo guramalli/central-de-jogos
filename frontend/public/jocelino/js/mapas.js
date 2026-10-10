@@ -19,6 +19,9 @@ const LETREIROS = {
   'objetos/deposito': { x: 139, y: 141, w: 144, h: 24, textos: ['Depósito do Ananias', 'DEPÓSITO'], estilo: 'creme' },
   'objetos/pensao': { x: 117.5, y: 105.5, w: 84, h: 17, textos: ['Pensão da Rosa', 'PENSÃO'], estilo: 'creme' },
   'objetos/pensao_fechada': { x: 118, y: 142, w: 52, h: 16, ang: -7, textos: ['Pensão', 'PENSÃO'], estilo: 'tinta' },
+  'objetos/pensao_obra': { x: 135, y: 105, w: 78, h: 16, textos: ['Pensão da Rosa', 'PENSÃO'], estilo: 'creme' },
+  'objetos/pensao_ampliada': { x: 159.5, y: 61.5, w: 58, h: 12, textos: ['PENSÃO', 'PENSÃO'], estilo: 'creme' },
+  'objetos/pensao_sobrado': { x: 165, y: 156, w: 64, h: 12, textos: ['PENSÃO', 'PENSÃO'], estilo: 'creme' },
   'objetos/pensao_reforma': { x: 122, y: 129, w: 64, h: 16, tabua: true, textos: ['Pensão', 'PENSÃO'], estilo: 'creme' },
   'objetos/oficina_sem_fumaca': { x: 145, y: 113, w: 78, h: 18, tabua: true, textos: ['Ferraria', 'FERRARIA'], estilo: 'creme' },
   'objetos/museu': { x: 142.5, y: 142.5, w: 66, h: 22, textos: ['Museu da Vila', 'Museu'], estilo: 'creme' },
@@ -48,6 +51,9 @@ function desenhaFumaca(ctx, o, alfa) {
 // Luzes da noite: brilho quente nas portas e janelas acesas (posição e raio em px da arte). Só luz, nada desenhado.
 const LUZES = {
   'objetos/pensao': [[117, 165, 95], [62, 150, 45], [178, 150, 45]],
+  'objetos/pensao_obra': [[135, 165, 95], [80, 150, 45]],
+  'objetos/pensao_ampliada': [[161, 118, 60], [95, 112, 30], [215, 112, 30], [283, 112, 30]],
+  'objetos/pensao_sobrado': [[161, 215, 60], [95, 210, 30], [215, 210, 30], [272, 210, 30], [94, 95, 30], [165, 95, 30], [236, 95, 30]],
   'objetos/oficina_sem_fumaca': [[145, 200, 110]],
   'objetos/deposito': [[139, 215, 85]],
   'objetos/casa_juca': [[150, 205, 70]],

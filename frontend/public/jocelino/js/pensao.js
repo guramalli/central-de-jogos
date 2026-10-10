@@ -34,6 +34,7 @@ class Pensao {
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
     this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {}; this.chef = { nivel: 1, xp: 0 };
     this.premios = []; this.garfos = 0; this.paladarNotas = []; this.concursos = {};
+    this.ampliacoes = []; this.obra = null; this.nivelMelhoria = {};
   }
   melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
   pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
@@ -42,8 +43,9 @@ class Pensao {
   degrau(g = this.grau()) { return Pensao.DEGRAUS[clamp(g, 1, Pensao.DEGRAUS.length) - 1]; }
   nomeGrau(g) { return this.degrau(g).nome; }
   vagas() { return this.degrau().vagas; }
-  mesasDaNoite() { return Math.max(this.mesas, this.degrau().mesas) + (this.melhorias || []).filter(id => id === 'banqueta_extra').length; }
-  clientesDaNoite() { return this.degrau().clientes; }
+  maxMesas() { return 6 + ((this.ampliacoes || []).includes('salao_maior') ? 2 : 0); }
+  mesasDaNoite() { return Math.max(this.mesas, this.degrau().mesas) + (this.melhorias || []).filter(id => id === 'banqueta_extra').length + ((this.ampliacoes || []).includes('salao_maior') ? 2 : 0); }
+  clientesDaNoite() { return this.degrau().clientes + ((this.ampliacoes || []).includes('varanda') ? 3 : 0); }
   despesa() { return this.degrau().despesa; }
   // O próximo degrau e o que falta de cada coisa (null no último).
   proximoDegrau() {
@@ -281,7 +283,8 @@ class Pensao {
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
-      premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos) };
+      premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos),
+      ampliacoes: this.ampliacoes.slice(), obra: this.obra ? Object.assign({}, this.obra) : null, nivelMelhoria: Object.assign({}, this.nivelMelhoria) };
   }
   deDict(d) {
     d = d || {};
@@ -294,5 +297,6 @@ class Pensao {
     this.grauMinimo = d.grauMinimo || (d.curtidas == null ? [0, 40, 120, 300, 600].filter(x => this.fama >= x).length : 1);
     this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {}); this.chef = Object.assign({ nivel: 1, xp: 0 }, d.chef || {});
     this.premios = (d.premios || []).slice(); this.garfos = d.garfos || 0; this.paladarNotas = JSON.parse(JSON.stringify(d.paladarNotas || [])); this.concursos = Object.assign({}, d.concursos || {});
+    this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
   }
 }

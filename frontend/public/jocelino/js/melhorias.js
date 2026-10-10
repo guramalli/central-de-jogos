@@ -5,12 +5,22 @@
 const MELHORIAS = {
   toalha: { nome: 'Toalha xadrez no balcão', preco: 60, grau: 1, efeito: 'Charme: mais gorjeta.', arte: 'salao/toalha_balcao', gorjeta: 0.03 },
   flamula: { nome: 'Flâmula do Santos', preco: 40, grau: 1, efeito: 'Os peões torcem junto: um pouco mais de gorjeta.', arte: 'salao/flamula_santos', gorjeta: 0.02 },
-  radio: { nome: 'Rádio tocando samba', preco: 90, grau: 1, efeito: 'Clima bom: mais gorjeta.', arte: 'salao/radio_tocando', gorjeta: 0.05 },
-  farinheira_grande: { nome: 'Farinheira grande', preco: 150, grau: 2, efeito: 'Cabem 25 de farinha (repõe menos).', arte: 'salao/farinheira_grande', farinha: 10 },
-  ventilador: { nome: 'Ventilador de teto', preco: 180, grau: 2, efeito: 'Ninguém derrete: a paciência dura 25% mais.', arte: 'salao/ventilador_teto', paciencia: 1.25 },
+  radio: { niveis: [
+    { nome: 'Vitrola', preco: 220, grau: 3, efeito: 'Disco de samba-canção: mais gorjeta.', arte: 'salao/vitrola', gorjeta: 0.08 },
+    { nome: 'Caixa de som de baile', preco: 450, grau: 4, efeito: 'Som de baile: mais gorjeta e 1 cliente a mais por noite.', arte: 'salao/caixa_som', gorjeta: 0.10, clientes: 1 }],
+    nome: 'Rádio tocando samba', preco: 90, grau: 1, efeito: 'Clima bom: mais gorjeta.', arte: 'salao/radio_tocando', gorjeta: 0.05 },
+  farinheira_grande: { niveis: [
+    { nome: 'Barril de farinha', preco: 280, grau: 3, efeito: 'Cabem 35 de farinha.', arte: 'salao/farinheira_barril', farinha: 20 }],
+    nome: 'Farinheira grande', preco: 150, grau: 2, efeito: 'Cabem 25 de farinha (repõe menos).', arte: 'salao/farinheira_grande', farinha: 10 },
+  ventilador: { niveis: [
+    { nome: 'Ventilador de pé', preco: 260, grau: 3, efeito: 'Venta bem na cara do freguês: a paciência dura 35% mais.', arte: 'salao/ventilador_pe', paciencia: 1.35 },
+    { nome: 'Ar-condicionado de janela', preco: 520, grau: 4, efeito: 'Friozinho de cinema: a paciência dura 50% mais.', arte: 'salao/ar_janela', paciencia: 1.5 }],
+    nome: 'Ventilador de teto', preco: 180, grau: 2, efeito: 'Ninguém derrete: a paciência dura 25% mais.', arte: 'salao/ventilador_teto', paciencia: 1.25 },
   banqueta_extra: { nome: 'Banqueta a mais', preco: 120, grau: 2, efeito: 'Mais um lugar no balcão.', arte: '', mesas: 1 },
   bandeirinhas: { nome: 'Bandeirinhas e balão', preco: 80, grau: 2, efeito: 'Clima de festa: 1 cliente a mais por noite.', arte: 'salao/bandeirinhas_festa', clientes: 1 },
-  fogao_4bocas: { nome: 'Fogão de 4 bocas', preco: 300, grau: 3, efeito: 'A Rosa cozinha 3 pratos de uma vez e 25% mais rápido.', arte: 'salao/cozinha_melhor', bocas: 1, preparo: 0.75 },
+  fogao_4bocas: { niveis: [
+    { nome: 'Fogão industrial de 6 bocas', preco: 700, grau: 4, efeito: 'A Rosa cozinha 4 pratos de uma vez e 40% mais rápido.', arte: 'salao/fogao_industrial', bocas: 2, preparo: 0.6 }],
+    nome: 'Fogão de 4 bocas', preco: 300, grau: 3, efeito: 'A Rosa cozinha 3 pratos de uma vez e 25% mais rápido.', arte: 'salao/cozinha_melhor', bocas: 1, preparo: 0.75 },
   geladeira: { nome: 'Geladeira', preco: 400, grau: 3, efeito: 'Libera a cerveja gelada (bebida mais cara).', arte: 'salao/geladeira' },
   // Prêmio do Concurso da Rádio (não se compra): o troféu na parede.
   trofeu: { nome: 'Troféu do Concurso da Rádio', preco: 0, grau: 99, premio: true, efeito: 'O orgulho da casa: um pouco mais de gorjeta.', arte: 'ui/trofeu_concurso', gorjeta: 0.04 },
@@ -22,12 +32,25 @@ const Melhorias = {
     if (!m) return 'nao';
     if (p.melhorias.includes(id)) return 'ja_tem';
     if (p.grau() < m.grau) return 'degrau';
-    if (id === 'banqueta_extra' && p.mesasDaNoite() >= TurnoJanta.MAX_MESAS) return 'max';
+    if (id === 'banqueta_extra' && p.mesasDaNoite() >= p.maxMesas()) return 'max';
     if (dinheiro < m.preco) return 'dinheiro';
     p.melhorias.push(id);
     if (m.mesas) p.extraMesas = (p.extraMesas || 0) + m.mesas;
     return 'ok';
   },
+};
+// O nível de uma melhoria (1 ao comprar) e os dados do nível atual (o nível 2 substitui o 1, não soma).
+Melhorias.nivel = (p, id) => p.melhorias.includes(id) ? ((p.nivelMelhoria || {})[id] || 1) : 0;
+Melhorias.dados = (p, id) => { const m = MELHORIAS[id], n = Melhorias.nivel(p, id); return n >= 2 && m.niveis ? Object.assign({}, m, m.niveis[n - 2]) : m; };
+Melhorias.proximo = (p, id) => { const m = MELHORIAS[id], n = Melhorias.nivel(p, id); return n >= 1 && m.niveis ? m.niveis[n - 1] || null : null; };
+Melhorias.subir = (p, id, dinheiro) => {
+  if (!p.melhorias.includes(id)) return 'nao_tem';
+  const prox = Melhorias.proximo(p, id);
+  if (!prox) return 'max';
+  if (p.grau() < prox.grau) return 'degrau';
+  if (dinheiro < prox.preco) return 'dinheiro';
+  p.nivelMelhoria = p.nivelMelhoria || {}; p.nivelMelhoria[id] = Melhorias.nivel(p, id) + 1;
+  return 'ok';
 };
 const temMelhoria = id => !!(G.pensao && G.pensao.melhorias.includes(id));
 // O efeito da melhoria em números, antes → depois.
@@ -47,7 +70,7 @@ function efeitoMelhoria(id) {
 function bonusMelhorias(p) {
   const b = { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0, clientes: 0 };
   for (const id of p.melhorias || []) {
-    const m = MELHORIAS[id];
+    const m = MELHORIAS[id] && Melhorias.dados(p, id);
     if (!m) continue;
     if (m.preparo) b.preparo *= m.preparo; if (m.bocas) b.bocas += m.bocas; if (m.gorjeta) b.gorjeta += m.gorjeta;
     if (m.paciencia) b.paciencia *= m.paciencia; if (m.farinha) b.farinha += m.farinha; if (m.clientes) b.clientes += m.clientes;
@@ -65,11 +88,17 @@ function camadasMelhorias() {
   if (temMelhoria('bandeirinhas') || (G.turno && G.turno.festa)) r.push(cam(2, ctx => { const a = img('salao/bandeirinhas_festa'), b = img('salao/balao_junino'); if (a) ctx.drawImage(a, 0, 185); if (b) { ctx.drawImage(b, 679, 262 + Math.sin(G.agora * 1.3) * 3); ctx.drawImage(b, 1440, 262 + Math.sin(G.agora * 1.1 + 1) * 3); } }));
   if (temMelhoria('neon')) r.push(cam(3, ctx => { const a = img('salao/neon_novo'); if (!a) return; const pisca = (G.agora % 7) < 0.08 ? 0.3 : 0.88 + Math.sin(G.agora * 9) * 0.06; ctx.save(); ctx.globalAlpha = pisca; ctx.drawImage(a, 463, 296); ctx.restore(); }));
   if (temMelhoria('flamula')) r.push(cam(4, ctx => { const a = img('salao/flamula_santos'); if (a) ctx.drawImage(a, 1206, 392, a.naturalWidth * 0.8, a.naturalHeight * 0.8); }));
-  if (temMelhoria('radio')) r.push(cam(5, ctx => { const a = img('salao/radio_tocando'); if (!a) return; const q = Math.floor(G.agora * 3) % 2; ctx.drawImage(a, q * 96, 0, 96, 96, 700, 343, 96, 96); }));
-  if (temMelhoria('ventilador')) r.push(cam(6, ctx => { const a = img('salao/ventilador_teto'); if (!a) return; const q = Math.floor(G.agora * 12) % 4; ctx.drawImage(a, q * 151, 0, 151, 104, 1175, 298, 151, 104); }));
+  const nv = id => Melhorias.nivel(G.pensao, id);
+  if (nv('radio') === 1) r.push(cam(5, ctx => { const a = img('salao/radio_tocando'); if (!a) return; const q = Math.floor(G.agora * 3) % 2; ctx.drawImage(a, q * 96, 0, 96, 96, 700, 343, 96, 96); }));
+  if (nv('radio') === 2) r.push(cam(5, ctx => { const a = img('salao/vitrola'); if (!a) return; const q = Math.floor(G.agora * 3) % 2, e = 0.6; ctx.drawImage(a, q * 110, 0, 110, 160, 748 - 55 * e, 439 - 160 * e, 110 * e, 160 * e); }));
+  if (nv('radio') === 3) r.push(cam(690, ctx => { const a = img('salao/caixa_som'); if (!a) return; const e = 1 + Math.max(0, Math.sin(G.agora * 7)) * 0.03; ctx.drawImage(a, 1250 - a.naturalWidth * e / 2, 760 - a.naturalHeight * e, a.naturalWidth * e, a.naturalHeight * e); }));
+  if (nv('ventilador') === 1) r.push(cam(6, ctx => { const a = img('salao/ventilador_teto'); if (!a) return; const q = Math.floor(G.agora * 12) % 4; ctx.drawImage(a, q * 151, 0, 151, 104, 1175, 298, 151, 104); }));
+  if (nv('ventilador') === 2) r.push(cam(689, ctx => { const a = img('salao/ventilador_pe'); if (!a) return; const q = Math.floor(G.agora * 10) % 2; ctx.drawImage(a, q * 65, 0, 65, 150, 470 - 32.5, 760 - 150, 65, 150); }));
+  if (nv('ventilador') === 3) r.push(cam(6, ctx => { const a = img('salao/ar_janela'); if (!a) return; ctx.drawImage(a, 1000, 312 + (Math.floor(G.agora * 6) % 2)); }));
+  if (typeof temAmpliacao === 'function' && temAmpliacao('varanda')) r.push(cam(1.5, ctx => { const a = img('salao/varanda_fundo'); if (a) ctx.drawImage(a, 276, 424); }));
   if (temMelhoria('geladeira')) r.push(cam(690, ctx => { const a = img('salao/geladeira'); if (a) ctx.drawImage(a, 290, 585); }));
   if (temMelhoria('trofeu')) r.push(cam(5.5, ctx => { const a = img('ui/trofeu_concurso'); if (a) ctx.drawImage(a, 800, 372, a.naturalWidth * 0.42, a.naturalHeight * 0.42); }));
-  if (temMelhoria('toalha')) r.push(cam(P.TAMPO_Y + 80.5, ctx => { const a = img('salao/toalha_balcao'); if (a) ctx.drawImage(a, 282, 790); }));
+  if (temMelhoria('toalha')) r.push(cam(P.TAMPO_Y + 80.5, ctx => { const a = img('salao/toalha_balcao'); if (a) ctx.drawImage(a, 282, 790, P.TOALHA_W, a.naturalHeight); }));
   return r;
 }
 
@@ -84,13 +113,21 @@ function abrirMelhorias() {
     for (const [id, m] of Object.entries(MELHORIAS)) {
       if (m.premio && !p.melhorias.includes(id)) continue;   // prêmio não se compra
       const tem = p.melhorias.includes(id), tranca = p.grau() < m.grau;
-      const ic = m.arte && spr(m.arte) ? el('div', { class: 'mel-arte', style: `background-image:url(${urlArte(m.arte)})` }) : el('div', { class: 'mel-arte vazio' }, '+1');
+      const arte = (tem ? Melhorias.dados(p, id) : m).arte;
+      const ic = arte && spr(arte) ? el('div', { class: 'mel-arte', style: `background-image:url(${urlArte(arte)})` }) : el('div', { class: 'mel-arte vazio' }, '+1');
       g.append(el('div', { class: 'mel-item' + (tem ? ' tem' : tranca ? ' trancado' : '') }, ic,
-        el('div', {}, el('b', {}, m.nome), el('div', { class: 'eq-at' }, m.efeito), tem ? null : el('div', { class: 'eq-hab' }, '▸ ' + efeitoMelhoria(id)), el('div', { class: 'eq-hab' }, tem ? '✓ Na pensão' : tranca ? `🔒 Pede "${p.nomeGrau(m.grau)}"` : `Cr$ ${m.preco}`)),
+        el('div', {}, el('b', {}, (tem ? Melhorias.dados(p, id) : m).nome + (Melhorias.nivel(p, id) > 1 ? ` (nível ${Melhorias.nivel(p, id)})` : '')), el('div', { class: 'eq-at' }, (tem ? Melhorias.dados(p, id) : m).efeito), tem ? null : el('div', { class: 'eq-hab' }, '▸ ' + efeitoMelhoria(id)), el('div', { class: 'eq-hab' }, tem ? '✓ Na pensão' : tranca ? `🔒 Pede "${p.nomeGrau(m.grau)}"` : `Cr$ ${m.preco}`)),
         tem || tranca ? null : el('button', { class: 'botao forte' + (G.dinheiro >= m.preco ? '' : ' desligado'), onclick: e => { e.stopPropagation();
           const r = Melhorias.comprar(p, id, G.dinheiro);
           if (r === 'ok') { G.dinheiro -= m.preco; sons.tocar('carimbo', 0.9, 0.05, -4); sons.tocar('rosa_animada', 1, 0.05, -6); avisar(`${m.nome}: instalado!`); hudSujo(); desenha(); }
           else avisar(r === 'dinheiro' ? `Custa Cr$ ${m.preco}.` : r === 'max' ? 'O balcão já está com todas as banquetas que cabem.' : 'Ainda não dá.'); } }, 'Comprar')));
+      // Já tem: o próximo nível (substitui o atual), com o efeito e o preço.
+      const prox = tem ? Melhorias.proximo(p, id) : null;
+      if (prox) g.lastChild.append(el('div', { class: 'mel-prox' }, el('div', { class: 'eq-hab' }, `▸ Melhorar para ${prox.nome}: ${prox.efeito}` + (p.grau() < prox.grau ? ` (🔒 pede "${p.nomeGrau(prox.grau)}")` : '')),
+        el('button', { class: 'botao forte' + (G.dinheiro >= prox.preco && p.grau() >= prox.grau ? '' : ' desligado'), onclick: e => { e.stopPropagation();
+          const r = Melhorias.subir(p, id, G.dinheiro);
+          if (r === 'ok') { G.dinheiro -= prox.preco; sons.tocar('carimbo', 0.9, 0.05, -4); sons.tocar('rosa_animada', 1, 0.05, -6); avisar(`${prox.nome}: instalado!`); hudSujo(); desenha(); }
+          else avisar(r === 'dinheiro' ? `Custa Cr$ ${prox.preco}.` : r === 'degrau' ? `Pede o degrau "${p.nomeGrau(prox.grau)}".` : 'Ainda não dá.'); } }, `Melhorar Cr$ ${prox.preco}`)));
     }
     caixa.append(g, el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };

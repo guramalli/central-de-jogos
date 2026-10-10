@@ -27,7 +27,16 @@ function atualizarPensaoMundo(so) {
   const vila = so && so.id === 'vila' ? so : MAPAS.vila;
   if (vila) {
     const f = vila.objs.find(o => o.id === 'pensao');
-    if (f) { f.nome = ['fechada', 'limpar'].includes(e) ? 'objetos/pensao_fechada' : ['telhas', 'mesas'].includes(e) ? 'objetos/pensao_reforma' : 'objetos/pensao'; f.placa = ['pronta', 'aberta'].includes(e) ? 'Pensão da Rosa' : 'Pensão da Dona Cotinha'; }
+    if (f) {
+      const p = G.pensao, amp = p.ampliacoes || [], aberta = ['pronta', 'aberta'].includes(e);
+      let nome = ['fechada', 'limpar'].includes(e) ? 'objetos/pensao_fechada' : ['telhas', 'mesas'].includes(e) ? 'objetos/pensao_reforma' : 'objetos/pensao', pe = [13, 8, 5, 4];
+      if (aberta && p.obra) { nome = 'objetos/pensao_obra'; pe = [13, 9, 5, 5]; }
+      else if (aberta && amp.includes('sobrado')) { nome = 'objetos/pensao_sobrado'; pe = [12, 8, 7, 4]; }
+      else if (aberta && amp.includes('varanda')) { nome = 'objetos/pensao_ampliada'; pe = [12, 8, 7, 4]; }
+      const placa = aberta ? 'Pensão da Rosa' : 'Pensão da Dona Cotinha';
+      if ((f.pe || [13, 8, 5, 4]).join() === pe.join()) { f.nome = nome; f.placa = placa; }
+      else { vila.tirar(f); const n = vila.interativo('pensao', nome, ...pe); Object.assign(n, { acao: f.acao, placa, pe }); vila.pensao = n; }
+    }
   }
   const sal = so && so.id === 'pensao_dentro' ? so : MAPAS.pensao_dentro;
   if (!sal) return;
@@ -45,6 +54,11 @@ function atualizarPensaoMundo(so) {
 // ---------- reforma ----------
 function pensaoFachada() {
   if (G.pensao.estado === 'fechada') { abrirPlaca('Uma pensão abandonada, com tábuas na porta. Uma placa apagada: "Pensão da Dona Cotinha".'); return true; }
+  if (G.pensao.obra && !G.pensao.obra.hoje && typeof trabalharNaObra === 'function') {
+    perguntar(`A obra da pensão (${Ampliacao.dados(G.pensao.obra.id).nome}) está esperando: faltam ${G.pensao.obra.falta} dias.`, ['Trabalhar na obra (gasta energia)', 'Entrar na pensão', 'Agora não'],
+      i => { if (i === 0) { trabalharNaObra(); atualizarPensaoMundo(); } else if (i === 1) { if (pensaoNoPalco()) entrarPalco(); else entrarMapa('pensao_dentro', { x: 14, y: 12 }); } });
+    return true;
+  }
   if (typeof pensaoNoPalco === 'function' && pensaoNoPalco()) { entrarPalco(); return true; }
   // Na reforma, a entrega é na porta: a Rosa pergunta se entrega o material que o Jocelino trouxe.
   const p = G.pensao, falta = p.faltaMaterial(), k = Object.keys(falta)[0];
@@ -150,7 +164,7 @@ function iniciarJanta() {
   G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0));
   if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome;
     // Os convidados da festa: 3 a mais, que pedem o prato do tema.
-    for (let k = 0; k < 3; k++) { const c = Pratos.CLIENTES[(G.dia + k * 3) % Pratos.CLIENTES.length]; G.turno._fila.push({ minuto: 17 * 60 + 20 + k * 40, cliente: Object.assign({}, c, { pedeTema: festa.prato, convidado: true }) }); }
+    for (let k = 0, nc = 3 + (typeof temAmpliacao === 'function' && temAmpliacao('varanda') ? 2 : 0); k < nc; k++) { const c = Pratos.CLIENTES[(G.dia + k * 3) % Pratos.CLIENTES.length]; G.turno._fila.push({ minuto: 17 * 60 + 20 + k * 40, cliente: Object.assign({}, c, { pedeTema: festa.prato, convidado: true }) }); }
     G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Paladar !== 'undefined' && Paladar.vem(G.pensao, G.dia)) { G.turno.paladar = true; G.turno._fila.push({ minuto: 19 * 60, cliente: Paladar.cliente() }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Clientela !== 'undefined') { G.turno.moradores = Clientela.porNaFila(G.turno, G.pensao, G.dia); G.turno.filho = Clientela.filhoDaNoite(G.dia); }
@@ -423,7 +437,7 @@ function abrirPainelPensao() {
   });
   const px = p.proximoDegrau();
   caixa.append(lista, el('div', { class: 'pp-falta' }, px ? `Para "${px.nome}": ${textoFalta(px.falta)}.` : 'A pensão é Patrimônio da Vila! Não tem mais degrau para subir.'),
-    el('div', { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:8px' }, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); abrirMetas(); } }, 'Ver as metas'), el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+    el('div', { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:8px' }, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); abrirMetas(); } }, 'Ver as metas'), el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); abrirAmpliacao(); } }, 'Ampliar a pensão'), el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(caixa);
   sons.tocar('abrir', 1, 0.03, -6);
   return true;

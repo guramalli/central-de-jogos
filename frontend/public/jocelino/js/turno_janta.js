@@ -38,7 +38,7 @@ class TurnoJanta {
     this._rng = { randf: f, randi: () => Math.floor(f() * 4294967296) };
     this._cardapio = p.cardapioDaNoite();
     this.mesas = [];
-    for (let i = 0; i < Math.min(p.mesasDaNoite ? p.mesasDaNoite() : p.mesas, TurnoJanta.MAX_MESAS); i++) this.mesas.push(this._mesaLivre());
+    for (let i = 0; i < Math.min(p.mesasDaNoite ? p.mesasDaNoite() : p.mesas, p.maxMesas ? p.maxMesas() : TurnoJanta.MAX_MESAS); i++) this.mesas.push(this._mesaLivre());
     this.relatorio = TurnoJanta.relatorioVazio();
     this._fila = [];
     this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; this.moedas = [];
