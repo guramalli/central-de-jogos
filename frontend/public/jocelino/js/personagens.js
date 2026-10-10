@@ -20,7 +20,7 @@ class Personagem {
     if (this._alvo) {
       const dx = this._alvo.x - this.x, dy = this._alvo.y - this.y, d = Math.hypot(dx, dy);
       if (d < 3) { this._alvo = null; this.andando = false; this._espera = rnd(1.5, 4); return; }
-      const nx = this.x + dx / d * Math.min(d, 60 * dt), ny = this.y + dy / d * Math.min(d, 60 * dt);
+      const v = this.velPasseio || 60, nx = this.x + dx / d * Math.min(d, v * dt), ny = this.y + dy / d * Math.min(d, v * dt);
       // Esbarrou em alguma coisa (o Jocelino largou um item, um objeto novo): desiste e escolhe outro canto.
       if (this._bate(nx, ny)) { this._alvo = null; this.andando = false; this._espera = rnd(0.5, 1.5); return; }
       this.x = nx; this.y = ny;
@@ -32,7 +32,8 @@ class Personagem {
       // Um canto perto, dentro da área, com o caminho em linha reta livre (ninguém atravessa casa nem bancada).
       const a = this.area;
       for (let k = 0; k < 8 && !this._alvo; k++) {
-        const alvo = { x: clamp(this.x + rnd(-2.5, 2.5) * TILE, a.x, a.x + a.w), y: clamp(this.y + rnd(-1.5, 1.5) * TILE, a.y, a.y + a.h) };
+        const L = this.passeioLongo ? 3 : 1;
+        const alvo = { x: clamp(this.x + rnd(-2.5, 2.5) * L * TILE, a.x, a.x + a.w), y: clamp(this.y + rnd(-1.5, 1.5) * TILE, a.y, a.y + a.h) };
         let livre = true;
         for (let s = 1; s <= 8 && livre; s++) livre = !this._bate(lerp(this.x, alvo.x, s / 8), lerp(this.y, alvo.y, s / 8));
         if (livre) this._alvo = alvo;
@@ -49,6 +50,14 @@ class Personagem {
     const qw = img.naturalWidth / 4, qh = img.naturalHeight / 4;
     const passo = this.andando ? Math.floor(this.t * 8) % 4 : 1;
     ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw / 2, this.y - qh + 2, qw, qh);
+    // Coração subindo (carinho no Caramelo).
+    if (this._coracao > 0) {
+      this._coracao -= 1 / 60;
+      const k = 1 - this._coracao / 1.2;
+      ctx.save(); ctx.globalAlpha = Math.min(1, this._coracao * 2); ctx.font = '700 26px Fredoka'; ctx.textAlign = 'center';
+      ctx.lineWidth = 4; ctx.strokeStyle = '#2a0e0e'; ctx.strokeText('♥', this.x, this.y - qh - 6 - k * 30); ctx.fillStyle = '#ff5a6e'; ctx.fillText('♥', this.x, this.y - qh - 6 - k * 30);
+      ctx.restore();
+    }
   }
 }
 

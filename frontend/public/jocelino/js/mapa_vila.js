@@ -35,9 +35,16 @@ MAPAS_DEF.vila = () => {
   b.morador('bira', 'Mestre Bira', 31, 6, DIR.BAIXO, { vagueia: true, area: { x: 28 * TILE, y: 5 * TILE + 42, w: 14 * TILE, h: 4 * TILE } });   // pelo canteiro
   b.morador('ze', 'Zé', 35, 4, DIR.BAIXO, { vagueia: true, area: { x: 30 * TILE, y: 3 * TILE + 42, w: 12 * TILE, h: 6 * TILE } });
   // A rua.
+  // O Caramelo, vira-lata da Vila: anda pela rua e pela calçada, mais ligeiro que gente; carinho com o botão direito.
+  const dog = b.morador('cachorro', 'Caramelo', 26, 13, DIR.ESQUERDA, { vagueia: true, velPasseio: 95, passeioLongo: true,
+    area: { x: 3 * TILE, y: 10 * TILE + 42, w: 41 * TILE, h: 6 * TILE } });
+  dog.aoConversar = () => {
+    dog._coracao = 1.2; dog._espera = 2; dog._alvo = null; dog.andando = false;
+    avisar('Você fez carinho no Caramelo. Ele abanou o rabo todo feliz!');
+  };
   b.morador('zelia', 'Dona Zélia', 38, 11, DIR.CIMA, { vagueia: true, area: { x: 30 * TILE, y: 10 * TILE + 42, w: 14 * TILE, h: 1 * TILE } });   // pela calçada
   b.enfeite('objetos/orelhao', 19, 10, true, 8);
-  b.enfeite('objetos/fusca', 14, 13, true, 44);
+  b.enfeite('objetos/fusca', 44, 13, true, 44);   // estacionado no fim da rua, no canto
   b.interativo('mercado', 'objetos/mercado_0', 36, 21, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
   b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 33, 18, 2, 1, [28, 6]).acao = () => abrirPlaca('O quadro da Prefeitura: editais e avisos.');
   b.interativo('oficina', 'objetos/oficina_sem_fumaca', 12, 20, 6, 5).acao = () => abrirPlaca('A ferraria do Seu Tonico. "Ferramenta boa é meio caminho andado."');

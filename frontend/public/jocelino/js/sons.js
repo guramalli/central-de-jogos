@@ -53,6 +53,24 @@ const sons = {
     f.connect(g); g.connect(this.bus.musica); f.start();
     this._fonteMusica = f; this._ganhoMusica = g;
   },
+  // Ambiente em laço (pássaros, vento): cada um com o próprio volume, que muda devagar (1 s).
+  _amb: {},
+  async ambiente(nome, alvo) {
+    if (!this.ctx) return;
+    let a = this._amb[nome];
+    if (!a) {
+      if (alvo <= 0) return;
+      a = this._amb[nome] = { g: this.ctx.createGain(), carregando: true };
+      a.g.gain.value = 0; a.g.connect(this.bus.ambiente);
+      const buf = await this.buffer(nome);
+      if (!buf) return;
+      const f = this.ctx.createBufferSource(); f.buffer = buf; f.loop = true; f.connect(a.g); f.start();
+      a.carregando = false;
+    }
+    a.g.gain.cancelScheduledValues(this.ctx.currentTime);
+    a.g.gain.setValueAtTime(a.g.gain.value, this.ctx.currentTime);
+    a.g.gain.linearRampToValueAtTime(Math.max(0, alvo), this.ctx.currentTime + 1);
+  },
 };
 for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
 
@@ -60,6 +78,10 @@ for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListen
 setInterval(() => {
   if (!G.comecou || !sons.ctx) return;
   sons.musica(G.mapaId === 'pensao_dentro' ? 'vila_calma' : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
+  // Fora de casa: passarinhos de dia e o vento acompanhando as rajadas (vida.js); dentro de casa, silêncio lá fora.
+  const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;
+  sons.ambiente('passaros', fora && dia ? 0.35 : 0);
+  sons.ambiente('vento', fora ? 0.08 + 0.3 * (typeof VIDA !== 'undefined' ? VIDA.vento : 0.5) : 0);
 }, 1000);
 // Passos pelo piso (grama, chão de terra/calçada, madeira dentro da pensão).
 let _passoT = 0;

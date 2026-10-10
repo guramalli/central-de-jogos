@@ -283,6 +283,7 @@ function desenhaMapa(ctx) {
   const lista = [...m.objs, ...m.moradores.filter(p => p.visivel !== false), ...m.itens];
   if (G.jog) lista.push(G.jog);
   if (m.extras) lista.push(...m.extras());
+  if (typeof vidaNoChao === 'function') lista.push(...vidaNoChao(m));
   lista.sort((a, b) => a.y - b.y);
   const jx = G.jog ? G.jog.x : 0, jy = G.jog ? G.jog.y : 0;
   for (const o of lista) {
@@ -296,12 +297,16 @@ function desenhaMapa(ctx) {
     }
     let dx = 0;
     if (o.treme > 0) { o.treme = Math.max(0, o.treme - 0.016); dx = Math.sin(o.treme * 60) * 3; }
-    desenhaPe(ctx, o.nome, o.x + dx, o.y, alfa);
+    const sk = typeof balanco === 'function' && !o.treme ? balanco(o) : 0;
+    if (sk) {   // árvore ao vento: a base presa no chão, o topo inclina
+      ctx.save(); ctx.translate(o.x + dx, o.y); ctx.transform(1, 0, sk, 1, 0, 0); desenhaPe(ctx, o.nome, 0, 0, alfa); ctx.restore();
+    } else desenhaPe(ctx, o.nome, o.x + dx, o.y, alfa);
     if (LETREIROS[o.nome]) desenhaLetreiro(ctx, o, alfa);
     if (CHAMINES[o.nome]) desenhaFumaca(ctx, o, alfa);
     if (o.realce) desenhaRealce(ctx, o);
   }
   if (m.desenhaPorCima) m.desenhaPorCima(ctx);
+  if (typeof desenhaCeu === 'function') desenhaCeu(ctx, m);
   desenhaNomes(ctx, m);
 }
 function desenhaRealce(ctx, o) {
@@ -333,8 +338,9 @@ function desenhaNomes(ctx, m) {
     const mm = mouseMundo();
     const sob = Math.hypot(mm.x - p.x, mm.y - (p.y - 50)) < 40;
     if (modo === 2 || perto || sob) {
-      ctx.lineWidth = 4 / G.zoom; ctx.strokeStyle = 'rgba(19,27,27,.9)'; ctx.strokeText(p.nome, p.x, p.y - 118);
-      ctx.fillStyle = '#fff'; ctx.fillText(p.nome, p.x, p.y - 118);
+      const fi = spr(p.folha), ny = p.y - (fi ? fi.naturalHeight / 4 : 114) - 4;   // logo acima da cabeça (gente ou bicho)
+      ctx.lineWidth = 4 / G.zoom; ctx.strokeStyle = 'rgba(19,27,27,.9)'; ctx.strokeText(p.nome, p.x, ny);
+      ctx.fillStyle = '#fff'; ctx.fillText(p.nome, p.x, ny);
     }
   }
   ctx.restore();
@@ -387,6 +393,7 @@ function acaoNaFrente() {
 const FALAS = {};
 function conversar(p) {
   p.virarPara(G.jog.x, G.jog.y);
+  if (p.aoConversar) return p.aoConversar();
   const f = FALAS[p.id];
   const paginas = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']);
   const lista = Array.isArray(paginas[0]) ? paginas[0] : paginas;

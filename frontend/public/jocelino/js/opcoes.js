@@ -8,8 +8,7 @@ G.opcoes = { nomes: 1, zoom: 100 };
 })();
 function salvarOpcoes() { try { localStorage.setItem(CHAVE_OPCOES, JSON.stringify({ volumes: sons.volumes, nomes: G.opcoes.nomes, zoom: G.opcoes.zoom })); } catch (e) {} }
 
-// (O volume do ambiente volta quando houver sons de ambiente: chuva, mar, vento.)
-const NOMES_VOLUME = { musica: 'Música', efeitos: 'Efeitos', interface: 'Sons da interface' };
+const NOMES_VOLUME = { musica: 'Música', ambiente: 'Sons do ambiente', efeitos: 'Efeitos', interface: 'Sons da interface' };
 // O save em arquivo: o navegador guarda o jogo sozinho, mas limpar os dados do navegador apaga tudo. Baixar o save
 // guarda uma cópia (o último dormir); carregar põe o arquivo de volta e abre o jogo dele.
 function textoDoSave() {
