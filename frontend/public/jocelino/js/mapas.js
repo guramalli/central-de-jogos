@@ -414,5 +414,5 @@ function conversar(p) {
   const f = FALAS[p.id];
   const paginas = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']);
   const lista = Array.isArray(paginas[0]) ? paginas[0] : paginas;
-  abrirConversa(p.nome, 'a/retratos/' + p.id + '_normal.webp', lista, typeof FALAS_DEPOIS !== 'undefined' && FALAS_DEPOIS[p.id]);
+  abrirConversa(p.nome, urlArte('retratos/' + p.id + '_normal'), lista, typeof FALAS_DEPOIS !== 'undefined' && FALAS_DEPOIS[p.id]);
 }

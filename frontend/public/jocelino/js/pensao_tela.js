@@ -122,11 +122,11 @@ function pensaoQuadro() {
           else if (p.cardapio.length < p.vagas()) p.cardapio.push(id);
           else avisar(`Só cabem ${p.vagas()} pratos no quadro (a fama abre mais).`);
           sons.tocar('cursor', 1, 0.04, -8); desenha(); } },
-        el('img', { src: 'a/' + iconePrato(id) + '.webp' }),
+        el('img', { src: urlArte(iconePratoGrande(id)) }),
         el('div', { class: 'prato-meio' }, el('div', { class: 'faixa', style: `background:${['#c4473a', '#d48a2c', '#3f8a5a', '#3a6ea5', '#8a4fa0', '#b0476e'][i % 6]}` }, pr.nome),
           el('div', { class: rende > 0 ? '' : 'falta' }, '★'.repeat(melhorRar(id)) + '   ' + (rende > 0 ? 'a despensa dá ' + rende + (rende === 1 ? ' panela' : ' panelas') : 'falta ingrediente'))),
         el('div', { class: 'prato-preco' }, 'Cr$ ' + p.preco(id, 1), el('div', { class: 'giz-mi' }, 'Nv ' + p.nivel(id) + (marcado ? ' · no quadro' : '')))));
-      if (marcado) dir.append(el('div', { class: 'panela-linha' }, el('img', { src: 'a/salao/panela_cheia.webp' }),
+      if (marcado) dir.append(el('div', { class: 'panela-linha' }, el('img', { src: urlArte('salao/panela_cheia') }),
         el('div', {}, `Na panela: ${p.porcoes(id)} porções · uma panela rende ${p.porcoesPorPanela(id)} (a Rosa repõe sozinha se acabar)`),
         el('button', { class: 'botao' + (rende > 0 ? '' : ' desligado'), onclick: e => { e.stopPropagation();
           const f = mulberry(G.dia * 53 + p.porcoes(id)), r = p.prepararPanela(id, 1, { randf: f, randi: () => Math.floor(f() * 4294967296) });
@@ -297,7 +297,7 @@ function abrirMontar(i) {
   const escolhidos = new Set(); let bebida = '';
   const caixa = el('div', { class: 'painel montar' },
     el('div', { class: 'quem' }, `Bilhete da banqueta ${i + 1} (${m.cliente.nome})`),
-    el('div', { class: 'bilhete' }, el('img', { src: 'a/' + iconePrato(m.prato) + '.webp' }),
+    el('div', { class: 'bilhete' }, el('img', { src: urlArte(iconePratoGrande(m.prato)) }),
       el('div', {}, el('b', {}, pr.nome + ': '), pr.montar.map(c => Pratos.COMPONENTES[c].toLowerCase()).join(', '), el('br'), 'Para beber: ' + Pratos.BEBIDAS[m.bebida])),
     el('div', { class: 'comps' }, comps.map(c => el('button', { class: 'botao comp', 'data-comp': c, onclick: e => { e.stopPropagation(); escolhidos.has(c) ? escolhidos.delete(c) : escolhidos.add(c); e.currentTarget.classList.toggle('forte'); sons.tocar('pegar', 1.3, 0.1, -8); } }, Pratos.COMPONENTES[c]))),
     el('div', { class: 'bebidas' }, Object.keys(Pratos.BEBIDAS).map(b => el('button', { class: 'botao', 'data-bebida': b, onclick: e => { e.stopPropagation(); bebida = bebida === b ? '' : b; caixa.querySelectorAll('[data-bebida]').forEach(x => x.classList.toggle('forte', x.dataset.bebida === bebida)); sons.tocar('agua', 1.4, 0.1, -10); } }, Pratos.BEBIDAS[b]))),
@@ -311,13 +311,13 @@ function mostrarCenaRosa(prato) {
   let c = $('#cena');
   if (!c) { c = el('div', { id: 'cena', hidden: true }); document.body.append(c); }
   c.innerHTML = '';
-  c.append(el('div', { class: 'cena-som' }, sorteio(SONS_ROSA)), el('img', { class: 'cena-rosa', src: 'a/retratos/rosa_cozinha_normal.webp' }),
-    el('img', { class: 'cena-prato', src: 'a/' + iconePrato(prato) + '.webp' }));
+  c.append(el('div', { class: 'cena-som' }, sorteio(SONS_ROSA)), el('img', { class: 'cena-rosa', src: urlArte('retratos/rosa_cozinha_normal') }),
+    el('img', { class: 'cena-prato', src: urlArte(iconePratoGrande(prato)) }));
   c.hidden = false;
   c.classList.remove('entra'); void c.offsetWidth; c.classList.add('entra');
   sons.tocar('agua', 0.6, 0.1, -4);
   clearTimeout(c._t1); clearTimeout(c._t2);
-  c._t1 = setTimeout(() => { const r = c.querySelector('.cena-rosa'); if (r) r.src = 'a/retratos/rosa_cozinha_alegre.webp'; }, 800);
+  c._t1 = setTimeout(() => { const r = c.querySelector('.cena-rosa'); if (r) r.src = urlArte('retratos/rosa_cozinha_alegre'); }, 800);
   c._t2 = setTimeout(() => { c.hidden = true; }, 1700);
 }
 
@@ -326,7 +326,7 @@ function desenhaBaloes(ctx, b) {
   const t = G.turno;
   if (!t) return;
   let k = 0;
-  t.mesas.forEach(m => { if (m.estado === 'prato' && m.pronto && !m.montado) { desenhaPe(ctx, iconePrato(m.prato), (SALAO.COZINHA[0] - 0.6 - k) * TILE, SALAO.COZINHA[1] * TILE + 8, 1, 0.7); k++; } });
+  t.mesas.forEach(m => { if (m.estado === 'prato' && m.pronto && !m.montado) { desenhaPrato(ctx, m.prato, (SALAO.COZINHA[0] - 0.6 - k) * TILE, SALAO.COZINHA[1] * TILE + 8, 1, 0.7); k++; } });
   t.mesas.forEach((m, i) => {
     if (m.estado === 'livre' || i >= SALAO.ASSENTOS.length) return;
     const a = SALAO.ASSENTOS[i];
@@ -342,7 +342,7 @@ function desenhaBaloes(ctx, b) {
     // Balão branco com o pedido (cinza enquanto a Rosa prepara), rabicho e paciência.
     desenhaFx(ctx, m.estado === 'prato' && !m.pronto ? 'balao_pensamento' : 'balao', x, y + 6);
     if (m.estado === 'pedido') texto(ctx, '!', x, y + 12, 34, '#e8452c', '900');
-    else { ctx.globalAlpha = m.pronto ? 1 : 0.45; desenhaPe(ctx, iconePrato(m.prato), x, y + 20, 1, 0.82); ctx.globalAlpha = 1; }
+    else { ctx.globalAlpha = m.pronto ? 1 : 0.45; desenhaPrato(ctx, m.prato, x, y + 20, 1, 0.82); ctx.globalAlpha = 1; }
     const lim = m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO;
     const f = clamp(1 - m.espera / lim, 0, 1);
     // Paciência: o miolo colorido dentro da moldura de madeira (a/fx/barra_moldura).
@@ -369,7 +369,7 @@ function atualizaSeloPensao(selo, noSalao) {
   if (selo._k === chave) return;
   selo._k = chave;
   selo.innerHTML = '';
-  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: `a/ui/selo_${g}.webp`, class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeGrau(g)), el('div', {}, linha2),
+  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: urlArte(`ui/selo_${g}`), class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeGrau(g)), el('div', {}, linha2),
     px ? el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })) : null);
 }
 // O que falta para o próximo degrau, em texto.
@@ -391,7 +391,7 @@ function abrirPainelPensao() {
     const n = i + 1, atual = n === g, feito = n < g;
     const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : ''].filter(Boolean).join(' · ');
     lista.append(el('div', { class: 'pp-degrau' + (atual ? ' atual' : feito ? ' feito' : '') },
-      spr('ui/selo_' + n) ? el('img', { src: `a/ui/selo_${n}.webp` }) : el('div', { class: 'pp-num' }, n),
+      spr('ui/selo_' + n) ? el('img', { src: urlArte(`ui/selo_${n}`) }) : el('div', { class: 'pp-num' }, n),
       el('div', {}, el('b', {}, d.nome + (atual ? '  ← agora' : feito ? '  ✓' : '')), el('div', { class: 'pp-req' }, req),
         el('div', { class: 'pp-libera' }, `${d.vagas} pratos no quadro · ${d.mesas} banquetas · ${d.clientes} clientes por noite · despesa Cr$ ${d.despesa}`))));
   });

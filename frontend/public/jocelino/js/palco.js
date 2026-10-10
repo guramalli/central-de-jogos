@@ -84,6 +84,51 @@ function clientesDoPalco(b) {
   return b._clientes.filter(Boolean);
 }
 const camadaViva = (y, desenha) => ({ tipo: 'camada', y, desenha });
+// A Rosa na cozinha, como o Bancho: mexe a panela o tempo todo (rápido com prato no fogo, devagar e com pausa à toa) e,
+// quando um prato fica pronto, anda até o passe, larga o prato e volta para o fogão (quadros de lado da folha de andar dela).
+const ROSA_COZ = { x: PALCO.ROSA.x, casa: PALCO.ROSA.x, estado: 'mexe', t: 0, quadro: 0, fila: 0, vistos: 0 };
+const ROSA_PASSE_X = 1430, ROSA_VEL = 230, ROSA_LARGA = 0.45, ROSA_ESCALA_ANDAR = 1.25;
+ATUALIZADORES.push(dt => {
+  if (!noPalco()) return;
+  const R = ROSA_COZ, t = G.turno;
+  R.casa = typeof temMelhoria === 'function' && temMelhoria('fogao_4bocas') ? 1470 : PALCO.ROSA.x;
+  const saidos = t ? (t.saidos || 0) : 0;
+  if (saidos < R.vistos) R.vistos = saidos;                        // janta nova: o contador recomeça
+  if (saidos > R.vistos) { R.fila = Math.min(2, R.fila + saidos - R.vistos); R.vistos = saidos; }
+  R.t += dt;
+  if (R.estado === 'mexe') {
+    R.x = R.casa;
+    const rapido = t && t.fogo.length > 0 && t.farinha > 0;
+    if (rapido) R.quadro = Math.floor(R.t / 0.16) % 4;
+    else { const c = R.t % 2.4; R.quadro = c < 1.2 ? Math.floor(c / 0.3) % 4 : 0; }   // à toa: uma mexida e uma pausa
+    if (R.fila > 0) { R.fila--; R.estado = 'vai'; R.t = 0; }
+  } else if (R.estado === 'vai') {
+    R.x -= ROSA_VEL * dt; R.quadro = 10 + Math.floor(R.t / 0.13) % 4;
+    if (R.x <= ROSA_PASSE_X) { R.x = ROSA_PASSE_X; R.estado = 'larga'; R.t = 0; sons.tocar('louca', 1.2, 0.05, -12); }
+  } else if (R.estado === 'larga') {
+    R.quadro = 20;
+    if (R.t >= ROSA_LARGA) { R.estado = 'volta'; R.t = 0; }
+  } else {
+    R.x += ROSA_VEL * dt; R.quadro = 30 + Math.floor(R.t / 0.13) % 4;
+    if (R.x >= R.casa) { R.x = R.casa; R.estado = R.fila > 0 ? 'vai' : 'mexe'; if (R.fila > 0) R.fila--; R.t = 0; }
+  }
+});
+function desenhaRosaCozinha(ctx) {
+  const R = ROSA_COZ, P = PALCO;
+  if (R.estado === 'mexe') {
+    const img = spr('salao/rosa_cozinhando');
+    if (!img) return;
+    const w = img.naturalWidth / 4, h = img.naturalHeight, e = P.ROSA.escala;
+    ctx.drawImage(img, R.quadro * w, 0, w, h, R.x - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
+    return;
+  }
+  // Andando: coluna 2 (esquerda) ou 3 (direita) da folha de andar; linhas 1 e 3 são o quadro parado.
+  const img = spr('personagens/rosa/andar');
+  if (!img) return;
+  const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_ESCALA_ANDAR;
+  const col = R.estado === 'volta' ? 3 : 2, lin = R.estado === 'larga' ? 1 : R.quadro % 10;
+  ctx.drawImage(img, col * w, lin * h, w, h, R.x - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
+}
 function camadasDaJanta() {
   const t = G.turno, P = PALCO;
   return [
@@ -92,27 +137,20 @@ function camadasDaJanta() {
       const ids = (G.pensao && (G.pensao.cardapio.length ? G.pensao.cardapio : G.pensao.receitas)) || [];
       ids.slice(0, P.VAGAS.length).forEach((id, k) => {
         const v = P.VAGAS[k], n = G.pensao.porcoes(id) || G.pensao.rende(id) * G.pensao.porcoesPorPanela(id);
-        ctx.save(); ctx.globalAlpha = n > 0 ? 1 : 0.35; desenhaPe(ctx, iconePrato(id), v.x, P.PRATO_Y, 1, 1.35); ctx.restore();
+        ctx.save(); ctx.globalAlpha = n > 0 ? 1 : 0.35; desenhaPrato(ctx, id, v.x, P.PRATO_Y, 1, 1.35); ctx.restore();
         texto(ctx, n > 0 ? String(n) : '0', v.x, P.PRATO_Y + 26, 18, n > 0 ? '#fff' : '#e8452c', '900');
         if (t && t.pratoTema === id) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);
       });
     }),
-    // A Rosa mexendo a panela enquanto tem prato no fogo (parada no primeiro quadro quando não tem).
-    camadaViva(301, ctx => {
-      const img = spr('salao/rosa_cozinhando');
-      if (!img) return;
-      const fogo = t && t.farinha > 0 && t.fogo.length > 0;
-      const q = fogo ? Math.floor(G.agora / 0.16) % 4 : 0, w = img.naturalWidth / 4, h = img.naturalHeight, e = P.ROSA.escala;
-      const rx = typeof temMelhoria === 'function' && temMelhoria('fogao_4bocas') ? 1470 : P.ROSA.x;
-      ctx.drawImage(img, q * w, 0, w, h, rx - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
-    }),
+    // A Rosa viva na cozinha (ROSA_COZ): mexendo a panela ou levando o prato até o passe.
+    camadaViva(301, ctx => desenhaRosaCozinha(ctx)),
     // As moedas da gorjeta no tampo (o Jocelino recolhe ao passar).
     camadaViva(P.TAMPO_Y + 82, ctx => { if (t) for (const x of t.moedas) if (P.ASSENTOS[x.mesa]) desenhaPe(ctx, 'salao/moedas_balcao', P.ASSENTOS[x.mesa].x + 34, P.LOUCA.base + 1, 1, 1.2); }),
     // No tampo: o prato de quem está comendo, a louça de quem já foi, e a farinheira.
     camadaViva(P.TAMPO_Y + 81, ctx => {
       if (t) t.mesas.forEach((m, i) => {
         if (i >= P.ASSENTOS.length) return;
-        if (m.estado === 'comendo') desenhaPe(ctx, iconePrato(m.prato), P.ASSENTOS[i].x, P.LOUCA.base + 2, 1, 0.9);
+        if (m.estado === 'comendo') desenhaPrato(ctx, m.prato, P.ASSENTOS[i].x, P.LOUCA.base + 2, 1, 0.9);
         if (m.estado === 'suja') desenhaPe(ctx, 'salao/louca_suja', P.ASSENTOS[i].x, P.LOUCA.base, 1, P.LOUCA.escala);
       });
       const F = P.FARINHEIRA, gr = typeof temMelhoria === 'function' && temMelhoria('farinheira_grande');
@@ -121,7 +159,7 @@ function camadasDaJanta() {
     // O passe da cozinha (a bancada), os pratos prontos em cima dele, a bacia e o lixo.
     camadaViva(878, ctx => {
       desenhaPe(ctx, 'salao/passe', P.PASSE.cx, P.PASSE.base, 1, P.PASSE.escala);
-      if (t) t.passaPrato().forEach((x, k) => desenhaPe(ctx, iconePrato(x.prato), P.PASSE.vagas[k], P.PASSE.topo, 1, 0.8));
+      if (t) t.passaPrato().forEach((x, k) => desenhaPrato(ctx, x.prato, P.PASSE.vagas[k], P.PASSE.topo, 1, 0.8));
     }),
     camadaViva(879, ctx => { desenhaPe(ctx, 'salao/bacia', P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + P.BACIA.h, 1, P.BACIA.escala); }),
     camadaViva(878.5, ctx => { desenhaPe(ctx, 'salao/lixo', P.LIXO.x + P.LIXO.w / 2, P.LIXO.y + P.LIXO.h, 1, P.LIXO.escala); }),
@@ -153,7 +191,7 @@ function desenhaBaloesPalco(ctx, b) {
     if (m.estado === 'pedido') { desenhaFx(ctx, 'balao_pensamento', x, y); texto(ctx, '...', x, y + 6, 30, '#555', '900'); return; }
     const pronto = t.temPronto(m.prato);
     desenhaFx(ctx, pronto ? 'balao' : 'balao_pensamento', x, y);
-    ctx.save(); ctx.globalAlpha = pronto ? 1 : 0.55; desenhaPe(ctx, iconePrato(m.prato), x, y + 18, 1, 0.8); ctx.restore();
+    ctx.save(); ctx.globalAlpha = pronto ? 1 : 0.55; desenhaPrato(ctx, m.prato, x, y + 18, 1, 0.8); ctx.restore();
     if (bebe) { desenhaFx(ctx, 'balao', x + 44, y + 14, { escala: 0.62 }); desenhaPe(ctx, 'salao/bebida_' + m.bebida, x + 44, y + 28, 1, 0.5); }
     const f = clamp(1 - m.espera / (TurnoJanta.PACIENCIA_PRATO * (t.paciencia || 1)), 0, 1);
     if (spr('fx/barra_moldura')) {
@@ -169,7 +207,7 @@ function desenhaBandeja(ctx) {
   const y = j.y - 114 * PALCO.ESCALA_GENTE - 26, n = t.bandeja.length;
   t.bandeja.forEach((x, k) => {
     const cx = j.x + (k - (n - 1) / 2) * 44;
-    if (x.tipo === 'prato') desenhaPe(ctx, iconePrato(x.prato), cx, y, 1, 0.85);
+    if (x.tipo === 'prato') desenhaPrato(ctx, x.prato, cx, y, 1, 0.85);
     else if (x.tipo === 'bebida') desenhaPe(ctx, 'salao/bebida_' + x.bebida, cx, y, 1, 0.6);
     else desenhaPe(ctx, 'salao/pilha_louca', cx, y, 1, 0.7);
   });
@@ -409,7 +447,7 @@ function rodapePalco() {
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
-      el('div', { class: 'farinha' }, el('img', { src: 'a/salao/farinheira.webp' }), el('span', {}, '')),
+      el('div', { class: 'farinha' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));
     document.body.append(r);
@@ -491,7 +529,7 @@ function abrirEquipe() {
     if (!p.equipe.length) lista.append(el('div', { class: 'rodape', style: 'text-align:left' }, p.grau() < 2 ? 'A pensão ainda é pequena para ter ajudante: no "Boteco Conhecido" abre a primeira vaga.' : 'Ninguém contratado ainda. Ponha um anúncio!'));
     p.equipe.forEach((e, i) => {
       const c = Equipe.custoTreino(e);
-      lista.append(el('div', { class: 'eq-pessoa' }, el('img', { src: `a/retratos/${e.id}_normal.webp` }),
+      lista.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${e.id}_normal`) }),
         el('div', {}, el('b', {}, `${e.nome} · ${Equipe.POSTOS[e.posto]} · Nv ${e.nivel}`),
           el('div', { class: 'eq-at' }, `Serviço ${e.servico} · Cozinha ${e.cozinha} · Compras ${e.compras} · Simpatia ${e.simpatia}`),
           el('div', { class: 'eq-at' }, e.nivel < 10 ? `▸ Treinar: nível ${e.nivel} → ${e.nivel + 1}, salário Cr$ ${Equipe.salario(e)} → ${Equipe.salario(e) + 2}/noite` + ((e.nivel + 1 === 3 || e.nivel + 1 === 7) ? ' · ganha habilidade nova!' : '') : 'Nível máximo.'),
@@ -508,7 +546,7 @@ function abrirEquipe() {
     if (p.candidatos.length) {
       caixa.append(el('div', { class: 'cad-sub' }, 'Candidatos'));
       const cl = el('div', { class: 'eq-lista' });
-      p.candidatos.forEach((c, i) => cl.append(el('div', { class: 'eq-pessoa' }, el('img', { src: `a/retratos/${c.id}_normal.webp` }),
+      p.candidatos.forEach((c, i) => cl.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${c.id}_normal`) }),
         el('div', {}, el('b', {}, c.nome), el('div', { class: 'eq-at' }, `Serviço ${c.servico} · Cozinha ${c.cozinha} · Compras ${c.compras} · Simpatia ${c.simpatia}`), el('div', { class: 'eq-hab' }, `Taxa de contratação: Cr$ ${Equipe.taxaContratacao(c)}`)),
         el('div', { class: 'eq-bts' }, ['salao', 'cozinha', 'compras'].map(k => el('button', { class: 'botao' + (Equipe.vagasLivres(p, k) > 0 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
           const tx = Equipe.taxaContratacao(c), r = Equipe.contratar(p, i, k, G.dinheiro);
@@ -524,7 +562,7 @@ function abrirEquipe() {
     if (!p.anuncio && temVaga) caixa.append(el('div', { class: 'eq-anuncios' }, Object.entries(Equipe.ANUNCIOS).map(([k, a]) => el('button', { class: 'botao eq-anuncio', onclick: ev => { ev.stopPropagation();
       if (G.dinheiro < a.preco) { avisar(`${a.nome} custa Cr$ ${a.preco}.`); return; }
       G.dinheiro -= a.preco; Equipe.anunciar(p, k); sons.tocar('moedas', 1, 0.05, -6); hudSujo(); desenha(); } },
-      spr('ui/' + { cartaz: 'cartaz_padaria', radio: 'radio_anuncio', jornal: 'jornal_anuncio' }[k]) ? el('img', { src: `a/ui/${{ cartaz: 'cartaz_padaria', radio: 'radio_anuncio', jornal: 'jornal_anuncio' }[k]}.webp` }) : null,
+      spr('ui/' + { cartaz: 'cartaz_padaria', radio: 'radio_anuncio', jornal: 'jornal_anuncio' }[k]) ? el('img', { src: urlArte(`ui/${{ cartaz: 'cartaz_padaria', radio: 'radio_anuncio', jornal: 'jornal_anuncio' }[k]}`) }) : null,
       el('div', {}, el('b', {}, a.nome), el('div', { class: 'eq-at' }, `Cr$ ${a.preco} · ${k === 'cartaz' ? 'gente da Vila' : k === 'radio' ? 'gente melhor' : 'os melhores'}`))))));
     caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: ev => { ev.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };

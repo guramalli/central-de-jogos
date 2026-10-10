@@ -25,3 +25,8 @@ if (typeof ITENS !== 'undefined') for (const [id, nome] of Object.entries({ ling
   leite_coco: 'Leite de coco', queijo_coalho: 'Queijo coalho', pimenta_cheiro: 'Pimenta-de-cheiro' })) if (!ITENS[id]) ITENS[id] = { nome, tipo: 'ingrediente' };
 // A arte de cada prato: a dos pratos de partida é itens/prato_<id>; as novas têm a própria.
 function iconePrato(id) { const p = Pratos.PRATOS[id]; return (p && p.icone) || 'itens/prato_' + id; }
+// A arte grande do prato (a/pratos/, 128 px) para o palco e o caderno; o ícone de 48 px fica para o inventário.
+const _PRATOS_GRANDES = new Set(ARTE_LISTA.filter(n => n.startsWith('pratos/')));
+function iconePratoGrande(id) { const n = 'pratos/' + iconePrato(id).split('/').pop(); return _PRATOS_GRANDES.has(n) ? n : iconePrato(id); }
+// Desenha o prato com o pé em (x, y); `escala` como a do ícone de 48 px (a arte grande é reduzida na mesma medida).
+function desenhaPrato(ctx, id, x, y, alfa = 1, escala = 1) { const g = iconePratoGrande(id); desenhaPe(ctx, g, x, y, alfa, g.startsWith('pratos/') ? escala * 48 / 128 : escala); }

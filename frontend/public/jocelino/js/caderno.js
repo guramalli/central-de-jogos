@@ -31,20 +31,20 @@ function abrirCaderno(sel) {
     for (const id of p.receitas) {
       const pr = Pratos.PRATOS[id], n = p.nivel(id);
       esq.append(el('div', { class: 'cad-linha' + (id === _cadernoSel ? ' sel' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
-        el('img', { src: 'a/' + iconePrato(id) + '.webp' }), el('div', { class: 'cad-nome' }, pr.nome), el('div', { class: 'cad-nivel' }, 'Nv ' + n)));
+        el('img', { src: urlArte(iconePratoGrande(id)) }), el('div', { class: 'cad-nome' }, pr.nome), el('div', { class: 'cad-nivel' }, 'Nv ' + n)));
     }
     const novas = p.receitasADescobrir();
     if (novas.length) {
       esq.append(el('div', { class: 'cad-sub' }, 'A descobrir'));
       for (const r of novas) esq.append(el('div', { class: 'cad-linha descobrir' + (r.id === _cadernoSel ? ' sel' : '') + (r.conhecida ? ' pode' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = r.id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
-        el('img', { src: 'a/' + iconePrato(r.id) + '.webp', class: 'silhueta' }), el('div', { class: 'cad-nome' }, r.conhecida ? Pratos.PRATOS[r.id].nome : '???'),
+        el('img', { src: urlArte(iconePratoGrande(r.id)), class: 'silhueta' }), el('div', { class: 'cad-nome' }, r.conhecida ? Pratos.PRATOS[r.id].nome : '???'),
         el('div', { class: 'cad-nivel' }, r.conhecida ? `${r.custo} pitadas` : 'precisa de ' + nomeIngrediente(r.principal).toLowerCase())));
     }
     // Página da direita: o prato escolhido.
     const id = _cadernoSel, pr = Pratos.PRATOS[id], tem = p.receitas.includes(id);
     if (!pr) { caixa.append(esq, dir); return; }
     const descobrir = !tem ? novas.find(r => r.id === id) : null;
-    dir.append(el('img', { class: 'cad-prato' + (descobrir && !descobrir.conhecida ? ' silhueta' : ''), src: 'a/' + iconePrato(id) + '.webp' }),
+    dir.append(el('img', { class: 'cad-prato' + (descobrir && !descobrir.conhecida ? ' silhueta' : ''), src: urlArte(iconePratoGrande(id)) }),
       el('div', { class: 'cad-titulo' }, descobrir && !descobrir.conhecida ? 'Receita a descobrir' : pr.nome),
       el('div', { class: 'cad-desc' }, descobrir && !descobrir.conhecida ? `A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
     const ings = el('div', { class: 'cad-ings' });
@@ -88,6 +88,6 @@ function abrirCaderno(sel) {
 // O carimbo de "caprichado" batendo na página (arte a/ui/carimbo_caprichado).
 function carimbar(caixa) {
   if (!spr('ui/carimbo_caprichado')) return;
-  const c = el('img', { class: 'carimbo', src: 'a/ui/carimbo_caprichado.webp' });
+  const c = el('img', { class: 'carimbo', src: urlArte('ui/carimbo_caprichado') });
   caixa.append(c); setTimeout(() => c.remove(), 900);
 }

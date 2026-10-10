@@ -102,6 +102,7 @@ class TurnoJanta {
       this.fogo.splice(this.fogo.indexOf(f), 1);
       this.farinha--;
       this.passe.push({ tipo: 'prato', prato: f.prato, raridade: f.raridade });
+      this.saidos = (this.saidos || 0) + 1;                            // a Rosa leva cada um até o passe (palco)
       this.eventos.push({ tipo: 'pronto', prato: f.prato });
       if (this.farinha <= 0) break;
     }

@@ -80,7 +80,7 @@ function abrirMelhorias() {
     const g = el('div', { class: 'mel-grade' });
     for (const [id, m] of Object.entries(MELHORIAS)) {
       const tem = p.melhorias.includes(id), tranca = p.grau() < m.grau;
-      const ic = m.arte && spr(m.arte) ? el('div', { class: 'mel-arte', style: `background-image:url(a/${m.arte}.webp)` }) : el('div', { class: 'mel-arte vazio' }, '+1');
+      const ic = m.arte && spr(m.arte) ? el('div', { class: 'mel-arte', style: `background-image:url(${urlArte(m.arte)})` }) : el('div', { class: 'mel-arte vazio' }, '+1');
       g.append(el('div', { class: 'mel-item' + (tem ? ' tem' : tranca ? ' trancado' : '') }, ic,
         el('div', {}, el('b', {}, m.nome), el('div', { class: 'eq-at' }, m.efeito), tem ? null : el('div', { class: 'eq-hab' }, '▸ ' + efeitoMelhoria(id)), el('div', { class: 'eq-hab' }, tem ? '✓ Na pensão' : tranca ? `🔒 Pede "${p.nomeGrau(m.grau)}"` : `Cr$ ${m.preco}`)),
         tem || tranca ? null : el('button', { class: 'botao forte' + (G.dinheiro >= m.preco ? '' : ' desligado'), onclick: e => { e.stopPropagation();

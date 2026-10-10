@@ -2,6 +2,10 @@
 // A arte cartoon foi gerada a 48 px por ladrilho: aqui ela é desenhada no tamanho original (sem encolher).
 // Arte que falta vira um retângulo magenta (e um aviso no console), sem quebrar o jogo.
 
+// A versão da publicação (o ?v= deste script, trocado pelo hash do commit): vai no endereço de toda arte e som, para o
+// navegador não ficar com a arte velha do cache (a Vercel deixa a imagem guardada por até um dia).
+const VERSAO_ARTE = (() => { try { return new URL(document.currentScript.src, location.href).searchParams.get('v') || '1'; } catch (e) { return '1'; } })();
+const urlArte = nome => 'a/' + nome + '.webp?v=' + VERSAO_ARTE;
 const SPR = new Map();
 const ARTE_FALTANDO = new Set();
 // Devolve a imagem pronta, ou null enquanto carrega / se faltar.
@@ -13,7 +17,7 @@ function spr(nome) {
     SPR.set(nome, r);
     img.onload = () => { img.decode().catch(() => {}).finally(() => { r.pronta = true; }); };
     img.onerror = () => { r.erro = true; if (!ARTE_FALTANDO.has(nome)) { ARTE_FALTANDO.add(nome); console.warn('arte faltando: ' + nome); } };
-    img.src = 'a/' + nome + '.webp';
+    img.src = urlArte(nome);
   }
   return r.pronta ? r.img : null;
 }
@@ -53,4 +57,4 @@ function desenhaFx(ctx, nome, x, y, o = {}) {
   return true;
 }
 // Ícone de item (para o HTML).
-const urlItem = id => 'a/itens/' + id + '.webp';
+const urlItem = id => urlArte('itens/' + id);

@@ -28,7 +28,7 @@ const FALAS_DEPOIS = { ananias: () => entrarDeposito() };
 INICIADORES.push(s => { if (!s.boasVindas && !/teste=1|pensao=1/.test(location.search)) setTimeout(() => boasVindas(s), 600); });
 function boasVindas(s) {
   s.boasVindas = true;
-  abrirConversa('Tio Juca', 'a/retratos/juca_alegre.webp', [
+  abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), [
     'Ô, Jocelino! Chegou inteiro de Aracaju? Dois dias de ônibus não é brincadeira, não.',
     'A Rosa e as crianças ficam aqui comigo por enquanto. Apertado, mas é de coração.',
     'Ela anda com uma ideia na cabeça: cozinhar pra fora. Diz que o PF dela é o melhor de Sergipe!',

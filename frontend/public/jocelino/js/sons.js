@@ -23,7 +23,7 @@ const sons = {
     return v.length ? v : (SONS_LISTA.includes(nome) ? [nome] : []);
   },
   async buffer(arq) {
-    if (!this.buffers.has(arq)) this.buffers.set(arq, fetch('a/som/' + arq + '.mp3').then(r => r.arrayBuffer()).then(b => this.ctx.decodeAudioData(b)).catch(() => null));
+    if (!this.buffers.has(arq)) this.buffers.set(arq, fetch('a/som/' + arq + '.mp3?v=' + VERSAO_ARTE).then(r => r.arrayBuffer()).then(b => this.ctx.decodeAudioData(b)).catch(() => null));
     return this.buffers.get(arq);
   },
   async tocar(nome, tom = 1, variacao = 0.08, db = 0) {
