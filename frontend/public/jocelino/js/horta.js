@@ -106,6 +106,7 @@ COLETORES.push(s => Horta.salvar(s));
 // Os itens da horta e as vantagens da Roça que mexem no dinheiro (a caixa e o preço do prato na pensão).
 Object.assign(ITENS, {
   esterco: { nome: 'Esterco curtido', pilha: 99, ferramenta: false, descricao: 'Adubo: na cova vazia, antes de plantar. Mais colheita boa e caprichada.' },
+  regadorzinho: { nome: 'Regadorzinho', pilha: 9, ferramenta: false, descricao: 'Pequeno, do tamanho das crianças. Dê ao Zezinho.' },
   irrigador: { nome: 'Irrigador', pilha: 9, ferramenta: false, colocavel: true, descricao: 'Do Seu Tonico. Coloque no quintal: rega as 4 covas em volta toda manhã.' },
 });
 const fatorFeira = id => !CULTURAS[id] || typeof Habilidades === 'undefined' ? 1 : Habilidades.tem('atacadista') ? 1.25 : Habilidades.tem('feirante') ? 1.1 : 1;

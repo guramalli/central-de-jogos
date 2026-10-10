@@ -89,3 +89,40 @@ function regarComIrrigadores() {
   return n;
 }
 MANHA.push(() => { if (G.horta) regarComIrrigadores(); });
+
+// ---------- os filhos regam: o pedido do Zezinho, o regadorzinho, a rega da manhã (até 8 covas, das mais perto de casa) ----------
+function filhosRegam() {
+  if (!G.horta.filhos) return 0;
+  const secas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta && !G.horta.covas[k].regada).map(k => k.split(',').map(Number))
+    .sort((a, b) => Math.hypot(a[0] - 7, a[1] - 13) - Math.hypot(b[0] - 7, b[1] - 13)).slice(0, 8);
+  for (const [x, y] of secas) Horta.cova(x, y).regada = true;
+  return secas.length;
+}
+MANHA.push(() => {
+  if (!G.horta) return;
+  if (!G.horta.pedidoFilhos && !G.horta.filhos && Horta.plantadas() >= 8) { G.horta.pedidoFilhos = true; G.feitosHoje.push('O Zezinho quer falar com você sobre a horta.'); }
+  const n = filhosRegam(); if (n) G.feitosHoje.push(`O Zezinho e a Ritinha regaram ${n} ${n === 1 ? 'cova' : 'covas'}.`);
+});
+TAREFAS.push(() => G.horta && G.horta.pedidoFilhos && !G.horta.filhos ? [{ texto: G.mochila.total('regadorzinho') ? 'Dar o regadorzinho ao Zezinho' : 'Comprar o regadorzinho do Zezinho (Ananias, Cr$ 30)' }] : []);
+function conversarZezinho(p) {
+  if (G.horta.pedidoFilhos && !G.horta.filhos) {
+    if (G.mochila.total('regadorzinho') > 0) {
+      G.mochila.remover('regadorzinho', 1); G.horta.filhos = true; hudSujo(); sons.tocar('fanfarra', 1.3, 0, -8);
+      abrirConversa(p.nome, urlArte('retratos/zezinho_alegre'), ['Oba! Um regadorzinho só meu! Amanhã cedo eu e a Ritinha regamos a horta, pai!']); return true;
+    }
+    abrirConversa(p.nome, urlArte('retratos/zezinho_normal'), ['Pai, compra um regadorzinho pra mim? Eu e a Ritinha regamos a horta! O Seu Ananias vende.']); return true;
+  }
+  abrirConversa(p.nome, urlArte('retratos/zezinho_normal'), falaDe(p)); return true;
+}
+AO_MONTAR.push(b => { if (b.id !== 'quintal') return; const z = b.moradores.find(m => m.id === 'zezinho'); if (z) z.aoConversar = () => conversarZezinho(z); });
+// Das 7h às 9h, com a rega ligada, os dois andam pela horta (a área deles muda para as covas).
+ATUALIZADORES.push(() => {
+  const b = MAPAS.quintal; if (!b || !G.horta || !G.horta.filhos) return;
+  const ks = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta), manha = G.minutos >= 7 * 60 && G.minutos < 9 * 60 && ks.length;
+  for (const id of ['zezinho', 'ritinha']) {
+    const m = b.moradores.find(p => p.id === id); if (!m) continue;
+    if (!m._areaCasa) m._areaCasa = m.area;
+    if (manha) { const xs = ks.map(k => +k.split(',')[0]), ys = ks.map(k => +k.split(',')[1]); m.area = { x: Math.min(...xs) * TILE, y: Math.min(...ys) * TILE, w: (Math.max(...xs) - Math.min(...xs) + 1) * TILE, h: (Math.max(...ys) - Math.min(...ys) + 1) * TILE }; }
+    else m.area = m._areaCasa;
+  }
+});

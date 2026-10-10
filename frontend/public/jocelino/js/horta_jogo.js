@@ -124,6 +124,8 @@ TAREFAS.push(() => {
   return r;
 });
 PRECO_HORTA.esterco = 5;
+PRECO_HORTA.regadorzinho = 30;
+PRECO_HORTA_SO_SE.regadorzinho = () => G.horta && G.horta.pedidoFilhos && !G.horta.filhos && G.mochila.total('regadorzinho') < 1;
 // O carimbo de caprichado sobe por cima da planta colhida e some (a arte ui/carimbo_caprichado, só posição e transparência).
 const CARIMBOS = [];
 ATUALIZADORES.push(dt => { for (const c of CARIMBOS) c.t += dt; for (let i = CARIMBOS.length - 1; i >= 0; i--) if (CARIMBOS[i].t > 1.2) CARIMBOS.splice(i, 1); });
