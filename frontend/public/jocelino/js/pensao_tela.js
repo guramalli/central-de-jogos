@@ -46,6 +46,18 @@ function atualizarPensaoMundo(so) {
 function pensaoFachada() {
   if (G.pensao.estado === 'fechada') { abrirPlaca('Uma pensão abandonada, com tábuas na porta. Uma placa apagada: "Pensão da Dona Cotinha".'); return true; }
   if (typeof pensaoNoPalco === 'function' && pensaoNoPalco()) { entrarPalco(); return true; }
+  // Na reforma, a entrega é na porta: a Rosa pergunta se entrega o material que o Jocelino trouxe.
+  const p = G.pensao, falta = p.faltaMaterial(), k = Object.keys(falta)[0];
+  if (k && falta[k] > 0 && G.mochila.total(k) > 0) {
+    const n = Math.min(G.mochila.total(k), falta[k]);
+    perguntar(`Rosa: "Trouxe ${Itens.qtd(n, k)}? ${k === 'telha' ? 'É para o telhado!' : 'Dá para as banquetas!'}"`, [`Entregar ${Itens.qtd(n, k)}`, 'Entrar no salão', 'Agora não'], i => {
+      if (i === 0) { const txt = p.entregar(G.mochila, G.dia); atualizarPensaoMundo(); hudSujo(); sons.tocar('madeira', 0.8, 0.08, -4); sons.tocar('feito', 1, 0.03, -6);
+        if (p.estado === 'pronta') G.feitosHoje.push('A pensão ficou pronta: abre amanhã!');
+        const f2 = p.faltaMaterial(), k2 = Object.keys(f2)[0]; abrirPlaca(k2 && f2[k2] > 0 ? `${txt} Falta: ${Itens.qtd(f2[k2], k2)}.` : txt); }
+      else if (i === 1) { entrarMapa('pensao_dentro', { x: 14, y: 12 }); sons.tocar('porta', 1, 0.05, -4); }
+    });
+    return true;
+  }
   entrarMapa('pensao_dentro', { x: 14, y: 12 });
   sons.tocar('porta', 1, 0.05, -4);
   return true;
@@ -77,7 +89,7 @@ TAREFAS.push(() => {
   const p = G.pensao;
   if (!p) return [];
   if (p.estado === 'limpar') return [{ texto: 'Pensão: limpar o salão (casa da Dona Cotinha)' }];
-  if (p.estado === 'telhas') return [{ texto: 'Pensão: entregar telhas na plaquinha', feito: p.telhas, meta: Pensao.TELHAS }];
+  if (p.estado === 'telhas') return [{ texto: 'Pensão: entregar telhas na porta da pensão', feito: p.telhas, meta: Pensao.TELHAS }];
   if (p.estado === 'mesas') return [{ texto: 'Pensão: madeira das banquetas', feito: p.madeira, meta: Pensao.MADEIRA }];
   if (pensaoAbreHoje() && p.ultimaJanta !== G.dia && G.minutos < 20 * 60) return [{ texto: 'Janta na Pensão da Rosa às 17h' }];
   return [];
@@ -127,7 +139,12 @@ function pensaoQuadro() {
 // ---------- a janta ----------
 function iniciarJanta() {
   G.turno = new TurnoJanta();
-  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (G.pensao.extraClientes || 0));
+  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0));
+  if (typeof Equipe !== 'undefined') {
+    const t = G.turno, p = G.pensao, b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0 };
+    t.fatorPreparo = Equipe.preparo(p) * b.preparo; t.bocas = TurnoJanta.BOCAS + Equipe.bocasExtra(p) + b.bocas;
+    t.gorjetaExtra = Equipe.gorjetaExtra(p) + b.gorjeta; t.paciencia = b.paciencia; t.farinhaMax = TurnoJanta.FARINHA_MAX + b.farinha; t.farinha = t.farinhaMax;
+  }
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
   avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
@@ -140,6 +157,7 @@ function encerrarJanta() {
   r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
   r.despesa = G.pensao.despesa(); G.dinheiro -= r.despesa; G.ganhoHoje -= r.despesa;
+  r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0; G.dinheiro -= r.salarios; G.ganhoHoje -= r.salarios;
   if (r.subiu) { G.correio.caixa.push('fama_' + r.subiu); sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão subiu: agora é "${G.pensao.nomeGrau(r.subiu)}"!`); }
   G.relatorioPensao = r;
   G.turno = null;
@@ -357,7 +375,7 @@ NOITE.push(linhas => {
     linhas.push(`Pensão da Rosa: ${r.clientes} clientes, ${r.servidos} pratos, Cr$ ${r.ganho} + Cr$ ${r.gorjeta} de gorjeta (${media.toFixed(1)} estrelas de média).`);
     if (r.embora) linhas.push(`   ${r.embora} ${r.embora === 1 ? 'foi' : 'foram'} embora sem comer.`);
     if (r.faltou.length) linhas.push(`   Faltou ingrediente para: ${r.faltou.map(id => Pratos.PRATOS[id] ? Pratos.PRATOS[id].nome : id).join(', ')}. ${r.cafes} ${r.cafes === 1 ? 'cliente tomou' : 'clientes tomaram'} só café.`);
-    linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${r.despesa} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`);
+    linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${r.despesa}${r.salarios ? ` · salários Cr$ ${r.salarios}` : ''} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`);
     if (r.subiu) linhas.push(`A pensão subiu de degrau: agora é "${p.nomeGrau(r.subiu)}"! Mais pratos no quadro, mais banquetas e mais clientes.`);
     else { const px = p.proximoDegrau(); if (px) linhas.push(`   Para "${px.nome}": ${textoFalta(px.falta)}.`); }
     linhas.push('   A Rosa: "' + ['Hoje até o Tonhão pediu bis!', 'Amanhã eu faço mais feijão.', 'O Severino lambeu o prato, Jocelino!', 'A pedra da sopa tá cansada.'][G.dia % 4] + '"');

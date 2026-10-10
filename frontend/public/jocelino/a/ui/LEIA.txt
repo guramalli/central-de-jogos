@@ -2,22 +2,23 @@ TELAS DA PENSÃO DA ROSA — arte do Higgsfield (ferramentas_arte/produzir_telas
 Tudo webp com fundo transparente. Coordenadas em px do próprio arquivo (canto de cima à esquerda).
 
 caderno_aberto.webp ........ 1400x878 — caderno de receitas aberto (capa de chita, lápis à direita, manjericão embaixo à esquerda, fitinha vermelha embaixo do meio).
-  lombada (meio) em x = 700.
-  página esquerda: papel de (283, 17) a (684, 716)  [401x699]; linha vermelha da margem em x = None
-  página direita: papel de (721, 20) a (1215, 729)  [494x709]; linha vermelha da margem em x = None
-  RETÂNGULO ÚTIL (texto e desenho, longe da lombada, das manchas da borda e da margem):
-    página esquerda: x 353..650, y 51..686  (297x635)
-    página direita : x 755..1145, y 54..699  (390x645)
-  As pautas são azuis bem claras: texto escuro por cima lê bem.
+  (medido com régua sobre o arquivo; o caderno é levemente trapezoidal: a página esquerda abre ~20 px para fora embaixo)
+  lombada (meio, costura) em x = 700.
+  página esquerda: papel de x 175 a 695, y 25 a 725; margem vermelha em x ~ 250 (em cima) a 235 (embaixo).
+  página direita : papel de x 708 a 1250, y 25 a 735; margem vermelha em x ~ 1170 (em cima) a 1195 (embaixo);
+                   mancha de café no canto de cima à direita (x 1120..1235, y 40..150).
+  RETÂNGULO ÚTIL (texto e desenho, longe da lombada, das manchas e das margens):
+    página esquerda: x 265..670, y 55..690 (o manjericão cobre o canto x < 335 com y > 615: nada importante ali)
+    página direita : x 730..1155, y 160..700 (de y 55 a 160 usar só x 730..1110, por causa da mancha de café)
+  Pautas azuis claras a cada ~36 px (a 1ª em y ~ 92): letra de 18 a 24 px assenta bem nelas.
   Botão Caprichar / carimbo: carimbo_caprichado por cima da página direita (canto de baixo), um pouco girado (-12°).
 
 despensa_prateleiras.webp .. 1300x825 — armário da Rosa de frente, portas abertas, 4 prateleiras VAZIAS com toalhinha de crochê.
   miolo (entre as laterais de dentro): x 292..1004
-  prateleira 1: os potes ASSENTAM em y ~ 216 (a toalhinha vai de y 212 a 248 e fica na frente da base dos potes)
-  prateleira 2: os potes ASSENTAM em y ~ 360 (a toalhinha vai de y 356 a 393 e fica na frente da base dos potes)
-  prateleira 3: os potes ASSENTAM em y ~ 508 (a toalhinha vai de y 504 a 539 e fica na frente da base dos potes)
-  prateleira 4: os potes ASSENTAM em y ~ 663 (a toalhinha vai de y 659 a 694 e fica na frente da base dos potes)
-  altura livre entre prateleiras ~ 144 px (potes de até ~114 px de altura)
+  prateleira 1: a base dos potes ASSENTA em y ~ 209; vão livre de y 95 a 209 (114 px de altura útil); a toalhinha (y 212..248) fica na frente da prateleira
+  prateleira 2: a base dos potes ASSENTA em y ~ 353; vão livre de y 248 a 353 (105 px de altura útil); a toalhinha (y 356..393) fica na frente da prateleira
+  prateleira 3: a base dos potes ASSENTA em y ~ 501; vão livre de y 393 a 501 (108 px de altura útil); a toalhinha (y 504..539) fica na frente da prateleira
+  prateleira 4: a base dos potes ASSENTA em y ~ 656; vão livre de y 539 a 656 (117 px de altura útil); a toalhinha (y 659..694) fica na frente da prateleira
   Sugestão: 5 a 6 potes por prateleira, centros espaçados de ~118 px a partir de x = 351.
 
 selo_1 … selo_6.webp ....... 128x128 cada (mesma escala, centrados) — fama em degraus, do cobre ao ouro:

@@ -30,7 +30,7 @@ class TurnoJanta {
 
   static relatorioVazio() { return { clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0 }; }
 
-  constructor() { this.pensao = null; this.mesas = []; this.relatorio = TurnoJanta.relatorioVazio(); this.eventos = []; this._fila = []; this._cardapio = []; this._rng = null; this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; }
+  constructor() { this.pensao = null; this.mesas = []; this.relatorio = TurnoJanta.relatorioVazio(); this.eventos = []; this._fila = []; this._cardapio = []; this._rng = null; this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; this.fatorPreparo = 1; this.bocas = TurnoJanta.BOCAS; this.gorjetaExtra = 0; this.paciencia = 1; }
 
   iniciar(p, dia, quantos) {
     this.pensao = p;
@@ -78,7 +78,7 @@ class TurnoJanta {
             }
           } else if (!this._avisouFarinha) { this._avisouFarinha = true; this.eventos.push({ tipo: 'farinha' }); }
         }
-        const limite = m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO;
+        const limite = (m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO) * (this.paciencia || 1);
         if (m.espera >= limite) {
           this.relatorio.embora++;
           this.eventos.push({ tipo: 'embora', mesa: i, cliente: m.cliente });
@@ -142,13 +142,13 @@ class TurnoJanta {
       return true;
     }
     m.prato = opcoes[this._rng.randi() % opcoes.length];
-    const bebidas = Object.keys(Pratos.BEBIDAS);
+    const bebidas = typeof bebidasDaPensao === 'function' ? bebidasDaPensao(this.pensao) : Object.keys(Pratos.BEBIDAS).filter(b => b !== 'cerveja');
     m.bebida = bebidas[this._rng.randi() % bebidas.length];
     m.raridade = this.pensao.consumir(m.prato, this._rng);
     m.querBebida = this._rng.randf() < 0.5; m.bebidaServida = false;
     m.rapido = m.modo === 'antigo' ? m.espera < TurnoJanta.PACIENCIA_PEDIDO / 2 : true;
     m.estado = 'prato'; m.espera = 0; m.preparo = TurnoJanta.PREPARO; m.pronto = false; m.montado = false;
-    if (m.modo !== 'antigo') this.fogo.push({ prato: m.prato, raridade: m.raridade, t: TurnoJanta.PREPARO });
+    if (m.modo !== 'antigo') this.fogo.push({ prato: m.prato, raridade: m.raridade, t: TurnoJanta.PREPARO * this.fatorPreparo });
     return true;
   }
   // Monta o prato pronto no balcão. A ordem não importa; salada é extra.
@@ -195,6 +195,7 @@ class TurnoJanta {
     const b = this.bandeja.splice(k, 1)[0];
     m.bebidaServida = true; m.bebidaMedida = b.qualidade === 'medida';
     this.relatorio.bebidas++;
+    if (m.bebida === 'cerveja') this.relatorio.ganho += 3;   // cerveja gelada se paga à parte
     return true;
   }
   // Recolhe a louça da banqueta para a bandeja: a banqueta fica livre.
@@ -205,16 +206,24 @@ class TurnoJanta {
     this.mesas[i] = this._mesaLivre();
     return true;
   }
+  // O ajudante de salão: recolhe a louça e leva direto à bacia; serve a bebida pedida (na média, sem copo na medida).
+  ajudanteRecolhe(i) { const m = this.mesas[i]; if (!m || m.estado !== 'suja') return false; this.mesas[i] = this._mesaLivre(); return true; }
+  ajudanteBebida(i) {
+    const m = this.mesas[i];
+    if (!m || !['prato', 'comendo'].includes(m.estado) || !m.querBebida || m.bebidaServida) return false;
+    m.bebidaServida = true; m.bebidaMedida = false; this.relatorio.bebidas++;
+    return true;
+  }
   // Larga a louça na bacia da cozinha. Devolve quantas.
   largarLouca() { const n = this.bandeja.filter(x => x.tipo === 'louca').length; this.bandeja = this.bandeja.filter(x => x.tipo !== 'louca'); return n; }
   // Joga fora o que sobrou na bandeja (pratos e bebidas). Devolve quantos.
   jogarFora() { const n = this.bandeja.filter(x => x.tipo !== 'louca').length; this.bandeja = this.bandeja.filter(x => x.tipo === 'louca'); this.relatorio.desperdicio += n; return n; }
   // Repõe a farinheira com um pacote de farinha da despensa.
   reporFarinha() {
-    if (this.farinha > TurnoJanta.REPOR_ATE) return 'cheia';
+    if (this.farinha > (this.farinhaMax || TurnoJanta.FARINHA_MAX) - (TurnoJanta.FARINHA_MAX - TurnoJanta.REPOR_ATE)) return 'cheia';
     if ((this.pensao.despensa.farinha || 0) < 1) return 'sem_farinha';
     this.pensao.despensa.farinha--;
-    this.farinha = TurnoJanta.FARINHA_MAX; this._avisouFarinha = false;
+    this.farinha = this.farinhaMax || TurnoJanta.FARINHA_MAX; this._avisouFarinha = false;
     return 'ok';
   }
   // O minuto em que chega o próximo cliente (para o "Adiantar"), ou -1.
@@ -243,7 +252,7 @@ class TurnoJanta {
     const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || m.bebidaServida);
     const est = Pensao.estrelas(m.rapido, m.certo, sabor, bebida, gostaSalada);
     const preco = this.pensao.preco(m.prato, m.raridade);
-    const gorj = Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0);
+    const gorj = Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + Math.round(preco * (this.gorjetaExtra || 0) * est / 5);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.gorjeta += gorj; r.estrelas += est;
     if (est >= 4) r.curtidas++;

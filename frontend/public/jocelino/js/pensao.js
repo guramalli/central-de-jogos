@@ -34,6 +34,7 @@ class Pensao {
     this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.mesas = 2; this.fama = 0;
     this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
+    this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = [];
   }
   melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
   pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
@@ -42,7 +43,7 @@ class Pensao {
   degrau(g = this.grau()) { return Pensao.DEGRAUS[clamp(g, 1, Pensao.DEGRAUS.length) - 1]; }
   nomeGrau(g) { return this.degrau(g).nome; }
   vagas() { return this.degrau().vagas; }
-  mesasDaNoite() { return Math.max(this.mesas, this.degrau().mesas) + (this.extraMesas || 0); }
+  mesasDaNoite() { return Math.max(this.mesas, this.degrau().mesas) + (this.melhorias || []).filter(id => id === 'banqueta_extra').length; }
   clientesDaNoite() { return this.degrau().clientes; }
   despesa() { return this.degrau().despesa; }
   // O próximo degrau e o que falta de cada coisa (null no último).
@@ -211,7 +212,8 @@ class Pensao {
   paraDict() {
     return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, mesas: this.mesas, fama: this.fama,
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
-      niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas };
+      niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas,
+      equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice() };
   }
   deDict(d) {
     d = d || {};
@@ -220,5 +222,6 @@ class Pensao {
     this.cardapio = (d.cardapio || []).slice(); this.receitas = (d.receitas || Pensao.RECEITAS_INICIAIS).slice(); this.ultimaJanta = d.ultimaJanta ?? -1;
     this.niveis = Object.assign({}, d.niveis || {}); this.pitadas = d.pitadas | 0; this.vistos = (d.vistos || Object.keys(this.despensa)).slice();
     this.curtidas = d.curtidas != null ? d.curtidas | 0 : Math.floor(this.fama / 4);   // save velho: as estrelas viram curtidas
+    this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice();
   }
 }

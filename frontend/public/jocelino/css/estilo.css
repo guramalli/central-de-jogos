@@ -138,7 +138,8 @@ button { font-family: inherit; }
 @keyframes cena-pula { from { transform: rotate(-12deg) scale(.3); } 60% { transform: rotate(-12deg) scale(1.25); } to { transform: rotate(-12deg) scale(1); } }
 
 /* O rodapé do palco da pensão (as abas do Bancho): no lugar da barra de ferramentas. */
-.rodape-palco { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; padding: 8px 12px; z-index: 5; }
+.rodape-palco { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; padding: 8px 12px; z-index: 5; white-space: nowrap; max-width: 96vw; }
+.rodape-palco .botao { white-space: nowrap; padding-left: 12px; padding-right: 12px; }
 .rodape-palco .farinha { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 18px; padding: 0 6px; }
 .rodape-palco .farinha img { height: 34px; }
 
@@ -203,3 +204,24 @@ button { font-family: inherit; }
 .orel-item { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: rgba(0,0,0,.05); }
 .orel-item img { width: 44px; height: 44px; object-fit: contain; }
 .orel-item.trancado { opacity: .5; } .orel-preco { font-size: 13px; color: #6b4a2a; } .orel-bts { display: flex; gap: 4px; }
+
+/* A equipe. */
+.equipe { width: min(94vw, 1000px); max-height: 92vh; overflow-y: auto; }
+.eq-vagas { font-weight: 800; color: #5b3a1c; margin-bottom: 8px; }
+.eq-lista { display: flex; flex-direction: column; gap: 8px; }
+.eq-pessoa { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.05); }
+.eq-pessoa img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 2px solid #6b3f22; }
+.eq-at { font-size: 14px; color: #6b4a2a; } .eq-hab { font-size: 13px; color: #8a2f1a; font-weight: 800; }
+.eq-bts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.eq-anuncios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.eq-anuncio { display: grid; grid-template-columns: 56px 1fr; gap: 8px; align-items: center; text-align: left; }
+.eq-anuncio img { width: 56px; height: 56px; object-fit: contain; }
+.botao.desligado { opacity: .5; }
+
+/* Melhorias. */
+.melhorias { width: min(94vw, 1050px); max-height: 92vh; overflow-y: auto; }
+.mel-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.mel-item { display: grid; grid-template-columns: 84px 1fr auto; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; background: rgba(0,0,0,.05); }
+.mel-item.tem { outline: 2px solid var(--verde); } .mel-item.trancado { opacity: .55; }
+.mel-arte { width: 84px; height: 64px; background: center / contain no-repeat; border-radius: 8px; background-color: rgba(60,30,10,.15); }
+.mel-arte.vazio { display: grid; place-items: center; font-weight: 900; font-size: 26px; color: #6b3f22; }

@@ -4,26 +4,32 @@ Linhas do palco: frechal (fim do teto) y ~ 300; rodapé da parede y = 760; tampo
 
 ventilador_teto.webp ..... folha 604x104 = 4 quadros de 151x104 lado a lado (giro: 0°, 22°, 45°, 67°; ~12 quadros/s; parado = quadro 1).
    em (1175, 298) (a canopla encosta no frechal); desenhar antes do passa-prato. Efeito: paciência dura mais.
-   Outro lugar bom: centro x = 1260 (entre a luminária do meio e o neon), mesmo y.
+   Centro x = 1250, entre a luminária do meio e a da direita, logo acima do oratório e da flâmula. Outro lugar livre: centro x = 700, mesmo y
+   (aí ele passa um pouco na frente do rádio da prateleira, o que fica natural: o ventilador está no meio do salão).
 radio_tocando.webp ....... folha 192x96 = 2 quadros de 96x96 (pulando na batida, ~3 quadros/s), base no pé do quadro.
-   em (700, 343): em cima da prateleira da parede, por cima do rádio pintado do fundo (base em y = 439, centro x = 748).
+   em (700, 343): em cima da prateleira da parede, tapando o rádio pintado do fundo (pé do quadro em y = 439, centro x = 748).
 toalha_balcao.webp ....... 995x59 — toalha xadrez cobrindo o tampo do balcão (o balcão vai de x 290 a 1269).
    em (282, 790), desenhar logo depois do balcão e ANTES da farinheira, dos pratos e da louça (que ficam por cima dela).
 geladeira.webp ........... 80x175 — geladeira anos 60 com garrafas em cima. Libera cerveja gelada.
-   pé em y = 900, centro x = 380 (canto esquerdo, perto da porta): em (290, 585); entra na ordem por altura com o Jocelino (y = 900).
+   ENCOSTADA NA PAREDE ATRÁS DO BALCÃO, na ponta esquerda (perto da porta): pé em y = 760 (rodapé), centro x = 330: em (290, 585).
+   Desenhar antes dos clientes (o 1º banco, x = 400, fica na frente dela). Testado e descartado: pé em y = 900 com centro x = 380 —
+   ela fica NA FRENTE da ponta do balcão e da toalha, tapando o balcão e o caminho do Jocelino. Outra opção boa: atrás do balcão na
+   ponta direita, centro x = 1250, pé em y = 760 (perto do passe e do bebedouro).
 cozinha_melhor.webp ...... 440x221 — a cozinha inteira com o fogão de 4 bocas (substitui cozinha.webp, mesmo enquadramento).
    em (1300, 545), igual à cozinha.webp. O fogão começa mais à esquerda (~45% da largura): a Rosa fica na frente da
    panela de barro da esquerda; se quiser ela ao lado do fogão, pé em x ~ 1470 em vez de 1542.
 farinheira_grande.webp ... 92x120 — gamela grande de farinha no suporte de madeira (capacidade 25).
-   no palco escala 0.42, no tampo no lugar da farinheira (x = 1185), fundo em y = 788: em (1185, 722).
+   no palco escala 0.55 (a farinheira pequena usa 0.36 de um arquivo menor), no tampo no lugar dela (x = 1185), fundo em y = 788: em (1185, 722).
 flamula_santos.webp ...... 42x90 — flâmula preta e branca com escudo listrado, sem letras.
-   na parede em (1206, 392) (entre o relógio e o oratório pintados).
+   no palco escala 0.8, em (1206, 392): cobre certinho a flâmula verde pintada no fundo (x 1206..1239, y 402..460), ao lado do oratório.
 neon_novo.webp ........... 130x130 — panela de neon com fumaça (alfa do próprio brilho: desenhar normal; para piscar,
    variar a opacidade entre 0,85 e 1, e de vez em quando 0,3 por 0,08 s). Na parede em (463, 296).
-bandeirinhas_festa.webp .. 1920x120 — varal de festa junina de ponta a ponta, em (0, 185) (logo abaixo do frechal).
-balao_junino.webp ........ 43x110 — balão de papel pendurado, em (679, 262) (pendurar 1 a 3, x entre 400 e 1500).
-fita_tema.webp ........... 64x18 — fitinha do prato do dia: no nicho do cardápio, logo abaixo do prato (na prévia em (640, 521), nicho 1).
+bandeirinhas_festa.webp .. 1920x120 — varal de festa junina de ponta a ponta, em (0, 185) (no madeiramento do telhado, por cima da fiação das lâmpadas; não tapa nada da parede).
+balao_junino.webp ........ 43x110 — balão de papel pendurado do varal, em (679, 262) (outros lugares livres: centro x = 1010 ou 1460, mesmo y).
+fita_tema.webp ........... 64x18 — fitinha do prato do dia: no alto do nicho do cardápio, centrada no nicho, topo em y = 521 (na prévia em (640, 521), nicho 1;
+   não vai embaixo do prato para não tapar a plaquinha das porções).
 
-Ordem de desenho sugerida (de trás para a frente): fundo, bandeirinhas, balão, ventilador, neon, flâmula, rádio,
-cozinha(_melhor), Rosa, passa-prato (e a fita), clientes, balcão, toalha, farinheira(_grande), pratos, passe, lixo, bacia,
-bebedouro, Jocelino e geladeira (por altura do pé), plantas da frente.
+Ordem de desenho sugerida (de trás para a frente): fundo, bandeirinhas, balão, neon, flâmula, rádio, ventilador,
+cozinha(_melhor), Rosa, passa-prato (e a fita), geladeira, clientes, balcão, toalha, farinheira(_grande), pratos, passe,
+lixo, bacia, bebedouro, Jocelino, plantas da frente.
+A toalha começa em y = 790 (só a metade da frente do tampo): os paliteiros, as pimentas e os guardanapos pintados no balcão continuam à mostra.
