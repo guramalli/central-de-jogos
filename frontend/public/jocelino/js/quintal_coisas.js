@@ -13,21 +13,34 @@ function podeColocar(b, x, y) {
   const p = G.jog.ladrilho(); if (p.x === x && p.y === y) return 'O Jocelino está em cima.';
   return '';
 }
-// A cerca se liga à vizinha (regra do Godot): com cerca à direita, ripa horizontal; sem cerca à esquerda e com cerca em
-// cima ou embaixo, poste; senão a cerca simples. Com cerca em cima, a versão "_r" (a ripa sobe).
-const temCerca = (x, y) => G.horta.colocados.some(c => c.x === x && c.y === y && (c.id === 'cerca' || c.id === 'portao'));
-function arteCerca(x, y) {
-  const dir = temCerca(x + 1, y), esq = temCerca(x - 1, y), cima = temCerca(x, y - 1), baixo = temCerca(x, y + 1);
-  const base = dir ? 'objetos/cerca_h' : !esq && (cima || baixo) ? 'objetos/cerca_poste' : 'objetos/cerca';
-  return base + (cima ? '_r' : '');
+// A cerca do Stardew: um mourão por ladrilho; duas ripas ligam o mourão ao da direita e uma ripa (vista de cima) ao de
+// baixo; o portão fica no lugar do mourão, de frente numa fileira e de lado numa coluna. As ripas e o portão ocupam só o
+// vão entre as bordas dos mourões (o mourão tem 14 px), então a ordem do desenho não importa. Peça = {arte, x, y, w, h}.
+const colocadoEm = (x, y) => G.horta.colocados.find(c => c.x === x && c.y === y && (c.id === 'cerca' || c.id === 'portao'));
+const ehCerca = (x, y) => { const c = colocadoEm(x, y); return !!c && c.id === 'cerca'; };
+function pecasCerca(x, y) {
+  const c = colocadoEm(x, y); if (!c) return [];
+  const cx = x * TILE + TILE / 2, base = (y + 1) * TILE, MEIO = 7, r = [];
+  if (c.id === 'portao') {
+    const deLado = (colocadoEm(x, y - 1) || colocadoEm(x, y + 1)) && !colocadoEm(x - 1, y) && !colocadoEm(x + 1, y);
+    if (deLado) r.push({ arte: 'objetos/portao_v', x: cx - 6, y: base - TILE - 6, w: 12, h: TILE * 2 - 24 });
+    else r.push({ arte: 'objetos/portao_h', x: cx - TILE + MEIO, y: base - 45, w: TILE * 2 - MEIO * 2, h: 42 });
+    return r;
+  }
+  if (ehCerca(x, y + 1)) r.push({ arte: 'objetos/cerca_ripas_v', x: cx - 5, y: base - 30, w: 10, h: TILE });
+  if (ehCerca(x + 1, y)) r.push({ arte: 'objetos/cerca_ripas_h', x: cx + MEIO, y: base - 34, w: TILE - MEIO * 2, h: 22 });
+  r.push({ arte: 'objetos/cerca_mourao', x: cx - 24, y: base - 60, w: 48, h: 60 });
+  return r;
 }
+function desenhaCerca(ctx, o) { for (const p of pecasCerca(o.cx, o.cy)) { const img = spr(p.arte); if (img) ctx.drawImage(img, p.x, p.y, p.w, p.h); } }
 function poeColocados(b) {
   if (!b || b.id !== 'quintal') return;
   for (const o of b.objs.filter(o => o.id === 'colocado')) b.tirar(o);
   for (const c of G.horta.colocados) {
     const solido = c.id !== 'portao';
-    const o = b.interativo('colocado', c.id === 'cerca' ? arteCerca(c.x, c.y) : 'objetos/' + c.id, c.x, c.y, 1, 1, solido ? [16, 10] : null, solido);
+    const o = b.interativo('colocado', c.id === 'cerca' ? 'objetos/cerca_mourao' : c.id === 'portao' ? 'objetos/portao_h' : 'objetos/' + c.id, c.x, c.y, 1, 1, solido ? [16, 10] : null, solido);
     Object.assign(o, { item: c.id, cx: c.x, cy: c.y });
+    if (c.id === 'cerca' || c.id === 'portao') o.desenha = ctx => desenhaCerca(ctx, o);
     o.ferramenta = (p, id) => { if (id === 'machado' || id === 'picareta') recolher(p); };
     if (c.id === 'irrigador') o.acao = () => abrirPlaca('O irrigador do Seu Tonico: rega as 4 covas em volta toda manhã.');
   }
