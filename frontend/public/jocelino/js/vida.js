@@ -1,7 +1,7 @@
 // Jocelino — vida.js — o mapa não fica parado (como o Stardew): vento que vai e volta com rajadas, árvores e arbustos
 // balançando, folhas voando nas rajadas, rolinhas pousadas na grama que bicam o chão e voam quando o Jocelino chega
 // perto, e um bando de pássaros cruzando o céu de vez em quando (com a sombra passando no chão). Só fora de casa.
-// Tudo é desenhado por código no traço da arte (contorno escuro), sem arte nova.
+// A arte (rolinha, ave do bando, folhas) está em a/fx/, gerada no Higgsfield; o código só move e troca o quadro.
 
 const VIDA = { t: 0, vento: 0.5, rajada: 0, proxRajada: 12, bandos: [], folhas: [], rolinhas: [], proxBando: 20, mapaId: '' };
 // Quanto cada coisa balança (inclinação no topo; a base fica presa no chão).
@@ -14,7 +14,6 @@ function balanco(o, t = VIDA.t) {
   return (Math.sin(t * 1.3 + f) + 0.35 * Math.sin(t * 2.9 + f * 2)) * amp * (0.45 + VIDA.vento);
 }
 
-const COR_FOLHA = ['#d9822b', '#c4561f', '#e0b13a', '#7fa83f', '#a8742a'];
 function _rolinhasDoMapa(m) {
   const r = [], rng = mulberry(G.dia * 131 + m.larg * 7 + m.alt);
   for (let k = 0; k < 40 && r.length < 4; k++) {
@@ -30,14 +29,14 @@ function vidaAtualiza(dt) {
   VIDA.t += dt;
   // Vento: sobe e desce devagar; de tempos em tempos uma rajada.
   VIDA.proxRajada -= dt;
-  if (VIDA.proxRajada <= 0) { VIDA.rajada = 4; VIDA.proxRajada = rnd(18, 35); }
+  if (VIDA.proxRajada <= 0) { VIDA.rajada = 4; VIDA.proxRajada = rnd(18, 35); if (!m.dentro && !m.cenario) sons.avulso('avulso_rajada', rnd(-0.5, 0.5), -8); }
   VIDA.rajada = Math.max(0, VIDA.rajada - dt);
   VIDA.vento = 0.45 + 0.25 * Math.sin(VIDA.t * 0.11) + (VIDA.rajada > 0 ? 0.6 * Math.sin(Math.PI * VIDA.rajada / 4) : 0);
   if (m.dentro || m.cenario) { VIDA.folhas.length = 0; VIDA.bandos.length = 0; return; }
   if (VIDA.mapaId !== m.id) { VIDA.mapaId = m.id; VIDA.rolinhas = _rolinhasDoMapa(m); VIDA.folhas.length = 0; VIDA.bandos.length = 0; }
   const vw = G.larg / G.zoom, vh = G.alt / G.zoom, cx = G.cam.x, cy = G.cam.y;
   // Folhas: nascem do lado esquerdo da tela durante a rajada e atravessam rodopiando.
-  if (VIDA.rajada > 0 && Math.random() < dt * 9) VIDA.folhas.push({ x: cx - 20, y: cy + rnd(0, vh), vx: rnd(150, 230), f: rnd(0, 6), giro: rnd(-5, 5), ang: rnd(0, 6), cor: sorteio(COR_FOLHA) });
+  if (VIDA.rajada > 0 && Math.random() < dt * 9) VIDA.folhas.push({ x: cx - 20, y: cy + rnd(0, vh), vx: rnd(150, 230), f: rnd(0, 6), giro: rnd(-5, 5), ang: rnd(0, 6), n: 1 + Math.floor(Math.random() * 4) });
   for (const f of VIDA.folhas) { f.f += dt; f.x += f.vx * dt; f.y += Math.sin(f.f * 3) * 40 * dt + 12 * dt; f.ang += f.giro * dt; }
   VIDA.folhas = VIDA.folhas.filter(f => f.x < cx + vw + 30);
   // Bando: de tempos em tempos 3 a 6 pássaros cruzam a tela, um pouco em V.
@@ -48,6 +47,7 @@ function vidaAtualiza(dt) {
     const b = { lado, aves: [] };
     for (let i = 0; i < n; i++) b.aves.push({ x: (lado > 0 ? cx - 40 : cx + vw + 40) - lado * Math.abs(i - n / 2) * 26, y: y0 + i * 14 - n * 7, f: Math.random() * 6 });
     VIDA.bandos.push(b);
+    sons.avulso('avulso_maritacas', -lado * 0.7, -9);
   }
   for (const b of VIDA.bandos) for (const a of b.aves) { a.x += b.lado * 170 * dt; a.y -= 8 * dt; a.f += dt * 10; }
   VIDA.bandos = VIDA.bandos.filter(b => b.aves.some(a => a.x > cx - 120 && a.x < cx + vw + 120));
@@ -65,25 +65,14 @@ function vidaAtualiza(dt) {
 }
 ATUALIZADORES.push(vidaAtualiza);
 
-// Rolinha no chão (entra na ordem de altura com o resto) — corpo pardo, cabeça, bico, olho e contorno escuro.
+// Rolinha no chão (entra na ordem de altura com o resto): a arte olha para a direita; espelha quando vai para a esquerda.
 function _desenhaRolinha(ctx, r) {
-  const voa = r.voando, bob = voa ? 0 : (r.bica < 0.25 ? 3 : 0), pz = r.pulo > 0 ? Math.sin(Math.PI * r.pulo / 0.25) * 5 : 0;
+  const pz = r.pulo > 0 ? Math.sin(Math.PI * r.pulo / 0.25) * 6 : 0;
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(r.x, r.y, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.translate(r.x, r.y - 12 - pz - r.z); ctx.scale(r.lado * 1.75, 1.75);
-  ctx.lineWidth = 1.6; ctx.strokeStyle = '#1c140e';
-  if (voa) {   // asas batendo
-    const a = Math.sin(r.t * 30) * 0.9;
-    ctx.fillStyle = '#7a6a5a';
-    for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(-1, -2, 9, 3, s * a - 0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-  }
-  ctx.fillStyle = '#8f7f6c'; ctx.beginPath(); ctx.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#b9a58c'; ctx.beginPath(); ctx.ellipse(1, 2, 5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#6f6050'; ctx.beginPath(); ctx.moveTo(-7, -1); ctx.lineTo(-13, -3); ctx.lineTo(-12, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#8f7f6c'; ctx.beginPath(); ctx.arc(7, -4 + bob, 3.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#d98a3a'; ctx.beginPath(); ctx.moveTo(10, -4 + bob); ctx.lineTo(13.5, -3 + bob); ctx.lineTo(10, -2.4 + bob); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#111'; ctx.fillRect(7.5, -5.5 + bob, 1.6, 1.6);
+  ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(r.x, r.y, 11, 3.5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
+  const nome = r.voando ? 'rolinha_voo_' + (1 + Math.floor(r.t * 14) % 3) : r.pulo > 0 ? 'rolinha_pulo' : r.bica < 0.3 ? 'rolinha_bica' : 'rolinha_parada';
+  desenhaFx(ctx, nome, r.x, r.y - pz - r.z, { base: true, espelho: r.lado < 0 });
 }
 function vidaNoChao(m) {
   if (m.dentro || m.cenario || VIDA.mapaId !== m.id) return [];
@@ -92,19 +81,9 @@ function vidaNoChao(m) {
 // O céu: folhas ao vento e o bando (com a sombra no chão, bem mais embaixo).
 function desenhaCeu(ctx, m) {
   if (m.dentro || m.cenario) return;
-  ctx.save();
-  for (const f of VIDA.folhas) {
-    ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.ang);
-    ctx.fillStyle = f.cor; ctx.strokeStyle = 'rgba(30,18,8,.85)'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.ellipse(0, 0, 10, 4.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.stroke();
-    ctx.restore();
-  }
+  for (const f of VIDA.folhas) desenhaFx(ctx, 'folha_' + f.n, f.x, f.y, { ang: f.ang });
   for (const b of VIDA.bandos) for (const a of b.aves) {
-    ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(a.x + 30, a.y + 170, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
-    const asa = Math.sin(a.f) * 7;
-    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(a.x - 12, a.y - asa); ctx.quadraticCurveTo(a.x - 6, a.y - 4 - asa * 0.3, a.x, a.y); ctx.quadraticCurveTo(a.x + 6, a.y - 4 - asa * 0.3, a.x + 12, a.y - asa); ctx.stroke();
+    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(a.x + 30, a.y + 170, 14, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    desenhaFx(ctx, 'ave_bando_' + (1 + Math.floor(a.f / 1.6) % 4), a.x, a.y, { espelho: b.lado < 0 });
   }
-  ctx.restore();
 }

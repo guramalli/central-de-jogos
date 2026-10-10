@@ -25,7 +25,7 @@ const LETREIROS = {
   'objetos/mercado_0': { x: 166.5, y: 174.5, w: 78, h: 22, textos: ['Mercado Municipal', 'Mercado'], estilo: 'creme' },
 };
 // Fumaça de chaminé de verdade: a arte vem sem a fumaça pintada e as bolinhas sobem do topo da chaminé (pixels da
-// arte), crescem, vão com o vento e somem. Desenha o contorno de todas antes do miolo: vira uma nuvem só, no traço da arte.
+// arte), crescem, vão com o vento e somem (nuvenzinhas a/fx/fumaca_1..3).
 const CHAMINES = { 'objetos/oficina_sem_fumaca': { x: 235, y: 55 } };
 const FUMACA_VIDA = 3.2, FUMACA_PUFES = 9;
 function fumacaEm(t) {
@@ -40,15 +40,10 @@ function desenhaFumaca(ctx, o, alfa) {
   const c = CHAMINES[o.nome], img = spr(o.nome);
   if (!c || !img) return;
   const bx = o.x - img.naturalWidth / 2 + c.x, by = o.y - img.naturalHeight + c.y;
-  const pufes = fumacaEm(G.agora || 0);
-  ctx.save();
-  for (const passo of [0, 1]) for (const p of pufes) {
-    ctx.globalAlpha = alfa * p.alfa * (passo ? 0.92 : 0.7);
-    ctx.fillStyle = passo ? '#ece6dc' : '#4a4038';
-    ctx.beginPath(); ctx.arc(bx + p.x, by + p.y, p.r + (passo ? 0 : 2), 0, Math.PI * 2); ctx.fill();
-    if (passo) { ctx.fillStyle = 'rgba(190,180,168,.55)'; ctx.beginPath(); ctx.arc(bx + p.x + p.r * 0.25, by + p.y + p.r * 0.3, p.r * 0.6, 0, Math.PI * 2); ctx.fill(); }
+  for (const p of fumacaEm(G.agora || 0)) {
+    const n = p.r < 10 ? 1 : p.r < 15 ? 2 : 3;   // a nuvenzinha cresce subindo
+    desenhaFx(ctx, 'fumaca_' + n, bx + p.x, by + p.y, { alfa: alfa * p.alfa, escala: p.r / [0, 8, 13, 19][n] * 0.9 });
   }
-  ctx.restore();
 }
 // O texto que cabe na plaquinha e o tamanho da letra.
 function ajustaLetreiro(ctx, L) {
@@ -70,12 +65,10 @@ function desenhaLetreiro(ctx, o, alfa) {
   ctx.translate(o.x - img.naturalWidth / 2 + L.x, o.y - img.naturalHeight + L.y);
   if (L.ang) ctx.rotate(L.ang * Math.PI / 180);
   if (L.tabua) {
-    // Tábua pintada no mesmo traço da arte: madeira com contorno preto, um brilho em cima e dois pregos.
-    const w = L.w, h = L.h;
-    ctx.fillStyle = '#9a6534'; ctx.strokeStyle = '#2a1608'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 3); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,220,160,.25)'; ctx.fillRect(-w / 2 + 3, -h / 2 + 2, w - 6, 2);
-    ctx.fillStyle = '#2a1608'; for (const px of [-w / 2 + 5, w / 2 - 5]) { ctx.beginPath(); ctx.arc(px, 0, 1.6, 0, Math.PI * 2); ctx.fill(); }
+    // Tábua da arte (a/fx/tabua_letreiro): sem ela carregada, não escreve nada.
+    const tb = spr('fx/tabua_letreiro');
+    if (!tb) { ctx.restore(); return; }
+    ctx.drawImage(tb, -L.w / 2 - 4, -L.h / 2 - 3, L.w + 8, L.h + 6);
   }
   const f = ajustaLetreiro(ctx, L);
   ctx.font = `700 ${f.tam}px Fredoka`;

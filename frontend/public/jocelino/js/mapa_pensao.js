@@ -17,7 +17,7 @@ MAPAS_DEF.pensao_dentro = () => {
   b.enquadramento = SALAO.CENARIO;
   b.livre = { x: 5, y: 11, w: 20, h: 3 };
   b.inicio = { x: 14, y: 12 };
-  b.saida(14, 13, 2, 1, 'vila', 15, 8);
+  b.saida(14, 13, 2, 1, 'vila', 15, 9);
   const S = SALAO;
   b.corrido = b.interativo('balcao_corrido', 'objetos/balcao_corrido', S.BALCAO[0], S.BALCAO[1], 10, 1, [156, 8]);
   b.corrido.acao = (o, px) => (typeof pensaoBalcaoCorrido === 'function' ? pensaoBalcaoCorrido(px) : false);

@@ -30,7 +30,5 @@ desenhaMapa = function (ctx) {
   const cx = G.mapa.objs.find(o => o.id === 'caixa_correio');
   if (!cx) return;
   const y = cx.y - 110 + Math.sin(G.agora * 5) * 5;
-  ctx.fillStyle = '#131b1b'; ctx.fillRect(cx.x - 17, y - 2, 34, 26);
-  ctx.fillStyle = '#f4e7c8'; ctx.fillRect(cx.x - 15, y, 30, 22);
-  ctx.strokeStyle = '#131b1b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx.x - 15, y); ctx.lineTo(cx.x, y + 12); ctx.lineTo(cx.x + 15, y); ctx.stroke();
+  desenhaFx(ctx, 'envelope', cx.x, y + 11);
 };

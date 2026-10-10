@@ -71,17 +71,35 @@ const sons = {
     a.g.gain.setValueAtTime(a.g.gain.value, this.ctx.currentTime);
     a.g.gain.linearRampToValueAtTime(Math.max(0, alvo), this.ctx.currentTime + 1);
   },
+  // Som avulso do ambiente (um canto, uma rajada), num lado sorteado da tela: quebra a repetição do laço de fundo.
+  async avulso(nome, lado = 0, db = -6) {
+    if (!this.ctx || !G.somLigado || !this.variacoes(nome).length) return;
+    const buf = await this.buffer(sorteio(this.variacoes(nome)));
+    if (!buf) return;
+    const f = this.ctx.createBufferSource(); f.buffer = buf; f.playbackRate.value = 1 + rnd(-0.04, 0.04);
+    const g = this.ctx.createGain(); g.gain.value = Math.pow(10, db / 20);
+    const p = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+    if (p) { p.pan.value = clamp(lado, -1, 1); f.connect(g); g.connect(p); p.connect(this.bus.ambiente); } else { f.connect(g); g.connect(this.bus.ambiente); }
+    f.start();
+  },
 };
 for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
 
+let _proxCanto = 8;
 // Música: de dia a do dia, da noite a da noite (a partir das 18h); na pensão, a calma da Vila.
 setInterval(() => {
   if (!G.comecou || !sons.ctx) return;
   sons.musica(G.mapaId === 'pensao_dentro' ? 'vila_calma' : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
-  // Fora de casa: passarinhos de dia e o vento acompanhando as rajadas (vida.js); dentro de casa, silêncio lá fora.
+  // Fora de casa: o fundo do dia (passarinhos) ou da noite (grilos, sapos), e a brisa acompanhando o vento (vida.js).
+  // Os fundos são laços longos emendados sem pausa (produzir_ambiente.sh); dentro de casa, só um fio do lado de fora.
   const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;
-  sons.ambiente('passaros', fora && dia ? 0.35 : 0);
-  sons.ambiente('vento', fora ? 0.08 + 0.3 * (typeof VIDA !== 'undefined' ? VIDA.vento : 0.5) : 0);
+  const vento = typeof VIDA !== 'undefined' ? VIDA.vento : 0.5;
+  sons.ambiente('amb_dia', fora && dia ? 0.45 : (dia ? 0.06 : 0));
+  sons.ambiente('amb_noite', fora && !dia ? 0.5 : (!dia ? 0.07 : 0));
+  sons.ambiente('amb_vento', fora ? 0.1 + 0.25 * vento : 0);
+  // Cantos avulsos de dia, em horas sorteadas e de lados diferentes (nunca o mesmo desenho do laço).
+  _proxCanto -= 1;
+  if (fora && dia && _proxCanto <= 0) { _proxCanto = Math.round(rnd(6, 18)); sons.avulso(sorteio(['avulso_bemtevi', 'avulso_sabia', 'avulso_rolinha']), rnd(-0.85, 0.85), rnd(-12, -5)); }
 }, 1000);
 // Passos pelo piso (grama, chão de terra/calçada, madeira dentro da pensão).
 let _passoT = 0;

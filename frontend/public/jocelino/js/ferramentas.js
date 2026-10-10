@@ -126,14 +126,15 @@ ATUALIZADORES.push(dt => {
     }
   }
   m.itens = m.itens.filter(i => !i.pegou);
+  if (LASCAS._mapa !== G.mapaId) { LASCAS.length = 0; LASCAS._mapa = G.mapaId; }   // trocou de mapa: as lascas ficam para trás
   for (const l of LASCAS) { l.t += dt; l.x += l.vx * dt; l.y += l.vy * dt; l.vy += 600 * dt; }
   for (let i = LASCAS.length - 1; i >= 0; i--) if (LASCAS[i].t > 0.5) LASCAS.splice(i, 1);
 });
 
 // Lascas que voam no golpe (terra, madeira, pedra, água).
 const LASCAS = [];
-const COR_LASCA = { pedra: '#8a8a8a', madeira: '#8a5a2b', mato: '#5e9a3a', agua: '#8cc8ff' };
-function lascas(x, y, tipo) { for (let k = 0; k < 7; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, cor: COR_LASCA[tipo] || '#a07850' }); }
+const FX_LASCA = { pedra: 'lasca_pedra', madeira: 'lasca_madeira', mato: 'lasca_mato', agua: 'gota' };
+function lascas(x, y, tipo) { for (let k = 0; k < 7; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, fx: FX_LASCA[tipo] || 'lasca_terra' }); }
 
 // ---------- a animação do golpe ----------
 // Como o Stardew: o golpe pesado (picareta, machado, pá) sobe a ferramenta por cima da cabeça, segura um instante e desce
@@ -245,13 +246,12 @@ function desenhaFerramenta(ctx, j, atras) {
   if (j.golpeItem === 'regador' && t > 0.18 && t < 0.47 && j.golpeAlvo) {
     const bx = j.x + q.hx + (j.dir === DIR.ESQUERDA ? -16 : j.dir === DIR.DIREITA ? 16 : 0), by = j.y + q.hy;
     const cx = (j.golpeAlvo.x + 0.5) * TILE, cy = (j.golpeAlvo.y + 0.5) * TILE;
-    ctx.fillStyle = 'rgba(140,200,255,.9)';
-    for (let k = 0; k < 6; k++) { const u = (t * 5 + k / 6) % 1; ctx.fillRect(_suave(bx, cx, u) + Math.sin(k * 7) * 6 - 2, _suave(by, cy, u) - 2, 4, 5); }
+    for (let k = 0; k < 6; k++) { const u = (t * 5 + k / 6) % 1; desenhaFx(ctx, 'gota', _suave(bx, cx, u) + Math.sin(k * 7) * 6, _suave(by, cy, u)); }
   }
 }
 // As lascas (sempre) e a ferramenta da frente (chamado depois do corpo).
 function desenhaGolpe(ctx, j) {
-  for (const l of LASCAS) { ctx.fillStyle = l.cor; ctx.fillRect(l.x - 3, l.y - 3, 6, 6); }
+  for (const l of LASCAS) desenhaFx(ctx, l.fx, l.x, l.y, { ang: l.t * 9, alfa: Math.max(0, 1 - l.t * 1.6) });
   desenhaFerramenta(ctx, j, false);
 }
 

@@ -37,5 +37,20 @@ function desenhaPe(ctx, nome, x, y, alfa = 1, escala = 1) {
   if (alfa !== 1) { ctx.globalAlpha = alfa; ctx.drawImage(img, x - w / 2, y - h, w, h); ctx.globalAlpha = 1; }
   else ctx.drawImage(img, x - w / 2, y - h, w, h);
 }
+// Peça de efeito (a/fx/*.webp, gerada no Higgsfield): centrada em (x, y), com escala, giro, espelho e transparência.
+// Sem a arte carregada não desenha nada (nada de arte provisória feita por código).
+function desenhaFx(ctx, nome, x, y, o = {}) {
+  const img = spr('fx/' + nome);
+  if (!img) return false;
+  const e = o.escala || 1, w = img.naturalWidth * e, h = img.naturalHeight * e;
+  ctx.save();
+  if (o.alfa != null) ctx.globalAlpha *= o.alfa;
+  ctx.translate(x, y);
+  if (o.ang) ctx.rotate(o.ang);
+  if (o.espelho) ctx.scale(-1, 1);
+  ctx.drawImage(img, -w / 2, o.base ? -h : -h / 2, w, h);
+  ctx.restore();
+  return true;
+}
 // Ícone de item (para o HTML).
 const urlItem = id => 'a/itens/' + id + '.webp';

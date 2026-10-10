@@ -285,19 +285,20 @@ function desenhaBaloes(ctx, b) {
     if (m.estado === 'comendo') {
       const fr = FRASES_CLIENTE[m.reacao] || ['Hmm!'];
       texto(ctx, fr[(i + m.vezes) % fr.length], x, y + 8, 17, '#fff');
-      if (m.reacao === 'coracao') { ctx.fillStyle = '#e8452c'; ctx.beginPath(); ctx.arc(x - 6, y - 14, 7, 0, 7); ctx.arc(x + 6, y - 14, 7, 0, 7); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - 13, y - 11); ctx.lineTo(x + 13, y - 11); ctx.lineTo(x, y + 2); ctx.fill(); }
+      if (m.reacao === 'coracao') desenhaFx(ctx, 'coracao', x, y - 18);
       ctx.restore(); return;
     }
     // Balão branco com o pedido (cinza enquanto a Rosa prepara), rabicho e paciência.
-    ctx.fillStyle = '#131b1b'; ctx.beginPath(); ctx.arc(x, y, 27, 0, 7); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 24, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x - 9, y + 20); ctx.lineTo(x + 9, y + 20); ctx.lineTo(x, y + 36); ctx.fill();
+    desenhaFx(ctx, m.estado === 'prato' && !m.pronto ? 'balao_pensamento' : 'balao', x, y + 6);
     if (m.estado === 'pedido') texto(ctx, '!', x, y + 12, 34, '#e8452c', '900');
     else { ctx.globalAlpha = m.pronto ? 1 : 0.45; desenhaPe(ctx, 'itens/prato_' + m.prato, x, y + 20, 1, 0.82); ctx.globalAlpha = 1; }
     const lim = m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO;
     const f = clamp(1 - m.espera / lim, 0, 1);
-    ctx.fillStyle = '#3a2a22'; ctx.fillRect(x - 30, y + 40, 60, 8);
-    ctx.fillStyle = f > 0.5 ? '#5ec43a' : f > 0.25 ? '#e8c22c' : '#e8452c'; ctx.fillRect(x - 30, y + 40, 60 * f, 8);
+    // Paciência: o miolo colorido dentro da moldura de madeira (a/fx/barra_moldura).
+    if (spr('fx/barra_moldura')) {
+      ctx.fillStyle = f > 0.5 ? '#5ec43a' : f > 0.25 ? '#e8c22c' : '#e8452c'; ctx.fillRect(x - 27, y + 41, 54 * f, 6);
+      desenhaFx(ctx, 'barra_moldura', x, y + 44);
+    }
     ctx.restore();
   });
 }

@@ -54,9 +54,7 @@ class Personagem {
     if (this._coracao > 0) {
       this._coracao -= 1 / 60;
       const k = 1 - this._coracao / 1.2;
-      ctx.save(); ctx.globalAlpha = Math.min(1, this._coracao * 2); ctx.font = '700 26px Fredoka'; ctx.textAlign = 'center';
-      ctx.lineWidth = 4; ctx.strokeStyle = '#2a0e0e'; ctx.strokeText('♥', this.x, this.y - qh - 6 - k * 30); ctx.fillStyle = '#ff5a6e'; ctx.fillText('♥', this.x, this.y - qh - 6 - k * 30);
-      ctx.restore();
+      desenhaFx(ctx, 'coracao', this.x, this.y - qh - 14 - k * 30, { alfa: Math.min(1, this._coracao * 2) });
     }
   }
 }
