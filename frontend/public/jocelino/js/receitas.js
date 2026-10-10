@@ -51,7 +51,7 @@ const RECEITAS_NOVAS = {
   moqueca_prefeito: _rec('Moqueca do Prefeito', 55, 4, 'vip', { robalo: 1, camarao: 1, dende: 1 }, 'itens/prato_moqueca_prefeito', 'O Seu Orlando ensinou a receita da família dele. Vem com bandeirinha.', { vip: 'orlando' }),
   caldeirada_critico: _rec('Caldeirada do Crítico', 70, 4, 'vip', { lagosta: 1, polvo: 1, tomate: 1 }, 'itens/prato_caldeirada_critico', 'O Seu Aurélio só escreveu bem depois que a Rosa acertou esta.', { vip: 'aurelio' }),
   doce_leite_calixto: _rec('Doce de Leite do Calixto', 30, 4, 'vip', { leite: 3, acucar: 2 }, 'itens/prato_doce_leite_calixto', 'Do tacho da mãe do Calixto, lá de Aracaju.', { vip: 'calixto' }),
-  picadinho_santos: _rec('Picadinho do Seu Santos', 40, 4, 'vip', { carne_seca: 2, arroz: 1, feijao: 1 }, 'itens/prato_picadinho_santos', 'O prato que o patrão come toda sexta. Com farofa e banana.', { vip: 'santos' }),
+  picadinho_santos: _rec('Picadinho do Seu Moreira', 40, 4, 'vip', { carne_seca: 2, arroz: 1, feijao: 1 }, 'itens/prato_picadinho_santos', 'O prato que o patrão come toda sexta. Com farofa e banana.', { vip: 'santos' }),
   arroz_polvo: _rec('Arroz de Polvo da Capital', 65, 4, 'viajante', { polvo: 1, arroz: 1, tomate: 1 }, 'itens/prato_arroz_polvo', 'Receita de restaurante chique da Capital, comprada do Viajante.'),
   vatapa: _rec('Vatapá da Rosa', 48, 4, 'chef', { camarao: 1, leite_coco: 1, dende: 1, farinha: 1 }, 'itens/prato_vatapa', 'A obra-prima da Rosa. Ela só inventou depois de muito fogão.'),
 };

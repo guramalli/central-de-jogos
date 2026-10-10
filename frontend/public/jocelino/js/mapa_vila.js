@@ -1,5 +1,5 @@
 // Jocelino — mapa_vila.js — a rua da Vila Maré (jogo/mundo/mapa_vila.gd): o depósito do Seu Ananias, a ferraria
-// do Seu Tonico, a obra da J. Santos (a do Mestre Bira, que vira o "mergulho" na fase 2), o Mercado, o Museu, a
+// do Seu Tonico, a obra da J. Moreira (a do Mestre Bira, que vira o "mergulho" na fase 2), o Mercado, o Museu, a
 // Pensão da Rosa (a casa da Dona Cotinha, entre o depósito e a ferraria) e as saídas.
 
 MAPAS_DEF.vila = () => {
@@ -24,7 +24,7 @@ MAPAS_DEF.vila = () => {
   dep.acao = () => (typeof entrarDeposito === 'function' ? entrarDeposito() : abrirPlaca('O depósito do Seu Ananias.'));
   b.enfeite('objetos/monte_tijolos', 3, 8, true, 26);
   b.morador('ananias', 'Seu Ananias', 10, 10, DIR.BAIXO, { vagueia: true, area: { x: 4 * TILE, y: 10 * TILE + 42, w: 8 * TILE, h: 1 * TILE } });   // na calçada do depósito
-  // A obra da J. Santos (do Mestre Bira): um canteiro com corredores de 2 ladrilhos entre as coisas, para trabalhar
+  // A obra da J. Moreira (do Mestre Bira): um canteiro com corredores de 2 ladrilhos entre as coisas, para trabalhar
   // andando em volta (a prancheta na entrada, junto da calçada).
   b.interativo('prancheta_obra', 'objetos/prancheta_reforma', 29, 8, 1, 1, [8, 6]).acao = () => abrirPlaca('A prancheta do Mestre Bira com a lista do dia.');
   b.enfeite('objetos/sacos_cimento', 29, 4, true, 26);

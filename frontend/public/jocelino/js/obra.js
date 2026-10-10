@@ -37,7 +37,7 @@ const OBRAS = [
     arte: n => 'objetos/mercado_' + Math.min(3, n) },
   { id: 'escola', nome: 'Escola da Vila', cliente: 'Professor Paulo', mapa: 'vila', etapas: ETAPAS_CASA, premios: PREMIOS_CASA,
     arte: n => n < 2 ? 'objetos/alicerce' : n < 5 ? 'objetos/muro' : 'objetos/escola' },
-  { id: 'predio', nome: 'Edifício Maré', cliente: 'J. Santos', mapa: 'vila',
+  { id: 'predio', nome: 'Edifício Maré', cliente: 'J. Moreira', mapa: 'vila',
     etapas: ['Fundação', 'Térreo', '1º andar', '2º andar', '3º andar', '4º andar', 'Cobertura'].map((nome, i) => ({ nome, tarefas: i === 0 ? ['pedras', 'areia', 'massa', 'entulho'] : ['tijolos', 'massa', 'ripas', 'molhar', 'entulho'] })),
     premios: Array.from({ length: 7 }, (_, i) => i === 6 ? { dinheiro: 1000, itens: { barra_aco: 3, madeira_lei: 5 } } : { dinheiro: 150, itens: { cimento: 3 } }),
     arte: n => 'objetos/predio_' + Math.min(7, n + 1) },

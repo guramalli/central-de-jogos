@@ -28,12 +28,12 @@ function conversarBira() {
     const itens = r.premio ? Object.entries(r.premio.itens).map(([id, q]) => Itens.qtd(q, id)).join(', ') : '';
     sons.tocar('fanfarra', 1, 0, -6);
     if (r.obraPronta) return falaBira([`${r.nomeObra} pronta! Festa da cumeeira, rapaz! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}.`,
-      Obra.obra().id === 'reformas' && o.funcao < 3 ? 'O Edifício Maré do Seu Santos é serviço pra mestre de obras. Até lá, a gente toca as reformas pela Vila.' : `A próxima obra é ${Obra.obra().nome}. Começa do zero.`]);
+      Obra.obra().id === 'reformas' && o.funcao < 3 ? 'O Edifício Maré do Seu Moreira é serviço pra mestre de obras. Até lá, a gente toca as reformas pela Vila.' : `A próxima obra é ${Obra.obra().nome}. Começa do zero.`]);
     return falaBira(`Etapa entregue! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}. Amanhã começa a etapa: ${Obra.obra().etapas[o.etapa].nome}. O serviço muda.`);
   }
   // 2) A parte de ontem (ou de hoje cedo).
   if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(`A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
-  // A promoção (meio-oficial e pedreiro: o Bira; mestre de obras: o Seu Santos, no canteiro).
+  // A promoção (meio-oficial e pedreiro: o Bira; mestre de obras: o Seu Moreira, no canteiro).
   if (Obra.podeSubir() && o.funcao < 2) {
     if (o.funcao === 0 && !G.mochila.cabe('colher')) return falaBira('Rapaz, tenho novidade pra você. Mas abre um espaço na mochila primeiro!');
     const f = Obra.subir(); sons.tocar('fanfarra', 1, 0, -4);
@@ -94,10 +94,10 @@ function poeObraNoMapa(b) {
     if ((daVez || G.obra.indice > idx) && !ob) { ob = b.interativo('obra_' + obraId, 'objetos/alicerce', x, y, w, h); ob.obraId = obraId; }
     if (ob) { ob.nome = daVez ? Obra.arteAtual() : (obraId === 'escola' ? 'objetos/escola' : 'objetos/predio_7'); ob.acao = () => acaoNaObra(ob); ob.ferramenta = (o2, id) => ferramentaNaObra(o2, id); }
   }
-  // O Seu Santos vem oferecer o cargo de mestre de obras (volta todo dia até aceitar).
+  // O Seu Moreira vem oferecer o cargo de mestre de obras (volta todo dia até aceitar).
   const santos = b.moradores.find(m => m.id === 'santos');
   if (G.obra.funcao === 2 && Obra.podeSubir()) {
-    if (!santos) { const s = b.morador('santos', 'Seu Santos', 34, 6, DIR.ESQUERDA); s.aoConversar = () => propostaDeMestre(); }
+    if (!santos) { const s = b.morador('santos', 'Seu Moreira', 34, 6, DIR.ESQUERDA); s.aoConversar = () => propostaDeMestre(); }
   } else if (santos) b.moradores = b.moradores.filter(m => m !== santos);
   const ze = b.moradores.find(m => m.id === 'ze'); if (ze) ze.aoConversar = () => conversarZe(ze);
   for (const [id, f] of [['monte_tijolos', pegarDoMonte], ['pilha_ripas', () => pegarCargaObra('ripa', 'objetos/pilha_ripas', 'ripas')], ['peneira', peneirar], ['masseira', () => pegarCargaObra('massa', 'objetos/masseira', 'massa')]]) {
@@ -105,9 +105,9 @@ function poeObraNoMapa(b) {
   }
 }
 function propostaDeMestre() {
-  abrirConversa('Seu Santos', urlArte('retratos/santos_normal'), ['Jocelino, o Bira me contou: quatro obras entregues, empreita pela Vila inteira, parede no prumo.', 'Quero você de mestre de obras. Vai comandar a turma: o Zé, o Severino, o Cícero e o Damião. A primeira obra é o Edifício Maré.'],
-    () => perguntar('Seu Santos: "Aceita ser mestre de obras da J. Santos?"', ['Aceito!', 'Agora não'], i => {
-      if (i !== 0) { avisar('O Seu Santos volta amanhã para perguntar de novo.'); return; }
+  abrirConversa('Seu Moreira', urlArte('retratos/santos_normal'), ['Jocelino, o Bira me contou: quatro obras entregues, empreita pela Vila inteira, parede no prumo.', 'Quero você de mestre de obras. Vai comandar a turma: o Zé, o Severino, o Cícero e o Damião. A primeira obra é o Edifício Maré.'],
+    () => perguntar('Seu Moreira: "Aceita ser mestre de obras da J. Moreira?"', ['Aceito!', 'Agora não'], i => {
+      if (i !== 0) { avisar('O Seu Moreira volta amanhã para perguntar de novo.'); return; }
       Obra.subir(); G.obra.indice = 3; G.obra.etapa = 0; G.obra.diasEtapa = 0; G.obra.lista = null;
       if (typeof EquipeObra !== 'undefined') EquipeObra.iniciar({});
       sons.tocar('fanfarra', 1, 0, -2); avisar('Mestre de obras! A diária agora é Cr$ 90. A turma espera as ordens na prancheta.');
@@ -117,7 +117,7 @@ function propostaDeMestre() {
 }
 function obraDaVez(o) { return o.obraId === (Obra.obra().lugar || Obra.obra().id); }
 function acaoNaObra(o) {
-  if (!obraDaVez(o)) { abrirPlaca({ casa_zelia: 'A casa da Dona Zélia, pronta. Bonita, né?', mercado: G.obra.indice > 1 ? 'O Mercado Municipal reformado e aberto.' : 'O Mercado Municipal, precisando de reforma.', escola: 'A Escola da Vila, pronta para as crianças.', predio: 'O Edifício Maré da J. Santos.' }[o.obraId] || ''); return true; }
+  if (!obraDaVez(o)) { abrirPlaca({ casa_zelia: 'A casa da Dona Zélia, pronta. Bonita, né?', mercado: G.obra.indice > 1 ? 'O Mercado Municipal reformado e aberto.' : 'O Mercado Municipal, precisando de reforma.', escola: 'A Escola da Vila, pronta para as crianças.', predio: 'O Edifício Maré da J. Moreira.' }[o.obraId] || ''); return true; }
   const l = listaDeHoje(), c = G.jog.carga || {};
   if (c.id && CARGA_TAREFA[c.id]) {
     const t = c.id === 'pedra' && l && l.metas.buscar_pedra ? 'buscar_pedra' : CARGA_TAREFA[c.id];
@@ -223,7 +223,7 @@ NOITE.push(linhas => {
   if (r.etapaNova) { G.obra.gratificacao = Object.assign({ nomeObra: nome }, r); linhas.push(r.obraPronta ? `${nome} ficou pronta! O Mestre Bira quer falar com você.` : `A obra avançou: começa a etapa ${Obra.obra().etapas[G.obra.etapa].nome}.`); }
   if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
 });
-TAREFAS.push(() => G.obra && Obra.podeSubir() ? [{ texto: G.obra.funcao === 2 ? '★ Carreira: o Seu Santos quer falar com você no canteiro' : '★ Carreira: fale com o Mestre Bira (promoção!)' }] : []);
+TAREFAS.push(() => G.obra && Obra.podeSubir() ? [{ texto: G.obra.funcao === 2 ? '★ Carreira: o Seu Moreira quer falar com você no canteiro' : '★ Carreira: fale com o Mestre Bira (promoção!)' }] : []);
 TAREFAS.push(() => {
   if (!G.obra) return [];
   const l = listaDeHoje(), fechada = Obra.aberta(G.dia, G.minutos);

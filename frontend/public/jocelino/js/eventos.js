@@ -12,8 +12,8 @@ const VIPS = [
     carta: 'Gabinete do Prefeito: o Seu Orlando vai jantar amanhã na Pensão da Rosa para conhecer o tal PF famoso. Capricho, que é ano de eleição!', frase: 'Essa pensão merece uma placa!' },
   { id: 'calixto', nome: 'Seu Calixto, o caminhoneiro', gosta: ['bolo_milho', 'pamonha', 'cocada_tijolinho', 'rabanada'], premio: { dinheiro: 40, curtidas: 6, pitadas: 6 },
     carta: 'O caminhoneiro Calixto passa amanhã pela Vila e quer um doce que lembre a casa da mãe dele, lá em Aracaju. Ele paga em receita: sabe tudo de tempero!', frase: 'Igualzinho o da minha mãe! Toma, uns segredos de tempero.' },
-  { id: 'santos', nome: 'Seu Santos, dono da firma', gosta: ['marmita_peao', 'moqueca', 'pf_peao'], premio: { dinheiro: 80, curtidas: 10, pitadas: 2 },
-    carta: 'A J. Santos Construções avisa: o patrão, Seu Santos, vai jantar na pensão amanhã. Se gostar, manda a peãozada inteira comer aí.', frase: 'Vou mandar meus peões todos pra cá!' },
+  { id: 'santos', nome: 'Seu Moreira, dono da firma', gosta: ['marmita_peao', 'moqueca', 'pf_peao'], premio: { dinheiro: 80, curtidas: 10, pitadas: 2 },
+    carta: 'A J. Moreira Construções avisa: o patrão, Seu Moreira, vai jantar na pensão amanhã. Se gostar, manda a peãozada inteira comer aí.', frase: 'Vou mandar meus peões todos pra cá!' },
 ];
 const FESTAS = [
   { nome: 'Noite do PF em Dobro', pratos: ['pf_peao', 'marmita_peao'] },

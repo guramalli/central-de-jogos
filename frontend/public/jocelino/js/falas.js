@@ -15,7 +15,7 @@ Object.assign(FALAS, {
   },
   zezinho: () => _porDia([['Pai! Pai! Achei uma pedra que parece um sapo!', '...Não, espera. Era um sapo mesmo. Ele fugiu.'], ['Quando eu crescer vou ser pedreiro igual o Mestre Bira!'], ['Aposto que eu quebro mais pedra que o senhor!']]),
   ritinha: () => _porDia([['Pai, se quiser eu faço as contas da pensão!', 'Doze cruzeiros o PF, vezes dez... dá cento e vinte!'], ['Cinco sacos de cimento a doze cruzeiros... dá sessenta! Viu só?']]),
-  bira: ['Então você é o sobrinho do Juca? A obra da J. Santos é aqui. Por enquanto a turma tá completa, rapaz.', 'Mas ó: se a sua patroa abrir aquela pensão, a peãozada inteira vai jantar lá!'],
+  bira: ['Então você é o sobrinho do Juca? A obra da J. Moreira é aqui. Por enquanto a turma tá completa, rapaz.', 'Mas ó: se a sua patroa abrir aquela pensão, a peãozada inteira vai jantar lá!'],
   ze: () => _porDia([['Massa boa é igual feijão: nem mole, nem dura.'], ['Tijolo por tijolo, Jocelino. Pressa só serve pra entortar parede.']]),
   zelia: () => _porDia([['Ai, meu filho, cuidado com as minhas plantas, viu?', 'Essa casa é pra minha filha que vem da capital. Capricha!'], ['Dizem que a pensão da Cotinha vai abrir de novo. Que saudade de um caldo verde!']]),
   ananias: ['Pois não, freguês? Ananias, às ordens.', 'Telha é dois cruzeiros. E pra pensão da sua patroa eu tenho a Mercearia: arroz, feijão, farinha e ovo.'],
