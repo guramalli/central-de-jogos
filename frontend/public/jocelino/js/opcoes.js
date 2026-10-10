@@ -2,11 +2,11 @@
 // e os nomes no mapa (nunca, perto, sempre). Fica guardado no navegador (localStorage 'jocelino_opcoes'), separado do save.
 
 const CHAVE_OPCOES = 'jocelino_opcoes';
-G.opcoes = { nomes: 1 };
+G.opcoes = { nomes: 1, zoom: 100 };
 (() => {
-  try { const o = JSON.parse(localStorage.getItem(CHAVE_OPCOES) || '{}'); if (o.volumes) Object.assign(sons.volumes, o.volumes); if (o.nomes != null) G.opcoes.nomes = o.nomes; } catch (e) {}
+  try { const o = JSON.parse(localStorage.getItem(CHAVE_OPCOES) || '{}'); if (o.volumes) Object.assign(sons.volumes, o.volumes); if (o.nomes != null) G.opcoes.nomes = o.nomes; if (o.zoom) G.opcoes.zoom = o.zoom; } catch (e) {}
 })();
-function salvarOpcoes() { try { localStorage.setItem(CHAVE_OPCOES, JSON.stringify({ volumes: sons.volumes, nomes: G.opcoes.nomes })); } catch (e) {} }
+function salvarOpcoes() { try { localStorage.setItem(CHAVE_OPCOES, JSON.stringify({ volumes: sons.volumes, nomes: G.opcoes.nomes, zoom: G.opcoes.zoom })); } catch (e) {} }
 
 const NOMES_VOLUME = { musica: 'Música', ambiente: 'Sons do ambiente', efeitos: 'Efeitos', interface: 'Sons da interface' };
 const NOMES_MODO_NOMES = ['Nunca', 'Perto', 'Sempre'];
@@ -20,6 +20,8 @@ function abrirOpcoes() {
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); sons.volumes[b] = clamp(sons.volumes[b] - 10, 0, 100); sons.aplicarVolumes(); salvarOpcoes(); desenha(); } }, '−'),
       el('div', { style: 'width:64px;text-align:center' }, sons.volumes[b] + '%'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); sons.volumes[b] = clamp(sons.volumes[b] + 10, 0, 100); sons.aplicarVolumes(); salvarOpcoes(); sons.tocar('cursor'); desenha(); } }, '+')));
+    const zoom = d => e => { e.stopPropagation(); G.opcoes.zoom = clamp(G.opcoes.zoom + d, 70, 150); ajustaZoom(); salvarOpcoes(); desenha(); };
+    caixa.append(linha('Zoom', el('button', { class: 'botao', onclick: zoom(-10) }, '−'), el('div', { style: 'width:64px;text-align:center' }, G.opcoes.zoom + '%'), el('button', { class: 'botao', onclick: zoom(10) }, '+')));
     caixa.append(linha('Tela cheia (F)', el('button', { class: 'botao', style: 'min-width:150px', onclick: e => { e.stopPropagation(); alternaTelaCheia(); setTimeout(desenha, 300); } }, document.fullscreenElement ? 'Ligada' : 'Desligada')));
     caixa.append(linha('Nomes no mapa', el('button', { class: 'botao', style: 'min-width:150px', onclick: e => { e.stopPropagation(); G.opcoes.nomes = (G.opcoes.nomes + 1) % 3; salvarOpcoes(); desenha(); } }, NOMES_MODO_NOMES[G.opcoes.nomes])));
     caixa.append(el('div', { class: 'rodape', style: 'text-align:left;line-height:1.6' },

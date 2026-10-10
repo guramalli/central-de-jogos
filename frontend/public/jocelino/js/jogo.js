@@ -2,7 +2,8 @@
 // O canvas ocupa a janela toda (× devicePixelRatio, no máximo 2): o mundo aparece com uns 15 ladrilhos de largura;
 // um cômodo "de tela cheia" (o salão da pensão) enquadra o cenário inteiro, como o sushi bar do Dave.
 
-const LADRILHOS_NA_TELA = 15;
+// Como o Stardew em 1080p com zoom 100%: uns 17 ladrilhos de altura (30 de largura numa tela larga).
+const LADRILHOS_DE_ALTURA = 17;
 let ctx = null;
 
 function ajustaCanvas() {
@@ -19,7 +20,12 @@ function ajustaCanvas() {
 function ajustaZoom() {
   const q = G.mapa && G.mapa.enquadramento;
   if (q) G.zoom = Math.max(G.larg / q.w, G.alt / q.h);
-  else G.zoom = Math.max(G.larg / (LADRILHOS_NA_TELA * TILE), G.alt / (LADRILHOS_NA_TELA * 0.62 * TILE));
+  else {
+    const pct = (G.opcoes && G.opcoes.zoom) || 100;
+    G.zoom = G.alt / (LADRILHOS_DE_ALTURA * TILE) * pct / 100;
+    // Nunca mais longe que o mapa inteiro (sem faixa preta em volta).
+    if (G.mapa) G.zoom = Math.max(G.zoom, G.larg / (G.mapa.larg * TILE), G.alt / (G.mapa.alt * TILE));
+  }
 }
 
 // Câmera presa ao mapa (ou ao enquadramento do cômodo); segue o Jocelino suavemente.

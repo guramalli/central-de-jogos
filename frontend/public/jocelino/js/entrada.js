@@ -28,7 +28,8 @@ function instalaEntrada() {
   addEventListener('blur', () => G.teclas.clear());
   const cv = $('#tela');
   cv.addEventListener('mousemove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY; });
-  cv.addEventListener('contextmenu', e => e.preventDefault());
+  // O botão direito é do jogo em qualquer lugar da página (conversa, mochila, loja): nunca abre o menu do navegador.
+  addEventListener('contextmenu', e => e.preventDefault());
   cv.addEventListener('mousedown', e => {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
