@@ -57,7 +57,7 @@ MAPAS_DEF.vila = () => {
   b.morador('tonico', 'Seu Tonico', 19, 17, DIR.BAIXO, { vagueia: true, area: { x: 18 * TILE, y: 16 * TILE + 42, w: 3 * TILE, h: 3 * TILE } });   // na porta da ferraria
   // As placas de serviço juntas, à direita do caminho de quem chega do quintal (como o quadro e o calendário do Pierre).
   b.interativo('calendario', 'objetos/calendario', 25, 5, 2, 1, [12, 6]).acao = () => abrirPlaca('O calendário da Vila: festas e aniversários.');
-  b.interativo('quadro_pedidos', 'objetos/quadro_pedidos', 25, 8, 2, 1, [28, 6]).acao = () => (typeof abrirQuadroPedidos === 'function' ? abrirQuadroPedidos() : abrirPlaca('O quadro de pedidos dos clientes da Vila.'));
+  b.interativo('quadro_pedidos', 'objetos/quadro_pedidos', 25, 8, 2, 1, [28, 6]).acao = () => (typeof abrirQuadro === 'function' ? abrirQuadro() : abrirPlaca('O quadro de pedidos dos clientes da Vila.'));
   for (const t of [[10, 22], [26, 21], [21, 22]]) b.enfeite('objetos/coqueiro', t[0], t[1], true, 10);
   for (const t of [[2, 9], [44, 16]]) b.interativo('latao_lixo', 'objetos/latao_lixo', t[0], t[1], 1, 1, [10, 6]).acao = () => abrirPlaca('Um latão de lixo. Nada de útil hoje.');
   b.interativo('roda_samba', 'objetos/roda_samba', 29, 19, 1, 1, [12, 6], false).acao = () => abrirPlaca('Roda de samba da praça. Toda sexta, das 7 da noite às 10 e meia!');
