@@ -113,6 +113,7 @@ function poePeoes(b) {
   }
 }
 function conversarPeao(id) {
+  if (id === 'ze' && G.jog.carga && G.jog.carga.id === 'massa') return conversarZe();
   const comida = itemDaMao(), e = comida && Itens.energia(comida);
   if (e) { G.mochila.remover(comida, 1); EquipeObra.comer(id, comida); hudSujo(); sons.tocar('pegar', 0.8, 0.05, -6); avisar(`${peao(id).nome} comeu ${Itens.nome(comida).toLowerCase()}${comida === 'marmita' ? ' (a marmita da Rosa dá sustância!)' : ''}.`); return true; }
   const h = EquipeObra.conversar(id), p = peao(id);

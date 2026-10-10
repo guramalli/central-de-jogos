@@ -4,6 +4,7 @@
 
 // A rocha comum da pedreira dá 1 pedra (pedreira.gd; o dados.js veio sem o que ela solta).
 DETRITOS.rocha.solta = { pedra: 1 };
+DETRITOS.ferro.solta = { ferro_velho: 2 };
 
 MAPAS_DEF.pedreira = () => {
   const b = new Construtor('pedreira', 22, 15, 1979);

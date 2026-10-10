@@ -42,6 +42,10 @@ const OBRAS = [
     premios: Array.from({ length: 7 }, (_, i) => i === 6 ? { dinheiro: 1000, itens: { barra_aco: 3, madeira_lei: 5 } } : { dinheiro: 150, itens: { cimento: 3 } }),
     arte: n => 'objetos/predio_' + Math.min(7, n + 1) },
 ];
+// As reformas pela Vila (no Mercado): o que o Bira toca enquanto o pedreiro não vira mestre (o Edifício Maré é do mestre)
+// e o que o mestre recomeça depois do prédio, até a construtora.
+const REFORMAS = { id: 'reformas', nome: 'Reformas pela Vila', cliente: 'moradores', mapa: 'vila', lugar: 'mercado',
+  etapas: [ETAPAS_CASA[3], ETAPAS_CASA[5]], premios: [{ dinheiro: 40, itens: { cimento: 2 } }, { dinheiro: 80, itens: { tijolo: 20 } }], arte: () => 'objetos/mercado_3' };
 
 // O que cada função pede (obras do Bira entregues, nível de Alvenaria, empreitas entregues).
 const REQUISITOS_FUNCAO = [null, { obras: 1, alvenaria: 2, empreitas: 0 }, { obras: 2, alvenaria: 4, empreitas: 3 }, { obras: 4, alvenaria: 6, empreitas: 10 }];
@@ -49,10 +53,11 @@ const Obra = {
   iniciar(s) {
     const o = s.obra || {};
     G.obra = { indice: o.indice || 0, etapa: o.etapa || 0, diasEtapa: o.diasEtapa || 0, funcao: o.funcao || 0, entregues: o.entregues || 0,
-      lista: o.lista ? JSON.parse(JSON.stringify(o.lista)) : null, aReceber: o.aReceber || 0, primeira: o.primeira !== false };
+      lista: o.lista ? JSON.parse(JSON.stringify(o.lista)) : null, aReceber: o.aReceber || 0, primeira: o.primeira !== false, gratificacao: o.gratificacao || null };
+    if (G.obra.etapa >= Obra.obra().etapas.length) { G.obra.etapa = 0; G.obra.diasEtapa = 0; }   // save antigo do pedreiro no meio do prédio
   },
   salvar(s) { s.obra = JSON.parse(JSON.stringify(G.obra)); },
-  obra() { return OBRAS[Math.min(G.obra.indice, OBRAS.length - 1)]; },
+  obra() { return G.obra.indice >= OBRAS.length || (G.obra.indice === 3 && G.obra.funcao < 3) ? REFORMAS : OBRAS[G.obra.indice]; },
   arteAtual() { return Obra.obra().arte(G.obra.etapa); },
   diaria() { return DIARIAS[G.obra.funcao]; },
   // O que ainda falta para a função f (0 em tudo = pode subir).
@@ -105,13 +110,15 @@ const Obra = {
     const l = G.obra.lista;
     if (!l || l.paga || !Obra.completa()) return 0;
     l.paga = true; l.contou = true;
-    const extra = (l.valorExtra || 0) + (G.obra.funcao >= 3 ? 20 : 0); l.valorExtra = 0;   // o mestre ganha o dia redondo
-    return Obra.diaria() + extra + (l.metas.buscar_cimento ? OBRA_GORJETA : 0) + (typeof Habilidades !== 'undefined' ? (Habilidades.tem('prumo_de_ouro') ? 15 : Habilidades.tem('olho_de_prumo') ? 5 : 0) : 0);
+    if (l.extra) { const v = l.valorExtra || 0; l.valorExtra = 0; return v; }
+    return Obra.diaria() + (G.obra.funcao >= 3 ? 20 : 0) +   // o mestre ganha o dia redondo
+      (l.metas.buscar_cimento ? OBRA_GORJETA : 0) + (typeof Habilidades !== 'undefined' ? (Habilidades.tem('prumo_de_ouro') ? 15 : Habilidades.tem('olho_de_prumo') ? 5 : 0) : 0);
   },
   // Meio-dia (ou a noite, se o jogador não voltou ao Bira): a parte feita vira dinheiro a receber; ≥ 50% conta o dia.
   fecharDia() {
     const l = G.obra.lista;
     if (!l || l.paga || l.fechado) return { fracao: 0, valor: 0, contou: !!(l && l.contou) };
+    if (l.extra) { l.fechado = true; return { fracao: Obra.fracao(), valor: 0, contou: true }; }   // a diária já saiu; o extra pela metade não paga
     const fr = Obra.fracao(), valor = Math.floor(Obra.diaria() * fr);
     l.fechado = true; l.contou = fr >= 0.5; G.obra.aReceber += valor;
     return { fracao: fr, valor, contou: l.contou };
@@ -123,7 +130,7 @@ const Obra = {
     if (G.obra.diasEtapa < DIAS_POR_ETAPA) return r;
     G.obra.diasEtapa = 0; r.etapaNova = true; r.premio = o.premios[G.obra.etapa];
     if (G.obra.etapa + 1 >= o.etapas.length && typeof Habilidades !== 'undefined' && Habilidades.tem('artista')) r.premio = Object.assign({}, r.premio, { dinheiro: r.premio.dinheiro + 50 });
-    if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; G.obra.indice = Math.min(OBRAS.length - 1, G.obra.indice + 1); G.obra.etapa = 0; }
+    if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; G.obra.indice = Math.min(OBRAS.length, G.obra.indice + 1); G.obra.etapa = 0; }
     else G.obra.etapa++;
     return r;
   },
@@ -146,4 +153,5 @@ function pegarCarga(id, qtd, icone) {
   return true;
 }
 function largarCarga() { const c = G.jog.carga || {}; G.jog.carga = {}; return { id: c.id, qtd: c.qtd || 0 }; }
+AO_ENTRAR_MAPA.push(id => { if ((id === 'pensao_dentro' || id === 'pensao_palco') && G.jog.carga && G.jog.carga.id && G.jog.carga.id !== 'prato') { largarCarga(); avisar('O Jocelino deixou o material do canteiro na porta.'); } });
 NOITE.push(linhas => { if (G.jog && G.jog.carga && G.jog.carga.id && G.jog.carga.id !== 'prato') { largarCarga(); linhas.push('O Jocelino largou o que carregava no canteiro.'); } });

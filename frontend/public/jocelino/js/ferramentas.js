@@ -75,13 +75,15 @@ function usarItemDaMao(peloTeclado) {
 // O acerto (no meio do golpe).
 // O acerto: o ladrilho do alvo e, com a ferramenta reforçada (pá, regador, colher), os seguintes em linha.
 function acertar(id, alvo) {
-  acertarUm(id, alvo);
+  const vistos = new Set();   // a casa ou o lote de 3 ladrilhos leva um golpe só
+  acertarUm(id, alvo, vistos);
   const area = typeof areaDaFerramenta === 'function' ? areaDaFerramenta(id) : 1, v = DIR_VET[G.jog ? G.jog.dir : 0];
-  for (let k = 1; k < area; k++) acertarUm(id, { x: alvo.x + v[0] * k, y: alvo.y + v[1] * k });
+  for (let k = 1; k < area; k++) acertarUm(id, { x: alvo.x + v[0] * k, y: alvo.y + v[1] * k }, vistos);
 }
-function acertarUm(id, alvo) {
+function acertarUm(id, alvo, vistos) {
   const m = G.mapa;
   const o = m.ocupado.get(chaveT(alvo.x, alvo.y));
+  if (o && vistos) { if (vistos.has(o)) return; vistos.add(o); }
   if (o && o.tipo === 'detrito') {
     const D = DETRITOS[o.det];
     const certa = D.ferramenta === id || (D.aceita || []).includes(id);
