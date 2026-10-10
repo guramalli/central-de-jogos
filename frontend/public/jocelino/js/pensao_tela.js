@@ -149,6 +149,7 @@ function iniciarJanta() {
   const festa = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'festa') : null, vip = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'vip') : null;
   G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0) + (festa ? 3 : 0));
   if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome; }
+  if (typeof Clientela !== 'undefined') { G.turno.moradores = Clientela.porNaFila(G.turno, G.pensao, G.dia); G.turno.filho = Clientela.filhoDaNoite(G.dia); }
   if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Equipe !== 'undefined') {
     const t = G.turno, p = G.pensao, b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0 };
@@ -159,6 +160,9 @@ function iniciarJanta() {
   G.relatorioPensao = null;
   if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome} vale 50% mais.`);
   if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
+  if (G.turno.moradores && G.turno.moradores.length) avisar(`Hoje é dia de ${G.turno.moradores.map(c => c.nome).join(' e ')} jantar na pensão.`);
+  if (G.turno.filho === 'ritinha') avisar('A Ritinha veio ajudar no caixa: hoje a gorjeta sai 10% maior!');
+  else if (G.turno.filho === 'zezinho') avisar('O Zezinho veio "ajudar" na pensão. Fique de olho nas cocadas!');
   avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
 }
 MANHA.push(() => { const p = G.pensao; if (p && p.estado === 'aberta') for (const id of p.liberarDoDegrau()) G.feitosHoje.push(`A Rosa aprendeu uma receita nova: ${Pratos.PRATOS[id].nome}.`); });
@@ -186,6 +190,7 @@ function encerrarJanta() {
     if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
     for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
   r.pitadasGanhas = G.pensao.pitadas - pit0;
+  if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), r.favoritos);
   r.aprendidas.push(...G.pensao.liberarDoDegrau());
   for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); sons.tocar('fanfarra', 1.15, 0, -6); }
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
@@ -230,6 +235,10 @@ ATUALIZADORES.push(dt => {
       else if (noSalao) { avisar(`${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); sons.tocar('cliente_hmpf', 1, 0.08, -4); }
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
     else if (ev.tipo === 'vip_faltou' && noSalao) { avisar(`${ev.cliente.nome} queria ${Pratos.PRATOS[ev.prato].nome} e não tinha! Foi embora decepcionado.`); sons.tocar('cliente_hmpf', 0.9, 0.05, -2); }
+    else if (ev.tipo === 'chegou' && noSalao && ev.cliente.morador) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.fala}"`); }
+    else if (ev.tipo === 'favorito' && noSalao) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.elogio}" (+1 ❤ de amizade)`); sons.tocar('rosa_animada', 1.2, 0.05, -8);
+      if (noPalco() && PALCO.ASSENTOS[ev.mesa]) { const A = PALCO.ASSENTOS[ev.mesa]; setTimeout(() => flutuar(A.x - 30, A.y - 260, '+1 ❤ amizade', '#ff5d7a'), 500); } }
+    else if (ev.tipo === 'zezinho_cocada' && noSalao) { avisar('Zezinho: "Eu? Que cocada? Não vi cocada nenhuma..." (sumiu uma porção de cocada da panela)'); sons.tocar('cliente_hmpf', 1.4, 0.05, -8); }
     else if (ev.tipo === 'vip_servido' && noSalao) { avisar(`${ev.cliente.nome}: "${vipDe(ev.cliente.id).frase}"`); sons.tocar('fanfarra', 1.1, 0, -6); }
   }
   t.eventos = [];

@@ -34,6 +34,7 @@ const PALCO = {
   ESCALA_GENTE: 1.65,             // gente grande como no Dave: o balcão bate na cintura do Jocelino
 };
 const noPalco = () => !!(G.mapa && G.mapa.palco);
+ATUALIZADORES.push(() => document.body.classList.toggle('no-palco', noPalco()));
 const noSalaoDaPensao = () => G.mapaId === 'pensao_dentro' || G.mapaId === 'pensao_palco';
 // A pensão aberta (ou pronta para abrir) usa o palco; na reforma, o salão antigo de cima.
 const pensaoNoPalco = () => !!G.pensao && ['aberta', 'pronta'].includes(G.pensao.estado);
@@ -167,7 +168,7 @@ function camadasDaJanta() {
 }
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig();
-  b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
+  b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...filhosDoPalco(), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
   b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
   return b;
 })(MAPAS_DEF.pensao_palco);
@@ -461,6 +462,42 @@ ATUALIZADORES.push(() => {
   if (!ver) return;
   const txt = G.turno ? `${G.turno.farinha}/${G.turno.farinhaMax || TurnoJanta.FARINHA_MAX}` : '—';
   const sp = r.querySelector('.farinha span'); if (sp.textContent !== txt) sp.textContent = txt;
+});
+
+// ---------- os filhos na pensão ----------
+// A Ritinha na porta, cuidando do caixa (a gorjeta da noite sai 10% maior); o Zezinho na faixa do chão, devagarinho,
+// recolhendo a louça que ninguém pegou (e de olho nas cocadas). A arte é a deles do quintal (folha de criança).
+const FILHOS = { ritinha: null, zezinho: null };
+const FILHO_RITINHA_X = 336, FILHO_ZE_CASA = 1240, FILHO_ZE_VEL = 85;
+function filhosDoPalco() {
+  const t = G.turno;
+  if (!t || !noPalco() || !t.filho) { FILHOS.ritinha = FILHOS.zezinho = null; return []; }
+  if (t.filho === 'ritinha') {
+    if (!FILHOS.ritinha) FILHOS.ritinha = new Personagem('ritinha', 'Ritinha', FILHO_RITINHA_X, PALCO.CHAO_Y - 4, DIR.BAIXO);
+    return [FILHOS.ritinha];
+  }
+  if (!FILHOS.zezinho) { const z = FILHOS.zezinho = new Personagem('zezinho', 'Zezinho', FILHO_ZE_CASA, PALCO.CHAO_Y - 6, DIR.ESQUERDA); z.tarefa = null; z.espera = 5; }
+  return [FILHOS.zezinho];
+}
+ATUALIZADORES.push(dt => {
+  const t = G.turno, z = FILHOS.zezinho;
+  if (FILHOS.ritinha) { FILHOS.ritinha.t += dt; FILHOS.ritinha.andando = false; }
+  if (!t || !noPalco() || !z) return;
+  z.t += dt;
+  if (!z.tarefa) {
+    z.andando = false; z.espera -= dt;
+    if (z.espera > 0) return;
+    z.espera = 6;                                                  // criança: faz uma coisa e para um pouco
+    const i = t.mesas.findIndex((m, k) => k < PALCO.ASSENTOS.length && m.estado === 'suja' && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === k));
+    z.tarefa = i >= 0 ? { tipo: 'louca', i, x: PALCO.ASSENTOS[i].x } : (Math.abs(z.x - FILHO_ZE_CASA) > 4 ? { tipo: 'casa', x: FILHO_ZE_CASA } : null);
+    if (!z.tarefa) return;
+  }
+  const dx = z.tarefa.x - z.x;
+  if (Math.abs(dx) > 5) { z.x += Math.sign(dx) * Math.min(Math.abs(dx), FILHO_ZE_VEL * dt); z.dir = dx < 0 ? DIR.ESQUERDA : DIR.DIREITA; z.andando = true; return; }
+  z.andando = false;
+  if (z.tarefa.tipo === 'louca') { if (t.ajudanteRecolhe(z.tarefa.i)) { sons.tocar('louca', 1.3, 0.05, -10); avisar('O Zezinho recolheu uma louça! (devagarinho, mas recolheu)'); } z.tarefa = { tipo: 'bacia', x: PALCO.BACIA.x + 30 }; }
+  else if (z.tarefa.tipo === 'bacia') { sons.tocar('bacia', 1.3, 0.05, -12); z.tarefa = null; }
+  else z.tarefa = null;
 });
 
 // ---------- os ajudantes de salão trabalhando no palco ----------

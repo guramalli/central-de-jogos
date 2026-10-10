@@ -28,7 +28,7 @@ class TurnoJanta {
   static MAX_MESAS = 6;         // banquetas no balcão do palco
   static GORJETA_MEDIDA = 0.15; // bebida na medida: 15% do preço a mais de gorjeta
 
-  static relatorioVazio() { return { clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0 }; }
+  static relatorioVazio() { return { favoritos: [], clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0 }; }
 
   constructor() { this.pensao = null; this.mesas = []; this.relatorio = TurnoJanta.relatorioVazio(); this.eventos = []; this._fila = []; this._cardapio = []; this._rng = null; this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; this.fatorPreparo = 1; this.bocas = TurnoJanta.BOCAS; this.gorjetaExtra = 0; this.paciencia = 1; this.moedas = []; }
 
@@ -57,6 +57,8 @@ class TurnoJanta {
       lendo: 0, querBebida: false, bebidaServida: false, bebidaMedida: false, modo: '' };
   }
   tick(dt, minutos) {
+    // O Zezinho, lá pelas tantas, belisca uma cocada da panela (uma vez por noite).
+    if (this.filho === 'zezinho' && !this._roubou && (this._zz = (this._zz || 0) + dt) > 30 && this.pensao.porcoes && this.pensao.porcoes('cocada_tijolinho') > 0) this.zezinhoApronta();
     while (this._fila.length && minutos >= this._fila[0].minuto && minutos < TurnoJanta.FECHA) {
       const i = this.mesas.findIndex(m => m.estado === 'livre');
       if (i < 0) break;
@@ -142,6 +144,7 @@ class TurnoJanta {
     }
     // O cardápio é o de agora (não o do começo da janta): o que o jogador guardou ou marcou depois já vale.
     let opcoes = m.cliente.prato ? [m.cliente.prato] : this.pensao.cardapioDaNoite();
+    if (!m.cliente.prato && m.cliente.favorito && p.receitas.includes(m.cliente.favorito) && disp(m.cliente.favorito)) { m.prato = m.cliente.favorito; opcoes = null; }
     if (balcao && !m.cliente.prato) {
       // No balcão vale o que está na panela ou o que a Rosa ainda consegue cozinhar.
       const base = (p.cardapio.length ? p.cardapio : p.receitas).filter(id => p.receitas.includes(id) && disp(id)).slice(0, p.vagas());
@@ -157,7 +160,7 @@ class TurnoJanta {
       this.eventos.push({ tipo: 'cafe', mesa: i, cliente: m.cliente });
       return true;
     }
-    m.prato = opcoes[this._rng.randi() % opcoes.length];
+    if (opcoes) m.prato = opcoes[this._rng.randi() % opcoes.length];
     const bebidas = typeof bebidasDaPensao === 'function' ? bebidasDaPensao(this.pensao) : Object.keys(Pratos.BEBIDAS).filter(b => b !== 'cerveja');
     m.bebida = bebidas[this._rng.randi() % bebidas.length];
     if (balcao) {
@@ -282,6 +285,7 @@ class TurnoJanta {
     if (est >= 4) r.curtidas++;
     r.pratos[m.prato] = (r.pratos[m.prato] || 0) + 1;
     this.eventos.push({ tipo: 'pagou', mesa: i, valor: preco + gorj, estrelas: est });
+    if (m.cliente.favorito && m.prato === m.cliente.favorito && est >= 3 && !r.favoritos.includes(m.cliente.id)) { r.favoritos.push(m.cliente.id); r.curtidas++; this.eventos.push({ tipo: 'favorito', mesa: i, cliente: m.cliente }); }
     if (m.cliente.mania === 'vip') { r.vip = 'servido'; this.eventos.push({ tipo: 'vip_servido', mesa: i, cliente: m.cliente }); }
     m.vezes++;
     // Tonhão pede de novo até 3 vezes (e a banqueta nem chega a sujar).
@@ -291,6 +295,17 @@ class TurnoJanta {
     }
     m.estado = 'suja';
   }
+  zezinhoApronta() {
+    if (this.filho !== 'zezinho') return '';
+    const p = this.pensao;
+    if (!this._roubou && p.porcoes && p.porcoes('cocada_tijolinho') > 0) {
+      p.panela.cocada_tijolinho--; if (p.panela.cocada_tijolinho <= 0) delete p.panela.cocada_tijolinho;
+      this._roubou = true; this.eventos.push({ tipo: 'zezinho_cocada' }); return 'cocada';
+    }
+    const i = this.mesas.findIndex(m => m.estado === 'suja');
+    if (i >= 0) { this.mesas[i] = this._mesaLivre(); this.eventos.push({ tipo: 'zezinho_louca', mesa: i }); return 'louca'; }
+    return '';
+  }
   limpar(i) { if (!this.mesas[i] || this.mesas[i].estado !== 'suja') return false; this.mesas[i] = this._mesaLivre(); return true; }
   mesaPronta() { return this.mesas.findIndex(m => m.estado === 'prato' && m.pronto && !m.montado); }
   encerrado(minutos) { return minutos >= TurnoJanta.FECHA; }
@@ -298,6 +313,7 @@ class TurnoJanta {
   fechar() {
     this.mesas.forEach((m, i) => { if (m.estado === 'comendo') this._pagar(i); });
     for (const x of this.moedas) this.relatorio.gorjeta += x.valor;   // a Rosa recolhe o que sobrou no balcão
+    if (this.filho === 'ritinha' && this.relatorio.gorjeta > 0) { const extra = Math.ceil(this.relatorio.gorjeta * Clientela.GORJETA_RITINHA); this.relatorio.gorjeta += extra; this.relatorio.ritinha = extra; }
     this.moedas = [];
     this.relatorio.desperdicio += this.passe.length + this.bandeja.filter(x => x.tipo !== 'louca').length;
     this.passe = []; this.bandeja = []; this.fogo = [];
