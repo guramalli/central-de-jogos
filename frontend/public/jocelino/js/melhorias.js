@@ -12,6 +12,8 @@ const MELHORIAS = {
   bandeirinhas: { nome: 'Bandeirinhas e balão', preco: 80, grau: 2, efeito: 'Clima de festa: 1 cliente a mais por noite.', arte: 'salao/bandeirinhas_festa', clientes: 1 },
   fogao_4bocas: { nome: 'Fogão de 4 bocas', preco: 300, grau: 3, efeito: 'A Rosa cozinha 3 pratos de uma vez e 25% mais rápido.', arte: 'salao/cozinha_melhor', bocas: 1, preparo: 0.75 },
   geladeira: { nome: 'Geladeira', preco: 400, grau: 3, efeito: 'Libera a cerveja gelada (bebida mais cara).', arte: 'salao/geladeira' },
+  // Prêmio do Concurso da Rádio (não se compra): o troféu na parede.
+  trofeu: { nome: 'Troféu do Concurso da Rádio', preco: 0, grau: 99, premio: true, efeito: 'O orgulho da casa: um pouco mais de gorjeta.', arte: 'ui/trofeu_concurso', gorjeta: 0.04 },
   neon: { nome: 'Neon da panela', preco: 250, grau: 3, efeito: 'A pensão aparece de longe: 2 clientes a mais por noite.', arte: 'salao/neon_novo', clientes: 2 },
 };
 const Melhorias = {
@@ -66,6 +68,7 @@ function camadasMelhorias() {
   if (temMelhoria('radio')) r.push(cam(5, ctx => { const a = img('salao/radio_tocando'); if (!a) return; const q = Math.floor(G.agora * 3) % 2; ctx.drawImage(a, q * 96, 0, 96, 96, 700, 343, 96, 96); }));
   if (temMelhoria('ventilador')) r.push(cam(6, ctx => { const a = img('salao/ventilador_teto'); if (!a) return; const q = Math.floor(G.agora * 12) % 4; ctx.drawImage(a, q * 151, 0, 151, 104, 1175, 298, 151, 104); }));
   if (temMelhoria('geladeira')) r.push(cam(690, ctx => { const a = img('salao/geladeira'); if (a) ctx.drawImage(a, 290, 585); }));
+  if (temMelhoria('trofeu')) r.push(cam(5.5, ctx => { const a = img('ui/trofeu_concurso'); if (a) ctx.drawImage(a, 800, 372, a.naturalWidth * 0.42, a.naturalHeight * 0.42); }));
   if (temMelhoria('toalha')) r.push(cam(P.TAMPO_Y + 80.5, ctx => { const a = img('salao/toalha_balcao'); if (a) ctx.drawImage(a, 282, 790); }));
   return r;
 }
@@ -79,6 +82,7 @@ function abrirMelhorias() {
     caixa.append(el('div', { class: 'titulo', style: 'font-size:28px' }, 'Melhorias da Pensão'), el('div', { class: 'eq-vagas' }, `Cr$ ${G.dinheiro} · degrau: ${p.nomeGrau(p.grau())}`));
     const g = el('div', { class: 'mel-grade' });
     for (const [id, m] of Object.entries(MELHORIAS)) {
+      if (m.premio && !p.melhorias.includes(id)) continue;   // prêmio não se compra
       const tem = p.melhorias.includes(id), tranca = p.grau() < m.grau;
       const ic = m.arte && spr(m.arte) ? el('div', { class: 'mel-arte', style: `background-image:url(${urlArte(m.arte)})` }) : el('div', { class: 'mel-arte vazio' }, '+1');
       g.append(el('div', { class: 'mel-item' + (tem ? ' tem' : tranca ? ' trancado' : '') }, ic,

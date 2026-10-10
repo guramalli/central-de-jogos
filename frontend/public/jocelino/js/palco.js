@@ -448,6 +448,7 @@ function rodapePalco() {
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
+      el('button', { class: 'botao forte bt-concurso', hidden: true, onclick: e => { e.stopPropagation(); abrirConcurso(); } }, 'Concurso 🎙'),
       el('div', { class: 'farinha' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));
@@ -460,6 +461,7 @@ ATUALIZADORES.push(() => {
   if (r.hidden === ver) r.hidden = !ver;
   const barra = $('#hud .barra'); if (barra) barra.style.visibility = ver ? 'hidden' : '';
   if (!ver) return;
+  const bc = r.querySelector('.bt-concurso'), cv = typeof podeConcurso === 'function' && podeConcurso(); if (bc.hidden === cv) bc.hidden = !cv;
   const txt = G.turno ? `${G.turno.farinha}/${G.turno.farinhaMax || TurnoJanta.FARINHA_MAX}` : '—';
   const sp = r.querySelector('.farinha span'); if (sp.textContent !== txt) sp.textContent = txt;
 });

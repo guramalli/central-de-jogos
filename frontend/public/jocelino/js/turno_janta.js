@@ -83,6 +83,7 @@ class TurnoJanta {
         const limite = (m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO) * (this.paciencia || 1);
         if (m.espera >= limite) {
           this.relatorio.embora++;
+          if (m.cliente.mania === 'paladar') this.relatorio.paladar = 1;
           this.eventos.push({ tipo: 'embora', mesa: i, cliente: m.cliente });
           this.mesas[i] = this._mesaLivre();
         }
@@ -144,7 +145,8 @@ class TurnoJanta {
     }
     // O cardápio é o de agora (não o do começo da janta): o que o jogador guardou ou marcou depois já vale.
     let opcoes = m.cliente.prato ? [m.cliente.prato] : this.pensao.cardapioDaNoite();
-    if (!m.cliente.prato && m.cliente.favorito && p.receitas.includes(m.cliente.favorito) && disp(m.cliente.favorito)) { m.prato = m.cliente.favorito; opcoes = null; }
+    const quer = m.cliente.favorito || m.cliente.pedeTema;
+    if (!m.cliente.prato && quer && p.receitas.includes(quer) && disp(quer)) { m.prato = quer; opcoes = null; }
     if (balcao && !m.cliente.prato) {
       // No balcão vale o que está na panela ou o que a Rosa ainda consegue cozinhar.
       const base = (p.cardapio.length ? p.cardapio : p.receitas).filter(id => p.receitas.includes(id) && disp(id)).slice(0, p.vagas());
@@ -153,6 +155,7 @@ class TurnoJanta {
     if (!opcoes.length) {
       // Sem nada que renda: um cafezinho e a promessa de voltar. Registra o que faltou.
       this.relatorio.cafes++;
+      if (m.cliente.mania === 'paladar') this.relatorio.paladar = 1;
       this.relatorio.ganho += TurnoJanta.CAFE;
       const marcados = this.pensao.cardapio.length ? this.pensao.cardapio : this.pensao.receitas;
       for (const id of marcados) if (!this.relatorio.faltou.includes(id)) this.relatorio.faltou.push(id);
@@ -286,6 +289,7 @@ class TurnoJanta {
     r.pratos[m.prato] = (r.pratos[m.prato] || 0) + 1;
     this.eventos.push({ tipo: 'pagou', mesa: i, valor: preco + gorj, estrelas: est });
     if (m.cliente.favorito && m.prato === m.cliente.favorito && est >= 3 && !r.favoritos.includes(m.cliente.id)) { r.favoritos.push(m.cliente.id); r.curtidas++; this.eventos.push({ tipo: 'favorito', mesa: i, cliente: m.cliente }); }
+    if (m.cliente.mania === 'paladar') r.paladar = Paladar.nota({ rapido: m.rapido, louca: this.mesas.filter(o => o.estado === 'suja').length, medida: m.bebidaMedida, nivel: this.pensao.nivel(m.prato), raridade: m.raridade });
     if (m.cliente.mania === 'vip') { r.vip = 'servido'; this.eventos.push({ tipo: 'vip_servido', mesa: i, cliente: m.cliente }); }
     m.vezes++;
     // Tonhão pede de novo até 3 vezes (e a banqueta nem chega a sujar).

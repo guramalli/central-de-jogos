@@ -45,5 +45,28 @@ const Clientela = {
   // Em 1 de cada 3 noites um dos filhos aparece (alternando); nunca no domingo.
   filhoDaNoite(dia) { if ((dia - 1) % 7 === 6 || dia % 3 !== 0) return ''; return Math.floor(dia / 3) % 2 ? 'ritinha' : 'zezinho'; },
 };
+
+// ---------- o Doutor Paladar ----------
+// O crítico exigente do Dave, do nosso jeito: 1 vez por estação (a partir do degrau 2), numa noite sorteada, chega
+// disfarçado de cliente comum (chapéu-coco, bigode, caderninho). A nota, de 1 a 5 garfos, sai dos critérios: base 1,
+// +1 atendido rápido, +1 sem louça suja no balcão na hora, +1 bebida na medida, +1 prato caprichado (nível 3+) ou raro
+// (★★★+). Se vai embora sem comer, 1 garfo. A melhor nota fica em p.garfos (os degraus 5 e 6 pedem 4 e 5) e a matéria
+// sai na Gazeta no dia seguinte, por carta.
+const Paladar = {
+  GRAU: 2,
+  cliente() { return { id: 'paladar', nome: 'Cliente de chapéu-coco', mania: 'paladar' }; },
+  // A noite da estação (dia absoluto): entre o 9º e o 22º dia dela, nunca no domingo.
+  noiteDaEstacao(est) { let d = est * 28 + 9 + Math.floor(mulberry(est * 977 + 13)() * 14); if ((d - 1) % 7 === 6) d++; return d; },
+  vem(p, dia) { return !!p && ['aberta', 'pronta'].includes(p.estado) && p.grau() >= Paladar.GRAU && dia === Paladar.noiteDaEstacao(Math.floor((dia - 1) / 28)); },
+  nota(c) { return clamp(1 + (c.rapido ? 1 : 0) + (c.louca === 0 ? 1 : 0) + (c.medida ? 1 : 0) + (c.nivel >= 3 || c.raridade >= 3 ? 1 : 0), 1, 5); },
+  materia(n) {
+    return ['', 'Pensão da Rosa: o crítico saiu sem jantar. "Esperei, esperei... e nada." Um garfo, por educação.',
+      'Pensão da Rosa: comida honesta, serviço que precisa de ajuste. Dois garfos.',
+      'Pensão da Rosa: boa surpresa na Vila Maré. Três garfos, e a promessa de voltar.',
+      'Pensão da Rosa: tempero de mãe, atendimento ligeiro, balcão limpo. Quatro garfos!',
+      'Pensão da Rosa: perfeita. Cinco garfos, nota máxima. Melhor mesa do litoral!'][n] + '\n\n— Doutor Paladar, Gazeta de Santos';
+  },
+};
+INICIADORES.push(s => { for (const x of (G.pensao && G.pensao.paladarNotas) || []) if (!CARTAS['paladar_' + x.dia]) CARTAS['paladar_' + x.dia] = { de: 'Gazeta de Santos', dia: x.dia + 1, texto: Paladar.materia(x.nota) }; });
 INICIADORES.push(s => { G.amizade = Object.assign({}, s.amizade || {}); });
 COLETORES.push(s => { s.amizade = Object.assign({}, G.amizade); });

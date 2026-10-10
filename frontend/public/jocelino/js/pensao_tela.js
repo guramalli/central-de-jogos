@@ -147,8 +147,12 @@ function pensaoQuadro() {
 function iniciarJanta() {
   G.turno = new TurnoJanta();
   const festa = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'festa') : null, vip = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'vip') : null;
-  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0) + (festa ? 3 : 0));
-  if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome; }
+  G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0));
+  if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome;
+    // Os convidados da festa: 3 a mais, que pedem o prato do tema.
+    for (let k = 0; k < 3; k++) { const c = Pratos.CLIENTES[(G.dia + k * 3) % Pratos.CLIENTES.length]; G.turno._fila.push({ minuto: 17 * 60 + 20 + k * 40, cliente: Object.assign({}, c, { pedeTema: festa.prato, convidado: true }) }); }
+    G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
+  if (typeof Paladar !== 'undefined' && Paladar.vem(G.pensao, G.dia)) { G.turno.paladar = true; G.turno._fila.push({ minuto: 19 * 60, cliente: Paladar.cliente() }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Clientela !== 'undefined') { G.turno.moradores = Clientela.porNaFila(G.turno, G.pensao, G.dia); G.turno.filho = Clientela.filhoDaNoite(G.dia); }
   if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Equipe !== 'undefined') {
@@ -177,7 +181,8 @@ function encerrarJanta() {
     const vip = Eventos.hoje(G.pensao, G.dia, 'vip');
     if (vip) { vip.fim = r.vip === 'servido' ? 'servido' : 'faltou';
       if (r.vip === 'servido') { const pr = vipDe(vip.id).premio; G.dinheiro += pr.dinheiro; r.curtidas += pr.curtidas; G.pensao.pitadas += pr.pitadas; r.premioVip = pr;
-        const rv = receitaDoVip(vip.id); if (rv && G.pensao.liberarReceita(rv)) r.aprendidas.push(rv); } }
+        const rv = receitaDoVip(vip.id); if (rv && G.pensao.liberarReceita(rv)) r.aprendidas.push(rv);
+        const fn = Eventos.premiar(G.pensao, vip.id); if (fn) { r.premioFuncao = fn; avisar(`${vipDe(vip.id).nome} deu de presente: ${TEXTO_FUNCAO[fn]}!`); } } }
     const fe = Eventos.hoje(G.pensao, G.dia, 'festa');
     if (fe) { fe.fim = 'feita'; const f = FESTAS.find(x => x.nome === fe.nome); if (f && f.ensina && G.pensao.liberarReceita(f.ensina)) r.aprendidas.push(f.ensina); }
     r.pedidosFeitos = Eventos.depoisDaJanta(G.pensao, r, G.dia);
@@ -190,6 +195,11 @@ function encerrarJanta() {
     if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
     for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
   r.pitadasGanhas = G.pensao.pitadas - pit0;
+  if (r.paladar && typeof Paladar !== 'undefined') {
+    const p = G.pensao; p.garfos = Math.max(p.garfos || 0, r.paladar); p.paladarNotas.push({ dia: G.dia, nota: r.paladar });
+    CARTAS['paladar_' + G.dia] = { de: 'Gazeta de Santos', dia: G.dia + 1, texto: Paladar.materia(r.paladar) };
+    avisar(`O cliente de chapéu-coco era o Doutor Paladar, da Gazeta! Nota: ${r.paladar} ${r.paladar === 1 ? 'garfo' : 'garfos'}. A matéria sai amanhã.`); sons.tocar(r.paladar >= 4 ? 'fanfarra' : 'cliente_hmpf', 1, 0, -4);
+  }
   if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), r.favoritos);
   r.aprendidas.push(...G.pensao.liberarDoDegrau());
   for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); sons.tocar('fanfarra', 1.15, 0, -6); }
@@ -393,6 +403,7 @@ function textoFalta(f) {
   if (f.curtidas) t.push(`${f.curtidas} ${f.curtidas === 1 ? 'curtida' : 'curtidas'}`);
   if (f.sabor) t.push(`melhor sabor +${f.sabor} (caprichar no caderno)`);
   if (f.pesquisadas) t.push(`${f.pesquisadas} ${f.pesquisadas === 1 ? 'receita pesquisada' : 'receitas pesquisadas'}`);
+  if (f.garfos) t.push(`${f.garfos} ${f.garfos === 1 ? 'garfo' : 'garfos'} a mais na nota do Doutor Paladar`);
   return t.length ? 'faltam ' + t.join(', ') : 'quase lá';
 }
 // ---------- A Pensão: os 6 degraus da fama, o que cada um pede e libera (a tela do Cooksta) ----------
@@ -404,7 +415,7 @@ function abrirPainelPensao() {
   const lista = el('div', { class: 'pp-lista' });
   Pensao.DEGRAUS.forEach((d, i) => {
     const n = i + 1, atual = n === g, feito = n < g;
-    const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : ''].filter(Boolean).join(' · ');
+    const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : '', d.garfos ? `${d.garfos} garfos do Doutor Paladar` : ''].filter(Boolean).join(' · ');
     lista.append(el('div', { class: 'pp-degrau' + (atual ? ' atual' : feito ? ' feito' : '') },
       spr('ui/selo_' + n) ? el('img', { src: urlArte(`ui/selo_${n}`) }) : el('div', { class: 'pp-num' }, n),
       el('div', {}, el('b', {}, d.nome + (atual ? '  ← agora' : feito ? '  ✓' : '')), el('div', { class: 'pp-req' }, req),

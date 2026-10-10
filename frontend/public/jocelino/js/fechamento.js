@@ -37,6 +37,9 @@ function abrirFechamento(r) {
       ...(r.aprendidas || []).map(id => linha('Receita nova', Pratos.PRATOS[id].nome, 'lucro')),
       ...(r.favoritos || []).map(id => linha('Prato favorito servido', `${(Clientela.dado(id) || { nome: id }).nome} (+1 ❤)`, 'lucro')),
       r.ritinha ? linha('A Ritinha no caixa', `+Cr$ ${r.ritinha} de gorjeta`, 'lucro') : null,
+      r.premioFuncao ? linha('Presente do cliente especial', TEXTO_FUNCAO[r.premioFuncao], 'lucro') : null,
+      r.paladar ? el('div', { class: 'fx-linha fx-paladar' }, el('img', { class: 'fx-retrato', src: urlArte('retratos/paladar_' + (r.paladar >= 4 ? 'alegre' : 'normal')) }),
+        el('span', {}, 'O Doutor Paladar jantou aqui!'), el('b', {}, ...Array.from({ length: r.paladar }, () => el('img', { class: 'fx-garfo', src: urlArte('ui/garfo_nota') })))) : null,
       r.subiu ? linha('A pensão subiu!', `agora é "${p.nomeGrau(r.subiu)}"`, 'lucro') : px ? linha(`Para "${px.nome}"`, textoFalta(px.falta)) : null),
     el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar a pensão')));
   abrirModal(caixa);
