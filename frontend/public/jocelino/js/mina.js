@@ -10,6 +10,7 @@ Object.assign(DETRITOS.pigmento, { solta: { pigmento: 1 } });
 ITENS.pedra_pigmento = ITENS.pedra_pigmento || { nome: 'Pedra de pigmento', pilha: 99, ferramenta: false, descricao: 'Pedra colorida e rara das bancadas. O Museu da Vila gosta.' }; Object.assign(DETRITOS.cristal, { solta: { cristal: 1 } });
 
 Object.assign(ITENS, { lampiao: { nome: 'Lampião', pilha: 1, ferramenta: false, descricao: 'Do Seu Tonico. Na mochila, clareia as bancadas escuras da pedreira.' } });
+ITENS.irrigador_bom = { nome: 'Irrigador bom', pilha: 9, ferramenta: false, colocavel: true, descricao: 'Do Seu Tonico. No quintal, rega as 8 covas em volta toda manhã.' };
 
 const Mina = {
   iniciar(s) {
@@ -40,3 +41,21 @@ const Mina = {
 };
 INICIADORES.push(s => Mina.iniciar(s));
 COLETORES.push(s => Mina.salvar(s));
+const FORJA_BARRAS = { ferro_velho: 'barra_ferro', sucata_aco: 'barra_aco', bronze_velho: 'barra_bronze' };
+Object.assign(Mina, {
+  agora() { return G.dia * 1440 + G.minutos; },
+  // A forja do quintal (a fornalha do Stardew): 5 sucatas + 1 madeira → 1 barra em 30 minutos de jogo.
+  forjar(chave, minerio, mochila) {
+    if (!FORJA_BARRAS[minerio]) return 'nao';
+    if (G.mina.forjas[chave]) return 'ocupada';
+    if (mochila.total(minerio) < 5 || mochila.total('madeira') < 1) return 'falta';
+    mochila.remover(minerio, 5); mochila.remover('madeira', 1);
+    G.mina.forjas[chave] = { barra: FORJA_BARRAS[minerio], pronta: Mina.agora() + 30 }; return 'ok';
+  },
+  tirarBarra(chave, mochila) {
+    const f = G.mina.forjas[chave]; if (!f) return '';
+    if (Mina.agora() < f.pronta) return 'trabalhando';
+    if (!mochila.cabe(f.barra)) return 'cheia';
+    mochila.adicionar(f.barra, 1); delete G.mina.forjas[chave]; return f.barra;
+  },
+});

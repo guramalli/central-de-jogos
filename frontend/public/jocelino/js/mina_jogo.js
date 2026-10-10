@@ -77,3 +77,21 @@ DESENHOS_TELA.push(ctx => {
 });
 let _avisouAr = -1;
 ATUALIZADORES.push(() => { if (G.mapaId === 'bancada' && G.mina.bancada >= MINA.AR_RUIM && _avisouAr !== G.mina.bancada) { _avisouAr = G.mina.bancada; avisar('O ar aqui embaixo é pesado: cada golpe cansa mais.'); } });
+// ---------- a forja do quintal ----------
+function usarForja(o) {
+  const chave = o.cx + ',' + o.cy, f = G.mina.forjas[chave];
+  if (f) { const r = Mina.tirarBarra(chave, G.mochila);
+    if (r === 'trabalhando') abrirPlaca(`A forja está fundindo: ${Itens.nome(f.barra).toLowerCase()} em ${Math.max(1, f.pronta - Mina.agora())} min.`);
+    else if (r === 'cheia') avisar('A mochila está cheia.'); else if (r) { avisar('+ ' + Itens.qtd(1, r)); sons.tocar('pegar', 1, 0.05, -4); hudSujo(); }
+    return true; }
+  const r = Mina.forjar(chave, itemDaMao(), G.mochila);
+  if (r === 'ok') { sons.tocar('golpe', 0.8, 0.05, -6); avisar('A forja acendeu: em 30 minutos sai a barra.'); hudSujo(); }
+  else abrirPlaca(r === 'falta' ? 'A forja pede 5 sucatas iguais na mão e 1 madeira na mochila.' : 'A forja do quintal: com ferro velho, sucata de aço ou bronze velho na mão (5) e 1 madeira, faz uma barra.');
+  return true;
+}
+// A forja acesa solta fumaça pela chaminé (a mesma fumaça das chaminés da Vila, mapas.js); apagada, nada.
+EXTRAS_MUNDO.push(m => m.id !== 'quintal' || !G.mina ? [] : m.objs.filter(o => o.item === 'forja' && G.mina.forjas[o.cx + ',' + o.cy]).map(o => ({ y: o.y + 1, desenha(ctx) {
+  const img = spr('objetos/forja'); if (!img) return;
+  const bx = o.x - img.naturalWidth / 2 + 32, by = o.y - img.naturalHeight + 9;
+  for (const p of fumacaEm(G.agora || 0)) { const n = p.r < 10 ? 1 : p.r < 15 ? 2 : 3; desenhaFx(ctx, 'fumaca_' + n, bx + p.x, by + p.y, { alfa: p.alfa, escala: p.r / [0, 8, 13, 19][n] * 0.9 }); }
+} })));

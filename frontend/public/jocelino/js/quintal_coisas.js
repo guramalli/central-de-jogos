@@ -3,7 +3,7 @@
 // galinhas da vizinhança bicam a horta aberta (os corvos do Stardew), o irrigador do Tonico rega de manhã e os filhos
 // ajudam a regar.
 
-const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador'];
+const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'forja'];
 // Motivo para não colocar ('' = pode).
 function podeColocar(b, x, y) {
   if (b.id !== 'quintal' || !b.livreEm(x, y)) return 'Aqui não dá.';
@@ -44,10 +44,14 @@ function poeColocados(b) {
     const o = b.interativo('colocado', c.id === 'cerca' ? 'objetos/cerca_mourao' : c.id === 'portao' ? 'objetos/portao_h' : 'objetos/' + c.id, c.x, c.y, 1, 1, solido ? [16, 10] : null, solido);
     Object.assign(o, { item: c.id, cx: c.x, cy: c.y });
     if (c.id === 'cerca' || c.id === 'portao') o.desenha = ctx => desenhaCerca(ctx, o);
-    o.ferramenta = (p, id) => { if (id === 'machado' || id === 'picareta') recolher(p); };
+    o.ferramenta = (p, id) => { if (id !== 'machado' && id !== 'picareta') return; if (trabalhando(p)) { avisar('Está trabalhando: espere terminar para recolher.'); return; } recolher(p); };
+    if (c.id === 'forja') o.acao = () => usarForja(o);
     if (c.id === 'irrigador') o.acao = () => abrirPlaca('O irrigador do Seu Tonico: rega as 4 covas em volta toda manhã.');
+    if (c.id === 'irrigador_bom') o.acao = () => abrirPlaca('O irrigador bom do Seu Tonico: rega as 8 covas em volta toda manhã.');
   }
 }
+// A forja e a betoneira não se recolhem no meio do serviço (o que estava dentro se perderia).
+const trabalhando = o => typeof G.mina !== 'undefined' && G.mina && !!((G.mina.forjas || {})[o.cx + ',' + o.cy] || (G.mina.betoneiras || {})[o.cx + ',' + o.cy]);
 function colocar(id, x, y) {
   const m = podeColocar(G.mapa, x, y); if (m) { avisar(m); return false; }
   if (Horta.cova(x, y)) delete G.horta.covas[chaveH(x, y)];   // cova vazia vira chão de cerca
@@ -101,7 +105,10 @@ AO_MONTAR.push(b => { if (b.id === 'quintal') b.extras = () => _galinha ? [{ y: 
 // ---------- o irrigador: as 4 covas vizinhas começam o dia molhadas ----------
 function regarComIrrigadores() {
   let n = 0;
-  for (const c of G.horta.colocados.filter(c => c.id === 'irrigador')) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const cv = Horta.cova(c.x + dx, c.y + dy); if (cv && !cv.regada) { cv.regada = true; n++; } }
+  for (const c of G.horta.colocados.filter(c => c.id === 'irrigador' || c.id === 'irrigador_bom')) {
+    const viz = c.id === 'irrigador' ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    for (const [dx, dy] of viz) { const cv = Horta.cova(c.x + dx, c.y + dy); if (cv && !cv.regada) { cv.regada = true; n++; } }
+  }
   return n;
 }
 MANHA.push(() => { if (G.horta) regarComIrrigadores(); });

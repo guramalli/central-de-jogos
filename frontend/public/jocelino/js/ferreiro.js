@@ -5,7 +5,7 @@
 
 const NIVEIS_FERR = ['comum', 'reforçada', 'profissional', 'de mestre'];
 const Ferreiro = {
-  CUSTOS: { 1: { dinheiro: 100, barra_ferro: 5 } },
+  CUSTOS: { 1: { dinheiro: 100, barra_ferro: 5 }, 2: { dinheiro: 250, barra_aco: 5 }, 3: { dinheiro: 500, barra_bronze: 5 } },
   FERRAMENTAS: ['machado', 'picareta', 'pa', 'regador', 'foice', 'colher'],
   DIAS: 2, FUNDIR: 5, PRECO_FUNDIR: 10,
   iniciar(s) { G.ferreiro = { oficina: s.ferreiro && s.ferreiro.oficina ? Object.assign({}, s.ferreiro.oficina) : null }; G.nivelFerr = Object.assign({}, s.nivelFerr || {}); },
@@ -15,11 +15,11 @@ const Ferreiro = {
     if (!Ferreiro.FERRAMENTAS.includes(id)) return { ok: false, gasto: 0, motivo: 'Isso o Tonico não melhora.' };
     if (G.ferreiro.oficina) return { ok: false, gasto: 0, motivo: 'Já tem uma ferramenta sua na oficina.' };
     const c = Ferreiro.custo(id);
-    if (!c) return { ok: false, gasto: 0, motivo: 'O próximo nível pede aço da pedreira: ainda não dá.' };
+    if (!c) return { ok: false, gasto: 0, motivo: 'Essa já é de mestre: não tem como melhorar mais.' };
     if (mochila.total(id) < 1) return { ok: false, gasto: 0, motivo: 'Traga a ferramenta na mochila.' };
     const preco = Math.round(c.dinheiro * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
     if (dinheiro < preco) return { ok: false, gasto: 0, motivo: `O dinheiro não dá (Cr$ ${preco}).` };
-    for (const m in c) if (m !== 'dinheiro' && mochila.total(m) < c[m]) return { ok: false, gasto: 0, motivo: `Faltam barras de ferro (${c[m]}).` };
+    for (const m in c) if (m !== 'dinheiro' && mochila.total(m) < c[m]) return { ok: false, gasto: 0, motivo: `Falta ${Itens.qtd(c[m], m)}.` };
     for (const m in c) if (m !== 'dinheiro') mochila.remover(m, c[m]);
     mochila.remover(id, 1);
     G.ferreiro.oficina = { id, nivel: nivelFerramenta(id) + 1, pronta: dia + Ferreiro.DIAS };
@@ -67,13 +67,25 @@ const Ferreiro = {
 // Machado e picareta batem com 1 + nível; pá, regador e colher cobrem 3 ladrilhos em linha no nível reforçado.
 const danoDaFerramenta = id => ['machado', 'picareta'].includes(id) ? 1 + nivelFerramenta(id) : 1;
 const areaDaFerramenta = id => ['pa', 'regador', 'colher'].includes(id) ? (nivelFerramenta(id) >= 1 || (id === 'regador' && typeof Habilidades !== 'undefined' && Habilidades.tem('rega_de_mestre')) ? 3 : 1) : 1;
+// A área do golpe (o Stardew): pá, regador e colher — 3 em linha no nível 1 (ou com a Rega de mestre), 5 em linha no 2 e
+// 3×3 à frente no 3 (começa no ladrilho alvo); o resto acerta só o alvo.
+function areaDoGolpe(id, alvo, dir) {
+  const v = DIR_VET[dir], n = nivelFerramenta(id), r = [];
+  if (!['pa', 'regador', 'colher'].includes(id)) return [alvo];
+  if (n >= 3) { const p = [v[1], v[0]]; for (let k = 0; k < 3; k++) for (let s = -1; s <= 1; s++) r.push({ x: alvo.x + v[0] * k + p[0] * s, y: alvo.y + v[1] * k + p[1] * s }); return r; }
+  const tam = n >= 2 ? 5 : areaDaFerramenta(id);
+  for (let k = 0; k < tam; k++) r.push({ x: alvo.x + v[0] * k, y: alvo.y + v[1] * k });
+  return r;
+}
 INICIADORES.push(s => Ferreiro.iniciar(s));
 COLETORES.push(s => Ferreiro.salvar(s));
-MANHA.push(() => { if (Ferreiro.pronta(G.dia) && G.dia === G.ferreiro.oficina.pronta) G.feitosHoje.push(`O Seu Tonico terminou ${NOME_FERRAMENTA[G.ferreiro.oficina.id] || G.ferreiro.oficina.id} reforçada: passe na ferraria.`); });
+MANHA.push(() => { if (Ferreiro.pronta(G.dia) && G.dia === G.ferreiro.oficina.pronta) G.feitosHoje.push(`O Seu Tonico terminou ${NOME_FERRAMENTA[G.ferreiro.oficina.id] || G.ferreiro.oficina.id} (${NIVEIS_FERR[G.ferreiro.oficina.nivel]}): passe na ferraria.`); });
 TAREFAS.push(() => G.ferreiro && Ferreiro.pronta(G.dia) ? [{ texto: 'Buscar a ferramenta na ferraria do Tonico' }] : []);
 
 // O que o Tonico faz na hora (com dinheiro e material); as entregas seguintes acrescentam forja, irrigador bom e betoneira.
 const RECEITAS_TONICO = { lampiao: { dinheiro: 50, barra_ferro: 1 } };
+RECEITAS_TONICO.forja = { dinheiro: 150, barra_ferro: 2, pedra: 20 };
+RECEITAS_TONICO.irrigador_bom = { dinheiro: 150, barra_aco: 1, barra_ferro: 1 };
 Ferreiro.fazer = function (id, mochila, dinheiro) {
   const r = RECEITAS_TONICO[id]; if (!r) return { ok: false, gasto: 0, motivo: 'Isso o Tonico não faz.' };
   const preco = Math.round(r.dinheiro * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
@@ -99,7 +111,7 @@ function abrirFerraria() {
     for (const id of Ferreiro.FERRAMENTAS) {
       const tem = G.mochila.total(id) > 0, c = Ferreiro.custo(id);
       grade.append(el('div', { class: 'orel-item' + (tem ? '' : ' trancado') }, el('img', { src: urlItem(id) }),
-        el('div', {}, el('b', {}, `${Itens.nome(id)} (${NIVEIS_FERR[nivelFerramenta(id)]})`), el('div', { class: 'orel-preco' }, c ? `Melhorar: Cr$ ${c.dinheiro} + ${c.barra_ferro} barras de ferro` : 'O próximo nível pede aço (mais para a frente).')),
+        el('div', {}, el('b', {}, `${Itens.nome(id)} (${NIVEIS_FERR[nivelFerramenta(id)]})`), el('div', { class: 'orel-preco' }, c ? `Melhorar para ${NIVEIS_FERR[nivelFerramenta(id) + 1]}: Cr$ ${c.dinheiro} + ${Object.entries(c).filter(([m]) => m !== 'dinheiro').map(([m, q]) => Itens.qtd(q, m)).join(', ')}` : 'De mestre: o melhor que o Tonico faz.')),
         c && tem && !o ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.deixar(id, G.mochila, G.dinheiro, G.dia);
           if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 0.8, 0.05, -4); avisar(`O Tonico ficou com ${NOME_FERRAMENTA[id] || id}: em 2 dias está pronta.`); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Melhorar') : null));
     }

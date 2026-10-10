@@ -410,8 +410,8 @@ function atualizaSeloPensao(selo, noSalao) {
   if (selo._k === chave) return;
   selo._k = chave;
   selo.innerHTML = '';
-  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: urlArte(`ui/selo_${g}`), class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeGrau(g)), el('div', {}, linha2),
-    px ? el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })) : null);
+  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: urlArte(`ui/selo_${g}`), class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeGrau(g)), el('div', {}, linha2));
+  if (px) selo.append(el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })));   // no degrau mais alto não tem barra
 }
 // O que falta para o próximo degrau, em texto.
 function textoFalta(f) {
