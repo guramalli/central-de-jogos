@@ -20,10 +20,36 @@ const LETREIROS = {
   'objetos/pensao': { x: 117.5, y: 105.5, w: 84, h: 17, textos: ['Pensão da Rosa', 'PENSÃO'], estilo: 'creme' },
   'objetos/pensao_fechada': { x: 118, y: 142, w: 52, h: 16, ang: -7, textos: ['Pensão', 'PENSÃO'], estilo: 'tinta' },
   'objetos/pensao_reforma': { x: 122, y: 129, w: 64, h: 16, tabua: true, textos: ['Pensão', 'PENSÃO'], estilo: 'creme' },
-  'objetos/oficina': { x: 145, y: 113, w: 78, h: 18, tabua: true, textos: ['Ferraria', 'FERRARIA'], estilo: 'creme' },
+  'objetos/oficina_sem_fumaca': { x: 145, y: 113, w: 78, h: 18, tabua: true, textos: ['Ferraria', 'FERRARIA'], estilo: 'creme' },
   'objetos/museu': { x: 142.5, y: 142.5, w: 66, h: 22, textos: ['Museu da Vila', 'Museu'], estilo: 'creme' },
   'objetos/mercado_0': { x: 166.5, y: 174.5, w: 78, h: 22, textos: ['Mercado Municipal', 'Mercado'], estilo: 'creme' },
 };
+// Fumaça de chaminé de verdade: a arte vem sem a fumaça pintada e as bolinhas sobem do topo da chaminé (pixels da
+// arte), crescem, vão com o vento e somem. Desenha o contorno de todas antes do miolo: vira uma nuvem só, no traço da arte.
+const CHAMINES = { 'objetos/oficina_sem_fumaca': { x: 235, y: 55 } };
+const FUMACA_VIDA = 3.2, FUMACA_PUFES = 9;
+function fumacaEm(t) {
+  const r = [];
+  for (let i = 0; i < FUMACA_PUFES; i++) {
+    const a = ((t + i * FUMACA_VIDA / FUMACA_PUFES) % FUMACA_VIDA) / FUMACA_VIDA;
+    r.push({ x: a * 34 + Math.sin(a * 7 + i * 1.7) * 5, y: -a * 78, r: 6 + a * 15, alfa: a < 0.08 ? a / 0.08 : Math.max(0, 1 - (a - 0.08) / 0.92) });
+  }
+  return r;
+}
+function desenhaFumaca(ctx, o, alfa) {
+  const c = CHAMINES[o.nome], img = spr(o.nome);
+  if (!c || !img) return;
+  const bx = o.x - img.naturalWidth / 2 + c.x, by = o.y - img.naturalHeight + c.y;
+  const pufes = fumacaEm(G.agora || 0);
+  ctx.save();
+  for (const passo of [0, 1]) for (const p of pufes) {
+    ctx.globalAlpha = alfa * p.alfa * (passo ? 0.92 : 0.7);
+    ctx.fillStyle = passo ? '#ece6dc' : '#4a4038';
+    ctx.beginPath(); ctx.arc(bx + p.x, by + p.y, p.r + (passo ? 0 : 2), 0, Math.PI * 2); ctx.fill();
+    if (passo) { ctx.fillStyle = 'rgba(190,180,168,.55)'; ctx.beginPath(); ctx.arc(bx + p.x + p.r * 0.25, by + p.y + p.r * 0.3, p.r * 0.6, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.restore();
+}
 // O texto que cabe na plaquinha e o tamanho da letra.
 function ajustaLetreiro(ctx, L) {
   let r = null;
@@ -272,6 +298,7 @@ function desenhaMapa(ctx) {
     if (o.treme > 0) { o.treme = Math.max(0, o.treme - 0.016); dx = Math.sin(o.treme * 60) * 3; }
     desenhaPe(ctx, o.nome, o.x + dx, o.y, alfa);
     if (LETREIROS[o.nome]) desenhaLetreiro(ctx, o, alfa);
+    if (CHAMINES[o.nome]) desenhaFumaca(ctx, o, alfa);
     if (o.realce) desenhaRealce(ctx, o);
   }
   if (m.desenhaPorCima) m.desenhaPorCima(ctx);

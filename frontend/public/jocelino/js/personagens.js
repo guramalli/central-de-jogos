@@ -13,20 +13,31 @@ class Personagem {
   get folha() { return 'personagens/' + this.id + '/andar'; }
   virarPara(x, y) { const dx = x - this.x, dy = y - this.y; this.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? DIR.ESQUERDA : DIR.DIREITA) : (dy < 0 ? DIR.CIMA : DIR.BAIXO); }
   parar() { this.andando = false; }
+  _bate(x, y) { return !!G.mapa && bate({ x: x - 14, y: y - 14, w: 28, h: 14 }, G.mapa); }
   atualiza(dt) {
     this.t += dt;
     if (!this.vagueia || !this.area) return;
     if (this._alvo) {
       const dx = this._alvo.x - this.x, dy = this._alvo.y - this.y, d = Math.hypot(dx, dy);
       if (d < 3) { this._alvo = null; this.andando = false; this._espera = rnd(1.5, 4); return; }
-      this.x += dx / d * Math.min(d, 60 * dt); this.y += dy / d * Math.min(d, 60 * dt);
+      const nx = this.x + dx / d * Math.min(d, 60 * dt), ny = this.y + dy / d * Math.min(d, 60 * dt);
+      // Esbarrou em alguma coisa (o Jocelino largou um item, um objeto novo): desiste e escolhe outro canto.
+      if (this._bate(nx, ny)) { this._alvo = null; this.andando = false; this._espera = rnd(0.5, 1.5); return; }
+      this.x = nx; this.y = ny;
       this.andando = true; this.virarPara(this._alvo.x, this._alvo.y);
       return;
     }
     this._espera -= dt;
     if (this._espera <= 0) {
+      // Um canto perto, dentro da área, com o caminho em linha reta livre (ninguém atravessa casa nem bancada).
       const a = this.area;
-      this._alvo = { x: clamp(this.x + rnd(-2, 2) * TILE, a.x, a.x + a.w), y: clamp(this.y + rnd(-1.5, 1.5) * TILE, a.y, a.y + a.h) };
+      for (let k = 0; k < 8 && !this._alvo; k++) {
+        const alvo = { x: clamp(this.x + rnd(-2.5, 2.5) * TILE, a.x, a.x + a.w), y: clamp(this.y + rnd(-1.5, 1.5) * TILE, a.y, a.y + a.h) };
+        let livre = true;
+        for (let s = 1; s <= 8 && livre; s++) livre = !this._bate(lerp(this.x, alvo.x, s / 8), lerp(this.y, alvo.y, s / 8));
+        if (livre) this._alvo = alvo;
+      }
+      if (!this._alvo) this._espera = rnd(1, 2);
     }
   }
   desenha(ctx) {
