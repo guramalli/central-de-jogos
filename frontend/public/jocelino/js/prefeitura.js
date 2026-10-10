@@ -7,7 +7,7 @@
 const PREFEITURA_OBRAS = {
   pref_museu: { nome: 'Calçada de pedra na porta do Museu', texto: 'Na porta do Museu é só barro: o povo entra com o pé sujo.', material: { pedra: 20, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'regador'], paga: 500, premio: { receita: 'acelerador' }, piso: true, area: { w: 3, h: 1, textura: 'texturas/calcada' }, x: 4, y: 21, junto: 'museu', artes: ['objetos/vala', 'objetos/alicerce'] },
   pref_quadro: { nome: 'Calçada do quadro da Prefeitura', texto: 'O povo pisa no barro para ler os editais.', material: { cimento: 4, pedra: 12 }, etapas: ['pa', 'colher', 'regador'], paga: 400, premio: { itens: { impermeabilizante: 3 } }, piso: true, area: { w: 3, h: 1, textura: 'texturas/calcada' }, x: 32, y: 19, junto: 'quadro_prefeitura', artes: ['objetos/vala', 'objetos/alicerce'] },
-  pref_praca: { nome: 'Calçada da roda de samba', texto: 'Calçada de lajota em volta da roda de samba da praça.', material: { lajota: 12, cimento: 4 }, etapas: ['pa', 'colher', 'regador'], paga: 450, premio: { itens: { lapis: 3 } }, betoneira: true, piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_ladrilho' }, x: 30, y: 22, junto: 'roda_samba', artes: ['objetos/vala', 'objetos/alicerce'] },
+  pref_praca: { nome: 'Calçada da roda de samba', texto: 'Calçada de lajota em volta da roda de samba da praça.', material: { lajota: 12, cimento: 4 }, etapas: ['pa', 'colher', 'regador'], paga: 450, premio: { itens: { lapis: 3 } }, betoneira: true, piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_ladrilho' }, x: 26, y: 22, junto: 'roda_samba', artes: ['objetos/vala', 'objetos/alicerce'] },
   pref_bueiro: { nome: 'Bueiro da rua', texto: 'A rua alaga toda vez que chove: manilha embaixo da calçada.', material: { manilha: 3, cimento: 8 }, etapas: ['pa', 'pa', 'colher', 'regador'], paga: 600, premio: { itens: { barra_ferro: 3 } }, betoneira: true, fundacao: true, x: 21, y: 16, artes: ['objetos/vala', 'objetos/vala', 'objetos/alicerce'] },
 };
 for (const id in PREFEITURA_OBRAS) Object.assign(PREFEITURA_OBRAS[id], { cliente: 'prefeitura', mapa: 'vila', funcaoMin: 0, tipo: 'longa', dias: PREFEITURA_OBRAS[id].etapas.length, vezesDia: 3, ferramenta: PREFEITURA_OBRAS[id].etapas[0] });
@@ -54,6 +54,8 @@ AO_ENTREGAR.push(id => {
 NOITE.push(linhas => {
   const P = G.empreitas.prefeitura; if (!P || !P.ativo) return;
   if (!G.empreitas.aceitas[P.ativo]) { P.ativo = ''; return; }
+  const a = G.empreitas.aceitas[P.ativo];
+  if (G.dia >= P.aceitoDia + Prefeitura.PRAZO - 1 && a.estado === 'pronta' && !a.prazoExtra) { a.prazoExtra = true; linhas.push(`${PREFEITURA_OBRAS[P.ativo].nome}: ficou pronta no último dia do prazo. Entregue amanhã na plaquinha.`); return; }
   if (G.dia >= P.aceitoDia + Prefeitura.PRAZO - 1) { linhas.push(`O prazo da Prefeitura venceu: ${PREFEITURA_OBRAS[P.ativo].nome.toLowerCase()} ficou para outra vez.`); delete G.empreitas.aceitas[P.ativo]; P.ativo = ''; }
 });
 function abrirPrefeitura() {
@@ -199,7 +201,7 @@ ATUALIZADORES.push(() => {
   const t = G.empreitas && G.empreitas.tiao; if (!t || !t.evento || !G.comecou || menuAberto()) return;
   const chave = G.dia + t.evento; if (_perguntouTiao === chave) return; _perguntouTiao = chave;
   const ev = EVENTOS_TIAO[t.evento];
-  perguntar(ev.texto, ev.opcoes, i => { const d = Tiao.decidir(i); if (d.custo) { G.dinheiro -= d.custo; G.gastoHoje += d.custo; } avisar(d.texto); hudSujo(); });
+  perguntar(ev.texto, ev.opcoes, i => responderEventoTiao(i));
 });
 // O Tião na Vila, perto do depósito, de dia, quando o Jocelino é pedreiro.
 AO_MONTAR.push(b => { if (b.id === 'vila' && !b.moradores.some(m => m.id === 'tiao')) { const p = b.morador('tiao', 'Tião', TIAO.X, TIAO.Y, DIR.BAIXO, { vagueia: true, area: { x: 2 * TILE, y: TIAO.Y * TILE + 42, w: 3 * TILE, h: TILE } }); p.aoConversar = () => conversarTiao(); } });
@@ -219,4 +221,13 @@ function conversarTiao() {
   abrirConversa('Tião', urlArte('retratos/tiao_alegre'), [`Tô cuidando das obras, Seu Jocelino. (Lealdade ${t.lealdade}/10, Cr$ ${t.salario} por dia.)`], () =>
     perguntar('Falar com o Tião', ['Tudo certo', 'Dispensar o Tião', 'Voltar'], i => { if (i === 1) { Tiao.demitir(); avisar('O Tião foi dispensado.'); } }));
   return true;
+}
+// A resposta ao evento do Tião: sem dinheiro para o médico, ele fica em casa (nunca deixa o dinheiro negativo).
+function responderEventoTiao(i) {
+  const t = G.empreitas.tiao;
+  if (i === 0 && t.evento === 'acidente' && G.dinheiro < TIAO.MEDICO) { avisar('O dinheiro não dá para o médico: o Tião vai se tratar em casa.'); i = 1; }
+  const d = Tiao.decidir(i);
+  if (d.custo) { G.dinheiro -= d.custo; G.gastoHoje += d.custo; }
+  avisar(d.texto); hudSujo();
+  return d;
 }

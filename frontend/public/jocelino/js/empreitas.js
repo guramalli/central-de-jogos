@@ -23,7 +23,7 @@ const EMPREITAS_LONGAS = {
   calcada_cimento: { nome: 'Calçada da ferraria', piso: true, area: { w: 4, h: 1, textura: 'texturas/calcada' }, cliente: 'tonico', mapa: 'vila', x: 14, y: 21, junto: 'oficina', material: { cimento: 3, pedra: 6 }, etapas: ['pa', 'regador'], paga: 60, funcaoMin: 1, concreto: true, artes: ['objetos/vala', 'objetos/alicerce'] },
   cerca_madeira: { nome: 'Cerca do galpão do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 32, y: 23, material: { madeira: 10 }, etapas: ['pa', 'machado'], paga: 55, funcaoMin: 1, artes: ['objetos/vala', 'objetos/cerca'] },
   muro_baixo: { nome: 'Muro da frente da casa da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 37, y: 9, junto: 'casa_zelia', material: { tijolo: 30, cimento: 2 }, etapas: ['pa', 'colher', 'colher'], paga: 85, funcaoMin: 1, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
-  baldrame: { nome: 'Baldrame do puxadinho do Mercado', fundacao: true, cliente: 'bento', mapa: 'vila', x: 34, y: 21, junto: 'mercado', material: { tijolo: 20, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], paga: 90, funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
+  baldrame: { nome: 'Baldrame do puxadinho do Mercado', fundacao: true, cliente: 'bento', mapa: 'vila', x: 44, y: 18, junto: 'mercado', material: { tijolo: 20, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], paga: 90, funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
   muro_chapiscado: { nome: 'Muro chapiscado dos fundos do depósito', cliente: 'ananias', mapa: 'vila', x: 5, y: 3, junto: 'deposito', material: { tijolo: 50, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], paga: 220, funcaoMin: 2, hab: { h: 'acabamento', n: 3 }, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
   quiosque_praia: { nome: 'Quiosque na praia', cliente: 'lourival', mapa: 'praia', x: 27, y: 6, material: { madeira: 20, telha: 10, cimento: 2 }, etapas: ['pa', 'colher', 'machado', 'machado'], paga: 260, funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro', 'objetos/quiosque_praia'] },
   ponte_pedra: { nome: 'Ponte de pedra', cliente: 'juca', mapa: 'mata', x: 12, y: 16, material: { pedra: 30, cimento: 4 }, etapas: ['pa', 'colher', 'colher', 'regador', 'regador'], paga: 320, funcaoMin: 2, hab: { h: 'alvenaria', n: 5 }, artes: ['objetos/monte_pedras', 'objetos/alicerce', 'objetos/ponte_pedra'] },
@@ -239,6 +239,7 @@ Object.assign(Empreitas, {
     if (!a || a.tipo !== 'longa' || !(aditivo in ADITIVOS)) return 'nao';
     if (a.aditivo) return 'ja';
     if (!(a.estado === 'reservada' || (a.estado === 'obra' && a.dias === 0 && a.feitoHoje === 0 && !a.trabalhou))) return 'tarde';
+    if (aditivo === 'acelerador' && Empreitas.listaDias(id, 'acelerador').length === dadosEmpreita(id).etapas.length) return 'curta';
     if (mochila.total(aditivo) < 1) return 'falta';
     mochila.remover(aditivo, 1); a.aditivo = aditivo;
     if (a.estado === 'obra') a.lista = Empreitas.listaDias(id, aditivo);

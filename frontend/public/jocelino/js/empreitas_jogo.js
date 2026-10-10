@@ -41,6 +41,7 @@ function poeEmpreitasNoMapa(b) {
   for (const id in G.empreitas.feitas || {}) {
     const E = dadosEmpreita(id); if (!E || E.mapa !== b.id || G.empreitas.aceitas[id]) continue;
     limparLote(b, E);
+    if (tilesDoLote(E).slice(1).some(t => { const o = b.ocupado.get(chaveT(t.x, t.y)); return o && !o.achado; })) continue;   // nunca por cima de outra coisa
     const arte = E.artes[E.artes.length - 1], q = G.empreitas.feitas[id], h = E.area ? E.area.h : 1;
     const o = b.interativo('feita_' + id, ARTE_LISTA.includes(arte) ? arte : 'objetos/alicerce', E.x, E.y + h - 1, larguraLote(E), h, null, !E.piso);
     // O piso pronto: a textura de piso recortada na área (por baixo de quem pisa).
@@ -224,10 +225,11 @@ DESENHOS_TELA.push(ctx => {
 function aditivoNaPlaquinha(id) {
   const ad = itemDaMao(), a = G.empreitas.aceitas[id];
   if (!(ad in ADITIVOS) || !a) return false;
+  if (a.aditivo || !(a.estado === 'reservada' || (a.estado === 'obra' && a.dias === 0 && a.feitoHoje === 0 && !a.trabalhou))) return false;   // já tem ou já é tarde: a plaquinha faz o resto
   const mat = Empreitas.material(id);
   if (a.estado === 'reservada' && mat[ad] && G.mochila.total(ad) <= mat[ad]) return false;
   const r = Empreitas.aplicarAditivo(id, ad, G.mochila);
-  avisar({ ok: `${Itens.nome(ad)} aplicado: ${ad === 'acelerador' ? 'a obra fica mais curta' : 'o acabamento sai melhor'}.`, ja: 'Essa obra já tem aditivo.', tarde: 'O aditivo vai antes de começar a obra.', falta: 'Falta o aditivo.', nao: 'Isso não é aditivo.' }[r]);
+  avisar({ ok: `${Itens.nome(ad)} aplicado: ${ad === 'acelerador' ? 'a obra fica mais curta' : 'o acabamento sai melhor'}.`, ja: 'Essa obra já tem aditivo.', tarde: 'O aditivo vai antes de começar a obra.', falta: 'Falta o aditivo.', nao: 'Isso não é aditivo.', curta: 'Essa obra já é curta demais para o acelerador.' }[r]);
   if (r === 'ok') { sons.tocar('pousar', 1, 0.05, -4); hudSujo(); poeEmpreitasNoMapa(G.mapa); }
   return true;
 }
