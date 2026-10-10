@@ -43,7 +43,7 @@ function atualizaHud() {
     HUD.dicaBarra.textContent = fora ? `Tab: próxima fileira (${fora} ${fora === 1 ? 'item' : 'itens'})` : '';
   }
   // Na pensão aberta, a tela é do restaurante (como no Dave): some o quadro de tarefas.
-  const noSalao = G.mapaId === 'pensao_dentro' && G.pensao && G.pensao.estado === 'aberta';
+  const noSalao = noSalaoDaPensao() && G.pensao && G.pensao.estado === 'aberta';
   const tarefas = noSalao ? [] : (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []);
   HUD.quadro.hidden = !tarefas.length;
   const txt = tarefas.slice(0, 4).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');

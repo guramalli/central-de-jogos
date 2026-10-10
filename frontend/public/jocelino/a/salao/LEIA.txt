@@ -1,0 +1,34 @@
+SALÃO DA PENSÃO DA ROSA VISTO DE LADO — camadas do palco 1920x1080
+Arte do Higgsfield (ferramentas_arte/produzir_salao.sh), recortada por ferramentas_arte/web_salao.py.
+Posições = canto de cima à esquerda na tela 1920x1080, as mesmas da prévia. Ordem de desenho de trás para a frente.
+
+LINHAS DO PALCO
+  rodapé da parede (fim do azulejo, começo do chão) ... y = 760
+  tampo do balcão (os clientes "somem" daqui para baixo) y = 778
+  chão onde o Jocelino pisa (pé) ...................... y = 995  (anda em x de ~300 a ~1650)
+
+CAMADAS
+  1. fundo_noite.webp ...... 1920x1080 em (0, 0)
+  2. cozinha.webp .......... 440x221 em (1300, 545)  (pé da cozinha no rodapé; o fogão fica à direita dela)
+  3. rosa_cozinhando.webp .. folha 800x300 com 4 quadros de 200x300 (ciclo de mexer, ~6 quadros/s).
+     No palco: reduzir cada quadro para 0.493 (Rosa com 140 px de altura) e desenhar em (1493, 609);
+     o quadro reduzido mede 99x148; a colher entra na panela da esquerda do fogão.
+  4. passa_prato.webp ...... 720x130 em (590, 505)
+     centro x dos 6 nichos na tela: 672, 786, 895, 1005, 1114, 1224; o prato assenta em y = 602 (ícone de prato ~70 px de largura);
+     plaquinha vazia de cada nicho logo abaixo (y ~ 617), para as porções (5/5, ∞).
+  5. clientes .............. quadro de frente parado (coluna 0, linha 1 da folha andar.webp), escala 1.3 (86x148);
+     topo do quadro em y = 694 (TAMPO - 84); centros usados na prévia: 450, 760, 1070.
+     Cabem 6 bancos de 380 a 1179 (uns 160 px entre um e outro). Balão do pedido entre y ~ 640 e 700.
+  6. balcao.webp ........... 979x125 em (290, 757)  (tampo do desenho na linha 21 da camada)
+  7. farinheira.webp ....... 102x110; no palco escala 0.36, no tampo em x = 1180, com o fundo da cuia em y = 786
+  8. louca_suja.webp ....... 120x72; no palco escala 0.38, no tampo na frente do banco que vagou, fundo em y = 786
+  9. bebedouro.webp ........ 200x300; no palco escala 0.42, em (1275, 758) ao lado da ponta do balcão (pé em y = 884)
+ 10. Jocelino .............. quadro de lado (coluna 3, linha 1), escala 1.3, pé em y = 995 (na prévia em x = 860)
+ 11. frente_esquerda.webp .. 481x1080 em (-190, 0)  (sai pela borda esquerda; por cima de tudo, sem colisão)
+ 12. frente_direita.webp ... 268x1080 em (1702, 0)  (sai pela borda direita; por cima de tudo, sem colisão)
+
+ÍCONES DOS BALÕES (64x64): bebida_cafe, bebida_guarana, bebida_caldo_cana, bebida_cerveja.
+
+ESCALA: gente de pé ~135 px (folhas de 66x114 com escala 1.3). O balcão, a cozinha e a Rosa foram feitos nessa
+escala (balcão de ~104 px do tampo ao chão, panela na altura do peito da Rosa). Por isso o balcão, a cozinha e a Rosa ficaram
+menores que o tamanho pedido de saída (1500x330, 520x760): naquele tamanho o balcão passaria da cabeça do Jocelino.

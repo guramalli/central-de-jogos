@@ -49,7 +49,9 @@ class Personagem {
     if (!img) return;
     const qw = img.naturalWidth / 4, qh = img.naturalHeight / 4;
     const passo = this.andando ? Math.floor(this.t * 8) % 4 : 1;
-    ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw / 2, this.y - qh + 2, qw, qh);
+    // No palco de lado a gente aparece maior (como no Bancho); a arte é a mesma.
+    const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1;
+    ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
     // Coração subindo (carinho no Caramelo).
     if (this._coracao > 0) {
       this._coracao -= 1 / 60;
@@ -78,6 +80,7 @@ class Jogador extends Personagem {
     if (k.has(TECLAS.direita) || k.has('ArrowRight')) vx += 1;
     if (k.has(TECLAS.cima) || k.has('ArrowUp')) vy -= 1;
     if (k.has(TECLAS.baixo) || k.has('ArrowDown')) vy += 1;
+    if (G.mapa && G.mapa.palco) vy = 0;          // no palco de lado, só para a esquerda e para a direita
     this.andando = vx !== 0 || vy !== 0;
     if (!this.andando) return;
     if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
@@ -109,7 +112,7 @@ class Jogador extends Personagem {
     }
     super.desenha(ctx);
     // Carga nos braços (o prato da pensão, o tijolo da obra...).
-    if (this.carga && this.carga.icone) desenhaPe(ctx, this.carga.icone, this.x, this.y - 112, 1, 0.7);
+    if (this.carga && this.carga.icone) { const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1; desenhaPe(ctx, this.carga.icone, this.x, this.y - 112 * e, 1, 0.7 * e + (e > 1 ? 0.3 : 0)); }
     if (typeof desenhaGolpe === 'function') desenhaGolpe(ctx, this);
   }
 }

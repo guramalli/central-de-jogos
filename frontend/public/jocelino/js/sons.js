@@ -89,7 +89,7 @@ let _proxCanto = 8;
 // Música: de dia a do dia, da noite a da noite (a partir das 18h); na pensão, a calma da Vila.
 setInterval(() => {
   if (!G.comecou || !sons.ctx) return;
-  sons.musica(G.mapaId === 'pensao_dentro' ? 'vila_calma' : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
+  sons.musica(noSalaoDaPensao() ? 'vila_calma' : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
   // Fora de casa: o fundo do dia (passarinhos) ou da noite (grilos, sapos), e a brisa acompanhando o vento (vida.js).
   // Os fundos são laços longos emendados sem pausa (produzir_ambiente.sh); dentro de casa, só um fio do lado de fora.
   const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;

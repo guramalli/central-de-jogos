@@ -45,6 +45,7 @@ function atualizarPensaoMundo(so) {
 // ---------- reforma ----------
 function pensaoFachada() {
   if (G.pensao.estado === 'fechada') { abrirPlaca('Uma pensão abandonada, com tábuas na porta. Uma placa apagada: "Pensão da Dona Cotinha".'); return true; }
+  if (typeof pensaoNoPalco === 'function' && pensaoNoPalco()) { entrarPalco(); return true; }
   entrarMapa('pensao_dentro', { x: 14, y: 12 });
   sons.tocar('porta', 1, 0.05, -4);
   return true;
@@ -143,7 +144,7 @@ function iniciarJanta() {
   G.turno.iniciar(G.pensao, G.dia, 6 + 4 * (G.pensao.grau() - 1));
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
-  avisar('A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
+  avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passa-prato: clique no prato e depois em quem pediu.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
 }
 function encerrarJanta() {
   if (!G.turno) return;
@@ -162,11 +163,11 @@ function encerrarJanta() {
 ATUALIZADORES.push(dt => {
   const t = G.turno;
   if (!t) {
-    if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.mapaId === 'pensao_dentro' && G.minutos >= TurnoJanta.ABRE && G.minutos < 20 * 60) iniciarJanta();
+    if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && noSalaoDaPensao() && G.minutos >= TurnoJanta.ABRE && G.minutos < 20 * 60) iniciarJanta();
     return;
   }
   t.tick(dt, G.minutos);
-  const noSalao = G.mapaId === 'pensao_dentro';
+  const noSalao = noSalaoDaPensao();
   for (const ev of t.eventos) {
     if (ev.tipo === 'pronto' && noSalao) { mostrarCenaRosa(ev.prato); }
     else if (ev.tipo === 'pagou' && noSalao) sons.tocar('dinheiro', 1.2, 0.05, -6);
@@ -296,8 +297,8 @@ function desenhaBaloes(ctx, b) {
     const f = clamp(1 - m.espera / lim, 0, 1);
     // Paciência: o miolo colorido dentro da moldura de madeira (a/fx/barra_moldura).
     if (spr('fx/barra_moldura')) {
-      ctx.fillStyle = f > 0.5 ? '#5ec43a' : f > 0.25 ? '#e8c22c' : '#e8452c'; ctx.fillRect(x - 27, y + 41, 54 * f, 6);
-      desenhaFx(ctx, 'barra_moldura', x, y + 44);
+      desenhaFx(ctx, 'barra_moldura', x, y + 44);   // a moldura tem o miolo escuro: a cor vai por cima
+      ctx.fillStyle = f > 0.5 ? '#5ec43a' : f > 0.25 ? '#e8c22c' : '#e8452c'; ctx.fillRect(x - 26, y + 42, 52 * f, 4);
     }
     ctx.restore();
   });

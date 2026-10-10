@@ -19,7 +19,7 @@ function instalaEntrada() {
     if (ehTecla(e, 'opcoes') && typeof abrirOpcoes === 'function') { abrirOpcoes(); return; }
     if (ehTecla(e, 'mochila') && typeof abrirMochila === 'function') { abrirMochila(); return; }
     if (ehTecla(e, 'fileira') && G.mochila) { G.mochila.girarFileiras(e.shiftKey ? -1 : 1); hudSujo(); return; }
-    if (ehTecla(e, 'acao')) { acaoNaFrente(); return; }
+    if (ehTecla(e, 'acao')) { if (typeof noPalco === 'function' && noPalco()) palcoAgirNaFrente(); else acaoNaFrente(); return; }
     if (ehTecla(e, 'usar')) { usarItemDaMao(true); return; }
     const n = e.code.startsWith('Digit') ? Number(e.code.slice(5)) : NaN;
     if (!isNaN(n)) { G.sel = n === 0 ? 9 : n - 1; hudSujo(); }
@@ -33,6 +33,7 @@ function instalaEntrada() {
   cv.addEventListener('mousedown', e => {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
+    if (typeof noPalco === 'function' && noPalco()) { const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
     if (e.button === 0) { G.mouse.segura = true; usarItemDaMao(); }
     else if (e.button === 2) acaoNoMouse();
   });

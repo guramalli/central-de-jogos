@@ -127,7 +127,7 @@ addEventListener('load', () => {
 // Atalho de conferência (?pensao=1): a pensão aberta e limpa, despensa cheia, 16h40 dentro do salão. Marcado soTeste:
 // salvar() não grava nada (nem ao dormir), para não apagar o save de verdade.
 function saveDaPensao() {
-  return Object.assign(novoSave(), { dia: 3, minutos: 16 * 60 + 40, dinheiro: 300, mapa: 'pensao_dentro', tile: [14, 12], boasVindas: true, soTeste: true,
+  return Object.assign(novoSave(), { dia: 3, minutos: 16 * 60 + 40, dinheiro: 300, mapa: 'pensao_palco', tile: [3, 20], boasVindas: true, soTeste: true,
     pensao: { estado: 'aberta', abreDia: 3, mesas: 2, despensa: { arroz: 10, feijao: 10, ovo: 10, farinha: 5 }, cardapio: ['pf_peao'] },
     mapas: { pensao_dentro: { detritos: [] } } });
 }
