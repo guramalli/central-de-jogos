@@ -202,7 +202,7 @@ class TurnoJanta {
     if (k < 0) return false;
     const b = this.bandeja.splice(k, 1)[0];
     m.bebidaServida = true; m.bebidaMedida = b.qualidade === 'medida';
-    this.relatorio.bebidas++;
+    this.relatorio.bebidas++; if (m.bebidaMedida) this.relatorio.medida = (this.relatorio.medida || 0) + 1;
     if (m.bebida === 'cerveja') this.relatorio.ganho += 3;   // cerveja gelada se paga à parte
     return true;
   }

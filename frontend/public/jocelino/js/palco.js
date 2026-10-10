@@ -128,7 +128,7 @@ function camadasDaJanta() {
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig();
   b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
-  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); };
+  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
   return b;
 })(MAPAS_DEF.pensao_palco);
 
@@ -391,6 +391,7 @@ function rodapePalco() {
   let r = $('#rodape-palco');
   if (!r) {
     r = el('div', { id: 'rodape-palco', class: 'painel rodape-palco', hidden: true },
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirMetas(); } }, 'Metas'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); pensaoQuadro(); } }, 'Cardápio'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirCaderno(); } }, 'Receitas'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirPainelPensao(); } }, 'A Pensão'),
@@ -482,6 +483,7 @@ function abrirEquipe() {
       lista.append(el('div', { class: 'eq-pessoa' }, el('img', { src: `a/retratos/${e.id}_normal.webp` }),
         el('div', {}, el('b', {}, `${e.nome} · ${Equipe.POSTOS[e.posto]} · Nv ${e.nivel}`),
           el('div', { class: 'eq-at' }, `Serviço ${e.servico} · Cozinha ${e.cozinha} · Compras ${e.compras} · Simpatia ${e.simpatia}`),
+          el('div', { class: 'eq-at' }, e.nivel < 10 ? `▸ Treinar: nível ${e.nivel} → ${e.nivel + 1}, salário Cr$ ${Equipe.salario(e)} → ${Equipe.salario(e) + 2}/noite` + ((e.nivel + 1 === 3 || e.nivel + 1 === 7) ? ' · ganha habilidade nova!' : '') : 'Nível máximo.'),
           el('div', { class: 'eq-hab' }, e.habilidades.length ? '★ ' + e.habilidades.map(h => (Object.values(Equipe.HABILIDADES).flat().find(x => x[0] === h) || [h, h])[1]).join(' · ') : 'Habilidade nova no nível 3 e no 7.')),
         el('div', { class: 'eq-bts' },
           el('button', { class: 'botao forte' + (G.dinheiro >= c && e.nivel < 10 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();

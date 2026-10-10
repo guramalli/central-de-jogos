@@ -28,6 +28,19 @@ const Melhorias = {
   },
 };
 const temMelhoria = id => !!(G.pensao && G.pensao.melhorias.includes(id));
+// O efeito da melhoria em números, antes → depois.
+function efeitoMelhoria(id) {
+  const p = G.pensao, m = MELHORIAS[id], b = bonusMelhorias(p), pac = Math.round(TurnoJanta.PACIENCIA_PRATO * b.paciencia);
+  switch (id) {
+    case 'ventilador': return `Paciência ${pac} s → ${Math.round(pac * m.paciencia)} s`;
+    case 'fogao_4bocas': return `Pratos no fogo ${TurnoJanta.BOCAS + b.bocas} → ${TurnoJanta.BOCAS + b.bocas + 1} · preparo ${TurnoJanta.PREPARO}s → ${(TurnoJanta.PREPARO * m.preparo).toFixed(1)}s`;
+    case 'farinheira_grande': return `Farinheira ${TurnoJanta.FARINHA_MAX} → ${TurnoJanta.FARINHA_MAX + m.farinha}`;
+    case 'banqueta_extra': return `Banquetas ${p.mesasDaNoite()} → ${p.mesasDaNoite() + 1}`;
+    case 'neon': case 'bandeirinhas': { const c = p.clientesDaNoite() + b.clientes; return `Clientes por noite ${c} → ${c + m.clientes}`; }
+    case 'geladeira': return 'Bebidas: + cerveja gelada (Cr$ 3 a mais cada)';
+    default: return m.gorjeta ? `Gorjeta extra +${Math.round(b.gorjeta * 100)}% → +${Math.round((b.gorjeta + m.gorjeta) * 100)}%` : m.efeito;
+  }
+}
 // O efeito somado das melhorias da pensão.
 function bonusMelhorias(p) {
   const b = { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0, clientes: 0 };
@@ -69,7 +82,7 @@ function abrirMelhorias() {
       const tem = p.melhorias.includes(id), tranca = p.grau() < m.grau;
       const ic = m.arte && spr(m.arte) ? el('div', { class: 'mel-arte', style: `background-image:url(a/${m.arte}.webp)` }) : el('div', { class: 'mel-arte vazio' }, '+1');
       g.append(el('div', { class: 'mel-item' + (tem ? ' tem' : tranca ? ' trancado' : '') }, ic,
-        el('div', {}, el('b', {}, m.nome), el('div', { class: 'eq-at' }, m.efeito), el('div', { class: 'eq-hab' }, tem ? '✓ Na pensão' : tranca ? `🔒 Pede "${p.nomeGrau(m.grau)}"` : `Cr$ ${m.preco}`)),
+        el('div', {}, el('b', {}, m.nome), el('div', { class: 'eq-at' }, m.efeito), tem ? null : el('div', { class: 'eq-hab' }, '▸ ' + efeitoMelhoria(id)), el('div', { class: 'eq-hab' }, tem ? '✓ Na pensão' : tranca ? `🔒 Pede "${p.nomeGrau(m.grau)}"` : `Cr$ ${m.preco}`)),
         tem || tranca ? null : el('button', { class: 'botao forte' + (G.dinheiro >= m.preco ? '' : ' desligado'), onclick: e => { e.stopPropagation();
           const r = Melhorias.comprar(p, id, G.dinheiro);
           if (r === 'ok') { G.dinheiro -= m.preco; sons.tocar('carimbo', 0.9, 0.05, -4); sons.tocar('rosa_animada', 1, 0.05, -6); avisar(`${m.nome}: instalado!`); hudSujo(); desenha(); }

@@ -227,3 +227,14 @@ button { font-family: inherit; }
 .mel-arte.vazio { display: grid; place-items: center; font-weight: 900; font-size: 26px; color: #6b3f22; }
 
 .placa .texto { white-space: pre-line; }
+
+/* Metas e fechamento do caixa. */
+.metas, .fechamento { width: min(92vw, 820px); max-height: 92vh; overflow-y: auto; }
+.meta { padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.05); margin: 6px 0; }
+.meta.feita { opacity: .6; } .meta-texto { font-weight: 900; font-size: 18px; }
+.meta-barra { height: 10px; border-radius: 6px; background: rgba(0,0,0,.15); margin: 6px 0; overflow: hidden; }
+.meta-barra div { height: 100%; background: var(--verde); }
+.meta-pe { display: flex; justify-content: space-between; font-size: 14px; color: #6b4a2a; font-weight: 800; }
+.fx-nota { font-size: 30px; color: #d48a2c; margin: 4px 0 10px; } .fx-nota span { font-size: 18px; color: #5b3a1c; font-weight: 900; }
+.fx-col { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.05); }
+.fx-linha { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; } .fx-linha.menos b { color: #b0301c; } .fx-linha.lucro b { color: #2e7d32; }

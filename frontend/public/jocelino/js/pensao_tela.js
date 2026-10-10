@@ -168,11 +168,15 @@ function encerrarJanta() {
     r.pedidosFeitos = Eventos.depoisDaJanta(G.pensao, r, G.dia);
     for (const e of r.pedidosFeitos) { G.dinheiro += e.premio; r.curtidas += 2; }
   }
+  const pit0 = G.pensao.pitadas;
   r.subiu = G.pensao.registrarNoite(r.estrelas, G.dia, r.curtidas);
+  r.pitadasGanhas = G.pensao.pitadas - pit0;
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
   r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;
   const custo = Math.min(r.despesa + r.salarios, Math.max(0, G.dinheiro));   // nunca deixa o bolso negativo
-  G.dinheiro -= custo; G.ganhoHoje -= custo;
+  G.dinheiro -= custo; G.ganhoHoje -= custo; r.custo = custo;
+  // As metas da noite (servir, bebida na medida, nota) e as de estado.
+  if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); }
   if (r.subiu) { G.correio.caixa.push('fama_' + r.subiu); sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão subiu: agora é "${G.pensao.nomeGrau(r.subiu)}"!`); }
   G.relatorioPensao = r;
   G.turno = null;
@@ -181,6 +185,7 @@ function encerrarJanta() {
   if (sal) sal.clientes = [];
   avisar('A janta acabou: Cr$ ' + total + '.');
   hudSujo();
+  if (typeof noPalco === 'function' && noPalco() && typeof abrirFechamento === 'function') abrirFechamento(r);
 }
 ATUALIZADORES.push(dt => {
   const t = G.turno;
@@ -192,7 +197,13 @@ ATUALIZADORES.push(dt => {
   const noSalao = noSalaoDaPensao();
   for (const ev of t.eventos) {
     if (ev.tipo === 'pronto' && noSalao) { if (!noPalco()) mostrarCenaRosa(ev.prato); sons.tocar('prato_tchan', 1, 0.05, -4); }
-    else if (ev.tipo === 'pagou' && noSalao) sons.tocar(SONS_LISTA.some(n => n.startsWith('moedas')) ? 'moedas' : 'dinheiro', 1.1, 0.05, -6);
+    else if (ev.tipo === 'pagou' && noSalao) {
+      sons.tocar(SONS_LISTA.some(n => n.startsWith('moedas')) ? 'moedas' : 'dinheiro', 1.1, 0.05, -6);
+      if (noPalco() && typeof flutuar === 'function' && PALCO.ASSENTOS[ev.mesa]) {
+        const A = PALCO.ASSENTOS[ev.mesa]; flutuar(A.x, A.y - 200, `+Cr$ ${ev.valor}`, '#ffd34d');
+        if (ev.estrelas >= 4) setTimeout(() => flutuar(A.x + 30, A.y - 230, '+1 ❤ curtida', '#ff7a8a'), 250);
+      }
+    }
     else if (ev.tipo === 'embora') {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
@@ -372,7 +383,7 @@ function abrirPainelPensao() {
   });
   const px = p.proximoDegrau();
   caixa.append(lista, el('div', { class: 'pp-falta' }, px ? `Para "${px.nome}": ${textoFalta(px.falta)}.` : 'A pensão é Patrimônio da Vila! Não tem mais degrau para subir.'),
-    el('div', { style: 'text-align:right;margin-top:8px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+    el('div', { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:8px' }, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); abrirMetas(); } }, 'Ver as metas'), el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(caixa);
   sons.tocar('abrir', 1, 0.03, -6);
   return true;

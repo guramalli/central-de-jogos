@@ -46,7 +46,9 @@ function atualizaHud() {
   const noSalao = noSalaoDaPensao() && G.pensao && G.pensao.estado === 'aberta';
   const tarefas = noSalao ? [] : (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []);
   HUD.quadro.hidden = !tarefas.length;
-  const txt = tarefas.slice(0, 4).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
+  // As metas da Rosa (★) vêm primeiro: são o caminho da pensão.
+  tarefas.sort((a, b) => (b.texto.startsWith('★') ? 1 : 0) - (a.texto.startsWith('★') ? 1 : 0));
+  const txt = tarefas.slice(0, 6).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
   if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t)); }
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }
