@@ -37,7 +37,8 @@ function atualizaHud() {
     for (let i = 0; i < 12; i++) {
       const s = G.mochila.slots[i];
       const e = el('div', { class: 'espaco' + (i === G.sel ? ' sel' : ''), title: s ? Itens.nome(s.id) : '', onclick: () => { G.sel = i; hudSujo(); } },
-        s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null, s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null);
+        s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null, s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null,
+        s && s.id === 'regador' && G.horta ? el('div', { class: 'agua', title: `Água: ${G.horta.agua}` }, el('div', { style: `width:${Math.round(100 * G.horta.agua / Horta.aguaMax())}%` })) : null);
       HUD.barra.append(e);
     }
     const fora = G.mochila.slots.slice(12).filter(Boolean).length;

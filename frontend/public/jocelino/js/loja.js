@@ -1,9 +1,10 @@
 // Jocelino — loja.js — o depósito do Seu Ananias (abre das 9h às 17h; fecha em dia de festa): abas Comprar (material e
-// comida), Vender (o que sobra do quintal) e Mercearia (os ingredientes da Pensão da Rosa que a fama já abriu).
+// comida), Vender (o que sobra do quintal), Mercearia (os ingredientes da Pensão da Rosa que a fama já abriu) e Sementes
+// (as da estação e as coisas da horta).
 // Clique compra 1; Shift+clique compra 5 (ou vende tudo, na aba Vender). Os preços são os do Godot.
 
 let _abaLoja = 0;
-const ABAS_LOJA = ['Comprar', 'Vender', 'Mercearia'];
+const ABAS_LOJA = ['Comprar', 'Vender', 'Mercearia', 'Sementes'];
 
 function entrarDeposito() {
   if (G.minutos < 9 * 60 || G.minutos >= 17 * 60) { abrirPlaca('Depósito do Seu Ananias: fechado agora. Abre das 9h às 17h.'); return true; }
@@ -48,11 +49,12 @@ function abrirLoja() {
     let ids, preco, acao, dica;
     if (_abaLoja === 0) { ids = Object.keys(LOJA.PRECOS); preco = precoLoja; acao = (id, s) => comprarLoja(id, s ? 5 : 1); dica = 'Clique: compra 1 · Shift+clique: compra 5'; }
     else if (_abaLoja === 1) { ids = Object.keys(LOJA.COMPRA); preco = id => LOJA.COMPRA[id]; acao = (id, s) => venderLoja(id, s ? 999 : 1); dica = 'Clique: vende 1 · Shift+clique: vende tudo'; }
-    else {
+    else if (_abaLoja === 2) {
       const grau = G.pensao ? G.pensao.grau() : 1;
       ids = Object.keys(Pratos.MERCEARIA).filter(id => Pratos.fase(id) <= grau); preco = precoMercearia; acao = (id, s) => comprarMercearia(id, s ? 5 : 1);
       dica = 'Ingredientes da Pensão da Rosa. Mais coisas aparecem quando a pensão fica famosa.';
     }
+    else { ids = sementesDaLoja(); preco = precoSemente; acao = (id, s) => _comprar(id, s ? 5 : 1, precoSemente(id)); dica = 'Sementes da estação, adubo e coisas da horta. Clique: compra 1 · Shift+clique: compra 5'; }
     const falta = typeof compras !== 'undefined' ? compras.falta(G.mochila) : {};
     caixa.append(el('div', { class: 'grade' }, ids.map(id => el('div', { class: 'linha', onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
       el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), falta[id] ? el('span', { style: 'color:var(--destaque)' }, `  (falta ${falta[id]})`) : null,

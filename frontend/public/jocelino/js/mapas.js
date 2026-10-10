@@ -409,13 +409,18 @@ function acaoEm(px, py) {
   if (p || o) { avisar('Chegue mais perto.'); return true; }
   return false;
 }
+// O botão direito: morador ou objeto; senão o chão (a horta: plantar, adubar, colocar); senão comer o que está na mão.
 function acaoNoMouse() {
   const mm = mouseMundo();
-  if (!acaoEm(mm.x, mm.y) && typeof comerDaMao === 'function') comerDaMao();
+  if (acaoEm(mm.x, mm.y)) return;
+  if (typeof acaoNoChao === 'function' && acaoNoChao({ x: Math.floor(mm.x / TILE), y: Math.floor(mm.y / TILE) })) return;
+  if (typeof comerDaMao === 'function') comerDaMao();
 }
 function acaoNaFrente() {
   const f = G.jog.frente();
-  if (!acaoEm(f.x, f.y) && typeof comerDaMao === 'function') comerDaMao();
+  if (acaoEm(f.x, f.y)) return;
+  if (typeof acaoNoChao === 'function' && acaoNoChao({ x: Math.floor(f.x / TILE), y: Math.floor(f.y / TILE) })) return;
+  if (typeof comerDaMao === 'function') comerDaMao();
 }
 
 // Conversa: as falas do morador (FALAS) ou uma frase de bom dia.

@@ -97,6 +97,7 @@ function acertarUm(id, alvo, vistos) {
     return;
   }
   if (o && o.tipo === 'inter' && o.ferramenta) { o.ferramenta(o, id, alvo); return; }
+  if (typeof chaoAcertado === 'function' && chaoAcertado(id, alvo)) return;   // a horta: a pá cava, o regador rega
   if (id === 'regador') { lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); if (typeof Habilidades !== 'undefined') Habilidades.ganhar('acabamento', 1); }
   else sons.tocar('terra', 1.3, 0.1, -10);
 }

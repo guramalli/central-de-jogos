@@ -2,7 +2,7 @@
 // fogão da Rosa, a caixa de correio e a de venda, o terreno marcado da casa da família, mato, galho e pedra para
 // tirar (sorteados sempre do mesmo jeito) e a saída para a Vila.
 
-const QUINTAL = { ZONA_LIMPA: { x: 3, y: 3, w: 13, h: 12 }, TERRENO: { x: 18, y: 6, w: 8, h: 6 }, SAIDA: { x: 20, y: 27, w: 2, h: 1 } };
+const QUINTAL = { ZONA_LIMPA: { x: 3, y: 3, w: 13, h: 12 }, TERRENO: { x: 18, y: 6, w: 8, h: 6 }, SAIDA: { x: 20, y: 27, w: 2, h: 1 }, CANTEIRO: { x: 3, y: 15, w: 5, h: 3 } };
 const dentroR = (r, x, y) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 
 MAPAS_DEF.quintal = () => {
@@ -39,11 +39,14 @@ MAPAS_DEF.quintal = () => {
   for (const c of [[T.x - 1, T.y - 1], [T.x + T.w, T.y - 1], [T.x - 1, T.y + T.h], [T.x + T.w, T.y + T.h]]) b.enfeite('objetos/bandeirinha', c[0], c[1], false);
   const pl = b.interativo('plaquinha', 'objetos/plaquinha', T.x - 1, T.y + 3, 1, 1, [8, 6]);
   pl.acao = () => abrirPlaca('O terreno da casa da família. "Um dia a gente levanta aqui a nossa casa", diz o Tio Juca.');
+  // O barril d'água da chuva, ao lado do canteiro da horta (enche o regador).
+  const barril = b.interativo('barril_agua', 'objetos/barril_agua', 9, 16, 1, 1, [16, 10]);
+  barril.acao = () => (typeof encherRegador === 'function' ? encherRegador() : abrirPlaca('O barril d\'água da chuva.'));
   // Detritos sorteados (sempre os mesmos: semente 1975).
   const sorteio = [['mato', 0.20], ['pedra', 0.06], ['galho', 0.05], ['toco', 0.015], ['arvore', 0.02], ['pedregulho', 0.008]];
   for (let y = b.livre.y; y < b.livre.y + b.livre.h; y++) for (let x = b.livre.x; x < b.livre.x + b.livre.w; x++) {
     let r = b.rng();
-    if (dentroR(QUINTAL.ZONA_LIMPA, x, y) || b.ocupado.has(chaveT(x, y)) || b.chaoEm(x, y) !== CH.GRAMA) continue;
+    if (dentroR(QUINTAL.ZONA_LIMPA, x, y) || dentroR(QUINTAL.CANTEIRO, x, y) || b.ocupado.has(chaveT(x, y)) || b.chaoEm(x, y) !== CH.GRAMA) continue;
     if (dentroR(QUINTAL.TERRENO, x, y)) r *= 0.55;
     for (const [tipo, p] of sorteio) {
       if (r < p) {

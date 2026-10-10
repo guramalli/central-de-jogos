@@ -26,6 +26,7 @@ function abrirCorreio() {
   if (!c) return abrirCorreio();   // carta de um evento que já passou
   sons.tocar('letra', 1, 0.03, -4);
   abrirPlaca(c.texto, { quem: 'Carta de ' + c.de });
+  if (c.anexo) for (const it in c.anexo) { const sobra = G.mochila.adicionar(it, c.anexo[it]); if (sobra) soltar(it, sobra, G.jog.x, G.jog.y); avisar('+ ' + Itens.qtd(c.anexo[it], it)); hudSujo(); }
   return true;
 }
 // O envelope pulando em cima da caixa (como no Stardew).

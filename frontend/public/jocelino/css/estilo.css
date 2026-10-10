@@ -60,6 +60,8 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 #hud .espaco { width: 58px; height: 58px; background: var(--papel-escuro); border: 2px solid var(--madeira); border-radius: 6px; position: relative; cursor: pointer; }
 #hud .espaco.sel { outline: 4px solid var(--destaque); outline-offset: -1px; }
 #hud .espaco img { position: absolute; inset: 4px; width: 46px; height: 46px; object-fit: contain; }
+#hud .espaco .agua { position: absolute; left: 5px; right: 5px; bottom: 3px; height: 5px; background: rgba(0,0,0,.35); border-radius: 3px; overflow: hidden; }
+#hud .espaco .agua > div { height: 100%; background: #3a8fd8; }
 #hud .espaco .qtd { position: absolute; right: 3px; bottom: 0; font-weight: 900; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; font-size: 16px; }
 #hud .dica-barra { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); font-weight: 800; color: #fff; text-shadow: 0 0 4px #000; font-size: 15px; }
 #hud .meta { position: absolute; right: 14px; top: 150px; width: 210px; height: 26px; border: 2px solid var(--madeira); border-radius: 6px;
@@ -150,7 +152,7 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 /* O caderno de receitas da Rosa: duas páginas por cima da arte a/ui/caderno_aberto (sem a arte, um painel de papel). */
 .caderno { position: relative; width: min(94vw, 1400px); aspect-ratio: 14 / 9; max-height: 92vh; color: #3b2a1a; font-family: Nunito, sans-serif;
   background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4%; padding: 3% 4%; box-sizing: border-box; }
-.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp?v=5570dab) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
+.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp?v=fc54f56) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
 /* As páginas dentro do papel desenhado (retângulos úteis medidos em a/ui/LEIA.txt, em % de 1400x878). */
 .caderno.com-arte .pagina { position: absolute; overflow-y: auto; }
 .caderno.com-arte .pagina.esq { left: 18.5%; top: 5.5%; width: 30%; height: 74%; }
@@ -197,7 +199,7 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 
 /* A despensa viva e o orelhão. */
 .despensa { width: min(94vw, 1300px); max-height: 92vh; overflow-y: auto; background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; padding: 18px 24px; box-sizing: border-box; color: #3b2a1a; }
-.despensa.com-arte { background: url(../a/ui/despensa_prateleiras.webp?v=5570dab) center / 100% 100% no-repeat, transparent; border: 0; aspect-ratio: 13 / 8.5; max-height: 88vh; overflow: hidden;
+.despensa.com-arte { background: url(../a/ui/despensa_prateleiras.webp?v=fc54f56) center / 100% 100% no-repeat, transparent; border: 0; aspect-ratio: 13 / 8.5; max-height: 88vh; overflow: hidden;
   padding: 5% 18% 7% 18%; color: #fff4dc; text-shadow: 0 2px 2px #000a; display: flex; flex-direction: column; }
 .despensa.com-arte .desp-prateleiras { overflow-y: auto; flex: 1; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
 .despensa.com-arte .desp-item { background: rgba(28,14,5,.82); border: 2px solid rgba(255,220,160,.25); }
