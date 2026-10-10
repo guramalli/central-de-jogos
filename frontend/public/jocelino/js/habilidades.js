@@ -26,7 +26,8 @@ const VANTAGENS = {
   labia: ['Lábia', 'Amizade sobe 50% mais rápido.'], atravessador: ['Atravessador', 'Vende 50% mais caro (em vez de 25%).'],
 };
 // As que já valem nesta etapa (as outras esperam a obra, a casa e os aluguéis).
-const VALE_AGORA = ['pe_ligeiro', 'maratonista', 'incansavel', 'cafe_no_sangue', 'faxineiro', 'pechincha', 'atravessador', 'fregues', 'cliente_vip'];
+const VALE_AGORA = ['pe_ligeiro', 'maratonista', 'incansavel', 'cafe_no_sangue', 'faxineiro', 'pechincha', 'atravessador', 'fregues', 'cliente_vip',
+  'braco_forte', 'carregador', 'olho_de_prumo', 'prumo_de_ouro', 'fama', 'organizado', 'capricho', 'pintor', 'artista', 'limpinho'];
 const FERRAMENTA_HAB = { machado: 'folego', picareta: 'folego', foice: 'folego', vara: 'folego', pa: 'alvenaria', colher: 'alvenaria', regador: 'acabamento' };
 
 const Habilidades = {
@@ -93,6 +94,7 @@ function escolherVantagens() {
 // ---------- a tela das habilidades (H) ----------
 function abrirHabilidades() {
   const caixa = el('div', { class: 'painel habilidades' }, el('div', { class: 'titulo', style: 'font-size:28px' }, 'Habilidades do Jocelino'));
+  if (typeof Obra !== 'undefined' && G.obra) caixa.append(el('div', { class: 'amp-obra' }, `Função: ${FUNCOES[G.obra.funcao]}` + (G.obra.funcao < 3 ? ` · Próximo degrau: ${FUNCOES[G.obra.funcao + 1]} — ${Obra.textoFalta()}` : ' · o topo da obra (a construtora vem mais para a frente)')));
   for (const h of Habilidades.LISTA) {
     const n = Habilidades.nivel(h), van = G.hab.vantagens.filter(v => OPCOES_5[h].includes(v) || OPCOES_5[h].some(p => (OPCOES_10[p] || []).includes(v)));
     caixa.append(el('div', { class: 'hab-linha' }, el('img', { src: urlItem('hab_' + h) }),

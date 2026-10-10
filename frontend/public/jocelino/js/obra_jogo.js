@@ -32,6 +32,12 @@ function conversarBira() {
   }
   // 2) A parte de ontem (ou de hoje cedo).
   if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(`A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
+  // A promoção (meio-oficial e pedreiro: o Bira; mestre de obras: o Seu Santos, no canteiro).
+  if (Obra.podeSubir() && o.funcao < 2) {
+    const f = Obra.subir(); sons.tocar('fanfarra', 1, 0, -4);
+    if (f === 1) { G.mochila.adicionar('colher', 1); hudSujo(); return falaBira(['Rapaz, você é bom de serviço. A partir de hoje é meio-oficial! A diária sobe para Cr$ 45.', 'Toma a minha colher velha: agora você assenta tijolo e chapisca. E já pode pegar empreita maior no quadro da Vila.']); }
+    return falaBira(['Pedreiro! Levantou parede, rebocou, entregou obra. A diária agora é Cr$ 60.', 'Empreita boa no quadro agora é com você: baldrame, quiosque, ponte. Capricha que o povo paga mais.']);
+  }
   // 3) Horário, domingo e chuva.
   const fechada = Obra.aberta(G.dia, G.minutos);
   if (fechada === 'domingo') return falaBira('Domingo é dia de descanso, rapaz. Vai cuidar das suas coisas.');
@@ -64,6 +70,7 @@ function conversarBira() {
   }
   if (l.paga) return falaBira('Por hoje tá pago, rapaz. Amanhã tem mais.');
   // 6) O que falta.
+  if (o.funcao >= 3) return falaBira(`Mestre, a turma tá esperando as ordens na prancheta. Falta:\n${textoLista(l)}`);
   return falaBira(`Ainda falta:\n${textoLista(l)}`);
 }
 // O extra paga OBRA_EXTRA (o dobro com Fama); "pagar" soma a diária — o valorExtra desconta a diária para dar só o extra.
@@ -78,10 +85,32 @@ function poeObraNoMapa(b) {
   if (merc) { merc.obraId = 'mercado'; merc.nome = G.obra.indice < 1 ? 'objetos/mercado_0' : G.obra.indice === 1 ? Obra.arteAtual() : 'objetos/mercado_3'; merc.acao = () => acaoNaObra(merc); merc.ferramenta = (o, id) => ferramentaNaObra(o, id); }
   if (casa) { casa.acao = () => acaoNaObra(casa); casa.ferramenta = (o, id) => ferramentaNaObra(o, id); }
   const bira = b.moradores.find(m => m.id === 'bira'); if (bira) bira.aoConversar = () => conversarBira();
+  // A escola e o Edifício Maré nos lotes livres da Vila (a escola ao lado da praça; o prédio ao lado da ferraria).
+  for (const [obraId, idx, x, y, w, h] of [['escola', 2, 30, 23, 6, 4], ['predio', 3, 18, 21, 5, 4]]) {
+    let ob = b.objs.find(o => o.obraId === obraId);
+    if (G.obra.indice >= idx && !ob) { ob = b.interativo('obra_' + obraId, 'objetos/alicerce', x, y, w, h); ob.obraId = obraId; }
+    if (ob) { ob.nome = G.obra.indice === idx ? Obra.arteAtual() : (obraId === 'escola' ? 'objetos/escola' : 'objetos/predio_7'); ob.acao = () => acaoNaObra(ob); ob.ferramenta = (o2, id) => ferramentaNaObra(o2, id); }
+  }
+  // O Seu Santos vem oferecer o cargo de mestre de obras (volta todo dia até aceitar).
+  const santos = b.moradores.find(m => m.id === 'santos');
+  if (G.obra.funcao === 2 && Obra.podeSubir()) {
+    if (!santos) { const s = b.morador('santos', 'Seu Santos', 34, 6, DIR.ESQUERDA); s.aoConversar = () => propostaDeMestre(); }
+  } else if (santos) b.moradores = b.moradores.filter(m => m !== santos);
   const ze = b.moradores.find(m => m.id === 'ze'); if (ze) ze.aoConversar = () => conversarZe(ze);
   for (const [id, f] of [['monte_tijolos', pegarDoMonte], ['pilha_ripas', () => pegarCargaObra('ripa', 'objetos/pilha_ripas')], ['peneira', peneirar], ['masseira', () => pegarCargaObra('massa', 'objetos/masseira')]]) {
     const o = b.objs.find(x => x.id === id); if (o) o.acao = () => { f(o); return true; };
   }
+}
+function propostaDeMestre() {
+  abrirConversa('Seu Santos', urlArte('retratos/santos_normal'), ['Jocelino, o Bira me contou: quatro obras entregues, empreita pela Vila inteira, parede no prumo.', 'Quero você de mestre de obras. Vai comandar a turma: o Zé, o Severino, o Cícero e o Damião. A primeira obra é o Edifício Maré.'],
+    () => perguntar('Seu Santos: "Aceita ser mestre de obras da J. Santos?"', ['Aceito!', 'Agora não'], i => {
+      if (i !== 0) { avisar('O Seu Santos volta amanhã para perguntar de novo.'); return; }
+      Obra.subir(); G.obra.indice = 3; G.obra.etapa = 0; G.obra.diasEtapa = 0; G.obra.lista = null;
+      if (typeof EquipeObra !== 'undefined') EquipeObra.iniciar({});
+      sons.tocar('fanfarra', 1, 0, -2); avisar('Mestre de obras! A diária agora é Cr$ 90. A turma espera as ordens na prancheta.');
+      if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
+    }));
+  return true;
 }
 function obraDaVez(o) { return o.obraId === Obra.obra().id; }
 function acaoNaObra(o) {
@@ -165,6 +194,7 @@ function quebrouNaObra(o) {
 }
 
 AO_MONTAR.push(b => { if (b.id === 'vila') { poeObraNoMapa(b); poeEntulhoDaObra(b); } });
+AO_ENTRAR_MAPA.push(id => { if (id === 'vila') poeObraNoMapa(G.mapa); });
 MANHA.push(() => { if (MAPAS.vila) { poeObraNoMapa(MAPAS.vila); poeEntulhoDaObra(MAPAS.vila); } });
 // Meio-dia: a obra fecha; a parte feita fica a receber.
 ATUALIZADORES.push(() => {
@@ -180,6 +210,7 @@ NOITE.push(linhas => {
   if (r.etapaNova) { G.obra.gratificacao = Object.assign({ nomeObra: nome }, r); linhas.push(r.obraPronta ? `${nome} ficou pronta! O Mestre Bira quer falar com você.` : `A obra avançou: começa a etapa ${Obra.obra().etapas[G.obra.etapa].nome}.`); }
   if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
 });
+TAREFAS.push(() => G.obra && Obra.podeSubir() ? [{ texto: G.obra.funcao === 2 ? '★ Carreira: o Seu Santos quer falar com você no canteiro' : '★ Carreira: fale com o Mestre Bira (promoção!)' }] : []);
 TAREFAS.push(() => {
   if (!G.obra) return [];
   const l = listaDeHoje(), fechada = Obra.aberta(G.dia, G.minutos);

@@ -43,6 +43,8 @@ const OBRAS = [
     arte: n => 'objetos/predio_' + Math.min(7, n + 1) },
 ];
 
+// O que cada função pede (obras do Bira entregues, nível de Alvenaria, empreitas entregues).
+const REQUISITOS_FUNCAO = [null, { obras: 1, alvenaria: 2, empreitas: 0 }, { obras: 2, alvenaria: 4, empreitas: 3 }, { obras: 4, alvenaria: 6, empreitas: 10 }];
 const Obra = {
   iniciar(s) {
     const o = s.obra || {};
@@ -53,6 +55,23 @@ const Obra = {
   obra() { return OBRAS[Math.min(G.obra.indice, OBRAS.length - 1)]; },
   arteAtual() { return Obra.obra().arte(G.obra.etapa); },
   diaria() { return DIARIAS[G.obra.funcao]; },
+  // O que ainda falta para a função f (0 em tudo = pode subir).
+  falta(f = G.obra.funcao + 1) {
+    const r = REQUISITOS_FUNCAO[f];
+    if (!r) return null;
+    const alv = typeof Habilidades !== 'undefined' ? Habilidades.nivel('alvenaria') : 0, emp = G.empreitas ? G.empreitas.entregues : 0;
+    return { obras: Math.max(0, r.obras - G.obra.entregues), alvenaria: Math.max(0, r.alvenaria - alv), empreitas: Math.max(0, r.empreitas - emp) };
+  },
+  podeSubir() { const f = Obra.falta(); return !!f && !f.obras && !f.alvenaria && !f.empreitas; },
+  subir() { if (!Obra.podeSubir()) return G.obra.funcao; G.obra.funcao++; return G.obra.funcao; },
+  textoFalta() {
+    const f = Obra.falta(); if (!f) return 'Você chegou ao topo da obra: mestre de obras.';
+    const t = [];
+    if (f.obras) t.push(`${f.obras} ${f.obras === 1 ? 'obra entregue' : 'obras entregues'}`);
+    if (f.alvenaria) t.push(`Alvenaria ${REQUISITOS_FUNCAO[G.obra.funcao + 1].alvenaria}`);
+    if (f.empreitas) t.push(`${f.empreitas} ${f.empreitas === 1 ? 'empreita entregue' : 'empreitas entregues'}`);
+    return t.length ? 'falta ' + t.join(', ') : 'pronto para subir: fale com o Mestre Bira de manhã';
+  },
   aberta(dia, min) {
     if ((dia - 1) % 7 === 6) return 'domingo';
     if (typeof Clima !== 'undefined' && Clima.chove(dia)) return 'chuva';
@@ -86,7 +105,7 @@ const Obra = {
     const l = G.obra.lista;
     if (!l || l.paga || !Obra.completa()) return 0;
     l.paga = true; l.contou = true;
-    const extra = l.valorExtra || 0; l.valorExtra = 0;
+    const extra = (l.valorExtra || 0) + (G.obra.funcao >= 3 ? 20 : 0); l.valorExtra = 0;   // o mestre ganha o dia redondo
     return Obra.diaria() + extra + (l.metas.buscar_cimento ? OBRA_GORJETA : 0) + (typeof Habilidades !== 'undefined' ? (Habilidades.tem('prumo_de_ouro') ? 15 : Habilidades.tem('olho_de_prumo') ? 5 : 0) : 0);
   },
   // Meio-dia (ou a noite, se o jogador não voltou ao Bira): a parte feita vira dinheiro a receber; ≥ 50% conta o dia.
@@ -103,6 +122,7 @@ const Obra = {
     G.obra.diasEtapa++;
     if (G.obra.diasEtapa < DIAS_POR_ETAPA) return r;
     G.obra.diasEtapa = 0; r.etapaNova = true; r.premio = o.premios[G.obra.etapa];
+    if (G.obra.etapa + 1 >= o.etapas.length && typeof Habilidades !== 'undefined' && Habilidades.tem('artista')) r.premio = Object.assign({}, r.premio, { dinheiro: r.premio.dinheiro + 50 });
     if (G.obra.etapa + 1 >= o.etapas.length) { r.obraPronta = true; G.obra.entregues++; G.obra.indice = Math.min(OBRAS.length - 1, G.obra.indice + 1); G.obra.etapa = 0; }
     else G.obra.etapa++;
     return r;
