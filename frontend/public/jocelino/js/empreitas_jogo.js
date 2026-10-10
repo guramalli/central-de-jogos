@@ -51,7 +51,7 @@ function poeEmpreitasNoMapa(b) {
   for (const id in G.empreitas.aceitas) {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (!E || E.mapa !== b.id) continue;
-    if (E.tipo === 'longa') limparLote(b, E);
+    if (E.tipo === 'longa' && !E.bairro) limparLote(b, E);
     const p = lugarLivre(b, E.x, E.y);
     if (E.tipo === 'curta') {
       const o = b.interativo('emp_' + id, 'objetos/plaquinha', p.x, p.y, 1, 1, [8, 6]);
@@ -70,7 +70,7 @@ function poeEmpreitasNoMapa(b) {
       // A plaquinha do serviço (desde a reserva); o lote com a arte da etapa só depois de começar.
       const q = lugarLivre(b, p.x - 1, p.y), pl = b.interativo('emp_placa_' + id, 'objetos/plaquinha', q.x, q.y, 1, 1, [8, 6]);
       pl.empreitaDet = '__placa'; pl.placaDe = id; pl.acao = () => acaoEmpreita(id); pl.ferramenta = (obj, ferr) => golpeEmpreita(id, ferr);
-      if (a.estado !== 'reservada') {
+      if (a.estado !== 'reservada' && !E.bairro) {
         const n = Math.max(1, a.lista.length), k = a.estado === 'obra' ? Math.min(E.artes.length - 1, Math.floor(a.dias / n * E.artes.length)) : E.artes.length - 1;
         const arte = E.artes[k], img = larguraLote(E);
         const o = b.interativo('emp_' + id, ARTE_LISTA.includes(arte) ? arte : 'objetos/alicerce', p.x, p.y, img, 1);
@@ -79,6 +79,7 @@ function poeEmpreitasNoMapa(b) {
     }
   }
   brotarCapina(b);
+  if (typeof poeBairro === 'function' && b.id === 'bairro') poeBairro(b);
 }
 function golpeEmpreita(id, ferr) {
   const r = Empreitas.trabalhar(id, ferr), E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
@@ -161,7 +162,7 @@ function abrirQuadro(aba = 'servicos') {
       const ids = G.empreitas.quadro, aceitas = Object.keys(G.empreitas.aceitas);
       const linha = (id, botao) => { const E = dadosEmpreita(id); return el('div', { class: 'orel-item' }, el('img', { src: urlItem(E.ferramenta === 'carga' ? 'telha' : E.ferramenta) }),
         el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), el('div', { class: 'orel-preco' },
-          `${{ vila: 'na Vila', praia: 'na praia', mata: 'na mata', quintal: 'no quintal' }[E.mapa]} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
+          `${{ vila: 'na Vila', praia: 'na praia', mata: 'na mata', quintal: 'no quintal', bairro: 'no Bairro Novo' }[E.mapa]} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
       const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
       const pct = prox ? Math.round(100 * Math.min(G.empreitas.entregues / prox.entregues, prox.caprichados ? cap / prox.caprichados : 1)) : 100;
@@ -179,6 +180,10 @@ function abrirQuadro(aba = 'servicos') {
       if (enc.length) caixa.append(el('div', { class: 'cad-sub' }, 'Encomendas'), el('div', { class: 'qv-lista' }, ...enc.map((e, i) => el('div', { class: 'orel-item' }, el('img', { src: urlItem(e.item) }),
         el('div', {}, el('b', {}, `${CLIENTE_NOME[e.quem] || e.quem} quer ${Itens.qtd(e.qtd, e.item)}`), el('div', { class: 'orel-preco' }, `até ${DIAS[(e.ate - 1) % 7]} · Cr$ ${e.paga} · tem ${G.mochila.total(e.item)}`)),
         el('button', { class: 'botao', onclick: ev => { ev.stopPropagation(); const r = Mina.entregar(i, G.mochila); if (r === 'ok') { sons.tocar('moedas', 1, 0.05, -4); avisar(`Entregue! + Cr$ ${e.paga}`); hudSujo(); desenha(); } else avisar(r === 'vencida' ? 'Essa encomenda venceu.' : 'Falta material na mochila.'); } }, 'Entregar')))));
+      const doBairro = typeof Bairro !== 'undefined' ? Bairro.pedidos() : [];
+      if (doBairro.length) caixa.append(el('div', { class: 'cad-sub' }, 'Bairro Novo'), el('div', { class: 'qv-lista' }, ...doBairro.map(id => linha(id, Empreitas.libera(id)
+        ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro); if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -6); avisar(`Aceito: ${dadosEmpreita(id).nome}. A plaquinha está no terreno, no Bairro Novo.`); hudSujo(); desenha(); } else avisar({ limite: 'Uma empreita longa por vez (duas para o mestre de obras).' }[r] || 'Não deu.'); } }, 'Aceitar')
+        : el('div', { class: 'orel-preco' }, `Pede ${NOMES_HAB[dadosEmpreita(id).hab.h]} ${dadosEmpreita(id).hab.n}`)))));
       if (aceitas.length) caixa.append(el('div', { class: 'cad-sub' }, 'Aceitas'), el('div', { class: 'qv-lista' }, ...aceitas.map(id => linha(id, el('div', { class: 'orel-preco' }, Empreitas.textoEstado(id))))));
     }
     caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));

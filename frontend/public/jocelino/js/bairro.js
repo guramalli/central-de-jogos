@@ -1,0 +1,107 @@
+// Jocelino — bairro.js — o Bairro Novo (o bairro em crescimento), as regras: 14 terrenos; 8 donos que chegam aos poucos
+// com o tipo de casa deles; a casa em 6 fases, cada fase uma empreita longa (o laço da etapa 6); a padaria e o bar em
+// 5 fases; quem ganha a casa se muda no dia seguinte e traz o próximo dono. O mundo está em bairro_jogo.js.
+
+const BAIRRO = { LARG: 56, ALT: 36 };
+// Os terrenos (canto de cima à esquerda). Casa: 5×7 (a casa com a base na linha y+4, a varanda em y+5, o muro e a calçada
+// em y+6); comércio e público: 6×7. A rua corre nas linhas 9–10 e na coluna 48–49 (em L).
+const TERRENOS = {
+  t1: { tipo: 'casa', x: 4, y: 1 }, t2: { tipo: 'casa', x: 11, y: 1 }, t3: { tipo: 'casa', x: 18, y: 1 }, t4: { tipo: 'casa', x: 25, y: 1 },
+  t5: { tipo: 'casa', x: 4, y: 12 }, t6: { tipo: 'casa', x: 11, y: 12 }, t7: { tipo: 'casa', x: 18, y: 12 }, t8: { tipo: 'casa', x: 25, y: 12 },
+  padaria: { tipo: 'comercio', x: 33, y: 1 }, bar: { tipo: 'comercio', x: 41, y: 1 },
+  escola: { tipo: 'publico', x: 33, y: 12 }, posto: { tipo: 'publico', x: 41, y: 12 }, capela: { tipo: 'publico', x: 33, y: 22 }, praca: { tipo: 'publico', x: 41, y: 22 },
+};
+// Os donos, na ordem de chegada (os 2 primeiros já estão quando o bairro abre).
+const DONOS = [
+  { id: 'nena', nome: 'Dona Nena', casa: 'simples', terreno: 't1' }, { id: 'tonhao', nome: 'Tonhão', casa: 'simples', terreno: 't5' },
+  { id: 'neide', nome: 'Neide', casa: 'simples', terreno: 't2' }, { id: 'valdir', nome: 'Valdir Baiano', casa: 'boa', terreno: 't6' },
+  { id: 'rosinete', nome: 'Rosinete', casa: 'boa', terreno: 't3' }, { id: 'lurdes', nome: 'Dona Lurdes', casa: 'boa', terreno: 't7' },
+  { id: 'tonha', nome: 'Tonha', casa: 'sobrado', terreno: 't4' }, { id: 'nenem', nome: 'Neném', casa: 'sobrado', terreno: 't8' },
+];
+const TIPOS_CASA = {
+  simples: { arte: 'objetos/casa_simples_', fundacao: { material: { tijolo: 20, cimento: 2 } }, varanda: { cimento: 6, pigmento: 2 }, fator: 1 },
+  boa: { arte: 'objetos/casa_boa_', fundacao: { material: { cimento: 4, pedra: 10, vergalhao: 4 }, hab: { h: 'alvenaria', n: 2 } }, varanda: { cimento: 4, ladrilho: 30 }, fator: 1.4 },
+  sobrado: { arte: 'objetos/sobrado_', fundacao: { material: { cimento: 8, pedra: 20, vergalhao: 8 }, hab: { h: 'alvenaria', n: 5 } }, varanda: { cimento: 6, pigmento: 2 }, fator: 2 },
+};
+const FASES_CASA = [
+  { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], paga: 150, concreto: true },
+  { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 80, cimento: 6 }, paga: 250 },
+  { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 20, telha: 40 }, paga: 200 },
+  { nome: 'Reboco e pintura', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 2, tinta: 2 }, paga: 300, pintura: true, reforma: true },
+  { nome: 'Varanda', etapas: ['pa', 'colher', 'regador'], paga: 150, concreto: true },
+  { nome: 'Muro e calçada', etapas: ['pa', 'colher', 'colher', 'regador'], material: { tijolo: 30, cimento: 4, pedra: 6 }, paga: 200 },
+];
+const COMERCIOS = {
+  padaria: { dono: 'cida', nome: 'Padaria da Dona Cida', arte: 'objetos/padaria', libera: 1, abre: 6 * 60, fecha: 12 * 60, folga: 0, vende: { pao: 4, cafe: 2, rabanada: 6, bolo: 8 } },
+  bar: { dono: 'orlando', nome: 'Bar do Seu Orlando', arte: 'objetos/bar_orlando', libera: 2, abre: 15 * 60, fecha: 23 * 60, folga: 1, vende: { suco_caju: 5, cocada: 5, peixe_frito: 8, caldo_caranguejo: 12 } },
+};
+const FASES_COMERCIO = [
+  { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], material: { cimento: 6, pedra: 15, vergalhao: 6 }, paga: 300, concreto: true },
+  { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 120, cimento: 8 }, paga: 450 },
+  { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 30, telha: 60 }, paga: 350 },
+  { nome: 'Acabamento e balcão', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 2, tinta: 3, madeira: 10 }, paga: 500, pintura: true },
+  { nome: 'Calçada', etapas: ['pa', 'colher', 'regador'], material: { cimento: 4, pedra: 10 }, paga: 200, concreto: true },
+];
+Object.assign(CLIENTE_NOME, { nena: 'Dona Nena', neide: 'Neide', valdir: 'Valdir Baiano', rosinete: 'Rosinete', lurdes: 'Dona Lurdes', tonha: 'Tonha', nenem: 'Neném', orlando: 'Seu Orlando', tonhao: 'Tonhão' });
+const idFase = (t, f) => (TERRENOS[t].tipo === 'comercio' ? 'loja_' : 'casa_') + t + '_' + f;
+// As fases viram empreitas longas (o laço da etapa 6): a plaquinha fica na frente do terreno (x+1, y+5).
+for (const d of DONOS) {
+  const T = TERRENOS[d.terreno], C = TIPOS_CASA[d.casa];
+  FASES_CASA.forEach((F, i) => {
+    const f = i + 1, material = f === 1 ? C.fundacao.material : f === 5 ? C.varanda : F.material;
+    EMPREITAS_EXTRAS[idFase(d.terreno, f)] = { nome: `${F.nome} da casa ${d.nome.startsWith('Dona') ? 'da ' : 'de '}${d.nome}`, cliente: d.id, mapa: 'bairro', x: T.x + 1, y: T.y + 5,
+      material: Object.assign({}, material), etapas: F.etapas.slice(), paga: Math.round(F.paga * C.fator), funcaoMin: 2, hab: f === 1 ? C.fundacao.hab : undefined,
+      concreto: !!F.concreto, pintura: !!F.pintura, reforma: !!F.reforma, tipo: 'longa', dias: F.etapas.length, vezesDia: 3, ferramenta: F.etapas[0], artes: ['objetos/vala', 'objetos/alicerce'], bairro: { t: d.terreno, f } };
+  });
+}
+for (const t in COMERCIOS) {
+  const T = TERRENOS[t], K = COMERCIOS[t];
+  FASES_COMERCIO.forEach((F, i) => {
+    const f = i + 1;
+    EMPREITAS_EXTRAS[idFase(t, f)] = { nome: `${F.nome} da ${K.nome}`, cliente: K.dono, mapa: 'bairro', x: T.x + 1, y: T.y + 5, material: Object.assign({}, F.material), etapas: F.etapas.slice(),
+      paga: F.paga, funcaoMin: 2, concreto: !!F.concreto, pintura: !!F.pintura, tipo: 'longa', dias: F.etapas.length, vezesDia: 3, ferramenta: F.etapas[0], artes: ['objetos/vala', 'objetos/alicerce'], bairro: { t, f } };
+  });
+}
+
+const Bairro = {
+  iniciar(s) {
+    const b = s.bairro || {}, c = x => JSON.parse(JSON.stringify(x));
+    G.bairro = { aberto: !!b.aberto, chegados: b.chegados || 0, terrenos: {}, comercios: {}, missa: b.missa || 0, festa: c(b.festa || { dia: 0, feita: false }) };
+    for (const t in TERRENOS) {
+      if (TERRENOS[t].tipo === 'casa') G.bairro.terrenos[t] = Object.assign({ fase: 0, quals: [], mudaDia: 0, mudou: false }, c((b.terrenos || {})[t] || {}));
+      if (TERRENOS[t].tipo === 'comercio') G.bairro.comercios[t] = Object.assign({ fase: 0, abreDia: 0 }, c((b.comercios || {})[t] || {}));
+    }
+  },
+  salvar(s) { s.bairro = JSON.parse(JSON.stringify(G.bairro)); },
+  donoDe(t) { const i = DONOS.findIndex(d => d.terreno === t); return i >= 0 && i < G.bairro.chegados ? DONOS[i] : null; },
+  casasProntas() { return Object.values(G.bairro.terrenos).filter(x => x.mudou).length; },
+  // A próxima fase de cada terreno com dono e de cada comércio liberado (se não está aceita nem acabou).
+  pedidos() {
+    if (!G.bairro.aberto) return [];
+    const r = [], aceita = id => !!G.empreitas.aceitas[id];
+    for (const t in G.bairro.terrenos) { const x = G.bairro.terrenos[t]; if (Bairro.donoDe(t) && x.fase < 6 && !FASES_CASA.some((F, i) => aceita(idFase(t, i + 1)))) r.push(idFase(t, x.fase + 1)); }
+    for (const t in G.bairro.comercios) { const x = G.bairro.comercios[t]; if (Bairro.casasProntas() >= COMERCIOS[t].libera && x.fase < 5 && !FASES_COMERCIO.some((F, i) => aceita(idFase(t, i + 1)))) r.push(idFase(t, x.fase + 1)); }
+    return r;
+  },
+  // Uma fase entregue: a casa (ou o comércio) sobe; a última marca a mudança (ou a abertura) para o dia seguinte.
+  faseEntregue(id, q) {
+    const E = dadosEmpreita(id); if (!E || !E.bairro || !G.bairro.terrenos && !G.bairro.comercios) return '';
+    const { t, f } = E.bairro;
+    if (G.bairro.terrenos[t]) { const x = G.bairro.terrenos[t]; x.fase = Math.max(x.fase, f); x.quals[f - 1] = q; if (f === 6) { x.mudaDia = G.dia + 1; return `A casa ${Bairro.donoDe(t) ? 'de ' + Bairro.donoDe(t).nome : ''} ficou pronta! A mudança é amanhã.`; } return ''; }
+    if (G.bairro.comercios[t]) { const x = G.bairro.comercios[t]; x.fase = Math.max(x.fase, f); if (f === 5) { x.abreDia = G.dia + 1; return `A ${COMERCIOS[t].nome} ficou pronta! Abre amanhã.`; } }
+    return '';
+  },
+  // De manhã: quem tem mudança marcada se muda (uma vez) e o próximo dono chega.
+  manha() {
+    const linhas = [];
+    for (const t in G.bairro.terrenos) {
+      const x = G.bairro.terrenos[t];
+      if (x.mudaDia && !x.mudou && G.dia >= x.mudaDia) { x.mudou = true; const d = Bairro.donoDe(t); linhas.push(`${d.nome} se mudou para a casa nova no Bairro Novo!`); if (G.bairro.chegados < DONOS.length) { G.bairro.chegados++; linhas.push(`${DONOS[G.bairro.chegados - 1].nome} comprou um terreno no Bairro Novo.`); } }
+    }
+    return linhas;
+  },
+};
+INICIADORES.push(s => Bairro.iniciar(s));
+COLETORES.push(s => Bairro.salvar(s));
+AO_ENTREGAR.push((id, q) => Bairro.faseEntregue(id, q));
+MANHA.push(() => { if (G.bairro) for (const l of Bairro.manha()) G.feitosHoje.push(l); });

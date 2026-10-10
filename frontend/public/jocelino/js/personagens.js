@@ -10,7 +10,7 @@ class Personagem {
     Object.assign(this, { id, nome, x, y, dir, andando: false, t: 0, vagueia: false, area: null, visivel: true, vel: 120,
       _alvo: null, _espera: rnd(1, 3) });
   }
-  get folha() { return 'personagens/' + this.id + '/andar'; }
+  get folha() { return 'personagens/' + (this.pele || this.id) + '/andar'; }   // pele: outra folha (o dono do bairro usa a do personagem)
   virarPara(x, y) { const dx = x - this.x, dy = y - this.y; this.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? DIR.ESQUERDA : DIR.DIREITA) : (dy < 0 ? DIR.CIMA : DIR.BAIXO); }
   parar() { this.andando = false; }
   _bate(x, y) { return !!G.mapa && bate({ x: x - 14, y: y - 14, w: 28, h: 14 }, G.mapa); }

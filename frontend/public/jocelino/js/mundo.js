@@ -8,9 +8,10 @@ Object.assign(CARTAS, {
   tonico_pedreira: { de: 'Seu Tonico', dia: 5, texto: 'Jocelino, a pedreira da Serra abriu: é seguir a estrada a leste da Vila. Pedra boa vale na obra e na caixa de venda, e lá embaixo tem ferro. Passa na ferraria quando quiser.' },
 });
 const Mundo = {
-  aberto(id) { return !(id in LUGARES_CARTA) || !!(G.lugares && G.lugares[id]); },
+  aberto(id) { if (id === 'bairro') return !!(G.bairro && G.bairro.aberto); return !(id in LUGARES_CARTA) || !!(G.lugares && G.lugares[id]); },
   fechado(id) {
     if (Mundo.aberto(id)) return '';
+    if (id === 'bairro') return 'O loteamento Bairro Novo ainda não foi aprovado. (A Prefeitura vai mandar carta.)';
     return id === 'praia' ? 'O caminho da praia está fechado por enquanto. (O Seu Lourival vai mandar notícia.)'
       : 'A estrada da pedreira está fechada por enquanto. (O Seu Tonico vai mandar notícia.)';
   },

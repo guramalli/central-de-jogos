@@ -10,7 +10,8 @@ MAPAS_DEF.vila = () => {
   b.saida(23, 23, 2, 1, 'praia', 22, 3);         // sul: o caminho que já vinha pintado até a borda de baixo
   b.saida(2, 12, 1, 3, 'mata', 39, 13);          // oeste: a borda sem árvore
   b.saida(45, 12, 1, 2, 'pedreira', 4, 7);       // leste: a estrada da pedreira
-  b.pinta(2, 12, 2, 3); b.pinta(44, 12, 2, 2);
+  b.saida(45, 6, 1, 2, 'bairro', 2, 10);         // leste, ao norte da estrada da pedreira: a rua nova do Bairro Novo
+  b.pinta(2, 12, 2, 3); b.pinta(44, 12, 2, 2); b.pinta(44, 6, 2, 2);
   b.pinta(23, 0, 2, 10);      // o caminho do quintal vem da borda de cima, sem mato no meio
   b.pinta(2, 10, 44, 2, CH.CALCADA); b.pinta(2, 12, 44, 3); b.pinta(2, 15, 44, 1, CH.CALCADA);
   b.pinta(23, 16, 2, 8);
@@ -66,6 +67,7 @@ MAPAS_DEF.vila = () => {
   // A Pensão da Rosa (a casa da Dona Cotinha), ao lado do depósito, com folga dos dois lados.
   b.pensao = b.interativo('pensao', 'objetos/pensao_fechada', 13, 8, 5, 4);
   b.pensao.acao = () => (typeof pensaoFachada === 'function' ? pensaoFachada() : abrirPlaca('Uma pensão abandonada.'));
+  b.interativo('placa_loteamento_vila', 'objetos/placa_loteamento', 44, 8, 1, 1, [10, 6]).acao = () => { abrirPlaca(G.bairro && G.bairro.aberto ? 'Loteamento Bairro Novo: siga a rua nova, a leste.' : 'Em breve: Loteamento Bairro Novo.'); return true; };
   b.paredesDaBorda();
   return b;
 };

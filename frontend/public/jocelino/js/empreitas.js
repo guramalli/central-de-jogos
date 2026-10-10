@@ -43,6 +43,8 @@ const larguraLote = E => { if (E.area) return E.area.w; const a = E.artes[E.arte
 const tilesDoLote = E => { const r = [{ x: E.x - 1, y: E.y }], h = E.area ? E.area.h : 1; for (let j = 0; j < h; j++) for (let i = 0; i < larguraLote(E); i++) r.push({ x: E.x + i, y: E.y + j }); return r; };
 // As que não saem do quadro de Serviços (a capina, as obras da Prefeitura): registradas pelos outros scripts.
 const EMPREITAS_EXTRAS = {};
+// As fundações avulsas saíram do quadro (o Bairro Novo: fundação só onde vira casa); ficam aqui para o save antigo terminar.
+for (const id of ['baldrame', 'baldrame_concreto', 'sapata_corrida']) { EMPREITAS_EXTRAS[id] = Object.assign(EMPREITAS_LONGAS[id], { antiga: true }); delete EMPREITAS_LONGAS[id]; }
 const dadosEmpreita = id => EMPREITAS_CURTAS[id] || EMPREITAS_LONGAS[id] || EMPREITAS_EXTRAS[id] || null;
 const CLIENTE_NOME = { lourival: 'Seu Lourival', juca: 'Tio Juca', zelia: 'Dona Zélia', ananias: 'Seu Ananias', tonico: 'Seu Tonico', cida: 'Dona Cida', rosa: 'Rosa', bento: 'Seu Bento do Mercado' };
 const NOME_DIA = { pa: 'pá', colher: 'colher', regador: 'regador', machado: 'machado', foice: 'foice' };
@@ -58,7 +60,7 @@ const Empreitas = {
     G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null, caprichados: e.caprichados || 0, labia: e.labia || 0, receitasExtras: (e.receitasExtras || []).slice() };
     // Save antigo (etapas 2 a 5): a longa aceita já tinha gastado o material, então segue em obra (ou pronta) de onde parou.
     for (const id in G.empreitas.aceitas) {
-      const a = G.empreitas.aceitas[id], E = EMPREITAS_LONGAS[id];
+      const a = G.empreitas.aceitas[id], E = dadosEmpreita(id) && dadosEmpreita(id).tipo === 'longa' ? dadosEmpreita(id) : null;
       if (!E || a.estado) continue;
       Object.assign(a, { estado: a.dias >= E.dias ? 'pronta' : 'obra', aditivo: '', porTiao: 0, carta: false, prefeitura: false, lista: E.etapas.slice() });
     }
@@ -67,8 +69,8 @@ const Empreitas = {
   salvar(s) { s.empreitas = JSON.parse(JSON.stringify(G.empreitas)); },
   funcao() { return G.obra ? G.obra.funcao : 0; },
   limite() { return Empreitas.funcao() >= 3 ? 2 : 1; },
-  // Só as longas do quadro (e das cartas) contam no limite; a Prefeitura e a capina não.
-  longasContadas() { return Object.keys(G.empreitas.aceitas).filter(k => EMPREITAS_LONGAS[k]).length; },
+  // As longas aceitas (do quadro, das cartas, do bairro) contam no limite; a Prefeitura e a capina não.
+  longasContadas() { return Object.keys(G.empreitas.aceitas).filter(k => { const E = dadosEmpreita(k), a = G.empreitas.aceitas[k]; return E && E.tipo === 'longa' && !a.prefeitura; }).length; },
   libera(id) {
     const E = dadosEmpreita(id);
     if (!E || Empreitas.funcao() < E.funcaoMin) return false;
@@ -97,7 +99,7 @@ const Empreitas = {
     if (!opc.prefeitura && !Empreitas.libera(id)) return 'funcao';
     if (E.tipo === 'capina') { if (G.empreitas.capina) return 'ja'; G.empreitas.capina = { dia: G.dia, estacao: Math.floor((G.dia - 1) / 28) % 4, pos: [], limpo: false, nasceu: 0 }; G.empreitas.quadro = G.empreitas.quadro.filter(x => x !== id); return 'ok'; }
     if (E.tipo === 'longa') {
-      if (EMPREITAS_LONGAS[id] && Empreitas.longasContadas() >= Empreitas.limite()) return 'limite';
+      if (!opc.prefeitura && Empreitas.longasContadas() >= Empreitas.limite()) return 'limite';
       G.empreitas.aceitas[id] = { tipo: 'longa', estado: 'reservada', dia: G.dia, dias: 0, feitoHoje: 0, trabalhou: false, aditivo: '', porTiao: 0, carta: !!opc.carta, prefeitura: !!opc.prefeitura, lista: [] };
     } else G.empreitas.aceitas[id] = { tipo: 'curta', dia: G.dia, vezes: 0 };
     G.empreitas.quadro = G.empreitas.quadro.filter(x => x !== id);
@@ -175,7 +177,7 @@ const Empreitas = {
     const E = dadosEmpreita(id);
     delete G.empreitas.aceitas[id];
     // A obra fica no mapa (muros, pisos, cerca, quiosque, ponte); a fundação sozinha não (ela é o começo de uma casa).
-    if (E.tipo === 'longa' && !E.fundacao) G.empreitas.feitas[id] = q;
+    if (E.tipo === 'longa' && !E.fundacao && !E.bairro) G.empreitas.feitas[id] = q;
     G.empreitas.entregues++;
     if (q >= 1.5) G.empreitas.caprichados = (G.empreitas.caprichados || 0) + 1;
     G.empreitas.reputacao[E.cliente] = (G.empreitas.reputacao[E.cliente] || 0) + 1;
