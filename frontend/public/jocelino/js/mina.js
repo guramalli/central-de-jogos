@@ -82,7 +82,7 @@ const MUSEU = {
   ANTIGOS: ['moeda_antiga', 'garrafa_antiga', 'ferradura', 'azulejo_antigo', 'cachimbo', 'boneca_pano', 'lamparina', 'chave_antiga', 'carranca'],
   RAROS: ['cristal', 'pedra_bonita', 'concha', 'pedra_pigmento', 'bronze_velho'],
   PESO: { moeda_antiga: 4, garrafa_antiga: 5, ferradura: 5, azulejo_antigo: 3, cachimbo: 3, boneca_pano: 2, lamparina: 3, chave_antiga: 2, carranca: 1 },
-  MARCOS: [[3, { dinheiro: 150 }], [6, { itens: { barra_bronze: 2, lajota: 4 } }], [9, { itens: { manta_boa: 5 } }], [12, { dinheiro: 500 }], [14, { itens: { cristal: 5 }, titulo: 'Guardião da memória da Vila' }]],
+  MARCOS: [[3, { dinheiro: 150 }], [6, { itens: { barra_bronze: 2, lajota: 4 } }], [9, { itens: { impermeabilizante: 5 } }], [12, { dinheiro: 500 }], [14, { itens: { cristal: 5 }, titulo: 'Guardião da memória da Vila' }]],
   DESCRICAO: { moeda_antiga: 'Moeda de cobre do tempo do Império. Quem perdeu isso aqui?', garrafa_antiga: 'Garrafa de refrigerante de vidro grosso, dos anos 40.',
     ferradura: 'Ferradura de burro de carga, do tempo em que a estrada era de barro.', azulejo_antigo: 'Azulejo português azul e branco. Deve ter sido de um casarão.',
     cachimbo: 'Cachimbo de madeira entalhada. Ainda tem cheiro de fumo de rolo.', boneca_pano: 'Boneca de pano de alguma menina da Vila, muito tempo atrás.',

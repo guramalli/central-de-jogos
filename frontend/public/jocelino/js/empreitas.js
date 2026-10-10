@@ -53,7 +53,7 @@ const Empreitas = {
   RESERVA: 3,
   iniciar(s) {
     const e = s.empreitas || {};
-    G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null };
+    G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null, caprichados: e.caprichados || 0, labia: e.labia || 0, receitasExtras: (e.receitasExtras || []).slice() };
     // Save antigo (etapas 2 a 5): a longa aceita já tinha gastado o material, então segue em obra (ou pronta) de onde parou.
     for (const id in G.empreitas.aceitas) {
       const a = G.empreitas.aceitas[id], E = EMPREITAS_LONGAS[id];
@@ -73,7 +73,7 @@ const Empreitas = {
   },
   // 2 a 4 pedidos (mais com a reputação), fixos pelo dia; pelo menos uma longa quando a função já libera.
   quadroDoDia(dia) {
-    const f = mulberry(dia * 6151 + 11), n = 2 + Math.min(2, Math.floor(G.empreitas.entregues / 5));
+    const f = mulberry(dia * 6151 + 11), n = Empreitas.faixa().pedidos;
     const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id];
     const curtas = Object.keys(EMPREITAS_CURTAS).filter(livre), longas = Object.keys(EMPREITAS_LONGAS).filter(livre), r = [];
     if (!G.empreitas.capina && Empreitas.libera('capina_ananias')) curtas.push('capina_ananias');
@@ -84,7 +84,8 @@ const Empreitas = {
     while (r.length < n && pool.length) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0]; if (!r.includes(id)) r.push(id); }
     return r;
   },
-  material(id) { const E = dadosEmpreita(id), r = {}; for (const m in E.material) r[m] = E.material[m]; return r; },
+  // Mestre de obras: as empreitas pedem 20% menos material (arredondando para cima).
+  material(id) { const E = dadosEmpreita(id), f = typeof Habilidades !== 'undefined' && Habilidades.tem('mestre_de_obras') ? 0.8 : 1, r = {}; for (const m in E.material) r[m] = Math.ceil(E.material[m] * f); return r; },
   // Aceitar: a curta começa; a longa fica reservada (não gasta nada).
   aceitar(id, mochila, dinheiro, opc = {}) {
     const E = dadosEmpreita(id);
@@ -128,7 +129,8 @@ const Empreitas = {
     if (E.pintura && a && a.estado === 'obra' && a.dias === a.lista.length - 1) return 'pintura';
     return '';
   },
-  golpesDoDia(id) { return 3; },
+  // Mão firme: o dia de pá ou de colher sai com 1 golpe.
+  golpesDoDia(id) { const f = Empreitas.ferramentaHoje(id); return (f === 'pa' || f === 'colher') && typeof Habilidades !== 'undefined' && Habilidades.tem('mao_firme') ? 1 : 3; },
   trabalhar(id, ferr) {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (!E || !a) return 'nao';
@@ -172,17 +174,13 @@ const Empreitas = {
     // A obra fica no mapa (muros, pisos, cerca, quiosque, ponte); a fundação sozinha não (ela é o começo de uma casa).
     if (EMPREITAS_LONGAS[id] && !EMPREITAS_LONGAS[id].fundacao) G.empreitas.feitas[id] = q;
     G.empreitas.entregues++;
+    if (q >= 1.5) G.empreitas.caprichados = (G.empreitas.caprichados || 0) + 1;
     G.empreitas.reputacao[E.cliente] = (G.empreitas.reputacao[E.cliente] || 0) + 1;
     if (typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]);
+    // Lábia: a amizade sobe 50% mais rápido (um coração a mais a cada duas entregas).
+    if (typeof Habilidades !== 'undefined' && Habilidades.tem('labia')) { G.empreitas.labia = (G.empreitas.labia || 0) + 1; if (G.empreitas.labia % 2 === 0 && typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]); }
     return AO_ENTREGAR.map(f => f(id, q)).filter(Boolean);
   },
-  // Normal, bom ou caprichado (1, 1,25 ou 1,5): só do pedreiro em diante, pelo Acabamento (a qualidade das plantas).
-  qualidade(rng = Math.random) {
-    if (Empreitas.funcao() < 2) return 1;
-    const p = 0.2 * ((typeof Habilidades !== 'undefined' ? Habilidades.nivel('acabamento') : 0) / 10) + 0.01, r = rng();
-    return r < p ? 1.5 : r < p * 2.5 ? 1.25 : 1;
-  },
-  pagamento(id, a, q) { const E = dadosEmpreita(id); return Math.round(E.paga * q * Empreitas.fatorEpoca(id)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0); },
   // A noite: a reserva vence; o dia cuidado (ou o de regador na chuva) avança; a entregue paga.
   noite(chove) {
     const r = [];
@@ -201,7 +199,7 @@ const Empreitas = {
         continue;
       }
       if (a.estado === 'entregue') {
-        const q = Empreitas.qualidade(mulberry(G.dia * 977 + id.length)), valor = Empreitas.pagamento(id, a, q);
+        const q = Empreitas.qualidade(mulberry(G.dia * 977 + id.length), ADITIVOS[a.aditivo] || 0, a.porTiao * 2 > a.lista.length), valor = Empreitas.pagamento(id, a, q);
         G.dinheiro += valor;
         r.push({ id, entregue: true, valor, qualidade: q, extra: Empreitas._entregou(id, q) });
       }
@@ -220,6 +218,46 @@ Object.assign(Empreitas, {
   capinaNoite() {
     const c = G.empreitas.capina; if (!c || !c.limpo) return 0;
     c.limpo = false; const v = EMPREITAS_EXTRAS.capina_ananias.paga; G.dinheiro += v; Empreitas._entregou('capina_ananias', 1); return v;
+  },
+});
+// Os aditivos (o adubo do Stardew): cal e impermeabilizante melhoram a qualidade (nível 1 e 2); o acelerador (o Speed-Gro)
+// encurta a obra. Um por obra, antes de começar ou no dia 0 sem golpe.
+const ADITIVOS = { cal: 1, impermeabilizante: 2, acelerador: 0 };
+const NOME_QUALIDADE = { 1: 'normal', 1.25: 'bom', 1.5: 'caprichado', 2: 'impecável' };
+// A Fala da Vila (as faixas de reputação): mais pedidos e pagamento melhor.
+const FAIXAS_VILA = [
+  { nome: 'Biscateiro', entregues: 0, caprichados: 0, pedidos: 2, fator: 1 },
+  { nome: 'Pedreiro de confiança', entregues: 8, caprichados: 0, pedidos: 3, fator: 1.1 },
+  { nome: 'Mestre da Vila', entregues: 20, caprichados: 5, pedidos: 4, fator: 1.2 },
+];
+Object.assign(Empreitas, {
+  aplicarAditivo(id, aditivo, mochila) {
+    const a = G.empreitas.aceitas[id];
+    if (!a || a.tipo !== 'longa' || !(aditivo in ADITIVOS)) return 'nao';
+    if (a.aditivo) return 'ja';
+    if (!(a.estado === 'reservada' || (a.estado === 'obra' && a.dias === 0 && a.feitoHoje === 0 && !a.trabalhou))) return 'tarde';
+    if (mochila.total(aditivo) < 1) return 'falta';
+    mochila.remover(aditivo, 1); a.aditivo = aditivo;
+    if (a.estado === 'obra') a.lista = Empreitas.listaDias(id, aditivo);
+    return 'ok';
+  },
+  // A fórmula do Stardew para o ouro, com Acabamento no lugar de Farming e o aditivo no lugar do adubo (empreitadas.gd);
+  // o impecável (o irídio) só com o impermeabilizante, a metade da chance.
+  qualidade(rng = Math.random, F = 0, semImpecavel = false) {
+    if (Empreitas.funcao() < 2) return 1;
+    const A = typeof Habilidades !== 'undefined' ? Habilidades.nivel('acabamento') : 0, ouro = 0.2 * (A / 10) + 0.2 * F * ((A + 2) / 12) + 0.01, r = rng();
+    if (F >= 2 && r < ouro / 2) return semImpecavel ? 1.5 : 2;
+    if (r < ouro) return 1.5;
+    return rng() < Math.min(0.75, ouro * 2) ? 1.25 : 1;
+  },
+  faixa() {
+    let i = 0;
+    for (let k = 1; k < FAIXAS_VILA.length; k++) if (G.empreitas.entregues >= FAIXAS_VILA[k].entregues && (G.empreitas.caprichados || 0) >= FAIXAS_VILA[k].caprichados) i = k;
+    return Object.assign({ i }, FAIXAS_VILA[i]);
+  },
+  pagamento(id, a, q, dia = G.dia) {
+    const E = dadosEmpreita(id);
+    return Math.round(E.paga * q * Empreitas.fatorEpoca(id, dia) * Empreitas.faixa().fator * (a && a.carta ? 1.15 : 1)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0);
   },
 });
 INICIADORES.push(s => Empreitas.iniciar(s));

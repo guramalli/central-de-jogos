@@ -18,7 +18,7 @@ const VANTAGENS = {
   incansavel: ['Incansável', 'Se apagar às 2h, acorda com energia cheia.'], carregador: ['Carregador', 'Carrega 15 tijolos e 8 entulhos de uma vez.'],
   cafe_no_sangue: ['Café no sangue', 'Comida rende o dobro de energia.'], maratonista: ['Maratonista', 'Anda mais 10% (20% no total).'],
   mao_firme: ['Mão firme', 'Valas e alicerce em 3 ladrilhos por golpe.'], olho_de_prumo: ['Olho de prumo', '+Cr$ 5 na diária.'],
-  mestre_de_obras: ['Mestre de obras', 'A casa da família pede 20% menos material.'], empreiteiro: ['Empreiteiro', 'Cavar e assentar não gastam energia.'],
+  mestre_de_obras: ['Mestre de obras', 'As empreitas pedem 20% menos material.'], empreiteiro: ['Empreiteiro', 'Cavar e assentar não gastam energia.'],
   fama: ['Fama', 'Os extras pagam o dobro.'], prumo_de_ouro: ['Prumo de ouro', '+Cr$ 10 na diária (Cr$ 15 no total).'],
   capricho: ['Capricho', 'Molhar e pintar 3 ladrilhos por vez.'], limpinho: ['Limpinho', 'Entulho dá ferro velho mais vezes.'],
   artista: ['Artista', 'Obra terminada dá Cr$ 50 de gorjeta.'], pintor: ['Pintor de mão cheia', 'Molhar e pintar 5 ladrilhos por vez.'],
@@ -36,7 +36,7 @@ const VANTAGENS = {
 // As que já valem nesta etapa (as outras esperam a obra, a casa e os aluguéis).
 const VALE_AGORA = ['pe_ligeiro', 'maratonista', 'incansavel', 'cafe_no_sangue', 'faxineiro', 'pechincha', 'atravessador', 'fregues', 'cliente_vip',
   'braco_forte', 'carregador', 'olho_de_prumo', 'prumo_de_ouro', 'fama', 'organizado', 'capricho', 'pintor', 'artista', 'limpinho',
-  'feirante', 'agronomo', 'atacadista', 'tempero_da_roca', 'mao_verde', 'rega_de_mestre',
+  'mao_firme', 'empreiteiro', 'mestre_de_obras', 'labia', 'feirante', 'agronomo', 'atacadista', 'tempero_da_roca', 'mao_verde', 'rega_de_mestre',
   'pescador', 'armadilheiro', 'mestre_do_pier', 'cacador_de_tesouro', 'marinheiro', 'isqueiro'];
 const FERRAMENTA_HAB = { machado: 'folego', picareta: 'folego', foice: 'folego', vara: 'pesca', vara_boa: 'pesca', molinete: 'pesca', pa: 'alvenaria', colher: 'alvenaria', regador: 'roca' };
 
@@ -111,7 +111,7 @@ function abrirHabilidades() {
       el('div', {}, el('b', {}, `${NOMES_HAB[h]} · nível ${n}`),
         el('div', { class: 'hab-barra' }, el('div', { style: `width:${Math.round(Habilidades.progresso(h) * 100)}%` })),
         el('div', { class: 'eq-hab' }, `Cada nível: ${BONUS_NIVEL[h]}.`),
-        ...van.map(v => el('div', { class: 'eq-hab' }, `★ ${VANTAGENS[v][0]}: ${VANTAGENS[v][1]}${VALE_AGORA.includes(v) ? '' : ' (vale quando a obra chegar)'}`)))));
+        ...van.map(v => el('div', { class: 'eq-hab' }, `★ ${VANTAGENS[v][0]}: ${VANTAGENS[v][1]}${VALE_AGORA.includes(v) ? '' : ' (vale mais para a frente)'}`)))));
   }
   caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(caixa);

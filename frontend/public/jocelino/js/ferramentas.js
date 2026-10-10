@@ -62,9 +62,9 @@ function usarItemDaMao(peloTeclado) {
   if (typeof varaNaMao === 'function' && varaNaMao(id)) return;   // a vara de pescar tem o seu jeito (pesca_jogo.js)
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
-  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1);
-  if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
+  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1) * (typeof fatorEnergiaLote === 'function' ? fatorEnergiaLote(id, alvo) : 1);
+  if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   j.dir = alvo.dir;
   const pf = PERFIL_GOLPE[perfilDe(id)];
   j.golpe = pf.dur; j.golpeItem = id; j.golpeT = 0; j.golpeAlvo = { x: alvo.x, y: alvo.y }; j.acertou = false; j._somSubida = false;

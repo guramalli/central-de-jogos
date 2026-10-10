@@ -28,6 +28,12 @@ function brotarCapina(b) {
     if (b.detrito('mato', q.x, q.y)) c.pos.push([q.x, q.y]);
   }
 }
+// Empreiteiro: cavar e assentar no lote de uma longa não gastam energia.
+function fatorEnergiaLote(id, alvo) {
+  if ((id !== 'pa' && id !== 'colher') || typeof Habilidades === 'undefined' || !Habilidades.tem('empreiteiro') || !G.mapa) return 1;
+  const o = G.mapa.ocupado.get(chaveT(alvo.x, alvo.y));
+  return o && (o.empreita || o.placaDe) && EMPREITAS_LONGAS[o.empreita || o.placaDe] ? 0 : 1;
+}
 function poeEmpreitasNoMapa(b) {
   for (const o of b.objs.filter(o => o.empreita || o.empreitaDet || o.feita)) b.tirar(o);
   if (!G.empreitas) return;
@@ -121,10 +127,10 @@ function comecarObra(id) {
 EXTRAS_MUNDO.push(m => !G.empreitas ? [] : m.objs.filter(o => o.placaDe && G.empreitas.aceitas[o.placaDe]).map(o => ({ y: o.y + 2, desenha(ctx) {
   const a = G.empreitas.aceitas[o.placaDe], sobe = Math.sin((G.agora || 0) * 3) * 3;
   if (!a) return;
+  if (a.aditivo) desenhaPe(ctx, 'itens/' + a.aditivo, o.x + 22, o.y - 6, 1, 0.4);
   if (a.estado === 'obra' && !a.trabalhou) desenhaPe(ctx, 'itens/' + Empreitas.ferramentaHoje(o.placaDe), o.x, o.y - 74 + sobe, 1, 0.75);
   else if (a.estado === 'pronta') desenhaFx(ctx, 'exclamacao', o.x, o.y - 74 + sobe);
 } })));
-function linhaEntrega(r) { const E = dadosEmpreita(r.id); return `Serviço entregue: ${E.nome} para ${CLIENTE_NOME[E.cliente] || ''}, Cr$ ${r.valor}${r.qualidade >= 1.5 ? ' (caprichado!)' : r.qualidade > 1 ? ' (bom)' : ''}.`; }
 // A limpeza conta quando o detrito marcado sai.
 function quebrouEmpreita(o) {
   const c = G.empreitas && G.empreitas.capina;
@@ -156,6 +162,11 @@ function abrirQuadro(aba = 'servicos') {
         el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), el('div', { class: 'orel-preco' },
           `${{ vila: 'na Vila', praia: 'na praia', mata: 'na mata', quintal: 'no quintal' }[E.mapa]} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
+      const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
+      const pct = prox ? Math.round(100 * Math.min(G.empreitas.entregues / prox.entregues, prox.caprichados ? cap / prox.caprichados : 1)) : 100;
+      caixa.append(el('div', { class: 'fala-vila' }, el('b', {}, 'Fala da Vila: ' + fx.nome),
+        el('span', {}, prox ? ` · ${G.empreitas.entregues}/${prox.entregues} serviços${prox.caprichados ? `, ${cap}/${prox.caprichados} caprichados` : ''} para ${prox.nome}` : ' · o nome mais respeitado da Vila'),
+        el('div', { class: 'barra-fala' }, el('div', { style: `width:${Math.min(100, pct)}%` }))));
       caixa.append(el('div', { class: 'cad-sub' }, 'Pedidos de hoje'), el('div', { class: 'qv-lista' }, ...(ids.length ? ids.map(id => {
         const pode = Empreitas.libera(id);
         return linha(id, pode ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro);
@@ -191,12 +202,45 @@ MANHA.push(() => {
   if (c && Math.floor((G.dia - 1) / 28) % 4 !== c.estacao) { G.empreitas.capina = null; G.feitosHoje.push('A capina do Seu Ananias acabou com a estação.'); }
   for (const id in MAPAS) poeEmpreitasNoMapa(MAPAS[id]);
 });
+// As falas da entrega (o selo e o comentário do cliente), por qualidade.
+const FALAS_ENTREGA = {
+  geral: { 1: 'Serviço feito. Obrigado, Jocelino.', 1.25: 'Ficou bom, Jocelino!', 1.5: 'Ficou uma beleza, Jocelino!', 2: 'Nunca vi serviço tão bem feito na Vila!' },
+  zelia: { 1.5: 'Uma beleza! Vou contar para a Vila inteira.', 2: 'Jocelino, isso está melhor que obra de capital!' },
+  juca: { 1: 'Tá firme. É o que importa.', 1.5: 'Capricho de quem aprendeu direito!' },
+  lourival: { 1.5: 'Compadre, ficou um brinco!', 2: 'Nem o mar derruba isso, compadre!' },
+  cida: { 1.5: 'Que capricho! Passa amanhã que tem pãozinho para você.' },
+  ananias: { 1: 'Bom. Material bem gasto.', 2: 'Isso vale o dobro do que eu paguei.' },
+  tonico: { 1.5: 'Serviço de ferreiro: sem rebarba!' },
+};
+const falaEntrega = (cliente, q) => (FALAS_ENTREGA[cliente] || {})[q] || FALAS_ENTREGA.geral[q] || FALAS_ENTREGA.geral[1];
+function linhaEntrega(r) { const E = dadosEmpreita(r.id); return `Serviço entregue: ${E.nome} para ${CLIENTE_NOME[E.cliente] || ''}: Cr$ ${r.valor} (${NOME_QUALIDADE[r.qualidade]}). "${falaEntrega(E.cliente, r.qualidade)}"`; }
+// O carimbo da entrega caprichada ou impecável: de manhã, quando a tela fica livre, 3 segundos (arte pronta).
+let _carimboPendente = '', _carimbo = null;
+const carimboPara = q => { if (q >= 1.5) _carimboPendente = q >= 2 ? 'impecavel' : 'caprichado'; };
+const carimboNaTela = () => _carimbo && (G.agora || 0) < _carimbo.ate ? _carimbo.nome : '';
+ATUALIZADORES.push(() => { if (_carimboPendente && !menuAberto()) { _carimbo = { nome: 'ui/carimbo_' + _carimboPendente, ate: (G.agora || 0) + 3 }; _carimboPendente = ''; } });
+DESENHOS_TELA.push(ctx => {
+  const n = carimboNaTela(), img = n && spr(n); if (!img) return;
+  const falta = _carimbo.ate - (G.agora || 0), w = img.naturalWidth * 1.4, h = img.naturalHeight * 1.4;
+  ctx.save(); ctx.globalAlpha = Math.min(1, falta); ctx.drawImage(img, G.larg / 2 - w / 2, G.alt * 0.25, w, h); ctx.restore();
+});
+// O aditivo na mão, na plaquinha: aplica (a cal que é material da obra não vira aditivo quando falta para começar).
+function aditivoNaPlaquinha(id) {
+  const ad = itemDaMao(), a = G.empreitas.aceitas[id];
+  if (!(ad in ADITIVOS) || !a) return false;
+  const mat = Empreitas.material(id);
+  if (a.estado === 'reservada' && mat[ad] && G.mochila.total(ad) <= mat[ad]) return false;
+  const r = Empreitas.aplicarAditivo(id, ad, G.mochila);
+  avisar({ ok: `${Itens.nome(ad)} aplicado: ${ad === 'acelerador' ? 'a obra fica mais curta' : 'o acabamento sai melhor'}.`, ja: 'Essa obra já tem aditivo.', tarde: 'O aditivo vai antes de começar a obra.', falta: 'Falta o aditivo.', nao: 'Isso não é aditivo.' }[r]);
+  if (r === 'ok') { sons.tocar('pousar', 1, 0.05, -4); hudSujo(); poeEmpreitasNoMapa(G.mapa); }
+  return true;
+}
 NOITE.push(linhas => {
   const chove = typeof Clima !== 'undefined' && Clima.chove(G.dia);
   for (const r of Empreitas.noite(chove)) {
     const E = dadosEmpreita(r.id), quem = CLIENTE_NOME[E.cliente] || '';
     if (r.desistiu) linhas.push(`${quem} desistiu de ${E.nome.toLowerCase()}: a obra não começou em 3 dias.`);
-    else if (r.entregue) { linhas.push(linhaEntrega(r)); for (const x of r.extra || []) linhas.push(x); }
+    else if (r.entregue) { carimboPara(r.qualidade); linhas.push(linhaEntrega(r)); for (const x of r.extra || []) linhas.push(x); }
     else if (r.pronta) linhas.push(`${E.nome}: pronta! Entregue na plaquinha.`);
   }
   const vc = Empreitas.capinaNoite(); if (vc) linhas.push(`Capina do Seu Ananias: Cr$ ${vc}.`);

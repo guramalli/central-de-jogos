@@ -3,7 +3,7 @@
 // (conversa, abre, colhe, entrega); E abre a mochila; Tab troca a fileira da barra; 1-0 escolhem o espaço;
 // Esc abre as opções; F alterna a tela cheia. As teclas ficam em TECLAS (trocar pelas opções: fase 2).
 
-const TECLAS_PADRAO = { cima: 'KeyW', baixo: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', usar: 'KeyC', acao: 'KeyX', mochila: 'KeyE', habilidades: 'KeyH',
+const TECLAS_PADRAO = { cima: 'KeyW', baixo: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', usar: 'KeyC', acao: 'KeyX', mochila: 'KeyE', habilidades: 'KeyH', fabricar: 'KeyB',
   fileira: 'Tab', correr: 'ShiftLeft', opcoes: 'Escape', telacheia: 'KeyF' };
 const TECLAS = Object.assign({}, TECLAS_PADRAO);
 const ehTecla = (e, acao) => e.code === TECLAS[acao];
@@ -19,6 +19,7 @@ function instalaEntrada() {
     if (ehTecla(e, 'opcoes') && typeof abrirOpcoes === 'function') { abrirOpcoes(); return; }
     if (ehTecla(e, 'mochila') && typeof abrirMochila === 'function') { abrirMochila(); return; }
     if (ehTecla(e, 'habilidades') && typeof abrirHabilidades === 'function' && !(typeof noPalco === 'function' && noPalco())) { abrirHabilidades(); return; }
+    if (ehTecla(e, 'fabricar') && typeof abrirFabricar === 'function' && !(typeof noPalco === 'function' && noPalco()) && !menuAberto()) { abrirFabricar(); return; }
     if (ehTecla(e, 'fileira') && G.mochila) { G.mochila.girarFileiras(e.shiftKey ? -1 : 1); hudSujo(); return; }
     if (G.copo && (e.code === 'Space' || ehTecla(e, 'usar') || ehTecla(e, 'acao'))) { if (!e.repeat) copoSegura(true); return; }
     if (ehTecla(e, 'acao')) { if (typeof noPalco === 'function' && noPalco()) palcoAgirNaFrente(); else acaoNaFrente(); return; }
