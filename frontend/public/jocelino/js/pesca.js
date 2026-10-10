@@ -52,6 +52,24 @@ const Pesca = {
     for (const p of ps) { x -= peso(p); if (x <= 0) return { tipo: 'peixe', id: p.id }; }
     return { tipo: 'peixe', id: ps[0].id };
   },
+  // O covo de manhã (o crab pot do Stardew): praia siri 35, caranguejo 25, camarão 20, lixo 20; rio lambari 40, cascudo 30, lixo 30.
+  covoManha(local, rng = Math.random) {
+    const T = local === 'rio' ? [['lambari', 0.4], ['cascudo', 0.3], ['ferro_velho', 0.3]] : [['siri', 0.35], ['caranguejo', 0.25], ['camarao', 0.2], ['ferro_velho', 0.2]];
+    const H = typeof Habilidades !== 'undefined' ? Habilidades : { tem: () => false };
+    const um = () => { let x = rng(); for (const [id, p] of T) { if (x < p) return id === 'ferro_velho' && H.tem('marinheiro') ? (local === 'rio' ? 'lambari' : 'siri') : id; x -= p; } return T[0][0]; };
+    const id = um(), qtd = H.tem('armadilheiro') && rng() < 0.25 ? 2 : 1;
+    return [{ id, qtd }];
+  },
+
+  // O baú de tesouro: achado do museu 40%, 2–4 ferros velhos 25%, 3 iscas 20%, Cr$ 20–60 15%.
+  bau(rng = Math.random) {
+    const ACHADOS = ['moeda_antiga', 'garrafa_antiga', 'ferradura', 'azulejo_antigo', 'cachimbo', 'boneca_pano', 'lamparina', 'chave_antiga', 'carranca'], r = rng();
+    if (r < 0.4) return { id: ACHADOS[Math.floor(rng() * ACHADOS.length)], qtd: 1 };
+    if (r < 0.65) return { id: 'ferro_velho', qtd: 2 + Math.floor(rng() * 3) };
+    if (r < 0.85) return { id: 'isca', qtd: 3 };
+    return { dinheiro: 20 + Math.floor(rng() * 41) };
+  },
+
   faixa(nivel, molinete) { return 0.17 + 0.014 * nivel + (molinete ? 0.05 : 0); },
   xp(id, perfeita, lendario) { return Math.round(5 + DADOS_PEIXE[id].dif / 3) * (perfeita ? 2 : 1) * (lendario ? 5 : 1); },
 };

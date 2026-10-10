@@ -24,7 +24,9 @@ MAPAS_DEF.praia = () => {
   // A banca e o barco do Seu Lourival.
   b.interativo('banca_peixe', 'objetos/banca_peixe', 7, 7, 3, 1, [44, 8]).acao = () => (typeof abrirBanca === 'function' ? abrirBanca() : abrirPlaca('A banca do Lourival.'));
   b.enfeite('objetos/barco_lourival', 14, 14, true, 44, 12);
-  b.morador('lourival', 'Seu Lourival', 9, 9, DIR.BAIXO);
+  const lou = b.morador('lourival', 'Seu Lourival', 9, 9, DIR.BAIXO);
+  lou.aoConversar = () => { if (typeof conversarLourival === 'function') return conversarLourival(lou); return false; };
+
   // O lote à beira-mar (a barraca da Rosa, um dia).
   b.interativo('lote_praia', 'objetos/placa_loteamento', 33, 9, 1, 1, [10, 6]).acao = () =>
     abrirPlaca('"Vende-se: lote à beira-mar." A Rosa sonha com uma barraca de pastel e caldo de cana aqui. Um dia...');

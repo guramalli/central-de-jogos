@@ -174,3 +174,66 @@ function abrirBanca() {
   desenha(); abrirModal(caixa); sons.tocar('abrir', 1.1, 0.03, -6); return true;
 }
 
+
+// A minhoca: cavar grama com a pá às vezes dá uma (8%), em qualquer mapa.
+function minhocaAoCavar(alvo) { if (Math.random() < 0.08) soltar('minhoca', 1, (alvo.x + 0.5) * TILE, (alvo.y + 0.7) * TILE); }
+
+// ---------- o covo de siri: na água da margem, com isca; de manhã tem coisa ----------
+const margem = (b, x, y) => b.ehAgua(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !b.ehAgua(x + dx, y + dy));
+function covoNoChao(t) {
+  const b = G.mapa; if (!b || itemDaMao() !== 'covo') return false;
+  if (!['praia', 'mata'].includes(b.id)) { avisar('O covo vai na água da praia ou do rio.'); return true; }
+  const p = G.jog.ladrilho(); if (Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) > 1) { avisar('Chegue mais perto.'); return true; }
+  if (!margem(b, t.x, t.y) || b.ocupado.has(chaveT(t.x, t.y))) { avisar('O covo vai na água, encostado na margem.'); return true; }
+  G.pesca.covos.push({ mapa: b.id, x: t.x, y: t.y, isca: false, dentro: null }); G.mochila.remover('covo', 1);
+  sons.tocar('agua', 0.9, 0.05, -4); poeCovos(b); hudSujo(); return true;
+}
+ACOES_NO_CHAO.push(covoNoChao);
+function poeCovos(b) {
+  for (const o of b.objs.filter(o => o.id === 'covo')) b.tirar(o);
+  for (const c of G.pesca.covos.filter(c => c.mapa === b.id)) {
+    const o = b.interativo('covo', 'objetos/covo', c.x, c.y, 1, 1, null, false); o.covo = c;
+    o.acao = () => acaoNoCovo(o);
+    o.ferramenta = (p, id) => { if (id === 'machado' || id === 'picareta') { G.pesca.covos = G.pesca.covos.filter(x => x !== c); const s = G.mochila.adicionar('covo', 1); if (s) soltar('covo', 1, p.x, p.y); poeCovos(G.mapa); hudSujo(); } };
+  }
+}
+function acaoNoCovo(o) {
+  const c = o.covo;
+  if (c.dentro) { const s = G.mochila.adicionar(c.dentro.id, c.dentro.qtd); if (s) soltar(c.dentro.id, s, G.jog.x, G.jog.y); avisar('+ ' + Itens.qtd(c.dentro.qtd, c.dentro.id)); Habilidades.ganhar('pesca', 3 * c.dentro.qtd); c.dentro = null; hudSujo(); return true; }
+  if (c.isca || Habilidades.tem('isqueiro')) { abrirPlaca('O covo está iscado. Volte amanhã cedo.'); return true; }
+  const isca = G.mochila.total('isca') ? 'isca' : G.mochila.total('minhoca') ? 'minhoca' : '';
+  if (!isca) { abrirPlaca('O covo está vazio e sem isca. A banca do Lourival vende isca.'); return true; }
+  G.mochila.remover(isca, 1); c.isca = true; sons.tocar('agua', 1.1, 0.05, -6); avisar('Covo iscado.'); hudSujo(); return true;
+}
+MANHA.push(() => { for (const c of G.pesca.covos) if (!c.dentro && (c.isca || Habilidades.tem('isqueiro'))) { c.dentro = Pesca.covoManha(c.mapa === 'mata' ? 'rio' : 'mar')[0]; c.isca = false; } });
+AO_MONTAR.push(b => { if (b.id === 'praia' || b.id === 'mata') poeCovos(b); });
+TAREFAS.push(() => { const n = G.pesca ? G.pesca.covos.filter(c => c.dentro).length : 0; return n ? [{ texto: `Pesca: ${n} ${n === 1 ? 'covo tem' : 'covos têm'} coisa dentro` }] : []; });
+
+
+function abrirBauPesca() {
+  const r = Pesca.bau();
+  if (r.dinheiro) { G.dinheiro += r.dinheiro; G.ganhoHoje += r.dinheiro; avisar(`Um baú! Dentro: Cr$ ${r.dinheiro}.`); }
+  else { const s = G.mochila.adicionar(r.id, r.qtd); if (s) soltar(r.id, s, G.jog.x, G.jog.y); avisar(`Um baú! Dentro: ${Itens.qtd(r.qtd, r.id)}.`); }
+  sons.tocar('fanfarra', 1.3, 0, -8); hudSujo();
+}
+function entregarLendarioARosa() {
+  const id = Object.keys(LENDARIOS).find(k => G.mochila.total(k) > 0); if (!id) return false;
+  G.mochila.remover(id, 1); if (G.pensao) G.pensao.curtidas += 10; hudSujo(); sons.tocar('fanfarra', 1, 0, -4);
+  abrirConversa('Rosa', urlArte('retratos/rosa_alegre'), [`Jocelino! Um ${Itens.nome(id)}?! A Vila inteira vai querer ver!`, 'Vou contar pra todo freguês. A pensão ficou mais famosa (+10 curtidas).']);
+  return true;
+}
+AO_MONTAR.push(b => { const r = b.moradores.find(m => m.id === 'rosa'); if (!r) return; const antes = r.aoConversar; r.aoConversar = () => entregarLendarioARosa() || (antes ? antes() : (conversaPadrao(r), true)); });
+function conversaPadrao(p) { const f = FALAS[p.id], pg = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']); abrirConversa(p.nome, urlArte('retratos/' + p.id + '_normal'), Array.isArray(pg[0]) ? pg[0] : pg); }
+// O Lourival dá a dica de um lendário que falta, um por semana.
+const DICAS_LENDARIO = { tainha_rainha: 'Dizem que no inverno, com chuva, a Tainha-Rainha passa no fundo da praia.', robalo_flecha: 'O Robalo-Flecha só aparece no verão, no fim da tarde, lá da ponta do píer.',
+  bagre_assombrado: 'Tem um bagre no rio da mata que só morde depois da meia-noite. Assombrado, juram.', traira_velha: 'A Traíra-Velha mora no poço da cachoeira. Na primavera, com chuva, ela sai.',
+  mero: 'Há 30 anos eu caço o mero lá no alto-mar. No outono, em cima de cardume... um dia a gente pega.' };
+function dicaDoLourival() { const falta = Object.keys(DICAS_LENDARIO).filter(k => !G.pesca.lendarios.includes(k)); return falta.length ? DICAS_LENDARIO[falta[Math.floor(G.dia / 7) % falta.length]] : ''; }
+
+function conversarLourival(p) {
+  const f = FALAS.lourival, pg = typeof f === 'function' ? f() : f, fala = (Array.isArray(pg[0]) ? pg[0] : pg).slice(), dica = dicaDoLourival();
+  if (dica) fala.push(dica);
+  abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), fala, typeof ofertaAltoMar === 'function' ? () => ofertaAltoMar() : null);
+  return true;
+}
+

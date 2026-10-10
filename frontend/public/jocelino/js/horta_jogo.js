@@ -3,6 +3,7 @@
 // direito, o regador molhando (a água acaba e o barril enche), a colheita, a foice arrancando, a noite e as tarefas.
 
 const xpColheita = id => Math.max(2, Math.round(CULTURAS[id].venda / 4));   // colher dá Roça pelo valor
+const ACOES_NO_CHAO = [];   // outras ações no chão (o covo da pesca)
 const ALCANCE_HORTA = 1;   // ladrilhos em volta do Jocelino (o alvo do Stardew)
 const perto1 = t => { const p = G.jog.ladrilho(); return Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) <= ALCANCE_HORTA; };
 function podeCavar(b, x, y) {
@@ -53,6 +54,7 @@ function regarCova(x, y) {
 }
 // O botão direito no chão: a semente planta na cova (e o esterco aduba, na entrega B).
 function acaoNoChao(t) {
+  for (const f of ACOES_NO_CHAO) if (f(t)) return true;
   if (!G.mapa || G.mapa.id !== 'quintal' || !G.jog) return false;
   const id = itemDaMao();
   if (typeof COLOCAVEIS_QUINTAL !== 'undefined' && COLOCAVEIS_QUINTAL.includes(id)) {
