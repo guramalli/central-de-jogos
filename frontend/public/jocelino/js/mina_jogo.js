@@ -6,7 +6,7 @@ CARTAS.tonico_bancadas = { de: 'Seu Tonico', dia: 7, aoLer: () => { G.mina.abert
   texto: 'Jocelino, arrumei a escada da pedreira. Lá embaixo tem aço e, mais fundo, bronze. Cuidado com pedra solta, e leve luz: depois da bancada 10 é breu.' };
 MAPAS_DEF.bancada = () => {
   const n = G.mina.bancada || 1, b = new Construtor('bancada', 22, 15, 1979 + n);
-  b.fundo = 'texturas/chao_pedreira'; b.livre = { x: 2, y: 3, w: 18, h: 10 }; b.inicio = { x: 4, y: 4 };
+  b.fundo = 'texturas/chao_pedreira'; b.livre = { x: 2, y: 3, w: 18, h: 10 }; b.inicio = { x: 4, y: 4 }; b.subsolo = true;   // debaixo da terra: sem chuva nem noite
   for (let x = 0; x <= b.larg; x += 2) { b.enfeite('objetos/rocha_mina_1', x, 1, false); b.enfeite('objetos/rocha_mina_1', x + 1, 2, false); b.enfeite('objetos/rocha_mina_1', x, b.alt - 2, false); }
   for (let y = 3; y < b.alt - 2; y++) { b.enfeite('objetos/rocha_mina_1', 1, y, false); b.enfeite('objetos/rocha_mina_1', b.larg - 2, y, false); }
   b.interativo('sobe_mina', 'objetos/escada_mina', 3, 3, 1, 1, [10, 6], false).acao = () => { subirDaMina(); return true; };
@@ -90,7 +90,7 @@ function usarForja(o) {
   return true;
 }
 // A forja acesa solta fumaça pela chaminé (a mesma fumaça das chaminés da Vila, mapas.js); apagada, nada.
-EXTRAS_MUNDO.push(m => m.id !== 'quintal' || !G.mina ? [] : m.objs.filter(o => o.item === 'forja' && G.mina.forjas[o.cx + ',' + o.cy]).map(o => ({ y: o.y + 1, desenha(ctx) {
+EXTRAS_MUNDO.push(m => m.id !== 'quintal' || !G.mina ? [] : m.objs.filter(o => o.item === 'forja' && G.mina.forjas[o.cx + ',' + o.cy] && Mina.agora() < G.mina.forjas[o.cx + ',' + o.cy].pronta).map(o => ({ y: o.y + 1, desenha(ctx) {
   const img = spr('objetos/forja'); if (!img) return;
   const bx = o.x - img.naturalWidth / 2 + 32, by = o.y - img.naturalHeight + 9;
   for (const p of fumacaEm(G.agora || 0)) { const n = p.r < 10 ? 1 : p.r < 15 ? 2 : 3; desenhaFx(ctx, 'fumaca_' + n, bx + p.x, by + p.y, { alfa: p.alfa, escala: p.r / [0, 8, 13, 19][n] * 0.9 }); }

@@ -31,6 +31,7 @@ function rochasDaEntrada(b) {
   for (let k = 0, n = 0; k < 120 && n < 12; k++) {
     const x = b.livre.x + 2 + Math.floor(f() * (b.livre.w - 3)), y = b.livre.y + Math.floor(f() * b.livre.h);
     if (b.saidaEm(x, y) || (x <= b.inicio.x + 1 && Math.abs(y - b.inicio.y) <= 1)) continue;
+    if (Math.abs(x - 10) <= 1 && Math.abs(y - 9) <= 1) continue;   // onde chega quem sobe das bancadas (mina_jogo.js)
     if (b.detrito(f() < 0.1 ? 'ferro' : 'rocha', x, y)) n++;
   }
 }

@@ -115,6 +115,7 @@ const QUEM_ENCOMENDA = ['ananias', 'tonico', 'rosa', 'zelia'];
 Object.assign(Mina, {
   novaEncomenda(dia) {
     G.mina.encomendas = G.mina.encomendas.filter(e => e.ate >= dia);
+    if (!G.mina.aberta) return null;   // cristal e pigmento só existem nas bancadas
     if (G.mina.encomendas.length >= 3) return null;
     const f = mulberry(dia * 977 + 31), ok = ENCOMENDAS.filter(e => !e.pede || e.pede());
     const e = ok[Math.floor(f() * ok.length)], nova = { item: e.item, qtd: e.qtd, paga: e.paga, quem: QUEM_ENCOMENDA[Math.floor(f() * QUEM_ENCOMENDA.length)], ate: dia + 3 };

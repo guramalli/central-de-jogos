@@ -64,7 +64,7 @@ function desenha(dt) {
   if (G.mapa && typeof desenhaMapa === 'function') desenhaMapa(ctx);
   // Noite: o mundo escurece aos poucos das 18h às 21h, multiplicando por um azul (escurece sem lavar as cores, como
   // a noite do Stardew); dentro de casa, menos; o palco da pensão já é arte de noite. Depois, as luzes quentes acesas.
-  const esc = relogio.escuridao() * (G.mapa && G.mapa.palco ? 0 : G.mapa && G.mapa.dentro ? 0.35 : 1);
+  const esc = relogio.escuridao() * fatorNoite(G.mapa);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (esc > 0) {
     ctx.globalCompositeOperation = 'multiply';
@@ -138,3 +138,5 @@ function saveDaPensao() {
     pensao: { estado: 'aberta', abreDia: 3, mesas: 2, despensa: { arroz: 10, feijao: 10, ovo: 10, farinha: 5 }, cardapio: ['pf_peao'] },
     mapas: { pensao_dentro: { detritos: [] } } });
 }
+// Quanto a noite escurece o mapa: o palco da pensão já é arte de noite e as bancadas da pedreira são debaixo da terra (0); dentro de casa, menos.
+function fatorNoite(m) { return m && (m.palco || m.subsolo) ? 0 : m && m.dentro ? 0.35 : 1; }

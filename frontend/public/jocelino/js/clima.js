@@ -6,7 +6,7 @@
 const Clima = {
   CHANCE: [0.20, 0.10, 0.20, 0.30],   // Outono, Inverno, Primavera, Verão
   chove(dia) { return mulberry(dia * 7717 + 3)() < Clima.CHANCE[Math.floor((dia - 1) / 28) % 4]; },
-  agora() { return !!G.mapa && !G.mapa.dentro && !G.mapa.palco && Clima.chove(G.dia); },
+  agora() { return !!G.mapa && !G.mapa.dentro && !G.mapa.palco && !G.mapa.subsolo && Clima.chove(G.dia); },
 };
 const GOTAS = Array.from({ length: 220 }, (_, i) => ({ x: (i * 97 % 1000) / 1000, y: (i * 61 % 1000) / 1000, v: 0.85 + (i % 7) * 0.07 }));
 DESENHOS_TELA.push(ctx => {

@@ -29,9 +29,10 @@ const Achados = {
     if (s > -0.06) return 'Os astros estão meio emburrados. Não espere muita sorte hoje.';
     return 'Ih... hoje é dia de ficar quietinho. Os astros não estão para brincadeira!';
   },
-  tabela(mapaId, est, chove) {
+  tabela(mapaId, est, chove, clareira = false) {
     let t = mapaId === 'praia' ? ACHADOS_PRAIA : mapaId === 'mata' ? ACHADOS_MATA[est] : ACHADOS_ESTACAO[est];
     if (chove && mapaId === 'mata') t = t.map(([id, p]) => [id, id === 'cogumelo' ? p * 2 : p]);
+    if (clareira) t = t.map(([id, p]) => [id, ['cambuci', 'cogumelo'].includes(id) ? p * 2 : p]);   // a clareira escondida (etapa 5)
     return t;
   },
   // Sorteia os achados do dia num mapa: em chão livre (sem objeto, saída nem água), fixo pelo dia e pelo mapa.
@@ -43,13 +44,25 @@ const Achados = {
     const n = base + (s >= 0.06 ? 1 : s <= -0.06 ? -1 : 0) - (chove && mapaId === 'praia' ? 1 : 0);
     const t = Achados.tabela(mapaId, est, chove).map(([id, p]) => [id, ACHADOS_RAROS.includes(id) ? p * (1 + s * 5) : p]);
     const soma = t.reduce((a, x) => a + x[1], 0), r = [];
-    for (let k = 0, tent = 0; r.length < n && tent < 300; tent++) {
+    let k = 0;
+    for (let tent = 0; r.length < n && tent < 300; tent++) {
       const x = m.livre.x + Math.floor(f() * m.livre.w), y = m.livre.y + Math.floor(f() * m.livre.h);
       const o = m.ocupado.get(chaveT(x, y));
       if ((o && !o.achado) || m.chaoEm(x, y) !== CH.GRAMA || m.saidaEm(x, y) || (m.trancadas || []).some(q => dentroR(q, x, y)) || r.some(a => a.x === x && a.y === y)) continue;
       let v = f() * soma, id = t[0][0];
       for (const [i, p] of t) { if (v < p) { id = i; break; } v -= p; }
       r.push({ id, x, y, k: k++ });
+    }
+    // A clareira aberta (o tronco do machado profissional): mais 2 achados lá dentro, com cambuci e cogumelo dobrados.
+    if (mapaId === 'mata' && G.lugares && G.lugares.clareira && typeof MATA !== 'undefined') {
+      const C = MATA.CLAREIRA, tc = Achados.tabela(mapaId, est, chove, true), sc = tc.reduce((a, x) => a + x[1], 0);
+      for (let n2 = 0, tent = 0; n2 < 2 && tent < 120; tent++) {
+        const x = C.x + Math.floor(f() * C.w), y = C.y + Math.floor(f() * C.h), o = m.ocupado.get(chaveT(x, y));
+        if ((o && !o.achado) || m.chaoEm(x, y) !== CH.GRAMA || r.some(a => a.x === x && a.y === y)) continue;
+        let v = f() * sc, id = tc[0][0];
+        for (const [i, p] of tc) { if (v < p) { id = i; break; } v -= p; }
+        r.push({ id, x, y, k: k++ }); n2++;
+      }
     }
     return r;
   },
