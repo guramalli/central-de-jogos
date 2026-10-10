@@ -39,7 +39,7 @@ function poeEmpreitasNoMapa(b) {
   if (!G.empreitas) return;
   // As obras entregues ficam no mapa (a Vila cresce com o que o Jocelino constrói); pegar de novo vira reforma.
   for (const id in G.empreitas.feitas || {}) {
-    const E = EMPREITAS_LONGAS[id]; if (!E || E.mapa !== b.id || G.empreitas.aceitas[id]) continue;
+    const E = dadosEmpreita(id); if (!E || E.mapa !== b.id || G.empreitas.aceitas[id]) continue;
     limparLote(b, E);
     const arte = E.artes[E.artes.length - 1], q = G.empreitas.feitas[id], h = E.area ? E.area.h : 1;
     const o = b.interativo('feita_' + id, ARTE_LISTA.includes(arte) ? arte : 'objetos/alicerce', E.x, E.y + h - 1, larguraLote(E), h, null, !E.piso);
@@ -50,7 +50,7 @@ function poeEmpreitasNoMapa(b) {
   for (const id in G.empreitas.aceitas) {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (!E || E.mapa !== b.id) continue;
-    if (E.tipo === 'longa' && EMPREITAS_LONGAS[id]) limparLote(b, E);
+    if (E.tipo === 'longa') limparLote(b, E);
     const p = lugarLivre(b, E.x, E.y);
     if (E.tipo === 'curta') {
       const o = b.interativo('emp_' + id, 'objetos/plaquinha', p.x, p.y, 1, 1, [8, 6]);
@@ -193,11 +193,7 @@ AO_MONTAR.push(b => poeEmpreitasNoMapa(b));
 AO_ENTRAR_MAPA.push(() => { if (G.mapa) poeEmpreitasNoMapa(G.mapa); });
 MANHA.push(() => {
   G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia);
-  // Às vezes o pedido vem por carta (e já fica no quadro).
-  if (G.dia % 5 === 0 && G.empreitas.quadro.length) {
-    const id = G.empreitas.quadro[0], E = dadosEmpreita(id);
-    CARTAS['servico_' + G.dia] = { de: CLIENTE_NOME[E.cliente] || 'Um vizinho', dia: G.dia, texto: `Seu Jocelino, preciso de um serviço: ${E.nome.toLowerCase()} (${{ vila: 'na Vila', praia: 'na praia', mata: 'na mata', quintal: 'no quintal' }[E.mapa]}). Pago Cr$ ${E.paga}. O pedido está no quadro de Serviços da Vila.` };
-  }
+  if (typeof cartaDePedido === 'function') cartaDePedido(G.dia);
   const c = G.empreitas.capina;
   if (c && Math.floor((G.dia - 1) / 28) % 4 !== c.estacao) { G.empreitas.capina = null; G.feitosHoje.push('A capina do Seu Ananias acabou com a estação.'); }
   for (const id in MAPAS) poeEmpreitasNoMapa(MAPAS[id]);

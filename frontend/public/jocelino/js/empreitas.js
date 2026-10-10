@@ -48,6 +48,8 @@ const CLIENTE_NOME = { lourival: 'Seu Lourival', juca: 'Tio Juca', zelia: 'Dona 
 const NOME_DIA = { pa: 'pá', colher: 'colher', regador: 'regador', machado: 'machado', foice: 'foice' };
 // Ganchos de quem quer saber da entrega (a Prefeitura dá o prêmio): (id, qualidade) → texto para o resumo ou ''.
 const AO_ENTREGAR = [];
+// Ganchos que completam G.empreitas ao iniciar (a Prefeitura, as cartas, o Tião): (save) → nada.
+const AO_INICIAR_EMPREITAS = [];
 
 const Empreitas = {
   RESERVA: 3,
@@ -60,6 +62,7 @@ const Empreitas = {
       if (!E || a.estado) continue;
       Object.assign(a, { estado: a.dias >= E.dias ? 'pronta' : 'obra', aditivo: '', porTiao: 0, carta: false, prefeitura: false, lista: E.etapas.slice() });
     }
+    for (const f of AO_INICIAR_EMPREITAS) f(s);
   },
   salvar(s) { s.empreitas = JSON.parse(JSON.stringify(G.empreitas)); },
   funcao() { return G.obra ? G.obra.funcao : 0; },
@@ -172,7 +175,7 @@ const Empreitas = {
     const E = dadosEmpreita(id);
     delete G.empreitas.aceitas[id];
     // A obra fica no mapa (muros, pisos, cerca, quiosque, ponte); a fundação sozinha não (ela é o começo de uma casa).
-    if (EMPREITAS_LONGAS[id] && !EMPREITAS_LONGAS[id].fundacao) G.empreitas.feitas[id] = q;
+    if (E.tipo === 'longa' && !E.fundacao) G.empreitas.feitas[id] = q;
     G.empreitas.entregues++;
     if (q >= 1.5) G.empreitas.caprichados = (G.empreitas.caprichados || 0) + 1;
     G.empreitas.reputacao[E.cliente] = (G.empreitas.reputacao[E.cliente] || 0) + 1;
