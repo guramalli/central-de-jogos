@@ -10,7 +10,7 @@ const CULTURAS = {
   abobora: { semente: 'semente_abobora', dias: 12, estacoes: [3, 0], preco: 20, venda: 70 },
   mandioca: { semente: 'rama_mandioca', dias: 14, estacoes: [0, 1, 2, 3], preco: 16, venda: 60 },
 };
-const AGUA_REGADOR = [30, 50], HORTA_SOME = 0.2;
+const AGUA_REGADOR = [30, 50], HORTA_SOME = 0.2, MINIMO_GALINHAS = 8, CHANCE_GALINHAS = 0.4;
 const estacaoDoDia = dia => Math.floor((dia - 1) / 28) % 4;
 const culturaDaSemente = item => Object.keys(CULTURAS).find(id => CULTURAS[id].semente === item) || '';
 const chaveH = (x, y) => x + ',' + y;
@@ -78,10 +78,35 @@ const Horta = {
     return r;
   },
   plantadas() { return Object.values(G.horta.covas).filter(c => c.planta).length; },
+  // Protegido (o "cercada" do Godot): a busca a partir do pé não escapa em até 120 ladrilhos. Cerca, portão, parede e
+  // objeto sólido fecham; planta e cova vazia deixam passar; fora da área andável fecha.
+  protegida(b, x, y) {
+    const visto = new Set([chaveT(x, y)]), fila = [[x, y]];
+    while (fila.length) {
+      const [cx, cy] = fila.shift();
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy, k = chaveT(nx, ny);
+        if (visto.has(k) || !b.livreEm(nx, ny)) continue;
+        const o = b.ocupado.get(k); if (o && (o.solido || o.item === 'portao')) continue;
+        visto.add(k); if (visto.size > 120) return false; fila.push([nx, ny]);
+      }
+    }
+    return true;
+  },
+  // As galinhas (os corvos do Stardew): com 8 ou mais pés abertos, 40% de chance de bicarem um.
+  galinhas(b, rng = Math.random) {
+    const abertas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta).map(k => k.split(',').map(Number)).filter(([x, y]) => !Horta.protegida(b, x, y));
+    if (abertas.length < MINIMO_GALINHAS || rng() >= CHANCE_GALINHAS) return '';
+    const [x, y] = abertas[Math.floor(rng() * abertas.length)], id = Horta.arrancar(x, y);
+    G.horta.galinha = { x, y }; return id;
+  },
 };
 INICIADORES.push(s => Horta.iniciar(s));
 COLETORES.push(s => Horta.salvar(s));
 // Os itens da horta e as vantagens da Roça que mexem no dinheiro (a caixa e o preço do prato na pensão).
-Object.assign(ITENS, { esterco: { nome: 'Esterco curtido', pilha: 99, ferramenta: false, descricao: 'Adubo: na cova vazia, antes de plantar. Mais colheita boa e caprichada.' } });
+Object.assign(ITENS, {
+  esterco: { nome: 'Esterco curtido', pilha: 99, ferramenta: false, descricao: 'Adubo: na cova vazia, antes de plantar. Mais colheita boa e caprichada.' },
+  irrigador: { nome: 'Irrigador', pilha: 9, ferramenta: false, colocavel: true, descricao: 'Do Seu Tonico. Coloque no quintal: rega as 4 covas em volta toda manhã.' },
+});
 const fatorFeira = id => !CULTURAS[id] || typeof Habilidades === 'undefined' ? 1 : Habilidades.tem('atacadista') ? 1.25 : Habilidades.tem('feirante') ? 1.1 : 1;
 const temperoDaRoca = prato => typeof Habilidades !== 'undefined' && Habilidades.tem('tempero_da_roca') && Pratos.PRATOS[prato] && Object.keys(Pratos.PRATOS[prato].porcao || {}).some(i => CULTURAS[i]) ? 1.1 : 1;

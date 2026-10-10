@@ -42,6 +42,15 @@ const Ferreiro = {
     mochila.remover('ferro_velho', k * Ferreiro.FUNDIR); mochila.adicionar('barra_ferro', k);
     return { ok: true, gasto: k * Ferreiro.PRECO_FUNDIR, motivo: '' };
   },
+  // O irrigador (o aspersor do Stardew): Cr$ 80 + 2 barras de ferro, pronto na hora.
+  irrigador(mochila, dinheiro) {
+    const preco = Math.round(80 * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
+    if (mochila.total('barra_ferro') < 2) return { ok: false, gasto: 0, motivo: 'O irrigador pede 2 barras de ferro.' };
+    if (dinheiro < preco) return { ok: false, gasto: 0, motivo: `O dinheiro não dá (Cr$ ${preco}).` };
+    if (!mochila.cabe('irrigador')) return { ok: false, gasto: 0, motivo: 'A mochila está cheia.' };
+    mochila.remover('barra_ferro', 2); mochila.adicionar('irrigador', 1);
+    return { ok: true, gasto: preco, motivo: '' };
+  },
   aberta() { return !relogio.domingo() && G.minutos >= 8 * 60 && G.minutos < 18 * 60; },
 };
 // Machado e picareta batem com 1 + nível; pá, regador e colher cobrem 3 ladrilhos em linha no nível reforçado.
@@ -73,6 +82,7 @@ function abrirFerraria() {
     }
     caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap' },
       el('div', { style: 'font-weight:800' }, `Ferro velho: ${G.mochila.total('ferro_velho')} · Barras: ${G.mochila.total('barra_ferro')} · Cr$ ${G.dinheiro}`),
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.irrigador(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um irrigador: coloque no quintal, perto das covas.'); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fazer irrigador: Cr$ 80 + 2 barras'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.fundir(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fundir ferro velho em barra'),
       el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };

@@ -55,6 +55,11 @@ function regarCova(x, y) {
 function acaoNoChao(t) {
   if (!G.mapa || G.mapa.id !== 'quintal' || !G.jog) return false;
   const id = itemDaMao();
+  if (typeof COLOCAVEIS_QUINTAL !== 'undefined' && COLOCAVEIS_QUINTAL.includes(id)) {
+    if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
+    if (!perto1(t)) { avisar('Chegue mais perto.'); return true; }
+    colocar(id, t.x, t.y); return true;
+  }
   if (id === 'esterco') {
     if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
     if (!perto1(t)) { avisar('Chegue mais perto.'); return true; }
