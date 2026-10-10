@@ -102,3 +102,121 @@ function responderCartaPedido(cid, aceita) {
   return r;
 }
 AO_INICIAR_EMPREITAS.push(s => { G.empreitas.cartas = JSON.parse(JSON.stringify((s.empreitas && s.empreitas.cartas) || {})); for (const cid in G.empreitas.cartas) registrarCartaPedido(cid); });
+
+// ---------- as noites agitadas (os eventos noturnos do Stardew; noite_agitada.gd): ~10% das noites, quase sempre boas ----------
+const NOITES_AGITADAS = { mutirao: true, caminhao: true, ventania: true };
+function noiteAgitada(dia) {
+  if (dia <= 4) return '';
+  const f = mulberry(dia * 911 + 3);
+  if (f() >= 0.10) return '';
+  const ids = Object.keys(NOITES_AGITADAS), e = ids[Math.floor(f() * ids.length)];
+  return e === 'ventania' && !(typeof Clima !== 'undefined' && Clima.chove(dia)) ? '' : e;
+}
+function aplicarNoiteAgitada(e) {
+  const obra = Object.keys(G.empreitas.aceitas).find(id => G.empreitas.aceitas[id].estado === 'obra'), a = obra && G.empreitas.aceitas[obra];
+  if (e === 'mutirao') { if (!a) return ''; a.dias++; if (a.dias >= a.lista.length) a.estado = 'pronta'; return `Os vizinhos fizeram um mutirão de madrugada: ${dadosEmpreita(obra).nome.toLowerCase()} adiantou um dia!`; }
+  if (e === 'ventania') { if (!a || a.dias <= 0) return ''; a.dias--; return `Uma ventania forte passou pela Vila: ${dadosEmpreita(obra).nome.toLowerCase()} atrasou um dia.`; }
+  if (e === 'caminhao') {
+    const b = getMapa('quintal'), f = mulberry(G.dia * 17 + 5); let n = 0;
+    for (let k = 0; k < 300 && n < 5; k++) {
+      const x = b.livre.x + Math.floor(f() * b.livre.w), y = b.livre.y + Math.floor(f() * b.livre.h);
+      if (b.ocupado.has(chaveT(x, y)) || b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA || (typeof Horta !== 'undefined' && Horta.cova(x, y)) || dentroR(QUINTAL.CANTEIRO, x, y) || dentroR(QUINTAL.TERRENO, x, y)) continue;
+      if (b.detrito('pedra', x, y)) n++;
+    }
+    return n ? 'Um caminhão perdeu a carga na estrada de madrugada: tem pedra espalhada no quintal!' : '';
+  }
+  return '';
+}
+NOITE.push(linhas => { const e = noiteAgitada(G.dia), t = e && aplicarNoiteAgitada(e); if (t) linhas.push(t); });
+
+// ---------- o ajudante Tião (os Junimos do Stardew; ajudante.gd): cuida das obras à noite, mas nunca começa, aduba ou entrega ----------
+const TIAO = { CONTRATO: 100, SALARIO: 20, MEDICO: 60, EVENTO: 0.08, FALTA: 0.04, VOLTA: 7, X: 3, Y: 11 };   // na calçada, do lado do depósito
+const EVENTOS_TIAO = {
+  acidente: { texto: 'O Tião machucou a mão na obra.', opcoes: [`Pagar o médico (Cr$ ${TIAO.MEDICO})`, 'Seguir sem ele'] },
+  aumento: { texto: 'O Tião pediu aumento: Cr$ 5 a mais por dia.', opcoes: ['Dar o aumento', 'Recusar'] },
+};
+const Tiao = {
+  iniciar(s) { const t = (s.empreitas && s.empreitas.tiao) || {}; G.empreitas.tiao = { contratado: !!t.contratado, salario: t.salario || TIAO.SALARIO, lealdade: t.lealdade ?? 5, folga: t.folga || 0, evento: t.evento || '', saiuDia: t.saiuDia ?? -99 }; },
+  pode() { return Empreitas.funcao() >= 2; },
+  contratar(dinheiro) {
+    const t = G.empreitas.tiao;
+    if (t.contratado) return 'ja';
+    if (G.dia < t.saiuDia + TIAO.VOLTA) return 'magoado';
+    if (dinheiro < TIAO.CONTRATO) return 'dinheiro';
+    Object.assign(t, { contratado: true, salario: TIAO.SALARIO, lealdade: 5, folga: 0, evento: '' }); return 'ok';
+  },
+  demitir() { Object.assign(G.empreitas.tiao, { contratado: false, evento: '', folga: 0 }); },
+  trabalhaHoje() { const t = G.empreitas.tiao; return t.contratado && t.folga <= 0 && !t.evento; },
+  // À noite, antes do avanço: as obras que o Jocelino não cuidou hoje (a de regador na chuva já conta sozinha).
+  trabalhar(chove) {
+    if (!Tiao.trabalhaHoje()) return 0;
+    let n = 0;
+    for (const id in G.empreitas.aceitas) {
+      const a = G.empreitas.aceitas[id];
+      if (a.estado !== 'obra' || a.trabalhou || Empreitas.impedeHoje(id, chove) || (chove && Empreitas.ferramentaHoje(id) === 'regador')) continue;
+      a.trabalhou = true; a.porTiao = (a.porTiao || 0) + 1; n++;
+    }
+    return n;
+  },
+  _vaiEmbora() { Object.assign(G.empreitas.tiao, { contratado: false, evento: '', folga: 0, saiuDia: G.dia }); },
+  // Depois do serviço: a diária (sem dinheiro, a lealdade cai), a folga e os eventos.
+  noite(rng) {
+    const t = G.empreitas.tiao, r = { pago: 0, evento: '', falta: false, foi: false };
+    if (!t.contratado) return r;
+    if (t.folga > 0) { t.folga--; return r; }
+    if (t.evento) return r;
+    if (G.dinheiro >= t.salario) { G.dinheiro -= t.salario; r.pago = t.salario; }
+    else { t.lealdade--; if (t.lealdade <= 0) { Tiao._vaiEmbora(); r.foi = true; return r; } }
+    const x = rng();
+    if (x < TIAO.EVENTO) { t.evento = rng() < 0.5 ? 'acidente' : 'aumento'; r.evento = t.evento; }
+    else if (x < TIAO.EVENTO + TIAO.FALTA) { t.folga = 1; r.falta = true; }
+    return r;
+  },
+  decidir(opcao) {
+    const t = G.empreitas.tiao, r = { custo: 0, texto: '' };
+    if (t.evento === 'acidente') {
+      if (opcao === 0) { r.custo = TIAO.MEDICO; t.folga = 2; t.lealdade = Math.min(10, t.lealdade + 2); r.texto = 'O Tião agradeceu muito. Volta em 2 dias.'; }
+      else { t.folga = 3; t.lealdade -= 2; r.texto = 'O Tião ficou magoado. Fica 3 dias em casa.'; }
+    } else if (t.evento === 'aumento') {
+      if (opcao === 0) { t.salario += 5; t.lealdade = Math.min(10, t.lealdade + 1); r.texto = `O Tião ficou contente: agora ganha Cr$ ${t.salario} por dia.`; }
+      else { t.lealdade -= 1; r.texto = 'O Tião aceitou, mas ficou chateado.'; }
+    }
+    t.evento = '';
+    if (t.lealdade <= 0) { Tiao._vaiEmbora(); r.texto += ' E foi embora.'; }
+    return r;
+  },
+};
+AO_INICIAR_EMPREITAS.push(s => Tiao.iniciar(s));
+NOITE.push(linhas => {
+  const r = Tiao.noite(mulberry(G.dia * 613 + 1));
+  if (r.pago) linhas.push(`O Tião cuidou das obras: Cr$ ${r.pago} de diária.`);
+  if (r.falta) linhas.push('O Tião avisou que amanhã não vem.');
+  if (r.foi) linhas.push('O Tião ficou sem receber e foi embora.');
+});
+// O evento pergunta de manhã, quando a tela fica livre (e de novo depois de carregar, se ficou sem resposta).
+let _perguntouTiao = '';
+ATUALIZADORES.push(() => {
+  const t = G.empreitas && G.empreitas.tiao; if (!t || !t.evento || !G.comecou || menuAberto()) return;
+  const chave = G.dia + t.evento; if (_perguntouTiao === chave) return; _perguntouTiao = chave;
+  const ev = EVENTOS_TIAO[t.evento];
+  perguntar(ev.texto, ev.opcoes, i => { const d = Tiao.decidir(i); if (d.custo) { G.dinheiro -= d.custo; G.gastoHoje += d.custo; } avisar(d.texto); hudSujo(); });
+});
+// O Tião na Vila, perto do depósito, de dia, quando o Jocelino é pedreiro.
+AO_MONTAR.push(b => { if (b.id === 'vila' && !b.moradores.some(m => m.id === 'tiao')) { const p = b.morador('tiao', 'Tião', TIAO.X, TIAO.Y, DIR.BAIXO, { vagueia: true, area: { x: 2 * TILE, y: TIAO.Y * TILE + 42, w: 3 * TILE, h: TILE } }); p.aoConversar = () => conversarTiao(); } });
+ATUALIZADORES.push(() => { if (G.mapaId !== 'vila') return; const p = G.mapa.moradores.find(m => m.id === 'tiao'); if (p) p.visivel = Tiao.pode() && G.minutos >= 8 * 60 && G.minutos < 17 * 60; });
+function conversarTiao() {
+  const t = G.empreitas.tiao;
+  if (!t.contratado) {
+    abrirConversa('Tião', urlArte('retratos/tiao_normal'), ['Bom dia, Seu Jocelino. Tô procurando serviço.', `Se o senhor me contratar (Cr$ ${TIAO.CONTRATO}), eu cuido das suas obras à noite, por Cr$ ${TIAO.SALARIO} o dia. Começar, pôr aditivo e entregar é com o senhor.`], () =>
+      perguntar('Contratar o Tião?', [`Contratar (Cr$ ${TIAO.CONTRATO})`, 'Agora não'], i => {
+        if (i !== 0) return;
+        const r = Tiao.contratar(G.dinheiro);
+        if (r === 'ok') { G.dinheiro -= TIAO.CONTRATO; G.gastoHoje += TIAO.CONTRATO; sons.tocar('carimbo', 1, 0.05, -6); avisar('O Tião está contratado: à noite ele cuida das obras.'); hudSujo(); }
+        else avisar({ dinheiro: 'O dinheiro não dá.', magoado: 'O Tião ainda está chateado. Volte daqui a uns dias.', ja: 'Ele já trabalha para você.' }[r]);
+      }));
+    return true;
+  }
+  abrirConversa('Tião', urlArte('retratos/tiao_alegre'), [`Tô cuidando das obras, Seu Jocelino. (Lealdade ${t.lealdade}/10, Cr$ ${t.salario} por dia.)`], () =>
+    perguntar('Falar com o Tião', ['Tudo certo', 'Dispensar o Tião', 'Voltar'], i => { if (i === 1) { Tiao.demitir(); avisar('O Tião foi dispensado.'); } }));
+  return true;
+}

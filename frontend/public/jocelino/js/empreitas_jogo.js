@@ -233,6 +233,7 @@ function aditivoNaPlaquinha(id) {
 }
 NOITE.push(linhas => {
   const chove = typeof Clima !== 'undefined' && Clima.chove(G.dia);
+  if (typeof Tiao !== 'undefined') Tiao.trabalhar(chove);   // o Tião cuida antes da noite avançar as obras
   for (const r of Empreitas.noite(chove)) {
     const E = dadosEmpreita(r.id), quem = CLIENTE_NOME[E.cliente] || '';
     if (r.desistiu) linhas.push(`${quem} desistiu de ${E.nome.toLowerCase()}: a obra não começou em 3 dias.`);
