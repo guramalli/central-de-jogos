@@ -17,14 +17,17 @@ function pedirDormir() {
   return true;
 }
 
+let _acordaEm = null;   // o posto de saúde do Bairro Novo (desmaio)
 function dormir(desmaiou = false) {
   if (_dormindo) return;
   _dormindo = true;
   const linhas = [];
   if (desmaiou) {
-    const perde = Math.max(0, Math.min(100, Math.floor(G.dinheiro / 10)));
+    const posto = typeof desmaioNoPosto === 'function' ? desmaioNoPosto() : null;
+    const perde = posto ? Math.min(G.dinheiro, posto.custo) : Math.max(0, Math.min(100, Math.floor(G.dinheiro / 10)));
     G.dinheiro -= perde;
-    linhas.push(`O Jocelino desmaiou de cansaço às 2h. Acharam ele no meio do caminho e levaram para casa${perde ? `; sumiram Cr$ ${perde} do bolso` : ''}.`);
+    linhas.push(posto ? `O Jocelino desmaiou de cansaço às 2h e acordou no posto de saúde do Bairro Novo. A consulta custou Cr$ ${perde}.` : `O Jocelino desmaiou de cansaço às 2h. Acharam ele no meio do caminho e levaram para casa${perde ? `; sumiram Cr$ ${perde} do bolso` : ''}.`);
+    _acordaEm = posto;
   }
   for (const f of NOITE) { try { f(linhas); } catch (e) { console.error(e); } }
   if (G.ganhoHoje) linhas.push('Ganhou hoje: Cr$ ' + G.ganhoHoje);
@@ -39,7 +42,7 @@ function dormir(desmaiou = false) {
   G.ganhoHoje = 0; G.gastoHoje = 0; G.feitosHoje = [];
   for (const f of MANHA) { try { f(); } catch (e) { console.error(e); } }
   // Acorda na porta de casa.
-  entrarMapa('quintal', { x: 7, y: 10 });
+  if (_acordaEm) { entrarMapa(_acordaEm.mapa, _acordaEm.tile); _acordaEm = null; } else entrarMapa('quintal', { x: 7, y: 10 });
   G.jog.dir = DIR.BAIXO;
   salvar();
   _dormindo = false;

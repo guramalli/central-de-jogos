@@ -59,6 +59,13 @@ function poeBairro(b) {
       let m = b.moradores.find(p => p.id === 'balcao_' + t);
       if (Bairro.comercioPronto(t) && !m) { m = b.morador('balcao_' + t, CLIENTE_NOME[K.dono], T.x + 3, T.y + 5, DIR.BAIXO); m.pele = K.dono; m.aoConversar = () => abrirComercio(t); }
     }
+    if (T.tipo === 'publico') {
+      const n = Bairro.publico(t), P = PUBLICOS[t];
+      if (n >= 1) { for (let y = T.y; y < T.y + 7; y++) for (let x2 = T.x; x2 < T.x + 6; x2++) { const o = b.ocupado.get(chaveT(x2, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+        marca(b.interativo('predio_' + t, n >= 2 ? P.arte : 'objetos/predio_obra_2', T.x, T.y + 4, 6, 3, [90, 62]), { acao: () => { abrirPlaca(n >= 2 ? `${P.nome} do Bairro Novo.` : `${P.nome}: falta o acabamento (pedido da Prefeitura).`); return true; } });
+        if (t === 'praca' && n >= 2) for (const [bx, by] of [[T.x, T.y + 6], [T.x + 4, T.y + 6]]) marca(b.enfeite('objetos/banco_praca', bx, by, true, 20, 8)); }
+      else for (const [ex, ey] of [[T.x, T.y + 1], [T.x + 5, T.y + 1], [T.x, T.y + 4], [T.x + 5, T.y + 4]]) marca(b.enfeite('objetos/estaca_terreno', ex, ey, false));
+    }
   }
   // Os donos: esperam de pé na frente do terreno (8h–17h) até a mudança; depois moram (passeiam perto de casa de dia).
   for (const d of DONOS.slice(0, G.bairro.chegados)) {
@@ -124,3 +131,77 @@ ATUALIZADORES.push(() => {
   const sextaNoBar = (G.dia - 1) % 7 === 4 && G.minutos >= 19 * 60 && G.minutos < 23 * 60 && Bairro.aberto('bar'), T = TERRENOS.bar;
   for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) { if (sextaNoBar) { m.area = { x: T.x * TILE, y: (T.y + 7) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true; } else if (m._areaCasa) m.area = m._areaCasa; if (!m._areaCasa && m.area && !sextaNoBar) m._areaCasa = m.area; }
 });
+
+// Com a escola pronta: segunda a sexta, das 8h ao meio-dia, a Ritinha e o Zezinho estão na escola (somem do quintal e
+// aparecem na frente da escola do bairro). A rega dos filhos (7h) fica antes.
+const naEscola = () => Bairro.publico('escola') >= 2 && (G.dia - 1) % 7 <= 4 && G.minutos >= 8 * 60 && G.minutos < 12 * 60;
+ATUALIZADORES.push(() => {
+  if (!G.bairro || !G.mapa) return;
+  if (G.mapaId === 'quintal') for (const m of G.mapa.moradores) if (m.id === 'zezinho' || m.id === 'ritinha') m.visivel = !naEscola();
+  if (G.mapaId === 'bairro') {
+    const T = TERRENOS.escola;
+    for (const [id, nome, dx] of [['zezinho', 'Zezinho', 1], ['ritinha', 'Ritinha', 4]]) {
+      let m = G.mapa.moradores.find(p => p.id === 'escola_' + id);
+      if (!m && Bairro.publico('escola') >= 2) { m = G.mapa.morador('escola_' + id, nome, T.x + dx, T.y + 6, DIR.BAIXO); m.pele = id; m.aoConversar = () => { abrirConversa(nome, urlArte('retratos/' + id + '_normal'), ['Pai! A professora deixou a gente brincar no recreio!']); return true; }; }
+      if (m) m.visivel = naEscola();
+    }
+  }
+});
+// O posto de saúde (a clínica do Harvey): desmaiar acorda no posto pagando Cr$ 30 (ou o que tiver), em vez de perder até Cr$ 100.
+function desmaioNoPosto() { if (!G.bairro || Bairro.publico('posto') < 2) return null; const T = TERRENOS.posto; return { custo: 30, mapa: 'bairro', tile: { x: T.x + 3, y: T.y + 6 } }; }
+
+// ---------- a capela: missa no domingo de manhã (8h–10h); os moradores vão; estar na frente da capela dá +1 de amizade ----------
+const naMissa = () => Bairro.publico('capela') >= 2 && (G.dia - 1) % 7 === 6 && G.minutos >= 8 * 60 && G.minutos < 10 * 60;
+ATUALIZADORES.push(() => {
+  if (G.mapaId !== 'bairro' || !G.bairro || !naMissa()) return;
+  const T = TERRENOS.capela;
+  let k = 0;
+  for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) {
+    m.area = { x: T.x * TILE, y: (T.y + 7) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true;
+    if (Math.abs(m.y - (T.y + 7) * TILE) > 2 * TILE) { m.x = (T.x + 0.5 + (k % 6)) * TILE; m.y = (T.y + 7) * TILE + 42; }   // já na porta da capela
+    k++;
+  }
+  if (G.bairro.missa === G.dia || !G.jog) return;
+  const perto = Math.abs(G.jog.x / TILE - (T.x + 3)) < 5 && Math.abs(G.jog.y / TILE - (T.y + 7)) < 3;
+  if (!perto) return;
+  G.bairro.missa = G.dia;
+  const ids = DONOS.filter(d => G.bairro.terrenos[d.terreno].mudou).map(d => d.id);
+  if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), ids);
+  avisar('A missa na capela do Bairro Novo. Os vizinhos gostaram de ver o Jocelino lá.'); hudSujo();
+});
+// ---------- a festa de inauguração: com a padaria, o bar e a escola abertos, a Prefeitura convida ----------
+CARTAS.festa_bairro = { de: 'Prefeitura da Vila Maré', dia: 1e9, texto: 'Sr. Jocelino, o Bairro Novo tem padaria, bar e escola! A Prefeitura convida o senhor e a família para a festa de inauguração, no bairro, das 9h às 17h. O bairro é obra sua.' };
+MANHA.push(() => {
+  if (!G.bairro || G.bairro.festa.dia || G.bairro.festa.feita) return;
+  if (Bairro.comercioPronto('padaria') && Bairro.comercioPronto('bar') && Bairro.publico('escola') >= 2) { G.bairro.festa.dia = G.dia + 3; if (!G.correio.caixa.includes('festa_bairro')) G.correio.caixa.push('festa_bairro'); }
+});
+const festaHoje = () => !!G.bairro && G.bairro.festa.dia === G.dia && !G.bairro.festa.feita && G.minutos >= 9 * 60 && G.minutos < 17 * 60;
+const FESTA_ESCOLHAS = [['Discursar', 'O Jocelino discursou de chapéu na mão: "Cada tijolo daqui tem suor de Aracaju e de Praia Grande." Aplausos!'],
+  ['Dançar com a Rosa', 'O Jocelino e a Rosa dançaram forró até a sola gastar. O bairro inteiro bateu palma.'], ['Ajudar na barraca', 'O Jocelino ajudou na barraca de pastel e conheceu todo mundo pelo nome.']];
+function escolherFesta(i) {
+  G.bairro.festa.feita = true; G.dinheiro += 1000; G.ganhoHoje = (G.ganhoHoje || 0) + 1000;
+  const ids = DONOS.filter(d => G.bairro.terrenos[d.terreno].mudou).map(d => d.id).concat(['cida', 'orlando']);
+  if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), ids);
+  sons.tocar('fanfarra', 1, 0, -4); const t = FESTA_ESCOLHAS[i][1] + ' A Prefeitura deu Cr$ 1.000 de prêmio.'; abrirPlaca(t); hudSujo(); return t;
+}
+ATUALIZADORES.push(() => { if (G.mapaId === 'bairro' && festaHoje() && !menuAberto() && G.comecou !== false) perguntar('A festa de inauguração do Bairro Novo! O que o Jocelino faz?', FESTA_ESCOLHAS.map(e => e[0]).concat(['Só olhar']), i => escolherFesta(Math.min(i, 2))); });
+
+// ---------- os moradores na pensão: quem se mudou passa a jantar na Pensão da Rosa no dia da semana dele ----------
+const MORADORES_PENSAO = {
+  nena: { dia: 0, prato: 'cuscuz', fala: 'Rosa, um cuscuz igual ao de casa, por favor.', elogio: 'Esse cuscuz me levou pra Aracaju!' },
+  neide: { dia: 1, prato: 'sopa_legumes', fala: 'Uma sopinha, Rosa, que o dia foi longo.', elogio: 'Sopa que levanta defunto!' },
+  valdir: { dia: 2, prato: 'vatapa', fala: 'Tem vatapá hoje, Dona Rosa?', elogio: 'Vatapá de baiano aprovar!' },
+  rosinete: { dia: 3, prato: 'mandioca_frita', fala: 'Uma porção de mandioca pra comemorar a casa nova!', elogio: 'Sequinha e crocante, do jeito certo.' },
+  tonha: { dia: 4, prato: 'canjica', fala: 'Canjica, Rosa! Sexta é dia de doce.', elogio: 'Canjica de festa junina!' },
+  nenem: { dia: 5, prato: 'pf_peao', fala: 'Um PF caprichado pro Neném aqui.', elogio: 'PF que dá sustância pra semana inteira.' },
+};
+// Tonhão e Dona Lurdes já jantam na pensão (clientela.js); os outros entram quando se mudam (refeito a cada carregamento).
+Bairro.clientela = () => {
+  for (const d of DONOS) { const M = MORADORES_PENSAO[d.id]; if (!M || !G.bairro.terrenos[d.terreno].mudou) continue;
+    const lista = CLIENTELA[M.dia] || (CLIENTELA[M.dia] = []); if (!lista.some(c => c.id === d.id)) lista.push({ id: d.id, nome: d.nome, prato: M.prato, fala: M.fala, elogio: M.elogio }); }
+};
+INICIADORES.push(() => { if (G.bairro) Bairro.clientela(); });
+MANHA.push(() => { if (G.bairro) Bairro.clientela(); });
+// As luzes da noite nas casas prontas e nos prédios (px da arte; a luz que a Vila já usa).
+Object.assign(LUZES, { 'objetos/casa_simples_4': [[120, 236, 55]], 'objetos/casa_boa_4': [[120, 236, 60]], 'objetos/sobrado_4': [[120, 284, 55], [120, 170, 40]],
+  'objetos/padaria': [[144, 236, 70]], 'objetos/bar_orlando': [[144, 236, 70]], 'objetos/escola': [[144, 236, 60]], 'objetos/capela': [[144, 230, 60]], 'objetos/posto_saude': [[144, 236, 60]] });

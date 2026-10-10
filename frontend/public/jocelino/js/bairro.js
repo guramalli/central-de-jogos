@@ -123,3 +123,14 @@ Object.assign(PREFEITURA_OBRAS, {
 for (const id of ['pref_rua_1', 'pref_rua_2', 'pref_rua_3']) Object.assign(PREFEITURA_OBRAS[id], { cliente: 'prefeitura', mapa: 'bairro', funcaoMin: 0, tipo: 'longa', dias: PREFEITURA_OBRAS[id].etapas.length, vezesDia: 3, ferramenta: PREFEITURA_OBRAS[id].etapas[0], artes: ['objetos/vala', 'objetos/alicerce'] });
 Object.assign(EMPREITAS_EXTRAS, { pref_rua_1: PREFEITURA_OBRAS.pref_rua_1, pref_rua_2: PREFEITURA_OBRAS.pref_rua_2, pref_rua_3: PREFEITURA_OBRAS.pref_rua_3 });
 Bairro.ruas = () => ['pref_rua_1', 'pref_rua_2', 'pref_rua_3'].filter(id => G.empreitas && G.empreitas.prefeitura && G.empreitas.prefeitura.feitos.includes(id)).length;
+
+// Os prédios públicos do bairro (Prefeitura): 2 pedidos cada (estrutura; telhado e acabamento), liberados pelas casas.
+const PUBLICOS = { escola: { nome: 'Escola', arte: 'objetos/escola', casas: 4 }, posto: { nome: 'Posto de saúde', arte: 'objetos/posto_saude', casas: 5 }, capela: { nome: 'Capela', arte: 'objetos/capela', casas: 6 }, praca: { nome: 'Praça do coreto', arte: 'objetos/coreto', casas: 0 } };
+Bairro.publico = t => [1, 2].filter(n => G.empreitas && G.empreitas.prefeitura && G.empreitas.prefeitura.feitos.includes(`pref_${t}_${n}`)).length;
+const liberaPublico = t => () => !!(G.bairro && G.bairro.aberto) && (t === 'praca' ? ['escola', 'posto', 'capela'].every(u => Bairro.publico(u) >= 2) : Bairro.casasProntas() >= PUBLICOS[t].casas);
+for (const t in PUBLICOS) {
+  const T = TERRENOS[t], P = PUBLICOS[t];
+  PREFEITURA_OBRAS[`pref_${t}_1`] = { nome: `${P.nome} do Bairro Novo: a estrutura`, texto: `A fundação e as paredes ${t === 'praca' ? 'da praça e do coreto' : 'do prédio'}.`, material: { tijolo: 120, cimento: 10, pedra: 15 }, etapas: ['pa', 'pa', 'colher', 'colher', 'colher', 'regador'], paga: 900, premio: { itens: { cimento: 4 } }, x: T.x + 1, y: T.y + 5, bairro: { publico: t, n: 1 }, libera: liberaPublico(t) };
+  PREFEITURA_OBRAS[`pref_${t}_2`] = { nome: `${P.nome} do Bairro Novo: o acabamento`, texto: 'O telhado, o reboco e a pintura.', material: { telha: 60, madeira: 30, tinta: 3, cal: 2 }, etapas: ['machado', 'machado', 'colher', 'colher', 'regador', 'colher'], paga: 900, premio: { itens: { tinta: 2 } }, pintura: true, x: T.x + 1, y: T.y + 5, bairro: { publico: t, n: 2 }, libera: () => liberaPublico(t)() && G.empreitas.prefeitura.feitos.includes(`pref_${t}_1`) };
+  for (const n of [1, 2]) { const id = `pref_${t}_${n}`; Object.assign(PREFEITURA_OBRAS[id], { cliente: 'prefeitura', mapa: 'bairro', funcaoMin: 0, tipo: 'longa', dias: PREFEITURA_OBRAS[id].etapas.length, vezesDia: 3, ferramenta: PREFEITURA_OBRAS[id].etapas[0], artes: ['objetos/vala', 'objetos/alicerce'] }); EMPREITAS_EXTRAS[id] = PREFEITURA_OBRAS[id]; }
+}
