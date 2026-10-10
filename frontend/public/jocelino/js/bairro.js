@@ -76,6 +76,12 @@ const Bairro = {
   donoDe(t) { const i = DONOS.findIndex(d => d.terreno === t); return i >= 0 && i < G.bairro.chegados ? DONOS[i] : null; },
   // A casa toda caprichada (as 6 fases com qualidade 1,5 ou mais): ganha a placa "Construída por Jocelino".
   caprichada(t) { const x = G.bairro.terrenos[t]; return !!x && x.fase >= 6 && x.quals.length >= 6 && x.quals.slice(0, 6).every(q => q >= 1.5); },
+  comercioPronto(t) { const c = G.bairro.comercios[t]; return !!c && c.fase >= 5; },
+  // Aberto: pronto, já no dia de abrir, fora da folga (dia da semana) e no horário.
+  aberto(t, dia = G.dia, minutos = G.minutos) {
+    const c = G.bairro.comercios[t], K = COMERCIOS[t]; if (!c || c.fase < 5 || dia < c.abreDia) return false;
+    return (dia - 1) % 7 !== K.folga && minutos >= K.abre && minutos < K.fecha;
+  },
   casasProntas() { return Object.values(G.bairro.terrenos).filter(x => x.mudou).length; },
   // A próxima fase de cada terreno com dono e de cada comércio liberado (se não está aceita nem acabou).
   pedidos() {

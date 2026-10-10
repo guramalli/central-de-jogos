@@ -49,6 +49,16 @@ function poeBairro(b) {
       if (x.fase >= 6) { marca(b.interativo('muro_' + t, 'objetos/muro', T.x + 3, T.y + 6, 3, 1)); piso('calcada_' + t, T.x, T.y + 6, 3, 'texturas/calcada'); }
       if (x.mudou && Bairro.caprichada(t)) marca(b.interativo('placa_jocelino_' + t, 'objetos/placa_jocelino', T.x + 4, T.y + 5, 1, 1, null, false), { acao: () => { abrirPlaca('"Construída por Jocelino" — casa caprichada do começo ao fim.'); return true; } });
     }
+    if (T.tipo === 'comercio') {
+      const c = G.bairro.comercios[t], K = COMERCIOS[t];
+      if (c.fase >= 1) { for (let y = T.y; y < T.y + 7; y++) for (let x2 = T.x; x2 < T.x + 6; x2++) { const o = b.ocupado.get(chaveT(x2, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+        marca(b.interativo('predio_' + t, c.fase >= 4 ? K.arte : 'objetos/predio_obra_' + Math.min(3, c.fase), T.x, T.y + 4, 6, 3, [90, 62]), { acao: () => abrirComercio(t) }); }
+      else marca(b.interativo('placa_' + t, 'objetos/placa_terreno', T.x + 2, T.y + 3, 1, 1, [10, 6]), { acao: () => { abrirPlaca(Bairro.casasProntas() >= K.libera ? `Terreno da ${K.nome}: o pedido está no quadro de Serviços.` : `Terreno reservado: a ${K.nome}. (Vem com ${K.libera} casa${K.libera > 1 ? 's' : ''} pronta${K.libera > 1 ? 's' : ''} no bairro.)`); return true; } });
+      if (c.fase >= 5) { const o = marca(b.interativo('calcada_' + t, 'objetos/alicerce', T.x + 1, T.y + 6, 4, 1, null, false)); o.y = (T.y + 6) * TILE; o.desenha = ctx => { const img = spr('texturas/calcada'); if (img) ctx.drawImage(img, 0, 0, 4 * TILE, TILE, (T.x + 1) * TILE, (T.y + 6) * TILE, 4 * TILE, TILE); }; }
+      // O dono no balcão (a frente do prédio) no horário.
+      let m = b.moradores.find(p => p.id === 'balcao_' + t);
+      if (Bairro.comercioPronto(t) && !m) { m = b.morador('balcao_' + t, CLIENTE_NOME[K.dono], T.x + 3, T.y + 5, DIR.BAIXO); m.pele = K.dono; m.aoConversar = () => abrirComercio(t); }
+    }
   }
   // Os donos: esperam de pé na frente do terreno (8h–17h) até a mudança; depois moram (passeiam perto de casa de dia).
   for (const d of DONOS.slice(0, G.bairro.chegados)) {
@@ -86,3 +96,31 @@ function aplicarRuas(b) {
   for (const o of b.objs.filter(o => o.id === 'poste')) b.tirar(o);
   if (n >= 3) for (let x = 8; x < 48; x += 7) { const o = b.interativo('poste', 'objetos/poste', x, 8, 1, 1, [8, 6]); o.acao = () => { abrirPlaca('Poste de luz do Bairro Novo.'); return true; }; }
 }
+
+// A lojinha (o modelo da carroça do mascate): o que o comércio vende, com o preço; fora do horário, a placa.
+function abrirComercio(t) {
+  const K = COMERCIOS[t], c = G.bairro.comercios[t];
+  if (c.fase < 4) { abrirPlaca(`A ${K.nome}, em obra (fase ${c.fase} de 5).`); return true; }
+  if (!Bairro.aberto(t)) { const dias = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo']; abrirPlaca(c.fase < 5 || G.dia < c.abreDia ? `A ${K.nome} abre assim que ficar pronta.` : `A ${K.nome} está fechada. Abre das ${K.abre / 60}h às ${K.fecha / 60}h (folga na ${dias[K.folga]}).`); return true; }
+  const caixa = el('div', { class: 'painel orelhao' });
+  const desenha = () => {
+    caixa.innerHTML = '';
+    caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, K.nome), el('div', { class: 'rodape', style: 'text-align:left;margin-bottom:8px' }, `Aberta das ${K.abre / 60}h às ${K.fecha / 60}h.`));
+    const grade = el('div', { class: 'orel-grade' });
+    for (const id in K.vende) { const preco = K.vende[id];
+      grade.append(el('div', { class: 'orel-item' }, el('img', { src: urlItem(id) }), el('div', {}, el('b', {}, Itens.nome(id)), el('div', { class: 'orel-preco' }, `Cr$ ${preco}`)),
+        el('div', { class: 'orel-bts' }, el('button', { class: 'botao', onclick: e => { e.stopPropagation();
+          if (G.dinheiro < preco) { avisar('Não dá: falta dinheiro.'); return; }
+          if (!G.mochila.cabe(id)) { avisar('A mochila está cheia.'); return; }
+          G.dinheiro -= preco; G.gastoHoje += preco; G.mochila.adicionar(id, 1); sons.tocar('moedas', 1, 0.05, -6); hudSujo(); desenha(); } }, '+1')))); }
+    caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px' }, el('div', { style: 'font-weight:900' }, `Cr$ ${G.dinheiro}`), el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Até mais!')));
+  };
+  desenha(); abrirModal(caixa); sons.tocar('abrir', 0.9, 0.03, -6); return true;
+}
+// O dono do comércio aparece no balcão só no horário; na sexta à noite os moradores ficam na frente do bar.
+ATUALIZADORES.push(() => {
+  if (G.mapaId !== 'bairro' || !G.bairro) return;
+  for (const t in COMERCIOS) { const m = G.mapa.moradores.find(p => p.id === 'balcao_' + t); if (m) m.visivel = Bairro.aberto(t); }
+  const sextaNoBar = (G.dia - 1) % 7 === 4 && G.minutos >= 19 * 60 && G.minutos < 23 * 60 && Bairro.aberto('bar'), T = TERRENOS.bar;
+  for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) { if (sextaNoBar) { m.area = { x: T.x * TILE, y: (T.y + 7) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true; } else if (m._areaCasa) m.area = m._areaCasa; if (!m._areaCasa && m.area && !sextaNoBar) m._areaCasa = m.area; }
+});
