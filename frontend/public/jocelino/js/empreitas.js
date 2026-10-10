@@ -27,7 +27,7 @@ const EMPREITAS_LONGAS = {
 };
 for (const id in EMPREITAS_LONGAS) EMPREITAS_LONGAS[id].tipo = 'longa';
 const dadosEmpreita = id => EMPREITAS_CURTAS[id] || EMPREITAS_LONGAS[id];
-const CLIENTE_NOME = { lourival: 'Seu Lourival', juca: 'Tio Juca', zelia: 'Dona Zélia', ananias: 'Seu Ananias', tonico: 'Seu Tonico', cida: 'Dona Cida' };
+const CLIENTE_NOME = { lourival: 'Seu Lourival', juca: 'Tio Juca', zelia: 'Dona Zélia', ananias: 'Seu Ananias', tonico: 'Seu Tonico', cida: 'Dona Cida', rosa: 'Rosa' };
 
 const Empreitas = {
   iniciar(s) {

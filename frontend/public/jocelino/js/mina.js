@@ -77,3 +77,55 @@ Object.assign(Mina, {
     mochila.adicionar(b.produto, 1); delete G.mina.betoneiras[chave]; return b.produto;
   },
 });
+// O Museu da Vila (o do Gunther; museu.gd do Godot): um de cada antigo e raro; os marcos pagam prêmios.
+const MUSEU = {
+  ANTIGOS: ['moeda_antiga', 'garrafa_antiga', 'ferradura', 'azulejo_antigo', 'cachimbo', 'boneca_pano', 'lamparina', 'chave_antiga', 'carranca'],
+  RAROS: ['cristal', 'pedra_bonita', 'concha', 'pedra_pigmento', 'bronze_velho'],
+  PESO: { moeda_antiga: 4, garrafa_antiga: 5, ferradura: 5, azulejo_antigo: 3, cachimbo: 3, boneca_pano: 2, lamparina: 3, chave_antiga: 2, carranca: 1 },
+  MARCOS: [[3, { dinheiro: 150 }], [6, { itens: { barra_bronze: 2, lajota: 4 } }], [9, { itens: { manta_boa: 5 } }], [12, { dinheiro: 500 }], [14, { itens: { cristal: 5 }, titulo: 'Guardião da memória da Vila' }]],
+  DESCRICAO: { moeda_antiga: 'Moeda de cobre do tempo do Império. Quem perdeu isso aqui?', garrafa_antiga: 'Garrafa de refrigerante de vidro grosso, dos anos 40.',
+    ferradura: 'Ferradura de burro de carga, do tempo em que a estrada era de barro.', azulejo_antigo: 'Azulejo português azul e branco. Deve ter sido de um casarão.',
+    cachimbo: 'Cachimbo de madeira entalhada. Ainda tem cheiro de fumo de rolo.', boneca_pano: 'Boneca de pano de alguma menina da Vila, muito tempo atrás.',
+    lamparina: 'Lamparina de querosene. Antes da luz elétrica chegar à Vila.', chave_antiga: 'Chave de ferro enorme. Que porta ela abria?',
+    carranca: 'Carranca de barco, igual às do rio São Francisco. Como veio parar aqui?' },
+};
+Object.assign(Mina, {
+  doar(id, mochila) {
+    if (!MUSEU.ANTIGOS.includes(id) && !MUSEU.RAROS.includes(id)) return 'nao';
+    if (G.mina.museu.doados.includes(id)) return 'ja';
+    if (mochila.total(id) < 1) return 'falta';
+    mochila.remover(id, 1); G.mina.museu.doados.push(id);
+    const n = G.mina.museu.doados.length, m = MUSEU.MARCOS.find(([k]) => k === n);
+    if (m && !G.mina.museu.marcos.includes(n)) { G.mina.museu.marcos.push(n); const p = m[1];
+      if (p.dinheiro) { G.dinheiro += p.dinheiro; G.ganhoHoje = (G.ganhoHoje || 0) + p.dinheiro; }
+      for (const it in p.itens || {}) { const s = mochila.adicionar(it, p.itens[it]); if (s && typeof soltar === 'function' && G.jog) soltar(it, s, G.jog.x, G.jog.y); }
+      G.mina.museu.ultimoPremio = p; }
+    return 'ok';
+  },
+  cavarMarca(rng = Math.random) { const ids = Object.keys(MUSEU.PESO); let x = rng() * ids.reduce((s, k) => s + MUSEU.PESO[k], 0); for (const id of ids) { x -= MUSEU.PESO[id]; if (x <= 0) return id; } return ids[0]; },
+});
+// As encomendas de material (o "Help Wanted" do Stardew): 1 por dia, até 3 abertas, prazo de 3 dias.
+const ENCOMENDAS = [
+  { item: 'barra_ferro', qtd: 3, paga: 90 }, { item: 'cristal', qtd: 2, paga: 60 }, { item: 'pigmento', qtd: 5, paga: 40 },
+  { item: 'barra_aco', qtd: 2, paga: 120, pede: () => G.mina.maisFunda >= 10 }, { item: 'barra_bronze', qtd: 2, paga: 200, pede: () => G.mina.maisFunda >= 20 },
+  { item: 'bloco_concreto', qtd: 5, paga: 80, pede: () => G.horta && G.horta.colocados.some(c => c.id === 'betoneira') },
+  { item: 'lajota', qtd: 4, paga: 90, pede: () => G.horta && G.horta.colocados.some(c => c.id === 'betoneira') },
+];
+const QUEM_ENCOMENDA = ['ananias', 'tonico', 'rosa', 'zelia'];
+Object.assign(Mina, {
+  novaEncomenda(dia) {
+    G.mina.encomendas = G.mina.encomendas.filter(e => e.ate >= dia);
+    if (G.mina.encomendas.length >= 3) return null;
+    const f = mulberry(dia * 977 + 31), ok = ENCOMENDAS.filter(e => !e.pede || e.pede());
+    const e = ok[Math.floor(f() * ok.length)], nova = { item: e.item, qtd: e.qtd, paga: e.paga, quem: QUEM_ENCOMENDA[Math.floor(f() * QUEM_ENCOMENDA.length)], ate: dia + 3 };
+    G.mina.encomendas.push(nova); return nova;
+  },
+  entregar(i, mochila, dia = G.dia) {
+    const e = G.mina.encomendas[i]; if (!e) return 'falta';
+    if (e.ate < dia) return 'vencida';
+    if (mochila.total(e.item) < e.qtd) return 'falta';
+    mochila.remover(e.item, e.qtd); G.dinheiro += e.paga; G.ganhoHoje = (G.ganhoHoje || 0) + e.paga;
+    if (G.empreitas) G.empreitas.reputacao[e.quem] = (G.empreitas.reputacao[e.quem] || 0) + 1;
+    G.mina.encomendas.splice(i, 1); return 'ok';
+  },
+});

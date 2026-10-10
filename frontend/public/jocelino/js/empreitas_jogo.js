@@ -98,6 +98,10 @@ function abrirQuadro(aba = 'servicos') {
           else avisar({ limite: 'Uma empreita longa por vez (duas para o mestre de obras).', material: 'Para começar, traga o material na mochila.', ja: 'Já aceitou essa.' }[r] || 'Não deu.'); } }, 'Aceitar')
           : el('div', { class: 'orel-preco' }, `Pede ${FUNCOES[dadosEmpreita(id).funcaoMin]}${dadosEmpreita(id).hab ? `, ${NOMES_HAB[dadosEmpreita(id).hab.h]} ${dadosEmpreita(id).hab.n}` : ''}`));
       }) : [el('div', { class: 'rodape' }, 'Nenhum serviço novo hoje. Volte amanhã!')])));
+      const enc = (G.mina && G.mina.encomendas) || [];
+      if (enc.length) caixa.append(el('div', { class: 'cad-sub' }, 'Encomendas'), el('div', { class: 'qv-lista' }, ...enc.map((e, i) => el('div', { class: 'orel-item' }, el('img', { src: urlItem(e.item) }),
+        el('div', {}, el('b', {}, `${CLIENTE_NOME[e.quem] || e.quem} quer ${Itens.qtd(e.qtd, e.item)}`), el('div', { class: 'orel-preco' }, `até ${DIAS[(e.ate - 1) % 7]} · Cr$ ${e.paga} · tem ${G.mochila.total(e.item)}`)),
+        el('button', { class: 'botao', onclick: ev => { ev.stopPropagation(); const r = Mina.entregar(i, G.mochila); if (r === 'ok') { sons.tocar('moedas', 1, 0.05, -4); avisar(`Entregue! + Cr$ ${e.paga}`); hudSujo(); desenha(); } else avisar(r === 'vencida' ? 'Essa encomenda venceu.' : 'Falta material na mochila.'); } }, 'Entregar')))));
       if (aceitas.length) caixa.append(el('div', { class: 'cad-sub' }, 'Aceitas'), el('div', { class: 'qv-lista' }, ...aceitas.map(id => linha(id, el('div', { class: 'orel-preco' }, G.empreitas.aceitas[id].tipo === 'longa' ? `dia ${G.empreitas.aceitas[id].dias}/${dadosEmpreita(id).dias}` : 'em andamento')))));
     }
     caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));

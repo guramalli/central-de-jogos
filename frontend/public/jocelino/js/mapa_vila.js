@@ -61,7 +61,7 @@ MAPAS_DEF.vila = () => {
   for (const t of [[10, 22], [26, 21], [21, 22]]) b.enfeite('objetos/coqueiro', t[0], t[1], true, 10);
   for (const t of [[2, 9], [44, 16]]) b.interativo('latao_lixo', 'objetos/latao_lixo', t[0], t[1], 1, 1, [10, 6]).acao = () => abrirPlaca('Um latão de lixo. Nada de útil hoje.');
   b.interativo('roda_samba', 'objetos/roda_samba', 29, 19, 1, 1, [12, 6], false).acao = () => abrirPlaca('Roda de samba da praça. Toda sexta, das 7 da noite às 10 e meia!');
-  b.interativo('museu', 'objetos/museu', 3, 20, 6, 4).acao = () => abrirPlaca('O Museu da Vila.');
+  b.interativo('museu', 'objetos/museu', 3, 20, 6, 4).acao = () => (typeof abrirMuseu === 'function' ? abrirMuseu() : abrirPlaca('O Museu da Vila.'));
   for (const t of [[21, 18], [31, 22], [9, 17], [2, 22], [18, 22]]) b.enfeite('objetos/arbusto_' + (1 + t[0] % 3), t[0], t[1], false);
   // A Pensão da Rosa (a casa da Dona Cotinha), ao lado do depósito, com folga dos dois lados.
   b.pensao = b.interativo('pensao', 'objetos/pensao_fechada', 13, 8, 5, 4);

@@ -106,3 +106,51 @@ function usarBetoneira(o) {
   if (r === 'falta') avisar('Falta cimento.'); else if (r !== 'ocupada') { sons.tocar('terra', 0.7, 0.05, -4); avisar(`A betoneira começou: ${Itens.nome(r.produto).toLowerCase()} em ${r.dias} dia(s).`); hudSujo(); }
   return true;
 }
+// ---------- as marcas no chão (as minhocas do Stardew): 2 por dia pelos mapas; a pá cava um objeto antigo ----------
+const MAPAS_MARCA = ['vila', 'praia', 'mata', 'quintal'];
+function sortearMarcas() {
+  const f = mulberry(G.dia * 433 + 9), pos = {};
+  for (let k = 0, n = 0; k < 200 && n < 2; k++) {
+    const id = MAPAS_MARCA[Math.floor(f() * MAPAS_MARCA.length)], b = getMapa(id), x = b.livre.x + Math.floor(f() * b.livre.w), y = b.livre.y + Math.floor(f() * b.livre.h);
+    if (b.ocupado.has(chaveT(x, y)) || b.saidaEm(x, y) || b.ehAgua(x, y) || ![CH.GRAMA, CH.TERRA].includes(b.chaoEm(x, y)) || (b.trancadas || []).some(r => dentroR(r, x, y))) continue;
+    if (id === 'quintal' && typeof Horta !== 'undefined' && Horta.cova(x, y)) continue;
+    (pos[id] = pos[id] || []).push([x, y]); n++;
+  }
+  G.mina.marcas = { dia: G.dia, pos, cavadas: [] };
+}
+function poeMarcas(b) {
+  if (!G.mina || !MAPAS_MARCA.includes(b.id)) return;
+  for (const o of b.objs.filter(o => o.id === 'marca_chao')) b.tirar(o);
+  if (G.mina.marcas.dia !== G.dia) return;
+  for (const [x, y] of G.mina.marcas.pos[b.id] || []) {
+    if (G.mina.marcas.cavadas.includes(`${b.id}:${x},${y}`) || b.ocupado.has(chaveT(x, y))) continue;
+    const o = b.interativo('marca_chao', 'objetos/marca_chao', x, y, 1, 1, null, false); o.mx = x; o.my = y;
+    o.acao = () => { abrirPlaca('Uma marca de terra remexida no chão. Cave com a pá!'); return true; };
+    o.ferramenta = (p, id) => { if (id !== 'pa') return; const achado = Mina.cavarMarca(); G.mina.marcas.cavadas.push(`${b.id}:${x},${y}`); b.tirar(p); soltar(achado, 1, p.x, p.y - 10); sons.tocar('terra', 1, 0.05, -4); avisar(`Achou ${Itens.qtd(1, achado)}! (O Museu da Vila gosta.)`); };
+  }
+}
+MANHA.push(() => { if (G.mina) { sortearMarcas(); for (const id in MAPAS) poeMarcas(MAPAS[id]); } });
+AO_MONTAR.push(b => poeMarcas(b));
+// ---------- a tela do museu ----------
+function abrirMuseu() {
+  const caixa = el('div', { class: 'painel orelhao' });
+  const desenha = () => {
+    caixa.innerHTML = '';
+    const doados = G.mina.museu.doados, prox = MUSEU.MARCOS.find(([k]) => k > doados.length);
+    caixa.append(el('div', { class: 'titulo', style: 'font-size:26px;display:flex;align-items:center;gap:10px' }, el('img', { src: urlArte('objetos/vitrine_museu'), style: 'height:42px' }), 'Museu da Vila'),
+      el('div', { class: 'rodape', style: 'text-align:left' }, `${doados.length} de 14 peças.` + (prox ? ` Com ${prox[0]}, um prêmio.` : ' O museu está completo!')));
+    const grade = el('div', { class: 'orel-grade' });
+    for (const id of MUSEU.ANTIGOS.concat(MUSEU.RAROS)) {
+      const tem = doados.includes(id), pode = !tem && G.mochila.total(id) > 0;
+      grade.append(el('div', { class: 'orel-item' + (tem || pode ? '' : ' trancado') }, el('img', { src: urlItem(id), style: tem || pode ? '' : 'filter:brightness(0);opacity:.35' }),
+        el('div', {}, el('b', {}, tem || pode ? Itens.nome(id) : '???'), el('div', { class: 'orel-preco' }, tem ? (MUSEU.DESCRICAO[id] || Itens.descricao(id)) : pode ? 'Na sua mochila!' : 'Ainda não achado.')),
+        pode ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const n0 = G.mina.museu.marcos.length; Mina.doar(id, G.mochila); sons.tocar('carimbo', 1, 0.05, -4);
+          if (G.mina.museu.marcos.length > n0) { sons.tocar('fanfarra', 1, 0, -4); const p = G.mina.museu.ultimoPremio; avisar('Prêmio do museu: ' + [p.dinheiro ? 'Cr$ ' + p.dinheiro : '', ...Object.entries(p.itens || {}).map(([i, q]) => Itens.qtd(q, i)), p.titulo || ''].filter(Boolean).join(', ')); }
+          hudSujo(); desenha(); } }, 'Doar') : null));
+    }
+    caixa.append(grade, el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+  };
+  desenha(); abrirModal(caixa); sons.tocar('abrir', 1, 0.03, -6); return true;
+}
+// As encomendas de material: uma nova toda manhã no quadro de Serviços (as vencidas saem).
+MANHA.push(() => { if (G.mina) Mina.novaEncomenda(G.dia); });
