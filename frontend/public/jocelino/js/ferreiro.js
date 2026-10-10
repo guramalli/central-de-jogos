@@ -86,6 +86,7 @@ TAREFAS.push(() => G.ferreiro && Ferreiro.pronta(G.dia) ? [{ texto: 'Buscar a fe
 const RECEITAS_TONICO = { lampiao: { dinheiro: 50, barra_ferro: 1 } };
 RECEITAS_TONICO.forja = { dinheiro: 150, barra_ferro: 2, pedra: 20 };
 RECEITAS_TONICO.irrigador_bom = { dinheiro: 150, barra_aco: 1, barra_ferro: 1 };
+RECEITAS_TONICO.betoneira = { dinheiro: 300, barra_aco: 3 };
 Ferreiro.fazer = function (id, mochila, dinheiro) {
   const r = RECEITAS_TONICO[id]; if (!r) return { ok: false, gasto: 0, motivo: 'Isso o Tonico não faz.' };
   const preco = Math.round(r.dinheiro * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));

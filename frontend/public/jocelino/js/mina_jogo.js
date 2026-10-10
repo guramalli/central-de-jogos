@@ -95,3 +95,14 @@ EXTRAS_MUNDO.push(m => m.id !== 'quintal' || !G.mina ? [] : m.objs.filter(o => o
   const bx = o.x - img.naturalWidth / 2 + 32, by = o.y - img.naturalHeight + 9;
   for (const p of fumacaEm(G.agora || 0)) { const n = p.r < 10 ? 1 : p.r < 15 ? 2 : 3; desenhaFx(ctx, 'fumaca_' + n, bx + p.x, by + p.y, { alfa: p.alfa, escala: p.r / [0, 8, 13, 19][n] * 0.9 }); }
 } })));
+function usarBetoneira(o) {
+  const chave = o.cx + ',' + o.cy, b = G.mina.betoneiras[chave];
+  if (b) { const r = Mina.tirarProduto(chave, G.mochila);
+    if (r === 'trabalhando') abrirPlaca(`A betoneira está fazendo ${Itens.nome(b.produto).toLowerCase()}: fica pronto ${b.pronta - G.dia <= 1 ? 'amanhã' : `em ${b.pronta - G.dia} dias`}.`);
+    else if (r === 'cheia') avisar('A mochila está cheia.'); else if (r) { avisar('+ ' + Itens.qtd(1, r)); sons.tocar('pegar', 1, 0.05, -4); hudSujo(); }
+    return true; }
+  if (itemDaMao() !== 'cimento') { abrirPlaca('A betoneira: com cimento na mão faz bloco; com pigmento na mochila, lajota colorida; com 2 cimentos e vergalhão, manilha.'); return true; }
+  const r = Mina.betonar(chave, G.mochila);
+  if (r === 'falta') avisar('Falta cimento.'); else if (r !== 'ocupada') { sons.tocar('terra', 0.7, 0.05, -4); avisar(`A betoneira começou: ${Itens.nome(r.produto).toLowerCase()} em ${r.dias} dia(s).`); hudSujo(); }
+  return true;
+}

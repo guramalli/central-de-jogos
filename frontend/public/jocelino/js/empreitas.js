@@ -23,6 +23,7 @@ const EMPREITAS_LONGAS = {
   muro_chapiscado: { nome: 'Muro chapiscado', cliente: 'ananias', mapa: 'vila', x: 3, y: 15, material: { tijolo: 50, cimento: 4, cal: 2 }, ferramenta: 'colher', vezesDia: 3, dias: 5, paga: 220, funcaoMin: 2, hab: { h: 'acabamento', n: 3 }, cura: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
   quiosque_praia: { nome: 'Quiosque na praia', cliente: 'lourival', mapa: 'praia', x: 27, y: 6, material: { madeira: 20, telha: 10, cimento: 2 }, ferramenta: 'colher', vezesDia: 3, dias: 4, paga: 260, funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro', 'objetos/quiosque_praia'] },
   ponte_pedra: { nome: 'Ponte de pedra', cliente: 'juca', mapa: 'mata', x: 12, y: 15, material: { pedra: 30, cimento: 4 }, ferramenta: 'colher', vezesDia: 3, dias: 5, paga: 320, funcaoMin: 2, hab: { h: 'alvenaria', n: 5 }, cura: true, artes: ['objetos/monte_pedras', 'objetos/alicerce', 'objetos/ponte_pedra'] },
+  calcada_colorida: { nome: 'Calçada colorida da praça', cliente: 'zelia', mapa: 'vila', x: 26, y: 18, material: { lajota: 10, cimento: 2 }, ferramenta: 'pa', vezesDia: 3, dias: 3, paga: 180, funcaoMin: 2, cura: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
 };
 for (const id in EMPREITAS_LONGAS) EMPREITAS_LONGAS[id].tipo = 'longa';
 const dadosEmpreita = id => EMPREITAS_CURTAS[id] || EMPREITAS_LONGAS[id];

@@ -59,3 +59,21 @@ Object.assign(Mina, {
     mochila.adicionar(f.barra, 1); delete G.mina.forjas[chave]; return f.barra;
   },
 });
+Object.assign(Mina, {
+  // A betoneira: 2 cimentos + 1 vergalhão → manilha (2 dias); 1 cimento + 1 pigmento → lajota (1 dia); 1 cimento → bloco (1 dia).
+  betonar(chave, mochila) {
+    if (G.mina.betoneiras[chave]) return 'ocupada';
+    let p;
+    if (mochila.total('cimento') >= 2 && mochila.total('vergalhao') >= 1) { mochila.remover('cimento', 2); mochila.remover('vergalhao', 1); p = { produto: 'manilha', dias: 2 }; }
+    else if (mochila.total('cimento') >= 1 && mochila.total('pigmento') >= 1) { mochila.remover('cimento', 1); mochila.remover('pigmento', 1); p = { produto: 'lajota', dias: 1 }; }
+    else if (mochila.total('cimento') >= 1) { mochila.remover('cimento', 1); p = { produto: 'bloco_concreto', dias: 1 }; }
+    else return 'falta';
+    G.mina.betoneiras[chave] = { produto: p.produto, pronta: G.dia + p.dias }; return p;
+  },
+  tirarProduto(chave, mochila) {
+    const b = G.mina.betoneiras[chave]; if (!b) return '';
+    if (G.dia < b.pronta) return 'trabalhando';
+    if (!mochila.cabe(b.produto)) return 'cheia';
+    mochila.adicionar(b.produto, 1); delete G.mina.betoneiras[chave]; return b.produto;
+  },
+});

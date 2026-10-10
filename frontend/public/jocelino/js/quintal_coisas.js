@@ -3,7 +3,7 @@
 // galinhas da vizinhança bicam a horta aberta (os corvos do Stardew), o irrigador do Tonico rega de manhã e os filhos
 // ajudam a regar.
 
-const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'forja'];
+const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'forja', 'betoneira'];
 // Motivo para não colocar ('' = pode).
 function podeColocar(b, x, y) {
   if (b.id !== 'quintal' || !b.livreEm(x, y)) return 'Aqui não dá.';
@@ -46,6 +46,7 @@ function poeColocados(b) {
     if (c.id === 'cerca' || c.id === 'portao') o.desenha = ctx => desenhaCerca(ctx, o);
     o.ferramenta = (p, id) => { if (id !== 'machado' && id !== 'picareta') return; if (trabalhando(p)) { avisar('Está trabalhando: espere terminar para recolher.'); return; } recolher(p); };
     if (c.id === 'forja') o.acao = () => usarForja(o);
+    if (c.id === 'betoneira') o.acao = () => usarBetoneira(o);
     if (c.id === 'irrigador') o.acao = () => abrirPlaca('O irrigador do Seu Tonico: rega as 4 covas em volta toda manhã.');
     if (c.id === 'irrigador_bom') o.acao = () => abrirPlaca('O irrigador bom do Seu Tonico: rega as 8 covas em volta toda manhã.');
   }

@@ -29,10 +29,19 @@ MAPAS_DEF.mata = () => {
   for (let y = C.y; y <= C.y + C.h; y++) b.enfeite('objetos/arvore_mata', C.x + C.w, y, true, 16, 12);
   for (let x = C.x; x < C.x + C.w; x++) if (x < TRONCO.x || x > TRONCO.x + 1) b.enfeite('objetos/arvore_mata', x, C.y + C.h, true, 16, 12);
   b.enfeite('objetos/jabuticabeira', 5, 3, true, 14);
-  const tronco = b.interativo('tronco_caido', 'objetos/tronco_caido', TRONCO.x, TRONCO.y, 2, 1, [32, 10]);
-  const pedeMachado = () => { abrirPlaca('Um tronco enorme, caído atravessando a trilha. Atrás dele dá para ver uma clareira... Precisa de um machado mais forte (o Seu Tonico melhora).'); return true; };
-  tronco.acao = pedeMachado;
-  tronco.ferramenta = (o, id) => { if (id === 'machado') { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -8); avisar('O machado nem entra! Precisa de um machado mais forte (o Seu Tonico melhora).'); } };
+  const aberta = !!(G.lugares && G.lugares.clareira);
+  if (!aberta) {
+    const tronco = b.interativo('tronco_caido', 'objetos/tronco_caido', TRONCO.x, TRONCO.y, 2, 1, [32, 10]);
+    tronco.acao = () => { abrirPlaca('Um tronco enorme, caído atravessando a trilha. Atrás dele dá para ver uma clareira... Precisa de um machado mais forte: o profissional (o Seu Tonico melhora com aço).'); return true; };
+    // O tronco grande do Stardew: só o machado profissional (nível 2) entra; 6 golpes e a clareira fica aberta para sempre.
+    tronco.vida = 6;
+    tronco.ferramenta = (o, id) => {
+      if (id !== 'machado') return;
+      if (nivelFerramenta('machado') < 2) { o.treme = 0.25; sons.tocar('madeira', 1.6, 0.05, -8); avisar('O machado nem entra! Isso pede o machado profissional (o Seu Tonico melhora com aço).'); return; }
+      o.vida--; o.treme = 0.3; lascas(o.x, o.y - 20, 'madeira'); sons.tocar('madeira', 1, 0.08, -4); G.tremor = Math.max(G.tremor || 0, 0.12);
+      if (o.vida <= 0) abrirClareira(G.mapa);
+    };
+  }
   // Enfeites fixos e o mato da mata (sorteio sempre igual).
   for (const t of [[16, 4], [22, 7], [34, 4], [38, 9], [18, 21], [33, 22], [12, 21], [39, 20]]) b.enfeite('objetos/palmeira_jucara', t[0], t[1], true, 8);
   for (const t of [[20, 5], [30, 3], [36, 15], [15, 15], [23, 22], [8, 21], [37, 7], [3, 9]]) b.enfeite('objetos/bromelia', t[0], t[1], false);
@@ -51,7 +60,7 @@ MAPAS_DEF.mata = () => {
     usados.add(chaveT(x, y));
   }
   // A clareira é escondida de propósito: só se entra depois que o tronco cair (etapa 5, machado melhor).
-  b.trancadas = [{ x: C.x, y: C.y, w: C.w, h: C.h }];
+  b.trancadas = aberta ? [] : [{ x: C.x, y: C.y, w: C.w, h: C.h }];
   b.paredesDaBorda();
   b.aoMontar = () => { for (const [x, y] of MATA.TOCOS) if (!b.ocupado.has(chaveT(x, y))) b.detrito('toco_lei', x, y); };
   return b;
@@ -96,4 +105,10 @@ function abrirMascate() {
   abrirModal(caixa);
   sons.tocar('abrir', 0.9, 0.03, -6);
   return true;
+}
+// O tronco caiu: solta a madeira, some do mapa e a clareira abre (G.lugares vai no save).
+function abrirClareira(b) {
+  const t = b.objs.find(o => o.id === 'tronco_caido'); if (t) { b.tirar(t); soltar('madeira', 5, t.x, t.y - 10); }
+  G.lugares = G.lugares || {}; G.lugares.clareira = true; b.trancadas = [];
+  sons.tocar('fanfarra', 1, 0, -4); avisar('O tronco caiu! A clareira escondida está aberta.');
 }
