@@ -76,7 +76,7 @@ const ECO = {
       { id: 'garrafa_termica', nome: 'Garrafa térmica', preco: 900, efeito: 'Um cafezinho na mochila toda manhã.' },
       { id: 'bicicleta', nome: 'Bicicleta', preco: 4500, efeito: 'Anda 20% mais rápido.' },
       { id: 'fogao_gas', nome: 'Fogão a gás', preco: 6500, efeito: 'A marmita da Rosa dá o dobro de energia.' },
-      { id: 'maquina_costura', nome: 'Máquina de costura', preco: 9000, efeito: 'A Rosa costura para fora: Cr$ 15 por noite (menos domingo).' },
+      { id: 'maquina_costura', nome: 'Máquina de costura', preco: 9000, efeito: 'A Rosa costura para fora: Cr$ 60 por noite (menos domingo).' },
       { id: 'televisao', nome: 'Televisão', preco: 16000, efeito: 'A novela com a família: amizade todo dia.' },
       { id: 'fusca', nome: 'Fusca', preco: 60000, efeito: 'Viagem rápida pelo mapa, a partir do quintal.' },
     ],

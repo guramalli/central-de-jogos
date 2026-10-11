@@ -37,8 +37,8 @@ function conversarBira() {
   if (Obra.podeSubir() && o.funcao < 2) {
     if (o.funcao === 0 && !G.mochila.cabe('colher')) return falaBira('Rapaz, tenho novidade pra você. Mas abre um espaço na mochila primeiro!');
     const f = Obra.subir(); sons.tocar('fanfarra', 1, 0, -4);
-    if (f === 1) { G.mochila.adicionar('colher', 1); hudSujo(); return falaBira(['Rapaz, você é bom de serviço. A partir de hoje é meio-oficial! A diária sobe para Cr$ 45.', 'Toma a minha colher velha: agora você assenta tijolo e chapisca. E já pode pegar empreita maior no quadro da Vila.']); }
-    return falaBira(['Pedreiro! Levantou parede, rebocou, entregou obra. A diária agora é Cr$ 60.', 'Empreita boa no quadro agora é com você: baldrame, quiosque, ponte. Capricha que o povo paga mais.']);
+    if (f === 1) { G.mochila.adicionar('colher', 1); hudSujo(); return falaBira(['Rapaz, você é bom de serviço. A partir de hoje é meio-oficial! A diária sobe para Cr$ ' + DIARIAS[1] + '.', 'Toma a minha colher velha: agora você assenta tijolo e chapisca. E já pode pegar empreita maior no quadro da Vila.']); }
+    return falaBira(['Pedreiro! Levantou parede, rebocou, entregou obra. A diária agora é Cr$ ' + DIARIAS[2] + '.', 'Empreita boa no quadro agora é com você: baldrame, quiosque, ponte. Capricha que o povo paga mais.']);
   }
   // 3) Horário, domingo e chuva.
   const fechada = Obra.aberta(G.dia, G.minutos);
@@ -110,7 +110,7 @@ function propostaDeMestre() {
       if (i !== 0) { avisar('O Seu Moreira volta amanhã para perguntar de novo.'); return; }
       Obra.subir(); G.obra.indice = 3; G.obra.etapa = 0; G.obra.diasEtapa = 0; G.obra.lista = null;
       if (typeof EquipeObra !== 'undefined') EquipeObra.iniciar({});
-      sons.tocar('fanfarra', 1, 0, -2); avisar('Mestre de obras! A diária agora é Cr$ 90. A turma espera as ordens na prancheta.');
+      sons.tocar('fanfarra', 1, 0, -2); avisar(`Mestre de obras! A diária agora é Cr$ ${DIARIAS[3]}. A turma espera as ordens na prancheta.`);
       if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
     }));
   return true;

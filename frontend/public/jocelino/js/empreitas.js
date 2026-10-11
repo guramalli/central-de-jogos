@@ -222,7 +222,7 @@ const Empreitas = {
   },
 };
 // A capina do terreno do Seu Ananias (a cultura que rebrota do Stardew): aceita uma vez; a cada 3 dias 6 matos nascem
-// no terreno; limpo, paga Cr$ 30 à noite; acaba na troca de estação. Não conta no limite de longas.
+// no terreno; limpo, paga à noite (o valor do ECO); acaba na troca de estação. Não conta no limite de longas.
 EMPREITAS_EXTRAS.capina_ananias = { nome: 'Capina do terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 3, junto: 'deposito', material: {}, ferramenta: 'foice', paga: ECO.empreitas.paga.capina_ananias, funcaoMin: 0, tipo: 'capina', matos: 6, cada: 3 };
 Object.assign(Empreitas, {
   // O fim de ano: a última semana da Primavera e as duas primeiras do Verão (reformas antes do Natal).

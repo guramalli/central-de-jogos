@@ -42,7 +42,7 @@ const Ferreiro = {
     mochila.remover('ferro_velho', k * Ferreiro.FUNDIR); mochila.adicionar('barra_ferro', k);
     return { ok: true, gasto: k * Ferreiro.PRECO_FUNDIR, motivo: '' };
   },
-  // O irrigador (o aspersor do Stardew): Cr$ 80 + 2 barras de ferro, pronto na hora.
+  // O irrigador (o aspersor do Stardew): o preço do ECO + 2 barras de ferro, pronto na hora.
   irrigador(mochila, dinheiro) {
     const preco = Math.round(ECO.ferreiro.irrigador * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
     if (mochila.total('barra_ferro') < 2) return { ok: false, gasto: 0, motivo: 'O irrigador pede 2 barras de ferro.' };
@@ -51,7 +51,7 @@ const Ferreiro = {
     mochila.remover('barra_ferro', 2); mochila.adicionar('irrigador', 1);
     return { ok: true, gasto: preco, motivo: '' };
   },
-  // O molinete (a vara de irídio do Stardew): Cr$ 600 + 3 barras de ferro, pede Pesca 6, pronto na hora.
+  // O molinete (a vara de irídio do Stardew): o preço do ECO + 3 barras de ferro, pede Pesca 6, pronto na hora.
   molinete(mochila, dinheiro) {
     if (typeof Habilidades !== 'undefined' && Habilidades.nivel('pesca') < 6) return { ok: false, gasto: 0, motivo: 'O molinete pede Pesca 6.' };
     const preco = Math.round(ECO.ferreiro.molinete * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
@@ -115,8 +115,8 @@ function abrirFerraria() {
     }
     caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap' },
       el('div', { style: 'font-weight:800' }, `Ferro velho: ${G.mochila.total('ferro_velho')} · Barras: ${G.mochila.total('barra_ferro')} · Cr$ ${G.dinheiro}`),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.irrigador(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um irrigador: coloque no quintal, perto das covas.'); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fazer irrigador: Cr$ 80 + 2 barras'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.molinete(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um molinete!'); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fazer molinete: Cr$ 600 + 3 barras'),
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.irrigador(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um irrigador: coloque no quintal, perto das covas.'); hudSujo(); desenha(); } else avisar(r.motivo); } }, `Fazer irrigador: Cr$ ${ECO.ferreiro.irrigador} + 2 barras`),
+      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.molinete(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar('O Tonico fez um molinete!'); hudSujo(); desenha(); } else avisar(r.motivo); } }, `Fazer molinete: Cr$ ${ECO.ferreiro.molinete} + 3 barras`),
       ...Object.keys(RECEITAS_TONICO).map(id => el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.fazer(id, G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); avisar(`O Tonico fez ${Itens.qtd(1, id)}.`); hudSujo(); desenha(); } else avisar(r.motivo); } },
         `Fazer ${Itens.nome(id).toLowerCase()}: Cr$ ${RECEITAS_TONICO[id].dinheiro}` + Object.entries(RECEITAS_TONICO[id]).filter(([m]) => m !== 'dinheiro').map(([m, q]) => ' + ' + Itens.qtd(q, m)).join(''))),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.fundir(G.mochila, G.dinheiro); if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 1, 0.05, -6); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Fundir ferro velho em barra'),
