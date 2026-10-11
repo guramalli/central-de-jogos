@@ -33,12 +33,28 @@ AO_ENTREGAR.push((id, q) => {
   if (MAPAS.quintal) poeCasaFamilia(MAPAS.quintal);
   return 'A família se mudou para a casa nova! Teve festa no quintal: a Rosa fez bolo de milho, o Tio Juca tocou viola e as crianças ganharam o quarto delas.';
 });
+// Save antigo: o que o jogador pôs ou plantou no terreno da obra da família volta para a mochila antes do prédio subir
+// (a cerca, o irrigador; a cova plantada devolve a semente).
+function liberaTerreno(b, r) {
+  for (const c of G.horta.colocados.filter(c => dentroR(r, c.x, c.y))) {
+    G.horta.colocados = G.horta.colocados.filter(k => k !== c);
+    const o = b && b.objs.find(q => q.cx === c.x && q.cy === c.y); if (o) b.tirar(o);
+    const sobra = G.mochila.adicionar(c.id, 1); if (sobra && b === G.mapa && G.jog) soltar(c.id, sobra, G.jog.x, G.jog.y);
+    avisar(`${Itens.nome(c.id)} saiu do terreno da obra e voltou para a mochila.`);
+  }
+  for (const k of Object.keys(G.horta.covas)) {
+    const [x, y] = k.split(',').map(Number); if (!dentroR(r, x, y)) continue;
+    const cv = G.horta.covas[k]; delete G.horta.covas[k];
+    if (cv.planta && CULTURAS[cv.planta]) G.mochila.adicionar(CULTURAS[cv.planta].semente, 1);
+  }
+}
 // A casa no terreno: a arte da etapa entregue; depois da mudança, a porta dá para dormir.
 function poeCasaFamilia(b) {
   if (!b || b.id !== 'quintal' || !G.casa) return;
   const velha = b.objs.find(o => o.id === 'casa_familia'); if (velha) b.tirar(velha);
   if (G.casa.etapa < 1) return;
   const T = QUINTAL.TERRENO;
+  liberaTerreno(b, T);
   for (let y = T.y; y < T.y + T.h; y++) for (let x = T.x; x < T.x + T.w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
   const o = b.interativo('casa_familia', 'objetos/casa_familia_' + Math.min(6, G.casa.etapa), T.x, T.y + T.h - 1, 8, 4, [150, 40]);
   o.acao = () => G.casa.mudou ? (typeof pedirDormir === 'function' ? pedirDormir() : true) : abrirPlaca(`A casa da família: ${ECO.casa.etapas[G.casa.etapa - 1].nome} pronta. Faltam ${ECO.casa.etapas.length - G.casa.etapa} etapas.`);
@@ -78,6 +94,7 @@ function poeAlugueis(b) {
     const velho = b.objs.find(o => o.id === 'aluguel_' + k); if (velho) b.tirar(velho);
     if (!G.alugueis[k]) continue;
     const A = ECO.alugueis[k], R = QUINTAL.ALUGUEIS[k];
+    liberaTerreno(b, R);
     for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
     b.interativo('aluguel_' + k, A.arte, R.x, R.y + R.h - 2, A.w, A.h - 1, [A.w * 18, 30]).acao = () => abrirPlaca(`${A.nome}: Cr$ ${ECO.alugueis[k].semana} por semana.`);
   }

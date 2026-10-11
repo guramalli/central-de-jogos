@@ -70,13 +70,13 @@ function abrirCaderno(sel) {
       dir.append(el('div', { class: 'cad-nivelzao' }, '★'.repeat(n) + '☆'.repeat(Pensao.NIVEL_MAX - n)),
         el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · Sabor ${p.sabor(id)} · ${p.porcoesPorPanela(id)} porções por panela`));
       if (n < Pensao.NIVEL_MAX) {
-        const pode = Object.keys(c).every(ing => p._tem(ing) >= c[ing]), custo = Object.entries(c).map(([ing, q]) => `${q} ${nomeIngrediente(ing).toLowerCase()}`).join(', ');
+        const pode = n < p.tetoCapricho() && Object.keys(c).every(ing => p._tem(ing) >= c[ing]), custo = Object.entries(c).map(([ing, q]) => `${q} ${nomeIngrediente(ing).toLowerCase()}`).join(', ');
         const ef = efeitoCaprichar(p, id); p.niveis[id] = n + 1; const porDepois = p.porcoesPorPanela(id); if (n === 1) delete p.niveis[id]; else p.niveis[id] = n;
         dir.append(el('button', { class: 'botao forte cad-capricho' + (pode ? '' : ' desligado'), onclick: e => {
           e.stopPropagation();
           const r = p.caprichar(id);
           if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -2); carimbar(caixa); avisar(`${pr.nome} subiu para o nível ${p.nivel(id)}! Mais preço, mais sabor e mais porções.`); desenha(); }
-          else avisar(r === 'falta' ? `Para caprichar precisa de: ${custo}.` : 'Esse prato já está no capricho máximo.');
+          else avisar(r === 'falta' ? `Para caprichar precisa de: ${custo}.` : r === 'teto' ? `A Rosa ainda não sabe caprichar além do nível ${p.tetoCapricho()}: a pensão precisa de mais uma estrela.` : 'Esse prato já está no capricho máximo.');
         } }, `Caprichar: ${custo}`),
           el('div', { class: 'cad-dica' }, `▸ Nível ${n} → ${n + 1}: preço Cr$ ${ef.preco[0]} → ${ef.preco[1]} · sabor ${ef.sabor[0]} → ${ef.sabor[1]} · porções ${p.porcoesPorPanela(id)} → ${porDepois}`));
       } else dir.append(el('div', { class: 'cad-dica' }, 'No capricho máximo! A Rosa não tem mais o que ensinar desse prato.'));

@@ -161,10 +161,13 @@ class Pensao {
     for (const id in por) c[id] = Math.floor((por[id] + 1) * Math.pow(ECO.pensao.caprichoCresce, n - 1));
     return c;
   }
-  // Sobe o nível do prato: 'ok', 'falta' ou 'max'.
+  // O nível mais alto que a Rosa já sabe caprichar: cresce com as estrelas da pensão.
+  tetoCapricho() { return Math.min(Pensao.NIVEL_MAX, ECO.pensao.capricho.base + ECO.pensao.capricho.porEstrela * this.estrelasCasa()); }
+  // Sobe o nível do prato: 'ok', 'falta', 'teto' (precisa de mais estrelas) ou 'max'.
   caprichar(prato) {
     const n = this.nivel(prato);
     if (n >= Pensao.NIVEL_MAX) return 'max';
+    if (n >= this.tetoCapricho()) return 'teto';
     const c = this.custoCaprichar(prato);
     for (const id in c) if (this._tem(id) < c[id]) return 'falta';
     for (const id in c) {
