@@ -10,6 +10,9 @@ const ehTecla = (e, acao) => e.code === TECLAS[acao];
 
 function instalaEntrada() {
   addEventListener('keydown', e => {
+    // Digitando num campo de texto (a nota da caixa-preta): a tecla é do texto, não do jogo; Esc fecha o menu.
+    // (com a caixinha da nota aberta, o teclado é dela mesmo fora do campo, como no botão depois de um Tab)
+    if (/^(TEXTAREA|INPUT)$/.test((e.target && e.target.tagName) || '') || (!$('#modal').hidden && $('#modal .nota-caixa'))) { if (e.code === 'Escape') fecharModal(); return; }
     if (e.code === 'Tab') e.preventDefault();
     if (teclaNoModal(e)) { e.preventDefault(); return; }
     if (!$('#capa').hidden) return;
