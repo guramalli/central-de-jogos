@@ -92,7 +92,7 @@ class Jogador extends Personagem {
     if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
     this.dir = vx < 0 ? DIR.ESQUERDA : vx > 0 ? DIR.DIREITA : vy < 0 ? DIR.CIMA : DIR.BAIXO;
     if (Math.abs(vy) > Math.abs(vx) + 0.01) this.dir = vy < 0 ? DIR.CIMA : DIR.BAIXO;
-    const v = (k.has(TECLAS.correr) || k.has('ShiftRight') ? Jogador.VEL_CORRENDO : Jogador.VEL) * (this.velExtra || 1) * (this === G.jog && typeof Habilidades !== 'undefined' ? Habilidades.velocidade() : 1) * dt;
+    const v = (k.has(TECLAS.correr) || k.has('ShiftRight') ? Jogador.VEL_CORRENDO : Jogador.VEL) * (this.velExtra || 1) * (this === G.jog && typeof Habilidades !== 'undefined' ? Habilidades.velocidade() : 1) * (this === G.jog && typeof Bazar !== 'undefined' && Bazar.tem('bicicleta') ? ECO.bazar.bicicleta : 1) * dt;
     // Eixo por eixo: escorrega na parede em vez de grudar.
     const x0 = this.x, y0 = this.y;
     if (vx && !bate(this.caixa(this.x + vx * v, this.y))) this.x += vx * v;

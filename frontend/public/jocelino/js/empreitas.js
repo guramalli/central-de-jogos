@@ -72,7 +72,7 @@ const Empreitas = {
   funcao() { return G.obra ? G.obra.funcao : 0; },
   limite() { return Empreitas.funcao() >= 3 ? 2 : 1; },
   // As longas aceitas (do quadro, das cartas, do bairro) contam no limite; a Prefeitura e a capina não.
-  longasContadas() { return Object.keys(G.empreitas.aceitas).filter(k => { const E = dadosEmpreita(k), a = G.empreitas.aceitas[k]; return E && E.tipo === 'longa' && !a.prefeitura; }).length; },
+  longasContadas() { return Object.keys(G.empreitas.aceitas).filter(k => { const E = dadosEmpreita(k), a = G.empreitas.aceitas[k]; return E && E.tipo === 'longa' && !a.prefeitura && !E.familia; }).length; },
   libera(id) {
     const E = dadosEmpreita(id);
     if (!E || Empreitas.funcao() < E.funcaoMin) return false;
@@ -98,10 +98,10 @@ const Empreitas = {
     const E = dadosEmpreita(id);
     if (!E) return 'nao';
     if (G.empreitas.aceitas[id]) return 'ja';
-    if (!opc.prefeitura && !Empreitas.libera(id)) return 'funcao';
+    if (!opc.prefeitura && !opc.familia && !Empreitas.libera(id)) return 'funcao';
     if (E.tipo === 'capina') { if (G.empreitas.capina) return 'ja'; G.empreitas.capina = { dia: G.dia, estacao: Math.floor((G.dia - 1) / 28) % 4, pos: [], limpo: false, nasceu: 0 }; G.empreitas.quadro = G.empreitas.quadro.filter(x => x !== id); return 'ok'; }
     if (E.tipo === 'longa') {
-      if (!opc.prefeitura && Empreitas.longasContadas() >= Empreitas.limite()) return 'limite';
+      if (!opc.prefeitura && !opc.familia && Empreitas.longasContadas() >= Empreitas.limite()) return 'limite';
       G.empreitas.aceitas[id] = { tipo: 'longa', estado: 'reservada', dia: G.dia, dias: 0, feitoHoje: 0, trabalhou: false, aditivo: '', porTiao: 0, carta: !!opc.carta, prefeitura: !!opc.prefeitura, lista: [] };
     } else G.empreitas.aceitas[id] = { tipo: 'curta', dia: G.dia, vezes: 0 };
     G.empreitas.quadro = G.empreitas.quadro.filter(x => x !== id);
@@ -123,7 +123,10 @@ const Empreitas = {
     if (!a || a.estado !== 'reservada') return 'estado';
     const mat = Empreitas.material(id);
     for (const m in mat) if (mochila.total(m) < mat[m]) return 'material';
+    const custo = dadosEmpreita(id).custo || 0;   // a casa da família e os aluguéis custam dinheiro (não pagam)
+    if (custo && G.dinheiro < custo) return 'dinheiro';
     for (const m in mat) mochila.remover(m, mat[m]);
+    if (custo) { G.dinheiro -= custo; G.gastoHoje = (G.gastoHoje || 0) + custo; }
     Object.assign(a, { estado: 'obra', dias: 0, feitoHoje: 0, trabalhou: false, lista: Empreitas.listaDias(id, a.aditivo) });
     return 'ok';
   },
@@ -170,7 +173,7 @@ const Empreitas = {
     if (!E || !a) return '';
     if (E.tipo !== 'longa') return 'em andamento';
     const prazo = a.prefeitura && a.estado !== 'entregue' ? ` · entregar até ${DIAS[(a.dia + 5) % 7]}` : '';
-    if (a.estado === 'reservada') return (a.prefeitura ? 'aceita: começar com o material' : `reservada: começar até ${DIAS[(a.dia + Empreitas.RESERVA - 2) % 7]}`) + prazo;
+    if (a.estado === 'reservada') return (E.familia ? `começar com o material e Cr$ ${E.custo}` : a.prefeitura ? 'aceita: começar com o material' : `reservada: começar até ${DIAS[(a.dia + Empreitas.RESERVA - 2) % 7]}`) + prazo;
     if (a.estado === 'obra') { const f = Empreitas.ferramentaHoje(id); return `dia ${a.dias + 1}/${a.lista.length}: ${a.trabalhou ? 'hoje feito' : 'hoje é dia de ' + (NOME_DIA[f] || f)}` + prazo; }
     if (a.estado === 'pronta') return 'pronta: entregar na plaquinha' + prazo;
     return 'entregue: paga à noite';
@@ -179,13 +182,16 @@ const Empreitas = {
     const E = dadosEmpreita(id);
     delete G.empreitas.aceitas[id];
     // A obra fica no mapa (muros, pisos, cerca, quiosque, ponte); a fundação sozinha não (ela é o começo de uma casa).
-    if (E.tipo === 'longa' && !E.fundacao && !E.bairro) G.empreitas.feitas[id] = q;
-    G.empreitas.entregues++;
-    if (q >= 1.5) G.empreitas.caprichados = (G.empreitas.caprichados || 0) + 1;
-    G.empreitas.reputacao[E.cliente] = (G.empreitas.reputacao[E.cliente] || 0) + 1;
-    if (typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]);
-    // Lábia: a amizade sobe 50% mais rápido (um coração a mais a cada duas entregas).
-    if (typeof Habilidades !== 'undefined' && Habilidades.tem('labia')) { G.empreitas.labia = (G.empreitas.labia || 0) + 1; if (G.empreitas.labia % 2 === 0 && typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]); }
+    // As obras da família (a casa e os aluguéis) não contam como serviço: nem feitas, nem entregues, nem reputação.
+    if (!E.familia) {
+      if (E.tipo === 'longa' && !E.fundacao && !E.bairro) G.empreitas.feitas[id] = q;
+      G.empreitas.entregues++;
+      if (q >= 1.5) G.empreitas.caprichados = (G.empreitas.caprichados || 0) + 1;
+      G.empreitas.reputacao[E.cliente] = (G.empreitas.reputacao[E.cliente] || 0) + 1;
+      if (typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]);
+      // Lábia: a amizade sobe 50% mais rápido (um coração a mais a cada duas entregas).
+      if (typeof Habilidades !== 'undefined' && Habilidades.tem('labia')) { G.empreitas.labia = (G.empreitas.labia || 0) + 1; if (G.empreitas.labia % 2 === 0 && typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]); }
+    }
     return AO_ENTREGAR.map(f => f(id, q)).filter(Boolean);
   },
   // A noite: a reserva vence; o dia cuidado (ou o de regador na chuva) avança; a entregue paga.
@@ -195,7 +201,8 @@ const Empreitas = {
       const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
       if (!E || E.tipo !== 'longa') continue;
       if (a.estado === 'reservada') {
-        if (!a.prefeitura && G.dia >= a.dia + Empreitas.RESERVA - 1) { delete G.empreitas.aceitas[id]; r.push({ id, desistiu: true }); }
+        if (!a.prefeitura && !E.familia && G.dia >= a.dia + Empreitas.RESERVA - 1) {   // a obra da família espera o tempo que precisar
+          delete G.empreitas.aceitas[id]; r.push({ id, desistiu: true }); }
         continue;
       }
       if (a.estado === 'obra') {

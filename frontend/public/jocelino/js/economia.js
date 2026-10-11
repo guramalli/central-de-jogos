@@ -69,6 +69,36 @@ const ECO = {
   melhorias: { toalha: 60, flamula: 40, radio: [90, 220, 450], farinheira_grande: [150, 280], ventilador: [180, 260, 520], banqueta_extra: 120, bandeirinhas: 80, fogao_4bocas: [300, 700], geladeira: 400, trofeu: 0, neon: 250 },
   ampliacoes: { salao_maior: 400, varanda: 600, sobrado: 1500 },
   equipe: { anuncios: { cartaz: 50, radio: 150, jornal: 400 }, salarioBase: 4 },
+  // ---- O Bazar do Seu Salim (os gastos em degraus, como as ferramentas e a casa do Stardew): cada item uma vez.
+  bazar: {
+    itens: [
+      { id: 'garrafa_termica', nome: 'Garrafa térmica', preco: 90, efeito: 'Um cafezinho na mochila toda manhã.' },
+      { id: 'bicicleta', nome: 'Bicicleta', preco: 450, efeito: 'Anda 20% mais rápido.' },
+      { id: 'fogao_gas', nome: 'Fogão a gás', preco: 650, efeito: 'A marmita da Rosa dá o dobro de energia.' },
+      { id: 'maquina_costura', nome: 'Máquina de costura', preco: 900, efeito: 'A Rosa costura para fora: Cr$ 15 por noite (menos domingo).' },
+      { id: 'televisao', nome: 'Televisão', preco: 1600, efeito: 'A novela com a família: amizade todo dia.' },
+      { id: 'fusca', nome: 'Fusca', preco: 6000, efeito: 'Viagem rápida pelo mapa, a partir do quintal.' },
+    ],
+    costura: 15, bicicleta: 1.2, fogao: 2, cozinha: 1.5,
+  },
+  // ---- A casa da família (as reformas da Robin): 6 etapas, cada uma uma obra do Jocelino, sem pagamento e com custo.
+  casa: {
+    etapas: [
+      { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], material: { cimento: 10, pedra: 30, vergalhao: 8 }, dinheiro: 800, dias: 4 },
+      { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 150, cimento: 10 }, dinheiro: 1500, dias: 5 },
+      { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 40, telha: 80 }, dinheiro: 1800, dias: 3 },
+      { nome: 'A cozinha', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, ladrilho: 40, tinta: 2 }, dinheiro: 2000, dias: 4 },
+      { nome: 'O quarto do casal', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 4, tinta: 3, madeira: 15 }, dinheiro: 2200, dias: 4 },
+      { nome: 'O quarto das crianças e a mudança', etapas: ['colher', 'machado', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 4, tinta: 4, madeira: 20 }, dinheiro: 2500, dias: 5 },
+    ],
+    quarto: 1.1,   // o quarto do casal: acorda com a energia 10% acima do máximo
+  },
+  // ---- Os aluguéis do quintal (depois da mudança): obras do Jocelino com custo; pagam no domingo à noite; o Patrão dá +50%.
+  alugueis: {
+    quartinho: { nome: 'Quartinho de aluguel', etapas: ['pa', 'colher', 'colher', 'machado', 'regador'], material: { tijolo: 60, cimento: 6, telha: 20, madeira: 10 }, dinheiro: 1200, semana: 60, arte: 'objetos/quartinho', w: 4, h: 3 },
+    casa: { nome: 'Casa de aluguel', etapas: ['pa', 'pa', 'colher', 'colher', 'machado', 'colher', 'regador'], material: { tijolo: 120, cimento: 12, telha: 40, madeira: 20, tinta: 2 }, dinheiro: 3000, semana: 150, arte: 'objetos/casa_aluguel', w: 6, h: 3 },
+    patrao: 1.5,
+  },
 };
 // Põe o número do ECO no campo de cada linha de uma tabela do jogo: o arquivo dono fica com o conteúdo (nome, arte, etapas) e
 // o dinheiro mora aqui. Falta de valor é erro na hora de carregar, para nenhum número sumir calado.

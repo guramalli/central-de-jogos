@@ -3,7 +3,10 @@
 // tirar (sorteados sempre do mesmo jeito) e a saída para a Vila.
 
 const QUINTAL = { ZONA_LIMPA: { x: 3, y: 3, w: 13, h: 12 }, TERRENO: { x: 18, y: 6, w: 8, h: 6 }, SAIDA: { x: 20, y: 27, w: 2, h: 1 }, CANTEIRO: { x: 3, y: 15, w: 5, h: 3 } };
+QUINTAL.ALUGUEIS = { quartinho: { x: 27, y: 6, w: 4, h: 5 }, casa: { x: 31, y: 6, w: 6, h: 5 } };   // os terrenos dos aluguéis (depois da mudança)
 const dentroR = (r, x, y) => x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
+// O que é da família no quintal: o terreno da casa e os dos aluguéis (nem cova, nem coisa colocada).
+const reservadoQuintal = (x, y) => dentroR(QUINTAL.TERRENO, x, y) || Object.values(QUINTAL.ALUGUEIS || {}).some(r => dentroR(r, x, y));
 
 MAPAS_DEF.quintal = () => {
   const b = new Construtor('quintal', 40, 30, 1975);

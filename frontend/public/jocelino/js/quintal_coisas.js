@@ -9,6 +9,7 @@ function podeColocar(b, x, y) {
   if (b.id !== 'quintal' || !b.livreEm(x, y)) return 'Aqui não dá.';
   if (b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA) return 'Na trilha não: o caminho até a Vila fica livre.';
   if (b.ocupado.has(chaveT(x, y))) return 'Já tem coisa aí.';
+  if (reservadoQuintal(x, y)) return 'Esse terreno é da obra da família.';
   const c = Horta.cova(x, y); if (c && c.planta) return 'Tem planta aí.';
   // A caixa sólida do objeto (ladrilho inteiro de largura) não pode encostar no pé do Jocelino nem de um morador: prenderia.
   const cx = b._caixa((x + 0.5) * TILE, (y + 1) * TILE, 48, 30), sobre = (a, d) => a.x < d.x + d.w && a.x + a.w > d.x && a.y < d.y + d.h && a.y + a.h > d.y;

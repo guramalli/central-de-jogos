@@ -123,7 +123,7 @@ function aplicarNoiteAgitada(e) {
     const b = getMapa('quintal'), f = mulberry(G.dia * 17 + 5); let n = 0;
     for (let k = 0; k < 300 && n < 5; k++) {
       const x = b.livre.x + Math.floor(f() * b.livre.w), y = b.livre.y + Math.floor(f() * b.livre.h);
-      if (b.ocupado.has(chaveT(x, y)) || b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA || (typeof Horta !== 'undefined' && Horta.cova(x, y)) || dentroR(QUINTAL.CANTEIRO, x, y) || dentroR(QUINTAL.TERRENO, x, y)) continue;
+      if (b.ocupado.has(chaveT(x, y)) || b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA || (typeof Horta !== 'undefined' && Horta.cova(x, y)) || dentroR(QUINTAL.CANTEIRO, x, y) || reservadoQuintal(x, y)) continue;
       if (b.detrito('pedra', x, y)) n++;
     }
     return n ? 'Um caminhão perdeu a carga na estrada de madrugada: tem pedra espalhada no quintal!' : '';

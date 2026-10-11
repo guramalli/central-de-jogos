@@ -55,6 +55,7 @@ MAPAS_DEF.vila = () => {
   b.interativo('orelhao', 'objetos/orelhao', 19, 9, 1, 1, [8, 6]).acao = () => (typeof abrirOrelhao === 'function' ? abrirOrelhao() : abrirPlaca('O orelhão da Vila.'));
   b.enfeite('objetos/fusca', 44, 22, true, 44);   // estacionado no canto, ao lado do Mercado
   b.interativo('mercado', 'objetos/mercado_0', 37, 22, 7, 5).acao = () => abrirPlaca('O Mercado Municipal, precisando de reforma.');
+  b.interativo('balcao_bazar', 'objetos/balcao_bazar', 42, 23, 3, 1, [40, 10]).acao = () => (typeof abrirBazar === 'function' ? abrirBazar() : abrirPlaca('O Bazar do Seu Salim.'));   // no recuo, na frente do Mercado (fora da calçada)
   b.interativo('quadro_prefeitura', 'objetos/quadro_prefeitura', 28, 22, 2, 1, [28, 6]).acao = () => (typeof abrirPrefeitura === 'function' ? abrirPrefeitura() : abrirPlaca('O quadro da Prefeitura: editais e avisos.'));
   b.interativo('oficina', 'objetos/oficina_sem_fumaca', 10, 22, 6, 5).acao = () => (typeof abrirFerraria === 'function' ? abrirFerraria() : abrirPlaca('A ferraria do Seu Tonico.'));
   b.morador('tonico', 'Seu Tonico', 13, 24, DIR.BAIXO, { vagueia: true, area: { x: 10 * TILE, y: 24 * TILE + 42, w: 6 * TILE, h: 1 * TILE } });   // na calçada da ferraria

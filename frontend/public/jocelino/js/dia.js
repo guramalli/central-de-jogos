@@ -35,14 +35,16 @@ function dormir(desmaiou = false) {
   for (const f of G.feitosHoje) linhas.push(f);
   if (!linhas.length) linhas.push('Um dia tranquilo.');
   linhas.push('Dinheiro: Cr$ ' + G.dinheiro);
+  if (typeof Bazar !== 'undefined') { const m = Bazar.meta(); if (m) linhas.push(`Juntando para: ${m.nome} (Cr$ ${Math.max(0, Math.min(G.dinheiro, m.preco))}/${m.preco})`); }
   const diaQueAcabou = G.dia;
   // Vira o dia.
   relogio.novoDia();
   G.energia = desmaiou && !(typeof Habilidades !== 'undefined' && Habilidades.tem('incansavel')) ? Math.round(G.energiaMax * 0.6) : G.energiaMax;
+  if (!desmaiou && typeof CasaFamilia !== 'undefined' && CasaFamilia.tem(5)) G.energia = Math.round(G.energiaMax * ECO.casa.quarto);   // o quarto do casal
   G.ganhoHoje = 0; G.gastoHoje = 0; G.feitosHoje = [];
   for (const f of MANHA) { try { f(); } catch (e) { console.error(e); } }
   // Acorda na porta de casa.
-  if (_acordaEm) { entrarMapa(_acordaEm.mapa, _acordaEm.tile); _acordaEm = null; } else entrarMapa('quintal', { x: 7, y: 10 });
+  if (_acordaEm) { entrarMapa(_acordaEm.mapa, _acordaEm.tile); _acordaEm = null; } else entrarMapa('quintal', typeof CasaFamilia !== 'undefined' && CasaFamilia.mudou() ? CasaFamilia.porta() : { x: 7, y: 10 });
   G.jog.dir = DIR.BAIXO;
   salvar();
   _dormindo = false;

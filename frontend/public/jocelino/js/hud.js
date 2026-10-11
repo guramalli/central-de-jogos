@@ -12,6 +12,7 @@ function montaHud() {
   HUD.quadro = el('div', { class: 'painel quadro' });
   HUD.relogio = el('div', { class: 'painel relogio' }, HUD.dia = el('div', { class: 'dia' }), HUD.estacao = el('div', { class: 'estacao' }),
     HUD.hora = el('div', { class: 'hora' }), HUD.dinheiro = el('div', { class: 'dinheiro' }));
+  HUD.meta = el('div', { class: 'painel meta-bazar', hidden: true }, HUD.metaTexto = el('div', { class: 'meta-texto' }), el('div', { class: 'meta-fundo' }, HUD.metaNivel = el('div', { class: 'meta-nivel' })));
   HUD.energia = el('div', { class: 'painel energia', title: '' }, el('div', { class: 'letra' }, 'E'), el('div', { class: 'fundo' }, HUD.nivel = el('div', { class: 'nivel' })));
   HUD.barra = el('div', { class: 'painel barra' });
   HUD.dicaBarra = el('div', { class: 'dica-barra' });
@@ -19,7 +20,7 @@ function montaHud() {
   HUD.botaoTela = el('button', { class: 'botao botao-tela', title: 'Tela cheia (F)', onclick: () => alternaTelaCheia() }, '⛶');
   HUD.botaoHab = el('button', { class: 'botao botao-hab', title: 'Habilidades (H)', onclick: () => abrirHabilidades() }, '★');
   HUD.botaoFab = el('button', { class: 'botao botao-fab', title: 'Fabricar (B)', onclick: () => abrirFabricar() }, el('img', { src: urlItem('colher'), style: 'height:18px;vertical-align:middle' }));
-  h.append(HUD.quadro, HUD.relogio, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab);
+  h.append(HUD.quadro, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab);
 }
 
 function atualizaHud() {
@@ -28,8 +29,12 @@ function atualizaHud() {
   HUD.estacao.textContent = ESTACOES[relogio.estacao()];
   HUD.hora.textContent = relogio.textoHora();
   HUD.dinheiro.textContent = 'Cr$ ' + G.dinheiro;
+  // A meta de dinheiro do Bazar embaixo do relógio ("Bicicleta 180/450").
+  const mt = typeof Bazar !== 'undefined' ? Bazar.meta() : null;
+  HUD.meta.hidden = !mt;
+  if (mt) { HUD.metaTexto.textContent = `${mt.nome} ${Math.max(0, Math.min(G.dinheiro, mt.preco))}/${mt.preco}`; HUD.metaNivel.style.width = Math.min(100, Math.max(0, G.dinheiro) / mt.preco * 100) + '%'; }
   const f = G.energia / G.energiaMax;
-  HUD.nivel.style.height = (f * 100) + '%';
+  HUD.nivel.style.height = (Math.min(1, f) * 100) + '%';
   HUD.nivel.style.background = f > 0.5 ? 'var(--verde)' : f > 0.2 ? '#e8c22c' : 'var(--destaque)';
   HUD.energia.title = `Energia ${Math.round(G.energia)}/${G.energiaMax}`;
   if (_hudSujo) {

@@ -298,7 +298,7 @@ function desenhaGolpe(ctx, j) {
 
 // ---------- comer (botão direito com comida na mão) ----------
 function comerDaMao() {
-  const id = itemDaMao(), e = Itens.energia(id);
+  const id = itemDaMao(), e = typeof energiaDaComida === 'function' ? energiaDaComida(id) : Itens.energia(id);
   if (!e) return false;
   if (G.energia >= G.energiaMax) { avisar('Jocelino está sem fome agora.'); return true; }
   // Como o Stardew: pergunta antes (um clique errado não come o ovo da pensão).

@@ -62,7 +62,7 @@ function poeEmpreitasNoMapa(b) {
   for (const id in G.empreitas.aceitas) {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (!E || E.mapa !== b.id) continue;
-    if (E.tipo === 'longa' && !E.bairro) limparLote(b, E);
+    if (E.tipo === 'longa' && !E.bairro && !E.familia) limparLote(b, E);
     const p = lugarLivre(b, E.x, E.y);
     if (E.tipo === 'curta') {
       const o = b.interativo('emp_' + id, 'objetos/plaquinha', p.x, p.y, 1, 1, [8, 6]);
@@ -81,7 +81,7 @@ function poeEmpreitasNoMapa(b) {
       // A plaquinha do serviço (desde a reserva); o lote com a arte da etapa só depois de começar.
       const q = lugarLivre(b, p.x - 1, p.y), pl = b.interativo('emp_placa_' + id, 'objetos/plaquinha', q.x, q.y, 1, 1, [8, 6]);
       pl.empreitaDet = '__placa'; pl.placaDe = id; pl.acao = () => acaoEmpreita(id); pl.ferramenta = (obj, ferr) => golpeEmpreita(id, ferr);
-      if (a.estado !== 'reservada' && !E.bairro) {
+      if (a.estado !== 'reservada' && !E.bairro && !E.familia) {
         const n = Math.max(1, a.lista.length), k = a.estado === 'obra' ? Math.min(E.artes.length - 1, Math.floor(a.dias / n * E.artes.length)) : E.artes.length - 1;
         const arte = E.artes[k], img = larguraLote(E);
         const o = b.interativo('emp_' + id, ARTE_LISTA.includes(arte) ? arte : 'objetos/alicerce', p.x, p.y, img, 1);
@@ -134,6 +134,7 @@ function acaoLote(id) {
 function comecarObra(id) {
   const r = Empreitas.comecar(id, G.mochila);
   if (r === 'ok') { sons.tocar('pousar', 1, 0.05, -4); avisar(`A obra começou! Hoje é dia de ${NOME_DIA[Empreitas.ferramentaHoje(id)]}.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); }
+  else if (r === 'dinheiro') avisar(`Esta etapa custa Cr$ ${dadosEmpreita(id).custo}.`);
   else avisar('Falta material para começar.');
 }
 // O ícone da ferramenta do dia em cima da plaquinha (a arte do item, só posicionada); pronta, a exclamação.

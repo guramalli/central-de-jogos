@@ -8,7 +8,7 @@ const ALCANCE_HORTA = 1;   // ladrilhos em volta do Jocelino (o alvo do Stardew)
 const perto1 = t => { const p = G.jog.ladrilho(); return Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) <= ALCANCE_HORTA; };
 function podeCavar(b, x, y) {
   return b.id === 'quintal' && b.livreEm(x, y) && b.chaoEm(x, y) === CH.GRAMA && !b.ocupado.has(chaveT(x, y)) && !b.saidaEm(x, y)
-    && !dentroR(QUINTAL.TERRENO, x, y) && !Horta.cova(x, y);
+    && !reservadoQuintal(x, y) && !Horta.cova(x, y);
 }
 // As plantas no mapa: um interativo (não sólido) por cova plantada, com a arte da fase.
 function sincronizaHorta(b) {
