@@ -12,33 +12,33 @@ const ECO = {
   // Panela da noite: quantas porções rende uma panela de cada prato (o "postar no cardápio" do Bancho).
   porcoes: { pf_peao: 4, peixe_frito: 4, sopa_pedra: 6, cocada_tijolinho: 6, rabanada: 4, marmita_peao: 4, pamonha: 4, goiabada: 6, bolo_milho: 6, caldo_caranguejo: 4, moqueca: 4 },
   porcoesPadrao: 4,
-  marmitasMax: 3,          // a sobra vira marmita (a família come o resto)
-  cafeBoasVindas: 1.3,     // cafezinho na medida antes do prato: +30% no preço
+  marmitasMax: 3,         // a sobra vira marmita (a família come o resto)
+  cafeBoasVindas: 1.3,    // cafezinho na medida antes do prato: +30% no preço
   // Caprichar (o Enhance do Bancho): +30% do preço base por nível; porções +50% no nível 10.
-  precoPorNivel: 0.30, porcoesNivel10: 0.5,
+  precoPorNivel: 0.15, porcoesNivel10: 0.5,
   // A Rosa como chef: experiência por prato que sai, que sobe 1,35× por nível; preparo 4% mais rápido por nível.
   chef: { xpBase: 40, xpCresce: 1.35, preparoPorNivel: 0.04 },
-  taxaContratacao: 0.5,    // taxa de contratação = soma dos atributos × isto
+  taxaContratacao: 0.5,   // taxa de contratação = soma dos atributos × isto
   // ---- A pensão (etapa 7): os 6 degraus (0 a 5 estrelas), o que pedem, o que liberam e a despesa da noite; as fórmulas.
   pensao: {
     degraus: [
-      { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, vagas: 2, mesas: 2, clientes: 6, despesa: 0 },
-      { nome: 'Boteco Conhecido', curtidas: 10, sabor: 0, pesquisadas: 0, vagas: 3, mesas: 3, clientes: 8, despesa: 5 },
-      { nome: 'Pensão Falada', curtidas: 30, sabor: 0, pesquisadas: 2, vagas: 4, mesas: 4, clientes: 10, despesa: 12 },
-      { nome: 'Pensão Famosa', curtidas: 80, sabor: 36, pesquisadas: 3, vagas: 5, mesas: 5, clientes: 12, despesa: 25 },
-      { nome: 'Casa Tradicional', curtidas: 160, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, vagas: 6, mesas: 6, clientes: 14, despesa: 45 },
-      { nome: 'Patrimônio da Vila', curtidas: 300, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, vagas: 7, mesas: 6, clientes: 16, despesa: 70 },
+      { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, vagas: 2, mesas: 2, clientes: 2, despesa: 0 },
+      { nome: 'Boteco Conhecido', curtidas: 35, sabor: 0, pesquisadas: 0, vagas: 3, mesas: 3, clientes: 3, despesa: 5 },
+      { nome: 'Pensão Falada', curtidas: 130, sabor: 0, pesquisadas: 2, vagas: 4, mesas: 4, clientes: 3, despesa: 12 },
+      { nome: 'Pensão Famosa', curtidas: 450, sabor: 36, pesquisadas: 3, vagas: 5, mesas: 5, clientes: 3, despesa: 25 },
+      { nome: 'Casa Tradicional', curtidas: 950, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, vagas: 6, mesas: 6, clientes: 16, despesa: 45 },
+      { nome: 'Patrimônio da Vila', curtidas: 1700, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, vagas: 7, mesas: 6, clientes: 22, despesa: 70 },
     ],
-    saborPorNivel: 12,       // o sabor de um prato = nível × isto
-    gorjeta: 0.3,            // gorjeta = preço × isto × (estrelas − 1) / 4
-    estrelasPorPitada: 4,    // pitadas da noite = max(1, floor(estrelas / isto))
-    caprichoCresce: 1.5,
-    premio5: { dinheiro: 2000, festaClientes: 6 },   // a 5ª estrela: o prêmio da Prefeitura e os clientes a mais na noite de festa
-    rosaPaga: true,                                  // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
+    saborPorNivel: 12,      // o sabor de um prato = nível × isto
+    gorjeta: 0.3,           // gorjeta = preço × isto × (estrelas − 1) / 4
+    estrelasPorPitada: 4,   // pitadas da noite = max(1, floor(estrelas / isto))
+    caprichoCresce: 2.3,
+    premio5: { dinheiro: 2000, festaClientes: 6 },  // a 5ª estrela: o prêmio da Prefeitura e os clientes a mais na noite de festa
+    rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.
   obra: {
-    diarias: [30, 45, 60, 90], extra: 8, gorjeta: 10, imprevisto: 0.18, mestreRedondo: 20,
+    diarias: [200, 290, 390, 530], extra: 8, gorjeta: 10, imprevisto: 0.18, mestreRedondo: 20,
     premiosCasa: [{ dinheiro: 15, itens: { madeira: 15 } }, { dinheiro: 20, itens: { pedra: 20 } }, { dinheiro: 20, itens: { cafe: 3 } },
       { dinheiro: 25, itens: { cimento: 2 } }, { dinheiro: 30, itens: { pao: 3 } }, { dinheiro: 60, itens: { tijolo: 20 } }],
     premiosMercado: [{ dinheiro: 15, itens: { madeira: 15 } }, { dinheiro: 25, itens: { cimento: 2 } }, { dinheiro: 30, itens: { pao: 3 } }, { dinheiro: 120, itens: { tijolo: 30 } }],
@@ -47,9 +47,9 @@ const ECO = {
     requisitos: [null, { obras: 1, alvenaria: 2, empreitas: 0 }, { obras: 2, alvenaria: 4, empreitas: 3 }, { obras: 4, alvenaria: 6, empreitas: 10 }],
   },
   // ---- Os preços de conteúdo (pratos, culturas, peixes) ficam nas tabelas deles; aqui, o fator de cada categoria.
-  pratos: { fator: 1, raridade: [1, 1, 1.3, 1.8, 3] },
-  horta: { fatorSemente: 1, fatorVenda: 1 },
-  pesca: { fator: 1 },
+  pratos: { fator: 0.5, raridade: [1, 1, 1.3, 1.8, 3] },
+  horta: { fatorSemente: 0.5, fatorVenda: 0.4 },
+  pesca: { fator: 0.35 },
   // ---- A caixa de venda (o que não é colheita nem peixe) e as lojas (o depósito, a mercearia, a banca, o Viajante; o mascate
   // cobra pelo preço do depósito).
   caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50, marmita: 10 },
@@ -57,10 +57,10 @@ const ECO = {
     mercearia: { arroz: 1, feijao: 1, farinha: 1, ovo: 2, macarrao: 2, linguica: 6, carne_seca: 8, queijo_coalho: 15, leite: 2, acucar: 1 }, banca: { isca: 5, covo: 50, vara_boa: 250 },
     viajante: { receitas: { arroz_polvo: 300 }, ingredientes: { polvo: 40, camarao: 18, lagosta: 70, pimenta_cheiro: 35, dende: 12 } } },
   // ---- Os serviços: empreitas (o pagamento de cada uma), a Fala da Vila, a carta; o bairro; a Prefeitura e o Tião.
-  empreitas: { paga: { consertar_banca: 25, tabua_pier: 20, limpar_trilha: 18, escorar_ponte: 25, remendar_calcada: 30, cerca_zelia: 22, telhas_juca: 20, desentulhar_ananias: 25, calcada_cimento: 60, cerca_madeira: 55, muro_baixo: 85, baldrame: 90, muro_chapiscado: 220, quiosque_praia: 260, ponte_pedra: 320, calcada_colorida: 180, baldrame_concreto: 200, cimentado_queimado: 260, sapata_corrida: 480, muro_rebocado: 520, ladrilho: 700, radier: 1100, capina_ananias: 30 },
+  empreitas: { paga: { consertar_banca: 100, tabua_pier: 80, limpar_trilha: 72, escorar_ponte: 100, remendar_calcada: 120, cerca_zelia: 88, telhas_juca: 80, desentulhar_ananias: 100, calcada_cimento: 240, cerca_madeira: 220, muro_baixo: 340, baldrame: 360, muro_chapiscado: 880, quiosque_praia: 1040, ponte_pedra: 1280, calcada_colorida: 720, baldrame_concreto: 800, cimentado_queimado: 1040, sapata_corrida: 1920, muro_rebocado: 2080, ladrilho: 2800, radier: 4400, capina_ananias: 120 },
     faixas: [1, 1.1, 1.2], carta: 1.15 },
-  bairro: { casa: [150, 250, 200, 300, 150, 200], comercio: [300, 450, 350, 500, 200], tipos: { simples: 1, boa: 1.4, sobrado: 2 } },
-  prefeitura: { paga: { pref_museu: 500, pref_quadro: 400, pref_praca: 450, pref_bueiro: 600 }, tiao: { contrato: 100, salario: 20, medico: 60 } },
+  bairro: { casa: [600, 1000, 800, 1200, 600, 800], comercio: [1200, 1800, 1400, 2000, 800], tipos: { simples: 1, boa: 1.4, sobrado: 2 } },
+  prefeitura: { paga: { pref_museu: 2000, pref_quadro: 1600, pref_praca: 1800, pref_bueiro: 2400 }, tiao: { contrato: 100, salario: 20, medico: 60 } },
   // ---- O ferreiro, a mina, as melhorias e ampliações da pensão, a equipe.
   ferreiro: { custos: { "1": { dinheiro: 100, barra_ferro: 5 }, "2": { dinheiro: 250, barra_aco: 5 }, "3": { dinheiro: 500, barra_bronze: 5 } }, fundir: 10, irrigador: 80, molinete: 600,
     tonico: { lampiao: { dinheiro: 50, barra_ferro: 1 }, forja: { dinheiro: 150, barra_ferro: 2, pedra: 20 }, irrigador_bom: { dinheiro: 150, barra_aco: 1, barra_ferro: 1 }, betoneira: { dinheiro: 300, barra_aco: 3 } } },
@@ -91,7 +91,7 @@ const ECO = {
       { nome: 'O quarto do casal', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 4, tinta: 3, madeira: 15 }, dinheiro: 2200, dias: 4 },
       { nome: 'O quarto das crianças e a mudança', etapas: ['colher', 'machado', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 4, tinta: 4, madeira: 20 }, dinheiro: 2500, dias: 5 },
     ],
-    quarto: 1.1,   // o quarto do casal: acorda com a energia 10% acima do máximo
+    quarto: 1.1,  // o quarto do casal: acorda com a energia 10% acima do máximo
   },
   // ---- Os aluguéis do quintal (depois da mudança): obras do Jocelino com custo; pagam no domingo à noite; o Patrão dá +50%.
   alugueis: {
