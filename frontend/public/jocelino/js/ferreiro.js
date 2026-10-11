@@ -5,9 +5,9 @@
 
 const NIVEIS_FERR = ['comum', 'reforçada', 'profissional', 'de mestre'];
 const Ferreiro = {
-  CUSTOS: { 1: { dinheiro: 100, barra_ferro: 5 }, 2: { dinheiro: 250, barra_aco: 5 }, 3: { dinheiro: 500, barra_bronze: 5 } },
+  CUSTOS: ECO.ferreiro.custos,
   FERRAMENTAS: ['machado', 'picareta', 'pa', 'regador', 'foice', 'colher'],
-  DIAS: 2, FUNDIR: 5, PRECO_FUNDIR: 10,
+  DIAS: 2, FUNDIR: 5, PRECO_FUNDIR: ECO.ferreiro.fundir,
   iniciar(s) { G.ferreiro = { oficina: s.ferreiro && s.ferreiro.oficina ? Object.assign({}, s.ferreiro.oficina) : null }; G.nivelFerr = Object.assign({}, s.nivelFerr || {}); },
   salvar(s) { s.ferreiro = { oficina: G.ferreiro.oficina ? Object.assign({}, G.ferreiro.oficina) : null }; s.nivelFerr = Object.assign({}, G.nivelFerr); },
   custo(id) { return Ferreiro.CUSTOS[nivelFerramenta(id) + 1] || null; },
@@ -44,7 +44,7 @@ const Ferreiro = {
   },
   // O irrigador (o aspersor do Stardew): Cr$ 80 + 2 barras de ferro, pronto na hora.
   irrigador(mochila, dinheiro) {
-    const preco = Math.round(80 * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
+    const preco = Math.round(ECO.ferreiro.irrigador * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
     if (mochila.total('barra_ferro') < 2) return { ok: false, gasto: 0, motivo: 'O irrigador pede 2 barras de ferro.' };
     if (dinheiro < preco) return { ok: false, gasto: 0, motivo: `O dinheiro não dá (Cr$ ${preco}).` };
     if (!mochila.cabe('irrigador')) return { ok: false, gasto: 0, motivo: 'A mochila está cheia.' };
@@ -54,7 +54,7 @@ const Ferreiro = {
   // O molinete (a vara de irídio do Stardew): Cr$ 600 + 3 barras de ferro, pede Pesca 6, pronto na hora.
   molinete(mochila, dinheiro) {
     if (typeof Habilidades !== 'undefined' && Habilidades.nivel('pesca') < 6) return { ok: false, gasto: 0, motivo: 'O molinete pede Pesca 6.' };
-    const preco = Math.round(600 * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
+    const preco = Math.round(ECO.ferreiro.molinete * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));
     if (mochila.total('barra_ferro') < 3) return { ok: false, gasto: 0, motivo: 'O molinete pede 3 barras de ferro.' };
     if (dinheiro < preco) return { ok: false, gasto: 0, motivo: `O dinheiro não dá (Cr$ ${preco}).` };
     if (!mochila.cabe('molinete')) return { ok: false, gasto: 0, motivo: 'A mochila está cheia.' };
@@ -83,10 +83,7 @@ MANHA.push(() => { if (Ferreiro.pronta(G.dia) && G.dia === G.ferreiro.oficina.pr
 TAREFAS.push(() => G.ferreiro && Ferreiro.pronta(G.dia) ? [{ texto: 'Buscar a ferramenta na ferraria do Tonico' }] : []);
 
 // O que o Tonico faz na hora (com dinheiro e material); as entregas seguintes acrescentam forja, irrigador bom e betoneira.
-const RECEITAS_TONICO = { lampiao: { dinheiro: 50, barra_ferro: 1 } };
-RECEITAS_TONICO.forja = { dinheiro: 150, barra_ferro: 2, pedra: 20 };
-RECEITAS_TONICO.irrigador_bom = { dinheiro: 150, barra_aco: 1, barra_ferro: 1 };
-RECEITAS_TONICO.betoneira = { dinheiro: 300, barra_aco: 3 };
+const RECEITAS_TONICO = JSON.parse(JSON.stringify(ECO.ferreiro.tonico));   // os preços moram no ECO
 Ferreiro.fazer = function (id, mochila, dinheiro) {
   const r = RECEITAS_TONICO[id]; if (!r) return { ok: false, gasto: 0, motivo: 'Isso o Tonico não faz.' };
   const preco = Math.round(r.dinheiro * (typeof Habilidades !== 'undefined' ? Habilidades.desconto() : 1));

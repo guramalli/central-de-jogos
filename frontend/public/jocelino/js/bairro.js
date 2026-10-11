@@ -22,29 +22,32 @@ const DONOS = [
   { id: 'tonha', nome: 'Tonha', casa: 'sobrado', terreno: 't4' }, { id: 'nenem', nome: 'Neném', casa: 'sobrado', terreno: 't8' },
 ];
 const TIPOS_CASA = {
-  simples: { arte: 'objetos/casa_simples_', fundacao: { material: { tijolo: 20, cimento: 2 } }, varanda: { cimento: 6, pigmento: 2 }, fator: 1 },
-  boa: { arte: 'objetos/casa_boa_', fundacao: { material: { cimento: 4, pedra: 10, vergalhao: 4 }, hab: { h: 'alvenaria', n: 2 } }, varanda: { cimento: 4, ladrilho: 30 }, fator: 1.4 },
-  sobrado: { arte: 'objetos/sobrado_', fundacao: { material: { cimento: 8, pedra: 20, vergalhao: 8 }, hab: { h: 'alvenaria', n: 5 } }, varanda: { cimento: 6, pigmento: 2 }, fator: 2 },
+  simples: { arte: 'objetos/casa_simples_', fundacao: { material: { tijolo: 20, cimento: 2 } }, varanda: { cimento: 6, pigmento: 2 } },
+  boa: { arte: 'objetos/casa_boa_', fundacao: { material: { cimento: 4, pedra: 10, vergalhao: 4 }, hab: { h: 'alvenaria', n: 2 } }, varanda: { cimento: 4, ladrilho: 30 } },
+  sobrado: { arte: 'objetos/sobrado_', fundacao: { material: { cimento: 8, pedra: 20, vergalhao: 8 }, hab: { h: 'alvenaria', n: 5 } }, varanda: { cimento: 6, pigmento: 2 } },
 };
+ecoCampo(TIPOS_CASA, 'fator', ECO.bairro.tipos);
 const FASES_CASA = [
-  { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], paga: 150, concreto: true },
-  { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 80, cimento: 6 }, paga: 250 },
-  { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 20, telha: 40 }, paga: 200 },
-  { nome: 'Reboco e pintura', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 2, tinta: 2 }, paga: 300, pintura: true, reforma: true },
-  { nome: 'Varanda', etapas: ['pa', 'colher', 'regador'], paga: 150, concreto: true },
-  { nome: 'Muro da frente', etapas: ['pa', 'colher', 'colher', 'regador'], material: { tijolo: 30, cimento: 4, pedra: 6 }, paga: 200 },
+  { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], concreto: true },
+  { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 80, cimento: 6 } },
+  { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 20, telha: 40 } },
+  { nome: 'Reboco e pintura', etapas: ['colher', 'colher', 'regador', 'colher'], material: { cimento: 6, cal: 2, tinta: 2 }, pintura: true, reforma: true },
+  { nome: 'Varanda', etapas: ['pa', 'colher', 'regador'], concreto: true },
+  { nome: 'Muro da frente', etapas: ['pa', 'colher', 'colher', 'regador'], material: { tijolo: 30, cimento: 4, pedra: 6 } },
 ];
+ecoCampo(FASES_CASA, 'paga', ECO.bairro.casa);
 const COMERCIOS = {
   padaria: { dono: 'cida', nome: 'Padaria da Dona Cida', arte: 'objetos/padaria', libera: 1, abre: 6 * 60, fecha: 12 * 60, folga: 0, vende: { pao: 4, cafe: 2, rabanada: 6, bolo: 8 } },
   bar: { dono: 'orlando', nome: 'Bar do Seu Orlando', arte: 'objetos/bar_orlando', libera: 2, abre: 15 * 60, fecha: 23 * 60, folga: 1, vende: { suco_caju: 5, cocada: 5, peixe_frito: 8, caldo_caranguejo: 12 } },
 };
 const FASES_COMERCIO = [
-  { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], material: { cimento: 6, pedra: 15, vergalhao: 6 }, paga: 300, concreto: true },
-  { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 120, cimento: 8 }, paga: 450 },
-  { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 30, telha: 60 }, paga: 350 },
-  { nome: 'Acabamento e balcão', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 2, tinta: 3, madeira: 10 }, paga: 500, pintura: true },
-  { nome: 'Entrada', etapas: ['pa', 'colher', 'regador'], material: { cimento: 4, pedra: 10 }, paga: 200, concreto: true },
+  { nome: 'Fundação', etapas: ['pa', 'pa', 'colher', 'regador'], material: { cimento: 6, pedra: 15, vergalhao: 6 }, concreto: true },
+  { nome: 'Paredes', etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], material: { tijolo: 120, cimento: 8 } },
+  { nome: 'Telhado', etapas: ['machado', 'machado', 'colher'], material: { madeira: 30, telha: 60 } },
+  { nome: 'Acabamento e balcão', etapas: ['colher', 'colher', 'machado', 'colher'], material: { cimento: 6, cal: 2, tinta: 3, madeira: 10 }, pintura: true },
+  { nome: 'Entrada', etapas: ['pa', 'colher', 'regador'], material: { cimento: 4, pedra: 10 }, concreto: true },
 ];
+ecoCampo(FASES_COMERCIO, 'paga', ECO.bairro.comercio);
 Object.assign(CLIENTE_NOME, { nena: 'Dona Nena', neide: 'Neide', valdir: 'Valdir Baiano', rosinete: 'Rosinete', lurdes: 'Dona Lurdes', tonha: 'Tonha', nenem: 'Neném', orlando: 'Seu Orlando', tonhao: 'Tonhão' });
 const idFase = (t, f) => (TERRENOS[t].tipo === 'comercio' ? 'loja_' : 'casa_') + t + '_' + f;
 // As fases viram empreitas longas (o laço da etapa 6): a plaquinha fica na frente do terreno (x+1, y+5).

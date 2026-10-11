@@ -7,7 +7,6 @@ const RECEITAS_FABRICAR = {
   impermeabilizante: { hab: 'acabamento', nivel: 5, custo: { cimento: 1, fibra: 3 }, da: 1 },
   acelerador: { hab: 'acabamento', nivel: 8, custo: { cimento: 2, cal: 1 }, da: 1 },
 };
-LOJA.PRECOS.impermeabilizante = 35;
 const Fabricar = {
   conhecida(id) {
     const r = RECEITAS_FABRICAR[id]; if (!r) return false;

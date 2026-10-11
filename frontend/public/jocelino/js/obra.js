@@ -3,8 +3,8 @@
 // por etapa, com gratificação) e as obras em sequência, cada uma no seu lugar com a arte das etapas.
 
 const FUNCOES = ['Servente', 'Meio-oficial', 'Pedreiro', 'Mestre de obras'];
-const DIARIAS = [30, 45, 60, 90];
-const OBRA_ABRE = 7 * 60, OBRA_FECHA = 12 * 60, OBRA_EXTRA = 8, OBRA_GORJETA = 10, OBRA_IMPREVISTO = 0.18, DIAS_POR_ETAPA = 2;
+const DIARIAS = ECO.obra.diarias;
+const OBRA_ABRE = 7 * 60, OBRA_FECHA = 12 * 60, OBRA_EXTRA = ECO.obra.extra, OBRA_GORJETA = ECO.obra.gorjeta, OBRA_IMPREVISTO = ECO.obra.imprevisto, DIAS_POR_ETAPA = 2;
 const TAREFAS_OBRA = {
   tijolos: { texto: 'Carregar tijolos', meta: 20, hab: 'alvenaria', xp: 1 },
   areia: { texto: 'Peneirar areia', meta: 5, hab: 'alvenaria', xp: 3 },
@@ -20,8 +20,7 @@ const TAREFAS_OBRA = {
   rebocar: { texto: 'Chapiscar e rebocar a parede', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
   buscar_cimento: { texto: 'Imprevisto: buscar 2 sacos de cimento no Ananias', meta: 2, hab: 'negocio', xp: 2 },
 };
-const PREMIOS_CASA = [{ dinheiro: 15, itens: { madeira: 15 } }, { dinheiro: 20, itens: { pedra: 20 } }, { dinheiro: 20, itens: { cafe: 3 } },
-  { dinheiro: 25, itens: { cimento: 2 } }, { dinheiro: 30, itens: { pao: 3 } }, { dinheiro: 60, itens: { tijolo: 20 } }];
+const PREMIOS_CASA = ECO.obra.premiosCasa;
 const ETAPAS_CASA = [
   { nome: 'Gabarito', tarefas: ['capinar', 'entulho', 'areia', 'buscar_pedra'] },
   { nome: 'Alicerce', tarefas: ['pedras', 'areia', 'massa', 'entulho'] },
@@ -33,22 +32,22 @@ const ETAPAS_CASA = [
 const OBRAS = [
   { id: 'casa_zelia', nome: 'Casa da Dona Zélia', cliente: 'Dona Zélia', mapa: 'vila', etapas: ETAPAS_CASA, premios: PREMIOS_CASA, arte: n => 'objetos/casa_zelia_' + (n + 1) },
   { id: 'mercado', nome: 'Reforma do Mercado Municipal', cliente: 'Prefeitura', mapa: 'vila',
-    etapas: [ETAPAS_CASA[0], ETAPAS_CASA[3], ETAPAS_CASA[4], ETAPAS_CASA[5]], premios: [PREMIOS_CASA[0], PREMIOS_CASA[3], PREMIOS_CASA[4], { dinheiro: 120, itens: { tijolo: 30 } }],
+    etapas: [ETAPAS_CASA[0], ETAPAS_CASA[3], ETAPAS_CASA[4], ETAPAS_CASA[5]], premios: ECO.obra.premiosMercado,
     arte: n => 'objetos/mercado_' + Math.min(3, n) },
   { id: 'escola', nome: 'Escola da Vila', cliente: 'Professor Paulo', mapa: 'vila', etapas: ETAPAS_CASA, premios: PREMIOS_CASA,
     arte: n => n < 2 ? 'objetos/alicerce' : n < 5 ? 'objetos/muro' : 'objetos/escola' },
   { id: 'predio', nome: 'Edifício Maré', cliente: 'J. Moreira', mapa: 'vila',
     etapas: ['Fundação', 'Térreo', '1º andar', '2º andar', '3º andar', '4º andar', 'Cobertura'].map((nome, i) => ({ nome, tarefas: i === 0 ? ['pedras', 'areia', 'massa', 'entulho'] : ['tijolos', 'massa', 'ripas', 'molhar', 'entulho'] })),
-    premios: Array.from({ length: 7 }, (_, i) => i === 6 ? { dinheiro: 1000, itens: { barra_aco: 3, madeira_lei: 5 } } : { dinheiro: 150, itens: { cimento: 3 } }),
+    premios: Array.from({ length: 7 }, (_, i) => i === 6 ? ECO.obra.premiosPredio.fim : ECO.obra.premiosPredio.etapa),
     arte: n => 'objetos/predio_' + Math.min(7, n + 1) },
 ];
 // As reformas pela Vila (no Mercado): o que o Bira toca enquanto o pedreiro não vira mestre (o Edifício Maré é do mestre)
 // e o que o mestre recomeça depois do prédio, até a construtora.
 const REFORMAS = { id: 'reformas', nome: 'Reformas pela Vila', cliente: 'moradores', mapa: 'vila', lugar: 'mercado',
-  etapas: [ETAPAS_CASA[3], ETAPAS_CASA[5]], premios: [{ dinheiro: 40, itens: { cimento: 2 } }, { dinheiro: 80, itens: { tijolo: 20 } }], arte: () => 'objetos/mercado_3' };
+  etapas: [ETAPAS_CASA[3], ETAPAS_CASA[5]], premios: ECO.obra.premiosReformas, arte: () => 'objetos/mercado_3' };
 
 // O que cada função pede (obras do Bira entregues, nível de Alvenaria, empreitas entregues).
-const REQUISITOS_FUNCAO = [null, { obras: 1, alvenaria: 2, empreitas: 0 }, { obras: 2, alvenaria: 4, empreitas: 3 }, { obras: 4, alvenaria: 6, empreitas: 10 }];
+const REQUISITOS_FUNCAO = ECO.obra.requisitos;
 const Obra = {
   iniciar(s) {
     const o = s.obra || {};
@@ -111,7 +110,7 @@ const Obra = {
     if (!l || l.paga || !Obra.completa()) return 0;
     l.paga = true; l.contou = true;
     if (l.extra) { const v = l.valorExtra || 0; l.valorExtra = 0; return v; }
-    return Obra.diaria() + (G.obra.funcao >= 3 ? 20 : 0) +   // o mestre ganha o dia redondo
+    return Obra.diaria() + (G.obra.funcao >= 3 ? ECO.obra.mestreRedondo : 0) +   // o mestre ganha o dia redondo
       (l.metas.buscar_cimento ? OBRA_GORJETA : 0) + (typeof Habilidades !== 'undefined' ? (Habilidades.tem('prumo_de_ouro') ? 15 : Habilidades.tem('olho_de_prumo') ? 5 : 0) : 0);
   },
   // Meio-dia (ou a noite, se o jogador não voltou ao Bira): a parte feita vira dinheiro a receber; ≥ 50% conta o dia.

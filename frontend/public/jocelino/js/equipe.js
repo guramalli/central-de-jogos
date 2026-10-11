@@ -5,8 +5,8 @@
 // Regras puras (testadas na s1); no palco os ajudantes de salão andam e trabalham (palco.js).
 
 const Equipe = {
-  ANUNCIOS: { cartaz: { nome: 'Cartaz na padaria', preco: 50, base: 10, variacao: 15 }, radio: { nome: 'Anúncio no rádio', preco: 150, base: 25, variacao: 20 },
-    jornal: { nome: 'Classificado no jornal', preco: 400, base: 45, variacao: 25 } },
+  ANUNCIOS: { cartaz: { nome: 'Cartaz na padaria', base: 10, variacao: 15 }, radio: { nome: 'Anúncio no rádio', base: 25, variacao: 20 },
+    jornal: { nome: 'Classificado no jornal', base: 45, variacao: 25 } },
   // Gente da Vila e de fora que procura trabalho (as folhas de andar e os retratos já existem).
   PESSOAS: [['neide', 'Neide'], ['lurdes', 'Dona Lurdes'], ['nena', 'Nena'], ['rosinete', 'Rosinete'], ['tonha', 'Tonha'], ['dona_cida', 'Dona Cida'],
     ['paulo', 'Paulo'], ['nenem', 'Neném']],
@@ -19,7 +19,7 @@ const Equipe = {
     cozinha: [['fogo', 'Uma boca a mais no fogão'], ['pressa', 'A Rosa cozinha ainda mais rápido']],
     compras: [['feira', 'Traz o dobro da feira'], ['raro', 'Traz ingrediente mais raro']],
   },
-  SALARIO_BASE: 4,
+  get SALARIO_BASE() { return ECO.equipe.salarioBase; },
 
   anunciar(p, tipo) { if (!Equipe.ANUNCIOS[tipo]) return 'tipo'; p.anuncio = tipo; return 'ok'; },
   // De manhã: o anúncio de ontem traz 3 candidatos (some quem não foi contratado no anúncio anterior).
@@ -86,6 +86,7 @@ const Equipe = {
     return r;
   },
 };
+ecoCampo(Equipe.ANUNCIOS, 'preco', ECO.equipe.anuncios);
 
 // De manhã: o anúncio de ontem traz candidatos; quem é de Compras volta da feira com ingredientes para a despensa.
 MANHA.push(() => {

@@ -149,7 +149,7 @@ DESENHOS_TELA.push(ctx => {
 });
 
 // ---------- a banca do Seu Lourival (o Willy): vende peixe; compra isca, covo e a vara boa ----------
-const PRECO_BANCA = { isca: 5, covo: 50, vara_boa: 250 };
+const PRECO_BANCA = ECO.lojas.banca;
 const PEDE_PESCA = { vara_boa: 2 };
 let _abaBanca = 0;
 function abrirBanca() {

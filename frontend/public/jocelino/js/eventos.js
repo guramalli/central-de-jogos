@@ -94,8 +94,8 @@ const receitaDoVip = id => Object.keys(typeof RECEITAS_NOVAS !== 'undefined' ? R
 const Viajante = {
   DIA: 3,                 // quinta (0 = segunda)
   GRAU: 3,
-  RECEITAS: { arroz_polvo: 300 },
-  INGREDIENTES: { polvo: 40, camarao: 18, lagosta: 70, pimenta_cheiro: 35, dende: 12 },
+  RECEITAS: ECO.lojas.viajante.receitas,
+  INGREDIENTES: ECO.lojas.viajante.ingredientes,
   presente(p, dia) { return !!p && (p.estado === 'aberta' || p.estado === 'pronta') && p.grau() >= Viajante.GRAU && (dia - 1) % 7 === Viajante.DIA; },
   comprarReceita(p, id, dinheiro) {
     if (!(id in Viajante.RECEITAS)) return 'nao';

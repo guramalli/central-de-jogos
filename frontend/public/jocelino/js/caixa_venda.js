@@ -3,9 +3,7 @@
 // Preço: o que o Ananias compra vale o preço dele; a coleta e o minério têm tabela própria; o que a loja vende volta
 // pela metade; ferramenta não se vende. O Negócio (habilidade) dá +1% por nível e as vantagens Pechincha/Atravessador.
 
-const PRECO_CAIXA = { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40,
-  coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12,
-  pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50, marmita: 10 };
+const PRECO_CAIXA = Object.assign({}, ECO.caixa);   // a colheita e o peixe entram pelo horta.js e pelo pesca.js
 
 const CaixaVenda = {
   preco(id) {

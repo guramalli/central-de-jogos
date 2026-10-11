@@ -14,7 +14,7 @@ const AGUA_REGADOR = [30, 50], HORTA_SOME = 0.2, MINIMO_GALINHAS = 8, CHANCE_GAL
 const estacaoDoDia = dia => Math.floor((dia - 1) / 28) % 4;
 const culturaDaSemente = item => Object.keys(CULTURAS).find(id => CULTURAS[id].semente === item) || '';
 const chaveH = (x, y) => x + ',' + y;
-for (const id in CULTURAS) PRECO_CAIXA[id] = CULTURAS[id].venda;   // a caixa de venda paga a colheita
+for (const id in CULTURAS) PRECO_CAIXA[id] = Math.round(CULTURAS[id].venda * ECO.horta.fatorVenda);   // a caixa de venda paga a colheita
 
 const Horta = {
   iniciar(s) {

@@ -7,14 +7,7 @@ class Pensao {
   // A fama em 6 degraus (os ranks do Cooksta no Dave): cada um pede curtidas (clientes que deram 4 estrelas ou mais),
   // melhor sabor (o prato mais caprichado) e receitas pesquisadas; libera vagas no cardápio, banquetas e clientes, e
   // cobra uma despesa por noite (gás, gelo, luz).
-  static DEGRAUS = [
-    { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, vagas: 2, mesas: 2, clientes: 6, despesa: 0 },
-    { nome: 'Boteco Conhecido', curtidas: 10, sabor: 0, pesquisadas: 0, vagas: 3, mesas: 3, clientes: 8, despesa: 5 },
-    { nome: 'Pensão Falada', curtidas: 30, sabor: 0, pesquisadas: 2, vagas: 4, mesas: 4, clientes: 10, despesa: 12 },
-    { nome: 'Pensão Famosa', curtidas: 80, sabor: 36, pesquisadas: 3, vagas: 5, mesas: 5, clientes: 12, despesa: 25 },
-    { nome: 'Casa Tradicional', curtidas: 160, sabor: 60, pesquisadas: 5, garfos: 4, vagas: 6, mesas: 6, clientes: 14, despesa: 45 },
-    { nome: 'Patrimônio da Vila', curtidas: 300, sabor: 96, pesquisadas: 7, garfos: 5, vagas: 7, mesas: 6, clientes: 16, despesa: 70 },
-  ];
+  static DEGRAUS = ECO.pensao.degraus;   // os números moram no ECO (economia.js)
   static GRAUS = Pensao.DEGRAUS;
   static TELHAS = 10;
   static MADEIRA = 20;
@@ -25,7 +18,7 @@ class Pensao {
   static RECEITAS_INICIAIS = ['pf_peao', 'peixe_frito', 'sopa_pedra', 'cocada_tijolinho'];
   // Caprichar (o Enhance do Bancho): cópias do ingrediente principal para subir do nível n para n+1 (1 → 10).
   static NIVEL_MAX = 10;
-  static SABOR_POR_NIVEL = 12;
+  static get SABOR_POR_NIVEL() { return ECO.pensao.saborPorNivel; }
 
   constructor() {
     this.estado = 'fechada';   // fechada, limpar, telhas, mesas, pronta, aberta
@@ -38,7 +31,19 @@ class Pensao {
   }
   melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
   pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
-  _cumpre(d) { return this.curtidas >= d.curtidas && this.melhorSabor() >= d.sabor && this.pesquisadas() >= d.pesquisadas && (this.garfos || 0) >= (d.garfos || 0); }
+  // As estrelas da casa (0 a 5): o degrau menos 1.
+  estrelasCasa(g = this.grau()) { return g - 1; }
+  static textoEstrelas(n) { return '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n)); }
+  nomeComEstrelas(g = this.grau()) { return Pensao.textoEstrelas(g - 1) + ' ' + this.nomeGrau(g); }
+  // Visitas do Paladar (noites diferentes) com pelo menos n garfos; vitórias no concurso da Rádio.
+  visitasCom(n) { return new Set((this.paladarNotas || []).filter(x => x.nota >= n).map(x => x.dia)).size; }
+  vitorias() { return Object.values(this.concursos || {}).filter(v => v === 'venceu').length; }
+  // O degrau pede curtidas, sabor e pesquisadas; os altos, o calendário: visitas do Paladar e vitória no concurso.
+  _cumpre(d) {
+    const paladar = this._semPaladar || !d.garfos || this.visitasCom(d.garfos) >= (d.visitas || 1);
+    const concurso = this._semPaladar || this.vitorias() >= (d.concurso || 0);
+    return this.curtidas >= d.curtidas && this.melhorSabor() >= d.sabor && this.pesquisadas() >= d.pesquisadas && paladar && concurso;
+  }
   grau() { let g = 1; for (let i = 1; i < Pensao.DEGRAUS.length && this._cumpre(Pensao.DEGRAUS[i]); i++) g = i + 1; return Math.max(g, this.grauMinimo || 1); }
   degrau(g = this.grau()) { return Pensao.DEGRAUS[clamp(g, 1, Pensao.DEGRAUS.length) - 1]; }
   nomeGrau(g) { return this.degrau(g).nome; }
@@ -52,14 +57,14 @@ class Pensao {
     const g = this.grau();
     if (g >= Pensao.DEGRAUS.length) return null;
     const d = Pensao.DEGRAUS[g];
-    return { grau: g + 1, nome: d.nome, d, falta: { curtidas: Math.max(0, d.curtidas - this.curtidas), sabor: Math.max(0, d.sabor - this.melhorSabor()), pesquisadas: Math.max(0, d.pesquisadas - this.pesquisadas()), garfos: Math.max(0, (d.garfos || 0) - (this.garfos || 0)) } };
+    return { grau: g + 1, nome: d.nome, d, falta: { curtidas: Math.max(0, d.curtidas - this.curtidas), sabor: Math.max(0, d.sabor - this.melhorSabor()), pesquisadas: Math.max(0, d.pesquisadas - this.pesquisadas()), visitas: d.garfos ? Math.max(0, (d.visitas || 1) - this.visitasCom(d.garfos)) : 0, garfos: d.garfos || 0, concurso: Math.max(0, (d.concurso || 0) - this.vitorias()) } };
   }
   // Progresso para o próximo degrau (0 a 1), pela média das três exigências.
   progresso() {
     const p = this.proximoDegrau(); if (!p) return 1;
     const a = this.degrau(), d = p.d, f = (v, x0, x1) => x1 <= x0 ? 1 : clamp((v - x0) / (x1 - x0), 0, 1);
     const partes = [f(this.curtidas, a.curtidas, d.curtidas), f(this.melhorSabor(), a.sabor, d.sabor), f(this.pesquisadas(), a.pesquisadas, d.pesquisadas)];
-    if (d.garfos) partes.push(clamp((this.garfos || 0) / d.garfos, 0, 1));
+    if (d.garfos) partes.push(clamp(this.visitasCom(d.garfos) / (d.visitas || 1), 0, 1)); if (d.concurso) partes.push(clamp(this.vitorias() / d.concurso, 0, 1));
     return partes.reduce((s, x) => s + x, 0) / partes.length;
   }
   // Compatibilidade (textos antigos): pontos que faltam = curtidas que faltam.
@@ -115,7 +120,7 @@ class Pensao {
     for (const id of Object.keys(this.despensa)) if (this.despensa[id] <= 0) delete this.despensa[id];
     return rar;
   }
-  preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + ECO.precoPorNivel * (this.nivel(prato) - 1)) * (typeof temperoDaRoca === 'function' ? temperoDaRoca(prato) : 1)); }
+  preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * ECO.pratos.fator * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + ECO.precoPorNivel * (this.nivel(prato) - 1)) * (typeof temperoDaRoca === 'function' ? temperoDaRoca(prato) : 1)); }
 
   // ---------------- a panela da noite: a Rosa prepara as porções antes (ou na hora, se faltar)
   porcoesPorPanela(prato) {
@@ -153,7 +158,7 @@ class Pensao {
     const n = this.nivel(prato);
     if (n >= Pensao.NIVEL_MAX) return {};
     const c = {}, por = Pratos.PRATOS[prato].porcao;
-    for (const id in por) c[id] = Math.floor((por[id] + 1) * Math.pow(1.5, n - 1));
+    for (const id in por) c[id] = Math.floor((por[id] + 1) * Math.pow(ECO.pensao.caprichoCresce, n - 1));
     return c;
   }
   // Sobe o nível do prato: 'ok', 'falta' ou 'max'.
@@ -223,14 +228,14 @@ class Pensao {
     let e = 1 + (rapido ? 1 : 0) + (certo ? 1 : 0) + (bebida ? 1 : 0) + ((sabor > 0 || saladaExtra) ? 1 : 0);
     return clamp(e, 1, 5);
   }
-  static gorjeta(preco, estrelas) { return Math.round(preco * 0.3 * (estrelas - 1) / 4); }
+  static gorjeta(preco, estrelas) { return Math.round(preco * ECO.pensao.gorjeta * (estrelas - 1) / 4); }
   // Soma as estrelas da noite na fama. Devolve o grau novo (0 se não subiu).
   registrarNoite(estrelas, dia, curtidas = 0) {
     const antes = this.grau();
     this.fama += Math.max(0, estrelas);
     this.curtidas += Math.max(0, curtidas);
     this.ultimaJanta = dia;
-    if (estrelas > 0) this.pitadas += Math.max(1, Math.floor(estrelas / 4));   // as estrelas viram pitadas de tempero (a "Artisan's Flame")
+    if (estrelas > 0) this.pitadas += Math.max(1, Math.floor(estrelas / ECO.pensao.estrelasPorPitada));   // as estrelas viram pitadas de tempero (a "Artisan's Flame")
     this.grauMinimo = Math.max(this.grauMinimo || 1, this.grau());             // a pensão nunca desce de degrau
     return this.grau() > antes ? this.grau() : 0;
   }
@@ -286,7 +291,7 @@ class Pensao {
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
-      premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos),
+      premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos), estrelasPremiadas: this.estrelasPremiadas ?? null, festaDia: this.festaDia || 0,
       ampliacoes: this.ampliacoes.slice(), obra: this.obra ? Object.assign({}, this.obra) : null, nivelMelhoria: Object.assign({}, this.nivelMelhoria) };
   }
   deDict(d) {
@@ -300,8 +305,10 @@ class Pensao {
     this.grauMinimo = d.grauMinimo || (d.curtidas == null ? [0, 40, 120, 300, 600].filter(x => this.fama >= x).length : 1);
     this.equipe = JSON.parse(JSON.stringify(d.equipe || [])); this.candidatos = JSON.parse(JSON.stringify(d.candidatos || [])); this.anuncio = d.anuncio || ''; this.melhorias = (d.melhorias || []).slice(); this.agenda = JSON.parse(JSON.stringify(d.agenda || [])); this.metas = JSON.parse(JSON.stringify(d.metas || [])); this.panela = Object.assign({}, d.panela || {}); this.panelaRar = Object.assign({}, d.panelaRar || {}); this.chef = Object.assign({ nivel: 1, xp: 0 }, d.chef || {});
     this.premios = (d.premios || []).slice(); this.garfos = d.garfos || 0; this.paladarNotas = JSON.parse(JSON.stringify(d.paladarNotas || [])); this.concursos = Object.assign({}, d.concursos || {});
+    if (!this.paladarNotas.length && this.garfos > 0) this.paladarNotas.push({ dia: 0, nota: this.garfos });   // save antigo: a nota guardada vira a 1ª visita
+    this.estrelasPremiadas = d.estrelasPremiadas ?? null; this.festaDia = d.festaDia || 0;
     this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
     // Save de antes dos garfos do Doutor Paladar: o degrau que já tinha não cai (os garfos só valem daqui para a frente).
-    if (d.garfos == null) { this.garfos = 99; const g = this.grau(); this.garfos = 0; this.grauMinimo = Math.max(this.grauMinimo || 1, g); }
+    if (d.garfos == null) { this._semPaladar = true; const g = this.grau(); this._semPaladar = false; this.grauMinimo = Math.max(this.grauMinimo || 1, g); }
   }
 }

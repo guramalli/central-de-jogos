@@ -49,6 +49,7 @@ function atualizarPensaoMundo(so) {
     sal.banquetas.push(b);
   }
   if (e === 'aberta' && !sal.rosa) sal.rosa = sal.morador('rosa', 'Rosa', SALAO.COZINHA[0] + 1, SALAO.COZINHA[1] - 1, DIR.BAIXO);
+  if (vila) poePlacaPatrimonio(vila);
 }
 
 // ---------- reforma ----------
@@ -122,7 +123,7 @@ function pensaoQuadro() {
     caixa.append(el('div', { class: 'lousa-titulo' }, '~ Pensão da Rosa ~'));
     const esq = el('div', { class: 'lousa-esq' }, el('div', { class: 'giz-am' }, 'Sempre tem'),
       (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => el('div', {}, '- ' + Pratos.BEBIDAS[b])), el('div', { class: 'giz-mi' }, '(cafezinho antes do prato, na medida: +30%)'),
-      el('div', { class: 'lousa-fama' }, el('div', { class: 'giz-am' }, p.nomeGrau(p.grau())),
+      el('div', { class: 'lousa-fama' }, el('div', { class: 'giz-am' }, p.nomeComEstrelas()),
         el('div', {}, `${p.curtidas} curtidas`),
         el('div', {}, `Pratos: ${p.cardapio.length} de ${p.vagas()}`)));
     const dir = el('div', { class: 'lousa-dir' }, el('div', { class: 'giz-am' }, 'Pratos de hoje'));
@@ -161,7 +162,11 @@ function pensaoQuadro() {
 function iniciarJanta() {
   G.turno = new TurnoJanta();
   const festa = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'festa') : null, vip = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'vip') : null;
+  const festaPatrimonio = G.pensao.festaDia === G.dia;   // a noite de festa da 5ª estrela
   G.turno.iniciar(G.pensao, G.dia, G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0));
+  // A noite de festa da 5ª estrela: a Vila inteira vem como convidada (nunca sai da fila por repetir um morador).
+  if (festaPatrimonio) { for (let k = 0; k < ECO.pensao.premio5.festaClientes; k++) G.turno._fila.push({ minuto: 17 * 60 + 15 + k * 25, cliente: Object.assign({}, Pratos.CLIENTES[(G.dia * 7 + k) % Pratos.CLIENTES.length], { convidado: true }) });
+    G.turno._fila.sort((a, b) => a.minuto - b.minuto); avisar('Noite de festa: a Vila inteira veio comemorar o Patrimônio!'); }
   if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome;
     // Os convidados da festa: 3 a mais, que pedem o prato do tema.
     for (let k = 0, nc = 3 + (typeof temAmpliacao === 'function' && temAmpliacao('varanda') ? 2 : 0); k < nc; k++) { const c = Pratos.CLIENTES[(G.dia + k * 3) % Pratos.CLIENTES.length]; G.turno._fila.push({ minuto: 17 * 60 + 20 + k * 40, cliente: Object.assign({}, c, { pedeTema: festa.prato, convidado: true }) }); }
@@ -225,7 +230,7 @@ function encerrarJanta() {
   G.dinheiro -= custo; G.ganhoHoje -= custo; r.custo = custo;
   // As metas da noite (servir, bebida na medida, nota) e as de estado.
   if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); }
-  if (r.subiu) { G.correio.caixa.push('fama_' + r.subiu); sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão subiu: agora é "${G.pensao.nomeGrau(r.subiu)}"!`); }
+  if (r.subiu) { sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão ganhou mais uma estrela: agora é ${G.pensao.nomeComEstrelas(r.subiu)}!`); }
   // A sobra da panela vira marmita (a família janta o resto).
   const sobra = G.pensao.sobraVira(); r.sobra = sobra;
   if (sobra.marmitas && G.mochila) { G.mochila.adicionar('marmita', sobra.marmitas); avisar(`Sobrou comida: ${sobra.marmitas} marmita(s) para o almoço da obra; a família jantou o resto.`); }
@@ -410,7 +415,7 @@ function atualizaSeloPensao(selo, noSalao) {
   if (selo._k === chave) return;
   selo._k = chave;
   selo.innerHTML = '';
-  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: urlArte(`ui/selo_${g}`), class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeGrau(g)), el('div', {}, linha2));
+  selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: urlArte(`ui/selo_${g}`), class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeComEstrelas(g)), el('div', {}, linha2));
   if (px) selo.append(el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })));   // no degrau mais alto não tem barra
 }
 // O que falta para o próximo degrau, em texto.
@@ -419,7 +424,8 @@ function textoFalta(f) {
   if (f.curtidas) t.push(`${f.curtidas} ${f.curtidas === 1 ? 'curtida' : 'curtidas'}`);
   if (f.sabor) t.push(`melhor sabor +${f.sabor} (caprichar no caderno)`);
   if (f.pesquisadas) t.push(`${f.pesquisadas} ${f.pesquisadas === 1 ? 'receita pesquisada' : 'receitas pesquisadas'}`);
-  if (f.garfos) t.push(`${f.garfos} ${f.garfos === 1 ? 'garfo' : 'garfos'} a mais na nota do Doutor Paladar`);
+  if (f.visitas) t.push(`${f.visitas} ${f.visitas === 1 ? 'visita' : 'visitas'} do Doutor Paladar com ${f.garfos} garfos`);
+  if (f.concurso) t.push(`${f.concurso} ${f.concurso === 1 ? 'vitória' : 'vitórias'} no concurso da Rádio`);
   return t.length ? 'faltam ' + t.join(', ') : 'quase lá';
 }
 // ---------- A Pensão: os 6 degraus da fama, o que cada um pede e libera (a tela do Cooksta) ----------
@@ -431,14 +437,14 @@ function abrirPainelPensao() {
   const lista = el('div', { class: 'pp-lista' });
   Pensao.DEGRAUS.forEach((d, i) => {
     const n = i + 1, atual = n === g, feito = n < g;
-    const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : '', d.garfos ? `${d.garfos} garfos do Doutor Paladar` : ''].filter(Boolean).join(' · ');
+    const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : '', d.garfos ? `${d.garfos} garfos do Doutor Paladar em ${d.visitas || 1} ${(d.visitas || 1) === 1 ? 'visita' : 'visitas'}` : '', d.concurso ? `${d.concurso} vitória no concurso da Rádio` : ''].filter(Boolean).join(' · ');
     lista.append(el('div', { class: 'pp-degrau' + (atual ? ' atual' : feito ? ' feito' : '') },
       spr('ui/selo_' + n) ? el('img', { src: urlArte(`ui/selo_${n}`) }) : el('div', { class: 'pp-num' }, n),
-      el('div', {}, el('b', {}, d.nome + (atual ? '  ← agora' : feito ? '  ✓' : '')), el('div', { class: 'pp-req' }, req),
+      el('div', {}, el('b', {}, Pensao.textoEstrelas(i) + ' ' + d.nome + (atual ? '  ← agora' : feito ? '  ✓' : '')), el('div', { class: 'pp-req' }, req),
         el('div', { class: 'pp-libera' }, `${d.vagas} pratos no quadro · ${d.mesas} banquetas · ${d.clientes} clientes por noite · despesa Cr$ ${d.despesa}`))));
   });
   const px = p.proximoDegrau();
-  caixa.append(lista, el('div', { class: 'pp-falta' }, px ? `Para "${px.nome}": ${textoFalta(px.falta)}.` : 'A pensão é Patrimônio da Vila! Não tem mais degrau para subir.'),
+  caixa.append(lista, el('div', { class: 'pp-falta' }, px ? `Para "${px.nome}": ${textoFalta(px.falta)}.` : '★★★★★ A pensão é Patrimônio da Vila! Não tem mais estrela para ganhar.'),
     el('div', { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:8px' }, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); abrirMetas(); } }, 'Ver as metas'), el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); abrirAmpliacao(); } }, 'Ampliar a pensão'), el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(caixa);
   sons.tocar('abrir', 1, 0.03, -6);
@@ -453,20 +459,54 @@ NOITE.push(linhas => {
     const rs = TurnoJanta.rosaSozinha(G.pensao, { randf: f, randi: () => Math.floor(f() * 4294967296) });
     G.pensao.registrarNoite(rs.estrelas, G.dia, 0);
     G.dinheiro += rs.ganho; G.ganhoHoje += rs.ganho;
-    linhas.push(rs.servidos > 0 ? `A Rosa se virou sozinha na pensão: ${rs.servidos} PFs, Cr$ ${rs.ganho}.` : 'A pensão abriu, mas a despensa estava vazia: a Rosa só passou café.');
+    // A despesa da noite e os salários saem mesmo sem o Jocelino (nunca deixa o bolso negativo; a pensão não fecha por isso).
+    const conta = G.pensao.despesa() + (typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0), custo = Math.min(conta, Math.max(0, G.dinheiro));
+    G.dinheiro -= custo; G.ganhoHoje -= custo;
+    linhas.push((rs.servidos > 0 ? `A Rosa se virou sozinha na pensão: ${rs.servidos} PFs, Cr$ ${rs.ganho}.` : 'A pensão abriu, mas a despensa estava vazia: a Rosa só passou café.') + (custo ? ` Despesa e salários: Cr$ ${custo}.` : ''));
   } else if (G.relatorioPensao) {
     const r = G.relatorioPensao, p = G.pensao;
     const media = r.estrelas / Math.max(1, r.servidos);
-    linhas.push(`Pensão da Rosa: ${r.clientes} clientes, ${r.servidos} pratos, Cr$ ${r.ganho} + Cr$ ${r.gorjeta} de gorjeta (${media.toFixed(1)} estrelas de média).`);
+    linhas.push(`Pensão da Rosa ${Pensao.textoEstrelas(p.estrelasCasa())}: ${r.clientes} clientes, ${r.servidos} pratos, Cr$ ${r.ganho} + Cr$ ${r.gorjeta} de gorjeta (${media.toFixed(1)} estrelas de média).`);
     if (r.embora) linhas.push(`   ${r.embora} ${r.embora === 1 ? 'foi' : 'foram'} embora sem comer.`);
     if (r.faltou.length) linhas.push(`   Faltou ingrediente para: ${r.faltou.map(id => Pratos.PRATOS[id] ? Pratos.PRATOS[id].nome : id).join(', ')}. ${r.cafes} ${r.cafes === 1 ? 'cliente tomou' : 'clientes tomaram'} só café.`);
     linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${r.despesa}${r.salarios ? ` · salários Cr$ ${r.salarios}` : ''} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`);
     if (G.relatorioPensao.premioVip) linhas.push(`   O cliente especial adorou! Prêmio: Cr$ ${r.premioVip.dinheiro}, ${r.premioVip.curtidas} curtidas e ${r.premioVip.pitadas} pitadas.`);
     else if (r.vip === 'faltou') linhas.push('   O cliente especial foi embora decepcionado: faltou o prato que ele queria.');
     for (const e of r.pedidosFeitos || []) linhas.push(`   Pedido cumprido: ${e.quem} recebeu ${e.qtd} ${Pratos.PRATOS[e.prato].nome}. Prêmio: Cr$ ${e.premio}.`);
-    if (r.subiu) linhas.push(`A pensão subiu de degrau: agora é "${p.nomeGrau(r.subiu)}"! Mais pratos no quadro, mais banquetas e mais clientes.`);
+    if (r.subiu) linhas.push(`A pensão ganhou mais uma estrela: agora é ${p.nomeComEstrelas(r.subiu)}! Mais pratos no quadro, mais banquetas e mais clientes.`);
     else { const px = p.proximoDegrau(); if (px) linhas.push(`   Para "${px.nome}": ${textoFalta(px.falta)}.`); }
     linhas.push('   A Rosa: "' + ['Hoje até o Tonhão pediu bis!', 'Amanhã eu faço mais feijão.', 'O Severino lambeu o prato, Jocelino!', 'A pedra da sopa tá cansada.'][G.dia % 4] + '"');
   }
   G.relatorioPensao = null;
 });
+// As recompensas de cada estrela nova, uma vez (o save antigo não recebe de novo o que já tinha): a carta da Dona
+// Cotinha; na 5ª, o prêmio da Prefeitura, a placa de bronze na fachada e uma noite de festa na pensão.
+function premiarEstrelas(linhas) {
+  const p = G.pensao, g = p.grau();
+  if (p.estrelasPremiadas == null) p.estrelasPremiadas = g;
+  while (p.estrelasPremiadas < g) {
+    const n = ++p.estrelasPremiadas;
+    if (!G.correio.caixa.includes('fama_' + n) && !G.correio.lidas.includes('fama_' + n)) G.correio.caixa.push('fama_' + n);
+    if (n === 6) {
+      const v = ECO.pensao.premio5.dinheiro; G.dinheiro += v; G.ganhoHoje += v;
+      let dia = G.dia + 1; if ((dia - 1) % 7 === 6) dia++; p.festaDia = dia;
+      linhas.push(`★★★★★ A Pensão da Rosa é Patrimônio da Vila! A Prefeitura mandou Cr$ ${v} e uma placa de bronze; ${dia === G.dia + 1 ? 'amanhã' : 'na segunda'} tem festa na pensão.`);
+      if (MAPAS.vila) poePlacaPatrimonio(MAPAS.vila);
+    }
+  }
+}
+NOITE.push(linhas => { if (G.pensao && G.correio) premiarEstrelas(linhas); });
+// A placa de bronze "Patrimônio da Vila" na parede da fachada, à direita da porta, sob a janela (enfeite, não é sólida);
+// refeita quando a fachada muda de tamanho. Desenhada depois da pensão (o y é o da base + 1) e em 40% do tamanho da arte.
+function poePlacaPatrimonio(b) {
+  if (!b || b.id !== 'vila' || !G.pensao) return;
+  const velha = b.objs.find(o => o.id === 'placa_patrimonio'); if (velha) b.tirar(velha);
+  if (G.pensao.grau() < 6) return;
+  const f = b.objs.find(o => o.id === 'pensao'); if (!f) return;
+  const xs = f.tiles.map(t => t.x), x0 = Math.min(...xs), w = (Math.max(...xs) - x0 + 1) * TILE, y1 = Math.max(...f.tiles.map(t => t.y));
+  const o = b.enfeite('objetos/placa_patrimonio', x0, y1, false); o.id = 'placa_patrimonio';
+  const px = x0 * TILE + w * 0.68, py = (y1 + 1) * TILE - 64;
+  o.y = (y1 + 1) * TILE + 1; o.desenha = ctx => desenhaPe(ctx, 'objetos/placa_patrimonio', px, py, 1, 0.4);
+  o.acao = () => abrirPlaca('"Pensão da Rosa — Patrimônio da Vila Maré." A placa de bronze que o Prefeito mandou pôr.');
+}
+AO_MONTAR.push(b => poePlacaPatrimonio(b));

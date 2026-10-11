@@ -5,13 +5,14 @@
 //   sobrado: 2º andar com três quartos, hóspedes pagam toda manhã.
 
 const AMPLIACOES = [
-  { id: 'salao_maior', nome: 'Salão maior', grau: 3, material: { tijolo: 40, cimento: 10, madeira: 10 }, dinheiro: 400, dias: 3,
+  { id: 'salao_maior', nome: 'Salão maior', grau: 3, material: { tijolo: 40, cimento: 10, madeira: 10 }, dias: 3,
     efeito: 'O balcão comprido: 8 banquetas em vez de 6.' },
-  { id: 'varanda', nome: 'Varanda coberta', grau: 4, alvara: true, material: { madeira: 30, telha: 20, tijolo: 20 }, dinheiro: 600, dias: 3,
+  { id: 'varanda', nome: 'Varanda coberta', grau: 4, alvara: true, material: { madeira: 30, telha: 20, tijolo: 20 }, dias: 3,
     efeito: '3 clientes a mais por noite e festas com 2 convidados a mais.' },
-  { id: 'sobrado', nome: 'Sobrado com quartos', grau: 5, antes: 'varanda', material: { tijolo: 80, cimento: 25, madeira: 30, telha: 30 }, dinheiro: 1500, dias: 5,
+  { id: 'sobrado', nome: 'Sobrado com quartos', grau: 5, antes: 'varanda', material: { tijolo: 80, cimento: 25, madeira: 30, telha: 30 }, dias: 5,
     efeito: 'Três quartos para hóspedes: eles pagam toda manhã.' },
 ];
+for (const a of AMPLIACOES) { if (!(a.id in ECO.ampliacoes)) throw new Error('ECO: falta dinheiro de ' + a.id); a.dinheiro = ECO.ampliacoes[a.id]; }
 const Ampliacao = {
   HOSPEDES: 3, DIARIA: 8, ENERGIA: 25,
   dados: id => AMPLIACOES.find(a => a.id === id),

@@ -113,7 +113,7 @@ MANHA.push(() => { if (MAPAS.quintal) sincronizaHorta(MAPAS.quintal); });
 // ---------- a aba Sementes do Ananias, a carta do Tio Juca, as tarefas ----------
 const PRECO_HORTA = {};         // esterco (entrega B) e regadorzinho (entrega D)
 const PRECO_HORTA_SO_SE = {};   // condição para o item aparecer (o regadorzinho só depois do pedido do Zezinho)
-function precoSemente(id) { const c = culturaDaSemente(id); const base = c ? CULTURAS[c].preco : PRECO_HORTA[id]; return Math.max(1, Math.round(base * (G.fatorPreco || 1) * descontoHab())); }
+function precoSemente(id) { const c = culturaDaSemente(id); const base = c ? CULTURAS[c].preco * ECO.horta.fatorSemente : PRECO_HORTA[id]; return Math.max(1, Math.round(base * (G.fatorPreco || 1) * descontoHab())); }
 function sementesDaLoja() { return Object.values(CULTURAS).filter(C => C.estacoes.includes(estacaoDoDia(G.dia))).map(C => C.semente).concat(Object.keys(PRECO_HORTA).filter(id => !PRECO_HORTA_SO_SE[id] || PRECO_HORTA_SO_SE[id]())); }
 CARTAS.juca_horta = { de: 'Tio Juca', dia: 2, anexo: { semente_alface: 10 },
   texto: 'Jocelino, arrumei um canteirinho do lado de casa. Planta, rega todo dia, que a Rosa aproveita na pensão. Vai junto um pacote de semente de alface. Pá cava, semente planta, regador rega. A chuva rega por você.' };

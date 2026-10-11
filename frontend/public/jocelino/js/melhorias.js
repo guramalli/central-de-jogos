@@ -3,29 +3,31 @@
 // tempo de preparo, bocas do fogão, tamanho da farinheira, banquetas, clientes, gorjeta e a cerveja da geladeira.
 
 const MELHORIAS = {
-  toalha: { nome: 'Toalha xadrez no balcão', preco: 60, grau: 1, efeito: 'Charme: mais gorjeta.', arte: 'salao/toalha_balcao', gorjeta: 0.03 },
-  flamula: { nome: 'Flâmula do Santos', preco: 40, grau: 1, efeito: 'Os peões torcem junto: um pouco mais de gorjeta.', arte: 'salao/flamula_santos', gorjeta: 0.02 },
+  toalha: { nome: 'Toalha xadrez no balcão', grau: 1, efeito: 'Charme: mais gorjeta.', arte: 'salao/toalha_balcao', gorjeta: 0.03 },
+  flamula: { nome: 'Flâmula do Santos', grau: 1, efeito: 'Os peões torcem junto: um pouco mais de gorjeta.', arte: 'salao/flamula_santos', gorjeta: 0.02 },
   radio: { niveis: [
-    { nome: 'Vitrola', preco: 220, grau: 3, efeito: 'Disco de samba-canção: mais gorjeta.', arte: 'salao/vitrola', gorjeta: 0.08 },
-    { nome: 'Caixa de som de baile', preco: 450, grau: 4, efeito: 'Som de baile: mais gorjeta e 1 cliente a mais por noite.', arte: 'salao/caixa_som', gorjeta: 0.10, clientes: 1 }],
-    nome: 'Rádio tocando samba', preco: 90, grau: 1, efeito: 'Clima bom: mais gorjeta.', arte: 'salao/radio_tocando', gorjeta: 0.05 },
+    { nome: 'Vitrola', grau: 3, efeito: 'Disco de samba-canção: mais gorjeta.', arte: 'salao/vitrola', gorjeta: 0.08 },
+    { nome: 'Caixa de som de baile', grau: 4, efeito: 'Som de baile: mais gorjeta e 1 cliente a mais por noite.', arte: 'salao/caixa_som', gorjeta: 0.10, clientes: 1 }],
+    nome: 'Rádio tocando samba', grau: 1, efeito: 'Clima bom: mais gorjeta.', arte: 'salao/radio_tocando', gorjeta: 0.05 },
   farinheira_grande: { niveis: [
-    { nome: 'Barril de farinha', preco: 280, grau: 3, efeito: 'Cabem 35 de farinha.', arte: 'salao/farinheira_barril', farinha: 20 }],
-    nome: 'Farinheira grande', preco: 150, grau: 2, efeito: 'Cabem 25 de farinha (repõe menos).', arte: 'salao/farinheira_grande', farinha: 10 },
+    { nome: 'Barril de farinha', grau: 3, efeito: 'Cabem 35 de farinha.', arte: 'salao/farinheira_barril', farinha: 20 }],
+    nome: 'Farinheira grande', grau: 2, efeito: 'Cabem 25 de farinha (repõe menos).', arte: 'salao/farinheira_grande', farinha: 10 },
   ventilador: { niveis: [
-    { nome: 'Ventilador de pé', preco: 260, grau: 3, efeito: 'Venta bem na cara do freguês: a paciência dura 35% mais.', arte: 'salao/ventilador_pe', paciencia: 1.35 },
-    { nome: 'Ar-condicionado de janela', preco: 520, grau: 4, efeito: 'Friozinho de cinema: a paciência dura 50% mais.', arte: 'salao/ar_janela', paciencia: 1.5 }],
-    nome: 'Ventilador de teto', preco: 180, grau: 2, efeito: 'Ninguém derrete: a paciência dura 25% mais.', arte: 'salao/ventilador_teto', paciencia: 1.25 },
-  banqueta_extra: { nome: 'Banqueta a mais', preco: 120, grau: 2, efeito: 'Mais um lugar no balcão.', arte: '', mesas: 1 },
-  bandeirinhas: { nome: 'Bandeirinhas e balão', preco: 80, grau: 2, efeito: 'Clima de festa: 1 cliente a mais por noite.', arte: 'salao/bandeirinhas_festa', clientes: 1 },
+    { nome: 'Ventilador de pé', grau: 3, efeito: 'Venta bem na cara do freguês: a paciência dura 35% mais.', arte: 'salao/ventilador_pe', paciencia: 1.35 },
+    { nome: 'Ar-condicionado de janela', grau: 4, efeito: 'Friozinho de cinema: a paciência dura 50% mais.', arte: 'salao/ar_janela', paciencia: 1.5 }],
+    nome: 'Ventilador de teto', grau: 2, efeito: 'Ninguém derrete: a paciência dura 25% mais.', arte: 'salao/ventilador_teto', paciencia: 1.25 },
+  banqueta_extra: { nome: 'Banqueta a mais', grau: 2, efeito: 'Mais um lugar no balcão.', arte: '', mesas: 1 },
+  bandeirinhas: { nome: 'Bandeirinhas e balão', grau: 2, efeito: 'Clima de festa: 1 cliente a mais por noite.', arte: 'salao/bandeirinhas_festa', clientes: 1 },
   fogao_4bocas: { niveis: [
-    { nome: 'Fogão industrial de 6 bocas', preco: 700, grau: 4, efeito: 'A Rosa cozinha 4 pratos de uma vez e 40% mais rápido.', arte: 'salao/fogao_industrial', bocas: 2, preparo: 0.6 }],
-    nome: 'Fogão de 4 bocas', preco: 300, grau: 3, efeito: 'A Rosa cozinha 3 pratos de uma vez e 25% mais rápido.', arte: 'salao/cozinha_melhor', bocas: 1, preparo: 0.75 },
-  geladeira: { nome: 'Geladeira', preco: 400, grau: 3, efeito: 'Libera a cerveja gelada (bebida mais cara).', arte: 'salao/geladeira' },
+    { nome: 'Fogão industrial de 6 bocas', grau: 4, efeito: 'A Rosa cozinha 4 pratos de uma vez e 40% mais rápido.', arte: 'salao/fogao_industrial', bocas: 2, preparo: 0.6 }],
+    nome: 'Fogão de 4 bocas', grau: 3, efeito: 'A Rosa cozinha 3 pratos de uma vez e 25% mais rápido.', arte: 'salao/cozinha_melhor', bocas: 1, preparo: 0.75 },
+  geladeira: { nome: 'Geladeira', grau: 3, efeito: 'Libera a cerveja gelada (bebida mais cara).', arte: 'salao/geladeira' },
   // Prêmio do Concurso da Rádio (não se compra): o troféu na parede.
-  trofeu: { nome: 'Troféu do Concurso da Rádio', preco: 0, grau: 99, premio: true, efeito: 'O orgulho da casa: um pouco mais de gorjeta.', arte: 'ui/trofeu_concurso', gorjeta: 0.04 },
-  neon: { nome: 'Neon da panela', preco: 250, grau: 3, efeito: 'A pensão aparece de longe: 2 clientes a mais por noite.', arte: 'salao/neon_novo', clientes: 2 },
+  trofeu: { nome: 'Troféu do Concurso da Rádio', grau: 99, premio: true, efeito: 'O orgulho da casa: um pouco mais de gorjeta.', arte: 'ui/trofeu_concurso', gorjeta: 0.04 },
+  neon: { nome: 'Neon da panela', grau: 3, efeito: 'A pensão aparece de longe: 2 clientes a mais por noite.', arte: 'salao/neon_novo', clientes: 2 },
 };
+// Os preços moram no ECO: um número, ou [o preço, o do nível 2, o do nível 3] quando a melhoria tem níveis.
+for (const id in MELHORIAS) { if (!(id in ECO.melhorias)) throw new Error('ECO: falta preco de ' + id); const l = [].concat(ECO.melhorias[id]); MELHORIAS[id].preco = l[0]; (MELHORIAS[id].niveis || []).forEach((n, i) => { n.preco = l[i + 1]; }); }
 const Melhorias = {
   comprar(p, id, dinheiro) {
     const m = MELHORIAS[id];

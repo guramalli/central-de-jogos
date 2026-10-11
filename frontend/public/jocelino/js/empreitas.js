@@ -7,35 +7,37 @@
 // O quadro de Serviços da Vila mostra 2 a 4 por dia, só o que a função libera.
 
 const EMPREITAS_CURTAS = {
-  consertar_banca: { nome: 'Consertar a banca do Lourival', cliente: 'lourival', mapa: 'praia', x: 10, y: 8, material: { madeira: 5 }, ferramenta: 'machado', vezes: 4, paga: 25 },
-  tabua_pier: { nome: 'Tapar tábua solta do píer', cliente: 'lourival', mapa: 'praia', x: 29, y: 15, material: { madeira: 3 }, ferramenta: 'machado', vezes: 3, paga: 20 },
-  limpar_trilha: { nome: 'Limpar a trilha da mata', cliente: 'juca', mapa: 'mata', x: 30, y: 11, material: {}, ferramenta: 'foice', vezes: 8, paga: 18 },
-  escorar_ponte: { nome: 'Escorar a ponte da mata', cliente: 'juca', mapa: 'mata', x: 25, y: 15, material: { madeira: 4 }, ferramenta: 'machado', vezes: 4, paga: 25 },
-  remendar_calcada: { nome: 'Remendar a calçada da praça', cliente: 'zelia', mapa: 'vila', x: 27, y: 16, material: { cimento: 2 }, ferramenta: 'pa', vezes: 4, paga: 30 },
-  cerca_zelia: { nome: 'Consertar a cerca da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 35, y: 10, material: { madeira: 4 }, ferramenta: 'machado', vezes: 3, paga: 22 },
-  telhas_juca: { nome: 'Trocar telhas do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 9, y: 9, material: { telha: 6 }, ferramenta: 'carga', vezes: 1, paga: 20 },
-  desentulhar_ananias: { nome: 'Desentulhar o terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 13, material: {}, ferramenta: 'pa', vezes: 6, paga: 25 },
+  consertar_banca: { nome: 'Consertar a banca do Lourival', cliente: 'lourival', mapa: 'praia', x: 10, y: 8, material: { madeira: 5 }, ferramenta: 'machado', vezes: 4 },
+  tabua_pier: { nome: 'Tapar tábua solta do píer', cliente: 'lourival', mapa: 'praia', x: 29, y: 15, material: { madeira: 3 }, ferramenta: 'machado', vezes: 3 },
+  limpar_trilha: { nome: 'Limpar a trilha da mata', cliente: 'juca', mapa: 'mata', x: 30, y: 11, material: {}, ferramenta: 'foice', vezes: 8 },
+  escorar_ponte: { nome: 'Escorar a ponte da mata', cliente: 'juca', mapa: 'mata', x: 25, y: 15, material: { madeira: 4 }, ferramenta: 'machado', vezes: 4 },
+  remendar_calcada: { nome: 'Remendar a calçada da praça', cliente: 'zelia', mapa: 'vila', x: 27, y: 16, material: { cimento: 2 }, ferramenta: 'pa', vezes: 4 },
+  cerca_zelia: { nome: 'Consertar a cerca da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 35, y: 10, material: { madeira: 4 }, ferramenta: 'machado', vezes: 3 },
+  telhas_juca: { nome: 'Trocar telhas do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 9, y: 9, material: { telha: 6 }, ferramenta: 'carga', vezes: 1 },
+  desentulhar_ananias: { nome: 'Desentulhar o terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 13, material: {}, ferramenta: 'pa', vezes: 6 },
 };
+ecoCampo(EMPREITAS_CURTAS, 'paga', ECO.empreitas.paga);   // o pagamento de cada uma mora no ECO
 for (const id in EMPREITAS_CURTAS) Object.assign(EMPREITAS_CURTAS[id], { funcaoMin: 0, tipo: 'curta' });
 // As longas: `etapas` é a ferramenta de cada dia (empreitadas.gd); `concreto`: a pá e a colher não pegam na chuva;
 // `pintura`: o último dia é pintar (não se faz na chuva); `reforma`: acabamento (pedido no fim de ano).
 const EMPREITAS_LONGAS = {
-  calcada_cimento: { nome: 'Calçada da ferraria', piso: true, area: { w: 4, h: 1, textura: 'texturas/calcada' }, cliente: 'tonico', mapa: 'vila', x: 11, y: 23, junto: 'oficina', material: { cimento: 3, pedra: 6 }, etapas: ['pa', 'regador'], paga: 60, funcaoMin: 1, concreto: true, artes: ['objetos/vala', 'objetos/alicerce'] },
-  cerca_madeira: { nome: 'Cerca do galpão do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 32, y: 23, material: { madeira: 10 }, etapas: ['pa', 'machado'], paga: 55, funcaoMin: 1, artes: ['objetos/vala', 'objetos/cerca'] },
-  muro_baixo: { nome: 'Muro da divisa da casa da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 33, y: 9, junto: 'casa_zelia', material: { tijolo: 30, cimento: 2 }, etapas: ['pa', 'colher', 'colher'], paga: 85, funcaoMin: 1, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
-  baldrame: { nome: 'Baldrame do puxadinho do Mercado', fundacao: true, cliente: 'bento', mapa: 'vila', x: 44, y: 18, junto: 'mercado', material: { tijolo: 20, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], paga: 90, funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
-  muro_chapiscado: { nome: 'Muro chapiscado dos fundos do depósito', cliente: 'ananias', mapa: 'vila', x: 5, y: 3, junto: 'deposito', material: { tijolo: 50, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], paga: 220, funcaoMin: 2, hab: { h: 'acabamento', n: 3 }, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
-  quiosque_praia: { nome: 'Quiosque na praia', cliente: 'lourival', mapa: 'praia', x: 27, y: 6, material: { madeira: 20, telha: 10, cimento: 2 }, etapas: ['pa', 'colher', 'machado', 'machado'], paga: 260, funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro', 'objetos/quiosque_praia'] },
-  ponte_pedra: { nome: 'Ponte de pedra', cliente: 'juca', mapa: 'mata', x: 12, y: 16, material: { pedra: 30, cimento: 4 }, etapas: ['pa', 'colher', 'colher', 'regador', 'regador'], paga: 320, funcaoMin: 2, hab: { h: 'alvenaria', n: 5 }, artes: ['objetos/monte_pedras', 'objetos/alicerce', 'objetos/ponte_pedra'] },
-  calcada_colorida: { nome: 'Calçada colorida da praça', piso: true, area: { w: 3, h: 2, textura: 'texturas/piso_ladrilho' }, cliente: 'zelia', mapa: 'vila', x: 27, y: 17, junto: 'roda_samba', material: { lajota: 10, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], paga: 180, funcaoMin: 2, concreto: true, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
+  calcada_cimento: { nome: 'Calçada da ferraria', piso: true, area: { w: 4, h: 1, textura: 'texturas/calcada' }, cliente: 'tonico', mapa: 'vila', x: 11, y: 23, junto: 'oficina', material: { cimento: 3, pedra: 6 }, etapas: ['pa', 'regador'], funcaoMin: 1, concreto: true, artes: ['objetos/vala', 'objetos/alicerce'] },
+  cerca_madeira: { nome: 'Cerca do galpão do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 32, y: 23, material: { madeira: 10 }, etapas: ['pa', 'machado'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/cerca'] },
+  muro_baixo: { nome: 'Muro da divisa da casa da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 33, y: 9, junto: 'casa_zelia', material: { tijolo: 30, cimento: 2 }, etapas: ['pa', 'colher', 'colher'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
+  baldrame: { nome: 'Baldrame do puxadinho do Mercado', fundacao: true, cliente: 'bento', mapa: 'vila', x: 44, y: 18, junto: 'mercado', material: { tijolo: 20, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
+  muro_chapiscado: { nome: 'Muro chapiscado dos fundos do depósito', cliente: 'ananias', mapa: 'vila', x: 5, y: 3, junto: 'deposito', material: { tijolo: 50, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], funcaoMin: 2, hab: { h: 'acabamento', n: 3 }, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
+  quiosque_praia: { nome: 'Quiosque na praia', cliente: 'lourival', mapa: 'praia', x: 27, y: 6, material: { madeira: 20, telha: 10, cimento: 2 }, etapas: ['pa', 'colher', 'machado', 'machado'], funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro', 'objetos/quiosque_praia'] },
+  ponte_pedra: { nome: 'Ponte de pedra', cliente: 'juca', mapa: 'mata', x: 12, y: 16, material: { pedra: 30, cimento: 4 }, etapas: ['pa', 'colher', 'colher', 'regador', 'regador'], funcaoMin: 2, hab: { h: 'alvenaria', n: 5 }, artes: ['objetos/monte_pedras', 'objetos/alicerce', 'objetos/ponte_pedra'] },
+  calcada_colorida: { nome: 'Calçada colorida da praça', piso: true, area: { w: 3, h: 2, textura: 'texturas/piso_ladrilho' }, cliente: 'zelia', mapa: 'vila', x: 27, y: 17, junto: 'roda_samba', material: { lajota: 10, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], funcaoMin: 2, concreto: true, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
   // Os serviços melhores (as sementes melhores do Stardew; empreitadas.gd), liberados por Alvenaria e Acabamento.
-  baldrame_concreto: { nome: 'Baldrame da casa nova do Seu Lourival', fundacao: true, cliente: 'lourival', mapa: 'praia', x: 12, y: 7, junto: 'banca_peixe', material: { cimento: 4, pedra: 10, vergalhao: 4 }, etapas: ['pa', 'colher', 'regador', 'regador'], paga: 200, funcaoMin: 2, hab: { h: 'alvenaria', n: 2 }, concreto: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
-  cimentado_queimado: { nome: 'Cimentado queimado na porta do depósito', piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_cimento' }, cliente: 'ananias', mapa: 'vila', x: 6, y: 9, junto: 'deposito', material: { cimento: 6, pigmento: 2 }, etapas: ['pa', 'colher', 'regador', 'regador'], paga: 260, funcaoMin: 2, hab: { h: 'acabamento', n: 4 }, concreto: true, reforma: true, artes: ['objetos/vala', 'objetos/alicerce'] },
-  sapata_corrida: { nome: 'Sapata corrida do galpão do Tio Juca', fundacao: true, cliente: 'juca', mapa: 'quintal', x: 30, y: 20, material: { cimento: 8, pedra: 20, vergalhao: 8 }, etapas: ['pa', 'pa', 'colher', 'regador', 'regador', 'regador'], paga: 480, funcaoMin: 2, hab: { h: 'alvenaria', n: 5 }, concreto: true, artes: ['objetos/vala', 'objetos/vala', 'objetos/alicerce'] },
-  muro_rebocado: { nome: 'Muro rebocado e pintado do quintal da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 42, y: 6, junto: 'casa_zelia', material: { tijolo: 60, cimento: 6, tinta: 2 }, etapas: ['pa', 'colher', 'colher', 'colher', 'regador', 'regador', 'colher'], paga: 520, funcaoMin: 2, hab: { h: 'acabamento', n: 6 }, pintura: true, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
-  ladrilho: { nome: 'Piso de ladrilho na porta do Mercado', piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_ladrilho' }, cliente: 'bento', mapa: 'vila', x: 39, y: 23, junto: 'mercado', material: { cimento: 4, ladrilho: 30 }, etapas: ['pa', 'colher', 'colher', 'regador', 'regador', 'colher'], paga: 700, funcaoMin: 2, hab: { h: 'acabamento', n: 8 }, reforma: true, artes: ['objetos/vala', 'objetos/alicerce'] },
-  radier: { nome: 'Radier do galpão do Tio Juca', piso: true, area: { w: 3, h: 3, textura: 'texturas/piso_cimento' }, cliente: 'juca', mapa: 'quintal', x: 34, y: 20, material: { cimento: 15, pedra: 30, vergalhao: 15 }, etapas: ['pa', 'pa', 'colher', 'colher', 'regador', 'regador', 'regador', 'regador'], paga: 1100, funcaoMin: 2, hab: { h: 'alvenaria', n: 8 }, concreto: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
+  baldrame_concreto: { nome: 'Baldrame da casa nova do Seu Lourival', fundacao: true, cliente: 'lourival', mapa: 'praia', x: 12, y: 7, junto: 'banca_peixe', material: { cimento: 4, pedra: 10, vergalhao: 4 }, etapas: ['pa', 'colher', 'regador', 'regador'], funcaoMin: 2, hab: { h: 'alvenaria', n: 2 }, concreto: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
+  cimentado_queimado: { nome: 'Cimentado queimado na porta do depósito', piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_cimento' }, cliente: 'ananias', mapa: 'vila', x: 6, y: 9, junto: 'deposito', material: { cimento: 6, pigmento: 2 }, etapas: ['pa', 'colher', 'regador', 'regador'], funcaoMin: 2, hab: { h: 'acabamento', n: 4 }, concreto: true, reforma: true, artes: ['objetos/vala', 'objetos/alicerce'] },
+  sapata_corrida: { nome: 'Sapata corrida do galpão do Tio Juca', fundacao: true, cliente: 'juca', mapa: 'quintal', x: 30, y: 20, material: { cimento: 8, pedra: 20, vergalhao: 8 }, etapas: ['pa', 'pa', 'colher', 'regador', 'regador', 'regador'], funcaoMin: 2, hab: { h: 'alvenaria', n: 5 }, concreto: true, artes: ['objetos/vala', 'objetos/vala', 'objetos/alicerce'] },
+  muro_rebocado: { nome: 'Muro rebocado e pintado do quintal da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 42, y: 6, junto: 'casa_zelia', material: { tijolo: 60, cimento: 6, tinta: 2 }, etapas: ['pa', 'colher', 'colher', 'colher', 'regador', 'regador', 'colher'], funcaoMin: 2, hab: { h: 'acabamento', n: 6 }, pintura: true, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
+  ladrilho: { nome: 'Piso de ladrilho na porta do Mercado', piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_ladrilho' }, cliente: 'bento', mapa: 'vila', x: 39, y: 23, junto: 'mercado', material: { cimento: 4, ladrilho: 30 }, etapas: ['pa', 'colher', 'colher', 'regador', 'regador', 'colher'], funcaoMin: 2, hab: { h: 'acabamento', n: 8 }, reforma: true, artes: ['objetos/vala', 'objetos/alicerce'] },
+  radier: { nome: 'Radier do galpão do Tio Juca', piso: true, area: { w: 3, h: 3, textura: 'texturas/piso_cimento' }, cliente: 'juca', mapa: 'quintal', x: 34, y: 20, material: { cimento: 15, pedra: 30, vergalhao: 15 }, etapas: ['pa', 'pa', 'colher', 'colher', 'regador', 'regador', 'regador', 'regador'], funcaoMin: 2, hab: { h: 'alvenaria', n: 8 }, concreto: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
 };
+ecoCampo(EMPREITAS_LONGAS, 'paga', ECO.empreitas.paga);   // o pagamento de cada uma mora no ECO
 for (const id in EMPREITAS_LONGAS) { const E = EMPREITAS_LONGAS[id]; Object.assign(E, { tipo: 'longa', dias: E.etapas.length, vezesDia: 3, ferramenta: E.etapas[0] }); }
 // A largura do lote em ladrilhos (a arte da última etapa: muro e quiosque ocupam 3).
 const larguraLote = E => { if (E.area) return E.area.w; const a = E.artes[E.artes.length - 1]; return a === 'objetos/muro' || a.endsWith('_praia') ? 3 : 2; };
@@ -214,7 +216,7 @@ const Empreitas = {
 };
 // A capina do terreno do Seu Ananias (a cultura que rebrota do Stardew): aceita uma vez; a cada 3 dias 6 matos nascem
 // no terreno; limpo, paga Cr$ 30 à noite; acaba na troca de estação. Não conta no limite de longas.
-EMPREITAS_EXTRAS.capina_ananias = { nome: 'Capina do terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 3, junto: 'deposito', material: {}, ferramenta: 'foice', paga: 30, funcaoMin: 0, tipo: 'capina', matos: 6, cada: 3 };
+EMPREITAS_EXTRAS.capina_ananias = { nome: 'Capina do terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 3, junto: 'deposito', material: {}, ferramenta: 'foice', paga: ECO.empreitas.paga.capina_ananias, funcaoMin: 0, tipo: 'capina', matos: 6, cada: 3 };
 Object.assign(Empreitas, {
   // O fim de ano: a última semana da Primavera e as duas primeiras do Verão (reformas antes do Natal).
   emFimDeAno(dia) { const est = Math.floor((dia - 1) / 28) % 4, d = (dia - 1) % 28 + 1; return (est === 2 && d >= 22) || (est === 3 && d <= 14); },
@@ -231,9 +233,9 @@ const ADITIVOS = { cal: 1, impermeabilizante: 2, acelerador: 0 };
 const NOME_QUALIDADE = { 1: 'normal', 1.25: 'bom', 1.5: 'caprichado', 2: 'impecável' };
 // A Fala da Vila (as faixas de reputação): mais pedidos e pagamento melhor.
 const FAIXAS_VILA = [
-  { nome: 'Biscateiro', entregues: 0, caprichados: 0, pedidos: 2, fator: 1 },
-  { nome: 'Pedreiro de confiança', entregues: 8, caprichados: 0, pedidos: 3, fator: 1.1 },
-  { nome: 'Mestre da Vila', entregues: 20, caprichados: 5, pedidos: 4, fator: 1.2 },
+  { nome: 'Biscateiro', entregues: 0, caprichados: 0, pedidos: 2, fator: ECO.empreitas.faixas[0] },
+  { nome: 'Pedreiro de confiança', entregues: 8, caprichados: 0, pedidos: 3, fator: ECO.empreitas.faixas[1] },
+  { nome: 'Mestre da Vila', entregues: 20, caprichados: 5, pedidos: 4, fator: ECO.empreitas.faixas[2] },
 ];
 Object.assign(Empreitas, {
   aplicarAditivo(id, aditivo, mochila) {
@@ -263,7 +265,7 @@ Object.assign(Empreitas, {
   },
   pagamento(id, a, q, dia = G.dia) {
     const E = dadosEmpreita(id);
-    return Math.round(E.paga * q * Empreitas.fatorEpoca(id, dia) * Empreitas.faixa().fator * (a && a.carta ? 1.15 : 1)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0);
+    return Math.round(E.paga * q * Empreitas.fatorEpoca(id, dia) * Empreitas.faixa().fator * (a && a.carta ? ECO.empreitas.carta : 1)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0);
   },
 });
 INICIADORES.push(s => Empreitas.iniciar(s));

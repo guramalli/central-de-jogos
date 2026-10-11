@@ -9,6 +9,7 @@ const DADOS_PEIXE = {
   cascudo: { preco: 18, dif: 75, jeito: 'misto' }, traira: { preco: 32, dif: 60, jeito: 'dardo' },
   cavala: { preco: 30, dif: 70, jeito: 'liso' }, garoupa: { preco: 45, dif: 55, jeito: 'afunda' }, dourado: { preco: 55, dif: 78, jeito: 'misto' },
   camarao: { preco: 25, dif: 40, jeito: 'liso' }, polvo: { preco: 60, dif: 95, jeito: 'afunda' },
+  siri: { preco: 15, dif: 25, jeito: 'afunda' },   // vem do covo; aqui só para vender na caixa e na banca
 };
 const TODAS = [0, 1, 2, 3];
 const LUGARES_PESCA = {
@@ -131,7 +132,7 @@ Object.assign(ITENS, {
 });
 for (const id of ['cavala', 'garoupa', 'dourado']) Pratos.INGREDIENTES[id] = { raridade: 3, fase: 3, origem: 'Alto-mar com o Lourival' };
 for (const id of ['camarao', 'polvo']) if (Pratos.INGREDIENTES[id]) Pratos.INGREDIENTES[id].origem += ' e alto-mar com o Lourival';
-for (const id in DADOS_PEIXE) PRECO_CAIXA[id] = DADOS_PEIXE[id].preco;
+for (const id in DADOS_PEIXE) PRECO_CAIXA[id] = Math.round(DADOS_PEIXE[id].preco * ECO.pesca.fator);
 const fatorPeixe = id => !DADOS_PEIXE[id] || typeof Habilidades === 'undefined' ? 1 : Habilidades.tem('mestre_do_pier') ? 1.5 : Habilidades.tem('pescador') ? 1.25 : 1;
-const precoPeixe = id => Math.round(DADOS_PEIXE[id].preco * fatorPeixe(id) * (typeof Habilidades !== 'undefined' ? Habilidades.bonusVenda() : 1));
+const precoPeixe = id => Math.round(DADOS_PEIXE[id].preco * ECO.pesca.fator * fatorPeixe(id) * (typeof Habilidades !== 'undefined' ? Habilidades.bonusVenda() : 1));
 

@@ -5,11 +5,12 @@
 // Só obras públicas em lugares que existem na Vila (o Mercado é a obra do Bira): a calçada da porta do Museu e a do
 // quadro da Prefeitura; com a betoneira (pré-moldados), a calçada da roda de samba e o bueiro da rua.
 const PREFEITURA_OBRAS = {
-  pref_museu: { nome: 'Calçada de pedra na porta do Museu', texto: 'Na porta do Museu é só barro: o povo entra com o pé sujo.', material: { pedra: 20, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'regador'], paga: 500, premio: { receita: 'acelerador' }, piso: true, area: { w: 3, h: 1, textura: 'texturas/calcada' }, x: 4, y: 23, junto: 'museu', artes: ['objetos/vala', 'objetos/alicerce'] },
-  pref_quadro: { nome: 'Calçada do quadro da Prefeitura', texto: 'O povo pisa no barro para ler os editais.', material: { cimento: 4, pedra: 12 }, etapas: ['pa', 'colher', 'regador'], paga: 400, premio: { itens: { impermeabilizante: 3 } }, piso: true, area: { w: 3, h: 1, textura: 'texturas/calcada' }, x: 27, y: 23, junto: 'quadro_prefeitura', artes: ['objetos/vala', 'objetos/alicerce'] },
-  pref_praca: { nome: 'Calçada da roda de samba', texto: 'Calçada de lajota em volta da roda de samba da praça.', material: { lajota: 12, cimento: 4 }, etapas: ['pa', 'colher', 'regador'], paga: 450, premio: { itens: { lapis: 3 } }, betoneira: true, piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_ladrilho' }, x: 27, y: 19, junto: 'roda_samba', artes: ['objetos/vala', 'objetos/alicerce'] },
-  pref_bueiro: { nome: 'Bueiro da rua', texto: 'A rua alaga toda vez que chove: manilha embaixo da calçada.', material: { manilha: 3, cimento: 8 }, etapas: ['pa', 'pa', 'colher', 'regador'], paga: 600, premio: { itens: { barra_ferro: 3 } }, betoneira: true, fundacao: true, x: 20, y: 17, artes: ['objetos/vala', 'objetos/vala', 'objetos/alicerce'] },
+  pref_museu: { nome: 'Calçada de pedra na porta do Museu', texto: 'Na porta do Museu é só barro: o povo entra com o pé sujo.', material: { pedra: 20, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'regador'], premio: { receita: 'acelerador' }, piso: true, area: { w: 3, h: 1, textura: 'texturas/calcada' }, x: 4, y: 23, junto: 'museu', artes: ['objetos/vala', 'objetos/alicerce'] },
+  pref_quadro: { nome: 'Calçada do quadro da Prefeitura', texto: 'O povo pisa no barro para ler os editais.', material: { cimento: 4, pedra: 12 }, etapas: ['pa', 'colher', 'regador'], premio: { itens: { impermeabilizante: 3 } }, piso: true, area: { w: 3, h: 1, textura: 'texturas/calcada' }, x: 27, y: 23, junto: 'quadro_prefeitura', artes: ['objetos/vala', 'objetos/alicerce'] },
+  pref_praca: { nome: 'Calçada da roda de samba', texto: 'Calçada de lajota em volta da roda de samba da praça.', material: { lajota: 12, cimento: 4 }, etapas: ['pa', 'colher', 'regador'], premio: { itens: { lapis: 3 } }, betoneira: true, piso: true, area: { w: 3, h: 1, textura: 'texturas/piso_ladrilho' }, x: 27, y: 19, junto: 'roda_samba', artes: ['objetos/vala', 'objetos/alicerce'] },
+  pref_bueiro: { nome: 'Bueiro da rua', texto: 'A rua alaga toda vez que chove: manilha embaixo da calçada.', material: { manilha: 3, cimento: 8 }, etapas: ['pa', 'pa', 'colher', 'regador'], premio: { itens: { barra_ferro: 3 } }, betoneira: true, fundacao: true, x: 20, y: 17, artes: ['objetos/vala', 'objetos/vala', 'objetos/alicerce'] },
 };
+ecoCampo(PREFEITURA_OBRAS, 'paga', ECO.prefeitura.paga);
 for (const id in PREFEITURA_OBRAS) Object.assign(PREFEITURA_OBRAS[id], { cliente: 'prefeitura', mapa: 'vila', funcaoMin: 0, tipo: 'longa', dias: PREFEITURA_OBRAS[id].etapas.length, vezesDia: 3, ferramenta: PREFEITURA_OBRAS[id].etapas[0] });
 Object.assign(EMPREITAS_EXTRAS, PREFEITURA_OBRAS);
 CLIENTE_NOME.prefeitura = 'a Prefeitura';
@@ -88,7 +89,7 @@ function cartaDePedido(dia) {
 }
 function registrarCartaPedido(cid) {
   const c = G.empreitas.cartas[cid], E = c && EMPREITAS_LONGAS[c.servico]; if (!E) return;
-  const de = REMETENTES.includes(E.cliente) ? E.cliente : 'paulo', valor = Math.round(E.paga * 1.15), mat = Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ');
+  const de = REMETENTES.includes(E.cliente) ? E.cliente : 'paulo', valor = Math.round(E.paga * ECO.empreitas.carta), mat = Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ');
   const texto = de === 'paulo'
     ? `Seu Jocelino, aqui é o Paulo, da Rádio Maré. Um ouvinte, ${CLIENTE_NOME[E.cliente]}, pediu para eu escrever: precisa de ${E.nome.toLowerCase()} (${LUGAR_TEXTO[E.mapa]}) e quer o senhor. Paga Cr$ ${valor}. O material: ${mat}.`
     : `Seu Jocelino, preciso de um serviço: ${E.nome.toLowerCase()} (${LUGAR_TEXTO[E.mapa]}). Quero o senhor, e pago Cr$ ${valor}. O material: ${mat}.`;
@@ -132,7 +133,7 @@ function aplicarNoiteAgitada(e) {
 NOITE.push(linhas => { const e = noiteAgitada(G.dia), t = e && aplicarNoiteAgitada(e); if (t) linhas.push(t); });
 
 // ---------- o ajudante Tião (os Junimos do Stardew; ajudante.gd): cuida das obras à noite, mas nunca começa, aduba ou entrega ----------
-const TIAO = { CONTRATO: 100, SALARIO: 20, MEDICO: 60, EVENTO: 0.08, FALTA: 0.04, VOLTA: 7, X: 3, Y: 11 };   // na calçada, do lado do depósito
+const TIAO = { CONTRATO: ECO.prefeitura.tiao.contrato, SALARIO: ECO.prefeitura.tiao.salario, MEDICO: ECO.prefeitura.tiao.medico, EVENTO: 0.08, FALTA: 0.04, VOLTA: 7, X: 3, Y: 11 };   // na calçada, do lado do depósito
 const EVENTOS_TIAO = {
   acidente: { texto: 'O Tião machucou a mão na obra.', opcoes: [`Pagar o médico (Cr$ ${TIAO.MEDICO})`, 'Seguir sem ele'] },
   aumento: { texto: 'O Tião pediu aumento: Cr$ 5 a mais por dia.', opcoes: ['Dar o aumento', 'Recusar'] },
