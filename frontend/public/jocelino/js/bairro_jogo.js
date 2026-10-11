@@ -22,6 +22,8 @@ MAPAS_DEF.bairro = () => {
   return b;
 };
 // A arte da casa pela fase (1 fundação, 2 paredes, 3 telhado, 4+ pronta); '' antes da fundação.
+// A folha de desenho de quem tem id de cliente diferente do personagem.
+const FOLHA_DE = { cida: 'dona_cida' };
 function arteDaCasa(t) {
   const x = G.bairro.terrenos[t], d = DONOS.find(o => o.terreno === t); if (!x || !d || x.fase < 1) return '';
   return TIPOS_CASA[d.casa].arte + Math.min(4, x.fase);
@@ -57,7 +59,7 @@ function poeBairro(b) {
       if (c.fase >= 5) { const o = marca(b.interativo('entrada_' + t, 'objetos/alicerce', T.x + 1, T.y + 5, 4, 1, null, false)); o.y = (T.y + 5) * TILE; o.desenha = ctx => { const img = spr('texturas/calcada'); if (img) ctx.drawImage(img, 0, 0, 4 * TILE, TILE, (T.x + 1) * TILE, (T.y + 5) * TILE, 4 * TILE, TILE); }; }
       // O dono no balcão (a frente do prédio) no horário.
       let m = b.moradores.find(p => p.id === 'balcao_' + t);
-      if (Bairro.comercioPronto(t) && !m) { m = b.morador('balcao_' + t, CLIENTE_NOME[K.dono], T.x + 3, T.y + 5, DIR.BAIXO); m.pele = K.dono; m.aoConversar = () => abrirComercio(t); }
+      if (Bairro.comercioPronto(t) && !m) { m = b.morador('balcao_' + t, CLIENTE_NOME[K.dono], T.x + 3, T.y + 5, DIR.BAIXO); m.pele = FOLHA_DE[K.dono] || K.dono; m.aoConversar = () => abrirComercio(t); }
     }
     if (T.tipo === 'publico') {
       const n = Bairro.publico(t), P = PUBLICOS[t];
@@ -135,8 +137,7 @@ function abrirComercio(t) {
 ATUALIZADORES.push(() => {
   if (G.mapaId !== 'bairro' || !G.bairro) return;
   for (const t in COMERCIOS) { const m = G.mapa.moradores.find(p => p.id === 'balcao_' + t); if (m) m.visivel = Bairro.aberto(t); }
-  const sextaNoBar = (G.dia - 1) % 7 === 4 && G.minutos >= 19 * 60 && G.minutos < 23 * 60 && Bairro.aberto('bar'), T = TERRENOS.bar;
-  for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) { if (sextaNoBar) { m.area = { x: T.x * TILE, y: (T.y + 6) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true; } else if (m._areaCasa) m.area = m._areaCasa; if (!m._areaCasa && m.area && !sextaNoBar) m._areaCasa = m.area; }
+  // (os moradores: ver ondeMorador, mais abaixo)
 });
 
 // Com a escola pronta: segunda a sexta, das 8h ao meio-dia, a Ritinha e o Zezinho estão na escola (somem do quintal e
@@ -162,12 +163,6 @@ const naMissa = () => Bairro.publico('capela') >= 2 && (G.dia - 1) % 7 === 6 && 
 ATUALIZADORES.push(() => {
   if (G.mapaId !== 'bairro' || !G.bairro || !naMissa()) return;
   const T = TERRENOS.capela;
-  let k = 0;
-  for (const m of G.mapa.moradores) if (m.id.startsWith('dono_') && m.mora) {
-    m.area = { x: T.x * TILE, y: (T.y + 6) * TILE + 30, w: 6 * TILE, h: TILE }; m.visivel = true;
-    if (Math.abs(m.y - (T.y + 6) * TILE) > 2 * TILE) { m.x = (T.x + 0.5 + (k % 6)) * TILE; m.y = (T.y + 6) * TILE + 42; }   // já na porta da capela
-    k++;
-  }
   if (G.bairro.missa === G.dia || !G.jog) return;
   const perto = Math.abs(G.jog.x / TILE - (T.x + 3)) < 5 && Math.abs(G.jog.y / TILE - (T.y + 6)) < 3;
   if (!perto) return;
@@ -177,12 +172,16 @@ ATUALIZADORES.push(() => {
   avisar('A missa na capela do Bairro Novo. Os vizinhos gostaram de ver o Jocelino lá.'); hudSujo();
 });
 // ---------- a festa de inauguração: com a padaria, o bar e a escola abertos, a Prefeitura convida ----------
-CARTAS.festa_bairro = { de: 'Prefeitura da Vila Maré', dia: 1e9, texto: 'Sr. Jocelino, o Bairro Novo tem padaria, bar e escola! A Prefeitura convida o senhor e a família para a festa de inauguração, no bairro, das 9h às 17h. O bairro é obra sua.' };
+// A carta diz o dia da festa (calculado na hora de ler, para valer também depois de carregar o jogo).
+CARTAS.festa_bairro = { de: 'Prefeitura da Vila Maré', dia: 1e9, get texto() { const dias = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'], d = G.bairro && G.bairro.festa.dia;
+  return `Sr. Jocelino, o Bairro Novo tem padaria, bar e escola! A Prefeitura convida o senhor e a família para a festa de inauguração, no bairro${d ? ', na ' + dias[(d - 1) % 7] : ''}, das 9h às 17h. O bairro é obra sua.`; } };
 MANHA.push(() => {
   if (!G.bairro || G.bairro.festa.dia || G.bairro.festa.feita) return;
   if (Bairro.comercioPronto('padaria') && Bairro.comercioPronto('bar') && Bairro.publico('escola') >= 2) { G.bairro.festa.dia = G.dia + 3; if (!G.correio.caixa.includes('festa_bairro')) G.correio.caixa.push('festa_bairro'); }
 });
-const festaHoje = () => !!G.bairro && G.bairro.festa.dia === G.dia && !G.bairro.festa.feita && G.minutos >= 9 * 60 && G.minutos < 17 * 60;
+// No dia marcado ou depois (perdeu o dia? a festa espera o Jocelino aparecer: nunca some).
+const festaHoje = () => !!G.bairro && !!G.bairro.festa.dia && G.bairro.festa.dia <= G.dia && !G.bairro.festa.feita && G.minutos >= 9 * 60 && G.minutos < 17 * 60;
+TAREFAS.push(() => G.bairro && G.bairro.festa.dia && !G.bairro.festa.feita ? [{ texto: G.bairro.festa.dia <= G.dia ? 'Festa de inauguração no Bairro Novo (das 9h às 17h)' : 'Festa de inauguração do Bairro Novo em ' + (G.bairro.festa.dia - G.dia) + ' dia(s)' }] : []);
 const FESTA_ESCOLHAS = [['Discursar', 'O Jocelino discursou de chapéu na mão: "Cada tijolo daqui tem suor de Aracaju e de Praia Grande." Aplausos!'],
   ['Dançar com a Rosa', 'O Jocelino e a Rosa dançaram forró até a sola gastar. O bairro inteiro bateu palma.'], ['Ajudar na barraca', 'O Jocelino ajudou na barraca de pastel e conheceu todo mundo pelo nome.']];
 function escolherFesta(i) {
@@ -212,3 +211,21 @@ MANHA.push(() => { if (G.bairro) Bairro.clientela(); });
 // As luzes da noite nas casas prontas e nos prédios (px da arte; a luz que a Vila já usa).
 Object.assign(LUZES, { 'objetos/casa_simples_4': [[120, 236, 55]], 'objetos/casa_boa_4': [[120, 236, 60]], 'objetos/sobrado_4': [[120, 284, 55], [120, 170, 40]],
   'objetos/padaria': [[144, 236, 70]], 'objetos/bar_orlando': [[144, 236, 70]], 'objetos/escola': [[144, 236, 60]], 'objetos/capela': [[144, 230, 60]], 'objetos/posto_saude': [[144, 236, 60]] });
+// Onde cada morador está: na porta da capela na missa, na frente do bar na sexta à noite, ou na calçada de casa. Quando o
+// "onde" muda, ele já aparece lá (o passeio anda em linha reta e não contorna as casas); depois passeia na área.
+const noBarSexta = () => (G.dia - 1) % 7 === 4 && G.minutos >= 19 * 60 && G.minutos < 23 * 60 && Bairro.aberto('bar');
+function ondeMorador(d) {
+  const T = naMissa() ? TERRENOS.capela : noBarSexta() ? TERRENOS.bar : TERRENOS[d.terreno], w = TERRENOS[d.terreno] === T ? 5 : 6;
+  return { chave: T === TERRENOS.capela ? 'missa' : T === TERRENOS.bar ? 'bar' : 'casa', area: { x: T.x * TILE, y: (T.y + 6) * TILE + 30, w: w * TILE, h: TILE }, T, w };
+}
+ATUALIZADORES.push(() => {
+  if (G.mapaId !== 'bairro' || !G.bairro) return;
+  let k = 0;
+  for (const d of DONOS) {
+    const m = G.mapa.moradores.find(p => p.id === 'dono_' + d.id); if (!m || !m.mora) continue;
+    const o = ondeMorador(d); m.area = o.area; m.vagueia = true;
+    if (o.chave !== 'casa') m.visivel = true;
+    if (m._onde !== o.chave) { m._onde = o.chave; m.x = (o.T.x + 0.5 + (k % o.w)) * TILE; m.y = (o.T.y + 6) * TILE + 42; m._alvo = null; }
+    k++;
+  }
+});

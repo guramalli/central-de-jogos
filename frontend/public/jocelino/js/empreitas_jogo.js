@@ -42,8 +42,8 @@ function brotarCapina(b) {
 // Empreiteiro: cavar e assentar no lote de uma longa não gastam energia.
 function fatorEnergiaLote(id, alvo) {
   if ((id !== 'pa' && id !== 'colher') || typeof Habilidades === 'undefined' || !Habilidades.tem('empreiteiro') || !G.mapa) return 1;
-  const o = G.mapa.ocupado.get(chaveT(alvo.x, alvo.y));
-  return o && (o.empreita || o.placaDe) && EMPREITAS_LONGAS[o.empreita || o.placaDe] ? 0 : 1;
+  const o = G.mapa.ocupado.get(chaveT(alvo.x, alvo.y)), E = o && dadosEmpreita(o.empreita || o.placaDe);
+  return E && E.tipo === 'longa' ? 0 : 1;
 }
 function poeEmpreitasNoMapa(b) {
   for (const o of b.objs.filter(o => o.empreita || o.empreitaDet || o.feita)) b.tirar(o);
