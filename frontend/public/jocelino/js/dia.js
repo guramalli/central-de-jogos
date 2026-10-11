@@ -40,7 +40,7 @@ function dormir(desmaiou = false) {
   // Vira o dia.
   relogio.novoDia();
   G.energia = desmaiou && !(typeof Habilidades !== 'undefined' && Habilidades.tem('incansavel')) ? Math.round(G.energiaMax * 0.6) : G.energiaMax;
-  if (!desmaiou && typeof CasaFamilia !== 'undefined' && CasaFamilia.tem(5)) G.energia = Math.round(G.energiaMax * ECO.casa.quarto);   // o quarto do casal
+  if (!desmaiou && typeof CasaFamilia !== 'undefined' && CasaFamilia.tem(5) && G.casa.mudou) G.energia = Math.round(G.energiaMax * ECO.casa.quarto);   // o quarto do casal
   G.ganhoHoje = 0; G.gastoHoje = 0; G.feitosHoje = [];
   for (const f of MANHA) { try { f(); } catch (e) { console.error(e); } }
   // Acorda na porta de casa.

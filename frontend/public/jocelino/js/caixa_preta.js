@@ -5,13 +5,14 @@
 // num arquivo pelo botão "Baixar o diário da sessão" das Opções. Uma falha aqui nunca para o jogo.
 const CAIXA_CHAVE = 'familia_santos_caixa_preta';
 // (letras, não bytes: o navegador conta cada letra como 2 bytes; 300 mil dão centenas de dias e deixam espaço para o save)
-const CAIXA_LIMITES = { sessoes: 3, letras: 300000, parada: 60000 };
+// (pausa: depois de 5 min sem tecla nem clique, o tempo para de contar no dia, no mapa e na tela — o PC suspenso, o jantar da família)
+const CAIXA_LIMITES = { sessoes: 3, letras: 300000, parada: 60000, pausa: 300000 };
 // O registro puro: o armazém (getItem/setItem) e o relógio (ms) vêm de fora, para os testes usarem os de mentira.
 function criarCaixaPreta(armazem, relogio = () => Date.now()) {
   const vazio = () => ({ versao: 1, sessoes: [] });
   const c = {
     dados: vazio(), relogio,
-    _s: null, _semEspaco: false, _errosSoltos: [], _mapa: null, _mapaDesde: 0, _tela: null, _telaDesde: 0, _ultimaEntrada: 0, _parada: null, _diaDesde: 0, _acum: { mapas: {}, telas: {} },
+    _s: null, _sujo: false, _jaDesc: 0, _semEspaco: false, _errosSoltos: [], _mapa: null, _mapaDesde: 0, _tela: null, _telaDesde: 0, _ultimaEntrada: 0, _parada: null, _diaDesde: 0, _acum: { mapas: {}, telas: {} },
     carregar() {
       try { const t = armazem.getItem(CAIXA_CHAVE), d = t ? JSON.parse(t) : null; c.dados = d && d.versao === 1 && Array.isArray(d.sessoes) ? d : vazio(); }
       catch (e) { c.dados = vazio(); }
@@ -20,9 +21,12 @@ function criarCaixaPreta(armazem, relogio = () => Date.now()) {
     // Sem espaço: o diário sai do armazenamento (o save do jogo vem antes) e segue só na memória da sessão.
     gravar() {
       if (c._semEspaco) return false;
-      try { c.limitar(); armazem.setItem(CAIXA_CHAVE, JSON.stringify(c.dados)); return true; }
+      c._sujo = false;
+      try { armazem.setItem(CAIXA_CHAVE, c._limitarTexto()); return true; }
       catch (e) { c._semEspaco = true; try { if (armazem.removeItem) armazem.removeItem(CAIXA_CHAVE); } catch (e2) { } return false; }
     },
+    // A gravação de 30 em 30 s: só quando algo novo entrou no diário.
+    gravarSeMudou() { return c._sujo ? c.gravar() : false; },
     novaSessao(info = {}) {
       const agora = c.relogio();
       c._s = { inicio: new Date(agora).toISOString(), saveDia: info.dia || 1, dias: [], paradas: [], notas: [], mudos: [], erros: [] };
@@ -30,7 +34,7 @@ function criarCaixaPreta(armazem, relogio = () => Date.now()) {
       c.dados.sessoes = c.dados.sessoes.filter(x => x.dias.length || x.notas.length || x.paradas.length || x.mudos.length || x.erros.length);
       c._s.erros.push(...c._errosSoltos.splice(0)); c.dados.sessoes.push(c._s);
       while (c.dados.sessoes.length > CAIXA_LIMITES.sessoes) c.dados.sessoes.shift();
-      c._mapa = null; c._tela = null; c._parada = null; c._ultimaEntrada = agora; c._diaDesde = agora; c._acum = { mapas: {}, telas: {} };
+      c._mapa = null; c._tela = null; c._parada = null; c._ultimaEntrada = agora; c._diaDesde = agora; c._jaDesc = 0; c._acum = { mapas: {}, telas: {} }; c._sujo = true;
       return c._s;
     },
     sessao() { return c._s || c.novaSessao(); },
@@ -39,17 +43,23 @@ function criarCaixaPreta(armazem, relogio = () => Date.now()) {
     abreTela(nome) { const agora = c.relogio(); if (c._tela) c._soma('telas', c._tela, agora - c._telaDesde); c._tela = nome || 'menu'; c._telaDesde = agora; },
     fechaTela() { const agora = c.relogio(); if (c._tela) c._soma('telas', c._tela, agora - c._telaDesde); c._tela = null; },
     tela() { return c._tela; },
+    // A pausa longa: o que passou de 5 min desde a última entrada sai do dia, do mapa e da tela (empurrando o começo deles).
+    _descontaPausa(agora) {
+      const extra = Math.max(0, agora - c._ultimaEntrada - CAIXA_LIMITES.pausa) - c._jaDesc; if (extra <= 0) return;
+      c._jaDesc += extra;
+      for (const k of ['_diaDesde', '_mapaDesde', '_telaDesde']) c[k] = Math.min(c[k] + extra, agora);
+    },
     // Uma tecla ou um clique: a parada aberta fecha com a duração; a contagem recomeça.
     entrada() {
-      const agora = c.relogio(); c._ultimaEntrada = agora;
-      if (c._parada) { c._parada.s = Math.round((agora - c._parada.desde) / 1000); delete c._parada.desde; c._parada = null; }
+      const agora = c.relogio(); c._descontaPausa(agora); c._ultimaEntrada = agora; c._jaDesc = 0;
+      if (c._parada) { c._parada.s = Math.round((agora - c._parada.desde) / 1000); delete c._parada.desde; c._parada = null; c._sujo = true; }
     },
     // A cada quadro com o jogo rodando: passou de 60 s sem entrada, abre uma parada (uma só, até a próxima entrada).
     tique(ctx) {
       const agora = c.relogio();
       if (c._parada || agora - c._ultimaEntrada < CAIXA_LIMITES.parada) return null;
       c._parada = Object.assign({ desde: c._ultimaEntrada, s: 0, tela: c._tela }, ctx);
-      c.sessao().paradas.push(c._parada);
+      c.sessao().paradas.push(c._parada); c._sujo = true;
       return c._parada;
     },
     nota(texto, ctx) {
@@ -57,28 +67,39 @@ function criarCaixaPreta(armazem, relogio = () => Date.now()) {
       const n = Object.assign({ texto: t, tela: c._tela, quando: new Date(c.relogio()).toISOString() }, ctx, { texto: t });
       c.sessao().notas.push(n); c.gravar(); return n;
     },
-    mudo(ctx) { const s = c.sessao(); if (s.mudos.length < 300) s.mudos.push(ctx); },
+    mudo(ctx) { const s = c.sessao(); if (s.mudos.length < 300) { s.mudos.push(ctx); c._sujo = true; } },
     // Um erro antes de abrir a sessão (ainda na capa) espera a sessão, sem abrir uma sozinho.
-    erro(msg) { const s = c._s, l = s ? s.erros : c._errosSoltos; if (l.length < 50) l.push(String(msg).slice(0, 200)); },
+    erro(msg) { const s = c._s, l = s ? s.erros : c._errosSoltos; if (l.length < 50) { l.push(String(msg).slice(0, 200)); c._sujo = true; } },
     fimDoDia(resumo) {
-      const agora = c.relogio();
+      const agora = c.relogio(); c._descontaPausa(agora);
       if (c._mapa) { c._soma('mapas', c._mapa, agora - c._mapaDesde); c._mapaDesde = agora; }
       if (c._tela) { c._soma('telas', c._tela, agora - c._telaDesde); c._telaDesde = agora; }
       const d = Object.assign({ real: Math.round((agora - c._diaDesde) / 1000), mapas: c._acum.mapas, telas: c._acum.telas }, resumo);
-      c.sessao().dias.push(d); c._acum = { mapas: {}, telas: {} }; c._diaDesde = agora; c.gravar();
+      c.sessao().dias.push(d); delete c.sessao().parcial; c._acum = { mapas: {}, telas: {} }; c._diaDesde = agora; c.gravar();
       return d;
+    },
+    // A página fechando (pagehide): a parada aberta ganha a duração até aqui e o dia em andamento fica como parcial (o próximo
+    // fim de dia o troca pelo dia inteiro). É o momento mais revelador: onde o jogador largou o jogo.
+    fecharPagina(resumo) {
+      const agora = c.relogio(); c._descontaPausa(agora);
+      if (c._parada) c._parada.s = Math.round((agora - c._parada.desde) / 1000);
+      const ac = JSON.parse(JSON.stringify(c._acum)), soma = (o, nome, ms) => { if (nome && ms > 0) o[nome] = Math.round(((o[nome] || 0) + ms / 1000) * 10) / 10; };
+      soma(ac.mapas, c._mapa, agora - c._mapaDesde); soma(ac.telas, c._tela, agora - c._telaDesde);
+      c.sessao().parcial = Object.assign({ real: Math.round((agora - c._diaDesde) / 1000), mapas: ac.mapas, telas: ac.telas }, resumo, { parcial: true });
+      return c.gravar();
     },
     // O limite de tamanho: saem as sessões velhas; depois, na sessão que sobra, os cliques mudos e as paradas mais antigas.
     // Os dias e as notas nunca saem.
-    limitar() {
+    limitar() { return c._limitarTexto().length; },
+    _limitarTexto() {
       let t = JSON.stringify(c.dados);
       while (t.length > CAIXA_LIMITES.letras && c.dados.sessoes.length > 1) { c.dados.sessoes.shift(); t = JSON.stringify(c.dados); }
       const s = c.dados.sessoes[0];
       while (t.length > CAIXA_LIMITES.letras && s && (s.mudos.length || s.paradas.length > 50)) {
-        if (s.mudos.length) s.mudos.splice(0, Math.ceil(s.mudos.length / 2)); else s.paradas.splice(0, Math.ceil(s.paradas.length / 4));
+        if (s.mudos.length) s.mudos.splice(0, Math.ceil(s.mudos.length / 2)); else s.paradas.splice(0, Math.min(Math.ceil(s.paradas.length / 4), s.paradas.length - 50));
         t = JSON.stringify(c.dados);
       }
-      return t.length;
+      return t;
     },
     exportar() { return JSON.stringify(c.dados, null, 1); },
   };
@@ -124,9 +145,11 @@ for (const [nome, f] of SISTEMAS_CAIXA) {
     G.jog && G.jog.carga ? G.jog.carga.id || '' : '', G.dia, _avisosCP]);
   for (const f of ['acaoNaFrente', 'acaoNoMouse']) {
     const orig = window[f]; if (typeof orig !== 'function') continue;
-    window[f] = function (...a) { let antes = null; try { antes = estado(); } catch (e) { }
+    // (o alvo: o ladrilho na frente do Jocelino, ou o do mouse no botão direito)
+    window[f] = function (...a) { let antes = null, alvo = null;
+      try { antes = estado(); const p = f === 'acaoNaFrente' ? G.jog.frente() : mouseMundo(); alvo = [Math.floor(p.x / TILE), Math.floor(p.y / TILE)]; } catch (e) { }
       const r = orig.apply(this, a);
-      seguroCP(() => { if (antes !== null && !menuAberto() && estado() === antes) CAIXA.mudo(ctxJogo()); })();
+      seguroCP(() => { if (antes !== null && !menuAberto() && estado() === antes) CAIXA.mudo(Object.assign(ctxJogo(), { alvo })); })();
       return r; };
   } }
 // O desmaio (o dormir que veio do cansaço).
@@ -171,8 +194,14 @@ addEventListener('error', seguroCP(e => CAIXA.erro(e.message || e)));
 const _consoleCP = { orig: console.error.bind(console) };
 console.error = function (...a) { _consoleCP.orig(...a); seguroCP(() => CAIXA.erro(a.map(x => x && x.message ? x.message : String(x)).join(' ')))(); };
 addEventListener('unhandledrejection', seguroCP(e => CAIXA.erro('promessa: ' + (e.reason && e.reason.message || e.reason))));
-setInterval(seguroCP(() => CAIXA.gravar()), 30000);
-addEventListener('pagehide', seguroCP(() => CAIXA.gravar()));
+setInterval(seguroCP(() => CAIXA.gravarSeMudou()), 30000);
+// A página fechando: a parada aberta e o dia em andamento entram no diário (onde o jogador largou o jogo).
+addEventListener('pagehide', seguroCP(() => {
+  if (!G.dia || !$('#capa').hidden) { CAIXA.gravar(); return; }
+  const p = G.pensao;
+  CAIXA.fecharPagina({ dia: G.dia, hora: G.minutos, dinheiro: [_dinheiroManhaCP === null ? G.dinheiro : _dinheiroManhaCP, G.dinheiro], ganho: G.ganhoHoje, gasto: G.gastoHoje,
+    funcao: G.obra ? G.obra.funcao : 0, estrelas: p && p.estrelasCasa ? p.estrelasCasa() : 0, obra: '', janta: '', mapa: G.mapaId });
+}));
 // ---------- a nota do jogador (tecla N) e a entrega do diário ----------
 function abrirNota() {
   if (menuAberto()) return false;

@@ -96,7 +96,7 @@ function golpeEmpreita(id, ferr) {
   const r = Empreitas.trabalhar(id, ferr), E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
   if (r === 'ok') { sons.tocar(ferr === 'machado' ? 'madeira' : ferr === 'regador' ? 'agua' : 'terra', 1.1, 0.05, -6); if (a && a.trabalhou) avisar(`${E.nome}: o serviço de hoje está feito.`); hudSujo(); return; }
   if (r === 'pronta') { sons.tocar('moedas', 1, 0.05, -4); sons.tocar('feito', 1, 0.03, -6); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${E.paga}.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return; }
-  if (r === 'estado') { avisar(!a ? '' : a.estado === 'reservada' ? 'Primeiro comece a obra: clique na plaquinha com o material na mochila.' : a.estado === 'pronta' ? 'Está pronta: clique na plaquinha para entregar.' : 'Entregue: o pagamento vem à noite.'); return; }
+  if (r === 'estado') { avisar(!a ? '' : a.estado === 'reservada' ? 'Primeiro comece a obra: clique na plaquinha com o material na mochila.' : a.estado === 'pronta' ? 'Está pronta: clique na plaquinha para entregar.' : E.familia ? 'Terminada: à noite a família vê a obra nova.' : 'Entregue: o pagamento vem à noite.'); return; }
   if (r === 'concreto') { avisar('Chovendo, o concreto não pega. Hoje a obra espera.'); return; }
   if (r === 'pintura') { avisar('Com chuva não dá para pintar.'); return; }
   if (r === 'material') avisar(TEXTO_RESULTADO.material + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + '.');
@@ -119,15 +119,15 @@ function acaoEmpreita(id) {
 }
 // A plaquinha da longa: reservada → começar (com o material); pronta → entregar; senão, o que tem para hoje.
 function acaoLote(id) {
-  const E = dadosEmpreita(id), a = G.empreitas.aceitas[id], quem = CLIENTE_NOME[E.cliente] || '';
+  const E = dadosEmpreita(id), a = G.empreitas.aceitas[id], quem = E.familia ? 'a família' : CLIENTE_NOME[E.cliente] || '';
   if (typeof aditivoNaPlaquinha === 'function' && aditivoNaPlaquinha(id)) return true;   // (entrega B)
   if (a.estado === 'reservada') {
     const mat = Empreitas.material(id), lista = Object.entries(mat).map(([m, q]) => Itens.qtd(q, m)).join(', ');
     if (Object.keys(mat).some(m => G.mochila.total(m) < mat[m])) { abrirPlaca(`${E.nome} para ${quem}. Para começar, traga na mochila: ${lista}. (${Empreitas.textoEstado(id)})`); return true; }
-    perguntar(`${E.nome} para ${quem}: começar a obra? Gasta ${lista}. São ${Empreitas.listaDias(id, a.aditivo).length} dias de serviço.`, ['Começar', 'Agora não'], i => { if (i === 0) comecarObra(id); });
+    perguntar(`${E.nome} para ${quem}: começar a obra? Gasta ${lista}${E.custo ? ` e Cr$ ${E.custo}` : ''}. São ${Empreitas.listaDias(id, a.aditivo).length} dias de serviço.`, ['Começar', 'Agora não'], i => { if (i === 0) comecarObra(id); });
     return true;
   }
-  if (a.estado === 'pronta') { Empreitas.entregar(id); sons.tocar('feito', 1, 0.03, -6); avisar(`${E.nome}: entregue! ${quem} paga à noite.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return true; }
+  if (a.estado === 'pronta') { Empreitas.entregar(id); sons.tocar('feito', 1, 0.03, -6); avisar(E.familia ? `${E.nome}: terminada! À noite a família vê a obra nova.` : `${E.nome}: entregue! ${quem} paga à noite.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return true; }
   abrirPlaca(`${E.nome} para ${quem}: ${Empreitas.textoEstado(id)}.`);
   return true;
 }
@@ -256,6 +256,7 @@ NOITE.push(linhas => {
   for (const r of Empreitas.noite(chove)) {
     const E = dadosEmpreita(r.id), quem = CLIENTE_NOME[E.cliente] || '';
     if (r.desistiu) linhas.push(`${quem} desistiu de ${E.nome.toLowerCase()}: a obra não começou em 3 dias.`);
+    else if (r.entregue && E.familia) { for (const x of r.extra || []) linhas.push(x); }   // a obra da família não é serviço pago: só o que ela ganhou
     else if (r.entregue) { carimboPara(r.qualidade); linhas.push(linhaEntrega(r)); for (const x of r.extra || []) linhas.push(x); }
     else if (r.pronta) linhas.push(`${E.nome}: pronta! Entregue na plaquinha.`);
   }
@@ -265,8 +266,10 @@ TAREFAS.push(() => {
   if (!G.empreitas) return [];
   const linhas = Object.keys(G.empreitas.aceitas).map(id => {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
+    if (typeof E.familia === 'string' && a.estado === 'reservada') return null;   // os aluguéis por começar ficam só na plaquinha (são opcionais)
     return { texto: E.tipo === 'longa' ? `${E.nome}: ${Empreitas.textoEstado(id)}` : `Empreita: ${E.nome}`, feito: E.tipo === 'curta' ? a.vezes : undefined, meta: E.tipo === 'curta' ? E.vezes : undefined };
   });
+  for (let k = linhas.length - 1; k >= 0; k--) if (!linhas[k]) linhas.splice(k, 1);
   if (G.empreitas.capina && G.empreitas.capina.pos.length) linhas.push({ texto: `Capina do Seu Ananias: ${G.empreitas.capina.pos.length} matos no terreno` });
   return linhas;
 });

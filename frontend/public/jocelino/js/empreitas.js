@@ -176,7 +176,7 @@ const Empreitas = {
     if (a.estado === 'reservada') return (E.familia ? `começar com o material e Cr$ ${E.custo}` : a.prefeitura ? 'aceita: começar com o material' : `reservada: começar até ${DIAS[(a.dia + Empreitas.RESERVA - 2) % 7]}`) + prazo;
     if (a.estado === 'obra') { const f = Empreitas.ferramentaHoje(id); return `dia ${a.dias + 1}/${a.lista.length}: ${a.trabalhou ? 'hoje feito' : 'hoje é dia de ' + (NOME_DIA[f] || f)}` + prazo; }
     if (a.estado === 'pronta') return 'pronta: entregar na plaquinha' + prazo;
-    return 'entregue: paga à noite';
+    return E.familia ? 'terminada: à noite a família vê a obra nova' : 'entregue: paga à noite';
   },
   _entregou(id, q = 1) {
     const E = dadosEmpreita(id);
@@ -272,6 +272,7 @@ Object.assign(Empreitas, {
   },
   pagamento(id, a, q, dia = G.dia) {
     const E = dadosEmpreita(id);
+    if (E.familia) return 0;   // as obras da família não são pagas (nem a gorjeta do Artista)
     return Math.round(E.paga * q * Empreitas.fatorEpoca(id, dia) * Empreitas.faixa().fator * (a && a.carta ? ECO.empreitas.carta : 1)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0);
   },
 });
