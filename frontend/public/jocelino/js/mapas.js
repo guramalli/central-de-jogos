@@ -346,6 +346,26 @@ function desenhaRealce(ctx, o) {
   ctx.restore();
 }
 // Nomes: pequenos e meio transparentes em cima dos estabelecimentos; o do morador quando o Jocelino chega perto.
+// As placas nas saídas (teste de 12/10: o jogador não sabia onde ficava a mata nem a pedreira): cada borda do mapa diz para
+// onde leva, com a seta do lado, e "(fechada)" se o lugar ainda não abriu. As portas (dentro do mapa) não têm placa.
+const NOME_LUGAR = { vila: 'Vila', quintal: 'Quintal', mata: 'Mata', praia: 'Praia', pedreira: 'Pedreira', bairro: 'Bairro Novo' };
+function rotulosDasSaidas(m) {
+  if (!m || m.dentro || m.palco) return [];
+  const r = [];
+  for (const s of m.saidas || []) {
+    const nome = NOME_LUGAR[s.destino]; if (!nome) continue;
+    const fechada = typeof Mundo !== 'undefined' && !Mundo.aberto(s.destino) ? ' (fechada)' : '';
+    const cx = (s.x + s.w / 2) * TILE, cy = (s.y + s.h / 2) * TILE;
+    let texto, x = cx, y = cy;
+    if (s.x <= 3) { texto = `← ${nome}${fechada}`; x += 1.6 * TILE; }
+    else if (s.x + s.w >= m.larg - 3) { texto = `${nome}${fechada} →`; x -= 1.6 * TILE; }
+    else if (s.y <= 3) { texto = `↑ ${nome}${fechada}`; y += 1.4 * TILE; }
+    else if (s.y + s.h >= m.alt - 3) { texto = `↓ ${nome}${fechada}`; y -= 0.9 * TILE; }
+    else continue;
+    r.push({ texto, x, y, fechada: !!fechada });
+  }
+  return r;
+}
 function desenhaNomes(ctx, m) {
   const modo = G.opcoes ? G.opcoes.nomes : 1;
   if (modo === 0) return;
@@ -354,6 +374,12 @@ function desenhaNomes(ctx, m) {
   ctx.textAlign = 'center';
   ctx.font = `800 ${tam}px Nunito`;
   ctx.lineJoin = 'round';
+  // As placas das saídas, sempre que os nomes estão ligados (um pouco maiores que os das casas).
+  for (const p of rotulosDasSaidas(m)) {
+    ctx.font = `900 ${tam * 1.7}px Nunito`; ctx.lineWidth = 5 / G.zoom; ctx.strokeStyle = 'rgba(20,12,6,.7)'; ctx.strokeText(p.texto, p.x, p.y);
+    ctx.fillStyle = p.fechada ? 'rgba(230,215,190,.75)' : 'rgba(255,236,170,.95)'; ctx.fillText(p.texto, p.x, p.y);
+  }
+  ctx.font = `800 ${tam}px Nunito`;
   for (const o of m.objs) {
     const n = o.placa || PLACAS[o.id];
     if (!n || LETREIROS[o.nome]) continue;
