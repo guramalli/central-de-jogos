@@ -32,7 +32,8 @@ function _alvoDaMissao(id) {
     case 'janta': case 'domingo': return noSalao ? null : { mapa: 'vila', objeto: 'pensao' };
     case 'bico': {
       const ac = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta');
-      return ac ? { mapa: dadosEmpreita(ac).mapa, objeto: 'emp_' + ac } : { mapa: 'vila', objeto: 'quadro_pedidos' };
+      if (ac && dadosEmpreita(ac).local) { const E = dadosEmpreita(ac), A = E.local.area; return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y: A.y * TILE + 6 }, empreita: ac }; }
+      return ac ? { mapa: dadosEmpreita(ac).mapa, objeto: 'emp_' + ac, empreita: ac } : { mapa: 'vila', objeto: 'quadro_pedidos' };
     }
     case 'pesca': return { mapa: 'praia', morador: 'lourival' };
     case 'bazar': return { mapa: 'vila', objeto: 'balcao_bazar' };
@@ -65,6 +66,7 @@ function _rotulo(a) {
   if (a.tipo === 'saida') return `Vá por aqui: ${typeof NOME_LUGAR !== 'undefined' && NOME_LUGAR[a.destino] || a.destino}`;
   if (a.det) { const f = NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]; return `Use ${f} aqui para ${VERBO_DET[a.det] || 'limpar'}`; }
   if (a.morador) { const p = (G.mapa.moradores || []).find(x => x.id === a.morador); return `Botão direito: falar com ${p ? p.nome : a.morador}`; }
+  if (a.empreita && dadosEmpreita(a.empreita) && dadosEmpreita(a.empreita).local) { const E = dadosEmpreita(a.empreita); return `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} ${E.local.nome} (${E.vezes} vezes)`; }
   if (a.objeto && a.objeto.startsWith('emp_')) { const E = dadosEmpreita(a.objeto.slice(4)); return E && E.ferramenta !== 'carga' ? `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${E.vezes} vezes)` : 'Botão direito aqui'; }
   if (a.objeto) return ROTULO_OBJ[a.objeto] || 'Botão direito aqui';
   if (a.missao === 'horta') return 'Plante aqui: a semente na mão, botão direito na terra';
@@ -105,7 +107,7 @@ function guiaSetaUI() {
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
   if (sm && sm.missao === 'quintal' && sm.det) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
-  if (sm && sm.missao === 'bico' && sm.objeto && sm.objeto.startsWith('emp_')) { const E = dadosEmpreita(sm.objeto.slice(4)); if (E && E.ferramenta !== 'carga' && mao !== E.ferramenta) { const i = slotDe(E.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.missao === 'bico' && sm.empreita) { const E = dadosEmpreita(sm.empreita); if (E && E.ferramenta !== 'carga' && mao !== E.ferramenta) { const i = slotDe(E.ferramenta); if (i >= 0) return barra(i); } }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {
     const plantadas = Object.values(G.horta.covas || {}).filter(c => c && c.planta).length;
     const semente = G.mochila.slots.slice(0, 12).find(x => x && /^semente_/.test(x.id));
@@ -140,7 +142,7 @@ DESENHOS_TELA.push(ctx => {
   // tarefas (em cima) e da barra (embaixo), girada para o alvo.
   if (sx > 20 && sx < L - 20 && sy > 20 && sy < A - 110) {
     const top = Math.max(4, sy - h - 6) + bob; ctx.drawImage(img, sx - w / 2, top, w, h);
-    if (s.rotulo) texto(ctx, s.rotulo, Math.min(Math.max(sx, 160), L - 160), top > 30 ? top - 8 : top + h + 22, 17, '#fff4cf', '900');
+    if (s.rotulo) texto(ctx, s.rotulo, Math.min(Math.max(sx, 160), L - 160), top > 130 ? top - 8 : top + h + 22, 17, '#fff4cf', '900');
   }
   else {
     const cx = Math.min(Math.max(sx, 70), L - 70), cy = Math.min(Math.max(sy, 190), A - 160);

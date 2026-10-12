@@ -64,6 +64,7 @@ function poeEmpreitasNoMapa(b) {
     if (!E || E.mapa !== b.id) continue;
     if (E.tipo === 'longa' && !E.bairro && !E.familia) limparLote(b, E);
     const p = lugarLivre(b, E.x, E.y);
+    if (E.tipo === 'curta' && E.local) continue;   // o serviço no lugar de verdade: sem plaquinha
     if (E.tipo === 'curta') {
       const o = b.interativo('emp_' + id, 'objetos/plaquinha', p.x, p.y, 1, 1, [8, 6]);
       o.empreita = id;
@@ -97,6 +98,17 @@ function poeEmpreitasNoMapa(b) {
   }
   brotarCapina(b);
   if (typeof poeBairro === 'function' && b.id === 'bairro') poeBairro(b);
+}
+// O golpe no lugar de verdade do serviço (a ponte, o píer, a banca, a cerca, a calçada): conta como o golpe do serviço.
+function golpeNoLocal(ferr, alvo) {
+  if (!G.empreitas) return false;
+  for (const cid in G.empreitas.aceitas) {
+    const E = dadosEmpreita(cid); if (!E || !E.local || E.mapa !== G.mapaId) continue;
+    const A = E.local.area; if (alvo.x < A.x || alvo.x >= A.x + A.w || alvo.y < A.y || alvo.y >= A.y + A.h) continue;
+    if (ferr === E.ferramenta && typeof lascas === 'function') lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, ferr === 'pa' ? 'terra' : 'madeira');
+    golpeEmpreita(cid, ferr); return true;
+  }
+  return false;
 }
 function golpeEmpreita(id, ferr) {
   const r = Empreitas.trabalhar(id, ferr), E = dadosEmpreita(id), a = G.empreitas.aceitas[id];

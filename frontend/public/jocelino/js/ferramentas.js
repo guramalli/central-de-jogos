@@ -100,6 +100,7 @@ function acertar(id, alvo) {
 function acertarUm(id, alvo, vistos) {
   if (typeof VARAS !== 'undefined' && VARAS.includes(id)) return;   // a vara não bate em nada
   const m = G.mapa;
+  if (typeof golpeNoLocal === 'function' && golpeNoLocal(id, alvo)) return;   // o serviço curto no lugar de verdade (a ponte, o píer...)
   const o = m.ocupado.get(chaveT(alvo.x, alvo.y));
   if (o && vistos) { if (vistos.has(o)) return; vistos.add(o); }
   if (o && o.tipo === 'detrito') {

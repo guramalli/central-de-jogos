@@ -18,6 +18,12 @@ const EMPREITAS_CURTAS = {
 };
 ecoCampo(EMPREITAS_CURTAS, 'paga', ECO.empreitas.paga);   // o pagamento de cada uma mora no ECO
 for (const id in EMPREITAS_CURTAS) Object.assign(EMPREITAS_CURTAS[id], { funcaoMin: 0, tipo: 'curta' });
+// O lugar de verdade do serviço (teste de 12/10: "bater na plaquinha fica sem sentido"): o golpe vai na ponte, no píer, na
+// banca, na cerca e na calçada, sem plaquinha. A limpeza (trilha, entulho) e a carga (telhas) seguem como antes.
+const LOCAL_CURTA = { escorar_ponte: { nome: 'na ponte', area: { x: 26, y: 17, w: 2, h: 2 } }, tabua_pier: { nome: 'no píer', area: { x: 30, y: 16, w: 2, h: 7 } },
+  consertar_banca: { nome: 'na banca do Lourival', area: { x: 7, y: 7, w: 3, h: 1 } }, cerca_zelia: { nome: 'na cerca da Dona Zélia', area: { x: 36, y: 9, w: 5, h: 1 } },
+  remendar_calcada: { nome: 'na calçada da praça', area: { x: 26, y: 15, w: 3, h: 2 } } };
+for (const id in LOCAL_CURTA) EMPREITAS_CURTAS[id].local = LOCAL_CURTA[id];
 // As longas: `etapas` é a ferramenta de cada dia (empreitadas.gd); `concreto`: a pá e a colher não pegam na chuva;
 // `pintura`: o último dia é pintar (não se faz na chuva); `reforma`: acabamento (pedido no fim de ano).
 const EMPREITAS_LONGAS = {
