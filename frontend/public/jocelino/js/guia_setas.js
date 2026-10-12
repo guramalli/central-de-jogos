@@ -72,6 +72,9 @@ function _alvoDaEmpreita(cid) {
   const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a) return null;
   const f = faltaDaEmpreita(cid); if (f) { const m = _alvoDoMaterial(f, cid); if (m) return m; }
   if (E.local) { const A = E.local.area; return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y: A.y * TILE + 6 }, empreita: cid }; }
+  // (a limpeza se faz nos matos e entulhos em volta, não na plaquinha: a seta vai no mais perto do serviço)
+  if (E.tipo === 'curta' && typeof LIMPEZA !== 'undefined' && LIMPEZA[cid] && G.mapaId === E.mapa) { const o = _maisPerto(x => x.empreitaDet === cid);
+    if (o) return { mapa: E.mapa, ponto: { x: o.x, y: o.y - 56 }, det: o.det, empreita: cid, limpeza: true }; }
   if (E.tipo === 'curta') return { mapa: E.mapa, objeto: 'emp_' + cid, empreita: cid };
   // (a obra longa reservada também: com o material, a plaquinha é onde se começa; os aluguéis por começar são opcionais)
   if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta' || (a.estado === 'reservada' && typeof E.familia !== 'string'))) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
@@ -97,7 +100,7 @@ function _posNoMapa(a) {
   return null;
 }
 // A frase de cada seta (o jogador pediu: "não deixe apenas a seta, coloque algo descrevendo").
-const VERBO_DET = { mato: 'capinar o mato', pedra: 'quebrar a pedra', galho: 'cortar o galho', toco: 'cortar o toco' };
+const VERBO_DET = { mato: 'capinar o mato', pedra: 'quebrar a pedra', galho: 'cortar o galho', toco: 'cortar o toco', arvore: 'cortar a árvore', pedregulho: 'quebrar a pedra', entulho: 'tirar o entulho' };
 const ROTULO_OBJ = { caixa_correio: 'Botão direito: ler a carta', peneira: 'Botão direito: peneirar', monte_tijolos: 'Botão direito: pegar no monte',
   masseira: 'Botão direito: pegar a massa', pilha_ripas: 'Botão direito: pegar as ripas', casa_zelia: 'Botão direito: entregar aqui',
   quadro_pedidos: 'Botão direito: ver os serviços', pensao: 'Botão direito: entrar na pensão', balcao_bazar: 'Botão direito: ver o Bazar',
@@ -106,6 +109,8 @@ function _rotulo(a) {
   if (a.falta && a.tipo !== 'saida') { const q = Itens.qtd(a.falta.n, a.falta.item);
     if (a.objeto === 'deposito') return `Falta ${q}: compre no depósito do Seu Ananias`;
     if (a.det) return `Falta ${q}: use ${NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]} aqui`; }
+  if (a.limpeza) { const E = dadosEmpreita(a.empreita), ac = G.empreitas.aceitas[a.empreita];
+    return `Use ${NOME_FERRAMENTA[E.ferramenta]} aqui para ${VERBO_DET[a.det] || 'limpar'} (faltam ${E.vezes - ((ac && ac.vezes) || 0)})`; }
   if (a.tipo === 'saida') return `Vá por aqui: ${typeof NOME_LUGAR !== 'undefined' && NOME_LUGAR[a.destino] || a.destino}`;
   if (a.det) { const f = NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]; return `Use ${f} aqui para ${VERBO_DET[a.det] || 'limpar'}`; }
   if (a.morador) { const p = (G.mapa.moradores || []).find(x => x.id === a.morador); return `Botão direito: falar com ${p ? p.nome : a.morador}`; }
@@ -190,19 +195,22 @@ DESENHOS_TELA.push(ctx => {
   const sx = (s.x - G.cam.x) * z, sy = (s.y - G.cam.y) * z, bob = Math.sin((G.agora || 0) * 6) * 8;
   // (a frase inteira na tela: a frase longa, encostada na borda, saía cortada; vistoria de 12/10)
   ctx.save(); ctx.font = '900 17px Nunito'; const meia = s.rotulo ? ctx.measureText(s.rotulo).width / 2 + 14 : 0; ctx.restore();
-  const xr = x => Math.min(Math.max(x, meia), L - meia);
+  // (no alto, a frase não entra por baixo do relógio, à direita)
+  const xr = (x, y) => Math.min(Math.max(x, meia), L - meia - (y < 240 ? 190 : 0));
   ctx.save();
   // Na tela: em cima do alvo (perto do topo, encostada na borda de cima). Fora: na borda, longe do relógio e do quadro de
   // tarefas (em cima) e da barra (embaixo), girada para o alvo.
   if (sx > 20 && sx < L - 20 && sy > 20 && sy < A - 110) {
     const top = Math.max(4, sy - h - 6) + bob; ctx.drawImage(img, sx - w / 2, top, w, h);
-    if (s.rotulo) texto(ctx, s.rotulo, xr(sx), top > 130 ? top - 8 : top + h + 22, 17, '#fff4cf', '900');
+    const ty = top > 130 ? top - 8 : top + h + 22;
+    if (s.rotulo) texto(ctx, s.rotulo, xr(sx, ty), ty, 17, '#fff4cf', '900');
   }
   else {
     const cx = Math.min(Math.max(sx, 70), L - 70), cy = Math.min(Math.max(sy, 190), A - 160);
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(sy - cy, sx - cx) - Math.PI / 2); ctx.drawImage(img, -w / 2, -h / 2 + bob, w, h); ctx.restore();
     // (a seta na borda de baixo: a frase vai em cima dela, longe da barra)
-    if (s.rotulo) texto(ctx, s.rotulo, xr(cx), cy + h / 2 + 24 > A - 105 ? cy - h / 2 - 12 : cy + h / 2 + 24, 17, '#fff4cf', '900');
+    const ty = cy + h / 2 + 24 > A - 105 ? cy - h / 2 - 12 : cy + h / 2 + 24;
+    if (s.rotulo) texto(ctx, s.rotulo, xr(cx, ty), ty, 17, '#fff4cf', '900');
   }
   ctx.restore();
 });
