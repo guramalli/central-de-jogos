@@ -190,7 +190,7 @@ function quebrouNoGuia(o) {
   d0(ctx);
   if (!G.mapa || !G.guia || !G.guia.ativo) return;
   for (const a of Guia.alvos()) {
-    if (!a.objeto) continue;
+    if (!a.objeto || (typeof setaAgora === 'function' && setaAgora() && setaAgora().objeto === a.objeto)) continue;   // a seta já aponta
     const o = G.mapa.objs.find(x => x.id === a.objeto); if (!o) continue;
     const linhas = new Set((o.tiles || [{ y: 0 }]).map(t => t.y)).size;
     desenhaFx(ctx, 'exclamacao', o.x, o.y - linhas * TILE - 26 + Math.sin((G.agora || 0) * 5) * 4);
