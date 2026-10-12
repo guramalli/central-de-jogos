@@ -159,6 +159,7 @@ function camadasDaJanta() {
   return [
     // O cardápio da noite nos nichos da parede: o prato marcado e quantas porções a despensa ainda rende.
     camadaViva(401, ctx => {
+      if (typeof emReforma === 'function' && emReforma()) return;   // na reforma, os nichos vazios
       const ids = (G.pensao && (G.pensao.cardapio.length ? G.pensao.cardapio : G.pensao.receitas)) || [];
       ids.slice(0, P.VAGAS.length).forEach((id, k) => {
         const v = P.VAGAS[k], n = G.pensao.porcoes(id) || G.pensao.rende(id) * G.pensao.porcoesPorPanela(id);
@@ -482,7 +483,7 @@ function rodapePalco() {
   return r;
 }
 ATUALIZADORES.push(() => {
-  const r = rodapePalco(), ver = noPalco();
+  const r = rodapePalco(), ver = noPalco() && !(typeof emReforma === 'function' && emReforma());   // na reforma, a barra de itens (não a da janta)
   if (r.hidden === ver) r.hidden = !ver;
   const barra = $('#hud .barra'); if (barra) barra.style.visibility = ver ? 'hidden' : '';
   if (!ver) return;

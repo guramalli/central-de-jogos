@@ -57,7 +57,7 @@ function pensaoFachada() {
   if (G.pensao.estado === 'fechada') { abrirPlaca('Uma pensão abandonada, com tábuas na porta. Uma placa apagada: "Pensão da Dona Cotinha".'); return true; }
   if (G.pensao.obra && !G.pensao.obra.hoje && typeof trabalharNaObra === 'function') {
     perguntar(`A obra da pensão (${Ampliacao.dados(G.pensao.obra.id).nome}) está esperando: faltam ${G.pensao.obra.falta} dias.`, ['Trabalhar na obra (gasta energia)', 'Entrar na pensão', 'Agora não'],
-      i => { if (i === 0) { trabalharNaObra(); atualizarPensaoMundo(); } else if (i === 1) { if (pensaoNoPalco()) entrarPalco(); else entrarMapa('pensao_dentro', { x: 14, y: 12 }); } });
+      i => { if (i === 0) { trabalharNaObra(); atualizarPensaoMundo(); } else if (i === 1) { if (pensaoNoPalco()) entrarPalco(); else entrarPalco(); } });
     return true;
   }
   if (typeof pensaoNoPalco === 'function' && pensaoNoPalco()) { entrarPalco(); return true; }
@@ -69,11 +69,11 @@ function pensaoFachada() {
       if (i === 0) { const txt = p.entregar(G.mochila, G.dia); atualizarPensaoMundo(); hudSujo(); sons.tocar('madeira', 0.8, 0.08, -4); sons.tocar('feito', 1, 0.03, -6);
         if (p.estado === 'pronta') G.feitosHoje.push('A pensão ficou pronta: abre amanhã!');
         const f2 = p.faltaMaterial(), k2 = Object.keys(f2)[0]; abrirPlaca(k2 && f2[k2] > 0 ? `${txt} Falta: ${Itens.qtd(f2[k2], k2)}.` : txt); }
-      else if (i === 1) { entrarMapa('pensao_dentro', { x: 14, y: 12 }); sons.tocar('porta', 1, 0.05, -4); }
+      else if (i === 1) { entrarPalco(); sons.tocar('porta', 1, 0.05, -4); }
     });
     return true;
   }
-  entrarMapa('pensao_dentro', { x: 14, y: 12 });
+  entrarPalco();
   sons.tocar('porta', 1, 0.05, -4);
   return true;
 }
@@ -88,7 +88,7 @@ ATUALIZADORES.push(() => {
 });
 function pensaoPlaquinha() {
   const p = G.pensao;
-  if (p.estado === 'limpar') abrirPlaca(`Reforma da pensão: limpe o salão (mato com a foice, entulho com a pá). Faltam ${G.mapa.objs.filter(o => o.tipo === 'detrito').length}.`);
+  if (p.estado === 'limpar') abrirPlaca(`Rosa: "Primeiro a limpeza, amor: clique em cada sujeira do chão. Faltam ${sujeirasDaReforma().length}."`);
   else if (p.estado === 'telhas' || p.estado === 'mesas') {
     const txt = p.entregar(G.mochila, G.dia);
     atualizarPensaoMundo(); hudSujo();
@@ -103,8 +103,8 @@ function pensaoPlaquinha() {
 TAREFAS.push(() => {
   const p = G.pensao;
   if (!p) return [];
-  if (p.estado === 'limpar') return [{ texto: 'Pensão: limpar o salão (casa da Dona Cotinha)' }];
-  if (p.estado === 'telhas') return [{ texto: 'Pensão: entregar telhas na porta da pensão', feito: p.telhas, meta: Pensao.TELHAS }];
+  if (p.estado === 'limpar') return [{ texto: 'Pensão: limpar o salão (casa da Dona Cotinha)', feito: SUJEIRA_PALCO.length - sujeirasDaReforma().length, meta: SUJEIRA_PALCO.length }];
+  if (p.estado === 'telhas') return [{ texto: 'Pensão: telhas para a Rosa (o Seu Ananias vende)', feito: p.telhas, meta: Pensao.TELHAS }];
   if (p.estado === 'mesas') return [{ texto: 'Pensão: madeira das banquetas', feito: p.madeira, meta: Pensao.MADEIRA }];
   if (pensaoAbreHoje() && p.ultimaJanta !== G.dia && G.minutos < 20 * 60) return [{ texto: 'Janta na Pensão da Rosa às 17h' }];
   return [];

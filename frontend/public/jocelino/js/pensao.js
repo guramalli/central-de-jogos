@@ -22,7 +22,7 @@ class Pensao {
 
   constructor() {
     this.estado = 'fechada';   // fechada, limpar, telhas, mesas, pronta, aberta
-    this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.mesas = 2; this.fama = 0;
+    this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.limpos = []; this.mesas = 2; this.fama = 0;
     this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
     this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {}; this.chef = { nivel: 1, xp: 0 };
@@ -290,7 +290,7 @@ class Pensao {
     }
   }
   paraDict() {
-    return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, mesas: this.mesas, fama: this.fama,
+    return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, limpos: (this.limpos || []).slice(), mesas: this.mesas, fama: this.fama,
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
@@ -299,7 +299,7 @@ class Pensao {
   }
   deDict(d) {
     d = d || {};
-    this.estado = d.estado || 'fechada'; this.abreDia = d.abreDia ?? -1; this.telhas = d.telhas | 0; this.madeira = d.madeira | 0;
+    this.estado = d.estado || 'fechada'; this.abreDia = d.abreDia ?? -1; this.telhas = d.telhas | 0; this.madeira = d.madeira | 0; this.limpos = (d.limpos || []).slice();
     this.mesas = d.mesas || 2; this.fama = d.fama | 0; this.despensa = Object.assign({}, d.despensa || {});
     this.cardapio = (d.cardapio || []).slice(); this.receitas = (d.receitas || Pensao.RECEITAS_INICIAIS).slice(); this.ultimaJanta = d.ultimaJanta ?? -1;
     this.niveis = Object.assign({}, d.niveis || {}); this.pitadas = d.pitadas | 0; this.vistos = (d.vistos || Object.keys(this.despensa)).slice();
