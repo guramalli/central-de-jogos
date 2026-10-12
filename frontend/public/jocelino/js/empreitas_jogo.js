@@ -295,7 +295,9 @@ TAREFAS.push(() => {
   const linhas = Object.keys(G.empreitas.aceitas).map(id => {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (typeof E.familia === 'string' && a.estado === 'reservada') return null;   // os aluguéis por começar ficam só na plaquinha (são opcionais)
-    return { texto: E.tipo === 'longa' ? `${E.nome}: ${Empreitas.textoEstado(id)}` : `Empreita: ${E.nome} (${ondeFica(E.mapa)})`, feito: E.tipo === 'curta' ? a.vezes : undefined, meta: E.tipo === 'curta' ? E.vezes : undefined };
+    const f = typeof faltaDaEmpreita === 'function' && E.tipo === 'curta' ? faltaDaEmpreita(id) : null;
+    const falta = f ? ` — falta ${Itens.qtd(f.n, f.item)}${LOJA.PRECOS[f.item] !== undefined ? ' (depósito)' : ''}` : '';
+    return { texto: E.tipo === 'longa' ? `${E.nome}: ${Empreitas.textoEstado(id)}` : `Empreita: ${E.nome} (${ondeFica(E.mapa)})${falta}`, feito: E.tipo === 'curta' ? a.vezes : undefined, meta: E.tipo === 'curta' ? E.vezes : undefined };
   });
   for (let k = linhas.length - 1; k >= 0; k--) if (!linhas[k]) linhas.splice(k, 1);
   if (G.empreitas.capina && G.empreitas.capina.pos.length) linhas.push({ texto: `Capina do Seu Ananias: ${G.empreitas.capina.pos.length} matos no terreno` });

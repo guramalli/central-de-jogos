@@ -7,6 +7,14 @@
 
 const DET_LIMPAR = ['mato', 'pedra', 'galho', 'toco'];
 // O alvo de cada missão: o mapa e quem (morador), o quê (objeto) ou onde (ponto em px de mundo).
+// O detrito mais perto (com peso), preferindo o que não fica escondido atrás da barra ou do quadro de tarefas (vistoria de 12/10).
+function _maisPerto(filtro, peso = () => 1) {
+  if (!G.mapa || !G.jog) return null;
+  const z = G.zoom || 1, esc = o => G.cam && G.alt && ((o.y - G.cam.y) * z > G.alt - 120 || (o.y - G.cam.y) * z < 110) ? 4 : 1;
+  let o = null, d = 1e9;
+  for (const x of G.mapa.objs) if (x.tipo === 'detrito' && filtro(x)) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y) * peso(x) * esc(x); if (dd < d) { d = dd; o = x; } }
+  return o;
+}
 function _alvoDaMissao(id) {
   const g = G.guia, m = Guia.missao(id);
   if (m && m.carta && G.correio && G.correio.caixa.includes(m.carta)) return { mapa: 'quintal', objeto: 'caixa_correio' };
@@ -14,9 +22,8 @@ function _alvoDaMissao(id) {
   switch (id) {
     case 'quintal': {
       if (G.mapaId !== 'quintal' || !G.mapa || !G.jog) return { mapa: 'quintal' };
-      let o = null, d = 1e9;
       // (o mato some na grama: a seta prefere a pedra, o galho e o toco, que se enxergam; o mato só quando não há outro por perto)
-      for (const x of G.mapa.objs) if (x.tipo === 'detrito' && DET_LIMPAR.includes(x.det)) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y) * (x.det === 'mato' ? 3 : 1); if (dd < d) { d = dd; o = x; } }
+      const o = _maisPerto(x => DET_LIMPAR.includes(x.det), x => (x.det === 'mato' ? 3 : 1));
       return o ? { mapa: 'quintal', ponto: { x: o.x, y: o.y - 56 }, det: o.det } : { mapa: 'quintal' };
     }
     case 'obra': {   // na Vila, a seta segue o passo do Bira (a peneira, o monte, a obra da Zélia); fora, leva até ele
@@ -43,11 +50,31 @@ function _alvoDaMissao(id) {
 }
 // O alvo de um serviço aceito (teste de 12/10: depois do 1º bico, a calçada pega no quadro ficava sem seta): o lugar de
 // verdade, a plaquinha do curto, ou a plaquinha da obra longa com trabalho hoje (ou pronta para entregar).
+// Sem o material (vistoria de 12/10: aceitar não pede material, e o golpe só dizia "falta"), a seta busca o material antes:
+// o que o depósito vende, no depósito; a madeira e a pedra, no galho, no toco ou na pedra mais perto (é no quintal que nascem;
+// sem nenhum lá, a seta fica no serviço e o golpe diz o que falta).
+function faltaDaEmpreita(cid) {
+  const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a || !G.mochila) return null;
+  if (E.tipo === 'longa' && a.estado !== 'reservada') return null;
+  const mat = E.tipo === 'longa' ? Empreitas.material(cid) : E.material;
+  for (const m in mat) { const n = mat[m] - G.mochila.total(m); if (n > 0) return { item: m, n }; }
+  return null;
+}
+const _SOLTA = { madeira: ['galho', 'toco', 'arvore'], pedra: ['pedra', 'pedregulho'] };
+function _alvoDoMaterial(f, cid) {
+  if (LOJA.PRECOS[f.item] !== undefined) return { mapa: 'vila', objeto: 'deposito', falta: f, empreita: cid, buscar: true };
+  const dets = _SOLTA[f.item]; if (!dets) return null;
+  const o = _maisPerto(x => dets.includes(x.det));
+  if (o) return { mapa: G.mapaId, ponto: { x: o.x, y: o.y - 56 }, det: o.det, falta: f, empreita: cid, buscar: true };
+  return G.mapaId === 'quintal' ? null : { mapa: 'quintal', falta: f, empreita: cid, buscar: true };
+}
 function _alvoDaEmpreita(cid) {
   const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a) return null;
+  const f = faltaDaEmpreita(cid); if (f) { const m = _alvoDoMaterial(f, cid); if (m) return m; }
   if (E.local) { const A = E.local.area; return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y: A.y * TILE + 6 }, empreita: cid }; }
   if (E.tipo === 'curta') return { mapa: E.mapa, objeto: 'emp_' + cid, empreita: cid };
-  if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta')) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
+  // (a obra longa reservada também: com o material, a plaquinha é onde se começa; os aluguéis por começar são opcionais)
+  if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta' || (a.estado === 'reservada' && typeof E.familia !== 'string'))) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
   return null;
 }
 function _servicosDaSeta() {
@@ -76,12 +103,18 @@ const ROTULO_OBJ = { caixa_correio: 'Botão direito: ler a carta', peneira: 'Bot
   quadro_pedidos: 'Botão direito: ver os serviços', pensao: 'Botão direito: entrar na pensão', balcao_bazar: 'Botão direito: ver o Bazar',
   escada_mina: 'Botão direito: descer na mina', despensa_pensao: 'Botão direito: abrir a despensa' };
 function _rotulo(a) {
+  if (a.falta && a.tipo !== 'saida') { const q = Itens.qtd(a.falta.n, a.falta.item);
+    if (a.objeto === 'deposito') return `Falta ${q}: compre no depósito do Seu Ananias`;
+    if (a.det) return `Falta ${q}: use ${NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]} aqui`; }
   if (a.tipo === 'saida') return `Vá por aqui: ${typeof NOME_LUGAR !== 'undefined' && NOME_LUGAR[a.destino] || a.destino}`;
   if (a.det) { const f = NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]; return `Use ${f} aqui para ${VERBO_DET[a.det] || 'limpar'}`; }
   if (a.morador) { const p = (G.mapa.moradores || []).find(x => x.id === a.morador); return `Botão direito: falar com ${p ? p.nome : a.morador}`; }
   if (a.empreita && dadosEmpreita(a.empreita) && dadosEmpreita(a.empreita).local) { const E = dadosEmpreita(a.empreita); return `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} ${E.local.nome} (${E.vezes} vezes)`; }
-  if (a.objeto && a.objeto.startsWith('emp_')) { const E = dadosEmpreita(a.objeto.slice(4)); return E && E.ferramenta !== 'carga' ? `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${E.vezes} vezes)` : 'Botão direito aqui'; }
-  if (a.objeto && a.objeto.startsWith('emp_placa_')) { const E = dadosEmpreita(a.objeto.slice(10)); return E ? `Botão direito: ${E.nome}` : 'Botão direito aqui'; }
+  if (a.objeto && a.objeto.startsWith('emp_') && !a.objeto.startsWith('emp_placa_')) { const E = dadosEmpreita(a.objeto.slice(4)); if (!E) return 'Botão direito aqui';
+    return E.ferramenta !== 'carga' ? `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${E.vezes} vezes)` : `Botão direito: entregar ${Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ')}`; }
+  if (a.objeto && a.objeto.startsWith('emp_placa_')) { const id = a.objeto.slice(10), E = dadosEmpreita(id), st = G.empreitas.aceitas[id] && G.empreitas.aceitas[id].estado, f = Empreitas.ferramentaHoje(id);
+    if (!E) return 'Botão direito aqui';
+    return st === 'reservada' ? `Botão direito: começar a obra (${E.nome})` : st === 'pronta' ? `Botão direito: entregar a obra (${E.nome})` : f ? `Use ${NOME_FERRAMENTA[f] || f} na plaquinha (${E.nome})` : `Botão direito: ${E.nome}`; }
   if (a.objeto) return ROTULO_OBJ[a.objeto] || 'Botão direito aqui';
   if (a.missao === 'horta') return 'Plante aqui: a semente na mão, botão direito na terra';
   if (a.missao === 'pensao' && G.pensao && G.pensao.estado === 'limpar') return 'Clique na sujeira para limpar';
@@ -123,8 +156,9 @@ function guiaSetaUI() {
   if (!$('#modal').hidden) return null;
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
-  if (sm && sm.missao === 'quintal' && sm.det) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
-  if (sm && sm.empreita) { const E = dadosEmpreita(sm.empreita); if (E && E.ferramenta !== 'carga' && mao !== E.ferramenta) { const i = slotDe(E.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.det && (sm.missao === 'quintal' || sm.buscar)) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.empreita && !sm.buscar) { const E = dadosEmpreita(sm.empreita), fe = E && (E.tipo === 'longa' ? Empreitas.ferramentaHoje(sm.empreita) : E.ferramenta);
+    if (fe && fe !== 'carga' && mao !== fe) { const i = slotDe(fe); if (i >= 0) return barra(i); } }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {
     const plantadas = Object.values(G.horta.covas || {}).filter(c => c && c.planta).length;
     const semente = G.mochila.slots.slice(0, 12).find(x => x && /^semente_/.test(x.id));
@@ -154,17 +188,21 @@ DESENHOS_TELA.push(ctx => {
   const img = spr('ui/seta'); if (!s || !img || !G.comecou) return;
   const w = img.naturalWidth * 0.8, h = img.naturalHeight * 0.8, z = G.zoom, L = G.larg, A = G.alt;
   const sx = (s.x - G.cam.x) * z, sy = (s.y - G.cam.y) * z, bob = Math.sin((G.agora || 0) * 6) * 8;
+  // (a frase inteira na tela: a frase longa, encostada na borda, saía cortada; vistoria de 12/10)
+  ctx.save(); ctx.font = '900 17px Nunito'; const meia = s.rotulo ? ctx.measureText(s.rotulo).width / 2 + 14 : 0; ctx.restore();
+  const xr = x => Math.min(Math.max(x, meia), L - meia);
   ctx.save();
   // Na tela: em cima do alvo (perto do topo, encostada na borda de cima). Fora: na borda, longe do relógio e do quadro de
   // tarefas (em cima) e da barra (embaixo), girada para o alvo.
   if (sx > 20 && sx < L - 20 && sy > 20 && sy < A - 110) {
     const top = Math.max(4, sy - h - 6) + bob; ctx.drawImage(img, sx - w / 2, top, w, h);
-    if (s.rotulo) texto(ctx, s.rotulo, Math.min(Math.max(sx, 160), L - 160), top > 130 ? top - 8 : top + h + 22, 17, '#fff4cf', '900');
+    if (s.rotulo) texto(ctx, s.rotulo, xr(sx), top > 130 ? top - 8 : top + h + 22, 17, '#fff4cf', '900');
   }
   else {
     const cx = Math.min(Math.max(sx, 70), L - 70), cy = Math.min(Math.max(sy, 190), A - 160);
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(sy - cy, sx - cx) - Math.PI / 2); ctx.drawImage(img, -w / 2, -h / 2 + bob, w, h); ctx.restore();
-    if (s.rotulo) texto(ctx, s.rotulo, Math.min(Math.max(cx, 160), L - 160), cy + h / 2 + 24, 17, '#fff4cf', '900');
+    // (a seta na borda de baixo: a frase vai em cima dela, longe da barra)
+    if (s.rotulo) texto(ctx, s.rotulo, xr(cx), cy + h / 2 + 24 > A - 105 ? cy - h / 2 - 12 : cy + h / 2 + 24, 17, '#fff4cf', '900');
   }
   ctx.restore();
 });
