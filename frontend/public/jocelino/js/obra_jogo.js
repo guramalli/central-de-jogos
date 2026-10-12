@@ -45,7 +45,7 @@ function conversarBira() {
   if (fechada === 'domingo') return falaBira('Domingo é dia de descanso, rapaz. Vai cuidar das suas coisas.');
   if (fechada === 'chuva') return falaBira('Com essa chuva não dá pra trabalhar. Hoje a obra fica fechada.');
   if (fechada === 'cedo') return falaBira('A obra abre às 7h. Toma um café e volta.');
-  if (fechada === 'tarde') return falaBira('A obra é só de manhã, das 7h ao meio-dia. De tarde é com você: empreita, pedreira, o que quiser. Amanhã cedo tem mais.');
+  if (fechada === 'tarde') return falaBira('A obra é só de manhã, das 7h ao meio-dia. De tarde é com você: os bicos do quadro, a horta, o que quiser. Amanhã cedo tem mais.');
   let l = listaDeHoje();
   // 4) A lista do dia.
   if (!l) {
@@ -126,10 +126,10 @@ function acaoNaObra(o) {
     if (r === 'nao_pede') { avisar('Hoje a lista não pede isso.'); return true; }
     largarCarga(); sons.tocar('pousar', 1, 0.05, -4); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Feito: ${nomeTarefa(t)}.`); return true;
   }
-  // Pedras trazidas da pedreira na mochila.
+  // Pedras trazidas na mochila (as do quintal, na picareta; depois também da pedreira).
   if (l && l.metas.buscar_pedra && G.mochila.total('pedra') > 0) {
     const n = Math.min(G.mochila.total('pedra'), l.metas.buscar_pedra - (l.feito.buscar_pedra || 0));
-    if (n > 0) { G.mochila.remover('pedra', n); const r = Obra.trabalho('buscar_pedra', n); hudSujo(); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Entregou ${n} pedras da pedreira.`); return true; }
+    if (n > 0) { G.mochila.remover('pedra', n); const r = Obra.trabalho('buscar_pedra', n); hudSujo(); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Entregou ${n} pedras.`); return true; }
   }
   abrirPlaca(`${Obra.obra().nome} — etapa: ${Obra.obra().etapas[G.obra.etapa].nome}.${l ? '\n' + textoLista(l) : ' O Mestre Bira passa a lista de manhã.'}`);
   return true;

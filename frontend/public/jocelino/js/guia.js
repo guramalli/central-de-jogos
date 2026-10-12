@@ -200,7 +200,8 @@ function quebrouNoGuia(o) {
 const PASSO_OBRA = { areia: ['Agora a areia: a peneira ali no canto. Botão direito nela até completar.', 'peneira'],
   tijolos: ['Os tijolos: pegue no monte (botão direito) e leve até a obra da casa da Dona Zélia.', 'monte_tijolos'],
   massa: ['A massa: pegue na masseira e leve para o Zé.', 'masseira'], ripas: ['As ripas: pegue na pilha e leve para a obra.', 'pilha_ripas'],
-  pedras: ['As pedras: pegue no monte e leve para a obra.', 'monte_tijolos'], entulho: ['O entulho: quebre os montinhos de entulho do canteiro.', null] };
+  pedras: ['As pedras: pegue no monte e leve para a obra.', 'monte_tijolos'],
+  buscar_pedra: ['As pedras: quebre as pedras do quintal com a picareta e traga 10 na mochila. Depois é só falar comigo.', null], entulho: ['O entulho: quebre os montinhos de entulho do canteiro.', null] };
 let guiaPasso = function () {
   const g = G.guia; if (!g || !g.ativo) return null;
   if (g.abertas.includes('obra') && G.mapaId === 'vila') {
