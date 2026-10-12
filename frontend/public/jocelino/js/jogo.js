@@ -95,6 +95,8 @@ setInterval(() => { const t = performance.now(); if (t - _ultimo > 100) quadro(t
 
 // Começa (ou continua) o jogo a partir de um save.
 async function iniciarJogo(save) {
+  // A arte do jogo inteiro vai sendo baixada aos poucos logo depois do começo (fora dos testes, que medem o jogo sem isso).
+  if (!window._precarregou && typeof ARTE_LISTA !== 'undefined' && !/teste=1/.test(location.search)) { window._precarregou = true; setTimeout(() => precarregarArtes(ARTE_LISTA), 1500); }
   G.save = migraSave(save);
   const s = G.save;
   G.dia = s.dia; G.minutos = s.minutos; G.dinheiro = s.dinheiro; G.energia = s.energia;

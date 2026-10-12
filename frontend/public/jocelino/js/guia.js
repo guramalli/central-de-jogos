@@ -8,7 +8,7 @@ const _covasPlantadasRegadas = () => Object.values((G.horta && G.horta.covas) ||
 const _culturasNaDespensa = () => { const d = (G.pensao && G.pensao.despensa) || {}; return Object.keys(typeof CULTURAS !== 'undefined' ? CULTURAS : {}).reduce((t, id) => t + (d[id] || 0), 0); };
 const GUIA_MISSOES = [
   { id: 'quintal', titulo: 'Limpar o quintal', quem: 'Tio Juca', texto: 'Limpar o quintal (mato, pedra, galho)', meta: 5, conta: () => G.guia.cont.limpou || 0,
-    aoFeita: () => avisar('Abra a mochila (tecla E) para ver as marmitas: comer dá energia.') },
+    aoFeita: () => avisar('Ganhou marmitas! Para comer, clique com o botão direito na marmita da barra: dá energia. A mochila abre na tecla E.') },
   { id: 'obra', titulo: 'A primeira obra', quem: 'Mestre Bira', texto: 'A primeira obra (das 7h ao meio-dia, na Vila)', feita: () => !!(G.obra && G.obra.lista && G.obra.lista.contou), alvo: () => ({ morador: 'bira' }) },   // contou: paga, ou fechada com mais da metade
   { id: 'vila', titulo: 'Conhecer a Vila', quem: 'Mestre Bira', texto: 'Conhecer a Vila: Seu Ananias, Dona Zélia e o Zé', meta: 3, depois: 'obra',
     conta: () => GUIA_VIZINHOS.filter(i => G.guia.conversou.includes(i)).length,

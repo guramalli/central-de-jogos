@@ -21,6 +21,18 @@ function spr(nome) {
   }
   return r.pronta ? r.img : null;
 }
+// Depois que o jogo começa, carrega o resto da arte aos poucos (porVez por vez), para nada ser baixado no meio do jogo (teste de
+// 12/10: as travadas e o cursor de "pensando" vinham da arte baixada na primeira vez que aparecia na tela).
+function precarregarArtes(nomes, porVez = 4) {
+  const fila = nomes.filter(n => !SPR.has(n)); let ativos = 0;
+  const proximo = () => {
+    while (ativos < porVez && fila.length) {
+      const n = fila.shift(); spr(n); ativos++; const r = SPR.get(n);
+      const t = setInterval(() => { if (r.pronta || r.erro) { clearInterval(t); ativos--; setTimeout(proximo, 30); } }, 50);
+    }
+  };
+  proximo();
+}
 // Espera uma lista de artes carregarem (tela de carregando, testes).
 function carregarArtes(nomes) {
   return Promise.all(nomes.map(n => new Promise(ok => {

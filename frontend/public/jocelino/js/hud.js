@@ -42,7 +42,9 @@ function atualizaHud() {
     HUD.barra.innerHTML = '';
     for (let i = 0; i < 12; i++) {
       const s = G.mochila.slots[i];
-      const e = el('div', { class: 'espaco' + (i === G.sel ? ' sel' : ''), title: s ? Itens.nome(s.id) : '', onclick: () => { G.sel = i; hudSujo(); } },
+      const e = el('div', { class: 'espaco' + (i === G.sel ? ' sel' : ''), title: s ? Itens.nome(s.id) + (Itens.energia(s.id) ? ' — botão direito: comer' : '') : '', onclick: () => { G.sel = i; hudSujo(); },
+        // (teste de 12/10) Botão direito numa comida da barra: escolhe e pergunta se quer comer (antes não fazia nada).
+        oncontextmenu: ev => { ev.preventDefault(); ev.stopPropagation(); G.sel = i; hudSujo(); if (!menuAberto() && typeof comerDaMao === 'function') comerDaMao(); } },
         s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null, s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null,
         s && s.id === 'regador' && G.horta ? el('div', { class: 'agua', title: `Água: ${G.horta.agua}` }, el('div', { style: `width:${Math.round(100 * G.horta.agua / Horta.aguaMax())}%` })) : null);
       HUD.barra.append(e);

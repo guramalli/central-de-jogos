@@ -39,13 +39,16 @@ function detritoSob(px, py) {
 function alvoDoGolpe(peloTeclado) {
   const j = G.jog, p = j.ladrilho();
   const frente = dir => ({ dir, x: p.x + DIR_VET[dir][0], y: p.y + DIR_VET[dir][1] });
-  if (peloTeclado) return frente(j.dir);
+  // (teste de 12/10) Vindo de cima, o Jocelino entra um pouco no ladrilho da pedra (a colisão é pequena): sem nada na frente e
+  // com o detrito no próprio ladrilho, o golpe vai nele, e não no ladrilho vazio de baixo.
+  const aqui = G.mapa.ocupado.get(chaveT(p.x, p.y)), noProprio = aqui && aqui.tipo === 'detrito';
+  if (peloTeclado) { const f = frente(j.dir); return noProprio && !G.mapa.ocupado.get(chaveT(f.x, f.y)) ? { dir: j.dir, x: p.x, y: p.y } : f; }
   const mm = mouseMundo();
   let t = { x: Math.floor(mm.x / TILE), y: Math.floor(mm.y / TILE) };
   const o = detritoSob(mm.x, mm.y);
   const cheb = a => Math.max(Math.abs(a.x - p.x), Math.abs(a.y - p.y));
   if (o) t = o.tiles.reduce((a, b) => cheb(b) < cheb(a) ? b : a);
-  const perto = cheb(t) <= 1 && (t.x !== p.x || t.y !== p.y);
+  const perto = cheb(t) <= 1 && (t.x !== p.x || t.y !== p.y || (!!o && noProprio));   // clicar no detrito do próprio ladrilho vale
   // Vira pelo vetor do Jocelino até o alvo (ou até o clique, quando é longe).
   const ax = perto ? (t.x + 0.5) * TILE : mm.x, ay = perto ? (t.y + 0.5) * TILE : mm.y;
   const dx = ax - j.x, dy = ay - (j.y - 18);
