@@ -32,8 +32,7 @@ function _alvoDaMissao(id) {
     case 'janta': case 'domingo': return noSalao ? null : { mapa: 'vila', objeto: 'pensao' };
     case 'bico': {
       const ac = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta');
-      if (ac && dadosEmpreita(ac).local) { const E = dadosEmpreita(ac), A = E.local.area; return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y: A.y * TILE + 6 }, empreita: ac }; }
-      return ac ? { mapa: dadosEmpreita(ac).mapa, objeto: 'emp_' + ac, empreita: ac } : { mapa: 'vila', objeto: 'quadro_pedidos' };
+      return ac ? _alvoDaEmpreita(ac) : { mapa: 'vila', objeto: 'quadro_pedidos' };
     }
     case 'pesca': return { mapa: 'praia', morador: 'lourival' };
     case 'bazar': return { mapa: 'vila', objeto: 'balcao_bazar' };
@@ -41,6 +40,20 @@ function _alvoDaMissao(id) {
     case 'mina': return { mapa: 'pedreira', objeto: 'escada_mina' };
   }
   return null;
+}
+// O alvo de um serviço aceito (teste de 12/10: depois do 1º bico, a calçada pega no quadro ficava sem seta): o lugar de
+// verdade, a plaquinha do curto, ou a plaquinha da obra longa com trabalho hoje (ou pronta para entregar).
+function _alvoDaEmpreita(cid) {
+  const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a) return null;
+  if (E.local) { const A = E.local.area; return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y: A.y * TILE + 6 }, empreita: cid }; }
+  if (E.tipo === 'curta') return { mapa: E.mapa, objeto: 'emp_' + cid, empreita: cid };
+  if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta')) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
+  return null;
+}
+function _servicosDaSeta() {
+  if (!G.empreitas) return [];
+  const ids = Object.keys(G.empreitas.aceitas);
+  return ids.filter(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta').concat(ids.filter(k => dadosEmpreita(k) && dadosEmpreita(k).tipo !== 'curta'));
 }
 // A ordem: na hora da obra (das 7h ao meio-dia, lista por receber), a obra vem antes de tudo; depois, a ordem das abertas.
 function _missoesDaSeta() {
@@ -68,6 +81,7 @@ function _rotulo(a) {
   if (a.morador) { const p = (G.mapa.moradores || []).find(x => x.id === a.morador); return `Botão direito: falar com ${p ? p.nome : a.morador}`; }
   if (a.empreita && dadosEmpreita(a.empreita) && dadosEmpreita(a.empreita).local) { const E = dadosEmpreita(a.empreita); return `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} ${E.local.nome} (${E.vezes} vezes)`; }
   if (a.objeto && a.objeto.startsWith('emp_')) { const E = dadosEmpreita(a.objeto.slice(4)); return E && E.ferramenta !== 'carga' ? `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${E.vezes} vezes)` : 'Botão direito aqui'; }
+  if (a.objeto && a.objeto.startsWith('emp_placa_')) { const E = dadosEmpreita(a.objeto.slice(10)); return E ? `Botão direito: ${E.nome}` : 'Botão direito aqui'; }
   if (a.objeto) return ROTULO_OBJ[a.objeto] || 'Botão direito aqui';
   if (a.missao === 'horta') return 'Plante aqui: a semente na mão, botão direito na terra';
   if (a.missao === 'pensao' && G.pensao && G.pensao.estado === 'limpar') return 'Clique na sujeira para limpar';
@@ -76,9 +90,12 @@ function _rotulo(a) {
 }
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
-  if (!G.mapa || !G.guia || !G.guia.ativo) return null;
-  for (const id of _missoesDaSeta()) {
-    const a = _alvoDaMissao(id); if (!a) continue;
+  if (!G.mapa) return null;
+  const cands = [];
+  if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
+  for (const cid of _servicosDaSeta()) cands.push(['servico', () => _alvoDaEmpreita(cid)]);
+  for (const [id, f] of cands) {
+    const a = f(); if (!a) continue;
     if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } continue; }
     // Em outro mapa: a saída para lá, ou para a Vila (o centro de tudo).
     const s = (G.mapa.saidas || []).find(x => x.destino === a.mapa) || (G.mapaId !== 'vila' ? (G.mapa.saidas || []).find(x => x.destino === 'vila') : null);
@@ -88,11 +105,11 @@ function guiaSetaMundo() {
 }
 // A seta da tela: { chave, el } ou null (o elemento HTML onde clicar).
 function guiaSetaUI() {
-  const g = G.guia; if (!g || !g.ativo) return null;
+  const g = G.guia || { ativo: false, abertas: [] };
   const barra = i => { const el = document.querySelectorAll('#hud .barra .espaco')[i], it = G.mochila.slots[i]; return el ? { chave: 'barra:' + i, el, rotulo: `Clique aqui: ${it ? (NOME_FERRAMENTA[it.id] || Itens.nome(it.id)).replace(/^(a|o) /, '') : ''}` } : null; };
   const slotDe = id => G.mochila.slots.slice(0, 12).findIndex(x => x && x.id === id);
   const mao = typeof itemDaMao === 'function' ? itemDaMao() : '';
-  const ab = g.abertas, noSalao = typeof noPalco === 'function' && noPalco();
+  const ab = g.ativo ? g.abertas : [], noSalao = typeof noPalco === 'function' && noPalco();
   // O quadro aberto no primeiro bico (sem serviço aceito ainda): o primeiro "Aceitar".
   if (ab.includes('bico') && !$('#modal').hidden && $('#modal .quadro-vila') && !Object.keys(G.empreitas.aceitas).some(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta')) {
     const b = [...document.querySelectorAll('#modal button')].find(x => /^Aceitar$/.test(x.textContent.trim())); if (b) return { chave: 'aceitar', el: b, rotulo: 'Clique em Aceitar' };
@@ -107,7 +124,7 @@ function guiaSetaUI() {
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
   if (sm && sm.missao === 'quintal' && sm.det) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
-  if (sm && sm.missao === 'bico' && sm.empreita) { const E = dadosEmpreita(sm.empreita); if (E && E.ferramenta !== 'carga' && mao !== E.ferramenta) { const i = slotDe(E.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.empreita) { const E = dadosEmpreita(sm.empreita); if (E && E.ferramenta !== 'carga' && mao !== E.ferramenta) { const i = slotDe(E.ferramenta); if (i >= 0) return barra(i); } }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {
     const plantadas = Object.values(G.horta.covas || {}).filter(c => c && c.planta).length;
     const semente = G.mochila.slots.slice(0, 12).find(x => x && /^semente_/.test(x.id));
