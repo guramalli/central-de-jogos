@@ -82,7 +82,7 @@ const Empreitas = {
   quadroDoDia(dia) {
     if (typeof Guia !== 'undefined' && !Guia.liberado('quadro')) return [];   // o quadro de serviços chega com o guia (Frente 4)
     const f = mulberry(dia * 6151 + 11), n = Empreitas.faixa().pedidos;
-    const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id];
+    const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id] && (typeof Mundo === 'undefined' || Mundo.aberto(dadosEmpreita(id).mapa));   // só lugar já aberto (teste de 12/10)
     const curtas = Object.keys(EMPREITAS_CURTAS).filter(livre), longas = Object.keys(EMPREITAS_LONGAS).filter(livre), r = [];
     if (!G.empreitas.capina && Empreitas.libera('capina_ananias')) curtas.push('capina_ananias');
     // Fim de ano: as reformas aparecem em dobro no sorteio.

@@ -28,7 +28,8 @@ const GUIA_MISSOES = [
     intro: ['rosa', 'Rosa', ['Amor, hoje é a primeira janta! Às 17h vem gente na pensão.', 'Eu cozinho, você serve. Lá dentro eu te ensino, passo a passo.']] },
   // (o bico vem na tarde do dia 1, depois da Vila: o ritmo do balanço pede as empreitas cedo, e a tarde do dia 1 era vazia)
   { id: 'bico', titulo: 'O primeiro bico', quem: 'Mestre Bira', texto: 'O primeiro bico: um serviço do quadro (na frente da obra)', depois: 'vila', dia: 'quadro', libera: 'quadro',
-    feita: () => !!G.empreitas && G.empreitas.entregues >= 1, alvo: () => ({ objeto: 'quadro_pedidos' }),
+    feita: () => !!G.empreitas && G.empreitas.entregues >= 1,
+    alvo: () => { const id = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta'); return { objeto: id ? 'emp_' + id : 'quadro_pedidos' }; },
     aoAbrir: () => { if (G.empreitas && typeof Empreitas !== 'undefined') { G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia); } }, },
   // (o domingo vale só naquele dia: na segunda se encerra sem recompensa, para não ocupar a vaga das outras)
   { id: 'domingo', titulo: 'Domingo em família', quem: 'Rosa', texto: 'Domingo em família: guarde 5 da horta na despensa da pensão', meta: 5, depois: 'horta', dia: 'domingo', semana: 6, expira: 1, conta: _culturasNaDespensa,

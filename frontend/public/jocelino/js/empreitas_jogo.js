@@ -72,10 +72,16 @@ function poeEmpreitasNoMapa(b) {
       // Limpeza: os detritos de verdade em volta da placa; cada um que sai conta.
       if (LIMPEZA[id]) {
         const falta = E.vezes - (a.vezes || 0), f = mulberry(a.dia * 37 + id.length);
-        for (let k = 0, n = 0; k < 80 && n < falta; k++) {
-          const q = lugarLivre(b, p.x + Math.floor(f() * 7) - 3, p.y + Math.floor(f() * 5) - 2), d = b.detrito(LIMPEZA[id], q.x, q.y);
-          if (d) { d.empreitaDet = id; n++; }
+        // Os detritos nascem primeiro no caminho (terra ou caminho) perto da placa, depois na grama, do mais perto ao mais
+        // longe, até nascerem todos: fora do caminho eles somem na grama alta (teste de 12/10: só 3 dos 8 da trilha apareciam).
+        const cand = [];
+        for (let dy = -6; dy <= 6; dy++) for (let dx = -10; dx <= 10; dx++) {
+          const x = p.x + dx, y = p.y + dy; if (x < 1 || y < 1 || x >= b.larg - 1 || y >= b.alt - 1) continue;
+          const ch = b.chaoEm(x, y); if (ch === CH.MAR || ch === CH.RIO) continue;
+          cand.push({ x, y, caminho: ch === CH.TERRA || ch === CH.CAMINHO ? 1 : 0, d: Math.abs(dx) + Math.abs(dy) + f() });
         }
+        cand.sort((u, v) => (v.caminho - u.caminho) || (u.d - v.d));
+        for (let k = 0, n = 0; k < cand.length && n < falta; k++) { const d = b.detrito(LIMPEZA[id], cand[k].x, cand[k].y); if (d) { d.empreitaDet = id; n++; } }
       }
     } else {
       // A plaquinha do serviço (desde a reserva); o lote com a arte da etapa só depois de começar.
@@ -159,6 +165,9 @@ function quebrouEmpreita(o) {
 function golpeEmpreitaPronta(id) { const E = dadosEmpreita(id); sons.tocar('moedas', 1, 0.05, -4); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${E.paga}.`); hudSujo(); if (G.mapa) poeEmpreitasNoMapa(G.mapa); }
 
 // ---------- o quadro da Vila: Pensão e Serviços ----------
+// Onde fica cada lugar (o cartão do quadro e a tarefa): o jogador novo não sabe onde é a mata nem a praia (teste de 12/10).
+const ONDE_FICA = { vila: 'na Vila', quintal: 'no quintal', mata: 'na mata: saída oeste da Vila', praia: 'na praia: a rua do meio da Vila desce para o sul', pedreira: 'na pedreira', bairro: 'no Bairro Novo' };
+const ondeFica = mapa => ONDE_FICA[mapa] || mapa;
 function abrirQuadro(aba = 'servicos') {
   if (aba === 'servicos' && typeof Guia !== 'undefined' && !Guia.liberado('quadro')) { abrirPlaca('O quadro de serviços da Vila. Depois de conhecer o pessoal da Vila, os bicos ficam aqui.'); return; }
   const caixa = el('div', { class: 'painel quadro-vila' });
@@ -175,7 +184,7 @@ function abrirQuadro(aba = 'servicos') {
       const ids = G.empreitas.quadro, aceitas = Object.keys(G.empreitas.aceitas);
       const linha = (id, botao) => { const E = dadosEmpreita(id); return el('div', { class: 'orel-item' }, el('img', { src: urlItem(E.ferramenta === 'carga' ? 'telha' : E.ferramenta) }),
         el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), el('div', { class: 'orel-preco' },
-          `${{ vila: 'na Vila', praia: 'na praia', mata: 'na mata', quintal: 'no quintal', bairro: 'no Bairro Novo' }[E.mapa]} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
+          `${ondeFica(E.mapa)} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
       const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
       const pct = prox ? Math.round(100 * Math.min(G.empreitas.entregues / prox.entregues, prox.caprichados ? cap / prox.caprichados : 1)) : 100;
@@ -268,7 +277,7 @@ TAREFAS.push(() => {
   const linhas = Object.keys(G.empreitas.aceitas).map(id => {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (typeof E.familia === 'string' && a.estado === 'reservada') return null;   // os aluguéis por começar ficam só na plaquinha (são opcionais)
-    return { texto: E.tipo === 'longa' ? `${E.nome}: ${Empreitas.textoEstado(id)}` : `Empreita: ${E.nome}`, feito: E.tipo === 'curta' ? a.vezes : undefined, meta: E.tipo === 'curta' ? E.vezes : undefined };
+    return { texto: E.tipo === 'longa' ? `${E.nome}: ${Empreitas.textoEstado(id)}` : `Empreita: ${E.nome} (${ondeFica(E.mapa)})`, feito: E.tipo === 'curta' ? a.vezes : undefined, meta: E.tipo === 'curta' ? E.vezes : undefined };
   });
   for (let k = linhas.length - 1; k >= 0; k--) if (!linhas[k]) linhas.splice(k, 1);
   if (G.empreitas.capina && G.empreitas.capina.pos.length) linhas.push({ texto: `Capina do Seu Ananias: ${G.empreitas.capina.pos.length} matos no terreno` });
