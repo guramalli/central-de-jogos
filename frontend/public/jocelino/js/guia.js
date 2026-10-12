@@ -137,6 +137,8 @@ const Guia = {
     for (const m of GUIA_MISSOES) {
       const feita = (m.libera && g.antes.includes(m.libera)) || (['quintal', 'obra', 'vila'].includes(m.id) && dia > 1)
         || (m.id === 'janta' && pz.estado === 'aberta' && (pz.ultimaJanta || 0) > 0) || (m.id === 'domingo' && dia > 7);
+      // (a reforma pela metade fica aberta: a seta e a frase guiam até a pensão; teste de 12/10)
+      if (feita && m.id === 'pensao' && ['limpar', 'telhas', 'mesas'].includes(pz.estado)) { g.abertas.push('pensao'); continue; }
       if (feita) g.feitas.push(m.id);
     }
     return g;
@@ -149,6 +151,8 @@ const Guia = {
     G.guia = s.guia ? Object.assign(Guia.novo(true), JSON.parse(JSON.stringify(s.guia))) : novoJogo ? Guia.novo(true) : Guia.migrar(s);
     Guia.fila.length = 0;
     G.guia.feitas = G.guia.feitas.filter(id => Guia.missao(id)); G.guia.abertas = G.guia.abertas.filter(id => Guia.missao(id));   // um id que sumiu não trava
+    // A reforma pela metade dada como feita (saves de 12/10, antes do conserto da migração): volta a ficar aberta, com a seta.
+    if (G.guia.ativo && G.guia.feitas.includes('pensao') && s.pensao && ['limpar', 'telhas', 'mesas'].includes(s.pensao.estado)) { G.guia.feitas = G.guia.feitas.filter(x => x !== 'pensao'); if (!G.guia.abertas.includes('pensao')) G.guia.abertas.push('pensao'); }
     // Nos testes (?teste=1, como as boas-vindas), o jogo novo sem guia pedido começa com tudo liberado; quem testa o guia pede s.guia.
     if (!s.guia && novoJogo && typeof location !== 'undefined' && /teste=1/.test(location.search)) Guia.liberarTudo();
   },
