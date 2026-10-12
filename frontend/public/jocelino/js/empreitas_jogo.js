@@ -100,7 +100,12 @@ function poeEmpreitasNoMapa(b) {
 }
 function golpeEmpreita(id, ferr) {
   const r = Empreitas.trabalhar(id, ferr), E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
-  if (r === 'ok') { sons.tocar(ferr === 'machado' ? 'madeira' : ferr === 'regador' ? 'agua' : 'terra', 1.1, 0.05, -6); if (a && a.trabalhou) avisar(`${E.nome}: o serviço de hoje está feito.`); hudSujo(); return; }
+  if (r === 'ok') {
+    sons.tocar(ferr === 'machado' ? 'madeira' : ferr === 'regador' ? 'agua' : 'terra', 1.1, 0.05, -6); if (a && a.trabalhou) avisar(`${E.nome}: o serviço de hoje está feito.`); hudSujo();
+    // (teste de 12/10) o golpe do serviço curto mostra o contador em cima do lugar, como o da obra
+    if (E.tipo === 'curta' && a && G.jog) { const f = G.jog.frente(); (G.guiaFlut = G.guiaFlut || []).push({ texto: `${E.nome} ${a.vezes}/${E.vezes}`, x: f.x, y: f.y - 40, ate: (G.agora || 0) + 1.5 }); }
+    return;
+  }
   if (r === 'pronta') { sons.tocar('moedas', 1, 0.05, -4); sons.tocar('feito', 1, 0.03, -6); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${E.paga}.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return; }
   if (r === 'estado') { avisar(!a ? '' : a.estado === 'reservada' ? 'Primeiro comece a obra: clique na plaquinha com o material na mochila.' : a.estado === 'pronta' ? 'Está pronta: clique na plaquinha para entregar.' : E.familia ? 'Terminada: à noite a família vê a obra nova.' : 'Entregue: o pagamento vem à noite.'); return; }
   if (r === 'concreto') { avisar('Chovendo, o concreto não pega. Hoje a obra espera.'); return; }
@@ -118,8 +123,9 @@ function acaoEmpreita(id) {
   if (!a) return true;
   if (E.tipo === 'longa') return acaoLote(id);
   if (E.ferramenta === 'carga') { golpeEmpreita(id, 'carga'); return true; }
-  const mat = Object.keys(E.material).length ? ' Material: ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + '.' : '';
-  const como = LIMPEZA[id] ? `Limpe ${E.vezes} ${LIMPEZA[id] === 'mato' ? 'matos' : 'entulhos'} em volta com ${NOME_FERRAMENTA[E.ferramenta]}.` : `Trabalhe com ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta}.`;
+  // (teste de 12/10) A plaquinha explica: quantos golpes, quantos já foram e quando o material é gasto.
+  const mat = Object.keys(E.material).length ? ' Tenha na mochila: ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + ' (gastas no último golpe).' : '';
+  const como = LIMPEZA[id] ? `Limpe ${E.vezes} ${LIMPEZA[id] === 'mato' ? 'matos' : 'entulhos'} em volta com ${NOME_FERRAMENTA[E.ferramenta]}.` : `Escolha ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} e dê ${E.vezes} golpes nesta plaquinha (feitos: ${a.vezes || 0}/${E.vezes}).`;
   abrirPlaca(`${E.nome} para ${CLIENTE_NOME[E.cliente]} (Cr$ ${E.paga}). ${como}${mat}`);
   return true;
 }

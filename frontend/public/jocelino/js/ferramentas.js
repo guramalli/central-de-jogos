@@ -36,6 +36,20 @@ function detritoSob(px, py) {
   return melhor;
 }
 // O alvo do golpe e a direção em que o Jocelino vira.
+// Um objeto que recebe ferramenta (a plaquinha do serviço, o lote da obra) sob o mouse, pelo desenho inteiro (teste de 12/10:
+// a plaquinha tem um ladrilho e meio; clicar na tábua de cima acertava o ladrilho vazio de cima e "nada acontecia").
+function interComFerramentaSob(px, py) {
+  let melhor = null, d = 1e9;
+  for (const o of G.mapa.objs) {
+    if (o.tipo !== 'inter' || !o.ferramenta || !o.tiles || !o.tiles.length) continue;
+    const img = spr(o.nome);
+    const w = img ? img.naturalWidth : TILE, h = img ? img.naturalHeight : TILE;
+    if (px < o.x - w / 2 || px > o.x + w / 2 || py < o.y - h || py > o.y + 4) continue;
+    const dist = Math.hypot(o.x - px, o.y - 20 - py);
+    if (dist < d) { d = dist; melhor = o; }
+  }
+  return melhor;
+}
 function alvoDoGolpe(peloTeclado) {
   const j = G.jog, p = j.ladrilho();
   const frente = dir => ({ dir, x: p.x + DIR_VET[dir][0], y: p.y + DIR_VET[dir][1] });
@@ -45,7 +59,7 @@ function alvoDoGolpe(peloTeclado) {
   if (peloTeclado) { const f = frente(j.dir); return noProprio && !G.mapa.ocupado.get(chaveT(f.x, f.y)) ? { dir: j.dir, x: p.x, y: p.y } : f; }
   const mm = mouseMundo();
   let t = { x: Math.floor(mm.x / TILE), y: Math.floor(mm.y / TILE) };
-  const o = detritoSob(mm.x, mm.y);
+  const o = detritoSob(mm.x, mm.y) || interComFerramentaSob(mm.x, mm.y);
   const cheb = a => Math.max(Math.abs(a.x - p.x), Math.abs(a.y - p.y));
   if (o) t = o.tiles.reduce((a, b) => cheb(b) < cheb(a) ? b : a);
   const perto = cheb(t) <= 1 && (t.x !== p.x || t.y !== p.y || (!!o && noProprio));   // clicar no detrito do próprio ladrilho vale
