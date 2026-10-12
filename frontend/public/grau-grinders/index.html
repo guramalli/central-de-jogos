@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Grau Grinders — versão de teste</title>
+    <link rel="icon" type="image/png" href="TemplateData/favicon.png">
+    <link rel="stylesheet" href="TemplateData/style.css">
+  </head>
+  <body>
+    <div id="jogo">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+      <!-- Tela de carregamento / início -->
+      <div id="abertura">
+        <div class="abertura-conteudo">
+          <img id="logo" src="TemplateData/logo.png" alt="Grau Grinders">
+          <div id="carregando">
+            <div class="barra"><div id="barra-cheia"></div></div>
+            <p id="frase">Esquentando a marmita... 0%</p>
+          </div>
+          <button id="jogar" type="button" hidden>CLIQUE PARA JOGAR</button>
+          <div class="controles">
+            <span><b>WASD</b> ou <b>setas</b>: pilotar</span>
+            <span><b>Espaço</b>: grau</span>
+            <span><b>1 / 2 / 3</b>: escolher cartas e corridas</span>
+            <span><b>M</b>: liga/desliga o som</span>
+          </div>
+          <p class="aviso">Música: Kevin MacLeod (incompetech.com) · CC BY 4.0</p>
+          <p class="aviso">Versão de teste · precisa de teclado (não funciona no celular) · use Chrome, Edge ou Firefox</p>
+        </div>
+      </div>
+
+      <button id="tela-cheia" type="button" title="Tela cheia" hidden>⛶</button>
+      <div id="erro" hidden></div>
+    </div>
+
+    <script>
+      var canvas = document.getElementById("unity-canvas");
+      var abertura = document.getElementById("abertura");
+      var barra = document.getElementById("barra-cheia");
+      var frase = document.getElementById("frase");
+      var jogar = document.getElementById("jogar");
+      var telaCheia = document.getElementById("tela-cheia");
+      var frases = [
+        "Esquentando a marmita...", "Calibrando o pneu da Biz...", "Desviando do buraco...",
+        "Procurando troco pra 100...", "Fugindo do cachorro caramelo...", "Aceitando a corrida..."
+      ];
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        document.querySelector(".aviso").textContent = "Este jogo precisa de teclado e mouse: abra no computador.";
+      }
+
+      function mostraErro(msg) {
+        var e = document.getElementById("erro");
+        e.textContent = "Ops! O jogo não conseguiu abrir: " + msg;
+        e.hidden = false;
+      }
+
+      var config = {
+        arguments: [],
+        dataUrl: "Build/grau-grinders.data.unityweb",
+        frameworkUrl: "Build/grau-grinders.framework.js.unityweb",
+        codeUrl: "Build/grau-grinders.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Gustavo Ramalli",
+        productName: "Grau Grinders",
+        productVersion: "1.0",
+        // Telas muito densas (retina/4K) pesam demais no navegador: limita a resolução.
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+        showBanner: function (msg, type) { if (type === "error") mostraErro(msg); }
+      };
+
+      var script = document.createElement("script");
+      script.src = "Build/grau-grinders.loader.js";
+      script.onload = function () {
+        createUnityInstance(canvas, config, function (progresso) {
+          var p = Math.round(progresso * 100);
+          barra.style.width = p + "%";
+          frase.textContent = frases[Math.min(frases.length - 1, Math.floor(progresso * frases.length))] + " " + p + "%";
+        }).then(function (instancia) {
+          document.getElementById("carregando").hidden = true;
+          jogar.hidden = false;
+          jogar.focus();
+          telaCheia.onclick = function () { instancia.SetFullscreen(1); };
+        }).catch(function (msg) { mostraErro(msg); });
+      };
+      script.onerror = function () { mostraErro("não achei os arquivos do jogo."); };
+      document.body.appendChild(script);
+
+      // O clique libera teclado e som no navegador.
+      jogar.onclick = function () {
+        abertura.classList.add("sumindo");
+        telaCheia.hidden = false;
+        canvas.focus();
+        setTimeout(function () { abertura.hidden = true; }, 400);
+      };
+      canvas.addEventListener("mousedown", function () { canvas.focus(); });
+    </script>
+  </body>
+</html>
