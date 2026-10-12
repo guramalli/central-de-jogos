@@ -160,6 +160,7 @@ function golpeEmpreitaPronta(id) { const E = dadosEmpreita(id); sons.tocar('moed
 
 // ---------- o quadro da Vila: Pensão e Serviços ----------
 function abrirQuadro(aba = 'servicos') {
+  if (aba === 'servicos' && typeof Guia !== 'undefined' && !Guia.liberado('quadro')) { abrirPlaca('O quadro de serviços da Vila. Depois de conhecer o pessoal da Vila, os bicos ficam aqui.'); return; }
   const caixa = el('div', { class: 'painel quadro-vila' });
   const desenha = () => {
     caixa.innerHTML = '';

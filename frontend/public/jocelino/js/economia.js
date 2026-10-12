@@ -100,6 +100,11 @@ const ECO = {
     casa: { nome: 'Casa de aluguel', etapas: ['pa', 'pa', 'colher', 'colher', 'machado', 'colher', 'regador'], material: { tijolo: 120, cimento: 12, telha: 40, madeira: 20, tinta: 2 }, dinheiro: 30000, semana: 600, arte: 'objetos/casa_aluguel', w: 6, h: 3 },
     patrao: 1.5,
   },
+  // O guia das primeiras semanas (Frente 4, 12/10/2026): o dia mínimo de cada sistema, a espera quando a missão anterior
+  // empaca, o máximo de missões abertas e as recompensas (coisas úteis, sem dinheiro).
+  guia: { dias: { pensao: 2, horta: 3, quadro: 1, domingo: 7, pesca: 8, bazar: 9, pedreira: 10, mina: 12 }, espera: 3, maxAbertas: 2,
+    recompensas: { quintal: { mochila: { marmita: 2 } }, horta: { mochila: { esterco: 5, semente_alface: 5 } },
+      janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
 };
 // Põe o número do ECO no campo de cada linha de uma tabela do jogo: o arquivo dono fica com o conteúdo (nome, arte, etapas) e
 // o dinheiro mora aqui. Falta de valor é erro na hora de carregar, para nenhum número sumir calado.

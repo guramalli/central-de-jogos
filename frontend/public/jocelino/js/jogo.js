@@ -108,8 +108,17 @@ async function iniciarJogo(save) {
   return true;
 }
 
+// O Novo jogo pergunta pelo guia das primeiras semanas (Frente 4).
+function perguntaGuia() {
+  const capa = $('#capa'), comecar = ativo => { const s = novoSave(); s.guia = Guia.novo(ativo); iniciarJogo(s); };
+  capa.querySelector('.botoes').replaceWith(el('div', { class: 'botoes' }, el('div', { class: 'sub' }, 'Quer o guia das primeiras semanas?'),
+    el('button', { class: 'botao forte', onclick: () => comecar(true) }, 'Sim, com o guia'),
+    el('button', { class: 'botao', onclick: () => comecar(false) }, 'Já conheço o jogo'),
+    el('button', { class: 'botao', onclick: () => mostrarCapa() }, 'Voltar')));
+}
 // Capa: Continuar (se houver save) ou Novo jogo.
 function mostrarCapa() {
+  { const d = document.getElementById('guia-dica'); if (d) { d.hidden = true; d._chave = ''; } }   // a dica do guia não fica por cima da capa
   const tem = !!lerSave();
   const capa = $('#capa');
   capa.innerHTML = '';
@@ -119,7 +128,7 @@ function mostrarCapa() {
     el('div', { class: 'teclas' }, 'WASD anda · clique usa a ferramenta · botão direito conversa e age · E mochila · F tela cheia'),
     el('div', { class: 'botoes' },
       tem ? el('button', { class: 'botao forte', onclick: () => iniciarJogo(lerSave()) }, 'Continuar') : null,
-      el('button', { class: 'botao' + (tem ? '' : ' forte'), onclick: () => iniciarJogo(novoSave()) }, 'Novo jogo'))));
+      el('button', { class: 'botao' + (tem ? '' : ' forte'), onclick: () => perguntaGuia() }, 'Novo jogo'))));
   capa.hidden = false;
 }
 
@@ -136,7 +145,8 @@ addEventListener('load', () => {
 function saveDaPensao() {
   return Object.assign(novoSave(), { dia: 3, minutos: 16 * 60 + 40, dinheiro: 300, mapa: 'pensao_palco', tile: [8, 18], boasVindas: true, soTeste: true,
     pensao: { estado: 'aberta', abreDia: 3, mesas: 2, despensa: { arroz: 10, feijao: 10, ovo: 10, farinha: 5 }, cardapio: ['pf_peao'] },
-    mapas: { pensao_dentro: { detritos: [] } } });
+    mapas: { pensao_dentro: { detritos: [] } },
+    guia: Object.assign(Guia.novo(true), { feitas: GUIA_MISSOES.map(m => m.id), antes: GUIA_SISTEMAS.slice() }) });   // o atalho já passou do guia (Frente 4)
 }
 // Quanto a noite escurece o mapa: o palco da pensão já é arte de noite e as bancadas da pedreira são debaixo da terra (0); dentro de casa, menos.
 function fatorNoite(m) { return m && (m.palco || m.subsolo) ? 0 : m && m.dentro ? 0.35 : 1; }

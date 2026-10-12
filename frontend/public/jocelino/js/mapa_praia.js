@@ -24,6 +24,8 @@ MAPAS_DEF.praia = () => {
   // A banca e o barco do Seu Lourival.
   b.interativo('banca_peixe', 'objetos/banca_peixe', 7, 7, 3, 1, [44, 8]).acao = () => (typeof abrirBanca === 'function' ? abrirBanca() : abrirPlaca('A banca do Lourival.'));
   b.enfeite('objetos/barco_lourival', 14, 14, true, 44, 12);
+  // O barco fala (Frente 4: nada que pareça ter função sem ter); vira interativo para o botão direito achar.
+  { const barco = b.objs[b.objs.length - 1]; barco.tipo = 'inter'; barco.acao = () => abrirPlaca('O barco do Seu Lourival. Quando você pegar o jeito da pesca, ele leva para o alto-mar.'); }
   const lou = b.morador('lourival', 'Seu Lourival', 9, 9, DIR.BAIXO);
   lou.aoConversar = () => { if (typeof conversarLourival === 'function') return conversarLourival(lou); return false; };
 

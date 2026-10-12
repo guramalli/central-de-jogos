@@ -55,9 +55,10 @@ function atualizaHud() {
   const tarefas = noSalao ? [] : (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []);
   HUD.quadro.hidden = !tarefas.length;
   // As metas da Rosa (★) vêm primeiro: são o caminho da pensão.
-  tarefas.sort((a, b) => (b.texto.startsWith('★') ? 1 : 0) - (a.texto.startsWith('★') ? 1 : 0));
+  // A missão do guia (➤, Frente 4) vem antes de tudo.
+  const peso = t => t.texto.startsWith('➤') ? 2 : t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
   const txt = tarefas.slice(0, 6).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
-  if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t)); }
+  if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', t.startsWith('➤') ? { class: 'guia' } : {}, t)); }
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }
 ATUALIZADORES.push(() => atualizaHud());

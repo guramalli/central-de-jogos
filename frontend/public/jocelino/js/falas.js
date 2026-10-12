@@ -31,7 +31,10 @@ const FALAS_DEPOIS = { ananias: () => entrarDeposito() };
 INICIADORES.push(s => { if (!s.boasVindas && !/teste=1|pensao=1/.test(location.search)) setTimeout(() => boasVindas(s), 600); });
 function boasVindas(s) {
   s.boasVindas = true;
-  abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), [
+  // Com o guia (Frente 4): 3 páginas, e a missão do quintal aparece no quadro; sem o guia, as 6 de sempre.
+  abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), G.guia && G.guia.ativo ? ['Ô, Jocelino! Chegou inteiro de Aracaju? A Rosa e as crianças ficam aqui comigo por enquanto.',
+ 'Me ajuda a limpar o quintal? Mato é na foice, pedra na picareta, galho e toco no machado: escolhe na barra lá embaixo (mouse ou números) e clica.',
+ 'O botão direito conversa e abre as coisas. Às 7h o Mestre Bira te espera na obra, lá na Vila, descendo o caminho. O que fazer fica sempre no quadro, no canto da tela.'] : [
     'Ô, Jocelino! Chegou inteiro de Aracaju? Dois dias de ônibus não é brincadeira, não.',
     'A Rosa e as crianças ficam aqui comigo por enquanto. Apertado, mas é de coração.',
     'Ela anda com uma ideia na cabeça: cozinhar pra fora. Diz que o PF dela é o melhor de Sergipe!',

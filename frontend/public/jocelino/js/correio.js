@@ -17,7 +17,8 @@ MANHA.push(() => {
   for (const id in CARTAS) if (G.dia >= CARTAS[id].dia && !G.correio.caixa.includes(id) && !G.correio.lidas.includes(id)) G.correio.caixa.push(id);
   if (G.correio.caixa.length) G.feitosHoje.push('Chegou carta na caixa de correio.');
 });
-TAREFAS.push(() => G.correio && G.correio.caixa.length ? [{ texto: 'Tem carta na caixa de correio' }] : []);
+// (Frente 4: a carta que o guia já anuncia no quadro, com quem mandou, não repete o aviso genérico)
+TAREFAS.push(() => G.correio && G.correio.caixa.some(id => !(typeof Guia !== 'undefined' && Guia.cartaNaTela(id))) ? [{ texto: 'Tem carta na caixa de correio' }] : []);
 function abrirCorreio() {
   if (!G.correio.caixa.length) { abrirPlaca('A caixa de correio está vazia.'); return true; }
   const id = G.correio.caixa.shift();

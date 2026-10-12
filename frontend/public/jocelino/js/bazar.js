@@ -16,7 +16,7 @@ const Bazar = {
     return 'ok';
   },
   meta() {
-    if (!G.bazar || G.dia < 4) return null;
+    if (!G.bazar || !(typeof Guia !== 'undefined' ? Guia.liberado('bazar') : G.dia >= ECO.guia.dias.bazar)) return null;
     const falta = ECO.bazar.itens.filter(i => !Bazar.tem(i.id));
     return falta.find(i => i.id === G.bazar.meta) || falta[0] || null;
   },

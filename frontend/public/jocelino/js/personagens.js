@@ -54,6 +54,7 @@ class Personagem {
     ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
     // O "!" do Mestre Bira: lista nova, pagamento ou gratificação esperando.
     if (this.id === 'bira' && typeof biraTemNovidade === 'function' && biraTemNovidade()) desenhaFx(ctx, 'balao', this.x, this.y - qh * e - 18);
+    else if (typeof guiaMarcaMorador === 'function' && guiaMarcaMorador(this.id)) desenhaFx(ctx, 'exclamacao', this.x, this.y - qh * e - 18 + Math.sin((G.agora || 0) * 5) * 4);   // o "!" do guia (Frente 4)
     // Coração subindo (carinho no Caramelo).
     if (this._coracao > 0) {
       this._coracao -= 1 / 60;

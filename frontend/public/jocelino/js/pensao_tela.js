@@ -13,7 +13,7 @@ const SONS_ROSA = ['TSSSS!', 'PLOFT!', 'VAPT!', 'CHIIII!', 'TCHAN!'];
 INICIADORES.push(s => { G.pensao = new Pensao(); G.pensao.deDict(s.pensao); G.turno = null; G.relatorioPensao = null; });
 COLETORES.push(s => { s.pensao = G.pensao.paraDict(); });
 MANHA.push(() => {
-  if (G.dia >= 2) G.pensao.abrirReforma();
+  if (typeof Guia !== 'undefined' ? Guia.liberado('pensao') : G.dia >= 2) G.pensao.abrirReforma();
   G.pensao.manha(G.dia);
   atualizarPensaoMundo();
 });

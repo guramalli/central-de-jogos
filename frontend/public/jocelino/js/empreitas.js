@@ -80,6 +80,7 @@ const Empreitas = {
   },
   // 2 a 4 pedidos (mais com a reputação), fixos pelo dia; pelo menos uma longa quando a função já libera.
   quadroDoDia(dia) {
+    if (typeof Guia !== 'undefined' && !Guia.liberado('quadro')) return [];   // o quadro de serviços chega com o guia (Frente 4)
     const f = mulberry(dia * 6151 + 11), n = Empreitas.faixa().pedidos;
     const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id];
     const curtas = Object.keys(EMPREITAS_CURTAS).filter(livre), longas = Object.keys(EMPREITAS_LONGAS).filter(livre), r = [];

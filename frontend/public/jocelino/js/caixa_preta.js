@@ -120,7 +120,8 @@ function nomeDaTela(n) {
   if (_nomeSistemaCP) return _nomeSistemaCP;
   try {
     const t = n.querySelector && (n.querySelector('.titulo') || n.querySelector('.quem'));
-    const txt = t ? t.textContent.trim() : ''; if (txt) return txt.slice(0, 40);
+    // (só o título: o texto que vem depois, como o dinheiro da banca, fica de fora)
+    const txt = t ? ((t.firstChild && t.firstChild.nodeType === 3 ? t.firstChild.textContent : t.textContent) || '').replace(/^[^\p{L}\d]+/u, '').trim() : ''; if (txt) return txt.slice(0, 40);
     return String(n.className || 'menu').replace('painel', '').trim().slice(0, 40) || 'menu';
   } catch (e) { return 'menu'; }
 }
@@ -142,7 +143,8 @@ for (const [nome, f] of SISTEMAS_CAIXA) {
 { const avisar0 = avisar; avisar = function (...a) { _avisosCP++; return avisar0.apply(this, a); }; }
 // O clique mudo: a ação (X ou botão direito) que não abriu nada, não avisou e não mudou nada.
 { const estado = () => JSON.stringify([G.dinheiro, Math.round(G.energia || 0), G.mapaId, G.mapa ? G.mapa.objs.length : 0, G.mochila ? G.mochila.slots.map(x => x ? x.id + x.qtd : '').join() : '',
-    G.jog && G.jog.carga ? G.jog.carga.id || '' : '', G.dia, _avisosCP]);
+    G.jog && G.jog.carga ? G.jog.carga.id || '' : '', G.dia, _avisosCP,
+    G.obra && G.obra.lista ? JSON.stringify(G.obra.lista.feito) : '', G.guia ? G.guia.versao : 0]);   // (Frente 4: avançar a obra ou o guia também é resposta)
   for (const f of ['acaoNaFrente', 'acaoNoMouse']) {
     const orig = window[f]; if (typeof orig !== 'function') continue;
     // (o alvo: o ladrilho na frente do Jocelino, ou o do mouse no botão direito)
