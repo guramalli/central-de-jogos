@@ -53,6 +53,8 @@ function agoraFamilia(avisos = []) {
     // (revisão) Não mandar para o que está fechado agora: a obra fora do horário (domingo, chuva, depois das 17h), a janta sem pensão.
     if (id === 'obra' && typeof Obra !== 'undefined' && Obra.aberta(G.dia, G.minutos)) continue;
     if (id === 'janta' && typeof pensaoAbreHoje === 'function' && !pensaoAbreHoje()) continue;
+    // (revisão final) A reforma de hoje já foi (o material todo e o dia trabalhado): a pensão cede, e vem o que o dia ainda tem.
+    if (id === 'pensao' && G.pensao && G.pensao.feitaHoje && G.pensao.feitaHoje(G.dia)) continue;
     const txt = typeof m.agora === 'function' ? m.agora() : (m.agora || m.texto);
     return txt + (m.meta ? ` (${Guia.progresso(m)}/${m.meta})` : '');
   }
@@ -81,11 +83,13 @@ function ideiaDoDia() {
     op.push({ texto: `Limpar o quintal — mais chão para plantar e o presente do Tio Juca em ${QuintalMarcos.proximo()}%`, alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' } });
   if (G.casa && G.casa.aberta && !G.casa.mudou) { const E = ECO.casa.etapas[Math.min(G.casa.etapa || 0, ECO.casa.etapas.length - 1)], T = QUINTAL.TERRENO;
     op.push({ texto: `A casa nova — ${E.nome}, na plaquinha do terreno do quintal: é a casa da família`, alvo: { mapa: 'quintal', ponto: { x: (T.x + T.w / 2) * TILE, y: (T.y + T.h / 2) * TILE } } }); }
-  if (typeof Guia !== 'undefined' && Guia.liberado('quadro')) op.push({ texto: 'Um serviço do quadro da Vila — paga na hora, e o dinheiro vai para a pensão', alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } });
+  // (revisão final) Para onde vai o dinheiro do bico: antes do sonho da Rosa, só na hora; antes da compra, a lojinha; depois, a pensão.
+  if (typeof Guia !== 'undefined' && Guia.liberado('quadro')) { const L = G.lojinha || {};
+    op.push({ texto: `Um serviço do quadro da Vila — ${L.comprada ? 'paga na hora, e o dinheiro vai para a pensão' : L.conversou ? 'paga na hora, e o dinheiro vai para a lojinha da Rosa' : 'dinheiro na hora, no bolso da família'}`, alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } }); }
   if (G.lugares && G.lugares.praia) op.push({ texto: 'Pescar no píer — peixe vira prato na pensão', alvo: { mapa: 'praia', morador: 'lourival' } });
   // O sonho da Rosa (o restaurante): a entrada da lojinha, e depois a reforma pela metade.
   if (G.lojinha && G.lojinha.conversou && !G.lojinha.comprada) op.push({ texto: `Juntar a entrada da lojinha — Cr$ ${Math.min(Math.max(0, G.dinheiro), ECO.lojinha.entrada)} de ${ECO.lojinha.entrada}: é o sonho da Rosa, o restaurante dela`, alvo: { mapa: 'vila', objeto: 'pensao' } });
-  else if (G.pensao && (G.pensao.estado === 'limpar' || ECO.reforma.some(e => e.id === G.pensao.estado))) op.push({ texto: 'Tocar a reforma da pensão — a Rosa só abre o restaurante com o salão pronto', alvo: { mapa: 'vila', objeto: 'pensao' } });
+  else if (G.pensao && (G.pensao.estado === 'limpar' || ECO.reforma.some(e => e.id === G.pensao.estado)) && !G.pensao.feitaHoje(G.dia)) op.push({ texto: 'Tocar a reforma da pensão — a Rosa só abre o restaurante com o salão pronto', alvo: { mapa: 'vila', objeto: 'pensao' } });
   if (!op.length) return null;
   const o = op[G.dia % op.length];
   return Object.assign({ rotulo: o.texto.split(' — ')[0] }, o);

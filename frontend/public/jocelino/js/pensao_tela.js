@@ -1,5 +1,5 @@
 // Jocelino — pensao_tela.js — a Pensão da Rosa jogável (o sushi bar do Bancho, no Dave the Diver): a reforma da casa da
-// Dona Cotinha, a despensa, o quadro de giz (o "Today's Menu"), a janta das 17h às 21h (anotar na banqueta, a Rosa
+// Dona Cotinha, a despensa, o quadro de giz (o "Today's Menu"), a janta das 17h até o último freguês (anotar na banqueta, a Rosa
 // prepara com a cena cômica, montar o prato no balcão, levar à banqueta, limpar a louça), os balões e as frases dos
 // clientes, o selo da fama e o relatório no resumo da noite; se o Jocelino falta, a Rosa serve sozinha.
 // Tradução das seções da pensão de jogo/principal.gd e das telas hud/cardapio_menu.gd, montar_menu.gd, cena_rosa.gd,
@@ -118,8 +118,9 @@ function pensaoPlaquinha() {
     else { const falta = Object.entries(p.faltaMaterial());
       abrirPlaca(falta.length ? `Rosa: "${E.nome}: ainda falta ${falta.map(([i, q]) => Itens.qtd(q, i)).join(', ')}, amor."`
         : p.comecaAmanha(G.dia) ? `Rosa: "O material já tá aqui. ${E.nome}: amanhã a gente começa, amor, que hoje já teve reforma."`
+        : p.feitaHoje(G.dia) ? `Rosa: "Por hoje chega, amor: ${minuscula(E.nome)}, amanhã tem mais (falta${E.dias - (p.reforma.dias || 0) > 1 ? 'm' : ''} ${E.dias - (p.reforma.dias || 0)} dia(s))."`
         : `Rosa: "O material já tá aqui. ${E.nome}: agora é trabalho, ${E.dias - (p.reforma.dias || 0)} dia(s) no salão."`); }
-  } else if (p.estado === 'pronta') abrirPlaca('Tudo pronto! A Pensão da Rosa abre amanhã. A janta é das 17h às 21h.');
+  } else if (p.estado === 'pronta') abrirPlaca('Tudo pronto! A Pensão da Rosa abre amanhã. A janta começa às 17h e vai até o último freguês.');
   else if (p.estado === 'aberta') abrirPainelPensao();
   return true;
 }
@@ -130,8 +131,10 @@ TAREFAS.push(() => {
   const E = ECO.reforma.find(x => x.id === p.estado);
   if (E) {   // (do telhado à pintura) primeiro o material para a Rosa; depois os dias de trabalho no salão
     const pede = Object.values(E.material).reduce((a, q) => a + q, 0), falta = Object.values(p.faltaMaterial()).reduce((a, q) => a + q, 0);
-    if (falta > 0) return [{ texto: `Pensão — ${E.nome}: ${Object.keys(E.material).map(i => Itens.nome(i).toLowerCase()).join(' e ')} para a Rosa (a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)`, feito: pede - falta, meta: pede }];
-    return [{ texto: p.comecaAmanha(G.dia) ? `Pensão — ${E.nome}: começa amanhã (a reforma de hoje já foi)` : `Pensão — ${E.nome}: dias de trabalho no salão (clique no lugar da obra)`, feito: p.reforma.dias || 0, meta: E.dias, mapa: 'pensao' }];
+    // (revisão final) Sem o material na mochila, a linha diz onde buscar; com ele, onde fica a pensão.
+    const fr = typeof faltaDaReforma === 'function' ? faltaDaReforma() : null;
+    if (falta > 0) return [{ texto: `Pensão — ${E.nome}: ${Object.keys(E.material).map(i => Itens.nome(i).toLowerCase()).join(' e ')} para a Rosa (${fr ? origemDoMaterial(fr.item) : 'a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito'})`, feito: pede - falta, meta: pede }];
+    return [{ texto: p.comecaAmanha(G.dia) ? `Pensão — ${E.nome}: começa amanhã (a reforma de hoje já foi)` : p.feitaHoje(G.dia) ? `Pensão — ${E.nome}: amanhã tem mais (o trabalho de hoje já foi)` : `Pensão — ${E.nome}: dias de trabalho no salão (clique no lugar da obra)`, feito: p.reforma.dias || 0, meta: E.dias, mapa: 'pensao' }];
   }
   if (pensaoAbreHoje() && p.ultimaJanta !== G.dia && G.minutos < 20 * 60) return [{ texto: 'Janta na Pensão da Rosa às 17h', lembrete: true }];   // (lembrete fixo: não tira as ideias do quadro)
   return [];
@@ -187,12 +190,19 @@ function pensaoQuadro() {
 
 // ---------- a janta ----------
 // Os clientes da noite: o degrau, as melhorias e o pessoal do Grêmio aos sábados (o Cofre pronto).
+const INAUGURACAO_CONVIDADOS = 3;   // (os convidados da inauguração, como os 3 da festa)
 function clientesHoje() { return G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0) + (typeof Gremio !== 'undefined' ? Gremio.clientesExtra(G.dia) : 0); }
 function iniciarJanta() {
   G.turno = new TurnoJanta();
   const festa = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'festa') : null, vip = typeof Eventos !== 'undefined' ? Eventos.hoje(G.pensao, G.dia, 'vip') : null;
   const festaPatrimonio = G.pensao.festaDia === G.dia;   // a noite de festa da 5ª estrela
+  const inauguracao = G.pensao.ultimaJanta === -1 && !G.pensao.fama;   // (revisão final) a primeira janta da pensão: a inauguração (sem fama: não é save antigo)
   G.turno.iniciar(G.pensao, G.dia, clientesHoje());
+  // A inauguração (a especificação do roteiro; o Dave: a noite especial com convidados): a Vila vem convidada — 3 a mais, com o
+  // enfeite da festa no palco e a conta dos bem servidos no resumo (o mesmo jeito da noite de festa do Patrimônio).
+  if (inauguracao) { G.turno.inauguracao = true;
+    for (let k = 0; k < INAUGURACAO_CONVIDADOS; k++) G.turno._fila.push({ minuto: 17 * 60 + 15 + k * 30, cliente: Object.assign({}, Pratos.CLIENTES[(G.dia * 5 + k * 3) % Pratos.CLIENTES.length], { convidado: true }) });
+    G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   // A noite de festa da 5ª estrela: a Vila inteira vem como convidada (nunca sai da fila por repetir um morador).
   if (festaPatrimonio) { for (let k = 0; k < ECO.pensao.premio5.festaClientes; k++) G.turno._fila.push({ minuto: 17 * 60 + 15 + k * 25, cliente: Object.assign({}, Pratos.CLIENTES[(G.dia * 7 + k) % Pratos.CLIENTES.length], { convidado: true }) });
     G.turno._fila.sort((a, b) => a.minuto - b.minuto); avisar('Noite de festa: a Vila inteira veio comemorar o Patrimônio!'); }
@@ -215,14 +225,15 @@ function iniciarJanta() {
   if (G.turno.moradores && G.turno.moradores.length) avisar(`Hoje é dia de ${G.turno.moradores.map(c => c.nome).join(' e ')} jantar na pensão.`);
   if (G.turno.filho === 'ritinha') avisar('A Ritinha veio ajudar no caixa: hoje a gorjeta sai 10% maior!');
   else if (G.turno.filho === 'zezinho') avisar('O Zezinho veio "ajudar" na pensão. Fique de olho nas cocadas!');
-  avisar(noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.');
+  // (o aviso da inauguração vai junto com o do começo: a pilha de avisos não cresce por cima da frase da seta)
+  avisar((inauguracao ? 'Inauguração da Pensão da Rosa: a Vila veio convidada! ' : '') + (noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.'));
 }
 MANHA.push(() => { const p = G.pensao; if (p && p.estado === 'aberta') for (const id of p.liberarDoDegrau()) G.feitosHoje.push(`A Rosa aprendeu uma receita nova: ${Pratos.PRATOS[id].nome}.`); });
 function encerrarJanta() {
   if (!G.turno) return;
-  const r = G.turno.fechar();
+  const inaug = G.turno.inauguracao, r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
-  if (r.convidados && G.feitosHoje) G.feitosHoje.push(`Os convidados da festa: ${r.convidadosServidos || 0} de ${r.convidados} bem servidos.`);
+  if (r.convidados && G.feitosHoje) G.feitosHoje.push(inaug ? `A inauguração da Pensão da Rosa: ${r.convidadosServidos || 0} de ${r.convidados} convidados bem servidos. A Vila já sabe o caminho!` : `Os convidados da festa: ${r.convidadosServidos || 0} de ${r.convidados} bem servidos.`);
   G.dinheiro += total; G.ganhoHoje += total;
   // O cliente especial e os pedidos da Vila. Receitas novas da noite: a do VIP bem servido, a da festa e as do degrau.
   r.aprendidas = [];
@@ -331,7 +342,7 @@ MAPAS_DEF.pensao_dentro = (orig => () => {
 
 function pensaoMesa(i) {
   const t = G.turno;
-  if (!t || i >= t.mesas.length) { abrirPlaca('Uma banqueta no balcão. Os peões chegam para a janta das 17h às 21h.'); return true; }
+  if (!t || i >= t.mesas.length) { abrirPlaca('Uma banqueta no balcão. Os peões chegam para a janta a partir das 17h.'); return true; }
   const m = t.mesas[i], mao = G.jog.carga || {};
   if (m.estado === 'pedido') { t.anotar(i); sons.tocar('letra', 1, 0.03, -2); }
   else if (m.estado === 'prato') {

@@ -264,6 +264,9 @@ class Pensao {
   }
   // A etapa que acabou hoje passa a vez para amanhã: a atual ainda não começou e hoje já teve trabalho na reforma.
   comecaAmanha(dia) { return !!this._etapa() && this.reforma.hoje === dia && !this.reforma.dias; }
+  // (revisão final) Hoje a reforma já deu o que tinha: o material todo entregue e o dia de trabalho feito (nesta etapa ou na que
+  // acabou hoje). O guia cede (sem seta nem Agora para a pensão) e a Rosa diz "amanhã tem mais".
+  feitaHoje(dia) { const E = this._etapa(); return !!E && E.id !== 'limpar' && this.reforma.hoje === dia && !Object.keys(this.faltaMaterial()).length; }
   // Entrega à Rosa o que a mochila tem para a etapa atual (uma etapa por vez). Devolve o texto do que aconteceu ('' se nada).
   entregar(mochila) {
     const E = this._etapa(); if (!E || E.id === 'limpar') return '';

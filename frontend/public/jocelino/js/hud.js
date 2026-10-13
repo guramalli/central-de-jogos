@@ -35,9 +35,11 @@ function atualizaHud() {
   HUD.hora.textContent = relogio.textoHora();
   HUD.dinheiro.textContent = 'Cr$ ' + G.dinheiro;
   // A meta de dinheiro do Bazar embaixo do relógio ("Bicicleta 180/450").
-  const mt = typeof Bazar !== 'undefined' ? Bazar.meta() : null;
-  HUD.meta.hidden = !mt;
-  if (mt) { HUD.metaTexto.textContent = `${mt.nome} ${Math.max(0, Math.min(G.dinheiro, mt.preco))}/${mt.preco}`; HUD.metaNivel.style.width = Math.min(100, Math.max(0, G.dinheiro) / mt.preco * 100) + '%'; }
+  // (revisão final) Da conversa da Rosa até a compra, a barrinha é a entrada da lojinha (o mesmo que o cartão), no lugar do Bazar.
+  const lj = typeof Lojinha !== 'undefined' ? Lojinha.metaDinheiro() : null, mt = !lj && typeof Bazar !== 'undefined' ? Bazar.meta() : null;
+  HUD.meta.hidden = !mt && !lj;
+  if (lj) { HUD.metaTexto.textContent = lj.curto; HUD.metaNivel.style.width = Math.min(100, lj.feito / lj.meta * 100) + '%'; }
+  else if (mt) { HUD.metaTexto.textContent = `${mt.nome} ${Math.max(0, Math.min(G.dinheiro, mt.preco))}/${mt.preco}`; HUD.metaNivel.style.width = Math.min(100, Math.max(0, G.dinheiro) / mt.preco * 100) + '%'; }
   const f = G.energia / G.energiaMax;
   HUD.nivel.style.height = (Math.min(1, f) * 100) + '%';
   HUD.nivel.style.background = f > 0.5 ? 'var(--verde)' : f > 0.2 ? '#e8c22c' : 'var(--destaque)';

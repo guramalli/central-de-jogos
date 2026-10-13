@@ -8,6 +8,14 @@ const _covasPlantadasRegadas = () => Object.values((G.horta && G.horta.covas) ||
 const _culturasNaDespensa = () => { const d = (G.pensao && G.pensao.despensa) || {}; return Object.keys(typeof CULTURAS !== 'undefined' ? CULTURAS : {}).reduce((t, id) => t + (d[id] || 0), 0); };
 // A reforma pela metade (as 5 etapas de ECO.reforma e, de saves de antes delas, as telhas e as banquetas).
 const _naReforma = e => ['telhas', 'mesas'].includes(e) || ECO.reforma.some(x => x.id === e);
+// (revisão final) O material da etapa que falta e de que a mochila não tem nada (o primeiro): { item, n }, ou null. Com algo do que
+// falta na mochila, o caminho é a Rosa (entregar primeiro). De onde vem cada um (a seta usa _alvoDoMaterial, como a empreita).
+function faltaDaReforma() {
+  const p = G.pensao; if (!p || !G.mochila || !p._etapa()) return null;
+  const f = Object.entries(p.faltaMaterial()); if (!f.length || f.some(([it]) => G.mochila.total(it) > 0)) return null;
+  return { item: f[0][0], n: f[0][1] };
+}
+const origemDoMaterial = it => LOJA.PRECOS[it] !== undefined ? 'o Seu Ananias vende no depósito' : it === 'madeira' ? 'galho e toco, no machado (no quintal)' : it === 'pedra' ? 'pedra, na picareta (no quintal)' : 'entregue à Rosa';
 const GUIA_MISSOES = [
   { id: 'obra', agora: () => { const l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
       if (l && !l.paga) { const ids = Object.keys(l.metas), feitas = ids.filter(id => (l.feito[id] || 0) >= l.metas[id]).length; return feitas < ids.length ? `A lista do dia do Bira: ${feitas} de ${ids.length} tarefas; completa, a diária de Cr$ ${Obra.diaria()}` : `Lista completa: receba a diária de Cr$ ${Obra.diaria()} com o Bira`; }
@@ -21,21 +29,25 @@ const GUIA_MISSOES = [
       Guia.fila.push(['juca', 'Tio Juca', ['O que sobrou da limpeza (madeira, pedra, fibra) dá pra vender na caixa de venda, aqui no quintal.', 'Põe lá dentro e o carroceiro leva de madrugada: o dinheiro entra no resumo da noite.']]);
       // (roteiro de 13/10) Nada de carta prometida: a Dona Cotinha vende a lojinha, e a Rosa conta o sonho no quintal depois da diária.
       const L = G.lojinha || {};
-      Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', L.conversou ? 'A gente já se entendeu: é juntar a entrada e comprar a lojinha dela. Eu cozinho pra fora, você vai ver.' : 'Quando você receber a diária, passa no quintal que eu te conto um sonho que guardo desde Aracaju.']]);
+      Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', L.conversou ? 'A gente já se entendeu: é juntar a entrada e comprar a lojinha dela. Eu cozinho pra fora, você vai ver.'
+        : L.sonho ? 'Vem no quintal, que eu quero conversar com você: é um sonho que eu guardo desde Aracaju.'   // (revisão final: a diária já veio)
+        : 'Quando você receber a diária, passa no quintal que eu te conto um sonho que guardo desde Aracaju.']]);
     } },
   { id: 'pensao', agora: () => { const p = G.pensao || {}; if (p.estado === 'fechada') return `A lojinha da Rosa: juntar Cr$ ${ECO.lojinha.entrada} de entrada (a Dona Cotinha vende)`;
       if (p.estado === 'limpar') return 'O sonho da Rosa: arrumar a pensão da Dona Cotinha, começando pela limpeza do salão (a casa amarela, ao lado do depósito)';
       const E = ECO.reforma.find(e => e.id === p.estado); if (!E) return 'A pensão da Rosa'; const f = p.faltaMaterial ? p.faltaMaterial() : {};
-      return Object.keys(f).length ? `A reforma — ${E.nome}: falta ${Object.entries(f).map(([i, q]) => Itens.qtd(q, i)).join(', ')} (entregue à Rosa)` : p.comecaAmanha && p.comecaAmanha(G.dia) ? `A reforma — ${E.nome}: começa amanhã (${E.dias} dia(s) de trabalho no salão)` : `A reforma — ${E.nome}: ${E.dias - ((p.reforma || {}).dias || 0)} dia(s) de trabalho no salão`; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, o telhado, o balcão, a cozinha e a pintura', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
+      const fr = faltaDaReforma();
+      return Object.keys(f).length ? `A reforma — ${E.nome}: falta ${Object.entries(f).map(([i, q]) => Itens.qtd(q, i)).join(', ')}${fr ? ' — ' + origemDoMaterial(fr.item) : ' (entregue à Rosa)'}` : p.comecaAmanha && p.comecaAmanha(G.dia) ? `A reforma — ${E.nome}: começa amanhã (${E.dias} dia(s) de trabalho no salão)`
+        : p.feitaHoje && p.feitaHoje(G.dia) ? `A reforma — ${E.nome}: por hoje chega, amanhã tem mais` : `A reforma — ${E.nome}: ${E.dias - ((p.reforma || {}).dias || 0)} dia(s) de trabalho no salão`; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, o telhado, o balcão, a cozinha e a pintura', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
     abre: () => typeof Lojinha !== 'undefined' && Lojinha.comprada(),   // (13/10) só depois da compra da lojinha; quem abre a reforma é a compra
     feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => {} },
   { id: 'horta', titulo: 'A primeira horta', quem: 'Tio Juca', texto: 'A primeira horta: plante e regue 10 covas', meta: 10, dia: 'horta', libera: 'horta', conta: _covasPlantadasRegadas,
     agora: 'A horta da família: plante as sementes do Tio Juca no canteiro e regue (a Rosa cozinha, a caixa de venda leva o resto)',
     // (revisão: o save antigo que passou da chegada sem as sementes recebe as do Tio Juca ao abrir a horta)
     aoAbrir: () => { if (G.dia > 1 && G.mochila && !G.mochila.total('semente_alface') && typeof presentesDaChegada === 'function') { G.mochila.adicionar('semente_alface', 15); if (typeof avisar === 'function') avisar('O Tio Juca deixou um pacote de sementes de alface na porta.'); } } },
-  { id: 'janta', agora: 'Hoje é a primeira janta da Rosa: às 17h, na pensão (o dinheiro da janta também vai para a casa)', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
+  { id: 'janta', agora: 'Hoje é a inauguração da pensão: a primeira janta da Rosa, às 17h, com a Vila convidada (o dinheiro da janta também vai para a casa)', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
     feita: () => !!(G.relatorioPensao && G.relatorioPensao.servidos > 0),
-    intro: ['rosa', 'Rosa', ['Amor, hoje é a primeira janta! Às 17h vem gente na pensão.', 'Eu cozinho, você serve. Lá dentro eu te ensino, passo a passo.']] },
+    intro: ['rosa', 'Rosa', ['Amor, hoje é a inauguração! Às 17h a pensão abre, e eu convidei a Vila inteira.', 'Eu cozinho, você serve. Lá dentro eu te ensino, passo a passo.']] },
   // (o bico vem na tarde do dia 1, depois da Vila: o ritmo do balanço pede as empreitas cedo, e a tarde do dia 1 era vazia)
   { id: 'bico', agora: 'Bico de tarde: o quadro de serviços da Vila paga na hora', titulo: 'O primeiro bico', quem: 'Mestre Bira', texto: 'O primeiro bico: um serviço do quadro (na frente da obra)', depois: 'vila', dia: 'quadro', libera: 'quadro',
     feita: () => !!G.empreitas && G.empreitas.entregues >= 1,
@@ -43,8 +55,10 @@ const GUIA_MISSOES = [
     aoAbrir: () => { if (G.empreitas && typeof Empreitas !== 'undefined') { G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia); } }, },
   { id: 'gremio', agora: 'A Vila quer o Grêmio de volta: a lista do povo está na porta (cada ala pronta muda a Vila)', titulo: 'A Obra do Povo', quem: 'Dona Zélia', texto: 'A Obra do Povo: ver a lista na porta do Grêmio (na Vila)', meta: 1, depois: 'vila', comoDepois: 'aberta', dia: 'gremio', carta: 'zelia_gremio', libera: 'gremio',
     conta: () => G.guia.cont.gremio || 0, alvo: () => ({ objeto: 'gremio' }) },
-  // (o domingo vale só naquele dia: na segunda se encerra sem recompensa, para não ocupar a vaga das outras)
+  // (o domingo vale só naquele dia: na segunda se encerra sem recompensa, para não ocupar a vaga das outras; revisão final: só com a
+  // pensão aberta — antes dela não há despensa de pensão, e ele não abre nem expira)
   { id: 'domingo', agora: 'Domingo da família: guarde verdura da horta na despensa da pensão', titulo: 'Domingo em família', quem: 'Rosa', texto: 'Domingo em família: guarde 5 da horta na despensa da pensão', meta: 5, depois: 'horta', dia: 'domingo', semana: 6, expira: 1, conta: _culturasNaDespensa,
+    abre: () => !!G.pensao && G.pensao.estado === 'aberta',
     alvo: () => ({ objeto: 'despensa_pensao' }), intro: ['rosa', 'Rosa', ['Domingo é dia de família. O que a horta der, guarda na despensa da pensão: vira comida boa.']] },
   { id: 'pesca', agora: 'O Seu Lourival chamou para pescar no píer: peixe vende na banca e vira prato na pensão', titulo: 'A primeira pescaria', quem: 'Seu Lourival', texto: 'Pescar 3 peixes no píer da praia', meta: 3, depois: 'bico', dia: 'pesca', carta: 'lourival_praia', libera: 'praia', conta: () => G.guia.cont.pescou || 0, alvo: () => ({ morador: 'lourival' }) },
   { id: 'bazar', agora: 'O Bazar do Salim abriu no Mercado: coisas para a família (garrafa térmica, bicicleta, fogão)', titulo: 'O Bazar do Salim', quem: 'Seu Salim', texto: 'Visitar o Bazar do Salim (no Mercado)', meta: 1, depois: 'bico', dia: 'bazar', carta: 'folheto_salim', libera: 'bazar', conta: () => G.guia.cont.bazar || 0, alvo: () => ({ objeto: 'balcao_bazar' }) },
@@ -149,7 +163,7 @@ const Guia = {
     if (dia >= ECO.guia.dias.gremio || lidas.includes('zelia_gremio')) g.antes.push('gremio');   // (o Grêmio, 12/10: sem missão no save antigo; a carta vem de manhã)
     for (const m of GUIA_MISSOES) {
       const feita = (m.libera && g.antes.includes(m.libera)) || (['quintal', 'obra', 'vila'].includes(m.id) && dia > 1)
-        || (m.id === 'janta' && pz.estado === 'aberta' && (pz.ultimaJanta || 0) > 0) || (m.id === 'domingo' && dia > 7);
+        || (m.id === 'janta' && pz.estado === 'aberta' && (pz.ultimaJanta || 0) > 0) || (m.id === 'domingo' && dia > 7 && pz.estado === 'aberta');   // (revisão final: em reforma, o domingo fica para depois da abertura)
       // (a reforma pela metade fica aberta: a seta e a frase guiam até a pensão; teste de 12/10)
       if (feita && m.id === 'pensao' && _naReforma(pz.estado)) { g.abertas.push('pensao'); continue; }
       if (feita) g.feitas.push(m.id);
@@ -256,11 +270,29 @@ function passoJanta() {
 }; }
 // O "!" segue o passo (por cima dos alvos da missão).
 { const a0 = Guia.alvos; Guia.alvos = function () { const p = guiaPasso(); if (p) return p.alvo ? [p.alvo] : []; return a0.call(Guia); }; }
+// (revisão final) A dica não cobre o que a seta manda clicar (foto primeira_pedreira_escada: a fala do Seu Tonico cobria a escada):
+// se o alvo da seta — do ponto dela até o pé do objeto — cai onde a dica fica (embaixo, 172 px acima do fundo), a dica sobe e
+// termina acima da frase da seta (a seta é desenhada em cima do ponto, e a frase em cima dela: guia_setas.js).
+function dicaForaDaSeta(d, hud) {
+  let alto = false, topo = 0;
+  const s = !d.hidden && typeof setaAgora === 'function' ? setaAgora() : null;
+  if (s && s.tipo === 'alvo' && G.cam && G.mapa) {
+    const z = G.zoom || 1, sx = (s.x - G.cam.x) * z, sy = (s.y - G.cam.y) * z;
+    const o = s.objeto ? G.mapa.objs.find(x => x.id === s.objeto) : null, pe = o ? (o.y - G.cam.y) * z : sy + 80 * z;
+    const r = d.getBoundingClientRect(), H = hud.getBoundingClientRect(), base = H.bottom - 172;
+    alto = sx > r.left - 30 && sx < r.right + 30 && pe > base - r.height - 10 && sy < base + 10;
+    const seta = typeof spr === 'function' && spr('ui/seta'), hSeta = seta ? seta.naturalHeight * 0.8 : 80;
+    topo = Math.max(56, Math.round(sy - hSeta - 40 - r.height - 8 - H.top));   // (40: o balanço da seta, o vão e a frase de 17 px)
+  }
+  if (d.classList.contains('alto') !== alto) d.classList.toggle('alto', alto);
+  const t = alto ? topo + 'px' : ''; if (d.style.top !== t) d.style.top = t;
+}
 // A caixinha da dica (HTML, com o retrato que já existe), sem pausar nada.
 ATUALIZADORES.push(() => {
   let d = document.getElementById('guia-dica'); const hud = document.getElementById('hud'); if (!hud) return;
   const p = guiaPasso(), chave = p ? p.id + '|' + p.texto : '';
   if (!d) { d = el('div', { id: 'guia-dica', class: 'guia-dica' }); d.hidden = true; hud.append(d); }
+  dicaForaDaSeta(d, hud);
   if (d._chave === chave) return; d._chave = chave;
   d.hidden = !p; d.innerHTML = '';
   if (p) d.append(el('img', { src: urlArte('retratos/' + (p.retrato || p.id + '_normal')), alt: '' }), el('div', {}, el('b', {}, p.nome + ': '), p.texto));

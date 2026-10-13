@@ -40,8 +40,10 @@ function _alvoDaMissao(id) {
     }
     case 'vila': { const v = GUIA_VIZINHOS.find(x => !g.conversou.includes(x)); return v ? { mapa: 'vila', morador: v } : null; }
     case 'pensao':
+      if (G.pensao.feitaHoje(G.dia)) return null;   // (revisão final) a reforma de hoje já foi: a seta cede, amanhã tem mais
       if (noSalao && G.pensao.estado === 'limpar') { const s = sujeirasDaReforma()[0]; return s ? { mapa: G.mapaId, ponto: { x: s.x, y: s.y - 70 } } : null; }
       if (noSalao) return _alvoDaReforma(true);
+      { const fr = faltaDaReforma(), m = fr && _alvoDoMaterial(fr); if (m) return m; }   // (revisão final) sem o material na mochila: onde buscar
       return { mapa: 'vila', objeto: 'pensao' };
     case 'horta': { const C = QUINTAL.CANTEIRO; return { mapa: 'quintal', ponto: { x: (C.x + C.w / 2) * TILE, y: C.y * TILE } }; }
     case 'janta': case 'domingo': return noSalao ? null : { mapa: 'vila', objeto: 'pensao' };
@@ -114,9 +116,16 @@ function _alvoDaJanta() {
 // na etapa (G.limpou['reforma_<etapa>']); a da missão (sempre = true) fica até a reforma acabar. Trabalhado hoje, nada.
 function _alvoDaReforma(sempre) {
   if (typeof noPalco !== 'function' || !noPalco() || !G.pensao || typeof REFORMA_LUGAR === 'undefined') return null;
+  // (revisão final) Na limpeza, a sujeira mais à esquerda (perto da porta), até o salão ficar limpo — na frente de qualquer carta.
+  if (G.pensao.estado === 'limpar') { const s = sujeirasDaReforma()[0]; return s ? { mapa: G.mapaId, ponto: { x: s.x, y: s.y - 70 }, rotuloFixo: 'Clique na sujeira para limpar' } : null; }
   const p = G.pensao, L = REFORMA_LUGAR[p.estado], E = ECO.reforma.find(e => e.id === p.estado); if (!L || !E) return null;
   if (!sempre && ((G.limpou || {})['reforma_' + p.estado] || 0) > 0) return null;
-  if (Object.keys(p.faltaMaterial()).length) return { mapa: G.mapaId, ponto: { x: PALCO.ROSA.x, y: PALCO.ROSA.y - 250 }, rotuloFixo: 'Entregue o material à Rosa' };
+  if (Object.keys(p.faltaMaterial()).length) {
+    // (revisão final) Sem nada do que falta na mochila, a seta vai na porta e diz onde buscar; com ele, na Rosa.
+    const fr = faltaDaReforma(), P = PALCO.PORTA;
+    if (fr) return { mapa: G.mapaId, ponto: { x: P.x + P.w / 2, y: P.y - 20 }, rotuloFixo: `Falta ${Itens.qtd(fr.n, fr.item)}: ${origemDoMaterial(fr.item)} (saia por aqui)` };
+    return { mapa: G.mapaId, ponto: { x: PALCO.ROSA.x, y: PALCO.ROSA.y - 250 }, rotuloFixo: 'Entregue o material à Rosa' };
+  }
   if (p.reforma.hoje === G.dia) return null;
   return { mapa: G.mapaId, ponto: { x: L.seta.x, y: L.seta.y }, rotuloFixo: 'Clique aqui: trabalhar ' + E.nome.replace(/^O /, 'no ').replace(/^A /, 'na ').replace(/ e as /, ' e nas ').replace(/ e o /, ' e no ') };
 }
