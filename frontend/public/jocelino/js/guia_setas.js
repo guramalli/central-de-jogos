@@ -109,6 +109,11 @@ function _alvoDaJanta() {
   if (!jaFezJanta('passe')) { const i = t.mesas.findIndex(m => m.estado === 'pedido' || m.estado === 'prato'); if (nos(i)) return mesa(i, 'O pedido aparece no balão: a Rosa já cozinha'); }
   return null;
 }
+// A Rosa quer conversar (13/10): depois da primeira diária, até a conversa do sonho. Ela mora no quintal.
+function _alvoDoSonhoDaRosa() {
+  const L = G.lojinha; if (!L || !L.sonho || L.conversou) return null;
+  return { mapa: 'quintal', morador: 'rosa', rotuloFixo: 'A Rosa quer conversar: botão direito nela' };
+}
 // A casa por dentro, a primeira vez (13/10): de dia, a porta ("Por aqui: o quintal"); de noite, a cama. Somem depois de feitas
 // uma vez (G.limpou.casa_porta, casa_dormir: casa_dentro.js).
 function _alvoDaCasa() {
@@ -207,7 +212,7 @@ function _rotulo(a) {
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
   if (!G.mapa) return null;
-  const cands = [['janta_vez', _alvoDaJanta], ['casa_vez', _alvoDaCasa]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
+  const cands = [['janta_vez', _alvoDaJanta], ['casa_vez', _alvoDaCasa], ['rosa_sonho', _alvoDoSonhoDaRosa]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
   if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);

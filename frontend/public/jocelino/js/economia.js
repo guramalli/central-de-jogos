@@ -82,6 +82,8 @@ const ECO = {
     ],
     costura: 60, bicicleta: 1.2, fogao: 2, cozinha: 1.5,
   },
+  // A lojinha da Rosa (roteiro de 13/10): a Dona Cotinha vende a pensão fechada; a entrada abre a reforma, o resto sai aos domingos.
+  lojinha: { entrada: 2000, parcela: 500, parcelas: 6 },
   // ---- A casa da família (as reformas da Robin): 6 etapas, cada uma uma obra do Jocelino, sem pagamento e com custo.
   casa: {
     etapas: [

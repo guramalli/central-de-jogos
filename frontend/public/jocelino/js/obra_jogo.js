@@ -32,7 +32,7 @@ function conversarBira() {
     return falaBira(`Etapa entregue! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}. Amanhã começa a etapa: ${Obra.obra().etapas[o.etapa].nome}. O serviço muda.`);
   }
   // 2) A parte de ontem (ou de hoje cedo).
-  if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(v >= Obra.diaria() ? `A diária da lista completa, rapaz: Cr$ ${v}. Serviço inteiro, pagamento inteiro.` : `A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
+  if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; if (typeof lojinhaDepoisDaDiaria === 'function') lojinhaDepoisDaDiaria(); hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(v >= Obra.diaria() ? `A diária da lista completa, rapaz: Cr$ ${v}. Serviço inteiro, pagamento inteiro.` : `A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
   // A promoção (meio-oficial e pedreiro: o Bira; mestre de obras: o Seu Moreira, no canteiro).
   if (Obra.podeSubir() && o.funcao < 2) {
     if (o.funcao === 0 && !G.mochila.cabe('colher')) return falaBira('Rapaz, tenho novidade pra você. Mas abre um espaço na mochila primeiro!');
@@ -68,7 +68,7 @@ function conversarBira() {
     if (e && !Obra.completa()) return falaBira(`Boa, ${Itens.qtd(e.n, 'pedra')} pro alicerce! Faltam ${l.metas[e.t] - l.feito[e.t]}${e.t === 'buscar_pedra' ? ': as do quintal, na picareta' : ': o resto tem no monte do canteiro'}.`); }
   // 5) Lista completa: a diária e o extra.
   if (Obra.completa() && !l.paga) {
-    const v = Obra.pagar(); G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -4);
+    const v = Obra.pagar(); G.dinheiro += v; G.ganhoHoje += v; if (typeof lojinhaDepoisDaDiaria === 'function') lojinhaDepoisDaDiaria(); hudSujo(); sons.tocar('moedas', 1, 0.05, -4);
     if (o.funcao <= 1 && !l.extra) return falaBira(`Lista completa! A diária: Cr$ ${v}.`, () => perguntar(`Mestre Bira: "Quer um extra hoje? Pago Cr$ ${valorExtra()}."`, ['Quero', 'Hoje não'], i => {
       if (i !== 0) return;
       const ids = Object.keys(EXTRAS_OBRA).filter(id => Obra.obra().etapas[o.etapa].tarefas.includes(id));

@@ -8,7 +8,7 @@ Object.assign(FALAS, {
     : ['O terreno das bandeirinhas tá esperando, rapaz. Vira meio-oficial com o Bira que a gente começa a casa de vocês.', 'Devagar e sempre. Madeira é no machado: galho, toco e árvore. O que sobrar, a caixa de venda leva.'],
   rosa: () => {
     const e = G.pensao ? G.pensao.estado : 'fechada';
-    if (e === 'fechada') return ['Jocelino... sabe o que eu sonho desde Aracaju? Cozinhar pra fora. Um PF caprichado, uma moqueca de domingo...', 'Quem sabe aqui na Vila aparece uma oportunidade, né?'];
+    if (e === 'fechada') return ['Jocelino... sabe o que eu sonho desde Aracaju? Cozinhar pra fora. Um PF caprichado, uma moqueca de domingo...', G.lojinha && G.lojinha.conversou ? 'A lojinha da Dona Cotinha, meu bem... a entrada e ela é nossa!' : 'Quem sabe aqui na Vila aparece uma oportunidade, né?'];
     if (e === 'limpar' || e === 'telhas' || e === 'mesas') return ['A pensão da Dona Cotinha, meu bem! Eu já tô vendo o quadro de giz cheio de prato.', 'Telha o Seu Ananias vende. Madeira você tira com o machado.'];
     if (e === 'pronta') return ['Amanhã a gente abre! Eu não durmo hoje de tanta ansiedade.'];
     return [_porDia(['Traz ingrediente pra despensa, viu? Arroz, feijão e ovo o Seu Ananias vende na Mercearia.', 'Às cinco da tarde eu acendo o fogão. Não se atrasa!', 'O Severino lambeu o prato ontem, Jocelino. LAMBEU!'])];

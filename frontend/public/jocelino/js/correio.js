@@ -2,8 +2,11 @@
 // pula em cima da caixa e o botão direito lê. Fase 1: a carta da Dona Cotinha (dia 2) que abre a Pensão da Rosa.
 
 const CARTAS = {
-  cotinha_pensao: { de: 'Dona Cotinha', dia: 2,
-    texto: 'Seu Jocelino, sou a Dona Cotinha, da pensão fechada na rua da Vila, entre o depósito e a ferraria. Me mudei pra Santos com a filha e a casa ficou largada. A Rosa me disse que sonha em cozinhar pra fora... A chave está com ela. Limpe o salão, troque as telhas e faça umas banquetas que a pensão é de vocês. Só peço uma coisa: não mexam na pedra da sopa.\n\nPS da Rosa: amor, eu já tenho até o cardápio!' },
+  // (roteiro de 13/10) A carta só chega pela conversa da Rosa (dia 1e9): a venda da lojinha, com entrada e parcelas.
+  cotinha_pensao: { de: 'Dona Cotinha', dia: 1e9,
+    texto: 'Seu Jocelino, a Rosa me contou do sonho dela. A lojinha é de vocês por Cr$ 2.000 de entrada, e o resto a gente acerta aos domingos, Cr$ 500 por vez. A chave fica comigo até lá: é só passar na porta. Só peço uma coisa: não mexam na pedra da sopa. Da Cotinha.' },
+  // (roteiro de 13/10) Quitada a lojinha, a carta de despedida da dívida (só chega pela última parcela).
+  cotinha_quitada: { de: 'Dona Cotinha', dia: 1e9, texto: 'Seu Jocelino, a Rosa me contou que foi paga a última parcela. A lojinha é toda de vocês, e não me deve mais nada. Me deu um aperto bom no peito: casa de comida precisa de gente que cozinhe com capricho. Guardem a pedra da sopa com carinho, ela traz sorte. Um abraço grande da Cotinha.' },
   fama_2: { de: 'Dona Cotinha', dia: 1e9, texto: 'Seu Jocelino, a primeira estrela! Até em Santos já falam do boteco da Rosa: disseram que o PF dela dá sustância pra levantar três paredes. Agora cabe mais um prato no quadro. Um abraço da Cotinha.' },
   fama_3: { de: 'Dona Cotinha', dia: 1e9, texto: 'Duas estrelas! A pensão está falada na Vila inteira, a Zélia me escreveu contando. Dica de velha: pesquise receita nova com a Rosa — gente gosta de novidade no quadro. Da Cotinha.' },
   fama_4: { de: 'Dona Cotinha', dia: 1e9, texto: 'Três estrelas, Pensão Famosa! Quem diria, a minha casa velha. Saiu até uma notinha no jornal de Praia Grande. Agora vem gente de fora e vem crítico: o Doutor Paladar passa uma vez por estação, disfarçado. Capricha! Da Cotinha.' },

@@ -8,6 +8,8 @@
 // A meta da família: { titulo, texto, feito, meta }.
 function metaFamilia() {
   if (!G.obra) return null;
+  // (roteiro de 13/10) Antes da casa, o sonho da Rosa: a entrada da lojinha.
+  if (G.lojinha && G.lojinha.conversou && !G.lojinha.comprada) return { titulo: 'A lojinha da Rosa', texto: `A lojinha da Rosa: a entrada de Cr$ ${ECO.lojinha.entrada} (a fachada amarela, na Vila)`, feito: Math.min(Math.max(0, G.dinheiro), ECO.lojinha.entrada), meta: ECO.lojinha.entrada };
   const casa = G.casa || {};
   if (casa.mudou) {
     const f = typeof Obra !== 'undefined' ? Obra.falta() : null;

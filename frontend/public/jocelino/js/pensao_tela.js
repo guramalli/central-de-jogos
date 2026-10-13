@@ -54,7 +54,19 @@ function atualizarPensaoMundo(so) {
 
 // ---------- reforma ----------
 function pensaoFachada() {
-  if (G.pensao.estado === 'fechada') { abrirPlaca('Uma pensão abandonada, com tábuas na porta. Uma placa apagada: "Pensão da Dona Cotinha".'); return true; }
+  if (G.pensao.estado === 'fechada') {
+    const L = typeof Lojinha !== 'undefined' ? Lojinha.estado() : null;
+    if (L && L.conversou) {
+      perguntar(`A lojinha da Dona Cotinha, à venda. Entrada: Cr$ ${ECO.lojinha.entrada} (o resto em ${ECO.lojinha.parcelas} domingos de Cr$ ${ECO.lojinha.parcela}).`, [`Comprar (Cr$ ${ECO.lojinha.entrada})`, 'Agora não'], i => {
+        if (i !== 0) return; const r = Lojinha.comprar();
+        if (r === 'ok') { sons.tocar('fanfarra', 1, 0, -4); atualizarPensaoMundo(); hudSujo(); abrirPlaca('A chave é de vocês! A Rosa chorou. Agora a reforma: comece limpando o salão.'); }
+        else abrirPlaca(`Ainda falta: Cr$ ${ECO.lojinha.entrada - G.dinheiro} para a entrada.`);
+      });
+      return true;
+    }
+    abrirPlaca(L && L.sonho ? 'Uma lojinha fechada, com tábuas na porta. A Rosa quer conversar com você sobre ela.' : 'Uma pensão abandonada, com tábuas na porta. Uma placa apagada: "Pensão da Dona Cotinha".');
+    return true;
+  }
   if (G.pensao.obra && !G.pensao.obra.hoje && typeof trabalharNaObra === 'function') {
     perguntar(`A obra da pensão (${Ampliacao.dados(G.pensao.obra.id).nome}) está esperando: faltam ${G.pensao.obra.falta} dias.`, ['Trabalhar na obra (gasta energia)', 'Entrar na pensão', 'Agora não'],
       i => { if (i === 0) { trabalharNaObra(); atualizarPensaoMundo(); } else if (i === 1) { if (pensaoNoPalco()) entrarPalco(); else entrarPalco(); } });

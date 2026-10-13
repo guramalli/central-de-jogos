@@ -17,13 +17,16 @@ const GUIA_MISSOES = [
       'Vai conhecer a Vila: o Seu Ananias, do depósito, a Dona Zélia e o Zé, que mexe a massa aqui na obra.', 'Depois de conhecer o pessoal, passa no quadro de serviços ali na frente da obra: tem bico pra fazer de tarde.']],
     aoFeita: () => {
       Guia.fila.push(['juca', 'Tio Juca', ['O que sobrou da limpeza (madeira, pedra, fibra) dá pra vender na caixa de venda, aqui no quintal.', 'Põe lá dentro e o carroceiro leva de madrugada: o dinheiro entra no resumo da noite.']]);
-      const respondeu = G.correio && (G.correio.caixa.includes('cotinha_pensao') || G.correio.lidas.includes('cotinha_pensao'));
-      Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', respondeu ? 'Escrevi pra ela, e ela já respondeu! A carta está na caixa de correio.' : 'Escrevi pra ela. Se ela deixar, a gente arruma a casa e eu cozinho pra fora. A resposta chega pelo correio!']]);
+      // (roteiro de 13/10) Nada de carta prometida: a Dona Cotinha vende a lojinha, e a Rosa conta o sonho no quintal depois da diária.
+      const L = G.lojinha || {};
+      Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', L.conversou ? 'A gente já se entendeu: é juntar a entrada e comprar a lojinha dela. Eu cozinho pra fora, você vai ver.' : 'Quando você receber a diária, passa no quintal que eu te conto um sonho que guardo desde Aracaju.']]);
     } },
   { id: 'pensao', agora: () => { const p = G.pensao || {}; return p.estado === 'telhas' ? `O sonho da Rosa: ${Pensao.TELHAS} telhas para o telhado da pensão (o Seu Ananias vende) — ${p.telhas || 0}/${Pensao.TELHAS}`
       : p.estado === 'mesas' ? `O sonho da Rosa: madeira para as banquetas (machado nos galhos e tocos) — ${p.madeira || 0}/${Pensao.MADEIRA}`
+      : p.estado === 'fechada' ? `A lojinha da Rosa: juntar Cr$ ${ECO.lojinha.entrada} de entrada (a Dona Cotinha vende)`
       : 'O sonho da Rosa: arrumar a pensão da Dona Cotinha, começando pelo salão (a casa amarela, ao lado do depósito)'; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, as telhas e a madeira', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
-    feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => { if (G.pensao) G.pensao.abrirReforma(); } },
+    abre: () => typeof Lojinha !== 'undefined' && Lojinha.comprada(),   // (13/10) só depois da compra da lojinha; quem abre a reforma é a compra
+    feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => {} },
   { id: 'horta', titulo: 'A primeira horta', quem: 'Tio Juca', texto: 'A primeira horta: plante e regue 10 covas', meta: 10, dia: 'horta', libera: 'horta', conta: _covasPlantadasRegadas,
     agora: 'A horta da família: plante as sementes do Tio Juca no canteiro e regue (a Rosa cozinha, a caixa de venda leva o resto)',
     // (revisão: o save antigo que passou da chegada sem as sementes recebe as do Tio Juca ao abrir a horta)
