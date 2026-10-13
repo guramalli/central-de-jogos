@@ -3,7 +3,11 @@
 // galinhas da vizinhança bicam a horta aberta (os corvos do Stardew), o irrigador do Tonico rega de manhã e os filhos
 // ajudam a regar.
 
-const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'forja', 'betoneira'];
+const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'forja', 'betoneira', 'barril_agua'];
+// (13/10: "dê a opção de trocar o barril de água de local") O barril é um objeto colocado como o baú do Stardew: o machado ou a
+// picareta recolhe (vira o item na mochila) e o botão direito põe de novo em qualquer grama livre do quintal. Um só.
+ITENS.barril_agua = { nome: 'Barril d\'água', pilha: 1, ferramenta: false, colocavel: true, descricao: 'O barril da chuva: enche o regador. No quintal, botão direito na grama livre para colocar; o machado ou a picareta recolhe.' };
+const AVISO_BARRIL_NA_MOCHILA = 'O barril está na mochila: coloque no chão para encher o regador';
 // Motivo para não colocar ('' = pode).
 function podeColocar(b, x, y) {
   if (b.id !== 'quintal' || !b.livreEm(x, y)) return 'Aqui não dá.';
@@ -62,6 +66,24 @@ function poeColocados(b) {
     if (c.id === 'irrigador') o.acao = () => abrirPlaca('O irrigador do Seu Tonico: rega as 4 covas em volta toda manhã.');
     if (c.id === 'irrigador_bom') o.acao = () => abrirPlaca('O irrigador bom do Seu Tonico: rega as 8 covas em volta toda manhã.');
   }
+  poeBarril(b);
+}
+// O barril d'água no lugar salvo (G.horta.barril); na mochila (null), o quintal fica sem ele. O botão direito ou o regador
+// enchem; o machado ou a picareta recolhem.
+function poeBarril(b) {
+  for (const o of b.objs.filter(o => o.id === 'barril_agua')) b.tirar(o);
+  const p = G.horta.barril; if (!p) return;
+  const oc = b.ocupado.get(chaveT(p.x, p.y)); if (oc && oc.tipo === 'detrito') b.tirar(oc);
+  const o = b.interativo('barril_agua', 'objetos/barril_agua', p.x, p.y, 1, 1, [16, 10]);
+  Object.assign(o, { item: 'barril_agua', cx: p.x, cy: p.y });
+  o.acao = () => encherRegador();
+  o.ferramenta = (q, id) => { if (id === 'regador') encherRegador(); else if (id === 'machado' || id === 'picareta') recolherBarril(); };
+}
+function recolherBarril() {
+  if (!G.mochila.cabe('barril_agua')) { avisar('A mochila está cheia: abra um espaço para levar o barril.'); return false; }
+  G.horta.barril = null; G.mochila.adicionar('barril_agua', 1);
+  sons.tocar('madeira', 0.8, 0.05, -4); poeColocados(G.mapa); hudSujo(); avisar('O barril foi para a mochila.');
+  return true;
 }
 // Abre ou fecha o portão (não fecha com o Jocelino no vão: ficaria preso dentro da cerca).
 function abrirPortao(c) {
@@ -75,9 +97,12 @@ function abrirPortao(c) {
 const trabalhando = o => typeof G.mina !== 'undefined' && G.mina && !!((G.mina.forjas || {})[o.cx + ',' + o.cy] || (G.mina.betoneiras || {})[o.cx + ',' + o.cy]);
 const pronto = o => { const k = o.cx + ',' + o.cy, f = G.mina.forjas[k], b = G.mina.betoneiras[k]; return f ? Mina.agora() >= f.pronta : !!b && G.dia >= b.pronta; };
 function colocar(id, x, y) {
+  if (id === 'barril_agua' && G.horta.barril) { avisar('Já tem um barril no quintal.'); return false; }
   const m = podeColocar(G.mapa, x, y); if (m) { avisar(m); return false; }
   if (Horta.cova(x, y)) delete G.horta.covas[chaveH(x, y)];   // cova vazia vira chão de cerca
-  G.horta.colocados.push({ id, x, y }); G.mochila.remover(id, 1);
+  if (id === 'barril_agua') { G.horta.barril = { x, y }; if (G.limpou) G.limpou.barril_colocado = 1; }
+  else G.horta.colocados.push({ id, x, y });
+  G.mochila.remover(id, 1);
   sons.tocar('pousar', 1, 0.05, -4); poeColocados(G.mapa); hudSujo(); return true;
 }
 function recolher(o) {
@@ -155,7 +180,9 @@ function regarComIrrigadores() {
 // No chão (por baixo das plantas), o alcance em azul; por cima de tudo (cima = true), o ladrilho do mouse — senão a planta o cobria.
 function desenhaAlcanceIrrigador(ctx, cima = false) {
   const id = typeof itemDaMao === 'function' ? itemDaMao() : '';
-  if (!VIZ_IRRIGADOR[id] || G.mapaId !== 'quintal' || !G.horta || !G.mouse || (typeof menuAberto === 'function' && menuAberto())) return;
+  // (o barril na mão também mostra o ladrilho verde ou vermelho; não tem alcance azul)
+  if (id === 'barril_agua' && !cima) return;
+  if ((!VIZ_IRRIGADOR[id] && id !== 'barril_agua') || G.mapaId !== 'quintal' || !G.horta || !G.mouse || (typeof menuAberto === 'function' && menuAberto())) return;
   const pinta = (x, y, cor) => { ctx.fillStyle = cor; ctx.fillRect(x * TILE + 3, y * TILE + 3, TILE - 6, TILE - 6); };
   const t = ladrilhoDoMouse();
   ctx.save();
@@ -167,6 +194,19 @@ function desenhaAlcanceIrrigador(ctx, cima = false) {
   ctx.restore();
 }
 MANHA.push(() => { if (G.horta) regarComIrrigadores(); });
+// O barril que sumiu (fora do quintal, da mochila e do chão: largado no chão de um mapa, que não vai para o save): de manhã o
+// Tio Juca põe de volta no lugar de sempre (ou na grama livre mais perto dele). Sem barril não tem horta.
+function barrilSumido() {
+  if (!G.horta || G.horta.barril || G.mochila.total('barril_agua') > 0) return false;
+  return !Object.values(MAPAS).some(m => m && (m.itens || []).some(i => i.id === 'barril_agua'));
+}
+MANHA.push(() => {
+  if (!barrilSumido()) return;
+  const b = getMapa('quintal'), B = QUINTAL.BARRIL; let lugar = null;
+  for (let r = 0; r < 8 && !lugar; r++) for (let dy = -r; dy <= r && !lugar; dy++) for (let dx = -r; dx <= r && !lugar; dx++)
+    if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !podeColocar(b, B.x + dx, B.y + dy)) lugar = { x: B.x + dx, y: B.y + dy };
+  G.horta.barril = lugar || Object.assign({}, B); poeColocados(b); G.feitosHoje.push('O Tio Juca pôs o barril d\'água de volta no quintal.');
+});
 
 // ---------- os filhos regam: o pedido do Zezinho, o regadorzinho, a rega da manhã (até 8 covas, das mais perto de casa) ----------
 function filhosRegam() {

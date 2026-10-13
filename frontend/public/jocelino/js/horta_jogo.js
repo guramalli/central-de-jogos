@@ -20,9 +20,30 @@ function sincronizaHorta(b) {
     if (ocup && ocup.tipo === 'detrito') b.tirar(ocup);            // save antigo: detrito em cima da cova sai
     if (!c.planta) continue;
     let o = b.objs.find(p => p.id === 'planta' && p.covaX === x && p.covaY === y);
-    if (!o) { o = b.interativo('planta', '', x, y, 1, 1, null, false); o.covaX = x; o.covaY = y; o.acao = () => colherPlanta(o); o.ferramenta = (p, id) => ferramentaNaPlanta(p, id); }
+    if (!o) { o = b.interativo('planta', '', x, y, 1, 1, null, false); o.covaX = x; o.covaY = y; o.acao = () => colherPlanta(o); o.ferramenta = (p, id) => ferramentaNaPlanta(p, id);
+      o.desenha = ctx => desenhaFolhas(ctx, o); o.ordemY = (y + 0.5) * TILE; }
     o.nome = `objetos/planta_${c.planta}_${Horta.estagio(c)}`;
   }
+}
+// (13/10: "o Jocelino parece afundado na terra") A arte da planta traz o montinho de terra pintado embaixo; desenhada inteira na
+// ordem por altura, o montinho cobria as pernas de quem estava na cova. Como no Stardew (a terra cavada é chão; só a planta entra
+// na ordem), a arte é desenhada em duas faixas, sem pintar nada: os TERRA_PLANTA px de baixo (o montinho) no chão, junto com as
+// covas, e o resto (as folhas) na ordem, pelo meio do ladrilho — quem pisa na metade de cima da cova fica atrás das folhas, na de
+// baixo fica na frente. A muda (fase 1, menos a do tomate, que já tem a estaca) e a abóbora (rasteira, num quadrado de terra que
+// é a arte inteira) vão todas para o chão: nunca cobrem as pernas de ninguém.
+const TERRA_PLANTA = 26;
+const plantaRasteira = c => c.planta === 'abobora' || (Horta.estagio(c) === 1 && c.planta !== 'tomate');
+function desenhaTerraDaPlanta(ctx, c, x, y) {
+  const img = spr(`objetos/planta_${c.planta}_${Horta.estagio(c)}`); if (!img) return;
+  const w = img.naturalWidth, h = img.naturalHeight, px = (x + 0.5) * TILE - w / 2, base = (y + 1) * TILE;
+  if (plantaRasteira(c)) { ctx.drawImage(img, px, base - h, w, h); return; }
+  const t = Math.min(TERRA_PLANTA, h);
+  ctx.drawImage(img, 0, h - t, w, t, px, base - t, w, t);
+}
+function desenhaFolhas(ctx, o) {
+  const c = Horta.cova(o.covaX, o.covaY), img = spr(o.nome); if (!c || !c.planta || !img || plantaRasteira(c)) return;
+  const w = img.naturalWidth, h = img.naturalHeight, t = Math.min(TERRA_PLANTA, h);
+  if (h > t) ctx.drawImage(img, 0, 0, w, h - t, o.x - w / 2, o.y - h, w, h - t);
 }
 // O chão da horta: terra cavada, molhada quando regada (ou com chuva); o esterco por cima da cova adubada.
 function desenhaCovas(ctx) {
@@ -32,6 +53,10 @@ function desenhaCovas(ctx) {
     if (img) ctx.drawImage(img, x * TILE, y * TILE, TILE, TILE);
     if (c.adubo && !c.planta) desenhaPe(ctx, 'itens/esterco', (x + 0.5) * TILE, (y + 0.85) * TILE, 1, 0.5);
   }
+  // o montinho de terra das plantas (e a planta rasteira inteira), por cima das covas e por baixo de quem anda (de cima para baixo:
+  // a abóbora, 6 px mais alta que o ladrilho, fica por baixo do montinho da cova de baixo)
+  const plantadas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta).map(k => k.split(',').map(Number)).sort((a, b) => a[1] - b[1]);
+  for (const [x, y] of plantadas) desenhaTerraDaPlanta(ctx, G.horta.covas[chaveH(x, y)], x, y);
   if (typeof desenhaAlcanceIrrigador === 'function') desenhaAlcanceIrrigador(ctx);   // (quintal_coisas.js) o irrigador na mão
 }
 function encherRegador() {
@@ -45,11 +70,13 @@ function chaoAcertado(id, alvo) {
   if (b.id !== 'quintal') return false;
   if (id === 'pa' && podeCavar(b, alvo.x, alvo.y)) { Horta.cavar(alvo.x, alvo.y); if (G.limpou) G.limpou.aula_pa_chao = (G.limpou.aula_pa_chao || 0) + 1; sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra'); return true; }
   if (id === 'regador' && Horta.cova(alvo.x, alvo.y)) { regarCova(alvo.x, alvo.y); return true; }
+  // (o barril na mochila: o regador na grama procurando onde encher ouve onde está o barril)
+  if (id === 'regador' && !G.horta.barril && G.horta.agua < Horta.aguaMax()) { avisar(AVISO_BARRIL_NA_MOCHILA + '.'); return false; }
   return false;
 }
 function regarCova(x, y) {
   const r = Horta.regar(x, y);
-  if (r === 'vazio') { avisar('O regador está vazio: encha no barril d\'água.'); return; }
+  if (r === 'vazio') { avisar(G.horta.barril ? 'O regador está vazio: encha no barril d\'água.' : AVISO_BARRIL_NA_MOCHILA + '.'); return; }
   if (r === 'ok') { Habilidades.ganhar('roca', 1); if (G.limpou) G.limpou.aula_regador_chao = (G.limpou.aula_regador_chao || 0) + 1; }
   lascas((x + 0.5) * TILE, (y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); hudSujo();
 }
@@ -122,7 +149,7 @@ TAREFAS.push(() => {
   if (!G.horta) return [];
   const pl = Object.values(G.horta.covas).filter(c => c.planta), r = [];
   const secas = pl.filter(c => !Horta.molhada(c, G.dia)).length, prontas = pl.filter(c => Horta.madura(c)).length;
-  if (secas && G.horta.agua <= 0) r.push({ texto: 'Horta: encher o regador no barril', mapa: 'quintal' });
+  if (secas && G.horta.agua <= 0) r.push({ texto: G.horta.barril ? 'Horta: encher o regador no barril' : 'Horta: colocar o barril no quintal (o regador enche nele)', mapa: 'quintal' });
   else if (secas) r.push({ texto: 'Horta: regar', feito: pl.length - secas, meta: pl.length, mapa: 'quintal' });
   if (prontas) r.push({ texto: `Horta: ${prontas} ${prontas === 1 ? 'pronta' : 'prontas'} para colher`, mapa: 'quintal' });
   return r;

@@ -9,7 +9,7 @@
 const CASAS = {
   casa_juca_dentro: {
     nome: 'A casa do Tio Juca', cenario: 'cenarios/casa_juca_dentro', larg: 20, alt: 13,
-    livre: { x: 1, y: 3, w: 18, h: 7 }, porta: { x: 9, y: 10 }, acorda: { x: 4, y: 9 },
+    livre: { x: 1, y: 3, w: 18, h: 8 }, porta: { x: 9, y: 10 }, acorda: { x: 4, y: 9 },
     // a cama de casal no canto da família (1,3× a arte: as camas das crianças, pintadas, são compridas); bx/by/aw = o ladrilho da base
     cama: { arte: 'objetos/cama_juca_casal', dormindo: 'objetos/cama_juca_casal_dormindo', bx: 1, by: 9, aw: 3, w: 140, h: 156 },
     solidos: [[47, 140, 150, 140], [193, 140, 44, 260], [390, 240, 165, 160], [610, 140, 120, 52], [733, 140, 44, 40], [730, 300, 185, 110]],
@@ -20,7 +20,7 @@ const CASAS = {
   },
   casa_familia_dentro: {
     nome: 'A casa da família', cenario: 'cenarios/casa_familia_dentro', larg: 20, alt: 13,
-    livre: { x: 1, y: 2, w: 18, h: 8 }, porta: { x: 9, y: 10 }, acorda: { x: 15, y: 4 },
+    livre: { x: 1, y: 2, w: 18, h: 9 }, porta: { x: 9, y: 10 }, acorda: { x: 15, y: 4 },
     // (a cama encostada na parede da direita: no meio do quarto, ela fechava o canto de lá)
     cama: { arte: 'objetos/cama_casal', dormindo: 'objetos/cama_casal_dormindo', bx: 17, by: 4, aw: 2, w: 130, h: 145 },
     // as paredes de dentro (a do meio com o vão para o quarto das crianças; as baixas com o vão da cozinha e do quarto do casal).
@@ -51,6 +51,9 @@ for (const id in CASAS) MAPAS_DEF[id] = () => {
   b.saida(C.porta.x, C.porta.y, 1, 1, 'quintal', 0, 0);   // a chegada certa vem do AO_ENTRAR_MAPA do quintal (a porta da casa onde mora)
   b.paredesDaBorda();
   for (const [x, y, w, h] of C.solidos) b.solidos.push({ x, y, w, h });
+  // A fileira da porta é andável (sem ela, o pé parava na beira da borda e não saía: teste de 13/10, "estou travado dentro da casa");
+  // o resto da fileira é parede.
+  b.solidos.push({ x: 0, y: C.porta.y * TILE, w: C.porta.x * TILE, h: TILE }, { x: (C.porta.x + 1) * TILE, y: C.porta.y * TILE, w: (C.larg - C.porta.x - 1) * TILE, h: TILE });
   // A cama de casal: botão direito dorme; deitado, a arte troca para o Jocelino dormindo.
   const K = C.cama, cama = b.interativo('cama', K.arte, K.bx, K.by, K.aw, 1, [K.w / 3, (K.h - 6) / 3]);
   cama.alvoAlto = K.h;

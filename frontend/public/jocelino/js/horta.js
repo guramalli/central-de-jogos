@@ -21,7 +21,9 @@ const Horta = {
   iniciar(s) {
     const h = s.horta || {};
     G.horta = { covas: h.covas ? JSON.parse(JSON.stringify(h.covas)) : Horta.canteiroInicial(), agua: h.agua != null ? h.agua : AGUA_REGADOR[0],
-      filhos: !!h.filhos, pedidoFilhos: !!h.pedidoFilhos, colocados: (h.colocados || []).map(c => Object.assign({}, c)), galinha: h.galinha || null };
+      filhos: !!h.filhos, pedidoFilhos: !!h.pedidoFilhos, colocados: (h.colocados || []).map(c => Object.assign({}, c)), galinha: h.galinha || null,
+      // O barril d'água: {x, y} no quintal, ou null na mochila (o save antigo, sem o campo, fica com ele no lugar de sempre).
+      barril: h.barril === null ? null : Object.assign({}, h.barril || QUINTAL.BARRIL) };
   },
   salvar(s) { s.horta = JSON.parse(JSON.stringify(G.horta)); },
   canteiroInicial() {

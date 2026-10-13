@@ -315,7 +315,8 @@ function desenhaMapa(ctx) {
   if (m.extras) lista.push(...m.extras());
   for (const f of EXTRAS_MUNDO) lista.push(...f(m));
   if (typeof vidaNoChao === 'function') lista.push(...vidaNoChao(m));
-  lista.sort((a, b) => a.y - b.y);
+  // (ordemY: quem é ordenado por outro ponto que não o pé, como as folhas da horta pelo meio do ladrilho; horta_jogo.js)
+  lista.sort((a, b) => (a.ordemY ?? a.y) - (b.ordemY ?? b.y));
   const jx = G.jog ? G.jog.x : 0, jy = G.jog ? G.jog.y : 0;
   for (const o of lista) {
     if (o.desenha) { o.desenha(ctx); continue; }

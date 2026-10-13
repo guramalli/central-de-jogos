@@ -432,30 +432,63 @@ function setaAgora() { const t = G.agora || 0; if (t !== _setaT || G.mapaId !== 
   if (G.mapaId === 'pedreira') { const sa = setaAgora(); if (sa && sa.missao === 'tela_pedreira') return { id: 'tonico', nome: 'Seu Tonico', texto: sa.objeto ? FALA_ESCADA : FALA_ROCHA, alvo: null }; }
   return p0();
 }; }
+// (13/10) A primeira vez com o barril d'água na mão: o Tio Juca diz como colocar, até o barril ir para o chão uma vez
+// (G.limpou.barril_colocado, marcado em quintal_coisas.js).
+const FALA_BARRIL = { quintal: 'O barril vai em qualquer grama livre do quintal: chegue perto e clique com o botão direito no chão (o quadrado verde mostra onde dá). Para mudar de novo, machado ou picareta recolhe.',
+  fora: 'O barril vai no quintal: lá, botão direito na grama livre para colocar. Sem ele no chão, o regador não enche.' };
+{ const p0 = guiaPasso; guiaPasso = function () {
+  if (G.jog && typeof itemDaMao === 'function' && itemDaMao() === 'barril_agua' && !((G.limpou || {}).barril_colocado > 0))
+    return { id: 'juca', nome: 'Tio Juca', texto: G.mapaId === 'quintal' ? FALA_BARRIL.quintal : FALA_BARRIL.fora, alvo: null };
+  return p0();
+}; }
 // A seta do mapa, desenhada por cima (px de tela): em cima do alvo, balançando; fora da tela, na borda, girada para ele.
+// Os painéis do HUD à vista (o cartão da família, o quadro, o relógio, a meta, os botões, a barra), em px de tela: a seta e a
+// frase não ficam embaixo deles (teste de 13/10: com o depósito no alto da tela, a seta e a frase sumiam atrás do cartão).
+let _hudRects = [], _hudT = -1;
+function paineisDoHud() {
+  const t = G.agora || 0; if (t === _hudT) return _hudRects; _hudT = t;
+  _hudRects = [...document.querySelectorAll('#hud .painel, #hud .botao')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+    .map(r => ({ x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 }));
+  return _hudRects;
+}
+const _bate = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+const _livre = r => !paineisDoHud().some(p => _bate(r, p));
+// A frase: o primeiro lugar livre entre os candidatos (acima, abaixo), deslocada para o lado de quem a cobre; sem nenhum livre,
+// o primeiro. O x fica dentro da tela.
+function _lugarDaFrase(meia, cands, L) {
+  const caixa = (x, y) => ({ x: x - meia, y: y - 18, w: meia * 2, h: 26 }), dentro = x => Math.min(Math.max(x, meia + 4), L - meia - 4);
+  for (const [x0, y] of cands) {
+    const x = dentro(x0); if (_livre(caixa(x, y))) return [x, y];
+    const p = paineisDoHud().find(q => _bate(caixa(x, y), q));
+    for (const x2 of [p.x + p.w + meia + 4, p.x - meia - 4]) { const xx = dentro(x2); if (_livre(caixa(xx, y))) return [xx, y]; }
+  }
+  return [dentro(cands[0][0]), cands[0][1]];
+}
 DESENHOS_TELA.push(ctx => {
   const s = setaAgora();
   const img = spr('ui/seta'); if (!s || !img || !G.comecou) return;
   const w = img.naturalWidth * 0.8, h = img.naturalHeight * 0.8, z = G.zoom, L = G.larg, A = G.alt;
-  const sx = (s.x - G.cam.x) * z, sy = (s.y - G.cam.y) * z, bob = Math.sin((G.agora || 0) * 6) * 8;
+  const sx = (s.x - G.cam.x) * z, sy0 = (s.y - G.cam.y) * z, sy = sy0, bob = Math.sin((G.agora || 0) * 6) * 8;
   // (a frase inteira na tela: a frase longa, encostada na borda, saía cortada; vistoria de 12/10)
   ctx.save(); ctx.font = '900 17px Nunito'; const meia = s.rotulo ? ctx.measureText(s.rotulo).width / 2 + 14 : 0; ctx.restore();
-  // (no alto, a frase não entra por baixo do relógio, à direita)
-  const xr = (x, y) => Math.min(Math.max(x, meia), L - meia - (y < 240 ? 190 : 0));
   ctx.save();
-  // Na tela: em cima do alvo (perto do topo, encostada na borda de cima). Fora: na borda, longe do relógio e do quadro de
-  // tarefas (em cima) e da barra (embaixo), girada para o alvo.
+  // Na tela: em cima do alvo, apontando para baixo; se um painel do HUD cobre esse lugar, embaixo do alvo, apontando para cima.
+  // Fora: na borda, girada para o alvo. A frase vai no primeiro lugar livre perto da seta.
   if (sx > 20 && sx < L - 20 && sy > 20 && sy < A - 110) {
-    const top = Math.max(4, sy - h - 6) + bob; ctx.drawImage(img, sx - w / 2, top, w, h);
-    const ty = top > 130 ? top - 8 : top + h + 22;
-    if (s.rotulo) texto(ctx, s.rotulo, xr(sx, ty), ty, 17, '#fff4cf', '900');
+    // O ponto de cima do alvo coberto por um painel: a seta desce pelo próprio alvo (o prédio, a pessoa) até um trecho visível.
+    let sy = sy0;
+    const ob = s.objeto && G.mapa.objs.find(o => o.id === s.objeto), base = ((ob ? ob.y : s.y + (s.morador ? 140 : 40)) - G.cam.y) * z;
+    while (!_livre({ x: sx - w / 2, y: Math.max(4, sy - h - 6), w, h }) && sy + 20 < base - 10) sy += 20;
+    let top = Math.max(4, sy - h - 6);
+    const embaixo = !_livre({ x: sx - w / 2, y: top, w, h }) && _livre({ x: sx - w / 2, y: sy + 10, w, h });
+    if (embaixo) { top = sy + 10; ctx.save(); ctx.translate(sx, top + h / 2 - bob); ctx.rotate(Math.PI); ctx.drawImage(img, -w / 2, -h / 2, w, h); ctx.restore(); }
+    else ctx.drawImage(img, sx - w / 2, top + bob, w, h);
+    if (s.rotulo) { const [x, y] = _lugarDaFrase(meia, embaixo ? [[sx, top + h + 24], [sx, sy - 14]] : [[sx, top - 8], [sx, top + h + 22]], L); texto(ctx, s.rotulo, x, y, 17, '#fff4cf', '900'); }
   }
   else {
     const cx = Math.min(Math.max(sx, 70), L - 70), cy = Math.min(Math.max(sy, 190), A - 160);
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(sy - cy, sx - cx) - Math.PI / 2); ctx.drawImage(img, -w / 2, -h / 2 + bob, w, h); ctx.restore();
-    // (a seta na borda de baixo: a frase vai em cima dela, longe da barra)
-    const ty = cy + h / 2 + 24 > A - 105 ? cy - h / 2 - 12 : cy + h / 2 + 24;
-    if (s.rotulo) texto(ctx, s.rotulo, xr(cx, ty), ty, 17, '#fff4cf', '900');
+    if (s.rotulo) { const [x, y] = _lugarDaFrase(meia, [[cx, cy + h / 2 + 24], [cx, cy - h / 2 - 12]], L); texto(ctx, s.rotulo, x, y, 17, '#fff4cf', '900'); }
   }
   ctx.restore();
 });
