@@ -12,7 +12,7 @@ function podeColocar(b, x, y) {
   if (reservadoQuintal(x, y)) return 'Esse terreno é da obra da família.';
   const c = Horta.cova(x, y); if (c && c.planta) return 'Tem planta aí.';
   // A caixa sólida do objeto (ladrilho inteiro de largura) não pode encostar no pé do Jocelino nem de um morador: prenderia.
-  const cx = b._caixa((x + 0.5) * TILE, (y + 1) * TILE, 48, 30), sobre = (a, d) => a.x < d.x + d.w && a.x + a.w > d.x && a.y < d.y + d.h && a.y + a.h > d.y;
+  const cx = b._caixa((x + 0.5) * TILE, (y + 1) * TILE, 48, 48), sobre = (a, d) => a.x < d.x + d.w && a.x + a.w > d.x && a.y < d.y + d.h && a.y + a.h > d.y;
   if (sobre(cx, G.jog.caixa())) return 'O Jocelino está em cima.';
   if (b.moradores.some(m => m.visivel !== false && sobre(cx, { x: m.x - 14, y: m.y - 14, w: 28, h: 14 }))) return 'Tem gente aí.';
   return '';
@@ -41,8 +41,10 @@ function poeColocados(b) {
   if (!b || b.id !== 'quintal') return;
   for (const o of b.objs.filter(o => o.id === 'colocado')) b.tirar(o);
   for (const c of G.horta.colocados) {
-    const solido = c.id !== 'portao';
-    const o = b.interativo('colocado', c.id === 'cerca' ? 'objetos/cerca_mourao' : c.id === 'portao' ? 'objetos/portao_h' : 'objetos/' + c.id, c.x, c.y, 1, 1, solido ? [16, 10] : null, solido);
+    // (a cerca bloqueia o ladrilho inteiro, como no Stardew: com a caixa só no pé do mourão, o Jocelino passava no vão entre dois
+    // mourões de uma cerca em pé; teste de 12/10)
+    const solido = c.id !== 'portao', pe = c.id === 'cerca' ? [16, 16] : [16, 10];
+    const o = b.interativo('colocado', c.id === 'cerca' ? 'objetos/cerca_mourao' : c.id === 'portao' ? 'objetos/portao_h' : 'objetos/' + c.id, c.x, c.y, 1, 1, solido ? pe : null, solido);
     Object.assign(o, { item: c.id, cx: c.x, cy: c.y });
     if (c.id === 'cerca' || c.id === 'portao') o.desenha = ctx => desenhaCerca(ctx, o);
     o.ferramenta = (p, id) => { if (id !== 'machado' && id !== 'picareta') return; if (trabalhando(p)) { avisar(pronto(p) ? 'Está pronto: tire o que ficou pronto antes de recolher.' : 'Está trabalhando: espere terminar para recolher.'); return; } recolher(p); };
@@ -73,17 +75,32 @@ function falaDe(p) {
   const f = FALAS[p.id], paginas = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']);
   return Array.isArray(paginas[0]) ? paginas[0] : paginas;
 }
+// Quanto custa cada coisa do Tio Juca (madeiras) e o que ele oferece: 1 cerca, 10 cercas e "quantas a madeira der" (teste de
+// 12/10: "ficar comprando de 1 em 1 é chato"; no Stardew a loja compra 5 com Shift), e o portão.
+const MADEIRA_JUCA = { cerca: 2, portao: 5 };
+function opcoesJuca() {
+  const m = G.mochila.total('madeira'), max = Math.floor(m / MADEIRA_JUCA.cerca), r = [];
+  if (max >= 1) r.push(['Fazer 1 cerca (2 madeiras)', 'cerca', 1]);
+  if (max >= 10) r.push(['Fazer 10 cercas (20 madeiras)', 'cerca', 10]);
+  if (max > 1 && max !== 10) r.push([`Fazer ${max} cercas: toda a madeira (${max * MADEIRA_JUCA.cerca} madeiras)`, 'cerca', max]);
+  if (m >= MADEIRA_JUCA.portao) r.push(['Fazer portão (5 madeiras)', 'portao', 1]);
+  return r;
+}
+// Faz até n (para no que a madeira ou a mochila deixar); devolve quantas fez.
+function jucaFazer(item, n) {
+  const custo = MADEIRA_JUCA[item]; let feitas = 0;
+  while (feitas < n && G.mochila.total('madeira') >= custo && G.mochila.cabe(item)) { G.mochila.remover('madeira', custo); G.mochila.adicionar(item, 1); feitas++; }
+  if (feitas) { sons.tocar('madeira', 1, 0.05, -4); avisar(`O Tio Juca fez ${Itens.qtd(feitas, item)}.`); hudSujo(); }
+  else avisar(G.mochila.total('madeira') < custo ? `Precisa de ${custo} madeiras.` : 'A mochila está cheia.');
+  return feitas;
+}
 function conversarJuca(p) {
   const fala = falaDe(p);
-  if (G.mochila.total('madeira') < 2) { abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala); return true; }
-  abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala.concat(['Cerca boa segura galinha e segura menino. Quer que eu faça com a sua madeira?']), () =>
-    perguntar('Tio Juca: "Faço o quê?"', ['Fazer cerca (2 madeiras)', 'Fazer portão (5 madeiras)', 'Agora não'], i => {
-      const custo = [2, 5][i], item = ['cerca', 'portao'][i];
-      if (!custo) return;
-      if (G.mochila.total('madeira') < custo) { avisar(`Precisa de ${custo} madeiras.`); return; }
-      if (!G.mochila.cabe(item)) { avisar('A mochila está cheia.'); return; }
-      G.mochila.remover('madeira', custo); G.mochila.adicionar(item, 1); sons.tocar('madeira', 1, 0.05, -4); avisar(`O Tio Juca fez ${Itens.qtd(1, item)}.`); hudSujo();
-    }));
+  if (G.mochila.total('madeira') < MADEIRA_JUCA.cerca) { abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala); return true; }
+  abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala.concat(['Cerca boa segura galinha e segura menino. Quer que eu faça com a sua madeira?']), () => {
+    const op = opcoesJuca();
+    perguntar(`Tio Juca: "Faço o quê?" (você tem ${G.mochila.total('madeira')} madeiras)`, op.map(o => o[0]).concat(['Agora não']), i => { if (op[i]) jucaFazer(op[i][1], op[i][2]); });
+  });
   return true;
 }
 AO_MONTAR.push(b => { if (b.id !== 'quintal') return; const j = b.moradores.find(m => m.id === 'juca'); if (j) j.aoConversar = () => conversarJuca(j); });
