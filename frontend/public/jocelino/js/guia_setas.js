@@ -84,6 +84,31 @@ function _alvoDaObraDoDia() {
   }
   return null;
 }
+// A janta da pensão, a primeira vez de cada coisa (teste de 13/10: "o cliente chegou, pediu um prato, onde pego o prato, como
+// levo, depois pediu bebida, como eu sirvo, como eu levo, como pego os pratos sujos e onde levo para lavar"): a seta vai no
+// lugar do passo mais urgente que o Jocelino ainda não fez nenhuma vez — a bacia, o cliente que espera o que está na bandeja,
+// o passe, o bebedouro, a louça na banqueta, a farinheira; cada uma some depois de feita uma vez (G.limpou['janta_…']).
+const jaFezJanta = k => ((G.limpou || {})['janta_' + k] || 0) > 0;
+{ const P = TurnoJanta.prototype;
+  for (const [m, k] of [['pegar', 'passe'], ['servir', 'entregar'], ['servirBebida', 'bebida_entregar'], ['encherBebida', 'bebedouro'], ['recolher', 'recolher'], ['largarLouca', 'bacia'], ['reporFarinha', 'farinheira']]) {
+    const f = P[m]; P[m] = function (...a) { const r = f.apply(this, a); if ((r === true || r === 'ok' || r > 0) && G.limpou) G.limpou['janta_' + k] = (G.limpou['janta_' + k] || 0) + 1; return r; };
+  } }
+function _alvoDaJanta() {
+  const t = G.turno; if (!t || typeof noPalco !== 'function' || !noPalco() || G.copo) return null;
+  const P = PALCO, mesa = (i, rot) => ({ mapa: G.mapaId, ponto: { x: P.ASSENTOS[i].x, y: P.ASSENTOS[i].y - 250 }, rotuloFixo: rot });
+  const nos = (i) => i >= 0 && i < P.ASSENTOS.length;
+  if (!jaFezJanta('bacia') && t.bandeja.some(x => x.tipo === 'louca')) return { mapa: G.mapaId, ponto: { x: P.BACIA.x + P.BACIA.w / 2, y: P.BACIA.y - 20 }, rotuloFixo: 'Clique na bacia: lavar a louça' };
+  if (!jaFezJanta('entregar')) { const x = t.bandeja.find(b => b.tipo === 'prato'), i = x ? t.mesas.findIndex(m => m.estado === 'prato' && m.prato === x.prato) : -1;
+    if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pratos.PRATOS[x.prato].nome.toLowerCase()}`); }
+  if (!jaFezJanta('bebida_entregar')) { const x = t.bandeja.find(b => b.tipo === 'bebida'), i = x ? t.mesas.findIndex(m => ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && m.bebida === x.bebida) : -1;
+    if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pratos.BEBIDAS[x.bebida].toLowerCase()}`); }
+  if (!jaFezJanta('passe') && t.passaPrato().length) return { mapa: G.mapaId, ponto: { x: P.PASSE.cx, y: P.PASSE.topo - 40 }, rotuloFixo: 'Prato pronto! Clique no passe: pegar o prato' };
+  if (!jaFezJanta('bebedouro') && t.bebidaPedida()) return { mapa: G.mapaId, ponto: { x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2, y: P.BEBEDOURO.y - 20 }, rotuloFixo: `Pediram ${Pratos.BEBIDAS[t.bebidaPedida()].toLowerCase()}: clique no bebedouro` };
+  if (!jaFezJanta('recolher')) { const i = t.mesas.findIndex(m => m.estado === 'suja'); if (nos(i)) return mesa(i, 'Clique na louça: recolher para a bandeja'); }
+  if (!jaFezJanta('farinheira') && t.farinha <= 1) return { mapa: G.mapaId, ponto: { x: P.FARINHEIRA.cx, y: P.FARINHEIRA.y - 20 }, rotuloFixo: 'Clique na farinheira: repor a farinha' };
+  if (!jaFezJanta('passe')) { const i = t.mesas.findIndex(m => m.estado === 'pedido' || m.estado === 'prato'); if (nos(i)) return mesa(i, 'O pedido aparece no balão: a Rosa já cozinha'); }
+  return null;
+}
 // O alvo de um serviço aceito (teste de 12/10: depois do 1º bico, a calçada pega no quadro ficava sem seta): o lugar de
 // verdade, a plaquinha do curto, ou a plaquinha da obra longa com trabalho hoje (ou pronta para entregar).
 // Sem o material (vistoria de 12/10: aceitar não pede material, e o golpe só dizia "falta"), a seta busca o material antes:
@@ -174,7 +199,7 @@ function _rotulo(a) {
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
   if (!G.mapa) return null;
-  const cands = [];
+  const cands = [['janta_vez', _alvoDaJanta]];   // (13/10) a primeira vez de cada passo da janta, na frente de tudo
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
   if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);
