@@ -6,6 +6,8 @@
 const GUIA_VIZINHOS = ['ananias', 'zelia', 'ze'];
 const _covasPlantadasRegadas = () => Object.values((G.horta && G.horta.covas) || {}).filter(c => c && c.planta && (c.regada || c.dias > 0)).length;   // regada hoje ou já crescendo (regada antes)
 const _culturasNaDespensa = () => { const d = (G.pensao && G.pensao.despensa) || {}; return Object.keys(typeof CULTURAS !== 'undefined' ? CULTURAS : {}).reduce((t, id) => t + (d[id] || 0), 0); };
+// A reforma pela metade (as 5 etapas de ECO.reforma e, de saves de antes delas, as telhas e as banquetas).
+const _naReforma = e => ['telhas', 'mesas'].includes(e) || ECO.reforma.some(x => x.id === e);
 const GUIA_MISSOES = [
   { id: 'obra', agora: () => { const l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
       if (l && !l.paga) { const ids = Object.keys(l.metas), feitas = ids.filter(id => (l.feito[id] || 0) >= l.metas[id]).length; return feitas < ids.length ? `A lista do dia do Bira: ${feitas} de ${ids.length} tarefas; completa, a diária de Cr$ ${Obra.diaria()}` : `Lista completa: receba a diária de Cr$ ${Obra.diaria()} com o Bira`; }
@@ -21,10 +23,10 @@ const GUIA_MISSOES = [
       const L = G.lojinha || {};
       Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', L.conversou ? 'A gente já se entendeu: é juntar a entrada e comprar a lojinha dela. Eu cozinho pra fora, você vai ver.' : 'Quando você receber a diária, passa no quintal que eu te conto um sonho que guardo desde Aracaju.']]);
     } },
-  { id: 'pensao', agora: () => { const p = G.pensao || {}; return p.estado === 'telhas' ? `O sonho da Rosa: ${Pensao.TELHAS} telhas para o telhado da pensão (o Seu Ananias vende) — ${p.telhas || 0}/${Pensao.TELHAS}`
-      : p.estado === 'mesas' ? `O sonho da Rosa: madeira para as banquetas (machado nos galhos e tocos) — ${p.madeira || 0}/${Pensao.MADEIRA}`
-      : p.estado === 'fechada' ? `A lojinha da Rosa: juntar Cr$ ${ECO.lojinha.entrada} de entrada (a Dona Cotinha vende)`
-      : 'O sonho da Rosa: arrumar a pensão da Dona Cotinha, começando pelo salão (a casa amarela, ao lado do depósito)'; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, as telhas e a madeira', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
+  { id: 'pensao', agora: () => { const p = G.pensao || {}; if (p.estado === 'fechada') return `A lojinha da Rosa: juntar Cr$ ${ECO.lojinha.entrada} de entrada (a Dona Cotinha vende)`;
+      if (p.estado === 'limpar') return 'O sonho da Rosa: arrumar a pensão da Dona Cotinha, começando pela limpeza do salão (a casa amarela, ao lado do depósito)';
+      const E = ECO.reforma.find(e => e.id === p.estado); if (!E) return 'A pensão da Rosa'; const f = p.faltaMaterial ? p.faltaMaterial() : {};
+      return Object.keys(f).length ? `A reforma — ${E.nome}: falta ${Object.entries(f).map(([i, q]) => Itens.qtd(q, i)).join(', ')} (entregue à Rosa)` : p.comecaAmanha && p.comecaAmanha(G.dia) ? `A reforma — ${E.nome}: começa amanhã (${E.dias} dia(s) de trabalho no salão)` : `A reforma — ${E.nome}: ${E.dias - ((p.reforma || {}).dias || 0)} dia(s) de trabalho no salão`; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, o telhado, o balcão, a cozinha e a pintura', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
     abre: () => typeof Lojinha !== 'undefined' && Lojinha.comprada(),   // (13/10) só depois da compra da lojinha; quem abre a reforma é a compra
     feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => {} },
   { id: 'horta', titulo: 'A primeira horta', quem: 'Tio Juca', texto: 'A primeira horta: plante e regue 10 covas', meta: 10, dia: 'horta', libera: 'horta', conta: _covasPlantadasRegadas,
@@ -149,7 +151,7 @@ const Guia = {
       const feita = (m.libera && g.antes.includes(m.libera)) || (['quintal', 'obra', 'vila'].includes(m.id) && dia > 1)
         || (m.id === 'janta' && pz.estado === 'aberta' && (pz.ultimaJanta || 0) > 0) || (m.id === 'domingo' && dia > 7);
       // (a reforma pela metade fica aberta: a seta e a frase guiam até a pensão; teste de 12/10)
-      if (feita && m.id === 'pensao' && ['limpar', 'telhas', 'mesas'].includes(pz.estado)) { g.abertas.push('pensao'); continue; }
+      if (feita && m.id === 'pensao' && _naReforma(pz.estado)) { g.abertas.push('pensao'); continue; }
       if (feita) g.feitas.push(m.id);
     }
     return g;
@@ -163,7 +165,7 @@ const Guia = {
     Guia.fila.length = 0;
     G.guia.feitas = G.guia.feitas.filter(id => Guia.missao(id)); G.guia.abertas = G.guia.abertas.filter(id => Guia.missao(id));   // um id que sumiu não trava
     // A reforma pela metade dada como feita (saves de 12/10, antes do conserto da migração): volta a ficar aberta, com a seta.
-    if (G.guia.ativo && G.guia.feitas.includes('pensao') && s.pensao && ['limpar', 'telhas', 'mesas'].includes(s.pensao.estado)) { G.guia.feitas = G.guia.feitas.filter(x => x !== 'pensao'); if (!G.guia.abertas.includes('pensao')) G.guia.abertas.push('pensao'); }
+    if (G.guia.ativo && G.guia.feitas.includes('pensao') && s.pensao && _naReforma(s.pensao.estado)) { G.guia.feitas = G.guia.feitas.filter(x => x !== 'pensao'); if (!G.guia.abertas.includes('pensao')) G.guia.abertas.push('pensao'); }
     // Nos testes (?teste=1, como as boas-vindas), o jogo novo sem guia pedido começa com tudo liberado; quem testa o guia pede s.guia.
     if (!s.guia && novoJogo && typeof location !== 'undefined' && /teste=1/.test(location.search)) Guia.liberarTudo();
   },

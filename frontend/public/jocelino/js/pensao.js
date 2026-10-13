@@ -9,8 +9,6 @@ class Pensao {
   // cobra uma despesa por noite (gás, gelo, luz).
   static DEGRAUS = ECO.pensao.degraus;   // os números moram no ECO (economia.js)
   static GRAUS = Pensao.DEGRAUS;
-  static TELHAS = 10;
-  static MADEIRA = 20;
   static DESPENSA_INICIAL = { arroz: 5, feijao: 5, ovo: 5 };
   static CHANCE_PEDRA_VOLTA = 0.5;
   // A pedra também é material de obra: a despensa guarda só a da sopa (o resto fica na mochila).
@@ -21,8 +19,8 @@ class Pensao {
   static get SABOR_POR_NIVEL() { return ECO.pensao.saborPorNivel; }
 
   constructor() {
-    this.estado = 'fechada';   // fechada, limpar, telhas, mesas, pronta, aberta
-    this.abreDia = -1; this.telhas = 0; this.madeira = 0; this.limpos = []; this.mesas = 2; this.fama = 0;
+    this.estado = 'fechada';   // fechada, limpar, telhado, balcao, cozinha, pintura, pronta, aberta (as etapas em ECO.reforma)
+    this.abreDia = -1; this.reforma = { entregue: {}, dias: 0, hoje: 0 }; this._golpes = 0; this.limpos = []; this.mesas = 2; this.fama = 0;
     this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
     this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {}; this.chef = { nivel: 1, xp: 0 };
@@ -254,43 +252,46 @@ class Pensao {
     return r;
   }
 
-  // ---------------- reforma
-  abrirReforma() { if (this.estado === 'fechada') this.estado = 'limpar'; }
-  limpou() { if (this.estado === 'limpar') this.estado = 'telhas'; }
+  // ---------------- reforma (roteiro de 13/10: 5 etapas, cada uma com material entregue à Rosa e dias de trabalho no salão)
+  _etapa() { return ECO.reforma.find(e => e.id === this.estado) || null; }
+  _proxima() { const k = ECO.reforma.findIndex(e => e.id === this.estado); const n = ECO.reforma[k + 1]; this.reforma = { entregue: {}, dias: 0, hoje: (this.reforma || {}).hoje || 0 }; this._golpes = 0; if (n) this.estado = n.id; else { this.estado = 'pronta'; this.abreDia = this._diaPronta + 1; } }
+  abrirReforma() { if (this.estado === 'fechada') { this.estado = 'limpar'; this.reforma = { entregue: {}, dias: 0, hoje: 0 }; } }
+  limpou() { if (this.estado === 'limpar') this._proxima(); }
   faltaMaterial() {
-    if (this.estado === 'telhas') return { telha: Pensao.TELHAS - this.telhas };
-    if (this.estado === 'mesas') return { madeira: Pensao.MADEIRA - this.madeira };
-    return {};
+    const E = this._etapa(); if (!E) return {};
+    const r = {}; for (const it in E.material) { const f = E.material[it] - ((this.reforma.entregue || {})[it] || 0); if (f > 0) r[it] = f; }
+    return r;
   }
-  // Entrega o que a mochila tem para a etapa da reforma (uma etapa por vez). Devolve o texto do que aconteceu.
-  entregar(mochila, dia) {
-    if (this.estado === 'telhas') {
-      const n = Math.min(mochila.total('telha'), Pensao.TELHAS - this.telhas);
-      mochila.remover('telha', n);
-      this.telhas += n;
-      let txt = `Telhas: ${this.telhas} de ${Pensao.TELHAS}.`;
-      if (this.telhas >= Pensao.TELHAS) { this.estado = 'mesas'; txt += ` Telhado consertado! Agora as banquetas: ${Pensao.MADEIRA} madeiras.`; }
-      return txt;
-    }
-    if (this.estado === 'mesas') {
-      const m = Math.min(mochila.total('madeira'), Pensao.MADEIRA - this.madeira);
-      mochila.remover('madeira', m);
-      this.madeira += m;
-      let txt = `Madeira das banquetas: ${this.madeira} de ${Pensao.MADEIRA}.`;
-      if (this.madeira >= Pensao.MADEIRA) { this.estado = 'pronta'; this.abreDia = dia + 1; txt += ' Banquetas prontas! A pensão abre amanhã.'; }
-      return txt;
-    }
-    return '';
+  // A etapa que acabou hoje passa a vez para amanhã: a atual ainda não começou e hoje já teve trabalho na reforma.
+  comecaAmanha(dia) { return !!this._etapa() && this.reforma.hoje === dia && !this.reforma.dias; }
+  // Entrega à Rosa o que a mochila tem para a etapa atual (uma etapa por vez). Devolve o texto do que aconteceu ('' se nada).
+  entregar(mochila) {
+    const E = this._etapa(); if (!E || E.id === 'limpar') return '';
+    const partes = [];
+    for (const [it, f] of Object.entries(this.faltaMaterial())) { const n = Math.min(mochila.total(it), f); if (!n) continue; mochila.remover(it, n); this.reforma.entregue[it] = (this.reforma.entregue[it] || 0) + n; partes.push(`${Itens.qtd(n, it)}`); }
+    const falta = this.faltaMaterial();
+    return partes.length ? `${E.nome}: entregou ${partes.join(', ')}.${Object.keys(falta).length ? ' Falta: ' + Object.entries(falta).map(([i, q]) => Itens.qtd(q, i)).join(', ') + '.' : ` Material completo: agora ${E.dias} dia(s) de trabalho no salão.`}` : '';
+  }
+  // Um dia de trabalho na etapa (o clique no lugar dela, no salão): só com o material todo, uma vez por dia. O dia vale para a
+  // reforma inteira: a etapa que acabou hoje passa a vez para amanhã (o `hoje` segue para a etapa seguinte).
+  trabalharReforma(dia) {
+    const E = this._etapa(); if (!E || E.id === 'limpar') return 'etapa_feita';
+    if (this.reforma.hoje === dia) return 'ja_hoje';
+    if (Object.keys(this.faltaMaterial()).length) return 'falta_material';
+    this.reforma.hoje = dia; this.reforma.dias++;
+    if (this.reforma.dias >= E.dias) { this._diaPronta = dia; this._proxima(); }
+    return 'ok';
   }
   // De manhã: a pensão pronta abre no dia marcado, com o presente da Rosa na despensa.
   manha(dia) {
+    this._golpes = 0;   // os golpes do dia na reforma (3 = um dia de trabalho) recomeçam toda manhã
     if (this.estado === 'pronta' && dia >= this.abreDia) {
       this.estado = 'aberta';
       for (const id in Pensao.DESPENSA_INICIAL) this.despensa[id] = (this.despensa[id] || 0) + Pensao.DESPENSA_INICIAL[id];
     }
   }
   paraDict() {
-    return { estado: this.estado, abreDia: this.abreDia, telhas: this.telhas, madeira: this.madeira, limpos: (this.limpos || []).slice(), mesas: this.mesas, fama: this.fama,
+    return { estado: this.estado, abreDia: this.abreDia, reforma: JSON.parse(JSON.stringify(this.reforma || null)), golpes: this._golpes || 0, limpos: (this.limpos || []).slice(), mesas: this.mesas, fama: this.fama,
       despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
@@ -299,7 +300,11 @@ class Pensao {
   }
   deDict(d) {
     d = d || {};
-    this.estado = d.estado || 'fechada'; this.abreDia = d.abreDia ?? -1; this.telhas = d.telhas | 0; this.madeira = d.madeira | 0; this.limpos = (d.limpos || []).slice();
+    this.estado = d.estado || 'fechada'; this.abreDia = d.abreDia ?? -1; this.limpos = (d.limpos || []).slice();
+    this.reforma = JSON.parse(JSON.stringify(d.reforma || { entregue: {}, dias: 0, hoje: 0 })); this.reforma.entregue = this.reforma.entregue || {}; this._golpes = d.golpes | 0;
+    // Save de antes das 5 etapas: as telhas viram o telhado e a madeira das banquetas vira o balcão, com o que já foi entregue.
+    if (this.estado === 'telhas') { this.estado = 'telhado'; this.reforma.entregue.telha = d.telhas | 0; }
+    if (this.estado === 'mesas') { this.estado = 'balcao'; this.reforma.entregue.madeira = d.madeira | 0; }
     this.mesas = d.mesas || 2; this.fama = d.fama | 0; this.despensa = Object.assign({}, d.despensa || {});
     this.cardapio = (d.cardapio || []).slice(); this.receitas = (d.receitas || Pensao.RECEITAS_INICIAIS).slice(); this.ultimaJanta = d.ultimaJanta ?? -1;
     this.niveis = Object.assign({}, d.niveis || {}); this.pitadas = d.pitadas | 0; this.vistos = (d.vistos || Object.keys(this.despensa)).slice();

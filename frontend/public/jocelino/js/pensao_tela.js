@@ -29,7 +29,8 @@ function atualizarPensaoMundo(so) {
     const f = vila.objs.find(o => o.id === 'pensao');
     if (f) {
       const p = G.pensao, amp = p.ampliacoes || [], aberta = ['pronta', 'aberta'].includes(e);
-      let nome = ['fechada', 'limpar'].includes(e) ? 'objetos/pensao_fechada' : ['telhas', 'mesas'].includes(e) ? 'objetos/pensao_reforma' : 'objetos/pensao', pe = [13, 8, 5, 4];
+      // (as 5 etapas: fechada e limpando, a fachada velha; do telhado à pintura, a obra; pronta, a pensão com o letreiro)
+      let nome = ['fechada', 'limpar'].includes(e) ? 'objetos/pensao_fechada' : ECO.reforma.some(x => x.id === e) ? 'objetos/pensao_reforma' : 'objetos/pensao', pe = [13, 8, 5, 4];
       if (aberta && p.obra) { nome = 'objetos/pensao_obra'; pe = [13, 9, 5, 5]; }
       else if (aberta && amp.includes('sobrado')) { nome = 'objetos/pensao_sobrado'; pe = [12, 8, 7, 4]; }
       else if (aberta && amp.includes('varanda')) { nome = 'objetos/pensao_ampliada'; pe = [12, 8, 7, 4]; }
@@ -51,6 +52,18 @@ function atualizarPensaoMundo(so) {
   if (e === 'aberta' && !sal.rosa) sal.rosa = sal.morador('rosa', 'Rosa', SALAO.COZINHA[0] + 1, SALAO.COZINHA[1] - 1, DIR.BAIXO);
   if (vila) poePlacaPatrimonio(vila);
 }
+// O letreiro da fachada (a arte objetos/pensao_letreiro, do Higgsfield): só depois da pintura (pronta ou aberta), por cima da
+// plaquinha da arte da fachada (LETREIROS), 1,5 vez a largura dela (conferido na foto reforma_fachada da s30; sem a arte, nada).
+const LETREIRO_PENSAO = { arte: 'objetos/pensao_letreiro', largura: 1.5 };
+EXTRAS_MUNDO.push(m => {
+  if (!m || m.id !== 'vila' || !G.pensao || !['pronta', 'aberta'].includes(G.pensao.estado)) return [];
+  const f = m.objs.find(o => o.id === 'pensao'), L = f && LETREIROS[f.nome]; if (!L) return [];
+  return [{ tipo: 'camada', y: f.y + 0.1, desenha(ctx) {
+    const img = spr(LETREIRO_PENSAO.arte), fa = spr(f.nome); if (!img || !fa) return;
+    const w = L.w * LETREIRO_PENSAO.largura, h = w * img.naturalHeight / img.naturalWidth;
+    ctx.drawImage(img, f.x - fa.naturalWidth / 2 + L.x - w / 2, f.y - fa.naturalHeight + L.y - h / 2, w, h);
+  } }];
+});
 
 // ---------- reforma ----------
 function pensaoFachada() {
@@ -74,13 +87,11 @@ function pensaoFachada() {
   }
   if (typeof pensaoNoPalco === 'function' && pensaoNoPalco()) { entrarPalco(); return true; }
   // Na reforma, a entrega é na porta: a Rosa pergunta se entrega o material que o Jocelino trouxe.
-  const p = G.pensao, falta = p.faltaMaterial(), k = Object.keys(falta)[0];
-  if (k && falta[k] > 0 && G.mochila.total(k) > 0) {
-    const n = Math.min(G.mochila.total(k), falta[k]);
-    perguntar(`Rosa: "Trouxe ${Itens.qtd(n, k)}? ${k === 'telha' ? 'É para o telhado!' : 'Dá para as banquetas!'}"`, [`Entregar ${Itens.qtd(n, k)}`, 'Entrar no salão', 'Agora não'], i => {
-      if (i === 0) { const txt = p.entregar(G.mochila, G.dia); atualizarPensaoMundo(); hudSujo(); sons.tocar('madeira', 0.8, 0.08, -4); sons.tocar('feito', 1, 0.03, -6);
-        if (p.estado === 'pronta') G.feitosHoje.push('A pensão ficou pronta: abre amanhã!');
-        const f2 = p.faltaMaterial(), k2 = Object.keys(f2)[0]; abrirPlaca(k2 && f2[k2] > 0 ? `${txt} Falta: ${Itens.qtd(f2[k2], k2)}.` : txt); }
+  const p = G.pensao, leva = Object.entries(p.faltaMaterial()).map(([it, f]) => [it, Math.min(G.mochila.total(it), f)]).filter(([, n]) => n > 0);
+  if (leva.length) {
+    const lista = leva.map(([it, n]) => Itens.qtd(n, it)).join(', ');
+    perguntar(`Rosa: "Trouxe material pra reforma?"`, [`Entregar ${lista}`, 'Entrar no salão', 'Agora não'], i => {
+      if (i === 0) { const txt = p.entregar(G.mochila, G.dia); atualizarPensaoMundo(); hudSujo(); sons.tocar('madeira', 0.8, 0.08, -4); sons.tocar('feito', 1, 0.03, -6); abrirPlaca(txt); }
       else if (i === 1) { entrarPalco(); sons.tocar('porta', 1, 0.05, -4); }
     });
     return true;
@@ -95,19 +106,19 @@ ATUALIZADORES.push(() => {
     G.pensao.limpou();
     atualizarPensaoMundo();
     sons.tocar('feito', 1, 0.03, 0);
-    abrirPlaca(`Salão limpo! Agora o telhado: entregue ${Pensao.TELHAS} telhas na plaquinha (o Seu Ananias vende).`);
+    abrirPlaca('Salão limpo! Agora o telhado: o material entregue à Rosa e os dias de trabalho no salão.');
   }
 });
 function pensaoPlaquinha() {
   const p = G.pensao;
   if (p.estado === 'limpar') abrirPlaca(`Rosa: "Primeiro a limpeza, amor: clique em cada sujeira do chão. Faltam ${sujeirasDaReforma().length}."`);
-  else if (p.estado === 'telhas' || p.estado === 'mesas') {
-    const txt = p.entregar(G.mochila, G.dia);
-    atualizarPensaoMundo(); hudSujo();
-    const falta = p.faltaMaterial();
-    if (p.estado === 'pronta') { G.feitosHoje.push('A pensão ficou pronta: abre amanhã!'); sons.tocar('feito', 1, 0.03, 0); }
-    const k = Object.keys(falta)[0];
-    abrirPlaca(k && falta[k] > 0 ? `${txt} Falta: ${Itens.qtd(falta[k], k)}.` : txt);
+  else if (emReforma()) {   // (do telhado à pintura) a Rosa recebe o material da etapa; o trabalho é no lugar dela, no salão
+    const E = ECO.reforma.find(x => x.id === p.estado), txt = p.entregar(G.mochila, G.dia);
+    if (txt) { atualizarPensaoMundo(); hudSujo(); sons.tocar('feito', 1, 0.03, 0); abrirPlaca(`${txt}`); }
+    else { const falta = Object.entries(p.faltaMaterial());
+      abrirPlaca(falta.length ? `Rosa: "${E.nome}: ainda falta ${falta.map(([i, q]) => Itens.qtd(q, i)).join(', ')}, amor."`
+        : p.comecaAmanha(G.dia) ? `Rosa: "O material já tá aqui. ${E.nome}: amanhã a gente começa, amor, que hoje já teve reforma."`
+        : `Rosa: "O material já tá aqui. ${E.nome}: agora é trabalho, ${E.dias - (p.reforma.dias || 0)} dia(s) no salão."`); }
   } else if (p.estado === 'pronta') abrirPlaca('Tudo pronto! A Pensão da Rosa abre amanhã. A janta é das 17h às 21h.');
   else if (p.estado === 'aberta') abrirPainelPensao();
   return true;
@@ -116,8 +127,12 @@ TAREFAS.push(() => {
   const p = G.pensao;
   if (!p) return [];
   if (p.estado === 'limpar') return [{ texto: 'Pensão: limpar o salão (a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: SUJEIRA_PALCO.length - sujeirasDaReforma().length, meta: SUJEIRA_PALCO.length, mapa: 'pensao' }];
-  if (p.estado === 'telhas') return [{ texto: 'Pensão: telhas para a Rosa (o Seu Ananias vende; a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: p.telhas, meta: Pensao.TELHAS }];
-  if (p.estado === 'mesas') return [{ texto: 'Pensão: madeira das banquetas (machado nos galhos e tocos; a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: p.madeira, meta: Pensao.MADEIRA }];
+  const E = ECO.reforma.find(x => x.id === p.estado);
+  if (E) {   // (do telhado à pintura) primeiro o material para a Rosa; depois os dias de trabalho no salão
+    const pede = Object.values(E.material).reduce((a, q) => a + q, 0), falta = Object.values(p.faltaMaterial()).reduce((a, q) => a + q, 0);
+    if (falta > 0) return [{ texto: `Pensão — ${E.nome}: ${Object.keys(E.material).map(i => Itens.nome(i).toLowerCase()).join(' e ')} para a Rosa (a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)`, feito: pede - falta, meta: pede }];
+    return [{ texto: p.comecaAmanha(G.dia) ? `Pensão — ${E.nome}: começa amanhã (a reforma de hoje já foi)` : `Pensão — ${E.nome}: dias de trabalho no salão (clique no lugar da obra)`, feito: p.reforma.dias || 0, meta: E.dias, mapa: 'pensao' }];
+  }
   if (pensaoAbreHoje() && p.ultimaJanta !== G.dia && G.minutos < 20 * 60) return [{ texto: 'Janta na Pensão da Rosa às 17h', lembrete: true }];   // (lembrete fixo: não tira as ideias do quadro)
   return [];
 });

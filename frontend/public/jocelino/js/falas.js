@@ -9,7 +9,11 @@ Object.assign(FALAS, {
   rosa: () => {
     const e = G.pensao ? G.pensao.estado : 'fechada';
     if (e === 'fechada') return ['Jocelino... sabe o que eu sonho desde Aracaju? Cozinhar pra fora. Um PF caprichado, uma moqueca de domingo...', G.lojinha && G.lojinha.conversou ? 'A lojinha da Dona Cotinha, meu bem... a entrada e ela é nossa!' : 'Quem sabe aqui na Vila aparece uma oportunidade, né?'];
-    if (e === 'limpar' || e === 'telhas' || e === 'mesas') return ['A pensão da Dona Cotinha, meu bem! Eu já tô vendo o quadro de giz cheio de prato.', 'Telha o Seu Ananias vende. Madeira você tira com o machado.'];
+    if (e === 'limpar') return ['A pensão da Dona Cotinha, meu bem! Eu já tô vendo o quadro de giz cheio de prato.', 'Primeiro a limpeza: entulho e mato no chão do salão.'];
+    const E = ECO.reforma.find(x => x.id === e);   // (as 5 etapas) o que a etapa pede, na boca da Rosa
+    if (E) return ['A pensão da Dona Cotinha, meu bem! Eu já tô vendo o quadro de giz cheio de prato.', {
+      telhado: 'O buraco do telhado primeiro, amor: telha o Seu Ananias vende no depósito.', balcao: 'O balcão e as banquetas: madeira você tira com o machado.',
+      cozinha: 'Minha cozinha! Tijolo e cimento pro fogão de alvenaria, o Seu Ananias tem.', pintura: 'Só falta a pintura e o letreiro... tinta tem no depósito.' }[e] || 'Traz o material que eu guardo aqui.'];
     if (e === 'pronta') return ['Amanhã a gente abre! Eu não durmo hoje de tanta ansiedade.'];
     return [_porDia(['Traz ingrediente pra despensa, viu? Arroz, feijão e ovo o Seu Ananias vende na Mercearia.', 'Às cinco da tarde eu acendo o fogão. Não se atrasa!', 'O Severino lambeu o prato ontem, Jocelino. LAMBEU!'])];
   },

@@ -41,7 +41,7 @@ function _alvoDaMissao(id) {
     case 'vila': { const v = GUIA_VIZINHOS.find(x => !g.conversou.includes(x)); return v ? { mapa: 'vila', morador: v } : null; }
     case 'pensao':
       if (noSalao && G.pensao.estado === 'limpar') { const s = sujeirasDaReforma()[0]; return s ? { mapa: G.mapaId, ponto: { x: s.x, y: s.y - 70 } } : null; }
-      if (noSalao) return { mapa: G.mapaId, ponto: { x: PALCO.ROSA.x, y: PALCO.ROSA.y - 250 } };
+      if (noSalao) return _alvoDaReforma(true);
       return { mapa: 'vila', objeto: 'pensao' };
     case 'horta': { const C = QUINTAL.CANTEIRO; return { mapa: 'quintal', ponto: { x: (C.x + C.w / 2) * TILE, y: C.y * TILE } }; }
     case 'janta': case 'domingo': return noSalao ? null : { mapa: 'vila', objeto: 'pensao' };
@@ -108,6 +108,17 @@ function _alvoDaJanta() {
   if (!jaFezJanta('farinheira') && t.farinha <= 1) return { mapa: G.mapaId, ponto: { x: P.FARINHEIRA.cx, y: P.FARINHEIRA.y - 20 }, rotuloFixo: 'Clique na farinheira: repor a farinha' };
   if (!jaFezJanta('passe')) { const i = t.mesas.findIndex(m => m.estado === 'pedido' || m.estado === 'prato'); if (nos(i)) return mesa(i, 'O pedido aparece no balão: a Rosa já cozinha'); }
   return null;
+}
+// A reforma da lojinha no salão (as 5 etapas, 13/10): faltando material, a Rosa ("Entregue o material à Rosa"); com o
+// material todo, o lugar do trabalho da etapa. A seta da primeira vez (sempre = false) some depois do primeiro dia de trabalho
+// na etapa (G.limpou['reforma_<etapa>']); a da missão (sempre = true) fica até a reforma acabar. Trabalhado hoje, nada.
+function _alvoDaReforma(sempre) {
+  if (typeof noPalco !== 'function' || !noPalco() || !G.pensao || typeof REFORMA_LUGAR === 'undefined') return null;
+  const p = G.pensao, L = REFORMA_LUGAR[p.estado], E = ECO.reforma.find(e => e.id === p.estado); if (!L || !E) return null;
+  if (!sempre && ((G.limpou || {})['reforma_' + p.estado] || 0) > 0) return null;
+  if (Object.keys(p.faltaMaterial()).length) return { mapa: G.mapaId, ponto: { x: PALCO.ROSA.x, y: PALCO.ROSA.y - 250 }, rotuloFixo: 'Entregue o material à Rosa' };
+  if (p.reforma.hoje === G.dia) return null;
+  return { mapa: G.mapaId, ponto: { x: L.seta.x, y: L.seta.y }, rotuloFixo: 'Clique aqui: trabalhar ' + E.nome.replace(/^O /, 'no ').replace(/^A /, 'na ').replace(/ e as /, ' e nas ').replace(/ e o /, ' e no ') };
 }
 // A Rosa quer conversar (13/10): depois da primeira diária, até a conversa do sonho. Ela mora no quintal.
 function _alvoDoSonhoDaRosa() {
@@ -212,7 +223,7 @@ function _rotulo(a) {
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
   if (!G.mapa) return null;
-  const cands = [['janta_vez', _alvoDaJanta], ['casa_vez', _alvoDaCasa], ['rosa_sonho', _alvoDoSonhoDaRosa]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
+  const cands = [['janta_vez', _alvoDaJanta], ['reforma_vez', () => _alvoDaReforma(false)], ['casa_vez', _alvoDaCasa], ['rosa_sonho', _alvoDoSonhoDaRosa]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
   if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);

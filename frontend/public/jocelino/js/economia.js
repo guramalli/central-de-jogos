@@ -84,6 +84,14 @@ const ECO = {
   },
   // A lojinha da Rosa (roteiro de 13/10): a Dona Cotinha vende a pensão fechada; a entrada abre a reforma, o resto sai aos domingos.
   lojinha: { entrada: 2000, parcela: 500, parcelas: 6 },
+  // A reforma da lojinha em etapas (roteiro de 13/10, "mais longa"): o material (entregue à Rosa) e os dias de trabalho no salão.
+  reforma: [
+    { id: 'limpar', nome: 'Limpar o salão', material: {}, dias: 0 },
+    { id: 'telhado', nome: 'O telhado', material: { telha: 10 }, dias: 2 },
+    { id: 'balcao', nome: 'O balcão e as banquetas', material: { madeira: 20 }, dias: 2 },
+    { id: 'cozinha', nome: 'A cozinha da Rosa', material: { tijolo: 6, cimento: 4 }, dias: 1 },
+    { id: 'pintura', nome: 'A pintura e o letreiro', material: { tinta: 2 }, dias: 1 },
+  ],
   // ---- A casa da família (as reformas da Robin): 6 etapas, cada uma uma obra do Jocelino, sem pagamento e com custo.
   casa: {
     etapas: [
