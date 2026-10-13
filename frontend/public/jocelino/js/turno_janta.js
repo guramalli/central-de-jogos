@@ -16,6 +16,7 @@ class TurnoJanta {
   static ABRE = 17 * 60;
   static ULTIMA_CHEGADA = 20 * 60 + 30;
   static FECHA = 21 * 60;
+  static FECHA_MAX = 24 * 60;   // (roteiro de 13/10) a janta vai até o último freguês; à meia-noite fecha de qualquer jeito
   static CAFE = 2;
   static ROSA_MAX = 4;
   static CHEIRO = 0.1;
@@ -64,8 +65,8 @@ class TurnoJanta {
   tick(dt, minutos) {
     // O Zezinho, lá pelas tantas, belisca uma cocada da panela (uma vez por noite).
     if (this.filho === 'zezinho' && !this._roubou && (this._zz = (this._zz || 0) + dt) > 30 && this.pensao.porcoes && this.pensao.porcoes('cocada_tijolinho') > 0) this.zezinhoApronta();
-    if (!this._ultima && minutos >= TurnoJanta.ULTIMA_RODADA && minutos < TurnoJanta.FECHA) { this._ultima = true; this.eventos.push({ tipo: 'ultima_rodada' }); }
-    while (this._fila.length && minutos >= this._fila[0].minuto && minutos < TurnoJanta.FECHA) {
+    if (!this._ultima && minutos >= TurnoJanta.ULTIMA_RODADA && minutos < TurnoJanta.FECHA_MAX) { this._ultima = true; this.eventos.push({ tipo: 'ultima_rodada' }); }
+    while (this._fila.length && minutos >= this._fila[0].minuto && minutos < TurnoJanta.FECHA_MAX) {
       let i = this.mesas.findIndex(m => m.estado === 'livre');
       if (i < 0) i = this.mesas.findIndex(m => m.estado === 'suja');   // sem livre: senta ao lado da louça (o Dave)
       if (i < 0) break;
@@ -332,7 +333,12 @@ class TurnoJanta {
   }
   limpar(i) { if (!this.mesas[i] || this.mesas[i].estado !== 'suja') return false; this.mesas[i] = this._mesaLivre(); return true; }
   mesaPronta() { return this.mesas.findIndex(m => m.estado === 'prato' && m.pronto && !m.montado); }
-  encerrado(minutos) { return minutos >= TurnoJanta.FECHA; }
+  // A janta acaba quando não sobra ninguém (fila vazia depois da última chegada e nenhuma banqueta ocupada) ou à meia-noite.
+  encerrado(minutos) {
+    if (minutos >= TurnoJanta.FECHA_MAX) return true;
+    if (minutos < TurnoJanta.ULTIMA_CHEGADA || this._fila.length) return false;
+    return !this.mesas.some(m => ['pedido', 'prato', 'comendo'].includes(m.estado));
+  }
   // Fecha a janta: quem está comendo paga; quem esperava vai embora sem castigo.
   fechar() {
     this.mesas.forEach((m, i) => { if (m.estado === 'comendo') this._pagar(i); });
