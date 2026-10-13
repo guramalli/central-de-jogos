@@ -265,7 +265,9 @@ ATUALIZADORES.push(dt => {
     else if (ev.tipo === 'embora') {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
-      else if (noSalao) { avisar(`${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); sons.tocar('cliente_hmpf', 1, 0.08, -4); }
+      else if (noSalao) { avisar(ev.louca ? `${ev.cliente.nome} não aguentou a louça suja do lado e foi embora.` : `${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); sons.tocar('cliente_hmpf', 1, 0.08, -4); }
+    } else if (ev.tipo === 'louca' && noSalao) { avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`); sons.tocar('cliente_eca', 1, 0.08, -6);
+    } else if (ev.tipo === 'ultima_rodada' && noSalao) { avisar('A Rosa bate o sino: "Última rodada!" Quem chegar agora pede mais bebida.'); if (SONS_LISTA.includes('sino_ultima_rodada')) sons.tocar('sino_ultima_rodada', 1, 0, -2); else sons.tocar('fanfarra', 1.4, 0, -10);
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
     else if (ev.tipo === 'vip_faltou' && noSalao) { avisar(`${ev.cliente.nome} queria ${Pratos.PRATOS[ev.prato].nome} e não tinha! Foi embora decepcionado.`); sons.tocar('cliente_hmpf', 0.9, 0.05, -2); }
     else if (ev.tipo === 'chegou' && noSalao && ev.cliente.morador) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.fala}"`); }

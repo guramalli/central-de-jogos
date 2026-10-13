@@ -57,7 +57,7 @@ function poeCasaFamilia(b) {
   liberaTerreno(b, T);
   for (let y = T.y; y < T.y + T.h; y++) for (let x = T.x; x < T.x + T.w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
   const o = b.interativo('casa_familia', 'objetos/casa_familia_' + Math.min(6, G.casa.etapa), T.x, T.y + T.h - 1, 8, 4, [150, 40]);
-  o.acao = () => G.casa.mudou ? (typeof pedirDormir === 'function' ? pedirDormir() : true) : abrirPlaca(`A casa da família: ${ECO.casa.etapas[G.casa.etapa - 1].nome} pronta. Faltam ${ECO.casa.etapas.length - G.casa.etapa} etapas.`);
+  o.acao = () => G.casa.mudou ? (typeof entrarEmCasa === 'function' ? entrarEmCasa('casa_familia_dentro') : true) : abrirPlaca(`A casa da família: ${ECO.casa.etapas[G.casa.etapa - 1].nome} pronta. Faltam ${ECO.casa.etapas.length - G.casa.etapa} etapas.`);
 }
 AO_MONTAR.push(b => poeCasaFamilia(b));
 // Os aluguéis (depois da mudança): o quartinho e a casa de aluguel, cada um uma obra do Jocelino com custo; o aluguel cai no

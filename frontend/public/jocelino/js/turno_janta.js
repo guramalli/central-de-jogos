@@ -27,6 +27,11 @@ class TurnoJanta {
   static BOCAS = 2;             // pratos no fogo ao mesmo tempo (o fogão de 4 bocas melhora)
   static MAX_MESAS = 6;         // banquetas no balcão do palco
   static GORJETA_MEDIDA = 0.15; // bebida na medida: 15% do preço a mais de gorjeta
+  // (13/10, o Dave) Sem banqueta livre, o freguês senta ao lado da louça suja: se ninguém recolher em LENDO_LOUCA s, ele vai embora.
+  static LENDO_LOUCA = 6;
+  // (13/10, o Dave: a música acelera perto de fechar) A "Última rodada!": quem chega depois pede mais bebida.
+  static ULTIMA_RODADA = 20 * 60;
+  static BEBIDA_ULTIMA = 0.8;
 
   static relatorioVazio() { return { favoritos: [], clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0 }; }
 
@@ -59,15 +64,26 @@ class TurnoJanta {
   tick(dt, minutos) {
     // O Zezinho, lá pelas tantas, belisca uma cocada da panela (uma vez por noite).
     if (this.filho === 'zezinho' && !this._roubou && (this._zz = (this._zz || 0) + dt) > 30 && this.pensao.porcoes && this.pensao.porcoes('cocada_tijolinho') > 0) this.zezinhoApronta();
+    if (!this._ultima && minutos >= TurnoJanta.ULTIMA_RODADA && minutos < TurnoJanta.FECHA) { this._ultima = true; this.eventos.push({ tipo: 'ultima_rodada' }); }
     while (this._fila.length && minutos >= this._fila[0].minuto && minutos < TurnoJanta.FECHA) {
-      const i = this.mesas.findIndex(m => m.estado === 'livre');
+      let i = this.mesas.findIndex(m => m.estado === 'livre');
+      if (i < 0) i = this.mesas.findIndex(m => m.estado === 'suja');   // sem livre: senta ao lado da louça (o Dave)
       if (i < 0) break;
+      const comLouca = this.mesas[i].estado === 'suja';
       this._sentar(i, this._fila.shift().cliente);
+      if (comLouca) { const m = this.mesas[i]; m.louca = true; m.lendo = TurnoJanta.LENDO_LOUCA; this.eventos.push({ tipo: 'louca', mesa: i, cliente: m.cliente }, { tipo: 'reacao', mesa: i, reacao: 'nojo' }); }
     }
     this._cozinhar(dt);
     this.mesas.forEach((m, i) => {
-      // Lendo o cardápio: quando acaba, pede sozinho (como no Bancho).
-      if (m.estado === 'pedido' && m.lendo > 0) { m.lendo -= dt; if (m.lendo <= 0) this._pedir(i); return; }
+      // Lendo o cardápio: quando acaba, pede sozinho (como no Bancho). Com a louça suja do lado ainda ali, vai embora (e a louça fica).
+      if (m.estado === 'pedido' && m.lendo > 0) {
+        m.lendo -= dt;
+        if (m.lendo <= 0) {
+          if (m.louca) { this.relatorio.embora++; this.eventos.push({ tipo: 'embora', mesa: i, cliente: m.cliente, louca: true }); this.mesas[i] = Object.assign(this._mesaLivre(), { estado: 'suja' }); }
+          else this._pedir(i);
+        }
+        return;
+      }
       if (m.estado === 'pedido' || m.estado === 'prato') {
         m.espera += dt;
         if (m.estado === 'prato' && !m.pronto && m.modo === 'antigo') {
@@ -170,7 +186,7 @@ class TurnoJanta {
       if (p.porcoes(m.prato) <= 0) { p.prepararPanela(m.prato, 1, this._rng); this.eventos.push({ tipo: 'panela', prato: m.prato }); }   // a Rosa repõe sozinha
       m.raridade = p.servirPorcao(m.prato);
     } else m.raridade = this.pensao.consumir(m.prato, this._rng);
-    m.querBebida = this._rng.randf() < 0.5; m.bebidaServida = false;
+    m.querBebida = this._rng.randf() < (this._ultima ? TurnoJanta.BEBIDA_ULTIMA : 0.5); m.bebidaServida = false;
     m.rapido = m.modo === 'antigo' ? m.espera < TurnoJanta.PACIENCIA_PEDIDO / 2 : true;
     m.estado = 'prato'; m.espera = 0; m.preparo = TurnoJanta.PREPARO; m.pronto = false; m.montado = false;
     if (m.modo !== 'antigo') this.fogo.push({ prato: m.prato, raridade: m.raridade, t: TurnoJanta.PREPARO * this.fatorPreparo });
@@ -227,13 +243,15 @@ class TurnoJanta {
   // Recolhe a louça da banqueta para a bandeja: a banqueta fica livre.
   recolher(i) {
     const m = this.mesas[i];
+    // A louça ao lado de quem acabou de sentar: sai para a bandeja e o freguês já lê o cardápio.
+    if (m && m.louca && this.bandeja.length < TurnoJanta.BANDEJA_MAX) { this.bandeja.push({ tipo: 'louca' }); m.louca = false; m.lendo = Math.min(m.lendo, TurnoJanta.LENDO); return true; }
     if (!m || m.estado !== 'suja' || this.bandeja.length >= TurnoJanta.BANDEJA_MAX) return false;
     this.bandeja.push({ tipo: 'louca' });
     this.mesas[i] = this._mesaLivre();
     return true;
   }
   // O ajudante de salão: recolhe a louça e leva direto à bacia; serve a bebida pedida (na média, sem copo na medida).
-  ajudanteRecolhe(i) { const m = this.mesas[i]; if (!m || m.estado !== 'suja') return false; this.mesas[i] = this._mesaLivre(); return true; }
+  ajudanteRecolhe(i) { const m = this.mesas[i]; if (m && m.louca) { m.louca = false; m.lendo = Math.min(m.lendo, TurnoJanta.LENDO); return true; } if (!m || m.estado !== 'suja') return false; this.mesas[i] = this._mesaLivre(); return true; }
   ajudanteBebida(i) {
     const m = this.mesas[i];
     if (!m || !['prato', 'comendo'].includes(m.estado) || !m.querBebida || m.bebidaServida) return false;

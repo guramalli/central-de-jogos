@@ -108,7 +108,7 @@ function desenhaLetreiro(ctx, o, alfa) {
   ctx.restore();
 }
 const DICAS_OBJ = {
-  casa_juca: ['Casa do Tio Juca', 'Botão direito na porta: dormir (salva o jogo).'],
+  casa_juca: ['Casa do Tio Juca', 'Botão direito na porta: entrar (a cama, o rádio).'],
   caixa_correio: ['Caixa de correio', 'Botão direito: ler as cartas.'],
   caixa_venda: ['Caixa de venda', 'Botão direito: abrir a caixa (o carroceiro passa de madrugada).'],
   radio: ['Rádio', 'Botão direito: a previsão do tempo de amanhã.'],
@@ -311,7 +311,7 @@ function desenhaMapa(ctx) {
   if (m.desenhaChao) m.desenhaChao(ctx);
   // Tudo de pé, em ordem de altura (quem está mais embaixo na tela é desenhado por cima).
   const lista = [...m.objs, ...m.moradores.filter(p => p.visivel !== false), ...m.itens];
-  if (G.jog) lista.push(G.jog);
+  if (G.jog && !G.jog.deitado) lista.push(G.jog);   // (deitado, ele está na arte da cama: casa_dentro.js)
   if (m.extras) lista.push(...m.extras());
   for (const f of EXTRAS_MUNDO) lista.push(...f(m));
   if (typeof vidaNoChao === 'function') lista.push(...vidaNoChao(m));

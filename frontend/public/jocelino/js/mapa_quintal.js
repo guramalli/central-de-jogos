@@ -24,9 +24,8 @@ MAPAS_DEF.quintal = () => {
     b.enfeite('objetos/arbusto_' + (1 + y % 3), 1, y + 1, false); b.enfeite('objetos/arbusto_' + (1 + (y + 1) % 3), b.larg - 2, y + 1, false);
   }
   const casa = b.interativo('casa_juca', 'objetos/casa_juca', 5, 8, 5, 5);
-  casa.acao = () => (typeof pedirDormir === 'function' ? pedirDormir() : abrirPlaca('A casa do Tio Juca.'));
-  const radio = b.interativo('radio', 'objetos/radio', 10, 8, 1, 1, [10, 6]);
-  radio.acao = () => { abrirPlaca(typeof previsaoDoRadio === 'function' ? previsaoDoRadio() : 'O rádio chia: "...amanhã, tempo bom em toda a Baixada Santista."'); };
+  // (13/10) A porta leva para dentro (casa_dentro.js): a cama, o rádio e as compras do Bazar estão lá, como no Stardew.
+  casa.acao = () => (typeof entrarEmCasa === 'function' ? entrarEmCasa('casa_juca_dentro') : abrirPlaca('A casa do Tio Juca.'));
   const fogao = b.interativo('fogao_lenha', 'objetos/fogao_lenha', 3, 9, 1, 1, [14, 8]);
   fogao.acao = () => abrirPlaca('O fogão a lenha da Rosa. Cheirinho de feijão no fogo.');
   const correio = b.interativo('caixa_correio', 'objetos/caixa_correio', 12, 9, 1, 1, [8, 6]);

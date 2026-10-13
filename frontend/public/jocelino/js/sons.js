@@ -86,10 +86,13 @@ const sons = {
 for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
 
 let _proxCanto = 8;
+const MUSICA_PENSAO = 'vila_calma';   // a música do salão (13/10: "precisa ser algo mais animado"; as opções em a/som/pensao_animada_1 e _2)
 // Música: de dia a do dia, da noite a da noite (a partir das 18h); na pensão, a calma da Vila.
 setInterval(() => {
   if (!G.comecou || !sons.ctx) return;
-  sons.musica(noSalaoDaPensao() ? 'vila_calma' : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
+  sons.musica(noSalaoDaPensao() ? MUSICA_PENSAO : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
+  // (13/10, o Dave: a música acelera perto de fechar) Na "Última rodada!", a música da pensão anda mais ligeira.
+  if (sons._fonteMusica) { const r = noSalaoDaPensao() && G.turno && G.turno._ultima ? 1.1 : 1; if (sons._fonteMusica.playbackRate.value !== r) sons._fonteMusica.playbackRate.value = r; }
   // Fora de casa: o fundo do dia (passarinhos) ou da noite (grilos, sapos), e a brisa acompanhando o vento (vida.js).
   // Os fundos são laços longos emendados sem pausa (produzir_ambiente.sh); dentro de casa, só um fio do lado de fora.
   const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;

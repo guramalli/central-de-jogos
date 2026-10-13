@@ -11,9 +11,11 @@ let _dormindo = false;
 function tarefasQuadro() { const r = []; for (const f of TAREFAS) r.push(...(f() || [])); return r; }
 
 function pedirDormir() {
+  // (13/10) Na cama de casa, o Jocelino deita e a tela escurece antes da noite (casa_dentro.js), como no Stardew.
+  const vai = () => (typeof deitarNaCama === 'function' && typeof naCasa === 'function' && naCasa() ? deitarNaCama() : dormir());
   if (G.minutos < 18 * 60) {
-    perguntar('Ainda é cedo. Dormir até amanhã mesmo assim?', ['Dormir', 'Agora não'], i => { if (i === 0) dormir(); });
-  } else perguntar('Dormir até amanhã? (o jogo salva)', ['Dormir', 'Agora não'], i => { if (i === 0) dormir(); });
+    perguntar('Ainda é cedo. Dormir até amanhã mesmo assim?', ['Dormir', 'Agora não'], i => { if (i === 0) vai(); });
+  } else perguntar('Dormir até amanhã? (o jogo salva)', ['Dormir', 'Agora não'], i => { if (i === 0) vai(); });
   return true;
 }
 
@@ -46,9 +48,11 @@ function dormir(desmaiou = false) {
   if (typeof afetoFimDoDia === 'function') afetoFimDoDia();   // (o total ganho, com tudo o que entrou na noite)
   G.ganhoHoje = 0; G.gastoHoje = 0; G.feitosHoje = [];
   for (const f of MANHA) { try { f(); } catch (e) { console.error(e); } }
-  // Acorda na porta de casa.
-  if (_acordaEm) { entrarMapa(_acordaEm.mapa, _acordaEm.tile); _acordaEm = null; } else entrarMapa('quintal', typeof CasaFamilia !== 'undefined' && CasaFamilia.mudou() ? CasaFamilia.porta() : { x: 7, y: 10 });
-  G.jog.dir = DIR.BAIXO;
+  // Acorda ao lado da cama, dentro de casa (13/10, como no Stardew; casa_dentro.js), ou no posto de saúde depois do desmaio.
+  if (_acordaEm) { entrarMapa(_acordaEm.mapa, _acordaEm.tile); _acordaEm = null; }
+  else if (typeof acordarEmCasa === 'function') acordarEmCasa();
+  else entrarMapa('quintal', typeof CasaFamilia !== 'undefined' && CasaFamilia.mudou() ? CasaFamilia.porta() : { x: 7, y: 10 });
+  G.jog.dir = DIR.BAIXO; G.jog.deitado = false;
   salvar();
   _dormindo = false;
   mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof escolherVantagens === 'function' ? escolherVantagens : null);

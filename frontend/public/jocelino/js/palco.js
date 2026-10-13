@@ -177,7 +177,7 @@ function camadasDaJanta() {
       if (t) t.mesas.forEach((m, i) => {
         if (i >= P.ASSENTOS.length) return;
         if (m.estado === 'comendo') desenhaPrato(ctx, m.prato, P.ASSENTOS[i].x, P.LOUCA.base + 2, 1, 0.9);
-        if (m.estado === 'suja') desenhaPe(ctx, 'salao/louca_suja', P.ASSENTOS[i].x, P.LOUCA.base, 1, P.LOUCA.escala);
+        if (m.estado === 'suja' || m.louca) desenhaPe(ctx, 'salao/louca_suja', P.ASSENTOS[i].x, P.LOUCA.base, 1, P.LOUCA.escala);
       });
       const F = P.FARINHEIRA, nf = typeof Melhorias !== 'undefined' && G.pensao ? Melhorias.nivel(G.pensao, 'farinheira_grande') : 0;
       if (nf >= 2) desenhaPe(ctx, 'salao/farinheira_barril', F.cx + 10, 790, 1, 0.5);
@@ -340,7 +340,7 @@ function palcoAgir(a) {
     const m = t.mesas[a.i];
     // O estado pode ter mudado no caminho: revalida.
     if (!m || m.estado === 'livre') { avisar('A banqueta ficou vazia.'); return; }
-    if (m.estado === 'suja') {
+    if (m.estado === 'suja' || m.louca) {   // (a louça ao lado de quem sentou sai primeiro: senão ele vai embora)
       if (t.bandeja.length >= TurnoJanta.BANDEJA_MAX) return cheia();
       t.recolher(a.i); servir(); sons.tocar('louca', 1, 0.08, -4);
       return;
@@ -516,7 +516,7 @@ ATUALIZADORES.push(dt => {
     z.andando = false; z.espera -= dt;
     if (z.espera > 0) return;
     z.espera = 6;                                                  // criança: faz uma coisa e para um pouco
-    const i = t.mesas.findIndex((m, k) => k < PALCO.ASSENTOS.length && m.estado === 'suja' && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === k));
+    const i = t.mesas.findIndex((m, k) => k < PALCO.ASSENTOS.length && (m.estado === 'suja' || m.louca) && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === k));
     z.tarefa = i >= 0 ? { tipo: 'louca', i, x: PALCO.ASSENTOS[i].x } : (Math.abs(z.x - PALCO.CASA_ZE) > 4 ? { tipo: 'casa', x: PALCO.CASA_ZE } : null);
     if (!z.tarefa) return;
   }
@@ -559,7 +559,7 @@ ATUALIZADORES.push(dt => {
       if (a.espera > 0) continue;
       a.espera = 0.6;
       const tem = h => e.habilidades.includes(h);
-      const suja = tem('louca') ? t.mesas.findIndex((m, i) => i < PALCO.ASSENTOS.length && m.estado === 'suja' && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i)) : -1;
+      const suja = tem('louca') ? t.mesas.findIndex((m, i) => i < PALCO.ASSENTOS.length && (m.estado === 'suja' || m.louca) && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i)) : -1;
       const bebe = tem('bebida') ? t.mesas.findIndex((m, i) => i < PALCO.ASSENTOS.length && ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i)) : -1;
       if (tem('farinha') && t.farinha <= TurnoJanta.REPOR_ATE && (p.despensa.farinha || 0) > 0) a.tarefa = { tipo: 'farinha', x: PALCO.FARINHEIRA.cx };
       else if (suja >= 0) a.tarefa = { tipo: 'louca', i: suja, x: PALCO.ASSENTOS[suja].x };
