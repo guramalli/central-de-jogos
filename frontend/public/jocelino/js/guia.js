@@ -52,7 +52,7 @@ const GUIA_MISSOES = [
   { id: 'bico', agora: 'Bico de tarde: o quadro de serviços da Vila paga na hora', titulo: 'O primeiro bico', quem: 'Mestre Bira', texto: 'O primeiro bico: um serviço do quadro (na frente da obra)', depois: 'vila', dia: 'quadro', libera: 'quadro',
     feita: () => !!G.empreitas && G.empreitas.entregues >= 1,
     alvo: () => { const id = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta'); return { objeto: id ? 'emp_' + id : 'quadro_pedidos' }; },
-    aoAbrir: () => { if (G.empreitas && typeof Empreitas !== 'undefined') { G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia); } }, },
+    aoAbrir: () => { if (G.empreitas && typeof Empreitas !== 'undefined') Empreitas.poeQuadro(G.dia); }, },
   { id: 'gremio', agora: 'A Vila quer o Grêmio de volta: a lista do povo está na porta (cada ala pronta muda a Vila)', titulo: 'A Obra do Povo', quem: 'Dona Zélia', texto: 'A Obra do Povo: ver a lista na porta do Grêmio (na Vila)', meta: 1, depois: 'vila', comoDepois: 'aberta', dia: 'gremio', carta: 'zelia_gremio', libera: 'gremio',
     conta: () => G.guia.cont.gremio || 0, alvo: () => ({ objeto: 'gremio' }) },
   // (o domingo vale só naquele dia: na segunda se encerra sem recompensa, para não ocupar a vaga das outras; revisão final: só com a

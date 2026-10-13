@@ -65,7 +65,8 @@ const Empreitas = {
   RESERVA: 3,
   iniciar(s) {
     const e = s.empreitas || {};
-    G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null, caprichados: e.caprichados || 0, labia: e.labia || 0, receitasExtras: (e.receitasExtras || []).slice() };
+    G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null, caprichados: e.caprichados || 0, labia: e.labia || 0, receitasExtras: (e.receitasExtras || []).slice(),
+      semana: Object.assign({}, e.semana || {}), vistos: Object.assign({}, e.vistos || {}) };   // (dia cheio: o dia em que cada serviço foi aceito e apareceu no quadro)
     // Save antigo (etapas 2 a 5): a longa aceita já tinha gastado o material, então segue em obra (ou pronta) de onde parou.
     for (const id in G.empreitas.aceitas) {
       const a = G.empreitas.aceitas[id], E = dadosEmpreita(id) && dadosEmpreita(id).tipo === 'longa' ? dadosEmpreita(id) : null;
@@ -88,15 +89,29 @@ const Empreitas = {
   quadroDoDia(dia) {
     if (typeof Guia !== 'undefined' && !Guia.liberado('quadro')) return [];   // o quadro de serviços chega com o guia (Frente 4)
     const f = mulberry(dia * 6151 + 11), n = Empreitas.faixa().pedidos;
-    const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id] && (typeof Mundo === 'undefined' || Mundo.aberto(dadosEmpreita(id).mapa));   // só lugar já aberto (teste de 12/10)
-    const curtas = Object.keys(EMPREITAS_CURTAS).filter(livre), longas = Object.keys(EMPREITAS_LONGAS).filter(livre), r = [];
+    // (dia cheio, Frente A: "no terceiro dia as tarefas do quadro já se repetiram") Como o Help Wanted do Stardew (um pedido de cada
+    // vez, sem repetir): o serviço aceito nesta semana não volta ao quadro na mesma semana; e o que já apareceu nesta semana só volta
+    // quando não há nenhum outro liberado (o pedido ainda de pé). Tudo feito: o quadro fica vazio até a semana que vem.
+    const sem = d => Math.floor((d - 1) / 7), hist = G.empreitas.semana || {}, vistos = G.empreitas.vistos || {};
+    const naSemana = (h, id) => !!h[id] && h[id] < dia && sem(h[id]) === sem(dia);
+    const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id] && !naSemana(hist, id) && (typeof Mundo === 'undefined' || Mundo.aberto(dadosEmpreita(id).mapa));   // só lugar já aberto (teste de 12/10)
+    const curtas = Object.keys(EMPREITAS_CURTAS).filter(livre), longas = Object.keys(EMPREITAS_LONGAS).filter(livre);
     if (!G.empreitas.capina && Empreitas.libera('capina_ananias')) curtas.push('capina_ananias');
     // Fim de ano: as reformas aparecem em dobro no sorteio.
     if (Empreitas.emFimDeAno(dia)) for (const id of longas.slice()) if (EMPREITAS_LONGAS[id].reforma) longas.push(id);
-    if (longas.length) r.push(longas.splice(Math.floor(f() * longas.length), 1)[0]);
-    const pool = curtas.concat(longas);
-    while (r.length < n && pool.length) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0]; if (!r.includes(id)) r.push(id); }
-    return r;
+    const sorteia = (cs, ls) => { const r = [];
+      if (ls.length) r.push(ls.splice(Math.floor(f() * ls.length), 1)[0]);
+      const pool = cs.concat(ls);
+      while (r.length < n && pool.length) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0]; if (!r.includes(id)) r.push(id); }
+      return r; };
+    const novo = id => !naSemana(vistos, id), novas = sorteia(curtas.filter(novo), longas.filter(novo));
+    return novas.length ? novas : sorteia(curtas, longas);
+  },
+  // O quadro de hoje no save, anotando o dia em que cada pedido apareceu pela primeira vez na semana (o "já visto" do quadroDoDia).
+  poeQuadro(dia) {
+    G.empreitas.dia = dia; G.empreitas.quadro = Empreitas.quadroDoDia(dia);
+    const v = G.empreitas.vistos || (G.empreitas.vistos = {});
+    for (const id of G.empreitas.quadro) if (!v[id] || Math.floor((v[id] - 1) / 7) !== Math.floor((dia - 1) / 7)) v[id] = dia;
   },
   // Mestre de obras: as empreitas pedem 20% menos material (arredondando para cima).
   material(id) { const E = dadosEmpreita(id), f = typeof Habilidades !== 'undefined' && Habilidades.tem('mestre_de_obras') ? 0.8 : 1, r = {}; for (const m in E.material) r[m] = Math.ceil(E.material[m] * f); return r; },
@@ -112,6 +127,7 @@ const Empreitas = {
       G.empreitas.aceitas[id] = { tipo: 'longa', estado: 'reservada', dia: G.dia, dias: 0, feitoHoje: 0, trabalhou: false, aditivo: '', porTiao: 0, carta: !!opc.carta, prefeitura: !!opc.prefeitura, lista: [] };
     } else G.empreitas.aceitas[id] = { tipo: 'curta', dia: G.dia, vezes: 0 };
     G.empreitas.quadro = G.empreitas.quadro.filter(x => x !== id);
+    (G.empreitas.semana || (G.empreitas.semana = {}))[id] = G.dia;   // (não volta ao quadro nesta semana)
     return 'ok';
   },
   // As ferramentas dos dias; o acelerador (o Speed-Gro) tira 25%, começando pelos de regador (fica pelo menos 1).

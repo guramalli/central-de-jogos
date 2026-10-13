@@ -215,7 +215,9 @@ function abrirQuadro(aba = 'servicos') {
           if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -6); avisar(`Aceito: ${dadosEmpreita(id).nome}.`); if (G.mapa) poeEmpreitasNoMapa(G.mapa); hudSujo(); desenha(); }
           else avisar({ limite: 'Uma empreita longa por vez (duas para o mestre de obras).', material: 'Para começar, traga o material na mochila.', ja: 'Já aceitou essa.' }[r] || 'Não deu.'); } }, 'Aceitar')
           : el('div', { class: 'orel-preco' }, `Pede ${FUNCOES[dadosEmpreita(id).funcaoMin]}${dadosEmpreita(id).hab ? `, ${NOMES_HAB[dadosEmpreita(id).hab.h]} ${dadosEmpreita(id).hab.n}` : ''}`));
-      }) : [el('div', { class: 'rodape' }, 'Nenhum serviço novo hoje. Volte amanhã!')])));
+      }) : [el('div', { class: 'rodape quadro-vazio' }, 'Por hoje é só: o povo deixa recado de manhã.'),
+        // (dia cheio, Frente A) Junto, o que fazer: a mesma sugestão do Agora da tarde livre (cartao.js).
+        ...(s => s ? [el('div', { class: 'rodape quadro-sugestao' }, 'Enquanto isso: ' + s.texto)] : [])(typeof ganhoDaTarde === 'function' ? ganhoDaTarde() : null)])));
       const enc = (G.mina && G.mina.encomendas) || [];
       if (enc.length) caixa.append(el('div', { class: 'cad-sub' }, 'Encomendas'), el('div', { class: 'qv-lista' }, ...enc.map((e, i) => el('div', { class: 'orel-item' }, el('img', { src: urlItem(e.item) }),
         el('div', {}, el('b', {}, `${CLIENTE_NOME[e.quem] || e.quem} quer ${Itens.qtd(e.qtd, e.item)}`), el('div', { class: 'orel-preco' }, `até ${DIAS[(e.ate - 1) % 7]} · Cr$ ${e.paga} · tem ${G.mochila.total(e.item)}`)),
@@ -238,7 +240,7 @@ const abrirQuadroServicos = () => abrirQuadro('servicos');
 AO_MONTAR.push(b => poeEmpreitasNoMapa(b));
 AO_ENTRAR_MAPA.push(() => { if (G.mapa) poeEmpreitasNoMapa(G.mapa); });
 MANHA.push(() => {
-  G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia);
+  Empreitas.poeQuadro(G.dia);
   if (typeof cartaDePedido === 'function') cartaDePedido(G.dia);
   const c = G.empreitas.capina;
   if (c && Math.floor((G.dia - 1) / 28) % 4 !== c.estacao) { G.empreitas.capina = null; G.feitosHoje.push('A capina do Seu Ananias acabou com a estação.'); }

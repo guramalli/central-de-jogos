@@ -101,11 +101,22 @@ function poeAchados(b) {
     o.achado = true;
     o.acao = () => {
       const r = Achados.catar(b.id, a.k);
-      if (r === 'ok') { b.tirar(o); sons.tocar('pegar', 1.1, 0.05, -4); avisar(`Achou ${Itens.nome(a.id).toLowerCase()}!`); hudSujo(); }
+      if (r === 'ok') { b.tirar(o); sons.tocar('pegar', 1.1, 0.05, -4); avisar(`Achou ${Itens.nome(a.id).toLowerCase()}!`); hudSujo(); falaDoPrimeiroAchado(a.id); }
       else if (r === 'cheia') avisar('A mochila está cheia.');
       return true;
     };
   }
+}
+// (dia cheio, Frente A) A primeira coleta (uma vez por save, G.limpou.achado): o Tio Juca diz o que é e quanto vale na caixa de venda
+// (ou, com a pensão aberta e sendo ingrediente, que a Rosa usa). Como é no Stardew: "corte madeira e colha coisas do chão enquanto
+// a primeira colheita não sai" — a coleta é dinheiro desde o dia 1.
+function falaDoPrimeiroAchado(id) {
+  if (!G.limpou || G.limpou.achado) return;
+  G.limpou.achado = 1;
+  const nome = Itens.nome(id).toLowerCase(), v = typeof CaixaVenda !== 'undefined' ? CaixaVenda.preco(id) : 0;
+  const rosa = typeof Pratos !== 'undefined' && Pratos.INGREDIENTES[id] && G.pensao && G.pensao.estado === 'aberta';
+  const valor = rosa ? 'A Rosa usa na cozinha da pensão: guarde na despensa dela.' : v ? `Na caixa de venda do quintal vale Cr$ ${v} cada.` : 'Guarde: serve de presente.';
+  abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), [`Achou ${nome}! Todo dia nasce coisa assim pelo chão — fruta, flor, concha — e catar não cansa. ${valor} Enquanto a horta não dá, é um trocado garantido.`]);
 }
 AO_MONTAR.push(b => poeAchados(b));
 // O mapa montado num dia anterior (ficou na memória): refaz a coleta ao entrar.

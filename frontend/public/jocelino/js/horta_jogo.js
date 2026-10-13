@@ -33,17 +33,49 @@ function sincronizaHorta(b) {
 // é a arte inteira) vão todas para o chão: nunca cobrem as pernas de ninguém.
 const TERRA_PLANTA = 26;
 const plantaRasteira = c => c.planta === 'abobora' || (Horta.estagio(c) === 1 && c.planta !== 'tomate');
+// (13/10: "a de café não dá para regar, não muda a cor") A arte da planta traz o montinho de terra pintado, que cobre a cova: a
+// terra molhada ficava por baixo dele (na abóbora, um quadrado de terra cor de pó de café, 88% a 96% do ladrilho; nas outras,
+// de 45% a 83%), e regar não mudava nada à vista. Como no Stardew (a terra regada escurece debaixo da planta), a cova molhada
+// escurece também a terra da arte: só luz, sem pintar nada — a mesma arte, com os pixels de terra (marrons e escuros: nem
+// folha, nem flor, nem fruto, nem a estaca clara do tomate) multiplicados pela razão terra molhada/terra cavada. A máscara
+// escurecida é feita uma vez por arte e desenhada por cima do mesmo pedaço. (revisão: só na faixa de baixo, a base TERRA_PLANTA —
+// a espiga, as raízes, a estaca e as sombras de cima não escurecem; a planta rasteira é toda chão, a máscara pega a arte inteira)
+const LUZ_MOLHADA = [0.68, 0.66, 0.8];   // terra_molhada ÷ terra_cavada (a média das duas texturas: 74/110, 34/52, 14/17)
+const _terraMolhada = {};
+const ehTerra = (r, g, b) => r > g && g >= b && Math.max(r, g, b) < 150 && r - b > 25;
+function terraMolhadaDe(nome) {
+  if (_terraMolhada[nome] !== undefined) return _terraMolhada[nome];
+  const img = spr(nome); if (!img || !img.naturalWidth) return null;   // (a arte ainda carregando: tenta no próximo quadro)
+  let cv = null;
+  try {
+    cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const c2 = cv.getContext('2d'); c2.drawImage(img, 0, 0);
+    const d = c2.getImageData(0, 0, cv.width, cv.height), p = d.data, rasteira = /planta_abobora_/.test(nome) || (/_1$/.test(nome) && !/tomate/.test(nome));
+    const base = rasteira ? 0 : cv.height - Math.min(TERRA_PLANTA, cv.height);
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] && i / 4 / cv.width >= base && ehTerra(p[i], p[i + 1], p[i + 2])) { p[i] *= LUZ_MOLHADA[0]; p[i + 1] *= LUZ_MOLHADA[1]; p[i + 2] *= LUZ_MOLHADA[2]; }
+      else p[i + 3] = 0;
+    }
+    c2.putImageData(d, 0, 0);
+  } catch (e) { cv = null; }
+  _terraMolhada[nome] = cv; return cv;
+}
+// Desenha o pedaço (sx, sy, sw, sh) da arte e, com a cova molhada, a terra escurecida por cima.
+function desenhaPedacoPlanta(ctx, c, nome, img, sx, sy, sw, sh, dx, dy) {
+  const m = Horta.molhada(c, G.dia) ? terraMolhadaDe(nome) : null, inteira = !sy && sh === img.naturalHeight;
+  for (const a of m ? [img, m] : [img]) if (inteira) ctx.drawImage(a, dx, dy, sw, sh); else ctx.drawImage(a, sx, sy, sw, sh, dx, dy, sw, sh);
+}
 function desenhaTerraDaPlanta(ctx, c, x, y) {
-  const img = spr(`objetos/planta_${c.planta}_${Horta.estagio(c)}`); if (!img) return;
+  const nome = `objetos/planta_${c.planta}_${Horta.estagio(c)}`, img = spr(nome); if (!img) return;
   const w = img.naturalWidth, h = img.naturalHeight, px = (x + 0.5) * TILE - w / 2, base = (y + 1) * TILE;
-  if (plantaRasteira(c)) { ctx.drawImage(img, px, base - h, w, h); return; }
+  if (plantaRasteira(c)) { desenhaPedacoPlanta(ctx, c, nome, img, 0, 0, w, h, px, base - h); return; }
   const t = Math.min(TERRA_PLANTA, h);
-  ctx.drawImage(img, 0, h - t, w, t, px, base - t, w, t);
+  desenhaPedacoPlanta(ctx, c, nome, img, 0, h - t, w, t, px, base - t);
 }
 function desenhaFolhas(ctx, o) {
   const c = Horta.cova(o.covaX, o.covaY), img = spr(o.nome); if (!c || !c.planta || !img || plantaRasteira(c)) return;
   const w = img.naturalWidth, h = img.naturalHeight, t = Math.min(TERRA_PLANTA, h);
-  if (h > t) ctx.drawImage(img, 0, 0, w, h - t, o.x - w / 2, o.y - h, w, h - t);
+  if (h > t) desenhaPedacoPlanta(ctx, c, o.nome, img, 0, 0, w, h - t, o.x - w / 2, o.y - h);
 }
 // O chão da horta: terra cavada, molhada quando regada (ou com chuva); o esterco por cima da cova adubada.
 function desenhaCovas(ctx) {
@@ -108,10 +140,18 @@ function acaoNoChao(t) {
   G.mochila.remover(id, 1); Habilidades.ganhar('roca', 1); sons.tocar('terra', 1.4, 0.05, -8); sincronizaHorta(G.mapa); hudSujo();
   return true;
 }
+// O que a planta da cova é (a placa do botão direito e a etiqueta do mouse): o nome, os dias e a água.
+function estadoDaPlanta(c) {
+  if (!c || !c.planta) return null;
+  const nome = Itens.nome(c.planta);
+  if (Horta.madura(c)) return { nome, fase: 'pronta para colher', molhada: true, agua: '' };
+  const molhada = Horta.molhada(c, G.dia);
+  return { nome, fase: `${c.dias} de ${Horta.diasPara(c.planta)} dias`, molhada, agua: molhada ? 'regada hoje' : 'precisa de água' };
+}
 function colherPlanta(o) {
   const c = Horta.cova(o.covaX, o.covaY);
   if (!c || !c.planta) return true;
-  if (!Horta.madura(c)) { abrirPlaca(`${Itens.nome(c.planta)}: ${c.dias} de ${Horta.diasPara(c.planta)} dias${Horta.molhada(c, G.dia) ? ' (regada hoje)' : ' — precisa de água'}.`); return true; }
+  if (!Horta.madura(c)) { const e = estadoDaPlanta(c); abrirPlaca(`${e.nome}: ${e.fase}${e.molhada ? ' (regada hoje)' : ' — precisa de água'}.`); return true; }
   if (!G.mochila.cabe(c.planta)) { avisar('A mochila está cheia.'); return true; }
   const r = Horta.colher(o.covaX, o.covaY);
   const sobra = G.mochila.adicionar(r.id, r.qtd); if (sobra) soltar(r.id, sobra, G.jog.x, G.jog.y);
@@ -160,4 +200,33 @@ PRECO_HORTA_SO_SE.regadorzinho = () => G.horta && G.horta.pedidoFilhos && !G.hor
 // O carimbo de caprichado sobe por cima da planta colhida e some (a arte ui/carimbo_caprichado, só posição e transparência).
 const CARIMBOS = [];
 ATUALIZADORES.push(dt => { for (const c of CARIMBOS) c.t += dt; for (let i = CARIMBOS.length - 1; i >= 0; i--) if (CARIMBOS[i].t > 1.2) CARIMBOS.splice(i, 1); });
+// ---------- a etiqueta da planta (pedido de 13/10: "colocar o mouse em cima da plantação e mostrar qual plantação é aquela") ----------
+// Como é no Stardew: o jogo puro não mostra nada ao passar o mouse na lavoura; o mod mais usado (UI Info Suite) mostra o nome e
+// os dias que faltam numa etiqueta perto do mouse. Aqui igual: o mouse parado um instante numa cova plantada mostra o nome, os
+// dias e a água (o mesmo texto da placa do botão direito). É interface (HTML, como o cartão): some quando o mouse sai da cova ou
+// da tela, e com janela aberta. Atualizada no desenho (que roda também com o jogo pausado, para sumir quando abre um menu).
+const ETIQUETA_ESPERA = 0.2;   // segundos com o mouse na mesma cova
+const _etq = { el: null, chave: '', t: 0, naTela: false, ultimo: 0 };
+addEventListener('mousemove', e => { _etq.naTela = !!e.target && e.target.id === 'tela'; });
+addEventListener('mouseout', e => { if (!e.relatedTarget) _etq.naTela = false; });   // (saiu da janela)
+function plantaSobOMouse() {
+  if (!G.comecou || G.mapaId !== 'quintal' || !G.horta || !G.mouse || !_etq.naTela) return null;
+  if ((typeof menuAberto === 'function' && menuAberto()) || (typeof noPalco === 'function' && noPalco())) return null;
+  const t = ladrilhoDoMouse(), c = Horta.cova(t.x, t.y);
+  return c && c.planta ? { x: t.x, y: t.y, c } : null;
+}
+function etiquetaDaPlanta() {
+  const p = plantaSobOMouse(), agora = performance.now() / 1000, dt = Math.min(0.1, agora - (_etq.ultimo || agora)); _etq.ultimo = agora;
+  const chave = p ? p.x + ',' + p.y : '';
+  if (chave !== _etq.chave) { _etq.chave = chave; _etq.t = 0; } else _etq.t += dt;
+  const e = p && _etq.t >= ETIQUETA_ESPERA ? estadoDaPlanta(p.c) : null;
+  if (!e) { if (_etq.el) _etq.el.hidden = true; return; }
+  if (!_etq.el) { _etq.el = el('div', { class: 'etiqueta-planta' }); document.body.append(_etq.el); }
+  const txt = `${e.nome} — ${e.fase}` + (e.agua ? '|' + e.agua : '');
+  if (_etq.el._txt !== txt) { _etq.el._txt = txt; _etq.el.innerHTML = ''; _etq.el.append(el('b', {}, `${e.nome} — ${e.fase}`)); if (e.agua) _etq.el.append(el('div', { class: e.molhada ? 'regada' : 'seca' }, e.agua)); }
+  _etq.el.hidden = false;
+  _etq.el.style.left = Math.min(G.mouse.x + 18, innerWidth - _etq.el.offsetWidth - 6) + 'px';
+  _etq.el.style.top = Math.min(G.mouse.y + 20, innerHeight - _etq.el.offsetHeight - 6) + 'px';
+}
+DESENHOS_TELA.push(() => etiquetaDaPlanta());
 AO_MONTAR.push(b => { if (b.id === 'quintal') b.desenhaPorCima = ctx => { if (typeof desenhaAlcanceIrrigador === 'function') desenhaAlcanceIrrigador(ctx, true); for (const c of CARIMBOS) desenhaPe(ctx, 'ui/carimbo_caprichado', c.x, c.y - c.t * 40, Math.max(0, 1 - c.t / 1.2), 0.5); }; });

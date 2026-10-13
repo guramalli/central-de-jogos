@@ -20,7 +20,15 @@ const Bazar = {
     const falta = ECO.bazar.itens.filter(i => !Bazar.tem(i.id));
     return falta.find(i => i.id === G.bazar.meta) || falta[0] || null;
   },
+  // (dia cheio, Frente A) A meta que o jogador escolheu no "Juntar para" (só ela vai para a barrinha e para o resumo), com o efeito curto.
+  metaEscolhida() {
+    const m = Bazar.meta(); if (!m || m.id !== G.bazar.meta) return null;
+    return Object.assign({ curto: BAZAR_CURTO[m.id] || m.efeito }, m);
+  },
 };
+// O efeito em poucas palavras, para a barrinha estreita ("Garrafa térmica: cafezinho toda manhã — 417/900").
+const BAZAR_CURTO = { garrafa_termica: 'cafezinho toda manhã', bicicleta: 'anda 20% mais rápido', fogao_gas: 'marmita com o dobro de energia',
+  maquina_costura: 'a Rosa costura: Cr$ 60/noite', televisao: 'a novela com a família', fusca: 'viagem rápida' };
 INICIADORES.push(s => Bazar.iniciar(s));
 COLETORES.push(s => Bazar.salvar(s));
 // A energia da comida: a marmita rende mais com o fogão a gás e com a cozinha nova da casa da família.
@@ -41,7 +49,7 @@ function abrirBazar() {
   const caixa = el('div', { class: 'painel loja bazar' });   // ('bazar': a seta da primeira vez acha o painel, guia_setas.js)
   caixa.append(el('div', { class: 'titulo', style: 'font-size:28px;display:flex;justify-content:space-between' }, el('span', {}, 'Bazar do Seu Salim'), el('span', {}, 'Cr$ ' + G.dinheiro)));
   for (const it of ECO.bazar.itens) {
-    const tem = Bazar.tem(it.id), meta = Bazar.meta() && Bazar.meta().id === it.id;
+    const tem = Bazar.tem(it.id), meta = !!Bazar.metaEscolhida() && Bazar.metaEscolhida().id === it.id;
     caixa.append(el('div', { class: 'linha' }, el('img', { src: urlItem(it.id) }), el('div', {}, el('b', {}, it.nome), el('div', { class: 'tem' }, it.efeito)),
       tem ? el('span', { class: 'preco' }, 'Já é seu') : el('span', {},
         el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); const r = Bazar.comprar(it.id); avisar(r === 'ok' ? `Comprou: ${it.nome}!` : 'O dinheiro não dá.'); if (r === 'ok') { sons.tocar('dinheiro', 1.1, 0.05, -4); if (it.id === 'fusca' && MAPAS.quintal) poeFusca(MAPAS.quintal); } fecharModal(); abrirBazar(); hudSujo(); } }, 'Cr$ ' + it.preco),

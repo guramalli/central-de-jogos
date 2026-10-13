@@ -36,10 +36,11 @@ function atualizaHud() {
   HUD.dinheiro.textContent = 'Cr$ ' + G.dinheiro;
   // A meta de dinheiro do Bazar embaixo do relógio ("Bicicleta 180/450").
   // (revisão final) Da conversa da Rosa até a compra, a barrinha é a entrada da lojinha (o mesmo que o cartão), no lugar do Bazar.
-  const lj = typeof Lojinha !== 'undefined' ? Lojinha.metaDinheiro() : null, mt = !lj && typeof Bazar !== 'undefined' ? Bazar.meta() : null;
-  HUD.meta.hidden = !mt && !lj;
-  if (lj) { HUD.metaTexto.textContent = lj.curto; HUD.metaNivel.style.width = Math.min(100, lj.feito / lj.meta * 100) + '%'; }
-  else if (mt) { HUD.metaTexto.textContent = `${mt.nome} ${Math.max(0, Math.min(G.dinheiro, mt.preco))}/${mt.preco}`; HUD.metaNivel.style.width = Math.min(100, Math.max(0, G.dinheiro) / mt.preco * 100) + '%'; }
+  // (dia cheio, Frente A: "tem uma meta para comprar uma garrafa térmica mas eu não faço ideia o porquê") A barrinha é a meta da
+  // família (metaDaBarrinha, cartao.js); o Bazar só quando o jogador escolhe "Juntar para", e com o efeito em poucas palavras.
+  const mb = typeof metaDaBarrinha === 'function' ? metaDaBarrinha() : null;
+  HUD.meta.hidden = !mb;
+  if (mb) { HUD.metaTexto.textContent = mb.curto; HUD.metaNivel.style.width = Math.min(100, Math.max(0, mb.feito) / mb.meta * 100) + '%'; }
   const f = G.energia / G.energiaMax;
   HUD.nivel.style.height = (Math.min(1, f) * 100) + '%';
   HUD.nivel.style.background = f > 0.5 ? 'var(--verde)' : f > 0.2 ? '#e8c22c' : 'var(--destaque)';

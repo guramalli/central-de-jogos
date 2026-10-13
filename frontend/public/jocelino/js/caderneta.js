@@ -67,8 +67,9 @@ CADERNETA.push(() => {
     r.push({ id: 'gremio_' + a.id, aba: 'vila', texto: `Grêmio, ${a.nome}: ${P.nome} (${faltaTxt(Object.entries(f).map(([id, n]) => id === 'dinheiro' ? 'Cr$ ' + n : Itens.qtd(n, id)))})`,
       feito: Math.round(Gremio.progresso(pid) * 100), meta: 100, alvo: { mapa: 'vila', objeto: 'gremio' }, rotulo: 'Botão direito: a lista do povo' });
   }
-  const b = typeof Bazar !== 'undefined' && Bazar.meta();
-  if (b) r.push({ id: 'vila_bazar', aba: 'vila', texto: `Bazar do Salim: ${b.nome} (Cr$ ${b.preco})`, feito: Math.min(G.dinheiro, b.preco), meta: b.preco, alvo: { mapa: 'vila', objeto: 'balcao_bazar' } });
+  // (revisão 3) O Bazar com o porquê: o item escolhido no "Juntar para" ("Juntando para"); sem escolha, o mais barato com o efeito dele.
+  const be = typeof Bazar !== 'undefined' && Bazar.metaEscolhida(), b = be || (typeof Bazar !== 'undefined' && Bazar.meta());
+  if (b) r.push({ id: 'vila_bazar', aba: 'vila', texto: be ? `Juntando para: ${b.nome} (${be.curto}), no Bazar do Salim — Cr$ ${b.preco}` : `Bazar do Salim: ${b.nome} — ${b.efeito.replace(/\.$/, '').toLowerCase()} (Cr$ ${b.preco}; "Juntar para" põe embaixo do relógio)`, feito: Math.min(G.dinheiro, b.preco), meta: b.preco, alvo: { mapa: 'vila', objeto: 'balcao_bazar' } });
   if (typeof MUSEU !== 'undefined' && G.mina && G.mina.museu) { const tot = MUSEU.ANTIGOS.length + MUSEU.RAROS.length, d = G.mina.museu.doados.length;
     if (d < tot) r.push({ id: 'vila_museu', aba: 'vila', texto: `Museu da Vila: ${d} de ${tot} doados (cave as marcas no chão; os raros vêm da pedreira e da praia)`, feito: d, meta: tot, alvo: { mapa: 'vila', objeto: 'museu' } }); }
   return r;

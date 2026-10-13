@@ -296,7 +296,15 @@ function guiaSetaMundo() {
       || (typeof naCasa === 'function' && naCasa() ? (G.mapa.saidas || [])[0] : null);
     if (s) { const o = { tipo: 'saida', missao: id, destino: s.destino, mapa: G.mapaId, x: (s.x + s.w / 2) * TILE, y: (s.y + s.h / 2) * TILE - 30 }; o.rotulo = _rotulo(o); return o; }
   }
+  // (dia cheio, Frente A) A primeira coleta: sem nenhuma outra seta, o achado mais perto (uma vez: some depois de catar o primeiro).
+  { const a = _alvoDoAchado(); if (a) { const o = Object.assign({ tipo: 'alvo', missao: 'achado' }, a, a.ponto); o.rotulo = _rotulo(o); return o; } }
   return null;
+}
+function _alvoDoAchado() {
+  if (!G.guia || !G.guia.ativo || !G.limpou || G.limpou.achado || !G.mapa || !G.jog) return null;   // (sem o guia, nenhuma seta)
+  let o = null, d = 1e9;
+  for (const x of G.mapa.objs) if (x.achado) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y); if (dd < d) { d = dd; o = x; } }
+  return o && { mapa: G.mapaId, ponto: { x: o.x, y: o.y - 40 }, rotuloFixo: 'Botão direito: catar (o que nasce no chão vale dinheiro)' };
 }
 // A primeira vez das telas que ainda não tinham guia (roteiro de 13/10: "se for a primeira vez que a pessoa for fazer alguma
 // coisa, deve mostrar como fazer e encaminhar a pessoa"). Como é nos jogos de referência:
