@@ -15,6 +15,8 @@ function metaFamilia() {
       return { titulo: 'A família na casa nova', texto: `Crescer no ofício: ${FUNCOES[G.obra.funcao + 1]} (${faltaFuncao(f)})`, feito: meta - falta, meta }; }
     return { titulo: 'A família na casa nova', texto: 'A casa está de pé. Agora é crescer: a pensão da Rosa, a firma, a Vila.', feito: 1, meta: 1 };
   }
+  // (revisão) Meio-oficial e a carta da casa ainda na caixa (ou por chegar): o próximo passo é ler a carta.
+  if (!casa.aberta && G.obra.funcao >= 1) return { titulo: 'A casa da família', texto: 'Meio-oficial! Chegou a hora da casa: a carta do Tio Juca está na caixa de correio, no quintal', feito: 1, meta: 1 };
   if (casa.aberta) {
     const E = ECO.casa.etapas[Math.min(casa.etapa || 0, ECO.casa.etapas.length - 1)];
     return { titulo: 'A casa da família', texto: `${E.nome}: Cr$ ${E.dinheiro} e o material (plaquinha no terreno do quintal)`, feito: Math.min(Math.max(0, G.dinheiro), E.dinheiro), meta: E.dinheiro };
@@ -25,7 +27,8 @@ function metaFamilia() {
 }
 const faltaFuncao = f => { const p = [f.obras ? `entregar ${f.obras} obra${f.obras > 1 ? 's' : ''} com o Bira` : '', f.alvenaria ? `subir ${f.alvenaria} ${f.alvenaria > 1 ? 'níveis' : 'nível'} de Alvenaria` : '', f.empreitas ? `fazer ${f.empreitas} serviço(s) do quadro` : ''].filter(Boolean); return p.length ? 'falta: ' + p.join(', ') : 'pronto'; };
 // A linha do trabalho na mão (o quadro) vale no mapa dela; 'pensao' vale no salão e na cozinha.
-const noMapaDaLinha = t => !!t.mapa && (t.mapa === G.mapaId || (t.mapa === 'pensao' && /^pensao/.test(G.mapaId || '')));
+// (revisão: o que é da pensão aberta — as ★ da Rosa, o VIP, o concurso — aparece também na Vila, onde ela fica)
+const noMapaDaLinha = t => !!t.mapa && (t.mapa === G.mapaId || (t.mapa === 'pensao' && (/^pensao/.test(G.mapaId || '') || G.mapaId === 'vila')));
 // O "Agora": a obra pela metade fora da Vila; a carta do guia; o passo do guia em palavras de gente; o serviço aceito em
 // outro mapa; o primeiro aviso; uma ideia da Caderneta (que o clique transforma em seta: agoraFamilia.ideia).
 function agoraFamilia(avisos = []) {
@@ -37,10 +40,15 @@ function agoraFamilia(avisos = []) {
   }
   const g = G.guia;
   if (g && g.ativo && G.correio) for (const id of g.abertas) { const m = Guia.missao(id); if (m && m.carta && G.correio.caixa.includes(m.carta)) return `Chegou carta de ${m.quem}: a caixa de correio, no quintal`; }
+  // (revisão) O que é só de hoje (o VIP, a festa, o concurso, o viajante, a ferramenta pronta, a promoção) passa na frente do guia.
+  const urg = avisos.find(t => t.urgente); if (urg) return urg.texto;
   // (o Agora diz o mesmo que a seta: o passo cujo lugar é o mapa de agora vem primeiro)
   const sm = typeof setaAgora === 'function' ? setaAgora() : null, daSeta = sm && g && g.abertas.includes(sm.missao) ? [sm.missao] : [];
   if (g && g.ativo && typeof _missoesDaSeta === 'function') for (const id of daSeta.concat(_missoesDaSeta())) {
     const m = Guia.missao(id); if (!m) continue;
+    // (revisão) Não mandar para o que está fechado agora: a obra fora do horário (domingo, chuva, depois das 17h), a janta sem pensão.
+    if (id === 'obra' && typeof Obra !== 'undefined' && Obra.aberta(G.dia, G.minutos)) continue;
+    if (id === 'janta' && typeof pensaoAbreHoje === 'function' && !pensaoAbreHoje()) continue;
     const txt = typeof m.agora === 'function' ? m.agora() : (m.agora || m.texto);
     return txt + (m.meta ? ` (${Guia.progresso(m)}/${m.meta})` : '');
   }
@@ -52,7 +60,7 @@ function agoraFamilia(avisos = []) {
   return 'Dia livre: a horta, o quintal, a pesca, os bicos. Você escolhe.';
 }
 // As pendências (os avisos) na Caderneta, aba Hoje: nada se perde por sair da tela.
-CADERNETA.push(() => (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []).filter(t => !t.mapa).map((t, i) => ({ id: 'pend_' + i, aba: 'hoje', texto: t.texto + (t.meta ? ` (${t.feito}/${t.meta})` : '') })));
+CADERNETA.push(() => (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []).filter(t => !noMapaDaLinha(t)).map((t, i) => ({ id: 'pend_' + i, aba: 'hoje', texto: t.texto + (t.meta ? ` (${t.feito}/${t.meta})` : '') })));
 // O cartão no HUD: a meta (título, barrinha e o passo) e o "Agora".
 function atualizaCartao(avisos, noSalao) {
   if (!HUD.cartao) return;

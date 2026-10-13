@@ -211,7 +211,7 @@ function acaoNoCovo(o) {
 }
 MANHA.push(() => { for (const c of G.pesca.covos) if (!c.dentro && (c.isca || Habilidades.tem('isqueiro'))) { c.dentro = Pesca.covoManha(c.mapa === 'mata' ? 'rio' : 'mar')[0]; c.isca = false; } });
 AO_MONTAR.push(b => { if (b.id === 'praia' || b.id === 'mata') poeCovos(b); });
-TAREFAS.push(() => { const n = G.pesca ? G.pesca.covos.filter(c => c.dentro).length : 0; return n ? [{ texto: `Pesca: ${n} ${n === 1 ? 'covo tem' : 'covos têm'} coisa dentro`, mapa: 'praia' }] : []; });
+TAREFAS.push(() => { const n = G.pesca ? G.pesca.covos.filter(c => c.dentro).length : 0; return n ? [{ texto: `Pesca: ${n} ${n === 1 ? 'covo tem' : 'covos têm'} coisa dentro` }] : []; });
 
 
 function abrirBauPesca() {

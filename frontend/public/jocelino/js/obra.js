@@ -75,7 +75,7 @@ const Obra = {
     if (f.obras) t.push(`${f.obras} ${f.obras === 1 ? 'obra entregue' : 'obras entregues'}`);
     if (f.alvenaria) t.push(`Alvenaria ${REQUISITOS_FUNCAO[G.obra.funcao + 1].alvenaria}`);
     if (f.empreitas) t.push(`${f.empreitas} ${f.empreitas === 1 ? 'empreita entregue' : 'empreitas entregues'}`);
-    return t.length ? 'falta ' + t.join(', ') : 'pronto para subir: fale com o Mestre Bira de manhã';
+    return t.length ? 'falta ' + t.join(', ') : 'pronto para subir: fale com o Mestre Bira';
   },
   aberta(dia, min) {
     if ((dia - 1) % 7 === 6) return 'domingo';

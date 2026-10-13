@@ -2,7 +2,7 @@
 // retrato, pergunta com opções, avisos no canto e o #modal único (como no Lenda). Com o modal aberto o jogo pausa.
 
 let _aoFecharModal = null;
-function menuAberto() { return !$('#modal').hidden || !$('#capa').hidden; }
+function menuAberto() { const ab = document.getElementById('abertura'); return !$('#modal').hidden || !$('#capa').hidden || (!!ab && !ab.hidden); }
 
 function abrirModal(conteudo, aoFechar) {
   if (typeof recolherLinha === 'function') recolherLinha();   // menu aberto recolhe a linha de pesca (o jogo pausa)

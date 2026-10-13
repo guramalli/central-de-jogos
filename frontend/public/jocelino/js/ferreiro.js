@@ -81,7 +81,7 @@ function areaDoGolpe(id, alvo, dir) {
 INICIADORES.push(s => Ferreiro.iniciar(s));
 COLETORES.push(s => Ferreiro.salvar(s));
 MANHA.push(() => { if (Ferreiro.pronta(G.dia) && G.dia === G.ferreiro.oficina.pronta) G.feitosHoje.push(`O Seu Tonico terminou ${NOME_FERRAMENTA[G.ferreiro.oficina.id] || G.ferreiro.oficina.id} (${NIVEIS_FERR[G.ferreiro.oficina.nivel]}): passe na ferraria.`); });
-TAREFAS.push(() => G.ferreiro && Ferreiro.pronta(G.dia) ? [{ texto: 'Buscar a ferramenta na ferraria do Tonico' }] : []);
+TAREFAS.push(() => G.ferreiro && Ferreiro.pronta(G.dia) ? [{ texto: 'Buscar a ferramenta na ferraria do Tonico', urgente: true }] : []);
 
 // O que o Tonico faz na hora (com dinheiro e material); as entregas seguintes acrescentam forja, irrigador bom e betoneira.
 const RECEITAS_TONICO = JSON.parse(JSON.stringify(ECO.ferreiro.tonico));   // os preços moram no ECO

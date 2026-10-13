@@ -69,7 +69,7 @@ function atualizaHud() {
   if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t)); }
   // O cartão: recalculado quando o HUD suja ou a cada meio segundo de jogo.
   const ag = G.agora || 0;
-  if (typeof atualizaCartao === 'function' && (HUD._cartaoSujo || ag - (HUD._tCartao || -9) > 0.5 || ag < (HUD._tCartao || 0))) { HUD._cartaoSujo = false; HUD._tCartao = ag; atualizaCartao(todas.filter(t => !t.mapa), noSalao); }
+  if (typeof atualizaCartao === 'function' && (HUD._cartaoSujo || ag - (HUD._tCartao || -9) > 0.5 || ag < (HUD._tCartao || 0))) { HUD._cartaoSujo = false; HUD._tCartao = ag; atualizaCartao(todas.filter(t => !noMapaDaLinha(t) && (!t.mapa || t.urgente)), noSalao); }   // (o Agora: os avisos e, do que tem lugar, só o urgente)
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }
 ATUALIZADORES.push(() => atualizaHud());

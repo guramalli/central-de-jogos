@@ -34,7 +34,7 @@ const CaixaVenda = {
 };
 INICIADORES.push(s => { G.caixaVenda = Object.assign({}, s.caixaVenda || {}); });
 COLETORES.push(s => { s.caixaVenda = Object.assign({}, G.caixaVenda); });
-NOITE.push(linhas => { const r = CaixaVenda.madrugada(); if (r.total) linhas.push(`O carroceiro levou a caixa de venda e pagou Cr$ ${r.total}.`); });
+NOITE.push(linhas => { const r = CaixaVenda.madrugada(); if (r.total) linhas.push(`O carroceiro levou a caixa de venda e pagou Cr$ ${r.total}.`); G.ganhoTotal = (G.ganhoTotal || 0) + (r.total || 0); });
 
 // A tela: à esquerda o que dá para vender da mochila; à direita o que já está na caixa; embaixo quanto o carroceiro paga.
 function usarCaixaVenda() {

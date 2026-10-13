@@ -134,7 +134,7 @@ MANHA.push(() => {
   if (MAPAS.vila) poeViajante(MAPAS.vila);
   if (Viajante.presente(G.pensao, G.dia)) G.feitosHoje.push('O Viajante da Capital chegou na praça da Vila: receita secreta e ingrediente raro, só hoje!');
 });
-TAREFAS.push(() => Viajante.presente(G.pensao, G.dia) ? [{ texto: 'O Viajante da Capital está na praça (só hoje)' }] : []);
+TAREFAS.push(() => Viajante.presente(G.pensao, G.dia) ? [{ texto: 'O Viajante da Capital está na praça (só hoje)', urgente: true }] : []);
 function conversaViajante() {
   const r = ARTE_LISTA.includes('retratos/viajante_normal') ? urlArte('retratos/viajante_normal') : null;
   abrirPlaca(['Seu Nonato: "Bom dia, freguês! Trago da Capital o que não se acha na Vila: receita de restaurante fino e ingrediente de primeira. Barato não é, mas vale cada cruzeiro!"'],
@@ -201,8 +201,8 @@ TAREFAS.push(() => {
   if (!p || p.estado !== 'aberta') return [];
   const r = [];
   const v = Eventos.hoje(p, G.dia, 'vip'), f = Eventos.hoje(p, G.dia, 'festa');
-  if (v) r.push({ texto: `Hoje janta ${vipDe(v.id).nome}: quer ${Pratos.PRATOS[v.prato].nome}`, mapa: 'pensao' });
-  if (f) r.push({ texto: `Hoje é a ${f.nome}: ${Pratos.PRATOS[f.prato].nome} vale mais`, mapa: 'pensao' });
+  if (v) r.push({ texto: `Hoje janta ${vipDe(v.id).nome}: quer ${Pratos.PRATOS[v.prato].nome}`, mapa: 'pensao', urgente: true });
+  if (f) r.push({ texto: `Hoje é a ${f.nome}: ${Pratos.PRATOS[f.prato].nome} vale mais`, mapa: 'pensao', urgente: true });
   for (const e of p.agenda || []) if (e.tipo === 'pedido' && !e.fim) r.push({ texto: `${e.quem}: ${Pratos.PRATOS[e.prato].nome} até ${DIAS[(e.ate - 1) % 7]}`, feito: e.feito, meta: e.qtd, mapa: 'pensao' });
   return r;
 });

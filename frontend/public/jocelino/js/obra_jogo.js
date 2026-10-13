@@ -32,7 +32,7 @@ function conversarBira() {
     return falaBira(`Etapa entregue! Toma a gratificação: Cr$ ${r.premio.dinheiro}${itens ? ' e ' + itens : ''}. Amanhã começa a etapa: ${Obra.obra().etapas[o.etapa].nome}. O serviço muda.`);
   }
   // 2) A parte de ontem (ou de hoje cedo).
-  if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(`A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
+  if (o.aReceber > 0) { const v = o.aReceber; o.aReceber = 0; G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -6); return falaBira(v >= Obra.diaria() ? `A diária da lista completa, rapaz: Cr$ ${v}. Serviço inteiro, pagamento inteiro.` : `A parte que você fez: Cr$ ${v}. Serviço pela metade, pagamento pela metade.`); }
   // A promoção (meio-oficial e pedreiro: o Bira; mestre de obras: o Seu Moreira, no canteiro).
   if (Obra.podeSubir() && o.funcao < 2) {
     if (o.funcao === 0 && !G.mochila.cabe('colher')) return falaBira('Rapaz, tenho novidade pra você. Mas abre um espaço na mochila primeiro!');
@@ -136,7 +136,7 @@ function acaoNaObra(o) {
     const n = Math.min(G.mochila.total('pedra'), l.metas.buscar_pedra - (l.feito.buscar_pedra || 0));
     if (n > 0) { G.mochila.remover('pedra', n); const r = Obra.trabalho('buscar_pedra', n); hudSujo(); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Entregou ${n} pedras.`); return true; }
   }
-  abrirPlaca(`${Obra.obra().nome} — etapa: ${Obra.obra().etapas[G.obra.etapa].nome}.${l ? '\n' + textoLista(l) : ' O Mestre Bira passa a lista de manhã.'}`);
+  abrirPlaca(`${Obra.obra().nome} — etapa: ${Obra.obra().etapas[G.obra.etapa].nome}.${l ? '\n' + textoLista(l) : ' O Mestre Bira passa a lista do dia: é só falar com ele.'}`);
   return true;
 }
 function ferramentaNaObra(o, id) {
@@ -228,7 +228,7 @@ NOITE.push(linhas => {
   if (r.etapaNova) { G.obra.gratificacao = Object.assign({ nomeObra: nome }, r); linhas.push(r.obraPronta ? `${nome} ficou pronta! O Mestre Bira quer falar com você.` : `A obra avançou: começa a etapa ${Obra.obra().etapas[G.obra.etapa].nome}.`); }
   if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
 });
-TAREFAS.push(() => G.obra && Obra.podeSubir() ? [{ texto: G.obra.funcao === 2 ? '★ Carreira: o Seu Moreira quer falar com você no canteiro' : '★ Carreira: fale com o Mestre Bira (promoção!)' }] : []);
+TAREFAS.push(() => G.obra && Obra.podeSubir() ? [{ texto: G.obra.funcao === 2 ? '★ Carreira: o Seu Moreira quer falar com você no canteiro' : '★ Carreira: fale com o Mestre Bira (promoção!)', urgente: true }] : []);
 TAREFAS.push(() => {
   if (!G.obra) return [];
   const l = listaDeHoje(), fechada = Obra.aberta(G.dia, G.minutos);

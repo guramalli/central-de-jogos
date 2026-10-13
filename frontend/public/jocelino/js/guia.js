@@ -18,10 +18,14 @@ const GUIA_MISSOES = [
       const respondeu = G.correio && (G.correio.caixa.includes('cotinha_pensao') || G.correio.lidas.includes('cotinha_pensao'));
       Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', respondeu ? 'Escrevi pra ela, e ela já respondeu! A carta está na caixa de correio.' : 'Escrevi pra ela. Se ela deixar, a gente arruma a casa e eu cozinho pra fora. A resposta chega pelo correio!']]);
     } },
-  { id: 'pensao', agora: 'O sonho da Rosa: arrumar a pensão da Dona Cotinha (limpar o salão, as telhas, as banquetas)', titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, as telhas e a madeira', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
+  { id: 'pensao', agora: () => { const p = G.pensao || {}; return p.estado === 'telhas' ? `O sonho da Rosa: ${Pensao.TELHAS} telhas para o telhado da pensão (o Seu Ananias vende) — ${p.telhas || 0}/${Pensao.TELHAS}`
+      : p.estado === 'mesas' ? `O sonho da Rosa: madeira para as banquetas (machado nos galhos e tocos) — ${p.madeira || 0}/${Pensao.MADEIRA}`
+      : 'O sonho da Rosa: arrumar a pensão da Dona Cotinha, começando pelo salão (a casa amarela, ao lado do depósito)'; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, as telhas e a madeira', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
     feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => { if (G.pensao) G.pensao.abrirReforma(); } },
   { id: 'horta', titulo: 'A primeira horta', quem: 'Tio Juca', texto: 'A primeira horta: plante e regue 10 covas', meta: 10, dia: 'horta', libera: 'horta', conta: _covasPlantadasRegadas,
-    agora: 'A horta da família: plante as sementes do Tio Juca no canteiro e regue (a Rosa cozinha, a caixa de venda leva o resto)' },
+    agora: 'A horta da família: plante as sementes do Tio Juca no canteiro e regue (a Rosa cozinha, a caixa de venda leva o resto)',
+    // (revisão: o save antigo que passou da chegada sem as sementes recebe as do Tio Juca ao abrir a horta)
+    aoAbrir: () => { if (G.dia > 1 && G.mochila && !G.mochila.total('semente_alface') && typeof presentesDaChegada === 'function') { G.mochila.adicionar('semente_alface', 15); if (typeof avisar === 'function') avisar('O Tio Juca deixou um pacote de sementes de alface na porta.'); } } },
   { id: 'janta', agora: 'Hoje é a primeira janta da Rosa: às 17h, na pensão (o dinheiro da janta também vai para a casa)', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
     feita: () => !!(G.relatorioPensao && G.relatorioPensao.servidos > 0),
     intro: ['rosa', 'Rosa', ['Amor, hoje é a primeira janta! Às 17h vem gente na pensão.', 'Eu cozinho, você serve. Lá dentro eu te ensino, passo a passo.']] },
