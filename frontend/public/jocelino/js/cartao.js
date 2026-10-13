@@ -145,7 +145,7 @@ function ideiaDoDia() {
   // (teste de 13/10) Só com serviço no quadro: o quadro vazio mandava o jogador para lá à toa.
   if (quadroComServico()) { const L = G.lojinha || {};
     op.push({ texto: `Um serviço do quadro da Vila — ${L.comprada ? 'paga na hora, e o dinheiro vai para a pensão' : L.conversou ? 'paga na hora, e o dinheiro vai para a lojinha da Rosa' : 'dinheiro na hora, no bolso da família'}`, alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } }); }
-  if (G.lugares && G.lugares.praia) op.push({ texto: 'Pescar no píer — peixe vira prato na pensão', alvo: { mapa: 'praia', morador: 'lourival' } });
+  if (G.lugares && G.lugares.praia) op.push(pescarNoPier());
   // O sonho da Rosa (o restaurante): a entrada da lojinha, e depois a reforma pela metade.
   if (G.lojinha && G.lojinha.conversou && !G.lojinha.comprada) op.push({ texto: `Juntar a entrada da lojinha — Cr$ ${Math.min(Math.max(0, G.dinheiro), ECO.lojinha.entrada)} de ${ECO.lojinha.entrada}: é o sonho da Rosa, o restaurante dela`, alvo: { mapa: 'vila', objeto: 'pensao' } });
   else if (G.pensao && (G.pensao.estado === 'limpar' || ECO.reforma.some(e => e.id === G.pensao.estado)) && !G.pensao.feitaHoje(G.dia)) op.push(TOCAR_REFORMA);
@@ -235,6 +235,9 @@ function ganhoDaTarde() {
   if (itens.length && total >= 10) { const i = itens[0];
     return { texto: `Vender na caixa de venda do quintal — ${Itens.qtd(i.n, i.id)} a Cr$ ${i.v} cada${itens.length > 1 ? ` (tudo o que dá para vender: Cr$ ${total})` : ` = Cr$ ${total}`}; o carroceiro paga de madrugada, ${porque}`,
       alvo: { mapa: 'quintal', objeto: 'caixa_venda' }, rotulo: 'Botão direito: vender na caixa' }; }
+  // 1a. (dia cheio, Frente B) A pesca nova (a vara do Seu Lourival chega no dia 2, como a do Willy): até pegar o jeito (Pesca nível 1,
+  // uns 6 peixes), pescar vem antes da coleta, da limpeza e do plantio — é a novidade da semana (o Stardew abre a praia no dia 2 para isso).
+  if (pescaNova()) return pescarNoPier();
   // 1b. (dia cheio, Frente A) A coleta à vista hoje (os achados que nasceram nos mapas já vistos): o mais valioso dá o preço do ECO.
   { const ach = achadosAVista(); if (ach.n) { const id = ach.melhor, nome = Itens.nome(id).toLowerCase(), rosa = pensaoAberta() && usaNaPensao(id);
     // (revisão 3) o nome do que se cata vem do melhor achado: fruta, flor, cogumelo; a pedra bonita e a concha são "achados"
@@ -252,10 +255,12 @@ function ganhoDaTarde() {
     if (s && G.dinheiro >= precoSemente(CULTURAS[s].semente)) return { texto: `Plantar mais covas — ${Itens.nome(CULTURAS[s].semente).toLowerCase()} no depósito do Seu Ananias a Cr$ ${precoSemente(CULTURAS[s].semente)}; em ${Horta.diasPara(s)} dias regando, cada pé (que vale Cr$ ${PRECO_CAIXA[s]}) é comida da família e prato da pensão da Rosa`,
       alvo: { mapa: 'vila', objeto: 'deposito' }, rotulo: 'Sementes no Seu Ananias' }; }
   // 4. Pescar no píer (a praia aberta): o peixe é o prato da pensão (o preço dos de todo dia, a sardinha e a tainha, só para medir).
-  if (G.lugares && G.lugares.praia && pr('sardinha') && pr('tainha'))
-    return { texto: `Pescar no píer — o peixe é o prato da pensão da Rosa (a sardinha vale Cr$ ${pr('sardinha')}, a tainha Cr$ ${pr('tainha')}); a vara é do Seu Lourival`, alvo: { mapa: 'praia', morador: 'lourival' } };
+  if (G.lugares && G.lugares.praia && pr('sardinha') && pr('tainha')) return pescarNoPier();
   return null;
 }
+// (dia cheio, Frente B) Pescar no píer, com o preço e para onde vai o peixe (a banca do Seu Lourival, ou a despensa da Rosa com a pensão aberta).
+const pescarNoPier = () => ({ texto: `Pescar no píer — ${typeof pescaParaOnde === 'function' ? pescaParaOnde() : 'o peixe é o prato da pensão da Rosa'}`, alvo: { mapa: 'praia', morador: 'lourival' } });
+const pescaNova = () => !!(G.lugares && G.lugares.praia && G.hab && G.hab.xp && (G.hab.xp.pesca || 0) < Habilidades.NIVEIS[0] && G.mochila && G.mochila.total('vara') > 0);
 // Depois das 17h, sem nada a fazer: dormir na cama de casa encerra o dia (a seta: o quintal, a porta de casa, a cama).
 function dormirDaNoite() {
   const casa = G.casa && G.casa.mudou ? 'casa_familia' : 'casa_juca';

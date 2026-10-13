@@ -16,6 +16,16 @@ function faltaDaReforma() {
   return { item: f[0][0], n: f[0][1] };
 }
 const origemDoMaterial = it => LOJA.PRECOS[it] !== undefined ? 'o Seu Ananias vende no depósito' : it === 'madeira' ? 'galho e toco, no machado (no quintal)' : it === 'pedra' ? 'pedra, na picareta (no quintal)' : 'entregue à Rosa';
+// (dia cheio, Frente B) O porquê da pesca, com o preço (a sardinha e a tainha, os peixes de todo dia do píer): sem a pensão, a banca do
+// Seu Lourival compra na hora; com ela aberta, vai para a despensa da Rosa e vira prato. (O peixe não vai para a caixa de venda: é o
+// prato da pensão — revisão da tarde livre, 13/10.)
+function pescaParaOnde() {
+  const pr = id => (typeof precoPeixe === 'function' && typeof DADOS_PEIXE !== 'undefined' && DADOS_PEIXE[id] ? precoPeixe(id) : 0), sp = `a sardinha vale Cr$ ${pr('sardinha')}, a tainha Cr$ ${pr('tainha')}`;
+  // (correção 1) A banca fechada (domingo, ou fora das 7h–17h, como abrirBanca) não "paga na hora": diz quando abre.
+  const aberta = !(typeof relogio !== 'undefined' && relogio.domingo()) && G.minutos >= 7 * 60 && G.minutos < 17 * 60;
+  return G.pensao && G.pensao.estado === 'aberta' ? `o peixe vai para a despensa da Rosa e vira prato na janta (${sp})`
+    : `${sp} na banca do Seu Lourival, ${aberta ? 'que paga na hora' : 'que abre das 7h às 17h, menos no domingo'}`;
+}
 const GUIA_MISSOES = [
   { id: 'obra', agora: () => { const l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
       if (l && !l.paga) { const ids = Object.keys(l.metas), feitas = ids.filter(id => (l.feito[id] || 0) >= l.metas[id]).length; return feitas < ids.length ? `A lista do dia do Bira: ${feitas} de ${ids.length} tarefas; completa, a diária de Cr$ ${Obra.diaria()}` : `Lista completa: receba a diária de Cr$ ${Obra.diaria()} com o Bira`; }
@@ -60,7 +70,10 @@ const GUIA_MISSOES = [
   { id: 'domingo', agora: 'Domingo da família: guarde verdura da horta na despensa da pensão', titulo: 'Domingo em família', quem: 'Rosa', texto: 'Domingo em família: guarde 5 da horta na despensa da pensão', meta: 5, depois: 'horta', dia: 'domingo', semana: 6, expira: 1, conta: _culturasNaDespensa,
     abre: () => !!G.pensao && G.pensao.estado === 'aberta',
     alvo: () => ({ objeto: 'despensa_pensao' }), intro: ['rosa', 'Rosa', ['Domingo é dia de família. O que a horta der, guarda na despensa da pensão: vira comida boa.']] },
-  { id: 'pesca', agora: 'O Seu Lourival chamou para pescar no píer: peixe vende na banca e vira prato na pensão', titulo: 'A primeira pescaria', quem: 'Seu Lourival', texto: 'Pescar 3 peixes no píer da praia', meta: 3, depois: 'bico', dia: 'pesca', carta: 'lourival_praia', libera: 'praia', conta: () => G.guia.cont.pescou || 0, alvo: () => ({ morador: 'lourival' }) },
+  // (dia cheio, Frente B) A carta do Seu Lourival no dia 2, como a do Willy (a única datada da 1ª semana do Stardew): depois só da
+  // primeira obra (o dia 1 de serviço), não mais do bico — o bico pode estar aberto no dia 2, e a pesca ficava para o dia 5. Como a
+  // pensão, não espera vaga (prioridade): a carta vem pelo calendário mesmo com a horta e o bico abertos.
+  { id: 'pesca', agora: () => `O Seu Lourival chamou para pescar no píer — ${pescaParaOnde()}`, titulo: 'A primeira pescaria', quem: 'Seu Lourival', texto: 'Pescar 3 peixes no píer da praia', meta: 3, depois: 'obra', dia: 'pesca', prioridade: true, carta: 'lourival_praia', libera: 'praia', conta: () => G.guia.cont.pescou || 0, alvo: () => ({ morador: 'lourival' }) },
   { id: 'bazar', agora: 'O Bazar do Salim abriu no Mercado: coisas para a família (garrafa térmica, bicicleta, fogão)', titulo: 'O Bazar do Salim', quem: 'Seu Salim', texto: 'Visitar o Bazar do Salim (no Mercado)', meta: 1, depois: 'bico', dia: 'bazar', carta: 'folheto_salim', libera: 'bazar', conta: () => G.guia.cont.bazar || 0, alvo: () => ({ objeto: 'balcao_bazar' }) },
   { id: 'pedreira', agora: 'A pedreira do Seu Tonico abriu: pedra boa para a obra e para o Grêmio', titulo: 'A pedreira', quem: 'Seu Tonico', texto: 'Quebrar 10 pedras na pedreira', meta: 10, depois: 'bazar', comoDepois: 'aberta', dia: 'pedreira', carta: 'tonico_pedreira', libera: 'pedreira', conta: () => G.guia.cont.pedreira || 0, alvo: () => ({ morador: 'tonico' }) },
   { id: 'mina', agora: 'A mina do Seu Tonico: ferro para ferramentas melhores', titulo: 'A mina', quem: 'Seu Tonico', texto: 'Descer na mina do Seu Tonico', depois: 'pedreira', dia: 'mina', carta: 'tonico_bancadas', libera: 'mina', feita: () => !!G.mina && G.mina.maisFunda >= 1 },
@@ -98,16 +111,28 @@ const Guia = {
       if (Guia.feita(m)) { Guia._fechar(m); mudou.push({ feita: id }); }
       else if (m.expira && G.dia >= ((g.desde || {})[id] || G.dia) + m.expira) { g.abertas = g.abertas.filter(x => x !== id); g.feitas.push(id); g.versao++; mudou.push({ expirou: id }); }
     }
-    for (const m of GUIA_MISSOES) {
+    let cartaHoje = false;
+    for (const m of Guia._ordem()) {
       if (g.feitas.includes(m.id) || g.abertas.includes(m.id)) continue;
       if ((m.carta && !manha) || !Guia.podeAbrir(m)) continue;
       const atrasada = G.dia >= Guia.diaMin(m) + ECO.guia.espera;
-      if (g.ativo && g.abertas.length >= ECO.guia.maxAbertas && !atrasada && !m.prioridade) continue;   // a pensão (o centro) não espera vaga
+      if (g.ativo && g.abertas.length >= ECO.guia.maxAbertas && !atrasada && !m.prioridade) continue;   // a pensão (o centro) e a carta da pesca (a do Willy) não esperam vaga
+      // uma carta por manhã: a outra chega amanhã (só com o guia; sem ele tudo chega pelo dia mínimo, e os dias não colidem)
+      if (g.ativo && cartaHoje && Guia._cartaNova(m)) continue;
+      if (Guia._cartaNova(m)) cartaHoje = true;
       Guia._abrir(m); mudou.push({ abriu: m.id });
       if (Guia.feita(m)) { Guia._fechar(m); mudou.push({ feita: m.id }); }
     }
     return mudou;
   },
+  // (dia cheio, Frente B) Sem duas cartas na mesma manhã (o correio do Stardew traz uma novidade por vez): as missões de carta na
+  // ordem do dia mínimo (a pensão, o centro, primeiro), nos lugares delas na lista; se duas colidem, a mais nova fica para amanhã.
+  // Só conta a carta que vai mesmo para a caixa (a da lojinha já lida na compra não ocupa a manhã).
+  _ordem() {
+    const cartas = GUIA_MISSOES.filter(m => m.carta).sort((a, b) => (b.prioridade ? 1 : 0) - (a.prioridade ? 1 : 0) || Guia.diaMin(a) - Guia.diaMin(b));
+    let k = 0; return GUIA_MISSOES.map(m => m.carta ? cartas[k++] : m);
+  },
+  _cartaNova(m) { return !!m.carta && !!G.correio && !G.correio.caixa.includes(m.carta) && !G.correio.lidas.includes(m.carta); },
   _abrir(m) {
     const g = G.guia; g.abertas.push(m.id); g.versao++; (g.desde = g.desde || {})[m.id] = G.dia;
     if (m.carta && G.correio && !G.correio.caixa.includes(m.carta) && !G.correio.lidas.includes(m.carta)) G.correio.caixa.push(m.carta);

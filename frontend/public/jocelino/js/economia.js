@@ -112,6 +112,8 @@ const ECO = {
   },
   // O guia das primeiras semanas (Frente 4, 12/10/2026): o dia mínimo de cada sistema, a espera quando a missão anterior
   // empaca, o máximo de missões abertas e as recompensas (coisas úteis, sem dinheiro).
+  // (dia cheio, Frente B, 13/10) Como o Stardew (a vara do Willy no dia 2, a mina no dia 5): a pesca 8 → 2, a pedreira 10 → 5 e a
+  // mina 12 → 7, dois dias depois da pedreira (o ferreiro não depende da mina: a reforçada pede o ferro, que a pedreira já dá).
   // ---- A Obra do Povo (o Grêmio, o Centro Comunitário do Stardew): o que cada pacote pede e dá, quando cada ala abre (pacotes
   // prontos no total), o presente de cada ala pronta e os efeitos. O quintal em marcos: o prêmio do Tio Juca a cada quarto limpo
   // ("sementes" = sementes da estação).
@@ -137,7 +139,7 @@ const ECO = {
     presentes: { aquario: { covo: 1 }, deposito: { betoneira: 1 } },
     efeitos: { achados: 2, deposito: 0.9, diasTonico: 1, fundir: 0.5, varaBoa: 0.5, clientesSabado: 2 } },
   quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } } },
-  guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 8, bazar: 4, pedreira: 10, mina: 12 }, espera: 3, maxAbertas: 2,
+  guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 2, bazar: 4, pedreira: 5, mina: 7 }, espera: 3, maxAbertas: 2,
     recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
       janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
 };
