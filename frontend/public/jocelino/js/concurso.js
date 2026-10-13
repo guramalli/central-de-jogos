@@ -71,7 +71,7 @@ MANHA.push(() => {
 });
 TAREFAS.push(() => {
   const p = G.pensao;
-  return p && p.estado === 'aberta' && Concurso.hoje(G.dia) && !(p.concursos || {})[Concurso.estacaoAbs(G.dia)] ? [{ texto: 'Concurso da Rádio hoje: mande 3 pratos (botão Concurso, no salão)' }] : [];
+  return p && p.estado === 'aberta' && Concurso.hoje(G.dia) && !(p.concursos || {})[Concurso.estacaoAbs(G.dia)] ? [{ texto: 'Concurso da Rádio hoje: mande 3 pratos (botão Concurso, no salão)', mapa: 'pensao' }] : [];
 });
 const podeConcurso = () => !!G.pensao && G.pensao.estado === 'aberta' && Concurso.hoje(G.dia) && !(G.pensao.concursos || {})[Concurso.estacaoAbs(G.dia)];
 

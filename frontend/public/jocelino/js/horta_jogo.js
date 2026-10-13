@@ -121,9 +121,9 @@ TAREFAS.push(() => {
   if (!G.horta) return [];
   const pl = Object.values(G.horta.covas).filter(c => c.planta), r = [];
   const secas = pl.filter(c => !Horta.molhada(c, G.dia)).length, prontas = pl.filter(c => Horta.madura(c)).length;
-  if (secas && G.horta.agua <= 0) r.push({ texto: 'Horta: encher o regador no barril' });
-  else if (secas) r.push({ texto: 'Horta: regar', feito: pl.length - secas, meta: pl.length });
-  if (prontas) r.push({ texto: `Horta: ${prontas} ${prontas === 1 ? 'pronta' : 'prontas'} para colher` });
+  if (secas && G.horta.agua <= 0) r.push({ texto: 'Horta: encher o regador no barril', mapa: 'quintal' });
+  else if (secas) r.push({ texto: 'Horta: regar', feito: pl.length - secas, meta: pl.length, mapa: 'quintal' });
+  if (prontas) r.push({ texto: `Horta: ${prontas} ${prontas === 1 ? 'pronta' : 'prontas'} para colher`, mapa: 'quintal' });
   return r;
 });
 PRECO_HORTA.esterco = 5;

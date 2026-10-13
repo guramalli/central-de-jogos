@@ -160,7 +160,7 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 /* O caderno de receitas da Rosa: duas páginas por cima da arte a/ui/caderno_aberto (sem a arte, um painel de papel). */
 .caderno { position: relative; width: min(94vw, 1400px); aspect-ratio: 14 / 9; max-height: 92vh; color: #3b2a1a; font-family: Nunito, sans-serif;
   background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4%; padding: 3% 4%; box-sizing: border-box; }
-.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp?v=b99ffef) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
+.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp?v=c282806) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
 /* As páginas dentro do papel desenhado (retângulos úteis medidos em a/ui/LEIA.txt, em % de 1400x878). */
 .caderno.com-arte .pagina { position: absolute; overflow-y: auto; }
 .caderno.com-arte .pagina.esq { left: 18.5%; top: 5.5%; width: 30%; height: 74%; }
@@ -207,7 +207,7 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 
 /* A despensa viva e o orelhão. */
 .despensa { width: min(94vw, 1300px); max-height: 92vh; overflow-y: auto; background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; padding: 18px 24px; box-sizing: border-box; color: #3b2a1a; }
-.despensa.com-arte { background: url(../a/ui/despensa_prateleiras.webp?v=b99ffef) center / 100% 100% no-repeat, transparent; border: 0; aspect-ratio: 13 / 8.5; max-height: 88vh; overflow: hidden;
+.despensa.com-arte { background: url(../a/ui/despensa_prateleiras.webp?v=c282806) center / 100% 100% no-repeat, transparent; border: 0; aspect-ratio: 13 / 8.5; max-height: 88vh; overflow: hidden;
   padding: 5% 18% 7% 18%; color: #fff4dc; text-shadow: 0 2px 2px #000a; display: flex; flex-direction: column; }
 .despensa.com-arte .desp-prateleiras { overflow-y: auto; flex: 1; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
 .despensa.com-arte .desp-item { background: rgba(28,14,5,.82); border: 2px solid rgba(255,220,160,.25); }
@@ -362,3 +362,18 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 .gremio .gr-item.ok { color: #2f7a2f; }
 .gremio .gr-ok { color: #2f7a2f; font-weight: 900; }
 #hud .quadro div.ideia { pointer-events: auto; cursor: pointer; color: #2f5d1f; }
+/* O cartão da família (13/10): a meta da casa e o "Agora", com o quadro do trabalho na mão embaixo. */
+#hud .col-esq { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 8px; width: min(420px, 44vw); pointer-events: none; }
+#hud .col-esq .quadro { position: static; }
+#hud .cartao { padding: 8px 14px 10px; background: rgba(247,230,196,.97); }
+#hud .cartao .c-titulo { font-weight: 900; font-size: 18px; color: #7a3b12; }
+#hud .cartao .c-fundo { height: 8px; margin: 4px 0 6px; background: var(--papel-escuro); border: 2px solid var(--madeira); border-radius: 6px; overflow: hidden; }
+#hud .cartao .c-nivel { height: 100%; background: #6aa84f; }
+#hud .cartao .c-texto { font-weight: 800; font-size: 15px; line-height: 1.25; }
+#hud .cartao .c-agora { margin-top: 5px; font-weight: 900; font-size: 15px; line-height: 1.25; color: #2f5d1f; }
+#hud .cartao .c-agora.ideia { pointer-events: auto; cursor: pointer; text-decoration: underline dotted; }
+/* A abertura do jogo novo (13/10): o quadro do Higgsfield, o texto embaixo e os botões. */
+#abertura { position: fixed; inset: 0; z-index: 60; background: #120d08; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; }
+#abertura img { max-width: min(1200px, 96vw); max-height: 70vh; object-fit: contain; border: 4px solid var(--madeira); border-radius: 10px; box-shadow: 0 6px 30px rgba(0,0,0,.6); }
+#abertura .ab-texto { max-width: min(900px, 92vw); color: #fff4cf; font-weight: 800; font-size: 20px; line-height: 1.4; text-align: center; text-shadow: 0 2px 4px #000; }
+#abertura .ab-botoes { display: flex; gap: 12px; }

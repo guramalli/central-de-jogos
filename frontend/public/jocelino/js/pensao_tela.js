@@ -103,7 +103,7 @@ function pensaoPlaquinha() {
 TAREFAS.push(() => {
   const p = G.pensao;
   if (!p) return [];
-  if (p.estado === 'limpar') return [{ texto: 'Pensão: limpar o salão (a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: SUJEIRA_PALCO.length - sujeirasDaReforma().length, meta: SUJEIRA_PALCO.length }];
+  if (p.estado === 'limpar') return [{ texto: 'Pensão: limpar o salão (a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: SUJEIRA_PALCO.length - sujeirasDaReforma().length, meta: SUJEIRA_PALCO.length, mapa: 'pensao' }];
   if (p.estado === 'telhas') return [{ texto: 'Pensão: telhas para a Rosa (o Seu Ananias vende; a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: p.telhas, meta: Pensao.TELHAS }];
   if (p.estado === 'mesas') return [{ texto: 'Pensão: madeira das banquetas (machado nos galhos e tocos; a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito)', feito: p.madeira, meta: Pensao.MADEIRA }];
   if (pensaoAbreHoje() && p.ultimaJanta !== G.dia && G.minutos < 20 * 60) return [{ texto: 'Janta na Pensão da Rosa às 17h', lembrete: true }];   // (lembrete fixo: não tira as ideias do quadro)

@@ -7,39 +7,38 @@ const GUIA_VIZINHOS = ['ananias', 'zelia', 'ze'];
 const _covasPlantadasRegadas = () => Object.values((G.horta && G.horta.covas) || {}).filter(c => c && c.planta && (c.regada || c.dias > 0)).length;   // regada hoje ou já crescendo (regada antes)
 const _culturasNaDespensa = () => { const d = (G.pensao && G.pensao.despensa) || {}; return Object.keys(typeof CULTURAS !== 'undefined' ? CULTURAS : {}).reduce((t, id) => t + (d[id] || 0), 0); };
 const GUIA_MISSOES = [
-  { id: 'quintal', titulo: 'Limpar o quintal', quem: 'Tio Juca', texto: 'Limpar o quintal (mato, pedra, galho)', meta: 5, conta: () => G.guia.cont.limpou || 0,
-    aoFeita: () => avisar('Ganhou marmitas! Para comer, clique com o botão direito na marmita da barra: dá energia. A mochila abre na tecla E.') },
-  { id: 'obra', titulo: 'A primeira obra', quem: 'Mestre Bira', texto: 'A primeira obra (das 7h ao meio-dia, na Vila)', feita: () => !!(G.obra && G.obra.lista && G.obra.lista.contou), alvo: () => ({ morador: 'bira' }) },   // contou: paga, ou fechada com mais da metade
-  { id: 'vila', titulo: 'Conhecer a Vila', quem: 'Mestre Bira', texto: 'Conhecer a Vila: Seu Ananias, Dona Zélia e o Zé', meta: 3, depois: 'obra',
+  { id: 'obra', agora: () => `O Mestre Bira contrata servente, na Vila: Cr$ ${Obra.diaria()} por dia, o primeiro dinheiro da casa`, titulo: 'A primeira obra', quem: 'Mestre Bira', texto: 'A primeira obra: o Mestre Bira, na Vila', feita: () => !!(G.obra && G.obra.lista && G.obra.lista.contou), alvo: () => ({ morador: 'bira' }) },   // contou: paga, ou fechada com mais da metade
+  { id: 'vila', agora: 'Conhecer a Vila: o Seu Ananias (o depósito), a Dona Zélia (a obra é a casa dela) e o Zé (a massa)', titulo: 'Conhecer a Vila', quem: 'Mestre Bira', texto: 'Conhecer a Vila: Seu Ananias, Dona Zélia e o Zé', meta: 3, depois: 'obra',
     conta: () => GUIA_VIZINHOS.filter(i => G.guia.conversou.includes(i)).length,
     alvo: () => { const i = GUIA_VIZINHOS.find(v => !G.guia.conversou.includes(v)); return i ? { morador: i } : null; },
-    intro: () => ['bira', 'Mestre Bira', [G.guia.feitas.includes('obra') ? 'Serviço bom, rapaz! A obra é só de manhã: de tarde é com você.' : 'Rapaz, ainda não te vi na obra! Ela é das 7h ao meio-dia, aqui na Vila.',
+    intro: () => ['bira', 'Mestre Bira', [G.guia.feitas.includes('obra') ? 'Serviço bom, rapaz! Amanhã tem mais, a hora que você chegar.' : 'Rapaz, ainda não te vi na obra! É aqui na Vila, de sol a sol.',
       'Vai conhecer a Vila: o Seu Ananias, do depósito, a Dona Zélia e o Zé, que mexe a massa aqui na obra.', 'Depois de conhecer o pessoal, passa no quadro de serviços ali na frente da obra: tem bico pra fazer de tarde.']],
     aoFeita: () => {
       Guia.fila.push(['juca', 'Tio Juca', ['O que sobrou da limpeza (madeira, pedra, fibra) dá pra vender na caixa de venda, aqui no quintal.', 'Põe lá dentro e o carroceiro leva de madrugada: o dinheiro entra no resumo da noite.']]);
       const respondeu = G.correio && (G.correio.caixa.includes('cotinha_pensao') || G.correio.lidas.includes('cotinha_pensao'));
       Guia.fila.push(['rosa', 'Rosa', ['Amor, sabe a pensão fechada da Dona Cotinha, lá na Vila? Ela é amiga da minha mãe.', respondeu ? 'Escrevi pra ela, e ela já respondeu! A carta está na caixa de correio.' : 'Escrevi pra ela. Se ela deixar, a gente arruma a casa e eu cozinho pra fora. A resposta chega pelo correio!']]);
     } },
-  { id: 'pensao', titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, as telhas e a madeira', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
+  { id: 'pensao', agora: 'O sonho da Rosa: arrumar a pensão da Dona Cotinha (limpar o salão, as telhas, as banquetas)', titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, as telhas e a madeira', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
     feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => { if (G.pensao) G.pensao.abrirReforma(); } },
-  { id: 'horta', titulo: 'A primeira horta', quem: 'Tio Juca', texto: 'A primeira horta: plante e regue 10 covas', meta: 10, depois: 'pensao', comoDepois: 'aberta', dia: 'horta', carta: 'juca_horta', libera: 'horta', conta: _covasPlantadasRegadas },
-  { id: 'janta', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
+  { id: 'horta', titulo: 'A primeira horta', quem: 'Tio Juca', texto: 'A primeira horta: plante e regue 10 covas', meta: 10, dia: 'horta', libera: 'horta', conta: _covasPlantadasRegadas,
+    agora: 'A horta da família: plante as sementes do Tio Juca no canteiro e regue (a Rosa cozinha, a caixa de venda leva o resto)' },
+  { id: 'janta', agora: 'Hoje é a primeira janta da Rosa: às 17h, na pensão (o dinheiro da janta também vai para a casa)', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
     feita: () => !!(G.relatorioPensao && G.relatorioPensao.servidos > 0),
     intro: ['rosa', 'Rosa', ['Amor, hoje é a primeira janta! Às 17h vem gente na pensão.', 'Eu cozinho, você serve. Lá dentro eu te ensino, passo a passo.']] },
   // (o bico vem na tarde do dia 1, depois da Vila: o ritmo do balanço pede as empreitas cedo, e a tarde do dia 1 era vazia)
-  { id: 'bico', titulo: 'O primeiro bico', quem: 'Mestre Bira', texto: 'O primeiro bico: um serviço do quadro (na frente da obra)', depois: 'vila', dia: 'quadro', libera: 'quadro',
+  { id: 'bico', agora: 'Bico de tarde: o quadro de serviços da Vila paga na hora', titulo: 'O primeiro bico', quem: 'Mestre Bira', texto: 'O primeiro bico: um serviço do quadro (na frente da obra)', depois: 'vila', dia: 'quadro', libera: 'quadro',
     feita: () => !!G.empreitas && G.empreitas.entregues >= 1,
     alvo: () => { const id = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta'); return { objeto: id ? 'emp_' + id : 'quadro_pedidos' }; },
     aoAbrir: () => { if (G.empreitas && typeof Empreitas !== 'undefined') { G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia); } }, },
-  { id: 'gremio', titulo: 'A Obra do Povo', quem: 'Dona Zélia', texto: 'A Obra do Povo: ver a lista na porta do Grêmio (na Vila)', meta: 1, depois: 'vila', comoDepois: 'aberta', dia: 'gremio', carta: 'zelia_gremio', libera: 'gremio',
+  { id: 'gremio', agora: 'A Vila quer o Grêmio de volta: a lista do povo está na porta (cada ala pronta muda a Vila)', titulo: 'A Obra do Povo', quem: 'Dona Zélia', texto: 'A Obra do Povo: ver a lista na porta do Grêmio (na Vila)', meta: 1, depois: 'vila', comoDepois: 'aberta', dia: 'gremio', carta: 'zelia_gremio', libera: 'gremio',
     conta: () => G.guia.cont.gremio || 0, alvo: () => ({ objeto: 'gremio' }) },
   // (o domingo vale só naquele dia: na segunda se encerra sem recompensa, para não ocupar a vaga das outras)
-  { id: 'domingo', titulo: 'Domingo em família', quem: 'Rosa', texto: 'Domingo em família: guarde 5 da horta na despensa da pensão', meta: 5, depois: 'horta', dia: 'domingo', semana: 6, expira: 1, conta: _culturasNaDespensa,
+  { id: 'domingo', agora: 'Domingo da família: guarde verdura da horta na despensa da pensão', titulo: 'Domingo em família', quem: 'Rosa', texto: 'Domingo em família: guarde 5 da horta na despensa da pensão', meta: 5, depois: 'horta', dia: 'domingo', semana: 6, expira: 1, conta: _culturasNaDespensa,
     alvo: () => ({ objeto: 'despensa_pensao' }), intro: ['rosa', 'Rosa', ['Domingo é dia de família. O que a horta der, guarda na despensa da pensão: vira comida boa.']] },
-  { id: 'pesca', titulo: 'A primeira pescaria', quem: 'Seu Lourival', texto: 'Pescar 3 peixes no píer da praia', meta: 3, depois: 'bico', dia: 'pesca', carta: 'lourival_praia', libera: 'praia', conta: () => G.guia.cont.pescou || 0, alvo: () => ({ morador: 'lourival' }) },
-  { id: 'bazar', titulo: 'O Bazar do Salim', quem: 'Seu Salim', texto: 'Visitar o Bazar do Salim (no Mercado)', meta: 1, depois: 'pesca', comoDepois: 'aberta', dia: 'bazar', carta: 'folheto_salim', libera: 'bazar', conta: () => G.guia.cont.bazar || 0, alvo: () => ({ objeto: 'balcao_bazar' }) },
-  { id: 'pedreira', titulo: 'A pedreira', quem: 'Seu Tonico', texto: 'Quebrar 10 pedras na pedreira', meta: 10, depois: 'bazar', comoDepois: 'aberta', dia: 'pedreira', carta: 'tonico_pedreira', libera: 'pedreira', conta: () => G.guia.cont.pedreira || 0, alvo: () => ({ morador: 'tonico' }) },
-  { id: 'mina', titulo: 'A mina', quem: 'Seu Tonico', texto: 'Descer na mina do Seu Tonico', depois: 'pedreira', dia: 'mina', carta: 'tonico_bancadas', libera: 'mina', feita: () => !!G.mina && G.mina.maisFunda >= 1 },
+  { id: 'pesca', agora: 'O Seu Lourival chamou para pescar no píer: peixe vende na banca e vira prato na pensão', titulo: 'A primeira pescaria', quem: 'Seu Lourival', texto: 'Pescar 3 peixes no píer da praia', meta: 3, depois: 'bico', dia: 'pesca', carta: 'lourival_praia', libera: 'praia', conta: () => G.guia.cont.pescou || 0, alvo: () => ({ morador: 'lourival' }) },
+  { id: 'bazar', agora: 'O Bazar do Salim abriu no Mercado: coisas para a família (garrafa térmica, bicicleta, fogão)', titulo: 'O Bazar do Salim', quem: 'Seu Salim', texto: 'Visitar o Bazar do Salim (no Mercado)', meta: 1, depois: 'pesca', comoDepois: 'aberta', dia: 'bazar', carta: 'folheto_salim', libera: 'bazar', conta: () => G.guia.cont.bazar || 0, alvo: () => ({ objeto: 'balcao_bazar' }) },
+  { id: 'pedreira', agora: 'A pedreira do Seu Tonico abriu: pedra boa para a obra e para o Grêmio', titulo: 'A pedreira', quem: 'Seu Tonico', texto: 'Quebrar 10 pedras na pedreira', meta: 10, depois: 'bazar', comoDepois: 'aberta', dia: 'pedreira', carta: 'tonico_pedreira', libera: 'pedreira', conta: () => G.guia.cont.pedreira || 0, alvo: () => ({ morador: 'tonico' }) },
+  { id: 'mina', agora: 'A mina do Seu Tonico: ferro para ferramentas melhores', titulo: 'A mina', quem: 'Seu Tonico', texto: 'Descer na mina do Seu Tonico', depois: 'pedreira', dia: 'mina', carta: 'tonico_bancadas', libera: 'mina', feita: () => !!G.mina && G.mina.maisFunda >= 1 },
 ];
 const GUIA_SISTEMAS = ['pensao', 'horta', 'quadro', 'gremio', 'praia', 'bazar', 'pedreira', 'mina'];
 const Guia = {
@@ -94,7 +93,7 @@ const Guia = {
   _fechar(m) {
     const g = G.guia; g.abertas = g.abertas.filter(x => x !== m.id); g.feitas.push(m.id); g.versao++;
     const premio = Guia.premiar(m.id);
-    if (g.ativo) { if (typeof avisar === 'function') avisar(`Missão cumprida: ${m.titulo || m.texto}!${premio ? ' Ganhou ' + premio + '.' : ''}`); if (typeof sons !== 'undefined') sons.tocar('fanfarra', 1.1, 0, -8); if (m.aoFeita) m.aoFeita(); }
+    if (g.ativo) { if (premio && typeof avisar === 'function') avisar(`${m.quem} agradeceu: ${premio}.`); if (m.aoFeita) m.aoFeita(); }
     else if (premio && typeof avisar === 'function') avisar('+ ' + premio);
   },
   // A recompensa (ECO.guia.recompensas): na mochila (o que não couber cai no chão) ou na despensa da pensão. Devolve o texto.
@@ -162,7 +161,9 @@ const Guia = {
   // Para os testes antigos (que usam os sistemas em qualquer dia): tudo liberado e todas as missões feitas.
   liberarTudo() { if (!G.guia) G.guia = Guia.novo(true); G.guia.antes = GUIA_SISTEMAS.slice(); G.guia.feitas = GUIA_MISSOES.map(m => m.id); G.guia.abertas = []; },
 };
-// As cartas do roteiro só chegam pelo guia (não pela data antiga).
+// As cartas do roteiro só chegam pelo guia (não pela data antiga). A da horta saiu do roteiro em 13/10 (as sementes vêm na
+// chegada, da mão do Tio Juca): não chega mais.
+if (typeof CARTAS !== 'undefined' && CARTAS.juca_horta) CARTAS.juca_horta.dia = 1e9;
 for (const m of GUIA_MISSOES) if (m.carta && typeof CARTAS !== 'undefined' && CARTAS[m.carta]) CARTAS[m.carta].dia = 1e9;
 // ---------- no jogo ----------
 function guiaEvento(tipo, dado) { try { Guia.evento(tipo, dado); } catch (e) { } }
@@ -183,7 +184,7 @@ ATUALIZADORES.push(() => {
     abrirConversa(nome, urlArte('retratos/' + id + '_normal'), paginas);
   }
 });
-TAREFAS.push(() => Guia.linhas());
+// (13/10: as missões não ficam mais pregadas na tela; o cartão da família mostra a de agora, em palavras de gente)
 ANTES_DE_CONVERSAR.push(p => { guiaEvento('conversou', p.id); return false; });
 // Os eventos que contam: a pesca (embrulho), o Bazar aberto (embrulho), a limpeza e a pedreira (gancho em quebrar).
 { const p0 = pegouPeixe; pegouPeixe = function (...a) { const r = p0.apply(this, a); guiaEvento('pescou'); return r; }; }
@@ -214,7 +215,7 @@ let guiaPasso = function () {
   if (g.abertas.includes('obra') && G.mapaId === 'vila') {
     const l = G.obra.lista && G.obra.lista.dia === G.dia ? G.obra.lista : null, fechada = Obra.aberta(G.dia, G.minutos);
     if (fechada && fechada !== 'cedo') return null;   // de tarde, no domingo e na chuva a obra não está aberta: sem dica
-    if (!l) return { id: 'bira', nome: 'Mestre Bira', texto: fechada === 'cedo' ? 'A obra abre às 7h. Enquanto isso, dá pra limpar o quintal.' : 'Bom dia! Fale comigo para pegar a lista do dia (botão direito em mim).', alvo: { morador: 'bira' } };
+    if (!l) return { id: 'bira', nome: 'Mestre Bira', texto: 'Bom dia! Fale comigo para pegar a lista do dia (botão direito em mim).', alvo: { morador: 'bira' } };
     if (Obra.completa()) return l.paga ? null : { id: 'bira', nome: 'Mestre Bira', texto: 'Lista completa! Fale comigo para receber a diária.', alvo: { morador: 'bira' } };
     if (G.jog && G.jog.carga && typeof CARGA_TAREFA !== 'undefined' && CARGA_TAREFA[G.jog.carga.id]) return { id: 'bira', nome: 'Mestre Bira', texto: 'Agora leve até a obra da casa da Dona Zélia.', alvo: { objeto: 'casa_zelia' } };
     const id = Object.keys(l.metas).find(k => (l.feito[k] || 0) < l.metas[k]);

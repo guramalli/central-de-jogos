@@ -36,6 +36,8 @@ function dormir(desmaiou = false) {
   if (!linhas.length) linhas.push('Um dia tranquilo.');
   linhas.push('Dinheiro: Cr$ ' + G.dinheiro);
   if (typeof Bazar !== 'undefined') { const m = Bazar.meta(); if (m) linhas.push(`Juntando para: ${m.nome} (Cr$ ${Math.max(0, Math.min(G.dinheiro, m.preco))}/${m.preco})`); }
+  // (13/10) O dinheiro tem destino à vista, como no Stardew: a meta da família no fim do dia.
+  if (typeof metaFamilia === 'function') { const mf = metaFamilia(); if (mf) linhas.push(`A meta da família: ${mf.texto}`); }
   const diaQueAcabou = G.dia;
   // Vira o dia.
   relogio.novoDia();

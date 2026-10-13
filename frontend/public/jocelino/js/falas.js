@@ -27,19 +27,23 @@ Object.assign(FALAS, {
 // Depois da conversa: o Ananias abre o depósito (como o Pierre).
 const FALAS_DEPOIS = { ananias: () => entrarDeposito() };
 
-// O jogo novo: as boas-vindas do Tio Juca (o primeiro dia do Stardew, com a Pensão da Rosa no horizonte).
+// O jogo novo: a chegada (a abertura, abertura.js, conta Aracaju, a carta e a viagem; aqui o Tio Juca recebe no quintal). Como
+// o Lewis do Stardew: o norte (o terreno é de vocês), o serviço (o Bira paga por dia) e o objeto na mão (as sementes, para a
+// necessidade de limpar nascer da semente, e não de uma ordem). 13/10: "a pessoa entra e sabe exatamente do que se trata".
+const FALA_CHEGADA = [
+  'Ô, Jocelino! Chegou inteiro de Aracaju? Aquele terreno das bandeirinhas, do lado da minha casa, é de vocês. Um dia vocês levantam a casa de vocês ali.',
+  'Mas casa não sai do chão sem ofício e sem dinheiro. O Mestre Bira, lá na Vila, contrata servente e paga por dia. É descendo o caminho, e ele trabalha de sol a sol.',
+  'Enquanto isso, a gente come do quintal. Arrumei um canteirinho do lado de casa: toma essas sementes de alface. Planta com o botão direito e rega com o regador (o barril enche).',
+  'O resto do quintal tá tomado de mato: mato é na foice, pedra na picareta, galho e toco no machado. Quanto mais limpo, mais horta. E a Rosa mandou duas marmitas: botão direito na barra pra comer.',
+];
 INICIADORES.push(s => { if (!s.boasVindas && !/teste=1|pensao=1/.test(location.search)) setTimeout(() => boasVindas(s), 600); });
 function boasVindas(s) {
   s.boasVindas = true;
-  // Com o guia (Frente 4): 3 páginas, e a missão do quintal aparece no quadro; sem o guia, as 6 de sempre.
-  abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), G.guia && G.guia.ativo ? ['Ô, Jocelino! Chegou inteiro de Aracaju? A Rosa e as crianças ficam aqui comigo por enquanto.',
- 'Me ajuda a limpar o quintal? Mato é na foice, pedra na picareta, galho e toco no machado: escolhe na barra lá embaixo (mouse ou números) e clica.',
- 'O botão direito conversa e abre as coisas. Às 7h o Mestre Bira te espera na obra, lá na Vila, descendo o caminho. O que fazer fica sempre no quadro, no canto da tela.'] : [
-    'Ô, Jocelino! Chegou inteiro de Aracaju? Dois dias de ônibus não é brincadeira, não.',
-    'A Rosa e as crianças ficam aqui comigo por enquanto. Apertado, mas é de coração.',
-    'Ela anda com uma ideia na cabeça: cozinhar pra fora. Diz que o PF dela é o melhor de Sergipe!',
-    'Enquanto isso, ajuda aqui no quintal: mato é na foice, pedra na picareta; galho, toco e árvore no machado.',
-    'Escolhe a ferramenta na barra lá embaixo (mouse ou números) e clica no que quer limpar. Botão direito conversa e abre as coisas.',
-    'A Vila fica descendo o caminho. O Seu Ananias, do depósito, compra o que sobrar e vende de tudo.',
-  ]);
+  presentesDaChegada();
+  abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), FALA_CHEGADA);
+}
+// O que o Tio Juca e a Rosa dão na chegada (o pacote de presente do Stardew: 15 sementes, exatamente o canteiro).
+function presentesDaChegada() {
+  for (const [id, n] of [['semente_alface', 15], ['marmita', 2]]) { const sobra = G.mochila.adicionar(id, n); if (sobra && typeof soltar === 'function' && G.jog) soltar(id, sobra, G.jog.x, G.jog.y); }
+  hudSujo();
 }

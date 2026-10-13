@@ -3,13 +3,17 @@
 // fileira) e, na pensão, o selo da fama. A mochila (E) mostra os 36 espaços: clique pega/solta/troca, direito pega um.
 
 let _hudSujo = true;
-function hudSujo() { _hudSujo = true; }
+function hudSujo() { _hudSujo = true; HUD._cartaoSujo = true; }
 const HUD = {};
 
 function montaHud() {
   const h = $('#hud');
   h.innerHTML = ''; HUD.forca = null;
   HUD.quadro = el('div', { class: 'painel quadro' });
+  // O cartão da família (13/10): a meta da casa e o "Agora"; o quadro de tarefas fica embaixo, só com o trabalho na mão.
+  HUD.cartao = el('div', { class: 'painel cartao', hidden: true }, HUD.cartaoTitulo = el('div', { class: 'c-titulo' }), el('div', { class: 'c-fundo' }, HUD.cartaoNivel = el('div', { class: 'c-nivel' })),
+    HUD.cartaoTexto = el('div', { class: 'c-texto' }), HUD.cartaoAgora = el('div', { class: 'c-agora' }));
+  HUD.colEsq = el('div', { class: 'col-esq' }, HUD.cartao, HUD.quadro);
   HUD.relogio = el('div', { class: 'painel relogio' }, HUD.dia = el('div', { class: 'dia' }), HUD.estacao = el('div', { class: 'estacao' }),
     HUD.hora = el('div', { class: 'hora' }), HUD.dinheiro = el('div', { class: 'dinheiro' }));
   HUD.meta = el('div', { class: 'painel meta-bazar', hidden: true }, HUD.metaTexto = el('div', { class: 'meta-texto' }), el('div', { class: 'meta-fundo' }, HUD.metaNivel = el('div', { class: 'meta-nivel' })));
@@ -21,7 +25,7 @@ function montaHud() {
   HUD.botaoHab = el('button', { class: 'botao botao-hab', title: 'Habilidades (H)', onclick: () => abrirHabilidades() }, '★');
   HUD.botaoFab = el('button', { class: 'botao botao-fab', title: 'Fabricar (B)', onclick: () => abrirFabricar() }, el('img', { src: urlItem('colher'), style: 'height:18px;vertical-align:middle' }));
   HUD.botaoCad = el('button', { class: 'botao botao-cad', title: 'Caderneta: o que dá para fazer (J)', onclick: () => abrirCaderneta() }, '✎');
-  h.append(HUD.quadro, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad);
+  h.append(HUD.colEsq, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad);
 }
 
 function atualizaHud() {
@@ -54,19 +58,18 @@ function atualizaHud() {
     const fora = G.mochila.slots.slice(12).filter(Boolean).length;
     HUD.dicaBarra.textContent = fora ? `Tab: próxima fileira (${fora} ${fora === 1 ? 'item' : 'itens'})` : '';
   }
-  // Na pensão aberta, a tela é do restaurante (como no Dave): some o quadro de tarefas.
+  // Na pensão aberta, a tela é do restaurante (como no Dave): some o quadro de tarefas e o cartão.
   const noSalao = noSalaoDaPensao() && G.pensao && G.pensao.estado === 'aberta';
-  const tarefas = noSalao ? [] : (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []);
+  const todas = noSalao ? [] : (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []);
+  // (13/10) O quadro só com o trabalho na mão (a linha no mapa dela); os avisos vão para o "Agora" e para a Caderneta.
+  const tarefas = todas.filter(t => typeof noMapaDaLinha === 'function' ? noMapaDaLinha(t) : true);
   HUD.quadro.hidden = !tarefas.length;
-  // As metas da Rosa (★) vêm primeiro: são o caminho da pensão.
-  // A missão do guia (➤, Frente 4) vem antes de tudo.
-  const peso = t => t.texto.startsWith('➤') ? 2 : t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
+  const peso = t => t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
   const txt = tarefas.slice(0, 6).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
-  if (HUD.quadro._txt !== txt) {
-    HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; const vis = tarefas.slice(0, 6);
-    (txt ? txt.split('|') : []).forEach((t, i) => HUD.quadro.append(el('div', t.startsWith('➤') ? { class: 'guia' }
-      : vis[i] && vis[i].ideia ? { class: 'ideia', title: 'Clique: a seta mostra onde', onclick: () => { G.setaFixa = G.setaFixa === vis[i].ideia ? null : vis[i].ideia; hudSujo(); } } : {}, t)));
-  }
+  if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t)); }
+  // O cartão: recalculado quando o HUD suja ou a cada meio segundo de jogo.
+  const ag = G.agora || 0;
+  if (typeof atualizaCartao === 'function' && (HUD._cartaoSujo || ag - (HUD._tCartao || -9) > 0.5 || ag < (HUD._tCartao || 0))) { HUD._cartaoSujo = false; HUD._tCartao = ag; atualizaCartao(todas.filter(t => !t.mapa), noSalao); }
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }
 ATUALIZADORES.push(() => atualizaHud());

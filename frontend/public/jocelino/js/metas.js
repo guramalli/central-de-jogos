@@ -115,7 +115,7 @@ ATUALIZADORES.push(dt => {
 TAREFAS.push(() => {
   const p = G.pensao;
   if (!p || p.estado !== 'aberta' || !p.metas) return [];
-  return p.metas.filter(m => !m.feita).map(m => ({ texto: '★ ' + m.texto, feito: Math.min(m.atual || 0, m.alvo), meta: m.alvo }));
+  return p.metas.filter(m => !m.feita).map(m => ({ texto: '★ ' + m.texto, feito: Math.min(m.atual || 0, m.alvo), meta: m.alvo, mapa: 'pensao' }));
 });
 // A tela da Caderneta de Metas.
 function abrirMetas() {

@@ -201,9 +201,9 @@ TAREFAS.push(() => {
   if (!p || p.estado !== 'aberta') return [];
   const r = [];
   const v = Eventos.hoje(p, G.dia, 'vip'), f = Eventos.hoje(p, G.dia, 'festa');
-  if (v) r.push({ texto: `Hoje janta ${vipDe(v.id).nome}: quer ${Pratos.PRATOS[v.prato].nome}` });
-  if (f) r.push({ texto: `Hoje é a ${f.nome}: ${Pratos.PRATOS[f.prato].nome} vale mais` });
-  for (const e of p.agenda || []) if (e.tipo === 'pedido' && !e.fim) r.push({ texto: `${e.quem}: ${Pratos.PRATOS[e.prato].nome} até ${DIAS[(e.ate - 1) % 7]}`, feito: e.feito, meta: e.qtd });
+  if (v) r.push({ texto: `Hoje janta ${vipDe(v.id).nome}: quer ${Pratos.PRATOS[v.prato].nome}`, mapa: 'pensao' });
+  if (f) r.push({ texto: `Hoje é a ${f.nome}: ${Pratos.PRATOS[f.prato].nome} vale mais`, mapa: 'pensao' });
+  for (const e of p.agenda || []) if (e.tipo === 'pedido' && !e.fim) r.push({ texto: `${e.quem}: ${Pratos.PRATOS[e.prato].nome} até ${DIAS[(e.ate - 1) % 7]}`, feito: e.feito, meta: e.qtd, mapa: 'pensao' });
   return r;
 });
 // O quadro de pedidos da Vila mostra os pedidos.

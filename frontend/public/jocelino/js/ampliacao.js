@@ -65,7 +65,7 @@ MANHA.push(() => {
 });
 TAREFAS.push(() => {
   const p = G.pensao;
-  return p && p.obra && !p.obra.hoje ? [{ texto: `Trabalhar na obra da pensão (${Ampliacao.dados(p.obra.id).nome}: faltam ${p.obra.falta} dias)` }] : [];
+  return p && p.obra && !p.obra.hoje ? [{ texto: `Trabalhar na obra da pensão (${Ampliacao.dados(p.obra.id).nome}: faltam ${p.obra.falta} dias)`, mapa: 'vila' }] : [];
 });
 
 // ---------- a tela "Ampliar a pensão" (sai da tela A Pensão) ----------

@@ -110,14 +110,6 @@ async function iniciarJogo(save) {
   return true;
 }
 
-// O Novo jogo pergunta pelo guia das primeiras semanas (Frente 4).
-function perguntaGuia() {
-  const capa = $('#capa'), comecar = ativo => { const s = novoSave(); s.guia = Guia.novo(ativo); iniciarJogo(s); };
-  capa.querySelector('.botoes').replaceWith(el('div', { class: 'botoes' }, el('div', { class: 'sub' }, 'Quer o guia das primeiras semanas?'),
-    el('button', { class: 'botao forte', onclick: () => comecar(true) }, 'Sim, com o guia'),
-    el('button', { class: 'botao', onclick: () => comecar(false) }, 'Já conheço o jogo'),
-    el('button', { class: 'botao', onclick: () => mostrarCapa() }, 'Voltar')));
-}
 // Capa: Continuar (se houver save) ou Novo jogo.
 function mostrarCapa() {
   { const d = document.getElementById('guia-dica'); if (d) { d.hidden = true; d._chave = ''; } }   // a dica do guia não fica por cima da capa
@@ -130,7 +122,7 @@ function mostrarCapa() {
     el('div', { class: 'teclas' }, 'WASD anda · clique usa a ferramenta · botão direito conversa e age · E mochila · F tela cheia'),
     el('div', { class: 'botoes' },
       tem ? el('button', { class: 'botao forte', onclick: () => iniciarJogo(lerSave()) }, 'Continuar') : null,
-      el('button', { class: 'botao' + (tem ? '' : ' forte'), onclick: () => perguntaGuia() }, 'Novo jogo'))));
+      el('button', { class: 'botao' + (tem ? '' : ' forte'), onclick: () => novoJogo() }, 'Novo jogo'))));
   capa.hidden = false;
 }
 

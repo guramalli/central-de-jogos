@@ -1,10 +1,11 @@
 // Jocelino — obra.js — a obra do Mestre Bira (lista_mestre.gd do Godot), as regras: a lista de tarefas do dia (de
-// manhã, 7h–12h), a diária da função, o extra, o imprevisto do cimento, as etapas de cada obra (2 dias trabalhados
+// de sol a sol, 6h–17h), a diária da função, o extra, o imprevisto do cimento, as etapas de cada obra (2 dias trabalhados
 // por etapa, com gratificação) e as obras em sequência, cada uma no seu lugar com a arte das etapas.
 
 const FUNCOES = ['Servente', 'Meio-oficial', 'Pedreiro', 'Mestre de obras'];
 const DIARIAS = ECO.obra.diarias;
-const OBRA_ABRE = 7 * 60, OBRA_FECHA = 12 * 60, OBRA_EXTRA = ECO.obra.extra, OBRA_GORJETA = ECO.obra.gorjeta, OBRA_IMPREVISTO = ECO.obra.imprevisto, DIAS_POR_ETAPA = 2;
+// (a obra é de sol a sol: das 6h, quando o Jocelino acorda, às 17h, quando a pensão abre; 13/10)
+const OBRA_ABRE = 6 * 60, OBRA_FECHA = 17 * 60, OBRA_EXTRA = ECO.obra.extra, OBRA_GORJETA = ECO.obra.gorjeta, OBRA_IMPREVISTO = ECO.obra.imprevisto, DIAS_POR_ETAPA = 2;
 const TAREFAS_OBRA = {
   tijolos: { texto: 'Carregar tijolos', meta: 20, hab: 'alvenaria', xp: 1 },
   areia: { texto: 'Peneirar areia', meta: 5, hab: 'alvenaria', xp: 3 },

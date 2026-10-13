@@ -127,8 +127,8 @@ const ECO = {
     presentes: { aquario: { covo: 1 }, deposito: { betoneira: 1 } },
     efeitos: { achados: 2, deposito: 0.9, diasTonico: 1, fundir: 0.5, varaBoa: 0.5, clientesSabado: 2 } },
   quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } } },
-  guia: { dias: { pensao: 2, horta: 3, quadro: 1, gremio: 6, domingo: 7, pesca: 8, bazar: 9, pedreira: 10, mina: 12 }, espera: 3, maxAbertas: 2,
-    recompensas: { quintal: { mochila: { marmita: 2 } }, horta: { mochila: { esterco: 5, semente_alface: 5 } },
+  guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 8, bazar: 9, pedreira: 10, mina: 12 }, espera: 3, maxAbertas: 2,
+    recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
       janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
 };
 // Põe o número do ECO no campo de cada linha de uma tabela do jogo: o arquivo dono fica com o conteúdo (nome, arte, etapas) e

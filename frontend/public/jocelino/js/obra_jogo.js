@@ -1,7 +1,7 @@
 // Jocelino — obra_jogo.js — a obra do Bira no mapa (o roteiro do Godot: roteiro.gd/_bira/trabalho/_gratificacao):
 // a conversa com o Mestre Bira (lista da manhã, pagamento, extra, imprevisto, horário), as tarefas nos objetos do
 // canteiro (monte, peneira, masseira, entulho, mato, regador e colher na parede), a carga entregue na obra, a arte da
-// etapa e o meio-dia (a parte feita fica a receber). As regras estão em obra.js.
+// etapa e o fim do expediente às 17h (a parte feita fica a receber). As regras estão em obra.js.
 
 const CANTEIRO = { x: 29, y: 3, w: 16, h: 6 };                 // onde renascem o entulho e o mato da obra
 const EXTRAS_OBRA = { tijolos: 10, areia: 3, massa: 2, pedras: 5, telhas: 10, ripas: 5 };
@@ -44,8 +44,8 @@ function conversarBira() {
   const fechada = Obra.aberta(G.dia, G.minutos);
   if (fechada === 'domingo') return falaBira('Domingo é dia de descanso, rapaz. Vai cuidar das suas coisas.');
   if (fechada === 'chuva') return falaBira('Com essa chuva não dá pra trabalhar. Hoje a obra fica fechada.');
-  if (fechada === 'cedo') return falaBira('A obra abre às 7h. Toma um café e volta.');
-  if (fechada === 'tarde') return falaBira('A obra é só de manhã, das 7h ao meio-dia. De tarde é com você: os bicos do quadro, a horta, o que quiser. Amanhã cedo tem mais.');
+  if (fechada === 'cedo') return falaBira('Ainda tá escuro, rapaz. Assim que o sol sair a gente começa.');
+  if (fechada === 'tarde') return falaBira('Por hoje a obra parou, rapaz: às cinco a turma vai embora. Amanhã tem mais, a hora que você chegar.');
   let l = listaDeHoje();
   // 4) A lista do dia.
   if (!l) {
@@ -209,10 +209,10 @@ function quebrouNaObra(o) {
 AO_MONTAR.push(b => { if (b.id === 'vila') { poeObraNoMapa(b); poeEntulhoDaObra(b); } });
 AO_ENTRAR_MAPA.push(id => { if (id === 'vila') poeObraNoMapa(G.mapa); });
 MANHA.push(() => { if (MAPAS.vila) { poeObraNoMapa(MAPAS.vila); poeEntulhoDaObra(MAPAS.vila); } });
-// Meio-dia: a obra fecha; a parte feita fica a receber.
+// Às 17h a obra para; a parte feita fica a receber.
 ATUALIZADORES.push(() => {
   const l = G.obra && listaDeHoje();
-  if (l && G.minutos >= OBRA_FECHA && !l.paga && !l.fechado) { const r = Obra.fecharDia(); if (r.valor) avisar(`Meio-dia: a obra fechou. A parte que você fez (Cr$ ${r.valor}) o Bira acerta depois.`); }
+  if (l && G.minutos >= OBRA_FECHA && !l.paga && !l.fechado) { const r = Obra.fecharDia(); if (r.valor) avisar(`Cinco da tarde: a obra parou. A parte que você fez (Cr$ ${r.valor}) o Bira acerta depois.`); }
 });
 // A noite: o dia trabalhado faz a obra andar; a etapa nova fica para o Bira acertar de manhã.
 NOITE.push(linhas => {
@@ -227,8 +227,8 @@ TAREFAS.push(() => G.obra && Obra.podeSubir() ? [{ texto: G.obra.funcao === 2 ? 
 TAREFAS.push(() => {
   if (!G.obra) return [];
   const l = listaDeHoje(), fechada = Obra.aberta(G.dia, G.minutos);
-  if (!l) return fechada ? [] : [{ texto: 'Obra: falar com o Mestre Bira (7h–12h)' }];
+  if (!l) return fechada ? [] : [{ texto: 'Obra: falar com o Mestre Bira, na Vila' }];
   if (l.paga) return [];
-  if (Obra.completa()) return [{ texto: 'Obra: lista completa, receber com o Bira' }];
-  return Object.keys(l.metas).filter(id => (l.feito[id] || 0) < l.metas[id]).map(id => ({ texto: 'Obra: ' + nomeTarefa(id), feito: l.feito[id] || 0, meta: l.metas[id] }));
+  if (Obra.completa()) return [{ texto: 'Obra: lista completa, receber com o Bira', mapa: 'vila' }];
+  return Object.keys(l.metas).filter(id => (l.feito[id] || 0) < l.metas[id]).map(id => ({ texto: 'Obra: ' + nomeTarefa(id), feito: l.feito[id] || 0, meta: l.metas[id], mapa: 'vila' }));
 });

@@ -16,9 +16,9 @@ const Caderneta = {
 // Hoje: o que tem hora.
 CADERNETA.push(() => {
   const r = [], dom = (G.dia - 1) % 7 === 6, l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
-  if (G.obra && !dom && G.minutos < 12 * 60 && !(l && l.paga)) r.push({ id: 'hoje_obra', aba: 'hoje', hoje: true, texto: 'A obra do Mestre Bira: das 7h ao meio-dia, na Vila', alvo: { mapa: 'vila', morador: 'bira' } });
+  if (G.obra && !Obra.aberta(G.dia, G.minutos) && !(l && l.paga)) r.push({ id: 'hoje_obra', aba: 'hoje', hoje: true, texto: `A obra do Mestre Bira, na Vila: Cr$ ${Obra.diaria()} por dia, até as 17h`, alvo: { mapa: 'vila', morador: 'bira' } });
   if (G.empreitas && _liberado('quadro') && G.empreitas.quadro.length && !Object.keys(G.empreitas.aceitas).length) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: `${G.empreitas.quadro.length} serviço(s) no quadro da Vila (pagam na hora)`, alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } });
-  if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
+  if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
   if (!dom && G.minutos >= 9 * 60 && G.minutos < 17 * 60) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: 'O depósito do Ananias (material, sementes, comida) fecha às 17h', alvo: { mapa: 'vila', objeto: 'deposito' } });
   if (typeof Clima !== 'undefined' && Clima.chove(G.dia)) r.push({ id: 'hoje_chuva', aba: 'hoje', texto: 'Chove hoje: a horta já está regada e a mata dá mais cogumelo' });
   return r;
@@ -101,17 +101,9 @@ function abrirCaderneta(aba = Caderneta.aba || 'hoje') {
   desenha(); abrirModal(caixa); sons.tocar('abrir', 1, 0.03, -6); return true;
 }
 INICIADORES.push(() => { G.setaFixa = null; });
-// As ideias do quadro: sem tarefa aberta (fora as ★ da pensão), 3 linhas da caderneta com lugar — primeiro o que só dá hoje,
+// As ideias (o "Agora" do cartão da família): as linhas da caderneta com lugar — primeiro o que só dá hoje,
 // depois o que está mais perto de pronto; o sorteio do dia desempata (fixo durante o dia).
 Caderneta.ideias = function (n = 3) {
   const f = mulberry(G.dia * 104729), ls = Caderneta.linhas().filter(l => l.alvo).map(l => ({ l, k: (l.hoje ? 2 : 0) + (l.meta ? Math.min(1, (l.feito || 0) / l.meta) : 0) + f() * 0.05 }));
   return ls.sort((a, b) => b.k - a.k).slice(0, n).map(x => x.l);
-};
-const _tarefas0 = tarefasQuadro;
-tarefasQuadro = function () {
-  const t = _tarefas0();
-  if (t.some(x => !x.texto.startsWith('★') && !x.lembrete) || !G.comecou) return t;   // (as ★ e o lembrete da janta não contam)
-  // (o lembrete da janta já está no quadro: a ideia da pensão não repete)
-  const lembrete = t.some(x => x.lembrete);
-  return t.concat(Caderneta.ideias(4).filter(l => !(lembrete && l.id === 'hoje_pensao')).slice(0, 3).map(l => ({ texto: 'Ideia: ' + l.texto, ideia: l.id })));
 };

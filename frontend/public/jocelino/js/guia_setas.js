@@ -86,11 +86,10 @@ function _servicosDaSeta() {
   const ids = Object.keys(G.empreitas.aceitas);
   return ids.filter(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta').concat(ids.filter(k => dadosEmpreita(k) && dadosEmpreita(k).tipo !== 'curta'));
 }
-// A ordem: na hora da obra (das 7h ao meio-dia, lista por receber), a obra vem antes de tudo; depois, a ordem das abertas.
+// A ordem: a das missões abertas (a obra é de sol a sol desde 13/10: não passa mais na frente do quintal de manhã).
 function _missoesDaSeta() {
   const g = G.guia; if (!g || !g.ativo) return [];
-  const ab = g.abertas.slice(), obraAgora = ab.includes('obra') && typeof Obra !== 'undefined' && !Obra.aberta(G.dia, G.minutos);
-  return obraAgora ? ['obra', ...ab.filter(x => x !== 'obra')] : ab;
+  return g.abertas.slice();
 }
 // A posição (px de mundo) de um alvo no mapa de agora, ou null.
 function _posNoMapa(a) {
@@ -148,10 +147,16 @@ function guiaSetaMundo() {
   if (G.setaFixa && typeof Caderneta !== 'undefined') { const l = Caderneta.linha(G.setaFixa);
     if (!l || !l.alvo) G.setaFixa = null; else cands.push(['caderneta', () => { const a = typeof l.alvo === 'function' ? l.alvo() : l.alvo; return a && Object.assign({ rotuloFixo: l.rotulo || l.texto }, a); }]); }
   for (const cid of _servicosDaSeta()) cands.push(['servico', () => _alvoDaEmpreita(cid)]);
+  // (13/10) Primeiro o que dá para fazer no mapa onde o Jocelino está; só depois o caminho para outro lugar.
+  const res = [];
   for (const [id, f] of cands) {
     const a = f(); if (!a) continue;
     if (id === 'caderneta' && !a.det && (!a.mapa || a.mapa === G.mapaId) && _chegou(a)) { G.setaFixa = null; continue; }   // (a limpeza do quintal segue o detrito mais perto: não "chega")
-    if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } continue; }
+    res.push([id, a]);
+  }
+  for (const [id, a] of res) if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } }
+  for (const [id, a] of res) {
+    if (!a.mapa || a.mapa === G.mapaId) continue;
     // Em outro mapa: a saída para lá, ou para a Vila (o centro de tudo).
     const s = (G.mapa.saidas || []).find(x => x.destino === a.mapa) || (G.mapaId !== 'vila' ? (G.mapa.saidas || []).find(x => x.destino === 'vila') : null);
     if (s) { const o = { tipo: 'saida', missao: id, destino: s.destino, mapa: G.mapaId, x: (s.x + s.w / 2) * TILE, y: (s.y + s.h / 2) * TILE - 30 }; o.rotulo = _rotulo(o); return o; }
