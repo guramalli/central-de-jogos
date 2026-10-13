@@ -59,10 +59,39 @@ function agoraFamilia(avisos = []) {
   if (G.empreitas) for (const cid of Object.keys(G.empreitas.aceitas)) { const E = dadosEmpreita(cid), a = G.empreitas.aceitas[cid];
     if (E && E.mapa !== G.mapaId && !(typeof E.familia === 'string' && a.estado === 'reservada')) return `O serviço aceito: ${E.nome} (${typeof ondeFica === 'function' ? ondeFica(E.mapa) : E.mapa})`; }
   if (avisos.length) return avisos[0].texto;
+  // (13/10) Dia vazio: uma sugestão só, com o porquê (a seta é a linha 'ideia_dia', ver Caderneta.linha mais abaixo).
+  const d = ideiaDoDia();
+  if (d) { agoraFamilia.ideia = IDEIA_DIA; return d.texto; }
   const i = typeof Caderneta !== 'undefined' ? Caderneta.ideias(1)[0] : null;
   if (i) { agoraFamilia.ideia = i.id; return i.texto; }
   return 'Dia livre: a horta, o quintal, a pesca, os bicos. Você escolhe.';
 }
+// Com o dia vazio (sem urgente, sem passo do guia, sem a obra por fazer): uma sugestão só, com o porquê (roteiro de 13/10:
+// "se não está fazendo nada, ele pode cuidar da lavoura, da família, criar mais espaço para plantio, continuar a casa nova...
+// você tem que estar jogando por alguma meta, nunca por nada"). Como é no Stardew: não há lista de missões; o mundo mostra o que
+// fazer (a horta pronta, o mato, a casa) e o jogador escolhe. Aqui, uma só, no formato "Texto — o porquê", que o clique no Agora
+// transforma em seta. Sorteio fixo no dia (G.dia % n): amanhã a sugestão é outra.
+const IDEIA_DIA = 'ideia_dia';
+function ideiaDoDia() {
+  const op = [];
+  const prontas = Object.entries((G.horta || {}).covas || {}).filter(([, c]) => c.planta && Horta.madura(c));
+  if (prontas.length) { const [x, y] = prontas[0][0].split(',').map(Number);
+    op.push({ texto: `Colher a horta — ${prontas.length} pé(s) pronto(s): comida para a família e venda na caixa`, alvo: { mapa: 'quintal', ponto: { x: (x + 0.5) * TILE, y: y * TILE } }, rotulo: 'Botão direito: colher' }); }
+  if (typeof QuintalMarcos !== 'undefined' && G.quintalMarcos && QuintalMarcos.proximo())
+    op.push({ texto: `Limpar o quintal — mais chão para plantar e o presente do Tio Juca em ${QuintalMarcos.proximo()}%`, alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' } });
+  if (G.casa && G.casa.aberta && !G.casa.mudou) { const E = ECO.casa.etapas[Math.min(G.casa.etapa || 0, ECO.casa.etapas.length - 1)], T = QUINTAL.TERRENO;
+    op.push({ texto: `A casa nova — ${E.nome}, na plaquinha do terreno do quintal: é a casa da família`, alvo: { mapa: 'quintal', ponto: { x: (T.x + T.w / 2) * TILE, y: (T.y + T.h / 2) * TILE } } }); }
+  if (typeof Guia !== 'undefined' && Guia.liberado('quadro')) op.push({ texto: 'Um serviço do quadro da Vila — paga na hora, e o dinheiro vai para a pensão', alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } });
+  if (G.lugares && G.lugares.praia) op.push({ texto: 'Pescar no píer — peixe vira prato na pensão', alvo: { mapa: 'praia', morador: 'lourival' } });
+  // O sonho da Rosa (o restaurante): a entrada da lojinha, e depois a reforma pela metade.
+  if (G.lojinha && G.lojinha.conversou && !G.lojinha.comprada) op.push({ texto: `Juntar a entrada da lojinha — Cr$ ${Math.min(Math.max(0, G.dinheiro), ECO.lojinha.entrada)} de ${ECO.lojinha.entrada}: é o sonho da Rosa, o restaurante dela`, alvo: { mapa: 'vila', objeto: 'pensao' } });
+  else if (G.pensao && (G.pensao.estado === 'limpar' || ECO.reforma.some(e => e.id === G.pensao.estado))) op.push({ texto: 'Tocar a reforma da pensão — a Rosa só abre o restaurante com o salão pronto', alvo: { mapa: 'vila', objeto: 'pensao' } });
+  if (!op.length) return null;
+  const o = op[G.dia % op.length];
+  return Object.assign({ rotulo: o.texto.split(' — ')[0] }, o);
+}
+// A seta da ideia do dia: o clique no Agora fixa a linha 'ideia_dia'; a seta (guia_setas.js) a lê aqui, como lê as da Caderneta.
+if (typeof Caderneta !== 'undefined') { const _linha = Caderneta.linha; Caderneta.linha = id => id === IDEIA_DIA ? (d => d && Object.assign({ id: IDEIA_DIA, aba: 'hoje' }, d))(ideiaDoDia()) : _linha(id); }
 // As pendências (os avisos) na Caderneta, aba Hoje: nada se perde por sair da tela.
 CADERNETA.push(() => (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []).filter(t => !noMapaDaLinha(t)).map((t, i) => ({ id: 'pend_' + i, aba: 'hoje', texto: t.texto + (t.meta ? ` (${t.feito}/${t.meta})` : '') })));
 // O cartão no HUD: a meta (título, barrinha e o passo) e o "Agora".

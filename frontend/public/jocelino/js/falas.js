@@ -36,8 +36,8 @@ const FALAS_DEPOIS = { ananias: () => entrarDeposito() };
 // necessidade de limpar nascer da semente, e não de uma ordem). 13/10: "a pessoa entra e sabe exatamente do que se trata".
 const FALA_CHEGADA = [
   'Ô, Jocelino! Chegou inteiro de Aracaju? Aquele terreno das bandeirinhas, do lado da minha casa, é de vocês. Um dia vocês levantam a casa de vocês ali.',
-  'Mas casa não sai do chão sem ofício e sem dinheiro. O Mestre Bira, lá na Vila, contrata servente e paga por dia. É descendo o caminho, e ele trabalha de sol a sol.',
-  'Enquanto isso, a gente come do quintal. Arrumei um canteirinho do lado de casa: toma essas sementes de alface. Planta com o botão direito e rega com o regador (o barril enche).',
+  'Mas casa não sai do chão sem ofício e sem dinheiro. Dinheiro, por enquanto, vem da Vila: o Mestre Bira paga diária pra servente. Vai lá falar com ele, descendo o caminho; a obra dele é de sol a sol.',
+  'O canteiro do lado da casa é a comida da família: planta, rega todo dia e colhe. O que sobrar a Rosa cozinha ou a caixa de venda leva. Toma essas sementes de alface: planta com o botão direito e rega com o regador (o barril enche).',
   'O resto do quintal tá tomado de mato: mato é na foice, pedra na picareta, galho e toco no machado. Quanto mais limpo, mais horta. E a Rosa mandou duas marmitas: botão direito na barra pra comer.',
 ];
 INICIADORES.push(s => { if (!s.boasVindas && !/teste=1|pensao=1/.test(location.search)) setTimeout(() => boasVindas(s), 600); });
