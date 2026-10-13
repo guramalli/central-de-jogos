@@ -35,3 +35,5 @@ function quebrouNoQuintal(o) {
   const novos = QuintalMarcos.conferir();
   if (novos.length) { sons.tocar('feito', 1, 0.03, -6); abrirConversa('Tio Juca', urlArte('retratos/juca_alegre'), novos.map(m => FALA_MARCO[m])); hudSujo(); }
 }
+// De manhã também (o quintal limpo por outro caminho, o save antigo sem detrito sobrando): o presente fica na mochila e no resumo.
+MANHA.push(() => { if (!G.quintalMarcos) return; const novos = QuintalMarcos.conferir(); if (novos.length && G.feitosHoje) G.feitosHoje.push(`O Tio Juca deixou um presente pelo quintal limpo (${novos.map(m => m + '%').join(', ')}).`); });

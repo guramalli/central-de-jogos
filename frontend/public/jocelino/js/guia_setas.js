@@ -100,6 +100,15 @@ function _posNoMapa(a) {
   if (a.objeto) { const o = G.mapa.objs.find(x => x.id === a.objeto); if (!o) return null; const linhas = new Set((o.tiles || [{ y: 0 }]).map(t => t.y)).size; return { x: o.x, y: o.y - linhas * TILE - 16 }; }
   return null;
 }
+// O Jocelino chegou no alvo (a 2 ladrilhos do objeto ou do morador, ou perto do ponto): a seta fixada já cumpriu o papel.
+function _chegou(a) {
+  if (!G.jog || !G.mapa) return false;
+  const t = G.jog.ladrilho(), perto = (x, y, d) => Math.max(Math.abs(x - t.x), Math.abs(y - t.y)) <= d;
+  if (a.objeto) { const o = G.mapa.objs.find(x => x.id === a.objeto); return !!o && (o.tiles || []).some(q => perto(q.x, q.y, 2)); }
+  if (a.morador) { const p = (G.mapa.moradores || []).find(x => x.id === a.morador); return !!p && Math.hypot(p.x - G.jog.x, p.y - G.jog.y) < 2 * TILE; }
+  if (a.ponto) return Math.hypot(a.ponto.x - G.jog.x, a.ponto.y - G.jog.y) < 2.5 * TILE;
+  return false;
+}
 // A frase de cada seta (o jogador pediu: "não deixe apenas a seta, coloque algo descrevendo").
 const VERBO_DET = { mato: 'capinar o mato', pedra: 'quebrar a pedra', galho: 'cortar o galho', toco: 'cortar o toco', arvore: 'cortar a árvore', pedregulho: 'quebrar a pedra', entulho: 'tirar o entulho' };
 const ROTULO_OBJ = { caixa_correio: 'Botão direito: ler a carta', peneira: 'Botão direito: peneirar', monte_tijolos: 'Botão direito: pegar no monte',
@@ -133,12 +142,15 @@ function guiaSetaMundo() {
   if (!G.mapa) return null;
   const cands = [];
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
+  if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
+  // (Obra do Povo) A linha da caderneta escolhida no Mostrar (ou na ideia): depois das missões do guia; acabou a linha, ou o
+  // Jocelino chegou lá, some a seta (revisão final).
   if (G.setaFixa && typeof Caderneta !== 'undefined') { const l = Caderneta.linha(G.setaFixa);
     if (!l || !l.alvo) G.setaFixa = null; else cands.push(['caderneta', () => { const a = typeof l.alvo === 'function' ? l.alvo() : l.alvo; return a && Object.assign({ rotuloFixo: l.rotulo || l.texto }, a); }]); }
-  if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
   for (const cid of _servicosDaSeta()) cands.push(['servico', () => _alvoDaEmpreita(cid)]);
   for (const [id, f] of cands) {
     const a = f(); if (!a) continue;
+    if (id === 'caderneta' && !a.det && (!a.mapa || a.mapa === G.mapaId) && _chegou(a)) { G.setaFixa = null; continue; }   // (a limpeza do quintal segue o detrito mais perto: não "chega")
     if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } continue; }
     // Em outro mapa: a saída para lá, ou para a Vila (o centro de tudo).
     const s = (G.mapa.saidas || []).find(x => x.destino === a.mapa) || (G.mapaId !== 'vila' ? (G.mapa.saidas || []).find(x => x.destino === 'vila') : null);

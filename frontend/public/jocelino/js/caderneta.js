@@ -6,6 +6,8 @@
 const CADERNETA_ABAS = [['hoje', 'Hoje'], ['quintal', 'Quintal e horta'], ['carreira', 'Carreira'], ['vila', 'Vila'], ['pensao', 'Pensão']];
 const CADERNETA = [];
 const DICA_XP = { folego: 'limpar, cortar e quebrar', alvenaria: 'a pá, a obra e o entulho', acabamento: 'as empreitas de acabamento', negocio: 'vender', roca: 'colher a horta', pesca: 'pescar' };
+// "falta 1 obra" / "faltam 5 alfaces, 5 couves" (a concordância com o que falta).
+const faltaTxt = partes => ((partes.length > 1 || parseInt(partes[0], 10) > 1) ? 'faltam ' : 'falta ') + partes.join(', ');
 const _liberado = sis => typeof Guia === 'undefined' || Guia.liberado(sis);
 const Caderneta = {
   linhas() { const r = []; for (const f of CADERNETA) { try { r.push(...(f() || [])); } catch (e) { console.error('caderneta', e); } } return r; },
@@ -46,7 +48,7 @@ CADERNETA.push(() => {
   const r = [];
   if (G.obra && typeof Obra !== 'undefined') { const f = Obra.falta(); if (f) { const prox = FUNCOES[G.obra.funcao + 1], partes = [];
     if (f.obras) partes.push(`${f.obras} obra(s) do Bira`); if (f.alvenaria) partes.push(`Alvenaria +${f.alvenaria} nível(is)`); if (f.empreitas) partes.push(`${f.empreitas} serviço(s) do quadro`);
-    r.push({ id: 'carreira_funcao', aba: 'carreira', texto: partes.length ? `Para ${prox}: falta ${partes.join(', ')}` : `${prox}: fale com o Mestre Bira!`, alvo: { mapa: 'vila', morador: 'bira' } }); } }
+    r.push({ id: 'carreira_funcao', aba: 'carreira', texto: partes.length ? `Para ${prox}: ${faltaTxt(partes)}` : `${prox}: fale com o Mestre Bira!`, alvo: { mapa: 'vila', morador: 'bira' } }); } }
   if (typeof Ferreiro !== 'undefined' && G.ferreiro && !G.ferreiro.oficina) {
     const op = Ferreiro.FERRAMENTAS.map(id => [id, Ferreiro.custo(id)]).filter(([, c]) => c).sort((a, b) => a[1].dinheiro - b[1].dinheiro)[0];
     if (op) { const [id, c] = op, m = Object.keys(c).find(k => k !== 'dinheiro');
@@ -62,7 +64,7 @@ CADERNETA.push(() => {
   if (typeof Gremio !== 'undefined' && G.gremio && Gremio.aberto()) for (const a of GREMIO_ALAS.filter(a => Gremio.alaAberta(a.id) && !Gremio.alaPronta(a.id))) {
     const pid = a.pacotes.filter(p => !Gremio.pronto(p)).sort((x, y) => Gremio.progresso(y) - Gremio.progresso(x))[0]; if (!pid) continue;
     const P = Gremio.pacote(pid), f = Gremio.falta(pid);
-    r.push({ id: 'gremio_' + pid, aba: 'vila', texto: `Grêmio, ${a.nome}: ${P.nome} (falta ${Object.entries(f).map(([id, n]) => id === 'dinheiro' ? 'Cr$ ' + n : Itens.qtd(n, id)).join(', ')})`,
+    r.push({ id: 'gremio_' + a.id, aba: 'vila', texto: `Grêmio, ${a.nome}: ${P.nome} (${faltaTxt(Object.entries(f).map(([id, n]) => id === 'dinheiro' ? 'Cr$ ' + n : Itens.qtd(n, id)))})`,
       feito: Math.round(Gremio.progresso(pid) * 100), meta: 100, alvo: { mapa: 'vila', objeto: 'gremio' }, rotulo: 'Botão direito: a lista do povo' });
   }
   const b = typeof Bazar !== 'undefined' && Bazar.meta();
@@ -76,7 +78,7 @@ CADERNETA.push(() => {
   const p = G.pensao; if (!p || p.estado !== 'aberta') return [];
   const r = [], prox = p.proximoDegrau && p.proximoDegrau();
   if (prox) { const f = prox.falta, partes = []; if (f.curtidas) partes.push(`${f.curtidas} curtidas`); if (f.sabor) partes.push(`sabor +${f.sabor}`); if (f.pesquisadas) partes.push(`${f.pesquisadas} receita(s) pesquisada(s)`);
-    r.push({ id: 'pensao_degrau', aba: 'pensao', texto: `Próxima estrela (${prox.nome}): falta ${partes.join(', ') || 'pouco'}`, feito: Math.round(p.progresso() * 100), meta: 100, alvo: { mapa: 'vila', objeto: 'pensao' } }); }
+    r.push({ id: 'pensao_degrau', aba: 'pensao', texto: `Próxima estrela (${prox.nome}): ${partes.length ? faltaTxt(partes) : 'falta pouco'}`, feito: Math.round(p.progresso() * 100), meta: 100, alvo: { mapa: 'vila', objeto: 'pensao' } }); }
   if (typeof MELHORIAS !== 'undefined') { const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio).sort((a, b) => a[1].preco - b[1].preco)[0];
     if (m) r.push({ id: 'pensao_melhoria', aba: 'pensao', texto: `Melhoria do salão ao alcance: ${m[1].nome} (Cr$ ${m[1].preco})`, feito: Math.min(G.dinheiro, m[1].preco), meta: m[1].preco, alvo: { mapa: 'vila', objeto: 'pensao' } }); }
   return r;
@@ -109,5 +111,7 @@ const _tarefas0 = tarefasQuadro;
 tarefasQuadro = function () {
   const t = _tarefas0();
   if (t.some(x => !x.texto.startsWith('★') && !x.lembrete) || !G.comecou) return t;   // (as ★ e o lembrete da janta não contam)
-  return t.concat(Caderneta.ideias(3).map(l => ({ texto: 'Ideia: ' + l.texto, ideia: l.id })));
+  // (o lembrete da janta já está no quadro: a ideia da pensão não repete)
+  const lembrete = t.some(x => x.lembrete);
+  return t.concat(Caderneta.ideias(4).filter(l => !(lembrete && l.id === 'hoje_pensao')).slice(0, 3).map(l => ({ texto: 'Ideia: ' + l.texto, ideia: l.id })));
 };

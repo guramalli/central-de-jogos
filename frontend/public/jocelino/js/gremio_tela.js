@@ -19,14 +19,14 @@ function abrirGremio() {
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'A lista do povo — Grêmio Recreativo Vila Maré'));
     for (const a of GREMIO_ALAS) {
       const aberta = Gremio.alaAberta(a.id), pronta = Gremio.alaPronta(a.id);
-      const bloco = el('div', { class: 'gr-ala' + (pronta ? ' pronta' : aberta ? '' : ' fechada') }, el('div', { class: 'gr-nome' }, a.nome + (pronta ? ' — pronta!' : ''), el('span', { class: 'gr-efeito' }, a.efeito)));
+      const bloco = el('div', { class: 'gr-ala' + (pronta ? ' pronta' : aberta ? '' : ' fechada') }, el('div', { class: 'gr-nome' }, a.nome + (pronta ? ' ✓ (ala pronta)' : ''), el('span', { class: 'gr-efeito' }, a.efeito)));
       if (!aberta) bloco.append(el('div', { class: 'gr-falta' }, `Fechada: entregue mais ${ECO.gremio.abre[a.id] - G.gremio.prontos.length} pacote(s) para abrir.`));
       else if (!pronta) for (const pid of a.pacotes) {
         const P = Gremio.pacote(pid), ok = Gremio.pronto(pid), f = Gremio.falta(pid), e = G.gremio.entregue[pid] || {};
         const itens = P.dinheiro ? [el('span', { class: 'gr-item' }, `Cr$ ${e.dinheiro || 0} de ${P.dinheiro}`)]
           : Object.keys(P.itens).map(id => el('span', { class: 'gr-item' + (f[id] ? '' : ' ok'), title: Itens.nome(id) }, el('img', { src: urlItem(id) }), ` ${e[id] || 0}/${P.itens[id]}`));
         bloco.append(el('div', { class: 'gr-pacote' + (ok ? ' ok' : '') }, el('b', {}, P.nome), ...itens,
-          ok ? el('span', { class: 'gr-ok' }, 'Pronto') : el('button', { class: 'botao forte', onclick: ev => { ev.stopPropagation(); entregarNoGremio(pid); desenha(); } }, P.dinheiro ? 'Pagar' : 'Entregar')));
+          ok ? el('span', { class: 'gr-ok' }, 'Pronto') : el('button', { class: 'botao forte', onclick: ev => { ev.stopPropagation(); entregarNoGremio(pid); desenha(); } }, P.dinheiro ? `Pagar Cr$ ${f.dinheiro}` : 'Entregar')));
       }
       caixa.append(bloco);
     }
@@ -36,17 +36,25 @@ function abrirGremio() {
 }
 function entregarNoGremio(pid) {
   const r = Gremio.entregar(pid, G.mochila), P = Gremio.pacote(pid), lista = o => Object.entries(o).map(([id, n]) => id === 'dinheiro' ? 'Cr$ ' + n : Itens.qtd(n, id)).join(', ');
-  if (r.r === 'nada') avisar(P.dinheiro ? 'Sem dinheiro para a parcela agora.' : 'Nada disso na mochila ainda.');
+  if (r.r === 'nada') avisar(P.dinheiro ? `A parcela é de Cr$ ${Gremio.falta(pid).dinheiro}: junte o valor inteiro.` : 'Nada disso na mochila ainda.');
   else if (r.r === 'ok') { avisar(`Entregue: ${lista(r.deu)}.`); sons.tocar('feito', 1, 0.03, -8); }
   else if (r.r === 'pronto' || r.r === 'ala') { sons.tocar('feito', 1, 0.03, -6); avisar(`Pacote pronto: ${P.nome}!` + (Object.keys(r.premio).length ? ` Ganhou ${lista(r.premio)}.` : '')); }
-  if (r.r === 'ala') { const a = Gremio.ala(r.ala); avisar(`O Grêmio ganhou a ${a.nome}! A partir de amanhã: ${a.efeito}`); poeGremio(MAPAS.vila); }
+  if (r.r === 'ala') { const a = Gremio.ala(r.ala); avisar(`O Grêmio ganhou a ala ${a.de}! A partir de amanhã: ${a.efeito}`); poeGremio(MAPAS.vila); }
   hudSujo(); return r;
 }
 // A noite: a ala pronta hoje entra no resumo; o Cofre pronto é a noite do baile.
-NOITE.push(linhas => {
-  if (!G.gremio) return;
+function linhasNoiteGremio() {
+  const r = []; if (!G.gremio) return r;
   for (const a of GREMIO_ALAS) if (G.gremio.alas[a.id] === G.dia)
-    linhas.push(a.id === 'cofre' ? 'Teve o baile de reinauguração do Grêmio: a Vila inteira dançou até tarde! Aos sábados, o pessoal do Grêmio janta na pensão.' : `O Grêmio ficou mais bonito: a ${a.nome} está pronta. ${a.efeito}`);
-});
-// A horta coberta: a pérgola em cima do canteiro do Tio Juca, com a Cozinha do Grêmio pronta.
-AO_MONTAR.push(b => { if (b.id === 'quintal' && typeof Gremio !== 'undefined' && Gremio.alaPronta('cozinha') && !b.objs.some(o => o.id === 'horta_coberta')) { const C = QUINTAL.CANTEIRO; b.enfeite('objetos/horta_coberta', C.x + Math.floor(C.w / 2), C.y + C.h - 1, false); } });
+    r.push(a.id === 'cofre' ? 'Teve o baile de reinauguração do Grêmio: a Vila inteira dançou até tarde! Aos sábados, o pessoal do Grêmio janta na pensão.' : `O Grêmio ficou mais bonito: a ala ${a.de} está pronta. ${a.efeito}`);
+  return r;
+}
+NOITE.push(linhas => { linhas.push(...linhasNoiteGremio()); });
+// A horta coberta: a pérgola em cima do canteiro do Tio Juca, com a Cozinha do Grêmio pronta (na montagem do mapa e de manhã,
+// que o quintal não se remonta ao dormir).
+function poeHortaCoberta(b) {
+  if (!b || b.id !== 'quintal' || typeof Gremio === 'undefined' || !G.gremio || !Gremio.alaPronta('cozinha') || b.objs.some(o => o.id === 'horta_coberta')) return;
+  const C = QUINTAL.CANTEIRO; b.enfeite('objetos/horta_coberta', C.x + Math.floor(C.w / 2), C.y + C.h - 1, false).id = 'horta_coberta';
+}
+AO_MONTAR.push(b => poeHortaCoberta(b));
+MANHA.push(() => poeHortaCoberta(MAPAS.quintal));

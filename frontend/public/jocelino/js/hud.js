@@ -65,7 +65,7 @@ function atualizaHud() {
   if (HUD.quadro._txt !== txt) {
     HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; const vis = tarefas.slice(0, 6);
     (txt ? txt.split('|') : []).forEach((t, i) => HUD.quadro.append(el('div', t.startsWith('➤') ? { class: 'guia' }
-      : vis[i] && vis[i].ideia ? { class: 'ideia', title: 'Clique: a seta mostra onde', onclick: () => { G.setaFixa = vis[i].ideia; hudSujo(); } } : {}, t)));
+      : vis[i] && vis[i].ideia ? { class: 'ideia', title: 'Clique: a seta mostra onde', onclick: () => { G.setaFixa = G.setaFixa === vis[i].ideia ? null : vis[i].ideia; hudSujo(); } } : {}, t)));
   }
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }

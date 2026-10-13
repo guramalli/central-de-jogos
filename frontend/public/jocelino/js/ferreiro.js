@@ -97,12 +97,13 @@ Ferreiro.fazer = function (id, mochila, dinheiro) {
 
 // ---------- a tela da ferraria ----------
 function abrirFerraria() {
+  const diasT = typeof Gremio !== 'undefined' ? Gremio.diasTonico(Ferreiro.DIAS) : Ferreiro.DIAS, nDias = diasT === 1 ? '1 dia' : diasT + ' dias';   // (a Oficina do Grêmio: 1 dia)
   if (!Ferreiro.aberta()) { abrirConversa('Seu Tonico', urlArte('retratos/tonico_normal'), [relogio.domingo() ? 'Domingo a ferraria fecha, Jocelino.' : 'A ferraria abre das 8h às 18h.']); return true; }
   const caixa = el('div', { class: 'painel orelhao' });
   const desenha = () => {
     caixa.innerHTML = '';
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Ferraria do Seu Tonico'),
-      el('div', { class: 'rodape', style: 'text-align:left;margin-bottom:8px' }, '"Ferramenta boa é meio caminho andado." A ferramenta fica 2 dias aqui. Reforçada: o machado e a picareta batem mais forte; a pá, o regador e a colher pegam 3 ladrilhos.'));
+      el('div', { class: 'rodape', style: 'text-align:left;margin-bottom:8px' }, '"Ferramenta boa é meio caminho andado." A ferramenta fica ' + nDias + ' aqui. Reforçada: o machado e a picareta batem mais forte; a pá, o regador e a colher pegam 3 ladrilhos.'));
     const o = G.ferreiro.oficina;
     if (o) caixa.append(el('div', { class: 'amp-obra' }, `Na oficina: ${Itens.nome(o.id)} (${NIVEIS_FERR[o.nivel]}) — ${Ferreiro.pronta(G.dia) ? 'pronta!' : `fica pronta em ${o.pronta - G.dia} dia(s)`}`,
       Ferreiro.pronta(G.dia) ? el('button', { class: 'botao forte', style: 'margin-left:10px', onclick: e => { e.stopPropagation(); const r = Ferreiro.buscar(G.mochila, G.dia); avisar(r.ok ? `${Itens.nome(r.id)} ${NIVEIS_FERR[r.nivel]}: novinha!` : r.motivo); if (r.ok) sons.tocar('fanfarra', 1.2, 0, -8); hudSujo(); desenha(); } }, 'Buscar') : null));
@@ -112,7 +113,7 @@ function abrirFerraria() {
       grade.append(el('div', { class: 'orel-item' + (tem ? '' : ' trancado') }, el('img', { src: urlItem(id) }),
         el('div', {}, el('b', {}, `${Itens.nome(id)} (${NIVEIS_FERR[nivelFerramenta(id)]})`), el('div', { class: 'orel-preco' }, c ? `Melhorar para ${NIVEIS_FERR[nivelFerramenta(id) + 1]}: Cr$ ${c.dinheiro} + ${Object.entries(c).filter(([m]) => m !== 'dinheiro').map(([m, q]) => Itens.qtd(q, m)).join(', ')}` : 'De mestre: o melhor que o Tonico faz.')),
         c && tem && !o ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Ferreiro.deixar(id, G.mochila, G.dinheiro, G.dia);
-          if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 0.8, 0.05, -4); avisar(`O Tonico ficou com ${NOME_FERRAMENTA[id] || id}: em 2 dias está pronta.`); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Melhorar') : null));
+          if (r.ok) { G.dinheiro -= r.gasto; G.gastoHoje += r.gasto; sons.tocar('golpe', 0.8, 0.05, -4); avisar(`O Tonico ficou com ${NOME_FERRAMENTA[id] || id}: em ${nDias} está pronta.`); hudSujo(); desenha(); } else avisar(r.motivo); } }, 'Melhorar') : null));
     }
     caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap' },
       el('div', { style: 'font-weight:800' }, `Ferro velho: ${G.mochila.total('ferro_velho')} · Barras: ${G.mochila.total('barra_ferro')} · Cr$ ${G.dinheiro}`),

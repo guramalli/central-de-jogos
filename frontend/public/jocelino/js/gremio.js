@@ -3,12 +3,12 @@
 // sistema do jogo), entregues aos poucos; as alas abrem pela contagem de pacotes prontos (como as salas do Stardew); cada
 // ala pronta muda a Vila a partir da manhã seguinte. Regras puras e save; o prédio, a lista e a marquinha: gremio_tela.js.
 const GREMIO_ALAS = [
-  { id: 'cozinha', nome: 'Cozinha', pacotes: ['verduras_outono', 'roca', 'tempo_quente'], efeito: 'Horta coberta: o canteiro do Tio Juca aceita semente fora da estação.' },
-  { id: 'varanda', nome: 'Varanda', pacotes: ['frutas_mata', 'chao_mata', 'beira_mar'], efeito: 'A mata e a praia dão o dobro de achados por dia.' },
-  { id: 'aquario', nome: 'Aquário', pacotes: ['mar_dia', 'rio_mata', 'graudo'], efeito: 'Um covo de presente e a vara boa pela metade do preço na banca.' },
-  { id: 'deposito', nome: 'Depósito', pacotes: ['fundacao', 'paredes', 'acabamento'], efeito: 'Uma betoneira de presente e 10% de desconto no depósito do Ananias.' },
-  { id: 'oficina', nome: 'Oficina', pacotes: ['ferro', 'pedreira_funda', 'pedra_boa'], efeito: 'O Seu Tonico entrega a ferramenta em 1 dia e funde as barras pela metade do preço.' },
-  { id: 'cofre', nome: 'Cofre do baile', pacotes: ['parcela_1', 'parcela_2', 'parcela_3', 'parcela_4'], efeito: 'O baile de reinauguração e +2 clientes na pensão aos sábados.' },
+  { id: 'cozinha', de: 'da Cozinha', nome: 'Cozinha', pacotes: ['verduras_outono', 'roca', 'tempo_quente'], efeito: 'Horta coberta: o canteiro do Tio Juca aceita semente fora da estação.' },
+  { id: 'varanda', de: 'da Varanda', nome: 'Varanda', pacotes: ['frutas_mata', 'chao_mata', 'beira_mar'], efeito: 'A mata e a praia dão o dobro de achados por dia.' },
+  { id: 'aquario', de: 'do Aquário', nome: 'Aquário', pacotes: ['mar_dia', 'rio_mata', 'graudo'], efeito: 'Um covo de presente e a vara boa pela metade do preço na banca.' },
+  { id: 'deposito', de: 'do Depósito', nome: 'Depósito', pacotes: ['fundacao', 'paredes', 'acabamento'], efeito: 'Uma betoneira de presente e 10% de desconto no depósito do Ananias.' },
+  { id: 'oficina', de: 'da Oficina', nome: 'Oficina', pacotes: ['ferro', 'pedreira_funda', 'pedra_boa'], efeito: 'O Seu Tonico entrega a ferramenta em 1 dia e funde as barras pela metade do preço.' },
+  { id: 'cofre', de: 'do Cofre do baile', nome: 'Cofre do baile', pacotes: ['parcela_1', 'parcela_2', 'parcela_3', 'parcela_4'], efeito: 'O baile de reinauguração e +2 clientes na pensão aos sábados.' },
 ];
 const _soltaSobra = (id, sobra) => { if (sobra && typeof soltar === 'function' && G.jog && G.mapa) soltar(id, sobra, G.jog.x, G.jog.y); };
 const Gremio = {
@@ -45,7 +45,8 @@ const Gremio = {
     if (Gremio.pronto(pid)) return { r: 'ja' };
     const f = Gremio.falta(pid), e = G.gremio.entregue[pid] = G.gremio.entregue[pid] || {}, deu = {};
     for (const id in f) {
-      const tem = id === 'dinheiro' ? G.dinheiro : mochila.total(id), n = Math.min(tem, f[id]); if (n <= 0) continue;
+      // (o Cofre pede a parcela inteira, como no Stardew: com menos, não leva nada do bolso)
+      const tem = id === 'dinheiro' ? (G.dinheiro >= f[id] ? f[id] : 0) : mochila.total(id), n = Math.min(tem, f[id]); if (n <= 0) continue;
       if (id === 'dinheiro') { G.dinheiro -= n; G.gastoHoje = (G.gastoHoje || 0) + n; } else mochila.remover(id, n);
       e[id] = (e[id] || 0) + n; deu[id] = n;
     }
