@@ -63,10 +63,11 @@ function mostrarResumo(titulo, linhas, depois) {
   for (let i = 0; i < linhas.length; i += 7) paginas.push(linhas.slice(i, i + 7));
   let p = 0;
   const corpo = el('div');
-  const caixa = el('div', { class: 'painel', style: 'min-width:min(86vw,640px);background:linear-gradient(#1d2450,#3b2f5c 45%,var(--papel) 46%);padding-top:0' });
+  const caixa = el('div', { class: 'painel', style: 'min-width:min(86vw,640px);padding-top:0' });
   const desenha = () => {
     caixa.innerHTML = '';
-    caixa.append(el('div', { class: 'titulo', style: 'color:#ffe9a8;font-size:30px;text-align:center;padding:18px 0 22px;text-shadow:0 2px 0 #1d2450' }, '☾  ' + titulo));
+    // O céu da noite fica só na faixa do título (no fundo da caixa inteira, ele cobria as linhas quando o resumo crescia).
+    caixa.append(el('div', { class: 'titulo', style: 'color:#ffe9a8;font-size:30px;text-align:center;padding:18px 0 22px;margin:0 -22px;border-radius:6px 6px 0 0;background:linear-gradient(#1d2450,#3b2f5c);text-shadow:0 2px 0 #1d2450' }, '☾  ' + titulo));
     caixa.append(el('div', { style: 'font-size:19px;line-height:1.5;padding:10px 6px' }, paginas[p].map(l => el('div', { style: l.startsWith('   ') ? 'padding-left:18px;color:var(--madeira)' : '' }, l.trim()))));
     caixa.append(el('div', { class: 'rodape' }, p < paginas.length - 1 ? `página ${p + 1} de ${paginas.length} — clique para continuar` : 'clique para começar o dia'));
   };
