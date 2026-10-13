@@ -38,7 +38,7 @@ NOITE.push(linhas => {
 // O balcão no Mercado.
 function abrirBazar() {
   if (!Bazar.aberto(G.dia, G.minutos)) { abrirPlaca('Bazar do Seu Salim: fechado agora. Abre das 9h às 17h, menos no domingo.'); return true; }
-  const caixa = el('div', { class: 'painel loja' });
+  const caixa = el('div', { class: 'painel loja bazar' });   // ('bazar': a seta da primeira vez acha o painel, guia_setas.js)
   caixa.append(el('div', { class: 'titulo', style: 'font-size:28px;display:flex;justify-content:space-between' }, el('span', {}, 'Bazar do Seu Salim'), el('span', {}, 'Cr$ ' + G.dinheiro)));
   for (const it of ECO.bazar.itens) {
     const tem = Bazar.tem(it.id), meta = Bazar.meta() && Bazar.meta().id === it.id;
