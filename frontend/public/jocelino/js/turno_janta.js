@@ -131,6 +131,7 @@ class TurnoJanta {
     m.estado = 'pedido'; m.cliente = cliente; m.lendo = TurnoJanta.LENDO;
     this.mesas[i] = m;
     this.relatorio.clientes++;
+    if (cliente.convidado) this.relatorio.convidados = (this.relatorio.convidados || 0) + 1;   // (o Dave: os convidados da festa, contados no fim)
     this.eventos.push({ tipo: 'chegou', mesa: i, cliente });
     // Seu Lourival chega cheirando a peixe: a banqueta do lado perde paciência.
     if (cliente.mania === 'cheiro') this.mesas.forEach((o, j) => {
@@ -293,6 +294,7 @@ class TurnoJanta {
   }
   _pagar(i) {
     const m = this.mesas[i];
+    if (m.cliente.convidado) this.relatorio.convidadosServidos = (this.relatorio.convidadosServidos || 0) + 1;
     const gostaSalada = m.cliente.mania === 'feijao' && m.salada;
     const sabor = Pratos.RARIDADE_SABOR[clamp(m.raridade, 1, 4)];
     const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || m.bebidaServida);

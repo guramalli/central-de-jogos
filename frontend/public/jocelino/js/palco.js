@@ -108,6 +108,39 @@ function clientesDoPalco(b) {
   return b._clientes.filter(Boolean);
 }
 const camadaViva = (y, desenha) => ({ tipo: 'camada', y, desenha });
+// (13/10, o Dave) Os convidados da festa com o enfeite do tema na cabeça (o Dave: eles brilham), e o brilho verde de quem
+// ganhou a bebida na medida (o Dave: a aura do chá bem servido). O enfeite e o carimbo são arte do Higgsfield; o brilho é luz.
+const ENFEITE_FESTA = { 'Noite do PF em Dobro': ['enfeite_pf', 18], 'Festa do Peixe Frito': ['enfeite_peixe', 18], 'Arraiá da Pensão': ['enfeite_arraia', 16],
+  'Noite dos Doces da Vó': ['enfeite_doces', 9], 'Jogo do Santos na Rádio': ['enfeite_santos', 22], '': ['enfeite_festa', 5] };
+const CABECA_CLIENTE = 160;   // do pé do cliente ao alto da cabeça, no palco (o quadro de 114 px em escala 1,65)
+function desenhaEnfeitesEBrilho(ctx) {
+  const t = G.turno, b = G.mapa; if (!t || !b || !b._clientes) return;
+  t.mesas.forEach((m, i) => {
+    const p = b._clientes[i]; if (!p) return;
+    if (m.aura > 0) {
+      const y = p.y - CABECA_CLIENTE + 60, r = 95, a = Math.min(1, m.aura / 1.5) * 0.4, g = ctx.createRadialGradient(p.x, y, 0, p.x, y, r);
+      g.addColorStop(0, `rgba(130,255,150,${a})`); g.addColorStop(1, 'rgba(130,255,150,0)');
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(p.x - r, y - r, r * 2, r * 2); ctx.restore();
+    }
+    const E = m.cliente.convidado && ENFEITE_FESTA[t.festa || ''];
+    if (E) desenhaPe(ctx, 'salao/' + E[0], p.x, p.y - CABECA_CLIENTE + E[1], 1, 1);
+  });
+}
+// O carimbo da bebida servida (o Dave: a nota aparece na tela): "NA MEDIDA!" ou "QUASE!", bate grande e assenta, depois some.
+const CARIMBOS_PALCO = [];
+function carimboBebida(i, medida) {
+  const A = PALCO.ASSENTOS[i]; if (!A) return;
+  CARIMBOS_PALCO.push({ x: A.x, y: A.y - 240, arte: medida ? 'ui/carimbo_medida' : 'ui/carimbo_quase', t: 0 });
+  if (medida && G.turno && G.turno.mesas[i]) G.turno.mesas[i].aura = 6;
+}
+ATUALIZADORES.push(dt => {
+  for (const c of CARIMBOS_PALCO) c.t += dt;
+  for (let k = CARIMBOS_PALCO.length - 1; k >= 0; k--) if (CARIMBOS_PALCO[k].t > 1.6) CARIMBOS_PALCO.splice(k, 1);
+  if (G.turno) for (const m of G.turno.mesas) if (m.aura > 0) m.aura -= dt;
+});
+function desenhaCarimbosPalco(ctx) {
+  for (const c of CARIMBOS_PALCO) desenhaPe(ctx, c.arte, c.x, c.y, c.t > 1.1 ? Math.max(0, 1 - (c.t - 1.1) / 0.5) : 1, c.t < 0.15 ? 1.5 - c.t / 0.15 * 0.8 : 0.7);
+}
 // A Rosa na cozinha, como o Bancho: mexe a panela o tempo todo (rápido com prato no fogo, devagar e com pausa à toa) e,
 // quando um prato fica pronto, anda até o passe, larga o prato e volta para o fogão (quadros de lado da folha de andar dela).
 const ROSA_COZ = { x: PALCO.ROSA.x, casa: PALCO.ROSA.x, estado: 'mexe', t: 0, quadro: 0, fila: 0, vistos: 0 };
@@ -168,6 +201,8 @@ function camadasDaJanta() {
         if (t && t.pratoTema === id) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);
       });
     }),
+    // Por cima dos clientes (856) e por baixo do balcão (858): o enfeite dos convidados e o brilho da bebida na medida.
+    camadaViva(857, ctx => desenhaEnfeitesEBrilho(ctx)),
     // A Rosa viva na cozinha (ROSA_COZ): mexendo a panela ou levando o prato até o passe.
     camadaViva(301, ctx => desenhaRosaCozinha(ctx)),
     // As moedas da gorjeta no tampo (o Jocelino recolhe ao passar).
@@ -195,7 +230,7 @@ function camadasDaJanta() {
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig();
   b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...filhosDoPalco(), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
-  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
+  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
   return b;
 })(MAPAS_DEF.pensao_palco);
 
@@ -345,7 +380,7 @@ function palcoAgir(a) {
       t.recolher(a.i); servir(); sons.tocar('louca', 1, 0.08, -4);
       return;
     }
-    if (t.servirBebida(a.i)) { servir(); sons.tocar('servir', 1.2, 0.08, -4); setTimeout(() => sons.tocar('gole', 1, 0.1, -4), 400); return; }
+    if (t.servirBebida(a.i)) { servir(); sons.tocar('servir', 1.2, 0.08, -4); setTimeout(() => sons.tocar('gole', 1, 0.1, -4), 400); carimboBebida(a.i, t.mesas[a.i].bebidaMedida); if (t.mesas[a.i].bebidaMedida) sons.tocar('carimbo', 1, 0.05, -6); return; }
     if (m.estado === 'prato' && t.servir(a.i)) { servir(); sons.tocar('servir', 1, 0.08, -2); setTimeout(() => sons.tocar(m.reacao === 'nojo' ? 'cliente_eca' : 'cliente_hmm', 1, 0.1, -4), 450); return; }
     if (m.estado === 'pedido') avisar(`${m.cliente.nome} está lendo o cardápio.`);
     else if (m.estado === 'prato') {

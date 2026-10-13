@@ -195,6 +195,7 @@ function encerrarJanta() {
   if (!G.turno) return;
   const r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
+  if (r.convidados && G.feitosHoje) G.feitosHoje.push(`Os convidados da festa: ${r.convidadosServidos || 0} de ${r.convidados} bem servidos.`);
   G.dinheiro += total; G.ganhoHoje += total;
   // O cliente especial e os pedidos da Vila. Receitas novas da noite: a do VIP bem servido, a da festa e as do degrau.
   r.aprendidas = [];
