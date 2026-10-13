@@ -13,6 +13,7 @@
    ============================================================ */
 {
   // faixas do corpo (fração da altura do desenho, de cima para baixo) — medidas no boneco de frente e de lado
+  // (v413: só de reserva, medidas no CORPO sem chapéu/cabelo — cada peça agora brilha na forma dela: ver mascaras(), abaixo)
   const FAIXA = { cabeca: [0, 0.31], acessorio: [0.27, 0.37], camisa: [0.33, 0.6], calcao: [0.57, 0.72], perna: [0.7, 0.9], chuteira: [0.87, 1.01] };
   const SLOTS = Object.keys(FAIXA);
   const corDe = id => { try { return RARIDADE[raridadeItem(id)].cor || '#ffd23f'; } catch (e) { return '#ffd23f'; } };
@@ -48,18 +49,142 @@
   }
   const off = document.createElement('canvas'), oc = off.getContext('2d');
   const FAISCAS = [];
-  // a silhueta da faixa da peça num canvas à parte: pintada na COR (luz == null) ou só a FAIXA DE LUZ passando (luz 0..1)
-  function camada(comp, f0, f1, cor, alfa, luz) {
-    const c = comp.c, cx = caixa(c), H = cx.y1 - cx.y0 + 1, ya = Math.max(0, Math.floor(cx.y0 + H * f0)), yb = Math.min(c.height, Math.ceil(cx.y0 + H * f1));
-    if (off.width !== c.width || off.height !== c.height) { off.width = c.width; off.height = c.height; } else oc.clearRect(0, 0, off.width, off.height);
-    oc.save(); oc.beginPath(); oc.rect(0, ya, c.width, yb - ya); oc.clip(); oc.globalCompositeOperation = 'source-over'; oc.globalAlpha = 1; oc.drawImage(corpo(c), 0, 0);
-    oc.globalCompositeOperation = 'source-in';
-    if (luz == null) { oc.fillStyle = cor; oc.fillRect(0, 0, c.width, c.height); }
-    else { const L = c.width + c.height, p = -c.height + luz * L, g = oc.createLinearGradient(p, c.height, p + c.height * 0.6, 0);
-      g.addColorStop(0.38, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.85)'); g.addColorStop(0.62, 'rgba(255,255,255,0)'); oc.fillStyle = g; oc.fillRect(0, 0, c.width, c.height); }
-    oc.restore();
-    return { alfa, ya, yb };
+  /* ---------- v413: MÁSCARA DE CADA PEÇA ----------
+     Bug do jogador (13/10/2026): "O efeito de brilho no personagem está pegando apenas uma parte do rosto, deixando uma linha
+     reta sem iluminar." Causa: as faixas (FAIXA, acima) eram frações da altura do DESENHO inteiro, e o desenho cresce para
+     cima com a coroa/o chapéu (o recorte reserva o espaço do chapéu) e com o cabelo volumoso — a faixa da camisa (0,33..0,6)
+     e a da cabeça (0..0,31) caíam no meio do rosto e cortavam reto. Agora cada peça brilha na forma DELA:
+       cabeça e colar: os pixels que só existem no desenho COM a peça (o chapéu/a coroa/a faixa/o capacete inteiro; o colar);
+       camisa e calção: os pixels da camisa/do calção, lidos das cores-chave da folha num desenho "rotulado" feito à parte;
+       caneleira e chuteira: do fim do calção ao tornozelo e do tornozelo ao chão (esqueleto), com as bordas esfumadas.
+     Sem o rótulo (skin, folha ainda chegando), as faixas medidas no CORPO (sem chapéu e sem cabelo) com a cabeça inteira até
+     o pescoço e as bordas esfumadas — nunca uma linha reta atravessando o rosto. */
+  let brRot = false; // (montando o desenho rotulado: camisa = magenta, calção = ciano, o resto preto; chapéu e colar por cima, como no boneco)
+  const _tgBr = tingeCelula;
+  tingeCelula = function (base, cores) {
+    const out = _tgBr.apply(this, arguments);
+    if (!brRot || !base || !base.rot || !out || out === base.c || (typeof MODO_AGORA !== 'undefined' && (MODO_AGORA === 'skin' || MODO_AGORA === 'fixo'))) return out;
+    try {
+      const x = out.getContext('2d'), img = x.getImageData(0, 0, out.width, out.height), o = img.data, rot = base.rot;
+      if (rot.length * 4 === o.length) { for (let i = 0; i < rot.length; i++) { const k = rot[i], j = i * 4; o[j] = k === 2 ? 255 : 0; o[j + 1] = k === 3 ? 255 : 0; o[j + 2] = k === 2 || k === 3 ? 255 : 0; } x.putImageData(img, 0, 0); }
+    } catch (e) { }
+    return out;
+  };
+  const pxDe = c => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  // os desenhos feitos só para medir não ficam ocupando o lugar dos bonecos prontos (SPR_CACHE, boneco.js)
+  const solta = (lk, vista, q) => { try { if (typeof SPR_CACHE !== 'undefined') SPR_CACHE.delete(chaveBoneco(lk) + '|S' + (vista === 'costas' ? 'c' : vista === 'lado' ? 'l' : 'f') + q); } catch (e) { } };
+  const mesmo = (s, c) => s && s.c && s.c !== c && s.c.width === c.width ? s.c : null; // outro desenho do mesmo tamanho de largura
+  // a peça = o que muda entre o desenho COM e SEM ela (alinhados pelos pés: o chapéu pode aumentar o desenho para cima)
+  function difPeca(dC, c, cSem) {
+    const W = c.width, H = c.height, out = new Uint8Array(W * H); if (!cSem) return null;
+    const dS = pxDe(cSem), dh = H - cSem.height; let n = 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4; if (dC[i + 3] < 130) continue;
+      const ys = y - dh, j = (ys * W + x) * 4, fora = ys < 0 || ys >= cSem.height;
+      if (fora || Math.abs(dS[j + 3] - dC[i + 3]) > 40 || Math.abs(dC[i] - dS[j]) + Math.abs(dC[i + 1] - dS[j + 1]) + Math.abs(dC[i + 2] - dS[j + 2]) > 12) { out[y * W + x] = 255; n++; } // (o mesmo desenho: fora da peça os pixels são iguais; o contorno escuro da peça sobre cabelo escuro também conta)
+    }
+    if (n < 25) return null;
+    // fecha os furinhos (contorno da peça igual ao contorno do cabelo de baixo): peça dos dois lados (até 2 pixels) vira peça, se for desenho
+    const o2 = out.slice(), tem = (x, y) => x >= 0 && y >= 0 && x < W && y < H && out[y * W + x];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = y * W + x; if (out[p] || dC[p * 4 + 3] < 130) continue; if (((tem(x - 1, y) || tem(x - 2, y)) && (tem(x + 1, y) || tem(x + 2, y))) || ((tem(x, y - 1) || tem(x, y - 2)) && (tem(x, y + 1) || tem(x, y + 2)))) o2[p] = 255; }
+    return o2;
   }
+  // monta a máscara (canvas) a partir de um alfa por pixel; guarda as linhas de cima/de baixo (para as faíscas)
+  function vaiCanvas(a, W, H) {
+    let ya = H, yb = -1, xa = W, xb = -1; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (a[y * W + x] > 20) { if (y < ya) ya = y; yb = y; if (x < xa) xa = x; if (x > xb) xb = x; }
+    if (yb < 0) return null;
+    const k = document.createElement('canvas'); k.width = W; k.height = H; const x = k.getContext('2d'), im = x.createImageData(W, H), d = im.data;
+    for (let i = 0; i < a.length; i++) if (a[i]) { d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = a[i]; }
+    x.putImageData(im, 0, 0); return { c: k, ya, yb: yb + 1, xa, xb: xb + 1 };
+  }
+  // peso de uma linha numa faixa [ya, yb] com a borda esfumada (sem linha reta)
+  const pesoFaixa = (y, ya, yb, fa, fb) => { let w = 1; if (fa > 0 && y < ya + fa) w = Math.min(w, (y - (ya - fa)) / (2 * fa)); if (fb > 0 && y > yb - fb) w = Math.min(w, ((yb + fb) - y) / (2 * fb)); return Math.max(0, Math.min(1, w)); };
+  // por desenho do boneco (o de verdade, com o item de costas): { ok (tudo medido de verdade), n (tentativas), t (quando), m: { slot: {c, ya, yb, xa, xb} } }
+  const MASC = new WeakMap();
+  // comp0 = o boneco como aparece (com capa/mochila/asas); comp = o mesmo SEM o item de costas (de onde as peças são lidas)
+  // folga = fora do desenho do quadro (sem o orçamento de bonecos novos por quadro): mede tudo de uma vez
+  function mascaras(comp0, comp, look, vista, quadro, folga) {
+    const c = comp.c, chave = comp0.c, ant = MASC.get(chave), agora = performance.now();
+    if (ant && (ant.ok || ant.n >= 6)) return ant.m; // (no máximo 6 tentativas: skin não tem rótulo)
+    if (!folga || (ant && agora - ant.t < 300)) return null; // mede só nas folgas (preparaDepois), nunca no meio do quadro; de novo só depois de um tempinho (arte chegando)
+    const W = c.width, H = c.height, dC = pxDe(c), lk = Object.assign({}, look, { costas: null }), m = {}; let ok = true;
+    const vale = i => dC[i * 4 + 3] >= 130;
+    // o que o item de costas cobre (a capa de costas): ali a peça não aparece, então não brilha
+    let coberto = null;
+    if (comp0.c !== c && comp0.c.width === W && comp0.c.height === H) { const d0 = pxDe(comp0.c); coberto = new Uint8Array(W * H); for (let p = 0; p < coberto.length; p++) { const j = p * 4; if (Math.abs(d0[j + 3] - dC[j + 3]) > 60 || Math.abs(d0[j] - dC[j]) + Math.abs(d0[j + 1] - dC[j + 1]) + Math.abs(d0[j + 2] - dC[j + 2]) > 40) coberto[p] = 1; } }
+    const vai = a => { if (a && coberto) for (let p = 0; p < a.length; p++) if (coberto[p]) a[p] = 0; return a ? vaiCanvas(a, W, H) : null; };
+    // o desenho rotulado (camisa/calção)
+    let rot = null;
+    if (!(look.folha && typeof MODO_FOLHA !== 'undefined' && MODO_FOLHA[look.folha] === 'skin')) {
+      let s = null; const lr = Object.assign({}, lk, { _brRot: 1 }); brRot = true; try { s = spriteBoneco(lr, vista, quadro); } catch (e) { } finally { brRot = false; }
+      const cr = mesmo(s, c); if (cr && cr.height === H) rot = pxDe(cr); solta(lr, vista, quadro);
+    }
+    const ehCam = j => rot[j] > 200 && rot[j + 1] < 60 && rot[j + 2] > 200, ehCal = j => rot[j] < 60 && rot[j + 1] > 200 && rot[j + 2] > 200;
+    // cabeça (chapéu) e colar: COM x SEM a peça
+    const tira = (o) => { const l2 = Object.assign({}, lk, o); try { return mesmo(spriteBoneco(l2, vista, quadro), c); } catch (e) { return null; } finally { solta(l2, vista, quadro); } }; // (o canvas continua valendo para a medida logo abaixo)
+    const aCab = look.chapeu || look.chapeuVar ? difPeca(dC, c, tira({ chapeu: null, chapeuVar: null })) : null;
+    const aCol = look.pescoco || look.pescocoVar ? difPeca(dC, c, tira({ pescoco: null, pescocoVar: null })) : null;
+    if ((look.chapeu || look.chapeuVar) && !aCab) ok = false;
+    // o corpo-base (sem chapéu e sem cabelo): alturas que não mudam com o penteado nem com o chapéu (presas pelos pés)
+    let base = null, E = null;
+    try { const r = spriteBoneco(Object.assign({}, lk, { chapeu: null, chapeuVar: null, cabelo: null }), 'frente', 0); // (o mesmo para todas as poses: a altura do corpo não muda)
+      if (r && r.c && r.c.width === W && r.c !== c) { base = r.c; E = esqueleto(r.c); } } catch (e) { }
+    if (!base || !E) ok = false;
+    const dH = base ? H - base.height : 0, cxB = base ? caixa(base) : caixa(c), yb0 = cxB.y0 + dH, Hb = cxB.y1 - cxB.y0 + 1, yFim = cxB.y1 + dH;
+    const fr = f => yb0 + Hb * f; // fração do CORPO (não do desenho todo)
+    // pescoço: onde a camisa começa (rótulo); sem rótulo, a medida antiga no corpo
+    let yCam0 = null, yCal1 = null, nCam = 0, nCal = 0;
+    if (rot) { for (let y = 0; y < H; y++) { let a = 0, b = 0; for (let x = 0; x < W; x++) { const p = y * W + x; if (!vale(p)) continue; if (ehCam(p * 4)) a++; else if (ehCal(p * 4)) b++; } if (a >= 2 && yCam0 == null) yCam0 = y; if (b >= 2) yCal1 = y; nCam += a; nCal += b; } }
+    const temCam = rot && nCam >= 40, temCal = rot && nCal >= 30;
+    if (!temCam || !temCal) ok = false;
+    const yPesc = temCam ? yCam0 : fr(0.31);
+    const yTorn = E ? E.tornozelo + dH : fr(0.88), yCal = temCal ? yCal1 + 1 : fr(0.72);
+    const cp = corpo(c), dK = pxDe(cp); // (a coluna do corpo: sem asa/capa)
+    const faixa = (ya, yb, fa, fb, filtro) => { const a = new Uint8Array(W * H); for (let y = Math.max(0, Math.floor(ya - fa)); y < Math.min(H, Math.ceil(yb + fb)); y++) { const w = pesoFaixa(y, ya, yb, fa, fb); if (!w) continue; for (let x = 0; x < W; x++) { const p = y * W + x; if (dK[p * 4 + 3] < 170 || (filtro && !filtro(p))) continue; a[p] = Math.round(255 * w); } } return a; };
+    const semPecas = p => !(rot && (ehCam(p * 4) || ehCal(p * 4))) && !(aCab && aCab[p]) && !(aCol && aCol[p]);
+    const rotulo = f => { const a = new Uint8Array(W * H); for (let p = 0; p < a.length; p++) if (vale(p) && f(p * 4) && !(aCab && aCab[p]) && !(aCol && aCol[p])) a[p] = 255; return a; };
+    // cabeça: o chapéu inteiro; sem ele medido, a cabeça inteira até o pescoço
+    m.cabeca = vai(aCab || faixa(-H, yPesc, 0, Hb * 0.02, null));
+    m.acessorio = vai(aCol || faixa(yPesc - Hb * 0.03, yPesc + Hb * 0.07, Hb * 0.015, Hb * 0.02, null));
+    m.camisa = vai(temCam ? rotulo(ehCam) : faixa(yPesc, fr(0.6), Hb * 0.015, Hb * 0.02, null));
+    m.calcao = vai(temCal ? rotulo(ehCal) : faixa(fr(0.57), fr(0.72), Hb * 0.02, Hb * 0.02, null));
+    m.perna = vai(faixa(yCal, yTorn + (yFim - yTorn) * 0.25, Hb * 0.012, Hb * 0.015, semPecas));
+    m.chuteira = vai(faixa(yTorn - Hb * 0.005, H, Hb * 0.015, 0, semPecas));
+    const reg = { ok, t: agora, n: ant ? ant.n + 1 : 1, m }; MASC.set(chave, reg);
+    return ok || reg.n >= 6 ? m : null; // provisória: melhor sem brilho por um instante do que um brilho no lugar errado
+  }
+  // mede as poses fora do desenho do quadro (nas folgas): as 4 da vista pedida, uma por vez
+  const FILA = new Set();
+  function preparaDepois(vista) {
+    for (let q = 0; q < 4; q++) {
+      const k = vista + q; if (FILA.has(k)) continue; FILA.add(k);
+      const roda = () => {
+        FILA.delete(k);
+        try { if (!G.save || !G.p) return; const look = lookJogador(), c0 = spriteBoneco(look, vista, q); if (!c0 || !c0.c || c0.c.width < 8) return;
+          let cp = c0; if (look.costas) { const c2 = spriteBoneco(Object.assign({}, look, { costas: null }), vista, q); if (c2 && c2.c && c2.c.width === c0.c.width && c2.c.height === c0.c.height) cp = c2; }
+          mascaras(c0, cp, look, vista, q, true); } catch (e) { }
+      };
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(roda, { timeout: 250 + q * 120 }); else setTimeout(roda, 30 + q * 40);
+    }
+  }
+  window.brilhoRefino.mascaras = mascaras; // (testes e fotos de conferência)
+  // a silhueta da peça num canvas à parte: pintada na COR (luz == null) ou só a FAIXA DE LUZ passando (luz 0..1)
+  let CX = null; // v413: o retângulo da peça no canvas à parte (só ele é pintado e desenhado: a peça pequena custa pouco)
+  function camada(M, cor, alfa, luz) {
+    const c = M.c;
+    if (off.width !== c.width || off.height !== c.height) { off.width = c.width; off.height = c.height; } else if (CX) oc.clearRect(CX.x, CX.y, CX.w, CX.h); else oc.clearRect(0, 0, off.width, off.height);
+    const x0 = M.xa != null ? Math.max(0, M.xa - 1) : 0, y0 = M.ya != null ? Math.max(0, M.ya - 1) : 0, x1 = M.xb != null ? Math.min(c.width, M.xb + 1) : c.width, y1 = M.yb != null ? Math.min(c.height, M.yb + 1) : c.height;
+    CX = { x: x0, y: y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
+    oc.save(); oc.globalCompositeOperation = 'source-over'; oc.globalAlpha = 1; oc.drawImage(c, CX.x, CX.y, CX.w, CX.h, CX.x, CX.y, CX.w, CX.h);
+    oc.globalCompositeOperation = 'source-in';
+    if (luz == null) { oc.fillStyle = cor; oc.fillRect(CX.x, CX.y, CX.w, CX.h); }
+    else { const bh = Math.max(8, y1 - y0), L = (x1 - x0) + bh, p = x0 - bh + luz * L, g = oc.createLinearGradient(p, y1, p + bh * 0.6, y0); // v413: a luz atravessa a PEÇA (num chapéu pequeno ela passava quase sempre fora)
+      g.addColorStop(0.38, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.85)'); g.addColorStop(0.62, 'rgba(255,255,255,0)'); oc.fillStyle = g; oc.fillRect(CX.x, CX.y, CX.w, CX.h); }
+    oc.restore();
+    return { alfa, ya: M.ya, yb: M.yb };
+  }
+  // desenha o canvas à parte no boneco (w x h = o desenho inteiro), deslocado de (dx, dy) — só o retângulo da peça
+  function poeOff(ctx, w, h, dx, dy) { const kx = w / off.width, ky = h / off.height; ctx.drawImage(off, CX.x, CX.y, CX.w, CX.h, -w / 2 + CX.x * kx + dx, -h + CX.y * ky + dy, CX.w * kx, CX.h * ky); }
   /* ---------- marcas das relíquias ---------- */
   // v375: o ESQUELETO do boneco, lido do próprio desenho (corpo-base: sem chapéu, sem cabelo e sem item de costas), de baixo
   // para cima — vale para corpo masculino/feminino, criança/adulto (cada um tem proporções diferentes):
@@ -313,11 +438,14 @@
     ctx.save(); ctx.translate(x + hit + dir * golpe * 7, y - bob + dy); ctx.rotate(rot + dir * golpe * 0.12); ctx.scale(dir, sy);
     // aura do conjunto completo: contorno dourado do boneco inteiro, por trás
     if (completo && atras) {
-      const k = 0.5 + 0.5 * Math.sin(t / 380); camada(comp, 0, 1.02, '#ffd23f', 0, null);
-      ctx.globalAlpha = 0.45 + 0.3 * k; for (const [ox, oy] of [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, -2]]) ctx.drawImage(off, -w / 2 + ox, -h + oy, w, h);
+      const k = 0.5 + 0.5 * Math.sin(t / 380); camada({ c: corpo(comp.c) }, '#ffd23f', 0, null);
+      ctx.globalAlpha = 0.45 + 0.3 * k; for (const [ox, oy] of [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, -2]]) poeOff(ctx, w, h, ox, oy);
     }
+    const MS = pecas.length ? mascaras(comp0, comp, look, vista, quadro) : null; // v413: a forma de cada peça (não mais uma faixa reta)
+    if (pecas.length && !MS) preparaDepois(vista); // (ainda medindo esta pose: mede nas folgas)
     for (const p of pecas) {
-      const [f0, f1] = FAIXA[p.sl], cor = corDe(p.id), fase = SLOTS.indexOf(p.sl) * 0.9;
+      const M = MS && MS[p.sl]; if (!M) continue;
+      const cor = corDe(p.id), fase = SLOTS.indexOf(p.sl) * 0.9;
       // força do efeito por refino: halo (por trás), tom (por cima), luz que passa (por cima)
       let halo = 0, tom = 0, luz = null;
       if (p.r === 7) { const ciclo = ((t / 1000 + fase) % 3.2) / 3.2; if (ciclo < 0.35) luz = ciclo / 0.35; else continue; }
@@ -326,17 +454,17 @@
       else { tom = 0.26 + 0.16 * (0.5 + 0.5 * Math.sin(t / 300 + fase)); halo = 1; luz = ((t / 1000 + fase) % 1.3) / 1.3; }
       if (atras) {
         if (!halo) continue;
-        camada(comp, f0, f1, cor, 0, null); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = Math.min(1, halo);
-        const d = (p.r >= 10 ? 4 : p.r === 9 ? 3 : 2) * (1 + 0.15 * Math.sin(t / 260 + fase)); for (let a = 0; a < 8; a++) ctx.drawImage(off, -w / 2 + Math.cos(a * Math.PI / 4) * d, -h + Math.sin(a * Math.PI / 4) * d, w, h);
-        if (p.r >= 10) { ctx.globalAlpha = 0.45; const d2 = d * 1.8; for (let a = 0; a < 8; a++) ctx.drawImage(off, -w / 2 + Math.cos(a * Math.PI / 4 + 0.4) * d2, -h + Math.sin(a * Math.PI / 4 + 0.4) * d2, w, h); }
+        camada(M, cor, 0, null); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = Math.min(1, halo);
+        const d = (p.r >= 10 ? 4 : p.r === 9 ? 3 : 2) * (1 + 0.15 * Math.sin(t / 260 + fase)); for (let a = 0; a < 8; a++) poeOff(ctx, w, h, Math.cos(a * Math.PI / 4) * d, Math.sin(a * Math.PI / 4) * d);
+        if (p.r >= 10) { ctx.globalAlpha = 0.45; const d2 = d * 1.8; for (let a = 0; a < 8; a++) poeOff(ctx, w, h, Math.cos(a * Math.PI / 4 + 0.4) * d2, Math.sin(a * Math.PI / 4 + 0.4) * d2); }
         continue;
       }
-      if (tom) { const L0 = camada(comp, f0, f1, cor, 0, null); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = tom; ctx.drawImage(off, -w / 2, -h, w, h); }
-      const L = luz != null ? camada(comp, f0, f1, null, 0, luz) : { ya: 0, yb: 0 };
-      if (luz != null) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = p.r >= 10 ? 0.8 : p.r === 9 ? 0.65 : 0.5; ctx.drawImage(off, -w / 2, -h, w, h); }
+      if (tom) { camada(M, cor, 0, null); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = tom; poeOff(ctx, w, h, 0, 0); }
+      if (luz != null) camada(M, null, 0, luz);
+      if (luz != null) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = p.r >= 10 ? 0.8 : p.r === 9 ? 0.65 : 0.5; poeOff(ctx, w, h, 0, 0); }
       // faíscas (+9 e +10) saindo da faixa da peça
       if (p.r >= 9 && Math.random() < (p.r >= 10 ? 0.45 : 0.2)) {
-        const cxB = caixa(comp.c), fy = (cxB.y0 + (cxB.y1 - cxB.y0) * (f0 + Math.random() * (f1 - f0))) / comp.c.height; // na faixa da peça
+        const fy = (M.ya + (M.yb - M.ya) * Math.random()) / comp.c.height; // na altura da peça
         FAISCAS.push({ x: e.x * T + dir * (Math.random() - 0.5) * w * 0.55, y: e.y * T - h + fy * h + dy, vy: -(0.25 + Math.random() * 0.5), t0: t, dur: 700 + Math.random() * 500, cor, r: p.r >= 10 ? 2.8 : 2 });
       }
       if (p.sl === 'chuteira' && p.r >= 10 && e.mov && Math.random() < 0.6) FAISCAS.push({ x: e.x * T + (Math.random() - 0.5) * 8, y: e.y * T - 3, vy: -0.05, t0: t, dur: 600, cor, r: 3 });
