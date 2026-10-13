@@ -10,7 +10,8 @@ const CULTURAS = {
   abobora: { semente: 'semente_abobora', dias: 12, estacoes: [3, 0], preco: 20, venda: 70 },
   mandioca: { semente: 'rama_mandioca', dias: 14, estacoes: [0, 1, 2, 3], preco: 16, venda: 60 },
 };
-const AGUA_REGADOR = [30, 50], HORTA_SOME = 0.2, MINIMO_GALINHAS = 8, CHANCE_GALINHAS = 0.4;
+// (as galinhas só com 16+ pés abertos, como os corvos do Stardew: as 15 sementes da chegada, o canteiro inteiro, ficam a salvo; 13/10)
+const AGUA_REGADOR = [30, 50], HORTA_SOME = 0.2, MINIMO_GALINHAS = 16, CHANCE_GALINHAS = 0.4;
 const estacaoDoDia = dia => Math.floor((dia - 1) / 28) % 4;
 const culturaDaSemente = item => Object.keys(CULTURAS).find(id => CULTURAS[id].semente === item) || '';
 const chaveH = (x, y) => x + ',' + y;
@@ -95,7 +96,7 @@ const Horta = {
     }
     return true;
   },
-  // As galinhas (os corvos do Stardew): com 8 ou mais pés abertos, 40% de chance de bicarem um.
+  // As galinhas (os corvos do Stardew): com 16 ou mais pés abertos, 40% de chance de bicarem um.
   galinhas(b, rng = Math.random) {
     const abertas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta).map(k => k.split(',').map(Number)).filter(([x, y]) => !Horta.protegida(b, x, y));
     if (abertas.length < MINIMO_GALINHAS || rng() >= CHANCE_GALINHAS) return '';

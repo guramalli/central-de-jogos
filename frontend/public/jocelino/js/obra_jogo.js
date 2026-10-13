@@ -49,9 +49,14 @@ function conversarBira() {
   let l = listaDeHoje();
   // 4) A lista do dia.
   if (!l) {
+    // (13/10) O primeiro encontro é a contratação: o Tio Juca disse que o Bira paga servente por dia; aqui ele confirma e diz o porquê.
+    const contratacao = o.primeira;
     l = o.lista = Object.assign({ dia: G.dia, feito: {}, paga: false }, Obra.sortear(G.dia));
     sons.tocar('pagina', 1, 0.05, -6);
-    return falaBira([`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`, 'Terminou, volta aqui que eu acerto a diária.']);
+    const fala = [`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`, 'Terminou, volta aqui que eu acerto a diária.'];
+    if (contratacao) fala.unshift(`Então você é o sobrinho do Juca! Ele me falou de você. Servente eu preciso, sim: Cr$ ${Obra.diaria()} por dia, pago quando a lista do dia fica pronta.`,
+      'A obra é de sol a sol, até as cinco: chegou, trabalhou. Quem aprende o ofício aqui vira meio-oficial, e meio-oficial já levanta a casa da família.');
+    return falaBira(fala);
   }
   // Imprevisto: o cimento comprado no Ananias.
   if (l.metas.buscar_cimento && (l.feito.buscar_cimento || 0) < l.metas.buscar_cimento && G.mochila.total('cimento') > 0) {

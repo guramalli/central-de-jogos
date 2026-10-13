@@ -5,7 +5,7 @@ const _porDia = lista => lista[(G.dia + lista.length) % lista.length];
 Object.assign(FALAS, {
   juca: () => G.pensao && G.pensao.estado === 'aberta'
     ? ['A pensão da Rosa é o assunto da Vila inteira! Até o Seu Tonico perguntou se tem torresmo.']
-    : ['Devagar e sempre, rapaz. Madeira é no machado: galho, toco e árvore.', 'O Seu Ananias compra o que sobrar. Dinheiro no bolso nunca é demais.'],
+    : ['O terreno das bandeirinhas tá esperando, rapaz. Vira meio-oficial com o Bira que a gente começa a casa de vocês.', 'Devagar e sempre. Madeira é no machado: galho, toco e árvore. O que sobrar, a caixa de venda leva.'],
   rosa: () => {
     const e = G.pensao ? G.pensao.estado : 'fechada';
     if (e === 'fechada') return ['Jocelino... sabe o que eu sonho desde Aracaju? Cozinhar pra fora. Um PF caprichado, uma moqueca de domingo...', 'Quem sabe aqui na Vila aparece uma oportunidade, né?'];
@@ -15,7 +15,7 @@ Object.assign(FALAS, {
   },
   zezinho: () => _porDia([['Pai! Pai! Achei uma pedra que parece um sapo!', '...Não, espera. Era um sapo mesmo. Ele fugiu.'], ['Quando eu crescer vou ser pedreiro igual o Mestre Bira!'], ['Aposto que eu quebro mais pedra que o senhor!']]),
   ritinha: () => _porDia([['Pai, se quiser eu faço as contas da pensão!', 'Doze cruzeiros o PF, vezes dez... dá cento e vinte!'], ['Cinco sacos de cimento a doze cruzeiros... dá sessenta! Viu só?']]),
-  bira: ['Então você é o sobrinho do Juca? A obra da J. Moreira é aqui. Por enquanto a turma tá completa, rapaz.', 'Mas ó: se a sua patroa abrir aquela pensão, a peãozada inteira vai jantar lá!'],
+  bira: ['A obra da J. Moreira é de sol a sol, rapaz: chegou, trabalhou.', 'E ó: se a sua patroa abrir aquela pensão, a peãozada inteira vai jantar lá!'],
   ze: () => _porDia([['Massa boa é igual feijão: nem mole, nem dura.'], ['Tijolo por tijolo, Jocelino. Pressa só serve pra entortar parede.']]),
   zelia: () => _porDia([['Ai, meu filho, cuidado com as minhas plantas, viu?', 'Essa casa é pra minha filha que vem da capital. Capricha!'], ['Dizem que a pensão da Cotinha vai abrir de novo. Que saudade de um caldo verde!']]),
   ananias: ['Pois não, freguês? Ananias, às ordens.', 'Telha é dois cruzeiros. E pra pensão da sua patroa eu tenho a Mercearia: arroz, feijão, farinha e ovo.'],
