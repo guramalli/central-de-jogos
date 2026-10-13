@@ -8,9 +8,10 @@ const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'fo
 function podeColocar(b, x, y) {
   if (b.id !== 'quintal' || !b.livreEm(x, y)) return 'Aqui não dá.';
   if (b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA) return 'Na trilha não: o caminho até a Vila fica livre.';
+  // (a planta antes do "já tem coisa": a planta também ocupa o ladrilho, e o aviso não dizia o que fazer; teste de 13/10)
+  const c = Horta.cova(x, y); if (c && c.planta) return 'Tem planta aí: escolha uma cova vazia ou a grama (a foice arranca um pé, se quiser abrir o meio).';
   if (b.ocupado.has(chaveT(x, y))) return 'Já tem coisa aí.';
   if (reservadoQuintal(x, y)) return 'Esse terreno é da obra da família.';
-  const c = Horta.cova(x, y); if (c && c.planta) return 'Tem planta aí: escolha uma cova vazia ou a grama (a foice arranca um pé, se quiser abrir o meio).';
   // A caixa sólida do objeto (ladrilho inteiro de largura) não pode encostar no pé do Jocelino nem de um morador: prenderia.
   const cx = b._caixa((x + 0.5) * TILE, (y + 1) * TILE, 48, 48), sobre = (a, d) => a.x < d.x + d.w && a.x + a.w > d.x && a.y < d.y + d.h && a.y + a.h > d.y;
   if (sobre(cx, G.jog.caixa())) return 'O Jocelino está em cima.';
@@ -151,15 +152,18 @@ function regarComIrrigadores() {
 // O alcance do irrigador (teste de 13/10: "deveria ser colocado no meio e mostrar o raio de ação"). O Stardew não mostra sem mod;
 // o mod mais usado (Range Highlight) pinta o alcance quando o irrigador está na mão, e é o que se faz aqui: o ladrilho do mouse
 // verde (pode pôr) ou vermelho (não pode), as covas que ele regaria em azul e o alcance dos que já estão no chão.
-function desenhaAlcanceIrrigador(ctx) {
+// No chão (por baixo das plantas), o alcance em azul; por cima de tudo (cima = true), o ladrilho do mouse — senão a planta o cobria.
+function desenhaAlcanceIrrigador(ctx, cima = false) {
   const id = typeof itemDaMao === 'function' ? itemDaMao() : '';
   if (!VIZ_IRRIGADOR[id] || G.mapaId !== 'quintal' || !G.horta || !G.mouse || (typeof menuAberto === 'function' && menuAberto())) return;
   const pinta = (x, y, cor) => { ctx.fillStyle = cor; ctx.fillRect(x * TILE + 3, y * TILE + 3, TILE - 6, TILE - 6); };
+  const t = ladrilhoDoMouse();
   ctx.save();
-  for (const c of G.horta.colocados) if (VIZ_IRRIGADOR[c.id]) for (const [dx, dy] of VIZ_IRRIGADOR[c.id]) pinta(c.x + dx, c.y + dy, 'rgba(70,160,255,0.22)');
-  const t = ladrilhoDoMouse(), ok = !podeColocar(G.mapa, t.x, t.y) && perto1(t);
-  for (const [dx, dy] of VIZ_IRRIGADOR[id]) pinta(t.x + dx, t.y + dy, 'rgba(70,160,255,0.4)');
-  pinta(t.x, t.y, ok ? 'rgba(80,210,80,0.5)' : 'rgba(225,60,50,0.5)');
+  if (cima) pinta(t.x, t.y, !podeColocar(G.mapa, t.x, t.y) && perto1(t) ? 'rgba(80,210,80,0.45)' : 'rgba(225,60,50,0.45)');
+  else {
+    for (const c of G.horta.colocados) if (VIZ_IRRIGADOR[c.id]) for (const [dx, dy] of VIZ_IRRIGADOR[c.id]) pinta(c.x + dx, c.y + dy, 'rgba(70,160,255,0.22)');
+    for (const [dx, dy] of VIZ_IRRIGADOR[id]) pinta(t.x + dx, t.y + dy, 'rgba(70,160,255,0.4)');
+  }
   ctx.restore();
 }
 MANHA.push(() => { if (G.horta) regarComIrrigadores(); });

@@ -168,12 +168,21 @@ function devolveuCarga() {
   if (!c.id || !['tijolo', 'pedra', 'telha', 'ripa', 'massa', 'entulho'].includes(c.id)) return false;
   largarCarga(); sons.tocar('pousar', 1, 0.05, -6); avisar('Devolveu o material ao monte.'); return true;
 }
+// O monte mostra o material que a lista pede (teste de 13/10: com "levar pedras", o monte continuava de tijolos e só virava
+// pedra depois do clique).
+const ARTE_MONTE = { pedra: 'objetos/monte_pedras', telha: 'objetos/monte_telhas', tijolo: 'objetos/monte_tijolos' };
+const materialDoMonte = () => faltaNaLista('pedras') ? 'pedra' : faltaNaLista('telhas') ? 'telha' : faltaNaLista('tijolos') ? 'tijolo' : '';
+ATUALIZADORES.push(() => {
+  if (G.mapaId !== 'vila' || !G.mapa || !G.obra) return;
+  const o = G.mapa.objs.find(x => x.id === 'monte_tijolos'), m = materialDoMonte();
+  if (o && m && o.nome !== ARTE_MONTE[m]) o.nome = ARTE_MONTE[m];
+});
 function pegarDoMonte(o) {
   if (devolveuCarga()) return;
   if (!listaDeHoje()) { avisar('Primeiro pegue a lista com o Mestre Bira.'); return; }
-  const mat = faltaNaLista('pedras') ? 'pedra' : faltaNaLista('telhas') ? 'telha' : faltaNaLista('tijolos') ? 'tijolo' : '';
+  const mat = materialDoMonte();
   if (!mat) { avisar('Hoje a lista não pede tijolo, pedra nem telha.'); return; }
-  o.nome = { pedra: 'objetos/monte_pedras', telha: 'objetos/monte_telhas', tijolo: 'objetos/monte_tijolos' }[mat];
+  o.nome = ARTE_MONTE[mat];
   pegarCarga(mat, 99, 'itens/' + mat);
 }
 function pegarCargaObra(mat, icone, tarefa) {

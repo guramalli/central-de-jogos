@@ -133,4 +133,4 @@ PRECO_HORTA_SO_SE.regadorzinho = () => G.horta && G.horta.pedidoFilhos && !G.hor
 // O carimbo de caprichado sobe por cima da planta colhida e some (a arte ui/carimbo_caprichado, só posição e transparência).
 const CARIMBOS = [];
 ATUALIZADORES.push(dt => { for (const c of CARIMBOS) c.t += dt; for (let i = CARIMBOS.length - 1; i >= 0; i--) if (CARIMBOS[i].t > 1.2) CARIMBOS.splice(i, 1); });
-AO_MONTAR.push(b => { if (b.id === 'quintal') b.desenhaPorCima = ctx => { for (const c of CARIMBOS) desenhaPe(ctx, 'ui/carimbo_caprichado', c.x, c.y - c.t * 40, Math.max(0, 1 - c.t / 1.2), 0.5); }; });
+AO_MONTAR.push(b => { if (b.id === 'quintal') b.desenhaPorCima = ctx => { if (typeof desenhaAlcanceIrrigador === 'function') desenhaAlcanceIrrigador(ctx, true); for (const c of CARIMBOS) desenhaPe(ctx, 'ui/carimbo_caprichado', c.x, c.y - c.t * 40, Math.max(0, 1 - c.t / 1.2), 0.5); }; });
