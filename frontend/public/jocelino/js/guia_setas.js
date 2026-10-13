@@ -57,6 +57,33 @@ function _alvoDaMissao(id) {
   }
   return null;
 }
+// A lista do Bira depois da 1ª obra (diário de 13/10: "não diz onde pegá-las, nem onde entregá-las"): na Vila, a seta mostra
+// a tarefa que o Jocelino ainda não fez nenhuma vez — onde pegar e, com o material nos braços, onde levar. Feita uma vez, fica
+// só o texto da lista (que diz de onde e para onde).
+const ORIGEM_OBRA = { tijolos: 'monte_tijolos', pedras: 'monte_tijolos', telhas: 'monte_tijolos', ripas: 'pilha_ripas', massa: 'masseira', areia: 'peneira' };
+const FERRAMENTA_TAREFA = { molhar: 'Use o regador na obra', assentar: 'Use a colher na obra', rebocar: 'Use a colher na obra' };
+const jaFezObra = id => ((G.limpou || {})['obra_' + id] || 0) > 0;
+function _alvoDaObraDoDia() {
+  if (!G.obra || typeof listaDeHoje !== 'function' || Obra.aberta(G.dia, G.minutos)) return null;
+  if (G.guia && G.guia.ativo && G.guia.abertas.includes('obra')) return null;   // a 1ª obra tem o passo a passo do guia
+  const l = listaDeHoje(); if (!l || l.paga || Obra.completa()) return null;
+  const pend = Object.keys(l.metas).filter(k => (l.feito[k] || 0) < l.metas[k] && !jaFezObra(k));
+  if (G.mapaId === 'quintal' && pend.includes('buscar_pedra') && !G.mochila.total('pedra')) { const o = _maisPerto(x => x.det === 'pedra'); return o ? { mapa: 'quintal', ponto: { x: o.x, y: o.y - 56 }, det: o.det } : null; }
+  if (G.mapaId !== 'vila') return null;
+  const ob = G.mapa.objs.find(o => o.obraId && obraDaVez(o)), naObra = rot => ob ? { mapa: 'vila', objeto: ob.id, rotuloFixo: rot } : null;
+  const c = G.jog && G.jog.carga;
+  if (c && c.id === 'massa' && pend.includes('massa')) return { mapa: 'vila', morador: 'ze', rotuloFixo: 'Botão direito: entregar a massa ao Zé' };
+  if (c && CARGA_TAREFA[c.id] && pend.includes(CARGA_TAREFA[c.id])) return naObra('Botão direito: entregar na obra');
+  for (const id of pend) {
+    if ((id === 'pedras' || id === 'buscar_pedra') && G.mochila.total('pedra') > 0) return naObra('Botão direito: entregar as pedras na obra');
+    if (ORIGEM_OBRA[id]) return { mapa: 'vila', objeto: ORIGEM_OBRA[id], rotuloFixo: id === 'areia' ? 'Botão direito na peneira: peneirar a areia'
+      : `Botão direito ${{ monte_tijolos: 'no monte', pilha_ripas: 'na pilha', masseira: 'na masseira' }[ORIGEM_OBRA[id]]}: pegar ${{ tijolos: 'os tijolos', pedras: 'as pedras', telhas: 'as telhas', ripas: 'as ripas', massa: 'a massa' }[id]}` };
+    if (FERRAMENTA_TAREFA[id]) return naObra(FERRAMENTA_TAREFA[id]);
+    if (id === 'entulho' || id === 'capinar') { const det = id === 'entulho' ? 'entulho' : 'mato', o = _maisPerto(x => x.det === det && dentroR(CANTEIRO, x.tiles[0].x, x.tiles[0].y)); if (o) return { mapa: 'vila', ponto: { x: o.x, y: o.y - 56 }, det }; }
+    if (id === 'buscar_cimento') return G.mochila.total('cimento') ? { mapa: 'vila', morador: 'bira' } : { mapa: 'vila', objeto: 'deposito', rotuloFixo: 'Botão direito: comprar o cimento' };
+  }
+  return null;
+}
 // O alvo de um serviço aceito (teste de 12/10: depois do 1º bico, a calçada pega no quadro ficava sem seta): o lugar de
 // verdade, a plaquinha do curto, ou a plaquinha da obra longa com trabalho hoje (ou pronta para entregar).
 // Sem o material (vistoria de 12/10: aceitar não pede material, e o golpe só dizia "falta"), a seta busca o material antes:
@@ -150,6 +177,7 @@ function guiaSetaMundo() {
   const cands = [];
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
   if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
+  cands.push(['obra_dia', _alvoDaObraDoDia]);
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar (ou na ideia): depois das missões do guia; acabou a linha, ou o
   // Jocelino chegou lá, some a seta (revisão final).
   if (G.setaFixa && typeof Caderneta !== 'undefined') { const l = Caderneta.linha(G.setaFixa);
@@ -191,7 +219,7 @@ function guiaSetaUI() {
   if (!$('#modal').hidden) return null;
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
-  if (sm && sm.det && (sm.missao === 'quintal' || sm.buscar || sm.missao === 'caderneta')) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.det && (sm.missao === 'quintal' || sm.buscar || sm.missao === 'caderneta' || sm.missao === 'obra_dia')) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
   if (sm && sm.empreita && !sm.buscar) { const E = dadosEmpreita(sm.empreita), fe = E && (E.tipo === 'longa' ? Empreitas.ferramentaHoje(sm.empreita) : E.ferramenta);
     if (fe && fe !== 'carga' && mao !== fe) { const i = slotDe(fe); if (i >= 0) return barra(i); } }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {

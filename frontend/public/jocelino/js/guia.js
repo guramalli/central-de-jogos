@@ -214,7 +214,7 @@ function quebrouNoGuia(o) {
 const PASSO_OBRA = { areia: ['Agora a areia: a peneira ali no canto. Botão direito nela até completar.', 'peneira'],
   tijolos: ['Os tijolos: pegue no monte (botão direito) e leve até a obra da casa da Dona Zélia.', 'monte_tijolos'],
   massa: ['A massa: pegue na masseira e leve para o Zé.', 'masseira'], ripas: ['As ripas: pegue na pilha e leve para a obra.', 'pilha_ripas'],
-  pedras: ['As pedras: pegue no monte e leve para a obra.', 'monte_tijolos'],
+  pedras: ['As pedras: pegue no monte (botão direito) e leve até a obra da casa da Dona Zélia. As da mochila também valem.', 'monte_tijolos'],
   buscar_pedra: ['As pedras: quebre as pedras do quintal com a picareta e traga 10 na mochila. Depois entregue na obra da casa da Dona Zélia (botão direito) ou fale comigo.', null], entulho: ['O entulho: quebre os montinhos de entulho do canteiro.', null] };
 let guiaPasso = function () {
   const g = G.guia; if (!g || !g.ativo) return null;
@@ -226,7 +226,7 @@ let guiaPasso = function () {
     if (G.jog && G.jog.carga && typeof CARGA_TAREFA !== 'undefined' && CARGA_TAREFA[G.jog.carga.id]) return { id: 'bira', nome: 'Mestre Bira', texto: 'Agora leve até a obra da casa da Dona Zélia.', alvo: { objeto: 'casa_zelia' } };
     const id = Object.keys(l.metas).find(k => (l.feito[k] || 0) < l.metas[k]);
     // (teste de 13/10: com as pedras na mochila, o passo não dizia onde entregar)
-    if (id === 'buscar_pedra' && G.mochila.total('pedra') > 0) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue na obra da casa da Dona Zélia: botão direito no canteiro (${l.feito.buscar_pedra || 0}/${l.metas.buscar_pedra}).`, alvo: { objeto: 'casa_zelia' } };
+    if ((id === 'buscar_pedra' || id === 'pedras') && G.mochila.total('pedra') > 0) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue na obra da casa da Dona Zélia: botão direito no canteiro (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: 'casa_zelia' } };
     const [texto, obj] = PASSO_OBRA[id] || [`Agora: ${TAREFAS_OBRA[id] ? TAREFAS_OBRA[id].texto : id}.`, null];
     return { id: 'bira', nome: 'Mestre Bira', texto, alvo: obj ? { objeto: obj } : null };
   }

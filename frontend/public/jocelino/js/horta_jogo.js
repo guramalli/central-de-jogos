@@ -32,6 +32,7 @@ function desenhaCovas(ctx) {
     if (img) ctx.drawImage(img, x * TILE, y * TILE, TILE, TILE);
     if (c.adubo && !c.planta) desenhaPe(ctx, 'itens/esterco', (x + 0.5) * TILE, (y + 0.85) * TILE, 1, 0.5);
   }
+  if (typeof desenhaAlcanceIrrigador === 'function') desenhaAlcanceIrrigador(ctx);   // (quintal_coisas.js) o irrigador na mão
 }
 function encherRegador() {
   if (G.mochila.total('regador') < 1) { abrirPlaca('O barril d\'água da chuva. Com o regador na mochila, enche aqui.'); return true; }

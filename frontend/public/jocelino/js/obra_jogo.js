@@ -64,11 +64,8 @@ function conversarBira() {
     G.mochila.remover('cimento', n); G.dinheiro += n * 12; Obra.trabalho('buscar_cimento', n); hudSujo();
   }
   // As pedras trazidas na mochila: o Bira recebe também (o passo diz "traga e fale comigo"; teste de 13/10: "não falava onde").
-  if (l.metas.buscar_pedra && (l.feito.buscar_pedra || 0) < l.metas.buscar_pedra && G.mochila.total('pedra') > 0) {
-    const n = Math.min(G.mochila.total('pedra'), l.metas.buscar_pedra - (l.feito.buscar_pedra || 0));
-    G.mochila.remover('pedra', n); Obra.trabalho('buscar_pedra', n); hudSujo(); sons.tocar('pousar', 1, 0.05, -4);
-    if (!Obra.completa()) return falaBira(`Boa, ${Itens.qtd(n, 'pedra')} pro alicerce! Faltam ${l.metas.buscar_pedra - l.feito.buscar_pedra}: as do quintal, na picareta.`);
-  }
+  { const e = entregarPedrasDaMochila();
+    if (e && !Obra.completa()) return falaBira(`Boa, ${Itens.qtd(e.n, 'pedra')} pro alicerce! Faltam ${l.metas[e.t] - l.feito[e.t]}${e.t === 'buscar_pedra' ? ': as do quintal, na picareta' : ': o resto tem no monte do canteiro'}.`); }
   // 5) Lista completa: a diária e o extra.
   if (Obra.completa() && !l.paga) {
     const v = Obra.pagar(); G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -4);
@@ -138,12 +135,19 @@ function acaoNaObra(o) {
     largarCarga(); sons.tocar('pousar', 1, 0.05, -4); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Feito: ${nomeTarefa(t)}.`); return true;
   }
   // Pedras trazidas na mochila (as do quintal, na picareta; depois também da pedreira).
-  if (l && l.metas.buscar_pedra && G.mochila.total('pedra') > 0) {
-    const n = Math.min(G.mochila.total('pedra'), l.metas.buscar_pedra - (l.feito.buscar_pedra || 0));
-    if (n > 0) { G.mochila.remover('pedra', n); const r = Obra.trabalho('buscar_pedra', n); hudSujo(); avisar(r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Entregou ${n} pedras.`); return true; }
-  }
+  const e = entregarPedrasDaMochila();
+  if (e) { avisar(e.r === 'completa' ? 'Lista completa! Fale com o Mestre Bira.' : `Entregou ${Itens.qtd(e.n, 'pedra')} (${nomeTarefa(e.t)} ${l.feito[e.t]}/${l.metas[e.t]}).`); return true; }
   abrirPlaca(`${Obra.obra().nome} — etapa: ${Obra.obra().etapas[G.obra.etapa].nome}.${l ? '\n' + textoLista(l) : ' O Mestre Bira passa a lista do dia: é só falar com ele.'}`);
   return true;
+}
+// As pedras da mochila valem para "trazer pedras" e para "levar pedras para o alicerce" (diário de 13/10: "não aceita pedras
+// que peguei" — só valia a pedra do monte, nos braços). Devolve {t, n, r} ou null.
+function entregarPedrasDaMochila() {
+  const l = listaDeHoje(); if (!l || G.mochila.total('pedra') <= 0) return null;
+  const t = ['buscar_pedra', 'pedras'].find(k => l.metas[k] && (l.feito[k] || 0) < l.metas[k]); if (!t) return null;
+  const n = Math.min(G.mochila.total('pedra'), l.metas[t] - (l.feito[t] || 0));
+  G.mochila.remover('pedra', n); const r = Obra.trabalho(t, n); hudSujo(); sons.tocar('pousar', 1, 0.05, -4);
+  return { t, n, r };
 }
 function ferramentaNaObra(o, id) {
   if (!obraDaVez(o)) return;

@@ -7,18 +7,19 @@ const DIARIAS = ECO.obra.diarias;
 // (a obra é de sol a sol: das 6h, quando o Jocelino acorda, às 17h, quando a pensão abre; 13/10)
 const OBRA_ABRE = 6 * 60, OBRA_FECHA = 17 * 60, OBRA_EXTRA = ECO.obra.extra, OBRA_GORJETA = ECO.obra.gorjeta, OBRA_IMPREVISTO = ECO.obra.imprevisto, DIAS_POR_ETAPA = 2;
 const TAREFAS_OBRA = {
-  tijolos: { texto: 'Carregar tijolos', meta: 20, hab: 'alvenaria', xp: 1 },
-  areia: { texto: 'Peneirar areia', meta: 5, hab: 'alvenaria', xp: 3 },
-  entulho: { texto: 'Juntar entulho', meta: 8, hab: 'alvenaria', xp: 2 },
-  massa: { texto: 'Levar massa ao Zé', meta: 4, hab: 'alvenaria', xp: 4 },
-  molhar: { texto: 'Molhar a parede', meta: 6, hab: 'acabamento', xp: 1 },
-  capinar: { texto: 'Capinar o canteiro', meta: 10, hab: 'acabamento', xp: 1 },
-  pedras: { texto: 'Levar pedras para o alicerce', meta: 15, hab: 'alvenaria', xp: 1 },
-  telhas: { texto: 'Subir telhas', meta: 20, hab: 'alvenaria', xp: 1 },
-  ripas: { texto: 'Levar ripas para o telhado', meta: 10, hab: 'alvenaria', xp: 1 },
+  // (diário de 13/10: "não diz onde pegá-las, nem onde entregá-las" — cada tarefa diz de onde e para onde)
+  tijolos: { texto: 'Carregar tijolos do monte para a obra', meta: 20, hab: 'alvenaria', xp: 1 },
+  areia: { texto: 'Peneirar areia na peneira do canteiro', meta: 5, hab: 'alvenaria', xp: 3 },
+  entulho: { texto: 'Tirar o entulho do canteiro (pá)', meta: 8, hab: 'alvenaria', xp: 2 },
+  massa: { texto: 'Levar massa da masseira ao Zé', meta: 4, hab: 'alvenaria', xp: 4 },
+  molhar: { texto: 'Molhar a parede da obra (regador)', meta: 6, hab: 'acabamento', xp: 1 },
+  capinar: { texto: 'Capinar o mato do canteiro (foice)', meta: 10, hab: 'acabamento', xp: 1 },
+  pedras: { texto: 'Levar pedras do monte para o alicerce', meta: 15, hab: 'alvenaria', xp: 1 },
+  telhas: { texto: 'Subir telhas do monte para a obra', meta: 20, hab: 'alvenaria', xp: 1 },
+  ripas: { texto: 'Levar ripas da pilha para o telhado', meta: 10, hab: 'alvenaria', xp: 1 },
   buscar_pedra: { texto: 'Trazer 10 pedras do quintal (picareta) e entregar na obra', meta: 10, hab: 'alvenaria', xp: 1, funcaoMax: 1 },
-  assentar: { texto: 'Assentar tijolo', meta: 10, hab: 'alvenaria', xp: 3, funcaoMin: 1 },
-  rebocar: { texto: 'Chapiscar e rebocar a parede', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
+  assentar: { texto: 'Assentar tijolo na obra (colher)', meta: 10, hab: 'alvenaria', xp: 3, funcaoMin: 1 },
+  rebocar: { texto: 'Chapiscar e rebocar a parede (colher)', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
   buscar_cimento: { texto: 'Imprevisto: buscar 2 sacos de cimento no Ananias', meta: 2, hab: 'negocio', xp: 2 },
 };
 const PREMIOS_CASA = ECO.obra.premiosCasa;
@@ -101,6 +102,7 @@ const Obra = {
     if (!l || l.dia !== G.dia) return 'sem_lista';
     if (!l.metas[id]) return 'nao_pede';
     l.feito[id] = Math.min(l.metas[id], (l.feito[id] || 0) + n);
+    if (G.limpou) G.limpou['obra_' + id] = (G.limpou['obra_' + id] || 0) + 1;   // já fez essa tarefa uma vez (as setas, guia_setas.js)
     if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n * (Habilidades.tem('organizado') && ['tijolos', 'massa', 'entulho'].includes(id) ? 2 : 1) + (l.feito[id] === l.metas[id] ? 10 : 0));
     return Obra.completa() ? 'completa' : 'ok';
   },
