@@ -86,7 +86,7 @@ const sons = {
 for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
 
 let _proxCanto = 8;
-const MUSICA_PENSAO = 'vila_calma';   // a música do salão (13/10: "precisa ser algo mais animado"; as opções em a/som/pensao_animada_1 e _2)
+const MUSICA_PENSAO = 'pensao_animada_1';   // a música do salão: o samba-choro (13/10: "precisa ser algo mais animado"; escolhida pelo jogador)
 // Música: de dia a do dia, da noite a da noite (a partir das 18h); na pensão, a calma da Vila.
 setInterval(() => {
   if (!G.comecou || !sons.ctx) return;
