@@ -63,6 +63,12 @@ function conversarBira() {
     const n = Math.min(G.mochila.total('cimento'), l.metas.buscar_cimento - (l.feito.buscar_cimento || 0));
     G.mochila.remover('cimento', n); G.dinheiro += n * 12; Obra.trabalho('buscar_cimento', n); hudSujo();
   }
+  // As pedras trazidas na mochila: o Bira recebe também (o passo diz "traga e fale comigo"; teste de 13/10: "não falava onde").
+  if (l.metas.buscar_pedra && (l.feito.buscar_pedra || 0) < l.metas.buscar_pedra && G.mochila.total('pedra') > 0) {
+    const n = Math.min(G.mochila.total('pedra'), l.metas.buscar_pedra - (l.feito.buscar_pedra || 0));
+    G.mochila.remover('pedra', n); Obra.trabalho('buscar_pedra', n); hudSujo(); sons.tocar('pousar', 1, 0.05, -4);
+    if (!Obra.completa()) return falaBira(`Boa, ${Itens.qtd(n, 'pedra')} pro alicerce! Faltam ${l.metas.buscar_pedra - l.feito.buscar_pedra}: as do quintal, na picareta.`);
+  }
   // 5) Lista completa: a diária e o extra.
   if (Obra.completa() && !l.paga) {
     const v = Obra.pagar(); G.dinheiro += v; G.ganhoHoje += v; hudSujo(); sons.tocar('moedas', 1, 0.05, -4);

@@ -27,7 +27,12 @@ function pecasCerca(x, y) {
   const cx = x * TILE + TILE / 2, base = (y + 1) * TILE, MEIO = 7, r = [];
   if (c.id === 'portao') {
     const deLado = (colocadoEm(x, y - 1) || colocadoEm(x, y + 1)) && !colocadoEm(x - 1, y) && !colocadoEm(x + 1, y);
-    if (deLado) r.push({ arte: 'objetos/portao_v', x: cx - 6, y: base - TILE - 6, w: 12, h: TILE * 2 - 24 });
+    // Aberto, o portão gira 90° na dobradiça (o mourão da esquerda ou o de cima): o de frente fica de perfil e o de lado
+    // fica de frente — a mesma arte do outro sentido.
+    if (c.aberto) {
+      if (deLado) r.push({ arte: 'objetos/portao_h', x: cx, y: base - TILE * 2 + 4, w: TILE * 2 - 24, h: 34 });
+      else r.push({ arte: 'objetos/portao_v', x: cx - TILE + MEIO - 2, y: base - TILE * 2 + 2, w: 12, h: TILE * 2 - 24 });
+    } else if (deLado) r.push({ arte: 'objetos/portao_v', x: cx - 6, y: base - TILE - 6, w: 12, h: TILE * 2 - 24 });
     else r.push({ arte: 'objetos/portao_h', x: cx - TILE + MEIO, y: base - 45, w: TILE * 2 - MEIO * 2, h: 42 });
     return r;
   }
@@ -43,16 +48,27 @@ function poeColocados(b) {
   for (const c of G.horta.colocados) {
     // (a cerca bloqueia o ladrilho inteiro, como no Stardew: com a caixa só no pé do mourão, o Jocelino passava no vão entre dois
     // mourões de uma cerca em pé; teste de 12/10)
-    const solido = c.id !== 'portao', pe = c.id === 'cerca' ? [16, 16] : [16, 10];
+    // (o portão do Stardew: fechado é cerca, aberto deixa passar; o botão direito abre e fecha — teste de 13/10: "o portão não
+    // abre", ele era sempre desenhado fechado e não respondia ao clique)
+    const solido = c.id !== 'portao' || !c.aberto, pe = c.id === 'cerca' || c.id === 'portao' ? [16, 16] : [16, 10];
     const o = b.interativo('colocado', c.id === 'cerca' ? 'objetos/cerca_mourao' : c.id === 'portao' ? 'objetos/portao_h' : 'objetos/' + c.id, c.x, c.y, 1, 1, solido ? pe : null, solido);
     Object.assign(o, { item: c.id, cx: c.x, cy: c.y });
     if (c.id === 'cerca' || c.id === 'portao') o.desenha = ctx => desenhaCerca(ctx, o);
     o.ferramenta = (p, id) => { if (id !== 'machado' && id !== 'picareta') return; if (trabalhando(p)) { avisar(pronto(p) ? 'Está pronto: tire o que ficou pronto antes de recolher.' : 'Está trabalhando: espere terminar para recolher.'); return; } recolher(p); };
+    if (c.id === 'portao') Object.assign(o, { aberto: !!c.aberto, acao: () => abrirPortao(c) });
     if (c.id === 'forja') o.acao = () => usarForja(o);
     if (c.id === 'betoneira') o.acao = () => usarBetoneira(o);
     if (c.id === 'irrigador') o.acao = () => abrirPlaca('O irrigador do Seu Tonico: rega as 4 covas em volta toda manhã.');
     if (c.id === 'irrigador_bom') o.acao = () => abrirPlaca('O irrigador bom do Seu Tonico: rega as 8 covas em volta toda manhã.');
   }
+}
+// Abre ou fecha o portão (não fecha com o Jocelino no vão: ficaria preso dentro da cerca).
+function abrirPortao(c) {
+  if (c.aberto) {
+    const b = G.mapa, caixa = b._caixa((c.x + 0.5) * TILE, (c.y + 1) * TILE, 48, 48), j = G.jog.caixa();
+    if (j.x < caixa.x + caixa.w && j.x + j.w > caixa.x && j.y < caixa.y + caixa.h && j.y + j.h > caixa.y) { avisar('Saia do portão para fechar.'); return true; }
+  }
+  c.aberto = !c.aberto; sons.tocar('madeira', c.aberto ? 1.3 : 0.9, 0.05, -6); poeColocados(G.mapa); return true;
 }
 // A forja e a betoneira não se recolhem no meio do serviço (o que estava dentro se perderia).
 const trabalhando = o => typeof G.mina !== 'undefined' && G.mina && !!((G.mina.forjas || {})[o.cx + ',' + o.cy] || (G.mina.betoneiras || {})[o.cx + ',' + o.cy]);
@@ -109,7 +125,8 @@ AO_MONTAR.push(b => { if (b.id !== 'quintal') return; const j = b.moradores.find
 NOITE.push(linhas => {
   G.horta.galinha = null;
   const id = Horta.galinhas(getMapa('quintal'), mulberry(G.dia * 613 + 3));
-  if (id) { linhas.push(`As galinhas da vizinhança bicaram um pé de ${Itens.nome(id).toLowerCase()}. Cerca resolve.`); if (MAPAS.quintal) sincronizaHorta(MAPAS.quintal); }
+  const aberto = G.horta.colocados.some(c => c.id === 'portao' && c.aberto);
+  if (id) { linhas.push(`As galinhas da vizinhança bicaram um pé de ${Itens.nome(id).toLowerCase()}. ${aberto ? 'O portão da horta ficou aberto.' : 'Cerca resolve.'}`); if (MAPAS.quintal) sincronizaHorta(MAPAS.quintal); }
 });
 let _galinha = null;   // {x, y, foge, lado, t} em pixels
 ATUALIZADORES.push(dt => {

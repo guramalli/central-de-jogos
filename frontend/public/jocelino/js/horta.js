@@ -90,7 +90,7 @@ const Horta = {
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = cx + dx, ny = cy + dy, k = chaveT(nx, ny);
         if (visto.has(k) || !b.livreEm(nx, ny)) continue;
-        const o = b.ocupado.get(k); if (o && (o.solido || o.item === 'portao')) continue;
+        const o = b.ocupado.get(k); if (o && o.solido) continue;   // (o portão fechado é sólido; aberto, a galinha passa)
         visto.add(k); if (visto.size > 120) return false; fila.push([nx, ny]);
       }
     }

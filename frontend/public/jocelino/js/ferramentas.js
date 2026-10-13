@@ -124,6 +124,7 @@ function acertarUm(id, alvo, vistos) {
 function quebrar(o) {
   const m = G.mapa, D = DETRITOS[o.det];
   m.tirar(o);
+  if (G.limpou) G.limpou[o.det] = (G.limpou[o.det] || 0) + 1;   // o que já aprendeu a limpar (as setas, guia_setas.js)
   for (const id in D.solta) soltar(id, D.solta[id], o.x, o.y - 10);
   if (o.det === 'entulho' && Math.random() < (typeof Habilidades !== 'undefined' && Habilidades.tem('limpinho') ? 0.25 : 0.15)) soltar('ferro_velho', 1, o.x, o.y - 10);
   if (typeof quebrouNaObra === 'function') quebrouNaObra(o);

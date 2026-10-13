@@ -98,6 +98,18 @@ class Jogador extends Personagem {
     const x0 = this.x, y0 = this.y;
     if (vx && !bate(this.caixa(this.x + vx * v, this.y))) this.x += vx * v;
     if (vy && !bate(this.caixa(this.x, this.y + vy * v))) this.y += vy * v;
+    // Na quina de um vão (o portão, uma porta), andando reto, escorrega de lado até entrar, como no Stardew: sem isso era
+    // preciso acertar o vão de 1 ladrilho no pixel (teste de 13/10, o portão da horta).
+    if (this === G.jog && (vx === 0) !== (vy === 0) && this.x === x0 && this.y === y0) {
+      const fx = vx ? Math.sign(vx) * v : 0, fy = vy ? Math.sign(vy) * v : 0;
+      fora: for (let d = 2; d <= 22; d += 2) for (const s of [-1, 1]) {
+        const lx = vy ? s : 0, ly = vx ? s : 0;
+        if (bate(this.caixa(this.x + lx * d + fx, this.y + ly * d + fy))) continue;
+        const p = Math.min(d, v);
+        if (!bate(this.caixa(this.x + lx * p, this.y + ly * p))) { this.x += lx * p; this.y += ly * p; }
+        break fora;
+      }
+    }
     const t = this.ladrilho();
     const s = G.mapa.saidaEm(t.x, t.y);
     if (s) {

@@ -1,4 +1,4 @@
-// Jocelino — loja.js — o depósito do Seu Ananias (abre das 9h às 17h; fecha em dia de festa): abas Comprar (material e
+// Jocelino — loja.js — o depósito do Seu Ananias (abre das 8h às 17h, pedido do teste de 13/10; fecha em dia de festa): abas Comprar (material e
 // comida), Vender (o que sobra do quintal), Mercearia (os ingredientes da Pensão da Rosa que a fama já abriu) e Sementes
 // (as da estação e as coisas da horta).
 // Clique compra 1; Shift+clique compra 5 (ou vende tudo, na aba Vender). Os preços são os do Godot.
@@ -7,7 +7,7 @@ let _abaLoja = 0;
 const ABAS_LOJA = ['Comprar', 'Vender', 'Mercearia', 'Sementes'];
 
 function entrarDeposito() {
-  if (G.minutos < 9 * 60 || G.minutos >= 17 * 60) { abrirPlaca('Depósito do Seu Ananias: fechado agora. Abre das 9h às 17h.'); return true; }
+  if (G.minutos < 8 * 60 || G.minutos >= 17 * 60) { abrirPlaca('Depósito do Seu Ananias: fechado agora. Abre das 8h às 17h.'); return true; }
   abrirLoja();
   return true;
 }

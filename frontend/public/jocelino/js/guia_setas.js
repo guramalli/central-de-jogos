@@ -6,6 +6,14 @@
 // Sem o guia ("Já conheço o jogo") ou com tudo feito, nada. O "!" some de quem a seta já aponta.
 
 const DET_LIMPAR = ['mato', 'pedra', 'galho', 'toco'];
+// O que o Jocelino já aprendeu a limpar (teste de 13/10: "a pessoa já aprendeu a limpar o quintal, não precisa mostrar cada
+// pedra e mato… precisa dar o caminho apenas"): depois de 3 de um tipo, a seta não aponta mais o que está na tela — só a
+// borda, na direção do mais perto, e a saída para outro mapa. O save antigo (já passou do dia 1) conta como aprendido.
+const APRENDE_LIMPAR = 3;
+INICIADORES.push(s => { G.limpou = s.limpou ? Object.assign({}, s.limpou) : (s.dia || 1) > 1 ? Object.fromEntries(Object.keys(DETRITOS).map(d => [d, APRENDE_LIMPAR])) : {}; });
+COLETORES.push(s => { s.limpou = Object.assign({}, G.limpou || {}); });
+const jaSabeLimpar = det => ((G.limpou || {})[det] || 0) >= APRENDE_LIMPAR;
+const _naTela = p => { const z = G.zoom || 1, sx = (p.x - G.cam.x) * z, sy = (p.y - G.cam.y) * z; return sx > 20 && sx < G.larg - 20 && sy > 20 && sy < G.alt - 110; };
 // O alvo de cada missão: o mapa e quem (morador), o quê (objeto) ou onde (ponto em px de mundo).
 // O detrito mais perto (com peso), preferindo o que não fica escondido atrás da barra ou do quadro de tarefas (vistoria de 12/10).
 function _maisPerto(filtro, peso = () => 1) {
@@ -154,7 +162,7 @@ function guiaSetaMundo() {
     if (id === 'caderneta' && !a.det && (!a.mapa || a.mapa === G.mapaId) && _chegou(a)) { G.setaFixa = null; continue; }   // (a limpeza do quintal segue o detrito mais perto: não "chega")
     res.push([id, a]);
   }
-  for (const [id, a] of res) if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } }
+  for (const [id, a] of res) if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p && a.det && jaSabeLimpar(a.det) && G.cam && _naTela(p)) continue; if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } }
   for (const [id, a] of res) {
     if (!a.mapa || a.mapa === G.mapaId) continue;
     // Em outro mapa: a saída para lá, ou para a Vila (o centro de tudo).

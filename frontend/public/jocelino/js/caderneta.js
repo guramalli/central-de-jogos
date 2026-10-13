@@ -19,7 +19,7 @@ CADERNETA.push(() => {
   if (G.obra && !Obra.aberta(G.dia, G.minutos) && !(l && l.paga)) r.push({ id: 'hoje_obra', aba: 'hoje', hoje: true, texto: `A obra do Mestre Bira, na Vila: Cr$ ${Obra.diaria()} por dia, até as 17h`, alvo: { mapa: 'vila', morador: 'bira' } });
   if (G.empreitas && _liberado('quadro') && G.empreitas.quadro.length && !Object.keys(G.empreitas.aceitas).length) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: `${G.empreitas.quadro.length} serviço(s) no quadro da Vila (pagam na hora)`, alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } });
   if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
-  if (!dom && G.minutos >= 9 * 60 && G.minutos < 17 * 60) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: 'O depósito do Ananias (material, sementes, comida) fecha às 17h', alvo: { mapa: 'vila', objeto: 'deposito' } });
+  if (!dom && G.minutos >= 8 * 60 && G.minutos < 17 * 60) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: 'O depósito do Ananias (material, sementes, comida) fecha às 17h', alvo: { mapa: 'vila', objeto: 'deposito' } });
   if (typeof Clima !== 'undefined' && Clima.chove(G.dia)) r.push({ id: 'hoje_chuva', aba: 'hoje', texto: 'Chove hoje: a horta já está regada e a mata dá mais cogumelo' });
   return r;
 });

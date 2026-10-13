@@ -112,7 +112,7 @@ const DICAS_OBJ = {
   caixa_correio: ['Caixa de correio', 'Botão direito: ler as cartas.'],
   caixa_venda: ['Caixa de venda', 'Botão direito: abrir a caixa (o carroceiro passa de madrugada).'],
   radio: ['Rádio', 'Botão direito: a previsão do tempo de amanhã.'],
-  deposito: ['Depósito do Seu Ananias', 'Botão direito: entrar e comprar (das 9h às 17h).'],
+  deposito: ['Depósito do Seu Ananias', 'Botão direito: entrar e comprar (das 8h às 17h).'],
   pensao: ['Pensão da Rosa', 'Botão direito: entrar. Janta das 17h às 21h.'],
 };
 

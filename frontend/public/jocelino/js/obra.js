@@ -16,7 +16,7 @@ const TAREFAS_OBRA = {
   pedras: { texto: 'Levar pedras para o alicerce', meta: 15, hab: 'alvenaria', xp: 1 },
   telhas: { texto: 'Subir telhas', meta: 20, hab: 'alvenaria', xp: 1 },
   ripas: { texto: 'Levar ripas para o telhado', meta: 10, hab: 'alvenaria', xp: 1 },
-  buscar_pedra: { texto: 'Trazer 10 pedras (as do quintal, na picareta)', meta: 10, hab: 'alvenaria', xp: 1, funcaoMax: 1 },
+  buscar_pedra: { texto: 'Trazer 10 pedras do quintal (picareta) e entregar na obra', meta: 10, hab: 'alvenaria', xp: 1, funcaoMax: 1 },
   assentar: { texto: 'Assentar tijolo', meta: 10, hab: 'alvenaria', xp: 3, funcaoMin: 1 },
   rebocar: { texto: 'Chapiscar e rebocar a parede', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
   buscar_cimento: { texto: 'Imprevisto: buscar 2 sacos de cimento no Ananias', meta: 2, hab: 'negocio', xp: 2 },
