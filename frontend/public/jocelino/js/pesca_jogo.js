@@ -151,6 +151,8 @@ DESENHOS_TELA.push(ctx => {
 // ---------- a banca do Seu Lourival (o Willy): vende peixe; compra isca, covo e a vara boa ----------
 const PRECO_BANCA = ECO.lojas.banca;
 const PEDE_PESCA = { vara_boa: 2 };
+// O preço na banca (a vara boa sai pela metade com o Aquário do Grêmio pronto).
+function precoBanca(id) { return Math.max(1, Math.round(PRECO_BANCA[id] * descontoHab() * (id === 'vara_boa' && typeof Gremio !== 'undefined' ? Gremio.fatorVaraBoa() : 1))); }
 let _abaBanca = 0;
 function abrirBanca() {
   if (relogio.domingo() || G.minutos < 7 * 60 || G.minutos >= 17 * 60) { abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), [relogio.domingo() ? 'Domingo a banca descansa, compadre.' : 'A banca abre das 7h às 17h.']); return true; }
@@ -167,7 +169,7 @@ function abrirBanca() {
         el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + precoPeixe(id))));
       if (!linhas.length) linhas = [el('div', { class: 'rodape' }, 'Nenhum peixe na mochila.')];
     } else {
-      linhas = Object.keys(PRECO_BANCA).map(id => { const pede = PEDE_PESCA[id], trava = pede && Habilidades.nivel('pesca') < pede, preco = Math.max(1, Math.round(PRECO_BANCA[id] * descontoHab()));
+      linhas = Object.keys(PRECO_BANCA).map(id => { const pede = PEDE_PESCA[id], trava = pede && Habilidades.nivel('pesca') < pede, preco = precoBanca(id);
         return el('div', { class: 'linha' + (trava ? ' trancado' : ''), onclick: e => { e.stopPropagation(); if (trava) { avisar(`Isso pede Pesca ${pede}.`); return; } _comprar(id, e.shiftKey && id === 'isca' ? 5 : 1, preco); desenha(); } },
           el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), trava ? el('div', { class: 'tem' }, `pede Pesca ${pede}`) : el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco)); });
     }

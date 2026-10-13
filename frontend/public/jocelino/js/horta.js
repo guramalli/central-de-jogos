@@ -38,7 +38,9 @@ const Horta = {
   plantar(x, y, item, dia) {
     const id = culturaDaSemente(item); if (!id) return 'nao_e_semente';
     const c = Horta.cova(x, y); if (!c) return 'sem_cova'; if (c.planta) return 'ocupado';
-    if (!CULTURAS[id].estacoes.includes(estacaoDoDia(dia))) return 'fora_de_estacao';
+    // (a horta coberta do Grêmio: o canteiro do Tio Juca aceita semente fora da estação, como a estufa do Stardew)
+    const coberta = c.inicial && typeof Gremio !== 'undefined' && Gremio.hortaCoberta();
+    if (!coberta && !CULTURAS[id].estacoes.includes(estacaoDoDia(dia))) return 'fora_de_estacao';
     c.planta = id; c.dias = 0; c.colhida = false; return 'ok';
   },
   regar(x, y) {
@@ -72,7 +74,7 @@ const Horta = {
       const c = G.horta.covas[k];
       if (c.planta && (c.regada || chove)) c.dias++;
       c.regada = false;
-      if (c.planta && vira && !CULTURAS[c.planta].estacoes.includes(estacaoDoDia(dia + 1))) { r.secaram.push(c.planta); c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; }
+      if (c.planta && vira && !(c.inicial && typeof Gremio !== 'undefined' && Gremio.hortaCoberta()) && !CULTURAS[c.planta].estacoes.includes(estacaoDoDia(dia + 1))) { r.secaram.push(c.planta); c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; }
       if (!c.planta && !c.adubo && !c.inicial && rng() < HORTA_SOME) { delete G.horta.covas[k]; r.sumiram++; }
     }
     return r;

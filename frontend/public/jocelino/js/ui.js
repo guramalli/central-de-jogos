@@ -71,6 +71,8 @@ function teclaNoModal(e) {
     const b = $('#modal .pronto') || $('#modal .opcoes .forte');
     if (b) { b.click(); return true; }
   }
+  // (a tecla da caderneta fecha a caderneta aberta, como a M fecha o mapa)
+  if ($('#modal .caderneta') && typeof ehTecla === 'function' && ehTecla(e, 'caderneta')) { fecharModal(); return true; }
   if (['Escape', 'KeyE', 'Space', 'Enter', 'KeyX'].includes(e.code)) {
     const placa = $('#modal .placa');
     if (placa && placa._avancar && e.code !== 'Escape') placa._avancar(); else fecharModal();

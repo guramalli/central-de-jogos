@@ -31,6 +31,8 @@ const GUIA_MISSOES = [
     feita: () => !!G.empreitas && G.empreitas.entregues >= 1,
     alvo: () => { const id = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta'); return { objeto: id ? 'emp_' + id : 'quadro_pedidos' }; },
     aoAbrir: () => { if (G.empreitas && typeof Empreitas !== 'undefined') { G.empreitas.dia = G.dia; G.empreitas.quadro = Empreitas.quadroDoDia(G.dia); } }, },
+  { id: 'gremio', titulo: 'A Obra do Povo', quem: 'Dona Zélia', texto: 'A Obra do Povo: ver a lista na porta do Grêmio (na Vila)', meta: 1, depois: 'vila', comoDepois: 'aberta', dia: 'gremio', carta: 'zelia_gremio', libera: 'gremio',
+    conta: () => G.guia.cont.gremio || 0, alvo: () => ({ objeto: 'gremio' }) },
   // (o domingo vale só naquele dia: na segunda se encerra sem recompensa, para não ocupar a vaga das outras)
   { id: 'domingo', titulo: 'Domingo em família', quem: 'Rosa', texto: 'Domingo em família: guarde 5 da horta na despensa da pensão', meta: 5, depois: 'horta', dia: 'domingo', semana: 6, expira: 1, conta: _culturasNaDespensa,
     alvo: () => ({ objeto: 'despensa_pensao' }), intro: ['rosa', 'Rosa', ['Domingo é dia de família. O que a horta der, guarda na despensa da pensão: vira comida boa.']] },
@@ -39,7 +41,7 @@ const GUIA_MISSOES = [
   { id: 'pedreira', titulo: 'A pedreira', quem: 'Seu Tonico', texto: 'Quebrar 10 pedras na pedreira', meta: 10, depois: 'bazar', comoDepois: 'aberta', dia: 'pedreira', carta: 'tonico_pedreira', libera: 'pedreira', conta: () => G.guia.cont.pedreira || 0, alvo: () => ({ morador: 'tonico' }) },
   { id: 'mina', titulo: 'A mina', quem: 'Seu Tonico', texto: 'Descer na mina do Seu Tonico', depois: 'pedreira', dia: 'mina', carta: 'tonico_bancadas', libera: 'mina', feita: () => !!G.mina && G.mina.maisFunda >= 1 },
 ];
-const GUIA_SISTEMAS = ['pensao', 'horta', 'quadro', 'praia', 'bazar', 'pedreira', 'mina'];
+const GUIA_SISTEMAS = ['pensao', 'horta', 'quadro', 'gremio', 'praia', 'bazar', 'pedreira', 'mina'];
 const Guia = {
   fila: [],
   novo(ativo = true) { return { ativo, feitas: [], abertas: [], cont: {}, conversou: [], antes: [], versao: 0 }; },
@@ -134,6 +136,7 @@ const Guia = {
     if (dia >= 4 || lidas.includes('folheto_salim')) g.antes.push('bazar');
     if (lug.pedreira || lidas.includes('tonico_pedreira')) g.antes.push('pedreira');
     if ((s.mina && s.mina.aberta) || lidas.includes('tonico_bancadas')) g.antes.push('mina');
+    if (dia >= ECO.guia.dias.gremio || lidas.includes('zelia_gremio')) g.antes.push('gremio');   // (o Grêmio, 12/10: sem missão no save antigo; a carta vem de manhã)
     for (const m of GUIA_MISSOES) {
       const feita = (m.libera && g.antes.includes(m.libera)) || (['quintal', 'obra', 'vila'].includes(m.id) && dia > 1)
         || (m.id === 'janta' && pz.estado === 'aberta' && (pz.ultimaJanta || 0) > 0) || (m.id === 'domingo' && dia > 7);
@@ -261,3 +264,5 @@ ATUALIZADORES.push(() => {
   G.guiaFlut = G.guiaFlut.filter(f => f.ate > (G.agora || 0));
   for (const f of G.guiaFlut) texto(ctx, f.texto, f.x, f.y - (1.5 - (f.ate - (G.agora || 0))) * 20, 22, '#fff8e8', '900');
 }; }
+// (o contador é do lugar onde se trabalhou: trocou de mapa, some; vistoria de 12/10)
+AO_ENTRAR_MAPA.push(() => { G.guiaFlut = []; });

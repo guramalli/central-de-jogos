@@ -57,7 +57,7 @@ function abrirOpcoes() {
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); if (typeof baixarDiario === 'function') baixarDiario(); } }, 'Baixar o diário da sessão'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); if (typeof abrirNota === 'function') abrirNota(); } }, 'Anotar agora (N)')));
     caixa.append(el('div', { class: 'rodape', style: 'text-align:left;line-height:1.6' },
-      'WASD ou setas: andar · Shift: correr · clique: usar a ferramenta · botão direito ou X: conversar, abrir, entregar, comer · E: mochila · Tab: trocar a fileira · 1–0: escolher na barra · F: tela cheia · Esc: opções · M: mapa · N: anotar no diário'));
+      'WASD ou setas: andar · Shift: correr · clique: usar a ferramenta · botão direito ou X: conversar, abrir, entregar, comer · E: mochila · Tab: trocar a fileira · 1–0: escolher na barra · F: tela cheia · Esc: opções · M: mapa · J: caderneta · N: anotar no diário'));
     caixa.append(el('div', { style: 'display:flex;gap:10px;justify-content:flex-end;margin-top:10px' },
       el('div', { class: 'rodape', style: 'flex:1;text-align:left' }, 'O jogo salva quando o Jocelino dorme.'),
       el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));

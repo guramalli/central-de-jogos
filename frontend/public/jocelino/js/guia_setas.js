@@ -41,6 +41,7 @@ function _alvoDaMissao(id) {
       const ac = G.empreitas && Object.keys(G.empreitas.aceitas).find(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta');
       return ac ? _alvoDaEmpreita(ac) : { mapa: 'vila', objeto: 'quadro_pedidos' };
     }
+    case 'gremio': return { mapa: 'vila', objeto: 'gremio' };
     case 'pesca': return { mapa: 'praia', morador: 'lourival' };
     case 'bazar': return { mapa: 'vila', objeto: 'balcao_bazar' };
     case 'pedreira': return { mapa: 'pedreira', morador: 'tonico' };
@@ -104,8 +105,9 @@ const VERBO_DET = { mato: 'capinar o mato', pedra: 'quebrar a pedra', galho: 'co
 const ROTULO_OBJ = { caixa_correio: 'Botão direito: ler a carta', peneira: 'Botão direito: peneirar', monte_tijolos: 'Botão direito: pegar no monte',
   masseira: 'Botão direito: pegar a massa', pilha_ripas: 'Botão direito: pegar as ripas', casa_zelia: 'Botão direito: entregar aqui',
   quadro_pedidos: 'Botão direito: ver os serviços', pensao: 'Botão direito: entrar na pensão', balcao_bazar: 'Botão direito: ver o Bazar',
-  escada_mina: 'Botão direito: descer na mina', despensa_pensao: 'Botão direito: abrir a despensa' };
+  escada_mina: 'Botão direito: descer na mina', despensa_pensao: 'Botão direito: abrir a despensa', gremio: 'Botão direito: a lista do povo' };
 function _rotulo(a) {
+  if (a.rotuloFixo && a.tipo !== 'saida' && !a.det) return a.rotuloFixo;
   if (a.falta && a.tipo !== 'saida') { const q = Itens.qtd(a.falta.n, a.falta.item);
     if (a.objeto === 'deposito') return `Falta ${q}: compre no depósito do Seu Ananias`;
     if (a.det) return `Falta ${q}: use ${NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]} aqui`; }
@@ -130,6 +132,9 @@ function _rotulo(a) {
 function guiaSetaMundo() {
   if (!G.mapa) return null;
   const cands = [];
+  // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
+  if (G.setaFixa && typeof Caderneta !== 'undefined') { const l = Caderneta.linha(G.setaFixa);
+    if (!l || !l.alvo) G.setaFixa = null; else cands.push(['caderneta', () => { const a = typeof l.alvo === 'function' ? l.alvo() : l.alvo; return a && Object.assign({ rotuloFixo: l.rotulo || l.texto }, a); }]); }
   if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
   for (const cid of _servicosDaSeta()) cands.push(['servico', () => _alvoDaEmpreita(cid)]);
   for (const [id, f] of cands) {
@@ -161,7 +166,7 @@ function guiaSetaUI() {
   if (!$('#modal').hidden) return null;
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
-  if (sm && sm.det && (sm.missao === 'quintal' || sm.buscar)) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.det && (sm.missao === 'quintal' || sm.buscar || sm.missao === 'caderneta')) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
   if (sm && sm.empreita && !sm.buscar) { const E = dadosEmpreita(sm.empreita), fe = E && (E.tipo === 'longa' ? Empreitas.ferramentaHoje(sm.empreita) : E.ferramenta);
     if (fe && fe !== 'carga' && mao !== fe) { const i = slotDe(fe); if (i >= 0) return barra(i); } }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {

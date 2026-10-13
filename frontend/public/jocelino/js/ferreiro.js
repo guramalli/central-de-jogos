@@ -22,7 +22,7 @@ const Ferreiro = {
     for (const m in c) if (m !== 'dinheiro' && mochila.total(m) < c[m]) return { ok: false, gasto: 0, motivo: `Falta ${Itens.qtd(c[m], m)}.` };
     for (const m in c) if (m !== 'dinheiro') mochila.remover(m, c[m]);
     mochila.remover(id, 1);
-    G.ferreiro.oficina = { id, nivel: nivelFerramenta(id) + 1, pronta: dia + Ferreiro.DIAS };
+    G.ferreiro.oficina = { id, nivel: nivelFerramenta(id) + 1, pronta: dia + (typeof Gremio !== 'undefined' ? Gremio.diasTonico(Ferreiro.DIAS) : Ferreiro.DIAS) };
     return { ok: true, gasto: preco, motivo: '' };
   },
   pronta(dia) { return !!G.ferreiro.oficina && dia >= G.ferreiro.oficina.pronta; },
@@ -37,10 +37,11 @@ const Ferreiro = {
   fundir(mochila, dinheiro) {
     const n = Math.floor(mochila.total('ferro_velho') / Ferreiro.FUNDIR);
     if (!n) return { ok: false, gasto: 0, motivo: `Precisa de ${Ferreiro.FUNDIR} ferros velhos para uma barra.` };
-    const k = Math.min(n, Math.floor(dinheiro / Ferreiro.PRECO_FUNDIR));
-    if (!k) return { ok: false, gasto: 0, motivo: `Cada barra custa Cr$ ${Ferreiro.PRECO_FUNDIR}.` };
+    const preco = Math.round(Ferreiro.PRECO_FUNDIR * (typeof Gremio !== 'undefined' ? Gremio.fatorFundir() : 1));
+    const k = Math.min(n, Math.floor(dinheiro / preco));
+    if (!k) return { ok: false, gasto: 0, motivo: `Cada barra custa Cr$ ${preco}.` };
     mochila.remover('ferro_velho', k * Ferreiro.FUNDIR); mochila.adicionar('barra_ferro', k);
-    return { ok: true, gasto: k * Ferreiro.PRECO_FUNDIR, motivo: '' };
+    return { ok: true, gasto: k * preco, motivo: '' };
   },
   // O irrigador (o aspersor do Stardew): o preço do ECO + 2 barras de ferro, pronto na hora.
   irrigador(mochila, dinheiro) {

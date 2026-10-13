@@ -37,7 +37,7 @@ const Achados = {
   },
   // Sorteia os achados do dia num mapa: em chão livre (sem objeto, saída nem água), fixo pelo dia e pelo mapa.
   sortear(dia, mapaId, m) {
-    const base = ACHADOS_POR_MAPA[mapaId];
+    const base = ACHADOS_POR_MAPA[mapaId] && ACHADOS_POR_MAPA[mapaId] * (typeof Gremio !== 'undefined' ? Gremio.fatorAchados(mapaId) : 1);
     if (!base || !m) return [];
     const est = Math.floor((dia - 1) / 28) % 4, chove = typeof Clima !== 'undefined' && Clima.chove(dia), s = Achados.sorte(dia);
     const f = mulberry(dia * 7919 + mapaId.length * 131 + mapaId.charCodeAt(0));

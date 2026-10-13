@@ -20,7 +20,8 @@ function montaHud() {
   HUD.botaoTela = el('button', { class: 'botao botao-tela', title: 'Tela cheia (F)', onclick: () => alternaTelaCheia() }, '⛶');
   HUD.botaoHab = el('button', { class: 'botao botao-hab', title: 'Habilidades (H)', onclick: () => abrirHabilidades() }, '★');
   HUD.botaoFab = el('button', { class: 'botao botao-fab', title: 'Fabricar (B)', onclick: () => abrirFabricar() }, el('img', { src: urlItem('colher'), style: 'height:18px;vertical-align:middle' }));
-  h.append(HUD.quadro, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab);
+  HUD.botaoCad = el('button', { class: 'botao botao-cad', title: 'Caderneta: o que dá para fazer (J)', onclick: () => abrirCaderneta() }, '✎');
+  h.append(HUD.quadro, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad);
 }
 
 function atualizaHud() {
@@ -46,6 +47,7 @@ function atualizaHud() {
         // (teste de 12/10) Botão direito numa comida da barra: escolhe e pergunta se quer comer (antes não fazia nada).
         oncontextmenu: ev => { ev.preventDefault(); ev.stopPropagation(); G.sel = i; hudSujo(); if (!menuAberto() && typeof comerDaMao === 'function') comerDaMao(); } },
         s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null, s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null,
+        s && typeof Gremio !== 'undefined' && G.gremio && Gremio.serve(s.id) ? el('img', { class: 'selo-gremio', src: urlArte('ui/selo_gremio'), title: 'Serve para o Grêmio: ' + Gremio.serve(s.id).nome }) : null,
         s && s.id === 'regador' && G.horta ? el('div', { class: 'agua', title: `Água: ${G.horta.agua}` }, el('div', { style: `width:${Math.round(100 * G.horta.agua / Horta.aguaMax())}%` })) : null);
       HUD.barra.append(e);
     }
@@ -60,7 +62,11 @@ function atualizaHud() {
   // A missão do guia (➤, Frente 4) vem antes de tudo.
   const peso = t => t.texto.startsWith('➤') ? 2 : t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
   const txt = tarefas.slice(0, 6).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
-  if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', t.startsWith('➤') ? { class: 'guia' } : {}, t)); }
+  if (HUD.quadro._txt !== txt) {
+    HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; const vis = tarefas.slice(0, 6);
+    (txt ? txt.split('|') : []).forEach((t, i) => HUD.quadro.append(el('div', t.startsWith('➤') ? { class: 'guia' }
+      : vis[i] && vis[i].ideia ? { class: 'ideia', title: 'Clique: a seta mostra onde', onclick: () => { G.setaFixa = vis[i].ideia; hudSujo(); } } : {}, t)));
+  }
   if (typeof atualizaSeloPensao === 'function') atualizaSeloPensao(HUD.selo, noSalao);
 }
 ATUALIZADORES.push(() => atualizaHud());
@@ -81,7 +87,8 @@ function abrirMochila() {
         onclick: e => { e.stopPropagation(); G.mochila.clicar(i); hudSujo(); desenha(); },
         oncontextmenu: e => { e.preventDefault(); e.stopPropagation(); G.mochila.clicarDireito(i); hudSujo(); desenha(); } },
         s ? el('img', { src: urlItem(s.id), style: 'position:absolute;inset:4px;width:46px;height:46px', draggable: 'false' }) : null,
-        s && Itens.pilha(s.id) > 1 ? el('div', { style: 'position:absolute;right:3px;bottom:0;font-weight:900;color:#fff;text-shadow:0 0 3px #000' }, s.qtd) : null));
+        s && Itens.pilha(s.id) > 1 ? el('div', { style: 'position:absolute;right:3px;bottom:0;font-weight:900;color:#fff;text-shadow:0 0 3px #000' }, s.qtd) : null,
+        s && typeof Gremio !== 'undefined' && G.gremio && Gremio.serve(s.id) ? el('img', { class: 'selo-gremio', src: urlArte('ui/selo_gremio'), title: 'Serve para o Grêmio: ' + Gremio.serve(s.id).nome }) : null));
     });
     caixa.append(grade);
     const mao = G.mochila.mao;

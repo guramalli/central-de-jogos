@@ -102,7 +102,32 @@ const ECO = {
   },
   // O guia das primeiras semanas (Frente 4, 12/10/2026): o dia mínimo de cada sistema, a espera quando a missão anterior
   // empaca, o máximo de missões abertas e as recompensas (coisas úteis, sem dinheiro).
-  guia: { dias: { pensao: 2, horta: 3, quadro: 1, domingo: 7, pesca: 8, bazar: 9, pedreira: 10, mina: 12 }, espera: 3, maxAbertas: 2,
+  // ---- A Obra do Povo (o Grêmio, o Centro Comunitário do Stardew): o que cada pacote pede e dá, quando cada ala abre (pacotes
+  // prontos no total), o presente de cada ala pronta e os efeitos. O quintal em marcos: o prêmio do Tio Juca a cada quarto limpo
+  // ("sementes" = sementes da estação).
+  gremio: { abre: { cozinha: 0, varanda: 0, aquario: 2, deposito: 4, oficina: 6, cofre: 9 },
+    pacotes: {
+      verduras_outono: { nome: 'Verduras do outono', itens: { alface: 5, couve: 5 }, premio: { esterco: 5 } },
+      roca: { nome: 'Da roça', itens: { mandioca: 3, milho: 3 }, premio: { rama_mandioca: 5 } },
+      tempo_quente: { nome: 'Do tempo quente', itens: { tomate: 3, abobora: 2 }, premio: { semente_tomate: 5 } },
+      frutas_mata: { nome: 'Frutas da mata', itens: { pitanga: 2, jabuticaba: 2, araca: 2, cambuci: 2 }, premio: { marmita: 3 } },
+      chao_mata: { nome: 'Chão da mata', itens: { cogumelo: 3, flor: 5 }, premio: { cafe: 5 } },
+      beira_mar: { nome: 'Beira-mar', itens: { coco: 3, caju: 3, concha: 3 }, premio: { isca: 15 } },
+      mar_dia: { nome: 'Mar de dia', itens: { sardinha: 2, tainha: 2, pescada: 2 }, premio: { isca: 15 } },
+      rio_mata: { nome: 'Rio da mata', itens: { lambari: 2, piau: 2, traira: 1 }, premio: { marmita: 3 } },
+      graudo: { nome: 'Peixe graúdo', itens: { robalo: 1, caranguejo: 1, lagosta: 1 }, premio: { caldo_caranguejo: 2 } },
+      fundacao: { nome: 'Fundação', itens: { pedra: 20, cimento: 5 }, premio: { cimento: 5 } },
+      paredes: { nome: 'Paredes', itens: { tijolo: 60, telha: 10 }, premio: { telha: 10 } },
+      acabamento: { nome: 'Acabamento', itens: { madeira_lei: 5, lajota: 5 }, premio: { cal: 3 } },
+      ferro: { nome: 'Ferro', itens: { ferro_velho: 10, barra_ferro: 3 }, premio: { barra_ferro: 2 } },
+      pedreira_funda: { nome: 'Pedreira funda', itens: { cristal: 2, sucata_aco: 5 }, premio: { barra_ferro: 3 } },
+      pedra_boa: { nome: 'Pedra boa', itens: { pedra: 50, pedra_bonita: 3 }, premio: { caminho_pedra: 20 } },
+      parcela_1: { nome: '1ª parcela', dinheiro: 500 }, parcela_2: { nome: '2ª parcela', dinheiro: 1000 },
+      parcela_3: { nome: '3ª parcela', dinheiro: 2000 }, parcela_4: { nome: '4ª parcela', dinheiro: 4000 } },
+    presentes: { aquario: { covo: 1 }, deposito: { betoneira: 1 } },
+    efeitos: { achados: 2, deposito: 0.9, diasTonico: 1, fundir: 0.5, varaBoa: 0.5, clientesSabado: 2 } },
+  quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } } },
+  guia: { dias: { pensao: 2, horta: 3, quadro: 1, gremio: 6, domingo: 7, pesca: 8, bazar: 9, pedreira: 10, mina: 12 }, espera: 3, maxAbertas: 2,
     recompensas: { quintal: { mochila: { marmita: 2 } }, horta: { mochila: { esterco: 5, semente_alface: 5 } },
       janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
 };
