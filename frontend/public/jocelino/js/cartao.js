@@ -23,9 +23,9 @@ function metaFamilia() {
   }
   const f = Obra.falta(1), r = REQUISITOS_FUNCAO[1];
   const meta = r.obras + r.alvenaria + r.empreitas, falta = f ? f.obras + f.alvenaria + f.empreitas : 0;
-  return { titulo: 'A casa da família', texto: `Primeiro o ofício: virar meio-oficial na obra do Bira (${f && falta ? faltaFuncao(f) : 'fale com o Bira!'}); depois o terreno vira casa`, feito: meta - falta, meta };
+  return { titulo: 'A casa da família', texto: `Para começar a casa: virar meio-oficial na obra do Bira (${f && falta ? faltaFuncao(f) : 'fale com o Bira!'})`, feito: meta - falta, meta };
 }
-const faltaFuncao = f => { const p = [f.obras ? `entregar ${f.obras} obra${f.obras > 1 ? 's' : ''} com o Bira` : '', f.alvenaria ? `subir ${f.alvenaria} ${f.alvenaria > 1 ? 'níveis' : 'nível'} de Alvenaria` : '', f.empreitas ? `fazer ${f.empreitas} serviço(s) do quadro` : ''].filter(Boolean); return p.length ? 'falta: ' + p.join(', ') : 'pronto'; };
+const faltaFuncao = f => { const p = [f.obras ? `entregar ${f.obras} obra${f.obras > 1 ? 's' : ''}` : '', f.alvenaria ? `subir ${f.alvenaria} ${f.alvenaria > 1 ? 'níveis' : 'nível'} de Alvenaria` : '', f.empreitas ? `fazer ${f.empreitas} serviço(s) do quadro` : ''].filter(Boolean); return p.length ? 'falta: ' + p.join(', ') : 'pronto'; };
 // A linha do trabalho na mão (o quadro) vale no mapa dela; 'pensao' vale no salão e na cozinha.
 // (revisão: o que é da pensão aberta — as ★ da Rosa, o VIP, o concurso — aparece também na Vila, onde ela fica)
 const noMapaDaLinha = t => !!t.mapa && (t.mapa === G.mapaId || (t.mapa === 'pensao' && (/^pensao/.test(G.mapaId || '') || G.mapaId === 'vila')));

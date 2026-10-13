@@ -7,7 +7,9 @@ const GUIA_VIZINHOS = ['ananias', 'zelia', 'ze'];
 const _covasPlantadasRegadas = () => Object.values((G.horta && G.horta.covas) || {}).filter(c => c && c.planta && (c.regada || c.dias > 0)).length;   // regada hoje ou já crescendo (regada antes)
 const _culturasNaDespensa = () => { const d = (G.pensao && G.pensao.despensa) || {}; return Object.keys(typeof CULTURAS !== 'undefined' ? CULTURAS : {}).reduce((t, id) => t + (d[id] || 0), 0); };
 const GUIA_MISSOES = [
-  { id: 'obra', agora: () => `O Mestre Bira contrata servente, na Vila: Cr$ ${Obra.diaria()} por dia, o primeiro dinheiro da casa`, titulo: 'A primeira obra', quem: 'Mestre Bira', texto: 'A primeira obra: o Mestre Bira, na Vila', feita: () => !!(G.obra && G.obra.lista && G.obra.lista.contou), alvo: () => ({ morador: 'bira' }) },   // contou: paga, ou fechada com mais da metade
+  { id: 'obra', agora: () => { const l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
+      if (l && !l.paga) { const ids = Object.keys(l.metas), feitas = ids.filter(id => (l.feito[id] || 0) >= l.metas[id]).length; return feitas < ids.length ? `A lista do dia do Bira: ${feitas} de ${ids.length} tarefas; completa, a diária de Cr$ ${Obra.diaria()}` : `Lista completa: receba a diária de Cr$ ${Obra.diaria()} com o Bira`; }
+      return `O Mestre Bira contrata servente, na Vila: Cr$ ${Obra.diaria()} por dia, o primeiro dinheiro da casa`; }, titulo: 'A primeira obra', quem: 'Mestre Bira', texto: 'A primeira obra: o Mestre Bira, na Vila', feita: () => !!(G.obra && G.obra.lista && G.obra.lista.contou), alvo: () => ({ morador: 'bira' }) },   // contou: paga, ou fechada com mais da metade
   { id: 'vila', agora: 'Conhecer a Vila: o Seu Ananias (o depósito), a Dona Zélia (a obra é a casa dela) e o Zé (a massa)', titulo: 'Conhecer a Vila', quem: 'Mestre Bira', texto: 'Conhecer a Vila: Seu Ananias, Dona Zélia e o Zé', meta: 3, depois: 'obra',
     conta: () => GUIA_VIZINHOS.filter(i => G.guia.conversou.includes(i)).length,
     alvo: () => { const i = GUIA_VIZINHOS.find(v => !G.guia.conversou.includes(v)); return i ? { morador: i } : null; },
