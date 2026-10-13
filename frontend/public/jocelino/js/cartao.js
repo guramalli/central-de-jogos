@@ -35,6 +35,8 @@ const noMapaDaLinha = t => !!t.mapa && (t.mapa === G.mapaId || (t.mapa === 'pens
 // outro mapa; o primeiro aviso; uma ideia da Caderneta (que o clique transforma em seta: agoraFamilia.ideia).
 function agoraFamilia(avisos = []) {
   agoraFamilia.ideia = null;
+  // (13/10) A aula de cada ferramenta, no quintal: o Agora diz o mesmo que a seta (a fala do Tio Juca).
+  { const sa = typeof setaAgora === 'function' && G.mapaId === 'quintal' ? setaAgora() : null; if (sa && sa.missao === 'aula' && sa.aula) return 'Aula do Tio Juca: ' + sa.aula.fala; }
   const l = G.obra && typeof listaDeHoje === 'function' ? listaDeHoje() : null;
   if (l && !l.paga && !l.fechado && G.mapaId !== 'vila' && typeof Obra !== 'undefined' && !Obra.aberta(G.dia, G.minutos)) {
     const falta = Object.keys(l.metas).filter(id => (l.feito[id] || 0) < l.metas[id]).length;

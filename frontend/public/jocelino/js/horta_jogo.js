@@ -43,14 +43,14 @@ function chaoAcertado(id, alvo) {
   const b = G.mapa;
   if (id === 'regador' && b.ehAgua && b.ehAgua(alvo.x, alvo.y)) { encherRegador(); return true; }
   if (b.id !== 'quintal') return false;
-  if (id === 'pa' && podeCavar(b, alvo.x, alvo.y)) { Horta.cavar(alvo.x, alvo.y); sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra'); return true; }
+  if (id === 'pa' && podeCavar(b, alvo.x, alvo.y)) { Horta.cavar(alvo.x, alvo.y); if (G.limpou) G.limpou.aula_pa_chao = (G.limpou.aula_pa_chao || 0) + 1; sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra'); return true; }
   if (id === 'regador' && Horta.cova(alvo.x, alvo.y)) { regarCova(alvo.x, alvo.y); return true; }
   return false;
 }
 function regarCova(x, y) {
   const r = Horta.regar(x, y);
   if (r === 'vazio') { avisar('O regador está vazio: encha no barril d\'água.'); return; }
-  if (r === 'ok') Habilidades.ganhar('roca', 1);
+  if (r === 'ok') { Habilidades.ganhar('roca', 1); if (G.limpou) G.limpou.aula_regador_chao = (G.limpou.aula_regador_chao || 0) + 1; }
   lascas((x + 0.5) * TILE, (y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); hudSujo();
 }
 // O botão direito no chão: a semente planta na cova (e o esterco aduba, na entrega B).

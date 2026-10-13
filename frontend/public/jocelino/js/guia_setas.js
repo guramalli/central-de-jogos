@@ -10,7 +10,7 @@ const DET_LIMPAR = ['mato', 'pedra', 'galho', 'toco'];
 // pedra e mato… precisa dar o caminho apenas"): depois de 3 de um tipo, a seta não aponta mais o que está na tela — só a
 // borda, na direção do mais perto, e a saída para outro mapa. O save antigo (já passou do dia 1) conta como aprendido.
 const APRENDE_LIMPAR = 3;
-INICIADORES.push(s => { G.limpou = s.limpou ? Object.assign({}, s.limpou) : (s.dia || 1) > 1 ? Object.fromEntries(Object.keys(DETRITOS).map(d => [d, APRENDE_LIMPAR])) : {}; });
+INICIADORES.push(s => { G.limpou = s.limpou ? Object.assign({}, s.limpou) : (s.dia || 1) > 1 ? Object.fromEntries(Object.keys(DETRITOS).concat(['aula_pa_chao', 'aula_regador_chao']).map(d => [d, APRENDE_LIMPAR])) : {}; });   // (o save antigo já passou pela aula de cada ferramenta)
 COLETORES.push(s => { s.limpou = Object.assign({}, G.limpou || {}); });
 const jaSabeLimpar = det => ((G.limpou || {})[det] || 0) >= APRENDE_LIMPAR;
 const _naTela = p => { const z = G.zoom || 1, sx = (p.x - G.cam.x) * z, sy = (p.y - G.cam.y) * z; return sx > 20 && sx < G.larg - 20 && sy > 20 && sy < G.alt - 110; };
@@ -133,6 +133,45 @@ function _alvoDaCasa() {
   if (G.minutos >= 18 * 60) return L.casa_dormir ? null : { mapa: G.mapaId, objeto: 'cama', rotuloFixo: 'Botão direito na cama: dormir' };
   return L.casa_porta ? null : { mapa: G.mapaId, ponto: { x: (C.porta.x + 0.5) * TILE, y: C.porta.y * TILE - 30 }, rotuloFixo: 'Por aqui: o quintal' };
 }
+// A aula de cada ferramenta (roteiro de 13/10: "mostrar para ele como usar cada uma delas para limpar o jardim, tirar o mato,
+// tirar a madeira, derrubar a árvore, como regar"): uma primeira vez por ferramenta, na ordem do quintal; fora de ordem conta.
+// Feita uma vez, some (G.limpou: o detrito quebrado, 'aula_pa_chao' e 'aula_regador_chao', contados em horta_jogo.js).
+const AULAS = [['foice', 'mato'], ['machado', 'galho'], ['picareta', 'pedra'], ['pa', null], ['regador', null], ['machado', 'arvore']];
+const FALA_AULA = { mato: 'A foice tira o mato: limpa o chão pra plantar.', galho: 'O machado corta o galho: madeira pra cerca e pras obras.',
+  pedra: 'A picareta quebra a pedra: pedra pro Bira e pras obras.', pa: 'A pá cava a cova: é ali que a semente vai.',
+  regador: 'O regador molha a cova plantada: sem água, a planta não cresce. Enche no barril.', arvore: 'A árvore é mais dura: vários golpes de machado. Dá madeira de monte.' };
+function aulaFeita([f, det]) {
+  const L = G.limpou || {};
+  if (det) return (L[det] || 0) > 0;
+  if (f === 'pa') return (L.aula_pa_chao || 0) > 0 || Object.keys((G.horta || {}).covas || {}).length > 15;   // o canteiro do Tio Juca já vem cavado (15 covas)
+  return (L.aula_regador_chao || 0) > 0;
+}
+const _aulaObj = a => ({ ferramenta: a[0], det: a[1], fala: FALA_AULA[a[1] || a[0]] });
+function aulaDaVez() { const a = AULAS.find(x => !aulaFeita(x)); return a ? _aulaObj(a) : null; }
+// Onde a seta mostra a aula (só no quintal, e SÓ com o alvo na tela: é a primeira vez daquele objeto; fora da tela a aula cede
+// às setas da carta, da Rosa, do guia, da reforma e da caderneta — correção de 13/10). A aula sem alvo visível espera: vai para a
+// próxima que tem; sem nenhuma, null.
+const _naTelaAula = p => !!G.cam && _naTela(p);
+function _alvoDeUmaAula(a) {
+  if (a.det) { const o = _maisPerto(x => x.det === a.det && _naTelaAula({ x: x.x, y: x.y - 56 })); return o ? { mapa: 'quintal', ponto: { x: o.x, y: o.y - 56 }, det: o.det, aula: a } : null; }
+  const C = QUINTAL.CANTEIRO, covas = Object.entries(G.horta.covas);
+  if (a.ferramenta === 'pa') {   // só depois do canteiro do Tio Juca plantado (15 covas): a grama que dá para cavar, na tela, mais perto dele
+    if (covas.filter(([, c]) => c.planta).length < 15) return null;
+    let melhor = null, d = 1e9;
+    for (let y = C.y - 4; y < C.y + C.h + 4; y++) for (let x = C.x - 4; x < C.x + C.w + 4; x++) if (podeCavar(G.mapa, x, y) && _naTelaAula({ x: (x + 0.5) * TILE, y: y * TILE })) { const dd = Math.hypot(x - (C.x + C.w / 2), y - (C.y + C.h / 2)); if (dd < d) { d = dd; melhor = { x, y }; } }
+    return melhor ? { mapa: 'quintal', ponto: { x: (melhor.x + 0.5) * TILE, y: melhor.y * TILE }, aula: a, rotuloFixo: 'Use a pá na grama limpa: cavar uma cova' } : null;
+  }
+  // o regador: uma cova plantada e sem água (nem de chuva) na tela, a mais perto do Jocelino
+  let melhor = null, d = 1e9;
+  for (const [k, c] of covas) { if (!c.planta || Horta.molhada(c, G.dia)) continue; const [cx, cy] = k.split(',').map(Number), p = { x: (cx + 0.5) * TILE, y: cy * TILE };
+    if (!_naTelaAula(p)) continue; const dd = Math.hypot(p.x - G.jog.x, p.y - G.jog.y); if (dd < d) { d = dd; melhor = p; } }
+  return melhor ? { mapa: 'quintal', ponto: melhor, aula: a, rotuloFixo: 'Use o regador na cova plantada' } : null;
+}
+function _alvoDaAula() {
+  if (G.mapaId !== 'quintal' || !G.mapa || !G.jog || !G.horta) return null;
+  for (const x of AULAS) { if (aulaFeita(x)) continue; const r = _alvoDeUmaAula(_aulaObj(x)); if (r) return r; }
+  return null;
+}
 // O alvo de um serviço aceito (teste de 12/10: depois do 1º bico, a calçada pega no quadro ficava sem seta): o lugar de
 // verdade, a plaquinha do curto, ou a plaquinha da obra longa com trabalho hoje (ou pronta para entregar).
 // Sem o material (vistoria de 12/10: aceitar não pede material, e o golpe só dizia "falta"), a seta busca o material antes:
@@ -223,7 +262,7 @@ function _rotulo(a) {
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
   if (!G.mapa) return null;
-  const cands = [['janta_vez', _alvoDaJanta], ['reforma_vez', () => _alvoDaReforma(false)], ['casa_vez', _alvoDaCasa], ['rosa_sonho', _alvoDoSonhoDaRosa]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
+  const cands = [['janta_vez', _alvoDaJanta], ['reforma_vez', () => _alvoDaReforma(false)], ['casa_vez', _alvoDaCasa], ['aula', _alvoDaAula], ['rosa_sonho', _alvoDoSonhoDaRosa]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
   if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);
@@ -270,7 +309,8 @@ function guiaSetaUI() {
   if (!$('#modal').hidden) return null;
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
-  if (sm && sm.det && (sm.missao === 'quintal' || sm.buscar || sm.missao === 'caderneta' || sm.missao === 'obra_dia')) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.det && (sm.missao === 'quintal' || sm.missao === 'aula' || sm.buscar || sm.missao === 'caderneta' || sm.missao === 'obra_dia')) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
+  if (sm && sm.missao === 'aula' && !sm.det) { const a = sm.aula; if (a && mao !== a.ferramenta) { const i = slotDe(a.ferramenta); if (i >= 0) return barra(i); } }
   if (sm && sm.empreita && !sm.buscar) { const E = dadosEmpreita(sm.empreita), fe = E && (E.tipo === 'longa' ? Empreitas.ferramentaHoje(sm.empreita) : E.ferramenta);
     if (fe && fe !== 'carga' && mao !== fe) { const i = slotDe(fe); if (i >= 0) return barra(i); } }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {
@@ -290,6 +330,8 @@ function setaAgora() { const t = G.agora || 0; if (t !== _setaT || G.mapaId !== 
 // A seta do quintal vem explicada: a dica do Tio Juca diz o que a seta mostra e a ferramenta, com a tecla.
 { const p0 = guiaPasso; guiaPasso = function () {
   const r = p0(); if (r) return r;
+  // (13/10) A aula de cada ferramenta: a fala do Tio Juca diz o que a seta mostra (vale também para quem pulou o guia).
+  if (G.mapaId === 'quintal') { const sa = setaAgora(); if (sa && sa.missao === 'aula' && sa.aula) return { id: 'juca', nome: 'Tio Juca', texto: sa.aula.fala + ' (a seta mostra onde)', alvo: null }; }
   const g = G.guia; if (!g || !g.ativo || !g.abertas.includes('quintal') || G.mapaId !== 'quintal') return null;
   const s = setaAgora(); if (!s || s.missao !== 'quintal' || !s.det) return null;
   const D = DETRITOS[s.det], i = G.mochila.slots.slice(0, 12).findIndex(x => x && x.id === D.ferramenta), m = Guia.missao('quintal');
