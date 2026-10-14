@@ -73,15 +73,18 @@ function abrirOrelhao() {
 // Ao entrar na pensão aberta com ingrediente na mochila: a Rosa pergunta se guarda.
 function rosaPerguntaGuardar() {
   const p = G.pensao;
-  if (!p || p.estado !== 'aberta' || !G.mochila) return false;
+  if (!p || !despensaAceitaGuardar() || !G.mochila) return false;
   const temAlgo = Object.keys(Pratos.INGREDIENTES).some(id => G.mochila.total(id) > 0 && p.aceita(id) && (id !== 'pedra' || (p.despensa.pedra || 0) < Pensao.PEDRA_MAX));
   if (!temAlgo) return false;
   perguntar('Rosa: "Trouxe coisa boa, meu bem? Guardo tudo na despensa?"', ['Guardar tudo', 'Agora não'], i => { if (i === 0) guardarNaDespensa(true); });
   return true;
 }
+// (14/10, o jogador: "clico no guardar e nada acontece") A despensa recebe ingrediente desde que a cozinha fica pronta (na pintura,
+// pronta para a inauguração e aberta): como no Dave, o estoque se enche antes de abrir. Antes disso, a reforma.
+const despensaAceitaGuardar = () => { const p = G.pensao; return !!p && (p.estado === 'aberta' || p.estado === 'pronta' || (typeof emReforma === 'function' && emReforma() && cozinhaPronta())); };
 function guardarNaDespensa(silencioso) {
   const p = G.pensao;
-  if (p.estado !== 'aberta') { abrirPlaca('A despensa ainda está vazia e empoeirada. Primeiro a reforma.'); return true; }
+  if (!despensaAceitaGuardar()) { abrirPlaca('A despensa ainda está empoeirada: ela recebe ingrediente quando a cozinha da Rosa ficar pronta.'); return true; }
   const g = p.guardar(G.mochila);
   const partes = Object.keys(g).map(id => Itens.qtd(g[id], id));
   if (partes.length) { sons.tocar('pegar', 1, 0.05, -4); avisar('Guardou: ' + partes.join(', ') + '.'); }
@@ -117,7 +120,8 @@ function abrirDespensa() {
       el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(nomeNaPanela))}`)));
   });
   rend.append(el('div', { class: 'rend-onde' }, 'Passe o mouse num ingrediente para ver de onde ele vem. O que falta, a Mercearia do Seu Ananias vende ou o orelhão da Vila encomenda.'), el('div', { class: 'rend-botoes' },
-    naMochila.length ? el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); guardarNaDespensa(true); fecharModal(); abrirDespensa(); } }, `Guardar o da mochila (${naMochila.length})`) : null,
+    naMochila.length && despensaAceitaGuardar() ? el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); guardarNaDespensa(true); fecharModal(); abrirDespensa(); } }, `Guardar o da mochila (${naMochila.length})`)
+      : naMochila.length ? el('div', { class: 'rend-onde' }, 'A despensa recebe ingrediente quando a cozinha da Rosa ficar pronta.') : null,
     el('button', { class: 'tabua acesa', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   abrirModal(el('div', { class: 'despensa-tela' }, caixa, rend));
   sons.tocar('abrir', 1, 0.03, -6);

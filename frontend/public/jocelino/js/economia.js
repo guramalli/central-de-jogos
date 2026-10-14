@@ -150,6 +150,9 @@ const ECO = {
     presentes: { aquario: { covo: 1 }, deposito: { betoneira: 1 } },
     efeitos: { achados: 2, deposito: 0.9, diasTonico: 1, fundir: 0.5, varaBoa: 0.5, clientesSabado: 2 } },
   quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } },
+    // (14/10, "onde guardo quando a mochila enche?") o baú que o Tio Juca faz: madeiras. A cerca custa 2 e o portão 5; o baú vale
+    // 3 portões. O Stardew cobra 50, mas lá uma árvore dá uns 12 de madeira e aqui dá 7 (5 e o toco): 15 são umas duas árvores.
+    bau: 15,
     // (onda final, o robô #23; o Stardew rebrota a fazenda à noite) a rebrota leve: por noite, no máximo vivos, a chance de pedra (senão galho)
     rebrota: { porNoite: 3, maximo: 12, pedra: 0.5 } },
   // (relato de 14/10; o Stardew: a Floresta da Seiva e o Bosque Secreto repõem todo dia) a mata repõe toda manhã: quantos de cada

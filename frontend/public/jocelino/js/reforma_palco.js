@@ -21,11 +21,20 @@ function cozinhaPronta() {
 // quando a etapa acaba) e a altura de desenho dela (ordem): o telhado e a cozinha por cima da cozinha pronta e por baixo da
 // Rosa (301); o balcão por cima do balcão, do passe e do bebedouro e por baixo do Jocelino (900); a parede logo depois do fundo.
 const REFORMA_LUGAR = {
-  telhado: { area: { x0: 570, y0: 0, x1: 1000, y1: 215 }, pe: 780, seta: { x: 785, y: 200 }, camada: 'salao/reforma_telhado_buraco', ordem: 300.6 },
+  telhado: { area: { x0: 570, y0: 0, x1: 1000, y1: 215 }, pe: 780, seta: { x: 785, y: 200 }, camada: 'salao/reforma_telhado_buraco', ordem: 300.6,
+    camadaDia: 'salao/reforma_telhado_buraco_dia' },   // (14/10: de dia, o céu azul pelo buraco, não a lua)
   balcao: { area: { x0: 360, y0: 757, x1: 1275, y1: 907 }, pe: 780, seta: { x: 780, y: 800 }, camada: 'salao/reforma_balcao_quebrado', ordem: 890 },   // (revisão final: o clique começa em 360, onde a porta acaba)
   cozinha: { area: { x0: 1300, y0: 545, x1: 1740, y1: 766 }, pe: 1500, seta: { x: 1520, y: 650 }, camada: 'salao/reforma_cozinha_vazia', ordem: 300.5 },
-  pintura: { area: { x0: 0, y0: 304, x1: 1920, y1: 631 }, pe: 960, seta: { x: 960, y: 460 }, camada: 'salao/reforma_parede_descascada', ordem: 1 },
+  pintura: { area: { x0: 0, y0: 304, x1: 1920, y1: 631 }, pe: 960, seta: { x: 960, y: 460 }, camada: 'salao/reforma_parede_descascada', ordem: 1,
+    camadaDia: 'salao/reforma_parede_descascada_dia' },   // (14/10: a parede traz a janela; de dia, a com o sol, como o fundo)
 };
+// Uma camada com a versão de dia e a de noite, na mesma mistura do fundo do palco (cenarioNoiteAlfa, mapas.js): a de dia embaixo e
+// a de noite por cima com a escuridão; na janta, só a de noite; sem a de dia carregada (ou sem versão de dia), só a de noite.
+function desenhaDiaNoite(ctx, dia, noite, x, y, w, h) {
+  const a = cenarioNoiteAlfa(G.mapa), d = dia && a < 1 ? spr(dia) : null, n = spr(noite);
+  if (d) ctx.drawImage(d, x, y, w, h);
+  if (n && (a > 0 || !d)) { ctx.save(); ctx.globalAlpha = d ? a : 1; ctx.drawImage(n, x, y, w, h); ctx.restore(); }
+}
 const naAreaReforma = (L, px, py) => !!L && px >= L.area.x0 && px <= L.area.x1 && py >= L.area.y0 && py <= L.area.y1;
 const minuscula = s => s[0].toLowerCase() + s.slice(1);
 const GOLPES_DIA = 3;   // o "3 golpes por dia": o terceiro clique no lugar conta o dia de trabalho
@@ -54,7 +63,7 @@ function camadasDaReforma() {
   const p = G.pensao; if (!p) return [];
   const k = ECO.reforma.findIndex(e => e.id === p.estado); if (k < 0) return [];
   return ECO.reforma.slice(k).filter(e => REFORMA_LUGAR[e.id]).map(e => ({ tipo: 'camada', y: REFORMA_LUGAR[e.id].ordem, desenha(ctx) {
-    const img = spr(REFORMA_LUGAR[e.id].camada); if (img) ctx.drawImage(img, 0, 0, PALCO.LARG, PALCO.ALT);
+    const L = REFORMA_LUGAR[e.id]; desenhaDiaNoite(ctx, L.camadaDia, L.camada, 0, 0, PALCO.LARG, PALCO.ALT);
   } }));
 }
 // As sujeiras que faltam (só na etapa de limpar), com a posição no palco (px de mundo, o pé no chão da frente).

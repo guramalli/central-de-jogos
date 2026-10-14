@@ -63,7 +63,7 @@ function desenha(dt) {
   ctx.setTransform(z, 0, 0, z, (-G.cam.x + rnd(-tr, tr)) * z, (-G.cam.y + rnd(-tr, tr)) * z);
   if (G.mapa && typeof desenhaMapa === 'function') desenhaMapa(ctx);
   // Noite: o mundo escurece aos poucos das 18h às 21h, multiplicando por um azul (escurece sem lavar as cores, como
-  // a noite do Stardew); dentro de casa, menos; o palco da pensão já é arte de noite. Depois, as luzes quentes acesas.
+  // a noite do Stardew); dentro de casa, menos; o palco da pensão já é a arte da hora. Depois, as luzes quentes acesas.
   const esc = relogio.escuridao() * fatorNoite(G.mapa);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (esc > 0) {
@@ -146,7 +146,7 @@ function saveDaPensao() {
     mapas: { pensao_dentro: { detritos: [] } },
     guia: Object.assign(Guia.novo(true), { feitas: GUIA_MISSOES.map(m => m.id), antes: GUIA_SISTEMAS.slice() }) });   // o atalho já passou do guia (Frente 4)
 }
-// Quanto a noite escurece o mapa: o palco da pensão já é arte de noite e as bancadas da pedreira são debaixo da terra (0); dentro de casa, menos;
+// Quanto a noite escurece o mapa: o palco da pensão já é a arte da hora (o fundo de dia e o de noite, 14/10) e as bancadas da pedreira são debaixo da terra (0); dentro de casa, menos;
 // e, com o cenário pintado de noite (a casa por dentro, 14/10), quase nada: a arte já vem na penumbra (só os móveis soltos acompanham).
 const NOITE_DENTRO = 0.35, NOITE_DENTRO_PINTADA = 0.15;
 function fatorNoite(m) { return m && (m.palco || m.subsolo) ? 0 : m && m.dentro ? (cenarioNoiteAlfa(m) > 0 ? NOITE_DENTRO_PINTADA : NOITE_DENTRO) : 1; }

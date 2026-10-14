@@ -51,6 +51,36 @@ function tempoDeCrescer(item) {
   return `cresce em ${n} ${n === 1 ? 'dia' : 'dias'}${agro ? ' (Agrônomo)' : ''}${c.rebrota ? `, depois dá a cada ${c.rebrota}` : ''}`;
 }
 
+// (14/10, "na mercearia coloque uma explicação melhor no item") a linha pequena de cada item diz PARA QUE SERVE; a dica do mouse, o texto inteiro.
+// Material do depósito: onde se usa, curto (tirado das descrições em dados.js; o resto cai na descrição do item).
+const USO_MATERIAL = {
+  cimento: 'obra e reforma', tijolo: 'paredes da obra', vergalhao: 'concreto armado', cal: 'aditivo da obra', tinta: 'pintura de muro',
+  pigmento: 'cor do cimentado', ladrilho: 'piso colorido', telha: 'telhado', pao: 'comer: +60 energia', cafe: 'tomar: +25 energia',
+  lapis: 'presente da Ritinha', impermeabilizante: 'aditivo forte da obra',
+};
+// Ingrediente da Mercearia: até 2 receitas que a pensão JÁ CONHECE e pedem o item (+N se houver mais).
+const receitasQuePedem = id => (G.pensao ? G.pensao.receitas : []).filter(r => Pratos.PRATOS[r] && (Pratos.PRATOS[r].porcao || {})[id]).map(r => Pratos.PRATOS[r].nome);
+function usoMercearia(id) {
+  const rec = receitasQuePedem(id), nomes = rec.slice(0, 2).join(', ') + (rec.length > 2 ? ` +${rec.length - 2}` : '');
+  return (rec.length ? 'vai pra despensa: ' + nomes : 'ingrediente da pensão (receita ainda por aprender)') + (G.pensao ? ' · na despensa: ' + (G.pensao.despensa[id] || 0) : '');
+}
+function usoMercearia_dica(id) {
+  const rec = receitasQuePedem(id);
+  return `${Itens.nome(id)}: ingrediente da Pensão da Rosa. ` + (rec.length ? 'Receitas que a pensão já sabe e pedem isto: ' + rec.join(', ') + '.' : 'Nenhuma receita que a pensão sabe pede isto ainda. Pesquise receitas novas com a Rosa.') +
+    ' Guarde na despensa (a caixa da pensão) para a Rosa cozinhar.';
+}
+// A explicação curta (a linha pequena, antes do "tem N") e a longa (a dica do mouse) de um item de cada aba.
+function explicaItemLoja(aba, id) {
+  const desc = Itens.descricao(id);
+  if (aba === 0) return { curta: USO_MATERIAL[id] || '', longa: desc };
+  if (aba === 1) return { curta: '', longa: desc };
+  if (aba === 2) return { curta: usoMercearia(id), longa: usoMercearia_dica(id) };
+  if (id === 'esterco') return { curta: 'adubo: na cova vazia, antes de plantar', longa: ESTERCO_DICA };
+  if (culturaDaSemente(id)) return { curta: tempoDeCrescer(id), longa: desc + (desc ? ' ' : '') + tempoDeCrescer(id) + '.' };
+  if (id === 'regadorzinho') return { curta: 'para o Zezinho regar', longa: desc };
+  return { curta: '', longa: desc };
+}
+
 function abrirLoja() {
   const caixa = el('div', { class: 'painel' });
   const desenha = () => {
@@ -68,9 +98,9 @@ function abrirLoja() {
     }
     else { ids = sementesDaLoja(); preco = precoSemente; acao = (id, s) => _comprar(id, s ? 5 : 1, precoSemente(id)); dica = 'Sementes da estação, adubo e coisas da horta. Clique: compra 1 · Shift+clique: compra 5'; }
     const falta = typeof compras !== 'undefined' ? compras.falta(G.mochila) : {};
-    caixa.append(el('div', { class: 'grade' }, ids.map(id => el('div', { class: 'linha', onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
-      el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), falta[id] ? el('span', { style: 'color:var(--destaque)' }, `  (falta ${falta[id]})`) : null,
-        el('div', { class: 'tem' }, (_abaLoja === 3 && tempoDeCrescer(id) ? tempoDeCrescer(id) + ' · ' : '') + 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco(id))))));
+    caixa.append(el('div', { class: 'grade loja' + (_abaLoja >= 2 ? ' uma' : '') }, ids.map(id => { const ex = explicaItemLoja(_abaLoja, id); return el('div', { class: 'linha', title: ex.longa, onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
+      el('img', { src: urlItem(id) }), el('div', { class: 'texto' }, Itens.nome(id), falta[id] ? el('span', { style: 'color:var(--destaque)' }, `  (falta ${falta[id]})`) : null,
+        el('div', { class: 'tem' }, (ex.curta ? ex.curta + ' · ' : '') + 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco(id))); })));
     caixa.append(el('div', { class: 'rodape' }, dica));
   };
   desenha();

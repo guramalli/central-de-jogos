@@ -111,8 +111,11 @@ const Horta = {
 INICIADORES.push(s => Horta.iniciar(s));
 COLETORES.push(s => Horta.salvar(s));
 // Os itens da horta e as vantagens da Roça que mexem no dinheiro (a caixa e o preço do prato na pensão).
+// (14/10, "para que serve o esterco?") a explicação completa: vale na mochila e na dica da loja. O adubo fica na cova até o pé acabar
+// (Horta.colher só o zera quando a planta não rebrota), por isso tomate e milho aproveitam em todas as colheitas.
+const ESTERCO_DICA = 'Adubo da horta: ponha na cova VAZIA antes de plantar (botão direito com o esterco na mão). Aumenta a chance de colheita boa (+1) e caprichada (+2). Vale por plantio: nos pés que dão de novo (tomate, milho), vale para todas as colheitas. Rende mais quanto maior o nível de Roça.';
 Object.assign(ITENS, {
-  esterco: { nome: 'Esterco curtido', pilha: 99, ferramenta: false, descricao: 'Adubo: na cova vazia, antes de plantar. Mais colheita boa e caprichada.' },
+  esterco: { nome: 'Esterco curtido', pilha: 99, ferramenta: false, descricao: ESTERCO_DICA },
   regadorzinho: { nome: 'Regadorzinho', pilha: 9, ferramenta: false, descricao: 'Pequeno, do tamanho das crianças. Dê ao Zezinho.' },
   irrigador: { nome: 'Irrigador', pilha: 9, ferramenta: false, colocavel: true, descricao: 'Do Seu Tonico. Coloque no quintal: rega as 4 covas em volta toda manhã.' },
 });

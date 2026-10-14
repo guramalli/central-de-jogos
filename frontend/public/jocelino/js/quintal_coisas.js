@@ -119,13 +119,15 @@ function falaDe(p) {
 }
 // Quanto custa cada coisa do Tio Juca (madeiras) e o que ele oferece: 1 cerca, 10 cercas e "quantas a madeira der" (teste de
 // 12/10: "ficar comprando de 1 em 1 é chato"; no Stardew a loja compra 5 com Shift), e o portão.
-const MADEIRA_JUCA = { cerca: 2, portao: 5 };
+// (14/10) O baú também (bau.js): o preço mora no ECO.
+const MADEIRA_JUCA = { cerca: 2, portao: 5, bau: ECO.quintal.bau };
 function opcoesJuca() {
   const m = G.mochila.total('madeira'), max = Math.floor(m / MADEIRA_JUCA.cerca), r = [];
   if (max >= 1) r.push(['Fazer 1 cerca (2 madeiras)', 'cerca', 1]);
   if (max >= 10) r.push(['Fazer 10 cercas (20 madeiras)', 'cerca', 10]);
   if (max > 1 && max !== 10) r.push([`Fazer ${max} cercas: toda a madeira (${max * MADEIRA_JUCA.cerca} madeiras)`, 'cerca', max]);
   if (m >= MADEIRA_JUCA.portao) r.push(['Fazer portão (5 madeiras)', 'portao', 1]);
+  if (m >= MADEIRA_JUCA.bau) r.push([`Fazer baú (${MADEIRA_JUCA.bau} madeiras)`, 'bau', 1]);
   return r;
 }
 // Faz até n (para no que a madeira ou a mochila deixar); devolve quantas fez.
@@ -137,8 +139,10 @@ function jucaFazer(item, n) {
   return feitas;
 }
 function conversarJuca(p) {
-  const fala = falaDe(p);
-  if (G.mochila.total('madeira') < MADEIRA_JUCA.cerca) { abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala); return true; }
+  const m = G.mochila.total('madeira');
+  // (14/10) Sem madeira para o baú, ele lembra o preço (até o primeiro baú ir para o chão).
+  const fala = falaDe(p).concat(m < MADEIRA_JUCA.bau && !((G.limpou || {}).bau_colocado > 0) && !G.mochila.total('bau') ? [`Baú pra guardar as coisas eu faço com ${MADEIRA_JUCA.bau} madeiras. Você tem ${m}.`] : []);
+  if (m < MADEIRA_JUCA.cerca) { abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala); return true; }
   abrirConversa(p.nome, urlArte('retratos/juca_normal'), fala.concat(['Cerca boa segura galinha e segura menino. Quer que eu faça com a sua madeira?']), () => {
     const op = opcoesJuca();
     perguntar(`Tio Juca: "Faço o quê?" (você tem ${G.mochila.total('madeira')} madeiras)`, op.map(o => o[0]).concat(['Agora não']), i => { if (op[i]) jucaFazer(op[i][1], op[i][2]); });

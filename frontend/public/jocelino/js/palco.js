@@ -1,5 +1,5 @@
 // Jocelino — palco.js — a Pensão da Rosa aberta, vista de lado em tela cheia, como o sushi bar do Bancho (Dave the
-// Diver): um palco fixo de 1920×1080 px de mundo. Atrás, o salão à noite; a cozinha da Rosa à direita com o passe; o
+// Diver): um palco fixo de 1920×1080 px de mundo. Atrás, o salão (de dia ou de noite, com a hora); a cozinha da Rosa à direita com o passe; o
 // cardápio da noite nos nichos da parede; os clientes sentados atrás do balcão, de frente; o balcão de azulejo; o Jocelino andando só para
 // os lados no chão da frente; e as plantas do primeiro plano nas bordas. Toda a arte é de a/salao/ (Higgsfield).
 // As camadas são objetos com y: a ordem por altura do desenhaMapa faz o empilhamento.
@@ -87,9 +87,20 @@ function camadaPalco(nome, x, y, yOrdem, escala = 1) {
   return { tipo: 'camada', y: yOrdem, desenha(ctx) { const img = spr('salao/' + nome); if (img) ctx.drawImage(img, x, y, img.naturalWidth * escala, img.naturalHeight * escala); } };
 }
 
+// (14/10, o jogador: "está de dia e o fundo está de noite na janela") Como o sushi bar do Dave, o salão tem a luz da hora: de dia
+// (a reforma, a manhã, a despensa) o fundo de dia, com o sol e os barquinhos na janela; ao entardecer, o de noite entra por cima
+// acompanhando a escuridão (cenarioNoiteAlfa, mapas.js). A janta é a cena da noite: das 17h, com o turno, com o quadro da
+// abertura esperando o cardápio ou depois da janta de hoje, o de noite vale inteiro, mesmo com a escuridão do relógio ainda baixa.
+function palcoNaNoite() {
+  if (G.turno) return true;
+  const p = G.pensao; if (!p || G.minutos < TurnoJanta.ABRE) return false;
+  return p.ultimaJanta === G.dia || (typeof jantaEsperaCardapio === 'function' && jantaEsperaCardapio());
+}
+
 MAPAS_DEF.pensao_palco = () => {
   const b = new Construtor('pensao_palco', 40, 23, 1);
-  Object.assign(b, { palco: true, dentro: true, cenario: 'salao/fundo_noite', enquadramento: { x: 0, y: 0, w: PALCO.LARG, h: PALCO.ALT } });
+  Object.assign(b, { palco: true, dentro: true, cenario: 'salao/fundo_dia', cenarioNoite: 'salao/fundo_noite', enquadramento: { x: 0, y: 0, w: PALCO.LARG, h: PALCO.ALT } });
+  spr(b.cenario); spr(b.cenarioNoite);   // (já começam a carregar; sem a de dia, fica a de noite)
   b.livre = { x: 6, y: PALCO.LINHA_CHAO, w: 29, h: 1 };
   b.inicio = { x: 8, y: PALCO.LINHA_CHAO };
   b.saida(6, PALCO.LINHA_CHAO, 1, 1, 'vila', 15, 9);

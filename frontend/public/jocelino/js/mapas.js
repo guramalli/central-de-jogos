@@ -300,8 +300,10 @@ function caminhoArredondado(g, m, x, y, tipo) {
 const EXTRAS_MUNDO = [];   // coisas da hora desenhadas na ordem do chão (a boia e a linha da pesca)
 // Quanto do cenário de noite (m.cenarioNoite) vai por cima do de dia: a escuridão do relógio (0 de dia, 1 das 21h em diante,
 // o mesmo critério do escurecer do mundo); 0 se o mapa não tem cenário de noite ou a arte ainda não carregou.
+// No palco da pensão (14/10), a de noite vale inteira na janta (palcoNaNoite, palco.js) e quando a de dia ainda não carregou.
 function cenarioNoiteAlfa(m) {
   if (!m || !m.cenarioNoite) return 0;
+  if (m.palco && spr(m.cenarioNoite) && (!spr(m.cenario) || (typeof palcoNaNoite === 'function' && palcoNaNoite()))) return 1;
   const a = relogio.escuridao();
   return a > 0 && spr(m.cenarioNoite) ? a : 0;
 }

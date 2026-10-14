@@ -15,8 +15,9 @@ ATUALIZADORES.push(dt => {
     avisar(_temComida() ? 'A Rosa grita da janela: "Come alguma coisa, homem!" (botão direito na comida da barra: a marmita dá energia)' : 'O corpo pediu arrego: hoje dorme cedo, que amanhã a energia volta cheia.');
   if (typeof Clima !== 'undefined' && Clima.chove(G.dia) && _dica('chuva'))
     avisar('Chuva! A horta já amanhece regada e a obra do Bira não abre. Bom dia para pescar (peixe raro com chuva) ou visitar a Vila.');
-  if (G.mochila.slots.length && G.mochila.slots.every(Boolean) && _dica('mochila'))
-    avisar('Mochila cheia! O que sobra vai para a caixa de venda do quintal (o carroceiro leva de madrugada) ou para um baú.');
+  // (14/10) A casa tem um baú (bau.js): a dica manda guardar lá, e a seta da primeira vez mostra o baú de casa.
+  if (G.mochila.slots.length && G.mochila.slots.every(Boolean) && _dica('mochila_bau'))
+    avisar(`Tio Juca: "Mochila cheia? Guarde no baú de casa. Se precisar de mais, o Tio Juca faz outro com ${ECO.quintal.bau} madeiras."`);
 });
 // Três dias antes da primeira virada da estação: a carta do Tio Juca (como a da Evelyn no Stardew).
 MANHA.push(() => { if (G.correio && (G.dia - 1) % 28 === 24 && _dica('estacao')) G.correio.caixa.push('juca_estacao'); });
