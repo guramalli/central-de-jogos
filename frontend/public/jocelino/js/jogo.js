@@ -146,5 +146,7 @@ function saveDaPensao() {
     mapas: { pensao_dentro: { detritos: [] } },
     guia: Object.assign(Guia.novo(true), { feitas: GUIA_MISSOES.map(m => m.id), antes: GUIA_SISTEMAS.slice() }) });   // o atalho já passou do guia (Frente 4)
 }
-// Quanto a noite escurece o mapa: o palco da pensão já é arte de noite e as bancadas da pedreira são debaixo da terra (0); dentro de casa, menos.
-function fatorNoite(m) { return m && (m.palco || m.subsolo) ? 0 : m && m.dentro ? 0.35 : 1; }
+// Quanto a noite escurece o mapa: o palco da pensão já é arte de noite e as bancadas da pedreira são debaixo da terra (0); dentro de casa, menos;
+// e, com o cenário pintado de noite (a casa por dentro, 14/10), quase nada: a arte já vem na penumbra (só os móveis soltos acompanham).
+const NOITE_DENTRO = 0.35, NOITE_DENTRO_PINTADA = 0.15;
+function fatorNoite(m) { return m && (m.palco || m.subsolo) ? 0 : m && m.dentro ? (cenarioNoiteAlfa(m) > 0 ? NOITE_DENTRO_PINTADA : NOITE_DENTRO) : 1; }

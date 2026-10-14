@@ -269,7 +269,7 @@ function ganhoDaTarde() {
 }
 // (relato de 14/10: "acabei com toda a madeira do quintal, não tinha mais onde pegar... preciso de mais local que possa pegar essas
 // madeiras e pedras além do quintal") Como é no Stardew: a fazenda rebrota pouco, e a madeira e a pedra de sempre vêm da Floresta da
-// Seiva, do Bosque Secreto e da pedreira. Aqui o quintal rebrota pouco (quintal_marcos.js); a mata (o bosque depois da ponte e a beira
+// Seiva, do Bosque Secreto e da pedreira. Aqui o quintal rebrota pouco (quintal_marcos.js); a mata (o bosque antes da ponte e a beira
 // do rio, mapa_mata.js) e a pedreira repõem toda manhã. Uma coisa só, com o porquê: o quintal com madeira e pedra, limpar o quintal;
 // sem madeira, a mata; com madeira e sem pedra, a pedreira (aberta no dia 5; antes dela, a beira do rio da mata).
 const DETS_MADEIRA = ['galho', 'toco', 'arvore'], DETS_PEDRA = ['pedra', 'pedregulho'];
@@ -289,8 +289,8 @@ function materialDaTarde(porque = porqueDoDinheiro()) {
   if (mad && ped) return quintal();
   if (mad && aberto('pedreira')) return { texto: `Quebrar pedra na pedreira — o quintal está sem pedra; as rochas da entrada da pedreira se refazem toda manhã (a pedra vale Cr$ ${pr('pedra')} na caixa de venda e serve nas obras): ${porque}`,
     alvo: _maisPertoNoMapa('pedreira', ['rocha']), rotulo: 'A pedreira: pedra nova toda manhã' };
-  if (aberto('mata') && !mad && naMata(DETS_MADEIRA)) return { texto: `Cortar madeira na mata — o quintal está sem madeira; na mata, depois da ponte, tem árvore e galho para cortar (Cr$ ${pr('madeira')} cada na caixa de venda)${ped ? '' : ' e pedra na beira do rio'}, e a mata repõe de manhã: ${porque}`,
-    alvo: _maisPertoNoMapa('mata', ped ? DETS_MADEIRA : DETS_MADEIRA.concat(DETS_PEDRA)), rotulo: 'Na mata, depois da ponte: árvore e galho' };
+  if (aberto('mata') && !mad && naMata(DETS_MADEIRA)) return { texto: `Cortar madeira na mata — o quintal está sem madeira; na mata, antes da ponte, entre a trilha e o rio, tem árvore e galho para cortar (Cr$ ${pr('madeira')} cada na caixa de venda)${ped ? '' : ' e pedra na beira do rio'}, e a mata repõe de manhã: ${porque}`,
+    alvo: _maisPertoNoMapa('mata', ped ? DETS_MADEIRA : DETS_MADEIRA.concat(DETS_PEDRA)), rotulo: 'Na mata, antes da ponte: árvore e galho' };
   if (aberto('mata') && !ped && naMata(DETS_PEDRA)) return { texto: `Pegar pedra na mata — o quintal está sem pedra; na beira do rio da mata tem pedra e pedregulho para a picareta (Cr$ ${pr('pedra')} cada na caixa de venda), e a mata repõe de manhã: ${porque}`,
     alvo: _maisPertoNoMapa('mata', DETS_PEDRA), rotulo: 'Na beira do rio da mata: pedra' };
   return mad || ped ? quintal() : null;

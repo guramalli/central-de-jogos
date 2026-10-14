@@ -29,9 +29,30 @@ function ehFundo(b, tx, ty) {
 }
 const segurandoPesca = () => G.mouse.segura || G.teclas.has('Space') || G.teclas.has(TECLAS.usar);
 let _esperaSoltar = false;   // a linha acabou com o botão apertado: só lança de novo depois de soltar (como no Stardew)
+// ---------- a primeira pescaria (o Willy dá a vara no Stardew; o Dave pausa e mostra cada coisa) ----------
+// A aula do Seu Lourival: uma conversa curta na primeira vez com a vara na mão perto da água (G.limpou.pesca_aula).
+// Quem já pescou (save antigo) não ouve: nada trava o lançamento de quem já sabe.
+const AULA_PESCA = ['Vai pescar, compadre? Presta atenção que eu te ensino.',
+  'Fique perto da água e segure o botão: a força sobe. Solte para jogar a boia.',
+  'Agora espere a boia afundar. Quando aparecer o "!", clique rápido para fisgar.',
+  'Depois vem a barrinha. Segure para a faixa verde subir e solte para ela descer. Deixe o peixe dentro da faixa até o medidor encher. Se o peixe ficar fora, o medidor esvazia e ele escapa.'];
+const jaPescou = () => typeof jaFezTela === 'function' ? jaFezTela('pesca') : !!(G.hab && G.hab.xp && G.hab.xp.pesca >= 5);   // (o 1º peixe pego)
+function pertoDaAgua(raio) {
+  const b = G.mapa, p = G.jog && G.jog.ladrilho(); if (!b || !p || !b.ehAgua) return false;
+  for (let dy = -raio; dy <= raio; dy++) for (let dx = -raio; dx <= raio; dx++) if (aguaDePesca(b, p.x + dx, p.y + dy)) return true;
+  return false;
+}
+function aulaDaPesca(raio) {
+  if (!G.limpou || G.limpou.pesca_aula || jaPescou() || menuAberto() || !pertoDaAgua(raio)) return false;
+  G.limpou.pesca_aula = 1;
+  abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), AULA_PESCA);
+  return true;
+}
+const aulaVista = () => !!(G.limpou && G.limpou.pesca_aula) || jaPescou();
 function varaNaMao(id) {
   if (!VARAS.includes(id)) return false;
   if (G.linha || _esperaSoltar) return true;   // o ATUALIZADOR cuida do resto (soltar, fisgar, recolher)
+  if (aulaDaPesca(5)) return true;   // (a primeira vez) apertou antes de chegar bem perto: a aula vem antes do lançamento
   if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
   const custo = LINHA.CUSTO * (typeof Habilidades !== 'undefined' ? Habilidades.custo('vara') / CUSTO_GOLPE : 1);
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return true; }
@@ -67,6 +88,8 @@ function fisgarAgora() {
   const chanceBau = (typeof Habilidades !== 'undefined' && Habilidades.tem('cacador_de_tesouro')) ? 0.3 : 0.15;
   L.fase = 'minijogo'; L.lendario = r.tipo === 'lendario';
   L.est = Pescaria.novo(r.id, { faixa: Pesca.faixa(nivel, L.vara === 'molinete'), bau: Math.random() < chanceBau });
+  // O primeiro minijogo começa parado, com a explicação por cima, até o clique (G.limpou.pesca_minijogo).
+  L.pausa = !!G.limpou && !G.limpou.pesca_minijogo && !jaPescou();
   G.jog.pescando = true; sons.tocar('pegar', 0.7, 0.05, -4);
 }
 // O peixe pego: o item (+1 na perfeita), a experiência e o baú.
@@ -85,7 +108,11 @@ ATUALIZADORES.push(dt => {
   G.mouse.apertou = false;   // o aperto guardado vale para um quadro
   _segurouAntes = seg;
   if (!seg) _esperaSoltar = false;
-  if (!L) { if (G.jog && G.jog.pescando) G.jog.pescando = false; return; }
+  if (!L) {
+    if (G.jog && G.jog.pescando) G.jog.pescando = false;
+    if (G.jog && !seg && G.limpou && !G.limpou.pesca_aula && VARAS.includes(itemDaMao())) aulaDaPesca(3);   // a aula do Lourival, perto da água
+    return;
+  }
   // Saídas que recolhem: menu aberto, outro item na mão, andar (fora do minijogo e da força).
   if (menuAberto()) { recolherLinha(); return; }
   if (!VARAS.includes(itemDaMao())) { recolherLinha(); return; }
@@ -108,6 +135,7 @@ ATUALIZADORES.push(dt => {
     return;
   }
   if (L.fase === 'minijogo') {
+    if (L.pausa) { if (aperta) { L.pausa = false; if (G.limpou) G.limpou.pesca_minijogo = 1; } return; }   // o peixe e o medidor esperam o clique
     const fim = Pescaria.passo(L.est, dt, seg);
     if (fim === 'pegou') { const est = L.est, lend = L.lendario; recolherLinha(); pegouPeixe(est.id, est, lend); }
     else if (fim === 'escapou') { recolherLinha('O peixe escapou!'); if (typeof Habilidades !== 'undefined' && 'pesca' in G.hab.xp) Habilidades.ganhar('pesca', 1); }
@@ -138,7 +166,10 @@ DESENHOS_TELA.push(ctx => {
   const L = G.linha; if (!L || L.fase !== 'minijogo') return;
   const e = L.est, mold = spr('ui/pesca_moldura'); if (!mold) return;
   const p = telaDoMundo(G.jog.x + 60, G.jog.y - 40), H = Math.min(G.alt * 0.62, mold.naturalHeight * 1.2), W = mold.naturalWidth * H / mold.naturalHeight;
-  const x = Math.min(G.larg - W - 10, p.x), y = Math.max(10, p.y - H);
+  // (a primeira vez) espaço dos dois lados para as setas e as frases da explicação
+  const folga = L.pausa ? Math.min(330, Math.max(10, (G.larg - W) / 2)) : 10;
+  const x = Math.max(L.pausa ? folga : -1e9, Math.min(G.larg - W - folga, p.x)), y = Math.max(10, p.y - H);
+  if (L.pausa) { ctx.save(); ctx.fillStyle = 'rgba(8, 14, 16, 0.45)'; ctx.fillRect(0, 0, G.larg, G.alt); ctx.restore(); }
   // O trilho e o medidor dentro da moldura, medidos na arte (frações da largura e da altura).
   const TR = { x: x + W * 0.2, w: W * 0.3818, y: y + H * 0.0637, h: H * 0.8742 }, MD = { x: x + W * 0.7152, w: W * 0.097, y: y + H * 0.0621, h: H * 0.8742 };
   ctx.drawImage(mold, x, y, W, H);
@@ -146,7 +177,33 @@ DESENHOS_TELA.push(ctx => {
   const med = spr('ui/pesca_medidor'); if (med) { const f = Math.max(0, Math.min(1, e.medidor)); ctx.drawImage(med, 0, med.naturalHeight * (1 - f), med.naturalWidth, med.naturalHeight * f, MD.x, MD.y + MD.h * (1 - f), MD.w, MD.h * f); }
   if (e.bau && e.bau.visivel && !e.bau.pego) { const b = spr('ui/pesca_bau'); if (b) ctx.drawImage(b, TR.x + TR.w / 2 - 16, TR.y + TR.h * (1 - e.bau.y) - 16, 32, 32); }
   const pe = spr('ui/pesca_peixe'); if (pe) ctx.drawImage(pe, TR.x + TR.w / 2 - 16, TR.y + TR.h * (1 - e.pos) - 16, 32, 32);
+  if (L.pausa) explicaMinijogo(ctx, e, { x, y, W, H, TR, MD });
 });
+// O primeiro minijogo, parado: a seta (a arte ui/seta, só posicionada e girada) na faixa, no peixe e no medidor, cada uma com
+// uma frase curta; embaixo, "Clique para começar". A seta da arte aponta para baixo: girar a − 90° aponta para o ângulo a.
+function explicaMinijogo(ctx, e, { x, y, W, H, TR, MD }) {
+  const seta = spr('ui/seta'), sw = 68 * 0.62, sh = 96 * 0.62, bob = Math.sin((G.agora || 0) * 6) * 5;
+  const aponta = (px, py, ang) => {   // a ponta da seta em (px, py), vindo do lado oposto ao ângulo
+    if (!seta) return; ctx.save(); ctx.translate(px - Math.cos(ang) * (sh / 2 + 4 + bob), py - Math.sin(ang) * (sh / 2 + 4 + bob)); ctx.rotate(ang - Math.PI / 2); ctx.drawImage(seta, -sw / 2, -sh / 2, sw, sh); ctx.restore();
+  };
+  // As linhas de uma frase com a borda (direita ou esquerda) em bx, centradas na altura cy.
+  const frase = (linhas, bx, cy, lado) => {
+    ctx.save(); ctx.font = '900 16px Nunito'; const larg = Math.max(...linhas.map(l => ctx.measureText(l).width)); ctx.restore();
+    const cx = lado < 0 ? bx - larg / 2 : bx + larg / 2, y0 = cy - (linhas.length - 1) * 10 + 6;
+    ctx.save(); linhas.forEach((l, i) => texto(ctx, l, cx, y0 + i * 20, 16, i ? '#ffffff' : '#fff4cf', '900')); ctx.restore();
+  };
+  const yPeixe = TR.y + TR.h * (1 - e.pos), yFaixa = TR.y + TR.h * (1 - e.faixaY - e.faixaH) + 12, yMed = MD.y + MD.h * 0.5;
+  // a faixa: da esquerda, apontando para a direita, na beira de cima da faixa
+  aponta(TR.x - 2, yFaixa, 0); frase(['Faixa verde:', 'segure para subir,', 'solte para descer.'], TR.x - sh - 14, yFaixa, -1);
+  // o peixe: de cima, dentro do trilho, apontando para baixo; a frase à esquerda, mais acima
+  const topoSeta = yPeixe - 18 - sh - 8;
+  aponta(TR.x + TR.w / 2, yPeixe - 18, Math.PI / 2); frase(['O peixe:', 'deixe ele dentro', 'da faixa verde.'], x - 8, Math.min(topoSeta + sh / 2, yFaixa - 78), -1);
+  // o medidor: da direita, apontando para a esquerda
+  aponta(x + W + 2, yMed, Math.PI); frase(['Medidor: enche com', 'o peixe na faixa.', 'Fora dela, esvazia', 'e o peixe escapa.'], x + W + sh + 14, yMed, 1);
+  // o começo
+  const yc = y >= 44 ? y - 16 : Math.min(y + H + 34, G.alt - 110);   // em cima da moldura (embaixo, a barra de itens cobre)
+  ctx.save(); ctx.globalAlpha = 0.88 + 0.12 * Math.sin((G.agora || 0) * 5); texto(ctx, 'Clique para começar', x + W / 2, yc, 22, '#fff4cf', '900'); ctx.restore();
+}
 
 // ---------- a banca do Seu Lourival (o Willy): vende peixe; compra isca, covo e a vara boa ----------
 const PRECO_BANCA = ECO.lojas.banca;
@@ -243,6 +300,8 @@ function conversarLourival(p) {
 
 
 // ---------- a vara na mão (a arte do item, só posicionada e girada): para trás na força, apontando para a boia depois ----------
+// Na mão vai a arte <vara>_mao (a mesma do ícone, sem a boia pendurada: a boia de verdade está na água); se ela ainda não
+// carregou, o ícone, para nunca ficar sem vara.
 function poseDaVara(j) {
   const L = G.linha, v = DIR_VET[j.dir], lado = j.dir === DIR.ESQUERDA ? -1 : 1;
   const base = Math.atan2(v[1], v[0]) * 180 / Math.PI;
@@ -253,7 +312,7 @@ function poseDaVara(j) {
 }
 function desenhaVara(ctx, j) {
   if (j !== G.jog || !G.linha) return;
-  const img = spr('itens/' + (G.linha.vara || 'vara')); if (!img) return;
+  const v = G.linha.vara || 'vara', img = spr('itens/' + v + '_mao') || spr('itens/' + v); if (!img) return;
   const p = poseDaVara(j);
   ctx.save(); ctx.translate(p.mao.x, p.mao.y); ctx.rotate((p.ang + 45) * Math.PI / 180); ctx.drawImage(img, -6, -50, 56, 56); ctx.restore();
 }

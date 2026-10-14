@@ -152,7 +152,8 @@ function _alvoDaReforma(sempre) {
     // (revisão final) Sem nada do que falta na mochila, a seta vai na porta e diz onde buscar; com ele, na Rosa.
     const fr = faltaDaReforma(), P = PALCO.PORTA;
     if (fr) return { mapa: G.mapaId, ponto: { x: P.x + P.w / 2, y: P.y - 20 }, rotuloFixo: `Falta ${Itens.qtd(fr.n, fr.item)}: ${origemDoMaterial(fr.item)} (saia por aqui)` };
-    return { mapa: G.mapaId, ponto: { x: PALCO.ROSA.x, y: PALCO.ROSA.y - 250 }, rotuloFixo: 'Entregue o material à Rosa' };
+    const RL = rosaLugar();
+    return { mapa: G.mapaId, ponto: { x: RL.x, y: RL.y - (RL === PALCO.ROSA ? 250 : 230) }, rotuloFixo: 'Entregue o material à Rosa' };
   }
   if (p.reforma.hoje === G.dia) return null;
   return { mapa: G.mapaId, ponto: { x: L.seta.x, y: L.seta.y }, rotuloFixo: 'Clique aqui: trabalhar ' + E.nome.replace(/^O /, 'no ').replace(/^A /, 'na ').replace(/ e as /, ' e nas ').replace(/ e o /, ' e no ') };
@@ -446,9 +447,14 @@ const FALA_PESCA = { vara: 'Com a vara na mão, segure o botão perto da água: 
   esperando: 'Agora espere a boia afundar. Quando aparecer o "!", clique rápido para fisgar.',
   mordeu: 'Mordeu! Clique agora para fisgar o peixe.',
   minijogo: 'Segure o botão para a barra subir e solte para descer: mantenha o peixe dentro da faixa até encher o medidor.' };
+// (14/10) Depois da conversa do Lourival (aulaDaPesca, pesca_jogo.js), a dica não repete o que ele disse: fica só o "!" e a
+// barrinha; com o primeiro minijogo parado, a explicação está por cima dele e a dica some.
 function _falaDaPesca() {
   if (!G.jog || !G.mapa || jaFezTela('pesca')) return null;
-  const L = G.linha, t = L ? FALA_PESCA[L.fase] : (typeof itemDaMao === 'function' && VARAS.includes(itemDaMao()) && ['praia', 'mata', 'alto_mar'].includes(G.mapaId) && !menuAberto() ? FALA_PESCA.vara : '');
+  const L = G.linha, ouviu = typeof aulaVista === 'function' && aulaVista();
+  if (L && L.pausa) return null;
+  if (ouviu && (!L || !['mordeu', 'minijogo'].includes(L.fase))) return null;
+  const t = L ? FALA_PESCA[L.fase] :(typeof itemDaMao === 'function' && VARAS.includes(itemDaMao()) && ['praia', 'mata', 'alto_mar'].includes(G.mapaId) && !menuAberto() ? FALA_PESCA.vara : '');
   return t ? { id: 'lourival', nome: 'Seu Lourival', texto: t, alvo: null } : null;
 }
 // A seta da tela: { chave, el } ou null (o elemento HTML onde clicar).

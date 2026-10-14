@@ -10,6 +10,12 @@ const SUJEIRA_PALCO = [['objetos/entulho_1', 420], ['objetos/mato_2', 560], ['ob
   ['objetos/entulho_3', 980], ['objetos/mato_1', 1120], ['objetos/entulho_1', 1260], ['objetos/mato_4', 1450]];
 const SUJEIRA_ESCALA = 1.6, CUSTO_SUJEIRA = 2;
 const emReforma = () => !!G.pensao && ECO.reforma.some(e => e.id === G.pensao.estado);
+// A cozinha está montada: fora da reforma, ou com a etapa 'cozinha' já concluída (a etapa atual vem DEPOIS dela: a pintura).
+// Antes disso a Rosa não cozinha (fica parada no salão, ver ROSA_OBRA no palco.js).
+function cozinhaPronta() {
+  if (!emReforma()) return true;
+  return ECO.reforma.findIndex(e => e.id === G.pensao.estado) > ECO.reforma.findIndex(e => e.id === 'cozinha');
+}
 // O lugar do trabalho de cada etapa no palco (px de mundo, 1920×1080): a área do clique (o retângulo que o artista mediu na
 // camada), o pé (o x onde o Jocelino para, no chão y 900), o ponto da seta (no meio da arte), a camada do "antes" (some
 // quando a etapa acaba) e a altura de desenho dela (ordem): o telhado e a cozinha por cima da cozinha pronta e por baixo da
@@ -83,8 +89,8 @@ MAPAS_DEF.pensao_palco = (orig => () => {
   if (emReforma()) {
     for (const s of sujeirasDaReforma()) if (Math.abs(px - s.x) < 50 && py > s.y - 110 && py < s.y + 25) return { tipo: 'sujeira', k: s.k, x: s.x };
     // (o lugar da cozinha encosta na Rosa: faltando material, o clique é dela; com o material todo, é do trabalho)
-    const L = REFORMA_LUGAR[G.pensao.estado], R = PALCO.ROSA, falta = Object.keys(G.pensao.faltaMaterial()).length > 0;
-    const naRosa = Math.abs(px - R.x) < 75 && py > R.y - 260 && py < R.y + 25, noLugar = naAreaReforma(L, px, py);
+    const L = REFORMA_LUGAR[G.pensao.estado], R = rosaLugar(), falta = Object.keys(G.pensao.faltaMaterial()).length > 0;
+    const naRosa = Math.abs(px - R.x) < 75 && py > R.y - (R === PALCO.ROSA ? 260 : 190) && py < R.y + 25, noLugar = naAreaReforma(L, px, py);
     if (noLugar && !(falta && naRosa)) return { tipo: 'reforma_lugar', x: clamp(L.pe, PALCO.X_MIN, PALCO.X_MAX) };
     if (naRosa) return { tipo: 'rosa_reforma', x: clamp(R.x - 60, PALCO.X_MIN, PALCO.X_MAX) };
   }

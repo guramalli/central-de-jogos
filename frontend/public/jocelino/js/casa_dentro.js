@@ -8,7 +8,7 @@
 // Posições em px do cenário (960×600, o canto de cima-esquerdo do cômodo = 0,0). Sólidos: [x, y, largura, altura].
 const CASAS = {
   casa_juca_dentro: {
-    nome: 'A casa do Tio Juca', cenario: 'cenarios/casa_juca_dentro', larg: 20, alt: 13,
+    nome: 'A casa do Tio Juca', cenario: 'cenarios/casa_juca_dentro', cenarioNoite: 'cenarios/casa_juca_dentro_noite', larg: 20, alt: 13,
     livre: { x: 1, y: 3, w: 18, h: 8 }, porta: { x: 9, y: 10 }, acorda: { x: 4, y: 9 },
     // a cama de casal no canto da família (1,3× a arte: as camas das crianças, pintadas, são compridas); bx/by/aw = o ladrilho da base
     cama: { arte: 'objetos/cama_juca_casal', dormindo: 'objetos/cama_juca_casal_dormindo', bx: 1, by: 9, aw: 3, w: 140, h: 156 },
@@ -21,7 +21,7 @@ const CASAS = {
       bicicleta: { arte: 'objetos/bicicleta_parada', x: 584, y: 478 } },
   },
   casa_familia_dentro: {
-    nome: 'A casa da família', cenario: 'cenarios/casa_familia_dentro', larg: 20, alt: 13,
+    nome: 'A casa da família', cenario: 'cenarios/casa_familia_dentro', cenarioNoite: 'cenarios/casa_familia_dentro_noite', larg: 20, alt: 13,
     livre: { x: 1, y: 2, w: 18, h: 9 }, porta: { x: 9, y: 10 }, acorda: { x: 15, y: 4 },
     // (a cama encostada na parede da direita: no meio do quarto, ela fechava o canto de lá)
     cama: { arte: 'objetos/cama_casal', dormindo: 'objetos/cama_casal_dormindo', bx: 17, by: 4, aw: 2, w: 130, h: 145 },
@@ -49,7 +49,9 @@ const FRASE_BAZAR = {
 
 for (const id in CASAS) MAPAS_DEF[id] = () => {
   const C = CASAS[id], b = new Construtor(id, C.larg, C.alt, 3);
-  b.dentro = true; b.cenario = C.cenario; b.enquadramento = { x: 0, y: 0, w: 960, h: 600 };
+  // (14/10, o jogador: "de noite na casa existia reflexo de sol no chão") de noite, a mesma cena pintada de noite: mapas.js
+  b.dentro = true; b.cenario = C.cenario; b.cenarioNoite = C.cenarioNoite; b.enquadramento = { x: 0, y: 0, w: 960, h: 600 };
+  spr(C.cenarioNoite);   // já começa a carregar (ao escurecer, sem ela, fica a de dia)
   b.livre = C.livre; b.inicio = { x: C.porta.x, y: C.porta.y - 1 };
   b.saida(C.porta.x, C.porta.y, 1, 1, 'quintal', 0, 0);   // a chegada certa vem do AO_ENTRAR_MAPA do quintal (a porta da casa onde mora)
   b.paredesDaBorda();

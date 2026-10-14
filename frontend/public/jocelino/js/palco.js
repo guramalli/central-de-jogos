@@ -167,9 +167,17 @@ function desenhaCarimbosPalco(ctx) {
 // quando um prato fica pronto, anda até o passe, larga o prato e volta para o fogão (quadros de lado da folha de andar dela).
 const ROSA_COZ = { x: PALCO.ROSA.x, casa: PALCO.ROSA.x, estado: 'mexe', t: 0, quadro: 0, fila: 0, vistos: 0 };
 const ROSA_VEL = 230, ROSA_LARGA = 0.45, ROSA_ESCALA_ANDAR = 1.25;
+// (14/10) Enquanto a cozinha está em ruína (reforma antes da etapa "cozinha" acabar), a Rosa não cozinha nem busca prato (no Dave
+// o cozinheiro só cozinha com a cozinha montada): fica parada no chão do salão, em frente ao passe, fora da área em ruína,
+// olhando para o lado do Jocelino (quadro parado da folha de andar). Estado 'obra'; com a cozinha pronta, volta ao fogão.
+const ROSA_OBRA = { x: 1590, y: 960, escala: 1.5 };
+const cozinhaDaRosaPronta = () => typeof cozinhaPronta !== 'function' || cozinhaPronta();
+const rosaLugar = () => cozinhaDaRosaPronta() ? PALCO.ROSA : ROSA_OBRA;   // o pé da Rosa: { x, y } (o fogão ou o salão em obra)
 ATUALIZADORES.push(dt => {
   if (!noPalco()) return;
   const R = ROSA_COZ, t = G.turno;
+  if (!cozinhaDaRosaPronta()) { R.estado = 'obra'; R.fila = 0; R.t = 0; R.x = ROSA_OBRA.x; R.lado = -1; R.quadro = 0; return; }
+  if (R.estado === 'obra') { R.estado = 'mexe'; R.t = 0; R.x = R.casa; }
   R.casa = typeof Melhorias !== 'undefined' && G.pensao && Melhorias.nivel(G.pensao, 'fogao_4bocas') === 1 ? 1470 : PALCO.ROSA.x;
   const lado = Math.sign(PALCO.ROSA_PASSE - R.casa) || -1;   // -1: o passe fica à esquerda do fogão; +1: à direita (salão maior)
   const saidos = t ? (t.saidos || 0) : 0;
@@ -195,6 +203,13 @@ ATUALIZADORES.push(dt => {
 });
 function desenhaRosaCozinha(ctx) {
   const R = ROSA_COZ, P = PALCO;
+  if (!cozinhaDaRosaPronta() || R.estado === 'obra') {   // em obra: parada no salão (linha 1, coluna 2 da folha = em pé olhando para a esquerda)
+    const img = spr('personagens/rosa/andar');
+    if (!img) return;
+    const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_OBRA.escala;
+    ctx.drawImage(img, 2 * w, 1 * h, w, h, ROSA_OBRA.x - w * e / 2, ROSA_OBRA.y - h * e, w * e, h * e);
+    return;
+  }
   if (R.estado === 'mexe') {
     const img = spr('salao/rosa_cozinhando');
     if (!img) return;
@@ -252,7 +267,7 @@ function camadasDaJanta() {
     // Por cima dos clientes (856) e por baixo do balcão (858): o enfeite dos convidados e o brilho da bebida na medida.
     camadaViva(857, ctx => desenhaEnfeitesEBrilho(ctx)),
     // A Rosa viva na cozinha (ROSA_COZ): mexendo a panela ou levando o prato até o passe.
-    camadaViva(301, ctx => desenhaRosaCozinha(ctx)),
+    camadaViva(cozinhaDaRosaPronta() ? 301 : ROSA_OBRA.y, ctx => desenhaRosaCozinha(ctx)),   // (em obra, no chão do salão, na ordem do pé dela)
     // As moedas da gorjeta no tampo (o Jocelino recolhe ao passar).
     camadaViva(P.TAMPO_Y + 82, ctx => { if (t) for (const x of t.moedas) if (P.ASSENTOS[x.mesa]) desenhaPe(ctx, 'salao/moedas_balcao', P.ASSENTOS[x.mesa].x + 34, P.LOUCA.base + 1, 1, 1.2); }),
     // No tampo: o prato de quem está comendo, a louça de quem já foi, e a farinheira.

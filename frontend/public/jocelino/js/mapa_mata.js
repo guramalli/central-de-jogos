@@ -44,7 +44,7 @@ MAPAS_DEF.mata = () => {
   }
   // Enfeites fixos e o mato da mata (sorteio sempre igual).
   for (const t of [[16, 4], [22, 7], [34, 4], [38, 9], [18, 21], [33, 22], [12, 21], [39, 20]]) b.enfeite('objetos/palmeira_jucara', t[0], t[1], true, 8);
-  for (const t of [[20, 5], [30, 3], [36, 15], [15, 15], [23, 22], [8, 21], [37, 7], [3, 9]]) b.enfeite('objetos/bromelia', t[0], t[1], false);
+  for (const t of [[20, 5], [30, 3], [36, 10], [15, 10], [23, 22], [8, 21], [37, 7], [3, 9]]) b.enfeite('objetos/bromelia', t[0], t[1], false);
   for (const t of [[25, 5], [31, 21], [17, 9]]) b.enfeite('objetos/arvore_mata', t[0], t[1], true, 14);
   const usados = new Set();
   for (let k = 0; k < 260; k++) {
@@ -66,24 +66,27 @@ MAPAS_DEF.mata = () => {
   b.aoMontar = () => {
     for (const [x, y] of MATA.TOCOS) if (!b.ocupado.has(chaveT(x, y))) b.detrito('toco_lei', x, y);
     if (!G.mataSemeada) { repoeMata(b, true); G.mataSemeada = true; }   // (o save de antes do bosque: enche uma vez)
+    if (!G.mataSemeada2) { repoeMata(b, 'arvores'); G.mataSemeada2 = true; }   // (o save de antes de o bosque subir: as vagas de cima, uma vez; as árvores velhas de baixo ficam até cortar)
   };
   return b;
 };
 
-// ---------- o bosque e a beira do rio (relato de 14/10) ----------
+// ---------- o bosque e a beira do rio (relato de 14/10; o bosque subiu no mesmo dia) ----------
 // "Eu acabei com toda a madeira do quintal, não tinha mais onde pegar... preciso de mais local que possa pegar essas madeiras e
 // pedras além do quintal." Como é no Stardew: a fazenda rebrota pouco; a Floresta da Seiva tem árvores que se cortam e voltam a
 // crescer, o Bosque Secreto tem tocos que reaparecem todo dia, e a pedreira e a mina dão pedra: sempre há um lugar fixo para buscar
-// material. Aqui: depois da ponte da mata, um bosque de árvores de corte (o detrito 'arvore', que vira toco) com galhos no chão, e
+// material. Aqui: antes da ponte da mata (o gramado entre a trilha e o rio, que se vê da trilha), um bosque de árvores de corte (o detrito 'arvore', que vira toco) com galhos no chão, e
 // pedras e pedregulhos na beira do rio (pedra antes de a pedreira abrir, no dia 5). Toda manhã a mata repõe até o máximo vivo
 // (ECO.mata.repoe), no padrão das rochas da pedreira (rochasDaEntrada): árvore só em vaga sem toco (o toco da árvore cortada fica até
 // ser tirado), nada em cima do Jocelino, de objeto usável, da trilha, da ponte ou da passagem, e nada que feche caminho.
-MATA.BOSQUE = { x: 29, y: 20, w: 13, h: 4 };
-// O galho cai no chão da mata: a de baixo (do poço ao bosque) e a de cima da trilha (fora do lugar da carroça do mascate).
-MATA.CHAO_GALHOS = [{ x: 10, y: 20, w: 32, h: 4 }, { x: 14, y: 3, w: 28, h: 7 }];
+// ("As árvores depois da ponte estão muito escondidas": ali era mata fechada, rente à barra de ferramentas; o gramado de cima é aberto.
+// A árvore do quintal tem 3×4 ladrilhos: na fileira y 15 a copa cobre a trilha, o pé fica no gramado, e y 14 e y 16 sobram para andar.)
+MATA.BOSQUE = { x: 14, y: 14, w: 27, h: 2 };
+// O galho cai no chão da mata: o gramado do bosque, junto das árvores, e o de cima da trilha (fora do lugar da carroça do mascate).
+MATA.CHAO_GALHOS = [{ x: 14, y: 14, w: 27, h: 2 }, { x: 14, y: 3, w: 28, h: 7 }];
 MATA.CARROCA = { x: 26, y: 6, w: 8, h: 6 };
-// (as vagas ficam a 2 ladrilhos umas das outras e das árvores e palmeiras fixas do bosque: sempre sobra passagem entre elas)
-MATA.VAGAS_ARVORE = [[33, 20], [36, 20], [41, 20], [35, 22], [38, 22], [41, 22], [31, 23]];
+// (as vagas ficam a 3 ladrilhos umas das outras (o tronco é estreito: passa gente entre as copas), longe da passagem da ponte e da saída: sempre sobra passagem entre elas)
+MATA.VAGAS_ARVORE = [[15, 15], [18, 15], [21, 15], [31, 15], [34, 15], [37, 15], [40, 15]];
 MATA.BEIRAS = [{ y: 16, x: [[15, 22], [31, 40]] }, { y: 19, x: [[10, 22], [30, 40]] }];   // (sem a ponte, o poço da cachoeira e o lugar da ponte de pedra)
 // A árvore de corte é a mesma do quintal (objetos/arvore, o detrito 'arvore' que vira toco). Testada com a arte das árvores da mata
 // (objetos/arvore_mata): ficava igual às de enfeite em volta, que não se cortam, e o jogador não saberia qual cortar; a do quintal, mais
@@ -111,10 +114,11 @@ function _naoFechaAMata(b, antes, depois) {
   return !b.objs.some(d => d.tipo === 'detrito' && alcancaLadrilho(antes, d.tiles[0]) && !alcancaLadrilho(depois, d.tiles[0]));
 }
 // A reposição: `cheia` enche tudo até o máximo (o mapa novo); senão, o que a manhã repõe. Devolve quantos nasceram.
+// (`cheia` === 'arvores': só as vagas de árvore, para o save de antes de o bosque subir)
 function repoeMata(b, cheia = false) {
   const R = ECO.mata && ECO.mata.repoe; if (!b || b.id !== 'mata' || !R) return 0;
   const M = R.maximo, f = mulberry(cheia ? 7717 : G.dia * 977 + 13);
-  const vivos = dets => b.objs.filter(o => o.tipo === 'detrito' && dets.includes(o.det)).length;
+  const vivos = dets => b.objs.filter(o => o.tipo === 'detrito' && dets.includes(o.det) && (o.det !== 'arvore' || MATA.VAGAS_ARVORE.some(([a, c]) => a === o.tiles[0].x && c === o.tiles[0].y))).length;   // (árvore velha de baixo não conta no máximo)
   let antes = andaveisDe(b, b.inicio.x, b.inicio.y), n = 0;
   const poe = (det, x, y) => {
     const o = b.detrito(det, x, y); if (!o) return false;
@@ -127,6 +131,7 @@ function repoeMata(b, cheia = false) {
   const vagas = MATA.VAGAS_ARVORE.map(v => [v, f()]).sort((a, c) => a[1] - c[1]).map(v => v[0]);
   for (let k = 0, q = cheia ? M.arvores : R.arvores; k < vagas.length && q > 0 && vivos(['arvore']) < M.arvores; k++) {
     const [x, y] = vagas[k]; if (_podeNascerNaMata(b, x, y, false) && poe('arvore', x, y)) q--; }
+  if (cheia === 'arvores') return n;
   // 2. Os galhos no chão da mata (metade das tentativas em cima, metade embaixo).
   for (let k = 0, q = cheia ? M.galhos : R.galhos; k < (cheia ? 600 : 200) && q > 0 && vivos(['galho']) < M.galhos; k++) {
     const C = MATA.CHAO_GALHOS[f() < 0.5 ? 0 : 1], x = C.x + Math.floor(f() * C.w), y = C.y + Math.floor(f() * C.h);
@@ -136,20 +141,22 @@ function repoeMata(b, cheia = false) {
   for (let k = 0, q = cheia ? M.pedras : R.pedras; k < (cheia ? 600 : 200) && q > 0 && vivos(['pedra', 'pedregulho']) < M.pedras; k++) {
     const [x, y] = beira[Math.floor(f() * beira.length)], grande = y === MATA.RIO_Y + MATA.RIO_ALTURA && f() < R.pedregulho;
     const solto = () => { for (let dx = -1; dx <= 2; dx++) for (let dy = -1; dy <= 2; dy++) if (b.ocupado.has(chaveT(x + dx, y + dy))) return false; return true; };   // (o pedregulho também solto)
-    const cabe = grande ? solto() && [[0, 0], [1, 0], [0, 1], [1, 1]].every(([dx, dy]) => !_vagaDeArvore(x + dx, y + dy, true) && _podeNascerNaMata(b, x + dx, y + dy, false)) : !_vagaDeArvore(x, y, true) && _podeNascerNaMata(b, x, y, true);
+    const cabe = grande ? solto() && [[0, 0], [1, 0], [0, 1], [1, 1]].every(([dx, dy]) => !_vagaDeArvore(x + dx, y + dy, true) && _podeNascerNaMata(b, x + dx, y + dy, false)) : !_vagaDeArvore(x, y) && _podeNascerNaMata(b, x, y, false) && [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dy]) => !b.ocupado.has(chaveT(x + dx, y + dy)) && !_enfeiteNoLadrilho(b, x + dx, y + dy));   // (a pedra pode ficar na diagonal da árvore, entre as copas: o pé da árvore e o vão de y 14 ficam livres)
     if (cabe && poe(grande ? 'pedregulho' : 'pedra', x, y)) q--; }
   return n;
 }
 MANHA.push(() => { if (MAPAS.mata || (G.save && G.save.mapas && G.save.mapas.mata)) repoeMata(getMapa('mata')); });
-INICIADORES.push(s => { G.mataSemeada = !!s.mataSemeada; });
-COLETORES.push(s => { s.mataSemeada = !!G.mataSemeada; });
+INICIADORES.push(s => { G.mataSemeada = !!s.mataSemeada; G.mataSemeada2 = !!s.mataSemeada2; });
+COLETORES.push(s => { s.mataSemeada = !!G.mataSemeada; s.mataSemeada2 = !!G.mataSemeada2; });
 // A primeira árvore de corte da mata (a primeira vez de cada coisa tem seta e frase): a seta mostra a mais perto até a primeira cair
 // (G.limpou.mata_arvore, contado em quebrouNaMata). Só sem outra seta (guia_setas.js): a missão do dia vem antes.
 const FALA_ARVORE_MATA = 'Árvore boa de cortar: o machado tira madeira, e a mata repõe de manhã.';
 function alvoDaArvoreDaMata() {
   if (G.mapaId !== 'mata' || !G.mapa || !G.jog || !G.limpou || G.limpou.mata_arvore || !G.mochila || !G.mochila.total('machado')) return null;
   let o = null, d = 1e9;
-  for (const x of G.mapa.objs) if (x.tipo === 'detrito' && x.det === 'arvore') { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y); if (dd < d) { d = dd; o = x; } }
+  const deCima = x => MATA.VAGAS_ARVORE.some(([a, c]) => a === x.tiles[0].x && c === x.tiles[0].y);   // (a de cima, à vista; a velha de baixo só se não houver outra)
+  const temDeCima = G.mapa.objs.some(x => x.tipo === 'detrito' && x.det === 'arvore' && deCima(x));
+  for (const x of G.mapa.objs) if (x.tipo === 'detrito' && x.det === 'arvore' && (!temDeCima || deCima(x))) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y); if (dd < d) { d = dd; o = x; } }
   return o && { mapa: 'mata', ponto: { x: o.x, y: o.y - 56 }, rotuloFixo: FALA_ARVORE_MATA };
 }
 function quebrouNaMata(o) { if (G.mapaId === 'mata' && o.det === 'arvore' && G.limpou) G.limpou.mata_arvore = (G.limpou.mata_arvore || 0) + 1; }

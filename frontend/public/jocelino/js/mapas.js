@@ -298,11 +298,22 @@ function caminhoArredondado(g, m, x, y, tipo) {
 
 // ---------- desenho ----------
 const EXTRAS_MUNDO = [];   // coisas da hora desenhadas na ordem do chão (a boia e a linha da pesca)
+// Quanto do cenário de noite (m.cenarioNoite) vai por cima do de dia: a escuridão do relógio (0 de dia, 1 das 21h em diante,
+// o mesmo critério do escurecer do mundo); 0 se o mapa não tem cenário de noite ou a arte ainda não carregou.
+function cenarioNoiteAlfa(m) {
+  if (!m || !m.cenarioNoite) return 0;
+  const a = relogio.escuridao();
+  return a > 0 && spr(m.cenarioNoite) ? a : 0;
+}
 function desenhaMapa(ctx) {
   const m = G.mapa;
   if (m.cenario) {
-    const img = spr(m.cenario);
-    if (img) ctx.drawImage(img, m.enquadramento.x, m.enquadramento.y, m.enquadramento.w, m.enquadramento.h);
+    // De noite, o cenário pintado de noite (a casa por dentro: janelas com a lua, lamparina acesa, sem sol no chão); no
+    // entardecer, ele entra por cima acompanhando a escuridão. Sem a arte de noite carregada, fica a de dia.
+    const E = m.enquadramento, a = cenarioNoiteAlfa(m), img = a < 1 ? spr(m.cenario) : null;
+    if (img) ctx.drawImage(img, E.x, E.y, E.w, E.h);
+    if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.drawImage(spr(m.cenarioNoite), E.x, E.y, E.w, E.h); ctx.restore(); }
+    m.cenarioDesenhado = a >= 1 ? m.cenarioNoite : m.cenario;
   } else {
     if (!m.chaoCanvas) m.chaoCanvas = montaChao(m);
     if (m.chaoCanvas) ctx.drawImage(m.chaoCanvas, 0, 0);
