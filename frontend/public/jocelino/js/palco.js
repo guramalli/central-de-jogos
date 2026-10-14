@@ -199,12 +199,15 @@ function desenhaEnfeitesEBrilho(ctx) {
     if (E) desenhaPe(ctx, 'salao/' + E[0], p.x, p.y - CABECA_CLIENTE + E[1], 1, 1);
   });
 }
-// O carimbo da bebida servida (o Dave: a nota aparece na tela): "NA MEDIDA!" ou "QUASE!", bate grande e assenta, depois some.
+// O carimbo da bebida servida (o Dave: a nota aparece na tela): "NA MEDIDA!" (PERFEITA), "QUASE!" (BOA) ou, desde a Tarefa C,
+// "DERRAMOU!" (RUIM); bate grande e assenta, depois some. nota: 'medida', 'ok' ou 'ruim' (true/false valem como 'medida'/'ok').
 const CARIMBOS_PALCO = [];
-function carimboBebida(i, medida) {
+const ARTE_CARIMBO = { medida: 'ui/carimbo_medida', ok: 'ui/carimbo_quase', ruim: 'ui/carimbo_derramou' };
+function carimboBebida(i, nota) {
   const A = PALCO.ASSENTOS[i]; if (!A) return;
-  CARIMBOS_PALCO.push({ x: A.x, y: A.y - 240, arte: medida ? 'ui/carimbo_medida' : 'ui/carimbo_quase', t: 0 });
-  if (medida && G.turno && G.turno.mesas[i]) G.turno.mesas[i].aura = 6;
+  const q = nota === true ? 'medida' : ARTE_CARIMBO[nota] ? nota : 'ok';
+  CARIMBOS_PALCO.push({ x: A.x, y: A.y - 240, arte: ARTE_CARIMBO[q], nota: q, t: 0 });
+  if (q === 'medida' && G.turno && G.turno.mesas[i]) G.turno.mesas[i].aura = 6;
 }
 ATUALIZADORES.push(dt => {
   for (const c of CARIMBOS_PALCO) c.t += dt;
@@ -354,6 +357,8 @@ function camadasDaJanta() {
     camadaViva(878, ctx => {
       desenhaPe(ctx, 'salao/passe', P.PASSE.cx, P.PASSE.base, 1, P.PASSE.escala);
       if (t) t.passaPrato().forEach((x, k) => desenhaPrato(ctx, x.prato, P.PASSE.vagas[k], P.PASSE.topo, 1, 0.8));
+      // (revisão da Tarefa B) o prato que o ajudante "Leva prato" reservou: o "!" em cima (é dele)
+      if (t) t.passaPrato().forEach((x, k) => { if (x.reservadoPara != null) desenhaFx(ctx, 'exclamacao', P.PASSE.vagas[k], P.PASSE.topo - 46 + Math.sin((G.agora || 0) * 5) * 3, { escala: 0.7 }); });
     }),
     camadaViva(879, ctx => { desenhaPe(ctx, 'salao/bacia', P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + P.BACIA.h, 1, P.BACIA.escala); }),
     camadaViva(878.5, ctx => { desenhaPe(ctx, 'salao/lixo', P.LIXO.x + P.LIXO.w / 2, P.LIXO.y + P.LIXO.h, 1, P.LIXO.escala); }),
@@ -362,7 +367,7 @@ function camadasDaJanta() {
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig();
   b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...filhosDoPalco(), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
-  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); desenhaAjudantesBebida(ctx); desenhaCoracoesPalco(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
+  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaAlertaFarinha(ctx); desenhaPeneira(ctx); desenhaBandeja(ctx); desenhaAjudantesBebida(ctx); desenhaCoracoesPalco(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
   return b;
 })(MAPAS_DEF.pensao_palco);
 
@@ -373,7 +378,7 @@ function desenhaBaloesPalco(ctx, b) {
   t.mesas.forEach((m, i) => {
     if (i >= PALCO.ASSENTOS.length || !['pedido', 'prato', 'comendo'].includes(m.estado)) return;
     const A = PALCO.ASSENTOS[i], x = A.x, y = A.y - 114 * PALCO.ESCALA_GENTE - 34;
-    const bebe = m.querBebida && !m.bebidaServida;
+    const bebe = t.querBebidaAgora(m);   // (Tarefa C) a cerveja só aparece no balão quando o prato chega
     if (m.cliente.mania === 'vip') texto(ctx, '★ ' + m.cliente.nome.split(',')[0], x, y - 42, 18, '#ffd34d', '900');
     if (m.estado === 'comendo') {
       const fr = FRASES_CLIENTE[m.reacao] || ['Hmm!'];
@@ -459,6 +464,7 @@ function palcoAlvoEm(px, py) {
 // Clique no palco: o Jocelino anda até o alvo e faz ao chegar; um clique novo troca o alvo.
 function palcoClique(px, py) {
   if (G.copo) return true;
+  if (G.peneira) pararPeneira();
   const alvo = palcoAlvoEm(px, py);
   G.jog.alvoPalco = { x: clamp(alvo ? alvo.x : px, PALCO.X_MIN, PALCO.X_MAX), alvo };
   return true;
@@ -483,12 +489,13 @@ ATUALIZADORES.push(dt => {
 function palcoAgirNaFrente() {
   const P = PALCO, t = G.turno, cands = [];
   if (t) {
-    if (t.passaPrato().length) cands.push({ tipo: 'passe', k: 0, x: P.PASSE.cx });
+    // (revisão da Tarefa B) a tecla X pega o primeiro prato que o ajudante não reservou
+    if (t.passaPrato().length) { const k = t.passe.findIndex(x => x.reservadoPara == null); cands.push({ tipo: 'passe', k: Math.max(0, k), x: P.PASSE.cx }); }
     t.mesas.forEach((m, i) => { if (i < P.ASSENTOS.length && m.estado !== 'livre') cands.push({ tipo: 'cliente', i, x: P.ASSENTOS[i].x, quer: m }); });
   }
   cands.push({ tipo: 'farinheira', x: P.FARINHEIRA.cx }, { tipo: 'bebedouro', x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2 },
     { tipo: 'bacia', x: P.BACIA.x + P.BACIA.w / 2 }, { tipo: 'lixo', x: P.LIXO.x + P.LIXO.w / 2 });
-  const leva = c => t && c.quer && t.bandeja.some(x => (x.tipo === 'prato' && x.prato === c.quer.prato && c.quer.estado === 'prato') || (x.tipo === 'bebida' && x.bebida === c.quer.bebida));
+  const leva = c => t && c.quer && t.bandeja.some(x => (x.tipo === 'prato' && x.prato === c.quer.prato && c.quer.estado === 'prato') || (x.tipo === 'bebida' && x.bebida === c.quer.bebida && t.querBebidaAgora(c.quer)));
   const peso = c => Math.abs(c.x - G.jog.x) - (leva(c) ? 400 : 0);
   const a = cands.filter(c => Math.abs(c.x - G.jog.x) < 110).sort((p, q) => peso(p) - peso(q))[0];
   if (a) palcoAgir(a); else avisar('Nada aqui. Chegue perto de um cliente, do passe, da farinheira, do bebedouro ou da bacia.');
@@ -503,8 +510,13 @@ function palcoAgir(a) {
   const cheia = () => { avisar('A bandeja está cheia! Entregue alguma coisa primeiro.'); sons.tocar('erro', 1, 0.05, -6); };
   if (a.tipo === 'passe') {
     if (!t.passaPrato().length) { avisar(t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou! Reponha a farinha.' : 'Nenhum prato pronto ainda.'); return; }
+    // (Tarefa B) o prato reservado (com o "!") é do ajudante: clicou nele, pega o primeiro livre (como a tecla X); só avisa quando
+    // todos os pratos do passe são do ajudante
+    if (!t.livresNoPasse().length) { avisar('Esse o ajudante já vai levar.'); return; }
+    let kk = Math.min(a.k || 0, t.passaPrato().length - 1);
+    if (t.passe[kk].reservadoPara != null) kk = t.passe.findIndex(x => x.reservadoPara == null);
     if (t.bandeja.length >= TurnoJanta.BANDEJA_MAX) return cheia();
-    t.pegar(Math.min(a.k || 0, t.passaPrato().length - 1)); sons.tocar('louca', 1.2, 0.05, -8);
+    t.pegar(kk); sons.tocar('louca', 1.2, 0.05, -8);
     return;
   }
   if (a.tipo === 'bebedouro') {
@@ -515,9 +527,12 @@ function palcoAgir(a) {
     return;
   }
   if (a.tipo === 'farinheira') {
-    const r = t.reporFarinha();
-    if (r === 'ok') { avisar('Farinheira cheia de novo!'); sons.tocar('farinha', 1, 0.05, -4); }
-    else avisar(r === 'cheia' ? `A farinheira ainda tem ${t.farinha}. Repõe quando baixar de ${(t.farinhaMax || TurnoJanta.FARINHA_MAX) - (TurnoJanta.FARINHA_MAX - TurnoJanta.REPOR_ATE) + 1}.` : 'Acabou a farinha na despensa! Compre na Mercearia do Seu Ananias.');
+    // (Tarefa C, o wasabi do Dave) Repor leva tempo: o Jocelino peneira a farinha (a barrinha em cima dele); clicar em outro lugar
+    // ou andar interrompe, e o que já foi peneirado fica guardado (o Dave: fechar o minijogo antes mantém o que já foi moído).
+    if (G.peneira) return;   // (revisão) já peneirando: o X de novo não reinicia a barrinha
+    const r = t.podeReporFarinha();
+    if (r === 'ok') { comecarPeneira(); return; }
+    avisar(r === 'cheia' ? `A farinheira ainda tem ${t.farinha}. Repõe quando baixar de ${(t.farinhaMax || TurnoJanta.FARINHA_MAX) - (TurnoJanta.FARINHA_MAX - TurnoJanta.REPOR_ATE) + 1}.` : 'Acabou a farinha na despensa! Compre na Mercearia do Seu Ananias.');
     return;
   }
   if (a.tipo === 'bacia') {
@@ -541,7 +556,7 @@ function palcoAgir(a) {
       t.recolher(a.i); servir(); sons.tocar('louca', 1, 0.08, -4);
       return;
     }
-    if (t.servirBebida(a.i)) { servir(); sons.tocar('servir', 1.2, 0.08, -4); setTimeout(() => sons.tocar('gole', 1, 0.1, -4), 400); carimboBebida(a.i, t.mesas[a.i].bebidaMedida); if (t.mesas[a.i].bebidaMedida) sons.tocar('carimbo', 1, 0.05, -6); return; }
+    if (t.servirBebida(a.i)) { const nb = t.mesas[a.i].bebidaNota; servir(); sons.tocar('servir', 1.2, 0.08, -4); setTimeout(() => sons.tocar('gole', 1, 0.1, -4), 400); carimboBebida(a.i, nb); if (nb !== 'ok') sons.tocar('carimbo', nb === 'ruim' ? 0.85 : 1, 0.05, -6); return; }
     if (m.estado === 'prato' && t.servir(a.i)) { servir(); sons.tocar('servir', 1, 0.08, -2); return; }   // (a reação do cliente vem do evento 'servido': somDoEvento)
     // (14/10) o freguês de fora diz uma frase curta na primeira vez que o Jocelino fala com ele na noite
     const fala = m.cliente.avulso && !m.falou && FALAS_AVULSOS[m.cliente.id] ? `${m.cliente.nome}: "${FALAS_AVULSOS[m.cliente.id]}" ` : '';
@@ -549,9 +564,9 @@ function palcoAgir(a) {
     if (m.estado === 'chegando') avisar(`${fala}${m.cliente.nome} está chegando.`);
     else if (m.estado === 'pedido') avisar(`${fala}${m.cliente.nome} está lendo o cardápio.`);
     else if (m.estado === 'prato') {
-      const quer = `${Pensao.prato(m.prato).nome}${m.querBebida && !m.bebidaServida ? ' e ' + Pratos.BEBIDAS[m.bebida].toLowerCase() : ''}`;
+      const quer = `${Pensao.prato(m.prato).nome}${t.querBebidaAgora(m) ? ' e ' + Pratos.BEBIDAS[m.bebida].toLowerCase() : ''}`;
       avisar(`${fala}${m.cliente.nome} quer ${quer}. ${t.temPronto(m.prato) ? 'Tem no passe!' : t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou!' : 'A Rosa está fazendo.'}`);
-    } else avisar(fala + (m.querBebida && !m.bebidaServida ? `${m.cliente.nome} está comendo e ainda quer ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`));
+    } else avisar(fala + (t.querBebidaAgora(m) ? `${m.cliente.nome} está comendo e ${m.bebida === 'cerveja' ? 'pediu uma' : 'ainda quer'} ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`));
   }
   function servir() { j.servindo = 0.35; j.dir = DIR.CIMA; }
 }
@@ -565,8 +580,12 @@ function roboDoSalaoPasso(t, vai) {
   // (o clique na cabeça do cliente, como o jogador: no salão maior, y − 60 da banqueta 0 cai dentro do bebedouro)
   const P = PALCO, n = Math.min(t.mesas.length, P.ASSENTOS.length), assento = i => vai(P.ASSENTOS[i].x, P.ASSENTOS[i].y - 120);
   const cabe = t.bandeja.length < TurnoJanta.BANDEJA_MAX;
-  const quer = (m, x) => x.tipo === 'prato' ? m.estado === 'prato' && m.prato === x.prato : x.tipo === 'bebida' && ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && m.bebida === x.bebida;
-  if (t.farinha <= TurnoJanta.REPOR_ATE && (t.pensao.despensa.farinha || 0) > 0) { vai(P.FARINHEIRA.cx, P.FARINHEIRA.y + 20); return true; }
+  const quer = (m, x) => x.tipo === 'prato' ? m.estado === 'prato' && m.prato === x.prato : x.tipo === 'bebida' && t.querBebidaAgora(m) && m.bebida === x.bebida;
+  if (G.peneira) return true;   // (Tarefa C) peneirando: espera a barrinha encher (outro clique interromperia)
+  // (Tarefa C) a peneira leva tempo: quem joga bem peneira com a farinheira quase no fim (FARINHA_URGENTE) ou num momento parado
+  // (no fim desta lista, com o alerta aceso), não a cada prato
+  const peneira = () => (t.pensao.despensa.farinha || 0) > 0 && t.podeReporFarinha() === 'ok' && (vai(P.FARINHEIRA.cx, P.FARINHEIRA.y + 20), true);
+  if (t.farinha <= FARINHA_URGENTE && peneira()) return true;
   if (cabe) for (let i = 0; i < n; i++) if (t.mesas[i].louca) { assento(i); return true; }
   // alguém vai chegar e não há banco livre: limpa um banco sujo antes (senão ele senta do lado da louça e vai embora)
   const vemGente = t._fila.length && t._fila[0].minuto <= G.minutos + 10 && !t.mesas.some((m, i) => i < n && m.estado === 'livre');
@@ -576,13 +595,14 @@ function roboDoSalaoPasso(t, vai) {
   const vagaPrato = t.mesas.some(m => m.estado === 'prato') ? 1 : 0;
   if (t.bandeja.length < TurnoJanta.BANDEJA_MAX - vagaPrato && t.bebidaPedida()) {
     vai(P.BEBEDOURO.x + 20, P.BEBEDOURO.y + 30);
-    if (G.copo) { copoSegura(true); for (let j = 0; j < 400 && G.copo && G.copo.nivel < linhaDoCopo(G.copo.bebida); j++) atualiza(0.01); copoSegura(false); }
+    roboEncheCopo();
     return true;
   }
   // os pratos prontos que alguém espera e ainda não estão na bandeja
-  const querem = t.mesas.filter(m => m.estado === 'prato').map(m => m.prato);
+  // (Tarefa B) sem quem o ajudante "Leva prato" já vai servir, e sem o prato que ele reservou no passe
+  const querem = t.mesas.filter(m => m.estado === 'prato' && !m.pratoReservado).map(m => m.prato);
   for (const x of t.bandeja) if (x.tipo === 'prato') { const k = querem.indexOf(x.prato); if (k >= 0) querem.splice(k, 1); }
-  const k = cabe ? t.passe.findIndex(x => x && querem.includes(x.prato)) : -1;
+  const k = cabe ? t.passe.findIndex(x => x && x.reservadoPara == null && querem.includes(x.prato)) : -1;
   if (k >= 0) { vai(P.PASSE.vagas[Math.min(k, P.PASSE.vagas.length - 1)], P.PASSE.topo - 10); return true; }
   // entregar: quem espera há mais tempo por alguma coisa da bandeja
   let quem = -1;
@@ -593,47 +613,98 @@ function roboDoSalaoPasso(t, vai) {
   if (cabe) for (let i = 0; i < n; i++) if (t.mesas[i].estado === 'suja') { assento(i); return true; }
   if (t.bandeja.some(x => x.tipo === 'louca')) { vai(P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + 20); return true; }
   const mo = t.moedas.find(x => x.mesa < n); if (mo) { vai(P.ASSENTOS[mo.mesa].x, P.ASSENTOS[mo.mesa].y - 40); return true; }
+  if (t.farinha <= TurnoJanta.REPOR_ATE && !t.bandeja.length && peneira()) return true;
   return false;
 }
-function sairDoPalco() { G.jog.alvoPalco = null; G.copo = null; entrarMapa('vila', { x: 15, y: 9 }); }
+const FARINHA_URGENTE = 3;
+function sairDoPalco() { G.jog.alvoPalco = null; G.copo = null; G.peneira = null; entrarMapa('vila', { x: 15, y: 9 }); }
 
 // ---------- o copo do bebedouro: segurar para encher, soltar na linha ----------
+// (14/10, Tarefa C, as notas do Dave) PERFEITA na linha ('medida'), BOA quase ('ok'); passar da boca DERRAMA: a bebida vai mesmo
+// assim para a bandeja, com a nota RUIM ('ruim': sem a estrela da bebida e sem gorjeta extra), e a Rosa resmunga.
 const COPO = { VEL: 0.42, MEDIDA: 0.05, MINIMO: 0.6,
-  GEO: { cafe: { topo: 157, fundo: 295, linha: 187, espuma: false }, guarana: { topo: 17, fundo: 307, linha: 67, espuma: true }, caldo_cana: { topo: 19, fundo: 304, linha: 74, espuma: true }, cerveja: { topo: 17, fundo: 307, linha: 67, espuma: true } }, ART: { cafe: 'copo_cafe', guarana: 'copo_guarana', caldo_cana: 'copo_caldo', cerveja: 'copo_guarana' }, LIQ: { cafe: 'liquido_cafe', guarana: 'liquido_guarana', caldo_cana: 'liquido_caldo', cerveja: 'liquido_guarana' } };
-// A linha de medida do copo em fração do nível (0 = vazio, 1 = boca).
+  GEO: { cafe: { topo: 157, fundo: 295, linha: 187, espuma: false }, guarana: { topo: 17, fundo: 307, linha: 67, espuma: true }, caldo_cana: { topo: 19, fundo: 304, linha: 74, espuma: true }, cerveja: { topo: 19, fundo: 299, linha: 75, espuma: true } }, ART: { cafe: 'copo_cafe', guarana: 'copo_guarana', caldo_cana: 'copo_caldo', cerveja: 'copo_americano' }, LIQ: { cafe: 'liquido_cafe', guarana: 'liquido_guarana', caldo_cana: 'liquido_caldo', cerveja: 'liquido_cerveja' } };
+// (Tarefa C, a cerveja do Dave: o copo começa inclinado, perto de 80% endireita e completa até ~20% de espuma) A cerveja de garrafa
+// no copo americano: segurar despeja com a garrafa inclinada; soltar (ou o botão direito) endireita o copo; com o copo em pé, o
+// que cai vira espuma depressa; soltar de novo serve. Velocidades por segundo (líquido e espuma) com o copo inclinado e em pé; a
+// nota pela parte de espuma no copo: o colarinho de dois dedos (ALVO ± FAIXA, cheio de pelo menos CHEIO) é PERFEITA; espuma demais
+// (mais que DEMAIS) é RUIM e a Rosa resmunga; pouca espuma (ou o copo baixo) é BOA. Passou da boca: derramou (RUIM).
+const CERVEJA = { INCLINADO: { liq: 0.40, esp: 0.04 }, EM_PE: { liq: 0.13, esp: 0.40 }, ALVO: 0.2, FAIXA: 0.07, CHEIO: 0.85, DEMAIS: 0.32, ANGULO: 0.24 };
+// A linha de medida do copo em fração do nível (0 = vazio, 1 = boca). (A cerveja: o colarinho de dois dedos cheio no alvo.)
 function linhaDoCopo(b) { const g = COPO.GEO[b]; return (g.fundo - g.linha) / (g.fundo - g.topo); }
-function abrirCopo(bebida) { G.copo = { bebida, nivel: 0, segurando: false, msg: 'Segure para encher. Solte na linha!' }; G.jog.alvoPalco = null; }
+function abrirCopo(bebida) {
+  G.copo = bebida === 'cerveja' ? { bebida, cerveja: true, liq: 0, esp: 0, nivel: 0, inclinado: true, segurando: false, msg: 'Segure para despejar com o copo inclinado. Solte (ou botão direito) para endireitar.' }
+    : { bebida, nivel: 0, segurando: false, msg: 'Segure para encher. Solte na linha!' };
+  G.jog.alvoPalco = null;
+}
+// A nota da cerveja pela espuma: 'medida' (o colarinho de dois dedos), 'ok' (pouca espuma) ou 'ruim' (espuma demais).
+function notaDaCerveja(liq, esp) {
+  const tot = liq + esp, f = tot > 0 ? esp / tot : 0;
+  if (f > CERVEJA.DEMAIS) return 'ruim';
+  return Math.abs(f - CERVEJA.ALVO) <= CERVEJA.FAIXA && tot >= CERVEJA.CHEIO ? 'medida' : 'ok';
+}
+// O botão direito (ou soltar com o copo inclinado): o copo da cerveja fica em pé.
+function copoEndireita() {
+  const c = G.copo;
+  if (!c || !c.cerveja || !c.inclinado) return false;
+  c.inclinado = false; c.msg = 'Copo em pé! Segure e faça o colarinho de dois dedos. Solte para servir.';
+  return true;
+}
 function copoSegura(sim) {
   const c = G.copo;
   if (!c) return false;
   if (sim) { c.segurando = true; return true; }
   if (!c.segurando) return true;
   c.segurando = false;
+  if (c.cerveja && c.inclinado) { copoEndireita(); return true; }
   if (c.nivel < COPO.MINIMO) { c.msg = 'Ainda falta! Segure de novo.'; return true; }
-  const q = Math.abs(c.nivel - linhaDoCopo(c.bebida)) <= COPO.MEDIDA ? 'medida' : 'ok';
+  const q = c.cerveja ? notaDaCerveja(c.liq, c.esp) : Math.abs(c.nivel - linhaDoCopo(c.bebida)) <= COPO.MEDIDA ? 'medida' : 'ok';
   copoFim(q);
   return true;
 }
-function copoFim(q) {
+function copoFim(q, derramou = false) {
   const c = G.copo, t = G.turno;
   if (!c || !t) { G.copo = null; return; }
   t.encherBebida(c.bebida, q);
   G.copo = null;
-  if (q === 'medida') { sons.tocar('na_medida', 1, 0.03, -4); avisar(`${Pratos.BEBIDAS[c.bebida]} na medida! Gorjeta caprichada.`); }
-  else avisar(`${Pratos.BEBIDAS[c.bebida]} servido(a). Leve para quem pediu.`);
+  const nome = Pratos.BEBIDAS[c.bebida];
+  if (q === 'medida') { sons.tocar('na_medida', 1, 0.03, -4); avisar(c.cerveja ? `${nome} com o colarinho de dois dedos! O freguês vai gostar (a cerveja já paga o copo).` : `${nome} na medida! Gorjeta caprichada.`); }
+  else if (q === 'ruim') {
+    sons.tocar('derramar', 1, 0.05, -2); setTimeout(() => sons.tocar('rosa_resmunga', 1, 0.08, -6), 350);
+    avisar(derramou ? `Derramou! A Rosa resmungou: "Olha o balcão, Jocelino!" Leve assim mesmo: sem estrela da bebida e sem gorjeta extra.`
+      : `Espuma demais! A Rosa resmungou: "Isso é cerveja ou sabão?" Leve assim mesmo: sem estrela da bebida e sem gorjeta extra.`);
+  }
+  else avisar(c.cerveja ? `${nome} com pouca espuma. Leve para quem pediu.` : `${nome} servido(a). Leve para quem pediu.`);
 }
 ATUALIZADORES.push(dt => {
   const c = G.copo;
   if (!c) return;
   if (!noPalco()) { G.copo = null; return; }
   if (!c.segurando) return;
-  c.nivel += COPO.VEL * dt;
-  if (Math.floor(c.nivel * 10) !== Math.floor((c.nivel - COPO.VEL * dt) * 10)) sons.tocar('encher', 1 + c.nivel * 0.3, 0.02, -10);
-  if (c.nivel >= 1) { c.nivel = 0; c.segurando = false; c.msg = 'Derramou! Comece de novo.'; sons.tocar('derramar', 1, 0.05, -2); }
+  const antes = c.nivel;
+  if (c.cerveja) { const v = c.inclinado ? CERVEJA.INCLINADO : CERVEJA.EM_PE; c.liq += v.liq * dt; c.esp += v.esp * dt; c.nivel = c.liq + c.esp; }
+  else c.nivel += COPO.VEL * dt;
+  if (Math.floor(c.nivel * 10) !== Math.floor(antes * 10)) sons.tocar('encher', 1 + c.nivel * 0.3, 0.02, -10);
+  if (c.nivel >= 1) { c.nivel = 1; c.segurando = false; copoFim('ruim', true); }   // passou da boca: derramou
 });
+// (Tarefa C) O robô (s4, s10, s20, s23) joga o minijogo como quem joga bem: o copo até a linha; a cerveja inclinada até perto de 70%,
+// endireita, e o colarinho até o copo ficar quase cheio. Devolve a nota (ou '' sem copo aberto).
+function roboEncheCopo() {
+  const c = G.copo; if (!c) return '';
+  const passa = cond => { for (let j = 0; j < 600 && G.copo === c && cond(); j++) atualiza(0.01); };
+  let q = '';
+  const t = G.turno, n0 = t ? t.bandeja.length : 0;
+  if (c.cerveja) {
+    copoSegura(true); passa(() => c.liq < 0.7); copoSegura(false);
+    copoSegura(true); passa(() => c.nivel < 0.92); copoSegura(false);
+  } else { copoSegura(true); passa(() => c.nivel < linhaDoCopo(c.bebida)); copoSegura(false); }
+  if (t && t.bandeja.length > n0) q = t.bandeja[t.bandeja.length - 1].qualidade;
+  return q;
+}
 DESENHOS_TELA.push(ctx => {
   const c = G.copo;
   if (!c) return;
+  if (c.cerveja) return desenhaCerveja(ctx, c);
   const copo = spr('salao/' + COPO.ART[c.bebida]), dentro = spr('salao/' + COPO.ART[c.bebida] + '_dentro'), liq = spr('salao/' + COPO.LIQ[c.bebida]), esp = spr('salao/espuma_topo');
   const W = G.larg, H = G.alt;
   ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H); ctx.restore();
@@ -657,6 +728,102 @@ DESENHOS_TELA.push(ctx => {
   texto(ctx, c.msg, W / 2, y + h + 44, 24, '#ffe08a', '800');
 });
 let _copoTela = null;
+// (Tarefa C) A cerveja: o copo americano (inclinado no começo) e a garrafa, que gira para despejar. As camadas, de baixo para cima:
+// o colarinho (espuma_cerveja) com o topo na espuma, a cerveja (liquido_cerveja) com o topo no líquido, recortados por dentro do
+// copo; o copo por cima. Com o copo inclinado, as camadas giram ao contrário (a cerveja fica deitada) e crescem um pouco para
+// cobrir o vidro. O fio que cai é uma fatia da própria textura da cerveja. Tudo arte do Higgsfield; o código só gira e recorta.
+function desenhaCerveja(ctx, c) {
+  const copo = spr('salao/copo_americano'), dentro = spr('salao/copo_americano_dentro'), liq = spr('salao/liquido_cerveja'), esp = spr('salao/espuma_cerveja'), gar = spr('salao/garrafa_cerveja');
+  const W = G.larg, H = G.alt;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H); ctx.restore();
+  if (!copo) return;
+  const g0 = COPO.GEO.cerveja, W0 = copo.naturalWidth, H0 = copo.naturalHeight;
+  // o copo um pouco menor que o do bebedouro e mais baixo: a garrafa despejando cabe em cima dele, abaixo do painel do topo
+  const e = Math.min(1.2, H * 0.42 / H0), w = W0 * e, h = H0 * e, x = W / 2 - w / 2 - 60 * e, y = H / 2 - h / 2 + 40 * e;
+  const ang = c.inclinado ? CERVEJA.ANGULO : 0, px = x + w / 2, py = y + h;   // o copo gira no pé
+  const yLiq = g0.fundo - (g0.fundo - g0.topo) * Math.min(1, c.liq), yEsp = g0.fundo - (g0.fundo - g0.topo) * Math.min(1, c.liq + c.esp);
+  if (dentro && liq && esp) {
+    const off = _copoTela || (_copoTela = document.createElement('canvas'));
+    off.width = W0; off.height = H0;
+    const g = off.getContext('2d'), k = ang ? 1.35 : 1;
+    g.clearRect(0, 0, W0, H0);
+    if (c.nivel > 0.005) {
+      g.save(); g.translate(W0 / 2, yLiq); g.rotate(-ang); g.scale(k, k);
+      if (c.esp > 0.005) g.drawImage(esp, -W0 / 2, -(yLiq - yEsp) / k);
+      g.drawImage(liq, -W0 / 2, 0);
+      g.restore();
+    }
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(dentro, 0, 0); g.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.drawImage(off, -w / 2, -h, w, h); ctx.restore();
+  }
+  ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.drawImage(copo, -w / 2, -h, w, h);
+  // (revisão) a marquinha dos "dois dedos" do lado do copo (linha fina de interface, como a barrinha): onde a cerveja para e onde
+  // o colarinho chega, com o copo cheio no ponto que o robô mira
+  { const yA = f => -h + (g0.fundo - (g0.fundo - g0.topo) * f) * e, cheio = 0.92, liqA = cheio * (1 - CERVEJA.ALVO), xm = w / 2 + 8;
+    ctx.strokeStyle = 'rgba(255,236,190,.85)'; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(xm, yA(liqA)); ctx.lineTo(xm, yA(cheio)); ctx.moveTo(xm - 6, yA(liqA)); ctx.lineTo(xm + 4, yA(liqA)); ctx.moveTo(xm - 6, yA(cheio)); ctx.lineTo(xm + 4, yA(cheio));
+    ctx.stroke(); }
+  ctx.restore();
+  // a boca do copo na tela (gira com ele), onde a garrafa mira
+  const bx = px + Math.sin(ang) * (H0 - g0.topo) * e, by = py - Math.cos(ang) * (H0 - g0.topo) * e;
+  if (gar) {
+    const gw = gar.naturalWidth * e * 0.8, gh = gar.naturalHeight * e * 0.8;
+    if (c.segurando) {
+      const th = -1.95, dx = Math.sin(th), dy = -Math.cos(th);   // o gargalo para baixo e para a esquerda, em cima da boca
+      const mx = bx + 12 * e, my = by - 40 * e, cx = mx - dx * gh / 2, cy = my - dy * gh / 2;
+      if (liq) { const yS = c.inclinado ? by + 30 * e : py - (H0 - (c.liq + c.esp >= 1 ? g0.topo : yEsp)) * e;   // o fio de cerveja
+        ctx.drawImage(liq, W0 / 2 - 5, 40, 10, 200, mx - 5 * e, my, 10 * e, Math.max(0, yS - my)); }
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(th); ctx.drawImage(gar, -gw / 2, -gh / 2, gw, gh); ctx.restore();
+    } else { ctx.save(); ctx.translate(x + w + 120 * e, py - gh / 2); ctx.rotate(-0.12); ctx.drawImage(gar, -gw / 2, -gh / 2, gw, gh); ctx.restore(); }
+  }
+  texto(ctx, Pratos.BEBIDAS[c.bebida], x + w / 2, y + h + 30, 28, '#fff', '900');   // embaixo do copo (em cima fica a garrafa)
+  texto(ctx, c.msg, W / 2, y + h + 62, 22, '#ffe08a', '800');
+}
+// ---------- (Tarefa C, o wasabi do Dave) a farinheira: o alerta e a peneira com tempo ----------
+// (revisão, o Dave: só avisa com o wasabi no fim) Com t.alertaFarinha() ou menos (um terço da farinheira, no mínimo 3), a exclamação pisca em cima da farinheira (a arte fx/exclamacao; o código só acende e apaga); a Rosa
+// chama uma vez (o evento 'farinha_baixa', pensao_tela.js). Repor: o Jocelino peneira PENEIRA.jocelino s parado (a barrinha em
+// cima dele: a moldura é arte, o enchimento é luz de interface). Clicar em outro lugar ou andar interrompe: o que já foi peneirado
+// fica em t._peneirado (o próximo clique continua de onde parou).
+function desenhaAlertaFarinha(ctx) {
+  const t = G.turno;
+  if (!t || t.farinha > t.alertaFarinha() || G.peneira) return;
+  if (Math.floor(performance.now() / 350) % 2 && MODO_TESTE.efeitos) return;   // pisca (no modo de teste, fica aceso para a foto)
+  const F = PALCO.FARINHEIRA;
+  desenhaFx(ctx, 'exclamacao', F.cx, F.y - 40, { escala: 2.2 });
+}
+function comecarPeneira() {
+  const t = G.turno; if (!t || G.peneira) return false;
+  G.peneira = { t: t._peneirado || 0, dur: TurnoJanta.peneira('jocelino') };
+  G.jog.dir = DIR.CIMA; G.jog.andando = false;
+  sons.tocar('farinha', 0.9, 0.05, -8);
+  avisar(G.peneira.t > 0 ? 'Continuando a peneirar a farinha...' : 'Peneirando a farinha... (fique parado até a barrinha encher)');
+  return true;
+}
+function pararPeneira() {
+  const t = G.turno, pn = G.peneira; G.peneira = null;
+  if (t && pn && pn.t < pn.dur) { t._peneirado = pn.t; avisar('Parou de peneirar: o que já peneirou fica guardado.'); }
+}
+ATUALIZADORES.push(dt => {
+  const pn = G.peneira, t = G.turno, j = G.jog;
+  if (!pn) return;
+  if (!t || !noPalco()) { G.peneira = null; return; }
+  const k = G.teclas;
+  if (j.alvoPalco || [TECLAS.esquerda, TECLAS.direita, 'ArrowLeft', 'ArrowRight'].some(c => k.has(c))) { pararPeneira(); return; }
+  j.dir = DIR.CIMA; j.andando = false;
+  pn.t += dt;
+  if (pn.t < pn.dur) return;
+  G.peneira = null;
+  const r = t.reporFarinha();
+  if (r === 'ok') { avisar('Farinheira cheia de novo!'); sons.tocar('farinha', 1, 0.05, -4); }
+  else avisar(r === 'cheia' ? 'A farinheira já estava cheia.' : 'Acabou a farinha na despensa! Compre na Mercearia do Seu Ananias.');
+});
+function desenhaPeneira(ctx) {
+  const pn = G.peneira, j = G.jog;
+  if (!pn || !j || !spr('fx/barra_moldura')) return;
+  const y = j.y - 114 * PALCO.ESCALA_GENTE - 30, f = clamp(pn.t / pn.dur, 0, 1);
+  desenhaFx(ctx, 'barra_moldura', j.x, y);
+  ctx.fillStyle = '#e8c22c'; ctx.fillRect(j.x - 26, y - 2, 52 * f, 4);
+}
 
 // Quem está comendo mastiga (de vez em quando, um de cada vez, baixinho).
 let _mastiga = 1.5;
@@ -682,7 +849,7 @@ ATUALIZADORES.push(() => {
 ATUALIZADORES.push(() => {
   const t = G.turno;
   if (!t || !noPalco()) return;
-  if (t._avisouFarinha && !t._mostrouFarinha) { t._mostrouFarinha = true; avisar('A farinheira acabou! A Rosa parou: clique na farinheira para repor.'); sons.tocar('rosa_resmunga', 1, 0.05, -4); }
+  if (t._avisouFarinha && !t._mostrouFarinha) { t._mostrouFarinha = true; avisar('A farinheira acabou! A Rosa parou: clique na farinheira e peneire mais farinha.'); sons.tocar('rosa_resmunga', 1, 0.05, -4); }
   if (!t._avisouFarinha) t._mostrouFarinha = false;
 });
 
@@ -775,15 +942,29 @@ ATUALIZADORES.push(dt => {
 // ---------- os ajudantes de salão trabalhando no palco ----------
 // Cada ajudante de salão anda na faixa do chão (como o Jocelino, um pouco atrás) e faz o que as habilidades dele deixam:
 // recolher louça, servir bebida, repor a farinheira. Sem habilidade, fica no canto do bebedouro, de olho.
+// (14/10, Tarefa B) Os Mestres: o da bebida serve sempre na medida (o carimbo e a aura); o da louça recolhe bem mais rápido; o da
+// gorjeta recolhe as moedas do balcão; o "Leva prato" (raro) reserva o prato no passe, pega e leva a quem pediu, um por vez.
 const AJUDANTES = [];
+// (Tarefa C) Quem já ganhou o Mestre do posto dele (peneira a farinha tão rápido quanto o Jocelino).
+const ehMestreDaEquipe = e => !!e && !!e.mestre && (e.habilidades || []).includes(e.mestre);
+// O ajudante sai da tela (ou da equipe) no meio do que fazia: o prato que levava volta ao passe e a reserva se desfaz.
+function largarTarefaDoAjudante(a) {
+  const t = G.turno, tf = a && a.tarefa;
+  if (!t || !tf) return;
+  if (tf.item) t.devolverAoPasse(tf.item);
+  if (tf.tipo === 'pegar_prato') { const x = t.passe.find(y => y.reservadoPara === tf.i); if (x) delete x.reservadoPara; }
+  if ((tf.tipo === 'pegar_prato' || tf.tipo === 'levar_prato') && t.mesas[tf.i]) t.mesas[tf.i].pratoReservado = false;
+  a.tarefa = null;
+}
 function ajudantesDoPalco() {
   const p = G.pensao;
-  if (!p || !noPalco()) { AJUDANTES.length = 0; return []; }
+  if (!p || !noPalco()) { if (AJUDANTES.length) { AJUDANTES.forEach(largarTarefaDoAjudante); if (G.turno) G.turno.soltarReservas(); } AJUDANTES.length = 0; return []; }
   const salao = p.equipe.filter(e => e.posto === 'salao'), cozinha = p.equipe.filter(e => e.posto === 'cozinha');
-  while (AJUDANTES.length > salao.length + cozinha.length) AJUDANTES.pop();
+  while (AJUDANTES.length > salao.length + cozinha.length) largarTarefaDoAjudante(AJUDANTES.pop());
   [...salao, ...cozinha].forEach((e, k) => {
     let a = AJUDANTES[k];
     if (!a || a.id !== e.id) {
+      if (a) largarTarefaDoAjudante(a);
       a = AJUDANTES[k] = new Personagem(e.id, e.nome, e.posto === 'cozinha' ? PALCO.ROSA.x - 90 : PALCO.CASA_AJUDANTE - k * 60, e.posto === 'cozinha' ? PALCO.ROSA.y : PALCO.CHAO_Y - 4, DIR.BAIXO);
       a.equipe = e; a.casa = a.x; a.tarefa = null; a.espera = 0;
     }
@@ -792,53 +973,96 @@ function ajudantesDoPalco() {
 }
 ATUALIZADORES.push(dt => {
   const t = G.turno, p = G.pensao;
-  if (!t || !noPalco() || !p) return;
+  // (revisão da Tarefa B) sem janta, nenhuma tarefa velha fica (a bebida, as moedas, o prato na mão): a noite seguinte começa do zero
+  if (!t) { for (const a of AJUDANTES) if (a.tarefa) { a.tarefa = null; a.andando = false; } return; }
+  if (!noPalco() || !p) return;
   ajudantesDoPalco();
   for (const a of AJUDANTES) {
     a.t += dt;
     const e = a.equipe;
     if (e.posto === 'cozinha') { a.andando = false; a.dir = DIR.DIREITA; continue; }   // ajuda a Rosa no fogão
+    const tem = h => Equipe.faz(e, h);
     if (!a.tarefa) {
       a.espera -= dt;
       if (a.espera > 0) continue;
-      a.espera = 0.6;
-      const tem = h => e.habilidades.includes(h);
-      const suja = tem('louca') ? t.mesas.findIndex((m, i) => i < PALCO.ASSENTOS.length && (m.estado === 'suja' || m.louca) && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i)) : -1;
-      const bebe = tem('bebida') ? t.mesas.findIndex((m, i) => i < PALCO.ASSENTOS.length && ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i)) : -1;
-      if (tem('farinha') && t.farinha <= TurnoJanta.REPOR_ATE && (p.despensa.farinha || 0) > 0) a.tarefa = { tipo: 'farinha', x: PALCO.FARINHEIRA.cx };
+      a.espera = tem('mestre_louca') ? ECO.equipe.louca.olhar : 0.6;
+      const n = Math.min(t.mesas.length, PALCO.ASSENTOS.length), livre = i => !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i);
+      const achaLouca = so => tem('louca') ? t.mesas.findIndex((m, i) => i < n && (so ? m.louca : m.estado === 'suja' || m.louca) && livre(i)) : -1;
+      const doLado = achaLouca(true), suja = doLado >= 0 ? doLado : achaLouca(false);
+      const bebe = tem('bebida') ? t.mesas.findIndex((m, i) => i < n && t.querBebidaAgora(m) && !m.bebidaReservada && livre(i)) : -1;
+      const prato = tem('leva_prato') ? pratoParaOAjudante(t, n) : -1;
+      const moeda = tem('mestre_gorjeta') ? t.moedas.find(x => x.mesa < n && !AJUDANTES.some(o => o.tarefa && o.tarefa.tipo === 'moedas' && o.tarefa.mesa === x.mesa)) : null;
+      const outroPeneira = G.peneira || AJUDANTES.some(o => o !== a && o.tarefa && (o.tarefa.tipo === 'farinha' || o.tarefa.tipo === 'peneirando'));
+      if (tem('farinha') && !outroPeneira && t.farinha <= TurnoJanta.REPOR_ATE && (p.despensa.farinha || 0) > 0) a.tarefa = { tipo: 'farinha', x: PALCO.FARINHEIRA.cx };
+      else if (doLado >= 0) a.tarefa = { tipo: 'louca', i: doLado, x: PALCO.ASSENTOS[doLado].x };   // a louça do lado de quem sentou: senão ele vai embora
+      else if (prato >= 0 && t.reservarPrato(prato) >= 0) a.tarefa = { tipo: 'pegar_prato', i: prato, x: PALCO.PASSE.cx };
       else if (suja >= 0) a.tarefa = { tipo: 'louca', i: suja, x: PALCO.ASSENTOS[suja].x };
       else if (bebe >= 0) { const bb = t.reservarBebida(bebe); if (bb) a.tarefa = { tipo: 'bebida', i: bebe, bebida: bb, x: PALCO.BEBEDOURO.x + 20, depois: PALCO.ASSENTOS[bebe].x }; }
+      else if (moeda) a.tarefa = { tipo: 'moedas', mesa: moeda.mesa, x: PALCO.ASSENTOS[moeda.mesa].x + 34 };
       else if (Math.abs(a.x - a.casa) > 4) a.tarefa = { tipo: 'casa', x: a.casa };
       if (!a.tarefa) { a.andando = false; continue; }
     }
     // (14/10, a bebida com tempo, o Dave: o funcionário serve 1 bebida em 3,0 s) No bebedouro ele enche o copo: alguns segundos
     // parado, com a barrinha em cima; depois leva o copo na mão até quem pediu.
+    // (Tarefa C) Na farinheira ele peneira: PENEIRA.ajudante s (o Mestre, PENEIRA.mestre), parado, com a barrinha em cima.
+    if (a.tarefa.tipo === 'peneirando') {
+      a.andando = false; a.dir = DIR.CIMA; a.tarefa.t += dt;
+      if (G.peneira) { a.tarefa = null; continue; }   // o Jocelino pegou a peneira: ele larga
+      if (a.tarefa.t >= a.tarefa.dur) { if (t.reporFarinha() === 'ok') sons.tocar('farinha', 1.1, 0.05, -8); a.tarefa = null; }
+      continue;
+    }
     if (a.tarefa.tipo === 'enchendo') {
       a.andando = false; a.dir = DIR.CIMA; a.tarefa.t += dt;
       if (a.tarefa.t >= a.tarefa.dur) { a.tarefa = { tipo: 'servir_bebida', i: a.tarefa.i, bebida: a.tarefa.bebida, x: a.tarefa.depois }; sons.tocar('encher', 1.2, 0.05, -12); }
       continue;
     }
-    const v = 150 * (1 + e.servico / 120);
+    const v = 150 * (1 + e.servico / 120) * ((tem('mestre_louca') && (a.tarefa.tipo === 'louca' || a.tarefa.tipo === 'bacia')) ? ECO.equipe.louca.velocidade : 1);
     const dx = a.tarefa.x - a.x;
     if (Math.abs(dx) > 5) { a.x += Math.sign(dx) * Math.min(Math.abs(dx), v * dt); a.dir = dx < 0 ? DIR.ESQUERDA : DIR.DIREITA; a.andando = true; continue; }
     a.andando = false;
     const tf = a.tarefa;
-    if (tf.tipo === 'farinha') { if (t.reporFarinha() === 'ok') sons.tocar('farinha', 1.1, 0.05, -8); a.tarefa = null; }
+    if (tf.tipo === 'farinha') a.tarefa = t.podeReporFarinha() === 'ok' && !G.peneira ? { tipo: 'peneirando', x: a.x, t: 0, dur: TurnoJanta.peneira(ehMestreDaEquipe(e) ? 'mestre' : 'ajudante') } : null;
     else if (tf.tipo === 'louca') { if (t.ajudanteRecolhe(tf.i)) sons.tocar('louca', 1.1, 0.05, -8); a.tarefa = { tipo: 'bacia', x: PALCO.BACIA.x + 30 }; }
     else if (tf.tipo === 'bacia') { sons.tocar('bacia', 1.1, 0.05, -10); a.tarefa = null; }
     else if (tf.tipo === 'bebida' && tf.depois != null) { a.tarefa = { tipo: 'enchendo', i: tf.i, bebida: tf.bebida, x: a.x, depois: tf.depois, t: 0, dur: TurnoJanta.salao().bebidaAjudante }; }
-    else if (tf.tipo === 'servir_bebida') { if (t.ajudanteBebida(tf.i, tf.bebida)) sons.tocar('servir', 1.25, 0.05, -8); a.tarefa = null; }
+    else if (tf.tipo === 'servir_bebida') {
+      const medida = tem('mestre_bebida');   // o Mestre da bebida: sempre na medida (o carimbo, a aura, a gorjeta)
+      if (t.ajudanteBebida(tf.i, tf.bebida, medida)) { sons.tocar('servir', 1.25, 0.05, -8); if (medida) { carimboBebida(tf.i, 'medida'); sons.tocar('carimbo', 1.1, 0.05, -8); } }
+      a.tarefa = null;
+    }
+    else if (tf.tipo === 'pegar_prato') { const x = t.ajudantePegaPrato(tf.i); a.tarefa = x ? { tipo: 'levar_prato', i: tf.i, item: x, x: PALCO.ASSENTOS[tf.i].x } : null; if (x) sons.tocar('louca', 1.25, 0.05, -10); }
+    else if (tf.tipo === 'levar_prato') { if (t.ajudanteServePrato(tf.i, tf.item)) sons.tocar('servir', 1.1, 0.05, -6); a.tarefa = null; }
+    else if (tf.tipo === 'moedas') { const v2 = t.recolherMoedas(tf.mesa); if (v2) { tocarSomDoEvento({ tipo: 'gorjeta' }); flutuar(a.x, a.y - 170, `+Cr$ ${v2} gorjeta`, '#ffd34d'); } a.tarefa = null; }
     else a.tarefa = null;
   }
 });
+// (Tarefa B) O prato que o "Leva prato" vai levar: de quem espera há mais tempo, que não é o VIP (servido só pelo Jocelino), que
+// ninguém reservou, com o prato livre no passe e sem o mesmo prato já na bandeja do Jocelino para essa pessoa. Devolve a banqueta ou −1.
+function pratoParaOAjudante(t, n) {
+  const livres = {}; for (const x of t.passe) if (x.reservadoPara == null) livres[x.prato] = (livres[x.prato] || 0) + 1;
+  const naMao = {}; for (const x of t.bandeja) if (x.tipo === 'prato') naMao[x.prato] = (naMao[x.prato] || 0) + 1;
+  const querem = {}; t.mesas.forEach((m, i) => { if (i < n && m.estado === 'prato' && !m.pratoReservado && m.modo !== 'antigo') querem[m.prato] = (querem[m.prato] || 0) + 1; });
+  let quem = -1;
+  t.mesas.forEach((m, i) => {
+    if (i >= n || m.estado !== 'prato' || m.pratoReservado || m.modo === 'antigo' || m.cliente.mania === 'vip' || !livres[m.prato]) return;
+    if ((naMao[m.prato] || 0) >= querem[m.prato]) return;   // o Jocelino já leva um para cada um que espera esse prato
+    if (quem < 0 || m.espera > t.mesas[quem].espera) quem = i;
+  });
+  return quem;
+}
 
 // (14/10, a bebida com tempo) Em cima do ajudante: enchendo, a barrinha (a moldura é arte; o enchimento é luz de interface) e o
 // copo da bebida; levando, o copo cheio em cima da cabeça, até entregar.
 function desenhaAjudantesBebida(ctx) {
   for (const a of AJUDANTES) {
-    const tf = a.tarefa; if (!tf || !tf.bebida || (tf.tipo !== 'enchendo' && tf.tipo !== 'servir_bebida')) continue;
+    const tf = a.tarefa; if (!tf) continue;
     const img = spr(a.folha), alto = img ? (img.naturalHeight / 4 - 2) * PALCO.ESCALA_GENTE : 114 * PALCO.ESCALA_GENTE;
     const y = a.y - alto + 34;   // logo acima da cabeça dela (a folha de cada um tem a altura dela, com uma folga em cima)
+    // (Tarefa B) o "Leva prato" levando: o prato em cima da cabeça (a arte do prato, a mesma da bandeja do Jocelino)
+    if (tf.tipo === 'levar_prato' && tf.item) { desenhaPrato(ctx, tf.item.prato, a.x, y, 1, 0.8); continue; }
+    if (tf.tipo === 'peneirando' && spr('fx/barra_moldura')) {   // (Tarefa C) peneirando a farinha: a barrinha amarela
+      desenhaFx(ctx, 'barra_moldura', a.x, y - 4); ctx.fillStyle = '#e8c22c'; ctx.fillRect(a.x - 26, y - 6, 52 * clamp(tf.t / tf.dur, 0, 1), 4); continue; }
+    if (!tf.bebida || (tf.tipo !== 'enchendo' && tf.tipo !== 'servir_bebida')) continue;
     if (tf.tipo === 'enchendo') desenhaPe(ctx, 'salao/bebida_' + tf.bebida, a.x + 48, y + 40, 1, 0.8);   // o copo enchendo, do lado
     else desenhaPe(ctx, 'salao/bebida_' + tf.bebida, a.x, y, 1, 0.8);                                     // levando: em cima da cabeça
     if (tf.tipo === 'enchendo' && spr('fx/barra_moldura')) {
@@ -850,47 +1074,85 @@ function desenhaAjudantesBebida(ctx) {
 }
 
 // ---------- a tela Equipe ----------
+// (14/10, Tarefa B, a ficha do funcionário do Dave) Cada pessoa: os 4 atributos, o nível e o salário, as 2 habilidades fixas e o
+// Mestre (com o nível de cada uma e o que fazem; as já ganhas em giz amarelo), o posto ou a reserva, a expedição em curso. Os
+// botões são tábuas: Treinar, Posto (os postos com vaga e a Reserva), Expedição (a lista dos ingredientes, com a origem) e Dispensar.
+// O candidato já mostra a vocação e as 3 habilidades, antes de contratar.
+const _nomePosto = posto => posto === 'reserva' ? Equipe.RESERVA : Equipe.POSTOS[posto] || '—';
+const _nomeBusca = b => !b || b === 'sorteio' ? 'o que achar (sorteio)' : Itens.nome(b);
+function _linhasHabilidades(e, cand) {
+  const hs = [[3, e.habs[0]], [7, e.habs[1]], [Equipe.nivelDoMestre(e), e.mestre]].filter(x => x[1]);
+  const fora = !cand && e.posto !== e.vocacao;
+  const linhas = hs.map(([n, h]) => {
+    const tem = !cand && e.habilidades.includes(h);
+    return el('div', { class: tem ? 'eq-hab' : 'eq-at' }, `${tem ? '★' : '☆'} Nv ${n}: ${Equipe.textoHab(h)}`);
+  });
+  if (!cand && e.posto === 'salao' && e.habilidades.includes('louca') && !e.habs.includes('louca')) linhas.unshift(el('div', { class: 'eq-hab' }, `★ Do posto: ${Equipe.textoHab('louca')}`));
+  if (fora) linhas.push(el('div', { class: 'eq-at' }, `Vocação: ${Equipe.POSTOS[e.vocacao]} (as habilidades valem no posto ${Equipe.POSTOS[e.vocacao]}).`));
+  return linhas;
+}
+function _linhaExpedicao(e) {
+  if (e.expedicao) return el('div', { class: 'eq-hab eq-fora' }, `Na expedição: volta amanhã de manhã com ${_nomeBusca(e.expedicao.busca)}.`);
+  if (e.posto === 'compras') return el('div', { class: 'eq-at' }, `Expedição toda manhã: busca ${_nomeBusca(e.busca)}.`);
+  return null;
+}
 function abrirEquipe() {
   const p = G.pensao;
   const caixa = el('div', { class: 'painel equipe' });
+  let escolha = null;   // { tipo: 'posto' | 'expedicao', i }: a pessoa com a escolha aberta
+  const bt = (texto, cls, fn) => el('button', { class: 'botao ' + (cls || ''), onclick: ev => { ev.stopPropagation(); fn(); } }, texto);
   const desenha = () => {
+    // (revisão da Tarefa B) a fala da Rosa (a faixa do guia) continua à vista ao redesenhar: a faixa nova nasce escondida e só o
+    // guia (a cada 100 ms) a mostrava de novo; ela piscava e a lista pulava
+    const fx0 = caixa.querySelector('.eq-faixa'), faixa0 = fx0 && !fx0.hidden ? { texto: fx0.querySelector('.guia-faixa-texto').textContent, direita: fx0.classList.contains('direita') } : null;
     caixa.innerHTML = '';
-    const vagas = ['salao', 'cozinha', 'compras'].map(k => `${Equipe.POSTOS[k]}: ${Equipe.vagasLivres(p, k)} vaga(s)`).join(' · ');
-    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Equipe da Pensão'), el('div', { class: 'eq-vagas' }, vagas + ` · salários Cr$ ${Equipe.salarios(p)}/noite`), faixaDaTela('eq-faixa'));
+    p.equipe.forEach(e => Equipe.normalizar(e));
+    const vagas = ['salao', 'cozinha', 'compras', 'reserva'].map(k => `${_nomePosto(k)}: ${Equipe.vagasLivres(p, k)}`).join(' · ');
+    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Equipe da Pensão'), el('div', { class: 'eq-vagas' }, `Vagas: ${vagas} · salários Cr$ ${Equipe.salarios(p)}/noite`), faixaDaTela('eq-faixa'));
+    if (faixa0) { const f = caixa.querySelector('.eq-faixa'); f.hidden = false; f.classList.toggle('direita', faixa0.direita); f.querySelector('.guia-faixa-texto').textContent = faixa0.texto; }
     // Ajudantes contratados.
     const lista = el('div', { class: 'eq-lista' });
     if (!p.equipe.length) lista.append(el('div', { class: 'rodape', style: 'text-align:left' }, p.grau() < 2 ? 'A pensão ainda é pequena para ter ajudante: no "Boteco Conhecido" abre a primeira vaga.' : 'Ninguém contratado ainda. Ponha um anúncio!'));
     p.equipe.forEach((e, i) => {
-      const c = Equipe.custoTreino(e);
-      lista.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${e.id}_normal`) }),
-        el('div', {}, el('b', {}, `${e.nome} · ${Equipe.POSTOS[e.posto]} · Nv ${e.nivel}`),
-          el('div', { class: 'eq-at' }, `Serviço ${e.servico} · Cozinha ${e.cozinha} · Compras ${e.compras} · Simpatia ${e.simpatia}`),
-          el('div', { class: 'eq-at' }, e.nivel < 10 ? `▸ Treinar: nível ${e.nivel} → ${e.nivel + 1}, salário Cr$ ${Equipe.salario(e)} → ${Equipe.salario(e) + 2}/noite` + ((e.nivel + 1 === 3 || e.nivel + 1 === 7) ? ' · ganha habilidade nova!' : '') : 'Nível máximo.'),
-          el('div', { class: 'eq-hab' }, e.habilidades.length ? '★ ' + e.habilidades.map(h => (Object.values(Equipe.HABILIDADES).flat().find(x => x[0] === h) || [h, h])[1]).join(' · ') : 'Habilidade nova no nível 3 e no 7.')),
-        el('div', { class: 'eq-bts' },
-          el('button', { class: 'botao forte' + (G.dinheiro >= c && e.nivel < 10 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
-            const pago = Equipe.treinar(p, i, G.dinheiro);
-            if (pago) { G.dinheiro -= pago; sons.tocar('carimbo', 1.2, 0.05, -4); avisar(`${e.nome} treinou: nível ${e.nivel}!`); hudSujo(); desenha(); }
-            else avisar(e.nivel >= 10 ? 'Já está no nível máximo.' : `Treinar custa Cr$ ${c}.`); } }, `Treinar (Cr$ ${c})`),
-          el('button', { class: 'botao', onclick: ev => { ev.stopPropagation(); Equipe.demitir(p, i); desenha(); } }, 'Dispensar'))));
+      const c = Equipe.custoTreino(e), max = e.nivel >= Equipe.NIVEL_MAX, sal = Equipe.salario(e), salNoite = Equipe.salarioDaNoite(e);
+      const prox = max ? '' : Equipe.habilidadeDoNivel(e, e.nivel + 1);
+      const proxSal = Math.min(ECO.equipe.salarioTeto, sal + ECO.equipe.salarioPorNivel);
+      const ficha = el('div', {}, el('b', {}, `${e.nome} · ${_nomePosto(e.posto)} · Nv ${e.nivel}`),
+        el('div', { class: 'eq-at' }, `Serviço ${e.servico} · Cozinha ${e.cozinha} · Compras ${e.compras} · Simpatia ${e.simpatia}`),
+        el('div', { class: 'eq-at' }, `Salário Cr$ ${sal}/noite${salNoite !== sal ? ` (na reserva, parado: Cr$ ${salNoite})` : ''}` + (max ? ' · nível máximo.' : ` · ▸ treinar: nível ${e.nivel + 1}, salário Cr$ ${proxSal}${prox ? ` · ganha "${Equipe.textoHab(prox)}"` : ''}`)),
+        ..._linhasHabilidades(e), _linhaExpedicao(e));
+      const bts = el('div', { class: 'eq-bts' },
+        bt(`Treinar (Cr$ ${c})`, 'forte' + (G.dinheiro >= c && !max ? '' : ' desligado'), () => {
+          const pago = Equipe.treinar(p, i, G.dinheiro);
+          if (pago) { G.dinheiro -= pago; sons.tocar('carimbo', 1.2, 0.05, -4); avisar(`${e.nome} treinou: nível ${e.nivel}!` + (e.ganhou ? ` Habilidade nova: ${Equipe.textoHab(e.ganhou)}.` : '')); hudSujo(); desenha(); }
+          else avisar(max ? 'Já está no nível máximo.' : `Treinar custa Cr$ ${c}.`); }),
+        bt('Posto', escolha && escolha.tipo === 'posto' && escolha.i === i ? 'aceso' : '', () => { escolha = escolha && escolha.tipo === 'posto' && escolha.i === i ? null : { tipo: 'posto', i }; desenha(); }),
+        (e.posto === 'reserva' || e.posto === 'compras') ? el('button', { class: 'botao eq-expedir' + (e.expedicao ? ' desligado' : ''), 'data-posto': e.posto, onclick: ev => { ev.stopPropagation();
+          if (e.expedicao) { avisar(`${e.nome} está na expedição: volta amanhã de manhã.`); return; }
+          escolha = escolha && escolha.tipo === 'expedicao' && escolha.i === i ? null : { tipo: 'expedicao', i }; desenha(); } }, 'Expedição') : null,
+        bt('Dispensar', '', () => { if (e.expedicao) { avisar(`${e.nome} está na expedição: dispense quando voltar.`); return; } Equipe.demitir(p, i); escolha = null; desenha(); }));
+      lista.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${e.id}_normal`) }), ficha, bts));
+      if (escolha && escolha.i === i) { const blk = escolha.tipo === 'posto' ? _escolhaPosto(p, e, i, () => { escolha = null; desenha(); }) : _escolhaExpedicao(p, e, i, () => { escolha = null; desenha(); });
+        lista.append(blk); setTimeout(() => { if (blk.isConnected) blk.scrollIntoView({ block: 'start' }); }, 0); }   // (o começo da lista logo abaixo da fala presa da Rosa: scroll-margin-top)
     });
     caixa.append(lista);
-    // Candidatos (do anúncio de ontem).
+    // Candidatos (do anúncio de ontem): a vocação e as habilidades já à vista, como no Dave.
     if (p.candidatos.length) {
       caixa.append(el('div', { class: 'cad-sub' }, 'Candidatos'));
       const cl = el('div', { class: 'eq-lista' });
-      p.candidatos.forEach((c, i) => cl.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${c.id}_normal`) }),
-        el('div', {}, el('b', {}, c.nome), el('div', { class: 'eq-at' }, `Serviço ${c.servico} · Cozinha ${c.cozinha} · Compras ${c.compras} · Simpatia ${c.simpatia}`), el('div', { class: 'eq-hab' }, `Taxa de contratação: Cr$ ${Equipe.taxaContratacao(c)}`)),
-        el('div', { class: 'eq-bts' }, ['salao', 'cozinha', 'compras'].map(k => el('button', { class: 'botao' + (Equipe.vagasLivres(p, k) > 0 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
+      p.candidatos.forEach((c, i) => { Equipe.normalizar(c); cl.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${c.id}_normal`) }),
+        el('div', {}, el('b', {}, `${c.nome} · vocação: ${Equipe.POSTOS[c.vocacao]}`), el('div', { class: 'eq-at' }, `Serviço ${c.servico} · Cozinha ${c.cozinha} · Compras ${c.compras} · Simpatia ${c.simpatia}`),
+          ..._linhasHabilidades(c, true), el('div', { class: 'eq-at' }, `Taxa de contratação: Cr$ ${Equipe.taxaContratacao(c)} · salário Cr$ ${Equipe.salario(c)}/noite`)),
+        el('div', { class: 'eq-bts' }, ['salao', 'cozinha', 'compras', 'reserva'].map(k => el('button', { class: 'botao' + (Equipe.vagasLivres(p, k) > 0 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
           const tx = Equipe.taxaContratacao(c), r = Equipe.contratar(p, i, k, G.dinheiro);
           if (r === 'dinheiro') { avisar(`A taxa de contratação é Cr$ ${tx}.`); return; }
-          if (r === 'ok') { G.dinheiro -= tx; hudSujo(); sons.tocar('feito', 1, 0.03, -4); avisar(`${c.nome} vai trabalhar na ${Equipe.POSTOS[k].toLowerCase()}!`); desenha(); }
-          else avisar('Não tem vaga nesse posto (a fama abre mais).'); } }, Equipe.POSTOS[k]))))));
+          if (r === 'ok') { G.dinheiro -= tx; hudSujo(); sons.tocar('feito', 1, 0.03, -4); avisar(k === 'reserva' ? `${c.nome} entrou para a equipe e fica na reserva.` : `${c.nome} vai trabalhar no posto ${Equipe.POSTOS[k]}!`); desenha(); }
+          else avisar(k === 'reserva' ? 'A reserva está cheia.' : 'Não tem vaga nesse posto (a fama abre mais). Dá para contratar na Reserva.'); } }, _nomePosto(k)))))); });
       caixa.append(cl);
     }
     // Anunciar.
     caixa.append(el('div', { class: 'cad-sub' }, p.anuncio ? `Anúncio feito: ${Equipe.ANUNCIOS[p.anuncio].nome}. Os candidatos aparecem amanhã.` : 'Pôr anúncio (os candidatos aparecem amanhã)'));
-    const temVaga = ['salao', 'cozinha', 'compras'].some(k => Equipe.vagasLivres(p, k) > 0);
+    const temVaga = ['salao', 'cozinha', 'compras'].some(k => Equipe.vagasLivres(p, k) > 0) || (p.grau() >= 2 && Equipe.vagasLivres(p, 'reserva') > 0);
     if (!p.anuncio && !temVaga) caixa.append(el('div', { class: 'rodape', style: 'text-align:left' }, 'Sem vaga agora: a fama abre mais.'));
     if (!p.anuncio && temVaga) caixa.append(el('div', { class: 'eq-anuncios' }, Object.entries(Equipe.ANUNCIOS).map(([k, a]) => el('button', { class: 'botao eq-anuncio', onclick: ev => { ev.stopPropagation();
       if (G.dinheiro < a.preco) { avisar(`${a.nome} custa Cr$ ${a.preco}.`); return; }
@@ -901,6 +1163,41 @@ function abrirEquipe() {
   };
   desenha();
   abrirModal(caixa);
+  // (revisão da Tarefa B) a 1ª expedição: a lousa rola até o botão Expedição (o de quem está na reserva, de preferência), uma vez
+  if (typeof jaFezTela === 'function' && jaFezTela('equipe') && !jaFezTela('expedicao')) { const be = caixa.querySelector('.eq-expedir[data-posto="reserva"]:not(.desligado)') || caixa.querySelector('.eq-expedir:not(.desligado)'); if (be) be.scrollIntoView({ block: 'nearest' }); }
   sons.tocar('abrir', 1, 0.03, -6);
   return true;
+}
+// A escolha do posto: os postos com vaga e a Reserva (a vaga é por degrau).
+function _escolhaPosto(p, e, i, fim) {
+  return el('div', { class: 'eq-escolha' }, el('div', { class: 'eq-at' }, `${e.nome} vai para:`),
+    el('div', { class: 'eq-bts' }, ['salao', 'cozinha', 'compras', 'reserva'].filter(k => k !== e.posto).map(k => el('button', { class: 'botao' + (Equipe.vagasLivres(p, k) > 0 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
+      const r = Equipe.mudarPosto(p, i, k);
+      if (r === 'ok') { sons.tocar('feito', 1, 0.03, -6); avisar(k === 'reserva' ? `${e.nome} foi para a reserva (meio salário parado).` : `${e.nome} agora trabalha no posto ${Equipe.POSTOS[k]}.`); fim(); }
+      else avisar(r === 'fora' ? `${e.nome} está na expedição: volta amanhã.` : r === 'sem_vaga' ? 'Não tem vaga nesse posto (a fama abre mais).' : 'Não deu.'); } }, _nomePosto(k)))));
+}
+// A escolha da expedição (o dispatch do Dave): o básico que a pensão aceita e já viu, cada um com o ícone, a raridade, a origem e
+// quanto se espera que venha ("traz ~N"); ou o sorteio (a arte da caixa da encomenda).
+// (revisão da Tarefa B, o domingo) A expedição custa o salário do dia, que sai na janta da noite. Num dia sem janta (o domingo, a
+// pensão fechada) ou depois da janta de hoje, a noite não cobra mais: quem sai da reserva paga o dia na saída.
+const _textoTraz = q => q >= 1 ? `traz ~${Math.round(q)}` : `traz 1 (chance de ${Math.round(q * 100)}%)`;
+function _cobraNaSaida(p) { return (typeof pensaoAbreHoje === 'function' && !pensaoAbreHoje()) || (p.ultimaJanta === G.dia && !G.turno); }
+function _escolhaExpedicao(p, e, i, fim) {
+  const lista = Equipe.ingredientesDaExpedicao(p), fixo = e.posto === 'compras', paga = !fixo && _cobraNaSaida(p) ? Equipe.salario(e) : 0;
+  const vai = busca => {
+    if (paga && G.dinheiro < paga) { avisar(`Hoje a expedição paga o salário do dia na saída: Cr$ ${paga}.`); return; }
+    const r = Equipe.expedir(p, i, busca);
+    if (r === 'ok') {
+      if (paga) { G.dinheiro -= paga; e.expedicao.pago = paga; hudSujo(); }
+      sons.tocar('feito', 1, 0.03, -6);
+      avisar(fixo ? `${e.nome} vai buscar ${_nomeBusca(busca)} toda manhã.` : `${e.nome} saiu na expedição atrás de ${_nomeBusca(busca)}: volta amanhã de manhã.` + (paga ? ` Salário do dia pago na saída: Cr$ ${paga}.` : ''));
+      fim();
+    } else avisar('Não deu para mandar buscar isso.'); };
+  const item = (id, arte, nome, sub, fn) => el('button', { class: 'botao eq-ing', 'data-ing': id, onclick: ev => { ev.stopPropagation(); fn(); } },
+    el('img', { src: urlArte(arte), alt: '' }), el('div', {}, el('b', {}, nome), el('div', { class: 'eq-at' }, sub)));
+  return el('div', { class: 'eq-escolha', 'data-posto': e.posto },
+    el('div', { class: 'eq-at' }, fixo ? `${e.nome} está no posto de Expedição: busca o escolhido toda manhã (é o trabalho dela; o salário é o do posto).`
+      : `${e.nome} sai hoje e volta amanhã de manhã. É grátis: só o salário do dia${paga ? ` (hoje, Cr$ ${paga} na saída)` : ''}. O ★★ vem em menos unidades.`),
+    el('div', { class: 'eq-ings' }, item('sorteio', 'ui/caixa_encomenda_ui', 'Sorteio', `o que achar · ${_textoTraz(Equipe.previsao(e, 'sorteio', p))} no total`, () => vai('sorteio')),
+      ...lista.map(id => item(id, 'itens/' + id, Itens.nome(id), `${'★'.repeat(Pratos.raridade(id))} · ${Pratos.INGREDIENTES[id].origem} · ${_textoTraz(Equipe.previsao(e, id))}`, () => vai(id)))));
 }

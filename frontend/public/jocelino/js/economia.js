@@ -54,9 +54,17 @@ const ECO = {
     // (14/10, Tarefa A) Os números da janta (o TurnoJanta lê daqui; os nomes são os das constantes dele). Tempos em segundos:
     // a paciência até pedir e até o prato chegar, o preparo de um prato, o tempo comendo, a leitura do cardápio (e com a louça
     // suja do lado); as capacidades da farinheira (e o "repõe com tanto ou menos"), do passe, da bandeja e das bocas do fogão; a
-    // gorjeta da bebida na medida (parte do preço) e o preço de cada bebida (só a cerveja se paga à parte, por enquanto).
+    // gorjeta da bebida na medida (parte do preço) e o preço de cada bebida.
+    // (14/10, Tarefa C, o Dave: o chá verde não tem preço, vale os +30% da refeição; a cerveja e o coquetel entram em "Others")
+    // precoBebida: o que cada copo paga à parte (servido na medida, quase ou derramado): só a cerveja; o cafezinho vale o
+    // cafeBoasVindas (na medida, antes do prato), o guaraná e o caldo a estrela da bebida e a gorjeta da medida; ALERTA_FARINHA: com um terço da farinheira (parte) ou menos, no mínimo `minimo`, a farinheira pisca e a Rosa chama
+    // (uma vez até repor); PENEIRA: os segundos para peneirar a farinheira cheia (o Jocelino; o ajudante com "farinha"; o ajudante
+    // que já é Mestre; o Dave mói o wasabi mais rápido que o funcionário, que leva 5,0 s); ESPERA_CERVEJA: a cerveja vem DEPOIS
+    // do prato (o Dave); quem acabou de comer e ainda espera a cerveja fica até tantos segundos antes de pagar e ir embora.
     janta: { PACIENCIA_PEDIDO: 45, PACIENCIA_PRATO: 70, PREPARO: 6, COMENDO: 8, LENDO: 1.5, LENDO_LOUCA: 6,
-      FARINHA_MAX: 15, REPOR_ATE: 10, PASSE_MAX: 4, BANDEJA_MAX: 3, BOCAS: 2, GORJETA_MEDIDA: 0.15, precoBebida: { cerveja: 3 } },
+      FARINHA_MAX: 15, REPOR_ATE: 10, PASSE_MAX: 4, BANDEJA_MAX: 3, BOCAS: 2, GORJETA_MEDIDA: 0.15,
+      precoBebida: { cafe: 0, guarana: 0, caldo_cana: 0, cerveja: 2 },
+      ALERTA_FARINHA: { minimo: 3, parte: 3 }, PENEIRA: { jocelino: 2.5, ajudante: 5, mestre: 2.5 }, ESPERA_CERVEJA: 10 },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.
@@ -91,7 +99,22 @@ const ECO = {
     marcos: [[3, { dinheiro: 150 }], [6, { itens: { barra_bronze: 2, lajota: 4 } }], [9, { itens: { impermeabilizante: 5 } }], [12, { dinheiro: 500 }], [14, { itens: { cristal: 5 }, titulo: "Guardião da memória da Vila" }]] },
   melhorias: { toalha: 600, flamula: 400, radio: [900, 2200, 4500], farinheira_grande: [1500, 2800], ventilador: [1800, 2600, 5200], banqueta_extra: 1200, bandeirinhas: 800, fogao_4bocas: [3000, 7000], geladeira: 4000, trofeu: 0, neon: 2500 },
   ampliacoes: { salao_maior: 4000, varanda: 6000, sobrado: 15000 },
-  equipe: { anuncios: { cartaz: 50, radio: 150, jornal: 400 }, salarioBase: 4 },
+  // (14/10, Tarefa B: a equipe do Dave) O nível vai até nivelMax. O treino custa base × cresce^(nível − 1), com teto (o Dave: ~1,43×
+  // por nível, 99 mil no 20; aqui o teto deixa o nível alto como um gasto do fim do jogo, umas 4 noites boas por treino). O salário é
+  // salarioBase + salarioPorNivel × (nível − 1), com teto. Quem está na reserva, parado, recebe `reserva` do salário (o Dave paga
+  // inteiro; aqui a metade, para a reserva ter custo sem ser só prejuízo); na expedição recebe o dia inteiro. reservaMax: quantos
+  // cabem na reserva. mestre: o nível do Mestre de cada posto (e do "Leva prato", raro); levaPrato: a chance de o Mestre de quem tem
+  // vocação de salão ser o "Leva prato"; receitas: os níveis em que o ajudante de cozinha ensina receita; louca: a velocidade do
+  // Mestre da louça (× a de andar) e o intervalo (s) entre uma olhada e outra no salão; fogao e pressa: o preparo a menos do Mestre do
+  // fogão e da "pressa" (multiplicam depois do piso de 0,5 do atributo Cozinha). expedicao (o dispatch do Dave): a quantidade = base +
+  // compras ÷ porCompras (× 2 com "feira", + mestre com o Mestre), mais um bônus de bonus[0] a bonus[1] com chance simpatia ÷
+  // simpatiaChance (no máximo bonusMax); o ingrediente vem dividido pela raridade AO QUADRADO (com "raro", a raridade − 1): o que
+  // não dá 1 inteiro vira a chance de vir 1. (A lista só tem o básico, raridade 1 e 2: Equipe.ORIGENS.)
+  equipe: { anuncios: { cartaz: 50, radio: 150, jornal: 400 }, salarioBase: 4,
+    nivelMax: 20, salarioPorNivel: 2, salarioTeto: 40, treino: { base: 60, cresce: 1.5, teto: 5000 }, reserva: 0.5, reservaMax: 3,
+    mestre: { salao: 12, cozinha: 15, compras: 12, leva_prato: 15 }, levaPrato: 0.2, receitas: [5, 10, 15, 20],
+    louca: { velocidade: 1.6, olhar: 0.2 }, fogao: 0.1, pressa: 0.1,
+    expedicao: { base: 1, porCompras: 25, mestre: 2, bonus: [1, 3], simpatiaChance: 150, bonusMax: 0.6 } },
   // ---- O Bazar do Seu Salim (os gastos em degraus, como as ferramentas e a casa do Stardew): cada item uma vez.
   bazar: {
     itens: [

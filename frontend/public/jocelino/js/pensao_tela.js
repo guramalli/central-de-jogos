@@ -315,7 +315,8 @@ function pensaoQuadro() {
     caixa.append(corpo);
     if (sem.length) caixa.append(el('div', { class: 'qc-sem' }, 'Sem ingrediente: ' + sem.map(id => { const P = Pratos.PRATOS[id], f = Object.keys(P.porcao).filter(x => p._tem(x) < P.porcao[x]);
       return `${P.nome} (falta ${listaE(f.map(nomeNaPanela))})`; }).join(' · ')));
-    const C = ECO.pensao.pratoCasa, beb = (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => Pratos.BEBIDAS[b].toLowerCase());
+    // (Tarefa C) cada bebida com o preço dela (pago à parte)
+    const C = ECO.pensao.pratoCasa, beb = (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => Pratos.BEBIDAS[b].toLowerCase() + (TurnoJanta.precoBebida(b) ? ` (Cr$ ${TurnoJanta.precoBebida(b)})` : b === 'cafe' ? ' (de graça; na medida antes do prato, +30% no prato)' : ' (de graça)'));
     caixa.append(el('div', { class: 'qc-casa' }, `Sempre tem: ${C.nome} (Cr$ ${C.preco}, sem curtida) e ${beb.join(', ')}.`));
     const principal = modo === 'abertura' ? el('button', { class: 'tabua acesa qc-abrir', 'data-guia': 'abrir', onclick: e2 => { e2.stopPropagation(); abrirAPensao(); } }, 'Abrir a pensão')
       : el('button', { class: 'tabua acesa', onclick: e2 => { e2.stopPropagation(); fecharModal(); } }, modo === 'durante' ? 'Voltar ao salão' : 'Guardar o cardápio');
@@ -416,8 +417,37 @@ function iniciarJanta() {
   avisar((inauguracao ? 'Inauguração da Pensão da Rosa: a Vila veio convidada! ' : '') + (noPalco() ? 'A janta começou! A Rosa põe os pratos no passe da cozinha: pegue e leve a quem pediu. Bebida: no bebedouro.' : 'A janta começou! Clique no cliente (ou no balcão na frente dele) para anotar o pedido.'));
 }
 MANHA.push(() => { const p = G.pensao; if (p && p.estado === 'aberta') for (const id of p.liberarDoDegrau()) G.feitosHoje.push(`A Rosa aprendeu uma receita nova: ${Pratos.PRATOS[id].nome}.`); });
+// A despesa da noite do degrau (gás, gelo, luz, como a do Cooksta) e os salários saem do bolso, nunca deixando ele negativo.
+// (Tarefa A) O que saiu de verdade: primeiro a despesa, depois os salários; o que o bolso não cobriu fica no naoCobriu. Vale para a
+// janta com o Jocelino e para a noite da Rosa sozinha (as duas fecham a conta do mesmo jeito: TurnoJanta.conta).
+function pagarDespesaDaNoite(r) {
+  r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;
+  const custo = Math.min(r.despesa + r.salarios, Math.max(0, G.dinheiro));
+  G.dinheiro -= custo; G.ganhoHoje -= custo; r.custo = custo;
+  r.despesaPaga = Math.min(r.despesa, custo); r.salariosPagos = custo - r.despesaPaga; r.naoCobriu = r.despesa + r.salarios - custo;
+  return custo;
+}
+// (revisão da Tarefa A) A noite em que o Jocelino não serviu: a Rosa se vira sozinha (TurnoJanta.rosaSozinha), o bolso recebe os
+// pratos e paga a despesa e os salários, e a conta fecha como na janta (sem gorjeta nem prêmio). Devolve o relatório.
+function noiteDaRosaSozinha(linhas) {
+  const f = mulberry(G.dia * 77);
+  // (o cardápio do Bancho) A Rosa usa o cardápio da noite anterior (ou só o prato da casa) e a sobra vai para o lixo; a fama
+  // não conta o prato da casa (paraFama), como na janta com o Jocelino.
+  const rs = TurnoJanta.rosaSozinha(G.pensao, { randf: f, randi: () => Math.floor(f() * 4294967296) });
+  G.pensao.registrarNoite(TurnoJanta.paraFama(rs).estrelas, G.dia, 0);
+  G.dinheiro += rs.ganho; G.ganhoHoje += rs.ganho;
+  // A despesa da noite e os salários saem mesmo sem o Jocelino (nunca deixa o bolso negativo; a pensão não fecha por isso).
+  rs.premios = 0; pagarDespesaDaNoite(rs);
+  { const c = TurnoJanta.conta(rs); rs.receita = c.receita; rs.lucro = c.lucro; }
+  linhas.push(`A Rosa se virou sozinha na pensão: ${rs.servidos} ${rs.servidos === 1 ? 'cliente' : 'clientes'}${deCasaDaRosa(G.pensao, rs)}, Cr$ ${rs.ganho}.`);
+  { const sb = textoSobra(rs.sobra); if (sb) linhas.push('   ' + sb); }
+  linhas.push(linhaDoLucroNoResumo(rs));
+  return rs;
+}
 function encerrarJanta() {
   if (!G.turno) return;
+  // (revisão da Tarefa B) o prato na mão do ajudante "Leva prato" volta ao passe antes de fechar: o fechar conta ele no lixo
+  if (typeof AJUDANTES !== 'undefined' && typeof largarTarefaDoAjudante === 'function') AJUDANTES.forEach(largarTarefaDoAjudante);
   const inaug = G.turno.inauguracao, r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
   // (14/10, os sons do Dave) A janta acabou: a vinheta de samba toca já. Com o fechamento do caixa na tela, os sons da noite
@@ -459,12 +489,7 @@ function encerrarJanta() {
   if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), r.favoritos);
   r.aprendidas.push(...G.pensao.liberarDoDegrau());
   for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); somFim('fanfarra', 1.15, 0, -6); }
-  // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
-  r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;
-  const custo = Math.min(r.despesa + r.salarios, Math.max(0, G.dinheiro));   // nunca deixa o bolso negativo
-  G.dinheiro -= custo; G.ganhoHoje -= custo; r.custo = custo;
-  // (Tarefa A) O que saiu de verdade: primeiro a despesa, depois os salários; o que o bolso não cobriu fica no naoCobriu.
-  r.despesaPaga = Math.min(r.despesa, custo); r.salariosPagos = custo - r.despesaPaga; r.naoCobriu = r.despesa + r.salarios - custo;
+  pagarDespesaDaNoite(r);
   // As metas da noite (servir, bebida na medida, nota) e as de estado.
   if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); for (const m of r.metasFeitas) r.premios += (m.premio && m.premio.dinheiro) || 0; }
   { const c = TurnoJanta.conta(r); r.receita = c.receita; r.lucro = c.lucro; }   // a conta fecha: o bolso mudou exatamente pelo lucro
@@ -510,6 +535,7 @@ ATUALIZADORES.push(dt => {
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; ev.semSom = true; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
       else if (noSalao) { avisar(ev.louca ? `${ev.cliente.nome} não aguentou a louça suja do lado e foi embora.` : `${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); }
     } else if (ev.tipo === 'louca' && noSalao) { avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`);
+    } else if (ev.tipo === 'farinha_baixa' && noSalao) { avisar(`Rosa: "Jocelino, a farinheira tá no fim (${ev.farinha})! Peneira mais farinha pra mim."`);   // (Tarefa C) chama uma vez até repor
     } else if (ev.tipo === 'ultima_rodada' && noSalao) { avisar('A Rosa bate o sino: "Última rodada!" Quem chegar agora pede mais bebida.');
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
     // (o cardápio do Bancho) a panela que acabou: a Rosa repõe, ou o prato sai do quadro; quem fica sem prato leva o prato da casa
@@ -710,19 +736,8 @@ function deCasaDaRosa(p, rs) {
 }
 NOITE.push(linhas => {
   if (G.turno) encerrarJanta();
-  if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia) {
-    const f = mulberry(G.dia * 77);
-    // (o cardápio do Bancho) A Rosa usa o cardápio da noite anterior (ou só o prato da casa) e a sobra vai para o lixo; a fama
-    // não conta o prato da casa (paraFama), como na janta com o Jocelino.
-    const rs = TurnoJanta.rosaSozinha(G.pensao, { randf: f, randi: () => Math.floor(f() * 4294967296) });
-    G.pensao.registrarNoite(TurnoJanta.paraFama(rs).estrelas, G.dia, 0);
-    G.dinheiro += rs.ganho; G.ganhoHoje += rs.ganho;
-    // A despesa da noite e os salários saem mesmo sem o Jocelino (nunca deixa o bolso negativo; a pensão não fecha por isso).
-    const conta = G.pensao.despesa() + (typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0), custo = Math.min(conta, Math.max(0, G.dinheiro));
-    G.dinheiro -= custo; G.ganhoHoje -= custo;
-    linhas.push(`A Rosa se virou sozinha na pensão: ${rs.servidos} ${rs.servidos === 1 ? 'cliente' : 'clientes'}${deCasaDaRosa(G.pensao, rs)}, Cr$ ${rs.ganho}.` + (custo ? ` Despesa e salários: Cr$ ${custo}.` : ''));
-    { const sb = textoSobra(rs.sobra); if (sb) linhas.push('   ' + sb); }
-  } else if (G.relatorioPensao) {
+  if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia) noiteDaRosaSozinha(linhas);
+  else if (G.relatorioPensao) {
     const r = G.relatorioPensao, p = G.pensao;
     linhas.push(linhaDaJantaNoResumo(r, p));
     if (r.embora) linhas.push(`   ${r.embora} ${r.embora === 1 ? 'foi' : 'foram'} embora sem comer${r.perdida ? ` (Cr$ ${r.perdida} perdidos)` : ''}.`);
@@ -731,7 +746,9 @@ NOITE.push(linhas => {
     if (r.casa) linhas.push(`   ${r.casa} ${r.casa === 1 ? 'cliente levou' : 'clientes levaram'} o prato da casa (${ECO.pensao.pratoCasa.nome}): barato e sem curtida.`);
     if (r.cafes) linhas.push(`   ${r.cafes} ${r.cafes === 1 ? 'cliente tomou' : 'clientes tomaram'} só café (faltou ingrediente).`);
     { const sb = textoSobra(r.sobra); if (sb) linhas.push('   ' + sb); }
-    linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${r.despesa}${r.salarios ? ` · salários Cr$ ${r.salarios}` : ''} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`);
+    // (revisão da Tarefa A) a despesa e os salários PAGOS, os mesmos da linha do lucro logo abaixo
+    { const c = TurnoJanta.conta(r);
+      linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${c.despesa}${c.salarios ? ` · salários Cr$ ${c.salarios}` : ''} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`); }
     if (G.relatorioPensao.premioVip) linhas.push(`   O cliente especial adorou! Prêmio: Cr$ ${r.premioVip.dinheiro}, ${r.premioVip.curtidas} curtidas e ${r.premioVip.pitadas} pitadas.`);
     else if (r.vip === 'faltou') linhas.push('   O cliente especial foi embora decepcionado: faltou o prato que ele queria.');
     for (const e of r.pedidosFeitos || []) linhas.push(`   Pedido cumprido: ${e.quem} recebeu ${e.qtd} ${Pratos.PRATOS[e.prato].nome}. Prêmio: Cr$ ${e.premio}.`);

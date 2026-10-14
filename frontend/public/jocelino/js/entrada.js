@@ -40,14 +40,15 @@ function instalaEntrada() {
   cv.addEventListener('mousedown', e => {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
-    if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
+    // (Tarefa C) no copo: o esquerdo segura para despejar; o direito endireita o copo da cerveja
+    if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { if (e.button === 2) copoEndireita(); else copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
     // (onda final; o Stardew: clicar no HUD não usa a ferramenta) o clique esquerdo em cima do quadro de tarefas ou do cartão (que deixam
     // o clique passar para o mundo) não dá golpe; o direito continua passando (abre o depósito embaixo deles)
     if (e.button === 0 && typeof mouseNoPainelDoHud === 'function' && mouseNoPainelDoHud(e.clientX, e.clientY)) return;
     if (e.button === 0) { G.mouse.segura = true; G.mouse.apertou = true; usarItemDaMao(); }
     else if (e.button === 2) acaoNoMouse();
   });
-  addEventListener('mouseup', e => { if (e.button === 0) G.mouse.segura = false; if (G.copo) copoSegura(false); });
+  addEventListener('mouseup', e => { if (e.button === 0) G.mouse.segura = false; if (G.copo && e.button !== 2) copoSegura(false); });
   cv.addEventListener('wheel', e => { if (!menuAberto() && G.mochila) { G.sel = (G.sel + (e.deltaY > 0 ? 1 : 11)) % 12; hudSujo(); } }, { passive: true });
 }
 

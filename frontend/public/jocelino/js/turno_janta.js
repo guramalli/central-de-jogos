@@ -31,6 +31,16 @@ class TurnoJanta {
   static get BOCAS() { return ECO.pensao.janta.BOCAS; }               // pratos no fogo ao mesmo tempo (o fogão de 4 bocas melhora)
   static MAX_MESAS = 6;         // banquetas no balcão do palco
   static get GORJETA_MEDIDA() { return ECO.pensao.janta.GORJETA_MEDIDA; }   // bebida na medida: parte do preço a mais de gorjeta
+  // (decisão do controlador) A gorjeta da medida só vem da bebida sem preço (o cafezinho, o guaraná, o caldo); a que se paga à parte
+  // (a cerveja) na medida dá a aura, o carimbo e a estrela da bebida, mas não a gorjeta extra: ela já paga o copo.
+  static gorjetaDaMedida(b) { return !TurnoJanta.precoBebida(b); }
+  // (14/10, Tarefa C) A farinheira avisa com tanto ou menos; a cerveja vem depois do prato (quem acabou de comer espera um pouco).
+  // (revisão, o Dave só avisa com o wasabi no fim) O alerta acende com um terço da farinheira (no mínimo 3): 5 na de 15, 9 na de 25.
+  static alertaFarinha(max) { const A = ECO.pensao.janta.ALERTA_FARINHA; return Math.max(A.minimo, Math.ceil((max || TurnoJanta.FARINHA_MAX) / A.parte)); }
+  alertaFarinha() { return TurnoJanta.alertaFarinha(this.farinhaMax); }
+  static get ESPERA_CERVEJA() { return ECO.pensao.janta.ESPERA_CERVEJA; }
+  // Os segundos para peneirar a farinheira: quem ('jocelino', 'ajudante' ou 'mestre').
+  static peneira(quem) { return ECO.pensao.janta.PENEIRA[quem] || ECO.pensao.janta.PENEIRA.jocelino; }
   // (13/10, o Dave) Sem banqueta livre, o freguês senta ao lado da louça suja: se ninguém recolher em LENDO_LOUCA s, ele vai embora.
   static get LENDO_LOUCA() { return ECO.pensao.janta.LENDO_LOUCA; }
   // O preço de cada bebida servida (0 para a que não se paga à parte).
@@ -46,7 +56,7 @@ class TurnoJanta {
   // pedidos de cada prato (sem o da casa) e maisPedido: { prato, qtd } (no fechar); gargalos: os segundos com a farinheira vazia
   // e a Rosa parada, as vezes que o passe encheu, a espera média até o prato (s) e quantos foram embora pela louça suja do lado.
   static relatorioVazio() { return { favoritos: [], clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0, casa: 0, estrelasCasa: 0, acabou: [], sobra: {},
-    vendaPratos: 0, vendaBebidas: 0, perdida: 0, pedidos: {}, maisPedido: null, gargalos: { farinhaVazia: 0, passeCheio: 0, esperaMedia: 0, emboraLouca: 0 } }; }
+    derramou: 0, vendaPratos: 0, vendaBebidas: 0, perdida: 0, pedidos: {}, maisPedido: null, gargalos: { farinhaVazia: 0, passeCheio: 0, esperaMedia: 0, emboraLouca: 0 } }; }
   // (Tarefa A) A conta do fechamento, na ordem da lousa: Pratos + Bebidas + Gorjetas + Prêmios = Receita; Receita − Despesa −
   // Salários = Lucro. A despesa e os salários são o que saiu de verdade (despesaPaga/salariosPagos: o bolso vazio não paga tudo).
   static conta(r) {
@@ -70,6 +80,7 @@ class TurnoJanta {
     this.relatorio = TurnoJanta.relatorioVazio();
     this._fila = [];
     this.farinha = TurnoJanta.FARINHA_MAX; this._prontos = []; this._avisouFarinha = false; this.passe = []; this.bandeja = []; this.fogo = []; this.moedas = [];
+    this._alertouFarinha = false; this._peneirado = 0;   // (Tarefa C) o alerta da farinheira baixa e o que já foi peneirado
     this._esperaSoma = 0; this._esperaN = 0;   // (Tarefa A) a espera até o prato de cada servido, para a média do fechamento
     // Sem repetir o mesmo cliente enquanto der (dois Seu Lourival juntos não dá).
     // (14/10, o jogador: "sensação de vários clientes e não sempre os mesmos") Uma parte da fila (ECO.pensao.salao.avulsos) são
@@ -144,6 +155,8 @@ class TurnoJanta {
         }
       } else if (m.estado === 'comendo') {
         m.come -= dt;
+        // (Tarefa C, o Dave: a cerveja vem DEPOIS do prato) acabou de comer e a cerveja não chegou: espera um pouco antes de pagar
+        if (m.come <= 0 && m.bebida === 'cerveja' && this.querBebidaAgora(m) && (m.esperaCerveja = (m.esperaCerveja || 0) + dt) < TurnoJanta.ESPERA_CERVEJA) return;
         if (m.come <= 0) this._pagar(i);
       }
     });
@@ -159,13 +172,17 @@ class TurnoJanta {
       f.t -= dt;
       if (f.t > 0) continue;
       this.fogo.splice(this.fogo.indexOf(f), 1);
-      this.farinha--;
+      this.farinha--; this._alertaFarinha();
       this.passe.push({ tipo: 'prato', prato: f.prato, raridade: f.raridade });
       if (this.passe.length >= TurnoJanta.PASSE_MAX) this.relatorio.gargalos.passeCheio++;   // o passe encheu (a Rosa vai esperar)
       this.saidos = (this.saidos || 0) + 1;                            // a Rosa leva cada um até o passe (palco)
       this.eventos.push({ tipo: 'pronto', prato: f.prato });
       if (this.farinha <= 0) break;
     }
+  }
+  // (14/10, Tarefa C, o medidor do wasabi do Dave) A farinheira baixou até o alerta (e ainda tem): a Rosa chama uma vez até repor.
+  _alertaFarinha() {
+    if (this.farinha > 0 && this.farinha <= this.alertaFarinha() && !this._alertouFarinha) { this._alertouFarinha = true; this.eventos.push({ tipo: 'farinha_baixa', farinha: this.farinha }); }
   }
   // (14/10, a rotatividade, o Dave: o cliente ENTRA no salão e senta num banco livre; ao terminar, sai; o lugar fica com a louça)
   // As chegadas com tempo: entre uma e outra, um intervalo sorteado (ECO.pensao.salao.chegada, s); o cliente escolhe por sorteio
@@ -325,24 +342,36 @@ class TurnoJanta {
     return true;
   }
   // Pega o prato k do passe para a bandeja (se couber).
+  // (Tarefa B) O prato que o ajudante reservou não sai: pega o primeiro livre.
   pegar(k) {
     if (k < 0 || k >= this.passe.length || this.bandeja.length >= TurnoJanta.BANDEJA_MAX) return false;
+    if (this.passe[k].reservadoPara != null) { k = this.passe.findIndex(x => x.reservadoPara == null); if (k < 0) return false; }
     this.bandeja.push(this.passe.splice(k, 1)[0]);
     return true;
   }
+  // Os pratos do passe que ninguém reservou.
+  livresNoPasse() { return this.passe.filter(x => x.reservadoPara == null); }
   // Os pratos prontos no passe da cozinha.
   passaPrato() { return this.passe; }
   // Tem esse prato pronto (no passe ou na bandeja)? O balão do cliente fica branco.
   temPronto(prato) { return this.passe.some(x => x.prato === prato) || this.bandeja.some(x => x.tipo === 'prato' && x.prato === prato); }
+  // (14/10, Tarefa C, o Dave: o chá antes do prato, a cerveja DEPOIS) O cliente quer a bebida dele agora? O café, o guaraná e o caldo
+  // desde o pedido (o cafezinho de boas-vindas vem antes do prato); a cerveja só quando o prato chega (comendo, ou acabou de comer
+  // e ainda espera a cerveja).
+  querBebidaAgora(m) {
+    if (!m || !m.querBebida || m.bebidaServida) return false;
+    return m.bebida === 'cerveja' ? m.estado === 'comendo' : ['prato', 'comendo'].includes(m.estado);
+  }
   // A bebida mais antiga pedida que ainda não está na bandeja (a que o Jocelino vai encher), ou ''.
   bebidaPedida() {
     const naMao = this.bandeja.filter(x => x.tipo === 'bebida').map(x => x.bebida);
     // (14/10) a bebida que um ajudante já está enchendo (bebidaReservada) não entra: é dele
-    const quem = this.mesas.filter(m => ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && !m.bebidaReservada).sort((a, b) => b.espera - a.espera);
+    const quem = this.mesas.filter(m => this.querBebidaAgora(m) && !m.bebidaReservada).sort((a, b) => b.espera - a.espera);
     for (const m of quem) { const k = naMao.indexOf(m.bebida); if (k >= 0) naMao.splice(k, 1); else return m.bebida; }
     return '';
   }
-  // Enche a bebida no bebedouro e põe na bandeja ('medida' = na linha; 'ok' = quase).
+  // Enche a bebida no bebedouro e põe na bandeja. A nota (Tarefa C, as notas do Dave): 'medida' = PERFEITA (na linha; a cerveja com o
+  // colarinho de dois dedos); 'ok' = BOA (quase; a cerveja com pouca espuma); 'ruim' = RUIM (derramou; a cerveja com espuma demais).
   encherBebida(bebida, qualidade = 'ok') {
     if (this.bandeja.length >= TurnoJanta.BANDEJA_MAX) return false;
     this.bandeja.push({ tipo: 'bebida', bebida, qualidade });
@@ -351,16 +380,24 @@ class TurnoJanta {
   // Serve a bebida da bandeja a quem pediu aquela bebida.
   servirBebida(i) {
     const m = this.mesas[i];
-    if (!m || !['prato', 'comendo'].includes(m.estado) || !m.querBebida || m.bebidaServida) return false;
+    if (!this.querBebidaAgora(m)) return false;
     const k = this.bandeja.findIndex(x => x.tipo === 'bebida' && x.bebida === m.bebida);
     if (k < 0) return false;
     const b = this.bandeja.splice(k, 1)[0];
-    m.bebidaServida = true; m.bebidaMedida = b.qualidade === 'medida';
+    this._bebidaChegou(m, b.qualidade);
+    return true;
+  }
+  // A bebida chegou à banqueta (pelo Jocelino ou pelo ajudante), com a nota dela ('medida', 'ok' ou 'ruim'; true/false valem como
+  // 'medida'/'ok'). Na medida: a gorjeta, a aura e o café antes do prato. Derramada (Tarefa C): servida mesmo assim, mas sem a
+  // estrela da bebida e sem a gorjeta extra. Toda bebida se paga à parte (ECO.pensao.janta.precoBebida) e vai para as bebidas do
+  // fechamento.
+  _bebidaChegou(m, nota) {
+    const q = nota === true ? 'medida' : nota === 'medida' || nota === 'ruim' ? nota : 'ok';
+    m.bebidaServida = true; m.bebidaMedida = q === 'medida'; m.bebidaRuim = q === 'ruim'; m.bebidaNota = q;
     if (m.estado === 'prato' && m.bebida === 'cafe') m.cafeAntes = true;   // cafezinho de boas-vindas, antes do prato
     this.relatorio.bebidas++; if (m.bebidaMedida) this.relatorio.medida = (this.relatorio.medida || 0) + 1;
-    // a bebida que se paga à parte (hoje só a cerveja gelada, ECO.pensao.janta.precoBebida) vai para as bebidas do fechamento
+    if (m.bebidaRuim) this.relatorio.derramou = (this.relatorio.derramou || 0) + 1;
     const vb = TurnoJanta.precoBebida(m.bebida); if (vb) { this.relatorio.ganho += vb; this.relatorio.vendaBebidas += vb; }
-    return true;
   }
   // Recolhe a louça da banqueta para a bandeja: a banqueta fica livre.
   recolher(i) {
@@ -377,30 +414,66 @@ class TurnoJanta {
   // (14/10, a bebida com tempo) O ajudante pega para si a bebida da banqueta i (o Jocelino não enche a mesma); devolve a bebida ou ''.
   reservarBebida(i) {
     const m = this.mesas[i];
-    if (!m || !['prato', 'comendo'].includes(m.estado) || !m.querBebida || m.bebidaServida || m.bebidaReservada) return '';
+    if (!this.querBebidaAgora(m) || m.bebidaReservada) return '';
     m.bebidaReservada = true;
     return m.bebida;
   }
-  // Ele chegou com o copo cheio (a bebida b, enchida no bebedouro): serve, se aquele cliente ainda quer aquela bebida.
-  ajudanteBebida(i, b) {
+  // Ele chegou com o copo cheio (a bebida b, enchida no bebedouro): serve, se aquele cliente ainda quer aquela bebida. O ajudante
+  // comum serve na média; o Mestre da bebida (medida = true) serve sempre na medida: a gorjeta, a aura, o carimbo e o café antes.
+  // (Tarefa B) A bebida que se paga à parte (a cerveja) entra nas bebidas do fechamento também quando é ele que serve.
+  ajudanteBebida(i, b, medida = false) {
     const m = this.mesas[i];
     if (m) m.bebidaReservada = false;
-    if (!m || !['prato', 'comendo'].includes(m.estado) || !m.querBebida || m.bebidaServida || (b && b !== m.bebida)) return false;
-    m.bebidaServida = true; m.bebidaMedida = false; this.relatorio.bebidas++;
+    if (!this.querBebidaAgora(m) || (b && b !== m.bebida)) return false;
+    this._bebidaChegou(m, medida ? 'medida' : 'ok');
     return true;
   }
+  // ---- (14/10, Tarefa B) O ajudante que leva prato (o "Leva prato", raro): ele reserva no passe o prato de quem pediu, anda até
+  // o passe, pega e leva. O prato reservado (reservadoPara = a banqueta) o Jocelino não pega: os dois nunca levam o mesmo prato.
+  // O cliente especial (o VIP, que tem cena) é servido só pelo Jocelino.
+  reservarPrato(i) {
+    const m = this.mesas[i];
+    if (!m || m.estado !== 'prato' || m.modo === 'antigo' || m.pratoReservado || m.cliente.mania === 'vip') return -1;
+    const k = this.passe.findIndex(x => x.prato === m.prato && x.reservadoPara == null);
+    if (k < 0) return -1;
+    this.passe[k].reservadoPara = i; m.pratoReservado = true;
+    return k;
+  }
+  // Chegou ao passe: pega o prato reservado para a banqueta i, se o cliente ainda espera por ele (senão desfaz a reserva). Devolve o prato ou null.
+  ajudantePegaPrato(i) {
+    const k = this.passe.findIndex(x => x.reservadoPara === i), m = this.mesas[i];
+    if (k < 0) { if (m) m.pratoReservado = false; return null; }
+    if (!m || m.estado !== 'prato' || !m.pratoReservado || m.prato !== this.passe[k].prato) { delete this.passe[k].reservadoPara; if (m) m.pratoReservado = false; return null; }
+    const x = this.passe.splice(k, 1)[0]; delete x.reservadoPara;
+    return x;
+  }
+  // Chegou à banqueta com o prato x: serve, se o cliente ainda quer aquele prato; senão o prato volta para o passe.
+  ajudanteServePrato(i, x) {
+    const m = this.mesas[i];
+    if (!m || m.estado !== 'prato' || m.modo === 'antigo' || m.prato !== x.prato) { if (m && m.estado === 'prato') m.pratoReservado = false; this.devolverAoPasse(x); return false; }
+    m.pratoReservado = false; m.raridade = x.raridade; m.certo = true; m.montado = true;
+    return this._entregar(i);
+  }
+  devolverAoPasse(x) { delete x.reservadoPara; if (this.passe.length < TurnoJanta.PASSE_MAX) this.passe.push(x); else this.relatorio.desperdicio++; }
+  // Ninguém mais vai levar (o ajudante saiu da tela): todo prato reservado volta a ser de quem pegar.
+  soltarReservas() { for (const x of this.passe) delete x.reservadoPara; for (const m of this.mesas) m.pratoReservado = false; }
   // Recolhe as moedas da gorjeta deixadas no balcão da banqueta i. Devolve quanto.
   recolherMoedas(i) { const v = this.moedas.filter(x => x.mesa === i).reduce((n, x) => n + x.valor, 0); this.moedas = this.moedas.filter(x => x.mesa !== i); this.relatorio.gorjeta += v; return v; }
   // Larga a louça na bacia da cozinha. Devolve quantas.
   largarLouca() { const n = this.bandeja.filter(x => x.tipo === 'louca').length; this.bandeja = this.bandeja.filter(x => x.tipo !== 'louca'); return n; }
   // Joga fora o que sobrou na bandeja (pratos e bebidas). Devolve quantos.
   jogarFora() { const n = this.bandeja.filter(x => x.tipo !== 'louca').length; this.bandeja = this.bandeja.filter(x => x.tipo === 'louca'); this.relatorio.desperdicio += n; return n; }
-  // Repõe a farinheira com um pacote de farinha da despensa.
-  reporFarinha() {
+  // Dá para repor a farinheira agora? 'ok', 'cheia' (ainda tem mais que o "repõe com tanto ou menos") ou 'sem_farinha' (na despensa).
+  podeReporFarinha() {
     if (this.farinha > (this.farinhaMax || TurnoJanta.FARINHA_MAX) - (TurnoJanta.FARINHA_MAX - TurnoJanta.REPOR_ATE)) return 'cheia';
     if ((this.pensao.despensa.farinha || 0) < 1) return 'sem_farinha';
+    return 'ok';
+  }
+  // Repõe a farinheira com um pacote de farinha da despensa (no fim da peneira: a peneira com tempo é do palco, palco.js).
+  reporFarinha() {
+    const r = this.podeReporFarinha(); if (r !== 'ok') return r;
     this.pensao.despensa.farinha--;
-    this.farinha = this.farinhaMax || TurnoJanta.FARINHA_MAX; this._avisouFarinha = false;
+    this.farinha = this.farinhaMax || TurnoJanta.FARINHA_MAX; this._avisouFarinha = false; this._alertouFarinha = false; this._peneirado = 0;
     return 'ok';
   }
   // O minuto em que chega o próximo cliente (para o "Adiantar"), ou -1.
@@ -414,7 +487,14 @@ class TurnoJanta {
       const k = this.bandeja.findIndex(x => x.tipo === 'prato' && x.prato === m.prato);
       if (k < 0) return false;
       m.raridade = this.bandeja.splice(k, 1)[0].raridade; m.certo = true; m.montado = true;
+      // (Tarefa B) o Jocelino chegou antes do ajudante: a reserva dele se desfaz (o prato reservado volta a ser de qualquer um)
+      if (m.pratoReservado) { m.pratoReservado = false; for (const x of this.passe) if (x.reservadoPara === i) delete x.reservadoPara; }
     }
+    return this._entregar(i);
+  }
+  // O prato chegou à banqueta (pelo Jocelino ou pelo ajudante que leva prato): o cliente começa a comer.
+  _entregar(i) {
+    const m = this.mesas[i];
     if (!m.montado) return false;
     this._esperaSoma = (this._esperaSoma || 0) + m.espera; this._esperaN = (this._esperaN || 0) + 1;
     m.estado = 'comendo'; m.come = TurnoJanta.COMENDO;
@@ -430,7 +510,8 @@ class TurnoJanta {
   _nota(m) {
     const gostaSalada = m.cliente.mania === 'feijao' && m.salada;
     const sabor = Pratos.RARIDADE_SABOR[clamp(m.raridade, 1, 4)];
-    const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || m.bebidaServida);
+    // (Tarefa C) a bebida derramada não dá a estrela da bebida
+    const bebida = m.modo === 'antigo' ? m.bebidaCerta : (!m.querBebida || (m.bebidaServida && !m.bebidaRuim));
     const est = Pensao.estrelas(m.rapido, m.certo, sabor, bebida, gostaSalada);
     return m.prato === Pensao.CASA ? Math.min(ECO.pensao.pratoCasa.estrelas, est) : est;
   }
@@ -447,7 +528,7 @@ class TurnoJanta {
     const casa = m.prato === Pensao.CASA, C = ECO.pensao.pratoCasa;
     const est = this._nota(m);
     const preco = casa ? C.preco : Math.round(this.pensao.preco(m.prato, m.raridade) * (this.pratoTema && m.prato === this.pratoTema ? 1.5 : 1) * (m.cafeAntes && m.bebidaMedida ? ECO.cafeBoasVindas : 1));
-    const gorj = casa ? 0 : Pensao.gorjeta(preco, est) + (m.bebidaMedida ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + (this.gorjetaExtra > 0 ? Math.ceil(preco * this.gorjetaExtra * est / 5) : 0);
+    const gorj = casa ? 0 : Pensao.gorjeta(preco, est) + (m.bebidaMedida && TurnoJanta.gorjetaDaMedida(m.bebida) ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + (this.gorjetaExtra > 0 ? Math.ceil(preco * this.gorjetaExtra * est / 5) : 0);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.vendaPratos += preco; r.estrelas += est; if (casa) { r.casa++; r.estrelasCasa += est; }
     // No balcão a gorjeta fica em moedas até o Jocelino recolher (no salão antigo entra direto).
@@ -463,7 +544,7 @@ class TurnoJanta {
     m.vezes++;
     // Tonhão pede de novo até 3 vezes (e a banqueta nem chega a sujar).
     if (m.cliente.mania === 'tres' && m.vezes < 3) {
-      Object.assign(m, { estado: 'pedido', espera: 0, prato: '', pronto: false, montado: false, bebidaServida: false, bebidaMedida: false, lendo: m.modo === 'antigo' ? 0 : TurnoJanta.LENDO });
+      Object.assign(m, { estado: 'pedido', espera: 0, prato: '', pronto: false, montado: false, bebidaServida: false, bebidaMedida: false, bebidaRuim: false, bebidaNota: '', esperaCerveja: 0, lendo: m.modo === 'antigo' ? 0 : TurnoJanta.LENDO });
       return;
     }
     m.estado = 'suja';

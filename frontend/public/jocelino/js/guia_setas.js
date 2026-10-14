@@ -130,12 +130,13 @@ function _alvoDaJanta() {
   if (!jaFezJanta('bacia') && t.bandeja.some(x => x.tipo === 'louca')) return { mapa: G.mapaId, ponto: { x: P.BACIA.x + P.BACIA.w / 2, y: P.BACIA.y - 20 }, rotuloFixo: 'Clique na bacia: lavar a louça' };
   if (!jaFezJanta('entregar')) { const x = t.bandeja.find(b => b.tipo === 'prato'), i = x ? t.mesas.findIndex(m => m.estado === 'prato' && m.prato === x.prato) : -1;
     if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pensao.prato(x.prato).nome.toLowerCase()}`); }
-  if (!jaFezJanta('bebida_entregar')) { const x = t.bandeja.find(b => b.tipo === 'bebida'), i = x ? t.mesas.findIndex(m => ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && m.bebida === x.bebida) : -1;
+  if (!jaFezJanta('bebida_entregar')) { const x = t.bandeja.find(b => b.tipo === 'bebida'), i = x ? t.mesas.findIndex(m => t.querBebidaAgora(m) && m.bebida === x.bebida) : -1;
     if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pratos.BEBIDAS[x.bebida].toLowerCase()}`); }
   if (!jaFezJanta('passe') && t.passaPrato().length) return { mapa: G.mapaId, ponto: { x: P.PASSE.cx, y: P.PASSE.topo - 40 }, rotuloFixo: 'Prato pronto! Clique no passe: pegar o prato' };
   if (!jaFezJanta('bebedouro') && t.bebidaPedida()) return { mapa: G.mapaId, ponto: { x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2, y: P.BEBEDOURO.y - 20 }, rotuloFixo: `Pediram ${Pratos.BEBIDAS[t.bebidaPedida()].toLowerCase()}: clique no bebedouro` };
   if (!jaFezJanta('recolher')) { const i = t.mesas.findIndex(m => m.estado === 'suja' || m.louca); if (nos(i)) return mesa(i, t.mesas[i].louca ? 'Louça suja do lado do freguês! Clique: recolher antes que ele vá embora' : 'Clique na louça: recolher para a bandeja'); }
-  if (!jaFezJanta('farinheira') && t.farinha <= 1) return { mapa: G.mapaId, ponto: { x: P.FARINHEIRA.cx, y: P.FARINHEIRA.y - 20 }, rotuloFixo: 'Clique na farinheira: repor a farinha' };
+  // (Tarefa C) a 1ª vez que a farinheira pisca (o alerta): peneirar leva uns segundos, parado
+  if (!jaFezJanta('farinheira') && t.farinha <= t.alertaFarinha() && !G.peneira && t.podeReporFarinha() === 'ok') return { mapa: G.mapaId, ponto: { x: P.FARINHEIRA.cx, y: P.FARINHEIRA.y - 20 }, rotuloFixo: 'A farinheira está no fim: clique e peneire (fique parado até a barrinha encher)' };
   if (!jaFezJanta('passe')) { const i = t.mesas.findIndex(m => m.estado === 'pedido' || m.estado === 'prato'); if (nos(i)) return mesa(i, 'O pedido aparece no balão: a Rosa já cozinha'); }
   return null;
 }
@@ -420,9 +421,21 @@ const PRIMEIRA_TELA = {
     escolhe(bts) {   // com candidatos, o posto do primeiro; sem eles (e com vaga), o cartaz mais barato
       const p = G.pensao, postos = Object.values(Equipe.POSTOS);
       if (p.candidatos.length) { const b = _botaoLivre(bts.filter(x => x.closest('.eq-bts') && postos.includes(x.textContent.trim())));
-        return b && { el: b, frase: 'Escolha o posto e contrate: o Salão recolhe a louça, a Cozinha ajuda a Rosa e as Compras trazem ingrediente. Ele trabalha sozinho e cobra salário por noite.' }; }
+        return b && { el: b, frase: 'Escolha o posto e contrate: o Salão recolhe a louça, a Cozinha ajuda a Rosa e a Expedição busca ingrediente. Ele trabalha sozinho e cobra salário por noite.' }; }
       const b = bts.find(x => x.classList.contains('eq-anuncio'));
       return b && { el: b, frase: 'Para ter ajudante, ponha um anúncio: amanhã aparecem 3 candidatos. Cada um cobra salário por noite.' }; } },
+  // - (14/10, Tarefa B) A expedição -> Dave (o dispatch: quem está na sala de espera vai buscar um tempero e volta no dia seguinte):
+  //   a seta vai no botão Expedição de quem está na reserva (ou no posto de Expedição) e, com a lista aberta, num ingrediente.
+  expedicao: { painel: '#modal .equipe', sel: '#modal .equipe .eq-expedir:not(.desligado), #modal .equipe .eq-ing', faixa: '#modal .eq-faixa',
+    usou: () => !!G.pensao && (G.pensao.equipe || []).some(e => e.expedicao || (e.busca && e.busca !== 'sorteio')),
+    escolhe(bts) {   // (revisão) o 2º passo diz o que vale para quem vai: o do posto busca toda manhã; o da reserva sai hoje e volta amanhã
+      const ing = bts.find(x => x.classList.contains('eq-ing') && x.dataset.ing !== 'sorteio');
+      if (ing) { const fixo = (ing.closest('.eq-escolha') || { dataset: {} }).dataset.posto === 'compras';
+        return { el: ing, frase: fixo ? 'Escolha o ingrediente: quem está no posto de Expedição busca ele TODA MANHÃ, no salário do posto. O "traz ~N" diz quanto vem.'
+          : 'Escolha o ingrediente: quem está na reserva sai hoje e volta AMANHÃ de manhã com ele. É grátis, só o salário do dia; o "traz ~N" diz quanto vem.' }; }
+      const ex = bts.filter(x => x.classList.contains('eq-expedir')), b = ex.find(x => x.dataset.posto === 'reserva') || ex[0];
+      // (a seta vem da esquerda: de cima, ela tapava o Treinar logo acima)
+      return b && { el: b, lado: 'esquerda', frase: 'Quem está na reserva (ou no posto de Expedição) busca o ingrediente que você escolher: clique em Expedição.' }; } },
   // - O cardápio da noite -> Dave (o Bancho ensina o cardápio na primeira noite): a Rosa guia passo a passo no quadro da abertura —
   //   3 passos: o prato, a panela ("cada panela dá N porções") e o "Abrir a pensão", cuja fala explica o "Rosa repõe" (ligado de
   //   fábrica; G.limpou.cardapio_prato e _panela, contados no quadro; a tela some no primeiro "Abrir a pensão"). O save antigo também
@@ -448,7 +461,7 @@ const jaFezTela = id => ((G.limpou || {})['tela_' + id] || 0) > 0 || _tenta(PRIM
 function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela_' + id] || 0) + 1; }
 { const embrulha = (obj, m, id) => { const f = obj[m]; obj[m] = function (...a) { const r = f.apply(this, a); if (r === 'ok') _marcaTela(id); return r; }; };
   embrulha(Bazar, 'comprar', 'bazar'); embrulha(Pensao.prototype, 'caprichar', 'receitas'); embrulha(Pensao.prototype, 'pesquisar', 'receitas');
-  embrulha(Melhorias, 'comprar', 'melhorias'); embrulha(Melhorias, 'subir', 'melhorias'); embrulha(Equipe, 'contratar', 'equipe');
+  embrulha(Melhorias, 'comprar', 'melhorias'); embrulha(Melhorias, 'subir', 'melhorias'); embrulha(Equipe, 'contratar', 'equipe'); embrulha(Equipe, 'expedir', 'expedicao');
   const pp = pegouPeixe; pegouPeixe = function (...a) { const r = pp.apply(this, a); _marcaTela('pesca'); return r; }; }
 function _primeiraTelaUI() {
   for (const id in PRIMEIRA_TELA) {

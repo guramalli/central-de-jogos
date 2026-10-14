@@ -376,5 +376,8 @@ class Pensao {
     if (d.cardapioNoite == null) { this.cardapioNoite = {}; for (const id of this.cardapio) this.cardapioNoite[id] = { panelas: 1, repoe: true }; this.panela = {}; this.panelaRar = {}; }
     else this.cardapioNoite = JSON.parse(JSON.stringify(d.cardapioNoite));
     if (d.garfos == null) { this._semPaladar = true; const g = this.grau(); this._semPaladar = false; this.grauMinimo = Math.max(this.grauMinimo || 1, g); }
+    // (14/10, Tarefa B) A equipe do save antigo ganha a ficha completa: a vocação, as 2 habilidades fixas (começando pelas que já
+    // ganhou: ninguém perde habilidade), o Mestre; quem estava em Compras continua trazendo, no "sorteio" até o jogador escolher.
+    if (typeof Equipe !== 'undefined') { this.equipe.forEach(e => Equipe.normalizar(e)); this.candidatos.forEach(c => Equipe.normalizar(c)); }
   }
 }

@@ -247,6 +247,7 @@ function somDoEvento(ev) {
     case 'embora': return [[0, 'cliente_bravo', 1, 0.08, -4]];
     case 'vip_faltou': return [[0, 'cliente_bravo', 0.9, 0.05, -2]];
     case 'louca': return [[0, 'cliente_eca', 1, 0.08, -6]];
+    case 'farinha_baixa': return [[0, 'rosa_resmunga', 1.15, 0.05, -6]];             // (Tarefa C) a Rosa chama: a farinheira no fim
     case 'ultima_rodada': return SONS_LISTA.includes('sino_ultima_rodada') ? [[0, 'sino_ultima_rodada', 1, 0, -2]] : [[0, 'fanfarra', 1.4, 0, -10]];
     case 'favorito': return [[0, 'rosa_animada', 1.2, 0.05, -8]];
     case 'zezinho_cocada': return [[0, 'cliente_hmpf', 1.4, 0.05, -8]];
