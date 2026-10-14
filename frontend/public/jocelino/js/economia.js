@@ -26,7 +26,7 @@ const ECO = {
       { nome: 'Pensão Falada', curtidas: 200, sabor: 0, pesquisadas: 2, mesas: 4, clientes: 10, despesa: 12 },
       { nome: 'Pensão Famosa', curtidas: 520, sabor: 36, pesquisadas: 3, mesas: 5, clientes: 12, despesa: 25 },
       { nome: 'Casa Tradicional', curtidas: 1100, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, mesas: 6, clientes: 14, despesa: 45 },
-      { nome: 'Patrimônio da Vila', curtidas: 1600, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, mesas: 6, clientes: 16, despesa: 70 },
+      { nome: 'Patrimônio da Vila', curtidas: 1700, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, mesas: 6, clientes: 16, despesa: 70 },
     ],
     saborPorNivel: 12,      // o sabor de um prato = nível × isto
     gorjeta: 0.3,           // gorjeta = preço × isto × (estrelas − 1) / 4
@@ -46,6 +46,11 @@ const ECO = {
     // (Tarefa 4) Ela não se vende (saiu da caixa, ECO.caixa): a fornada custa Cr$ 1 por marmita na mercearia, e comida feita em
     // casa vale menos que os ingredientes (o crivo do Stardew), então o preço seria 0. A marmita é energia (e +3 no humor dos peões).
     marmita: { porDia: 2, gasta: { arroz: 1, feijao: 1 } },
+    // (14/10, o salão do Dave) A rotatividade: entre uma chegada e a próxima passa um intervalo sorteado em `chegada` (s de jogo); o
+    // banco que acabou de vagar descansa `folgaBanco` s antes de outro sentar nele; `avulsos` é a parte da fila feita de fregueses
+    // de fora (os clientes avulsos); o ajudante de salão leva `bebidaAjudante` s para encher a bebida no bebedouro (o funcionário
+    // do Dave serve 1 bebida em 3,0 s).
+    salao: { chegada: [5, 10], folgaBanco: 3, avulsos: 0.5, bebidaAjudante: 3 },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.
@@ -88,10 +93,14 @@ const ECO = {
       { id: 'bicicleta', nome: 'Bicicleta', preco: 4500, efeito: 'Anda 20% mais rápido.' },
       { id: 'fogao_gas', nome: 'Fogão a gás', preco: 6500, efeito: 'A marmita da Rosa dá o dobro de energia.' },
       { id: 'maquina_costura', nome: 'Máquina de costura', preco: 9000, efeito: 'A Rosa costura para fora: Cr$ 60 por noite (menos domingo).' },
+      // (14/10) A mochila de couro: 48 → 60 espaços. O Jocelino já começa com 48 (mais que a maior do Stardew, 36), então esta é
+      // a "luxo" do Pierre (24 → 36 por 10.000g, 5× a primeira). A Cr$ 2.500, entre a garrafa e a bicicleta, ela atrasava a
+      // máquina de costura no simulador e o devagar não chegava às 5 estrelas (s19). Sem arte própria: o ícone do baú (`icone`).
+      { id: 'mochila_couro', nome: 'Mochila de couro', preco: 10000, icone: 'bau', efeito: 'Mochila com 60 espaços: mais uma fileira de 12.' },
       { id: 'televisao', nome: 'Televisão', preco: 16000, efeito: 'A novela com a família: amizade todo dia.' },
       { id: 'fusca', nome: 'Fusca', preco: 60000, efeito: 'Viagem rápida pelo mapa, a partir do quintal.' },
     ],
-    costura: 60, bicicleta: 1.2, fogao: 2, cozinha: 1.5,
+    costura: 60, bicicleta: 1.2, fogao: 2, cozinha: 1.5, mochila: 60,
   },
   // A lojinha da Rosa (roteiro de 13/10): a Dona Cotinha vende a pensão fechada; a entrada abre a reforma, o resto sai aos domingos.
   lojinha: { entrada: 2000, parcela: 500, parcelas: 6 },

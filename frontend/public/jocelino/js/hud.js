@@ -1,6 +1,7 @@
 // Jocelino — hud.js — o HUD em HTML por cima do canvas: quadro de tarefas (translúcido, firme com o mouse), relógio com
 // o dia, a estação, a hora e o dinheiro, a barra de energia, a barra de 12 itens (1-0, roda do mouse, Tab troca a
-// fileira) e, na pensão, o selo da fama. A mochila (E) mostra os 36 espaços: clique pega/solta/troca, direito pega um.
+// fileira) e, na pensão, o selo da fama. A mochila (E, ou o botão à direita da barra) mostra todos os espaços (48; 60 com a de
+// couro): arrastar troca de lugar ou junta, clique pega/solta/troca, direito pega um, "Organizar" arruma as fileiras 2 em diante.
 
 let _hudSujo = true;
 function hudSujo() { _hudSujo = true; HUD._cartaoSujo = true; }
@@ -34,7 +35,11 @@ function montaHud() {
   HUD.botaoHab = el('button', { class: 'botao botao-hab', title: 'Habilidades (H)', onclick: () => abrirHabilidades() }, '★');
   HUD.botaoFab = el('button', { class: 'botao botao-fab', title: 'Fabricar (B)', onclick: () => abrirFabricar() }, el('img', { src: urlItem('colher'), style: 'height:18px;vertical-align:middle' }));
   HUD.botaoCad = el('button', { class: 'botao botao-cad', title: 'Caderneta: o que dá para fazer (J)', onclick: () => abrirCaderneta() }, '✎');
-  h.append(HUD.colEsq, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad);
+  // (14/10, o jogador: "dê a opção de abrir ele todo") O botão da mochila, à direita da barra (o Stardew: o botão do inventário).
+  // Sem arte de mochila: o ícone do baú.
+  HUD.botaoMochila = el('button', { class: 'botao botao-mochila', title: 'Mochila inteira (E)', onclick: e => { e.stopPropagation(); if (!menuAberto()) abrirMochila(); } },
+    el('img', { src: urlItem('bau'), alt: 'Mochila', draggable: 'false' }));
+  h.append(HUD.colEsq, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.botaoMochila, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad);
 }
 
 function atualizaHud() {
@@ -71,6 +76,10 @@ function atualizaHud() {
     const fora = G.mochila.slots.slice(12).filter(Boolean).length;
     HUD.dicaBarra.textContent = fora ? `Tab: próxima fileira (${fora} ${fora === 1 ? 'item' : 'itens'})` : '';
   }
+  // O botão da mochila fica colado à direita da barra e some junto com ela (no salão, palco.js esconde a barra).
+  if (HUD.botaoMochila) { const r = HUD.barra.getBoundingClientRect(), b = HUD.botaoMochila, x = Math.round(r.right + 6) + 'px', v = HUD.barra.style.visibility || '';
+    if (r.width > 0 && b.style.left !== x) b.style.left = x;
+    if (b.style.visibility !== v) b.style.visibility = v; }
   // Na pensão aberta, a tela é do restaurante (como no Dave): some o quadro de tarefas e o cartão.
   const noSalao = noSalaoDaPensao() && G.pensao && G.pensao.estado === 'aberta';
   const todas = noSalao ? [] : (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []);
@@ -106,26 +115,69 @@ INICIADORES.push(() => { montaHud(); hudSujo(); });
 setInterval(() => { if (G.comecou && G.pausado) atualizaHud(); }, 250);
 
 // ---------- mochila (E) ----------
+// O Stardew: o inventário inteiro numa tela; arrastar e soltar troca de lugar (ou junta o mesmo item); o clique pega e o
+// outro clique solta; soltar fora da grade devolve o item ao lugar dele; "Organizar" junta as pilhas e ordena por tipo.
+const RODAPE_MOCHILA = 'E abre e fecha · arraste para trocar de lugar · botão direito pega 1';
 function abrirMochila() {
-  const caixa = el('div', { class: 'painel' });
+  if (G.limpou) G.limpou.mochila_aberta = (G.limpou.mochila_aberta || 0) + 1;   // (a primeira vez: a seta do botão some, bau.js)
+  const M = G.mochila, caixa = el('div', { class: 'painel mochila-tela' });
+  // O item que acompanha o mouse: o que está sendo arrastado ou o da mão.
+  const fantasma = el('img', { class: 'mochila-fantasma', alt: '', draggable: 'false' }); fantasma.hidden = true; document.body.append(fantasma);
+  let arrasto = null, ponteiro = false, px = -999, py = -999;
+  const poeFantasma = () => {
+    const s = arrasto ? M.slots[arrasto.de] : M.mao;
+    fantasma.hidden = !s; if (!s) return;
+    const src = urlItem(s.id); if (fantasma.getAttribute('src') !== src) fantasma.src = src;
+    fantasma.style.left = px + 'px'; fantasma.style.top = py + 'px';
+  };
+  const espacoDo = e => { const t = e.target && e.target.closest ? e.target.closest('.moch-grade .espaco') : null; return t && caixa.contains(t) ? Number(t.dataset.i) : -1; };
+  const mexeu = () => { sons.tocar('pegar', 1.1, 0.03, -8); hudSujo(); desenha(); };
   const desenha = () => {
     caixa.innerHTML = '';
-    caixa.append(el('div', { class: 'titulo', style: 'font-size:24px;margin-bottom:8px' }, 'Mochila'));
-    const grade = el('div', { style: 'display:grid;grid-template-columns:repeat(12,58px);gap:4px' });
-    G.mochila.slots.forEach((s, i) => {
-      if (i === 12 || i === 24) grade.append(...Array(0));
-      grade.append(el('div', { class: 'espaco', style: 'width:58px;height:58px;background:var(--papel-escuro);border:2px solid var(--madeira);border-radius:6px;position:relative;cursor:pointer' + (i < 12 ? ';box-shadow:inset 0 -4px 0 rgba(155,81,60,.35)' : ''),
-        title: s ? Itens.nome(s.id) + ' — ' + Itens.descricao(s.id) : '',
-        onclick: e => { e.stopPropagation(); G.mochila.clicar(i); hudSujo(); desenha(); },
-        oncontextmenu: e => { e.preventDefault(); e.stopPropagation(); G.mochila.clicarDireito(i); hudSujo(); desenha(); } },
-        s ? el('img', { src: urlItem(s.id), style: 'position:absolute;inset:4px;width:46px;height:46px', draggable: 'false' }) : null,
-        s && Itens.pilha(s.id) > 1 ? el('div', { style: 'position:absolute;right:3px;bottom:0;font-weight:900;color:#fff;text-shadow:0 0 3px #000' }, s.qtd) : null,
-        s && typeof Gremio !== 'undefined' && G.gremio && Gremio.serve(s.id) ? el('img', { class: 'selo-gremio', src: urlArte('ui/selo_gremio'), title: 'Serve para o Grêmio: ' + Gremio.serve(s.id).nome }) : null));
-    });
+    const usados = M.slots.filter(Boolean).length;
+    caixa.append(el('div', { class: 'moch-topo' },
+      el('div', { class: 'titulo moch-titulo' }, 'Mochila', el('span', { class: 'moch-conta' }, ` ${usados} de ${M.tam}`)),
+      el('button', { class: 'botao moch-organizar', title: 'Junta as pilhas iguais e arruma por tipo (a barra não muda)', onclick: e => { e.stopPropagation(); M.organizar(); mexeu(); } }, 'Organizar')));
+    const grade = el('div', { class: 'moch-grade' });
+    M.slots.forEach((s, i) => grade.append(el('div', {
+      class: 'espaco' + (i < Mochila.BARRA ? ' barra' : '') + (arrasto && arrasto.de === i ? ' origem' : ''), 'data-i': String(i),
+      title: s ? Itens.nome(s.id) + ' — ' + Itens.descricao(s.id) : '',
+      // (o clique sem ponteiro antes, como o dos testes e o do teclado, ainda pega e solta)
+      onclick: e => { e.stopPropagation(); if (ponteiro) return; M.clicar(i); mexeu(); },
+      oncontextmenu: e => { e.preventDefault(); e.stopPropagation(); M.clicarDireito(i); mexeu(); poeFantasma(); } },
+      s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null,
+      s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null,
+      s && typeof Gremio !== 'undefined' && G.gremio && Gremio.serve(s.id) ? el('img', { class: 'selo-gremio', src: urlArte('ui/selo_gremio'), title: 'Serve para o Grêmio: ' + Gremio.serve(s.id).nome }) : null)));
     caixa.append(grade);
-    const mao = G.mochila.mao;
-    caixa.append(el('div', { class: 'rodape' }, mao ? `Na mão: ${Itens.qtd(mao.qtd, mao.id)} — clique num espaço para soltar` : 'A primeira fileira é a barra. Clique pega e troca; botão direito pega um.'));
+    const mao = M.mao;
+    caixa.append(el('div', { class: 'moch-mao' }, mao ? `Na mão: ${Itens.qtd(mao.qtd, mao.id)} — clique num espaço para soltar` : ''),
+      el('div', { class: 'rodape moch-rodape' }, RODAPE_MOCHILA));
+    poeFantasma();
   };
+  // Apertar num espaço: com algo na mão, solta ali (o clique de antes); senão, começa a arrastar o item.
+  caixa.addEventListener('pointerdown', e => {
+    const i = espacoDo(e); if (i < 0 || (e.button != null && e.button !== 0)) return;
+    ponteiro = true; px = e.clientX; py = e.clientY;
+    if (M.mao) { M.clicar(i); mexeu(); return; }
+    if (M.slots[i]) { arrasto = { de: i }; desenha(); }
+  });
+  const aoMover = e => { if (!caixa.isConnected) return tira(); px = e.clientX; py = e.clientY; if (arrasto || M.mao) poeFantasma(); };
+  // Soltar: no mesmo espaço, pega na mão (o clique); em outro, troca ou junta; fora da grade, o item fica onde estava.
+  const aoSoltar = e => {
+    if (!caixa.isConnected) return tira();
+    if (arrasto) { const de = arrasto.de, para = espacoDo(e); arrasto = null;
+      if (para === de) M.clicar(de); else if (para >= 0) M.mover(de, para);
+      mexeu(); }
+    setTimeout(() => { ponteiro = false; }, 0);   // (se o navegador não mandar o click, a marca some sozinha)
+  };
+  // O click que o navegador manda depois de apertar e soltar já foi feito no ponteiro: não repete a ação. E o que vem depois de um
+  // arrasto (apertou num espaço, soltou em outro lugar) cai no fundo escuro e fecharia a tela.
+  const engole = e => { if (!caixa.isConnected) return tira(); if (!ponteiro) return; ponteiro = false;
+    if (!(e.target.closest && e.target.closest('button'))) { e.stopPropagation(); e.preventDefault(); } };
+  const cancela = () => { if (arrasto) { arrasto = null; desenha(); } ponteiro = false; };
+  const tira = () => { removeEventListener('pointermove', aoMover); removeEventListener('pointerup', aoSoltar); removeEventListener('pointercancel', cancela); removeEventListener('blur', cancela); removeEventListener('click', engole, true); fantasma.remove(); };
+  addEventListener('pointermove', aoMover); addEventListener('pointerup', aoSoltar); addEventListener('pointercancel', cancela); addEventListener('blur', cancela); addEventListener('click', engole, true);
   desenha();
-  abrirModal(caixa, () => { const r = G.mochila.guardarMao(); if (r) soltar(r.id, r.qtd, G.jog.x, G.jog.y); hudSujo(); });
+  abrirModal(caixa, () => { tira(); const r = M.guardarMao(); if (r) soltar(r.id, r.qtd, G.jog.x, G.jog.y); hudSujo(); });
+  sons.tocar('abrir', 1, 0.03, -6);
 }

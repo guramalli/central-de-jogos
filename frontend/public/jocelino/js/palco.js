@@ -128,18 +128,58 @@ function entrarPalco() {
 // ---------- os clientes, o passe, a louça, a farinheira, a Rosa e o cardápio da noite (camadas que mudam com a janta) ----------
 // Os clientes sentados atrás do balcão: a folha de frente parada (o balcão, desenhado depois, cobre da cintura para baixo).
 // Comendo, balançam de leve (mastigando).
+// (14/10, a rotatividade, o Dave: o cliente entra no salão andando e senta; ao terminar, levanta e sai andando) Entrando
+// ('chegando'), ele anda da porta da esquerda (atrás da planta da frente) até a banqueta, na linha dos assentos (o balcão cobre da
+// cintura para baixo); quem saiu da banqueta (pagou, cansou, a louça) anda de volta até a porta e some. A folha é a de andar dele.
+// A frase curta de cada freguês de fora (clientes_avulsos.js), dita no primeiro clique da noite: de onde vem e o que sente ao
+// chegar, sem sotaque nem estereótipo.
+const FALAS_AVULSOS = {
+  cliente_hiroshi: 'Vim lá da Liberdade só para provar o tempero da Rosa.',
+  cliente_jorge: 'Desci de Santos com a turma. Que cheiro bom!',
+  cliente_dandara: 'Me falaram desta pensão lá em São Vicente.',
+  cliente_severiano: 'Comida feita com capricho me lembra a minha terra.',
+  cliente_greta: 'Estou conhecendo o litoral. Que lugar simpático!',
+  cliente_dona_pina: 'Lá na Mooca a gente também cozinha para a família inteira.',
+  cliente_caicara: 'Vim da Ilha Comprida. Cheguei com uma fome!',
+  cliente_ana: 'Uma janta caprichada depois da aula, que maravilha.',
+  cliente_benedito: 'Faz tempo que eu não janto fora. Que cheiro bom!',
+  cliente_luana: 'Depois do mar, um prato quente cai bem!',
+};
+const CLIENTE_PORTA_X = 130, CLIENTE_VEL = 190;   // onde a porta do salão fica (px de mundo) e o passo do freguês (px/s)
+const CLIENTES_SAINDO = [];
+TurnoJanta.prototype.tempoAndar = function (i) {
+  if (!noPalco() || !PALCO.ASSENTOS[i]) return 0;
+  return Math.abs(PALCO.ASSENTOS[i].x - CLIENTE_PORTA_X) / CLIENTE_VEL;
+};
 function clientesDoPalco(b) {
   const t = G.turno;
-  if (!t) { b._clientes = []; return []; }
+  if (!t) { b._clientes = []; CLIENTES_SAINDO.length = 0; return []; }
+  const antes = b._clientes || [];
   b._clientes = t.mesas.map((m, i) => {
-    if (!['pedido', 'prato', 'comendo'].includes(m.estado) || i >= PALCO.ASSENTOS.length) return null;
-    const ja = b._clientes && b._clientes[i];
-    const p = ja && ja.id === m.cliente.id ? ja : new Personagem(m.cliente.id, m.cliente.nome, PALCO.ASSENTOS[i].x, PALCO.ASSENTOS[i].y, DIR.BAIXO);
-    p.y = PALCO.ASSENTOS[i].y - (m.estado === 'comendo' ? Math.abs(Math.sin(G.agora * 7 + i)) * 3 : 0);   // nunca passa da linha do balcão
+    if (!['chegando', 'pedido', 'prato', 'comendo'].includes(m.estado) || i >= PALCO.ASSENTOS.length) return null;
+    const A = PALCO.ASSENTOS[i], ja = antes[i];
+    const p = ja && ja.id === m.cliente.id ? ja : new Personagem(m.cliente.id, m.cliente.nome, m.estado === 'chegando' ? CLIENTE_PORTA_X : A.x, A.y, DIR.BAIXO);
+    if (m.estado === 'chegando') {
+      const f = m.andaTotal > 0 ? clamp(1 - m.anda / m.andaTotal, 0, 1) : 1;
+      p.x = lerp(CLIENTE_PORTA_X, A.x, f); p.y = A.y - 1; p.andando = true; p.dir = A.x >= CLIENTE_PORTA_X ? DIR.DIREITA : DIR.ESQUERDA;
+      return p;
+    }
+    p.x = A.x; p.andando = false; p.dir = DIR.BAIXO;
+    p.y = A.y - (m.estado === 'comendo' ? Math.abs(Math.sin(G.agora * 7 + i)) * 3 : 0);   // nunca passa da linha do balcão
     return p;
   });
-  return b._clientes.filter(Boolean);
+  // Quem estava e não está mais (ou deu lugar a outro): levanta e sai andando até a porta.
+  antes.forEach((p, i) => { if (p && (!b._clientes[i] || b._clientes[i] !== p) && !CLIENTES_SAINDO.includes(p)) { p.andando = true; p.dir = DIR.ESQUERDA; p.y = PALCO.ASSENTOS[0].y - 1; CLIENTES_SAINDO.push(p); } });
+  return b._clientes.filter(Boolean).concat(CLIENTES_SAINDO);
 }
+ATUALIZADORES.push(dt => {
+  if (!CLIENTES_SAINDO.length) return;
+  if (!noPalco() || !G.turno) { CLIENTES_SAINDO.length = 0; return; }
+  for (const p of CLIENTES_SAINDO) { p.t += dt; p.x -= CLIENTE_VEL * dt; }
+  for (let k = CLIENTES_SAINDO.length - 1; k >= 0; k--) if (CLIENTES_SAINDO[k].x <= CLIENTE_PORTA_X) CLIENTES_SAINDO.splice(k, 1);
+});
+// O passo da folha de andar de quem entra (o Personagem só conta o tempo quando vagueia; aqui ele anda pelo turno).
+ATUALIZADORES.push(dt => { const b = G.mapa; if (!G.turno || !b || !b._clientes) return; for (const p of b._clientes) if (p && p.andando) p.t += dt; });
 const camadaViva = (y, desenha) => ({ tipo: 'camada', y, desenha });
 // (13/10, o Dave) Os convidados da festa com o enfeite do tema na cabeça (o Dave: eles brilham), e o brilho verde de quem
 // ganhou a bebida na medida (o Dave: a aura do chá bem servido). O enfeite e o carimbo são arte do Higgsfield; o brilho é luz.
@@ -171,6 +211,24 @@ ATUALIZADORES.push(dt => {
   for (let k = CARIMBOS_PALCO.length - 1; k >= 0; k--) if (CARIMBOS_PALCO[k].t > 1.6) CARIMBOS_PALCO.splice(k, 1);
   if (G.turno) for (const m of G.turno.mesas) if (m.aura > 0) m.aura -= dt;
 });
+// (14/10, o jogador: "sons de que a pessoa está gostando da comida"; o Dave mostra corações em cima de quem gostou) Quem prova o
+// prato e gosta (4★ ou mais, prato certo) solta dois corações que sobem da cabeça e somem; o "huum, delícia!" é o som do evento
+// 'servido' (somDoEvento, sons.js). O coração é a arte fx/coracao; o código só sobe e apaga.
+const CORACOES_PALCO = [], CORACAO_DURA = 1.6;
+function coracaoNoPalco(i) {
+  const A = PALCO.ASSENTOS[i]; if (!A) return;
+  const y = A.y - CABECA_CLIENTE - 10;
+  CORACOES_PALCO.push({ x: A.x - 14, y, t: 0, mesa: i }, { x: A.x + 16, y: y + 8, t: -0.25, mesa: i });
+}
+ATUALIZADORES.push(dt => {
+  for (const c of CORACOES_PALCO) c.t += dt;
+  for (let k = CORACOES_PALCO.length - 1; k >= 0; k--) if (CORACOES_PALCO[k].t > CORACAO_DURA || !noPalco()) CORACOES_PALCO.splice(k, 1);
+});
+function desenhaCoracoesPalco(ctx) {
+  for (const c of CORACOES_PALCO) { if (c.t < 0) continue;
+    const k = c.t / CORACAO_DURA;
+    desenhaFx(ctx, 'coracao', c.x + Math.sin(c.t * 6) * 5, c.y - k * 70, { alfa: Math.min(1, (1 - k) * 2), escala: 1 + k * 0.3 }); }
+}
 function desenhaCarimbosPalco(ctx) {
   for (const c of CARIMBOS_PALCO) desenhaPe(ctx, c.arte, c.x, c.y, c.t > 1.1 ? Math.max(0, 1 - (c.t - 1.1) / 0.5) : 1, c.t < 0.15 ? 1.5 - c.t / 0.15 * 0.8 : 0.7);
 }
@@ -304,7 +362,7 @@ function camadasDaJanta() {
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig();
   b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...filhosDoPalco(), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
-  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
+  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaBandeja(ctx); desenhaAjudantesBebida(ctx); desenhaCoracoesPalco(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
   return b;
 })(MAPAS_DEF.pensao_palco);
 
@@ -336,10 +394,37 @@ function desenhaBaloesPalco(ctx, b) {
     }
   });
 }
-// A bandeja: o que o Jocelino carrega, em fila em cima da cabeça.
+// (14/10, o jogador: "a ilustração dele levando o prato na mão") O que o Jocelino leva vai NAS MÃOS, como a carga da obra (a folha
+// jocelino_carregar_vazio, mãos juntas na frente do peito, e o ponto das mãos MAOS_CARGA por direção e quadro, personagens.js): os
+// pratos e a louça empilhados (cada um um pouco acima e de lado), o copo cheio ao lado da pilha; de costas, tudo fica atrás do
+// corpo. Sem nada na mão, a folha de andar de sempre. Enquanto a folha de carregar não chegou, a bandeja em cima da cabeça (antes).
+// A arte é a de sempre: pratos/<id> (desenhaPrato), salao/bebida_<bebida> e salao/pilha_louca.
+const MAOS_SALAO = { prato: 0.68, bebida: 0.5, louca: 0.46, sobe: 6, lado: 26 };   // escala de cada ícone nas mãos (no palco), quanto cada um sobe na pilha e o copo ao lado
+function bandejaNasMaos(p) { const t = G.turno; return p === G.jog && t && noPalco() && t.bandeja.length ? t.bandeja : []; }
+function desenhaBandejaNasMaos(ctx, p, itens) {
+  if (!spr(FOLHA_CARREGAR)) return;
+  const e = PALCO.ESCALA_GENTE, passo = p.andando ? Math.floor(p.t * 8) % 4 : 1, m = MAOS_CARGA[p.dir][passo];
+  // o pé dos ícones: logo abaixo das mãos (as mãos seguram por baixo); de frente, um pouco mais baixo (a pilha não tapa a boca)
+  const hx = p.x + (m[0] - 33) * e, hy = p.y + (m[1] - 112) * e + (p.dir === DIR.BAIXO ? 20 : 12) * e;
+  const pilha = itens.filter(x => x.tipo !== 'bebida'), copos = itens.filter(x => x.tipo === 'bebida');
+  const lado = p.dir === DIR.ESQUERDA ? -1 : 1, dx = pilha.length ? MAOS_SALAO.lado * e * lado : 0;
+  pilha.forEach((x, k) => {
+    const cx = hx + (k % 2 ? 3 : 0) * e * lado, cy = hy - k * MAOS_SALAO.sobe * e;
+    if (x.tipo === 'prato') desenhaPrato(ctx, x.prato, cx, cy, 1, MAOS_SALAO.prato * e);
+    else desenhaPe(ctx, 'salao/pilha_louca', cx, cy, 1, MAOS_SALAO.louca * e);
+  });
+  copos.forEach((x, k) => desenhaPe(ctx, 'salao/bebida_' + x.bebida, hx + dx + k * 20 * e * lado, hy + 2 * e, 1, MAOS_SALAO.bebida * e));
+}
+// O Jogador (personagens.js) passa a "carregar" também com a bandeja do salão: a folha de mãos juntas e a pilha nas mãos.
+(() => {
+  const J = Jogador.prototype, carregando0 = J.carregando, desenhaCarga0 = J.desenhaCarga;
+  J.carregando = function () { return bandejaNasMaos(this).length > 0 || carregando0.call(this); };
+  J.desenhaCarga = function (ctx) { const b = bandejaNasMaos(this); return b.length ? desenhaBandejaNasMaos(ctx, this, b) : desenhaCarga0.call(this, ctx); };
+})();
+// A bandeja em cima da cabeça: só enquanto a folha de carregar não carregou (nada some da tela).
 function desenhaBandeja(ctx) {
   const t = G.turno, j = G.jog;
-  if (!t || !j || !t.bandeja.length) return;
+  if (!t || !j || !t.bandeja.length || spr(FOLHA_CARREGAR)) return;
   const y = j.y - 114 * PALCO.ESCALA_GENTE - 26, n = t.bandeja.length;
   t.bandeja.forEach((x, k) => {
     const cx = j.x + (k - (n - 1) / 2) * 44;
@@ -457,14 +542,58 @@ function palcoAgir(a) {
       return;
     }
     if (t.servirBebida(a.i)) { servir(); sons.tocar('servir', 1.2, 0.08, -4); setTimeout(() => sons.tocar('gole', 1, 0.1, -4), 400); carimboBebida(a.i, t.mesas[a.i].bebidaMedida); if (t.mesas[a.i].bebidaMedida) sons.tocar('carimbo', 1, 0.05, -6); return; }
-    if (m.estado === 'prato' && t.servir(a.i)) { servir(); sons.tocar('servir', 1, 0.08, -2); setTimeout(() => sons.tocar(m.reacao === 'nojo' ? 'cliente_eca' : 'cliente_hmm', 1, 0.1, -4), 450); return; }
-    if (m.estado === 'pedido') avisar(`${m.cliente.nome} está lendo o cardápio.`);
+    if (m.estado === 'prato' && t.servir(a.i)) { servir(); sons.tocar('servir', 1, 0.08, -2); return; }   // (a reação do cliente vem do evento 'servido': somDoEvento)
+    // (14/10) o freguês de fora diz uma frase curta na primeira vez que o Jocelino fala com ele na noite
+    const fala = m.cliente.avulso && !m.falou && FALAS_AVULSOS[m.cliente.id] ? `${m.cliente.nome}: "${FALAS_AVULSOS[m.cliente.id]}" ` : '';
+    if (fala) m.falou = true;
+    if (m.estado === 'chegando') avisar(`${fala}${m.cliente.nome} está chegando.`);
+    else if (m.estado === 'pedido') avisar(`${fala}${m.cliente.nome} está lendo o cardápio.`);
     else if (m.estado === 'prato') {
       const quer = `${Pensao.prato(m.prato).nome}${m.querBebida && !m.bebidaServida ? ' e ' + Pratos.BEBIDAS[m.bebida].toLowerCase() : ''}`;
-      avisar(`${m.cliente.nome} quer ${quer}. ${t.temPronto(m.prato) ? 'Tem no passe!' : t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou!' : 'A Rosa está fazendo.'}`);
-    } else avisar(m.querBebida && !m.bebidaServida ? `${m.cliente.nome} está comendo e ainda quer ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`);
+      avisar(`${fala}${m.cliente.nome} quer ${quer}. ${t.temPronto(m.prato) ? 'Tem no passe!' : t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou!' : 'A Rosa está fazendo.'}`);
+    } else avisar(fala + (m.querBebida && !m.bebidaServida ? `${m.cliente.nome} está comendo e ainda quer ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`));
   }
   function servir() { j.servindo = 0.35; j.dir = DIR.CIMA; }
+}
+// (14/10) O garçom dos robôs de teste (s20 e s23, o mesmo para os dois, como o quadroDoRobo): uma decisão por chamada, como um
+// jogador que joga bem com a bandeja (até BANDEJA_MAX coisas): a farinheira baixa; a louça do lado de quem sentou (senão ele vai
+// embora) e o banco sujo quando alguém vai chegar sem banco livre; a bebida pedida (o copo na linha, junto com os pratos); os pratos prontos que
+// alguém espera (vários de uma vez); entregar o que está na bandeja a quem espera há mais tempo; a louça na bacia; o que ninguém
+// quer mais no lixo; a louça das banquetas e as moedas.
+// vai(x, y): o clique do robô que anda até lá e faz. Devolve true se fez alguma coisa.
+function roboDoSalaoPasso(t, vai) {
+  // (o clique na cabeça do cliente, como o jogador: no salão maior, y − 60 da banqueta 0 cai dentro do bebedouro)
+  const P = PALCO, n = Math.min(t.mesas.length, P.ASSENTOS.length), assento = i => vai(P.ASSENTOS[i].x, P.ASSENTOS[i].y - 120);
+  const cabe = t.bandeja.length < TurnoJanta.BANDEJA_MAX;
+  const quer = (m, x) => x.tipo === 'prato' ? m.estado === 'prato' && m.prato === x.prato : x.tipo === 'bebida' && ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && m.bebida === x.bebida;
+  if (t.farinha <= TurnoJanta.REPOR_ATE && (t.pensao.despensa.farinha || 0) > 0) { vai(P.FARINHEIRA.cx, P.FARINHEIRA.y + 20); return true; }
+  if (cabe) for (let i = 0; i < n; i++) if (t.mesas[i].louca) { assento(i); return true; }
+  // alguém vai chegar e não há banco livre: limpa um banco sujo antes (senão ele senta do lado da louça e vai embora)
+  const vemGente = t._fila.length && t._fila[0].minuto <= G.minutos + 10 && !t.mesas.some((m, i) => i < n && m.estado === 'livre');
+  if (vemGente && cabe) for (let i = 0; i < n; i++) if (t.mesas[i].estado === 'suja') { assento(i); return true; }
+  // a bebida pedida primeiro (o copo vai na bandeja junto com os pratos): sem ela o cliente come sem a 4ª estrela; deixa uma vaga
+  // para o prato se alguém ainda espera prato
+  const vagaPrato = t.mesas.some(m => m.estado === 'prato') ? 1 : 0;
+  if (t.bandeja.length < TurnoJanta.BANDEJA_MAX - vagaPrato && t.bebidaPedida()) {
+    vai(P.BEBEDOURO.x + 20, P.BEBEDOURO.y + 30);
+    if (G.copo) { copoSegura(true); for (let j = 0; j < 400 && G.copo && G.copo.nivel < linhaDoCopo(G.copo.bebida); j++) atualiza(0.01); copoSegura(false); }
+    return true;
+  }
+  // os pratos prontos que alguém espera e ainda não estão na bandeja
+  const querem = t.mesas.filter(m => m.estado === 'prato').map(m => m.prato);
+  for (const x of t.bandeja) if (x.tipo === 'prato') { const k = querem.indexOf(x.prato); if (k >= 0) querem.splice(k, 1); }
+  const k = cabe ? t.passe.findIndex(x => x && querem.includes(x.prato)) : -1;
+  if (k >= 0) { vai(P.PASSE.vagas[Math.min(k, P.PASSE.vagas.length - 1)], P.PASSE.topo - 10); return true; }
+  // entregar: quem espera há mais tempo por alguma coisa da bandeja
+  let quem = -1;
+  for (let i = 0; i < n; i++) if (t.bandeja.some(x => quer(t.mesas[i], x)) && (quem < 0 || t.mesas[i].espera > t.mesas[quem].espera)) quem = i;
+  if (quem >= 0) { assento(quem); return true; }
+  if (t.bandeja.some(x => x.tipo === 'louca') && (!cabe || !t.bandeja.some(x => x.tipo !== 'louca'))) { vai(P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + 20); return true; }
+  if (t.bandeja.some(x => x.tipo !== 'louca' && !t.mesas.some(m => quer(m, x)))) { vai(P.LIXO.x + P.LIXO.w / 2, P.LIXO.y + 20); return true; }
+  if (cabe) for (let i = 0; i < n; i++) if (t.mesas[i].estado === 'suja') { assento(i); return true; }
+  if (t.bandeja.some(x => x.tipo === 'louca')) { vai(P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + 20); return true; }
+  const mo = t.moedas.find(x => x.mesa < n); if (mo) { vai(P.ASSENTOS[mo.mesa].x, P.ASSENTOS[mo.mesa].y - 40); return true; }
+  return false;
 }
 function sairDoPalco() { G.jog.alvoPalco = null; G.copo = null; entrarMapa('vila', { x: 15, y: 9 }); }
 
@@ -546,7 +675,7 @@ ATUALIZADORES.push(() => {
   if (!t || !noPalco() || !j || !t.moedas.length) return;
   for (const x of [...t.moedas]) {
     const A = PALCO.ASSENTOS[x.mesa];
-    if (A && Math.abs(A.x + 34 - j.x) < 44) { const v = t.recolherMoedas(x.mesa); if (v) { sons.tocar('moedas', 1.2, 0.05, -6); flutuar(j.x, j.y - 170, `+Cr$ ${v} gorjeta`, '#ffd34d'); } }
+    if (A && Math.abs(A.x + 34 - j.x) < 44) { const v = t.recolherMoedas(x.mesa); if (v) { tocarSomDoEvento({ tipo: 'gorjeta' }); flutuar(j.x, j.y - 170, `+Cr$ ${v} gorjeta`, '#ffd34d'); } }
   }
 });
 // O que acontece na janta e o jogador precisa ver (a farinheira acabou).
@@ -565,7 +694,7 @@ function palcoAdiantar() {
     if (jantaEsperaCardapio()) { pensaoQuadro(); return false; }   // (o cardápio do Bancho) às 17h a janta espera o quadro
     avisar('Não tem janta para adiantar agora.'); return false;
   }
-  if (t.mesas.some(m => ['pedido', 'prato'].includes(m.estado))) { avisar('Ainda tem gente esperando.'); return false; }
+  if (t.mesas.some(m => ['chegando', 'pedido', 'prato'].includes(m.estado))) { avisar('Ainda tem gente esperando.'); return false; }
   const prox = t.proximaChegada();
   if (prox < 0) { if (t.mesas.some(m => m.estado === 'comendo')) { avisar('Ainda tem gente comendo.'); return false; } G.minutos = TurnoJanta.FECHA; relogio._acum = 0; return true; }
   if (!t.mesas.some(m => m.estado === 'livre')) { avisar('Recolha a louça: tem gente esperando banqueta.'); return false; }
@@ -624,7 +753,8 @@ function filhosDoPalco() {
 ATUALIZADORES.push(dt => {
   const t = G.turno, z = FILHOS.zezinho;
   if (FILHOS.ritinha) { FILHOS.ritinha.t += dt; FILHOS.ritinha.andando = false; FILHOS.ritinha.x = PALCO.RITINHA_X; }
-  if (!t || !noPalco() || !z) return;
+  // (14/10) só o Zezinho da noite: o de uma janta anterior (FILHOS.zezinho ficava guardado) recolhia louça invisível
+  if (!t || !noPalco() || !z || t.filho !== 'zezinho') return;
   z.t += dt;
   if (!z.tarefa) {
     z.andando = false; z.espera -= dt;
@@ -677,9 +807,16 @@ ATUALIZADORES.push(dt => {
       const bebe = tem('bebida') ? t.mesas.findIndex((m, i) => i < PALCO.ASSENTOS.length && ['prato', 'comendo'].includes(m.estado) && m.querBebida && !m.bebidaServida && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i)) : -1;
       if (tem('farinha') && t.farinha <= TurnoJanta.REPOR_ATE && (p.despensa.farinha || 0) > 0) a.tarefa = { tipo: 'farinha', x: PALCO.FARINHEIRA.cx };
       else if (suja >= 0) a.tarefa = { tipo: 'louca', i: suja, x: PALCO.ASSENTOS[suja].x };
-      else if (bebe >= 0) a.tarefa = { tipo: 'bebida', i: bebe, x: PALCO.BEBEDOURO.x + 20, depois: PALCO.ASSENTOS[bebe].x };
+      else if (bebe >= 0) { const bb = t.reservarBebida(bebe); if (bb) a.tarefa = { tipo: 'bebida', i: bebe, bebida: bb, x: PALCO.BEBEDOURO.x + 20, depois: PALCO.ASSENTOS[bebe].x }; }
       else if (Math.abs(a.x - a.casa) > 4) a.tarefa = { tipo: 'casa', x: a.casa };
       if (!a.tarefa) { a.andando = false; continue; }
+    }
+    // (14/10, a bebida com tempo, o Dave: o funcionário serve 1 bebida em 3,0 s) No bebedouro ele enche o copo: alguns segundos
+    // parado, com a barrinha em cima; depois leva o copo na mão até quem pediu.
+    if (a.tarefa.tipo === 'enchendo') {
+      a.andando = false; a.dir = DIR.CIMA; a.tarefa.t += dt;
+      if (a.tarefa.t >= a.tarefa.dur) { a.tarefa = { tipo: 'servir_bebida', i: a.tarefa.i, bebida: a.tarefa.bebida, x: a.tarefa.depois }; sons.tocar('encher', 1.2, 0.05, -12); }
+      continue;
     }
     const v = 150 * (1 + e.servico / 120);
     const dx = a.tarefa.x - a.x;
@@ -689,11 +826,28 @@ ATUALIZADORES.push(dt => {
     if (tf.tipo === 'farinha') { if (t.reporFarinha() === 'ok') sons.tocar('farinha', 1.1, 0.05, -8); a.tarefa = null; }
     else if (tf.tipo === 'louca') { if (t.ajudanteRecolhe(tf.i)) sons.tocar('louca', 1.1, 0.05, -8); a.tarefa = { tipo: 'bacia', x: PALCO.BACIA.x + 30 }; }
     else if (tf.tipo === 'bacia') { sons.tocar('bacia', 1.1, 0.05, -10); a.tarefa = null; }
-    else if (tf.tipo === 'bebida' && tf.depois != null) { a.tarefa = { tipo: 'servir_bebida', i: tf.i, x: tf.depois }; }
-    else if (tf.tipo === 'servir_bebida') { if (t.ajudanteBebida(tf.i)) sons.tocar('servir', 1.25, 0.05, -8); a.tarefa = null; }
+    else if (tf.tipo === 'bebida' && tf.depois != null) { a.tarefa = { tipo: 'enchendo', i: tf.i, bebida: tf.bebida, x: a.x, depois: tf.depois, t: 0, dur: TurnoJanta.salao().bebidaAjudante }; }
+    else if (tf.tipo === 'servir_bebida') { if (t.ajudanteBebida(tf.i, tf.bebida)) sons.tocar('servir', 1.25, 0.05, -8); a.tarefa = null; }
     else a.tarefa = null;
   }
 });
+
+// (14/10, a bebida com tempo) Em cima do ajudante: enchendo, a barrinha (a moldura é arte; o enchimento é luz de interface) e o
+// copo da bebida; levando, o copo cheio em cima da cabeça, até entregar.
+function desenhaAjudantesBebida(ctx) {
+  for (const a of AJUDANTES) {
+    const tf = a.tarefa; if (!tf || !tf.bebida || (tf.tipo !== 'enchendo' && tf.tipo !== 'servir_bebida')) continue;
+    const img = spr(a.folha), alto = img ? (img.naturalHeight / 4 - 2) * PALCO.ESCALA_GENTE : 114 * PALCO.ESCALA_GENTE;
+    const y = a.y - alto + 34;   // logo acima da cabeça dela (a folha de cada um tem a altura dela, com uma folga em cima)
+    if (tf.tipo === 'enchendo') desenhaPe(ctx, 'salao/bebida_' + tf.bebida, a.x + 48, y + 40, 1, 0.8);   // o copo enchendo, do lado
+    else desenhaPe(ctx, 'salao/bebida_' + tf.bebida, a.x, y, 1, 0.8);                                     // levando: em cima da cabeça
+    if (tf.tipo === 'enchendo' && spr('fx/barra_moldura')) {
+      const f = clamp(tf.t / tf.dur, 0, 1);
+      desenhaFx(ctx, 'barra_moldura', a.x, y - 4);
+      ctx.fillStyle = '#5ec43a'; ctx.fillRect(a.x - 26, y - 6, 52 * f, 4);
+    }
+  }
+}
 
 // ---------- a tela Equipe ----------
 function abrirEquipe() {

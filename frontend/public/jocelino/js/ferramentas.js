@@ -9,7 +9,7 @@ const NOME_FERRAMENTA = { foice: 'a foice', machado: 'o machado', picareta: 'a p
 
 // O começo do jogo: a mochila com as ferramentas (as mesmas do Godot) e a energia cheia.
 INICIADORES.push(s => {
-  G.mochila = new Mochila();
+  G.mochila = new Mochila(Mochila.JOGADOR);   // (48 espaços; o save de 36 ganha os novos vazios, deDict)
   if (s.mochila) G.mochila.deDict(s.mochila);
   else for (const f of ['foice', 'machado', 'picareta', 'pa', 'regador']) G.mochila.adicionar(f, 1);
   G.sel = s.sel || 0;
@@ -95,12 +95,19 @@ function usarItemDaMao(peloTeclado) {
 function acertar(id, alvo) {
   const vistos = new Set();   // a casa ou o lote de vários ladrilhos leva um golpe só
   const tiles = typeof areaDoGolpe === 'function' ? areaDoGolpe(id, alvo, G.jog ? G.jog.dir : 0) : [alvo];
-  for (const t of tiles) acertarUm(id, t, vistos);
+  for (const t of tiles) {
+    // A foice em leque só corta o que a foice já corta (o mato): nunca arranca planta da horta nem mexe em serviço.
+    if (id === 'foice' && (t.x !== alvo.x || t.y !== alvo.y)) {
+      const o = G.mapa.ocupado.get(chaveT(t.x, t.y)), D = o && o.tipo === 'detrito' && DETRITOS[o.det];
+      if (!D || !(D.ferramenta === 'foice' || (D.aceita || []).includes('foice'))) continue;
+    }
+    acertarUm(id, t, vistos);
+  }
 }
 function acertarUm(id, alvo, vistos) {
   if (typeof VARAS !== 'undefined' && VARAS.includes(id)) return;   // a vara não bate em nada
   const m = G.mapa;
-  if (typeof golpeNoLocal === 'function' && golpeNoLocal(id, alvo)) return;   // o serviço curto no lugar de verdade (a ponte, o píer...)
+  if (typeof golpeNoLocal === 'function' && golpeNoLocal(id, alvo, vistos)) return;   // o serviço curto no lugar de verdade (a ponte, o píer...)
   const o = m.ocupado.get(chaveT(alvo.x, alvo.y));
   if (o && vistos) { if (vistos.has(o)) return; vistos.add(o); }
   if (o && o.tipo === 'detrito') {

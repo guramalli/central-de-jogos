@@ -19,7 +19,8 @@ MAPAS_DEF.mata = () => {
   b.agua(0, RIO_Y, PONTE_X, RIO_ALTURA, CH.RIO);
   b.agua(PONTE_X + 2, RIO_Y, b.larg - PONTE_X - 2, RIO_ALTURA, CH.RIO);
   b.pinta(PONTE_X, RIO_Y, 2, RIO_ALTURA, CH.RIO);
-  b.desenhaChao = ctx => { const img = spr('objetos/pier'); if (img) ctx.drawImage(img, PONTE_X * TILE, (RIO_Y - 1) * TILE + 12, 2 * TILE, (RIO_ALTURA + 2) * TILE); };
+  // (14/10) Com o serviço de escorar a ponte aberto, a ponte bamba com a escora caída (empreitas_jogo.js).
+  b.desenhaChao = ctx => { const img = spr(typeof arteDoServico === 'function' ? arteDoServico('escorar_ponte', 'objetos/pier') : 'objetos/pier'); if (img) ctx.drawImage(img, PONTE_X * TILE, (RIO_Y - 1) * TILE + 12, 2 * TILE, (RIO_ALTURA + 2) * TILE); };
   b.enfeite('objetos/cachoeira', 4, RIO_Y + 1, false);
   // Bordas de árvores (abertura na saída leste, y 11..15).
   for (let x = 0; x <= b.larg; x += 2) { b.enfeite('objetos/arvore_mata', x, 1, false); b.enfeite('objetos/arvore_mata', x, b.alt - 1, false); }

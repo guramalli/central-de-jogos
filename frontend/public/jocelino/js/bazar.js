@@ -1,8 +1,10 @@
 // Jocelino — bazar.js — o Bazar do Seu Salim no Mercado Municipal (o JojaMart/Pierre's do nosso jeito, com as compras grandes
-// do Stardew): 6 coisas para a família, cada uma uma vez, com efeito no dia a dia; o folheto chega no dia 4; a meta de
+// do Stardew): 7 coisas para a família (a mochila de couro é a mochila grande do Pierre), cada uma uma vez, com efeito no dia a dia; o folheto chega no dia 4; a meta de
 // dinheiro aparece embaixo do relógio ("Bicicleta 180/450") e no fim do resumo da noite.
 const Bazar = {
-  iniciar(s) { const b = s.bazar || {}; G.bazar = { comprados: (b.comprados || []).slice(), meta: b.meta || '' }; },
+  iniciar(s) { const b = s.bazar || {}; G.bazar = { comprados: (b.comprados || []).slice(), meta: b.meta || '' }; Bazar.efeitoMochila(); },
+  // A mochila de couro: 60 espaços (os novos chegam vazios, no fim).
+  efeitoMochila() { if (Bazar.tem('mochila_couro') && G.mochila && G.mochila.crescer) G.mochila.crescer(ECO.bazar.mochila); },
   salvar(s) { s.bazar = { comprados: G.bazar.comprados.slice(), meta: G.bazar.meta }; },
   dado(id) { return ECO.bazar.itens.find(i => i.id === id) || null; },
   tem(id) { return !!G.bazar && G.bazar.comprados.includes(id); },
@@ -13,6 +15,7 @@ const Bazar = {
     if (G.dinheiro < it.preco) return 'dinheiro';
     G.dinheiro -= it.preco; G.gastoHoje = (G.gastoHoje || 0) + it.preco; G.bazar.comprados.push(id);
     if (G.bazar.meta === id) G.bazar.meta = '';
+    Bazar.efeitoMochila();
     return 'ok';
   },
   meta() {
@@ -27,7 +30,7 @@ const Bazar = {
   },
 };
 // O efeito em poucas palavras, para a barrinha estreita ("Garrafa térmica: cafezinho toda manhã — 417/900").
-const BAZAR_CURTO = { garrafa_termica: 'cafezinho toda manhã', bicicleta: 'anda 20% mais rápido', fogao_gas: 'marmita com o dobro de energia',
+const BAZAR_CURTO = { garrafa_termica: 'cafezinho toda manhã', mochila_couro: '60 espaços na mochila', bicicleta: 'anda 20% mais rápido', fogao_gas: 'marmita com o dobro de energia',
   maquina_costura: 'a Rosa costura: Cr$ 60/noite', televisao: 'a novela com a família', fusca: 'viagem rápida' };
 INICIADORES.push(s => Bazar.iniciar(s));
 COLETORES.push(s => Bazar.salvar(s));
@@ -36,7 +39,7 @@ function energiaDaComida(id) {
   const e = Itens.energia(id); if (id !== 'marmita') return e;
   return Math.round(e * (Bazar.tem('fogao_gas') ? ECO.bazar.fogao : 1) * (typeof CasaFamilia !== 'undefined' && CasaFamilia.tem(4) ? ECO.bazar.cozinha : 1));
 }
-CARTAS.folheto_salim = { de: 'Seu Salim', dia: 4, texto: 'BAZAR DO SALIM — no Mercado Municipal, das 9h às 17h (domingo fechado). Garrafa térmica, bicicleta, fogão a gás, máquina de costura, televisão e até um Fusca! Preço bom, freguês melhor ainda. Venha conhecer!' };
+CARTAS.folheto_salim = { de: 'Seu Salim', dia: 4, texto: 'BAZAR DO SALIM — no Mercado Municipal, das 9h às 17h (domingo fechado). Garrafa térmica, bicicleta, fogão a gás, máquina de costura, mochila de couro, televisão e até um Fusca! Preço bom, freguês melhor ainda. Venha conhecer!' };
 // Os efeitos de cada dia: o cafezinho da garrafa de manhã; à noite, a costura da Rosa e a novela com a família.
 MANHA.push(() => { if (Bazar.tem('garrafa_termica')) G.mochila.adicionar('cafe', 1); });
 NOITE.push(linhas => {
@@ -50,7 +53,7 @@ function abrirBazar() {
   caixa.append(el('div', { class: 'titulo', style: 'font-size:28px;display:flex;justify-content:space-between' }, el('span', {}, 'Bazar do Seu Salim'), el('span', {}, 'Cr$ ' + G.dinheiro)));
   for (const it of ECO.bazar.itens) {
     const tem = Bazar.tem(it.id), meta = !!Bazar.metaEscolhida() && Bazar.metaEscolhida().id === it.id;
-    caixa.append(el('div', { class: 'linha' }, el('img', { src: urlItem(it.id) }), el('div', {}, el('b', {}, it.nome), el('div', { class: 'tem' }, it.efeito)),
+    caixa.append(el('div', { class: 'linha' }, el('img', { src: urlItem(it.icone || it.id) }), el('div', {}, el('b', {}, it.nome), el('div', { class: 'tem' }, it.efeito)),
       tem ? el('span', { class: 'preco' }, 'Já é seu') : el('span', {},
         el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); const r = Bazar.comprar(it.id); avisar(r === 'ok' ? `Comprou: ${it.nome}!` : 'O dinheiro não dá.'); if (r === 'ok') { sons.tocar('dinheiro', 1.1, 0.05, -4); if (it.id === 'fusca' && MAPAS.quintal) poeFusca(MAPAS.quintal); } fecharModal(); abrirBazar(); hudSujo(); } }, 'Cr$ ' + it.preco),
         el('button', { class: 'botao', onclick: e => { e.stopPropagation(); G.bazar.meta = it.id; fecharModal(); abrirBazar(); } }, meta ? 'Juntando ✓' : 'Juntar para'))));

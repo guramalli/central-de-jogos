@@ -57,7 +57,7 @@ function abrirOrelhao() {
       const pode = G.pensao && G.pensao.aceita(id), ped = G.encomendas.pedidas[id] || 0, ing = Pratos.INGREDIENTES[id];
       grade.append(el('div', { class: 'orel-item' + (pode ? '' : ' trancado') }, el('img', { src: urlItem(id) }),
         el('div', {}, el('b', {}, Itens.nome(id)), el('div', { class: 'orel-preco' }, `Cr$ ${ENCOMENDA[id]} cada · ${'★'.repeat(ing ? ing.raridade : 1)}${ped ? ` · ${ped} para amanhã` : ''}`),
-          pode ? null : el('div', { class: 'orel-preco' }, '🔒 a pensão precisa de mais fama')),
+          pode ? null : el('div', { class: 'orel-preco' }, '🔒 ' + abreNoDegrau(id))),
         pode ? el('div', { class: 'orel-bts' }, [1, 5].map(n => el('button', { class: 'botao', onclick: e => { e.stopPropagation(); if (encomendar(id, n)) desenha(); } }, '+' + n))) : null));
     }
     caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px' },
@@ -81,6 +81,9 @@ function rosaPerguntaGuardar() {
 }
 // (14/10, o jogador: "clico no guardar e nada acontece") A despensa recebe ingrediente desde que a cozinha fica pronta (na pintura,
 // pronta para a inauguração e aberta): como no Dave, o estoque se enche antes de abrir. Antes disso, a reforma.
+// Em que degrau o ingrediente trancado abre (a fase do ingrediente é o degrau da pensão: Pratos.fase ↔ Pensao.DEGRAUS).
+const abreNoDegrau = id => { const f = Pratos.fase(id), d = Pensao.DEGRAUS[f - 1]; return d ? `Abre no ${'★'.repeat(f - 1)} ${d.nome} (${d.curtidas} curtidas)` : 'Abre com mais fama da pensão'; };
+const minusculaInicial = s => s[0].toLowerCase() + s.slice(1);
 const despensaAceitaGuardar = () => { const p = G.pensao; return !!p && (p.estado === 'aberta' || p.estado === 'pronta' || (typeof emReforma === 'function' && emReforma() && cozinhaPronta())); };
 function guardarNaDespensa(silencioso) {
   const p = G.pensao;
@@ -88,6 +91,9 @@ function guardarNaDespensa(silencioso) {
   const g = p.guardar(G.mochila);
   const partes = Object.keys(g).map(id => Itens.qtd(g[id], id));
   if (partes.length) { sons.tocar('pegar', 1, 0.05, -4); avisar('Guardou: ' + partes.join(', ') + '.'); }
+  // (14/10, o jogador: "por que não consigo entregar tomate?") O que a despensa ainda não aceita fica na mochila, e a Rosa diz quando abre.
+  const ficou = Object.keys(Pratos.INGREDIENTES).filter(id => G.mochila.total(id) > 0 && !p.aceita(id));
+  if (ficou.length) avisar(`Rosa: "${listaE(ficou.map(id => Itens.nome(id)))} ainda não cabe na despensa: ${minusculaInicial(abreNoDegrau(ficou[0]))}."`);
   hudSujo();
   if (!silencioso) abrirDespensa();
   return true;
@@ -102,7 +108,7 @@ function abrirDespensa() {
     const n = p.despensa[id] || 0, ing = Pratos.INGREDIENTES[id], pode = p.aceita(id);
     // (13/10, o tema) Um pote por vaga da prateleira: o ícone, quanto tem e o nome; a raridade e a origem ficam na dica do mouse
     // (a lousa ao lado avisa), para o cartão caber no vão entre a prateleira e a toalhinha de crochê.
-    prat.append(el('div', { class: 'desp-item' + (n ? '' : ' vazio') + (pode ? '' : ' trancado'), title: `${Itens.nome(id)} — ${'★'.repeat(ing.raridade)} ${origemDe(id)}` },
+    prat.append(el('div', { class: 'desp-item' + (n ? '' : ' vazio') + (pode ? '' : ' trancado'), title: `${Itens.nome(id)} — ${'★'.repeat(ing.raridade)} ${origemDe(id)}` + (pode ? '' : ` · 🔒 ${abreNoDegrau(id)}`) },
       el('img', { src: urlItem(id) }), el('div', { class: 'desp-qtd' }, n ? '×' + n : (pode ? '—' : '🔒')),
       el('div', { class: 'desp-nome' }, Itens.nome(id))));
   }

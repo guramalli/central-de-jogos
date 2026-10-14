@@ -239,8 +239,17 @@ function _alvoDaEmpreita(cid) {
   // (tarefa 7, o robô jogador) a etapa da casa da família ainda por começar, sem o dinheiro dela: nada de seta para comprar material nem para
   // a plaquinha (antes mandava comprar cimento e quebrar 30 pedras com Cr$ 2.600 de 8.000, no meio da reforma da pensão); a barrinha já diz quanto falta
   if (casaSemDinheiro(E, a)) return null;
-  const f = faltaDaEmpreita(cid); if (f) { const m = _alvoDoMaterial(f, cid); if (m) return m; }
-  if (E.local) { const A = E.local.area; return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y: A.y * TILE + 6 }, empreita: cid }; }
+  // (14/10) No mapa do serviço no lugar de verdade, com o material longe daqui (a madeira no quintal), a seta fica no lugar do
+  // serviço e diz o que trazer ("Traga 4 madeiras e use o machado aqui"); o depósito, aqui mesmo, segue levando a ele.
+  const noObjeto = E.tipo === 'curta' && E.estrago && E.estrago.noObjeto;
+  const f = faltaDaEmpreita(cid); if (f) { const m = _alvoDoMaterial(f, cid); if (m && !((E.local || noObjeto) && G.mapaId === E.mapa && m.mapa !== G.mapaId)) return m; }
+  // (14/10, foto do jogador: "a seta nessa missão está apontando pro nada") A entrega no próprio objeto: a seta na casa do Tio Juca.
+  if (noObjeto) { const lista = Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ');
+    return { mapa: E.mapa, objeto: E.estrago.objeto, empreita: cid, rotuloFixo: f ? `Traga ${Itens.qtd(f.n, f.item)} e entregue aqui (botão direito na casa)` : `Botão direito na casa: entregar ${lista}` }; }
+  // (a ponta da seta no chão do lugar; na cerca, de pé, no meio da altura da arte)
+  // (o trecho do píer: no próprio trecho quebrado; a banca: no alto da luz)
+  if (E.local) { const L = E.local, A = L.retalho || L.area, img = L.trechos && spr(L.arte), y = L.luz ? (L.luz.y + 0.5) * TILE : img ? (A.y + A.h) * TILE - img.naturalHeight / 2 : A.y * TILE + 6;
+    return { mapa: E.mapa, ponto: { x: (A.x + A.w / 2) * TILE, y }, empreita: cid, falta: f || undefined }; }
   // (a limpeza se faz nos matos e entulhos em volta, não na plaquinha: a seta vai no mais perto do serviço)
   if (E.tipo === 'curta' && typeof LIMPEZA !== 'undefined' && LIMPEZA[cid] && G.mapaId === E.mapa) { const o = _maisPerto(x => x.empreitaDet === cid);
     if (o) return { mapa: E.mapa, ponto: { x: o.x, y: o.y - 56 }, det: o.det, empreita: cid, limpeza: true }; }
@@ -248,6 +257,11 @@ function _alvoDaEmpreita(cid) {
   // (a obra longa reservada também: com o material, a plaquinha é onde se começa; os aluguéis por começar são opcionais)
   if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta' || (a.estado === 'reservada' && typeof E.familia !== 'string'))) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
   return null;
+}
+// O serviço aceito que é de hoje: o curto (até ser feito) e a obra longa com o dia de trabalho por fazer ou pronta para entregar.
+function _servicoDeHoje(cid) {
+  const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a) return false;
+  return E.tipo === 'curta' || (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta'));
 }
 function _servicosDaSeta() {
   if (!G.empreitas) return [];
@@ -292,7 +306,10 @@ function _rotulo(a) {
   if (a.tipo === 'saida') return `Vá por aqui: ${typeof NOME_LUGAR !== 'undefined' && NOME_LUGAR[a.destino] || a.destino}`;
   if (a.det) { const f = NOME_FERRAMENTA[DETRITOS[a.det].ferramenta]; return `Use ${f} aqui para ${VERBO_DET[a.det] || 'limpar'}`; }
   if (a.morador) { const p = (G.mapa.moradores || []).find(x => x.id === a.morador); return `Botão direito: falar com ${p ? p.nome : a.morador}`; }
-  if (a.empreita && dadosEmpreita(a.empreita) && dadosEmpreita(a.empreita).local) { const E = dadosEmpreita(a.empreita); return `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} ${E.local.nome} (${E.vezes} vezes)`; }
+  // (14/10) O serviço no lugar de verdade: a ferramenta, quantos golpes faltam e, sem o material, o que trazer.
+  if (a.empreita && !a.buscar && dadosEmpreita(a.empreita) && dadosEmpreita(a.empreita).local) { const E = dadosEmpreita(a.empreita), ac = G.empreitas.aceitas[a.empreita], resta = E.vezes - ((ac && ac.vezes) || 0);
+    const usa = `use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${resta} ${resta === 1 ? 'vez' : 'vezes'})`;
+    return a.falta ? `Traga ${Itens.qtd(a.falta.n, a.falta.item)} e ${usa}` : usa[0].toUpperCase() + usa.slice(1); }
   if (a.objeto && a.objeto.startsWith('emp_') && !a.objeto.startsWith('emp_placa_')) { const E = dadosEmpreita(a.objeto.slice(4)); if (!E) return 'Botão direito aqui';
     return E.ferramenta !== 'carga' ? `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${E.vezes} vezes)` : `Botão direito: entregar ${Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ')}`; }
   if (a.objeto && a.objeto.startsWith('emp_placa_')) { const id = a.objeto.slice(10), E = dadosEmpreita(id), st = G.empreitas.aceitas[id] && G.empreitas.aceitas[id].estado, f = Empreitas.ferramentaHoje(id);
@@ -308,14 +325,22 @@ function _rotulo(a) {
 function guiaSetaMundo() {
   if (!G.mapa) return null;
   const cands = [['janta_vez', _alvoDaJanta], ['reforma_vez', () => _alvoDaReforma(false)], ['casa_vez', _alvoDaCasa], ['tela_pedreira', _alvoDaPedreira], ['aula', _alvoDaAula], ['rosa_sonho', _alvoDoSonhoDaRosa], ['lojinha', _alvoDaLojinhaGuia]];   // (13/10) a primeira vez de cada passo da janta e da casa, na frente de tudo
-  // (Obra do Povo) A linha da caderneta escolhida no Mostrar vem primeiro; acabou a linha, some a seta.
-  if (G.guia && G.guia.ativo) for (const id of _missoesDaSeta()) cands.push([id, () => _alvoDaMissao(id)]);
+  // (14/10, relato do jogador: a calçada e a cerca aceitas passaram para o outro dia "sem a seta mostrando onde deveria ser
+  // feito") A causa: o serviço aceito vinha por último, depois de toda missão do guia e da caderneta; no dia seguinte uma
+  // missão com alvo na Vila (a pensão, o Grêmio, o Bazar) tomava a seta. Agora o serviço aceito que é de hoje (o curto, que
+  // passa de um dia para o outro até ser feito; a obra longa com trabalho hoje ou pronta) vem antes das missões e da
+  // caderneta (sugestões); a primeira vez de cada coisa, a janta e o domingo do dia e a obra do Bira seguem na frente.
+  const missoes = G.guia && G.guia.ativo ? _missoesDaSeta() : [], doDia = id => id === 'janta' || id === 'domingo';
+  for (const id of missoes.filter(doDia)) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);
+  const servicos = _servicosDaSeta(), deHoje = servicos.filter(_servicoDeHoje);
+  for (const cid of deHoje) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
+  for (const id of missoes.filter(x => !doDia(x))) cands.push([id, () => _alvoDaMissao(id)]);
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar (ou na ideia): depois das missões do guia; acabou a linha, ou o
   // Jocelino chegou lá, some a seta (revisão final).
   if (G.setaFixa && typeof Caderneta !== 'undefined') { const l = Caderneta.linha(G.setaFixa);
     if (!l || !l.alvo) G.setaFixa = null; else cands.push(['caderneta', () => { const a = typeof l.alvo === 'function' ? l.alvo() : l.alvo; return a && Object.assign({ rotuloFixo: l.rotulo || l.texto }, a); }]); }
-  for (const cid of _servicosDaSeta()) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
+  for (const cid of servicos.filter(x => !deHoje.includes(x))) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
   // (13/10) Primeiro o que dá para fazer no mapa onde o Jocelino está; só depois o caminho para outro lugar.
   const res = [];
   for (const [id, f] of cands) {

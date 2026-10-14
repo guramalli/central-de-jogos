@@ -80,7 +80,8 @@ function agoraFamilia(avisos = []) {
   // Agora segue a seta (antes dizia "Obra: falar com o Mestre Bira" com a seta em "entregar a obra (Muro da divisa)")
   { const sa = typeof setaAgora === 'function' ? setaAgora() : null;
     if (sa && sa.tipo === 'alvo' && sa.mapa === G.mapaId && sa.rotulo) {
-      if (sa.missao === 'servico') { const E = sa.empreita && typeof dadosEmpreita === 'function' ? dadosEmpreita(sa.empreita) : null; return `O serviço aceito, aqui mesmo${E ? ': ' + E.nome : ''} — ${sa.rotulo}`; }
+      // (14/10) a seta do serviço fica no lugar dele todo dia; depois das 17h (a noite livre) o Dormir segue valendo (revisão 3, abaixo)
+      if (sa.missao === 'servico' && !(G.empreitas && typeof tardeLivre === 'function' && tardeLivre() === 'noite')) { const E = sa.empreita && typeof dadosEmpreita === 'function' ? dadosEmpreita(sa.empreita) : null; return `O serviço aceito, aqui mesmo${E ? ': ' + E.nome : ''} — ${sa.rotulo}`; }
       if (sa.missao === 'obra_dia') return `A obra do Mestre Bira (Cr$ ${Obra.diaria()} o dia) — ${sa.rotulo}`; } }
   // (o Agora diz o mesmo que a seta: o passo cujo lugar é o mapa de agora vem primeiro)
   const sm = typeof setaAgora === 'function' ? setaAgora() : null, daSeta = sm && g && g.abertas.includes(sm.missao) ? [sm.missao] : [];

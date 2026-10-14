@@ -17,7 +17,7 @@ const bauEm = (mapaId, x, y) => (G.baus || []).find(b => b.mapa === mapaId && b.
 const bauFixo = mapaId => (G.baus || []).find(b => b.fixo && b.mapa === mapaId) || null;
 const bauVazio = b => b.m.slots.every(s => !s);
 const ondeVaiBau = id => id === 'quintal' || !!CASAS[id];
-function novoBau(mapa, x, y, fixo, slots) { const m = new Mochila(); m.deDict({ slots: slots || [] }); return { mapa, x, y, fixo: !!fixo, m }; }
+function novoBau(mapa, x, y, fixo, slots) { const m = new Mochila(Mochila.BAU); m.deDict({ slots: slots || [] }); return { mapa, x, y, fixo: !!fixo, m }; }
 // As duas casas sempre têm o baú delas (o save antigo ganha os dois, vazios).
 function garanteBausFixos() { for (const id in CASAS) if (CASAS[id].bau && !bauFixo(id)) G.baus.push(novoBau(id, CASAS[id].bau.x, CASAS[id].bau.y, true)); }
 
@@ -49,7 +49,7 @@ function mudaBauDeCasa() {
   if (G.bausMudou || !G.baus || typeof CasaFamilia === 'undefined' || !CasaFamilia.mudou()) return 0;
   garanteBausFixos();
   const velho = bauFixo('casa_juca_dentro'), novo = bauFixo('casa_familia_dentro'); let n = 0;
-  if (velho && novo) for (let i = 0; i < Mochila.TAM; i++) { const s = velho.m.slots[i]; if (!s) continue;
+  if (velho && novo) for (let i = 0; i < velho.m.tam; i++) { const s = velho.m.slots[i]; if (!s) continue;
     const sobra = novo.m.adicionar(s.id, s.qtd); n += s.qtd - sobra; s.qtd = sobra; if (!sobra) velho.m.slots[i] = null; }
   G.bausMudou = true;
   return n;
@@ -138,11 +138,11 @@ function passarPilha(de, para, i, um = false) {
   return foi;
 }
 // Shift+clique: todas as pilhas daquele item.
-function passarTudoDoItem(de, para, id) { let n = 0; for (let i = 0; i < Mochila.TAM; i++) if (de.slots[i] && de.slots[i].id === id) n += passarPilha(de, para, i); return n; }
+function passarTudoDoItem(de, para, id) { let n = 0; for (let i = 0; i < de.tam; i++) if (de.slots[i] && de.slots[i].id === id) n += passarPilha(de, para, i); return n; }
 // "Juntar iguais": o que já tem no baú sai da mochila e vai para ele (as ferramentas ficam na mochila).
 function juntarIguais(bauM, mochila) {
   const ids = new Set(bauM.slots.filter(Boolean).map(s => s.id)); let n = 0;
-  for (let i = 0; i < Mochila.TAM; i++) { const s = mochila.slots[i]; if (s && ids.has(s.id) && !Itens.ehFerramenta(s.id)) n += passarPilha(mochila, bauM, i); }
+  for (let i = 0; i < mochila.tam; i++) { const s = mochila.slots[i]; if (s && ids.has(s.id) && !Itens.ehFerramenta(s.id)) n += passarPilha(mochila, bauM, i); }
   return n;
 }
 function abrirBau(bau) {
@@ -164,7 +164,7 @@ function abrirBau(bau) {
   const desenha = () => {
     caixa.innerHTML = '';
     const usados = bau.m.slots.filter(Boolean).length;
-    caixa.append(el('div', { class: 'titulo bau-titulo' }, bau.fixo ? 'Baú de casa' : 'Baú', el('span', { class: 'bau-conta' }, ` ${usados} de ${Mochila.TAM}`)),
+    caixa.append(el('div', { class: 'titulo bau-titulo' }, bau.fixo ? 'Baú de casa' : 'Baú', el('span', { class: 'bau-conta' }, ` ${usados} de ${bau.m.tam}`)),
       grade(bau.m, G.mochila),
       el('div', { class: 'titulo bau-sub' }, 'Mochila'),
       grade(G.mochila, bau.m),
@@ -225,6 +225,18 @@ if (typeof guiaSetaUI === 'function') { const u0 = guiaSetaUI; guiaSetaUI = func
     if (e) return { chave: 'barra:' + i, el: e, rotulo: 'Clique aqui: Baú' };
   }
   return u0();
+}; }
+// (14/10, o jogador: "está faltando espaço no inventário toda hora") Depois da dica do baú, a da mochila inteira: a mochila encheu
+// (a dica 'mochila_bau') e o baú já foi aberto uma vez; a seta mostra o botão da mochila, à direita da barra, até ela ser aberta
+// (E ou o botão: G.limpou.mochila_aberta, hud.js). Uma dica de cada vez: a do baú primeiro.
+const ROTULO_MOCHILA = 'Aperte E (ou aqui) para ver a mochila inteira';
+const faseDaMochila = () => !!G.mochila && !!G.limpou && (G.dicasDadas || []).includes('mochila_bau') && faseDoBau() === '' && !_feitoBau('mochila_aberta');
+if (typeof guiaSetaUI === 'function') { const u0 = guiaSetaUI; guiaSetaUI = function () {
+  const r = u0(); if (r) return r;
+  const b = typeof HUD !== 'undefined' && HUD.botaoMochila;
+  if (b && b.isConnected && b.style.visibility !== 'hidden' && faseDaMochila() && $('#modal').hidden && !(typeof noPalco === 'function' && noPalco()))
+    return { chave: 'mochila_botao', el: b, rotulo: ROTULO_MOCHILA };
+  return null;
 }; }
 // A frase do Tio Juca na caixa de dica.
 const FALA_BAU = {

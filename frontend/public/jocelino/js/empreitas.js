@@ -11,7 +11,7 @@ const EMPREITAS_CURTAS = {
   tabua_pier: { nome: 'Tapar tábua solta do píer', cliente: 'lourival', mapa: 'praia', x: 29, y: 15, material: { madeira: 3 }, ferramenta: 'machado', vezes: 3 },
   limpar_trilha: { nome: 'Limpar a trilha da mata', cliente: 'juca', mapa: 'mata', x: 30, y: 11, material: {}, ferramenta: 'foice', vezes: 8 },
   escorar_ponte: { nome: 'Escorar a ponte da mata', cliente: 'juca', mapa: 'mata', x: 25, y: 15, material: { madeira: 4 }, ferramenta: 'machado', vezes: 4 },
-  remendar_calcada: { nome: 'Remendar a calçada da praça', cliente: 'zelia', mapa: 'vila', x: 27, y: 16, material: { cimento: 2 }, ferramenta: 'pa', vezes: 4 },
+  remendar_calcada: { nome: 'Remendar a calçada da rua', cliente: 'zelia', mapa: 'vila', x: 28, y: 11, material: { cimento: 2 }, ferramenta: 'pa', vezes: 4 },
   cerca_zelia: { nome: 'Consertar a cerca da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 35, y: 10, material: { madeira: 4 }, ferramenta: 'machado', vezes: 3 },
   telhas_juca: { nome: 'Trocar telhas do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 9, y: 9, material: { telha: 6 }, ferramenta: 'carga', vezes: 1 },
   desentulhar_ananias: { nome: 'Desentulhar o terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 13, material: {}, ferramenta: 'pa', vezes: 6 },
@@ -20,10 +20,29 @@ ecoCampo(EMPREITAS_CURTAS, 'paga', ECO.empreitas.paga);   // o pagamento de cada
 for (const id in EMPREITAS_CURTAS) Object.assign(EMPREITAS_CURTAS[id], { funcaoMin: 0, tipo: 'curta' });
 // O lugar de verdade do serviço (teste de 12/10: "bater na plaquinha fica sem sentido"): o golpe vai na ponte, no píer, na
 // banca, na cerca e na calçada, sem plaquinha. A limpeza (trilha, entulho) e a carga (telhas) seguem como antes.
-const LOCAL_CURTA = { escorar_ponte: { nome: 'na ponte', area: { x: 26, y: 17, w: 2, h: 2 } }, tabua_pier: { nome: 'no píer', area: { x: 30, y: 16, w: 2, h: 7 } },
-  consertar_banca: { nome: 'na banca do Lourival', area: { x: 7, y: 7, w: 3, h: 1 } }, cerca_zelia: { nome: 'na cerca da Dona Zélia', area: { x: 36, y: 9, w: 5, h: 1 } },
-  remendar_calcada: { nome: 'na calçada da praça', area: { x: 26, y: 15, w: 3, h: 2 } } };
+// (14/10, relato do jogador: "não havia nenhum indício de onde eu teria que fazer o remendo... a cerca da Dona Zélia nem
+// existe") O estrago aparece no mapa enquanto o serviço está aceito, como a ponte quebrada da praia do Stardew (arte pronta,
+// do Higgsfield): `arte` é o estrago; `inteira`, o que fica no lugar quando não há serviço (a cerca existe sempre; a calçada
+// remendada volta a ser chão). `trechos`: a cerca montada em trechos de 2 ladrilhos, com o portão aberto no meio (na frente da
+// porta da casa): ela não fecha a passagem para a obra da casa. A calçada saiu da praça (a fileira de 1 ladrilho da rua de baixo
+// não cabia 3x2) para a calçada larga da rua principal, na frente do quadro de serviços.
+// (14/10, segunda etapa: "faça a mesma coisa com o píer, a bancada do Lourival e tudo que tem de ser arrumado no jogo") O jeito de
+// mostrar cada estrago: `chao` troca a arte do chão do mapa (a ponte da mata); `objeto` troca a arte do objeto de sempre (a banca);
+// `retalho` é o pedaço de chão por cima (o trecho do píer); `consertada`, o que fica depois do conserto (as tábuas novas do píer);
+// `luz`, o retângulo da luz quando não é a própria área (em ladrilhos).
+const LOCAL_CURTA = { escorar_ponte: { nome: 'na ponte', area: { x: 26, y: 17, w: 2, h: 2 }, chao: 'objetos/pier', arte: 'objetos/ponte_quebrada' },
+  tabua_pier: { nome: 'no píer', area: { x: 30, y: 16, w: 2, h: 7 }, piso: true, retalho: { x: 30, y: 18, w: 2, h: 2 }, arte: 'objetos/pier_quebrado', consertada: 'objetos/pier_novo' },
+  consertar_banca: { nome: 'na banca do Lourival', area: { x: 7, y: 7, w: 3, h: 1 }, objeto: 'banca_peixe', arte: 'objetos/banca_quebrada', luz: { x: 7, y: 5, w: 3, h: 3 } },
+  cerca_zelia: { nome: 'na cerca da Dona Zélia', area: { x: 36, y: 9, w: 5, h: 1 }, arte: 'objetos/cerca_zelia_quebrada', inteira: 'objetos/cerca_zelia', trechos: [{ x: 36, w: 2 }, { x: 39, w: 2, espelho: true }] },
+  remendar_calcada: { nome: 'na calçada da rua', area: { x: 27, y: 10, w: 3, h: 2 }, arte: 'objetos/calcada_rachada', piso: true } };
 for (const id in LOCAL_CURTA) EMPREITAS_CURTAS[id].local = LOCAL_CURTA[id];
+// As telhas do Tio Juca (14/10, foto do jogador: "a seta nessa missão está apontando pro nada": a plaquinha caía na grama, longe
+// da casa) são entregues na própria casa, com o botão direito nela (ou na porta), sem plaquinha; o telhado mostra as telhas
+// quebradas enquanto o serviço está aberto.
+EMPREITAS_CURTAS.telhas_juca.estrago = { objeto: 'casa_juca', noObjeto: true, arte: 'objetos/casa_juca_telhado', luz: { x: 5, y: 4.5, w: 5, h: 2.5 } };
+Object.assign(EMPREITAS_CURTAS.telhas_juca, { x: 7, y: 8 });
+// O desentulho é no terreno do Seu Ananias, ao lado do depósito (a plaquinha caía no meio da rua principal).
+Object.assign(EMPREITAS_CURTAS.desentulhar_ananias, { x: 11, y: 8, junto: 'deposito' });
 // As longas: `etapas` é a ferramenta de cada dia (empreitadas.gd); `concreto`: a pá e a colher não pegam na chuva;
 // `pintura`: o último dia é pintar (não se faz na chuva); `reforma`: acabamento (pedido no fim de ano).
 const EMPREITAS_LONGAS = {
@@ -66,7 +85,7 @@ const Empreitas = {
   iniciar(s) {
     const e = s.empreitas || {};
     G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null, caprichados: e.caprichados || 0, labia: e.labia || 0, receitasExtras: (e.receitasExtras || []).slice(),
-      semana: Object.assign({}, e.semana || {}), vistos: Object.assign({}, e.vistos || {}) };   // (dia cheio: o dia em que cada serviço foi aceito e apareceu no quadro)
+      semana: Object.assign({}, e.semana || {}), vistos: Object.assign({}, e.vistos || {}), consertados: Object.assign({}, e.consertados || {}) };   // (consertados: o dia do último conserto de cada serviço curto: as tábuas novas do píer)   // (dia cheio: o dia em que cada serviço foi aceito e apareceu no quadro)
     // Save antigo (etapas 2 a 5): a longa aceita já tinha gastado o material, então segue em obra (ou pronta) de onde parou.
     for (const id in G.empreitas.aceitas) {
       const a = G.empreitas.aceitas[id], E = dadosEmpreita(id) && dadosEmpreita(id).tipo === 'longa' ? dadosEmpreita(id) : null;
@@ -204,6 +223,7 @@ const Empreitas = {
   _entregou(id, q = 1) {
     const E = dadosEmpreita(id);
     delete G.empreitas.aceitas[id];
+    if (E.tipo === 'curta') (G.empreitas.consertados || (G.empreitas.consertados = {}))[id] = G.dia;
     // A obra fica no mapa (muros, pisos, cerca, quiosque, ponte); a fundação sozinha não (ela é o começo de uma casa).
     // As obras da família (a casa e os aluguéis) não contam como serviço: nem feitas, nem entregues, nem reputação.
     if (!E.familia) {

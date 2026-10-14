@@ -32,7 +32,7 @@ const Horta = {
     return r;
   },
   cova(x, y) { return G.horta.covas[chaveH(x, y)]; },
-  aguaMax() { return AGUA_REGADOR[nivelFerramenta('regador') >= 1 ? 1 : 0]; },
+  aguaMax(nivel = nivelFerramenta('regador')) { return AGUA_REGADOR[nivel >= 1 ? 1 : 0]; },
   diasPara(id) { const d = CULTURAS[id].dias; return typeof Habilidades !== 'undefined' && Habilidades.tem('agronomo') ? d - Math.ceil(d * 0.1) : d; },
   madura(c) { return !!(c && c.planta && c.dias >= Horta.diasPara(c.planta)); },
   estagio(c) { if (!c || !c.planta) return 0; if (Horta.madura(c)) return 4; if (c.colhida) return 3; return 1 + Math.min(2, Math.floor(c.dias * 3 / Horta.diasPara(c.planta))); },

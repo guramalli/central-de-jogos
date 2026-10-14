@@ -28,13 +28,14 @@ const _cs = (t, a, b) => clamp((t - a) / (b - a), 0, 1);   // o trecho [a, b] do
 const _eo = u => 1 - Math.pow(1 - u, 3);                   // sai rápido e chega devagar
 const _pulo = u => u < 0.6 ? 1.25 * _eo(u / 0.6) : 1.25 - 0.25 * _eo((u - 0.6) / 0.4);   // o pulo de escala do "PLOFT!"
 
-// As 3 cenas. artes: as camadas (a cena espera elas carregarem); sons: [segundo, som, tom, dB]; legenda: o trecho do close, em que
+// As 3 cenas. artes: as camadas (a cena espera elas carregarem); sons: [segundo, som, tom, dB] (14/10, a vinheta do Dave: o efeito
+// exagerado no momento certo, o "tchan!" no close e a plateia na reação; o zunido de entrada toca quando as faixas descem); legenda: o trecho do close, em que
 // o nome do prato aparece na faixa de baixo; desenha(d, t): as camadas no segundo t (d = as ferramentas de desenho, abaixo).
 const CENAS_PRATO = {
   // PF do Peão Valente (3,8 s): a Rosa vira a frigideira, o ovo voa girando e cai exato no prato, "PLOFT!"; o peão flexiona o braço.
   pf: { dur: 3.8, legenda: [1.3, 2.75],
     artes: ['cenas/pf_fundo', 'cenas/pf_rosa', 'cenas/pf_ovo', 'cenas/pf_prato', 'cenas/pf_ploft', 'cenas/pf_reacao'],
-    sons: [[1.7, 'quica', 1, -2], [2.75, 'fanfarra', 1.15, -6]],
+    sons: [[1.7, 'cena_ploft', 1, -2], [1.95, 'cena_tchan', 1, -6], [2.75, 'cena_plateia', 1.15, -6]],
     desenha(d, t) {
       if (t < 1.45) {   // a cozinha com o fogo alto
         d.fundo('cenas/pf_fundo', 1 + 0.05 * t / 1.45);
@@ -56,7 +57,7 @@ const CENAS_PRATO = {
   // o close do peixe na travessa; o mar de Aracaju com o barco à vela.
   peixe: { dur: 7.6, legenda: [2.9, 5.2],
     artes: ['cenas/peixe_fundo', 'cenas/peixe_jocelino', 'cenas/peixe_risco', 'cenas/peixe_escamas', 'cenas/peixe_prato', 'cenas/peixe_reacao'],
-    sons: [[1.45, 'golpe', 1.2, -2], [2.95, 'prato_tchan', 1, -4], [5.25, 'fanfarra', 1, -6]],
+    sons: [[1.45, 'cena_faca', 1, -2], [2.95, 'cena_tchan', 1, -4], [5.25, 'cena_plateia', 1, -6]],
     desenha(d, t) {
       if (t < 3.1) {
         d.fundo('cenas/peixe_fundo', 1 + 0.06 * t / 3.1);
@@ -83,7 +84,7 @@ const CENAS_PRATO = {
   // panela com um pano; o Seu Orlando discursando no coreto, com fogos.
   moqueca: { dur: 8.2, legenda: [2.5, 5.0],
     artes: ['cenas/moqueca_fundo', 'cenas/moqueca_dende', 'cenas/moqueca_panela', 'cenas/moqueca_vapor', 'cenas/moqueca_jocelino', 'cenas/moqueca_reacao'],
-    sons: [[0.35, 'agua', 0.7, -6], [2.6, 'prato_tchan', 1, -4], [6.35, 'fanfarra', 1, -6]],
+    sons: [[0.35, 'agua', 0.7, -6], [2.6, 'cena_tchan', 1, -4], [2.9, 'cena_borbulha', 1, -6], [6.35, 'cena_plateia', 1, -6]],
     desenha(d, t) {
       if (t < 2.8) {
         d.fundo('cenas/moqueca_fundo', 1 + 0.05 * t / 2.8);
@@ -171,6 +172,8 @@ const CenaPrato = {
     for (const n of def.artes) spr(n);
     this._cena = { id, def, t: 0, tr: 0, espera: 0, podePular, primeira, prato: prato || '', sons: def.sons.slice() };
     this._ultimo = performance.now();
+    // as faixas descem: o zunido com rufar; a música e o burburinho baixam enquanto a cena toca
+    if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); sons.abafar(def.dur + 0.5, 0.3); }
     const o = this._overlay();
     o.hidden = false; document.body.classList.add('cena-prato');
     G.teclas.clear(); if (G.mouse) G.mouse.segura = false;
@@ -188,6 +191,7 @@ const CenaPrato = {
     const c = this._cena;
     if (!c) return;
     this.parar();
+    if (typeof sons !== 'undefined' && c.t < c.def.dur - 0.5) sons.abafar(0);   // pulou no meio: a música volta já
     // a primeira cena de todas: a Rosa ensina que dá para pular (a frase no lugar, como toda 1ª vez do jogo)
     if (c.primeira && typeof avisar === 'function') avisar('A Rosa: "Prato especial tem cena: da próxima vez, clique para pular."');
   },

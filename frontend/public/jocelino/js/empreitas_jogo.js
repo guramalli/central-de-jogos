@@ -45,8 +45,81 @@ function fatorEnergiaLote(id, alvo) {
   const o = G.mapa.ocupado.get(chaveT(alvo.x, alvo.y)), E = o && dadosEmpreita(o.empreita || o.placaDe);
   return E && E.tipo === 'longa' ? 0 : 1;
 }
+// O estrago do serviço curto no lugar de verdade (14/10, relato do jogador: "não havia nenhum indício de onde eu teria que
+// fazer o remendo... a cerca da Dona Zélia nem existe"). Como a ponte quebrada da praia do Stardew: enquanto o serviço está
+// aceito, o mapa mostra o estrago (a calçada rachada, a cerca quebrada: arte pronta); feito, volta o inteiro (a cerca) ou o chão.
+// A calçada é chão (por baixo de quem pisa, sem colisão); a cerca vai em trechos com o portão aberto no meio, sólida só no pé.
+// (segunda etapa) O mesmo para a ponte da mata (a arte do chão), a banca do Seu Lourival e o telhado do Tio Juca (a arte do
+// objeto de sempre) e o trecho do píer (que fica com as tábuas novas depois do conserto).
+const estragoDe = E => E && (E.local || E.estrago);
+// A arte do lugar do serviço agora: o estrago com o serviço aberto; depois do conserto, a consertada (se tiver); senão, a de sempre.
+function arteDoServico(id, normal) {
+  const L = estragoDe(EMPREITAS_CURTAS[id]); if (!L || !L.arte) return normal;
+  if (G.empreitas && G.empreitas.aceitas[id]) return L.arte;
+  if (L.consertada && G.empreitas && G.empreitas.consertados && G.empreitas.consertados[id]) return L.consertada;
+  return L.inteira || normal;
+}
+function entregaNoObjeto(id) {
+  const E = EMPREITAS_CURTAS[id]; if (!G.empreitas || !G.empreitas.aceitas[id]) return false;
+  const falta = Object.entries(E.material).filter(([m, q]) => G.mochila.total(m) < q);
+  if (falta.length) { avisar(`${E.nome}: traga ${falta.map(([m, q]) => Itens.qtd(q - G.mochila.total(m), m)).join(', ')}${typeof LOJA !== 'undefined' && falta.every(([m]) => LOJA.PRECOS[m] !== undefined) ? ' (o depósito do Seu Ananias vende)' : ''}.`); return false; }
+  golpeEmpreita(id, E.ferramenta); return true;
+}
+if (typeof LUZES !== 'undefined') LUZES['objetos/casa_juca_telhado'] = LUZES['objetos/casa_juca'];   // (o mesmo quadro da casa de sempre)
+function poeEstragos(b) {
+  for (const id in EMPREITAS_CURTAS) {
+    const E = EMPREITAS_CURTAS[id], L = estragoDe(E); if (!L || !L.arte || E.mapa !== b.id || L.chao) continue;   // (o chão: o desenhaChao do mapa pergunta)
+    if (L.objeto) { const o = b.objs.find(x => x.id === L.objeto); if (o) { if (!o.nomeDeSempre) o.nomeDeSempre = o.nome; o.nome = arteDoServico(id, o.nomeDeSempre);
+      // a entrega no próprio objeto (as telhas na casa do Tio Juca): o botão direito nele entrega; sem o material, avisa e segue o de sempre
+      if (L.noObjeto && !o.acaoDeSempre) { o.acaoDeSempre = o.acao; o.acao = (...a) => entregaNoObjeto(id) || o.acaoDeSempre(...a); } } continue; }
+    const nome = arteDoServico(id, null), A = L.area; if (!nome) continue;
+    if (L.piso) {
+      const R = L.retalho || A;
+      b.objs.push({ tipo: 'enfeite', nome, servicoLocal: id, solido: false, x: (R.x + R.w / 2) * TILE, y: R.y * TILE,
+        desenha(ctx) { const img = spr(nome); if (img) ctx.drawImage(img, R.x * TILE, R.y * TILE, R.w * TILE, R.h * TILE); } });
+      continue;
+    }
+    for (const t of L.trechos || [{ x: A.x, w: A.w }]) {
+      const pe = (A.y + A.h) * TILE, cx = (t.x + t.w / 2) * TILE;
+      const o = { tipo: 'enfeite', nome, servicoLocal: id, solido: true, x: cx, y: pe, tiles: [],
+        desenha(ctx) { const img = spr(nome); if (!img) return; ctx.save(); ctx.translate(cx, pe); if (t.espelho) ctx.scale(-1, 1); ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight); ctx.restore(); } };
+      o.caixa = { x: t.x * TILE + 4, y: pe - 24, w: t.w * TILE - 8, h: 18 };   // (só o pé da cerca bloqueia)
+      b.solidos.push(o.caixa);
+      for (let i = 0; i < t.w; i++) { const k = chaveT(t.x + i, A.y + A.h - 1); o.tiles.push({ x: t.x + i, y: A.y + A.h - 1 }); if (!b.ocupado.has(k)) b.ocupado.set(k, o); }
+      b.objs.push(o);
+    }
+  }
+}
+// A luz no contorno do lugar do serviço aceito (todo dia, até ficar pronto): brilho suave pulsando, por código. No chão (a
+// calçada, a ponte, o píer), por baixo de quem pisa; na cerca, em volta dela toda, por cima.
+EXTRAS_MUNDO.push(m => {
+  if (!G.empreitas) return [];
+  const r = [];
+  for (const id in G.empreitas.aceitas) {
+    const E = dadosEmpreita(id), L = estragoDe(E); if (!L || E.mapa !== m.id || !(L.area || L.luz)) continue;
+    if (L.luz) {   // (o objeto de pé: a banca, o telhado) em volta dele, por cima
+      const R = L.luz, x = R.x * TILE, y = R.y * TILE, w = R.w * TILE, h = R.h * TILE, o = L.objeto && m.objs.find(q => q.id === L.objeto);
+      r.push({ y: (o ? o.y : y + h) + 1, realceServico: id, desenha(ctx) { desenhaLuzDoServico(ctx, x, y, w, h); } });
+      continue;
+    }
+    const A = L.area, alto = L.trechos ? (spr(L.arte) ? spr(L.arte).naturalHeight : TILE) : 0;
+    const x = A.x * TILE, y = (A.y + A.h) * TILE - Math.max(A.h * TILE, alto + 6), w = A.w * TILE, h = (A.y + A.h) * TILE - y;
+    r.push({ y: alto ? (A.y + A.h) * TILE + 1 : A.y * TILE + 1, realceServico: id, desenha(ctx) { desenhaLuzDoServico(ctx, x, y, w, h); } });
+  }
+  return r;
+});
+function desenhaLuzDoServico(ctx, x, y, w, h) {
+  const p = 0.5 + 0.5 * Math.sin((G.agora || 0) * 3.2);
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(x + 2, y + 2, w - 4, h - 4, 12);
+  ctx.fillStyle = `rgba(255,232,150,${(0.07 + 0.07 * p).toFixed(3)})`; ctx.fill();
+  ctx.shadowColor = 'rgba(255,214,96,.95)'; ctx.shadowBlur = 8 + 10 * p;
+  ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,228,128,${(0.45 + 0.35 * p).toFixed(3)})`; ctx.stroke();
+  ctx.restore();
+}
 function poeEmpreitasNoMapa(b) {
-  for (const o of b.objs.filter(o => o.empreita || o.empreitaDet || o.feita)) b.tirar(o);
+  for (const o of b.objs.filter(o => o.empreita || o.empreitaDet || o.feita || o.servicoLocal)) b.tirar(o);
+  poeEstragos(b);
   if (!G.empreitas) return;
   // As obras entregues ficam no mapa (a Vila cresce com o que o Jocelino constrói); pegar de novo vira reforma.
   for (const id in G.empreitas.feitas || {}) {
@@ -64,7 +137,7 @@ function poeEmpreitasNoMapa(b) {
     if (!E || E.mapa !== b.id) continue;
     if (E.tipo === 'longa' && !E.bairro && !E.familia) limparLote(b, E);
     const p = lugarLivre(b, E.x, E.y);
-    if (E.tipo === 'curta' && E.local) continue;   // o serviço no lugar de verdade: sem plaquinha
+    if (E.tipo === 'curta' && (E.local || (E.estrago && E.estrago.noObjeto))) continue;   // o serviço no lugar de verdade (ou no próprio objeto): sem plaquinha
     if (E.tipo === 'curta') {
       const o = b.interativo('emp_' + id, 'objetos/plaquinha', p.x, p.y, 1, 1, [8, 6]);
       o.empreita = id;
@@ -100,12 +173,19 @@ function poeEmpreitasNoMapa(b) {
   if (typeof poeBairro === 'function' && b.id === 'bairro') poeBairro(b);
 }
 // O golpe no lugar de verdade do serviço (a ponte, o píer, a banca, a cerca, a calçada): conta como o golpe do serviço.
-function golpeNoLocal(ferr, alvo) {
+function golpeNoLocal(ferr, alvo, vistos = null) {
   if (!G.empreitas) return false;
   for (const cid in G.empreitas.aceitas) {
     const E = dadosEmpreita(cid); if (!E || !E.local || E.mapa !== G.mapaId) continue;
     const A = E.local.area; if (alvo.x < A.x || alvo.x >= A.x + A.w || alvo.y < A.y || alvo.y >= A.y + A.h) continue;
-    if (ferr === E.ferramenta && typeof lascas === 'function') lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, ferr === 'pa' ? 'terra' : 'madeira');
+    if (vistos) { if (vistos.has('servico_' + cid)) return true; vistos.add('servico_' + cid); }   // (a pá reforçada pega 3 ladrilhos: conta um golpe só)
+    // (14/10, relato do jogador: "tem que usar o machado ali, eu só sabia porque já tinha feito outra vez") A ferramenta errada
+    // no lugar do serviço diz qual é a certa.
+    if (ferr !== E.ferramenta) {
+      const nome = NOME_FERRAMENTA[E.ferramenta] || E.ferramenta, naFerraria = G.ferreiro && G.ferreiro.oficina && G.ferreiro.oficina.id === E.ferramenta;
+      sons.tocar('madeira', 1.6, 0.05, -10); avisar(`Aqui é com ${nome}${naFerraria ? ', que está com o Seu Tonico na ferraria' : ''}.`); return true;
+    }
+    if (typeof lascas === 'function') lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, ferr === 'pa' ? 'terra' : 'madeira');
     golpeEmpreita(cid, ferr); return true;
   }
   return false;

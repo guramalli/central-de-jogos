@@ -371,6 +371,7 @@ function textoSobra(sobra) {
 function clientesHoje() { return G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0) + (typeof Gremio !== 'undefined' ? Gremio.clientesExtra(G.dia) : 0); }
 function iniciarJanta() {
   G.turno = new TurnoJanta();
+  G.turno.rotatividade = true;   // (14/10, o Dave) chegadas espaçadas, banco sorteado sem louça, o cliente entra e sai andando
   G.turno._nichos = G.pensao.pratosDaNoite().slice();   // (onda final) a ordem dos nichos da noite: cada prato fica no nicho dele
   // (o cardápio do Bancho) A janta começou por outro caminho com o quadro da abertura aberto: o quadro sai (sem o aviso de espera).
   if ($('#modal .quadro-cardapio')) { _aoFecharModal = null; fecharModal(); }
@@ -400,6 +401,12 @@ function iniciarJanta() {
   }
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
+  // (14/10, os sons) já baixa os sons da janta; a inauguração e as noites de festa abrem com rojão e a plateia
+  sons.preparar(SONS_DA_JANTA);
+  // (14/10) a folha de andar de cada freguês da noite (moradores e avulsos) já começa a baixar: ninguém entra sem a arte dele
+  // (sem a folha pronta, o Personagem só não aparece; nunca com a arte de outro)
+  if (typeof precarregarArtes === 'function') precarregarArtes([...new Set(G.turno._fila.map(f => `personagens/${f.cliente.id}/andar`))]);
+  if (inauguracao || festaPatrimonio || festa) tocarSomDoEvento({ tipo: 'inauguracao' });
   if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome} vale 50% mais.`);
   if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
   if (G.turno.moradores && G.turno.moradores.length) avisar(`Hoje é dia de ${G.turno.moradores.map(c => c.nome).join(' e ')} jantar na pensão.`);
@@ -413,6 +420,11 @@ function encerrarJanta() {
   if (!G.turno) return;
   const inaug = G.turno.inauguracao, r = G.turno.fechar();
   const total = r.ganho + r.gorjeta;
+  // (14/10, os sons do Dave) A janta acabou: a vinheta de samba toca já. Com o fechamento do caixa na tela, os sons da noite
+  // (o degrau, as receitas, o Paladar) ficam para a contagem dele, um de cada vez; sem fechamento (salão antigo), tocam aqui.
+  const comFechamento = typeof noPalco === 'function' && noPalco() && typeof abrirFechamento === 'function';
+  const somFim = (...a) => { if (!comFechamento) sons.tocar(...a); };
+  if (noSalaoDaPensao()) tocarSomDoEvento({ tipo: 'fim_janta' });
   if (r.convidados && G.feitosHoje) G.feitosHoje.push(inaug ? `A inauguração da Pensão da Rosa: ${r.convidadosServidos || 0} de ${r.convidados} convidados bem servidos. A Vila já sabe o caminho!` : `Os convidados da festa: ${r.convidadosServidos || 0} de ${r.convidados} bem servidos.`);
   G.dinheiro += total; G.ganhoHoje += total;
   // O cliente especial e os pedidos da Vila. Receitas novas da noite: a do VIP bem servido, a da festa e as do degrau.
@@ -433,26 +445,26 @@ function encerrarJanta() {
   if (r.paladar && typeof Paladar !== 'undefined') {
     const p = G.pensao; p.garfos = Math.max(p.garfos || 0, r.paladar); p.paladarNotas.push({ dia: G.dia, nota: r.paladar });
     CARTAS['paladar_' + G.dia] = { de: 'Gazeta de Santos', dia: G.dia + 1, texto: Paladar.materia(r.paladar) };
-    avisar(`O cliente de chapéu-coco era o Doutor Paladar, da Gazeta! Nota: ${r.paladar} ${r.paladar === 1 ? 'garfo' : 'garfos'}. A matéria sai amanhã.`); sons.tocar(r.paladar >= 4 ? 'fanfarra' : 'cliente_hmpf', 1, 0, -4);
+    avisar(`O cliente de chapéu-coco era o Doutor Paladar, da Gazeta! Nota: ${r.paladar} ${r.paladar === 1 ? 'garfo' : 'garfos'}. A matéria sai amanhã.`); somFim(r.paladar >= 4 ? 'fanfarra' : 'cliente_hmpf', 1, 0, -4);
   }
   const fama = TurnoJanta.paraFama(r);   // (o cardápio do Bancho) o prato da casa não conta para a fama, as pitadas nem o chef
   r.subiu = G.pensao.registrarNoite(fama.estrelas, G.dia, r.curtidas);
   if (!r.subiu && G.pensao.grau() > grauAntes) r.subiu = G.pensao.grau();
   // A Rosa ganha experiência com cada prato que saiu.
   if (typeof Chef !== 'undefined') { const c = Chef.ganhar(G.pensao, fama.servidos); r.chef = c;
-    if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); sons.tocar('rosa_animada', 1, 0.05, -2); }
-    for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); sons.tocar('fanfarra', 1.1, 0, -4); } }
+    if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); somFim('rosa_animada', 1, 0.05, -2); }
+    for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); somFim('fanfarra', 1.1, 0, -4); } }
   r.pitadasGanhas = G.pensao.pitadas - pit0;
   if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), r.favoritos);
   r.aprendidas.push(...G.pensao.liberarDoDegrau());
-  for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); sons.tocar('fanfarra', 1.15, 0, -6); }
+  for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); somFim('fanfarra', 1.15, 0, -6); }
   // A despesa da noite do degrau (gás, gelo, luz), como a do Cooksta.
   r.despesa = G.pensao.despesa(); r.salarios = typeof Equipe !== 'undefined' ? Equipe.salarios(G.pensao) : 0;
   const custo = Math.min(r.despesa + r.salarios, Math.max(0, G.dinheiro));   // nunca deixa o bolso negativo
   G.dinheiro -= custo; G.ganhoHoje -= custo; r.custo = custo;
   // As metas da noite (servir, bebida na medida, nota) e as de estado.
   if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); }
-  if (r.subiu) { sons.tocar('fanfarra', 1, 0, -2); avisar(`A pensão ganhou mais uma estrela: agora é ${G.pensao.nomeComEstrelas(r.subiu)}!`); }
+  if (r.subiu) { somFim('degrau_fanfarra', 1, 0, -2); avisar(`A pensão ganhou mais uma estrela: agora é ${G.pensao.nomeComEstrelas(r.subiu)}!`); }
   // (o cardápio do Bancho, 13/10) A sobra da panela foi para o lixo no fechar (r.sobra = { prato: porções }); a marmita do
   // Jocelino a Rosa faz de manhã.
   G.relatorioPensao = r;
@@ -482,9 +494,8 @@ ATUALIZADORES.push(dt => {
   for (const ev of t.eventos) {
     // (as cenas de prato) o VIP cansou de esperar e foi embora: a vaga de cena guardada para ele volta para a noite
     if (ev.tipo === 'embora' && ev.cliente && ev.cliente.mania === 'vip' && typeof CenaPrato !== 'undefined') CenaPrato.soltarVaga(t);
-    if (ev.tipo === 'pronto' && noSalao) { if (!noPalco()) mostrarCenaRosa(ev.prato); sons.tocar('prato_tchan', 1, 0.05, -4); }
+    if (ev.tipo === 'pronto' && noSalao) { if (!noPalco()) mostrarCenaRosa(ev.prato); }
     else if (ev.tipo === 'pagou' && noSalao) {
-      sons.tocar(SONS_LISTA.some(n => n.startsWith('moedas')) ? 'moedas' : 'dinheiro', 1.1, 0.05, -6);
       if (noPalco() && typeof flutuar === 'function' && PALCO.ASSENTOS[ev.mesa]) {
         const A = PALCO.ASSENTOS[ev.mesa]; flutuar(A.x, A.y - 200, `+Cr$ ${ev.valor}`, '#ffd34d');
         if (ev.estrelas >= 4) setTimeout(() => flutuar(A.x + 30, A.y - 230, '+1 ❤ curtida', '#ff7a8a'), 250);
@@ -492,23 +503,27 @@ ATUALIZADORES.push(dt => {
     }
     else if (ev.tipo === 'embora') {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
-      if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
-      else if (noSalao) { avisar(ev.louca ? `${ev.cliente.nome} não aguentou a louça suja do lado e foi embora.` : `${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); sons.tocar('cliente_hmpf', 1, 0.08, -4); }
-    } else if (ev.tipo === 'louca' && noSalao) { avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`); sons.tocar('cliente_eca', 1, 0.08, -6);
-    } else if (ev.tipo === 'ultima_rodada' && noSalao) { avisar('A Rosa bate o sino: "Última rodada!" Quem chegar agora pede mais bebida.'); if (SONS_LISTA.includes('sino_ultima_rodada')) sons.tocar('sino_ultima_rodada', 1, 0, -2); else sons.tocar('fanfarra', 1.4, 0, -10);
+      if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; ev.semSom = true; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
+      else if (noSalao) { avisar(ev.louca ? `${ev.cliente.nome} não aguentou a louça suja do lado e foi embora.` : `${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); }
+    } else if (ev.tipo === 'louca' && noSalao) { avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`);
+    } else if (ev.tipo === 'ultima_rodada' && noSalao) { avisar('A Rosa bate o sino: "Última rodada!" Quem chegar agora pede mais bebida.');
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
     // (o cardápio do Bancho) a panela que acabou: a Rosa repõe, ou o prato sai do quadro; quem fica sem prato leva o prato da casa
     else if (ev.tipo === 'panela' && noSalao) avisar(`A panela de ${Pensao.prato(ev.prato).nome} acabou: a Rosa já fez outra.`);
     else if (ev.tipo === 'prato_saiu' && noSalao) avisar(`${Pensao.prato(ev.prato).nome} acabou${ev.motivo === 'faltou' ? ' e falta ingrediente para outra panela' : ''}: saiu do quadro.${G.pensao.pratosDaNoite().length ? '' : ` Quem chegar agora leva o prato da casa (${ECO.pensao.pratoCasa.nome}).`}`);
     else if (ev.tipo === 'casa' && noSalao && !t._avisouCasa) { t._avisouCasa = true; avisar(`${ev.cliente.nome} levou o prato da casa (${ECO.pensao.pratoCasa.nome}): barato e sem curtida. Mais panelas no quadro, mais prato de verdade.`); }
-    else if (ev.tipo === 'vip_faltou' && noSalao) { avisar(`${ev.cliente.nome} queria ${Pratos.PRATOS[ev.prato].nome} e não tinha! Foi embora decepcionado.`); sons.tocar('cliente_hmpf', 0.9, 0.05, -2); }
+    else if (ev.tipo === 'vip_faltou' && noSalao) { avisar(`${ev.cliente.nome} queria ${Pratos.PRATOS[ev.prato].nome} e não tinha! Foi embora decepcionado.`); }
     else if (ev.tipo === 'chegou' && noSalao && ev.cliente.morador) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.fala}"`); }
-    else if (ev.tipo === 'favorito' && noSalao) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.elogio}" (+1 ❤ de amizade)`); sons.tocar('rosa_animada', 1.2, 0.05, -8);
+    else if (ev.tipo === 'favorito' && noSalao) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.elogio}" (+1 ❤ de amizade)`);
       if (noPalco() && PALCO.ASSENTOS[ev.mesa]) { const A = PALCO.ASSENTOS[ev.mesa]; setTimeout(() => flutuar(A.x - 30, A.y - 260, '+1 ❤ amizade', '#ff5d7a'), 500); } }
-    else if (ev.tipo === 'zezinho_cocada' && noSalao) { avisar('Zezinho: "Eu? Que cocada? Não vi cocada nenhuma..." (sumiu uma porção de cocada da panela)'); sons.tocar('cliente_hmpf', 1.4, 0.05, -8); }
+    else if (ev.tipo === 'zezinho_cocada' && noSalao) { avisar('Zezinho: "Eu? Que cocada? Não vi cocada nenhuma..." (sumiu uma porção de cocada da panela)'); }
     // (as cenas de prato, 14/10) o prato especial entregue: as faixas de cinema descem e a cena toca (o jogo pausa)
-    else if (ev.tipo === 'servido' && noSalao && typeof CenaPrato !== 'undefined') CenaPrato.aoServir(t, ev);
-    else if (ev.tipo === 'vip_servido' && noSalao) { avisar(`${ev.cliente.nome}: "${vipDe(ev.cliente.id).frase}"`); sons.tocar('fanfarra', 1.1, 0, -6); }
+    else if (ev.tipo === 'servido' && noSalao && typeof CenaPrato !== 'undefined') ev.cena = CenaPrato.aoServir(t, ev);
+    else if (ev.tipo === 'vip_servido' && noSalao) { avisar(`${ev.cliente.nome}: "${vipDe(ev.cliente.id).frase}"`); }
+    // (14/10) gostou (4★ ou mais, prato certo): os corações sobem da cabeça dele (a cena de prato tem a reação dela)
+    if (ev.tipo === 'servido' && noSalao && !ev.cena && ev.certo !== false && ev.estrelas >= 4 && typeof coracaoNoPalco === 'function' && noPalco()) coracaoNoPalco(ev.mesa);
+    // (14/10, os sons do Dave) o som de cada evento: somDoEvento (sons.js), com a moderação do sons.tocar
+    if (noSalao) tocarSomDoEvento(ev);
   }
   t.eventos = [];
   sincronizaClientes();

@@ -15,16 +15,37 @@ const MUSICAS = {
   festa: ['musica_festa'],                                                // (guardada para a festa; hoje nada a chama)
 };
 const VOLUME_EFEITO = { passo_grama: -12, passo_chao: -14, passo_madeira: -12, letra: -6, cursor: -4, golpe: -4, foice: -2, dinheiro: -2 };
-const SONS_INTERFACE = ['cursor', 'abrir', 'fechar', 'letra', 'feito', 'erro', 'dinheiro'];
+const SONS_INTERFACE = ['cursor', 'abrir', 'fechar', 'letra', 'feito', 'erro', 'dinheiro', 'contagem_dinheiro', 'estrela_1', 'estrela_2', 'estrela_3', 'estrela_4', 'estrela_5'];
+// (14/10, o jogador: "os sons do restaurante estão muito calmos") A pensão barulhenta do sushi bar do Dave: campainha do pedido,
+// chapa chiando, caixa registradora, reação do cliente, burburinho do salão, vinheta nas cenas de prato e a comemoração do fim
+// da noite. Os arquivos vêm de um pacote de sons (ainda por escolher): enquanto um deles não existe, toca o som antigo que fazia
+// o papel dele (a reserva: [nome, tom, dB a mais]); sem reserva, simplesmente não toca (nunca dá erro).
+const SONS_RESERVA = {
+  caixa_registradora: ['moedas', 1.1, 0], gorjeta: ['moedas', 1.25, -2], contagem_dinheiro: ['moedas', 1.15, -2],
+  cliente_delicia: ['cliente_hmm', 1.05, 0], cliente_bravo: ['cliente_hmpf', 1, 0],
+  cena_ploft: ['quica', 1, 0], cena_faca: ['golpe', 1.2, 0], cena_tchan: ['prato_tchan', 1, 0], cena_plateia: ['fanfarra', 1, 0],
+  estrela_1: ['na_medida', 1, -4], estrela_2: ['na_medida', 1.12, -4], estrela_3: ['na_medida', 1.26, -4], estrela_4: ['na_medida', 1.41, -4], estrela_5: ['na_medida', 1.59, -4],
+  degrau_fanfarra: ['fanfarra', 1, 0], festa_rojao: ['fanfarra', 1, 0],
+};
+// A moderação: o mesmo som não volta antes deste intervalo (s; o padrão é SOM_INTERVALO_PADRAO) e nunca há mais de SONS_MAX_VOZES
+// efeitos soando juntos (o que passar disso fica de fora: nada tocando por cima de tudo).
+const SONS_INTERVALO = { pedido_campainha: 0.5, caixa_registradora: 0.3, gorjeta: 0.4, cliente_delicia: 1.2, cliente_hmm: 0.8, cliente_bravo: 0.8,
+  cliente_eca: 0.8, chapa_chiado: 2, prato_tchan: 0.3, noite_comemora: 5, festa_rojao: 3, degrau_fanfarra: 2 };
+const SOM_INTERVALO_PADRAO = 0.06, SONS_MAX_VOZES = 7;
 const sons = {
-  ctx: null, bus: {}, buffers: new Map(), musicaAtual: '', _fonteMusica: null, _ganhoMusica: null,
+  ctx: null, bus: {}, abafo: {}, buffers: new Map(), musicaAtual: '', _fonteMusica: null, _ganhoMusica: null,
   volumes: { musica: 70, ambiente: 80, efeitos: 80, interface: 60 },
+  _quando: {}, _vozes: 0,
   iniciar() {
     if (!MODO_TESTE.som) return;   // modo de teste (?test=1): sem áudio nenhum (nada toca, nada é baixado)
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); return; }
     try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     const mestre = this.ctx.createGain(); mestre.connect(this.ctx.destination);
-    for (const b of ['musica', 'ambiente', 'efeitos', 'interface']) { const g = this.ctx.createGain(); g.connect(mestre); this.bus[b] = g; }
+    // música e ambiente passam por um "abafo" (abafar(): a vinheta do fim da noite e a cena de prato baixam o resto)
+    for (const b of ['musica', 'ambiente', 'efeitos', 'interface']) {
+      const g = this.ctx.createGain(); this.bus[b] = g;
+      if (b === 'musica' || b === 'ambiente') { const a = this.ctx.createGain(); g.connect(a); a.connect(mestre); this.abafo[b] = a; } else g.connect(mestre);
+    }
     this.aplicarVolumes();
   },
   aplicarVolumes() { for (const b in this.bus) this.bus[b].gain.value = (this.volumes[b] / 100) ** 2; },
@@ -34,21 +55,51 @@ const sons = {
     const v = SONS_LISTA.filter(s => s.startsWith(nome + '_') && /^\d+$/.test(s.slice(nome.length + 1)));
     return v.length ? v : (SONS_LISTA.includes(nome) ? [nome] : []);
   },
+  // O que de fato toca para um nome: as gravações dele; sem nenhuma, as da reserva (com o tom e o volume dela); sem as duas, null.
+  resolver(nome) {
+    const vs = this.variacoes(nome);
+    if (vs.length) return { arqs: vs, tom: 1, db: 0, nome };
+    const r = SONS_RESERVA[nome], rv = r ? this.variacoes(r[0]) : [];
+    return rv.length ? { arqs: rv, tom: r[1], db: r[2], nome: r[0] } : null;
+  },
   async buffer(arq) {
     if (!this.buffers.has(arq)) this.buffers.set(arq, fetch('a/som/' + arq + '.mp3?v=' + VERSAO_ARTE).then(r => r.arrayBuffer()).then(b => this.ctx.decodeAudioData(b)).catch(() => null));
     return this.buffers.get(arq);
   },
+  // Já baixa (sem tocar) os sons de uma lista: a janta não espera o arquivo chegar na hora do "ka-ching".
+  preparar(nomes) { if (!this.ctx) return; for (const n of nomes) { const r = this.resolver(n); if (r) for (const a of r.arqs) this.buffer(a); } },
+  // Toca um efeito; devolve a duração (s) do que tocou, ou 0 (sem som, sem arquivo, repetido cedo demais, vozes demais).
+  // Cada vez varia um pouco o tom (variacao) e o volume (±1,5 dB), para não cansar.
   async tocar(nome, tom = 1, variacao = 0.08, db = 0) {
-    if (!this.ctx || !G.somLigado) return;
-    const vs = this.variacoes(nome);
-    if (!vs.length) return;
-    const buf = await this.buffer(sorteio(vs));
-    if (!buf) return;
+    if (!this.ctx || !G.somLigado) return 0;
+    const r = this.resolver(nome);
+    if (!r) return 0;
+    const agora = this.ctx.currentTime, ult = this._quando[nome];
+    if (ult != null && agora - ult < (SONS_INTERVALO[nome] ?? SOM_INTERVALO_PADRAO)) return 0;
+    if (this._vozes >= SONS_MAX_VOZES) return 0;
+    this._quando[nome] = agora;
+    const buf = await this.buffer(sorteio(r.arqs));
+    if (!buf) return 0;
     const f = this.ctx.createBufferSource(); f.buffer = buf;
-    f.playbackRate.value = tom * (1 + rnd(-variacao, variacao));
-    const g = this.ctx.createGain(); g.gain.value = Math.pow(10, (db + (VOLUME_EFEITO[nome] || 0)) / 20);
+    f.playbackRate.value = tom * r.tom * (1 + rnd(-variacao, variacao));
+    const g = this.ctx.createGain(); g.gain.value = Math.pow(10, (db + r.db + (VOLUME_EFEITO[r.nome] || 0) + (variacao > 0 ? rnd(-1.5, 1.5) : 0)) / 20);
     f.connect(g); g.connect(this.bus[SONS_INTERFACE.includes(nome) ? 'interface' : 'efeitos']);
+    this._vozes++; f.onended = () => { this._vozes = Math.max(0, this._vozes - 1); };
     f.start();
+    return buf.duration / f.playbackRate.value;
+  },
+  // Baixa a música e o ambiente para `nivel` durante `seg` segundos (entra em 0,3 s, volta em 1,2 s): a vinheta passa por cima.
+  // abafar(0): devolve já (a cena pulada no meio).
+  // vinhetaResta(): quantos segundos faltam da vinheta do fim da noite (0 sem áudio): a fanfarra do degrau espera ela acabar.
+  _vinhetaAte: 0,
+  vinhetaResta() { return this.ctx ? Math.max(0, this._vinhetaAte - this.ctx.currentTime) : 0; },
+  abafar(seg, nivel = 0.25) {
+    if (!this.ctx) return;
+    const t0 = this.ctx.currentTime;
+    for (const b in this.abafo) { const p = this.abafo[b].gain;
+      p.cancelScheduledValues(t0); p.setValueAtTime(p.value, t0);
+      if (!(seg > 0)) { p.linearRampToValueAtTime(1, t0 + 0.6); continue; }
+      p.linearRampToValueAtTime(nivel, t0 + 0.3); p.setValueAtTime(nivel, t0 + 0.3 + seg); p.linearRampToValueAtTime(1, t0 + 1.5 + seg); }
   },
   // Uma faixa inteira (sem laço), com troca suave (MUSICA_TROCA s): a anterior some enquanto esta entra. fadeFim: a faixa
   // some sozinha nos 3 s finais (fora da pensão, antes do silêncio). nome vazio: só apaga a que está tocando.
@@ -85,13 +136,14 @@ const sons = {
     this._posMusica += (t - this._tMusica) * r; this._tMusica = t;
     return Math.max(0, (this._durMusica - this._posMusica) / r);
   },
-  // Ambiente em laço (pássaros, vento): cada um com o próprio volume, que muda devagar (1 s).
+  // Ambiente em laço (pássaros, vento, o burburinho da pensão): cada um com o próprio volume, que muda devagar (rampa, em s).
+  // Laço que não existe na SONS_LISTA não toca (nem é baixado).
   _amb: {},
-  async ambiente(nome, alvo) {
+  async ambiente(nome, alvo, rampa = 1) {
     if (!this.ctx) return;
     let a = this._amb[nome];
     if (!a) {
-      if (alvo <= 0) return;
+      if (alvo <= 0 || typeof SONS_LISTA === 'undefined' || !SONS_LISTA.includes(nome)) return;
       a = this._amb[nome] = { g: this.ctx.createGain(), carregando: true };
       a.g.gain.value = 0; a.g.connect(this.bus.ambiente);
       const buf = await this.buffer(nome);
@@ -101,7 +153,7 @@ const sons = {
     }
     a.g.gain.cancelScheduledValues(this.ctx.currentTime);
     a.g.gain.setValueAtTime(a.g.gain.value, this.ctx.currentTime);
-    a.g.gain.linearRampToValueAtTime(Math.max(0, alvo), this.ctx.currentTime + 1);
+    a.g.gain.linearRampToValueAtTime(Math.max(0, alvo), this.ctx.currentTime + rampa);
   },
   // Som avulso do ambiente (um canto, uma rajada), num lado sorteado da tela: quebra a repetição do laço de fundo.
   async avulso(nome, lado = 0, db = -6) {
@@ -173,10 +225,66 @@ setInterval(() => {
   sons.ambiente('amb_dia', fora && dia ? 0.45 : (dia ? 0.06 : 0));
   sons.ambiente('amb_noite', fora && !dia ? 0.5 : (!dia ? 0.07 : 0));
   sons.ambiente('amb_vento', fora ? 0.1 + 0.25 * vento : 0);
+  atualizarAmbientePensao();
   // Cantos avulsos de dia, em horas sorteadas e de lados diferentes (nunca o mesmo desenho do laço).
   _proxCanto -= 1;
   if (fora && dia && _proxCanto <= 0) { _proxCanto = Math.round(rnd(6, 18)); sons.avulso(sorteio(['avulso_bemtevi', 'avulso_sabia', 'avulso_rolinha']), rnd(-0.85, 0.85), rnd(-12, -5)); }
 }, 1000);
+// ---------- a pensão barulhenta (14/10, o Dave: o sushi bar é barulhento e divertido) ----------
+// O som de cada evento da janta, como um plano: [[atraso s, nome, tom, variação, dB], ...]. Lógica pura (a s38 confere sem áudio).
+// ev.semSom: o evento já foi contado de outro jeito (o cliente foi embora com o prato na mão do Jocelino).
+function somDoEvento(ev) {
+  if (!ev || ev.semSom) return [];
+  switch (ev.tipo) {
+    case 'pediu': return [[0, 'pedido_campainha', 1, 0.06, -6]];                       // o "plim plim" do balcão
+    case 'pronto': return [[0, 'prato_tchan', 1, 0.05, -4]];                           // a Rosa põe o prato no passe
+    // o prato chegou: o cliente prova (a cena de prato tem a plateia dela: aí não há reação por cima)
+    case 'servido': if (ev.cena) return [];
+      return [[0.45, ev.certo === false || ev.reacao === 'nojo' ? 'cliente_eca' : (ev.estrelas >= 4 ? 'cliente_delicia' : 'cliente_hmm'), 1, 0.1, -4]];
+    // pagou: a caixa registradora; no salão antigo a gorjeta entra junto (no balcão ela fica em moedas até o Jocelino recolher)
+    case 'pagou': return ev.modo === 'antigo' && ev.gorjeta > 0 ? [[0, 'caixa_registradora', 1, 0.05, -6], [0.35, 'gorjeta', 1, 0.08, -6]] : [[0, 'caixa_registradora', 1, 0.05, -6]];
+    case 'gorjeta': return [[0, 'gorjeta', 1, 0.08, -6]];                               // as moedinhas do balcão recolhidas
+    case 'embora': return [[0, 'cliente_bravo', 1, 0.08, -4]];
+    case 'vip_faltou': return [[0, 'cliente_bravo', 0.9, 0.05, -2]];
+    case 'louca': return [[0, 'cliente_eca', 1, 0.08, -6]];
+    case 'ultima_rodada': return SONS_LISTA.includes('sino_ultima_rodada') ? [[0, 'sino_ultima_rodada', 1, 0, -2]] : [[0, 'fanfarra', 1.4, 0, -10]];
+    case 'favorito': return [[0, 'rosa_animada', 1.2, 0.05, -8]];
+    case 'zezinho_cocada': return [[0, 'cliente_hmpf', 1.4, 0.05, -8]];
+    case 'vip_servido': return [[0, 'fanfarra', 1.1, 0, -6]];
+    case 'inauguracao': return [[0, 'festa_rojao', 1, 0.03, -2]];                      // a janta da inauguração começou
+    case 'fim_janta': return [[0, 'noite_comemora', 1, 0, -3]];                        // a vinheta de samba antes do fechamento
+  }
+  return [];
+}
+// Toca o plano de um evento (o atraso por setTimeout). A vinheta do fim da noite abafa a música e o ambiente enquanto toca.
+function tocarSomDoEvento(ev) {
+  for (const [atraso, nome, tom, vari, db] of somDoEvento(ev)) {
+    const vai = () => { const p = sons.tocar(nome, tom, vari, db);
+      if (nome === 'noite_comemora') Promise.resolve(p).then(d => { if (d > 0 && sons.ctx) { sons.abafar(d); sons._vinhetaAte = sons.ctx.currentTime + d; } }); };
+    if (atraso > 0) setTimeout(vai, atraso * 1000); else vai();
+  }
+}
+// Os sons que a janta usa: já baixados no "Abrir a pensão".
+const SONS_DA_JANTA = ['pedido_campainha', 'prato_tchan', 'servir', 'cliente_delicia', 'cliente_hmm', 'cliente_eca', 'caixa_registradora', 'gorjeta',
+  'cliente_bravo', 'chapa_chiado', 'noite_comemora', 'contagem_dinheiro', 'estrela_1', 'estrela_2', 'estrela_3', 'estrela_4', 'estrela_5', 'degrau_fanfarra',
+  'cena_entrada', 'cena_tchan', 'cena_ploft', 'cena_faca', 'cena_borbulha', 'cena_plateia', 'festa_rojao'];
+// O fundo da janta: o burburinho do salão (mais gente, mais alto) e a chapa chiando de leve enquanto a Rosa tem prato no fogo.
+// Fora da janta (ou fora do salão), os dois vão a 0. Lógica pura: devolve { laço: volume alvo }.
+function ambientePensao() {
+  const t = G.turno, sal = !!t && typeof noSalaoDaPensao === 'function' && noSalaoDaPensao();
+  const gente = sal ? (t.mesas || []).filter(m => ['pedido', 'prato', 'comendo'].includes(m.estado)).length : 0;
+  const fogo = sal && ((t.fogo && t.fogo.length > 0) || (t.mesas || []).some(m => m.estado === 'prato' && m.modo === 'antigo' && !m.pronto));
+  return { salao_burburinho: sal ? Math.min(0.4, 0.18 + 0.04 * gente) : 0, chapa_laco: fogo ? 0.16 : 0 };
+}
+let _chapaAcesa = false;
+// Leva o fundo da janta ao volume certo (entra em 2 s; no fim da janta some devagar, em 4 s). A chapa que acende dá um chiado.
+function atualizarAmbientePensao() {
+  const a = ambientePensao();
+  for (const n in a) sons.ambiente(n, a[n], a[n] > 0 ? 2 : 4);
+  if (a.chapa_laco > 0 && !_chapaAcesa) sons.tocar('chapa_chiado', 1, 0.08, -10);
+  _chapaAcesa = a.chapa_laco > 0;
+}
+
 // Passos pelo piso (grama, chão de terra/calçada, madeira dentro da pensão).
 let _passoT = 0;
 ATUALIZADORES.push(dt => {
