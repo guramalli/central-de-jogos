@@ -42,6 +42,15 @@ function venderLoja(id, qtd) {
   return n;
 }
 
+// A legenda da semente na aba Sementes: quanto demora para crescer DE VERDADE para este jogador (Horta.diasPara, com o Agrônomo, como
+// no Pierre do Stardew); tomate e milho dizem que voltam a dar (a rebrota é sempre a mesma espera: o pé volta `rebrota` dias antes).
+function tempoDeCrescer(item) {
+  const cultura = culturaDaSemente(item), c = CULTURAS[cultura];
+  if (!c) return '';
+  const n = Horta.diasPara(cultura), agro = typeof Habilidades !== 'undefined' && Habilidades.tem('agronomo');
+  return `cresce em ${n} ${n === 1 ? 'dia' : 'dias'}${agro ? ' (Agrônomo)' : ''}${c.rebrota ? `, depois dá a cada ${c.rebrota}` : ''}`;
+}
+
 function abrirLoja() {
   const caixa = el('div', { class: 'painel' });
   const desenha = () => {
@@ -61,7 +70,7 @@ function abrirLoja() {
     const falta = typeof compras !== 'undefined' ? compras.falta(G.mochila) : {};
     caixa.append(el('div', { class: 'grade' }, ids.map(id => el('div', { class: 'linha', onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
       el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), falta[id] ? el('span', { style: 'color:var(--destaque)' }, `  (falta ${falta[id]})`) : null,
-        el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco(id))))));
+        el('div', { class: 'tem' }, (_abaLoja === 3 && tempoDeCrescer(id) ? tempoDeCrescer(id) + ' · ' : '') + 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco(id))))));
     caixa.append(el('div', { class: 'rodape' }, dica));
   };
   desenha();
