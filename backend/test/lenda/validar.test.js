@@ -166,3 +166,13 @@ test("v409: no nível alto a folga aguenta Torre/Ecos/missões (Skal 853, dono 6
     assert.equal(conferirProgresso({ nivel: nv + 140, xp: xpPara(nv + 140) }, antes, null, agora).motivo, "xp_absurdo");
   }
 });
+
+test("14/10/2026: nível 1000 (e acima) é aceito — antes o ranking travava em 999", () => {
+  const fase = "Lenda";
+  for (const nivel of [999, 1000, 1500, 5000]) {
+    const r = validarRanking({ nivel, xp: xpPara(nivel), fase });
+    assert.ok(r.ranking, `nível ${nivel}: ${r.erro}`);
+    assert.equal(r.ranking.nivel, nivel);
+  }
+  assert.equal(validarRanking({ nivel: 5001, xp: xpPara(5001), fase }).erro, "Nível inválido.");
+});

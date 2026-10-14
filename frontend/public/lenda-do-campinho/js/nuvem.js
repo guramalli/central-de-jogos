@@ -58,7 +58,7 @@ async function enviaSave(forcar) {
     if (dados.length > 90000) { grande(); NUVEM.enviando = false; return; }
     // v411.4: aba escondida (sessao_unica.js manda por aqui ao esconder) = a página pode ser fechada a qualquer momento:
     // vai como `fechando` (o servidor aceita com 1,5 s do último envio, com teto por conta)
-    const r = await nuvemPede('PUT', '/save', { dados, nivel: Math.max(1, Math.min(999, G.save.nivel | 0)), salvoEm: marca, sessao: NUVEM.sessao, fechando: !!document.hidden });
+    const r = await nuvemPede('PUT', '/save', { dados, nivel: Math.max(1, Math.min(5000, G.save.nivel | 0)), salvoEm: marca, sessao: NUVEM.sessao, fechando: !!document.hidden });
     if (!r.ok && r.status === 400 && /grande demais/i.test((r.dados && r.dados.error) || '')) grande();
     else if (r.ok || (r.status === 409 && r.dados && r.dados.velho)) { /* v411.4: 409 "velho" = a nuvem já tem um save MAIS NOVO desta página — tudo certo */ if (NUVEM.ver === ver) NUVEM.sujo = false; NUVEM.ultimoEnvio = Date.now(); if (NUVEM.pacote && NUVEM.pacote.ver <= ver) NUVEM.pacote.pendente = false; nuvemStatus('☁️ Salvo online'); }
     else if (r.status === 429) recusado = true; // (v411.4: rápido demais — tenta de novo daqui a 11 s, abaixo)
@@ -75,7 +75,7 @@ async function preparaPacote() {
   if (!G.save) return;
   const ver = NUVEM.ver; // (v411.1: a compressão é assíncrona — um pacote mais velho que termina depois não substitui o mais novo)
   const marca = nuvemMarca();
-  try { const dados = await comprime(JSON.stringify(G.save)); if (!NUVEM.pacote || !(NUVEM.pacote.ver > ver)) NUVEM.pacote = { dados, nivel: Math.max(1, Math.min(999, G.save.nivel | 0)), pendente: true, ver, marca }; } catch (e) { }
+  try { const dados = await comprime(JSON.stringify(G.save)); if (!NUVEM.pacote || !(NUVEM.pacote.ver > ver)) NUVEM.pacote = { dados, nivel: Math.max(1, Math.min(5000, G.save.nivel | 0)), pendente: true, ver, marca }; } catch (e) { }
 }
 // v411.4 (revisão 07/10/2026): o envio de fechamento vai marcado `fechando: true` — o servidor aceita com 1,5 s do último
 // envio (o normal precisa de 10 s; antes este caía quase sempre no 429 e o último progresso se perdia).

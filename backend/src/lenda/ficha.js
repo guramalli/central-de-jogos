@@ -48,14 +48,14 @@ export function fichaPublica(s) {
   // (sem o adversário, o lugar e a hora); o nome do personagem, o clube da carreira e o mapa atual não saem mais;
   // o nome do time: o digitado só se passar no filtro (v408, times.js/filtroNome.js); senão o das listas; senão nenhum.
   const exaustoes = (Array.isArray(s.exaustoes) ? s.exaustoes : []).slice(0, 10).map((e) => ({
-    nivel: num(e && e.nivel, 999), em: soDia(e && e.em),
+    nivel: num(e && e.nivel, 5000), em: soDia(e && e.em),
   }));
   const c = s.carreira || {};
   const tp = s.time && typeof s.time === "object" ? timePublico({ nome: s.time.nome, partes: s.time.partes, div: num(s.time.div, 9), titulos: num(s.time.titulos, 999) }) : null;
   const time = tp ? { nome: tp.nome, div: tp.div, titulos: tp.titulos } : null;
   return {
     genero: s.corpo === "f" ? "f" : "m",
-    nivel: num(s.nivel, 999) || 1,
+    nivel: num(s.nivel, 5000) || 1,
     xp: num(s.xp),
     posicao: id(s.posicao),
     classe: id(s.classe),

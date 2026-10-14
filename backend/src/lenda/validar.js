@@ -13,7 +13,7 @@ import { lePartesTime, nomeTimePublico } from "./times.js";
 
 export const LIMITES = {
   saveMaxChars: 90_000, // save comprimido em base64 (o express.json aceita até 100 kB)
-  nivelMax: 999,
+  nivelMax: 5000, // 14/10/2026: era 999 — quem chegava no nível 1000 era recusado ("Nível inválido") e o ranking parava em 999. O jogo não tem teto de nível; xpPara(5000) ≈ 8,7·10^13 < xpMax
   xpMax: 1_000_000_000_000_000, // 10^15 (o nível 999 fica bem abaixo disso)
   moveisMax: 150,
   itensMax: 150,
