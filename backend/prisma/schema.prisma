@@ -95,6 +95,7 @@ model User {
   saudacaoEntrada  String?   // mensagem ao entrar numa sala
   saudacaoSaida    String?   // mensagem ao sair
   missoes          MissaoProgresso[]
+  jocelinoSave     JocelinoSave? // Família Santos (jogo em /jocelino/): save na conta
 
   // ===== Sequência de dias jogados =====
   streakAtual      Int      @default(0)
@@ -784,4 +785,21 @@ model LendaMercadoCota {
   n      Int    @default(0)
 
   @@id([userId, dia])
+}
+
+// ===== Família Santos: Tijolo e Tempero (jogo em frontend/public/jocelino/) =====
+// Save na conta: cópia comprimida (gzip em base64) do save do navegador, para
+// continuar em outro computador. Mesmo formato do LendaSave; o servidor não abre
+// o conteúdo. `dia` = o dia do jogo em que foi salvo (o jogo salva ao dormir).
+// Relação com User com onDelete: Cascade: apagar a conta (admin ou limpeza de
+// visitantes) leva o save junto, sem precisar mexer nessas rotinas.
+// Só acrescenta: tabela nova + chave estrangeira dela (nenhuma coluna no User).
+model JocelinoSave {
+  userId       String   @id
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dados        String
+  dia          Int      @default(1)
+  tamanho      Int      @default(0)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
 }
