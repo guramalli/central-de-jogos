@@ -67,9 +67,45 @@ class Personagem {
   }
 }
 
+// Carga nos braços, como no Stardew: UMA pose de carregar (a folha jocelino_carregar_vazio, mãos juntas na frente do
+// peito, sem nada nelas) e o ícone do próprio item desenhado nas mãos. (Relato de 14/10: com a massa e com a pedra ele
+// aparecia carregando tijolo — a folha antiga tem os tijolos desenhados no peito.)
+const FOLHA_CARREGAR = 'personagens/jocelino_carregar_vazio/andar';
+// As mãos juntas no quadro de 66x114 da folha, por direção (baixo, cima, esquerda, direita) e por linha do passo (as
+// linhas 0 e 2 são o passo, a 1 e a 3 o corpo parado; ele sobe e desce uns pixels com o passo). De costas as mãos não
+// aparecem: o ponto é o peito, e o item fica escondido atrás do corpo.
+const MAOS_CARGA = [
+  [[34, 64], [34, 71], [34, 66], [34, 71]],
+  [[33, 60], [33, 64], [33, 60], [33, 64]],
+  [[15, 65], [16, 67], [15, 65], [17, 67]],
+  [[47, 67], [49, 69], [47, 66], [49, 69]],
+];
+const ICONE_CARGA = { massa: 'itens/massa', ripa: 'itens/ripa', entulho: 'itens/entulho' };   // o que não é o ícone 'itens/<id>'
+const PILHA_CARGA = { tijolo: 3, telha: 3, pedra: 2 };   // quantos ícones empilhados, no máximo, quando leva mais de um
+const LADO_CARGA = 30;                                   // o ícone (48 px) desenhado com 30 px nos braços
+const JEITO_CARGA = { ripa: { lado: 40, ang: 0.7 } };    // o feixe de ripas (deitado na diagonal no ícone) vai maior e atravessado nos braços
+
 class Jogador extends Personagem {
-  // Com carga nos braços (tijolo, pedra, telha...), a folha de carregar; o prato da pensão vai na mão de sempre.
-  get folha() { return this.carga && this.carga.id && this.carga.id !== 'prato' ? 'personagens/jocelino_carregar/andar' : 'personagens/jocelino/andar'; }
+  // Com carga nos braços (tijolo, pedra, telha, ripa, massa...), a folha de carregar de mãos vazias; o ícone vai nas mãos.
+  // Enquanto ela não carregou, a folha de andar de sempre (nunca a dos tijolos). O prato da pensão vai na mão de sempre.
+  get folha() { return this.carregando() && spr(FOLHA_CARREGAR) ? FOLHA_CARREGAR : 'personagens/jocelino/andar'; }
+  carregando() { return !!(this.carga && this.carga.id && this.carga.id !== 'prato'); }
+  // O ícone da carga nas mãos (pilha de 2 ou 3 quando leva vários); sem a arte carregada, não desenha nada.
+  desenhaCarga(ctx) {
+    const c = this.carga, img = spr(ICONE_CARGA[c.id] || c.icone || 'itens/' + c.id);
+    if (!img || !spr(FOLHA_CARREGAR)) return;
+    const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1;
+    const passo = this.andando ? Math.floor(this.t * 8) % 4 : 1, m = MAOS_CARGA[this.dir][passo];
+    const j = JEITO_CARGA[c.id] || {}, L = (j.lado || LADO_CARGA) * e;
+    const hx = this.x + (m[0] - 33) * e, hy = this.y + (m[1] - 112) * e;
+    const n = (c.qtd || 1) > 1 ? Math.min(PILHA_CARGA[c.id] || 1, c.qtd) : 1;
+    for (let i = 0; i < n; i++) {
+      // Cada cópia da pilha um pouco acima da outra (e meio de lado); o centro do item fica logo acima das mãos.
+      const cx = hx + (i % 2 ? 2 : 0) * e, cy = hy - LADO_CARGA * e * 0.12 - i * 6 * e;
+      if (!j.ang) { ctx.drawImage(img, cx - L / 2, cy - L / 2, L, L); continue; }
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(j.ang); ctx.drawImage(img, -L / 2, -L / 2, L, L); ctx.restore();
+    }
+  }
   constructor() { super('jocelino', '', 0, 0); this.carga = {}; this.golpe = 0; this.golpeItem = ''; this.travado = 0; }
   static VEL = 240;
   static VEL_CORRENDO = 336;
@@ -143,9 +179,13 @@ class Jogador extends Personagem {
       desenhaGolpe(ctx, this);
       return;
     }
+    // De costas, a carga vai antes do corpo (fica escondida atrás dele); nas outras direções, por cima, nas mãos.
+    const carregando = this.carregando();
+    if (carregando && this.dir === DIR.CIMA) this.desenhaCarga(ctx);
     super.desenha(ctx);
-    // Carga nos braços (o prato da pensão, o tijolo da obra...).
-    if (this.carga && this.carga.icone) { const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1; desenhaPe(ctx, this.carga.icone, this.x, this.y - 112 * e, 1, 0.7 * e + (e > 1 ? 0.3 : 0)); }
+    if (carregando && this.dir !== DIR.CIMA) this.desenhaCarga(ctx);
+    // O prato da pensão, na mão de sempre (por cima, como antes).
+    else if (!carregando && this.carga && this.carga.icone) { const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1; desenhaPe(ctx, this.carga.icone, this.x, this.y - 112 * e, 1, 0.7 * e + (e > 1 ? 0.3 : 0)); }
     if (typeof desenhaVara === 'function') desenhaVara(ctx, this);   // pescando, a vara na mão
     if (typeof desenhaGolpe === 'function') desenhaGolpe(ctx, this);
   }

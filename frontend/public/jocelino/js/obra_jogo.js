@@ -108,7 +108,7 @@ function poeObraNoMapa(b) {
     if (!santos) { const s = b.morador('santos', 'Seu Moreira', 34, 6, DIR.ESQUERDA); s.aoConversar = () => propostaDeMestre(); }
   } else if (santos) b.moradores = b.moradores.filter(m => m !== santos);
   const ze = b.moradores.find(m => m.id === 'ze'); if (ze) ze.aoConversar = () => conversarZe(ze);
-  for (const [id, f] of [['monte_tijolos', pegarDoMonte], ['pilha_ripas', () => pegarCargaObra('ripa', 'objetos/pilha_ripas', 'ripas')], ['peneira', peneirar], ['masseira', () => pegarCargaObra('massa', 'objetos/masseira', 'massa')]]) {
+  for (const [id, f] of [['monte_tijolos', pegarDoMonte], ['pilha_ripas', () => pegarCargaObra('ripa', 'itens/ripa', 'ripas')], ['peneira', peneirar], ['masseira', () => pegarCargaObra('massa', 'itens/massa', 'massa')]]) {
     const o = b.objs.find(x => x.id === id); if (o) o.acao = () => { f(o); return true; };
   }
 }

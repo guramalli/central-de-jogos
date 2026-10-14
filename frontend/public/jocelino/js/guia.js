@@ -334,7 +334,14 @@ ATUALIZADORES.push(() => {
   d0(ctx);
   if (!G.guiaFlut || !G.guiaFlut.length) return;
   G.guiaFlut = G.guiaFlut.filter(f => f.ate > (G.agora || 0));
-  for (const f of G.guiaFlut) texto(ctx, f.texto, f.x, f.y - (1.5 - (f.ate - (G.agora || 0))) * 20, 22, '#fff8e8', '900');
+  // (14/10) letra menor e sempre dentro da tela: perto da borda, o contador encosta nela em vez de sair.
+  const tam = 17, vis = ctx.canvas.width / (G.zoom * G.dpr), m = 10;
+  ctx.font = `900 ${tam}px Nunito`;
+  for (const f of G.guiaFlut) {
+    const w = ctx.measureText(f.texto).width, x = Math.max(G.cam.x + w / 2 + m, Math.min(G.cam.x + vis - w / 2 - m, f.x));
+    f.desenho = { x1: x - w / 2, x2: x + w / 2, vis1: G.cam.x, vis2: G.cam.x + vis };   // (para o teste: onde caiu)
+    texto(ctx, f.texto, x, f.y - (1.5 - (f.ate - (G.agora || 0))) * 20, tam, '#fff8e8', '900');
+  }
 }; }
 // (o contador é do lugar onde se trabalhou: trocou de mapa, some; vistoria de 12/10)
 AO_ENTRAR_MAPA.push(() => { G.guiaFlut = []; });
