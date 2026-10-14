@@ -1,0 +1,137 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d130f;
+  color: #efe6cf;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+#jogo {
+  position: fixed;
+  inset: 0;
+}
+
+#unity-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #141f17;
+  outline: none;
+}
+
+#abertura {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at center, #22331f 0%, #0d130f 75%);
+  transition: opacity 0.4s ease;
+}
+
+#abertura.sumindo { opacity: 0; }
+
+.abertura-conteudo {
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: clamp(30px, 6vw, 52px);
+  letter-spacing: 2px;
+  color: #f1c95c;
+  text-shadow: 0 2px 0 #5a3d0c, 0 0 18px rgba(241, 201, 92, 0.35);
+}
+
+.sub {
+  margin: 0 0 28px;
+  color: #b9b093;
+  font-style: italic;
+}
+
+.barra {
+  height: 14px;
+  border: 2px solid #8a6a2a;
+  border-radius: 8px;
+  background: #1b1a12;
+  overflow: hidden;
+}
+
+#barra-cheia {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #6fbf5a, #f1c95c);
+  transition: width 0.2s ease;
+}
+
+#frase { margin: 10px 0 0; color: #d8cfb3; }
+
+#jogar {
+  margin-top: 8px;
+  padding: 14px 34px;
+  font: inherit;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #2a1c05;
+  background: linear-gradient(#f6d77a, #d9a43a);
+  border: 2px solid #7a5512;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #5a3d0c;
+}
+
+#jogar:hover { filter: brightness(1.08); }
+#jogar:active { transform: translateY(2px); box-shadow: 0 2px 0 #5a3d0c; }
+
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin: 26px 0 18px;
+  font-size: 15px;
+  color: #d8cfb3;
+}
+
+.controles b { color: #f1c95c; }
+
+.aviso {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #8f8970;
+}
+
+#tela-cheia {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  color: #efe6cf;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#erro {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 12px 18px;
+  background: #5a1a1a;
+  border: 1px solid #c24a4a;
+  border-radius: 8px;
+  color: #ffe9e9;
+}

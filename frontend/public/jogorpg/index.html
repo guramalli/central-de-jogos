@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>RPG Isometrico — protótipo</title>
+    <link rel="stylesheet" href="TemplateData/style.css">
+  </head>
+  <body>
+    <div id="jogo">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+      <div id="abertura">
+        <div class="abertura-conteudo">
+          <h1>RPG Isométrico</h1>
+          <p class="sub">Protótipo jogável · nome do jogo ainda em aberto</p>
+          <div id="carregando">
+            <div class="barra"><div id="barra-cheia"></div></div>
+            <p id="frase">Afiando a espada... 0%</p>
+          </div>
+          <button id="jogar" type="button" hidden>CLIQUE PARA JOGAR</button>
+          <div class="controles">
+            <span><b>WASD</b>, <b>setas</b> ou <b>clique</b>: andar</span>
+            <span><b>Espaço</b> ou <b>J</b>: atacar (combo de 3)</span>
+            <span><b>I</b>: inventário</span>
+            <span><b>E</b> perto do ferreiro: refinar</span>
+          </div>
+          <p class="aviso">Versão de teste · precisa de teclado (não funciona no celular) · use Chrome, Edge ou Firefox</p>
+          <p class="aviso">Arte: 2D Fantasy Tileset, SmallScaleInt</p>
+        </div>
+      </div>
+
+      <button id="tela-cheia" type="button" title="Tela cheia" hidden>⛶</button>
+      <div id="erro" hidden></div>
+    </div>
+
+    <script>
+      var canvas = document.getElementById("unity-canvas");
+      var abertura = document.getElementById("abertura");
+      var barra = document.getElementById("barra-cheia");
+      var frase = document.getElementById("frase");
+      var jogar = document.getElementById("jogar");
+      var telaCheia = document.getElementById("tela-cheia");
+      var frases = [
+        "Afiando a espada...", "Acendendo a forja do ferreiro...", "Acordando os esqueletos...",
+        "Plantando a floresta...", "Polindo a Espada de Jade...", "Abrindo o portão da vila..."
+      ];
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        document.querySelector(".aviso").textContent = "Este jogo precisa de teclado e mouse: abra no computador.";
+      }
+
+      function mostraErro(msg) {
+        var e = document.getElementById("erro");
+        e.textContent = "Ops! O jogo não conseguiu abrir: " + msg;
+        e.hidden = false;
+      }
+
+      var config = {
+        arguments: [],
+        dataUrl: "Build/jogorpg.data.unityweb",
+        frameworkUrl: "Build/jogorpg.framework.js.unityweb",
+        codeUrl: "Build/jogorpg.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Gustavo Ramalli",
+        productName: "RPG Isometrico",
+        productVersion: "1.0",
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+        showBanner: function (msg, type) { if (type === "error") mostraErro(msg); }
+      };
+
+      var script = document.createElement("script");
+      script.src = "Build/jogorpg.loader.js";
+      script.onload = function () {
+        createUnityInstance(canvas, config, function (progresso) {
+          var p = Math.round(progresso * 100);
+          barra.style.width = p + "%";
+          frase.textContent = frases[Math.min(frases.length - 1, Math.floor(progresso * frases.length))] + " " + p + "%";
+        }).then(function (instancia) {
+          window.unityInstance = instancia;
+          document.getElementById("carregando").hidden = true;
+          jogar.hidden = false;
+          jogar.focus();
+          telaCheia.onclick = function () { instancia.SetFullscreen(1); };
+        }).catch(function (msg) { mostraErro(msg); });
+      };
+      script.onerror = function () { mostraErro("não achei os arquivos do jogo."); };
+      document.body.appendChild(script);
+
+      // O clique libera teclado e som no navegador.
+      jogar.onclick = function () {
+        abertura.classList.add("sumindo");
+        telaCheia.hidden = false;
+        canvas.focus();
+        setTimeout(function () { abertura.hidden = true; }, 400);
+      };
+      canvas.addEventListener("mousedown", function () { canvas.focus(); });
+    </script>
+  </body>
+</html>

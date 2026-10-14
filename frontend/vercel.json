@@ -5,7 +5,8 @@
     { "source": "/lenda/wiki", "destination": "/lenda/wiki/", "permanent": false },
     { "source": "/lenda/wiki/en", "destination": "/lenda/wiki/en/", "permanent": false },
     { "source": "/jocelino", "destination": "/jocelino/", "permanent": false },
-    { "source": "/grau-grinders", "destination": "/grau-grinders/", "permanent": false }
+    { "source": "/grau-grinders", "destination": "/grau-grinders/", "permanent": false },
+    { "source": "/jogorpg", "destination": "/jogorpg/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },
@@ -14,6 +15,7 @@
     { "source": "/lenda/wiki/en/", "destination": "/lenda/wiki/en/index.html" },
     { "source": "/jocelino/", "destination": "/jocelino/index.html" },
     { "source": "/grau-grinders/", "destination": "/grau-grinders/index.html" },
+    { "source": "/jogorpg/", "destination": "/jogorpg/index.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/(.*)", "destination": "/v2/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -45,6 +47,14 @@
     },
     {
       "source": "/grau-grinders/Build/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/jogorpg/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/jogorpg/Build/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
