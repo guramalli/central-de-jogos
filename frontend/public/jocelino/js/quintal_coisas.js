@@ -154,17 +154,69 @@ NOITE.push(linhas => {
   const aberto = G.horta.colocados.some(c => c.id === 'portao' && c.aberto);
   if (id) { linhas.push(`As galinhas da vizinhança bicaram um pé de ${Itens.nome(id).toLowerCase()}. ${aberto ? 'O portão da horta ficou aberto.' : 'Cerca resolve.'}`); if (MAPAS.quintal) sincronizaHorta(MAPAS.quintal); }
 });
-let _galinha = null;   // {x, y, foge, lado, t} em pixels
+let _galinha = null;   // {x, y, tx, ty, foge, lado, t, caminho, pula} em pixels (x,y = pé; tx,ty = ladrilho onde está)
+// Para onde a galinha foge (relato de 14/10: "correu e passou por cima da cerca"). Como no Stardew, bicho anda pelo chão e respeita
+// cerca: busca em largura a partir do ladrilho dela pela MESMA regra do Horta.protegida (livreEm e objeto não sólido; o portão fechado
+// é sólido, o aberto passa), até a borda da área livre do mapa. Escolhe a borda que fica mais longe do Jocelino, sem passar por cima
+// dele nem encostar nele quando dá. Sem a borda mas com mais de 120 ladrilhos abertos (o limite do protegida), vai até o 121º.
+// Devolve a lista de ladrilhos [{x, y}...] (sem o de partida) ou null se a cova está fechada (sem caminho).
+function caminhoDaGalinha(b, x0, y0, jx, jy) {
+  const L = b.livre, passa = (x, y) => { if (!b.livreEm(x, y)) return false; const o = b.ocupado.get(chaveT(x, y)); return !(o && o.solido); };
+  const borda = (x, y) => x === L.x || y === L.y || x === L.x + L.w - 1 || y === L.y + L.h - 1;
+  for (const folga of [1, 0, -1]) {   // 1 = não chega perto do Jocelino; 0 = só não pisa nele; -1 = ignora ele
+    const veto = (x, y) => folga >= 0 && Math.max(Math.abs(x - jx), Math.abs(y - jy)) < folga + 1 && !(x === x0 && y === y0);
+    const pai = new Map([[chaveT(x0, y0), null]]), fila = [{ x: x0, y: y0, d: 0 }], bordas = []; let n = 0, ultimo = null;
+    for (let i = 0; i < fila.length; i++) {
+      const c = fila[i]; n++; ultimo = c;
+      if (borda(c.x, c.y)) bordas.push(c);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = c.x + dx, ny = c.y + dy, k = chaveT(nx, ny);
+        if (pai.has(k) || !passa(nx, ny) || veto(nx, ny)) continue;
+        pai.set(k, c); fila.push({ x: nx, y: ny, d: c.d + 1 });
+      }
+    }
+    let alvo = null;
+    if (bordas.length) { let melhor = -1e9; for (const c of bordas) { const s = Math.hypot(c.x - jx, c.y - jy) * 0.6 - c.d; if (s > melhor) { melhor = s; alvo = c; } } }
+    else if (n > 120) alvo = fila[120];
+    if (!alvo) continue;
+    if (alvo.x === x0 && alvo.y === y0) return [];   // já está na borda: só sai
+    const rota = []; for (let c = alvo; c && !(c.x === x0 && c.y === y0); c = pai.get(chaveT(c.x, c.y))) rota.unshift({ x: c.x, y: c.y });
+    return rota;
+  }
+  return null;
+}
 ATUALIZADORES.push(dt => {
   if (!G.horta || !G.horta.galinha || G.mapaId !== 'quintal') { _galinha = null; return; }
-  if (!_galinha) _galinha = { x: (G.horta.galinha.x + 0.5) * TILE, y: (G.horta.galinha.y + 1) * TILE, foge: false, lado: 1, t: 0 };
+  if (!_galinha) { const c = G.horta.galinha; _galinha = { x: (c.x + 0.5) * TILE, y: (c.y + 1) * TILE, tx: c.x, ty: c.y, foge: false, lado: 1, t: 0, caminho: null, pula: 0 }; }
   const g = _galinha; g.t += dt;
-  if (!g.foge && Math.hypot(G.jog.x - g.x, G.jog.y - g.y) < 3 * TILE) { g.foge = true; g.lado = G.jog.x < g.x ? 1 : -1; sons.tocar('pegar', 1.6, 0.1, -8); }
-  if (g.foge) { g.x += g.lado * 260 * dt; const L = G.mapa.livre; if (g.x < L.x * TILE || g.x > (L.x + L.w) * TILE) { G.horta.galinha = null; _galinha = null; } }
+  const jx = Math.floor(G.jog.x / TILE), jy = Math.floor(G.jog.y / TILE);
+  const foge = () => {   // traça (ou refaz) o caminho; sem caminho, ela pula no lugar e some com transparência
+    g.caminho = caminhoDaGalinha(G.mapa, g.tx, g.ty, jx, jy);
+    if (!g.caminho) g.pula = 0.0001;
+    else if (!g.caminho.length) { G.horta.galinha = null; _galinha = null; }
+  };
+  if (!g.foge && Math.hypot(G.jog.x - g.x, G.jog.y - g.y) < 3 * TILE) { g.foge = true; g.lado = G.jog.x < g.x ? 1 : -1; sons.tocar('pegar', 1.6, 0.1, -8); foge(); }
+  if (!g.foge) return;
+  if (g.pula) {   // sem saída: um pulinho no lugar e some (a arte é a mesma, só muda a posição e a transparência)
+    g.pula += dt; if (g.pula > 0.7) { G.horta.galinha = null; _galinha = null; } return;
+  }
+  let resto = 260 * dt;   // pixels que ainda pode andar neste passo
+  while (resto > 0 && g.caminho) {
+    const p = g.caminho[0];
+    if (!g.caminho.length) { G.horta.galinha = null; _galinha = null; return; }
+    const o = G.mapa.ocupado.get(chaveT(p.x, p.y));
+    if (o && o.solido) { foge(); if (g.pula) return; continue; }   // o portão fechou no meio do caminho
+    const ax = (p.x + 0.5) * TILE, ay = (p.y + 1) * TILE, dx = ax - g.x, dy = ay - g.y, d = Math.hypot(dx, dy);
+    if (dx) g.lado = dx > 0 ? 1 : -1;
+    if (d <= resto) { g.x = ax; g.y = ay; g.tx = p.x; g.ty = p.y; resto -= d; g.caminho.shift(); if (!g.caminho.length) { G.horta.galinha = null; _galinha = null; return; } }
+    else { g.x += dx / d * resto; g.y += dy / d * resto; resto = 0; }
+  }
 });
 AO_MONTAR.push(b => { if (b.id === 'quintal') b.extras = () => _galinha ? [{ y: _galinha.y, desenha(ctx) {
   const g = _galinha, quadro = g.foge || Math.floor(g.t * 3) % 2 ? 'objetos/galinha_1' : 'objetos/galinha_2';
-  ctx.save(); ctx.translate(g.x, g.y); if (g.lado < 0 || (!g.foge && Math.floor(g.t / 2) % 2)) ctx.scale(-1, 1); desenhaPe(ctx, quadro, 0, 0, 1); ctx.restore(); } }] : []; });
+  ctx.save(); ctx.translate(g.x, g.y);
+  if (g.pula) { ctx.globalAlpha = Math.max(0, 1 - g.pula / 0.7); ctx.translate(0, -Math.abs(Math.sin(g.pula * 14)) * 14); }
+  if (g.lado < 0 || (!g.foge && Math.floor(g.t / 2) % 2)) ctx.scale(-1, 1); desenhaPe(ctx, quadro, 0, 0, 1); ctx.restore(); } }] : []; });
 // ---------- o irrigador: as 4 covas vizinhas começam o dia molhadas (o bom: as 8) ----------
 const VIZ_IRRIGADOR = { irrigador: [[1, 0], [-1, 0], [0, 1], [0, -1]], irrigador_bom: [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] };
 function regarComIrrigadores() {

@@ -100,7 +100,20 @@ function chaoAcertado(id, alvo) {
   const b = G.mapa;
   if (id === 'regador' && b.ehAgua && b.ehAgua(alvo.x, alvo.y)) { encherRegador(); return true; }
   if (b.id !== 'quintal') return false;
-  if (id === 'pa' && podeCavar(b, alvo.x, alvo.y)) { Horta.cavar(alvo.x, alvo.y); if (G.limpou) G.limpou.aula_pa_chao = (G.limpou.aula_pa_chao || 0) + 1; sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra'); return true; }
+  if (id === 'pa' && podeCavar(b, alvo.x, alvo.y)) {
+    Horta.cavar(alvo.x, alvo.y); if (G.limpou) G.limpou.aula_pa_chao = (G.limpou.aula_pa_chao || 0) + 1; sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra');
+    // (pedido do jogador, 14/10: "mostrar como se retira uma cova que você fez sem querer") a primeira cova: o Tio Juca avisa, uma vez só
+    if (typeof _dica === 'function' && _dica('desfazer_cova')) avisar(DICA_DESFAZER_COVA);
+    return true;
+  }
+  // A picareta fecha a cova vazia (como no Stardew, onde ela desfaz a terra arada). Com pé plantado, a foice arranca antes.
+  if (id === 'picareta' && Horta.cova(alvo.x, alvo.y)) {
+    const r = Horta.fechar(alvo.x, alvo.y);
+    if (r === 'planta') { avisar('Tem um pé aí: a foice arranca primeiro.'); return true; }
+    sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra'); sincronizaHorta(b); hudSujo();
+    if (r === 'adubo') avisar('Cova fechada. O esterco se perdeu.');
+    return true;
+  }
   if (id === 'regador' && Horta.cova(alvo.x, alvo.y)) { regarCova(alvo.x, alvo.y); return true; }
   // (o barril na mochila: o regador na grama procurando onde encher ouve onde está o barril)
   if (id === 'regador' && !G.horta.barril && G.horta.agua < Horta.aguaMax()) { avisar(AVISO_BARRIL_NA_MOCHILA + '.'); return false; }
@@ -164,7 +177,9 @@ function colherPlanta(o) {
   sincronizaHorta(G.mapa);
   return true;
 }
+const DICA_DESFAZER_COVA = 'Tio Juca: "Cavou no lugar errado? A picareta fecha a cova vazia; a foice arranca um pé."';
 function ferramentaNaPlanta(o, id) {
+  if (id === 'picareta') { avisar('Tem um pé aí: a foice arranca primeiro.'); return; }
   if (id === 'regador') { regarCova(o.covaX, o.covaY); return; }
   if (id === 'foice' && Horta.madura(Horta.cova(o.covaX, o.covaY))) { colherPlanta(o); return; }   // a foice do Stardew colhe a madura
   if (id === 'foice') { const p = Horta.arrancar(o.covaX, o.covaY); if (p) { sons.tocar('foice', 1, 0.08, -4); lascas(o.x, o.y - 20, 'mato'); sincronizaHorta(G.mapa); } }

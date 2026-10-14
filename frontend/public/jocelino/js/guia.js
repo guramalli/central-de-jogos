@@ -306,7 +306,8 @@ function dicaForaDaSeta(d, hud) {
     const z = G.zoom || 1, sx = (s.x - G.cam.x) * z, sy = (s.y - G.cam.y) * z;
     const o = s.objeto ? G.mapa.objs.find(x => x.id === s.objeto) : null, pe = o ? (o.y - G.cam.y) * z : sy + 80 * z;
     const r = d.getBoundingClientRect(), H = hud.getBoundingClientRect(), base = H.bottom - 172;
-    alto = sx > r.left - 30 && sx < r.right + 30 && pe > base - r.height - 10 && sy < base + 10;
+    const meia = s.rotulo ? s.rotulo.length * 4.6 : 0;   // (14/10) a frase da seta, centrada nela, também não pode ficar embaixo da dica
+    alto = sx > r.left - 30 - meia && sx < r.right + 30 + meia && pe > base - r.height - 10 && sy < base + 10;
     const seta = typeof spr === 'function' && spr('ui/seta'), hSeta = seta ? seta.naturalHeight * 0.8 : 80;
     topo = Math.max(56, Math.round(sy - hSeta - 40 - r.height - 8 - H.top));   // (40: o balanço da seta, o vão e a frase de 17 px)
   }

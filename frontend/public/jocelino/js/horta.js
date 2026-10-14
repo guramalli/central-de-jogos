@@ -69,6 +69,8 @@ const Horta = {
     else { c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; }
     return { id, qtd: 1 + q, qual: q };
   },
+  // Fechar a cova (a picareta do Stardew desfaz a terra arada): só a vazia; com pé plantado não fecha ('planta'). O adubo se perde ('adubo').
+  fechar(x, y) { const c = Horta.cova(x, y); if (!c) return 'sem_cova'; if (c.planta) return 'planta'; delete G.horta.covas[chaveH(x, y)]; return c.adubo ? 'adubo' : 'ok'; },
   arrancar(x, y) { const c = Horta.cova(x, y); if (!c || !c.planta) return ''; const id = c.planta; c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; return id; },
   // A noite: cresce o que foi regado (ou com chuva); vira a estação, seca o que não é dela; a cova vazia pode sumir.
   noite(dia, chove, rng = Math.random) {

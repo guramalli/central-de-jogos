@@ -152,6 +152,9 @@ const ECO = {
   quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } },
     // (onda final, o robô #23; o Stardew rebrota a fazenda à noite) a rebrota leve: por noite, no máximo vivos, a chance de pedra (senão galho)
     rebrota: { porNoite: 3, maximo: 12, pedra: 0.5 } },
+  // (relato de 14/10; o Stardew: a Floresta da Seiva e o Bosque Secreto repõem todo dia) a mata repõe toda manhã: quantos de cada
+  // por manhã (árvores no bosque, galhos no chão dele, pedras na beira do rio), a chance de a pedra ser um pedregulho e o máximo vivo
+  mata: { repoe: { arvores: 1, galhos: 3, pedras: 2, pedregulho: 0.25, maximo: { arvores: 5, galhos: 8, pedras: 6 } } },
   guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 2, bazar: 4, pedreira: 5, mina: 7 }, espera: 3, maxAbertas: 2,
     recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
       janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },

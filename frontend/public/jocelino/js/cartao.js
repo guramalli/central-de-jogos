@@ -147,6 +147,8 @@ function ideiaDoDia() {
   const op = [];
   if (typeof QuintalMarcos !== 'undefined' && G.quintalMarcos && QuintalMarcos.proximo())
     op.push({ texto: `Limpar o quintal — mais chão para plantar e o presente do Tio Juca em ${QuintalMarcos.proximo()}%`, alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' } });
+  // (relato de 14/10) o quintal sem madeira ou sem pedra: onde tem (a mata, ou a pedreira para a pedra)
+  { const mf = materialDaTarde(); if (mf && !/^Limpar o quintal/.test(mf.texto)) op.push(mf); }
   if (G.casa && G.casa.aberta && !G.casa.mudou) { const E = ECO.casa.etapas[Math.min(G.casa.etapa || 0, ECO.casa.etapas.length - 1)], T = QUINTAL.TERRENO;
     op.push({ texto: `A casa nova — ${E.nome}, na plaquinha do terreno do quintal: é a casa da família`, alvo: { mapa: 'quintal', ponto: { x: (T.x + T.w / 2) * TILE, y: (T.y + T.h / 2) * TILE } } }); }
   // (revisão final) Para onde vai o dinheiro do bico: antes do sonho da Rosa, só na hora; antes da compra, a lojinha; depois, a pensão.
@@ -218,7 +220,6 @@ const ACHADOS_TODOS = () => typeof ACHADOS_ESTACAO === 'undefined' ? [] : [...ne
 const pensaoAberta = () => !!G.pensao && G.pensao.estado === 'aberta';
 const usaNaPensao = id => id !== 'pedra' && typeof Pratos !== 'undefined' && !!Pratos.INGREDIENTES[id];
 const VENDE_NA_TARDE = () => ['madeira', 'pedra', 'fibra'].concat(ACHADOS_TODOS()).filter(id => !(pensaoAberta() && usaNaPensao(id)));
-const DETS_DO_QUINTAL = ['galho', 'pedra', 'toco', 'pedregulho', 'arvore'];
 // Os achados de hoje ainda no chão, nos mapas já montados e abertos: { n, onde ("no quintal e na Vila"), mapas, melhor (o de mais valor) }.
 const ONDE_ACHADO = { quintal: 'no quintal', vila: 'na Vila', praia: 'na praia', mata: 'na mata' };
 function achadosAVista() {
@@ -256,11 +257,8 @@ function ganhoDaTarde() {
     return { texto: `Catar ${tipo} ${ach.onde} — ${ach.n} ${ach.n === 1 ? 'achado' : 'achados'} hoje: ${rosa ? `${nome} vai para a despensa da Rosa` : `${nome} vale Cr$ ${pr(id)} na caixa de venda`}; ${porque}`,
       alvo: () => { const o = (G.mapa && G.jog ? G.mapa.objs.filter(x => x.achado) : []).sort((a, b) => Math.hypot(a.x - G.jog.x, a.y - G.jog.y) - Math.hypot(b.x - G.jog.x, b.y - G.jog.y))[0];
         return o ? { mapa: G.mapaId, ponto: { x: o.x, y: o.y - 40 } } : { mapa: ach.mapas[0] }; }, rotulo: 'Botão direito: catar' }; } }
-  // 2. O quintal com galho e pedra: limpar dá madeira e pedra para a caixa (e o presente do Tio Juca).
-  const Q = typeof MAPAS !== 'undefined' && MAPAS.quintal, dets = Q ? Q.objs.filter(o => o.tipo === 'detrito' && DETS_DO_QUINTAL.includes(o.det)).length : 0;
-  if (dets) { const m = typeof QuintalMarcos !== 'undefined' && G.quintalMarcos ? QuintalMarcos.proximo() : null;
-    return { texto: `Limpar o quintal — o galho vira madeira (Cr$ ${pr('madeira')} cada na caixa de venda), a pedra vende a Cr$ ${pr('pedra')}: ${porque}${m ? `, e o Tio Juca dá um presente em ${m}% limpo` : ''}`,
-      alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' }, rotulo: 'Limpar o quintal: madeira e pedra para vender' }; }
+  // 2. A madeira e a pedra: o quintal com galho e pedra (e o presente do Tio Juca); sem elas, a mata ou a pedreira.
+  { const m = materialDaTarde(porque); if (m) return m; }
   // 3. Plantar: a semente mais barata da estação vira colheita (a comida da família e o prato da pensão; o valor só para medir).
   if (typeof sementesDaLoja === 'function') { const s = sementesDaLoja().map(culturaDaSemente).filter(Boolean).sort((a, b) => CULTURAS[a].dias - CULTURAS[b].dias)[0];
     if (s && G.dinheiro >= precoSemente(CULTURAS[s].semente)) return { texto: `Plantar mais covas — ${Itens.nome(CULTURAS[s].semente).toLowerCase()} no depósito do Seu Ananias a Cr$ ${precoSemente(CULTURAS[s].semente)}; em ${Horta.diasPara(s)} dias regando, cada pé (que vale Cr$ ${PRECO_CAIXA[s]}) é comida da família e prato da pensão da Rosa`,
@@ -268,6 +266,34 @@ function ganhoDaTarde() {
   // 4. Pescar no píer (a praia aberta): o peixe é o prato da pensão (o preço dos de todo dia, a sardinha e a tainha, só para medir).
   if (G.lugares && G.lugares.praia && pr('sardinha') && pr('tainha')) return pescarNoPier();
   return null;
+}
+// (relato de 14/10: "acabei com toda a madeira do quintal, não tinha mais onde pegar... preciso de mais local que possa pegar essas
+// madeiras e pedras além do quintal") Como é no Stardew: a fazenda rebrota pouco, e a madeira e a pedra de sempre vêm da Floresta da
+// Seiva, do Bosque Secreto e da pedreira. Aqui o quintal rebrota pouco (quintal_marcos.js); a mata (o bosque depois da ponte e a beira
+// do rio, mapa_mata.js) e a pedreira repõem toda manhã. Uma coisa só, com o porquê: o quintal com madeira e pedra, limpar o quintal;
+// sem madeira, a mata; com madeira e sem pedra, a pedreira (aberta no dia 5; antes dela, a beira do rio da mata).
+const DETS_MADEIRA = ['galho', 'toco', 'arvore'], DETS_PEDRA = ['pedra', 'pedregulho'];
+const _maisPertoNoMapa = (mapa, dets) => () => { if (G.mapaId !== mapa) return { mapa };
+  const o = typeof _maisPerto === 'function' ? _maisPerto(x => x.tipo === 'detrito' && dets.includes(x.det) && !x.empreitaDet) : null;
+  return o ? { mapa, ponto: { x: o.x, y: o.y - 56 }, det: o.det } : null; };
+function materialDaTarde(porque = porqueDoDinheiro()) {
+  const pr = id => CaixaVenda.preco(id), Q = typeof MAPAS !== 'undefined' && MAPAS.quintal;
+  const noQuintal = dets => !!Q && Q.objs.some(o => o.tipo === 'detrito' && dets.includes(o.det) && !o.empreitaDet);
+  if (!Q) return null;
+  const mad = noQuintal(DETS_MADEIRA), ped = noQuintal(DETS_PEDRA), aberto = id => typeof Mundo === 'undefined' || Mundo.aberto(id);
+  // (a mata ainda não montada vem cheia; a mata já limpa hoje não é sugestão: amanhã ela repõe)
+  const naMata = dets => !MAPAS.mata || MAPAS.mata.objs.some(o => o.tipo === 'detrito' && dets.includes(o.det) && !o.empreitaDet);
+  const quintal = () => { const m = typeof QuintalMarcos !== 'undefined' && G.quintalMarcos ? QuintalMarcos.proximo() : null;
+    return { texto: `Limpar o quintal — o galho vira madeira (Cr$ ${pr('madeira')} cada na caixa de venda), a pedra vende a Cr$ ${pr('pedra')}: ${porque}${m ? `, e o Tio Juca dá um presente em ${m}% limpo` : ''}`,
+      alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' }, rotulo: 'Limpar o quintal: madeira e pedra para vender' }; };
+  if (mad && ped) return quintal();
+  if (mad && aberto('pedreira')) return { texto: `Quebrar pedra na pedreira — o quintal está sem pedra; as rochas da entrada da pedreira se refazem toda manhã (a pedra vale Cr$ ${pr('pedra')} na caixa de venda e serve nas obras): ${porque}`,
+    alvo: _maisPertoNoMapa('pedreira', ['rocha']), rotulo: 'A pedreira: pedra nova toda manhã' };
+  if (aberto('mata') && !mad && naMata(DETS_MADEIRA)) return { texto: `Cortar madeira na mata — o quintal está sem madeira; na mata, depois da ponte, tem árvore e galho para cortar (Cr$ ${pr('madeira')} cada na caixa de venda)${ped ? '' : ' e pedra na beira do rio'}, e a mata repõe de manhã: ${porque}`,
+    alvo: _maisPertoNoMapa('mata', ped ? DETS_MADEIRA : DETS_MADEIRA.concat(DETS_PEDRA)), rotulo: 'Na mata, depois da ponte: árvore e galho' };
+  if (aberto('mata') && !ped && naMata(DETS_PEDRA)) return { texto: `Pegar pedra na mata — o quintal está sem pedra; na beira do rio da mata tem pedra e pedregulho para a picareta (Cr$ ${pr('pedra')} cada na caixa de venda), e a mata repõe de manhã: ${porque}`,
+    alvo: _maisPertoNoMapa('mata', DETS_PEDRA), rotulo: 'Na beira do rio da mata: pedra' };
+  return mad || ped ? quintal() : null;
 }
 // (dia cheio, Frente B) Pescar no píer, com o preço e para onde vai o peixe (a banca do Seu Lourival, ou a despensa da Rosa com a pensão
 // aberta, e então quanto cada peixe rende na panela: o cardápio do Bancho).

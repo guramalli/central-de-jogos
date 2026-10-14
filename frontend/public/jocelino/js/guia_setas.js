@@ -179,7 +179,7 @@ function _alvoDaCasa() {
 // Feita uma vez, some (G.limpou: o detrito quebrado, 'aula_pa_chao' e 'aula_regador_chao', contados em horta_jogo.js).
 const AULAS = [['foice', 'mato'], ['machado', 'galho'], ['picareta', 'pedra'], ['pa', null], ['regador', null], ['machado', 'arvore']];
 const FALA_AULA = { mato: 'A foice tira o mato: limpa o chão pra plantar.', galho: 'O machado corta o galho: madeira pra cerca e pras obras.',
-  pedra: 'A picareta quebra a pedra: pedra pro Bira e pras obras.', pa: 'A pá cava a cova: é ali que a semente vai.',
+  pedra: 'A picareta quebra a pedra: pedra pro Bira e pras obras.', pa: 'A pá cava a cova: é ali que a semente vai. Cavou no lugar errado? A picareta fecha a cova vazia; a foice arranca um pé.',
   regador: 'O regador molha a cova plantada: sem água, a planta não cresce. Enche no barril.', arvore: 'A árvore é mais dura: vários golpes de machado. Dá madeira de monte.' };
 function aulaFeita([f, det]) {
   const L = G.limpou || {};
@@ -328,6 +328,8 @@ function guiaSetaMundo() {
   const salaoAberto = typeof noPalco === 'function' && noPalco() && !!G.pensao && G.pensao.estado === 'aberta';
   const naFrente = res.filter(([id]) => id === 'rosa_sonho' || id === 'lojinha');
   const seta = _setaDe(naFrente, salaoAberto) || _setaDe(res, salaoAberto); if (seta || salaoAberto) return seta;
+  // (14/10) A primeira árvore de corte da mata (mapa_mata.js): sem outra seta, a mais perto, com a frase, até a primeira cair.
+  { const m = typeof alvoDaArvoreDaMata === 'function' ? alvoDaArvoreDaMata() : null; if (m) { const o = Object.assign({ tipo: 'alvo', missao: 'mata_arvore' }, m, m.ponto); o.rotulo = _rotulo(o); return o; } }
   // (dia cheio, Frente A) A primeira coleta: sem nenhuma outra seta, o achado mais perto (uma vez: some depois de catar o primeiro).
   const a = _alvoDoAchado(); if (!a) return null;
   const o = Object.assign({ tipo: 'alvo', missao: 'achado' }, a, a.ponto); o.rotulo = _rotulo(o); return o;
@@ -526,7 +528,7 @@ const FALA_BARRIL = { quintal: 'O barril vai em qualquer grama livre do quintal:
 let _hudRects = [], _hudT = -1;
 function paineisDoHud() {
   const t = G.agora || 0; if (t === _hudT) return _hudRects; _hudT = t;
-  _hudRects = [...document.querySelectorAll('#hud .painel, #hud .botao, #avisos .aviso')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+  _hudRects = [...document.querySelectorAll('#hud .painel, #hud .botao, #hud .guia-dica:not([hidden]), #avisos .aviso')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
     .map(r => ({ x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 }));
   return _hudRects;
 }

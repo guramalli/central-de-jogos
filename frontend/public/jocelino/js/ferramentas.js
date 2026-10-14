@@ -132,6 +132,7 @@ function quebrar(o) {
   if (typeof quebrouNaMina === 'function') quebrouNaMina(o);
   if (typeof quebrouNoGuia === 'function') quebrouNoGuia(o);
   if (typeof quebrouNoQuintal === 'function') quebrouNoQuintal(o);
+  if (typeof quebrouNaMata === 'function') quebrouNaMata(o);
   if (typeof Habilidades !== 'undefined') {
     const limpeza = ['mato', 'galho', 'entulho'].includes(o.det) && Habilidades.tem('faxineiro') ? 2 : 1;
     Habilidades.ganhar(o.det === 'entulho' ? 'alvenaria' : 'folego', limpeza * (o.det === 'entulho' ? 2 : 1));

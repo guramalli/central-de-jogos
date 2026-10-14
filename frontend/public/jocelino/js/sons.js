@@ -3,6 +3,17 @@
 // igual ao outro, como no Stardew) e varia o tom; música do dia e da noite com troca suave; passos pelo piso.
 // O navegador só libera o som depois do primeiro clique ou tecla.
 
+// O rodízio das músicas (14/10: "a que está no jogo é muito agradável mas cansa rápido"). Fora da pensão, como no Stardew:
+// toca uma faixa inteira, depois um silêncio de música (só o ambiente) de MUSICA_PAUSA_MIN a MUSICA_PAUSA_MAX segundos, depois
+// outra sorteada, nunca a mesma em seguida. Na pensão, como no sushi bar do Dave: uma emenda na outra, sem silêncio.
+const MUSICA_PAUSA_MIN = 20, MUSICA_PAUSA_MAX = 45;   // s de silêncio de música entre uma faixa e a próxima (fora da pensão)
+const MUSICA_TROCA = 2;                               // s da troca suave (uma some enquanto a outra entra)
+const MUSICAS = {
+  dia: ['musica_dia', 'musica_dia_2', 'musica_dia_3', 'musica_dia_4'],   // bossa de violão; bossa da manhã; choro; baião
+  noite: ['musica_noite', 'musica_noite_2', 'musica_noite_3'],            // violão e flauta; violão e flauta de bambu; seresta
+  pensao: ['pensao_animada_1', 'pensao_animada_2', 'pensao_animada_3'],   // samba-choro (o escolhido); forró-xote; gafieira
+  festa: ['musica_festa'],                                                // (guardada para a festa; hoje nada a chama)
+};
 const VOLUME_EFEITO = { passo_grama: -12, passo_chao: -14, passo_madeira: -12, letra: -6, cursor: -4, golpe: -4, foice: -2, dinheiro: -2 };
 const SONS_INTERFACE = ['cursor', 'abrir', 'fechar', 'letra', 'feito', 'erro', 'dinheiro'];
 const sons = {
@@ -39,20 +50,40 @@ const sons = {
     f.connect(g); g.connect(this.bus[SONS_INTERFACE.includes(nome) ? 'interface' : 'efeitos']);
     f.start();
   },
-  // Música em laço, com troca suave (2 s).
-  async musica(nome) {
-    if (!this.ctx || nome === this.musicaAtual) return;
-    this.musicaAtual = nome;
-    const velha = this._fonteMusica, gv = this._ganhoMusica;
-    if (velha) { gv.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 2); setTimeout(() => { try { velha.stop(); } catch (e) {} }, 2100); }
+  // Uma faixa inteira (sem laço), com troca suave (MUSICA_TROCA s): a anterior some enquanto esta entra. fadeFim: a faixa
+  // some sozinha nos 3 s finais (fora da pensão, antes do silêncio). nome vazio: só apaga a que está tocando.
+  // Quem escolhe a faixa é o rodízio (lá embaixo); se ela não carregar, o rodízio a deixa de lado e nada trava.
+  _vezMusica: 0, _durMusica: 0, _posMusica: 0, _tMusica: 0, rodizio: null,
+  async musica(nome, fadeFim = false) {
+    if (!this.ctx) return;
+    const vez = ++this._vezMusica;
+    this.musicaAtual = nome; this._durMusica = 0;                           // enquanto a nova carrega, o rodízio não conta a velha
+    const buf = nome ? await this.buffer(nome) : null;                      // ... e a velha segue tocando (sem buraco na pensão)
+    if (vez !== this._vezMusica) return;                                    // outra troca chegou enquanto esta carregava
+    const t0 = this.ctx.currentTime, velha = this._fonteMusica, gv = this._ganhoMusica;
+    if (velha) {
+      gv.gain.cancelScheduledValues(t0); gv.gain.setValueAtTime(gv.gain.value, t0); gv.gain.linearRampToValueAtTime(0, t0 + MUSICA_TROCA);
+      setTimeout(() => { try { velha.stop(); } catch (e) {} }, MUSICA_TROCA * 1000 + 100);
+    }
     this._fonteMusica = null;
     if (!nome) return;
-    const buf = await this.buffer(nome);
-    if (!buf || this.musicaAtual !== nome) return;
-    const f = this.ctx.createBufferSource(); f.buffer = buf; f.loop = true;
-    const g = this.ctx.createGain(); g.gain.value = 0; g.gain.linearRampToValueAtTime(0.55, this.ctx.currentTime + 2);
+    if (!buf) { if (this.rodizio) this.rodizio.falhou(nome, t0); return; }  // não carregou: o rodízio pula para outra
+    const f = this.ctx.createBufferSource(); f.buffer = buf;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.55, t0 + MUSICA_TROCA);
+    if (fadeFim && buf.duration > 8) { g.gain.setValueAtTime(0.55, t0 + buf.duration - 3); g.gain.linearRampToValueAtTime(0, t0 + buf.duration); }
     f.connect(g); g.connect(this.bus.musica); f.start();
-    this._fonteMusica = f; this._ganhoMusica = g;
+    this._fonteMusica = f; this._ganhoMusica = g; this._durMusica = buf.duration; this._posMusica = 0; this._tMusica = t0;
+    // Cada faixa aberta ocupa uns 35 MB: guarda só a que toca (a próxima vem do cache do navegador, o mp3 já baixado).
+    for (const n of Object.values(MUSICAS).flat()) if (n !== nome) this.buffers.delete(n);
+  },
+  // Quanto falta da faixa, em segundos de verdade (anda com a velocidade: a "Última rodada" acelera a da pensão).
+  // null enquanto nada toca ou a faixa ainda carrega.
+  restanteMusica() {
+    const f = this._fonteMusica;
+    if (!f || !this._durMusica) return null;
+    const t = this.ctx.currentTime, r = f.playbackRate.value || 1;
+    this._posMusica += (t - this._tMusica) * r; this._tMusica = t;
+    return Math.max(0, (this._durMusica - this._posMusica) / r);
   },
   // Ambiente em laço (pássaros, vento): cada um com o próprio volume, que muda devagar (1 s).
   _amb: {},
@@ -86,14 +117,55 @@ const sons = {
 };
 for (const ev of ['pointerdown', 'keydown', 'click', 'touchend']) addEventListener(ev, () => sons.iniciar(), { once: false, capture: true });
 
+// ---------- o rodízio das músicas ----------
+// Lógica pura: o relógio (agora) e quanto falta da faixa (restante) chegam de fora, então a s36 testa sem áudio nenhum.
+// passo(momento, agora, restante) devolve o que fazer: null (nada), { tocar: nome } (troca suave para essa faixa;
+// '' = calar) ou { parar: true } (a faixa acabou e começa o silêncio).
+//  - mudou o momento (18h, entrar ou sair da pensão): troca na hora para uma faixa da lista nova;
+//  - fora da pensão: a faixa acabou -> silêncio de MUSICA_PAUSA_MIN..MAX s -> outra sorteada;
+//  - na pensão: a MUSICA_TROCA + 1 s do fim já entra a próxima (emenda, sem silêncio).
+// Nunca a mesma em seguida (nem a última daquele momento, quando a lista deixa). Faixa que não carregou fica de fora.
+function criarRodizio(listas = MUSICAS, rand = Math.random) {
+  return {
+    momento: '', faixa: '', estado: 'parado', pausaAte: 0, ultimaDo: {}, ruins: new Set(),
+    sortear(momento) {
+      const l = (listas[momento] || []).filter(n => !this.ruins.has(n));
+      if (!l.length) return '';
+      const nova = l.filter(n => n !== this.faixa && n !== this.ultimaDo[momento]), outra = l.filter(n => n !== this.faixa);
+      const c = nova.length ? nova : (outra.length ? outra : l);
+      return c[Math.min(c.length - 1, Math.floor(rand() * c.length))];
+    },
+    _tocar(momento) {
+      const n = this.sortear(momento);
+      this.estado = n ? 'tocando' : 'parado';
+      if (n) { this.faixa = n; this.ultimaDo[momento] = n; }
+      return { tocar: n };
+    },
+    passo(momento, agora, restante) {
+      if (momento !== this.momento) { this.momento = momento; return this._tocar(momento); }
+      if (this.estado === 'pausa') return agora >= this.pausaAte ? this._tocar(momento) : null;
+      if (this.estado !== 'tocando' || restante == null) return null;
+      if (momento === 'pensao') return restante <= MUSICA_TROCA + 1 ? this._tocar(momento) : null;
+      if (restante > 0) return null;
+      this.estado = 'pausa'; this.pausaAte = agora + MUSICA_PAUSA_MIN + rand() * (MUSICA_PAUSA_MAX - MUSICA_PAUSA_MIN);
+      return { parar: true };
+    },
+    // A faixa não carregou: sai do sorteio e, no próximo passo, entra outra (sem silêncio extra).
+    falhou(nome, agora) { this.ruins.add(nome); if (nome === this.faixa && this.estado === 'tocando') { this.estado = 'pausa'; this.pausaAte = agora; } },
+  };
+}
+sons.rodizio = criarRodizio();
+// O momento da música: o salão da pensão; fora dela, a noite a partir das 18h; senão o dia.
+function momentoMusica() { return noSalaoDaPensao() ? 'pensao' : (G.minutos >= 18 * 60 ? 'noite' : 'dia'); }
+
 let _proxCanto = 8;
-const MUSICA_PENSAO = 'pensao_animada_1';   // a música do salão: o samba-choro (13/10: "precisa ser algo mais animado"; escolhida pelo jogador)
-// Música: de dia a do dia, da noite a da noite (a partir das 18h); na pensão, a calma da Vila.
 setInterval(() => {
   if (!G.comecou || !sons.ctx) return;
-  sons.musica(noSalaoDaPensao() ? MUSICA_PENSAO : (G.minutos >= 18 * 60 ? 'musica_noite' : 'musica_dia'));
+  const momento = momentoMusica(), resta = sons.restanteMusica();
+  const ac = sons.rodizio.passo(momento, sons.ctx.currentTime, resta);
+  if (ac) sons.musica(ac.tocar || '', !!ac.tocar && momento !== 'pensao');
   // (13/10, o Dave: a música acelera perto de fechar) Na "Última rodada!", a música da pensão anda mais ligeira.
-  if (sons._fonteMusica) { const r = noSalaoDaPensao() && G.turno && G.turno._ultima ? 1.1 : 1; if (sons._fonteMusica.playbackRate.value !== r) sons._fonteMusica.playbackRate.value = r; }
+  if (sons._fonteMusica) { const r = momento === 'pensao' && G.turno && G.turno._ultima ? 1.1 : 1; if (sons._fonteMusica.playbackRate.value !== r) sons._fonteMusica.playbackRate.value = r; }
   // Fora de casa: o fundo do dia (passarinhos) ou da noite (grilos, sapos), e a brisa acompanhando o vento (vida.js).
   // Os fundos são laços longos emendados sem pausa (produzir_ambiente.sh); dentro de casa, só um fio do lado de fora.
   const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;
