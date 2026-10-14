@@ -9,7 +9,7 @@ MAPAS_DEF.bancada = () => {
   b.fundo = 'texturas/chao_pedreira'; b.livre = { x: 2, y: 3, w: 18, h: 10 }; b.inicio = { x: 4, y: 4 }; b.subsolo = true;   // debaixo da terra: sem chuva nem noite
   for (let x = 0; x <= b.larg; x += 2) { b.enfeite('objetos/rocha_mina_1', x, 1, false); b.enfeite('objetos/rocha_mina_1', x + 1, 2, false); b.enfeite('objetos/rocha_mina_1', x, b.alt - 2, false); }
   for (let y = 3; y < b.alt - 2; y++) { b.enfeite('objetos/rocha_mina_1', 1, y, false); b.enfeite('objetos/rocha_mina_1', b.larg - 2, y, false); }
-  b.interativo('sobe_mina', 'objetos/escada_mina', 3, 3, 1, 1, [10, 6], false).acao = () => { subirDaMina(); return true; };
+  b.interativo('sobe_mina', 'objetos/escada_subida', 3, 3, 1, 1, [10, 6], false).acao = () => { subirDaMina(); return true; };
   if (Mina.bau(n)) b.interativo('bau_mina', 'objetos/bau', 11, 8, 1, 1, [16, 10]).acao = () => abrirBauMina(n);
   for (const r of Mina.gerar(n, G.dia)) b.detrito(r.tipo, r.x, r.y);
   b.paredesDaBorda();

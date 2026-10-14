@@ -281,7 +281,7 @@ const VERBO_DET = { mato: 'capinar o mato', pedra: 'quebrar a pedra', galho: 'co
 const ROTULO_OBJ = { caixa_correio: 'Botão direito: ler a carta', peneira: 'Botão direito: peneirar', monte_tijolos: 'Botão direito: pegar no monte',
   masseira: 'Botão direito: pegar a massa', pilha_ripas: 'Botão direito: pegar as ripas', casa_zelia: 'Botão direito: entregar aqui',
   quadro_pedidos: 'Botão direito: ver os serviços', pensao: 'Botão direito: entrar na pensão', balcao_bazar: 'Botão direito: ver o Bazar',
-  escada_mina: 'Botão direito: descer na mina', despensa_pensao: 'Botão direito: abrir a despensa', gremio: 'Botão direito: a lista do povo' };
+  escada_mina: 'Botão direito: descer na mina', desce_mina: 'Botão direito: descer para a próxima bancada', sobe_mina: 'Botão direito: subir da mina', despensa_pensao: 'Botão direito: abrir a despensa', gremio: 'Botão direito: a lista do povo' };
 function _rotulo(a) {
   if (a.rotuloFixo && a.tipo !== 'saida' && !a.det) return a.rotuloFixo;
   if (a.falta && a.tipo !== 'saida') { const q = Itens.qtd(a.falta.n, a.falta.item);
