@@ -51,6 +51,12 @@ const ECO = {
     // de fora (os clientes avulsos); o ajudante de salão leva `bebidaAjudante` s para encher a bebida no bebedouro (o funcionário
     // do Dave serve 1 bebida em 3,0 s).
     salao: { chegada: [5, 10], folgaBanco: 3, avulsos: 0.5, bebidaAjudante: 3 },
+    // (14/10, Tarefa A) Os números da janta (o TurnoJanta lê daqui; os nomes são os das constantes dele). Tempos em segundos:
+    // a paciência até pedir e até o prato chegar, o preparo de um prato, o tempo comendo, a leitura do cardápio (e com a louça
+    // suja do lado); as capacidades da farinheira (e o "repõe com tanto ou menos"), do passe, da bandeja e das bocas do fogão; a
+    // gorjeta da bebida na medida (parte do preço) e o preço de cada bebida (só a cerveja se paga à parte, por enquanto).
+    janta: { PACIENCIA_PEDIDO: 45, PACIENCIA_PRATO: 70, PREPARO: 6, COMENDO: 8, LENDO: 1.5, LENDO_LOUCA: 6,
+      FARINHA_MAX: 15, REPOR_ATE: 10, PASSE_MAX: 4, BANDEJA_MAX: 3, BOCAS: 2, GORJETA_MEDIDA: 0.15, precoBebida: { cerveja: 3 } },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.

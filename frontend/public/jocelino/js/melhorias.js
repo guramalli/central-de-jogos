@@ -64,7 +64,7 @@ function efeitoMelhoria(id) {
     case 'farinheira_grande': return `Farinheira ${TurnoJanta.FARINHA_MAX} → ${TurnoJanta.FARINHA_MAX + m.farinha}`;
     case 'banqueta_extra': return `Banquetas ${p.mesasDaNoite()} → ${p.mesasDaNoite() + 1}`;
     case 'neon': case 'bandeirinhas': { const c = p.clientesDaNoite() + b.clientes; return `Clientes por noite ${c} → ${c + m.clientes}`; }
-    case 'geladeira': return 'Bebidas: + cerveja gelada (Cr$ 3 a mais cada)';
+    case 'geladeira': return `Bebidas: + cerveja gelada (Cr$ ${TurnoJanta.precoBebida('cerveja')} a mais cada)`;
     default: return m.gorjeta ? `Gorjeta extra +${Math.round(b.gorjeta * 100)}% → +${Math.round((b.gorjeta + m.gorjeta) * 100)}%` : m.efeito;
   }
 }
