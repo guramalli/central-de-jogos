@@ -34,7 +34,11 @@ html, body {
   transition: opacity 0.4s ease;
 }
 
-#abertura.sumindo { opacity: 0; }
+/* Ao sumir, a abertura não pode ficar por cima do jogo pegando os cliques do mouse. */
+#abertura.sumindo { opacity: 0; pointer-events: none; }
+
+/* "display: flex" acima anularia o atributo hidden; garante que hidden esconde de verdade. */
+[hidden] { display: none !important; }
 
 .abertura-conteudo {
   max-width: 560px;
