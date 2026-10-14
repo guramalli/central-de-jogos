@@ -179,7 +179,7 @@ ATUALIZADORES.push(dt => {
 // Lascas que voam no golpe (terra, madeira, pedra, água).
 const LASCAS = [];
 const FX_LASCA = { pedra: 'lasca_pedra', madeira: 'lasca_madeira', mato: 'lasca_mato', agua: 'gota' };
-function lascas(x, y, tipo) { for (let k = 0; k < 7; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, fx: FX_LASCA[tipo] || 'lasca_terra' }); }
+function lascas(x, y, tipo) { if (!MODO_TESTE.efeitos) return; for (let k = 0; k < 7; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, fx: FX_LASCA[tipo] || 'lasca_terra' }); }
 
 // ---------- a animação do golpe ----------
 // Como o Stardew: o golpe pesado (picareta, machado, pá) sobe a ferramenta por cima da cabeça, segura um instante e desce

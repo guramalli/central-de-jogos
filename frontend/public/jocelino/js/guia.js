@@ -205,8 +205,8 @@ const Guia = {
     G.guia.feitas = G.guia.feitas.filter(id => Guia.missao(id)); G.guia.abertas = G.guia.abertas.filter(id => Guia.missao(id));   // um id que sumiu não trava
     // A reforma pela metade dada como feita (saves de 12/10, antes do conserto da migração): volta a ficar aberta, com a seta.
     if (G.guia.ativo && G.guia.feitas.includes('pensao') && s.pensao && _naReforma(s.pensao.estado)) { G.guia.feitas = G.guia.feitas.filter(x => x !== 'pensao'); if (!G.guia.abertas.includes('pensao')) G.guia.abertas.push('pensao'); }
-    // Nos testes (?teste=1, como as boas-vindas), o jogo novo sem guia pedido começa com tudo liberado; quem testa o guia pede s.guia.
-    if (!s.guia && novoJogo && typeof location !== 'undefined' && /teste=1/.test(location.search)) Guia.liberarTudo();
+    // Nos testes (?test=1, o MODO_TESTE de base.js, como as boas-vindas), o jogo novo sem guia pedido começa com tudo liberado; quem testa o guia pede s.guia.
+    if (!s.guia && novoJogo && MODO_TESTE.ativo) Guia.liberarTudo();
   },
   // Para os testes antigos (que usam os sistemas em qualquer dia): tudo liberado e todas as missões feitas.
   liberarTudo() { if (!G.guia) G.guia = Guia.novo(true); G.guia.antes = GUIA_SISTEMAS.slice(); G.guia.feitas = GUIA_MISSOES.map(m => m.id); G.guia.abertas = []; },

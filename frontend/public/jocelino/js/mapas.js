@@ -266,7 +266,7 @@ function montaChao(m) {
     g.beginPath();
     for (let y = 0; y < m.alt; y++) for (let x = 0; x < m.larg; x++) if (m.chaoEm(x, y) === tipo) caminhoArredondado(g, m, x, y, tipo);
     // Sombra macia na borda (o caminho "afunda" um pouco na grama).
-    g.shadowColor = 'rgba(40,25,10,.55)'; g.shadowBlur = 10;
+    if (MODO_TESTE.efeitos) { g.shadowColor = 'rgba(40,25,10,.55)'; g.shadowBlur = 10; }   // (modo de teste: sem a sombra)
     g.fillStyle = pat; g.fill();
     g.restore();
     // Contorno só na borda de fora (onde o vizinho não é do mesmo tipo).
@@ -329,12 +329,12 @@ function desenhaMapa(ctx) {
     }
     let dx = 0;
     if (o.treme > 0) { o.treme = Math.max(0, o.treme - 0.016); dx = Math.sin(o.treme * 60) * 3; }
-    const sk = typeof balanco === 'function' && !o.treme ? balanco(o) : 0;
+    const sk = MODO_TESTE.efeitos && typeof balanco === 'function' && !o.treme ? balanco(o) : 0;
     if (sk) {   // árvore ao vento: a base presa no chão, o topo inclina
       ctx.save(); ctx.translate(o.x + dx, o.y); ctx.transform(1, 0, sk, 1, 0, 0); desenhaPe(ctx, o.nome, 0, 0, alfa); ctx.restore();
     } else desenhaPe(ctx, o.nome, o.x + dx, o.y, alfa);
     if (LETREIROS[o.nome]) desenhaLetreiro(ctx, o, alfa);
-    if (CHAMINES[o.nome]) desenhaFumaca(ctx, o, alfa);
+    if (CHAMINES[o.nome] && MODO_TESTE.efeitos) desenhaFumaca(ctx, o, alfa);
     if (o.realce) desenhaRealce(ctx, o);
   }
   if (m.desenhaPorCima) m.desenhaPorCima(ctx);

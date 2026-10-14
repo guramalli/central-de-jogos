@@ -63,7 +63,7 @@ function vidaAtualiza(dt) {
   }
   VIDA.rolinhas = VIDA.rolinhas.filter(r => !r.voando || r.z < 900);
 }
-ATUALIZADORES.push(vidaAtualiza);
+ATUALIZADORES.push(dt => { if (MODO_TESTE.efeitos) vidaAtualiza(dt); });   // modo de teste (?test=1): o mapa fica parado
 
 // Rolinha no chão (entra na ordem de altura com o resto): a arte olha para a direita; espelha quando vai para a esquerda.
 function _desenhaRolinha(ctx, r) {
@@ -75,12 +75,12 @@ function _desenhaRolinha(ctx, r) {
   desenhaFx(ctx, nome, r.x, r.y - pz - r.z, { base: true, espelho: r.lado < 0 });
 }
 function vidaNoChao(m) {
-  if (m.dentro || m.cenario || VIDA.mapaId !== m.id) return [];
+  if (!MODO_TESTE.efeitos || m.dentro || m.cenario || VIDA.mapaId !== m.id) return [];
   return VIDA.rolinhas.map(r => ({ y: r.y, desenha: ctx => _desenhaRolinha(ctx, r) }));
 }
 // O céu: folhas ao vento e o bando (com a sombra no chão, bem mais embaixo).
 function desenhaCeu(ctx, m) {
-  if (m.dentro || m.cenario) return;
+  if (!MODO_TESTE.efeitos || m.dentro || m.cenario) return;
   for (const f of VIDA.folhas) desenhaFx(ctx, 'folha_' + f.n, f.x, f.y, { ang: f.ang });
   for (const b of VIDA.bandos) for (const a of b.aves) {
     ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(a.x + 30, a.y + 170, 14, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();

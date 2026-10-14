@@ -19,6 +19,23 @@ const G = {
   avisosHoje: [], feitosHoje: [], ganhoHoje: 0, gastoHoje: 0,
 };
 
+// O MODO DE TESTE (14/10, pedido do jogador): ?test=1 na URL (o ?teste=1 antigo vale igual). Os testes automáticos e o olho
+// abrem sempre com ele. O jogo inteiro consulta só este objeto:
+//  - ativo: pula a capa e as boas-vindas, libera o guia num jogo novo e não pré-carrega a arte (o que o ?teste=1 já fazia);
+//  - fps: o laço de desenho limitado a 30 quadros por segundo (0 = sem limite; a lógica continua pelo dt);
+//  - efeitos: os enfeites decorativos (vento, folhas, bando e rolinhas da vida.js; balanço das árvores, fumaça da chaminé e
+//    sombra macia do chão em mapas.js; lascas em ferramentas.js; tremor da câmera em jogo.js; o brilho verde da bebida no
+//    palco). Uma suíte que precisa ver um deles liga com MODO_TESTE.efeitos = true;
+//  - som: música e sons (sons.js nem cria o áudio: nada toca, nada é baixado).
+// Sem o parâmetro, tudo como antes: fps 0, efeitos e som ligados.
+// ?test=1&jogador=1 (o que o olho usa): só o lado leve (30 FPS, sem efeitos, sem som), com a capa, as boas-vindas e o guia
+// como o jogador vê (ativo fica false).
+const MODO_TESTE = (() => {
+  const q = typeof location !== 'undefined' && location && typeof location.search === 'string' ? location.search : '';
+  const leve = /[?&](test|teste)=1(&|$)/.test(q), jogador = leve && /[?&]jogador=1(&|$)/.test(q);
+  return { ativo: leve && !jogador, leve, fps: leve ? 30 : 0, efeitos: !leve, som: !leve };
+})();
+
 // Ganchos que cada sistema preenche (os arquivos carregam em ordem; estas listas existem antes de todos).
 const ATUALIZADORES = [];      // (dt) a cada quadro com o jogo correndo
 const DESENHOS_TELA = [];      // (ctx) por cima do mundo, em pixels de tela

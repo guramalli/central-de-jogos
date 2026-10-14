@@ -40,7 +40,7 @@ const FALA_CHEGADA = [
   'O canteiro do lado da casa é a comida da família: planta, rega todo dia e colhe. O que sobrar a Rosa cozinha ou a caixa de venda leva. Toma essas sementes de alface: planta com o botão direito e rega com o regador (o barril enche).',
   'O resto do quintal tá tomado de mato: mato é na foice, pedra na picareta, galho e toco no machado. Quanto mais limpo, mais horta. E a Rosa mandou duas marmitas: botão direito na barra pra comer.',
 ];
-INICIADORES.push(s => { if (!s.boasVindas && !/teste=1|pensao=1/.test(location.search)) setTimeout(() => boasVindas(s), 600); });
+INICIADORES.push(s => { if (!s.boasVindas && !MODO_TESTE.ativo && !/pensao=1/.test(location.search)) setTimeout(() => boasVindas(s), 600); });
 function boasVindas(s) {
   s.boasVindas = true;
   presentesDaChegada();

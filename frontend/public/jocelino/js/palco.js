@@ -139,7 +139,7 @@ function desenhaEnfeitesEBrilho(ctx) {
   const t = G.turno, b = G.mapa; if (!t || !b || !b._clientes) return;
   t.mesas.forEach((m, i) => {
     const p = b._clientes[i]; if (!p) return;
-    if (m.aura > 0) {
+    if (m.aura > 0 && MODO_TESTE.efeitos) {   // (modo de teste: sem o brilho; a aura continua no estado)
       const y = p.y - CABECA_CLIENTE + 60, r = 95, a = Math.min(1, m.aura / 1.5) * 0.4, g = ctx.createRadialGradient(p.x, y, 0, p.x, y, r);
       g.addColorStop(0, `rgba(130,255,150,${a})`); g.addColorStop(1, 'rgba(130,255,150,0)');
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(p.x - r, y - r, r * 2, r * 2); ctx.restore();

@@ -9,6 +9,7 @@ const sons = {
   ctx: null, bus: {}, buffers: new Map(), musicaAtual: '', _fonteMusica: null, _ganhoMusica: null,
   volumes: { musica: 70, ambiente: 80, efeitos: 80, interface: 60 },
   iniciar() {
+    if (!MODO_TESTE.som) return;   // modo de teste (?test=1): sem áudio nenhum (nada toca, nada é baixado)
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); return; }
     try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     const mestre = this.ctx.createGain(); mestre.connect(this.ctx.destination);

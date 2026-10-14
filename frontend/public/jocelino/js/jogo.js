@@ -59,7 +59,7 @@ function desenha(dt) {
   ctx.fillStyle = '#120d0a';
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   // Tremidinho no acerto forte (picareta na pedra, machado no toco).
-  const tr = G.tremor > 0 ? G.tremor * 22 : 0;
+  const tr = G.tremor > 0 && MODO_TESTE.efeitos ? G.tremor * 22 : 0;
   ctx.setTransform(z, 0, 0, z, (-G.cam.x + rnd(-tr, tr)) * z, (-G.cam.y + rnd(-tr, tr)) * z);
   if (G.mapa && typeof desenhaMapa === 'function') desenhaMapa(ctx);
   // Noite: o mundo escurece aos poucos das 18h às 21h, multiplicando por um azul (escurece sem lavar as cores, como
@@ -78,15 +78,19 @@ function desenha(dt) {
 }
 
 let _ultimo = 0;
+// O maior passo de tempo de um quadro. No modo de teste o limitador de 30 FPS pula quadros do rAF: com o rAF entre 32 e
+// 39 Hz o intervalo chega a ~60 ms, e o teto de 50 ms comeria tempo da lógica; ali o teto é de 3 quadros (100 ms).
+const TETO_DT = MODO_TESTE.fps ? Math.max(0.05, 3 / MODO_TESTE.fps) : 0.05;
 function quadro(ts) {
-  const dt = Math.min(0.05, _ultimo ? (ts - _ultimo) / 1000 : 0.016);
+  const dt = Math.min(TETO_DT, _ultimo ? (ts - _ultimo) / 1000 : 0.016);
   _ultimo = ts;
   G.quadros++;
   try { atualiza(dt); desenha(dt); }
   catch (e) { console.error(e); }
 }
 function loop(ts) {
-  quadro(ts);
+  // No modo de teste (?test=1), no máximo MODO_TESTE.fps quadros por segundo (a folga de 2 ms pega o quadro de 60 Hz certo).
+  if (!MODO_TESTE.fps || ts - _ultimo >= 1000 / MODO_TESTE.fps - 2) quadro(ts);
   requestAnimationFrame(loop);
 }
 // Reserva: janela escondida (testes) ou aba em segundo plano quase não chamam o requestAnimationFrame;
@@ -96,7 +100,7 @@ setInterval(() => { const t = performance.now(); if (t - _ultimo > 100) quadro(t
 // Começa (ou continua) o jogo a partir de um save.
 async function iniciarJogo(save) {
   // A arte do jogo inteiro vai sendo baixada aos poucos logo depois do começo (fora dos testes, que medem o jogo sem isso).
-  if (!window._precarregou && typeof ARTE_LISTA !== 'undefined' && !/teste=1/.test(location.search)) { window._precarregou = true; setTimeout(() => precarregarArtes(ARTE_LISTA), 1500); }
+  if (!window._precarregou && typeof ARTE_LISTA !== 'undefined' && !MODO_TESTE.ativo) { window._precarregou = true; setTimeout(() => precarregarArtes(ARTE_LISTA), 1500); }
   G.save = migraSave(save);
   const s = G.save;
   G.dia = s.dia; G.minutos = s.minutos; G.dinheiro = s.dinheiro; G.energia = s.energia;
@@ -132,7 +136,7 @@ addEventListener('load', () => {
   instalaEntrada();
   requestAnimationFrame(loop);
   if (/pensao=1/.test(location.search)) iniciarJogo(saveDaPensao());
-  else if (!/teste=1/.test(location.search)) mostrarCapa();
+  else if (!MODO_TESTE.ativo) mostrarCapa();
 });
 // Atalho de conferência (?pensao=1): a pensão aberta e limpa, despensa cheia, 16h40 dentro do salão. Marcado soTeste:
 // salvar() não grava nada (nem ao dormir), para não apagar o save de verdade.
