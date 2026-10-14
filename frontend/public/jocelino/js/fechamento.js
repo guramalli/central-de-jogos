@@ -21,15 +21,19 @@ function abrirFechamento(r) {
   const linha = (a, b, cls = '') => el('div', { class: 'fx-linha ' + cls }, el('span', {}, a), el('b', {}, b));
   const px = p.proximoDegrau();
   const caixa = el('div', { class: 'painel fechamento' },
-    el('div', { class: 'titulo', style: 'font-size:28px' }, 'Fechamento do caixa'),
+    el('div', { class: 'titulo titulo-tela' }, 'Fechamento do caixa'),
     el('div', { class: 'fx-nota' }, '★'.repeat(nota) + '☆'.repeat(5 - nota), el('span', {}, ` Nota da noite: ${nota}`)),
     el('div', { class: 'fx-col' },
-      linha('Clientes', `${r.clientes} (${r.servidos} comeram, ${r.embora} foram embora)`),
+      // (tarefa 7, o robô jogador) "comeram" conta gente, não pratos: o Tonhão pede 3 vezes e a noite mostrava "8 clientes (9 comeram)";
+      // os pratos a mais vão entre parênteses, e "1 foi embora" no singular
+      linha('Clientes', `${r.clientes} (${r.comeram ?? r.servidos} comeram${r.servidos > (r.comeram ?? r.servidos) ? `, ${r.servidos} pratos` : ''}, ${r.embora} ${r.embora === 1 ? 'foi embora' : 'foram embora'})`),
       linha('Pratos vendidos', `Cr$ ${vendas}`), linha('Gorjetas', `Cr$ ${gorj}`), linha(`Bebidas servidas`, `${r.bebidas || 0} (${r.medida || 0} na medida)`),
       r.cafes ? linha('Só cafezinho (faltou ingrediente)', `${r.cafes}`) : null,
       linha('Despesa da noite (gás, gelo, luz)', `− Cr$ ${r.despesa || 0}`, 'menos'), r.salarios ? linha('Salários', `− Cr$ ${r.salarios}`, 'menos') : null,
       r.desperdicio ? linha('Foi para o lixo', `${r.desperdicio} prato(s)`, 'menos') : null,
-      r.sobra && r.sobra.total ? linha('Sobra da panela', `${r.sobra.total} porções (${r.sobra.marmitas} viraram marmita)`) : null,
+      // (o cardápio do Bancho) quem ficou sem prato do quadro levou o prato da casa; a sobra da panela foi para o lixo (r.sobra = { prato: n })
+      r.casa ? linha('Prato da casa (sem curtida)', `${r.casa} ${r.casa === 1 ? 'prato' : 'pratos'}`) : null,   // (tarefa 7: conta pratos — o Tonhão repete — e dava "9 clientes" de 8)
+      textoSobra(r.sobra) ? linha('Sobrou', textoSobra(r.sobra).replace(/^Sobrou: /, ''), 'menos') : null,
       linha('Lucro da noite', `Cr$ ${lucro}`, lucro >= 0 ? 'lucro' : 'menos')),
     el('div', { class: 'fx-col' },
       linha('Curtidas', `+${r.curtidas || 0} (total ${p.curtidas})`), linha('Pitadas de tempero', `+${r.pitadasGanhas || 0} (total ${p.pitadas})`),

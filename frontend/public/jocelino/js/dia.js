@@ -59,6 +59,7 @@ function dormir(desmaiou = false) {
   G.jog.dir = DIR.BAIXO; G.jog.deitado = false;
   salvar();
   _dormindo = false;
+  if (typeof hudSujo === 'function') hudSujo();   // (tarefa 7) o cartão refeito atrás do resumo (o "Agora" ainda falava do serviço entregue na noite)
   mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof escolherVantagens === 'function' ? escolherVantagens : null);
 }
 

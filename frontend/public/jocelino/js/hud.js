@@ -5,6 +5,15 @@
 let _hudSujo = true;
 function hudSujo() { _hudSujo = true; HUD._cartaoSujo = true; }
 const HUD = {};
+// (onda final; o Stardew: clicar no HUD não usa a ferramenta) O ponto (x, y) da tela em cima do quadro de tarefas ou do cartão da
+// família à vista: o clique esquerdo ali não dá golpe (entrada.js), mesmo com o quadro deixando o clique passar para o mundo.
+// Com a coluna recuada (quase transparente: o Jocelino ou o alvo da seta embaixo dela), o que se vê é o mundo, e o clique vale o mundo
+// (o robô jogador: a plaquinha da cerca embaixo do cartão não recebia a pá).
+// (correção 2) também a barrinha da meta sob o relógio (HUD.meta).
+function mouseNoPainelDoHud(x, y) {
+  const recuou = HUD.colEsq && HUD.colEsq.classList.contains('recua');
+  return [recuou ? null : HUD.quadro, recuou ? null : HUD.cartao, HUD.meta && HUD.meta.classList.contains('recua') ? null : HUD.meta].some(p => { if (!p || p.hidden) return false; const r = p.getBoundingClientRect(); return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; });
+}
 
 function montaHud() {
   const h = $('#hud');
@@ -38,7 +47,8 @@ function atualizaHud() {
   // (revisão final) Da conversa da Rosa até a compra, a barrinha é a entrada da lojinha (o mesmo que o cartão), no lugar do Bazar.
   // (dia cheio, Frente A: "tem uma meta para comprar uma garrafa térmica mas eu não faço ideia o porquê") A barrinha é a meta da
   // família (metaDaBarrinha, cartao.js); o Bazar só quando o jogador escolhe "Juntar para", e com o efeito em poucas palavras.
-  const mb = typeof metaDaBarrinha === 'function' ? metaDaBarrinha() : null;
+  // (tarefa 7) Dentro do salão aberto, a do restaurante (o Dave: lá dentro a tela é da pensão).
+  const mb = typeof metaDaBarrinha === 'function' ? metaDaBarrinha(noSalaoDaPensao() && !!G.pensao && G.pensao.estado === 'aberta') : null;
   HUD.meta.hidden = !mb;
   if (mb) { HUD.metaTexto.textContent = mb.curto; HUD.metaNivel.style.width = Math.min(100, Math.max(0, mb.feito) / mb.meta * 100) + '%'; }
   const f = G.energia / G.energiaMax;
@@ -67,9 +77,25 @@ function atualizaHud() {
   // (13/10) O quadro só com o trabalho na mão (a linha no mapa dela); os avisos vão para o "Agora" e para a Caderneta.
   const tarefas = todas.filter(t => typeof noMapaDaLinha === 'function' ? noMapaDaLinha(t) : true);
   HUD.quadro.hidden = !tarefas.length;
-  const peso = t => t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
+  // (tarefa 7, o robô jogador) as linhas da lista da obra vêm primeiro, depois as ★ (as metas da pensão, que aparecem também na Vila): com o
+  // corte de 6 linhas, as 3 metas da pensão empurravam a 4ª e a 5ª tarefa do Bira para fora do quadro
+  const peso = t => /^Obra: /.test(t.texto) ? 2 : t.texto.startsWith('★') ? 1 : 0; tarefas.sort((a, b) => peso(b) - peso(a));
   const txt = tarefas.slice(0, 6).map(t => t.texto + (t.meta ? `  ${t.feito}/${t.meta}` : '')).join('|');
   if (HUD.quadro._txt !== txt) { HUD.quadro._txt = txt; HUD.quadro.innerHTML = ''; for (const t of txt ? txt.split('|') : []) HUD.quadro.append(el('div', {}, t)); }
+  // (tarefa 7, o robô jogador) Como a barra do Stardew, que pula para o alto quando o fazendeiro anda embaixo dela: a coluna do cartão e
+  // do quadro fica quase transparente quando o Jocelino ou o alvo da seta estão embaixo dela (o depósito e a pensão, no canto da Vila,
+  // sumiam atrás do cartão).
+  // (correção 2) a barrinha da meta sob o relógio recua do mesmo jeito (o canteiro da obra, no alto à direita da Vila, fica embaixo dela)
+  const s = typeof setaAgora === 'function' ? setaAgora() : null;
+  for (const painel of [HUD.colEsq, HUD.meta]) { if (!painel) continue;
+    const r = painel.getBoundingClientRect(), z = G.zoom || 1, dentro = (x, y) => x >= r.left - 10 && x <= r.right + 10 && y >= r.top - 10 && y <= r.bottom + 30;
+    // (o Jocelino a até 2 ladrilhos do painel: o que a ferramenta dele alcança pode estar embaixo, e o clique tem de chegar lá)
+    const m = 2 * TILE * z, perto = (x, y) => x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m;
+    const sob = !painel.hidden && r.height > 0 && !!G.jog && !!G.cam && (perto((G.jog.x - G.cam.x) * z, (G.jog.y - 40 - G.cam.y) * z)
+      || (!!s && s.tipo === 'alvo' && dentro((s.x - G.cam.x) * z, (s.y + 30 - G.cam.y) * z)));
+    if (painel.classList.contains('recua') !== sob) painel.classList.toggle('recua', sob); }
+  // (tarefa 7) O quadro não pega mais o clique (deixa passar para o depósito, que ficava embaixo dele): fica firme com o mouse por cima.
+  { const r = HUD.quadro.getBoundingClientRect(), m = G.mouse, dentro = !HUD.quadro.hidden && m.x >= r.left && m.x <= r.right && m.y >= r.top && m.y <= r.bottom; if (HUD.quadro.classList.contains('firme') !== dentro) HUD.quadro.classList.toggle('firme', dentro); }
   // O cartão: recalculado quando o HUD suja ou a cada meio segundo de jogo.
   const ag = G.agora || 0;
   if (typeof atualizaCartao === 'function' && (HUD._cartaoSujo || ag - (HUD._tCartao || -9) > 0.5 || ag < (HUD._tCartao || 0))) { HUD._cartaoSujo = false; HUD._tCartao = ag; atualizaCartao(todas.filter(t => !noMapaDaLinha(t) && (!t.mapa || t.urgente)), noSalao); }   // (o Agora: os avisos e, do que tem lugar, só o urgente)

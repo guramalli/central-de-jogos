@@ -110,7 +110,7 @@ function abrirMelhorias() {
   const caixa = el('div', { class: 'painel melhorias' });
   const desenha = () => {
     caixa.innerHTML = '';
-    caixa.append(el('div', { class: 'titulo', style: 'font-size:28px' }, 'Melhorias da Pensão'), el('div', { class: 'eq-vagas' }, `Cr$ ${G.dinheiro} · degrau: ${p.nomeGrau(p.grau())}`));
+    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Melhorias da Pensão'), el('div', { class: 'eq-vagas' }, `Cr$ ${G.dinheiro} · degrau: ${p.nomeGrau(p.grau())}`), faixaDaTela('mel-faixa'));
     const g = el('div', { class: 'mel-grade' });
     for (const [id, m] of Object.entries(MELHORIAS)) {
       if (m.premio && !p.melhorias.includes(id)) continue;   // prêmio não se compra

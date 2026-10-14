@@ -85,7 +85,7 @@ function abrirConcurso() {
     caixa.innerHTML = '';
     const cands = Concurso.candidatos(p);
     caixa.append(el('div', { class: 'conc-topo' }, el('img', { src: urlArte('ui/microfone_radio'), class: 'conc-mic' }),
-      el('div', {}, el('div', { class: 'titulo', style: 'font-size:28px' }, 'Concurso da Rádio Maré'),
+      el('div', {}, el('div', { class: 'titulo titulo-tela' }, 'Concurso da Rádio Maré'),
         el('div', { class: 'rodape', style: 'text-align:left' }, `Escolha 3 pratos (gasta uma porção de cada). O prato da estação é ${tema.nome}.`))),
       el('div', { class: 'conc-jurados' }, ...JURADOS.map(j => el('div', { class: 'conc-jurado' }, el('img', { src: urlArte('retratos/' + j.id + '_normal') }),
         el('div', {}, el('b', {}, j.nome), el('div', {}, j.texto))))));
@@ -107,7 +107,7 @@ function abrirConcurso() {
 }
 function mostrarResultadoConcurso(r) {
   const caixa = el('div', { class: 'painel concurso' },
-    el('div', { class: 'titulo', style: 'font-size:28px' }, r.venceu ? 'A Pensão da Rosa venceu o concurso!' : 'Não foi dessa vez...'),
+    el('div', { class: 'titulo titulo-tela' }, r.venceu ? 'A Pensão da Rosa venceu o concurso!' : 'Não foi dessa vez...'),
     el('div', { class: 'conc-jurados' }, ...r.jurados.map(j => el('div', { class: 'conc-jurado' }, el('img', { src: urlArte('retratos/' + j.id + (j.nota >= 7 ? '_alegre' : '_normal')) }),
       el('div', {}, el('b', {}, j.nome), el('div', { class: 'conc-nota' }, `Nota ${j.nota}`))))),
     el('div', { class: 'fx-linha lucro' }, el('span', {}, 'Total da pensão'), el('b', {}, `${r.total} de 30`)),

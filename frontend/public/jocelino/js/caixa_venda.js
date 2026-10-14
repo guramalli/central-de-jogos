@@ -26,15 +26,24 @@ const CaixaVenda = {
   bruto() { let t = 0; for (const id in G.caixaVenda) t += CaixaVenda.preco(id) * G.caixaVenda[id] * (typeof fatorFeira === 'function' ? fatorFeira(id) : 1) * (typeof fatorPeixe === 'function' ? fatorPeixe(id) : 1); return Math.round(t); },   // Feirante/Atacadista na colheita
   total() { return Math.round(CaixaVenda.bruto() * (typeof Habilidades !== 'undefined' ? Habilidades.bonusVenda() : 1)); },
   madrugada() {
-    const total = CaixaVenda.total(), itens = Object.assign({}, G.caixaVenda);
-    G.caixaVenda = {}; G.dinheiro += total;
+    // (tarefa 6) O que não se vende (a marmita de um save antigo: comida de casa) o carroceiro não leva: volta para a mochila, e o
+    // que não couber fica na caixa (nada some sem pagar).
+    const volta = {};
+    for (const id of Object.keys(G.caixaVenda)) if (!CaixaVenda.preco(id)) { const n = CaixaVenda.tirar(id, G.caixaVenda[id]); if (n) volta[id] = n; }
+    const fica = {}, itens = {};
+    for (const [id, n] of Object.entries(G.caixaVenda)) (CaixaVenda.preco(id) ? itens : fica)[id] = n;
+    const total = CaixaVenda.total();
+    G.caixaVenda = fica; G.dinheiro += total;
     if (total && typeof Habilidades !== 'undefined') Habilidades.ganhar('negocio', Math.min(30, Math.floor(total / 5)));
-    return { total, itens };
+    return { total, itens, volta, fica };
   },
 };
 INICIADORES.push(s => { G.caixaVenda = Object.assign({}, s.caixaVenda || {}); });
 COLETORES.push(s => { s.caixaVenda = Object.assign({}, G.caixaVenda); });
-NOITE.push(linhas => { const r = CaixaVenda.madrugada(); if (r.total) linhas.push(`O carroceiro levou a caixa de venda e pagou Cr$ ${r.total}.`); G.ganhoTotal = (G.ganhoTotal || 0) + (r.total || 0); });
+NOITE.push(linhas => { const r = CaixaVenda.madrugada(); if (r.total) linhas.push(`O carroceiro levou a caixa de venda e pagou Cr$ ${r.total}.`); G.ganhoTotal = (G.ganhoTotal || 0) + (r.total || 0);
+  const lista = o => Object.entries(o).map(([id, n]) => Itens.qtd(n, id)).join(', ');
+  if (Object.keys(r.volta).length) linhas.push(`O carroceiro não leva ${lista(r.volta)} (não se vende): voltou para a mochila.`);
+  if (Object.keys(r.fica).length) linhas.push(`Não se vende e ficou na caixa de venda (a mochila está cheia): ${lista(r.fica)}.`); });
 
 // A tela: à esquerda o que dá para vender da mochila; à direita o que já está na caixa; embaixo quanto o carroceiro paga.
 function usarCaixaVenda() {

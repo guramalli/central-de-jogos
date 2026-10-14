@@ -6,8 +6,11 @@
 let _abaLoja = 0;
 const ABAS_LOJA = ['Comprar', 'Vender', 'Mercearia', 'Sementes'];
 
+// (onda final) O horário do depósito, num lugar só (a loja, a seta "abre às 8h" e o imprevisto do cimento da obra leem daqui).
+const DEPOSITO_HORARIO = { abre: 8 * 60, fecha: 17 * 60 };
+const depositoFechado = () => G.minutos < DEPOSITO_HORARIO.abre || G.minutos >= DEPOSITO_HORARIO.fecha;
 function entrarDeposito() {
-  if (G.minutos < 8 * 60 || G.minutos >= 17 * 60) { abrirPlaca('Depósito do Seu Ananias: fechado agora. Abre das 8h às 17h.'); return true; }
+  if (depositoFechado()) { abrirPlaca(`Depósito do Seu Ananias: fechado agora. Abre das ${DEPOSITO_HORARIO.abre / 60}h às ${DEPOSITO_HORARIO.fecha / 60}h.`); return true; }
   abrirLoja();
   return true;
 }

@@ -41,6 +41,9 @@ function instalaEntrada() {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
     if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
+    // (onda final; o Stardew: clicar no HUD não usa a ferramenta) o clique esquerdo em cima do quadro de tarefas ou do cartão (que deixam
+    // o clique passar para o mundo) não dá golpe; o direito continua passando (abre o depósito embaixo deles)
+    if (e.button === 0 && typeof mouseNoPainelDoHud === 'function' && mouseNoPainelDoHud(e.clientX, e.clientY)) return;
     if (e.button === 0) { G.mouse.segura = true; G.mouse.apertou = true; usarItemDaMao(); }
     else if (e.button === 2) acaoNoMouse();
   });

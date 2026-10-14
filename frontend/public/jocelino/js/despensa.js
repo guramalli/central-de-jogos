@@ -97,18 +97,29 @@ function abrirDespensa() {
   const prat = el('div', { class: 'desp-prateleiras' });
   for (const id of ids) {
     const n = p.despensa[id] || 0, ing = Pratos.INGREDIENTES[id], pode = p.aceita(id);
-    prat.append(el('div', { class: 'desp-item' + (n ? '' : ' vazio') + (pode ? '' : ' trancado'), title: `${Itens.nome(id)} — ${origemDe(id)}` },
+    // (13/10, o tema) Um pote por vaga da prateleira: o ícone, quanto tem e o nome; a raridade e a origem ficam na dica do mouse
+    // (a lousa ao lado avisa), para o cartão caber no vão entre a prateleira e a toalhinha de crochê.
+    prat.append(el('div', { class: 'desp-item' + (n ? '' : ' vazio') + (pode ? '' : ' trancado'), title: `${Itens.nome(id)} — ${'★'.repeat(ing.raridade)} ${origemDe(id)}` },
       el('img', { src: urlItem(id) }), el('div', { class: 'desp-qtd' }, n ? '×' + n : (pode ? '—' : '🔒')),
-      el('div', { class: 'desp-nome' }, Itens.nome(id)), el('div', { class: 'desp-origem' }, '★'.repeat(ing.raridade) + ' ' + origemDe(id))));
+      el('div', { class: 'desp-nome' }, Itens.nome(id))));
   }
   const naMochila = Object.keys(Pratos.INGREDIENTES).filter(id => G.mochila && G.mochila.total(id) > 0 && p.aceita(id));
-  caixa.append(el('div', { class: 'titulo', style: 'font-size:28px' }, 'Despensa da Rosa'),
-    el('div', { class: 'rodape', style: 'text-align:left' }, 'Passe o mouse num ingrediente para ver de onde ele vem. O que falta, a Mercearia do Seu Ananias vende ou o orelhão da Vila encomenda.'),
-    prat,
-    el('div', { style: 'display:flex;gap:10px;justify-content:flex-end;margin-top:10px' },
-      naMochila.length ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); guardarNaDespensa(true); fecharModal(); abrirDespensa(); } }, `Guardar o da mochila (${naMochila.length})`) : null,
-      el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
-  abrirModal(caixa);
+  caixa.append(el('div', { class: 'titulo titulo-tela giz' }, 'Despensa da Rosa'),
+    prat);
+  // (o cardápio do Bancho, 13/10) Ao lado das prateleiras, a lousa do rendimento (o Dave mostra, no estoque, quantas porções cada
+  // receita dá): "Peixe Frito do Lourival: 1 peixe e 1 farinha = 1 panela = 4 porções", e quantas panelas a despensa dá agora.
+  const rend = el('div', { class: 'lousa desp-rendimento' }, el('div', { class: 'giz-titulo' }, 'O que a despensa dá'));
+  p.receitas.forEach((id, i) => {
+    const P = Pratos.PRATOS[id], n = Math.min(99, p.rende(id)), k = p.porcoesPorPanela(id), falta = Object.keys(P.porcao).filter(x => p._tem(x) < P.porcao[x]);
+    if (i) rend.append(el('div', { class: 'giz-divisoria' }));
+    rend.append(el('div', { class: 'rend-linha' + (n ? '' : ' falta') },
+      el('div', {}, el('span', { class: 'giz rend-nome' }, P.nome + ':'), ` ${listaE(Object.entries(P.porcao).map(([x, q]) => ingredienteNaPanela(x, q)))} = 1 panela = ${k} porções`),
+      el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(nomeNaPanela))}`)));
+  });
+  rend.append(el('div', { class: 'rend-onde' }, 'Passe o mouse num ingrediente para ver de onde ele vem. O que falta, a Mercearia do Seu Ananias vende ou o orelhão da Vila encomenda.'), el('div', { class: 'rend-botoes' },
+    naMochila.length ? el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); guardarNaDespensa(true); fecharModal(); abrirDespensa(); } }, `Guardar o da mochila (${naMochila.length})`) : null,
+    el('button', { class: 'tabua acesa', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+  abrirModal(el('div', { class: 'despensa-tela' }, caixa, rend));
   sons.tocar('abrir', 1, 0.03, -6);
   return true;
 }

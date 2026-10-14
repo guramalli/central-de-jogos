@@ -21,7 +21,7 @@ class Pensao {
   constructor() {
     this.estado = 'fechada';   // fechada, limpar, telhado, balcao, cozinha, pintura, pronta, aberta (as etapas em ECO.reforma)
     this.abreDia = -1; this.reforma = { entregue: {}, dias: 0, hoje: 0 }; this._golpes = 0; this.limpos = []; this.mesas = 2; this.fama = 0;
-    this.despensa = {}; this.cardapio = []; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
+    this.despensa = {}; this.cardapio = []; this.cardapioNoite = {}; this.receitas = Pensao.RECEITAS_INICIAIS.slice(); this.ultimaJanta = -1;
     this.niveis = {}; this.pitadas = 0; this.vistos = []; this.curtidas = 0;
     this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {}; this.chef = { nivel: 1, xp: 0 };
     this.premios = []; this.garfos = 0; this.paladarNotas = []; this.concursos = {};
@@ -45,7 +45,8 @@ class Pensao {
   grau() { let g = 1; for (let i = 1; i < Pensao.DEGRAUS.length && this._cumpre(Pensao.DEGRAUS[i]); i++) g = i + 1; return Math.max(g, this.grauMinimo || 1); }
   degrau(g = this.grau()) { return Pensao.DEGRAUS[clamp(g, 1, Pensao.DEGRAUS.length) - 1]; }
   nomeGrau(g) { return this.degrau(g).nome; }
-  vagas() { return this.degrau().vagas; }
+  // (o cardápio do Bancho, 13/10) As vagas do cardápio: 2 a 5, pelo degrau (ECO.pensao.vagas).
+  vagas() { return ECO.pensao.vagas[clamp(this.grau(), 1, ECO.pensao.vagas.length) - 1]; }
   maxMesas() { return 6 + ((this.ampliacoes || []).includes('salao_maior') ? 2 : 0); }
   mesasDaNoite() { return Math.max(this.mesas, this.degrau().mesas) + (this.melhorias || []).filter(id => id === 'banqueta_extra').length + ((this.ampliacoes || []).includes('salao_maior') ? 2 : 0); }
   clientesDaNoite() { return this.degrau().clientes + ((this.ampliacoes || []).includes('varanda') ? 3 : 0); }
@@ -141,11 +142,49 @@ class Pensao {
   }
   // Tira uma porção (para o pedido). Devolve a raridade da panela.
   servirPorcao(prato) { if (this.porcoes(prato) <= 0) return 0; this.panela[prato]--; if (!this.panela[prato]) delete this.panela[prato]; return this.panelaRar[prato] || 1; }
-  // No fim da noite, a sobra vira marmita (até ECO.marmitasMax); o resto a família janta.
-  sobraVira() {
-    const total = Object.values(this.panela).reduce((a, b) => a + b, 0), marmitas = Math.min(total, ECO.marmitasMax);
+
+  // ---------------- o cardápio da noite (o do Bancho, 13/10): o jogador escolhe, antes de abrir, quantas panelas de cada prato e
+  // se a Rosa repõe sozinha quando acabar ({ prato: { panelas, repoe } }); os ingredientes saem da despensa na hora.
+  static CASA = 'casa';   // o prato da casa (o Norimaki do Dave): ECO.pensao.pratoCasa
+  // Os dados de um prato para a tela e a janta (o prato da casa não é receita do caderno: não entra em Pratos.PRATOS).
+  static prato(id) {
+    if (id !== Pensao.CASA) return Pratos.PRATOS[id];
+    const c = ECO.pensao.pratoCasa;
+    return { nome: c.nome, preco: c.preco, fase: 1, principal: 'arroz', porcao: {}, montar: ['arroz', 'feijao'], reacao: 'coracao', icone: 'itens/prato_pf_peao',
+      desc: 'Sempre tem: o arroz com feijão da panela da família. Barato, sem ingrediente da despensa.' };
+  }
+  // Monta o cardápio da noite: guarda a escolha (o quadro abre com ela amanhã) e prepara as panelas pedidas, na ordem, só das
+  // receitas do caderno e até as vagas do degrau. A vaga é de quem está na panela (o que já tinha e o que saiu agora): o prato
+  // sem ingrediente nenhum não ocupa vaga. Devolve { feitas: {prato: n > 0}, faltou: [pratos que não saíram inteiros],
+  // ingredientes: {prato: [faltaram]}, semVaga: [pratos que não couberam] }.
+  montarNoite(cardapio, rng) {
+    this.cardapioNoite = JSON.parse(JSON.stringify(cardapio || {}));
+    const r = { feitas: {}, faltou: [], ingredientes: {}, semVaga: [] }, ocupa = new Set(this.pratosDaNoite());
+    for (const id of Object.keys(this.cardapioNoite)) {
+      const n = this.cardapioNoite[id].panelas | 0;
+      if (n <= 0 || !this.receitas.includes(id)) continue;
+      if (!ocupa.has(id) && ocupa.size >= this.vagas()) { r.semVaga.push(id); continue; }
+      const f = this.prepararPanela(id, n, rng);
+      if (f.feitas) { r.feitas[id] = f.feitas; ocupa.add(id); }
+      if (f.feitas < n) { r.faltou.push(id); r.ingredientes[id] = f.faltou; }
+    }
+    return r;
+  }
+  // Os pratos que o cliente pode pedir agora: os que têm porção na panela.
+  pratosDaNoite() { return Object.keys(this.panela).filter(id => this.porcoes(id) > 0); }
+  // O prato acabou na janta: com "repõe" ligado e ingrediente, a Rosa faz outra panela. Devolve 'repos', 'faltou' (repõe
+  // ligado sem ingrediente) ou 'saiu' (repõe desligado); '' se ainda tem porção.
+  reporSeAcabou(prato, rng) {
+    if (this.porcoes(prato) > 0) return '';
+    if (!(this.cardapioNoite[prato] || {}).repoe) return 'saiu';
+    return this.prepararPanela(prato, 1, rng).feitas ? 'repos' : 'faltou';
+  }
+  // No fim da noite a sobra vai para o lixo (como no Dave). Devolve { prato: porções }.
+  jogarSobra() {
+    const sobra = {};
+    for (const id in this.panela) if (this.panela[id] > 0) sobra[id] = this.panela[id];
     this.panela = {}; this.panelaRar = {};
-    return { marmitas, total };
+    return sobra;
   }
 
   // ---------------- o caderno da Rosa: nível do prato, pitadas de tempero, receitas a descobrir
@@ -240,7 +279,8 @@ class Pensao {
     this.grauMinimo = Math.max(this.grauMinimo || 1, this.grau());             // a pensão nunca desce de degrau
     return this.grau() > antes ? this.grau() : 0;
   }
-  // Pratos da noite: os marcados no quadro de giz que rendem; se nenhum rende, o que a despensa rende.
+  // Pratos da noite: os marcados no quadro de giz que rendem; se nenhum rende, o que a despensa rende. (Só o salão antigo; o balcão usa
+  // o cardápio montado: montarNoite e pratosDaNoite.)
   cardapioDaNoite() {
     let r = this._queRendem(this.cardapio.length ? this.cardapio : this.receitas);
     if (!r.length && this.cardapio.length) r = this._queRendem(this.receitas);
@@ -293,9 +333,20 @@ class Pensao {
       for (const id in Pensao.DESPENSA_INICIAL) this.despensa[id] = (this.despensa[id] || 0) + Pensao.DESPENSA_INICIAL[id];
     }
   }
+  // A marmita do Jocelino (o cardápio do Bancho, 13/10): de manhã a Rosa completa a mesa de casa até ECO.pensao.marmita.porDia,
+  // gastando ECO.pensao.marmita.gasta da despensa (o gasto da fornada da manhã, não por marmita). Só com a pensão aberta: antes,
+  // a despensa não existe (a reforma não guarda nada). naMesa: as que sobraram de ontem. Devolve { feitas, falta: [ingredientes] }.
+  fazerMarmitas(naMesa = 0) {
+    const M = ECO.pensao.marmita, quer = Math.max(0, M.porDia - naMesa);
+    if (this.estado !== 'aberta' || !quer) return { feitas: 0, falta: [] };
+    const falta = Object.keys(M.gasta).filter(id => this._tem(id) < M.gasta[id]);
+    if (falta.length) return { feitas: 0, falta };
+    for (const id in M.gasta) { this.despensa[id] -= M.gasta[id]; if (this.despensa[id] <= 0) delete this.despensa[id]; }
+    return { feitas: quer, falta: [] };
+  }
   paraDict() {
     return { estado: this.estado, abreDia: this.abreDia, reforma: JSON.parse(JSON.stringify(this.reforma || null)), golpes: this._golpes || 0, limpos: (this.limpos || []).slice(), mesas: this.mesas, fama: this.fama,
-      despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
+      despensa: Object.assign({}, this.despensa), cardapio: this.cardapio.slice(), cardapioNoite: JSON.parse(JSON.stringify(this.cardapioNoite || {})), receitas: this.receitas.slice(), ultimaJanta: this.ultimaJanta,
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
       premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos), estrelasPremiadas: this.estrelasPremiadas ?? null, festaDia: this.festaDia || 0,
@@ -320,6 +371,10 @@ class Pensao {
     this.estrelasPremiadas = d.estrelasPremiadas ?? null; this.festaDia = d.festaDia || 0;
     this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
     // Save de antes dos garfos do Doutor Paladar: o degrau que já tinha não cai (os garfos só valem daqui para a frente).
+    // Save de antes do cardápio do Bancho (13/10): o quadro de giz antigo vira o cardápio da noite (uma panela, a Rosa repõe) e a
+    // panela começa vazia (a sobra de ontem já foi para o lixo).
+    if (d.cardapioNoite == null) { this.cardapioNoite = {}; for (const id of this.cardapio) this.cardapioNoite[id] = { panelas: 1, repoe: true }; this.panela = {}; this.panelaRar = {}; }
+    else this.cardapioNoite = JSON.parse(JSON.stringify(d.cardapioNoite));
     if (d.garfos == null) { this._semPaladar = true; const g = this.grau(); this._semPaladar = false; this.grauMinimo = Math.max(this.grauMinimo || 1, g); }
   }
 }

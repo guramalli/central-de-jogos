@@ -57,6 +57,28 @@ const noPalco = () => !!(G.mapa && G.mapa.palco);
 ATUALIZADORES.push(() => { if (noPalco()) aplicaLayoutPalco(); });
 ATUALIZADORES.push(() => document.body.classList.toggle('no-palco', noPalco()));
 const noSalaoDaPensao = () => G.mapaId === 'pensao_dentro' || G.mapaId === 'pensao_palco';
+// (13/10, o tema do restaurante) Dentro do salão (o palco e o salão da reforma) as caixas do restaurante vestem a lousa de giz e
+// madeira, como a pele única das telas do Bancho; fora dele nada muda. body.tema-salao pinta o selo da fama e os avisos; ao abrir
+// uma janela (ui.js, abrirModal) a caixa do restaurante ganha a classe .lousa e os botões dela viram tábuas (estilo.css).
+// As telas pessoais do Jocelino (mochila, Caderneta, mapa, opções) ficam de fora, como o celular do Dave.
+const CAIXAS_DO_SALAO = '.placa, .equipe, .melhorias, .metas, .fechamento, .painel-pensao, .ampliacao, .concurso, .caderno';
+function marcaTemaDoSalao() { const sim = noSalaoDaPensao(); document.body.classList.toggle('tema-salao', sim); return sim; }
+function vesteDoSalao(caixa) {
+  if (!marcaTemaDoSalao() || !caixa || !caixa.matches || !caixa.matches(CAIXAS_DO_SALAO)) return;
+  caixa.classList.add('lousa');
+  caixa.classList.remove('com-arte');   // o caderno troca o papel desenhado pela lousa
+}
+// (tarefa 6) A lousa que passa só uns poucos px do teto (92vh) cresce o que falta, em vez de mostrar a barrinha de rolar por quase
+// nada (o fechamento passava 1 px); quando sobra de verdade (mais de 40 px), rola como antes. Refaz a conta quando a caixa redesenha.
+const FOLGA_LOUSA = 40;
+function folgaDaLousa(caixa) {
+  if (!caixa || !caixa.classList || !caixa.classList.contains('lousa') || caixa.classList.contains('caderno')) return;
+  const ajusta = () => { if (!caixa.isConnected) return; caixa.style.maxHeight = '';
+    const s = caixa.scrollHeight - caixa.clientHeight; if (s > 0 && s <= FOLGA_LOUSA) caixa.style.maxHeight = `calc(92vh + ${s + 1}px)`; };
+  let pedido = false;
+  ajusta(); new MutationObserver(() => { if (pedido) return; pedido = true; requestAnimationFrame(() => { pedido = false; ajusta(); }); }).observe(caixa, { childList: true, subtree: true, characterData: true });
+}
+ATUALIZADORES.push(() => marcaTemaDoSalao());
 // A pensão aberta (ou pronta para abrir) usa o palco; na reforma, o salão antigo de cima.
 const pensaoNoPalco = () => !!G.pensao && ['aberta', 'pronta'].includes(G.pensao.estado);
 
@@ -187,17 +209,43 @@ function desenhaRosaCozinha(ctx) {
   const esq = (R.lado || -1) < 0, col = (R.estado === 'volta') === esq ? 3 : 2, lin = R.estado === 'larga' ? 1 : R.quadro % 10;
   ctx.drawImage(img, col * w, lin * h, w, h, R.x - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
 }
+// (tarefa 6) Os pratos dos nichos: só o que está de fato no cardápio da noite, com as porções (na janta, as da panela; antes de
+// abrir, as que o quadro vai fazer). Prato sem panela não aparece (nada de "0" esmaecido), como o cardápio do Bancho na parede.
+// (onda final) Antes de abrir, só no dia em que a pensão abre, e com a mesma conta do quadro (em sequência), guardada: refaz só
+// quando a despensa, o cardápio ou o dia mudam (não a cada quadro). Na janta, o prato fica no nicho dele: o que acabou continua no
+// lugar, marcado "acabou" (o Dave mantém o prato no cardápio da parede, esgotado), e nada desliza.
+let _nichosGuardados = { chave: '', lista: [] };
+function nichosDoCardapio() {
+  const p = G.pensao, t = G.turno; if (!p) return [];
+  if (t) {   // a ordem da noite: os pratos na ordem em que entraram na panela; o que acabou fica no lugar
+    const ordem = t._nichos || (t._nichos = []);
+    for (const id of p.pratosDaNoite()) if (!ordem.includes(id)) ordem.push(id);
+    return ordem.slice(0, PALCO.VAGAS.length).map(id => p.porcoes(id) > 0 ? { id, n: p.porcoes(id) } : { id, n: 0, acabou: true });
+  }
+  if (p.ultimaJanta === G.dia || typeof pensaoAbreHoje !== 'function' || !pensaoAbreHoje()) return [];   // (depois da janta, a sobra foi para o lixo)
+  const esc = p.cardapioNoite || {}, chave = JSON.stringify([G.dia, p.despensa, esc, p.receitas.length, p.vagas(), p.panela]);
+  if (_nichosGuardados.chave !== chave) {
+    const C = contaDoQuadro(p, esc);
+    _nichosGuardados = { chave, lista: Object.keys(C.efe).filter(id => C.efe[id] > 0).map(id => ({ id, n: C.efe[id] * p.porcoesPorPanela(id) })).slice(0, PALCO.VAGAS.length) };
+  }
+  return _nichosGuardados.lista;
+}
 function camadasDaJanta() {
   const t = G.turno, P = PALCO;
   return [
-    // O cardápio da noite nos nichos da parede: o prato marcado e quantas porções a despensa ainda rende.
+    // O cardápio da noite nos nichos da parede (o do quadro de giz, 13/10): na janta, as porções na panela; antes de abrir, as
+    // porções que o quadro vai fazer; depois da janta, os nichos vazios (a sobra foi para o lixo).
     camadaViva(401, ctx => {
       if (typeof emReforma === 'function' && emReforma()) return;   // na reforma, os nichos vazios
-      const ids = (G.pensao && (G.pensao.cardapio.length ? G.pensao.cardapio : G.pensao.receitas)) || [];
-      ids.slice(0, P.VAGAS.length).forEach((id, k) => {
-        const v = P.VAGAS[k], n = G.pensao.porcoes(id) || G.pensao.rende(id) * G.pensao.porcoesPorPanela(id);
-        ctx.save(); ctx.globalAlpha = n > 0 ? 1 : 0.35; desenhaPrato(ctx, id, v.x, P.PRATO_Y, 1, 1.35); ctx.restore();
-        texto(ctx, n > 0 ? String(n) : '0', v.x, P.PRATO_Y + 26, 18, n > 0 ? '#fff' : '#e8452c', '900');
+      nichosDoCardapio().forEach(({ id, n, acabou }, k) => {
+        const v = P.VAGAS[k];
+        if (acabou) {   // (onda final) o prato que acabou: a arte dele em transparência, no mesmo nicho, e a palavra "acabou"
+          ctx.save(); ctx.globalAlpha = 0.3; desenhaPrato(ctx, id, v.x, P.PRATO_Y, 1, 1.35); ctx.restore();
+          texto(ctx, 'acabou', v.x, P.PRATO_Y + 26, 15, 'rgba(255,255,255,.75)', '800');
+          return;
+        }
+        desenhaPrato(ctx, id, v.x, P.PRATO_Y, 1, 1.35);
+        texto(ctx, String(n), v.x, P.PRATO_Y + 26, 18, '#fff', '900');
         if (t && t.pratoTema === id) desenhaPe(ctx, 'salao/fita_tema', v.x, 539);
       });
     }),
@@ -338,7 +386,9 @@ function palcoAgir(a) {
   const t = G.turno, j = G.jog;
   if (a.tipo === 'porta') { sairDoPalco(); return; }
   if (a.tipo === 'cardapio') { pensaoQuadro(); return; }
-  if (!t) { avisar(pensaoAbreHoje() ? 'A janta começa às 17h. Use o Adiantar ou espere.' : 'Hoje a pensão não abre.'); return; }
+  if (!t) {
+    if (jantaEsperaCardapio()) { avisar('A janta espera o cardápio: monte o quadro e clique em "Abrir a pensão".'); pensaoQuadro(); return; }
+    avisar(pensaoAbreHoje() ? 'A janta começa às 17h. Use o Adiantar ou espere.' : 'Hoje a pensão não abre.'); return; }
   const cheia = () => { avisar('A bandeja está cheia! Entregue alguma coisa primeiro.'); sons.tocar('erro', 1, 0.05, -6); };
   if (a.tipo === 'passe') {
     if (!t.passaPrato().length) { avisar(t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou! Reponha a farinha.' : 'Nenhum prato pronto ainda.'); return; }
@@ -384,7 +434,7 @@ function palcoAgir(a) {
     if (m.estado === 'prato' && t.servir(a.i)) { servir(); sons.tocar('servir', 1, 0.08, -2); setTimeout(() => sons.tocar(m.reacao === 'nojo' ? 'cliente_eca' : 'cliente_hmm', 1, 0.1, -4), 450); return; }
     if (m.estado === 'pedido') avisar(`${m.cliente.nome} está lendo o cardápio.`);
     else if (m.estado === 'prato') {
-      const quer = `${Pratos.PRATOS[m.prato].nome}${m.querBebida && !m.bebidaServida ? ' e ' + Pratos.BEBIDAS[m.bebida].toLowerCase() : ''}`;
+      const quer = `${Pensao.prato(m.prato).nome}${m.querBebida && !m.bebidaServida ? ' e ' + Pratos.BEBIDAS[m.bebida].toLowerCase() : ''}`;
       avisar(`${m.cliente.nome} quer ${quer}. ${t.temPronto(m.prato) ? 'Tem no passe!' : t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou!' : 'A Rosa está fazendo.'}`);
     } else avisar(m.querBebida && !m.bebidaServida ? `${m.cliente.nome} está comendo e ainda quer ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`);
   }
@@ -486,6 +536,7 @@ function palcoAdiantar() {
   const t = G.turno;
   if (!t) {
     if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < TurnoJanta.ABRE) { G.minutos = TurnoJanta.ABRE; return true; }
+    if (jantaEsperaCardapio()) { pensaoQuadro(); return false; }   // (o cardápio do Bancho) às 17h a janta espera o quadro
     avisar('Não tem janta para adiantar agora.'); return false;
   }
   if (t.mesas.some(m => ['pedido', 'prato'].includes(m.estado))) { avisar('Ainda tem gente esperando.'); return false; }
@@ -501,18 +552,19 @@ function palcoAdiantar() {
 function rodapePalco() {
   let r = $('#rodape-palco');
   if (!r) {
-    r = el('div', { id: 'rodape-palco', class: 'painel rodape-palco', hidden: true },
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirMetas(); } }, 'Metas'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); pensaoQuadro(); } }, 'Cardápio'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirCaderno(); } }, 'Receitas'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirPainelPensao(); } }, 'A Pensão'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
-      el('button', { class: 'botao forte bt-concurso', hidden: true, onclick: e => { e.stopPropagation(); abrirConcurso(); } }, 'Concurso 🎙'),
+    // (13/10, o tema do restaurante) A barra de madeira com as tábuas (as abas do Bancho), a arte do kit a/ui/pensao.
+    r = el('div', { id: 'rodape-palco', class: 'barra-madeira rodape-palco', hidden: true },
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirMetas(); } }, 'Metas'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); pensaoQuadro(); } }, 'Cardápio'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirCaderno(); } }, 'Receitas'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirPainelPensao(); } }, 'A Pensão'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
+      el('button', { class: 'tabua acesa bt-concurso', hidden: true, onclick: e => { e.stopPropagation(); abrirConcurso(); } }, 'Concurso 🎙'),
       el('div', { class: 'farinha' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
-      el('button', { class: 'botao', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
+      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));
     document.body.append(r);
   }
   return r;
@@ -521,6 +573,7 @@ ATUALIZADORES.push(() => {
   const r = rodapePalco(), ver = noPalco() && !(typeof emReforma === 'function' && emReforma());   // na reforma, a barra de itens (não a da janta)
   if (r.hidden === ver) r.hidden = !ver;
   const barra = $('#hud .barra'); if (barra) barra.style.visibility = ver ? 'hidden' : '';
+  { const dica = $('#hud .dica-barra'); if (dica) dica.style.visibility = ver ? 'hidden' : ''; }   // (tarefa 7: o "Tab: próxima fileira" da barra escondida flutuava em cima do rodapé)
   if (!ver) return;
   const bc = r.querySelector('.bt-concurso'), cv = typeof podeConcurso === 'function' && podeConcurso(); if (bc.hidden === cv) bc.hidden = !cv;
   const txt = G.turno ? `${G.turno.farinha}/${G.turno.farinhaMax || TurnoJanta.FARINHA_MAX}` : '—';
@@ -623,7 +676,7 @@ function abrirEquipe() {
   const desenha = () => {
     caixa.innerHTML = '';
     const vagas = ['salao', 'cozinha', 'compras'].map(k => `${Equipe.POSTOS[k]}: ${Equipe.vagasLivres(p, k)} vaga(s)`).join(' · ');
-    caixa.append(el('div', { class: 'titulo', style: 'font-size:28px' }, 'Equipe da Pensão'), el('div', { class: 'eq-vagas' }, vagas + ` · salários Cr$ ${Equipe.salarios(p)}/noite`));
+    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Equipe da Pensão'), el('div', { class: 'eq-vagas' }, vagas + ` · salários Cr$ ${Equipe.salarios(p)}/noite`), faixaDaTela('eq-faixa'));
     // Ajudantes contratados.
     const lista = el('div', { class: 'eq-lista' });
     if (!p.equipe.length) lista.append(el('div', { class: 'rodape', style: 'text-align:left' }, p.grau() < 2 ? 'A pensão ainda é pequena para ter ajudante: no "Boteco Conhecido" abre a primeira vaga.' : 'Ninguém contratado ainda. Ponha um anúncio!'));

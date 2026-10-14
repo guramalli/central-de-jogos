@@ -5,7 +5,7 @@
 // chão, que pulam e vêm para a mochila quando o Jocelino passa perto. Comida na mão: botão direito come.
 
 const ENERGIA_MAX = 270, CUSTO_GOLPE = 2;
-const NOME_FERRAMENTA = { foice: 'a foice', machado: 'o machado', picareta: 'a picareta', pa: 'a pá', regador: 'o regador' };
+const NOME_FERRAMENTA = { foice: 'a foice', machado: 'o machado', picareta: 'a picareta', pa: 'a pá', regador: 'o regador', colher: 'a colher' };   // (tarefa 7: sem a colher, a seta dizia "Use colher na plaquinha")
 
 // O começo do jogo: a mochila com as ferramentas (as mesmas do Godot) e a energia cheia.
 INICIADORES.push(s => {
@@ -156,7 +156,8 @@ ATUALIZADORES.push(dt => {
     if (!j.acertou && j.golpeT >= pf.acerto) { j.acertou = true; acertar(j.golpeItem, j.golpeAlvo); }
   }
   // Segurar o botão repete o golpe (como no Stardew).
-  if (G.mouse.segura && !(j.golpe > 0) && !menuAberto()) usarItemDaMao();
+  // (correção 2) segurar no mundo e arrastar até o HUD (o quadro, o cartão, a barrinha) não continua golpeando
+  if (G.mouse.segura && !(j.golpe > 0) && !menuAberto() && !(typeof mouseNoPainelDoHud === 'function' && mouseNoPainelDoHud(G.mouse.x, G.mouse.y))) usarItemDaMao();
   if (G.tremor > 0) G.tremor = Math.max(0, G.tremor - dt);
   for (const it of m.itens) {
     it.t += dt;

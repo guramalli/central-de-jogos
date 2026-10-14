@@ -6,7 +6,9 @@
 const Metas = {
   _n: 0,
   // Nota da noite (1 a 5): média das estrelas de quem comeu.
-  notaDaNoite(r) { return r && r.servidos ? clamp(Math.round(r.estrelas / r.servidos), 1, 5) : 1; },
+  // (o cardápio do Bancho, 13/10) O prato da casa entra na nota como na fama: as estrelas dele não contam (TurnoJanta.paraFama),
+  // mas o cliente conta — como o Norimaki do Dave, ele puxa a nota para baixo.
+  notaDaNoite(r) { return r && r.servidos ? clamp(Math.round(TurnoJanta.paraFama(r).estrelas / r.servidos), 1, 5) : 1; },
   // As candidatas a meta agora (sem as que já estão ativas).
   _candidatas(p, rng) {
     const c = [], prox = p.proximoDegrau ? p.proximoDegrau() : null, ativas = p.metas.filter(m => !m.feita);
@@ -120,7 +122,7 @@ TAREFAS.push(() => {
 // A tela da Caderneta de Metas.
 function abrirMetas() {
   const p = G.pensao;
-  const caixa = el('div', { class: 'painel metas' }, el('div', { class: 'titulo', style: 'font-size:28px' }, 'Caderneta de Metas da Rosa'),
+  const caixa = el('div', { class: 'painel metas' }, el('div', { class: 'titulo titulo-tela' }, 'Caderneta de Metas da Rosa'),
     el('div', { class: 'eq-vagas' }, 'Cumpra as metas para ganhar prêmios e subir a pensão. Quando uma termina, outra entra no lugar.'));
   for (const m of (p.metas || []).filter(x => !x.feita)) {
     const f = clamp((m.atual || 0) / m.alvo, 0, 1);

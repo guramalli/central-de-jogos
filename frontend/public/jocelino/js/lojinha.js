@@ -69,3 +69,5 @@ NOITE.push(linhas => {
 });
 // O "Agora": a Rosa quer conversar.
 TAREFAS.push(() => G.lojinha && G.lojinha.sonho && !G.lojinha.conversou ? [{ texto: 'A Rosa quer conversar com você (no quintal)', urgente: true }] : []);
+// (tarefa 7, o robô jogador) A entrada juntou: o Agora manda comprar (antes sugeria o regadorzinho e o Bazar com a barrinha cheia).
+TAREFAS.push(() => { const L = G.lojinha; return L && L.conversou && !L.comprada && G.dinheiro >= ECO.lojinha.entrada ? [{ texto: `A entrada da lojinha (Cr$ ${String(ECO.lojinha.entrada).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}) já está no bolso: compre na fachada amarela, na Vila`, urgente: true }] : []; });

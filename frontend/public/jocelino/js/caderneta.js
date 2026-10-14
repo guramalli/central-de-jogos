@@ -19,7 +19,7 @@ CADERNETA.push(() => {
   if (G.obra && !Obra.aberta(G.dia, G.minutos) && !(l && l.paga)) r.push({ id: 'hoje_obra', aba: 'hoje', hoje: true, texto: `A obra do Mestre Bira, na Vila: Cr$ ${Obra.diaria()} por dia, até as 17h`, alvo: { mapa: 'vila', morador: 'bira' } });
   if (G.empreitas && _liberado('quadro') && G.empreitas.quadro.length && !Object.keys(G.empreitas.aceitas).length) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: `${G.empreitas.quadro.length} serviço(s) no quadro da Vila (pagam na hora)`, alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } });
   if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
-  if (!dom && G.minutos >= 8 * 60 && G.minutos < 17 * 60) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: 'O depósito do Ananias (material, sementes, comida) fecha às 17h', alvo: { mapa: 'vila', objeto: 'deposito' } });
+  if (!dom && !depositoFechado()) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: `O depósito do Ananias (material, sementes, comida) fecha às ${DEPOSITO_HORARIO.fecha / 60}h`, alvo: { mapa: 'vila', objeto: 'deposito' } });
   if (typeof Clima !== 'undefined' && Clima.chove(G.dia)) r.push({ id: 'hoje_chuva', aba: 'hoje', texto: 'Chove hoje: a horta já está regada e a mata dá mais cogumelo' });
   return r;
 });
@@ -82,6 +82,13 @@ CADERNETA.push(() => {
     r.push({ id: 'pensao_degrau', aba: 'pensao', texto: `Próxima estrela (${prox.nome}): ${partes.length ? faltaTxt(partes) : 'falta pouco'}`, feito: Math.round(p.progresso() * 100), meta: 100, alvo: { mapa: 'vila', objeto: 'pensao' } }); }
   if (typeof MELHORIAS !== 'undefined') { const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio).sort((a, b) => a[1].preco - b[1].preco)[0];
     if (m) r.push({ id: 'pensao_melhoria', aba: 'pensao', texto: `Melhoria do salão ao alcance: ${m[1].nome} (Cr$ ${m[1].preco})`, feito: Math.min(G.dinheiro, m[1].preco), meta: m[1].preco, alvo: { mapa: 'vila', objeto: 'pensao' } }); }
+  // (onda final) O cardápio da noite (o do Bancho): o que está guardado no quadro de giz e quando se monta. Sem lugar: não vira ideia do "Agora".
+  { const esc = p.cardapioNoite || {}, ids = Object.keys(esc).filter(id => (esc[id].panelas | 0) > 0 && p.receitas.includes(id));
+    r.push({ id: 'pensao_cardapio', aba: 'pensao', texto: ids.length ? `Cardápio guardado: ${ids.map(id => `${Pratos.PRATOS[id].nome} (${esc[id].panelas} ${esc[id].panelas === 1 ? 'panela' : 'panelas'})`).join(', ')}. Às 17h, no quadro de giz do salão, você confere e abre a pensão`
+      : 'O cardápio da noite: às 17h, no quadro de giz do salão, escolha os pratos e as panelas (sem cardápio, todos levam o prato da casa)' }); }
+  // (onda final) As cenas de prato: quantas o jogador já viu (a 1ª venda de cada receita com cena, o prato do VIP e o da festa tocam).
+  if (typeof CENAS_PRATO !== 'undefined') { const tot = Object.keys(CENAS_PRATO).length, v = (G.cenasVistas || []).length;
+    if (v < tot) r.push({ id: 'pensao_cenas', aba: 'pensao', texto: `Cenas de prato: ${v} de ${tot} vistas (a 1ª venda do PF, de um peixe inteiro e de uma moqueca; o prato do VIP e o da festa também)`, feito: v, meta: tot }); }
   return r;
 });
 // A tela: as 5 abas; cada linha com a barrinha e o Mostrar (a seta leva até lá; de novo, tira a seta).

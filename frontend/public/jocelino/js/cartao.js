@@ -43,13 +43,15 @@ const faltaFuncao = f => { const p = [f.obras ? `entregar ${f.obras} obra${f.obr
 // do Pierre). Aqui, a meta da família em dinheiro: a entrada da lojinha; o item do Bazar que o jogador escolheu no "Juntar para"
 // (com o efeito); a etapa da casa nova; com a pensão aberta, a melhoria do salão ao alcance. Antes disso (a primeira diária), nada.
 // → { tipo, curto (a barrinha estreita), texto (o resumo), feito, meta } ou null.
-function metaDaBarrinha() {
+// (tarefa 7, o robô jogador) Dentro do salão aberto (noSalao) a barrinha é a do restaurante (a melhoria ao alcance), como no Dave: lá dentro
+// não aparece a casa nova nem o Bazar.
+function metaDaBarrinha(noSalao) {
   const mil = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), f = m => Math.max(0, Math.min(G.dinheiro, m)), de = m => `${mil(f(m))}/${mil(m)}`;
-  const lj = typeof Lojinha !== 'undefined' ? Lojinha.metaDinheiro() : null;
+  const lj = typeof Lojinha !== 'undefined' && !noSalao ? Lojinha.metaDinheiro() : null;
   if (lj) return { tipo: 'lojinha', curto: lj.curto, texto: `${lj.texto} de entrada (a fachada amarela, na Vila)`, feito: lj.feito, meta: lj.meta };
-  const b = typeof Bazar !== 'undefined' && G.bazar ? Bazar.metaEscolhida() : null;
+  const b = typeof Bazar !== 'undefined' && G.bazar && !noSalao ? Bazar.metaEscolhida() : null;
   if (b) return { tipo: 'bazar', curto: `${b.nome}: ${b.curto} — ${de(b.preco)}`, texto: `Juntando para: ${b.nome} (${b.curto}) — Cr$ ${de(b.preco)}`, feito: f(b.preco), meta: b.preco };
-  { const c = casaEtapas(), E = c && c.juntar;   // (revisão 3: a etapa em obra já foi paga; a barrinha junta para a seguinte, ou some)
+  if (!noSalao) { const c = casaEtapas(), E = c && c.juntar;   // (revisão 3: a etapa em obra já foi paga; a barrinha junta para a seguinte, ou some)
     if (E) return { tipo: 'casa', curto: `Casa nova, ${E.nome}: Cr$ ${de(E.dinheiro)}`, texto: `${c.emObra ? `A casa nova: ${c.atual.nome} em obra; juntando para a próxima, ${E.nome}` : `A casa nova (${E.nome})`}: Cr$ ${de(E.dinheiro)} e o material, na plaquinha do terreno`, feito: f(E.dinheiro), meta: E.dinheiro }; }
   const p = G.pensao;
   if (p && p.estado === 'aberta' && typeof MELHORIAS !== 'undefined') { const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio).sort((a, c) => a[1].preco - c[1].preco)[0];
@@ -74,6 +76,12 @@ function agoraFamilia(avisos = []) {
   if (g && g.ativo && G.correio) for (const id of g.abertas) { const m = Guia.missao(id); if (m && m.carta && G.correio.caixa.includes(m.carta)) return `Chegou carta de ${m.quem}: a caixa de correio, no quintal`; }
   // (revisão) O que é só de hoje (o VIP, a festa, o concurso, o viajante, a ferramenta pronta, a promoção) passa na frente do guia.
   const urg = avisos.find(t => t.urgente); if (urg) return urg.texto;
+  // (onda final, o robô #26: o Agora diz o mesmo que a seta) a seta de um serviço aceito ou da obra do dia, aqui no mapa de agora: o
+  // Agora segue a seta (antes dizia "Obra: falar com o Mestre Bira" com a seta em "entregar a obra (Muro da divisa)")
+  { const sa = typeof setaAgora === 'function' ? setaAgora() : null;
+    if (sa && sa.tipo === 'alvo' && sa.mapa === G.mapaId && sa.rotulo) {
+      if (sa.missao === 'servico') { const E = sa.empreita && typeof dadosEmpreita === 'function' ? dadosEmpreita(sa.empreita) : null; return `O serviço aceito, aqui mesmo${E ? ': ' + E.nome : ''} — ${sa.rotulo}`; }
+      if (sa.missao === 'obra_dia') return `A obra do Mestre Bira (Cr$ ${Obra.diaria()} o dia) — ${sa.rotulo}`; } }
   // (o Agora diz o mesmo que a seta: o passo cujo lugar é o mapa de agora vem primeiro)
   const sm = typeof setaAgora === 'function' ? setaAgora() : null, daSeta = sm && g && g.abertas.includes(sm.missao) ? [sm.missao] : [];
   if (g && g.ativo && typeof _missoesDaSeta === 'function') for (const id of daSeta.concat(_missoesDaSeta())) {
@@ -89,7 +97,7 @@ function agoraFamilia(avisos = []) {
   // (revisão 3) Depois das 17h, sem nada mais (a noite livre), o Dormir vale mesmo com serviço aceito; e o serviço curto aceito no mapa
   // de agora também aparece no Agora (antes só o de outro mapa).
   if (G.empreitas && tardeLivre() !== 'noite') for (const cid of Object.keys(G.empreitas.aceitas)) { const E = dadosEmpreita(cid), a = G.empreitas.aceitas[cid];
-    if (E && E.mapa !== G.mapaId && !(typeof E.familia === 'string' && a.estado === 'reservada')) return `O serviço aceito: ${E.nome} (${typeof ondeFica === 'function' ? ondeFica(E.mapa) : E.mapa})`;
+    if (E && E.mapa !== G.mapaId && !(typeof E.familia === 'string' && a.estado === 'reservada') && !(typeof casaSemDinheiro === 'function' && casaSemDinheiro(E, a))) return `O serviço aceito: ${E.nome} (${typeof ondeFica === 'function' ? ondeFica(E.mapa) : E.mapa})`;   // (tarefa 7: a etapa da casa sem o dinheiro dela não é "o serviço aceito")
     if (E && E.mapa === G.mapaId && E.tipo === 'curta') return `O serviço aceito, aqui mesmo: ${E.nome} (a seta mostra onde)`; }
   if (avisos.length) return avisos[0].texto;
   // (13/10) Dia vazio: uma sugestão só, com o porquê (a seta é a linha 'ideia_dia', ver Caderneta.linha mais abaixo). Na tarde livre
@@ -227,8 +235,11 @@ function ganhoDaTarde() {
   const pr = id => CaixaVenda.preco(id), porque = porqueDoDinheiro(), guarda = materialGuardado();
   // 0. Com a pensão aberta, o ingrediente da mochila (a colheita, o peixe, a fruta) vai para a despensa da Rosa: vira o prato da janta.
   if (pensaoAberta()) { const ing = Object.keys(Pratos.INGREDIENTES).filter(id => usaNaPensao(id) && G.mochila.total(id) > 0 && G.pensao.aceita(id)).sort((a, b) => G.mochila.total(b) - G.mochila.total(a));
+    // (o cardápio do Bancho) com rendimento, a dica curta: o que guardar e o que vira na panela; sem receita para ele, a frase de sempre
+    const rend = melhorRendimento(ing), alvo = { mapa: 'vila', objeto: 'pensao' }, rotulo = 'Entrar na pensão: a Rosa guarda';
+    if (rend) return { texto: `Guardar ${rend.quanto} na despensa — ${rend.texto}`, alvo, rotulo };
     if (ing.length) return { texto: `Guardar na despensa da Rosa — ${ing.slice(0, 2).map(id => Itens.qtd(G.mochila.total(id), id)).join(' e ')}${ing.length > 2 ? ' e mais' : ''}: entre na pensão e a Rosa guarda; na janta vira prato, e prato vendido é a pensão crescendo`,
-      alvo: { mapa: 'vila', objeto: 'pensao' }, rotulo: 'Entrar na pensão: a Rosa guarda' }; }
+      alvo, rotulo }; }
   // 1. O que já está na mochila e a pensão não usa: a caixa de venda do quintal (o carroceiro paga de madrugada).
   const itens = VENDE_NA_TARDE().filter(id => G.mochila.total(id) > 0 && pr(id) > 0 && !guarda[id]).map(id => ({ id, n: G.mochila.total(id), v: pr(id) })).sort((a, b) => b.n * b.v - a.n * a.v);
   const total = itens.reduce((t, i) => t + i.n * i.v, 0);
@@ -258,8 +269,54 @@ function ganhoDaTarde() {
   if (G.lugares && G.lugares.praia && pr('sardinha') && pr('tainha')) return pescarNoPier();
   return null;
 }
-// (dia cheio, Frente B) Pescar no píer, com o preço e para onde vai o peixe (a banca do Seu Lourival, ou a despensa da Rosa com a pensão aberta).
-const pescarNoPier = () => ({ texto: `Pescar no píer — ${typeof pescaParaOnde === 'function' ? pescaParaOnde() : 'o peixe é o prato da pensão da Rosa'}`, alvo: { mapa: 'praia', morador: 'lourival' } });
+// (dia cheio, Frente B) Pescar no píer, com o preço e para onde vai o peixe (a banca do Seu Lourival, ou a despensa da Rosa com a pensão
+// aberta, e então quanto cada peixe rende na panela: o cardápio do Bancho).
+const pescarNoPier = () => ({ texto: `Pescar no píer — ${typeof pescaParaOnde === 'function' ? pescaParaOnde() : 'o peixe é o prato da pensão da Rosa'}${rendimentoDoPeixe()}`, alvo: { mapa: 'praia', morador: 'lourival' } });
+// ---------- o rendimento à vista (o cardápio do Bancho, 13/10) ----------
+// O Dave mostra, no estoque e no cardápio, quantas porções cada receita dá; aqui, a dica da tarde diz o que o ingrediente da mochila
+// vira na panela da Rosa ("com 3 sardinhas dá 3 panelas de Peixe Frito do Lourival = 12 porções"). Só com a pensão aberta (antes, a
+// despensa não existe). A chave é o ingrediente da receita: 'peixe' junta todos os peixes que a pensão aceita.
+const chaveDaPanela = id => Pratos.PEIXES.includes(id) ? 'peixe' : id;
+// (o nome curto: "farinha", e não "pacote de farinha")
+const nomeNaPanela = k => k === 'peixe' ? 'peixe' : Itens.nome(k).toLowerCase().replace(/^(saco|pacote) de /, '');
+const ondeTem = k => k === 'peixe' ? 'no píer' : (Pratos.INGREDIENTES[k] || {}).origem || '';
+function naMochilaDaPanela(k) {
+  const p = G.pensao;
+  return k === 'peixe' ? Pratos.PEIXES.reduce((t, px) => t + (p.aceita(px) ? G.mochila.total(px) : 0), 0) : G.mochila.total(k);
+}
+// A receita do caderno que mais rende com n do ingrediente: { prato, q (quanto cada panela leva), panelas, porcoes, falta: [o resto que
+// não está na despensa nem na mochila] }, ou null (nenhuma receita usa).
+function rendimentoNaPanela(chave, n) {
+  const p = G.pensao; if (!pensaoAberta() || !G.mochila) return null;
+  let melhor = null;
+  for (const prato of p.receitas) {
+    const P = Pratos.PRATOS[prato], q = P && P.porcao[chave]; if (!q) continue;
+    const panelas = Math.floor(n / q), porcoes = panelas * p.porcoesPorPanela(prato);
+    const falta = Object.keys(P.porcao).filter(k => k !== chave && p._tem(k) + naMochilaDaPanela(k) < P.porcao[k] * Math.max(1, panelas));
+    if (!melhor || porcoes > melhor.porcoes || (porcoes === melhor.porcoes && (falta.length < melhor.falta.length || (falta.length === melhor.falta.length && q < melhor.q)))) melhor = { prato, q, panelas, porcoes, falta };
+  }
+  return melhor;
+}
+// O que falta, cada um com onde tem: "; falta farinha (Mercearia do Ananias) e peixe (no píer)".
+const faltaNaPanela = f => f.length ? `; falta ${f.map(k => nomeNaPanela(k) + (ondeTem(k) ? ` (${ondeTem(k)})` : '')).join(' e ')}` : '';
+// O melhor rendimento entre os ingredientes da mochila: { quanto ("3 sardinhas"), texto ("3 panelas de … (12 porções)") } ou null.
+function melhorRendimento(ids) {
+  let r = null, id0 = null;
+  for (const id of ids) { const x = rendimentoNaPanela(chaveDaPanela(id), naMochilaDaPanela(chaveDaPanela(id)));
+    if (x && (!r || x.porcoes > r.porcoes)) { r = x; id0 = id; } }
+  if (!r) return null;
+  const ch = chaveDaPanela(id0), n = naMochilaDaPanela(ch), nome = Pratos.PRATOS[r.prato].nome;
+  const quanto = ch === 'peixe' && Pratos.PEIXES.filter(px => G.pensao.aceita(px) && G.mochila.total(px) > 0).length > 1 ? `${n} peixes` : Itens.qtd(n, id0);
+  if (!r.panelas) return { quanto, texto: `ainda não dá panela de ${nome}: cada uma leva ${r.q}` };
+  return { quanto, texto: `${r.panelas} ${r.panelas === 1 ? 'panela' : 'panelas'} de ${nome} (${r.porcoes} porções)${faltaNaPanela(r.falta)}` };
+}
+// Na dica da pesca: quanto cada peixe rende ('' com a pensão fechada).
+function rendimentoDoPeixe() {
+  const r = rendimentoNaPanela('peixe', Math.max(1, G.mochila ? naMochilaDaPanela('peixe') : 0)); if (!r) return '';
+  const P = Pratos.PRATOS[r.prato], outros = Object.keys(P.porcao).filter(k => k !== 'peixe');
+  const falta = outros.filter(k => G.pensao._tem(k) < P.porcao[k]);
+  return `; cada ${r.q === 1 ? 'peixe' : r.q + ' peixes'}${outros.length ? ' com ' + outros.map(nomeNaPanela).join(' e ') : ''} é 1 panela de ${P.nome} = ${G.pensao.porcoesPorPanela(r.prato)} porções${faltaNaPanela(falta)}`;
+}
 const pescaNova = () => !!(G.lugares && G.lugares.praia && G.hab && G.hab.xp && (G.hab.xp.pesca || 0) < Habilidades.NIVEIS[0] && G.mochila && G.mochila.total('vara') > 0);
 // Depois das 17h, sem nada a fazer: dormir na cama de casa encerra o dia (a seta: o quintal, a porta de casa, a cama).
 function dormirDaNoite() {

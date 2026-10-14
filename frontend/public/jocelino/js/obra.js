@@ -17,7 +17,8 @@ const TAREFAS_OBRA = {
   pedras: { texto: 'Levar pedras do monte para o alicerce', meta: 15, hab: 'alvenaria', xp: 1 },
   telhas: { texto: 'Subir telhas do monte para a obra', meta: 20, hab: 'alvenaria', xp: 1 },
   ripas: { texto: 'Levar ripas da pilha para o telhado', meta: 10, hab: 'alvenaria', xp: 1 },
-  buscar_pedra: { texto: 'Trazer 10 pedras do quintal (picareta) e entregar na obra', meta: 10, hab: 'alvenaria', xp: 1, funcaoMax: 1 },
+  // (onda final, o robô #23) com a pedreira aberta, as pedras vêm do quintal ou de lá (a seta vai à pedreira quando o quintal não tem pedra)
+  buscar_pedra: { get texto() { return typeof G !== 'undefined' && G.lugares && G.lugares.pedreira ? 'Trazer 10 pedras (quintal ou pedreira, picareta) e entregar na obra' : 'Trazer 10 pedras do quintal (picareta) e entregar na obra'; }, meta: 10, hab: 'alvenaria', xp: 1, funcaoMax: 1 },
   assentar: { texto: 'Assentar tijolo na obra (colher)', meta: 10, hab: 'alvenaria', xp: 3, funcaoMin: 1 },
   rebocar: { texto: 'Chapiscar e rebocar a parede (colher)', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
   buscar_cimento: { texto: 'Imprevisto: buscar 2 sacos de cimento no Ananias', meta: 2, hab: 'negocio', xp: 2 },
@@ -94,7 +95,9 @@ const Obra = {
     const pool = pode.slice();
     while (Object.keys(metas).length < n) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0]; metas[id] = TAREFAS_OBRA[id].meta; }
     if (G.obra.primeira) { G.obra.primeira = false; return { metas: { tijolos: 10, areia: 3 } }; }   // o primeiro dia é leve (Godot)
-    if (f() < OBRA_IMPREVISTO) metas.buscar_cimento = 2;
+    // (onda final, o robô #27) o imprevisto do cimento só quando o depósito abre (8h): antes disso ele fica guardado e entra na lista
+    // às 8h (obra_jogo.js), se a lista ainda não estiver completa; antes o jogador esperava até 2 horas pelo depósito
+    if (f() < OBRA_IMPREVISTO) { if (G.minutos >= DEPOSITO_HORARIO.abre) metas.buscar_cimento = 2; else return { metas, imprevisto: true }; }
     return { metas };
   },
   trabalho(id, n = 1) {

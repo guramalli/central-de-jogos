@@ -89,7 +89,7 @@ function abrirCaderno(sel) {
       } }, `Pesquisar com a Rosa (${descobrir.custo} pitadas)`));
       else dir.append(el('div', { class: 'cad-como' }, el('b', {}, 'Como liberar: '), p.comoLiberar(id)));
     }
-    caixa.append(esq, dir, el('button', { class: 'botao cad-fechar', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar'));
+    caixa.append(esq, dir, faixaDaTela('cad-faixa'), el('button', { class: 'botao cad-fechar', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar'));
   };
   desenha();
   abrirModal(caixa);

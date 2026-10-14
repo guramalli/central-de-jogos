@@ -112,7 +112,7 @@ const DICAS_OBJ = {
   caixa_correio: ['Caixa de correio', 'Botão direito: ler as cartas.'],
   caixa_venda: ['Caixa de venda', 'Botão direito: abrir a caixa (o carroceiro passa de madrugada).'],
   radio: ['Rádio', 'Botão direito: a previsão do tempo de amanhã.'],
-  deposito: ['Depósito do Seu Ananias', 'Botão direito: entrar e comprar (das 8h às 17h).'],
+  get deposito() { return ['Depósito do Seu Ananias', `Botão direito: entrar e comprar (das ${DEPOSITO_HORARIO.abre / 60}h às ${DEPOSITO_HORARIO.fecha / 60}h).`]; },   // (o horário de loja.js)
   pensao: ['Pensão da Rosa', 'Botão direito: entrar. Janta a partir das 17h, até o último freguês.'],
 };
 
@@ -359,7 +359,7 @@ function rotulosDasSaidas(m) {
     const cx = (s.x + s.w / 2) * TILE, cy = (s.y + s.h / 2) * TILE;
     let texto, x = cx, y = cy, align = 'center';
     if (s.x <= 3) { texto = `← ${nome}${fechada}`; x = (s.x + s.w) * TILE + 8; align = 'left'; }
-    else if (s.x + s.w >= m.larg - 3) { texto = `${nome}${fechada} →`; x = s.x * TILE - 8; align = 'right'; }   // alinhada para dentro: não corta na borda
+    else if (s.x + s.w >= m.larg - 3) { texto = `${nome}${fechada} →`; x = s.x * TILE - 8 - 60 / (G.zoom || 1); align = 'right'; }   // alinhada para dentro: não corta na borda (tarefa 7: nem fica embaixo da barra de energia)
     else if (s.y <= 3) { texto = `↑ ${nome}${fechada}`; y += 1.4 * TILE; }
     else if (s.y + s.h >= m.alt - 3) { texto = `↓ ${nome}${fechada}`; y -= 0.9 * TILE; }
     else continue;
@@ -413,7 +413,9 @@ function interativoSob(px, py) {
     const img = spr(o.nome);
     const w = img ? img.naturalWidth : TILE, h = img ? img.naturalHeight : TILE;
     const dentro = px > o.x - w / 2 && px < o.x + w / 2 && py > o.y - Math.max(h, o.alvoAlto || 0) && py < o.y + 4;
-    const noTile = o.tiles.some(t => Math.floor(px / TILE) === t.x && Math.floor(py / TILE) === t.y);
+    // (tarefa 7, o robô jogador) o barco da praia é um enfeite que virou interativo, sem ladrilhos: sem o "|| []" todo botão direito
+    // na praia (a banca do Seu Lourival, o barco) dava erro e não abria nada
+    const noTile = (o.tiles || []).some(t => Math.floor(px / TILE) === t.x && Math.floor(py / TILE) === t.y);
     if (o.id === 'planta' ? !noTile : !dentro && !noTile) continue;   // a planta alta não rouba o clique da cova de cima
     const dist = Math.hypot(o.x - px, o.y - py);
     if (dist < d) { d = dist; melhor = o; }
@@ -428,8 +430,37 @@ function pertoDoJogador(o) {
 function moradorSob(px, py) {
   return G.mapa.moradores.find(p => p.visivel !== false && Math.abs(px - p.x) < 26 && py < p.y + 4 && py > p.y - 110) || null;
 }
+// (onda final, o robô #24; Stardew: o NPC anda, mas o que se usa continua usável) O ladrilho da base de um objeto usável. (correção 2)
+// A base é só a fileira de baixo do objeto (e a de cima dela, se ele tem 1 ladrilho de altura): clicar na cabeça de um morador na
+// frente do depósito ou da pensão conversa com ele.
+function naBaseDe(o, px, py) {
+  if (!o || !(o.tiles || []).length) return false;
+  const ys = o.tiles.map(t => t.y), baixo = Math.max(...ys), alto = Math.min(...ys), tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+  return o.tiles.some(t => t.y === baixo && t.x === tx) && (ty === baixo || (baixo === alto && ty === baixo - 1));
+}
+// Um objeto usável em (tx, ty) ou logo na frente da base dele (o ladrilho de baixo): o vaguear dos moradores não para aí.
+function usavelEm(b, tx, ty) { return b.objs.some(o => o.tipo === 'inter' && o.acao && (o.tiles || []).some(t => t.x === tx && (t.y === ty || t.y === ty - 1))); }
+// Os ladrilhos aonde o pé do Jocelino chega a partir de (x0, y0) (a mesma caixa do pé da Vila e do quintal).
+function andaveisDe(b, x0, y0) {
+  const anda = (x, y) => x >= 0 && y >= 0 && x < b.larg && y < b.alt && !bate({ x: (x + 0.5) * TILE - 14, y: y * TILE + 22, w: 28, h: 14 }, b);
+  const vis = new Set([chaveT(x0, y0)]), fila = [[x0, y0]];
+  while (fila.length) { const [cx, cy] = fila.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = cx + dx, y = cy + dy, k = chaveT(x, y); if (vis.has(k) || !anda(x, y)) continue; vis.add(k); fila.push([x, y]); } }
+  return vis;
+}
+// (onda final, o robô #25) O destino do vaguear a até 2 ladrilhos de um ladrilho aonde o Jocelino chega (a conversa alcança): o
+// conjunto é guardado no mapa e refeito quando os sólidos mudam.
+function alcancaConversar(b, tx, ty) {
+  if (!G.jog) return true;
+  const chave = b.id + ':' + b.solidos.length + ':' + b.objs.length;
+  if (!b._andaveis || b._andaveis.chave !== chave) b._andaveis = { chave, vis: andaveisDe(b, Math.floor(G.jog.x / TILE), Math.floor((G.jog.y - 1) / TILE)) };
+  const vis = b._andaveis.vis;
+  for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) if (dx * dx + dy * dy <= 4 && vis.has(chaveT(tx + dx, ty + dy))) return true;
+  return false;
+}
 function acaoEm(px, py) {
   if (!G.mapa || !G.jog) return false;
+  // (onda final, o robô #24) o clique na base de um objeto usável vale o objeto, mesmo com um morador parado na frente dele
+  { const o = interativoSob(px, py); if (naBaseDe(o, px, py) && pertoDoJogador(o)) { G.jog.virarPara(o.x, o.y - 20); return o.acao(o, px, py) !== false; } }
   const p = moradorSob(px, py);
   if (p && Math.hypot(p.x - G.jog.x, p.y - G.jog.y) < 2.2 * TILE) { G.jog.virarPara(p.x, p.y); conversar(p); return true; }
   const o = interativoSob(px, py);

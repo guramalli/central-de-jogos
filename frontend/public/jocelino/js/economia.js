@@ -12,7 +12,6 @@ const ECO = {
   // Panela da noite: quantas porções rende uma panela de cada prato (o "postar no cardápio" do Bancho).
   porcoes: { pf_peao: 4, peixe_frito: 4, sopa_pedra: 6, cocada_tijolinho: 6, rabanada: 4, marmita_peao: 4, pamonha: 4, goiabada: 6, bolo_milho: 6, caldo_caranguejo: 4, moqueca: 4 },
   porcoesPadrao: 4,
-  marmitasMax: 3,         // a sobra vira marmita (a família come o resto)
   cafeBoasVindas: 1.3,    // cafezinho na medida antes do prato: +30% no preço
   // Caprichar (o Enhance do Bancho): +30% do preço base por nível; porções +50% no nível 10.
   precoPorNivel: 0.6, porcoesNivel10: 0.5,
@@ -22,12 +21,12 @@ const ECO = {
   // ---- A pensão (etapa 7): os 6 degraus (0 a 5 estrelas), o que pedem, o que liberam e a despesa da noite; as fórmulas.
   pensao: {
     degraus: [
-      { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, vagas: 2, mesas: 2, clientes: 6, despesa: 0 },
-      { nome: 'Boteco Conhecido', curtidas: 40, sabor: 0, pesquisadas: 0, vagas: 3, mesas: 3, clientes: 8, despesa: 5 },
-      { nome: 'Pensão Falada', curtidas: 260, sabor: 0, pesquisadas: 2, vagas: 4, mesas: 4, clientes: 10, despesa: 12 },
-      { nome: 'Pensão Famosa', curtidas: 680, sabor: 36, pesquisadas: 3, vagas: 5, mesas: 5, clientes: 12, despesa: 25 },
-      { nome: 'Casa Tradicional', curtidas: 1100, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, vagas: 6, mesas: 6, clientes: 14, despesa: 45 },
-      { nome: 'Patrimônio da Vila', curtidas: 1600, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, vagas: 7, mesas: 6, clientes: 16, despesa: 70 },
+      { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, mesas: 2, clientes: 6, despesa: 0 },
+      { nome: 'Boteco Conhecido', curtidas: 40, sabor: 0, pesquisadas: 0, mesas: 3, clientes: 8, despesa: 5 },
+      { nome: 'Pensão Falada', curtidas: 200, sabor: 0, pesquisadas: 2, mesas: 4, clientes: 10, despesa: 12 },
+      { nome: 'Pensão Famosa', curtidas: 520, sabor: 36, pesquisadas: 3, mesas: 5, clientes: 12, despesa: 25 },
+      { nome: 'Casa Tradicional', curtidas: 1100, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, mesas: 6, clientes: 14, despesa: 45 },
+      { nome: 'Patrimônio da Vila', curtidas: 1600, sabor: 96, pesquisadas: 7, garfos: 5, visitas: 2, concurso: 1, mesas: 6, clientes: 16, despesa: 70 },
     ],
     saborPorNivel: 12,      // o sabor de um prato = nível × isto
     gorjeta: 0.3,           // gorjeta = preço × isto × (estrelas − 1) / 4
@@ -35,6 +34,18 @@ const ECO = {
     caprichoCresce: 1.6,     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
     capricho: { base: 1, porEstrela: 2 },   // a Rosa só capricha até o nível base + porEstrela × estrelas (decisão do jogador, 10/10)
     premio5: { dinheiro: 2000, festaClientes: 6 },  // a 5ª estrela: o prêmio da Prefeitura e os clientes a mais na noite de festa
+    // (onda final) Os convidados: os da festa do tema (pedem o prato da festa; mais `varanda` com a varanda) e os da inauguração.
+    convidados: { festa: 3, varanda: 2, inauguracao: 3 },
+    // (o cardápio do Bancho, 13/10) As vagas do cardápio por degrau (o Dave: 4 a 7; aqui 2 a 5, uma a mais por degrau).
+    vagas: [2, 3, 4, 5, 5, 5],
+    // O prato da casa (o Norimaki do Dave): sempre tem, sem ingrediente da despensa; mais barato que o prato mais barato, sem
+    // gorjeta e sem curtida, e a nota do cliente fica no máximo em `estrelas`; o Doutor Paladar dá no máximo `paladarMax` garfos
+    // (como o cafezinho de antes). Não conta para a fama, as pitadas nem a experiência da Rosa.
+    pratoCasa: { nome: 'Arroz com feijão da Rosa', preco: 4, estrelas: 2, paladarMax: 1 },
+    // A marmita do Jocelino: a Rosa faz de manhã, gastando da despensa (a sobra da janta vai para o lixo, como no Dave).
+    // (Tarefa 4) Ela não se vende (saiu da caixa, ECO.caixa): a fornada custa Cr$ 1 por marmita na mercearia, e comida feita em
+    // casa vale menos que os ingredientes (o crivo do Stardew), então o preço seria 0. A marmita é energia (e +3 no humor dos peões).
+    marmita: { porDia: 2, gasta: { arroz: 1, feijao: 1 } },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.
@@ -53,7 +64,7 @@ const ECO = {
   pesca: { fator: 0.35 },
   // ---- A caixa de venda (o que não é colheita nem peixe) e as lojas (o depósito, a mercearia, a banca, o Viajante; o mascate
   // cobra pelo preço do depósito).
-  caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50, marmita: 10 },
+  caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50 },
   lojas: { deposito: { cimento: 12, tijolo: 1, vergalhao: 3, cal: 4, tinta: 15, pigmento: 5, ladrilho: 2, telha: 2, pao: 4, cafe: 2, lapis: 3, impermeabilizante: 35 }, compra: { madeira: 2, fibra: 1, cristal: 15, pigmento: 2, bloco_concreto: 10, lajota: 15, manilha: 75, madeira_lei: 15 },
     mercearia: { arroz: 1, feijao: 1, farinha: 1, ovo: 2, macarrao: 2, linguica: 6, carne_seca: 8, queijo_coalho: 15, leite: 2, acucar: 1 }, banca: { isca: 2, covo: 25, vara_boa: 250 },
     viajante: { receitas: { arroz_polvo: 300 }, ingredientes: { polvo: 40, camarao: 18, lagosta: 70, pimenta_cheiro: 35, dende: 12 } } },
@@ -138,11 +149,15 @@ const ECO = {
       parcela_3: { nome: '3ª parcela', dinheiro: 2000 }, parcela_4: { nome: '4ª parcela', dinheiro: 4000 } },
     presentes: { aquario: { covo: 1 }, deposito: { betoneira: 1 } },
     efeitos: { achados: 2, deposito: 0.9, diasTonico: 1, fundir: 0.5, varaBoa: 0.5, clientesSabado: 2 } },
-  quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } } },
+  quintal: { marcos: { 25: { esterco: 5, sementes: 10 }, 50: { irrigador: 1 }, 75: { cerca: 10, portao: 1 }, 100: { irrigador_bom: 1 } },
+    // (onda final, o robô #23; o Stardew rebrota a fazenda à noite) a rebrota leve: por noite, no máximo vivos, a chance de pedra (senão galho)
+    rebrota: { porNoite: 3, maximo: 12, pedra: 0.5 } },
   guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 2, bazar: 4, pedreira: 5, mina: 7 }, espera: 3, maxAbertas: 2,
     recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
       janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
 };
+// As vagas de cada degrau vêm de ECO.pensao.vagas (a tela A Pensão mostra o que cada degrau libera).
+ECO.pensao.degraus.forEach((d, i) => { d.vagas = ECO.pensao.vagas[i]; });
 // Põe o número do ECO no campo de cada linha de uma tabela do jogo: o arquivo dono fica com o conteúdo (nome, arte, etapas) e
 // o dinheiro mora aqui. Falta de valor é erro na hora de carregar, para nenhum número sumir calado.
 function ecoCampo(tabela, campo, valores) {

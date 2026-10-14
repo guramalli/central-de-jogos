@@ -35,6 +35,9 @@ class Personagem {
         const L = this.passeioLongo ? 3 : 1;
         const alvo = { x: clamp(this.x + rnd(-2.5, 2.5) * L * TILE, a.x, a.x + a.w), y: clamp(this.y + rnd(-1.5, 1.5) * TILE, a.y, a.y + a.h) };
         let livre = true;
+        // (onda final, o robô #24 e #25) não para em cima (nem na frente) do que se usa, e só onde o Jocelino alcança para conversar
+        const m = G.mapa, tx = Math.floor(alvo.x / TILE), ty = Math.floor(alvo.y / TILE);
+        if (m && !m.palco && typeof usavelEm === 'function' && (usavelEm(m, tx, ty) || !alcancaConversar(m, tx, ty))) continue;
         for (let s = 1; s <= 8 && livre; s++) livre = !this._bate(lerp(this.x, alvo.x, s / 8), lerp(this.y, alvo.y, s / 8));
         if (livre) this._alvo = alvo;
       }

@@ -73,7 +73,7 @@ function abrirAmpliacao() {
   const p = G.pensao, caixa = el('div', { class: 'painel ampliacao' });
   const desenha = () => {
     caixa.innerHTML = '';
-    caixa.append(el('div', { class: 'titulo', style: 'font-size:28px' }, 'Ampliar a pensão'),
+    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Ampliar a pensão'),
       el('div', { class: 'rodape', style: 'text-align:left;margin-bottom:8px' }, 'O Jocelino faz a obra: leve o material na mochila, pague a mão de obra e trabalhe um dia por dia na fachada (clique na pensão).'));
     if (p.obra) caixa.append(el('div', { class: 'amp-obra' }, `Obra em andamento: ${Ampliacao.dados(p.obra.id).nome}, faltam ${p.obra.falta} ${p.obra.falta === 1 ? 'dia' : 'dias'}${p.obra.hoje ? ' (hoje já trabalhou)' : ''}.`));
     for (const a of AMPLIACOES) {

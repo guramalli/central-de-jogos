@@ -65,7 +65,7 @@ function conversarBira() {
   }
   // As pedras trazidas na mochila: o Bira recebe também (o passo diz "traga e fale comigo"; teste de 13/10: "não falava onde").
   { const e = entregarPedrasDaMochila();
-    if (e && !Obra.completa()) return falaBira(`Boa, ${Itens.qtd(e.n, 'pedra')} pro alicerce! Faltam ${l.metas[e.t] - l.feito[e.t]}${e.t === 'buscar_pedra' ? ': as do quintal, na picareta' : ': o resto tem no monte do canteiro'}.`); }
+    if (e && !Obra.completa()) return falaBira(`Boa, ${Itens.qtd(e.n, 'pedra')} pro alicerce! Faltam ${l.metas[e.t] - l.feito[e.t]}${e.t === 'buscar_pedra' ? (G.lugares && G.lugares.pedreira ? ': as do quintal ou da pedreira, na picareta' : ': as do quintal, na picareta') : ': o resto tem no monte do canteiro'}.`); }
   // 5) Lista completa: a diária e o extra.
   if (Obra.completa() && !l.paga) {
     const v = Obra.pagar(); G.dinheiro += v; G.ganhoHoje += v; if (typeof lojinhaDepoisDaDiaria === 'function') lojinhaDepoisDaDiaria(); hudSujo(); sons.tocar('moedas', 1, 0.05, -4);
@@ -208,21 +208,36 @@ function conversarZe(p) {
   abrirConversa('Zé', urlArte('retratos/ze_normal'), lista);
   return true;
 }
-// O entulho e o mato do canteiro renascem toda manhã (10 de entulho, 8 de mato), sem fechar a passagem.
+// O entulho e o mato do canteiro renascem toda manhã (10 de entulho, 12 de mato), sem fechar a passagem. (tarefa 7, o robô jogador: eram 8 de
+// mato e a lista pede "Capinar o mato do canteiro" 10 vezes — a lista com capinar nunca fechava; agora sempre sobra o que a lista pede.
+// E só fica o que o Jocelino alcança: o robô achou mato e entulho presos entre a obra e a cerca, sem caminho, e a lista não fechava.)
 function poeEntulhoDaObra(b) {
   if (b.id !== 'vila') return;
-  const f = mulberry(G.dia * 389 + 7), C = CANTEIRO;
-  const conta = det => b.objs.filter(o => o.det === det && dentroR(C, o.tiles[0].x, o.tiles[0].y)).length;
-  for (const [det, quer] of [['entulho', 10], ['mato', 8]]) {
-    for (let k = 0, n = conta(det); k < 120 && n < quer; k++) {
-      const x = C.x + Math.floor(f() * C.w), y = C.y + Math.floor(f() * C.h);
-      if (b.ocupado.has(chaveT(x, y)) || b.chaoEm(x, y) !== CH.GRAMA) continue;
-      // Corredor: não fecha a passagem (ao menos um vizinho livre de cada lado).
-      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => b.ocupado.has(chaveT(x + dx, y + dy))).length > 1) continue;
-      if (b.detrito(det, x, y)) n++;
+  const f = mulberry(G.dia * 389 + 7), C = CANTEIRO, daObra = o => (o.det === 'mato' || o.det === 'entulho') && dentroR(C, o.tiles[0].x, o.tiles[0].y);
+  const conta = det => b.objs.filter(o => o.det === det && daObra(o)).length;
+  const tiraPresos = () => { const vis = alcancaveisNaVila(b); for (const o of b.objs.filter(o => daObra(o) && !alcancaLadrilho(vis, o.tiles[0]))) b.tirar(o); return vis; };
+  for (let volta = 0; volta < 2; volta++) {
+    const vis = tiraPresos();
+    for (const [det, quer] of [['entulho', 10], ['mato', 12]]) {
+      for (let k = 0, n = conta(det); k < 120 && n < quer; k++) {
+        const x = C.x + Math.floor(f() * C.w), y = C.y + Math.floor(f() * C.h);
+        if (b.ocupado.has(chaveT(x, y)) || b.chaoEm(x, y) !== CH.GRAMA || !alcancaLadrilho(vis, { x, y })) continue;
+        // Corredor: não fecha a passagem (ao menos um vizinho livre de cada lado).
+        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => b.ocupado.has(chaveT(x + dx, y + dy))).length > 1) continue;
+        if (b.detrito(det, x, y)) n++;
+      }
     }
   }
+  tiraPresos();   // (o que nasceu agora pode ter fechado o caminho de outro)
 }
+// Os ladrilhos da Vila aonde o pé do Jocelino chega (a partir da chegada do quintal), e se um ladrilho tem um vizinho (até na diagonal) alcançável.
+function alcancaveisNaVila(b) {
+  const anda = (x, y) => x >= 0 && y >= 0 && x < b.larg && y < b.alt && !bate({ x: (x + 0.5) * TILE - 14, y: y * TILE + 22, w: 28, h: 14 }, b);
+  const vis = new Set([chaveT(23, 3)]), fila = [[23, 3]];
+  while (fila.length) { const [cx, cy] = fila.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = cx + dx, y = cy + dy, k = chaveT(x, y); if (vis.has(k) || !anda(x, y)) continue; vis.add(k); fila.push([x, y]); } }
+  return vis;
+}
+const alcancaLadrilho = (vis, t) => { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) if (vis.has(chaveT(t.x + i, t.y + j))) return true; return false; };
 // Quebrar entulho e mato no canteiro conta na lista.
 function quebrouNaObra(o) {
   if (G.mapaId !== 'vila' || !dentroR(CANTEIRO, o.tiles[0].x, o.tiles[0].y)) return;
@@ -233,6 +248,15 @@ function quebrouNaObra(o) {
 AO_MONTAR.push(b => { if (b.id === 'vila') { poeObraNoMapa(b); poeEntulhoDaObra(b); } });
 AO_ENTRAR_MAPA.push(id => { if (id === 'vila') poeObraNoMapa(G.mapa); });
 MANHA.push(() => { if (MAPAS.vila) { poeObraNoMapa(MAPAS.vila); poeEntulhoDaObra(MAPAS.vila); } });
+// (onda final, o robô #27) O imprevisto guardado entra na lista às 8h, quando o depósito abre (com a lista já completa, não vem).
+ATUALIZADORES.push(() => {
+  const l = G.obra && listaDeHoje();
+  if (!l || !l.imprevisto || G.minutos < DEPOSITO_HORARIO.abre) return;
+  l.imprevisto = false;
+  if (l.paga || l.fechado || Obra.completa()) return;
+  l.metas.buscar_cimento = 2; hudSujo();
+  avisar('Imprevisto na obra: o Bira precisa de 2 sacos de cimento. O depósito do Seu Ananias acabou de abrir.');
+});
 // Às 17h a obra para; a parte feita fica a receber.
 ATUALIZADORES.push(() => {
   const l = G.obra && listaDeHoje();

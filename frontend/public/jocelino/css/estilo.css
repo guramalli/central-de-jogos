@@ -51,8 +51,10 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 #hud .relogio .hora { font-weight: 900; font-size: 24px; }
 #hud .relogio .dinheiro { background: var(--papel-escuro); border-radius: 6px; margin-top: 4px; font-weight: 900; font-size: 20px; text-align: right; padding: 2px 8px; }
 #hud .quadro { position: absolute; left: 14px; top: 12px; padding: 8px 14px; background: rgba(247,230,196,.62); font-weight: 800; font-size: 17px;
-  max-width: 44vw; transition: background .15s; pointer-events: auto; }
-#hud .quadro:hover { background: rgba(247,230,196,.98); }
+  max-width: 44vw; transition: background .15s; pointer-events: none; }
+/* (tarefa 7, o robô jogador) o quadro deixa o clique passar para o mundo (cobria o depósito do Seu Ananias, no canto da Vila); com o mouse
+   por cima ele fica firme do mesmo jeito (hud.js põe a classe .firme) */
+#hud .quadro:hover, #hud .quadro.firme { background: rgba(247,230,196,.98); }
 #hud .quadro div::before { content: '• '; color: var(--destaque); }
 #hud .quadro div.guia { color: #8a3b12; font-size: 18px; }
 #hud .quadro div.guia::before { content: ''; }
@@ -106,36 +108,78 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 .linha .tem { font-size: 13px; color: var(--madeira); }
 .rodape { text-align: center; color: var(--madeira); font-weight: 800; margin-top: 10px; font-size: 15px; }
 
-/* ---------- Pensão da Rosa: o quadro de giz (o "Today's Menu" do Dave) ---------- */
-.lousa { background: var(--lousa); border: 10px solid #8b5a2b; outline: 3px solid #5e3a1c; border-radius: 6px; color: var(--giz);
-  padding: 14px 20px 16px; width: min(94vw, 1000px); box-shadow: 0 10px 30px rgba(0,0,0,.6), inset 0 0 40px rgba(0,0,0,.35);
-  font-family: 'Fredoka', 'Nunito', sans-serif; }
-.lousa-titulo { text-align: center; color: var(--giz-amarelo); font-size: 30px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
-.lousa-corpo { display: grid; grid-template-columns: 220px 1fr; gap: 18px; }
-.lousa-esq { border-right: 2px dashed rgba(241,239,228,.4); padding-right: 14px; font-size: 20px; line-height: 1.7; position: relative; min-height: 330px; }
-.lousa-fama { position: absolute; bottom: 0; left: 0; right: 14px; line-height: 1.5; }
-.giz-am { color: var(--giz-amarelo); font-weight: 700; font-size: 22px; }
-.giz-mi { font-size: 14px; opacity: .85; }
-.lousa-dir { display: flex; flex-direction: column; gap: 8px; }
-.prato-linha { display: grid; grid-template-columns: 72px 1fr 110px; align-items: center; gap: 12px; padding: 6px 8px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; }
-.prato-linha:hover { background: rgba(255,255,255,.07); }
-.prato-linha.marcado { border-color: var(--giz-amarelo); }
-.prato-linha img { width: 68px; height: 68px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
-.prato-meio { font-size: 18px; }
-.prato-meio .faixa { display: inline-block; color: #fff; font-weight: 700; font-size: 21px; padding: 2px 14px 2px 10px; border-radius: 3px; margin-bottom: 4px;
-  clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%); }
-.prato-meio .falta { color: #f0a08c; }
-.prato-preco { text-align: right; color: var(--giz-amarelo); font-weight: 700; font-size: 24px; }
-.lousa-desc { margin-top: 6px; min-height: 20px; }
+/* ---------- O tema do restaurante (13/10, escolha do jogador: "A) quadro de giz e madeira") ----------
+   Classes reutilizáveis (a Task 2b leva o tema às outras caixas da pensão). A arte é do Higgsfield, em a/ui/pensao/ (o kit de 9
+   partes): o CSS só estica as peças (border-image, sempre stretch) e escreve por cima; nada de moldura desenhada por código.
+   A letra de giz é a Gochi Hand (títulos, nomes de prato e botões); o texto longo é Nunito, claro sobre a lousa. */
+:root { --giz-claro: #f6f1e1; --giz-suave: #d9e2d6; --giz-amarelo: #f4d36b; --giz-vermelho: #f2a58f; }
+.giz { font-family: 'Gochi Hand', 'Fredoka', cursive; font-weight: 400; }
+/* A lousa com moldura de madeira (painel_lousa, 270x270, corte 72): o conteúdo fica dentro do verde. */
+/* (Task 2b) .lousa.caderno: o caderno da Rosa no salão (a regra .caderno, mais abaixo, trocaria a moldura pelo papel). */
+.lousa, .lousa.caderno { border-style: solid; border-color: transparent; border-width: 44px; border-image-source: url(../a/ui/pensao/painel_lousa.webp?v=465a163);
+  border-image-slice: 72 72 72 72 fill; border-image-width: 44px; border-image-repeat: stretch; background: none; border-radius: 0; box-shadow: none;
+  padding: 2px 10px; color: var(--giz-claro); font-family: 'Nunito', sans-serif; font-weight: 700; max-height: 92vh; overflow-y: auto; }
+/* (Task 2b) Sem drop-shadow na lousa: numa lousa que rola, o filtro apagava as imagens de dentro (os selos de "A Pensão", a arte das
+   melhorias; o mesmo aconteceria com os pratos do quadro do cardápio quando ele rolar). */
+/* (Task 2b) A rolagem dentro da lousa: fina, em tom de giz (no lugar da barra branca do navegador). Só cor e largura, nada desenhado. */
+.lousa, .lousa .pagina, .desp-prateleiras { scrollbar-width: thin; scrollbar-color: rgba(246,241,225,.42) transparent; }
+.giz-titulo, .lousa .titulo, .lousa .cad-titulo { font-family: 'Gochi Hand', 'Fredoka', cursive; font-size: 40px; line-height: 1.05; text-align: center; color: var(--giz-claro); letter-spacing: 1px; }
+/* A divisória de giz (88x6, corte 0 26): uma linha esticada entre as linhas da lousa. */
+.giz-divisoria { height: 6px; margin: 4px 6px; border-style: solid; border-color: transparent; border-width: 0 26px; border-image-source: url(../a/ui/pensao/divisoria_giz.webp?v=465a163);
+  border-image-slice: 0 26 0 26 fill; border-image-width: 0 26px; border-image-repeat: stretch; opacity: .8; }
+/* A tábua (o botão: 130x106, corte 31 34): a plaquinha de lousa no meio; acesa (amarela) e desligada (cinza). */
+/* (Task 2b) Numa caixa do salão (.lousa, ver vesteDoSalao em palco.js) o .botao antigo vira tábua: .forte/.verde = acesa,
+   .desligado/[disabled] = desligada. As classes antigas ficam (os testes e o guia procuram por elas). */
+.tabua, .lousa .botao { border-style: solid; border-color: transparent; border-width: 15px 17px; border-image-source: url(../a/ui/pensao/botao_tabua.webp?v=465a163);
+  border-image-slice: 31 34 31 34 fill; border-image-width: 15px 17px; border-image-repeat: stretch; background: none; cursor: pointer; border-radius: 0; box-shadow: none;
+  font-family: 'Gochi Hand', 'Fredoka', cursive; font-weight: 400; font-size: 21px; line-height: 1; color: var(--giz-claro); padding: 1px 6px; min-height: 52px; white-space: nowrap; }
+.tabua:hover, .lousa .botao:hover { filter: brightness(1.1); background: none; }
+.tabua:active, .lousa .botao:active { transform: translateY(2px); box-shadow: none; }
+.tabua.acesa, .lousa .botao.forte, .lousa .botao.verde { border-image-source: url(../a/ui/pensao/botao_tabua_destacado.webp?v=465a163); color: #3b2416; background: none; }
+.tabua.desligada, .lousa .botao.desligado, .lousa .botao[disabled] { border-image-source: url(../a/ui/pensao/botao_tabua_desligado.webp?v=465a163); color: #d0d0cc; opacity: 1; }
+.tabua.mini { border-width: 11px 12px; border-image-width: 11px 12px; min-height: 40px; min-width: 46px; font-size: 24px; padding: 0 4px; }
+/* A barra de madeira (176x62, corte 22 40): os botões vão entre as cabeças de prego. */
+.barra-madeira { border-style: solid; border-color: transparent; border-width: 16px 30px; border-image-source: url(../a/ui/pensao/barra_madeira.webp?v=465a163);
+  border-image-slice: 22 40 22 40 fill; border-image-width: 16px 30px; border-image-repeat: stretch; background: none; display: flex; gap: 6px; align-items: center; }
+/* A aba (123x96, corte 24 30 0 30): a lousa sem a madeira de baixo, para as abas em cima de uma lousa. */
+.aba-lousa { border-style: solid; border-color: transparent; border-width: 16px 20px 0; border-image-source: url(../a/ui/pensao/aba_lousa.webp?v=465a163);
+  border-image-slice: 24 30 0 30 fill; border-image-width: 16px 20px 0; border-image-repeat: stretch; background: none; cursor: pointer;
+  font-family: 'Gochi Hand', 'Fredoka', cursive; font-size: 20px; color: var(--giz-claro); padding: 2px 8px; }
+.giz-enfeite { pointer-events: none; user-select: none; }
+.giz-enfeite.palmeira { height: 56px; }
+.giz-enfeite.seta { height: 20px; }
+.giz-enfeite.seta.volta { transform: scaleX(-1); }
 
-/* ---------- o painel de montar o prato ---------- */
-.montar { min-width: min(90vw, 760px); }
-.montar .bilhete { display: flex; gap: 14px; align-items: center; font-size: 20px; background: #fffbe9; border: 2px dashed var(--madeira); border-radius: 6px; padding: 8px 12px; margin: 6px 0 12px; }
-.montar .bilhete img { width: 72px; height: 72px; object-fit: contain; }
-.montar .comps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-.montar .comp { height: 64px; font-size: 18px; }
-.montar .bebidas { display: flex; gap: 8px; margin-top: 10px; }
-.montar .bebidas .botao { flex: 1; font-size: 16px; }
+/* ---------- Pensão da Rosa: o quadro de giz do cardápio da noite (o "Today's Menu" do Dave) ---------- */
+.quadro-cardapio { width: min(94vw, 980px); }
+.qc-topo { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 22px; font-size: 15px; color: var(--giz-suave); margin: 2px 0 4px; }
+.qc-vagas { color: var(--giz-amarelo); }
+.qc-aviso { font-size: 15px; color: var(--giz-amarelo); text-align: center; margin: 2px 0; }
+.qc-lista { margin-top: 4px; }
+.qc-prato { display: grid; grid-template-columns: 58px 1fr auto 150px; align-items: center; gap: 10px; padding: 2px 4px; border-radius: 6px; }
+.qc-prato img { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0,0,0,.45)); }
+.qc-prato:not(.marcado) img { opacity: .6; }
+.qc-nome { font-size: 27px; line-height: 1.05; color: var(--giz-claro); cursor: pointer; }
+.qc-prato.marcado .qc-nome { color: var(--giz-amarelo); }
+.qc-info { font-size: 14px; color: var(--giz-suave); }
+.qc-panelas { display: flex; align-items: center; gap: 6px; }
+.qc-conta { min-width: 150px; text-align: center; font-family: 'Gochi Hand', 'Fredoka', cursive; font-size: 20px; color: var(--giz-claro); }
+.qc-repoe { width: 150px; }
+.qc-sem { font-size: 13px; color: var(--giz-vermelho); margin: 6px 4px 0; }
+.qc-casa { font-size: 14px; color: var(--giz-suave); margin: 4px 4px 0; }
+.qc-rodape { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin-top: 6px; }
+.qc-rodape .palmeira:first-child { margin-right: auto; }
+.qc-rodape .palmeira:last-child { margin-left: auto; }
+.qc-abrir { font-size: 28px; padding: 2px 16px; }
+/* (correção 1) O prato da festa ou do VIP fora do quadro: a linha acende de leve. */
+.qc-prato.realce { background: rgba(244,211,107,.13); }
+.qc-prato.realce .qc-info { color: var(--giz-amarelo); }
+/* A faixa da fala da Rosa na primeira vez (dentro da lousa, acima da lista): alta o bastante para a seta de cima caber nela; a frase
+   fica do lado oposto ao da seta (.direita). */
+.guia-faixa { display: flex; align-items: center; gap: 10px; min-height: 84px; margin: 2px 0 0; }
+.guia-faixa.direita { flex-direction: row-reverse; text-align: right; }
+.guia-faixa img { width: 58px; height: 58px; object-fit: cover; border-radius: 8px; flex: none; }
+.guia-faixa-texto { max-width: 56%; font-size: 16px; line-height: 1.3; color: var(--giz-amarelo); }
 
 /* ---------- a cena da Rosa (entra pela direita, como o close do Bancho) ---------- */
 #cena { position: fixed; right: 4vw; top: 22vh; width: min(36vw, 420px); aspect-ratio: 1; z-index: 45; pointer-events: none;
@@ -147,20 +191,30 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 #cena .cena-som { position: absolute; left: -16%; top: 4%; font-family: 'Fredoka'; font-weight: 700; font-size: clamp(36px, 5vw, 72px); color: #ffd34d;
   -webkit-text-stroke: 3px #131b1b; transform: rotate(-12deg); animation: cena-pula .5s ease-out; z-index: 2; }
 @keyframes cena-entra { from { transform: translateX(120%); } to { transform: none; } }
+/* a cena de prato (o corte de cinema do Bancho, cena_prato.js): cobre a tela inteira, por cima do HUD e dos avisos */
+#cena-prato { position: fixed; inset: 0; z-index: 58; cursor: pointer; }
+#cena-prato[hidden] { display: none; }
+#cena-prato canvas { display: block; width: 100%; height: 100%; }
+body.cena-prato .guia-seta-ui, body.cena-prato .guia-seta-ui-rotulo { visibility: hidden; }
 @keyframes cena-treme { 0%,100% { transform: none; } 20% { transform: translate(-4px, 2px); } 40% { transform: translate(4px, -2px); } 60% { transform: translate(-3px, 1px); } 80% { transform: translate(2px, -1px); } }
 @keyframes cena-pula { from { transform: rotate(-12deg) scale(.3); } 60% { transform: rotate(-12deg) scale(1.25); } to { transform: rotate(-12deg) scale(1); } }
 
 /* O rodapé do palco da pensão (as abas do Bancho): no lugar da barra de ferramentas. */
-.rodape-palco { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; padding: 8px 12px; z-index: 5; white-space: nowrap; max-width: calc(100vw - 150px); gap: 6px; }
-/* Fica longe da barra de energia (à direita) e encolhe a letra em tela pequena. */
-.rodape-palco .botao { white-space: nowrap; padding-left: 9px; padding-right: 9px; font-size: clamp(13px, 1.2vw, 18px); }
-.rodape-palco .farinha { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 18px; padding: 0 6px; }
+/* (Task 2b) Na barra de madeira (.barra-madeira, borda de 30 px): com o padding de 10 px os botões ficam entre x = 40 e largura − 40. */
+.rodape-palco { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: center; padding: 4px 10px; z-index: 5; white-space: nowrap; max-width: calc(100vw - 150px); gap: 4px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+/* Fica longe da barra de energia (à direita) e encolhe a letra e a moldura da tábua em tela pequena. */
+.rodape-palco .tabua { min-height: 44px; border-width: 12px 13px; border-image-width: 12px 13px; padding: 0 3px; font-size: clamp(13px, 1.15vw, 22px); }
+/* (tarefa 6) Sem o Concurso na barra sobra lugar: a letra das tábuas sobe (com ele, fica no tamanho de cima, que cabe). */
+.rodape-palco:not(:has(.bt-concurso:not([hidden]))) .tabua { font-size: clamp(15px, 1.45vw, 24px); }
+.rodape-palco .farinha { display: flex; align-items: center; gap: 4px; font-family: 'Gochi Hand', 'Fredoka', cursive; font-size: clamp(16px, 1.4vw, 22px);
+  color: var(--giz-claro); text-shadow: 0 1px 2px #000, 0 0 3px #000; padding: 0 4px; }
 .rodape-palco .farinha img { height: 34px; }
 
 /* O caderno de receitas da Rosa: duas páginas por cima da arte a/ui/caderno_aberto (sem a arte, um painel de papel). */
 .caderno { position: relative; width: min(94vw, 1400px); aspect-ratio: 14 / 9; max-height: 92vh; color: #3b2a1a; font-family: Nunito, sans-serif;
   background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4%; padding: 3% 4%; box-sizing: border-box; }
-.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp?v=451099c) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
+.caderno.com-arte { background: url(../a/ui/caderno_aberto.webp?v=465a163) center / 100% 100% no-repeat; border: 0; padding: 0; display: block; }
 /* As páginas dentro do papel desenhado (retângulos úteis medidos em a/ui/LEIA.txt, em % de 1400x878). */
 .caderno.com-arte .pagina { position: absolute; overflow-y: auto; }
 .caderno.com-arte .pagina.esq { left: 18.5%; top: 5.5%; width: 30%; height: 74%; }
@@ -207,7 +261,7 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 
 /* A despensa viva e o orelhão. */
 .despensa { width: min(94vw, 1300px); max-height: 92vh; overflow-y: auto; background: #f3e6c8; border: 6px solid #6b3f22; border-radius: 10px; padding: 18px 24px; box-sizing: border-box; color: #3b2a1a; }
-.despensa.com-arte { background: url(../a/ui/despensa_prateleiras.webp?v=451099c) center / 100% 100% no-repeat, transparent; border: 0; aspect-ratio: 13 / 8.5; max-height: 88vh; overflow: hidden;
+.despensa.com-arte { background: url(../a/ui/despensa_prateleiras.webp?v=465a163) center / 100% 100% no-repeat, transparent; border: 0; aspect-ratio: 13 / 8.5; max-height: 88vh; overflow: hidden;
   padding: 5% 18% 7% 18%; color: #fff4dc; text-shadow: 0 2px 2px #000a; display: flex; flex-direction: column; }
 .despensa.com-arte .desp-prateleiras { overflow-y: auto; flex: 1; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
 .despensa.com-arte .desp-item { background: rgba(28,14,5,.82); border: 2px solid rgba(255,220,160,.25); }
@@ -218,6 +272,17 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 .desp-item.vazio img, .desp-item.trancado img { opacity: .35; filter: grayscale(.8); }
 .desp-qtd { font-weight: 900; font-size: 20px; } .desp-nome { font-weight: 800; font-size: 14px; grid-column: 1 / -1; }
 .desp-origem { font-size: 12px; grid-column: 1 / -1; opacity: .9; }
+/* (o cardápio do Bancho) A despensa com a lousa do rendimento ao lado das prateleiras. */
+.despensa-tela { display: flex; align-items: center; gap: 12px; max-width: 98vw; }
+.despensa-tela .despensa.com-arte { width: min(64vw, 940px); }
+.desp-rendimento { width: min(31vw, 420px); max-height: 86vh; }
+.desp-rendimento .giz-titulo { font-size: 28px; white-space: nowrap; }
+.rend-linha { font-size: 14px; color: var(--giz-suave); padding: 0 2px; }
+.rend-linha .rend-nome { font-size: 21px; color: var(--giz-claro); }
+.rend-linha .rend-tem { color: var(--giz-amarelo); }
+.rend-linha.falta .rend-tem { color: var(--giz-vermelho); }
+.rend-onde { font-size: 13px; color: var(--giz-suave); margin-top: 8px; }
+.rend-botoes { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .orelhao { width: min(92vw, 980px); max-height: 90vh; overflow-y: auto; }
 .vantagem { width: min(92vw, 560px); display: flex; flex-direction: column; gap: 8px; }
 .vantagem-op { text-align: left; padding: 10px 14px; }
@@ -271,8 +336,6 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 .fx-col { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.05); }
 .fx-linha { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; } .fx-linha.menos b { color: #b0301c; } .fx-linha.lucro b { color: #2e7d32; }
 
-.panela-linha { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; margin: -4px 0 6px 84px; font-size: 15px; color: var(--giz-amarelo); }
-.panela-linha img { width: 40px; height: 40px; }
 
 .cad-cam { font-weight: 800; font-size: 15px; color: #7a4a22; margin: 8px 0 4px; }
 .cad-grade { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -328,6 +391,9 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 #hud .guia-dica.alto { bottom: auto; top: 172px; }   /* (revisão final) o alvo da seta cairia embaixo da dica: ela sobe */
 .guia-seta-ui { position: fixed; width: 54px; height: auto; z-index: 10000; pointer-events: none; animation: guia-seta 0.8s ease-in-out infinite alternate; }
 @keyframes guia-seta { from { transform: translateY(-6px); } to { transform: translateY(6px); } }
+/* (correção 1) a seta deitada, à esquerda do alvo, apontando para a direita (o código só gira a arte) */
+.guia-seta-ui.lado { animation-name: guia-seta-lado; }
+@keyframes guia-seta-lado { from { transform: rotate(-90deg) translateY(-6px); } to { transform: rotate(-90deg) translateY(6px); } }
 .mapa-vila { width: min(94vw, 1100px); }
 .mapa-vila .mapa-tela { position: relative; margin-top: 8px; }
 .mapa-vila .mapa-fundo { display: block; width: 100%; height: auto; border-radius: 10px; }
@@ -367,6 +433,11 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 /* O cartão da família (13/10): a meta da casa e o "Agora", com o quadro do trabalho na mão embaixo. */
 #hud .col-esq { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 8px; width: min(420px, 44vw); pointer-events: none; }
 #hud .col-esq .quadro { position: static; }
+/* (tarefa 7) a coluna recua (quase transparente) com o Jocelino ou o alvo da seta embaixo dela, como a barra do Stardew que pula para o alto */
+#hud .col-esq { transition: opacity .2s; }
+#hud .col-esq.recua { opacity: .28; }
+#hud .meta-bazar { transition: opacity .2s; }
+#hud .meta-bazar.recua { opacity: .28; }   /* (correção 2) a barrinha da meta recua como a coluna */
 #hud .cartao { padding: 8px 14px 10px; background: rgba(247,230,196,.97); }
 #hud .cartao .c-titulo { font-weight: 900; font-size: 18px; color: #7a3b12; }
 #hud .cartao .c-fundo { height: 8px; margin: 4px 0 6px; background: var(--papel-escuro); border: 2px solid var(--madeira); border-radius: 6px; overflow: hidden; }
@@ -385,3 +456,97 @@ body.no-palco #avisos { top: 96px; bottom: auto; max-width: min(560px, 44vw); }
 .etiqueta-planta b { font-weight: 900; }
 .etiqueta-planta .regada { font-weight: 800; color: #2d6aa8; }
 .etiqueta-planta .seca { font-weight: 800; color: #a0461c; }
+
+/* ---------- (Task 2b) O tema de giz e madeira nas outras caixas do restaurante ----------
+   Dentro do salão da pensão, vesteDoSalao (palco.js) põe .lousa na caixa (placa, pergunta, Equipe, Melhorias, Metas, A Pensão,
+   fechamento, ampliação, concurso, caderno): a moldura, as tábuas e o título de giz vêm das regras do kit lá em cima; aqui ficam só as
+   cores de giz, o espaço e a rolagem. Nada desenhado: a linha de giz é a divisoria_giz esticada (border-image); o realce é a mesma luz
+   amarela fraca do prato realçado no quadro do cardápio. Fora do salão as caixas continuam no papel. */
+.titulo-tela { font-size: 28px; }
+#modal > .painel.lousa { padding: 2px 12px; }
+/* (tarefa 7) o ✕ da caixa sem Fechar à vista (ui.js, poeFecharX): no #modal, no canto de cima da caixa */
+#modal > .fechar-x { position: absolute; z-index: 3; min-width: 34px; padding: 2px 9px; font-size: 17px; line-height: 1.3; }
+.lousa .titulo { margin-bottom: 4px; }
+.lousa .titulo-tela { font-size: 38px; }
+/* a placa e a pergunta */
+.lousa.placa { font-weight: 700; }
+.lousa .quem { font-family: 'Gochi Hand', 'Fredoka', cursive; font-weight: 400; font-size: 26px; color: var(--giz-amarelo); }
+.lousa .dica-fechar { color: var(--giz-suave); }
+.lousa .retrato { border-color: #6b3f22; }
+/* o texto: o miúdo em giz suave, o que chama atenção em giz amarelo, o que falta ou custa em giz rosa (como no quadro do cardápio) */
+.lousa :is(.rodape, .eq-vagas, .eq-at, .pp-resumo, .pp-req, .pp-libera, .meta-pe, .cad-nivel, .cad-desc, .cad-origem, .cad-dica, .cad-como, .conc-info, .orel-preco) { color: var(--giz-suave); }
+.lousa :is(.eq-hab, .pp-falta, .cad-pitadas, .cad-chef, .cad-nivelzao, .cad-cam, .fx-nota, .conc-nota, .amp-obra) { color: var(--giz-amarelo); }
+.lousa :is(.cad-ing.falta b, .fx-linha.menos b, .amp-mat.falta, .amp-motivo) { color: var(--giz-vermelho); }
+.lousa .fx-linha.lucro b { color: var(--giz-amarelo); }
+.lousa .fx-nota span { color: var(--giz-claro); }
+.lousa .cad-sub { font-family: 'Gochi Hand', 'Fredoka', cursive; font-weight: 400; font-size: 25px; color: var(--giz-claro); }
+.lousa .mel-arte.vazio { color: var(--giz-claro); }
+.lousa .pp-num { color: var(--tinta); }
+.lousa .amp-obra { background: rgba(244,211,107,.13); }
+/* as linhas: sem o fundo de papel; uma linha de giz embaixo (a divisoria_giz, 88x6: só a faixa de baixo do corte, esticada) */
+.lousa :is(.eq-pessoa, .mel-item, .meta, .pp-degrau, .fx-col, .amp-item, .conc-jurado, .conc-prato, .cad-icone, .cad-como, .cad-linha) { background: none; outline: none; border-radius: 0; }
+.lousa :is(.cad-sub, .eq-pessoa, .mel-item, .meta, .pp-degrau, .fx-col, .amp-item) { border-style: solid; border-color: transparent; border-width: 0 0 6px;
+  border-image-source: url(../a/ui/pensao/divisoria_giz.webp?v=465a163); border-image-slice: 0 26 6 26; border-image-width: 0 26px 6px 26px; border-image-repeat: stretch; }
+.lousa :is(.pp-degrau.atual, .cad-linha.sel, .cad-icone.sel, .conc-prato.sel) { background: rgba(244,211,107,.13); }
+.lousa :is(.cad-linha, .cad-icone, .conc-prato):hover { background: rgba(246,241,225,.08); }
+.lousa .mel-arte { background-color: transparent; }
+.lousa .meta-barra { background: rgba(246,241,225,.24); }   /* (tarefa 6) o trilho em giz claro: o escuro sumia na lousa (a barra vazia em 0/40) */
+.lousa .meta-barra div { background: var(--giz-amarelo); }
+/* o prato ainda não descoberto: a silhueta em giz (a arte do prato, só apagada e clareada) */
+.lousa .silhueta { filter: brightness(0) invert(1) opacity(.3); }
+.lousa :is(.cad-linha.descobrir.pode, .cad-icone.pode) .silhueta { filter: brightness(.75) opacity(.85); }
+/* os botões que levam texto comprido quebram a linha dentro da tábua */
+.lousa :is(.cad-capricho, .eq-anuncio) { white-space: normal; line-height: 1.1; }
+.lousa .eq-anuncio { text-align: left; }
+.lousa .eq-anuncio b { font-weight: 400; }
+/* o caderno da Rosa na lousa: as duas páginas lado a lado, cada uma rola sozinha; o Fechar embaixo, à direita */
+.lousa.caderno { width: min(94vw, 1180px); height: min(88vh, 820px); aspect-ratio: auto; max-height: none; display: grid; grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr) auto; gap: 4px 30px; padding: 0 10px; overflow: hidden; }
+.lousa.caderno .pagina { position: static; overflow-y: auto; min-height: 0; padding: 0 8px 0 2px; }
+.lousa.caderno .cad-fechar { position: static; grid-column: 1 / -1; justify-self: end; }
+.lousa .cad-titulo { font-size: 34px; margin: 0 0 6px; }
+.lousa .pagina.dir .cad-titulo { font-size: 30px; margin: 0 0 2px; }
+.lousa .cad-prato { width: 92px; height: 92px; }
+.lousa .cad-sub { margin: 8px 0 4px; }
+.lousa .cad-ings { gap: 2px; }
+.lousa .cad-ing { grid-template-columns: 34px 1fr; font-size: 16px; }
+.lousa .cad-ing img { width: 34px; height: 34px; }
+.lousa .cad-nivelzao { font-size: 22px; margin-top: 4px; }
+.lousa .cad-ing img, .lousa .cad-linha img { filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+
+/* ---------- (Task 2b) A despensa: um pote por vaga, no vão de cada prateleira ----------
+   A grade segue a arte (a/ui/despensa_prateleiras, 1300x825, medidas em a/ui/LEIA.txt): miolo de x 292 a 1004; o vão da 1ª
+   prateleira começa em y 95 e o passo entre as prateleiras é ~149 px (108 de vão + 41 da toalhinha de crochê). Em unidades do armário
+   (1 px da arte = 1cqw/13), as linhas da grade caem nos vãos e a toalhinha fica entre elas; a rolagem anda uma prateleira por vez. */
+.despensa-tela .despensa.com-arte { container-type: inline-size; position: relative; aspect-ratio: 1300 / 825; max-height: none; padding: 0; display: block; overflow: visible; }
+.despensa-tela .despensa.com-arte > .titulo { position: absolute; left: 0; right: 0; top: calc(8cqw / 13); text-align: center; font-size: calc(46cqw / 13); line-height: 1.1;
+  color: var(--giz-claro); text-shadow: 0 2px 2px #000, 0 0 4px #000; }
+.despensa-tela .despensa.com-arte .desp-prateleiras { position: absolute; margin: 0; left: calc(292cqw / 13); width: calc(712cqw / 13); top: calc(95cqw / 13); height: calc(555cqw / 13);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: calc(108cqw / 13); gap: calc(41cqw / 13) calc(8cqw / 13);
+  overflow-y: auto; scroll-snap-type: y mandatory; padding: 0 2px 0 0; }
+.despensa-tela .despensa.com-arte .desp-item { scroll-snap-align: start; background: rgba(28,14,5,.9); border: 0; border-radius: 6px; padding: 3px 5px;
+  grid-template-columns: auto 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 0 4px; align-items: center; overflow: hidden; }
+.despensa-tela .despensa.com-arte .desp-item img { grid-row: auto; width: calc(56cqw / 13); height: calc(56cqw / 13); }
+.despensa-tela .despensa.com-arte .desp-qtd { font-size: calc(24cqw / 13); text-align: right; padding-right: 2px; }
+.despensa-tela .despensa.com-arte .desp-nome { font-size: clamp(12px, calc(17cqw / 13), 15px); line-height: 1.12; }
+
+/* ---------- (Task 2b) O selo da fama e os avisos, enquanto se está no salão: lousinhas do mesmo kit ---------- */
+body.tema-salao #hud .selo { background: none; border-radius: 0; border-style: solid; border-color: transparent; border-width: 18px; border-image-source: url(../a/ui/pensao/painel_lousa.webp?v=465a163);
+  border-image-slice: 72 72 72 72 fill; border-image-width: 18px; border-image-repeat: stretch; padding: 0 10px 2px; color: var(--giz-claro); font-weight: 700;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+body.tema-salao #hud .selo .grau { font-family: 'Gochi Hand', 'Fredoka', cursive; font-size: 22px; color: var(--giz-amarelo); }
+body.tema-salao #hud .selo .progresso div { background: var(--giz-amarelo); }
+body.tema-salao .aviso { background: none; border-radius: 0; box-shadow: none; border-style: solid; border-color: transparent; border-width: 16px; border-image-source: url(../a/ui/pensao/painel_lousa.webp?v=465a163);
+  border-image-slice: 72 72 72 72 fill; border-image-width: 16px; border-image-repeat: stretch; padding: 0 6px; color: var(--giz-claro); font-weight: 700;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
+/* (onda final, o robô #29; o Dave: as dicas do Bancho ficam fora da lista) A faixa da primeira vez nas telas do salão (Melhorias,
+   Equipe, o caderno): fixa, abaixo do título, sem cobrir título nem linhas; escondida, não ocupa lugar. No caderno, embaixo, ao
+   lado do Fechar. */
+.guia-faixa.tela-faixa[hidden] { display: none; }
+.tela-faixa { min-height: 66px; margin: 4px 0 6px; }
+.tela-faixa .guia-faixa-texto { max-width: 52%; }   /* (do lado oposto ao da seta, que cai dentro da faixa) */
+.lousa.caderno .tela-faixa { grid-column: 1; grid-row: 2; margin: 0; min-height: 0; }
+.lousa.caderno .cad-fechar { grid-column: 2; grid-row: 2; align-self: center; }
+.lousa.caderno .tela-faixa .guia-faixa-texto { max-width: none; }   /* (embaixo, a seta nunca cai na faixa) */
+.caderno.com-arte .tela-faixa { position: absolute; left: 18.5%; bottom: 2%; width: 56%; min-height: 0; margin: 0; }
+.caderno.com-arte .tela-faixa .guia-faixa-texto { color: #5b3a1c; }

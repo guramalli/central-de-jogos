@@ -14,6 +14,8 @@ const CASAS = {
     cama: { arte: 'objetos/cama_juca_casal', dormindo: 'objetos/cama_juca_casal_dormindo', bx: 1, by: 9, aw: 3, w: 140, h: 156 },
     solidos: [[47, 140, 150, 140], [193, 140, 44, 260], [390, 240, 165, 160], [610, 140, 120, 52], [733, 140, 44, 40], [730, 300, 185, 110]],
     radio: { x: 479, y: 96 },
+    // a mesa da cozinha (o tampo, em px) e onde a Rosa deixa as marmitas (o pé de cada uma), longe da garrafa térmica
+    mesa: { x: 419, y: 252, w: 109, h: 100 }, marmitas: [[443, 340], [503, 340]], escalaMarmita: 0.6,
     bazar: { garrafa_termica: { arte: 'objetos/garrafa_termica_mesa', x: 473, y: 303 }, fogao_gas: { arte: 'objetos/fogao_gas', x: 854, y: 190, pe: [48, 30] },
       maquina_costura: { arte: 'objetos/maquina_costura', x: 319, y: 222, pe: [54, 30] }, televisao: { arte: 'objetos/televisao', x: 479, y: 196, pe: [44, 24] },
       bicicleta: { arte: 'objetos/bicicleta_parada', x: 584, y: 478 } },
@@ -29,6 +31,7 @@ const CASAS = {
       [513, 96, 77, 60], [590, 96, 40, 43], [33, 96, 40, 63], [185, 96, 134, 41], [189, 160, 81, 55], [148, 293, 137, 48],
       [600, 293, 70, 145], [800, 293, 75, 148], [697, 313, 63, 45]],
     radio: { x: 110, y: 330 },
+    mesa: { x: 189, y: 155, w: 81, h: 62 }, marmitas: [[203, 210], [257, 210]], escalaMarmita: 0.5,
     bazar: { garrafa_termica: { arte: 'objetos/garrafa_termica_mesa', x: 230, y: 190 }, fogao_gas: { arte: 'objetos/fogao_gas', x: 364, y: 150, pe: [48, 30] },
       maquina_costura: { arte: 'objetos/maquina_costura', x: 69, y: 417, pe: [54, 30] }, televisao: { arte: 'objetos/televisao', x: 456, y: 352, pe: [44, 24] },
       bicicleta: { arte: 'objetos/bicicleta_parada', x: 376, y: 478 } },
@@ -62,7 +65,7 @@ for (const id in CASAS) MAPAS_DEF[id] = () => {
   // O rádio (a TV do Stardew): a previsão e o horóscopo.
   const r = b.interativo('radio', 'objetos/radio', 0, 0, 1, 1, null, false); Object.assign(r, { x: C.radio.x, y: C.radio.y });
   r.acao = () => { abrirPlaca(previsaoDoRadio()); return true; };
-  b.aoEntrar = () => poeBazarNaCasa(b);
+  b.aoEntrar = () => { poeBazarNaCasa(b); poeMarmitaNaCasa(b); };
   return b;
 };
 // As compras do Bazar nos lugares delas (cada vez que se entra: comprou hoje, aparece).
@@ -76,6 +79,51 @@ function poeBazarNaCasa(b) {
     if (P.pe) { o.caixa = b._caixa(P.x, P.y, P.pe[0], P.pe[1]); b.solidos.push(o.caixa); }
     o.acao = () => { abrirPlaca(id === 'televisao' ? `A televisão da família: a novela das oito junta todo mundo no sofá.\n\n${previsaoDoRadio().replace('Rádio Maré', 'TV Maré')}` : FRASE_BAZAR[id]); return true; };
   }
+}
+
+// ---------- a marmita da manhã (o cardápio do Bancho, 13/10) ----------
+// Como no Stardew: a esposa às vezes faz o café da manhã e entrega de manhã; aqui, toda manhã, com a pensão aberta, a Rosa deixa
+// as marmitas na mesa de casa, feitas da despensa da pensão (Pensao.fazerMarmitas). Sem arroz e feijão, nenhuma, e ela avisa uma
+// vez (até a marmita voltar). Antes da pensão aberta, só as 2 marmitas da chegada (presentesDaChegada, falas.js).
+INICIADORES.push(s => { const m = s.marmita || {}; G.marmita = { mesa: m.mesa | 0, avisou: !!m.avisou, avisar: '' }; });
+COLETORES.push(s => { s.marmita = { mesa: G.marmita.mesa, avisou: G.marmita.avisou }; });
+function marmitaDaManha() {
+  if (!G.pensao || !G.marmita) return;
+  const r = G.pensao.fazerMarmitas(G.marmita.mesa);
+  if (r.feitas) { G.marmita.mesa += r.feitas; G.marmita.avisou = false; }
+  else if (r.falta.length && !G.marmita.mesa && !G.marmita.avisou) {
+    const nomes = r.falta.map(id => Itens.nome(id).toLowerCase().replace(/^(saco|pacote) de /, '')).join(' e '), ing = Pratos.INGREDIENTES[r.falta[0]];
+    G.marmita.avisou = true;
+    G.marmita.avisar = `Rosa: "Sem ${nomes} na despensa: hoje não tem marmita.${ing ? ` Traz da ${ing.origem}, meu bem.` : ''}"`;
+  }
+  const casa = typeof MAPAS !== 'undefined' && MAPAS[casaDaFamilia()]; if (casa) poeMarmitaNaCasa(casa);
+}
+// A Rosa avisa com o jogo livre (depois do resumo da noite, não por cima de uma janela).
+ATUALIZADORES.push(() => {
+  if (!G.marmita || !G.marmita.avisar || menuAberto() || _fade || !G.jog || G.jog.deitado) return;
+  avisar(G.marmita.avisar); G.marmita.avisar = '';
+});
+// As marmitas na mesa da casa onde a família mora (a arte do item, menor, no tampo); botão direito pega todas.
+function poeMarmitaNaCasa(b) {
+  const C = CASAS[b.id]; if (!C || !C.marmitas) return;
+  for (const o of b.objs.filter(o => o.id === 'marmita_mesa')) b.tirar(o);
+  if (!G.marmita || b.id !== casaDaFamilia()) return;
+  for (const [x, y] of C.marmitas.slice(0, G.marmita.mesa)) {
+    const o = b.interativo('marmita_mesa', 'itens/marmita', 0, 0, 1, 1, null, false);
+    Object.assign(o, { x, y });
+    o.desenha = ctx => desenhaPe(ctx, 'itens/marmita', o.x, o.y, 1, C.escalaMarmita);
+    o.acao = () => pegarMarmitas();
+  }
+}
+function pegarMarmitas() {
+  const n = G.marmita.mesa; if (!n) return true;
+  const sobra = G.mochila.adicionar('marmita', n) || 0;
+  G.marmita.mesa = sobra;
+  if (G.limpou && sobra < n) G.limpou.casa_marmita = (G.limpou.casa_marmita || 0) + 1;   // (a mochila cheia não conta: a seta fica)
+  if (G.mapa) poeMarmitaNaCasa(G.mapa);
+  sons.tocar('pegar', 1, 0.05, -4); hudSujo();
+  avisar(n > sobra ? `Pegou ${Itens.qtd(n - sobra, 'marmita')} da Rosa${sobra ? ' (a mochila encheu: o resto fica na mesa)' : ''}. Botão direito na barra para comer: a marmita dá energia.` : 'A mochila está cheia: a marmita fica na mesa.');
+  return true;
 }
 // Entrar: a casa por fora leva para dentro (antes, perguntava "Dormir?").
 function entrarEmCasa(id = casaDaFamilia()) { entrarMapa(id, { x: CASAS[id].porta.x, y: CASAS[id].porta.y - 1 }); G.jog.dir = DIR.CIMA; sons.tocar('porta', 1, 0.05, -6); return true; }

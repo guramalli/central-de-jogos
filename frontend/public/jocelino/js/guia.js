@@ -279,6 +279,7 @@ let guiaPasso = function () {
 // A 1ª janta (o Dave): a Rosa ensina o serviço pela dica, um passo por vez, conforme o salão.
 function passoJanta() {
   const t = G.turno;
+  if (!t && typeof jantaEsperaCardapio === 'function' && jantaEsperaCardapio()) return 'A janta espera o cardápio: no quadro de giz ("Cardápio", lá embaixo), escolha os pratos e as panelas e clique em "Abrir a pensão".';
   if (!t) return typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() ? 'Às 17h a janta começa. Pode adiantar o relógio no botão "Adiantar", lá embaixo.' : null;
   if (t.bandeja.some(x => x.tipo !== 'prato' && x.tipo !== 'bebida')) return 'Louça na bandeja: leve até a bacia, no canto da cozinha.';
   if (t.bandeja.some(x => x.tipo === 'prato')) return 'Prato na bandeja: leve até a mesa de quem pediu.';

@@ -69,8 +69,8 @@ for (const id in RECEITAS_NOVAS) Pratos.PRATOS[id] = Object.assign({ montar: Obj
 if (typeof ITENS !== 'undefined') for (const [id, nome] of Object.entries({ linguica: 'Linguiça', carne_seca: 'Carne-seca', macarrao: 'Macarrão', dende: 'Azeite de dendê',
   leite_coco: 'Leite de coco', queijo_coalho: 'Queijo coalho', pimenta_cheiro: 'Pimenta-de-cheiro', leite: 'Leite', acucar: 'Açúcar', siri: 'Siri',
   camarao: 'Camarão', polvo: 'Polvo' })) if (!ITENS[id]) ITENS[id] = { nome, tipo: 'ingrediente' };
-// A arte de cada prato: a dos pratos de partida é itens/prato_<id>; as novas têm a própria.
-function iconePrato(id) { const p = Pratos.PRATOS[id]; return (p && p.icone) || 'itens/prato_' + id; }
+// A arte de cada prato: a dos pratos de partida é itens/prato_<id>; as novas têm a própria (o prato da casa usa a do PF).
+function iconePrato(id) { const p = typeof Pensao !== 'undefined' && Pensao.prato ? Pensao.prato(id) : Pratos.PRATOS[id]; return (p && p.icone) || 'itens/prato_' + id; }
 // A arte grande do prato (a/pratos/, 128 px) para o palco e o caderno; o ícone de 48 px fica para o inventário.
 const _PRATOS_GRANDES = new Set(ARTE_LISTA.filter(n => n.startsWith('pratos/')));
 function iconePratoGrande(id) { const n = 'pratos/' + iconePrato(id).split('/').pop(); return _PRATOS_GRANDES.has(n) ? n : iconePrato(id); }
