@@ -536,6 +536,15 @@ const PRIMEIRA_TELA = {
   //   Bancho mostra o que cada funcionário faz no lugar dele): com alguém contratado, a seta no "Mudar de posto" e a Rosa explica na
   //   faixa. Some quando a escolha abre (palco.js marca G.limpou.tela_posto) ou numa troca. Vem depois da 1ª expedição (quem foi
   //   contratado na reserva aprende primeiro a mandar buscar; quem foi para o Salão, não tem expedição e vê esta já).
+  // - (15/10, o dono: "retirar alguns ingredientes e colocar o item que eu quero") A despensa -> Stardew (o baú: clique passa a
+  //   pilha, botão direito passa um): a seta num pote que se pode tirar (senão, num item da mochila que a despensa aceita). Some no
+  //   1º guardar ou tirar à mão (despensa.js marca G.limpou.tela_despensa). A frase vai na faixa da Rosa, no painel da mochila (o pote
+  //   fica no alto da tela: a frase solta tapava o título), e a seta vem da esquerda do pote.
+  despensa: { painel: '#modal .despensa-tela', sel: '#modal .despensa-tela .desp-item.pode-tirar, #modal .desp-mochila .espaco.guarda', usou: () => false, faixa: '#modal .desp-faixa',
+    escolhe(bts) {
+      const pote = bts.find(x => x.classList.contains('pode-tirar'));
+      if (pote) return { el: pote, lado: 'esquerda', frase: 'Clique para tirar; botão direito tira 1. Embaixo, a mochila: clique para guardar.' };
+      return bts[0] && { el: bts[0], frase: 'Clique para guardar na despensa; botão direito guarda 1. No armário, clique para tirar.' }; } },
   posto: { painel: '#modal .equipe', sel: '#modal .equipe .eq-mudar-posto', faixa: '#modal .eq-faixa', usou: () => false,
     escolhe: bts => bts[0] && { el: bts[0], lado: 'esquerda', frase: 'Rosa: "Posto é onde a pessoa trabalha na janta: Salão, Cozinha ou Expedição; na Reserva ela fica parada. Clique em Mudar de posto para ver o que ela faz em cada um."' } },
   // - O cardápio da noite -> Dave (o Bancho ensina o cardápio na primeira noite): a Rosa guia passo a passo no quadro da abertura —
