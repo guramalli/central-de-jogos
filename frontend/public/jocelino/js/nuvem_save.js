@@ -244,7 +244,7 @@ const NuvemSave = (() => {
     }
     if (N.decidiu) return;
     buscarMeta().then(m => {
-      if (N.decidiu || capa.hidden || !capa.querySelector('.titulo')) return;   // (a capa ainda é a de título)
+      if (N.decidiu || capa.hidden || !capa.querySelector('.titulo, .logo-capa')) return;   // (a capa ainda é a de título)
       if (contaNaFrente(m)) pergunta(m, false);
     });
   }

@@ -1,4 +1,4 @@
-// Família Santos: Tijolo e Tempero (antes "Jocelino — Um legado em construção"). © Educação Gamer.
+// Família Santos (15/10; antes "Família Santos: Tijolo e Tempero" e "Jocelino — Um legado em construção"). © Educação Gamer.
 // base.js — o estado global G, ajudantes curtos, o relógio do jogo e o save (localStorage).
 // O relógio: 10 minutos do jogo a cada 7 s reais; o dia vai das 6:00 às 2:00 (26:00), como no Stardew.
 

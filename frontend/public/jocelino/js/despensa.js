@@ -3,9 +3,8 @@
 // prateleiras (arte a/ui/despensa_prateleiras) com cada ingrediente, quanto tem, a raridade e de onde vem; o orelhão da
 // Vila encomenda o que a Mercearia não tem e chega na manhã seguinte numa caixa na porta da pensão.
 
-// O catálogo do orelhão (preço por unidade). A fase da pensão libera o que ela já sabe usar.
-const ENCOMENDA = { linguica: 7, carne_seca: 9, macarrao: 3, milho: 4, goiaba: 3, tomate: 4, coco: 4, couve: 3, mandioca: 3, sardinha: 4,
-  pescada: 8, caranguejo: 10, leite_coco: 6, dende: 7, queijo_coalho: 16 };
+// O catálogo do orelhão (preço por unidade; os números moram no ECO.lojas.encomenda). A fase da pensão libera o que ela já sabe usar.
+const ENCOMENDA = Object.assign({}, ECO.lojas.encomenda);
 INICIADORES.push(s => { G.encomendas = Object.assign({ pedidas: {}, chegou: {} }, s.encomendas || {}); });
 COLETORES.push(s => { s.encomendas = { pedidas: Object.assign({}, G.encomendas.pedidas), chegou: Object.assign({}, G.encomendas.chegou) }; });
 // De manhã: o que foi pedido ontem chega numa caixa na porta da pensão.

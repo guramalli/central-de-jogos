@@ -121,8 +121,8 @@ function mostrarCapa() {
   const capa = $('#capa');
   capa.innerHTML = '';
   capa.append(el('div', { class: 'painel' },
-    el('h1', { class: 'titulo' }, 'FAMÍLIA SANTOS'),
-    el('div', { class: 'sub' }, 'Tijolo e Tempero'),
+    // (15/10) o logotipo escolhido pelo dono (a placa de madeira com a casa, o mar, o muro e a panela; produzir_logo.sh, opção 2)
+    el('img', { class: 'logo-capa', src: urlArte('ui/logo'), alt: 'Família Santos' }),
     el('div', { class: 'teclas' }, 'WASD anda · clique usa a ferramenta · botão direito conversa e age · E mochila · F tela cheia'),
     el('div', { class: 'botoes' },
       tem ? el('button', { class: 'botao forte', onclick: () => iniciarJogo(lerSave()) }, 'Continuar') : null,

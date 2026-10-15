@@ -113,6 +113,14 @@ const ECO = {
   caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50 },
   lojas: { deposito: { cimento: 12, tijolo: 1, vergalhao: 3, cal: 4, tinta: 15, pigmento: 5, ladrilho: 2, telha: 2, pao: 4, cafe: 2, lapis: 3, impermeabilizante: 35 }, compra: { madeira: 2, fibra: 1, cristal: 15, pigmento: 2, bloco_concreto: 10, lajota: 15, manilha: 75, madeira_lei: 15 },
     mercearia: { arroz: 1, feijao: 1, farinha: 1, ovo: 2, macarrao: 2, linguica: 6, carne_seca: 8, queijo_coalho: 15, leite: 2, acucar: 1 }, banca: { isca: 2, covo: 25, vara_boa: 250 },
+    // (15/10, aprovado pelo dono) A encomenda pelo orelhão (despensa.js). O que também se colhe ou se cata (couve, mandioca, tomate,
+    // milho, goiaba, coco) custa 1,5 × o que a caixa de venda paga, arredondado: comprar sai mais caro do que vender a sua colheita
+    // (o crivo do Stardew), e a semente custa 1/3 a 1/5 da encomenda, então plantar para a pensão compensa. Com 2 ×, a sopa da pedra
+    // por encomenda daria prejuízo no nível 1 e a mandioca frita até o nível 5: o orelhão morreria para a horta. O peixe (sardinha,
+    // pescada, caranguejo) custa pelo menos o que a caixa paga com o Mestre do Píer (× 1,5: 4,5 / 7,5 / 10,5), arredondado para
+    // cima; o que só vem por aqui (linguiça, dendê, queijo...) ficou como estava.
+    encomenda: { linguica: 7, carne_seca: 9, macarrao: 3, milho: 24, goiaba: 9, tomate: 21, coco: 8, couve: 12, mandioca: 36, sardinha: 5,
+      pescada: 8, caranguejo: 11, leite_coco: 6, dende: 7, queijo_coalho: 16 },
     viajante: { receitas: { arroz_polvo: 300 }, ingredientes: { polvo: 40, camarao: 18, lagosta: 70, pimenta_cheiro: 35, dende: 12 } } },
   // ---- Os serviços: empreitas (o pagamento de cada uma), a Fala da Vila, a carta; o bairro; a Prefeitura e o Tião.
   empreitas: { paga: { consertar_banca: 150, tabua_pier: 120, limpar_trilha: 108, escorar_ponte: 150, remendar_calcada: 180, cerca_zelia: 132, telhas_juca: 120, desentulhar_ananias: 150, banco_praca: 132, buraco_rua: 150, carrinho_ze: 120, pedregulho_rua: 120, calcada_cimento: 150, cerca_madeira: 138, muro_baixo: 212, baldrame: 225, muro_chapiscado: 550, quiosque_praia: 650, ponte_pedra: 800, calcada_colorida: 450, baldrame_concreto: 500, cimentado_queimado: 650, sapata_corrida: 1200, muro_rebocado: 1300, ladrilho: 1750, radier: 2750, capina_ananias: 180 },

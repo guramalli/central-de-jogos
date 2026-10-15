@@ -22,6 +22,9 @@ function mostrarAbertura(aoFim) {
         el('button', { class: 'botao forte', onclick: avanca }, i === ABERTURA.length - 1 ? 'Começar' : 'Continuar')));
   };
   d._avanca = avanca; d._pula = fim;
+  // (15/10, o dono: "uma trilha sonora de 'sonhos a serem conquistados' na abertura") a trilha da abertura (Sonilo, a opção B que ele
+  // escolheu: viola caipira e flauta crescendo até a orquestra); no quintal o rodízio do dia entra com a troca suave de sempre
+  if (typeof sons !== 'undefined' && sons.musica) sons.musica('musica_abertura', true);
   desenha(); d.hidden = false;
 }
 // O teclado na abertura: Enter/Espaço continua, Esc pula (antes do jogo, que ainda não começou).
