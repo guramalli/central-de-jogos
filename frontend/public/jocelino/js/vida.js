@@ -38,7 +38,8 @@ function vidaAtualiza(dt) {
   if (VIDA.mapaId !== m.id) { VIDA.mapaId = m.id; VIDA.rolinhas = _rolinhasDoMapa(m); VIDA.folhas.length = 0; VIDA.bandos.length = 0; }
   const vw = G.larg / G.zoom, vh = G.alt / G.zoom, cx = G.cam.x, cy = G.cam.y;
   // Folhas: nascem do lado esquerdo da tela durante a rajada e atravessam rodopiando.
-  if (VIDA.rajada > 0 && Math.random() < dt * 9) VIDA.folhas.push({ x: cx - 20, y: cy + rnd(0, vh), vx: rnd(150, 230), f: rnd(0, 6), giro: rnd(-5, 5), ang: rnd(0, 6), n: 1 + Math.floor(Math.random() * 4) });
+  // (15/10, foto do jogador no barco) no alto-mar não tem árvore: o vento não traz folha
+  if (VIDA.rajada > 0 && m.id !== 'alto_mar' && Math.random() < dt * 9) VIDA.folhas.push({ x: cx - 20, y: cy + rnd(0, vh), vx: rnd(150, 230), f: rnd(0, 6), giro: rnd(-5, 5), ang: rnd(0, 6), n: 1 + Math.floor(Math.random() * 4) });
   for (const f of VIDA.folhas) { f.f += dt; f.x += f.vx * dt; f.y += Math.sin(f.f * 3) * 40 * dt + 12 * dt; f.ang += f.giro * dt; }
   VIDA.folhas = VIDA.folhas.filter(f => f.x < cx + vw + 30);
   // Bando: de tempos em tempos 3 a 6 pássaros cruzam a tela, um pouco em V.

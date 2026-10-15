@@ -11,8 +11,11 @@ MAPAS_DEF.alto_mar = () => {
   b.agua(0, 0, b.larg, C.y, CH.MAR); b.agua(0, C.y + C.h, b.larg, b.alt - C.y - C.h, CH.MAR);
   b.agua(0, C.y, C.x, C.h, CH.MAR); b.agua(C.x + C.w, C.y, b.larg - C.x - C.w, C.h, CH.MAR);
   b.pinta(C.x, C.y, C.w, C.h, CH.MAR);   // por baixo do barco o chão é mar (sem contorno); o convés não é água de pesca (naPonte)
-  // O casco é oval: os cantos da proa e da popa, fora dele, não se pisam.
-  for (const [x, y] of [[C.x, C.y], [C.x + 1, C.y], [C.x + 3, C.y], [C.x + 4, C.y], [C.x, C.y + 1], [C.x + 4, C.y + 1], [C.x, C.y + C.h - 1], [C.x + 4, C.y + C.h - 1]])
+  // O casco é oval: os cantos da proa e da popa, fora dele, não se pisam. (15/10, foto do jogador: "arrume isso", o Jocelino
+  // em pé na água ao lado da popa) Todo ladrilho em que o pé fica com menos de 60% de casco embaixo (medido na arte
+  // objetos/barco_conves): os dois da proa, o 2º da proa nas pontas, a popa que afina (x±2 no penúltimo) e o espelho da popa.
+  for (const [x, y] of [[C.x, C.y], [C.x + 1, C.y], [C.x + 3, C.y], [C.x + 4, C.y], [C.x, C.y + 1], [C.x + 4, C.y + 1], [C.x, C.y + C.h - 2], [C.x + 4, C.y + C.h - 2],
+    [C.x, C.y + C.h - 1], [C.x + 1, C.y + C.h - 1], [C.x + 3, C.y + C.h - 1], [C.x + 4, C.y + C.h - 1]])
     b.solidos.push({ x: x * TILE, y: y * TILE, w: TILE, h: TILE });
   b.desenhaChao = ctx => {
     for (const c of G.cardumes || []) desenhaPe(ctx, 'fx/cardume', c.x, c.y, 0.55);
