@@ -426,7 +426,8 @@ function camadasDaJanta() {
       });
       const F = P.FARINHEIRA, nf = typeof Melhorias !== 'undefined' && G.pensao ? Melhorias.nivel(G.pensao, 'farinheira_grande') : 0;
       // (14/10, o jogador: "faça o desenho da tigela de farinha vazia para quando faltar") sem farinha, a arte vazia (mesma largura e pé)
-      const vz = t && t.farinha <= 0 ? '_vazia' : '';
+      // (16/10, o jogador: "não fica vazia quando acaba a farinha") fora da janta, a tigela mostra a despensa: sem farinha lá, vazia
+      const vz = farinheiraVazia() ? '_vazia' : '';
       if (nf >= 2) desenhaPe(ctx, 'salao/farinheira_barril' + vz, F.cx + 10, 790, 1, 0.5);
       else desenhaPe(ctx, (nf ? 'salao/farinheira_grande' : 'salao/farinheira') + vz, nf ? F.cx + 13 : F.cx, nf ? 788 : F.base, 1, nf ? 0.55 : F.escala);
     }),
@@ -1288,7 +1289,14 @@ ATUALIZADORES.push(() => {
   const bc = r.querySelector('.bt-concurso'), cv = typeof podeConcurso === 'function' && podeConcurso(); if (bc.hidden === cv) bc.hidden = !cv;
   const txt = G.turno ? `${G.turno.farinha}/${G.turno.farinhaMax || TurnoJanta.FARINHA_MAX}` : '—';
   const sp = r.querySelector('.farinha span'); if (sp.textContent !== txt) sp.textContent = txt;
+  const im = r.querySelector('.farinha img'), src = urlArte(farinheiraVazia() ? 'salao/farinheira_vazia' : 'salao/farinheira');   // (16/10) o ícone também esvazia
+  if (im.getAttribute('src') !== src) im.setAttribute('src', src);
 });
+// A farinheira está vazia? Na janta, a do balcão (t.farinha); fora dela, a da despensa (sem pacote de farinha, vazia).
+function farinheiraVazia() {
+  if (G.turno) return G.turno.farinha <= 0;
+  return !!(G.pensao && G.pensao.despensa && (G.pensao.despensa.farinha || 0) <= 0);
+}
 
 // (revisão da D1) O lugar de esperar do Zezinho e dos ajudantes não fica em cima da bancada do passe: quem cairia nela (com uma
 // folga de 30 px de cada lado) vai para a esquerda dela, a largura da faixa inteira (os ajudantes continuam a 60 px um do outro).

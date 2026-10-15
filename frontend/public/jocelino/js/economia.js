@@ -243,6 +243,48 @@ const ECO = {
   // (relato de 14/10; o Stardew: a Floresta da Seiva e o Bosque Secreto repõem todo dia) a mata repõe toda manhã: quantos de cada
   // por manhã (árvores no bosque, galhos no chão dele, pedras na beira do rio), a chance de a pedra ser um pedregulho e o máximo vivo
   mata: { repoe: { arvores: 1, galhos: 3, pedras: 2, pedregulho: 0.25, maximo: { arvores: 5, galhos: 8, pedras: 6 } } },
+  // ---- (15/10, T1 da mata; spec docs/superpowers/specs/2026-10-15-mata-sitio-design.md, seções 2, 3, 4.5 e 5.2) O sítio da família,
+  // a Mata da Serra e o arco do loteamento. PROVISÓRIOS: nada disto liga à renda ainda (os mapas, as telas e os bichos de verdade são
+  // das tarefas T3 a T16); a T17 passa tudo pela sequência do balanço (s20 → s19 → numeros.js --gravar → s25).
+  sitio: {
+    // O desmatamento (seção 2.3): as 3 empreitas longas da família (sem pagamento: o material e as ferramentas de cada dia), a
+    // licença (as mudas que chegam com ela), a regra do replantio (mudas por árvore derrubada) e o crescimento da muda (dias).
+    desmate: { licencaMudas: 10, mudaPorArvore: 1, arvoreta: 7, arvore: 28,
+      picada: { etapas: ['foice', 'foice'], material: {} },
+      terraplenar: { etapas: ['pa', 'pa', 'regador'], material: { pedra: 20 } },
+      cerca: { etapas: ['pa', 'machado', 'machado'], material: { madeira: 30, vergalhao: 4 } } },
+    // As construções (seção 3.2), na ordem fixa: o material, o dinheiro (o que não se faz: a corda, a tela, as ferragens), as
+    // ferramentas de cada dia, o nível de Alvenaria das ampliações e o que cada uma comporta (vagas de bicho, feno no paiol, covas).
+    construcoes: {
+      poco: { material: { pedra: 20, tijolo: 30, cimento: 2 }, dinheiro: 30, etapas: ['pa', 'pa', 'colher', 'colher'] },
+      galinheiro: { material: { madeira: 30, telha: 20, tijolo: 20 }, dinheiro: 80, etapas: ['pa', 'colher', 'machado', 'machado'], vagas: 4 },
+      paiol: { material: { madeira: 40, telha: 30 }, dinheiro: 0, etapas: ['pa', 'machado', 'machado'], feno: 60 },
+      curral: { material: { madeira: 60, tijolo: 40, cimento: 4, telha: 40 }, dinheiro: 150, etapas: ['pa', 'pa', 'colher', 'colher', 'machado', 'machado'], vagas: 2 },
+      pomar: { material: {}, dinheiro: 0, etapas: [], covas: 9, muda: 20 },
+      horta_grande: { material: { esterco: 10 }, dinheiro: 0, etapas: ['pa', 'pa', 'regador'], w: 8, h: 6 },
+      galinheiro_grande: { material: { madeira: 30, telha: 20, cimento: 2 }, dinheiro: 120, etapas: ['pa', 'colher', 'colher', 'machado'], alvenaria: 5, vagas: 8 },
+      curral_grande: { material: { tijolo: 60, cimento: 6, telha: 40 }, dinheiro: 200, etapas: ['pa', 'colher', 'colher', 'colher', 'machado'], alvenaria: 7, vagas: 4 } },
+    // Os bichos (seção 3.3): o preço, o produto de todo dia, o "da casa" (o Grade A do Dave), o que come no cocho (1 por bicho) e as
+    // estações em que pasta de graça (dia seco; 0 outono, 1 inverno, 2 primavera, 3 verão).
+    animais: {
+      galinha: { preco: 60, produto: 'ovo', daCasa: 'ovo_caipira', mora: 'galinheiro', come: ['quirera', 'milho'], pasta: [0, 1, 2, 3] },
+      vaca: { preco: 600, produto: 'leite', daCasa: 'manteiga_garrafa', mora: 'curral', come: ['feno'], pasta: [2, 3] } },
+    // O afeto (0 a 1.000; 200 = 1 coração), com os números do Stardew em escala.
+    afeto: { max: 1000, coracao: 200, carinho: 15, carinhoFilhos: 8, pasto: 8, ordenha: 5, semComida: -20, semCarinho: -10 },
+    // A produção da manhã: com humor bom, a chance do graúdo (+1 unidade) é graudoBase + graudoAfeto × afeto/1000; com daCasaCoracoes
+    // corações ou mais e humor bom, a chance do produto da casa.
+    producao: { graudoBase: 0.1, graudoAfeto: 0.5, daCasaCoracoes: 3, daCasaChance: 0.3 },
+    porcaoDaCasa: 1,      // o ingrediente da casa rende +1 porção na panela (só 1 por panela; a T14 liga, a T17 confere o teto)
+    caixa: { ovo_caipira: 6, manteiga_garrafa: 12 },
+    quirera: 1,           // o saco de quirera no Ananias
+  },
+  serra: {
+    achados: 5,           // achados por dia na Mata da Serra (T5)
+    mudas: { preco: 3 },  // a muda nativa do Nhô Quim (T6)
+    // "A Mata em Pé" (seção 4.5): os marcos (árvores em pé) e o ganho de cada um.
+    mataEmPe: { marcos: { 10: { repoeArvores: 2 }, 25: { achados: 1 }, 50: { maximoArvores: 7 } } },
+  },
+  loteamento: { presenteAcordo: { cimento: 5, telha: 20 } },   // o presente do Seu Moreira, só no acordo (o firme não perde nada)
   // ---- (15/10, T4) As recompensas de nível (spec docs/superpowers/specs/2026-10-15-niveis-recompensa.md): o nível de cada uma mora na
   // tabela NIVEIS_RECOMPENSA (habilidades.js); aqui ficam os números. As receitas de Fabricar (o baú usa o preço do Tio Juca, quintal.bau)
   // custam quase o que se paga na loja ou menos que o produto vale na caixa (o crivo do Stardew: fazer em casa não vira fonte de renda).

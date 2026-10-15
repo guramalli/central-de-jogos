@@ -183,7 +183,7 @@ function cartoesDoResumo(linhas, d) {
       corpo: [el('div', { class: 'rd-barra' }, el('span', {}, 'Entrou'), trilhoDoResumo(g / m, 'sobe'), el('b', {}, g ? `Cr$ ${g}` : 'nada')),
         el('div', { class: 'rd-barra' }, el('span', {}, 'Saiu'), trilhoDoResumo(s / m, 'desce'), el('b', {}, s ? `Cr$ ${s}` : 'nada')),
         txt(`No bolso: Cr$ ${d.dinheiro ?? G.dinheiro}`),
-        d.meta ? el('div', { class: 'rd-barra meta' }, el('span', {}, 'Meta'), trilhoDoResumo(d.meta.feito / d.meta.meta, 'meta'), el('b', {}, `${Math.round(d.meta.feito / d.meta.meta * 100)}%`)) : null] }); }
+        d.meta ? el('div', { class: 'rd-barra rd-meta-linha' }, el('span', {}, 'Meta'), trilhoDoResumo(d.meta.feito / d.meta.meta, 'rd-meta'), el('b', {}, `${Math.round(d.meta.feito / d.meta.meta * 100)}%`)) : null] }); }
   // a caixa de venda: os itens com ícone e o total que conta
   if (d.caixa || por.caixa) {
     const cx = d.caixa;
@@ -199,7 +199,7 @@ function cartoesDoResumo(linhas, d) {
     const o = d.obra, est = o && { sem: 'Sem lista da obra hoje.', paga: `Lista completa: diária paga (Cr$ ${o.diaria}).`, extra: 'O extra do dia: pago.', metade: `Fez parte da lista: Cr$ ${o.aReceber} a receber com o Bira.`,
       fechada: 'A lista ficou pela metade.', aberta: 'A lista ficou sem terminar.' }[o.estado];
     C.push({ id: 'obra', titulo: 'A obra e os serviços', icone: urlItem('colher'), linhas: por.obra || [],
-      corpo: o ? [txt(o.funcao ? `${o.funcao} · diária Cr$ ${o.diaria}` : ''), o.estado !== 'sem' ? trilhoDoResumo(o.fracao, o.estado === 'paga' || o.estado === 'extra' ? 'sobe' : 'meta') : null, el('div', { class: 'rd-frase' }, est)] : [] });
+      corpo: o ? [txt(o.funcao ? `${o.funcao} · diária Cr$ ${o.diaria}` : ''), o.estado !== 'sem' ? trilhoDoResumo(o.fracao, o.estado === 'paga' || o.estado === 'extra' ? 'sobe' : 'rd-meta') : null, el('div', { class: 'rd-frase' }, est)] : [] });
   }
   if (por.recados) C.push({ id: 'recados', titulo: 'Os recados da Vila', icone: urlArte('objetos/quadro_pedidos'), linhas: por.recados });
   // a pensão: o lucro da noite (o caderno), a nota e o fechamento de novo

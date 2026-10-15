@@ -84,10 +84,12 @@ function desenha(dt) {
 function desenhaMarcadorMouse(ctx) {
   const m = G.mapa; if (!G.comecou || !m || m.palco || !G.mouse || !G.mouse.dentro || menuAberto()) return;
   if (typeof mouseNoPainelDoHud === 'function' && mouseNoPainelDoHud(G.mouse.x, G.mouse.y)) return;
-  const img = spr('ui/marcador'); if (!img) return;
   const t = ladrilhoDoMouse(); if (t.x < 0 || t.y < 0 || t.x >= m.larg || t.y >= m.alt) return;
   const p = G.jog.ladrilho(), perto = Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) <= 1;
-  ctx.save(); ctx.globalAlpha = perto ? 0.95 : 0.45; ctx.drawImage(img, t.x * TILE, t.y * TILE, TILE, TILE); ctx.restore();
+  // (15/10, o dono: "achei que está demais... use aquela que tira um pouco a cor do sqm") um véu claro e suave no ladrilho, como o do
+  // Stardew, em vez dos cantinhos: desbota um pouco a cor do chão (mais forte ao alcance do Jocelino)
+  ctx.save(); ctx.fillStyle = `rgba(255,252,235,${perto ? 0.26 : 0.13})`; ctx.strokeStyle = `rgba(255,255,255,${perto ? 0.45 : 0.22})`; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(t.x * TILE + 1, t.y * TILE + 1, TILE - 2, TILE - 2, 6); ctx.fill(); ctx.stroke(); ctx.restore();
 }
 
 let _ultimo = 0;
