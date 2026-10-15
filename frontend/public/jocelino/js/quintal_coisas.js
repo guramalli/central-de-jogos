@@ -27,13 +27,14 @@ function podeColocar(b, x, y) {
 // A cerca do Stardew: um mourão por ladrilho; duas ripas ligam o mourão ao da direita e uma ripa (vista de cima) ao de
 // baixo; o portão fica no lugar do mourão, de frente numa fileira e de lado numa coluna. As ripas e o portão ocupam só o
 // vão entre as bordas dos mourões (o mourão tem 14 px), então a ordem do desenho não importa. Peça = {arte, x, y, w, h}.
+// `em` (x, y) → {id, aberto} ou null: de quem é a cerca (a do jogador; o galinheiro do Tio Juca passa a dele, lá embaixo).
 const colocadoEm = (x, y) => G.horta.colocados.find(c => c.x === x && c.y === y && (c.id === 'cerca' || c.id === 'portao'));
-const ehCerca = (x, y) => { const c = colocadoEm(x, y); return !!c && c.id === 'cerca'; };
-function pecasCerca(x, y) {
-  const c = colocadoEm(x, y); if (!c) return [];
+function pecasCerca(x, y, em = colocadoEm) {
+  const c = em(x, y); if (!c) return [];
+  const ehCerca = (i, j) => { const d = em(i, j); return !!d && d.id === 'cerca'; };
   const cx = x * TILE + TILE / 2, base = (y + 1) * TILE, MEIO = 7, r = [];
   if (c.id === 'portao') {
-    const deLado = (colocadoEm(x, y - 1) || colocadoEm(x, y + 1)) && !colocadoEm(x - 1, y) && !colocadoEm(x + 1, y);
+    const deLado = (em(x, y - 1) || em(x, y + 1)) && !em(x - 1, y) && !em(x + 1, y);
     // Aberto, o portão gira 90° na dobradiça (o mourão da esquerda ou o de cima): o de frente fica de perfil e o de lado
     // fica de frente — a mesma arte do outro sentido.
     if (c.aberto) {
@@ -48,7 +49,7 @@ function pecasCerca(x, y) {
   r.push({ arte: 'objetos/cerca_mourao', x: cx - 24, y: base - 60, w: 48, h: 60 });
   return r;
 }
-function desenhaCerca(ctx, o) { for (const p of pecasCerca(o.cx, o.cy)) { const img = spr(p.arte); if (img) ctx.drawImage(img, p.x, p.y, p.w, p.h); } }
+function desenhaCerca(ctx, o) { for (const p of pecasCerca(o.cx, o.cy, o.em || colocadoEm)) { const img = spr(p.arte); if (img) ctx.drawImage(img, p.x, p.y, p.w, p.h); } }
 function poeColocados(b) {
   if (!b || b.id !== 'quintal') return;
   for (const o of b.objs.filter(o => o.id === 'colocado')) b.tirar(o);
@@ -117,10 +118,8 @@ function recolher(o) {
 AO_MONTAR.push(b => { if (b.id === 'quintal') poeColocados(b); });
 
 // O Tio Juca faz cerca (2 madeiras) e portão (5) — "cerca boa segura galinha e segura menino".
-function falaDe(p) {
-  const f = FALAS[p.id], paginas = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']);
-  return Array.isArray(paginas[0]) ? paginas[0] : paginas;
-}
+// (T2 das conversas) A fala do dia vem do motor de falas (conversas.js); a emoção (@alegre...) o abrirPlaca mostra no retrato.
+function falaDe(p) { return Conversas.paginas(p); }
 // Quanto custa cada coisa do Tio Juca (madeiras) e o que ele oferece: 1 cerca, 10 cercas e "quantas a madeira der" (teste de
 // 12/10: "ficar comprando de 1 em 1 é chato"; no Stardew a loja compra 5 com Shift), e o portão.
 // (14/10) O baú também (bau.js): o preço mora no ECO.
@@ -348,3 +347,119 @@ ATUALIZADORES.push(dt => {
     m.area = { x: Math.min(...xs) * TILE, y: Math.min(...ys) * TILE, w: (Math.max(...xs) - Math.min(...xs) + 1) * TILE, h: (Math.max(...ys) - Math.min(...ys) + 1) * TILE };
   }
 });
+
+// ---------- o galinheiro do Tio Juca (o serviço longo cerca_madeira, empreitas.js) ----------
+// (16/10, relato com foto do jogador: "existe uma missão do Juca que pede para fazer uma cerca, você faz a cerca mas ela fica lá
+// sozinha no meio do quintal") A obra pronta era UM pedaço de cerca de 2 ladrilhos solto na grama ("a cerca do galpão", e galpão
+// nenhum). No Stardew a cerca sempre fecha alguma coisa (o cercado dos bichos, a horta, um caminho): pronta, ela vira o galinheiro
+// do Tio Juca, um cercado de 5×4 ladrilhos montado com as mesmas peças da cerca do jogador (mourão, ripas e o portão de frente,
+// pecasCerca), com 2 galinhas dele ciscando dentro (as da vizinhança, que bicam a horta, continuam como antes). O lote do serviço é
+// o começo da fileira de cima (o portão no meio dela, virado para a casa) e o cercado desce dali, no canto de baixo do quintal, longe
+// da trilha, da casa, da horta e dos terrenos da família. O lugar fica guardado (G.galinheiro) para não pular; se o jogador já pôs
+// coisa ali (cova, cerca, barril, baú, caminho), vai para o lugar livre mais perto que não feche passagem nenhuma. É sólido e não se
+// recolhe; quem estiver dentro quando ele aparece (o Jocelino, os filhos) vai para fora.
+const GALINHEIRO = { servico: 'cerca_madeira', w: 5, h: 4, portao: 2 };
+INICIADORES.push(s => { G.galinheiro = s.galinheiro ? Object.assign({}, s.galinheiro) : null; });
+COLETORES.push(s => { if (G.galinheiro) s.galinheiro = Object.assign({}, G.galinheiro); });
+// Pronto (para entregar ou entregue) ou feito; pegar de novo (a reforma) volta ao lote com a arte da etapa, como as outras obras.
+function galinheiroPronto() {
+  const e = G.empreitas, id = GALINHEIRO.servico; if (!e) return false;
+  const a = e.aceitas[id]; return a ? a.estado === 'pronta' || a.estado === 'entregue' : !!(e.feitas || {})[id];
+}
+const dentroGalinheiro = (R, x, y) => !!R && x >= R.x && y >= R.y && x < R.x + R.w && y < R.y + R.h;
+// O que o jogador pôs no quintal, pelos dados do save (no AO_MONTAR o galinheiro vem antes dos colocados e dos baús irem para o mapa).
+function coisaDoJogadorEm(x, y) {
+  const h = G.horta || {};
+  return (h.colocados || []).some(c => c.x === x && c.y === y) || (!!h.barril && h.barril.x === x && h.barril.y === y) || !!(h.covas || {})[chaveH(x, y)]
+    || (G.baus || []).some(c => c.mapa === 'quintal' && c.x === x && c.y === y) || (G.caminhos || []).includes(chaveT(x, y));
+}
+const solidoDoJogadorEm = (x, y) => { const h = G.horta || {}, c = (h.colocados || []).find(q => q.x === x && q.y === y);
+  return (!!c && !(c.id === 'portao' && c.aberto)) || (!!h.barril && h.barril.x === x && h.barril.y === y) || (G.baus || []).some(q => q.mapa === 'quintal' && q.x === x && q.y === y); };
+function galinheiroCabe(b, R) {
+  const id = GALINHEIRO.servico, lotes = [];
+  for (const k of Object.keys(EMPREITAS_LONGAS).concat(Object.keys(EMPREITAS_EXTRAS))) { const E = dadosEmpreita(k);
+    if (k !== id && E && E.mapa === 'quintal' && !E.familia && (E.area || E.artes) && E.x != null) lotes.push(...tilesDoLote(E)); }
+  for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
+    if (!b.livreEm(x, y) || b.saidaEm(x, y) || b.chaoEm(x, y) !== CH.GRAMA || reservadoQuintal(x, y) || coisaDoJogadorEm(x, y)) return false;
+    if (lotes.some(t => t.x === x && t.y === y)) return false;
+    const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo !== 'detrito' && !o.galinheiro && o.empreita !== id && o.feita !== id) return false;
+  }
+  return true;
+}
+// Fecha passagem? O quintal andável a partir da porta de casa (b.inicio), com e sem o cercado: todo ladrilho de fora dele que se
+// alcançava tem que continuar alcançável. Os detritos não contam (o machado e a picareta abrem caminho); o que o jogador pôs conta.
+function galinheiroFechaPassagem(b, R) {
+  const id = GALINHEIRO.servico, solido = (x, y) => { const o = b.ocupado.get(chaveT(x, y));
+    return (!!o && o.solido && o.tipo !== 'detrito' && !o.galinheiro && o.empreita !== id && o.feita !== id) || solidoDoJogadorEm(x, y); };
+  const anda = comR => {
+    const x0 = b.inicio.x, y0 = b.inicio.y, visto = new Set([chaveT(x0, y0)]), fila = [[x0, y0]];
+    for (let i = 0; i < fila.length; i++) { const [cx, cy] = fila[i];
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = cx + dx, ny = cy + dy, k = chaveT(nx, ny);
+        if (visto.has(k) || !b.livreEm(nx, ny) || solido(nx, ny) || (comR && dentroGalinheiro(R, nx, ny))) continue;
+        visto.add(k); fila.push([nx, ny]); } }
+    return visto;
+  };
+  const sem = anda(false), com = anda(true);
+  for (const k of sem) { const [x, y] = k.split(',').map(Number); if (!dentroGalinheiro(R, x, y) && !com.has(k)) return true; }
+  return false;
+}
+// O lugar guardado; sem ele (a 1ª vez, o save de antes desta correção), o do lote do serviço ou o livre mais perto dele.
+function lugarDoGalinheiro(b) {
+  if (G.galinheiro) return G.galinheiro;
+  const E = dadosEmpreita(GALINHEIRO.servico), { w, h } = GALINHEIRO, cands = [];
+  for (let dy = -8; dy <= 8; dy++) for (let dx = -12; dx <= 12; dx++) cands.push({ x: E.x + dx, y: E.y + dy, d: Math.abs(dx) + Math.abs(dy) * 1.2 });
+  cands.sort((p, q) => p.d - q.d);
+  for (const c of cands) { const R = { x: c.x, y: c.y, w, h }; if (galinheiroCabe(b, R) && !galinheiroFechaPassagem(b, R)) return (G.galinheiro = R); }
+  return null;
+}
+// Chamado no fim de poeEmpreitasNoMapa (empreitas_jogo.js): troca o pedaço de cerca (o lote pronto, a obra feita) pelo cercado.
+function poeGalinheiro(b) {
+  if (!b || b.id !== 'quintal') return;
+  for (const o of b.objs.filter(o => o.galinheiro)) b.tirar(o);
+  b._galinheiro = null;
+  if (!galinheiroPronto()) return;
+  const R = lugarDoGalinheiro(b); if (!R) return;   // (sem lugar nenhum no quintal: fica o pedaço de cerca de antes)
+  const id = GALINHEIRO.servico;
+  for (const o of b.objs.filter(o => o.id === 'feita_' + id || o.id === 'emp_' + id)) b.tirar(o);
+  for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) { const o = b.ocupado.get(chaveT(x, y)); if (o && o.tipo === 'detrito') b.tirar(o); }
+  // A volta do cercado (o meio fica para as galinhas); o portão no meio da fileira de cima.
+  const em = (x, y) => !dentroGalinheiro(R, x, y) || (x > R.x && x < R.x + R.w - 1 && y > R.y && y < R.y + R.h - 1) ? null : { id: x === R.x + GALINHEIRO.portao && y === R.y ? 'portao' : 'cerca' };
+  for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
+    const c = em(x, y); if (!c) continue;
+    const o = b.interativo('galinheiro', c.id === 'portao' ? 'objetos/portao_h' : 'objetos/cerca_mourao', x, y, 1, 1, [16, 16]);
+    Object.assign(o, { galinheiro: true, feita: id, portao: c.id === 'portao', cx: x, cy: y, em });   // (feita: poeEmpreitasNoMapa tira junto)
+    o.desenha = ctx => desenhaCerca(ctx, o); o.acao = () => acaoGalinheiro();
+  }
+  b._galinheiro = R;
+  tiraDoGalinheiro(b, R);
+  filhosNoQuintalDeFora(b);
+}
+function acaoGalinheiro() {
+  const id = GALINHEIRO.servico; if (G.empreitas.aceitas[id]) return acaoEmpreita(id);   // (pronto: entregar, como a plaquinha)
+  const q = G.empreitas.feitas[id], ql = q > 1 ? ` (${NOME_QUALIDADE[q] || 'bom'})` : '';
+  abrirPlaca(`O galinheiro do Tio Juca: obra do Jocelino${ql}. "Agora as minhas galinhas têm casa. Cerca boa segura galinha!"`);
+  return true;
+}
+// O Jocelino que estava no lugar (o save no meio do cercado, a chegada pela porta de um mapa): vai para o ladrilho de fora mais perto.
+function tiraDoGalinheiro(b, R) {
+  if (G.mapa !== b || !G.jog) return;
+  const sobre = (a, d) => a.x < d.x + d.w && a.x + a.w > d.x && a.y < d.y + d.h && a.y + a.h > d.y, preso = c => b.objs.some(o => o.galinheiro && o.caixa && sobre(c, o.caixa));
+  const t = G.jog.ladrilho(); if (!dentroGalinheiro(R, t.x, t.y) && !preso(G.jog.caixa())) return;
+  let melhor = null, dm = 1e9;
+  for (const k of quintalDeFora(b)) { const [x, y] = k.split(',').map(Number), d = Math.hypot(x - t.x, y - t.y);
+    if (d < dm && !dentroGalinheiro(R, x, y) && !bate(G.jog.caixa((x + 0.5) * TILE, y * TILE + 36), b)) { dm = d; melhor = [x, y]; } }
+  if (melhor) { G.jog.x = (melhor[0] + 0.5) * TILE; G.jog.y = melhor[1] * TILE + 36; G.jog.parar(); }
+}
+// As 2 galinhas do Tio Juca ciscando no meio do cercado (a arte das galinhas da vizinhança; o código só move): cada uma anda até um
+// ponto sorteado e fica bicando o chão até o próximo, pelo relógio do jogo (sem estado: o mesmo lugar em todo quadro).
+function galinhasDoGalinheiro(b) {
+  const R = b && b._galinheiro; if (!R) return [];
+  const t = G.agora || 0, x0 = (R.x + 1) * TILE + 12, x1 = (R.x + R.w - 1) * TILE - 12, y0 = (R.y + 1) * TILE + 18, y1 = (R.y + R.h - 1) * TILE - 6;
+  const ponto = (k, n) => { const f = mulberry(n * 977 + k * 131 + 7919); return { x: lerp(x0, x1, f()), y: lerp(y0, y1, f()) }; };
+  return [0, 1].map(k => {
+    const u = (t + k * 1.7) / (3.4 + k * 1.1), n = Math.floor(u), f = u - n, a = ponto(k, n - 1), c = ponto(k, n), anda = f < 0.3, s = anda ? f / 0.3 : 1, e = s * s * (3 - 2 * s);
+    return { x: lerp(a.x, c.x, e), y: lerp(a.y, c.y, e), lado: c.x < a.x ? -1 : 1, quadro: anda || Math.floor(t * 3 + k) % 2 ? 'objetos/galinha_1' : 'objetos/galinha_2' };
+  });
+}
+EXTRAS_MUNDO.push(m => m.id !== 'quintal' ? [] : galinhasDoGalinheiro(m).map(g => ({ y: g.y, desenha(ctx) {
+  ctx.save(); ctx.translate(g.x, g.y); if (g.lado < 0) ctx.scale(-1, 1); desenhaPe(ctx, g.quadro, 0, 0, 1); ctx.restore(); } })));

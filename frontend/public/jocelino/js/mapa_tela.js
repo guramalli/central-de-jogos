@@ -7,10 +7,11 @@
 const MAPA_LUGARES = {
   quintal: { nome: 'Quintal', x: 0.475, y: 0.14 }, vila: { nome: 'Vila Maré', x: 0.50, y: 0.47 }, mata: { nome: 'Mata', x: 0.16, y: 0.42 },
   praia: { nome: 'Praia', x: 0.49, y: 0.90 }, pedreira: { nome: 'Pedreira', x: 0.84, y: 0.22 }, bairro: { nome: 'Bairro Novo', x: 0.83, y: 0.70 },
+  serra: { nome: 'Mata da Serra', x: 0.10, y: 0.62 },   // (T3) do outro lado da ponte da mata, rio acima
 };
 // Em que lugar do mapa fica cada mapa do jogo.
 const LUGAR_DO_MAPA = { quintal: 'quintal', vila: 'vila', mata: 'mata', praia: 'praia', alto_mar: 'praia', pedreira: 'pedreira', bancada: 'pedreira',
-  bairro: 'bairro', pensao_palco: 'vila', pensao_dentro: 'vila' };
+  bairro: 'bairro', pensao_palco: 'vila', pensao_dentro: 'vila', serra: 'serra' };
 
 function abrirMapa() {
   if (menuAberto()) return false;

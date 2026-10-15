@@ -69,7 +69,7 @@ const NIVEIS_RECOMPENSA = {
     1: [{ tipo: 'receita', id: 'bau', nome: 'Baú', frase: 'Faça o baú onde estiver, sem ir ao Tio Juca. Guarda 36 coisas.', icone: 'bau' }],
     2: [{ tipo: 'receita', id: 'escada_corda', nome: 'Escada de corda', frase: 'Na pedreira funda, desce uma bancada na hora.', icone: 'escada_corda' }],
     3: [{ tipo: 'melhoria', id: 'pedra_de_sobra', nome: 'Pedra de sobra', frase: 'Pedra e pedregulho dão 1 pedra a mais 1 vez em cada 4.' }],
-    4: [{ tipo: 'melhoria', id: 'faro_de_catador', nome: 'Faro de catador', frase: 'Mais 1 achado por dia na praia e na mata.' }],
+    4: [{ tipo: 'melhoria', id: 'faro_de_catador', nome: 'Faro de catador', frase: 'Mais 1 achado por dia na praia, na mata e na serra.' }],
     5: [_V],
     6: [{ tipo: 'melhoria', id: 'olho_de_pedreira', nome: 'Olho de pedreira', frase: 'A escada escondida aparece 50% mais nas rochas.' }],
     7: [{ tipo: 'receita', id: 'tronco_cogumelo', nome: 'Tronco de cogumelo', frase: 'No quintal, dá 1 cogumelo a cada 3 dias. Até 4 troncos.', icone: 'tronco_cogumelo' }],

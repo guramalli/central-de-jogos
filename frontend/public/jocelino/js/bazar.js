@@ -44,8 +44,18 @@ CARTAS.folheto_salim = { de: 'Seu Salim', dia: 4, texto: 'BAZAR DO SALIM — no 
 MANHA.push(() => { if (Bazar.tem('garrafa_termica')) G.mochila.adicionar('cafe', 1); });
 NOITE.push(linhas => {
   if (Bazar.tem('maquina_costura') && (G.dia - 1) % 7 !== 6) { G.dinheiro += ECO.bazar.costura; G.ganhoHoje += ECO.bazar.costura; linhas.push(`A Rosa costurou para fora: Cr$ ${ECO.bazar.costura}.`); }
-  if (Bazar.tem('televisao')) { G.amizade = G.amizade || {}; for (const id of ['rosa', 'ritinha', 'zezinho']) G.amizade[id] = (G.amizade[id] || 0) + 1; linhas.push('A família viu a novela junta na televisão nova (amizade +1).'); }
+  if (Bazar.tem('televisao')) linhas.push(NOVELA_DA_NOITE[G.dia % NOVELA_DA_NOITE.length]);
 });
+// (T1 das conversas) A família não tem número de amizade: a novela na televisão é carinho do dia a dia, uma cena por noite
+// (antes, +1 de amizade para a Rosa e os filhos).
+const NOVELA_DA_NOITE = [
+  'A família viu a novela junta na televisão nova. A Ritinha chorou no casamento da mocinha.',
+  'Na hora da novela, o Zezinho dormiu no colo da Rosa antes do fim do capítulo.',
+  'A Rosa e a Ritinha discutiram quem é o vilão da novela. O Tio Juca, da janela, jura que é o padre.',
+  'Depois da novela, o Zezinho imitou o galã com o pente da Rosa. A casa inteira riu.',
+  'Na novela, a mocinha voltou para o Nordeste. A Rosa suspirou: "Um dia a gente leva as crianças em Aracaju."',
+  'A família jantou na frente da televisão. A Ritinha já sabe cantar a música da abertura da novela.',
+];
 // O balcão no Mercado.
 function abrirBazar() {
   if (!Bazar.aberto(G.dia, G.minutos)) { abrirPlaca('Bazar do Seu Salim: fechado agora. Abre das 9h às 17h, menos no domingo.'); return true; }

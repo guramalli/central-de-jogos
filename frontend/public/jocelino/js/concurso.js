@@ -50,13 +50,13 @@ const Concurso = {
     return { receita };
   },
   // Os pratos que dá para mandar: os do caderno que a despensa (ou a panela) rende.
-  candidatos(p) { return p.receitas.filter(id => p.rende(id) > 0 || p.porcoes(id) > 0); },
+  candidatos(p) { return p.receitas.filter(id => p.rende(id, 1) > 0 || p.porcoes(id) > 0); },   // (um prato só, feito à parte)
   // Manda os 3 pratos: gasta uma porção de cada, julga e premia.
   participar(p, ids, dia) {
     const est = Concurso.estacaoAbs(dia);
     if ((p.concursos || {})[est] || ids.length !== 3) return null;
     const f0 = mulberry(dia * 71), f = { randf: f0, randi: () => Math.floor(f0() * 4294967296) };
-    for (const id of ids) { if (p.porcoes(id) > 0) { p.panela[id]--; if (p.panela[id] <= 0) delete p.panela[id]; } else p.consumir(id, f); }
+    for (const id of ids) { if (p.porcoes(id) > 0) { p.panela[id]--; if (p.panela[id] <= 0) delete p.panela[id]; } else p.consumir(id, f, 1); }
     const res = Concurso.julgar(p, ids, est % 4, Math.floor(est / 4));
     res.premio = Concurso.premiar(p, res, est);
     return res;

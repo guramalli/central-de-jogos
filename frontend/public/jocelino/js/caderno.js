@@ -62,12 +62,14 @@ function abrirCaderno(sel) {
       ...(segredo ? [] : [el('div', { class: 'cad-cat' }, textoCozinha(id))]),   // (Tarefa D1) a categoria e o tempo de fogo
       el('div', { class: 'cad-desc' }, segredo ?`A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
     const ings = el('div', { class: 'cad-ings' });
-    for (const ing in pr.porcao) {
-      const t = p._tem(ing), q = pr.porcao[ing];
+    // (16/10, o gasto por prato) o que UMA panela gasta da despensa (a porção × as porções base × 0,5: Pensao.gasto)
+    const gasto = p.gasto(id);
+    for (const ing in gasto) {
+      const t = p._tem(ing), q = gasto[ing];
       ings.append(el('div', { class: 'cad-ing' + (t >= q ? '' : ' falta') }, el('img', { src: iconeIngrediente(ing) }),
         el('div', {}, el('b', {}, `${nomeIngrediente(ing)} ×${q}`), el('span', {}, ` (tenho ${t})`), el('div', { class: 'cad-origem' }, origemDe(ing)))));
     }
-    dir.append(el('div', { class: 'cad-sub' }, 'Ingredientes por prato'), ings);
+    dir.append(el('div', { class: 'cad-sub' }, 'Ingredientes por panela'), ings);
     if (tem) {
       const n = p.nivel(id), c = p.custoCaprichar(id);
       dir.append(el('div', { class: 'cad-nivelzao' }, '★'.repeat(n) + '☆'.repeat(Pensao.NIVEL_MAX - n)),

@@ -11,6 +11,8 @@ const DEPOSITO_HORARIO = { abre: 8 * 60, fecha: 17 * 60 };
 const depositoFechado = () => G.minutos < DEPOSITO_HORARIO.abre || G.minutos >= DEPOSITO_HORARIO.fecha;
 function entrarDeposito() {
   if (depositoFechado()) { abrirPlaca(`Depósito do Seu Ananias: fechado agora. Abre das ${DEPOSITO_HORARIO.abre / 60}h às ${DEPOSITO_HORARIO.fecha / 60}h.`); return true; }
+  // (16/10, a despensa, rodada 1) A seta da janta (falta ingrediente para o cardápio de hoje) abre direto na aba Mercearia.
+  { const s = typeof setaAgora === 'function' ? setaAgora() : null; if (s && s.missao === 'mercearia') _abaLoja = ABAS_LOJA.indexOf('Mercearia'); }
   abrirLoja();
   return true;
 }

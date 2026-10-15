@@ -11,10 +11,11 @@ MAPAS_DEF.mata = () => {
   b.livre = { x: 2, y: 2, w: 40, h: 22 };
   b.inicio = { x: 39, y: 13 };
   b.saida(41, 12, 1, 3, 'vila', 3, 13);
+  b.saida(MATA.PONTE_X, 23, 2, 1, 'serra', SERRA.CHEGADA.x, SERRA.CHEGADA.y);   // (T3) a trilha depois da ponte desce até a Mata da Serra
   const { RIO_Y, RIO_ALTURA, PONTE_X, TRONCO } = MATA;
   b.pinta(14, 12, 29, 2, CH.TERRA);                 // a trilha da Vila até a mata fechada
   b.pinta(PONTE_X, 14, 2, 3, CH.TERRA);             // o caminho até a ponte
-  b.pinta(PONTE_X, RIO_Y + RIO_ALTURA, 2, 2, CH.TERRA);
+  b.pinta(PONTE_X, RIO_Y + RIO_ALTURA, 2, b.alt - RIO_Y - RIO_ALTURA, CH.TERRA);   // (T3) a trilha continua até a borda de baixo: a saída da serra
   // O rio, com a ponte (chão de tábuas por cima da água, andável).
   b.agua(0, RIO_Y, PONTE_X, RIO_ALTURA, CH.RIO);
   b.agua(PONTE_X + 2, RIO_Y, b.larg - PONTE_X - 2, RIO_ALTURA, CH.RIO);
@@ -23,7 +24,7 @@ MAPAS_DEF.mata = () => {
   b.desenhaChao = ctx => { const img = spr(typeof arteDoServico === 'function' ? arteDoServico('escorar_ponte', 'objetos/pier') : 'objetos/pier'); if (img) ctx.drawImage(img, PONTE_X * TILE, (RIO_Y - 1) * TILE + 12, 2 * TILE, (RIO_ALTURA + 2) * TILE); };
   b.enfeite('objetos/cachoeira', 4, RIO_Y + 1, false);
   // Bordas de árvores (abertura na saída leste, y 11..15).
-  for (let x = 0; x <= b.larg; x += 2) { b.enfeite('objetos/arvore_mata', x, 1, false); b.enfeite('objetos/arvore_mata', x, b.alt - 1, false); }
+  for (let x = 0; x <= b.larg; x += 2) { b.enfeite('objetos/arvore_mata', x, 1, false); if (x !== PONTE_X) b.enfeite('objetos/arvore_mata', x, b.alt - 1, false); }   // (T3: embaixo, x 26–27 fica aberto para a trilha da serra)
   for (let y = 2; y < b.alt - 1; y += 2) { b.enfeite('objetos/arvore_mata', 0, y, false); if (y < 11 || y > 15) b.enfeite('objetos/arvore_mata', b.larg - 1, y, false); }
   // A clareira: cercada de árvores, com a passagem atrás do tronco caído.
   const C = MATA.CLAREIRA;
@@ -111,7 +112,8 @@ function _podeNascerNaMata(b, x, y, vizinhos) {
 // Depois de pôr: a saída, a ponte e a frente do tronco continuam ao alcance, e nenhum detrito que se alcançava ficou preso.
 function _naoFechaAMata(b, antes, depois) {
   const { PONTE_X, RIO_Y, RIO_ALTURA, TRONCO } = MATA, s = b.saidas[0];
-  if (![{ x: s.x, y: s.y + 1 }, { x: PONTE_X, y: RIO_Y + RIO_ALTURA + 1 }, { x: TRONCO.x, y: TRONCO.y + 1 }].every(p => depois.has(chaveT(p.x, p.y)))) return false;
+  // (T3) e a saída da serra, embaixo da ponte (a trilha de terra: a reposição já não põe nada nela, mas fica conferido)
+  if (![{ x: s.x, y: s.y + 1 }, { x: PONTE_X, y: RIO_Y + RIO_ALTURA + 1 }, { x: TRONCO.x, y: TRONCO.y + 1 }, { x: PONTE_X, y: 22 }].every(p => depois.has(chaveT(p.x, p.y)))) return false;
   return !b.objs.some(d => d.tipo === 'detrito' && alcancaLadrilho(antes, d.tiles[0]) && !alcancaLadrilho(depois, d.tiles[0]));
 }
 // A reposição: `cheia` enche tudo até o máximo (o mapa novo); senão, o que a manhã repõe. Devolve quantos nasceram.

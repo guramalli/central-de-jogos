@@ -161,7 +161,8 @@ function abrirMuseu() {
     caixa.innerHTML = '';
     const doados = G.mina.museu.doados, prox = MUSEU.MARCOS.find(([k]) => k > doados.length);
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px;display:flex;align-items:center;gap:10px' }, el('img', { src: urlArte('objetos/vitrine_museu'), style: 'height:42px' }), 'Museu da Vila'),
-      el('div', { class: 'rodape', style: 'text-align:left' }, `${doados.length} de 14 peças.` + (prox ? ` Com ${prox[0]}, um prêmio.` : ' O museu está completo!')));
+      // (T6 da mata) o total sai das listas: o crucifixo de prata da loca (serra_jogo.js) é a 15ª peça; completo só com todas
+      el('div', { class: 'rodape', style: 'text-align:left' }, `${doados.length} de ${MUSEU.ANTIGOS.length + MUSEU.RAROS.length} peças.` + (prox ? ` Com ${prox[0]}, um prêmio.` : doados.length >= MUSEU.ANTIGOS.length + MUSEU.RAROS.length ? ' O museu está completo!' : '')));
     const grade = el('div', { class: 'orel-grade' });
     for (const id of MUSEU.ANTIGOS.concat(MUSEU.RAROS)) {
       const tem = doados.includes(id), pode = !tem && G.mochila.total(id) > 0;

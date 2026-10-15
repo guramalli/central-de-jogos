@@ -104,6 +104,10 @@ function agoraFamilia(avisos = []) {
   if (G.empreitas && tardeLivre() !== 'noite' && !(G.minutos >= TARDE_FIM && jantaPorFazer())) for (const cid of Object.keys(G.empreitas.aceitas)) { const E = dadosEmpreita(cid), a = G.empreitas.aceitas[cid];
     if (E && E.mapa !== G.mapaId && !(typeof E.familia === 'string' && a.estado === 'reservada') && !(typeof casaSemDinheiro === 'function' && casaSemDinheiro(E, a))) return `O serviço aceito: ${E.nome} (${typeof ondeFica === 'function' ? ondeFica(E.mapa) : E.mapa})`;   // (tarefa 7: a etapa da casa sem o dinheiro dela não é "o serviço aceito")
     if (E && E.mapa === G.mapaId && E.tipo === 'curta') return `O serviço aceito, aqui mesmo: ${E.nome} (a seta mostra onde)`; }
+  // (16/10, o gasto por prato) O cardápio da janta de hoje pede o que a despensa não tem: a Mercearia (a seta vai junto, guia_setas.js).
+  // (rodada 1) Só quando a seta é a da Mercearia (ou não há seta): o Mostrar da Caderneta, as missões e os serviços vêm antes, nos dois.
+  { const cj = typeof compraDaJanta === 'function' ? compraDaJanta() : null, sj = cj && typeof setaAgora === 'function' ? setaAgora() : null;
+    if (cj && (!sj || sj.missao === 'mercearia')) return cj.texto; }
   if (avisos.length) return avisos[0].texto;
   // (13/10) Dia vazio: uma sugestão só, com o porquê (a seta é a linha 'ideia_dia', ver Caderneta.linha mais abaixo). Na tarde livre
   // (teste de 13/10: o serviço do dia feito, o quadro vazio), ela diz como ganhar dinheiro até o fim da tarde, ou de dormir.
@@ -321,9 +325,9 @@ function rendimentoNaPanela(chave, n) {
   const p = G.pensao; if (!pensaoAberta() || !G.mochila) return null;
   let melhor = null;
   for (const prato of p.receitas) {
-    const P = Pratos.PRATOS[prato], q = P && P.porcao[chave]; if (!q) continue;
+    const P = Pratos.PRATOS[prato], g = P && p.gasto(prato), q = g && g[chave]; if (!q) continue;   // (16/10) o gasto da panela (Pensao.gasto)
     const panelas = Math.floor(n / q), porcoes = panelas * p.porcoesPorPanela(prato);
-    const falta = Object.keys(P.porcao).filter(k => k !== chave && p._tem(k) + naMochilaDaPanela(k) < P.porcao[k] * Math.max(1, panelas));
+    const falta = Object.keys(g).filter(k => k !== chave && p._tem(k) + naMochilaDaPanela(k) < g[k] * Math.max(1, panelas));
     if (!melhor || porcoes > melhor.porcoes || (porcoes === melhor.porcoes && (falta.length < melhor.falta.length || (falta.length === melhor.falta.length && q < melhor.q)))) melhor = { prato, q, panelas, porcoes, falta };
   }
   return melhor;
@@ -344,9 +348,9 @@ function melhorRendimento(ids) {
 // Na dica da pesca: quanto cada peixe rende ('' com a pensão fechada).
 function rendimentoDoPeixe() {
   const r = rendimentoNaPanela('peixe', Math.max(1, G.mochila ? naMochilaDaPanela('peixe') : 0)); if (!r) return '';
-  const P = Pratos.PRATOS[r.prato], outros = Object.keys(P.porcao).filter(k => k !== 'peixe');
-  const falta = outros.filter(k => G.pensao._tem(k) < P.porcao[k]);
-  return `; cada ${r.q === 1 ? 'peixe' : r.q + ' peixes'}${outros.length ? ' com ' + outros.map(nomeNaPanela).join(' e ') : ''} é 1 panela de ${P.nome} = ${G.pensao.porcoesPorPanela(r.prato)} porções${faltaNaPanela(falta)}`;
+  const P = Pratos.PRATOS[r.prato], g = G.pensao.gasto(r.prato), outros = Object.keys(g).filter(k => k !== 'peixe');
+  const falta = outros.filter(k => G.pensao._tem(k) < g[k]);
+  return `; cada ${r.q === 1 ? 'peixe' : r.q + ' peixes'}${outros.length ? ' com ' + outros.map(k => `${g[k]} de ${nomeNaPanela(k)}`).join(' e ') : ''} é 1 panela de ${P.nome} = ${G.pensao.porcoesPorPanela(r.prato)} porções${faltaNaPanela(falta)}`;
 }
 const pescaNova = () => !!(G.lugares && G.lugares.praia && G.hab && G.hab.xp && (G.hab.xp.pesca || 0) < Habilidades.NIVEIS[0] && G.mochila && G.mochila.total('vara') > 0);
 // Depois das 17h, sem nada a fazer: dormir na cama de casa encerra o dia (a seta: o quintal, a porta de casa, a cama).

@@ -4,7 +4,7 @@
 // ala pronta muda a Vila a partir da manhã seguinte. Regras puras e save; o prédio, a lista e a marquinha: gremio_tela.js.
 const GREMIO_ALAS = [
   { id: 'cozinha', de: 'da Cozinha', nome: 'Cozinha', pacotes: ['verduras_outono', 'roca', 'tempo_quente'], efeito: 'Horta coberta: o canteiro do Tio Juca aceita semente fora da estação.' },
-  { id: 'varanda', de: 'da Varanda', nome: 'Varanda', pacotes: ['frutas_mata', 'chao_mata', 'beira_mar'], efeito: 'A mata e a praia dão o dobro de achados por dia.' },
+  { id: 'varanda', de: 'da Varanda', nome: 'Varanda', pacotes: ['frutas_mata', 'chao_mata', 'beira_mar'], efeito: 'A mata, a serra e a praia dão o dobro de achados por dia.' },
   { id: 'aquario', de: 'do Aquário', nome: 'Aquário', pacotes: ['mar_dia', 'rio_mata', 'graudo'], efeito: 'Um covo de presente e a vara boa pela metade do preço na banca.' },
   { id: 'deposito', de: 'do Depósito', nome: 'Depósito', pacotes: ['fundacao', 'paredes', 'acabamento'], efeito: 'Uma betoneira de presente e 10% de desconto no depósito do Ananias.' },
   { id: 'oficina', de: 'da Oficina', nome: 'Oficina', pacotes: ['ferro', 'pedreira_funda', 'pedra_boa'], efeito: 'O Seu Tonico entrega a ferramenta em 1 dia e funde as barras pela metade do preço.' },
@@ -62,7 +62,7 @@ const Gremio = {
     return { r: 'ala', deu, premio, ala: ala.id };
   },
   // Os efeitos das alas prontas (valem da manhã seguinte), lidos pelos sistemas.
-  fatorAchados(mapaId) { return Gremio.ativo('varanda') && (mapaId === 'mata' || mapaId === 'praia') ? ECO.gremio.efeitos.achados : 1; },
+  fatorAchados(mapaId) { return Gremio.ativo('varanda') && ['mata', 'serra', 'praia'].includes(mapaId) ? ECO.gremio.efeitos.achados : 1; },   // (T5 da mata: a serra também)
   descontoDeposito() { return Gremio.ativo('deposito') ? ECO.gremio.efeitos.deposito : 1; },
   diasTonico(padrao) { return Gremio.ativo('oficina') ? ECO.gremio.efeitos.diasTonico : padrao; },
   fatorFundir() { return Gremio.ativo('oficina') ? ECO.gremio.efeitos.fundir : 1; },

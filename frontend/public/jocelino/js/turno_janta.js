@@ -309,7 +309,7 @@ class TurnoJanta {
       // montou). O cliente especial pede o prato dele: da panela, ou a Rosa faz à parte com a despensa (a cena do VIP no Dave).
       // Sem nenhum prato, o prato da casa (o Norimaki).
       if (m.cliente.prato) {
-        if (p.porcoes(m.cliente.prato) <= 0 && p.rende(m.cliente.prato) <= 0) return this._vipFaltou(i);
+        if (p.porcoes(m.cliente.prato) <= 0 && p.rende(m.cliente.prato, 1) <= 0) return this._vipFaltou(i);   // (à parte: um prato só)
         m.prato = m.cliente.prato;
       } else {
         const menu = p.pratosDaNoite(), quer = m.cliente.favorito || m.cliente.pedeTema;
@@ -318,7 +318,7 @@ class TurnoJanta {
       }
     } else {
       // O salão antigo: o cardápio do quadro de giz que rende, a porção sai da despensa; sem nada, só um cafezinho.
-      const disp = id => p.rende(id) > 0;
+      const disp = id => p.rende(id, 1) > 0;
       if (m.cliente.prato && !disp(m.cliente.prato)) return this._vipFaltou(i);
       let opcoes = m.cliente.prato ? [m.cliente.prato] : p.cardapioDaNoite();
       const quer = m.cliente.favorito || m.cliente.pedeTema;
@@ -343,7 +343,7 @@ class TurnoJanta {
     const sorteio = this._rng.randi(), lista = bebidas.filter(b => b !== 'caipirinha' || !bebidas.includes('cerveja'));
     m.bebida = lista[sorteio % lista.length];
     if (m.bebida === 'cerveja' && bebidas.includes('caipirinha') && Math.floor(sorteio / lista.length) % 2) m.bebida = 'caipirinha';
-    m.raridade = balcao ? this._tirarPorcao(m.prato) : p.consumir(m.prato, this._rng);
+    m.raridade = balcao ? this._tirarPorcao(m.prato) : p.consumir(m.prato, this._rng, 1);
     m.querBebida = this._rng.randf() < (this._ultima ? TurnoJanta.BEBIDA_ULTIMA : 0.5); m.bebidaServida = false;
     m.rapido = m.modo === 'antigo' ? m.espera < TurnoJanta.PACIENCIA_PEDIDO / 2 : true;
     m.estado = 'prato'; m.espera = 0; m.preparo = TurnoJanta.PREPARO; m.pronto = false; m.montado = false;
@@ -364,7 +364,7 @@ class TurnoJanta {
   _tirarPorcao(prato) {
     const p = this.pensao;
     if (prato === Pensao.CASA) return 1;
-    if (p.porcoes(prato) <= 0) return p.consumir(prato, this._rng);
+    if (p.porcoes(prato) <= 0) return p.consumir(prato, this._rng, 1);
     const rar = p.servirPorcao(prato);
     this._seAcabou(prato);
     return rar;

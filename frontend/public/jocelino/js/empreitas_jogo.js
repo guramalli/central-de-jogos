@@ -67,7 +67,7 @@ function arteDoServico(id, normal) {
 function entregaNoObjeto(id) {
   const E = EMPREITAS_CURTAS[id]; if (!G.empreitas || !G.empreitas.aceitas[id]) return false;
   const falta = Object.entries(E.material).filter(([m, q]) => G.mochila.total(m) < q);
-  if (falta.length) { avisar(`${E.nome}: traga ${falta.map(([m, q]) => Itens.qtd(q - G.mochila.total(m), m)).join(', ')}${typeof LOJA !== 'undefined' && falta.every(([m]) => LOJA.PRECOS[m] !== undefined) ? ' (o depósito do Seu Ananias vende)' : ''}.`); return false; }
+  if (falta.length) { avisar(`${E.nome}: traga ${falta.map(([m, q]) => Itens.qtd(q - G.mochila.total(m), m)).join(', ')}${typeof LOJA !== 'undefined' && falta.every(([m]) => LOJA.PRECOS[m] !== undefined) ? ' (o depósito do Seu Ananias vende)' : ''}.${falta.some(([m]) => m === 'lajota') ? ' ' + ONDE_LAJOTA : ''}`); return false; }
   golpeEmpreita(id, E.ferramenta); return true;
 }
 if (typeof LUZES !== 'undefined') LUZES['objetos/casa_juca_telhado'] = LUZES['objetos/casa_juca'];   // (o mesmo quadro da casa de sempre)
@@ -194,6 +194,7 @@ function poeEmpreitasNoMapa(b) {
       }
     }
   }
+  if (typeof poeGalinheiro === 'function') poeGalinheiro(b);   // (16/10) a cerca do Tio Juca pronta é o galinheiro inteiro (quintal_coisas.js)
   brotarCapina(b);
   if (typeof poeBairro === 'function' && b.id === 'bairro') poeBairro(b);
 }
@@ -228,7 +229,7 @@ function golpeEmpreita(id, ferr) {
   if (r === 'concreto') { avisar('Chovendo, o concreto não pega. Hoje a obra espera.'); return; }
   if (r === 'pintura') { avisar('Com chuva não dá para pintar.'); return; }
   if (r === 'manta') { avisar(`Hoje a ${Itens.nome(a.cura).toLowerCase()} faz o serviço sozinha: à noite o dia avança.`); return; }
-  if (r === 'material') avisar(TEXTO_RESULTADO.material + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + '.');
+  if (r === 'material') avisar(TEXTO_RESULTADO.material + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + '.' + (E.material.lajota && G.mochila.total('lajota') < E.material.lajota ? ' ' + ONDE_LAJOTA : ''));
   else if (r === 'ferramenta') {
     const pede = E.tipo === 'longa' ? Empreitas.ferramentaHoje(id) : E.ferramenta;
     avisar(G.ferreiro && G.ferreiro.oficina && G.ferreiro.oficina.id === pede ? `Isso pede ${NOME_FERRAMENTA[pede]}, que está com o Seu Tonico na ferraria.`
@@ -306,10 +307,15 @@ function abrirQuadro(aba = 'servicos') {
     const tab = (id, txt) => el('button', { class: 'botao' + (aba === id ? ' forte' : ''), onclick: e => { e.stopPropagation(); aba = id; desenha(); } }, txt);
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Quadro de pedidos da Vila'), el('div', { class: 'qv-abas' }, tab('servicos', 'Serviços'), tab('pensao', 'Pensão')));
     if (aba === 'pensao') {
-      const p = G.pensao, ps = ((p && p.agenda) || []).filter(e => e.tipo === 'pedido' && !e.fim);
-      caixa.append(el('div', { class: 'qv-lista' }, ...(p && p.estado === 'aberta' ? (ps.length ? ps.map(e => el('div', { class: 'orel-item' }, el('img', { src: urlArte(iconePratoGrande(e.prato)) }),
-        el('div', {}, el('b', {}, `${e.quem} quer ${e.qtd} ${Pratos.PRATOS[e.prato].nome}`), el('div', { class: 'orel-preco' }, `até ${DIAS[(e.ate - 1) % 7]} (${e.feito}/${e.qtd}) · Cr$ ${e.premio}`))))
-        : [el('div', { class: 'rodape' }, 'Nenhum pedido para a pensão agora.')]) : [el('div', { class: 'rodape' }, 'Quando a pensão abrir, o povo deixa encomenda aqui.')])));
+      // (16/10, E2 das encomendas de festa) A festa que um morador marcou na pensão: quem, a ocasião, o prato, a turma e a noite (no
+      // lugar dos antigos pedidos da Vila com prazo). Só informa: a Rosa já disse sim, não há o que aceitar.
+      const p = G.pensao, e = typeof Encomendas !== 'undefined' && p ? Encomendas.aberta(p, G.dia) : null;
+      const quando = e && (e.dia === G.dia ? 'hoje à noite' : e.dia === G.dia + 1 ? 'amanhã à noite' : `${(e.dia - 1) % 7 >= 5 ? 'no' : 'na'} ${DIAS[(e.dia - 1) % 7]} à noite`);
+      const o = e && Encomendas.ocasiao(e.quem, e.ocasiao);
+      caixa.append(el('div', { class: 'qv-lista' }, ...(p && p.estado === 'aberta' ? (e ? [el('div', { class: 'orel-item qv-festa' }, el('img', { src: urlArte(iconePratoGrande(e.prato)) }),
+        el('div', {}, el('b', {}, `${Encomendas.nome(e.quem)}: ${o ? o.nome : 'a festa'}`), o && o.convite ? el('div', { class: 'recado-fala' }, `"${o.convite}"`) : null,
+          el('div', { class: 'orel-preco' }, `${quando} · a turma de ${e.turma} · ${Pratos.PRATOS[e.prato].nome}`)))]
+        : [el('div', { class: 'rodape' }, 'Nenhuma festa marcada. Quando alguém encomendar, a Rosa avisa.')]) : [el('div', { class: 'rodape' }, 'Quando a pensão abrir, o povo da Vila marca as festas com a Rosa.')])));
     } else {
       const ids = G.empreitas.quadro, aceitas = Object.keys(G.empreitas.aceitas);
       const linha = (id, botao) => { const E = dadosEmpreita(id); return el('div', { class: 'orel-item' }, el('img', { src: urlItem(E.ferramenta === 'carga' ? 'telha' : E.ferramenta) }),

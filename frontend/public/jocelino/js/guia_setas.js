@@ -244,7 +244,19 @@ function faltaDaEmpreita(cid) {
   return null;
 }
 const _SOLTA = { madeira: ['galho', 'toco', 'arvore'], pedra: ['pedra', 'pedregulho'] };
+// (16/10, o jogador: "só precisava me orientar no jogo que eu precisaria de uma betoneira... comprada na ferraria") A lajota sai
+// da betoneira: com ela no quintal, a seta vai nela; na mochila, manda colocar; sem betoneira, leva ao Seu Tonico, na pedreira.
+// (Quem já faz no Fabricar, Acabamento 4, não precisa de seta: o Fabricar está na mão.)
+function _alvoDaLajota(f, cid) {
+  if (typeof Fabricar !== 'undefined' && Fabricar.conhecida('lajota')) return null;
+  const c = G.horta && (G.horta.colocados || []).find(x => x.id === 'betoneira');
+  if (c) return { mapa: 'quintal', ponto: { x: c.x * TILE + TILE / 2, y: c.y * TILE - 30 }, falta: f, empreita: cid, buscar: true,
+    rotuloFixo: 'A betoneira: com cimento na mão e pigmento na mochila, ela faz a lajota colorida em 1 dia' };
+  if (G.mochila && G.mochila.total('betoneira') > 0) return { mapa: 'quintal', falta: f, empreita: cid, buscar: true, rotuloFixo: 'Coloque a betoneira no quintal: é nela que se faz a lajota colorida' };
+  return { mapa: 'pedreira', morador: 'tonico', falta: f, empreita: cid, buscar: true, rotuloFixo: 'A lajota colorida sai da betoneira: o Seu Tonico faz uma na ferraria' };
+}
 function _alvoDoMaterial(f, cid) {
+  if (f.item === 'lajota') return _alvoDaLajota(f, cid);
   if (LOJA.PRECOS[f.item] !== undefined) return { mapa: 'vila', objeto: 'deposito', falta: f, empreita: cid, buscar: true };
   const dets = _SOLTA[f.item]; if (!dets) return null;
   const o = _maisPerto(x => dets.includes(x.det));
@@ -418,6 +430,14 @@ function guiaSetaMundo() {
   // missão com alvo na Vila (a pensão, o Grêmio, o Bazar) tomava a seta. Agora o serviço aceito que é de hoje (o curto, que
   // passa de um dia para o outro até ser feito; a obra longa com trabalho hoje ou pronta) vem antes das missões e da
   // caderneta (sugestões); a primeira vez de cada coisa, a janta e o domingo do dia e a obra do Bira seguem na frente.
+  // (T3 da mata) A 1ª vez na Mata da Serra: a pinguela e o caminho até a Cachoeira Grande (só lá dentro; de noite, a janta manda).
+  if (!_horaDaJanta()) cands.push(['serra_vez', () => typeof alvoDaSerra === 'function' ? alvoDaSerra() : null]);
+  // (T5 da mata) O 1º achado da serra: depois da seta da pinguela e da cachoeira (achados.js; some no 1º catado lá).
+  if (!_horaDaJanta()) cands.push(['serra_achado', () => typeof alvoDoAchadoDaSerra === 'function' ? alvoDoAchadoDaSerra() : null]);
+  // (T4 da mata) A 1ª pescaria na serra: com a vara na mochila, o poço da Cachoeira Grande (pesca_jogo.js; some na 1ª boia no poço).
+  if (!_horaDaJanta()) cands.push(['serra_pesca', () => typeof alvoDaPescaDaSerra === 'function' ? alvoDaPescaDaSerra() : null]);
+  // (T6 da mata) O Nhô Quim (serra_jogo.js): conhecê-lo, entregar os 5 cipós, descer na loca com a escada dele, doar o crucifixo.
+  if (!_horaDaJanta()) cands.push(['serra_mateiro', () => typeof alvoDoMateiro === 'function' ? alvoDoMateiro() : null]);
   const missoes = G.guia && G.guia.ativo ? _missoesDaSeta() : [], doDia = id => id === 'janta' || id === 'domingo';
   for (const id of missoes.filter(doDia)) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);
@@ -438,6 +458,10 @@ function guiaSetaMundo() {
   for (const id of missoes.filter(x => !doDia(x))) cands.push([id, () => _alvoDaMissao(id)]);
   if (cad && (!cadRecado || _depoisDas17())) cands.push(cad);   // (depois das 17h, a janta manda: o recado volta para o fim)
   for (const cid of servicos.filter(x => !deHoje.includes(x))) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
+  // (16/10, o gasto por prato; rodada 1) O cardápio guardado da janta de hoje pede o que a despensa não tem: a Mercearia do Ananias (até
+  // as 17h). Por último, na ordem do Agora (agoraFamilia, cartao.js): depois do Mostrar da Caderneta, das missões do guia e dos serviços.
+  cands.push(['mercearia', () => { const c = typeof compraDaJanta === 'function' ? compraDaJanta() : null;
+    return c && { mapa: 'vila', objeto: 'deposito', falta: { item: c.item, n: c.n }, mercearia: true, rotuloFixo: c.rotulo }; }]);
   // (13/10) Primeiro o que dá para fazer no mapa onde o Jocelino está; só depois o caminho para outro lugar.
   const res = [];
   for (const [id, f] of cands) {
@@ -455,6 +479,8 @@ function guiaSetaMundo() {
   // no quintal, sem nenhuma outra seta, aponta a plaquinha e diz quanto falta. Só no fim: na frente das outras, a seta ficava
   // presa na plaquinha e o que dava para fazer em outro mapa sumia (o robô jogador indo e voltando entre o quintal e a Vila).
   { const c = _alvoDaCasaSemDinheiro(); if (c) { const o = Object.assign({ tipo: 'alvo' }, c); const p = _posNoMapa(o); if (p) { Object.assign(o, p); o.rotulo = c.rotuloFixo; return o; } } }
+  // (T3 da mata) A serra aberta e nunca visitada: na mata, sem outra seta, a saída de baixo (mapa_serra.js).
+  { const m = typeof alvoDaSerraNaMata === 'function' ? alvoDaSerraNaMata() : null; if (m) { const o = Object.assign({ tipo: 'alvo', missao: 'serra_mata' }, m, m.ponto); o.rotulo = _rotulo(o); return o; } }
   // (14/10) A primeira árvore de corte da mata (mapa_mata.js): sem outra seta, a mais perto, com a frase, até a primeira cair.
   { const m = typeof alvoDaArvoreDaMata === 'function' ? alvoDaArvoreDaMata() : null; if (m) { const o = Object.assign({ tipo: 'alvo', missao: 'mata_arvore' }, m, m.ponto); o.rotulo = _rotulo(o); return o; } }
   // (dia cheio, Frente A) A primeira coleta: sem nenhuma outra seta, o achado mais perto (uma vez: some depois de catar o primeiro).
@@ -591,6 +617,12 @@ const PRIMEIRA_TELA = {
       if (G.guia.abertas.includes('bico') && !Object.keys(G.empreitas.aceitas).some(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta')) return null;
       _recadoVisto = true;
       return { el: bts[0], frase: 'Recado de vizinho: leve o que pedem até o prazo. Paga na entrega e a pessoa fica mais sua amiga.' }; } },
+  // - (15/10, T5 da mata) A 1ª corda -> Stardew (a receita nova aparece no menu de Crafting e o item mostra o que pede): com a corda
+  //   aprendida (o Nhô Quim ensina), a seta no Fazer dela. Some na 1ª corda feita (fabricar.js marca G.limpou.tela_corda).
+  corda: { painel: '#modal .fabricar', sel: '#modal .fabricar [data-receita="corda"] button', usou: () => false,
+    escolhe: bts => bts[0] && { el: bts[0], lado: 'esquerda', frase: G.mochila.total('cipo') >= 3
+      ? 'Corda: 3 cipós da serra trançados dão 1 corda. Ela serve no poço do sítio e na escada de corda. Clique em Fazer.'
+      : `Corda: precisa de 3 cipós (tem ${G.mochila.total('cipo')}). O cipó nasce no chão da Mata da Serra; com 3 na mochila, clique em Fazer.` } },
 };
 let _recadoVisto = false;
 const jaFezTela = id => ((G.limpou || {})['tela_' + id] || 0) > 0 || _tenta(PRIMEIRA_TELA[id].usou);

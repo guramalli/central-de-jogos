@@ -11,7 +11,7 @@
 //   repete em 7 dias, e o que está há mais tempo sem aparecer pesa mais;
 // - prazo de 2 dias (o dia em que aceitou e o seguinte); vencido, some sem multa; até 2 recados aceitos de uma vez;
 // - a entrega é direto da mochila (decisão do dono, 15/10: botão direito no morador, "Entregar 3 couves?"): paga na hora o
-//   valor do ECO e dá +1 de amizade (a Lábia vale); a coleta só conta o que entrar na mochila depois de aceitar;
+//   valor do ECO e dá +50 de amizade (amizade.js; a Lábia vale); a coleta só conta o que entrar na mochila depois de aceitar;
 // - o recado NÃO conta para a Fala da Vila nem para a carreira (decisão do dono, 15/10): só dinheiro e amizade.
 // Campos: tipo ('entrega' | 'coleta'), cliente, item, qtd, fala (o pedido, na voz da pessoa), obrigado, deixa (o recado vencido, sem
 // bronca, para o resumo da noite), estacoes (0 Outono, 1 Inverno, 2 Primavera, 3 Verão), mapas (de onde vem o item), diaMin e,
@@ -289,9 +289,8 @@ const Recados = {
     let resta = P.qtd - mochila.remover(P.item, P.qtd);
     if (resta > 0 && mochila.mao && mochila.mao.id === P.item) { const t = Math.min(resta, mochila.mao.qtd); mochila.mao.qtd -= t; resta -= t; if (mochila.mao.qtd <= 0) mochila.mao = null; }
     const v = Recados.paga(id); G.dinheiro += v; G.ganhoHoje = (G.ganhoHoje || 0) + v;
-    if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), [P.cliente]);
-    // Lábia: a amizade sobe 50% mais rápido (um coração a mais a cada duas entregas, contando serviços e recados juntos).
-    if (typeof Habilidades !== 'undefined' && Habilidades.tem('labia') && G.empreitas) { G.empreitas.labia = (G.empreitas.labia || 0) + 1; if (G.empreitas.labia % 2 === 0 && typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade, [P.cliente]); }
+    // +50 de amizade com quem pediu (a família não tem número; a Lábia, 50% a mais, vale dentro do Amizade.ganhar)
+    if (typeof Amizade !== 'undefined') Amizade.ganhar(P.cliente, 'recado', 'recado');
     delete R.ativos[id]; R.entregues++;
     return 'ok';
   },

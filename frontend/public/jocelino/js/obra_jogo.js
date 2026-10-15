@@ -268,9 +268,7 @@ function conversarZe(p) {
     const r = Obra.trabalho('massa', 1);
     if (r !== 'nao_pede' && r !== 'sem_lista') { largarCarga(); sons.tocar('pousar', 0.9, 0.05, -4); avisar(r === 'completa' ? 'Zé: "Valeu! Massa no ponto. Lista completa, fala com o Bira."' : 'Zé: "Isso! Massa boa é igual feijão: nem mole, nem dura."'); return true; }   // (15/10, o jogador: sem a janela de conversa a cada massa; só o aviso no canto)
   }
-  const f = FALAS.ze, lista = typeof f === 'function' ? f() : f;
-  abrirConversa('Zé', urlArte('retratos/ze_normal'), lista);
-  return true;
+  return Conversas.abrir(p || 'ze', { nome: 'Zé' });   // (T2 das conversas) a fala do dia, pelo motor de falas
 }
 // O entulho e o mato do canteiro da vez renascem toda manhã, na conta da lista do dia: a de hoje (o que ainda falta) ou a que o
 // Bira vai dar (o sorteio é fixo pelo dia), mais 2 de folga; o que a lista não pede fica em 2, de enfeite. (tarefa 7, o robô

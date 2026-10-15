@@ -25,7 +25,8 @@ function pedirDormir() {
   return true;
 }
 
-// (15/10) A amizade de manhã (para o cartão "Amizade" do resumo dizer quem subiu no dia).
+// (15/10) A amizade de manhã (para o cartão "Amizade" do resumo dizer quem subiu no dia). (T1) amizade.js carrega antes deste
+// arquivo: o INICIADOR dele (a migração do save antigo) roda antes desta foto.
 let _amizadeDaManha = null;
 INICIADORES.push(() => { _amizadeDaManha = Object.assign({}, G.amizade || {}); });
 MANHA.push(() => { _amizadeDaManha = Object.assign({}, G.amizade || {}); });
@@ -137,8 +138,10 @@ function dadosDoResumo(antes, linhas) {
     if (p && p.historico) { const h = p.historico.find(x => x.dia === G.dia);
       if (h) d.pensao = { h, antes: p.historico[p.historico.indexOf(h) - 1] || null, r: typeof _noiteDoFechamento !== 'undefined' && _noiteDoFechamento && _noiteDoFechamento.dia === G.dia ? _noiteDoFechamento.r : null }; }
     // a amizade que subiu hoje
-    const am0 = antes.amizade || {}, am = G.amizade || {};
-    for (const id in am) if ((am[id] || 0) > (am0[id] || 0)) d.amigos.push({ id, mais: am[id] - (am0[id] || 0) });
+    // (T1 das conversas) em pontos (100 = 1 coração), só o povo da Vila: a família não tem número e não entra no cartão
+    const am0 = antes.amizade || {}, am = G.amizade || {}, P = typeof Amizade !== 'undefined' ? Amizade.POR_CORACAO : 100;
+    for (const id in am) if ((am[id] || 0) > (am0[id] || 0) && (typeof Amizade === 'undefined' || Amizade.daVila(id)))
+      d.amigos.push({ id, mais: am[id] - (am0[id] || 0), coracoes: Math.floor(am[id] / P), coracao: Math.floor(am[id] / P) > Math.floor((am0[id] || 0) / P) });
     d.amigos.sort((a, b) => b.mais - a.mais);
     return d;
   } catch (e) { console.error(e); return null; }
@@ -156,7 +159,6 @@ function amanhaDoResumo() {
       if (c.concurso) a.itens.push({ img: urlArte('ui/trofeu_concurso'), texto: `O Concurso da Rádio: ${c.concurso.tema}.`, ouro: true });
       if (c.viajante) a.itens.push({ img: urlArte('ui/caixa_encomenda_ui'), texto: 'O Viajante da Capital passa na praça.' });
       if (c.moradores.length) a.itens.push({ img: urlArte('ui/caixa_registradora'), texto: `Janta: ${c.moradores.map(m => m.nome).join(' e ')} ${c.moradores.length === 1 ? 'vem' : 'vêm'} jantar.` });
-      for (const x of c.pedidos) a.itens.push({ img: urlArte(iconePrato(x.prato)), texto: `Última noite do pedido de ${x.quem}: ${x.qtd} ${nome(x.prato)} (${x.feito || 0} feitos).` });
     }
   }
   if (G.recados && G.recados.ativos && typeof Recados !== 'undefined')
@@ -165,6 +167,7 @@ function amanhaDoResumo() {
 }
 // O nome e o retrato de quem a amizade subiu.
 function nomeDeAmigo(id) {
+  if (typeof Amizade !== 'undefined') return Amizade.nome(id);
   const fam = { rosa: 'Rosa', ritinha: 'Ritinha', zezinho: 'Zezinho', juca: 'Tio Juca' };
   const c = typeof Clientela !== 'undefined' && Clientela.dado(id);
   return fam[id] || (c && c.nome) || (typeof CLIENTE_NOME !== 'undefined' && CLIENTE_NOME[id]) || (typeof RECADO_NOME !== 'undefined' && RECADO_NOME[id]) || (id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, ' '));
@@ -212,7 +215,7 @@ function cartoesDoResumo(linhas, d) {
   }
   if (d.amigos && d.amigos.length) C.push({ id: 'amizade', titulo: 'A amizade', icone: urlArte('fx/coracao'), linhas: [],
     corpo: [el('div', { class: 'rd-amigos' }, ...d.amigos.slice(0, 5).map(a => el('span', { class: 'rd-amigo', title: nomeDeAmigo(a.id) }, el('img', { src: retratoDeAmigo(a.id), alt: '' }), `+${a.mais}`)))],
-    extra: el('div', { class: 'rd-lista' }, ...d.amigos.map(a => el('div', { class: 'rd-item' }, el('img', { src: retratoDeAmigo(a.id), alt: '' }), el('span', {}, nomeDeAmigo(a.id)), el('b', {}, `+${a.mais} de amizade`)))) });
+    extra: el('div', { class: 'rd-lista' }, ...d.amigos.map(a => el('div', { class: 'rd-item' }, el('img', { src: retratoDeAmigo(a.id), alt: '' }), el('span', {}, nomeDeAmigo(a.id)), el('b', {}, `+${a.mais} de amizade` + (a.coracao ? ` (${a.coracoes}º coração!)` : ''))))) });
   if (por.casa) C.push({ id: 'casa', titulo: 'A casa e o quintal', icone: urlItem('regadorzinho'), linhas: por.casa });
   if (por.niveis) { const h = Object.keys(typeof NOMES_HAB !== 'undefined' ? NOMES_HAB : {}).find(k => por.niveis.some(l => l.startsWith(NOMES_HAB[k])));
     C.push({ id: 'niveis', titulo: 'As habilidades', icone: urlItem('hab_' + (h || 'negocio')), linhas: por.niveis }); }
@@ -238,10 +241,11 @@ function mostrarResumo(titulo, linhas, depois, dados) {
   const VISIVEIS = 3;
   const abre = c => {
     pular(); detalhe.innerHTML = '';
-    detalhe.append(el('div', { class: 'rd-det-topo' }, el('img', { src: c.icone, alt: '' }), el('div', { class: 'titulo' }, c.titulo)),
+    // (T1: sem o .filter, o cartão sem linhas, como "A amizade", escrevia "null" no detalhe)
+    detalhe.append(...[el('div', { class: 'rd-det-topo' }, el('img', { src: c.icone, alt: '' }), el('div', { class: 'titulo' }, c.titulo)),
       ...(c.corpo || []).filter(Boolean).map(n => n.cloneNode(true)), c.extra ? c.extra.cloneNode(true) : null,
       c.linhas.length ? el('div', { class: 'rd-linhas' }, ...c.linhas.map(l => el('div', { class: l.startsWith('   ') ? 'rd-sub' : '' }, l.trim()))) : null,
-      el('div', { class: 'rd-det-pe' }, c.fechamento ? botaoFechamento(c) : null, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fechaDetalhe(); } }, 'Voltar')));
+      el('div', { class: 'rd-det-pe' }, c.fechamento ? botaoFechamento(c) : null, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fechaDetalhe(); } }, 'Voltar'))].filter(Boolean));
     detalhe.querySelectorAll('[data-conta]').forEach(b => { b.textContent = b.dataset.conta; });
     grade.hidden = true; detalhe.hidden = false; sons.tocar('abrir', 1.1, 0.03, -8);
   };

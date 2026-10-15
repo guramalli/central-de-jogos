@@ -8,6 +8,9 @@ const RECEITAS_FABRICAR = {
   acelerador: { custo: { cimento: 2, cal: 1 }, da: 1 },
   // (15/10, T4) as receitas novas dos níveis (Fôlego, Alvenaria e Acabamento); o baú custa o mesmo que o Tio Juca cobra
   bau: { custo: { madeira: ECO.quintal.bau }, da: 1 },
+  // (15/10, T5 da mata) A corda: 3 cipós da serra dão 1. Nenhum nível dá: o Nhô Quim ensina (T6 põe em G.empreitas.receitasExtras),
+  // como as receitas de prêmio. Como no Stardew, que ensina receita por carta e amizade. (O número fica aqui até a T17 levar ao ECO.)
+  corda: { custo: { cipo: 3 }, da: 1 },
 };
 for (const id in ECO.niveis.receitas) RECEITAS_FABRICAR[id] = { custo: Object.assign({}, ECO.niveis.receitas[id]), da: ECO.niveis.rende[id] || 1 };
 // (T4b, Roça 7) As sementes da colheita: um cartão só; o ingrediente é a colheita que o jogador escolhe (1 colheita da horta dá 2
@@ -34,6 +37,7 @@ const Fabricar = {
       const sobra = mochila.adicionar(R.sai, r.da); if (sobra && typeof soltar === 'function' && G.jog && G.mapa) soltar(R.sai, sobra, G.jog.x, G.jog.y);
       feitas++;
     }
+    if (feitas && id === 'corda' && G.limpou) G.limpou.tela_corda = (G.limpou.tela_corda || 0) + 1;   // (a 1ª corda: a seta do Fabricar some; guia_setas.js)
     return feitas ? 'ok' : motivo;
   },
   // O custo e o que sai: { custo, sai }; nas sementes da colheita, a colheita `de` e a semente dela (null: não é colheita da horta).
@@ -60,7 +64,7 @@ function cartaoSementes(desenha) {
         el('img', { src: urlItem(CULTURAS[c].semente), style: 'height:20px;vertical-align:middle' }), ' ' + Itens.nome(c))))));
 }
 function abrirFabricar() {
-  const caixa = el('div', { class: 'painel orelhao' });
+  const caixa = el('div', { class: 'painel orelhao fabricar' });
   const desenha = () => {
     caixa.innerHTML = '';
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Fabricar'),
@@ -74,12 +78,12 @@ function abrirFabricar() {
       for (const id of lista) {
         if (RECEITAS_FABRICAR[id].especial === 'sementes' && Fabricar.conhecida(id)) { grade.append(cartaoSementes(desenha)); continue; }
         const r = RECEITAS_FABRICAR[id], sabe = Fabricar.conhecida(id), custo = Object.entries(r.custo).map(([m, q]) => Itens.qtd(q, m)).join(' + ');
-        grade.append(el('div', { class: 'orel-item' + (sabe ? '' : ' trancado') }, el('img', { src: urlItem(r.icone || id), style: sabe ? '' : 'filter:brightness(0);opacity:.35' }),
+        grade.append(el('div', { class: 'orel-item' + (sabe ? '' : ' trancado'), 'data-receita': id, title: sabe ? [Itens.nome(id), Itens.descricao(id)].filter(Boolean).join(': ') : '' }, el('img', { src: urlItem(r.icone || id), style: sabe ? '' : 'filter:brightness(0);opacity:.35' }),
           el('div', {}, el('b', {}, sabe ? `${Itens.nome(id)}${r.da > 1 ? ' (' + r.da + ')' : ''}` : '???'), el('div', { class: 'orel-preco' }, sabe ? custo : `${NOMES_HAB[r.hab]} ${r.nivel}`)),
           sabe ? el('button', { class: 'botao', title: 'Shift: faz 5', onclick: e => { e.stopPropagation(); const res = Fabricar.fazer(id, G.mochila, e.shiftKey ? 5 : 1);
             if (res === 'ok') { sons.tocar('pousar', 1, 0.05, -4); avisar('+ ' + Itens.qtd(r.da, id)); hudSujo(); desenha(); } else avisar(res === 'cheia' ? 'A mochila está cheia.' : 'Falta material: ' + custo + '.'); } }, 'Fazer') : null));
       }
-      caixa.append(el('div', { class: 'nivel-secao' }, h ? NOMES_HAB[h] : 'Prêmios'), grade);
+      caixa.append(el('div', { class: 'nivel-secao' }, h ? NOMES_HAB[h] : 'Prêmios e o que ensinaram'), grade);   // (a corda, do Nhô Quim, vem aqui)
     }
     caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };

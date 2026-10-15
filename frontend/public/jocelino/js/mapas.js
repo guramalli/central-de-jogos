@@ -392,7 +392,7 @@ function desenhaRealce(ctx, o) {
 // Nomes: pequenos e meio transparentes em cima dos estabelecimentos; o do morador quando o Jocelino chega perto.
 // As placas nas saídas (teste de 12/10: o jogador não sabia onde ficava a mata nem a pedreira): cada borda do mapa diz para
 // onde leva, com a seta do lado, e "(fechada)" se o lugar ainda não abriu. As portas (dentro do mapa) não têm placa.
-const NOME_LUGAR = { vila: 'Vila', quintal: 'Quintal', mata: 'Mata', praia: 'Praia', pedreira: 'Pedreira', bairro: 'Bairro Novo' };
+const NOME_LUGAR = { vila: 'Vila', quintal: 'Quintal', mata: 'Mata', praia: 'Praia', pedreira: 'Pedreira', bairro: 'Bairro Novo', serra: 'Mata da Serra' };
 function rotulosDasSaidas(m) {
   if (!m || m.dentro || m.palco) return [];
   const r = [];
@@ -527,15 +527,14 @@ function acaoNaFrente() {
   if (typeof comerDaMao === 'function') comerDaMao();
 }
 
-// Conversa: as falas do morador (FALAS) ou uma frase de bom dia.
+// Conversa: os ganchos na frente de tudo (ANTES_DE_CONVERSAR, p.aoConversar); depois, o motor de falas (conversas.js: a tabela
+// CONVERSAS de cada morador, na ordem do Stardew). O FALAS antigo (lista, lista de conversas ou função) ainda vale para quem não
+// tem tabela; quem não tem nada diz bom dia.
 const FALAS = {};
 const ANTES_DE_CONVERSAR = [];   // ganchos que tomam a conversa (a Rosa com o lendário da pesca)
 function conversar(p) {
   p.virarPara(G.jog.x, G.jog.y);
   for (const f of ANTES_DE_CONVERSAR) if (f(p)) return;
   if (p.aoConversar) return p.aoConversar();
-  const f = FALAS[p.id];
-  const paginas = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']);
-  const lista = Array.isArray(paginas[0]) ? paginas[0] : paginas;
-  abrirConversa(p.nome, urlArte('retratos/' + p.id + '_normal'), lista, typeof FALAS_DEPOIS !== 'undefined' && FALAS_DEPOIS[p.id]);
+  Conversas.abrir(p);
 }

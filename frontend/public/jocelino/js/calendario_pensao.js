@@ -7,10 +7,9 @@
 //   o VIP e o prato dele e a festa com o prato do tema (os da agenda: entram quando a carta chega, 3 dias antes; o resto da semana
 //   ainda não tem carta, e o calendário não adivinha); o Concurso da Rádio (o último dia da estação, data fixa); o Viajante da
 //   Capital (às quintas, com a pensão no degrau dele); os moradores que jantam naquela noite (clientela.js, pelo dia da semana) e o
-//   prato de cada um; o filho que aparece (a Ritinha no caixa ou o Zezinho); os pedidos da Vila na última noite com janta até o
-//   prazo (o prazo num domingo fica no sábado); o domingo fechado.
-// Fica de fora o que é surpresa ou sorteio: o Doutor Paladar (chega disfarçado, como o crítico do Dave), os clientes de fora e os
-// pedidos que ainda não chegaram ao quadro.
+//   prato de cada um; o filho que aparece (a Ritinha no caixa ou o Zezinho); o domingo fechado.
+// Fica de fora o que é surpresa ou sorteio: o Doutor Paladar (chega disfarçado, como o crítico do Dave) e os clientes de fora.
+// (16/10, E2 das encomendas de festa) Os pedidos da Vila com prazo saíram da agenda; a festa marcada por um morador entra na E3.
 // Abre pelo botão "Calendário" do rodapé do salão (palco.js) e pelo calendário da Vila (mapa_vila.js). Primeira vez com a Rosa
 // explicando (a seta e a faixa, guia_setas.js: PRIMEIRA_TELA.calendario); some depois de fechado uma vez.
 // Regras puras em Calendario (a s44 confere); a tela em abrirCalendarioPensao(). A arte é a que já existe (a lousa, os retratos,
@@ -37,18 +36,10 @@ const Calendario = {
     e.patrimonio = aberta && p.festaDia === d;
     e.moradores = !aberta || e.fechado ? [] : (CLIENTELA[(d - 1) % 7] || []).map(c => ({ id: c.id, nome: c.nome, prato: c.prato, sabe: p.receitas.includes(c.prato) }));
     e.filho = aberta && !e.fechado ? Clientela.filhoDaNoite(d) : '';
-    // (revisão) o pedido aparece na última noite COM janta até o prazo: o prazo num domingo (sem janta) fica no sábado; só se hoje já é
-    // esse domingo ele aparece nele mesmo, avisando que não há mais janta para cumprir (na segunda ele vence)
-    e.pedidos = ag.filter(x => x.tipo === 'pedido' && !x.fim && (Calendario.ultimaNoite(x.ate) === d || (x.ate === d && e.fechado && d === hoje)))
-      .map(x => ({ quem: x.quem, prato: x.prato, qtd: x.qtd, feito: x.feito || 0, premio: x.premio, semJanta: x.ate === d && e.fechado }));
     return e;
   },
-  // A última noite com janta até o prazo do pedido (o domingo fecha: o sábado antes dele).
-  ultimaNoite: ate => Calendario.domingo(ate) ? ate - 1 : ate,
   // A semana: hoje e os 6 dias seguintes.
   semana(p, hoje) { return Array.from({ length: Calendario.DIAS }, (_, k) => Calendario.dia(p, hoje + k, hoje)); },
-  // Os pedidos da Vila com o prazo depois da semana (aparecem no pé da lousa).
-  depois(p, hoje) { return ((p && p.agenda) || []).filter(x => x.tipo === 'pedido' && !x.fim && Calendario.ultimaNoite(x.ate) >= hoje + Calendario.DIAS); },
   // Tem alguma coisa marcada (VIP ou festa) na agenda? (a seta da primeira vez no botão do rodapé espera isso)
   temEspecial(p, hoje) { return ((p && p.agenda) || []).some(x => (x.tipo === 'vip' || x.tipo === 'festa') && !x.fim && x.dia >= hoje && x.dia < hoje + Calendario.DIAS); },
 };
@@ -74,7 +65,6 @@ function _diaCal(e) {
   }
   if (e.concurso) caixa.append(_linhaCal('cal-concurso', 'ui/microfone_radio', 'Concurso da Rádio', `3 pratos; o tema: ${e.concurso.tema}`));
   if (e.viajante) caixa.append(_linhaCal('cal-viajante', 'retratos/viajante_normal', 'O Viajante', 'na praça, só hoje'));
-  for (const x of e.pedidos) caixa.append(_linhaCal('cal-pedido', 'fx/envelope', `Prazo: ${x.quem}`, `${x.qtd} ${_prato(x.prato)} (${x.feito} de ${x.qtd})${x.semJanta ? "; domingo não tem janta, vence amanhã" : ""}`));
   if (e.moradores.length) {
     caixa.append(el('div', { class: 'cal-sub' }, 'Jantam aqui'));
     for (const m of e.moradores) caixa.append(_linhaCal('cal-morador', ARTE_LISTA.includes(`retratos/${m.id}_normal`) ? `retratos/${m.id}_normal` : '', m.nome,
@@ -87,7 +77,7 @@ function _diaCal(e) {
 function abrirCalendarioPensao() {
   const p = G.pensao;
   if (!p || !['aberta', 'pronta'].includes(p.estado)) { abrirPlaca('O calendário da Vila. Quando a pensão da Rosa abrir, ela anota aqui a semana: quem vem jantar, as festas e o domingo fechado.'); return true; }
-  const sem = Calendario.semana(p, G.dia), dep = Calendario.depois(p, G.dia);
+  const sem = Calendario.semana(p, G.dia);
   const ultimo = sem[sem.length - 1];
   const lousa = el('div', { class: 'lousa calendario-pensao' },
     el('div', { class: 'giz-titulo' }, 'A semana da pensão'),
@@ -99,7 +89,6 @@ function abrirCalendarioPensao() {
     el('div', { class: 'cal-pe' },
       el('img', { class: 'giz-enfeite palmeira', src: urlArte('ui/pensao/palmeirinha_giz'), alt: '' }),
       el('div', { class: 'cal-notas' },
-        dep.length ? el('div', {}, 'Mais adiante: ' + dep.map(x => `${x.quem}, ${x.qtd} ${_prato(x.prato)} até ${DIAS[(Calendario.ultimaNoite(x.ate) - 1) % 7]}`).join('; ') + '.') : null,
         el('div', {}, 'O jantar especial e a festa entram aqui quando a carta chega, 3 dias antes. Os clientes de fora vêm sem avisar.')),
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar'),
       el('img', { class: 'giz-enfeite palmeira', src: urlArte('ui/pensao/palmeirinha_giz'), alt: '' })));

@@ -158,7 +158,7 @@ ATUALIZADORES.push(() => {
 // O posto de saúde (a clínica do Harvey): desmaiar acorda no posto pagando Cr$ 30 (ou o que tiver), em vez de perder até Cr$ 100.
 function desmaioNoPosto() { if (!G.bairro || Bairro.publico('posto') < 2) return null; const T = TERRENOS.posto; return { custo: 30, mapa: 'bairro', tile: { x: T.x + 3, y: T.y + 6 } }; }
 
-// ---------- a capela: missa no domingo de manhã (8h–10h); os moradores vão; estar na frente da capela dá +1 de amizade ----------
+// ---------- a capela: missa no domingo de manhã (8h–10h); os moradores vão; estar na frente da capela dá +10 de amizade ----------
 const naMissa = () => Bairro.publico('capela') >= 2 && (G.dia - 1) % 7 === 6 && G.minutos >= 8 * 60 && G.minutos < 10 * 60;
 ATUALIZADORES.push(() => {
   if (G.mapaId !== 'bairro' || !G.bairro || !naMissa()) return;
@@ -168,7 +168,7 @@ ATUALIZADORES.push(() => {
   if (!perto) return;
   G.bairro.missa = G.dia;
   const ids = DONOS.filter(d => G.bairro.terrenos[d.terreno].mudou).map(d => d.id);
-  if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), ids);
+  if (typeof Amizade !== 'undefined') Amizade.ganharVarios(ids, 'missa', 'missa');
   avisar('A missa na capela do Bairro Novo. Os vizinhos gostaram de ver o Jocelino lá.'); hudSujo();
 });
 // ---------- a festa de inauguração: com a padaria, o bar e a escola abertos, a Prefeitura convida ----------
@@ -187,7 +187,7 @@ const FESTA_ESCOLHAS = [['Discursar', 'O Jocelino discursou de chapéu na mão: 
 function escolherFesta(i) {
   G.bairro.festa.feita = true; G.dinheiro += 1000; G.ganhoHoje = (G.ganhoHoje || 0) + 1000;
   const ids = DONOS.filter(d => G.bairro.terrenos[d.terreno].mudou).map(d => d.id).concat(['cida', 'orlando']);
-  if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), ids);
+  if (typeof Amizade !== 'undefined') Amizade.ganharVarios(ids, 'festa', 'festa');
   sons.tocar('fanfarra', 1, 0, -4); const t = FESTA_ESCOLHAS[i][1] + ' A Prefeitura deu Cr$ 1.000 de prêmio.'; abrirPlaca(t); hudSujo(); return t;
 }
 ATUALIZADORES.push(() => { if (G.mapaId === 'bairro' && festaHoje() && !menuAberto() && G.comecou !== false) perguntar('A festa de inauguração do Bairro Novo! O que o Jocelino faz?', FESTA_ESCOLHAS.map(e => e[0]).concat(['Só olhar']), i => escolherFesta(Math.min(i, 2))); });

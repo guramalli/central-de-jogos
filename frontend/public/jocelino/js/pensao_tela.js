@@ -192,13 +192,19 @@ function contaDoQuadro(p, escolha) {
 // Quantas panelas do prato a despensa dá na vez dele (o prato fora da escolha: depois de todas as panelas do quadro).
 const daNaVez = (C, id) => id in C.da ? C.da[id] : Math.min(99, C.sobra.rende(id));
 function panelasQueDa(p, escolha, id) { return daNaVez(contaDoQuadro(p, escolha), id); }
-// (correção 1) O que falta para uma panela do prato, com o que as panelas de antes dele já separaram ("ovo (as panelas do quadro gastam)").
+// (correção 1) O que falta para uma panela do prato, com o que as panelas de antes dele já separaram ("ovo (tem 0, a panela gasta 4;
+// as panelas do quadro gastam o resto)": um parêntese só, rodada 1 da despensa).
 function faltaNoQuadro(p, C, id) {
-  const P = Pratos.PRATOS[id], q = Object.create(p);
+  const g = p.gasto(id), q = Object.create(p);
   q.despensa = id in C.antes ? C.antes[id] : C.sobra.despensa;
-  const f = Object.keys(P.porcao).filter(x => q._tem(x) < P.porcao[x]);
-  return listaE(f.map(nomeNaPanela)) + (f.some(x => p._tem(x) >= P.porcao[x]) ? ' (as panelas do quadro gastam)' : '');
+  const f = q.faltaPara(id);
+  return listaE(f.map(x => faltaPanelaTxt(q, x, g[x], p._tem(x) >= g[x] ? '; as panelas do quadro gastam o resto' : '')));
 }
+// (16/10, "se preciso ou não comprar") O gasto de uma panela em texto, do jeito do dono ("2 de arroz, 2 de feijão e 2 de ovo"), e
+// quanto falta de um ingrediente para mais uma ("ovo (tem 1, a panela gasta 2)").
+const qtdNaPanela = (x, q) => `${q} de ${nomeNaPanela(x)}`;
+const gastoTxt = (p, id) => listaE(Object.entries(p.gasto(id)).map(([x, q]) => qtdNaPanela(x, q)));
+const faltaPanelaTxt = (p, x, q, mais = '') => `${nomeNaPanela(x)} (tem ${p._tem(x)}, a panela gasta ${q}${mais})`;
 // Os convidados da festa do tema (3, e mais 2 com a varanda) e quantos clientes a noite costuma ter (o "~N" do quadro): os da
 // noite (clientesHoje) mais os convidados que o iniciarJanta põe na fila (inauguração, festa, festa do Patrimônio, o VIP).
 const convidadosDaFesta = () => ECO.pensao.convidados.festa + (typeof temAmpliacao === 'function' && temAmpliacao('varanda') ? ECO.pensao.convidados.varanda : 0);
@@ -235,7 +241,7 @@ function avisosDoQuadro(p, esc, modo = 'abertura', C = contaDoQuadro(p, esc)) {
   if (p.festaDia === G.dia) r.push('Hoje é a festa do Patrimônio: a Vila inteira vem comemorar.');
   // (correção 1) o VIP fora do quadro: só promete o prato à parte se a despensa ainda dá, depois de todas as panelas do quadro
   if (vip) { const v = vipDe(vip.id), noQuadro = panelasEfetivas(C, esc, vip.prato, modo) > 0 || p.porcoes(vip.prato) > 0;
-    r.push(`Hoje ${v.nome} pede ${nome(vip.prato)}` + (noQuadro ? '.' : C.sobra.rende(vip.prato) > 0 ? ': fora do quadro, a Rosa faz à parte com a despensa.' : ', e falta ingrediente na despensa!')); }
+    r.push(`Hoje ${v.nome} pede ${nome(vip.prato)}` + (noQuadro ? '.' : C.sobra.rende(vip.prato, 1) > 0 ? ': fora do quadro, a Rosa faz à parte com a despensa.' : ', e falta ingrediente na despensa!')); }
   if (festa) r.push(`Hoje é a ${festa.nome}: ${nome(festa.prato)} vale 50% mais e os convidados pedem ele` + (panelasEfetivas(C, esc, festa.prato, modo) > 0 ? '.' : ' — fora do quadro: ponha uma panela.'));
   // O prato que não aguenta a noite: as porções que o quadro vai fazer (e, com o repõe, o que a despensa ainda dá depois delas, um
   // prato de cada vez, na mesma ordem) contra os clientes de sempre.
@@ -282,7 +288,7 @@ function pensaoQuadro() {
       el('div', { class: 'qc-topo' }, el('span', {}, p.nomeComEstrelas()), el('span', { class: 'qc-vagas' }, `Vagas no quadro: ${ocupa.size} de ${p.vagas()}`),
         el('span', {}, `A noite costuma ter ~${clientesEsperados()} clientes`)),
       // (15/10, a clareza) a panela, a porção, as vagas, o "Rosa repõe" e o prato da casa: uma linha e o "(?)"
-      linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente); a sobra vai para o lixo.',
+      linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente) e gasta da despensa conforme rende; a sobra vai para o lixo.',
         [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.precoPanela, GLOSSARIO.sabor, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
     if (modo !== 'durante') for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(el('div', { class: 'qc-aviso' }, a));
     else caixa.append(el('div', { class: 'qc-aviso' }, 'A janta está correndo (o relógio parou aqui): mais uma panela agora, ou ligue e desligue o "Rosa repõe".'));
@@ -297,10 +303,12 @@ function pensaoQuadro() {
       const marcado = modo === 'durante' ? p.porcoes(id) > 0 : e.panelas > 0;
       const guardado = modo === 'abertura' && !e.panelas && e0.panelas > 0;   // (escolhido, mas a despensa não dá hoje)
       const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa' : festa && festa.categoria && categoriaDe(id) === festa.categoria ? ` · ${CATEGORIAS[festa.categoria].toLowerCase()}: vale 50% mais na festa` : '';
-      const info = modo === 'durante' ? `Na panela: ${p.porcoes(id)} porções · a despensa dá mais ${panelasTxt(p.rende(id))} (${k} porções cada)`
-        : modo === 'abertura' && CQ.semVaga.has(id) ? `${p.textoPreco(id)} · sabor ${p.sabor(id)} · cada panela dá ${k} porções · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
-        : modo === 'abertura' && !m ? `${p.textoPreco(id)} · sabor ${p.sabor(id)} · cada panela dá ${k} porções · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
-        : `${p.textoPreco(id)} · sabor ${p.sabor(id)} · cada panela dá ${k} porções · a despensa dá ${panelasTxt(m)}${modo === 'plano' && e.panelas > m ? ' hoje' : ''}`
+      // (16/10) cada panela diz o que gasta da despensa (o gasto por prato): o jogador vê se precisa comprar
+      const dk = `cada panela dá ${k} porções e gasta ${gastoTxt(p, id)}`;
+      const info = modo === 'durante' ? `Na panela: ${p.porcoes(id)} porções · a despensa dá mais ${panelasTxt(p.rende(id))} (${k} porções cada, gastando ${gastoTxt(p, id)})`
+        : modo === 'abertura' && CQ.semVaga.has(id) ? `${p.textoPreco(id)} · sabor ${p.sabor(id)} · ${dk} · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
+        : modo === 'abertura' && !m ? `${p.textoPreco(id)} · sabor ${p.sabor(id)} · ${dk} · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
+        : `${p.textoPreco(id)} · sabor ${p.sabor(id)} · ${dk} · a despensa dá ${panelasTxt(m)}${modo === 'plano' && e.panelas > m ? ' hoje' : ''}`
           + (modo === 'abertura' && e.panelas > 0 && e0.panelas > e.panelas ? ` (o cardápio guardado pede ${e0.panelas})` : '') + tag;
       const realce = modo !== 'durante' && !marcado && ((festa && festa.prato === id) || (vip && vip.prato === id));   // o prato da festa ou do VIP fora do quadro
       const mexe = (d, comoNome) => ev2 => { ev2.stopPropagation();
@@ -340,8 +348,8 @@ function pensaoQuadro() {
     });
     if (!lista.length) corpo.append(el('div', { class: 'qc-aviso' }, 'A despensa não dá nenhum prato hoje: traga ingrediente (a Mercearia, o píer, a horta).'));
     caixa.append(corpo);
-    if (sem.length) caixa.append(el('div', { class: 'qc-sem' }, 'Sem ingrediente: ' + sem.map(id => { const P = Pratos.PRATOS[id], f = Object.keys(P.porcao).filter(x => p._tem(x) < P.porcao[x]);
-      return `${P.nome} (falta ${listaE(f.map(nomeNaPanela))})`; }).join(' · ')));
+    if (sem.length) caixa.append(el('div', { class: 'qc-sem' }, 'Sem ingrediente: ' + sem.map(id => { const P = Pratos.PRATOS[id], g = p.gasto(id), f = p.faltaPara(id);
+      return `${P.nome} (falta ${listaE(f.map(x => faltaPanelaTxt(p, x, g[x])))})`; }).join(' · ')));
     // (Tarefa C) cada bebida com o preço dela (pago à parte)
     const C = ECO.pensao.pratoCasa, beb = (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => Pratos.BEBIDAS[b].toLowerCase() + (TurnoJanta.precoBebida(b) ? ` (Cr$ ${TurnoJanta.precoBebida(b)})` : b === 'cafe' ? ' (de graça; na medida antes do prato, +30% no prato)' : ' (de graça)'));
     caixa.append(el('div', { class: 'qc-casa' }, `Sempre tem: ${C.nome} (Cr$ ${C.preco}, sem curtida) e ${beb.join(', ')}.`));
@@ -515,8 +523,9 @@ function encerrarJanta() {
   if (noSalaoDaPensao()) tocarSomDoEvento({ tipo: 'fim_janta' });
   if (r.convidados && G.feitosHoje) G.feitosHoje.push(inaug ? `A inauguração da Pensão da Rosa: ${r.convidadosServidos || 0} de ${r.convidados} convidados bem servidos. A Vila já sabe o caminho!` : `Os convidados da festa: ${r.convidadosServidos || 0} de ${r.convidados} bem servidos.`);
   G.dinheiro += total; G.ganhoHoje += total;
-  // O cliente especial e os pedidos da Vila. Receitas novas da noite: a do VIP bem servido, a da festa e as do degrau.
-  // (14/10, Tarefa A) O dinheiro dos prêmios da noite (o VIP, os pedidos da Vila e as metas) entra na receita do fechamento.
+  // O cliente especial e a festa do tema. Receitas novas da noite: a do VIP bem servido, a da festa e as do degrau.
+  // (14/10, Tarefa A) O dinheiro dos prêmios da noite (o VIP e as metas) entra na receita do fechamento.
+  // (16/10, E2 das encomendas de festa) Os pedidos da Vila da agenda saíram; a festa do morador entra no lugar (encomendas.js).
   r.aprendidas = []; r.premios = 0;
   if (typeof Eventos !== 'undefined') {
     const vip = Eventos.hoje(G.pensao, G.dia, 'vip');
@@ -526,8 +535,6 @@ function encerrarJanta() {
         const fn = Eventos.premiar(G.pensao, vip.id); if (fn) { r.premioFuncao = fn; avisar(`${vipDe(vip.id).nome} deu de presente: ${TEXTO_FUNCAO[fn]}!`); } } }
     const fe = Eventos.hoje(G.pensao, G.dia, 'festa');
     if (fe) { fe.fim = 'feita'; const f = FESTAS.find(x => x.nome === fe.nome); if (f && f.ensina && G.pensao.liberarReceita(f.ensina)) r.aprendidas.push(f.ensina); }
-    r.pedidosFeitos = Eventos.depoisDaJanta(G.pensao, r, G.dia);
-    for (const e of r.pedidosFeitos) { G.dinheiro += e.premio; r.premios += e.premio || 0; r.curtidas += 2; }
   }
   const pit0 = G.pensao.pitadas;
   const grauAntes = G.pensao.grau();   // antes dos garfos: se eles completam o degrau, a subida aparece hoje
@@ -544,7 +551,7 @@ function encerrarJanta() {
     if (c.subiu) { avisar(`A Rosa subiu para chef nível ${c.subiu}! Cozinha mais rápido${Chef.NIVEIS_INVENTA.includes(c.subiu) ? ' e ganhou uma boca a mais no fogão' : ''}.`); somFim('rosa_animada', 1, 0.05, -2); }
     for (const id of c.inventou) { avisar(`A Rosa inventou uma receita: ${Pratos.PRATOS[id].nome}! Já está no caderno.`); somFim('fanfarra', 1.1, 0, -4); } }
   r.pitadasGanhas = G.pensao.pitadas - pit0;
-  if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), r.favoritos);
+  if (typeof Amizade !== 'undefined') Amizade.ganharVarios(r.favoritos, 'janta', 'janta');   // +25 com cada favorito bem servido (a família sem número)
   r.aprendidas.push(...G.pensao.liberarDoDegrau());
   for (const id of r.aprendidas) { avisar(`Receita nova no caderno da Rosa: ${Pratos.PRATOS[id].nome}!`); somFim('fanfarra', 1.15, 0, -6); }
   pagarDespesaDaNoite(r);
@@ -612,8 +619,9 @@ ATUALIZADORES.push(dt => {
     else if (ev.tipo === 'casa' && noSalao && !t._avisouCasa) { t._avisouCasa = true; avisar(`${ev.cliente.nome} levou o prato da casa (${ECO.pensao.pratoCasa.nome}): barato e sem curtida. Mais panelas no quadro, mais prato de verdade.`); }
     else if (ev.tipo === 'vip_faltou' && noSalao) { avisar(`${ev.cliente.nome} queria ${Pratos.PRATOS[ev.prato].nome} e não tinha! Foi embora decepcionado.`); }
     else if (ev.tipo === 'chegou' && noSalao && ev.cliente.morador) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.fala}"`); }
-    else if (ev.tipo === 'favorito' && noSalao) { const d = Clientela.dado(ev.cliente.id); if (d) avisar(`${d.nome}: "${d.elogio}" (+1 ❤ de amizade)`);
-      if (noPalco() && PALCO.ASSENTOS[ev.mesa]) { const A = PALCO.ASSENTOS[ev.mesa]; setTimeout(() => flutuar(A.x - 30, A.y - 260, '+1 ❤ amizade', '#ff5d7a'), 500); } }
+    else if (ev.tipo === 'favorito' && noSalao) { const d = Clientela.dado(ev.cliente.id), am = typeof Amizade !== 'undefined' ? Amizade.texto(ev.cliente.id, 'janta') : '';   // (T1) a família sem número
+      if (d) avisar(`${d.nome}: "${d.elogio}"${am ? ` (${am})` : ''}`);
+      if (am && noPalco() && PALCO.ASSENTOS[ev.mesa]) { const A = PALCO.ASSENTOS[ev.mesa]; setTimeout(() => flutuar(A.x - 30, A.y - 260, am, '#ff5d7a'), 500); } }
     else if (ev.tipo === 'zezinho_cocada' && noSalao) { avisar('Zezinho: "Eu? Que cocada? Não vi cocada nenhuma..." (sumiu uma porção de cocada da panela)'); }
     // (as cenas de prato, 14/10) o prato especial entregue: as faixas de cinema descem e a cena toca (o jogo pausa)
     else if (ev.tipo === 'servido' && noSalao && typeof CenaPrato !== 'undefined') ev.cena = CenaPrato.aoServir(t, ev);
@@ -786,7 +794,7 @@ const GLOSSARIO = {
   garfos: 'Garfos: a nota do Doutor Paladar, o crítico da Gazeta, que vem disfarçado. Os dois últimos degraus pedem visitas dele com nota alta.',
   concurso: 'Concurso da Rádio: no último dia da estação, 3 pratos para os jurados. O último degrau pede uma vitória.',
   degrau: 'Degrau (as estrelas da pensão): quando tudo o que ele pede está feito, a pensão sobe; abre mais pratos no quadro, banquetas, clientes e vagas na equipe.',
-  panela: 'Panela: a Rosa cozinha a receita uma vez e ela rende algumas porções. Porção: um prato para um cliente.',
+  panela: 'Panela: a Rosa cozinha a receita uma vez e ela rende algumas porções. Porção: um prato para um cliente. Cada panela gasta da despensa conforme rende (o PF que dá 4 porções gasta 2 de arroz, 2 de feijão e 2 de ovo); as porções a mais do capricho e do freezer saem de graça.',
   repoe: '"Rosa repõe": ligado, quando a panela acaba a Rosa faz outra com o que tem na despensa. Desligado, o prato sai do quadro.',
   vagasQuadro: 'Vagas no quadro: quantos pratos diferentes cabem no cardápio da noite. A fama abre mais.',
   casa: 'Prato da casa: sempre tem, não gasta despensa; é barato e não dá curtida. Quem fica sem prato do quadro leva ele.',
@@ -882,7 +890,6 @@ NOITE.push(linhas => {
       linhas.push(`   ${r.curtidas} ${r.curtidas === 1 ? 'curtida' : 'curtidas'} (clientes de 4 estrelas ou mais) · despesa da noite Cr$ ${c.despesa}${c.salarios ? ` · salários Cr$ ${c.salarios}` : ''} · ${r.bebidas || 0} bebidas${r.desperdicio ? ` · ${r.desperdicio} no lixo` : ''}.`); }
     if (G.relatorioPensao.premioVip) linhas.push(`   O cliente especial adorou! Prêmio: Cr$ ${r.premioVip.dinheiro}, ${r.premioVip.curtidas} curtidas e ${r.premioVip.pitadas} pitadas.`);
     else if (r.vip === 'faltou') linhas.push('   O cliente especial foi embora decepcionado: faltou o prato que ele queria.');
-    for (const e of r.pedidosFeitos || []) linhas.push(`   Pedido cumprido: ${e.quem} recebeu ${e.qtd} ${Pratos.PRATOS[e.prato].nome}. Prêmio: Cr$ ${e.premio}.`);
     if (r.lucro != null) linhas.push(linhaDoLucroNoResumo(r));
     if (r.subiu) linhas.push(`A pensão ganhou mais uma estrela: agora é ${p.nomeComEstrelas(r.subiu)}! Mais pratos no quadro, mais banquetas e mais clientes.`);
     else { const px = p.proximoDegrau(); if (px) linhas.push(`   Para "${px.nome}": ${textoFalta(px.falta)}.`); }

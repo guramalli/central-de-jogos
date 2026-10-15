@@ -6,6 +6,15 @@
 //   noite (a caixa de envio). Reserva não começada em 3 dias: o cliente desiste, sem multa (o Help Wanted do Stardew).
 // O quadro de Serviços da Vila mostra 2 a 4 por dia, só o que a função libera.
 
+// (16/10, o jogador: "lajota colorida, onde pego isso?" ... "só precisava me orientar no jogo que eu precisaria de uma betoneira
+// para poder fazer e ela é comprada na ferraria") A lajota não se compra: sai da betoneira (o Seu Tonico faz na ferraria; ou presente
+// do Grêmio) ou do Fabricar com Acabamento 4. O serviço continua no quadro; o aviso e a seta levam até a betoneira.
+const ONDE_LAJOTA = 'A lajota colorida não se compra: sai da betoneira. O Seu Tonico faz uma na ferraria, na pedreira; coloque no quintal e, com cimento na mão e pigmento na mochila, ela faz a lajota em 1 dia.';
+function podeFazerLajota() {
+  return (typeof Fabricar !== 'undefined' && Fabricar.conhecida('lajota')) || !!(G.horta && G.horta.colocados && G.horta.colocados.some(c => c.id === 'betoneira'))
+    || !!(G.mochila && G.mochila.total('lajota') >= 10);
+}
+
 const EMPREITAS_CURTAS = {
   consertar_banca: { nome: 'Consertar a banca do Lourival', cliente: 'lourival', mapa: 'praia', x: 10, y: 8, material: { madeira: 5 }, ferramenta: 'machado', vezes: 4 },
   tabua_pier: { nome: 'Tapar tábua solta do píer', cliente: 'lourival', mapa: 'praia', x: 29, y: 15, material: { madeira: 3 }, ferramenta: 'machado', vezes: 3 },
@@ -71,7 +80,7 @@ Object.assign(EMPREITAS_CURTAS.desentulhar_ananias, { x: 11, y: 8, junto: 'depos
 // `pintura`: o último dia é pintar (não se faz na chuva); `reforma`: acabamento (pedido no fim de ano).
 const EMPREITAS_LONGAS = {
   calcada_cimento: { nome: 'Calçada da ferraria', piso: true, area: { w: 4, h: 1, textura: 'texturas/calcada' }, cliente: 'tonico', mapa: 'vila', x: 11, y: 23, junto: 'oficina', material: { cimento: 3, pedra: 6 }, etapas: ['pa', 'regador'], funcaoMin: 1, concreto: true, artes: ['objetos/vala', 'objetos/alicerce'] },
-  cerca_madeira: { nome: 'Cerca do galpão do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 32, y: 23, material: { madeira: 10 }, etapas: ['pa', 'machado'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/cerca'] },
+  cerca_madeira: { nome: 'Cerca do galinheiro do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 28, y: 22, material: { madeira: 10 }, etapas: ['pa', 'machado'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/cerca'] },
   // (15/10) o muro da divisa fica à direita da casa da Dona Zélia: à esquerda (33,9) ele tapava a frente da Escola nova.
   muro_baixo: { nome: 'Muro da divisa da casa da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 42, y: 9, junto: 'casa_zelia', material: { tijolo: 30, cimento: 2 }, etapas: ['pa', 'colher', 'colher'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
   baldrame: { nome: 'Baldrame do puxadinho do Mercado', fundacao: true, cliente: 'bento', mapa: 'vila', x: 44, y: 18, junto: 'mercado', material: { tijolo: 20, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
@@ -296,9 +305,8 @@ const Empreitas = {
       G.empreitas.entregues++;
       if (q >= 1.5) G.empreitas.caprichados = (G.empreitas.caprichados || 0) + 1;
       G.empreitas.reputacao[E.cliente] = (G.empreitas.reputacao[E.cliente] || 0) + 1;
-      if (typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]);
-      // Lábia: a amizade sobe 50% mais rápido (um coração a mais a cada duas entregas).
-      if (typeof Habilidades !== 'undefined' && Habilidades.tem('labia')) { G.empreitas.labia = (G.empreitas.labia || 0) + 1; if (G.empreitas.labia % 2 === 0 && typeof Clientela !== 'undefined' && G.amizade) Clientela.registrarAmizade(G.amizade, [E.cliente]); }
+      // +50 de amizade com o cliente (a família não tem número; a Lábia, 50% a mais, vale dentro do Amizade.ganhar)
+      if (typeof Amizade !== 'undefined') Amizade.ganhar(E.cliente, 'servico', 'servico');
     }
     return AO_ENTREGAR.map(f => f(id, q)).filter(Boolean);
   },

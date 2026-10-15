@@ -168,12 +168,72 @@ function abrirDespensa() {
 }
 // Monta (e remonta, a cada clique) a tela: o armário, a mochila embaixo e a lousa do rendimento ao lado. A rolagem das prateleiras
 // fica onde estava.
+// (16/10, o gasto por prato) O que o cardápio guardado (p.cardapioNoite: as panelas do quadro de giz) gasta numa noite, sem contar
+// o "Rosa repõe": { texto: "2 panelas de PF do Peão Valente gastam 4 de arroz, 4 de feijão e 4 de ovo", falta: ["1 de ovo"] }, ou null
+// (cardápio vazio). O "peixe" das receitas conta qualquer peixe que a pensão aceita.
+function gastoDoCardapio(p) {
+  const pratos = Object.entries(p.cardapioNoite || {}).filter(([id, e]) => (e.panelas | 0) > 0 && Pratos.PRATOS[id] && p.receitas.includes(id));
+  if (!pratos.length) return null;
+  const soma = {};
+  for (const [id, e] of pratos) for (const [x, q] of Object.entries(p.gasto(id))) soma[x] = (soma[x] || 0) + q * (e.panelas | 0);
+  // (rodada 1) o que falta se divide: o que a Mercearia vende (comprar) e o resto, com de onde vem (da horta, do mar, do quintal...)
+  const faltam = Object.keys(soma).filter(x => p._tem(x) < soma[x]), compra = x => Pratos.MERCEARIA[x] != null && p.aceita(x);
+  const falta = faltam.filter(compra).map(x => qtdNaPanela(x, soma[x] - p._tem(x)));
+  const faltaOutro = faltam.filter(x => !compra(x)).map(x => [qtdNaPanela(x, soma[x] - p._tem(x)), deOndeVem(x)].filter(Boolean).join(' '));
+  const quais = listaE(pratos.map(([id, e], i) => `${i ? e.panelas | 0 : panelasTxt(e.panelas | 0)} de ${Pratos.PRATOS[id].nome}`));
+  return { texto: `${quais} ${pratos.length === 1 && (pratos[0][1].panelas | 0) === 1 ? 'gasta' : 'gastam'} ${listaE(Object.entries(soma).map(([x, q]) => qtdNaPanela(x, q)))}`, falta, faltaOutro, soma };
+}
+// De onde vem o ingrediente que não se compra na Mercearia: "da horta", "do mar", "do rio", "do quintal", "da praia", "da mata"...
+function deOndeVem(x) {
+  if (x === 'peixe') return 'do mar ou do rio'; if (x === 'pedra') return 'do quintal'; if (typeof CULTURAS !== 'undefined' && CULTURAS[x]) return 'da horta';
+  const o = ((Pratos.INGREDIENTES[x] || {}).origem || '').toLowerCase();
+  if (/rio|cachoeira/.test(o)) return 'do rio'; if (/mar|píer|praia à noite/.test(o)) return 'do mar'; if (/praia/.test(o)) return 'da praia'; if (/mata/.test(o)) return 'da mata';
+  if (/mascate/.test(o)) return 'do mascate ou do orelhão'; if (/viajante/.test(o)) return 'do Viajante'; if (/mercearia/.test(o)) return 'da Mercearia, quando a pensão subir';
+  if (/vip|presente/.test(o)) return 'de presente de cliente';
+  return '';   // (rodada 2) sem origem conhecida, nada: o texto não fica com espaço sobrando
+}
+// (16/10, "ir à mercearia vira rotina") O que falta comprar na Mercearia do Ananias para o cardápio guardado da janta de hoje:
+// { falta: [[ingrediente, qtd]], item, n, texto } ou null. Só com a pensão aberta, a janta de hoje por fazer, o depósito aberto e
+// dinheiro para ao menos um; só o que a Mercearia vende (a horta, o píer e o orelhão, o quadro e a despensa já dizem). O que está
+// na mochila conta (vai para a despensa quando o Jocelino entra na pensão). A seta (guia_setas.js) e a Caderneta leem daqui.
+function compraDaJanta() {
+  const falta = faltaDaJanta();
+  if (!falta || typeof depositoFechado !== 'function' || depositoFechado() || G.dinheiro < Math.min(...falta.map(([x]) => precoMercearia(x)))) return null;
+  const lista = listaE(falta.map(([x, n]) => qtdNaPanela(x, n)));
+  return { falta, item: falta[0][0], n: falta[0][1], texto: `Comprar para a janta de hoje, na Mercearia do Ananias: ${lista} (o cardápio do quadro gasta mais do que a despensa tem)`,
+    rotulo: `Botão direito: a Mercearia do Ananias — falta ${lista} para a janta` };
+}
+// O que a Mercearia vende e falta para o cardápio guardado da janta de hoje (a despensa e a mochila juntas): [[ingrediente, qtd]] ou
+// null. Só com a pensão aberta, a janta de hoje por fazer (nunca no domingo: pensaoAbreHoje).
+function faltaDaJanta() {
+  const p = G.pensao;
+  if (!p || p.estado !== 'aberta' || typeof pensaoAbreHoje !== 'function' || !pensaoAbreHoje() || p.ultimaJanta === G.dia) return null;
+  const c = gastoDoCardapio(p); if (!c) return null;
+  const falta = Object.keys(c.soma).filter(x => Pratos.MERCEARIA[x] != null && p.aceita(x))
+    .map(x => [x, c.soma[x] - p._tem(x) - (G.mochila ? G.mochila.total(x) : 0)]).filter(([, n]) => n > 0);
+  return falta.length ? falta : null;
+}
+// (16/10, rodada 2 da despensa) A Rosa avisa, uma vez por dia, que falta comida para a janta: na primeira vez que o Jocelino passa
+// perto da pensão ou do depósito (a 4 ladrilhos) antes das 17h, se a despensa não cobre o cardápio da noite e nem a seta nem o Agora
+// já mostram a Mercearia (a missão da pensão ou a obra do dia na frente). Vivência, não missão: uma fala só, no tom dela.
+const textoAvisoDaJanta = () => { const f = faltaDaJanta(); return f ? `Rosa: "Jocelino, pra janta de hoje falta ${listaE(f.map(([x, n]) => qtdNaPanela(x, n)))}. A Mercearia do Ananias fecha às 17h."` : ''; };
+function avisoDaJantaPasso(seta = typeof setaAgora === 'function' ? setaAgora : () => null) {
+  if (G.mapaId !== 'vila' || !G.mapa || !G.jog || G._avisoJantaDia === G.dia || G.minutos >= 17 * 60 || G.turno) return false;
+  const perto = G.mapa.objs.some(o => (o.id === 'pensao' || o.id === 'deposito') && Math.hypot(o.x - G.jog.x, o.y - G.jog.y) <= 4 * TILE);
+  if (!perto) return false;
+  const t = textoAvisoDaJanta(); if (!t) return false;
+  const s = seta(); if (compraDaJanta() && (!s || s.missao === 'mercearia')) return false;   // (a seta e o Agora já mostram a Mercearia)
+  G._avisoJantaDia = G.dia; avisar(t); return true;
+}
+ATUALIZADORES.push(() => avisoDaJantaPasso());
 function desenhaDespensa(tela) {
   const p = G.pensao, rolou = (tela.querySelector('.desp-prateleiras') || {}).scrollTop || 0;
   const redesenha = () => desenhaDespensa(tela);
   tela.innerHTML = '';
   const caixa = el('div', { class: 'despensa com-arte' });
-  const ids = Object.keys(Pratos.INGREDIENTES).filter(id => (p.despensa[id] || 0) > 0 || (G.mochila && G.mochila.total(id) > 0) || p.aceita(id));
+  // (16/10, revisão da pesca da serra) o pote vazio de um ingrediente de lugar ainda fechado (os peixes do rio da serra) não aparece
+  const lugarAberto = id => !/^Rio da serra/.test(Pratos.INGREDIENTES[id].origem || '') || typeof Mundo === 'undefined' || Mundo.aberto('serra');
+  const ids = Object.keys(Pratos.INGREDIENTES).filter(id => (p.despensa[id] || 0) > 0 || (G.mochila && G.mochila.total(id) > 0) || (p.aceita(id) && lugarAberto(id)));
   const prat = el('div', { class: 'desp-prateleiras' });
   let presa = false;   // algum ingrediente com parte que não sai (veio da Expedição, da encomenda, de presente)
   for (const id of ids) {
@@ -212,19 +272,27 @@ function desenhaDespensa(tela) {
   requestAnimationFrame(() => { const pr = tela.querySelector('.desp-prateleiras'); if (pr) pr.scrollTop = rolou; });
   // (o cardápio do Bancho, 13/10) Ao lado das prateleiras, a lousa do rendimento (o Dave mostra, no estoque, quantas porções cada
   // receita dá): "Peixe Frito do Lourival: 1 peixe e 1 farinha = 1 panela = 4 porções", e quantas panelas a despensa dá agora.
+  // (16/10) a lista das receitas rola dentro da lousa: o título, o cardápio do quadro e o Fechar ficam sempre à vista
+  const lista = el('div', { class: 'rend-lista' });
   const rend = el('div', { class: 'lousa desp-rendimento' }, el('div', { class: 'giz-titulo' }, 'O que a despensa dá'));
   p.receitas.forEach((id, i) => {
-    const P = Pratos.PRATOS[id], n = Math.min(99, p.rende(id)), k = p.porcoesPorPanela(id), falta = Object.keys(P.porcao).filter(x => p._tem(x) < P.porcao[x]);
-    if (i) rend.append(el('div', { class: 'giz-divisoria' }));
-    rend.append(el('div', { class: 'rend-linha' + (n ? '' : ' falta') },
-      el('div', {}, el('span', { class: 'giz rend-nome' }, P.nome + ':'), ` ${listaE(Object.entries(P.porcao).map(([x, q]) => ingredienteNaPanela(x, q)))} = 1 panela = ${k} porções`),
-      el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(nomeNaPanela))}`)));
+    // (16/10, o gasto por prato) a panela gasta conforme rende: "PF do Peão Valente: 2 de arroz, 2 de feijão e 2 de ovo = 1 panela = 4 porções"
+    const P = Pratos.PRATOS[id], n = Math.min(99, p.rende(id)), k = p.porcoesPorPanela(id), g = p.gasto(id), falta = p.faltaPara(id);
+    if (i) lista.append(el('div', { class: 'giz-divisoria' }));
+    lista.append(el('div', { class: 'rend-linha' + (n ? '' : ' falta') },
+      el('div', {}, el('span', { class: 'giz rend-nome' }, P.nome + ':'), ` ${gastoTxt(p, id)} = 1 panela = ${k} porções`),
+      el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(x => faltaPanelaTxt(p, x, g[x])))}`)));
   });
+  // (16/10, "se preciso ou não comprar") O que o cardápio guardado (o do quadro de giz) gasta numa noite, contra o que a despensa tem.
+  { const c = gastoDoCardapio(p);
+    if (c) rend.append(el('div', { class: 'rend-linha rend-cardapio' + (c.falta.length || c.faltaOutro.length ? ' falta' : '') }, el('div', {}, el('span', { class: 'giz rend-nome' }, 'O cardápio do quadro:'), ` ${c.texto}`),
+      el('div', { class: 'rend-tem' }, c.falta.length || c.faltaOutro.length ? [c.falta.length ? `falta comprar (Mercearia): ${listaE(c.falta)}` : '', c.faltaOutro.length ? `falta: ${listaE(c.faltaOutro)}` : ''].filter(Boolean).join(' · ')
+        : 'a despensa tem tudo para a noite'))); }
   // (15/10, a clareza) a raridade (★), o 🔒 e a panela, no "(?)"
   const onde = linhaAjuda('despensa', 'Passe o mouse num ingrediente para ver de onde ele vem e a raridade (★). O que falta, a Mercearia do Seu Ananias vende ou o orelhão da Vila encomenda.',
     [GLOSSARIO.raridade, '🔒: a Rosa ainda não sabe usar; abre quando a pensão sobe de degrau.', GLOSSARIO.panela, 'Os ingredientes saem da despensa quando a pensão abre, nas panelas do cardápio.']);
   onde.classList.add('rend-onde');
-  rend.append(onde, el('div', { class: 'rend-botoes' },
+  rend.append(lista, onde, el('div', { class: 'rend-botoes' },
     naMochila.length && despensaAceitaGuardar() ? el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); guardarNaDespensa(true); redesenha(); } }, `Guardar o da mochila (${naMochila.length})`)
       : naMochila.length ? el('div', { class: 'rend-onde' }, 'A despensa recebe ingrediente quando a cozinha da Rosa ficar pronta.') : null,
     el('button', { class: 'tabua acesa', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));

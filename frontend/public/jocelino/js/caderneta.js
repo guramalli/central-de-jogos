@@ -23,7 +23,7 @@ CADERNETA.push(() => {
     if (serv || rec) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: serv && rec ? `${serv} serviço(s) e 1 recado no quadro da Vila` : serv ? `${serv} serviço(s) no quadro da Vila (pagam na hora)` : '1 recado de vizinho no quadro da Vila', alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } }); }
   if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
   if (!dom && !depositoFechado()) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: `O depósito do Ananias (material, sementes, comida) fecha às ${DEPOSITO_HORARIO.fecha / 60}h`, alvo: { mapa: 'vila', objeto: 'deposito' } });
-  if (typeof Clima !== 'undefined' && Clima.chove(G.dia)) r.push({ id: 'hoje_chuva', aba: 'hoje', texto: 'Chove hoje: a horta já está regada e a mata dá mais cogumelo' });
+  if (typeof Clima !== 'undefined' && Clima.chove(G.dia)) r.push({ id: 'hoje_chuva', aba: 'hoje', texto: `Chove hoje: a horta já está regada e a mata${typeof Mundo !== 'undefined' && Mundo.aberto('serra') ? ' e a serra dão' : ' dá'} mais cogumelo` });
   return r;
 });
 // (15/10, T4) Os recados aceitos (Hoje: têm prazo), com a barrinha e o Mostrar: a seta vai aonde o item nasce ou, com tudo na

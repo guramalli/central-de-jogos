@@ -59,6 +59,8 @@ const LARGURAS_GENTE_ANTES = new Set([264, 384, 240, 216, 528, 90]);   // andar 
 // fx/barra_moldura — falhou no servidor; não refeita para não passar do teto de créditos.)
 const LARGURA_ANTES = {
   'salao/moedas_balcao': 40, 'fx/coracao': 22, 'fx/exclamacao': 15,
+  // (16/10, T8 das conversas) os 6 balões de emoção que faltavam: 72 px no arquivo, 24 no mundo (o tamanho do coração)
+  'fx/interrogacao': 24, 'fx/nota_musical': 24, 'fx/gota_suor': 24, 'fx/raiva': 24, 'fx/sono': 24, 'fx/reticencias': 24,
   'salao/copo_cafe': 260, 'salao/copo_guarana': 260, 'salao/copo_caldo': 260, 'salao/liquido_cafe': 260, 'salao/liquido_guarana': 260,
   'salao/liquido_caldo': 260, 'salao/espuma_topo': 260, 'salao/copo_cafe_dentro': 260, 'salao/copo_guarana_dentro': 260, 'salao/copo_caldo_dentro': 260,
   'salao/frente_esquerda': 481, 'salao/frente_direita': 268, 'salao/balcao': 979, 'salao/passa_prato': 720,

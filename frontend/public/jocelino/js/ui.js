@@ -44,18 +44,37 @@ function fecharModal() {
   if (f) f();
 }
 
+// (T2 das conversas) A emoção vai na página, como prefixo: "@alegre Que bom!" mostra "Que bom!" com o retrato <pessoa>_alegre
+// (como o $h do Stardew). Sem prefixo, o retrato que veio (o _normal); se a arte da emoção não existe, volta para o _normal sem
+// erro. As emoções: alegre, triste, bravo, surpreso, pensativo e, só da Rosa, emocionada e amorosa (@normal também vale).
+const EMOCAO_PAGINA = /^@([a-z_]+)\s+/;
+function emocaoDaPagina(t) { const m = typeof t === 'string' && t.match(EMOCAO_PAGINA); return m ? { emo: m[1], texto: t.slice(m[0].length) } : { emo: '', texto: t }; }
+function retratoDaEmocao(url, emo) {
+  const m = /^a\/(retratos\/.+)_[a-z]+\.webp/.exec(url || '');
+  if (!emo || !m) return url;
+  const tem = n => typeof ARTE_LISTA !== 'undefined' && ARTE_LISTA.includes(n);
+  return tem(m[1] + '_' + emo) ? urlArte(m[1] + '_' + emo) : tem(m[1] + '_normal') ? urlArte(m[1] + '_normal') : url;
+}
 // Placa: um texto (ou várias páginas). Fecha com clique, E, Esc, Espaço ou Enter.
 function abrirPlaca(texto, opc = {}) {
   const paginas = Array.isArray(texto) ? texto.slice() : [texto];
   let i = 0;
   const corpo = el('div', { class: 'texto' });
+  const foto = opc.retrato ? el('img', { class: 'retrato', src: opc.retrato }) : null;
+  // (a arte que não carrega volta para o _normal, uma vez só)
+  if (foto) foto.onerror = () => { const n = retratoDaEmocao(opc.retrato, 'normal'); if (foto.getAttribute('src') !== n) foto.src = n; };
   const caixa = el('div', { class: 'painel placa' },
     // (15/10, "1. Madeira de obra") o retrato numa moldura de madeira com a plaquinha de latão do nome embaixo (a arte em ui/madeira; o nome vem do CSS,
     // attr(data-nome), para o texto da placa não repetir o nome)
-    opc.retrato ? el('div', { class: 'retrato-moldura' }, el('img', { class: 'retrato', src: opc.retrato }), opc.quem ? el('div', { class: 'plaquinha-nome', 'data-nome': opc.quem }) : null) : null,
+    foto ? el('div', { class: 'retrato-moldura' }, foto, opc.quem ? el('div', { class: 'plaquinha-nome', 'data-nome': opc.quem }) : null) : null,
     opc.quem ? el('div', { class: 'quem' }, opc.quem) : null,
     corpo, el('div', { class: 'dica-fechar' }, paginas.length > 1 ? 'clique para continuar ▸' : 'clique para fechar'));
-  const mostra = () => { corpo.textContent = paginas[i]; caixa.querySelector('.dica-fechar').textContent = i < paginas.length - 1 ? 'clique para continuar ▸' : 'clique para fechar'; };
+  const mostra = () => {
+    const p = emocaoDaPagina(paginas[i]);
+    corpo.textContent = p.texto; caixa.dataset.emocao = p.emo || 'normal';
+    if (foto) { const src = p.emo ? retratoDaEmocao(opc.retrato, p.emo) : opc.retrato; if (foto.getAttribute('src') !== src) foto.src = src; }
+    caixa.querySelector('.dica-fechar').textContent = i < paginas.length - 1 ? 'clique para continuar ▸' : 'clique para fechar';
+  };
   caixa.onclick = e => { e.stopPropagation(); avancar(); };
   const avancar = () => { if (i < paginas.length - 1) { i++; mostra(); if (typeof sons !== 'undefined') sons.tocar('letra', 1, 0.03, -6); } else fecharModal(); };
   caixa._avancar = avancar;
@@ -70,11 +89,32 @@ function faixaDaTela(cls) { return el('div', { class: 'guia-faixa tela-faixa ' +
 function abrirConversa(quem, retrato, paginas, depois) { abrirPlaca(paginas, { quem, retrato, depois }); }
 
 // Pergunta com opções; `aoEscolher(i)` recebe o índice (o modal já fechou).
-function perguntar(texto, opcoes, aoEscolher) {
-  const caixa = el('div', { class: 'painel placa' }, el('div', { class: 'texto' }, texto),
+function perguntar(texto, opcoes, aoEscolher) { perguntarCom(null, null, texto, opcoes, aoEscolher); }
+// (T3 das conversas) A pergunta com retrato (o $q/$r do Stardew): a `perguntar` com a moldura de madeira do retrato e a plaquinha
+// de latão do nome, as mesmas da conversa (sem retrato, é a pergunta de sempre). O texto pode ter @emoção (troca o retrato, como na
+// conversa; sem a arte, volta ao _normal). Cada opção é um texto ou um objeto { t: 'texto', ... } (o resto — amizade, resposta,
+// marca — é do Conversas.perguntar, conversas.js). `aoEscolher(i, opção)` recebe o índice (o modal já fechou). Fechar sem escolher
+// (Esc, clique fora) vale a ÚLTIMA opção, como na perguntar: nenhuma pergunta trava o jogo.
+// (revisão da T3) Com retrato, Enter e Espaço não valem nos primeiros 300 ms (quem vinha passando as páginas da conversa com Enter
+// não responde a 1ª sem querer). opc.definitiva (a pergunta com id, conversas.js): E e X não fecham nem respondem; só o Esc (a última).
+const PERGUNTA_TRAVA_MS = 300;
+function perguntarCom(quem, retrato, texto, opcoes, aoEscolher, opc = {}) {
+  const p = emocaoDaPagina(texto), rotulo = o => o && typeof o === 'object' && 't' in o ? emocaoDaPagina(o.t).texto : typeof o === 'string' ? emocaoDaPagina(o).texto : o;
+  const foto = retrato ? el('img', { class: 'retrato', src: p.emo ? retratoDaEmocao(retrato, p.emo) : retrato }) : null;
+  if (foto) foto.onerror = () => { const n = retratoDaEmocao(retrato, 'normal'); if (foto.getAttribute('src') !== n) foto.src = n; };
+  let feito = false;
+  const escolhe = i => { if (feito) return; feito = true; aoEscolher(i, opcoes[i]); };
+  const caixa = el('div', { class: 'painel placa' + (foto ? ' pergunta-com' : '') },
+    foto ? el('div', { class: 'retrato-moldura' }, foto, quem ? el('div', { class: 'plaquinha-nome', 'data-nome': quem }) : null) : null,
+    foto && quem ? el('div', { class: 'quem' }, quem) : null,
+    el('div', { class: 'texto' }, p.texto),
     el('div', { class: 'opcoes' }, opcoes.map((o, i) => el('button', { class: 'botao' + (i === 0 ? ' forte' : ''), onclick: e => {
-      e.stopPropagation(); $('#modal').hidden = true; $('#modal').innerHTML = ''; _aoFecharModal = null; aoEscolher(i); } }, o))));
-  abrirModal(caixa, () => aoEscolher(opcoes.length - 1));
+      e.stopPropagation(); $('#modal').hidden = true; $('#modal').innerHTML = ''; _aoFecharModal = null; escolhe(i); } }, rotulo(o)))));
+  caixa.dataset.emocao = p.emo || 'normal';
+  const abriu = performance.now();
+  caixa._tecla = e => (foto && ['Space', 'Enter', 'NumpadEnter'].includes(e.code) && performance.now() - abriu < PERGUNTA_TRAVA_MS)
+    || (!!opc.definitiva && ['KeyE', 'KeyX'].includes(e.code));   // (true = a tecla foi usada aqui, sem fazer nada)
+  abrirModal(caixa, () => escolhe(opcoes.length - 1));
 }
 
 // Aviso que some sozinho (canto de baixo à esquerda).

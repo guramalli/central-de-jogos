@@ -28,10 +28,10 @@ AO_ENTREGAR.push((id, q) => {
   const E = dadosEmpreita(id); if (!E || typeof E.familia !== 'number') return '';   // só as etapas da casa (os aluguéis têm o gancho deles)
   G.casa.etapa = Math.max(G.casa.etapa, E.familia);
   if (E.familia < ECO.casa.etapas.length) { Empreitas.aceitar('casa_fam_' + (E.familia + 1), G.mochila, G.dinheiro, { familia: true }); if (MAPAS.quintal) poeCasaFamilia(MAPAS.quintal); return `A casa da família ganhou: ${ECO.casa.etapas[E.familia - 1].nome}.`; }
-  G.casa.mudou = true; G.amizade = G.amizade || {};
-  for (const p of ['rosa', 'ritinha', 'zezinho', 'juca']) G.amizade[p] = (G.amizade[p] || 0) + 2;
+  // (T1 das conversas) A família não tem número de amizade: a mudança é carinho, numa fala (antes, +2 para cada um).
+  G.casa.mudou = true;
   if (MAPAS.quintal) poeCasaFamilia(MAPAS.quintal);
-  return 'A família se mudou para a casa nova! Teve festa no quintal: a Rosa fez bolo de milho, o Tio Juca tocou viola e as crianças ganharam o quarto delas.';
+  return 'A família se mudou para a casa nova! Teve festa no quintal: a Rosa fez bolo de milho, o Tio Juca tocou viola e as crianças ganharam o quarto delas. A Rosa abraçou o Jocelino: "Agora sim, a gente tem um canto nosso."';
 });
 // Save antigo: o que o jogador pôs ou plantou no terreno da obra da família volta para a mochila antes do prédio subir
 // (a cerca, o irrigador; a cova plantada devolve a semente).

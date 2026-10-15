@@ -2,7 +2,7 @@
 // moram em recados.js; aqui fica o que o jogador vê e faz:
 // - o cartão "Recado do dia" no quadro da Vila e a linha do recado em "Aceitas" (abrirQuadro, empreitas_jogo.js, chama daqui);
 // - a entrega direto da mochila (decisão do dono, 15/10): botão direito no morador que pediu; com tudo na mochila, ANTES da conversa
-//   normal ele pergunta "Entregar 3 couves para a Dona Zélia? (Cr$ 70)". Sim: entrega, paga, amizade +1, o som das moedas e o
+//   normal ele pergunta "Entregar 3 couves para a Dona Zélia? (Cr$ 70)". Sim: entrega, paga, amizade +50, o som das moedas e o
 //   obrigado com o retrato alegre. Agora não: a conversa normal (a diária do Bira, a lista do Zé...). Se o item for material de um
 //   serviço aceito ou pedido por outro recado aceito, a pergunta avisa antes ("Você vai precisar de 4 madeiras para consertar a cerca
 //   da Dona Zélia..."). Só no mapa do morador (o Lourival do alto-mar não recebe);

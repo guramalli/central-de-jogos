@@ -4,7 +4,7 @@
 
 const VARAS = ['vara', 'vara_boa', 'molinete'];
 const LINHA = { ESPERA: [2, 8], JANELA: 1, VEL_FORCA: 1.4, CUSTO: 3 };
-INICIADORES.push(s => { const p = s.pesca || {}; G.pesca = { covos: (p.covos || []).map(c => Object.assign({}, c)), lendarios: (p.lendarios || []).slice(), varaDada: !!p.varaDada, dicaLendario: p.dicaLendario || 0 }; G.linha = null; if (G.jog) G.jog.pescando = false; });
+INICIADORES.push(s => { const p = s.pesca || {}; G.pesca = { covos: (p.covos || []).map(c => Object.assign({}, c)), lendarios: (p.lendarios || []).slice(), varaDada: !!p.varaDada, dicaLendario: p.dicaLendario || 0, serra: (p.serra || []).slice() }; G.linha = null; if (G.jog) G.jog.pescando = false; });
 COLETORES.push(s => { s.pesca = JSON.parse(JSON.stringify(G.pesca)); });
 
 // Água de pesca: mar ou rio dentro do mapa, fora das tábuas do píer e da ponte da mata (por baixo delas o chão é água).
@@ -13,17 +13,21 @@ function naPonte(b, x, y) {
   if (b.id === 'praia' && typeof PRAIA !== 'undefined') return x >= PRAIA.PIER_X && x < PRAIA.PIER_X + 2 && y >= PRAIA.MAR_Y && y <= PRAIA.PIER_FIM;
   if (b.id === 'alto_mar' && typeof ALTO !== 'undefined') { const C = ALTO.CONVES; return x >= C.x && x < C.x + C.w && y >= C.y && y < C.y + C.h; }
   if (b.id === 'mata' && typeof MATA !== 'undefined') return x >= MATA.PONTE_X && x < MATA.PONTE_X + 2 && y >= MATA.RIO_Y && y < MATA.RIO_Y + MATA.RIO_ALTURA;
+  if (b.id === 'serra' && typeof SERRA !== 'undefined') return naSerraR(SERRA.PINGUELA, x, y);   // (T4 da mata) a pinguela: o tronco por cima do rio
   return false;
 }
 const aguaDePesca = (b, x, y) => dentroMapa(b, x, y) && b.ehAgua(x, y) && !naPonte(b, x, y);
 function localDaPesca(b, tx, ty) {
   if (!aguaDePesca(b, tx, ty)) return '';
   if (b.id === 'alto_mar') return 'alto';
+  if (b.id === 'serra') return 'serra';   // (T4 da mata) o rio da serra, os poções e o poço da Cachoeira Grande
   return b.chaoEm(tx, ty) === CH.RIO ? 'rio' : 'mar';
 }
-// Fundo: a boia a 3+ ladrilhos de chão que não é água (a ponta do píer); no rio da mata, o poço da cachoeira (x ≤ 7).
+// Fundo: a boia a 3+ ladrilhos de chão que não é água (a ponta do píer); no rio da mata, o poço da cachoeira (x ≤ 7); na serra, só o
+// poço da Cachoeira Grande (SERRA.POCO: o rio e os poções são rasos).
 function ehFundo(b, tx, ty) {
   if (b.id === 'mata' && tx <= 7) return true;
+  if (b.id === 'serra') return typeof SERRA !== 'undefined' && naSerraR(SERRA.POCO, tx, ty) && aguaDePesca(b, tx, ty);
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const x = tx + dx, y = ty + dy; if (dentroMapa(b, x, y) && !aguaDePesca(b, x, y)) return false; }   // além da borda o mar continua
   return true;
 }
@@ -79,6 +83,8 @@ function lancar() {
   const ligeira = typeof Habilidades !== 'undefined' && Habilidades.ganho('mordida_ligeira') ? ECO.niveis.mordida : 1;
   const espera = isca === 'isca_boa' ? ECO.niveis.iscaBoa.espera : (LINHA.ESPERA[0] + Math.random() * (LINHA.ESPERA[1] - LINHA.ESPERA[0])) * (isca ? 0.5 : 1) * ligeira;
   Object.assign(L, { fase: 'esperando', tx, ty, local, fundo: ehFundo(b, tx, ty), cardume: typeof cardumeEm === 'function' && cardumeEm(tx, ty), isca, espera, t: 0, px: G.jog.x, py: G.jog.y });
+  // (T4 da mata) A 1ª boia no poço da Cachoeira Grande: a seta da pesca da serra some, e o aviso diz o porquê do poço.
+  if (local === 'serra' && L.fundo && G.limpou && !G.limpou.pesca_serra) { G.limpou.pesca_serra = 1; avisar(FALA_POCO_SERRA); }
   sons.tocar('agua', 1.2, 0.05, -6);
 }
 function fisgarAgora() {
@@ -100,8 +106,11 @@ function fisgarAgora() {
 function pegouPeixe(id, est, lendario) {
   const qtd = 1 + (est.perfeita && !lendario ? 1 : 0), sobra = G.mochila.adicionar(id, qtd);
   if (sobra) soltar(id, sobra, G.jog.x, G.jog.y);
+  // (T4 da mata) O 1º de cada peixe da serra: o aviso conta o que ele é (uma vez só); a lista vai para a linha da Caderneta.
+  const novoDaSerra = PEIXES_SERRA.includes(id) && G.pesca.serra && !G.pesca.serra.includes(id);
+  if (novoDaSerra) G.pesca.serra.push(id);
   if (lendario) { G.pesca.lendarios.push(id); sons.tocar('fanfarra', 1, 0, -4); avisar(`LENDÁRIO! ${Itens.nome(id)}!`); }
-  else avisar(`${est.perfeita ? 'Perfeito! ' : ''}+ ${Itens.qtd(qtd, id)}`);
+  else avisar(`${est.perfeita ? 'Perfeito! ' : ''}+ ${Itens.qtd(qtd, id)}${novoDaSerra && FALA_PEIXE_SERRA[id] ? '. ' + FALA_PEIXE_SERRA[id] : ''}`);
   if (typeof Habilidades !== 'undefined' && 'pesca' in G.hab.xp) Habilidades.ganhar('pesca', Pesca.xp(id, est.perfeita, lendario));
   if (est.bau && est.bau.pego && typeof abrirBauPesca === 'function') abrirBauPesca();
   sons.tocar('pegar', 1, 0.05, -4); hudSujo();
@@ -248,7 +257,7 @@ function minhocaAoCavar(alvo, rng = Math.random) { if (rng() < chanceMinhoca()) 
 const margem = (b, x, y) => aguaDePesca(b, x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => dentroMapa(b, x + dx, y + dy) && !b.ehAgua(x + dx, y + dy));
 function covoNoChao(t) {
   const b = G.mapa; if (!b || itemDaMao() !== 'covo') return false;
-  if (!['praia', 'mata'].includes(b.id)) { avisar('O covo vai na água da praia ou do rio.'); return true; }
+  if (!['praia', 'mata', 'serra'].includes(b.id)) { avisar('O covo vai na água da praia ou do rio.'); return true; }
   const p = G.jog.ladrilho(); if (Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) > 1) { avisar('Chegue mais perto.'); return true; }
   if (!margem(b, t.x, t.y) || b.ocupado.has(chaveT(t.x, t.y))) { avisar('O covo vai na água, encostado na margem.'); return true; }
   G.pesca.covos.push({ mapa: b.id, x: t.x, y: t.y, isca: false, dentro: null }); G.mochila.remover('covo', 1);
@@ -265,15 +274,57 @@ function poeCovos(b) {
 }
 function acaoNoCovo(o) {
   const c = o.covo;
-  if (c.dentro) { const s = G.mochila.adicionar(c.dentro.id, c.dentro.qtd); if (s) soltar(c.dentro.id, s, G.jog.x, G.jog.y); avisar('+ ' + Itens.qtd(c.dentro.qtd, c.dentro.id)); Habilidades.ganhar('pesca', 3 * c.dentro.qtd); c.dentro = null; hudSujo(); return true; }
+  if (c.dentro) { const s = G.mochila.adicionar(c.dentro.id, c.dentro.qtd); if (s) soltar(c.dentro.id, s, G.jog.x, G.jog.y);
+    const novo = PEIXES_SERRA.includes(c.dentro.id) && G.pesca.serra && !G.pesca.serra.includes(c.dentro.id); if (novo) G.pesca.serra.push(c.dentro.id);   // (T4 da mata) o pitu do covo conta
+    avisar('+ ' + Itens.qtd(c.dentro.qtd, c.dentro.id) + (novo && FALA_PEIXE_SERRA[c.dentro.id] ? '. ' + FALA_PEIXE_SERRA[c.dentro.id] : '')); Habilidades.ganhar('pesca', 3 * c.dentro.qtd); c.dentro = null; hudSujo(); return true; }
   if (c.isca || Habilidades.tem('isqueiro')) { abrirPlaca('O covo está iscado. Volte amanhã cedo.'); return true; }
   const isca = G.mochila.total('isca') ? 'isca' : G.mochila.total('minhoca') ? 'minhoca' : '';
   if (!isca) { abrirPlaca('O covo está vazio e sem isca. A banca do Lourival vende isca.'); return true; }
   G.mochila.remover(isca, 1); c.isca = true; sons.tocar('agua', 1.1, 0.05, -6); avisar('Covo iscado.'); hudSujo(); return true;
 }
-MANHA.push(() => { for (const c of G.pesca.covos) if (!c.dentro && (c.isca || Habilidades.tem('isqueiro'))) { c.dentro = Pesca.covoManha(c.mapa === 'mata' ? 'rio' : 'mar')[0]; c.isca = false; } });
-AO_MONTAR.push(b => { if (b.id === 'praia' || b.id === 'mata') poeCovos(b); });
+MANHA.push(() => { for (const c of G.pesca.covos) if (!c.dentro && (c.isca || Habilidades.tem('isqueiro'))) { c.dentro = Pesca.covoManha(c.mapa === 'mata' ? 'rio' : c.mapa === 'serra' ? 'serra' : 'mar')[0]; c.isca = false; } });
+AO_MONTAR.push(b => { if (b.id === 'praia' || b.id === 'mata' || b.id === 'serra') poeCovos(b); });
 TAREFAS.push(() => { const n = G.pesca ? G.pesca.covos.filter(c => c.dentro).length : 0; return n ? [{ texto: `Pesca: ${n} ${n === 1 ? 'covo tem' : 'covos têm'} coisa dentro` }] : []; });
+
+// ---------- (T4 da mata) a pesca da serra: a 1ª vez no poço, o 1º de cada peixe e a linha da Caderneta ----------
+// Como o Stardew (a coleção de peixes do menu, com o lugar, a estação e a hora de cada um): os 6 da serra, um de cada vez, com o
+// porquê de onde e quando ele morde. O lambari e a traíra são do rio da mata e não contam aqui.
+const PEIXES_SERRA = ['acara', 'jundia', 'mucum', 'tabarana', 'pitu', 'tabarana_ouro'];
+const FALA_PEIXE_SERRA = { acara: 'Acará: o peixe manso do rio da serra.', jundia: 'Jundiá: o bagre da serra, que só sai de noite.',
+  mucum: 'Muçum! Parece cobra, mas é peixe: só sai com chuva.', tabarana: 'Tabarana! A brava do poço da cachoeira: a Rosa vai querer.',
+  pitu: 'Pitu: o camarão de água doce da serra. A Rosa usa na cozinha.' };
+const QUANDO_PEIXE_SERRA = { acara: 'o acará: de dia, no rio da serra', jundia: 'o jundiá: de noite, no rio da serra', mucum: 'o muçum: com chuva, no outono e no inverno',
+  tabarana: 'a tabarana: no poço da Cachoeira Grande, na primavera e no verão', pitu: 'o pitu: de noite no anzol, ou no covo do rio da serra',
+  tabarana_ouro: 'a lendária, a Tabarana-de-Ouro: o Seu Lourival sabe quando ela sobe' };
+const FALA_POCO_SERRA = 'O poço da Cachoeira Grande é fundo: a tabarana só morde aqui.';
+const FRASE_PESCA_SERRA = 'O poço da cachoeira é fundo: a tabarana só morde aqui. Com a vara na mão, jogue a boia no poço';
+const PONTO_POCO_SERRA = () => ({ x: (SERRA.POCO.x + 1.5) * TILE, y: (SERRA.POCO.y + 1) * TILE });   // a água do poço, ao lado do fim da trilha de oeste
+// A 1ª pescaria na serra (toda 1ª vez tem seta + frase): com a vara na mochila e a cachoeira já conhecida, a seta vai no poço; some na
+// 1ª boia que cai nele (lancar). Vem depois das setas da pinguela, da cachoeira e do 1º achado (guia_setas.js).
+function alvoDaPescaDaSerra() {
+  if (G.mapaId !== 'serra' || !G.mapa || !G.jog || !G.limpou || !G.limpou.serra_cachoeira || G.limpou.pesca_serra || typeof SERRA === 'undefined') return null;
+  if (!VARAS.some(v => G.mochila.total(v) > 0)) return null;
+  return { mapa: 'serra', ponto: PONTO_POCO_SERRA(), rotuloFixo: FRASE_PESCA_SERRA };
+}
+// O próximo peixe da serra que falta: o primeiro que dá para pegar nesta estação (o muçum só no outono e no inverno; a tabarana na
+// primavera e no verão; a lendária só no verão), senão o primeiro que falta.
+function proximoPeixeDaSerra() {
+  const falta = PEIXES_SERRA.filter(id => !(G.pesca.serra || []).includes(id) && !G.pesca.lendarios.includes(id)), est = _estPesca(G.dia);
+  const daEstacao = id => { const p = LUGARES_PESCA.serra.find(x => x.id === id) || LENDARIOS[id]; return !p || p.est.includes(est); };
+  return falta.find(daEstacao) || falta[0] || '';
+}
+addEventListener('load', () => {
+  if (typeof CADERNETA === 'undefined') return;
+  CADERNETA.push(() => {
+    if (typeof Mundo === 'undefined' || !Mundo.aberto('serra') || !G.limpou || !G.limpou.serra_cachoeira || !G.pesca) return [];
+    const ja = PEIXES_SERRA.filter(id => (G.pesca.serra || []).includes(id) || G.pesca.lendarios.includes(id)).length, prox = proximoPeixeDaSerra();
+    if (!prox) return [];
+    return [{ id: 'serra_pesca', aba: 'vila', texto: `Os peixes da Mata da Serra: ${ja} de ${PEIXES_SERRA.length} pegos. Falta ${QUANDO_PEIXE_SERRA[prox]}`, feito: ja, meta: PEIXES_SERRA.length,
+      alvo: () => G.mapaId === 'serra' ? { mapa: 'serra', ponto: ['tabarana', 'tabarana_ouro'].includes(prox) ? PONTO_POCO_SERRA() : { x: 21.5 * TILE, y: (SERRA.RIO_Y + 1) * TILE } }
+        : G.mapaId === 'mata' ? { mapa: 'mata', ponto: { x: 27 * TILE, y: 22 * TILE } } : { mapa: 'mata' },
+      rotulo: 'Com a vara na mão: jogue a boia aqui' }];
+  });
+});
 
 
 function abrirBauPesca() {
@@ -285,22 +336,25 @@ function abrirBauPesca() {
 function entregarLendarioARosa() {
   const id = Object.keys(LENDARIOS).find(k => G.mochila.total(k) > 0); if (!id) return false;
   G.mochila.remover(id, 1); if (G.pensao) G.pensao.curtidas += 10; hudSujo(); sons.tocar('fanfarra', 1, 0, -4);
-  abrirConversa('Rosa', urlArte('retratos/rosa_alegre'), [`Jocelino! Um ${Itens.nome(id)}?! A Vila inteira vai querer ver!`, 'Vou contar pra todo freguês. A pensão ficou mais famosa (+10 curtidas).']);
+  const um = ['tainha_rainha', 'traira_velha', 'tabarana_ouro'].includes(id) ? 'Uma' : 'Um';   // (T4 da mata) as lendárias
+  abrirConversa('Rosa', urlArte('retratos/rosa_alegre'), [`Jocelino! ${um} ${Itens.nome(id)}?! A Vila inteira vai querer ver!`, 'Vou contar pra todo freguês. A pensão ficou mais famosa (+10 curtidas).']);
   return true;
 }
 ANTES_DE_CONVERSAR.push(p => p.id === 'rosa' && entregarLendarioARosa());   // a Rosa do quintal e a do salão
-function conversaPadrao(p) { const f = FALAS[p.id], pg = typeof f === 'function' ? f() : (f || ['Bom dia, Jocelino!']); abrirConversa(p.nome, urlArte('retratos/' + p.id + '_normal'), Array.isArray(pg[0]) ? pg[0] : pg); }
+function conversaPadrao(p) { return Conversas.abrir(p); }   // (T2 das conversas) o motor de falas (conversas.js)
 // O Lourival dá a dica de um lendário que falta, um por semana.
 const DICAS_LENDARIO = { tainha_rainha: 'Dizem que no inverno, com chuva, a Tainha-Rainha passa no fundo da praia.', robalo_flecha: 'O Robalo-Flecha só aparece no verão, no fim da tarde, lá da ponta do píer.',
   bagre_assombrado: 'Tem um bagre no rio da mata que só morde depois da meia-noite. Assombrado, juram.', traira_velha: 'A Traíra-Velha mora no poço da cachoeira. Na primavera, com chuva, ela sai.',
-  mero: 'Há 30 anos eu caço o mero lá no alto-mar. No outono, em cima de cardume... um dia a gente pega.' };
-function dicaDoLourival() { const falta = Object.keys(DICAS_LENDARIO).filter(k => !G.pesca.lendarios.includes(k)); return falta.length ? DICAS_LENDARIO[falta[Math.floor(G.dia / 7) % falta.length]] : ''; }
+  mero: 'Há 30 anos eu caço o mero lá no alto-mar. No outono, em cima de cardume... um dia a gente pega.',
+  tabarana_ouro: 'No verão, de manhã, com chuva, a Tabarana-de-Ouro sobe a cachoeira. Lá na serra, no poço da Cachoeira Grande.' };
+// (T4 da mata) A dica da lendária da serra só depois que a serra abre (antes, o lugar nem existe para o jogador). O mateiro (T6)
+// conta a mesma: dicaDoLendario('tabarana_ouro').
+const dicaDoLendario = id => G.pesca && G.pesca.lendarios.includes(id) ? '' : DICAS_LENDARIO[id] || '';
+function dicaDoLourival() { const falta = Object.keys(DICAS_LENDARIO).filter(k => !G.pesca.lendarios.includes(k) && (k !== 'tabarana_ouro' || (typeof Mundo !== 'undefined' && Mundo.aberto('serra')))); return falta.length ? DICAS_LENDARIO[falta[Math.floor(G.dia / 7) % falta.length]] : ''; }
 
 function conversarLourival(p) {
-  const f = FALAS.lourival, pg = typeof f === 'function' ? f() : f, fala = (Array.isArray(pg[0]) ? pg[0] : pg).slice(), dica = dicaDoLourival();
-  if (dica) fala.push(dica);
-  abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), fala, typeof ofertaAltoMar === 'function' ? () => ofertaAltoMar() : null);
-  return true;
+  const dica = dicaDoLourival();   // (T2 das conversas) a fala do dia vem do motor de falas; a dica do lendário vai no fim
+  return Conversas.abrir(p || 'lourival', { nome: 'Seu Lourival', mais: dica ? [dica] : [], depois: typeof ofertaAltoMar === 'function' ? () => ofertaAltoMar() : null });
 }
 
 

@@ -1,9 +1,10 @@
-// Jocelino — eventos.js — a agenda da pensão (os VIPs, as festas e os pedidos do Dave the Diver, do nosso jeito):
+// Jocelino — eventos.js — a agenda da pensão (os VIPs e as festas do Dave the Diver, do nosso jeito):
 // - Cliente especial: chega numa noite marcada (carta na véspera), pede um prato certo; servido, dá prêmio (dinheiro,
 //   curtidas, pitadas) e uma frase; se não tiver o prato, vai embora decepcionado.
 // - Festa: noite temática anunciada por carta (Noite do PF, Arraiá da Pensão...): o prato tema paga 50% mais, vem mais
 //   gente e o salão ganha bandeirinhas; o prato tema leva a fitinha no cardápio da parede.
-// - Pedido da Vila: no quadro de pedidos da Vila ("A Zélia quer 3 PFs até sábado"); conta os pratos servidos na janta.
+// (16/10, E2 das encomendas de festa) Os "pedidos da Vila" da agenda ("A Zélia quer 3 PFs até sábado") saíram: no lugar deles, um
+// morador marca a festa dele na pensão (encomendas.js). O save antigo com pedido aberto é migrado lá (paga a parte já servida).
 
 const VIPS = [
   { id: 'aurelio', nome: 'Seu Aurélio, crítico da Gazeta', gosta: ['moqueca', 'caldo_caranguejo', 'peixe_frito', 'pf_peao'], premio: { dinheiro: 60, curtidas: 15, pitadas: 2 },
@@ -34,19 +35,20 @@ const TEXTO_FUNCAO = { geladeira: 'uma geladeira para a pensão (libera a cervej
 const AVISO_DIAS = 3;
 // O dia do evento avisado hoje: daqui a 3 dias (domingo a pensão fecha: fica para segunda).
 const diaDoAviso = dia => { let d = dia + AVISO_DIAS; if ((d - 1) % 7 === 6) d++; return d; };
-const QUEM_PEDE = ['Dona Zélia', 'Mestre Bira', 'o Zé da masseira', 'Seu Ananias', 'Seu Tonico', 'a Ritinha'];
 const DIAS = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
 
 const Eventos = {
-  // Planeja os eventos do dia seguinte (chamado de manhã): VIP a cada ~5 dias, festa a cada 7, até 2 pedidos abertos.
-  planejar(p, dia, rng) {
+  // Planeja os eventos (chamado de manhã; a carta chega 3 dias antes): VIP a cada ~5 dias abertos, festa a cada 7. Sem sorteio: as
+  // encomendas de festa têm o sorteio delas (Encomendas.planejar).
+  planejar(p, dia) {
     if (p.estado !== 'aberta' && p.estado !== 'pronta') return [];
     p.agenda = p.agenda || [];
     const novos = [], desde = dia - (p.abreDia > 0 ? p.abreDia : dia);
     const amanha = diaDoAviso(dia);                               // a carta chega 3 dias antes
     const marcado = tipo => p.agenda.some(e => e.tipo === tipo && e.dia === amanha);
     if (desde >= 2 && desde % 5 === 2 && !marcado('vip')) {
-      const v = VIPS[Math.floor(desde / 5) % VIPS.length], ok = v.gosta.filter(id => p.receitas.includes(id));
+      // (T6 da mata) o VIP de uma vez por estação (o Nhô Quim, serra_jogo.js) fica fora do rodízio: o rodízio é o de sempre
+      const rodizio = VIPS.filter(x => !x.porEstacao), v = rodizio[Math.floor(desde / 5) % rodizio.length], ok = v.gosta.filter(id => p.receitas.includes(id));
       // Ele pede a receita com o nome dele quando a pensão já aceita os ingredientes; a carta traz a receita para o caderno.
       const rv = receitaDoVip(v.id), da = rv && Object.keys(Pratos.PRATOS[rv].porcao).every(i => i === 'peixe' || p.aceita(i));
       if (da) p.liberarReceita(rv);
@@ -56,12 +58,8 @@ const Eventos = {
       const f = FESTAS[Math.floor(desde / 7) % FESTAS.length], ok = f.pratos.filter(id => p.receitas.includes(id));
       novos.push({ tipo: 'festa', nome: f.nome, dia: amanha, avisado: dia, prato: ok.length ? ok[0] : p.receitas[0], categoria: f.categoria || '' });
     }
-    if (p.agenda.filter(e => e.tipo === 'pedido' && !e.fim).length < 2 && rng.randf() < 0.6) {
-      const prato = p.receitas[rng.randi() % p.receitas.length], qtd = 2 + rng.randi() % 3;
-      novos.push({ tipo: 'pedido', quem: QUEM_PEDE[rng.randi() % QUEM_PEDE.length], prato, qtd, feito: 0, ate: dia + 3 + qtd, premio: qtd * 12 + 10 });
-    }
     p.agenda.push(...novos);
-    p.agenda = p.agenda.filter(e => !(e.fim && e.dia !== undefined && e.dia < dia - 1) && !(e.fim && e.ate < dia - 2));
+    p.agenda = p.agenda.filter(e => !(e.fim && e.dia !== undefined && e.dia < dia - 1));   // (os terminados há mais de 1 dia)
     return novos;
   },
   // O VIP bem servido dá um prêmio de função (o primeiro da lista dele que a pensão ainda não tem).
@@ -76,17 +74,6 @@ const Eventos = {
   // De manhã: o galinheiro bota 3 ovos na despensa.
   manhaDosPremios(p) { if (!(p.premios || []).includes('galinheiro')) return 0; p.despensa.ovo = (p.despensa.ovo || 0) + 3; return 3; },
   hoje(p, dia, tipo) { return (p.agenda || []).find(e => e.tipo === tipo && e.dia === dia && !e.fim); },
-  // Depois da janta: os pratos servidos contam nos pedidos; os vencidos fecham. Devolve os pedidos cumpridos hoje.
-  depoisDaJanta(p, rel, dia) {
-    const feitos = [];
-    for (const e of p.agenda || []) {
-      if (e.tipo !== 'pedido' || e.fim) continue;
-      e.feito = Math.min(e.qtd, e.feito + ((rel.pratos || {})[e.prato] || 0));
-      if (e.feito >= e.qtd) { e.fim = 'feito'; feitos.push(e); }
-      else if (dia > e.ate) e.fim = 'venceu';
-    }
-    return feitos;
-  },
 };
 const vipDe = id => VIPS.find(v => v.id === id);
 // A receita com o nome do VIP (ele ensina quando é bem servido).
@@ -182,13 +169,11 @@ function abrirViajante() {
 MANHA.push(() => {
   const p = G.pensao;
   if (!p) return;
-  for (const e of p.agenda || []) if (!e.fim && ((e.tipo === 'pedido' && G.dia > e.ate) || (e.tipo !== 'pedido' && e.dia < G.dia))) e.fim = e.tipo === 'pedido' ? 'venceu' : 'passou';
+  for (const e of p.agenda || []) if (!e.fim && e.dia < G.dia) e.fim = 'passou';
   const ovos = Eventos.manhaDosPremios(p); if (ovos) G.feitosHoje.push(`O galinheiro botou ${ovos} ovos: já estão na despensa da Rosa.`);
-  const f = mulberry(G.dia * 433), rng = { randf: f, randi: () => Math.floor(f() * 4294967296) };
-  for (const e of Eventos.planejar(p, G.dia, rng)) {
+  for (const e of Eventos.planejar(p, G.dia)) {
     if (e.tipo === 'vip') { const v = vipDe(e.id); CARTAS['vip_' + G.dia] = { de: v.nome, dia: 1e9, texto: v.carta.replace('amanhã', `na ${DIAS[(e.dia - 1) % 7]}`) + `\n\n(Ele vai pedir: ${Pratos.PRATOS[e.prato].nome}.` + (e.ensinou ? ' A receita com o nome dele veio junto: a Rosa já anotou no caderno. Junte os ingredientes!)' : ')') }; G.correio.caixa.push('vip_' + G.dia); }
     else if (e.tipo === 'festa') { CARTAS['festa_' + G.dia] = { de: 'Rosa', dia: 1e9, texto: `Amor, na ${DIAS[(e.dia - 1) % 7]} é a ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}${e.categoria ? ` (e todo ${CATEGORIAS[e.categoria].toLowerCase()} vale mais)` : ''}: vale 50% mais e vem mais gente. Enche a despensa!` }; G.correio.caixa.push('festa_' + G.dia); }
-    else if (e.tipo === 'pedido') G.feitosHoje.push(`Pedido novo no quadro da Vila: ${e.quem} quer ${e.qtd} ${Pratos.PRATOS[e.prato].nome}.`);
   }
 });
 // As cartas da agenda voltam ao recarregar (o texto é refeito pela agenda).
@@ -207,13 +192,5 @@ TAREFAS.push(() => {
   const v = Eventos.hoje(p, G.dia, 'vip'), f = Eventos.hoje(p, G.dia, 'festa');
   if (v) r.push({ texto: `Hoje janta ${vipDe(v.id).nome}: quer ${Pratos.PRATOS[v.prato].nome}`, mapa: 'pensao', urgente: true });
   if (f) r.push({ texto: `Hoje é a ${f.nome}: ${Pratos.PRATOS[f.prato].nome} vale mais`, mapa: 'pensao', urgente: true });
-  for (const e of p.agenda || []) if (e.tipo === 'pedido' && !e.fim) r.push({ texto: `${e.quem}: ${Pratos.PRATOS[e.prato].nome} até ${DIAS[(e.ate - 1) % 7]}`, feito: e.feito, meta: e.qtd, mapa: 'pensao' });
   return r;
 });
-// O quadro de pedidos da Vila mostra os pedidos.
-function abrirQuadroPedidos() {
-  const p = G.pensao, ps = ((p && p.agenda) || []).filter(e => e.tipo === 'pedido' && !e.fim);
-  if (!p || p.estado !== 'aberta') { abrirPlaca('O quadro de pedidos da Vila. Quando a pensão abrir, o povo deixa encomenda aqui.'); return true; }
-  abrirPlaca(ps.length ? ps.map(e => `${e.quem} quer ${e.qtd} ${Pratos.PRATOS[e.prato].nome} até ${DIAS[(e.ate - 1) % 7]} (${e.feito}/${e.qtd}). Prêmio: Cr$ ${e.premio}.`).join('\n\n') : 'Nenhum pedido agora. Volte amanhã!', { quem: 'Quadro de pedidos da Vila' });
-  return true;
-}

@@ -249,7 +249,7 @@ function abrirFechamento(r, opc = {}) {
     // (15/10, a clareza) o que é cada número, no "(?)" ao lado do botão (fechado, não ocupa linha a mais)
     el('div', { class: 'fx-pe' }, linhaAjuda('fechamento', 'Lucro = receita − despesa − salários.', [
       `Nota da noite: a média das estrelas de quem comeu (1 a 5). ${GLOSSARIO.curtida}`, GLOSSARIO.pitada,
-      'Receita: pratos + bebidas + gorjetas + prêmios (cliente especial, pedidos da Vila e metas).',
+      'Receita: pratos + bebidas + gorjetas + prêmios (cliente especial e metas).',
       GLOSSARIO.despesa + ' Salários: o da equipe, por noite (na reserva, meio salário).',
       'Da despensa: os ingredientes que as panelas da noite levaram (já estavam pagos: não saem do lucro). No lixo: a sobra da panela e os pratos perdidos.',
       'O gráfico: o lucro das últimas noites (a de hoje acesa); a frase compara com a noite anterior.',
@@ -271,7 +271,8 @@ function famaDoFechamento(r, p, linha) {
       linha('Curtidas', `+${r.curtidas || 0} (total ${p.curtidas})`), linha('Pitadas de tempero', `+${r.pitadasGanhas || 0} (total ${p.pitadas})`),
       ...(r.metasFeitas || []).map(m => linha('Meta cumprida', m.texto, 'lucro largo')),
       ...(r.aprendidas || []).map(id => linha('Receita nova', Pratos.PRATOS[id].nome, 'lucro')),
-      ...(r.favoritos || []).map(id => linha('Prato favorito servido', `${(Clientela.dado(id) || { nome: id }).nome} (+1 ❤)`, 'lucro')),
+      ...(r.favoritos || []).map(id => { const am = typeof Amizade !== 'undefined' ? Amizade.texto(id, 'janta') : '';   // (T1) a família sem número
+        return linha('Prato favorito servido', `${(Clientela.dado(id) || { nome: id }).nome}${am ? ` (${am})` : ''}`, 'lucro'); }),
       r.ritinha ? linha('A Ritinha no caixa', `+Cr$ ${r.ritinha} de gorjeta`, 'lucro') : null,
       r.premioFuncao ? linha('Presente do cliente especial', TEXTO_FUNCAO[r.premioFuncao], 'lucro largo') : null,
       r.paladar ? el('div', { class: 'fx-linha fx-paladar largo' }, el('img', { class: 'fx-retrato', src: urlArte('retratos/paladar_' + (r.paladar >= 4 ? 'alegre' : 'normal')) }),

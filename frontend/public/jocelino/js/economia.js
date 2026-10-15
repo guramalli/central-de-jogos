@@ -16,8 +16,11 @@ const ECO = {
     mandioca_frita: 8, sopa_legumes: 6, pure_abobora: 6 },
   porcoesPadrao: 4,
   cafeBoasVindas: 1.3,    // cafezinho na medida antes do prato: +30% no preço
-  // Caprichar (o Enhance do Bancho): +60% do preço base por nível (o Dave dá +30%); porções +50% no nível 10.
-  precoPorNivel: 0.6, porcoesNivel10: 0.5,
+  // Caprichar (o Enhance do Bancho): +52% do preço base por nível (o Dave dá +30%); porções +50% no nível 10. (16/10, o gasto por
+  // prato: era +60%; com os pratos da horta mais caros, o jogador do modelo capricha a mandioca frita e o purê, e a pensão passava
+  // do teto de 1,27 × a obra no meio do ano 2. Com +52%, 1,20, e as 5 estrelas no alvo: o relatório de 16/10 tem a tabela. Rodada 1:
+  // com +60% e o capricho da mandioca mais caro o teto fecha, mas o jogador devagar não chega à 5ª estrela; ficou +52%.)
+  precoPorNivel: 0.52, porcoesNivel10: 0.5,
   // A Rosa como chef: experiência por prato que sai, que sobe 1,35× por nível; preparo 4% mais rápido por nível.
   chef: { xpBase: 40, xpCresce: 1.35, preparoPorNivel: 0.04 },
   taxaContratacao: 0.5,   // taxa de contratação = soma dos atributos × isto
@@ -49,6 +52,10 @@ const ECO = {
     // (Tarefa 4) Ela não se vende (saiu da caixa, ECO.caixa): a fornada custa Cr$ 1 por marmita na mercearia, e comida feita em
     // casa vale menos que os ingredientes (o crivo do Stardew), então o preço seria 0. A marmita é energia (e +3 no humor dos peões).
     marmita: { porDia: 2, gasta: { arroz: 1, feijao: 1 } },
+    // (16/10, decisão do dono: "gasto por prato", como no Dave) A panela gasta da despensa, de cada ingrediente, a porção da receita ×
+    // as porções base da panela (ECO.porcoes) × isto, para cima (Pensao.gasto): o PF que rende 4 gasta 2 de arroz, 2 de feijão e 2 de
+    // ovo. As porções a mais do capricho, do freezer e do ingrediente da casa não gastam; a pedra da sopa é 1 por panela.
+    gastoPorPorcao: 0.5,
     // (14/10, o salão do Dave) A rotatividade: entre uma chegada e a próxima passa um intervalo sorteado em `chegada` (s de jogo); o
     // banco que acabou de vagar descansa `folgaBanco` s antes de outro sentar nele; `avulsos` é a parte da fila feita de fregueses
     // de fora (os clientes avulsos); o ajudante de salão leva `bebidaAjudante` s para encher a bebida no bebedouro (o funcionário
@@ -93,7 +100,7 @@ const ECO = {
         pure_abobora: 5, virado: 6, cuscuz: 5, bolinho_chuva: 5, canjica: 4, marmita_peao: 6, pamonha: 5, goiabada: 4, bolo_milho: 4,
         sardinha_frita: 6, lambari_crocante: 6, peixe_ensopado: 7, casquinha_siri: 6, caldo_caranguejo: 6, escondidinho: 7, caldo_peixe: 6,
         pirao: 5, moqueca: 7, moqueca_capixaba: 7, lagosta_manteiga: 6, bobo_camarao: 7, peixada: 7, robalo_assado: 7, caldeirada: 7,
-        moqueca_prefeito: 7, caldeirada_critico: 7, doce_leite_calixto: 4, picadinho_santos: 6, arroz_polvo: 6, vatapa: 7 },
+        moqueca_prefeito: 7, caldeirada_critico: 7, doce_leite_calixto: 4, picadinho_santos: 6, arroz_polvo: 6, vatapa: 7, pitu_moranga: 7 },
       MAQUINA: 4, MAQUINA_BEBIDAS: ['guarana', 'caldo_cana'] },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
@@ -134,6 +141,18 @@ const ECO = {
   recados: { diaMin: 2, prazo: 2, maxAtivos: 2, janela: 7, entregasPorColeta: 2, pesoEntrega: 2,
     paga: { ent_couve_zelia: 70, ent_flor_zelia: 45, ent_goiaba_tonico: 55, ent_flor_bira: 45, ent_coco_ze: 30, ent_fibra_ze: 30, ent_madeira_juca: 60, ent_pedra_ananias: 45, ent_alface_ananias: 90,
       ent_tomate_bira: 85, ent_sardinha_lourival: 35, ent_tainha_tonico: 35, ent_cogumelo_juca: 60, col_madeira_ze: 90, col_pedra_tonico: 45, col_fibra_juca: 45 } },
+  // (16/10, as encomendas de festa: a Party Night do Dave com a turma de um morador; encomendas.js e a spec
+  // docs/superpowers/specs/2026-10-16-encomendas-festa-design.md, seção 5) O "degrau" aqui é o das estrelas da casa (o grau − 1):
+  // começa na 2ª estrela (Pensão Falada, 4 banquetas), com a pensão aberta há 7 dias; a próxima noite de festa sai de 6 a 11 dias
+  // depois da última; o mesmo morador só faz outra depois de 28 dias. A turma (contando o anfitrião) por estrela, +1 com o salão
+  // maior; sempre sobram 2 banquetas para os fregueses comuns. O aviso sai 1 + a dificuldade do prato dias antes (de 1 a 4). Com a
+  // despensa abaixo de metade da turma, a festa fica pra próxima. A ponta reservada às 17h45, a turma chega às 18h, paciência × 1,5,
+  // bem servido com 3 estrelas ou mais. Cada prato da turma × 1,3; a conta da turma Cr$ 8 por bem servido (pela metade com a Rosa
+  // sozinha); 1 curtida a mais por bem servido; amizade +60 com o anfitrião, +30 se a turma inteira saiu bem servida.
+  encomendas: { grauMin: 2, diasAbertaMin: 7, intervalo: [6, 11], mesmoMoradorDias: 28,
+    turma: [0, 0, 3, 4, 5, 6], turmaSalaoMaior: 1, livresMin: 2, antecedencia: { base: 1, max: 4 }, minimo: 0.5,
+    reservaDesde: 17 * 60 + 45, chegada: 18 * 60, paciencia: 1.5, bemServido: 3,
+    fator: 1.3, bonus: 8, curtidasBem: 1, amizade: 60, amizadeTodos: 30, rosaSozinhaConta: 0.5 },
   bairro: { casa: [225, 375, 300, 450, 225, 300], comercio: [450, 675, 525, 750, 300], tipos: { simples: 1, boa: 1.4, sobrado: 2 } },
   prefeitura: { paga: { pref_museu: 1250, pref_quadro: 1000, pref_praca: 1125, pref_bueiro: 1500 }, tiao: { contrato: 100, salario: 20, medico: 60 } },
   // ---- O ferreiro, a mina, as melhorias e ampliações da pensão, a equipe.
@@ -173,7 +192,7 @@ const ECO = {
       // a "luxo" do Pierre (24 → 36 por 10.000g, 5× a primeira). A Cr$ 2.500, entre a garrafa e a bicicleta, ela atrasava a
       // máquina de costura no simulador e o devagar não chegava às 5 estrelas (s19). O ícone é a arte dela (`icone`: itens/mochila_couro).
       { id: 'mochila_couro', nome: 'Mochila de couro', preco: 10000, icone: 'mochila_couro', efeito: 'Mochila com 60 espaços: mais uma fileira de 12.' },
-      { id: 'televisao', nome: 'Televisão', preco: 16000, efeito: 'A novela com a família: amizade todo dia.' },
+      { id: 'televisao', nome: 'Televisão', preco: 16000, efeito: 'A novela com a família toda noite.' },
       { id: 'fusca', nome: 'Fusca', preco: 60000, efeito: 'Viagem rápida pelo mapa, a partir do quintal.' },
     ],
     costura: 60, bicicleta: 1.2, fogao: 2, cozinha: 1.5, mochila: 60,
@@ -281,6 +300,7 @@ const ECO = {
   serra: {
     achados: 5,           // achados por dia na Mata da Serra (T5)
     mudas: { preco: 3 },  // a muda nativa do Nhô Quim (T6)
+    aguaDaMina: 34,       // a água da mina da loca (T6): +34 de energia máxima, para sempre (a Estrela do Velho Mestre Cannoli: 270 → 304)
     // "A Mata em Pé" (seção 4.5): os marcos (árvores em pé) e o ganho de cada um.
     mataEmPe: { marcos: { 10: { repoeArvores: 2 }, 25: { achados: 1 }, 50: { maximoArvores: 7 } } },
   },

@@ -10,6 +10,10 @@ const DADOS_PEIXE = {
   cavala: { preco: 30, dif: 70, jeito: 'liso' }, garoupa: { preco: 45, dif: 55, jeito: 'afunda' }, dourado: { preco: 55, dif: 78, jeito: 'misto' },
   camarao: { preco: 25, dif: 40, jeito: 'liso' }, polvo: { preco: 60, dif: 95, jeito: 'afunda' },
   siri: { preco: 15, dif: 25, jeito: 'afunda' },   // vem do covo; aqui só para vender na caixa e na banca
+  // (T4 da mata) A pesca da serra: peixes de água doce dos rios da Mata Atlântica (preço base, antes do ECO.pesca.fator). O pitu
+  // (o camarão de água doce) também vem do covo do rio da serra.
+  acara: { preco: 12, dif: 30, jeito: 'liso' }, jundia: { preco: 22, dif: 50, jeito: 'afunda' }, mucum: { preco: 16, dif: 65, jeito: 'misto' },
+  tabarana: { preco: 40, dif: 70, jeito: 'dardo' }, pitu: { preco: 28, dif: 45, jeito: 'afunda' },
 };
 const TODAS = [0, 1, 2, 3];
 const LUGARES_PESCA = {
@@ -20,6 +24,12 @@ const LUGARES_PESCA = {
     { id: 'traira', est: [2, 3], horas: [6, 26], fundo: true, peso: 2 }],
   alto: [{ id: 'cavala', est: TODAS, horas: [5, 15], peso: 6 }, { id: 'garoupa', est: TODAS, horas: [5, 15], peso: 4 }, { id: 'dourado', est: [2, 3], horas: [5, 15], peso: 3 },
     { id: 'camarao', est: TODAS, horas: [5, 15], peso: 5 }, { id: 'polvo', est: [0, 1], horas: [5, 15], peso: 2 }, { id: 'robalo', est: TODAS, horas: [5, 15], peso: 3 }],
+  // (T4 da mata) O rio da serra, mais acima (como o Stardew: cada lugar com os seus, por estação, hora e chuva). O acará é o de todo
+  // dia; o jundiá e o pitu, de noite; o muçum só com chuva, no outono e no inverno (o bagre do Stardew); a tabarana só no poço da
+  // Cachoeira Grande (o fundo), na primavera e no verão. O lambari e a traíra também sobem até aqui, com peso baixo.
+  serra: [{ id: 'acara', est: TODAS, horas: [6, 19], peso: 6 }, { id: 'jundia', est: TODAS, horas: [18, 26], peso: 4 }, { id: 'mucum', est: [0, 1], horas: [6, 26], chuva: true, peso: 3 },
+    { id: 'tabarana', est: [2, 3], horas: [6, 18], fundo: true, peso: 2 }, { id: 'pitu', est: TODAS, horas: [18, 26], peso: 3 },
+    { id: 'lambari', est: TODAS, horas: [6, 20], peso: 2 }, { id: 'traira', est: [2, 3], horas: [6, 26], fundo: true, peso: 1 }],
 };
 const LENDARIOS = {
   tainha_rainha: { local: 'mar', est: [1], chuva: true, fundo: true, dif: 95, jeito: 'misto', preco: 400 },
@@ -27,9 +37,14 @@ const LENDARIOS = {
   bagre_assombrado: { local: 'rio', est: TODAS, horas: [24, 26], dif: 95, jeito: 'afunda', preco: 450 },
   traira_velha: { local: 'rio', est: [2], chuva: true, fundo: true, dif: 100, jeito: 'dardo', preco: 500 },
   mero: { local: 'alto', est: [0], cardume: true, dif: 110, jeito: 'afunda', preco: 800 },
+  // (T4 da mata) A lendária da serra (a Legend do lago da montanha no Stardew: estação, chuva e um lugar só): no verão, de manhã,
+  // com chuva, no poço da Cachoeira Grande.
+  tabarana_ouro: { local: 'serra', est: [3], horas: [6, 12], chuva: true, fundo: true, dif: 105, jeito: 'dardo', preco: 600 },
 };
 for (const id in LENDARIOS) DADOS_PEIXE[id] = { preco: LENDARIOS[id].preco, dif: LENDARIOS[id].dif, jeito: LENDARIOS[id].jeito };
 const PESCA_LIXO = 0.08, PESCA_LENDARIO = 0.05;
+const COVO_PESCA = { mar: [['siri', 0.35], ['caranguejo', 0.25], ['camarao', 0.2], ['ferro_velho', 0.2]], rio: [['lambari', 0.4], ['cascudo', 0.3], ['ferro_velho', 0.3]],
+  serra: [['pitu', 0.4], ['lambari', 0.3], ['ferro_velho', 0.3]] };
 const _estPesca = dia => Math.floor((dia - 1) / 28) % 4;
 const _hora = min => Math.floor(min / 60);
 
@@ -55,11 +70,12 @@ const Pesca = {
     for (const p of ps) { x -= peso(p); if (x <= 0) return { tipo: 'peixe', id: p.id }; }
     return { tipo: 'peixe', id: ps[0].id };
   },
-  // O covo de manhã (o crab pot do Stardew): praia siri 35, caranguejo 25, camarão 20, lixo 20; rio lambari 40, cascudo 30, lixo 30.
+  // O covo de manhã (o crab pot do Stardew): praia siri 35, caranguejo 25, camarão 20, lixo 20; rio lambari 40, cascudo 30, lixo 30;
+  // (T4 da mata) rio da serra pitu 40, lambari 30, lixo 30 (o lagostim do covo de água doce do Stardew).
   covoManha(local, rng = Math.random) {
-    const T = local === 'rio' ? [['lambari', 0.4], ['cascudo', 0.3], ['ferro_velho', 0.3]] : [['siri', 0.35], ['caranguejo', 0.25], ['camarao', 0.2], ['ferro_velho', 0.2]];
+    const T = COVO_PESCA[local] || COVO_PESCA.mar;
     const H = typeof Habilidades !== 'undefined' ? Habilidades : { tem: () => false };
-    const um = () => { let x = rng(); for (const [id, p] of T) { if (x < p) return id === 'ferro_velho' && H.tem('marinheiro') ? (local === 'rio' ? 'lambari' : 'siri') : id; x -= p; } return T[0][0]; };
+    const um = () => { let x = rng(); for (const [id, p] of T) { if (x < p) return id === 'ferro_velho' && H.tem('marinheiro') ? (local === 'mar' ? 'siri' : 'lambari') : id; x -= p; } return T[0][0]; };
     const id = um(), qtd = H.tem('armadilheiro') && rng() < 0.25 ? 2 : 1;
     return [{ id, qtd }];
   },
@@ -130,11 +146,26 @@ Object.assign(ITENS, {
   isca: { nome: 'Isca', pilha: 99, ferramenta: false, descricao: 'Da banca do Lourival (ou 1 sardinha dá 4, no Fabricar, com Pesca 2). Com a vara boa ou o molinete, o peixe morde mais rápido e o raro aparece mais. Também isca o covo.' },
   isca_boa: { nome: 'Isca boa', pilha: 99, ferramenta: false, descricao: 'Feita com siri (Pesca 8). Com a vara boa ou o molinete: o peixe morde na hora e o raro aparece ainda mais que com a isca. Gasta antes da isca comum.' },
   minhoca: { nome: 'Minhoca', pilha: 99, ferramenta: false, descricao: 'Achada cavando a grama. Serve de isca.' },
-  covo: { nome: 'Covo de siri', pilha: 9, ferramenta: false, descricao: 'Da banca do Lourival (ou do Fabricar, com Pesca 1). Ponha na água da margem com isca: de manhã tem siri, caranguejo ou camarão.' },
+  covo: { nome: 'Covo de siri', pilha: 9, ferramenta: false, descricao: 'Da banca do Lourival (ou do Fabricar, com Pesca 1). Ponha na água da margem com isca: de manhã tem siri, caranguejo ou camarão (no rio da mata, lambari ou cascudo; no rio da serra, pitu).' },
   vara_boa: { nome: 'Vara boa', pilha: 1, ferramenta: true, descricao: 'Da banca do Lourival. Aceita isca.' },
   molinete: { nome: 'Molinete', pilha: 1, ferramenta: true, descricao: 'Do Seu Tonico. Barra de pesca maior e aceita isca.' },
+  // (T4 da mata) Os do rio da serra (a arte é da T2).
+  acara: { nome: 'Acará', pilha: 99, ferramenta: false, energia: 20, descricao: 'Peixe manso do rio da serra, de dia. Botão direito: +20 de energia.' },
+  jundia: { nome: 'Jundiá', pilha: 99, ferramenta: false, energia: 30, descricao: 'O bagre do rio da serra: só morde de noite. Botão direito: +30 de energia.' },
+  mucum: { nome: 'Muçum', pilha: 99, ferramenta: false, energia: 25, descricao: 'Parece cobra, mas é peixe. Sai no rio da serra com chuva, no outono e no inverno. Botão direito: +25 de energia.' },
+  tabarana: { nome: 'Tabarana', pilha: 99, ferramenta: false, energia: 45, descricao: 'Prateada e brava, prima do dourado. Só no poço da Cachoeira Grande, na primavera e no verão. Botão direito: +45 de energia.' },
+  pitu: { nome: 'Pitu', pilha: 99, ferramenta: false, energia: 15, descricao: 'O camarão de água doce da serra: de noite no anzol, ou no covo do rio da serra. A Rosa usa na cozinha.' },
+  tabarana_ouro: { nome: 'Tabarana-de-Ouro', pilha: 9, ferramenta: false, descricao: 'Lendária da serra: subiu a Cachoeira Grande. Leve para a Rosa ver!' },
 });
 for (const id of ['cavala', 'garoupa', 'dourado']) Pratos.INGREDIENTES[id] = { raridade: 3, fase: 3, origem: 'Alto-mar com o Lourival' };
+// (T4 da mata) Na pensão, com a origem "Rio da serra" (o pitu e a tabarana são ★★★). Os peixes entram no "peixe" da pensão (o peixe
+// frito, o pirão...) na ordem do mais comum para o mais raro; o pitu, não: é camarão, para as receitas que pedem pitu (a T6).
+Object.assign(Pratos.INGREDIENTES, {
+  acara: { raridade: 1, fase: 1, origem: 'Rio da serra' }, jundia: { raridade: 2, fase: 2, origem: 'Rio da serra, à noite' },
+  mucum: { raridade: 2, fase: 2, origem: 'Rio da serra, com chuva (outono e inverno)' }, tabarana: { raridade: 3, fase: 4, origem: 'Rio da serra, no poço da cachoeira' },
+  pitu: { raridade: 3, fase: 3, origem: 'Rio da serra (covo, ou à noite)' } });
+for (const [id, depois] of [['acara', 'lambari'], ['jundia', 'tainha'], ['mucum', 'jundia'], ['tabarana', 'traira']])
+  if (!Pratos.PEIXES.includes(id)) Pratos.PEIXES.splice(Pratos.PEIXES.indexOf(depois) + 1, 0, id);
 for (const id of ['camarao', 'polvo']) if (Pratos.INGREDIENTES[id]) Pratos.INGREDIENTES[id].origem += ' e alto-mar com o Lourival';
 for (const id in DADOS_PEIXE) PRECO_CAIXA[id] = Math.round(DADOS_PEIXE[id].preco * ECO.pesca.fator);
 const fatorPeixe = id => !DADOS_PEIXE[id] || typeof Habilidades === 'undefined' ? 1 : Habilidades.tem('mestre_do_pier') ? 1.5 : Habilidades.tem('pescador') ? 1.25 : 1;

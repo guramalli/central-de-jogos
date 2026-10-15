@@ -97,21 +97,37 @@ class Pensao {
     if (id === 'peixe') return Pratos.PEIXES.reduce((n, p) => n + (this.aceita(p) ? (this.despensa[p] || 0) : 0), 0);
     return this.despensa[id] || 0;
   }
-  rende(prato) {
-    const porcao = Pratos.PRATOS[prato].porcao;
+  // (16/10, "os ingredientes da despensa não acabam nunca, de onde vem?": o gasto por prato, como no Dave, onde cada porção
+  // preparada gasta ingrediente) A panela gasta o que rende: de cada ingrediente, a porção da receita × as porções BASE da panela
+  // (ECO.porcoes) × ECO.pensao.gastoPorPorcao, arredondado para cima (o PF: 1 × 4 × 0,5 = 2 de arroz, 2 de feijão e 2 de ovo). As
+  // porções a mais (o capricho até o nível 10, o freezer, o ingrediente da casa) são ganho do jogador: não gastam mais. A pedra da
+  // sopa é uma só por panela (ela volta para a despensa). n: as porções (a panela inteira por padrão; 1 para o prato feito à parte:
+  // o do VIP fora do cardápio, o do concurso, o do salão antigo). Tudo passa por aqui: o rende, o planoPanela (o consumir, o preço
+  // do quadro e do caderno), o "falta" da despensa e o quadro do cardápio.
+  porcoesBase(prato) { return ECO.porcoes[prato] || ECO.porcoesPadrao; }
+  gasto(prato, n = this.porcoesBase(prato)) {
+    const por = Pratos.PRATOS[prato].porcao, g = {};
+    for (const id in por) g[id] = id === 'pedra' ? por[id] : Math.max(1, Math.ceil(por[id] * n * ECO.pensao.gastoPorPorcao - 1e-9));
+    return g;
+  }
+  // Quantas panelas (ou, com n, quantos pratos de n porções) a despensa dá.
+  rende(prato, n) {
+    const g = this.gasto(prato, n);
     let r = 9999;
-    for (const id in porcao) r = Math.min(r, Math.floor(this._tem(id) / porcao[id]));
+    for (const id in g) r = Math.min(r, Math.floor(this._tem(id) / g[id]));
     return r;
   }
+  // Os ingredientes que não dão nem mais uma panela (ou um prato de n porções).
+  faltaPara(prato, n) { const g = this.gasto(prato, n); return Object.keys(g).filter(id => this._tem(id) < g[id]); }
   // O que a próxima panela tira da despensa, sem tirar nada: {tira: {ingrediente: qtd}, rar, principal} (null se não rende). O
   // "peixe" sai do peixe que a pensão aceita, do mais comum para o mais raro; a raridade é a do principal (no peixe, a do último
   // peixe que entrou). O consumir tira por aqui, e o quadro e o caderno mostram o preço por aqui: a mesma conta.
-  planoPanela(prato) {
-    if (this.rende(prato) <= 0) return null;
-    const p = Pratos.PRATOS[prato], tira = {};
+  planoPanela(prato, n) {
+    if (this.rende(prato, n) <= 0) return null;
+    const p = Pratos.PRATOS[prato], tira = {}, gasto = this.gasto(prato, n);
     let rar = 1, principal = p.principal;
-    for (const id in p.porcao) {
-      let q = p.porcao[id];
+    for (const id in gasto) {
+      let q = gasto[id];
       if (id === 'peixe') {
         for (const peixe of Pratos.PEIXES) {
           const n = Math.min(q, this.aceita(peixe) ? (this.despensa[peixe] || 0) : 0);
@@ -126,9 +142,9 @@ class Pensao {
     }
     return { tira, rar, principal };
   }
-  // Tira da despensa uma porção. Devolve a raridade do principal (0 se não rende).
-  consumir(prato, rng) {
-    const plano = this.planoPanela(prato);
+  // Tira da despensa uma panela (ou, com n, um prato de n porções feito à parte). Devolve a raridade do principal (0 se não rende).
+  consumir(prato, rng, n) {
+    const plano = this.planoPanela(prato, n);
     if (!plano) return 0;
     for (const [id, q] of Object.entries(plano.tira)) this.despensa[id] -= q;
     if (prato === 'sopa_pedra' && rng.randf() < Pensao.CHANCE_PEDRA_VOLTA) this.despensa.pedra = (this.despensa.pedra || 0) + 1;
@@ -175,7 +191,7 @@ class Pensao {
       this.panela[prato] = this.porcoes(prato) + this.porcoesPorPanela(prato);
       feitas++;
     }
-    const faltou = feitas < n ? Object.keys(Pratos.PRATOS[prato].porcao).filter(id => this._tem(id) < Pratos.PRATOS[prato].porcao[id]) : [];
+    const faltou = feitas < n ? this.faltaPara(prato) : [];
     return { feitas, faltou };
   }
   // Tira uma porção (para o pedido). Devolve a raridade da panela.
@@ -228,7 +244,9 @@ class Pensao {
   // ---------------- o caderno da Rosa: nível do prato, pitadas de tempero, receitas a descobrir
   nivel(prato) { return this.niveis[prato] || 1; }
   sabor(prato) { return this.nivel(prato) * Pensao.SABOR_POR_NIVEL; }
-  // Caprichar (o Enhance do Bancho): gasta TODOS os ingredientes da receita, cada um floor((qtd+1)·1,5^(nível−1)).
+  // Caprichar (o Enhance do Bancho): gasta TODOS os ingredientes da receita, cada um floor((qtd+1)·1,6^(nível−1)). (16/10, rodada 1
+  // da despensa) Testado pelo gasto da panela (e por 3/4, 0,6, 0,65 e 0,7 dela): qualquer custo maior na mandioca frita deixa o
+  // jogador devagar do balanço preso nela (nível 7, sabor 84) e sem a 5ª estrela. Ficou a porção + 1; o relatório tem a tabela.
   custoCaprichar(prato) {
     const n = this.nivel(prato);
     if (n >= Pensao.NIVEL_MAX) return {};
@@ -326,7 +344,7 @@ class Pensao {
   }
   _queRendem(base) {
     const r = [];
-    for (const id of base) if (this.receitas.includes(id) && this.rende(id) > 0 && r.length < this.vagas()) r.push(id);
+    for (const id of base) if (this.receitas.includes(id) && this.rende(id, 1) > 0 && r.length < this.vagas()) r.push(id);   // (o salão antigo: prato a prato)
     return r;
   }
 
@@ -372,7 +390,8 @@ class Pensao {
     }
   }
   // A marmita do Jocelino (o cardápio do Bancho, 13/10): de manhã a Rosa completa a mesa de casa até ECO.pensao.marmita.porDia,
-  // gastando ECO.pensao.marmita.gasta da despensa (o gasto da fornada da manhã, não por marmita). Só com a pensão aberta: antes,
+  // gastando ECO.pensao.marmita.gasta da despensa (o gasto da fornada da manhã, não por marmita). (16/10) Já é o gasto por prato:
+  // 2 marmitas de arroz e feijão × 0,5 (ECO.pensao.gastoPorPorcao) = 1 de arroz e 1 de feijão. Só com a pensão aberta: antes,
   // a despensa não existe (a reforma não guarda nada). naMesa: as que sobraram de ontem. Devolve { feitas, falta: [ingredientes] }.
   fazerMarmitas(naMesa = 0) {
     const M = ECO.pensao.marmita, quer = Math.max(0, M.porDia - naMesa);

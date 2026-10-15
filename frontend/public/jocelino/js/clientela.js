@@ -1,7 +1,7 @@
 // Jocelino — clientela.js — os moradores da Vila como fregueses da pensão (os clientes fixos do Bancho e a agenda dos
 // aldeões do Stardew, que vão ao saloon em dias certos): cada um tem um dia da semana e um prato favorito; chega entre
-// 17h30 e 19h além dos clientes da noite, pede o favorito se a Rosa sabe fazer e, bem servido, ganha um coração de
-// amizade (G.amizade) e dá uma curtida a mais. E os filhos: em 1 de cada 3 noites a Ritinha fica no caixa (gorjeta 10%
+// 17h30 e 19h além dos clientes da noite, pede o favorito se a Rosa sabe fazer e, bem servido, ganha +25 de
+// amizade (Amizade.ganhar, amizade.js; a família não tem número) e dá uma curtida a mais. E os filhos: em 1 de cada 3 noites a Ritinha fica no caixa (gorjeta 10%
 // maior) ou o Zezinho aparece (recolhe louça devagarinho... ou rouba uma cocada da panela).
 
 // Dia da semana (0 = segunda ... 5 = sábado; domingo a pensão fecha) → quem vem e o que gosta.
@@ -41,7 +41,6 @@ const Clientela = {
     t._fila.sort((a, b) => a.minuto - b.minuto);
     return vem;
   },
-  registrarAmizade(am, ids) { for (const id of ids || []) am[id] = (am[id] || 0) + 1; return am; },
   // Em 1 de cada 3 noites um dos filhos aparece (alternando); nunca no domingo.
   filhoDaNoite(dia) { if ((dia - 1) % 7 === 6 || dia % 3 !== 0) return ''; return Math.floor(dia / 3) % 2 ? 'ritinha' : 'zezinho'; },
 };
@@ -68,5 +67,3 @@ const Paladar = {
   },
 };
 INICIADORES.push(s => { for (const x of (G.pensao && G.pensao.paladarNotas) || []) if (!CARTAS['paladar_' + x.dia]) CARTAS['paladar_' + x.dia] = { de: 'Gazeta de Santos', dia: x.dia + 1, texto: Paladar.materia(x.nota) }; });
-INICIADORES.push(s => { G.amizade = Object.assign({}, s.amizade || {}); });
-COLETORES.push(s => { s.amizade = Object.assign({}, G.amizade); });
