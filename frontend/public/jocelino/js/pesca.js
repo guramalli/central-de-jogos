@@ -48,7 +48,9 @@ const Pesca = {
     if (rng() < PESCA_LIXO) return { tipo: 'lixo', id: 'ferro_velho' };
     const L = Pesca._lendario(c); if (L && rng() < PESCA_LENDARIO) return { tipo: 'lendario', id: L };
     const ps = Pesca.possiveis(c); if (!ps.length) return { tipo: 'nada', id: '' };
-    const peso = p => p.peso * (p.peso <= 2 && (c.chove || c.fundo) ? 1.6 : 1) * (p.peso <= 2 && c.isca ? 1.5 : 1) * (p.peso <= 3 && c.cardume ? 2 : 1);
+    // (T4b, Pesca 8) a isca boa puxa o peixe raro ainda mais que a isca comum (c.isca === 'isca_boa')
+    const raro = c.isca === 'isca_boa' ? ECO.niveis.iscaBoa.raro : c.isca ? 1.5 : 1;
+    const peso = p => p.peso * (p.peso <= 2 && (c.chove || c.fundo) ? 1.6 : 1) * (p.peso <= 2 ? raro : 1) * (p.peso <= 3 && c.cardume ? 2 : 1);
     let x = rng() * ps.reduce((s, p) => s + peso(p), 0);
     for (const p of ps) { x -= peso(p); if (x <= 0) return { tipo: 'peixe', id: p.id }; }
     return { tipo: 'peixe', id: ps[0].id };
@@ -77,9 +79,10 @@ const Pesca = {
 
 // ---------- o minijogo (a barra do Stardew): posições de 0 (embaixo) a 1 (em cima) ----------
 const Pescaria = {
-  novo(id, { faixa, bau }, rng = Math.random) {
+  // (T4b, Pesca 7) esvazia: quanto o medidor perde por segundo com o peixe fora da faixa (a Linha firme: 15% mais devagar)
+  novo(id, { faixa, bau, esvazia = 0.18 }, rng = Math.random) {
     const D = DADOS_PEIXE[id];
-    return { id, dif: D.dif, jeito: D.jeito, pos: faixa / 2, alvo: 0.5, faixaY: 0, faixaV: 0, faixaH: faixa, medidor: 0.3, perfeita: true,
+    return { id, dif: D.dif, jeito: D.jeito, pos: faixa / 2, alvo: 0.5, faixaY: 0, faixaV: 0, faixaH: faixa, medidor: 0.3, perfeita: true, esvazia,
       bau: bau ? { y: 0.15 + rng() * 0.7, prog: 0, visivel: false, pego: false } : null, t: 0, fim: null };
   },
   _alvo(e, rng) {
@@ -105,7 +108,7 @@ const Pescaria = {
     const vmax = (0.4 + e.dif / 100) * (e.jeito === 'dardo' ? 1.5 : e.jeito === 'liso' ? 0.7 : 1);
     e.pos += Math.max(-vmax, Math.min(vmax, (e.alvo - e.pos) / tau)) * dt; e.pos = Math.max(0, Math.min(1, e.pos));
     const dentro = p => p >= e.faixaY && p <= e.faixaY + e.faixaH;
-    if (dentro(e.pos)) e.medidor += 0.12 * dt; else { e.medidor -= 0.18 * dt; e.perfeita = false; }
+    if (dentro(e.pos)) e.medidor += 0.12 * dt; else { e.medidor -= (e.esvazia != null ? e.esvazia : 0.18) * dt; e.perfeita = false; }
     if (e.bau && !e.bau.pego) {
       if (e.t >= 1) e.bau.visivel = true;
       if (e.bau.visivel) { e.bau.prog = Math.max(0, e.bau.prog + (dentro(e.bau.y) ? 0.5 : -0.3) * dt); if (e.bau.prog >= 1) e.bau.pego = true; }
@@ -124,9 +127,10 @@ Object.assign(ITENS, {
   bagre_assombrado: { nome: 'Bagre-Assombrado', pilha: 9, ferramenta: false, descricao: 'Lendário do rio, de madrugada. Leve para a Rosa ver!' },
   traira_velha: { nome: 'Traíra-Velha', pilha: 9, ferramenta: false, descricao: 'Lendária do poço da cachoeira. Leve para a Rosa ver!' },
   mero: { nome: 'Mero do Lourival', pilha: 9, ferramenta: false, descricao: 'O peixe que o Lourival caça há 30 anos. Leve para a Rosa ver!' },
-  isca: { nome: 'Isca', pilha: 99, ferramenta: false, descricao: 'Da banca do Lourival. Com a vara boa ou o molinete, o peixe morde mais rápido e o raro aparece mais.' },
+  isca: { nome: 'Isca', pilha: 99, ferramenta: false, descricao: 'Da banca do Lourival (ou 1 sardinha dá 4, no Fabricar, com Pesca 2). Com a vara boa ou o molinete, o peixe morde mais rápido e o raro aparece mais. Também isca o covo.' },
+  isca_boa: { nome: 'Isca boa', pilha: 99, ferramenta: false, descricao: 'Feita com siri (Pesca 8). Com a vara boa ou o molinete: o peixe morde na hora e o raro aparece ainda mais que com a isca. Gasta antes da isca comum.' },
   minhoca: { nome: 'Minhoca', pilha: 99, ferramenta: false, descricao: 'Achada cavando a grama. Serve de isca.' },
-  covo: { nome: 'Covo de siri', pilha: 9, ferramenta: false, descricao: 'Ponha na água da margem com isca: de manhã tem siri, caranguejo ou camarão.' },
+  covo: { nome: 'Covo de siri', pilha: 9, ferramenta: false, descricao: 'Da banca do Lourival (ou do Fabricar, com Pesca 1). Ponha na água da margem com isca: de manhã tem siri, caranguejo ou camarão.' },
   vara_boa: { nome: 'Vara boa', pilha: 1, ferramenta: true, descricao: 'Da banca do Lourival. Aceita isca.' },
   molinete: { nome: 'Molinete', pilha: 1, ferramenta: true, descricao: 'Do Seu Tonico. Barra de pesca maior e aceita isca.' },
 });

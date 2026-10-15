@@ -156,7 +156,7 @@ function abrirBau(bau) {
     hudSujo(); desenha();
   };
   const grade = (m, outra) => el('div', { class: 'bau-grade' }, ...m.slots.map((s, i) => el('div', {
-    class: 'espaco' + (m === G.mochila && i < Mochila.BARRA ? ' barra' : ''), title: s ? Itens.nome(s.id) + ' — ' + Itens.descricao(s.id) : '',
+    class: 'espaco' + (m === G.mochila && i < Mochila.BARRA ? ' barra' : ''), title: s ? dicaItem(s.id) : '',
     onclick: e => { e.stopPropagation(); clicar(m, outra, i, e, false); },
     oncontextmenu: e => { e.preventDefault(); e.stopPropagation(); clicar(m, outra, i, e, true); } },
     s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null,

@@ -5,7 +5,7 @@
 // no registro CADERNETA (como o TAREFAS); a caderneta lê os sistemas, nunca é lida por eles.
 const CADERNETA_ABAS = [['hoje', 'Hoje'], ['quintal', 'Quintal e horta'], ['carreira', 'Carreira'], ['vila', 'Vila'], ['pensao', 'Pensão']];
 const CADERNETA = [];
-const DICA_XP = { folego: 'limpar, cortar e quebrar', alvenaria: 'a pá, a obra e o entulho', acabamento: 'molhar e rebocar na obra; regar e rebocar nas empreitas', negocio: 'vender', roca: 'colher a horta', pesca: 'pescar' };
+const DICA_XP = { folego: 'limpar, cortar e quebrar', alvenaria: 'a pá, a obra e o entulho', acabamento: 'lavar, rebocar e pintar na obra; regar e rebocar nas empreitas', negocio: 'vender', roca: 'colher a horta', pesca: 'pescar' };
 // "falta 1 obra" / "faltam 5 alfaces, 5 couves" (a concordância com o que falta).
 const faltaTxt = partes => ((partes.length > 1 || parseInt(partes[0], 10) > 1) ? 'faltam ' : 'falta ') + partes.join(', ');
 const _liberado = sis => typeof Guia === 'undefined' || Guia.liberado(sis);
@@ -68,7 +68,9 @@ CADERNETA.push(() => {
       r.push({ id: 'carreira_ferramenta', aba: 'carreira', texto: `${Itens.nome(id)} melhor no Seu Tonico: Cr$ ${c.dinheiro}` + (m ? ` e ${Itens.qtd(c[m], m)} (tem ${G.mochila.total(m)})` : ''),
         feito: m ? Math.min(G.mochila.total(m), c[m]) : undefined, meta: m ? c[m] : undefined, alvo: { mapa: 'vila', objeto: 'oficina' }, rotulo: 'Botão direito: a oficina do Seu Tonico' }); } }
   if (typeof Habilidades !== 'undefined') for (const h of Habilidades.LISTA) { const n = Habilidades.nivel(h); if (n >= 10) continue;
-    r.push({ id: 'hab_' + h, aba: 'carreira', texto: `${NOMES_HAB[h]} nível ${n} → ${n + 1}: ${Habilidades.novoAoDormir && Habilidades.novoAoDormir(h) ? 'vale ao dormir' : DICA_XP[h]}`, feito: Math.round(Habilidades.progresso(h) * 100), meta: 100 }); }
+    // (15/10, T4) e o que o próximo nível dá, numa linha só: "Roça nível 3 → 4: colher a horta · no 4: …"
+    const prox = Habilidades.ganhoCurto ? Habilidades.ganhoCurto(h, n + 1) : '';
+    r.push({ id: 'hab_' + h, aba: 'carreira', texto: `${NOMES_HAB[h]} nível ${n} → ${n + 1}: ${Habilidades.novoAoDormir && Habilidades.novoAoDormir(h) ? 'vale ao dormir' : DICA_XP[h]}${prox ? ` · no ${n + 1}: ${prox}` : ''}`, feito: Math.round(Habilidades.progresso(h) * 100), meta: 100 }); }
   return r;
 });
 // A Vila: o Grêmio (o pacote mais perto de pronto em cada ala aberta), o Bazar, o museu.

@@ -257,7 +257,7 @@ const CENAS_ESPECIAIS = {
     titulo: c => `Receita nova: ${c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : 'no caderno'}!`,
     fala: [1.4, 3.3, 'A Rosa: "Achei o jeito! Essa vai pro caderno."'],
     artes: ['cenas/moqueca_fundo', 'ui/caderno_aberto', 'cenas/capricho_rosa', 'cenas/letreiro_brilho'],
-    sons: [[0.1, 'pagina', 1, -2], [0.8, 'cena_tchan', 1.1, -4], [1.5, 'rosa_animada', 1, -4]],
+    sons: [[0.1, 'pagina', 1, -2], [0.8, 'receita_nova', 1, -2]],   // (15/10, o dono escolheu a sanfona: sons_receita.sh)
     desenha(d, t, c) {
       d.fundo('cenas/moqueca_fundo', 1.05 + 0.04 * _eo(_cs(t, 0, 3.4)), 0.5, 960, 560);
       // o caderno abre do meio para os lados (a largura cresce a partir da lombada) e assenta

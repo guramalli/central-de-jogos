@@ -4,7 +4,7 @@
 // dia redondo (+1); frente errada tira 1. Com humor ≤ 2, metade das vezes o peão falta. Eventos em 15% dos dias.
 
 const PEOES = [
-  { id: 'ze', nome: 'Zé', oficio: 'Pedreiro', oficios: ['massa', 'tijolos', 'molhar'], x: 35, y: 4 },
+  { id: 'ze', nome: 'Zé', oficio: 'Pedreiro', oficios: ['massa', 'tijolos', 'lavar', 'pintar'], x: 35, y: 4 },   // (15/10: o molhar virou lavar e pintar)
   { id: 'severino', nome: 'Severino', oficio: 'Pedreiro antigo', oficios: ['tijolos', 'pedras', 'massa'], x: 33, y: 7 },
   { id: 'cicero', nome: 'Cícero', oficio: 'Carpinteiro e armador', oficios: ['ripas', 'telhas', 'pedras'], x: 38, y: 4 },
   { id: 'damiao', nome: 'Damião', oficio: 'Servente', oficios: ['entulho', 'areia', 'capinar', 'telhas'], x: 41, y: 7 },
@@ -17,6 +17,10 @@ const EquipeObra = {
     const e = s.equipeObra || {};
     G.equipeObra = { humor: Object.assign({ ze: 6, severino: 6, cicero: 6, damiao: 6 }, e.humor || {}), frente: Object.assign({}, e.frente || {}),
       faltou: (e.faltou || []).slice(), conversou: Object.assign({}, e.conversou || {}), comeu: Object.assign({}, e.comeu || {}), frac: Object.assign({}, e.frac || {}), dia: e.dia || 0 };
+    // (15/10) o save de antes: a frente 'molhar' vira a tarefa da etapa (lavar ou pintar), como a lista (Obra.iniciar)
+    const nova = G.obra ? Obra.tarefaDoMolhar() : 'lavar', q = G.equipeObra;
+    for (const id in q.frente) if (q.frente[id] === 'molhar') q.frente[id] = nova;
+    if ('molhar' in q.frac) { q.frac[nova] = (q.frac[nova] || 0) + q.frac.molhar; delete q.frac.molhar; }
   },
   salvar(s) { s.equipeObra = JSON.parse(JSON.stringify(G.equipeObra)); },
   fator(id, tarefa) { return (peao(id).oficios.includes(tarefa) ? 1 : 0.55) * (0.4 + 0.08 * G.equipeObra.humor[id]); },
@@ -95,7 +99,7 @@ ATUALIZADORES.push(() => {
   const q = G.equipeObra;
   for (const [id, n] of Object.entries(EquipeObra.hora(l.metas))) {
     const t = q.frente[id]; q.frac[t] = (q.frac[t] || 0) + n;
-    const inteiro = Math.floor(q.frac[t]); if (inteiro > 0) { q.frac[t] -= inteiro; Obra.trabalho(t, inteiro); }
+    const inteiro = Math.floor(q.frac[t]); if (inteiro > 0) { q.frac[t] -= inteiro; Obra.trabalho(t, inteiro, true); }   // (a turma: sem o "em dobro" do Jocelino)
   }
 });
 NOITE.push(() => { if (ehMestre() && G.obra.lista && G.obra.lista.dia === G.dia) EquipeObra.fimDoDia(Obra.completa(), G.obra.lista.metas); });

@@ -83,7 +83,9 @@ function _alvoDaMissao(id) {
 // a tarefa que o Jocelino ainda não fez nenhuma vez — onde pegar e, com o material nos braços, onde levar. Feita uma vez, fica
 // só o texto da lista (que diz de onde e para onde).
 const ORIGEM_OBRA = { tijolos: 'monte_tijolos', pedras: 'monte_tijolos', telhas: 'monte_tijolos', ripas: 'pilha_ripas', massa: 'masseira', areia: 'peneira' };
-const FERRAMENTA_TAREFA = { molhar: 'Use o regador na obra', assentar: 'Use a colher na obra', rebocar: 'Use a colher na obra' };
+// (15/10) LAVAR NO MEIO, PINTAR NO FIM: a mangueira lava o chão da obra, o rolo pinta a parede (no lugar do regador).
+const FERRAMENTA_TAREFA = { lavar: 'Use a mangueira na obra: lave o chão', pintar: 'Use o rolo na parede da obra', assentar: 'Use a colher na obra', rebocar: 'Use a colher na obra' };
+const FERRAMENTA_DA_TAREFA = { lavar: 'mangueira', pintar: 'rolo', assentar: 'colher', rebocar: 'colher' };
 const jaFezObra = id => ((G.limpou || {})['obra_' + id] || 0) > 0;
 function _alvoDaObraDoDia() {
   if (!G.obra || typeof listaDeHoje !== 'function' || Obra.aberta(G.dia, G.minutos)) return null;
@@ -108,7 +110,9 @@ function _alvoDaObraDoDia() {
     if (id === 'buscar_pedra' && pedreira) return { mapa: 'pedreira' };
     if (ORIGEM_OBRA[id]) return { mapa: 'vila', objeto: ORIGEM_OBRA[id], rotuloFixo: id === 'areia' ? 'Botão direito na peneira: peneirar a areia'
       : `Botão direito ${{ monte_tijolos: 'no monte', pilha_ripas: 'na pilha', masseira: 'na masseira' }[ORIGEM_OBRA[id]]}: pegar ${{ tijolos: 'os tijolos', pedras: 'as pedras', telhas: 'as telhas', ripas: 'as ripas', massa: 'a massa' }[id]}` };
-    if (FERRAMENTA_TAREFA[id]) return naObra(FERRAMENTA_TAREFA[id]);
+    // (a mangueira e o rolo vêm do Bira: sem eles na mochila, a seta vai nele; com, na obra, e a barra mostra a ferramenta)
+    if (FERRAMENTA_TAREFA[id] && typeof faltaFerramentaDaObra === 'function' && faltaFerramentaDaObra(id)) return { mapa: 'vila', morador: 'bira', rotuloFixo: `Fale com o Mestre Bira: ele dá ${NOME_FERRAMENTA[FERRAMENTA_DA_TAREFA[id]]}` };
+    if (FERRAMENTA_TAREFA[id]) { const r = naObra(FERRAMENTA_TAREFA[id]); if (r) r.ferramenta = FERRAMENTA_DA_TAREFA[id]; return r; }
     if (id === 'entulho' || id === 'capinar') { const det = id === 'entulho' ? 'entulho' : 'mato', o = _maisPerto(x => x.det === det && dentroR(CANTEIRO, x.tiles[0].x, x.tiles[0].y)); if (o) return { mapa: 'vila', ponto: { x: o.x, y: o.y - 56 }, det }; }
     if (id === 'buscar_cimento') return G.mochila.total('cimento') ? { mapa: 'vila', morador: 'bira' } : { mapa: 'vila', objeto: 'deposito', rotuloFixo: depositoFechado() ? `O depósito abre às ${DEPOSITO_HORARIO.abre / 60}h: aí, botão direito para comprar o cimento` : 'Botão direito: comprar o cimento' };
   }
@@ -268,7 +272,8 @@ function _alvoDaEmpreita(cid) {
     if (o) return { mapa: E.mapa, ponto: { x: o.x, y: o.y - 56 }, det: o.det, empreita: cid, limpeza: true }; }
   if (E.tipo === 'curta') return { mapa: E.mapa, objeto: 'emp_' + cid, empreita: cid };
   // (a obra longa reservada também: com o material, a plaquinha é onde se começa; os aluguéis por começar são opcionais)
-  if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta' || (a.estado === 'reservada' && typeof E.familia !== 'string'))) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
+  // (T4a: o dia que a manta faz sozinha já está cuidado: sem seta)
+  if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou && !Empreitas.autoHoje(cid)) || a.estado === 'pronta' || (a.estado === 'reservada' && typeof E.familia !== 'string'))) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
   return null;
 }
 // A plaquinha da etapa da casa da família ainda sem o dinheiro (só no quintal; o último recurso da seta).
@@ -394,7 +399,7 @@ function _rotulo(a) {
     return E.ferramenta !== 'carga' ? `Use ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} aqui (${E.vezes} vezes)` : `Botão direito: entregar ${Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ')}`; }
   if (a.objeto && a.objeto.startsWith('emp_placa_')) { const id = a.objeto.slice(10), E = dadosEmpreita(id), st = G.empreitas.aceitas[id] && G.empreitas.aceitas[id].estado, f = Empreitas.ferramentaHoje(id);
     if (!E) return 'Botão direito aqui';
-    return st === 'reservada' ? `Botão direito: começar a obra (${E.nome})` : st === 'pronta' ? `Botão direito: entregar a obra (${E.nome})` : f ? `Use ${NOME_FERRAMENTA[f] || f} na plaquinha (${E.nome})` : `Botão direito: ${E.nome}`; }
+    return st === 'reservada' ? `Botão direito: começar a obra (${E.nome})` : st === 'pronta' ? `Botão direito: entregar a obra (${E.nome})` : f && !Empreitas.autoHoje(id) ? `Use ${NOME_FERRAMENTA[f] || f} na plaquinha (${E.nome})` : `Botão direito: ${E.nome}`; }
   if (a.objeto) return ROTULO_OBJ[a.objeto] || 'Botão direito aqui';
   if (a.missao === 'horta') return 'Plante aqui: a semente na mão, botão direito na terra';
   if (a.missao === 'pensao' && G.pensao && G.pensao.estado === 'limpar') return 'Clique na sujeira para limpar';
@@ -670,6 +675,8 @@ function guiaSetaUI() {
   if (sm && sm.missao === 'aula' && !sm.det) { const a = sm.aula; if (a && mao !== a.ferramenta) { const i = slotDe(a.ferramenta); if (i >= 0) return barra(i); } }
   if (sm && sm.empreita && !sm.buscar) { const E = dadosEmpreita(sm.empreita), fe = E && (E.tipo === 'longa' ? Empreitas.ferramentaHoje(sm.empreita) : E.ferramenta);
     if (fe && fe !== 'carga' && mao !== fe) { const i = slotDe(fe); if (i >= 0) return barra(i); } }
+  // (15/10) a 1ª vez de lavar, pintar ou da colher na obra: a ferramenta na barra
+  if (sm && sm.missao === 'obra_dia' && sm.ferramenta && mao !== sm.ferramenta) { const i = slotDe(sm.ferramenta); if (i >= 0) return barra(i); }
   // (tarefa 7) a seta da pesca na ponta do píer: a vara na barra
   if (sm && sm.missao === 'pesca' && sm.ponto && !sm.morador && typeof VARAS !== 'undefined' && !VARAS.includes(mao)) { const v = VARAS.find(x => slotDe(x) >= 0); if (v) return barra(slotDe(v)); }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {

@@ -94,7 +94,7 @@ function abrirCaderno(sel) {
       if (descobrir.conhecida) dir.append(el('button', { class: 'botao forte cad-capricho' + (p.pitadas >= descobrir.custo ? '' : ' desligado'), onclick: e => {
         e.stopPropagation();
         const r = p.pesquisar(id);
-        if (r === 'ok') { sons.tocar('carimbo', 1.1, 0.05, -2); sons.tocar('rosa_animada', 1, 0.05, -4); carimbar(caixa); avisar(`Receita nova no caderno: ${pr.nome}! Marque no quadro de giz.`); desenha();
+        if (r === 'ok') { sons.tocar('receita_nova', 1, 0, -2); carimbar(caixa); avisar(`Receita nova no caderno: ${pr.nome}! Marque no quadro de giz.`); desenha();
           if (typeof CenaPrato !== 'undefined') CenaPrato.aoPesquisar(id); }   // (Tarefa D2) a cena curta da receita nova
         else avisar(r === 'sem_pitadas' ? `Faltam pitadas: precisa de ${descobrir.custo} (tem ${p.pitadas}). As estrelas da janta viram pitadas.` : 'A Rosa ainda não conhece o ingrediente.');
       } }, `Pesquisar com a Rosa (${descobrir.custo} pitadas)`));

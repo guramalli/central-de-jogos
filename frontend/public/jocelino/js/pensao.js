@@ -27,6 +27,8 @@ class Pensao {
     this.premios = []; this.garfos = 0; this.paladarNotas = []; this.concursos = {};
     this.ampliacoes = []; this.obra = null; this.nivelMelhoria = {};
     this.servidos = {};   // (Tarefa D1) o nível mais alto em que cada prato já foi servido (o "melhor sabor" do Dave)
+    // (15/10, o fechamento do Dave) as últimas noites da pensão, para o gráfico do fechamento: [{ dia, receita, lucro, nota, clientes, rosa? }]
+    this.historico = [];
   }
   // (14/10, Tarefa D1, o Dave: o Cooksta guarda o maior sabor entre os pratos JÁ SERVIDOS) O melhor sabor conta o nível em que cada
   // prato saiu para um cliente (serviu), não o nível do caderno: caprichar e não servir ainda não sobe o degrau.
@@ -386,7 +388,8 @@ class Pensao {
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
       premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos), estrelasPremiadas: this.estrelasPremiadas ?? null, festaDia: this.festaDia || 0,
-      ampliacoes: this.ampliacoes.slice(), obra: this.obra ? Object.assign({}, this.obra) : null, nivelMelhoria: Object.assign({}, this.nivelMelhoria), servidos: Object.assign({}, this.servidos || {}) };
+      ampliacoes: this.ampliacoes.slice(), obra: this.obra ? Object.assign({}, this.obra) : null, nivelMelhoria: Object.assign({}, this.nivelMelhoria), servidos: Object.assign({}, this.servidos || {}),
+      historico: (this.historico || []).map(h => Object.assign({}, h)) };
   }
   deDict(d) {
     d = d || {};
@@ -410,6 +413,8 @@ class Pensao {
     // o que já tinha; daqui para a frente só o servido sobe).
     if (d.servidos == null) { this.servidos = {}; for (const id of this.receitas) if (Pratos.PRATOS[id]) this.servidos[id] = this.nivel(id); }
     else this.servidos = Object.assign({}, d.servidos);
+    // (15/10) Save de antes do gráfico do fechamento: o caderno das noites começa vazio (a 1ª noite daqui para a frente abre o gráfico).
+    this.historico = Array.isArray(d.historico) ? d.historico.filter(h => h && Number.isFinite(h.dia)).map(h => Object.assign({}, h)) : [];
     // Save de antes dos garfos do Doutor Paladar: o degrau que já tinha não cai (os garfos só valem daqui para a frente).
     // Save de antes do cardápio do Bancho (13/10): o quadro de giz antigo vira o cardápio da noite (uma panela, a Rosa repõe) e a
     // panela começa vazia (a sobra de ontem já foi para o lixo).

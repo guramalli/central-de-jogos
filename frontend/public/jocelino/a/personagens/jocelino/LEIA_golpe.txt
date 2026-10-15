@@ -1,4 +1,4 @@
-Jocelino usando ferramentas — folhas golpe_<ferramenta>.webp (machado, picareta, pa, foice, regador, colher)
+Jocelino usando ferramentas — folhas golpe_<ferramenta>.webp (machado, picareta, pa, foice, regador, colher, mangueira, rolo)
 Gerado por ferramentas_arte/produzir_golpe.sh (Higgsfield) + ferramentas_arte/web_golpe.py (alinhamento).
 
 Folha: 528x816 px = 4 colunas x 4 linhas; QUADRO 132x204 px.
@@ -9,6 +9,9 @@ LINHAS = quadros do golpe: 0 preparo, 1 ferramenta no alto, 2 descendo (foice: m
   colher (agachado nos 4): 0 pega massa, 1 leva a massa, 2 espalha arrastando, 3 alisa batendo de leve com a ponta.
   A colher não segue a regra da altura abaixo (agachado): escala única 0,19 do bruto (ESCALA_FIXA no web_golpe.py),
   chapéu e botas do tamanho do andar.
+  mangueira (lavar o chão da obra): 0 mira, 1 o jato bate no chão à frente, 2 e 3 o jato varre para um lado e para o outro.
+  rolo (pintar a parede da obra): 0 rolo carregado embaixo, 1 sobe, 2 no alto, 3 desce pingando tinta.
+  As duas (15/10) saíram do bruto direto na densidade 3x (o arquivo tem 3x os pixels do quadro; arte.js/fatorGente).
 
 PÉ: em todos os quadros a sola da bota fica em y=162 e o meio das botas em x=66. Abaixo do pé sobram 41 px: de frente a
   ferramenta bate no chão ABAIXO dos pés (no ladrilho da frente) e precisa desse espaço; o quadro é mais alto que os 168 sugeridos por isso.
@@ -47,5 +50,15 @@ ONDE A CABEÇA DA FERRAMENTA TOCA no quadro de impacto (linha 3), em (x, y) dent
     cima (de costas)               ( 97, 161)   pé +31,  -1   ponta da colher alisando a massa no chão
     esquerda (direita espelhada)   ( 47, 161)   pé -19,  -1   ponta da colher alisando a massa no chão
     direita                        ( 84, 161)   pé +18,  -1   ponta da colher alisando a massa no chão
+  mangueira:
+    baixo (de frente)              (105, 173)   pé +39, +11   onde a água cai no chão
+    cima (de costas)               ( 30, 168)   pé -36,  +6   onde a água cai no chão
+    esquerda (direita espelhada)   ( 29, 165)   pé -37,  +3   onde a água cai no chão
+    direita                        (103, 165)   pé +37,  +3   onde a água cai no chão
+  rolo:
+    baixo (de frente)              ( 81, 136)   pé +15, -26   meio do rolo na parede, descendo
+    cima (de costas)               (100, 121)   pé +34, -41   meio do rolo na parede, descendo
+    esquerda (direita espelhada)   ( 22, 114)   pé -44, -48   meio do rolo na parede, descendo
+    direita                        (109, 114)   pé +43, -48   meio do rolo na parede, descendo
 
 Ladrilho do jogo = 48 px (TILE em js/base.js).

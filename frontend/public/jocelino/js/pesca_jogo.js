@@ -73,21 +73,25 @@ function lancar() {
   G.jog.pescando = false;
   if (!local) { recolherLinha('A linha caiu na terra.'); return; }
   G.energia = Math.max(0, G.energia - L.custo); hudSujo();
-  const isca = L.vara !== 'vara' && (G.mochila.total('isca') > 0 || G.mochila.total('minhoca') > 0);
-  const espera = (LINHA.ESPERA[0] + Math.random() * (LINHA.ESPERA[1] - LINHA.ESPERA[0])) * (isca ? 0.5 : 1);
+  // A isca da vara boa e do molinete: a isca boa primeiro (Pesca 8: morde na hora), depois a isca e a minhoca. A Mordida ligeira
+  // (Pesca 4) tira 15% da espera. (T4b)
+  const isca = L.vara === 'vara' ? '' : ['isca_boa', 'isca', 'minhoca'].find(i => G.mochila.total(i) > 0) || '';
+  const ligeira = typeof Habilidades !== 'undefined' && Habilidades.ganho('mordida_ligeira') ? ECO.niveis.mordida : 1;
+  const espera = isca === 'isca_boa' ? ECO.niveis.iscaBoa.espera : (LINHA.ESPERA[0] + Math.random() * (LINHA.ESPERA[1] - LINHA.ESPERA[0])) * (isca ? 0.5 : 1) * ligeira;
   Object.assign(L, { fase: 'esperando', tx, ty, local, fundo: ehFundo(b, tx, ty), cardume: typeof cardumeEm === 'function' && cardumeEm(tx, ty), isca, espera, t: 0, px: G.jog.x, py: G.jog.y });
   sons.tocar('agua', 1.2, 0.05, -6);
 }
 function fisgarAgora() {
   const L = G.linha;
-  if (L.isca) G.mochila.remover(G.mochila.total('isca') > 0 ? 'isca' : 'minhoca', 1);
+  if (L.isca) G.mochila.remover(G.mochila.total(L.isca) > 0 ? L.isca : ['isca_boa', 'isca', 'minhoca'].find(i => G.mochila.total(i) > 0) || L.isca, 1);
   const r = Pesca.fisgar({ local: L.local, dia: G.dia, minutos: G.minutos, chove: typeof Clima !== 'undefined' && Clima.chove(G.dia), fundo: L.fundo, cardume: L.cardume, isca: L.isca });
   if (r.tipo === 'lixo') { const s = G.mochila.adicionar('ferro_velho', 1); if (s) soltar('ferro_velho', 1, G.jog.x, G.jog.y); recolherLinha('Veio um ferro velho enganchado.'); hudSujo(); return; }
   if (r.tipo === 'nada') { recolherLinha('Nada mordeu aqui agora.'); return; }
   const nivel = typeof Habilidades !== 'undefined' ? Habilidades.nivel('pesca') : 0;
   const chanceBau = (typeof Habilidades !== 'undefined' && Habilidades.tem('cacador_de_tesouro')) ? 0.3 : 0.15;
   L.fase = 'minijogo'; L.lendario = r.tipo === 'lendario';
-  L.est = Pescaria.novo(r.id, { faixa: Pesca.faixa(nivel, L.vara === 'molinete'), bau: Math.random() < chanceBau });
+  const firme = typeof Habilidades !== 'undefined' && Habilidades.ganho('linha_firme') ? ECO.niveis.linhaFirme : 1;   // (T4b, Pesca 7)
+  L.est = Pescaria.novo(r.id, { faixa: Pesca.faixa(nivel, L.vara === 'molinete'), bau: Math.random() < chanceBau, esvazia: 0.18 * firme });
   // O primeiro minijogo começa parado, com a explicação por cima, até o clique (G.limpou.pesca_minijogo).
   L.pausa = !!G.limpou && !G.limpou.pesca_minijogo && !jaPescou();
   G.jog.pescando = true; sons.tocar('pegar', 0.7, 0.05, -4);
@@ -236,8 +240,9 @@ function abrirBanca() {
 }
 
 
-// A minhoca: cavar grama com a pá às vezes dá uma (8%), em qualquer mapa.
-function minhocaAoCavar(alvo) { if (Math.random() < 0.08) soltar('minhoca', 1, (alvo.x + 0.5) * TILE, (alvo.y + 0.7) * TILE); }
+// A minhoca: cavar grama com a pá às vezes dá uma (8%; 16% com o Minhoqueiro, Pesca 3), em qualquer mapa.
+const chanceMinhoca = () => 0.08 * (typeof Habilidades !== 'undefined' && Habilidades.ganho('minhoqueiro') ? ECO.niveis.minhoca : 1);
+function minhocaAoCavar(alvo, rng = Math.random) { if (rng() < chanceMinhoca()) soltar('minhoca', 1, (alvo.x + 0.5) * TILE, (alvo.y + 0.7) * TILE); }
 
 // ---------- o covo de siri: na água da margem, com isca; de manhã tem coisa ----------
 const margem = (b, x, y) => aguaDePesca(b, x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => dentroMapa(b, x + dx, y + dy) && !b.ehAgua(x + dx, y + dy));

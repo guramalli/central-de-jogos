@@ -18,23 +18,29 @@ const descontoHab = () => (typeof Habilidades !== 'undefined' ? Habilidades.desc
 function precoLoja(id) { return Math.max(1, Math.round(LOJA.PRECOS[id] * (G.fatorPreco || 1) * descontoHab() * (typeof Gremio !== 'undefined' ? Gremio.descontoDeposito() : 1))); }
 function precoMercearia(id) { return Math.max(1, Math.round(Pratos.MERCEARIA[id] * (G.fatorPreco || 1) * descontoHab())); }
 
-function _comprar(id, qtd, preco) {
-  const pode = Math.min(qtd, Math.floor(G.dinheiro / preco), G.mochila.espacoPara(id));
-  if (pode <= 0) { avisar(G.dinheiro < preco ? 'O dinheiro não dá.' : 'A mochila está cheia.'); return 0; }
-  const levou = pode - G.mochila.adicionar(id, pode);
-  G.dinheiro -= levou * preco; G.gastoHoje += levou * preco;
+// (T4b, Negócio 6 e 9) fiado: no depósito do Ananias, o que o dinheiro não cobre vai para a caderneta dele (G.fiado), até o limite
+// (Fiado.livre, niveis_jogo.js). Paga-se no balcão ou o Ananias recebe no domingo à noite.
+function _comprar(id, qtd, preco, fiado = false) {
+  const livre = fiado && typeof Fiado !== 'undefined' ? Fiado.livre() : 0, caixa = Math.max(0, G.dinheiro);
+  const pode = Math.min(qtd, Math.floor((caixa + livre) / preco), G.mochila.espacoPara(id));
+  if (pode <= 0) { avisar(G.dinheiro + livre < preco ? (fiado && typeof Fiado !== 'undefined' && Fiado.limite() ? `O dinheiro e o fiado não dão (fiado: Cr$ ${G.fiado} de ${Fiado.limite().toLocaleString('pt-BR')}).` : 'O dinheiro não dá.') : 'A mochila está cheia.'); return 0; }
+  const levou = pode - G.mochila.adicionar(id, pode), total = levou * preco, agora = Math.min(caixa, total), anotado = total - agora;
+  G.dinheiro -= agora; G.gastoHoje += agora; if (anotado > 0) G.fiado = (G.fiado || 0) + anotado;
   sons.tocar('dinheiro', 1, 0.05, -4);
-  avisar('Comprou ' + Itens.qtd(levou, id) + '.');
+  avisar('Comprou ' + Itens.qtd(levou, id) + (anotado > 0 ? ` (Cr$ ${anotado} no fiado; deve Cr$ ${G.fiado})` : '') + '.');
   hudSujo();
   return levou;
 }
-const comprarLoja = (id, qtd) => _comprar(id, qtd, precoLoja(id));
-const comprarMercearia = (id, qtd) => _comprar(id, qtd, precoMercearia(id));
+const comprarLoja = (id, qtd) => _comprar(id, qtd, precoLoja(id), true);
+const comprarMercearia = (id, qtd) => _comprar(id, qtd, precoMercearia(id), true);
+// (T4b, Negócio 4) a Revenda: o Ananias compra de volta o material dele pela metade do preço da tabela.
+const revendaLoja = () => typeof Habilidades !== 'undefined' && Habilidades.ganho('revenda') ? ECO.niveis.revendaItens.filter(id => LOJA.PRECOS[id] && !LOJA.COMPRA[id]) : [];
+const precoVendaLoja = id => LOJA.COMPRA[id] || (revendaLoja().includes(id) ? Math.floor(LOJA.PRECOS[id] * ECO.niveis.revenda) : 0);
 function venderLoja(id, qtd) {
   const n = Math.min(qtd, G.mochila.total(id));
-  if (n <= 0) return 0;
+  if (n <= 0 || !precoVendaLoja(id)) return 0;
   G.mochila.remover(id, n);
-  const v = n * LOJA.COMPRA[id];
+  const v = n * precoVendaLoja(id);
   G.dinheiro += v; G.ganhoHoje += v;
   sons.tocar('dinheiro', 1.1, 0.05, -4);
   avisar(`Vendeu ${Itens.qtd(n, id)} por Cr$ ${v}.`);
@@ -87,16 +93,17 @@ function abrirLoja() {
     caixa.innerHTML = '';
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px;display:flex;justify-content:space-between' },
       el('span', {}, 'Depósito do Seu Ananias'), el('span', {}, 'Cr$ ' + G.dinheiro)));
+    if (typeof Fiado !== 'undefined') { const f = Fiado.linhaLoja(desenha); if (f) caixa.append(f); }   // (T4b) a caderneta do fiado
     caixa.append(el('div', { class: 'abas' }, ABAS_LOJA.map((n, i) => el('div', { class: 'aba' + (i === _abaLoja ? ' ativa' : ''), onclick: e => { e.stopPropagation(); _abaLoja = i; desenha(); } }, n))));
     let ids, preco, acao, dica;
     if (_abaLoja === 0) { ids = Object.keys(LOJA.PRECOS); preco = precoLoja; acao = (id, s) => comprarLoja(id, s ? 5 : 1); dica = 'Clique: compra 1 · Shift+clique: compra 5'; }
-    else if (_abaLoja === 1) { ids = Object.keys(LOJA.COMPRA); preco = id => LOJA.COMPRA[id]; acao = (id, s) => venderLoja(id, s ? 999 : 1); dica = 'Clique: vende 1 · Shift+clique: vende tudo'; }
+    else if (_abaLoja === 1) { ids = Object.keys(LOJA.COMPRA).concat(revendaLoja()); preco = precoVendaLoja; acao = (id, s) => venderLoja(id, s ? 999 : 1); dica = 'Clique: vende 1 · Shift+clique: vende tudo' + (revendaLoja().length ? ' · Revenda: o material do depósito volta pela metade' : ''); }
     else if (_abaLoja === 2) {
       const grau = G.pensao ? G.pensao.grau() : 1;
       ids = Object.keys(Pratos.MERCEARIA).filter(id => Pratos.fase(id) <= grau); preco = precoMercearia; acao = (id, s) => comprarMercearia(id, s ? 5 : 1);
       dica = 'Ingredientes da Pensão da Rosa. Mais coisas aparecem quando a pensão fica famosa.';
     }
-    else { ids = sementesDaLoja(); preco = precoSemente; acao = (id, s) => _comprar(id, s ? 5 : 1, precoSemente(id)); dica = 'Sementes da estação, adubo e coisas da horta. Clique: compra 1 · Shift+clique: compra 5'; }
+    else { ids = sementesDaLoja(); preco = precoSemente; acao = (id, s) => _comprar(id, s ? 5 : 1, precoSemente(id), true); dica = 'Sementes da estação, adubo e coisas da horta. Clique: compra 1 · Shift+clique: compra 5'; }
     const falta = typeof compras !== 'undefined' ? compras.falta(G.mochila) : {};
     caixa.append(el('div', { class: 'grade loja' + (_abaLoja >= 2 ? ' uma' : '') }, ids.map(id => { const ex = explicaItemLoja(_abaLoja, id); return el('div', { class: 'linha', title: ex.longa, onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
       el('img', { src: urlItem(id) }), el('div', { class: 'texto' }, Itens.nome(id), falta[id] ? el('span', { style: 'color:var(--destaque)' }, `  (falta ${falta[id]})`) : null,

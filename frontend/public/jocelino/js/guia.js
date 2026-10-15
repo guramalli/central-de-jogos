@@ -272,6 +272,11 @@ let guiaPasso = function () {
     const id = Object.keys(l.metas).find(k => (l.feito[k] || 0) < l.metas[k]);
     // (teste de 13/10: com as pedras na mochila, o passo não dizia onde entregar)
     if ((id === 'buscar_pedra' || id === 'pedras') && G.mochila.total('pedra') > 0) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue n${aObraDaVez()}: botão direito no canteiro (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: idDaObraDaVez() } };
+    // (15/10) lavar e pintar: a ferramenta vem do Bira; com ela, a frase da seta e a obra
+    if ((id === 'lavar' || id === 'pintar') && typeof faltaFerramentaDaObra === 'function') {
+      if (faltaFerramentaDaObra(id)) return { id: 'bira', nome: 'Mestre Bira', texto: `Fale comigo: eu te dou ${id === 'lavar' ? 'a mangueira' : 'o rolo de pintura'}.`, alvo: { morador: 'bira' } };
+      return { id: 'bira', nome: 'Mestre Bira', texto: `${FERRAMENTA_TAREFA[id]} (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: idDaObraDaVez() } };
+    }
     const [texto, obj] = PASSO_OBRA[id] || [`Agora: ${TAREFAS_OBRA[id] ? TAREFAS_OBRA[id].texto : id}.`, null];
     return { id: 'bira', nome: 'Mestre Bira', texto: texto.replace('{obra}', aObraDaVez()), alvo: obj ? { objeto: obj } : null };
   }
@@ -326,8 +331,8 @@ ATUALIZADORES.push(() => {
   if (p) d.append(el('img', { src: urlArte('retratos/' + (p.retrato || p.id + '_normal')), alt: '' }), el('div', {}, el('b', {}, p.nome + ': '), p.texto));
 });
 // O contador da obra: cada tarefa que avança mostra "Peneirar areia 2/3" em cima do lugar, por 1,5 s.
-{ const t0 = Obra.trabalho; Obra.trabalho = function (id, n) {
-  const r = t0.call(this, id, n);
+{ const t0 = Obra.trabalho; Obra.trabalho = function (id, n, ...resto) {
+  const r = t0.call(this, id, n, ...resto);   // (o resto: quem fez — a turma do Bira não conta em dobro)
   // (só o Jocelino na obra da Vila; a turma do mestre trabalha sozinha, sem contador)
   try { if ((r === 'ok' || r === 'completa') && G.jog && G.mapaId === 'vila' && !(typeof ehMestre === 'function' && ehMestre())) { const l = G.obra.lista, f = G.jog.frente(); (G.guiaFlut = G.guiaFlut || []).push({ texto: `${TAREFAS_OBRA[id] ? TAREFAS_OBRA[id].texto : id} ${l.feito[id]}/${l.metas[id]}`, x: f.x, y: f.y - 40, ate: (G.agora || 0) + 1.5 }); } } catch (e) { }
   return r;

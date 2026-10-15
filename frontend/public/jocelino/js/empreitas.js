@@ -226,16 +226,25 @@ const Empreitas = {
     return 'ok';
   },
   ferramentaHoje(id) { const a = G.empreitas.aceitas[id]; return a && a.estado === 'obra' ? a.lista[a.dias] || '' : ''; },
-  // Na chuva: o concreto não pega (pá e colher) e o dia de pintar espera.
+  // Na chuva: o concreto não pega (pá e colher) e o dia de pintar espera. (15/10, T4) A lona encerada na plaquinha segura os dois.
   impedeHoje(id, chove) {
     if (!chove) return '';
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id], f = Empreitas.ferramentaHoje(id);
+    if (a && a.lona) return '';
     if (E.concreto && (f === 'pa' || f === 'colher')) return 'concreto';
     if (E.pintura && a && a.estado === 'obra' && a.dias === a.lista.length - 1) return 'pintura';
     return '';
   },
-  // Mão firme: o dia de pá ou de colher sai com 1 golpe.
-  golpesDoDia(id) { const f = Empreitas.ferramentaHoje(id); return (f === 'pa' || f === 'colher') && typeof Habilidades !== 'undefined' && Habilidades.tem('mao_firme') ? 1 : 3; },
+  // Mão firme: o dia de pá ou de colher sai com 1 golpe. (15/10, T4) A Pá firme (Alvenaria) e a Colher leve (Acabamento): com 2.
+  golpesDoDia(id) {
+    const f = Empreitas.ferramentaHoje(id), H = typeof Habilidades !== 'undefined' ? Habilidades : null;
+    if (!H || (f !== 'pa' && f !== 'colher')) return 3;
+    if (H.tem('mao_firme')) return 1;
+    return (f === 'pa' && H.ganho('pa_firme')) || (f === 'colher' && H.ganho('colher_leve')) ? ECO.niveis.golpesLeves : 3;
+  },
+  // (15/10, T4) O dia que a manta de cura faz sozinha (o aspersor do Stardew): a manta, os de regador; a manta boa, os de regador e de pá.
+  // Na chuva, a manta não faz o concreto pegar (nem a pintura secar): esse dia só anda com a LONA (impedeHoje).
+  autoHoje(id, chove = typeof Clima !== 'undefined' && Clima.chove(G.dia)) { const a = G.empreitas.aceitas[id], f = Empreitas.ferramentaHoje(id); return !!a && !!a.cura && (CUIDADOS[a.cura] || []).includes(f) && !Empreitas.impedeHoje(id, chove); },
   trabalhar(id, ferr) {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (!E || !a) return 'nao';
@@ -245,10 +254,11 @@ const Empreitas = {
       const chuva = Empreitas.impedeHoje(id, typeof Clima !== 'undefined' && Clima.chove(G.dia));
       if (chuva) return chuva;
       const hoje = Empreitas.ferramentaHoje(id);
+      if (Empreitas.autoHoje(id)) return 'manta';   // (a manta cuida: à noite o dia avança sozinho)
       if (ferr !== hoje) return 'ferramenta';
       a.feitoHoje++;
       if (a.feitoHoje >= Empreitas.golpesDoDia(id)) a.trabalhou = true;
-      // (15/10, T2) O dia de regador (a cura) e o de colher numa reforma ou pintura são acabamento, como o molhar da obra.
+      // (15/10, T2) O dia de regador (a cura) e o de colher numa reforma ou pintura são acabamento, como o lavar e o pintar da obra.
       const acab = hoje === 'regador' || (hoje === 'colher' && (E.reforma || E.pintura));
       if (typeof Habilidades !== 'undefined') Habilidades.ganhar(acab ? 'acabamento' : hoje === 'colher' || hoje === 'pa' ? 'alvenaria' : 'folego', a.trabalhou ? 5 : 1);
       return 'ok';
@@ -259,7 +269,7 @@ const Empreitas = {
     if (typeof Habilidades !== 'undefined') Habilidades.ganhar(E.ferramenta === 'pa' ? 'alvenaria' : 'folego', 2);
     if (a.vezes < E.vezes) return 'ok';
     for (const m in E.material) G.mochila.remover(m, E.material[m]);
-    G.dinheiro += E.paga; G.ganhoHoje = (G.ganhoHoje || 0) + E.paga;
+    const v = Empreitas.pagaBase(id); G.dinheiro += v; G.ganhoHoje = (G.ganhoHoje || 0) + v;
     Empreitas._entregou(id);
     return 'pronta';
   },
@@ -271,7 +281,7 @@ const Empreitas = {
     if (E.tipo !== 'longa') return 'em andamento';
     const prazo = a.prefeitura && a.estado !== 'entregue' ? ` · entregar até ${DIAS[(a.dia + 5) % 7]}` : '';
     if (a.estado === 'reservada') return (E.familia ? `começar com o material e Cr$ ${E.custo}` + (G.dinheiro < E.custo ? ` (você tem Cr$ ${Math.floor(G.dinheiro)})` : '') : a.prefeitura ? 'aceita: começar com o material' : `reservada: começar até ${DIAS[(a.dia + Empreitas.RESERVA - 2) % 7]}`) + prazo;
-    if (a.estado === 'obra') { const f = Empreitas.ferramentaHoje(id); return `dia ${a.dias + 1}/${a.lista.length}: ${a.trabalhou ? 'hoje feito' : 'hoje é dia de ' + (NOME_DIA[f] || f)}` + prazo; }
+    if (a.estado === 'obra') { const f = Empreitas.ferramentaHoje(id); return `dia ${a.dias + 1}/${a.lista.length}: ${a.trabalhou ? 'hoje feito' : Empreitas.autoHoje(id) ? `hoje a ${Itens.nome(a.cura).toLowerCase()} cuida sozinha` : 'hoje é dia de ' + (NOME_DIA[f] || f)}` + prazo; }
     if (a.estado === 'pronta') return 'pronta: entregar na plaquinha' + prazo;
     return E.familia ? 'terminada: à noite a família vê a obra nova' : 'entregue: paga à noite';
   },
@@ -304,7 +314,7 @@ const Empreitas = {
         continue;
       }
       if (a.estado === 'obra') {
-        if (a.trabalhou || (chove && Empreitas.ferramentaHoje(id) === 'regador')) a.dias++;
+        if (a.trabalhou || (chove && Empreitas.ferramentaHoje(id) === 'regador') || Empreitas.autoHoje(id, chove)) a.dias++;
         a.feitoHoje = 0; a.trabalhou = false;
         if (a.dias >= a.lista.length) a.estado = 'pronta';
         r.push({ id, entregue: false, dias: a.dias, pronta: a.estado === 'pronta' });
@@ -329,12 +339,16 @@ Object.assign(Empreitas, {
   capinaNasce(dia) { const c = G.empreitas.capina; return !!c && (dia - c.dia) % EMPREITAS_EXTRAS.capina_ananias.cada === 0; },
   capinaNoite() {
     const c = G.empreitas.capina; if (!c || !c.limpo) return 0;
-    c.limpo = false; const v = EMPREITAS_EXTRAS.capina_ananias.paga; G.dinheiro += v; Empreitas._entregou('capina_ananias', 1); return v;
+    c.limpo = false; const v = Empreitas.pagaBase('capina_ananias'); G.dinheiro += v; Empreitas._entregou('capina_ananias', 1); return v;
   },
 });
 // Os aditivos (o adubo do Stardew): cal e impermeabilizante melhoram a qualidade (nível 1 e 2); o acelerador (o Speed-Gro)
 // encurta a obra. Um por obra, antes de começar ou no dia 0 sem golpe.
 const ADITIVOS = { cal: 1, impermeabilizante: 2, acelerador: 0 };
+// (15/10, T4) Os cuidados do lote (receitas dos níveis), na plaquinha como o aditivo, mas à parte dele e a qualquer hora antes de
+// ficar pronta: a manta de cura (Acabamento 3) e a manta boa (Alvenaria 7) fazem sozinhas os dias de CUIDADOS; a lona encerada
+// (Acabamento 6) deixa trabalhar na chuva. Uma de cada por empreita (gasta o item).
+const CUIDADOS = { manta: ['regador'], manta_boa: ['regador', 'pa'] };
 const NOME_QUALIDADE = { 1: 'normal', 1.25: 'bom', 1.5: 'caprichado', 2: 'impecável' };
 // A Fala da Vila (as faixas de reputação): mais pedidos e pagamento melhor.
 const FAIXAS_VILA = [
@@ -354,12 +368,22 @@ Object.assign(Empreitas, {
     if (a.estado === 'obra') a.lista = Empreitas.listaDias(id, aditivo);
     return 'ok';
   },
+  aplicarCuidado(id, item, mochila) {
+    const a = G.empreitas.aceitas[id];
+    if (!a || a.tipo !== 'longa' || !(item in CUIDADOS || item === 'lona')) return 'nao';
+    if (!(a.estado === 'reservada' || a.estado === 'obra')) return 'tarde';
+    if (item === 'lona' ? a.lona : a.cura) return 'ja';
+    if (mochila.total(item) < 1) return 'falta';
+    mochila.remover(item, 1);
+    if (item === 'lona') a.lona = true; else a.cura = item;
+    return 'ok';
+  },
   // A fórmula do Stardew para o ouro, com Acabamento no lugar de Farming e o aditivo no lugar do adubo (empreitadas.gd);
-  // o impecável (o irídio) só com o impermeabilizante, a metade da chance.
+  // o impecável (o irídio) só com o impermeabilizante, a metade da chance (com o Impecável do Acabamento 9, 0,75).
   qualidade(rng = Math.random, F = 0, semImpecavel = false) {
     if (Empreitas.funcao() < 2) return 1;
     const A = typeof Habilidades !== 'undefined' ? Habilidades.nivel('acabamento') : 0, ouro = 0.2 * (A / 10) + 0.2 * F * ((A + 2) / 12) + 0.01, r = rng();
-    if (F >= 2 && r < ouro / 2) return semImpecavel ? 1.5 : 2;
+    if (F >= 2 && r < ouro * (typeof Habilidades !== 'undefined' && Habilidades.ganho('impecavel') ? ECO.niveis.impecavel : 0.5)) return semImpecavel ? 1.5 : 2;
     if (r < ouro) return 1.5;
     return rng() < Math.min(0.75, ouro * 2) ? 1.25 : 1;
   },
@@ -371,8 +395,12 @@ Object.assign(Empreitas, {
   pagamento(id, a, q, dia = G.dia) {
     const E = dadosEmpreita(id);
     if (E.familia) return 0;   // as obras da família não são pagas (nem a gorjeta do Artista)
-    return Math.round(E.paga * q * Empreitas.fatorEpoca(id, dia) * Empreitas.faixa().fator * (a && a.carta ? ECO.empreitas.carta : 1)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0);
+    return Math.round(E.paga * q * Empreitas.fatorEpoca(id, dia) * Empreitas.faixa().fator * Empreitas.fatorServico(id) * (a && a.carta ? ECO.empreitas.carta : 1)) + (q > 1 && typeof Habilidades !== 'undefined' && Habilidades.tem('artista') ? 50 : 0);
   },
+  // (T4b, Negócio 7) O cartaz na padaria: os serviços do quadro (não a obra da família nem o pedido da Prefeitura) pagam 10% a mais.
+  fatorServico(id) { const E = dadosEmpreita(id); return E && !E.familia && E.cliente !== 'prefeitura' && typeof Habilidades !== 'undefined' && Habilidades.ganho('cartaz_padaria') ? 1 + ECO.niveis.servicos : 1; },
+  // O que o quadro mostra e a curta e a capina pagam: o valor do ECO com o cartaz.
+  pagaBase(id) { return Math.round(dadosEmpreita(id).paga * Empreitas.fatorServico(id)); },
 });
 INICIADORES.push(s => Empreitas.iniciar(s));
 COLETORES.push(s => Empreitas.salvar(s));

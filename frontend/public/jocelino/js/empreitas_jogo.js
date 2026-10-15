@@ -223,10 +223,11 @@ function golpeEmpreita(id, ferr) {
     if (E.tipo === 'curta' && a && G.jog) { const f = G.jog.frente(); (G.guiaFlut = G.guiaFlut || []).push({ texto: `${E.nome} ${a.vezes}/${E.vezes}`, x: f.x, y: f.y - 40, ate: (G.agora || 0) + 1.5 }); }
     return;
   }
-  if (r === 'pronta') { sons.tocar('moedas', 1, 0.05, -4); sons.tocar('feito', 1, 0.03, -6); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${E.paga}.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return; }
+  if (r === 'pronta') { sons.tocar('moedas', 1, 0.05, -4); sons.tocar('feito', 1, 0.03, -6); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${Empreitas.pagaBase(id)}.`); hudSujo(); poeEmpreitasNoMapa(G.mapa); return; }
   if (r === 'estado') { avisar(!a ? '' : a.estado === 'reservada' ? 'Primeiro comece a obra: clique na plaquinha com o material na mochila.' : a.estado === 'pronta' ? 'Está pronta: clique na plaquinha para entregar.' : E.familia ? 'Terminada: à noite a família vê a obra nova.' : 'Entregue: o pagamento vem à noite.'); return; }
   if (r === 'concreto') { avisar('Chovendo, o concreto não pega. Hoje a obra espera.'); return; }
   if (r === 'pintura') { avisar('Com chuva não dá para pintar.'); return; }
+  if (r === 'manta') { avisar(`Hoje a ${Itens.nome(a.cura).toLowerCase()} faz o serviço sozinha: à noite o dia avança.`); return; }
   if (r === 'material') avisar(TEXTO_RESULTADO.material + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + '.');
   else if (r === 'ferramenta') {
     const pede = E.tipo === 'longa' ? Empreitas.ferramentaHoje(id) : E.ferramenta;
@@ -243,13 +244,14 @@ function acaoEmpreita(id) {
   // (teste de 12/10) A plaquinha explica: quantos golpes, quantos já foram e quando o material é gasto.
   const mat = Object.keys(E.material).length ? ' Tenha na mochila: ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + ' (gastas no último golpe).' : '';
   const como = LIMPEZA[id] ? `Limpe ${E.vezes} ${NOME_LIMPEZA[LIMPEZA[id]] || LIMPEZA[id]} em volta com ${NOME_FERRAMENTA[E.ferramenta]}.` : `Escolha ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} e dê ${E.vezes} golpes nesta plaquinha (feitos: ${a.vezes || 0}/${E.vezes}).`;
-  abrirPlaca(`${E.nome} para ${CLIENTE_NOME[E.cliente]} (Cr$ ${E.paga}). ${como}${mat}`);
+  abrirPlaca(`${E.nome} para ${CLIENTE_NOME[E.cliente]} (Cr$ ${Empreitas.pagaBase(id)}). ${como}${mat}`);
   return true;
 }
 // A plaquinha da longa: reservada → começar (com o material); pronta → entregar; senão, o que tem para hoje.
 function acaoLote(id) {
   const E = dadosEmpreita(id), a = G.empreitas.aceitas[id], quem = E.familia ? 'a família' : CLIENTE_NOME[E.cliente] || '';
   if (typeof aditivoNaPlaquinha === 'function' && aditivoNaPlaquinha(id)) return true;   // (entrega B)
+  if (cuidadoNaPlaquinha(id)) return true;   // (15/10, T4) a manta e a lona
   if (a.estado === 'reservada') {
     const mat = Empreitas.material(id), lista = Object.entries(mat).map(([m, q]) => Itens.qtd(q, m)).join(', ');
     if (Object.keys(mat).some(m => G.mochila.total(m) < mat[m])) { abrirPlaca(`${E.nome} para ${quem}. Para começar, traga na mochila: ${lista}. (${Empreitas.textoEstado(id)})`); return true; }
@@ -271,7 +273,11 @@ EXTRAS_MUNDO.push(m => !G.empreitas ? [] : m.objs.filter(o => o.placaDe && G.emp
   const a = G.empreitas.aceitas[o.placaDe], sobe = Math.sin((G.agora || 0) * 3) * 3;
   if (!a) return;
   if (a.aditivo) desenhaPe(ctx, 'itens/' + a.aditivo, o.x + 22, o.y - 6, 1, 0.4);
-  if (a.estado === 'obra' && !a.trabalhou) desenhaPe(ctx, 'itens/' + Empreitas.ferramentaHoje(o.placaDe), o.x, o.y - 74 + sobe, 1, 0.75);
+  if (a.cura) desenhaPe(ctx, 'itens/' + a.cura, o.x - 22, o.y - 6, 1, 0.4);   // (15/10, T4) a manta e a lona instaladas, ao pé da plaquinha
+  if (a.lona) desenhaPe(ctx, 'itens/lona', o.x - 22, o.y + 8, 1, 0.4);
+  const auto = Empreitas.autoHoje(o.placaDe);
+  if (a.estado === 'obra' && !a.trabalhou && auto) desenhaPe(ctx, 'itens/' + a.cura, o.x, o.y - 74 + sobe, 1, 0.75);   // (a manta trabalha hoje)
+  else if (a.estado === 'obra' && !a.trabalhou) desenhaPe(ctx, 'itens/' + Empreitas.ferramentaHoje(o.placaDe), o.x, o.y - 74 + sobe, 1, 0.75);
   else if (a.estado === 'pronta') desenhaFx(ctx, 'exclamacao', o.x, o.y - 74 + sobe);
 } })));
 // A limpeza conta quando o detrito marcado sai.
@@ -286,7 +292,7 @@ function quebrouEmpreita(o) {
   const r = Empreitas.trabalhar(o.empreitaDet, dadosEmpreita(o.empreitaDet).ferramenta);
   if (r === 'pronta') golpeEmpreitaPronta(o.empreitaDet);
 }
-function golpeEmpreitaPronta(id) { const E = dadosEmpreita(id); sons.tocar('moedas', 1, 0.05, -4); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${E.paga}.`); hudSujo(); if (G.mapa) poeEmpreitasNoMapa(G.mapa); }
+function golpeEmpreitaPronta(id) { const E = dadosEmpreita(id); sons.tocar('moedas', 1, 0.05, -4); avisar(`${E.nome}: pronto! ${CLIENTE_NOME[E.cliente] || ''} pagou Cr$ ${Empreitas.pagaBase(id)}.`); hudSujo(); if (G.mapa) poeEmpreitasNoMapa(G.mapa); }
 
 // ---------- o quadro da Vila: Pensão e Serviços ----------
 // Onde fica cada lugar (o cartão do quadro e a tarefa): o jogador novo não sabe onde é a mata nem a praia (teste de 12/10).
@@ -308,7 +314,7 @@ function abrirQuadro(aba = 'servicos') {
       const ids = G.empreitas.quadro, aceitas = Object.keys(G.empreitas.aceitas);
       const linha = (id, botao) => { const E = dadosEmpreita(id); return el('div', { class: 'orel-item' }, el('img', { src: urlItem(E.ferramenta === 'carga' ? 'telha' : E.ferramenta) }),
         el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), E.fala ? el('div', { class: 'recado-fala' }, `"${E.fala}"`) : null, el('div', { class: 'orel-preco' },
-          `${ondeFica(E.mapa)} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
+          `${ondeFica(E.mapa)} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${Empreitas.pagaBase(id)}` +
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
       const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
       const pct = prox ? Math.round(100 * Math.min(G.empreitas.entregues / prox.entregues, prox.caprichados ? cap / prox.caprichados : 1)) : 100;
@@ -390,6 +396,18 @@ function aditivoNaPlaquinha(id) {
   avisar({ ok: `${Itens.nome(ad)} aplicado: ${ad === 'acelerador' ? 'a obra fica mais curta' : 'o acabamento sai melhor'}.`, ja: 'Essa obra já tem aditivo.', tarde: 'O aditivo vai antes de começar a obra.', falta: 'Falta o aditivo.', nao: 'Isso não é aditivo.', curta: 'Essa obra já é curta demais para o acelerador.' }[r]);
   if (r === 'ok') { sons.tocar('pousar', 1, 0.05, -4); hudSujo(); poeEmpreitasNoMapa(G.mapa); }
   return true;
+}
+// (15/10, T4) A manta de cura, a manta boa ou a lona na mão, na plaquinha da longa: instala (uma de cada por empreita, a qualquer hora
+// antes de ficar pronta). A manta faz sozinha os dias de regador (a boa, também os de pá); a lona deixa trabalhar na chuva.
+function cuidadoNaPlaquinha(id) {
+  const it = itemDaMao(), a = G.empreitas.aceitas[id];
+  if (!a || !(it in CUIDADOS || it === 'lona')) return false;
+  const r = Empreitas.aplicarCuidado(id, it, G.mochila);
+  if (r !== 'ok') return false;
+  avisar({ ok: it === 'lona' ? 'Lona encerada no lote: a chuva não para mais o concreto nem a pintura.' : `${Itens.nome(it)} no lote: ${it === 'manta_boa' ? 'os dias de regador e de pá' : 'os dias de regador'} ela faz sozinha${it === 'manta_boa' ? ' (na chuva, o concreto só pega com a lona)' : ''}.`,
+    ja: it === 'lona' ? 'Esse lote já tem lona.' : 'Esse lote já tem manta.', tarde: 'A obra já está pronta.', falta: 'Falta o item.', nao: 'Isso não vai no lote.' }[r]);
+  if (r === 'ok') { sons.tocar('pousar', 1, 0.05, -4); hudSujo(); poeEmpreitasNoMapa(G.mapa); }
+  return r === 'ok';   // (revisão T4a) já tem, pronta ou não vai: a plaquinha segue o normal (começar, entregar, o que tem para hoje)
 }
 NOITE.push(linhas => {
   const chove = typeof Clima !== 'undefined' && Clima.chove(G.dia);

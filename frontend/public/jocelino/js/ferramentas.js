@@ -5,7 +5,7 @@
 // chão, que pulam e vêm para a mochila quando o Jocelino passa perto. Comida na mão: botão direito come.
 
 const ENERGIA_MAX = 270, CUSTO_GOLPE = 2;
-const NOME_FERRAMENTA = { foice: 'a foice', machado: 'o machado', picareta: 'a picareta', pa: 'a pá', regador: 'o regador', colher: 'a colher' };   // (tarefa 7: sem a colher, a seta dizia "Use colher na plaquinha")
+const NOME_FERRAMENTA = { foice: 'a foice', machado: 'o machado', picareta: 'a picareta', pa: 'a pá', regador: 'o regador', colher: 'a colher', mangueira: 'a mangueira', rolo: 'o rolo de pintura' };   // (tarefa 7: sem a colher, a seta dizia "Use colher na plaquinha")
 
 // O começo do jogo: a mochila com as ferramentas (as mesmas do Godot) e a energia cheia.
 INICIADORES.push(s => {
@@ -126,13 +126,14 @@ function acertarUm(id, alvo, vistos) {
   if (id === 'pa' && !o && G.mapa.chaoEm(alvo.x, alvo.y) === CH.GRAMA && typeof minhocaAoCavar === 'function') minhocaAoCavar(alvo);   // às vezes sai minhoca
   if (typeof chaoAcertado === 'function' && chaoAcertado(id, alvo)) return;   // a horta: a pá cava, o regador rega
   if (id === 'regador') { lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'agua'); sons.tocar('agua', 1, 0.1, -4); }   // a Roça sobe só na cova
-  else sons.tocar('terra', 1.3, 0.1, -10);
+  else if (id !== 'mangueira' && id !== 'rolo') sons.tocar('terra', 1.3, 0.1, -10);   // (a água e a tinta já têm o som delas)
 }
 function quebrar(o) {
   const m = G.mapa, D = DETRITOS[o.det];
   m.tirar(o);
   if (G.limpou) G.limpou[o.det] = (G.limpou[o.det] || 0) + 1;   // o que já aprendeu a limpar (as setas, guia_setas.js)
   for (const id in D.solta) soltar(id, D.solta[id], o.x, o.y - 10, true);   // (o que sai do detrito conta na coleta do recado)
+  if (typeof Habilidades !== 'undefined') for (const [id, q] of Object.entries(Habilidades.sobraAoQuebrar(o.det))) soltar(id, q, o.x, o.y - 10, true);   // (15/10, T4) Pedra de sobra, Lenha boa
   if (o.det === 'entulho' && Math.random() < (typeof Habilidades !== 'undefined' && Habilidades.tem('limpinho') ? 0.25 : 0.15)) soltar('ferro_velho', 1, o.x, o.y - 10);
   if (typeof quebrouNaObra === 'function') quebrouNaObra(o);
   if (typeof quebrouEmpreita === 'function') quebrouEmpreita(o);
@@ -162,11 +163,14 @@ ATUALIZADORES.push(dt => {
   if (j.golpe > 0) {
     const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)];
     j.golpeT = (j.golpeT || 0) + dt;
-    if (!j._somSubida && j.golpeItem !== 'foice' && j.golpeItem !== 'colher' && j.golpeT >= pf.subida - 0.06) { j._somSubida = true; sons.tocar('golpe', j.golpeItem === 'picareta' ? 0.9 : 1, 0.08, -10); }   // (a colher não zune: não há pancada)
+    if (!j._somSubida && !SEM_ZUNIDO.has(j.golpeItem) && j.golpeT >= pf.subida - 0.06) { j._somSubida = true; sons.tocar('golpe', j.golpeItem === 'picareta' ? 0.9 : 1, 0.08, -10); }   // (a colher, a mangueira e o rolo não zunem: não há pancada)
     if (!j.acertou && j.golpeT >= pf.acerto) {
       j.acertou = true; acertar(j.golpeItem, j.golpeAlvo);
       const pc = pontoDoGolpe(j);
       if (pc && j.golpeItem === 'colher') lascas(pc.x, pc.y, 'massa', 3);   // respingos de massa na ponta da colher
+      // (15/10) a mangueira espirra água onde o jato bate no chão; o rolo pinga tinta
+      if (pc && j.golpeItem === 'mangueira') { lascas(pc.x, pc.y, 'agua', 8); sons.tocar('agua', 1.2, 0.1, -6); }
+      if (pc && j.golpeItem === 'rolo') { lascas(pc.x, pc.y, 'tinta', 3); sons.tocar('derramar', 1.3, 0.1, -14); }
     }
   }
   // Segurar o botão repete o golpe (como no Stardew).
@@ -192,7 +196,7 @@ ATUALIZADORES.push(dt => {
 
 // Lascas que voam no golpe (terra, madeira, pedra, água).
 const LASCAS = [];
-const FX_LASCA = { pedra: 'lasca_pedra', madeira: 'lasca_madeira', mato: 'lasca_mato', agua: 'gota', massa: 'lasca_pedra' };   // (a massa: o cinza da lasca de pedra)
+const FX_LASCA = { pedra: 'lasca_pedra', madeira: 'lasca_madeira', mato: 'lasca_mato', agua: 'gota', massa: 'lasca_pedra', tinta: 'gota' };   // (a massa: o cinza da lasca de pedra; a tinta azul-clara: a gota)
 function lascas(x, y, tipo, n = 7) { if (!MODO_TESTE.efeitos) return; for (let k = 0; k < n; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, fx: FX_LASCA[tipo] || 'lasca_terra' }); }
 
 // ---------- a animação do golpe ----------
@@ -237,9 +241,21 @@ const PERFIL_GOLPE = {
 // carregou) são as da pá, esticadas no tempo.
 PERFIL_GOLPE.colher = { dur: 0.52, subida: 0.26, acerto: 0.36, marcas: [0.13, 0.26, 0.36], quadros: {} };
 for (const d in PERFIL_GOLPE.pa.quadros) PERFIL_GOLPE.colher.quadros[d] = PERFIL_GOLPE.pa.quadros[d].map(k => ({ ...k, t: k.t * 0.52 / 0.38 }));
-function perfilDe(id) { return id === 'foice' ? 'foice' : id === 'regador' ? 'regador' : id === 'pa' ? 'pa' : id === 'colher' ? 'colher' : 'pesada'; }
+// (15/10, o dono: "regar a parede não está legal") LAVAR NO MEIO, PINTAR NO FIM. A mangueira (golpe_mangueira.webp): mira, o jato
+// bate no chão à frente e varre de um lado para o outro; o acerto é na 2ª varrida (quadro 3), quando a água espirra. O rolo
+// (golpe_rolo.webp): carregado embaixo, sobe, no alto, desce pingando; o acerto é na descida (quadro 3). Sem pancada, sem zunido.
+// As poses de ferramenta (só para quando a folha ainda não carregou): a do regador e a da pá, esticadas no tempo.
+PERFIL_GOLPE.mangueira = { dur: 0.6, subida: 0.22, acerto: 0.34, marcas: [0.1, 0.22, 0.34], quadros: {} };
+for (const d in PERFIL_GOLPE.regador.quadros) PERFIL_GOLPE.mangueira.quadros[d] = PERFIL_GOLPE.regador.quadros[d].map(k => ({ ...k, t: k.t * 0.6 / 0.55 }));
+PERFIL_GOLPE.rolo = { dur: 0.6, subida: 0.3, acerto: 0.45, marcas: [0.15, 0.3, 0.45], quadros: {} };
+for (const d in PERFIL_GOLPE.pa.quadros) PERFIL_GOLPE.rolo.quadros[d] = PERFIL_GOLPE.pa.quadros[d].map(k => ({ ...k, t: k.t * 0.6 / 0.38 }));
+const SEM_ZUNIDO = new Set(['foice', 'colher', 'mangueira', 'rolo']);
+function perfilDe(id) { return ['foice', 'regador', 'pa', 'colher', 'mangueira', 'rolo'].includes(id) ? id : 'pesada'; }
 // Onde a ferramenta toca o chão no quadro de impacto da folha desenhada, relativo ao pé (LEIA_golpe.txt): as lascas saem dali.
-const CONTATO_GOLPE = { colher: { [DIR.BAIXO]: [-7, 9], [DIR.CIMA]: [31, -1], [DIR.ESQUERDA]: [-19, -1], [DIR.DIREITA]: [18, -1] } };
+// (a mangueira: onde a água cai no chão; o rolo: o meio do rolo na parede, descendo)
+const CONTATO_GOLPE = { colher: { [DIR.BAIXO]: [-7, 9], [DIR.CIMA]: [31, -1], [DIR.ESQUERDA]: [-19, -1], [DIR.DIREITA]: [18, -1] },
+  mangueira: { [DIR.BAIXO]: [39, 11], [DIR.CIMA]: [-36, 6], [DIR.ESQUERDA]: [-37, 3], [DIR.DIREITA]: [37, 3] },
+  rolo: { [DIR.BAIXO]: [15, -26], [DIR.CIMA]: [34, -41], [DIR.ESQUERDA]: [-44, -48], [DIR.DIREITA]: [43, -48] } };
 function pontoDoGolpe(j) {
   const c = CONTATO_GOLPE[j.golpeItem] && CONTATO_GOLPE[j.golpeItem][j.dir];
   return c ? { x: j.x + c[0], y: j.y + 2 + c[1] } : null;   // (+2: a folha é desenhada com o pé em j.y + 2)

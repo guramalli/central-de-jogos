@@ -41,7 +41,9 @@ const Achados = {
     if (!base || !m) return [];
     const est = Math.floor((dia - 1) / 28) % 4, chove = typeof Clima !== 'undefined' && Clima.chove(dia), s = Achados.sorte(dia);
     const f = mulberry(dia * 7919 + mapaId.length * 131 + mapaId.charCodeAt(0));
-    const n = base + (s >= 0.06 ? 1 : s <= -0.06 ? -1 : 0) - (chove && mapaId === 'praia' ? 1 : 0);
+    // (15/10, T4) o Faro de catador (Fôlego 4): mais achados por dia na praia e na mata
+    const faro = (mapaId === 'praia' || mapaId === 'mata') && typeof Habilidades !== 'undefined' && Habilidades.ganho('faro_de_catador') ? ECO.niveis.faro : 0;
+    const n = base + faro + (s >= 0.06 ? 1 : s <= -0.06 ? -1 : 0) - (chove && mapaId === 'praia' ? 1 : 0);
     const t = Achados.tabela(mapaId, est, chove).map(([id, p]) => [id, ACHADOS_RAROS.includes(id) ? p * (1 + s * 5) : p]);
     const soma = t.reduce((a, x) => a + x[1], 0), r = [];
     let k = 0;

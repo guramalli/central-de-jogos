@@ -1,6 +1,6 @@
 // Jocelino — obra_jogo.js — a obra do Bira no mapa (o roteiro do Godot: roteiro.gd/_bira/trabalho/_gratificacao):
 // a conversa com o Mestre Bira (lista da manhã, pagamento, extra, imprevisto, horário), as tarefas nos objetos do
-// canteiro (monte, peneira, masseira, entulho, mato, regador e colher na parede), a carga entregue na obra, a arte da
+// canteiro (monte, peneira, masseira, entulho, mato, mangueira, rolo e colher na obra), a carga entregue na obra, a arte da
 // etapa e o fim do expediente às 17h (a parte feita fica a receber). As regras estão em obra.js.
 
 // Onde renascem (e contam) o entulho e o mato da obra: o retângulo do canteiro da vez (CANTEIROS, mapa_vila.js), que muda com a obra.
@@ -11,6 +11,26 @@ const nomeTarefa = id => TAREFAS_OBRA[id].texto;
 const textoLista = l => Object.keys(l.metas).map(id => `• ${nomeTarefa(id)}: ${Math.min(l.metas[id], l.feito[id] || 0)}/${l.metas[id]}`).join('\n');
 const listaDeHoje = () => G.obra.lista && G.obra.lista.dia === G.dia ? G.obra.lista : null;
 const falaBira = (txt, depois) => { abrirConversa('Mestre Bira', urlArte('retratos/bira_normal'), Array.isArray(txt) ? txt : [txt], depois); return true; };
+// (15/10) LAVAR NO MEIO, PINTAR NO FIM: a mangueira e o rolo de pintura são do canteiro. O Bira entrega cada um na 1ª lista que
+// pede a tarefa (junto com a lista; num save antigo com a lista já pega, na próxima conversa). Uma vez só (G.obra.deu): guardou
+// no baú, continua lá. Mochila cheia: cai no chão, do lado do Jocelino.
+const FERRAMENTA_DA_TAREFA_OBRA = { lavar: 'mangueira', pintar: 'rolo' };
+const FALA_FERRAMENTA_OBRA = {
+  mangueira: 'Toma a mangueira do canteiro: hoje tem lavar o chão da obra. Jato no chão, que a poeira e a massa seca saem.',
+  rolo: 'Chegou a hora da tinta! Toma o rolo de pintura, a lata já tá aberta. Passa na parede da obra, de baixo pra cima.',
+};
+const faltaFerramentaDaObra = t => { const f = FERRAMENTA_DA_TAREFA_OBRA[t]; return !!f && !(G.obra.deu || {})[f] && G.mochila.total(f) <= 0; };
+function biraEntregaFerramentas(l) {
+  const frases = [];
+  for (const t in FERRAMENTA_DA_TAREFA_OBRA) {
+    if (!l || !l.metas[t] || !faltaFerramentaDaObra(t)) continue;
+    const f = FERRAMENTA_DA_TAREFA_OBRA[t], resto = G.mochila.adicionar(f, 1);
+    if (resto) soltar(f, resto, G.jog.x, G.jog.y);
+    (G.obra.deu = G.obra.deu || {})[f] = true; hudSujo();
+    frases.push(FALA_FERRAMENTA_OBRA[f] + (resto ? ' (A mochila tá cheia: deixei no chão, do seu lado.)' : ''));
+  }
+  return frases;
+}
 
 // O "!" em cima do Bira: tem lista nova, pagamento ou gratificação esperando.
 function biraTemNovidade() {
@@ -55,11 +75,13 @@ function conversarBira() {
     l = o.lista = Object.assign({ dia: G.dia, feito: {}, paga: false }, Obra.sortear(G.dia));
     if (G.mapa && G.mapa.id === 'vila') poeEntulhoDaObra(G.mapa);   // (quebrou entulho antes da lista? o canteiro completa o que ela pede)
     sons.tocar('pagina', 1, 0.05, -6);
-    const fala = [`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`, 'Terminou, volta aqui que eu acerto a diária.'];
+    const fala = [`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`, ...biraEntregaFerramentas(l), 'Terminou, volta aqui que eu acerto a diária.'];
     if (contratacao) fala.unshift(`Então você é o sobrinho do Juca! Ele me falou de você. Servente eu preciso, sim: Cr$ ${Obra.diaria()} por dia, pago quando a lista do dia fica pronta.`,
       'A obra é de sol a sol, até as cinco: chegou, trabalhou. Quem aprende o ofício aqui vira meio-oficial, e meio-oficial já levanta a casa da família.');
     return falaBira(fala);
   }
+  // A mangueira ou o rolo que a lista pede e o Jocelino ainda não ganhou (o save de antes da troca do regador).
+  { const fr = biraEntregaFerramentas(l); if (fr.length) return falaBira(fr); }
   // Imprevisto: o cimento comprado no Ananias.
   if (l.metas.buscar_cimento && (l.feito.buscar_cimento || 0) < l.metas.buscar_cimento && G.mochila.total('cimento') > 0) {
     const n = Math.min(G.mochila.total('cimento'), l.metas.buscar_cimento - (l.feito.buscar_cimento || 0));
@@ -105,9 +127,10 @@ function poeObraNoMapa(b) {
     const [x, y, w, h] = LOTES_DAS_OBRAS[obraId];
     let ob = b.objs.find(o => o.obraId === obraId);
     const daVez = Obra.obra().id === obraId;
-    if ((daVez || G.obra.indice > idx) && !ob) { ob = b.interativo('obra_' + obraId, 'objetos/alicerce', x, y, w, h); ob.obraId = obraId; }
+    if ((daVez || G.obra.indice > idx) && !ob) { ob = b.interativo('obra_' + obraId, 'objetos/alicerce', x, y, w, h); ob.obraId = obraId; ob.caixaPe = ob.caixa; }
     if (ob) {
       ob.nome = daVez ? Obra.arteAtual() : (obraId === 'escola' ? 'objetos/escola' : 'objetos/predio_7'); ob.acao = () => acaoNaObra(ob); ob.ferramenta = (o2, id) => ferramentaNaObra(o2, id);
+      obraNoLote(b, ob, x, y, w, h);
       for (const o2 of b.objs.filter(q => (q.tipo === 'detrito' || q.achado) && (q.tiles || []).some(t => ob.tiles.some(u => u.x === t.x && u.y === t.y)))) b.tirar(o2);
       for (const t of ob.tiles) b.ocupado.set(chaveT(t.x, t.y), ob);
     }
@@ -120,6 +143,30 @@ function poeObraNoMapa(b) {
   const ze = b.moradores.find(m => m.id === 'ze'); if (ze) ze.aoConversar = () => conversarZe(ze);
   for (const [id, f] of [['monte_tijolos', pegarDoMonte], ['pilha_ripas', () => pegarCargaObra('ripa', 'itens/ripa', 'ripas')], ['peneira', peneirar], ['masseira', () => pegarCargaObra('massa', 'itens/massa', 'massa')]]) {
     const o = b.objs.find(x => x.id === id); if (o) o.acao = () => { f(o); return true; };
+  }
+}
+// (15/10) A etapa que é chão (o gabarito da Escola: a terra batida, arte pronta repetida no lote inteiro) fica por baixo de quem
+// pisa e não bloqueia: dá para andar pelo lote (a caixa do lote fica só para o alcance do botão direito). A estrutura (do tamanho
+// do lote) bloqueia pela base, como antes: o que é sólido é o que se vê.
+function obraNoLote(b, ob, x, y, w, h) {
+  b.solidos = b.solidos.filter(c => c !== ob.caixa);
+  const topo = y - h + 1;
+  if (ob.nome.startsWith('texturas/')) {
+    const tex = ob.nome;
+    Object.assign(ob, { solido: false, caixa: { x: x * TILE, y: topo * TILE, w: w * TILE, h: h * TILE }, ordemY: topo * TILE,
+      desenha: ctx => desenhaChaoDaObra(ctx, tex, x, topo, w, h) });
+    return;
+  }
+  delete ob.ordemY; delete ob.desenha;
+  ob.solido = true; ob.caixa = ob.caixaPe; if (ob.caixa) b.solidos.push(ob.caixa);
+}
+// A textura repetida no retângulo (em ladrilhos), na escala de verdade (a terra batida tem 192 px: 4x4 ladrilhos).
+function desenhaChaoDaObra(ctx, tex, x, y, w, h) {
+  const img = spr(tex); if (!img) return;
+  const iw = img.naturalWidth, ih = img.naturalHeight, x1 = (x + w) * TILE, y1 = (y + h) * TILE;
+  for (let py = y * TILE; py < y1; py += ih) for (let px = x * TILE; px < x1; px += iw) {
+    const cw = Math.min(iw, x1 - px), ch = Math.min(ih, y1 - py);
+    ctx.drawImage(img, 0, 0, cw, ch, px, py, cw, ch);
   }
 }
 function propostaDeMestre() {
@@ -159,7 +206,7 @@ function acaoNaObra(o) {
 function entregarPedrasDaMochila() {
   const l = listaDeHoje(); if (!l || G.mochila.total('pedra') <= 0) return null;
   const t = ['buscar_pedra', 'pedras'].find(k => l.metas[k] && (l.feito[k] || 0) < l.metas[k]); if (!t) return null;
-  const n = Math.min(G.mochila.total('pedra'), l.metas[t] - (l.feito[t] || 0));
+  const n = Math.min(G.mochila.total('pedra'), Math.ceil((l.metas[t] - (l.feito[t] || 0)) / Obra.emDobro(t)));   // (com o Ombro de pedreiro, cada pedra conta 2)
   G.mochila.remover('pedra', n); const r = Obra.trabalho(t, n); hudSujo(); sons.tocar('pousar', 1, 0.05, -4);
   return { t, n, r };
 }
@@ -168,7 +215,9 @@ function ferramentaNaObra(o, id) {
   const l = listaDeHoje(); if (!l) { avisar('Primeiro pegue a lista com o Mestre Bira.'); return; }
   const H = typeof Habilidades !== 'undefined' ? Habilidades : { tem: () => false };
   let t = '', n = 1;
-  if (id === 'regador') { t = 'molhar'; n = H.tem('pintor') ? 5 : H.tem('capricho') ? 3 : 1; }
+  // (15/10) A mangueira lava o chão e o rolo pinta a parede; o Capricho e o Pintor de mão cheia valem para os dois (3 e 5 por vez).
+  if (id === 'mangueira' || id === 'rolo') { t = id === 'mangueira' ? 'lavar' : 'pintar'; n = H.tem('pintor') ? 5 : H.tem('capricho') ? 3 : 1; }
+  else if (id === 'regador') { const q = ['lavar', 'pintar'].find(faltaNaLista); if (q) avisar(q === 'lavar' ? 'A obra não se rega: para lavar o chão, use a mangueira.' : 'A parede agora é de tinta: use o rolo de pintura.'); return; }
   else if (id === 'colher') { t = l.metas.assentar && (l.feito.assentar || 0) < l.metas.assentar ? 'assentar' : 'rebocar'; if (t === 'rebocar') n = H.tem('pintor') ? 5 : H.tem('capricho') ? 3 : 1; }
   if (!t) return;
   const r = Obra.trabalho(t, n);
@@ -217,7 +266,7 @@ function conversarZe(p) {
   const c = G.jog.carga || {};
   if (c.id === 'massa') {
     const r = Obra.trabalho('massa', 1);
-    if (r !== 'nao_pede' && r !== 'sem_lista') { largarCarga(); sons.tocar('pousar', 0.9, 0.05, -4); abrirConversa('Zé', urlArte('retratos/ze_normal'), [r === 'completa' ? 'Valeu! Massa no ponto. Lista completa, fala com o Bira.' : 'Isso! Massa boa é igual feijão: nem mole, nem dura.']); return true; }
+    if (r !== 'nao_pede' && r !== 'sem_lista') { largarCarga(); sons.tocar('pousar', 0.9, 0.05, -4); avisar(r === 'completa' ? 'Zé: "Valeu! Massa no ponto. Lista completa, fala com o Bira."' : 'Zé: "Isso! Massa boa é igual feijão: nem mole, nem dura."'); return true; }   // (15/10, o jogador: sem a janela de conversa a cada massa; só o aviso no canto)
   }
   const f = FALAS.ze, lista = typeof f === 'function' ? f() : f;
   abrirConversa('Zé', urlArte('retratos/ze_normal'), lista);

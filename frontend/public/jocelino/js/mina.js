@@ -33,11 +33,13 @@ const Mina = {
     }
     return r;
   },
-  chanceEscada(restantes) { return Math.min(1, 0.02 + 1 / Math.max(1, restantes)); },
+  // (15/10, T4) o Olho de pedreira (Fôlego 6): a escada escondida aparece 50% mais
+  chanceEscada(restantes) { return Math.min(1, (0.02 + 1 / Math.max(1, restantes)) * (typeof Habilidades !== 'undefined' && Habilidades.ganho('olho_de_pedreira') ? ECO.niveis.olhoDePedreira : 1)); },
   chegou(n) { G.mina.maisFunda = Math.max(G.mina.maisFunda, n); if (n % 5 === 0) G.mina.elevador = Math.max(G.mina.elevador, n); },
   bau(n) { return BAUS_MINA[n] && !G.mina.baus.includes(n) ? BAUS_MINA[n] : null; },
   abrirBau(n) { const p = Mina.bau(n); if (p) G.mina.baus.push(n); return p; },
-  fatorAr(n) { return n >= MINA.AR_RUIM ? 1.5 : 1; },
+  // (15/10, T4) o Pulmão de pedreira (Fôlego 9): o ar pesado não cansa mais que o normal
+  fatorAr(n) { return n >= MINA.AR_RUIM && !(typeof Habilidades !== 'undefined' && Habilidades.ganho('pulmao_de_pedreira')) ? 1.5 : 1; },
 };
 INICIADORES.push(s => Mina.iniciar(s));
 COLETORES.push(s => Mina.salvar(s));

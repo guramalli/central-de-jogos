@@ -159,7 +159,7 @@ function abrirViajante() {
         el('div', {}, el('b', {}, 'Receita: ' + Pratos.PRATOS[id].nome), el('div', { class: 'orel-preco' }, tem ? 'Já está no caderno' : `Cr$ ${preco} · ★★★★`)),
         tem ? null : el('div', { class: 'orel-bts' }, el('button', { class: 'botao', onclick: ev => { ev.stopPropagation();
           const r = Viajante.comprarReceita(p, id, G.dinheiro);
-          if (r === 'ok') { G.dinheiro -= preco; hudSujo(); sons.tocar('moedas', 1, 0.05, -4); sons.tocar('fanfarra', 1.1, 0, -6); avisar(`Receita nova no caderno: ${Pratos.PRATOS[id].nome}!`); desenha(); }
+          if (r === 'ok') { G.dinheiro -= preco; hudSujo(); sons.tocar('moedas', 1, 0.05, -4); sons.tocar('receita_nova', 1, 0, -4); avisar(`Receita nova no caderno: ${Pratos.PRATOS[id].nome}!`); desenha(); }
           else avisar(r === 'dinheiro' ? 'Não dá: falta dinheiro.' : 'Não deu.'); } }, 'Comprar'))));
     }
     for (const id in Viajante.INGREDIENTES) {

@@ -157,7 +157,7 @@ const Tiao = {
     let n = 0;
     for (const id in G.empreitas.aceitas) {
       const a = G.empreitas.aceitas[id];
-      if (a.estado !== 'obra' || a.trabalhou || Empreitas.impedeHoje(id, chove) || (chove && Empreitas.ferramentaHoje(id) === 'regador')) continue;
+      if (a.estado !== 'obra' || a.trabalhou || Empreitas.impedeHoje(id, chove) || (chove && Empreitas.ferramentaHoje(id) === 'regador') || Empreitas.autoHoje(id)) continue;   // (15/10, T4: o dia que a manta faz sozinha também)
       a.trabalhou = true; a.porTiao = (a.porTiao || 0) + 1; n++;
     }
     return n;

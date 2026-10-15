@@ -62,6 +62,7 @@ function desenha(dt) {
   const tr = G.tremor > 0 && MODO_TESTE.efeitos ? G.tremor * 22 : 0;
   ctx.setTransform(z, 0, 0, z, (-G.cam.x + rnd(-tr, tr)) * z, (-G.cam.y + rnd(-tr, tr)) * z);
   if (G.mapa && typeof desenhaMapa === 'function') desenhaMapa(ctx);
+  desenhaMarcadorMouse(ctx);
   // Noite: o mundo escurece aos poucos das 18h às 21h, multiplicando por um azul (escurece sem lavar as cores, como
   // a noite do Stardew); dentro de casa, menos; o palco da pensão já é a arte da hora. Depois, as luzes quentes acesas.
   const esc = relogio.escuridao() * fatorNoite(G.mapa);
@@ -75,6 +76,18 @@ function desenha(dt) {
   }
   ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
   for (const f of DESENHOS_TELA) f(ctx);
+}
+
+// (15/10, o jogador: "o sqm que o mouse estiver apontando fica com um marcador") Como o cursor de ladrilho do Stardew: o ladrilho
+// debaixo do mouse ganha o marcador (arte ui/marcador, do Higgsfield); forte ao alcance do Jocelino (o ladrilho dele e os 8 em volta,
+// onde a ferramenta e o botão direito agem), mais apagado longe. Some com janela aberta, em cima do HUD, no salão de lado e fora da tela.
+function desenhaMarcadorMouse(ctx) {
+  const m = G.mapa; if (!G.comecou || !m || m.palco || !G.mouse || !G.mouse.dentro || menuAberto()) return;
+  if (typeof mouseNoPainelDoHud === 'function' && mouseNoPainelDoHud(G.mouse.x, G.mouse.y)) return;
+  const img = spr('ui/marcador'); if (!img) return;
+  const t = ladrilhoDoMouse(); if (t.x < 0 || t.y < 0 || t.x >= m.larg || t.y >= m.alt) return;
+  const p = G.jog.ladrilho(), perto = Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y)) <= 1;
+  ctx.save(); ctx.globalAlpha = perto ? 0.95 : 0.45; ctx.drawImage(img, t.x * TILE, t.y * TILE, TILE, TILE); ctx.restore();
 }
 
 let _ultimo = 0;

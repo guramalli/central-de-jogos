@@ -35,7 +35,8 @@ function instalaEntrada() {
   addEventListener('keyup', e => { G.teclas.delete(e.code); if (G.copo && (e.code === 'Space' || ehTecla(e, 'usar') || ehTecla(e, 'acao'))) copoSegura(false); });
   addEventListener('blur', () => { G.teclas.clear(); G.mouse.segura = false; });
   const cv = $('#tela');
-  cv.addEventListener('mousemove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY; });
+  cv.addEventListener('mousemove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY; G.mouse.dentro = true; });
+  cv.addEventListener('mouseleave', () => { G.mouse.dentro = false; });   // (15/10) o marcador do ladrilho some fora da tela
   // O botão direito é do jogo em qualquer lugar da página (conversa, mochila, loja): nunca abre o menu do navegador.
   addEventListener('contextmenu', e => e.preventDefault());
   cv.addEventListener('mousedown', e => {

@@ -141,7 +141,7 @@ const Recados = {
   noChao(item, mapas, dia = G.dia) {
     if (typeof Achados === 'undefined') return 0;
     let n = 0;
-    for (let d = dia; d < dia + ECO.recados.prazo; d++) for (const id of mapas) {
+    for (let d = dia; d < dia + Recados.prazo(); d++) for (const id of mapas) {
       if (!Recados.aberto(id) || !ACHADOS_POR_MAPA[id] || typeof MAPAS_DEF === 'undefined' || !MAPAS_DEF[id]) continue;
       let lista = [];
       try {
@@ -159,7 +159,7 @@ const Recados = {
   // não conta: com 2 dias de prazo, "3 couves" com os pés plantados ontem vencia sem ter como cumprir.
   prontasNoPrazo(item) {
     if (!G.horta || !G.horta.covas || typeof Horta === 'undefined') return 0;
-    return Object.values(G.horta.covas).filter(c => c && c.planta === item && Horta.diasPara(item) - (c.dias || 0) <= ECO.recados.prazo - 1).length;
+    return Object.values(G.horta.covas).filter(c => c && c.planta === item && Horta.diasDa(c) - (c.dias || 0) <= Recados.prazo() - 1).length;
   },
   // Dá para fazer agora? A estação, o dia, o morador e o mapa de origem abertos, a ferramenta (a vara), a horta plantada (ou o
   // item na mochila) e o material no mundo aberto (na entrega, somando o que já está na mochila; na coleta, só o mundo).
@@ -246,9 +246,15 @@ const Recados = {
     if (R.ativos[id]) return 'ja';
     if (Recados.hoje() !== id) return 'nao';   // só o recado do dia
     if (Object.keys(R.ativos).length >= ECO.recados.maxAtivos) return 'limite';
-    R.ativos[id] = { dia: G.dia, ate: G.dia + ECO.recados.prazo - 1, juntou: 0 };
+    R.ativos[id] = { dia: G.dia, ate: G.dia + Recados.prazo() - 1, juntou: 0 };
     return 'ok';
   },
+  // (T4b) O prazo em dias (Negócio 2, o Prazo de amigo: 1 dia a mais) e o pagamento (Negócio 3, a placa de propaganda no quintal:
+  // +10%; Negócio 8, a Freguesia fiel: mais 10%). O quadro, a pergunta da entrega e o dinheiro leem daqui (e o simulador, o fator).
+  prazo() { return ECO.recados.prazo + (typeof Habilidades !== 'undefined' && Habilidades.ganho('prazo_de_amigo') ? ECO.niveis.prazoExtra : 0); },
+  temPlaca() { return !!(G.horta && G.horta.colocados && G.horta.colocados.some(c => c.id === 'placa_propaganda')); },
+  fatorPaga() { return 1 + (Recados.temPlaca() ? ECO.niveis.placa : 0) + (typeof Habilidades !== 'undefined' && Habilidades.ganho('freguesia_fiel') ? ECO.niveis.freguesia : 0); },
+  paga(id) { return Math.round(PEDIDOS_VILA[id].paga * Recados.fatorPaga()); },
   // A coleta: o que entrou na mochila agora (chamado onde o item do chão entra na mochila). Devolve os recados que acabaram de
   // completar a conta.
   contarColeta(item, qtd = 1) {
@@ -282,7 +288,7 @@ const Recados = {
     const P = PEDIDOS_VILA[id], R = G.recados;
     let resta = P.qtd - mochila.remover(P.item, P.qtd);
     if (resta > 0 && mochila.mao && mochila.mao.id === P.item) { const t = Math.min(resta, mochila.mao.qtd); mochila.mao.qtd -= t; resta -= t; if (mochila.mao.qtd <= 0) mochila.mao = null; }
-    G.dinheiro += P.paga; G.ganhoHoje = (G.ganhoHoje || 0) + P.paga;
+    const v = Recados.paga(id); G.dinheiro += v; G.ganhoHoje = (G.ganhoHoje || 0) + v;
     if (typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade || (G.amizade = {}), [P.cliente]);
     // Lábia: a amizade sobe 50% mais rápido (um coração a mais a cada duas entregas, contando serviços e recados juntos).
     if (typeof Habilidades !== 'undefined' && Habilidades.tem('labia') && G.empreitas) { G.empreitas.labia = (G.empreitas.labia || 0) + 1; if (G.empreitas.labia % 2 === 0 && typeof Clientela !== 'undefined') Clientela.registrarAmizade(G.amizade, [P.cliente]); }
@@ -305,9 +311,9 @@ const Recados = {
       if (P.tipo === 'coleta') return a.juntou < P.qtd ? `juntou ${a.juntou}/${P.qtd} · ${prazo}` : tem < P.qtd ? `juntou ${P.qtd}/${P.qtd}, mas tem ${tem} na mochila · ${prazo}` : `juntou ${P.qtd}/${P.qtd}: é só entregar · ${prazo}`;
       return `tem ${tem}/${P.qtd} · ${prazo}`;
     }
-    const prazo = Recados.textoPrazo(G.dia + ECO.recados.prazo - 1);
-    if (P.tipo === 'coleta') return `juntar ${P.qtd} a partir de agora · Cr$ ${P.paga}`;
-    return `${prazo} · Cr$ ${P.paga} · tem ${tem}/${P.qtd}`;
+    const prazo = Recados.textoPrazo(G.dia + Recados.prazo() - 1);
+    if (P.tipo === 'coleta') return `juntar ${P.qtd} a partir de agora · Cr$ ${Recados.paga(id)}`;
+    return `${prazo} · Cr$ ${Recados.paga(id)} · tem ${tem}/${P.qtd}`;
   },
   // A noite: o aceito no último dia do prazo vence (sem multa; na coleta, o que foi juntado fica com o jogador). Devolve
   // [{ id, venceu: true }] para a linha do resumo, na voz da pessoa (P.deixa).

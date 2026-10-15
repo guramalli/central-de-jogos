@@ -283,7 +283,7 @@ function pensaoQuadro() {
         el('span', {}, `A noite costuma ter ~${clientesEsperados()} clientes`)),
       // (15/10, a clareza) a panela, a porção, as vagas, o "Rosa repõe" e o prato da casa: uma linha e o "(?)"
       linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente); a sobra vai para o lixo.',
-        [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.precoPanela, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
+        [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.precoPanela, GLOSSARIO.sabor, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
     if (modo !== 'durante') for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(el('div', { class: 'qc-aviso' }, a));
     else caixa.append(el('div', { class: 'qc-aviso' }, 'A janta está correndo (o relógio parou aqui): mais uma panela agora, ou ligue e desligue o "Rosa repõe".'));
     // (correção 1) A fala da Rosa na primeira vez: uma faixa fixa na lousa, acima da lista (guia_setas.js escreve nela; a seta fica no elemento).
@@ -298,9 +298,9 @@ function pensaoQuadro() {
       const guardado = modo === 'abertura' && !e.panelas && e0.panelas > 0;   // (escolhido, mas a despensa não dá hoje)
       const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa' : festa && festa.categoria && categoriaDe(id) === festa.categoria ? ` · ${CATEGORIAS[festa.categoria].toLowerCase()}: vale 50% mais na festa` : '';
       const info = modo === 'durante' ? `Na panela: ${p.porcoes(id)} porções · a despensa dá mais ${panelasTxt(p.rende(id))} (${k} porções cada)`
-        : modo === 'abertura' && CQ.semVaga.has(id) ? `${p.textoPreco(id)} · cada panela dá ${k} porções · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
-        : modo === 'abertura' && !m ? `${p.textoPreco(id)} · cada panela dá ${k} porções · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
-        : `${p.textoPreco(id)} · cada panela dá ${k} porções · a despensa dá ${panelasTxt(m)}${modo === 'plano' && e.panelas > m ? ' hoje' : ''}`
+        : modo === 'abertura' && CQ.semVaga.has(id) ? `${p.textoPreco(id)} · sabor ${p.sabor(id)} · cada panela dá ${k} porções · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
+        : modo === 'abertura' && !m ? `${p.textoPreco(id)} · sabor ${p.sabor(id)} · cada panela dá ${k} porções · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
+        : `${p.textoPreco(id)} · sabor ${p.sabor(id)} · cada panela dá ${k} porções · a despensa dá ${panelasTxt(m)}${modo === 'plano' && e.panelas > m ? ' hoje' : ''}`
           + (modo === 'abertura' && e.panelas > 0 && e0.panelas > e.panelas ? ` (o cardápio guardado pede ${e0.panelas})` : '') + tag;
       const realce = modo !== 'durante' && !marcado && ((festa && festa.prato === id) || (vip && vip.prato === id));   // o prato da festa ou do VIP fora do quadro
       const mexe = (d, comoNome) => ev2 => { ev2.stopPropagation();
@@ -374,6 +374,7 @@ function abrirAPensao() {
     // guardada como o jogador montou (o montarNoite grava o que recebe)
     const faz = {};
     for (const id of Object.keys(esc)) faz[id] = { panelas: CQ.efe[id] || 0, repoe: esc[id].repoe };
+    _despensaNaAbertura = { dia: G.dia, d: Object.assign({}, p.despensa) };   // (15/10, o fechamento) o que a despensa tinha antes das panelas
     const r = p.montarNoite(faz, rngDaNoite(G.dia * 53 + 11));
     p.cardapioNoite = esc;
     p.cardapio = Object.keys(r.feitas);   // (o quadro antigo: o salão de cima e os textos velhos leem daqui)
@@ -402,8 +403,12 @@ function textoSobra(sobra) {
 // ---------- a janta ----------
 // Os clientes da noite: o degrau, as melhorias e o pessoal do Grêmio aos sábados (o Cofre pronto).
 function clientesHoje() { return G.pensao.clientesDaNoite() + (typeof bonusMelhorias === 'function' ? bonusMelhorias(G.pensao).clientes : 0) + (typeof Gremio !== 'undefined' ? Gremio.clientesExtra(G.dia) : 0); }
+// (15/10, o fechamento do Dave) A despensa de antes das panelas da noite (abrirAPensao): no fim da janta, o que saiu dela vira a linha
+// "Da despensa" do fechamento (só mostra; a conta do dinheiro não muda: os ingredientes já foram comprados).
+let _despensaNaAbertura = null;
 function iniciarJanta() {
   G.turno = new TurnoJanta();
+  G.turno.despensa0 = Object.assign({}, _despensaNaAbertura && _despensaNaAbertura.dia === G.dia ? _despensaNaAbertura.d : G.pensao.despensa); _despensaNaAbertura = null;
   G.turno.rotatividade = true;   // (14/10, o Dave) chegadas espaçadas, banco sorteado sem louça, o cliente entra e sai andando
   G.turno._nichos = G.pensao.pratosDaNoite().slice();   // (onda final) a ordem dos nichos da noite: cada prato fica no nicho dele
   // (o cardápio do Bancho) A janta começou por outro caminho com o quadro da abertura aberto: o quadro sai (sem o aviso de espera).
@@ -472,16 +477,36 @@ function noiteDaRosaSozinha(linhas) {
   // A despesa da noite e os salários saem mesmo sem o Jocelino (nunca deixa o bolso negativo; a pensão não fecha por isso).
   rs.premios = 0; pagarDespesaDaNoite(rs);
   { const c = TurnoJanta.conta(rs); rs.receita = c.receita; rs.lucro = c.lucro; }
+  guardarNoiteNoHistorico(rs, true);
   linhas.push(`A Rosa se virou sozinha na pensão: ${rs.servidos} ${rs.servidos === 1 ? 'cliente' : 'clientes'}${deCasaDaRosa(G.pensao, rs)}, Cr$ ${rs.ganho}.`);
   { const sb = textoSobra(rs.sobra); if (sb) linhas.push('   ' + sb); }
   linhas.push(linhaDoLucroNoResumo(rs));
   return rs;
 }
+// (15/10, o fechamento do Dave) O caderno das últimas noites (G.pensao.historico, no save): uma linha por noite com janta (a do
+// Jocelino ou a da Rosa sozinha), até FECHAMENTO_HISTORICO noites. r.hist aponta para a linha da noite (o fechamento e o resumo leem).
+// _noiteDoFechamento guarda o relatório da noite (só na memória) para o resumo do dia reabrir o fechamento.
+let _noiteDoFechamento = null;
+function guardarNoiteNoHistorico(r, rosa = false) {
+  const p = G.pensao; if (!p || !r) return null;
+  const c = TurnoJanta.conta(r), h = { dia: G.dia, receita: c.receita, lucro: c.lucro, nota: typeof Metas !== 'undefined' ? Metas.notaDaNoite(r) : 0, clientes: r.clientes || 0 };
+  if (rosa) h.rosa = true;
+  p.historico = (p.historico || []).filter(x => x.dia !== G.dia).concat([h]).slice(-(typeof FECHAMENTO_HISTORICO !== 'undefined' ? FECHAMENTO_HISTORICO : 7));
+  r.hist = h; _noiteDoFechamento = { dia: G.dia, r };
+  return h;
+}
+// O que saiu da despensa entre duas fotos dela ({ ingrediente: qtd > 0 }).
+function gastoDaDespensa(antes, depois) {
+  const g = {};
+  for (const id in antes || {}) { const n = (antes[id] || 0) - ((depois || {})[id] || 0); if (n > 0) g[id] = n; }
+  return g;
+}
 function encerrarJanta() {
   if (!G.turno) return;
   // (revisão da Tarefa B) o prato na mão do ajudante "Leva prato" volta ao passe antes de fechar: o fechar conta ele no lixo
   if (typeof AJUDANTES !== 'undefined' && typeof largarTarefaDoAjudante === 'function') AJUDANTES.forEach(largarTarefaDoAjudante);
-  const inaug = G.turno.inauguracao, r = G.turno.fechar();
+  const inaug = G.turno.inauguracao, desp0 = G.turno.despensa0, r = G.turno.fechar();
+  r.gastou = gastoDaDespensa(desp0, G.pensao.despensa);   // (15/10) os ingredientes que as panelas da noite levaram (o fechamento mostra)
   const total = r.ganho + r.gorjeta;
   // (14/10, os sons do Dave) A janta acabou: a vinheta de samba toca já. Com o fechamento do caixa na tela, os sons da noite
   // (o degrau, as receitas, o Paladar) ficam para a contagem dele, um de cada vez; sem fechamento (salão antigo), tocam aqui.
@@ -526,6 +551,7 @@ function encerrarJanta() {
   // As metas da noite (servir, bebida na medida, nota) e as de estado.
   if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); for (const m of r.metasFeitas) r.premios += (m.premio && m.premio.dinheiro) || 0; }
   { const c = TurnoJanta.conta(r); r.receita = c.receita; r.lucro = c.lucro; }   // a conta fecha: o bolso mudou exatamente pelo lucro
+  guardarNoiteNoHistorico(r);   // (15/10) a noite entra no caderno das últimas noites (o gráfico do fechamento)
   if (r.subiu) { somFim('degrau_fanfarra', 1, 0, -2); avisar(`A pensão ganhou mais uma estrela: agora é ${G.pensao.nomeComEstrelas(r.subiu)}!`); }
   // (o cardápio do Bancho, 13/10) A sobra da panela foi para o lixo no fechar (r.sobra = { prato: porções }); a marmita do
   // Jocelino a Rosa faz de manhã.

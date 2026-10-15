@@ -83,8 +83,9 @@ function desenhaCovas(ctx) {
     const c = G.horta.covas[k], [x, y] = k.split(',').map(Number);
     const img = spr(Horta.molhada(c, G.dia) ? 'texturas/terra_molhada' : 'texturas/terra_cavada');
     if (img) ctx.drawImage(img, x * TILE, y * TILE, TILE, TILE);
-    if (c.adubo && !c.planta) desenhaPe(ctx, 'itens/esterco', (x + 0.5) * TILE, (y + 0.85) * TILE, 1, 0.5);
+    if (c.adubo && !c.planta) desenhaPe(ctx, 'itens/' + (c.aduboItem || 'esterco'), (x + 0.5) * TILE, (y + 0.85) * TILE, 1, 0.5);   // (T4b) o adubo de peixe e o bom
   }
+  if (typeof desenhaAlcanceEspantalho === 'function') desenhaAlcanceEspantalho(ctx);   // (T4b, niveis_jogo.js) o espantalho na mão
   // o montinho de terra das plantas (e a planta rasteira inteira), por cima das covas e por baixo de quem anda (de cima para baixo:
   // a abóbora, 6 px mais alta que o ladrilho, fica por baixo do montinho da cova de baixo)
   const plantadas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta).map(k => k.split(',').map(Number)).sort((a, b) => a[1] - b[1]);
@@ -100,6 +101,7 @@ function chaoAcertado(id, alvo) {
   const b = G.mapa;
   if (id === 'regador' && b.ehAgua && b.ehAgua(alvo.x, alvo.y)) { encherRegador(); return true; }
   if (b.id !== 'quintal') return false;
+  if (typeof caminhoAcertado === 'function' && caminhoAcertado(id, alvo)) return true;   // (15/10, T4) a picareta tira o caminho de pedra
   if (id === 'pa' && podeCavar(b, alvo.x, alvo.y)) {
     Horta.cavar(alvo.x, alvo.y); if (G.limpou) G.limpou.aula_pa_chao = (G.limpou.aula_pa_chao || 0) + 1; sons.tocar('terra', 1, 0.1, -6); lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, 'terra');
     // (pedido do jogador, 14/10: "mostrar como se retira uma cova que você fez sem querer") a primeira cova: o Tio Juca avisa, uma vez só
@@ -135,12 +137,12 @@ function acaoNoChao(t) {
     if (!perto1(t)) { avisar('Chegue mais perto.'); return true; }
     colocar(id, t.x, t.y); return true;
   }
-  if (id === 'esterco') {
+  if (id === 'esterco' || id === 'adubo_peixe' || id === 'adubo_bom') {   // (T4b) os adubos da Roça vão na cova como o esterco
     if (G.jog.carga && G.jog.carga.id) { avisar('Primeiro largue o que está carregando.'); return true; }
     if (!perto1(t)) { avisar('Chegue mais perto.'); return true; }
-    const r = Horta.adubar(t.x, t.y);
-    if (r === 'ok') { G.mochila.remover('esterco', 1); sons.tocar('terra', 0.8, 0.05, -8); hudSujo(); }
-    else avisar(r === 'sem_cova' ? 'O esterco vai na cova cavada.' : r === 'ocupado' ? 'O esterco vai antes de plantar.' : 'Essa cova já está adubada.');
+    const r = Horta.adubar(t.x, t.y, id), qual = id === 'esterco' ? 'O esterco' : 'O adubo';
+    if (r === 'ok') { G.mochila.remover(id, 1); sons.tocar('terra', 0.8, 0.05, -8); hudSujo(); }
+    else avisar(r === 'sem_cova' ? `${qual} vai na cova cavada.` : r === 'ocupado' ? `${qual} vai antes de plantar.` : 'Essa cova já está adubada.');
     return true;
   }
   if (!culturaDaSemente(id)) return false;
@@ -159,7 +161,7 @@ function estadoDaPlanta(c) {
   const nome = Itens.nome(c.planta);
   if (Horta.madura(c)) return { nome, fase: 'pronta para colher', molhada: true, agua: '' };
   const molhada = Horta.molhada(c, G.dia);
-  return { nome, fase: `${c.dias} de ${Horta.diasPara(c.planta)} dias`, molhada, agua: molhada ? 'regada hoje' : 'precisa de água' };
+  return { nome, fase: `${c.dias} de ${Horta.diasDa(c)} dias`, molhada, agua: molhada ? 'regada hoje' : 'precisa de água' };
 }
 function colherPlanta(o) {
   const c = Horta.cova(o.covaX, o.covaY);

@@ -25,7 +25,7 @@ const RECADO_ORIGEM = {
 // Quantos dias faltam para a horta dar a cultura (o pé mais adiantado); null sem nada plantado.
 function recadoDiasDaHorta(item) {
   let m = null;
-  for (const c of Object.values((G.horta && G.horta.covas) || {})) if (c && c.planta === item) { const d = Math.max(0, Horta.diasPara(item) - c.dias); m = m === null ? d : Math.min(m, d); }
+  for (const c of Object.values((G.horta && G.horta.covas) || {})) if (c && c.planta === item) { const d = Math.max(0, Horta.diasDa(c) - c.dias); m = m === null ? d : Math.min(m, d); }
   return m;
 }
 // O aviso do que falta: "Faltam 2 couves para a Dona Zélia (a horta dá em 3 dias)."
@@ -88,17 +88,17 @@ function linhasRecadosAceitos() {
 let _recadoPulado = null, _avisoRecado = '';
 function conversaSemRecado(p) { _recadoPulado = p; try { conversar(p); } finally { _recadoPulado = null; } }
 function entregarRecadoNoMorador(p, id) {
-  const P = PEDIDOS_VILA[id], r = Recados.entregar(id);
+  const P = PEDIDOS_VILA[id], v = Recados.paga(id), r = Recados.entregar(id);
   if (r !== 'ok') { avisar(textoFaltaRecado(id)); return; }
   sons.tocar('moedas', 1, 0.05, -4); hudSujo();
   if (typeof guiaEvento === 'function') guiaEvento('conversou', p.id);   // (foi uma conversa: o guia conta como as outras)
-  G.feitosHoje.push(`Recado entregue: ${Itens.qtd(P.qtd, P.item)} para ${recadoPara(P.cliente)}: Cr$ ${P.paga}.`);
-  avisar(`Recado entregue! + Cr$ ${P.paga}`);
+  G.feitosHoje.push(`Recado entregue: ${Itens.qtd(P.qtd, P.item)} para ${recadoPara(P.cliente)}: Cr$ ${v}.`);
+  avisar(`Recado entregue! + Cr$ ${v}`);
   abrirConversa(Recados.nome(P.cliente), urlArte('retratos/' + P.cliente + '_alegre'), [P.obrigado]);
 }
 function perguntarEntregaRecado(p, id) {
   const P = PEDIDOS_VILA[id], qual = `${Itens.qtd(P.qtd, P.item)} para ${recadoPara(P.cliente)}`, m = recadoOutrosPedidos(P.item, P.qtd, id);
-  const texto = m ? `Você vai precisar de ${m}. Entregar ${qual} mesmo assim? (Cr$ ${P.paga})` : `Entregar ${qual}? (Cr$ ${P.paga})`;
+  const v = Recados.paga(id), texto = m ? `Você vai precisar de ${m}. Entregar ${qual} mesmo assim? (Cr$ ${v})` : `Entregar ${qual}? (Cr$ ${v})`;
   perguntar(texto, ['Sim', 'Agora não'], i => { if (i === 0) entregarRecadoNoMorador(p, id); else conversaSemRecado(p); });
 }
 // Antes da conversa normal: o morador que pediu e tem recado aceito.

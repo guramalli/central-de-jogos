@@ -12,7 +12,10 @@ const TAREFAS_OBRA = {
   areia: { texto: 'Peneirar areia na peneira do canteiro', meta: 5, hab: 'alvenaria', xp: 3 },
   entulho: { texto: 'Tirar o entulho do canteiro (pá)', meta: 8, hab: 'alvenaria', xp: 2 },
   massa: { texto: 'Levar massa da masseira ao Zé', meta: 4, hab: 'alvenaria', xp: 4 },
-  molhar: { texto: 'Molhar a parede da obra (regador)', meta: 6, hab: 'acabamento', xp: 1 },
+  // (15/10, o dono: "molhar a obra com o regador, não vejo sentido nisso") LAVAR NO MEIO, PINTAR NO FIM: nas etapas do meio a
+  // mangueira lava o chão da obra; no acabamento o rolo pinta a parede. Mesma meta, XP e habilidade do molhar de antes.
+  lavar: { texto: 'Lavar o chão da obra (mangueira)', meta: 6, hab: 'acabamento', xp: 1 },
+  pintar: { texto: 'Pintar a parede da obra (rolo de pintura)', meta: 6, hab: 'acabamento', xp: 1 },
   capinar: { texto: 'Capinar o mato do canteiro (foice)', meta: 10, hab: 'acabamento', xp: 1 },
   pedras: { texto: 'Levar pedras do monte para o alicerce', meta: 15, hab: 'alvenaria', xp: 1 },
   telhas: { texto: 'Subir telhas do monte para a obra', meta: 20, hab: 'alvenaria', xp: 1 },
@@ -23,24 +26,32 @@ const TAREFAS_OBRA = {
   rebocar: { texto: 'Chapiscar e rebocar a parede (colher)', meta: 8, hab: 'acabamento', xp: 3, funcaoMin: 1 },
   buscar_cimento: { texto: 'Imprevisto: buscar 2 sacos de cimento no Ananias', meta: 2, hab: 'negocio', xp: 2 },
 };
+// As ferramentas da lavagem e da pintura (o Bira entrega na 1ª lista que pede: obra_jogo.js).
+ITENS.mangueira = { nome: 'Mangueira', pilha: 1, ferramenta: true, descricao: 'Do canteiro do Mestre Bira: lava o chão da obra.' };
+ITENS.rolo = { nome: 'Rolo de pintura', pilha: 1, ferramenta: true, descricao: 'Do canteiro do Mestre Bira: pinta a parede da obra no acabamento.' };
 const PREMIOS_CASA = ECO.obra.premiosCasa;
 const ETAPAS_CASA = [
   { nome: 'Gabarito', tarefas: ['capinar', 'entulho', 'areia', 'buscar_pedra'] },
   { nome: 'Alicerce', tarefas: ['pedras', 'areia', 'massa', 'entulho'] },
-  { nome: 'Meia parede', tarefas: ['tijolos', 'massa', 'areia', 'molhar', 'assentar'] },
-  { nome: 'Paredes', tarefas: ['tijolos', 'massa', 'molhar', 'entulho', 'assentar'] },
+  { nome: 'Meia parede', tarefas: ['tijolos', 'massa', 'areia', 'lavar', 'assentar'] },
+  { nome: 'Paredes', tarefas: ['tijolos', 'massa', 'lavar', 'entulho', 'assentar'] },
   { nome: 'Telhado', tarefas: ['telhas', 'ripas', 'massa', 'entulho'] },
-  { nome: 'Acabamento', tarefas: ['entulho', 'capinar', 'molhar', 'areia', 'rebocar'] },
+  { nome: 'Acabamento', tarefas: ['entulho', 'capinar', 'pintar', 'areia', 'rebocar'] },
 ];
 const OBRAS = [
   { id: 'casa_zelia', nome: 'Casa da Dona Zélia', cliente: 'Dona Zélia', mapa: 'vila', etapas: ETAPAS_CASA, premios: PREMIOS_CASA, arte: n => 'objetos/casa_zelia_' + (n + 1) },
   { id: 'mercado', nome: 'Reforma do Mercado Municipal', cliente: 'Prefeitura', mapa: 'vila',
     etapas: [ETAPAS_CASA[0], ETAPAS_CASA[3], ETAPAS_CASA[4], ETAPAS_CASA[5]], premios: ECO.obra.premiosMercado,
     arte: n => 'objetos/mercado_' + Math.min(3, n) },
+  // (15/10, o dono: "apareceu apenas um ladrilho ali no meio do terreno ... parece que existem paredes transparentes") A Escola
+  // mostrava o alicerce e o muro de 1 ladrilho num lote 6x4 todo sólido. Agora cada etapa ocupa o lote, como a obra da Robin no
+  // Stardew: no gabarito, o chão de terra batida do lote inteiro (dá para andar por cima: obra_jogo.js); depois a estrutura do
+  // tamanho do lote, a mesma arte de 6 ladrilhos das obras do Bairro Novo (o baldrame, as paredes, o telhado subindo); no
+  // acabamento, a Escola pronta.
   { id: 'escola', nome: 'Escola da Vila', cliente: 'Professor Paulo', mapa: 'vila', etapas: ETAPAS_CASA, premios: PREMIOS_CASA,
-    arte: n => n < 2 ? 'objetos/alicerce' : n < 5 ? 'objetos/muro' : 'objetos/escola' },
+    arte: n => ['texturas/chao_pedreira', 'objetos/predio_obra_1', 'objetos/predio_obra_2', 'objetos/predio_obra_2', 'objetos/predio_obra_3'][n] || 'objetos/escola' },
   { id: 'predio', nome: 'Edifício Maré', cliente: 'J. Moreira', mapa: 'vila',
-    etapas: ['Fundação', 'Térreo', '1º andar', '2º andar', '3º andar', '4º andar', 'Cobertura'].map((nome, i) => ({ nome, tarefas: i === 0 ? ['pedras', 'areia', 'massa', 'entulho'] : ['tijolos', 'massa', 'ripas', 'molhar', 'entulho'] })),
+    etapas: ['Fundação', 'Térreo', '1º andar', '2º andar', '3º andar', '4º andar', 'Cobertura'].map((nome, i) => ({ nome, tarefas: i === 0 ? ['pedras', 'areia', 'massa', 'entulho'] : ['tijolos', 'massa', 'ripas', i === 6 ? 'pintar' : 'lavar', 'entulho'] })),   // (a Cobertura é o fim: pinta)
     premios: Array.from({ length: 7 }, (_, i) => i === 6 ? ECO.obra.premiosPredio.fim : ECO.obra.premiosPredio.etapa),
     arte: n => 'objetos/predio_' + Math.min(7, n + 1) },
 ];
@@ -55,9 +66,19 @@ const Obra = {
   iniciar(s) {
     const o = s.obra || {};
     G.obra = { indice: o.indice || 0, etapa: o.etapa || 0, diasEtapa: o.diasEtapa || 0, funcao: o.funcao || 0, entregues: o.entregues || 0,
-      lista: o.lista ? JSON.parse(JSON.stringify(o.lista)) : null, aReceber: o.aReceber || 0, primeira: o.primeira !== false, gratificacao: o.gratificacao || null };
+      lista: o.lista ? JSON.parse(JSON.stringify(o.lista)) : null, aReceber: o.aReceber || 0, primeira: o.primeira !== false, gratificacao: o.gratificacao || null,
+      deu: Object.assign({}, o.deu || {}) };   // (as ferramentas do canteiro que o Bira já entregou: mangueira, rolo)
     if (G.obra.etapa >= Obra.obra().etapas.length) { G.obra.etapa = 0; G.obra.diasEtapa = 0; }   // save antigo do pedreiro no meio do prédio
+    // (15/10) Save antigo no meio de uma lista com 'molhar': vira a tarefa da etapa (lavar ou pintar), com o que já tinha feito.
+    const l = G.obra.lista;
+    if (l && l.metas && 'molhar' in l.metas) {
+      const t = Obra.tarefaDoMolhar();
+      l.metas[t] = (l.metas[t] || 0) + l.metas.molhar; delete l.metas.molhar;
+      if (l.feito && 'molhar' in l.feito) { l.feito[t] = (l.feito[t] || 0) + l.feito.molhar; delete l.feito.molhar; }
+    }
   },
+  // A tarefa que ficou no lugar do 'molhar' na etapa de agora: pintar no acabamento, lavar no meio.
+  tarefaDoMolhar() { const e = Obra.obra().etapas[G.obra.etapa]; return e && e.tarefas.includes('pintar') ? 'pintar' : 'lavar'; },
   salvar(s) { s.obra = JSON.parse(JSON.stringify(G.obra)); },
   obra() { return G.obra.indice >= OBRAS.length || (G.obra.indice === 3 && G.obra.funcao < 3) ? REFORMAS : OBRAS[G.obra.indice]; },
   arteAtual() { return Obra.obra().arte(G.obra.etapa); },
@@ -100,11 +121,15 @@ const Obra = {
     if (f() < OBRA_IMPREVISTO) { if (G.minutos >= DEPOSITO_HORARIO.abre) metas.buscar_cimento = 2; else return { metas, imprevisto: true }; }
     return { metas };
   },
-  trabalho(id, n = 1) {
+  // (15/10, T4) As melhorias de Alvenaria: a tarefa conta em dobro na lista (a Peneira ligeira, o Ombro de pedreiro, a Colher ligeira).
+  // O XP continua o do que se fez de verdade (n); só a lista anda mais depressa. Só o que o Jocelino faz: a turma do Bira
+  // (equipe_obra.js, turma = true) conta 1 por 1.
+  emDobro(id) { const m = { areia: 'peneira_ligeira', pedras: 'ombro_de_pedreiro', telhas: 'ombro_de_pedreiro', assentar: 'colher_ligeira' }[id]; return m && typeof Habilidades !== 'undefined' && Habilidades.ganho(m) ? ECO.niveis.obraEmDobro : 1; },
+  trabalho(id, n = 1, turma = false) {
     const l = G.obra.lista;
     if (!l || l.dia !== G.dia) return 'sem_lista';
     if (!l.metas[id]) return 'nao_pede';
-    l.feito[id] = Math.min(l.metas[id], (l.feito[id] || 0) + n);
+    l.feito[id] = Math.min(l.metas[id], (l.feito[id] || 0) + n * (turma ? 1 : Obra.emDobro(id)));
     if (G.limpou) G.limpou['obra_' + id] = (G.limpou['obra_' + id] || 0) + 1;   // já fez essa tarefa uma vez (as setas, guia_setas.js)
     if (typeof Habilidades !== 'undefined') Habilidades.ganhar(TAREFAS_OBRA[id].hab, TAREFAS_OBRA[id].xp * n * (Habilidades.tem('organizado') && ['tijolos', 'massa', 'entulho'].includes(id) ? 2 : 1) + (l.feito[id] === l.metas[id] ? 10 : 0));
     return Obra.completa() ? 'completa' : 'ok';

@@ -243,6 +243,45 @@ const ECO = {
   // (relato de 14/10; o Stardew: a Floresta da Seiva e o Bosque Secreto repõem todo dia) a mata repõe toda manhã: quantos de cada
   // por manhã (árvores no bosque, galhos no chão dele, pedras na beira do rio), a chance de a pedra ser um pedregulho e o máximo vivo
   mata: { repoe: { arvores: 1, galhos: 3, pedras: 2, pedregulho: 0.25, maximo: { arvores: 5, galhos: 8, pedras: 6 } } },
+  // ---- (15/10, T4) As recompensas de nível (spec docs/superpowers/specs/2026-10-15-niveis-recompensa.md): o nível de cada uma mora na
+  // tabela NIVEIS_RECOMPENSA (habilidades.js); aqui ficam os números. As receitas de Fabricar (o baú usa o preço do Tio Juca, quintal.bau)
+  // custam quase o que se paga na loja ou menos que o produto vale na caixa (o crivo do Stardew: fazer em casa não vira fonte de renda).
+  niveis: {
+    receitas: { escada_corda: { pedra: 30, fibra: 10 }, tronco_cogumelo: { madeira: 10, cogumelo: 2 }, caminho_pedra: { pedra: 1 },
+      manta_boa: { manta: 1, fibra: 10, madeira: 2 }, tinta: { cal: 1, pigmento: 1 }, manta: { fibra: 10, madeira: 2 }, lajota: { cimento: 1, pigmento: 1 },
+      lona: { fibra: 15, cal: 1 },
+      // (T4b) Negócio, Roça e Pesca: a placa; o esterco e a isca custam o que a loja cobra (o Ananias 5, a banca 2 por isca)
+      placa_propaganda: { madeira: 5, tinta: 1 }, esterco: { fibra: 5 }, espantalho: { madeira: 5, fibra: 10 }, adubo_peixe: { sardinha: 1, esterco: 1 },
+      adubo_bom: { esterco: 2, cal: 1 }, covo: { madeira: 10, ferro_velho: 2 }, isca: { sardinha: 1 }, isca_boa: { siri: 1 } },
+    // quantos sai de cada receita (as que não estão aqui dão 1); as sementes da colheita: 1 colheita dá 2 sementes dela
+    rende: { adubo_peixe: 2, isca: 4, isca_boa: 5, sementes_colheita: 2 },
+    pedraDeSobra: 0.25,   // Fôlego 3: a chance de 1 pedra a mais na pedra e no pedregulho
+    faro: 1,              // Fôlego 4: achados a mais por dia na praia e na mata
+    olhoDePedreira: 1.5,  // Fôlego 6: a chance da escada escondida nas bancadas
+    tronco: { dias: 3, maximo: 4 },   // Fôlego 7: 1 cogumelo a cada 3 dias por tronco; até 4 no quintal
+    lenhaBoa: 1,          // Fôlego 8: madeira a mais por árvore derrubada
+    obraEmDobro: 2,       // Alvenaria 2, 3 e 9: peneirar, levar pedras e subir telhas, assentar contam em dobro na lista do Bira
+    golpesLeves: 2,       // Alvenaria 4 (pá) e Acabamento 7 (colher): os golpes do dia de empreita (eram 3)
+    impecavel: 0.75,      // Acabamento 9: a chance do impecável com impermeabilizante (era a metade do caprichado)
+    // ---- (T4b) Negócio
+    prazoExtra: 1,        // Negócio 2: dias a mais de prazo nos recados (ECO.recados.prazo 2 → 3)
+    placa: 0.10,          // Negócio 3: a placa de propaganda no quintal: os recados pagam 10% a mais
+    servicos: 0.10,       // Negócio 7: o cartaz na padaria: os serviços do quadro (empreitas) pagam 10% a mais
+    freguesia: 0.10,      // Negócio 8: os recados pagam mais 10% (20% no total com a placa)
+    revenda: 0.5,         // Negócio 4: o Ananias compra de volta o material dele por esta fração do preço
+    revendaItens: ['cimento', 'vergalhao', 'telha', 'tinta', 'cal'],
+    fiado: 300, fiadoMaior: 1000,   // Negócio 6 e 9: o limite do fiado no Ananias (paga no domingo à noite)
+    // ---- (T4b) Roça
+    espantalho: 4,        // Roça 2: as galinhas não bicam a até 4 ladrilhos do espantalho (o quadrado de 9 × 9)
+    regadorMais: 10,      // Roça 3: água a mais no regador
+    aduboBom: 2,          // Roça 9: o adubo bom conta como 2 estercos na fórmula da qualidade
+    colheitaFarta: 3,     // Roça 6: unidades a mais na colheita caprichada (eram 2)
+    // ---- (T4b) Pesca
+    minhoca: 2,           // Pesca 3: a chance da minhoca ao cavar a grama, vezes (8% → 16%)
+    mordida: 0.85,        // Pesca 4: a espera da mordida (15% mais rápido)
+    linhaFirme: 0.85,     // Pesca 7: o medidor esvazia 15% mais devagar
+    iscaBoa: { raro: 2.5, espera: 0.5 },   // Pesca 8: o peso do peixe raro (a isca comum dá 1,5) e a espera da mordida em segundos
+  },
   guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 2, bazar: 4, pedreira: 5, mina: 7 }, espera: 3, maxAbertas: 2,
     recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
       janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },

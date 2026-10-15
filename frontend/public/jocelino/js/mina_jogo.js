@@ -89,7 +89,17 @@ DESENHOS_TELA.push(ctx => {
   ctx.save(); ctx.fillStyle = g; ctx.fillRect(0, 0, G.larg, G.alt); ctx.restore();
 });
 let _avisouAr = -1;
-ATUALIZADORES.push(() => { if (G.mapaId === 'bancada' && G.mina.bancada >= MINA.AR_RUIM && _avisouAr !== G.mina.bancada) { _avisouAr = G.mina.bancada; avisar('O ar aqui embaixo é pesado: cada golpe cansa mais.'); } });
+ATUALIZADORES.push(() => { if (G.mapaId === 'bancada' && G.mina.bancada >= MINA.AR_RUIM && _avisouAr !== G.mina.bancada) { _avisouAr = G.mina.bancada; avisar(Mina.fatorAr(G.mina.bancada) > 1 ? 'O ar aqui embaixo é pesado: cada golpe cansa mais.' : 'O ar aqui embaixo é pesado, mas o seu fôlego aguenta: os golpes cansam o normal.'); } });
+// (15/10, T4) A escada de corda (Fôlego 2; o Staircase do Stardew): na bancada, com ela na mão, o botão direito no chão desce uma
+// bancada na hora (gasta a escada). Na mais funda, não tem para onde.
+function usarEscadaDeCorda() {
+  if (G.mapaId !== 'bancada') { avisar('A escada de corda serve na pedreira funda: numa bancada, desce para a de baixo.'); return true; }
+  const n = G.mina.bancada;
+  if (n >= MINA.FUNDO) { avisar('Esta é a bancada mais funda: não tem para onde descer.'); return true; }
+  if (!G.mochila.remover('escada_corda', 1)) return false;
+  hudSujo(); descerPara(n + 1); return true;
+}
+ACOES_NO_CHAO.push(() => G.jog && itemDaMao() === 'escada_corda' ? usarEscadaDeCorda() : false);
 // ---------- a forja do quintal ----------
 function usarForja(o) {
   const chave = o.cx + ',' + o.cy, f = G.mina.forjas[chave];

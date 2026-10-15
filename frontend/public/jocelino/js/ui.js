@@ -92,6 +92,8 @@ function teclaNoModal(e) {
   if (e.repeat) return true;   // segurar a tecla não repete nada dentro de uma janela
   // (15/10, níveis) a tela "Subiu de nível!" decide as teclas dela (habilidades.js: meio segundo sem nada; Esc deixa para a próxima noite)
   { const nv = $('#modal .nivel-novo'); if (nv && nv._tecla) { nv._tecla(e); return true; } }
+  // (15/10) a caixa que decide algumas teclas (o fechamento e o resumo do dia: Espaço pula a animação); devolve true se usou a tecla
+  { const cx = $('#modal').firstElementChild; if (cx && cx._tecla && cx._tecla(e)) return true; }
   // (onda final; o Dave: confirmar o cardápio abre o restaurante) no quadro de giz da abertura, Enter é a ação acesa, "Abrir a
   // pensão"; o Esc fecha (a janta fica esperando)
   if (['Enter', 'NumpadEnter'].includes(e.code)) { const ab = $('#modal .quadro-cardapio.abertura .qc-abrir'); if (ab) { ab.click(); return true; } }

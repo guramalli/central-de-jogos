@@ -135,7 +135,7 @@ function casaDoDia() {
     return Object.keys(mat).every(m => G.mochila.total(m) >= mat[m]) && G.dinheiro >= (E.custo || 0)
       ? { texto: `Começar a etapa da casa nova (${nome}) — o material e o dinheiro estão na mão: na plaquinha do terreno, no quintal`, alvo, rotulo: 'Na plaquinha: começar a etapa da casa' } : null; }
   if (c.estado === 'obra') { const chove = typeof Clima !== 'undefined' && Clima.chove(G.dia), fr = Empreitas.ferramentaHoje(c.id);
-    return !c.a.trabalhou && fr && !Empreitas.impedeHoje(c.id, chove)
+    return !c.a.trabalhou && fr && !Empreitas.impedeHoje(c.id, chove) && !Empreitas.autoHoje(c.id, chove)   // (T4a: o dia que a manta faz sozinha já está cuidado)
       ? { texto: `A casa nova (${nome}) — o trabalho de hoje (${(typeof NOME_FERRAMENTA !== 'undefined' && NOME_FERRAMENTA[fr]) || fr}) na plaquinha do terreno: é a casa da família`, alvo, rotulo: 'Na plaquinha: o trabalho de hoje na casa' } : null; }
   if (c.estado === 'pronta') return { texto: `A casa nova (${nome}) — a etapa está pronta: entregue na plaquinha do terreno`, alvo, rotulo: 'Na plaquinha: entregar a etapa' };
   return null;
@@ -195,7 +195,7 @@ function servicoEmAndamento() {
   const chove = typeof Clima !== 'undefined' && Clima.chove(G.dia);
   return Object.keys(G.empreitas.aceitas).some(id => { const E = dadosEmpreita(id), a = G.empreitas.aceitas[id]; if (!E) return false;
     if (E.tipo === 'curta') return true;
-    return a.estado === 'pronta' || (a.estado === 'obra' && !a.trabalhou && !!Empreitas.ferramentaHoje(id) && !Empreitas.impedeHoje(id, chove)); });
+    return a.estado === 'pronta' || (a.estado === 'obra' && !a.trabalhou && !!Empreitas.ferramentaHoje(id) && !Empreitas.impedeHoje(id, chove) && !Empreitas.autoHoje(id, chove)); });
 }
 const jantaPorFazer = () => !!G.pensao && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 20 * 60;
 // 'tarde' (o serviço feito, o quadro vazio, nenhum serviço aceito por fazer, antes das 17h), 'noite' (depois das 17h, sem quadro nem

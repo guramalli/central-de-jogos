@@ -4,6 +4,8 @@
 // ajudam a regar.
 
 const COLOCAVEIS_QUINTAL = ['cerca', 'portao', 'irrigador', 'irrigador_bom', 'forja', 'betoneira', 'barril_agua'];
+// (15/10, T4) Os colocados de outros arquivos (o tronco de cogumelo, niveis_jogo.js): o que o objeto faz (o, c) e quantos cabem.
+const COLOCADO_ACAO = {}, LIMITE_COLOCADO = {};
 // (13/10: "dê a opção de trocar o barril de água de local") O barril é um objeto colocado como o baú do Stardew: o machado ou a
 // picareta recolhe (vira o item na mochila) e o botão direito põe de novo em qualquer grama livre do quintal. Um só.
 ITENS.barril_agua = { nome: 'Barril d\'água', pilha: 1, ferramenta: false, colocavel: true, descricao: 'O barril da chuva: enche o regador. No quintal, botão direito na grama livre para colocar; o machado ou a picareta recolhe.' };
@@ -65,6 +67,7 @@ function poeColocados(b) {
     if (c.id === 'betoneira') o.acao = () => usarBetoneira(o);
     if (c.id === 'irrigador') o.acao = () => abrirPlaca('O irrigador do Seu Tonico: rega as 4 covas em volta toda manhã.');
     if (c.id === 'irrigador_bom') o.acao = () => abrirPlaca('O irrigador bom do Seu Tonico: rega as 8 covas em volta toda manhã.');
+    if (COLOCADO_ACAO[c.id]) COLOCADO_ACAO[c.id](o, c);
   }
   poeBarril(b);
 }
@@ -98,6 +101,7 @@ const trabalhando = o => typeof G.mina !== 'undefined' && G.mina && !!((G.mina.f
 const pronto = o => { const k = o.cx + ',' + o.cy, f = G.mina.forjas[k], b = G.mina.betoneiras[k]; return f ? Mina.agora() >= f.pronta : !!b && G.dia >= b.pronta; };
 function colocar(id, x, y) {
   if (id === 'barril_agua' && G.horta.barril) { avisar('Já tem um barril no quintal.'); return false; }
+  if (LIMITE_COLOCADO[id] && G.horta.colocados.filter(c => c.id === id).length >= LIMITE_COLOCADO[id]) { avisar(`O quintal já tem ${Itens.qtd(LIMITE_COLOCADO[id], id)}: é o máximo.`); return false; }
   const m = podeColocar(G.mapa, x, y); if (m) { avisar(m); return false; }
   if (Horta.cova(x, y)) delete G.horta.covas[chaveH(x, y)];   // cova vazia vira chão de cerca
   if (id === 'barril_agua') { G.horta.barril = { x, y }; if (G.limpou) G.limpou.barril_colocado = 1; }

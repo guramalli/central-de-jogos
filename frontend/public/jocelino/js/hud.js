@@ -48,6 +48,8 @@ function atualizaHud() {
   HUD.estacao.textContent = ESTACOES[relogio.estacao()];
   HUD.hora.textContent = relogio.textoHora();
   HUD.dinheiro.textContent = 'Cr$ ' + G.dinheiro;
+  // (T4b) o fiado do Ananias fica à vista embaixo do dinheiro enquanto houver dívida (nada de dívida escondida)
+  if (G.fiado > 0) HUD.dinheiro.append(el('div', { class: 'fiado-hud', title: 'O fiado no depósito do Seu Ananias: ele recebe no domingo à noite (ou pague no balcão).', style: 'font-size:13px;line-height:1.1;color:#a3271d' }, `fiado: Cr$ ${G.fiado}`));
   // A meta de dinheiro do Bazar embaixo do relógio ("Bicicleta 180/450").
   // (revisão final) Da conversa da Rosa até a compra, a barrinha é a entrada da lojinha (o mesmo que o cartão), no lugar do Bazar.
   // (dia cheio, Frente A: "tem uma meta para comprar uma garrafa térmica mas eu não faço ideia o porquê") A barrinha é a meta da
@@ -65,7 +67,7 @@ function atualizaHud() {
     HUD.barra.innerHTML = '';
     for (let i = 0; i < 12; i++) {
       const s = G.mochila.slots[i];
-      const e = el('div', { class: 'espaco' + (i === G.sel ? ' sel' : ''), title: s ? Itens.nome(s.id) + (Itens.energia(s.id) ? ' — botão direito: comer' : '') : '', onclick: () => { G.sel = i; hudSujo(); },
+      const e = el('div', { class: 'espaco' + (i === G.sel ? ' sel' : ''), title: s ? Itens.nome(s.id) + (Itens.energia(s.id) ? ' — botão direito: comer' : '') + valorNaCaixaTxt(s.id) : '', onclick: () => { G.sel = i; hudSujo(); },
         // (teste de 12/10) Botão direito numa comida da barra: escolhe e pergunta se quer comer (antes não fazia nada).
         oncontextmenu: ev => { ev.preventDefault(); ev.stopPropagation(); G.sel = i; hudSujo(); if (!menuAberto() && typeof comerDaMao === 'function') comerDaMao(); } },
         s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null, s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null,
@@ -141,7 +143,7 @@ function abrirMochila() {
     const grade = el('div', { class: 'moch-grade' });
     M.slots.forEach((s, i) => grade.append(el('div', {
       class: 'espaco' + (i < Mochila.BARRA ? ' barra' : '') + (arrasto && arrasto.de === i ? ' origem' : ''), 'data-i': String(i),
-      title: s ? Itens.nome(s.id) + ' — ' + Itens.descricao(s.id) : '',
+      title: s ? dicaItem(s.id) : '',   // (T4b) com o Olho de comerciante, o valor na caixa
       // (o clique sem ponteiro antes, como o dos testes e o do teclado, ainda pega e solta)
       onclick: e => { e.stopPropagation(); if (ponteiro) return; M.clicar(i); mexeu(); },
       oncontextmenu: e => { e.preventDefault(); e.stopPropagation(); M.clicarDireito(i); mexeu(); poeFantasma(); } },

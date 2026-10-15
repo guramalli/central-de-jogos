@@ -5,7 +5,7 @@
 // As vantagens da obra (diária, tijolos, aluguel...) ficam guardadas e passam a valer quando a obra chegar.
 
 const NOMES_HAB = { folego: 'Fôlego', alvenaria: 'Alvenaria', acabamento: 'Acabamento', negocio: 'Negócio', roca: 'Roça', pesca: 'Pesca' };
-const BONUS_NIVEL = { folego: 'machado, picareta e foice cansam menos', alvenaria: 'pá e alvenaria cansam menos', acabamento: 'molhar e rebocar cansam menos (na obra e nas empreitas de reforma e pintura); a empreita caprichada sai mais vezes (de Pedreiro em diante)', negocio: '+1% no que recebe e vende', roca: 'regador e horta cansam menos', pesca: 'a barra de pesca fica maior e lançar cansa menos' };
+const BONUS_NIVEL = { folego: 'machado, picareta e foice cansam menos', alvenaria: 'pá e alvenaria cansam menos', acabamento: 'lavar, rebocar e pintar cansam menos (na obra e nas empreitas de reforma e pintura); a empreita caprichada sai mais vezes (de Pedreiro em diante)', negocio: '+1% no que recebe e vende', roca: 'regador e horta cansam menos', pesca: 'a barra de pesca fica maior e lançar cansa menos' };
 const OPCOES_5 = { folego: ['braco_forte', 'pe_ligeiro'], alvenaria: ['mao_firme', 'olho_de_prumo'], acabamento: ['capricho', 'limpinho'], negocio: ['fregues', 'pechincha'], roca: ['feirante', 'agronomo'], pesca: ['pescador', 'armadilheiro'] };
 const OPCOES_10 = {
   braco_forte: ['incansavel', 'carregador'], pe_ligeiro: ['cafe_no_sangue', 'maratonista'], mao_firme: ['mestre_de_obras', 'empreiteiro'],
@@ -20,8 +20,8 @@ const VANTAGENS = {
   mao_firme: ['Mão firme', 'Valas e alicerce em 3 ladrilhos por golpe.'], olho_de_prumo: ['Olho de prumo', '+Cr$ 5 na diária.'],
   mestre_de_obras: ['Mestre de obras', 'As empreitas pedem 20% menos material.'], empreiteiro: ['Empreiteiro', 'Cavar e assentar não gastam energia.'],
   fama: ['Fama', 'Os extras pagam o dobro.'], prumo_de_ouro: ['Prumo de ouro', '+Cr$ 10 na diária (Cr$ 15 no total).'],
-  capricho: ['Capricho', 'Molhar e pintar 3 ladrilhos por vez.'], limpinho: ['Limpinho', 'Entulho dá ferro velho mais vezes.'],
-  artista: ['Artista', 'Obra terminada dá Cr$ 50 de gorjeta.'], pintor: ['Pintor de mão cheia', 'Molhar e pintar 5 ladrilhos por vez.'],
+  capricho: ['Capricho', 'Na obra, lavar, rebocar e pintar contam 3 por vez.'], limpinho: ['Limpinho', 'Entulho dá ferro velho mais vezes.'],
+  artista: ['Artista', 'Obra terminada dá Cr$ 50 de gorjeta.'], pintor: ['Pintor de mão cheia', 'Na obra, lavar, rebocar e pintar contam 5 por vez.'],
   organizado: ['Organizado', 'Carregar coisas na obra conta em dobro.'], faxineiro: ['Faxineiro', 'Limpar mato, galho e entulho dá experiência em dobro.'],
   fregues: ['Freguês', '10% de desconto no Ananias e no Tonico.'], pechincha: ['Pechincha', 'Vende 25% mais caro.'],
   patrao: ['Patrão', 'Aluguel rende 50% a mais.'], cliente_vip: ['Cliente VIP', 'Mais 10% de desconto (20% no total).'],
@@ -38,14 +38,17 @@ const VALE_AGORA = ['pe_ligeiro', 'maratonista', 'incansavel', 'cafe_no_sangue',
   'braco_forte', 'carregador', 'olho_de_prumo', 'prumo_de_ouro', 'fama', 'organizado', 'capricho', 'pintor', 'artista', 'limpinho',
   'mao_firme', 'empreiteiro', 'mestre_de_obras', 'labia', 'feirante', 'agronomo', 'atacadista', 'tempero_da_roca', 'mao_verde', 'rega_de_mestre',
   'pescador', 'armadilheiro', 'mestre_do_pier', 'cacador_de_tesouro', 'marinheiro', 'isqueiro'];
-const FERRAMENTA_HAB = { machado: 'folego', picareta: 'folego', foice: 'folego', vara: 'pesca', vara_boa: 'pesca', molinete: 'pesca', pa: 'alvenaria', colher: 'alvenaria', regador: 'roca' };
-// (15/10, T2) O trabalho de acabamento cansa menos com o Acabamento: molhar e rebocar na obra do Bira e o regador e a colher no lote
-// de uma empreita longa de reforma ou pintura usam o MAIOR entre o nível da habilidade da ferramenta e o de Acabamento (ninguém perde).
+const FERRAMENTA_HAB = { machado: 'folego', picareta: 'folego', foice: 'folego', vara: 'pesca', vara_boa: 'pesca', molinete: 'pesca', pa: 'alvenaria', colher: 'alvenaria', regador: 'roca',
+  mangueira: 'acabamento', rolo: 'acabamento' };   // (15/10: a mangueira lava e o rolo pinta a obra; só servem no acabamento)
+// (15/10, T2) O trabalho de acabamento cansa menos com o Acabamento: lavar (mangueira), pintar (rolo) e rebocar na obra do Bira e o
+// regador e a colher no lote de uma empreita longa de reforma ou pintura usam o MAIOR entre o nível da habilidade da ferramenta e o
+// de Acabamento (ninguém perde).
 function golpeDeAcabamento(id, alvo) {
+  if (id === 'mangueira' || id === 'rolo') return true;
   if ((id !== 'regador' && id !== 'colher') || !alvo || !G.mapa || !G.mapa.ocupado || typeof chaveT !== 'function') return false;
   const o = G.mapa.ocupado.get(chaveT(alvo.x, alvo.y)); if (!o) return false;
   if (o.obraId && typeof obraDaVez === 'function' && obraDaVez(o)) {
-    if (id === 'regador') return true;   // molhar a parede
+    if (id === 'regador') return false;   // (15/10) a obra não se molha mais: o regador ali não é trabalho
     const l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;   // a colher assenta tijolo (Alvenaria) enquanto a lista pede
     return !(l && l.metas && l.metas.assentar && (l.feito.assentar || 0) < l.metas.assentar);
   }
@@ -56,82 +59,83 @@ function golpeDeAcabamento(id, alvo) {
 // (15/10, T3) O que cada nível dá (a tabela da spec docs/superpowers/specs/2026-10-15-niveis-recompensa.md, seção 2.2), num lugar só.
 // Cada linha: { nome, frase, icone (ícone de itens/) } e o tipo:
 //  - receita / melhoria: o ganho novo da tabela; `t4: true` = o efeito ainda não está no jogo (a T4 liga e tira o t4). Até lá a
-//    tela não mostra a linha: nada de prometer o que o jogo não faz;
+//    tela não mostra a linha: nada de prometer o que o jogo não faz. O `id` é por onde o jogo pergunta (o nível MORA aqui): a receita
+//    de Fabricar com esse id (Habilidades.nivelDaReceita) e a melhoria (Habilidades.ganho(id), falso enquanto a linha tiver t4);
 //  - empreita (id): a empreita que o nível já libera no quadro; receitaExiste (id): a receita de Fabricar que já existe;
 //    degrau (função da obra): o requisito de Alvenaria que já existe; loja: o que já passa a ser vendido; vantagem: a escolha do 5 e do 10.
 const _V = { tipo: 'vantagem' };
 const NIVEIS_RECOMPENSA = {
   folego: {
-    1: [{ tipo: 'receita', nome: 'Baú', frase: 'Faça o baú onde estiver, sem ir ao Tio Juca. Guarda 36 coisas.', icone: 'bau', t4: true }],
-    2: [{ tipo: 'receita', nome: 'Escada de corda', frase: 'Na pedreira funda, desce uma bancada na hora.', icone: 'escada_corda', t4: true }],
-    3: [{ tipo: 'melhoria', nome: 'Pedra de sobra', frase: 'Pedra e pedregulho dão 1 pedra a mais 1 vez em cada 4.', t4: true }],
-    4: [{ tipo: 'melhoria', nome: 'Faro de catador', frase: 'Mais 1 achado por dia na praia e na mata.', t4: true }],
+    1: [{ tipo: 'receita', id: 'bau', nome: 'Baú', frase: 'Faça o baú onde estiver, sem ir ao Tio Juca. Guarda 36 coisas.', icone: 'bau' }],
+    2: [{ tipo: 'receita', id: 'escada_corda', nome: 'Escada de corda', frase: 'Na pedreira funda, desce uma bancada na hora.', icone: 'escada_corda' }],
+    3: [{ tipo: 'melhoria', id: 'pedra_de_sobra', nome: 'Pedra de sobra', frase: 'Pedra e pedregulho dão 1 pedra a mais 1 vez em cada 4.' }],
+    4: [{ tipo: 'melhoria', id: 'faro_de_catador', nome: 'Faro de catador', frase: 'Mais 1 achado por dia na praia e na mata.' }],
     5: [_V],
-    6: [{ tipo: 'melhoria', nome: 'Olho de pedreira', frase: 'A escada escondida aparece 50% mais nas rochas.', t4: true }],
-    7: [{ tipo: 'receita', nome: 'Tronco de cogumelo', frase: 'No quintal, dá 1 cogumelo a cada 3 dias. Até 4 troncos.', icone: 'tronco_cogumelo', t4: true }],
-    8: [{ tipo: 'melhoria', nome: 'Lenha boa', frase: 'Árvore derrubada dá 1 madeira a mais.', t4: true }],
-    9: [{ tipo: 'melhoria', nome: 'Pulmão de pedreira', frase: 'O ar pesado das bancadas 20+ não cansa mais que o normal.', t4: true }],
+    6: [{ tipo: 'melhoria', id: 'olho_de_pedreira', nome: 'Olho de pedreira', frase: 'A escada escondida aparece 50% mais nas rochas.' }],
+    7: [{ tipo: 'receita', id: 'tronco_cogumelo', nome: 'Tronco de cogumelo', frase: 'No quintal, dá 1 cogumelo a cada 3 dias. Até 4 troncos.', icone: 'tronco_cogumelo' }],
+    8: [{ tipo: 'melhoria', id: 'lenha_boa', nome: 'Lenha boa', frase: 'Árvore derrubada dá 1 madeira a mais.' }],
+    9: [{ tipo: 'melhoria', id: 'pulmao_de_pedreira', nome: 'Pulmão de pedreira', frase: 'O ar pesado das bancadas 20+ não cansa mais que o normal.' }],
     10: [_V],
   },
   alvenaria: {
-    1: [{ tipo: 'receita', nome: 'Caminho de pedra', frase: 'No quintal, faz caminho. Mato e galho não nascem em cima.', icone: 'caminho_pedra', t4: true }],
-    2: [{ tipo: 'degrau', funcao: 1 }, { tipo: 'melhoria', nome: 'Peneira ligeira', frase: 'Peneirar areia na obra conta em dobro.', t4: true }],
-    3: [{ tipo: 'melhoria', nome: 'Ombro de pedreiro', frase: 'Na obra, levar pedras e subir telhas contam em dobro.', t4: true }],
-    4: [{ tipo: 'degrau', funcao: 2 }, { tipo: 'melhoria', nome: 'Pá firme', frase: 'Nas empreitas, o dia de pá sai com 2 golpes em vez de 3.', t4: true }],
+    1: [{ tipo: 'receita', id: 'caminho_pedra', nome: 'Caminho de pedra', frase: 'No quintal, faz caminho. Mato e galho não nascem em cima.', icone: 'caminho_pedra' }],
+    2: [{ tipo: 'degrau', funcao: 1 }, { tipo: 'melhoria', id: 'peneira_ligeira', nome: 'Peneira ligeira', frase: 'Peneirar areia na obra conta em dobro.' }],
+    3: [{ tipo: 'melhoria', id: 'ombro_de_pedreiro', nome: 'Ombro de pedreiro', frase: 'Na obra, levar pedras e subir telhas contam em dobro.' }],
+    4: [{ tipo: 'degrau', funcao: 2 }, { tipo: 'melhoria', id: 'pa_firme', nome: 'Pá firme', frase: 'Nas empreitas, o dia de pá sai com 2 golpes em vez de 3.' }],
     5: [_V, { tipo: 'empreita', id: 'ponte_pedra' }],
     6: [{ tipo: 'degrau', funcao: 3 }],
-    7: [{ tipo: 'receita', nome: 'Manta de cura boa', frase: 'Na plaquinha do lote: faz sozinha os dias de regador e de pá da empreita.', icone: 'manta_boa', t4: true }],
+    7: [{ tipo: 'receita', id: 'manta_boa', nome: 'Manta de cura boa', frase: 'Na plaquinha do lote: faz sozinha os dias de regador e de pá da empreita.', icone: 'manta_boa' }],
     8: [{ tipo: 'empreita', id: 'radier' }],
-    9: [{ tipo: 'melhoria', nome: 'Colher ligeira', frase: 'Assentar tijolo na obra conta em dobro.', t4: true }],
+    9: [{ tipo: 'melhoria', id: 'colher_ligeira', nome: 'Colher ligeira', frase: 'Assentar tijolo na obra conta em dobro.' }],
     10: [_V],
   },
   acabamento: {
-    1: [{ tipo: 'receita', nome: 'Tinta de cal', frase: 'Uma lata de tinta feita em casa, para muro e parede.', icone: 'tinta', t4: true }],
+    1: [{ tipo: 'receita', id: 'tinta', nome: 'Tinta de cal', frase: 'Uma lata de tinta feita em casa, para muro e parede.', icone: 'tinta' }],
     2: [{ tipo: 'receitaExiste', id: 'cal', frase: 'Cal feita em casa, para o reboco e o aditivo.' }],
-    3: [{ tipo: 'empreita', id: 'muro_chapiscado' }, { tipo: 'receita', nome: 'Manta de cura', frase: 'Na plaquinha do lote: faz sozinha os dias de regador (a cura).', icone: 'manta', t4: true }],
-    4: [{ tipo: 'empreita', id: 'cimentado_queimado' }, { tipo: 'receita', nome: 'Lajota colorida', frase: 'Lajota feita à mão, sem esperar a betoneira.', icone: 'lajota', t4: true }],
+    3: [{ tipo: 'empreita', id: 'muro_chapiscado' }, { tipo: 'receita', id: 'manta', nome: 'Manta de cura', frase: 'Na plaquinha do lote: faz sozinha os dias de regador (a cura).', icone: 'manta' }],
+    4: [{ tipo: 'empreita', id: 'cimentado_queimado' }, { tipo: 'receita', id: 'lajota', nome: 'Lajota colorida', frase: 'Lajota feita à mão, sem esperar a betoneira.', icone: 'lajota' }],
     5: [_V, { tipo: 'receitaExiste', id: 'impermeabilizante', frase: 'Aditivo forte: muito mais chance de acabamento caprichado.' }],
-    6: [{ tipo: 'empreita', id: 'muro_rebocado' }, { tipo: 'receita', nome: 'Lona encerada', frase: 'Na plaquinha do lote: a chuva não para o concreto nem a pintura (1 por empreita).', icone: 'lona', t4: true }],
-    7: [{ tipo: 'melhoria', nome: 'Colher leve', frase: 'Nas empreitas, o dia de colher sai com 2 golpes em vez de 3.', t4: true }],
+    6: [{ tipo: 'empreita', id: 'muro_rebocado' }, { tipo: 'receita', id: 'lona', nome: 'Lona encerada', frase: 'Na plaquinha do lote: a chuva não para o concreto nem a pintura (1 por empreita).', icone: 'lona' }],
+    7: [{ tipo: 'melhoria', id: 'colher_leve', nome: 'Colher leve', frase: 'Nas empreitas, o dia de colher sai com 2 golpes em vez de 3.' }],
     8: [{ tipo: 'receitaExiste', id: 'acelerador', frase: 'Acelerador de pega: a obra fica pronta em 25% menos dias.' }, { tipo: 'empreita', id: 'ladrilho' }],
-    9: [{ tipo: 'melhoria', nome: 'Impecável', frase: 'Com impermeabilizante, o acabamento impecável sai 50% mais vezes.', t4: true }],
+    9: [{ tipo: 'melhoria', id: 'impecavel', nome: 'Impecável', frase: 'Com impermeabilizante, o acabamento impecável sai 50% mais vezes.' }],
     10: [_V],
   },
   negocio: {
-    1: [{ tipo: 'melhoria', nome: 'Olho de comerciante', frase: 'A dica de cada item mostra quanto ele vale na caixa.', t4: true }],
-    2: [{ tipo: 'melhoria', nome: 'Prazo de amigo', frase: 'Os recados do povo têm 1 dia a mais de prazo.', t4: true }],
-    3: [{ tipo: 'receita', nome: 'Placa de propaganda', frase: 'No quintal: os recados do povo pagam 10% a mais.', icone: 'placa_propaganda', t4: true }],
-    4: [{ tipo: 'melhoria', nome: 'Revenda', frase: 'O Ananias compra de volta cimento, vergalhão, telha, tinta e cal pela metade.', t4: true }],
+    1: [{ tipo: 'melhoria', id: 'olho_de_comerciante', nome: 'Olho de comerciante', frase: 'A dica de cada item mostra quanto ele vale na caixa.' }],
+    2: [{ tipo: 'melhoria', id: 'prazo_de_amigo', nome: 'Prazo de amigo', frase: 'Os recados do povo têm 1 dia a mais de prazo.' }],
+    3: [{ tipo: 'receita', id: 'placa_propaganda', nome: 'Placa de propaganda', frase: 'No quintal: os recados do povo pagam 10% a mais.', icone: 'placa_propaganda' }],
+    4: [{ tipo: 'melhoria', id: 'revenda', nome: 'Revenda', frase: 'O Ananias compra de volta cimento, vergalhão, telha, tinta e cal pela metade.' }],
     5: [_V],
-    6: [{ tipo: 'melhoria', nome: 'Fiado', frase: 'Compra no depósito até Cr$ 300 fiado; paga no domingo à noite.', t4: true }],
-    7: [{ tipo: 'melhoria', nome: 'Cartaz na padaria', frase: 'Os serviços do quadro pagam 10% a mais.', t4: true }],
-    8: [{ tipo: 'melhoria', nome: 'Freguesia fiel', frase: 'Os recados do povo pagam mais 10% (20% no total).', t4: true }],
-    9: [{ tipo: 'melhoria', nome: 'Fiado maior', frase: 'O fiado no Ananias vai até Cr$ 1.000.', t4: true }],
+    6: [{ tipo: 'melhoria', id: 'fiado', nome: 'Fiado', frase: 'Compra no depósito até Cr$ 300 fiado; paga no domingo à noite.' }],
+    7: [{ tipo: 'melhoria', id: 'cartaz_padaria', nome: 'Cartaz na padaria', frase: 'Os serviços do quadro pagam 10% a mais.' }],
+    8: [{ tipo: 'melhoria', id: 'freguesia_fiel', nome: 'Freguesia fiel', frase: 'Os recados do povo pagam mais 10% (20% no total com a placa).' }],
+    9: [{ tipo: 'melhoria', id: 'fiado_maior', nome: 'Fiado maior', frase: 'O fiado no Ananias vai até Cr$ 1.000.' }],
     10: [_V],
   },
   roca: {
-    1: [{ tipo: 'receita', nome: 'Esterco curtido', frase: 'Adubo feito com mato seco: mais colheita boa.', icone: 'esterco', t4: true }],
-    2: [{ tipo: 'receita', nome: 'Espantalho', frase: 'As galinhas não bicam as covas a até 4 passos dele.', icone: 'espantalho', t4: true }],
-    3: [{ tipo: 'melhoria', nome: 'Regador maior', frase: 'O regador leva 10 de água a mais.', t4: true }],
-    4: [{ tipo: 'receita', nome: 'Adubo de peixe', frase: 'Conta como esterco e a planta fica pronta 1 dia antes.', icone: 'adubo_peixe', t4: true }],
+    1: [{ tipo: 'receita', id: 'esterco', nome: 'Esterco curtido', frase: 'Adubo feito com mato seco: mais colheita boa.', icone: 'esterco' }],
+    2: [{ tipo: 'receita', id: 'espantalho', nome: 'Espantalho', frase: 'No quintal: as galinhas não bicam as covas a até 4 passos dele.', icone: 'espantalho' }],
+    3: [{ tipo: 'melhoria', id: 'regador_maior', nome: 'Regador maior', frase: 'O regador leva 10 de água a mais.' }],
+    4: [{ tipo: 'receita', id: 'adubo_peixe', nome: 'Adubo de peixe', frase: 'Conta como esterco e a planta fica pronta 1 dia antes.', icone: 'adubo_peixe' }],
     5: [_V],
-    6: [{ tipo: 'melhoria', nome: 'Colheita farta', frase: 'A colheita caprichada rende 3 a mais (eram 2).', t4: true }],
-    7: [{ tipo: 'receita', nome: 'Sementes da colheita', frase: 'Com uma colheita na mão, faz 2 sementes dela (até fora da estação da loja).', t4: true }],
-    8: [{ tipo: 'melhoria', nome: 'Cova funda', frase: 'O esterco da cova vale também para a plantação seguinte.', t4: true }],
-    9: [{ tipo: 'receita', nome: 'Adubo bom', frase: 'Conta como 2 estercos: muito mais colheita caprichada.', icone: 'adubo_bom', t4: true }],
+    6: [{ tipo: 'melhoria', id: 'colheita_farta', nome: 'Colheita farta', frase: 'A colheita caprichada rende 3 a mais (eram 2).' }],
+    7: [{ tipo: 'receita', id: 'sementes_colheita', nome: 'Sementes da colheita', frase: 'Replanta sem ir ao Ananias, até a semente que ele não vende na estação.', icone: 'semente_alface' }],
+    8: [{ tipo: 'melhoria', id: 'cova_funda', nome: 'Cova funda', frase: 'O adubo da cova vale também para a plantação seguinte.' }],
+    9: [{ tipo: 'receita', id: 'adubo_bom', nome: 'Adubo bom', frase: 'Conta como 2 estercos: muito mais colheita caprichada.', icone: 'adubo_bom' }],
     10: [_V],
   },
   pesca: {
-    1: [{ tipo: 'receita', nome: 'Covo de siri', frase: 'Na água da margem, com isca: de manhã tem siri, caranguejo ou camarão.', icone: 'covo', t4: true }],
+    1: [{ tipo: 'receita', id: 'covo', nome: 'Covo de siri', frase: 'Na água da margem, com isca: de manhã tem siri, caranguejo ou camarão.', icone: 'covo' }],
     2: [{ tipo: 'loja', nome: 'Vara boa na banca', frase: 'A banca do Seu Lourival passa a vender a vara boa.', icone: 'vara_boa' },
-      { tipo: 'receita', nome: 'Isca', frase: 'Uma sardinha vira 4 iscas para a vara boa e o covo.', icone: 'isca', t4: true }],
-    3: [{ tipo: 'melhoria', nome: 'Minhoqueiro', frase: 'Cavar a grama dá minhoca o dobro de vezes.', t4: true }],
-    4: [{ tipo: 'melhoria', nome: 'Mordida ligeira', frase: 'O peixe morde 15% mais rápido.', t4: true }],
+      { tipo: 'receita', id: 'isca', nome: 'Isca', frase: 'Uma sardinha vira 4 iscas para a vara boa e o covo.', icone: 'isca' }],
+    3: [{ tipo: 'melhoria', id: 'minhoqueiro', nome: 'Minhoqueiro', frase: 'Cavar a grama dá minhoca o dobro de vezes.' }],
+    4: [{ tipo: 'melhoria', id: 'mordida_ligeira', nome: 'Mordida ligeira', frase: 'O peixe morde 15% mais rápido.' }],
     5: [_V],
     6: [{ tipo: 'loja', nome: 'Molinete no Seu Tonico', frase: 'O Seu Tonico já faz o molinete: barra maior e aceita isca.', icone: 'molinete' }],
-    7: [{ tipo: 'melhoria', nome: 'Linha firme', frase: 'Com o peixe fora da faixa, o medidor esvazia 15% mais devagar.', t4: true }],
-    8: [{ tipo: 'receita', nome: 'Isca boa', frase: 'O peixe raro aparece ainda mais e morde na hora.', icone: 'isca_boa', t4: true }],
-    9: [{ tipo: 'melhoria', nome: 'Óleo por conta', frase: 'O Lourival não cobra mais os Cr$ 20 de óleo do alto-mar.', t4: true }],
+    7: [{ tipo: 'melhoria', id: 'linha_firme', nome: 'Linha firme', frase: 'Com o peixe fora da faixa, o medidor esvazia 15% mais devagar.' }],
+    8: [{ tipo: 'receita', id: 'isca_boa', nome: 'Isca boa', frase: 'Na vara boa ou no molinete: o peixe raro aparece ainda mais e morde na hora.', icone: 'isca_boa' }],
+    9: [{ tipo: 'melhoria', id: 'oleo_por_conta', nome: 'Óleo por conta', frase: 'O Lourival não cobra mais os Cr$ 20 de óleo do alto-mar.' }],
     10: [_V],
   },
 };
@@ -189,28 +193,53 @@ const Habilidades = {
     }
     return novos;
   },
+  // (15/10, T4) Onde mora cada ganho da tabela: id → { h, n, g } (a receita e a melhoria; montado na primeira pergunta).
+  _onde: null,
+  onde(id) {
+    if (!Habilidades._onde) { Habilidades._onde = {}; for (const h in NIVEIS_RECOMPENSA) for (const n in NIVEIS_RECOMPENSA[h]) for (const g of NIVEIS_RECOMPENSA[h][n]) if (g.id && (g.tipo === 'receita' || g.tipo === 'receitaExiste' || g.tipo === 'melhoria')) Habilidades._onde[g.id] = { h, n: +n, g }; }
+    return Habilidades._onde[id] || null;
+  },
+  // A habilidade e o nível que liberam a receita de Fabricar `id` (null: nenhum nível dá; ela vem de outro lugar).
+  nivelDaReceita(id) { const o = Habilidades.onde(id); return o && o.g.tipo !== 'melhoria' ? { hab: o.h, nivel: o.n } : null; },
+  // A melhoria `id` da tabela já vale (o nível dormido chegou lá). Linha ainda com t4 nunca vale: o efeito não existe.
+  ganho(id) { const o = Habilidades.onde(id); return !!o && o.g.tipo === 'melhoria' && !o.g.t4 && !!G.hab && Habilidades.nivel(o.h) >= o.n; },
+  // (15/10, T4) O que sai a mais ao quebrar um detrito (ferramentas.js): a Pedra de sobra (Fôlego 3: 1 pedra em 1 de cada 4 na pedra
+  // e no pedregulho) e a Lenha boa (Fôlego 8: 1 madeira a mais na árvore derrubada). { item: qtd }.
+  sobraAoQuebrar(det, rng = Math.random) {
+    const r = {};
+    if ((det === 'pedra' || det === 'pedregulho') && Habilidades.ganho('pedra_de_sobra') && rng() < ECO.niveis.pedraDeSobra) r.pedra = 1;
+    if (det === 'arvore' && Habilidades.ganho('lenha_boa')) r.madeira = ECO.niveis.lenhaBoa;
+    return r;
+  },
   // Energia do golpe de um nível: cada nível tira 0,1 × base/2 (custo 2 vira 1 no nível 10).
   custoNivel(n) { return Math.max(0.5, CUSTO_GOLPE - 0.1 * n * CUSTO_GOLPE / 2); },
   // Energia do golpe: o nível da habilidade da ferramenta; no trabalho de acabamento (acab), o maior entre ele e o de Acabamento.
   custo(ferr, acab = false) { const h = FERRAMENTA_HAB[ferr]; if (!h) return CUSTO_GOLPE; const n = Habilidades.nivel(h); return Habilidades.custoNivel(acab ? Math.max(n, Habilidades.nivel('acabamento')) : n); },
   // O que o nível n dá e já está no jogo (a tabela NIVEIS_RECOMPENSA sem as linhas da T4): [{ icone (URL ou ''), titulo, frase }].
   ganhosDoNivel(h, n) {
-    const r = [];
+    const r = [], minu = t => t.charAt(0).toLowerCase() + t.slice(1), semPonto = t => t.replace(/\.$/, '');
     for (const g of (NIVEIS_RECOMPENSA[h] || {})[n] || []) {
       if (g.t4) continue;
-      if (g.tipo === 'vantagem') r.push({ icone: urlItem('hab_' + h), titulo: 'Uma vantagem para sempre', frase: 'Você escolhe uma de duas logo depois desta tela.' });
-      else if (g.tipo === 'empreita') {
+      if (g.tipo === 'vantagem') {
+        // (15/10, T4) A tela do 5/10 que ficou para outra noite não promete de novo uma escolha já feita: mostra a escolhida.
+        const pendente = G.hab && (G.hab.pendentes || []).some(p => p[0] === h && p[1] === n), v5 = G.hab ? OPCOES_5[h].find(v => Habilidades.tem(v)) : null;
+        const esc = pendente ? null : n === 5 ? v5 : v5 ? (OPCOES_10[v5] || []).find(v => Habilidades.tem(v)) : null;
+        if (esc) r.push({ icone: urlItem('hab_' + h), titulo: `Vantagem escolhida: ${VANTAGENS[esc][0]}`, frase: VANTAGENS[esc][1], curto: `a vantagem ${VANTAGENS[esc][0]}` });
+        else r.push({ icone: urlItem('hab_' + h), titulo: 'Uma vantagem para sempre', frase: 'Você escolhe uma de duas depois de todas as telas de nível desta noite.', curto: 'uma vantagem para sempre (você escolhe uma de duas)' });
+      } else if (g.tipo === 'empreita') {
         const E = typeof dadosEmpreita === 'function' ? dadosEmpreita(g.id) : null; if (!E) continue;
         const pede = E.funcaoMin && typeof G !== 'undefined' && G.obra && G.obra.funcao < E.funcaoMin && typeof FUNCOES !== 'undefined' ? ` Vale de ${FUNCOES[E.funcaoMin]} em diante.` : '';
-        r.push({ icone: urlArte('objetos/plaquinha'), titulo: `Empreita nova no quadro: ${E.nome}`, frase: `Paga Cr$ ${E.paga}.${pede}` });
-      } else if (g.tipo === 'receitaExiste') {
+        r.push({ icone: urlArte('objetos/plaquinha'), titulo: `Empreita nova no quadro: ${E.nome}`, frase: `Paga Cr$ ${Empreitas.pagaBase(g.id)}.${pede}`, curto: `a empreita ${E.nome} (Cr$ ${Empreitas.pagaBase(g.id)})` });
+      } else if (g.tipo === 'receitaExiste' || g.tipo === 'receita') {
+        // a receita só aparece se o Fabricar tem a receita (nada de prometer o que não se faz)
         const R = typeof RECEITAS_FABRICAR !== 'undefined' && RECEITAS_FABRICAR[g.id]; if (!R) continue;
-        const custo = Object.entries(R.custo).map(([m, q]) => Itens.qtd(q, m)).join(' + ');
-        r.push({ icone: urlItem(g.id), titulo: `Receita nova: ${Itens.nome(g.id)}`, frase: `${custo}${R.da > 1 ? ` dão ${R.da}` : ''}. ${g.frase} (Fabricar)` });
+        const nome = g.nome || Itens.nome(g.id);
+        r.push({ icone: urlItem(g.icone || g.id), titulo: `Receita nova: ${nome}`, frase: `${Fabricar.textoCusto(g.id)}. ${g.frase} (Fabricar)`, curto: `a receita de ${nome}` });
       } else if (g.tipo === 'degrau') {
         if (typeof FUNCOES === 'undefined' || (G.obra && G.obra.funcao >= g.funcao)) continue;
-        r.push({ icone: urlItem('colher'), titulo: `Já dá para ser ${FUNCOES[g.funcao]}`, frase: 'Na obra do Mestre Bira, com as obras e as empreitas que faltam (tela H).' });
-      } else r.push({ icone: g.icone ? urlItem(g.icone) : '', titulo: g.tipo === 'receita' ? `Receita nova: ${g.nome}` : g.nome, frase: g.frase });
+        // (15/10, T4) só o requisito de Alvenaria está cumprido: a função ainda pode pedir obras e empreitas
+        r.push({ icone: urlItem('colher'), titulo: `Alvenaria pronta para ${FUNCOES[g.funcao]}`, frase: 'O nível de Alvenaria que o Mestre Bira pede para essa função já está bom. O que mais falta (obras e empreitas) está na tela H.', curto: `o nível de Alvenaria que a função de ${FUNCOES[g.funcao]} pede` });
+      } else r.push({ icone: g.icone ? urlItem(g.icone) : '', titulo: g.nome, frase: g.frase, curto: g.tipo === 'melhoria' ? `${g.nome} (${minu(semPonto(g.frase))})` : minu(g.nome) });
     }
     return r;
   },
@@ -227,10 +256,12 @@ const Habilidades = {
     return [];
   },
   // O próximo ganho que já está no jogo (frase curta) depois do nível n, ou ''.
-  proximoGanho(h, n) {
-    if (n >= 10) return '';
-    const g = Habilidades.ganhosDoNivel(h, n + 1)[0];
-    return g ? `No nível ${n + 1}: ${g.titulo.charAt(0).toLowerCase() + g.titulo.slice(1)}.` : '';
+  proximoGanho(h, n) { const t = Habilidades.ganhoCurto(h, n + 1); return t ? `No nível ${n + 1}: ${t}.` : ''; },
+  // O que o nível m dá, numa frase curta sem título (a tela H e a Caderneta): "a receita de Baú e Pedra de sobra (…)".
+  ganhoCurto(h, m) {
+    if (m > 10) return '';
+    const a = Habilidades.ganhosDoNivel(h, m).map(g => g.curto).filter(Boolean);
+    return a.length > 1 ? a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1] : a[0] || '';
   },
   bonusVenda() { return (1 + 0.01 * Habilidades.nivel('negocio')) * (Habilidades.tem('atravessador') ? 1.5 : Habilidades.tem('pechincha') ? 1.25 : 1); },
   desconto() { return Habilidades.tem('cliente_vip') ? 0.8 : Habilidades.tem('fregues') ? 0.9 : 1; },
@@ -307,6 +338,8 @@ function abrirHabilidades() {
       el('div', {}, el('b', {}, `${NOMES_HAB[h]} · nível ${n}`), Habilidades.novoAoDormir(h) ? el('span', { class: 'hab-selo' }, `nível ${Habilidades.nivelXp(h)} ao dormir!`) : null,
         el('div', { class: 'hab-barra' }, el('div', { style: `width:${Math.round(Habilidades.progresso(h) * 100)}%` })),
         el('div', { class: 'eq-hab' }, `Cada nível: ${BONUS_NIVEL[h]}.`),
+        // (15/10, T4) o próximo ganho do nível que vem (o nível novo que espera a noite já conta como ganho: mostra o seguinte)
+        (p => p ? el('div', { class: 'eq-hab hab-prox' }, p) : null)(Habilidades.proximoGanho(h, Habilidades.nivelXp(h))),
         ...van.map(v => el('div', { class: 'eq-hab' }, `★ ${VANTAGENS[v][0]}: ${VANTAGENS[v][1]}${VALE_AGORA.includes(v) ? '' : ' (vale mais para a frente)'}`)))));
   }
   caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));

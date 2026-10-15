@@ -14,6 +14,9 @@ const CASAS = {
     cama: { arte: 'objetos/cama_juca_casal', dormindo: 'objetos/cama_juca_casal_dormindo', bx: 1, by: 9, aw: 3, w: 140, h: 156 },
     solidos: [[47, 140, 150, 140], [193, 140, 44, 260], [390, 240, 165, 160], [610, 140, 120, 52], [733, 140, 44, 40], [730, 300, 185, 110]],
     radio: { x: 479, y: 96 },
+    // (15/10, o jogador: "coloque um poste ou um pilar para segurar essa rede que está pendurada no vento") o esteio de madeira (Higgsfield)
+    // na ponta esquerda da rede pintada: a argola dele no gancho que flutuava (725, 308); x/y/w/h da arte, pe = o pé (para a ordem de desenho)
+    esteio: { arte: 'objetos/esteio_rede', x: 692, y: 266, w: 65, h: 149, pe: { x: 711, y: 415 }, solido: [690, 398, 42, 18] },
     // a mesa da cozinha (o tampo, em px) e onde a Rosa deixa as marmitas (o pé de cada uma), longe da garrafa térmica
     mesa: { x: 419, y: 252, w: 109, h: 100 }, marmitas: [[443, 340], [503, 340]], escalaMarmita: 0.6,
     bazar: { garrafa_termica: { arte: 'objetos/garrafa_termica_mesa', x: 473, y: 303 }, fogao_gas: { arte: 'objetos/fogao_gas', x: 854, y: 190, pe: [48, 30] },
@@ -67,6 +70,9 @@ for (const id in CASAS) MAPAS_DEF[id] = () => {
   // O rádio (a TV do Stardew): a previsão e o horóscopo.
   const r = b.interativo('radio', 'objetos/radio', 0, 0, 1, 1, null, false); Object.assign(r, { x: C.radio.x, y: C.radio.y });
   r.acao = () => { abrirPlaca(previsaoDoRadio()); return true; };
+  if (C.esteio) { const E = C.esteio, o = { tipo: 'enfeite', nome: E.arte, x: E.pe.x, y: E.pe.y, solido: true };
+    o.desenha = ctx => { const img = spr(E.arte); if (img) ctx.drawImage(img, E.x, E.y, E.w, E.h); }; b.objs.push(o);
+    const [sx, sy, sw, sh] = E.solido; b.solidos.push({ x: sx, y: sy, w: sw, h: sh }); }
   b.aoEntrar = () => { poeBazarNaCasa(b); poeMarmitaNaCasa(b); };
   return b;
 };

@@ -32,10 +32,13 @@ const Horta = {
     return r;
   },
   cova(x, y) { return G.horta.covas[chaveH(x, y)]; },
-  aguaMax(nivel = nivelFerramenta('regador')) { return AGUA_REGADOR[nivel >= 1 ? 1 : 0]; },
+  // (T4b, Roça 3) o Regador maior leva 10 de água a mais (o simples e o bom)
+  aguaMax(nivel = nivelFerramenta('regador')) { return AGUA_REGADOR[nivel >= 1 ? 1 : 0] + (typeof Habilidades !== 'undefined' && Habilidades.ganho('regador_maior') ? ECO.niveis.regadorMais : 0); },
   diasPara(id) { const d = CULTURAS[id].dias; return typeof Habilidades !== 'undefined' && Habilidades.tem('agronomo') ? d - Math.ceil(d * 0.1) : d; },
-  madura(c) { return !!(c && c.planta && c.dias >= Horta.diasPara(c.planta)); },
-  estagio(c) { if (!c || !c.planta) return 0; if (Horta.madura(c)) return 4; if (c.colhida) return 3; return 1 + Math.min(2, Math.floor(c.dias * 3 / Horta.diasPara(c.planta))); },
+  // (T4b, Roça 4) os dias da planta DESTA cova: o adubo de peixe deixa pronta 1 dia antes
+  diasDa(c) { return Horta.diasPara(c.planta) - (c.peixe ? 1 : 0); },
+  madura(c) { return !!(c && c.planta && c.dias >= Horta.diasDa(c)); },
+  estagio(c) { if (!c || !c.planta) return 0; if (Horta.madura(c)) return 4; if (c.colhida) return 3; return 1 + Math.min(2, Math.floor(c.dias * 3 / Horta.diasDa(c))); },
   molhada(c, dia) { return !!c && (c.regada || (typeof Clima !== 'undefined' && Clima.chove(dia))); },
   cavar(x, y) { if (Horta.cova(x, y)) return 'ja'; G.horta.covas[chaveH(x, y)] = { planta: null, dias: 0, regada: false, adubo: 0 }; return 'ok'; },
   plantar(x, y, item, dia) {
@@ -52,26 +55,42 @@ const Horta = {
     G.horta.agua--; c.regada = true; return 'ok';
   },
   encher() { G.horta.agua = Horta.aguaMax(); },
-  // A qualidade da colheita: 0 normal, 1 boa (+1 unidade), 2 caprichada (+2). A fórmula do Stardew com o nível L da Roça e
-  // o adubo F (o esterco; a Mão verde soma 1): caprichada 0,2·L/10 + 0,2·F·(L+2)/12 + 0,01; boa min(0,75, 2× caprichada).
+  // A qualidade da colheita: 0 normal, 1 boa (+1 unidade), 2 caprichada (+2; +3 com a Colheita farta). A fórmula do Stardew com o
+  // nível L da Roça e o adubo F (o esterco e o adubo de peixe 1, o adubo bom 2; a Mão verde soma 1): caprichada 0,2·L/10 +
+  // 0,2·F·(L+2)/12 + 0,01; boa min(0,75, 2× caprichada).
   qualidade(rng = Math.random, adubo = 0) {
     const L = typeof Habilidades !== 'undefined' ? Habilidades.nivel('roca') : 0;
-    const F = (adubo ? 1 : 0) + (typeof Habilidades !== 'undefined' && Habilidades.tem('mao_verde') ? 1 : 0);
+    const F = (+adubo || 0) + (typeof Habilidades !== 'undefined' && Habilidades.tem('mao_verde') ? 1 : 0);
     const cap = 0.2 * (L / 10) + 0.2 * F * ((L + 2) / 12) + 0.01;
     if (rng() < cap) return 2;
     return rng() < Math.min(0.75, cap * 2) ? 1 : 0;
   },
-  adubar(x, y) { const c = Horta.cova(x, y); if (!c) return 'sem_cova'; if (c.planta) return 'ocupado'; if (c.adubo) return 'ja'; c.adubo = 1; return 'ok'; },
+  // (T4b) O adubo da cova: o esterco (F 1), o adubo de peixe (F 1 e a planta pronta 1 dia antes) e o adubo bom (F 2). c.aduboItem
+  // guarda qual foi (o desenho em cima da cova vazia); c.aduboVelho = já serviu a um plantio e ficou pela Cova funda.
+  adubar(x, y, tipo = 'esterco') {
+    const c = Horta.cova(x, y); if (!c) return 'sem_cova'; if (c.planta) return 'ocupado'; if (c.adubo) return 'ja';
+    c.adubo = tipo === 'adubo_bom' ? ECO.niveis.aduboBom : 1; c.peixe = tipo === 'adubo_peixe' ? 1 : 0; c.aduboVelho = 0;
+    if (tipo !== 'esterco') c.aduboItem = tipo; else delete c.aduboItem;
+    return 'ok';
+  },
+  // (T4b, Roça 8) O pé acabou (colhido, seco na virada ou arrancado): o adubo se gasta; com a Cova funda, vale para mais um plantio.
+  fimDoPe(c) {
+    c.planta = null; c.dias = 0; c.colhida = false;
+    if (c.adubo && !c.aduboVelho && typeof Habilidades !== 'undefined' && Habilidades.ganho('cova_funda')) { c.aduboVelho = 1; return; }
+    c.adubo = 0; c.peixe = 0; c.aduboVelho = 0; delete c.aduboItem;
+  },
   colher(x, y, rng = Math.random) {
     const c = Horta.cova(x, y); if (!Horta.madura(c)) return null;
     const id = c.planta, q = Horta.qualidade(rng, c.adubo), C = CULTURAS[id];
-    if (C.rebrota) { c.dias = Horta.diasPara(id) - C.rebrota; c.colhida = true; }   // rebrota: volta à fase 3
-    else { c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; }
-    return { id, qtd: 1 + q, qual: q };
+    if (C.rebrota) { c.dias = Horta.diasDa(c) - C.rebrota; c.colhida = true; }   // rebrota: volta à fase 3
+    else Horta.fimDoPe(c);
+    // (T4b, Roça 6) a Colheita farta: a caprichada rende 3 a mais (eram 2)
+    const farta = q === 2 && typeof Habilidades !== 'undefined' && Habilidades.ganho('colheita_farta') ? ECO.niveis.colheitaFarta - 2 : 0;
+    return { id, qtd: 1 + q + farta, qual: q };
   },
   // Fechar a cova (a picareta do Stardew desfaz a terra arada): só a vazia; com pé plantado não fecha ('planta'). O adubo se perde ('adubo').
   fechar(x, y) { const c = Horta.cova(x, y); if (!c) return 'sem_cova'; if (c.planta) return 'planta'; delete G.horta.covas[chaveH(x, y)]; return c.adubo ? 'adubo' : 'ok'; },
-  arrancar(x, y) { const c = Horta.cova(x, y); if (!c || !c.planta) return ''; const id = c.planta; c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; return id; },
+  arrancar(x, y) { const c = Horta.cova(x, y); if (!c || !c.planta) return ''; const id = c.planta; Horta.fimDoPe(c); return id; },
   // A noite: cresce o que foi regado (ou com chuva); vira a estação, seca o que não é dela; a cova vazia pode sumir.
   noite(dia, chove, rng = Math.random) {
     const r = { secaram: [], sumiram: 0 }, vira = estacaoDoDia(dia + 1) !== estacaoDoDia(dia);
@@ -79,7 +98,7 @@ const Horta = {
       const c = G.horta.covas[k];
       if (c.planta && (c.regada || chove)) c.dias++;
       c.regada = false;
-      if (c.planta && vira && !(c.inicial && typeof Gremio !== 'undefined' && Gremio.hortaCoberta()) && !CULTURAS[c.planta].estacoes.includes(estacaoDoDia(dia + 1))) { r.secaram.push(c.planta); c.planta = null; c.dias = 0; c.adubo = 0; c.colhida = false; }
+      if (c.planta && vira && !(c.inicial && typeof Gremio !== 'undefined' && Gremio.hortaCoberta()) && !CULTURAS[c.planta].estacoes.includes(estacaoDoDia(dia + 1))) { r.secaram.push(c.planta); Horta.fimDoPe(c); }
       if (!c.planta && !c.adubo && !c.inicial && rng() < HORTA_SOME) { delete G.horta.covas[k]; r.sumiram++; }
     }
     return r;
@@ -100,9 +119,11 @@ const Horta = {
     }
     return true;
   },
-  // As galinhas (os corvos do Stardew): com 16 ou mais pés abertos, 40% de chance de bicarem um.
+  // (T4b, Roça 2) O espantalho (o do Stardew espanta os corvos): a cova a até ECO.niveis.espantalho ladrilhos dele (o quadrado) fica a salvo.
+  espantada(x, y) { const r = ECO.niveis.espantalho; return G.horta.colocados.some(c => c.id === 'espantalho' && Math.abs(c.x - x) <= r && Math.abs(c.y - y) <= r); },
+  // As galinhas (os corvos do Stardew): com 16 ou mais pés abertos (sem cerca e longe do espantalho), 40% de chance de bicarem um.
   galinhas(b, rng = Math.random) {
-    const abertas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta).map(k => k.split(',').map(Number)).filter(([x, y]) => !Horta.protegida(b, x, y));
+    const abertas = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta).map(k => k.split(',').map(Number)).filter(([x, y]) => !Horta.espantada(x, y) && !Horta.protegida(b, x, y));
     if (abertas.length < MINIMO_GALINHAS || rng() >= CHANCE_GALINHAS) return '';
     const [x, y] = abertas[Math.floor(rng() * abertas.length)], id = Horta.arrancar(x, y);
     G.horta.galinha = { x, y }; return id;
