@@ -255,11 +255,12 @@ function quebrouNoGuia(o) {
   }
 }; }
 // ---------- a dica do passo a passo (a 1ª obra; a 1ª janta na Task 4) e o contador da obra ----------
-const PASSO_OBRA = { areia: ['Agora a areia: a peneira ali no canto. Botão direito nela até completar.', 'peneira'],
-  tijolos: ['Os tijolos: pegue no monte (botão direito) e leve até a obra da casa da Dona Zélia.', 'monte_tijolos'],
+// ({obra} = a obra da vez, "a obra da casa da Dona Zélia" ou "a obra do Mercado": o canteiro segue a obra, obra_jogo.js)
+const PASSO_OBRA = { areia: ['Agora a areia: a peneira do canteiro. Botão direito nela até completar.', 'peneira'],
+  tijolos: ['Os tijolos: pegue no monte (botão direito) e leve até {obra}.', 'monte_tijolos'],
   massa: ['A massa: pegue na masseira e leve para o Zé.', 'masseira'], ripas: ['As ripas: pegue na pilha e leve para a obra.', 'pilha_ripas'],
-  pedras: ['As pedras: pegue no monte (botão direito) e leve até a obra da casa da Dona Zélia. As da mochila também valem.', 'monte_tijolos'],
-  buscar_pedra: ['As pedras: quebre as pedras do quintal com a picareta e traga 10 na mochila. Depois entregue na obra da casa da Dona Zélia (botão direito) ou fale comigo.', null], entulho: ['O entulho: quebre os montinhos de entulho do canteiro.', null] };
+  pedras: ['As pedras: pegue no monte (botão direito) e leve até {obra}. As da mochila também valem.', 'monte_tijolos'],
+  buscar_pedra: ['As pedras: quebre as pedras do quintal com a picareta e traga 10 na mochila. Depois entregue n{obra} (botão direito) ou fale comigo.', null], entulho: ['O entulho: quebre os montinhos de entulho do canteiro.', null] };
 let guiaPasso = function () {
   const g = G.guia; if (!g || !g.ativo) return null;
   if (g.abertas.includes('obra') && G.mapaId === 'vila') {
@@ -267,12 +268,12 @@ let guiaPasso = function () {
     if (fechada && fechada !== 'cedo') return null;   // de tarde, no domingo e na chuva a obra não está aberta: sem dica
     if (!l) return { id: 'bira', nome: 'Mestre Bira', texto: 'Bom dia! Fale comigo para pegar a lista do dia (botão direito em mim).', alvo: { morador: 'bira' } };
     if (Obra.completa()) return l.paga ? null : { id: 'bira', nome: 'Mestre Bira', texto: 'Lista completa! Fale comigo para receber a diária.', alvo: { morador: 'bira' } };
-    if (G.jog && G.jog.carga && typeof CARGA_TAREFA !== 'undefined' && CARGA_TAREFA[G.jog.carga.id]) return { id: 'bira', nome: 'Mestre Bira', texto: 'Agora leve até a obra da casa da Dona Zélia.', alvo: { objeto: 'casa_zelia' } };
+    if (G.jog && G.jog.carga && typeof CARGA_TAREFA !== 'undefined' && CARGA_TAREFA[G.jog.carga.id]) return { id: 'bira', nome: 'Mestre Bira', texto: `Agora leve até ${aObraDaVez()}.`, alvo: { objeto: idDaObraDaVez() } };
     const id = Object.keys(l.metas).find(k => (l.feito[k] || 0) < l.metas[k]);
     // (teste de 13/10: com as pedras na mochila, o passo não dizia onde entregar)
-    if ((id === 'buscar_pedra' || id === 'pedras') && G.mochila.total('pedra') > 0) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue na obra da casa da Dona Zélia: botão direito no canteiro (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: 'casa_zelia' } };
+    if ((id === 'buscar_pedra' || id === 'pedras') && G.mochila.total('pedra') > 0) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue n${aObraDaVez()}: botão direito no canteiro (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: idDaObraDaVez() } };
     const [texto, obj] = PASSO_OBRA[id] || [`Agora: ${TAREFAS_OBRA[id] ? TAREFAS_OBRA[id].texto : id}.`, null];
-    return { id: 'bira', nome: 'Mestre Bira', texto, alvo: obj ? { objeto: obj } : null };
+    return { id: 'bira', nome: 'Mestre Bira', texto: texto.replace('{obra}', aObraDaVez()), alvo: obj ? { objeto: obj } : null };
   }
   return null;
 };

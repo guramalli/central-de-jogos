@@ -104,10 +104,11 @@ NOITE.push(() => { if (ehMestre() && G.obra.lista && G.obra.lista.dia === G.dia)
 function poePeoes(b) {
   b.moradores = b.moradores.filter(m => !m.peao);
   if (!ehMestre()) return;
-  const ze = b.moradores.find(m => m.id === 'ze');
+  const ze = b.moradores.find(m => m.id === 'ze'), gente = typeof canteiroDaVez === 'function' ? canteiroDaVez().gente : {};   // (no canteiro da obra da vez)
   for (const p of PEOES) {
     if (G.equipeObra.faltou.includes(p.id)) { if (p.id === 'ze' && ze) ze.visivel = false; continue; }
-    const m = p.id === 'ze' && ze ? ze : Object.assign(b.morador(p.id, p.nome, p.x, p.y, DIR.BAIXO), { peao: true });
+    const [x, y] = gente[p.id] || [p.x, p.y];
+    const m = p.id === 'ze' && ze ? ze : Object.assign(b.morador(p.id, p.nome, x, y, DIR.BAIXO), { peao: true });
     m.visivel = true;
     m.aoConversar = () => conversarPeao(p.id);
   }

@@ -3,7 +3,8 @@
 // canteiro (monte, peneira, masseira, entulho, mato, regador e colher na parede), a carga entregue na obra, a arte da
 // etapa e o fim do expediente às 17h (a parte feita fica a receber). As regras estão em obra.js.
 
-const CANTEIRO = { x: 29, y: 3, w: 16, h: 6 };                 // onde renascem o entulho e o mato da obra
+// Onde renascem (e contam) o entulho e o mato da obra: o retângulo do canteiro da vez (CANTEIROS, mapa_vila.js), que muda com a obra.
+const CANTEIRO = { get x() { return canteiroDaVez().ret.x; }, get y() { return canteiroDaVez().ret.y; }, get w() { return canteiroDaVez().ret.w; }, get h() { return canteiroDaVez().ret.h; } };
 const EXTRAS_OBRA = { tijolos: 10, areia: 3, massa: 2, pedras: 5, telhas: 10, ripas: 5 };
 const CARGA_TAREFA = { tijolo: 'tijolos', pedra: 'pedras', telha: 'telhas', ripa: 'ripas' };
 const nomeTarefa = id => TAREFAS_OBRA[id].texto;
@@ -52,6 +53,7 @@ function conversarBira() {
     // (13/10) O primeiro encontro é a contratação: o Tio Juca disse que o Bira paga servente por dia; aqui ele confirma e diz o porquê.
     const contratacao = o.primeira;
     l = o.lista = Object.assign({ dia: G.dia, feito: {}, paga: false }, Obra.sortear(G.dia));
+    if (G.mapa && G.mapa.id === 'vila') poeEntulhoDaObra(G.mapa);   // (quebrou entulho antes da lista? o canteiro completa o que ela pede)
     sons.tocar('pagina', 1, 0.05, -6);
     const fala = [`Bom dia, ${FUNCOES[o.funcao].toLowerCase()}! Hoje na ${Obra.obra().nome} (${Obra.obra().etapas[o.etapa].nome}):\n${textoLista(l)}`, 'Terminou, volta aqui que eu acerto a diária.'];
     if (contratacao) fala.unshift(`Então você é o sobrinho do Juca! Ele me falou de você. Servente eu preciso, sim: Cr$ ${Obra.diaria()} por dia, pago quando a lista do dia fica pronta.`,
@@ -89,23 +91,31 @@ const valorExtra = () => OBRA_EXTRA * (typeof Habilidades !== 'undefined' && Hab
 // ---------- no mapa ----------
 function poeObraNoMapa(b) {
   if (b.id !== 'vila') return;
+  // A obra da vez mudou (a casa da Dona Zélia ficou pronta, o Mercado começou...): o canteiro muda junto, e a turma vai com ele.
+  if (b.canteiro !== lugarDoCanteiro()) { poeCanteiro(b, lugarDoCanteiro()); tiraEntulhoVelho(b); if (typeof poePeoes === 'function') poePeoes(b); }
   const casa = b.objs.find(o => o.obraId === 'casa_zelia');
   if (casa) casa.nome = G.obra.indice === 0 ? Obra.arteAtual() : 'objetos/casa_zelia_6';
   const merc = b.objs.find(o => o.id === 'mercado');
   if (merc) { merc.obraId = 'mercado'; merc.nome = G.obra.indice < 1 ? 'objetos/mercado_0' : G.obra.indice === 1 ? Obra.arteAtual() : 'objetos/mercado_3'; merc.acao = () => acaoNaObra(merc); merc.ferramenta = (o, id) => ferramentaNaObra(o, id); }
   if (casa) { casa.acao = () => acaoNaObra(casa); casa.ferramenta = (o, id) => ferramentaNaObra(o, id); }
   const bira = b.moradores.find(m => m.id === 'bira'); if (bira) bira.aoConversar = () => conversarBira();
-  // A escola e o Edifício Maré nos lotes livres da Vila (a escola ao lado da praça; o prédio ao lado da ferraria).
-  for (const [obraId, idx, x, y, w, h] of [['escola', 2, 31, 22, 6, 4], ['predio', 3, 16, 22, 5, 4]]) {
+  // A escola e o Edifício Maré nos lotes livres da Vila (LOTES_DAS_OBRAS). Entulho, mato ou achado que tenha ficado no lote
+  // (do save, do canteiro velho) sai: nada fica escondido debaixo da obra.
+  for (const [obraId, idx] of [['escola', 2], ['predio', 3]]) {
+    const [x, y, w, h] = LOTES_DAS_OBRAS[obraId];
     let ob = b.objs.find(o => o.obraId === obraId);
     const daVez = Obra.obra().id === obraId;
     if ((daVez || G.obra.indice > idx) && !ob) { ob = b.interativo('obra_' + obraId, 'objetos/alicerce', x, y, w, h); ob.obraId = obraId; }
-    if (ob) { ob.nome = daVez ? Obra.arteAtual() : (obraId === 'escola' ? 'objetos/escola' : 'objetos/predio_7'); ob.acao = () => acaoNaObra(ob); ob.ferramenta = (o2, id) => ferramentaNaObra(o2, id); }
+    if (ob) {
+      ob.nome = daVez ? Obra.arteAtual() : (obraId === 'escola' ? 'objetos/escola' : 'objetos/predio_7'); ob.acao = () => acaoNaObra(ob); ob.ferramenta = (o2, id) => ferramentaNaObra(o2, id);
+      for (const o2 of b.objs.filter(q => (q.tipo === 'detrito' || q.achado) && (q.tiles || []).some(t => ob.tiles.some(u => u.x === t.x && u.y === t.y)))) b.tirar(o2);
+      for (const t of ob.tiles) b.ocupado.set(chaveT(t.x, t.y), ob);
+    }
   }
   // O Seu Moreira vem oferecer o cargo de mestre de obras (volta todo dia até aceitar).
   const santos = b.moradores.find(m => m.id === 'santos');
   if (G.obra.funcao === 2 && Obra.podeSubir()) {
-    if (!santos) { const s = b.morador('santos', 'Seu Moreira', 34, 6, DIR.ESQUERDA); s.aoConversar = () => propostaDeMestre(); }
+    if (!santos) { const g = canteiroDaVez().gente.santos, s = b.morador('santos', 'Seu Moreira', g[0], g[1], DIR.ESQUERDA); s.aoConversar = () => propostaDeMestre(); }
   } else if (santos) b.moradores = b.moradores.filter(m => m !== santos);
   const ze = b.moradores.find(m => m.id === 'ze'); if (ze) ze.aoConversar = () => conversarZe(ze);
   for (const [id, f] of [['monte_tijolos', pegarDoMonte], ['pilha_ripas', () => pegarCargaObra('ripa', 'itens/ripa', 'ripas')], ['peneira', peneirar], ['masseira', () => pegarCargaObra('massa', 'itens/massa', 'massa')]]) {
@@ -119,11 +129,15 @@ function propostaDeMestre() {
       Obra.subir(); G.obra.indice = 3; G.obra.etapa = 0; G.obra.diasEtapa = 0; G.obra.lista = null;
       if (typeof EquipeObra !== 'undefined') EquipeObra.iniciar({});
       sons.tocar('fanfarra', 1, 0, -2); avisar(`Mestre de obras! A diária agora é Cr$ ${DIARIAS[3]}. A turma espera as ordens na prancheta.`);
-      if (MAPAS.vila) poeObraNoMapa(MAPAS.vila);
+      if (MAPAS.vila) { poeObraNoMapa(MAPAS.vila); poeEntulhoDaObra(MAPAS.vila); }   // (o canteiro vai para o prédio)
     }));
   return true;
 }
 function obraDaVez(o) { return o.obraId === (Obra.obra().lugar || Obra.obra().id); }
+// A obra da vez nas frases e nas setas do guia (o canteiro segue a obra: a casa da Dona Zélia, depois o Mercado...).
+const OBRA_NA_FRASE = { casa_zelia: 'a obra da casa da Dona Zélia', mercado: 'a obra do Mercado', reformas: 'a obra do Mercado', escola: 'a obra da Escola', predio: 'a obra do Edifício Maré' };
+const aObraDaVez = () => OBRA_NA_FRASE[lugarDoCanteiro()] || 'a obra';
+const idDaObraDaVez = () => { const o = G.mapa && G.mapa.objs.find(x => x.obraId && obraDaVez(x)); return o ? o.id : 'casa_zelia'; };
 function acaoNaObra(o) {
   if (!obraDaVez(o)) { abrirPlaca({ casa_zelia: 'A casa da Dona Zélia, pronta. Bonita, né?', mercado: G.obra.indice > 1 ? 'O Mercado Municipal reformado e aberto.' : 'O Mercado Municipal, precisando de reforma.', escola: 'A Escola da Vila, pronta para as crianças.', predio: 'O Edifício Maré da J. Moreira.' }[o.obraId] || ''); return true; }
   const l = listaDeHoje(), c = G.jog.carga || {};
@@ -195,7 +209,8 @@ function peneirar() {
   const r = Obra.trabalho('areia', 1);
   if (r === 'sem_lista') { avisar('Primeiro pegue a lista com o Mestre Bira.'); return; }
   if (r === 'nao_pede') { avisar('Hoje a lista não pede areia.'); return; }
-  sons.tocar('terra', 1.2, 0.08, -6); lascas(44 * TILE, 8 * TILE, 'terra');
+  const pn = G.mapa && G.mapa.objs.find(x => x.id === 'peneira');   // (a peneira do canteiro da vez)
+  sons.tocar('terra', 1.2, 0.08, -6); if (pn) lascas(pn.x, pn.y - TILE, 'terra');
   if (r === 'completa') avisar('Lista completa! Fale com o Mestre Bira.');
 }
 function conversarZe(p) {
@@ -208,31 +223,96 @@ function conversarZe(p) {
   abrirConversa('Zé', urlArte('retratos/ze_normal'), lista);
   return true;
 }
-// O entulho e o mato do canteiro renascem toda manhã (10 de entulho, 12 de mato), sem fechar a passagem. (tarefa 7, o robô jogador: eram 8 de
-// mato e a lista pede "Capinar o mato do canteiro" 10 vezes — a lista com capinar nunca fechava; agora sempre sobra o que a lista pede.
-// E só fica o que o Jocelino alcança: o robô achou mato e entulho presos entre a obra e a cerca, sem caminho, e a lista não fechava.)
+// O entulho e o mato do canteiro da vez renascem toda manhã, na conta da lista do dia: a de hoje (o que ainda falta) ou a que o
+// Bira vai dar (o sorteio é fixo pelo dia), mais 2 de folga; o que a lista não pede fica em 2, de enfeite. (tarefa 7, o robô
+// jogador: a lista pedia "Capinar o mato do canteiro" 10 vezes com 8 matos. 15/10, o robô de novo: pedia 10 com 9 alcançáveis —
+// os presos saíam DEPOIS de contar.) Agora cada um só nasce se, com ele, tudo continua alcançável: as coisas do canteiro, a
+// obra, os outros montinhos e o resto da Vila (nada de fora fica preso). Primeiro nascem espaçados (sem fechar corredor); se o
+// canteiro for apertado, a 2ª passada aperta, e a folga cede antes do que a lista pede (a s2 confere: sempre o que ela pede).
 function poeEntulhoDaObra(b) {
-  if (b.id !== 'vila') return;
-  const f = mulberry(G.dia * 389 + 7), C = CANTEIRO, daObra = o => (o.det === 'mato' || o.det === 'entulho') && dentroR(C, o.tiles[0].x, o.tiles[0].y);
+  if (b.id !== 'vila' || !G.obra) return;
+  tiraEntulhoVelho(b);
+  const C = canteiroDaVez(), R = C.ret, f = mulberry(G.dia * 389 + 7);
+  const daObra = o => (o.det === 'mato' || o.det === 'entulho') && !o.empreitaDet && dentroR(R, o.tiles[0].x, o.tiles[0].y);
+  const grade = gradeDaVila(b), solta = o => { const t = o.tiles[0]; b.tirar(o); grade[t.y * b.larg + t.x] = andaNaVila(b, t.x, t.y) ? 1 : 0; };
+  let vis = alcancaveisNaVila(b, grade);
+  for (const o of b.objs.filter(o => daObra(o) && !alcancaLadrilho(vis, o.tiles[0]))) solta(o);   // (o que ficou preso de ontem)
+  vis = alcancaveisNaVila(b, grade);
+  const foraDoRet = v => { let n = 0; for (const k of v) { const [x, y] = k.split(',').map(Number); if (!dentroR(R, x, y)) n++; } return n; };
+  const fora0 = foraDoRet(vis), obra = b.objs.find(o => o.obraId && obraDaVez(o));
+  const pecas = b.objs.filter(o => o.doCanteiro && o.tiles).concat(obra ? [obra] : []);
+  // (cada coisa do canteiro continua com 2 lados para chegar, como no canteiro vazio; quem trabalha nele não fica ilhado)
+  const lados = (o, v) => { const s = new Set(); for (const t of o.tiles) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (v.has(chaveT(t.x + dx, t.y + dy)) && !o.tiles.some(u => u.x === t.x + dx && u.y === t.y + dy)) s.add(dx + ',' + dy); return s.size; };
+  const ladosMin = new Map(pecas.map(o => [o, Math.min(2, lados(o, vis))]));
+  const ladrilhoDe = m => chaveT(Math.floor(m.x / TILE), Math.floor((m.y - 6) / TILE));
+  const turma = (b.moradores || []).filter(m => C.gente[m.id] && vis.has(ladrilhoDe(m))).map(ladrilhoDe);
+  const tudoAlcanca = v => pecas.every(o => lados(o, v) >= ladosMin.get(o)) && turma.every(k => v.has(k)) && b.objs.every(o => !daObra(o) || alcancaLadrilho(v, o.tiles[0])) && foraDoRet(v) >= fora0;
+  // Quantos: o que a lista pede (falta) + 2; sem pedido, 2.
+  const pede = metasDaObraHoje(), quer = {}, minimo = {};
+  for (const [det, t] of [['entulho', 'entulho'], ['mato', 'capinar']]) { minimo[det] = pede[t] || 0; quer[det] = minimo[det] ? minimo[det] + 2 : 2; }
+  // Onde pode: grama livre do ret, fora do "fora", dos lotes reservados, do pé de um enfeite baixo e de perto de quem está na Vila.
+  const reserva = reservaDaVila(b), gente = new Set((b.moradores || []).filter(m => m.visivel !== false).map(m => chaveT(Math.floor(m.x / TILE), Math.floor((m.y - 6) / TILE))));
+  const eu = G.mapa === b && G.jog ? G.jog.ladrilho() : null;   // (nada nasce em cima de ninguém, nem do lado do Jocelino)
+  const cands = [];
+  for (let y = R.y; y < R.y + R.h; y++) for (let x = R.x; x < R.x + R.w; x++) {
+    if (b.ocupado.has(chaveT(x, y)) || b.chaoEm(x, y) !== CH.GRAMA || !grade[y * b.larg + x] || C.fora.some(r => dentroR(r, x, y)) || reserva.has(chaveT(x, y))) continue;
+    if (gente.has(chaveT(x, y)) || (eu && Math.abs(eu.x - x) <= 1 && Math.abs(eu.y - y) <= 1)) continue;
+    cands.push({ x, y, r: f() });
+  }
+  cands.sort((a, c) => a.r - c.r);
   const conta = det => b.objs.filter(o => o.det === det && daObra(o)).length;
-  const tiraPresos = () => { const vis = alcancaveisNaVila(b); for (const o of b.objs.filter(o => daObra(o) && !alcancaLadrilho(vis, o.tiles[0]))) b.tirar(o); return vis; };
-  for (let volta = 0; volta < 2; volta++) {
-    const vis = tiraPresos();
-    for (const [det, quer] of [['entulho', 10], ['mato', 12]]) {
-      for (let k = 0, n = conta(det); k < 120 && n < quer; k++) {
-        const x = C.x + Math.floor(f() * C.w), y = C.y + Math.floor(f() * C.h);
-        if (b.ocupado.has(chaveT(x, y)) || b.chaoEm(x, y) !== CH.GRAMA || !alcancaLadrilho(vis, { x, y })) continue;
-        // Corredor: não fecha a passagem (ao menos um vizinho livre de cada lado).
-        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => b.ocupado.has(chaveT(x + dx, y + dy))).length > 1) continue;
-        if (b.detrito(det, x, y)) n++;
+  const vizOcupados = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => b.ocupado.has(chaveT(x + dx, y + dy))).length;
+  // Primeiro o que a lista pede (espaçados; se não couber, apertando), depois a folga (do mesmo jeito).
+  for (const [espaco, alvo] of [[true, minimo], [false, minimo], [true, quer], [false, quer]]) {
+    for (let mudou = true; mudou;) {
+      mudou = false;
+      for (const det of ['entulho', 'mato']) {
+        if (conta(det) >= alvo[det]) continue;
+        for (const c of cands) {
+          if (c.usado || b.ocupado.has(chaveT(c.x, c.y)) || !alcancaLadrilho(vis, c) || (espaco && vizOcupados(c.x, c.y) > 1)) continue;
+          const o = b.detrito(det, c.x, c.y); if (!o) { c.usado = true; continue; }
+          grade[c.y * b.larg + c.x] = 0;
+          const v = alcancaveisNaVila(b, grade);
+          if (!tudoAlcanca(v)) { solta(o); c.usado = true; continue; }   // (fecharia um caminho: com mais montinhos, só piora)
+          c.usado = true; vis = v; mudou = true; break;   // (um de cada, alternando: o entulho e o mato se espalham juntos)
+        }
       }
     }
   }
-  tiraPresos();   // (o que nasceu agora pode ter fechado o caminho de outro)
+}
+// O entulho e o mato de um canteiro velho (a obra mudou) somem; o do canteiro da vez e o das empreitas ficam.
+function tiraEntulhoVelho(b) {
+  const R = canteiroDaVez().ret, todos = Object.values(CANTEIROS).map(c => c.ret);
+  for (const o of b.objs.filter(o => (o.det === 'mato' || o.det === 'entulho') && !o.empreitaDet)) {
+    const t = o.tiles[0];
+    if (!dentroR(R, t.x, t.y) && todos.some(r => dentroR(r, t.x, t.y))) b.tirar(o);
+  }
+}
+// O que a lista do dia ainda pede: a de hoje (o que falta), ou a que o Bira vai dar hoje (o sorteio é fixo pelo dia e pela obra;
+// o "primeira vez" fica como estava).
+function metasDaObraHoje() {
+  const l = listaDeHoje();
+  if (l) { const r = {}; if (!l.paga && !l.fechado) for (const id in l.metas) r[id] = Math.max(0, l.metas[id] - (l.feito[id] || 0)); return r; }
+  const p = G.obra.primeira, r = Obra.sortear(G.dia); G.obra.primeira = p;
+  return r.metas || {};
+}
+// Os ladrilhos da Vila guardados para outra coisa: os lotes das empreitas e da Prefeitura (mesmo antes de aceitas) e o lugar
+// da carroça do viajante (com o Seu Nonato do lado). Nem o canteiro nem o entulho dele vão para lá.
+function reservaDaVila(b) {
+  const r = new Set(), lote = E => { if (E && E.mapa === b.id && (E.area || E.artes) && typeof tilesDoLote === 'function') for (const t of tilesDoLote(E)) r.add(chaveT(t.x, t.y)); };
+  if (typeof EMPREITAS_LONGAS !== 'undefined') for (const id in EMPREITAS_LONGAS) lote(EMPREITAS_LONGAS[id]);
+  if (typeof PREFEITURA_OBRAS !== 'undefined') for (const id in PREFEITURA_OBRAS) lote(Object.assign({ mapa: 'vila' }, PREFEITURA_OBRAS[id]));
+  if (typeof LOCAL_CURTA !== 'undefined') for (const id in LOCAL_CURTA) { const E = dadosEmpreita(id), a = LOCAL_CURTA[id].area; if (E && E.mapa === b.id && a) for (let x = a.x; x < a.x + a.w; x++) for (let y = a.y; y < a.y + a.h; y++) r.add(chaveT(x, y)); }
+  if (b.id === 'vila' && typeof VIAJANTE_LUGAR !== 'undefined') for (let x = VIAJANTE_LUGAR.x; x <= VIAJANTE_LUGAR.x + 4; x++) for (const y of [VIAJANTE_LUGAR.y - 1, VIAJANTE_LUGAR.y]) r.add(chaveT(x, y));
+  for (const o of b.objs) if (o.tipo === 'enfeite' && !o.solido) r.add(chaveT(Math.floor(o.x / TILE), Math.floor(o.y / TILE) - 1));   // (o arbusto, a bandeirinha)
+  return r;
 }
 // Os ladrilhos da Vila aonde o pé do Jocelino chega (a partir da chegada do quintal), e se um ladrilho tem um vizinho (até na diagonal) alcançável.
-function alcancaveisNaVila(b) {
-  const anda = (x, y) => x >= 0 && y >= 0 && x < b.larg && y < b.alt && !bate({ x: (x + 0.5) * TILE - 14, y: y * TILE + 22, w: 28, h: 14 }, b);
+// Com a grade (1 = o pé cabe), a conta não pergunta à colisão de novo (poeEntulhoDaObra testa um montinho de cada vez).
+const andaNaVila = (b, x, y) => x >= 0 && y >= 0 && x < b.larg && y < b.alt && !bate({ x: (x + 0.5) * TILE - 14, y: y * TILE + 22, w: 28, h: 14 }, b);
+function gradeDaVila(b) { const g = new Uint8Array(b.larg * b.alt); for (let y = 0; y < b.alt; y++) for (let x = 0; x < b.larg; x++) g[y * b.larg + x] = andaNaVila(b, x, y) ? 1 : 0; return g; }
+function alcancaveisNaVila(b, grade = null) {
+  const anda = grade ? (x, y) => x >= 0 && y >= 0 && x < b.larg && y < b.alt && grade[y * b.larg + x] === 1 : (x, y) => andaNaVila(b, x, y);
   const vis = new Set([chaveT(23, 3)]), fila = [[23, 3]];
   while (fila.length) { const [cx, cy] = fila.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = cx + dx, y = cy + dy, k = chaveT(x, y); if (vis.has(k) || !anda(x, y)) continue; vis.add(k); fila.push([x, y]); } }
   return vis;
@@ -245,7 +325,8 @@ function quebrouNaObra(o) {
   else if (o.det === 'mato') Obra.trabalho('capinar', 1);
 }
 
-AO_MONTAR.push(b => { if (b.id === 'vila') { poeObraNoMapa(b); poeEntulhoDaObra(b); } });
+AO_MONTAR.push(b => { if (b.id === 'vila') poeObraNoMapa(b); });
+DEPOIS_DE_MONTAR.push(b => { if (b.id === 'vila') poeEntulhoDaObra(b); });   // (com o Grêmio, os lotes e a carroça já no lugar)
 AO_ENTRAR_MAPA.push(id => { if (id === 'vila') poeObraNoMapa(G.mapa); });
 MANHA.push(() => { if (MAPAS.vila) { poeObraNoMapa(MAPAS.vila); poeEntulhoDaObra(MAPAS.vila); } });
 // (onda final, o robô #27) O imprevisto guardado entra na lista às 8h, quando o depósito abre (com a lista já completa, não vem).

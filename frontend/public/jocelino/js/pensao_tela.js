@@ -516,6 +516,9 @@ function encerrarJanta() {
   // Jocelino a Rosa faz de manhã.
   G.relatorioPensao = r;
   G.turno = null;
+  // (revisão da E2) a janta acabou no meio de um minijogo (o copo, a cerveja, a caipirinha) ou da peneira: fecham junto, sem ir para a
+  // bandeja e sem contar nada (nem derramou, nem desandou); senão o minijogo ficava por cima do fechamento
+  G.copo = null; G.peneira = null;
   if (typeof sincronizarMao === 'function') sincronizarMao();   // (revisão dos sons) o copo ou a peneira na mão calam já (o fechamento abre um modal)
   if (G.jog && G.jog.carga && G.jog.carga.id === 'prato') G.jog.carga = {};
   const sal = MAPAS.pensao_dentro;

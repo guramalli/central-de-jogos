@@ -30,7 +30,8 @@ const Equipe = {
   HABILIDADES: {
     salao: [['louca', 'Recolhe a louça sozinho(a)'], ['bebida', 'Serve a bebida sozinho(a)'], ['farinha', 'Repõe a farinheira'], ['charme', 'Gorjeta caprichada'],
       ['mestre_bebida', 'Mestre da bebida: serve sozinho(a), sempre na medida'], ['mestre_louca', 'Mestre da louça: recolhe bem mais rápido'],
-      ['mestre_gorjeta', 'Mestre da gorjeta: recolhe as moedas do balcão'], ['leva_prato', 'Leva prato: pega no passe e leva a quem pediu (raro)']],
+      ['mestre_gorjeta', 'Mestre da gorjeta: recolhe as moedas do balcão'], ['leva_prato', 'Leva prato: pega no passe e leva a quem pediu (raro)'],
+      ['caipirinha', 'Caipirinha: faz a caipirinha sozinho(a) (rara)']],
     cozinha: [['fogo', 'Uma boca a mais no fogão'], ['pressa', 'A Rosa cozinha ainda mais rápido'], ['mestre_fogao', 'Mestre do fogão: a Rosa cozinha bem mais rápido']],
     compras: [['feira', 'Traz o dobro na expedição'], ['raro', 'Traz mais do ingrediente raro'], ['mestre_compras', 'Mestre da expedição: traz 2 a mais']],
   },
@@ -44,11 +45,18 @@ const Equipe = {
   postoDaHab(h) { for (const k in Equipe.HABILIDADES) if (Equipe.HABILIDADES[k].some(x => x[0] === h)) return k; return ''; },
   textoHab(h) { for (const k in Equipe.HABILIDADES) { const x = Equipe.HABILIDADES[k].find(y => y[0] === h); if (x) return x[1]; } return h; },
   // As habilidades que podem ser uma das 2 fixas de quem tem esta vocação (sem a da contratação e sem os Mestres).
-  pool(voc) { return (Equipe.HABILIDADES[voc] || []).map(x => x[0]).filter(h => h !== Equipe.BASE[voc] && !h.startsWith('mestre_') && h !== 'leva_prato'); },
+  pool(voc) { return (Equipe.HABILIDADES[voc] || []).map(x => x[0]).filter(h => h !== Equipe.BASE[voc] && !h.startsWith('mestre_') && h !== 'leva_prato' && !Equipe.RARAS.includes(h)); },
+  // (14/10, Tarefa E2, o coquetel do Dave: a habilidade de fazer coquetel) A habilidade rara do Salão: a caipirinha. Vem só com parte
+  // de quem tem vocação de salão (ECO.equipe.caipirinha.chance), à vista antes de contratar, e abre no nível mais alto
+  // (ECO.equipe.caipirinha.nivel). O sorteio não gasta o rng dos candidatos (é um hash da ficha): os candidatos de cada manhã
+  // continuam os mesmos de antes.
+  RARAS: ['caipirinha'],
+  nivelDaRara() { return (ECO.equipe.caipirinha || {}).nivel || 16; },
+  _sorteiaRara(e, chave) { return e.vocacao === 'salao' && _hashEquipe(chave) % 100 < Math.round(100 * ((ECO.equipe.caipirinha || {}).chance || 0)) ? 'caipirinha' : ''; },
   faz(e, h) { return !!e && (e.habilidades || []).some(x => x === h || Equipe.INCLUI[x] === h); },
   nivelDoMestre(e) { return e && e.mestre ? ECO.equipe.mestre[e.mestre === 'leva_prato' ? 'leva_prato' : Equipe.postoDaHab(e.mestre)] || 99 : 99; },
   // A habilidade que abre no nível n (3, 7 ou o do Mestre), ou ''.
-  habilidadeDoNivel(e, n) { return n === 3 ? e.habs[0] || '' : n === 7 ? e.habs[1] || '' : n === Equipe.nivelDoMestre(e) ? e.mestre : ''; },
+  habilidadeDoNivel(e, n) { return n === 3 ? e.habs[0] || '' : n === 7 ? e.habs[1] || '' : n === Equipe.nivelDoMestre(e) ? e.mestre : n === Equipe.nivelDaRara() ? e.rara || '' : ''; },
   // A ficha completa (o save antigo e os ajudantes montados à mão nos testes não têm a vocação, as 2 fixas nem o Mestre): a
   // vocação é o posto; as 2 fixas começam pelas que ele já ganhou (ninguém perde habilidade) e o resto vem de um sorteio fixo pelo
   // nome; quem estava em Compras continua trazendo, com o "sorteio" até o jogador escolher o ingrediente.
@@ -63,6 +71,7 @@ const Equipe = {
     }
     if (!e.mestre) { const ms = Equipe.MESTRES[e.vocacao], h = _hashEquipe((e.id || e.nome) + ':mestre'); e.mestre = e.vocacao === 'salao' && h % 5 === 0 ? 'leva_prato' : ms[h % ms.length]; }
     if (e.posto === 'compras' && !e.busca) e.busca = 'sorteio';
+    if (e.rara === undefined) e.rara = Equipe._sorteiaRara(e, (e.id || e.nome) + ':rara');   // (E2) o save antigo: um sorteio fixo pelo nome
     return e;
   },
 
@@ -84,6 +93,7 @@ const Equipe = {
       while (c.habs.length < 2 && pool.length) c.habs.push(pool.splice(rng.randi() % pool.length, 1)[0]);
       const ms = Equipe.MESTRES[c.vocacao];
       c.mestre = c.vocacao === 'salao' && rng.randf() < ECO.equipe.levaPrato ? 'leva_prato' : ms[rng.randi() % ms.length];
+      c.rara = Equipe._sorteiaRara(c, [id, c.servico, c.cozinha, c.compras, c.simpatia, c.habs.join(), c.mestre].join(':'));   // (E2) a caipirinha, rara
       cands.push(c);
     }
     p.candidatos = cands; p.anuncio = '';

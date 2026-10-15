@@ -26,6 +26,7 @@ function instalaEntrada() {
     if (ehTecla(e, 'caderneta') && typeof abrirCaderneta === 'function' && !(typeof noPalco === 'function' && noPalco())) { if ($('#modal .caderneta')) fecharModal(); else if (!menuAberto()) abrirCaderneta(); return; }
     if (ehTecla(e, 'fileira') && G.mochila) { G.mochila.girarFileiras(e.shiftKey ? -1 : 1); hudSujo(); return; }
     if (G.copo && (e.code === 'Space' || ehTecla(e, 'usar') || ehTecla(e, 'acao'))) { if (!e.repeat) copoSegura(true); return; }
+    if (G.copo && G.copo.caipi && /^Digit[1-3]$/.test(e.code)) { caipiTecla(Number(e.code.slice(5))); return; }   // (E2) a caipirinha: 1, 2 e 3 são os ingredientes
     if (ehTecla(e, 'acao')) { if (typeof noPalco === 'function' && noPalco()) palcoAgirNaFrente(); else acaoNaFrente(); return; }
     if (ehTecla(e, 'usar')) { if (typeof noPalco === 'function' && noPalco()) return; usarItemDaMao(true); return; }
     const n = e.code.startsWith('Digit') ? Number(e.code.slice(5)) : NaN;
@@ -41,7 +42,7 @@ function instalaEntrada() {
     G.mouse.x = e.clientX; G.mouse.y = e.clientY;
     if (menuAberto()) return;
     // (Tarefa C) no copo: o esquerdo segura para despejar; o direito endireita o copo da cerveja
-    if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { if (e.button === 2) copoEndireita(); else copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
+    if (typeof noPalco === 'function' && noPalco()) { if (G.copo) { if (G.copo.caipi) caipiClique(e.clientX, e.clientY); else if (e.button === 2) copoEndireita(); else copoSegura(true); return; } const mm = mouseMundo(); palcoClique(mm.x, mm.y); return; }
     // (onda final; o Stardew: clicar no HUD não usa a ferramenta) o clique esquerdo em cima do quadro de tarefas ou do cartão (que deixam
     // o clique passar para o mundo) não dá golpe; o direito continua passando (abre o depósito embaixo deles)
     if (e.button === 0 && typeof mouseNoPainelDoHud === 'function' && mouseNoPainelDoHud(e.clientX, e.clientY)) return;

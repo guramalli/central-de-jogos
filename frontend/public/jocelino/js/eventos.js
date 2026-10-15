@@ -25,10 +25,12 @@ const FESTAS = [
   { nome: 'Jogo do Santos na Rádio', pratos: ['caldo_caranguejo', 'pf_peao', 'sopa_pedra'] },
 ];
 // O prêmio de função de cada VIP (o primeiro que a pensão ainda não tem), como os presentes dos VIPs do Dave.
-const FUNCOES_VIP = { aurelio: ['geladeira', 'barraca_praia'], orlando: ['varanda'], calixto: ['galinheiro'], santos: ['freezer'] };
+// (14/10, Tarefa E2, o Dave: o dispenser de coquetel vem de presente de VIP) O Seu Orlando, na 2ª vez bem servido, ensina a caipirinha.
+const FUNCOES_VIP = { aurelio: ['geladeira', 'barraca_praia'], orlando: ['varanda', 'caipirinha'], calixto: ['galinheiro'], santos: ['freezer'] };
 const TEXTO_FUNCAO = { geladeira: 'uma geladeira para a pensão (libera a cerveja gelada)', galinheiro: 'um galinheiro no quintal: 3 ovos de graça toda manhã',
   freezer: 'um freezer: as panelas de peixe rendem 2 porções a mais', varanda: 'o alvará da varanda: dá para ampliar a pensão',
-  barraca_praia: 'a ideia de uma barraca da Rosa na praia (um dia, uma filial!)' };
+  barraca_praia: 'a ideia de uma barraca da Rosa na praia (um dia, uma filial!)',
+  caipirinha: 'o segredo da caipirinha dele, com a cachaça da terra (a caipirinha entra nas bebidas: o freguês pede depois do prato)' };
 const AVISO_DIAS = 3;
 // O dia do evento avisado hoje: daqui a 3 dias (domingo a pensão fecha: fica para segunda).
 const diaDoAviso = dia => { let d = dia + AVISO_DIAS; if ((d - 1) % 7 === 6) d++; return d; };

@@ -140,6 +140,8 @@ function _alvoDaJanta() {
   if (!jaFezJanta('bebida_entregar')) { const x = t.bandeja.find(b => b.tipo === 'bebida'), i = x ? t.mesas.findIndex(m => t.querBebidaAgora(m) && m.bebida === x.bebida) : -1;
     if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pratos.BEBIDAS[x.bebida].toLowerCase()}`); }
   if (!jaFezJanta('passe') && t.passaPrato().length) return { mapa: G.mapaId, ponto: { x: P.PASSE.cx, y: P.PASSE.topo - 40 }, rotuloFixo: 'Prato pronto! Clique no passe: pegar o prato' };
+  // (14/10, Tarefa E2) a 1ª caipirinha pedida (depois do presente do Seu Orlando): a seta no bebedouro, até a primeira sair pronta
+  if (!((G.limpou || {}).caipirinha > 0) && t.bebidaPedida() === 'caipirinha') return { mapa: G.mapaId, ponto: { x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2, y: P.BEBEDOURO.y - 20 }, rotuloFixo: 'Pediram caipirinha! Clique no bebedouro e faça a receita do Seu Orlando' };
   if (!jaFezJanta('bebedouro') && t.bebidaPedida()) return { mapa: G.mapaId, ponto: { x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2, y: P.BEBEDOURO.y - 20 }, rotuloFixo: `Pediram ${Pratos.BEBIDAS[t.bebidaPedida()].toLowerCase()}: clique no bebedouro` };
   if (!jaFezJanta('recolher')) { const i = t.mesas.findIndex(m => m.estado === 'suja' || m.louca); if (nos(i)) return mesa(i, t.mesas[i].louca ? 'Louça suja do lado do freguês! Clique: recolher antes que ele vá embora' : 'Clique na louça: recolher para a bandeja'); }
   // (Tarefa C) a 1ª vez que a farinheira pisca (o alerta): peneirar leva uns segundos, parado
@@ -249,7 +251,7 @@ function _alvoDaEmpreita(cid) {
   const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a) return null;
   // (tarefa 7, o robô jogador) a etapa da casa da família ainda por começar, sem o dinheiro dela: nada de seta para comprar material nem para
   // a plaquinha (antes mandava comprar cimento e quebrar 30 pedras com Cr$ 2.600 de 8.000, no meio da reforma da pensão); a barrinha já diz quanto falta
-  if (casaSemDinheiro(E, a)) return null;
+  if (casaSemDinheiro(E, a)) return null;   // (a plaquinha com o quanto falta é só o último recurso: _alvoDaCasaSemDinheiro)
   // (14/10) No mapa do serviço no lugar de verdade, com o material longe daqui (a madeira no quintal), a seta fica no lugar do
   // serviço e diz o que trazer ("Traga 4 madeiras e use o machado aqui"); o depósito, aqui mesmo, segue levando a ele.
   const noObjeto = E.tipo === 'curta' && E.estrago && E.estrago.noObjeto;
@@ -269,6 +271,13 @@ function _alvoDaEmpreita(cid) {
   if (E.tipo === 'longa' && ((a.estado === 'obra' && !a.trabalhou) || a.estado === 'pronta' || (a.estado === 'reservada' && typeof E.familia !== 'string'))) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid };
   return null;
 }
+// A plaquinha da etapa da casa da família ainda sem o dinheiro (só no quintal; o último recurso da seta).
+function _alvoDaCasaSemDinheiro() {
+  if (G.mapaId !== 'quintal' || !G.empreitas) return null;
+  for (const cid of Object.keys(G.empreitas.aceitas)) { const E = dadosEmpreita(cid), a = G.empreitas.aceitas[cid];
+    if (casaSemDinheiro(E, a)) return { mapa: E.mapa, objeto: 'emp_placa_' + cid, empreita: cid, rotuloFixo: `A casa da família começa aqui: faltam Cr$ ${Math.ceil((E.custo || 0) - G.dinheiro)}` }; }
+  return null;
+}
 // O serviço aceito que é de hoje: o curto (até ser feito) e a obra longa com o dia de trabalho por fazer ou pronta para entregar.
 function _servicoDeHoje(cid) {
   const E = dadosEmpreita(cid), a = G.empreitas && G.empreitas.aceitas[cid]; if (!E || !a) return false;
@@ -278,6 +287,64 @@ function _servicosDaSeta() {
   if (!G.empreitas) return [];
   const ids = Object.keys(G.empreitas.aceitas);
   return ids.filter(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta').concat(ids.filter(k => dadosEmpreita(k) && dadosEmpreita(k).tipo !== 'curta'));
+}
+// (15/10, T4) Os recados do povo (recados.js): o guia da 1ª vez (regra de 13/10: seta e frase no lugar exato, que somem depois de
+// feitas). Como é no Stardew: o Help Wanted não tem seta (o bilhete diz quem pede e o jogador acha a pessoa); aqui a 1ª vez é guiada:
+// 1) o 1º cartão de recado no quadro: a seta no "Aceitar" (PRIMEIRA_TELA.recado, mais abaixo);
+// 2) o 1º recado aceito, sem o item: a seta vai aonde o item nasce (o achado do chão, o galho, a pedra, o mato, o pé pronto da horta,
+//    o píer), com a frase de onde ele vem;
+// 3) com tudo na mochila (a entrega é direto da mochila, decisão do dono): a seta no morador, "Botão direito na Dona Zélia: entregar
+//    as 3 couves";
+// 4) a 1ª peça da coleta que conta: a frase flutuante "Recado: 1/15 madeiras (conta o que juntar a partir de agora)" (AO_PEGAR, abaixo).
+// As setas somem na 1ª entrega (G.limpou.recado_entregue). Sem o guia ("Já conheço o jogo"), nenhuma seta. Depois da 1ª vez, a linha
+// do recado na Caderneta (aba Hoje) tem o Mostrar, que usa o mesmo alvo (alvoDoRecado).
+const RECADO_DET = { madeira: ['galho', 'toco', 'arvore'], pedra: ['pedra', 'pedregulho'], fibra: ['mato'] };
+const RECADO_ITEM_O = ['coco', 'cogumelo', 'tomate'];   // "os 2 cocos"; o resto, "as 3 couves"
+const _maiuscula = t => t ? t[0].toUpperCase() + t.slice(1) : '';
+// Onde nasce o item que falta para o recado (null se hoje não há onde: a horta ainda não deu, o chão já foi catado).
+function _origemDoRecado(id) {
+  const P = PEDIDOS_VILA[id], n = Recados.faltam(id), base = { recado: id, buscar: true };
+  const abertos = P.mapas.filter(m => Recados.aberto(m)), frase = _maiuscula((typeof RECADO_ORIGEM !== 'undefined' && RECADO_ORIGEM[P.item]) || ''), faltam = `${n === 1 ? 'falta' : 'faltam'} ${n}`;
+  // a horta: o pé pronto (colher); ainda verde, nada (a Caderneta diz em quantos dias a horta dá)
+  if (typeof CULTURAS !== 'undefined' && CULTURAS[P.item]) {
+    const k = G.horta && Object.keys(G.horta.covas).find(k => { const c = G.horta.covas[k]; return c && c.planta === P.item && Horta.madura(c); }); if (!k) return null;
+    const [x, y] = k.split(',').map(Number);
+    return Object.assign({ mapa: 'quintal', ponto: { x: (x + 0.5) * TILE, y: y * TILE }, rotuloFixo: `Pé de ${Itens.nome(P.item).toLowerCase()} pronto: botão direito para colher (${faltam})` }, base);
+  }
+  // o peixe: a ponta do píer, com a vara na mão
+  if (P.precisa === 'vara' && typeof PRAIA !== 'undefined') return Object.assign(G.mapaId === 'praia' ? { mapa: 'praia', ponto: { x: (PRAIA.PIER_X + 1) * TILE, y: PRAIA.PIER_FIM * TILE }, rotuloFixo: `Pesque da ponta do píer, com a vara na mão (${faltam})` } : { mapa: 'praia' }, base);
+  // o material (madeira, pedra, fibra): o detrito que solta o item, aqui; senão, o mapa aberto que ainda tem
+  const dets = RECADO_DET[P.item];
+  if (dets) {
+    if (abertos.includes(G.mapaId)) { const o = _maisPerto(x => dets.includes(x.det) && !x.empreitaDet); if (o) return Object.assign({ mapa: G.mapaId, ponto: { x: o.x, y: o.y - 56 }, det: o.det, rotuloFixo: `${frase} (${faltam})` }, base); }
+    const m = abertos.find(m => m !== G.mapaId && Recados.noMundo(P.item, [m]) > 0);
+    return m ? Object.assign({ mapa: m }, base) : null;
+  }
+  // o que nasce no chão (goiaba, flor, coco, cogumelo): o achado de hoje mais perto, aqui; senão, o mapa aberto que ainda tem
+  if (typeof Achados === 'undefined' || !G.achados) return null;
+  const doItem = m => Achados.doDia(G.dia, m).filter(x => x.id === P.item && !(G.achados.catados[m] || []).includes(x.k));
+  const comChao = abertos.filter(m => ACHADOS_POR_MAPA[m]);
+  if (comChao.includes(G.mapaId) && G.mapa && G.jog) {
+    const ks = new Set(doItem(G.mapaId).map(x => 'achado_' + x.k)); let o = null, d = 1e9;
+    for (const x of G.mapa.objs) if (x.achado && ks.has(x.id)) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y); if (dd < d) { d = dd; o = x; } }
+    if (o) return Object.assign({ mapa: G.mapaId, ponto: { x: o.x, y: o.y - 40 }, rotuloFixo: `${frase}: botão direito para catar` }, base);
+  }
+  const m = comChao.find(m => m !== G.mapaId && doItem(m).length);
+  return m ? Object.assign({ mapa: m }, base) : null;
+}
+// O alvo de um recado aceito: com tudo na mochila, o morador; senão, a origem do item.
+function alvoDoRecado(id) {
+  const P = PEDIDOS_VILA[id], a = G.recados && G.recados.ativos[id]; if (!P || !a || !G.mochila) return null;
+  if (Recados.podeEntregar(id) === 'ok') return { mapa: RECADO_MORADOR[P.cliente], morador: P.cliente, recado: id,
+    rotuloFixo: `Botão direito ${RECADO_ARTIGO[P.cliente] === 'a' ? 'na' : 'no'} ${Recados.nome(P.cliente)}: entregar ${RECADO_ITEM_O.includes(P.item) ? 'os' : 'as'} ${Itens.qtd(P.qtd, P.item)}` };
+  return _origemDoRecado(id);
+}
+// A seta da 1ª vez: com o guia, até a 1ª entrega; o recado pronto para entregar vem antes.
+function _alvoDoRecadoGuia() {
+  if (!G.guia || !G.guia.ativo || !G.recados || typeof Recados === 'undefined' || ((G.limpou || {}).recado_entregue || 0) > 0) return null;
+  const ids = Object.keys(G.recados.ativos).sort((x, y) => (Recados.podeEntregar(y) === 'ok') - (Recados.podeEntregar(x) === 'ok'));
+  for (const id of ids) { const a = alvoDoRecado(id); if (a) return a; }
+  return null;
 }
 // A ordem: a das missões abertas (a obra é de sol a sol desde 13/10: não passa mais na frente do quintal de manhã).
 function _missoesDaSeta() {
@@ -305,9 +372,11 @@ function _chegou(a) {
 const VERBO_DET = { mato: 'capinar o mato', pedra: 'quebrar a pedra', galho: 'cortar o galho', toco: 'cortar o toco', arvore: 'cortar a árvore', pedregulho: 'quebrar a pedra', entulho: 'tirar o entulho', rocha: 'quebrar a pedra', ferro: 'quebrar o ferro' };
 const ROTULO_OBJ = { caixa_correio: 'Botão direito: ler a carta', peneira: 'Botão direito: peneirar', monte_tijolos: 'Botão direito: pegar no monte',
   masseira: 'Botão direito: pegar a massa', pilha_ripas: 'Botão direito: pegar as ripas', casa_zelia: 'Botão direito: entregar aqui',
+  mercado: 'Botão direito: entregar aqui', obra_escola: 'Botão direito: entregar aqui', obra_predio: 'Botão direito: entregar aqui',   // (a obra da vez: o canteiro segue a obra)
   quadro_pedidos: 'Botão direito: ver os serviços', pensao: 'Botão direito: entrar na pensão', balcao_bazar: 'Botão direito: ver o Bazar',
   escada_mina: 'Botão direito: descer na mina', desce_mina: 'Botão direito: descer para a próxima bancada', sobe_mina: 'Botão direito: subir da mina', despensa_pensao: 'Botão direito: abrir a despensa', gremio: 'Botão direito: a lista do povo' };
 function _rotulo(a) {
+  if (a.recado && a.rotuloFixo && a.tipo !== 'saida') return a.rotuloFixo;   // (o recado: a frase de onde vem o item, também no detrito)
   if (a.rotuloFixo && a.tipo !== 'saida' && !a.det) return a.rotuloFixo;
   if (a.falta && a.tipo !== 'saida') { const q = Itens.qtd(a.falta.n, a.falta.item);
     if (a.objeto === 'deposito') return `Falta ${q}: compre no depósito do Seu Ananias${depositoFechado() ? ` (abre das ${DEPOSITO_HORARIO.abre / 60}h às ${DEPOSITO_HORARIO.fecha / 60}h)` : ''}`;
@@ -332,6 +401,9 @@ function _rotulo(a) {
   if (a.missao === 'pensao') return 'Clique na Rosa: entregar o material';
   return '';
 }
+// (revisão da T4) As 17h e a janta da pensão por fazer depois delas (jantaPorFazer, cartao.js).
+const _depoisDas17 = () => (G.minutos || 0) >= 17 * 60;
+const _horaDaJanta = () => _depoisDas17() && typeof jantaPorFazer === 'function' && jantaPorFazer();
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
   if (!G.mapa) return null;
@@ -344,8 +416,11 @@ function guiaSetaMundo() {
   const missoes = G.guia && G.guia.ativo ? _missoesDaSeta() : [], doDia = id => id === 'janta' || id === 'domingo';
   for (const id of missoes.filter(doDia)) cands.push([id, () => _alvoDaMissao(id)]);
   cands.push(['obra_dia', _alvoDaObraDoDia]);
-  const servicos = _servicosDaSeta(), deHoje = servicos.filter(_servicoDeHoje);
+  // (revisão da T4: à noite, a janta manda) Depois das 17h com a janta da pensão por fazer, o serviço aceito não toma a seta; o
+  // recado sai da fila desde as 17h (de dia, fica junto com os serviços "de hoje", porque tem prazo).
+  const servicos = _horaDaJanta() ? [] : _servicosDaSeta(), deHoje = servicos.filter(_servicoDeHoje);
   for (const cid of deHoje) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
+  if (!_depoisDas17()) cands.push(['recado', _alvoDoRecadoGuia]);   // (15/10, T4) o recado aceito é "de hoje" (tem prazo): junto com os serviços
   for (const id of missoes.filter(x => !doDia(x))) cands.push([id, () => _alvoDaMissao(id)]);
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar (ou na ideia): depois das missões do guia; acabou a linha, ou o
   // Jocelino chegou lá, some a seta (revisão final).
@@ -365,6 +440,10 @@ function guiaSetaMundo() {
   const salaoAberto = typeof noPalco === 'function' && noPalco() && !!G.pensao && G.pensao.estado === 'aberta';
   const naFrente = res.filter(([id]) => id === 'rosa_sonho' || id === 'lojinha');
   const seta = _setaDe(naFrente, salaoAberto) || _setaDe(res, salaoAberto); if (seta || salaoAberto) return seta;
+  // (15/10, foto do jogador: "missão da casa da família do seu Juca, não tinha seta indicando") A etapa da casa sem o dinheiro dela:
+  // no quintal, sem nenhuma outra seta, aponta a plaquinha e diz quanto falta. Só no fim: na frente das outras, a seta ficava
+  // presa na plaquinha e o que dava para fazer em outro mapa sumia (o robô jogador indo e voltando entre o quintal e a Vila).
+  { const c = _alvoDaCasaSemDinheiro(); if (c) { const o = Object.assign({ tipo: 'alvo' }, c); const p = _posNoMapa(o); if (p) { Object.assign(o, p); o.rotulo = c.rotuloFixo; return o; } } }
   // (14/10) A primeira árvore de corte da mata (mapa_mata.js): sem outra seta, a mais perto, com a frase, até a primeira cair.
   { const m = typeof alvoDaArvoreDaMata === 'function' ? alvoDaArvoreDaMata() : null; if (m) { const o = Object.assign({ tipo: 'alvo', missao: 'mata_arvore' }, m, m.ponto); o.rotulo = _rotulo(o); return o; } }
   // (dia cheio, Frente A) A primeira coleta: sem nenhuma outra seta, o achado mais perto (uma vez: some depois de catar o primeiro).
@@ -372,8 +451,9 @@ function guiaSetaMundo() {
   const o = Object.assign({ tipo: 'alvo', missao: 'achado' }, a, a.ponto); o.rotulo = _rotulo(o); return o;
 }
 // A seta de uma lista de alvos: primeiro o que está no mapa de agora; depois a saída para o mapa do primeiro que está em outro (sem saída no salão).
+// (T4) O detrito do recado aparece mesmo a quem já sabe limpar: a seta ensina de onde vem o item.
 function _setaDe(res, semSaida) {
-  for (const [id, a] of res) if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p && a.det && jaSabeLimpar(a.det) && G.cam && _naTela(p)) continue; if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } }
+  for (const [id, a] of res) if (!a.mapa || a.mapa === G.mapaId) { const p = _posNoMapa(a); if (p && a.det && jaSabeLimpar(a.det) && !a.recado && G.cam && _naTela(p)) continue; if (p) { const o = Object.assign({ tipo: 'alvo', missao: id }, a, p); o.rotulo = _rotulo(o); return o; } }
   if (semSaida) return null;
   for (const [id, a] of res) {
     if (!a.mapa || a.mapa === G.mapaId) continue;
@@ -475,13 +555,37 @@ const PRIMEIRA_TELA = {
   // o primeiro peixe dá 5 ou mais (Pesca.xp): a fala fica até ele
   pesca: { usou: () => (G.guia && (G.guia.cont.pescou || 0) > 0) || (!!G.hab && G.hab.xp.pesca >= 5) },
   pedreira: { usou: () => ((G.limpou || {}).rocha || 0) > 0 || ((G.limpou || {}).ferro || 0) > 0 || (G.guia && (G.guia.cont.pedreira || 0) > 0) || (!!G.mina && G.mina.maisFunda >= 1) },
+  // - (15/10, T4) O 1º cartão de recado no quadro -> Stardew (o bilhete do Help Wanted: quem pede, o porquê e o prazo): a seta no
+  //   "Aceitar" do recado, com o guia. Some no 1º recado aceito ou quando o quadro fecha depois de visto (_recadoVisto); o 1º bico
+  //   (o "Aceitar" de um serviço) vem antes.
+  recado: { painel: '#modal .quadro-vila', sel: '#modal [data-recado] button:not([disabled])',
+    usou: () => !!G.recados && (G.recados.entregues > 0 || Object.keys(G.recados.ativos).length > 0),
+    escolhe(bts) {
+      if (!G.guia || !G.guia.ativo || !bts[0]) return null;
+      if (G.guia.abertas.includes('bico') && !Object.keys(G.empreitas.aceitas).some(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta')) return null;
+      _recadoVisto = true;
+      return { el: bts[0], frase: 'Recado de vizinho: leve o que pedem até o prazo. Paga na entrega e a pessoa fica mais sua amiga.' }; } },
 };
+let _recadoVisto = false;
 const jaFezTela = id => ((G.limpou || {})['tela_' + id] || 0) > 0 || _tenta(PRIMEIRA_TELA[id].usou);
 function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela_' + id] || 0) + 1; }
 { const embrulha = (obj, m, id) => { const f = obj[m]; obj[m] = function (...a) { const r = f.apply(this, a); if (r === 'ok') _marcaTela(id); return r; }; };
   embrulha(Bazar, 'comprar', 'bazar'); embrulha(Pensao.prototype, 'caprichar', 'receitas'); embrulha(Pensao.prototype, 'pesquisar', 'receitas');
   embrulha(Melhorias, 'comprar', 'melhorias'); embrulha(Melhorias, 'subir', 'melhorias'); embrulha(Equipe, 'contratar', 'equipe'); embrulha(Equipe, 'expedir', 'expedicao');
-  const pp = pegouPeixe; pegouPeixe = function (...a) { const r = pp.apply(this, a); _marcaTela('pesca'); return r; }; }
+  const pp = pegouPeixe; pegouPeixe = function (...a) { const r = pp.apply(this, a); _marcaTela('pesca'); return r; };
+  // (15/10, T4) o 1º recado aceito apaga a seta do quadro; a 1ª entrega apaga as setas da origem e do morador
+  if (typeof Recados !== 'undefined') { embrulha(Recados, 'aceitar', 'recado');
+    const en = Recados.entregar; Recados.entregar = function (...a) { const r = en.apply(this, a); if (r === 'ok' && G.limpou) G.limpou.recado_entregue = (G.limpou.recado_entregue || 0) + 1; return r; }; } }
+// (T4) O quadro com a seta do recado fechou: a 1ª vez da tela já foi vista.
+ATUALIZADORES.push(() => { if (_recadoVisto && !document.querySelector('#modal .quadro-vila')) { _recadoVisto = false; _marcaTela('recado'); } });
+// (T4) A 1ª peça da coleta que conta: a frase flutuante sobre o Jocelino, uma vez (G.limpou.recado_coleta). Vem depois da conta
+// (recados_jogo.js carrega antes); vale também sem o guia, como o contador do serviço.
+AO_PEGAR.push(item => {
+  if (!G.recados || !G.limpou || G.limpou.recado_coleta || !G.jog) return;
+  const id = Object.keys(G.recados.ativos).find(k => PEDIDOS_VILA[k].tipo === 'coleta' && PEDIDOS_VILA[k].item === item && G.recados.ativos[k].juntou > 0); if (!id) return;
+  const P = PEDIDOS_VILA[id]; G.limpou.recado_coleta = 1;
+  (G.guiaFlut = G.guiaFlut || []).push({ texto: `Recado: ${G.recados.ativos[id].juntou}/${Itens.qtd(P.qtd, P.item)} (conta o que juntar a partir de agora)`, x: G.jog.x, y: G.jog.y - 150, ate: (G.agora || 0) + 3 });
+});
 function _primeiraTelaUI() {
   for (const id in PRIMEIRA_TELA) {
     const T = PRIMEIRA_TELA[id]; if (!T.painel || !document.querySelector(T.painel) || jaFezTela(id)) continue;
@@ -524,7 +628,7 @@ function guiaSetaUI() {
   const ab = g.ativo ? g.abertas : [], noSalao = typeof noPalco === 'function' && noPalco();
   // O quadro aberto no primeiro bico (sem serviço aceito ainda): o primeiro "Aceitar".
   if (ab.includes('bico') && !$('#modal').hidden && $('#modal .quadro-vila') && !Object.keys(G.empreitas.aceitas).some(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta')) {
-    const b = [...document.querySelectorAll('#modal button')].find(x => /^Aceitar$/.test(x.textContent.trim())); if (b) return { chave: 'aceitar', el: b, rotulo: 'Clique em Aceitar' };
+    const b = [...document.querySelectorAll('#modal button')].find(x => !x.closest('[data-recado]') && /^Aceitar$/.test(x.textContent.trim())); if (b) return { chave: 'aceitar', el: b, rotulo: 'Clique em Aceitar' };   // (o "Aceitar" de um serviço, não o do recado)
   }
   if (noSalao) {
     const bt = re => [...document.querySelectorAll('#rodape-palco button')].find(x => re.test(x.textContent));

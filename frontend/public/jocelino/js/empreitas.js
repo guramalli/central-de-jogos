@@ -15,6 +15,17 @@ const EMPREITAS_CURTAS = {
   cerca_zelia: { nome: 'Consertar a cerca da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 35, y: 10, material: { madeira: 4 }, ferramenta: 'machado', vezes: 3 },
   telhas_juca: { nome: 'Trocar telhas do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 9, y: 9, material: { telha: 6 }, ferramenta: 'carga', vezes: 1 },
   desentulhar_ananias: { nome: 'Desentulhar o terreno do Seu Ananias', cliente: 'ananias', mapa: 'vila', x: 11, y: 13, material: {}, ferramenta: 'pa', vezes: 6 },
+  // (15/10, T6: "as missões diárias do quadro andam se repetindo muito") Os serviços novos dos primeiros dias, todos na Vila e com
+  // o estrago à vista: o banco da praça, o buraco da rua de baixo, o carrinho do canteiro e as pedras da estrada (a 1ª picareta).
+  // `fala`: o pedido na voz de quem pede, no cartão do quadro.
+  banco_praca: { nome: 'Consertar o banco da praça', cliente: 'zelia', mapa: 'vila', x: 27, y: 20, material: { madeira: 3 }, ferramenta: 'machado', vezes: 3,
+    fala: 'O banco da praça quebrou bem na sexta do samba. As senhoras ficam de pé, meu filho!' },
+  buraco_rua: { nome: 'Tapar o buraco da rua de baixo', cliente: 'bira', mapa: 'vila', x: 30, y: 25, material: { pedra: 6 }, ferramenta: 'pa', vezes: 4,
+    fala: 'O caminhão do cimento atolou no buraco da rua de baixo. Tapa com pedra e pá, rapaz.' },
+  carrinho_ze: { nome: 'Arrumar o carrinho de mão do canteiro', cliente: 'ze', mapa: 'vila', material: { madeira: 2 }, ferramenta: 'machado', vezes: 3,
+    fala: 'A roda do carrinho soltou e a tábua rachou. Sem carrinho, tijolo vai no braço!' },
+  pedregulho_rua: { nome: 'Tirar as pedras da estrada', cliente: 'tonico', mapa: 'vila', x: 33, y: 13, material: {}, ferramenta: 'picareta', vezes: 3,
+    fala: 'A carroça da Serra derrubou pedra na estrada. Picareta nelas, que ainda sobra pedra pra você.' },
 };
 ecoCampo(EMPREITAS_CURTAS, 'paga', ECO.empreitas.paga);   // o pagamento de cada uma mora no ECO
 for (const id in EMPREITAS_CURTAS) Object.assign(EMPREITAS_CURTAS[id], { funcaoMin: 0, tipo: 'curta' });
@@ -34,8 +45,21 @@ const LOCAL_CURTA = { escorar_ponte: { nome: 'na ponte', area: { x: 26, y: 17, w
   tabua_pier: { nome: 'no píer', area: { x: 30, y: 16, w: 2, h: 7 }, piso: true, retalho: { x: 30, y: 18, w: 2, h: 2 }, arte: 'objetos/pier_quebrado', consertada: 'objetos/pier_novo' },
   consertar_banca: { nome: 'na banca do Lourival', area: { x: 7, y: 7, w: 3, h: 1 }, objeto: 'banca_peixe', arte: 'objetos/banca_quebrada', luz: { x: 7, y: 5, w: 3, h: 3 } },
   cerca_zelia: { nome: 'na cerca da Dona Zélia', area: { x: 36, y: 9, w: 5, h: 1 }, arte: 'objetos/cerca_zelia_quebrada', inteira: 'objetos/cerca_zelia', trechos: [{ x: 36, w: 2 }, { x: 39, w: 2, espelho: true }] },
-  remendar_calcada: { nome: 'na calçada da rua', area: { x: 27, y: 10, w: 3, h: 2 }, arte: 'objetos/calcada_rachada', piso: true } };
+  remendar_calcada: { nome: 'na calçada da rua', area: { x: 27, y: 10, w: 3, h: 2 }, arte: 'objetos/calcada_rachada', piso: true },
+  // (15/10, T6) O banco da praça (mapa_vila.js, sempre lá, ao lado da roda de samba): quebrado enquanto o serviço está aceito. O
+  // buraco é chão, na rua de baixo (a arte tem a borda esfumada: vai por cima da rua, sem colisão).
+  banco_praca: { nome: 'no banco da praça', area: { x: 27, y: 20, w: 2, h: 1 }, objeto: 'banco_praca', arte: 'objetos/banco_praca_quebrado', luz: { x: 26.9, y: 19.35, w: 2.2, h: 1.75 } },
+  buraco_rua: { nome: 'no buraco da rua de baixo', area: { x: 30, y: 25, w: 2, h: 2 }, arte: 'objetos/buraco_rua', piso: true } };
 for (const id in LOCAL_CURTA) EMPREITAS_CURTAS[id].local = LOCAL_CURTA[id];
+// (15/10, T6) O carrinho de mão é o do canteiro da obra da vez (o canteiro segue a obra; mapa_vila.js): o lugar do serviço segue o
+// carrinho. Sem carrinho no canteiro da vez (o do Mercado não tem: o lote ao lado é pequeno), o serviço não sai no quadro (`precisa`).
+// Fica fora do LOCAL_CURTA (que reserva o chão para as coisas do canteiro não caírem em cima): aqui o lugar é a própria coisa do canteiro.
+const carrinhoDaVez = () => { const C = typeof canteiroDaVez === 'function' ? canteiroDaVez() : null; return C && C.pecas.carrinho ? C.pecas.carrinho : null; };
+EMPREITAS_CURTAS.carrinho_ze.precisa = () => !!carrinhoDaVez();
+EMPREITAS_CURTAS.carrinho_ze.local = { nome: 'no carrinho do canteiro', objeto: 'carrinho_obra', arte: 'objetos/carrinho_quebrado',
+  get area() { const p = carrinhoDaVez() || [-9, -9]; return { x: p[0], y: p[1] - 1, w: 1, h: 2 }; },   // (o pé e o alto da arte, de 1 ladrilho e meio)
+  get luz() { const p = carrinhoDaVez() || [-9, -9]; return { x: p[0] - 0.15, y: p[1] - 0.6, w: 1.3, h: 1.65 }; } };
+Object.defineProperties(EMPREITAS_CURTAS.carrinho_ze, { x: { get: () => (carrinhoDaVez() || [40, 3])[0], enumerable: true }, y: { get: () => (carrinhoDaVez() || [40, 3])[1], enumerable: true } });
 // As telhas do Tio Juca (14/10, foto do jogador: "a seta nessa missão está apontando pro nada": a plaquinha caía na grama, longe
 // da casa) são entregues na própria casa, com o botão direito nela (ou na porta), sem plaquinha; o telhado mostra as telhas
 // quebradas enquanto o serviço está aberto.
@@ -48,7 +72,8 @@ Object.assign(EMPREITAS_CURTAS.desentulhar_ananias, { x: 11, y: 8, junto: 'depos
 const EMPREITAS_LONGAS = {
   calcada_cimento: { nome: 'Calçada da ferraria', piso: true, area: { w: 4, h: 1, textura: 'texturas/calcada' }, cliente: 'tonico', mapa: 'vila', x: 11, y: 23, junto: 'oficina', material: { cimento: 3, pedra: 6 }, etapas: ['pa', 'regador'], funcaoMin: 1, concreto: true, artes: ['objetos/vala', 'objetos/alicerce'] },
   cerca_madeira: { nome: 'Cerca do galpão do Tio Juca', cliente: 'juca', mapa: 'quintal', x: 32, y: 23, material: { madeira: 10 }, etapas: ['pa', 'machado'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/cerca'] },
-  muro_baixo: { nome: 'Muro da divisa da casa da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 33, y: 9, junto: 'casa_zelia', material: { tijolo: 30, cimento: 2 }, etapas: ['pa', 'colher', 'colher'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
+  // (15/10) o muro da divisa fica à direita da casa da Dona Zélia: à esquerda (33,9) ele tapava a frente da Escola nova.
+  muro_baixo: { nome: 'Muro da divisa da casa da Dona Zélia', cliente: 'zelia', mapa: 'vila', x: 42, y: 9, junto: 'casa_zelia', material: { tijolo: 30, cimento: 2 }, etapas: ['pa', 'colher', 'colher'], funcaoMin: 1, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
   baldrame: { nome: 'Baldrame do puxadinho do Mercado', fundacao: true, cliente: 'bento', mapa: 'vila', x: 44, y: 18, junto: 'mercado', material: { tijolo: 20, cimento: 2 }, etapas: ['pa', 'colher', 'regador'], funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/alicerce'] },
   muro_chapiscado: { nome: 'Muro chapiscado dos fundos do depósito', cliente: 'ananias', mapa: 'vila', x: 5, y: 3, junto: 'deposito', material: { tijolo: 50, cimento: 4, cal: 2 }, etapas: ['pa', 'colher', 'colher', 'colher', 'regador'], funcaoMin: 2, hab: { h: 'acabamento', n: 3 }, reforma: true, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro'] },
   quiosque_praia: { nome: 'Quiosque na praia', cliente: 'lourival', mapa: 'praia', x: 27, y: 6, material: { madeira: 20, telha: 10, cimento: 2 }, etapas: ['pa', 'colher', 'machado', 'machado'], funcaoMin: 2, artes: ['objetos/vala', 'objetos/alicerce', 'objetos/muro', 'objetos/quiosque_praia'] },
@@ -73,7 +98,7 @@ const EMPREITAS_EXTRAS = {};
 // As fundações avulsas saíram do quadro (o Bairro Novo: fundação só onde vira casa); ficam aqui para o save antigo terminar.
 for (const id of ['baldrame', 'baldrame_concreto', 'sapata_corrida']) { EMPREITAS_EXTRAS[id] = Object.assign(EMPREITAS_LONGAS[id], { antiga: true }); delete EMPREITAS_LONGAS[id]; }
 const dadosEmpreita = id => EMPREITAS_CURTAS[id] || EMPREITAS_LONGAS[id] || EMPREITAS_EXTRAS[id] || null;
-const CLIENTE_NOME = { lourival: 'Seu Lourival', juca: 'Tio Juca', zelia: 'Dona Zélia', ananias: 'Seu Ananias', tonico: 'Seu Tonico', cida: 'Dona Cida', rosa: 'Rosa', bento: 'Seu Bento do Mercado' };
+const CLIENTE_NOME = { lourival: 'Seu Lourival', juca: 'Tio Juca', zelia: 'Dona Zélia', ananias: 'Seu Ananias', tonico: 'Seu Tonico', cida: 'Dona Cida', rosa: 'Rosa', bento: 'Seu Bento do Mercado', ze: 'Zé', bira: 'Mestre Bira' };
 const NOME_DIA = { pa: 'pá', colher: 'colher', regador: 'regador', machado: 'machado', foice: 'foice' };
 // Ganchos de quem quer saber da entrega (a Prefeitura dá o prêmio): (id, qualidade) → texto para o resumo ou ''.
 const AO_ENTREGAR = [];
@@ -85,7 +110,10 @@ const Empreitas = {
   iniciar(s) {
     const e = s.empreitas || {};
     G.empreitas = { feitas: Object.assign({}, e.feitas || {}), dia: e.dia || 0, quadro: (e.quadro || []).slice(), aceitas: JSON.parse(JSON.stringify(e.aceitas || {})), entregues: e.entregues || 0, reputacao: Object.assign({}, e.reputacao || {}), capina: e.capina ? JSON.parse(JSON.stringify(e.capina)) : null, caprichados: e.caprichados || 0, labia: e.labia || 0, receitasExtras: (e.receitasExtras || []).slice(),
-      semana: Object.assign({}, e.semana || {}), vistos: Object.assign({}, e.vistos || {}), consertados: Object.assign({}, e.consertados || {}) };   // (consertados: o dia do último conserto de cada serviço curto: as tábuas novas do píer)   // (dia cheio: o dia em que cada serviço foi aceito e apareceu no quadro)
+      semana: Object.assign({}, e.semana || {}), vistos: Object.assign({}, e.vistos || {}), consertados: Object.assign({}, e.consertados || {}),   // (consertados: o dia do último conserto de cada serviço curto: as tábuas novas do píer)   // (dia cheio: o dia em que cada serviço foi aceito e apareceu no quadro)
+      // (15/10, T2) O último dia em que cada pedido apareceu no quadro (o peso do sorteio) e o dia anterior a esse (para o sorteio
+      // do mesmo dia dar igual se o quadro for refeito). O save antigo começa com o `vistos` (o que se sabe da semana).
+      ultimaVez: Object.assign({}, e.ultimaVez || e.vistos || {}), penultima: Object.assign({}, e.penultima || {}) };
     // Save antigo (etapas 2 a 5): a longa aceita já tinha gastado o material, então segue em obra (ou pronta) de onde parou.
     for (const id in G.empreitas.aceitas) {
       const a = G.empreitas.aceitas[id], E = dadosEmpreita(id) && dadosEmpreita(id).tipo === 'longa' ? dadosEmpreita(id) : null;
@@ -102,6 +130,7 @@ const Empreitas = {
   libera(id) {
     const E = dadosEmpreita(id);
     if (!E || Empreitas.funcao() < E.funcaoMin) return false;
+    if (E.precisa && !E.precisa()) return false;   // (o carrinho do Zé: só com carrinho no canteiro da vez)
     return !E.hab || typeof Habilidades === 'undefined' || Habilidades.nivel(E.hab.h) >= E.hab.n;
   },
   // 2 a 4 pedidos (mais com a reputação), fixos pelo dia; pelo menos uma longa quando a função já libera.
@@ -116,21 +145,45 @@ const Empreitas = {
     const livre = id => Empreitas.libera(id) && !G.empreitas.aceitas[id] && !naSemana(hist, id) && (typeof Mundo === 'undefined' || Mundo.aberto(dadosEmpreita(id).mapa));   // só lugar já aberto (teste de 12/10)
     const curtas = Object.keys(EMPREITAS_CURTAS).filter(livre), longas = Object.keys(EMPREITAS_LONGAS).filter(livre);
     if (!G.empreitas.capina && Empreitas.libera('capina_ananias')) curtas.push('capina_ananias');
-    // Fim de ano: as reformas aparecem em dobro no sorteio.
-    if (Empreitas.emFimDeAno(dia)) for (const id of longas.slice()) if (EMPREITAS_LONGAS[id].reforma) longas.push(id);
-    const sorteia = (cs, ls) => { const r = [];
-      if (ls.length) r.push(ls.splice(Math.floor(f() * ls.length), 1)[0]);
+    // (15/10, T2: "as missões diárias do quadro andam se repetindo muito") O sorteio variado:
+    // - peso pelo tempo sem aparecer: 1 + min(14, dias desde a última vez); quem nunca apareceu vale 15 (o mais antigo volta primeiro);
+    // - no máximo 1 cartão por cliente no dia, contando o recado do dia já guardado (só lê G.recados: o recado é que pergunta ao quadro);
+    // - ferramentas variadas: o 2º evita a ferramenta do 1º (pá, machado, picareta, foice, carga);
+    // - o que apareceu ontem ou anteontem fica para depois (na virada da semana, o "já visto" zera e o de ontem voltava);
+    // - sem opção, a regra cede (primeiro a da ferramenta, depois a do cliente, por último a de ontem) para o quadro não ficar
+    //   vazio à toa.
+    // Fim de ano: as reformas pesam em dobro.
+    const fim = Empreitas.emFimDeAno(dia), peso = id => { const u = Empreitas.ultimaAntes(id, dia), E = EMPREITAS_LONGAS[id];
+      return (u ? 1 + Math.min(14, dia - u) : 15) * (fim && E && E.reforma ? 2 : 1); };
+    const cli = id => dadosEmpreita(id).cliente, fer = id => dadosEmpreita(id).ferramenta;
+    const rec = G.recados && G.recados.dia === dia && G.recados.doDia && typeof PEDIDOS_VILA !== 'undefined' ? PEDIDOS_VILA[G.recados.doDia] : null;
+    const sorteia = (cs, ls) => { const r = [], clientes = new Set(rec ? [rec.cliente] : []), ferramentas = new Set();
+      // as regras, da mais forte à mais fraca: as 8 combinações de (não é de ontem, cliente novo, ferramenta nova), cedendo de trás para a frente
+      const ok = [id => { const u = Empreitas.ultimaAntes(id, dia); return !u || u < dia - 2; },id => !clientes.has(cli(id)), id => !ferramentas.has(fer(id))];
+      const regras = [7, 6, 5, 4, 3, 2, 1, 0].map(m => id => ok.every((t, i) => !(m & (4 >> i)) || t(id)));
+      const tira = pool => { const op = pool.filter(regras.find(regra => pool.some(regra))), soma = op.reduce((t, id) => t + peso(id), 0);
+        let v = f() * soma, id = op[op.length - 1]; for (const k of op) { v -= peso(k); if (v < 0) { id = k; break; } }
+        pool.splice(pool.indexOf(id), 1); r.push(id); clientes.add(cli(id)); ferramentas.add(fer(id)); };
+      if (ls.length) tira(ls);   // a longa continua garantida quando a função já libera
       const pool = cs.concat(ls);
-      while (r.length < n && pool.length) { const id = pool.splice(Math.floor(f() * pool.length), 1)[0]; if (!r.includes(id)) r.push(id); }
+      while (r.length < n && pool.length) tira(pool);
       return r; };
     const novo = id => !naSemana(vistos, id), novas = sorteia(curtas.filter(novo), longas.filter(novo));
     return novas.length ? novas : sorteia(curtas, longas);
   },
-  // O quadro de hoje no save, anotando o dia em que cada pedido apareceu pela primeira vez na semana (o "já visto" do quadroDoDia).
+  // O último dia ANTES de `dia` em que o pedido apareceu no quadro (0: nunca). O quadro refeito no mesmo dia lê o anterior.
+  ultimaAntes(id, dia) {
+    const u = (G.empreitas.ultimaVez || {})[id], p = (G.empreitas.penultima || {})[id];
+    return u && u < dia ? u : p && p < dia ? p : 0;
+  },
+  // O quadro de hoje no save, anotando o dia em que cada pedido apareceu pela primeira vez na semana (o "já visto" do quadroDoDia)
+  // e o último dia em que apareceu (o peso do sorteio).
   poeQuadro(dia) {
     G.empreitas.dia = dia; G.empreitas.quadro = Empreitas.quadroDoDia(dia);
     const v = G.empreitas.vistos || (G.empreitas.vistos = {});
     for (const id of G.empreitas.quadro) if (!v[id] || Math.floor((v[id] - 1) / 7) !== Math.floor((dia - 1) / 7)) v[id] = dia;
+    const u = G.empreitas.ultimaVez || (G.empreitas.ultimaVez = {}), p = G.empreitas.penultima || (G.empreitas.penultima = {});
+    for (const id of G.empreitas.quadro) if (u[id] !== dia) { if (u[id] && u[id] < dia) p[id] = u[id]; u[id] = dia; }
   },
   // Mestre de obras: as empreitas pedem 20% menos material (arredondando para cima).
   material(id) { const E = dadosEmpreita(id), f = typeof Habilidades !== 'undefined' && Habilidades.tem('mestre_de_obras') ? 0.8 : 1, r = {}; for (const m in E.material) r[m] = Math.ceil(E.material[m] * f); return r; },
@@ -215,7 +268,7 @@ const Empreitas = {
     if (!E || !a) return '';
     if (E.tipo !== 'longa') return 'em andamento';
     const prazo = a.prefeitura && a.estado !== 'entregue' ? ` · entregar até ${DIAS[(a.dia + 5) % 7]}` : '';
-    if (a.estado === 'reservada') return (E.familia ? `começar com o material e Cr$ ${E.custo}` : a.prefeitura ? 'aceita: começar com o material' : `reservada: começar até ${DIAS[(a.dia + Empreitas.RESERVA - 2) % 7]}`) + prazo;
+    if (a.estado === 'reservada') return (E.familia ? `começar com o material e Cr$ ${E.custo}` + (G.dinheiro < E.custo ? ` (você tem Cr$ ${Math.floor(G.dinheiro)})` : '') : a.prefeitura ? 'aceita: começar com o material' : `reservada: começar até ${DIAS[(a.dia + Empreitas.RESERVA - 2) % 7]}`) + prazo;
     if (a.estado === 'obra') { const f = Empreitas.ferramentaHoje(id); return `dia ${a.dias + 1}/${a.lista.length}: ${a.trabalhou ? 'hoje feito' : 'hoje é dia de ' + (NOME_DIA[f] || f)}` + prazo; }
     if (a.estado === 'pronta') return 'pronta: entregar na plaquinha' + prazo;
     return E.familia ? 'terminada: à noite a família vê a obra nova' : 'entregue: paga à noite';

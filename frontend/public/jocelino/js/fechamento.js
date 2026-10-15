@@ -103,7 +103,8 @@ function abrirFechamento(r) {
         // os pratos a mais vão entre parênteses, e "1 foi embora" no singular
         linha('Clientes', `${r.clientes} (${r.comeram ?? r.servidos} comeram${r.servidos > (r.comeram ?? r.servidos) ? `, ${r.servidos} pratos` : ''}, ${r.embora} ${r.embora === 1 ? 'foi embora' : 'foram embora'})`),
         r.perdida ? linha('Receita perdida (sem o prato)', `Cr$ ${r.perdida}`, 'menos') : null,
-        linha('Bebidas servidas', `${r.bebidas || 0} (${r.medida || 0} na medida)`),
+        // (revisão da E2) as que saíram ruins: o copo derramado (ou a cerveja de espuma demais) e a caipirinha que desandou
+        linha('Bebidas servidas', `${r.bebidas || 0} (${r.medida || 0} na medida${r.derramou ? `, ${r.derramou} ${r.derramou === 1 ? 'derramada' : 'derramadas'}` : ''}${r.desandou ? `, ${r.desandou} ${r.desandou === 1 ? 'caipirinha desandou' : 'caipirinhas desandaram'}` : ''})`),
         r.cafes ? linha('Só cafezinho (faltou ingrediente)', `${r.cafes}`) : null,
         // (o cardápio do Bancho) quem ficou sem prato do quadro levou o prato da casa; a sobra da panela foi para o lixo (r.sobra = { prato: n })
         r.casa ? linha('Prato da casa (sem curtida)', `${r.casa} ${r.casa === 1 ? 'prato' : 'pratos'}`) : null,   // (tarefa 7: conta pratos — o Tonhão repete — e dava "9 clientes" de 8)

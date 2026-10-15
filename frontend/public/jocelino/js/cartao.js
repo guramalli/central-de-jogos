@@ -82,7 +82,10 @@ function agoraFamilia(avisos = []) {
     if (sa && sa.tipo === 'alvo' && sa.mapa === G.mapaId && sa.rotulo) {
       // (14/10) a seta do serviço fica no lugar dele todo dia; depois das 17h (a noite livre) o Dormir segue valendo (revisão 3, abaixo)
       if (sa.missao === 'servico' && !(G.empreitas && typeof tardeLivre === 'function' && tardeLivre() === 'noite')) { const E = sa.empreita && typeof dadosEmpreita === 'function' ? dadosEmpreita(sa.empreita) : null; return `O serviço aceito, aqui mesmo${E ? ': ' + E.nome : ''} — ${sa.rotulo}`; }
-      if (sa.missao === 'obra_dia') return `A obra do Mestre Bira (Cr$ ${Obra.diaria()} o dia) — ${sa.rotulo}`; } }
+      if (sa.missao === 'obra_dia') return `A obra do Mestre Bira (Cr$ ${Obra.diaria()} o dia) — ${sa.rotulo}`;
+      // (15/10, T4) a seta da 1ª vez do recado: o Agora diz de quem é
+      // (revisão da T4: à noite, a janta manda) depois das 17h, nunca o recado (a janta ou o Dormir)
+      if (sa.missao === 'recado' && sa.recado && typeof PEDIDOS_VILA !== 'undefined' && G.minutos < TARDE_FIM && tardeLivre() !== 'noite') { const c = PEDIDOS_VILA[sa.recado].cliente; return `O recado ${RECADO_ARTIGO[c] === 'a' ? 'da' : 'do'} ${Recados.nome(c)} — ${sa.rotulo}`; } } }
   // (o Agora diz o mesmo que a seta: o passo cujo lugar é o mapa de agora vem primeiro)
   const sm = typeof setaAgora === 'function' ? setaAgora() : null, daSeta = sm && g && g.abertas.includes(sm.missao) ? [sm.missao] : [];
   if (g && g.ativo && typeof _missoesDaSeta === 'function') for (const id of daSeta.concat(_missoesDaSeta())) {
@@ -97,7 +100,8 @@ function agoraFamilia(avisos = []) {
   }
   // (revisão 3) Depois das 17h, sem nada mais (a noite livre), o Dormir vale mesmo com serviço aceito; e o serviço curto aceito no mapa
   // de agora também aparece no Agora (antes só o de outro mapa).
-  if (G.empreitas && tardeLivre() !== 'noite') for (const cid of Object.keys(G.empreitas.aceitas)) { const E = dadosEmpreita(cid), a = G.empreitas.aceitas[cid];
+  // (revisão da T4: à noite, a janta manda) depois das 17h com a janta por fazer, o serviço aceito também cede
+  if (G.empreitas && tardeLivre() !== 'noite' && !(G.minutos >= TARDE_FIM && jantaPorFazer())) for (const cid of Object.keys(G.empreitas.aceitas)) { const E = dadosEmpreita(cid), a = G.empreitas.aceitas[cid];
     if (E && E.mapa !== G.mapaId && !(typeof E.familia === 'string' && a.estado === 'reservada') && !(typeof casaSemDinheiro === 'function' && casaSemDinheiro(E, a))) return `O serviço aceito: ${E.nome} (${typeof ondeFica === 'function' ? ondeFica(E.mapa) : E.mapa})`;   // (tarefa 7: a etapa da casa sem o dinheiro dela não é "o serviço aceito")
     if (E && E.mapa === G.mapaId && E.tipo === 'curta') return `O serviço aceito, aqui mesmo: ${E.nome} (a seta mostra onde)`; }
   if (avisos.length) return avisos[0].texto;
@@ -366,7 +370,8 @@ ATUALIZADORES.push(dt => {
 // A seta da ideia do dia: o clique no Agora fixa a linha 'ideia_dia'; a seta (guia_setas.js) a lê aqui, como lê as da Caderneta.
 if (typeof Caderneta !== 'undefined') { const _linha = Caderneta.linha; Caderneta.linha = id => id === IDEIA_DIA ? (d => d && Object.assign({ id: IDEIA_DIA, aba: 'hoje' }, d))(ideiaDoDia()) : _linha(id); }
 // As pendências (os avisos) na Caderneta, aba Hoje: nada se perde por sair da tela.
-CADERNETA.push(() => (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []).filter(t => !noMapaDaLinha(t)).map((t, i) => ({ id: 'pend_' + i, aba: 'hoje', texto: t.texto + (t.meta ? ` (${t.feito}/${t.meta})` : '') })));
+// (T4) o recado tem linha própria na Caderneta (caderneta.js): fica de fora daqui.
+CADERNETA.push(() => (typeof tarefasQuadro === 'function' ? tarefasQuadro() : []).filter(t => !t.recado && !noMapaDaLinha(t)).map((t, i) => ({ id: 'pend_' + i, aba: 'hoje', texto: t.texto + (t.meta ? ` (${t.feito}/${t.meta})` : '') })));
 // O cartão no HUD: a meta (título, barrinha e o passo) e o "Agora".
 function atualizaCartao(avisos, noSalao) {
   if (!HUD.cartao) return;

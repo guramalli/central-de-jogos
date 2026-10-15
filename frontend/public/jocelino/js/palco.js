@@ -226,7 +226,9 @@ const ARTE_CARIMBO = { medida: 'ui/carimbo_medida', ok: 'ui/carimbo_quase', ruim
 function carimboBebida(i, nota) {
   const A = PALCO.ASSENTOS[i]; if (!A) return;
   const q = nota === true ? 'medida' : ARTE_CARIMBO[nota] ? nota : 'ok';
-  CARIMBOS_PALCO.push({ x: A.x, y: A.y - 240, arte: ARTE_CARIMBO[q], nota: q, t: 0 });
+  // (Tarefa E2) a caipirinha RUIM não derramou: desandou (o carimbo DESANDOU!)
+  const caipi = q === 'ruim' && G.turno && G.turno.mesas[i] && G.turno.mesas[i].bebida === 'caipirinha';
+  CARIMBOS_PALCO.push({ x: A.x, y: A.y - 240, arte: caipi ? 'ui/carimbo_desandou' : ARTE_CARIMBO[q], nota: q, t: 0 });
   if (q === 'medida' && G.turno && G.turno.mesas[i]) G.turno.mesas[i].aura = 6;
 }
 ATUALIZADORES.push(dt => {
@@ -442,7 +444,7 @@ function camadasDaJanta() {
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig();
   b.extras = () => [...clientesDoPalco(b), ...camadasDaJanta(), ...(typeof ajudantesDoPalco === 'function' ? ajudantesDoPalco() : []), ...filhosDoPalco(), ...(typeof camadasMelhorias === 'function' ? camadasMelhorias() : [])];
-  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaDesgostoPalco(ctx); desenhaAlertaFarinha(ctx); desenhaPeneira(ctx); desenhaBandeja(ctx); desenhaAjudantesBebida(ctx); desenhaCoracoesPalco(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); };
+  b.desenhaPorCima = ctx => { desenhaBaloesPalco(ctx, b); desenhaDesgostoPalco(ctx); desenhaAlertaFarinha(ctx); desenhaPeneira(ctx); desenhaBandeja(ctx); desenhaAjudantesBebida(ctx); desenhaCoracoesPalco(ctx); desenhaCarimbosPalco(ctx); if (typeof desenhaFlutuantes === 'function') desenhaFlutuantes(ctx); desenhaPlaquinhasAjudantes(ctx); };
   return b;
 })(MAPAS_DEF.pensao_palco);
 
@@ -631,6 +633,8 @@ function palcoClique(px, py) {
   if (G.copo) return true;
   if (G.peneira) pararPeneira();
   const alvo = palcoAlvoEm(px, py);
+  // (15/10) clicou num ajudante, fora de qualquer alvo do serviço: a plaquinha e o que ele está fazendo (o Jocelino anda até lá)
+  if (!alvo) { const aj = ajudanteEm(px, py); if (aj) falarComAjudante(aj); }
   G.jog.alvoPalco = { x: clamp(alvo ? alvo.x : px, PALCO.X_MIN, PALCO.X_MAX), alvo };
   return true;
 }
@@ -738,7 +742,7 @@ function palcoAgir(a) {
     else if (m.estado === 'prato') {
       const quer = `${Pensao.prato(m.prato).nome}${t.querBebidaAgora(m) ? ' e ' + Pratos.BEBIDAS[m.bebida].toLowerCase() : ''}`;
       avisar(`${fala}${m.cliente.nome} quer ${quer}. ${t.temPronto(m.prato) ? 'Tem no passe!' : t.farinha <= 0 ? 'A farinheira acabou: a Rosa parou!' : 'A Rosa está fazendo.'}`);
-    } else avisar(fala + (t.querBebidaAgora(m) ? `${m.cliente.nome} está comendo e ${m.bebida === 'cerveja' ? 'pediu uma' : 'ainda quer'} ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`));
+    } else avisar(fala + (t.querBebidaAgora(m) ? `${m.cliente.nome} está comendo e ${TurnoJanta.depoisDoPrato(m.bebida) ? 'pediu uma' : 'ainda quer'} ${Pratos.BEBIDAS[m.bebida].toLowerCase()}.` : `${m.cliente.nome} está comendo.`));
   }
   function servir() { j.servindo = 0.35; j.dir = DIR.CIMA; }
 }
@@ -770,6 +774,16 @@ function roboDoSalaoPasso(t, vai) {
     roboEncheCopo();
     return true;
   }
+  // (14/10, Tarefa E2, a bebida de DEPOIS do prato; o rastro da s20 no degrau 3) Quem já come e pediu a cerveja ou a caipirinha só
+  // espera ela até um pouco depois de acabar, e a espera dele parou de contar quando o prato chegou: no "quem espera há mais tempo"
+  // lá de baixo ele ficava por último e ia embora com a bebida pronta na bandeja. O jogador atento entrega essa bebida assim que
+  // ela fica pronta, antes de pegar mais prato (a de quem está mais perto de acabar primeiro). (Medido na s20: largar a louça na
+  // bacia para abrir vaga, ou levar a bebida na vaga guardada do prato, servia mais bebida e menos prato: os pratos encalhavam no
+  // passe. Jogar no lixo a bebida de quem já foi embora mudava a noite inteira, até o degrau 1, e adiantava todo mundo.)
+  { let urg = -1;
+    for (let i = 0; i < n; i++) { const m = t.mesas[i];
+      if (m.estado === 'comendo' && TurnoJanta.depoisDoPrato(m.bebida) && t.bandeja.some(x => quer(m, x)) && (urg < 0 || m.come < t.mesas[urg].come)) urg = i; }
+    if (urg >= 0) { assento(urg); return true; } }
   // os pratos prontos que alguém espera e ainda não estão na bandeja
   // (Tarefa B) sem quem o ajudante "Leva prato" já vai servir, e sem o prato que ele reservou no passe
   const querem = t.mesas.filter(m => m.estado === 'prato' && !m.pratoReservado).map(m => m.prato);
@@ -807,7 +821,7 @@ const CERVEJA = { INCLINADO: { liq: 0.40, esp: 0.04 }, EM_PE: { liq: 0.13, esp: 
 // A linha de medida do copo em fração do nível (0 = vazio, 1 = boca). (A cerveja: o colarinho de dois dedos cheio no alvo.)
 function linhaDoCopo(b) { const g = COPO.GEO[b]; return (g.fundo - g.linha) / (g.fundo - g.topo); }
 function abrirCopo(bebida) {
-  G.copo = bebida === 'cerveja' ? { bebida, cerveja: true, liq: 0, esp: 0, nivel: 0, inclinado: true, segurando: false, msg: 'Segure para despejar com o copo inclinado. Solte (ou botão direito) para endireitar.' }
+  G.copo = bebida === 'caipirinha' ? abrirCaipirinha() : bebida === 'cerveja' ? { bebida, cerveja: true, liq: 0, esp: 0, nivel: 0, inclinado: true, segurando: false, msg: 'Segure para despejar com o copo inclinado. Solte (ou botão direito) para endireitar.' }
     : { bebida, nivel: 0, segurando: false, msg: 'Segure para encher. Solte na linha!' };
   G.jog.alvoPalco = null;
   if (G.turno) G.turno.copoEnchendo = bebida;   // (revisão da D1) a banqueta dele: a máquina de refresco não enche o mesmo copo
@@ -830,6 +844,7 @@ function copoEndireita() {
 function copoSegura(sim) {
   const c = G.copo;
   if (!c) return false;
+  if (c.caipi) return sim ? caipiSoco() || true : true;   // (E2) a caipirinha: segurar (o Espaço) soca; soltar não faz nada
   if (sim) { c.segurando = true; return true; }
   if (!c.segurando) return true;
   c.segurando = false;
@@ -845,6 +860,12 @@ function copoFim(q, derramou = false) {
   t.encherBebida(c.bebida, q);
   G.copo = null;
   const nome = Pratos.BEBIDAS[c.bebida];
+  if (c.caipi) {   // (Tarefa E2) a caipirinha: a receita certa, fora da ordem ou desandada
+    if (q === 'medida') { sons.tocar('na_medida', 1, 0.03, -4); avisar('Caipirinha caprichada, do jeitinho do Seu Orlando! Leve para quem pediu.'); }
+    else if (q === 'ruim') { setTimeout(() => sons.tocar('rosa_resmunga', 1, 0.08, -6), 250); avisar('A caipirinha desandou! A Rosa resmungou: "Cadê a receita, Jocelino?" Leve assim mesmo: sem estrela da bebida.'); }
+    else avisar('Caipirinha boa, mas fora da receita. Leve para quem pediu.');
+    return;
+  }
   if (q === 'medida') { sons.tocar('na_medida', 1, 0.03, -4); avisar(c.cerveja ? `${nome} com o colarinho de dois dedos! O freguês vai gostar (a cerveja já paga o copo).` : `${nome} na medida! Gorjeta caprichada.`); }
   else if (q === 'ruim') {
     sons.tocar('derramar', 1, 0.05, -2); setTimeout(() => sons.tocar('rosa_resmunga', 1, 0.08, -6), 350);
@@ -870,7 +891,8 @@ function roboEncheCopo() {
   const passa = cond => { for (let j = 0; j < 600 && G.copo === c && cond(); j++) atualiza(0.01); };
   let q = '';
   const t = G.turno, n0 = t ? t.bandeja.length : 0;
-  if (c.cerveja) {
+  if (c.caipi) roboCaipirinha(c, passa);   // (E2) a caipirinha: os socos no ritmo e a receita na ordem
+  else if (c.cerveja) {
     copoSegura(true); passa(() => c.liq < 0.7); copoSegura(false);
     copoSegura(true); passa(() => c.nivel < 0.92); copoSegura(false);
   } else { copoSegura(true); passa(() => c.nivel < linhaDoCopo(c.bebida)); copoSegura(false); }
@@ -880,6 +902,7 @@ function roboEncheCopo() {
 DESENHOS_TELA.push(ctx => {
   const c = G.copo;
   if (!c) return;
+  if (c.caipi) return desenhaCaipirinha(ctx, c);
   if (c.cerveja) return desenhaCerveja(ctx, c);
   const copo = spr('salao/' + COPO.ART[c.bebida]), dentro = spr('salao/' + COPO.ART[c.bebida] + '_dentro'), liq = spr('salao/' + COPO.LIQ[c.bebida]), esp = spr('salao/espuma_topo');
   const W = G.larg, H = G.alt;
@@ -970,6 +993,174 @@ function desenhaCerveja(ctx, c) {
   }
   texto(ctx, Pratos.BEBIDAS[c.bebida], x + w / 2, y + h + 30, 28, '#fff', '900');   // embaixo do copo (em cima fica a garrafa)
   texto(ctx, c.msg, W / 2, y + h + 62, 22, '#ffe08a', '800');
+}
+// ---------- (14/10, Tarefa E2) a caipirinha do Seu Orlando: o coquetel do Dave, em sequência ----------
+// Como é no Dave: o coquetel do Bancho é uma sequência de ingredientes a seguir, liberado pelo presente de um VIP, com a nota na
+// tela; um funcionário com a habilidade faz sozinho. Aqui, no balcão do bebedouro: 1) socar o limão no ritmo (o socador sobe e
+// desce sozinho, com um tique a cada batida; clicar, ou o Espaço, com ele lá em cima soca: CAIPI.SOCOS socos no ritmo); 2) o
+// açúcar, o gelo e a cachaça na ordem da receita, que aparece em cima (sorteada a cada caipirinha; clicar no ingrediente da
+// bancada, ou as teclas 1, 2 e 3). Notas: a receita certa é PERFEITA ('medida', o carimbo NA MEDIDA!); um ingrediente fora da
+// ordem, BOA ('ok', QUASE!); dois ou mais, RUIM ('ruim', DESANDOU!); socar fora do ritmo CAIPI.FORA_MAX vezes ou mais rebaixa uma
+// nota. Toda a arte é do Higgsfield (produzir_caipirinha.sh + web_caipirinha.py); o código só move, gira, escala e esmaece.
+const CAIPI = { BATIDA: 0.5, JANELA: 0.13, SOCOS: 4, FORA_MAX: 3, GOLPE: 0.12, CAI: 0.3, DESPEJO: 0.7, PRONTA: 0.7 };
+// O lado de dentro do copo baixo (web_caipirinha.py imprime): a boca, o fundo e as paredes, em fração da tela do copo (a mesma
+// tela da caipirinha pronta, que entra no lugar dele no fim).
+const CAIPI_GEO = { boca: 0.243, fundo: 0.864, esq: 0.030, dir: 0.830 };
+// Os ingredientes da bancada: o nome, a arte na bancada (alt: a altura em fração da tela), a arte que cai no copo (larg: a
+// largura em fração do lado de dentro) e o som.
+const CAIPI_ING = {
+  acucar: { nome: 'Açúcar', arte: 'salao/acucareiro', alt: 0.15, dentro: 'salao/acucar_monte', larg: 0.5, som: 'caipi_acucar' },
+  gelo: { nome: 'Gelo', arte: 'salao/gelo_pedras', alt: 0.13, dentro: 'salao/gelo_pedras', larg: 0.62, som: 'caipi_gelo' },
+  cachaca: { nome: 'Cachaça', arte: 'salao/garrafa_cachaca', alt: 0.24, som: 'caipi_despeja' } };
+const CAIPI_BOTOES = ['acucar', 'gelo', 'cachaca'];   // na bancada, da esquerda para a direita (as teclas 1, 2 e 3)
+// A receita desta caipirinha: o açúcar, o gelo e a cachaça embaralhados (sorteio fixo pelo dia, a hora e as bebidas da noite).
+function abrirCaipirinha() {
+  const ord = CAIPI_BOTOES.slice(), f = mulberry(((G.dia || 1) * 977 + Math.round(G.minutos || 0) * 13 + ((G.turno && G.turno.relatorio.bebidas) || 0) * 7) >>> 0);
+  for (let k = ord.length - 1; k > 0; k--) { const j = Math.floor(f() * (k + 1)); [ord[k], ord[j]] = [ord[j], ord[k]]; }
+  return { bebida: 'caipirinha', caipi: true, fase: 'socar', t: 0, batidas: 0, socos: 0, foras: 0, golpe: 0, ordem: ord, postos: [], erros: 0,
+    anim: null, nota: '', msg: 'Soque o limão: clique (ou Espaço) quando o socador subir todo!' };
+}
+// A nota: os erros de ordem (0 → PERFEITA, 1 → BOA, 2 ou mais → RUIM), uma abaixo com o ritmo ruim.
+function notaDaCaipirinha(erros, foras) { return ['medida', 'ok', 'ruim'][Math.min(2, Math.min(2, erros) + (foras >= CAIPI.FORA_MAX ? 1 : 0))]; }
+// O socador: a altura (0 embaixo, 1 lá em cima), no ritmo: lá em cima na batida. Na batida: perto dela (a janela), passada a 1ª.
+function caipiAltura(c) { const f = c.t % CAIPI.BATIDA; return 1 - Math.min(f, CAIPI.BATIDA - f) / (CAIPI.BATIDA / 2); }
+function caipiNaBatida(c) { const f = c.t % CAIPI.BATIDA; return c.t > CAIPI.BATIDA - CAIPI.JANELA && Math.min(f, CAIPI.BATIDA - f) <= CAIPI.JANELA; }
+function caipiSoco() {
+  const c = G.copo;
+  if (!c || !c.caipi || c.fase !== 'socar' || c.golpe > CAIPI.GOLPE * 0.5) return false;
+  c.golpe = CAIPI.GOLPE;
+  if (caipiNaBatida(c)) { c.socos++; sons.tocar('caipi_soco', 1, 0.06, -4); c.msg = c.socos >= CAIPI.SOCOS ? 'Limão socado! Agora a receita, na ordem.' : `Isso! ${c.socos} de ${CAIPI.SOCOS}.`; }
+  else { c.foras++; sons.tocar('caipi_soco', 0.8, 0.04, -12); c.msg = 'Fora do ritmo! Espere o socador subir todo.'; }
+  if (c.socos >= CAIPI.SOCOS) { c.fase = 'montar'; if (G.limpou) G.limpou.caipi_socar = (G.limpou.caipi_socar || 0) + 1; }
+  return true;
+}
+// Um ingrediente no copo: fora da ordem da receita conta um erro (vai assim mesmo); cada um uma vez.
+function caipiPor(id) {
+  const c = G.copo;
+  if (!c || !c.caipi || c.fase !== 'montar' || c.anim || !CAIPI_ING[id] || c.postos.includes(id)) return false;
+  const certo = c.ordem.find(x => !c.postos.includes(x)), I = CAIPI_ING[id];
+  if (id !== certo) { c.erros++; sons.tocar('acao_erro', 1, 0.04, -10); c.msg = `Fora da receita! Era ${CAIPI_ING[certo].nome.toLowerCase()}.`; }
+  else c.msg = id === 'cachaca' ? 'A cachaça!' : `${I.nome}!`;
+  c.postos.push(id); c.anim = { id, t: 0, dur: id === 'cachaca' ? CAIPI.DESPEJO : CAIPI.CAI };
+  sons.tocar(I.som, 1, 0.06, -4);
+  return true;
+}
+function caipiTecla(n) { const c = G.copo; if (!c || !c.caipi) return false; return c.fase === 'socar' ? caipiSoco() : caipiPor(CAIPI_BOTOES[n - 1]); }
+// O clique na tela (px de tela): socando, soca em qualquer lugar; montando, o ingrediente da bancada que foi clicado.
+function caipiClique(x, y) {
+  const c = G.copo; if (!c || !c.caipi) return false;
+  if (c.fase === 'socar') return caipiSoco();
+  const b = (c._botoes || []).find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+  return b ? caipiPor(b.id) : false;
+}
+function caipiPronta() {
+  const c = G.copo; c.fase = 'pronta'; c.t = 0; c.nota = notaDaCaipirinha(c.erros, c.foras);
+  sons.tocar('caipi_pronta', 1, 0.03, -4);
+  c.msg = { medida: 'Caipirinha caprichada!', ok: 'Caipirinha boa, mas saiu da receita.', ruim: 'A caipirinha desandou...' }[c.nota];
+  if (G.limpou) G.limpou.caipirinha = (G.limpou.caipirinha || 0) + 1;
+}
+ATUALIZADORES.push(dt => {
+  const c = G.copo;
+  if (!c || !c.caipi) return;
+  if (!noPalco()) { G.copo = null; return; }
+  c.t += dt; if (c.golpe > 0) c.golpe = Math.max(0, c.golpe - dt);
+  if (c.fase === 'socar') { const k = Math.floor(c.t / CAIPI.BATIDA); if (k > c.batidas) { c.batidas = k; sons.tocar('cursor', 1.3, 0, -16); } }   // o tique da batida
+  if (c.anim) { c.anim.t += dt; if (c.anim.t >= c.anim.dur) { c.anim = null; if (c.postos.length >= CAIPI_BOTOES.length) caipiPronta(); } }
+  if (c.fase === 'pronta' && c.t >= CAIPI.PRONTA) copoFim(c.nota);
+});
+// O robô (como quem joga bem): soca lá em cima de cada batida e põe na ordem da receita. Devolve true quando terminou.
+function roboCaipirinha(c, passa) {
+  for (let k = 0; k < 30 && G.copo === c && c.fase === 'socar'; k++) {
+    passa(() => c.t < CAIPI.BATIDA / 2 || caipiAltura(c) < 0.97 || c.golpe > CAIPI.GOLPE * 0.5);
+    caipiSoco(); passa(() => caipiAltura(c) > 0.5);
+  }
+  for (const id of c.ordem.slice()) { passa(() => !!c.anim); caipiPor(id); }
+  passa(() => true);
+  return G.copo !== c;
+}
+
+// O desenho (em px de tela, entre o painel do topo e o rodapé do salão): o copo no meio da bancada (o limão, o açúcar e o gelo por
+// dentro; socando, o socador sobe e desce), a receita em cima e, na bancada, o açúcar e o gelo à esquerda e a cachaça à direita.
+const CAIPI_BANCADA = [-380, -220, 240];   // o x de cada ingrediente, do meio da tela (px de 1280 de largura)
+function desenhaCaipirinha(ctx, c) {
+  const W = G.larg, H = G.alt;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(0, 0, W, H); ctx.restore();
+  const copo = spr('salao/copo_caipirinha'); if (!copo) return;
+  const g0 = CAIPI_GEO, chao = H * 0.6, e = Math.min(1.25, H * 0.29 / copo.naturalHeight), w = copo.naturalWidth * e, h = copo.naturalHeight * e;
+  const x = W / 2 - (g0.esq + g0.dir) / 2 * w, y = chao - h;
+  const fx = x + g0.esq * w, fw = (g0.dir - g0.esq) * w, cx = fx + fw / 2, fy = y + g0.fundo * h, by = y + g0.boca * h;
+  // uma peça com o pé em (px, py) e a largura larg (a altura pela proporção da arte); esc: achata na altura
+  const poe = (nome, px, py, larg, alfa = 1, esc = 1) => { const im = spr(nome); if (!im) return 0;
+    const hh = im.naturalHeight * larg / im.naturalWidth * esc;
+    if (alfa > 0) { ctx.save(); ctx.globalAlpha *= alfa; ctx.drawImage(im, px - larg / 2, py - hh, larg, hh); ctx.restore(); } return hh; };
+  const frase = (linhas, xc, y0) => linhas.forEach((l, i) => texto(ctx, l, xc, y0 + i * 22, 18, i ? '#ffffff' : '#fff4cf', '900'));
+  // por dentro: o limão (os gomos viram o limão socado a cada soco; achata no golpe), depois o açúcar e o gelo na ordem em que entraram
+  const s = Math.min(1, c.socos / CAIPI.SOCOS), ach = 1 - 0.18 * (c.golpe / CAIPI.GOLPE), pe = fy + fw * 0.03;
+  const hl = poe('salao/limao_gomos', cx, pe, fw * 0.62, 1 - s, ach) || fw * 0.5;
+  poe('salao/limao_socado', cx, pe, fw * 0.66, s, ach);
+  let base = pe - hl * 0.35;
+  for (const id of c.postos) {
+    const I = CAIPI_ING[id]; if (!I.dentro) continue;
+    const an = c.anim && c.anim.id === id ? clamp(c.anim.t / c.anim.dur, 0, 1) : 1, cai = (1 - an) * (1 - an) * H * 0.2;
+    const hh = poe(I.dentro, cx, base - cai, fw * I.larg, Math.min(1, 0.3 + an));
+    base -= hh * (id === 'gelo' ? 0.25 : 0.35);
+  }
+  // o socador (socando): sobe e desce no ritmo; no golpe, a ponta no limão
+  let soc = null;
+  if (c.fase === 'socar') {
+    const sc = spr('salao/socador');
+    if (sc) { const sh = H * 0.21, sw = sc.naturalWidth * sh / sc.naturalHeight, baixo = pe - hl * 0.45, alto = by - H * 0.02;
+      const ponta = c.golpe > 0 ? baixo : baixo - caipiAltura(c) * (baixo - alto), sx = cx + fw * 0.06;
+      ctx.save(); ctx.translate(sx, ponta); ctx.rotate(0.06); ctx.drawImage(sc, -sw / 2, -sh, sw, sh); ctx.restore();
+      soc = { x: sx, topo: ponta - sh, larg: sw }; }
+  }
+  ctx.drawImage(copo, x, y, w, h);
+  // pronta: a caipirinha entra no lugar do copo, devagar
+  if (c.fase === 'pronta') { const pr = spr('salao/caipirinha_pronta'); if (pr) { ctx.save(); ctx.globalAlpha = clamp(c.t / 0.4, 0, 1); ctx.drawImage(pr, x, y, w, h); ctx.restore(); } }
+  // a bancada (montando): o açucareiro, o gelo e a garrafa, com o nome e a tecla; o que já foi para o copo fica apagado
+  c._botoes = [];
+  const k1 = Math.min(1, W / 1280), bxDe = k => W / 2 + CAIPI_BANCADA[k] * k1;
+  if (c.fase !== 'socar') {
+    CAIPI_BOTOES.forEach((id, k) => {
+      const I = CAIPI_ING[id], im = spr(I.arte); if (!im) return;
+      const bh = H * I.alt, bw = im.naturalWidth * bh / im.naturalHeight, bx = bxDe(k);
+      const usado = c.postos.includes(id), despejando = c.anim && c.anim.id === id && id === 'cachaca';
+      c._botoes.push({ id, x: bx - Math.max(bw, 100) / 2, y: chao - bh, w: Math.max(bw, 100), h: bh + 34 });
+      if (!despejando) { ctx.save(); ctx.globalAlpha = usado ? 0.3 : 1; ctx.drawImage(im, bx - bw / 2, chao - bh, bw, bh); ctx.restore(); }
+      texto(ctx, `${I.nome} (${k + 1})`, bx, chao + 26, 20, usado ? '#9a917f' : '#fff4cf', '900');
+    });
+    // a cachaça: a garrafa sai da bancada, deita em cima da boca do copo e despeja
+    if (c.anim && c.anim.id === 'cachaca') {
+      const gar = spr('salao/garrafa_cachaca'), I = CAIPI_ING.cachaca;
+      if (gar) { const p = clamp(c.anim.t / (c.anim.dur * 0.35), 0, 1), gh = H * I.alt, gw = gar.naturalWidth * gh / gar.naturalHeight, th = -1.95;
+        const x0 = bxDe(2), y0 = chao - gh / 2, mx = cx + fw * 0.12, my = by - 16, x1 = mx - Math.sin(th) * gh / 2, y1 = my + Math.cos(th) * gh / 2;
+        ctx.save(); ctx.translate(x0 + (x1 - x0) * p, y0 + (y1 - y0) * p); ctx.rotate(th * p); ctx.drawImage(gar, -gw / 2, -gh / 2, gw, gh); ctx.restore(); }
+    }
+    // a receita, em cima: os três passos na ordem, com a arte de cada um; o que já foi feito fica apagado
+    const rx = k => W / 2 + (k - 1) * 170, ry = H * 0.25;
+    texto(ctx, 'Receita:', rx(0) - 140, ry - 14, 22, '#ffe08a', '900');
+    c.ordem.forEach((id, k) => {
+      const I = CAIPI_ING[id], im = spr(I.arte), feito = k < c.postos.length;
+      if (im) { const ih = H * 0.08, iw = im.naturalWidth * ih / im.naturalHeight; ctx.save(); ctx.globalAlpha = feito ? 0.35 : 1; ctx.drawImage(im, rx(k) - iw / 2, ry - ih, iw, ih); ctx.restore(); }
+      texto(ctx, `${k + 1}. ${I.nome}`, rx(k), ry + 26, 20, feito ? '#9a917f' : '#fff', '900');
+      if (k < 2) texto(ctx, '→', rx(k) + 85, ry - 14, 26, '#ffe08a', '900');
+    });
+  } else texto(ctx, `Socos no ritmo: ${c.socos} de ${CAIPI.SOCOS}`, W / 2, H * 0.7, 24, '#ffe08a', '900');
+  const guia = !((G.limpou || {}).caipirinha > 0) && c.fase !== 'pronta';
+  texto(ctx, c.msg, W / 2, H * (c.fase === 'socar' ? 0.745 : guia ? 0.78 : 0.72), 24, c.fase === 'pronta' && c.nota === 'ruim' ? '#ffb4a8' : '#ffe08a', '800');
+  // a primeira vez (o guia): a seta no socador e, montando, no ingrediente que a receita pede agora, com a frase junto
+  if (guia) {
+    const seta = spr('ui/seta'), sw = 68 * 0.7, sh = 96 * 0.7, bob = Math.sin((G.agora || 0) * 6) * 5;
+    if (c.fase === 'socar' && soc) {   // da direita, apontando para o cabo do socador
+      const py = soc.topo + H * 0.05, px = soc.x + soc.larg / 2 + 6;
+      if (seta) { ctx.save(); ctx.translate(px + sh / 2 + bob, py); ctx.rotate(Math.PI / 2); ctx.drawImage(seta, -sw / 2, -sh / 2, sw, sh); ctx.restore(); }
+      frase(['Clique (ou Espaço) quando o socador', 'subir todo: no tique, soca o limão!'], px + sh + 175, py - 4);
+    } else if (c.fase === 'montar' && !c.anim) {   // de cima, apontando para o ingrediente; a frase embaixo do nome dele
+      const prox = c.ordem.find(q => !c.postos.includes(q)), b = c._botoes.find(r => r.id === prox);
+      if (b) { if (seta) ctx.drawImage(seta, b.x + b.w / 2 - sw / 2, b.y - sh - 6 - bob, sw, sh);
+        frase([`A receita pede agora: ${CAIPI_ING[prox].nome.toLowerCase()}.`, 'Clique nele (ou na tecla do número)!'], b.x + b.w / 2, chao + 52); }
+    }
+  }
 }
 // ---------- (Tarefa C, o wasabi do Dave) a farinheira: o alerta e a peneira com tempo ----------
 // (revisão, o Dave: só avisa com o wasabi no fim) Com t.alertaFarinha() ou menos (um terço da farinheira, no mínimo 3), a exclamação pisca em cima da farinheira (a arte fx/exclamacao; o código só acende e apaga); a Rosa
@@ -1170,6 +1361,8 @@ function ajudantesDoPalco() {
       if (a) largarTarefaDoAjudante(a);
       a = AJUDANTES[k] = new Personagem(e.id, e.nome, e.posto === 'cozinha' ? PALCO.ROSA.x - 90 : foraDaBancada(PALCO.CASA_AJUDANTE - k * 60), e.posto === 'cozinha' ? PALCO.ROSA.y : PALCO.CHAO_Y - 4, DIR.BAIXO);
       a.equipe = e; a.casa = a.x; a.tarefa = null; a.espera = 0;
+      // (15/10, o guia da 1ª vez) a primeira vez que ele aparece no palco: a plaquinha "Nome · Posto" sozinha por uns segundos
+      if (G.limpou && !G.limpou['ajudante_' + e.id]) { G.limpou['ajudante_' + e.id] = 1; a.plaquinhaAte = (G.agora || 0) + PLAQUINHA.primeira; }
     }
     if (e.posto !== 'cozinha') a.casa = foraDaBancada(PALCO.CASA_AJUDANTE - k * 60);   // (revisão da D1) a bancada comprada depois, o salão maior
   });
@@ -1193,7 +1386,9 @@ ATUALIZADORES.push(dt => {
       const n = Math.min(t.mesas.length, PALCO.ASSENTOS.length), livre = i => !AJUDANTES.some(o => o.tarefa && o.tarefa.i === i);
       const achaLouca = so => tem('louca') ? t.mesas.findIndex((m, i) => i < n && (so ? m.louca : m.estado === 'suja' || m.louca) && livre(i)) : -1;
       const doLado = achaLouca(true), suja = doLado >= 0 ? doLado : achaLouca(false);
-      const bebe = tem('bebida') ? t.mesas.findIndex((m, i) => i < n && t.querBebidaAgora(m) && !m.bebidaReservada && livre(i)) : -1;
+      // (14/10, Tarefa E2) a caipirinha só quem tem a habilidade dela faz (a "bebida" serve as outras; o Mestre da bebida, as duas se tiver a rara)
+      const faz = m => m.bebida === 'caipirinha' ? tem('caipirinha') : tem('bebida');
+      const bebe = t.mesas.findIndex((m, i) => i < n && t.querBebidaAgora(m) && !m.bebidaReservada && faz(m) && livre(i));
       const prato = tem('leva_prato') ? pratoParaOAjudante(t, n) : -1;
       const moeda = tem('mestre_gorjeta') ? t.moedas.find(x => x.mesa < n && !AJUDANTES.some(o => o.tarefa && o.tarefa.tipo === 'moedas' && o.tarefa.mesa === x.mesa)) : null;
       const outroPeneira = G.peneira || AJUDANTES.some(o => o !== a && o.tarefa && (o.tarefa.tipo === 'farinha' || o.tarefa.tipo === 'peneirando'));
@@ -1229,7 +1424,11 @@ ATUALIZADORES.push(dt => {
     else if (tf.tipo === 'louca') { if (t.ajudanteRecolhe(tf.i)) sons.tocar('louca_recolhe', 1.08, 0.05, -10); a.tarefa = { tipo: 'bacia', x: PALCO.BACIA.x + 30 }; }
     else if (tf.tipo === 'bacia') { sons.tocar('bacia', 1.1, 0.05, -10); setTimeout(() => sons.tocar('lavando', 1.05, 0.06, -16), 700); a.tarefa = null; }   // e lava, baixinho
     // (o pacote de cozinha) no bebedouro ele começa a encher: o despejo curto, mais baixo que o do Jocelino (Fill Drink)
-    else if (tf.tipo === 'bebida' && tf.depois != null) { a.tarefa = { tipo: 'enchendo', i: tf.i, bebida: tf.bebida, x: a.x, depois: tf.depois, t: 0, dur: TurnoJanta.salao().bebidaAjudante }; sons.tocar('copo_ajudante', tf.bebida === 'cerveja' ? 0.89 : 1, 0.05, -12); }
+    else if (tf.tipo === 'bebida' && tf.depois != null) {
+      // (E2) a caipirinha leva mais tempo no balcão (socar, açúcar, gelo e cachaça): o soco do socador no lugar do despejo
+      const caipi = tf.bebida === 'caipirinha';
+      a.tarefa = { tipo: 'enchendo', i: tf.i, bebida: tf.bebida, x: a.x, depois: tf.depois, t: 0, dur: caipi ? ECO.pensao.janta.CAIPIRINHA_AJUDANTE : TurnoJanta.salao().bebidaAjudante };
+      if (caipi) sons.tocar('caipi_soco', 1.05, 0.06, -12); else sons.tocar('copo_ajudante', tf.bebida === 'cerveja' ? 0.89 : 1, 0.05, -12); }
     else if (tf.tipo === 'servir_bebida') {
       const medida = tem('mestre_bebida');   // o Mestre da bebida: sempre na medida (o carimbo, a aura, a gorjeta)
       if (t.ajudanteBebida(tf.i, tf.bebida, medida)) { sons.tocar('servir', 1.25, 0.05, -8); if (medida) { carimboBebida(tf.i, 'medida'); sons.tocar('carimbo', 1.1, 0.05, -8); } }
@@ -1278,6 +1477,56 @@ function desenhaAjudantesBebida(ctx) {
   }
 }
 
+// (15/10, o jogador: "quem é essa senhora que apareceu na pensão e não sai mais?") Cada ajudante com a plaquinha do nome e do posto
+// ("Nena · Salão") em cima da cabeça: ao passar o mouse; ao clicar nele (quando o clique não cai num alvo do serviço) por ~2 s, com
+// a frase do que está fazendo; e na primeira vez que aparece no palco (o guia da 1ª vez), sozinha por uns segundos. O estilo é o do
+// rótulo da seta do guia (texto(): o Nunito com o contorno escuro): só texto, nenhuma arte nova.
+const PLAQUINHA = { clique: 2.2, primeira: 6 };
+const PLAQUINHAS_NA_TELA = [];   // o que saiu no último quadro (os testes conferem o texto e o lugar)
+const plaquinhaDoAjudante = a => `${a.nome} · ${Equipe.POSTOS[a.equipe.posto] || a.equipe.posto}`;
+const _altoDoAjudante = a => { const img = spr(a.folha); return img ? (img.naturalHeight / 4 - 2) * PALCO.ESCALA_GENTE : 114 * PALCO.ESCALA_GENTE; };
+// O ajudante sob o ponto (px de mundo): o corpo dele, do pé até a cabeça; dois juntos, ganha o da frente (o y maior).
+function ajudanteEm(px, py) {
+  let quem = null;
+  for (const a of AJUDANTES) {
+    if (Math.abs(px - a.x) <= 34 && py <= a.y + 6 && py >= a.y - _altoDoAjudante(a) + 30 && (!quem || a.y > quem.y)) quem = a;
+  }
+  return quem;
+}
+function fraseDoAjudante(a) {
+  if (a.equipe.posto === 'cozinha') return 'ajudando a Rosa no fogão';
+  if (!G.turno) return 'esperando a janta começar';
+  const tf = a.tarefa; if (!tf) return 'esperando serviço';
+  const b = tf.bebida && Pratos.BEBIDAS[tf.bebida] ? Pratos.BEBIDAS[tf.bebida].toLowerCase() : 'a bebida';
+  return ({ louca: 'indo recolher a louça', bacia: 'levando a louça para a bacia', farinha: 'indo repor a farinha', peneirando: 'peneirando a farinha',
+    bebida: `indo buscar ${b}`, enchendo: tf.bebida === 'caipirinha' ? 'fazendo a caipirinha' : `enchendo o copo de ${b}`, servir_bebida: `levando ${b}`,
+    pegar_prato: 'indo pegar o prato no passe', levar_prato: 'levando o prato', moedas: 'recolhendo a gorjeta', casa: 'voltando para o canto' })[tf.tipo] || 'esperando serviço';
+}
+function falarComAjudante(a) { a.fala = fraseDoAjudante(a); a.falaAte = (G.agora || 0) + PLAQUINHA.clique; }
+function desenhaPlaquinhasAjudantes(ctx) {
+  PLAQUINHAS_NA_TELA.length = 0;
+  if (!AJUDANTES.length) return;
+  const agora = G.agora || 0, mm = G.mouse && !G.copo ? mouseMundo() : null, sob = mm ? ajudanteEm(mm.x, mm.y) : null;
+  const z = G.zoom || 1, x0 = G.cam.x, x1 = G.cam.x + (G.larg || 0) / z, y0 = G.cam.y;
+  ctx.save();
+  for (const a of AJUDANTES) {
+    const fala = a.falaAte > agora, primeira = a.plaquinhaAte > agora;
+    if (a !== sob && !fala && !primeira) continue;
+    // logo acima da cabeça; com o prato, o copo ou a barrinha em cima dela (desenhaAjudantesBebida), mais alto
+    const tf = a.tarefa, naCabeca = tf && ['levar_prato', 'servir_bebida', 'peneirando', 'enchendo'].includes(tf.tipo);
+    const nome = plaquinhaDoAjudante(a), linhas = fala ? [a.fala, nome] : [nome];
+    ctx.font = '900 26px Nunito'; const meia = Math.max(...linhas.map(l => ctx.measureText(l).width)) / 2 + 6;
+    const x = G.larg ? clamp(a.x, x0 + meia, x1 - meia) : a.x;
+    const y = Math.max(a.y - _altoDoAjudante(a) + 24 - (naCabeca ? 44 : 0), y0 + 30 + (linhas.length - 1) * 31);
+    // a da 1ª vez some devagar no último meio segundo
+    ctx.globalAlpha = a === sob || fala ? 1 : clamp((a.plaquinhaAte - agora) / 0.5, 0, 1);
+    if (fala) texto(ctx, a.fala, x, y - 31, 23, '#ffffff', '900');   // (15/10) letra maior: 17 px no palco viravam ~11 na tela
+    texto(ctx, nome, x, y, 26, '#fff4cf', '900');
+    PLAQUINHAS_NA_TELA.push({ id: a.id, texto: nome, fala: fala ? a.fala : null, x, y, meia, porque: a === sob ? 'mouse' : fala ? 'clique' : 'primeira' });
+  }
+  ctx.restore();
+}
+
 // ---------- a tela Equipe ----------
 // (14/10, Tarefa B, a ficha do funcionário do Dave) Cada pessoa: os 4 atributos, o nível e o salário, as 2 habilidades fixas e o
 // Mestre (com o nível de cada uma e o que fazem; as já ganhas em giz amarelo), o posto ou a reserva, a expedição em curso. Os
@@ -1286,7 +1535,7 @@ function desenhaAjudantesBebida(ctx) {
 const _nomePosto = posto => posto === 'reserva' ? Equipe.RESERVA : Equipe.POSTOS[posto] || '—';
 const _nomeBusca = b => !b || b === 'sorteio' ? 'o que achar (sorteio)' : Itens.nome(b);
 function _linhasHabilidades(e, cand) {
-  const hs = [[3, e.habs[0]], [7, e.habs[1]], [Equipe.nivelDoMestre(e), e.mestre]].filter(x => x[1]);
+  const hs = [[3, e.habs[0]], [7, e.habs[1]], [Equipe.nivelDoMestre(e), e.mestre], [Equipe.nivelDaRara(), e.rara]].filter(x => x[1]);   // (E2) e a rara
   const fora = !cand && e.posto !== e.vocacao;
   const linhas = hs.map(([n, h]) => {
     const tem = !cand && e.habilidades.includes(h);

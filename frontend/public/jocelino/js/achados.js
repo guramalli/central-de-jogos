@@ -81,6 +81,7 @@ const Achados = {
     if (!a || ja.includes(k)) return 'ja';
     if (!G.mochila.cabe(a.id)) return 'cheia';
     G.mochila.adicionar(a.id, 1); ja.push(k);
+    for (const f of AO_PEGAR) f(a.id, 1);   // (a coleta do recado; recados_jogo.js)
     if (typeof Habilidades !== 'undefined') Habilidades.ganhar('folego', 3);
     return 'ok';
   },

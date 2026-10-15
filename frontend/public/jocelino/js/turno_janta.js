@@ -52,6 +52,8 @@ class TurnoJanta {
   static get LENDO_LOUCA() { return ECO.pensao.janta.LENDO_LOUCA; }
   // O preço de cada bebida servida (0 para a que não se paga à parte).
   static precoBebida(b) { return (ECO.pensao.janta.precoBebida || {})[b] || 0; }
+  // (14/10, Tarefa E2) A bebida que vem DEPOIS do prato (a cerveja e a caipirinha do Seu Orlando, como no Dave).
+  static depoisDoPrato(b) { return (ECO.pensao.janta.BEBIDAS_DEPOIS || ['cerveja']).includes(b); }
   // (13/10, o Dave: a música acelera perto de fechar) A "Última rodada!": quem chega depois pede mais bebida.
   static ULTIMA_RODADA = 20 * 60;
   static BEBIDA_ULTIMA = 0.8;
@@ -63,7 +65,7 @@ class TurnoJanta {
   // pedidos de cada prato (sem o da casa) e maisPedido: { prato, qtd } (no fechar); gargalos: os segundos com a farinheira vazia
   // e a Rosa parada, as vezes que o passe encheu, a espera média até o prato (s) e quantos foram embora pela louça suja do lado.
   static relatorioVazio() { return { favoritos: [], clientes: 0, servidos: 0, embora: 0, ganho: 0, gorjeta: 0, estrelas: 0, cafes: 0, faltou: [], pratos: {}, desperdicio: 0, bebidas: 0, curtidas: 0, casa: 0, estrelasCasa: 0, acabou: [], sobra: {},
-    derramou: 0, vendaPratos: 0, vendaBebidas: 0, perdida: 0, pedidos: {}, maisPedido: null, gargalos: { farinhaVazia: 0, passeCheio: 0, esperaMedia: 0, emboraLouca: 0 } }; }
+    derramou: 0, desandou: 0, vendaPratos: 0, vendaBebidas: 0, perdida: 0, pedidos: {}, maisPedido: null, gargalos: { farinhaVazia: 0, passeCheio: 0, esperaMedia: 0, emboraLouca: 0 } }; }
   // (Tarefa A) A conta do fechamento, na ordem da lousa: Pratos + Bebidas + Gorjetas + Prêmios = Receita; Receita − Despesa −
   // Salários = Lucro. A despesa e os salários são o que saiu de verdade (despesaPaga/salariosPagos: o bolso vazio não paga tudo).
   static conta(r) {
@@ -177,7 +179,7 @@ class TurnoJanta {
       } else if (m.estado === 'comendo') {
         m.come -= dt;
         // (Tarefa C, o Dave: a cerveja vem DEPOIS do prato) acabou de comer e a cerveja não chegou: espera um pouco antes de pagar
-        if (m.come <= 0 && m.bebida === 'cerveja' && this.querBebidaAgora(m) && (m.esperaCerveja = (m.esperaCerveja || 0) + dt) < TurnoJanta.ESPERA_CERVEJA) return;
+        if (m.come <= 0 && TurnoJanta.depoisDoPrato(m.bebida) && this.querBebidaAgora(m) && (m.esperaCerveja = (m.esperaCerveja || 0) + dt) < TurnoJanta.ESPERA_CERVEJA) return;
         if (m.come <= 0) this._pagar(i);
       }
     });
@@ -335,8 +337,12 @@ class TurnoJanta {
       if (opcoes) m.prato = opcoes[this._rng.randi() % opcoes.length];
     }
     if (m.prato !== Pensao.CASA) this.relatorio.pedidos[m.prato] = (this.relatorio.pedidos[m.prato] || 0) + 1;
-    const bebidas = typeof bebidasDaPensao === 'function' ? bebidasDaPensao(this.pensao) : Object.keys(Pratos.BEBIDAS).filter(b => b !== 'cerveja');
-    m.bebida = bebidas[this._rng.randi() % bebidas.length];
+    const bebidas = typeof bebidasDaPensao === 'function' ? bebidasDaPensao(this.pensao) : Object.keys(Pratos.BEBIDAS).filter(b => b !== 'cerveja' && b !== 'caipirinha');
+    // (14/10, Tarefa E2) a caipirinha divide com a cerveja a vez da bebida de DEPOIS do prato: quem tiraria a cerveja tira uma ou
+    // outra, meio a meio (pelo mesmo sorteio: nenhum sorteio a mais na noite). Sem a geladeira, ela tem a vez dela.
+    const sorteio = this._rng.randi(), lista = bebidas.filter(b => b !== 'caipirinha' || !bebidas.includes('cerveja'));
+    m.bebida = lista[sorteio % lista.length];
+    if (m.bebida === 'cerveja' && bebidas.includes('caipirinha') && Math.floor(sorteio / lista.length) % 2) m.bebida = 'caipirinha';
     m.raridade = balcao ? this._tirarPorcao(m.prato) : p.consumir(m.prato, this._rng);
     m.querBebida = this._rng.randf() < (this._ultima ? TurnoJanta.BEBIDA_ULTIMA : 0.5); m.bebidaServida = false;
     m.rapido = m.modo === 'antigo' ? m.espera < TurnoJanta.PACIENCIA_PEDIDO / 2 : true;
@@ -405,7 +411,7 @@ class TurnoJanta {
   // e ainda espera a cerveja).
   querBebidaAgora(m) {
     if (!m || !m.querBebida || m.bebidaServida) return false;
-    return m.bebida === 'cerveja' ? m.estado === 'comendo' : ['prato', 'comendo'].includes(m.estado);
+    return TurnoJanta.depoisDoPrato(m.bebida) ? m.estado === 'comendo' : ['prato', 'comendo'].includes(m.estado);   // (E2) e a caipirinha
   }
   // (revisão da D1) As banquetas que querem a bebida agora e ninguém (ajudante, máquina) está enchendo, de quem espera há mais tempo
   // para quem chegou depois; e as que o Jocelino já cobre: cada copo da bandeja (e o que ele está enchendo no minijogo, copoEnchendo,
@@ -450,7 +456,8 @@ class TurnoJanta {
     m.bebidaServida = true; m.bebidaMedida = q === 'medida'; m.bebidaRuim = q === 'ruim'; m.bebidaNota = q;
     if (m.estado === 'prato' && m.bebida === 'cafe') m.cafeAntes = true;   // cafezinho de boas-vindas, antes do prato
     this.relatorio.bebidas++; if (m.bebidaMedida) this.relatorio.medida = (this.relatorio.medida || 0) + 1;
-    if (m.bebidaRuim) this.relatorio.derramou = (this.relatorio.derramou || 0) + 1;
+    // (revisão da E2) a caipirinha RUIM não derramou: desandou (conta à parte, com a frase dela no fechamento)
+    if (m.bebidaRuim) { const k = m.bebida === 'caipirinha' ? 'desandou' : 'derramou'; this.relatorio[k] = (this.relatorio[k] || 0) + 1; }
     const vb = TurnoJanta.precoBebida(m.bebida); if (vb) { this.relatorio.ganho += vb; this.relatorio.vendaBebidas += vb; }
   }
   // Recolhe a louça da banqueta para a bandeja: a banqueta fica livre.

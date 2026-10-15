@@ -1,4 +1,4 @@
-Jocelino usando ferramentas — folhas golpe_<ferramenta>.webp (machado, picareta, pa, foice, regador)
+Jocelino usando ferramentas — folhas golpe_<ferramenta>.webp (machado, picareta, pa, foice, regador, colher)
 Gerado por ferramentas_arte/produzir_golpe.sh (Higgsfield) + ferramentas_arte/web_golpe.py (alinhamento).
 
 Folha: 528x816 px = 4 colunas x 4 linhas; QUADRO 132x204 px.
@@ -6,6 +6,9 @@ COLUNAS = direção, mesma ordem do andar: 0 baixo/de frente, 1 cima/de costas, 
   A coluna 2 (esquerda) é a coluna 3 (direita) espelhada.
 LINHAS = quadros do golpe: 0 preparo, 1 ferramenta no alto, 2 descendo (foice: meio da varrida; regador: derramando),
   3 impacto (foice: fim da varrida; regador: inclinado máximo com a água caindo).
+  colher (agachado nos 4): 0 pega massa, 1 leva a massa, 2 espalha arrastando, 3 alisa batendo de leve com a ponta.
+  A colher não segue a regra da altura abaixo (agachado): escala única 0,19 do bruto (ESCALA_FIXA no web_golpe.py),
+  chapéu e botas do tamanho do andar.
 
 PÉ: em todos os quadros a sola da bota fica em y=162 e o meio das botas em x=66. Abaixo do pé sobram 41 px: de frente a
   ferramenta bate no chão ABAIXO dos pés (no ladrilho da frente) e precisa desse espaço; o quadro é mais alto que os 168 sugeridos por isso.
@@ -39,5 +42,10 @@ ONDE A CABEÇA DA FERRAMENTA TOCA no quadro de impacto (linha 3), em (x, y) dent
     cima (de costas)               ( 95, 160)   pé +29,  -2   onde a água cai no chão
     esquerda (direita espelhada)   ( 20, 161)   pé -46,  -1   onde a água cai no chão
     direita                        (111, 161)   pé +45,  -1   onde a água cai no chão
+  colher:
+    baixo (de frente)              ( 59, 171)   pé  -7,  +9   ponta da colher alisando a massa no chão
+    cima (de costas)               ( 97, 161)   pé +31,  -1   ponta da colher alisando a massa no chão
+    esquerda (direita espelhada)   ( 47, 161)   pé -19,  -1   ponta da colher alisando a massa no chão
+    direita                        ( 84, 161)   pé +18,  -1   ponta da colher alisando a massa no chão
 
 Ladrilho do jogo = 48 px (TILE em js/base.js).

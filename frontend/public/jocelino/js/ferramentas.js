@@ -132,7 +132,7 @@ function quebrar(o) {
   const m = G.mapa, D = DETRITOS[o.det];
   m.tirar(o);
   if (G.limpou) G.limpou[o.det] = (G.limpou[o.det] || 0) + 1;   // o que já aprendeu a limpar (as setas, guia_setas.js)
-  for (const id in D.solta) soltar(id, D.solta[id], o.x, o.y - 10);
+  for (const id in D.solta) soltar(id, D.solta[id], o.x, o.y - 10, true);   // (o que sai do detrito conta na coleta do recado)
   if (o.det === 'entulho' && Math.random() < (typeof Habilidades !== 'undefined' && Habilidades.tem('limpinho') ? 0.25 : 0.15)) soltar('ferro_velho', 1, o.x, o.y - 10);
   if (typeof quebrouNaObra === 'function') quebrouNaObra(o);
   if (typeof quebrouEmpreita === 'function') quebrouEmpreita(o);
@@ -149,8 +149,10 @@ function quebrar(o) {
 }
 
 // ---------- itens no chão ----------
-function soltar(id, qtd, x, y) {
-  for (let k = 0; k < qtd; k++) G.mapa.itens.push({ id, qtd: 1, x: x + rnd(-14, 14), y, vx: rnd(-80, 80), vy: rnd(-30, 30), z: 0, vz: rnd(260, 340), t: 0,
+// coleta: o item veio do mundo (detrito quebrado) e conta na coleta do recado; a sobra de baú, prêmio, compra ou da mão que o
+// jogador solta com a mochila cheia não conta (revisão da T3).
+function soltar(id, qtd, x, y, coleta = false) {
+  for (let k = 0; k < qtd; k++) G.mapa.itens.push({ id, qtd: 1, x: x + rnd(-14, 14), y, vx: rnd(-80, 80), vy: rnd(-30, 30), z: 0, vz: rnd(260, 340), t: 0, coleta,
     desenha(ctx) { ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(this.x, this.y, 12, 4, 0, 0, Math.PI * 2); ctx.fill(); desenhaPe(ctx, 'itens/' + this.id, this.x, this.y - this.z - 2, 1, 0.6); } });
 }
 ATUALIZADORES.push(dt => {
@@ -160,8 +162,12 @@ ATUALIZADORES.push(dt => {
   if (j.golpe > 0) {
     const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)];
     j.golpeT = (j.golpeT || 0) + dt;
-    if (!j._somSubida && j.golpeItem !== 'foice' && j.golpeT >= pf.subida - 0.06) { j._somSubida = true; sons.tocar('golpe', j.golpeItem === 'picareta' ? 0.9 : 1, 0.08, -10); }
-    if (!j.acertou && j.golpeT >= pf.acerto) { j.acertou = true; acertar(j.golpeItem, j.golpeAlvo); }
+    if (!j._somSubida && j.golpeItem !== 'foice' && j.golpeItem !== 'colher' && j.golpeT >= pf.subida - 0.06) { j._somSubida = true; sons.tocar('golpe', j.golpeItem === 'picareta' ? 0.9 : 1, 0.08, -10); }   // (a colher não zune: não há pancada)
+    if (!j.acertou && j.golpeT >= pf.acerto) {
+      j.acertou = true; acertar(j.golpeItem, j.golpeAlvo);
+      const pc = pontoDoGolpe(j);
+      if (pc && j.golpeItem === 'colher') lascas(pc.x, pc.y, 'massa', 3);   // respingos de massa na ponta da colher
+    }
   }
   // Segurar o botão repete o golpe (como no Stardew).
   // (correção 2) segurar no mundo e arrastar até o HUD (o quadro, o cartão, a barrinha) não continua golpeando
@@ -175,7 +181,7 @@ ATUALIZADORES.push(dt => {
     if (it.t > 0.45 && d < 1.6 * TILE) { it.x += (j.x - it.x) * Math.min(1, dt * 9); it.y += (j.y - it.y) * Math.min(1, dt * 9); }
     if (it.t > 0.45 && d < 22) {
       const sobra = G.mochila.adicionar(it.id, it.qtd);
-      if (sobra < it.qtd) { it.pegou = true; avisar('+ ' + Itens.qtd(it.qtd - sobra, it.id)); sons.tocar('pegar', 1, 0.05, -4); hudSujo(); }
+      if (sobra < it.qtd) { it.pegou = true; avisar('+ ' + Itens.qtd(it.qtd - sobra, it.id)); sons.tocar('pegar', 1, 0.05, -4); hudSujo(); if (it.coleta) for (const f of AO_PEGAR) f(it.id, it.qtd - sobra); }
     }
   }
   m.itens = m.itens.filter(i => !i.pegou);
@@ -186,8 +192,8 @@ ATUALIZADORES.push(dt => {
 
 // Lascas que voam no golpe (terra, madeira, pedra, água).
 const LASCAS = [];
-const FX_LASCA = { pedra: 'lasca_pedra', madeira: 'lasca_madeira', mato: 'lasca_mato', agua: 'gota' };
-function lascas(x, y, tipo) { if (!MODO_TESTE.efeitos) return; for (let k = 0; k < 7; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, fx: FX_LASCA[tipo] || 'lasca_terra' }); }
+const FX_LASCA = { pedra: 'lasca_pedra', madeira: 'lasca_madeira', mato: 'lasca_mato', agua: 'gota', massa: 'lasca_pedra' };   // (a massa: o cinza da lasca de pedra)
+function lascas(x, y, tipo, n = 7) { if (!MODO_TESTE.efeitos) return; for (let k = 0; k < n; k++) LASCAS.push({ x, y, vx: rnd(-140, 140), vy: rnd(-260, -80), t: 0, fx: FX_LASCA[tipo] || 'lasca_terra' }); }
 
 // ---------- a animação do golpe ----------
 // Como o Stardew: o golpe pesado (picareta, machado, pá) sobe a ferramenta por cima da cabeça, segura um instante e desce
@@ -224,7 +230,20 @@ const PERFIL_GOLPE = {
     [DIR.DIREITA]: [K(0, -45, 18, -58), K(0.12, -45, 20, -56), K(0.22, 0, 24, -52), K(0.45, 0, 24, -52), K(0.55, -45, 18, -58)],
   } },
 };
-function perfilDe(id) { return id === 'foice' ? 'foice' : id === 'regador' ? 'regador' : id === 'pa' ? 'pa' : 'pesada'; }
+// A colher de pedreiro ASSENTA MASSA (15/10: "a animação do uso da colher de pedreiro está a antiga ainda"): agachado, pega a
+// massa, leva, espalha arrastando e alisa batendo de leve com a ponta (golpe_colher.webp). Sem subir nada: um gesto mais
+// calmo que a pancada (0,52 s contra 0,40), cada quadro com o seu tempo (marcas = onde começam os quadros 1, 2 e 3); o
+// acerto é no alisar (quadro 3), quando a ponta toca a massa. As poses de ferramenta (só para quando a folha ainda não
+// carregou) são as da pá, esticadas no tempo.
+PERFIL_GOLPE.colher = { dur: 0.52, subida: 0.26, acerto: 0.36, marcas: [0.13, 0.26, 0.36], quadros: {} };
+for (const d in PERFIL_GOLPE.pa.quadros) PERFIL_GOLPE.colher.quadros[d] = PERFIL_GOLPE.pa.quadros[d].map(k => ({ ...k, t: k.t * 0.52 / 0.38 }));
+function perfilDe(id) { return id === 'foice' ? 'foice' : id === 'regador' ? 'regador' : id === 'pa' ? 'pa' : id === 'colher' ? 'colher' : 'pesada'; }
+// Onde a ferramenta toca o chão no quadro de impacto da folha desenhada, relativo ao pé (LEIA_golpe.txt): as lascas saem dali.
+const CONTATO_GOLPE = { colher: { [DIR.BAIXO]: [-7, 9], [DIR.CIMA]: [31, -1], [DIR.ESQUERDA]: [-19, -1], [DIR.DIREITA]: [18, -1] } };
+function pontoDoGolpe(j) {
+  const c = CONTATO_GOLPE[j.golpeItem] && CONTATO_GOLPE[j.golpeItem][j.dir];
+  return c ? { x: j.x + c[0], y: j.y + 2 + c[1] } : null;   // (+2: a folha é desenhada com o pé em j.y + 2)
+}
 const _suave = (a, b, u) => a + (b - a) * u;
 // A pose da ferramenta no instante t (interpolada entre os quadros-chave; a subida desacelera, a descida acelera).
 function poseFerramenta(j) {
@@ -307,6 +326,7 @@ function desenhaFerramenta(ctx, j, atras) {
 const GOLPE_QUADRO = { w: 132, h: 204, peX: 66, peY: 162 };
 function quadroGolpe(j) {
   const pf = PERFIL_GOLPE[perfilDe(j.golpeItem)], t = j.golpeT || 0;
+  if (pf.marcas) return t < pf.marcas[0] ? 0 : t < pf.marcas[1] ? 1 : t < pf.marcas[2] ? 2 : 3;   // (a colher: alisa até o fim)
   if (t < pf.subida * 0.4) return 0;
   if (t < pf.subida) return 1;
   if (t < pf.acerto) return 2;

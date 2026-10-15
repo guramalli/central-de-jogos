@@ -11,7 +11,12 @@ function lugarLivre(b, x, y) {
   }
   return { x, y };
 }
-const LIMPEZA = { limpar_trilha: 'mato', desentulhar_ananias: 'entulho' };
+const LIMPEZA = { limpar_trilha: 'mato', desentulhar_ananias: 'entulho', pedregulho_rua: 'pedregulho' };
+// (15/10, T6) A limpeza em ladrilhos fixos (o pé de cada detrito): as pedras que rolaram na estrada nascem sempre nos mesmos lugares
+// da rua principal (e não "perto da placa"), sem plaquinha e sem fechar a rua de 3 ladrilhos (cada pedregulho tem 2x2: sobra 1
+// ladrilho da pista e as duas calçadas; longe das saídas do leste e dos nomes delas). A s16 confere o caminho até as saídas.
+const LIMPEZA_FIXA = { pedregulho_rua: [[30, 12], [33, 13], [36, 12]] };
+const NOME_LIMPEZA = { mato: 'matos', entulho: 'entulhos', pedregulho: 'pedregulhos' };
 const TEXTO_RESULTADO = { material: 'Falta material: ', ferramenta: 'Isso pede ', feito_hoje: 'Por hoje chega: amanhã continua.' };
 
 // O piso pronto: a textura (arte pronta) recortada na área, na escala de verdade. O ladrilho hidráulico: peças de
@@ -106,6 +111,12 @@ EXTRAS_MUNDO.push(m => {
     const x = A.x * TILE, y = (A.y + A.h) * TILE - Math.max(A.h * TILE, alto + 6), w = A.w * TILE, h = (A.y + A.h) * TILE - y;
     r.push({ y: alto ? (A.y + A.h) * TILE + 1 : A.y * TILE + 1, realceServico: id, desenha(ctx) { desenhaLuzDoServico(ctx, x, y, w, h); } });
   }
+  // (T6) A limpeza fixa (as pedras da estrada): a luz em volta de cada detrito do serviço, por cima dele (o quadro da arte).
+  for (const o of m.objs) {
+    if (!o.empreitaDet || !LIMPEZA_FIXA[o.empreitaDet] || !G.empreitas.aceitas[o.empreitaDet] || !o.tiles) continue;
+    const img = spr(o.nome), w = (img ? img.naturalWidth : TILE) + 12, h = (img ? img.naturalHeight : TILE) + 10, x = o.x - w / 2, y = o.y - h + 4;
+    r.push({ y: o.y + 1, realceServico: o.empreitaDet, desenha(ctx) { desenhaLuzDoServico(ctx, x, y, w, h); } });
+  }
   return r;
 });
 // (14/10) Também o realce da reforma da pensão (realceDaReforma, reforma_palco.js). esc: px de mundo por px de tela (o salão
@@ -141,6 +152,15 @@ function poeEmpreitasNoMapa(b) {
     const E = dadosEmpreita(id), a = G.empreitas.aceitas[id];
     if (!E || E.mapa !== b.id) continue;
     if (E.tipo === 'longa' && !E.bairro && !E.familia) limparLote(b, E);
+    // (T6) A limpeza fixa (as pedras da estrada): cada detrito no seu ladrilho, sem plaquinha; o que já saiu não volta (a.limpos).
+    // O detrito do save (sem a marca do serviço) que estiver no lugar sai antes, para o do serviço nascer ali.
+    if (E.tipo === 'curta' && LIMPEZA_FIXA[id]) {
+      const tam = (VISUAL_DETRITO[LIMPEZA[id]] || {}).tam || 1;
+      LIMPEZA_FIXA[id].forEach(([x, y], k) => { if ((a.limpos || []).includes(k)) return;
+        for (let i = 0; i < tam; i++) for (let j = 0; j < tam; j++) { const o = b.ocupado.get(chaveT(x + i, y + j)); if (o && (o.achado || (o.tipo === 'detrito' && !o.empreitaDet))) b.tirar(o); }
+        const d = b.detrito(LIMPEZA[id], x, y); if (d) { d.empreitaDet = id; d.fixo = k; } });
+      continue;
+    }
     const p = lugarLivre(b, E.x, E.y);
     if (E.tipo === 'curta' && (E.local || (E.estrago && E.estrago.noObjeto))) continue;   // o serviço no lugar de verdade (ou no próprio objeto): sem plaquinha
     if (E.tipo === 'curta') {
@@ -190,7 +210,7 @@ function golpeNoLocal(ferr, alvo, vistos = null) {
       const nome = NOME_FERRAMENTA[E.ferramenta] || E.ferramenta, naFerraria = G.ferreiro && G.ferreiro.oficina && G.ferreiro.oficina.id === E.ferramenta;
       sons.tocar('madeira', 1.6, 0.05, -10); avisar(`Aqui é com ${nome}${naFerraria ? ', que está com o Seu Tonico na ferraria' : ''}.`); return true;
     }
-    if (typeof lascas === 'function') lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, ferr === 'pa' ? 'terra' : 'madeira');
+    if (typeof lascas === 'function' && ferr !== 'colher') lascas((alvo.x + 0.5) * TILE, (alvo.y + 0.5) * TILE, ferr === 'pa' ? 'terra' : 'madeira');   // (a colher solta a massa na ponta dela, ferramentas.js)
     golpeEmpreita(cid, ferr); return true;
   }
   return false;
@@ -222,7 +242,7 @@ function acaoEmpreita(id) {
   if (E.ferramenta === 'carga') { golpeEmpreita(id, 'carga'); return true; }
   // (teste de 12/10) A plaquinha explica: quantos golpes, quantos já foram e quando o material é gasto.
   const mat = Object.keys(E.material).length ? ' Tenha na mochila: ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') + ' (gastas no último golpe).' : '';
-  const como = LIMPEZA[id] ? `Limpe ${E.vezes} ${LIMPEZA[id] === 'mato' ? 'matos' : 'entulhos'} em volta com ${NOME_FERRAMENTA[E.ferramenta]}.` : `Escolha ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} e dê ${E.vezes} golpes nesta plaquinha (feitos: ${a.vezes || 0}/${E.vezes}).`;
+  const como = LIMPEZA[id] ? `Limpe ${E.vezes} ${NOME_LIMPEZA[LIMPEZA[id]] || LIMPEZA[id]} em volta com ${NOME_FERRAMENTA[E.ferramenta]}.` : `Escolha ${NOME_FERRAMENTA[E.ferramenta] || E.ferramenta} e dê ${E.vezes} golpes nesta plaquinha (feitos: ${a.vezes || 0}/${E.vezes}).`;
   abrirPlaca(`${E.nome} para ${CLIENTE_NOME[E.cliente]} (Cr$ ${E.paga}). ${como}${mat}`);
   return true;
 }
@@ -262,6 +282,7 @@ function quebrouEmpreita(o) {
     if (i >= 0) { c.pos.splice(i, 1); if (!c.pos.length) { c.limpo = true; sons.tocar('feito', 1, 0.03, -6); avisar('O terreno do Seu Ananias está limpo! Ele paga à noite.'); } }
   }
   if (!o.empreitaDet || !dadosEmpreita(o.empreitaDet)) return;
+  if (o.fixo !== undefined && G.empreitas.aceitas[o.empreitaDet]) { const a = G.empreitas.aceitas[o.empreitaDet]; (a.limpos || (a.limpos = [])).push(o.fixo); }   // (T6: a pedra que saiu da estrada não volta)
   const r = Empreitas.trabalhar(o.empreitaDet, dadosEmpreita(o.empreitaDet).ferramenta);
   if (r === 'pronta') golpeEmpreitaPronta(o.empreitaDet);
 }
@@ -286,7 +307,7 @@ function abrirQuadro(aba = 'servicos') {
     } else {
       const ids = G.empreitas.quadro, aceitas = Object.keys(G.empreitas.aceitas);
       const linha = (id, botao) => { const E = dadosEmpreita(id); return el('div', { class: 'orel-item' }, el('img', { src: urlItem(E.ferramenta === 'carga' ? 'telha' : E.ferramenta) }),
-        el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), el('div', { class: 'orel-preco' },
+        el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), E.fala ? el('div', { class: 'recado-fala' }, `"${E.fala}"`) : null, el('div', { class: 'orel-preco' },
           `${ondeFica(E.mapa)} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${E.paga}` +
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
       const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
@@ -294,6 +315,8 @@ function abrirQuadro(aba = 'servicos') {
       caixa.append(el('div', { class: 'fala-vila' }, el('b', {}, 'Fala da Vila: ' + fx.nome),
         el('span', {}, prox ? ` · ${G.empreitas.entregues}/${prox.entregues} serviços${prox.caprichados ? `, ${cap}/${prox.caprichados} caprichados` : ''} para ${prox.nome}` : ' · o nome mais respeitado da Vila'),
         el('div', { class: 'barra-fala' }, el('div', { style: `width:${Math.min(100, pct)}%` }))));
+      // (15/10, T3) O recado do dia: coisa de vizinho, à parte dos serviços (recados_jogo.js); sem recado hoje, a seção não aparece.
+      const rec = typeof recadoNoQuadro === 'function' ? recadoNoQuadro(desenha) : null; if (rec) caixa.append(...rec);
       caixa.append(el('div', { class: 'cad-sub' }, 'Pedidos de hoje'), el('div', { class: 'qv-lista' }, ...(ids.length ? ids.map(id => {
         const pode = Empreitas.libera(id);
         return linha(id, pode ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro);
@@ -311,7 +334,8 @@ function abrirQuadro(aba = 'servicos') {
       if (doBairro.length) caixa.append(el('div', { class: 'cad-sub' }, 'Bairro Novo'), el('div', { class: 'qv-lista' }, ...doBairro.map(id => linha(id, Empreitas.libera(id)
         ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro); if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -6); avisar(`Aceito: ${dadosEmpreita(id).nome}. A plaquinha está no terreno, no Bairro Novo.`); hudSujo(); desenha(); } else avisar({ limite: 'Uma empreita longa por vez (duas para o mestre de obras).' }[r] || 'Não deu.'); } }, 'Aceitar')
         : el('div', { class: 'orel-preco' }, `Pede ${NOMES_HAB[dadosEmpreita(id).hab.h]} ${dadosEmpreita(id).hab.n}`)))));
-      if (aceitas.length) caixa.append(el('div', { class: 'cad-sub' }, 'Aceitas'), el('div', { class: 'qv-lista' }, ...aceitas.map(id => linha(id, el('div', { class: 'orel-preco' }, Empreitas.textoEstado(id))))));
+      const recAceitos = typeof linhasRecadosAceitos === 'function' ? linhasRecadosAceitos() : [];   // (T3) os recados aceitos, com o estado
+      if (aceitas.length || recAceitos.length) caixa.append(el('div', { class: 'cad-sub' }, 'Aceitas'), el('div', { class: 'qv-lista' }, ...aceitas.map(id => linha(id, el('div', { class: 'orel-preco' }, Empreitas.textoEstado(id)))), ...recAceitos));
     }
     caixa.append(el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };
@@ -329,6 +353,8 @@ MANHA.push(() => {
   if (typeof cartaDePedido === 'function') cartaDePedido(G.dia);
   const c = G.empreitas.capina;
   if (c && Math.floor((G.dia - 1) / 28) % 4 !== c.estacao) { G.empreitas.capina = null; G.feitosHoje.push('A capina do Seu Ananias acabou com a estação.'); }
+  // (T6) O canteiro mudou com a obra e o novo não tem carrinho: o serviço do Zé acaba sem cobrança (ele se vira com o de lá).
+  for (const id in G.empreitas.aceitas) { const E = EMPREITAS_CURTAS[id]; if (E && E.precisa && !E.precisa()) { delete G.empreitas.aceitas[id]; G.feitosHoje.push(`${CLIENTE_NOME[E.cliente] || ''}: "${E.nome}: deixa, a obra mudou de lugar e o carrinho ficou para trás."`); } }
   for (const id in MAPAS) poeEmpreitasNoMapa(MAPAS[id]);
 });
 // As falas da entrega (o selo e o comentário do cliente), por qualidade.

@@ -41,6 +41,7 @@ const ATUALIZADORES = [];      // (dt) a cada quadro com o jogo correndo
 const DESENHOS_TELA = [];      // (ctx) por cima do mundo, em pixels de tela
 const INICIADORES = [];        // (save) ao começar ou carregar o jogo
 const AO_MONTAR = [];          // (mapa) logo depois de um mapa ser montado (cada sistema ajusta o que é dele)
+const AO_PEGAR = [];           // (item, qtd) quando um item do mundo entra na mochila (o ímã, só o que saiu de detrito, e o catar do achado): a coleta do recado
 
 // ---------- ajudantes ----------
 const $ = s => document.querySelector(s);

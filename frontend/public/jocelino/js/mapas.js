@@ -200,6 +200,8 @@ const VISUAL_DETRITO = {
   toco_lei: { nomes: ['objetos/toco_lei'] },
 };
 
+// (mapa) depois de todos os AO_MONTAR, com tudo do mapa no lugar (o entulho da obra só nasce onde nada mais vai ficar).
+const DEPOIS_DE_MONTAR = [];
 function getMapa(id) {
   if (!MAPAS[id]) {
     const def = MAPAS_DEF[id];
@@ -213,6 +215,7 @@ function getMapa(id) {
     }
     if (b.aoMontar) b.aoMontar();
     for (const f of AO_MONTAR) f(b);
+    for (const f of DEPOIS_DE_MONTAR) f(b);
     MAPAS[id] = b;
   }
   return MAPAS[id];
@@ -395,7 +398,8 @@ function desenhaNomes(ctx, m) {
   }
   ctx.textAlign = 'center'; ctx.font = `800 ${tam}px Nunito`;
   for (const o of m.objs) {
-    const n = o.placa || PLACAS[o.id];
+    // (15/10) a casa da Dona Zélia pronta (a obra do Bira já é outra) não é mais "obra"
+    const n = o.placa || (o.id === 'casa_zelia' && G.obra && G.obra.indice > 0 ? 'Casa da Dona Zélia' : PLACAS[o.id]);
     if (!n || LETREIROS[o.nome]) continue;
     const img = spr(o.nome);
     if (!img) continue;

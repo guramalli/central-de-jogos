@@ -74,7 +74,10 @@ const ECO = {
     // do prato (o Dave); quem acabou de comer e ainda espera a cerveja fica até tantos segundos antes de pagar e ir embora.
     janta: { PACIENCIA_PEDIDO: 45, PACIENCIA_PRATO: 70, PREPARO: 6, COMENDO: 8, LENDO: 1.5, LENDO_LOUCA: 6,
       FARINHA_MAX: 15, REPOR_ATE: 10, PASSE_MAX: 4, BANDEJA_MAX: 3, BOCAS: 2, GORJETA_MEDIDA: 0.15,
-      precoBebida: { cafe: 0, guarana: 0, caldo_cana: 0, cerveja: 2 },
+      // (14/10, Tarefa E2, o coquetel do Dave) a caipirinha do Seu Orlando: a bebida mais cara (mas pequena perto do prato, que vai
+      // de Cr$ 11 a 48 no meio dos degraus); como a cerveja, vem DEPOIS do prato (BEBIDAS_DEPOIS) e quem acabou de comer espera por
+      // ela o ESPERA_CERVEJA. CAIPIRINHA_AJUDANTE: os segundos do ajudante com a habilidade "caipirinha" para fazer uma no balcão.
+      precoBebida: { cafe: 0, guarana: 0, caldo_cana: 0, cerveja: 2, caipirinha: 5 }, BEBIDAS_DEPOIS: ['cerveja', 'caipirinha'], CAIPIRINHA_AJUDANTE: 6,
       ALERTA_FARINHA: { minimo: 3, parte: 3 }, PENEIRA: { jocelino: 2.5, ajudante: 5, mestre: 2.5 }, ESPERA_CERVEJA: 10,
       // (14/10, Tarefa D1, a cozinha de verdade) preparo: os segundos de fogo de cada receita (o PREPARO acima é o padrão, do salão
       // antigo). Rápidos (4 a 5 s): a salada, a farofa, a couve e os doces da panela; médios (6 s): o PF, o peixe frito e os caldos;
@@ -112,8 +115,14 @@ const ECO = {
     mercearia: { arroz: 1, feijao: 1, farinha: 1, ovo: 2, macarrao: 2, linguica: 6, carne_seca: 8, queijo_coalho: 15, leite: 2, acucar: 1 }, banca: { isca: 2, covo: 25, vara_boa: 250 },
     viajante: { receitas: { arroz_polvo: 300 }, ingredientes: { polvo: 40, camarao: 18, lagosta: 70, pimenta_cheiro: 35, dende: 12 } } },
   // ---- Os serviços: empreitas (o pagamento de cada uma), a Fala da Vila, a carta; o bairro; a Prefeitura e o Tião.
-  empreitas: { paga: { consertar_banca: 150, tabua_pier: 120, limpar_trilha: 108, escorar_ponte: 150, remendar_calcada: 180, cerca_zelia: 132, telhas_juca: 120, desentulhar_ananias: 150, calcada_cimento: 150, cerca_madeira: 138, muro_baixo: 212, baldrame: 225, muro_chapiscado: 550, quiosque_praia: 650, ponte_pedra: 800, calcada_colorida: 450, baldrame_concreto: 500, cimentado_queimado: 650, sapata_corrida: 1200, muro_rebocado: 1300, ladrilho: 1750, radier: 2750, capina_ananias: 180 },
+  empreitas: { paga: { consertar_banca: 150, tabua_pier: 120, limpar_trilha: 108, escorar_ponte: 150, remendar_calcada: 180, cerca_zelia: 132, telhas_juca: 120, desentulhar_ananias: 150, banco_praca: 132, buraco_rua: 150, carrinho_ze: 120, pedregulho_rua: 120, calcada_cimento: 150, cerca_madeira: 138, muro_baixo: 212, baldrame: 225, muro_chapiscado: 550, quiosque_praia: 650, ponte_pedra: 800, calcada_colorida: 450, baldrame_concreto: 500, cimentado_queimado: 650, sapata_corrida: 1200, muro_rebocado: 1300, ladrilho: 1750, radier: 2750, capina_ananias: 180 },
     faixas: [1, 1.1, 1.2], carta: 1.15 },
+  // (15/10, o quadro de pedidos) Os recados do povo (o Help Wanted do Stardew; recados.js): a partir de que dia, o prazo (o dia em que
+  // aceitou e o seguinte), quantos aceitos de uma vez, a janela sem repetir (dias), o ritmo dos tipos (quantas entregas seguidas antes de
+  // uma coleta), o peso da entrega contra a coleta (1) no primeiro sorteio e o pagamento de cada um. A conta do pagamento é a do Stardew: 3 × o preço do item na caixa de venda × a quantidade, de 5 em 5, com piso de 30.
+  recados: { diaMin: 2, prazo: 2, maxAtivos: 2, janela: 7, entregasPorColeta: 2, pesoEntrega: 2,
+    paga: { ent_couve_zelia: 70, ent_flor_zelia: 45, ent_goiaba_tonico: 55, ent_flor_bira: 45, ent_coco_ze: 30, ent_fibra_ze: 30, ent_madeira_juca: 60, ent_pedra_ananias: 45, ent_alface_ananias: 90,
+      ent_tomate_bira: 85, ent_sardinha_lourival: 35, ent_tainha_tonico: 35, ent_cogumelo_juca: 60, col_madeira_ze: 90, col_pedra_tonico: 45, col_fibra_juca: 45 } },
   bairro: { casa: [225, 375, 300, 450, 225, 300], comercio: [450, 675, 525, 750, 300], tipos: { simples: 1, boa: 1.4, sobrado: 2 } },
   prefeitura: { paga: { pref_museu: 1250, pref_quadro: 1000, pref_praca: 1125, pref_bueiro: 1500 }, tiao: { contrato: 100, salario: 20, medico: 60 } },
   // ---- O ferreiro, a mina, as melhorias e ampliações da pensão, a equipe.
@@ -137,6 +146,9 @@ const ECO = {
   equipe: { anuncios: { cartaz: 50, radio: 150, jornal: 400 }, salarioBase: 4,
     nivelMax: 20, salarioPorNivel: 2, salarioTeto: 40, treino: { base: 60, cresce: 1.5, teto: 5000 }, reserva: 0.5, reservaMax: 3,
     mestre: { salao: 12, cozinha: 15, compras: 12, leva_prato: 15 }, levaPrato: 0.2, receitas: [5, 10, 15, 20],
+    // (14/10, Tarefa E2) a habilidade rara do Salão: só uma parte de quem tem vocação de salão (`chance`) a traz, e ela abre no
+    // nível `nivel` (o mais alto de todos); quem a tem faz a caipirinha sozinho(a) (o Mestre da bebida, na medida).
+    caipirinha: { chance: 0.25, nivel: 16 },
     louca: { velocidade: 1.6, olhar: 0.2 }, fogao: 0.1, pressa: 0.1,
     expedicao: { base: 1, porCompras: 25, mestre: 2, bonus: [1, 3], simpatiaChance: 150, bonusMax: 0.6 } },
   // ---- O Bazar do Seu Salim (os gastos em degraus, como as ferramentas e a casa do Stardew): cada item uma vez.

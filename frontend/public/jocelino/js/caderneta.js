@@ -17,11 +17,24 @@ const Caderneta = {
 CADERNETA.push(() => {
   const r = [], dom = (G.dia - 1) % 7 === 6, l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
   if (G.obra && !Obra.aberta(G.dia, G.minutos) && !(l && l.paga)) r.push({ id: 'hoje_obra', aba: 'hoje', hoje: true, texto: `A obra do Mestre Bira, na Vila: Cr$ ${Obra.diaria()} por dia, até as 17h`, alvo: { mapa: 'vila', morador: 'bira' } });
-  if (G.empreitas && _liberado('quadro') && G.empreitas.quadro.length && !Object.keys(G.empreitas.aceitas).length) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: `${G.empreitas.quadro.length} serviço(s) no quadro da Vila (pagam na hora)`, alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } });
+  // (15/10, T4) o recado do dia ainda no quadro (e com vaga para aceitar) entra na mesma linha
+  if (G.empreitas && _liberado('quadro')) { const serv = Object.keys(G.empreitas.aceitas).length ? 0 : G.empreitas.quadro.length, R = G.recados;
+    const rec = !!R && typeof ECO !== 'undefined' && ECO.recados && R.dia === G.dia && !!R.doDia && !R.ativos[R.doDia] && Object.keys(R.ativos).length < ECO.recados.maxAtivos;
+    if (serv || rec) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: serv && rec ? `${serv} serviço(s) e 1 recado no quadro da Vila` : serv ? `${serv} serviço(s) no quadro da Vila (pagam na hora)` : '1 recado de vizinho no quadro da Vila', alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } }); }
   if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
   if (!dom && !depositoFechado()) r.push({ id: 'hoje_deposito', aba: 'hoje', texto: `O depósito do Ananias (material, sementes, comida) fecha às ${DEPOSITO_HORARIO.fecha / 60}h`, alvo: { mapa: 'vila', objeto: 'deposito' } });
   if (typeof Clima !== 'undefined' && Clima.chove(G.dia)) r.push({ id: 'hoje_chuva', aba: 'hoje', texto: 'Chove hoje: a horta já está regada e a mata dá mais cogumelo' });
   return r;
+});
+// (15/10, T4) Os recados aceitos (Hoje: têm prazo), com a barrinha e o Mostrar: a seta vai aonde o item nasce ou, com tudo na
+// mochila, no morador (alvoDoRecado, guia_setas.js). As linhas das tarefas (pend_*, cartao.js) deixam o recado de fora: sem dobra.
+CADERNETA.push(() => {
+  if (!G.recados || typeof Recados === 'undefined' || !G.mochila) return [];
+  return Object.keys(G.recados.ativos).filter(id => PEDIDOS_VILA[id]).map(id => {
+    const P = PEDIDOS_VILA[id], a = G.recados.ativos[id], juntando = P.tipo === 'coleta' && a.juntou < P.qtd, feito = juntando ? a.juntou : Math.min(P.qtd, G.mochila.total(P.item));
+    return { id: 'recado_' + id, aba: 'hoje', hoje: true, recado: id, feito, meta: P.qtd, alvo: () => alvoDoRecado(id),
+      texto: `Recado: ${juntando ? 'juntar ' : ''}${Itens.qtd(P.qtd, P.item)} para ${recadoPara(P.cliente)} (${feito}/${P.qtd}) — ${Recados.textoPrazo(a.ate)}` };
+  });
 });
 // O quintal e a horta.
 const _alvoLimparQuintal = () => { if (G.mapaId !== 'quintal') return { mapa: 'quintal' }; const o = _maisPerto(x => DET_LIMPAR.includes(x.det)); return o ? { mapa: 'quintal', ponto: { x: o.x, y: o.y - 56 }, det: o.det } : null; };
@@ -70,6 +83,9 @@ CADERNETA.push(() => {
   // (revisão 3) O Bazar com o porquê: o item escolhido no "Juntar para" ("Juntando para"); sem escolha, o mais barato com o efeito dele.
   const be = typeof Bazar !== 'undefined' && Bazar.metaEscolhida(), b = be || (typeof Bazar !== 'undefined' && Bazar.meta());
   if (b) r.push({ id: 'vila_bazar', aba: 'vila', texto: be ? `Juntando para: ${b.nome} (${be.curto}), no Bazar do Salim — Cr$ ${b.preco}` : `Bazar do Salim: ${b.nome} — ${b.efeito.replace(/\.$/, '').toLowerCase()} (Cr$ ${b.preco}; "Juntar para" põe embaixo do relógio)`, feito: Math.min(G.dinheiro, b.preco), meta: b.preco, alvo: { mapa: 'vila', objeto: 'balcao_bazar' } });
+  // (15/10, T4) os recados entregues: só a conta, sem meta (como no Stardew)
+  if (G.recados && typeof Recados !== 'undefined' && (G.recados.entregues > 0 || Recados.liberado())) { const n = G.recados.entregues;
+    r.push({ id: 'vila_recados', aba: 'vila', texto: `Recados para o povo: ${n} ${n === 1 ? 'entregue' : 'entregues'}` }); }
   if (typeof MUSEU !== 'undefined' && G.mina && G.mina.museu) { const tot = MUSEU.ANTIGOS.length + MUSEU.RAROS.length, d = G.mina.museu.doados.length;
     if (d < tot) r.push({ id: 'vila_museu', aba: 'vila', texto: `Museu da Vila: ${d} de ${tot} doados (cave as marcas no chão; os raros vêm da pedreira e da praia)`, feito: d, meta: tot, alvo: { mapa: 'vila', objeto: 'museu' } }); }
   return r;

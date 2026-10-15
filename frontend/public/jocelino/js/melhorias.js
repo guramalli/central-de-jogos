@@ -89,9 +89,11 @@ function bonusMelhorias(p) {
   }
   return b;
 }
-// As bebidas que a pensão serve (a cerveja só com a geladeira).
+// As bebidas que a pensão serve (a cerveja só com a geladeira; a caipirinha só depois do presente do Seu Orlando: antes disso ela
+// não existe, nem no cardápio de bebidas).
 Pratos.BEBIDAS.cerveja = Pratos.BEBIDAS.cerveja || 'Cerveja gelada';
-function bebidasDaPensao(p) { return Object.keys(Pratos.BEBIDAS).filter(b => b !== 'cerveja' || (p.melhorias || []).includes('geladeira')); }
+Pratos.BEBIDAS.caipirinha = Pratos.BEBIDAS.caipirinha || 'Caipirinha';
+function bebidasDaPensao(p) { return Object.keys(Pratos.BEBIDAS).filter(b => (b !== 'cerveja' || (p.melhorias || []).includes('geladeira')) && (b !== 'caipirinha' || (p.premios || []).includes('caipirinha'))); }
 
 // ---------- no palco: a arte das melhorias compradas ----------
 function camadasMelhorias() {
