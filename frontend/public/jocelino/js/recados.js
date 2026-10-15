@@ -133,8 +133,34 @@ const Recados = {
     return n;
   },
   ehMaterial(item) { return Object.values(DETRITOS).some(D => D.solta && D.solta[item]); },
+  // (T8, 15/10) O que nasce no chão (goiaba, flor, coco, cogumelo: os achados de achados.js)? Esses só valem se o chão dos mapas
+  // abertos der a quantidade dentro do prazo: a vistoria achou recado impossível (3 goiabas no inverno com 1 goiaba no chão em 2 dias).
+  ehAchado(item) { return typeof ACHADOS_ESTACAO !== 'undefined' && [...ACHADOS_ESTACAO, ...ACHADOS_MATA, ACHADOS_PRAIA].some(t => t.some(([id]) => id === item)); },
+  // Quantos do item o chão dos mapas abertos dá do dia até o fim do prazo (hoje, o que ainda não foi catado; os dias seguintes, o
+  // sorteio deles, que é fixo pelo dia e pelo mapa).
+  noChao(item, mapas, dia = G.dia) {
+    if (typeof Achados === 'undefined') return 0;
+    let n = 0;
+    for (let d = dia; d < dia + ECO.recados.prazo; d++) for (const id of mapas) {
+      if (!Recados.aberto(id) || !ACHADOS_POR_MAPA[id] || typeof MAPAS_DEF === 'undefined' || !MAPAS_DEF[id]) continue;
+      let lista = [];
+      try {
+        if (d === G.dia && G.achados && G.achados.dia === d) { const ja = G.achados.catados[id] || []; lista = Achados.doDia(d, id).filter(x => !ja.includes(x.k)); }
+        else lista = Achados.sortear(d, id, MAPAS[id] || getMapa(id));
+      } catch (e) { lista = []; }
+      n += lista.filter(x => x.id === item).length;
+    }
+    return n;
+  },
   // Covas da horta plantadas com a cultura.
   plantadas(item) { return G.horta && G.horta.covas ? Object.values(G.horta.covas).filter(c => c && c.planta === item).length : 0; },
+  // (T8, correção do controlador) As covas da cultura que ficam prontas (colhíveis) dentro do prazo do recado: as maduras e as que
+  // crescem até lá (a mesma conta de dias da horta, uma noite regada por dia). O pé ainda verde que só fica pronto depois do prazo
+  // não conta: com 2 dias de prazo, "3 couves" com os pés plantados ontem vencia sem ter como cumprir.
+  prontasNoPrazo(item) {
+    if (!G.horta || !G.horta.covas || typeof Horta === 'undefined') return 0;
+    return Object.values(G.horta.covas).filter(c => c && c.planta === item && Horta.diasPara(item) - (c.dias || 0) <= ECO.recados.prazo - 1).length;
+  },
   // Dá para fazer agora? A estação, o dia, o morador e o mapa de origem abertos, a ferramenta (a vara), a horta plantada (ou o
   // item na mochila) e o material no mundo aberto (na entrega, somando o que já está na mochila; na coleta, só o mundo).
   possivel(id, dia = G.dia, mochila = G.mochila) {
@@ -143,8 +169,9 @@ const Recados = {
     if (!Recados.aberto(RECADO_MORADOR[P.cliente]) || !P.mapas.some(m => Recados.aberto(m))) return false;
     if (P.precisa && !(mochila && mochila.total(P.precisa) > 0)) return false;
     const tem = P.tipo === 'entrega' && mochila ? mochila.total(P.item) : 0;
-    if (typeof CULTURAS !== 'undefined' && CULTURAS[P.item]) return Recados.plantadas(P.item) + tem >= P.qtd;
+    if (typeof CULTURAS !== 'undefined' && CULTURAS[P.item]) return Recados.prontasNoPrazo(P.item) + tem >= P.qtd;
     if (Recados.ehMaterial(P.item)) return tem >= P.qtd || tem + Recados.noMundo(P.item, P.mapas) >= P.qtd;
+    if (!P.precisa && Recados.ehAchado(P.item)) return tem >= P.qtd || tem + Recados.noChao(P.item, P.mapas, dia) >= P.qtd;
     return true;
   },
   // Os clientes dos serviços do dia: o quadro de hoje (o guardado, ou o sorteio do dia) e os aceitos hoje.

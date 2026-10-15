@@ -421,11 +421,17 @@ function guiaSetaMundo() {
   const servicos = _horaDaJanta() ? [] : _servicosDaSeta(), deHoje = servicos.filter(_servicoDeHoje);
   for (const cid of deHoje) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
   if (!_depoisDas17()) cands.push(['recado', _alvoDoRecadoGuia]);   // (15/10, T4) o recado aceito é "de hoje" (tem prazo): junto com os serviços
-  for (const id of missoes.filter(x => !doDia(x))) cands.push([id, () => _alvoDaMissao(id)]);
   // (Obra do Povo) A linha da caderneta escolhida no Mostrar (ou na ideia): depois das missões do guia; acabou a linha, ou o
-  // Jocelino chegou lá, some a seta (revisão final).
+  // Jocelino chegou lá, some a seta (revisão final). (T8, a vistoria jogando) O recado mostrado tem prazo, como o recado da 1ª vez:
+  // vem junto dele, antes das missões. Antes, com a missão da pensão aberta (dias e dias), o Mostrar do recado apontava a madeira da
+  // pensão na mata, e não o cogumelo do Tio Juca a dois passos; o recado vencia.
+  let cad = null;
   if (G.setaFixa && typeof Caderneta !== 'undefined') { const l = Caderneta.linha(G.setaFixa);
-    if (!l || !l.alvo) G.setaFixa = null; else cands.push(['caderneta', () => { const a = typeof l.alvo === 'function' ? l.alvo() : l.alvo; return a && Object.assign({ rotuloFixo: l.rotulo || l.texto }, a); }]); }
+    if (!l || !l.alvo) G.setaFixa = null; else cad = ['caderneta', () => { const a = typeof l.alvo === 'function' ? l.alvo() : l.alvo; return a && Object.assign({ rotuloFixo: l.rotulo || l.texto }, a); }]; }
+  const cadRecado = !!cad && /^recado_/.test(G.setaFixa);
+  if (cadRecado && !_depoisDas17()) cands.push(cad);
+  for (const id of missoes.filter(x => !doDia(x))) cands.push([id, () => _alvoDaMissao(id)]);
+  if (cad && (!cadRecado || _depoisDas17())) cands.push(cad);   // (depois das 17h, a janta manda: o recado volta para o fim)
   for (const cid of servicos.filter(x => !deHoje.includes(x))) cands.push(['servico', () => { const a = _alvoDaEmpreita(cid); return a && Object.assign({ empreita: cid }, a); }]);
   // (13/10) Primeiro o que dá para fazer no mapa onde o Jocelino está; só depois o caminho para outro lugar.
   const res = [];
