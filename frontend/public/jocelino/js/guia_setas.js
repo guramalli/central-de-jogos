@@ -532,6 +532,12 @@ const PRIMEIRA_TELA = {
       const ex = bts.filter(x => x.classList.contains('eq-expedir')), b = ex.find(x => x.dataset.posto === 'reserva') || ex[0];
       // (a seta vem da esquerda: de cima, ela tapava o Treinar logo acima)
       return b && { el: b, lado: 'esquerda', frase: 'Quem está na reserva (ou no posto de Expedição) busca o ingrediente que você escolher: clique em Expedição.' }; } },
+  // - (15/10, a clareza; o dono: "contratei uma senhora e aparece 'posto', o que significa?") O posto -> Dave (o Assign da equipe: o
+  //   Bancho mostra o que cada funcionário faz no lugar dele): com alguém contratado, a seta no "Mudar de posto" e a Rosa explica na
+  //   faixa. Some quando a escolha abre (palco.js marca G.limpou.tela_posto) ou numa troca. Vem depois da 1ª expedição (quem foi
+  //   contratado na reserva aprende primeiro a mandar buscar; quem foi para o Salão, não tem expedição e vê esta já).
+  posto: { painel: '#modal .equipe', sel: '#modal .equipe .eq-mudar-posto', faixa: '#modal .eq-faixa', usou: () => false,
+    escolhe: bts => bts[0] && { el: bts[0], lado: 'esquerda', frase: 'Rosa: "Posto é onde a pessoa trabalha na janta: Salão, Cozinha ou Expedição; na Reserva ela fica parada. Clique em Mudar de posto para ver o que ela faz em cada um."' } },
   // - O cardápio da noite -> Dave (o Bancho ensina o cardápio na primeira noite): a Rosa guia passo a passo no quadro da abertura —
   //   3 passos: o prato, a panela ("cada panela dá N porções") e o "Abrir a pensão", cuja fala explica o "Rosa repõe" (ligado de
   //   fábrica; G.limpou.cardapio_prato e _panela, contados no quadro; a tela some no primeiro "Abrir a pensão"). O save antigo também
@@ -577,7 +583,7 @@ const jaFezTela = id => ((G.limpou || {})['tela_' + id] || 0) > 0 || _tenta(PRIM
 function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela_' + id] || 0) + 1; }
 { const embrulha = (obj, m, id) => { const f = obj[m]; obj[m] = function (...a) { const r = f.apply(this, a); if (r === 'ok') _marcaTela(id); return r; }; };
   embrulha(Bazar, 'comprar', 'bazar'); embrulha(Pensao.prototype, 'caprichar', 'receitas'); embrulha(Pensao.prototype, 'pesquisar', 'receitas');
-  embrulha(Melhorias, 'comprar', 'melhorias'); embrulha(Melhorias, 'subir', 'melhorias'); embrulha(Equipe, 'contratar', 'equipe'); embrulha(Equipe, 'expedir', 'expedicao');
+  embrulha(Melhorias, 'comprar', 'melhorias'); embrulha(Melhorias, 'subir', 'melhorias'); embrulha(Equipe, 'contratar', 'equipe'); embrulha(Equipe, 'expedir', 'expedicao'); embrulha(Equipe, 'mudarPosto', 'posto');
   const pp = pegouPeixe; pegouPeixe = function (...a) { const r = pp.apply(this, a); _marcaTela('pesca'); return r; };
   // (15/10, T4) o 1º recado aceito apaga a seta do quadro; a 1ª entrega apaga as setas da origem e do morador
   if (typeof Recados !== 'undefined') { embrulha(Recados, 'aceitar', 'recado');

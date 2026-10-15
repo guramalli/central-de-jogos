@@ -29,8 +29,10 @@ function abrirCaderno(sel) {
     caixa.innerHTML = '';
     const esq = el('div', { class: 'pagina esq' }), dir = el('div', { class: 'pagina dir' });
     const ch = p.chef || { nivel: 1, xp: 0 }, prox = Chef.NIVEIS_INVENTA.find(x => x > ch.nivel);
+    // (15/10, a clareza) as pitadas e o chef com o "(?)" do que são
     esq.append(el('div', { class: 'cad-titulo' }, 'Receitas da Rosa'), el('div', { class: 'cad-pitadas' }, `Pitadas de tempero: ${p.pitadas}`),
-      el('div', { class: 'cad-chef' }, `Rosa, chef nível ${ch.nivel}` + (ch.nivel < Chef.NIVEL_MAX ? ` · ${ch.xp}/${Chef.xpPara(ch.nivel)} pratos para o próximo` : ' (máximo)') + ` · ${Chef.bocas(p)} bocas no fogão` + (prox ? ` · no nível ${prox} ela inventa uma receita` : '')));
+      el('div', { class: 'cad-chef' }, `Rosa, chef nível ${ch.nivel}` + (ch.nivel < Chef.NIVEL_MAX ? ` · ${ch.xp}/${Chef.xpPara(ch.nivel)} pratos para o próximo` : ' (máximo)') + ` · ${Chef.bocas(p)} bocas no fogão` + (prox ? ` · no nível ${prox} ela inventa uma receita` : '')),
+      linhaAjuda('caderno_esq', 'Pitadas pagam receita nova; caprichar sobe o prato.', [GLOSSARIO.pitada, GLOSSARIO.chef, GLOSSARIO.nivelPrato]));
     for (const id of p.receitas) {
       const pr = Pratos.PRATOS[id], n = p.nivel(id);
       esq.append(el('div', { class: 'cad-linha' + (id === _cadernoSel ? ' sel' : ''), onclick: e => { e.stopPropagation(); _cadernoSel = id; sons.tocar('pagina', 1, 0.05, -6); desenha(); } },
@@ -69,9 +71,13 @@ function abrirCaderno(sel) {
     if (tem) {
       const n = p.nivel(id), c = p.custoCaprichar(id);
       dir.append(el('div', { class: 'cad-nivelzao' }, '★'.repeat(n) + '☆'.repeat(Pensao.NIVEL_MAX - n)),
-        el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · Sabor ${p.sabor(id)} · ${p.porcoesPorPanela(id)} porções por panela`));
+        el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · ${p.porcoesPorPanela(id)} porções por panela`));
+      // (15/10, o dono: "o número de sabor, para que serve?") o sabor em uma linha: para que serve e o que falta; o detalhe no "(?)".
+      // (Na lousa a foto do prato vai para o lado do nome: o Caprichar continua à vista sem rolar a página, a s31.)
+      const linhaSabor = linhaAjuda('sabor', textoSaborDoPrato(p, id), [GLOSSARIO.sabor, GLOSSARIO.melhorSabor, GLOSSARIO.nivelPrato, GLOSSARIO.panela, 'O preço sobe com o nível do prato; a estrela a mais do cliente vem do ingrediente raro (★★), não do sabor.']);
+      linhaSabor.classList.add('cad-sabor'); dir.append(linhaSabor);
       if (n < Pensao.NIVEL_MAX) {
-        const pode = n < p.tetoCapricho() && Object.keys(c).every(ing => p._tem(ing) >= c[ing]), custo = Object.entries(c).map(([ing, q]) => `${q} ${nomeIngrediente(ing).toLowerCase()}`).join(', ');
+        const pode = n < p.tetoCapricho() && Object.keys(c).every(ing => p._tem(ing) >= c[ing]), custo = Object.entries(c).map(([ing, q]) => ing === 'peixe' ? `${q} ${q === 1 ? 'peixe' : 'peixes'}` : Itens.qtd(q, ing)).join(', ');   // (15/10) o plural: "2 sacos de arroz", não "2 saco"
         const ef = efeitoCaprichar(p, id); p.niveis[id] = n + 1; const porDepois = p.porcoesPorPanela(id); if (n === 1) delete p.niveis[id]; else p.niveis[id] = n;
         dir.append(el('button', { class: 'botao forte cad-capricho' + (pode ? '' : ' desligado'), onclick: e => {
           e.stopPropagation();
@@ -81,6 +87,8 @@ function abrirCaderno(sel) {
           else avisar(r === 'falta' ? `Para caprichar precisa de: ${custo}.` : r === 'teto' ? `A Rosa ainda não sabe caprichar além do nível ${p.tetoCapricho()}: a pensão precisa de mais uma estrela.` : 'Esse prato já está no capricho máximo.');
         } }, `Caprichar: ${custo}`),
           el('div', { class: 'cad-dica' }, `▸ Nível ${n} → ${n + 1}: preço Cr$ ${ef.preco[0]} → ${ef.preco[1]} · sabor ${ef.sabor[0]} → ${ef.sabor[1]} · porções ${p.porcoesPorPanela(id)} → ${porDepois}`));
+        // (15/10, a clareza) o teto do capricho dito na página (antes, só no aviso do clique)
+        if (n >= p.tetoCapricho()) dir.append(el('div', { class: 'cad-dica' }, `A Rosa só capricha até o nível ${p.tetoCapricho()} por enquanto: cada estrela da pensão ensina mais ${ECO.pensao.capricho.porEstrela} níveis.`));
       } else dir.append(el('div', { class: 'cad-dica' }, 'No capricho máximo! A Rosa não tem mais o que ensinar desse prato.'));
     } else if (descobrir) {
       if (descobrir.conhecida) dir.append(el('button', { class: 'botao forte cad-capricho' + (p.pitadas >= descobrir.custo ? '' : ' desligado'), onclick: e => {

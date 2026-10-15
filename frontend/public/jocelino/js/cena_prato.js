@@ -447,6 +447,7 @@ const CenaPrato = {
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     const ctx = cv.getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // (15/10, auditoria de nitidez) o padrão do canvas é 'low': os fundos ampliados borravam
     const fim = c.def.dur, t = c.t;
     // as faixas entram no começo (pelo tempo real: já descem enquanto a arte termina de chegar) e saem no fim
     const entra = _eo(_cs(c.tr, 0, 0.3)), sai = _cs(t, fim - 0.35, fim), vela = entra * (1 - sai);

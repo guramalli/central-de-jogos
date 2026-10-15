@@ -114,7 +114,14 @@ function abrirFechamento(r) {
         // os gargalos num parágrafo só (frases curtas, uma atrás da outra)
         gargalos.length ? el('div', { class: 'fx-linha fx-frase menos' }, el('span', {}, gargalos.map(f => f + '.').join(' '))) : null)),
     fama,
-    el('div', { style: 'text-align:right;margin-top:10px' }, el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar a pensão')));
+    // (15/10, a clareza) o que é cada número, no "(?)" ao lado do botão (fechado, não ocupa linha a mais)
+    el('div', { class: 'fx-pe' }, linhaAjuda('fechamento', 'Lucro = receita − despesa − salários.', [
+      `Nota da noite: a média das estrelas de quem comeu (1 a 5). ${GLOSSARIO.curtida}`, GLOSSARIO.pitada,
+      'Receita: pratos + bebidas + gorjetas + prêmios (cliente especial, pedidos da Vila e metas).',
+      GLOSSARIO.despesa + ' Salários: o da equipe, por noite (na reserva, meio salário).',
+      'Receita perdida: o que pagaria quem foi embora sem comer.', GLOSSARIO.casa, GLOSSARIO.sobra,
+      'As frases no fim da coluna da noite contam o que travou a janta (farinheira vazia, passe cheio, espera longa, louça suja).']),
+      el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar a pensão')));
   abrirModal(caixa);
   contarFechamento(caixa, planoFechamento(r, nota, lucro));
 }

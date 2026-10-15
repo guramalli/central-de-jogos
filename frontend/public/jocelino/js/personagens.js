@@ -65,13 +65,14 @@ class Personagem {
     ctx.fillStyle = 'rgba(0,0,0,.22)';
     ctx.beginPath(); ctx.ellipse(this.x, this.y - 2, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
     if (!img) return;
-    const qw = img.naturalWidth / 4, qh = img.naturalHeight / 4;
+    // fw x fh: o quadro no arquivo; qw x qh: o quadro no mundo (o desenho original; a folha ampliada tem 3x os pixels, arte.js)
+    const fw = img.naturalWidth / 4, fh = img.naturalHeight / 4, f = fatorGente(img), qw = fw / f, qh = fh / f;
     const passo = this.andando ? Math.floor(this.t * 8) % 4 : 1;
     // No palco de lado a gente aparece maior (como no Bancho); a arte é a mesma.
     const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1;
     // (14/10) giro: a camada inteira girada um pouquinho em volta da cintura (o freguês incomodado balançando a cabeça, palco.js)
     if (this.giro) { const py = this.y - qh * e * 0.4; ctx.save(); ctx.translate(this.x, py); ctx.rotate(this.giro); ctx.translate(-this.x, -py); }
-    ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
+    ctx.drawImage(img, this.dir * fw, passo * fh, fw, fh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
     if (this.giro) ctx.restore();
     // O "!" do Mestre Bira: lista nova, pagamento ou gratificação esperando.
     if (this.id === 'bira' && typeof biraTemNovidade === 'function' && biraTemNovidade()) desenhaFx(ctx, 'balao', this.x, this.y - qh * e - 18);
@@ -186,13 +187,13 @@ class Jogador extends Personagem {
     }
     const pose = this.golpe > 0 ? spr('personagens/jocelino/golpe') : null;
     if (pose) {
-      const qw = pose.naturalWidth, qh = pose.naturalHeight / 4;
+      const fw = pose.naturalWidth, fh = pose.naturalHeight / 4, f = fatorGente(pose), qw = fw / f, qh = fh / f;   // (arquivo / mundo)
       ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(this.x, this.y - 2, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
       desenhaFerramenta(ctx, this, true);
       const c = poseCorpo(this);
       ctx.save();
       ctx.translate(this.x, this.y + 2 + c.dy); ctx.rotate(c.inc); ctx.scale(c.sx, c.sy);
-      ctx.drawImage(pose, 0, this.dir * qh, qw, qh, -qw / 2, -qh, qw, qh);
+      ctx.drawImage(pose, 0, this.dir * fh, fw, fh, -qw / 2, -qh, qw, qh);
       ctx.restore();
       desenhaGolpe(ctx, this);
       return;

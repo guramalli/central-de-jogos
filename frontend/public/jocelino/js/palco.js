@@ -90,7 +90,7 @@ const pensaoNoPalco = () => !!G.pensao && ['aberta', 'pronta'].includes(G.pensao
 
 // Uma camada de arte (a/salao/<nome>) no canto (x, y), na altura de desenho yOrdem.
 function camadaPalco(nome, x, y, yOrdem, escala = 1) {
-  return { tipo: 'camada', y: yOrdem, desenha(ctx) { const img = spr('salao/' + nome); if (img) ctx.drawImage(img, x, y, img.naturalWidth * escala, img.naturalHeight * escala); } };
+  return { tipo: 'camada', y: yOrdem, desenha(ctx) { const img = spr('salao/' + nome); if (img) ctx.drawImage(img, x, y, larguraArte(img) * escala, alturaArte(img) * escala); } };   // (arte ampliada: a densidade, arte.js)
 }
 
 // (14/10, o jogador: "está de dia e o fundo está de noite na janela") Como o sushi bar do Dave, o salão tem a luz da hora: de dia
@@ -113,9 +113,9 @@ MAPAS_DEF.pensao_palco = () => {
   const P = PALCO;
   b.objs.push(
     { tipo: 'camada', y: 300, desenha(ctx) { const n = typeof Melhorias !== 'undefined' && G.pensao ? Melhorias.nivel(G.pensao, 'fogao_4bocas') : 0;
-      const img = spr(n >= 2 ? 'salao/fogao_industrial' : n === 1 ? 'salao/cozinha_melhor' : 'salao/cozinha'); if (img) ctx.drawImage(img, P.COZINHA.x, P.COZINHA.y); } },
+      const img = spr(n >= 2 ? 'salao/fogao_industrial' : n === 1 ? 'salao/cozinha_melhor' : 'salao/cozinha'); if (img) ctx.drawImage(img, P.COZINHA.x, P.COZINHA.y, larguraArte(img), alturaArte(img)); } },   // (densidade: arte.js)
     camadaPalco('passa_prato', P.PASSA.x, P.PASSA.y, 400),
-    { tipo: 'camada', y: P.TAMPO_Y + 80, desenha(ctx) { const img = spr('salao/' + P.BALCAO_ARTE); if (img) ctx.drawImage(img, P.BALCAO.x, P.BALCAO.y); } },
+    { tipo: 'camada', y: P.TAMPO_Y + 80, desenha(ctx) { const img = spr('salao/' + P.BALCAO_ARTE); if (img) ctx.drawImage(img, P.BALCAO.x, P.BALCAO.y, larguraArte(img), alturaArte(img)); } },
     { tipo: 'camada', y: 880, desenha(ctx) { const B = P.BEBEDOURO, img = spr('salao/bebedouro'); if (img) ctx.drawImage(img, B.x, B.y, img.naturalWidth * B.escala, img.naturalHeight * B.escala); } },
     camadaPalco('frente_esquerda', P.FRENTE_ESQ.x, P.FRENTE_ESQ.y, 99999),
     camadaPalco('frente_direita', P.FRENTE_DIR.x, P.FRENTE_DIR.y, 99999));
@@ -353,7 +353,7 @@ function desenhaRosaCozinha(ctx) {
   if (!cozinhaDaRosaPronta() || R.estado === 'obra') {   // em obra: parada no salão (linha 1, coluna 2 da folha = em pé olhando para a esquerda)
     const img = spr('personagens/rosa/andar');
     if (!img) return;
-    const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_OBRA.escala;
+    const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_OBRA.escala / fatorGente(img);   // (folha ampliada: arte.js)
     ctx.drawImage(img, 2 * w, 1 * h, w, h, ROSA_OBRA.x - w * e / 2, ROSA_OBRA.y - h * e, w * e, h * e);
     return;
   }
@@ -367,7 +367,7 @@ function desenhaRosaCozinha(ctx) {
   // Andando: coluna 2 (esquerda) ou 3 (direita) da folha de andar; linhas 1 e 3 são o quadro parado.
   const img = spr('personagens/rosa/andar');
   if (!img) return;
-  const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_ESCALA_ANDAR;
+  const w = img.naturalWidth / 4, h = img.naturalHeight / 4, e = ROSA_ESCALA_ANDAR / fatorGente(img);   // (folha ampliada: arte.js)
   const esq = (R.lado || -1) < 0, col = (R.estado === 'volta') === esq ? 3 : 2, lin = R.estado === 'larga' ? 1 : R.quadro % 10;
   ctx.drawImage(img, col * w, lin * h, w, h, R.x - w * e / 2, P.ROSA.y - h * e, w * e, h * e);
 }
@@ -908,15 +908,17 @@ DESENHOS_TELA.push(ctx => {
   const W = G.larg, H = G.alt;
   ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H); ctx.restore();
   if (!copo) return;
-  const e = Math.min(1.4, H * 0.5 / copo.naturalHeight), w = copo.naturalWidth * e, h = copo.naturalHeight * e, x = W / 2 - w / 2, y = H / 2 - h / 2;
+  const e = Math.min(1.4, H * 0.5 / alturaArte(copo)), w = larguraArte(copo) * e, h = alturaArte(copo) * e, x = W / 2 - w / 2, y = H / 2 - h / 2;
   // O líquido: a textura com o topo no nível (mais a espuma), recortada pelo formato de dentro do copo.
   if (dentro && liq) {
     const off = _copoTela || (_copoTela = document.createElement('canvas'));
-    const g0 = COPO.GEO[c.bebida], W0 = copo.naturalWidth, H0 = copo.naturalHeight;
+    // (nitidez) o canvas do líquido no tamanho do ARQUIVO do copo; COPO.GEO é do desenho original: vezes a densidade (o copo, o
+    // líquido, a espuma e a máscara foram ampliados juntos, no mesmo fator)
+    const g0 = COPO.GEO[c.bebida], W0 = copo.naturalWidth, H0 = copo.naturalHeight, d = densidade(copo);
     off.width = W0; off.height = H0;
     const g = off.getContext('2d');
     g.clearRect(0, 0, W0, H0);
-    const ny = g0.fundo - (g0.fundo - g0.topo) * Math.min(1, c.nivel);
+    const ny = (g0.fundo - (g0.fundo - g0.topo) * Math.min(1, c.nivel)) * d;
     g.drawImage(liq, 0, ny);
     if (g0.espuma && esp && c.nivel > 0.05) { const eh = esp.naturalHeight * W0 / esp.naturalWidth; g.drawImage(esp, 0, ny - eh * 0.35, W0, eh * 0.6); }
     g.globalCompositeOperation = 'destination-in'; g.drawImage(dentro, 0, 0); g.globalCompositeOperation = 'source-over';
@@ -933,11 +935,11 @@ let _copoMaquina = null;
 function desenhaCopoEnchendo(ctx, b, nivel, x, y, alt) {
   const copo = spr('salao/' + COPO.ART[b]), dentro = spr('salao/' + COPO.ART[b] + '_dentro'), liq = spr('salao/' + COPO.LIQ[b]), g0 = COPO.GEO[b];
   if (!copo || !g0) return;
-  const W0 = copo.naturalWidth, H0 = copo.naturalHeight, e = alt / H0, w = W0 * e;
+  const W0 = copo.naturalWidth, H0 = copo.naturalHeight, e = alt / H0, w = W0 * e, d = densidade(copo);   // (COPO.GEO vezes a densidade)
   if (dentro && liq) {
     const off = _copoMaquina || (_copoMaquina = document.createElement('canvas')); off.width = W0; off.height = H0;
     const g = off.getContext('2d'); g.clearRect(0, 0, W0, H0);
-    g.drawImage(liq, 0, g0.fundo - (g0.fundo - g0.topo) * clamp(nivel, 0, 1));
+    g.drawImage(liq, 0, (g0.fundo - (g0.fundo - g0.topo) * clamp(nivel, 0, 1)) * d);
     g.globalCompositeOperation = 'destination-in'; g.drawImage(dentro, 0, 0); g.globalCompositeOperation = 'source-over';
     ctx.drawImage(off, x - w / 2, y - alt, w, alt);
   }
@@ -1259,19 +1261,19 @@ function rodapePalco() {
   if (!r) {
     // (13/10, o tema do restaurante) A barra de madeira com as tábuas (as abas do Bancho), a arte do kit a/ui/pensao.
     r = el('div', { id: 'rodape-palco', class: 'barra-madeira rodape-palco', hidden: true },
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirMetas(); } }, 'Metas'),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); pensaoQuadro(); } }, 'Cardápio'),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirCaderno(); } }, 'Receitas'),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirPainelPensao(); } }, 'A Pensão'),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
+      el('button', { class: 'tabua', title: 'As metas da Rosa: cumpra para ganhar prêmios e subir a pensão', onclick: e => { e.stopPropagation(); abrirMetas(); } }, 'Metas'),
+      el('button', { class: 'tabua', title: 'O cardápio da noite: os pratos e quantas panelas de cada um', onclick: e => { e.stopPropagation(); pensaoQuadro(); } }, 'Cardápio'),
+      el('button', { class: 'tabua', title: 'O caderno da Rosa: caprichar os pratos e pesquisar receitas novas', onclick: e => { e.stopPropagation(); abrirCaderno(); } }, 'Receitas'),
+      el('button', { class: 'tabua', title: 'A fama da pensão: as estrelas, o que cada degrau pede e o que abre', onclick: e => { e.stopPropagation(); abrirPainelPensao(); } }, 'A Pensão'),
+      el('button', { class: 'tabua', title: 'Os ajudantes: contratar, treinar e escolher o posto de cada um', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
+      el('button', { class: 'tabua', title: 'Comprar coisas para o salão: mais gorjeta, paciência, clientes', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
+      el('button', { class: 'tabua', title: 'Os ingredientes guardados e quantas panelas cada prato dá', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
       // (14/10, Tarefa E1) o calendário: a semana da pensão na lousa, quem vem jantar, as festas, o domingo fechado (calendario_pensao.js;
       // "Semana" e não "Calendário": com o Concurso aceso, o rodapé não cabia em 1280 px, a s31)
-      el('button', { class: 'tabua bt-calendario', onclick: e => { e.stopPropagation(); abrirCalendarioPensao(); } }, 'Semana'),
+      el('button', { class: 'tabua bt-calendario', title: 'A semana da pensão: quem vem jantar, as festas e o domingo fechado', onclick: e => { e.stopPropagation(); abrirCalendarioPensao(); } }, 'Semana'),
       el('button', { class: 'tabua acesa bt-concurso', hidden: true, onclick: e => { e.stopPropagation(); abrirConcurso(); } }, 'Concurso 🎙'),
-      el('div', { class: 'farinha' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
-      el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
+      el('div', { class: 'farinha', title: 'A farinheira: cada prato que a Rosa termina gasta 1 de farinha; vazia, a cozinha para. Para repor, clique na farinheira do salão (usa a farinha da despensa).' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
+      el('button', { class: 'tabua', title: 'Pula o tempo até o próximo cliente (antes das 17h, até a janta)', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));
     document.body.append(r);
   }
@@ -1460,7 +1462,7 @@ function pratoParaOAjudante(t, n) {
 function desenhaAjudantesBebida(ctx) {
   for (const a of AJUDANTES) {
     const tf = a.tarefa; if (!tf) continue;
-    const img = spr(a.folha), alto = img ? (img.naturalHeight / 4 - 2) * PALCO.ESCALA_GENTE : 114 * PALCO.ESCALA_GENTE;
+    const alto = _altoDoAjudante(a);
     const y = a.y - alto + 34;   // logo acima da cabeça dela (a folha de cada um tem a altura dela, com uma folga em cima)
     // (Tarefa B) o "Leva prato" levando: o prato em cima da cabeça (a arte do prato, a mesma da bandeja do Jocelino)
     if (tf.tipo === 'levar_prato' && tf.item) { desenhaPrato(ctx, tf.item.prato, a.x, y, 1, 0.8); continue; }
@@ -1484,7 +1486,8 @@ function desenhaAjudantesBebida(ctx) {
 const PLAQUINHA = { clique: 2.2, primeira: 6 };
 const PLAQUINHAS_NA_TELA = [];   // o que saiu no último quadro (os testes conferem o texto e o lugar)
 const plaquinhaDoAjudante = a => `${a.nome} · ${Equipe.POSTOS[a.equipe.posto] || a.equipe.posto}`;
-const _altoDoAjudante = a => { const img = spr(a.folha); return img ? (img.naturalHeight / 4 - 2) * PALCO.ESCALA_GENTE : 114 * PALCO.ESCALA_GENTE; };
+// (a altura do quadro no mundo: a folha ampliada tem fatorGente vezes os pixels, arte.js)
+const _altoDoAjudante = a => { const img = spr(a.folha); return img ? (img.naturalHeight / 4 / fatorGente(img) - 2) * PALCO.ESCALA_GENTE : 114 * PALCO.ESCALA_GENTE; };
 // O ajudante sob o ponto (px de mundo): o corpo dele, do pé até a cabeça; dois juntos, ganha o da frente (o y maior).
 function ajudanteEm(px, py) {
   let quem = null;
@@ -1550,6 +1553,33 @@ function _linhaExpedicao(e) {
   if (e.posto === 'compras') return el('div', { class: 'eq-at' }, `Expedição toda manhã: busca ${_nomeBusca(e.busca)}.`);
   return null;
 }
+// (15/10, a clareza; o dono: "contratei uma senhora e lá aparece 'posto', o que significa isso?") O posto é onde a pessoa trabalha
+// na janta. Como no Dave (ao pôr o funcionário num lugar, o Bancho mostra o que ele faz ali), cada posto diz o que ELA faz lá, com as
+// habilidades dela (a habilidade só vale no posto dela: Equipe.tem), quantas vagas há e, sem vaga, em que degrau a fama abre.
+const _noPosto = k => (k === 'salao' ? 'No ' : 'Na ') + _nomePosto(k);
+const _semSozinho = t => t.replace(/ sozinho\(a\)/g, '').replace(/^./, c => c.toLowerCase());
+const _salarioReserva = e => Math.ceil(Equipe.salario(e) * ECO.equipe.reserva);
+const POSTO_GERAL = { salao: 'recolhe a louça e ajuda no balcão; Serviço anda mais rápido, Simpatia dá mais gorjeta',
+  cozinha: 'a Rosa cozinha mais rápido (o atributo Cozinha); treinando, ensina receitas',
+  compras: 'toda manhã busca um ingrediente para a despensa (Compras traz mais)', reserva: 'fica parada, ganhando meio salário; pode sair numa expedição' };
+function oQueFazNoPosto(p, e, k) {
+  if (k === 'reserva') return `fica parada, ganhando meio salário (Cr$ ${_salarioReserva(e)}); pode sair numa expedição`;
+  const habs = (e.habilidades || []).filter(h => Equipe.postoDaHab(h) === k && h !== 'louca').map(h => _semSozinho(Equipe.textoHab(h)));
+  const base = { salao: `recolhe a louça`, cozinha: `a Rosa cozinha mais rápido (Cozinha ${e.cozinha})`,
+    compras: `toda manhã busca ${_nomeBusca(e.busca)} para a despensa (${_textoTraz(Equipe.previsao(e, e.busca || 'sorteio', p))})` }[k];
+  const fim = { salao: `; a Simpatia (${e.simpatia}) aumenta a gorjeta`, cozinha: '', compras: '' }[k];
+  return [base, ...habs].join(', ') + fim;
+}
+// A vaga do posto, para a escolha: livre, a de agora, ou sem vaga (e em que degrau a fama abre).
+function _vagaDoPosto(p, e, k) {
+  if (k === e.posto) return 'é o posto de agora';
+  const n = Equipe.vagasLivres(p, k);
+  if (n > 0) return `${n} ${n === 1 ? 'vaga livre' : 'vagas livres'}`;
+  if (k === 'reserva') return `a reserva está cheia (cabem ${ECO.equipe.reservaMax})`;
+  const i = ['salao', 'cozinha', 'compras'].indexOf(k), ocup = p.equipe.filter(x => x.posto === k).length;
+  for (let g = p.grau() + 1; g <= Equipe.VAGAS.length; g++) if (Equipe.VAGAS[g - 1][i] > ocup) return `sem vaga: a fama abre no ${nomeDoDegrau(g, Pensao.DEGRAUS[g - 1])}`;
+  return 'sem vaga: todas ocupadas';
+}
 function abrirEquipe() {
   const p = G.pensao;
   const caixa = el('div', { class: 'painel equipe' });
@@ -1561,8 +1591,15 @@ function abrirEquipe() {
     const fx0 = caixa.querySelector('.eq-faixa'), faixa0 = fx0 && !fx0.hidden ? { texto: fx0.querySelector('.guia-faixa-texto').textContent, direita: fx0.classList.contains('direita') } : null;
     caixa.innerHTML = '';
     p.equipe.forEach(e => Equipe.normalizar(e));
-    const vagas = ['salao', 'cozinha', 'compras', 'reserva'].map(k => `${_nomePosto(k)}: ${Equipe.vagasLivres(p, k)}`).join(' · ');
-    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Equipe da Pensão'), el('div', { class: 'eq-vagas' }, `Vagas: ${vagas} · salários Cr$ ${Equipe.salarios(p)}/noite`), faixaDaTela('eq-faixa'));
+    const vagas = ['salao', 'cozinha', 'compras', 'reserva'].map(k => `${_nomePosto(k)} ${Equipe.vagasLivres(p, k)}`).join(' · ');
+    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Equipe da Pensão'), el('div', { class: 'eq-vagas' }, `Vagas livres: ${vagas} · salários Cr$ ${Equipe.salarios(p)}/noite`),
+      // (15/10, a clareza) o que é posto, vocação, os atributos, as estrelas das habilidades e o Mestre, no "(?)"
+      linhaAjuda('equipe', 'Posto = onde a pessoa trabalha na janta. A fama da pensão abre mais vagas.', [
+        ...['salao', 'cozinha', 'compras', 'reserva'].map(k => `${_nomePosto(k)}: ${POSTO_GERAL[k]}.`),
+        'Vocação: o posto em que a pessoa é boa. As habilidades (★ já tem; ☆ aprende ao treinar até aquele nível) só valem no posto delas. Mestre: a habilidade mais forte, num nível alto.',
+        'Atributos: Serviço (anda e entrega mais rápido), Cozinha (a Rosa prepara mais rápido), Compras (traz mais na expedição), Simpatia (mais gorjeta; na expedição, chance de vir a mais).',
+        'Treinar: sobe o nível e o salário. Salário: sai toda noite que a pensão abre; na Reserva, a metade.']),
+      faixaDaTela('eq-faixa'));
     if (faixa0) { const f = caixa.querySelector('.eq-faixa'); f.hidden = false; f.classList.toggle('direita', faixa0.direita); f.querySelector('.guia-faixa-texto').textContent = faixa0.texto; }
     // Ajudantes contratados.
     const lista = el('div', { class: 'eq-lista' });
@@ -1574,17 +1611,23 @@ function abrirEquipe() {
       const ficha = el('div', {}, el('b', {}, `${e.nome} · ${_nomePosto(e.posto)} · Nv ${e.nivel}`),
         el('div', { class: 'eq-at' }, `Serviço ${e.servico} · Cozinha ${e.cozinha} · Compras ${e.compras} · Simpatia ${e.simpatia}`),
         el('div', { class: 'eq-at' }, `Salário Cr$ ${sal}/noite${salNoite !== sal ? ` (na reserva, parado: Cr$ ${salNoite})` : ''}` + (max ? ' · nível máximo.' : ` · ▸ treinar: nível ${e.nivel + 1}, salário Cr$ ${proxSal}${prox ? ` · ganha "${Equipe.textoHab(prox)}"` : ''}`)),
-        ..._linhasHabilidades(e), _linhaExpedicao(e));
+        // (15/10, a clareza) o que ela faz no posto de agora (a expedição em curso já diz)
+        e.expedicao ? null : el('div', { class: 'eq-hab eq-faz' }, `${_noPosto(e.posto)}: ${oQueFazNoPosto(p, e, e.posto)}.`),
+        ..._linhasHabilidades(e), e.posto === 'compras' ? null : _linhaExpedicao(e));
       const bts = el('div', { class: 'eq-bts' },
         bt(`Treinar (Cr$ ${c})`, 'forte' + (G.dinheiro >= c && !max ? '' : ' desligado'), () => {
           const pago = Equipe.treinar(p, i, G.dinheiro);
           if (pago) { G.dinheiro -= pago; sons.tocar('carimbo', 1.2, 0.05, -4); avisar(`${e.nome} treinou: nível ${e.nivel}!` + (e.ganhou ? ` Habilidade nova: ${Equipe.textoHab(e.ganhou)}.` : '')); hudSujo(); desenha(); }
           else avisar(max ? 'Já está no nível máximo.' : `Treinar custa Cr$ ${c}.`); }),
-        bt('Posto', escolha && escolha.tipo === 'posto' && escolha.i === i ? 'aceso' : '', () => { escolha = escolha && escolha.tipo === 'posto' && escolha.i === i ? null : { tipo: 'posto', i }; desenha(); }),
+        // (15/10, a clareza) "Mudar de posto" (antes só "Posto"): abre a escolha com o que ela faz em cada um
+        bt('Mudar de posto', 'eq-mudar-posto' + (escolha && escolha.tipo === 'posto' && escolha.i === i ? ' aceso' : ''), () => { escolha = escolha && escolha.tipo === 'posto' && escolha.i === i ? null : { tipo: 'posto', i };
+          if (escolha && typeof _marcaTela === 'function') _marcaTela('posto');   // (a 1ª vez do posto: abriu a escolha e leu)
+          desenha(); }),
         (e.posto === 'reserva' || e.posto === 'compras') ? el('button', { class: 'botao eq-expedir' + (e.expedicao ? ' desligado' : ''), 'data-posto': e.posto, onclick: ev => { ev.stopPropagation();
           if (e.expedicao) { avisar(`${e.nome} está na expedição: volta amanhã de manhã.`); return; }
           escolha = escolha && escolha.tipo === 'expedicao' && escolha.i === i ? null : { tipo: 'expedicao', i }; desenha(); } }, 'Expedição') : null,
-        bt('Dispensar', '', () => { if (e.expedicao) { avisar(`${e.nome} está na expedição: dispense quando voltar.`); return; } Equipe.demitir(p, i); escolha = null; desenha(); }));
+        Object.assign(bt('Dispensar', 'eq-dispensar', () => { if (e.expedicao) { avisar(`${e.nome} está na expedição: dispense quando voltar.`); return; } Equipe.demitir(p, i); escolha = null; desenha(); }),
+          { title: 'Manda embora da equipe (não custa nada; a vaga fica livre)' }));
       lista.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${e.id}_normal`) }), ficha, bts));
       if (escolha && escolha.i === i) { const blk = escolha.tipo === 'posto' ? _escolhaPosto(p, e, i, () => { escolha = null; desenha(); }) : _escolhaExpedicao(p, e, i, () => { escolha = null; desenha(); });
         lista.append(blk); setTimeout(() => { if (blk.isConnected) blk.scrollIntoView({ block: 'start' }); }, 0); }   // (o começo da lista logo abaixo da fala presa da Rosa: scroll-margin-top)
@@ -1592,7 +1635,7 @@ function abrirEquipe() {
     caixa.append(lista);
     // Candidatos (do anúncio de ontem): a vocação e as habilidades já à vista, como no Dave.
     if (p.candidatos.length) {
-      caixa.append(el('div', { class: 'cad-sub' }, 'Candidatos'));
+      caixa.append(el('div', { class: 'cad-sub' }, 'Candidatos: clique no posto para contratar'));
       const cl = el('div', { class: 'eq-lista' });
       p.candidatos.forEach((c, i) => { Equipe.normalizar(c); cl.append(el('div', { class: 'eq-pessoa' }, el('img', { src: urlArte(`retratos/${c.id}_normal`) }),
         el('div', {}, el('b', {}, `${c.nome} · vocação: ${Equipe.POSTOS[c.vocacao]}`), el('div', { class: 'eq-at' }, `Serviço ${c.servico} · Cozinha ${c.cozinha} · Compras ${c.compras} · Simpatia ${c.simpatia}`),
@@ -1601,7 +1644,7 @@ function abrirEquipe() {
           const tx = Equipe.taxaContratacao(c), r = Equipe.contratar(p, i, k, G.dinheiro);
           if (r === 'dinheiro') { avisar(`A taxa de contratação é Cr$ ${tx}.`); return; }
           if (r === 'ok') { G.dinheiro -= tx; hudSujo(); sons.tocar('feito', 1, 0.03, -4); avisar(k === 'reserva' ? `${c.nome} entrou para a equipe e fica na reserva.` : `${c.nome} vai trabalhar no posto ${Equipe.POSTOS[k]}!`); desenha(); }
-          else avisar(k === 'reserva' ? 'A reserva está cheia.' : 'Não tem vaga nesse posto (a fama abre mais). Dá para contratar na Reserva.'); } }, _nomePosto(k)))))); });
+          else avisar(k === 'reserva' ? 'A reserva está cheia.' : 'Não tem vaga nesse posto (a fama abre mais). Dá para contratar na Reserva.'); }, title: `${_nomePosto(k)}: ${POSTO_GERAL[k]}.` }, _nomePosto(k)))))); });
       caixa.append(cl);
     }
     // Anunciar.
@@ -1623,12 +1666,22 @@ function abrirEquipe() {
   return true;
 }
 // A escolha do posto: os postos com vaga e a Reserva (a vaga é por degrau).
+// (15/10, a clareza) Os 4 lugares, cada um com o que ELA faria ali (com as habilidades dela), a vaga e, sem vaga, onde a fama abre.
+// Depois de trocar, o aviso diz o que mudou.
 function _escolhaPosto(p, e, i, fim) {
-  return el('div', { class: 'eq-escolha' }, el('div', { class: 'eq-at' }, `${e.nome} vai para:`),
-    el('div', { class: 'eq-bts' }, ['salao', 'cozinha', 'compras', 'reserva'].filter(k => k !== e.posto).map(k => el('button', { class: 'botao' + (Equipe.vagasLivres(p, k) > 0 ? '' : ' desligado'), onclick: ev => { ev.stopPropagation();
-      const r = Equipe.mudarPosto(p, i, k);
-      if (r === 'ok') { sons.tocar('feito', 1, 0.03, -6); avisar(k === 'reserva' ? `${e.nome} foi para a reserva (meio salário parado).` : `${e.nome} agora trabalha no posto ${Equipe.POSTOS[k]}.`); fim(); }
-      else avisar(r === 'fora' ? `${e.nome} está na expedição: volta amanhã.` : r === 'sem_vaga' ? 'Não tem vaga nesse posto (a fama abre mais).' : 'Não deu.'); } }, _nomePosto(k)))));
+  const voc = Equipe.POSTOS[e.vocacao];
+  return el('div', { class: 'eq-escolha eq-postos' }, el('div', { class: 'eq-at' }, `Onde ${e.nome} trabalha na janta? O salário é o mesmo em todo posto; na Reserva, a metade.` + (voc ? ` A vocação é ${voc}: as habilidades valem lá.` : '')),
+    el('div', { class: 'eq-postos-grade' }, ['salao', 'cozinha', 'compras', 'reserva'].map(k => {
+      const agora = k === e.posto, livre = agora || Equipe.vagasLivres(p, k) > 0, vaga = _vagaDoPosto(p, e, k);
+      return el('button', { class: 'botao eq-posto' + (agora ? ' aceso' : livre ? '' : ' desligado'), 'data-posto': k, onclick: ev => { ev.stopPropagation();
+        if (agora) { fim(); return; }
+        const r = Equipe.mudarPosto(p, i, k);
+        if (r === 'ok') { sons.tocar('feito', 1, 0.03, -6);
+          avisar(`${e.nome} ${k === 'reserva' ? 'foi para a Reserva' : 'agora trabalha ' + _noPosto(k).toLowerCase()}: ${oQueFazNoPosto(p, e, k)}.` + (k !== 'reserva' && voc && k !== e.vocacao ? ` (A vocação é ${voc}: as habilidades da vocação só valem lá.)` : ''));
+          fim(); }
+        else avisar(r === 'fora' ? `${e.nome} está na expedição: volta amanhã.` : r === 'sem_vaga' ? `${_nomePosto(k)}: ${vaga}.` : 'Não deu.'); } },
+        el('div', {}, el('b', {}, _nomePosto(k) + (agora ? ' (agora)' : '')), el('div', { class: 'eq-at' }, oQueFazNoPosto(p, e, k) + '.'), el('div', { class: 'eq-hab' }, vaga)));
+    })));
 }
 // A escolha da expedição (o dispatch do Dave): o básico que a pensão aceita e já viu, cada um com o ícone, a raridade, a origem e
 // quanto se espera que venha ("traz ~N"); ou o sorteio (a arte da caixa da encomenda).

@@ -270,7 +270,10 @@ function pensaoQuadro() {
     const depois = modo === 'plano' && (p.ultimaJanta === G.dia || G.minutos >= 20 * 60);
     caixa.append(el('div', { class: 'giz-titulo' }, depois ? 'Cardápio de amanhã' : 'Cardápio da noite'),
       el('div', { class: 'qc-topo' }, el('span', {}, p.nomeComEstrelas()), el('span', { class: 'qc-vagas' }, `Vagas no quadro: ${ocupa.size} de ${p.vagas()}`),
-        el('span', {}, `A noite costuma ter ~${clientesEsperados()} clientes`)));
+        el('span', {}, `A noite costuma ter ~${clientesEsperados()} clientes`)),
+      // (15/10, a clareza) a panela, a porção, as vagas, o "Rosa repõe" e o prato da casa: uma linha e o "(?)"
+      linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente); a sobra vai para o lixo.',
+        [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
     if (modo !== 'durante') for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(el('div', { class: 'qc-aviso' }, a));
     else caixa.append(el('div', { class: 'qc-aviso' }, 'A janta está correndo (o relógio parou aqui): mais uma panela agora, ou ligue e desligue o "Rosa repõe".'));
     // (correção 1) A fala da Rosa na primeira vez: uma faixa fixa na lousa, acima da lista (guia_setas.js escreve nela; a seta fica no elemento).
@@ -697,10 +700,13 @@ function atualizaSeloPensao(selo, noSalao) {
   if (!noSalao) return;
   const p = G.pensao, g = p.grau(), px = p.proximoDegrau();
   const r = G.turno ? G.turno.relatorio : null;
-  const linha2 = `${p.curtidas} curtidas` + (r ? `  ·  Hoje: Cr$ ${r.ganho + r.gorjeta}  ·  ${r.servidos} servidos` : '');
+  const linha2 = `${p.curtidas} curtidas` + (r ? `  ·  Hoje: Cr$ ${r.ganho + r.gorjeta}  ·  ${r.servidos} pratos servidos` : '');
   const chave = g + linha2 + p.progresso().toFixed(2);
   if (selo._k === chave) return;
   selo._k = chave;
+  // (15/10, a clareza) o que é cada número do selo, ao passar o mouse (a tela A Pensão, no rodapé, tem o resto)
+  selo.title = `${GLOSSARIO.curtida}\nHoje: o dinheiro da janta até agora (pratos, bebidas e gorjeta) e quantos pratos já saíram.\n`
+    + (px ? `A barrinha: quanto falta para "${px.nome}" (veja em "A Pensão", no rodapé).` : 'A pensão já está no último degrau.');
   selo.innerHTML = '';
   selo.append(el('div', { class: 'grau' }, spr('ui/selo_' + g) ? el('img', { src: urlArte(`ui/selo_${g}`), class: 'selo-img' }) : null, 'Pensão da Rosa · ' + p.nomeComEstrelas(g)), el('div', {}, linha2));
   if (px) selo.append(el('div', { class: 'progresso' }, el('div', { style: `width:${p.progresso() * 100}%` })));   // no degrau mais alto não tem barra
@@ -715,20 +721,76 @@ function textoFalta(f) {
   if (f.concurso) t.push(`${f.concurso} ${f.concurso === 1 ? 'vitória' : 'vitórias'} no concurso da Rádio`);
   return t.length ? 'faltam ' + t.join(', ') : 'quase lá';
 }
+// ---------- (15/10, a clareza) o que cada número quer dizer, na própria tela ----------
+// O dono: "No cardápio tem o número de sabor, para que serve isso?" e "na equipe aparece 'posto', o que significa?". Como no Dave
+// (o Bancho explica cada número ao lado dele: o Best Taste no Cooksta, o Assign na equipe), cada tela ganha UMA linha curta com o
+// que importa e um "(?)" que abre e fecha o detalhe. Só texto e o botão de sempre (nada desenhado). O que foi aberto continua
+// aberto quando a tela se redesenha (o + de uma panela, o Treinar).
+const _ajudaAberta = new Set();
+ATUALIZADORES.push(() => { if (_ajudaAberta.size && $('#modal') && $('#modal').hidden) _ajudaAberta.clear(); });   // (fechou a tela: na próxima, tudo fechado)
+function linhaAjuda(chave, curta, detalhe) {
+  const aberta = _ajudaAberta.has(chave);
+  const det = el('div', { class: 'ajuda-detalhe', hidden: !aberta }, ...[].concat(detalhe).map(t => el('div', {}, t)));
+  // (um texto clicável, não uma tábua: as tábuas são as ações da tela; o "(?)" só abre a explicação)
+  const vira = e => { e.stopPropagation(); det.hidden = !det.hidden; q.textContent = det.hidden ? '(?)' : '(fechar)'; if (det.hidden) _ajudaAberta.delete(chave); else { _ajudaAberta.add(chave); det.scrollIntoView({ block: 'nearest' }); } };
+  const q = el('span', { class: 'ajuda-q', role: 'button', tabindex: 0, 'data-ajuda': chave, title: 'O que é isso?', onclick: vira,
+    onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vira(e); } } }, aberta ? '(fechar)' : '(?)');
+  return el('div', { class: 'ajuda', 'data-ajuda': chave }, curta ? el('span', { class: 'ajuda-curta' }, curta + ' ') : null, q, det);
+}
+// As frases de cada termo do restaurante, num lugar só (as telas usam as mesmas palavras).
+const GLOSSARIO = {
+  curtida: 'Curtida: cada cliente que sai com 4 estrelas ou mais deixa 1 curtida. As curtidas sobem a pensão de degrau.',
+  sabor: `Sabor: o nível do prato × ${ECO.pensao.saborPorNivel}. Ele não muda o preço nem as estrelas do cliente: serve para a pensão subir de degrau.`,
+  melhorSabor: 'Melhor sabor: o maior sabor entre os pratos que já saíram para um cliente. Caprichar no caderno e não servir ainda não conta.',
+  pesquisadas: 'Receitas pesquisadas: as que a Rosa aprendeu no caderno gastando pitadas (as 4 do começo não contam).',
+  pitada: 'Pitadas de tempero: pagam a pesquisa de receita nova no caderno. Toda janta com estrela dá pitadas; metas e clientes especiais também.',
+  despesa: 'Despesa da noite: gás, gelo e luz. Sai do bolso toda noite que a pensão abre; cada degrau novo cobra mais.',
+  garfos: 'Garfos: a nota do Doutor Paladar, o crítico da Gazeta, que vem disfarçado. Os dois últimos degraus pedem visitas dele com nota alta.',
+  concurso: 'Concurso da Rádio: no último dia da estação, 3 pratos para os jurados. O último degrau pede uma vitória.',
+  degrau: 'Degrau (as estrelas da pensão): quando tudo o que ele pede está feito, a pensão sobe; abre mais pratos no quadro, banquetas, clientes e vagas na equipe.',
+  panela: 'Panela: a Rosa cozinha a receita uma vez e ela rende algumas porções. Porção: um prato para um cliente.',
+  repoe: '"Rosa repõe": ligado, quando a panela acaba a Rosa faz outra com o que tem na despensa. Desligado, o prato sai do quadro.',
+  vagasQuadro: 'Vagas no quadro: quantos pratos diferentes cabem no cardápio da noite. A fama abre mais.',
+  casa: 'Prato da casa: sempre tem, não gasta despensa; é barato e não dá curtida. Quem fica sem prato do quadro leva ele.',
+  sobra: 'Sobra: o que ficou na panela no fim da noite vai para o lixo. Faça só as panelas que a noite pede.',
+  raridade: 'Raridade (★): o ingrediente raro (★★ ou mais) deixa o prato mais caro e dá 1 estrela a mais ao cliente.',
+  nivelPrato: 'Nível do prato: sobe com o Caprichar (do 1 ao 10). Mais nível: mais preço, mais porções por panela e mais sabor.',
+  chef: 'Rosa chef: ela sobe de nível com cada prato que sai, e cozinha mais rápido. Bocas no fogão: quantos pratos ela faz ao mesmo tempo.',
+};
+// O próximo degrau que pede mais sabor do que a pensão já serviu (o caderno e a Pensão): { grau, d } ou null.
+function degrauDoSabor(p) {
+  const m = p.melhorSabor();
+  for (let i = p.grau(); i < Pensao.DEGRAUS.length; i++) if (Pensao.DEGRAUS[i].sabor > m) return { grau: i + 1, d: Pensao.DEGRAUS[i] };
+  return null;
+}
+const nomeDoDegrau = (g, d) => `${'★'.repeat(g - 1)} ${d.nome}`;
+// (15/10, o dono: "o número de sabor, para que serve?") A linha do sabor do prato: o número, para que serve e o que falta.
+// O sabor só conta no degrau da fama (o Best Taste do Cooksta no Dave): o maior entre os pratos caprichados E servidos.
+function textoSaborDoPrato(p, id) {
+  const s = p.sabor(id), serv = ((p.servidos || {})[id] || 0) * Pensao.SABOR_POR_NIVEL, alvo = degrauDoSabor(p);
+  let t = `Sabor ${s} — conta para a fama: `;
+  t += alvo ? `${nomeDoDegrau(alvo.grau, alvo.d)} pede melhor sabor ${alvo.d.sabor} (hoje a pensão tem ${p.melhorSabor()}). Caprichar e servir sobe.`
+    : 'a pensão já tem todo o sabor que os degraus pedem.';
+  if (s > serv) t += serv ? ` Este prato só foi servido com sabor ${serv}: sirva de novo para valer ${s}.` : ' Este prato ainda não foi servido: sirva para contar.';
+  return t;
+}
 // ---------- A Pensão: os 6 degraus da fama, o que cada um pede e libera (a tela do Cooksta) ----------
 function abrirPainelPensao() {
   const p = G.pensao, g = p.grau();
   const caixa = el('div', { class: 'painel painel-pensao' });
   caixa.append(el('div', { class: 'titulo titulo-tela' }, 'A Pensão da Rosa'),
-    el('div', { class: 'pp-resumo' }, `${p.curtidas} curtidas · melhor sabor ${p.melhorSabor()} · ${p.pesquisadas()} receitas pesquisadas · ${p.pitadas} pitadas · despesa da noite Cr$ ${p.despesa()}`));
+    el('div', { class: 'pp-resumo' }, `${p.curtidas} curtidas · melhor sabor ${p.melhorSabor()} · ${p.pesquisadas()} ${p.pesquisadas() === 1 ? 'receita pesquisada' : 'receitas pesquisadas'} · ${p.pitadas} ${p.pitadas === 1 ? 'pitada' : 'pitadas'} · despesa da noite Cr$ ${p.despesa()}`),
+    // (15/10, a clareza) o que é cada número do resumo e dos degraus, no "(?)"
+    linhaAjuda('pensao', 'Cada degrau pede o que está na linha dele; cumpriu tudo, a pensão ganha uma estrela.',
+      [GLOSSARIO.curtida, GLOSSARIO.melhorSabor + ' ' + GLOSSARIO.sabor, GLOSSARIO.pesquisadas, GLOSSARIO.pitada, GLOSSARIO.despesa, GLOSSARIO.garfos, GLOSSARIO.concurso]));
   const lista = el('div', { class: 'pp-lista' });
   Pensao.DEGRAUS.forEach((d, i) => {
     const n = i + 1, atual = n === g, feito = n < g;
-    const req = n === 1 ? 'O começo de tudo.' : [`${d.curtidas} curtidas`, d.sabor ? `sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} pesquisadas` : '', d.garfos ? `${d.garfos} garfos do Doutor Paladar em ${d.visitas || 1} ${(d.visitas || 1) === 1 ? 'visita' : 'visitas'}` : '', d.concurso ? `${d.concurso} vitória no concurso da Rádio` : ''].filter(Boolean).join(' · ');
+    const req = n === 1 ? 'O começo de tudo.' : ['Pede: ' + `${d.curtidas} curtidas`, d.sabor ? `melhor sabor ${d.sabor}` : '', d.pesquisadas ? `${d.pesquisadas} receitas pesquisadas` : '', d.garfos ? `${d.garfos} garfos do Doutor Paladar em ${d.visitas || 1} ${(d.visitas || 1) === 1 ? 'visita' : 'visitas'}` : '', d.concurso ? `${d.concurso} vitória no concurso da Rádio` : ''].filter(Boolean).join(' · ');
     lista.append(el('div', { class: 'pp-degrau' + (atual ? ' atual' : feito ? ' feito' : '') },
       spr('ui/selo_' + n) ? el('img', { src: urlArte(`ui/selo_${n}`) }) : el('div', { class: 'pp-num' }, n),
       el('div', {}, el('b', {}, Pensao.textoEstrelas(i) + ' ' + d.nome + (atual ? '  ← agora' : feito ? '  ✓' : '')), el('div', { class: 'pp-req' }, req),
-        el('div', { class: 'pp-libera' }, `${d.vagas} pratos no quadro · ${d.mesas} banquetas · ${d.clientes} clientes por noite · despesa Cr$ ${d.despesa}`))));
+        el('div', { class: 'pp-libera' }, `Abre: ${d.vagas} pratos no quadro · ${d.mesas} banquetas · ${d.clientes} clientes por noite · despesa Cr$ ${d.despesa} por noite`))));
   });
   const px = p.proximoDegrau();
   caixa.append(lista, el('div', { class: 'pp-falta' }, px ? `Para "${px.nome}": ${textoFalta(px.falta)}.` : '★★★★★ A pensão é Patrimônio da Vila! Não tem mais estrela para ganhar.'),

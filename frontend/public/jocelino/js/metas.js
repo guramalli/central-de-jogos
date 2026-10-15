@@ -126,7 +126,10 @@ TAREFAS.push(() => {
 function abrirMetas() {
   const p = G.pensao;
   const caixa = el('div', { class: 'painel metas' }, el('div', { class: 'titulo titulo-tela' }, 'Caderneta de Metas da Rosa'),
-    el('div', { class: 'eq-vagas' }, 'Cumpra as metas para ganhar prêmios e subir a pensão. Quando uma termina, outra entra no lugar.'));
+    el('div', { class: 'eq-vagas' }, 'Cumpra as metas para ganhar prêmios e subir a pensão. Quando uma termina, outra entra no lugar.'),
+    // (15/10, a clareza) as palavras das metas e dos prêmios, no "(?)"
+    linhaAjuda('metas', 'As primeiras metas são o que falta para o próximo degrau.', [GLOSSARIO.curtida, GLOSSARIO.pitada,
+      '"Sirva no nível N": caprichar o prato no caderno (Receitas) e servir a um cliente; só conta depois de servido.', GLOSSARIO.pesquisadas, GLOSSARIO.degrau]));
   for (const m of (p.metas || []).filter(x => !x.feita)) {
     const f = clamp((m.atual || 0) / m.alvo, 0, 1);
     caixa.append(el('div', { class: 'meta' }, el('div', { class: 'meta-texto' }, m.texto),

@@ -125,7 +125,11 @@ function abrirDespensa() {
       el('div', {}, el('span', { class: 'giz rend-nome' }, P.nome + ':'), ` ${listaE(Object.entries(P.porcao).map(([x, q]) => ingredienteNaPanela(x, q)))} = 1 panela = ${k} porções`),
       el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(nomeNaPanela))}`)));
   });
-  rend.append(el('div', { class: 'rend-onde' }, 'Passe o mouse num ingrediente para ver de onde ele vem. O que falta, a Mercearia do Seu Ananias vende ou o orelhão da Vila encomenda.'), el('div', { class: 'rend-botoes' },
+  // (15/10, a clareza) a raridade (★), o 🔒 e a panela, no "(?)"
+  const onde = linhaAjuda('despensa', 'Passe o mouse num ingrediente para ver de onde ele vem e a raridade (★). O que falta, a Mercearia do Seu Ananias vende ou o orelhão da Vila encomenda.',
+    [GLOSSARIO.raridade, '🔒: a Rosa ainda não sabe usar; abre quando a pensão sobe de degrau.', GLOSSARIO.panela, 'Os ingredientes saem da despensa quando a pensão abre, nas panelas do cardápio.']);
+  onde.classList.add('rend-onde');
+  rend.append(onde, el('div', { class: 'rend-botoes' },
     naMochila.length && despensaAceitaGuardar() ? el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); guardarNaDespensa(true); fecharModal(); abrirDespensa(); } }, `Guardar o da mochila (${naMochila.length})`)
       : naMochila.length ? el('div', { class: 'rend-onde' }, 'A despensa recebe ingrediente quando a cozinha da Rosa ficar pronta.') : null,
     el('button', { class: 'tabua acesa', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));

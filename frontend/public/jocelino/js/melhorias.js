@@ -130,7 +130,13 @@ function abrirMelhorias() {
   const caixa = el('div', { class: 'painel melhorias' });
   const desenha = () => {
     caixa.innerHTML = '';
-    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Melhorias da Pensão'), el('div', { class: 'eq-vagas' }, `Cr$ ${G.dinheiro} · degrau: ${p.nomeGrau(p.grau())}`), faixaDaTela('mel-faixa'));
+    caixa.append(el('div', { class: 'titulo titulo-tela' }, 'Melhorias da Pensão'), el('div', { class: 'eq-vagas' }, `Cr$ ${G.dinheiro} · degrau: ${p.nomeComEstrelas()}`),
+      // (15/10, a clareza) as palavras das melhorias (paciência, passe, bocas...) no "(?)"
+      linhaAjuda('melhorias', 'O ▸ mostra o que muda (antes → depois); o 🔒 abre quando a pensão chegar naquele degrau.', [
+        'Paciência: quanto tempo o cliente espera o pedido e o prato antes de ir embora.', 'Bocas (pratos no fogo): quantos pratos a Rosa cozinha ao mesmo tempo.',
+        'Passe: o balcão onde a Rosa põe os pratos prontos; cheio, ela para de cozinhar.', 'Farinheira: cada prato que a Rosa termina gasta 1 de farinha; vazia, a cozinha para.',
+        'Gorjeta extra: o cliente satisfeito deixa mais no balcão.', 'Clientes por noite: quantos fregueses vêm jantar.', GLOSSARIO.degrau]),
+      faixaDaTela('mel-faixa'));
     const g = el('div', { class: 'mel-grade' });
     for (const [id, m] of Object.entries(MELHORIAS)) {
       if (m.premio && !p.melhorias.includes(id)) continue;   // prêmio não se compra

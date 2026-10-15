@@ -413,7 +413,7 @@ function desenhaNomes(ctx, m) {
     const mm = mouseMundo();
     const sob = Math.hypot(mm.x - p.x, mm.y - (p.y - 50)) < 40;
     if (modo === 2 || perto || sob) {
-      const fi = spr(p.folha), ny = p.y - (fi ? fi.naturalHeight / 4 : 114) - 4;   // logo acima da cabeça (gente ou bicho)
+      const fi = spr(p.folha), ny = p.y - (fi ? fi.naturalHeight / 4 / fatorGente(fi) : 114) - 4;   // logo acima da cabeça (gente ou bicho; folha ampliada: arte.js)
       ctx.lineWidth = 4 / G.zoom; ctx.strokeStyle = 'rgba(19,27,27,.9)'; ctx.strokeText(p.nome, p.x, ny);
       ctx.fillStyle = '#fff'; ctx.fillText(p.nome, p.x, ny);
     }
