@@ -33,6 +33,11 @@ function planoFechamento(r, nota, lucro) {
   for (let k = 1; k <= nota; k++, t += FECHAMENTO_ESTRELA) P.push({ t, acao: 'estrela', k, som: ['estrela_' + k, 1, 0, -4] });
   t += 0.4;
   const novas = (r.aprendidas || []).length + (r.chef && r.chef.inventou ? r.chef.inventou.length : 0);
+  // (14/10, o pacote de cozinha) O resultado da noite, logo depois da última estrela: nota 4 ou 5 (ou o degrau), o "passou de
+  // fase" (Pass Level); nota 1 ou 2, o "não foi dessa vez" (Fail Level); a 3, nada. Ele vem antes da conquista; no degrau os
+  // dois se juntam (a fanfarra entra por cima do fim dele). Também espera a vinheta (conquista), mas não toca com a tela fechada.
+  const boa = nota >= 4 || !!r.subiu, ruim = !boa && nota <= 2;
+  if (boa || ruim) { P.push({ t, som: [boa ? 'noite_boa' : 'noite_ruim', 1, 0, -4], conquista: true }); t += r.subiu ? 0.9 : 1.8; }
   // a conquista toca mesmo com a tela já fechada (sempre) e nunca por cima da vinheta (conquista: espera ela acabar)
   if (r.subiu) P.push({ t, som: ['degrau_fanfarra', 1, 0, -2], conquista: true, sempre: true });
   else if (novas || r.paladar >= 4) P.push({ t, som: ['fanfarra', 1.1, 0, -4], conquista: true, sempre: true });

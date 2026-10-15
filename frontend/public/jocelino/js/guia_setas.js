@@ -123,10 +123,17 @@ const jaFezJanta = k => ((G.limpou || {})['janta_' + k] || 0) > 0;
   for (const [m, k] of [['pegar', 'passe'], ['servir', 'entregar'], ['servirBebida', 'bebida_entregar'], ['encherBebida', 'bebedouro'], ['recolher', 'recolher'], ['largarLouca', 'bacia'], ['reporFarinha', 'farinheira']]) {
     const f = P[m]; P[m] = function (...a) { const r = f.apply(this, a); if ((r === true || r === 'ok' || r > 0) && G.limpou) G.limpou['janta_' + k] = (G.limpou['janta_' + k] || 0) + 1; return r; };
   } }
+// (14/10, o desgosto) A louça do lado de quem sentou, recolhida pelo Jocelino (G.limpou.janta_louca_lado): a seta dela some.
+{ const f = TurnoJanta.prototype.recolher;
+  TurnoJanta.prototype.recolher = function (i) { const lado = !!(this.mesas[i] && this.mesas[i].louca), r = f.apply(this, arguments);
+    if (r && lado && G.limpou) G.limpou.janta_louca_lado = (G.limpou.janta_louca_lado || 0) + 1; return r; }; }
 function _alvoDaJanta() {
   const t = G.turno; if (!t || typeof noPalco !== 'function' || !noPalco() || G.copo) return null;
   const P = PALCO, mesa = (i, rot) => ({ mapa: G.mapaId, ponto: { x: P.ASSENTOS[i].x, y: P.ASSENTOS[i].y - 250 }, rotuloFixo: rot });
   const nos = (i) => i >= 0 && i < P.ASSENTOS.length;
+  // (14/10, o desgosto) a 1ª vez que um freguês senta do lado da louça suja: a seta na louça (é urgente: ele vai embora)
+  if (!jaFezJanta('louca_lado')) { const i = t.mesas.findIndex(m => m.louca && m.estado === 'pedido');
+    if (nos(i)) return { mapa: G.mapaId, ponto: { x: P.ASSENTOS[i].x, y: P.LOUCA.base - 34 }, rotuloFixo: 'Louça suja espanta freguês! Clique na louça: recolher antes que ele vá embora' }; }
   if (!jaFezJanta('bacia') && t.bandeja.some(x => x.tipo === 'louca')) return { mapa: G.mapaId, ponto: { x: P.BACIA.x + P.BACIA.w / 2, y: P.BACIA.y - 20 }, rotuloFixo: 'Clique na bacia: lavar a louça' };
   if (!jaFezJanta('entregar')) { const x = t.bandeja.find(b => b.tipo === 'prato'), i = x ? t.mesas.findIndex(m => m.estado === 'prato' && m.prato === x.prato) : -1;
     if (nos(i)) return mesa(i, `Clique em ${t.mesas[i].cliente.nome}: entregar ${Pensao.prato(x.prato).nome.toLowerCase()}`); }

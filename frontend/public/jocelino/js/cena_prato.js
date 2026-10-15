@@ -58,7 +58,8 @@ const CENAS_PRATO = {
   // o close do peixe na travessa; o mar de Aracaju com o barco à vela.
   peixe: { dur: 7.6, legenda: [2.9, 5.2],
     artes: ['cenas/peixe_fundo', 'cenas/peixe_jocelino', 'cenas/peixe_risco', 'cenas/peixe_escamas', 'cenas/peixe_prato', 'cenas/peixe_reacao'],
-    sons: [[1.45, 'cena_faca', 1, -2], [2.95, 'cena_tchan', 1, -4], [5.25, 'cena_plateia', 1, -6]],
+    // (14/10, o pacote de cozinha) a faca é o Chop Food; no close da travessa, o fogo alto chiando (Burning Food)
+    sons: [[1.45, 'cena_faca', 1, -2], [2.85, 'cena_fogo', 1, -6], [2.95, 'cena_tchan', 1, -4], [5.25, 'cena_plateia', 1, -6]],
     desenha(d, t) {
       if (t < 3.1) {
         d.fundo('cenas/peixe_fundo', 1 + 0.06 * t / 3.1);
@@ -85,7 +86,8 @@ const CENAS_PRATO = {
   // panela com um pano; o Seu Orlando discursando no coreto, com fogos.
   moqueca: { dur: 8.2, legenda: [2.5, 5.0],
     artes: ['cenas/moqueca_fundo', 'cenas/moqueca_dende', 'cenas/moqueca_panela', 'cenas/moqueca_vapor', 'cenas/moqueca_jocelino', 'cenas/moqueca_reacao'],
-    sons: [[0.35, 'agua', 0.7, -6], [2.6, 'cena_tchan', 1, -4], [2.9, 'cena_borbulha', 1, -6], [6.35, 'cena_plateia', 1, -6]],
+    // (14/10, o pacote de cozinha) a fervura longa da panela de barro (Boil Water, 3,3 s: some antes da plateia)
+    sons: [[0.35, 'agua', 0.7, -6], [2.6, 'cena_tchan', 1, -4], [2.9, 'cena_borbulha', 1, -5], [6.35, 'cena_plateia', 1, -6]],
     desenha(d, t) {
       if (t < 2.8) {
         d.fundo('cenas/moqueca_fundo', 1 + 0.05 * t / 2.8);

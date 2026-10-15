@@ -30,7 +30,10 @@ const SONS_RESERVA = {
 // A moderação: o mesmo som não volta antes deste intervalo (s; o padrão é SOM_INTERVALO_PADRAO) e nunca há mais de SONS_MAX_VOZES
 // efeitos soando juntos (o que passar disso fica de fora: nada tocando por cima de tudo).
 const SONS_INTERVALO = { pedido_campainha: 0.5, caixa_registradora: 0.3, gorjeta: 0.4, cliente_delicia: 1.2, cliente_hmm: 0.8, cliente_bravo: 0.8,
-  cliente_eca: 0.8, chapa_chiado: 2, prato_tchan: 0.3, noite_comemora: 5, festa_rojao: 3, degrau_fanfarra: 2 };
+  cliente_eca: 0.8, chapa_chiado: 2, prato_tchan: 0.3, noite_comemora: 5, festa_rojao: 3, degrau_fanfarra: 2,
+  // (14/10, o pacote de cozinha da Gravity Sound: sons_cozinha.py)
+  rosa_corta: 2, prato_pronto: 0.25, item_pega: 0.1, item_pousa: 0.1, pedido_certo: 0.8, pedido_errado: 0.8, louca_recolhe: 0.2,
+  lavando: 1.5, acao_erro: 0.4, fogo_ruim: 5, copo_ajudante: 0.5, cena_fogo: 1, noite_boa: 3, noite_ruim: 3 };
 const SOM_INTERVALO_PADRAO = 0.06, SONS_MAX_VOZES = 7;
 const sons = {
   ctx: null, bus: {}, abafo: {}, buffers: new Map(), musicaAtual: '', _fonteMusica: null, _ganhoMusica: null,
@@ -136,24 +139,33 @@ const sons = {
     this._posMusica += (t - this._tMusica) * r; this._tMusica = t;
     return Math.max(0, (this._durMusica - this._posMusica) / r);
   },
-  // Ambiente em laço (pássaros, vento, o burburinho da pensão): cada um com o próprio volume, que muda devagar (rampa, em s).
-  // Laço que não existe na SONS_LISTA não toca (nem é baixado).
+  // Ambiente em laço (pássaros, vento, o burburinho da pensão, a chapa, o copo enchendo): cada um com o próprio volume, que
+  // muda devagar (rampa, em s). Laço que não existe na SONS_LISTA não toca (nem é baixado).
   _amb: {},
   async ambiente(nome, alvo, rampa = 1) {
     if (!this.ctx) return;
     let a = this._amb[nome];
     if (!a) {
       if (alvo <= 0 || typeof SONS_LISTA === 'undefined' || !SONS_LISTA.includes(nome)) return;
-      a = this._amb[nome] = { g: this.ctx.createGain(), carregando: true };
+      a = this._amb[nome] = { g: this.ctx.createGain(), carregando: true, tom: 1, alvo, rampa };
       a.g.gain.value = 0; a.g.connect(this.bus.ambiente);
       const buf = await this.buffer(nome);
       if (!buf) return;
-      const f = this.ctx.createBufferSource(); f.buffer = buf; f.loop = true; f.connect(a.g); f.start();
-      a.carregando = false;
-    }
+      const f = this.ctx.createBufferSource(); f.buffer = buf; f.loop = true; f.playbackRate.value = a.tom; f.connect(a.g); f.start();
+      a.f = f; a.carregando = false;
+      alvo = a.alvo; rampa = a.rampa;   // o pedido mais novo (o copo pode ter sido solto enquanto o laço carregava)
+    } else { a.alvo = alvo; a.rampa = rampa; }
     a.g.gain.cancelScheduledValues(this.ctx.currentTime);
     a.g.gain.setValueAtTime(a.g.gain.value, this.ctx.currentTime);
     a.g.gain.linearRampToValueAtTime(Math.max(0, alvo), this.ctx.currentTime + rampa);
+  },
+  // O tom de um laço que já toca (o copo enchendo sobe de tom conforme enche, como o copo de verdade).
+  // (revisão) Desliza até o tom novo (constante de 0,05 s) em vez de pular a cada quadro; mudança mínima, nada é agendado.
+  ambienteTom(nome, tom) {
+    const a = this._amb[nome];
+    if (!a || !(tom > 0) || Math.abs(tom - a.tom) < 0.003) return;
+    a.tom = tom;
+    if (a.f) { const p = a.f.playbackRate, t0 = this.ctx.currentTime; p.cancelScheduledValues(t0); p.setTargetAtTime(tom, t0, 0.05); }
   },
   // Som avulso do ambiente (um canto, uma rajada), num lado sorteado da tela: quebra a repetição do laço de fundo.
   async avulso(nome, lado = 0, db = -6) {
@@ -225,6 +237,7 @@ setInterval(() => {
   sons.ambiente('amb_dia', fora && dia ? 0.45 : (dia ? 0.06 : 0));
   sons.ambiente('amb_noite', fora && !dia ? 0.5 : (!dia ? 0.07 : 0));
   sons.ambiente('amb_vento', fora ? 0.1 + 0.25 * vento : 0);
+  sincronizarMao();   // (revisão) também aqui: com menu, modal ou cena aberta os atualizadores param, e a mão cala
   atualizarAmbientePensao();
   // Cantos avulsos de dia, em horas sorteadas e de lados diferentes (nunca o mesmo desenho do laço).
   _proxCanto -= 1;
@@ -233,22 +246,31 @@ setInterval(() => {
 // ---------- a pensão barulhenta (14/10, o Dave: o sushi bar é barulhento e divertido) ----------
 // O som de cada evento da janta, como um plano: [[atraso s, nome, tom, variação, dB], ...]. Lógica pura (a s38 confere sem áudio).
 // ev.semSom: o evento já foi contado de outro jeito (o cliente foi embora com o prato na mão do Jocelino).
-function somDoEvento(ev) {
+// (14/10, o pacote de cozinha da Gravity Sound) rand: o sorteio do corte da Rosa (a s38 passa um fixo).
+const ROSA_CORTA_CHANCE = 0.3;   // de cada 10 pratos que entram no fogo, uns 3 começam com o "tchac" da faca da Rosa
+function somDoEvento(ev, rand = Math.random) {
   if (!ev || ev.semSom) return [];
   switch (ev.tipo) {
-    case 'pediu': return [[0, 'pedido_campainha', 1, 0.06, -6]];                       // o "plim plim" do balcão
-    case 'pronto': return [[0, 'prato_tchan', 1, 0.05, -4]];                           // a Rosa põe o prato no passe
+    // o pedido novo (New Order) e, logo depois, a panela entrando no fogo (Cooking Stir); às vezes a Rosa corta algo antes (Chop)
+    case 'pediu': { const p = [[0, 'pedido_campainha', 1, 0.04, -6], [0.6, 'chapa_chiado', 1, 0.06, -12]];
+      if (rand() < ROSA_CORTA_CHANCE) p.push([1.2, 'rosa_corta', 1, 0.08, -12]);
+      return p; }
+    case 'pronto': return [[0, 'prato_pronto', 1, 0.04, -8]];                          // o prato pronto no passe (Finish Action)
     case 'maquina_serviu': return [[0, 'servir', 1.3, 0.05, -10]];                     // (Tarefa D1) a máquina de refresco serviu um copo
-    // o prato chegou: o cliente prova (a cena de prato tem a plateia dela: aí não há reação por cima)
+    // o prato chegou: o cliente prova (a cena de prato tem a plateia dela: aí não há reação por cima). Gostou (4★ ou mais): o
+    // "acertou!" (Correct Order) e o "hmm, delícia"; prato errado: o "errou!" (Incorrect Order) e o "eca"
     case 'servido': if (ev.cena) return [];
-      return [[0.45, ev.certo === false || ev.reacao === 'nojo' ? 'cliente_eca' : (ev.estrelas >= 4 ? 'cliente_delicia' : 'cliente_hmm'), 1, 0.1, -4]];
+      if (ev.certo === false) return [[0.1, 'pedido_errado', 1, 0.03, -9], [0.45, 'cliente_eca', 1, 0.1, -4]];
+      if (ev.reacao === 'nojo') return [[0.45, 'cliente_eca', 1, 0.1, -4]];
+      return ev.estrelas >= 4 ? [[0.15, 'pedido_certo', 1, 0.03, -10], [0.45, 'cliente_delicia', 1, 0.1, -4]] : [[0.45, 'cliente_hmm', 1, 0.1, -4]];
     // pagou: a caixa registradora; no salão antigo a gorjeta entra junto (no balcão ela fica em moedas até o Jocelino recolher)
     case 'pagou': return ev.modo === 'antigo' && ev.gorjeta > 0 ? [[0, 'caixa_registradora', 1, 0.05, -6], [0.35, 'gorjeta', 1, 0.08, -6]] : [[0, 'caixa_registradora', 1, 0.05, -6]];
     case 'gorjeta': return [[0, 'gorjeta', 1, 0.08, -6]];                               // as moedinhas do balcão recolhidas
-    case 'embora': return [[0, 'cliente_bravo', 1, 0.08, -4]];
-    case 'vip_faltou': return [[0, 'cliente_bravo', 0.9, 0.05, -2]];
+    case 'embora': return [[0, 'pedido_errado', 0.94, 0.03, -10], [0.3, 'cliente_bravo', 1, 0.08, -4]];   // foi embora bravo
+    case 'vip_faltou': return [[0, 'pedido_errado', 0.9, 0, -8], [0.3, 'cliente_bravo', 0.9, 0.05, -2]];
     case 'louca': return [[0, 'cliente_eca', 1, 0.08, -6]];
     case 'farinha_baixa': return [[0, 'rosa_resmunga', 1.15, 0.05, -6]];             // (Tarefa C) a Rosa chama: a farinheira no fim
+    case 'farinha': return [[0, 'fogo_ruim', 1, 0.05, -6]];                            // a farinheira acabou e a cozinha parou: deu ruim no fogo (uma vez)
     case 'ultima_rodada': return SONS_LISTA.includes('sino_ultima_rodada') ? [[0, 'sino_ultima_rodada', 1, 0, -2]] : [[0, 'fanfarra', 1.4, 0, -10]];
     case 'favorito': return [[0, 'rosa_animada', 1.2, 0.05, -8]];
     case 'zezinho_cocada': return [[0, 'cliente_hmpf', 1.4, 0.05, -8]];
@@ -269,23 +291,69 @@ function tocarSomDoEvento(ev) {
 // Os sons que a janta usa: já baixados no "Abrir a pensão".
 const SONS_DA_JANTA = ['pedido_campainha', 'prato_tchan', 'servir', 'cliente_delicia', 'cliente_hmm', 'cliente_eca', 'caixa_registradora', 'gorjeta',
   'cliente_bravo', 'chapa_chiado', 'noite_comemora', 'contagem_dinheiro', 'estrela_1', 'estrela_2', 'estrela_3', 'estrela_4', 'estrela_5', 'degrau_fanfarra',
-  'cena_entrada', 'cena_tchan', 'cena_ploft', 'cena_faca', 'cena_borbulha', 'cena_plateia', 'festa_rojao'];
-// O fundo da janta: o burburinho do salão (mais gente, mais alto) e a chapa chiando de leve enquanto a Rosa tem prato no fogo.
-// Fora da janta (ou fora do salão), os dois vão a 0. Lógica pura: devolve { laço: volume alvo }.
+  'cena_entrada', 'cena_tchan', 'cena_ploft', 'cena_faca', 'cena_borbulha', 'cena_plateia', 'festa_rojao',
+  // (14/10, o pacote de cozinha)
+  'rosa_corta', 'prato_pronto', 'item_pega', 'item_pousa', 'pedido_certo', 'pedido_errado', 'louca_recolhe', 'lavando', 'acao_erro', 'fogo_ruim',
+  'copo_ajudante', 'cena_fogo', 'noite_boa', 'noite_ruim', 'chapa_laco', 'copo_enchendo', 'cerveja_enchendo', 'peneira_laco'];
+// (14/10, o pacote de cozinha) Os laços da mão do Jocelino no palco: o copo enchendo enquanto ele segura (a cerveja num despejo
+// mais grave) e a peneira enquanto peneira. Um de cada vez (as duas coisas nunca acontecem juntas). Lógica pura: o nome ou ''.
+const LACOS_MAO = { copo_enchendo: 0.5, cerveja_enchendo: 0.5, peneira_laco: 0.35 };   // o volume de cada um (canal de ambiente)
+// (revisão) Com o jogo parado (menu, modal como o fechamento da janta, cena de prato) a mão não toca nada.
+function lacoDaMao() {
+  if (!G.turno || typeof noPalco !== 'function' || !noPalco() || (typeof menuAberto === 'function' && menuAberto())) return '';
+  const c = G.copo;
+  if (c && c.segurando) return c.cerveja ? 'cerveja_enchendo' : 'copo_enchendo';
+  return G.peneira ? 'peneira_laco' : '';
+}
+// O fundo da janta: o burburinho do salão (mais gente, mais alto) e a chapa chiando de leve enquanto a Rosa cozinha (prato no
+// fogo, farinha na farinheira e a cozinha montada: o fogo parou, a chapa some). Com um laço da mão tocando, a chapa cala (nunca
+// três laços juntos: o burburinho, a chapa e a mão). Fora da janta (ou fora do salão), tudo a 0. Lógica pura: { laço: volume }.
+// A Rosa está cozinhando? (prato no fogo, farinha na farinheira, a cozinha montada e o Jocelino no salão; a mão não conta)
+function fogoDaRosa() {
+  const t = G.turno, sal = !!t && typeof noSalaoDaPensao === 'function' && noSalaoDaPensao();
+  const cozinha = typeof cozinhaPronta !== 'function' || cozinhaPronta();
+  return sal && cozinha && t.farinha > 0 && ((t.fogo && t.fogo.length > 0) || (t.mesas || []).some(m => m.estado === 'prato' && m.modo === 'antigo' && !m.pronto));
+}
 function ambientePensao() {
   const t = G.turno, sal = !!t && typeof noSalaoDaPensao === 'function' && noSalaoDaPensao();
   const gente = sal ? (t.mesas || []).filter(m => ['pedido', 'prato', 'comendo'].includes(m.estado)).length : 0;
-  const fogo = sal && ((t.fogo && t.fogo.length > 0) || (t.mesas || []).some(m => m.estado === 'prato' && m.modo === 'antigo' && !m.pronto));
-  return { salao_burburinho: sal ? Math.min(0.4, 0.18 + 0.04 * gente) : 0, chapa_laco: fogo ? 0.16 : 0 };
+  const mao = sal ? lacoDaMao() : '', a = { salao_burburinho: sal ? Math.min(0.4, 0.18 + 0.04 * gente) : 0, chapa_laco: fogoDaRosa() && !mao ? 0.22 : 0 };
+  for (const n in LACOS_MAO) a[n] = n === mao ? LACOS_MAO[n] : 0;
+  return a;
 }
 let _chapaAcesa = false;
-// Leva o fundo da janta ao volume certo (entra em 2 s; no fim da janta some devagar, em 4 s). A chapa que acende dá um chiado.
+// Leva o fundo da janta ao volume certo (entra em 2 s; no fim da janta some devagar, em 4 s; calada pela mão, em 0,3 s). A chapa
+// que acende dá um chiado: só quando o FOGO acende (revisão: calar a chapa pela mão e soltar o copo não chia de novo). Os laços
+// da mão ficam com o sincronizarMao (ligam e desligam na hora).
 function atualizarAmbientePensao() {
-  const a = ambientePensao();
-  for (const n in a) sons.ambiente(n, a[n], a[n] > 0 ? 2 : 4);
-  if (a.chapa_laco > 0 && !_chapaAcesa) sons.tocar('chapa_chiado', 1, 0.08, -10);
-  _chapaAcesa = a.chapa_laco > 0;
+  const a = ambientePensao(), mao = Object.keys(LACOS_MAO).some(n => a[n] > 0), fogo = fogoDaRosa();
+  for (const n of ['salao_burburinho', 'chapa_laco']) sons.ambiente(n, a[n], a[n] > 0 ? 2 : (n === 'chapa_laco' && mao ? 0.3 : 4));
+  if (fogo && !_chapaAcesa) sons.tocar('chapa_chiado', 1, 0.08, -10);
+  _chapaAcesa = fogo;
 }
+// A mão do Jocelino: segurou o copo, o despejo entra em 0,06 s; soltou, some em 0,15 s; o tom sobe com o nível (1 vazio, 1,25
+// cheio). A peneira do mesmo jeito. Muda só quando o laço da mão muda (a chapa cala ou volta junto). Roda a cada quadro e também
+// no relógio de 1 s e a cada 250 ms (os atualizadores param com menu, modal ou cena: o fechamento da janta não pode ficar com o
+// copo despejando por baixo) e no fim da janta (encerrarJanta).
+let _maoAntes = '';
+function sincronizarMao() {
+  const m = lacoDaMao(), c = G.copo;
+  if (m !== _maoAntes) {
+    _maoAntes = m;
+    for (const n in LACOS_MAO) sons.ambiente(n, n === m ? LACOS_MAO[n] : 0, n === m ? 0.06 : 0.15);
+    atualizarAmbientePensao();
+  }
+  if (m && c && c.segurando) sons.ambienteTom(m, 1 + 0.25 * clamp(c.nivel, 0, 1));
+}
+ATUALIZADORES.push(sincronizarMao);
+setInterval(() => { if (sons.ctx && _maoAntes) sincronizarMao(); }, 250);
+// (Tarefa D1) A máquina de refresco começou um copo (um t._maq novo): o despejo curto e baixo, como o do ajudante (Fill Drink).
+let _maqAntes = null;
+ATUALIZADORES.push(() => {
+  const t = G.turno, M = t ? t._maq : null;
+  if (M && M !== _maqAntes && typeof noSalaoDaPensao === 'function' && noSalaoDaPensao()) sons.tocar('copo_ajudante', 1.05, 0.05, -14);
+  _maqAntes = M || null;
+});
 
 // Passos pelo piso (grama, chão de terra/calçada, madeira dentro da pensão).
 let _passoT = 0;

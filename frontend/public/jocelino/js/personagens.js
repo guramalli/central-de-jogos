@@ -54,7 +54,10 @@ class Personagem {
     const passo = this.andando ? Math.floor(this.t * 8) % 4 : 1;
     // No palco de lado a gente aparece maior (como no Bancho); a arte é a mesma.
     const e = G.mapa && G.mapa.palco ? PALCO.ESCALA_GENTE : 1;
+    // (14/10) giro: a camada inteira girada um pouquinho em volta da cintura (o freguês incomodado balançando a cabeça, palco.js)
+    if (this.giro) { const py = this.y - qh * e * 0.4; ctx.save(); ctx.translate(this.x, py); ctx.rotate(this.giro); ctx.translate(-this.x, -py); }
     ctx.drawImage(img, this.dir * qw, passo * qh, qw, qh, this.x - qw * e / 2, this.y - (qh - 2) * e, qw * e, qh * e);
+    if (this.giro) ctx.restore();
     // O "!" do Mestre Bira: lista nova, pagamento ou gratificação esperando.
     if (this.id === 'bira' && typeof biraTemNovidade === 'function' && biraTemNovidade()) desenhaFx(ctx, 'balao', this.x, this.y - qh * e - 18);
     else if (typeof guiaMarcaMorador === 'function' && guiaMarcaMorador(this.id)) desenhaFx(ctx, 'exclamacao', this.x, this.y - qh * e - 18 + Math.sin((G.agora || 0) * 5) * 4);   // o "!" do guia (Frente 4)

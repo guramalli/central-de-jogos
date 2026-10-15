@@ -516,6 +516,7 @@ function encerrarJanta() {
   // Jocelino a Rosa faz de manhã.
   G.relatorioPensao = r;
   G.turno = null;
+  if (typeof sincronizarMao === 'function') sincronizarMao();   // (revisão dos sons) o copo ou a peneira na mão calam já (o fechamento abre um modal)
   if (G.jog && G.jog.carga && G.jog.carga.id === 'prato') G.jog.carga = {};
   const sal = MAPAS.pensao_dentro;
   if (sal) sal.clientes = [];
@@ -552,7 +553,10 @@ ATUALIZADORES.push(dt => {
       // O cliente foi embora com o prato dele na mão do Jocelino: a Rosa guarda o prato (nada trava).
       if (G.jog.carga && G.jog.carga.id === 'prato' && G.jog.carga.mesa === ev.mesa) { G.jog.carga = {}; ev.semSom = true; avisar(`${ev.cliente.nome} foi embora antes do prato chegar. A Rosa guardou o prato.`); }
       else if (noSalao) { avisar(ev.louca ? `${ev.cliente.nome} não aguentou a louça suja do lado e foi embora.` : `${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); }
-    } else if (ev.tipo === 'louca' && noSalao) { avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`);
+    } else if (ev.tipo === 'louca' && noSalao) {
+      // (14/10, o desgosto) a primeira vez no jogo, a Rosa avisa (uma vez só; a seta da primeira vez vai na louça: guia_setas.js)
+      if (G.limpou && !G.limpou.janta_desgosto) { G.limpou.janta_desgosto = 1; avisar('Rosa: "Louça suja espanta freguês: recolha antes de alguém sentar!"'); }
+      else avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`);
     } else if (ev.tipo === 'farinha_baixa' && noSalao) { avisar(`Rosa: "Jocelino, a farinheira tá no fim (${ev.farinha})! Peneira mais farinha pra mim."`);   // (Tarefa C) chama uma vez até repor
     } else if (ev.tipo === 'maquina_serviu' && noSalao && G.limpou && !G.limpou.janta_maquina) {   // (Tarefa D1) a 1ª vez, uma frase só
       G.limpou.janta_maquina = 1; avisar(`Rosa: "A máquina de refresco encheu o ${Pratos.BEBIDAS[ev.bebida].toLowerCase()} sozinha! O guaraná e o caldo ela serve; a cerveja e o cafezinho continuam com você."`);
@@ -572,6 +576,8 @@ ATUALIZADORES.push(dt => {
     else if (ev.tipo === 'vip_servido' && noSalao) { avisar(`${ev.cliente.nome}: "${vipDe(ev.cliente.id).frase}"`); }
     // (14/10) gostou (4★ ou mais, prato certo): os corações sobem da cabeça dele (a cena de prato tem a reação dela)
     if (ev.tipo === 'servido' && noSalao && !ev.cena && ev.certo !== false && ev.estrelas >= 4 && typeof coracaoNoPalco === 'function' && noPalco()) coracaoNoPalco(ev.mesa);
+    // (14/10, o desgosto) o cheiro do vizinho (a reação 'nojo' de quem não está do lado da louça): o balão de desgosto por uns segundos
+    if (ev.tipo === 'reacao' && ev.reacao === 'nojo' && noSalao && typeof desgostoNoPalco === 'function' && noPalco()) desgostoNoPalco(ev.mesa);
     // (14/10, os sons do Dave) o som de cada evento: somDoEvento (sons.js), com a moderação do sons.tocar
     if (noSalao) tocarSomDoEvento(ev);
   }
