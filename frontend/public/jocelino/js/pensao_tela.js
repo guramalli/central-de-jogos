@@ -246,11 +246,14 @@ function pensaoQuadro() {
   const esc = {};
   for (const [id, e] of Object.entries(p.cardapioNoite || {})) if (p.receitas.includes(id)) esc[id] = { panelas: Math.max(0, e.panelas | 0), repoe: e.repoe !== false };
   p.cardapioNoite = esc;
-  const caixa = el('div', { class: 'lousa quadro-cardapio ' + modo });
+  const lousa = el('div', { class: 'lousa quadro-cardapio ' + modo });
   let filtro = '';   // (Tarefa D1) a categoria escolhida no filtro do quadro ('' = todas)
   const marca = k => { if (G.limpou) G.limpou[k] = (G.limpou[k] || 0) + 1; };
+  // (14/10, o jogador: "quando clico para adicionar uma panela a tela do cardápio dá uma piscada") O redesenho monta tudo fora da tela
+  // e troca de uma vez (replaceChildren), guardando a rolagem e a fala da Rosa (que nascia escondida e piscava até o guia reescrever).
   const desenha = () => {
-    caixa.innerHTML = '';
+    const rolagem = lousa.scrollTop, f0 = lousa.querySelector('.qc-rosa'), fVis = !!(f0 && !f0.hidden), fTxt = f0 ? f0.querySelector('.guia-faixa-texto').textContent : '';
+    const caixa = el('div');
     const CQ = contaDoQuadro(p, esc), efe = id => panelasEfetivas(CQ, esc, id, modo);
     const ocupa = modo === 'durante' ? new Set(p.pratosDaNoite()) : new Set(Object.keys(esc).filter(id => efe(id) > 0));
     const temVaga = id => ocupa.has(id) || ocupa.size < p.vagas();
@@ -338,10 +341,13 @@ function pensaoQuadro() {
       el('img', { class: 'giz-enfeite seta volta', src: urlArte('ui/pensao/seta_giz'), alt: '' }),
       el('button', { class: 'tabua', onclick: e2 => { e2.stopPropagation(); _aoFecharModal = null; fecharModal(); _voltaAoQuadro = modo === 'abertura'; abrirDespensa(); } }, 'Despensa'),
       el('img', { class: 'giz-enfeite palmeira', src: urlArte('ui/pensao/palmeirinha_giz'), alt: '' })));
+    lousa.replaceChildren(...caixa.childNodes);
+    if (fVis) { const f1 = lousa.querySelector('.qc-rosa'); if (f1) { f1.hidden = false; f1.querySelector('.guia-faixa-texto').textContent = fTxt; } }
+    lousa.scrollTop = rolagem;
   };
   desenha();
   // Fechou sem abrir: a janta continua esperando (o botão "Cardápio" e os nichos abrem de novo).
-  abrirModal(caixa, () => { if (jantaEsperaCardapio() && noSalaoDaPensao()) avisar('A janta espera o cardápio: clique em "Cardápio", lá embaixo, quando quiser abrir.'); });
+  abrirModal(lousa, () => { if (jantaEsperaCardapio() && noSalaoDaPensao()) avisar('A janta espera o cardápio: clique em "Cardápio", lá embaixo, quando quiser abrir.'); });
   sons.tocar('abrir', 1.1, 0.03, -6);
   return true;
 }
