@@ -108,13 +108,18 @@ EXTRAS_MUNDO.push(m => {
   }
   return r;
 });
-function desenhaLuzDoServico(ctx, x, y, w, h) {
-  const p = 0.5 + 0.5 * Math.sin((G.agora || 0) * 3.2);
+// (14/10) Também o realce da reforma da pensão (realceDaReforma, reforma_palco.js). esc: px de mundo por px de tela (o salão
+// é desenhado menor, com zoom < 1: lá o traço e a curva crescem na mesma conta, para a luz ter na tela o peso da ponte da mata).
+// forte: para fundo claro (o céu pelo buraco do telhado, a parede creme do salão), um contorno escuro por baixo do traço e a luz
+// um pouco mais acesa — a amarela sozinha sumia ali.
+function desenhaLuzDoServico(ctx, x, y, w, h, esc = 1, forte = false) {
+  const p = 0.5 + 0.5 * Math.sin((G.agora || 0) * 3.2), m = 2 * esc, k = forte ? 1.5 : 1;
   ctx.save();
-  ctx.beginPath(); ctx.roundRect(x + 2, y + 2, w - 4, h - 4, 12);
-  ctx.fillStyle = `rgba(255,232,150,${(0.07 + 0.07 * p).toFixed(3)})`; ctx.fill();
-  ctx.shadowColor = 'rgba(255,214,96,.95)'; ctx.shadowBlur = 8 + 10 * p;
-  ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,228,128,${(0.45 + 0.35 * p).toFixed(3)})`; ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(x + m, y + m, w - 2 * m, h - 2 * m, 12 * esc);
+  ctx.fillStyle = `rgba(255,232,150,${(0.07 * k + 0.07 * k * p).toFixed(3)})`; ctx.fill();
+  if (forte) { ctx.lineWidth = 8 * esc; ctx.strokeStyle = 'rgba(60,30,0,.35)'; ctx.stroke(); }
+  ctx.shadowColor = 'rgba(255,214,96,.95)'; ctx.shadowBlur = (8 + 10 * p) * k;   // (a sombra não segue a escala do ctx: já é em px de tela)
+  ctx.lineWidth = 3 * esc * (forte ? 1.3 : 1); ctx.strokeStyle = `rgba(255,228,128,${Math.min(1, (0.45 + 0.35 * p) * k).toFixed(3)})`; ctx.stroke();
   ctx.restore();
 }
 function poeEmpreitasNoMapa(b) {

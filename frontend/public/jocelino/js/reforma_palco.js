@@ -36,6 +36,10 @@ function desenhaDiaNoite(ctx, dia, noite, x, y, w, h) {
   if (n && (a > 0 || !d)) { ctx.save(); ctx.globalAlpha = d ? a : 1; ctx.drawImage(n, x, y, w, h); ctx.restore(); }
 }
 const naAreaReforma = (L, px, py) => !!L && px >= L.area.x0 && px <= L.area.x1 && py >= L.area.y0 && py <= L.area.y1;
+// As caixas do clique da sujeira e da Rosa (px de mundo): o clique e o realce usam a mesma.
+const caixaDaSujeira = s => ({ x0: s.x - 50, x1: s.x + 50, y0: s.y - 110, y1: s.y + 25 });
+function caixaDaRosa() { const R = rosaLugar(), alto = R === PALCO.ROSA ? 260 : 190; return { x0: R.x - 75, x1: R.x + 75, y0: R.y - alto, y1: R.y + 25 }; }
+const naCaixa = (c, px, py) => px > c.x0 && px < c.x1 && py > c.y0 && py < c.y1;
 const minuscula = s => s[0].toLowerCase() + s.slice(1);
 const GOLPES_DIA = 3;   // o "3 golpes por dia": o terceiro clique no lugar conta o dia de trabalho
 const etapaReforma = id => ECO.reforma.find(e => e.id === id);
@@ -55,7 +59,11 @@ function trabalharNaReforma() {
     sons.tocar('feito', 1, 0.03, -4);
     const prox = etapaReforma(p.estado);
     avisar(p.estado !== antes ? `${etapaReforma(antes).nome}: pronto!${prox ? ' Amanhã: ' + minuscula(prox.nome) + '.' : p.estado === 'pronta' ? ' A Pensão da Rosa abre amanhã!' : ''}` : 'Mais um dia de trabalho na reforma.');
-    if (p.estado === 'pronta') G.feitosHoje.push('A reforma acabou: a pensão abre amanhã!');
+    if (p.estado === 'pronta') {
+      G.feitosHoje.push('A reforma acabou: a pensão abre amanhã!');
+      // (14/10, pedido do jogador) a última pincelada no letreiro e a Rosa vendo o sonho começar: a cena de cinema
+      if (antes === 'pintura' && typeof CenaPrato !== 'undefined' && CenaPrato.tocarEspecial) CenaPrato.tocarEspecial('letreiro', () => {});
+    }
   }
 }
 // As camadas do "antes" das etapas que ainda não acabaram (a atual e as seguintes), cada uma no salão inteiro (1920×1080).
@@ -83,10 +91,37 @@ function limparSujeira(k) {
     abrirPlaca(`Salão limpo! Agora ${minuscula(E.nome)}: traga ${Object.entries(E.material).map(([i, q]) => Itens.qtd(q, i)).join(', ')} (o Seu Ananias vende no depósito), entregue à Rosa e trabalhe ${E.dias} dia(s) no buraco do telhado.`);
   }
 }
+// O realce de onde clicar agora (pedido do jogador, 14/10: "onde pede para clicar precisa ter aquele sombreado que foi colocado
+// igual na ponte da mata"). É a mesma luz pulsante dos serviços (desenhaLuzDoServico, empreitas_jogo.js), sempre, com ou sem o
+// guia — como o Centro Comunitário do Stardew e o restaurante em obra do Dave, o jogador sempre sabe onde mexer:
+// - limpar: cada sujeira que falta;
+// - faltando material: a Rosa (é ela quem recebe);
+// - com o material todo: a área do clique da etapa (REFORMA_LUGAR.area);
+// - o trabalho de hoje feito: nada, e a frase "Amanhã continua" no lugar.
+// Devolve { onde: 'sujeira' | 'rosa' | 'lugar' | 'amanha', rets: [{ x, y, w, h, ordem }] } (px de mundo), ou null fora da reforma.
+const _ret = (c, ordem) => ({ x: c.x0, y: c.y0, w: c.x1 - c.x0, h: c.y1 - c.y0, ordem });
+function realceDaReforma() {
+  if (!emReforma()) return null;
+  const p = G.pensao;
+  if (p.estado === 'limpar') return { onde: 'sujeira', rets: sujeirasDaReforma().map(s => _ret(caixaDaSujeira(s), s.y + 0.01)) };
+  const L = REFORMA_LUGAR[p.estado]; if (!L) return null;
+  if (Object.keys(p.faltaMaterial()).length) { const R = rosaLugar(); return { onde: 'rosa', rets: [_ret(caixaDaRosa(), R === PALCO.ROSA ? 301.5 : R.y + 1)] }; }
+  if (p.reforma.hoje === G.dia) return { onde: 'amanha', rets: [] };
+  // (logo por cima da camada do "antes": quem passa na frente cobre a luz; a parede, atrás de tudo, por cima do balcão — senão as
+  // prateleiras e a cozinha escondiam a luz inteira)
+  return { onde: 'lugar', rets: [_ret(L.area, p.estado === 'pintura' ? 895 : L.ordem + 0.01)] };
+}
+function camadasDoRealce() {
+  const r = realceDaReforma(); if (!r) return [];
+  const c = r.rets.map(q => ({ tipo: 'camada', y: q.ordem, desenha(ctx) { desenhaLuzDoServico(ctx, q.x, q.y, q.w, q.h, 1 / (G.zoom || 1), true); } }));
+  const L = REFORMA_LUGAR[G.pensao.estado];
+  if (r.onde === 'amanha' && L) c.push({ tipo: 'camada', y: 5000, desenha(ctx) { ctx.save(); texto(ctx, 'Amanhã continua', L.seta.x, L.seta.y, Math.round(17 / (G.zoom || 1)), '#fff4cf', '900'); ctx.restore(); } });
+  return c;
+}
 // As sujeiras desenhadas no chão da frente (a arte já pronta, só posicionada e na escala do palco).
 MAPAS_DEF.pensao_palco = (orig => () => {
   const b = orig(), e0 = b.extras;
-  b.extras = () => [...(e0 ? e0() : []), ...camadasDaReforma(), ...sujeirasDaReforma().map(s => ({ tipo: 'camada', y: s.y, desenha(ctx) {
+  b.extras = () => [...(e0 ? e0() : []), ...camadasDaReforma(), ...camadasDoRealce(), ...sujeirasDaReforma().map(s => ({ tipo: 'camada', y: s.y, desenha(ctx) {
     const img = spr(s.arte); if (!img) return;
     const w = img.naturalWidth * SUJEIRA_ESCALA, h = img.naturalHeight * SUJEIRA_ESCALA;
     ctx.drawImage(img, s.x - w / 2, s.y - h, w, h);
@@ -96,10 +131,10 @@ MAPAS_DEF.pensao_palco = (orig => () => {
 // O clique: a sujeira (o Jocelino vai até ela), o lugar da etapa (trabalhar) e a Rosa (entrega o material), só na reforma.
 { const a0 = palcoAlvoEm; palcoAlvoEm = function (px, py) {
   if (emReforma()) {
-    for (const s of sujeirasDaReforma()) if (Math.abs(px - s.x) < 50 && py > s.y - 110 && py < s.y + 25) return { tipo: 'sujeira', k: s.k, x: s.x };
+    for (const s of sujeirasDaReforma()) if (naCaixa(caixaDaSujeira(s), px, py)) return { tipo: 'sujeira', k: s.k, x: s.x };
     // (o lugar da cozinha encosta na Rosa: faltando material, o clique é dela; com o material todo, é do trabalho)
     const L = REFORMA_LUGAR[G.pensao.estado], R = rosaLugar(), falta = Object.keys(G.pensao.faltaMaterial()).length > 0;
-    const naRosa = Math.abs(px - R.x) < 75 && py > R.y - (R === PALCO.ROSA ? 260 : 190) && py < R.y + 25, noLugar = naAreaReforma(L, px, py);
+    const naRosa = naCaixa(caixaDaRosa(), px, py), noLugar = naAreaReforma(L, px, py);
     if (noLugar && !(falta && naRosa)) return { tipo: 'reforma_lugar', x: clamp(L.pe, PALCO.X_MIN, PALCO.X_MAX) };
     if (naRosa) return { tipo: 'rosa_reforma', x: clamp(R.x - 60, PALCO.X_MIN, PALCO.X_MAX) };
   }

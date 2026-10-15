@@ -36,9 +36,9 @@ function montaHud() {
   HUD.botaoFab = el('button', { class: 'botao botao-fab', title: 'Fabricar (B)', onclick: () => abrirFabricar() }, el('img', { src: urlItem('colher'), style: 'height:18px;vertical-align:middle' }));
   HUD.botaoCad = el('button', { class: 'botao botao-cad', title: 'Caderneta: o que dá para fazer (J)', onclick: () => abrirCaderneta() }, '✎');
   // (14/10, o jogador: "dê a opção de abrir ele todo") O botão da mochila, à direita da barra (o Stardew: o botão do inventário).
-  // Sem arte de mochila: o ícone do baú.
+  // O ícone é a mochila de lona (itens/mochila); se a arte não carregar, cai para o baú, sem quebrar nada.
   HUD.botaoMochila = el('button', { class: 'botao botao-mochila', title: 'Mochila inteira (E)', onclick: e => { e.stopPropagation(); if (!menuAberto()) abrirMochila(); } },
-    el('img', { src: urlItem('bau'), alt: 'Mochila', draggable: 'false' }));
+    el('img', { src: urlItem('mochila'), alt: 'Mochila', draggable: 'false', onerror: e => { if (!e.target.dataset.reserva) { e.target.dataset.reserva = '1'; e.target.src = urlItem('bau'); } } }));
   h.append(HUD.colEsq, HUD.relogio, HUD.meta, HUD.energia, HUD.barra, HUD.botaoMochila, HUD.dicaBarra, HUD.selo, HUD.botaoTela, HUD.botaoHab, HUD.botaoFab, HUD.botaoCad);
 }
 

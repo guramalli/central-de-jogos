@@ -9,7 +9,7 @@ const BALANCO = { 'objetos/arvore': 0.022, 'objetos/coqueiro': 0.032, 'objetos/a
   'objetos/mangueira': 0.018, 'objetos/palmeira_jucara': 0.03, 'objetos/arbusto_1': 0.016, 'objetos/arbusto_2': 0.016, 'objetos/arbusto_3': 0.016 };
 function balanco(o, t = VIDA.t) {
   const amp = BALANCO[o.nome];
-  if (!amp || (G.mapa && G.mapa.dentro)) return 0;
+  if (!amp || (G.mapa && semCeu(G.mapa))) return 0;
   const f = o.x * 0.013 + o.y * 0.007;
   return (Math.sin(t * 1.3 + f) + 0.35 * Math.sin(t * 2.9 + f * 2)) * amp * (0.45 + VIDA.vento);
 }
@@ -23,16 +23,18 @@ function _rolinhasDoMapa(m) {
   }
   return r;
 }
+// (14/10, o jogador: "passarinhos e folhas dentro da mina") Sem céu: dentro de casa, nos cenários e debaixo da terra (a pedreira funda).
+const semCeu = m => !!(m && (m.dentro || m.cenario || m.subsolo));
 function vidaAtualiza(dt) {
   const m = G.mapa;
   if (!m) return;
   VIDA.t += dt;
   // Vento: sobe e desce devagar; de tempos em tempos uma rajada.
   VIDA.proxRajada -= dt;
-  if (VIDA.proxRajada <= 0) { VIDA.rajada = 4; VIDA.proxRajada = rnd(18, 35); if (!m.dentro && !m.cenario) sons.avulso('avulso_rajada', rnd(-0.5, 0.5), -8); }
+  if (VIDA.proxRajada <= 0) { VIDA.rajada = 4; VIDA.proxRajada = rnd(18, 35); if (!semCeu(m)) sons.avulso('avulso_rajada', rnd(-0.5, 0.5), -8); }
   VIDA.rajada = Math.max(0, VIDA.rajada - dt);
   VIDA.vento = 0.45 + 0.25 * Math.sin(VIDA.t * 0.11) + (VIDA.rajada > 0 ? 0.6 * Math.sin(Math.PI * VIDA.rajada / 4) : 0);
-  if (m.dentro || m.cenario) { VIDA.folhas.length = 0; VIDA.bandos.length = 0; return; }
+  if (semCeu(m)) { VIDA.folhas.length = 0; VIDA.bandos.length = 0; return; }
   if (VIDA.mapaId !== m.id) { VIDA.mapaId = m.id; VIDA.rolinhas = _rolinhasDoMapa(m); VIDA.folhas.length = 0; VIDA.bandos.length = 0; }
   const vw = G.larg / G.zoom, vh = G.alt / G.zoom, cx = G.cam.x, cy = G.cam.y;
   // Folhas: nascem do lado esquerdo da tela durante a rajada e atravessam rodopiando.
@@ -75,12 +77,12 @@ function _desenhaRolinha(ctx, r) {
   desenhaFx(ctx, nome, r.x, r.y - pz - r.z, { base: true, espelho: r.lado < 0 });
 }
 function vidaNoChao(m) {
-  if (!MODO_TESTE.efeitos || m.dentro || m.cenario || VIDA.mapaId !== m.id) return [];
+  if (!MODO_TESTE.efeitos || semCeu(m) || VIDA.mapaId !== m.id) return [];
   return VIDA.rolinhas.map(r => ({ y: r.y, desenha: ctx => _desenhaRolinha(ctx, r) }));
 }
 // O céu: folhas ao vento e o bando (com a sombra no chão, bem mais embaixo).
 function desenhaCeu(ctx, m) {
-  if (!MODO_TESTE.efeitos || m.dentro || m.cenario) return;
+  if (!MODO_TESTE.efeitos || semCeu(m)) return;
   for (const f of VIDA.folhas) desenhaFx(ctx, 'folha_' + f.n, f.x, f.y, { ang: f.ang });
   for (const b of VIDA.bandos) for (const a of b.aves) {
     ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(a.x + 30, a.y + 170, 14, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();

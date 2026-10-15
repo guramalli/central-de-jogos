@@ -9,6 +9,7 @@
 // de uma receita com cena (uma vez só); o prato do tema da festa (uma vez por noite de festa). Nunca o prato comum repetido.
 // Durante a cena o jogo fica pausado como num menu (menuAberto): o relógio da janta e a paciência dos clientes não andam.
 // window.TESTE_PULA_CENAS (a bateria de testes): a cena é registrada (vista, contador da noite) mas não toca nem pausa.
+// As cenas especiais (CENAS_ESPECIAIS, fora da janta: o letreiro do fim da reforma) usam o mesmo motor por tocarEspecial().
 
 // O prato → a cena dele (o prato da casa e as bebidas nunca têm cena).
 const CENA_DO_PRATO = {
@@ -111,17 +112,93 @@ const CENAS_PRATO = {
     } },
 };
 
+// As cenas ESPECIAIS (fora da janta, uma vez na história): o mesmo motor, mas tocadas por CenaPrato.tocarEspecial(id, aoAcabar).
+// Não entram no limite de 2 por noite nem na conta das cenas de prato da Caderneta (G.cenasVistas): as vistas ficam em
+// G.cenasEspeciais. titulo: o texto da faixa de baixo no trecho da legenda (no lugar do nome do prato).
+// O letreiro (9,6 s; 14/10, o pedido do jogador: "ele terminando de pintar o letreiro e a Rosa feliz da vida vendo seu sonho
+// começar a se realizar"): o fim da última etapa da reforma ('pintura'). A fachada no fim da tarde com o letreiro sem a última
+// letra; o Jocelino na escada dá a última pincelada; o letreiro pronto acende com brilho; a Rosa entra com um pulinho, chorando de
+// alegria; o close dos dois abraçados no pôr do sol.
+// LETREIRO: o centro e a largura da placa pintada na arte do fundo (no quadro de 1920×1080, sem zoom), onde o letreiro pronto
+// encaixa por cima (um pouco maior: cobre a placa antiga inteira). LETREIRO_JOC: o pé da escada e a altura da peça do Jocelino,
+// que fica ESPELHADA à direita da placa (o braço dele cruza só a ponta dela e a letra que falta; o corpo não tapa o letreiro);
+// LETREIRO_PINCEL: a ponta do pincel na peça sem espelho (fração da largura e da altura), onde a última gota de brilho nasce
+// e para onde ela aponta: a letra que falta, perto de (1235, 255).
+const LETREIRO = { x: 966, y: 244, l: 712 };
+const LETREIRO_JOC = { x: 1464, y: 1128, h: 900 };
+const LETREIRO_PINCEL = { fx: 0.94, fy: 0.03 };
+const LETREIRO_AFASTA = { x: 170, y: 150 };          // o passo do Jocelino depois da última pincelada (fora da placa)
+const LETREIRO_ZOOM = { x: 960, y: 330 };                       // o ponto em volta do qual a fachada aproxima devagar
+const LETREIRO_CLOSE = { x: 1536, y: 234, l: 340, rot: -0.05 };   // a placa na arte do close da reação
+const CENAS_ESPECIAIS = {
+  letreiro: { dur: 9.6, legenda: [6.7, 9.3], titulo: 'A Pensão da Rosa está pronta!',
+    artes: ['cenas/letreiro_fundo', 'cenas/letreiro_jocelino', 'cenas/letreiro_pronto', 'cenas/letreiro_brilho', 'cenas/letreiro_rosa', 'cenas/letreiro_reacao'],
+    sons: [[2.55, 'pousar', 0.8, -8], [3.15, 'cena_tchan', 1, -4], [3.35, 'degrau_fanfarra', 1, -4], [4.75, 'rosa_animada', 1, -4], [6.75, 'fanfarra', 1, -6]],
+    desenha(d, t) {
+      if (t < 7.0) {
+        // a fachada no fim da tarde, aproximando devagar em volta do letreiro; as peças de cima seguem o mesmo zoom (z)
+        const zoom = 1 + 0.08 * _eo(_cs(t, 0, 7.0)), F = LETREIRO_ZOOM;
+        const z = (x, y) => [F.x + (x - F.x) * zoom, F.y + (y - F.y) * zoom];
+        d.fundo('cenas/letreiro_fundo', zoom, 1, F.x, F.y);   // (o fundo tem 16:9: sem zoom ele cobre o quadro exato)
+        // o letreiro pronto acende por cima do que está sem a última letra: o clarão, a placa brilhando e um pulso de escala
+        if (t >= 3.0) {
+          const u = _cs(t, 3.0, 3.3), [lx, ly] = z(LETREIRO.x, LETREIRO.y), img = spr('cenas/letreiro_pronto');
+          const h = img ? LETREIRO.l * zoom * img.naturalHeight / img.naturalWidth : 0;
+          d.peca('cenas/letreiro_pronto', lx, ly, h, { alfa: u, esc: 1 + 0.06 * Math.sin(Math.PI * _cs(t, 3.1, 3.8)) });
+          d.luz(0.55 * (1 - _cs(t, 3.0, 3.55)) * (t >= 3.0 ? 1 : 0));
+          // as faíscas de brilho: nas pontas da placa, girando, crescendo e sumindo (uma depois da outra)
+          const pontas = [[-0.46, -0.3], [0.47, 0.25], [0.1, -0.42], [-0.3, 0.36], [0.44, -0.32]];
+          for (let k = 0; k < pontas.length; k++) {
+            const v = _cs(t, 3.1 + k * 0.28, 3.9 + k * 0.28); if (v <= 0 || v >= 1) continue;
+            d.peca('cenas/letreiro_brilho', lx + pontas[k][0] * LETREIRO.l * zoom, ly + pontas[k][1] * h, 190 * zoom * Math.sin(Math.PI * v), { rot: v * 2.2 * (k % 2 ? -1 : 1), alfa: Math.sin(Math.PI * v) });
+          }
+        }
+        // o Jocelino na escada (espelhado, à direita da placa): sobe do pé da tela, dá as pinceladas (o balanço do corpo e do braço
+        // pelo giro da peça em volta do pé da escada) e a última, mais larga, em 2,3 a 2,9 s; depois fica olhando a obra e sai
+        // quando a Rosa já está na tela
+        if (t < 6.4) {
+          // (no clarão do letreiro acendendo ele desce um degrau e afasta para a direita: o pincel sai de cima do "a" que pintou)
+          const ent = _eo(_cs(t, 0, 0.7)), af = _eo(_cs(t, 3.0, 3.3)), jh = LETREIRO_JOC.h * zoom;
+          const [jx, jy] = z(LETREIRO_JOC.x + af * LETREIRO_AFASTA.x, LETREIRO_JOC.y + (1 - ent) * 900 + af * LETREIRO_AFASTA.y);
+          const pinc = t < 2.3 ? 0.02 * Math.sin(t * 9) * _cs(t, 0.6, 0.9) : 0.07 * Math.sin(Math.PI * _cs(t, 2.3, 2.9)) + 0.004 * Math.sin(t * 3);
+          d.peca('cenas/letreiro_jocelino', jx, jy, jh, { ancora: 'base', rot: pinc, espelho: true, alfa: 1 - _cs(t, 6.0, 6.4) });
+          // a gota de brilho na ponta do pincel (que gira junto com a peça) na última pincelada
+          const v = _cs(t, 2.55, 3.15), img = spr('cenas/letreiro_jocelino');
+          if (v > 0 && v < 1 && img) {
+            const jw = jh * img.naturalWidth / img.naturalHeight, vx = -(LETREIRO_PINCEL.fx - 0.5) * jw, vy = -jh * (1 - LETREIRO_PINCEL.fy);
+            const bx = jx + vx * Math.cos(pinc) - vy * Math.sin(pinc), by = jy + vx * Math.sin(pinc) + vy * Math.cos(pinc);
+            d.peca('cenas/letreiro_brilho', bx, by, 200 * zoom * Math.sin(Math.PI * v), { rot: v * 3, alfa: Math.sin(Math.PI * v) });
+          }
+        }
+        // a Rosa entra pela esquerda com um pulinho de alegria (e mais dois pulinhos menores), olhando o letreiro
+        if (t >= 4.6) {
+          const u = _eo(_cs(t, 4.6, 5.2)), p = _cs(t, 5.2, 6.6);
+          const pulo = t < 5.2 ? 0 : Math.abs(Math.sin(Math.PI * p * 3)) * 70 * (1 - p);
+          d.peca('cenas/letreiro_rosa', 470 - (1 - u) * 700, 1110 - pulo, 780, { ancora: 'base', rot: 0.03 * Math.sin(t * 6) * (1 - p) });
+        }
+      }
+      // o close da reação: os dois abraçados na frente da pensão, com os filhos, no pôr do sol; a placa lá atrás (que na arte do
+      // close saiu sem letras) recebe o mesmo letreiro pronto, pequeno e um pouco inclinado como ela (LETREIRO_CLOSE)
+      if (t >= 6.6) {
+        const zoom = 1.1 - 0.1 * _eo(_cs(t, 6.6, 9.6)), a = _cs(t, 6.6, 6.9), C = LETREIRO_CLOSE, img = spr('cenas/letreiro_pronto');
+        d.fundo('cenas/letreiro_reacao', zoom, a, 960, 420);
+        if (img) d.peca('cenas/letreiro_pronto', 960 + (C.x - 960) * zoom, 420 + (C.y - 420) * zoom, C.l * zoom * img.naturalHeight / img.naturalWidth, { rot: C.rot, alfa: a });
+      }
+    } },
+};
+
 // ---------- o estado (no save): as cenas vistas, as receitas que já tiveram a cena da 1ª venda e o contador da noite ----------
 INICIADORES.push(s => {
+  G.cenasEspeciais = Array.isArray(s.cenasEspeciais) ? s.cenasEspeciais.slice() : [];
   G.cenasVistas = Array.isArray(s.cenasVistas) ? s.cenasVistas.slice() : [];
   G.cenasReceitas = Array.isArray(s.cenasReceitas) ? s.cenasReceitas.slice() : [];
   G.cenasNoite = { n: 0, festa: false, vip: false }; for (const k in G.cenasNoite) if (s.cenasNoite && k in s.cenasNoite) G.cenasNoite[k] = s.cenasNoite[k];   // (onda final: o "dia" de um save antigo, nunca lido, fica de fora)
   CenaPrato.parar();
 });
-COLETORES.push(s => { s.cenasVistas = (G.cenasVistas || []).slice(); s.cenasReceitas = (G.cenasReceitas || []).slice(); s.cenasNoite = Object.assign({}, G.cenasNoite); });
+COLETORES.push(s => { s.cenasEspeciais = (G.cenasEspeciais || []).slice(); s.cenasVistas = (G.cenasVistas || []).slice(); s.cenasReceitas = (G.cenasReceitas || []).slice(); s.cenasNoite = Object.assign({}, G.cenasNoite); });
 
 const CenaPrato = {
-  _cena: null,     // a cena tocando: { id, def, t, tr, espera, podePular, primeira, prato, sons }
+  _cena: null,     // a cena tocando: { id, def, t, tr, espera, podePular, primeira, prato, aoAcabar, sons }
   _fixo: null,     // (testes) o segundo em que a cena fica parada para a foto
   _ultimo: 0,
   cenaDe(prato) { return CENA_DO_PRATO[prato] || ''; },
@@ -169,8 +246,24 @@ const CenaPrato = {
     if (!def || this._cena) return false;
     const primeira = !G.cenasVistas.length, podePular = G.cenasVistas.includes(id);
     if (!podePular) G.cenasVistas.push(id);
+    return this._iniciar(id, def, { podePular, primeira, prato: prato || '' });
+  },
+  // A cena especial, fora da janta (o letreiro no fim da reforma): CenaPrato.tocarEspecial('letreiro', aoAcabar). Não conta no
+  // limite de 2 por noite nem nas cenas de prato; para o relógio como as outras; a 1ª vez toca inteira, a já vista o clique pula.
+  // aoAcabar() é chamada sempre uma vez: quando a cena termina (ou é pulada, ou para por erro); na hora, se a cena não pode tocar
+  // (outra tocando, id desconhecido) ou com TESTE_PULA_CENAS (a cena fica registrada como vista). Devolve true se tocou.
+  tocarEspecial(id, aoAcabar) {
+    const def = CENAS_ESPECIAIS[id], fim = () => { if (typeof aoAcabar === 'function') aoAcabar(); };
+    if (!Array.isArray(G.cenasEspeciais)) G.cenasEspeciais = [];
+    if (!def || this._cena) { fim(); return false; }
+    const podePular = G.cenasEspeciais.includes(id);
+    if (!podePular) G.cenasEspeciais.push(id);
+    if (window.TESTE_PULA_CENAS) { fim(); return false; }
+    return this._iniciar(id, def, { podePular, primeira: false, prato: '', aoAcabar: fim });
+  },
+  _iniciar(id, def, op) {
     for (const n of def.artes) spr(n);
-    this._cena = { id, def, t: 0, tr: 0, espera: 0, podePular, primeira, prato: prato || '', sons: def.sons.slice() };
+    this._cena = { id, def, t: 0, tr: 0, espera: 0, podePular: op.podePular, primeira: op.primeira, prato: op.prato, aoAcabar: op.aoAcabar || null, sons: def.sons.slice() };
     this._ultimo = performance.now();
     // as faixas descem: o zunido com rufar; a música e o burburinho baixam enquanto a cena toca
     if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); sons.abafar(def.dur + 0.5, 0.3); }
@@ -194,6 +287,7 @@ const CenaPrato = {
     if (typeof sons !== 'undefined' && c.t < c.def.dur - 0.5) sons.abafar(0);   // pulou no meio: a música volta já
     // a primeira cena de todas: a Rosa ensina que dá para pular (a frase no lugar, como toda 1ª vez do jogo)
     if (c.primeira && typeof avisar === 'function') avisar('A Rosa: "Prato especial tem cena: da próxima vez, clique para pular."');
+    if (c.aoAcabar) try { c.aoAcabar(); } catch (e) { console.warn('o fim da cena especial deu erro:', e && e.message); }
   },
   parar() {
     this._cena = null; this._fixo = null;
@@ -255,12 +349,13 @@ const CenaPrato = {
         base(); ctx.globalAlpha = A * alfa;
         ctx.drawImage(img, fx + (x0 - fx) * zoom, fy + (y0 - fy) * zoom, w, h);
       },
-      // a peça recortada com altura h no ponto (x, y): ancora 'centro', 'base' (o pé em y) ou 'topo'; giro, escala e transparência
+      // a peça recortada com altura h no ponto (x, y): ancora 'centro', 'base' (o pé em y) ou 'topo'; giro, escala, transparência e
+      // espelho (a peça virada da esquerda para a direita)
       peca(nome, x, y, h, op = {}) {
         const img = spr(nome), alfa = op.alfa == null ? 1 : op.alfa; if (!img || alfa <= 0) return;
         const w = img.naturalWidth * h / img.naturalHeight, ay = op.ancora === 'base' ? -h : op.ancora === 'topo' ? 0 : -h / 2;
         base(); ctx.globalAlpha = A * alfa;
-        ctx.translate(x, y); if (op.rot) ctx.rotate(op.rot); if (op.esc && op.esc !== 1) ctx.scale(op.esc, op.esc);
+        ctx.translate(x, y); if (op.rot) ctx.rotate(op.rot); if (op.esc && op.esc !== 1) ctx.scale(op.esc, op.esc); if (op.espelho) ctx.scale(-1, 1);
         ctx.drawImage(img, -w / 2, ay, w, h);
       },
       // o clarão discreto do risco de faca
@@ -275,7 +370,8 @@ const CenaPrato = {
     ctx.fillStyle = '#000'; ctx.fillRect(0, y1, W, B); ctx.fillRect(0, H - B - y1, W, B);
     if (typeof texto === 'function') {
       const [l0, l1] = c.def.legenda;
-      if (c.prato && t >= l0 && t <= l1 && typeof Pensao !== 'undefined') { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, Pensao.prato(c.prato).nome, W / 2, H - B / 2 + 9 - y1, Math.round(clamp(B * 0.42, 16, 34)), '#ffd34d', '900'); }
+      const nome = c.def.titulo || (c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : '');
+      if (nome && t >= l0 && t <= l1) { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, nome, W / 2, H - B / 2 + 9 - y1, Math.round(clamp(B * 0.42, 16, 34)), '#ffd34d', '900'); }
       if (c.podePular) { ctx.globalAlpha = 0.75 * entra * (1 - sai); texto(ctx, 'Clique para pular', W - 110, H - B / 2 + 7 - y1, 16, '#fff4cf', '800'); }
       ctx.globalAlpha = 1;
     }

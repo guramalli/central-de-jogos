@@ -13,7 +13,7 @@ const ECO = {
   porcoes: { pf_peao: 4, peixe_frito: 4, sopa_pedra: 6, cocada_tijolinho: 6, rabanada: 4, marmita_peao: 4, pamonha: 4, goiabada: 6, bolo_milho: 6, caldo_caranguejo: 4, moqueca: 4 },
   porcoesPadrao: 4,
   cafeBoasVindas: 1.3,    // cafezinho na medida antes do prato: +30% no preço
-  // Caprichar (o Enhance do Bancho): +30% do preço base por nível; porções +50% no nível 10.
+  // Caprichar (o Enhance do Bancho): +60% do preço base por nível (o Dave dá +30%); porções +50% no nível 10.
   precoPorNivel: 0.6, porcoesNivel10: 0.5,
   // A Rosa como chef: experiência por prato que sai, que sobe 1,35× por nível; preparo 4% mais rápido por nível.
   chef: { xpBase: 40, xpCresce: 1.35, preparoPorNivel: 0.04 },
@@ -64,7 +64,20 @@ const ECO = {
     janta: { PACIENCIA_PEDIDO: 45, PACIENCIA_PRATO: 70, PREPARO: 6, COMENDO: 8, LENDO: 1.5, LENDO_LOUCA: 6,
       FARINHA_MAX: 15, REPOR_ATE: 10, PASSE_MAX: 4, BANDEJA_MAX: 3, BOCAS: 2, GORJETA_MEDIDA: 0.15,
       precoBebida: { cafe: 0, guarana: 0, caldo_cana: 0, cerveja: 2 },
-      ALERTA_FARINHA: { minimo: 3, parte: 3 }, PENEIRA: { jocelino: 2.5, ajudante: 5, mestre: 2.5 }, ESPERA_CERVEJA: 10 },
+      ALERTA_FARINHA: { minimo: 3, parte: 3 }, PENEIRA: { jocelino: 2.5, ajudante: 5, mestre: 2.5 }, ESPERA_CERVEJA: 10,
+      // (14/10, Tarefa D1, a cozinha de verdade) preparo: os segundos de fogo de cada receita (o PREPARO acima é o padrão, do salão
+      // antigo). Rápidos (4 a 5 s): a salada, a farofa, a couve e os doces da panela; médios (6 s): o PF, o peixe frito e os caldos;
+      // demorados (7 s): as moquecas, as caldeiradas, o bobó, o vatapá e o assado. O robô da calibração serve o peixe frito (6 s) e o
+      // cardápio mais caro de cada degrau fica entre 6 e 7 s (o relatório da D1 tem a conta). Toda receita tem o dela (a carga confere).
+      // MAQUINA: os segundos da máquina de refresco para encher um copo de guaraná ou de caldo de cana (um de cada vez); MAQUINA_BEBIDAS:
+      // as que ela serve (a cerveja e o café, não).
+      preparo: { casa: 4, pf_peao: 6, peixe_frito: 6, sopa_pedra: 6, cocada_tijolinho: 4,
+        rabanada: 5, arroz_doce: 4, salada_rosa: 4, farofa_ovo: 4, couve_mineira: 4, mandioca_frita: 5, sopa_legumes: 5, mingau_milho: 4,
+        pure_abobora: 5, virado: 6, cuscuz: 5, bolinho_chuva: 5, canjica: 4, marmita_peao: 6, pamonha: 5, goiabada: 4, bolo_milho: 4,
+        sardinha_frita: 6, lambari_crocante: 6, peixe_ensopado: 7, casquinha_siri: 6, caldo_caranguejo: 6, escondidinho: 7, caldo_peixe: 6,
+        pirao: 5, moqueca: 7, moqueca_capixaba: 7, lagosta_manteiga: 6, bobo_camarao: 7, peixada: 7, robalo_assado: 7, caldeirada: 7,
+        moqueca_prefeito: 7, caldeirada_critico: 7, doce_leite_calixto: 4, picadinho_santos: 6, arroz_polvo: 6, vatapa: 7 },
+      MAQUINA: 4, MAQUINA_BEBIDAS: ['guarana', 'caldo_cana'] },
     rosaPaga: true,                                 // a Rosa sozinha paga a despesa e os salários     // caprichar gasta (qtd + 1) × isto^(nível − 1) de cada ingrediente
   },
   // ---- A obra do Bira: a diária de cada função, o extra, a gorjeta do imprevisto, as gratificações e o que cada função pede.
@@ -97,7 +110,7 @@ const ECO = {
     tonico: { lampiao: { dinheiro: 200, barra_ferro: 1 }, forja: { dinheiro: 600, barra_ferro: 2, pedra: 20 }, irrigador_bom: { dinheiro: 600, barra_aco: 1, barra_ferro: 1 }, betoneira: { dinheiro: 1200, barra_aco: 3 } } },
   mina: { baus: { "10": { dinheiro: 200, itens: { barra_ferro: 3 } }, "20": { itens: { barra_aco: 3, cristal: 2 } }, "30": { itens: { barra_bronze: 3, carranca: 1 } } },
     marcos: [[3, { dinheiro: 150 }], [6, { itens: { barra_bronze: 2, lajota: 4 } }], [9, { itens: { impermeabilizante: 5 } }], [12, { dinheiro: 500 }], [14, { itens: { cristal: 5 }, titulo: "Guardião da memória da Vila" }]] },
-  melhorias: { toalha: 600, flamula: 400, radio: [900, 2200, 4500], farinheira_grande: [1500, 2800], ventilador: [1800, 2600, 5200], banqueta_extra: 1200, bandeirinhas: 800, fogao_4bocas: [3000, 7000], geladeira: 4000, trofeu: 0, neon: 2500 },
+  melhorias: { toalha: 600, flamula: 400, bancada_passe: [2500, 4200], maquina_refresco: 3500, radio: [900, 2200, 4500], farinheira_grande: [1500, 2800], ventilador: [1800, 2600, 5200], banqueta_extra: 1200, bandeirinhas: 800, fogao_4bocas: [3000, 7000], geladeira: 4000, trofeu: 0, neon: 2500 },
   ampliacoes: { salao_maior: 4000, varanda: 6000, sobrado: 15000 },
   // (14/10, Tarefa B: a equipe do Dave) O nível vai até nivelMax. O treino custa base × cresce^(nível − 1), com teto (o Dave: ~1,43×
   // por nível, 99 mil no 20; aqui o teto deixa o nível alto como um gasto do fim do jogo, umas 4 noites boas por treino). O salário é
@@ -124,8 +137,8 @@ const ECO = {
       { id: 'maquina_costura', nome: 'Máquina de costura', preco: 9000, efeito: 'A Rosa costura para fora: Cr$ 60 por noite (menos domingo).' },
       // (14/10) A mochila de couro: 48 → 60 espaços. O Jocelino já começa com 48 (mais que a maior do Stardew, 36), então esta é
       // a "luxo" do Pierre (24 → 36 por 10.000g, 5× a primeira). A Cr$ 2.500, entre a garrafa e a bicicleta, ela atrasava a
-      // máquina de costura no simulador e o devagar não chegava às 5 estrelas (s19). Sem arte própria: o ícone do baú (`icone`).
-      { id: 'mochila_couro', nome: 'Mochila de couro', preco: 10000, icone: 'bau', efeito: 'Mochila com 60 espaços: mais uma fileira de 12.' },
+      // máquina de costura no simulador e o devagar não chegava às 5 estrelas (s19). O ícone é a arte dela (`icone`: itens/mochila_couro).
+      { id: 'mochila_couro', nome: 'Mochila de couro', preco: 10000, icone: 'mochila_couro', efeito: 'Mochila com 60 espaços: mais uma fileira de 12.' },
       { id: 'televisao', nome: 'Televisão', preco: 16000, efeito: 'A novela com a família: amizade todo dia.' },
       { id: 'fusca', nome: 'Fusca', preco: 60000, efeito: 'Viagem rápida pelo mapa, a partir do quintal.' },
     ],
@@ -211,3 +224,5 @@ function ecoCampo(tabela, campo, valores) {
 // As tabelas carregadas antes deste arquivo (dados.js e pratos.js).
 LOJA.PRECOS = Object.assign({}, ECO.lojas.deposito); LOJA.COMPRA = Object.assign({}, ECO.lojas.compra);
 Pratos.MERCEARIA = Object.assign({}, ECO.lojas.mercearia); Pratos.RARIDADE_PRECO = ECO.pratos.raridade;
+// (Tarefa D1) Toda receita tem o tempo de preparo dela no ECO (receitas.js já juntou as novas): falta de valor é erro na carga.
+for (const id in Pratos.PRATOS) if (!(id in ECO.pensao.janta.preparo)) throw new Error('ECO: falta o preparo de ' + id);

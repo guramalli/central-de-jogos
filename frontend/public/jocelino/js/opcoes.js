@@ -53,6 +53,9 @@ function abrirOpcoes() {
     caixa.append(linha('Save em arquivo',
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); baixarSave(); } }, 'Baixar o save'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); escolherSave(); } }, 'Carregar save')));
+    // (14/10) O save na conta do Educação Gamer (nuvem_save.js): "Salvo na conta: dia X, às HH:MM" e "Salvar na conta agora";
+    // sem login, o convite para entrar; fora do site, nada.
+    if (typeof NuvemSave !== 'undefined') { const l = NuvemSave.linhaOpcoes(linha, desenha, caixa); if (l) caixa.append(l); }
     caixa.append(linha('Diário da sessão (caixa-preta)',
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); if (typeof baixarDiario === 'function') baixarDiario(); } }, 'Baixar o diário da sessão'),
       el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); if (typeof abrirNota === 'function') abrirNota(); } }, 'Anotar agora (N)')));

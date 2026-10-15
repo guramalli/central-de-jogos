@@ -16,10 +16,12 @@ const VIPS = [
     carta: 'A J. Moreira Construções avisa: o patrão, Seu Moreira, vai jantar na pensão amanhã. Se gostar, manda a peãozada inteira comer aí.', frase: 'Vou mandar meus peões todos pra cá!' },
 ];
 const FESTAS = [
-  { nome: 'Noite do PF em Dobro', pratos: ['pf_peao', 'marmita_peao'] },
-  { nome: 'Festa do Peixe Frito', pratos: ['peixe_frito', 'moqueca'] },
+  // (Tarefa D1) categoria: a festa pede uma categoria (receitas.js, CATEGORIAS): todo prato dela vale 50% mais na noite; o prato da
+  // festa (o que os convidados pedem e leva a fitinha) continua o primeiro da lista que a pensão sabe.
+  { nome: 'Noite do PF em Dobro', pratos: ['pf_peao', 'marmita_peao'], categoria: 'pf' },
+  { nome: 'Festa do Peixe Frito', pratos: ['peixe_frito', 'moqueca'], categoria: 'peixe' },
   { nome: 'Arraiá da Pensão', pratos: ['pamonha', 'bolo_milho', 'cocada_tijolinho'], ensina: 'canjica' },
-  { nome: 'Noite dos Doces da Vó', pratos: ['rabanada', 'goiabada', 'cocada_tijolinho'] },
+  { nome: 'Noite dos Doces da Vó', pratos: ['rabanada', 'goiabada', 'cocada_tijolinho'], categoria: 'doce' },
   { nome: 'Jogo do Santos na Rádio', pratos: ['caldo_caranguejo', 'pf_peao', 'sopa_pedra'] },
 ];
 // O prêmio de função de cada VIP (o primeiro que a pensão ainda não tem), como os presentes dos VIPs do Dave.
@@ -50,7 +52,7 @@ const Eventos = {
     }
     if (desde >= 4 && desde % 7 === 4 && !marcado('festa')) {
       const f = FESTAS[Math.floor(desde / 7) % FESTAS.length], ok = f.pratos.filter(id => p.receitas.includes(id));
-      novos.push({ tipo: 'festa', nome: f.nome, dia: amanha, avisado: dia, prato: ok.length ? ok[0] : p.receitas[0] });
+      novos.push({ tipo: 'festa', nome: f.nome, dia: amanha, avisado: dia, prato: ok.length ? ok[0] : p.receitas[0], categoria: f.categoria || '' });
     }
     if (p.agenda.filter(e => e.tipo === 'pedido' && !e.fim).length < 2 && rng.randf() < 0.6) {
       const prato = p.receitas[rng.randi() % p.receitas.length], qtd = 2 + rng.randi() % 3;
@@ -183,7 +185,7 @@ MANHA.push(() => {
   const f = mulberry(G.dia * 433), rng = { randf: f, randi: () => Math.floor(f() * 4294967296) };
   for (const e of Eventos.planejar(p, G.dia, rng)) {
     if (e.tipo === 'vip') { const v = vipDe(e.id); CARTAS['vip_' + G.dia] = { de: v.nome, dia: 1e9, texto: v.carta.replace('amanhã', `na ${DIAS[(e.dia - 1) % 7]}`) + `\n\n(Ele vai pedir: ${Pratos.PRATOS[e.prato].nome}.` + (e.ensinou ? ' A receita com o nome dele veio junto: a Rosa já anotou no caderno. Junte os ingredientes!)' : ')') }; G.correio.caixa.push('vip_' + G.dia); }
-    else if (e.tipo === 'festa') { CARTAS['festa_' + G.dia] = { de: 'Rosa', dia: 1e9, texto: `Amor, na ${DIAS[(e.dia - 1) % 7]} é a ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}: vale 50% mais e vem mais gente. Enche a despensa!` }; G.correio.caixa.push('festa_' + G.dia); }
+    else if (e.tipo === 'festa') { CARTAS['festa_' + G.dia] = { de: 'Rosa', dia: 1e9, texto: `Amor, na ${DIAS[(e.dia - 1) % 7]} é a ${e.nome}! O prato da festa é ${Pratos.PRATOS[e.prato].nome}${e.categoria ? ` (e todo ${CATEGORIAS[e.categoria].toLowerCase()} vale mais)` : ''}: vale 50% mais e vem mais gente. Enche a despensa!` }; G.correio.caixa.push('festa_' + G.dia); }
     else if (e.tipo === 'pedido') G.feitosHoje.push(`Pedido novo no quadro da Vila: ${e.quem} quer ${e.qtd} ${Pratos.PRATOS[e.prato].nome}.`);
   }
 });

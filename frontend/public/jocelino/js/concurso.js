@@ -6,10 +6,11 @@
 
 // Os pratos de cada estação (o gosto do locutor): Outono, Inverno, Primavera, Verão.
 const CONCURSO_TEMAS = [
-  { nome: 'peixe do outono', pratos: ['peixe_frito', 'moqueca', 'sardinha_frita', 'lambari_crocante', 'peixe_ensopado', 'peixada', 'caldo_peixe', 'moqueca_capixaba', 'robalo_assado'] },
-  { nome: 'caldo de inverno', pratos: ['sopa_pedra', 'caldo_caranguejo', 'sopa_legumes', 'caldo_peixe', 'caldeirada', 'pirao', 'mingau_milho', 'canjica'] },
-  { nome: 'horta da primavera', pratos: ['salada_rosa', 'couve_mineira', 'pure_abobora', 'virado', 'mandioca_frita', 'farofa_ovo', 'escondidinho', 'pf_peao'] },
-  { nome: 'doce de verão', pratos: ['cocada_tijolinho', 'goiabada', 'rabanada', 'arroz_doce', 'bolo_milho', 'bolinho_chuva', 'doce_leite_calixto', 'pamonha'] },
+  // (Tarefa D1) categoria: além da lista, todo prato da categoria (receitas.js) é "da estação" para o locutor
+  { nome: 'peixe do outono', categoria: 'peixe', pratos: ['peixe_frito', 'moqueca', 'sardinha_frita', 'lambari_crocante', 'peixe_ensopado', 'peixada', 'caldo_peixe', 'moqueca_capixaba', 'robalo_assado'] },
+  { nome: 'caldo de inverno', categoria: 'caldo', pratos: ['sopa_pedra', 'caldo_caranguejo', 'sopa_legumes', 'caldo_peixe', 'caldeirada', 'pirao', 'mingau_milho', 'canjica'] },
+  { nome: 'horta da primavera', categoria: 'horta', pratos: ['salada_rosa', 'couve_mineira', 'pure_abobora', 'virado', 'mandioca_frita', 'farofa_ovo', 'escondidinho', 'pf_peao'] },
+  { nome: 'doce de verão', categoria: 'doce', pratos: ['cocada_tijolinho', 'goiabada', 'rabanada', 'arroz_doce', 'bolo_milho', 'bolinho_chuva', 'doce_leite_calixto', 'pamonha'] },
 ];
 const JURADOS = [
   { id: 'aurelio', nome: 'Seu Aurélio, da Gazeta', gosto: 'raridade', texto: 'quer ingrediente raro' },
@@ -21,13 +22,15 @@ const Concurso = {
   hoje(dia) { return dia % 28 === 0; },
   estacaoAbs(dia) { return Math.floor((dia - 1) / 28); },
   raridade(id) { const pr = Pratos.PRATOS[id]; return (pr && pr.raridade) || 1; },
+  // (Tarefa D1) O prato é da estação: está na lista do tema ou é da categoria dele.
+  daEstacao(tema, id) { return tema.pratos.includes(id) || (!!tema.categoria && typeof categoriaDe === 'function' && categoriaDe(id) === tema.categoria); },
   // A nota dos 3 jurados (0 a 10 cada, média dos 3 pratos), o total e a nota do melhor rival.
   julgar(p, ids, est, ano = 0) {
     const tema = CONCURSO_TEMAS[est % 4], media = f => Math.round(ids.reduce((s, id) => s + f(id), 0) / ids.length * 10) / 10;
     const notas = {
       raridade: media(id => 2 + 2 * Concurso.raridade(id)),
       nivel: media(id => p.nivel(id)),
-      tema: media(id => tema.pratos.includes(id) ? 10 : 4 + Math.min(3, Concurso.raridade(id))),
+      tema: media(id => Concurso.daEstacao(tema, id) ? 10 : 4 + Math.min(3, Concurso.raridade(id))),
     };
     const jurados = JURADOS.map(j => ({ id: j.id, nome: j.nome, gosto: j.gosto, nota: notas[j.gosto] }));
     const total = Math.round(jurados.reduce((s, j) => s + j.nota, 0) * 10) / 10, rivais = Concurso.RIVAL_BASE + Concurso.RIVAL_POR_ANO * ano;
@@ -93,7 +96,7 @@ function abrirConcurso() {
     if (!cands.length) grade.append(el('div', { class: 'rodape' }, 'A despensa não rende nenhum prato: guarde ingredientes primeiro.'));
     for (const id of cands) grade.append(el('div', { class: 'conc-prato' + (escolha.includes(id) ? ' sel' : ''), onclick: e => { e.stopPropagation();
       const k = escolha.indexOf(id); if (k >= 0) escolha.splice(k, 1); else if (escolha.length < 3) escolha.push(id); sons.tocar('pagina', 1, 0.05, -8); desenha(); } },
-      el('img', { src: urlArte(iconePratoGrande(id)) }), el('div', {}, Pratos.PRATOS[id].nome), el('div', { class: 'conc-info' }, `${'★'.repeat(Concurso.raridade(id))} · Nv ${p.nivel(id)}${tema.pratos.includes(id) ? ' · da estação' : ''}`)));
+      el('img', { src: urlArte(iconePratoGrande(id)) }), el('div', {}, Pratos.PRATOS[id].nome), el('div', { class: 'conc-info' }, `${'★'.repeat(Concurso.raridade(id))} · Nv ${p.nivel(id)}${Concurso.daEstacao(tema, id) ? ' · da estação' : ''}`)));
     caixa.append(grade, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px' },
       el('div', { style: 'font-weight:900' }, `${escolha.length}/3 escolhidos`),
       el('div', { style: 'display:flex;gap:8px' }, el('button', { class: 'botao', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Depois'),

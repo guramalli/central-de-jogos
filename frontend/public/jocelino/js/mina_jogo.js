@@ -24,6 +24,19 @@ function descerPara(n) {
   entrarMapa('bancada', { x: 4, y: 4 }); sons.tocar('pedra', 0.8, 0.05, -6);
   avisar(`Bancada ${n}${n >= MINA.ESCURO ? ' — escuro' : ''}${n >= MINA.AR_RUIM ? ', ar pesado' : ''}.`);
 }
+// (14/10, o jogador: "na pedreira, mostre qual andar você está") O Stardew mostra o andar da mina no canto; aqui, uma plaquinha
+// no alto da tela enquanto se está numa bancada: o número, o recorde e o aviso de escuro / ar pesado.
+ATUALIZADORES.push(() => {
+  const hud = document.getElementById('hud'); if (!hud) return;
+  let p = document.getElementById('mina-andar');
+  const na = G.mapaId === 'bancada' && G.mina && G.mina.bancada > 0;
+  if (!na) { if (p && !p.hidden) p.hidden = true; return; }
+  if (!p) { p = el('div', { id: 'mina-andar', class: 'painel mina-andar' }); hud.append(p); }
+  const n = G.mina.bancada, fundo = G.mina.maisFunda || n;
+  const txt = `Pedreira funda · Bancada ${n}` + (fundo > n ? ` · a mais funda: ${fundo}` : '') + (n >= MINA.AR_RUIM ? ' · ar pesado' : n >= MINA.ESCURO ? ' · escuro' : '');
+  if (p._txt !== txt) { p._txt = txt; p.textContent = txt; }
+  p.hidden = false;
+});
 function subirDaMina() { G.mina.bancada = 0; delete MAPAS.bancada; entrarMapa('pedreira', { x: 10, y: 9 }); }
 function abrirElevador() {
   if (!G.mina.aberta) { abrirPlaca('O elevador de caçamba está parado. O Seu Tonico ainda não liberou as bancadas.'); return true; }

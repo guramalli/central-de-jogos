@@ -25,6 +25,10 @@ const PALCO = {
   // O passe da cozinha (os pratos prontos), a bacia da louça e o lixo, na ponta direita (a/salao/LEIA_servico.txt).
   PASSE: { cx: 1375, base: 905, escala: 1, topo: 814, vagas: [1310, 1352, 1394, 1436] },
   PASSE_AREA: { x: 1285, y: 760, w: 180, h: 150 },
+  // (14/10, Tarefa D1) A bancada do passe (a melhoria): no chão, à esquerda do passe, na frente da ponta do balcão; os pratos 5 e 6
+  // do passe ficam em cima dela (vagas). A máquina de refresco: na parede atrás da ponta direita do balcão (pé no rodapé, y 760).
+  BANCADA: { cx: 1239, base: 905, escala: 1, topo: 814, vagas: [1222, 1258], area: { x: 1193, y: 795, w: 92, h: 112 } },
+  MAQUINA: { cx: 1276, base: 760 },
   BACIA: { x: 1466, y: 825, w: 64, h: 80, escala: 1 },
   LIXO: { x: 1528, y: 842, w: 39, h: 60, escala: 1 },
   CARDAPIO: { x: 590, y: 505, w: 720, h: 130 },     // os nichos da parede: o cardápio da noite
@@ -39,8 +43,8 @@ const PALCO = {
 // O salão maior (ampliação): o balcão comprido de 8 banquetas vai até x 1515; o passe passa para a ponta direita (80%)
 // e o bebedouro, a bacia e o lixo para a frente da ponta esquerda do balcão (a/salao/LEIA_ampliacao.txt).
 const LAYOUT_PALCO = {
-  pequeno: (({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE }) =>
-    ({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE }))(PALCO),
+  pequeno: (({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE, BANCADA, MAQUINA }) =>
+    ({ ASSENTOS, BEBEDOURO, PASSE, PASSE_AREA, BACIA, LIXO, FARINHEIRA, BALCAO_ARTE, TOALHA_W, ROSA_PASSE, RITINHA_X, CASA_ZE, CASA_AJUDANTE, BANCADA, MAQUINA }))(PALCO),
   grande: {
     ASSENTOS: [400, 537, 674, 811, 948, 1085, 1222, 1359].map(x => ({ x, y: 856 })),
     BEBEDOURO: { x: 372, y: 774, w: 84, h: 126, escala: 0.42 },
@@ -49,6 +53,8 @@ const LAYOUT_PALCO = {
     BACIA: { x: 464, y: 825, w: 64, h: 80, escala: 1 },
     LIXO: { x: 534, y: 842, w: 39, h: 60, escala: 1 },
     FARINHEIRA: { x: 1440, y: 730, w: 70, h: 62, cx: 1475, base: 786, escala: 0.36 },
+    BANCADA: { cx: 1489, base: 905, escala: 0.8, topo: 828, vagas: [1475, 1503], area: { x: 1452, y: 815, w: 73, h: 92 } },
+    MAQUINA: { cx: 1290, base: 760 },
     BALCAO_ARTE: 'balcao_grande', TOALHA_W: 1240, ROSA_PASSE: 1600, RITINHA_X: 630, CASA_ZE: 600, CASA_AJUDANTE: 1480,
   },
 };
@@ -356,9 +362,9 @@ function camadasDaJanta() {
     // O passe da cozinha (a bancada), os pratos prontos em cima dele, a bacia e o lixo.
     camadaViva(878, ctx => {
       desenhaPe(ctx, 'salao/passe', P.PASSE.cx, P.PASSE.base, 1, P.PASSE.escala);
-      if (t) t.passaPrato().forEach((x, k) => desenhaPrato(ctx, x.prato, P.PASSE.vagas[k], P.PASSE.topo, 1, 0.8));
+      if (t) t.passaPrato().forEach((x, k) => { const v = vagaDoPasse(k); desenhaPrato(ctx, x.prato, v.x, v.y, 1, 0.8); });
       // (revisão da Tarefa B) o prato que o ajudante "Leva prato" reservou: o "!" em cima (é dele)
-      if (t) t.passaPrato().forEach((x, k) => { if (x.reservadoPara != null) desenhaFx(ctx, 'exclamacao', P.PASSE.vagas[k], P.PASSE.topo - 46 + Math.sin((G.agora || 0) * 5) * 3, { escala: 0.7 }); });
+      if (t) t.passaPrato().forEach((x, k) => { if (x.reservadoPara != null) { const v = vagaDoPasse(k); desenhaFx(ctx, 'exclamacao', v.x, v.y - 46 + Math.sin((G.agora || 0) * 5) * 3, { escala: 0.7 }); } });
     }),
     camadaViva(879, ctx => { desenhaPe(ctx, 'salao/bacia', P.BACIA.x + P.BACIA.w / 2, P.BACIA.y + P.BACIA.h, 1, P.BACIA.escala); }),
     camadaViva(878.5, ctx => { desenhaPe(ctx, 'salao/lixo', P.LIXO.x + P.LIXO.w / 2, P.LIXO.y + P.LIXO.h, 1, P.LIXO.escala); }),
@@ -439,15 +445,22 @@ function desenhaBandeja(ctx) {
   });
 }
 
+// (Tarefa D1) Onde fica o prato k do passe: as 4 vagas do passe e, depois delas, as da bancada (com a melhoria).
+function vagaDoPasse(k) {
+  const P = PALCO, n = P.PASSE.vagas.length;
+  if (k < n) return { x: P.PASSE.vagas[k], y: P.PASSE.topo };
+  const B = P.BANCADA; return { x: B.vagas[Math.min(k - n, B.vagas.length - 1)], y: B.topo };
+}
 // ---------- clicar, ir até e fazer ----------
 function palcoAlvoEm(px, py) {
   const P = PALCO, t = G.turno;
   const dentro = (R) => px >= R.x && px <= R.x + R.w && py >= R.y && py <= R.y + R.h;
   if (t) {
     const ps = t.passaPrato();
-    for (let k = 0; k < ps.length; k++) if (Math.abs(px - P.PASSE.vagas[k]) < 22 && Math.abs(py - (P.PASSE.topo - 14)) < 40) return { tipo: 'passe', k, x: P.PASSE.vagas[k] };
+    for (let k = 0; k < ps.length; k++) { const v = vagaDoPasse(k); if (Math.abs(px - v.x) < 22 && Math.abs(py - (v.y - 14)) < 40) return { tipo: 'passe', k, x: v.x }; }
   }
   if (dentro(P.PASSE_AREA)) return { tipo: 'passe', k: 0, x: P.PASSE.cx };
+  if (typeof temMelhoria === 'function' && temMelhoria('bancada_passe') && dentro(P.BANCADA.area)) return { tipo: 'passe', k: P.PASSE.vagas.length, x: P.BANCADA.cx };
   if (dentro(P.FARINHEIRA)) return { tipo: 'farinheira', x: P.FARINHEIRA.cx };
   if (dentro(P.BEBEDOURO)) return { tipo: 'bebedouro', x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2 };
   if (dentro(P.BACIA)) return { tipo: 'bacia', x: P.BACIA.x + P.BACIA.w / 2 };
@@ -491,6 +504,8 @@ function palcoAgirNaFrente() {
   if (t) {
     // (revisão da Tarefa B) a tecla X pega o primeiro prato que o ajudante não reservou
     if (t.passaPrato().length) { const k = t.passe.findIndex(x => x.reservadoPara == null); cands.push({ tipo: 'passe', k: Math.max(0, k), x: P.PASSE.cx }); }
+    // (revisão da D1) cada prato livre no lugar dele: perto da bancada do passe, a tecla X pega o prato de cima dela
+    t.passe.forEach((x, k) => { if (x.reservadoPara == null && k >= P.PASSE.vagas.length) cands.push({ tipo: 'passe', k, x: vagaDoPasse(k).x }); });
     t.mesas.forEach((m, i) => { if (i < P.ASSENTOS.length && m.estado !== 'livre') cands.push({ tipo: 'cliente', i, x: P.ASSENTOS[i].x, quer: m }); });
   }
   cands.push({ tipo: 'farinheira', x: P.FARINHEIRA.cx }, { tipo: 'bebedouro', x: P.BEBEDOURO.x + P.BEBEDOURO.w / 2 },
@@ -603,7 +618,7 @@ function roboDoSalaoPasso(t, vai) {
   const querem = t.mesas.filter(m => m.estado === 'prato' && !m.pratoReservado).map(m => m.prato);
   for (const x of t.bandeja) if (x.tipo === 'prato') { const k = querem.indexOf(x.prato); if (k >= 0) querem.splice(k, 1); }
   const k = cabe ? t.passe.findIndex(x => x && x.reservadoPara == null && querem.includes(x.prato)) : -1;
-  if (k >= 0) { vai(P.PASSE.vagas[Math.min(k, P.PASSE.vagas.length - 1)], P.PASSE.topo - 10); return true; }
+  if (k >= 0) { const v = vagaDoPasse(k); vai(v.x, v.y - 10); return true; }
   // entregar: quem espera há mais tempo por alguma coisa da bandeja
   let quem = -1;
   for (let i = 0; i < n; i++) if (t.bandeja.some(x => quer(t.mesas[i], x)) && (quem < 0 || t.mesas[i].espera > t.mesas[quem].espera)) quem = i;
@@ -636,7 +651,10 @@ function abrirCopo(bebida) {
   G.copo = bebida === 'cerveja' ? { bebida, cerveja: true, liq: 0, esp: 0, nivel: 0, inclinado: true, segurando: false, msg: 'Segure para despejar com o copo inclinado. Solte (ou botão direito) para endireitar.' }
     : { bebida, nivel: 0, segurando: false, msg: 'Segure para encher. Solte na linha!' };
   G.jog.alvoPalco = null;
+  if (G.turno) G.turno.copoEnchendo = bebida;   // (revisão da D1) a banqueta dele: a máquina de refresco não enche o mesmo copo
 }
+// (revisão da D1) O copo do minijogo acompanha o turno: fechou (foi para a bandeja, derramou ou saiu do salão), a vaga se desfaz.
+ATUALIZADORES.push(() => { const t = G.turno; if (t) t.copoEnchendo = G.copo && noPalco() ? G.copo.bebida : ''; });
 // A nota da cerveja pela espuma: 'medida' (o colarinho de dois dedos), 'ok' (pouca espuma) ou 'ruim' (espuma demais).
 function notaDaCerveja(liq, esp) {
   const tot = liq + esp, f = tot > 0 ? esp / tot : 0;
@@ -728,6 +746,22 @@ DESENHOS_TELA.push(ctx => {
   texto(ctx, c.msg, W / 2, y + h + 44, 24, '#ffe08a', '800');
 });
 let _copoTela = null;
+// (Tarefa D1) O copo da bebida b cheio até `nivel` (0 a 1), pequeno, com o pé em (x, y) e a altura alt: o mesmo copo e o mesmo
+// líquido do minijogo, recortado por dentro do copo (a máquina de refresco enchendo o copo embaixo da torneira).
+let _copoMaquina = null;
+function desenhaCopoEnchendo(ctx, b, nivel, x, y, alt) {
+  const copo = spr('salao/' + COPO.ART[b]), dentro = spr('salao/' + COPO.ART[b] + '_dentro'), liq = spr('salao/' + COPO.LIQ[b]), g0 = COPO.GEO[b];
+  if (!copo || !g0) return;
+  const W0 = copo.naturalWidth, H0 = copo.naturalHeight, e = alt / H0, w = W0 * e;
+  if (dentro && liq) {
+    const off = _copoMaquina || (_copoMaquina = document.createElement('canvas')); off.width = W0; off.height = H0;
+    const g = off.getContext('2d'); g.clearRect(0, 0, W0, H0);
+    g.drawImage(liq, 0, g0.fundo - (g0.fundo - g0.topo) * clamp(nivel, 0, 1));
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(dentro, 0, 0); g.globalCompositeOperation = 'source-over';
+    ctx.drawImage(off, x - w / 2, y - alt, w, alt);
+  }
+  ctx.drawImage(copo, x - w / 2, y - alt, w, alt);
+}
 // (Tarefa C) A cerveja: o copo americano (inclinado no começo) e a garrafa, que gira para despejar. As camadas, de baixo para cima:
 // o colarinho (espuma_cerveja) com o topo na espuma, a cerveja (liquido_cerveja) com o topo no líquido, recortados por dentro do
 // copo; o copo por cima. Com o copo inclinado, as camadas giram ao contrário (a cerveja fica deitada) e crescem um pouco para
@@ -902,6 +936,13 @@ ATUALIZADORES.push(() => {
   const sp = r.querySelector('.farinha span'); if (sp.textContent !== txt) sp.textContent = txt;
 });
 
+// (revisão da D1) O lugar de esperar do Zezinho e dos ajudantes não fica em cima da bancada do passe: quem cairia nela (com uma
+// folga de 30 px de cada lado) vai para a esquerda dela, a largura da faixa inteira (os ajudantes continuam a 60 px um do outro).
+function foraDaBancada(x) {
+  if (typeof temMelhoria !== 'function' || !temMelhoria('bancada_passe')) return x;
+  const A = PALCO.BANCADA.area, l = A.x - 30, r = A.x + A.w + 30;
+  return x > l && x < r ? x - (r - l) : x;
+}
 // ---------- os filhos na pensão ----------
 // A Ritinha na porta, cuidando do caixa (a gorjeta da noite sai 10% maior); o Zezinho na faixa do chão, devagarinho,
 // recolhendo a louça que ninguém pegou (e de olho nas cocadas). A arte é a deles do quintal (folha de criança).
@@ -914,7 +955,7 @@ function filhosDoPalco() {
     if (!FILHOS.ritinha) FILHOS.ritinha = new Personagem('ritinha', 'Ritinha', PALCO.RITINHA_X, PALCO.CHAO_Y - 4, DIR.BAIXO);
     return [FILHOS.ritinha];
   }
-  if (!FILHOS.zezinho) { const z = FILHOS.zezinho = new Personagem('zezinho', 'Zezinho', PALCO.CASA_ZE, PALCO.CHAO_Y - 6, DIR.ESQUERDA); z.tarefa = null; z.espera = 5; }
+  if (!FILHOS.zezinho) { const z = FILHOS.zezinho = new Personagem('zezinho', 'Zezinho', foraDaBancada(PALCO.CASA_ZE), PALCO.CHAO_Y - 6, DIR.ESQUERDA); z.tarefa = null; z.espera = 5; }
   return [FILHOS.zezinho];
 }
 ATUALIZADORES.push(dt => {
@@ -928,7 +969,8 @@ ATUALIZADORES.push(dt => {
     if (z.espera > 0) return;
     z.espera = 6;                                                  // criança: faz uma coisa e para um pouco
     const i = t.mesas.findIndex((m, k) => k < PALCO.ASSENTOS.length && (m.estado === 'suja' || m.louca) && !AJUDANTES.some(o => o.tarefa && o.tarefa.i === k));
-    z.tarefa = i >= 0 ? { tipo: 'louca', i, x: PALCO.ASSENTOS[i].x } : (Math.abs(z.x - PALCO.CASA_ZE) > 4 ? { tipo: 'casa', x: PALCO.CASA_ZE } : null);
+    const casaZe = foraDaBancada(PALCO.CASA_ZE);
+    z.tarefa = i >= 0 ? { tipo: 'louca', i, x: PALCO.ASSENTOS[i].x } : (Math.abs(z.x - casaZe) > 4 ? { tipo: 'casa', x: casaZe } : null);
     if (!z.tarefa) return;
   }
   const dx = z.tarefa.x - z.x;
@@ -965,9 +1007,10 @@ function ajudantesDoPalco() {
     let a = AJUDANTES[k];
     if (!a || a.id !== e.id) {
       if (a) largarTarefaDoAjudante(a);
-      a = AJUDANTES[k] = new Personagem(e.id, e.nome, e.posto === 'cozinha' ? PALCO.ROSA.x - 90 : PALCO.CASA_AJUDANTE - k * 60, e.posto === 'cozinha' ? PALCO.ROSA.y : PALCO.CHAO_Y - 4, DIR.BAIXO);
+      a = AJUDANTES[k] = new Personagem(e.id, e.nome, e.posto === 'cozinha' ? PALCO.ROSA.x - 90 : foraDaBancada(PALCO.CASA_AJUDANTE - k * 60), e.posto === 'cozinha' ? PALCO.ROSA.y : PALCO.CHAO_Y - 4, DIR.BAIXO);
       a.equipe = e; a.casa = a.x; a.tarefa = null; a.espera = 0;
     }
+    if (e.posto !== 'cozinha') a.casa = foraDaBancada(PALCO.CASA_AJUDANTE - k * 60);   // (revisão da D1) a bancada comprada depois, o salão maior
   });
   return AJUDANTES;
 }

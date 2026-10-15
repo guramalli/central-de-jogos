@@ -78,7 +78,7 @@ CADERNETA.push(() => {
 CADERNETA.push(() => {
   const p = G.pensao; if (!p || p.estado !== 'aberta') return [];
   const r = [], prox = p.proximoDegrau && p.proximoDegrau();
-  if (prox) { const f = prox.falta, partes = []; if (f.curtidas) partes.push(`${f.curtidas} curtidas`); if (f.sabor) partes.push(`sabor +${f.sabor}`); if (f.pesquisadas) partes.push(`${f.pesquisadas} receita(s) pesquisada(s)`);
+  if (prox) { const f = prox.falta, partes = []; if (f.curtidas) partes.push(`${f.curtidas} curtidas`); if (f.sabor) partes.push(`melhor sabor +${f.sabor} (caprichar e servir no salão)`); if (f.pesquisadas) partes.push(`${f.pesquisadas} receita(s) pesquisada(s)`);
     r.push({ id: 'pensao_degrau', aba: 'pensao', texto: `Próxima estrela (${prox.nome}): ${partes.length ? faltaTxt(partes) : 'falta pouco'}`, feito: Math.round(p.progresso() * 100), meta: 100, alvo: { mapa: 'vila', objeto: 'pensao' } }); }
   if (typeof MELHORIAS !== 'undefined') { const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio).sort((a, b) => a[1].preco - b[1].preco)[0];
     if (m) r.push({ id: 'pensao_melhoria', aba: 'pensao', texto: `Melhoria do salão ao alcance: ${m[1].nome} (Cr$ ${m[1].preco})`, feito: Math.min(G.dinheiro, m[1].preco), meta: m[1].preco, alvo: { mapa: 'vila', objeto: 'pensao' } }); }

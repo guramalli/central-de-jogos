@@ -65,6 +65,24 @@ Object.assign(Pratos.INGREDIENTES, {
 });
 Object.assign(Pratos.MERCEARIA, { leite: 2, acucar: 1 });
 for (const id in RECEITAS_NOVAS) Pratos.PRATOS[id] = Object.assign({ montar: Object.keys(RECEITAS_NOVAS[id].porcao) }, RECEITAS_NOVAS[id]);
+// (14/10, Tarefa D1, a cozinha de verdade) A categoria de cada receita (no Dave, o cardápio separa o sushi simples, os pratos
+// compostos, os de chefão e os de festa; aqui, o jeito da cozinha da Rosa). O caderno e o quadro mostram; o quadro filtra; a festa
+// e o concurso podem pedir uma categoria. O nome curto vai no filtro do quadro.
+const CATEGORIAS = { peixe: 'Peixe', caldo: 'Caldo e cozido', pf: 'Prato feito', doce: 'Doce', horta: 'Da horta', salgado: 'Salgado' };
+const CATEGORIA_PRATO = {
+  peixe: ['peixe_frito', 'sardinha_frita', 'lambari_crocante', 'casquinha_siri', 'escondidinho', 'lagosta_manteiga', 'robalo_assado', 'arroz_polvo'],
+  caldo: ['sopa_pedra', 'sopa_legumes', 'peixe_ensopado', 'caldo_caranguejo', 'caldo_peixe', 'pirao', 'moqueca', 'moqueca_capixaba', 'bobo_camarao',
+    'peixada', 'caldeirada', 'moqueca_prefeito', 'caldeirada_critico', 'vatapa'],
+  pf: ['pf_peao', 'virado', 'marmita_peao', 'picadinho_santos'],
+  doce: ['cocada_tijolinho', 'rabanada', 'arroz_doce', 'mingau_milho', 'bolinho_chuva', 'canjica', 'pamonha', 'goiabada', 'bolo_milho', 'doce_leite_calixto'],
+  horta: ['salada_rosa', 'couve_mineira', 'pure_abobora'],
+  salgado: ['farofa_ovo', 'mandioca_frita', 'cuscuz'],
+};
+for (const [cat, ids] of Object.entries(CATEGORIA_PRATO)) for (const id of ids) if (Pratos.PRATOS[id]) Pratos.PRATOS[id].categoria = cat;
+for (const id in Pratos.PRATOS) if (!Pratos.PRATOS[id].categoria) throw new Error('receita sem categoria: ' + id);
+// A categoria do prato ('casa': o prato da casa é um prato feito) e o nome dela.
+const categoriaDe = id => id === 'casa' ? 'pf' : (Pratos.PRATOS[id] || {}).categoria || '';
+const nomeCategoria = id => CATEGORIAS[categoriaDe(id)] || '';
 // Nomes dos ingredientes que o banco de itens ainda não tinha.
 if (typeof ITENS !== 'undefined') for (const [id, nome] of Object.entries({ linguica: 'Linguiça', carne_seca: 'Carne-seca', macarrao: 'Macarrão', dende: 'Azeite de dendê',
   leite_coco: 'Leite de coco', queijo_coalho: 'Queijo coalho', pimenta_cheiro: 'Pimenta-de-cheiro', leite: 'Leite', acucar: 'Açúcar', siri: 'Siri',

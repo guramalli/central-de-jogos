@@ -227,7 +227,11 @@ function abrirFerraria() {
     };
     for (const it of Ferreiro.itensDeFazer()) fazer.append(cartaoFazer(it));
     caixa.append(grade, el('div', { class: 'titulo', style: 'font-size:20px;margin-top:12px' }, 'O Tonico faz na hora'), fazer, el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap' },
-      el('div', { style: 'font-weight:800' }, `Ferro velho: ${G.mochila.total('ferro_velho')} · Barras: ${G.mochila.total('barra_ferro')} · Cr$ ${G.dinheiro}`),
+      // (14/10, o jogador: "aqui diz barras, mas de quê?") Cada material com o desenho e o nome inteiro; aço e bronze só quando já tem.
+      el('div', { class: 'ferr-estoque', style: 'font-weight:800;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center' }, 'Você tem:',
+        ...['ferro_velho', 'barra_ferro', 'sucata_aco', 'barra_aco', 'bronze_velho', 'barra_bronze'].filter((id, k) => k < 2 || G.mochila.total(id) > 0)
+          .map(id => el('span', { style: 'display:inline-flex;align-items:center;gap:4px', title: Itens.descricao(id) }, el('img', { src: urlItem(id), style: 'width:26px;height:26px' }), `${Itens.nome(id)}: ${G.mochila.total(id)}`)),
+        `· Cr$ ${G.dinheiro}`),
       el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
   };
   desenha();

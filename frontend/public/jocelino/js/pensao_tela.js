@@ -143,6 +143,10 @@ TAREFAS.push(() => {
 
 // (a despensa está em despensa.js)
 
+// (14/10, Tarefa D1) A categoria e o tempo de fogo do prato, para o quadro e o caderno: "Caldo e cozido · pronto em ~7 s".
+// (revisão da D1) O tempo de verdade: o do prato vezes o fator da noite (o fogão, a equipe e a Rosa como chef), o mesmo do iniciarJanta.
+function fatorDePreparo(p) { const b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1 }; return (typeof Equipe !== 'undefined' ? Equipe.preparo(p) : 1) * b.preparo * (typeof Chef !== 'undefined' ? Chef.preparo(p) : 1); }
+const textoCozinha = id => `${nomeCategoria(id)} · pronto em ~${(Math.round(TurnoJanta.preparoDe(id) * (G.pensao ? fatorDePreparo(G.pensao) : 1) * 10) / 10).toLocaleString('pt-BR')} s`;
 // ---------- o quadro de giz: o cardápio da noite (o "Today's Menu" do Bancho; o cardápio do Bancho, 13/10) ----------
 // Às 17h, ao entrar no salão (ou já dentro), o quadro abre sozinho e a janta espera: o modal pausa o jogo (não há turno, ninguém
 // chega e a paciência não corre) até "Abrir a pensão", que faz as panelas na hora (montarNoite: os ingredientes saem da
@@ -243,6 +247,7 @@ function pensaoQuadro() {
   for (const [id, e] of Object.entries(p.cardapioNoite || {})) if (p.receitas.includes(id)) esc[id] = { panelas: Math.max(0, e.panelas | 0), repoe: e.repoe !== false };
   p.cardapioNoite = esc;
   const caixa = el('div', { class: 'lousa quadro-cardapio ' + modo });
+  let filtro = '';   // (Tarefa D1) a categoria escolhida no filtro do quadro ('' = todas)
   const marca = k => { if (G.limpou) G.limpou[k] = (G.limpou[k] || 0) + 1; };
   const desenha = () => {
     caixa.innerHTML = '';
@@ -255,6 +260,10 @@ function pensaoQuadro() {
     const lista = [...new Set([...Object.keys(esc).filter(id => efe(id) > 0), ...(modo === 'durante' ? p.pratosDaNoite() : []), ...Object.keys(esc).filter(id => esc[id].panelas > 0),
       ...p.receitas.filter(id => p.rende(id) > 0)])].filter(id => p.receitas.includes(id));
     const sem = p.receitas.filter(id => !lista.includes(id));
+    // (Tarefa D1) o filtro por categoria: só as categorias que estão na lista; o filtro só esconde a linha (a escolha guardada e as
+    // panelas dos pratos escondidos não mudam)
+    const cats = Object.keys(CATEGORIAS).filter(c => lista.some(id => categoriaDe(id) === c));
+    if (filtro && !cats.includes(filtro)) filtro = '';
     const depois = modo === 'plano' && (p.ultimaJanta === G.dia || G.minutos >= 20 * 60);
     caixa.append(el('div', { class: 'giz-titulo' }, depois ? 'Cardápio de amanhã' : 'Cardápio da noite'),
       el('div', { class: 'qc-topo' }, el('span', {}, p.nomeComEstrelas()), el('span', { class: 'qc-vagas' }, `Vagas no quadro: ${ocupa.size} de ${p.vagas()}`),
@@ -263,13 +272,15 @@ function pensaoQuadro() {
     else caixa.append(el('div', { class: 'qc-aviso' }, 'A janta está correndo (o relógio parou aqui): mais uma panela agora, ou ligue e desligue o "Rosa repõe".'));
     // (correção 1) A fala da Rosa na primeira vez: uma faixa fixa na lousa, acima da lista (guia_setas.js escreve nela; a seta fica no elemento).
     caixa.append(el('div', { class: 'guia-faixa qc-rosa', hidden: true }, el('img', { src: urlArte('retratos/rosa_normal'), alt: '' }), el('div', { class: 'guia-faixa-texto' })));
+    if (cats.length > 1) caixa.append(el('div', { class: 'qc-filtro' }, ...[''].concat(cats).map(c => el('button', { class: 'tabua mini qc-cat' + (filtro === c ? ' acesa' : ''), 'data-cat': c,
+      onclick: e2 => { e2.stopPropagation(); filtro = c; sons.tocar('cursor', 1.1, 0.04, -8); desenha(); } }, c ? CATEGORIAS[c] : 'Todos'))));
     const corpo = el('div', { class: 'qc-lista' });
-    lista.forEach((id, i) => {
+    lista.filter(id => !filtro || categoriaDe(id) === filtro).forEach((id, i) => {
       const P = Pratos.PRATOS[id], e0 = esc[id] || { panelas: 0, repoe: true }, k = p.porcoesPorPanela(id), m = daNaVez(CQ, id);
       const e = { panelas: modo === 'durante' ? e0.panelas : efe(id), repoe: e0.repoe };   // (na abertura, o que a despensa dá)
       const marcado = modo === 'durante' ? p.porcoes(id) > 0 : e.panelas > 0;
       const guardado = modo === 'abertura' && !e.panelas && e0.panelas > 0;   // (escolhido, mas a despensa não dá hoje)
-      const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa' : '';
+      const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa' : festa && festa.categoria && categoriaDe(id) === festa.categoria ? ` · ${CATEGORIAS[festa.categoria].toLowerCase()}: vale 50% mais na festa` : '';
       const info = modo === 'durante' ? `Na panela: ${p.porcoes(id)} porções · a despensa dá mais ${panelasTxt(p.rende(id))} (${k} porções cada)`
         : modo === 'abertura' && CQ.semVaga.has(id) ? `Cr$ ${p.preco(id, 1)} · cada panela dá ${k} porções · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
         : modo === 'abertura' && !m ? `Cr$ ${p.preco(id, 1)} · cada panela dá ${k} porções · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
@@ -298,7 +309,7 @@ function pensaoQuadro() {
       const podeMais = modo === 'durante' ? p.rende(id) > 0 && temVaga(id) : (e.panelas > 0 || temVaga(id)) && (modo === 'plano' || e.panelas < m);
       const linha = el('div', { class: 'qc-prato' + (marcado ? ' marcado' : '') + (realce ? ' realce' : ''), 'data-prato': id },
         el('img', { src: urlArte(iconePratoGrande(id)), alt: '' }),
-        el('div', { class: 'qc-meio' }, el('div', { class: 'qc-nome giz', 'data-guia': 'prato', title: P.desc, onclick: mexe(1, true) }, P.nome), el('div', { class: 'qc-info' }, info)),
+        el('div', { class: 'qc-meio' }, el('div', { class: 'qc-nome giz', 'data-guia': 'prato', title: P.desc, onclick: mexe(1, true) }, P.nome), el('div', { class: 'qc-cat-info' }, textoCozinha(id)), el('div', { class: 'qc-info' }, info)),
         el('div', { class: 'qc-panelas' },
           modo === 'durante' ? null : el('button', { class: 'tabua mini qc-menos' + (e.panelas > 0 || guardado ? '' : ' desligada'), 'data-guia': 'menos', onclick: mexe(-1),
             title: guardado ? 'Tira do cardápio guardado' : null }, '−'),
@@ -388,7 +399,7 @@ function iniciarJanta() {
   // A noite de festa da 5ª estrela: a Vila inteira vem como convidada (nunca sai da fila por repetir um morador).
   if (festaPatrimonio) { for (let k = 0; k < ECO.pensao.premio5.festaClientes; k++) G.turno._fila.push({ minuto: 17 * 60 + 15 + k * 25, cliente: Object.assign({}, Pratos.CLIENTES[(G.dia * 7 + k) % Pratos.CLIENTES.length], { convidado: true }) });
     G.turno._fila.sort((a, b) => a.minuto - b.minuto); avisar('Noite de festa: a Vila inteira veio comemorar o Patrimônio!'); }
-  if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome;
+  if (festa) { G.turno.pratoTema = festa.prato; G.turno.festa = festa.nome; G.turno.categoriaTema = festa.categoria || '';
     // Os convidados da festa: 3 a mais, que pedem o prato do tema.
     for (let k = 0, nc = convidadosDaFesta(); k < nc; k++) { const c = Pratos.CLIENTES[(G.dia + k * 3) % Pratos.CLIENTES.length]; G.turno._fila.push({ minuto: 17 * 60 + 20 + k * 40, cliente: Object.assign({}, c, { pedeTema: festa.prato, convidado: true }) }); }
     G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
@@ -397,8 +408,9 @@ function iniciarJanta() {
   if (vip) { const v = vipDe(vip.id); G.turno.vip = { nome: v.nome, prato: vip.prato }; G.turno._fila.push({ minuto: 18 * 60 + 30, cliente: { id: v.id, nome: v.nome, mania: 'vip', prato: vip.prato } }); G.turno._fila.sort((a, b) => a.minuto - b.minuto); }
   if (typeof Equipe !== 'undefined') {
     const t = G.turno, p = G.pensao, b = typeof bonusMelhorias === 'function' ? bonusMelhorias(p) : { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0 };
-    t.fatorPreparo = Equipe.preparo(p) * b.preparo * Chef.preparo(p); t.bocas = Chef.bocas(p) + Equipe.bocasExtra(p) + b.bocas;
+    t.fatorPreparo = fatorDePreparo(p); t.bocas = Chef.bocas(p) + Equipe.bocasExtra(p) + b.bocas;
     t.gorjetaExtra = Equipe.gorjetaExtra(p) + b.gorjeta; t.paciencia = b.paciencia; t.farinhaMax = TurnoJanta.FARINHA_MAX + b.farinha; t.farinha = t.farinhaMax;
+    t.passeMax = TurnoJanta.PASSE_MAX + (b.passe || 0); t.maquina = !!b.maquina;   // (Tarefa D1) a bancada do passe e a máquina de refresco
   }
   G.pensao.ultimaJanta = G.dia;
   G.relatorioPensao = null;
@@ -408,7 +420,7 @@ function iniciarJanta() {
   // (sem a folha pronta, o Personagem só não aparece; nunca com a arte de outro)
   if (typeof precarregarArtes === 'function') precarregarArtes([...new Set(G.turno._fila.map(f => `personagens/${f.cliente.id}/andar`))]);
   if (inauguracao || festaPatrimonio || festa) tocarSomDoEvento({ tipo: 'inauguracao' });
-  if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome} vale 50% mais.`);
+  if (G.turno.festa) avisar(`Hoje é a ${G.turno.festa}! ${Pratos.PRATOS[G.turno.pratoTema].nome}${G.turno.categoriaTema ? ` e todo ${CATEGORIAS[G.turno.categoriaTema].toLowerCase()}` : ''} vale 50% mais.`);
   if (G.turno.vip) avisar(`Hoje janta ${G.turno.vip.nome}: ele vai pedir ${Pratos.PRATOS[G.turno.vip.prato].nome}.`);
   if (G.turno.moradores && G.turno.moradores.length) avisar(`Hoje é dia de ${G.turno.moradores.map(c => c.nome).join(' e ')} jantar na pensão.`);
   if (G.turno.filho === 'ritinha') avisar('A Ritinha veio ajudar no caixa: hoje a gorjeta sai 10% maior!');
@@ -536,6 +548,8 @@ ATUALIZADORES.push(dt => {
       else if (noSalao) { avisar(ev.louca ? `${ev.cliente.nome} não aguentou a louça suja do lado e foi embora.` : `${ev.cliente.nome} cansou de esperar e foi embora resmungando.`); }
     } else if (ev.tipo === 'louca' && noSalao) { avisar(`${ev.cliente.nome} sentou do lado da louça suja e torceu o nariz: recolha logo, senão ele vai embora!`);
     } else if (ev.tipo === 'farinha_baixa' && noSalao) { avisar(`Rosa: "Jocelino, a farinheira tá no fim (${ev.farinha})! Peneira mais farinha pra mim."`);   // (Tarefa C) chama uma vez até repor
+    } else if (ev.tipo === 'maquina_serviu' && noSalao && G.limpou && !G.limpou.janta_maquina) {   // (Tarefa D1) a 1ª vez, uma frase só
+      G.limpou.janta_maquina = 1; avisar(`Rosa: "A máquina de refresco encheu o ${Pratos.BEBIDAS[ev.bebida].toLowerCase()} sozinha! O guaraná e o caldo ela serve; a cerveja e o cafezinho continuam com você."`);
     } else if (ev.tipo === 'ultima_rodada' && noSalao) { avisar('A Rosa bate o sino: "Última rodada!" Quem chegar agora pede mais bebida.');
     } else if (ev.tipo === 'cafe' && noSalao) avisar(`Sem ingrediente na despensa: ${ev.cliente.nome} tomou só um cafezinho.`);
     // (o cardápio do Bancho) a panela que acabou: a Rosa repõe, ou o prato sai do quadro; quem fica sem prato leva o prato da casa
@@ -680,7 +694,7 @@ function atualizaSeloPensao(selo, noSalao) {
 function textoFalta(f) {
   const t = [];
   if (f.curtidas) t.push(`${f.curtidas} ${f.curtidas === 1 ? 'curtida' : 'curtidas'}`);
-  if (f.sabor) t.push(`melhor sabor +${f.sabor} (caprichar no caderno)`);
+  if (f.sabor) t.push(`melhor sabor +${f.sabor} (caprichar e servir no salão)`);
   if (f.pesquisadas) t.push(`${f.pesquisadas} ${f.pesquisadas === 1 ? 'receita pesquisada' : 'receitas pesquisadas'}`);
   if (f.visitas) t.push(`${f.visitas} ${f.visitas === 1 ? 'visita' : 'visitas'} do Doutor Paladar com ${f.garfos} garfos`);
   if (f.concurso) t.push(`${f.concurso} ${f.concurso === 1 ? 'vitória' : 'vitórias'} no concurso da Rádio`);

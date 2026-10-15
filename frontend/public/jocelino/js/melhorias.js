@@ -22,6 +22,13 @@ const MELHORIAS = {
     { nome: 'Fogão industrial de 6 bocas', grau: 4, efeito: 'A Rosa cozinha 4 pratos de uma vez e 40% mais rápido.', arte: 'salao/fogao_industrial', bocas: 2, preparo: 0.6 }],
     nome: 'Fogão de 4 bocas', grau: 3, efeito: 'A Rosa cozinha 3 pratos de uma vez e 25% mais rápido.', arte: 'salao/cozinha_melhor', bocas: 1, preparo: 0.75 },
   geladeira: { nome: 'Geladeira', grau: 3, efeito: 'Libera a cerveja gelada (bebida mais cara).', arte: 'salao/geladeira' },
+  // (14/10, Tarefa D1, a cozinha de verdade) A bancada ao lado do passe: mais pratos prontos esperando (a Rosa para menos com o passe
+  // cheio). O nível 2 substitui o 1 (passe: quantos a mais no total). A máquina de refresco serve o guaraná e o caldo de cana sozinha;
+  // ela é da "Casa Tradicional" (degrau 5): no degrau 3, tirar o guaraná e o caldo do Jocelino adiantava as estrelas (a s19 da D1).
+  bancada_passe: { niveis: [
+    { nome: 'Bancada do passe comprida', grau: 4, efeito: 'Cabem 2 pratos a mais ao lado do passe.', arte: 'salao/bancada_passe', passe: 2 }],
+    nome: 'Bancada do passe', grau: 3, efeito: 'Cabe 1 prato pronto a mais ao lado do passe.', arte: 'salao/bancada_passe', passe: 1 },
+  maquina_refresco: { nome: 'Máquina de refresco', grau: 5, efeito: 'Enche sozinha o guaraná e o caldo de cana, um copo de cada vez (a cerveja e o cafezinho, não).', arte: 'salao/maquina_refresco', maquina: true },
   // Prêmio do Concurso da Rádio (não se compra): o troféu na parede.
   trofeu: { nome: 'Troféu do Concurso da Rádio', grau: 99, premio: true, efeito: 'O orgulho da casa: um pouco mais de gorjeta.', arte: 'ui/trofeu_concurso', gorjeta: 0.04 },
   neon: { nome: 'Neon da panela', grau: 3, efeito: 'A pensão aparece de longe: 2 clientes a mais por noite.', arte: 'salao/neon_novo', clientes: 2 },
@@ -60,22 +67,25 @@ function efeitoMelhoria(id) {
   const p = G.pensao, m = MELHORIAS[id], b = bonusMelhorias(p), pac = Math.round(TurnoJanta.PACIENCIA_PRATO * b.paciencia);
   switch (id) {
     case 'ventilador': return `Paciência ${pac} s → ${Math.round(pac * m.paciencia)} s`;
-    case 'fogao_4bocas': return `Pratos no fogo ${TurnoJanta.BOCAS + b.bocas} → ${TurnoJanta.BOCAS + b.bocas + 1} · preparo ${TurnoJanta.PREPARO}s → ${(TurnoJanta.PREPARO * m.preparo).toFixed(1)}s`;
+    case 'fogao_4bocas': return `Pratos no fogo ${TurnoJanta.BOCAS + b.bocas} → ${TurnoJanta.BOCAS + b.bocas + 1} · cada prato ${Math.round((1 - m.preparo) * 100)}% mais rápido (o PF: ${TurnoJanta.preparoDe('pf_peao')} s → ${(Math.round(TurnoJanta.preparoDe('pf_peao') * m.preparo * 10) / 10).toLocaleString('pt-BR')} s)`;
     case 'farinheira_grande': return `Farinheira ${TurnoJanta.FARINHA_MAX} → ${TurnoJanta.FARINHA_MAX + m.farinha}`;
     case 'banqueta_extra': return `Banquetas ${p.mesasDaNoite()} → ${p.mesasDaNoite() + 1}`;
     case 'neon': case 'bandeirinhas': { const c = p.clientesDaNoite() + b.clientes; return `Clientes por noite ${c} → ${c + m.clientes}`; }
     case 'geladeira': return `Bebidas: + cerveja gelada (Cr$ ${TurnoJanta.precoBebida('cerveja')} a mais cada)`;
+    case 'bancada_passe': { const n = TurnoJanta.PASSE_MAX + b.passe; return `Pratos no passe ${n} → ${n + (Melhorias.nivel(p, id) ? 1 : m.passe)}`; }
+    case 'maquina_refresco': return `Guaraná e caldo de cana: um copo a cada ${TurnoJanta.MAQUINA} s, sem ajudante`;
     default: return m.gorjeta ? `Gorjeta extra +${Math.round(b.gorjeta * 100)}% → +${Math.round((b.gorjeta + m.gorjeta) * 100)}%` : m.efeito;
   }
 }
 // O efeito somado das melhorias da pensão.
 function bonusMelhorias(p) {
-  const b = { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0, clientes: 0 };
+  const b = { preparo: 1, bocas: 0, gorjeta: 0, paciencia: 1, farinha: 0, clientes: 0, passe: 0, maquina: false };
   for (const id of p.melhorias || []) {
     const m = MELHORIAS[id] && Melhorias.dados(p, id);
     if (!m) continue;
     if (m.preparo) b.preparo *= m.preparo; if (m.bocas) b.bocas += m.bocas; if (m.gorjeta) b.gorjeta += m.gorjeta;
     if (m.paciencia) b.paciencia *= m.paciencia; if (m.farinha) b.farinha += m.farinha; if (m.clientes) b.clientes += m.clientes;
+    if (m.passe) b.passe += m.passe; if (m.maquina) b.maquina = true;
   }
   return b;
 }
@@ -99,6 +109,14 @@ function camadasMelhorias() {
   if (nv('ventilador') === 3) r.push(cam(6, ctx => { const a = img('salao/ar_janela'); if (!a) return; ctx.drawImage(a, 1000, 312 + (Math.floor(G.agora * 6) % 2)); }));
   if (typeof temAmpliacao === 'function' && temAmpliacao('varanda')) r.push(cam(1.5, ctx => { const a = img('salao/varanda_fundo'); if (a) ctx.drawImage(a, 276, 424); }));
   if (temMelhoria('geladeira')) r.push(cam(690, ctx => { const a = img('salao/geladeira'); if (a) ctx.drawImage(a, 290, 585); }));
+  // (Tarefa D1) a máquina de refresco encostada na parede atrás da ponta direita do balcão (o lugar livre do LEIA_melhorias), com o
+  // copo enchendo embaixo da torneira dela (o copo do minijogo, desenhaCopoEnchendo); a bancada no chão, à esquerda do passe (os pratos
+  // em cima dela são do passe, camadasDaJanta)
+  if (temMelhoria('maquina_refresco')) r.push(cam(691, ctx => { const M = P.MAQUINA, a = img('salao/maquina_refresco'); if (!a) return;
+    ctx.drawImage(a, M.cx - a.naturalWidth / 2, M.base - a.naturalHeight);
+    const q = G.turno && G.turno._maq; if (!q) return;
+    desenhaCopoEnchendo(ctx, q.bebida, q.t / TurnoJanta.MAQUINA, M.cx + (q.bebida === 'guarana' ? -11 : 11), M.base - 6, 30); }));
+  if (temMelhoria('bancada_passe')) r.push(cam(877.9, ctx => { const B = P.BANCADA; desenhaPe(ctx, 'salao/bancada_passe', B.cx, B.base, 1, B.escala); }));
   if (temMelhoria('trofeu')) r.push(cam(5.5, ctx => { const a = img('ui/trofeu_concurso'); if (a) ctx.drawImage(a, 800, 372, a.naturalWidth * 0.42, a.naturalHeight * 0.42); }));
   if (temMelhoria('toalha')) r.push(cam(P.TAMPO_Y + 80.5, ctx => { const a = img('salao/toalha_balcao'); if (a) ctx.drawImage(a, 282, 790, P.TOALHA_W, a.naturalHeight); }));
   return r;

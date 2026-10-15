@@ -15,8 +15,11 @@ const Metas = {
     const tem = (tipo, extra = {}) => ativas.some(m => m.tipo === tipo && Object.keys(extra).every(k => m[k] === extra[k]));
     if (prox && prox.falta.curtidas > 0 && !tem('curtidas')) c.push({ tipo: 'curtidas', alvo: prox.d.curtidas, texto: `Junte ${prox.d.curtidas} curtidas (para "${prox.nome}")`, prio: 3 });
     if (prox && prox.falta.sabor > 0) {
-      const melhor = p.receitas.slice().sort((a, b) => p.nivel(b) - p.nivel(a))[0], alvo = Math.ceil(prox.d.sabor / Pensao.SABOR_POR_NIVEL);
-      if (!tem('nivel_prato')) c.push({ tipo: 'nivel_prato', prato: melhor, alvo, texto: `Leve ${Pratos.PRATOS[melhor].nome} ao nível ${alvo} (caprichar no caderno)`, prio: 3 });
+      // (Tarefa D1, o Dave: o melhor sabor é o do prato SERVIDO) o prato mais caprichado que está no quadro de giz; sem nenhum no
+      // quadro, o mais caprichado do caderno, e a meta diz para pôr no quadro. Conta o nível em que ele saiu para um cliente.
+      const porNivel = ids => ids.slice().sort((a, b) => p.nivel(b) - p.nivel(a))[0], esc = p.cardapioNoite || {};
+      const noQuadro = porNivel(p.receitas.filter(id => (esc[id] || {}).panelas > 0)), melhor = noQuadro || porNivel(p.receitas), alvo = Math.ceil(prox.d.sabor / Pensao.SABOR_POR_NIVEL);
+      if (!tem('nivel_prato')) c.push({ tipo: 'nivel_prato', prato: melhor, alvo, texto: `Sirva ${Pratos.PRATOS[melhor].nome} no nível ${alvo} (caprichar no caderno e servir no salão${noQuadro ? '' : '; ponha no quadro de giz'})`, prio: 3 });
     }
     if (prox && prox.falta.pesquisadas > 0 && !tem('pesquisar')) c.push({ tipo: 'pesquisar', alvo: prox.d.pesquisadas, texto: `Tenha ${prox.d.pesquisadas} receitas pesquisadas no caderno`, prio: 3 });
     const cl = Math.max(3, Math.round((p.clientesDaNoite ? p.clientesDaNoite() : 6) * 0.7));
@@ -49,7 +52,7 @@ const Metas = {
   _progresso(p, m, rel) {
     switch (m.tipo) {
       case 'curtidas': return p.curtidas;
-      case 'nivel_prato': return p.nivel(m.prato);
+      case 'nivel_prato': return (p.servidos || {})[m.prato] || 0;   // (Tarefa D1) o nível em que o prato já foi SERVIDO
       case 'pesquisar': return p.pesquisadas();
       case 'caprichar': return p.receitas.reduce((n, id) => n + p.nivel(id), 0);
       case 'contratar': return p.equipe.length;

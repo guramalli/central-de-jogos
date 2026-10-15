@@ -220,7 +220,7 @@ setInterval(() => {
   if (sons._fonteMusica) { const r = momento === 'pensao' && G.turno && G.turno._ultima ? 1.1 : 1; if (sons._fonteMusica.playbackRate.value !== r) sons._fonteMusica.playbackRate.value = r; }
   // Fora de casa: o fundo do dia (passarinhos) ou da noite (grilos, sapos), e a brisa acompanhando o vento (vida.js).
   // Os fundos são laços longos emendados sem pausa (produzir_ambiente.sh); dentro de casa, só um fio do lado de fora.
-  const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;
+  const fora = G.mapa && !G.mapa.dentro && !G.mapa.cenario && !G.mapa.subsolo, dia = G.minutos >= 5 * 60 + 30 && G.minutos < 18 * 60 + 30;
   const vento = typeof VIDA !== 'undefined' ? VIDA.vento : 0.5;
   sons.ambiente('amb_dia', fora && dia ? 0.45 : (dia ? 0.06 : 0));
   sons.ambiente('amb_noite', fora && !dia ? 0.5 : (!dia ? 0.07 : 0));
@@ -238,6 +238,7 @@ function somDoEvento(ev) {
   switch (ev.tipo) {
     case 'pediu': return [[0, 'pedido_campainha', 1, 0.06, -6]];                       // o "plim plim" do balcão
     case 'pronto': return [[0, 'prato_tchan', 1, 0.05, -4]];                           // a Rosa põe o prato no passe
+    case 'maquina_serviu': return [[0, 'servir', 1.3, 0.05, -10]];                     // (Tarefa D1) a máquina de refresco serviu um copo
     // o prato chegou: o cliente prova (a cena de prato tem a plateia dela: aí não há reação por cima)
     case 'servido': if (ev.cena) return [];
       return [[0.45, ev.certo === false || ev.reacao === 'nojo' ? 'cliente_eca' : (ev.estrelas >= 4 ? 'cliente_delicia' : 'cliente_hmm'), 1, 0.1, -4]];

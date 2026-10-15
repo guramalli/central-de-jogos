@@ -140,7 +140,7 @@ function _alvoDaJanta() {
   if (!jaFezJanta('passe')) { const i = t.mesas.findIndex(m => m.estado === 'pedido' || m.estado === 'prato'); if (nos(i)) return mesa(i, 'O pedido aparece no balão: a Rosa já cozinha'); }
   return null;
 }
-// A reforma da lojinha no salão (as 5 etapas, 13/10): faltando material, a Rosa ("Entregue o material à Rosa"); com o
+// A reforma da lojinha no salão (as 5 etapas, 13/10): faltando material, a Rosa ("Traga X e entregue à Rosa"); com o
 // material todo, o lugar do trabalho da etapa. A seta da primeira vez (sempre = false) some depois do primeiro dia de trabalho
 // na etapa (G.limpou['reforma_<etapa>']); a da missão (sempre = true) fica até a reforma acabar. Trabalhado hoje, nada.
 function _alvoDaReforma(sempre) {
@@ -152,12 +152,15 @@ function _alvoDaReforma(sempre) {
   if (Object.keys(p.faltaMaterial()).length) {
     // (revisão final) Sem nada do que falta na mochila, a seta vai na porta e diz onde buscar; com ele, na Rosa.
     const fr = faltaDaReforma(), P = PALCO.PORTA;
-    if (fr) return { mapa: G.mapaId, ponto: { x: P.x + P.w / 2, y: P.y - 20 }, rotuloFixo: `Falta ${Itens.qtd(fr.n, fr.item)}: ${origemDoMaterial(fr.item)} (saia por aqui)` };
-    const RL = rosaLugar();
-    return { mapa: G.mapaId, ponto: { x: RL.x, y: RL.y - (RL === PALCO.ROSA ? 250 : 230) }, rotuloFixo: 'Entregue o material à Rosa' };
+    if (fr) return { mapa: G.mapaId, ponto: { x: P.x + P.w / 2, y: P.y - 20 }, rotuloFixo: `Traga ${Itens.qtd(fr.n, fr.item)} e entregue à Rosa: ${origemDoMaterial(fr.item)} (saia por aqui)` };
+    // (14/10, pedido do jogador) A Rosa brilha (realceDaReforma, reforma_palco.js) e a frase diz o que trazer.
+    const RL = rosaLugar(), lista = Object.entries(p.faltaMaterial()).map(([i, q]) => Itens.qtd(q, i)).join(' e ');
+    return { mapa: G.mapaId, ponto: { x: RL.x, y: caixaDaRosa().y0 + 10 }, rotuloFixo: `Traga ${lista} e entregue à Rosa` };   // (a ponta no alto da caixa que brilha)
   }
-  if (p.reforma.hoje === G.dia) return null;
-  return { mapa: G.mapaId, ponto: { x: L.seta.x, y: L.seta.y }, rotuloFixo: 'Clique aqui: trabalhar ' + E.nome.replace(/^O /, 'no ').replace(/^A /, 'na ').replace(/ e as /, ' e nas ').replace(/ e o /, ' e no ') };
+  if (p.reforma.hoje === G.dia) return null;   // (o trabalho de hoje feito: sem seta nem realce; no lugar, "Amanhã continua")
+  // (14/10) Quantos golpes faltam hoje e quantos dias faltam na etapa (o lugar brilha: realceDaReforma).
+  const golpes = GOLPES_DIA - (p._golpes || 0), dias = E.dias - (p.reforma.dias || 0);
+  return { mapa: G.mapaId, ponto: { x: L.seta.x, y: L.seta.y }, rotuloFixo: `Clique aqui: ${golpes} ${golpes === 1 ? 'golpe' : 'golpes'} hoje (${dias === 1 ? 'falta 1 dia' : `faltam ${dias} dias`})` };
 }
 // A Rosa quer conversar (13/10): depois da primeira diária, até a conversa do sonho. Ela mora no quintal.
 function _alvoDoSonhoDaRosa() {

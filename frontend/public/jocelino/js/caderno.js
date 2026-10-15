@@ -57,7 +57,8 @@ function abrirCaderno(sel) {
     const segredo = descobrir && descobrir.caminho === 'ingrediente' && !descobrir.conhecida;   // ingrediente nunca visto: nome escondido
     dir.append(el('img', { class: 'cad-prato' + (descobrir && !descobrir.conhecida ? ' silhueta' : ''), src: urlArte(iconePratoGrande(id)) }),
       el('div', { class: 'cad-titulo' }, segredo ? 'Receita a descobrir' : pr.nome),
-      el('div', { class: 'cad-desc' }, segredo ? `A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
+      ...(segredo ? [] : [el('div', { class: 'cad-cat' }, textoCozinha(id))]),   // (Tarefa D1) a categoria e o tempo de fogo
+      el('div', { class: 'cad-desc' }, segredo ?`A Rosa lembra de um prato com ${nomeIngrediente(pr.principal).toLowerCase()}... Traga um para ela ver.` : '"' + pr.desc + '"'));
     const ings = el('div', { class: 'cad-ings' });
     for (const ing in pr.porcao) {
       const t = p._tem(ing), q = pr.porcao[ing];

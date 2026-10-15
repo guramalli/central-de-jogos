@@ -16,8 +16,10 @@ MAPAS_DEF.praia = () => {
   b.agua(PIER_X + 2, MAR_Y, b.larg - PIER_X - 2, b.alt - MAR_Y, CH.MAR);
   b.agua(PIER_X, PIER_FIM + 1, 2, b.alt - PIER_FIM - 1, CH.MAR);
   b.pinta(PIER_X, MAR_Y, 2, PIER_FIM - MAR_Y + 1, CH.MAR);   // por baixo do píer o chão é mar (a pesca da ponta, na etapa 4)
-  // O píer é chão: desenhado antes de tudo de pé, por cima do mar.
-  b.desenhaChao = ctx => { const img = spr('objetos/pier_longo'); if (img) ctx.drawImage(img, PIER_X * TILE, (MAR_Y - 1) * TILE, 2 * TILE, (PIER_FIM - MAR_Y + 2) * TILE); };
+  // O píer é chão: desenhado antes de tudo de pé, por cima do mar. A peça (14/10, web_pier.py) tem o tabuado com 2 ladrilhos
+  // de largura e 8 de comprido (da areia, y 15, até o fim do y 22); os pilares, a sombra na água e a frente da ponta saem para
+  // os lados e para baixo, na margem da peça (a mesma dos dois lados).
+  b.desenhaChao = ctx => { const img = spr('objetos/pier_longo'); if (img) ctx.drawImage(img, PIER_X * TILE - (img.naturalWidth - 2 * TILE) / 2, (MAR_Y - 1) * TILE); };
   // Bordas: coqueiros em cima e dos lados.
   for (let x = 0; x <= b.larg; x += 3) if (x < 21 || x > 24) b.enfeite('objetos/coqueiro', x, 1, false);
   for (let y = 3; y < MAR_Y; y += 3) { b.enfeite('objetos/coqueiro', 0, y, false); b.enfeite('objetos/coqueiro', b.larg - 1, y, false); }

@@ -26,8 +26,13 @@ class Pensao {
     this.equipe = []; this.candidatos = []; this.anuncio = ''; this.melhorias = []; this.agenda = []; this.metas = []; this.panela = {}; this.panelaRar = {}; this.chef = { nivel: 1, xp: 0 };
     this.premios = []; this.garfos = 0; this.paladarNotas = []; this.concursos = {};
     this.ampliacoes = []; this.obra = null; this.nivelMelhoria = {};
+    this.servidos = {};   // (Tarefa D1) o nível mais alto em que cada prato já foi servido (o "melhor sabor" do Dave)
   }
-  melhorSabor() { return Math.max(0, ...this.receitas.map(id => this.sabor(id))); }
+  // (14/10, Tarefa D1, o Dave: o Cooksta guarda o maior sabor entre os pratos JÁ SERVIDOS) O melhor sabor conta o nível em que cada
+  // prato saiu para um cliente (serviu), não o nível do caderno: caprichar e não servir ainda não sobe o degrau.
+  melhorSabor() { return Math.max(0, ...Object.values(this.servidos || {}).map(n => n * Pensao.SABOR_POR_NIVEL)); }
+  // O prato saiu para um cliente (pago): guarda o nível dele, se for o mais alto já servido. O prato da casa não conta.
+  serviu(prato) { if (!Pratos.PRATOS[prato]) return; this.servidos = this.servidos || {}; this.servidos[prato] = Math.max(this.servidos[prato] || 0, this.nivel(prato)); }
   pesquisadas() { return this.receitas.filter(id => !Pensao.RECEITAS_INICIAIS.includes(id)).length; }
   // As estrelas da casa (0 a 5): o degrau menos 1.
   estrelasCasa(g = this.grau()) { return g - 1; }
@@ -350,7 +355,7 @@ class Pensao {
       niveis: Object.assign({}, this.niveis), pitadas: this.pitadas, vistos: this.vistos.slice(), curtidas: this.curtidas, grauMinimo: this.grauMinimo || 1,
       equipe: JSON.parse(JSON.stringify(this.equipe)), candidatos: JSON.parse(JSON.stringify(this.candidatos)), anuncio: this.anuncio, melhorias: this.melhorias.slice(), agenda: JSON.parse(JSON.stringify(this.agenda || [])), metas: JSON.parse(JSON.stringify(this.metas || [])), panela: Object.assign({}, this.panela), panelaRar: Object.assign({}, this.panelaRar), chef: Object.assign({}, this.chef),
       premios: this.premios.slice(), garfos: this.garfos, paladarNotas: JSON.parse(JSON.stringify(this.paladarNotas)), concursos: Object.assign({}, this.concursos), estrelasPremiadas: this.estrelasPremiadas ?? null, festaDia: this.festaDia || 0,
-      ampliacoes: this.ampliacoes.slice(), obra: this.obra ? Object.assign({}, this.obra) : null, nivelMelhoria: Object.assign({}, this.nivelMelhoria) };
+      ampliacoes: this.ampliacoes.slice(), obra: this.obra ? Object.assign({}, this.obra) : null, nivelMelhoria: Object.assign({}, this.nivelMelhoria), servidos: Object.assign({}, this.servidos || {}) };
   }
   deDict(d) {
     d = d || {};
@@ -370,6 +375,10 @@ class Pensao {
     if (!this.paladarNotas.length && this.garfos > 0) this.paladarNotas.push({ dia: 0, nota: this.garfos });   // save antigo: a nota guardada vira a 1ª visita
     this.estrelasPremiadas = d.estrelasPremiadas ?? null; this.festaDia = d.festaDia || 0;
     this.ampliacoes = (d.ampliacoes || []).slice(); this.obra = d.obra ? Object.assign({}, d.obra) : null; this.nivelMelhoria = Object.assign({}, d.nivelMelhoria || {});
+    // (Tarefa D1) Save de antes do "melhor sabor servido": os pratos do caderno contam como servidos no nível de hoje (ninguém perde
+    // o que já tinha; daqui para a frente só o servido sobe).
+    if (d.servidos == null) { this.servidos = {}; for (const id of this.receitas) if (Pratos.PRATOS[id]) this.servidos[id] = this.nivel(id); }
+    else this.servidos = Object.assign({}, d.servidos);
     // Save de antes dos garfos do Doutor Paladar: o degrau que já tinha não cai (os garfos só valem daqui para a frente).
     // Save de antes do cardápio do Bancho (13/10): o quadro de giz antigo vira o cardápio da noite (uma panela, a Rosa repõe) e a
     // panela começa vazia (a sobra de ontem já foi para o lixo).
