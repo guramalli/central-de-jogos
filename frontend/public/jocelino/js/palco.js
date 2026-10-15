@@ -423,8 +423,10 @@ function camadasDaJanta() {
         if (m.estado === 'suja' || m.louca) { desenhaPe(ctx, 'salao/louca_suja', P.ASSENTOS[i].x, P.LOUCA.base, 1, P.LOUCA.escala); desenhaMoscasLouca(ctx, i); }   // (14/10) a mosca em cima da louça
       });
       const F = P.FARINHEIRA, nf = typeof Melhorias !== 'undefined' && G.pensao ? Melhorias.nivel(G.pensao, 'farinheira_grande') : 0;
-      if (nf >= 2) desenhaPe(ctx, 'salao/farinheira_barril', F.cx + 10, 790, 1, 0.5);
-      else desenhaPe(ctx, nf ? 'salao/farinheira_grande' : 'salao/farinheira', nf ? F.cx + 13 : F.cx, nf ? 788 : F.base, 1, nf ? 0.55 : F.escala);
+      // (14/10, o jogador: "faça o desenho da tigela de farinha vazia para quando faltar") sem farinha, a arte vazia (mesma largura e pé)
+      const vz = t && t.farinha <= 0 ? '_vazia' : '';
+      if (nf >= 2) desenhaPe(ctx, 'salao/farinheira_barril' + vz, F.cx + 10, 790, 1, 0.5);
+      else desenhaPe(ctx, (nf ? 'salao/farinheira_grande' : 'salao/farinheira') + vz, nf ? F.cx + 13 : F.cx, nf ? 788 : F.base, 1, nf ? 0.55 : F.escala);
     }),
     // O passe da cozinha (a bancada), os pratos prontos em cima dele, a bacia e o lixo.
     camadaViva(878, ctx => {
@@ -474,26 +476,107 @@ function desenhaBaloesPalco(ctx, b) {
     }
   });
 }
-// (14/10, o jogador: "a ilustração dele levando o prato na mão") O que o Jocelino leva vai NAS MÃOS, como a carga da obra (a folha
-// jocelino_carregar_vazio, mãos juntas na frente do peito, e o ponto das mãos MAOS_CARGA por direção e quadro, personagens.js): os
-// pratos e a louça empilhados (cada um um pouco acima e de lado), o copo cheio ao lado da pilha; de costas, tudo fica atrás do
-// corpo. Sem nada na mão, a folha de andar de sempre. Enquanto a folha de carregar não chegou, a bandeja em cima da cabeça (antes).
-// A arte é a de sempre: pratos/<id> (desenhaPrato), salao/bebida_<bebida> e salao/pilha_louca.
-const MAOS_SALAO = { prato: 0.68, bebida: 0.5, louca: 0.46, sobe: 6, lado: 26 };   // escala de cada ícone nas mãos (no palco), quanto cada um sobe na pilha e o copo ao lado
+// (14/10, o jogador: "arrume a arte do jocelino quando ele segura um prato e alguma bebida, esta mal feito") O que o Jocelino leva
+// vai numa BANDEJA de verdade (a "bandeja de até 3" do docs/comparativo_dave_pensao.md; arte salao/bandeja do Higgsfield, por
+// ferramentas_arte/produzir_bandeja.sh e web_bandeja.py), segura pelas duas mãos na frente do peito: a folha jocelino_carregar_vazio
+// (mãos juntas) e o ponto das mãos MAOS_CARGA por direção e quadro (personagens.js). A bandeja vai por cima das mãos, com a borda de
+// baixo nelas (as mãos seguram por baixo), e sobe e desce com o passo. Tudo o que ele leva fica EM PÉ na superfície dela, lado a
+// lado: os pratos e a louça do lado do corpo (encostando um no outro, um pouco por cima, quando não cabem) e o copo/garrafa na
+// ponta de fora (de frente, do lado esquerdo dele), longe do rosto. De costas, a bandeja fica atrás do corpo (desenhada antes
+// dele: só a borda aparece). Sem nada na mão, a folha de andar de sempre. Enquanto a folha de carregar não chegou, a bandeja em
+// cima da cabeça (antes). Os itens são a arte de sempre: pratos/<id> (desenhaPrato), salao/bebida_<bebida> e salao/pilha_louca.
+// Medidas em pixels do quadro da folha (66x114; o palco multiplica por PALCO.ESCALA_GENTE): escala da bandeja e de cada coisa em
+// cima dela, quanto a bandeja passa das mãos para a frente (de lado), quanto a borda de baixo fica abaixo das mãos (de lado e de
+// frente; as mãos aparecem por baixo dela), a sobra da borda e quanto um prato sobe ao encostar no outro.
+const MAOS_SALAO = { bandeja: 0.3, prato: 0.44, bebida: 0.3, louca: 0.36, frente: 16, baixo: 1, baixoFrente: 3, borda: 0.86, empilha: 2 };
+// A superfície de cima da bandeja, em fração da peça (medida pelo web_bandeja.py): o meio e a meia altura da faixa e a meia largura.
+const BANDEJA_GEO = { meio: 0.49, faixa: 0.30, meia: 0.465 };
+// O rosto na folha de carregar (medido no quadro, por direção: baixo, cima, esquerda, direita): de x0 a x1, e o queixo por quadro
+// do passo. O que passa na frente do rosto não sobe acima do queixo (se subiria, a bandeja desce um pouco).
+const ROSTO_CARGA = [{ x0: 15, x1: 42, queixo: [44, 48, 44, 48] }, null, { x0: 10, x1: 30, queixo: [46, 50, 46, 50] }, { x0: 34, x1: 54, queixo: [45, 49, 45, 49] }];
 function bandejaNasMaos(p) { const t = G.turno; return p === G.jog && t && noPalco() && t.bandeja.length ? t.bandeja : []; }
+// A parte com tinta de cada arte (em fração da peça), medida uma vez: os ícones têm sobra transparente embaixo e dos lados; sem
+// descontar, o prato fica flutuando acima da bandeja.
+const _TINTA = new WeakMap();
+function tintaDa(img) {
+  let c = _TINTA.get(img); if (c) return c;
+  c = { x0: 0, x1: 1, y0: 0, y1: 1 };
+  try {
+    const w = img.naturalWidth, h = img.naturalHeight, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const g = cv.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, w, h).data;
+    let x0 = w, x1 = -1, y0 = h, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 60) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 >= 0) c = { x0: x0 / w, x1: (x1 + 1) / w, y0: y0 / h, y1: (y1 + 1) / h };
+  } catch (e) { /* sem ler os pixels: a peça inteira */ }
+  _TINTA.set(img, c); return c;
+}
+// O tamanho (no quadro) de cada coisa em cima da bandeja: a parte com tinta (para encostar uma na outra e pôr o pé na superfície),
+// a sobra transparente embaixo (pe) e o quanto o meio da tinta sai do meio da peça (dx).
+function itemDaBandeja(x) {
+  const nome = x.tipo === 'prato' ? iconePratoGrande(x.prato) : x.tipo === 'bebida' ? 'salao/bebida_' + x.bebida : 'salao/pilha_louca';
+  const s = x.tipo === 'prato' ? MAOS_SALAO.prato * (nome.startsWith('pratos/') ? 48 / 128 : 1) : x.tipo === 'bebida' ? MAOS_SALAO.bebida : MAOS_SALAO.louca;
+  const img = spr(nome), w = img ? img.naturalWidth : 64, h = img ? img.naturalHeight : 64, c = img ? tintaDa(img) : { x0: 0.1, x1: 0.9, y0: 0, y1: 1 };
+  return { nome, s, w: (c.x1 - c.x0) * w * s, alto: (c.y1 - c.y0) * h * s, pe: (1 - c.y1) * h * s, dx: ((c.x0 + c.x1) / 2 - 0.5) * w * s, chato: x.tipo !== 'bebida' };
+}
+// Onde fica tudo (em coordenadas do palco), para desenhar e para a s39 conferir: a bandeja (o pé dela, o meio da borda de baixo, a
+// largura e a altura) e a faixa da superfície; cada item com o pé da tinta (dentro da faixa), a largura e a altura da tinta, e o
+// ponto onde a peça é desenhada (px, py).
+function arrumaBandeja(p, itens) {
+  const e = PALCO.ESCALA_GENTE, M = MAOS_SALAO, passo = p.andando ? Math.floor(p.t * 8) % 4 : 1, m = MAOS_CARGA[p.dir][passo];
+  const lado = p.dir === DIR.ESQUERDA ? -1 : 1, deLado = p.dir === DIR.ESQUERDA || p.dir === DIR.DIREITA;
+  const img = spr('salao/bandeja'), bw = (img ? img.naturalWidth : 200) * M.bandeja, bh = (img ? img.naturalHeight : 51) * M.bandeja;
+  const mx = p.x + (m[0] - 33) * e, my = p.y + (m[1] - 112) * e;
+  const bx = mx + (deLado ? M.frente * lado : 0) * e;
+  let by = my + (p.dir === DIR.BAIXO ? M.baixoFrente : M.baixo) * e;
+  const util = 2 * bw * BANDEJA_GEO.meia * M.borda;
+  // os chatos (pratos, louça) do lado do corpo e as bebidas na ponta de fora, lado a lado e no meio da bandeja; de lado, o que é
+  // alto e ficaria na frente do rosto vai para a ponta de fora (só o que precisa). Se não cabem, os chatos encostam um no outro (o
+  // de fora um pouco por cima); sem par de chatos, todos encostam por igual.
+  const fila = [...itens.filter(x => x.tipo !== 'bebida'), ...itens.filter(x => x.tipo === 'bebida')].map(x => Object.assign({ item: x }, itemDaBandeja(x)));
+  const n = fila.length, total = fila.reduce((s, f) => s + f.w, 0);
+  const pares = fila.slice(1).map((f, k) => f.chato && fila[k].chato), nPares = pares.filter(Boolean).length;
+  const vao = total <= util ? (n > 1 ? Math.min(1, (util - total) / (n - 1)) : 0) : 0;
+  const tira = total > util ? (total - util) / (nPares || n - 1 || 1) : 0;
+  let c = 0, sobe = 0; const cs = [], ss = [];
+  fila.forEach((f, k) => {
+    if (k) { const encosta = tira && (nPares ? pares[k - 1] : true); c += (fila[k - 1].w + f.w) / 2 + vao - (encosta ? tira : 0); if (encosta && pares[k - 1]) sobe += M.empilha; }
+    cs.push(c); ss.push(sobe);
+  });
+  const ini = n ? cs[0] - fila[0].w / 2 : 0, fim = n ? cs[n - 1] + fila[n - 1].w / 2 : 0;
+  let desloca = -(ini + fim) / 2;
+  const sup0 = (by - p.y) / e + 112 - bh * (1 - BANDEJA_GEO.meio);   // o meio da superfície, no quadro
+  // o rosto: o que passa na frente dele não sobe acima do queixo; de lado, primeiro empurra tudo para a ponta de fora; se ainda
+  // subiria, a bandeja toda desce o que falta
+  const R = ROSTO_CARGA[p.dir];
+  if (R && deLado) {
+    let empurra = 0;
+    fila.forEach((f, k) => {
+      if (sup0 - ss[k] - f.alto >= R.queixo[passo]) return;
+      const xq = m[0] + M.frente * lado + (cs[k] + desloca) * lado;
+      empurra = Math.max(empurra, 1 + (lado > 0 ? R.x1 - (xq - f.w / 2) : (xq + f.w / 2) - R.x0));   // 1 px de folga
+    });
+    desloca += Math.max(0, Math.min(empurra, util / 2 - fim - desloca));
+  }
+  if (R) {
+    let desce = 0;
+    fila.forEach((f, k) => {
+      const xq = m[0] + (deLado ? M.frente * lado : 0) + (cs[k] + desloca) * lado, topo = sup0 - ss[k] - f.alto;
+      if (xq + f.w / 2 > R.x0 && xq - f.w / 2 < R.x1) desce = Math.max(desce, R.queixo[passo] - topo);
+    });
+    by += desce * e;
+  }
+  const sy = by - bh * (1 - BANDEJA_GEO.meio) * e, faixa = bh * BANDEJA_GEO.faixa * e;
+  const postos = fila.map((f, k) => {
+    const x = bx + (cs[k] + desloca) * lado * e, y = sy - ss[k] * e;
+    return { item: f.item, nome: f.nome, s: f.s * e, x, y, w: f.w * e, alto: f.alto * e, px: x - f.dx * e, py: y + f.pe * e };
+  });
+  return { x: bx, y: by, w: bw * e, h: bh * e, s: M.bandeja * e, sup: { y0: sy - faixa, y1: sy + faixa, x0: bx - bw * BANDEJA_GEO.meia * e, x1: bx + bw * BANDEJA_GEO.meia * e }, maos: { x: mx, y: my }, itens: postos };
+}
 function desenhaBandejaNasMaos(ctx, p, itens) {
   if (!spr(FOLHA_CARREGAR)) return;
-  const e = PALCO.ESCALA_GENTE, passo = p.andando ? Math.floor(p.t * 8) % 4 : 1, m = MAOS_CARGA[p.dir][passo];
-  // o pé dos ícones: logo abaixo das mãos (as mãos seguram por baixo); de frente, um pouco mais baixo (a pilha não tapa a boca)
-  const hx = p.x + (m[0] - 33) * e, hy = p.y + (m[1] - 112) * e + (p.dir === DIR.BAIXO ? 20 : 12) * e;
-  const pilha = itens.filter(x => x.tipo !== 'bebida'), copos = itens.filter(x => x.tipo === 'bebida');
-  const lado = p.dir === DIR.ESQUERDA ? -1 : 1, dx = pilha.length ? MAOS_SALAO.lado * e * lado : 0;
-  pilha.forEach((x, k) => {
-    const cx = hx + (k % 2 ? 3 : 0) * e * lado, cy = hy - k * MAOS_SALAO.sobe * e;
-    if (x.tipo === 'prato') desenhaPrato(ctx, x.prato, cx, cy, 1, MAOS_SALAO.prato * e);
-    else desenhaPe(ctx, 'salao/pilha_louca', cx, cy, 1, MAOS_SALAO.louca * e);
-  });
-  copos.forEach((x, k) => desenhaPe(ctx, 'salao/bebida_' + x.bebida, hx + dx + k * 20 * e * lado, hy + 2 * e, 1, MAOS_SALAO.bebida * e));
+  const a = arrumaBandeja(p, itens);
+  desenhaPe(ctx, 'salao/bandeja', a.x, a.y, 1, a.s);   // sem a arte ainda: as coisas ficam no lugar (nada some)
+  a.itens.forEach(x => desenhaPe(ctx, x.nome, x.px, x.py, 1, x.s));
 }
 // O Jogador (personagens.js) passa a "carregar" também com a bandeja do salão: a folha de mãos juntas e a pilha nas mãos.
 (() => {
