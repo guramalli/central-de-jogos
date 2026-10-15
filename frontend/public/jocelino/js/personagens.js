@@ -40,7 +40,7 @@ class Personagem {
         let livre = true;
         // (onda final, o robô #24 e #25) não para em cima (nem na frente) do que se usa, e só onde o Jocelino alcança para conversar
         const m = G.mapa, tx = Math.floor(alvo.x / TILE), ty = Math.floor(alvo.y / TILE);
-        if (m && !m.palco && typeof usavelEm === 'function' && (usavelEm(m, tx, ty) || !alcancaConversar(m, tx, ty))) continue;
+        if (m && !m.palco && typeof usavelEm === 'function' && (usavelEm(m, tx, ty) || !alcancaConversar(m, tx, ty))) continue; if (this.podeIr && !this.podeIr(tx, ty)) continue;   // (15/10) os filhos: nunca um canto dentro de cerca
         for (let s = 1; s <= 8 && livre; s++) livre = !this._bate(lerp(this.x, alvo.x, s / 8), lerp(this.y, alvo.y, s / 8));
         if (livre) this._alvo = alvo;
       }

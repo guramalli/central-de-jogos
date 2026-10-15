@@ -293,9 +293,14 @@ AO_MONTAR.push(b => { if (b.id !== 'quintal') return; const z = b.moradores.find
 // (14/10, relato: "o Zezinho travou na cerca") só as covas que o pé dele alcança, pela regra do Horta.protegida (cerca, portão
 // fechado e objeto sólido fecham; planta passa): com a área de TODAS as covas e a cerca no meio, os cantos de passeio caíam do
 // outro lado da cerca e ele ficava parado encostado nela até as 9h. Sem cova ao alcance, ele fica na área de casa.
-function covasAoAlcance(b, m, ks) {
-  const x0 = Math.floor(m.x / TILE), y0 = Math.floor(m.y / TILE), visto = new Set([chaveT(x0, y0)]), fila = [[x0, y0]];
-  for (let i = 0; i < fila.length && visto.size < 600; i++) {
+// (15/10, foto do jogador: "o Zezinho está ficando preso dentro da plantação sempre... ou simplesmente não fica lá dentro de maneira
+// alguma") As crianças só pisam no quintal "de fora": o que o pé alcança a partir da trilha da porta de casa (b.inicio) sem passar por
+// cerca, portão fechado nem objeto sólido. Elas nascem no meio da horta cercada (6,13), e de lá não saíam: agora, se estiverem fora
+// dessa parte (nasceram lá dentro, o portão fechou com elas no meio), vão para o ladrilho de fora mais perto; e o passeio nunca
+// escolhe um canto dentro de uma cerca (Personagem.podeIr). A rega da manhã só vai às covas de fora.
+function quintalDeFora(b) {
+  const x0 = b.inicio.x, y0 = b.inicio.y, visto = new Set([chaveT(x0, y0)]), fila = [[x0, y0]];
+  for (let i = 0; i < fila.length; i++) {
     const [cx, cy] = fila[i];
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = cx + dx, ny = cy + dy, k = chaveT(nx, ny);
@@ -304,20 +309,38 @@ function covasAoAlcance(b, m, ks) {
       visto.add(k); fila.push([nx, ny]);
     }
   }
-  return ks.filter(k => visto.has(k));
+  return visto;
 }
+const FILHOS_QUINTAL = ['zezinho', 'ritinha'];
+function soltaFilhoDaCerca(b, m, fora) {
+  const tx = Math.floor(m.x / TILE), ty = Math.floor(m.y / TILE);
+  if (fora.has(chaveT(tx, ty))) return false;
+  const a = m._areaCasa || m.area, naArea = (x, y) => !a || (x * TILE >= a.x && x * TILE < a.x + a.w && y * TILE >= a.y && y * TILE < a.y + a.h);
+  let melhor = null, dm = 1e9;
+  for (const k of fora) { const [x, y] = k.split(',').map(Number), d = Math.hypot(x - tx, y - ty) + (naArea(x, y) ? 0 : 6); if (d < dm) { dm = d; melhor = [x, y]; } }
+  if (!melhor) return false;
+  m.x = (melhor[0] + 0.5) * TILE; m.y = melhor[1] * TILE + 42; m._alvo = null; m.andando = false; m._espera = rnd(0.5, 1.5);
+  return true;
+}
+function filhosNoQuintalDeFora(b) {
+  const fora = quintalDeFora(b);
+  for (const id of FILHOS_QUINTAL) { const m = b.moradores.find(p => p.id === id); if (!m) continue;
+    m._fora = fora; m.podeIr = (x, y) => !m._fora || m._fora.has(chaveT(x, y)); soltaFilhoDaCerca(b, m, fora); }
+  return fora;
+}
+AO_ENTRAR_MAPA.push(id => { if (id === 'quintal' && G.mapa) filhosNoQuintalDeFora(G.mapa); });
+let _tFilhos = 0;
 ATUALIZADORES.push(dt => {
-  const b = MAPAS.quintal; if (!b || !G.horta || !G.horta.filhos) return;
-  const ks = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta), manha = G.minutos >= 7 * 60 && G.minutos < 9 * 60 && ks.length;
-  for (const id of ['zezinho', 'ritinha']) {
+  const b = MAPAS.quintal; if (!b || G.mapaId !== 'quintal' || !G.horta) return;
+  _tFilhos -= dt || 0; if (_tFilhos > 0) return;
+  _tFilhos = 1;   // (a busca a cada 1 s, não a cada quadro: a cerca e o portão mudam quando o Jocelino mexe)
+  const fora = filhosNoQuintalDeFora(b);
+  const ks = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta && fora.has(k)), manha = G.horta.filhos && G.minutos >= 7 * 60 && G.minutos < 9 * 60 && ks.length;
+  for (const id of FILHOS_QUINTAL) {
     const m = b.moradores.find(p => p.id === id); if (!m) continue;
     if (!m._areaCasa) m._areaCasa = m.area;
-    if (!manha) { m.area = m._areaCasa; m._tHorta = 0; continue; }
-    m._tHorta = (m._tHorta || 0) - (dt || 0); if (m._tHorta > 0) continue;
-    m._tHorta = 1;   // (a busca a cada 1 s, não a cada quadro)
-    const alc = covasAoAlcance(b, m, ks);
-    if (!alc.length) { m.area = m._areaCasa; continue; }
-    const xs = alc.map(k => +k.split(',')[0]), ys = alc.map(k => +k.split(',')[1]);
+    if (!manha) { m.area = m._areaCasa; continue; }
+    const xs = ks.map(k => +k.split(',')[0]), ys = ks.map(k => +k.split(',')[1]);
     m.area = { x: Math.min(...xs) * TILE, y: Math.min(...ys) * TILE, w: (Math.max(...xs) - Math.min(...xs) + 1) * TILE, h: (Math.max(...ys) - Math.min(...ys) + 1) * TILE };
   }
 });

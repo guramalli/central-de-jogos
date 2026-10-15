@@ -156,6 +156,16 @@ const textoCozinha = id => `${nomeCategoria(id)} · pronto em ~${(Math.round(Tur
 //   panela agora e o "Rosa repõe";
 // - 'plano': fora da hora (de manhã, no domingo, depois da janta): a escolha fica guardada para a noite.
 // A arte é o tema do restaurante (a/ui/pensao, do Higgsfield: a lousa, as tábuas, a divisória e os enfeites de giz).
+// (15/10, o jogador às 22h de uma terça: "estou tentando abrir o restaurante mas não consigo e não apareceu nenhum aviso dizendo que
+// passou do horário") Por que a janta não abre agora, em uma frase (vazio quando ela abre ou já está correndo).
+function motivoSemJanta() {
+  const p = G.pensao; if (!p || G.turno || p.estado !== 'aberta') return '';
+  if (relogio.domingo()) return 'Domingo a pensão descansa: a janta volta amanhã, das 17h às 20h.';
+  if (p.ultimaJanta === G.dia) return 'A janta de hoje já foi: este é o cardápio de amanhã.';
+  if (G.minutos < TurnoJanta.ABRE) return 'A janta abre às 17h (e recebe gente até as 20h): monte o cardápio e volte no fim da tarde.';
+  if (G.minutos >= 20 * 60) return 'Passou da hora: a janta abre das 17h às 20h, e hoje não dá mais. Este é o cardápio de amanhã.';
+  return '';
+}
 const jantaEsperaCardapio = () => !!G.pensao && !G.turno && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos >= TurnoJanta.ABRE && G.minutos < 20 * 60;
 const SEM_PEDRA = { randf: () => 1, randi: () => 0 };   // (a conta do quadro não sorteia a pedra da sopa de volta)
 const rngDaNoite = k => { const f = mulberry(k); return { randf: f, randi: () => Math.floor(f() * 4294967296) }; };
@@ -335,8 +345,10 @@ function pensaoQuadro() {
     // (Tarefa C) cada bebida com o preço dela (pago à parte)
     const C = ECO.pensao.pratoCasa, beb = (typeof bebidasDaPensao === 'function' ? bebidasDaPensao(p) : Object.keys(Pratos.BEBIDAS)).map(b => Pratos.BEBIDAS[b].toLowerCase() + (TurnoJanta.precoBebida(b) ? ` (Cr$ ${TurnoJanta.precoBebida(b)})` : b === 'cafe' ? ' (de graça; na medida antes do prato, +30% no prato)' : ' (de graça)'));
     caixa.append(el('div', { class: 'qc-casa' }, `Sempre tem: ${C.nome} (Cr$ ${C.preco}, sem curtida) e ${beb.join(', ')}.`));
+    const motivo = modo === 'plano' ? motivoSemJanta() : '';
+    if (motivo) caixa.append(el('div', { class: 'qc-aviso qc-horario' }, motivo));
     const principal = modo === 'abertura' ? el('button', { class: 'tabua acesa qc-abrir', 'data-guia': 'abrir', onclick: e2 => { e2.stopPropagation(); abrirAPensao(); } }, 'Abrir a pensão')
-      : el('button', { class: 'tabua acesa', onclick: e2 => { e2.stopPropagation(); fecharModal(); } }, modo === 'durante' ? 'Voltar ao salão' : 'Guardar o cardápio');
+      : el('button', { class: 'tabua acesa', onclick: e2 => { e2.stopPropagation(); fecharModal(); } }, modo === 'durante' ? 'Voltar ao salão' : depois ? 'Guardar o cardápio de amanhã' : 'Guardar o cardápio');
     caixa.append(el('div', { class: 'qc-rodape' },
       el('img', { class: 'giz-enfeite palmeira', src: urlArte('ui/pensao/palmeirinha_giz'), alt: '' }),
       el('button', { class: 'tabua', onclick: e2 => { e2.stopPropagation(); _aoFecharModal = null; fecharModal(); _voltaAoQuadro = modo === 'abertura'; abrirCaderno(); } }, 'Caderno'),
@@ -883,3 +895,21 @@ function poePlacaPatrimonio(b) {
   o.acao = () => abrirPlaca('"Pensão da Rosa — Patrimônio da Vila Maré." A placa de bronze que o Prefeito mandou pôr.');
 }
 AO_MONTAR.push(b => poePlacaPatrimonio(b));
+
+// (15/10) entrar no salão depois das 20h sem ter tido janta: o aviso do porquê (antes, nada dizia que tinha passado da hora)
+AO_ENTRAR_MAPA.push(id => { if ((id === 'pensao_palco' || id === 'pensao_dentro') && G.minutos >= 20 * 60) { const m = motivoSemJanta(); if (m && G.pensao.ultimaJanta !== G.dia) avisar(m); } });
+// (15/10, o jogador: "coloque uma caixa de diálogo da Rosa comigo, se passar das 17, dizendo que temos que abrir a pensão") Quando o
+// relógio passa das 17h num dia de janta (andando, não num pulo do relógio), a Rosa chama uma vez: fora do salão, sem outra janela
+// aberta (se houver, ela espera fechar). Às 19h, se ainda nada, um lembrete curto no canto (sem janela).
+let _rosaMin = null;
+ATUALIZADORES.push(() => {
+  const p = G.pensao, m0 = _rosaMin; _rosaMin = G.minutos;
+  if (!p || !G.comecou || G.turno || !pensaoAbreHoje() || p.ultimaJanta === G.dia) return;
+  if (G.mapaId === 'pensao_palco' || G.mapaId === 'pensao_dentro') return;
+  if (m0 != null && m0 < 19 * 60 && G.minutos >= 19 * 60 && G.minutos - m0 < 30 && G.rosaLembrou !== G.dia) { G.rosaLembrou = G.dia; avisar('A Rosa mandou dizer: a janta vai até as 20h! Corre pra pensão.'); }
+  if (G.rosaChamou === G.dia) return;
+  if (G.rosaChamou !== -G.dia) { if (m0 == null || m0 >= TurnoJanta.ABRE || G.minutos < TurnoJanta.ABRE || G.minutos - m0 >= 30) return; G.rosaChamou = -G.dia; }   // (passou das 17h agora)
+  if (menuAberto() || G.minutos >= 20 * 60) return;   // (espera a janela fechar; depois das 20h não chama mais)
+  G.rosaChamou = G.dia;
+  abrirConversa('Rosa', urlArte('retratos/rosa_alegre'), ['Jocelino, já são cinco da tarde! Bora abrir a pensão: o povo já tá chegando com fome. Te espero lá na Vila, na pensão!']);
+});
