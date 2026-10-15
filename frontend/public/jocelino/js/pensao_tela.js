@@ -273,7 +273,7 @@ function pensaoQuadro() {
         el('span', {}, `A noite costuma ter ~${clientesEsperados()} clientes`)),
       // (15/10, a clareza) a panela, a porção, as vagas, o "Rosa repõe" e o prato da casa: uma linha e o "(?)"
       linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente); a sobra vai para o lixo.',
-        [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
+        [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.precoPanela, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
     if (modo !== 'durante') for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(el('div', { class: 'qc-aviso' }, a));
     else caixa.append(el('div', { class: 'qc-aviso' }, 'A janta está correndo (o relógio parou aqui): mais uma panela agora, ou ligue e desligue o "Rosa repõe".'));
     // (correção 1) A fala da Rosa na primeira vez: uma faixa fixa na lousa, acima da lista (guia_setas.js escreve nela; a seta fica no elemento).
@@ -288,9 +288,9 @@ function pensaoQuadro() {
       const guardado = modo === 'abertura' && !e.panelas && e0.panelas > 0;   // (escolhido, mas a despensa não dá hoje)
       const tag = vip && vip.prato === id ? ' · o pedido do VIP' : festa && festa.prato === id ? ' · o prato da festa' : festa && festa.categoria && categoriaDe(id) === festa.categoria ? ` · ${CATEGORIAS[festa.categoria].toLowerCase()}: vale 50% mais na festa` : '';
       const info = modo === 'durante' ? `Na panela: ${p.porcoes(id)} porções · a despensa dá mais ${panelasTxt(p.rende(id))} (${k} porções cada)`
-        : modo === 'abertura' && CQ.semVaga.has(id) ? `Cr$ ${p.preco(id, 1)} · cada panela dá ${k} porções · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
-        : modo === 'abertura' && !m ? `Cr$ ${p.preco(id, 1)} · cada panela dá ${k} porções · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
-        : `Cr$ ${p.preco(id, 1)} · cada panela dá ${k} porções · a despensa dá ${panelasTxt(m)}${modo === 'plano' && e.panelas > m ? ' hoje' : ''}`
+        : modo === 'abertura' && CQ.semVaga.has(id) ? `${p.textoPreco(id)} · cada panela dá ${k} porções · não coube no quadro (vagas: ${p.vagas()})${tag}`   // (correção 2)
+        : modo === 'abertura' && !m ? `${p.textoPreco(id)} · cada panela dá ${k} porções · falta ${faltaNoQuadro(p, CQ, id)}${tag}`
+        : `${p.textoPreco(id)} · cada panela dá ${k} porções · a despensa dá ${panelasTxt(m)}${modo === 'plano' && e.panelas > m ? ' hoje' : ''}`
           + (modo === 'abertura' && e.panelas > 0 && e0.panelas > e.panelas ? ` (o cardápio guardado pede ${e0.panelas})` : '') + tag;
       const realce = modo !== 'durante' && !marcado && ((festa && festa.prato === id) || (vip && vip.prato === id));   // o prato da festa ou do VIP fora do quadro
       const mexe = (d, comoNome) => ev2 => { ev2.stopPropagation();
@@ -754,6 +754,8 @@ const GLOSSARIO = {
   casa: 'Prato da casa: sempre tem, não gasta despensa; é barato e não dá curtida. Quem fica sem prato do quadro leva ele.',
   sobra: 'Sobra: o que ficou na panela no fim da noite vai para o lixo. Faça só as panelas que a noite pede.',
   raridade: 'Raridade (★): o ingrediente raro (★★ ou mais) deixa o prato mais caro e dá 1 estrela a mais ao cliente.',
+  // (15/10, a clareza) o preço do quadro e do caderno é o que a panela cobra (Pensao.precoDaPanela)
+  precoPanela: `Preço: o que o cliente paga por porção, já com o ingrediente principal que vai para a panela (★★ vale ${Math.round((ECO.pratos.raridade[2] - 1) * 100)}% mais, ★★★ ${Math.round((ECO.pratos.raridade[3] - 1) * 100)}% mais). No peixe frito e no pirão vale o peixe que estiver na despensa (a Rosa usa o mais comum primeiro); sem peixe nenhum, o quadro mostra de quanto a quanto. A gorjeta e a festa vêm por cima.`,
   nivelPrato: 'Nível do prato: sobe com o Caprichar (do 1 ao 10). Mais nível: mais preço, mais porções por panela e mais sabor.',
   chef: 'Rosa chef: ela sobe de nível com cada prato que sai, e cozinha mais rápido. Bocas no fogão: quantos pratos ela faz ao mesmo tempo.',
 };

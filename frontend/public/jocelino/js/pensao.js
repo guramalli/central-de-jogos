@@ -101,28 +101,59 @@ class Pensao {
     for (const id in porcao) r = Math.min(r, Math.floor(this._tem(id) / porcao[id]));
     return r;
   }
-  // Tira da despensa uma porção. Devolve a raridade do principal (0 se não rende).
-  consumir(prato, rng) {
-    if (this.rende(prato) <= 0) return 0;
-    const p = Pratos.PRATOS[prato];
-    let rar = 1;
+  // O que a próxima panela tira da despensa, sem tirar nada: {tira: {ingrediente: qtd}, rar, principal} (null se não rende). O
+  // "peixe" sai do peixe que a pensão aceita, do mais comum para o mais raro; a raridade é a do principal (no peixe, a do último
+  // peixe que entrou). O consumir tira por aqui, e o quadro e o caderno mostram o preço por aqui: a mesma conta.
+  planoPanela(prato) {
+    if (this.rende(prato) <= 0) return null;
+    const p = Pratos.PRATOS[prato], tira = {};
+    let rar = 1, principal = p.principal;
     for (const id in p.porcao) {
       let q = p.porcao[id];
       if (id === 'peixe') {
         for (const peixe of Pratos.PEIXES) {
-          while (q > 0 && this.aceita(peixe) && (this.despensa[peixe] || 0) > 0) {
-            this.despensa[peixe]--; q--;
-            if (p.principal === 'peixe') rar = Pratos.raridade(peixe);
-          }
+          const n = Math.min(q, this.aceita(peixe) ? (this.despensa[peixe] || 0) : 0);
+          if (n <= 0) continue;
+          tira[peixe] = (tira[peixe] || 0) + n; q -= n;
+          if (p.principal === 'peixe') { rar = Pratos.raridade(peixe); principal = peixe; }
         }
       } else {
-        this.despensa[id] -= q;
+        tira[id] = (tira[id] || 0) + q;
         if (p.principal === id) rar = Pratos.raridade(id);
       }
     }
+    return { tira, rar, principal };
+  }
+  // Tira da despensa uma porção. Devolve a raridade do principal (0 se não rende).
+  consumir(prato, rng) {
+    const plano = this.planoPanela(prato);
+    if (!plano) return 0;
+    for (const [id, q] of Object.entries(plano.tira)) this.despensa[id] -= q;
     if (prato === 'sopa_pedra' && rng.randf() < Pensao.CHANCE_PEDRA_VOLTA) this.despensa.pedra = (this.despensa.pedra || 0) + 1;
     for (const id of Object.keys(this.despensa)) if (this.despensa[id] <= 0) delete this.despensa[id];
-    return rar;
+    return plano.rar;
+  }
+  // (15/10, a clareza) O preço que a panela vai cobrar, para o quadro e o caderno: com a panela no fogo, a raridade dela (a do
+  // servirPorcao); sem panela, a da próxima, com o que a despensa tem agora (planoPanela). Quando o preço depende do ingrediente
+  // (o "peixe" do peixe frito e do pirão) e a despensa não tem nenhum, a faixa: de o peixe mais comum ao mais raro que a pensão aceita.
+  // {preco, rar, principal, noFogo, faixa: [min, max] ou null, varia}
+  precoDaPanela(prato) {
+    const P = Pratos.PRATOS[prato], varia = P.principal === 'peixe', noFogo = this.porcoes(prato) > 0;
+    const plano = noFogo ? null : this.planoPanela(prato);
+    const rar = noFogo ? (this.panelaRar[prato] || 1) : plano ? plano.rar : varia ? 0 : Pratos.raridade(P.principal);
+    if (rar) return { preco: this.preco(prato, rar), rar, principal: plano ? plano.principal : P.principal, noFogo, faixa: null, varia };
+    const rars = Pratos.PEIXES.filter(id => this.aceita(id)).map(id => Pratos.raridade(id)), min = Math.min(1, ...rars), max = Math.max(1, ...rars);
+    return { preco: this.preco(prato, min), rar: min, principal: 'peixe', noFogo, faixa: min < max ? [this.preco(prato, min), this.preco(prato, max)] : null, varia };
+  }
+  // O preço em texto: "Cr$ 11", "Cr$ 11 (com sardinha ★ da despensa)", "Cr$ 11 (peixe ★ da panela)" ou "Cr$ 11 a 14 conforme o peixe".
+  textoPreco(prato) {
+    const d = this.precoDaPanela(prato);
+    if (!d.varia) return `Cr$ ${d.preco}`;
+    if (d.faixa) return `Cr$ ${d.faixa[0]} a ${d.faixa[1]} conforme o peixe`;
+    if (d.noFogo) return `Cr$ ${d.preco} (peixe ${'★'.repeat(d.rar)} da panela)`;
+    if (d.principal === 'peixe') return `Cr$ ${d.preco}`;
+    const nome = typeof Itens !== 'undefined' && Itens.nome ? Itens.nome(d.principal) : d.principal;
+    return `Cr$ ${d.preco} (com ${nome.toLowerCase()} ${'★'.repeat(d.rar)} da despensa)`;
   }
   preco(prato, raridade) { return Math.round(Pratos.PRATOS[prato].preco * ECO.pratos.fator * Pratos.RARIDADE_PRECO[clamp(raridade, 1, 4)] * (1 + ECO.precoPorNivel * (this.nivel(prato) - 1)) * (typeof temperoDaRoca === 'function' ? temperoDaRoca(prato) : 1)); }
 

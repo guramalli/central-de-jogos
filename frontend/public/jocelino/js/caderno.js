@@ -71,10 +71,10 @@ function abrirCaderno(sel) {
     if (tem) {
       const n = p.nivel(id), c = p.custoCaprichar(id);
       dir.append(el('div', { class: 'cad-nivelzao' }, '★'.repeat(n) + '☆'.repeat(Pensao.NIVEL_MAX - n)),
-        el('div', { class: 'cad-info' }, `Nível ${n} · Preço Cr$ ${p.preco(id, 1)} · ${p.porcoesPorPanela(id)} porções por panela`));
+        el('div', { class: 'cad-info' }, `Nível ${n} · Preço ${p.textoPreco(id)} · ${p.porcoesPorPanela(id)} porções por panela`));   // (15/10) o preço que a panela cobra
       // (15/10, o dono: "o número de sabor, para que serve?") o sabor em uma linha: para que serve e o que falta; o detalhe no "(?)".
       // (Na lousa a foto do prato vai para o lado do nome: o Caprichar continua à vista sem rolar a página, a s31.)
-      const linhaSabor = linhaAjuda('sabor', textoSaborDoPrato(p, id), [GLOSSARIO.sabor, GLOSSARIO.melhorSabor, GLOSSARIO.nivelPrato, GLOSSARIO.panela, 'O preço sobe com o nível do prato; a estrela a mais do cliente vem do ingrediente raro (★★), não do sabor.']);
+      const linhaSabor = linhaAjuda('sabor', textoSaborDoPrato(p, id), [GLOSSARIO.sabor, GLOSSARIO.melhorSabor, GLOSSARIO.nivelPrato, GLOSSARIO.panela, 'O preço sobe com o nível do prato; a estrela a mais do cliente vem do ingrediente raro (★★), não do sabor.', GLOSSARIO.precoPanela]);
       linhaSabor.classList.add('cad-sabor'); dir.append(linhaSabor);
       if (n < Pensao.NIVEL_MAX) {
         const pode = n < p.tetoCapricho() && Object.keys(c).every(ing => p._tem(ing) >= c[ing]), custo = Object.entries(c).map(([ing, q]) => ing === 'peixe' ? `${q} ${q === 1 ? 'peixe' : 'peixes'}` : Itens.qtd(q, ing)).join(', ');   // (15/10) o plural: "2 sacos de arroz", não "2 saco"

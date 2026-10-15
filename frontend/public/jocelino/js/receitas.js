@@ -11,21 +11,26 @@
 // raridade 1 ★ mercearia e horta, 2 ★★ praia e rio, 3 ★★★ alto-mar e raros, 4 ★★★★ VIP e Capital.
 const _rec = (nome, preco, raridade, caminho, porcao, icone, desc, extra = {}) => Object.assign({ nome, preco, fase: raridade, raridade, caminho,
   principal: Object.keys(porcao)[0], porcao, reacao: 'coracao', pitadas: [0, 2, 4, 7, 10][raridade], icone, desc }, extra);
+// (15/10, aprovado pelo dono; o crivo do Stardew e do Dave: o prato vale mais do que os ingredientes crus vendidos) No nível 1, a
+// panela servida (preço × porções, sem gorjeta) rende pelo menos ~1,3 × o que a caixa de venda pagaria pelos ingredientes dela (o que
+// a caixa não compra conta pelo preço da Mercearia ou da encomenda). Subiram só os que ficavam abaixo: salada 8 → 13, couve à
+// mineira 7 → 8, mandioca frita 9 → 11, sopa de legumes 10 → 12, purê de abóbora 11 → 14, canjica 12 → 13, escondidinho 22 → 25
+// (e a panela rende mais: a mandioca frita 8 porções, a sopa e o purê 6; ECO.porcoes). A s1 confere a regra em todas as receitas.
 const RECEITAS_NOVAS = {
   // ★ — da mercearia e da horta
   rabanada: _rec('Rabanada da Vó', 10, 1, 'ingrediente', { ovo: 2, farinha: 1 }, 'itens/rabanada', 'Doce de domingo que a Rosa faz em qualquer dia da semana.'),
   arroz_doce: _rec('Arroz-Doce da Rosa', 9, 1, 'ingrediente', { leite: 1, arroz: 1, acucar: 1 }, 'itens/prato_arroz_doce', 'Com canela por cima, do jeito que a Ritinha gosta.'),
-  salada_rosa: _rec('Salada da Rosa', 8, 1, 'ingrediente', { alface: 2, tomate: 1 }, 'itens/prato_salada_rosa', 'Fresquinha da horta do quintal. O Zé jura que é remédio.'),
+  salada_rosa: _rec('Salada da Rosa', 13, 1, 'ingrediente', { alface: 2, tomate: 1 }, 'itens/prato_salada_rosa', 'Fresquinha da horta do quintal. O Zé jura que é remédio.'),
   farofa_ovo: _rec('Farofa de Ovo', 8, 1, 'ingrediente', { farinha: 1, ovo: 1 }, 'itens/prato_farofa_ovo', 'Acompanha tudo e não briga com ninguém.', { pitadas: 1 }),
-  couve_mineira: _rec('Couve à Mineira', 7, 1, 'ingrediente', { couve: 2, farinha: 1 }, 'itens/prato_couve_mineira', 'Fininha, no alho. O Bira come de garfo e colher.'),
-  mandioca_frita: _rec('Mandioca Frita', 9, 1, 'ingrediente', { mandioca: 2 }, 'itens/prato_mandioca_frita', 'Casquinha crocante por fora, macia por dentro.'),
-  sopa_legumes: _rec('Sopa de Legumes', 10, 1, 'ingrediente', { tomate: 1, mandioca: 1, couve: 1 }, 'itens/prato_sopa_legumes', 'Para as noites de garoa em Praia Grande.'),
+  couve_mineira: _rec('Couve à Mineira', 8, 1, 'ingrediente', { couve: 2, farinha: 1 }, 'itens/prato_couve_mineira', 'Fininha, no alho. O Bira come de garfo e colher.'),
+  mandioca_frita: _rec('Mandioca Frita', 11, 1, 'ingrediente', { mandioca: 2 }, 'itens/prato_mandioca_frita', 'Casquinha crocante por fora, macia por dentro.'),
+  sopa_legumes: _rec('Sopa de Legumes', 12, 1, 'ingrediente', { tomate: 1, mandioca: 1, couve: 1 }, 'itens/prato_sopa_legumes', 'Para as noites de garoa em Praia Grande.'),
   mingau_milho: _rec('Mingau de Milho', 9, 1, 'ingrediente', { milho: 1, leite: 1 }, 'itens/prato_mingau_milho', 'Quentinho, com cravo. Lembra Aracaju.'),
-  pure_abobora: _rec('Purê de Abóbora', 11, 1, 'ingrediente', { abobora: 2, leite: 1 }, 'itens/prato_pure_abobora', 'Laranjinha e cremoso. Até o Zezinho come.'),
+  pure_abobora: _rec('Purê de Abóbora', 14, 1, 'ingrediente', { abobora: 2, leite: 1 }, 'itens/prato_pure_abobora', 'Laranjinha e cremoso. Até o Zezinho come.'),
   virado: _rec('Virado à Paulista', 16, 1, 'degrau', { arroz: 1, feijao: 1, couve: 1, ovo: 1 }, 'itens/prato_virado', 'O prato de segunda-feira de São Paulo inteiro.', { grau: 2 }),
   cuscuz: _rec('Cuscuz Paulista', 15, 1, 'chef', { farinha: 2, sardinha: 1, tomate: 1 }, 'itens/prato_cuscuz', 'A Rosa inventou de juntar o cuscuz de lá com a sardinha daqui.'),
   bolinho_chuva: _rec('Bolinho de Chuva', 9, 1, 'ajudante', { farinha: 1, ovo: 1, acucar: 1 }, 'itens/prato_bolinho_chuva', 'Com açúcar e canela. Some do prato antes de esfriar.'),
-  canjica: _rec('Canjica de Junho', 12, 1, 'festa', { milho: 2, leite: 1, acucar: 1 }, 'itens/prato_canjica', 'Aprendida no Arraiá: canjica branca com amendoim e cravo.'),
+  canjica: _rec('Canjica de Junho', 13, 1, 'festa', { milho: 2, leite: 1, acucar: 1 }, 'itens/prato_canjica', 'Aprendida no Arraiá: canjica branca com amendoim e cravo.'),
   // ★★ — da praia e do rio
   marmita_peao: _rec('Marmita do Peão', 18, 2, 'ingrediente', { linguica: 1, arroz: 1, feijao: 1 }, 'itens/marmita', 'Linguiça frita por cima do arroz e feijão. O Bira come duas.', { pitadas: 3 }),
   pamonha: _rec('Pamonha Quentinha', 14, 2, 'ingrediente', { milho: 2 }, 'itens/pamonha', 'Pamonha, pamonha, pamonha! Feita na palha, do jeitinho de Aracaju.', { pitadas: 3 }),
@@ -36,7 +41,7 @@ const RECEITAS_NOVAS = {
   peixe_ensopado: _rec('Peixe Ensopado', 20, 2, 'ingrediente', { tainha: 1, tomate: 1, leite_coco: 1 }, 'itens/prato_peixe_ensopado', 'Tainha de inverno, no molho, com arroz branquinho.', { pitadas: 5 }),
   casquinha_siri: _rec('Casquinha de Siri', 26, 2, 'ingrediente', { siri: 2, farinha: 1, leite_coco: 1 }, 'itens/prato_casquinha_siri', 'Servida na própria casca, gratinada com farinha.', { pitadas: 6 }),
   caldo_caranguejo: _rec('Caldinho de Caranguejo', 24, 2, 'ingrediente', { caranguejo: 2, farinha: 1 }, 'itens/caldo_caranguejo', 'Caranguejo da praia à noite, com pirão. Quem prova volta.', { reacao: 'suor', pitadas: 6 }),
-  escondidinho: _rec('Escondidinho de Peixe', 22, 2, 'degrau', { pescada: 1, mandioca: 2, queijo_coalho: 1 }, 'itens/prato_escondidinho', 'O peixe se esconde debaixo do purê de mandioca e do queijo.', { grau: 3 }),
+  escondidinho: _rec('Escondidinho de Peixe', 25, 2, 'degrau', { pescada: 1, mandioca: 2, queijo_coalho: 1 }, 'itens/prato_escondidinho', 'O peixe se esconde debaixo do purê de mandioca e do queijo.', { grau: 3 }),
   caldo_peixe: _rec('Caldo de Peixe', 18, 2, 'chef', { pescada: 1, mandioca: 1, tomate: 1 }, 'itens/prato_caldo_peixe', 'A Rosa inventou numa noite fria. Levanta defunto.'),
   pirao: _rec('Pirão de Peixe', 12, 2, 'ajudante', { peixe: 1, farinha: 2 }, 'itens/prato_pirao', 'O segredo é o caldo da cabeça do peixe, ensinou o ajudante.'),
   // ★★★ — do alto-mar e dos raros
