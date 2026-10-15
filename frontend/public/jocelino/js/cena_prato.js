@@ -9,7 +9,8 @@
 // de uma receita com cena (uma vez só); o prato do tema da festa (uma vez por noite de festa). Nunca o prato comum repetido.
 // Durante a cena o jogo fica pausado como num menu (menuAberto): o relógio da janta e a paciência dos clientes não andam.
 // window.TESTE_PULA_CENAS (a bateria de testes): a cena é registrada (vista, contador da noite) mas não toca nem pausa.
-// As cenas especiais (CENAS_ESPECIAIS, fora da janta: o letreiro do fim da reforma) usam o mesmo motor por tocarEspecial().
+// As cenas especiais (CENAS_ESPECIAIS, fora da janta: o letreiro do fim da reforma, o Caprichar e a pesquisa do caderno) usam o
+// mesmo motor por tocarEspecial() (o caderno chama aoCaprichar e aoPesquisar).
 
 // O prato → a cena dele (o prato da casa e as bebidas nunca têm cena).
 const CENA_DO_PRATO = {
@@ -187,7 +188,104 @@ const CENAS_ESPECIAIS = {
         if (img) d.peca('cenas/letreiro_pronto', 960 + (C.x - 960) * zoom, 420 + (C.y - 420) * zoom, C.l * zoom * img.naturalHeight / img.naturalWidth, { rot: C.rot, alfa: a });
       }
     } },
+  // O Caprichar (7,4 s; Tarefa D2 do guia do Bancho: no Dave, o Enhance tem cena própria). Toca pelo caderno (CenaPrato.aoCaprichar)
+  // quando a receita chega ao nível 10 (toda vez) e na 1ª vez no jogo que o jogador capricha uma receita (uma vez só). c.prato é a
+  // receita (a arte grande dela, a/pratos/, entra nas camadas da vez) e c.nivel o nível novo. O fogão "turbinado": a Rosa entra e
+  // solta a pitada do alto, o fogo sobe dourado; o prato da receita sobe no meio do fogo com o brilho atrás, pulsa ao subir de
+  // nível e o carimbo CAPRICHADO (o mesmo do caderno) bate em cima dele; a reação: a Rosa prova da colher no campo de ipês.
+  caprichar: { dur: 7.4, legenda: [2.9, 7.1],
+    titulo: c => { const nome = c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : 'O prato';
+      return c.nivel >= _capMax() ? `${nome}: capricho máximo!` : `${nome} caprichado: nível ${c.nivel}!`; },
+    fala: [5.1, 7.2, c => c.nivel >= _capMax() ? 'A Rosa: "Nível 10! Nem a minha mãe fazia assim."' : 'A Rosa: "Fogo alto e pitada certa: tá caprichado!"'],
+    artes: ['cenas/capricho_fundo', 'cenas/capricho_rosa', 'cenas/capricho_chamas', 'cenas/capricho_carimbo', 'cenas/capricho_reacao', 'cenas/letreiro_brilho'],
+    sons: [[0.95, 'cena_fogo', 1, -4], [1.25, 'chapa_chiado', 1, -10], [3.55, 'cena_tchan', 1, -4], [4.25, 'carimbo', 0.9, -2], [5.1, 'cena_plateia', 1, -6], [5.3, 'rosa_animada', 1, -4]],
+    desenha(d, t, c) {
+      if (t < 5.3) {
+        // o fogão turbinado, aproximando devagar; do 2,7 s em diante ele escurece (fica a meia luz atrás do prato)
+        d.fundo('cenas/capricho_fundo', 1 + 0.08 * _eo(_cs(t, 0, 5.3)), 1 - 0.5 * _cs(t, 2.6, 3.0), 960, 600);
+        // o fogo da frente: baixo até a pitada, sobe de uma vez em 1,0 s (com tremor e clarão) e fica tremulando; duas cópias
+        // opacas, a de trás espelhada e maior, cada uma pulsando na escala e no giro num ritmo próprio (o tremular)
+        const sobe = _eo(_cs(t, 0.95, 1.3)), y = 1110 + (1 - sobe) * 260, h = 420 + 140 * sobe;
+        for (let k = 1; k >= 0; k--) {
+          const f = Math.sin(t * (k ? 7 : 10) + k * 2);
+          d.peca('cenas/capricho_chamas', 960 + (k ? 90 : -30), y, h * (k ? 1.12 : 1), { ancora: 'base', espelho: !!k, rot: 0.015 * f, esc: 1 + 0.035 * f });
+        }
+        if (t >= 0.95 && t < 1.4) { d.tremor(7 * (1 - _cs(t, 0.95, 1.4))); d.luz(0.35 * (1 - _cs(t, 0.95, 1.25))); }
+        // a Rosa entra pela esquerda e solta a pitada do alto; as faíscas caem dos dedos; ela sai para a direita quando o prato sobe
+        if (t < 3.0) {
+          const ent = _eo(_cs(t, 0, 0.5)), sai = _cs(t, 2.5, 3.0), rh = 980;
+          const rx = 520 - (1 - ent) * 820 - sai * 900, ry = 1100 + Math.sin(Math.PI * _cs(t, 0.5, 0.8)) * -24;
+          const rot = 0.02 * Math.sin(t * 5) - 0.04 * Math.sin(Math.PI * _cs(t, 0.7, 1.1));
+          d.peca('cenas/capricho_rosa', rx, ry, rh, { ancora: 'base', rot, alfa: 1 - sai });
+          const img = spr('cenas/capricho_rosa');
+          if (img) {
+            const rw = rh * img.naturalWidth / img.naturalHeight, vx = (ROSA_PITADA.fx - 0.5) * rw, vy = -rh * (1 - ROSA_PITADA.fy);
+            const px = rx + vx * Math.cos(rot) - vy * Math.sin(rot), py = ry + vx * Math.sin(rot) + vy * Math.cos(rot);
+            for (let k = 0; k < 6; k++) {
+              const v = _cs(t, 0.8 + k * 0.22, 1.6 + k * 0.22); if (v <= 0 || v >= 1) continue;
+              d.peca('cenas/letreiro_brilho', px + (k % 3 - 1) * 26 + v * 60, py + 40 + v * 420, 90 * Math.sin(Math.PI * v), { rot: v * 3 * (k % 2 ? -1 : 1), alfa: (1 - sai) * Math.sin(Math.PI * v) });
+            }
+          }
+        }
+        // o prato sobe do fogo até o meio, com o brilho grande girando atrás; pulsa no "tchan" (o nível subindo) com o clarão e as
+        // faíscas em volta; o carimbo CAPRICHADO bate em cima dele (cai grande e assenta, com tremor)
+        if (t >= 2.6 && c && c.prato) {
+          const u = _eo(_cs(t, 2.6, 3.5)), py = 1220 - u * 700, pulso = 1 + 0.18 * Math.sin(Math.PI * _cs(t, 3.55, 3.9)), ph = 350;
+          d.peca('cenas/letreiro_brilho', 960, py, 760 * u * (1 + 0.05 * Math.sin(t * 4)), { rot: t * 0.6, alfa: 0.75 * u });
+          d.peca(iconePratoGrande(c.prato), 960, py, ph, { esc: pulso, rot: 0.04 * Math.sin(t * 3) * (1 - _cs(t, 3.5, 4.0)) });
+          if (t >= 3.55 && t < 3.9) d.luz(0.5 * (1 - _cs(t, 3.55, 3.85)));
+          const pontas = [[-0.62, -0.42], [0.6, -0.3], [-0.5, 0.38], [0.66, 0.34], [0.05, -0.62]];
+          for (let k = 0; k < pontas.length; k++) {
+            const v = _cs(t, 3.6 + k * 0.12, 4.4 + k * 0.12); if (v <= 0 || v >= 1) continue;
+            d.peca('cenas/letreiro_brilho', 960 + pontas[k][0] * ph * (1 + v * 0.4), py + pontas[k][1] * ph * (1 + v * 0.4), 150 * Math.sin(Math.PI * v), { rot: v * 2.4 * (k % 2 ? -1 : 1), alfa: Math.sin(Math.PI * v) });
+          }
+          if (t >= 4.05) {
+            const b = _cs(t, 4.05, 4.3), cai = 1 + 1.4 * (1 - _eo(b));
+            d.peca('cenas/capricho_carimbo', 1250, py + 150, 300, { esc: cai, rot: -0.2, alfa: b * (1 - _cs(t, 5.05, 5.3)) });
+            if (t >= 4.25 && t < 4.5) d.tremor(9 * (1 - _cs(t, 4.25, 4.5)));
+          }
+        }
+      }
+      // a reação: a Rosa prova da colher, olhos fechados, no campo de ipês com o sol dourado
+      if (t >= 5.0) d.fundo('cenas/capricho_reacao', 1.08 - 0.08 * _eo(_cs(t, 5.0, 7.4)), _cs(t, 5.0, 5.3), 980, 420);
+    } },
+  // A pesquisa (3,4 s; o Research do Bancho): toca toda vez que o jogador descobre uma receita nova pela pesquisa no caderno
+  // (CenaPrato.aoPesquisar). Reaproveita a arte que já existe: a cozinha da moqueca a meia luz, o caderno da Rosa (a/ui) abrindo
+  // do meio para os lados, o prato novo aparecendo na página da direita com faíscas, e a Rosa da pitada (as pitadas de tempero
+  // são o que a pesquisa gasta) entrando pela esquerda.
+  pesquisa: { dur: 3.4, legenda: [0.9, 3.3],
+    titulo: c => `Receita nova: ${c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : 'no caderno'}!`,
+    fala: [1.4, 3.3, 'A Rosa: "Achei o jeito! Essa vai pro caderno."'],
+    artes: ['cenas/moqueca_fundo', 'ui/caderno_aberto', 'cenas/capricho_rosa', 'cenas/letreiro_brilho'],
+    sons: [[0.1, 'pagina', 1, -2], [0.8, 'cena_tchan', 1.1, -4], [1.5, 'rosa_animada', 1, -4]],
+    desenha(d, t, c) {
+      d.fundo('cenas/moqueca_fundo', 1.05 + 0.04 * _eo(_cs(t, 0, 3.4)), 0.5, 960, 560);
+      // o caderno abre do meio para os lados (a largura cresce a partir da lombada) e assenta
+      const ab = _eo(_cs(t, 0.05, 0.6)), ch = 680, img = spr('ui/caderno_aberto');
+      d.peca('ui/caderno_aberto', 960, 590 + (1 - ab) * 60, ch, { escX: 0.06 + 0.94 * ab, rot: -0.02 * (1 - ab) });
+      // o prato novo aparece na página da direita (de pequeno a um pouco grande e assenta), com o brilho atrás e as faíscas
+      if (c && c.prato && img) {
+        const cw = ch * img.naturalWidth / img.naturalHeight, px = 960 + 0.24 * cw, py = 520;
+        const v = _cs(t, 0.7, 1.15), esc = v < 1 ? 0.3 + 0.95 * _eo(v) : 1.25 - 0.25 * _eo(_cs(t, 1.15, 1.4));
+        d.peca('cenas/letreiro_brilho', px, py, 420 * _eo(v), { rot: t * 0.8, alfa: 0.6 * v });
+        d.peca(iconePratoGrande(c.prato), px, py, 250, { esc, alfa: v });
+        for (let k = 0; k < 4; k++) {
+          const w = _cs(t, 0.85 + k * 0.15, 1.6 + k * 0.15); if (w <= 0 || w >= 1) continue;
+          const a = k * 1.7 + 0.4;
+          d.peca('cenas/letreiro_brilho', px + Math.cos(a) * 170 * (0.6 + w * 0.5), py + Math.sin(a) * 150 * (0.6 + w * 0.5), 110 * Math.sin(Math.PI * w), { rot: w * 2.5, alfa: Math.sin(Math.PI * w) });
+        }
+      }
+      // a Rosa entra pela esquerda soltando a pitada sobre o caderno
+      if (t >= 1.2) {
+        const u = _eo(_cs(t, 1.2, 1.6));
+        d.peca('cenas/capricho_rosa', 300 - (1 - u) * 700, 1110 + Math.sin(Math.PI * _cs(t, 1.6, 1.9)) * -20, 820, { ancora: 'base', rot: 0.02 * Math.sin(t * 5) });
+      }
+    } },
 };
+// O Caprichar: o nível 10 (o teto do caderno, Pensao.NIVEL_MAX) toca sempre; ROSA_PITADA: a ponta dos dedos da pitada na peça da Rosa (fração da
+// largura e da altura), de onde caem as faíscas do tempero.
+const _capMax = () => (typeof Pensao !== 'undefined' && Pensao.NIVEL_MAX) || 10;
+const ROSA_PITADA = { fx: 0.24, fy: 0.1 };
 
 // ---------- o estado (no save): as cenas vistas, as receitas que já tiveram a cena da 1ª venda e o contador da noite ----------
 INICIADORES.push(s => {
@@ -200,7 +298,7 @@ INICIADORES.push(s => {
 COLETORES.push(s => { s.cenasEspeciais = (G.cenasEspeciais || []).slice(); s.cenasVistas = (G.cenasVistas || []).slice(); s.cenasReceitas = (G.cenasReceitas || []).slice(); s.cenasNoite = Object.assign({}, G.cenasNoite); });
 
 const CenaPrato = {
-  _cena: null,     // a cena tocando: { id, def, t, tr, espera, podePular, primeira, prato, aoAcabar, sons }
+  _cena: null,     // a cena tocando: { id, def, artes, t, tr, espera, podePular, primeira, prato, nivel, aoAcabar, sons }
   _fixo: null,     // (testes) o segundo em que a cena fica parada para a foto
   _ultimo: 0,
   cenaDe(prato) { return CENA_DO_PRATO[prato] || ''; },
@@ -254,18 +352,35 @@ const CenaPrato = {
   // limite de 2 por noite nem nas cenas de prato; para o relógio como as outras; a 1ª vez toca inteira, a já vista o clique pula.
   // aoAcabar() é chamada sempre uma vez: quando a cena termina (ou é pulada, ou para por erro); na hora, se a cena não pode tocar
   // (outra tocando, id desconhecido) ou com TESTE_PULA_CENAS (a cena fica registrada como vista). Devolve true se tocou.
-  tocarEspecial(id, aoAcabar) {
+  // op (Tarefa D2): { prato, nivel, artes } — a receita da vez (o título e o desenho usam), o nível novo do Caprichar e as camadas
+  // a mais que a cena espera carregar (a arte grande do prato).
+  tocarEspecial(id, aoAcabar, op = {}) {
     const def = CENAS_ESPECIAIS[id], fim = () => { if (typeof aoAcabar === 'function') aoAcabar(); };
     if (!Array.isArray(G.cenasEspeciais)) G.cenasEspeciais = [];
     if (!def || this._cena) { fim(); return false; }
     const podePular = G.cenasEspeciais.includes(id);
     if (!podePular) G.cenasEspeciais.push(id);
     if (window.TESTE_PULA_CENAS) { fim(); return false; }
-    return this._iniciar(id, def, { podePular, primeira: false, prato: '', aoAcabar: fim });
+    return this._iniciar(id, def, { podePular, primeira: false, prato: op.prato || '', nivel: op.nivel || 0, artes: op.artes, aoAcabar: fim });
+  },
+  // O Caprichar no caderno (Tarefa D2): a cena toca quando a receita chega ao nível 10 (toda vez) e na 1ª vez no jogo que o
+  // jogador capricha uma receita (uma vez só; depois, o caprichar comum não tem cena). Devolve o motivo ('nivel10', 'primeira')
+  // ou '' (também com TESTE_PULA_CENAS, que registra a cena sem tocar).
+  aoCaprichar(prato, nivel, aoAcabar) {
+    const motivo = nivel >= _capMax() ? 'nivel10' : !(G.cenasEspeciais || []).includes('caprichar') ? 'primeira' : '';
+    if (!motivo) { if (typeof aoAcabar === 'function') aoAcabar(); return ''; }
+    this.tocarEspecial('caprichar', aoAcabar, { prato, nivel, artes: typeof iconePratoGrande === 'function' ? [iconePratoGrande(prato)] : [] });
+    return motivo;
+  },
+  // A receita nova pela pesquisa no caderno: a cena curta toca toda vez (a já vista o clique pula). Devolve 'pesquisa'.
+  aoPesquisar(prato, aoAcabar) {
+    this.tocarEspecial('pesquisa', aoAcabar, { prato, artes: typeof iconePratoGrande === 'function' ? [iconePratoGrande(prato)] : [] });
+    return 'pesquisa';
   },
   _iniciar(id, def, op) {
-    for (const n of def.artes) spr(n);
-    this._cena = { id, def, t: 0, tr: 0, espera: 0, podePular: op.podePular, primeira: op.primeira, prato: op.prato, aoAcabar: op.aoAcabar || null, sons: def.sons.slice() };
+    const artes = def.artes.concat(op.artes || []);
+    for (const n of artes) spr(n);
+    this._cena = { id, def, artes, t: 0, tr: 0, espera: 0, podePular: op.podePular, primeira: op.primeira, prato: op.prato, nivel: op.nivel || 0, aoAcabar: op.aoAcabar || null, sons: def.sons.slice() };
     this._ultimo = performance.now();
     // as faixas descem: o zunido com rufar; a música e o burburinho baixam enquanto a cena toca
     if (typeof sons !== 'undefined') { sons.tocar('cena_entrada', 1, 0.03, -4); sons.abafar(def.dur + 0.5, 0.3); }
@@ -318,7 +433,7 @@ const CenaPrato = {
     const agora = performance.now(), dt = Math.min(0.05, Math.max(0, (agora - this._ultimo) / 1000));
     this._ultimo = agora;
     c.tr += dt;
-    const pronta = c.def.artes.every(n => { spr(n); const r = SPR.get(n); return r && (r.pronta || r.erro); });
+    const pronta = c.artes.every(n => { spr(n); const r = SPR.get(n); return r && (r.pronta || r.erro); });
     if (this._fixo != null) c.t = this._fixo;
     else if (pronta || c.espera >= CENA_ESPERA_ARTE) c.t += dt;
     else c.espera += dt;
@@ -352,19 +467,20 @@ const CenaPrato = {
         ctx.drawImage(img, fx + (x0 - fx) * zoom, fy + (y0 - fy) * zoom, w, h);
       },
       // a peça recortada com altura h no ponto (x, y): ancora 'centro', 'base' (o pé em y) ou 'topo'; giro, escala, transparência e
-      // espelho (a peça virada da esquerda para a direita)
+      // espelho (a peça virada da esquerda para a direita) e escX (só a largura)
       peca(nome, x, y, h, op = {}) {
         const img = spr(nome), alfa = op.alfa == null ? 1 : op.alfa; if (!img || alfa <= 0) return;
         const w = img.naturalWidth * h / img.naturalHeight, ay = op.ancora === 'base' ? -h : op.ancora === 'topo' ? 0 : -h / 2;
         base(); ctx.globalAlpha = A * alfa;
         ctx.translate(x, y); if (op.rot) ctx.rotate(op.rot); if (op.esc && op.esc !== 1) ctx.scale(op.esc, op.esc); if (op.espelho) ctx.scale(-1, 1);
+        if (op.escX != null && op.escX !== 1) ctx.scale(op.escX, 1);   // (a largura sozinha: o caderno abrindo da lombada)
         ctx.drawImage(img, -w / 2, ay, w, h);
       },
       // o clarão discreto do risco de faca
       luz(a) { if (a <= 0) return; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = A * a; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); },
       tremor(px) { tremor = Math.max(0, px); },
     };
-    ctx.save(); c.def.desenha(d, t); ctx.restore();
+    ctx.save(); c.def.desenha(d, t, c); ctx.restore();
     ctx.globalAlpha = 1;
     // as faixas de cinema (o corte de tela) e o texto delas
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -372,8 +488,14 @@ const CenaPrato = {
     ctx.fillStyle = '#000'; ctx.fillRect(0, y1, W, B); ctx.fillRect(0, H - B - y1, W, B);
     if (typeof texto === 'function') {
       const [l0, l1] = c.def.legenda;
-      const nome = c.def.titulo || (c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : '');
+      const tit = typeof c.def.titulo === 'function' ? c.def.titulo(c) : c.def.titulo;
+      const nome = tit || (c.prato && typeof Pensao !== 'undefined' ? Pensao.prato(c.prato).nome : '');
       if (nome && t >= l0 && t <= l1) { ctx.globalAlpha = Math.min(_cs(t, l0, l0 + 0.25), 1 - _cs(t, l1 - 0.25, l1)); texto(ctx, nome, W / 2, H - B / 2 + 9 - y1, Math.round(clamp(B * 0.42, 16, 34)), '#ffd34d', '900'); }
+      // a fala da Rosa na faixa de cima (fala: [de, até, texto ou função(c)]), nas cenas especiais que têm
+      if (c.def.fala && t >= c.def.fala[0] && t <= c.def.fala[1]) {
+        const [f0, f1, f] = c.def.fala, frase = typeof f === 'function' ? f(c) : f;
+        ctx.globalAlpha = Math.min(_cs(t, f0, f0 + 0.25), 1 - _cs(t, f1 - 0.25, f1)); texto(ctx, frase, W / 2, B / 2 + 8 + y1, Math.round(clamp(B * 0.36, 14, 28)), '#fff4cf', '800');
+      }
       if (c.podePular) { ctx.globalAlpha = 0.75 * entra * (1 - sai); texto(ctx, 'Clique para pular', W - 110, H - B / 2 + 7 - y1, 16, '#fff4cf', '800'); }
       ctx.globalAlpha = 1;
     }

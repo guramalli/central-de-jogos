@@ -17,6 +17,9 @@ class Personagem {
   atualiza(dt) {
     this.t += dt;
     if (!this.vagueia || !this.area) return;
+    // (14/10, relato: "o Zezinho travou na cerca") com o pé dentro de algo sólido (nasceu no ladrilho dele, onde o Jocelino pôs uma
+    // cerca; o portão fechou com ele no vão) todo passo batia e ele ficava parado para sempre: vai para o ladrilho livre mais perto.
+    if (this._bate(this.x, this.y)) { this.desencalhar(); return; }
     if (this._alvo) {
       const dx = this._alvo.x - this.x, dy = this._alvo.y - this.y, d = Math.hypot(dx, dy);
       if (d < 3) { this._alvo = null; this.andando = false; this._espera = rnd(1.5, 4); return; }
@@ -42,6 +45,18 @@ class Personagem {
         if (livre) this._alvo = alvo;
       }
       if (!this._alvo) this._espera = rnd(1, 2);
+    }
+  }
+  desencalhar() {
+    const tx = Math.floor(this.x / TILE), ty = Math.floor(this.y / TILE);
+    for (let r = 1; r <= 6; r++) {
+      let melhor = null, dm = 1e9;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = (tx + dx + 0.5) * TILE, y = (ty + dy) * TILE + 42, d = Math.hypot(x - this.x, y - this.y);   // (o pé como o morador() põe)
+        if (d < dm && !this._bate(x, y)) { melhor = { x, y }; dm = d; }
+      }
+      if (melhor) { this.x = melhor.x; this.y = melhor.y; this._alvo = null; this.andando = false; this._espera = rnd(0.5, 1.5); return; }
     }
   }
   desenha(ctx) {

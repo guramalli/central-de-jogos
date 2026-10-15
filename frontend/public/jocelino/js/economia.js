@@ -51,6 +51,17 @@ const ECO = {
     // de fora (os clientes avulsos); o ajudante de salão leva `bebidaAjudante` s para encher a bebida no bebedouro (o funcionário
     // do Dave serve 1 bebida em 3,0 s).
     salao: { chegada: [5, 10], folgaBanco: 3, avulsos: 0.5, bebidaAjudante: 3 },
+    // (14/10, Tarefa E1, o jeito de cada freguês de fora; clientes_avulsos.js diz quem é o quê) paciencia: multiplica a paciência
+    // (até pedir e até o prato); gorjeta: multiplica a gorjeta das estrelas; o apressado servido em até `rapido` da paciência dele
+    // (a espera até o prato) dá a gorjeta × `gorjetaRapido`; o exigente só dá a gorjeta das estrelas com `estrelasGorjeta` ou mais
+    // e, quando gosta (essas estrelas), dá `curtidaGostou` curtida a mais. Na média do salão o efeito fica perto de zero (o apressado
+    // e o generoso compensados pelo exigente): a s20 mede, o simulador confere.
+    jeitos: {
+      apressado: { paciencia: 0.75, gorjeta: 1, rapido: 0.4, gorjetaRapido: 1.5 },
+      paciente: { paciencia: 1.4, gorjeta: 1 },
+      exigente: { paciencia: 1, gorjeta: 1, estrelasGorjeta: 5, curtidaGostou: 1 },
+      generoso: { paciencia: 1, gorjeta: 1.5 },
+    },
     // (14/10, Tarefa A) Os números da janta (o TurnoJanta lê daqui; os nomes são os das constantes dele). Tempos em segundos:
     // a paciência até pedir e até o prato chegar, o preparo de um prato, o tempo comendo, a leitura do cardápio (e com a louça
     // suja do lado); as capacidades da farinheira (e o "repõe com tanto ou menos"), do passe, da bandeja e das bocas do fogão; a

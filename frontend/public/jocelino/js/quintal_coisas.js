@@ -290,13 +290,34 @@ function conversarZezinho(p) {
 }
 AO_MONTAR.push(b => { if (b.id !== 'quintal') return; const z = b.moradores.find(m => m.id === 'zezinho'); if (z) z.aoConversar = () => conversarZezinho(z); });
 // Das 7h às 9h, com a rega ligada, os dois andam pela horta (a área deles muda para as covas).
-ATUALIZADORES.push(() => {
+// (14/10, relato: "o Zezinho travou na cerca") só as covas que o pé dele alcança, pela regra do Horta.protegida (cerca, portão
+// fechado e objeto sólido fecham; planta passa): com a área de TODAS as covas e a cerca no meio, os cantos de passeio caíam do
+// outro lado da cerca e ele ficava parado encostado nela até as 9h. Sem cova ao alcance, ele fica na área de casa.
+function covasAoAlcance(b, m, ks) {
+  const x0 = Math.floor(m.x / TILE), y0 = Math.floor(m.y / TILE), visto = new Set([chaveT(x0, y0)]), fila = [[x0, y0]];
+  for (let i = 0; i < fila.length && visto.size < 600; i++) {
+    const [cx, cy] = fila[i];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy, k = chaveT(nx, ny);
+      if (visto.has(k) || !b.livreEm(nx, ny)) continue;
+      const o = b.ocupado.get(k); if (o && o.solido) continue;
+      visto.add(k); fila.push([nx, ny]);
+    }
+  }
+  return ks.filter(k => visto.has(k));
+}
+ATUALIZADORES.push(dt => {
   const b = MAPAS.quintal; if (!b || !G.horta || !G.horta.filhos) return;
   const ks = Object.keys(G.horta.covas).filter(k => G.horta.covas[k].planta), manha = G.minutos >= 7 * 60 && G.minutos < 9 * 60 && ks.length;
   for (const id of ['zezinho', 'ritinha']) {
     const m = b.moradores.find(p => p.id === id); if (!m) continue;
     if (!m._areaCasa) m._areaCasa = m.area;
-    if (manha) { const xs = ks.map(k => +k.split(',')[0]), ys = ks.map(k => +k.split(',')[1]); m.area = { x: Math.min(...xs) * TILE, y: Math.min(...ys) * TILE, w: (Math.max(...xs) - Math.min(...xs) + 1) * TILE, h: (Math.max(...ys) - Math.min(...ys) + 1) * TILE }; }
-    else m.area = m._areaCasa;
+    if (!manha) { m.area = m._areaCasa; m._tHorta = 0; continue; }
+    m._tHorta = (m._tHorta || 0) - (dt || 0); if (m._tHorta > 0) continue;
+    m._tHorta = 1;   // (a busca a cada 1 s, não a cada quadro)
+    const alc = covasAoAlcance(b, m, ks);
+    if (!alc.length) { m.area = m._areaCasa; continue; }
+    const xs = alc.map(k => +k.split(',')[0]), ys = alc.map(k => +k.split(',')[1]);
+    m.area = { x: Math.min(...xs) * TILE, y: Math.min(...ys) * TILE, w: (Math.max(...xs) - Math.min(...xs) + 1) * TILE, h: (Math.max(...ys) - Math.min(...ys) + 1) * TILE };
   }
 });

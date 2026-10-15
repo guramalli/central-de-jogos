@@ -673,7 +673,7 @@ function desenhaBaloes(ctx, b) {
     desenhaFx(ctx, m.estado === 'prato' && !m.pronto ? 'balao_pensamento' : 'balao', x, y + 6);
     if (m.estado === 'pedido') texto(ctx, '!', x, y + 12, 34, '#e8452c', '900');
     else { ctx.globalAlpha = m.pronto ? 1 : 0.45; desenhaPrato(ctx, m.prato, x, y + 20, 1, 0.82); ctx.globalAlpha = 1; }
-    const lim = m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO;
+    const lim = (m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO) * (t.pacienciaDe ? t.pacienciaDe(m) : 1);   // (Tarefa E1) a da noite e a do jeito, como o tick
     const f = clamp(1 - m.espera / lim, 0, 1);
     // Paciência: o miolo colorido dentro da moldura de madeira (a/fx/barra_moldura).
     if (spr('fx/barra_moldura')) {

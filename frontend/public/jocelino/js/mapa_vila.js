@@ -60,7 +60,8 @@ MAPAS_DEF.vila = () => {
   b.interativo('oficina', 'objetos/oficina_sem_fumaca', 10, 22, 6, 5).acao = () => (typeof abrirFerraria === 'function' ? abrirFerraria() : abrirPlaca('A ferraria do Seu Tonico.'));
   b.morador('tonico', 'Seu Tonico', 13, 24, DIR.BAIXO, { vagueia: true, area: { x: 10 * TILE, y: 24 * TILE + 42, w: 6 * TILE, h: 1 * TILE } });   // na calçada da ferraria
   // As placas de serviço juntas, à direita do caminho de quem chega do quintal (como o quadro e o calendário do Pierre).
-  b.interativo('calendario', 'objetos/calendario', 26, 5, 2, 1, [12, 6]).acao = () => abrirPlaca('O calendário da Vila: festas e aniversários.');
+  // (14/10, Tarefa E1) o calendário da Vila abre a semana da pensão (a mesma lousa do salão; calendario_pensao.js)
+  b.interativo('calendario', 'objetos/calendario', 26, 5, 2, 1, [12, 6]).acao = () => (typeof abrirCalendarioPensao === 'function' ? abrirCalendarioPensao() : abrirPlaca('O calendário da Vila: festas e aniversários.'));
   b.interativo('quadro_pedidos', 'objetos/quadro_pedidos', 26, 8, 2, 1, [28, 6]).acao = () => (typeof abrirQuadro === 'function' ? abrirQuadro() : abrirPlaca('O quadro de pedidos dos clientes da Vila.'));
   for (const t of [[21, 21], [30, 17], [44, 17]]) b.enfeite('objetos/coqueiro', t[0], t[1], true, 10);
   for (const t of [[2, 9], [42, 16]]) b.interativo('latao_lixo', 'objetos/latao_lixo', t[0], t[1], 1, 1, [10, 6]).acao = () => abrirPlaca('Um latão de lixo. Nada de útil hoje.');

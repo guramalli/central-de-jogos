@@ -99,13 +99,26 @@ class TurnoJanta {
     for (let k = 0; k < quantos; k++) {
       if (!pool.length) pool = Pratos.CLIENTES.slice();
       let c = pool.splice(this._rng.randi() % pool.length, 1)[0];
-      if (avulsos.length && ra() < S.avulsos) { const a = avulsos.splice(Math.floor(ra() * avulsos.length), 1)[0]; c = { id: a.id, nome: a.apelido || a.nome, mania: '', avulso: true }; }
+      // (Tarefa E1) o jeito do freguês de fora (apressado, paciente, exigente, generoso) vem com ele: clientes_avulsos.js
+      if (avulsos.length && ra() < S.avulsos) { const a = avulsos.splice(Math.floor(ra() * avulsos.length), 1)[0]; c = { id: a.id, nome: a.apelido || a.nome, mania: '', avulso: true, jeito: a.jeito || '' }; }
       const minuto = TurnoJanta.ABRE + Math.round((TurnoJanta.ULTIMA_CHEGADA - TurnoJanta.ABRE) * k / Math.max(1, quantos));
       this._fila.push({ minuto, cliente: c });
     }
   }
   // Os números do salão (ECO.pensao.salao), com o padrão se o ECO não tiver.
   static salao() { return (typeof ECO !== 'undefined' && ECO.pensao && ECO.pensao.salao) || { chegada: [4, 10], folgaBanco: 3, avulsos: 0.5, bebidaAjudante: 3 }; }
+  // (14/10, Tarefa E1) Os números do jeito do cliente (ECO.pensao.jeitos); quem não tem jeito (o morador, o VIP, o Paladar) é o comum.
+  static jeito(c) { const J = (typeof ECO !== 'undefined' && ECO.pensao && ECO.pensao.jeitos) || {}; return (c && c.jeito && J[c.jeito]) || { paciencia: 1, gorjeta: 1 }; }
+  // A paciência desta banqueta: a da noite (o ventilador, o rádio) vezes a do jeito do cliente.
+  pacienciaDe(m) { return (this.paciencia || 1) * (TurnoJanta.jeito(m && m.cliente).paciencia || 1); }
+  // A gorjeta das estrelas com o jeito do cliente: o exigente só dá com estrelasGorjeta ou mais; o generoso dá mais; o apressado
+  // servido rápido (a espera até o prato em até `rapido` da paciência dele) dá a gorjetaRapido.
+  gorjetaDoJeito(m, preco, est) {
+    const J = TurnoJanta.jeito(m.cliente);
+    if (J.estrelasGorjeta && est < J.estrelasGorjeta) return 0;
+    const rapido = J.gorjetaRapido && (m.esperouPrato || 0) <= TurnoJanta.PACIENCIA_PRATO * this.pacienciaDe(m) * (J.rapido || 0);
+    return Math.round(Pensao.gorjeta(preco, est) * (J.gorjeta || 1) * (rapido ? J.gorjetaRapido : 1));
+  }
   // (14/10, a rotatividade) Quanto tempo (s) o cliente anda da porta até a banqueta i. Aqui, 0: senta na hora (o salão antigo e os
   // testes de regra); o palco (palco.js) troca por distância ÷ passo, e o cliente entra andando.
   tempoAndar(i) { return 0; }
@@ -153,7 +166,7 @@ class TurnoJanta {
             }
           } else if (!this._avisouFarinha) { this._avisouFarinha = true; this.eventos.push({ tipo: 'farinha' }); }
         }
-        const limite = (m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO) * (this.paciencia || 1);
+        const limite = (m.estado === 'pedido' ? TurnoJanta.PACIENCIA_PEDIDO : TurnoJanta.PACIENCIA_PRATO) * this.pacienciaDe(m);   // (Tarefa E1) com o jeito
         if (m.espera >= limite) {
           this.relatorio.embora++;
           if (m.estado === 'prato') this.relatorio.perdida += this._precoPerdido(m);   // foi embora esperando o prato: a receita perdida
@@ -538,7 +551,7 @@ class TurnoJanta {
     const m = this.mesas[i];
     if (!m.montado) return false;
     this._esperaSoma = (this._esperaSoma || 0) + m.espera; this._esperaN = (this._esperaN || 0) + 1;
-    m.estado = 'comendo'; m.come = TurnoJanta.COMENDO;
+    m.estado = 'comendo'; m.come = TurnoJanta.COMENDO; m.esperouPrato = m.espera;   // (Tarefa E1) a espera até o prato (o apressado)
     if (m.espera > TurnoJanta.PACIENCIA_PRATO / 2) m.rapido = false;
     m.reacao = m.certo ? Pensao.prato(m.prato).reacao : 'nojo';
     this.eventos.push({ tipo: 'reacao', mesa: i, reacao: m.reacao });
@@ -571,12 +584,14 @@ class TurnoJanta {
     const casa = m.prato === Pensao.CASA, C = ECO.pensao.pratoCasa;
     const est = this._nota(m);
     const preco = casa ? C.preco : Math.round(this.pensao.preco(m.prato, m.raridade) * (this.doTema(m.prato) ? 1.5 : 1) * (m.cafeAntes && m.bebidaMedida ? ECO.cafeBoasVindas : 1));
-    const gorj = casa ? 0 : Pensao.gorjeta(preco, est) + (m.bebidaMedida && TurnoJanta.gorjetaDaMedida(m.bebida) ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + (this.gorjetaExtra > 0 ? Math.ceil(preco * this.gorjetaExtra * est / 5) : 0);
+    const gorj = casa ? 0 : this.gorjetaDoJeito(m, preco, est) + (m.bebidaMedida && TurnoJanta.gorjetaDaMedida(m.bebida) ? Math.round(preco * TurnoJanta.GORJETA_MEDIDA) : 0) + (this.gorjetaExtra > 0 ? Math.ceil(preco * this.gorjetaExtra * est / 5) : 0);
     const r = this.relatorio;
     r.servidos++; r.ganho += preco; r.vendaPratos += preco; r.estrelas += est; if (casa) { r.casa++; r.estrelasCasa += est; }
     // No balcão a gorjeta fica em moedas até o Jocelino recolher (no salão antigo entra direto).
     if (m.modo === 'antigo') r.gorjeta += gorj; else if (gorj > 0) this.moedas.push({ mesa: i, valor: gorj });
     if (est >= 4 && !casa) r.curtidas++;
+    // (Tarefa E1) o exigente que gostou (as estrelas que ele pede) curte mais: a curtida a mais
+    { const J = TurnoJanta.jeito(m.cliente); if (!casa && J.curtidaGostou && est >= (J.estrelasGorjeta || 5)) { r.curtidas += J.curtidaGostou; r.exigentesGostaram = (r.exigentesGostaram || 0) + 1; } }
     if (!casa) { r.pratos[m.prato] = (r.pratos[m.prato] || 0) + 1; if (this.pensao.serviu) this.pensao.serviu(m.prato); }   // (Tarefa D1) o melhor sabor servido
     this.eventos.push({ tipo: 'pagou', mesa: i, valor: preco + gorj, estrelas: est, gorjeta: gorj, modo: m.modo });
     if (m.cliente.favorito && m.prato === m.cliente.favorito && est >= 3 && !r.favoritos.includes(m.cliente.id)) { r.favoritos.push(m.cliente.id); r.curtidas++; this.eventos.push({ tipo: 'favorito', mesa: i, cliente: m.cliente }); }

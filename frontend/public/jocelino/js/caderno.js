@@ -76,7 +76,8 @@ function abrirCaderno(sel) {
         dir.append(el('button', { class: 'botao forte cad-capricho' + (pode ? '' : ' desligado'), onclick: e => {
           e.stopPropagation();
           const r = p.caprichar(id);
-          if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -2); carimbar(caixa); avisar(`${pr.nome} subiu para o nível ${p.nivel(id)}! Mais preço, mais sabor e mais porções.`); desenha(); }
+          if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -2); carimbar(caixa); avisar(`${pr.nome} subiu para o nível ${p.nivel(id)}! Mais preço, mais sabor e mais porções.`); desenha();
+            if (typeof CenaPrato !== 'undefined') CenaPrato.aoCaprichar(id, p.nivel(id)); }   // (Tarefa D2) a cena do Caprichar: o nível 10 e a 1ª vez no jogo
           else avisar(r === 'falta' ? `Para caprichar precisa de: ${custo}.` : r === 'teto' ? `A Rosa ainda não sabe caprichar além do nível ${p.tetoCapricho()}: a pensão precisa de mais uma estrela.` : 'Esse prato já está no capricho máximo.');
         } }, `Caprichar: ${custo}`),
           el('div', { class: 'cad-dica' }, `▸ Nível ${n} → ${n + 1}: preço Cr$ ${ef.preco[0]} → ${ef.preco[1]} · sabor ${ef.sabor[0]} → ${ef.sabor[1]} · porções ${p.porcoesPorPanela(id)} → ${porDepois}`));
@@ -85,7 +86,8 @@ function abrirCaderno(sel) {
       if (descobrir.conhecida) dir.append(el('button', { class: 'botao forte cad-capricho' + (p.pitadas >= descobrir.custo ? '' : ' desligado'), onclick: e => {
         e.stopPropagation();
         const r = p.pesquisar(id);
-        if (r === 'ok') { sons.tocar('carimbo', 1.1, 0.05, -2); sons.tocar('rosa_animada', 1, 0.05, -4); carimbar(caixa); avisar(`Receita nova no caderno: ${pr.nome}! Marque no quadro de giz.`); desenha(); }
+        if (r === 'ok') { sons.tocar('carimbo', 1.1, 0.05, -2); sons.tocar('rosa_animada', 1, 0.05, -4); carimbar(caixa); avisar(`Receita nova no caderno: ${pr.nome}! Marque no quadro de giz.`); desenha();
+          if (typeof CenaPrato !== 'undefined') CenaPrato.aoPesquisar(id); }   // (Tarefa D2) a cena curta da receita nova
         else avisar(r === 'sem_pitadas' ? `Faltam pitadas: precisa de ${descobrir.custo} (tem ${p.pitadas}). As estrelas da janta viram pitadas.` : 'A Rosa ainda não conhece o ingrediente.');
       } }, `Pesquisar com a Rosa (${descobrir.custo} pitadas)`));
       else dir.append(el('div', { class: 'cad-como' }, el('b', {}, 'Como liberar: '), p.comoLiberar(id)));

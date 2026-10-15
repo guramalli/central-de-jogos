@@ -76,7 +76,10 @@ TAREFAS.push(() => {
   const p = G.pensao;
   return p && p.estado === 'aberta' && Concurso.hoje(G.dia) && !(p.concursos || {})[Concurso.estacaoAbs(G.dia)] ? [{ texto: 'Concurso da Rádio hoje: mande 3 pratos (botão Concurso, no salão)', mapa: 'pensao', urgente: true }] : [];
 });
-const podeConcurso = () => !!G.pensao && G.pensao.estado === 'aberta' && Concurso.hoje(G.dia) && !(G.pensao.concursos || {})[Concurso.estacaoAbs(G.dia)];
+// (Tarefa E1) A regra do dia do concurso, a mesma para o botão do salão e para o calendário da pensão (calendario_pensao.js):
+// a pensão aberta, o último dia da estação e a estação ainda sem concurso.
+Concurso.temNoDia = (p, dia) => !!p && p.estado === 'aberta' && Concurso.hoje(dia) && !(p.concursos || {})[Concurso.estacaoAbs(dia)];
+const podeConcurso = () => Concurso.temNoDia(G.pensao, G.dia);
 
 // ---------- a tela do concurso ----------
 function abrirConcurso() {

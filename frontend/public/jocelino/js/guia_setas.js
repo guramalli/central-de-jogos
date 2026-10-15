@@ -462,6 +462,15 @@ const PRIMEIRA_TELA = {
       // desligado. A explicação do repõe (ligado de fábrica) vai na fala do Abrir.
       const repoe = !rp || rp.classList.contains('acesa') ? 'O "Rosa repõe" ligado: quando a panela acaba eu faço outra com a despensa. ' : 'O "Não repõe": quando a panela acabar, o prato sai do quadro. ';
       const ab = q('.qc-abrir'); return ab && { el: ab, lado: 'esquerda', frase: `Rosa: "${repoe}Pronto! Abrir a pensão: eu faço as panelas agora (os ingredientes saem da despensa) e a janta começa."` }; } },
+  // - (14/10, Tarefa E1) O calendário da pensão -> Stardew (o calendário na porta do Pierre: informa, não manda): na primeira vez a
+  //   Rosa explica na faixa da lousa e a seta vai no dia que tem novidade (o jantar especial, a festa, o concurso; senão, hoje). É só
+  //   para ler: a primeira vez acaba quando a lousa fecha (calendario_pensao.js marca G.limpou.tela_calendario).
+  calendario: { painel: '#modal .calendario-pensao', sel: '#modal .calendario-pensao .cal-dia', usou: () => false, faixa: '#modal .cal-faixa',
+    escolhe(dias) {
+      const marcado = dias.find(d => d.querySelector('.cal-vip, .cal-festa, .cal-concurso')), alvo = marcado || dias.find(d => d.classList.contains('hoje')) || dias[0];
+      return alvo && { el: alvo.querySelector('.cal-cabeca') || alvo, frase: marcado
+        ? 'Rosa: "Aqui eu anoto a semana. Esse dia tem jantar especial: veja o prato e encha a despensa antes. O resto é quem costuma vir e o domingo fechado. É só para a gente se preparar!"'
+        : 'Rosa: "Aqui eu anoto a semana: quem costuma jantar cada noite, o prato de cada um e o domingo fechado. Quando chegar carta de jantar especial, ele aparece aqui também."' }; } },
   // (tarefa 7, o robô jogador) o peixe que escapa dá 1 de experiência e apagava a fala do Seu Lourival antes do primeiro peixe pego;
   // o primeiro peixe dá 5 ou mais (Pesca.xp): a fala fica até ele
   pesca: { usou: () => (G.guia && (G.guia.cont.pescou || 0) > 0) || (!!G.hab && G.hab.xp.pesca >= 5) },
@@ -524,6 +533,9 @@ function guiaSetaUI() {
       if (G.minutos < TurnoJanta.ABRE) { const b = bt(/Adiantar/); if (b) return { chave: 'adiantar', el: b, rotulo: 'Clique para pular até as 17h' }; }
       else if (jantaEsperaCardapio()) { const b = bt(/Cardápio/); if (b) return { chave: 'cardapio', el: b, rotulo: 'A janta espera o cardápio: clique aqui' }; } }
     if (ab.includes('domingo')) { const b = bt(/Despensa/); if (b) return { chave: 'despensa', el: b, rotulo: 'Clique para guardar na despensa' }; }
+    // (Tarefa E1) a primeira carta de jantar especial (ou festa) da semana: a seta na Semana do rodapé (o calendário), fora da janta, uma vez
+    if (!jaFezTela('calendario') && !G.turno && $('#modal').hidden && typeof Calendario !== 'undefined' && Calendario.temEspecial(G.pensao, G.dia)) {
+      const b = $('#rodape-palco .bt-calendario'); if (b) return { chave: 'calendario', el: b, rotulo: 'Chegou carta de jantar especial: veja a Semana da pensão' }; }
     return null;
   }
   if (!$('#modal').hidden) return null;

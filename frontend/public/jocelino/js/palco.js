@@ -67,7 +67,7 @@ const noSalaoDaPensao = () => G.mapaId === 'pensao_dentro' || G.mapaId === 'pens
 // madeira, como a pele única das telas do Bancho; fora dele nada muda. body.tema-salao pinta o selo da fama e os avisos; ao abrir
 // uma janela (ui.js, abrirModal) a caixa do restaurante ganha a classe .lousa e os botões dela viram tábuas (estilo.css).
 // As telas pessoais do Jocelino (mochila, Caderneta, mapa, opções) ficam de fora, como o celular do Dave.
-const CAIXAS_DO_SALAO = '.placa, .equipe, .melhorias, .metas, .fechamento, .painel-pensao, .ampliacao, .concurso, .caderno';
+const CAIXAS_DO_SALAO = '.placa, .equipe, .melhorias, .metas, .fechamento, .painel-pensao, .ampliacao, .concurso, .caderno, .calendario-pensao';
 function marcaTemaDoSalao() { const sim = noSalaoDaPensao(); document.body.classList.toggle('tema-salao', sim); return sim; }
 function vesteDoSalao(caixa) {
   if (!marcaTemaDoSalao() || !caixa || !caixa.matches || !caixa.matches(CAIXAS_DO_SALAO)) return;
@@ -138,19 +138,33 @@ function entrarPalco() {
 // ('chegando'), ele anda da porta da esquerda (atrás da planta da frente) até a banqueta, na linha dos assentos (o balcão cobre da
 // cintura para baixo); quem saiu da banqueta (pagou, cansou, a louça) anda de volta até a porta e some. A folha é a de andar dele.
 // A frase curta de cada freguês de fora (clientes_avulsos.js), dita no primeiro clique da noite: de onde vem e o que sente ao
-// chegar, sem sotaque nem estereótipo.
+// chegar, sem sotaque nem estereótipo. (14/10, Tarefa E1) A frase combina com o jeito dele (clientes_avulsos.js): o apressado tem
+// pressa, o paciente espera, o exigente avisa que repara e o generoso chega comemorando.
 const FALAS_AVULSOS = {
-  cliente_hiroshi: 'Vim lá da Liberdade só para provar o tempero da Rosa.',
-  cliente_jorge: 'Desci de Santos com a turma. Que cheiro bom!',
-  cliente_dandara: 'Me falaram desta pensão lá em São Vicente.',
-  cliente_severiano: 'Comida feita com capricho me lembra a minha terra.',
-  cliente_greta: 'Estou conhecendo o litoral. Que lugar simpático!',
-  cliente_dona_pina: 'Lá na Mooca a gente também cozinha para a família inteira.',
-  cliente_caicara: 'Vim da Ilha Comprida. Cheguei com uma fome!',
-  cliente_ana: 'Uma janta caprichada depois da aula, que maravilha.',
-  cliente_benedito: 'Faz tempo que eu não janto fora. Que cheiro bom!',
-  cliente_luana: 'Depois do mar, um prato quente cai bem!',
+  cliente_hiroshi: 'Vim lá da Liberdade só para provar o tempero da Rosa. Espero que esteja à altura.',
+  cliente_jorge: 'Desci de Santos com a turma e o ônibus volta já. Capricha na pressa!',
+  cliente_dandara: 'Me falaram desta pensão lá em São Vicente. Hoje é dia de comemorar!',
+  cliente_severiano: 'Comida feita com capricho me lembra a minha terra. Pode fazer sem pressa.',
+  cliente_greta: 'Estou conhecendo o litoral, tenho a noite toda. Que lugar simpático!',
+  cliente_dona_pina: 'Lá na Mooca eu cozinho para a família inteira. Vamos ver se o tempero daqui é bom mesmo.',
+  cliente_caicara: 'Vim da Ilha Comprida com uma fome danada. Sai rapidinho?',
+  cliente_ana: 'Tenho prova amanhã cedo: janto rapidinho e volto para os livros.',
+  cliente_benedito: 'Faz tempo que eu não janto fora. Sem pressa, meu filho, eu espero.',
+  cliente_luana: 'Depois do mar, um prato quente cai bem! Hoje eu deixo um agrado.',
 };
+// (Tarefa E1) O jeito do freguês de fora para o texto: { nome, dica } (o nome concorda com ele ou ela), ou null.
+function jeitoDoAvulso(c) {
+  const J = c && c.jeito && typeof JEITOS_AVULSO !== 'undefined' ? JEITOS_AVULSO[c.jeito] : null; if (!J) return null;
+  const a = typeof CLIENTES_AVULSOS !== 'undefined' ? CLIENTES_AVULSOS.find(x => x.id === c.id) : null;
+  const nome = a && a.sexo === 'm' ? J.nome.replace(/o$/, 'a') : J.nome;
+  return { nome, dica: J.dica.replace('{estrelas}', TurnoJanta.jeito(c).estrelasGorjeta || 5) };
+}
+// O ícone discreto do jeito, ao lado do balão de quem espera (a arte do JEITOS_AVULSO; o paciente não tem).
+function desenhaJeito(ctx, m, x, y) {
+  const J = m.cliente.jeito && typeof JEITOS_AVULSO !== 'undefined' ? JEITOS_AVULSO[m.cliente.jeito] : null;
+  if (!J || !J.icone) return;
+  desenhaPe(ctx, J.icone, x - 62, y + 14 + Math.sin((G.agora || 0) * 3 + x) * 1.5, 0.92, J.escala);
+}
 const CLIENTE_PORTA_X = 130, CLIENTE_VEL = 190;   // onde a porta do salão fica (px de mundo) e o passo do freguês (px/s)
 const CLIENTES_SAINDO = [];
 TurnoJanta.prototype.tempoAndar = function (i) {
@@ -447,12 +461,13 @@ function desenhaBaloesPalco(ctx, b) {
       return;
     }
     if (m.estado === 'pedido') { if (DESGOSTO_PALCO[i] && DESGOSTO_PALCO[i].vis) return;   // (14/10) incomodado: o balão do desgosto no lugar do "..."
-      desenhaFx(ctx, 'balao_pensamento', x, y); texto(ctx, '...', x, y + 6, 30, '#555', '900'); return; }
+      desenhaFx(ctx, 'balao_pensamento', x, y); texto(ctx, '...', x, y + 6, 30, '#555', '900'); desenhaJeito(ctx, m, x, y); return; }
     const pronto = t.temPronto(m.prato);
+    if (!(DESGOSTO_PALCO[i] && DESGOSTO_PALCO[i].vis)) desenhaJeito(ctx, m, x, y);   // (Tarefa E1) o jeito, do lado esquerdo do balão
     desenhaFx(ctx, pronto ? 'balao' : 'balao_pensamento', x, y);
     ctx.save(); ctx.globalAlpha = pronto ? 1 : 0.55; desenhaPrato(ctx, m.prato, x, y + 18, 1, 0.8); ctx.restore();
     if (bebe) { desenhaFx(ctx, 'balao', x + 44, y + 14, { escala: 0.62 }); desenhaPe(ctx, 'salao/bebida_' + m.bebida, x + 44, y + 28, 1, 0.5); }
-    const f = clamp(1 - m.espera / (TurnoJanta.PACIENCIA_PRATO * (t.paciencia || 1)), 0, 1);
+    const f = clamp(1 - m.espera / (TurnoJanta.PACIENCIA_PRATO * (t.pacienciaDe ? t.pacienciaDe(m) : t.paciencia || 1)), 0, 1);   // (Tarefa E1) com o jeito
     if (spr('fx/barra_moldura')) {
       desenhaFx(ctx, 'barra_moldura', x, y + 42);   // a moldura tem o miolo escuro: a cor vai por cima
       ctx.fillStyle = f > 0.5 ? '#5ec43a' : f > 0.25 ? '#e8c22c' : '#e8452c'; ctx.fillRect(x - 26, y + 40, 52 * f, 4);
@@ -631,7 +646,9 @@ function palcoAgir(a) {
     if (t.servirBebida(a.i)) { const nb = t.mesas[a.i].bebidaNota; servir(); sons.tocar('servir', 1.2, 0.08, -4); setTimeout(() => sons.tocar('gole', 1, 0.1, -4), 400); carimboBebida(a.i, nb); if (nb !== 'ok') sons.tocar('carimbo', nb === 'ruim' ? 0.85 : 1, 0.05, -6); return; }
     if (m.estado === 'prato' && t.servir(a.i)) { servir(); sons.tocar('item_pousa', 1, 0.05, -6); sons.tocar('servir', 1, 0.08, -6); return; }   // o "pop" (Drop_Pick Up) e a louça   // (a reação do cliente vem do evento 'servido': somDoEvento)
     // (14/10) o freguês de fora diz uma frase curta na primeira vez que o Jocelino fala com ele na noite
-    const fala = m.cliente.avulso && !m.falou && FALAS_AVULSOS[m.cliente.id] ? `${m.cliente.nome}: "${FALAS_AVULSOS[m.cliente.id]}" ` : '';
+    // (Tarefa E1) com o jeito dele: na primeira vez, o que o jeito muda; depois, só o jeito ao lado do nome
+    const jt = jeitoDoAvulso(m.cliente);
+    const fala = m.cliente.avulso && !m.falou && FALAS_AVULSOS[m.cliente.id] ? `${m.cliente.nome}: "${FALAS_AVULSOS[m.cliente.id]}" ${jt ? `(${jt.nome}: ${jt.dica}.) ` : ''}` : jt ? `(${jt.nome}) ` : '';
     if (fala) m.falou = true;
     if (m.estado === 'chegando') avisar(`${fala}${m.cliente.nome} está chegando.`);
     else if (m.estado === 'pedido') avisar(`${fala}${m.cliente.nome} está lendo o cardápio.`);
@@ -677,6 +694,8 @@ function roboDoSalaoPasso(t, vai) {
   const k = cabe ? t.passe.findIndex(x => x && x.reservadoPara == null && querem.includes(x.prato)) : -1;
   if (k >= 0) { const v = vagaDoPasse(k); vai(v.x, v.y - 10); return true; }
   // entregar: quem espera há mais tempo por alguma coisa da bandeja
+  // (Tarefa E1: o robô por "menos paciência sobrando", com o jeito, foi testado na s20 e servia uma pessoa a menos no degrau 3, com
+  // menos estrelas; com o "quem espera há mais tempo" a calibração fica a mesma de antes dos jeitos)
   let quem = -1;
   for (let i = 0; i < n; i++) if (t.bandeja.some(x => quer(t.mesas[i], x)) && (quem < 0 || t.mesas[i].espera > t.mesas[quem].espera)) quem = i;
   if (quem >= 0) { assento(quem); return true; }
@@ -960,7 +979,7 @@ function palcoAdiantar() {
   return true;
 }
 
-// ---------- o rodapé (Cardápio, Despensa, Farinha, Adiantar, Sair) ----------
+// ---------- o rodapé (Cardápio, Despensa, Semana, Farinha, Adiantar, Sair) ----------
 function rodapePalco() {
   let r = $('#rodape-palco');
   if (!r) {
@@ -973,6 +992,9 @@ function rodapePalco() {
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirEquipe(); } }, 'Equipe'),
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirMelhorias(); } }, 'Melhorias'),
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); abrirDespensa(); } }, 'Despensa'),
+      // (14/10, Tarefa E1) o calendário: a semana da pensão na lousa, quem vem jantar, as festas, o domingo fechado (calendario_pensao.js;
+      // "Semana" e não "Calendário": com o Concurso aceso, o rodapé não cabia em 1280 px, a s31)
+      el('button', { class: 'tabua bt-calendario', onclick: e => { e.stopPropagation(); abrirCalendarioPensao(); } }, 'Semana'),
       el('button', { class: 'tabua acesa bt-concurso', hidden: true, onclick: e => { e.stopPropagation(); abrirConcurso(); } }, 'Concurso 🎙'),
       el('div', { class: 'farinha' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),

@@ -54,7 +54,7 @@ function quebrouNaMina(o) {
   const restantes = b.objs.filter(x => x.tipo === 'detrito').length;
   if (n < MINA.FUNDO && !b.objs.some(x => x.id === 'desce_mina') && Math.random() < Mina.chanceEscada(restantes)) {
     const d = b.interativo('desce_mina', 'objetos/escada_mina', t.x, t.y, 1, 1, [10, 6], false); d.acao = () => { descerPara(n + 1); return true; };
-    sons.tocar('fanfarra', 1.4, 0, -10); avisar('Achou a escada para a próxima bancada!');
+    sons.tocar('escada_achada', 1, 0.03, -6); avisar('Achou a escada para a próxima bancada!');
   }
   if (typeof pedraSolta === 'function') pedraSolta();
 }
