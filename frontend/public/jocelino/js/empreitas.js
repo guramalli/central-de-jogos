@@ -248,7 +248,9 @@ const Empreitas = {
       if (ferr !== hoje) return 'ferramenta';
       a.feitoHoje++;
       if (a.feitoHoje >= Empreitas.golpesDoDia(id)) a.trabalhou = true;
-      if (typeof Habilidades !== 'undefined') Habilidades.ganhar(hoje === 'colher' || hoje === 'pa' ? 'alvenaria' : 'folego', a.trabalhou ? 5 : 1);
+      // (15/10, T2) O dia de regador (a cura) e o de colher numa reforma ou pintura são acabamento, como o molhar da obra.
+      const acab = hoje === 'regador' || (hoje === 'colher' && (E.reforma || E.pintura));
+      if (typeof Habilidades !== 'undefined') Habilidades.ganhar(acab ? 'acabamento' : hoje === 'colher' || hoje === 'pa' ? 'alvenaria' : 'folego', a.trabalhou ? 5 : 1);
       return 'ok';
     }
     if (ferr !== E.ferramenta) return 'ferramenta';

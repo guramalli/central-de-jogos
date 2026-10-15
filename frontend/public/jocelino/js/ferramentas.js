@@ -80,7 +80,7 @@ function usarItemDaMao(peloTeclado) {
   if (!Itens.ehFerramenta(id)) return;
   if (j.carga && j.carga.id) { avisar('Primeiro entregue o que está carregando.'); return; }
   const alvo = alvoDoGolpe(peloTeclado);
-  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1) * (typeof fatorEnergiaLote === 'function' ? fatorEnergiaLote(id, alvo) : 1);
+  const custo = (typeof Habilidades !== 'undefined' ? Habilidades.custo(id, typeof golpeDeAcabamento === 'function' && golpeDeAcabamento(id, alvo)) : CUSTO_GOLPE) * (1 + 0.5 * nivelFerramenta(id)) * (typeof fatorArMina === 'function' ? fatorArMina() : 1) * (typeof fatorEnergiaLote === 'function' ? fatorEnergiaLote(id, alvo) : 1);
   if (G.energia < custo) { avisar('O Jocelino está esgotado. Coma alguma coisa ou vá dormir.'); return; }
   j.dir = alvo.dir;
   const pf = PERFIL_GOLPE[perfilDe(id)];

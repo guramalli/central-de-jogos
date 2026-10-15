@@ -32,6 +32,8 @@ function dormir(desmaiou = false) {
     _acordaEm = posto;
   }
   for (const f of NOITE) { try { f(linhas); } catch (e) { console.error(e); } }
+  // (15/10) Os níveis ganhos no dia passam a valer agora (depois de todo o NOITE: o XP da caixa de venda também conta).
+  if (typeof Habilidades !== 'undefined') { try { Habilidades.dormir(linhas); } catch (e) { console.error(e); } }
   if (G.ganhoHoje) linhas.push('Ganhou hoje: Cr$ ' + G.ganhoHoje);
   if (G.gastoHoje) linhas.push('Gastou hoje: Cr$ ' + G.gastoHoje);
   for (const f of G.feitosHoje) linhas.push(f);
@@ -60,7 +62,7 @@ function dormir(desmaiou = false) {
   salvar();
   _dormindo = false;
   if (typeof hudSujo === 'function') hudSujo();   // (tarefa 7) o cartão refeito atrás do resumo (o "Agora" ainda falava do serviço entregue na noite)
-  mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof escolherVantagens === 'function' ? escolherVantagens : null);
+  mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof telasDeNivel === 'function' ? () => telasDeNivel() : null);   // (15/10) as telas "Subiu de nível!", depois as vantagens
 }
 
 // Ficou acordado até as 2h: desmaia.

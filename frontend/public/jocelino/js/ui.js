@@ -50,7 +50,9 @@ function abrirPlaca(texto, opc = {}) {
   let i = 0;
   const corpo = el('div', { class: 'texto' });
   const caixa = el('div', { class: 'painel placa' },
-    opc.retrato ? el('img', { class: 'retrato', src: opc.retrato }) : null,
+    // (15/10, "1. Madeira de obra") o retrato numa moldura de madeira com a plaquinha de latão do nome embaixo (a arte em ui/madeira; o nome vem do CSS,
+    // attr(data-nome), para o texto da placa não repetir o nome)
+    opc.retrato ? el('div', { class: 'retrato-moldura' }, el('img', { class: 'retrato', src: opc.retrato }), opc.quem ? el('div', { class: 'plaquinha-nome', 'data-nome': opc.quem }) : null) : null,
     opc.quem ? el('div', { class: 'quem' }, opc.quem) : null,
     corpo, el('div', { class: 'dica-fechar' }, paginas.length > 1 ? 'clique para continuar ▸' : 'clique para fechar'));
   const mostra = () => { corpo.textContent = paginas[i]; caixa.querySelector('.dica-fechar').textContent = i < paginas.length - 1 ? 'clique para continuar ▸' : 'clique para fechar'; };
@@ -88,6 +90,8 @@ function avisar(texto) {
 function teclaNoModal(e) {
   if ($('#modal').hidden) return false;
   if (e.repeat) return true;   // segurar a tecla não repete nada dentro de uma janela
+  // (15/10, níveis) a tela "Subiu de nível!" decide as teclas dela (habilidades.js: meio segundo sem nada; Esc deixa para a próxima noite)
+  { const nv = $('#modal .nivel-novo'); if (nv && nv._tecla) { nv._tecla(e); return true; } }
   // (onda final; o Dave: confirmar o cardápio abre o restaurante) no quadro de giz da abertura, Enter é a ação acesa, "Abrir a
   // pensão"; o Esc fecha (a janta fica esperando)
   if (['Enter', 'NumpadEnter'].includes(e.code)) { const ab = $('#modal .quadro-cardapio.abertura .qc-abrir'); if (ab) { ab.click(); return true; } }

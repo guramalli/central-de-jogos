@@ -255,14 +255,41 @@ function bate(caixa, m = G.mapa) {
 }
 
 // ---------- chão (pintado uma vez) ----------
+// A grama (15/10, o dono: os tufos altos da grama antiga se confundiam com o mato das tarefas): 3 variações baixas e uniformes
+// (ferramentas_arte/produzir_grama.sh + web_grama.py), todas com a mesma borda de fora, então qualquer uma emenda com qualquer
+// outra. O chão é pintado em blocos do tamanho da textura (384 px = 8x8 ladrilhos), cada bloco com uma variação.
+const GRAMAS = ['texturas/grama', 'texturas/grama_2', 'texturas/grama_3'], GRAMA_BLOCO = 384;
+// Qual variação vai no bloco (bx, by): fixa (o mesmo bloco sempre com a mesma), sem dois vizinhos iguais (nem do lado nem em cima)
+// e sem desenho regular: sorteio por hash do bloco entre as variações que não são a do vizinho da esquerda nem a do de cima
+// (guardado em _GRAMA_BLOCOS; os blocos nunca mudam).
+function _hashGrama(n) { n = Math.imul(n ^ (n >>> 16), 0x45d9f3b); n = Math.imul(n ^ (n >>> 16), 0x45d9f3b); return (n ^ (n >>> 16)) >>> 0; }
+const _GRAMA_BLOCOS = new Map();
+function gramaDoBloco(bx, by) {
+  if (bx < 0 || by < 0) return -1;
+  const ch = bx + ',' + by;
+  let k = _GRAMA_BLOCOS.get(ch);
+  if (k === undefined) {
+    const esq = gramaDoBloco(bx - 1, by), cima = gramaDoBloco(bx, by - 1), livres = [0, 1, 2].filter(v => v !== esq && v !== cima);
+    k = livres[_hashGrama(bx * 7919 + by * 104729 + 1013) % livres.length];
+    _GRAMA_BLOCOS.set(ch, k);
+  }
+  return k;
+}
 function montaChao(m) {
+  const variada = m.fundo === 'texturas/grama';
   const texs = { grama: spr(m.fundo), [CH.CAMINHO]: spr('texturas/caminho'), [CH.CALCADA]: spr('texturas/calcada'), [CH.TERRA]: spr('texturas/terra'), [CH.MAR]: spr('texturas/mar'), [CH.RIO]: spr('texturas/rio') };
-  if (Object.values(texs).some(t => !t)) return null;
+  const gramas = variada ? GRAMAS.map(spr) : [];
+  if (Object.values(texs).some(t => !t) || gramas.some(t => !t)) return null;
   const c = document.createElement('canvas');
   c.width = m.larg * TILE; c.height = m.alt * TILE;
   const g = c.getContext('2d');
-  g.fillStyle = g.createPattern(texs.grama, 'repeat');
-  g.fillRect(0, 0, c.width, c.height);
+  if (variada) {
+    for (let by = 0; by * GRAMA_BLOCO < c.height; by++) for (let bx = 0; bx * GRAMA_BLOCO < c.width; bx++)
+      g.drawImage(gramas[gramaDoBloco(bx, by)], bx * GRAMA_BLOCO, by * GRAMA_BLOCO, GRAMA_BLOCO, GRAMA_BLOCO);
+  } else {
+    g.fillStyle = g.createPattern(texs.grama, 'repeat');
+    g.fillRect(0, 0, c.width, c.height);
+  }
   for (const tipo of [CH.TERRA, CH.CAMINHO, CH.CALCADA, CH.RIO, CH.MAR]) {
     const pat = g.createPattern(texs[tipo], 'repeat');
     g.save();
