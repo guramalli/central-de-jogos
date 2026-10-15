@@ -78,26 +78,28 @@ export function criaGuardaSave({ agora = () => Date.now(), maxContas = 50_000 } 
 }
 
 // A rota PUT /save. `sinal` = registrarSinal (sessoes.js); nos testes, nada.
-export function criaPutSave({ prisma, guarda = criaGuardaSave(), sinal = () => {} }) {
+// 14/10/2026: também serve o save da Família Santos (routes/jocelino.js) — `tabela` (o modelo do Prisma), `validar` e
+// `campo` (o número que vai junto: "nivel" no Lenda, "dia" no Família Santos). O padrão é o do Lenda, que segue igual.
+export function criaPutSave({ prisma, guarda = criaGuardaSave(), sinal = () => {}, tabela = "lendaSave", validar = validarSave, campo = "nivel" }) {
   return async (req, res) => {
-    const v = validarSave(req.body);
+    const v = validar(req.body);
     if (!v.ok) return res.status(400).json({ error: v.erro });
     const eu = req.user.id, ordem = ordemDoCorpo(req.body);
     const r = await guarda.emFila(eu, async () => {
-      const antes = await prisma.lendaSave.findUnique({ where: { userId: eu }, select: { atualizadoEm: true } });
+      const antes = await prisma[tabela].findUnique({ where: { userId: eu }, select: { atualizadoEm: true } });
       const d = guarda.decide(eu, ordem, antes ? new Date(antes.atualizadoEm).getTime() : null);
       if (!d.ok) return d;
-      const s = await prisma.lendaSave.upsert({
+      const s = await prisma[tabela].upsert({
         where: { userId: eu },
-        create: { userId: eu, dados: v.dados, nivel: v.nivel, tamanho: v.dados.length },
-        update: { dados: v.dados, nivel: v.nivel, tamanho: v.dados.length },
+        create: { userId: eu, dados: v.dados, [campo]: v[campo], tamanho: v.dados.length },
+        update: { dados: v.dados, [campo]: v[campo], tamanho: v.dados.length },
         select: { atualizadoEm: true },
       });
       guarda.registra(eu, ordem, d);
       return { ok: true, atualizadoEm: s.atualizadoEm };
     });
     if (!r.ok) return res.status(r.status).json(r.velho ? { error: r.error, velho: true } : { error: r.error });
-    sinal(prisma, eu, v.nivel, req.headers["user-agent"]);
+    sinal(prisma, eu, v[campo], req.headers["user-agent"]);
     res.json({ ok: true, atualizadoEm: r.atualizadoEm });
   };
 }

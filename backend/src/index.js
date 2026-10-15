@@ -38,6 +38,7 @@ import avatarRoutes from "./routes/avatar.js";
 import lendaRoutes from "./routes/lenda.js";
 import lendaGuildaRoutes from "./routes/lendaGuilda.js";
 import lendaMercadoRoutes from "./routes/lendaMercado.js";
+import jocelinoRoutes from "./routes/jocelino.js";
 import { setupSocket } from "./socket/index.js";
 import { ipEstaBanido, mensagemDoBanido } from "./ipBan.js";
 import { verifyToken } from "./utils/jwt.js";
@@ -164,6 +165,7 @@ app.use("/api/avatar", avatarRoutes); // avatar montado: catálogo, minha montag
 app.use("/api/lenda/mercado", lendaMercadoRoutes); // Lenda do Campinho: lojas dos jogadores (só tostões, com limites)
 app.use("/api/lenda/guilda", lendaGuildaRoutes); // Lenda do Campinho: guildas (nome de listas prontas, meta semanal, ranking)
 app.use("/api/lenda", lendaRoutes); // Lenda do Campinho (RPG): save na nuvem e casas dos jogadores
+app.use("/api/jocelino", jocelinoRoutes); // Família Santos (jogo em /jocelino/): save na conta
 
 // Rede de segurança: qualquer erro não tratado numa rota (que ninguém
 // prendeu com try/catch) cai aqui, em vez de vazar detalhe técnico interno
