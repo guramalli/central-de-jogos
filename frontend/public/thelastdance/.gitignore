@@ -28,6 +28,7 @@ __pycache__/
 # Kit de pedidos para o ChatGPT (tools/kit_chatgpt.py): guias, referências e imagens recebidas — material de trabalho.
 /kit_chatgpt/
 
-# Personagens com rosto de pessoa real (Gustavinho, Vibola): ficam só na máquina até liberarem a publicação.
+# Personagens com rosto de pessoa real (Gustavinho, Vibola, Vini): ficam só na máquina até liberarem a publicação.
 /assets/characters/npcs/gustavinho/
 /assets/characters/npcs/vibola/
+/assets/characters/npcs/vini/
