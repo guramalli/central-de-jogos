@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Auditoria técnica dos anexos do kit Noite Sem Fim (FASE 0).
 
-Uso (a partir de noite-sem-fim/):
+Uso (a partir de frontend/public/thelastdance/):
     python3 -I tools/audit_assets.py
 
 Lê reference/kit_v1.0/ e, se existir, reference/privado/ (fora do git).

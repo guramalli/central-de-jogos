@@ -8,6 +8,7 @@ Status: **OK** = decidida pelo usuário · **P** = provisória (adotada para nã
 |---|---|---|
 | D-01 | **Sem engine.** O jogo é feito por IA: código escrito pela IA programadora | 16/10/2026 |
 | D-10 | **Arquivos gráficos gerados no Higgsfield** (fluxo em `docs/pipeline_arte.md`) | 16/10/2026 |
+| D-07 | **Hospedado no educacaogamer como `thelastdance`**: pasta `frontend/public/thelastdance/` (antes `noite-sem-fim/` na raiz, fora do site). Vai ao ar em `/thelastdance/` quando a branch entrar no `main`, com `noindex` e fora do service worker. Arquivos privados continuam fora do git (D-11) | 15/10/2026 |
 
 Histórico: a primeira versão da FASE 0 montou uma base em Godot 4.7.2. Ela foi substituída por esta após a decisão D-01
 e continua salva no histórico do git (commit `5e154ff`), como backup.
@@ -21,7 +22,6 @@ e continua salva no histórico do git (commit `5e154ff`), como backup.
 | D-04 | Suavização de imagem **ligada** (`imageSmoothingQuality = "high"`) | P | Arte pintada, não pixel art. |
 | D-05 | "Importação" = regras de entrega + `tools/verificar_asset.py` (PNG, alpha real, margem, altura mínima, sem halo) | P | Sem engine não existe importador; o verificador faz o papel de portão de entrada. Formato final de jogo (WebP/PNG) fica para a otimização. |
 | D-06 | Modo de teste `?test=1`: 30 fps, sem efeitos, sem som. Sem o parâmetro, nada muda | P | Mantém os testes de navegador leves. |
-| D-07 | Projeto na pasta `noite-sem-fim/` na raiz deste repositório, **fora de `frontend/public`**, portanto **não publicado no site** | P | Nada vai ao ar sem aprovação. Publicar depois = mover/copiar para `frontend/public/noite-sem-fim/`. |
 | D-11 | Foto do rosto e vídeo/quadros do cômodo **fora do git** (`reference/privado/`, ignorado) | P | Dados pessoais e de terceiros num repositório de site público. SHA-256 no inventário. |
 
 ## Pendentes — decididas pelo usuário

@@ -3,12 +3,14 @@
 Aventura narrativa 2.5D isométrica. Sem engine: HTML5 Canvas 2D e JavaScript puro, sem compilação.
 Arte gerada no Higgsfield. **Estado: FASE 0** (auditoria dos anexos + projeto base). Ainda não existe jogo.
 
+Hospedado no educacaogamer em `/thelastdance/` (pasta `frontend/public/thelastdance/`; fora do índice de busca). Só vai ao ar quando esta branch entrar no `main`.
+
 ## Abrir e testar
 
 Requisitos: um navegador; para os testes, Node 22+ com Playwright (Chromium) e Python 3 com Pillow, numpy e scipy (+ ffprobe na auditoria).
 
 ```bash
-cd noite-sem-fim
+cd frontend/public/thelastdance
 python3 -m http.server 8000         # depois abra http://localhost:8000/  (ou ?test=1 para o modo de teste)
 tests/run_tests.sh                  # todos os testes da FASE 0, headless (sai != 0 se algo falhar)
 HEADED=1 tests/run_tests.sh         # o mesmo, com a janela do navegador visível

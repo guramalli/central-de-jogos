@@ -44,6 +44,8 @@
 // com arquivos de nome fixo (index.pck, index.js) que mudam a cada versão;
 // no "cache primeiro" daqui, quem abriu uma vez ficava preso na versão velha
 // (nem Ctrl+Shift+R resolvia). A subida de versão apaga a cópia guardada.
+// (eg-v16, sem subir versão) The Last Dance (/thelastdance/) também fica
+// FORA: protótipo em JS puro com nomes fixos; nunca foi guardado no cache.
 const VERSAO = "eg-v16";
 const CACHE_ESTATICO = `${VERSAO}-estatico`;
 
@@ -117,6 +119,9 @@ self.addEventListener("fetch", (evento) => {
 
   // ===== Jocelino: fica de fora (ver eg-v16) =====
   if (url.pathname === "/jocelino" || url.pathname.startsWith("/jocelino/")) return;
+
+  // ===== The Last Dance: fica de fora (ver eg-v16) =====
+  if (url.pathname === "/thelastdance" || url.pathname.startsWith("/thelastdance/")) return;
 
   // ===== Servidor de desenvolvimento (Vite): nunca cachear =====
   // O index.html registra este SW também no `npm run dev`. Lá os módulos
