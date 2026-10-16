@@ -1,0 +1,681 @@
+[
+  {
+    "arquivo": "reference/kit_v1.0/01_personagem/personagem_conceito.png",
+    "papel": "arte conceitual do protagonista",
+    "bytes": 2765097,
+    "sha256": "5c5c4ecd3aa30b7a7d0cef29a9088cd7d9d16d87bf4755300bc2dfaba6fc16e4",
+    "formato": "PNG",
+    "largura": 1024,
+    "altura": 1536,
+    "proporcao": 0.6667,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 0.0,
+    "cor_cantos": [
+      [
+        234,
+        223,
+        202
+      ],
+      [
+        234,
+        220,
+        194
+      ],
+      [
+        240,
+        229,
+        209
+      ],
+      [
+        234,
+        221,
+        201
+      ]
+    ]
+  },
+  {
+    "arquivo": "reference/kit_v1.0/01_personagem/spritesheet_referencia_NAO_PRONTO.png",
+    "papel": "prancha ilustrativa de poses (NÃO é spritesheet)",
+    "bytes": 2846680,
+    "sha256": "cb984bc380999d7d5533d95f832cba9667b0c0a1572a138eb8fa00975db7613a",
+    "formato": "PNG",
+    "largura": 1983,
+    "altura": 793,
+    "proporcao": 2.5006,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 0.0,
+    "cor_cantos": [
+      [
+        240,
+        225,
+        204
+      ],
+      [
+        237,
+        222,
+        198
+      ],
+      [
+        236,
+        220,
+        199
+      ],
+      [
+        239,
+        224,
+        201
+      ]
+    ],
+    "segmentacao": {
+      "fundo_rgb_mediano": [
+        240,
+        225,
+        204
+      ],
+      "figuras_total": 39,
+      "grupos": {
+        "andando_baixo": {
+          "quadros": 8,
+          "altura_min_max_px": [
+            198,
+            219
+          ],
+          "largura_min_max_px": [
+            99,
+            103
+          ],
+          "variacao_linha_dos_pes_px": 9,
+          "caixas": [
+            {
+              "x": 372,
+              "y": 52,
+              "l": 103,
+              "a": 198,
+              "base_y": 250,
+              "area": 14006
+            },
+            {
+              "x": 498,
+              "y": 45,
+              "l": 99,
+              "a": 213,
+              "base_y": 258,
+              "area": 14456
+            },
+            {
+              "x": 621,
+              "y": 43,
+              "l": 100,
+              "a": 215,
+              "base_y": 258,
+              "area": 14897
+            },
+            {
+              "x": 741,
+              "y": 43,
+              "l": 100,
+              "a": 213,
+              "base_y": 256,
+              "area": 14148
+            },
+            {
+              "x": 861,
+              "y": 40,
+              "l": 100,
+              "a": 219,
+              "base_y": 259,
+              "area": 15029
+            },
+            {
+              "x": 986,
+              "y": 46,
+              "l": 99,
+              "a": 213,
+              "base_y": 259,
+              "area": 14344
+            },
+            {
+              "x": 1111,
+              "y": 45,
+              "l": 99,
+              "a": 214,
+              "base_y": 259,
+              "area": 14277
+            },
+            {
+              "x": 1235,
+              "y": 43,
+              "l": 101,
+              "a": 214,
+              "base_y": 257,
+              "area": 14876
+            }
+          ]
+        },
+        "parado_frente_lado_costas_cima": {
+          "quadros": 4,
+          "altura_min_max_px": [
+            183,
+            223
+          ],
+          "largura_min_max_px": [
+            99,
+            108
+          ],
+          "variacao_linha_dos_pes_px": 37,
+          "caixas": [
+            {
+              "x": 1399,
+              "y": 46,
+              "l": 99,
+              "a": 215,
+              "base_y": 261,
+              "area": 14424
+            },
+            {
+              "x": 1535,
+              "y": 45,
+              "l": 108,
+              "a": 201,
+              "base_y": 246,
+              "area": 13447
+            },
+            {
+              "x": 1688,
+              "y": 38,
+              "l": 108,
+              "a": 223,
+              "base_y": 261,
+              "area": 16136
+            },
+            {
+              "x": 1831,
+              "y": 41,
+              "l": 108,
+              "a": 183,
+              "base_y": 224,
+              "area": 14317
+            }
+          ]
+        },
+        "andando_lado": {
+          "quadros": 8,
+          "altura_min_max_px": [
+            209,
+            219
+          ],
+          "largura_min_max_px": [
+            102,
+            109
+          ],
+          "variacao_linha_dos_pes_px": 2,
+          "caixas": [
+            {
+              "x": 364,
+              "y": 311,
+              "l": 107,
+              "a": 209,
+              "base_y": 520,
+              "area": 14087
+            },
+            {
+              "x": 487,
+              "y": 307,
+              "l": 108,
+              "a": 214,
+              "base_y": 521,
+              "area": 14228
+            },
+            {
+              "x": 615,
+              "y": 307,
+              "l": 109,
+              "a": 213,
+              "base_y": 520,
+              "area": 14557
+            },
+            {
+              "x": 740,
+              "y": 304,
+              "l": 106,
+              "a": 217,
+              "base_y": 521,
+              "area": 14733
+            },
+            {
+              "x": 867,
+              "y": 302,
+              "l": 109,
+              "a": 219,
+              "base_y": 521,
+              "area": 14295
+            },
+            {
+              "x": 989,
+              "y": 305,
+              "l": 104,
+              "a": 215,
+              "base_y": 520,
+              "area": 14148
+            },
+            {
+              "x": 1111,
+              "y": 301,
+              "l": 104,
+              "a": 218,
+              "base_y": 519,
+              "area": 14006
+            },
+            {
+              "x": 1234,
+              "y": 306,
+              "l": 102,
+              "a": 213,
+              "base_y": 519,
+              "area": 14161
+            }
+          ]
+        },
+        "acoes": {
+          "quadros": 5,
+          "altura_min_max_px": [
+            201,
+            206
+          ],
+          "largura_min_max_px": [
+            100,
+            121
+          ],
+          "variacao_linha_dos_pes_px": 1,
+          "caixas": [
+            {
+              "x": 1372,
+              "y": 315,
+              "l": 121,
+              "a": 202,
+              "base_y": 517,
+              "area": 15202
+            },
+            {
+              "x": 1500,
+              "y": 316,
+              "l": 113,
+              "a": 201,
+              "base_y": 517,
+              "area": 13599
+            },
+            {
+              "x": 1617,
+              "y": 315,
+              "l": 100,
+              "a": 203,
+              "base_y": 518,
+              "area": 13465
+            },
+            {
+              "x": 1727,
+              "y": 313,
+              "l": 121,
+              "a": 204,
+              "base_y": 517,
+              "area": 15841
+            },
+            {
+              "x": 1855,
+              "y": 311,
+              "l": 110,
+              "a": 206,
+              "base_y": 517,
+              "area": 14506
+            }
+          ]
+        },
+        "andando_costas": {
+          "quadros": 7,
+          "altura_min_max_px": [
+            188,
+            197
+          ],
+          "largura_min_max_px": [
+            85,
+            89
+          ],
+          "variacao_linha_dos_pes_px": 3,
+          "caixas": [
+            {
+              "x": 360,
+              "y": 575,
+              "l": 85,
+              "a": 188,
+              "base_y": 763,
+              "area": 10997
+            },
+            {
+              "x": 469,
+              "y": 571,
+              "l": 86,
+              "a": 192,
+              "base_y": 763,
+              "area": 11691
+            },
+            {
+              "x": 580,
+              "y": 570,
+              "l": 85,
+              "a": 193,
+              "base_y": 763,
+              "area": 11660
+            },
+            {
+              "x": 687,
+              "y": 572,
+              "l": 85,
+              "a": 190,
+              "base_y": 762,
+              "area": 11074
+            },
+            {
+              "x": 795,
+              "y": 570,
+              "l": 88,
+              "a": 193,
+              "base_y": 763,
+              "area": 11877
+            },
+            {
+              "x": 906,
+              "y": 568,
+              "l": 89,
+              "a": 197,
+              "base_y": 765,
+              "area": 12287
+            },
+            {
+              "x": 1019,
+              "y": 569,
+              "l": 86,
+              "a": 195,
+              "base_y": 764,
+              "area": 12230
+            }
+          ]
+        },
+        "andando_cima": {
+          "quadros": 6,
+          "altura_min_max_px": [
+            198,
+            208
+          ],
+          "largura_min_max_px": [
+            99,
+            104
+          ],
+          "variacao_linha_dos_pes_px": 4,
+          "caixas": [
+            {
+              "x": 1169,
+              "y": 568,
+              "l": 101,
+              "a": 198,
+              "base_y": 766,
+              "area": 13375
+            },
+            {
+              "x": 1291,
+              "y": 568,
+              "l": 99,
+              "a": 199,
+              "base_y": 767,
+              "area": 13229
+            },
+            {
+              "x": 1412,
+              "y": 567,
+              "l": 101,
+              "a": 201,
+              "base_y": 768,
+              "area": 13841
+            },
+            {
+              "x": 1547,
+              "y": 567,
+              "l": 104,
+              "a": 203,
+              "base_y": 770,
+              "area": 14424
+            },
+            {
+              "x": 1689,
+              "y": 568,
+              "l": 103,
+              "a": 201,
+              "base_y": 769,
+              "area": 14546
+            },
+            {
+              "x": 1829,
+              "y": 562,
+              "l": 103,
+              "a": 208,
+              "base_y": 770,
+              "area": 15408
+            }
+          ]
+        },
+        "conceito_grande": {
+          "quadros": 1,
+          "altura_min_max_px": [
+            745,
+            745
+          ],
+          "largura_min_max_px": [
+            303,
+            303
+          ],
+          "variacao_linha_dos_pes_px": 0,
+          "caixas": [
+            {
+              "x": 21,
+              "y": 25,
+              "l": 303,
+              "a": 745,
+              "base_y": 770,
+              "area": 144720
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "arquivo": "reference/kit_v1.0/02_mapas/balada_isometrica_referencia.png",
+    "papel": "referência artística da balada",
+    "bytes": 2695692,
+    "sha256": "e384181d4e822c9c4caad2736b96fcf9702d238ca41702d0839327e9c0e927b9",
+    "formato": "PNG",
+    "largura": 1536,
+    "altura": 1024,
+    "proporcao": 1.5,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 0.0,
+    "cor_cantos": [
+      [
+        17,
+        20,
+        34
+      ],
+      [
+        17,
+        21,
+        35
+      ],
+      [
+        1,
+        2,
+        1
+      ],
+      [
+        1,
+        2,
+        1
+      ]
+    ]
+  },
+  {
+    "arquivo": "reference/kit_v1.0/02_mapas/moodboard_locais.png",
+    "papel": "moodboard de locais",
+    "bytes": 3471641,
+    "sha256": "6972d58ded59060ccd615d7ac0e9aeaafc8592426702e8fdd1e078ea9777f0bf",
+    "formato": "PNG",
+    "largura": 1536,
+    "altura": 1024,
+    "proporcao": 1.5,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 0.0,
+    "cor_cantos": [
+      [
+        77,
+        59,
+        54
+      ],
+      [
+        19,
+        17,
+        15
+      ],
+      [
+        85,
+        70,
+        52
+      ],
+      [
+        98,
+        83,
+        68
+      ]
+    ]
+  },
+  {
+    "arquivo": "reference/kit_v1.0/03_referencias/conceito_geral.png",
+    "papel": "conceito geral / universo",
+    "bytes": 3037083,
+    "sha256": "b5fc35b70c2886dc4151293cc0688dd13c34fb54b5057c197e4cc2f291a3e55e",
+    "formato": "PNG",
+    "largura": 1312,
+    "altura": 1199,
+    "proporcao": 1.0942,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 0.0,
+    "cor_cantos": [
+      [
+        14,
+        6,
+        15
+      ],
+      [
+        94,
+        83,
+        75
+      ],
+      [
+        46,
+        42,
+        38
+      ],
+      [
+        27,
+        27,
+        28
+      ]
+    ]
+  },
+  {
+    "arquivo": "reference/privado/foto_referencia_personagem.jpeg",
+    "papel": "foto de referência facial (privada)",
+    "bytes": 319412,
+    "sha256": "5a8f4331feb401cbf65578b9dbeb4e0cad14016c4152e1db7d12f1c8dd473993",
+    "formato": "JPEG",
+    "largura": 1080,
+    "altura": 1440,
+    "proporcao": 0.75,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 0.0,
+    "cor_cantos": [
+      [
+        102,
+        95,
+        85
+      ],
+      [
+        179,
+        167,
+        151
+      ],
+      [
+        161,
+        147,
+        134
+      ],
+      [
+        154,
+        113,
+        85
+      ]
+    ]
+  },
+  {
+    "arquivo": "reference/privado/quadros_video_referencia.png",
+    "papel": "quadros do vídeo (privado)",
+    "bytes": 1624506,
+    "sha256": "11f77d73cd5a9a362f1d4270a86466a0bc8173ede0bafef364b3744cf3b65f27",
+    "formato": "PNG",
+    "largura": 1440,
+    "altura": 2559,
+    "proporcao": 0.5627,
+    "modo": "RGB",
+    "canal_alpha": false,
+    "area_preta_inferior_%": 66.7,
+    "cor_cantos": [
+      [
+        63,
+        53,
+        51
+      ],
+      [
+        74,
+        62,
+        46
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "arquivo": "reference/privado/video_base_comodo.mp4",
+    "papel": "vídeo do cômodo (privado)",
+    "bytes": 7824390,
+    "sha256": "7f0cf9928ec17fcae35be1d6be038e1657d9b2034353b495826120c798aab72f",
+    "codec": "h264",
+    "largura": 512,
+    "altura": 910,
+    "fps": "30/1",
+    "quadros": 399,
+    "duracao_s": 13.3,
+    "pix_fmt": "yuv420p",
+    "faixas_audio": 0
+  }
+]

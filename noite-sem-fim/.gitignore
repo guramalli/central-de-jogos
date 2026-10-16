@@ -1,0 +1,7 @@
+# Cache do editor/importador do Godot (regenerado ao abrir o projeto)
+.godot/
+# Builds exportados
+/build/
+# Referências pessoais (foto do rosto e vídeo com terceiros): ficam só na máquina local.
+# O inventário guarda o SHA-256 de cada uma para conferir a cópia local.
+/reference/privado/

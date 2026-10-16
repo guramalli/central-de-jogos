@@ -1,0 +1,16 @@
+reference/kit_v1.0/01_personagem/personagem_conceito.png     PNG 1024x1536 modo=RGB alpha=False preto_inferior=0.0%
+reference/kit_v1.0/01_personagem/spritesheet_referencia_NAO_PRONTO.png PNG 1983x793 modo=RGB alpha=False preto_inferior=0.0%
+reference/kit_v1.0/02_mapas/balada_isometrica_referencia.png PNG 1536x1024 modo=RGB alpha=False preto_inferior=0.0%
+reference/kit_v1.0/02_mapas/moodboard_locais.png             PNG 1536x1024 modo=RGB alpha=False preto_inferior=0.0%
+reference/kit_v1.0/03_referencias/conceito_geral.png         PNG 1312x1199 modo=RGB alpha=False preto_inferior=0.0%
+reference/privado/foto_referencia_personagem.jpeg            JPEG 1080x1440 modo=RGB alpha=False preto_inferior=0.0%
+reference/privado/quadros_video_referencia.png               PNG 1440x2559 modo=RGB alpha=False preto_inferior=66.7%
+reference/privado/video_base_comodo.mp4                      h264 512x910 30/1 fps 399 quadros 13.3s áudio=0
+prancha: 39 figuras
+  andando_baixo                    quadros=8 altura=[198, 219] largura=[99, 103] pés±=9
+  parado_frente_lado_costas_cima   quadros=4 altura=[183, 223] largura=[99, 108] pés±=37
+  andando_lado                     quadros=8 altura=[209, 219] largura=[102, 109] pés±=2
+  acoes                            quadros=5 altura=[201, 206] largura=[100, 121] pés±=1
+  andando_costas                   quadros=7 altura=[188, 197] largura=[85, 89] pés±=3
+  andando_cima                     quadros=6 altura=[198, 208] largura=[99, 104] pés±=4
+  conceito_grande                  quadros=1 altura=[745, 745] largura=[303, 303] pés±=0

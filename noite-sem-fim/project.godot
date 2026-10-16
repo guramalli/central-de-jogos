@@ -1,0 +1,39 @@
+; Noite Sem Fim — projeto base (FASE 0).
+; Valores de janela, escala e renderizador são PROVISÓRIOS: ver docs/decisions.md.
+
+config_version=5
+
+[application]
+
+config/name="Noite Sem Fim"
+config/description="Aventura narrativa 2.5D isométrica (protótipo). Fase 0: projeto base."
+config/version="0.0.1-fase0"
+run/main_scene="res://scenes/tests/test_vazio.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[importer_defaults]
+
+texture={
+"compress/mode": 0,
+"detect_3d/compress_to": 0,
+"mipmaps/generate": false,
+"process/fix_alpha_border": true,
+"process/premult_alpha": false
+}
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=1
+environment/defaults/default_clear_color=Color(0.055, 0.04, 0.09, 1)
