@@ -36,35 +36,61 @@ def fundo(a):
     a = a.astype(int)
     tons = tons_do_xadrez(a)
     lum = a.mean(-1)
-    neutro = (a.max(-1) - a.min(-1)) <= 7
+    spread = a.max(-1) - a.min(-1)
+    if len(tons) == 1:
+        return fundo_liso(a, lum, spread, tons), tons
+    neutro = spread <= 7
     perto = np.zeros(lum.shape, bool)
     for t in tons:
         perto |= np.abs(lum - t) <= 14
     candidato = neutro & perto
     # riscos/manchas claras do "papel" ligados à borda também são fundo
-    claro = (a.max(-1) - a.min(-1) < 22) & (lum > min(tons) - 15)
+    claro = (spread < 22) & (lum > min(tons) - 15)
     rot, _ = nd.label(claro)
     borda = set(np.unique(np.concatenate([rot[0], rot[-1], rot[:, 0], rot[:, -1]]))) - {0}
     f = np.isin(rot, list(borda))
     # ilhas: grupos de pixels do xadrez com pelo menos uns 20 px (pixel cinza solto dentro do desenho fica)
     rot2, n2 = nd.label(candidato)
     tam = nd.sum(candidato, rot2, range(1, n2 + 1))
-    # no fundo liso, ilha pequena pode ser o branco do olho: só tira as grandes (vão entre braço e corpo)
-    f |= np.isin(rot2, np.where(tam >= (20 if len(tons) > 1 else 150))[0] + 1)
+    f |= np.isin(rot2, np.where(tam >= 20)[0] + 1)
     # fiapos: borda acinzentada (xadrez misturado com a ponta do cabelo) encostada no fundo vai embora, aos poucos
     lum_ok = (lum > min(tons) - 25) & (lum < max(tons) + 25)
-    acinzentado = ((a.max(-1) - a.min(-1)) < 28) & lum_ok
+    acinzentado = (spread < 28) & lum_ok
     acinzentado &= ~((a[..., 0] - a[..., 2] >= 6) & (lum > 175))  # claro e quente = tecido branco, não fundo
     for _ in range(3):
         encosta = nd.binary_dilation(f) & ~f & acinzentado
         if not encosta.any():
             break
         f |= encosta
+    return limpar_sobras(f), tons
+
+
+def fundo_liso(a, lum, spread, tons):
+    """Fundo branco liso: roupa branca (jaleco, toalha) também é quase branca, então só é fundo o branco ligado à
+    borda e os vãos fechados (entre braço e corpo) cercados pelo contorno escuro — não o branco do tecido, que
+    encosta em sombreado cinza."""
+    t = tons[0]
+    branco = (lum >= t - 8) & (spread <= 8)
+    rot, n = nd.label(branco)
+    borda = set(np.unique(np.concatenate([rot[0], rot[-1], rot[:, 0], rot[:, -1]]))) - {0}
+    f = np.isin(rot, list(borda))
+    tam = nd.sum(branco, rot, range(1, n + 1))
+    escuro = lum < 95
+    for k in np.where(tam >= 150)[0] + 1:
+        if k in borda:
+            continue
+        ilha = rot == k
+        anel = nd.binary_dilation(ilha, iterations=3) & ~ilha
+        if escuro[anel].mean() > 0.55:   # cercada de contorno: é vão, não tecido
+            f |= ilha
+    return limpar_sobras(f)
+
+
+def limpar_sobras(f):
     # pedacinhos soltos que sobraram no meio do fundo
     sobra, n3 = nd.label(~f)
     tam3 = nd.sum(~f, sobra, range(1, n3 + 1))
-    f |= np.isin(sobra, np.where(tam3 < 400)[0] + 1)
-    return f, tons
+    return f | np.isin(sobra, np.where(tam3 < 400)[0] + 1)
 
 
 def main():
