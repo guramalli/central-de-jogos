@@ -26,9 +26,12 @@ const ECO = {
   taxaContratacao: 0.5,   // taxa de contratação = soma dos atributos × isto
   // ---- A pensão (etapa 7): os 6 degraus (0 a 5 estrelas), o que pedem, o que liberam e a despesa da noite; as fórmulas.
   pensao: {
+    // (C6, 16/10, o teste crítico: a janta das 3 primeiras noites deu Cr$ 98, 121 e 54 contra a diária de 420, com 2 banquetas e o
+    // salão vazio) Como a 1ª noite do Bancho, que já rende e dá vontade de voltar: o degrau 0 com 3 banquetas e 8 fregueses (eram 2
+    // e 6) e a 1ª estrela com 24 curtidas (eram 40: a 3ª ou 4ª noite), que muda o salão (+1 banqueta, 10 fregueses).
     degraus: [
-      { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, mesas: 2, clientes: 6, despesa: 0 },
-      { nome: 'Boteco Conhecido', curtidas: 40, sabor: 0, pesquisadas: 0, mesas: 3, clientes: 8, despesa: 5 },
+      { nome: 'Marmita de Esquina', curtidas: 0, sabor: 0, pesquisadas: 0, mesas: 3, clientes: 8, despesa: 0 },
+      { nome: 'Boteco Conhecido', curtidas: 24, sabor: 0, pesquisadas: 0, mesas: 4, clientes: 10, despesa: 5 },
       { nome: 'Pensão Falada', curtidas: 200, sabor: 0, pesquisadas: 2, mesas: 4, clientes: 10, despesa: 12 },
       { nome: 'Pensão Famosa', curtidas: 520, sabor: 36, pesquisadas: 3, mesas: 5, clientes: 12, despesa: 25 },
       { nome: 'Casa Tradicional', curtidas: 1100, sabor: 60, pesquisadas: 5, garfos: 4, visitas: 2, mesas: 6, clientes: 14, despesa: 45 },
@@ -202,8 +205,10 @@ const ECO = {
   // A reforma da lojinha em etapas (roteiro de 13/10, "mais longa"): o material (entregue à Rosa) e os dias de trabalho no salão.
   reforma: [
     { id: 'limpar', nome: 'Limpar o salão', material: {}, dias: 0 },
-    { id: 'telhado', nome: 'O telhado', material: { telha: 10 }, dias: 2 },
-    { id: 'balcao', nome: 'O balcão e as banquetas', material: { madeira: 20 }, dias: 2 },
+    // (16/10, C1 do teste crítico, com o sim do dono) o telhado e o balcão: 2 dias → 1. A reforma passa de 6 para 4 dias de
+    // trabalho, que cabem em 2 dias de calendário (a reforma anda por etapa: pensao.js, trabalharReforma); a pensão abre no dia ~5.
+    { id: 'telhado', nome: 'O telhado', material: { telha: 10 }, dias: 1 },
+    { id: 'balcao', nome: 'O balcão e as banquetas', material: { madeira: 20 }, dias: 1 },
     { id: 'cozinha', nome: 'A cozinha da Rosa', material: { tijolo: 6, cimento: 4 }, dias: 1 },
     { id: 'pintura', nome: 'A pintura e o letreiro', material: { tinta: 2 }, dias: 1 },
   ],
@@ -346,7 +351,8 @@ const ECO = {
   },
   guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 2, bazar: 4, pedreira: 5, mina: 7 }, espera: 3, maxAbertas: 2,
     recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
-      janta: { despensa: { arroz: 6, feijao: 6, ovo: 6 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
+      // (C6) a 1ª janta dá a 1ª semana sem susto: 10 de arroz, feijão e ovo (eram 6) e 4 de farinha (o peixe frito)
+      janta: { despensa: { arroz: 10, feijao: 10, ovo: 10, farinha: 4 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },
 };
 // As vagas de cada degrau vêm de ECO.pensao.vagas (a tela A Pensão mostra o que cada degrau libera).
 ECO.pensao.degraus.forEach((d, i) => { d.vagas = ECO.pensao.vagas[i]; });

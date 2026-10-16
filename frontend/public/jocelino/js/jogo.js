@@ -29,14 +29,59 @@ function ajustaZoom() {
 }
 
 // Câmera presa ao mapa (ou ao enquadramento do cômodo); segue o Jocelino suavemente.
+// (C4, 16/10; o teste crítico: o píer, a obra, o galho e a sujeira do salão atrás do relógio, da barra e do painel da esquerda) Como no
+// Stardew, o HUD fica nos cantos e o que importa fica na área livre: (1) o Jocelino fica no meio da área livre (a tela sem a faixa de
+// cima, a do cartão, e sem a barra embaixo), não no meio da tela; (2) com o alvo da seta na tela e embaixo de um painel, a câmera anda o
+// mínimo para ele sair de baixo (o Jocelino continua à vista e fora dos painéis). Na borda do mapa a câmera não passa (o clamp de
+// sempre); aí o painel recua (hud.js).
+const _limCamera = () => { const q = G.mapa && G.mapa.enquadramento; return q || { x: 0, y: 0, w: (G.mapa ? G.mapa.larg : 20) * TILE, h: (G.mapa ? G.mapa.alt : 12) * TILE }; };
+function _prendeCamera(x, y) {
+  const vw = G.larg / G.zoom, vh = G.alt / G.zoom, lim = _limCamera();
+  return { x: lim.w <= vw ? lim.x + (lim.w - vw) / 2 : clamp(x, lim.x, lim.x + lim.w - vw), y: lim.h <= vh ? lim.y + (lim.h - vh) / 2 : clamp(y, lim.y, lim.y + lim.h - vh) };
+}
+// A câmera com o Jocelino em (px, py), no meio da área livre (sem o empurrão do alvo). guia_setas.js usa para saber a tela de quando ele
+// chegar a um lugar (_camChegando).
+function cameraBase(px, py) {
+  const vw = G.larg / G.zoom, vh = G.alt / G.zoom, f = typeof faixasDoHud === 'function' ? faixasDoHud() : { cima: 0, baixo: 0 };
+  return _prendeCamera(px - vw / 2, py - 20 - vh / 2 - (f.cima - f.baixo) / 2 / G.zoom);
+}
+let _empurrao = null;   // o último empurrão da câmera: { chave do alvo, dx, dy } (fica o mesmo enquanto valer: a câmera não vai e volta)
 function alvoCamera() {
-  const vw = G.larg / G.zoom, vh = G.alt / G.zoom;
-  const q = G.mapa && G.mapa.enquadramento;
-  const lim = q || { x: 0, y: 0, w: (G.mapa ? G.mapa.larg : 20) * TILE, h: (G.mapa ? G.mapa.alt : 12) * TILE };
-  let x = (G.jog ? G.jog.x : 0) - vw / 2, y = (G.jog ? G.jog.y - 20 : 0) - vh / 2;
-  x = lim.w <= vw ? lim.x + (lim.w - vw) / 2 : clamp(x, lim.x, lim.x + lim.w - vw);
-  y = lim.h <= vh ? lim.y + (lim.h - vh) / 2 : clamp(y, lim.y, lim.y + lim.h - vh);
-  return { x, y };
+  const base = cameraBase(G.jog ? G.jog.x : 0, G.jog ? G.jog.y : 0);
+  const s = G.jog && G.mapa && typeof setaAgora === 'function' ? setaAgora() : null;
+  if (!s || s.tipo !== 'alvo' || (s.mapa && s.mapa !== G.mapaId) || typeof paineisDaCamera !== 'function') { _empurrao = null; return base; }
+  return _cameraComAlvo(base, s);
+}
+// A caixa do alvo da seta em px de mundo (o que precisa ficar à vista): o detrito/ponto embaixo da seta, a pessoa inteira ou o pé do
+// objeto. s.x/s.y é o lugar da seta (em cima do alvo).
+function caixaDoAlvo(s) {
+  const ob = s.objeto && G.mapa && G.mapa.objs.find(o => o.id === s.objeto);
+  const h = s.morador ? 120 : ob ? clamp(ob.y - s.y, 30, 110) : 52;
+  return { x0: s.x - 22, x1: s.x + 22, y0: s.y + (s.morador ? 20 : 10), y1: s.y + h };
+}
+function _cameraComAlvo(base, s) {
+  const z = G.zoom, L = G.larg, A = G.alt, P = paineisDaCamera(), b = caixaDoAlvo(s), j = G.jog;
+  const tela = (c, x0, y0, x1, y1) => ({ l: (x0 - c.x) * z, t: (y0 - c.y) * z, r: (x1 - c.x) * z, b: (y1 - c.y) * z });
+  const bate = (q, p) => q.l < p.r && q.r > p.l && q.t < p.b && q.b > p.t;
+  const naTela = (q, m) => q.l >= m && q.t >= m && q.r <= L - m && q.b <= A - m;
+  const alvoT = c => tela(c, b.x0, b.y0, b.x1, b.y1), jogT = c => tela(c, j.x - 16, j.y - 70, j.x + 16, j.y);
+  const livre = c => { const a = alvoT(c), q = jogT(c); return naTela(a, 4) && !P.some(p => bate(a, p)) && naTela(q, 24) && !P.some(p => bate(q, p)); };
+  const a0 = alvoT(base);
+  // Fora da tela (a seta fica na borda, apontando) ou já à vista: a câmera de sempre.
+  if (a0.r < 0 || a0.l > L || a0.b < 0 || a0.t > A || livre(base)) { _empurrao = null; return base; }
+  // Os deslocamentos que tiram o alvo de baixo de cada painel (ou o trazem para dentro da tela), em px de tela; o menor que deixa tudo livre.
+  const dxs = [0], dys = [0], m = 6;
+  for (const p of P) { if (a0.t < p.b && a0.b > p.t) dxs.push(p.l - m - a0.r, p.r + m - a0.l); if (a0.l < p.r && a0.r > p.l) dys.push(p.t - m - a0.b, p.b + m - a0.t); }
+  if (a0.l < 4) dxs.push(4 - a0.l); if (a0.r > L - 4) dxs.push(L - 4 - a0.r); if (a0.t < 4) dys.push(4 - a0.t); if (a0.b > A - 4) dys.push(A - 4 - a0.b);
+  const chave = `${G.mapaId}:${Math.round(s.x)}:${Math.round(s.y)}`;
+  const tenta = (dx, dy) => { const c = _prendeCamera(base.x - dx / z, base.y - dy / z); return livre(c) ? c : null; };
+  let melhor = null, custo = 1e9;
+  for (const dx of dxs) for (const dy of dys) { const c = tenta(dx, dy); if (!c) continue; const k = Math.hypot(c.x - base.x, c.y - base.y); if (k < custo - 0.5) { custo = k; melhor = { c, dx, dy }; } }
+  // (sem vaivém) o empurrão de antes, para o mesmo alvo, continua se ainda serve e não é muito maior que o melhor
+  if (_empurrao && _empurrao.chave === chave) { const c = tenta(_empurrao.dx, _empurrao.dy); if (c && Math.hypot(c.x - base.x, c.y - base.y) <= custo + 48 / z) return c; }
+  if (!melhor) { _empurrao = null; return base; }
+  _empurrao = { chave, dx: melhor.dx, dy: melhor.dy };
+  return melhor.c;
 }
 
 function atualiza(dt) {

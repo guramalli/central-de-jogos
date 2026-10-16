@@ -48,8 +48,9 @@ NOITE.push(linhas => { const r = CaixaVenda.madrugada(); if (r.total) linhas.pus
 
 // A tela: à esquerda o que dá para vender da mochila; à direita o que já está na caixa; embaixo quanto o carroceiro paga.
 function usarCaixaVenda() {
-  const caixa = el('div', { class: 'painel caixa-venda' });
+  const caixa = el('div', { class: 'painel caixa-venda com-pe' });   // (C5) o título e o Fechar fixos; só as duas colunas rolam
   const desenha = () => {
+    const rolou = (caixa.querySelector('.miolo') || {}).scrollTop || 0;
     caixa.innerHTML = '';
     const ids = [...new Set(G.mochila.slots.filter(Boolean).map(s => s.id))].filter(id => CaixaVenda.preco(id) > 0);
     const linha = (id, qtd, botoes) => el('div', { class: 'orel-item cv-item' }, el('img', { src: urlItem(id) }),
@@ -63,10 +64,11 @@ function usarCaixaVenda() {
       ...(naCaixa.length ? naCaixa.map(id => linha(id, G.caixaVenda[id], [bt('Tirar', () => { if (!CaixaVenda.tirar(id, G.caixaVenda[id])) avisar('A mochila está cheia.'); })]))
         : [el('div', { class: 'rodape' }, 'A caixa está vazia.')]));
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Caixa de venda'),
-      el('div', { class: 'cv-colunas' }, mochila, dentro),
-      el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:10px' },
+      el('div', { class: 'cv-colunas miolo' }, mochila, dentro),
+      el('div', { class: 'pe', style: 'display:flex;justify-content:space-between;align-items:center' },
         el('div', { style: 'font-weight:900' }, `O carroceiro paga de madrugada: Cr$ ${CaixaVenda.total()}`),
         el('button', { class: 'botao forte', onclick: e => { e.stopPropagation(); fecharModal(); } }, 'Fechar')));
+    caixa.querySelector('.miolo').scrollTop = rolou;
   };
   desenha();
   abrirModal(caixa);

@@ -286,15 +286,16 @@ COLETORES.push(s => { s.hab = { xp: Object.assign({}, G.hab.xp), vantagens: G.ha
 // de venda, que entra à noite, também conta para o nível da manhã, como no Stardew)
 
 // (15/10, T3) Depois do resumo da noite: uma tela "Subiu de nível!" por nível ganho (como a do Stardew ao dormir), depois as
-// vantagens. Usa o painel de sempre (o da escolha da vantagem) e os ícones que já existem. "Beleza!" (ou Espaço/Enter/E, depois de
-// meio segundo) tira a tela da fila; fechar de outro jeito (Esc, o ✕, fora da caixa) deixa a tela para a próxima noite, como a
-// vantagem. Nenhuma tecla vaza: o meio segundo segura o clique e a tecla que fecharam o resumo.
+// vantagens. Usa o painel de sempre (o da escolha da vantagem) e os ícones que já existem. "Beleza!" (ou Espaço/Enter/E) tira a tela
+// da fila; fechar de outro jeito (Esc, o ✕, fora da caixa) deixa a tela para a próxima noite, como a vantagem. (C5, 16/10; o teste
+// crítico: 3 telas seguidas de manhã com o "Beleza!" travado meio segundo cada) Sem trava própria: o clique e a tecla que fecharam o
+// resumo não vazam pela trava do clique-fantasma de toda janela (ui.js, 300 ms depois de outra fechar).
 function telasDeNivel(i = 0) {
   const fila = (G.hab && G.hab.telas) || [], t = fila[i];
   if (!t) { escolherVantagens(); return; }
-  const [h, n] = t, t0 = performance.now();
+  const [h, n] = t;
   let viu = false;
-  const beleza = () => { if (performance.now() - t0 < 500 || viu) return; viu = true; fila.splice(fila.indexOf(t), 1); fecharModal(); };
+  const beleza = () => { if (viu) return; viu = true; fila.splice(fila.indexOf(t), 1); fecharModal(); };
   const ganhos = Habilidades.ganhosDoNivel(h, n), formula = Habilidades.formulaDoNivel(h, n), prox = Habilidades.proximoGanho(h, n);
   const secao = txt => el('div', { class: 'nivel-secao' }, txt);
   const caixa = el('div', { class: 'painel vantagem nivel-novo' },

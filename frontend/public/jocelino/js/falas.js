@@ -19,7 +19,9 @@ Object.assign(CONVERSAS, {
     { quando: { se: () => _falaEstadoPensao() === 'limpar' }, fala: ['@alegre ' + _falaRosaCotinha, 'Primeiro a limpeza: entulho e mato no chão do salão.'] },
     ...Object.keys(_FALA_ROSA_ETAPA).map(e => ({ quando: { se: () => _falaRosaReforma() && _falaEstadoPensao() === e }, fala: ['@alegre ' + _falaRosaCotinha, _FALA_ROSA_ETAPA[e]] })),
     { quando: { se: () => _falaRosaReforma() && !_FALA_ROSA_ETAPA[_falaEstadoPensao()] }, fala: ['@alegre ' + _falaRosaCotinha, 'Traz o material que eu guardo aqui.'] },
-    { quando: { se: () => _falaEstadoPensao() === 'pronta' }, fala: ['@alegre Amanhã a gente abre! Eu não durmo hoje de tanta ansiedade.'] },
+    // (C3, 16/10) pronta no sábado depois das 15h, a inauguração é na segunda (domingo a pensão não abre): a Rosa não diz "amanhã"
+    { quando: { se: () => _falaEstadoPensao() === 'pronta' && !(G.pensao.abreDia > G.dia + 1) }, fala: ['@alegre Amanhã a gente abre! Eu não durmo hoje de tanta ansiedade.'] },
+    { quando: { se: () => _falaEstadoPensao() === 'pronta' && G.pensao.abreDia > G.dia + 1 }, fala: ['@alegre Segunda a gente abre! Eu não durmo hoje de tanta ansiedade.'] },
     { fala: ['Traz ingrediente pra despensa, viu? Arroz, feijão e ovo o Seu Ananias vende na Mercearia.'] },
     { fala: ['Às cinco da tarde eu acendo o fogão. Não se atrasa!'] },
     { fala: ['@alegre O Severino lambeu o prato ontem, Jocelino. LAMBEU!'] },

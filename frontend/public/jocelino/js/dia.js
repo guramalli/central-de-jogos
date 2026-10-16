@@ -154,6 +154,10 @@ function amanhaDoResumo() {
     const c = Calendario.dia(p, G.dia, G.dia), nome = id => (Pratos.PRATOS[id] || { nome: id }).nome;
     if (c.fechado) a.itens.push({ img: urlArte('ui/caixa_registradora'), texto: 'Domingo: a pensão não abre.' });
     else {
+      // (C7, 16/10; o teste crítico C: no dia 11 a despensa acabou sem aviso) a despensa curta para o cardápio guardado: a linha da Rosa
+      // vem primeiro (o cartão mostra 2 itens), com quantos pratos dá, os fregueses de sempre e o que comprar até as 17h
+      const ld = p.estado === 'aberta' && typeof linhaDaDespensa === 'function' ? linhaDaDespensa() : '';
+      if (ld) a.itens.push({ img: urlArte('retratos/rosa_normal'), texto: ld, ouro: true, despensa: true });
       if (c.vip) a.itens.push({ img: urlArte(iconePrato(c.vip.prato)), texto: `Janta: o cliente especial ${c.vip.nome} quer ${nome(c.vip.prato)}.`, ouro: true });
       if (c.festa) a.itens.push({ img: urlArte(iconePrato(c.festa.prato)), texto: `Janta: festa (${c.festa.nome}), o prato do tema é ${nome(c.festa.prato)}.`, ouro: true });
       if (c.concurso) a.itens.push({ img: urlArte('ui/trofeu_concurso'), texto: `O Concurso da Rádio: ${c.concurso.tema}.`, ouro: true });

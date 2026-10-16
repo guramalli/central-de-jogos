@@ -201,6 +201,43 @@ function acaoNaObra(o) {
   abrirPlaca(`${Obra.obra().nome} — etapa: ${Obra.obra().etapas[G.obra.etapa].nome}.${l ? '\n' + textoLista(l) : ' O Mestre Bira passa a lista do dia: é só falar com ele.'}`);
   return true;
 }
+// ---------- (C2, 16/10) a seta de entregar só com o item e o "Falta: X (onde)" ----------
+// O teste crítico (dia 2): a seta dizia "Botão direito: entregar as pedras na obra" com 1 pedra na mochila e a lista em 0/10, e no
+// quintal o Agora dizia "faltam 1 tarefa(s)" sem dizer qual nem onde. Como no Stardew: o pedido do diário diz o quê e quanto, e a
+// entrega é a última coisa, com tudo na mão.
+// Quantas pedras da mochila ainda faltam para a tarefa (com o Ombro de pedreiro, cada pedra conta 2).
+const faltaDePedras = (l, t = 'buscar_pedra') => Math.ceil(Math.max(0, (l.metas[t] || 0) - (l.feito[t] || 0)) / Obra.emDobro(t));
+// Ainda há de onde tirar pedra: o quintal com pedra (o mapa ainda não montado conta como cheio) ou a pedreira aberta.
+const pedraAoAlcance = () => { const q = typeof MAPAS !== 'undefined' && MAPAS.quintal; return !q || q.objs.some(o => o.det === 'pedra') || !!(G.lugares && G.lugares.pedreira); };
+// A seta e a dica dizem "entregar as pedras" só com as pedras que completam a tarefa na mochila (ou sem mais pedra ao alcance: aí
+// entrega o que tem). A tarefa do monte ('pedras') tem o monte do canteiro ao lado: qualquer pedra da mochila vale.
+function pedrasParaEntregar(id) {
+  const l = listaDeHoje(), tem = G.mochila.total('pedra'); if (!l || !l.metas[id] || tem <= 0) return false;
+  if (id !== 'buscar_pedra') return true;
+  return tem >= faltaDePedras(l) || !pedraAoAlcance();
+}
+// A obra do dia pede pedra da mochila (a tarefa "trazer 10 pedras", ainda por fazer)? Antes de pegar a lista, a lista que o Bira vai
+// passar (o sorteio é fixo pelo dia e pela etapa). O quadro da Vila não sorteia recado de pedra enquanto isso (recados.js).
+function obraPedePedra(dia = G.dia) {
+  if (!G.obra || typeof Obra === 'undefined' || Obra.aberta(dia, 12 * 60)) return false;   // domingo e chuva: sem obra
+  const l = G.obra.lista && G.obra.lista.dia === dia ? G.obra.lista : null;
+  if (l) return !l.paga && (l.feito.buscar_pedra || 0) < (l.metas.buscar_pedra || 0);
+  if (G.obra.primeira || G.obra.funcao > TAREFAS_OBRA.buscar_pedra.funcaoMax) return false;   // (a 1ª lista é leve; o sortear a marcaria como dada)
+  return !!Obra.sortear(dia).metas.buscar_pedra;
+}
+// O que falta da lista, nomeado e com o lugar: "Falta: 9 pedras do quintal (picareta) → entregar ao Bira (1 já na mochila)". A tarefa
+// de fora da Vila (as pedras) vem primeiro; as outras são no canteiro. '' com a lista completa.
+function faltaDaObra(l = listaDeHoje()) {
+  const pend = l ? Object.keys(l.metas).filter(id => (l.feito[id] || 0) < l.metas[id]) : []; if (!pend.length) return '';
+  const id = pend.includes('buscar_pedra') ? 'buscar_pedra' : pend[0], resto = pend.length - 1;
+  let t;
+  if (id === 'buscar_pedra') { const n = faltaDePedras(l), tem = Math.min(n, G.mochila.total('pedra')), ped = !!(G.lugares && G.lugares.pedreira);
+    t = tem >= n ? `Falta: entregar ${Itens.qtd(n, 'pedra')} da mochila na obra do Bira, na Vila`
+      : `Falta: ${Itens.qtd(n - tem, 'pedra')} do quintal${ped ? ' ou da pedreira' : ''} (picareta) → entregar ao Bira${tem ? ` (${tem} já na mochila)` : ''}`; }
+  else { const T = id === 'buscar_cimento' ? 'buscar 2 sacos de cimento' : nomeTarefa(id);
+    t = `Falta: ${T.charAt(0).toLowerCase() + T.slice(1)} (${l.feito[id] || 0}/${l.metas[id]}), ${id === 'buscar_cimento' ? 'no depósito do Seu Ananias, na Vila' : 'no canteiro da Vila'}`; }
+  return t + (resto ? ` e mais ${resto} tarefa${resto > 1 ? 's' : ''}` : '');
+}
 // As pedras da mochila valem para "trazer pedras" e para "levar pedras para o alicerce" (diário de 13/10: "não aceita pedras
 // que peguei" — só valia a pedra do monte, nos braços). Devolve {t, n, r} ou null.
 function entregarPedrasDaMochila() {
@@ -211,7 +248,8 @@ function entregarPedrasDaMochila() {
   return { t, n, r };
 }
 function ferramentaNaObra(o, id) {
-  if (!obraDaVez(o)) return;
+  // (C5, 16/10) a ferramenta da obra (a mangueira, o rolo, a colher) na obra que não é a de hoje: avisa qual é, em vez de nada
+  if (!obraDaVez(o)) { if (['mangueira', 'rolo', 'colher'].includes(id) && listaDeHoje()) avisar(`Esta não é a obra de hoje. O Bira quer o serviço na obra: ${Obra.obra().nome}.`); return; }
   const l = listaDeHoje(); if (!l) { avisar('Primeiro pegue a lista com o Mestre Bira.'); return; }
   const H = typeof Habilidades !== 'undefined' ? Habilidades : { tem: () => false };
   let t = '', n = 1;

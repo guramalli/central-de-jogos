@@ -90,13 +90,13 @@ function explicaItemLoja(aba, id) {
 }
 
 function abrirLoja() {
-  const caixa = el('div', { class: 'painel' });
-  const desenha = () => {
+  const caixa = el('div', { class: 'painel loja-tela com-pe' });   // (C5) o título, as abas e o rodapé fixos; só a grade rola
+  const desenha = (rolou = (caixa.querySelector('.miolo') || {}).scrollTop || 0) => {
     caixa.innerHTML = '';
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px;display:flex;justify-content:space-between' },
       el('span', {}, 'Depósito do Seu Ananias'), el('span', {}, 'Cr$ ' + G.dinheiro)));
     if (typeof Fiado !== 'undefined') { const f = Fiado.linhaLoja(desenha); if (f) caixa.append(f); }   // (T4b) a caderneta do fiado
-    caixa.append(el('div', { class: 'abas' }, ABAS_LOJA.map((n, i) => el('div', { class: 'aba' + (i === _abaLoja ? ' ativa' : ''), onclick: e => { e.stopPropagation(); _abaLoja = i; desenha(); } }, n))));
+    caixa.append(el('div', { class: 'abas' }, ABAS_LOJA.map((n, i) => el('div', { class: 'aba' + (i === _abaLoja ? ' ativa' : ''), onclick: e => { e.stopPropagation(); _abaLoja = i; desenha(0); } }, n))));
     let ids, preco, acao, dica;
     if (_abaLoja === 0) { ids = Object.keys(LOJA.PRECOS); preco = precoLoja; acao = (id, s) => comprarLoja(id, s ? 5 : 1); dica = 'Clique: compra 1 · Shift+clique: compra 5'; }
     else if (_abaLoja === 1) { ids = Object.keys(LOJA.COMPRA).concat(revendaLoja()); preco = precoVendaLoja; acao = (id, s) => venderLoja(id, s ? 999 : 1); dica = 'Clique: vende 1 · Shift+clique: vende tudo' + (revendaLoja().length ? ' · Revenda: o material do depósito volta pela metade' : ''); }
@@ -107,10 +107,11 @@ function abrirLoja() {
     }
     else { ids = sementesDaLoja(); preco = precoSemente; acao = (id, s) => _comprar(id, s ? 5 : 1, precoSemente(id), true); dica = 'Sementes da estação, adubo e coisas da horta. Clique: compra 1 · Shift+clique: compra 5'; }
     const falta = typeof compras !== 'undefined' ? compras.falta(G.mochila) : {};
-    caixa.append(el('div', { class: 'grade loja' + (_abaLoja >= 2 ? ' uma' : '') }, ids.map(id => { const ex = explicaItemLoja(_abaLoja, id); return el('div', { class: 'linha', title: ex.longa, onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
+    caixa.append(el('div', { class: 'grade loja miolo' + (_abaLoja >= 2 ? ' uma' : '') }, ids.map(id => { const ex = explicaItemLoja(_abaLoja, id); return el('div', { class: 'linha', title: ex.longa, onclick: e => { e.stopPropagation(); acao(id, e.shiftKey); desenha(); } },
       el('img', { src: urlItem(id) }), el('div', { class: 'texto' }, Itens.nome(id), falta[id] ? el('span', { style: 'color:var(--destaque)' }, `  (falta ${falta[id]})`) : null,
         el('div', { class: 'tem' }, (ex.curta ? ex.curta + ' · ' : '') + 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + preco(id))); })));
-    caixa.append(el('div', { class: 'rodape' }, dica));
+    caixa.append(el('div', { class: 'rodape pe' }, dica));
+    caixa.querySelector('.miolo').scrollTop = rolou;
   };
   desenha();
   abrirModal(caixa);

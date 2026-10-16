@@ -72,11 +72,14 @@ function abrirOrelhao() {
 }
 
 // ---------- a despensa viva ----------
+// (C6, 16/10) O que o "guardar tudo" leva (Pensao.guardar): ingrediente de cozinha, sem a pedra, que é material de obra (ela entra
+// pela mão, clicando nela na tela da despensa).
+const vaiNoGuardarTudo = id => id !== 'pedra';
 // Ao entrar na pensão aberta com ingrediente na mochila: a Rosa pergunta se guarda.
 function rosaPerguntaGuardar() {
   const p = G.pensao;
   if (!p || !despensaAceitaGuardar() || !G.mochila) return false;
-  const temAlgo = Object.keys(Pratos.INGREDIENTES).some(id => G.mochila.total(id) > 0 && p.aceita(id) && (id !== 'pedra' || (p.despensa.pedra || 0) < Pensao.PEDRA_MAX));
+  const temAlgo = Object.keys(Pratos.INGREDIENTES).some(id => vaiNoGuardarTudo(id) && G.mochila.total(id) > 0 && p.aceita(id));
   if (!temAlgo) return false;
   perguntar('Rosa: "Trouxe coisa boa, meu bem? Guardo tudo na despensa?"', ['Guardar tudo', 'Agora não'], i => { if (i === 0) guardarNaDespensa(true); });
   return true;
@@ -213,16 +216,49 @@ function faltaDaJanta() {
     .map(x => [x, c.soma[x] - p._tem(x) - (G.mochila ? G.mochila.total(x) : 0)]).filter(([, n]) => n > 0);
   return falta.length ? falta : null;
 }
-// (16/10, rodada 2 da despensa) A Rosa avisa, uma vez por dia, que falta comida para a janta: na primeira vez que o Jocelino passa
-// perto da pensão ou do depósito (a 4 ladrilhos) antes das 17h, se a despensa não cobre o cardápio da noite e nem a seta nem o Agora
-// já mostram a Mercearia (a missão da pensão ou a obra do dia na frente). Vivência, não missão: uma fala só, no tom dela.
-const textoAvisoDaJanta = () => { const f = faltaDaJanta(); return f ? `Rosa: "Jocelino, pra janta de hoje falta ${listaE(f.map(([x, n]) => qtdNaPanela(x, n)))}. A Mercearia do Ananias fecha às 17h."` : ''; };
+// (C7, 16/10; o teste crítico C, solução 2: no dia 11 a despensa acabou sem aviso, nota 2) Quantos pratos a despensa dá para o
+// cardápio guardado da janta de hoje: as panelas do quadro (contaDoQuadro, na mesma ordem do "Abrir") e, nos pratos com o "Rosa
+// repõe" ligado, as panelas a mais que a sobra ainda faz. comMochila: o ingrediente da mochila conta (ele vai para a despensa quando
+// o Jocelino entra na pensão). Devolve { da: porções, esperados: os fregueses de ~sempre da noite (o mesmo número do quadro) }.
+function pratosDaJanta(p = G.pensao, comMochila = true) {
+  const esc = p.cardapioNoite || {}, q = Object.create(p);
+  q.despensa = Object.assign({}, p.despensa);
+  if (comMochila && G.mochila) for (const id in Pratos.INGREDIENTES) { const n = vaiNoGuardarTudo(id) && p.aceita(id) ? G.mochila.total(id) : 0; if (n > 0) q.despensa[id] = (q.despensa[id] || 0) + n; }
+  const C = contaDoQuadro(q, esc);
+  let da = 0;
+  for (const id in C.efe) da += (C.efe[id] | 0) * p.porcoesPorPanela(id);
+  for (const id in C.efe) if (C.efe[id] > 0 && esc[id].repoe !== false) for (let k = 0; k < 99 && C.sobra.rende(id) > 0; k++) { C.sobra.consumir(id, SEM_PEDRA); da += p.porcoesPorPanela(id); }
+  return { da, esperados: typeof clientesEsperados === 'function' ? clientesEsperados() : p.clientesDaNoite() };
+}
+// A linha da despensa da janta de hoje, nos dias em que falta o que a Mercearia vende (faltaDaJanta): "Falta 5 de arroz e 3 de ovo
+// pra janta — Mercearia do Ananias, até as 17h (a despensa dá 4 de ~11 pratos)." ('' quando não falta). (rodada 1 da C7) O que
+// falta vem primeiro: o Agora compacto (1 linha, C4) corta o fim, e quem lê só o começo já sabe o que fazer. O resumo da
+// manhã (o cartão "Amanhã", dia.js) e o Agora das 14h (urgenteDaJanta) mostram esta mesma linha. Só quando a noite fica curta: com
+// pratos para os fregueses de sempre, o que falta para o cardápio guardado inteiro não é aviso (o Agora comum e a despensa já dizem).
+function linhaDaDespensa() {
+  const f = faltaDaJanta(); if (!f) return '';
+  const c = pratosDaJanta(); if (c.da >= c.esperados) return '';
+  return `Falta ${listaE(f.map(([x, n]) => qtdNaPanela(x, n)))} pra janta — Mercearia do Ananias, até as 17h (a despensa dá ${c.da} de ~${c.esperados} pratos).`;
+}
+// (C7) Das 14h às 17h, se ainda falta e a Mercearia pode vender (aberta, com dinheiro para ao menos um: compraDaJanta), a linha entra
+// no Agora como urgente e a seta vai na Mercearia (guia_setas.js). { texto } ou null.
+const URGENTE_JANTA = 14 * 60;
+function urgenteDaJanta() {
+  if (G.minutos < URGENTE_JANTA || G.turno || !compraDaJanta()) return null;
+  const t = linhaDaDespensa(); return t ? { texto: t } : null;
+}
+// (16/10, rodada 2 da despensa; C7) A Rosa avisa, uma vez por dia, que falta comida para a janta. De manhã, a linha da despensa já
+// está no resumo (o cartão "Amanhã"); a fala vem na primeira vez que o Jocelino passa perto da pensão ou do depósito (a 4 ladrilhos)
+// antes das 17h, se nem a seta nem o Agora já mostram a Mercearia; e, se ainda faltar às 14h, onde ele estiver (é o urgente: o Agora
+// e a seta vão juntos). Longe da Vila, ela manda o recado. Vivência, não missão: uma fala só por dia, no tom dela.
+const textoAvisoDaJanta = (perto = true) => { const f = faltaDaJanta(); return f ? `${perto ? 'Rosa' : 'Recado da Rosa'}: "Jocelino, pra janta de hoje falta ${listaE(f.map(([x, n]) => qtdNaPanela(x, n)))}. A Mercearia do Ananias fecha às 17h."` : ''; };
 function avisoDaJantaPasso(seta = typeof setaAgora === 'function' ? setaAgora : () => null) {
-  if (G.mapaId !== 'vila' || !G.mapa || !G.jog || G._avisoJantaDia === G.dia || G.minutos >= 17 * 60 || G.turno) return false;
-  const perto = G.mapa.objs.some(o => (o.id === 'pensao' || o.id === 'deposito') && Math.hypot(o.x - G.jog.x, o.y - G.jog.y) <= 4 * TILE);
-  if (!perto) return false;
-  const t = textoAvisoDaJanta(); if (!t) return false;
-  const s = seta(); if (compraDaJanta() && (!s || s.missao === 'mercearia')) return false;   // (a seta e o Agora já mostram a Mercearia)
+  if (!G.mapa || !G.jog || G._avisoJantaDia === G.dia || G.minutos >= 17 * 60 || G.turno) return false;
+  const tarde = G.minutos >= URGENTE_JANTA, naVila = G.mapaId === 'vila' || /^pensao/.test(G.mapaId || '');
+  const perto = G.mapaId === 'vila' && G.mapa.objs.some(o => (o.id === 'pensao' || o.id === 'deposito') && Math.hypot(o.x - G.jog.x, o.y - G.jog.y) <= 4 * TILE);
+  if (!perto && (!tarde || !linhaDaDespensa())) return false;   // (longe, só a noite curta: a mesma regra da linha da manhã)
+  const t = textoAvisoDaJanta(perto || naVila); if (!t) return false;
+  if (!tarde) { const s = seta(); if (compraDaJanta() && (!s || s.missao === 'mercearia')) return false; }   // (a seta e o Agora já mostram a Mercearia)
   G._avisoJantaDia = G.dia; avisar(t); return true;
 }
 ATUALIZADORES.push(() => avisoDaJantaPasso());
@@ -250,7 +286,7 @@ function desenhaDespensa(tela) {
       el('img', { src: urlItem(id), draggable: 'false' }), el('div', { class: 'desp-qtd' }, n ? '×' + n : (pode ? '—' : '🔒')),
       el('div', { class: 'desp-nome' }, Itens.nome(id)), n && sai < n ? el('div', { class: 'desp-pode' }, `pode tirar ${sai}`) : null));
   }
-  const naMochila = Object.keys(Pratos.INGREDIENTES).filter(id => G.mochila && G.mochila.total(id) > 0 && p.aceita(id));
+  const naMochila = Object.keys(Pratos.INGREDIENTES).filter(id => vaiNoGuardarTudo(id) && G.mochila && G.mochila.total(id) > 0 && p.aceita(id));
   caixa.append(el('div', { class: 'titulo titulo-tela giz' }, 'Despensa da Rosa'),
     prat);
   // (15/10) A mochila embaixo do armário (a grade e os espaços da tela do baú): clique guarda a pilha, botão direito guarda 1; o que
@@ -264,6 +300,11 @@ function desenhaDespensa(tela) {
       s ? el('img', { src: urlItem(s.id), draggable: 'false' }) : null,
       s && Itens.pilha(s.id) > 1 ? el('div', { class: 'qtd' }, s.qtd) : null);
   }));
+  // (C6, 16/10) A pedra não vai no "guardar tudo": na 1ª vez que a tela abre com pedra na mochila (e lugar para a da sopa), uma frase
+  // diz como guardar a da sopa. Fica nesta abertura da tela (tela._dicaPedra) e não volta (G.limpou.dica_pedra_sopa).
+  if (G.limpou && !G.limpou.dica_pedra_sopa && M.total('pedra') > 0 && despensaAceitaGuardar() && p.aceita('pedra') && (p.despensa.pedra || 0) < Pensao.PEDRA_MAX) { G.limpou.dica_pedra_sopa = 1; tela._dicaPedra = true; }
+  // (na lousa, embaixo da Sopa de Pedra: o rodapé da mochila fica sob a faixa da Rosa na 960×540)
+  const dicaPedra = tela._dicaPedra ? el('div', { class: 'rend-tem desp-dica-pedra' }, `A pedra é material de obra: o "Guardar tudo" deixa ela na mochila. Para a sopa, clique numa pedra da mochila (a Rosa guarda até ${Pensao.PEDRA_MAX}).`) : null;
   const moch = el('div', { class: 'painel desp-mochila' },
     el('div', { class: 'titulo bau-sub' }, 'Mochila', el('span', { class: 'bau-conta' }, ` ${usados} de ${M.tam}`)), grade, faixaDaTela('desp-faixa'),
     el('div', { class: 'rodape desp-moch-rodape' }, 'Clique guarda a pilha na despensa; botão direito guarda 1. No armário, clique tira; botão direito tira 1.'),
@@ -281,7 +322,8 @@ function desenhaDespensa(tela) {
     if (i) lista.append(el('div', { class: 'giz-divisoria' }));
     lista.append(el('div', { class: 'rend-linha' + (n ? '' : ' falta') },
       el('div', {}, el('span', { class: 'giz rend-nome' }, P.nome + ':'), ` ${gastoTxt(p, id)} = 1 panela = ${k} porções`),
-      el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(x => faltaPanelaTxt(p, x, g[x])))}`)));
+      el('div', { class: 'rend-tem' }, n ? `a despensa dá ${panelasTxt(n)} (${n * k} porções)` : `falta ${listaE(falta.map(x => faltaPanelaTxt(p, x, g[x])))}`),
+      id === 'sopa_pedra' ? dicaPedra : null));
   });
   // (16/10, "se preciso ou não comprar") O que o cardápio guardado (o do quadro de giz) gasta numa noite, contra o que a despensa tem.
   { const c = gastoDoCardapio(p);

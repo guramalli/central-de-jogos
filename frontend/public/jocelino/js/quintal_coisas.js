@@ -277,10 +277,28 @@ function filhosRegam() {
 }
 MANHA.push(() => {
   if (!G.horta) return;
-  if (!G.horta.pedidoFilhos && !G.horta.filhos && Horta.plantadas() >= 8) { G.horta.pedidoFilhos = true; G.feitosHoje.push('O Zezinho quer falar com você sobre a horta.'); }
+  if (!G.horta.pedidoFilhos && !G.horta.filhos && Horta.plantadas() >= 8) { G.horta.pedidoFilhos = true; if (G.limpou) G.limpou.regadorzinho_dia = G.dia; G.feitosHoje.push('O Zezinho quer falar com você sobre a horta.'); }
   const n = filhosRegam(); if (n) G.feitosHoje.push(`O Zezinho e a Ritinha regaram ${n} ${n === 1 ? 'cova' : 'covas'}.`);
 });
-TAREFAS.push(() => G.horta && G.horta.pedidoFilhos && !G.horta.filhos ? [{ texto: G.mochila.total('regadorzinho') ? 'Dar o regadorzinho ao Zezinho' : 'Comprar o regadorzinho do Zezinho (Ananias, Cr$ 30)' }] : []);
+// (C3, 16/10; o teste crítico: "Comprar o regadorzinho" ficou parado no Agora do dia 2 ao 25) O pedido do Zezinho fica no Agora por 2
+// dias; depois, só na Caderneta (aba Quintal e horta), e volta ao Agora quando o Jocelino está no depósito (onde se compra). Como no
+// Stardew: o pedido pequeno de um vizinho fica no diário, e o jogo não o repete na tela. O dia do pedido fica em G.limpou (vai no
+// save); o save antigo, sem o dia, conta como pedido antigo. Com o regadorzinho na mochila, "Dar ao Zezinho" fica (é a hora de dar).
+const REGADORZINHO_DIAS = 2;
+const regadorzinhoPendente = () => !!G.horta && G.horta.pedidoFilhos && !G.horta.filhos;
+const pertoDoDeposito = () => {
+  if (G.mapaId !== 'vila' || !G.mapa || !G.jog) return false;
+  const o = G.mapa.objs.find(x => x.id === 'deposito'); return !!o && Math.hypot(o.x - G.jog.x, o.y - G.jog.y) < 5 * TILE;
+};
+const regadorzinhoNoAgora = () => { const d = (G.limpou || {}).regadorzinho_dia; return G.mochila.total('regadorzinho') > 0 || (typeof d === 'number' && G.dia - d < REGADORZINHO_DIAS) || pertoDoDeposito(); };
+TAREFAS.push(() => regadorzinhoPendente() && regadorzinhoNoAgora() ? [{ texto: G.mochila.total('regadorzinho') ? 'Dar o regadorzinho ao Zezinho' : 'Comprar o regadorzinho do Zezinho (Ananias, Cr$ 30)' }] : []);
+// (a Caderneta carrega depois deste arquivo: a linha entra no começo do jogo)
+let _regadorzinhoNaCaderneta = false;
+INICIADORES.push(() => {
+  if (_regadorzinhoNaCaderneta || typeof CADERNETA === 'undefined') return; _regadorzinhoNaCaderneta = true;
+  CADERNETA.push(() => regadorzinhoPendente() && !regadorzinhoNoAgora() ? [{ id: 'quintal_regadorzinho', aba: 'quintal',
+    texto: 'O Zezinho pediu um regadorzinho (Seu Ananias, Cr$ 30): com ele, ele e a Ritinha regam a horta de manhã', alvo: { mapa: 'vila', objeto: 'deposito' }, rotulo: 'Botão direito: o depósito (aba Sementes)' }] : []);
+});
 function conversarZezinho(p) {
   if (G.horta.pedidoFilhos && !G.horta.filhos) {
     if (G.mochila.total('regadorzinho') > 0) {

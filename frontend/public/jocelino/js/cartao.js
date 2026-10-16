@@ -58,6 +58,21 @@ function metaDaBarrinha(noSalao) {
     if (m) return { tipo: 'melhoria', curto: `${m[1].nome}, para o salão: ${de(m[1].preco)}`, texto: `Juntando para o salão da pensão: ${m[1].nome} — Cr$ ${de(m[1].preco)}`, feito: f(m[1].preco), meta: m[1].preco }; }
   return null;
 }
+// (C3, 16/10; o teste crítico: o Agora e a seta mandaram ao Bazar às 8h e ao depósito às 6h20, antes de abrirem) O lugar do alvo
+// fechado agora: o depósito do Seu Ananias e a Mercearia (8h–17h, loja.js) e o Bazar do Salim (9h–17h, menos no domingo, bazar.js).
+// Devolve a frase "O Bazar do Salim abre às 9h" (ou '' com o lugar aberto, ou sem lugar com horário). Como no Stardew: o Pierre
+// fechado diz o horário na porta, e o jogo não manda ninguém para lá antes da hora. A seta pula o alvo fechado (guia_setas.js).
+function lugarFechado(a) {
+  if (!a) return '';
+  if ((a.objeto === 'deposito' || a.mercearia) && typeof depositoFechado === 'function' && depositoFechado())
+    return `O depósito do Seu Ananias abre ${G.minutos >= DEPOSITO_HORARIO.fecha ? 'amanhã ' : ''}às ${DEPOSITO_HORARIO.abre / 60}h`;
+  if (a.objeto === 'balcao_bazar' && typeof Bazar !== 'undefined' && !Bazar.aberto(G.dia, G.minutos)) {
+    const sem = (G.dia - 1) % 7, tarde = G.minutos >= 17 * 60;
+    return `O Bazar do Salim abre ${sem === 6 || (sem === 5 && tarde) ? 'na segunda, ' : tarde ? 'amanhã ' : ''}às 9h`;
+  }
+  return '';
+}
+const alvoAberto = a => !lugarFechado(a);
 // A linha do trabalho na mão (o quadro) vale no mapa dela; 'pensao' vale no salão e na cozinha.
 // (revisão: o que é da pensão aberta — as ★ da Rosa, o VIP, o concurso — aparece também na Vila, onde ela fica)
 const noMapaDaLinha = t => !!t.mapa && (t.mapa === G.mapaId || (t.mapa === 'pensao' && (/^pensao/.test(G.mapaId || '') || G.mapaId === 'vila')));
@@ -69,12 +84,19 @@ function agoraFamilia(avisos = []) {
   { const sa = typeof setaAgora === 'function' && G.mapaId === 'quintal' ? setaAgora() : null; if (sa && sa.missao === 'aula' && sa.aula) return 'Aula do Tio Juca: ' + sa.aula.fala; }
   const l = G.obra && typeof listaDeHoje === 'function' ? listaDeHoje() : null;
   if (l && !l.paga && !l.fechado && G.mapaId !== 'vila' && typeof Obra !== 'undefined' && !Obra.aberta(G.dia, G.minutos)) {
-    const falta = Object.keys(l.metas).filter(id => (l.feito[id] || 0) < l.metas[id]).length;
-    return falta ? `A obra do Bira está pela metade: faltam ${falta} tarefa(s) da lista (Cr$ ${Obra.diaria()} o dia)` : 'A lista da obra está completa: receba a diária com o Bira';
+    // (C2, 16/10) a tarefa que falta e onde ("Falta: 10 pedras do quintal (picareta) → entregar ao Bira"), e não "faltam 1 tarefa(s)"
+    const falta = typeof faltaDaObra === 'function' ? faltaDaObra(l) : '';
+    return falta ? `A obra do Bira (Cr$ ${Obra.diaria()} o dia) — ${falta}` : 'A lista da obra está completa: receba a diária com o Bira';
   }
   const g = G.guia;
   if (g && g.ativo && G.correio) for (const id of g.abertas) { const m = Guia.missao(id); if (m && m.carta && G.correio.caixa.includes(m.carta)) return `Chegou carta de ${m.quem}: a caixa de correio, no quintal`; }
   // (revisão) O que é só de hoje (o VIP, a festa, o concurso, o viajante, a ferramenta pronta, a promoção) passa na frente do guia.
+  // (C7, 16/10) Das 14h às 17h, a despensa curta para a janta de hoje (o que a Mercearia vende): a linha da Rosa, urgente, na frente dos
+  // outros urgentes (a Mercearia fecha às 17h e a janta abre logo depois); a seta vai na Mercearia (guia_setas.js).
+  // (rodada 2) Como a linha da Mercearia lá embaixo: só quando a seta é a da Mercearia (ou não há seta). Com a obra do Bira, a reforma
+  // ou a janta na frente, a seta fica nelas e o Agora também (a Rosa já avisou pela fala).
+  { const uj = typeof urgenteDaJanta === 'function' ? urgenteDaJanta() : null, sa = uj && typeof setaAgora === 'function' ? setaAgora() : null;
+    if (uj && (!sa || sa.missao === 'mercearia')) return uj.texto; }
   const urg = avisos.find(t => t.urgente); if (urg) return urg.texto;
   // (onda final, o robô #26: o Agora diz o mesmo que a seta) a seta de um serviço aceito ou da obra do dia, aqui no mapa de agora: o
   // Agora segue a seta (antes dizia "Obra: falar com o Mestre Bira" com a seta em "entregar a obra (Muro da divisa)")
@@ -87,7 +109,9 @@ function agoraFamilia(avisos = []) {
       // (revisão da T4: à noite, a janta manda) depois das 17h, nunca o recado (a janta ou o Dormir)
       if (sa.missao === 'recado' && sa.recado && typeof PEDIDOS_VILA !== 'undefined' && G.minutos < TARDE_FIM && tardeLivre() !== 'noite') { const c = PEDIDOS_VILA[sa.recado].cliente; return `O recado ${RECADO_ARTIGO[c] === 'a' ? 'da' : 'do'} ${Recados.nome(c)} — ${sa.rotulo}`; } } }
   // (o Agora diz o mesmo que a seta: o passo cujo lugar é o mapa de agora vem primeiro)
+  // (C3, 16/10) A meta que a seta segue (a fixa, guia_setas.js) vem primeiro; depois as outras, na ordem de prioridade da seta.
   const sm = typeof setaAgora === 'function' ? setaAgora() : null, daSeta = sm && g && g.abertas.includes(sm.missao) ? [sm.missao] : [];
+  let fechado = '', lugar = '';   // (C3) a linha de um lugar fechado agora: "O Bazar do Salim abre às 9h — ...", se nada mais vier
   if (g && g.ativo && typeof _missoesDaSeta === 'function') for (const id of daSeta.concat(_missoesDaSeta())) {
     const m = Guia.missao(id); if (!m) continue;
     // (revisão) Não mandar para o que está fechado agora: a obra fora do horário (domingo, chuva, depois das 17h), a janta sem pensão.
@@ -96,6 +120,9 @@ function agoraFamilia(avisos = []) {
     // (revisão final) A reforma de hoje já foi (o material todo e o dia trabalhado): a pensão cede, e vem o que o dia ainda tem.
     if (id === 'pensao' && G.pensao && G.pensao.feitaHoje && G.pensao.feitaHoje(G.dia)) continue;
     const txt = typeof m.agora === 'function' ? m.agora() : (m.agora || m.texto);
+    // (C3; o teste crítico: o Agora mandou ao Bazar às 8h e ao depósito às 6h20) o lugar fechado: sem seta, e o Agora mostra a próxima
+    // coisa; a linha "abre às Nh" fica para quando nada mais vier
+    { const f = lugarFechado(typeof _alvoDaMissao === 'function' ? _alvoDaMissao(id) : null); if (f) { if (!fechado) { fechado = `${f} — ${txt}`; lugar = f; } continue; } }
     return txt + (m.meta ? ` (${Guia.progresso(m)}/${m.meta})` : '');
   }
   // (revisão 3) Depois das 17h, sem nada mais (a noite livre), o Dormir vale mesmo com serviço aceito; e o serviço curto aceito no mapa
@@ -107,8 +134,11 @@ function agoraFamilia(avisos = []) {
   // (16/10, o gasto por prato) O cardápio da janta de hoje pede o que a despensa não tem: a Mercearia (a seta vai junto, guia_setas.js).
   // (rodada 1) Só quando a seta é a da Mercearia (ou não há seta): o Mostrar da Caderneta, as missões e os serviços vêm antes, nos dois.
   { const cj = typeof compraDaJanta === 'function' ? compraDaJanta() : null, sj = cj && typeof setaAgora === 'function' ? setaAgora() : null;
-    if (cj && (!sj || sj.missao === 'mercearia')) return cj.texto; }
-  if (avisos.length) return avisos[0].texto;
+    if (cj && lugarFechado({ mercearia: true })) { if (!fechado) { lugar = lugarFechado({ mercearia: true }); fechado = `${lugar} — ${cj.texto}`; } }
+    else if (cj && (!sj || sj.missao === 'mercearia')) return cj.texto; }
+  // (C7; a revisão da C3: às 6h30 o Agora mostrava só o aviso, sem o "abre às 8h") o aviso leva junto o horário do lugar fechado
+  if (avisos.length) return avisos[0].texto + (lugar ? ` · ${lugar}` : '');
+  if (fechado) return fechado;
   // (13/10) Dia vazio: uma sugestão só, com o porquê (a seta é a linha 'ideia_dia', ver Caderneta.linha mais abaixo). Na tarde livre
   // (teste de 13/10: o serviço do dia feito, o quadro vazio), ela diz como ganhar dinheiro até o fim da tarde, ou de dormir.
   const d = ideiaDoDia();
@@ -123,12 +153,16 @@ function agoraFamilia(avisos = []) {
 // fazer (a horta pronta, o mato, a casa) e o jogador escolhe. Aqui, uma só, no formato "Texto — o porquê", que o clique no Agora
 // transforma em seta. Sorteio fixo no dia (G.dia % n): amanhã a sugestão é outra.
 const IDEIA_DIA = 'ideia_dia';
-const TOCAR_REFORMA = { texto: 'Tocar a reforma da pensão — a Rosa só abre o restaurante com o salão pronto', alvo: { mapa: 'vila', objeto: 'pensao' } };
+// (C1, 16/10) A frase diz quantas etapas faltam (a de agora conta) e que a Rosa abre no dia em que a pintura ficar pronta.
+function tocarReforma() {
+  const p = G.pensao, k = p ? ECO.reforma.findIndex(e => e.id === p.estado) : -1, n = k < 0 ? ECO.reforma.length : ECO.reforma.length - k;
+  return { texto: `A reforma da pensão — falta${n > 1 ? 'm' : ''} ${n} etapa${n > 1 ? 's' : ''}: a Rosa abre o restaurante no dia em que a pintura ficar pronta`, alvo: { mapa: 'vila', objeto: 'pensao' } };
+}
 // A reforma de hoje pendente: limpar o salão, ou a etapa com o material todo entregue e o dia de hoje ainda não trabalhado.
 function reformaDoDia() {
   const p = G.pensao; if (!p || !(p.estado === 'limpar' || ECO.reforma.some(e => e.id === p.estado))) return null;
-  if (p.estado !== 'limpar' && (Object.keys(p.faltaMaterial()).length || p.feitaHoje(G.dia) || p.comecaAmanha(G.dia))) return null;
-  return TOCAR_REFORMA;
+  if (p.estado !== 'limpar' && (Object.keys(p.faltaMaterial()).length || p.feitaHoje(G.dia))) return null;
+  return tocarReforma();
 }
 // (revisão 3) A casa nova de hoje: a etapa reservada com o material e o dinheiro na mão (começar), em obra com o trabalho de hoje por
 // fazer (sem a chuva impedir), ou pronta para entregar. A seta vai na plaquinha do terreno.
@@ -155,7 +189,7 @@ function ideiaDoDia() {
   { const t = tardeLivre(), g = t === 'tarde' ? ganhoDaTarde() : t === 'noite' ? dormirDaNoite() : null; if (g) return Object.assign({ rotulo: g.texto.split(' — ')[0] }, g); }
   const op = [];
   if (typeof QuintalMarcos !== 'undefined' && G.quintalMarcos && QuintalMarcos.proximo())
-    op.push({ texto: `Limpar o quintal — mais chão para plantar e o presente do Tio Juca em ${QuintalMarcos.proximo()}%`, alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' } });
+    op.push({ texto: `Limpar o quintal${contaDoQuintal()} — mais chão para plantar e o presente do Tio Juca`, alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' } });
   // (relato de 14/10) o quintal sem madeira ou sem pedra: onde tem (a mata, ou a pedreira para a pedra)
   { const mf = materialDaTarde(); if (mf && !/^Limpar o quintal/.test(mf.texto)) op.push(mf); }
   if (G.casa && G.casa.aberta && !G.casa.mudou) { const E = ECO.casa.etapas[Math.min(G.casa.etapa || 0, ECO.casa.etapas.length - 1)], T = QUINTAL.TERRENO;
@@ -167,7 +201,7 @@ function ideiaDoDia() {
   if (G.lugares && G.lugares.praia) op.push(pescarNoPier());
   // O sonho da Rosa (o restaurante): a entrada da lojinha, e depois a reforma pela metade.
   if (G.lojinha && G.lojinha.conversou && !G.lojinha.comprada) op.push({ texto: `Juntar a entrada da lojinha — Cr$ ${Math.min(Math.max(0, G.dinheiro), ECO.lojinha.entrada)} de ${ECO.lojinha.entrada}: é o sonho da Rosa, o restaurante dela`, alvo: { mapa: 'vila', objeto: 'pensao' } });
-  else if (G.pensao && (G.pensao.estado === 'limpar' || ECO.reforma.some(e => e.id === G.pensao.estado)) && !G.pensao.feitaHoje(G.dia)) op.push(TOCAR_REFORMA);
+  else if (G.pensao && (G.pensao.estado === 'limpar' || ECO.reforma.some(e => e.id === G.pensao.estado)) && !G.pensao.feitaHoje(G.dia)) op.push(tocarReforma());
   if (!op.length) return null;
   const o = op[G.dia % op.length];
   return Object.assign({ rotulo: o.texto.split(' — ')[0] }, o);
@@ -216,13 +250,20 @@ function porqueDoDinheiro() {
   if (c && c.juntar) return 'para a casa nova';
   return 'dinheiro no bolso da família';
 }
-// O material que a família ainda vai usar (a reforma da pensão, a etapa da casa) não entra na sugestão de venda.
+// O material que a família ainda vai usar não entra na sugestão de venda: { item: quantos guardar }. (C2, 16/10) A reforma da pensão
+// inteira (a etapa de agora e as que faltam: no telhado, a madeira do balcão já fica guardada; antes só a etapa de agora), a etapa da
+// casa, o que os recados aceitos pedem e as pedras da obra do Bira de hoje. O teste crítico achou o Agora mandando vender 15 madeiras
+// na véspera de o balcão pedir 20, e as 16 pedras do recado do Seu Ananias.
 function materialGuardado() {
-  const r = {}, p = G.pensao;
-  if (p && typeof p.faltaMaterial === 'function' && ECO.reforma.some(e => e.id === p.estado)) Object.assign(r, p.faltaMaterial());
-  { const c = casaEtapas(); if (c && c.juntar) Object.assign(r, c.juntar.material || {}); }
+  const r = {}, soma = (it, q) => { if (q > 0) r[it] = (r[it] || 0) + q; };
+  { const m = typeof materialDaReforma === 'function' ? materialDaReforma() : {}; for (const it in m) soma(it, m[it]); }
+  { const c = casaEtapas(); if (c && c.juntar) for (const [it, q] of Object.entries(c.juntar.material || {})) soma(it, q); }
+  if (G.recados && typeof PEDIDOS_VILA !== 'undefined') for (const id of Object.keys(G.recados.ativos)) { const P = PEDIDOS_VILA[id]; if (P) soma(P.item, P.qtd); }
+  { const l = typeof listaDeHoje === 'function' && G.obra ? listaDeHoje() : null; if (l && !l.paga && !l.fechado && typeof faltaDePedras === 'function') soma('pedra', faltaDePedras(l)); }
   return r;
 }
+// Quanto do item dá para vender sem mexer no que a família guarda.
+const sobraParaVender = (id, guarda = materialGuardado()) => Math.max(0, G.mochila.total(id) - (guarda[id] || 0));
 // (revisão de 13/10) A colheita e o peixe são o prato da pensão (o coração do jogo): nunca entram na venda. Vende-se só o que a pensão
 // não usa: a madeira, a pedra, a fibra e a coleta do chão (com a pensão aberta, a fruta que a Rosa usa vai para a despensa dela).
 const ACHADOS_TODOS = () => typeof ACHADOS_ESTACAO === 'undefined' ? [] : [...new Set([].concat(...ACHADOS_ESTACAO, ...ACHADOS_MATA, ACHADOS_PRAIA).map(([id]) => id))];
@@ -251,10 +292,12 @@ function ganhoDaTarde() {
     if (ing.length) return { texto: `Guardar na despensa da Rosa — ${ing.slice(0, 2).map(id => Itens.qtd(G.mochila.total(id), id)).join(' e ')}${ing.length > 2 ? ' e mais' : ''}: entre na pensão e a Rosa guarda; na janta vira prato, e prato vendido é a pensão crescendo`,
       alvo, rotulo }; }
   // 1. O que já está na mochila e a pensão não usa: a caixa de venda do quintal (o carroceiro paga de madrugada).
-  const itens = VENDE_NA_TARDE().filter(id => G.mochila.total(id) > 0 && pr(id) > 0 && !guarda[id]).map(id => ({ id, n: G.mochila.total(id), v: pr(id) })).sort((a, b) => b.n * b.v - a.n * a.v);
+  // (C2) só o que sobra do material guardado (a madeira acima do que a reforma ainda pede; antes, o item guardado saía inteiro)
+  const itens = VENDE_NA_TARDE().map(id => ({ id, n: sobraParaVender(id, guarda), v: pr(id) })).filter(i => i.n > 0 && i.v > 0).sort((a, b) => b.n * b.v - a.n * a.v);
   const total = itens.reduce((t, i) => t + i.n * i.v, 0);
   if (itens.length && total >= 10) { const i = itens[0];
-    return { texto: `Vender na caixa de venda do quintal — ${Itens.qtd(i.n, i.id)} a Cr$ ${i.v} cada${itens.length > 1 ? ` (tudo o que dá para vender: Cr$ ${total})` : ` = Cr$ ${total}`}; o carroceiro paga de madrugada, ${porque}`,
+    const fica = itens.filter(x => guarda[x.id]).map(x => Itens.qtd(Math.min(guarda[x.id], G.mochila.total(x.id)), x.id));   // (C2) o que fica na mochila
+    return { texto: `Vender na caixa de venda do quintal — ${Itens.qtd(i.n, i.id)} a Cr$ ${i.v} cada${itens.length > 1 ? ` (tudo o que dá para vender: Cr$ ${total})` : ` = Cr$ ${total}`}; o carroceiro paga de madrugada, ${porque}${fica.length ? `; guarde ${fica.join(' e ')}, que a família vai usar` : ''}`,
       alvo: { mapa: 'quintal', objeto: 'caixa_venda' }, rotulo: 'Botão direito: vender na caixa' }; }
   // 1a. (dia cheio, Frente B) A pesca nova (a vara do Seu Lourival chega no dia 2, como a do Willy): até pegar o jeito (Pesca nível 1,
   // uns 6 peixes), pescar vem antes da coleta, da limpeza e do plantio — é a novidade da semana (o Stardew abre a praia no dia 2 para isso).
@@ -282,6 +325,13 @@ function ganhoDaTarde() {
 // do rio, mapa_mata.js) e a pedreira repõem toda manhã. Uma coisa só, com o porquê: o quintal com madeira e pedra, limpar o quintal;
 // sem madeira, a mata; com madeira e sem pedra, a pedreira (aberta no dia 5; antes dela, a beira do rio da mata).
 const DETS_MADEIRA = ['galho', 'toco', 'arvore'], DETS_PEDRA = ['pedra', 'pedregulho'];
+// (C3, 16/10; o teste crítico: "limpei 32 coisas em 1h50 e a frase não mudou nem mostrou barra") A conta da limpeza, como a linha
+// quintal_limpar da Caderneta: ": 32 de 120 (o presente em 25%)". Sem o marco seguinte (tudo dado), só a conta; sem os marcos, nada.
+function contaDoQuintal() {
+  if (typeof QuintalMarcos === 'undefined' || !G.quintalMarcos) return '';
+  const t = QuintalMarcos.total(), f = Math.max(0, t - QuintalMarcos.restantes()), m = QuintalMarcos.proximo();
+  return t ? `: ${f} de ${t}${m ? ` (o presente em ${m}%)` : ''}` : '';
+}
 const _maisPertoNoMapa = (mapa, dets) => () => { if (G.mapaId !== mapa) return { mapa };
   const o = typeof _maisPerto === 'function' ? _maisPerto(x => x.tipo === 'detrito' && dets.includes(x.det) && !x.empreitaDet) : null;
   return o ? { mapa, ponto: { x: o.x, y: o.y - 56 }, det: o.det } : null; };
@@ -292,13 +342,15 @@ function materialDaTarde(porque = porqueDoDinheiro()) {
   const mad = noQuintal(DETS_MADEIRA), ped = noQuintal(DETS_PEDRA), aberto = id => typeof Mundo === 'undefined' || Mundo.aberto(id);
   // (a mata ainda não montada vem cheia; a mata já limpa hoje não é sugestão: amanhã ela repõe)
   const naMata = dets => !MAPAS.mata || MAPAS.mata.objs.some(o => o.tipo === 'detrito' && dets.includes(o.det) && !o.empreitaDet);
-  const quintal = () => { const m = typeof QuintalMarcos !== 'undefined' && G.quintalMarcos ? QuintalMarcos.proximo() : null;
-    return { texto: `Limpar o quintal — o galho vira madeira (Cr$ ${pr('madeira')} cada na caixa de venda), a pedra vende a Cr$ ${pr('pedra')}: ${porque}${m ? `, e o Tio Juca dá um presente em ${m}% limpo` : ''}`,
-      alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' }, rotulo: 'Limpar o quintal: madeira e pedra para vender' }; };
+  // (C2, 16/10) com a reforma da pensão pedindo madeira, o galho não é "para vender": é a madeira da reforma (o Agora não contradiz)
+  const refMad = (typeof materialDaReforma === 'function' ? materialDaReforma() : {}).madeira || 0;
+  const madeiraVale = refMad ? `a reforma da pensão ainda pede ${Itens.qtd(refMad, 'madeira')}` : `Cr$ ${pr('madeira')} cada na caixa de venda`;
+  const quintal = () => ({ texto: `Limpar o quintal${contaDoQuintal()} — o galho vira madeira (${madeiraVale}), a pedra vende a Cr$ ${pr('pedra')}: ${porque}`,
+      alvo: typeof _alvoLimparQuintal === 'function' ? _alvoLimparQuintal : { mapa: 'quintal' }, rotulo: refMad ? 'Limpar o quintal: madeira para a reforma' : 'Limpar o quintal: madeira e pedra para vender' });
   if (mad && ped) return quintal();
   if (mad && aberto('pedreira')) return { texto: `Quebrar pedra na pedreira — o quintal está sem pedra; as rochas da entrada da pedreira se refazem toda manhã (a pedra vale Cr$ ${pr('pedra')} na caixa de venda e serve nas obras): ${porque}`,
     alvo: _maisPertoNoMapa('pedreira', ['rocha']), rotulo: 'A pedreira: pedra nova toda manhã' };
-  if (aberto('mata') && !mad && naMata(DETS_MADEIRA)) return { texto: `Cortar madeira na mata — o quintal está sem madeira; na mata, antes da ponte, entre a trilha e o rio, tem árvore e galho para cortar (Cr$ ${pr('madeira')} cada na caixa de venda)${ped ? '' : ' e pedra na beira do rio'}, e a mata repõe de manhã: ${porque}`,
+  if (aberto('mata') && !mad && naMata(DETS_MADEIRA)) return { texto: `Cortar madeira na mata — o quintal está sem madeira; na mata, antes da ponte, entre a trilha e o rio, tem árvore e galho para cortar (${madeiraVale})${ped ? '' : ' e pedra na beira do rio'}, e a mata repõe de manhã: ${porque}`,
     alvo: _maisPertoNoMapa('mata', ped ? DETS_MADEIRA : DETS_MADEIRA.concat(DETS_PEDRA)), rotulo: 'Na mata, antes da ponte: árvore e galho' };
   if (aberto('mata') && !ped && naMata(DETS_PEDRA)) return { texto: `Pegar pedra na mata — o quintal está sem pedra; na beira do rio da mata tem pedra e pedregulho para a picareta (Cr$ ${pr('pedra')} cada na caixa de venda), e a mata repõe de manhã: ${porque}`,
     alvo: _maisPertoNoMapa('mata', DETS_PEDRA), rotulo: 'Na beira do rio da mata: pedra' };
@@ -386,7 +438,13 @@ function atualizaCartao(avisos, noSalao) {
   HUD.cartaoNivel.style.width = Math.round(100 * Math.min(1, m.meta ? m.feito / m.meta : 1)) + '%';
   HUD.cartaoTexto.textContent = m.texto;
   HUD.cartaoAgora.textContent = 'Agora: ' + agoraFamilia(avisos);
+  // (C4, 16/10; o pedido da C3) "Limpar o quintal: N de T" ganha a barrinha de baixo (o trilho de madeira, como a da meta), com a conta.
+  if (HUD.cartaoConta) { const q = /^Agora: Limpar o quintal/.test(HUD.cartaoAgora.textContent) && typeof QuintalMarcos !== 'undefined' && G.quintalMarcos ? QuintalMarcos.total() : 0;
+    HUD.cartaoConta.hidden = !q;
+    if (q) { const f = Math.max(0, q - QuintalMarcos.restantes()), m = QuintalMarcos.proximo();
+      HUD.cartaoContaTexto.textContent = `O quintal: ${f} de ${q}${m ? ` (o presente em ${m}%)` : ''}`; HUD.cartaoContaNivel.style.width = Math.round(100 * Math.min(1, f / q)) + '%'; } }
   // (a ideia vira seta com um clique; de novo, tira)
   HUD.cartaoAgora._ideia = agoraFamilia.ideia; HUD.cartaoAgora.classList.toggle('ideia', !!agoraFamilia.ideia || !!G.setaFixa);
-  if (!HUD.cartaoAgora.onclick) HUD.cartaoAgora.onclick = () => { const id = HUD.cartaoAgora._ideia; if (G.setaFixa) G.setaFixa = null; else if (id) G.setaFixa = id; hudSujo(); };
+  // (C3) o clique no Agora troca a meta da seta: a meta fixa do dia (G.guia.fixa, guia_setas.js) é escolhida de novo
+  if (!HUD.cartaoAgora.onclick) HUD.cartaoAgora.onclick = () => { const id = HUD.cartaoAgora._ideia; if (G.setaFixa) G.setaFixa = null; else if (id) G.setaFixa = id; if (G.guia) G.guia.fixa = null; hudSujo(); };
 }

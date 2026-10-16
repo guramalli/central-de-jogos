@@ -10,12 +10,32 @@ const _culturasNaDespensa = () => { const d = (G.pensao && G.pensao.despensa) ||
 const _naReforma = e => ['telhas', 'mesas'].includes(e) || ECO.reforma.some(x => x.id === e);
 // (revisão final) O material da etapa que falta e de que a mochila não tem nada (o primeiro): { item, n }, ou null. Com algo do que
 // falta na mochila, o caminho é a Rosa (entregar primeiro). De onde vem cada um (a seta usa _alvoDoMaterial, como a empreita).
+// (C3, 16/10; pendência da C2: com 1 madeira na mochila a seta ia à Rosa entregar 1) Como as pedras do Bira: o caminho é a Rosa só
+// com o que completa a etapa na mochila — ou com o resto sem onde buscar hoje (o quintal e a mata sem madeira). Sem nada na mochila
+// e sem onde buscar, { semFonte: true }: nem seta nem viagem à toa (amanhã o quintal e a mata repõem). n = o que ainda falta buscar.
 function faltaDaReforma() {
   const p = G.pensao; if (!p || !G.mochila || !p._etapa()) return null;
-  const f = Object.entries(p.faltaMaterial()); if (!f.length || f.some(([it]) => G.mochila.total(it) > 0)) return null;
-  return { item: f[0][0], n: f[0][1] };
+  const f = Object.entries(p.faltaMaterial()); if (!f.length) return null;
+  const temFonte = it => typeof materialAoAlcance !== 'function' || materialAoAlcance(it);
+  const busca = f.find(([it, q]) => G.mochila.total(it) < q && temFonte(it));
+  if (busca) return { item: busca[0], n: busca[1] - G.mochila.total(busca[0]) };
+  if (f.some(([it]) => G.mochila.total(it) > 0)) return null;
+  return { item: f[0][0], n: f[0][1], semFonte: true };
 }
-const origemDoMaterial = it => LOJA.PRECOS[it] !== undefined ? 'o Seu Ananias vende no depósito' : it === 'madeira' ? 'galho e toco, no machado (no quintal)' : it === 'pedra' ? 'pedra, na picareta (no quintal)' : 'entregue à Rosa';
+// (C3, 16/10) De onde vem, pelo lugar que ainda tem hoje (materialAoAlcance, guia_setas.js): o quintal, a mata, a pedreira.
+const ORIGEM_MAPA = { madeira: { quintal: 'galho e toco, no machado (no quintal)', mata: 'árvore e galho, no machado (na mata, antes da ponte)' },
+  pedra: { quintal: 'pedra, na picareta (no quintal)', pedreira: 'rocha, na picareta (na pedreira do Seu Tonico)', mata: 'pedra, na picareta (na beira do rio da mata)' } };
+const origemDoMaterial = it => {
+  if (LOJA.PRECOS[it] !== undefined) return typeof precoLoja === 'function' && G.dinheiro < precoLoja(it) ? `o Seu Ananias vende no depósito, a Cr$ ${precoLoja(it)} cada: junte o dinheiro` : 'o Seu Ananias vende no depósito';
+  if (!ORIGEM_MAPA[it]) return 'entregue à Rosa';
+  const m = typeof materialAoAlcance === 'function' ? materialAoAlcance(it) : 'quintal';
+  if (m) return ORIGEM_MAPA[it][m];
+  // (C7; a revisão da C3: "o quintal e a mata repõem" com a mata ainda fechada) só os lugares já abertos de onde o material vem
+  const L = { quintal: 'o quintal', mata: 'a mata', pedreira: 'a pedreira' };
+  const abertos = (typeof FONTE_MATERIAL !== 'undefined' && FONTE_MATERIAL[it] ? FONTE_MATERIAL[it].map(([x]) => x) : ['quintal'])
+    .filter(x => L[x] && (x === 'quintal' || typeof Mundo === 'undefined' || Mundo.aberto(x))).map(x => L[x]);
+  return `${listaE(abertos)} ${abertos.length > 1 ? 'repõem' : 'repõe'} de manhã`;
+};
 // (dia cheio, Frente B) O porquê da pesca, com o preço (a sardinha e a tainha, os peixes de todo dia do píer): sem a pensão, a banca do
 // Seu Lourival compra na hora; com ela aberta, vai para a despensa da Rosa e vira prato. (O peixe não vai para a caixa de venda: é o
 // prato da pensão — revisão da tarde livre, 13/10.)
@@ -47,7 +67,9 @@ const GUIA_MISSOES = [
       if (p.estado === 'limpar') return 'O sonho da Rosa: arrumar a pensão da Dona Cotinha, começando pela limpeza do salão (a casa amarela, ao lado do depósito)';
       const E = ECO.reforma.find(e => e.id === p.estado); if (!E) return 'A pensão da Rosa'; const f = p.faltaMaterial ? p.faltaMaterial() : {};
       const fr = faltaDaReforma();
-      return Object.keys(f).length ? `A reforma — ${E.nome}: falta ${Object.entries(f).map(([i, q]) => Itens.qtd(q, i)).join(', ')}${fr ? ' — ' + origemDoMaterial(fr.item) : ' (entregue à Rosa)'}` : p.comecaAmanha && p.comecaAmanha(G.dia) ? `A reforma — ${E.nome}: começa amanhã (${E.dias} dia(s) de trabalho no salão)`
+      // (C3) com parte na mochila, quanto já tem; com tudo, "entregue à Rosa"
+      const naMochila = Object.entries(f).filter(([i, q]) => G.mochila.total(i) > 0 && G.mochila.total(i) < q).map(([i]) => `${G.mochila.total(i)} na mochila`);
+      return Object.keys(f).length ? `A reforma — ${E.nome}: falta ${Object.entries(f).map(([i, q]) => Itens.qtd(q, i)).join(', ')}${fr && naMochila.length ? ` (${naMochila.join(', ')})` : ''}${fr ? ' — ' + origemDoMaterial(fr.item) : ' (entregue à Rosa)'}`
         : p.feitaHoje && p.feitaHoje(G.dia) ? `A reforma — ${E.nome}: por hoje chega, amanhã tem mais` : `A reforma — ${E.nome}: ${E.dias - ((p.reforma || {}).dias || 0)} dia(s) de trabalho no salão`; }, titulo: 'Reformar a pensão', quem: 'Dona Cotinha', texto: 'Reformar a pensão: limpar o salão, o telhado, o balcão, a cozinha e a pintura', depois: 'vila', dia: 'pensao', carta: 'cotinha_pensao', libera: 'pensao', prioridade: true,
     abre: () => typeof Lojinha !== 'undefined' && Lojinha.comprada(),   // (13/10) só depois da compra da lojinha; quem abre a reforma é a compra
     feita: () => !!G.pensao && ['pronta', 'aberta'].includes(G.pensao.estado), aoAbrir: () => {} },
@@ -55,7 +77,8 @@ const GUIA_MISSOES = [
     agora: 'A horta da família: plante as sementes do Tio Juca no canteiro e regue (a Rosa cozinha, a caixa de venda leva o resto)',
     // (revisão: o save antigo que passou da chegada sem as sementes recebe as do Tio Juca ao abrir a horta)
     aoAbrir: () => { if (G.dia > 1 && G.mochila && !G.mochila.total('semente_alface') && typeof presentesDaChegada === 'function') { G.mochila.adicionar('semente_alface', 15); if (typeof avisar === 'function') avisar('O Tio Juca deixou um pacote de sementes de alface na porta.'); } } },
-  { id: 'janta', agora: 'Hoje é a inauguração da pensão: a primeira janta da Rosa, às 17h, com a Vila convidada (o dinheiro da janta também vai para a casa)', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
+  // (C3, 16/10) prioridade: com as vagas do guia cheias, a apresentação da 1ª janta não fica para depois da fala da inauguração
+  { id: 'janta', agora: 'Hoje é a inauguração da pensão: a primeira janta da Rosa, às 17h, com a Vila convidada (o dinheiro da janta também vai para a casa)', titulo: 'A primeira janta', quem: 'Rosa', texto: 'A primeira janta: às 17h, na pensão', depois: 'pensao', prioridade: true, abre: () => !!G.pensao && G.pensao.estado === 'aberta' && (G.dia - 1) % 7 !== 6,   // no domingo a pensão não abre
     feita: () => !!(G.relatorioPensao && G.relatorioPensao.servidos > 0),
     intro: ['rosa', 'Rosa', ['Amor, hoje é a inauguração! Às 17h a pensão abre, e eu convidei a Vila inteira.', 'Eu cozinho, você serve. Lá dentro eu te ensino, passo a passo.']] },
   // (o bico vem na tarde do dia 1, depois da Vila: o ritmo do balanço pede as empreitas cedo, e a tarde do dia 1 era vazia)
@@ -271,7 +294,8 @@ let guiaPasso = function () {
     if (G.jog && G.jog.carga && typeof CARGA_TAREFA !== 'undefined' && CARGA_TAREFA[G.jog.carga.id]) return { id: 'bira', nome: 'Mestre Bira', texto: `Agora leve até ${aObraDaVez()}.`, alvo: { objeto: idDaObraDaVez() } };
     const id = Object.keys(l.metas).find(k => (l.feito[k] || 0) < l.metas[k]);
     // (teste de 13/10: com as pedras na mochila, o passo não dizia onde entregar)
-    if ((id === 'buscar_pedra' || id === 'pedras') && G.mochila.total('pedra') > 0) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue n${aObraDaVez()}: botão direito no canteiro (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: idDaObraDaVez() } };
+    // (C2, 16/10) só com as pedras que completam a tarefa (com 1 pedra e 0/10, a dica é a de buscar no quintal)
+    if ((id === 'buscar_pedra' || id === 'pedras') && (typeof pedrasParaEntregar === 'function' ? pedrasParaEntregar(id) : G.mochila.total('pedra') > 0)) return { id: 'bira', nome: 'Mestre Bira', texto: `Trouxe as pedras? Entregue n${aObraDaVez()}: botão direito no canteiro (${l.feito[id] || 0}/${l.metas[id]}).`, alvo: { objeto: idDaObraDaVez() } };
     // (15/10) lavar e pintar: a ferramenta vem do Bira; com ela, a frase da seta e a obra
     if ((id === 'lavar' || id === 'pintar') && typeof faltaFerramentaDaObra === 'function') {
       if (faltaFerramentaDaObra(id)) return { id: 'bira', nome: 'Mestre Bira', texto: `Fale comigo: eu te dou ${id === 'lavar' ? 'a mangueira' : 'o rolo de pintura'}.`, alvo: { morador: 'bira' } };

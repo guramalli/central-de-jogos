@@ -9,6 +9,7 @@
 //   maioria, como no Stardew): depois de uma coleta vem entrega, e depois de 2 entregas seguidas vem coleta, quando houver
 //   (ECO.recados.entregasPorColeta; com 1, alterna dia sim, dia não); sem histórico, a entrega pesa 2 e a coleta 1; nada se
 //   repete em 7 dias, e o que está há mais tempo sem aparecer pesa mais;
+// - (C2, 16/10) não sai recado do material que a reforma da pensão ainda vai pedir, nem de pedra com a obra do dia pedindo pedra;
 // - prazo de 2 dias (o dia em que aceitou e o seguinte); vencido, some sem multa; até 2 recados aceitos de uma vez;
 // - a entrega é direto da mochila (decisão do dono, 15/10: botão direito no morador, "Entregar 3 couves?"): paga na hora o
 //   valor do ECO e dá +50 de amizade (amizade.js; a Lábia vale); a coleta só conta o que entrar na mochila depois de aceitar;
@@ -97,6 +98,18 @@ const RECADO_ARTIGO = { zelia: 'a', ananias: 'o', ze: 'o', bira: 'o', tonico: 'o
 const RECADO_NOME = { zelia: 'Dona Zélia', ananias: 'Seu Ananias', ze: 'Zé', bira: 'Mestre Bira', tonico: 'Seu Tonico', juca: 'Tio Juca', lourival: 'Seu Lourival' };
 // Os mapas onde se procura o material no chão (madeira, pedra, fibra), na ordem.
 const RECADO_MAPAS_MATERIAL = ['quintal', 'vila', 'mata', 'pedreira', 'praia'];
+// (C2, 16/10) O material que a reforma da pensão ainda vai pedir (a etapa de agora e as seguintes), desde que a Rosa contou o sonho
+// (antes, a família nem sabe da lojinha): { madeira: 20, ... }. O Agora não manda vender isso (cartao.js) e o quadro não sorteia
+// recado do mesmo item (Recados.disputa). Desde o sonho, e não só da compra em diante: o recado do dia é sorteado de manhã, e no robô
+// (semente 33) o de madeira do Zé saiu às 7h do dia da compra, foi aceito depois dela e levou a madeira do balcão (a janta foi do
+// dia 5 para o 8); e o Agora não manda vender na véspera o que a reforma vai pedir no dia seguinte. Diferença pequena e de propósito
+// do Stardew (lá o Help Wanted pode pedir a madeira que o jogador junta para a Robin, e ele decide): aqui o quadro tem só 1 recado
+// por dia e o robô da Fase A perdeu 15 dias com a disputa.
+function materialDaReforma() {
+  const p = G.pensao; if (!p || typeof p.materialQueFalta !== 'function') return {};
+  if (p.estado === 'fechada' && !(G.lojinha && G.lojinha.conversou)) return {};
+  return p.materialQueFalta();
+}
 
 const Recados = {
   iniciar(s) {
@@ -189,7 +202,14 @@ const Recados = {
     const R = G.recados, ocupados = new Set((servicos || Recados.clientesDosServicos(dia)).concat(Object.keys(R.ativos).map(k => PEDIDOS_VILA[k].cliente)));
     const itens = new Set(Object.keys(R.ativos).map(k => PEDIDOS_VILA[k].item));
     return Object.keys(PEDIDOS_VILA).filter(id => !R.ativos[id] && !(R.ultimaVez[id] && dia - R.ultimaVez[id] < ECO.recados.janela)
-      && !ocupados.has(PEDIDOS_VILA[id].cliente) && !itens.has(PEDIDOS_VILA[id].item) && Recados.possivel(id, dia));
+      && !ocupados.has(PEDIDOS_VILA[id].cliente) && !itens.has(PEDIDOS_VILA[id].item) && !Recados.disputa(id, dia) && Recados.possivel(id, dia));
+  },
+  // (C2, 16/10) O recado disputa o material da família: o item que a reforma da pensão ainda vai pedir (a madeira do balcão), ou a
+  // pedra com a obra do Bira pedindo pedra da mochila hoje (obraPedePedra, obra_jogo.js). Esse não sai no sorteio.
+  disputa(id, dia = G.dia) {
+    const P = PEDIDOS_VILA[id]; if (!P) return false;
+    if (materialDaReforma()[P.item]) return true;
+    return P.item === 'pedra' && typeof obraPedePedra === 'function' && obraPedePedra(dia);
   },
   // Os recados que já saíram antes do dia, do mais novo ao mais velho.
   ultimos(dia = G.dia) { const R = G.recados; return Object.keys(R.ultimaVez).filter(id => PEDIDOS_VILA[id] && R.ultimaVez[id] < dia).sort((a, b) => R.ultimaVez[b] - R.ultimaVez[a]); },

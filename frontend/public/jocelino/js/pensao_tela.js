@@ -118,10 +118,9 @@ function pensaoPlaquinha() {
     if (txt) { atualizarPensaoMundo(); hudSujo(); sons.tocar('feito', 1, 0.03, 0); abrirPlaca(`${txt}`); }
     else { const falta = Object.entries(p.faltaMaterial());
       abrirPlaca(falta.length ? `Rosa: "${E.nome}: ainda falta ${falta.map(([i, q]) => Itens.qtd(q, i)).join(', ')}, amor."`
-        : p.comecaAmanha(G.dia) ? `Rosa: "O material já tá aqui. ${E.nome}: amanhã a gente começa, amor, que hoje já teve reforma."`
         : p.feitaHoje(G.dia) ? `Rosa: "Por hoje chega, amor: ${minuscula(E.nome)}, amanhã tem mais (falta${E.dias - (p.reforma.dias || 0) > 1 ? 'm' : ''} ${E.dias - (p.reforma.dias || 0)} dia(s))."`
         : `Rosa: "O material já tá aqui. ${E.nome}: agora é trabalho, ${E.dias - (p.reforma.dias || 0)} dia(s) no salão."`); }
-  } else if (p.estado === 'pronta') abrirPlaca('Tudo pronto! A Pensão da Rosa abre amanhã. A janta começa às 17h e vai até o último freguês.');
+  } else if (p.estado === 'pronta') abrirPlaca(`Tudo pronto! A Pensão da Rosa abre ${typeof quandoAbreAPensao === 'function' ? quandoAbreAPensao() : 'amanhã'}. A janta começa às 17h e vai até o último freguês.`);   // (C1: amanhã, ou segunda)
   else if (p.estado === 'aberta') abrirPainelPensao();
   return true;
 }
@@ -135,7 +134,7 @@ TAREFAS.push(() => {
     // (revisão final) Sem o material na mochila, a linha diz onde buscar; com ele, onde fica a pensão.
     const fr = typeof faltaDaReforma === 'function' ? faltaDaReforma() : null;
     if (falta > 0) return [{ texto: `Pensão — ${E.nome}: ${Object.keys(E.material).map(i => Itens.nome(i).toLowerCase()).join(' e ')} para a Rosa (${fr ? origemDoMaterial(fr.item) : 'a pensão é a casa amarela da Dona Cotinha, na Vila, ao lado do depósito'})`, feito: pede - falta, meta: pede }];
-    return [{ texto: p.comecaAmanha(G.dia) ? `Pensão — ${E.nome}: começa amanhã (a reforma de hoje já foi)` : p.feitaHoje(G.dia) ? `Pensão — ${E.nome}: amanhã tem mais (o trabalho de hoje já foi)` : `Pensão — ${E.nome}: dias de trabalho no salão (clique no lugar da obra)`, feito: p.reforma.dias || 0, meta: E.dias, mapa: 'pensao' }];
+    return [{ texto: p.feitaHoje(G.dia) ? `Pensão — ${E.nome}: amanhã tem mais (o trabalho de hoje já foi)` : `Pensão — ${E.nome}: dias de trabalho no salão (clique no lugar da obra)`, feito: p.reforma.dias || 0, meta: E.dias, mapa: 'pensao' }];
   }
   if (pensaoAbreHoje() && p.ultimaJanta !== G.dia && G.minutos < 20 * 60) return [{ texto: 'Janta na Pensão da Rosa às 17h', lembrete: true }];   // (lembrete fixo: não tira as ideias do quadro)
   return [];
@@ -262,13 +261,13 @@ function pensaoQuadro() {
   const esc = {};
   for (const [id, e] of Object.entries(p.cardapioNoite || {})) if (p.receitas.includes(id)) esc[id] = { panelas: Math.max(0, e.panelas | 0), repoe: e.repoe !== false };
   p.cardapioNoite = esc;
-  const lousa = el('div', { class: 'lousa quadro-cardapio ' + modo });
+  const lousa = el('div', { class: 'lousa quadro-cardapio com-pe ' + modo });   // (C5) o título e o rodapé fixos; só o meio rola (ui: .com-pe)
   let filtro = '';   // (Tarefa D1) a categoria escolhida no filtro do quadro ('' = todas)
   const marca = k => { if (G.limpou) G.limpou[k] = (G.limpou[k] || 0) + 1; };
   // (14/10, o jogador: "quando clico para adicionar uma panela a tela do cardápio dá uma piscada") O redesenho monta tudo fora da tela
   // e troca de uma vez (replaceChildren), guardando a rolagem e a fala da Rosa (que nascia escondida e piscava até o guia reescrever).
   const desenha = () => {
-    const rolagem = lousa.scrollTop, f0 = lousa.querySelector('.qc-rosa'), fVis = !!(f0 && !f0.hidden), fTxt = f0 ? f0.querySelector('.guia-faixa-texto').textContent : '';
+    const rolagem = (lousa.querySelector('.miolo') || lousa).scrollTop, f0 = lousa.querySelector('.qc-rosa'), fVis = !!(f0 && !f0.hidden), fTxt = f0 ? f0.querySelector('.guia-faixa-texto').textContent : '';
     const caixa = el('div');
     const CQ = contaDoQuadro(p, esc), efe = id => panelasEfetivas(CQ, esc, id, modo);
     const ocupa = modo === 'durante' ? new Set(p.pratosDaNoite()) : new Set(Object.keys(esc).filter(id => efe(id) > 0));
@@ -357,16 +356,18 @@ function pensaoQuadro() {
     if (motivo) caixa.append(el('div', { class: 'qc-aviso qc-horario' }, motivo));
     const principal = modo === 'abertura' ? el('button', { class: 'tabua acesa qc-abrir', 'data-guia': 'abrir', onclick: e2 => { e2.stopPropagation(); abrirAPensao(); } }, 'Abrir a pensão')
       : el('button', { class: 'tabua acesa', onclick: e2 => { e2.stopPropagation(); fecharModal(); } }, modo === 'durante' ? 'Voltar ao salão' : depois ? 'Guardar o cardápio de amanhã' : 'Guardar o cardápio');
-    caixa.append(el('div', { class: 'qc-rodape' },
+    caixa.append(el('div', { class: 'qc-rodape pe' },
       el('img', { class: 'giz-enfeite palmeira', src: urlArte('ui/pensao/palmeirinha_giz'), alt: '' }),
       el('button', { class: 'tabua', onclick: e2 => { e2.stopPropagation(); _aoFecharModal = null; fecharModal(); _voltaAoQuadro = modo === 'abertura'; abrirCaderno(); } }, 'Caderno'),
       el('img', { class: 'giz-enfeite seta', src: urlArte('ui/pensao/seta_giz'), alt: '' }), principal,
       el('img', { class: 'giz-enfeite seta volta', src: urlArte('ui/pensao/seta_giz'), alt: '' }),
       el('button', { class: 'tabua', onclick: e2 => { e2.stopPropagation(); _aoFecharModal = null; fecharModal(); _voltaAoQuadro = modo === 'abertura'; abrirDespensa(); } }, 'Despensa'),
       el('img', { class: 'giz-enfeite palmeira', src: urlArte('ui/pensao/palmeirinha_giz'), alt: '' })));
-    lousa.replaceChildren(...caixa.childNodes);
+    // (C5, 16/10; o teste crítico B, dia 9: o "Abrir a pensão" meio fora da lousa e o 1º clique não pegou) o título e a linha do
+    // topo fixos em cima, o rodapé (Caderno, Abrir a pensão, Despensa) fixo embaixo; só o meio rola
+    { const filhos = [...caixa.childNodes], pe = filhos.pop(), cab = filhos.splice(0, 2); lousa.replaceChildren(...cab, el('div', { class: 'miolo' }, ...filhos), pe); }
     if (fVis) { const f1 = lousa.querySelector('.qc-rosa'); if (f1) { f1.hidden = false; f1.querySelector('.guia-faixa-texto').textContent = fTxt; } }
-    lousa.scrollTop = rolagem;
+    lousa.querySelector('.miolo').scrollTop = rolagem;
   };
   desenha();
   // Fechou sem abrir: a janta continua esperando (o botão "Cardápio" e os nichos abrem de novo).
@@ -398,6 +399,18 @@ function abrirAPensao() {
     perguntar(`Nenhuma panela no quadro. Abrir só com o prato da casa? Todo mundo leva o ${C.nome} (Cr$ ${C.preco}, sem curtida).`, ['Abrir só com o prato da casa', 'Voltar ao quadro'], i => { if (i === 0) vai(); else pensaoQuadro(); });
     return;
   }
+  // (C7, 16/10; o teste crítico C, solução 2) A conta não fecha: o que a despensa dá (as panelas do quadro e o "Rosa repõe") contra os
+  // fregueses de sempre da noite. O botão pergunta antes, como o Bancho mostra o estoque curto antes de abrir. A Mercearia só entra na
+  // pergunta se ainda estiver aberta (ela fecha às 17h, a hora da janta).
+  { const c = typeof pratosDaJanta === 'function' ? pratosDaJanta(p, false) : null;
+    if (c && c.da < c.esperados) {
+      const C = ECO.pensao.pratoCasa, merc = typeof depositoFechado === 'function' && !depositoFechado(), casa = `o ${minusculaInicial(C.nome)} (Cr$ ${C.preco})`;
+      perguntar(merc ? `Dá para ${c.da} de ~${c.esperados}. Abrir assim (quem ficar sem prato leva ${casa}) ou ir à Mercearia?`
+        : `Dá para ${c.da} de ~${c.esperados}. Abrir assim? Quem ficar sem prato leva ${casa}. A Mercearia do Ananias já fechou: amanhã, compre antes das 17h.`,
+        merc ? ['Abrir assim', 'Ir à Mercearia', 'Voltar ao quadro'] : ['Abrir assim', 'Voltar ao quadro'],
+        (i, o) => { if (i === 0) vai(); else if (o === 'Ir à Mercearia') avisar('A Mercearia do Ananias fica no depósito, ao lado da pensão: a janta espera o cardápio.'); else pensaoQuadro(); });
+      return;
+    } }
   vai();
 }
 // A sobra da noite, em texto ("Sobrou: 3 porções de PF do Peão Valente (foram para o lixo)."), ou '' sem sobra.
