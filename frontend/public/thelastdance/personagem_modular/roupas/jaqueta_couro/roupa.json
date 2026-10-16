@@ -1,0 +1,142 @@
+{
+ "id": "jaqueta_couro",
+ "nome": "Jaqueta de couro",
+ "vistas": {
+  "frente": {
+   "camadas": [
+    {
+     "osso": "tronco",
+     "z": 12.5,
+     "img": "roupas/jaqueta_couro/frente/tronco_0.png",
+     "x": 315,
+     "y": 711
+    },
+    {
+     "osso": "braco_sup_esq",
+     "z": 9.5,
+     "img": "roupas/jaqueta_couro/frente/braco_sup_esq_1.png",
+     "x": 204,
+     "y": 720
+    },
+    {
+     "osso": "antbraco_esq",
+     "z": 10.5,
+     "img": "roupas/jaqueta_couro/frente/antbraco_esq_2.png",
+     "x": 195,
+     "y": 876
+    },
+    {
+     "osso": "braco_sup_dir",
+     "z": 7.5,
+     "img": "roupas/jaqueta_couro/frente/braco_sup_dir_3.png",
+     "x": 619,
+     "y": 717
+    },
+    {
+     "osso": "antbraco_dir",
+     "z": 6.5,
+     "img": "roupas/jaqueta_couro/frente/antbraco_dir_4.png",
+     "x": 664,
+     "y": 876
+    }
+   ],
+   "substituir": {
+    "cabeca": {
+     "z": 12.9,
+     "img": "roupas/jaqueta_couro/frente/cabeca_sem_pescoco.png",
+     "x": 153,
+     "y": 81
+    }
+   }
+  },
+  "costas": {
+   "camadas": [
+    {
+     "osso": "tronco",
+     "z": 8.5,
+     "img": "roupas/jaqueta_couro/costas/tronco_0.png",
+     "x": 306,
+     "y": 690
+    },
+    {
+     "osso": "tronco",
+     "z": 8.6,
+     "img": "roupas/jaqueta_couro/costas/tronco_1.png",
+     "x": 225,
+     "y": 735
+    },
+    {
+     "osso": "braco_esq",
+     "z": 6.5,
+     "img": "roupas/jaqueta_couro/costas/braco_esq_2.png",
+     "x": 231,
+     "y": 879
+    },
+    {
+     "osso": "tronco",
+     "z": 8.6,
+     "img": "roupas/jaqueta_couro/costas/tronco_3.png",
+     "x": 646,
+     "y": 735
+    },
+    {
+     "osso": "braco_dir",
+     "z": 7.5,
+     "img": "roupas/jaqueta_couro/costas/braco_dir_4.png",
+     "x": 664,
+     "y": 879
+    }
+   ]
+  },
+  "lado_direito": {
+   "camadas": [
+    {
+     "osso": "tronco",
+     "z": 8.5,
+     "img": "roupas/jaqueta_couro/lado_direito/tronco_0.png",
+     "x": 336,
+     "y": 627
+    },
+    {
+     "osso": "braco",
+     "z": 9.5,
+     "img": "roupas/jaqueta_couro/lado_direito/braco_1.png",
+     "x": 363,
+     "y": 714
+    },
+    {
+     "osso": "braco_tras",
+     "z": -9.5,
+     "img": "roupas/jaqueta_couro/lado_direito/braco_tras_2.png",
+     "x": 363,
+     "y": 714
+    }
+   ]
+  },
+  "lado_esquerdo": {
+   "camadas": [
+    {
+     "osso": "tronco",
+     "z": 8.5,
+     "img": "roupas/jaqueta_couro/lado_esquerdo/tronco_0.png",
+     "x": 366,
+     "y": 627
+    },
+    {
+     "osso": "braco",
+     "z": 9.5,
+     "img": "roupas/jaqueta_couro/lado_esquerdo/braco_1.png",
+     "x": 501,
+     "y": 708
+    },
+    {
+     "osso": "braco_tras",
+     "z": -9.5,
+     "img": "roupas/jaqueta_couro/lado_esquerdo/braco_tras_2.png",
+     "x": 501,
+     "y": 708
+    }
+   ]
+  }
+ }
+}

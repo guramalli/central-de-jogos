@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste: personagem modular</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1d1f24; color: #e9e6df; font: 14px system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #painel { position: fixed; top: 12px; left: 12px; background: rgba(0,0,0,.55); padding: 10px 12px; border-radius: 8px; line-height: 1.6; }
+  button { font: inherit; padding: 4px 10px; margin-right: 6px; border-radius: 6px; border: 1px solid #555; background: #2c2f36; color: inherit; cursor: pointer; }
+  button.on { background: #a3262a; border-color: #d44; }
+  kbd { background: #333; border-radius: 3px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="painel">
+  <b>Personagem modular</b><br>
+  Andar: <kbd>setas</kbd> ou <kbd>WASD</kbd><br>
+  <button id="btnJaqueta">Jaqueta (J)</button>
+  <button id="btnEscala">Tamanho</button>
+  <div id="info"></div>
+</div>
+<script src="dados.js"></script>
+<script src="personagem-modular.js"></script>
+<script>
+(async function () {
+  const tela = document.getElementById('tela');
+  const ctx = tela.getContext('2d');
+  const info = document.getElementById('info');
+  const btnJaqueta = document.getElementById('btnJaqueta');
+
+  // base = pasta onde está o dados.js (aqui, a mesma do teste.html)
+  const heroi = await new PersonagemModular(window.PERSONAGEM_MODULAR, '').carregar();
+
+  let x = 0, y = 0, escalas = [0.18, 0.25, 0.35], ie = 1;
+  const teclas = new Set();
+  function redimensionar() {
+    tela.width = innerWidth * devicePixelRatio; tela.height = innerHeight * devicePixelRatio;
+    if (!x) { x = tela.width / 2; y = tela.height * 0.7; }
+  }
+  addEventListener('resize', redimensionar); redimensionar();
+  addEventListener('keydown', (e) => {
+    teclas.add(e.key.toLowerCase());
+    if (e.key.toLowerCase() === 'j') alternarJaqueta();
+  });
+  addEventListener('keyup', (e) => teclas.delete(e.key.toLowerCase()));
+  function alternarJaqueta() { btnJaqueta.classList.toggle('on', heroi.alternar('jaqueta_couro')); }
+  btnJaqueta.onclick = alternarJaqueta;
+  document.getElementById('btnEscala').onclick = () => { ie = (ie + 1) % escalas.length; };
+
+  // ?test=1: modo de teste automatizado (limita a 30 fps para poupar CPU)
+  const modoTeste = new URLSearchParams(location.search).get('test') === '1';
+  window.heroi = heroi;
+  let antes = performance.now();
+  function quadro(agora) {
+    if (modoTeste && agora - antes < 1000 / 30) { requestAnimationFrame(quadro); return; }
+    const dt = Math.min(0.05, (agora - antes) / 1000); antes = agora;
+    let dx = 0, dy = 0;
+    if (teclas.has('arrowleft') || teclas.has('a')) dx -= 1;
+    if (teclas.has('arrowright') || teclas.has('d')) dx += 1;
+    if (teclas.has('arrowup') || teclas.has('w')) dy -= 1;
+    if (teclas.has('arrowdown') || teclas.has('s')) dy += 1;
+    const esc = escalas[ie] * devicePixelRatio;
+    if (dx || dy) {
+      const n = Math.hypot(dx, dy), vel = 900 * esc;
+      x += dx / n * vel * dt; y += dy / n * vel * dt * 0.7;
+      heroi.olharPara(dx, dy); heroi.tocar('andar');
+    } else heroi.tocar('parado');
+    heroi.atualizar(dt);
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#2a2d33'; ctx.fillRect(0, 0, tela.width, tela.height);
+    ctx.fillStyle = '#3a6b3f'; ctx.fillRect(0, tela.height * 0.45, tela.width, tela.height);
+    // sombra no chão
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    ctx.beginPath(); ctx.ellipse(x, y, 330 * esc, 70 * esc, 0, 0, Math.PI * 2); ctx.fill();
+    heroi.desenhar(ctx, x, y, esc);
+
+    info.textContent = `vista: ${heroi.vista} | animação: ${heroi.animacao} | quadro ${heroi.quadroAtual() + 1}/8`;
+    requestAnimationFrame(quadro);
+  }
+  requestAnimationFrame(quadro);
+})().catch((e) => { document.body.insertAdjacentHTML('beforeend', '<pre style="color:#f88;padding:20px">' + e.message + '</pre>'); console.error(e); });
+</script>
+</body>
+</html>

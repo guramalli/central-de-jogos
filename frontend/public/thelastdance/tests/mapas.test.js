@@ -52,11 +52,11 @@ for (const P of MAPAS) {
     }
   });
 
-  if (P.caixas.some((c) => c.destinos)) test(`${P.id}: dá para chegar no carro (menu de destinos)`, () => {
+  if (P.caixas.some((c) => c.destinos || c.interacao)) test(`${P.id}: dá para chegar nos objetos de tocar (carro, armário)`, () => {
     const g = ISO.alcance(P, P.inicio.x, P.inicio.y, RAIO, 0.1);
-    for (const c of P.caixas.filter((k) => k.destinos)) {
+    for (const c of P.caixas.filter((k) => k.destinos || k.interacao)) {
       assert.ok(c.falarDe && ISO.livre(P, c.falarDe.x, c.falarDe.y, RAIO) && g.alcancavel(c.falarDe.x, c.falarDe.y), c.nome);
-      assert.ok((P.destinos || []).some((d) => d.ativo), "carro sem destino ativo");
+      if (c.destinos) assert.ok((P.destinos || []).some((d) => d.ativo), "carro sem destino ativo");
     }
   });
 

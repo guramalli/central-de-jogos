@@ -55,7 +55,8 @@
 
       // QUARTO (do moodboard)
       // armário no fundo: alto na frente da câmera taparia a sala
-      { nome: "Armário", tipo: "armario", x0: 6.15, y0: 0, x1: 7.05, y1: 0.6, z1: 2.1, arte: "armario" },
+      { nome: "Armário", tipo: "armario", x0: 6.15, y0: 0, x1: 7.05, y1: 0.6, z1: 2.1, arte: "armario",
+        interacao: "armario", falarDe: { x: 6.6, y: 1.05 } },   // tocar: escolhe a roupa do dia
       { nome: "Cama", tipo: "cama", x0: 7.35, y0: 0, x1: 9.25, y1: 2.1, z1: 0.55, arte: "cama" },
       { nome: "Criado-mudo", tipo: "movel", x0: 9.35, y0: 0, x1: 9.85, y1: 0.45, z1: 0.55, arte: "criado_mudo" },
       { nome: "Mesa + computador", tipo: "mesa", x0: 9.3, y0: 3.6, x1: 10, y1: 5.2, z1: 0.75, arte: "mesa_computador" },

@@ -4,6 +4,7 @@
 // Parâmetros: ?comodo=sala|quarto (onde começa), ?conjunto=video|prancha|recorte_sul+video, ?demo, ?grade.
 (function () {
   "use strict";
+  const global = window;
   const { CONFIG, estado, ISO } = NSF;
   const P = NSF.PLANTA_ATUAL || NSF.PLANTA_APARTAMENTO; // o mapa vem da planta que a página carregou
   const params = new URLSearchParams(location.search);
@@ -79,19 +80,61 @@
   addEventListener("blur", () => teclas.clear());
   const bDemo = document.getElementById("demo"), bGrade = document.getElementById("grade"), bNomes = document.getElementById("nomes");
   const bConj = document.getElementById("conjunto");
+
+  // ---------- personagem modular (peças presas a um esqueleto; troca de roupa) ----------
+  // Escolhido no botão "Sprites" (vira "Sprites: modular"); a escolha e a jaqueta valem em todos os mapas.
+  const PASTA_MOD = "personagem_modular/", MODULAR = "modular";
+  const ALTURA_MOD = 1375; // px do personagem no desenho original (pés em 1456, topo do cabelo ~81)
+  const VISTA_MOD = { baixo: "frente", cima: "costas", esquerda: "lado_esquerdo", direita: "lado_direito" };
+  const pref = {
+    ler(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+    gravar(k, v) { try { localStorage.setItem(k, v); } catch (_) { /* sem armazenamento: só não lembra */ } },
+  };
+  let heroi = null, previa = null, heroiRelogio = 0;
+  let roupas = (() => { try { return JSON.parse(pref.ler("nsf_roupas")) || []; } catch (_) { return []; } })();
+  function guardarRoupas() { roupas = heroi.vestidas.slice(); pref.gravar("nsf_roupas", JSON.stringify(roupas)); }
+  function carregarScript(src) {
+    return new Promise((ok, erro) => {
+      const el = document.createElement("script");
+      el.src = src; el.onload = ok; el.onerror = () => erro(new Error("não carregou: " + src));
+      document.head.appendChild(el);
+    });
+  }
+  function carregarModular() {
+    if (heroi) return Promise.resolve();
+    const libs = global.PersonagemModular ? Promise.resolve()
+      : carregarScript(PASTA_MOD + "dados.js").then(() => carregarScript(PASTA_MOD + "personagem-modular.js"));
+    return libs.then(() => new global.PersonagemModular(global.PERSONAGEM_MODULAR, PASTA_MOD).carregar()).then((h) => {
+      heroi = h;
+      heroi.pixelado = false; // reduzido no mapa: suavizar, como as folhas de sprite
+      for (const r of roupas) if (heroi.roupas[r]) heroi.vestir(r);
+    });
+  }
+  const bJaqueta = document.createElement("button");
+  bJaqueta.id = "jaqueta"; bJaqueta.textContent = "Jaqueta"; bJaqueta.hidden = true;
+  if (bConj) bConj.after(bJaqueta);
+  bJaqueta.addEventListener("click", () => {
+    if (!heroi) return;
+    heroi.alternar("jaqueta_couro");
+    guardarRoupas();
+    marcar();
+  });
+
   function marcar() {
     bDemo.setAttribute("aria-pressed", String(demo));
     bGrade.setAttribute("aria-pressed", String(mostrarGrade));
     bNomes.setAttribute("aria-pressed", String(mostrarNomes));
     if (bConj && conjunto) bConj.textContent = "Sprites: " + conjunto;
+    bJaqueta.hidden = conjunto !== MODULAR;
+    bJaqueta.setAttribute("aria-pressed", String(roupas.includes("jaqueta_couro")));
   }
   bDemo.addEventListener("click", () => { demo = !demo; caminho = []; marcar(); });
   if (bConj) bConj.addEventListener("click", () => {
     if (!manifesto) return;
-    const nomes = Object.keys(manifesto.conjuntos);
+    const nomes = [...Object.keys(manifesto.conjuntos), MODULAR];
     const proximo = nomes[(nomes.indexOf(conjunto) + 1) % nomes.length];
     bConj.textContent = "Carregando…";
-    carregarConjunto(proximo).then(() => { conjunto = proximo; marcar(); })
+    carregarConjunto(proximo).then(() => { conjunto = proximo; pref.gravar("nsf_conjunto", proximo); marcar(); })
       .catch((e) => { estado.erros.push(String(e)); marcar(); });
   });
   bGrade.addEventListener("click", () => { mostrarGrade = !mostrarGrade; marcar(); });
@@ -163,7 +206,7 @@
   }
 
   // Objetos que abrem o menu de destinos (o carro na garagem): tocar -> ele vai até "falarDe" -> menu.
-  const VEICULOS = P.caixas.filter((c) => c.destinos);
+  const VEICULOS = P.caixas.filter((c) => c.destinos || c.interacao);
   function caixaNaTela(c, m, folga) {
     const pts = [];
     for (const x of [c.x0, c.x1]) for (const y of [c.y0, c.y1]) for (const z of [0, c.z1]) pts.push(T(x, y, z));
@@ -177,8 +220,23 @@
     irPara(f.x, f.y, () => {
       const [ax, ay] = ISO.tela(jog.x, jog.y, 0), [bx, by] = ISO.tela((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, 0);
       jog.dir = direcaoSprite(bx - ax, by - ay);
-      mostrarDestinos();
+      if (c.interacao === "armario") abrirArmario();
+      else mostrarDestinos();
     });
+  }
+  // Guarda-roupa: as roupas são do personagem modular — se ele estiver com outro conjunto, troca para o modular.
+  function abrirArmario() {
+    if (!NSF.Armario || NSF.Armario.aberto()) return;
+    const antes = conjunto;
+    carregarConjunto(MODULAR).then(() => {
+      conjunto = MODULAR;
+      if (antes !== MODULAR) pref.gravar("nsf_conjunto", MODULAR);
+      marcar();
+      return previa || new global.PersonagemModular(global.PERSONAGEM_MODULAR, PASTA_MOD).carregar();
+    }).then((pv) => {
+      previa = pv;
+      NSF.Armario.abrir({ heroi, previa, aoMudar: () => { guardarRoupas(); marcar(); } });
+    }).catch((e) => { estado.erros.push(String(e)); });
   }
   function fecharPorta() {
     porta.aberta = false;
@@ -353,6 +411,7 @@
   canvas.addEventListener("pointerdown", (e) => {
     if (NSF.Ligacao && NSF.Ligacao.aberta()) return;
     if (porta.menu || porta.saindo || efeito.tipo || jog.oculto) return;
+    if (NSF.Armario && NSF.Armario.aberto()) return;
     const m = telaParaMundo(e.clientX, e.clientY);
     if (!m) return;
     e.preventDefault();
@@ -451,6 +510,7 @@
     let sx = 0, sy = 0, wx = 0, wy = 0;
     if (NSF.Ligacao && NSF.Ligacao.aberta()) { jog.andando = false; jog.tempo = 0; return; }
     if (efeito.tipo || jog.oculto) { jog.andando = false; jog.tempo = 0; return; } // sumindo/aparecendo
+    if (NSF.Armario && NSF.Armario.aberto()) { jog.andando = false; jog.tempo = 0; return; }
     const teclando = teclas.size > 0;
     if (teclando && caminho.length && !demo) { caminho = []; destinoToque = null; aoChegar = null; }
     if (!demo && !teclando && destinoToque && !caminho.length) {
@@ -709,6 +769,7 @@
   function desenharJogador(ctx) {
     const ef = quadroEfeito(performance.now());
     if (jog.oculto && !ef) return;
+    if (conjunto === MODULAR && heroi) { desenharModular(ctx, ef); return; }
     const f = manifesto.conjuntos[conjunto][jog.dir], im = folhas[f.folha];
     const q = quadroSprite(f), px = f.pes[0], py = f.pes[1];
     const [x, y] = T(jog.x, jog.y, 0);
@@ -722,20 +783,39 @@
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(im, q * f.larg, 0, f.larg, f.alt, x - px * e, y - py * e, f.larg * e, f.alt * e);
     ctx.restore();
-    if (ef && ef.brilho > 0) { // linha de luz rosa-branca onde ele some/aparece
-      const larg = 70 * Math.max(ef.sx, 0.12) + 14, alt = 4 + 12 * ef.brilho;
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const g = ctx.createRadialGradient(x, meio, 0, x, meio, larg);
-      g.addColorStop(0, "rgba(255,255,255," + ef.brilho + ")");
-      g.addColorStop(0.35, "rgba(255,120,230," + 0.8 * ef.brilho + ")");
-      g.addColorStop(1, "rgba(255,90,216,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.ellipse(x, meio, larg, alt, 0, 0, 2 * Math.PI); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255," + ef.brilho + ")";
-      ctx.fillRect(x - larg * 0.7, meio - 1.5, larg * 1.4, 3);
-      ctx.restore();
-    }
+    if (ef && ef.brilho > 0) linhaDeLuz(ctx, x, meio, ef);
+  }
+  function linhaDeLuz(ctx, x, meio, ef) { // linha de luz rosa-branca onde ele some/aparece
+    const larg = 70 * Math.max(ef.sx, 0.12) + 14, alt = 4 + 12 * ef.brilho;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const g = ctx.createRadialGradient(x, meio, 0, x, meio, larg);
+    g.addColorStop(0, "rgba(255,255,255," + ef.brilho + ")");
+    g.addColorStop(0.35, "rgba(255,120,230," + 0.8 * ef.brilho + ")");
+    g.addColorStop(1, "rgba(255,90,216,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(x, meio, larg, alt, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255," + ef.brilho + ")";
+    ctx.fillRect(x - larg * 0.7, meio - 1.5, larg * 1.4, 3);
+    ctx.restore();
+  }
+
+  // Protagonista modular: mesma sombra, mesmo "clique" de sumir/aparecer, animação andar/parado.
+  function desenharModular(ctx, ef) {
+    const agora = performance.now();
+    const dt = heroiRelogio ? Math.min(0.1, (agora - heroiRelogio) / 1000) : 0;
+    heroiRelogio = agora;
+    heroi.definirVista(VISTA_MOD[jog.dir] || "frente");
+    heroi.tocar(jog.andando ? "andar" : "parado");
+    heroi.atualizar(dt);
+    const [x, y] = T(jog.x, jog.y, 0), meio = y - ALTURA_PERSONAGEM * 0.5;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath(); ctx.ellipse(x, y, 46 * (ef ? Math.min(1, ef.sx) : 1), 13, 0, 0, 2 * Math.PI); ctx.fill();
+    if (ef) { ctx.translate(x, meio); ctx.scale(ef.sx, ef.sy); ctx.translate(-x, -meio); }
+    heroi.desenhar(ctx, x, y, ALTURA_PERSONAGEM / ALTURA_MOD);
+    ctx.restore();
+    if (ef && ef.brilho > 0) linhaDeLuz(ctx, x, meio, ef);
   }
 
   // Boneco provisório: sombra, pernas (em pé), tronco, braços, cabeça, cabelo e olhos virados para "dir".
@@ -932,6 +1012,7 @@
 
   // Baixa só as folhas de um conjunto (no celular, carregar os 3 conjuntos de uma vez pesaria ~6 MB).
   function carregarConjunto(nome) {
+    if (nome === MODULAR) return carregarModular();
     const arquivos = Object.values(manifesto.conjuntos[nome]).map((f) => f.folha).filter((a) => !folhas[a]);
     return Promise.all(arquivos.map((arq) => new Promise((ok, erro) => {
       const im = new Image();
@@ -955,12 +1036,14 @@
 
   fetch(PASTA_SPR + "jogo.json").then((r) => r.json()).then((j) => {
     manifesto = j;
-    const pedido = j.conjuntos[params.get("conjunto")] ? params.get("conjunto") : j.padrao;
+    const valido = (n) => n && (j.conjuntos[n] || n === MODULAR);
+    const pedido = valido(params.get("conjunto")) ? params.get("conjunto") : valido(pref.ler("nsf_conjunto")) ? pref.ler("nsf_conjunto") : j.padrao;
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
     marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir, PORTA, veiculos: VEICULOS, irAoVeiculo,
+      abrirArmario, get heroi() { return heroi; },
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
