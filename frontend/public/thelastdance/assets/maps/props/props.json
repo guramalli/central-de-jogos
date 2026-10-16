@@ -173,6 +173,211 @@
         "espelhado": false,
         "proporcao": 1.0
       }
+    },
+    "rack": {
+      "arquivo": "rack.png",
+      "escala": 2.0,
+      "origem_px": [
+        317.5,
+        100.1
+      ],
+      "tamanho_m": [
+        0.45,
+        2.2,
+        0.5
+      ],
+      "descricao": "rack baixo de TV encostado na parede da esquerda (x = 0), frente virada para +x",
+      "ajuste": {
+        "x": 0.267,
+        "y": 0.264,
+        "espelhado": false,
+        "proporcao": 1.011
+      }
+    },
+    "aparador": {
+      "arquivo": "aparador.png",
+      "escala": 2.0,
+      "origem_px": [
+        65.4,
+        170.8
+      ],
+      "tamanho_m": [
+        1.5,
+        0.45,
+        0.85
+      ],
+      "descricao": "aparador cinza encostado na parede do fundo (y = 0), frente virada para +y",
+      "ajuste": {
+        "x": 0.215,
+        "y": 0.19,
+        "espelhado": false,
+        "proporcao": 1.13
+      }
+    },
+    "sofa": {
+      "arquivo": "sofa.png",
+      "escala": 2.0,
+      "origem_px": [
+        374.9,
+        130.5
+      ],
+      "tamanho_m": [
+        0.9,
+        2.6,
+        0.45
+      ],
+      "descricao": "sofá de 3 lugares virado para a TV (para -x): da câmera vemos o ENCOSTO (lado x1) e o assento atrás dele",
+      "ajuste": {
+        "x": 0.252,
+        "y": 0.248,
+        "espelhado": false,
+        "proporcao": 1.016
+      }
+    },
+    "poltrona": {
+      "arquivo": "poltrona.png",
+      "escala": 2.0,
+      "origem_px": [
+        114.0,
+        170.4
+      ],
+      "tamanho_m": [
+        0.55,
+        0.55,
+        0.85
+      ],
+      "descricao": "poltrona/cadeira estofada cinza, arredondada (serve em qualquer lado da mesa)",
+      "ajuste": {
+        "x": 0.139,
+        "y": 0.139,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "tv": {
+      "tipo": "decal",
+      "arquivo": "tv.png",
+      "tamanho_px": [
+        768,
+        445
+      ]
+    },
+    "quadro_popart": {
+      "tipo": "decal",
+      "arquivo": "quadro_popart.png",
+      "tamanho_px": [
+        523,
+        768
+      ]
+    },
+    "porta_vidro": {
+      "tipo": "decal",
+      "arquivo": "porta_vidro.png",
+      "tamanho_px": [
+        768,
+        768
+      ]
+    },
+    "cimento": {
+      "tipo": "decal",
+      "arquivo": "cimento.png",
+      "tamanho_px": [
+        768,
+        768
+      ]
+    },
+    "parede_vermelha": {
+      "tipo": "decal",
+      "arquivo": "parede_vermelha.png",
+      "tamanho_px": [
+        768,
+        619
+      ]
+    },
+    "mesa_lateral": {
+      "arquivo": "mesa_lateral.png",
+      "escala": 2.0,
+      "origem_px": [
+        71.5,
+        100.5
+      ],
+      "tamanho_m": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "descricao": "mesinha lateral pequena e baixa",
+      "ajuste": {
+        "x": 0.126,
+        "y": 0.126,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "mesa_redonda": {
+      "arquivo": "mesa_redonda.png",
+      "escala": 2.0,
+      "origem_px": [
+        159.0,
+        85.8
+      ],
+      "tamanho_m": [
+        1.1,
+        1.1,
+        0.75
+      ],
+      "descricao": "mesa de jantar redonda preta com pé central",
+      "ajuste": {
+        "x": 0.155,
+        "y": 0.155,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "porta_entrada": {
+      "tipo": "decal",
+      "arquivo": "porta_entrada.png",
+      "tamanho_px": [
+        429,
+        768
+      ]
+    },
+    "ripado": {
+      "tipo": "decal",
+      "arquivo": "ripado.png",
+      "tamanho_px": [
+        768,
+        768
+      ]
+    },
+    "piso_sala": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_sala.png",
+      "tamanho_px": [
+        768,
+        768
+      ],
+      "metros": 1.6
+    },
+    "luminaria": {
+      "arquivo": "luminaria.png",
+      "escala": 2.0,
+      "origem_px": [
+        59.5,
+        320.9
+      ],
+      "tamanho_m": [
+        0.3,
+        0.3,
+        1.6
+      ],
+      "descricao": "luminária de piso acobreada, alta e fina",
+      "ajuste": {
+        "x": 0.248,
+        "y": 0.248,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
     }
   }
 }

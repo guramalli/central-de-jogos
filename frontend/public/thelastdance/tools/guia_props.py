@@ -58,6 +58,39 @@ PECAS = {
         "descricao": "planta em vaso, alta",
         "caixas": [{"x": (0, 0.45), "y": (0, 0.45), "z": (0, 1.2)}],
     },
+    "sofa": {
+        "descricao": "sofá de 3 lugares virado para a TV (para -x): da câmera vemos o ENCOSTO (lado x1) e o assento atrás dele",
+        "caixas": [
+            {"x": (0, 0.9), "y": (0, 2.6), "z": (0, 0.45)},        # base/assento (colisão)
+            {"x": (0.65, 0.9), "y": (0, 2.6), "z": (0.45, 0.85)},  # encosto (lado da câmera)
+            {"x": (0, 0.65), "y": (0, 0.2), "z": (0.45, 0.65)},    # braço
+            {"x": (0, 0.65), "y": (2.4, 2.6), "z": (0.45, 0.65)},  # braço
+        ],
+    },
+    "rack": {
+        "descricao": "rack baixo de TV encostado na parede da esquerda (x = 0), frente virada para +x",
+        "caixas": [{"x": (0, 0.45), "y": (0, 2.2), "z": (0, 0.5)}],
+    },
+    "mesa_lateral": {
+        "descricao": "mesinha lateral pequena e baixa",
+        "caixas": [{"x": (0, 0.5), "y": (0, 0.5), "z": (0, 0.5)}],
+    },
+    "mesa_redonda": {
+        "descricao": "mesa de jantar redonda preta com pé central",
+        "caixas": [{"x": (0, 1.1), "y": (0, 1.1), "z": (0, 0.75)}],
+    },
+    "poltrona": {
+        "descricao": "poltrona/cadeira estofada cinza, arredondada (serve em qualquer lado da mesa)",
+        "caixas": [{"x": (0, 0.55), "y": (0, 0.55), "z": (0, 0.85)}],
+    },
+    "aparador": {
+        "descricao": "aparador cinza encostado na parede do fundo (y = 0), frente virada para +y",
+        "caixas": [{"x": (0, 1.5), "y": (0, 0.45), "z": (0, 0.85)}],
+    },
+    "luminaria": {
+        "descricao": "luminária de piso acobreada, alta e fina",
+        "caixas": [{"x": (0, 0.3), "y": (0, 0.3), "z": (0, 1.6)}],
+    },
     "parede_2m": {
         "descricao": "trecho de parede do fundo com 2 m de largura e 2,7 m de altura (plano y = 0, de frente para o jogador)",
         "caixas": [
@@ -83,6 +116,22 @@ def faces(c, e):
     ]
 
 
+def ordem_desenho(caixas):
+    """Atrás antes (mesma regra do jogo, js/maps/iso.js): A antes de B se A.x1 <= B.x0 ou A.y1 <= B.y0;
+    empate (caixas empilhadas) pela altura da base."""
+    restantes, saida = list(caixas), []
+    while restantes:
+        for c in sorted(restantes, key=lambda k: (k["z"][0], k["x"][0] + k["y"][0])):
+            bloqueada = any(o is not c and (o["x"][1] <= c["x"][0] + 1e-9 or o["y"][1] <= c["y"][0] + 1e-9)
+                            and not (c["x"][1] <= o["x"][0] + 1e-9 or c["y"][1] <= o["y"][0] + 1e-9)
+                            for o in restantes)
+            if not bloqueada:
+                break
+        restantes.remove(c)
+        saida.append(c)
+    return saida
+
+
 def main():
     nome, saida = sys.argv[1], Path(sys.argv[2])
     e = float(sys.argv[sys.argv.index("--escala") + 1]) if "--escala" in sys.argv else 2.0
@@ -96,7 +145,7 @@ def main():
     oy = (lado - h) / 2 - min(ys)
     im = Image.new("RGB", (lado, lado), (0, 255, 0))
     d = ImageDraw.Draw(im)
-    for c in peca["caixas"]:
+    for c in ordem_desenho(peca["caixas"]):
         for nome_face, poli in faces(c, e):
             d.polygon([(x + ox, y + oy) for x, y in poli], fill=CORES[nome_face], outline=CORES["linha"])
     saida.mkdir(parents=True, exist_ok=True)

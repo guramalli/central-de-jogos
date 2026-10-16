@@ -164,8 +164,25 @@
     return sy > 0 ? "baixo" : "cima";
   }
 
+  // ---------- ligação do telefone (primeira interação de teste) ----------
+  const ROTEIRO_LIGACAO = NSF.DIALOGOS && NSF.DIALOGOS.gatinha_campinas;
+  const ligacao = { tocando: false, resultado: null, relogio: null };
+  function telefoneToca() {
+    if (!ROTEIRO_LIGACAO || !NSF.Ligacao || NSF.Ligacao.aberta()) return;
+    ligacao.tocando = true;
+    teclas.clear(); toque.ativo = false;
+    NSF.Ligacao.tocar(ROTEIRO_LIGACAO, { aoTerminar: (r) => { ligacao.tocando = false; ligacao.resultado = r; } });
+  }
+  function agendarLigacao(segundos) {
+    clearTimeout(ligacao.relogio);
+    ligacao.relogio = setTimeout(telefoneToca, segundos * 1000);
+  }
+  const bLig = document.getElementById("ligacao");
+  if (bLig) bLig.addEventListener("click", () => telefoneToca());
+
   function atualizar(dt) {
     let sx = 0, sy = 0, wx = 0, wy = 0;
+    if (NSF.Ligacao && NSF.Ligacao.aberta()) { jog.andando = false; jog.tempo = 0; return; }
     if (demo) {
       if (!caminho.length) {
         caminho = rota(jog, ponto(ROTEIRO[alvoDemo]));
@@ -393,6 +410,25 @@
     itens.push({ desenho: "jogador", x0: jog.x - 0.05, y0: jog.y - 0.05, x1: jog.x + 0.05, y1: jog.y + 0.05 });
     for (const it of ISO.ordenar(itens)) (it.desenho === "jogador" ? desenharJogador(ctx) : caixa(ctx, it));
 
+    if (ligacao.tocando) {
+      const cm = P.caixas.find((c) => c.nome === "Criado-mudo");
+      if (cm) {
+        const [tx, ty] = T((cm.x0 + cm.x1) / 2, (cm.y0 + cm.y1) / 2, cm.z1 + 0.5);
+        // celular desenhado (sem emoji: nem todo aparelho tem a fonte), vibrando, com ondas de toque
+        const v = Math.sin(agora / 40) * 3;
+        ctx.save();
+        ctx.translate(tx + v, ty);
+        ctx.fillStyle = "#16101f"; ctx.strokeStyle = "#ff5ad8"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.roundRect(-13, -24, 26, 46, 6); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#59d6ff"; ctx.fillRect(-9, -18, 18, 30);
+        ctx.strokeStyle = "rgba(255,90,216," + (0.5 + 0.5 * Math.sin(agora / 120)) + ")"; ctx.lineWidth = 3;
+        for (const r of [22, 32]) {
+          ctx.beginPath(); ctx.arc(0, 0, r, -0.6, 0.6); ctx.stroke();
+          ctx.beginPath(); ctx.arc(0, 0, r, Math.PI - 0.6, Math.PI + 0.6); ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
     if (mostrarNomes) {
       for (const c of P.caixas) if (c.nome) rotulo(ctx, c.nome, (c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, c.z1);
       for (const w of P.naParede) {
@@ -431,7 +467,9 @@
     manifesto = j;
     const pedido = j.conjuntos[params.get("conjunto")] ? params.get("conjunto") : j.padrao;
     return carregarConjunto(pedido).then(() => { conjunto = pedido; });
-  }).then(() => { marcar(); window.NSF_APTO = { pronto: true, jog, atualizar, teclas, toque, desenhar }; })
+  }).then(() => {
+    if (ROTEIRO_LIGACAO && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, pronto: true, jog, atualizar, teclas, toque, desenhar }; })
     .catch((e) => { estado.erros.push(String(e)); console.error(e); });
   NSF.iniciar(canvas, desenhar, { adaptar: true });
 })();
