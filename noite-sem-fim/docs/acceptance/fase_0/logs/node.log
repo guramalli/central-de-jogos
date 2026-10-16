@@ -1,0 +1,124 @@
+TAP version 13
+# Subtest: pasta assets/characters/protagonist/source existe
+ok 1 - pasta assets/characters/protagonist/source existe
+  ---
+  duration_ms: 1.130845
+  type: 'test'
+  ...
+# Subtest: pasta assets/characters/protagonist/directions existe
+ok 2 - pasta assets/characters/protagonist/directions existe
+  ---
+  duration_ms: 0.207847
+  type: 'test'
+  ...
+# Subtest: pasta assets/characters/protagonist/animations existe
+ok 3 - pasta assets/characters/protagonist/animations existe
+  ---
+  duration_ms: 0.10241
+  type: 'test'
+  ...
+# Subtest: pasta assets/maps/room_01/floor existe
+ok 4 - pasta assets/maps/room_01/floor existe
+  ---
+  duration_ms: 0.18604
+  type: 'test'
+  ...
+# Subtest: pasta assets/maps/room_01/walls existe
+ok 5 - pasta assets/maps/room_01/walls existe
+  ---
+  duration_ms: 0.105116
+  type: 'test'
+  ...
+# Subtest: pasta assets/maps/room_01/props existe
+ok 6 - pasta assets/maps/room_01/props existe
+  ---
+  duration_ms: 0.08035
+  type: 'test'
+  ...
+# Subtest: pasta assets/maps/room_01/lighting existe
+ok 7 - pasta assets/maps/room_01/lighting existe
+  ---
+  duration_ms: 0.073194
+  type: 'test'
+  ...
+# Subtest: pasta js/characters existe
+ok 8 - pasta js/characters existe
+  ---
+  duration_ms: 0.123544
+  type: 'test'
+  ...
+# Subtest: pasta js/camera existe
+ok 9 - pasta js/camera existe
+  ---
+  duration_ms: 0.363235
+  type: 'test'
+  ...
+# Subtest: pasta js/occlusion existe
+ok 10 - pasta js/occlusion existe
+  ---
+  duration_ms: 0.325743
+  type: 'test'
+  ...
+# Subtest: pasta tests existe
+ok 11 - pasta tests existe
+  ---
+  duration_ms: 0.119839
+  type: 'test'
+  ...
+# Subtest: pasta tools existe
+ok 12 - pasta tools existe
+  ---
+  duration_ms: 0.081807
+  type: 'test'
+  ...
+# Subtest: pasta docs/acceptance existe
+ok 13 - pasta docs/acceptance existe
+  ---
+  duration_ms: 0.077721
+  type: 'test'
+  ...
+# Subtest: docs obrigatórios existem
+ok 14 - docs obrigatórios existem
+  ---
+  duration_ms: 0.24165
+  type: 'test'
+  ...
+# Subtest: index.html carrega só scripts locais que existem, sem engine nem CDN
+ok 15 - index.html carrega só scripts locais que existem, sem engine nem CDN
+  ---
+  duration_ms: 1.838229
+  type: 'test'
+  ...
+# Subtest: modo de teste só liga com ?test=1
+ok 16 - modo de teste só liga com ?test=1
+  ---
+  duration_ms: 1.506571
+  type: 'test'
+  ...
+# Subtest: limite de fps: 30 no teste, livre fora dele
+ok 17 - limite de fps: 30 no teste, livre fora dele
+  ---
+  duration_ms: 0.084673
+  type: 'test'
+  ...
+# Subtest: escala mantém a proporção da resolução base (letterbox)
+ok 18 - escala mantém a proporção da resolução base (letterbox)
+  ---
+  duration_ms: 0.161418
+  type: 'test'
+  ...
+# Subtest: referências do kit preservadas (SHA-256 igual ao inventário)
+ok 19 - referências do kit preservadas (SHA-256 igual ao inventário)
+  ---
+  duration_ms: 24.172336
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 118.956061

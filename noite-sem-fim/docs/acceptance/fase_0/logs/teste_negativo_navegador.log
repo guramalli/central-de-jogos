@@ -1,0 +1,3 @@
+navegador: headless, workers=1
+FALHOU  execução do teste  (TimeoutError: page.waitForFunction: Timeout 10000ms exceeded. | TypeError: Cannot read properties of null (reading 'getContext'))
+RESULTADO navegador: FALHOU (1 falha(s))

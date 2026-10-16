@@ -1,25 +1,28 @@
 # Noite Sem Fim (protótipo)
 
-Aventura narrativa 2.5D isométrica. **Estado: FASE 0** (auditoria dos anexos + projeto base). Ainda não existe jogo.
+Aventura narrativa 2.5D isométrica. Sem engine: HTML5 Canvas 2D e JavaScript puro, sem compilação.
+Arte gerada no Higgsfield. **Estado: FASE 0** (auditoria dos anexos + projeto base). Ainda não existe jogo.
 
 ## Abrir e testar
 
-Requisitos: Godot **4.7.2-stable** (padrão, não-mono). Para a auditoria dos anexos: Python 3 com Pillow, numpy e scipy, além do ffprobe.
+Requisitos: um navegador; para os testes, Node 22+ com Playwright (Chromium) e Python 3 com Pillow, numpy e scipy (+ ffprobe na auditoria).
 
 ```bash
 cd noite-sem-fim
-godot --path . --editor            # abre no editor
-godot --path .                     # roda a cena de teste vazia
-tests/run_tests.sh /caminho/do/godot   # testes da FASE 0 (sai != 0 se algo falhar)
-python3 -I tools/audit_assets.py   # refaz o inventário técnico dos anexos
+python3 -m http.server 8000         # depois abra http://localhost:8000/  (ou ?test=1 para o modo de teste)
+tests/run_tests.sh                  # todos os testes da FASE 0, headless (sai != 0 se algo falhar)
+HEADED=1 tests/run_tests.sh         # o mesmo, com a janela do navegador visível
+python3 -I tools/audit_assets.py    # refaz o inventário técnico dos anexos
+python3 -I tools/verificar_asset.py arquivo.png   # confere um arquivo vindo do Higgsfield
 ```
+
+O modo de teste (`?test=1`) limita a 30 fps e desliga efeitos e som; sem o parâmetro, nada muda.
 
 ## Estrutura
 
-- `assets/` — assets de jogo (vazio até a FASE 1).
-- `scenes/tests/test_vazio.tscn` — cena vazia de testes (cena principal provisória).
-- `reference/kit_v1.0/` — anexos do kit, cópias sem alteração (o Godot não importa: `.gdignore`).
-- `reference/privado/` — foto e vídeo pessoais: **fora do git**, ver `docs/inventario_assets.md`.
-- `docs/decisions.md` — decisões provisórias e pendentes.
-- `docs/inventario_assets.md` — inventário e análise dos anexos.
-- `docs/acceptance/fase_0.md` — relatório da FASE 0 e evidências.
+- `index.html`, `css/`, `js/base.js` (núcleo, laço de quadros, modo de teste), `js/cena_teste.js` (cena vazia).
+- `js/{characters,camera,occlusion}/` — módulos das próximas fases (vazios).
+- `assets/` — arte aprovada (vazio até a FASE 1).
+- `reference/kit_v1.0/` — anexos do kit, cópias sem alteração.
+- `reference/privado/` — foto e vídeo pessoais, **fora do git** (ver `docs/inventario_assets.md`).
+- `docs/decisions.md`, `docs/pipeline_arte.md`, `docs/inventario_assets.md`, `docs/acceptance/fase_0.md`.

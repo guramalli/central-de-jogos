@@ -1,101 +1,111 @@
-# Relatório — FASE 0: auditoria dos arquivos e projeto base
+# Relatório — FASE 0: auditoria dos arquivos e projeto base (versão 2, sem engine)
 
-- **Fase e versão:** FASE 0, `0.0.1-fase0`, branch `claude/noite-sem-fim-fase-0-mgmpts` (o commit está no histórico do git).
+- **Fase e versão:** FASE 0, revisão 2, branch `claude/noite-sem-fim-fase-0-mgmpts`. A revisão 1 (base em Godot) está no commit `5e154ff`.
 - **Data:** 16/10/2026
-- **Ambiente de teste:** Linux x86_64 em contêiner, Godot 4.7.2-stable oficial (SHA-512 conferido), Mesa llvmpipe (OpenGL 4.5) via Xvfb para a captura.
+- **Motivo da revisão 2:** decisão do usuário: "Não vamos usar engine, vai ser feito totalmente por IA. Arquivos gráficos: Higgsfield."
+- **Ambiente de teste:** Linux x86_64 em contêiner, Node 22.22, Playwright 1.56.1 com Chromium headless, Python 3 + Pillow/numpy/scipy, ffprobe.
 
-## 1. Objetivo, insumos, riscos e critérios (protocolo, item 1)
+## 1. Objetivo, insumos, riscos e critérios
 
-- **Objetivo:** inventariar os anexos, confirmar o estado real de cada um, criar a estrutura mínima do projeto, a
-  configuração de importação e uma cena vazia de testes, e registrar as decisões pendentes. Sem criar jogo.
-- **Insumos:** os 8 arquivos do kit v1.0 + LEIA_PRIMEIRO.md.
-- **Riscos identificados:** (a) usar a prancha ilustrativa como se fosse spritesheet; (b) inventar medidas a partir do
-  vídeo; (c) publicar dados pessoais num repositório de site público; (d) decidir a plataforma sem o usuário.
-- **Mitigação:** a prancha foi só analisada, não recortada; o vídeo só foi descrito (observável × suposição); os arquivos
-  pessoais ficam fora do git; renderizador e resolução são provisórios e reversíveis.
+- **Objetivo:** inventariar os anexos, validar se os arquivos do personagem servem tecnicamente, criar a estrutura mínima
+  do projeto, a regra de entrada de arte ("configuração de importação") e uma cena vazia de testes, e registrar as
+  pendências. Sem criar jogo.
+- **Insumos:** os 8 arquivos do kit v1.0 + LEIA_PRIMEIRO.md; decisões D-01 (sem engine) e D-10 (Higgsfield).
+- **Riscos:** (a) tratar a prancha como spritesheet; (b) inventar medidas do vídeo; (c) publicar dados pessoais;
+  (d) arte de IA inconsistente entre gerações; (e) testes de navegador pesando a CPU.
+- **Mitigação:** a prancha só foi analisada; o vídeo só foi descrito; os arquivos pessoais ficam fora do git; há regras
+  de entrega e um verificador automático para a arte do Higgsfield; os testes rodam headless, com `?test=1` e 1 navegador.
 
-## 2. Arquivos criados (nenhum arquivo existente do repositório foi modificado)
+## 2. Arquivos (em `noite-sem-fim/`; nada fora desta pasta foi modificado)
 
+Criados ou alterados na revisão 2:
 ```
-noite-sem-fim/
-  project.godot, icon.svg, icon.svg.import, .gitignore, .gitattributes, README.md
-  assets/characters/protagonist/{source,directions,animations}/.gitkeep
-  assets/maps/room_01/{floor,walls,props,lighting}/.gitkeep
-  scenes/tests/test_vazio.tscn         scenes/{characters,maps}/.gitkeep
-  scripts/tests/test_vazio.gd (+.uid)  scripts/{characters,camera,occlusion}/.gitkeep
-  tests/fase0_smoke_test.gd (+.uid), tests/run_tests.sh
-  tools/audit_assets.py
-  reference/kit_v1.0/...  (5 imagens + LEIA_PRIMEIRO.md, cópias idênticas)
-  docs/decisions.md, docs/inventario_assets.md, docs/acceptance/fase_0.md
-  docs/acceptance/fase_0/{inventario.json, evid_spritesheet_segmentacao.jpg, evid_cena_teste_vazia.png, logs/*}
+index.html, css/estilo.css, js/base.js, js/cena_teste.js, js/{characters,camera,occlusion}/.gitkeep
+tests/fase0.test.js, tests/navegador_fase0.js, tests/run_tests.sh
+tools/verificar_asset.py
+docs/pipeline_arte.md (novo), docs/decisions.md, docs/acceptance/fase_0.md, README.md, .gitignore, .gitattributes
+docs/acceptance/fase_0/{evid_cena_teste_vazia.png, logs/*}
 ```
+Removidos da revisão 1 (continuam no histórico do git): `project.godot`, `icon.svg(.import)`, `scenes/`, os scripts `.gd`
+e os `.gdignore`.
+
+Mantidos da revisão 1: `assets/**/.gitkeep`, `reference/kit_v1.0/` (cópias idênticas), `tools/audit_assets.py`,
+`docs/inventario_assets.md`, `docs/acceptance/fase_0/{inventario.json, evid_spritesheet_segmentacao.jpg}`.
 
 ## 3. O que foi implementado
 
-- Inventário técnico automatizado (`tools/audit_assets.py`): formato, resolução, proporção, modo de cor, alpha,
-  área vazia, SHA-256, metadados do vídeo e segmentação aproximada da prancha.
-- Análise visual e o que é observável × suposição: `docs/inventario_assets.md`.
-- Projeto Godot mínimo: configuração de janela, renderizador, filtro linear e padrões de importação de textura.
-- Cena vazia de testes, teste de fumaça automatizado e script de execução.
+- **Inventário** técnico e visual dos 8 anexos (`docs/inventario_assets.md`, `inventario.json`).
+- **Base sem engine:** página com `<canvas>`, núcleo (`js/base.js`) com resolução lógica de 1920×1080 encaixada na
+  tela, suavização de imagem ligada (arte pintada), laço de quadros e **modo de teste `?test=1`** (30 fps, sem efeitos,
+  sem som). Sem o parâmetro, o comportamento normal não muda.
+- **Cena vazia de testes** (`js/cena_teste.js`).
+- **Portão de entrada da arte do Higgsfield:** `docs/pipeline_arte.md` (regras, nomes, pastas e riscos) +
+  `tools/verificar_asset.py` (PNG, alpha real, fundo transparente, margem, altura mínima, sem halo), com autoteste.
+- **Testes:** 19 testes Node, autoteste do verificador (6 casos), teste em Chromium real (7 verificações) e checagem
+  de que nenhum navegador ficou aberto.
 
 ## 4. Critérios de aceite
 
 | Critério | Resultado | Evidência |
 |---|---|---|
-| Relatório de inventário de todos os anexos (formato, resolução, transparência, proporção, consistência, limitações) | **PASSOU** | `docs/inventario_assets.md`, `fase_0/inventario.json`, `logs/audit_assets.log` |
-| Confirmar que a prancha é ilustrativa, não uma sequência pronta | **PASSOU** | Seção 2 do inventário + `evid_spritesheet_segmentacao.jpg` (39 figuras, 8/8/7/6 quadros, sem alpha, ~200 px) |
-| Vídeo e referências de mapa: observável × suposições | **PASSOU** | Seções 4 e 7 do inventário |
-| Estrutura mínima do repositório | **PASSOU** | Teste de fumaça: 15 pastas verificadas |
-| Configuração de importação | **PASSOU** | Teste de fumaça + `icon.svg.import` gerado com `compress/mode=0` e `detect_3d/compress_to=0` |
-| Cena vazia de testes | **PASSOU** | `evid_cena_teste_vazia.png` (renderizada de verdade em OpenGL), `logs/run.log` |
-| Projeto abrindo sem erros | **PASSOU** | `logs/import.log` (editor headless, cache apagado antes), sem ERROR/WARNING |
-| Nenhuma arte descartada | **PASSOU** | As 8 cópias têm o mesmo SHA-256 do zip original; nada recortado nem alterado |
-| Pendências explicitadas | **PASSOU** | `docs/decisions.md` (D-A1 a D-A14) |
-| Abrir o projeto no editor com interface gráfica, na máquina do usuário | **NÃO TESTADO** | Testei só no editor headless e no runtime com Xvfb; a máquina do usuário não está acessível |
-| Export para navegador/PC | **NÃO TESTADO** | Fora do escopo da FASE 0; depende de D-A2 |
+| Inventário de todos os anexos (formato, resolução, transparência, proporção, consistência, limitações) | **PASSOU** | `docs/inventario_assets.md`, `inventario.json`, `logs/audit_assets.log` |
+| Prancha confirmada como ilustrativa, não sequência pronta | **PASSOU** | `evid_spritesheet_segmentacao.jpg` (39 figuras; 8/8/7/6 quadros; ~200 px; sem alpha) |
+| Vídeo e mapas: observável × suposições | **PASSOU** | Seções 4 e 7 do inventário |
+| Validação técnica dos arquivos do personagem | **PASSOU** (veredito: não servem como sprite; ver seção 7) | `logs/verificador_kit.log` (os dois PNG recusados: sem alpha) |
+| Estrutura mínima do repositório | **PASSOU** | `logs/node.log` (13 pastas) |
+| Configuração de importação (regra de entrada de arte) | **PASSOU** | `logs/verificador.log` (aceita o caso bom e recusa 5 casos ruins) |
+| Cena vazia de testes abre sem erros | **PASSOU** | `evid_cena_teste_vazia.png` (captura real do Chromium), `logs/navegador.log`: 0 erros/avisos de console, 0 requisições falhas |
+| Modo de teste: 30 fps; modo normal inalterado | **PASSOU** | 30,0 fps com `?test=1`; 60 fps sem ele |
+| Nenhuma arte descartada | **PASSOU** | Teste Node compara o SHA-256 das 5 referências com o inventário; as 3 privadas também conferem com o zip |
+| Pendências explicitadas | **PASSOU** | `docs/decisions.md` (D-A2 a D-A15) |
+| Navegador com janela (`HEADED=1`) e na sua máquina | **NÃO TESTADO** | O contêiner não tem tela; só rodei headless |
+| Navegadores além do Chromium (Firefox/Safari) | **NÃO TESTADO** | Depende da plataforma (D-A2) |
 
-## 5. Testes executados (comandos reproduzíveis)
+## 5. Como reproduzir
 
 ```bash
 cd noite-sem-fim
-rm -rf .godot build && tests/run_tests.sh godot    # 1) abre no editor headless; 2) teste de fumaça; 3) roda 30 quadros
-python3 -I tools/audit_assets.py
-xvfb-run -a -s "-screen 0 1280x720x24" godot --rendering-driver opengl3 --path . \
-  --write-movie build/cap/frame.png --fixed-fps 30 --quit-after 10   # captura real da cena
+tests/run_tests.sh                     # tudo, headless, 1 navegador; HEADED=1 para ver a janela
+python3 -I tools/audit_assets.py       # inventário
+python3 -I tools/verificar_asset.py reference/kit_v1.0/01_personagem/*.png
 ```
 
-Resultado da última execução: **RESULTADO GERAL: PASSOU** (27 verificações no teste de fumaça — 12 de configuração/cena + 15 pastas —, 0 falhas).
+Última execução (`logs/run_tests.log`): **RESULTADO GERAL: PASSOU**. Node 19/19, autoteste 6/6, navegador 7/7,
+nenhum navegador sobrando.
 
 ## 6. Problemas encontrados, correções e retestes
 
 | # | Problema | Correção | Reteste |
 |---|---|---|---|
-| 1 | 1ª execução da suíte: **FALHOU** em "docs/decisions.md existe" (1 falha) | Escrevi `docs/decisions.md` | Reteste com cache apagado: PASSOU, 0 falhas |
-| 2 | A suíte poderia "passar" mesmo com erro? | Teste negativo: numa cópia descartável, quebrei o script da cena (`$InfoInexistente`) | A suíte acusou `SCRIPT ERROR`, FALHOU e saiu com código 1 (`logs/teste_negativo_smoke.log`). O projeto real não foi tocado. |
-| 3 | O Godot não estava instalado no ambiente, e o GitHub Releases está bloqueado pela rede | Baixei do espelho oficial no SourceForge e conferi o SHA-512 com o `SHA512-SUMS.txt` oficial | `godot --version` → 4.7.2.stable.official.ed1daf0bf |
-| 4 | A imagem de evidência da prancha tinha 2,7 MB em PNG | Passei a salvar em JPEG q88 (536 KB). É só a evidência; a referência original segue intacta | Auditoria rodada de novo |
-| 5 | Aviso "Could not set V-Sync mode" na captura via Xvfb | Nenhuma: é limitação do driver de software (llvmpipe) do contêiner, não do projeto | Não aparece no headless |
+| 1 | Rev. 1 — 1ª execução: faltava `docs/decisions.md` | Escrito | PASSOU |
+| 2 | Rev. 1 — o Godot não estava instalado e o GitHub Releases está bloqueado | Download pelo espelho oficial no SourceForge, com SHA-512 conferido | Ficou obsoleto com a rev. 2 |
+| 3 | Rev. 2 — o autoteste do verificador recusava a "figura boa" | O erro estava no caso de teste: a figura sintética ocupava 80% da imagem. Passei a usar uma silhueta realista | 6/6 PASSOU |
+| 4 | Rev. 2 — 1ª suíte: faltava `docs/pipeline_arte.md` | Escrito | 19/19 PASSOU |
+| 5 | Rev. 2 — "navegador ainda aberto" | **Falso positivo**: o `pgrep -f` casava com a linha de comando do próprio shell. Passei a procurar pelo nome exato do processo (`pgrep -x`) e confirmei que não havia nenhum navegador aberto | PASSOU |
+| 6 | Rev. 2 — num teste que quebra, a mensagem dizia só "Timeout" | O teste passou a anexar os erros da página | Teste negativo: `TypeError ... getContext` aparece (`logs/teste_negativo_navegador.log`) |
+| 7 | Os testes conseguem falhar? | Teste negativo numa cópia descartável com a cena quebrada | FALHOU e saiu com código 1; nenhum navegador ficou aberto |
+| 8 | Push para o GitHub recusado (403: sem acesso de escrita do Claude ao repositório) | Depende de você reconectar o GitHub ou instalar o app Claude | Commit salvo localmente; pendente |
 
-Achados nos **anexos** (não corrigidos, porque não se altera arte sem autorização): prancha sem alpha, de baixa
-resolução e inconsistente (garrafa duplicada nas costas/perfil, cor da camisa variando, rosto diferente no 1º quadro,
-"andando cima" que é uma vista frontal, falta de diagonais, sombra pintada); conceito sem alpha e com fundo
-texturizado; `quadros_video_referencia.png` com 66,7% de preto vazio; vídeo de 512×910 com borrão; `conceito_geral.png`
-em conflito com o escopo. Detalhes no inventário.
+Achados nos **anexos** (não alterados sem autorização): ver o inventário. Os principais são a prancha sem alpha, de
+baixa resolução e inconsistente; o conceito sem alpha; `quadros_video_referencia.png` com 66,7% de preto; o vídeo
+de 512×910 com borrão; e o `conceito_geral.png` em conflito com o escopo.
 
-## 7. Validação técnica dos arquivos do personagem (pedido do usuário)
+## 7. Validação técnica dos arquivos do personagem
 
-- **personagem_conceito.png:** adequado como **fonte mestre de identidade** (rosto, cabelo, barba, roupa, proporção
-  ~2,1 cabeças). **Não é adequado** como sprite de jogo: não tem alpha, o fundo é texturizado, a sombra está pintada e
-  existe só uma vista.
-- **spritesheet_referencia_NAO_PRONTO.png:** **inadequado para uso técnico** (resolução ~200 px, sem alpha, canvas e
-  quadros inconsistentes, acessórios trocando, sem diagonais). Adequado como referência de poses, expressões e ciclo de passada.
-- Consequência para a FASE 1: as vistas limpas terão de ser **produzidas de novo** a partir do conceito, preservando
-  fisionomia e proporções. Quem produz essa arte é a decisão **D-A10**.
+- **personagem_conceito.png:** é a **fonte mestre de identidade** (rosto, cabelo, barba, roupa, proporção de ~2,1
+  cabeças) e deve ser **a referência a anexar no Higgsfield**. Não serve como sprite: o verificador recusa (sem
+  alpha), o fundo é texturizado, a sombra está pintada e existe só uma vista.
+- **spritesheet_referencia_NAO_PRONTO.png:** **inadequada para uso técnico** (verificador recusa; ~200 px; quadros e
+  canvas inconsistentes; garrafa duplicada; cor da camisa variando; sem diagonais). Serve como referência de poses e
+  expressões e como lista do que **não** pode se repetir nas gerações do Higgsfield.
+- Consequência para a FASE 1: gerar no Higgsfield vistas novas, uma por arquivo, seguindo `docs/pipeline_arte.md`.
+  Eu escrevo as fichas e valido; você gera e envia.
 
 ## 8. Decisões que dependem do usuário
 
-Ver `docs/decisions.md`. As mais urgentes antes da FASE 1: **D-A2** (plataforma), **D-A4** (altura do sprite),
-**D-A6** (projeção), **D-A8** (8 direções × espelhamento), **D-A9** (garrafa separada), **D-A10** (quem produz a arte).
+Mais urgentes antes da FASE 1 (lista completa em `docs/decisions.md`):
+**D-A2** plataforma · **D-A4** altura do sprite · **D-A6** projeção (vai na ficha do Higgsfield) ·
+**D-A8** 8 direções × espelhamento · **D-A9** garrafa separada · **D-A15** o Higgsfield entrega PNG transparente?
 
 ## STATUS: AGUARDANDO APROVAÇÃO DO USUÁRIO
 

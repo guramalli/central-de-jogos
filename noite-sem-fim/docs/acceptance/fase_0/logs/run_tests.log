@@ -1,0 +1,25 @@
+== 1) Testes Node (estrutura, núcleo, integridade das referências)
+# tests 19
+# pass 19
+# fail 0
+== 2) Verificador de arte (autoteste)
+PASSOU  autoteste: figura boa           esperado=aceita obtido=aceita
+PASSOU  autoteste: sem alpha            esperado=recusa obtido=recusa
+PASSOU  autoteste: figura baixa         esperado=recusa obtido=recusa
+PASSOU  autoteste: encostada na borda   esperado=recusa obtido=recusa
+PASSOU  autoteste: com halo             esperado=recusa obtido=recusa
+PASSOU  autoteste: JPEG                 esperado=recusa obtido=recusa
+RESULTADO autoteste: PASSOU
+== 3) Cena vazia no Chromium (?test=1)
+navegador: headless, workers=1
+PASSOU  página carrega e desenha  (5 quadros)
+PASSOU  modo de teste ligado por ?test=1
+PASSOU  fps limitado a ~30 no modo de teste  (30.0 fps)
+PASSOU  canvas tem conteúdo desenhado  (4975 pixels claros)
+PASSOU  sem erros/avisos no console nem requisições falhas
+PASSOU  sem ?test=1: modo normal (efeitos e som ligados)
+PASSOU  sem ?test=1: fps não fica preso em 30  (60 fps)
+RESULTADO navegador: PASSOU (0 falha(s))
+== 4) Nenhum processo de navegador sobrando
+PASSOU: nenhum navegador aberto
+== RESULTADO GERAL: PASSOU

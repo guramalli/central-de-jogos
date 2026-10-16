@@ -1,0 +1,7 @@
+PASSOU  autoteste: figura boa           esperado=aceita obtido=aceita
+PASSOU  autoteste: sem alpha            esperado=recusa obtido=recusa
+PASSOU  autoteste: figura baixa         esperado=recusa obtido=recusa
+PASSOU  autoteste: encostada na borda   esperado=recusa obtido=recusa
+PASSOU  autoteste: com halo             esperado=recusa obtido=recusa
+PASSOU  autoteste: JPEG                 esperado=recusa obtido=recusa
+RESULTADO autoteste: PASSOU
