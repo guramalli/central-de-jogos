@@ -588,7 +588,7 @@
 
   // Textura reta de parede aplicada numa face, inclinada no ângulo do mapa e repetida a cada largura_m.
   // eixo "x": face no plano y = fixo, de x = a até b; eixo "y": face no plano x = fixo, de y = a até b.
-  function texturaFace(ctx, eixo, fixo, a, b, h, escurecer) {
+  function texturaFace(ctx, eixo, fixo, a, b, h, escurecer, origem) {
     const info = props && props.props[TEXTURA_PAREDE], tex = imgProps[TEXTURA_PAREDE];
     if (!tex || !info) return;
     const P3 = (u, z) => (eixo === "x" ? T(u, fixo, z) : T(fixo, u, z));
@@ -597,7 +597,8 @@
     const contorno = [P3(a, 0), P3(b, 0), P3(b, h), P3(a, h)];
     ctx.beginPath(); contorno.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath();
     ctx.clip();
-    for (let u = a; u < b - 1e-6; u += L) {
+    const u0 = origem === undefined ? a : origem + Math.floor((a - origem) / L) * L; // pedaços seguem o desenho
+    for (let u = u0; u < b - 1e-6; u += L) {
       const o = P3(u, H), fimU = P3(u + L, H), base = P3(u, 0);
       ctx.save();
       ctx.transform((fimU[0] - o[0]) / tex.width, (fimU[1] - o[1]) / tex.width,
@@ -612,15 +613,46 @@
   function caixa(ctx, c) {
     if (arte(ctx, c)) return;
     const [cTopo, cEsq, cDir] = CORES[c.tipo] || CORES.movel;
-    const z = c.z1;
+    const z = c.z1, linha = c.pedaco ? null : "rgba(0,0,0,0.45)"; // pedaço de parede: sem linha na emenda
+    // pedaço do meio de uma parede: a "tampa" que encosta no pedaço seguinte fica escondida — não desenha
+    // (com a parede transparente, ela apareceria como uma listra)
+    const faceEsq = !c.grupo || c.y1 >= c.grupo.y1 - 1e-9, faceDir = !c.grupo || c.x1 >= c.grupo.x1 - 1e-9;
     // faces visíveis: frente-esquerda (y = y1), frente-direita (x = x1), topo
-    poli(ctx, [T(c.x0, c.y1, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x0, c.y1, z)], cEsq, "rgba(0,0,0,0.45)");
-    poli(ctx, [T(c.x1, c.y0, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x1, c.y0, z)], cDir, "rgba(0,0,0,0.45)");
-    poli(ctx, [T(c.x0, c.y0, z), T(c.x1, c.y0, z), T(c.x1, c.y1, z), T(c.x0, c.y1, z)], cTopo, "rgba(0,0,0,0.45)");
+    if (faceEsq) poli(ctx, [T(c.x0, c.y1, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x0, c.y1, z)], cEsq, linha);
+    if (faceDir) poli(ctx, [T(c.x1, c.y0, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x1, c.y0, z)], cDir, linha);
+    poli(ctx, [T(c.x0, c.y0, z), T(c.x1, c.y0, z), T(c.x1, c.y1, z), T(c.x0, c.y1, z)], cTopo, linha);
     if (c.tipo === "parede") { // as duas faces que dão para a câmera recebem a textura (a esquerda mais escura)
-      texturaFace(ctx, "x", c.y1, c.x0, c.x1, z, 0.22);
-      texturaFace(ctx, "y", c.x1, c.y0, c.y1, z, 0);
+      if (faceEsq) texturaFace(ctx, "x", c.y1, c.x0, c.x1, z, 0.22, c.origemX);
+      if (faceDir) texturaFace(ctx, "y", c.x1, c.y0, c.y1, z, 0, c.origemY);
     }
+  }
+
+  // Paredes compridas (mureta entre os cômodos, paredes da frente) viram pedaços de até 0,5 m SÓ para desenhar:
+  // uma caixa comprida não tem uma ordem certa com o personagem e os móveis em volta (às vezes ficava por
+  // cima do armário). A colisão continua usando a parede inteira.
+  const PEDACO = 0.5;
+  const ITENS_FIXOS = [];
+  for (const c of P.caixas) {
+    if (c.fundo || c.oculto) continue;
+    const longoX = c.x1 - c.x0, longoY = c.y1 - c.y0;
+    if (c.tipo !== "parede" || Math.max(longoX, longoY) <= PEDACO * 1.5) { ITENS_FIXOS.push(Object.assign({ desenho: "caixa" }, c)); continue; }
+    const eixoX = longoX >= longoY, ini = eixoX ? c.x0 : c.y0, fim = eixoX ? c.x1 : c.y1;
+    const n = Math.ceil((fim - ini) / PEDACO);
+    for (let k = 0; k < n; k++) {
+      const a = ini + (fim - ini) * k / n, b = ini + (fim - ini) * (k + 1) / n;
+      ITENS_FIXOS.push(Object.assign({ desenho: "caixa", pedaco: true, grupo: c, origemX: c.x0, origemY: c.y0 }, c,
+        eixoX ? { x0: a, x1: b } : { y0: a, y1: b }));
+    }
+  }
+
+  // Parede na frente do personagem fica transparente (dá para vê-lo atrás da mureta).
+  function cobreJogador(c) {
+    const pts = [];
+    for (const x of [c.x0, c.x1]) for (const y of [c.y0, c.y1]) for (const z of [0, c.z1]) pts.push(T(x, y, z));
+    const [jx, jy] = T(jog.x, jog.y, 0);
+    const minX = Math.min(...pts.map((q) => q[0])), maxX = Math.max(...pts.map((q) => q[0]));
+    const minY = Math.min(...pts.map((q) => q[1])), maxY = Math.max(...pts.map((q) => q[1]));
+    return jx + 40 > minX && jx - 40 < maxX && jy > minY && jy - ALTURA_PERSONAGEM < maxY;
   }
 
   function desenharJogador(ctx) {
@@ -782,13 +814,28 @@
     for (const w of P.naParede) quadParede(ctx, w);
 
     // móveis, paredes cortadas e o personagem, na ordem de profundidade
-    const itens = P.caixas.filter((k) => !k.fundo && !k.oculto).map((c) => Object.assign({ desenho: "caixa" }, c));
+    const itens = ITENS_FIXOS.slice();
     itens.push({ desenho: "jogador", x0: jog.x - 0.05, y0: jog.y - 0.05, x1: jog.x + 0.05, y1: jog.y + 0.05 });
     for (const n of NPCS) if (n.postura !== "sentado") itens.push({ desenho: "npc", npc: n, x0: n.x - 0.05, y0: n.y - 0.05, x1: n.x + 0.05, y1: n.y + 0.05 });
-    for (const it of ISO.ordenar(itens)) {
+    const ordem = ISO.ordenar(itens);
+    // paredes (inteiras, não só o pedaço) desenhadas depois do personagem e na frente dele ficam transparentes
+    const iJog = ordem.findIndex((it) => it.desenho === "jogador"), vazadas = new Set();
+    if (!jog.oculto) {
+      for (let k = iJog + 1; k < ordem.length; k++) {
+        const it = ordem[k];
+        if (it.tipo === "parede" && it.z1 > 0.6 && cobreJogador(it)) vazadas.add(it.grupo || it);
+      }
+    }
+    for (const it of ordem) {
       if (it.desenho === "jogador") desenharJogador(ctx);
       else if (it.desenho === "npc") desenharNpc(ctx, it.npc);
-      else { caixa(ctx, it); if (it.ocupante) desenharNpc(ctx, it.ocupante); }
+      else {
+        const transparente = vazadas.has(it.grupo || it);
+        if (transparente) { ctx.save(); ctx.globalAlpha = 0.4; }
+        caixa(ctx, it);
+        if (transparente) ctx.restore();
+        if (it.ocupante) desenharNpc(ctx, it.ocupante);
+      }
     }
     desenharSinaisNpc(ctx, agora);
 

@@ -128,10 +128,10 @@
       ],
       "descricao": "guarda-roupa alto encostado na parede do fundo (y = 0), portas viradas para +y",
       "ajuste": {
-        "x": 0.186,
-        "y": 0.268,
+        "x": 1.0,
+        "y": 1.0,
         "espelhado": false,
-        "proporcao": 0.694
+        "proporcao": 1.0
       }
     },
     "criado_mudo": {
@@ -631,8 +631,8 @@
       "tipo": "textura_piso",
       "arquivo": "piso_padaria.png",
       "tamanho_px": [
-        768,
-        768
+        512,
+        512
       ],
       "metros": 2.0
     },
@@ -640,32 +640,32 @@
       "tipo": "decal",
       "arquivo": "neon_padaria.png",
       "tamanho_px": [
-        768,
-        380
+        512,
+        253
       ]
     },
     "porta_banheiro": {
       "tipo": "decal",
       "arquivo": "porta_banheiro.png",
       "tamanho_px": [
-        515,
-        768
+        343,
+        512
       ]
     },
     "porta_rua": {
       "tipo": "decal",
       "arquivo": "porta_rua.png",
       "tamanho_px": [
-        512,
-        768
+        341,
+        512
       ]
     },
     "vitrine_rua": {
       "tipo": "decal",
       "arquivo": "vitrine_rua.png",
       "tamanho_px": [
-        768,
-        512
+        512,
+        341
       ]
     },
     "cadeira_bistro_lado": {
@@ -732,16 +732,16 @@
       "tipo": "decal",
       "arquivo": "prateleira_paes.png",
       "tamanho_px": [
-        768,
-        500
+        512,
+        333
       ]
     },
     "cardapio_padaria": {
       "tipo": "decal",
       "arquivo": "cardapio_padaria.png",
       "tamanho_px": [
-        768,
-        504
+        512,
+        336
       ]
     }
   }
