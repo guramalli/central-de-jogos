@@ -10,7 +10,7 @@
   const URL_ATUAL = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams("");
   const SOBE = URL_ATUAL.has("subir");
   const ANDAR_CASA = 12;
-  const VIAGEM_S = 6;
+  const VIAGEM_S = 16; // dá tempo de fazer várias coisas (as opções voltam depois de cada uma)
 
   const ESPELHO = { nome: "Espelho", tipo: "espelho", plano: "x0", a: 0.45, b: 1.75, z0: 0.95, z1: 2.25 }; // desenhado pelo jogo
 
@@ -37,8 +37,8 @@
       // porta da cabine (no fundo, à direita): só abre quando o elevador chega
       { nome: "Porta do elevador", tipo: "porta", plano: "y0", a: 0.55, b: 1.65, z0: 0, z1: 2.1, arte: "porta_cabine",
         saida: true, trancada: true,
-        vai: SOBE ? { nome: "Apartamento", url: "apartamento.html?comodo=entrada" }
-                  : { nome: "Garagem", url: "garagem.html?comodo=elevador" } },
+        vai: SOBE ? { nome: "Apartamento", url: "apartamento.html?comodo=entrada&andando=1" }
+                  : { nome: "Garagem", url: "garagem.html?comodo=elevador&andando=1" } },
       { nome: "Painel", tipo: "cardapio", plano: "y0", a: 1.8, b: 2.2, z0: 0.85, z1: 1.55, arte: "painel_elevador" },
       ESPELHO,
     ],
@@ -82,7 +82,7 @@
   };
 
   // ---------------------------------------------------------------- a viagem
-  let escolheu = false, chegou = false, acaoFeita = null;
+  let rodando = false, chegou = false, acaoFeita = null, caixaOpcoes = null;
   const ANDAR_FREIRA = 7;
   function comecar() {
     PLANTA.viagem.inicio = performance.now();
@@ -127,7 +127,8 @@
     setTimeout(() => { api.porta.aberta = false; }, 1100);
   }
   function talvezSair() {
-    if (!escolheu || !chegou) return;
+    if (rodando || !chegou) return; // espera a ação terminar
+    if (caixaOpcoes) { caixaOpcoes.remove(); caixaOpcoes = null; }
     const api = PLANTA.api, porta = PLANTA.naParede[0];
     if (global.NSF.Audio) global.NSF.Audio.ding();
     porta.trancada = false;
@@ -160,11 +161,12 @@
       const ic = doc.createElement("span");
       ic.className = "escolha-icone"; ic.textContent = op.icone; ic.setAttribute("aria-hidden", "true");
       b.append(ic, doc.createTextNode(op.texto));
-      b.addEventListener("click", () => { caixa.remove(); fazer(op.id); });
+      b.addEventListener("click", () => { caixa.remove(); caixaOpcoes = null; fazer(op.id); });
       grade.appendChild(b);
     }
     caixa.appendChild(grade);
     doc.body.appendChild(caixa);
+    caixaOpcoes = caixa;
     grade.querySelector("button").focus();
   }
 
@@ -173,6 +175,7 @@
     const api = PLANTA.api, jog = api.jog, heroi = api.heroi, Audio = global.NSF.Audio, agora = performance.now();
     let dur = 2600;
     acaoFeita = id;
+    rodando = true;
     // se a irmã já entrou, ela reage
     if (freira() && !freira().oculta) setTimeout(() => falaFreira(REACAO[id], 2400), id === "celular" ? 2600 : 900);
     if (id === "peidar") {
@@ -208,8 +211,9 @@
       jog.pose = null;
       if (heroi) { heroi.tirar("celular_mao"); heroi.tirar("pose_bigode"); }
       jog.dir = "baixo";
-      escolheu = true;
-      talvezSair();
+      rodando = false;
+      if (chegou) talvezSair();
+      else mostrarOpcoes(); // todas as opções de novo, até o elevador chegar
     }, dur);
   }
   function legenda(texto, ms) {

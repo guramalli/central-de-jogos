@@ -340,10 +340,24 @@
     document.body.appendChild(c);
     const resto = location.search.replace(/[?&]chegada=1/, "").replace(/^&/, "?");
     history.replaceState(null, "", location.pathname + resto + location.hash); // recarregar não repete a chegada
+    // ?andando: chega saindo pela porta (do elevador) em vez de aparecer no "clique"
+    const andando = params.has("andando") && PORTA;
+    if (andando) {
+      const f = frenteDaPorta();
+      jog.x = f.x; jog.y = f.y;
+      jog.dir = PORTA.plano === "x0" ? "direita" : "baixo";
+    }
     setTimeout(() => {
       c.classList.remove("sem-transicao", "fechada");
       setTimeout(() => {
         c.remove();
+        if (andando) {
+          jog.oculto = false;
+          const f = frenteDaPorta(), passo = 1.4;
+          irPara(PORTA.plano === "x0" ? f.x + passo : f.x, PORTA.plano === "x0" ? f.y : f.y + passo,
+            () => setTimeout(() => { porta.aberta = false; }, 250));
+          return;
+        }
         if (NSF.Audio) NSF.Audio.clique(true);
         efeitoJogador("aparecer", 560, () => setTimeout(() => { porta.aberta = false; }, 350));
       }, 650);
