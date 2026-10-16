@@ -26,7 +26,7 @@ from PIL import Image
 RAIZ = Path(__file__).resolve().parent.parent
 SK = Path.home() / ".claude/skills/animated-spritesheets/scripts"
 PASTA = RAIZ / "assets/maps/props"
-LADO_MAX = 768  # no jogo essas imagens aparecem com poucas centenas de px; mais que isso só pesa
+LADO_MAX = 512  # na tela essas imagens não passam de ~450 px (com zoom); mais que isso só pesa
 
 
 def main():

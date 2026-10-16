@@ -743,6 +743,144 @@
         512,
         336
       ]
+    },
+    "carro_x1": {
+      "arquivo": "carro_x1.png",
+      "escala": 2.0,
+      "origem_px": [
+        648.8,
+        151.9
+      ],
+      "tamanho_m": [
+        1.85,
+        4.5,
+        0.95
+      ],
+      "descricao": "SUV compacto cinza do protagonista, estacionado de ré: frente (faróis) virada para +y",
+      "ajuste": {
+        "x": 0.724,
+        "y": 0.724,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "carro_hatch": {
+      "arquivo": "carro_hatch.png",
+      "escala": 2.0,
+      "origem_px": [
+        576.0,
+        128.9
+      ],
+      "tamanho_m": [
+        1.75,
+        4.0,
+        0.85
+      ],
+      "descricao": "hatch vermelho do vizinho, estacionado de ré, frente virada para +y",
+      "ajuste": {
+        "x": 0.64,
+        "y": 0.64,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "carro_sedan": {
+      "arquivo": "carro_sedan.png",
+      "escala": 2.0,
+      "origem_px": [
+        691.4,
+        89.3
+      ],
+      "tamanho_m": [
+        1.85,
+        4.8,
+        0.85
+      ],
+      "descricao": "sedã preto do vizinho, estacionado de ré, frente virada para +y",
+      "ajuste": {
+        "x": 0.708,
+        "y": 0.708,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "pilar": {
+      "arquivo": "pilar.png",
+      "escala": 2.0,
+      "origem_px": [
+        88.5,
+        522.3
+      ],
+      "tamanho_m": [
+        0.6,
+        0.6,
+        2.6
+      ],
+      "descricao": "pilar quadrado de concreto da garagem, faixas amarelas e pretas na base",
+      "ajuste": {
+        "x": 1.0,
+        "y": 1.0,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "parede_garagem": {
+      "tipo": "textura_parede",
+      "arquivo": "parede_garagem.png",
+      "px_por_m": 200,
+      "largura_m": 2.0,
+      "altura_m": 3.0,
+      "descricao": "textura reta de parede; o jogo inclina e repete a cada largura_m"
+    },
+    "piso_garagem": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_garagem.png",
+      "tamanho_px": [
+        512,
+        512
+      ],
+      "metros": 3.0
+    },
+    "porta_elevador_garagem": {
+      "tipo": "decal",
+      "arquivo": "porta_elevador_garagem.png",
+      "tamanho_px": [
+        512,
+        341
+      ]
+    },
+    "placa_saida": {
+      "tipo": "decal",
+      "arquivo": "placa_saida.png",
+      "tamanho_px": [
+        512,
+        246
+      ]
+    },
+    "extintor": {
+      "tipo": "decal",
+      "arquivo": "extintor.png",
+      "tamanho_px": [
+        307,
+        512
+      ]
+    },
+    "parede_elevador": {
+      "tipo": "textura_parede",
+      "arquivo": "parede_elevador.png",
+      "px_por_m": 200,
+      "largura_m": 2.0,
+      "altura_m": 3.0,
+      "descricao": "textura reta de parede; o jogo inclina e repete a cada largura_m"
+    },
+    "piso_elevador": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_elevador.png",
+      "tamanho_px": [
+        512,
+        512
+      ],
+      "metros": 2.0
     }
   }
 }

@@ -46,7 +46,7 @@
 
       // pilares
       { nome: "Pilar", tipo: "parede", x0: 3.6, y0: 5.4, x1: 4.2, y1: 6.0, z1: 2.6, arte: "pilar" },
-      { nome: "Pilar", tipo: "parede", x0: 8.4, y0: 5.6, x1: 9.0, y1: 6.2, z1: 2.6, arte: "pilar" },
+      { nome: "Pilar", tipo: "parede", x0: 11.0, y0: 5.5, x1: 11.6, y1: 6.1, z1: 2.6, arte: "pilar" }, // longe da frente do carro dele
       { nome: "Pilar", tipo: "parede", x0: 13.2, y0: 5.4, x1: 13.8, y1: 6.0, z1: 2.6, arte: "pilar" },
     ],
 

@@ -144,15 +144,15 @@ KITS = {
              "(headlights, grille, hood) is the DARKEST front-left face of the guide (the short end, lower-left); the car's right "
              "side (doors, windows, wheels) is the MEDIUM-gray front-right face (the long side). The upper block of the guide is the "
              "cabin/windows. Clean and shiny, dark tinted windows, alloy wheels. No logos or badges, no readable license plate.",
-             []),
+             ["--pela-largura"]),  # carro: mantém a proporção do desenho
             ("carro_hatch", "Carro do vizinho: hatch vermelho", "peca",
              "a small RED hatchback car, a little dusty, parked in reverse: the FRONT (headlights) is the DARKEST front-left face "
              "(the short end), the right side with doors and wheels is the MEDIUM-gray front-right face. Upper block = cabin/windows. "
-             "No logos, no readable license plate.", []),
+             "No logos, no readable license plate.", ["--pela-largura"]),  # carro: mantém a proporção do desenho
             ("carro_sedan", "Carro do vizinho: sedã preto", "peca",
              "a BLACK sedan car, parked in reverse: the FRONT (headlights) is the DARKEST front-left face (the short end), the right "
              "side with doors and wheels is the MEDIUM-gray front-right face, the trunk is at the far end. Upper block = cabin/windows. "
-             "No logos, no readable license plate.", []),
+             "No logos, no readable license plate.", ["--pela-largura"]),  # carro: mantém a proporção do desenho
             ("pilar", "Pilar da garagem", "peca",
              "a square concrete pillar of an underground parking garage, bare gray concrete, the bottom 70 cm painted with diagonal "
              "yellow and black hazard stripes, a small painted parking number \"12\" on it.", ["--faces"]),
