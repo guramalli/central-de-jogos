@@ -1,0 +1,18 @@
+{
+  "video": "video_costas.mp4",
+  "quadros_video": 121,
+  "periodo": 19,
+  "nota_periodo": 0.975,
+  "inicio": 43,
+  "escolhidos": [
+    43,
+    45,
+    48,
+    50,
+    53,
+    55,
+    57,
+    60
+  ],
+  "fechamento_laco": 0.9952
+}

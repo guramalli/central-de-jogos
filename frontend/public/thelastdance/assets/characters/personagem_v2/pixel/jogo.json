@@ -1,0 +1,145 @@
+{
+  "versao": 2,
+  "padrao": "recorte_sul+video",
+  "conjuntos": {
+    "video": {
+      "baixo": {
+        "folha": "andar_sul_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          257.5,
+          498
+        ]
+      },
+      "cima": {
+        "folha": "andar_costas_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          252.8,
+          500
+        ]
+      },
+      "direita": {
+        "folha": "andar_direita_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          256.2,
+          499
+        ]
+      },
+      "esquerda": {
+        "folha": "andar_esquerda_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          249.0,
+          502
+        ]
+      }
+    },
+    "prancha": {
+      "baixo": {
+        "folha": "andar_sul_prancha/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          255.8,
+          501
+        ]
+      },
+      "cima": {
+        "folha": "andar_costas_prancha/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          256.0,
+          501
+        ]
+      },
+      "direita": {
+        "folha": "andar_direita_prancha/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          255.0,
+          503
+        ]
+      },
+      "esquerda": {
+        "folha": "andar_esquerda_prancha/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          255.0,
+          503
+        ]
+      }
+    },
+    "recorte_sul+video": {
+      "baixo": {
+        "folha": "andar_sul/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          259.0,
+          503
+        ]
+      },
+      "cima": {
+        "folha": "andar_costas_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          252.8,
+          500
+        ]
+      },
+      "direita": {
+        "folha": "andar_direita_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          256.2,
+          499
+        ]
+      },
+      "esquerda": {
+        "folha": "andar_esquerda_video/spritesheet.png",
+        "larg": 512,
+        "alt": 512,
+        "quadros": 8,
+        "fps": 10,
+        "pes": [
+          249.0,
+          502
+        ]
+      }
+    }
+  },
+  "altura_personagem_px": 320
+}

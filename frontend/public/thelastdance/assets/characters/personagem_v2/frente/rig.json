@@ -1,0 +1,432 @@
+{
+  "versao": 1,
+  "personagem": "personagem_v2",
+  "vista": "frente",
+  "fonte": "reference/personagem_v2/vistas.png",
+  "ossos": [
+    {
+      "nome": "raiz",
+      "pai": null,
+      "pivo": [
+        215,
+        905
+      ]
+    },
+    {
+      "nome": "corpo",
+      "pai": "raiz",
+      "pivo": [
+        215,
+        700
+      ]
+    },
+    {
+      "nome": "quadril",
+      "pai": "corpo",
+      "pivo": [
+        215,
+        700
+      ]
+    },
+    {
+      "nome": "torso",
+      "pai": "quadril",
+      "pivo": [
+        215,
+        690
+      ]
+    },
+    {
+      "nome": "cabeca",
+      "pai": "torso",
+      "pivo": [
+        212,
+        495
+      ]
+    },
+    {
+      "nome": "braco_dir",
+      "pai": "torso",
+      "pivo": [
+        105,
+        545
+      ]
+    },
+    {
+      "nome": "antebraco_dir",
+      "pai": "braco_dir",
+      "pivo": [
+        88,
+        650
+      ]
+    },
+    {
+      "nome": "mao_dir",
+      "pai": "antebraco_dir",
+      "pivo": [
+        85,
+        700
+      ]
+    },
+    {
+      "nome": "braco_esq",
+      "pai": "torso",
+      "pivo": [
+        325,
+        545
+      ]
+    },
+    {
+      "nome": "antebraco_esq",
+      "pai": "braco_esq",
+      "pivo": [
+        342,
+        650
+      ]
+    },
+    {
+      "nome": "mao_esq",
+      "pai": "antebraco_esq",
+      "pivo": [
+        350,
+        700
+      ]
+    },
+    {
+      "nome": "coxa_dir",
+      "pai": "corpo",
+      "pivo": [
+        160,
+        720
+      ]
+    },
+    {
+      "nome": "canela_dir",
+      "pai": "coxa_dir",
+      "pivo": [
+        158,
+        790
+      ]
+    },
+    {
+      "nome": "coxa_esq",
+      "pai": "corpo",
+      "pivo": [
+        268,
+        720
+      ]
+    },
+    {
+      "nome": "canela_esq",
+      "pai": "coxa_esq",
+      "pivo": [
+        268,
+        790
+      ]
+    },
+    {
+      "nome": "garrafa",
+      "pai": "mao_dir",
+      "pivo": [
+        80,
+        726
+      ],
+      "oculto": true
+    },
+    {
+      "nome": "cigarro",
+      "pai": "mao_dir",
+      "pivo": [
+        104,
+        712
+      ],
+      "oculto": true
+    },
+    {
+      "nome": "fumaca1",
+      "pai": "cabeca",
+      "pivo": [
+        212,
+        432
+      ],
+      "oculto": true
+    },
+    {
+      "nome": "fumaca2",
+      "pai": "cabeca",
+      "pivo": [
+        212,
+        432
+      ],
+      "oculto": true
+    },
+    {
+      "nome": "fumaca3",
+      "pai": "cabeca",
+      "pivo": [
+        212,
+        432
+      ],
+      "oculto": true
+    }
+  ],
+  "pecas": [
+    {
+      "nome": "canela_dir",
+      "osso": "canela_dir",
+      "arquivo": "canela_dir.png",
+      "origem": [
+        60,
+        755
+      ],
+      "tamanho": [
+        147,
+        158
+      ],
+      "z": 0
+    },
+    {
+      "nome": "canela_esq",
+      "osso": "canela_esq",
+      "arquivo": "canela_esq.png",
+      "origem": [
+        226,
+        755
+      ],
+      "tamanho": [
+        144,
+        158
+      ],
+      "z": 1
+    },
+    {
+      "nome": "coxa_dir",
+      "osso": "coxa_dir",
+      "arquivo": "coxa_dir.png",
+      "origem": [
+        115,
+        688
+      ],
+      "tamanho": [
+        100,
+        103
+      ],
+      "z": 2
+    },
+    {
+      "nome": "coxa_esq",
+      "osso": "coxa_esq",
+      "arquivo": "coxa_esq.png",
+      "origem": [
+        214,
+        688
+      ],
+      "tamanho": [
+        105,
+        103
+      ],
+      "z": 3
+    },
+    {
+      "nome": "quadril",
+      "osso": "quadril",
+      "arquivo": "quadril.png",
+      "origem": [
+        122,
+        655
+      ],
+      "tamanho": [
+        191,
+        97
+      ],
+      "z": 4
+    },
+    {
+      "nome": "torso",
+      "osso": "torso",
+      "arquivo": "torso.png",
+      "origem": [
+        120,
+        425
+      ],
+      "tamanho": [
+        270,
+        276
+      ],
+      "z": 5
+    },
+    {
+      "nome": "cabeca",
+      "osso": "cabeca",
+      "arquivo": "cabeca.png",
+      "origem": [
+        33,
+        100
+      ],
+      "tamanho": [
+        367,
+        399
+      ],
+      "z": 6
+    },
+    {
+      "nome": "antebraco_dir",
+      "osso": "antebraco_dir",
+      "arquivo": "antebraco_dir.png",
+      "origem": [
+        51,
+        624
+      ],
+      "tamanho": [
+        77,
+        71
+      ],
+      "z": 7
+    },
+    {
+      "nome": "braco_dir",
+      "osso": "braco_dir",
+      "arquivo": "braco_dir.png",
+      "origem": [
+        55,
+        506
+      ],
+      "tamanho": [
+        80,
+        150
+      ],
+      "z": 8
+    },
+    {
+      "nome": "garrafa",
+      "osso": "garrafa",
+      "arquivo": "garrafa.png",
+      "origem": [
+        62,
+        644
+      ],
+      "tamanho": [
+        36,
+        128
+      ],
+      "z": 9,
+      "objeto": true
+    },
+    {
+      "nome": "mao_dir",
+      "osso": "mao_dir",
+      "arquivo": "mao_dir.png",
+      "origem": [
+        46,
+        680
+      ],
+      "tamanho": [
+        80,
+        83
+      ],
+      "z": 10
+    },
+    {
+      "nome": "cigarro",
+      "osso": "cigarro",
+      "arquivo": "cigarro.png",
+      "origem": [
+        78,
+        706
+      ],
+      "tamanho": [
+        52,
+        12
+      ],
+      "z": 11,
+      "objeto": true
+    },
+    {
+      "nome": "antebraco_esq",
+      "osso": "antebraco_esq",
+      "arquivo": "antebraco_esq.png",
+      "origem": [
+        305,
+        624
+      ],
+      "tamanho": [
+        85,
+        77
+      ],
+      "z": 12
+    },
+    {
+      "nome": "braco_esq",
+      "osso": "braco_esq",
+      "arquivo": "braco_esq.png",
+      "origem": [
+        297,
+        501
+      ],
+      "tamanho": [
+        80,
+        155
+      ],
+      "z": 13
+    },
+    {
+      "nome": "mao_esq",
+      "osso": "mao_esq",
+      "arquivo": "mao_esq.png",
+      "origem": [
+        306,
+        680
+      ],
+      "tamanho": [
+        83,
+        83
+      ],
+      "z": 14
+    },
+    {
+      "nome": "fumaca1",
+      "osso": "fumaca1",
+      "arquivo": "fumaca.png",
+      "origem": [
+        180,
+        400
+      ],
+      "tamanho": [
+        64,
+        64
+      ],
+      "z": 30,
+      "objeto": true
+    },
+    {
+      "nome": "fumaca2",
+      "osso": "fumaca2",
+      "arquivo": "fumaca.png",
+      "origem": [
+        180,
+        400
+      ],
+      "tamanho": [
+        64,
+        64
+      ],
+      "z": 31,
+      "objeto": true
+    },
+    {
+      "nome": "fumaca3",
+      "osso": "fumaca3",
+      "arquivo": "fumaca.png",
+      "origem": [
+        180,
+        400
+      ],
+      "tamanho": [
+        64,
+        64
+      ],
+      "z": 32,
+      "objeto": true
+    }
+  ]
+}

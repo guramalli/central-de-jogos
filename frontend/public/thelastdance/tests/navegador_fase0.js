@@ -38,7 +38,7 @@ async function main() {
   const { chromium } = carregaPlaywright();
   const workers = Math.min(2, Math.max(1, Number(process.env.TEST_WORKERS) || 1));
   const s = await servidor();
-  const url = `http://127.0.0.1:${s.address().port}/index.html?test=1`;
+  const url = `http://127.0.0.1:${s.address().port}/cena_teste.html?test=1`;
   let navegador;
   const erros = [];
   const resultados = [];

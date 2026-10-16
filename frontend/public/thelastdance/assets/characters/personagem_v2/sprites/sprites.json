@@ -1,0 +1,71 @@
+{
+  "versao": 1,
+  "fonte": "reference/personagem_v2/sprites_4dir_v2.png",
+  "tamanho": [
+    200,
+    262
+  ],
+  "pes": [
+    100,
+    252
+  ],
+  "altura": 240,
+  "quadros": {
+    "baixo_0": "baixo_0.png",
+    "baixo_1": "baixo_1.png",
+    "baixo_2": "baixo_2.png",
+    "esquerda_0": "esquerda_0.png",
+    "esquerda_1": "esquerda_1.png",
+    "esquerda_2": "esquerda_2.png",
+    "direita_0": "direita_0.png",
+    "direita_1": "direita_1.png",
+    "direita_2": "direita_2.png",
+    "cima_0": "cima_0.png",
+    "cima_1": "cima_1.png",
+    "cima_2": "cima_2.png"
+  },
+  "escala_por_direcao": {
+    "baixo": 0.8727,
+    "esquerda": 0.9756,
+    "direita": 1.03,
+    "cima": 1.1009
+  },
+  "ciclos": {
+    "baixo": [
+      "baixo_0",
+      "baixo_2",
+      "baixo_1",
+      "baixo_2"
+    ],
+    "esquerda": [
+      "esquerda_0",
+      "esquerda_2",
+      "esquerda_1",
+      "esquerda_2"
+    ],
+    "direita": [
+      "direita_0",
+      "direita_2",
+      "direita_1",
+      "direita_2"
+    ],
+    "cima": [
+      "cima_0",
+      "cima_2",
+      "cima_1",
+      "cima_2"
+    ]
+  },
+  "duracoes_ms": [
+    160,
+    110,
+    160,
+    110
+  ],
+  "parado": {
+    "baixo": "baixo_2",
+    "esquerda": "esquerda_2",
+    "direita": "direita_2",
+    "cima": "cima_2"
+  }
+}

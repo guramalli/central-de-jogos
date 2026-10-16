@@ -3,3 +3,22 @@
 # Referências pessoais (foto do rosto e vídeo com terceiros): ficam só na máquina local.
 # O inventário guarda o SHA-256 de cada uma para conferir a cópia local.
 /reference/privado/
+
+# Material de trabalho pesado ou só local (não vai para o git nem para o site):
+# testes de 3D e prévias do Higgsfield, vídeos/GIFs de conferência, quadros soltos (o jogo usa só a folha
+# spritesheet.png + .json de cada direção) e os desenhos de origem do personagem (ficam na máquina).
+/assets/characters/protagonist/source/higgsfield/
+/assets/characters/personagem_v2/modelo3d/
+/assets/characters/personagem_v2/pixel/*/runtime/
+/assets/characters/personagem_v2/pixel/*/review/
+/assets/characters/personagem_v2/pixel/*/*.mp4
+/docs/acceptance/apartamento/
+/docs/acceptance/modelo3d/
+/docs/acceptance/personagem_v2/
+/docs/acceptance/piloto_recorte/
+/docs/acceptance/pixel/
+/docs/acceptance/sprites_v2/
+/docs/acceptance/videos_higgsfield/
+/reference/personagem_v2/
+/galeria.html
+__pycache__/

@@ -3,13 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Noite Sem Fim — cena de teste (FASE 0)</title>
-<link rel="stylesheet" href="css/estilo.css">
+<meta name="theme-color" content="#0b0712">
+<meta name="robots" content="noindex, nofollow">
+<title>The Last Dance — testes</title>
+<style>
+  :root { --fundo: #0b0712; --cartao: #1e1231; --borda: #3d2a5c; --texto: #eee6ff; --suave: #b3a3d4; --destaque: #ff5ad8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #2a0f3d, var(--fundo) 70%);
+         color: var(--texto); font: 16px/1.5 system-ui, sans-serif; padding: max(20px, env(safe-area-inset-top)) 16px 32px; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { margin: 8px 0 2px; font-size: 30px; letter-spacing: 0.5px; }
+  h1 span { color: var(--destaque); text-shadow: 0 0 14px rgba(255, 90, 216, 0.6); }
+  p.sub { margin: 0 0 22px; color: var(--suave); }
+  a.cartao { display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--texto);
+             background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  a.cartao:active, a.cartao:hover { border-color: var(--destaque); }
+  a.cartao b { display: block; font-size: 18px; }
+  a.cartao small { color: var(--suave); }
+  .icone { font-size: 30px; width: 44px; text-align: center; flex: none; }
+  footer { margin-top: 26px; color: var(--suave); font-size: 13px; }
+</style>
 </head>
 <body>
-<canvas id="tela"></canvas>
-<!-- Ordem importa: cada arquivo usa os de cima (scripts globais, sem compilação, como no Jocelino). -->
-<script src="js/base.js"></script>
-<script src="js/cena_teste.js"></script>
+<main>
+  <h1>THE LAST <span>DANCE</span></h1>
+  <p class="sub">Protótipo em desenvolvimento — páginas de teste.</p>
+
+  <a class="cartao" href="apartamento.html?comodo=quarto">
+    <span class="icone">🚶</span>
+    <span><b>Andar no apartamento</b><small>Começa no quarto. No celular, use o controle no canto da tela; no computador, setas ou WASD.</small></span>
+  </a>
+  <a class="cartao" href="apartamento.html?comodo=quarto&amp;demo">
+    <span class="icone">🎬</span>
+    <span><b>Passeio automático</b><small>O personagem anda sozinho por todos os cômodos.</small></span>
+  </a>
+
+  <footer>Dica: no celular, deitado (paisagem) mostra o apartamento inteiro; em pé, a câmera acompanha o personagem.</footer>
+</main>
 </body>
 </html>

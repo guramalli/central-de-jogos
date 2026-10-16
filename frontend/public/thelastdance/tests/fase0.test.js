@@ -34,8 +34,8 @@ test("docs obrigatórios existem", () => {
   }
 });
 
-test("index.html carrega só scripts locais que existem, sem engine nem CDN", () => {
-  const html = fs.readFileSync(path.join(RAIZ, "index.html"), "utf8");
+test("cena_teste.html carrega só scripts locais que existem, sem engine nem CDN", () => {
+  const html = fs.readFileSync(path.join(RAIZ, "cena_teste.html"), "utf8");
   const srcs = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(srcs, ["js/base.js", "js/cena_teste.js"]);
   for (const s of srcs) assert.ok(fs.existsSync(path.join(RAIZ, s)), s);

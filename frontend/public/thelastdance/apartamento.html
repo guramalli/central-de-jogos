@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0712">
+<meta name="robots" content="noindex, nofollow">
+<title>Noite Sem Fim — apartamento (teste)</title>
+<link rel="stylesheet" href="css/estilo.css">
+<style>
+  html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+  #tela { touch-action: none; }
+  #painel { position: fixed; left: max(8px, env(safe-area-inset-left)); top: max(8px, env(safe-area-inset-top));
+            display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 16px); font: 600 13px system-ui, sans-serif; }
+  #painel a, #painel button, #painel span { background: rgba(36,21,54,0.88); color: #eee6ff; border: 1px solid #5b3d86;
+            border-radius: 8px; padding: 8px 11px; text-decoration: none; }
+  #painel button { cursor: pointer; }
+  #painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
+  #dica { opacity: 0.85; }
+  #joystick { position: fixed; left: max(24px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom));
+              width: 140px; height: 140px; border-radius: 50%; background: rgba(36,21,54,0.55);
+              border: 2px solid rgba(255,90,216,0.55); touch-action: none; display: none; }
+  #pino { position: absolute; left: 45px; top: 45px; width: 50px; height: 50px; border-radius: 50%;
+          background: rgba(255,90,216,0.85); box-shadow: 0 0 12px rgba(255,90,216,0.6); pointer-events: none; }
+  @media (pointer: coarse) { #joystick { display: block; } #dica { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="painel">
+  <a href="./">← Menu</a>
+  <button id="conjunto">Sprites</button>
+  <button id="demo">Passeio</button>
+  <button id="nomes">Nomes</button>
+  <button id="grade">Grade</button>
+  <span id="dica">Setas ou WASD para andar</span>
+</div>
+<div id="joystick" aria-label="Controle de movimento"><div id="pino"></div></div>
+<!-- Planta em blocos (FASE 4) + caminhada nova. ?comodo=sala|quarto ?conjunto=video|prancha|recorte_sul+video ?demo ?grade -->
+<script src="js/base.js"></script>
+<script src="js/maps/iso.js"></script>
+<script src="js/maps/apartamento_planta.js"></script>
+<script src="js/apartamento.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Noite Sem Fim — animações do personagem v2</title>
+<link rel="stylesheet" href="css/estilo.css">
+<style>
+  .painel { position: fixed; left: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 24px);
+            font: 600 14px system-ui, sans-serif; }
+  #anims { top: 12px; } #opcoes { top: 52px; }
+  .painel button, .painel label { background: #241536; color: #eee6ff; border: 1px solid #5b3d86; border-radius: 6px;
+            padding: 7px 11px; cursor: pointer; user-select: none; }
+  .painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
+  .painel label input { margin-right: 6px; }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div class="painel" id="anims">
+  <button data-anim="parado">Parado</button>
+  <button data-anim="andar">Andar</button>
+  <button data-anim="danca">Dançar</button>
+  <button data-anim="pegar">Pegar na cintura</button>
+  <button data-anim="luta">Luta</button>
+  <button data-anim="beber">Beber</button>
+  <button data-anim="fumar">Fumar</button>
+</div>
+<div class="painel" id="opcoes">
+  <button data-vista="frente">De frente</button>
+  <button data-vista="lado">De lado</button>
+  <button data-vista="lado-esq">De lado (espelhado)</button>
+  <label><input type="checkbox" id="ossos">Ossos</label>
+  <label><input type="checkbox" id="lento">Câmera lenta</label>
+</div>
+<!-- ?anim=beber&vista=lado&t=0.45 congela a pose; ?test=1 = modo de teste. -->
+<script src="js/base.js"></script>
+<script src="js/characters/recorte.js"></script>
+<script src="js/characters/personagem_v2_anim.js"></script>
+<script src="js/animacoes_v2.js"></script>
+</body>
+</html>

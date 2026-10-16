@@ -1,0 +1,1 @@
+Recorte de pixels do sprite de frente (tools/pixel_andar_frente.py, escala 6) processado pela skill animated-spritesheets (process-sheet.mjs).

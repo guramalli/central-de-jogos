@@ -1,0 +1,24 @@
+{
+  "animations": {
+    "anim": {
+      "fps": 10,
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  },
+  "columns": 8,
+  "fps": 10,
+  "frameCount": 8,
+  "frameHeight": 512,
+  "frameWidth": 512,
+  "image": "spritesheet.png",
+  "rows": 1
+}

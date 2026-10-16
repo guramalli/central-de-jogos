@@ -32,16 +32,25 @@
     };
   }
 
+  // Modo "adaptar": a altura lógica fica fixa (1080) e a largura acompanha o formato da tela — no celular em pé
+  // a área lógica fica estreita e alta em vez de virar uma faixa minúscula com barras pretas.
+  function baseAdaptada(larguraTela, alturaTela, alturaBase) {
+    return Math.max(480, Math.round(alturaBase * larguraTela / Math.max(1, alturaTela)));
+  }
+
   const NSF = {
     CONFIG,
     lerModoTeste,
     deveDesenhar,
     escalaParaTela,
+    baseAdaptada,
     estado: { pronto: false, quadros: 0, modoTeste: false, efeitos: true, som: true, erros: [] },
   };
 
   // Inicia o laço de desenho numa <canvas>. desenhar(ctx, t) recebe o contexto já na escala da resolução base.
-  NSF.iniciar = function (canvas, desenhar) {
+  // opcoes.adaptar = true: a largura lógica (CONFIG.larguraBase) passa a seguir o formato da tela (ver baseAdaptada).
+  NSF.iniciar = function (canvas, desenhar, opcoes) {
+    const adaptar = !!(opcoes && opcoes.adaptar);
     const est = NSF.estado;
     est.modoTeste = lerModoTeste(global.location && global.location.search);
     est.efeitos = !est.modoTeste;
@@ -62,6 +71,7 @@
       global.requestAnimationFrame(quadro);
       if (!deveDesenhar(agora, ultimo, fpsMax)) return;
       ultimo = agora;
+      if (adaptar) CONFIG.larguraBase = baseAdaptada(canvas.width, canvas.height, CONFIG.alturaBase);
       const e = escalaParaTela(canvas.width, canvas.height, CONFIG.larguraBase, CONFIG.alturaBase);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = "#000";

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Noite Sem Fim — piloto de animação por recorte</title>
+<link rel="stylesheet" href="css/estilo.css">
+<style>
+  #painel { position: fixed; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 24px);
+            font: 600 14px system-ui, sans-serif; }
+  #painel button, #painel label { background: #241536; color: #eee6ff; border: 1px solid #5b3d86; border-radius: 6px;
+            padding: 7px 11px; cursor: pointer; user-select: none; }
+  #painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
+  #painel label input { margin-right: 6px; }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="painel">
+  <button data-anim="parado">Parado</button>
+  <button data-anim="andar">Andar</button>
+  <button data-anim="brinde">Brinde</button>
+  <button data-anim="danca">Dançar</button>
+  <label><input type="checkbox" id="ossos">Ossos</label>
+  <label><input type="checkbox" id="lento">Câmera lenta</label>
+</div>
+<!-- Piloto da técnica (não é o jogo): ?anim=andar&t=0.25 congela a pose; ?test=1 = modo de teste. -->
+<script src="js/base.js"></script>
+<script src="js/characters/recorte.js"></script>
+<script src="js/characters/protagonista_anim.js"></script>
+<script src="js/piloto_recorte.js"></script>
+</body>
+</html>

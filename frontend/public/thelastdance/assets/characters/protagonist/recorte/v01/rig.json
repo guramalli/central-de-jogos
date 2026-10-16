@@ -1,0 +1,317 @@
+{
+  "versao": 1,
+  "vista": "S",
+  "fonte": "reference/kit_v1.0/01_personagem/personagem_conceito.png",
+  "tamanho_fonte": [
+    1024,
+    1536
+  ],
+  "ossos": [
+    {
+      "nome": "raiz",
+      "pai": null,
+      "pivo": [
+        545,
+        1500
+      ]
+    },
+    {
+      "nome": "corpo",
+      "pai": "raiz",
+      "pivo": [
+        545,
+        1100
+      ]
+    },
+    {
+      "nome": "quadril",
+      "pai": "corpo",
+      "pivo": [
+        545,
+        1100
+      ]
+    },
+    {
+      "nome": "torso",
+      "pai": "quadril",
+      "pivo": [
+        545,
+        1060
+      ]
+    },
+    {
+      "nome": "cabeca",
+      "pai": "torso",
+      "pivo": [
+        510,
+        740
+      ]
+    },
+    {
+      "nome": "braco_dir",
+      "pai": "torso",
+      "pivo": [
+        378,
+        790
+      ]
+    },
+    {
+      "nome": "antebraco_dir",
+      "pai": "braco_dir",
+      "pivo": [
+        302,
+        920
+      ]
+    },
+    {
+      "nome": "mao_dir",
+      "pai": "antebraco_dir",
+      "pivo": [
+        350,
+        930
+      ]
+    },
+    {
+      "nome": "braco_esq",
+      "pai": "torso",
+      "pivo": [
+        700,
+        790
+      ]
+    },
+    {
+      "nome": "antebraco_esq",
+      "pai": "braco_esq",
+      "pivo": [
+        728,
+        972
+      ]
+    },
+    {
+      "nome": "coxa_dir",
+      "pai": "corpo",
+      "pivo": [
+        468,
+        1115
+      ]
+    },
+    {
+      "nome": "canela_dir",
+      "pai": "coxa_dir",
+      "pivo": [
+        462,
+        1245
+      ]
+    },
+    {
+      "nome": "coxa_esq",
+      "pai": "corpo",
+      "pivo": [
+        618,
+        1115
+      ]
+    },
+    {
+      "nome": "canela_esq",
+      "pai": "coxa_esq",
+      "pivo": [
+        628,
+        1250
+      ]
+    }
+  ],
+  "pecas": [
+    {
+      "nome": "canela_dir",
+      "osso": "canela_dir",
+      "arquivo": "canela_dir.png",
+      "origem": [
+        339,
+        1195
+      ],
+      "tamanho": [
+        181,
+        263
+      ],
+      "z": 0,
+      "pixels_visiveis": 22650,
+      "pixels_aba": 4112
+    },
+    {
+      "nome": "canela_esq",
+      "osso": "canela_esq",
+      "arquivo": "canela_esq.png",
+      "origem": [
+        558,
+        1200
+      ],
+      "tamanho": [
+        185,
+        308
+      ],
+      "z": 1,
+      "pixels_visiveis": 26012,
+      "pixels_aba": 4631
+    },
+    {
+      "nome": "coxa_dir",
+      "osso": "coxa_dir",
+      "arquivo": "coxa_dir.png",
+      "origem": [
+        401,
+        1060
+      ],
+      "tamanho": [
+        145,
+        181
+      ],
+      "z": 2,
+      "pixels_visiveis": 9362,
+      "pixels_aba": 12107
+    },
+    {
+      "nome": "coxa_esq",
+      "osso": "coxa_esq",
+      "arquivo": "coxa_esq.png",
+      "origem": [
+        545,
+        1060
+      ],
+      "tamanho": [
+        138,
+        186
+      ],
+      "z": 3,
+      "pixels_visiveis": 10289,
+      "pixels_aba": 9852
+    },
+    {
+      "nome": "quadril",
+      "osso": "quadril",
+      "arquivo": "quadril.png",
+      "origem": [
+        390,
+        990
+      ],
+      "tamanho": [
+        311,
+        196
+      ],
+      "z": 4,
+      "pixels_visiveis": 25116,
+      "pixels_aba": 13201
+    },
+    {
+      "nome": "torso",
+      "osso": "torso",
+      "arquivo": "torso.png",
+      "origem": [
+        380,
+        640
+      ],
+      "tamanho": [
+        326,
+        450
+      ],
+      "z": 5,
+      "pixels_visiveis": 64080,
+      "pixels_aba": 67847
+    },
+    {
+      "nome": "antebraco_esq",
+      "osso": "antebraco_esq",
+      "arquivo": "antebraco_esq.png",
+      "origem": [
+        590,
+        938
+      ],
+      "tamanho": [
+        183,
+        165
+      ],
+      "z": 6,
+      "pixels_visiveis": 14397,
+      "pixels_aba": 1306
+    },
+    {
+      "nome": "braco_esq",
+      "osso": "braco_esq",
+      "arquivo": "braco_esq.png",
+      "origem": [
+        645,
+        736
+      ],
+      "tamanho": [
+        132,
+        235
+      ],
+      "z": 7,
+      "pixels_visiveis": 18030,
+      "pixels_aba": 293
+    },
+    {
+      "nome": "cabeca",
+      "osso": "cabeca",
+      "arquivo": "cabeca.png",
+      "origem": [
+        128,
+        5
+      ],
+      "tamanho": [
+        674,
+        756
+      ],
+      "z": 8,
+      "pixels_visiveis": 351811,
+      "pixels_aba": 0
+    },
+    {
+      "nome": "antebraco_dir",
+      "osso": "antebraco_dir",
+      "arquivo": "antebraco_dir.png",
+      "origem": [
+        281,
+        875
+      ],
+      "tamanho": [
+        92,
+        141
+      ],
+      "z": 9,
+      "pixels_visiveis": 7364,
+      "pixels_aba": 123
+    },
+    {
+      "nome": "braco_dir",
+      "osso": "braco_dir",
+      "arquivo": "braco_dir.png",
+      "origem": [
+        305,
+        754
+      ],
+      "tamanho": [
+        120,
+        147
+      ],
+      "z": 10,
+      "pixels_visiveis": 5367,
+      "pixels_aba": 1704
+    },
+    {
+      "nome": "mao_dir",
+      "osso": "mao_dir",
+      "arquivo": "mao_dir.png",
+      "origem": [
+        328,
+        793
+      ],
+      "tamanho": [
+        125,
+        213
+      ],
+      "z": 11,
+      "pixels_visiveis": 15889,
+      "pixels_aba": 459
+    }
+  ]
+}

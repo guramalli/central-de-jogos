@@ -7,7 +7,8 @@
     { "source": "/jocelino", "destination": "/jocelino/", "permanent": false },
     { "source": "/grau-grinders", "destination": "/grau-grinders/", "permanent": false },
     { "source": "/jogorpg", "destination": "/jogorpg/", "permanent": false },
-    { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false }
+    { "source": "/thelastdance", "destination": "/thelastdance/", "permanent": false },
+    { "source": "/thelastdance/:pasta(reference|docs|tools|tests)/:resto*", "destination": "/thelastdance/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/lenda-do-campinho/", "destination": "/lenda-do-campinho/index.html" },

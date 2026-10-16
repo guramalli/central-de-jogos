@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Noite Sem Fim — andando com os sprites</title>
+<link rel="stylesheet" href="css/estilo.css">
+<style>
+  #painel { position: fixed; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 24px);
+            font: 600 14px system-ui, sans-serif; }
+  #painel button, #painel span { background: #241536; color: #eee6ff; border: 1px solid #5b3d86; border-radius: 6px;
+            padding: 7px 11px; }
+  #painel button { cursor: pointer; }
+  #painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
+</style>
+</head>
+<body>
+<canvas id="tela" tabindex="0"></canvas>
+<div id="painel">
+  <button id="demo" aria-pressed="true">Demonstração automática</button>
+  <span>Setas ou WASD para andar</span>
+</div>
+<!-- ?test=1 = modo de teste; ?dir=esquerda&quadro=1 congela um quadro. -->
+<script src="js/base.js"></script>
+<script src="js/andar_sprites.js"></script>
+</body>
+</html>
