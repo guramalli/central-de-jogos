@@ -897,6 +897,22 @@
         294,
         512
       ]
+    },
+    "espelho_bigode": {
+      "tipo": "decal",
+      "arquivo": "espelho_bigode.png",
+      "tamanho_px": [
+        439,
+        512
+      ]
+    },
+    "espelho_bigode2": {
+      "tipo": "decal",
+      "arquivo": "espelho_bigode2.png",
+      "tamanho_px": [
+        439,
+        512
+      ]
     }
   }
 }

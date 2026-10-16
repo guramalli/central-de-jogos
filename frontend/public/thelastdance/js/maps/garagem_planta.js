@@ -18,6 +18,7 @@
   const PLANTA = {
     id: "garagem",
     nome: "Garagem",
+    musica: "garagem",
     largura: LARG, profundidade: PROF,
     peDireito: PE_DIREITO,
     texturaParede: "parede_garagem",

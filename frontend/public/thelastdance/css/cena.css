@@ -55,3 +55,14 @@
   .armario-interior { min-height: 0; }
   .armario-peca { width: 96px; } .armario-peca canvas { width: 80px; height: 110px; }
 }
+
+/* Quadro rápido de opções (elevador): só os botões, embaixo da tela, sem conversa. */
+.escolha { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 22;
+  width: min(460px, calc(100vw - 20px)); background: rgba(22, 13, 36, 0.95); border: 2px solid #5b3d86; border-radius: 16px;
+  padding: 10px; font: 15px/1.3 system-ui, sans-serif; color: #f3ecff; box-shadow: 0 0 24px rgba(255, 90, 216, 0.25); }
+.escolha-titulo { font-size: 13px; color: #cdbdf0; margin: 0 4px 8px; }
+.escolha-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.escolha-grade button { display: flex; align-items: center; gap: 8px; font: 600 15px system-ui, sans-serif; color: #fff;
+  background: #3a2550; border: 1px solid #6e4aa0; border-radius: 12px; padding: 12px 10px; cursor: pointer; text-align: left; }
+.escolha-grade button:hover, .escolha-grade button:focus-visible { border-color: #ff5ad8; outline: none; background: #4a2d66; }
+.escolha-icone { font-size: 20px; }

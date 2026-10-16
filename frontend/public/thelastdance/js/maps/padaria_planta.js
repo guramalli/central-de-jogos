@@ -30,6 +30,7 @@
   const PLANTA = {
     id: "padaria",
     nome: "Padaria",
+    musica: "padaria",
     largura: LARG, profundidade: PROF,
     peDireito: PE_DIREITO,
     texturaParede: "parede_padaria",     // azulejo embaixo, pintura em cima (enquanto não existe: paredes em bloco)

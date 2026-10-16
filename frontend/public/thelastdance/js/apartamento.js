@@ -502,7 +502,7 @@
     bSom.textContent = on ? "Som: ligado" : "Som: desligado";
     bSom.setAttribute("aria-pressed", String(on));
   });
-  if (NSF.Audio) NSF.Audio.musica(true);
+  if (NSF.Audio) { NSF.Audio.trilha(P.musica || "apartamento"); NSF.Audio.musica(true); } // cada mapa tem sua música
   const bLig = document.getElementById("ligacao");
   if (bLig) bLig.addEventListener("click", () => telefoneToca());
 
@@ -806,7 +806,8 @@
     const dt = heroiRelogio ? Math.min(0.1, (agora - heroiRelogio) / 1000) : 0;
     heroiRelogio = agora;
     heroi.definirVista(VISTA_MOD[jog.dir] || "frente");
-    heroi.tocar(jog.andando ? "andar" : "parado");
+    // pose da cena (ex.: olhando o celular no elevador) ou andar/parado
+    heroi.tocar(jog.pose && heroi.animacoes[jog.pose] ? jog.pose : jog.andando ? "andar" : "parado");
     heroi.atualizar(dt);
     const [x, y] = T(jog.x, jog.y, 0), meio = y - ALTURA_PERSONAGEM * 0.5;
     ctx.save();
@@ -1025,7 +1026,7 @@
   // Peças do mapa: carrega o catálogo e só as imagens usadas na planta (+ a textura de parede).
   fetch(PASTA_PROPS + "props.json").then((r) => r.json()).then((cat) => {
     const usadas = new Set([TEXTURA_PAREDE, ...P.caixas.map((c) => c.arte), ...P.naParede.map((w) => w.arte),
-      ...P.comodos.map((c) => c.piso_arte)].filter(Boolean));
+      ...P.comodos.map((c) => c.piso_arte), ...(P.artesExtras || [])].filter(Boolean));
     return Promise.all([...usadas].filter((n) => cat.props[n]).map((n) => new Promise((ok) => {
       const im = new Image();
       im.onload = () => { imgProps[n] = im; ok(); };
