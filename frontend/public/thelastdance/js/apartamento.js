@@ -376,11 +376,34 @@
       return dadosNpc[id].then((d) => new global.PersonagemModular(d, PASTA_NPC + id + "/").carregar()).then((pm) => {
         pm.pixelado = false;
         pm.definirVista(VISTA_MOD[n.dir] || "frente");
-        pm.tocar("parado");
+        if (n.postura === "sentado") criarPoseSentada(pm);
+        pm.tocar(n.postura === "sentado" && pm.vista.startsWith("lado") ? "sentado" : "parado");
         pm.tempo = Math.random() * 2; // cada um respira num ritmo
         n.modular = pm;
       });
     }))).catch((e) => estado.erros.push(String(e)));
+  }
+  // Pose sentada de perfil: a coxa gira para a frente (horizontal) e a canela volta para baixo. De frente/de
+  // costas não dá para dobrar a perna em 2D: ali a mesa (com toalha) cobre da cintura para baixo.
+  function girarOsso(graus, px, py) {
+    const r = graus * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+    return [c, s, -s, c, px - c * px + s * py, py - s * px - c * py];
+  }
+  function criarPoseSentada(pm) {
+    if (pm.animacoes.sentado) return;
+    const vistas = {};
+    for (const [vista, sinal] of [["lado_direito", -1], ["lado_esquerdo", 1]]) {
+      const o = pm.rig.vistas[vista].ossos;
+      const q = {};
+      for (const [coxa, canela] of [["coxa", "canela"], ["coxa_tras", "canela_tras"]]) {
+        q[coxa] = girarOsso(sinal * 82, o[coxa].pivo[0], o[coxa].pivo[1]);
+        q[canela] = girarOsso(-sinal * 82, o[canela].pivo[0], o[canela].pivo[1]);
+      }
+      vistas[vista] = [q];
+    }
+    vistas.frente = pm.animacoes.parado.vistas.frente;
+    vistas.costas = pm.animacoes.parado.vistas.costas;
+    pm.animacoes.sentado = { fps: 1, loop: true, vistas };
   }
   let npcRelogio = 0;
   // Desenho da personagem modular. Sentada: o quadril fica na altura do assento e as pernas são cortadas ali
@@ -389,9 +412,11 @@
     const pm = n.modular;
     let [fx, fy] = T(n.x, n.y, 0);
     ctx.save();
-    if (n.postura === "sentado") {
+    if (n.postura === "sentado" && pm.vista.startsWith("lado")) {
+      fy += (fy - T(n.x, n.y, 1)[1]) * 0.22; // de perfil: pernas dobradas, o quadril desce até o assento
+    } else if (n.postura === "sentado") {
       const corte = T(n.x, n.y, 0.47)[1] + 6;
-      fy += (fy - T(n.x, n.y, 1)[1]) * 0.18; // corpo um pouco mais baixo: o quadril afunda no assento
+      fy += (fy - T(n.x, n.y, 1)[1]) * 0.3; // corpo mais baixo: sentada, a cabeça fica abaixo de quem está em pé
       ctx.beginPath(); ctx.rect(fx - 400, corte - 2000, 800, 2000); ctx.clip();
     } else {
       ctx.fillStyle = "rgba(0,0,0,0.3)";
@@ -762,8 +787,32 @@
     ctx.restore();
   }
 
+  function toalha(ctx, c) {
+    const m = 0.04, z1 = c.z1 + 0.01, z0 = c.toalhaAte != null ? c.toalhaAte : 0.12;
+    const cor = c.toalha, x0 = c.x0 - m, x1 = c.x1 + m, y0 = c.y0 - m, y1 = c.y1 + m;
+    const faceY = (a, b) => [T(a, y1, z1), T(b, y1, z1), T(b, y1, z0), T(a, y1, z0)];
+    const faceX = (a, b) => [T(x1, a, z1), T(x1, b, z1), T(x1, b, z0), T(x1, a, z0)];
+    poli(ctx, faceY(x0, x1), cor, "rgba(0,0,0,0.35)");
+    poli(ctx, faceX(y0, y1), cor, "rgba(0,0,0,0.35)");
+    poli(ctx, faceX(y0, y1), "rgba(0,0,0,0.16)");              // lado na sombra
+    // pregas e barra
+    ctx.save();
+    ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = 2;
+    for (let x = x0 + 0.2; x < x1; x += 0.2) { const [a, b] = [T(x, y1, z1 - 0.05), T(x, y1, z0 + 0.02)]; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    for (let y = y0 + 0.2; y < y1; y += 0.2) { const [a, b] = [T(x1, y, z1 - 0.05), T(x1, y, z0 + 0.02)]; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 3;
+    ctx.beginPath(); [T(x0, y1, z0 + 0.04), T(x1, y1, z0 + 0.04), T(x1, y0, z0 + 0.04)].forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke();
+    ctx.restore();
+    // tampo: a toalha aparece só na beirada (a arte da mesa, com xícaras, continua por cima)
+    poli(ctx, [T(x0, y1 - 0.08, z1), T(x1 - 0.08, y1 - 0.08, z1), T(x1 - 0.08, y0, z1), T(x1, y0, z1), T(x1, y1, z1), T(x0, y1, z1)], cor);
+  }
+
   function caixa(ctx, c) {
+    if (c.toalha) { if (!arte(ctx, c)) caixaBloco(ctx, c); toalha(ctx, c); return; }
     if (arte(ctx, c)) return;
+    caixaBloco(ctx, c);
+  }
+  function caixaBloco(ctx, c) {
     const [cTopo, cEsq, cDir] = CORES[c.tipo] || CORES.movel;
     const z = c.z1, linha = c.pedaco ? null : "rgba(0,0,0,0.45)"; // pedaço de parede: sem linha na emenda
     // pedaço do meio de uma parede: a "tampa" que encosta no pedaço seguinte fica escondida — não desenha

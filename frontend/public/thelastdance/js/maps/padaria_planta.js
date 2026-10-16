@@ -14,8 +14,8 @@
   // Mesa com cadeiras em volta: lados "n"/"n1" (fundo: quem senta olha para a câmera), "o" (esquerda), "l" (direita).
   // Arte: mesa_bistro (0,7 × 0,7) ou mesa_grande; a cadeira de cada lado olha para a mesa.
   const ARTE_CADEIRA = { n: "cadeira_bistro", n1: "cadeira_bistro", o: "cadeira_bistro_lado", l: "cadeira_bistro_costas" };
-  function mesa(nome, x0, y0, x1, y1, lados) {
-    const out = [{ nome, tipo: "mesa", x0, y0, x1, y1, z1: 0.75, arte: x1 - x0 > 0.8 ? "mesa_grande" : "mesa_bistro" }];
+  function mesa(nome, x0, y0, x1, y1, lados, extra) {
+    const out = [Object.assign({ nome, tipo: "mesa", x0, y0, x1, y1, z1: 0.75, arte: x1 - x0 > 0.8 ? "mesa_grande" : "mesa_bistro" }, extra)];
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, L = 0.45, G = 0.1;
     for (const l of lados) {
       const cad = (a, b, c, d) => ({ nome: "Cadeira", tipo: "cadeira", x0: a, y0: b, x1: c, y1: d, z1: 0.9, arte: ARTE_CADEIRA[l] });
@@ -68,7 +68,7 @@
       { nome: "Geladeira de bebidas", tipo: "armario", x0: 0, y0: 3.0, x1: 0.7, y1: 4.4, z1: 2.0, arte: "geladeira_bebidas" },
 
       // mesas do salão
-      ...mesa("Mesa das meninas", 5.2, 4.6, 6.4, 5.6, ["n", "o", "l"]),
+      ...mesa("Mesa das meninas", 5.2, 4.6, 6.4, 5.6, ["n", "o", "l"], { toalha: "#b8323f" }), // toalha cobre o colo de quem senta atrás
       ...mesa("Mesa dos homens", 9.6, 5.6, 10.8, 6.6, ["n", "o", "l"]),
       ...mesa("Mesa", 2.4, 6.0, 3.1, 6.7, ["o", "l"]),
       ...mesa("Mesa", 6.4, 8.0, 7.1, 8.7, ["o", "l"]),
