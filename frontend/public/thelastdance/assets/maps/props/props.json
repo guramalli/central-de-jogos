@@ -881,6 +881,30 @@
         512
       ],
       "metros": 2.0
+    },
+    "porta_cabine": {
+      "tipo": "decal",
+      "arquivo": "porta_cabine.png",
+      "tamanho_px": [
+        341,
+        512
+      ]
+    },
+    "painel_elevador": {
+      "tipo": "decal",
+      "arquivo": "painel_elevador.png",
+      "tamanho_px": [
+        294,
+        512
+      ]
+    },
+    "espelho_elevador": {
+      "tipo": "decal",
+      "arquivo": "espelho_elevador.png",
+      "tamanho_px": [
+        341,
+        512
+      ]
     }
   }
 }

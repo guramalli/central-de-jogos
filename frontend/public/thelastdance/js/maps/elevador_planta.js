@@ -34,8 +34,8 @@
         saida: true, trancada: true,
         vai: SOBE ? { nome: "Apartamento", url: "apartamento.html?comodo=entrada" }
                   : { nome: "Garagem", url: "garagem.html?comodo=elevador" } },
-      { nome: "Painel", tipo: "cardapio", plano: "y0", a: 1.85, b: 2.15, z0: 0.9, z1: 1.6, arte: "painel_elevador" },
-      { nome: "Espelho", tipo: "vidro", plano: "x0", a: 0.35, b: 1.85, z0: 0.9, z1: 2.25, arte: "espelho_elevador" },
+      { nome: "Painel", tipo: "cardapio", plano: "y0", a: 1.8, b: 2.2, z0: 0.85, z1: 1.55, arte: "painel_elevador" },
+      { nome: "Espelho", tipo: "vidro", plano: "x0", a: 0.6, b: 1.6, z0: 0.6, z1: 2.2, arte: "espelho_elevador" },
     ],
     pontos: [{ nome: "centro", x: 1.2, y: 1.3 }],
     roteiroDemo: ["centro"],
