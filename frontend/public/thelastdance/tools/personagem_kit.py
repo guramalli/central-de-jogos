@@ -4,6 +4,7 @@
 Uso (a partir de frontend/public/thelastdance/):
     python -I tools/personagem_kit.py <pasta com frente.png costas.png lado_direito.png lado_esquerdo.png> <id>
         [--espelhar-esquerdo]   (lado esquerdo = lado direito espelhado, quando a vista esquerda veio com defeito)
+        [--saia]                (vestido/saia longa: coxa e canela ficam no tronco — só os pés andam, a saia não rasga)
 
 Usa o MESMO esqueleto e as MESMAS animações do protagonista (personagem_modular/rig.json e animacoes.json):
 cada pixel do desenho vai para o osso mais próximo (cápsula entre a junta da peça e a ponta dela no protagonista),
@@ -36,7 +37,7 @@ def dist_segmento(px, py, a, b):
     return np.hypot(px - (ax + t * vx), py - (ay + t * vy))
 
 
-def recortar(img, vista):
+def recortar(img, vista, saia=False):
     rig = R.rig()
     v = rig["vistas"][vista]
     W, H = rig["canvas"]
@@ -45,6 +46,8 @@ def recortar(img, vista):
     alfa = a[..., 3] > 16
     ys, xs = np.mgrid[0:H, 0:W]
     pecas = [c["nome"] for c in v["camadas"] if c["nome"] not in TRAS]
+    if saia:  # perna inteira dentro da saia: vai junto com o tronco
+        pecas = [p for p in pecas if not p.startswith(("coxa", "canela"))]
     # cada peça: cápsula da junta (pivô do osso) até o ponto mais distante da peça no protagonista
     dist = []
     for nome in pecas:
@@ -137,7 +140,7 @@ def main():
             img = Image.new("RGBA", dir_.size); img.alpha_composite(dir_, (dx, 0))
         else:
             img = Image.open(pasta / f"{vista}.png")
-        pecas = recortar(img, vista)
+        pecas = recortar(img, vista, saia="--saia" in sys.argv)
         camadas = []
         for c in rig["vistas"][vista]["camadas"]:
             p = pecas.get(c["nome"])
