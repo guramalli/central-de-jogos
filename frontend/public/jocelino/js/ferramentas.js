@@ -389,6 +389,7 @@ function comer(id, e) {
   if (G.mochila.total(id) < 1) return;
   G.mochila.remover(id, 1);
   G.energia = Math.min(G.energiaMax, G.energia + e);
+  if (id === 'marmita' && G.limpou && G.limpou.marmita_almoco === 1) G.limpou.marmita_almoco = 2;   // (C9) o 1º almoço: a seta da barra some
   sons.tocar('pegar', 0.7, 0.05, -4);
   avisar(`Comeu ${Itens.nome(id).toLowerCase()}: +${e} de energia.`);
   hudSujo();

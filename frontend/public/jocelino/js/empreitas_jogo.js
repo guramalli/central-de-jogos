@@ -322,21 +322,30 @@ function abrirQuadro(aba = 'servicos') {
       const ids = G.empreitas.quadro, aceitas = Object.keys(G.empreitas.aceitas);
       const linha = (id, botao) => { const E = dadosEmpreita(id); return el('div', { class: 'orel-item' }, el('img', { src: urlItem(E.ferramenta === 'carga' ? 'telha' : E.ferramenta) }),
         el('div', {}, el('b', {}, `${E.nome} — ${CLIENTE_NOME[E.cliente] || ''}`), E.fala ? el('div', { class: 'recado-fala' }, `"${E.fala}"`) : null, el('div', { class: 'orel-preco' },
-          `${ondeFica(E.mapa)} · ${E.tipo === 'longa' ? E.dias + ' dias' : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${Empreitas.pagaBase(id)}` +
+          `${ondeFica(E.mapa)} · ${E.tipo === 'longa' ? `Empreita (serviço de ${E.dias} dias)` : E.tipo === 'capina' ? 'a cada 3 dias, até o fim da estação' : 'uma tarde'} · Cr$ ${Empreitas.pagaBase(id)}` +
           (Object.keys(E.material).length ? ' · ' + Object.entries(E.material).map(([m, q]) => Itens.qtd(q, m)).join(', ') : ''))), botao); };
       const fx = Empreitas.faixa(), prox = FAIXAS_VILA[fx.i + 1], cap = G.empreitas.caprichados || 0;
       const pct = prox ? Math.round(100 * Math.min(G.empreitas.entregues / prox.entregues, prox.caprichados ? cap / prox.caprichados : 1)) : 100;
       miolo.append(el('div', { class: 'fala-vila' }, el('b', {}, 'Fala da Vila: ' + fx.nome),
-        el('span', {}, prox ? ` · ${G.empreitas.entregues}/${prox.entregues} serviços${prox.caprichados ? `, ${cap}/${prox.caprichados} caprichados` : ''} para ${prox.nome}` : ' · o nome mais respeitado da Vila'),
+        // (C12) os caprichados num pedaço à parte: a 1ª vez que aparecem, a seta e a fala do Bira vão nele (PRIMEIRA_TELA.caprichado, guia_setas.js)
+        el('span', {}, prox ? ` · ${G.empreitas.entregues}/${prox.entregues} serviços` : ' · o nome mais respeitado da Vila',
+          // (C12, rodada 1) antes de Pedreiro não sai caprichado (Empreitas.qualidade): o "0/5" não fica à vista sem dar para fazer
+          prox && prox.caprichados ? el('span', { class: 'fv-caprichados' }, Empreitas.funcao() >= 2 ? `, ${cap}/${prox.caprichados} caprichados` : ', caprichado só de Pedreiro pra cima') : '', prox ? ` para ${prox.nome}` : ''),
         el('div', { class: 'barra-fala' }, el('div', { style: `width:${Math.min(100, pct)}%` }))));
       // (15/10, T3) O recado do dia: coisa de vizinho, à parte dos serviços (recados_jogo.js); sem recado hoje, a seção não aparece.
       const rec = typeof recadoNoQuadro === 'function' ? recadoNoQuadro(desenha) : null; if (rec) miolo.append(...rec);
       miolo.append(el('div', { class: 'cad-sub' }, 'Pedidos de hoje'), el('div', { class: 'qv-lista' }, ...(ids.length ? ids.map(id => {
         const pode = Empreitas.libera(id);
-        return linha(id, pode ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro);
+        const card = linha(id, pode ? el('button', { class: 'botao', onclick: e => { e.stopPropagation(); const r = Empreitas.aceitar(id, G.mochila, G.dinheiro);
           if (r === 'ok') { sons.tocar('carimbo', 1, 0.05, -6); avisar(`Aceito: ${dadosEmpreita(id).nome}.`); if (G.mapa) poeEmpreitasNoMapa(G.mapa); hudSujo(); desenha(); }
           else avisar({ limite: 'Uma empreita longa por vez (duas para o mestre de obras).', material: 'Para começar, traga o material na mochila.', ja: 'Já aceitou essa.' }[r] || 'Não deu.'); } }, 'Aceitar')
-          : el('div', { class: 'orel-preco' }, `Pede ${FUNCOES[dadosEmpreita(id).funcaoMin]}${dadosEmpreita(id).hab ? `, ${NOMES_HAB[dadosEmpreita(id).hab.h]} ${dadosEmpreita(id).hab.n}` : ''}`));
+          : el('div', { class: 'orel-preco' }, `Pede ${Empreitas.faltaPara(id)}`));   // (C11) só o que falta ("Pede Acabamento 6" para quem já é pedreiro)
+        // (C11) O pedido da fama: a Fala da Vila trouxe um serviço do degrau de cima, com o porquê na voz da Vila.
+        if (id === G.empreitas.fama) { const E = dadosEmpreita(id), quem = CLIENTE_NOME[E.cliente] || '', falta = Empreitas.faltaPara(id);
+          card.classList.add('qv-fama');
+          card.children[1].append(el('div', { class: 'recado-fala' }, falta ? `Pela Fala da Vila: ${quem} ouviu falar do seu serviço e quer você nesta obra quando chegar a ${falta}.`
+            : `Pela Fala da Vila: ${quem} ouviu falar do seu serviço e chamou você.`)); }
+        return card;
       }) : [el('div', { class: 'rodape quadro-vazio' }, 'Por hoje é só: o povo deixa recado de manhã.'),
         // (dia cheio, Frente A) Junto, o que fazer: a mesma sugestão do Agora da tarde livre (cartao.js).
         ...(s => s ? [el('div', { class: 'rodape quadro-sugestao' }, 'Enquanto isso: ' + s.texto)] : [])(typeof ganhoDaTarde === 'function' ? ganhoDaTarde() : null)])));
@@ -389,6 +398,17 @@ let _carimboPendente = '', _carimbo = null;
 const carimboPara = q => { if (q >= 1.5) _carimboPendente = q >= 2 ? 'impecavel' : 'caprichado'; };
 const carimboNaTela = () => _carimbo && (G.agora || 0) < _carimbo.ate ? _carimbo.nome : '';
 ATUALIZADORES.push(() => { if (_carimboPendente && !menuAberto()) { _carimbo = { nome: 'ui/carimbo_' + _carimboPendente, ate: (G.agora || 0) + 3 }; _carimboPendente = ''; } });
+// (C12, 16/10; o teste crítico: "subi de fama sem aviso nenhum") A Fala da Vila subiu de degrau: o aviso com o som da receita nova e o
+// porquê (mais pedidos no quadro, e pagam melhor), na 1ª tela livre depois da noite da entrega. Uma vez por degrau (G.limpou.fama_vista:
+// o degrau já avisado; o save antigo e o jogo novo começam no de agora, sem aviso).
+const avisoDaFama = f => `A Vila te conhece mais: ${f.nome}! Mais pedidos no quadro, e pagam melhor.`;
+ATUALIZADORES.push(() => {
+  if (!G.empreitas || !G.limpou || typeof Empreitas === 'undefined') return;
+  const f = Empreitas.faixa(), v = G.limpou.fama_vista;
+  if (typeof v !== 'number') { G.limpou.fama_vista = f.i; return; }
+  if (f.i <= v || menuAberto()) return;
+  G.limpou.fama_vista = f.i; sons.tocar('receita_nova', 1, 0, -2); avisar(avisoDaFama(f));
+});
 DESENHOS_TELA.push(ctx => {
   const n = carimboNaTela(), img = n && spr(n); if (!img) return;
   const falta = _carimbo.ate - (G.agora || 0), w = img.naturalWidth * 1.4, h = img.naturalHeight * 1.4;

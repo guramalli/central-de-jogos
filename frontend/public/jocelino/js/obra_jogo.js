@@ -135,6 +135,16 @@ function poeObraNoMapa(b) {
       for (const t of ob.tiles) b.ocupado.set(chaveT(t.x, t.y), ob);
     }
   }
+  // (C12, 16/10; o teste crítico: o Edifício Maré "só diz o nome") Antes de o prédio começar, a placa no terreno dele diz de quem é e por
+  // que ainda não começou: é obra para mestre de obras (o degrau de cima da carreira). Some quando o prédio vira a obra da vez.
+  { const [x, y, w] = LOTES_DAS_OBRAS.predio, antes = G.obra.indice < 3 || (G.obra.indice === 3 && G.obra.funcao < 3), px = x + Math.floor(w / 2);
+    let pl = b.objs.find(o => o.id === 'placa_predio');
+    if (antes && !pl) {
+      for (const o2 of b.objs.filter(q => (q.tipo === 'detrito' || q.achado) && (q.tiles || []).some(t => t.x === px && t.y === y))) b.tirar(o2);
+      pl = b.interativo('placa_predio', 'objetos/placa_terreno', px, y, 1, 1, [10, 6]);
+      pl.acao = () => { abrirPlaca('Terreno do prédio da J. Moreira: o Edifício Maré. O Bira diz que só um mestre de obras toca uma obra dessas.'); return true; };
+    } else if (!antes && pl) b.tirar(pl);
+  }
   // O Seu Moreira vem oferecer o cargo de mestre de obras (volta todo dia até aceitar).
   const santos = b.moradores.find(m => m.id === 'santos');
   if (G.obra.funcao === 2 && Obra.podeSubir()) {
@@ -186,7 +196,7 @@ const OBRA_NA_FRASE = { casa_zelia: 'a obra da casa da Dona Zélia', mercado: 'a
 const aObraDaVez = () => OBRA_NA_FRASE[lugarDoCanteiro()] || 'a obra';
 const idDaObraDaVez = () => { const o = G.mapa && G.mapa.objs.find(x => x.obraId && obraDaVez(x)); return o ? o.id : 'casa_zelia'; };
 function acaoNaObra(o) {
-  if (!obraDaVez(o)) { abrirPlaca({ casa_zelia: 'A casa da Dona Zélia, pronta. Bonita, né?', mercado: G.obra.indice > 1 ? 'O Mercado Municipal reformado e aberto.' : 'O Mercado Municipal, precisando de reforma.', escola: 'A Escola da Vila, pronta para as crianças.', predio: 'O Edifício Maré da J. Moreira.' }[o.obraId] || ''); return true; }
+  if (!obraDaVez(o)) { abrirPlaca({ casa_zelia: 'A casa da Dona Zélia, pronta. Bonita, né?', mercado: G.obra.indice > 1 ? 'O Mercado Municipal reformado e aberto.' : 'O Mercado Municipal, precisando de reforma.', escola: 'A Escola da Vila, pronta para as crianças.', predio: 'O Edifício Maré da J. Moreira: da fundação à cobertura, a obra que o Jocelino tocou de mestre de obras.' }[o.obraId] || ''); return true; }
   const l = listaDeHoje(), c = G.jog.carga || {};
   if (c.id && CARGA_TAREFA[c.id]) {
     const t = c.id === 'pedra' && l && l.metas.buscar_pedra ? 'buscar_pedra' : CARGA_TAREFA[c.id];

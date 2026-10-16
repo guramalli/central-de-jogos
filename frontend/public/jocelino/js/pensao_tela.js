@@ -250,7 +250,39 @@ function avisosDoQuadro(p, esc, modo = 'abertura', C = contaDoQuadro(p, esc)) {
   for (const id of cheios) { const n = C.efe[id], k = p.porcoesPorPanela(id); panelas += n; porcoes += n * k; aguenta += n * k;
     if (esc[id].repoe) for (let j = 0; j < 99 && resto.rende(id) > 0; j++) { resto.consumir(id, SEM_PEDRA); aguenta += k; } }
   if (cheios.length && aguenta < N) r.push(`${cheios.length === 1 ? nome(cheios[0]) : 'No quadro'}: ${panelasTxt(panelas)} = ${porcoes} porções; a noite costuma ter ~${N} clientes. Quem ficar sem prato leva o prato da casa.`);
+  { const l = modo === 'abertura' ? linhaPanelaDaRosa(p, esc, C) : null; if (l) r.push(l.texto); }   // (C9; o interruptor: no desenho do quadro)
   return r;
+}
+// (C9, 16/10; decisão do coordenador) A PANELA DA ROSA: o prato do convite da tarde de hoje (G.conviteHoje, cartao.js) que ficou fora
+// do quadro, com o ingrediente que o Jocelino trouxe já na despensa (depois das panelas do quadro), a Rosa põe sozinha às 17h: quem
+// pescou para o Peixe Frito não perde a janta por esquecer o "+" do quadro (a C8 notou que um humano pode esquecer). Só hoje (a escolha
+// guardada continua a do jogador, como no Dave) e só com vaga no quadro. → { prato, panelas, oque, menos: { prato: panelas a menos } } ou null.
+// A Rosa ajusta: o prato mais barato do quadro com o "Rosa repõe" faz menos panelas, as porções da panela nova (ela repõe se faltar), e a
+// sobra não vai para o lixo.
+// (rodada 1, decisão do coordenador) Ela só ACRESCENTA. Tira só a SOBRA: as porções do quadro com a panela nova passando das esperadas
+// (clientesEsperados), do prato mais barato com "Rosa repõe" (nunca de prato sem repõe, e nunca a última panela dele). O interruptor
+// "A Rosa põe hoje: sim/não" do quadro (ligado por padrão; G.conviteHoje.rosaPoe === false desliga) vale para a abertura; mesmo
+// desligada, a linha do quadro aparece (comInterruptor: true) para o jogador ligar de novo.
+function panelaDaRosa(p = G.pensao, esc = p.cardapioNoite || {}, C = contaDoQuadro(p, esc), comInterruptor = false) {
+  const cv = G.conviteHoje; if (!cv || cv.dia !== G.dia || !cv.prato || !Pratos.PRATOS[cv.prato] || !p.receitas.includes(cv.prato)) return null;
+  if (cv.rosaPoe === false && !comInterruptor) return null;
+  if ((C.efe[cv.prato] || 0) > 0 || p.porcoes(cv.prato) > 0) return null;
+  const feitos = Object.keys(C.efe).filter(id => C.efe[id] > 0);
+  if (new Set(feitos.concat(p.pratosDaNoite())).size >= p.vagas()) return null;
+  const panelas = Math.min(Math.max(1, cv.panelas | 0), C.sobra.rende(cv.prato)); if (panelas <= 0) return null;
+  const menos = {}, porcoes = panelas * p.porcoesPorPanela(cv.prato);
+  const barato = feitos.filter(id => esc[id] && esc[id].repoe !== false).sort((a, b) => p.preco(a, 1) - p.preco(b, 1))[0];
+  const sobra = feitos.reduce((t, id) => t + C.efe[id] * p.porcoesPorPanela(id), 0) + porcoes - clientesEsperados();
+  if (barato && sobra > 0) { const n = Math.min(C.efe[barato] - 1, Math.floor(sobra / p.porcoesPorPanela(barato))); if (n > 0) menos[barato] = n; }
+  const k = cv.k || '', oque = k === 'peixe' ? 'o peixe que você trouxe' : k ? `o que você trouxe (${nomeNaPanela(k)})` : 'o que você trouxe';
+  return { prato: cv.prato, panelas, oque, menos, poe: cv.rosaPoe !== false };
+}
+// A linha do quadro (abertura) com o interruptor: { texto, pr } ou null.
+function linhaPanelaDaRosa(p, esc, C) {
+  const pr = panelaDaRosa(p, esc, C, true); if (!pr) return null;
+  const nome = Pratos.PRATOS[pr.prato].nome;
+  return { pr, texto: pr.poe ? `Hoje a Rosa põe ${panelasTxt(pr.panelas)} de ${nome} com ${pr.oque}: fora do quadro, só hoje.`
+    : `A Rosa podia pôr ${panelasTxt(pr.panelas)} de ${nome} com ${pr.oque} (fora do quadro, só hoje): você desligou.` };
 }
 function pensaoQuadro() {
   const p = G.pensao;
@@ -289,7 +321,12 @@ function pensaoQuadro() {
       // (15/10, a clareza) a panela, a porção, as vagas, o "Rosa repõe" e o prato da casa: uma linha e o "(?)"
       linhaAjuda('quadro', 'Cada panela dá algumas porções (1 porção = 1 cliente) e gasta da despensa conforme rende; a sobra vai para o lixo.',
         [GLOSSARIO.vagasQuadro, GLOSSARIO.panela, GLOSSARIO.precoPanela, GLOSSARIO.sabor, GLOSSARIO.repoe, GLOSSARIO.casa, GLOSSARIO.sobra, GLOSSARIO.curtida]));
-    if (modo !== 'durante') for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(el('div', { class: 'qc-aviso' }, a));
+    // (C9, rodada 1) a linha da panela da Rosa vem com o interruptor "A Rosa põe hoje: sim/não" (ligado por padrão)
+    if (modo !== 'durante') { const lr = modo === 'abertura' ? linhaPanelaDaRosa(p, esc, CQ) : null;
+      for (const a of avisosDoQuadro(p, esc, modo, CQ)) caixa.append(lr && a === lr.texto
+        ? el('div', { class: 'qc-aviso qc-rosa-poe' }, a + ' ', el('button', { class: 'tabua mini' + (lr.pr.poe ? ' acesa' : ' desligada'), 'data-guia': 'rosa_poe',
+            onclick: ev => { ev.stopPropagation(); G.conviteHoje.rosaPoe = !lr.pr.poe; sons.tocar('cursor', 1.2, 0.04, -8); desenha(); } }, `A Rosa põe hoje: ${lr.pr.poe ? 'sim' : 'não'}`))
+        : el('div', { class: 'qc-aviso' }, a)); }
     else caixa.append(el('div', { class: 'qc-aviso' }, 'A janta está correndo (o relógio parou aqui): mais uma panela agora, ou ligue e desligue o "Rosa repõe".'));
     // (correção 1) A fala da Rosa na primeira vez: uma faixa fixa na lousa, acima da lista (guia_setas.js escreve nela; a seta fica no elemento).
     caixa.append(el('div', { class: 'guia-faixa qc-rosa', hidden: true }, el('img', { src: urlArte('retratos/rosa_normal'), alt: '' }), el('div', { class: 'guia-faixa-texto' })));
@@ -383,12 +420,16 @@ function abrirAPensao() {
     // guardada como o jogador montou (o montarNoite grava o que recebe)
     const faz = {};
     for (const id of Object.keys(esc)) faz[id] = { panelas: CQ.efe[id] || 0, repoe: esc[id].repoe };
+    // (C9) a panela da Rosa: o prato do convite de hoje fora do quadro, com o que ele trouxe (só hoje: a escolha guardada volta abaixo)
+    const pr = panelaDaRosa(p, esc, CQ);
+    if (pr) { for (const id in pr.menos) faz[id].panelas -= pr.menos[id]; faz[pr.prato] = { panelas: pr.panelas, repoe: false }; }
     _despensaNaAbertura = { dia: G.dia, d: Object.assign({}, p.despensa) };   // (15/10, o fechamento) o que a despensa tinha antes das panelas
     const r = p.montarNoite(faz, rngDaNoite(G.dia * 53 + 11));
     p.cardapioNoite = esc;
     p.cardapio = Object.keys(r.feitas);   // (o quadro antigo: o salão de cima e os textos velhos leem daqui)
     _aoFecharModal = null; fecharModal();
     if (typeof _marcaTela === 'function') _marcaTela('cardapio');
+    if (pr && r.feitas[pr.prato]) avisar(`A Rosa pôs ${panelasTxt(r.feitas[pr.prato])} de ${Pratos.PRATOS[pr.prato].nome} com ${pr.oque} (fora do quadro, só hoje).`);
     if (r.semVaga.length) avisar(`Não coube no quadro: ${r.semVaga.map(id => Pratos.PRATOS[id].nome).join(', ')}.`);
     const menos = r.faltou.filter(id => r.feitas[id] > 0);   // (correção 1) o que não saiu nenhuma o quadro já mostrou ("falta …")
     if (menos.length) avisar(`A despensa não deu tudo: ${menos.map(id => Pratos.PRATOS[id].nome).join(', ')} saiu com menos panelas.`);
@@ -493,7 +534,10 @@ function noiteDaRosaSozinha(linhas) {
   // (o cardápio do Bancho) A Rosa usa o cardápio da noite anterior (ou só o prato da casa) e a sobra vai para o lixo; a fama
   // não conta o prato da casa (paraFama), como na janta com o Jocelino.
   const rs = TurnoJanta.rosaSozinha(G.pensao, { randf: f, randi: () => Math.floor(f() * 4294967296) });
-  G.pensao.registrarNoite(TurnoJanta.paraFama(rs).estrelas, G.dia, 0);
+  // (C13, rodada 1) a estrela que a Rosa ganhou sozinha não se perde: a tela abre ao dormir, antes do resumo (fechamento.js)
+  // (o degrau "registrado" é o grauMinimo: a curtida que entrou de dia, o peixe raro ou o prêmio, sobe a pensão e a noite da Rosa a registra)
+  { const g0 = G.pensao.grauMinimo || 1; G.pensao.registrarNoite(TurnoJanta.paraFama(rs).estrelas, G.dia, 0);
+    const g1 = G.pensao.grauMinimo || 1; if (g1 > g0 && typeof guardarEstrelaPendente === 'function') guardarEstrelaPendente(g1); }
   G.dinheiro += rs.ganho; G.ganhoHoje += rs.ganho;
   // A despesa da noite e os salários saem mesmo sem o Jocelino (nunca deixa o bolso negativo; a pensão não fecha por isso).
   rs.premios = 0; pagarDespesaDaNoite(rs);
@@ -572,7 +616,9 @@ function encerrarJanta() {
   if (typeof Metas !== 'undefined') { r.metasFeitas = Metas.conferir(G.pensao, r); metasPagas(r.metasFeitas); for (const m of r.metasFeitas) r.premios += (m.premio && m.premio.dinheiro) || 0; }
   { const c = TurnoJanta.conta(r); r.receita = c.receita; r.lucro = c.lucro; }   // a conta fecha: o bolso mudou exatamente pelo lucro
   guardarNoiteNoHistorico(r);   // (15/10) a noite entra no caderno das últimas noites (o gráfico do fechamento)
-  if (r.subiu) { somFim('degrau_fanfarra', 1, 0, -2); avisar(`A pensão ganhou mais uma estrela: agora é ${G.pensao.nomeComEstrelas(r.subiu)}!`); }
+  // (C13, rodada 1) a fanfarra do degrau toca uma vez só, na tela da estrela nova (fechamento.js): com o fechamento, ela abre agora;
+  // sem ele (fora do palco), a estrela fica pendente e a tela abre ao dormir, antes do resumo
+  if (r.subiu) { if (!comFechamento && typeof guardarEstrelaPendente === 'function') guardarEstrelaPendente(r.subiu); avisar(`A pensão ganhou mais uma estrela: agora é ${G.pensao.nomeComEstrelas(r.subiu)}!`); }
   // (o cardápio do Bancho, 13/10) A sobra da panela foi para o lixo no fechar (r.sobra = { prato: porções }); a marmita do
   // Jocelino a Rosa faz de manhã.
   G.relatorioPensao = r;

@@ -3,7 +3,7 @@
 // leva às bancadas de 5 em 5; o escuro, a pedra solta e o ar ruim; os baús. As regras estão em mina.js.
 
 CARTAS.tonico_bancadas = { de: 'Seu Tonico', dia: 7, aoLer: () => { G.mina.aberta = true; },
-  texto: 'Jocelino, arrumei a escada da pedreira. Lá embaixo tem aço e, mais fundo, bronze. Cuidado com pedra solta, e leve luz: depois da bancada 10 é breu.' };
+  texto: 'Jocelino, arrumei a escada da pedreira. Lá embaixo tem aço e, mais fundo, bronze. Cuidado com pedra solta, e leve luz: depois da bancada 10 é breu. O ferro que você trouxer de lá vira ferramenta boa na minha ferraria.' };
 MAPAS_DEF.bancada = () => {
   const n = G.mina.bancada || 1, b = new Construtor('bancada', 22, 15, 1979 + n);
   b.fundo = 'texturas/chao_pedreira'; b.livre = { x: 2, y: 3, w: 18, h: 10 }; b.inicio = { x: 4, y: 4 }; b.subsolo = true;   // debaixo da terra: sem chuva nem noite

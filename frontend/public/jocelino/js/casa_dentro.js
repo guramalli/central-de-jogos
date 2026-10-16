@@ -92,9 +92,11 @@ function poeBazarNaCasa(b) {
 // ---------- a marmita da manhã (o cardápio do Bancho, 13/10) ----------
 // Como no Stardew: a esposa às vezes faz o café da manhã e entrega de manhã; aqui, toda manhã, com a pensão aberta, a Rosa deixa
 // as marmitas na mesa de casa, feitas da despensa da pensão (Pensao.fazerMarmitas). Sem arroz e feijão, nenhuma, e ela avisa uma
-// vez (até a marmita voltar). Antes da pensão aberta, só as 2 marmitas da chegada (presentesDaChegada, falas.js).
-INICIADORES.push(s => { const m = s.marmita || {}; G.marmita = { mesa: m.mesa | 0, avisou: !!m.avisou, avisar: '' }; });
-COLETORES.push(s => { s.marmita = { mesa: G.marmita.mesa, avisou: G.marmita.avisou }; });
+// vez (até a marmita voltar). Na chegada, as 2 marmitas do Tio Juca (presentesDaChegada, falas.js). (C9, 16/10; o teste crítico C,
+// solução 5) Antes de a pensão abrir, a Rosa deixa 1 marmita por dia com o arroz e o feijão de casa (ECO.pensao.marmita.antesDaPensao,
+// sem despensa): no teste B a energia acabava às 14h do dia 2, e a tarde começava sem fôlego.
+INICIADORES.push(s => { const m = s.marmita || {}; G.marmita = { mesa: m.mesa | 0, avisou: !!m.avisou, avisar: '', almoco: m.almoco | 0 }; });
+COLETORES.push(s => { s.marmita = { mesa: G.marmita.mesa, avisou: G.marmita.avisou, almoco: G.marmita.almoco | 0 }; });
 function marmitaDaManha() {
   if (!G.pensao || !G.marmita) return;
   const r = G.pensao.fazerMarmitas(G.marmita.mesa);
@@ -111,6 +113,31 @@ ATUALIZADORES.push(() => {
   if (!G.marmita || !G.marmita.avisar || menuAberto() || _fade || !G.jog || G.jog.deitado) return;
   avisar(G.marmita.avisar); G.marmita.avisar = '';
 });
+// (C9) O almoço: ao meio-dia a Rosa lembra a marmita, uma vez por dia, como a Rosa que grita da janela (dicas.js). A 1ª vez
+// (G.limpou.marmita_almoco = 1) sempre, e a seta vai na marmita da barra (guia_setas.js) até ele comer (= 2, ferramentas.js:
+// comer); depois, só quando a energia já passou da metade para baixo. Sem marmita (na mochila ou na mesa), ela não fala. O teste
+// crítico B: a energia acabava às 14h e a tarde não tinha fôlego. Vivência, não missão: um aviso no tom dela, nunca uma janela.
+const ALMOCO = 12 * 60, ALMOCO_FIM = 14 * 60;
+let _almocoT = 0;
+function lembrarAlmoco() {
+  if (!G.marmita || !G.limpou || !G.mochila || G.minutos < ALMOCO || G.minutos >= ALMOCO_FIM || G.marmita.almoco === G.dia) return false;
+  if (menuAberto() || _fade || !G.jog || G.jog.deitado || G.turno || (typeof noPalco === 'function' && noPalco())) return false;
+  const naMochila = G.mochila.total('marmita') > 0;
+  if (!naMochila && !G.marmita.mesa) return false;
+  const vez = !G.limpou.marmita_almoco;
+  if (!vez && G.energia > G.energiaMax * 0.5) return false;   // (rodada 1) o dia só é marcado quando ela avisa: a energia que cai às 13h ainda ouve
+  G.marmita.almoco = G.dia;
+  if (vez) G.limpou.marmita_almoco = naMochila ? 1 : 0;   // (sem a marmita na mochila, a seta da barra não tem onde ir: a 1ª vez fica para amanhã)
+  avisar(naMochila ? 'Rosa: "Meio-dia, Jocelino: come a marmita!" (clique nela na barra e botão direito: a energia volta pra tarde)'
+    : 'Rosa: "Meio-dia, Jocelino: a marmita ficou na mesa de casa!" (pegue e coma: a energia volta pra tarde)');
+  return true;
+}
+ATUALIZADORES.push(dt => { if ((_almocoT += dt || 0) < 0.5) return; _almocoT = 0; lembrarAlmoco(); });
+// A seta da 1ª vez: a marmita da barra (guiaSetaUI). → o índice na barra, ou -1.
+function marmitaDoAlmoco() {
+  if (!G.limpou || G.limpou.marmita_almoco !== 1 || !G.marmita || G.marmita.almoco !== G.dia || G.minutos >= ALMOCO_FIM || !G.mochila) return -1;
+  return G.mochila.slots.slice(0, 12).findIndex(x => x && x.id === 'marmita');
+}
 // As marmitas na mesa da casa onde a família mora (a arte do item, menor, no tampo); botão direito pega todas.
 function poeMarmitaNaCasa(b) {
   const C = CASAS[b.id]; if (!C || !C.marmitas) return;

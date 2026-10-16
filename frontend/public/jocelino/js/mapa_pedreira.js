@@ -17,13 +17,24 @@ MAPAS_DEF.pedreira = () => {
     b.enfeite('objetos/rocha_mina_1', x, b.alt - 2, false);
   }
   for (let y = 3; y < b.alt - 2; y++) { if (y < 7 || y > 8) b.enfeite('objetos/rocha_mina_1', 1, y, false); b.enfeite('objetos/rocha_mina_1', b.larg - 2, y, false); }
-  const fechado = () => { abrirPlaca('Fechado até o Seu Tonico liberar as bancadas. ("Primeiro a gente arruma a escada", diz ele.)'); return true; };
-  b.interativo('escada_mina', 'objetos/escada_mina', 11, 8, 1, 1, [10, 6]).acao = () => (typeof entrarNaMina === 'function' ? entrarNaMina() : fechado());
-  b.interativo('elevador_mina', 'objetos/elevador_mina', 6, 4, 2, 1, [28, 8]).acao = () => (typeof abrirElevador === 'function' ? abrirElevador() : fechado());
+  const fechado = () => { abrirPlaca(escadaFechada()); return true; };
+  const minaFechada = () => !!G.mina && !G.mina.aberta;
+  b.interativo('escada_mina', 'objetos/escada_mina', 11, 8, 1, 1, [10, 6]).acao = () => (typeof entrarNaMina === 'function' && !minaFechada() ? entrarNaMina() : fechado());
+  b.interativo('elevador_mina', 'objetos/elevador_mina', 6, 4, 2, 1, [28, 8]).acao = () => (typeof abrirElevador === 'function' && !minaFechada() ? abrirElevador() : fechado());
   b.paredesDaBorda();
   b.aoMontar = () => rochasDaEntrada(b);
   return b;
 };
+// (C12, 16/10; o teste crítico: "a escada fechada no dia 5 e aberta no 7, sem aviso") A escada fechada diz quando abre e por quê: o Seu
+// Tonico arruma no domingo e manda carta (tonico_bancadas, mina_jogo.js); com a carta na caixa, é só ler. O elevador diz o mesmo.
+function escadaFechada() {
+  const c = G.correio;
+  if (c && c.caixa.includes('tonico_bancadas')) return 'A escada está arrumada! A carta do Seu Tonico está na caixa de correio, no quintal: leia e pode descer.';
+  // o domingo do dia da carta (ECO.guia.dias.mina: o guia entrega a carta; guia.js); passado ele, "logo" (o guia cede a outra carta)
+  const dm = ECO.guia.dias.mina; let d = dm; while ((d - 1) % 7 !== 6) d++;
+  const quando = G.dia >= dm ? 'nestes dias' : `no domingo, dia ${(d - 1) % 28 + 1}`;
+  return `O Seu Tonico arruma a escada ${quando}: ele manda carta quando ficar pronta. Lá embaixo tem ferro pras ferramentas.`;
+}
 // As rochas comuns da entrada: 12 sorteadas pelo dia (refazem toda manhã).
 function rochasDaEntrada(b) {
   for (const o of b.objs.filter(o => o.det === 'rocha' || o.det === 'ferro')) b.tirar(o);

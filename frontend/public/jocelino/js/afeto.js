@@ -22,5 +22,6 @@ COLETORES.push(s => { s.ganhoTotal = G.ganhoTotal; s.marcosAfeto = G.marcosAfeto
 function afetoFimDoDia() {
   G.ganhoTotal = (G.ganhoTotal || 0) + Math.max(0, G.ganhoHoje || 0);
   for (const [valor, carta] of MARCOS_AFETO)
-    if (G.ganhoTotal >= valor && !G.marcosAfeto.includes(valor)) { G.marcosAfeto.push(valor); if (G.correio && !G.correio.caixa.includes(carta) && !G.correio.lidas.includes(carta)) G.correio.caixa.push(carta); }
+    // (C10) a carta da família não tem pressa: espera um dia sem outra novidade (correio.js, cartaQuePodeEsperar)
+    if (G.ganhoTotal >= valor && !G.marcosAfeto.includes(valor)) { G.marcosAfeto.push(valor); if (G.correio) cartaQuePodeEsperar(carta); }
 }

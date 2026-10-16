@@ -177,7 +177,21 @@ function colherPlanta(o) {
   else avisar('+ ' + Itens.qtd(r.qtd, r.id));
   hudSujo();
   sincronizaHorta(G.mapa);
+  primeiraColheita(r.id);
   return true;
+}
+// (C13, 16/10; o teste crítico B, dia 5: "a 1ª colheita é só um '+1 alface' no canto, sem festa") A primeira colheita da família, uma
+// vez só: a Rosa, de retrato alegre, comemora o que saiu da terra, e a fanfarra que já existe toca. No Stardew a 1ª colheita é o
+// Jocelino erguendo o pé de alface sobre a cabeça; aqui, sem arte nova, é a Rosa que vê e diz (a horta é para a janta da pensão).
+const PRIMEIRA_COLHEITA = { alface: 'Nossa primeira alface', couve: 'Nossa primeira couve', abobora: 'Nossa primeira abóbora', mandioca: 'Nossa primeira mandioca',
+  milho: 'Nosso primeiro milho', tomate: 'Nosso primeiro tomate' };
+// (rodada 1) O save antigo, já passado do dia 10, já colheu: a fala fica marcada como dada (no próprio save, antes de o dicas.js, que
+// vem depois deste arquivo, copiar a lista para G.dicasDadas).
+INICIADORES.push(s => { if ((s.dia || 1) > 10 && !(s.dicasDadas || []).includes('primeira_colheita')) s.dicasDadas = (s.dicasDadas || []).concat('primeira_colheita'); });
+function primeiraColheita(id) {
+  if (typeof _dica !== 'function' || !_dica('primeira_colheita')) return;
+  sons.tocar('fanfarra', 1.1, 0, -4);
+  abrirConversa('Rosa', urlArte('retratos/rosa_alegre'), [`${PRIMEIRA_COLHEITA[id] || 'Nossa primeira colheita'} da Vila Maré! Guarda pra janta.`]);
 }
 const DICA_DESFAZER_COVA = 'Tio Juca: "Cavou no lugar errado? A picareta fecha a cova vazia; a foice arranca um pé."';
 function ferramentaNaPlanta(o, id) {

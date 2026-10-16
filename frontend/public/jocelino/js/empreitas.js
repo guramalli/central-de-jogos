@@ -122,7 +122,9 @@ const Empreitas = {
       semana: Object.assign({}, e.semana || {}), vistos: Object.assign({}, e.vistos || {}), consertados: Object.assign({}, e.consertados || {}),   // (consertados: o dia do último conserto de cada serviço curto: as tábuas novas do píer)   // (dia cheio: o dia em que cada serviço foi aceito e apareceu no quadro)
       // (15/10, T2) O último dia em que cada pedido apareceu no quadro (o peso do sorteio) e o dia anterior a esse (para o sorteio
       // do mesmo dia dar igual se o quadro for refeito). O save antigo começa com o `vistos` (o que se sabe da semana).
-      ultimaVez: Object.assign({}, e.ultimaVez || e.vistos || {}), penultima: Object.assign({}, e.penultima || {}) };
+      ultimaVez: Object.assign({}, e.ultimaVez || e.vistos || {}), penultima: Object.assign({}, e.penultima || {}),
+      // (C11) os quadros dos últimos dias (a regra do par: o mesmo par não volta em 10 dias) e o pedido da fama de hoje
+      quadros: JSON.parse(JSON.stringify(e.quadros || {})), fama: e.fama || null };
     // Save antigo (etapas 2 a 5): a longa aceita já tinha gastado o material, então segue em obra (ou pronta) de onde parou.
     for (const id in G.empreitas.aceitas) {
       const a = G.empreitas.aceitas[id], E = dadosEmpreita(id) && dadosEmpreita(id).tipo === 'longa' ? dadosEmpreita(id) : null;
@@ -162,23 +164,66 @@ const Empreitas = {
     // - sem opção, a regra cede (primeiro a da ferramenta, depois a do cliente, por último a de ontem) para o quadro não ficar
     //   vazio à toa.
     // Fim de ano: as reformas pesam em dobro.
+    // (C11, 16/10; o teste crítico: os quadros dos dias 20 e 40 eram iguais, a cerca do galinheiro e a calçada da ferraria) Duas regras:
+    // - o PAR: dois pedidos que já estiveram juntos no quadro nos últimos 10 dias não voltam juntos (a regra entre a de ontem e a do
+    //   cliente; cede como as outras quando não há opção);
+    // - o PEDIDO DA FAMA: com a Fala da Vila em "Pedreiro de confiança" ou acima, 1 dos pedidos do dia vem da faixa seguinte
+    //   (Empreitas.pedidosDaFama): o serviço do degrau de cima, que a Vila já oferece porque fala bem do Jocelino. Fica no fim da lista
+    //   (`.fama` na lista devolvida). Trancado, é um pedido a mais (n + 1); já aceitável, ocupa uma das n vagas.
     const fim = Empreitas.emFimDeAno(dia), peso = id => { const u = Empreitas.ultimaAntes(id, dia), E = EMPREITAS_LONGAS[id];
       return (u ? 1 + Math.min(14, dia - u) : 15) * (fim && E && E.reforma ? 2 : 1); };
     const cli = id => dadosEmpreita(id).cliente, fer = id => dadosEmpreita(id).ferramenta;
     const rec = G.recados && G.recados.dia === dia && G.recados.doDia && typeof PEDIDOS_VILA !== 'undefined' ? PEDIDOS_VILA[G.recados.doDia] : null;
-    const sorteia = (cs, ls) => { const r = [], clientes = new Set(rec ? [rec.cliente] : []), ferramentas = new Set();
-      // as regras, da mais forte à mais fraca: as 8 combinações de (não é de ontem, cliente novo, ferramenta nova), cedendo de trás para a frente
-      const ok = [id => { const u = Empreitas.ultimaAntes(id, dia); return !u || u < dia - 2; },id => !clientes.has(cli(id)), id => !ferramentas.has(fer(id))];
-      const regras = [7, 6, 5, 4, 3, 2, 1, 0].map(m => id => ok.every((t, i) => !(m & (4 >> i)) || t(id)));
+    const fama = Empreitas.faixa().i >= 1 ? Empreitas.pedidosDaFama(dia) : [];
+    const sorteia = (cs, ls, fm) => { const r = [], clientes = new Set(rec ? [rec.cliente] : []), ferramentas = new Set();
+      // as regras, da mais forte à mais fraca: as 16 combinações de (não é de ontem, par novo, cliente novo, ferramenta nova), cedendo de trás para a frente
+      const ok = [id => { const u = Empreitas.ultimaAntes(id, dia); return !u || u < dia - 2; }, id => r.every(x => !Empreitas.parVisto(x, id, dia)),
+        id => !clientes.has(cli(id)), id => !ferramentas.has(fer(id))];
+      const regras = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(m => id => ok.every((t, i) => !(m & (8 >> i)) || t(id)));
       const tira = pool => { const op = pool.filter(regras.find(regra => pool.some(regra))), soma = op.reduce((t, id) => t + peso(id), 0);
         let v = f() * soma, id = op[op.length - 1]; for (const k of op) { v -= peso(k); if (v < 0) { id = k; break; } }
         pool.splice(pool.indexOf(id), 1); r.push(id); clientes.add(cli(id)); ferramentas.add(fer(id)); };
+      const vagaDaFama = fm.length ? 1 : 0;
       if (ls.length) tira(ls);   // a longa continua garantida quando a função já libera
       const pool = cs.concat(ls);
-      while (r.length < n && pool.length) tira(pool);
+      while (r.length < n - vagaDaFama && pool.length) tira(pool);
+      // (C11, rodada 1) O pedido da fama é A MAIS: o trancado não toma a vaga dos pedidos que a fama já dá (o 3º do "Pedreiro de
+      // confiança"); só o que já dá para aceitar ocupa uma delas. Ele fica no fim da lista.
+      const daFama = fm.filter(id => !r.includes(id));
+      let dela = null;
+      if (daFama.length && r.length) { tira(daFama); dela = r.pop(); if (pool.includes(dela)) pool.splice(pool.indexOf(dela), 1); }
+      while (r.length < n - (dela && Empreitas.libera(dela) ? 1 : 0) && pool.length) tira(pool);
+      if (dela) { r.push(dela); r.fama = dela; }
       return r; };
-    const novo = id => !naSemana(vistos, id), novas = sorteia(curtas.filter(novo), longas.filter(novo));
-    return novas.length ? novas : sorteia(curtas, longas);
+    const novo = id => !naSemana(vistos, id), novas = sorteia(curtas.filter(novo), longas.filter(novo), fama.filter(novo));
+    return novas.length ? novas : sorteia(curtas, longas, fama);
+  },
+  // (C11) Os pedidos da faixa seguinte, que a fama traz ao quadro: para o servente e o meio-oficial, as longas da função de cima (sem
+  // habilidade pedida: "Pede Meio-oficial", "Pede Pedreiro"); do pedreiro em diante, os serviços melhores (os que pedem Alvenaria ou
+  // Acabamento) até 2 níveis acima do que ele tem. O que ainda não dá para pegar aparece sem o Aceitar, com o que falta (o norte do
+  // próximo degrau); o que já dá, com o Aceitar. Só lugar aberto, nada aceito nem aceito nesta semana.
+  pedidosDaFama(dia = G.dia) {
+    const fu = Empreitas.funcao(), hist = G.empreitas.semana || {}, sem = d => Math.floor((d - 1) / 7);
+    const nivel = h => typeof Habilidades !== 'undefined' ? Habilidades.nivel(h) : 0;
+    return Object.keys(EMPREITAS_LONGAS).filter(id => {
+      const E = EMPREITAS_LONGAS[id];
+      if (G.empreitas.aceitas[id] || (hist[id] && hist[id] < dia && sem(hist[id]) === sem(dia))) return false;
+      if ((typeof Mundo !== 'undefined' && !Mundo.aberto(E.mapa)) || (E.precisa && !E.precisa())) return false;
+      return fu < 2 ? E.funcaoMin === fu + 1 && !E.hab : !!E.hab && E.hab.n <= nivel(E.hab.h) + 2;
+    });
+  },
+  // (C11) O par já esteve junto no quadro nos últimos 10 dias (antes do dia)?
+  parVisto(a, b, dia) {
+    const Q = G.empreitas.quadros || {};
+    for (const d in Q) if (+d < dia && +d >= dia - 10 && Q[d].includes(a) && Q[d].includes(b)) return true;
+    return false;
+  },
+  // (C11) O que falta para pegar o pedido ("Pedreiro", "Acabamento 6"; '' se já dá).
+  faltaPara(id) {
+    const E = dadosEmpreita(id); if (!E) return '';
+    if (Empreitas.funcao() < E.funcaoMin) return FUNCOES[E.funcaoMin] + (E.hab ? `, ${typeof NOMES_HAB !== 'undefined' ? NOMES_HAB[E.hab.h] : E.hab.h} ${E.hab.n}` : '');
+    if (E.hab && typeof Habilidades !== 'undefined' && Habilidades.nivel(E.hab.h) < E.hab.n) return `${typeof NOMES_HAB !== 'undefined' ? NOMES_HAB[E.hab.h] : E.hab.h} ${E.hab.n}`;
+    return '';
   },
   // O último dia ANTES de `dia` em que o pedido apareceu no quadro (0: nunca). O quadro refeito no mesmo dia lê o anterior.
   ultimaAntes(id, dia) {
@@ -188,7 +233,11 @@ const Empreitas = {
   // O quadro de hoje no save, anotando o dia em que cada pedido apareceu pela primeira vez na semana (o "já visto" do quadroDoDia)
   // e o último dia em que apareceu (o peso do sorteio).
   poeQuadro(dia) {
-    G.empreitas.dia = dia; G.empreitas.quadro = Empreitas.quadroDoDia(dia);
+    const q = Empreitas.quadroDoDia(dia);
+    G.empreitas.dia = dia; G.empreitas.quadro = q.slice(); G.empreitas.fama = q.fama || null;
+    // (C11) o quadro do dia fica guardado 12 dias (a regra do par lê os 10 anteriores)
+    const Q = G.empreitas.quadros || (G.empreitas.quadros = {}); Q[dia] = q.slice();
+    for (const d in Q) if (+d < dia - 12 || +d > dia) delete Q[d];
     const v = G.empreitas.vistos || (G.empreitas.vistos = {});
     for (const id of G.empreitas.quadro) if (!v[id] || Math.floor((v[id] - 1) / 7) !== Math.floor((dia - 1) / 7)) v[id] = dia;
     const u = G.empreitas.ultimaVez || (G.empreitas.ultimaVez = {}), p = G.empreitas.penultima || (G.empreitas.penultima = {});

@@ -15,7 +15,9 @@ const Gremio = {
   iniciar(s) { const g = s.gremio || {}; G.gremio = { entregue: JSON.parse(JSON.stringify(g.entregue || {})), prontos: (g.prontos || []).slice(), alas: Object.assign({}, g.alas || {}) }; },
   salvar(s) { s.gremio = JSON.parse(JSON.stringify(G.gremio)); },
   // (com a missão do guia, Task 4, o Guia.liberado é quem manda; antes dela, vale o dia)
-  aberto() { return G.dia >= ECO.guia.dias.gremio && (typeof Guia === 'undefined' || Guia.liberado('gremio')); },
+  // (C10, revisão) só o Guia: o save que já abriu o Grêmio no dia 6 (a regra de antes da C10) não o vê fechar de novo até o dia 12; o dia
+  // mínimo só vale sem o Guia (o simulador), e o Guia.liberado sem o estado do guia já usa o dia
+  aberto() { return typeof Guia !== 'undefined' ? Guia.liberado('gremio') : G.dia >= ECO.guia.dias.gremio; },
   ala(aid) { return GREMIO_ALAS.find(a => a.id === aid) || null; },
   alaDoPacote(pid) { return GREMIO_ALAS.find(a => a.pacotes.includes(pid)) || null; },
   pacote(pid) { return ECO.gremio.pacotes[pid] || null; },

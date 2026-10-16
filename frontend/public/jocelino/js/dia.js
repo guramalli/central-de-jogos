@@ -84,7 +84,9 @@ function dormir(desmaiou = false) {
   _dormindo = false;
   if (typeof hudSujo === 'function') hudSujo();   // (tarefa 7) o cartão refeito atrás do resumo (o "Agora" ainda falava do serviço entregue na noite)
   if (dados) { dados.origem = origem; dados.diaQueAcabou = diaQueAcabou; try { dados.amanha = amanhaDoResumo(); } catch (e) { console.error(e); } }
-  mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof telasDeNivel === 'function' ? () => telasDeNivel() : null, dados);   // (15/10) as telas "Subiu de nível!", depois as vantagens
+  const resumo = () => mostrarResumo('Fim do dia ' + ((diaQueAcabou - 1) % 28 + 1), linhas, typeof telasDeNivel === 'function' ? () => telasDeNivel() : null, dados);   // (15/10) as telas "Subiu de nível!", depois as vantagens
+  // (C13, rodada 1) a estrela que a pensão ganhou sem o fechamento na tela (a Rosa sozinha): a tela da estrela nova vem antes do resumo
+  if (G.estrelaPendente > 1 && typeof abrirEstrelaPendente === 'function') abrirEstrelaPendente(resumo); else resumo();
 }
 
 // Ficou acordado até as 2h: desmaia.

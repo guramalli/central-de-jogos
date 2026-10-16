@@ -189,7 +189,7 @@ addEventListener('load', () => {
     const lista = Achados.doDia(G.dia, 'serra'), ja = (G.achados.catados.serra || []).length; if (!lista.length || ja >= lista.length) return [];
     const est = Math.floor((G.dia - 1) / 28) % 4, nomes = ACHADOS_SERRA[est].map(([id]) => Itens.nome(id).toLowerCase()).join(', ');
     const corda = typeof Fabricar !== 'undefined' && Fabricar.conhecida('corda') ? ' · 3 cipós viram corda no Fabricar' : '';
-    return [{ id: 'serra_coleta', aba: 'vila', texto: `A coleta da Mata da Serra hoje: ${ja} de ${lista.length} catados (${nomes})${corda}`, feito: ja, meta: lista.length,
+    return [{ id: 'serra_coleta', aba: 'mata', texto: `A coleta da Mata da Serra hoje: ${ja} de ${lista.length} catados (${nomes})${corda}`, feito: ja, meta: lista.length,
       alvo: () => { if (G.mapaId === 'serra') { const o = G.mapa && G.mapa.objs.filter(x => x.achado).sort((p, q) => Math.hypot(p.x - G.jog.x, p.y - G.jog.y) - Math.hypot(q.x - G.jog.x, q.y - G.jog.y))[0];
         return o ? { mapa: 'serra', ponto: { x: o.x, y: o.y - 40 } } : null; }
         return G.mapaId === 'mata' ? { mapa: 'mata', ponto: { x: 27 * TILE, y: 22 * TILE } } : { mapa: 'mata' }; },
