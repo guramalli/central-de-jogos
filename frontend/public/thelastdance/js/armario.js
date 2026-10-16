@@ -33,7 +33,8 @@
     previa.pixelado = false;
     // "Só a camiseta" + cada roupa cadastrada (por enquanto as roupas são de cima: uma por vez)
     const opcoes = [{ id: null, nome: "Só a camiseta" }]
-      .concat(Object.values(heroi.roupas).map((r) => ({ id: r.id, nome: r.nome || r.id })));
+      .concat(Object.values(heroi.roupas).filter((r) => !r.acessorio) // celular na mão etc. não é roupa
+        .map((r) => ({ id: r.id, nome: r.nome || r.id })));
     let vista = 0;
 
     const fundo = el("div", "armario-fundo");
@@ -93,7 +94,7 @@
       }
     }
     function vestir(id) {
-      for (const r of heroi.vestidas.slice()) heroi.tirar(r);
+      for (const r of heroi.vestidas.slice()) if (!heroi.roupas[r].acessorio) heroi.tirar(r);
       if (id) heroi.vestir(id);
       marcar();
       redesenhar(); // na hora do clique, sem esperar o próximo quadro

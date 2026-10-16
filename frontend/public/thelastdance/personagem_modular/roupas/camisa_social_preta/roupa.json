@@ -1,0 +1,134 @@
+{
+ "id": "camisa_social_preta",
+ "nome": "Camisa social preta",
+ "vistas": {
+  "frente": {
+   "camadas": [
+    {
+     "osso": "antbraco_dir",
+     "z": 6.5,
+     "img": "roupas/camisa_social_preta/frente/antbraco_dir_0.png",
+     "x": 692,
+     "y": 885
+    },
+    {
+     "osso": "antbraco_esq",
+     "z": 10.5,
+     "img": "roupas/camisa_social_preta/frente/antbraco_esq_1.png",
+     "x": 198,
+     "y": 894
+    },
+    {
+     "osso": "braco_sup_dir",
+     "z": 7.5,
+     "img": "roupas/camisa_social_preta/frente/braco_sup_dir_2.png",
+     "x": 662,
+     "y": 738
+    },
+    {
+     "osso": "braco_sup_esq",
+     "z": 9.5,
+     "img": "roupas/camisa_social_preta/frente/braco_sup_esq_3.png",
+     "x": 226,
+     "y": 732
+    },
+    {
+     "osso": "tronco",
+     "z": 12.5,
+     "img": "roupas/camisa_social_preta/frente/tronco_4.png",
+     "x": 345,
+     "y": 721
+    }
+   ]
+  },
+  "costas": {
+   "camadas": [
+    {
+     "osso": "braco_dir",
+     "z": 7.5,
+     "img": "roupas/camisa_social_preta/costas/braco_dir_0.png",
+     "x": 671,
+     "y": 862
+    },
+    {
+     "osso": "braco_esq",
+     "z": 6.5,
+     "img": "roupas/camisa_social_preta/costas/braco_esq_1.png",
+     "x": 225,
+     "y": 860
+    },
+    {
+     "osso": "tronco",
+     "z": 8.5,
+     "img": "roupas/camisa_social_preta/costas/tronco_2.png",
+     "x": 258,
+     "y": 687
+    }
+   ]
+  },
+  "lado_direito": {
+   "camadas": [
+    {
+     "osso": "braco",
+     "z": 5.5,
+     "img": "roupas/camisa_social_preta/lado_direito/braco_0.png",
+     "x": 358,
+     "y": 705
+    },
+    {
+     "osso": "braco_tras",
+     "z": -9.5,
+     "img": "roupas/camisa_social_preta/lado_direito/braco_tras_1.png",
+     "x": 358,
+     "y": 705
+    },
+    {
+     "osso": "braco_tras",
+     "z": -9.5,
+     "img": "roupas/camisa_social_preta/lado_direito/braco_tras_2.png",
+     "x": 362,
+     "y": 705
+    },
+    {
+     "osso": "tronco",
+     "z": 4.5,
+     "img": "roupas/camisa_social_preta/lado_direito/tronco_3.png",
+     "x": 367,
+     "y": 628
+    }
+   ]
+  },
+  "lado_esquerdo": {
+   "camadas": [
+    {
+     "osso": "braco",
+     "z": 5.5,
+     "img": "roupas/camisa_social_preta/lado_esquerdo/braco_0.png",
+     "x": 431,
+     "y": 688
+    },
+    {
+     "osso": "braco_tras",
+     "z": -9.5,
+     "img": "roupas/camisa_social_preta/lado_esquerdo/braco_tras_1.png",
+     "x": 431,
+     "y": 688
+    },
+    {
+     "osso": "braco_tras",
+     "z": -9.5,
+     "img": "roupas/camisa_social_preta/lado_esquerdo/braco_tras_2.png",
+     "x": 482,
+     "y": 688
+    },
+    {
+     "osso": "tronco",
+     "z": 4.5,
+     "img": "roupas/camisa_social_preta/lado_esquerdo/tronco_3.png",
+     "x": 382,
+     "y": 624
+    }
+   ]
+  }
+ }
+}
