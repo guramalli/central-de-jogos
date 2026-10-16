@@ -5,7 +5,8 @@ Uso (a partir de frontend/public/thelastdance/):
     python -I tools/roupa_ia.py moldes <pasta>
         -> <pasta>/molde_<vista>.png: o corpo montado em pé, no canvas 1024x1536 da vista, sobre verde
            (é a imagem que vai para o gerador, com o pedido de vestir a roupa sem mexer em mais nada)
-    python -I tools/roupa_ia.py extrair <pasta> --pecas camisa
+    python -I tools/roupa_ia.py extrair <pasta> --pecas camisa|regata|shorts
+    python -I tools/roupa_ia.py grade <pasta>   (uma folha 2x2 gerada a partir de molde_grade.png -> gerado_<vista>.png)
         -> lê <pasta>/gerado_<vista>.png, alinha com o molde, separa o que mudou (a roupa) e divide pelas peças
            do corpo; grava <pasta>/kit/1_frente/roupa_<peça>.png ... no formato do kit de molde, pronto para
            node scripts/importar-roupa.mjs <pasta>/kit --id ... (na pasta frontend)
@@ -30,7 +31,16 @@ PECAS = {
         "lado_direito": ["tronco", "braco", "braco_tras"],   # braco_tras: só cobre a manga dele (aparece ao andar)
         "lado_esquerdo": ["tronco", "braco", "braco_tras"],
     },
+    # shorts: as pernas inteiras (a parte de baixo vira pele + meia); o jeans da base tem de sumir por completo
+    "shorts": {
+        "frente": ["coxa_esq", "coxa_dir", "canela_esq", "canela_dir"],
+        "costas": ["coxa_esq", "coxa_dir", "canela_esq", "canela_dir"],
+        "lado_direito": ["coxa", "canela", "coxa_tras", "canela_tras"],
+        "lado_esquerdo": ["coxa", "canela", "coxa_tras", "canela_tras"],
+    },
 }
+PECAS["regata"] = PECAS["camisa"]  # regata: mesmas peças (os braços viram pele)
+COBRIR_TUDO = {"shorts"}  # a peça inteira da base é coberta (não só o branco da camiseta)
 VERDE = (0, 255, 0)
 
 
@@ -135,6 +145,11 @@ def cmd_extrair(pasta, tipo):
         mudou = np.abs(ger.astype(np.int32) - base.astype(np.int32)).sum(-1) > 90
         # fundo verde que sobrou no gerado não é roupa
         verde = (ger[..., 1] > 150) & (ger[..., 1] > ger[..., 0] + 60) & (ger[..., 1] > ger[..., 2] + 60)
+        # franja verde do fundo misturada no contorno: tira o que é bem verde e "despila" o resto (verde <= max(r, b))
+        gi = ger.astype(np.int32)
+        verde |= (gi[..., 1] > gi[..., 0] + 35) & (gi[..., 1] > gi[..., 2] + 35)
+        ger = ger.copy()
+        ger[..., 1] = np.minimum(gi[..., 1], np.maximum(gi[..., 0], gi[..., 2]) + 8).astype(ger.dtype)
         roupa = regiao & mudou & ~verde
         roupa = erodir(dilatar(roupa, 3), 3)          # fecha buraquinhos (contorno igual ao do molde)
         roupa = dilatar(erodir(roupa, 2), 2) & regiao  # tira pontinhos soltos
@@ -147,6 +162,8 @@ def cmd_extrair(pasta, tipo):
                 continue
             px = np.asarray(im).astype(np.int32)
             claro = (px[..., :3].min(-1) > 110) & (px[..., :3].max(-1) - px[..., :3].min(-1) < 50) & (px[..., 3] > 16)
+            if tipo in COBRIR_TUDO:
+                claro = px[..., 3] > 16
             cp = np.zeros((H, W), bool)
             cp[y:y + claro.shape[0], x:x + claro.shape[1]] = claro[:H - y, :W - x]
             camiseta_de[nome] = cp
@@ -197,10 +214,22 @@ def cmd_extrair(pasta, tipo):
         print(vista, "deslocamento", desl, "erro %.1f" % erro, " ".join(resumo))
 
 
+def cmd_grade(pasta):
+    """Folha 2x2 (frente, costas / lado direito, lado esquerdo) gerada sobre molde_grade.png -> 4 gerado_<vista>.png."""
+    W, H = rig()["canvas"]
+    g = Image.open(pasta / "gerado_grade.png").convert("RGB").resize((2 * W, 2 * H), Image.LANCZOS)
+    for i, vista in enumerate(["frente", "costas", "lado_direito", "lado_esquerdo"]):
+        x, y = (i % 2) * W, (i // 2) * H
+        g.crop((x, y, x + W, y + H)).save(pasta / f"gerado_{vista}.png")
+    print("grade ->", pasta)
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     acao, pasta = sys.argv[1], Path(sys.argv[2])
     if acao == "moldes":
         cmd_moldes(pasta)
+    elif acao == "grade":
+        cmd_grade(pasta)
     elif acao == "extrair":
         cmd_extrair(pasta, sys.argv[sys.argv.index("--pecas") + 1] if "--pecas" in sys.argv else "camisa")

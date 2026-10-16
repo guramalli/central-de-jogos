@@ -1,0 +1,162 @@
+{
+ "id": "shorts_praia",
+ "nome": "Shorts de praia",
+ "vistas": {
+  "frente": {
+   "camadas": [
+    {
+     "osso": "canela_dir",
+     "z": 0.5,
+     "img": "roupas/shorts_praia/frente/canela_dir_0.png",
+     "x": 521,
+     "y": 1185
+    },
+    {
+     "osso": "canela_esq",
+     "z": 4.5,
+     "img": "roupas/shorts_praia/frente/canela_esq_1.png",
+     "x": 317,
+     "y": 1150
+    },
+    {
+     "osso": "coxa_dir",
+     "z": 2.5,
+     "img": "roupas/shorts_praia/frente/coxa_dir_2.png",
+     "x": 506,
+     "y": 1030
+    },
+    {
+     "osso": "coxa_esq",
+     "z": 5.5,
+     "img": "roupas/shorts_praia/frente/coxa_esq_3.png",
+     "x": 339,
+     "y": 1038
+    }
+   ]
+  },
+  "costas": {
+   "camadas": [
+    {
+     "osso": "canela_dir",
+     "z": 3.5,
+     "img": "roupas/shorts_praia/costas/canela_dir_0.png",
+     "x": 544,
+     "y": 1150
+    },
+    {
+     "osso": "canela_esq",
+     "z": 2.5,
+     "img": "roupas/shorts_praia/costas/canela_esq_1.png",
+     "x": 301,
+     "y": 1150
+    },
+    {
+     "osso": "coxa_dir",
+     "z": 5.5,
+     "img": "roupas/shorts_praia/costas/coxa_dir_2.png",
+     "x": 512,
+     "y": 957
+    },
+    {
+     "osso": "coxa_esq",
+     "z": 4.5,
+     "img": "roupas/shorts_praia/costas/coxa_esq_3.png",
+     "x": 339,
+     "y": 960
+    }
+   ]
+  },
+  "lado_direito": {
+   "camadas": [
+    {
+     "osso": "canela",
+     "z": 1.5,
+     "img": "roupas/shorts_praia/lado_direito/canela_0.png",
+     "x": 364,
+     "y": 1092
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/shorts_praia/lado_direito/canela_tras_1.png",
+     "x": 364,
+     "y": 1092
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/shorts_praia/lado_direito/canela_tras_2.png",
+     "x": 364,
+     "y": 1092
+    },
+    {
+     "osso": "coxa",
+     "z": 2.5,
+     "img": "roupas/shorts_praia/lado_direito/coxa_3.png",
+     "x": 382,
+     "y": 943
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/shorts_praia/lado_direito/coxa_tras_4.png",
+     "x": 382,
+     "y": 943
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/shorts_praia/lado_direito/coxa_tras_5.png",
+     "x": 387,
+     "y": 943
+    }
+   ]
+  },
+  "lado_esquerdo": {
+   "camadas": [
+    {
+     "osso": "canela",
+     "z": 1.5,
+     "img": "roupas/shorts_praia/lado_esquerdo/canela_0.png",
+     "x": 442,
+     "y": 1112
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/shorts_praia/lado_esquerdo/canela_tras_1.png",
+     "x": 442,
+     "y": 1112
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/shorts_praia/lado_esquerdo/canela_tras_2.png",
+     "x": 464,
+     "y": 1112
+    },
+    {
+     "osso": "coxa",
+     "z": 2.5,
+     "img": "roupas/shorts_praia/lado_esquerdo/coxa_3.png",
+     "x": 395,
+     "y": 944
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/shorts_praia/lado_esquerdo/coxa_tras_4.png",
+     "x": 395,
+     "y": 944
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/shorts_praia/lado_esquerdo/coxa_tras_5.png",
+     "x": 417,
+     "y": 944
+    }
+   ]
+  }
+ }
+}
