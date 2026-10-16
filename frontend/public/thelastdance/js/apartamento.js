@@ -455,6 +455,7 @@
 
   function quadParede(ctx, w) {
     if (w.saida && porta.aberta) { portaAbertaDesenho(ctx, w); return; }
+    if (w.soSemTextura && imgProps[TEXTURA_PAREDE]) return; // a textura da parede já desenha isso
     if (decalque(ctx, w)) return;
     const p = w.plano === "x0"
       ? [T(0, w.a, w.z0), T(0, w.b, w.z0), T(0, w.b, w.z1), T(0, w.a, w.z1)]

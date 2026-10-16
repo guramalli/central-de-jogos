@@ -24,3 +24,6 @@
 __pycache__/
 
 /docs/acceptance/mapa/
+
+# Kit de pedidos para o ChatGPT (tools/kit_chatgpt.py): guias, referências e imagens recebidas — material de trabalho.
+/kit_chatgpt/

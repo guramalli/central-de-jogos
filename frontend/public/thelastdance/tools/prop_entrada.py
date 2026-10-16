@@ -5,6 +5,7 @@ Uso (a partir de frontend/public/thelastdance/):
     python3 -I tools/prop_entrada.py <gerado.png> <guia.json> [--espelhar] [--uniforme] [--nome NOME]
 
 - O fundo verde sai com chroma-clean.mjs da skill animated-spritesheets (tira a franja e o verde refletido).
+  Imagem que já vem com fundo TRANSPARENTE (ex.: PNG do ChatGPT) é usada direto, sem chroma.
 - --espelhar: inverte na horizontal antes de encaixar (o gerador às vezes desenha a peça espelhada; paredes e
   peças simétricas podem ser espelhadas sem problema).
 - Encaixe: a caixa da arte é esticada para a caixa do objeto no guia (tools/guia_props.py), então a arte fica
@@ -36,6 +37,14 @@ def caixa_nao_verde(rgb):
     return xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
 
 
+def transparente(im):
+    """PNG com fundo transparente de verdade (pelo menos 5% da imagem quase invisível)."""
+    if im.mode not in ("RGBA", "LA", "P"):
+        return False
+    a = np.asarray(im.convert("RGBA"))[..., 3]
+    return (a < 128).mean() > 0.05
+
+
 def main():
     gerado, guia_json = Path(sys.argv[1]), Path(sys.argv[2])
     guia = json.loads(guia_json.read_text(encoding="utf-8"))
@@ -45,16 +54,22 @@ def main():
     guia_img = np.asarray(Image.open(guia_json.with_name(f"{guia['nome']}_guia.png")).convert("RGB"))
     gx0, gy0, gx1, gy1 = caixa_nao_verde(guia_img)
 
-    with tempfile.TemporaryDirectory() as t:
-        entrada = Path(t) / "entrada.png"
-        im = Image.open(gerado).convert("RGB")
+    original = Image.open(gerado)
+    if transparente(original):
+        arte = original.convert("RGBA")
         if espelhar:
-            im = im.transpose(Image.FLIP_LEFT_RIGHT)
-        im.save(entrada)
-        limpo = Path(t) / "limpo.png"
-        subprocess.run(["node", str(SK / "chroma-clean.mjs"), "clean", "--input", str(entrada), "--out", str(limpo),
-                        "--keep-largest"], check=True, capture_output=True)
-        arte = Image.open(limpo).convert("RGBA")
+            arte = arte.transpose(Image.FLIP_LEFT_RIGHT)
+    else:
+        with tempfile.TemporaryDirectory() as t:
+            entrada = Path(t) / "entrada.png"
+            im = original.convert("RGB")
+            if espelhar:
+                im = im.transpose(Image.FLIP_LEFT_RIGHT)
+            im.save(entrada)
+            limpo = Path(t) / "limpo.png"
+            subprocess.run(["node", str(SK / "chroma-clean.mjs"), "clean", "--input", str(entrada), "--out", str(limpo),
+                            "--keep-largest"], check=True, capture_output=True)
+            arte = Image.open(limpo).convert("RGBA")
     a = np.asarray(arte)[..., 3] > 16
     ys, xs = np.where(a)
     ax0, ay0, ax1, ay1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1

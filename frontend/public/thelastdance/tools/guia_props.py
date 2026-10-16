@@ -91,6 +91,79 @@ PECAS = {
         "descricao": "luminária de piso acobreada, alta e fina",
         "caixas": [{"x": (0, 0.3), "y": (0, 0.3), "z": (0, 1.6)}],
     },
+    # ---- padaria (js/maps/padaria_planta.js) ----
+    "balcao_modulo": {
+        "descricao": "módulo de balcão de padaria (repete lado a lado), frente dos clientes virada para +y",
+        "caixas": [{"x": (0, 1.3), "y": (0, 0.6), "z": (0, 1.05)}],
+    },
+    "vitrine_doces": {
+        "descricao": "módulo de vitrine refrigerada de doces (repete lado a lado), vidro virado para +y",
+        "caixas": [{"x": (0, 1.3), "y": (0, 0.6), "z": (0, 1.3)}],
+    },
+    "caixa_registradora": {
+        "descricao": "balcão do caixa com registradora e maquininha, frente virada para +y",
+        "caixas": [
+            {"x": (0, 1.4), "y": (0, 0.7), "z": (0, 1.05)},
+            {"x": (0.45, 0.95), "y": (0.1, 0.45), "z": (1.05, 1.35)},  # registradora em cima
+        ],
+    },
+    "maquina_cafe": {
+        "descricao": "máquina de café expresso em cima de um móvel, encostada na parede do fundo (y = 0), frente para +y",
+        "caixas": [{"x": (0, 0.9), "y": (0, 0.55), "z": (0, 1.45)}],
+    },
+    "chapa": {
+        "descricao": "chapa de lanches (bancada de inox baixa), encostada na parede do fundo, frente para +y",
+        "caixas": [{"x": (0, 1.4), "y": (0, 0.6), "z": (0, 0.95)}],
+    },
+    "estufa_salgados": {
+        "descricao": "estufa de salgados de vidro em cima de uma bancada, frente para +y",
+        "caixas": [{"x": (0, 0.9), "y": (0, 0.55), "z": (0, 1.3)}],
+    },
+    "forno_pao": {
+        "descricao": "forno de pão de inox alto, encostado na parede do fundo, porta virada para +y",
+        "caixas": [{"x": (0, 1.2), "y": (0, 0.7), "z": (0, 1.7)}],
+    },
+    "geladeira_bebidas": {
+        "descricao": "geladeira de bebidas com portas de vidro, encostada na parede da esquerda (x = 0), portas para +x",
+        "caixas": [{"x": (0, 0.7), "y": (0, 1.4), "z": (0, 2.0)}],
+    },
+    "banqueta": {
+        "descricao": "banqueta alta redonda de balcão, sem encosto",
+        "caixas": [{"x": (0, 0.4), "y": (0, 0.4), "z": (0, 0.75)}],
+    },
+    "mesa_bistro": {
+        "descricao": "mesa quadrada pequena de padaria, tampo claro, pé central",
+        "caixas": [{"x": (0, 0.7), "y": (0, 0.7), "z": (0, 0.75)}],
+    },
+    "mesa_grande": {
+        "descricao": "mesa retangular de padaria para 4 pessoas, tampo claro",
+        "caixas": [{"x": (0, 1.2), "y": (0, 1.0), "z": (0, 0.75)}],
+    },
+    "cadeira_bistro": {
+        "descricao": "cadeira de padaria de frente para a câmera (assento virado para +y), encosto do lado y = 0",
+        "caixas": [
+            {"x": (0, 0.45), "y": (0, 0.45), "z": (0, 0.47)},           # assento (colisão)
+            {"x": (0.03, 0.42), "y": (0, 0.07), "z": (0.47, 0.95)},     # encosto (atrás)
+        ],
+    },
+    "cadeira_bistro_lado": {  # não se gera: é a cadeira_bistro espelhada (prop_entrada.py --espelhar)
+        "descricao": "cadeira de padaria virada para +x (espelho da cadeira_bistro), encosto do lado x = 0",
+        "caixas": [
+            {"x": (0, 0.45), "y": (0, 0.45), "z": (0, 0.47)},
+            {"x": (0, 0.07), "y": (0.03, 0.42), "z": (0.47, 0.95)},
+        ],
+    },
+    "cadeira_bistro_costas": {
+        "descricao": "cadeira de padaria de costas para a câmera (assento virado para -x), encosto do lado x = 0,45",
+        "caixas": [
+            {"x": (0, 0.45), "y": (0, 0.45), "z": (0, 0.47)},
+            {"x": (0.38, 0.45), "y": (0.03, 0.42), "z": (0.47, 0.95)},
+        ],
+    },
+    "lixeira": {
+        "descricao": "lixeira de inox com tampa de pedal",
+        "caixas": [{"x": (0, 0.35), "y": (0, 0.35), "z": (0, 0.6)}],
+    },
     "parede_2m": {
         "descricao": "trecho de parede do fundo com 2 m de largura e 2,7 m de altura (plano y = 0, de frente para o jogador)",
         "caixas": [
