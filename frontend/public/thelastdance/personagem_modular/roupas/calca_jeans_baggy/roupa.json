@@ -1,0 +1,134 @@
+{
+ "id": "calca_jeans_baggy",
+ "nome": "Calça jeans baggy",
+ "vistas": {
+  "frente": {
+   "camadas": [
+    {
+     "osso": "canela_dir",
+     "z": 0.5,
+     "img": "roupas/calca_jeans_baggy/frente/canela_dir_0.png",
+     "x": 514,
+     "y": 1164
+    },
+    {
+     "osso": "canela_esq",
+     "z": 4.5,
+     "img": "roupas/calca_jeans_baggy/frente/canela_esq_1.png",
+     "x": 300,
+     "y": 1135
+    },
+    {
+     "osso": "coxa_dir",
+     "z": 2.5,
+     "img": "roupas/calca_jeans_baggy/frente/coxa_dir_2.png",
+     "x": 492,
+     "y": 1013
+    },
+    {
+     "osso": "coxa_esq",
+     "z": 5.5,
+     "img": "roupas/calca_jeans_baggy/frente/coxa_esq_3.png",
+     "x": 332,
+     "y": 1021
+    }
+   ]
+  },
+  "costas": {
+   "camadas": [
+    {
+     "osso": "canela_dir",
+     "z": 3.5,
+     "img": "roupas/calca_jeans_baggy/costas/canela_dir_0.png",
+     "x": 527,
+     "y": 1129
+    },
+    {
+     "osso": "canela_esq",
+     "z": 2.5,
+     "img": "roupas/calca_jeans_baggy/costas/canela_esq_1.png",
+     "x": 303,
+     "y": 1129
+    },
+    {
+     "osso": "coxa_dir",
+     "z": 5.5,
+     "img": "roupas/calca_jeans_baggy/costas/coxa_dir_2.png",
+     "x": 495,
+     "y": 940
+    },
+    {
+     "osso": "coxa_esq",
+     "z": 4.5,
+     "img": "roupas/calca_jeans_baggy/costas/coxa_esq_3.png",
+     "x": 322,
+     "y": 943
+    }
+   ]
+  },
+  "lado_direito": {
+   "camadas": [
+    {
+     "osso": "canela",
+     "z": 1.5,
+     "img": "roupas/calca_jeans_baggy/lado_direito/canela_0.png",
+     "x": 347,
+     "y": 1071
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/calca_jeans_baggy/lado_direito/canela_tras_1.png",
+     "x": 347,
+     "y": 1071
+    },
+    {
+     "osso": "coxa",
+     "z": 2.5,
+     "img": "roupas/calca_jeans_baggy/lado_direito/coxa_2.png",
+     "x": 370,
+     "y": 926
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/calca_jeans_baggy/lado_direito/coxa_tras_3.png",
+     "x": 370,
+     "y": 926
+    }
+   ]
+  },
+  "lado_esquerdo": {
+   "camadas": [
+    {
+     "osso": "canela",
+     "z": 1.5,
+     "img": "roupas/calca_jeans_baggy/lado_esquerdo/canela_0.png",
+     "x": 447,
+     "y": 1091
+    },
+    {
+     "osso": "canela_tras",
+     "z": -7.5,
+     "img": "roupas/calca_jeans_baggy/lado_esquerdo/canela_tras_1.png",
+     "x": 447,
+     "y": 1091
+    },
+    {
+     "osso": "coxa",
+     "z": 2.5,
+     "img": "roupas/calca_jeans_baggy/lado_esquerdo/coxa_2.png",
+     "x": 400,
+     "y": 927
+    },
+    {
+     "osso": "coxa_tras",
+     "z": -6.5,
+     "img": "roupas/calca_jeans_baggy/lado_esquerdo/coxa_tras_3.png",
+     "x": 400,
+     "y": 927
+    }
+   ]
+  }
+ }
+}

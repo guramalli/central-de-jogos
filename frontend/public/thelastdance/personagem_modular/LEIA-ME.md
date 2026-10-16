@@ -13,7 +13,8 @@ funciona com qualquer animação**, sem gerar spritesheet.
 | `rig.json`, `animacoes.json`, `roupas/*/roupa.json` | Os mesmos dados separados, para quem preferir `fetch`. |
 | `personagem/<vista>/*.png` | Peças do corpo nas 4 vistas. |
 | `roupas/jaqueta_couro/` | A jaqueta (4 vistas). |
-| `teste.html` | Página de teste: abra no navegador, ande com as setas e aperte **J** para a jaqueta. |
+| `roupas/calca_jeans_baggy/` | A calça jeans baggy (4 vistas). |
+| `teste.html` | Página de teste: abra no navegador e ande com as setas. Os botões (ou **J** e **C**) vestem e tiram cada roupa. |
 
 Vistas: `frente`, `costas`, `lado_direito`, `lado_esquerdo`
 Animações: `andar` (8 quadros, 10 fps) e `parado` (8 quadros, 5 fps)
@@ -75,6 +76,9 @@ const heroi = new window.PersonagemModular(
 - `x`, `y`: posição da imagem no canvas padrão 1024x1536 da vista (o mesmo do kit de molde).
 - `substituir` (opcional): troca uma peça do corpo enquanto a roupa está vestida. Aqui a cabeça
   passa para cima da gola, para a barba não ficar coberta.
+
+Roupa desenhada no **kit de molde** (como a calça) entra sem ajuste manual: cada `roupa_<peça>.png`
+vai para o osso da peça de mesmo nome, e as laterais ganham a perna/braço do lado de lá automaticamente.
 
 Roupa nova = pasta nova em `roupas/` + `roupa.json` + registrar em `dados.js` (ou com
 `adicionarRoupa`). Nada da animação muda.

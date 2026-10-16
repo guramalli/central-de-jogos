@@ -18,23 +18,32 @@
   }
 
   // Desenha a prévia (pés embaixo, no centro) com as roupas dadas.
-  function pintar(canvas, previa, vestidas, vista, escala) {
+  function pintar(canvas, previa, vestidas, vista, escala, parte) {
     const ctx = canvas.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     previa.vestidas = vestidas.slice();
     previa.definirVista(vista);
-    previa.desenhar(ctx, canvas.width / 2, canvas.height - 10, escala);
+    // miniatura de calça: mostra da cintura para baixo, maior
+    if (parte === "baixo") previa.desenhar(ctx, canvas.width / 2, canvas.height - 6, escala * 1.7);
+    else previa.desenhar(ctx, canvas.width / 2, canvas.height - 10, escala);
+  }
+  const PERNAS = /^(coxa|canela|pe)/;
+  function parteDe(r) {
+    const ossos = Object.values(r.vistas).flatMap((v) => (v.camadas || []).map((c) => c.osso));
+    return ossos.length && ossos.every((o) => PERNAS.test(o)) ? "baixo" : "cima";
   }
 
   function abrir(o) {
     if (atual) return;
     const { heroi, previa } = o;
     previa.pixelado = false;
-    // "Só a camiseta" + cada roupa cadastrada (por enquanto as roupas são de cima: uma por vez)
-    const opcoes = [{ id: null, nome: "Só a camiseta" }]
-      .concat(Object.values(heroi.roupas).filter((r) => !r.acessorio) // celular na mão etc. não é roupa
-        .map((r) => ({ id: r.id, nome: r.nome || r.id })));
+    // Duas partes: em cima (camiseta, jaqueta, camisa...) e embaixo (calças). A parte de cada roupa sai dos ossos em
+    // que ela está presa: só pernas/pés = embaixo. Uma roupa por parte; a de baixo combina com qualquer de cima.
+    const roupas = Object.values(heroi.roupas).filter((r) => !r.acessorio); // celular na mão etc. não é roupa
+    const opcoes = [{ id: null, parte: "cima", nome: "Só a camiseta" }, { id: null, parte: "baixo", nome: "Jeans de sempre" }]
+      .concat(roupas.map((r) => ({ id: r.id, parte: parteDe(r), nome: r.nome || r.id })))
+      .sort((a, b) => (a.parte === b.parte ? 0 : a.parte === "cima" ? -1 : 1));
     let vista = 0;
 
     const fundo = el("div", "armario-fundo");
@@ -50,21 +59,21 @@
     interior.append(el("div", "armario-porta esq"), el("div", "armario-porta dir"), el("div", "armario-cano"));
     const cabides = el("div", "armario-cabides");
     const botoes = [];
+    let parteAtual = null;
     for (const op of opcoes) {
+      if (op.parte !== parteAtual) {
+        parteAtual = op.parte;
+        cabides.appendChild(el("div", "armario-parte", op.parte === "cima" ? "Parte de cima" : "Parte de baixo"));
+      }
       const b = el("button", "armario-peca");
       b.setAttribute("aria-pressed", "false");
       const gancho = el("span", "armario-gancho");
       const mini = el("canvas"); mini.width = 96; mini.height = 132;
-      pintar(mini, previa, op.id ? [op.id] : [], "frente", 0.085);
+      pintar(mini, previa, op.id ? [op.id] : [], "frente", 0.085, op.parte);
       b.append(gancho, mini, el("span", "armario-nome", op.nome));
-      b.addEventListener("click", () => vestir(op.id));
+      b.addEventListener("click", () => vestir(op.id, op.parte));
       cabides.appendChild(b);
       botoes.push([op, b]);
-    }
-    for (let k = 0; k < 2; k++) { // espaço para as próximas roupas
-      const v = el("div", "armario-peca vazia");
-      v.append(el("span", "armario-gancho"), el("span", "armario-nome", "Em breve"));
-      cabides.appendChild(v);
     }
     interior.appendChild(cabides);
 
@@ -89,12 +98,15 @@
 
     function marcar() {
       for (const [op, b] of botoes) {
-        const vestida = op.id ? heroi.vestidas.includes(op.id) : heroi.vestidas.length === 0;
+        const daParte = heroi.vestidas.filter((r) => !heroi.roupas[r].acessorio && parteDe(heroi.roupas[r]) === op.parte);
+        const vestida = op.id ? daParte.includes(op.id) : daParte.length === 0;
         b.setAttribute("aria-pressed", String(vestida));
       }
     }
-    function vestir(id) {
-      for (const r of heroi.vestidas.slice()) if (!heroi.roupas[r].acessorio) heroi.tirar(r);
+    function vestir(id, parte) {
+      for (const r of heroi.vestidas.slice()) {
+        if (!heroi.roupas[r].acessorio && parteDe(heroi.roupas[r]) === parte) heroi.tirar(r);
+      }
       if (id) heroi.vestir(id);
       marcar();
       redesenhar(); // na hora do clique, sem esperar o próximo quadro
