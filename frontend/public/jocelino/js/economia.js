@@ -54,7 +54,9 @@ const ECO = {
     // A marmita do Jocelino: a Rosa faz de manhã, gastando da despensa (a sobra da janta vai para o lixo, como no Dave).
     // (Tarefa 4) Ela não se vende (saiu da caixa, ECO.caixa): a fornada custa Cr$ 1 por marmita na mercearia, e comida feita em
     // casa vale menos que os ingredientes (o crivo do Stardew), então o preço seria 0. A marmita é energia (e +3 no humor dos peões).
-    marmita: { porDia: 2, gasta: { arroz: 1, feijao: 1 } },
+    // (C9, 16/10; o teste crítico C, solução 5) Antes de a pensão abrir, a Rosa faz `antesDaPensao` marmita por dia com o arroz e o
+    // feijão de casa (sem despensa, sem custo): a tarde dos dias 1 a 4 deixava de começar sem fôlego (a energia acabava às 14h).
+    marmita: { porDia: 2, gasta: { arroz: 1, feijao: 1 }, antesDaPensao: 1 },
     // (16/10, decisão do dono: "gasto por prato", como no Dave) A panela gasta da despensa, de cada ingrediente, a porção da receita ×
     // as porções base da panela (ECO.porcoes) × isto, para cima (Pensao.gasto): o PF que rende 4 gasta 2 de arroz, 2 de feijão e 2 de
     // ovo. As porções a mais do capricho, do freezer e do ingrediente da casa não gastam; a pedra da sopa é 1 por panela.
@@ -120,7 +122,9 @@ const ECO = {
   // ---- Os preços de conteúdo (pratos, culturas, peixes) ficam nas tabelas deles; aqui, o fator de cada categoria.
   pratos: { fator: 0.7, raridade: [1, 1, 1.3, 1.8, 3] },
   horta: { fatorSemente: 0.5, fatorVenda: 0.4 },
-  pesca: { fator: 0.35 },
+  // (C9) primeiroDoDia: antes de a pensão abrir, o Seu Lourival paga o 1º peixe do dia vendido na banca × isto (o "freguês" da aula;
+  // como o "Procura-se" do quadro do Stardew, que paga 3 × o preço do item). Com a pensão aberta, o peixe vai para a despensa.
+  pesca: { fator: 0.35, primeiroDoDia: 3 },
   // ---- A caixa de venda (o que não é colheita nem peixe) e as lojas (o depósito, a mercearia, a banca, o Viajante; o mascate
   // cobra pelo preço do depósito).
   caixa: { pedra: 1, ferro_velho: 3, barra_ferro: 15, sucata_aco: 5, barra_aco: 30, bronze_velho: 8, barra_bronze: 40, coco: 5, caju: 6, goiaba: 6, pitanga: 5, jabuticaba: 8, araca: 7, cogumelo: 10, cambuci: 9, concha: 4, flor: 5, pedra_bonita: 12, pamonha: 20, peixe_frito: 30, bolo: 40, rabanada: 25, moqueca: 80, cocada: 15, goiabada: 30, caldo_caranguejo: 50 },
@@ -141,9 +145,13 @@ const ECO = {
   // (15/10, o quadro de pedidos) Os recados do povo (o Help Wanted do Stardew; recados.js): a partir de que dia, o prazo (o dia em que
   // aceitou e o seguinte), quantos aceitos de uma vez, a janela sem repetir (dias), o ritmo dos tipos (quantas entregas seguidas antes de
   // uma coleta), o peso da entrega contra a coleta (1) no primeiro sorteio e o pagamento de cada um. A conta do pagamento é a do Stardew: 3 × o preço do item na caixa de venda × a quantidade, de 5 em 5, com piso de 30.
-  recados: { diaMin: 2, prazo: 2, maxAtivos: 2, janela: 7, entregasPorColeta: 2, pesoEntrega: 2,
+  // (C11, 16/10) janela 7 → 14: o teste crítico viu o "Zé quer 10 fibras" voltar com o mesmo texto; com 14 dias e 24 recados, o mesmo
+  // pedido sai no máximo 2 vezes por estação, e cada vez com outra frase (recados.js).
+  recados: { diaMin: 2, prazo: 2, maxAtivos: 2, janela: 14, entregasPorColeta: 2, pesoEntrega: 2,
     paga: { ent_couve_zelia: 70, ent_flor_zelia: 45, ent_goiaba_tonico: 55, ent_flor_bira: 45, ent_coco_ze: 30, ent_fibra_ze: 30, ent_madeira_juca: 60, ent_pedra_ananias: 45, ent_alface_ananias: 90,
-      ent_tomate_bira: 85, ent_sardinha_lourival: 35, ent_tainha_tonico: 35, ent_cogumelo_juca: 60, col_madeira_ze: 90, col_pedra_tonico: 45, col_fibra_juca: 45 } },
+      ent_tomate_bira: 85, ent_sardinha_lourival: 35, ent_tainha_tonico: 35, ent_cogumelo_juca: 60, col_madeira_ze: 90, col_pedra_tonico: 45, col_fibra_juca: 45,
+      // (C11) os recados de cada estação, pela mesma conta
+      ent_cambuci_zelia: 80, ent_araca_lourival: 65, ent_concha_bira: 35, ent_caju_ze: 55, ent_jabuticaba_juca: 95, ent_pitanga_ananias: 60, ent_milho_lourival: 95, ent_abobora_tonico: 85 } },
   // (16/10, as encomendas de festa: a Party Night do Dave com a turma de um morador; encomendas.js e a spec
   // docs/superpowers/specs/2026-10-16-encomendas-festa-design.md, seção 5) O "degrau" aqui é o das estrelas da casa (o grau − 1):
   // começa na 2ª estrela (Pensão Falada, 4 banquetas), com a pensão aberta há 7 dias; a próxima noite de festa sai de 6 a 11 dias
@@ -349,7 +357,14 @@ const ECO = {
     linhaFirme: 0.85,     // Pesca 7: o medidor esvazia 15% mais devagar
     iscaBoa: { raro: 2.5, espera: 0.5 },   // Pesca 8: o peso do peixe raro (a isca comum dá 1,5) e a espera da mordida em segundos
   },
-  guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 6, domingo: 7, pesca: 2, bazar: 4, pedreira: 5, mina: 7 }, espera: 3, maxAbertas: 2,
+  // (C10, 16/10; o teste crítico: 12 sistemas nos dias 1–5 e nenhum do 6 ao 18) Com a pensão no dia ~4, a 1ª semana dela já traz a
+  // inauguração, o convite da tarde, a carta do 1º VIP (dia ~6), o domingo (7), a da 1ª festa (~8) e a 1ª estrela (~9): a pedreira, o
+  // Grêmio e a mina vão para os dias vazios do meio (10, 12 e 14 — o 14 é domingo, sem obra: o dia de descer). Como o Stardew: o Willy
+  // no dia 2, a mina no 5, o Centro Comunitário depois, a festa do ovo no 13 — uma novidade por vez.
+  // cartaFamilia: a carta da família de Aracaju (afeto.js) espera um dia sem outra novidade (correio.js): no mínimo `intervalo` dias
+  // depois da anterior, e no máximo `maxEspera` dias na fila.
+  guia: { dias: { pensao: 2, horta: 1, quadro: 1, gremio: 12, domingo: 7, pesca: 2, bazar: 4, pedreira: 10, mina: 14 }, espera: 3, maxAbertas: 2,
+    cartaFamilia: { intervalo: 3, maxEspera: 5 },   // (C11, decisão do coordenador: maxEspera 10 → 5; a carta das cocadas chegava 17 dias depois de juntar o dinheiro)
     recompensas: { horta: { mochila: { esterco: 5, semente_alface: 5 } },
       // (C6) a 1ª janta dá a 1ª semana sem susto: 10 de arroz, feijão e ovo (eram 6) e 4 de farinha (o peixe frito)
       janta: { despensa: { arroz: 10, feijao: 10, ovo: 10, farinha: 4 } }, domingo: { despensa: { farinha: 4, leite: 4 } }, pesca: { mochila: { isca: 10 } } } },

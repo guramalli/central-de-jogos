@@ -8,7 +8,7 @@
 // - o cliente é diferente dos clientes dos serviços do dia; o tipo alterna no ritmo de 2 entregas para 1 coleta (as entregas são a
 //   maioria, como no Stardew): depois de uma coleta vem entrega, e depois de 2 entregas seguidas vem coleta, quando houver
 //   (ECO.recados.entregasPorColeta; com 1, alterna dia sim, dia não); sem histórico, a entrega pesa 2 e a coleta 1; nada se
-//   repete em 7 dias, e o que está há mais tempo sem aparecer pesa mais;
+//   repete em ECO.recados.janela dias (C11: 14; eram 7), e o que está há mais tempo sem aparecer pesa mais;
 // - (C2, 16/10) não sai recado do material que a reforma da pensão ainda vai pedir, nem de pedra com a obra do dia pedindo pedra;
 // - prazo de 2 dias (o dia em que aceitou e o seguinte); vencido, some sem multa; até 2 recados aceitos de uma vez;
 // - a entrega é direto da mochila (decisão do dono, 15/10: botão direito no morador, "Entregar 3 couves?"): paga na hora o
@@ -17,78 +17,244 @@
 // Campos: tipo ('entrega' | 'coleta'), cliente, item, qtd, fala (o pedido, na voz da pessoa), obrigado, deixa (o recado vencido, sem
 // bronca, para o resumo da noite), estacoes (0 Outono, 1 Inverno, 2 Primavera, 3 Verão), mapas (de onde vem o item), diaMin e,
 // quando precisa, `precisa` (a ferramenta: a vara) e `falaPedreira` (a fala depois que a pedreira abre). O pagamento mora no ECO.
+// (C11, 16/10; o teste crítico: "Zé quer 10 fibras" voltava no dia ~48 com o mesmo texto do dia 2, e o recado de tomate saía no inverno)
+// Cada recado tem 2 ou 3 VEZES (as listas fala, obrigado e deixa andam juntas: a fala da 2ª vez tem o obrigado e o "deixa" da 2ª vez).
+// A vez é a conta de quantas vezes o recado já saiu (Recados.vez), e não o dia % n do plano: com a janela de 14 dias, o dia % 2
+// daria a mesma frase duas vezes seguidas (14 é par). Como o Help Wanted do Stardew: cada morador pede com a voz dele, e a colheita
+// só se pede na estação da cultura (lá, nem se pede colheita no inverno). Os recados de primavera e verão (caju, jabuticaba,
+// pitanga, milho, concha, abóbora) e os da mata no outono (cambuci, araçá) entram aqui também: com a janela de 14 dias, os 16 da
+// primeira lista não enchiam o quadro.
 
 const TODO_ANO = [0, 1, 2, 3];
 const PEDIDOS_VILA = {
   // ---- Entregas dos primeiros dias
   ent_couve_zelia: { tipo: 'entrega', cliente: 'zelia', item: 'couve', qtd: 3, estacoes: [0, 1], mapas: ['quintal'], diaMin: 8,
-    fala: 'Meu filho, me deu uma saudade de caldo verde... Três pés de couve bem verdinhos e eu faço um panelão.',
-    obrigado: 'Ai, que beleza de couve! Passa aqui de noite pra provar o caldo.',
-    deixa: 'Deixa, meu filho, a vizinha arrumou umas couves.' },
+    fala: ['Meu filho, me deu uma saudade de caldo verde... Três pés de couve bem verdinhos e eu faço um panelão.',
+      'Minha irmã vem de Santos no domingo e ela só almoça se tiver couve refogada. Três pés dos bonitos, meu filho?',
+      'O doutor do posto mandou comer verdura, meu filho. A couve da feira chega murcha: três pés da sua horta?'],
+    obrigado: ['Ai, que beleza de couve! Passa aqui de noite pra provar o caldo.',
+      'Couve de quintal, cheirosa! A minha irmã vai querer levar muda.',
+      'Verdinha que dá gosto. O doutor vai ficar orgulhoso de mim, meu filho!'],
+    deixa: ['Deixa, meu filho, a vizinha arrumou umas couves.',
+      'A minha irmã trouxe couve de Santos mesmo, meu filho. Fica pra próxima.',
+      'Comprei da feira mesmo, meu filho. Murchinha, mas serve.'] },
   // (T3, 15/10) O 2º recado da Dona Zélia, possível desde o dia 2 (o da couve só vem com a horta): a flor nasce no chão do quintal e da Vila.
   ent_flor_zelia: { tipo: 'entrega', cliente: 'zelia', item: 'flor', qtd: 3, estacoes: [0, 1, 2], mapas: ['quintal', 'vila', 'mata'], diaMin: 2,
-    fala: 'Meu filho, hoje tem terço lá em casa e o altarzinho da sala tá sem flor. Arruma três flores do mato pra mim?',
-    obrigado: 'Que lindeza! O altar vai ficar todo prosa. Deus te pague, meu filho.',
-    deixa: 'A comadre trouxe flor de plástico, meu filho. Serve, serve.' },
+    fala: ['Meu filho, hoje tem terço lá em casa e o altarzinho da sala tá sem flor. Arruma três flores do mato pra mim?',
+      'É aniversário da minha comadre e eu não quero chegar de mão abanando. Três flores do mato fazem um raminho, meu filho.',
+      'A procissão passa aqui na porta no sábado e a minha janela tá sem enfeite. Três flores do mato, meu filho?'],
+    obrigado: ['Que lindeza! O altar vai ficar todo prosa. Deus te pague, meu filho.',
+      'Que raminho bonito! A comadre vai chorar, você vai ver.',
+      'A janela mais enfeitada da rua! Deus te pague, meu filho.'],
+    deixa: ['A comadre trouxe flor de plástico, meu filho. Serve, serve.',
+      'Levei um bolo de fubá pra comadre no lugar das flores, meu filho. Ela gostou.',
+      'Pendurei uma toalha de crochê na janela, meu filho. Ficou bonito também.'] },
   ent_goiaba_tonico: { tipo: 'entrega', cliente: 'tonico', item: 'goiaba', qtd: 3, estacoes: [0, 1], mapas: ['quintal', 'vila'], diaMin: 2,
-    fala: 'Goiaba no tacho de cobre fica outra coisa, Jocelino. Me arruma três, que a forja tá quente.',
-    obrigado: 'Cheiro de doce na ferraria! Valeu, rapaz.',
-    deixa: 'Deixa estar, rapaz: o doce fica pra outra fornada.' },
+    fala: ['Goiaba no tacho de cobre fica outra coisa, Jocelino. Me arruma três, que a forja tá quente.',
+      'A patroa quer fazer goiabada cascão e a goiabeira lá de casa não deu nada este ano. Três goiabas, rapaz?',
+      'Goiaba com queijo depois da forja é o meu almoço, rapaz. Me arruma três do chão?'],
+    obrigado: ['Cheiro de doce na ferraria! Valeu, rapaz.',
+      'Goiabada garantida! Passa na ferraria que eu guardo um pedaço.',
+      'Almoço de ferreiro! Valeu, rapaz.'],
+    deixa: ['Deixa estar, rapaz: o doce fica pra outra fornada.',
+      'A patroa fez doce de banana no lugar. Ficou bom também, rapaz.',
+      'Almocei pão com queijo mesmo, rapaz. Tranquilo.'] },
   ent_flor_bira: { tipo: 'entrega', cliente: 'bira', item: 'flor', qtd: 3, estacoes: [0, 1, 2], mapas: ['quintal', 'vila', 'mata'], diaMin: 2,
-    fala: 'Rapaz, hoje é aniversário da patroa e eu esqueci. Arruma umas flores do mato antes das cinco?',
-    obrigado: 'Salvou minha pele! Ela nem vai desconfiar.',
-    deixa: 'Comprei umas flores na feira mesmo. Fica pra próxima, rapaz.' },
+    fala: ['Rapaz, hoje é aniversário da patroa e eu esqueci. Arruma umas flores do mato antes das cinco?',
+      'Briguei com a patroa por causa do futebol, rapaz. Três flores do mato acalmam a fera?',
+      'As irmãs da patroa vêm jantar lá em casa e a mesa tá sem enfeite. Três flores do mato, rapaz?'],
+    obrigado: ['Salvou minha pele! Ela nem vai desconfiar.',
+      'Paz em casa de novo! Te devo essa, rapaz.',
+      'Mesa enfeitada, cunhada calada! Valeu, rapaz.'],
+    deixa: ['Comprei umas flores na feira mesmo. Fica pra próxima, rapaz.',
+      'Fiz as pazes com um pastel da feira. Fica pra próxima, rapaz.',
+      'A patroa pôs um vaso de plástico na mesa. Ninguém reparou, rapaz.'] },
   ent_coco_ze: { tipo: 'entrega', cliente: 'ze', item: 'coco', qtd: 2, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'praia'], diaMin: 2,
-    fala: 'Sol de rachar na laje, Jocelino! Me arruma dois cocos que eu divido com a peãozada.',
-    obrigado: 'Ê, água de coco! Lá lá laiá!',
-    deixa: 'A peãozada tomou água da bica mesmo. Tranquilo, parceiro!' },
+    fala: ['Sol de rachar na laje, Jocelino! Me arruma dois cocos que eu divido com a peãozada.',
+      'A peãozada vai virar a laje hoje e a água da bica não dá conta. Dois cocos, parceiro?',
+      'Tem ensaio do samba hoje à noite e eu fico sem voz se não tomar uma água de coco. Me arruma dois?'],
+    obrigado: ['Ê, água de coco! Lá lá laiá!',
+      'Coco gelado, laje no lugar! Valeu, parceiro.',
+      'Voz afinada pro samba! Lá lá laiá, parceiro!'],
+    deixa: ['A peãozada tomou água da bica mesmo. Tranquilo, parceiro!',
+      'Virou a laje na água da bica mesmo. Tranquilo, parceiro!',
+      'Cantei rouco mesmo, parceiro. O samba perdoa!'] },
   ent_fibra_ze: { tipo: 'entrega', cliente: 'ze', item: 'fibra', qtd: 10, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'mata'], diaMin: 2,
-    fala: 'A amarração do andaime tá podre. Me traz dez de fibra que eu tranço uma corda nova.',
-    obrigado: 'Corda nova, andaime firme. Obrigado, parceiro.',
-    deixa: 'Arrumei uma corda emprestada. Fica pra próxima, parceiro.' },
+    fala: ['A amarração do andaime tá podre. Me traz dez de fibra que eu tranço uma corda nova.',
+      'A corda do balde da obra arrebentou, parceiro: sem corda, a massa sobe no braço. Dez de fibra?',
+      'Quero trançar uma esteira pra tirar o cochilo do almoço na sombra da obra. Dez de fibra, parceiro?'],
+    obrigado: ['Corda nova, andaime firme. Obrigado, parceiro.',
+      'Balde subindo sozinho! Te devo uma, parceiro.',
+      'Esteira nova, cochilo garantido! Valeu, parceiro.'],
+    deixa: ['Arrumei uma corda emprestada. Fica pra próxima, parceiro.',
+      'Subi a massa no braço mesmo. Fica pra próxima, parceiro.',
+      'Cochilei no saco de cimento mesmo. Fica pra próxima, parceiro!'] },
   ent_madeira_juca: { tipo: 'entrega', cliente: 'juca', item: 'madeira', qtd: 10, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'mata'], diaMin: 2,
-    fala: 'Sobrinho, a lenha acabou e a água do banho das crianças é no fogão. Dez de madeira resolve.',
-    obrigado: 'Lenha boa, seca. Ê, Aracaju ensinou direito.',
-    deixa: 'Esquentei a água com o que tinha, sobrinho. Sem problema.' },
+    fala: ['Sobrinho, a lenha acabou e a água do banho das crianças é no fogão. Dez de madeira resolve.',
+      'O pé da mesa da cozinha quebrou e a sua tia tá comendo com o prato na mão, sobrinho. Dez de madeira resolve.',
+      'O fogão de lenha tá com fome, sobrinho. Dez de madeira pro feijão de amanhã?'],
+    obrigado: ['Lenha boa, seca. Ê, Aracaju ensinou direito.',
+      'Mesa firme de novo! A sua tia mandou um beijo, sobrinho.',
+      'Feijão garantido! Lá em Aracaju lenha dessas custava caro.'],
+    deixa: ['Esquentei a água com o que tinha, sobrinho. Sem problema.',
+      'Calcei a mesa com um tijolo, sobrinho. Sem problema.',
+      'O feijão foi no fogareiro mesmo, sobrinho. Sem problema.'] },
   ent_pedra_ananias: { tipo: 'entrega', cliente: 'ananias', item: 'pedra', qtd: 15, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'mata', 'pedreira'], diaMin: 2,
-    fala: 'O caminhão da Serra não desce enquanto a estrada tá fechada, e o freguês quer pedra pro alicerce. Quinze pedras?',
-    falaPedreira: 'Freguês apressado, pedra pouca. Quinze pedras, Jocelino?',
-    obrigado: 'Pedra boa. Material bem pago, freguês.',
-    deixa: 'O freguês achou pedra em outro canto. Fica pra próxima.' },
+    fala: ['O caminhão da Serra não desce enquanto a estrada tá fechada, e o freguês quer pedra pro alicerce. Quinze pedras?',
+      'Um freguês quer fazer um muro de arrimo e o meu estoque de pedra zerou. Quinze pedras, Jocelino?',
+      'O caminhão atola na frente do depósito toda vez que chove. Quinze pedras pra calçar a entrada, freguês?'],
+    falaPedreira: ['Freguês apressado, pedra pouca. Quinze pedras, Jocelino?',
+      'A pedreira abriu, mas o freguês quer a pedra hoje e eu não tenho braço. Quinze pedras, freguês?',
+      'Com a pedreira aberta, o povo só quer pedra. Quinze pra prateleira, Jocelino?'],
+    obrigado: ['Pedra boa. Material bem pago, freguês.',
+      'Pois não, pedra bem escolhida. Volte sempre.',
+      'Entrada calçada, caminhão feliz. Obrigado, freguês.'],
+    deixa: ['O freguês achou pedra em outro canto. Fica pra próxima.',
+      'O freguês desistiu do muro. Fica pra próxima.',
+      'Joguei entulho na entrada mesmo. Fica pra próxima, freguês.'] },
   ent_alface_ananias: { tipo: 'entrega', cliente: 'ananias', item: 'alface', qtd: 5, estacoes: [0, 1, 2], mapas: ['quintal'], diaMin: 6,
-    fala: 'O caminhão da Ceasa não veio e a freguesia da Mercearia quer verdura. Cinco pés de alface?',
-    obrigado: 'Já tem freguesa esperando! Pois não, obrigado.',
-    deixa: 'A Ceasa mandou verdura no fim das contas. Obrigado assim mesmo.' },
-  ent_tomate_bira: { tipo: 'entrega', cliente: 'bira', item: 'tomate', qtd: 2, estacoes: [0, 1, 2], mapas: ['quintal'], diaMin: 11,
-    fala: 'A peãozada reclamou do molho aguado da marmita. Dois tomates bons fazem milagre.',
-    obrigado: 'Agora sim, molho de verdade!',
-    deixa: 'A marmita foi de molho aguado mesmo. Fica pra próxima!' },
+    fala: ['O caminhão da Ceasa não veio e a freguesia da Mercearia quer verdura. Cinco pés de alface?',
+      'As freguesas querem salada pro almoço de domingo e a minha banca de verdura tá vazia. Cinco pés de alface, freguês?',
+      'O verdureiro da Ceasa aumentou o preço e eu não pago. Cinco pés de alface, com preço de vizinho?'],
+    obrigado: ['Já tem freguesa esperando! Pois não, obrigado.',
+      'Alface fresquinha vende sozinha. Obrigado, freguês.',
+      'Preço de vizinho, verdura de primeira. Pois não, obrigado.'],
+    deixa: ['A Ceasa mandou verdura no fim das contas. Obrigado assim mesmo.',
+      'As freguesas levaram repolho no lugar. Obrigado assim mesmo.',
+      'Paguei o verdureiro e chorei no troco. Obrigado assim mesmo.'] },
+  // (C11) O tomate só no outono e na primavera: no inverno o pé dá miúdo e o Mestre Bira não pede (o teste crítico achou o recado de
+  // tomate no inverno, dia ~40). A estação da cultura (CULTURAS.estacoes) também vale: Recados.possivel cruza as duas.
+  ent_tomate_bira: { tipo: 'entrega', cliente: 'bira', item: 'tomate', qtd: 2, estacoes: [0, 2], mapas: ['quintal'], diaMin: 11,
+    fala: ['A peãozada reclamou do molho aguado da marmita. Dois tomates bons fazem milagre.',
+      'O Zé quer fazer vinagrete pro churrasco de sábado da peãozada. Dois tomates bons, rapaz?',
+      'A patroa jurou que não faz mais macarrão com tomate de feira. Dois da sua horta, rapaz?'],
+    obrigado: ['Agora sim, molho de verdade!',
+      'Vinagrete de respeito! O churrasco tá salvo, rapaz.',
+      'Tomate vermelho por dentro! A patroa vai fazer festa, rapaz.'],
+    deixa: ['A marmita foi de molho aguado mesmo. Fica pra próxima!',
+      'O churrasco foi sem vinagrete mesmo. Fica pra próxima, rapaz!',
+      'Foi macarrão na manteiga mesmo. Fica pra próxima, rapaz!'] },
   // ---- Entregas das fases seguintes (a praia e a mata)
   ent_sardinha_lourival: { tipo: 'entrega', cliente: 'lourival', item: 'sardinha', qtd: 4, estacoes: TODO_ANO, mapas: ['praia'], diaMin: 2, precisa: 'vara',
-    fala: 'Compadre, o barco do Dito quebrou e a banca tá pelada. Me traz quatro sardinhas pro almoço do pessoal?',
-    obrigado: 'Salvou a banca, compadre!',
-    deixa: 'O Dito consertou o barco, compadre. Fica pra outra vez.' },
+    fala: ['Compadre, o barco do Dito quebrou e a banca tá pelada. Me traz quatro sardinhas pro almoço do pessoal?',
+      'Prometi uma sardinhada pros meninos da Colônia e o mar hoje não me deu nada. Quatro sardinhas, compadre?',
+      'A isca do espinhel acabou, e sardinha é a melhor isca que tem. Me traz quatro, compadre?'],
+    obrigado: ['Salvou a banca, compadre!',
+      'Sardinhada garantida! O mar te conhece, compadre.',
+      'Espinhel iscado! Amanhã tem garoupa, compadre.'],
+    deixa: ['O Dito consertou o barco, compadre. Fica pra outra vez.',
+      'Os meninos comeram pão com mortadela mesmo. Fica pra outra vez, compadre.',
+      'Iscou com camarão mesmo, compadre. Fica pra outra vez.'] },
   ent_tainha_tonico: { tipo: 'entrega', cliente: 'tonico', item: 'tainha', qtd: 2, estacoes: [0, 1], mapas: ['praia'], diaMin: 2, precisa: 'vara',
-    fala: 'Tainha na brasa da forja, Jocelino. Duas, se o mar deixar.',
-    obrigado: 'Isso é que é almoço de ferreiro!',
-    deixa: 'Almocei o que tinha, rapaz. A tainha fica pra outro dia.' },
+    fala: ['Tainha na brasa da forja, Jocelino. Duas, se o mar deixar.',
+      'O meu cunhado vem de São Vicente e só fala em tainha. Duas pra mim, rapaz?',
+      'Tainha assada na folha de bananeira, no calor da forja. Duas, Jocelino?'],
+    obrigado: ['Isso é que é almoço de ferreiro!',
+      'Tainha gorda! O cunhado vai querer morar aqui, rapaz.',
+      'A forja virou churrasqueira hoje! Valeu, rapaz.'],
+    deixa: ['Almocei o que tinha, rapaz. A tainha fica pra outro dia.',
+      'O cunhado comeu frango mesmo, rapaz. Fica pra outro dia.',
+      'A folha de bananeira fica pra outro dia, rapaz.'] },
   ent_cogumelo_juca: { tipo: 'entrega', cliente: 'juca', item: 'cogumelo', qtd: 2, estacoes: [0, 1], mapas: ['mata'], diaMin: 2,
-    fala: 'Cogumelo do mato com ovo, do jeito que a minha mãe fazia lá em Sergipe. Acha dois pra mim?',
-    obrigado: 'Esse cheiro me levou de volta pra casa.',
-    deixa: 'Fiz o ovo puro mesmo, sobrinho. Outro dia a gente acha.' },
+    fala: ['Cogumelo do mato com ovo, do jeito que a minha mãe fazia lá em Sergipe. Acha dois pra mim?',
+      'A sua tia viu risoto de cogumelo na novela e cismou, sobrinho. Dois do chão da mata?',
+      'Depois da chuva a mata enche de cogumelo. Me traz dois que eu faço um refogado com alho, sobrinho.'],
+    obrigado: ['Esse cheiro me levou de volta pra casa.',
+      'Risoto de novela na casa do Juca! Obrigado, sobrinho.',
+      'Cogumelo bom, desses de cheiro forte. Obrigado, sobrinho.'],
+    deixa: ['Fiz o ovo puro mesmo, sobrinho. Outro dia a gente acha.',
+      'A sua tia fez arroz com ovo e disse que é risoto. Outro dia a gente acha.',
+      'Refoguei só o alho mesmo, sobrinho. Outro dia a gente acha.'] },
   // ---- Coletas (só conta o que entrar na mochila depois de aceitar)
   col_madeira_ze: { tipo: 'coleta', cliente: 'ze', item: 'madeira', qtd: 15, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'mata'], diaMin: 2,
-    fala: 'O Mestre quer forma nova pra laje e a madeira da obra acabou. Junta quinze pra mim, da boa?',
-    obrigado: 'Forma de primeira! O Mestre vai achar que fui eu.',
-    deixa: 'O Mestre arrumou madeira no depósito. Valeu a intenção, parceiro!' },
+    fala: ['O Mestre quer forma nova pra laje e a madeira da obra acabou. Junta quinze pra mim, da boa?',
+      'Vou montar um palquinho pro samba da praça, parceiro. Junta quinze de madeira pra mim, da boa?',
+      'O barraco de ferramenta da obra tá caindo aos pedaços. Quinze de madeira, juntando de hoje em diante, parceiro?'],
+    obrigado: ['Forma de primeira! O Mestre vai achar que fui eu.',
+      'O samba vai ter palco! Lá lá laiá, parceiro!',
+      'Barraco de pé, ferramenta na sombra. Valeu, parceiro!'],
+    deixa: ['O Mestre arrumou madeira no depósito. Valeu a intenção, parceiro!',
+      'O samba foi no chão mesmo, parceiro. Valeu a intenção!',
+      'Escorei o barraco com uma ripa velha. Valeu a intenção, parceiro!'] },
   col_pedra_tonico: { tipo: 'coleta', cliente: 'tonico', item: 'pedra', qtd: 15, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'mata', 'pedreira'], diaMin: 2,
-    fala: 'A base da forja tá afundando. Quinze pedras e eu calço ela de novo.',
-    obrigado: 'Forja firme, ferro reto. Muito obrigado.',
-    deixa: 'Calcei a forja com tijolo velho. Fica pra próxima, rapaz.' },
+    fala: ['A base da forja tá afundando. Quinze pedras e eu calço ela de novo.',
+      'A chuva cavou um buraco na porta da ferraria e o freguês tropeça. Quinze pedras pra tapar, rapaz?',
+      'Quero fazer uma muretinha pro carvão não molhar. Quinze pedras, juntando de hoje em diante?'],
+    obrigado: ['Forja firme, ferro reto. Muito obrigado.',
+      'Porta tapada, freguês de pé! Muito obrigado, rapaz.',
+      'Carvão sequinho! Muito obrigado, rapaz.'],
+    deixa: ['Calcei a forja com tijolo velho. Fica pra próxima, rapaz.',
+      'Tapei o buraco com areia mesmo. Fica pra próxima, rapaz.',
+      'Cobri o carvão com uma lona. Fica pra próxima, rapaz.'] },
   col_fibra_juca: { tipo: 'coleta', cliente: 'juca', item: 'fibra', qtd: 15, estacoes: TODO_ANO, mapas: ['quintal', 'vila', 'mata'], diaMin: 2,
-    fala: 'A cerca de bambu do galinheiro tá solta. Fibra pra amarrar: quinze, que eu faço o resto.',
-    obrigado: 'Galinha presa, horta salva!',
-    deixa: 'Amarrei a cerca com arame mesmo, sobrinho. Sem problema.' },
+    fala: ['A cerca de bambu do galinheiro tá solta. Fibra pra amarrar: quinze, que eu faço o resto.',
+      'Vou trançar um balaio pra sua tia levar na feira, sobrinho. Quinze de fibra, juntando de hoje em diante?',
+      'A rede da varanda desfiou toda, sobrinho. Quinze de fibra e eu remendo.'],
+    obrigado: ['Galinha presa, horta salva!',
+      'Balaio de Sergipe, feito em São Paulo! Obrigado, sobrinho.',
+      'Rede nova, cochilo de domingo garantido. Obrigado, sobrinho.'],
+    deixa: ['Amarrei a cerca com arame mesmo, sobrinho. Sem problema.',
+      'A sua tia levou a sacola de plástico mesmo, sobrinho. Sem problema.',
+      'Cochilei na cadeira mesmo, sobrinho. Sem problema.'] },
+  // ---- (C11) Os recados de cada estação (o Help Wanted do Stardew pede o que a estação dá): a mata no outono e no inverno (cambuci,
+  // araçá), a praia o ano todo (concha), e a primavera e o verão (caju, jabuticaba, pitanga, milho, abóbora), quando os da couve,
+  // da goiaba e da tainha saem de cena.
+  ent_cambuci_zelia: { tipo: 'entrega', cliente: 'zelia', item: 'cambuci', qtd: 3, estacoes: [0, 1], mapas: ['mata'], diaMin: 2,
+    fala: ['Meu filho, a minha avó fazia doce de cambuci e eu nunca mais provei. Três da mata, pra eu tentar a receita?',
+      'Dizem que cambuci com açúcar cura gripe, meu filho. Três, que eu tô com a garganta arranhando.'],
+    obrigado: ['Cheiro de casa de vó! Vou fazer o doce hoje mesmo, meu filho.',
+      'Gripe nenhuma resiste! Deus te pague, meu filho.'],
+    deixa: ['Fiz doce de goiaba mesmo, meu filho. A avó ia entender.',
+      'Tomei chá de alho mesmo, meu filho. Já passou.'] },
+  ent_araca_lourival: { tipo: 'entrega', cliente: 'lourival', item: 'araca', qtd: 3, estacoes: [0, 1, 3], mapas: ['mata'], diaMin: 2,
+    fala: ['Compadre, os meninos do barco pediram suco de araçá, que é azedinho e mata a sede. Três da mata?',
+      'Araçá na cachaça é remédio de pescador velho, compadre. Três, que o joelho tá rangendo.'],
+    obrigado: ['Suco pros meninos! O mar fica mais leve, compadre.',
+      'O joelho agradece, compadre!'],
+    deixa: ['Os meninos tomaram água mesmo, compadre. Fica pra outra vez.',
+      'Passei pomada no joelho mesmo, compadre. Fica pra outra vez.'] },
+  ent_concha_bira: { tipo: 'entrega', cliente: 'bira', item: 'concha', qtd: 3, estacoes: TODO_ANO, mapas: ['praia', 'quintal', 'vila'], diaMin: 2,
+    fala: ['A patroa quer fazer uma cortina de concha pra varanda, rapaz. Três da praia pra começar?',
+      'A minha sobrinha vem passar o fim de semana e quer um colar de concha. Três da praia, rapaz?'],
+    obrigado: ['Varanda de casa de praia! A patroa vai gostar, rapaz.',
+      'Colar de princesa! A sobrinha vai amar, rapaz.'],
+    deixa: ['A patroa pendurou tampinha de garrafa mesmo. Fica pra próxima, rapaz.',
+      'A sobrinha fez colar de macarrão mesmo. Fica pra próxima, rapaz.'] },
+  ent_caju_ze: { tipo: 'entrega', cliente: 'ze', item: 'caju', qtd: 3, estacoes: [2, 3], mapas: ['quintal', 'vila'], diaMin: 2,
+    fala: ['Caju com sal no intervalo da obra, parceiro: é a vitamina da peãozada. Três do chão?',
+      'Quero fazer uma cajuína pro samba de sábado, do jeito da minha terra. Três cajus, parceiro?'],
+    obrigado: ['Caju azedinho! A peãozada te agradece, parceiro.',
+      'Cajuína no samba! Lá lá laiá, parceiro!'],
+    deixa: ['A peãozada chupou laranja mesmo. Tranquilo, parceiro!',
+      'O samba foi de guaraná mesmo. Tranquilo, parceiro!'] },
+  ent_jabuticaba_juca: { tipo: 'entrega', cliente: 'juca', item: 'jabuticaba', qtd: 4, estacoes: [2, 3], mapas: ['mata'], diaMin: 2,
+    fala: ['Lá em Sergipe não tinha jabuticaba, sobrinho. Me traz quatro da mata que eu quero provar de novo.',
+      'A sua tia quer fazer geleia de jabuticaba pra vender na feira. Quatro da mata, sobrinho?'],
+    obrigado: ['Docinha que só! São Paulo tem lá as suas vantagens, sobrinho.',
+      'Geleia de primeira! A sua tia mandou guardar um pote pra você.'],
+    deixa: ['Fica pra outra safra, sobrinho. Sem problema.',
+      'A sua tia fez geleia de goiaba mesmo, sobrinho. Sem problema.'] },
+  ent_pitanga_ananias: { tipo: 'entrega', cliente: 'ananias', item: 'pitanga', qtd: 4, estacoes: [2, 3], mapas: ['mata'], diaMin: 2,
+    fala: ['No calor a freguesia pede suco de pitanga. Quatro da mata, freguês?',
+      'Vou pôr pitanga na vitrine da Mercearia: fruta bonita chama freguês. Quatro, Jocelino?'],
+    obrigado: ['Suco gelado na Mercearia! Pois não, obrigado.',
+      'Vitrine vermelhinha, freguês na porta. Obrigado, freguês.'],
+    deixa: ['A freguesia tomou refresco de pacote. Obrigado assim mesmo.',
+      'Pus laranja na vitrine. Obrigado assim mesmo.'] },
+  ent_milho_lourival: { tipo: 'entrega', cliente: 'lourival', item: 'milho', qtd: 2, estacoes: [2, 3], mapas: ['quintal'], diaMin: 2,
+    fala: ['Milho verde assado na brasa, na beira do mar: tem coisa melhor, compadre? Duas espigas da sua horta?',
+      'A Colônia vai fazer a festa do padroeiro e eu fiquei de levar pamonha. Duas espigas, compadre?'],
+    obrigado: ['Milho doce, compadre! A brasa já tá acesa.',
+      'Pamonha da Colônia garantida! Obrigado, compadre.'],
+    deixa: ['Assei uma sardinha no lugar, compadre. Fica pra outra vez.',
+      'Levei cocada pra festa mesmo, compadre. Fica pra outra vez.'] },
+  ent_abobora_tonico: { tipo: 'entrega', cliente: 'tonico', item: 'abobora', qtd: 1, estacoes: [3, 0], mapas: ['quintal'], diaMin: 2,
+    fala: ['Doce de abóbora com coco, no tacho grande, rapaz. Uma abóbora da sua horta?',
+      'A patroa quer fazer quibebe pro almoço de domingo. Uma abóbora boa, rapaz?'],
+    obrigado: ['Abóbora pesada, doce garantido! Valeu, rapaz.',
+      'Quibebe de domingo! Passa lá pra provar, rapaz.'],
+    deixa: ['O tacho fica pra outra fornada, rapaz.',
+      'A patroa fez purê de batata mesmo, rapaz. Tranquilo.'] },
 };
 ecoCampo(PEDIDOS_VILA, 'paga', ECO.recados.paga);   // o pagamento de cada recado mora no ECO
 // Onde mora o boneco de cada um (a entrega é feita no próprio morador): o mapa tem de estar aberto para ele pedir.
@@ -116,7 +282,7 @@ const Recados = {
     const r = s.recados || {}, ativos = {};
     for (const id in r.ativos || {}) if (PEDIDOS_VILA[id]) ativos[id] = Object.assign({}, r.ativos[id], { juntou: r.ativos[id].juntou || 0 });   // (recado que saiu do jogo: some)
     G.recados = { doDia: r.doDia && PEDIDOS_VILA[r.doDia] ? r.doDia : null, dia: r.dia || 0, ativos, ultimaVez: Object.assign({}, r.ultimaVez || {}),
-      ultimoTipo: r.ultimoTipo || '', entregues: r.entregues || 0 };
+      ultimoTipo: r.ultimoTipo || '', entregues: r.entregues || 0, vezes: Object.assign({}, r.vezes || {}) };   // (C11: vezes, quantas vezes cada um já saiu; o save antigo começa do zero)
   },
   salvar(s) { s.recados = JSON.parse(JSON.stringify(G.recados)); },
   nome(cliente) { return RECADO_NOME[cliente] || (typeof CLIENTE_NOME !== 'undefined' && CLIENTE_NOME[cliente]) || cliente; },
@@ -124,8 +290,14 @@ const Recados = {
   aberto(mapa) { return typeof Mundo === 'undefined' || Mundo.aberto(mapa); },
   // O quadro já chegou (o guia libera o quadro de serviços; sem o guia, o simulador e as regras puras, vale o dia).
   liberado(dia = G.dia) { return !!G.recados && dia >= ECO.recados.diaMin && (typeof Guia === 'undefined' || Guia.liberado('quadro')); },
+  // (C11) A vez do recado: 0 na 1ª vez que sai, 1 na 2ª... (G.recados.vezes conta no sorteio guardado, poeDoDia). As frases andam
+  // juntas: a vez escolhe a fala, o obrigado e o "deixa" da mesma lista (a 3ª vez de um recado de 2 frases volta à 1ª).
+  vez(id) { const R = G.recados; return Math.max(0, ((R && R.vezes && R.vezes[id]) || 1) - 1); },
+  frase(lista, id) { if (!Array.isArray(lista)) return lista; return lista[Recados.vez(id) % lista.length]; },
   // A fala do pedido (a do Seu Ananias muda quando a pedreira abre).
-  fala(id) { const P = PEDIDOS_VILA[id]; return P.falaPedreira && Recados.aberto('pedreira') ? P.falaPedreira : P.fala; },
+  fala(id) { const P = PEDIDOS_VILA[id]; return Recados.frase(P.falaPedreira && Recados.aberto('pedreira') ? P.falaPedreira : P.fala, id); },
+  obrigado(id) { return Recados.frase(PEDIDOS_VILA[id].obrigado, id); },
+  deixa(id) { return Recados.frase(PEDIDOS_VILA[id].deixa, id); },
   // "Dona Zélia quer 3 couves"
   titulo(id) { const P = PEDIDOS_VILA[id]; return `${Recados.nome(P.cliente)} quer ${Itens.qtd(P.qtd, P.item)}`; },
   // Quanto do item os detritos dos mapas abertos soltam (a árvore conta o toco que fica). O mapa ainda não montado é montado
@@ -182,6 +354,8 @@ const Recados = {
     if (!Recados.aberto(RECADO_MORADOR[P.cliente]) || !P.mapas.some(m => Recados.aberto(m))) return false;
     if (P.precisa && !(mochila && mochila.total(P.precisa) > 0)) return false;
     const tem = P.tipo === 'entrega' && mochila ? mochila.total(P.item) : 0;
+    // (C11) A colheita só se pede na estação da cultura (a da horta e a do recado: o tomate não sai no inverno), mesmo com o item na mochila.
+    if (typeof CULTURAS !== 'undefined' && CULTURAS[P.item] && !CULTURAS[P.item].estacoes.includes(Recados.estacao(dia))) return false;
     if (typeof CULTURAS !== 'undefined' && CULTURAS[P.item]) return Recados.prontasNoPrazo(P.item) + tem >= P.qtd;
     if (Recados.ehMaterial(P.item)) return tem >= P.qtd || tem + Recados.noMundo(P.item, P.mapas) >= P.qtd;
     if (!P.precisa && Recados.ehAchado(P.item)) return tem >= P.qtd || tem + Recados.noChao(P.item, P.mapas, dia) >= P.qtd;
@@ -194,7 +368,7 @@ const Recados = {
     const hoje = Object.keys(G.empreitas.aceitas || {}).filter(k => G.empreitas.aceitas[k] && G.empreitas.aceitas[k].dia === dia);
     return [...new Set(q.concat(hoje).map(k => dadosEmpreita(k) && dadosEmpreita(k).cliente).filter(Boolean))];
   },
-  // Os que podem sair hoje: possíveis, fora dos aceitos, sem ter aparecido nos últimos 7 dias, de um cliente sem serviço nem
+  // Os que podem sair hoje: possíveis, fora dos aceitos, sem ter aparecido nos últimos ECO.recados.janela dias (14), de um cliente sem serviço nem
   // recado aceito hoje e de um item que nenhum recado aceito já pede (revisão da T3: Zélia e Bira pedindo 3 flores cada, a entrega
   // de um zerava o outro em silêncio).
   candidatos(dia = G.dia, servicos = null) {
@@ -253,7 +427,7 @@ const Recados = {
     if (!Recados.liberado(dia)) { R.doDia = null; return null; }
     const id = Recados.sortear(dia);
     R.dia = dia; R.doDia = id;
-    if (id) { R.ultimaVez[id] = dia; R.ultimoTipo = PEDIDOS_VILA[id].tipo; }
+    if (id) { R.ultimaVez[id] = dia; R.ultimoTipo = PEDIDOS_VILA[id].tipo; (R.vezes || (R.vezes = {}))[id] = (R.vezes[id] || 0) + 1; }
     return id;
   },
   hoje() { return Recados.poeDoDia(G.dia); },
@@ -343,7 +517,7 @@ const Recados = {
   },
   // A linha do vencido no resumo da noite (revisão da T3: a fala solta não dizia do que era):
   // O recado da Dona Zélia venceu: "Deixa, meu filho, a vizinha arrumou umas couves."
-  linhaVencido(id) { const P = PEDIDOS_VILA[id]; return `O recado ${RECADO_ARTIGO[P.cliente] === 'a' ? 'da' : 'do'} ${Recados.nome(P.cliente)} venceu: "${P.deixa}"`; },
+  linhaVencido(id) { const P = PEDIDOS_VILA[id]; return `O recado ${RECADO_ARTIGO[P.cliente] === 'a' ? 'da' : 'do'} ${Recados.nome(P.cliente)} venceu: "${Recados.deixa(id)}"`; },
 };
 INICIADORES.push(s => Recados.iniciar(s));
 COLETORES.push(s => Recados.salvar(s));

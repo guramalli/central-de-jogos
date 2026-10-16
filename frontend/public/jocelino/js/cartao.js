@@ -45,6 +45,24 @@ const faltaFuncao = f => { const p = [f.obras ? `entregar ${f.obras} obra${f.obr
 // → { tipo, curto (a barrinha estreita), texto (o resumo), feito, meta } ou null.
 // (tarefa 7, o robô jogador) Dentro do salão aberto (noSalao) a barrinha é a do restaurante (a melhoria ao alcance), como no Dave: lá dentro
 // não aparece a casa nova nem o Bazar.
+// (C13, 16/10; a solução 7 do teste crítico C. O B, dias 5, 9, 10 e ~40: "a meta embaixo do relógio pulou sozinha para a próxima
+// melhoria e tirou a casa da vista") A META NÃO TROCA SOZINHA. O "Juntar para" escolhido no Bazar fica até ser comprado. Sem escolha,
+// a ordem é a casa nova, depois a melhoria do salão. E a melhoria da vez fica fixa (G.metaBarra.melhoria) até ser comprada: a estrela
+// nova que abre uma melhoria mais barata não pula a barrinha para ela. Antes de tudo, da conversa da Rosa até a compra, a entrada da
+// lojinha. No salão aberto, a do restaurante (a melhoria fixa), como no Dave.
+INICIADORES.push(s => { G.metaBarra = Object.assign({}, s.metaBarra || {}); });
+COLETORES.push(s => { s.metaBarra = Object.assign({}, G.metaBarra || {}); });
+// A melhoria da vez para a barrinha: a fixa enquanto não for comprada (e ainda à venda); senão a mais barata ao alcance, que fica fixa.
+function melhoriaDaBarrinha(p) {
+  if (!p || p.estado !== 'aberta' || typeof MELHORIAS === 'undefined') return null;
+  const vale = id => { const x = MELHORIAS[id]; return !!x && !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio; };
+  const mb = G.metaBarra = G.metaBarra || {};
+  if (!mb.melhoria || !vale(mb.melhoria)) {
+    const m = Object.keys(MELHORIAS).filter(vale).sort((a, c) => MELHORIAS[a].preco - MELHORIAS[c].preco)[0];
+    mb.melhoria = m || '';
+  }
+  return mb.melhoria ? Object.assign({ id: mb.melhoria }, MELHORIAS[mb.melhoria]) : null;
+}
 function metaDaBarrinha(noSalao) {
   const mil = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), f = m => Math.max(0, Math.min(G.dinheiro, m)), de = m => `${mil(f(m))}/${mil(m)}`;
   const lj = typeof Lojinha !== 'undefined' && !noSalao ? Lojinha.metaDinheiro() : null;
@@ -53,9 +71,9 @@ function metaDaBarrinha(noSalao) {
   if (b) return { tipo: 'bazar', curto: `${b.nome}: ${b.curto} — ${de(b.preco)}`, texto: `Juntando para: ${b.nome} (${b.curto}) — Cr$ ${de(b.preco)}`, feito: f(b.preco), meta: b.preco };
   if (!noSalao) { const c = casaEtapas(), E = c && c.juntar;   // (revisão 3: a etapa em obra já foi paga; a barrinha junta para a seguinte, ou some)
     if (E) return { tipo: 'casa', curto: `Casa nova, ${E.nome}: Cr$ ${de(E.dinheiro)}`, texto: `${c.emObra ? `A casa nova: ${c.atual.nome} em obra; juntando para a próxima, ${E.nome}` : `A casa nova (${E.nome})`}: Cr$ ${de(E.dinheiro)} e o material, na plaquinha do terreno`, feito: f(E.dinheiro), meta: E.dinheiro }; }
-  const p = G.pensao;
-  if (p && p.estado === 'aberta' && typeof MELHORIAS !== 'undefined') { const m = Object.entries(MELHORIAS).filter(([id, x]) => !p.melhorias.includes(id) && p.grau() >= x.grau && !x.premio).sort((a, c) => a[1].preco - c[1].preco)[0];
-    if (m) return { tipo: 'melhoria', curto: `${m[1].nome}, para o salão: ${de(m[1].preco)}`, texto: `Juntando para o salão da pensão: ${m[1].nome} — Cr$ ${de(m[1].preco)}`, feito: f(m[1].preco), meta: m[1].preco }; }
+  const m = melhoriaDaBarrinha(G.pensao);
+  if (m) return { tipo: 'melhoria', curto: `${m.nome}, para o salão: ${de(m.preco)}`, texto: `Juntando para o salão da pensão: ${m.nome} — Cr$ ${de(m.preco)}`, feito: f(m.preco), meta: m.preco };
+  // (o Bazar sem escolha continua fora da barrinha: a decisão do dono no dia cheio, Frente A, e a s21; ele entra pelo "Juntar para")
   return null;
 }
 // (C3, 16/10; o teste crítico: o Agora e a seta mandaram ao Bazar às 8h e ao depósito às 6h20, antes de abrirem) O lugar do alvo
@@ -79,7 +97,11 @@ const noMapaDaLinha = t => !!t.mapa && (t.mapa === G.mapaId || (t.mapa === 'pens
 // O "Agora": a obra pela metade fora da Vila; a carta do guia; o passo do guia em palavras de gente; o serviço aceito em
 // outro mapa; o primeiro aviso; uma ideia da Caderneta (que o clique transforma em seta: agoraFamilia.ideia).
 function agoraFamilia(avisos = []) {
-  agoraFamilia.ideia = null; agoraFamilia.tarde = '';
+  agoraFamilia.ideia = null; agoraFamilia.tarde = ''; agoraFamilia.convite = null; agoraFamilia.novidade = null;
+  // (C10, 16/10; a C9: a linha "Janta na Pensão da Rosa às 17h" tomava o Agora desde as 7h e a tarde ficava sem nada) O lembrete da janta
+  // só a partir das 16h (a hora em que a seta também passa a ir para a pensão, guia_setas.js); antes, o Agora fica para o convite da
+  // tarde, a novidade do dia ou a ideia.
+  if (G.minutos < JANTA_NO_AGORA) avisos = avisos.filter(t => !t.lembrete);
   // (13/10) A aula de cada ferramenta, no quintal: o Agora diz o mesmo que a seta (a fala do Tio Juca).
   { const sa = typeof setaAgora === 'function' && G.mapaId === 'quintal' ? setaAgora() : null; if (sa && sa.missao === 'aula' && sa.aula) return 'Aula do Tio Juca: ' + sa.aula.fala; }
   const l = G.obra && typeof listaDeHoje === 'function' ? listaDeHoje() : null;
@@ -108,6 +130,14 @@ function agoraFamilia(avisos = []) {
       // (15/10, T4) a seta da 1ª vez do recado: o Agora diz de quem é
       // (revisão da T4: à noite, a janta manda) depois das 17h, nunca o recado (a janta ou o Dormir)
       if (sa.missao === 'recado' && sa.recado && typeof PEDIDOS_VILA !== 'undefined' && G.minutos < TARDE_FIM && tardeLivre() !== 'noite') { const c = PEDIDOS_VILA[sa.recado].cliente; return `O recado ${RECADO_ARTIGO[c] === 'a' ? 'da' : 'do'} ${Recados.nome(c)} — ${sa.rotulo}`; } } }
+  // (C8, 16/10) O convite da tarde (conviteDaTarde, mais abaixo): num dia de janta, depois da obra (ou das 13h), o que falta no cardápio
+  // de hoje, com o valor na janta. É "de hoje", como o urgente da despensa: vem antes das missões do guia, e com a mesma regra da C7 (o
+  // Agora diz o mesmo que a seta): só com a seta nele (a 1ª vez), na ideia acesa pelo clique, ou sem seta. O clique acende a seta.
+  // (C9; a revisão da C8) As setas de "sem nenhuma outra seta" do fim do guiaSetaMundo — o 1º achado, a árvore da mata, a serra, a
+  // plaquinha da casa sem o dinheiro — cedem ao convite (guia_setas.js): sem elas, o Agora e a seta dizem a mesma coisa. Antes o Agora
+  // dizia "peixe" e a seta apontava a árvore.
+  { const c = conviteDaTarde(), sa = c && typeof setaAgora === 'function' ? setaAgora() : null;
+    if (c && (!sa || sa.missao === 'convite' || (sa.missao === 'caderneta' && G.setaFixa === IDEIA_DIA))) { agoraFamilia.ideia = IDEIA_DIA; agoraFamilia.convite = c; marcaConvite(c); return c.texto; } }
   // (o Agora diz o mesmo que a seta: o passo cujo lugar é o mapa de agora vem primeiro)
   // (C3, 16/10) A meta que a seta segue (a fixa, guia_setas.js) vem primeiro; depois as outras, na ordem de prioridade da seta.
   const sm = typeof setaAgora === 'function' ? setaAgora() : null, daSeta = sm && g && g.abertas.includes(sm.missao) ? [sm.missao] : [];
@@ -138,11 +168,13 @@ function agoraFamilia(avisos = []) {
     else if (cj && (!sj || sj.missao === 'mercearia')) return cj.texto; }
   // (C7; a revisão da C3: às 6h30 o Agora mostrava só o aviso, sem o "abre às 8h") o aviso leva junto o horário do lugar fechado
   if (avisos.length) return avisos[0].texto + (lugar ? ` · ${lugar}` : '');
+  // (C10) A novidade do dia (a carta lida hoje que trouxe algo novo), sem seta: só quando nenhuma seta aponta outra coisa.
+  { const n = novidadeDoDia(); if (n && !(typeof setaAgora === 'function' && setaAgora())) { agoraFamilia.novidade = n; return n.texto; } }
   if (fechado) return fechado;
   // (13/10) Dia vazio: uma sugestão só, com o porquê (a seta é a linha 'ideia_dia', ver Caderneta.linha mais abaixo). Na tarde livre
   // (teste de 13/10: o serviço do dia feito, o quadro vazio), ela diz como ganhar dinheiro até o fim da tarde, ou de dormir.
   const d = ideiaDoDia();
-  if (d) { agoraFamilia.ideia = IDEIA_DIA; agoraFamilia.tarde = tardeLivre(); return d.texto; }
+  if (d) { agoraFamilia.ideia = IDEIA_DIA; agoraFamilia.tarde = tardeLivre(); if (d.convite) { agoraFamilia.convite = d; marcaConvite(d); } return d.texto; }
   const i = typeof Caderneta !== 'undefined' ? Caderneta.ideias(1)[0] : null;
   if (i) { agoraFamilia.ideia = i.id; return i.texto; }
   return 'Dia livre: a horta, o quintal, a pesca, os bicos. Você escolhe.';
@@ -153,6 +185,32 @@ function agoraFamilia(avisos = []) {
 // fazer (a horta pronta, o mato, a casa) e o jogador escolhe. Aqui, uma só, no formato "Texto — o porquê", que o clique no Agora
 // transforma em seta. Sorteio fixo no dia (G.dia % n): amanhã a sugestão é outra.
 const IDEIA_DIA = 'ideia_dia';
+// (C10, 16/10) O lembrete "Janta na Pensão da Rosa às 17h" (pensao_tela.js) só entra no Agora a partir das 16h.
+const JANTA_NO_AGORA = 16 * 60;
+// (C10, 16/10; o teste crítico: do dia 6 ao 18 nada novo aparecia, e o que chegava não dizia para que servia) A NOVIDADE DO DIA: a carta
+// lida hoje que trouxe algo novo, em uma linha com o porquê, até as 16h (depois, a janta). Como o Stardew: a carta do Willy diz "vem
+// pescar" e a da mãe "mandei biscoitos"; o jogo não vira lista de tarefas — é uma linha só, sem seta, e some no dia seguinte. As cartas
+// do guia (a pesca, o Bazar, a pedreira, o Grêmio, a mina) já viram a missão no Agora; aqui ficam as outras.
+const NO_DIA = d => { const k = (d - 1) % 7; return (k >= 5 ? 'No ' : 'Na ') + ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'][k]; };   // (no sábado, na quarta)
+const NOVIDADE_CARTA = {
+  zefa_1000: () => 'As cocadas da Dona Zefa, de Aracaju — estão na mochila: botão direito na barra, +40 de energia e mais sorte hoje',
+  zefa_5000: () => 'O queijo coalho e a farinha da Dona Zefa estão na despensa da pensão — viram prato na janta da Rosa',
+  pai_15000: () => 'Cr$ 500 do pé-de-meia do seu pai — é para o tijolo da casa da família',
+  fama_2: () => 'A primeira estrela da Pensão da Rosa — cabe mais um prato no quadro de giz: mais freguês, mais dinheiro',
+  lourival_serra: () => 'A Mata da Serra abriu — do outro lado da ponte da mata: a trilha da Cachoeira Grande, e o rio dá tabarana',
+  prefeitura_abre: () => 'A Prefeitura abriu o quadro dela, ao lado do Mercado — uma obra pública por semana, com prazo de 7 dias e pagamento em dia',
+};
+function novidadeDoDia() {
+  const c = G.correio, n = c && c.novidade; if (!n || n.dia !== G.dia || G.minutos >= JANTA_NO_AGORA) return null;
+  const f = NOVIDADE_CARTA[n.id]; if (f) return { texto: f() };
+  if (/^fama_\d$/.test(n.id)) return { texto: 'A Pensão da Rosa subiu de estrela — a Dona Cotinha escreveu: a fama traz mais freguês à noite' };
+  // o VIP e a festa da agenda (eventos.js): o dia, o prato e o porquê de encher a despensa antes
+  const e = G.pensao && (G.pensao.agenda || []).find(x => !x.fim && (x.tipo === 'vip' ? 'vip_' : 'festa_') + (x.avisado || x.dia - 1) === n.id);
+  if (!e || !Pratos.PRATOS[e.prato]) return null;
+  const prato = Pratos.PRATOS[e.prato].nome;
+  return e.tipo === 'vip' ? { texto: `${NO_DIA(e.dia)} janta ${vipDe(e.id).nome}: quer ${prato} — servido, dá prêmio e curtidas: encha a despensa antes` }
+    : { texto: `${NO_DIA(e.dia)} é a ${e.nome} — ${prato} vale 50% mais e vem mais gente: encha a despensa antes` };
+}
 // (C1, 16/10) A frase diz quantas etapas faltam (a de agora conta) e que a Rosa abre no dia em que a pintura ficar pronta.
 function tocarReforma() {
   const p = G.pensao, k = p ? ECO.reforma.findIndex(e => e.id === p.estado) : -1, n = k < 0 ? ECO.reforma.length : ECO.reforma.length - k;
@@ -182,6 +240,9 @@ function ideiaDoDia() {
   // (revisão de 13/10) O que é de hoje vem antes do ganho da tarde: 1) a reforma do dia pendente (o material todo e o dia ainda
   // não trabalhado); 2) colher os pés prontos; 3) a casa nova do dia (casaDoDia); 4) só então a tarde livre (ganhar dinheiro, ou dormir).
   const ref = reformaDoDia(); if (ref) return Object.assign({ rotulo: ref.texto.split(' — ')[0] }, ref);
+  // (C8, 16/10) Num dia de janta, depois das 13h (ou com a tarde livre), o convite da tarde vem antes do "colher a horta" genérico e do
+  // sorteio de ideias: é o que enche a panela de hoje (o convite já fala da couve pronta, com o valor na janta).
+  { const c = conviteDaTarde(); if (c) return c; }
   const prontas = Object.entries((G.horta || {}).covas || {}).filter(([, c]) => c.planta && Horta.madura(c));
   const colher = prontas.length && (([x, y]) => ({ texto: `Colher a horta — ${prontas.length} pé(s) pronto(s): comida para a família e para a pensão da Rosa`, alvo: { mapa: 'quintal', ponto: { x: (x + 0.5) * TILE, y: y * TILE } }, rotulo: 'Botão direito: colher' }))(prontas[0][0].split(',').map(Number));
   if (colher) return colher;
@@ -217,7 +278,7 @@ function ideiaDoDia() {
 // o quintal; plantar; pescar), a primeira vez o Tio Juca (ou a Rosa) explica numa fala, e depois das 17h lembra de dormir na cama.
 const TARDE_FIM = 17 * 60;
 const quadroComServico = () => !!G.empreitas && typeof Guia !== 'undefined' && Guia.liberado('quadro') && typeof dadosEmpreita === 'function'
-  && G.empreitas.quadro.some(id => { const E = dadosEmpreita(id); return E && (E.tipo !== 'longa' || Empreitas.longasContadas() < Empreitas.limite()); });
+  && G.empreitas.quadro.some(id => { const E = dadosEmpreita(id); return E && Empreitas.libera(id) && (E.tipo !== 'longa' || Empreitas.longasContadas() < Empreitas.limite()); });   // (C11: o pedido da fama ainda trancado não conta)
 // O serviço do dia: a diária do Bira recebida; ou a obra fechada o dia todo (domingo, chuva), mas só depois das 11h (de manhã
 // cedo ainda é hora de outra coisa: a fala "acabou o serviço e ainda tem sol?" não sai às 6h).
 const TARDE_DOMINGO = 11 * 60;
@@ -283,6 +344,9 @@ function achadosAVista() {
   return r;
 }
 function ganhoDaTarde() {
+  // (C8) num dia de janta, a 1ª opção é o que falta no cardápio de hoje, com o valor na janta (o elo do Dave: o peixe do dia é o prato
+  // da noite); com o ingrediente já na mochila, o convite cala e vem o "Guardar na despensa" logo abaixo
+  { const c = conviteDaTarde(); if (c) return c; }
   const pr = id => CaixaVenda.preco(id), porque = porqueDoDinheiro(), guarda = materialGuardado();
   // 0. Com a pensão aberta, o ingrediente da mochila (a colheita, o peixe, a fruta) vai para a despensa da Rosa: vira o prato da janta.
   if (pensaoAberta()) { const ing = Object.keys(Pratos.INGREDIENTES).filter(id => usaNaPensao(id) && G.mochila.total(id) > 0 && G.pensao.aceita(id)).sort((a, b) => G.mochila.total(b) - G.mochila.total(a));
@@ -405,6 +469,205 @@ function rendimentoDoPeixe() {
   return `; cada ${r.q === 1 ? 'peixe' : r.q + ' peixes'}${outros.length ? ' com ' + outros.map(k => `${g[k]} de ${nomeNaPanela(k)}`).join(' e ') : ''} é 1 panela de ${P.nome} = ${G.pensao.porcoesPorPanela(r.prato)} porções${faltaNaPanela(falta)}`;
 }
 const pescaNova = () => !!(G.lugares && G.lugares.praia && G.hab && G.hab.xp && (G.hab.xp.pesca || 0) < Habilidades.NIVEIS[0] && G.mochila && G.mochila.total('vara') > 0);
+// ---------- o convite da tarde (C8, 16/10; o teste crítico C, solução 5: "o dia em três tempos, como no Dave") ----------
+// O teste crítico achou a tarde vazia: o dia guiado acaba às 8–10h e sobram ~600 min de jogo sem nada apontado; o Agora sugeria vender
+// pedra a Cr$ 1 ou pescar sardinha a Cr$ 3, e o que se faz à tarde não aparecia na janta. Como é no Dave the Diver: o dia é o mergulho,
+// a preparação e a noite no Bancho, e o peixe pescado de dia é o cardápio da noite. Como é no Stardew: a tarde é livre, mas o mundo dá o
+// motivo (a pesca, a colheita, a coleta). Aqui, num dia de janta, o Agora traz UMA sugestão: o que falta no cardápio de hoje que o
+// Jocelino consegue sozinho à tarde (o peixe no píer, o pé pronto da horta, o coco da praia), com o porquê em dinheiro da janta:
+// "A Rosa quer peixe pra janta de hoje — 2 peixes = 1 panela de Peixe Frito do Lourival = ~Cr$ 44 na janta (no píer, com o Lourival)".
+// Vivência, não missão: uma linha só, e só quando falta mesmo; o que a Mercearia vende é da linha da despensa das 14h (C7, despensa.js).
+// A 1ª vez, a Rosa conta numa fala e a seta vai junto (o ATUALIZADOR mais abaixo); depois, o clique no Agora acende a seta, como as ideias.
+const TARDE_CONVITE = 13 * 60;   // a tarde do convite: das 13h (o "depois do almoço" do Adiantar, palco.js) às 17h; antes, com a tarde livre
+// Os pratos da janta de hoje: [prato, panelas, quem]. O cardápio guardado no quadro de giz; sem ele (a 1ª janta), as receitas do caderno,
+// uma panela cada, até as vagas do degrau (é o que o quadro oferece na abertura). E, com vaga no quadro, mais dois casos, sempre com o
+// resto da receita (o que se compra, a pedra) já na despensa depois das panelas do quadro, ou na mochila:
+// - o prato do morador que janta hoje (clientela.js: o Seu Tonico na terça pede o Peixe Frito, a Dona Cida a Sopa de Pedra, a Dona Zélia
+//   na quarta a Cocada): servido, ele dá uma curtida e amizade. É o freguês fixo do Bancho, e o que se pega de dia vira o prato dele;
+// - a noite curta (a despensa não dá pratos para os fregueses de sempre: pratosDaJanta, despensa.js): as receitas fora do quadro, com as
+//   panelas que faltam para a noite.
+const daTarde = k => k === 'peixe' || (k !== 'pedra' && Pratos.MERCEARIA[k] == null);   // (o que o Jocelino pega sozinho; o resto se compra)
+function pratosDeHoje(p = G.pensao) {
+  const esc = Object.entries(p.cardapioNoite || {}).filter(([id, e]) => (e.panelas | 0) > 0 && p.receitas.includes(id) && Pratos.PRATOS[id]).map(([id, e]) => [id, e.panelas | 0, '']);
+  const moradores = typeof Clientela !== 'undefined' ? Clientela.daNoite(p, G.dia).filter(c => c.favorito && Pratos.PRATOS[c.favorito]) : [];
+  if (!esc.length) return p.receitas.filter(id => Pratos.PRATOS[id]).slice(0, p.vagas()).map(id => [id, 1, (moradores.find(c => c.favorito === id) || {}).nome || '']);
+  for (const e of esc) { const c = moradores.find(m => m.favorito === e[0]); if (c) e[2] = c.nome; }
+  const sobra = typeof contaDoQuadro === 'function' ? contaDoQuadro(p, p.cardapioNoite).sobra : p;
+  // quantas panelas do prato de fora o resto da receita (o que não se pega à tarde) ainda dá
+  const daResto = (id, n) => { const g = p.gasto(id); for (const x of Object.keys(g)) if (!daTarde(x)) n = Math.min(n, Math.floor((sobra._tem(x) + G.mochila.total(x)) / g[x])); return n; };
+  for (const c of moradores) if (esc.length < p.vagas() && !esc.some(([x]) => x === c.favorito) && daResto(c.favorito, 1) > 0) esc.push([c.favorito, 1, c.nome]);
+  if (esc.length >= p.vagas() || typeof pratosDaJanta !== 'function') return esc;
+  const cj = pratosDaJanta(); let falta = cj.esperados - cj.da;
+  for (const id of p.receitas) {
+    if (esc.length >= p.vagas() || falta <= 0) break;
+    if (!Pratos.PRATOS[id] || esc.some(([x]) => x === id)) continue;
+    const n = daResto(id, Math.ceil(falta / p.porcoesPorPanela(id)));
+    if (n > 0) { esc.push([id, n, '']); falta -= n * p.porcoesPorPanela(id); }
+  }
+  return esc;
+}
+// Onde o Jocelino consegue o ingrediente hoje à tarde, sozinho: { tem (quanto dá para pegar; Infinity no mar), como, alvo, rotulo, pedido }
+// ou null. Só o que não se compra (a Mercearia é da C7) e só o que dá hoje: o peixe com a praia aberta e a vara; o pé pronto da horta;
+// o achado de hoje no chão (o coco da praia). A pedra da sopa volta para a despensa: nunca falta.
+function fonteDaTarde(k) {
+  const aberto = id => typeof Mundo === 'undefined' || Mundo.aberto(id);
+  if (k === 'peixe') {
+    const vara = typeof VARAS !== 'undefined' ? VARAS.some(v => G.mochila.total(v) > 0) : G.mochila.total('vara') > 0;
+    if (!vara || !G.lugares || !G.lugares.praia || !aberto('praia') || typeof PRAIA === 'undefined') return null;
+    const ponta = { x: (PRAIA.PIER_X + 1) * TILE, y: PRAIA.PIER_FIM * TILE };
+    // (como a seta da 1ª pescaria, guia_setas.js: na ponta do píer com a vara na mão, a seta some e o Jocelino pesca)
+    const pescando = () => G.mapaId === 'praia' && G.jog && Math.hypot(ponta.x - G.jog.x, ponta.y + 36 - G.jog.y) < 1.6 * TILE && typeof itemDaMao === 'function' && typeof VARAS !== 'undefined' && VARAS.includes(itemDaMao());
+    return { tem: Infinity, como: 'no píer, com o Lourival', pedido: n => `Pesca ${n === 1 ? 'um' : n} pra mim no píer`, rotulo: 'Pescar no píer: peixe pra janta de hoje',
+      alvo: () => pescando() ? null : G.mapaId === 'praia' ? { mapa: 'praia', ponto: ponta, rotuloFixo: 'Pesque da ponta do píer, com a vara na mão: peixe pra janta de hoje' } : { mapa: 'praia' } };
+  }
+  if (typeof CULTURAS !== 'undefined' && CULTURAS[k]) {
+    const prontos = Object.entries((G.horta || {}).covas || {}).filter(([, c]) => c.planta === k && typeof Horta !== 'undefined' && Horta.madura(c));
+    if (!prontos.length) return null;
+    const [x, y] = prontos[0][0].split(',').map(Number);
+    return { tem: prontos.length, como: 'colher na horta do quintal', pedido: n => `Colhe ${n === 1 ? 'o pé' : 'os ' + n + ' pés'} de ${nomeNaPanela(k)} da horta`, rotulo: 'Botão direito: colher',
+      alvo: { mapa: 'quintal', ponto: { x: (x + 0.5) * TILE, y: y * TILE } } };
+  }
+  if (typeof MAPAS === 'undefined') return null;
+  // o achado de hoje (o coco): os mapas abertos que têm, o de mais primeiro
+  const eh = o => o.achado && String(o.nome || '').replace('itens/', '') === k, quantos = id => MAPAS[id].objs.filter(eh).length;
+  const onde = Object.keys(ONDE_ACHADO).filter(id => MAPAS[id] && aberto(id) && quantos(id) > 0).sort((a, c) => quantos(c) - quantos(a));
+  if (!onde.length) return null;
+  const lugares = typeof listaE === 'function' ? listaE(onde.map(id => ONDE_ACHADO[id])) : ONDE_ACHADO[onde[0]];
+  return { tem: onde.reduce((t, id) => t + quantos(id), 0), como: `catar ${lugares}`, pedido: q => `Cata ${typeof ingredienteNaPanela === 'function' ? ingredienteNaPanela(k, q) : q} ${lugares}`, rotulo: 'Botão direito: catar',
+    alvo: () => { const o = G.mapa && G.jog && onde.includes(G.mapaId) ? G.mapa.objs.filter(eh).sort((a, c) => Math.hypot(a.x - G.jog.x, a.y - G.jog.y) - Math.hypot(c.x - G.jog.x, c.y - G.jog.y))[0] : null;
+      return o ? { mapa: G.mapaId, ponto: { x: o.x, y: o.y - 40 } } : { mapa: onde[0] }; } };
+}
+// (C9, 16/10; a revisão da C8: o "~Cr$ 44 na janta" era a panela inteira, e com a noite já coberta pelo PF quase tudo isso a casa
+// já ganhava) O GANHO A MAIS na janta. Os fregueses comem o que tem: a porção nova ou cobre um freguês que ficaria sem prato (a noite
+// curta: no lugar do prato da casa, ECO.pensao.pratoCasa) ou toma o lugar do prato mais barato que o quadro já faz hoje (a base).
+// fora: os pratos em conta (não servem de base). → { casa, base: { id, v }, descobertas (os fregueses sem prato hoje), C (contaDoQuadro) }
+function contaAMais(p, fora = []) {
+  const C = contaDoQuadro(p, p.cardapioNoite || {}), cj = pratosDaJanta(), casa = ECO.pensao.pratoCasa.preco;
+  let base = null;
+  for (const id of Object.keys(C.efe)) if (C.efe[id] > 0 && !fora.includes(id)) { const v = p.preco(id, 1); if (!base || v < base.v) base = { id, v }; }
+  // (C9, rodada 1) servidos: os fregueses que o quadro já serve hoje — a troca só acontece com eles (a panela é SOMADA ao quadro: a
+  // Rosa não tira panela de ninguém, só a sobra; panelaDaRosa, pensao_tela.js). Porção além deles não vende: não conta.
+  return { casa, base: base || { id: Pensao.CASA, v: casa }, descobertas: Math.max(0, cj.esperados - cj.da), servidos: Math.min(cj.esperados, cj.da), C };
+}
+// O a mais de uma panela de n porções a preço pr, somada ao quadro: as porções que cobrem os fregueses sem prato (A.descobertas) valem
+// pr − o prato da casa; as outras só valem quando a troca acontece (um freguês servido pelo quadro, A.servidos, pede a nova): pr − a base.
+function aMaisDaPanela(A, pr, n) {
+  const d = Math.min(n, A.descobertas), t = Math.min(n - d, A.servidos);
+  A.descobertas -= d; A.servidos -= t;
+  return d * (pr - A.casa) + t * (pr - A.base.v);
+}
+// O artigo do prato ("o PF", "a Sopa de Pedra"): a 1ª palavra terminada em "a" é feminina (a Couve à Mineira também).
+const artigoPrato = nome => { const w = String(nome).split(/[ -]/)[0]; return w === 'Couve' || /a$/.test(w) ? 'a' : 'o'; };
+// O convite: { texto, alvo, rotulo, convite: { tipo, k, q, panelas, valor, prato, quem, base, fala } } ou null. Num dia de janta (a
+// pensão aberta, a janta de hoje por fazer, antes das 17h), com o serviço do dia feito (a diária do Bira) ou das 13h em diante.
+// 1) tipo 'falta': o ingrediente do cardápio de hoje que mais vale na janta, entre os que faltam (a despensa e a mochila juntas não dão
+//    as panelas do quadro) e que dá para pegar hoje. O valor (C9): o ganho a mais (contaAMais), na raridade 1 (por isso o "~"). Sem
+//    ganho a mais, só o prato do morador (a curtida) convida.
+// 2) tipo 'melhora' (C9, decisão do coordenador): a despensa já cobre a noite, e um prato que a Rosa sabe, fora do quadro, vale mais
+//    que o prato mais barato do quadro; falta só uma coisa que o Jocelino pega sozinho (o peixe, o pé pronto, o coco). É o laço do
+//    Dave: o que se pega de dia vira o prato melhor da noite. Às 17h, se ele trouxe, a Rosa põe a panela (panelaDaRosa, pensao_tela.js).
+function conviteDaTarde() {
+  const p = G.pensao;
+  if (!pensaoAberta() || !G.mochila || G.turno || !jantaPorFazer() || G.minutos >= TARDE_FIM) return null;
+  if (G.minutos < TARDE_CONVITE && !servicoDoDiaFeito()) return null;   // (de manhã, a obra do Bira primeiro)
+  const precisa = {};   // { ingrediente: { q: quanto os pratos de hoje gastam, pratos: [{ prato, g: o gasto da panela, n: panelas, por: porções, pr: preço, quem }] } }
+  for (const [prato, n, quem] of pratosDeHoje(p)) {
+    const g = p.gasto(prato);
+    for (const k of Object.keys(g)) {
+      if (!daTarde(k) || (k !== 'peixe' && !p.aceita(k))) continue;
+      const P = precisa[k] = precisa[k] || { q: 0, pratos: [] };
+      P.q += g[k] * n; P.pratos.push({ prato, g: g[k], n, por: p.porcoesPorPanela(prato), pr: p.preco(prato, 1), quem });
+    }
+  }
+  let melhor = null;
+  for (const k of Object.keys(precisa)) {
+    const P = precisa[k], tem = p._tem(k) + naMochilaDaPanela(k);
+    if (tem >= P.q) continue;
+    const F = fonteDaTarde(k); if (!F) continue;
+    // as panelas que faltam, prato a prato, na ordem do quadro: o que a despensa já tem cobre as primeiras
+    const A = contaAMais(p, P.pratos.map(x => x.prato));
+    let sobra = tem, q = 0, panelas = 0, valor = 0, prato = P.pratos[0].prato, quem = '';
+    for (const x of P.pratos) for (let j = 0; j < x.n; j++) {
+      if (sobra >= x.g) { sobra -= x.g; continue; }
+      const pega = x.g - sobra; if (q + pega > F.tem) break;
+      q += pega; sobra = 0; panelas++; valor += aMaisDaPanela(A, x.pr, x.por); if (panelas === 1) { prato = x.prato; quem = x.quem; }
+    }
+    if (!panelas || (valor <= 0 && !quem)) continue;
+    // (o prato do morador de hoje vem primeiro: ele pede e dá a curtida)
+    if (!melhor || (!!quem !== !!melhor.quem ? !!quem : valor > melhor.valor)) melhor = { tipo: 'falta', k, q, panelas, valor, prato, quem, F };
+  }
+  if (!melhor) melhor = melhoraDaTarde(p);
+  if (!melhor) return null;
+  const { tipo, k, q, panelas, valor, prato, quem, F } = melhor, nome = Pratos.PRATOS[prato].nome;
+  const quanto = typeof ingredienteNaPanela === 'function' ? ingredienteNaPanela(k, q) : `${q} ${nomeNaPanela(k)}`;
+  const panTxt = `${panelas} ${panelas === 1 ? 'panela' : 'panelas'}`, dele = /^Dona /.test(quem) ? 'dela' : 'dele';
+  const base = melhor.base ? Pratos.PRATOS[melhor.base].nome : '', comBase = base ? `${artigoPrato(base)} ${base}` : '';
+  if (tipo === 'melhora') return { texto: `Com ${quanto} a Rosa faz ${nome} hoje — ~Cr$ ${valor} a mais que ${comBase} na janta (${F.como})`,
+    alvo: F.alvo, rotulo: F.rotulo,
+    convite: { tipo, k, q, panelas, valor, prato, quem: '', base: melhor.base,
+      fala: `A janta já tá garantida, mas com ${quanto} eu faço ${nome}: uns Cr$ ${valor} a mais que ${comBase}. ${F.pedido(q)}?` } };
+  const ganho = valor > 0 ? ` = ~Cr$ ${valor} a mais na janta` : '';
+  return { texto: quem ? `${quem} janta hoje e pede ${nome} — ${quanto} = ${panTxt}${ganho}, e a curtida ${dele} (${F.como})`
+      : `A Rosa quer ${nomeNaPanela(k)} pra janta de hoje — ${quanto} = ${panTxt} de ${nome}${ganho} (${F.como})`,
+    alvo: F.alvo, rotulo: F.rotulo,
+    convite: { tipo, k, q, panelas, valor, prato, quem, fala: `${F.pedido(q)}? Na janta vira ${panTxt} de ${nome}${valor > 0 ? `, uns Cr$ ${valor} a mais` : ''}${quem ? `, e ${/^Dona /.test(quem) ? 'a' : 'o'} ${quem} sai feliz da vida` : ''}.` } };
+}
+// (C9) A melhora da tarde (o tipo 'melhora' do convite): só com a noite coberta (pratosDaJanta) e vaga no quadro; o prato do caderno
+// fora do quadro com o resto da receita (o que se compra, a pedra) já na despensa depois das panelas do quadro (ou na mochila), uma
+// coisa só para buscar (que dá hoje: fonteDaTarde) e ganho a mais sobre o prato mais barato do quadro. Uma panela, o maior ganho.
+// → { tipo, k, q, panelas: 1, valor, prato, base, F } ou null.
+function melhoraDaTarde(p) {
+  const cj = pratosDaJanta(); if (cj.da < cj.esperados) return null;
+  const A = contaAMais(p), C = A.C, feitos = Object.keys(C.efe).filter(id => C.efe[id] > 0);
+  if (!feitos.length || A.base.id === Pensao.CASA) return null;
+  const ocupa = new Set(feitos.concat(p.pratosDaNoite())); if (ocupa.size >= p.vagas()) return null;
+  let melhor = null;
+  for (const prato of p.receitas) {
+    if (!Pratos.PRATOS[prato] || ocupa.has(prato)) continue;
+    const g = p.gasto(prato), ks = Object.keys(g);
+    if (ks.some(x => daTarde(x) ? x !== 'peixe' && !p.aceita(x) : C.sobra._tem(x) + G.mochila.total(x) < g[x])) continue;
+    const busca = ks.filter(x => daTarde(x) && C.sobra._tem(x) + naMochilaDaPanela(x) < g[x]);
+    if (busca.length !== 1) continue;   // (com tudo em casa, não há o que buscar à tarde; duas coisas já não é "uma sugestão")
+    const k = busca[0], q = g[k] - C.sobra._tem(k) - naMochilaDaPanela(k), F = fonteDaTarde(k);
+    if (!F || F.tem < q) continue;
+    const valor = aMaisDaPanela(Object.assign({}, A), p.preco(prato, 1), p.porcoesPorPanela(prato));   // (rodada 1: a mesma conta da panela somada)
+    if (valor > 0 && (!melhor || valor > melhor.valor)) melhor = { tipo: 'melhora', k, q, panelas: 1, valor, prato, quem: '', base: A.base.id, F };
+  }
+  return melhor;
+}
+// (C9) O convite que chegou ao Agora fica guardado no dia (G.conviteHoje): às 17h, o prato dele fora do quadro, com o ingrediente já
+// na despensa, a Rosa põe sozinha (panelaDaRosa, pensao_tela.js).
+INICIADORES.push(s => { const c = s.conviteHoje; G.conviteHoje = c && c.dia ? Object.assign({}, c) : null; });
+COLETORES.push(s => { s.conviteHoje = G.conviteHoje ? Object.assign({}, G.conviteHoje) : null; });
+function marcaConvite(c) {
+  const v = c && c.convite; if (!v) return;
+  if (!G.conviteHoje || G.conviteHoje.dia !== G.dia || G.conviteHoje.prato !== v.prato) G.conviteHoje = { dia: G.dia, prato: v.prato, k: v.k, panelas: v.panelas, tipo: v.tipo };
+}
+// A 1ª vez (regra de 13/10: toda primeira vez tem seta e frase no lugar, e elas somem depois): no dia do 1º convite
+// (G.limpou.convite_tarde_dia) a seta vai junto (guia_setas.js, a missão 'convite', logo depois da Mercearia urgente); nos outros dias
+// o convite é só a linha do Agora, e o clique nela acende a seta (como as ideias). → o alvo da seta, ou null.
+function conviteGuiado() {
+  if (!G.limpou || (G.limpou.convite_tarde_dia && G.limpou.convite_tarde_dia !== G.dia)) return null;
+  const c = conviteDaTarde(); if (!c) return null;
+  const a = typeof c.alvo === 'function' ? c.alvo() : c.alvo;
+  return a && Object.assign({ rotuloFixo: c.rotulo }, a);
+}
+// ... e a frase: a Rosa conta numa fala (de perto, na Vila; longe, o recado dela), uma vez por save, quando o convite chega ao Agora.
+// Ela lembra de descansar: a tarde tem motivo, mas não é para trabalhar sem parar (o dono, 16/10).
+let _conviteT = 0;
+ATUALIZADORES.push(dt => {
+  if ((_conviteT += dt) < 0.5) return; _conviteT = 0;
+  // (C9) nunca no meio da pescaria: a fala abria por cima da linha e recolhia o peixe (a s26 achou, com a melhora na praia)
+  if (!G.limpou || G.limpou.convite_tarde_dia || !agoraFamilia.convite || menuAberto() || G.linha || (typeof noPalco === 'function' && noPalco())) return;
+  // (C10, revisão) nem por cima da caixa de dica (a aula da pesca do Lourival, o passo do Bira): a fala espera a dica fechar
+  if (typeof guiaPasso === 'function' && guiaPasso()) return;
+  const c = conviteDaTarde(); if (!c) return;
+  G.limpou.convite_tarde_dia = G.dia;
+  const v = c.convite, perto = G.mapaId === 'vila' || /^pensao/.test(G.mapaId || '');
+  // (C9) a melhora: a fala dela já começa por "A janta já tá garantida, mas..."
+  const abre = v.tipo === 'melhora' ? minusculaInicial(v.fala) : `${v.quem ? `${v.quem} janta hoje e vai pedir ${Pratos.PRATOS[v.prato].nome}, e ` : 'pra janta de hoje '}falta ${nomeNaPanela(v.k)}. ${v.fala}`;
+  abrirConversa(perto ? 'Rosa' : 'Recado da Rosa', urlArte('retratos/rosa_normal'), [`Jocelino, ${abre} A seta te mostra onde. Depois descansa um pouco, que a noite é puxada!`]);
+});
 // Depois das 17h, sem nada a fazer: dormir na cama de casa encerra o dia (a seta: o quintal, a porta de casa, a cama).
 function dormirDaNoite() {
   const casa = G.casa && G.casa.mudou ? 'casa_familia' : 'casa_juca';

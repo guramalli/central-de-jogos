@@ -225,7 +225,7 @@ const Habilidades = {
         const pendente = G.hab && (G.hab.pendentes || []).some(p => p[0] === h && p[1] === n), v5 = G.hab ? OPCOES_5[h].find(v => Habilidades.tem(v)) : null;
         const esc = pendente ? null : n === 5 ? v5 : v5 ? (OPCOES_10[v5] || []).find(v => Habilidades.tem(v)) : null;
         if (esc) r.push({ icone: urlItem('hab_' + h), titulo: `Vantagem escolhida: ${VANTAGENS[esc][0]}`, frase: VANTAGENS[esc][1], curto: `a vantagem ${VANTAGENS[esc][0]}` });
-        else r.push({ icone: urlItem('hab_' + h), titulo: 'Uma vantagem para sempre', frase: 'Você escolhe uma de duas depois de todas as telas de nível desta noite.', curto: 'uma vantagem para sempre (você escolhe uma de duas)' });
+        else r.push({ icone: urlItem('hab_' + h), titulo: 'Uma vantagem para sempre', frase: 'Você escolhe uma de duas logo depois desta tela (no "Beleza!").', curto: 'uma vantagem para sempre (você escolhe uma de duas)' });
       } else if (g.tipo === 'empreita') {
         const E = typeof dadosEmpreita === 'function' ? dadosEmpreita(g.id) : null; if (!E) continue;
         const pede = E.funcaoMin && typeof G !== 'undefined' && G.obra && G.obra.funcao < E.funcaoMin && typeof FUNCOES !== 'undefined' ? ` Vale de ${FUNCOES[E.funcaoMin]} em diante.` : '';
@@ -290,24 +290,39 @@ COLETORES.push(s => { s.hab = { xp: Object.assign({}, G.hab.xp), vantagens: G.ha
 // da fila; fechar de outro jeito (Esc, o ✕, fora da caixa) deixa a tela para a próxima noite, como a vantagem. (C5, 16/10; o teste
 // crítico: 3 telas seguidas de manhã com o "Beleza!" travado meio segundo cada) Sem trava própria: o clique e a tecla que fecharam o
 // resumo não vazam pela trava do clique-fantasma de toda janela (ui.js, 300 ms depois de outra fechar).
-function telasDeNivel(i = 0) {
-  const fila = (G.hab && G.hab.telas) || [], t = fila[i];
-  if (!t) { escolherVantagens(); return; }
-  const [h, n] = t;
+// (C13, 16/10; o teste crítico B, dia 5: "3 telas de nível seguidas de manhã, é muita leitura antes de jogar") Os níveis da noite saem
+// NUMA TELA SÓ: uma coluna por habilidade (na ordem em que subiram), cada coluna com os níveis dela, e um "Beleza!" que tira todos da
+// fila. Divergência pequena do Stardew (lá é uma tela por nível, em fila): o que se ganhou continua todo à vista, sem a fila de telas.
+// O rodapé com o "Beleza!" fica fixo (.com-pe): só o miolo rola, na 960x540 também.
+function telasDeNivel() {
+  const fila = (G.hab && G.hab.telas) || [];
+  if (!fila.length) { escolherVantagens(); return; }
+  const mostradas = fila.slice(), colunas = [];
+  for (const [h, n] of mostradas) { let c = colunas.find(x => x.h === h); if (!c) colunas.push(c = { h, niveis: [] }); if (!c.niveis.includes(n)) c.niveis.push(n); }
   let viu = false;
-  const beleza = () => { if (viu) return; viu = true; fila.splice(fila.indexOf(t), 1); fecharModal(); };
-  const ganhos = Habilidades.ganhosDoNivel(h, n), formula = Habilidades.formulaDoNivel(h, n), prox = Habilidades.proximoGanho(h, n);
+  const beleza = () => { if (viu) return; viu = true; for (const t of mostradas) { const k = fila.indexOf(t); if (k >= 0) fila.splice(k, 1); } fecharModal(); };
   const secao = txt => el('div', { class: 'nivel-secao' }, txt);
-  const caixa = el('div', { class: 'painel vantagem nivel-novo' },
-    el('div', { class: 'nivel-topo' }, el('img', { src: urlItem('hab_' + h) }), el('div', { class: 'titulo', style: 'font-size:26px' }, `${NOMES_HAB[h]} subiu para o nível ${n}!`)),
-    ganhos.length ? secao('O que você ganhou') : null,
-    ...ganhos.map(g => el('div', { class: 'nivel-ganho' }, g.icone ? el('img', { src: g.icone }) : el('span'), el('div', {}, el('b', {}, g.titulo), el('div', {}, g.frase)))),
-    secao(ganhos.length ? 'E todo nível também' : 'O que melhorou'),
-    ...formula.map(f => el('div', { class: 'nivel-formula' }, '• ' + f)),
-    prox ? el('div', { class: 'rodape', style: 'text-align:left;margin-top:6px' }, prox) : null,
-    el('div', { style: 'text-align:right;margin-top:8px' }, el('button', { class: 'botao forte nivel-beleza', onclick: e => { e.stopPropagation(); beleza(); } }, 'Beleza!')));
+  const coluna = ({ h, niveis }) => {
+    niveis.sort((a, b) => a - b);
+    const nMax = niveis[niveis.length - 1], prox = Habilidades.proximoGanho(h, nMax);
+    return el('div', { class: 'nivel-coluna' },
+      el('div', { class: 'nivel-topo' }, el('img', { src: urlItem('hab_' + h) }), el('div', { class: 'titulo nivel-nome' }, `${NOMES_HAB[h]} subiu para o nível ${nMax}!`)),
+      ...niveis.flatMap(n => {
+        const ganhos = Habilidades.ganhosDoNivel(h, n), formula = Habilidades.formulaDoNivel(h, n);
+        return [niveis.length > 1 ? el('div', { class: 'nivel-degrau' }, `Nível ${n}`) : null,
+          ganhos.length ? secao('O que você ganhou') : null,
+          ...ganhos.map(g => el('div', { class: 'nivel-ganho' }, g.icone ? el('img', { src: g.icone }) : el('span'), el('div', {}, el('b', {}, g.titulo), el('div', {}, g.frase)))),
+          secao(ganhos.length ? 'E todo nível também' : 'O que melhorou'),
+          ...formula.map(f => el('div', { class: 'nivel-formula' }, '• ' + f))];
+      }),
+      prox ? el('div', { class: 'rodape nivel-prox' }, prox) : null);
+  };
+  const caixa = el('div', { class: 'painel vantagem nivel-novo com-pe' + (colunas.length > 1 ? ' varias' : '') },
+    colunas.length > 1 ? el('div', { class: 'titulo', style: 'font-size:28px;text-align:center' }, 'Esta noite, o Jocelino subiu de nível!') : null,
+    el('div', { class: 'miolo nivel-colunas', style: `--colunas:${Math.min(3, colunas.length)}` }, ...colunas.map(coluna)),
+    el('div', { class: 'pe', style: 'text-align:right' }, el('button', { class: 'botao forte nivel-beleza', onclick: e => { e.stopPropagation(); beleza(); } }, 'Beleza!')));
   caixa._tecla = e => { if (e.code === 'Escape') fecharModal(); else if (['Space', 'Enter', 'NumpadEnter', 'KeyE', 'KeyX'].includes(e.code)) beleza(); };
-  abrirModal(caixa, () => setTimeout(() => telasDeNivel(viu ? i : i + 1), 50));
+  abrirModal(caixa, () => setTimeout(escolherVantagens, 50));
   sons.tocar('fanfarra', 1.2, 0, -8);
 }
 

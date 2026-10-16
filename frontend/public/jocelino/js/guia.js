@@ -44,7 +44,7 @@ function pescaParaOnde() {
   // (correção 1) A banca fechada (domingo, ou fora das 7h–17h, como abrirBanca) não "paga na hora": diz quando abre.
   const aberta = !(typeof relogio !== 'undefined' && relogio.domingo()) && G.minutos >= 7 * 60 && G.minutos < 17 * 60;
   return G.pensao && G.pensao.estado === 'aberta' ? `o peixe vai para a despensa da Rosa e vira prato na janta (${sp})`
-    : `${sp} na banca do Seu Lourival, ${aberta ? 'que paga na hora' : 'que abre das 7h às 17h, menos no domingo'}`;
+    : `${sp} na banca do Seu Lourival, ${aberta ? 'que paga na hora' : 'que abre das 7h às 17h, menos no domingo'}${typeof primeiroDoLourival === 'function' && primeiroDoLourival() ? ` (o 1º peixe do dia ele paga ${ECO.pesca.primeiroDoDia}×)` : ''}`;   // (C9)
 }
 const GUIA_MISSOES = [
   { id: 'obra', agora: () => { const l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
@@ -134,18 +134,21 @@ const Guia = {
       if (Guia.feita(m)) { Guia._fechar(m); mudou.push({ feita: id }); }
       else if (m.expira && G.dia >= ((g.desde || {})[id] || G.dia) + m.expira) { g.abertas = g.abertas.filter(x => x !== id); g.feitas.push(id); g.versao++; mudou.push({ expirou: id }); }
     }
-    let cartaHoje = false;
+    // (C10) a manhã que já trouxe outra carta (o VIP, a festa, a estrela, uma de data) conta como a carta de hoje: a do guia fica para
+    // amanhã — menos a de prioridade (a pesca do dia 2, a do Willy; a da Dona Cotinha, da conversa da véspera, não a empurra)
+    let cartaHoje = false; const outraCarta = manha && typeof cartasNovasHoje === 'function' && cartasNovasHoje().length > 0;
     for (const m of Guia._ordem()) {
       if (g.feitas.includes(m.id) || g.abertas.includes(m.id)) continue;
       if ((m.carta && !manha) || !Guia.podeAbrir(m)) continue;
       const atrasada = G.dia >= Guia.diaMin(m) + ECO.guia.espera;
       if (g.ativo && g.abertas.length >= ECO.guia.maxAbertas && !atrasada && !m.prioridade) continue;   // a pensão (o centro) e a carta da pesca (a do Willy) não esperam vaga
       // uma carta por manhã: a outra chega amanhã (só com o guia; sem ele tudo chega pelo dia mínimo, e os dias não colidem)
-      if (g.ativo && cartaHoje && Guia._cartaNova(m)) continue;
+      if (g.ativo && (cartaHoje || (outraCarta && !m.prioridade)) && Guia._cartaNova(m)) continue;
       if (Guia._cartaNova(m)) cartaHoje = true;
       Guia._abrir(m); mudou.push({ abriu: m.id });
       if (Guia.feita(m)) { Guia._fechar(m); mudou.push({ feita: m.id }); }
     }
+    if (manha && typeof cartasNovasHoje === 'function') { cartasNovasHoje(); fechaManhaDoCorreio(); }   // (C10) a lista de hoje fica guardada; a caixa, vista
     return mudou;
   },
   // (dia cheio, Frente B) Sem duas cartas na mesma manhã (o correio do Stardew traz uma novidade por vez): as missões de carta na
@@ -246,6 +249,8 @@ function guiaMarcaObjeto(id) { return _guiaAlvo(a => a.objeto === id); }
 INICIADORES.push(s => Guia.carregar(s));
 COLETORES.push(s => Guia.salvar(s));
 MANHA.push(() => Guia.tique(true));
+// (C10) Depois do guia e da agenda da pensão (eventos.js vem antes): a carta da família que espera um dia vazio (correio.js).
+MANHA.push(() => { if (typeof entregaQuemEspera === 'function') entregaQuemEspera(); });
 // A volta (a cada 6 quadros) e a fila das falas (fora de menu e fora do serviço da janta).
 let _guiaQuadro = 0;
 ATUALIZADORES.push(() => {
@@ -310,7 +315,9 @@ let guiaPasso = function () {
 function passoJanta() {
   const t = G.turno;
   if (!t && typeof jantaEsperaCardapio === 'function' && jantaEsperaCardapio()) return 'A janta espera o cardápio: no quadro de giz ("Cardápio", lá embaixo), escolha os pratos e as panelas e clique em "Abrir a pensão".';
-  if (!t) return typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() ? 'Às 17h a janta começa. Pode adiantar o relógio no botão "Adiantar", lá embaixo.' : null;
+  if (!t) return typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() ? (typeof adiantarPara === 'function' && adiantarPara() === ADIANTAR_TARDE   // (C8) o Adiantar em dois passos
+    ? 'Às 17h a janta começa. O botão "Adiantar", lá embaixo, leva até as 13h, depois do almoço; de novo, até a janta.'
+    : 'Às 17h a janta começa. Pode adiantar o relógio no botão "Adiantar", lá embaixo.') : null;
   if (t.bandeja.some(x => x.tipo !== 'prato' && x.tipo !== 'bebida')) return 'Louça na bandeja: leve até a bacia, no canto da cozinha.';
   if (t.bandeja.some(x => x.tipo === 'prato')) return 'Prato na bandeja: leve até a mesa de quem pediu.';
   if (t.passaPrato().length) return 'Prato pronto no passe (o balcão da cozinha): vá pegar.';

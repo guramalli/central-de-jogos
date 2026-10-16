@@ -21,6 +21,10 @@ const RECADO_ORIGEM = {
   coco: 'coco cai no chão do quintal, da Vila e da praia', fibra: 'fibra sai do mato, com a foice',
   madeira: 'madeira sai do galho, do toco e da árvore, com o machado', pedra: 'pedra sai das pedras do chão, com a picareta',
   sardinha: 'pesque na praia, com a vara', tainha: 'pesque na praia, com a vara', cogumelo: 'cogumelo nasce no chão da mata',
+  // (C11) os recados de cada estação
+  cambuci: 'cambuci nasce no chão da mata, no outono e no inverno', araca: 'araçá nasce no chão da mata',
+  concha: 'concha aparece na areia da praia', caju: 'caju cai no chão do quintal e da Vila, na primavera e no verão',
+  jabuticaba: 'jabuticaba nasce no chão da mata, na primavera e no verão', pitanga: 'pitanga nasce no chão da mata, na primavera e no verão',
 };
 // Quantos dias faltam para a horta dar a cultura (o pé mais adiantado); null sem nada plantado.
 function recadoDiasDaHorta(item) {
@@ -94,7 +98,7 @@ function entregarRecadoNoMorador(p, id) {
   if (typeof guiaEvento === 'function') guiaEvento('conversou', p.id);   // (foi uma conversa: o guia conta como as outras)
   G.feitosHoje.push(`Recado entregue: ${Itens.qtd(P.qtd, P.item)} para ${recadoPara(P.cliente)}: Cr$ ${v}.`);
   avisar(`Recado entregue! + Cr$ ${v}`);
-  abrirConversa(Recados.nome(P.cliente), urlArte('retratos/' + P.cliente + '_alegre'), [P.obrigado]);
+  abrirConversa(Recados.nome(P.cliente), urlArte('retratos/' + P.cliente + '_alegre'), [Recados.obrigado(id)]);   // (C11) o obrigado da vez
 }
 function perguntarEntregaRecado(p, id) {
   const P = PEDIDOS_VILA[id], qual = `${Itens.qtd(P.qtd, P.item)} para ${recadoPara(P.cliente)}`, m = recadoOutrosPedidos(P.item, P.qtd, id);

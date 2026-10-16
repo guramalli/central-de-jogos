@@ -1,11 +1,12 @@
 // Jocelino — mundo.js — os lugares do mundo maior (vida de dia, etapa 1): a mata aberta desde o começo, a praia que
-// abre com a carta do Seu Lourival (dia 2) e a pedreira com a do Seu Tonico (dia 5), como a mina do Stardew no dia 5.
+// abre com a carta do Seu Lourival (dia 2) e a pedreira com a do Seu Tonico (ECO.guia.dias.pedreira: dia 10 desde a C10, quando a
+// 1ª semana da pensão já traz novidade todo dia; a mina do Stardew é no dia 5).
 // Antes de abrir, a saída explica e não deixa passar (personagens.js).
 
 const LUGARES_CARTA = { praia: 'lourival_praia', pedreira: 'tonico_pedreira' };
 Object.assign(CARTAS, {
   lourival_praia: { de: 'Seu Lourival', dia: 2, anexo: { vara: 1 }, aoLer: () => { if (G.pesca) G.pesca.varaDada = true; }, texto: 'Compadre Jocelino! Vem conhecer a praia: é só descer pela rua da Vila, sentido sul. A banca de peixe é minha, do lado do píer. Toma uma vara de bambu, compadre: vira para a água, segura e solta. Da ponta do píer sai peixe melhor.' },
-  tonico_pedreira: { de: 'Seu Tonico', dia: 5, texto: 'Jocelino, a pedreira da Serra abriu: é seguir a estrada a leste da Vila. Pedra boa vale na obra e na caixa de venda, e lá embaixo tem ferro. Passa na ferraria quando quiser.' },
+  tonico_pedreira: { de: 'Seu Tonico', dia: 5, texto: 'Jocelino, a pedreira da Serra abriu: é seguir a estrada a leste da Vila. Pedra boa vale na obra, no Grêmio e na caixa de venda.' },   // (C10: a mina e a ferraria ficam para a carta das bancadas)
 });
 // (T3 da mata, 15/10) A Mata da Serra, do outro lado da ponte da mata: abre na manhã seguinte à 1ª vez que a ponte é escorada (o
 // serviço curto `escorar_ponte`, do Tio Juca; o dia fica em G.empreitas.consertados), com a carta do Seu Lourival. Cai cedo: o serviço

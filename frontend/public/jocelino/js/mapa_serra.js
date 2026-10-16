@@ -206,7 +206,7 @@ addEventListener('load', () => {
   if (typeof CADERNETA === 'undefined') return;
   CADERNETA.push(() => {
     if (typeof Mundo === 'undefined' || !Mundo.aberto('serra') || !G.limpou || G.limpou.serra_cachoeira) return [];
-    return [{ id: 'serra_conhecer', aba: 'vila', texto: 'A Mata da Serra abriu: atravesse a ponte da mata e siga a trilha até a Cachoeira Grande',
+    return [{ id: 'serra_conhecer', aba: 'mata', texto: 'A Mata da Serra abriu: atravesse a ponte da mata e siga a trilha até a Cachoeira Grande',
       alvo: () => G.mapaId === 'serra' ? alvoDaSerra() : G.mapaId === 'mata' ? { mapa: 'mata', ponto: { x: 27 * TILE, y: 22 * TILE } } : { mapa: 'mata' } }];
   });
 });

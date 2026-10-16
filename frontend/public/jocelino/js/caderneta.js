@@ -18,7 +18,7 @@ CADERNETA.push(() => {
   const r = [], dom = (G.dia - 1) % 7 === 6, l = typeof listaDeHoje === 'function' ? listaDeHoje() : null;
   if (G.obra && !Obra.aberta(G.dia, G.minutos) && !(l && l.paga)) r.push({ id: 'hoje_obra', aba: 'hoje', hoje: true, texto: `A obra do Mestre Bira, na Vila: Cr$ ${Obra.diaria()} por dia, até as 17h`, alvo: { mapa: 'vila', morador: 'bira' } });
   // (15/10, T4) o recado do dia ainda no quadro (e com vaga para aceitar) entra na mesma linha
-  if (G.empreitas && _liberado('quadro')) { const serv = Object.keys(G.empreitas.aceitas).length ? 0 : G.empreitas.quadro.length, R = G.recados;
+  if (G.empreitas && _liberado('quadro')) { const serv = Object.keys(G.empreitas.aceitas).length ? 0 : G.empreitas.quadro.filter(id => Empreitas.libera(id)).length, R = G.recados;   // (C11: sem o pedido da fama trancado)
     const rec = !!R && typeof ECO !== 'undefined' && ECO.recados && R.dia === G.dia && !!R.doDia && !R.ativos[R.doDia] && Object.keys(R.ativos).length < ECO.recados.maxAtivos;
     if (serv || rec) r.push({ id: 'hoje_quadro', aba: 'hoje', hoje: true, texto: serv && rec ? `${serv} serviço(s) e 1 recado no quadro da Vila` : serv ? `${serv} serviço(s) no quadro da Vila (pagam na hora)` : '1 recado de vizinho no quadro da Vila', alvo: { mapa: 'vila', objeto: 'quadro_pedidos' } }); }
   if (G.pensao && G.pensao.estado === 'aberta' && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < 17 * 60) r.push({ id: 'hoje_pensao', aba: 'hoje', hoje: true, texto: 'A pensão abre às 17h: a Rosa conta com você', alvo: { mapa: 'vila', objeto: 'pensao' } });
@@ -59,9 +59,9 @@ CADERNETA.push(() => {
 // A carreira: a próxima função, a próxima ferramenta, as habilidades.
 CADERNETA.push(() => {
   const r = [];
-  if (G.obra && typeof Obra !== 'undefined') { const f = Obra.falta(); if (f) { const prox = FUNCOES[G.obra.funcao + 1], partes = [];
-    if (f.obras) partes.push(`${f.obras} obra(s) do Bira`); if (f.alvenaria) partes.push(`Alvenaria +${f.alvenaria} nível(is)`); if (f.empreitas) partes.push(`${f.empreitas} serviço(s) do quadro`);
-    r.push({ id: 'carreira_funcao', aba: 'carreira', texto: partes.length ? `Para ${prox}: ${faltaTxt(partes)}` : `${prox}: fale com o Mestre Bira!`, alvo: { mapa: 'vila', morador: 'bira' } }); } }
+  // (C12, 16/10; o teste crítico: "a Carreira vazia") A mesma linha da tela H: "Próximo degrau: Meio-oficial — falta 1 obra entregue".
+  if (G.obra && typeof Obra !== 'undefined') { const f = Obra.falta(); if (f) { const prox = FUNCOES[G.obra.funcao + 1];
+    r.push({ id: 'carreira_funcao', aba: 'carreira', texto: `Próximo degrau: ${prox} — ${Obra.textoFalta()}`, alvo: { mapa: 'vila', morador: 'bira' } }); } }
   if (typeof Ferreiro !== 'undefined' && G.ferreiro && !G.ferreiro.oficina) {
     const op = Ferreiro.FERRAMENTAS.map(id => [id, Ferreiro.custo(id)]).filter(([, c]) => c).sort((a, b) => a[1].dinheiro - b[1].dinheiro)[0];
     if (op) { const [id, c] = op, m = Object.keys(c).find(k => k !== 'dinheiro');
@@ -92,6 +92,20 @@ CADERNETA.push(() => {
     if (d < tot) r.push({ id: 'vila_museu', aba: 'vila', texto: `Museu da Vila: ${d} de ${tot} doados (cave as marcas no chão; os raros vêm da pedreira e da praia)`, feito: d, meta: tot, alvo: { mapa: 'vila', objeto: 'museu' } }); }
   return r;
 });
+// (C12, 16/10; o teste crítico: a aba Pensão dizia "Nada por aqui ainda" com a reforma em andamento) A reforma da lojinha: a etapa
+// da vez e o que falta nela (o material para a Rosa, o trabalho de hoje no salão ou "amanhã continua"); pronta, o dia em que abre.
+CADERNETA.push(() => {
+  const p = G.pensao; if (!p || typeof ECO === 'undefined') return [];
+  const alvo = { mapa: 'vila', objeto: 'pensao' }, i = ECO.reforma.findIndex(e => e.id === p.estado);
+  if (p.estado === 'pronta') return [{ id: 'pensao_reforma', aba: 'pensao', texto: `A reforma acabou: a pensão abre ${p.abreDia === G.dia ? 'hoje, às 17h' : 'no dia ' + p.abreDia}`, alvo }];
+  if (i < 0) return [];
+  const E = ECO.reforma[i], fm = Object.entries(p.faltaMaterial ? p.faltaMaterial() : {});
+  const falta = p.estado === 'limpar' ? 'falta limpar o salão (clique na sujeira, lá dentro)'
+    : fm.length ? `falta ${fm.map(([it, q]) => Itens.qtd(q, it)).join(' e ')} (entregue à Rosa)`
+    : p.feitaHoje && p.feitaHoje(G.dia) ? 'o trabalho de hoje está feito: amanhã continua'
+    : `falta o trabalho no salão (${E.nome.toLowerCase()})`;
+  return [{ id: 'pensao_reforma', aba: 'pensao', texto: `A reforma: etapa ${i + 1} de ${ECO.reforma.length} — ${falta}`, feito: i, meta: ECO.reforma.length, alvo }];
+});
 // A pensão: a próxima estrela e a melhoria ao alcance.
 CADERNETA.push(() => {
   const p = G.pensao; if (!p || p.estado !== 'aberta') return [];
@@ -110,12 +124,16 @@ CADERNETA.push(() => {
   return r;
 });
 // A tela: as 5 abas; cada linha com a barrinha e o Mostrar (a seta leva até lá; de novo, tira a seta).
+// (C12, 16/10; o teste crítico: os 5 cipós do Nhô Quim não estavam em lugar nenhum) A aba Mata e serra só aparece com linha nela
+// (a serra aberta): antes de Vila e da Pensão. As linhas da serra (conhecer, coleta, peixes, o Nhô Quim) moram nela.
+const CADERNETA_ABA_MATA = ['mata', 'Mata e serra'];
+const abasDaCaderneta = () => { const a = CADERNETA_ABAS.slice(); if (Caderneta.linhas().some(l => l.aba === 'mata')) a.splice(a.findIndex(([id]) => id === 'pensao'), 0, CADERNETA_ABA_MATA); return a; };
 function abrirCaderneta(aba = Caderneta.aba || 'hoje') {
   const caixa = el('div', { class: 'painel caderneta' });
   const desenha = () => {
-    caixa.innerHTML = ''; Caderneta.aba = aba;
+    caixa.innerHTML = ''; const abas = abasDaCaderneta(); if (!abas.some(([id]) => id === aba)) aba = 'hoje'; Caderneta.aba = aba;
     caixa.append(el('div', { class: 'titulo', style: 'font-size:26px' }, 'Caderneta do Jocelino'),
-      el('div', { class: 'abas' }, CADERNETA_ABAS.map(([id, nome]) => el('div', { class: 'aba' + (id === aba ? ' ativa' : ''), onclick: e => { e.stopPropagation(); aba = id; desenha(); } }, nome))));
+      el('div', { class: 'abas' }, abas.map(([id, nome]) => el('div', { class: 'aba' + (id === aba ? ' ativa' : ''), onclick: e => { e.stopPropagation(); aba = id; desenha(); } }, nome))));
     const ls = Caderneta.linhas().filter(l => l.aba === aba);
     caixa.append(el('div', { class: 'cad-lista' }, ...(ls.length ? ls.map(l => el('div', { class: 'cad-linha' },
       el('div', { class: 'cad-texto' }, l.texto),

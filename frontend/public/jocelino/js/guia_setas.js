@@ -472,6 +472,17 @@ function _rotulo(a) {
 // (revisão da T4) As 17h e a janta da pensão por fazer depois delas (jantaPorFazer, cartao.js).
 const _depoisDas17 = () => (G.minutos || 0) >= 17 * 60;
 const _horaDaJanta = () => _depoisDas17() && typeof jantaPorFazer === 'function' && jantaPorFazer();
+// (C9, rodada 1) O convite da tarde guardado por minuto de jogo: a guiaSetaMundo roda a cada quadro (setaAgora segue G.agora), e o
+// conviteDaTarde (contaDoQuadro, pratosDaJanta) é caro. Recalcula quando o minuto, o mapa, a despensa, o quadro, a mochila ou a obra mudam.
+let _conviteMemo = { chave: null, v: null };
+function conviteDoMinuto() {
+  if (typeof conviteDaTarde !== 'function') return null;
+  const p = G.pensao, l = G.obra && G.obra.lista;
+  const chave = [G.dia, Math.floor(G.minutos || 0), G.mapaId, !!G.turno, p && p.ultimaJanta, p && p.estado, p && JSON.stringify(p.despensa), p && JSON.stringify(p.cardapioNoite),
+    G.mochila ? G.mochila.slots.map(s => s ? s.id + ':' + s.qtd : '').join(',') : '', l ? l.dia + ':' + !!l.paga : ''].join('|');
+  if (chave !== _conviteMemo.chave) _conviteMemo = { chave, v: conviteDaTarde() };
+  return _conviteMemo.v;
+}
 // A seta do mapa: { tipo: 'alvo' | 'saida', x, y (px de mundo), mapa, morador?, objeto?, det?, destino? } ou null.
 function guiaSetaMundo() {
   if (!G.mapa) return null;
@@ -506,6 +517,11 @@ function guiaSetaMundo() {
   // depois da janta, antes dos serviços e dos sistemas novos, e passa na frente da meta fixa de menor prioridade (_setaDe).
   const mercUrg = typeof urgenteDaJanta === 'function' && !!urgenteDaJanta();
   if (mercUrg) cands.push(['mercearia', _alvoDaMercearia(true)]);
+  // (C8, 16/10) O 1º convite da tarde (conviteGuiado, cartao.js): no dia em que ele aparece pela 1ª vez, a seta vai no que falta no
+  // cardápio de hoje (o píer, o pé pronto, o coco), logo depois do urgente; nos outros dias, só pelo clique no Agora (a ideia).
+  // (C9; a revisão da C8) só depois da obra do Bira: às 13h, com a diária por receber, a seta da obra vinha depois da do convite no
+  // mapa de agora (a praia). Sem a seta da obra (paga, fechada, ou o passo a passo da 1ª obra), o convite pode.
+  if (!_depoisDas17() && (typeof servicoDoDiaFeito !== 'function' || servicoDoDiaFeito() || !_alvoDaObraDoDia())) cands.push(['convite', () => typeof conviteGuiado === 'function' ? conviteGuiado() : null]);
   // (revisão da T4: à noite, a janta manda) Depois das 17h com a janta da pensão por fazer, o serviço aceito não toma a seta; o
   // recado sai da fila desde as 17h (de dia, fica junto com os serviços "de hoje", porque tem prazo).
   const servicos = _horaDaJanta() ? [] : _servicosDaSeta(), deHoje = servicos.filter(_servicoDeHoje);
@@ -544,6 +560,9 @@ function guiaSetaMundo() {
   if (seta && seta.parar) return null;   // (C3) a meta é aqui, num detrito que o Jocelino já sabe limpar: sem seta, e sem mandar a outro mapa
   if (seta) _fixarMeta(seta);
   if (seta || salaoAberto) return seta;
+  // (C9; a revisão da C8) As setas de fundo daqui para baixo (a plaquinha da casa, a serra, a árvore da mata, o 1º achado) cedem ao
+  // convite da tarde: o Agora diz o convite (cartao.js), e a seta não aponta outra coisa. O clique no Agora acende a seta dele.
+  if (conviteDoMinuto()) return null;
   // (15/10, foto do jogador: "missão da casa da família do seu Juca, não tinha seta indicando") A etapa da casa sem o dinheiro dela:
   // no quintal, sem nenhuma outra seta, aponta a plaquinha e diz quanto falta. Só no fim: na frente das outras, a seta ficava
   // presa na plaquinha e o que dava para fazer em outro mapa sumia (o robô jogador indo e voltando entre o quintal e a Vila).
@@ -718,6 +737,15 @@ const PRIMEIRA_TELA = {
       if (G.guia.abertas.includes('bico') && !Object.keys(G.empreitas.aceitas).some(k => dadosEmpreita(k) && dadosEmpreita(k).tipo === 'curta')) return null;
       _recadoVisto = true;
       return { el: bts[0], frase: 'Recado de vizinho: leve o que pedem até o prazo. Paga na entrega e a pessoa fica mais sua amiga.' }; } },
+  // - (C12, 16/10; o teste crítico: "0/5 caprichados" do dia 5 ao ~48, sem explicação) A 1ª vez que a Fala da Vila conta os caprichados
+  //   -> Stardew (a qualidade da colheita: a estrela de ouro sai mais com o nível de Farming e o adubo): a seta neles e a fala do Bira com
+  //   o porquê — caprichado é a empreita de vários dias que sai uma beleza (Empreitas.qualidade: só de pedreiro pra cima, mais com o
+  //   Acabamento e a cal no lote). Só lê: a 1ª vez acaba quando o quadro fecha (_caprichadoVisto, como o recado).
+  caprichado: { painel: '#modal .quadro-vila', sel: '#modal .quadro-vila .fv-caprichados', usou: () => false,
+    escolhe(bts) {
+      if (!bts[0]) return null;
+      _caprichadoVisto = true;
+      return { el: bts[0], frase: FALA_CAPRICHADO() }; } },
   // - (15/10, T5 da mata) A 1ª corda -> Stardew (a receita nova aparece no menu de Crafting e o item mostra o que pede): com a corda
   //   aprendida (o Nhô Quim ensina), a seta no Fazer dela. Some na 1ª corda feita (fabricar.js marca G.limpou.tela_corda).
   corda: { painel: '#modal .fabricar', sel: '#modal .fabricar [data-receita="corda"] button', usou: () => false,
@@ -725,7 +753,11 @@ const PRIMEIRA_TELA = {
       ? 'Corda: 3 cipós da serra trançados dão 1 corda. Ela serve no poço do sítio e na escada de corda. Clique em Fazer.'
       : `Corda: precisa de 3 cipós (tem ${G.mochila.total('cipo')}). O cipó nasce no chão da Mata da Serra; com 3 na mochila, clique em Fazer.` } },
 };
-let _recadoVisto = false;
+let _recadoVisto = false, _caprichadoVisto = false;
+// (C12) A fala do Bira sobre os caprichados: antes de pedreiro, o porquê de ainda não sair nenhum.
+const FALA_CAPRICHADO = () => 'Mestre Bira: "Caprichado é empreita de vários dias que sai uma beleza. ' + (typeof Empreitas !== 'undefined' && Empreitas.funcao() < 2
+  ? 'Isso só sai de pedreiro pra cima, rapaz: primeiro sobe comigo na obra.'
+  : 'Quanto mais Acabamento, mais sai; e cal no lote antes de começar ajuda.') + ' Cinco caprichados e a Vila te chama de Mestre."';
 const jaFezTela = id => ((G.limpou || {})['tela_' + id] || 0) > 0 || _tenta(PRIMEIRA_TELA[id].usou);
 function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela_' + id] || 0) + 1; }
 { const embrulha = (obj, m, id) => { const f = obj[m]; obj[m] = function (...a) { const r = f.apply(this, a); if (r === 'ok') _marcaTela(id); return r; }; };
@@ -737,6 +769,8 @@ function _marcaTela(id) { if (G.limpou) G.limpou['tela_' + id] = (G.limpou['tela
     const en = Recados.entregar; Recados.entregar = function (...a) { const r = en.apply(this, a); if (r === 'ok' && G.limpou) G.limpou.recado_entregue = (G.limpou.recado_entregue || 0) + 1; return r; }; } }
 // (T4) O quadro com a seta do recado fechou: a 1ª vez da tela já foi vista.
 ATUALIZADORES.push(() => { if (_recadoVisto && !document.querySelector('#modal .quadro-vila')) { _recadoVisto = false; _marcaTela('recado'); } });
+// (C12) O quadro com a fala dos caprichados fechou: a 1ª vez já foi vista.
+ATUALIZADORES.push(() => { if (_caprichadoVisto && !document.querySelector('#modal .quadro-vila')) { _caprichadoVisto = false; _marcaTela('caprichado'); } });
 // (T4) A 1ª peça da coleta que conta: a frase flutuante sobre o Jocelino, uma vez (G.limpou.recado_coleta). Vem depois da conta
 // (recados_jogo.js carrega antes); vale também sem o guia, como o contador do serviço.
 AO_PEGAR.push(item => {
@@ -794,8 +828,13 @@ function guiaSetaUI() {
     const bt = re => [...document.querySelectorAll('#rodape-palco button')].find(x => re.test(x.textContent));
     if (ab.includes('janta') && !G.turno && typeof pensaoAbreHoje === 'function' && pensaoAbreHoje() && $('#modal').hidden) {
       // (o cardápio do Bancho) antes das 17h, o Adiantar; às 17h, com o quadro fechado, o "Cardápio" (a janta espera por ele)
-      if (G.minutos < TurnoJanta.ABRE) { const b = bt(/Adiantar/); if (b) return { chave: 'adiantar', el: b, rotulo: 'Clique para pular até as 17h' }; }
+      // (C8) o Adiantar em dois passos: antes do meio-dia ele leva às 13h, depois à janta
+      if (G.minutos < TurnoJanta.ABRE) { const b = bt(/Adiantar/); if (b) return { chave: 'adiantar', el: b, rotulo: typeof adiantarPara === 'function' && adiantarPara() === ADIANTAR_TARDE ? 'Clique para pular até as 13h (de novo: até as 17h)' : 'Clique para pular até as 17h' }; }
       else if (jantaEsperaCardapio()) { const b = bt(/Cardápio/); if (b) return { chave: 'cardapio', el: b, rotulo: 'A janta espera o cardápio: clique aqui' }; } }
+    // (C8, 16/10) O 1º Adiantar em dois passos: depois do primeiro (às 13h, com a fala da Rosa), a seta mostra o segundo, até a janta;
+    // some quando ele é usado (G.limpou.adiantar_dois = 2, palco.js)
+    if (G.limpou && G.limpou.adiantar_dois === 1 && !G.turno && $('#modal').hidden && typeof adiantarPara === 'function' && adiantarPara() === TurnoJanta.ABRE) {
+      const b = bt(/Adiantar/); if (b) return { chave: 'adiantar', el: b, rotulo: 'De novo: até a janta, às 17h' }; }
     if (ab.includes('domingo')) { const b = bt(/Despensa/); if (b) return { chave: 'despensa', el: b, rotulo: 'Clique para guardar na despensa' }; }
     // (Tarefa E1) a primeira carta de jantar especial (ou festa) da semana: a seta na Semana do rodapé (o calendário), fora da janta, uma vez
     if (!jaFezTela('calendario') && !G.turno && $('#modal').hidden && typeof Calendario !== 'undefined' && Calendario.temEspecial(G.pensao, G.dia)) {
@@ -803,6 +842,9 @@ function guiaSetaUI() {
     return null;
   }
   if (!$('#modal').hidden) return null;
+  // (C9, 16/10) O 1º almoço: ao meio-dia a Rosa lembra a marmita (casa_dentro.js), e a seta vai nela, na barra, até ele comer.
+  { const i = typeof marmitaDoAlmoco === 'function' ? marmitaDoAlmoco() : -1;
+    if (i >= 0) { const b = barra(i); if (b) return Object.assign(b, { chave: 'almoco', rotulo: mao === 'marmita' ? 'Botão direito: comer a marmita' : 'Clique aqui: a marmita da Rosa' }); } }
   // A ferramenta certa na barra: a do detrito que a seta aponta, a do serviço aceito, a semente e o regador da horta.
   const sm = guiaSetaMundo();
   if (sm && sm.det && (sm.missao === 'quintal' || sm.missao === 'aula' || sm.buscar || sm.missao === 'caderneta' || sm.missao === 'obra_dia' || sm.missao === 'tela_pedreira' || sm.missao === 'mata_arvore')) { const D = DETRITOS[sm.det], ok = mao === D.ferramenta || (D.aceita || []).includes(mao); if (!ok) { const i = slotDe(D.ferramenta); if (i >= 0) return barra(i); } }
@@ -812,7 +854,8 @@ function guiaSetaUI() {
   // (15/10) a 1ª vez de lavar, pintar ou da colher na obra: a ferramenta na barra
   if (sm && sm.missao === 'obra_dia' && sm.ferramenta && mao !== sm.ferramenta) { const i = slotDe(sm.ferramenta); if (i >= 0) return barra(i); }
   // (tarefa 7) a seta da pesca na ponta do píer: a vara na barra
-  if (sm && sm.missao === 'pesca' && sm.ponto && !sm.morador && typeof VARAS !== 'undefined' && !VARAS.includes(mao)) { const v = VARAS.find(x => slotDe(x) >= 0); if (v) return barra(slotDe(v)); }
+  // (C8) e a do convite da tarde (o peixe pra janta de hoje: a 1ª vez, ou pelo clique no Agora), na ponta do píer
+  if (sm && (sm.missao === 'pesca' || ((sm.missao === 'convite' || sm.missao === 'caderneta') && /^Pesque da ponta do píer/.test(sm.rotulo || ''))) && sm.ponto && !sm.morador && typeof VARAS !== 'undefined' && !VARAS.includes(mao)) { const v = VARAS.find(x => slotDe(x) >= 0); if (v) return barra(slotDe(v)); }
   if (sm && sm.missao === 'horta' && G.mapaId === 'quintal') {
     const plantadas = Object.values(G.horta.covas || {}).filter(c => c && c.planta).length;
     const semente = G.mochila.slots.slice(0, 12).find(x => x && /^semente_/.test(x.id));

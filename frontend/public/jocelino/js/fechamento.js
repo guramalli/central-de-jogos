@@ -171,7 +171,10 @@ function fichasDoFechamento(lista, max = 7) {
 const noiteDoDia = dia => `noite de ${typeof DIAS !== 'undefined' ? DIAS[(dia - 1) % 7] : 'hoje'}, dia ${(dia - 1) % 28 + 1}`;
 // opc.rever: reaberta pelo resumo do dia (sem som nem animação; o botão volta ao resumo e opc.depois roda ao fechar);
 // opc.animar: anima mesmo no modo de teste (as fotos do meio da animação).
+// opc.estrelaVista: a tela da estrela nova já passou (abrirEstrelaNova): a fanfarra do degrau não toca de novo no caixa.
 function abrirFechamento(r, opc = {}) {
+  // (C13) a noite que sobe a pensão abre pela tela da estrela nova; o caixa vem depois dela (o rever do resumo vai direto ao caixa)
+  if (r.subiu && G.pensao && !opc.rever && !opc.estrelaVista) { abrirEstrelaNova(r, () => abrirFechamento(r, Object.assign({}, opc, { estrelaVista: true }))); return; }
   const p = G.pensao, nota = Metas.notaDaNoite(r);
   const c = TurnoJanta.conta(r), lucro = c.lucro;
   const linha = (a, b, cls = '') => el('div', { class: 'fx-linha ' + cls }, el('span', {}, a), el('b', {}, b));
@@ -264,7 +267,82 @@ function abrirFechamento(r, opc = {}) {
   caixa.addEventListener('click', e => { if (caixa._animando && !e.target.closest('button, .ajuda-q, .aba-lousa')) { e.stopPropagation(); pularFechamento(caixa); } });
   caixa._tecla = e => (['Space', 'Enter', 'NumpadEnter', 'KeyE', 'KeyX'].includes(e.code) && pularFechamento(caixa));
   abrirModal(caixa, opc.depois);
-  contarFechamento(caixa, planoFechamento(r, nota, lucro, rapido), anima, !opc.rever);
+  contarFechamento(caixa, planoFechamento(opc.estrelaVista ? Object.assign({}, r, { subiu: 0 }) : r, nota, lucro, rapido), anima, !opc.rever);
+}
+
+// ---------- (C13, 16/10; o teste crítico B, dia ~40: "a ★★ é só uma linha no fechamento") a tela da estrela nova ----------
+// Como no Dave (o Cooksta do Bancho sobe de rank: uma tela só dele, as estrelas enchendo, o que abriu e a fala do Bancho), a noite que
+// sobe a pensão abre o fechamento por esta tela, antes do caixa: o selo do degrau novo, as estrelas acendendo uma a uma (o "plim" de
+// cada uma e a fanfarra do degrau), a frase da Rosa e o que o degrau abriu (banquetas, pratos no quadro, clientes, receita, melhoria,
+// o capricho). (rodada 1 da revisão) Fica até o jogador passar, como a "Subiu de nível!" do Stardew: um clique, Espaço, Enter, E, Esc
+// ou o ✕ (nada passa sozinho). O fundo fica mais claro (estilo.css): em volta da lousa, o salão com o que a pensão já ganhou. Só arte
+// que existe: o selo do degrau (ui/selo_N), a lousa, o retrato da Rosa na moldura de madeira e os ícones de sempre. No modo de teste as
+// estrelas já vêm acesas. A fanfarra do degrau toca só aqui (a janta e o caixa depois dela não tocam de novo).
+// (rodada 1) A estrela que não se perde: a noite que sobe a pensão sem o fechamento na tela (a Rosa sozinha, ou o Jocelino fora do
+// palco) guarda o degrau em G.estrelaPendente (no save); ao dormir, a tela abre antes do resumo do dia (dia.js) e o campo se limpa.
+const ESTRELA_NOVA_PASSO = 0.4;
+INICIADORES.push(s => { G.estrelaPendente = s.estrelaPendente | 0; });
+COLETORES.push(s => { s.estrelaPendente = G.estrelaPendente | 0; });
+function guardarEstrelaPendente(g) { if (g > 1) G.estrelaPendente = Math.max(G.estrelaPendente | 0, g); }
+// Abre a tela da estrela pendente (se houver) e limpa o campo; `depois` roda ao fechar (ou na hora, sem estrela). Devolve se abriu.
+function abrirEstrelaPendente(depois) {
+  const g = G.estrelaPendente | 0;
+  if (g < 2 || !G.pensao) { G.estrelaPendente = 0; if (depois) depois(); return false; }
+  G.estrelaPendente = 0;
+  abrirEstrelaNova({ subiu: g }, depois, { manha: true });
+  return true;
+}
+// A frase da Rosa em cada degrau (o retrato e a fala).
+const FALA_ESTRELA = {
+  2: ['rosa_emocionada', 'Jocelino, a nossa primeira estrela! A Vila já sabe o caminho da nossa porta.'],
+  3: ['rosa_alegre', 'Pensão Falada! Até em Santos já tem gente perguntando da comida da Rosa. Minha mãe ia chorar de orgulho.'],
+  4: ['rosa_alegre', 'Famosa, Jocelino! A gente que chegou de Aracaju com duas malas e uma panela.'],
+  5: ['rosa_emocionada', 'Casa Tradicional... A Dona Cotinha ia gostar de ver a pensão dela assim, cheia de gente.'],
+  6: ['rosa_emocionada', 'Patrimônio da Vila! Isso aqui é nosso, amor. É da família inteira.'],
+};
+// O que o degrau g abriu, em relação ao de antes: [{ img (nome da arte), txt }].
+function ganhosDoDegrau(g) {
+  const D = Pensao.DEGRAUS, a = D[g - 2], d = D[g - 1], V = ECO.pensao.vagas, L = [];
+  if (!a || !d) return L;
+  const mais = (n, um, varios) => `+${n} ${n === 1 ? um : varios}`;
+  if (d.mesas > a.mesas) L.push({ img: 'objetos/banqueta', txt: mais(d.mesas - a.mesas, 'banqueta no balcão', 'banquetas no balcão') });
+  { const dv = (V[g - 1] || 0) - (V[g - 2] || 0); if (dv > 0) L.push({ img: 'objetos/quadro_giz', txt: mais(dv, 'prato no quadro do cardápio', 'pratos no quadro do cardápio') }); }
+  if (d.clientes > a.clientes) L.push({ img: 'fx/coracao', txt: mais(d.clientes - a.clientes, 'cliente por noite', 'clientes por noite') });
+  if (typeof RECEITAS_NOVAS !== 'undefined') for (const id in RECEITAS_NOVAS) { const x = RECEITAS_NOVAS[id];
+    if (x.caminho === 'degrau' && x.grau === g && Pratos.PRATOS[id]) L.push({ img: iconePrato(id), txt: `Receita nova: ${Pratos.PRATOS[id].nome}` }); }
+  // as melhorias novas da loja do salão numa linha só (no degrau 3 são quatro), com a arte da primeira
+  if (typeof MELHORIAS !== 'undefined') { const ms = Object.values(MELHORIAS).filter(m => m.grau === g && !m.premio);
+    if (ms.length) L.push({ img: (ms.find(m => m.arte) || {}).arte || 'objetos/balcao_pensao', txt: `${ms.length === 1 ? 'Melhoria nova' : 'Melhorias novas'} para o salão: ${listaE(ms.map(m => m.nome))}` }); }
+  { const C = ECO.pensao.capricho, teto = k => Math.min(Pensao.NIVEL_MAX, C.base + C.porEstrela * (k - 1));
+    if (teto(g) > teto(g - 1)) L.push({ img: 'retratos/rosa_cozinha_alegre', txt: `A Rosa capricha até o nível ${teto(g)}` }); }
+  return L;
+}
+// A tela; `depois` abre o caixa (roda ao fechar, de qualquer jeito).
+// opc.manha: a estrela pendente (ao dormir), que leva ao resumo do dia e não ao caixa.
+function abrirEstrelaNova(r, depois, opc = {}) {
+  const depoisDaEstrela = opc.manha ? 'clique ou Espaço para continuar' : 'clique ou Espaço para ver o caixa';
+  const p = G.pensao, g = r.subiu, d = Pensao.DEGRAUS[g - 1], anima = !MODO_TESTE.leve;
+  const [retrato, fala] = FALA_ESTRELA[g] || ['rosa_alegre', 'A pensão subiu mais um degrau!'];
+  const estrelas = Array.from({ length: Math.max(1, g - 1) }, () => el('i', { class: 'fx-estrela' + (anima ? ' apagada' : '') }, '★'));
+  const ganhos = ganhosDoDegrau(g);
+  const caixa = el('div', { class: 'painel estrela-nova lousa com-pe' },
+    el('div', { class: 'titulo titulo-tela' }, 'A pensão subiu!'),
+    el('div', { class: 'miolo' },
+      el('div', { class: 'en-topo' }, ARTE_LISTA.includes('ui/selo_' + g) ? el('img', { class: 'en-selo', src: urlArte('ui/selo_' + g), alt: '' }) : null,
+        el('div', {}, el('div', { class: 'en-estrelas' }, ...estrelas), el('div', { class: 'en-nome' }, p.nomeGrau(g)))),
+      el('div', { class: 'en-rosa' }, el('div', { class: 'en-moldura' }, el('img', { src: urlArte('retratos/' + retrato), alt: 'Rosa' })), el('div', { class: 'en-fala' }, `Rosa: “${fala}”`)),
+      ganhos.length ? el('div', { class: 'en-sub' }, 'O que abriu') : null,
+      ganhos.length ? el('div', { class: 'en-ganhos' }, ...ganhos.map(x => el('div', { class: 'en-ganho' }, el('img', { src: urlArte(x.img), alt: '' }), el('span', {}, x.txt)))) : null,
+      d && d.despesa ? el('div', { class: 'en-despesa' }, `A despesa da noite passa a Cr$ ${d.despesa}.`) : null),
+    el('div', { class: 'pe en-pe' }, el('span', { class: 'en-dica' }, depoisDaEstrela),
+      el('button', { class: 'botao forte en-caixa', onclick: e => { e.stopPropagation(); fecharModal(); } }, opc.manha ? 'Continuar' : 'Ver o caixa')));
+  // o clique em qualquer lugar da lousa passa adiante (o caixa, ou o resumo do dia) (as teclas: ui.js, teclaNoModal fecha a janela)
+  caixa.addEventListener('click', e => { if (!e.target.closest('button')) { e.stopPropagation(); fecharModal(); } });
+  abrirModal(caixa, depois);
+  const plano = estrelas.map((_, i) => ({ t: 0.35 + i * ESTRELA_NOVA_PASSO, acao: 'estrela', k: i + 1, som: ['estrela_' + Math.min(5, i + 1), 1, 0, -4] }));
+  plano.push({ t: 0.35 + estrelas.length * ESTRELA_NOVA_PASSO, acao: 'fim', som: ['degrau_fanfarra', 1, 0, -2], conquista: true, sempre: true });
+  caixa._animando = anima;
+  contarFechamento(caixa, plano, anima, true);
 }
 // A fama da noite (curtidas, pitadas, metas, receitas novas, favoritos, presentes, o Paladar e o próximo degrau).
 function famaDoFechamento(r, p, linha) {

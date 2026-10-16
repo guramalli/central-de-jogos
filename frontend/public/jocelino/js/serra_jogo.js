@@ -332,10 +332,22 @@ function alvoDoMateiro() {
     if (m) return { mapa: 'serra', morador: QUIM.ID, rotuloFixo: `Os ${QUIM.CIPOS} cipós: botão direito no Nhô Quim para entregar` };
     if (Quim.noRancho()) return { mapa: 'serra', objeto: 'rancho_mateiro', rotuloFixo: 'Com chuva o Nhô Quim fica no rancho: botão direito na porta' };
   }
+  // (C12) O 1º cipó depois do pedido: a seta no cipó mais perto, com o porquê; some no 1º cipó catado com o pedido feito (G.limpou.cipo_quim)
+  if (q.passo === 1 && Quim.cipos() < QUIM.CIPOS && !G.limpou.cipo_quim) { const c = _cipoMaisPerto();
+    if (c) return Object.assign(c, { rotuloFixo: `Cipó! Botão direito para catar: o Nhô Quim pediu ${QUIM.CIPOS} pra ensinar a corda` }); }
   if (q.passo === 5 && !L.aberta && G.mochila.total('escada_corda') > 0)
     return { mapa: 'serra', objeto: 'loca_entrada', rotuloFixo: 'A loca: com a escada de corda na mochila, botão direito na pedra da fresta' };
   return null;
 }
+// O cipó de hoje ainda no chão da serra, o mais perto do Jocelino (só com ele na serra).
+function _cipoMaisPerto() {
+  if (G.mapaId !== 'serra' || !G.mapa || !G.jog || !G.achados || typeof Achados === 'undefined') return null;
+  const cat = G.achados.catados.serra || [], ks = new Set(Achados.doDia(G.dia, 'serra').filter(x => x.id === 'cipo' && !cat.includes(x.k)).map(x => 'achado_' + x.k));
+  let o = null, d = 1e9;
+  for (const x of G.mapa.objs) if (x.achado && ks.has(x.id)) { const dd = Math.hypot(x.x - G.jog.x, x.y - G.jog.y); if (dd < d) { d = dd; o = x; } }
+  return o && { mapa: 'serra', ponto: { x: o.x, y: o.y - 40 } };
+}
+AO_PEGAR.push(item => { if (item === 'cipo' && G.serra && G.serra.quim.passo === 1 && G.limpou) G.limpou.cipo_quim = 1; });
 
 // ---------- a Caderneta (aba Vila): o que o Nhô Quim pediu (a conversa explica o porquê) e o crucifixo por doar ----------
 // O Mostrar: na serra, o Nhô Quim (ou o rancho), a loca ou as clareiras; na mata, a saída de baixo; de outro lugar, a mata.
@@ -343,11 +355,18 @@ function _alvoNaSerra(a) {
   return G.mapaId === 'serra' ? Object.assign({ mapa: 'serra' }, a) : G.mapaId === 'mata' ? { mapa: 'mata', ponto: { x: 27 * TILE, y: 22 * TILE } } : { mapa: 'mata' };
 }
 const _alvoDoQuim = () => _alvoNaSerra(Quim.morador() ? { morador: QUIM.ID } : { objeto: 'rancho_mateiro' });
+// (C12, 16/10; o teste crítico: "o pedido dos 5 cipós não entra no Agora nem na lista") Na aba Mata e serra (caderneta.js), com a
+// barrinha e o Mostrar, logo que ele pede (antes a linha esperava a cachoeira, mesmo com o pedido feito no rancho). Os cipós com o porquê
+// de demorar: nascem no chão da serra, uns por dia (o sorteio dos achados, achados.js), e no verão a serra não dá cipó.
+const CIPO_NA_ESTACAO = est => (ACHADOS_SERRA[est] || []).some(([id]) => id === 'cipo');
 function linhasDoMateiro() {
-  if (!G.serra || typeof Mundo === 'undefined' || !Mundo.aberto('serra') || !G.limpou || !G.limpou.serra_cachoeira) return [];
-  const q = G.serra.quim, L = G.serra.loca, r = [], linha = (texto, alvo, feito, meta) => r.push(Object.assign({ id: 'serra_mateiro', aba: 'vila', texto, alvo }, meta ? { feito, meta } : {}));
-  if (q.passo === 0) linha('Na serra mora um mateiro, o Nhô Quim: o rancho dele fica na trilha, antes do rio (de dia, das 7h às 17h)', _alvoDoQuim);
-  else if (q.passo === 1) { const n = Math.min(Quim.cipos(), QUIM.CIPOS); linha(`O Nhô Quim ensina a trançar corda: leve ${QUIM.CIPOS} cipós para ele (${n} de ${QUIM.CIPOS})`, _alvoDoQuim, n, QUIM.CIPOS); }
+  if (!G.serra || typeof Mundo === 'undefined' || !Mundo.aberto('serra') || !G.limpou) return [];
+  const q = G.serra.quim, L = G.serra.loca, r = [], linha = (texto, alvo, feito, meta) => r.push(Object.assign({ id: 'serra_mateiro', aba: 'mata', texto, alvo }, meta ? { feito, meta } : {}));
+  if (q.passo === 0) { if (G.limpou.serra_cachoeira) linha('Na serra mora um mateiro, o Nhô Quim: o rancho dele fica na trilha, antes do rio (de dia, das 7h às 17h)', _alvoDoQuim); }
+  else if (q.passo === 1) { const n = Math.min(Quim.cipos(), QUIM.CIPOS), est = Math.floor((G.dia - 1) / 28) % 4;
+    linha(n >= QUIM.CIPOS ? `Cipós ${n}/${QUIM.CIPOS}: leve ao Nhô Quim, que ele ensina a trançar corda`
+      : `Cipós ${n}/${QUIM.CIPOS}: nascem no chão da serra, uns por dia${CIPO_NA_ESTACAO(est) ? '' : ' (no verão, não: volta no outono)'}. O Nhô Quim ensina a trançar corda`,
+    n >= QUIM.CIPOS ? _alvoDoQuim : () => _cipoMaisPerto() || _alvoDoQuim(), n, QUIM.CIPOS); }
   else if (q.passo === 3) { const n = Math.min(Quim.mudas(), QUIM.MUDAS), C = SERRA.CLAREIRAS[0];
     linha(`O Nhô Quim pediu ${QUIM.MUDAS} mudas nas clareiras feridas da serra (${n} de ${QUIM.MUDAS})`, () => _alvoNaSerra({ ponto: { x: (C.x + C.w / 2) * TILE, y: (C.y + 1) * TILE } }), n, QUIM.MUDAS); }
   else if (q.passo === 4) linha(q.tabarana ? 'Você pegou a tabarana: vá contar ao Nhô Quim' : 'O Nhô Quim quer saber de uma tabarana do poço da Cachoeira Grande (primavera e verão)',

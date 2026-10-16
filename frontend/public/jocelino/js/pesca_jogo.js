@@ -4,7 +4,7 @@
 
 const VARAS = ['vara', 'vara_boa', 'molinete'];
 const LINHA = { ESPERA: [2, 8], JANELA: 1, VEL_FORCA: 1.4, CUSTO: 3 };
-INICIADORES.push(s => { const p = s.pesca || {}; G.pesca = { covos: (p.covos || []).map(c => Object.assign({}, c)), lendarios: (p.lendarios || []).slice(), varaDada: !!p.varaDada, dicaLendario: p.dicaLendario || 0, serra: (p.serra || []).slice() }; G.linha = null; if (G.jog) G.jog.pescando = false; });
+INICIADORES.push(s => { const p = s.pesca || {}; G.pesca = { covos: (p.covos || []).map(c => Object.assign({}, c)), lendarios: (p.lendarios || []).slice(), varaDada: !!p.varaDada, dicaLendario: p.dicaLendario || 0, serra: (p.serra || []).slice(), primeiroDia: p.primeiroDia | 0 }; G.linha = null; if (G.jog) G.jog.pescando = false; });
 COLETORES.push(s => { s.pesca = JSON.parse(JSON.stringify(G.pesca)); });
 
 // Água de pesca: mar ou rio dentro do mapa, fora das tábuas do píer e da ponte da mata (por baixo delas o chão é água).
@@ -223,6 +223,22 @@ const PRECO_BANCA = ECO.lojas.banca;
 const PEDE_PESCA = { vara_boa: 2 };
 // O preço na banca (a vara boa sai pela metade com o Aquário do Grêmio pronto).
 function precoBanca(id) { return Math.max(1, Math.round(PRECO_BANCA[id] * descontoHab() * (id === 'vara_boa' && typeof Gremio !== 'undefined' ? Gremio.fatorVaraBoa() : 1))); }
+// (C9, 16/10; o teste crítico C, solução 5) O 1º peixe do dia: antes de a pensão abrir, o Seu Lourival paga o primeiro peixe vendido
+// na banca a ECO.pesca.primeiroDoDia × o preço (3×). É o "freguês" da aula: a banca pagava Cr$ 15 por 1h30 de pesca e a tarde dos
+// dias 2 a 4 não tinha motivo. Como no Stardew, o "Procura-se" do quadro do Pierre paga 3 × o preço do item pedido; no Dave, o peixe
+// do dia tem freguês. Com a pensão aberta o peixe vai para a despensa da Rosa (o prato da janta), e o bônus sai.
+const primeiroDoLourival = () => !(G.pensao && G.pensao.estado === 'aberta') && !!G.pesca && G.pesca.primeiroDia !== G.dia && (ECO.pesca.primeiroDoDia || 1) > 1;
+// O que a banca paga por n peixes agora (o 1º do dia com o bônus) e o preço do 1º, para a tela.
+function pagaBanca(id, n) { const p = precoPeixe(id); return n * p + (n > 0 && primeiroDoLourival() ? Math.round(p * (ECO.pesca.primeiroDoDia - 1)) : 0); }
+function venderNaBanca(id, n) {
+  n = Math.min(n, G.mochila.total(id)); if (n <= 0) return 0;
+  const bonus = primeiroDoLourival(), v = pagaBanca(id, n);
+  G.mochila.remover(id, n); G.dinheiro += v; G.ganhoHoje += v;
+  if (bonus) G.pesca.primeiroDia = G.dia;
+  sons.tocar('dinheiro', 1.1, 0.05, -4); hudSujo();
+  avisar(`Vendeu ${Itens.qtd(n, id)} por Cr$ ${v}.${bonus ? ` O Lourival pagou ${ECO.pesca.primeiroDoDia} vezes o 1º do dia: "O primeiro peixe é meu, compadre!"` : ''}`);
+  return v;
+}
 let _abaBanca = 0;
 function abrirBanca() {
   if (relogio.domingo() || G.minutos < 7 * 60 || G.minutos >= 17 * 60) { abrirConversa('Seu Lourival', urlArte('retratos/lourival_normal'), [relogio.domingo() ? 'Domingo a banca descansa, compadre.' : 'A banca abre das 7h às 17h.']); return true; }
@@ -235,9 +251,12 @@ function abrirBanca() {
     let linhas;
     if (_abaBanca === 0) {
       const ids = [...new Set(G.mochila.slots.filter(Boolean).map(s => s.id))].filter(id => DADOS_PEIXE[id]);
-      linhas = ids.map(id => el('div', { class: 'linha', onclick: e => { e.stopPropagation(); const n = e.shiftKey ? G.mochila.total(id) : 1; G.mochila.remover(id, n); const v = n * precoPeixe(id); G.dinheiro += v; G.ganhoHoje += v; sons.tocar('dinheiro', 1.1, 0.05, -4); avisar(`Vendeu ${Itens.qtd(n, id)} por Cr$ ${v}.`); hudSujo(); desenha(); } },
-        el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id))), el('span', { class: 'preco' }, 'Cr$ ' + precoPeixe(id))));
+      // (C9) o 1º do dia, antes da pensão: o preço da linha já é o dele (3×), com o porquê embaixo do nome
+      const bonus = primeiroDoLourival();
+      linhas = ids.map(id => el('div', { class: 'linha', onclick: e => { e.stopPropagation(); venderNaBanca(id, e.shiftKey ? G.mochila.total(id) : 1); desenha(); } },
+        el('img', { src: urlItem(id) }), el('div', {}, Itens.nome(id), el('div', { class: 'tem' }, 'tem ' + G.mochila.total(id) + (bonus ? ` · o 1º de hoje: ${ECO.pesca.primeiroDoDia}×` : ''))), el('span', { class: 'preco' }, 'Cr$ ' + pagaBanca(id, 1))));
       if (!linhas.length) linhas = [el('div', { class: 'rodape' }, 'Nenhum peixe na mochila.')];
+      else if (bonus) caixa.append(el('div', { class: 'rodape banca-primeiro' }, `Seu Lourival: "O primeiro peixe do dia eu pago ${ECO.pesca.primeiroDoDia} vezes, compadre. Os outros, o preço de sempre."`));
     } else {
       linhas = Object.keys(PRECO_BANCA).map(id => { const pede = PEDE_PESCA[id], trava = pede && Habilidades.nivel('pesca') < pede, preco = precoBanca(id);
         return el('div', { class: 'linha' + (trava ? ' trancado' : ''), onclick: e => { e.stopPropagation(); if (trava) { avisar(`Isso pede Pesca ${pede}.`); return; } _comprar(id, e.shiftKey && id === 'isca' ? 5 : 1, preco); desenha(); } },
@@ -319,7 +338,7 @@ addEventListener('load', () => {
     if (typeof Mundo === 'undefined' || !Mundo.aberto('serra') || !G.limpou || !G.limpou.serra_cachoeira || !G.pesca) return [];
     const ja = PEIXES_SERRA.filter(id => (G.pesca.serra || []).includes(id) || G.pesca.lendarios.includes(id)).length, prox = proximoPeixeDaSerra();
     if (!prox) return [];
-    return [{ id: 'serra_pesca', aba: 'vila', texto: `Os peixes da Mata da Serra: ${ja} de ${PEIXES_SERRA.length} pegos. Falta ${QUANDO_PEIXE_SERRA[prox]}`, feito: ja, meta: PEIXES_SERRA.length,
+    return [{ id: 'serra_pesca', aba: 'mata', texto: `Os peixes da Mata da Serra: ${ja} de ${PEIXES_SERRA.length} pegos. Falta ${QUANDO_PEIXE_SERRA[prox]}`, feito: ja, meta: PEIXES_SERRA.length,
       alvo: () => G.mapaId === 'serra' ? { mapa: 'serra', ponto: ['tabarana', 'tabarana_ouro'].includes(prox) ? PONTO_POCO_SERRA() : { x: 21.5 * TILE, y: (SERRA.RIO_Y + 1) * TILE } }
         : G.mapaId === 'mata' ? { mapa: 'mata', ponto: { x: 27 * TILE, y: 22 * TILE } } : { mapa: 'mata' },
       rotulo: 'Com a vara na mão: jogue a boia aqui' }];

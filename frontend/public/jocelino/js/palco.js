@@ -1242,10 +1242,37 @@ ATUALIZADORES.push(() => {
 });
 
 // ---------- Adiantar (o "Time Skip" do Bancho) ----------
+// (C8, 16/10; o teste crítico C, solução 5) Fora da janta, o Adiantar anda em DOIS passos: antes do meio-dia leva às 13h ("depois do
+// almoço"), e do meio-dia às 17h, à janta. O teste crítico viu o Adiantar das ~8h pular direto para as 17h: o meio do dia sumia e a vida
+// de dia (a pesca, a horta, a coleta) não tinha vez. Como no Dave: o dia é o mergulho da manhã, o da tarde e a noite no Bancho. Quem quer
+// pular tudo clica duas vezes; às 13h a Rosa traz o convite da tarde (cartao.js: o que falta no cardápio de hoje, com o valor na janta).
+const ADIANTAR_ALMOCO = 12 * 60, ADIANTAR_TARDE = 13 * 60;
+// Para onde o Adiantar leva agora, fora da janta: 13h, 17h (a janta) ou null (hoje não tem janta para adiantar).
+function adiantarPara() {
+  if (G.turno || !G.pensao || !pensaoAbreHoje() || G.pensao.ultimaJanta === G.dia || G.minutos >= TurnoJanta.ABRE) return null;
+  return G.minutos < ADIANTAR_ALMOCO ? ADIANTAR_TARDE : TurnoJanta.ABRE;
+}
+// Às 13h, depois do Adiantar: a Rosa fala do almoço e do convite da tarde. A 1ª vez (G.limpou.adiantar_dois), ela explica os dois passos
+// numa fala e a seta da tela vai no Adiantar ("de novo: até a janta", guia_setas.js); depois, só um aviso curto com o convite.
+function depoisDoAlmoco() {
+  const c = typeof conviteDaTarde === 'function' ? conviteDaTarde() : null, v = c && c.convite;
+  const conv = v ? (v.tipo === 'melhora' ? ` ${v.fala}` : ` Pra janta de hoje falta ${nomeNaPanela(v.k)}: ${v.fala.charAt(0).toLowerCase() + v.fala.slice(1)}`) : ' A tarde é sua: a horta, a pesca, um passeio.';   // (C9) a melhora: "A janta já tá garantida, mas..."
+  if (c && typeof marcaConvite === 'function') marcaConvite(c);
+  if (v && G.limpou && !G.limpou.convite_tarde_dia) G.limpou.convite_tarde_dia = G.dia;   // (esta é a frase do 1º convite: a do cartao.js não repete)
+  if (G.limpou && !G.limpou.adiantar_dois) {
+    G.limpou.adiantar_dois = 1;
+    abrirConversa('Rosa', urlArte('retratos/rosa_normal'), [`Uma da tarde: hora do almoço, Jocelino.${conv} Quando quiser ir direto pra janta, clica de novo no Adiantar: ele leva até as 17h.`]);
+  } else avisar(`13h, depois do almoço.${conv}`);
+}
 function palcoAdiantar() {
   const t = G.turno;
   if (!t) {
-    if (pensaoAbreHoje() && G.pensao.ultimaJanta !== G.dia && G.minutos < TurnoJanta.ABRE) { G.minutos = TurnoJanta.ABRE; return true; }
+    const para = adiantarPara();
+    if (para != null) {
+      G.minutos = para; relogio._acum = 0;
+      if (para === ADIANTAR_TARDE) depoisDoAlmoco(); else if (G.limpou && G.limpou.adiantar_dois === 1) G.limpou.adiantar_dois = 2;   // (o 2º passo feito: a seta some)
+      return true;
+    }
     if (jantaEsperaCardapio()) { pensaoQuadro(); return false; }   // (o cardápio do Bancho) às 17h a janta espera o quadro
     avisar('Não tem janta para adiantar agora.'); return false;
   }
@@ -1276,7 +1303,8 @@ function rodapePalco() {
       el('button', { class: 'tabua bt-calendario', title: 'A semana da pensão: quem vem jantar, as festas e o domingo fechado', onclick: e => { e.stopPropagation(); abrirCalendarioPensao(); } }, 'Semana'),
       el('button', { class: 'tabua acesa bt-concurso', hidden: true, onclick: e => { e.stopPropagation(); abrirConcurso(); } }, 'Concurso 🎙'),
       el('div', { class: 'farinha', title: 'A farinheira: cada prato que a Rosa termina gasta 1 de farinha; vazia, a cozinha para. Para repor, clique na farinheira do salão (usa a farinha da despensa).' }, el('img', { src: urlArte('salao/farinheira') }), el('span', {}, '')),
-      el('button', { class: 'tabua', title: 'Pula o tempo até o próximo cliente (antes das 17h, até a janta)', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸'),
+      el('button', { class: 'tabua bt-adiantar', title: 'Pula o tempo até o próximo cliente (antes das 17h, até a janta)', onclick: e => { e.stopPropagation(); palcoAdiantar(); } }, 'Adiantar ▸▸',
+        el('span', { class: 'adiantar-para', style: 'display:block; font-size:max(10px, .75em); line-height:1; margin-top:-2px' }, '')),   // (C8) para onde vai, na linha de baixo (o rodapé não cabe mais largo); (C9, a revisão da C8) no mínimo 10 px: com .62em ficava ~8 px na 960 e no celular
       el('button', { class: 'tabua', onclick: e => { e.stopPropagation(); sairDoPalco(); } }, 'Sair'));
     document.body.append(r);
   }
@@ -1289,6 +1317,10 @@ ATUALIZADORES.push(() => {
   { const dica = $('#hud .dica-barra'); if (dica) dica.style.visibility = ver ? 'hidden' : ''; }   // (tarefa 7: o "Tab: próxima fileira" da barra escondida flutuava em cima do rodapé)
   if (!ver) return;
   const bc = r.querySelector('.bt-concurso'), cv = typeof podeConcurso === 'function' && podeConcurso(); if (bc.hidden === cv) bc.hidden = !cv;
+  // (C8) o Adiantar diz para onde vai: "até as 13h" (antes do meio-dia), "até a janta" (do meio-dia às 17h); na janta, o próximo cliente
+  { const ba = r.querySelector('.bt-adiantar'), sp = ba.querySelector('.adiantar-para'), para = adiantarPara();
+    const tx = para === ADIANTAR_TARDE ? 'até as 13h' : para != null ? 'até a janta' : '';
+    if (sp.textContent !== tx) { sp.textContent = tx; sp.style.display = tx ? 'block' : 'none'; ba.title = para === ADIANTAR_TARDE ? 'Pula até as 13h, depois do almoço (de novo: até a janta, às 17h)' : para != null ? 'Pula até as 17h: a janta' : 'Pula o tempo até o próximo cliente'; } }
   const txt = G.turno ? `${G.turno.farinha}/${G.turno.farinhaMax || TurnoJanta.FARINHA_MAX}` : '—';
   const sp = r.querySelector('.farinha span'); if (sp.textContent !== txt) sp.textContent = txt;
   const im = r.querySelector('.farinha img'), src = urlArte(farinheiraVazia() ? 'salao/farinheira_vazia' : 'salao/farinheira');   // (16/10) o ícone também esvazia

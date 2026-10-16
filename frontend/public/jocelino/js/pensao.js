@@ -423,11 +423,13 @@ class Pensao {
   }
   // A marmita do Jocelino (o cardápio do Bancho, 13/10): de manhã a Rosa completa a mesa de casa até ECO.pensao.marmita.porDia,
   // gastando ECO.pensao.marmita.gasta da despensa (o gasto da fornada da manhã, não por marmita). (16/10) Já é o gasto por prato:
-  // 2 marmitas de arroz e feijão × 0,5 (ECO.pensao.gastoPorPorcao) = 1 de arroz e 1 de feijão. Só com a pensão aberta: antes,
-  // a despensa não existe (a reforma não guarda nada). naMesa: as que sobraram de ontem. Devolve { feitas, falta: [ingredientes] }.
+  // 2 marmitas de arroz e feijão × 0,5 (ECO.pensao.gastoPorPorcao) = 1 de arroz e 1 de feijão. naMesa: as que sobraram de
+  // ontem. Devolve { feitas, falta: [ingredientes] }. (C9, 16/10) Antes de a pensão abrir (a despensa não existe: a reforma não guarda
+  // nada), a mesa vai até ECO.pensao.marmita.antesDaPensao (1), com o arroz e o feijão de casa, sem gasto: { feitas, falta: [], deCasa: true }.
   fazerMarmitas(naMesa = 0) {
-    const M = ECO.pensao.marmita, quer = Math.max(0, M.porDia - naMesa);
-    if (this.estado !== 'aberta' || !quer) return { feitas: 0, falta: [] };
+    const M = ECO.pensao.marmita, aberta = this.estado === 'aberta', quer = Math.max(0, (aberta ? M.porDia : M.antesDaPensao || 0) - naMesa);
+    if (!quer) return { feitas: 0, falta: [] };
+    if (!aberta) return { feitas: quer, falta: [], deCasa: true };
     const falta = Object.keys(M.gasta).filter(id => this._tem(id) < M.gasta[id]);
     if (falta.length) return { feitas: 0, falta };
     for (const id in M.gasta) { this.despensa[id] -= M.gasta[id]; if (this.despensa[id] <= 0) delete this.despensa[id]; }
