@@ -114,6 +114,10 @@ def main():
     a = np.asarray(Image.open(folha).convert("RGB"))
     f, tons = fundo(a, roupa_branca="--roupa-branca" in sys.argv)
     obj = nd.binary_opening(~f, iterations=1)
+    if grade:  # 2x2: corta a folha em 4 quadrantes, para duas vistas encostadas (nariz com nariz) não virarem uma
+        h2, w2 = obj.shape[0] // 2, obj.shape[1] // 2
+        obj[h2 - 1:h2 + 1, :] = False
+        obj[:, w2 - 1:w2 + 1] = False
     rot, n = nd.label(obj)
     tam = nd.sum(obj, rot, range(1, n + 1))
     maiores = np.argsort(tam)[::-1][:len(ordem)] + 1
@@ -128,6 +132,12 @@ def main():
     for vista, ((sy, sx), k) in zip(ordem, itens):
         mask = rot == k
         mask |= nd.binary_fill_holes(mask) & ~f  # buraquinhos do contorno voltam; os de xadrez não
+        # tira linhas finas grudadas (risco do papel, divisória da folha): some na abertura e não volta
+        aberto = nd.binary_opening(mask, iterations=3)
+        r3, n3 = nd.label(aberto)
+        if n3:
+            maior = np.argmax(nd.sum(aberto, r3, range(1, n3 + 1))) + 1
+            mask &= nd.binary_dilation(r3 == maior, iterations=4)
         rgba = np.zeros(a.shape[:2] + (4,), np.uint8)
         rgba[..., :3] = a
         rgba[..., 3] = np.where(mask, 255, 0)
