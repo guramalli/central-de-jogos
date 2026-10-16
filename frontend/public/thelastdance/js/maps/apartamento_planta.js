@@ -19,7 +19,7 @@
 
     comodos: [
       { nome: "Sala", x0: 0, y0: 0, x1: 6, y1: 7, piso: "#3b3640", piso2: "#433d49" },
-      { nome: "Quarto", x0: 6, y0: 0, x1: 10, y1: 7, piso: "#4a3a33", piso2: "#523f37" },
+      { nome: "Quarto", x0: 6, y0: 0, x1: 10, y1: 7, piso: "#4a3a33", piso2: "#523f37", piso_arte: "piso_madeira" },
     ],
 
     // Caixas sólidas (colisão + desenho). tipo define a cor do bloco.
@@ -48,13 +48,13 @@
 
       // QUARTO (do moodboard)
       // armário no fundo: alto na frente da câmera taparia a sala
-      { nome: "Armário", tipo: "armario", x0: 6.15, y0: 0, x1: 7.05, y1: 0.6, z1: 2.1 },
-      { nome: "Cama", tipo: "cama", x0: 7.35, y0: 0, x1: 9.25, y1: 2.1, z1: 0.55 },
-      { nome: "Criado-mudo", tipo: "movel", x0: 9.35, y0: 0, x1: 9.85, y1: 0.45, z1: 0.55 },
-      { nome: "Mesa + computador", tipo: "mesa", x0: 9.3, y0: 3.6, x1: 10, y1: 5.2, z1: 0.75 },
-      { nome: "Cadeira", tipo: "cadeira", x0: 8.6, y0: 4.15, x1: 9.1, y1: 4.65, z1: 0.9 },
-      { nome: "Roupas no chão", tipo: "baixo", x0: 7.6, y0: 3.0, x1: 8.4, y1: 3.6, z1: 0.08, passavel: true },
-      { nome: "Planta", tipo: "planta", x0: 9.4, y0: 6.3, x1: 9.85, y1: 6.75, z1: 1.2 },
+      { nome: "Armário", tipo: "armario", x0: 6.15, y0: 0, x1: 7.05, y1: 0.6, z1: 2.1, arte: "armario" },
+      { nome: "Cama", tipo: "cama", x0: 7.35, y0: 0, x1: 9.25, y1: 2.1, z1: 0.55, arte: "cama" },
+      { nome: "Criado-mudo", tipo: "movel", x0: 9.35, y0: 0, x1: 9.85, y1: 0.45, z1: 0.55, arte: "criado_mudo" },
+      { nome: "Mesa + computador", tipo: "mesa", x0: 9.3, y0: 3.6, x1: 10, y1: 5.2, z1: 0.75, arte: "mesa_computador" },
+      { nome: "Cadeira", tipo: "cadeira", x0: 8.6, y0: 4.15, x1: 9.1, y1: 4.65, z1: 0.9, arte: "cadeira" },
+      { nome: "Roupas no chão", tipo: "baixo", x0: 7.6, y0: 3.0, x1: 8.4, y1: 3.6, z1: 0.08, passavel: true, arte: "roupas_chao" },
+      { nome: "Planta", tipo: "planta", x0: 9.4, y0: 6.3, x1: 9.85, y1: 6.75, z1: 1.2, arte: "planta" },
     ],
 
     // Coisas na parede (sem colisão): plano "x0" = parede da esquerda (x = 0), "y0" = da direita (y = 0).
@@ -68,8 +68,8 @@
       { nome: "Parede vermelha", tipo: "vermelha", plano: "y0", a: 2.8, b: 6.0, z0: 0, z1: 2.7 },
       { nome: "Porta de entrada", tipo: "porta", plano: "y0", a: 4.0, b: 5.0, z0: 0, z1: 2.15, saida: true },
       { nome: "Quadro pop-art", tipo: "quadro", plano: "y0", a: 3.0, b: 3.8, z0: 1.2, z1: 2.0 },
-      { nome: "Neon \"Mais uma noite?\"", tipo: "neon", plano: "y0", a: 7.5, b: 9.1, z0: 1.4, z1: 2.1 },
-      { nome: "Janela", tipo: "vidro", plano: "y0", a: 9.35, b: 9.9, z0: 1.0, z1: 2.2 },
+      { nome: "Neon \"Mais uma noite?\"", tipo: "neon", plano: "y0", a: 7.5, b: 9.1, z0: 1.4, z1: 2.2, arte: "neon" },
+      { nome: "Janela", tipo: "vidro", plano: "y0", a: 9.3, b: 9.95, z0: 0.95, z1: 2.25, arte: "janela" },
     ],
 
     // Pontos de interesse (FASE 6 vai usar para interação); aqui servem para testar se tudo é alcançável.

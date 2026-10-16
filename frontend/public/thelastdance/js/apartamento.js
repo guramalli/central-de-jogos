@@ -50,6 +50,11 @@
   };
 
   let manifesto = null, conjunto = null;
+  // Catálogo de peças do mapa (assets/maps/props/props.json): arte das caixas e texturas de parede.
+  const PASTA_PROPS = "assets/maps/props/";
+  const TEXTURA_PAREDE = "parede_lilas";
+  let props = null;
+  const imgProps = {};
   const folhas = {};
   const comodo = INICIOS[params.get("comodo")] ? params.get("comodo") : "quarto";
   const jog = { x: INICIOS[comodo].x, y: INICIOS[comodo].y, dir: "baixo", andando: false, tempo: 0 };
@@ -202,8 +207,33 @@
     if (contorno) { ctx.strokeStyle = contorno; ctx.lineWidth = 1.5; ctx.stroke(); }
   }
 
+  // Textura vista de cima aplicada no chão de um cômodo (repetida a cada "metros"), inclinada no ângulo do mapa.
+  function pisoTexturizado(ctx, c) {
+    const info = props && c.piso_arte && props.props[c.piso_arte], tex = imgProps[c.piso_arte];
+    if (!tex) return false;
+    const L = info.metros || 2;
+    ctx.save();
+    const borda = [T(c.x0, c.y0, 0), T(c.x1, c.y0, 0), T(c.x1, c.y1, 0), T(c.x0, c.y1, 0)];
+    ctx.beginPath(); borda.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath();
+    ctx.clip();
+    for (let x = c.x0; x < c.x1 - 1e-6; x += L) {
+      for (let y = c.y0; y < c.y1 - 1e-6; y += L) {
+        const o = T(x, y, 0), ex = T(x + L, y, 0), ey = T(x, y + L, 0);
+        ctx.save();
+        // +0.5 px nas bordas evita a linha fina entre repetições
+        ctx.transform((ex[0] - o[0]) / (tex.width - 0.5), (ex[1] - o[1]) / (tex.width - 0.5),
+          (ey[0] - o[0]) / (tex.height - 0.5), (ey[1] - o[1]) / (tex.height - 0.5), o[0], o[1]);
+        ctx.drawImage(tex, 0, 0);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+    return true;
+  }
+
   function desenharPiso(ctx) {
     for (const c of P.comodos) {
+      if (pisoTexturizado(ctx, c)) continue;
       for (let x = c.x0; x < c.x1; x += 0.5) {
         for (let y = c.y0; y < c.y1; y += 0.5) {
           const cor = ((x + y) * 2) % 2 ? c.piso : c.piso2;
@@ -223,7 +253,23 @@
     }
   }
 
+  // Imagem vista de frente colada no retângulo da parede (a..b, z0..z1), no plano x = 0 ou y = 0.
+  function decalque(ctx, w) {
+    const im = props && w.arte && imgProps[w.arte];
+    if (!im) return false;
+    const P3 = (u, z) => (w.plano === "x0" ? T(0, u, z) : T(u, 0, z));
+    const o = P3(w.a, w.z1), fimU = P3(w.b, w.z1), base = P3(w.a, w.z0);
+    ctx.save();
+    if (w.tipo === "neon" && estado.efeitos) { ctx.shadowColor = "#ff3fbf"; ctx.shadowBlur = 28; }
+    ctx.transform((fimU[0] - o[0]) / im.width, (fimU[1] - o[1]) / im.width,
+      (base[0] - o[0]) / im.height, (base[1] - o[1]) / im.height, o[0], o[1]);
+    ctx.drawImage(im, 0, 0);
+    ctx.restore();
+    return true;
+  }
+
   function quadParede(ctx, w) {
+    if (decalque(ctx, w)) return;
     const p = w.plano === "x0"
       ? [T(0, w.a, w.z0), T(0, w.b, w.z0), T(0, w.b, w.z1), T(0, w.a, w.z1)]
       : [T(w.a, 0, w.z0), T(w.b, 0, w.z0), T(w.b, 0, w.z1), T(w.a, 0, w.z1)];
@@ -255,13 +301,50 @@
     }
   }
 
+  // Arte pronta de uma peça (props.json): imagem encaixada pelo canto (x0, y0, z = 0) da caixa.
+  function arte(ctx, c) {
+    const info = props && c.arte && props.props[c.arte], im = info && imgProps[c.arte];
+    if (!im) return false;
+    const [x, y] = T(c.x0, c.y0, 0), e = info.escala;
+    ctx.drawImage(im, x - info.origem_px[0] / e, y - info.origem_px[1] / e, im.width / e, im.height / e);
+    return true;
+  }
+
+  // Textura reta de parede aplicada numa face, inclinada no ângulo do mapa e repetida a cada largura_m.
+  // eixo "x": face no plano y = fixo, de x = a até b; eixo "y": face no plano x = fixo, de y = a até b.
+  function texturaFace(ctx, eixo, fixo, a, b, h, escurecer) {
+    const info = props && props.props[TEXTURA_PAREDE], tex = imgProps[TEXTURA_PAREDE];
+    if (!tex) return;
+    const P3 = (u, z) => (eixo === "x" ? T(u, fixo, z) : T(fixo, u, z));
+    const L = info.largura_m, H = info.altura_m;
+    ctx.save();
+    const contorno = [P3(a, 0), P3(b, 0), P3(b, h), P3(a, h)];
+    ctx.beginPath(); contorno.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath();
+    ctx.clip();
+    for (let u = a; u < b - 1e-6; u += L) {
+      const o = P3(u, H), fimU = P3(u + L, H), base = P3(u, 0);
+      ctx.save();
+      ctx.transform((fimU[0] - o[0]) / tex.width, (fimU[1] - o[1]) / tex.width,
+        (base[0] - o[0]) / tex.height, (base[1] - o[1]) / tex.height, o[0], o[1]);
+      ctx.drawImage(tex, 0, 0);
+      ctx.restore();
+    }
+    if (escurecer) { ctx.fillStyle = "rgba(10,0,25," + escurecer + ")"; ctx.fill(); }
+    ctx.restore();
+  }
+
   function caixa(ctx, c) {
+    if (arte(ctx, c)) return;
     const [cTopo, cEsq, cDir] = CORES[c.tipo] || CORES.movel;
     const z = c.z1;
     // faces visíveis: frente-esquerda (y = y1), frente-direita (x = x1), topo
     poli(ctx, [T(c.x0, c.y1, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x0, c.y1, z)], cEsq, "rgba(0,0,0,0.45)");
     poli(ctx, [T(c.x1, c.y0, 0), T(c.x1, c.y1, 0), T(c.x1, c.y1, z), T(c.x1, c.y0, z)], cDir, "rgba(0,0,0,0.45)");
     poli(ctx, [T(c.x0, c.y0, z), T(c.x1, c.y0, z), T(c.x1, c.y1, z), T(c.x0, c.y1, z)], cTopo, "rgba(0,0,0,0.45)");
+    if (c.tipo === "parede") { // as duas faces que dão para a câmera recebem a textura (a esquerda mais escura)
+      texturaFace(ctx, "x", c.y1, c.x0, c.x1, z, 0.22);
+      texturaFace(ctx, "y", c.x1, c.y0, c.y1, z, 0);
+    }
   }
 
   function desenharJogador(ctx) {
@@ -331,6 +414,18 @@
       im.src = PASTA_SPR + arq;
     })));
   }
+
+  // Peças do mapa: carrega o catálogo e só as imagens usadas na planta (+ a textura de parede).
+  fetch(PASTA_PROPS + "props.json").then((r) => r.json()).then((cat) => {
+    const usadas = new Set([TEXTURA_PAREDE, ...P.caixas.map((c) => c.arte), ...P.naParede.map((w) => w.arte),
+      ...P.comodos.map((c) => c.piso_arte)].filter(Boolean));
+    return Promise.all([...usadas].filter((n) => cat.props[n]).map((n) => new Promise((ok) => {
+      const im = new Image();
+      im.onload = () => { imgProps[n] = im; ok(); };
+      im.onerror = () => { estado.erros.push("peça não carregou: " + n); ok(); };
+      im.src = PASTA_PROPS + cat.props[n].arquivo;
+    }))).then(() => { props = cat; });
+  }).catch(() => { /* sem catálogo: continua com as caixas em blocos */ });
 
   fetch(PASTA_SPR + "jogo.json").then((r) => r.json()).then((j) => {
     manifesto = j;

@@ -1,0 +1,178 @@
+{
+  "versao": 1,
+  "props": {
+    "cama": {
+      "arquivo": "cama.png",
+      "escala": 2.0,
+      "origem_px": [
+        302.9,
+        210.5
+      ],
+      "tamanho_m": [
+        1.9,
+        2.1,
+        0.55
+      ],
+      "descricao": "cama de casal com cabeceira encostada na parede do fundo (lado y = 0)",
+      "ajuste": {
+        "x": 0.321,
+        "y": 0.306,
+        "espelhado": false,
+        "proporcao": 1.051
+      }
+    },
+    "parede_lilas": {
+      "tipo": "textura_parede",
+      "arquivo": "parede_lilas.png",
+      "px_por_m": 200,
+      "largura_m": 2.0,
+      "altura_m": 2.7,
+      "descricao": "textura reta de parede; o jogo inclina e repete a cada largura_m"
+    },
+    "mesa_computador": {
+      "arquivo": "mesa_computador.png",
+      "escala": 2.0,
+      "origem_px": [
+        231.3,
+        202.9
+      ],
+      "tamanho_m": [
+        0.7,
+        1.6,
+        0.75
+      ],
+      "descricao": "mesa encostada na parede da frente-direita (x = 0,7), com monitor virado para dentro do quarto (-x)",
+      "ajuste": {
+        "x": 0.257,
+        "y": 0.254,
+        "espelhado": false,
+        "proporcao": 1.012
+      }
+    },
+    "cadeira": {
+      "arquivo": "cadeira.png",
+      "escala": 2.0,
+      "origem_px": [
+        90.0,
+        207.9
+      ],
+      "tamanho_m": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "descricao": "cadeira de escritório virada para a mesa (+x), encosto do lado x = 0",
+      "ajuste": {
+        "x": 0.184,
+        "y": 0.184,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "planta": {
+      "arquivo": "planta.png",
+      "escala": 2.0,
+      "origem_px": [
+        101.0,
+        240.6
+      ],
+      "tamanho_m": [
+        0.45,
+        0.45,
+        1.2
+      ],
+      "descricao": "planta em vaso, alta",
+      "ajuste": {
+        "x": 0.157,
+        "y": 0.157,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    },
+    "neon": {
+      "tipo": "decal",
+      "arquivo": "neon.png",
+      "tamanho_px": [
+        768,
+        384
+      ]
+    },
+    "janela": {
+      "tipo": "decal",
+      "arquivo": "janela.png",
+      "tamanho_px": [
+        429,
+        768
+      ]
+    },
+    "piso_madeira": {
+      "tipo": "textura_piso",
+      "arquivo": "piso_madeira.png",
+      "tamanho_px": [
+        768,
+        768
+      ],
+      "metros": 2.0
+    },
+    "armario": {
+      "arquivo": "armario.png",
+      "escala": 2.0,
+      "origem_px": [
+        86.4,
+        420.0
+      ],
+      "tamanho_m": [
+        0.9,
+        0.6,
+        2.1
+      ],
+      "descricao": "guarda-roupa alto encostado na parede do fundo (y = 0), portas viradas para +y",
+      "ajuste": {
+        "x": 0.186,
+        "y": 0.268,
+        "espelhado": false,
+        "proporcao": 0.694
+      }
+    },
+    "criado_mudo": {
+      "arquivo": "criado_mudo.png",
+      "escala": 2.0,
+      "origem_px": [
+        65.4,
+        110.8
+      ],
+      "tamanho_m": [
+        0.5,
+        0.45,
+        0.55
+      ],
+      "descricao": "criado-mudo baixo ao lado da cama, encostado na parede do fundo (y = 0)",
+      "ajuste": {
+        "x": 0.125,
+        "y": 0.125,
+        "espelhado": false,
+        "proporcao": 0.997
+      }
+    },
+    "roupas_chao": {
+      "arquivo": "roupas_chao.png",
+      "escala": 2.0,
+      "origem_px": [
+        86.6,
+        29.6
+      ],
+      "tamanho_m": [
+        0.8,
+        0.6,
+        0.08
+      ],
+      "descricao": "roupas e um tênis jogados no chão, bem baixos",
+      "ajuste": {
+        "x": 0.103,
+        "y": 0.103,
+        "espelhado": false,
+        "proporcao": 1.0
+      }
+    }
+  }
+}
