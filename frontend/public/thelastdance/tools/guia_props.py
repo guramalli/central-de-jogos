@@ -190,6 +190,71 @@ PECAS = {
         "descricao": "pilar quadrado de concreto da garagem, faixas amarelas e pretas na base",
         "caixas": [{"x": (0, 0.6), "y": (0, 0.6), "z": (0, 2.6)}],
     },
+    # ---- casa do amigo: quintal com churrasqueira e piscina (js/maps/casa_amigo_planta.js) ----
+    "churrasqueira": {
+        "descricao": "churrasqueira de tijolinho com chaminé, encostada no muro do fundo (y = 0), boca virada para +y",
+        "caixas": [
+            {"x": (0, 2.0), "y": (0, 0.9), "z": (0, 1.0)},          # base com a grelha (colisão)
+            {"x": (0.4, 1.6), "y": (0, 0.6), "z": (1.0, 2.4)},      # coifa e chaminé
+        ],
+    },
+    "bancada_pia": {
+        "descricao": "bancada de granito com pia e armário embaixo, encostada no muro do fundo, frente para +y",
+        "caixas": [{"x": (0, 2.3), "y": (0, 0.7), "z": (0, 0.95)}],
+    },
+    "cervejeira": {
+        "descricao": "cervejeira alta com porta de vidro, encostada no muro do fundo, porta virada para +y",
+        "caixas": [{"x": (0, 0.7), "y": (0, 0.7), "z": (0, 1.6)}],
+    },
+    "mesa_madeira": {
+        "descricao": "mesa comprida de madeira rústica para 8 pessoas",
+        "caixas": [{"x": (0, 3.0), "y": (0, 1.2), "z": (0, 0.78)}],
+    },
+    "banco_madeira": {
+        "descricao": "banco comprido de madeira rústica, sem encosto",
+        "caixas": [{"x": (0, 3.0), "y": (0, 0.35), "z": (0, 0.45)}],
+    },
+    "piscina": {
+        "descricao": "piscina retangular de azulejo azul, com borda de pedra clara e escadinha de inox",
+        "caixas": [{"x": (0, 5.0), "y": (0, 4.0), "z": (0, 0.12)}],
+    },
+    "espreguicadeira": {
+        "descricao": "espreguiçadeira de piscina, encosto levantado do lado y = 0",
+        "caixas": [
+            {"x": (0, 0.65), "y": (0, 1.8), "z": (0, 0.35)},
+            {"x": (0, 0.65), "y": (0, 0.5), "z": (0.35, 0.8)},
+        ],
+    },
+    "guarda_sol": {
+        "descricao": "guarda-sol de praia aberto, haste fincada numa base",
+        "caixas": [{"x": (0, 0.4), "y": (0, 0.4), "z": (0, 2.4)}],
+    },
+    "caixa_termica": {
+        "descricao": "caixa térmica (cooler) cheia de gelo e latinhas",
+        "caixas": [{"x": (0, 0.6), "y": (0, 0.4), "z": (0, 0.45)}],
+    },
+    "mesa_plastico": {
+        "descricao": "mesa quadrada de plástico branca, de bar",
+        "caixas": [{"x": (0, 0.8), "y": (0, 0.8), "z": (0, 0.72)}],
+    },
+    "cadeira_plastico": {
+        "descricao": "cadeira de plástico branca de bar, de frente para a câmera (assento para +y), encosto do lado y = 0",
+        "caixas": [
+            {"x": (0, 0.45), "y": (0, 0.45), "z": (0, 0.45)},
+            {"x": (0.03, 0.42), "y": (0, 0.07), "z": (0.45, 0.9)},
+        ],
+    },
+    "cadeira_plastico_lado": {  # não se gera: é a cadeira_plastico espelhada
+        "descricao": "cadeira de plástico virada para +x (espelho da cadeira_plastico)",
+        "caixas": [
+            {"x": (0, 0.45), "y": (0, 0.45), "z": (0, 0.45)},
+            {"x": (0, 0.07), "y": (0.03, 0.42), "z": (0.45, 0.9)},
+        ],
+    },
+    "arvore": {
+        "descricao": "árvore frondosa de quintal (mangueira), tronco grosso",
+        "caixas": [{"x": (0, 1.0), "y": (0, 1.0), "z": (0, 3.2)}],
+    },
     "parede_2m": {
         "descricao": "trecho de parede do fundo com 2 m de largura e 2,7 m de altura (plano y = 0, de frente para o jogador)",
         "caixas": [

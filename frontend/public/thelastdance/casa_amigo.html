@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0712">
+<meta name="robots" content="noindex, nofollow">
+<title>Noite Sem Fim — casa do amigo</title>
+<link rel="stylesheet" href="css/estilo.css">
+<link rel="stylesheet" href="css/cena.css">
+<style>
+  html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+  #tela { touch-action: none; }
+  #painel { position: fixed; left: max(8px, env(safe-area-inset-left)); top: max(8px, env(safe-area-inset-top));
+            display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 16px); font: 600 13px system-ui, sans-serif; }
+  #painel a, #painel button, #painel span { background: rgba(36,21,54,0.88); color: #eee6ff; border: 1px solid #5b3d86;
+            border-radius: 8px; padding: 8px 11px; text-decoration: none; }
+  #painel button { cursor: pointer; }
+  #painel button[aria-pressed="true"] { background: #b0279a; border-color: #ff5ad8; }
+  #dica { opacity: 0.85; }
+  #tocando { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+             display: none; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; border-radius: 18px;
+             background: rgba(22,13,36,0.94); border: 2px solid #ff5ad8; color: #f3ecff; font: 600 15px system-ui, sans-serif;
+             box-shadow: 0 0 22px rgba(255,90,216,0.45); cursor: pointer; max-width: calc(100vw - 24px); }
+  #tocando.visivel { display: flex; }
+  #tocando svg { flex: none; animation: vibra 0.18s linear infinite alternate; }
+  #tocando span { white-space: nowrap; }
+  #tocando small { display: block; font-weight: 400; color: #c9b8ee; font-size: 13px; }
+  @keyframes vibra { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+  @media (prefers-reduced-motion: reduce) { #tocando svg { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="painel">
+  <a href="./">← Menu</a>
+  <button id="conjunto">Sprites</button>
+  <button id="demo">Passeio</button>
+  <button id="nomes">Nomes</button>
+  <button id="grade">Grade</button>
+  <button id="som" aria-pressed="true">Som: ligado</button>
+  <span id="dica">Toque no chão para andar · toque no portão para ir embora</span>
+</div>
+<!-- Casa do amigo: quintal do churrasco (em blocos até chegar a arte do kit). Mesmo motor (js/apartamento.js). -->
+<script src="js/base.js"></script>
+<script src="js/maps/iso.js"></script>
+<script src="js/maps/casa_amigo_planta.js"></script>
+<script src="js/ligacao.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/apartamento.js"></script>
+</body>
+</html>

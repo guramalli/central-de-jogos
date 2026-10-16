@@ -13,7 +13,7 @@ const sobrepoe = (a, b) => a.x0 < b.x1 - 1e-9 && b.x0 < a.x1 - 1e-9 && a.y0 < b.
 
 test("todos os mapas do caminho existem: apartamento, elevador, garagem, padaria", () => {
   const ids = MAPAS.map((m) => m.id).sort();
-  for (const id of ["apartamento", "elevador", "garagem", "padaria"]) assert.ok(ids.includes(id), ids.join(","));
+  for (const id of ["apartamento", "elevador", "garagem", "padaria", "casa_amigo"]) assert.ok(ids.includes(id), ids.join(","));
 });
 
 for (const P of MAPAS) {
