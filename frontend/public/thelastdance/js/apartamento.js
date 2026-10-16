@@ -307,12 +307,31 @@
     if (n.fala) n.balao = { texto: n.fala, ate: performance.now() + 3500 };
   }
 
+  // Botão direito do mouse = interagir: porta (com área de clique maior), pessoas e celular. Nunca anda.
+  function interagir(m) {
+    if (ligacao.tocando && ligacao.icone && Math.hypot(m.telaX - ligacao.icone[0], m.telaY - ligacao.icone[1]) < 90) {
+      irAtender();
+      return;
+    }
+    const npc = npcNoToque(m);
+    if (npc) { irFalarCom(npc); return; }
+    const rp = retanguloPorta(), folga = 40;
+    if (rp && m.telaX >= rp.x0 - folga && m.telaX <= rp.x1 + folga && m.telaY >= rp.y0 - folga && m.telaY <= rp.y1 + folga) irParaPorta();
+  }
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault()); // sem o menu do navegador no mapa
+  // No computador (mouse), a dica fala de clique e botão direito.
+  const dica = document.getElementById("dica");
+  if (dica && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    dica.textContent = "Clique no chão para andar · botão direito na porta" + (P.npcs ? " ou nas pessoas" : "") + " para interagir";
+  }
+
   canvas.addEventListener("pointerdown", (e) => {
     if (NSF.Ligacao && NSF.Ligacao.aberta()) return;
     if (porta.menu || porta.saindo || efeito.tipo || jog.oculto) return;
     const m = telaParaMundo(e.clientX, e.clientY);
     if (!m) return;
     e.preventDefault();
+    if (e.button === 2) { interagir(m); return; }
     if (ligacao.tocando && ligacao.icone && Math.hypot(m.telaX - ligacao.icone[0], m.telaY - ligacao.icone[1]) < 60) {
       irAtender();
       return;
@@ -842,7 +861,7 @@
   }).then(() => {
     // toca quando ele acorda no quarto (não toda vez que volta para casa)
     if (ROTEIRO_LIGACAO && comodo === "quarto" && !params.has("semligacao")) agendarLigacao(ROTEIRO_LIGACAO.toque_segundos || 4);
-    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair,
+    marcar(); window.NSF_APTO = { ligacao, telefoneToca, atenderTelefone, irPara, telaParaMundo, porta, irParaPorta, retanguloPorta, planta: P, efeito, sair, interagir,
       npcs: NPCS, retanguloNpc, irFalarCom, falarCom,
       mundoParaTela(x, y) { // inverso de telaParaMundo (para testes): ponto do mundo -> coordenada do toque
         const v = ultimaVista, r = canvas.getBoundingClientRect(), [lx, ly] = T(x, y, 0);
