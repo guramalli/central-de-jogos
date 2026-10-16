@@ -78,9 +78,10 @@ def recortar(img, vista):
     # Preenche essa área do tronco com a cor do tronco mais próxima.
     if "tronco" in saida:
         tronco = saida["tronco"]
+        z = {c["nome"]: c["z"] for c in v["camadas"]}
         braco = np.zeros((H, W), bool)
-        for nome in saida:
-            if nome.startswith(("braco", "antbraco", "mao")):
+        for nome in saida:  # só os braços desenhados POR CIMA do tronco deixam buraco ao balançar
+            if nome.startswith(("braco", "antbraco", "mao")) and z.get(nome, 0) > z.get("tronco", 0):
                 braco |= saida[nome][..., 3] > 0
         conhecido = tronco[..., 3] > 0
         cobrir = braco & R.dilatar(conhecido, 40) & ~conhecido
