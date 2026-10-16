@@ -185,9 +185,6 @@ KITS = {
             ("painel_elevador", "Elevador por dentro: painel de botões", "decal",
              "a tall narrow elevator button panel in brushed steel: two columns of round buttons numbered 1 to 12 plus \"G\", "
              "\"T\" and an alarm bell button, button \"G\" glowing orange.", []),
-            ("espelho_elevador", "Elevador por dentro: espelho", "decal",
-             "a large rectangular elevator mirror with a thin steel frame, reflecting a dim warm-lit empty elevator (no people).",
-             []),
         ],
         "derivados": [],
     },
@@ -197,7 +194,7 @@ FORMATO = {"parede": "portrait", "piso": "square", "decal": None}
 DECAL_FORMATO = {"prateleira_paes": "landscape", "cardapio_padaria": "landscape", "neon_padaria": "landscape",
                  "porta_banheiro": "portrait", "porta_rua": "portrait", "vitrine_rua": "landscape",
                  "porta_elevador_garagem": "landscape", "placa_saida": "landscape", "extintor": "portrait",
-                 "porta_cabine": "portrait", "painel_elevador": "portrait", "espelho_elevador": "portrait"}
+                 "porta_cabine": "portrait", "painel_elevador": "portrait"}
 # imagens planas que têm forma própria (placa, objeto na parede): fundo transparente em volta
 TRANSPARENTES = {"prateleira_paes", "cardapio_padaria", "neon_padaria", "placa_saida", "extintor", "painel_elevador"}
 

@@ -571,10 +571,31 @@
     poli(ctx, fresta, "rgba(255,200,120,0.55)");
   }
 
+  // Espelho desenhado (sem imagem): moldura de aço, vidro claro e faixas de reflexo na diagonal.
+  function espelho(ctx, w) {
+    const P3 = (u, z) => (w.plano === "x0" ? T(0, u, z) : T(u, 0, z));
+    const m = 0.05;
+    poli(ctx, [P3(w.a, w.z0), P3(w.b, w.z0), P3(w.b, w.z1), P3(w.a, w.z1)], "#8d8f96", "rgba(0,0,0,0.5)");
+    const vidro = [P3(w.a + m, w.z0 + m), P3(w.b - m, w.z0 + m), P3(w.b - m, w.z1 - m), P3(w.a + m, w.z1 - m)];
+    const g = ctx.createLinearGradient(vidro[0][0], vidro[2][1], vidro[2][0], vidro[0][1]);
+    g.addColorStop(0, "#5d6b78"); g.addColorStop(0.5, "#9fb0bd"); g.addColorStop(1, "#6c7a87");
+    poli(ctx, vidro, g);
+    ctx.save();
+    ctx.beginPath(); vidro.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.clip();
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    const L = w.b - w.a, H = w.z1 - w.z0;
+    for (const [u, larg] of [[0.25, 0.12], [0.45, 0.05], [0.7, 0.09]]) { // reflexos inclinados
+      const a = w.a + L * u;
+      poli(ctx, [P3(a, w.z0), P3(a + L * larg, w.z0), P3(a + L * larg + L * 0.35, w.z0 + H), P3(a + L * 0.35, w.z0 + H)], "rgba(255,255,255,0.18)");
+    }
+    ctx.restore();
+  }
+
   function quadParede(ctx, w) {
     if (w.saida && porta.aberta) { portaAbertaDesenho(ctx, w); return; }
     if (w.soSemTextura && imgProps[TEXTURA_PAREDE]) return; // a textura da parede já desenha isso
     if (decalque(ctx, w)) return;
+    if (w.tipo === "espelho") { espelho(ctx, w); return; }
     const p = w.plano === "x0"
       ? [T(0, w.a, w.z0), T(0, w.b, w.z0), T(0, w.b, w.z1), T(0, w.a, w.z1)]
       : [T(w.a, 0, w.z0), T(w.b, 0, w.z0), T(w.b, 0, w.z1), T(w.a, 0, w.z1)];

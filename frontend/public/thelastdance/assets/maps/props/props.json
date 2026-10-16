@@ -897,14 +897,6 @@
         294,
         512
       ]
-    },
-    "espelho_elevador": {
-      "tipo": "decal",
-      "arquivo": "espelho_elevador.png",
-      "tamanho_px": [
-        341,
-        512
-      ]
     }
   }
 }
